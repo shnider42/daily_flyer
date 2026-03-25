@@ -153,6 +153,9 @@ def build_daily_page(theme_name: str, date_str: str | None = None, seed: int | N
         )
     )
 
+    rng.shuffle(cards)
+    cards = cards[: rng.randint(4, 8)]
+
     return PageContext(
         page_title=theme_config["page_title"],
         header_title=theme_config["header_title"],
