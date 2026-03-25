@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from pathlib import Path
 
-from daily_flyer.models import PageContext
+from daily_flyer.models import CardItem, PageContext
 
 
 def build_html(context: PageContext) -> str:
@@ -77,17 +77,6 @@ def build_html(context: PageContext) -> str:
         font-size: 1.15rem;
     }
 
-    .native {
-        font-weight: 700;
-        font-size: 1.1rem;
-    }
-
-    .pron {
-        color: var(--muted);
-        font-style: italic;
-        margin-top: 0.2rem;
-    }
-
     .body {
         margin-top: 0.35rem;
         line-height: 1.5;
@@ -111,12 +100,7 @@ def build_html(context: PageContext) -> str:
     }
     """
 
-    history_year = ""
-    history_body = context.history.body
-    if " — " in history_body:
-        parts = history_body.split(" — ", 1)
-        history_year = parts[0]
-        history_body = parts[1]
+    cards_html = "\n".join(_render_card(card) for card in context.cards)
 
     return f"""<!DOCTYPE html>
 <html lang="en">
@@ -134,58 +118,7 @@ def build_html(context: PageContext) -> str:
     </header>
 
     <main>
-        <section class="card">
-            <div class="eyebrow">Word of the Day</div>
-            <h2 class="native">{context.word.native_text}</h2>
-            <div class="pron">{context.word.pronunciation}</div>
-            <div class="body">{context.word.english}</div>
-            {_source_html(context.word.source_url)}
-        </section>
-
-        <section class="card">
-            <div class="eyebrow">Phrase of the Day</div>
-            <h2 class="native">{context.phrase.native_text}</h2>
-            <div class="pron">{context.phrase.pronunciation}</div>
-            <div class="body">{context.phrase.english}</div>
-            {_source_html(context.phrase.source_url)}
-        </section>
-
-        <section class="card">
-            <div class="eyebrow">History</div>
-            <h2>{history_year or context.history.title}</h2>
-            <div class="body">{history_body}</div>
-            {_source_html(context.history.source_url)}
-        </section>
-        
-        {f"""
-        <section class="card">
-            <div class="eyebrow">Military Archives</div>
-            <h2>{context.military.title}</h2>
-            <div class="body">{context.military.body}</div>
-        {_source_html(context.military.source_url)}
-        </section>
-        """ if context.military else ""}
-
-        <section class="card">
-            <div class="eyebrow">Sports Spotlight</div>
-            <h2>{context.sport.title}</h2>
-            <div class="body">{context.sport.body}</div>
-            {_source_html(context.sport.source_url)}
-        </section>
-
-        <section class="card">
-            <div class="eyebrow">Did You Know?</div>
-            <h2>{context.trivia.title}</h2>
-            <div class="body">{context.trivia.body}</div>
-            {_source_html(context.trivia.source_url)}
-        </section>
-
-        <section class="card">
-            <div class="eyebrow">Top Story</div>
-            <h2>{context.top_story.headline}</h2>
-            <div class="body">{context.top_story.snippet}</div>
-            {_source_html(context.top_story.source_url)}
-        </section>
+        {cards_html}
     </main>
 
     <footer>
@@ -194,6 +127,16 @@ def build_html(context: PageContext) -> str:
 </body>
 </html>
 """
+
+def _render_card(card: CardItem) -> str:
+    return f"""
+        <section class="card">
+            <div class="eyebrow">{card.eyebrow}</div>
+            <h2>{card.title}</h2>
+            <div class="body">{card.body}</div>
+            {_source_html(card.source_url)}
+        </section>
+    """
 
 
 def _source_html(source_url: str | None) -> str:

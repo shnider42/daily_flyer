@@ -42,12 +42,6 @@ class PageContext:
     header_title: str
     header_subtitle: str
     today_str: str
-    word: LanguageItem
-    phrase: LanguageItem
-    history: ContentItem
-    sport: ContentItem
-    trivia: ContentItem
-    top_story: StoryItem
+    cards: list[CardItem]
     footer_text: str
     metadata: dict = field(default_factory=dict)
-    military: Optional[ContentItem] = None
