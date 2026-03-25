@@ -5,6 +5,16 @@ from typing import Optional
 
 
 @dataclass
+class CardItem:
+    card_type: str
+    eyebrow: str
+    title: str
+    body: str
+    source_url: Optional[str] = None
+    cadence: str = "daily"   # daily, weekly
+    weight: int = 1          # future-friendly for selection logic
+
+@dataclass
 class LanguageItem:
     native_text: str
     english: str
@@ -40,3 +50,4 @@ class PageContext:
     top_story: StoryItem
     footer_text: str
     metadata: dict = field(default_factory=dict)
+    military: Optional[ContentItem] = None

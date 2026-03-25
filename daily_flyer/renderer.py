@@ -156,6 +156,15 @@ def build_html(context: PageContext) -> str:
             <div class="body">{history_body}</div>
             {_source_html(context.history.source_url)}
         </section>
+        
+        {f"""
+        <section class="card">
+            <div class="eyebrow">Military Archives</div>
+            <h2>{context.military.title}</h2>
+            <div class="body">{context.military.body}</div>
+        {_source_html(context.military.source_url)}
+        </section>
+        """ if context.military else ""}
 
         <section class="card">
             <div class="eyebrow">Sports Spotlight</div>

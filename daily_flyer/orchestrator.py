@@ -6,6 +6,7 @@ from daily_flyer.models import ContentItem, LanguageItem, PageContext, StoryItem
 from daily_flyer.providers.rte import fetch_sport_spotlight, fetch_top_story
 from daily_flyer.providers.wikipedia import fetch_irish_on_this_day, fetch_summary_trivia
 from daily_flyer.providers.wiktionary import fetch_gaeilge_word_hint
+from daily_flyer.providers.militaryarchives import fetch_military_archives_highlight
 from daily_flyer.theme_loader import load_theme
 from daily_flyer.utils import resolve_date
 
@@ -58,6 +59,17 @@ def build_daily_page(theme_name: str, date_str: str | None = None, seed: int | N
             body=history_text,
         )
 
+    # Military History
+    dynamic_military = fetch_military_archives_highlight()
+    if dynamic_military:
+        military = ContentItem(
+            title="Military Archives Spotlight",
+            body=dynamic_military[0],
+            source_url=dynamic_military[1],
+        )
+    else:
+        military = None
+
     # Sport
     dynamic_sport = fetch_sport_spotlight()
     if dynamic_sport:
@@ -108,6 +120,7 @@ def build_daily_page(theme_name: str, date_str: str | None = None, seed: int | N
         word=word,
         phrase=phrase,
         history=history,
+        military=military,
         sport=sport,
         trivia=trivia,
         top_story=top_story,
