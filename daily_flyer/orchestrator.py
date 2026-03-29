@@ -199,6 +199,20 @@ def build_daily_page(theme_name: str, date_str: str | None = None, seed: int | N
     # Shuffle final display order
     rng.shuffle(cards)
 
+    # Background of site
+    background = None
+    theme_backgrounds = getattr(theme, "BACKGROUNDS", [])
+
+    if theme_backgrounds:
+        cadence = getattr(theme, "BACKGROUND_CADENCE", "daily")
+
+        if cadence == "weekly":
+            index = today.isocalendar().week % len(theme_backgrounds)
+        else:
+            index = today.toordinal() % len(theme_backgrounds)
+
+        background = theme_backgrounds[index]
+
     return PageContext(
         page_title=theme_config["page_title"],
         header_title=theme_config["header_title"],
@@ -209,5 +223,6 @@ def build_daily_page(theme_name: str, date_str: str | None = None, seed: int | N
         metadata={
             "theme_name": theme_name,
             "date_key": mmdd,
+            "background": background,
         },
     )

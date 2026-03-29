@@ -66,3 +66,28 @@ TRIVIA = [
     "The Wild Atlantic Way is one of the world’s longest defined coastal routes.",
     "Irish harps appear on Irish coinage and the state seal.",
 ]
+
+BACKGROUND_CADENCE = "daily"   # later change to "weekly"
+
+BACKGROUNDS = [
+    {
+        "path": "assets/backgrounds/cliffs_of_moher.jpg",
+        "label": "Cliffs of Moher",
+    },
+    {
+        "path": "assets/backgrounds/connemara.jpg",
+        "label": "Connemara",
+    },
+    {
+        "path": "assets/backgrounds/giants_causeway.jpg",
+        "label": "Giant's Causeway",
+    },
+    {
+        "path": "assets/backgrounds/killarney.jpg",
+        "label": "Killarney National Park",
+    },
+    {
+        "path": "assets/backgrounds/rock_of_cashel.jpg",
+        "label": "Rock of Cashel",
+    },
+]
