@@ -9,8 +9,8 @@
         --bg: #07131c;
         --bg-deep: #041018;
         --bg-soft: #0b1f2b;
-        --card: rgba(8, 22, 31, 0.72);
-        --card-strong: rgba(12, 28, 40, 0.88);
+        --card: rgba(8, 22, 31, 0.78);
+        --card-strong: rgba(12, 28, 40, 0.90);
         --border: rgba(255,255,255,0.10);
         --border-strong: rgba(255,255,255,0.18);
 
@@ -19,7 +19,6 @@
         --muted: #8fb7c4;
 
         --irish-green: #29b36a;
-        --irish-green-soft: rgba(41, 179, 106, 0.16);
         --gold: #d7b96b;
         --teal: #49c5b6;
         --blue: #7db7d9;
@@ -32,6 +31,7 @@
         --radius-md: 16px;
 
         --max-width: 1180px;
+        --bg-shift: 0px;
     }
 
     * { box-sizing: border-box; }
@@ -52,6 +52,19 @@
         min-height: 100vh;
         position: relative;
         overflow-x: hidden;
+    }
+
+    .site-bg {
+        position: fixed;
+        inset: 0;
+        z-index: 0;
+        background-size: cover;
+        background-position: center center;
+        background-repeat: no-repeat;
+        transform: translateY(var(--bg-shift)) scale(1.04);
+        transform-origin: center center;
+        will-change: transform;
+        filter: saturate(0.90) brightness(0.76);
     }
 
     body::before,
@@ -93,39 +106,39 @@
     }
 
     header.hero {
-    position: relative;
-    overflow: hidden;
-    padding: 42px 26px 34px;
-    border-radius: 30px;
-    border: 1px solid var(--border);
-    background:
-        linear-gradient(
-            90deg,
-            rgba(22, 163, 74, 0.10) 0%,
-            rgba(22, 163, 74, 0.06) 18%,
-            rgba(255, 255, 255, 0.03) 38%,
-            rgba(255, 255, 255, 0.05) 50%,
-            rgba(255, 153, 51, 0.04) 68%,
-            rgba(255, 153, 51, 0.08) 100%
-        ),
-        linear-gradient(135deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02)),
-        linear-gradient(160deg, rgba(41,179,106,0.10), rgba(73,197,182,0.04) 45%, rgba(125,183,217,0.08));
-    box-shadow: var(--shadow-lg);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-}
+        position: relative;
+        overflow: hidden;
+        padding: 42px 26px 34px;
+        border-radius: 30px;
+        border: 1px solid var(--border);
+        background:
+            linear-gradient(
+                90deg,
+                rgba(22, 163, 74, 0.10) 0%,
+                rgba(22, 163, 74, 0.06) 18%,
+                rgba(255, 255, 255, 0.03) 38%,
+                rgba(255, 255, 255, 0.05) 50%,
+                rgba(255, 153, 51, 0.04) 68%,
+                rgba(255, 153, 51, 0.08) 100%
+            ),
+            linear-gradient(135deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02)),
+            linear-gradient(160deg, rgba(41,179,106,0.10), rgba(73,197,182,0.04) 45%, rgba(125,183,217,0.08));
+        box-shadow: var(--shadow-lg);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+    }
 
     header.hero::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-    background:
-        linear-gradient(90deg, transparent, rgba(255,255,255,0.04), transparent),
-        radial-gradient(circle at 12% 22%, rgba(22,163,74,0.10), transparent 20%),
-        radial-gradient(circle at 88% 28%, rgba(255,153,51,0.08), transparent 22%);
-    opacity: 0.9;
-}
+        content: "";
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        background:
+            linear-gradient(90deg, transparent, rgba(255,255,255,0.04), transparent),
+            radial-gradient(circle at 12% 22%, rgba(22,163,74,0.10), transparent 20%),
+            radial-gradient(circle at 88% 28%, rgba(255,153,51,0.08), transparent 22%);
+        opacity: 0.9;
+    }
 
     .hero-kicker {
         display: inline-flex;
@@ -148,17 +161,8 @@
         letter-spacing: -0.03em;
         font-weight: 800;
         max-width: 10ch;
+        text-shadow: 0 2px 18px rgba(0,0,0,0.18);
     }
-    
-    .hero h1 {
-    margin: 1rem 0 0;
-    font-size: clamp(2.4rem, 6vw, 4.8rem);
-    line-height: 0.96;
-    letter-spacing: -0.03em;
-    font-weight: 800;
-    max-width: 10ch;
-    text-shadow: 0 2px 18px rgba(0,0,0,0.18);
-}
 
     .hero .subtitle {
         margin-top: 0.95rem;
@@ -341,6 +345,8 @@
         color: #9fb2bb;
         border: 1px solid rgba(255,255,255,0.07);
         background: rgba(255,255,255,0.03);
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
     }
 
     @media (max-width: 980px) {
@@ -375,11 +381,20 @@
     </style>
 </head>
 <body>
+    
+            <div
+                class="site-bg"
+                aria-hidden="true"
+                style="background-image:
+                    linear-gradient(rgba(4, 12, 18, 0.58), rgba(4, 12, 18, 0.80)),
+                    url('daily_flyer/themes/irish_celtic_knot_background.jpg');">
+            </div>
+        
     <div class="page-shell">
         <div class="hero-wrap">
             <header class="hero">
                 <div class="hero-kicker">Daily Flyer • Irish Edition</div>
-                <h1>Irish Today 🇮🇪</h1>
+                <h1>Irish Today ☘️</h1>
                 <div class="subtitle">A tiny daily page about Gaeilge, history, and sport.</div>
                 <div class="hero-meta">
                     <div class="hero-pill">📅 Sunday, March 29, 2026</div>
@@ -390,16 +405,16 @@
 
         <main>
             
-        <section class="card card--phrase">
+        <section class="card card--word">
             <div class="card-head">
                 <div>
-                    <div class="eyebrow">Phrase of the Day</div>
-                    <h2>Tá ocras orm.</h2>
+                    <div class="eyebrow">Word of the Day</div>
+                    <h2>Brabhsáil:</h2>
                 </div>
-                <div class="icon-badge" aria-hidden="true">💬</div>
+                <div class="icon-badge" aria-hidden="true">🗣️</div>
             </div>
-            <div class="body">Pronunciation: taw uk-rus ur-im<br>I’m hungry.</div>
-            
+            <div class="body">Irish entry (from Wiktionary)</div>
+            <div class="source"><a href="https://ga.wiktionary.org/wiki/Príomhleathanach" target="_blank" rel="noopener noreferrer">Read more</a></div>
         </section>
     
 
@@ -416,16 +431,29 @@
         </section>
     
 
-        <section class="card card--word">
+        <section class="card card--sport">
             <div class="card-head">
                 <div>
-                    <div class="eyebrow">Word of the Day</div>
-                    <h2>Brabhsáil:</h2>
+                    <div class="eyebrow">Sports Spotlight</div>
+                    <h2>Today’s Pick</h2>
                 </div>
-                <div class="icon-badge" aria-hidden="true">🗣️</div>
+                <div class="icon-badge" aria-hidden="true">🏆</div>
             </div>
-            <div class="body">Irish entry (from Wiktionary)</div>
-            <div class="source"><a href="https://ga.wiktionary.org/wiki/Príomhleathanach" target="_blank" rel="noopener noreferrer">Read more</a></div>
+            <div class="body">'It's a red card all day' - Panel agree Murphy call wrongFootball</div>
+            <div class="source"><a href="https://www.rte.ie/sport/" target="_blank" rel="noopener noreferrer">Read more</a></div>
+        </section>
+    
+
+        <section class="card card--phrase">
+            <div class="card-head">
+                <div>
+                    <div class="eyebrow">Phrase of the Day</div>
+                    <h2>Go n-éirí an bóthar leat.</h2>
+                </div>
+                <div class="icon-badge" aria-hidden="true">💬</div>
+            </div>
+            <div class="body">Pronunciation: guh ny-ree on boh-her lat<br>May the road rise to meet you.</div>
+            
         </section>
     
 
@@ -437,21 +465,21 @@
                 </div>
                 <div class="icon-badge" aria-hidden="true">📜</div>
             </div>
-            <div class="body">Newgrange predates Stonehenge and the Egyptian pyramids by centuries.</div>
+            <div class="body">The Book of Kells is a lavishly illuminated Gospel book created by Celtic monks around 800 AD.</div>
             
         </section>
     
 
-        <section class="card card--sport">
+        <section class="card card--county">
             <div class="card-head">
                 <div>
-                    <div class="eyebrow">Sports Spotlight</div>
-                    <h2>Today’s Pick</h2>
+                    <div class="eyebrow">County of the Day</div>
+                    <h2>County Donegal</h2>
                 </div>
-                <div class="icon-badge" aria-hidden="true">🏆</div>
+                <div class="icon-badge" aria-hidden="true">🗺️</div>
             </div>
-            <div class="body">Donegal dominate Kerry to be crowned league championsFootball</div>
-            <div class="source"><a href="https://www.rte.ie/sport/" target="_blank" rel="noopener noreferrer">Read more</a></div>
+            <div class="body">A rugged coastal county with strong Gaeltacht regions and distinct identity.</div>
+            
         </section>
     
         </main>
@@ -462,5 +490,19 @@
             </div>
         </footer>
     </div>
+
+    <script>
+    (function () {
+        const root = document.documentElement;
+
+        function updateParallax() {
+            const y = Math.min(window.scrollY * 0.10, 36);
+            root.style.setProperty("--bg-shift", `${y}px`);
+        }
+
+        updateParallax();
+        window.addEventListener("scroll", updateParallax, { passive: true });
+    })();
+    </script>
 </body>
 </html>

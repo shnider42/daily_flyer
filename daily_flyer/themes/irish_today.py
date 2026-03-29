@@ -3,7 +3,7 @@ from __future__ import annotations
 
 THEME_CONFIG = {
     "page_title": "Irish Today — Learn a little, every day",
-    "header_title": "Irish Today 🇮🇪",
+    "header_title": "Irish Today ☘️",
     "header_subtitle": "A tiny daily page about Gaeilge, history, and sport.",
     "footer_text": "Built with Python. Add your own facts, dates, and categories—then regenerate daily.",
 }
@@ -67,27 +67,20 @@ TRIVIA = [
     "Irish harps appear on Irish coinage and the state seal.",
 ]
 
-BACKGROUND_CADENCE = "daily"   # later change to "weekly"
+
+BACKGROUND_CADENCE = "daily"
 
 BACKGROUNDS = [
     {
-        "path": "assets/backgrounds/cliffs_of_moher.jpg",
-        "label": "Cliffs of Moher",
+        "path": "daily_flyer/themes/irish_celtic_knot_background.jpg",
+        "label": "Irish Celtic Knot Background",
     },
     {
-        "path": "assets/backgrounds/connemara.jpg",
-        "label": "Connemara",
+        "path": "daily_flyer/themes/irish_historic_map_background.jpg",
+        "label": "Irish Historic Map Background",
     },
     {
-        "path": "assets/backgrounds/giants_causeway.jpg",
-        "label": "Giant's Causeway",
-    },
-    {
-        "path": "assets/backgrounds/killarney.jpg",
-        "label": "Killarney National Park",
-    },
-    {
-        "path": "assets/backgrounds/rock_of_cashel.jpg",
-        "label": "Rock of Cashel",
+        "path": "daily_flyer/themes/irish_misty_hills_background.jpg",
+        "label": "Irish Misty Hills Background",
     },
 ]

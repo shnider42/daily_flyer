@@ -3,18 +3,20 @@ from __future__ import annotations
 import random
 
 from daily_flyer.models import CardItem, PageContext
-from daily_flyer.providers.rte import fetch_sport_spotlight
-from daily_flyer.providers.wikipedia import fetch_irish_on_this_day, fetch_summary_trivia
-from daily_flyer.providers.wiktionary import fetch_gaeilge_word_hint
-from daily_flyer.providers.militaryarchives import fetch_military_archives_highlight
-from daily_flyer.providers.facts import fetch_irish_connection
 from daily_flyer.providers.county import fetch_county_of_the_day
+from daily_flyer.providers.facts import fetch_irish_connection
+from daily_flyer.providers.rte import fetch_sport_spotlight
+from daily_flyer.providers.wiktionary import fetch_gaeilge_word_hint
+from daily_flyer.providers.wikipedia import fetch_irish_on_this_day
 from daily_flyer.theme_loader import load_theme
 from daily_flyer.utils import resolve_date
 
 
-
-def build_daily_page(theme_name: str, date_str: str | None = None, seed: int | None = None) -> PageContext:
+def build_daily_page(
+    theme_name: str,
+    date_str: str | None = None,
+    seed: int | None = None,
+) -> PageContext:
     theme = load_theme(theme_name)
     today = resolve_date(date_str)
     rng = random.Random(seed)
@@ -85,21 +87,6 @@ def build_daily_page(theme_name: str, date_str: str | None = None, seed: int | N
         )
     )
 
-    '''
-    # Military History
-    dynamic_military = fetch_military_archives_highlight()
-    if dynamic_military:
-        optional_cards.append(
-            CardItem(
-                card_type="military",
-                eyebrow="Military Archives",
-                title="Military Archives Spotlight",
-                body=dynamic_military[0],
-                source_url=dynamic_military[1],
-            )
-        )
-    '''
-
     # Sport
     dynamic_sport = fetch_sport_spotlight()
     if dynamic_sport:
@@ -119,29 +106,8 @@ def build_daily_page(theme_name: str, date_str: str | None = None, seed: int | N
         )
     )
 
-    '''
-    # Trivia
-    dynamic_trivia = fetch_summary_trivia("Ireland", "Irish language", "Irish people")
-    if dynamic_trivia:
-        trivia_body = dynamic_trivia[0]
-        trivia_source = dynamic_trivia[1]
-    else:
-        trivia_body = rng.choice(theme.TRIVIA)
-        trivia_source = None
-
-    core_cards.append(
-        CardItem(
-            card_type="trivia",
-            eyebrow="Did You Know?",
-            title="Trivia",
-            body=trivia_body,
-            source_url=trivia_source,
-        )
-    '''
-
-    # Irish Connection (replaces Trivia)
+    # Irish Connection
     fact = fetch_irish_connection(rng)
-
     optional_cards.append(
         CardItem(
             card_type="irish_connection",
@@ -152,8 +118,8 @@ def build_daily_page(theme_name: str, date_str: str | None = None, seed: int | N
         )
     )
 
+    # County
     county = fetch_county_of_the_day(today)
-
     optional_cards.append(
         CardItem(
             card_type="county",
@@ -164,30 +130,7 @@ def build_daily_page(theme_name: str, date_str: str | None = None, seed: int | N
         )
     )
 
-    '''
-    # Top story
-    #dynamic_story = fetch_top_story()
-    if dynamic_story:
-        story_title = dynamic_story["headline"]
-        story_body = dynamic_story["snippet"]
-        story_source = dynamic_story.get("source_url")
-    else:
-        story_title = "No story available."
-        story_body = "Try again later."
-        story_source = None
-
-    cards.append(
-        CardItem(
-            card_type="news",
-            eyebrow="Top Story",
-            title=story_title,
-            body=story_body,
-            source_url=story_source,
-        )
-    )'''
-
     # Combine core + optional cards safely
-
     rng.shuffle(optional_cards)
 
     if optional_cards:
@@ -196,7 +139,6 @@ def build_daily_page(theme_name: str, date_str: str | None = None, seed: int | N
     else:
         cards = core_cards.copy()
 
-    # Shuffle final display order
     rng.shuffle(cards)
 
     # Background of site

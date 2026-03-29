@@ -1,7 +1,8 @@
 from __future__ import annotations
 
-from pathlib import Path
 from html import escape
+from pathlib import Path
+
 from daily_flyer.models import CardItem, PageContext
 
 
@@ -11,8 +12,8 @@ def build_html(context: PageContext) -> str:
         --bg: #07131c;
         --bg-deep: #041018;
         --bg-soft: #0b1f2b;
-        --card: rgba(8, 22, 31, 0.72);
-        --card-strong: rgba(12, 28, 40, 0.88);
+        --card: rgba(8, 22, 31, 0.78);
+        --card-strong: rgba(12, 28, 40, 0.90);
         --border: rgba(255,255,255,0.10);
         --border-strong: rgba(255,255,255,0.18);
 
@@ -21,7 +22,6 @@ def build_html(context: PageContext) -> str:
         --muted: #8fb7c4;
 
         --irish-green: #29b36a;
-        --irish-green-soft: rgba(41, 179, 106, 0.16);
         --gold: #d7b96b;
         --teal: #49c5b6;
         --blue: #7db7d9;
@@ -34,6 +34,7 @@ def build_html(context: PageContext) -> str:
         --radius-md: 16px;
 
         --max-width: 1180px;
+        --bg-shift: 0px;
     }
 
     * { box-sizing: border-box; }
@@ -54,6 +55,19 @@ def build_html(context: PageContext) -> str:
         min-height: 100vh;
         position: relative;
         overflow-x: hidden;
+    }
+
+    .site-bg {
+        position: fixed;
+        inset: 0;
+        z-index: 0;
+        background-size: cover;
+        background-position: center center;
+        background-repeat: no-repeat;
+        transform: translateY(var(--bg-shift)) scale(1.04);
+        transform-origin: center center;
+        will-change: transform;
+        filter: saturate(0.90) brightness(0.76);
     }
 
     body::before,
@@ -95,39 +109,39 @@ def build_html(context: PageContext) -> str:
     }
 
     header.hero {
-    position: relative;
-    overflow: hidden;
-    padding: 42px 26px 34px;
-    border-radius: 30px;
-    border: 1px solid var(--border);
-    background:
-        linear-gradient(
-            90deg,
-            rgba(22, 163, 74, 0.10) 0%,
-            rgba(22, 163, 74, 0.06) 18%,
-            rgba(255, 255, 255, 0.03) 38%,
-            rgba(255, 255, 255, 0.05) 50%,
-            rgba(255, 153, 51, 0.04) 68%,
-            rgba(255, 153, 51, 0.08) 100%
-        ),
-        linear-gradient(135deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02)),
-        linear-gradient(160deg, rgba(41,179,106,0.10), rgba(73,197,182,0.04) 45%, rgba(125,183,217,0.08));
-    box-shadow: var(--shadow-lg);
-    backdrop-filter: blur(12px);
-    -webkit-backdrop-filter: blur(12px);
-}
+        position: relative;
+        overflow: hidden;
+        padding: 42px 26px 34px;
+        border-radius: 30px;
+        border: 1px solid var(--border);
+        background:
+            linear-gradient(
+                90deg,
+                rgba(22, 163, 74, 0.10) 0%,
+                rgba(22, 163, 74, 0.06) 18%,
+                rgba(255, 255, 255, 0.03) 38%,
+                rgba(255, 255, 255, 0.05) 50%,
+                rgba(255, 153, 51, 0.04) 68%,
+                rgba(255, 153, 51, 0.08) 100%
+            ),
+            linear-gradient(135deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02)),
+            linear-gradient(160deg, rgba(41,179,106,0.10), rgba(73,197,182,0.04) 45%, rgba(125,183,217,0.08));
+        box-shadow: var(--shadow-lg);
+        backdrop-filter: blur(12px);
+        -webkit-backdrop-filter: blur(12px);
+    }
 
     header.hero::before {
-    content: "";
-    position: absolute;
-    inset: 0;
-    pointer-events: none;
-    background:
-        linear-gradient(90deg, transparent, rgba(255,255,255,0.04), transparent),
-        radial-gradient(circle at 12% 22%, rgba(22,163,74,0.10), transparent 20%),
-        radial-gradient(circle at 88% 28%, rgba(255,153,51,0.08), transparent 22%);
-    opacity: 0.9;
-}
+        content: "";
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        background:
+            linear-gradient(90deg, transparent, rgba(255,255,255,0.04), transparent),
+            radial-gradient(circle at 12% 22%, rgba(22,163,74,0.10), transparent 20%),
+            radial-gradient(circle at 88% 28%, rgba(255,153,51,0.08), transparent 22%);
+        opacity: 0.9;
+    }
 
     .hero-kicker {
         display: inline-flex;
@@ -150,17 +164,8 @@ def build_html(context: PageContext) -> str:
         letter-spacing: -0.03em;
         font-weight: 800;
         max-width: 10ch;
+        text-shadow: 0 2px 18px rgba(0,0,0,0.18);
     }
-    
-    .hero h1 {
-    margin: 1rem 0 0;
-    font-size: clamp(2.4rem, 6vw, 4.8rem);
-    line-height: 0.96;
-    letter-spacing: -0.03em;
-    font-weight: 800;
-    max-width: 10ch;
-    text-shadow: 0 2px 18px rgba(0,0,0,0.18);
-}
 
     .hero .subtitle {
         margin-top: 0.95rem;
@@ -343,6 +348,8 @@ def build_html(context: PageContext) -> str:
         color: #9fb2bb;
         border: 1px solid rgba(255,255,255,0.07);
         background: rgba(255,255,255,0.03);
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
     }
 
     @media (max-width: 980px) {
@@ -378,16 +385,18 @@ def build_html(context: PageContext) -> str:
 
     background = context.metadata.get("background") or {}
     background_path = escape(background.get("path", ""))
-    background_label = escape(background.get("label", "Irish landscape"))
     background_html = ""
 
     if background_path:
-        background_html = f'''
-            <div class="site-bg" aria-hidden="true" style="background-image:
-                linear-gradient(rgba(4, 12, 18, 0.60), rgba(4, 12, 18, 0.78)),
-                url("{background_path}");">
+        background_html = f"""
+            <div
+                class="site-bg"
+                aria-hidden="true"
+                style="background-image:
+                    linear-gradient(rgba(4, 12, 18, 0.58), rgba(4, 12, 18, 0.80)),
+                    url('{background_path}');">
             </div>
-        '''
+        """
 
     cards_html = "\n".join(_render_card(card) for card in context.cards)
 
@@ -400,6 +409,7 @@ def build_html(context: PageContext) -> str:
 <style>{css}</style>
 </head>
 <body>
+    {background_html}
     <div class="page-shell">
         <div class="hero-wrap">
             <header class="hero">
@@ -423,6 +433,20 @@ def build_html(context: PageContext) -> str:
             </div>
         </footer>
     </div>
+
+    <script>
+    (function () {{
+        const root = document.documentElement;
+
+        function updateParallax() {{
+            const y = Math.min(window.scrollY * 0.10, 36);
+            root.style.setProperty("--bg-shift", `${{y}}px`);
+        }}
+
+        updateParallax();
+        window.addEventListener("scroll", updateParallax, {{ passive: true }});
+    }})();
+    </script>
 </body>
 </html>
 """
