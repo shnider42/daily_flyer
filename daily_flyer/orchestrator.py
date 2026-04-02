@@ -68,24 +68,40 @@ def build_daily_page(
         )
     )
 
-    # History
+    # History (true date-based content only)
     dynamic_history = fetch_irish_on_this_day(today)
+    history_body = None
+    history_source = None
+
     if dynamic_history:
         history_body = dynamic_history[0]
         history_source = dynamic_history[1]
     else:
-        history_body = theme.HISTORY_BY_DATE.get(mmdd, rng.choice(theme.HISTORY_GENERAL))
-        history_source = None
+        history_body = theme.HISTORY_BY_DATE.get(mmdd)
 
-    core_cards.append(
-        CardItem(
-            card_type="history",
-            eyebrow="History",
-            title="This Day in Irish History",
-            body=history_body,
-            source_url=history_source,
+    if history_body:
+        core_cards.append(
+            CardItem(
+                card_type="history",
+                eyebrow="History",
+                title="This Day in Irish History",
+                body=history_body,
+                source_url=history_source,
+            )
         )
-    )
+
+    # Did You Know? (evergreen fact pool)
+    did_you_know_facts = getattr(theme, "DID_YOU_KNOW", getattr(theme, "HISTORY_GENERAL", []))
+    if did_you_know_facts:
+        core_cards.append(
+            CardItem(
+                card_type="did_you_know",
+                eyebrow="Did You Know?",
+                title="Irish Fact",
+                body=rng.choice(did_you_know_facts),
+                source_url=None,
+            )
+        )
 
     # Sport
     dynamic_sport = fetch_sport_spotlight()
@@ -166,5 +182,6 @@ def build_daily_page(
             "theme_name": theme_name,
             "date_key": mmdd,
             "background": background,
+            "header_title_image": theme_config.get("header_title_image"),
         },
     )

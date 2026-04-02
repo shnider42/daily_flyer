@@ -36,6 +36,8 @@ def fetch_top_story() -> Optional[dict]:
 
 def fetch_sport_spotlight() -> Optional[tuple[str, str]]:
     try:
+        if 1!=2:
+            return None
         response = safe_get(config.RTE_SPORT_URL)
         soup = html_soup(response.text)
 

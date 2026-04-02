@@ -130,6 +130,13 @@ def build_html(context: PageContext) -> str:
         backdrop-filter: blur(12px);
         -webkit-backdrop-filter: blur(12px);
     }
+    
+        .hero-title-image {
+        display: block;
+        max-width: min(560px, 100%);
+        width: 100%;
+        height: auto;
+    }
 
     header.hero::before {
         content: "";
@@ -247,17 +254,27 @@ def build_html(context: PageContext) -> str:
         opacity: 0.95;
     }
 
-    .card--word {
+    .card--word,
+    .card--history,
+    .card--did_you_know {
         grid-column: span 6;
+    }
+
+    .card--word {
         background:
             linear-gradient(180deg, rgba(41,179,106,0.12), rgba(255,255,255,0.02)),
             var(--card-strong);
     }
 
     .card--history {
-        grid-column: span 6;
         background:
             linear-gradient(180deg, rgba(215,185,107,0.10), rgba(255,255,255,0.02)),
+            var(--card-strong);
+    }
+
+    .card--did_you_know {
+        background:
+            linear-gradient(180deg, rgba(125,183,217,0.12), rgba(255,255,255,0.02)),
             var(--card-strong);
     }
 
@@ -355,7 +372,8 @@ def build_html(context: PageContext) -> str:
     @media (max-width: 980px) {
         .card,
         .card--word,
-        .card--history {
+        .card--history,
+        .card--did_you_know {
             grid-column: span 6;
         }
     }
@@ -376,12 +394,25 @@ def build_html(context: PageContext) -> str:
 
         .card,
         .card--word,
-        .card--history {
+        .card--history,
+        .card--did_you_know {
             grid-column: auto;
             min-height: unset;
         }
     }
     """
+
+    header_title_image = escape(context.metadata.get("header_title_image", "") or "")
+    header_title_text = escape(context.header_title)
+
+    if header_title_image:
+        header_title_html = (
+            f'<img class="hero-title-image" '
+            f'src="{header_title_image}" '
+            f'alt="{header_title_text}">'
+        )
+    else:
+        header_title_html = header_title_text
 
     background = context.metadata.get("background") or {}
     background_path = escape(background.get("path", ""))
@@ -414,7 +445,7 @@ def build_html(context: PageContext) -> str:
         <div class="hero-wrap">
             <header class="hero">
                 <div class="hero-kicker">Daily Flyer • Irish Edition</div>
-                <h1>{context.header_title}</h1>
+                    <h1>{header_title_html}</h1>
                 <div class="subtitle">{context.header_subtitle}</div>
                 <div class="hero-meta">
                     <div class="hero-pill">📅 {context.today_str}</div>
@@ -451,7 +482,6 @@ def build_html(context: PageContext) -> str:
 </html>
 """
 
-
 def _render_card(card: CardItem) -> str:
     icon = _icon_for_card(card.card_type)
 
@@ -469,12 +499,12 @@ def _render_card(card: CardItem) -> str:
         </section>
     """
 
-
 def _icon_for_card(card_type: str) -> str:
     icons = {
         "word": "🗣️",
         "phrase": "💬",
         "history": "📜",
+        "did_you_know": "💡",
         "sport": "🏆",
         "irish_connection": "☘️",
         "county": "🗺️",
@@ -484,12 +514,10 @@ def _icon_for_card(card_type: str) -> str:
     }
     return icons.get(card_type, "✦")
 
-
 def _source_html(source_url: str | None) -> str:
     if not source_url:
         return ""
     return f'<div class="source"><a href="{source_url}" target="_blank" rel="noopener noreferrer">Read more</a></div>'
-
 
 def render_html_to_file(context: PageContext, outfile: str) -> None:
     html = build_html(context)
