@@ -226,6 +226,21 @@ def build_html(context: PageContext) -> str:
         transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
         overflow: hidden;
     }
+    
+    .card-image-wrap {
+        margin: 0.2rem 0 0.9rem;
+        border-radius: 16px;
+        overflow: hidden;
+        border: 1px solid rgba(255,255,255,0.08);
+        background: rgba(255,255,255,0.04);
+    }
+
+    .card-image {
+        display: block;
+        width: 100%;
+        aspect-ratio: 16 / 9;
+        object-fit: cover;
+    }
 
     .card:hover {
         transform: translateY(-4px);
@@ -485,15 +500,26 @@ def build_html(context: PageContext) -> str:
 def _render_card(card: CardItem) -> str:
     icon = _icon_for_card(card.card_type)
 
+    image_html = ""
+    if card.image_url:
+        image_src = escape(card.image_url)
+        image_alt = escape(card.title)
+        image_html = f"""
+            <div class="card-image-wrap">
+                <img class="card-image" src="{image_src}" alt="{image_alt}" loading="lazy">
+            </div>
+        """
+
     return f"""
         <section class="card card--{card.card_type}">
             <div class="card-head">
                 <div>
-                    <div class="eyebrow">{card.eyebrow}</div>
-                    <h2>{card.title}</h2>
+                    <div class="eyebrow">{escape(card.eyebrow)}</div>
+                    <h2>{escape(card.title)}</h2>
                 </div>
                 <div class="icon-badge" aria-hidden="true">{icon}</div>
             </div>
+            {image_html}
             <div class="body">{card.body}</div>
             {_source_html(card.source_url)}
         </section>

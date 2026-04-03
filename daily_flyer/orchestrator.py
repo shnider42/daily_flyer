@@ -143,6 +143,7 @@ def build_daily_page(
             title=county["title"],
             body=county["body"],
             source_url=county["source_url"],
+            image_url=county.get("image_url"),
         )
     )
 

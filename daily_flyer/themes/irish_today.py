@@ -150,11 +150,21 @@ HISTORY_GENERAL = DID_YOU_KNOW
 
 
 SPORTS_SPOTLIGHT = [
-    "Hurling is often called the fastest field sport in the world.",
-    "Gaelic football blends kick-passing and hand-passing in a unique way.",
-    "Ireland’s rugby team won multiple Six Nations titles in the 21st century, including Grand Slams.",
-    "Shamrock Rovers are among the most successful clubs in Irish football.",
-    "Camogie is the women’s variant of hurling and is equally skillful and fierce.",
+    "Hurling is often described by the GAA as the world’s fastest field sport. It is also one of the oldest field games in the world, with roots in Ireland stretching back thousands of years.",
+    "Hurling is played with a wooden stick called a hurley and a small ball called a sliotar. The sport is famous for combining speed, skill, bravery, and hand-eye coordination in a way few games can match.",
+    "Gaelic football blends kicking, catching, hand-passing, and solo running into one fast-moving game. Players can carry the ball for four steps before they must bounce it, solo it, or pass it on.",
+    "Gaelic football and hurling are both governed by the GAA, one of Ireland’s most important sporting and cultural organizations. The association has helped preserve native Irish games while also building deep local pride through county and club competition.",
+    "Ireland’s rugby team enjoyed a particularly strong run in the 21st century, winning Six Nations titles and completing Grand Slams in 2009, 2018, and 2023. Those achievements helped confirm Ireland as one of Europe’s modern rugby powers.",
+    "Irish women’s rugby has also produced landmark achievements of its own. One of the most celebrated came in 2013, when Ireland won the Women’s Six Nations Grand Slam for the first time.",
+    "Shamrock Rovers are widely recognized as the most successful club in the Republic of Ireland. Their history includes a record haul of League of Ireland titles and a long-standing place in Dublin football culture.",
+    "Croke Park is the symbolic heart of Gaelic games and one of the largest stadiums in Europe. With a capacity of 82,300, it hosts the biggest days in the Irish sporting calendar, especially the All-Ireland finals.",
+    "The All-Ireland finals are not just championship games; they are major national occasions. Demand for tickets is famously intense, and the matches are followed by Irish audiences at home and abroad.",
+    "The GAA’s reach extends far beyond Ireland itself. Irish emigrants helped bring Gaelic games to places such as the United States, Australia, Britain, Canada, China, and mainland Europe.",
+    "Camogie is the women’s stick-and-ball game closely related to hurling, and it has a proud history of its own. The Camogie Association was founded in 1904, showing how deep the roots of women’s Irish sport run.",
+    "Camogie is often introduced as hurling’s women’s counterpart, but it stands as a major sport in its own right. Its top inter-county matches are known for elite skill, fierce competition, and strong county identity.",
+    "Boxing has been Ireland’s most successful Olympic sport by medal count. Irish boxing medals make up more than half of the country’s overall Olympic total, which says a lot about the sport’s place in Irish athletics.",
+    "Rowing has become one of Ireland’s great modern success stories. Ireland won its first Olympic rowing medal in 2016, and the country later added Olympic golds and more podium finishes through crews that captured the public imagination.",
+    "Horse racing is another huge part of Irish sporting life, especially in the jumps tradition. Punchestown is considered the home of Irish jump racing, and its spring festival is one of the biggest events on the national racing calendar.",
 ]
 
 

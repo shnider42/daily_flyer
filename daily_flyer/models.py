@@ -11,6 +11,7 @@ class CardItem:
     title: str
     body: str
     source_url: Optional[str] = None
+    image_url: Optional[str] = None
     cadence: str = "daily"   # daily, weekly
     weight: int = 1          # future-friendly for selection logic
 

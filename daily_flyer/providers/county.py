@@ -9,11 +9,19 @@ COUNTIES = [
     {"name": "County Carlow", "summary": "A small inland county known for agriculture, the River Barrow, and a quiet rural character."},
     {"name": "County Dublin", "summary": "Home to Ireland’s capital city, Dublin, and the economic and cultural hub of the country."},
     {"name": "County Kildare", "summary": "Known for horse racing, the Curragh plains, and strong ties to Ireland’s equestrian heritage."},
-    {"name": "County Kilkenny", "summary": "Famous for its medieval city, Kilkenny Castle, and dominance in hurling."},
+    {
+        "name": "County Kilkenny",
+        "summary": "Famous for its medieval city, Kilkenny Castle, and dominance in hurling.",
+        "image_url": "daily_flyer/themes/counties/kilkenny.jpg",
+    },
     {"name": "County Laois", "summary": "A central county with rich farmland and the Slieve Bloom Mountains."},
     {"name": "County Longford", "summary": "A quiet county known for lakes, waterways, and a strong rural identity."},
     {"name": "County Louth", "summary": "Ireland’s smallest county, rich in early Christian history and close to the border."},
-    {"name": "County Meath", "summary": "The historic seat of the High Kings of Ireland, home to Newgrange and the Boyne Valley."},
+    {
+        "name": "County Meath",
+        "summary": "The historic seat of the High Kings of Ireland, home to Newgrange and the Boyne Valley.",
+        "image_url": "daily_flyer/themes/counties/meath.jpg",
+    },
     {"name": "County Offaly", "summary": "Known for peat bogs, Birr Castle, and Ireland’s geographic center."},
     {"name": "County Westmeath", "summary": "A lakeside county known for Athlone and access to the River Shannon."},
     {"name": "County Wexford", "summary": "A coastal county with strong ties to the 1798 Rebellion and maritime history."},
@@ -54,4 +62,5 @@ def fetch_county_of_the_day(today) -> dict[str, Optional[str]]:
         "title": county["name"],
         "body": county["summary"],
         "source_url": None,
+        "image_url": county.get("image_url"),
     }
