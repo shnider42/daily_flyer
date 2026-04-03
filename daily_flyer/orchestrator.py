@@ -29,6 +29,12 @@ def _circular_day_distance(a: int, b: int) -> int:
     return min(raw, 365 - raw)
 
 
+def _normalize_history_entry(entry) -> tuple[str, str | None]:
+    if isinstance(entry, dict):
+        return entry.get("body", ""), entry.get("source_url")
+    return str(entry), None
+
+
 def _get_curated_history_card(theme, today) -> CardItem | None:
     mmdd = today.strftime("%m-%d")
 
@@ -36,13 +42,15 @@ def _get_curated_history_card(theme, today) -> CardItem | None:
     history_week_events = getattr(theme, "HISTORY_WEEK_EVENTS", [])
 
     if mmdd in history_this_day:
-        return CardItem(
-            card_type="history",
-            eyebrow="History",
-            title="This Day in Irish History",
-            body=history_this_day[mmdd],
-            source_url=None,
-        )
+        body, source_url = _normalize_history_entry(history_this_day[mmdd])
+        if body:
+            return CardItem(
+                card_type="history",
+                eyebrow="History",
+                title="This Day in Irish History",
+                body=body,
+                source_url=source_url,
+            )
 
     today_doy = today.timetuple().tm_yday
     candidates = []
@@ -51,7 +59,7 @@ def _get_curated_history_card(theme, today) -> CardItem | None:
         event_doy = _day_of_year(event["month"], event["day"])
         distance = _circular_day_distance(today_doy, event_doy)
 
-        if distance <= 3:
+        if distance <= 5:
             candidates.append((distance, event["month"], event["day"], event))
 
     if not candidates:
