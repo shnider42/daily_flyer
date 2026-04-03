@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+ENABLE_DYNAMIC_WORD = False
 
 THEME_CONFIG = {
     "page_title": "Irish Today — Learn a little, every day",
@@ -12,15 +13,55 @@ THEME_CONFIG = {
 
 WORDS = [
     {"native_text": "Craic", "pronunciation": "crack", "english": "Fun / good times / banter"},
-    {"native_text": "Sláinte", "pronunciation": "slawn-cha", "english": "Health! (Cheers)"},
+    {"native_text": "Sláinte", "pronunciation": "slawn-cha", "english": "Health! / Cheers!"},
     {"native_text": "Fáilte", "pronunciation": "fawl-cha", "english": "Welcome"},
+    {"native_text": "Gaeilge", "pronunciation": "gwayl-geh", "english": "Irish (language)"},
+    {"native_text": "Dia dhuit", "pronunciation": "dee-ah gwit", "english": "Hello"},
+    {"native_text": "Le do thoil", "pronunciation": "leh duh hull", "english": "Please"},
     {"native_text": "Go raibh maith agat", "pronunciation": "guh rev mah ah-gut", "english": "Thank you"},
-    {"native_text": "Tá sé go hálainn", "pronunciation": "taw shay guh haw-linn", "english": "It’s beautiful"},
+    {"native_text": "Slán", "pronunciation": "slawn", "english": "Goodbye"},
     {"native_text": "Maidin mhaith", "pronunciation": "ma-jin wah", "english": "Good morning"},
     {"native_text": "Oíche mhaith", "pronunciation": "ee-hah wah", "english": "Good night"},
-    {"native_text": "Gaeilge", "pronunciation": "gwayl-geh", "english": "Irish (language)"},
-    {"native_text": "Le do thoil", "pronunciation": "leh duh hull", "english": "Please"},
-    {"native_text": "Dia dhuit", "pronunciation": "dee-ah gwit", "english": "Hello"},
+    {"native_text": "Tá sé go hálainn", "pronunciation": "taw shay guh haw-linn", "english": "It’s beautiful"},
+    {"native_text": "Éire", "pronunciation": "air-uh", "english": "Ireland"},
+    {"native_text": "Baile", "pronunciation": "bal-yeh", "english": "Home / town"},
+    {"native_text": "Clann", "pronunciation": "clown", "english": "Family / children"},
+    {"native_text": "Cairde", "pronunciation": "car-juh", "english": "Friends"},
+    {"native_text": "Grá", "pronunciation": "graw", "english": "Love"},
+    {"native_text": "Ceol", "pronunciation": "kyole", "english": "Music"},
+    {"native_text": "Amhrán", "pronunciation": "ow-rawn", "english": "Song"},
+    {"native_text": "Bia", "pronunciation": "bee-ah", "english": "Food"},
+    {"native_text": "Uisce", "pronunciation": "ish-ka", "english": "Water"},
+    {"native_text": "Arán", "pronunciation": "uh-rawn", "english": "Bread"},
+    {"native_text": "Bainne", "pronunciation": "bahn-yeh", "english": "Milk"},
+    {"native_text": "Tae", "pronunciation": "tay", "english": "Tea"},
+    {"native_text": "Caife", "pronunciation": "kah-feh", "english": "Coffee"},
+    {"native_text": "Teach", "pronunciation": "chockh", "english": "House"},
+    {"native_text": "Bóthar", "pronunciation": "boh-her", "english": "Road"},
+    {"native_text": "Scoil", "pronunciation": "skull", "english": "School"},
+    {"native_text": "Leabhar", "pronunciation": "lyow-er", "english": "Book"},
+    {"native_text": "Obair", "pronunciation": "ub-ir", "english": "Work"},
+    {"native_text": "Madra", "pronunciation": "mod-rah", "english": "Dog"},
+    {"native_text": "Cat", "pronunciation": "kot", "english": "Cat"},
+    {"native_text": "Fear", "pronunciation": "far", "english": "Man"},
+    {"native_text": "Bean", "pronunciation": "ban", "english": "Woman"},
+    {"native_text": "Mór", "pronunciation": "more", "english": "Big"},
+    {"native_text": "Beag", "pronunciation": "byag", "english": "Small"},
+    {"native_text": "Inniu", "pronunciation": "in-yoo", "english": "Today"},
+    {"native_text": "Inné", "pronunciation": "in-yay", "english": "Yesterday"},
+    {"native_text": "Amárach", "pronunciation": "uh-maw-rukh", "english": "Tomorrow"},
+    {"native_text": "Anois", "pronunciation": "uh-nish", "english": "Now"},
+    {"native_text": "Grian", "pronunciation": "gree-an", "english": "Sun"},
+    {"native_text": "Báisteach", "pronunciation": "bawsh-chakh", "english": "Rain"},
+    {"native_text": "Farraige", "pronunciation": "far-ig-eh", "english": "Sea"},
+    {"native_text": "Sléibhte", "pronunciation": "shlayv-tyeh", "english": "Mountains"},
+    {"native_text": "Samhradh", "pronunciation": "sow-ruh", "english": "Summer"},
+    {"native_text": "Geimhreadh", "pronunciation": "giv-ruh", "english": "Winter"},
+    {"native_text": "Athbhliain", "pronunciation": "ah-vlee-in", "english": "New Year"},
+    {"native_text": "Lá", "pronunciation": "law", "english": "Day"},
+    {"native_text": "Oíche", "pronunciation": "ee-ha", "english": "Night"},
+    {"native_text": "Míle fáilte", "pronunciation": "mee-leh fawl-cha", "english": "A hundred thousand welcomes"},
+    {"native_text": "Go hiontach", "pronunciation": "guh hun-takh", "english": "Excellent / wonderful"},
 ]
 
 
@@ -34,12 +75,45 @@ PHRASES = [
 ]
 
 
-HISTORY_BY_DATE = {
-    "01-21": "1919 — Dáil Éireann first convened in Dublin, proclaiming Irish independence.",
-    "04-24": "1916 — The Easter Rising began in Dublin.",
-    "12-06": "1922 — The Irish Free State officially came into existence.",
-    "10-08": "2005 — Cork completed a famous All-Ireland ladies football three-in-a-row.",
+HISTORY_THIS_DAY = {
+    "03-17": "St. Patrick’s Day is celebrated each year on 17 March. It grew from a religious feast day into the most widely recognized global celebration of Irish identity.",
+    "04-24": "1916 — The Easter Rising began in Dublin. Its immediate military effect was limited, but its political significance became enormous.",
+    "06-16": "Bloomsday is observed on 16 June in honor of James Joyce’s Ulysses. It reflects Dublin’s unusually deep connection to literature and place.",
+    "12-06": "1922 — The Irish Free State officially came into existence. It marked a major constitutional turning point in modern Irish history.",
 }
+
+HISTORY_WEEK_EVENTS = [
+    {
+        "month": 1,
+        "day": 21,
+        "title": "This Week in Irish History",
+        "body": "1919 — Dáil Éireann first convened in Dublin around this week, marking a major step in the movement for Irish self-government.",
+    },
+    {
+        "month": 2,
+        "day": 1,
+        "title": "This Week in Irish History",
+        "body": "Saint Brigid’s Day falls around this week. The date is associated with one of Ireland’s most enduring saints and with older seasonal traditions marking the start of spring.",
+    },
+    {
+        "month": 3,
+        "day": 17,
+        "title": "This Week in Irish History",
+        "body": "St. Patrick’s Day falls around this week. Over time it became the best-known worldwide expression of Irish heritage and identity.",
+    },
+    {
+        "month": 4,
+        "day": 24,
+        "title": "This Week in Irish History",
+        "body": "1916 — The Easter Rising began around this week in Dublin. Though brief, it became one of the defining moments in modern Irish history.",
+    },
+    {
+        "month": 6,
+        "day": 16,
+        "title": "This Week in Irish History",
+        "body": "Bloomsday falls around this week and celebrates James Joyce’s Ulysses. Few cities are tied to a single literary work as strongly as Dublin is to that novel.",
+    },
+]
 
 
 DID_YOU_KNOW = [
