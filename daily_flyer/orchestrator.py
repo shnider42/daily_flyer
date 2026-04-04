@@ -160,7 +160,7 @@ def build_daily_page(
     # Did You Know? (evergreen fact pool)
     did_you_know_facts = getattr(theme, "DID_YOU_KNOW", getattr(theme, "HISTORY_GENERAL", []))
     if did_you_know_facts:
-        core_cards.append(
+        optional_cards.append(
             CardItem(
                 card_type="did_you_know",
                 eyebrow="Did You Know?",
@@ -210,7 +210,7 @@ def build_daily_page(
     # County of the Day
     county = fetch_county_of_the_day(today)
     if county:
-        optional_cards.append(
+        core_cards.append(
             CardItem(
                 card_type="county",
                 eyebrow="County of the Day",
