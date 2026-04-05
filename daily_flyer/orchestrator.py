@@ -4,7 +4,7 @@ import random
 from datetime import date
 
 from daily_flyer.models import CardItem, PageContext
-from daily_flyer.providers.county import fetch_county_of_the_day
+from daily_flyer.providers.county import fetch_county_of_the_week
 from daily_flyer.providers.facts import fetch_irish_connection
 from daily_flyer.providers.rte import fetch_sport_spotlight
 from daily_flyer.providers.wiktionary import fetch_gaeilge_word_hint
@@ -208,12 +208,12 @@ def build_daily_page(
         )
 
     # County of the Day
-    county = fetch_county_of_the_day(today)
+    county = fetch_county_of_the_week(today)
     if county:
         core_cards.append(
             CardItem(
                 card_type="county",
-                eyebrow="County of the Day",
+                eyebrow="County of the Week",
                 title=county["title"],
                 body=county["body"],
                 source_url=county["source_url"],

@@ -175,8 +175,8 @@ COUNTIES = [
 ]
 
 
-def fetch_county_of_the_day(today) -> dict[str, Optional[str]]:
-    index = today.toordinal() % len(COUNTIES)
+def fetch_county_of_the_week(today) -> dict[str, Optional[str]]:
+    index = (today.toordinal() // 7) % len(COUNTIES)
     county = COUNTIES[index]
     return {
         "title": county["name"],
