@@ -4,6 +4,7 @@ from flask import Flask, Response, abort, request, send_from_directory
 
 from daily_flyer.orchestrator import build_daily_page
 from daily_flyer.renderer import build_html
+from daily_flyer.theme_validation import ThemeNotFoundError, ThemeValidationError
 
 app = Flask(__name__)
 REPO_ROOT = Path(__file__).resolve().parent
@@ -38,11 +39,19 @@ def home():
     date_str = (request.args.get("date") or "").strip() or None
     seed = _parse_seed(request.args.get("seed"))
 
-    context = build_daily_page(
-        theme_name=theme_name,
-        date_str=date_str,
-        seed=seed,
-    )
+    try:
+        context = build_daily_page(
+            theme_name=theme_name,
+            date_str=date_str,
+            seed=seed,
+        )
+    except ThemeNotFoundError as exc:
+        abort(400, description=str(exc))
+    except ThemeValidationError as exc:
+        abort(400, description=str(exc))
+    except ValueError as exc:
+        abort(400, description=str(exc) or "Invalid request.")
+
     html = build_html(context)
     return Response(html, mimetype="text/html")
 
