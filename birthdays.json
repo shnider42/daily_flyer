@@ -1,5 +1,13 @@
 [
   {
+    "name": "Patti",
+    "month": 5,
+    "day": 14,
+    "relation": "Mom",
+    "note": "Mom",
+    "phone": "508-523-5140"
+  },
+  {
     "name": "Chris Holtsnider",
     "month": 7,
     "day": 10,

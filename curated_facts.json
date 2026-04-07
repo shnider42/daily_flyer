@@ -2344,6 +2344,336 @@
     "notes": "AI-drafted starter entry; verify exact source/date later."
   },
   {
+    "fact_id": "boston_sports_038",
+    "card_type": "boston_sports",
+    "title": "Bobby Orr’s Flying Goal",
+    "body": "Bobby Orr’s famous overtime goal in May 1970 sealed the Stanley Cup and produced one of hockey’s most iconic photographs. Even people who do not follow the Bruins often recognize that airborne image instantly.",
+    "source_name": "Hockey-Reference",
+    "source_url": "https://www.hockey-reference.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "fun",
+    "tags": [
+      "boston",
+      "bruins",
+      "bobby_orr",
+      "stanley_cup"
+    ],
+    "month": 5,
+    "day": 10,
+    "notes": "AI-drafted starter entry; verify exact source/date later."
+  },
+    {
+    "fact_id": "boston_sports_038_1",
+    "card_type": "boston_sports",
+    "title": "Bobby Orr’s Flying Goal",
+    "body": "Bobby Orr’s famous overtime goal in May 1970, Mother's Day, sealed the Stanley Cup and produced one of hockey’s most iconic photographs. Even people who do not follow the Bruins recognize that airborne image instantly. Happy birthday mom",
+    "source_name": "Hockey-Reference",
+    "source_url": "https://www.hockey-reference.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "fun",
+    "tags": [
+      "boston",
+      "bruins",
+      "bobby_orr",
+      "stanley_cup"
+    ],
+    "month": 5,
+    "day": 14,
+    "notes": "AI-drafted starter entry; verify exact source/date later."
+  },
+  {
+    "fact_id": "boston_sports_039",
+    "card_type": "boston_sports",
+    "title": "Bruins Win Their First Stanley Cup",
+    "body": "The Bruins won their first Stanley Cup in 1929, giving Boston one of its earliest major modern championships. It also made the Bruins the first American NHL team to win the Cup.",
+    "source_name": "Hockey-Reference",
+    "source_url": "https://www.hockey-reference.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "educational",
+    "tags": [
+      "boston",
+      "bruins",
+      "championship",
+      "history"
+    ],
+    "month": 3,
+    "day": 30,
+    "notes": "AI-drafted starter entry; verify exact source/date later."
+  },
+  {
+    "fact_id": "boston_sports_040",
+    "card_type": "boston_sports",
+    "title": "Celtics Beat the Lakers in 1984",
+    "body": "The Celtics won the 1984 NBA title in June, beating the Lakers in a series that felt like pure old-school rivalry theater. Boston basketball has always loved a banner, but one won over Los Angeles carries extra flavor.",
+    "source_name": "Basketball-Reference",
+    "source_url": "https://www.basketball-reference.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "fun",
+    "tags": [
+      "boston",
+      "celtics",
+      "championship",
+      "lakers"
+    ],
+    "month": 6,
+    "day": 12,
+    "notes": "AI-drafted starter entry; verify exact source/date later."
+  },
+  {
+    "fact_id": "boston_sports_041",
+    "card_type": "boston_sports",
+    "title": "Celtics Banner 16 in 1986",
+    "body": "The Celtics won the 1986 NBA Finals in June and added another banner to one of the most crowded rafters in sports. That team is still remembered as one of the strongest and deepest in franchise history.",
+    "source_name": "Basketball-Reference",
+    "source_url": "https://www.basketball-reference.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "educational",
+    "tags": [
+      "boston",
+      "celtics",
+      "championship",
+      "1986"
+    ],
+    "month": 6,
+    "day": 8,
+    "notes": "AI-drafted starter entry; verify exact source/date later."
+  },
+  {
+    "fact_id": "boston_sports_042",
+    "card_type": "boston_sports",
+    "title": "Banner 18 Arrives",
+    "body": "The Celtics won the 2024 NBA title in June and finally moved ahead with Banner 18. In Boston, even a new championship has a way of instantly entering the conversation with all the old ones.",
+    "source_name": "Basketball-Reference",
+    "source_url": "https://www.basketball-reference.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "fun",
+    "tags": [
+      "boston",
+      "celtics",
+      "championship",
+      "banner_18"
+    ],
+    "month": 6,
+    "day": 17,
+    "notes": "AI-drafted starter entry; verify exact source/date later."
+  },
+  {
+    "fact_id": "boston_sports_043",
+    "card_type": "boston_sports",
+    "title": "First Boston Marathon",
+    "body": "The first Boston Marathon was run in 1897, beginning one of the city’s most treasured athletic traditions. Boston sports culture has always been bigger than team logos, and the Marathon is one of the best examples.",
+    "source_name": "Boston Athletic Association",
+    "source_url": "https://www.baa.org/",
+    "verified": false,
+    "status": "approved",
+    "tone": "warm",
+    "tags": [
+      "boston",
+      "marathon",
+      "tradition",
+      "patriots_day"
+    ],
+    "month": 4,
+    "day": 19,
+    "week_mode": "within_days",
+    "within_days": 3,
+    "notes": "AI-drafted starter entry; verify exact source/date later."
+  },
+  {
+    "fact_id": "boston_sports_044",
+    "card_type": "boston_sports",
+    "title": "The Impossible Dream Sox",
+    "body": "The 1967 Red Sox completed their ‘Impossible Dream’ pennant run in early October and pulled Boston baseball back into the national spotlight. The nickname alone tells you how improbable the whole season felt to fans at the time.",
+    "source_name": "Baseball-Reference",
+    "source_url": "https://www.baseball-reference.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "warm",
+    "tags": [
+      "boston",
+      "red_sox",
+      "pennant",
+      "1967"
+    ],
+    "month": 10,
+    "day": 1,
+    "notes": "AI-drafted starter entry; verify exact source/date later."
+  },
+  {
+    "fact_id": "boston_sports_045",
+    "card_type": "boston_sports",
+    "title": "Red Sox Win the First Modern World Series",
+    "body": "Boston won the first modern World Series in 1903, giving the city one of baseball’s earliest championship stories. It is a nice reminder that Red Sox history did not begin with curses or their eventual breaking.",
+    "source_name": "Baseball-Reference",
+    "source_url": "https://www.baseball-reference.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "educational",
+    "tags": [
+      "boston",
+      "red_sox",
+      "world_series",
+      "history"
+    ],
+    "month": 10,
+    "day": 13,
+    "notes": "AI-drafted starter entry; verify exact source/date later."
+  },
+  {
+    "fact_id": "boston_sports_046",
+    "card_type": "boston_sports",
+    "title": "Pumpsie Green Breaks the Red Sox Color Line",
+    "body": "Pumpsie Green debuted for the Red Sox in July 1959 and became the first Black player in franchise history. It is an important milestone that says as much about baseball and Boston history as it does about one roster move.",
+    "source_name": "Baseball-Reference",
+    "source_url": "https://www.baseball-reference.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "educational",
+    "tags": [
+      "boston",
+      "red_sox",
+      "history",
+      "pumpsie_green"
+    ],
+    "month": 7,
+    "day": 21,
+    "notes": "AI-drafted starter entry; verify exact source/date later."
+  },
+  {
+    "fact_id": "boston_sports_047",
+    "card_type": "boston_sports",
+    "title": "David Ortiz’s ‘This Is Our City’ Speech",
+    "body": "In April 2013, David Ortiz delivered the ‘This is our city’ speech that became one of the defining public moments of that Red Sox season. Sometimes a sports figure ends up speaking for a whole city, at least for a day.",
+    "source_name": "NESN",
+    "source_url": "https://nesn.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "warm",
+    "tags": [
+      "boston",
+      "red_sox",
+      "david_ortiz",
+      "city"
+    ],
+    "month": 4,
+    "day": 20,
+    "week_mode": "within_days",
+    "within_days": 3,
+    "notes": "AI-drafted starter entry; verify exact source/date later."
+  },
+  {
+    "fact_id": "boston_sports_048",
+    "card_type": "boston_sports",
+    "title": "Kevin Garnett Birthday",
+    "body": "Kevin Garnett was born on May 19, 1976, and gave the Celtics one of their fiercest modern emotional engines. He played like every possession needed a little extra snarling conviction.",
+    "source_name": "Basketball-Reference",
+    "source_url": "https://www.basketball-reference.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "fun",
+    "tags": [
+      "boston",
+      "celtics",
+      "kevin_garnett",
+      "birthday"
+    ],
+    "month": 5,
+    "day": 19,
+    "notes": "AI-drafted starter entry; verify exact source/date later."
+  },
+  {
+    "fact_id": "boston_sports_049",
+    "card_type": "boston_sports",
+    "title": "Drew Bledsoe Birthday",
+    "body": "Drew Bledsoe was born on February 14, 1972, and for many Patriots fans he still represents the bridge between the franchise’s older years and its dynasty era. Some players end up being remembered as turning points as much as stars.",
+    "source_name": "Pro-Football-Reference",
+    "source_url": "https://www.pro-football-reference.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "educational",
+    "tags": [
+      "boston",
+      "patriots",
+      "drew_bledsoe",
+      "birthday"
+    ],
+    "month": 2,
+    "day": 14,
+    "notes": "AI-drafted starter entry; verify exact source/date later."
+  },
+  {
+    "fact_id": "boston_sports_050",
+    "card_type": "boston_sports",
+    "title": "Super Bowl LIII",
+    "body": "The Patriots won Super Bowl LIII in February 2019, beating the Rams in a defensive game that was tense even if it was not flashy. Boston title stories do not all need fireworks; some just need another ring.",
+    "source_name": "Pro-Football-Reference",
+    "source_url": "https://www.pro-football-reference.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "fun",
+    "tags": [
+      "boston",
+      "patriots",
+      "super_bowl",
+      "championship"
+    ],
+    "month": 2,
+    "day": 3,
+    "week_mode": "within_days",
+    "within_days": 3,
+    "notes": "AI-drafted starter entry; verify exact source/date later."
+  },
+  {
+    "fact_id": "boston_sports_051",
+    "card_type": "boston_sports",
+    "title": "The Snow Bowl Feeling",
+    "body": "The Patriots have played through enough winter weather that snowy Foxborough games now feel like part of the franchise mythology. New England football has always benefited from a little frost in the atmosphere and a lot of noise in the stands.",
+    "source_name": "NESN",
+    "source_url": "https://nesn.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "warm",
+    "tags": [
+      "boston",
+      "patriots",
+      "winter",
+      "foxborough"
+    ],
+    "month": 12,
+    "day": 15,
+    "week_mode": "within_days",
+    "within_days": 3,
+    "notes": "AI-drafted starter entry; verify exact source/date later."
+  },
+  {
+    "fact_id": "boston_sports_052",
+    "card_type": "boston_sports",
+    "title": "Bill Russell’s Number 6 Legacy",
+    "body": "Bill Russell’s No. 6 became so important to Boston and the NBA that it was retired league-wide after his death. Very few players leave a legacy large enough to outgrow even their own franchise history.",
+    "source_name": "NBA",
+    "source_url": "https://www.nba.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "warm",
+    "tags": [
+      "boston",
+      "celtics",
+      "bill_russell",
+      "legacy"
+    ],
+    "month": 8,
+    "day": 11,
+    "week_mode": "within_days",
+    "within_days": 3,
+    "notes": "AI-drafted starter entry; verify exact source/date later."
+  },
+  {
     "fact_id": "famous_person_birthday_001",
     "card_type": "famous_person_birthday",
     "title": "Martin Luther King Jr. Birthday",
