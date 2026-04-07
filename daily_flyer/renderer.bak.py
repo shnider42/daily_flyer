@@ -39,7 +39,9 @@ def build_html(context: PageContext) -> str:
 
     * { box-sizing: border-box; }
 
-    html { scroll-behavior: smooth; }
+    html {
+        scroll-behavior: smooth;
+    }
 
     body {
         margin: 0;
@@ -95,7 +97,10 @@ def build_html(context: PageContext) -> str:
         background: radial-gradient(circle, rgba(215,185,107,0.14), transparent 70%);
     }
 
-    .page-shell { position: relative; z-index: 1; }
+    .page-shell {
+        position: relative;
+        z-index: 1;
+    }
 
     .hero-wrap {
         max-width: var(--max-width);
@@ -110,7 +115,15 @@ def build_html(context: PageContext) -> str:
         border-radius: 30px;
         border: 1px solid var(--border);
         background:
-            linear-gradient(90deg, rgba(22,163,74,0.10) 0%, rgba(22,163,74,0.06) 18%, rgba(255,255,255,0.03) 38%, rgba(255,255,255,0.05) 50%, rgba(255,153,51,0.04) 68%, rgba(255,153,51,0.08) 100%),
+            linear-gradient(
+                90deg,
+                rgba(22, 163, 74, 0.10) 0%,
+                rgba(22, 163, 74, 0.06) 18%,
+                rgba(255, 255, 255, 0.03) 38%,
+                rgba(255, 255, 255, 0.05) 50%,
+                rgba(255, 153, 51, 0.04) 68%,
+                rgba(255, 153, 51, 0.08) 100%
+            ),
             linear-gradient(135deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02)),
             linear-gradient(160deg, rgba(41,179,106,0.10), rgba(73,197,182,0.04) 45%, rgba(125,183,217,0.08));
         box-shadow: var(--shadow-lg);
@@ -204,7 +217,9 @@ def build_html(context: PageContext) -> str:
         padding: 1.15rem 1.15rem 1.05rem;
         border-radius: var(--radius-xl);
         border: 1px solid var(--border);
-        background: linear-gradient(180deg, rgba(255,255,255,0.045), rgba(255,255,255,0.02)), var(--card);
+        background:
+            linear-gradient(180deg, rgba(255,255,255,0.045), rgba(255,255,255,0.02)),
+            var(--card);
         box-shadow: var(--shadow-md);
         backdrop-filter: blur(10px);
         -webkit-backdrop-filter: blur(10px);
@@ -238,7 +253,9 @@ def build_html(context: PageContext) -> str:
         position: absolute;
         inset: 0;
         pointer-events: none;
-        background: linear-gradient(180deg, rgba(255,255,255,0.04), transparent 24%), radial-gradient(circle at top right, rgba(255,255,255,0.06), transparent 28%);
+        background:
+            linear-gradient(180deg, rgba(255,255,255,0.04), transparent 24%),
+            radial-gradient(circle at top right, rgba(255,255,255,0.06), transparent 28%);
     }
 
     .card::after {
@@ -259,17 +276,28 @@ def build_html(context: PageContext) -> str:
     }
 
     .card--word {
-        background: linear-gradient(180deg, rgba(41,179,106,0.12), rgba(255,255,255,0.02)), var(--card-strong);
+        background:
+            linear-gradient(180deg, rgba(41,179,106,0.12), rgba(255,255,255,0.02)),
+            var(--card-strong);
     }
 
     .card--history {
-        background: linear-gradient(180deg, rgba(215,185,107,0.10), rgba(255,255,255,0.02)), var(--card-strong);
+        background:
+            linear-gradient(180deg, rgba(215,185,107,0.10), rgba(255,255,255,0.02)),
+            var(--card-strong);
     }
 
-    .card--did_you_know,
+    .card--did_you_know {
+        background:
+            linear-gradient(180deg, rgba(125,183,217,0.12), rgba(255,255,255,0.02)),
+            var(--card-strong);
+    }
+
     .card--county,
     .card--irish_connection {
-        background: linear-gradient(180deg, rgba(73,197,182,0.10), rgba(255,255,255,0.02)), var(--card);
+        background:
+            linear-gradient(180deg, rgba(73,197,182,0.10), rgba(255,255,255,0.02)),
+            var(--card);
     }
 
     .card-head {
@@ -329,8 +357,15 @@ def build_html(context: PageContext) -> str:
         font-size: 0.88rem;
     }
 
-    a { color: #8fe6cb; text-decoration: none; font-weight: 600; }
-    a:hover { text-decoration: underline; }
+    a {
+        color: #8fe6cb;
+        text-decoration: none;
+        font-weight: 600;
+    }
+
+    a:hover {
+        text-decoration: underline;
+    }
 
     footer {
         max-width: var(--max-width);
@@ -364,8 +399,13 @@ def build_html(context: PageContext) -> str:
             border-radius: 24px;
         }
 
-        .hero h1 { max-width: none; }
-        main { grid-template-columns: 1fr; }
+        .hero h1 {
+            max-width: none;
+        }
+
+        main {
+            grid-template-columns: 1fr;
+        }
 
         .card,
         .card--word,
@@ -391,7 +431,9 @@ def build_html(context: PageContext) -> str:
 
     if header_title_image:
         header_title_html = (
-            f'<img class="hero-title-image" src="{header_title_image}" alt="{header_title_text}">'
+            f'<img class="hero-title-image" '
+            f'src="{header_title_image}" '
+            f'alt="{header_title_text}">'
         )
     else:
         header_title_html = header_title_text
@@ -453,10 +495,12 @@ def build_html(context: PageContext) -> str:
     <script>
     (function () {{
         const root = document.documentElement;
+
         function updateParallax() {{
             const y = Math.min(window.scrollY * 0.10, 36);
             root.style.setProperty("--bg-shift", `${{y}}px`);
         }}
+
         updateParallax();
         window.addEventListener("scroll", updateParallax, {{ passive: true }});
     }})();
@@ -516,8 +560,6 @@ def _icon_for_card(card_type: str) -> str:
         "birthday_phone_helper": "📱",
         "birthday_message_starter": "💬",
         "birthday_upcoming": "🗓️",
-        "birthday_month_overview": "🧁",
-        "birthday_circle_snapshot": "📊",
     }
     return icons.get(card_type, "✦")
 

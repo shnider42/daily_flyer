@@ -2,9 +2,9 @@ from __future__ import annotations
 
 import json
 import random
+from collections import Counter
 from datetime import date
 from html import escape
-from urllib.parse import quote
 
 from daily_flyer.birthdays import (
     birthdays_for_date,
@@ -77,6 +77,12 @@ def _join_names_human(names: list[str]) -> str:
     if len(names) == 2:
         return f"{names[0]} and {names[1]}"
     return f"{', '.join(names[:-1])}, and {names[-1]}"
+
+
+def _sort_name_key(name: str) -> str:
+    parts = name.split()
+    last = parts[-1] if parts else ""
+    return f"{last}|{name}".lower()
 
 
 def _message_text_for_hits(birthday_hits: list[dict], rng: random.Random) -> str:
@@ -157,9 +163,7 @@ def _render_phone_helper(phones: list[dict[str, str]], birthday_hits: list[dict]
     safe_joined = escape(_join_names_human(birthday_names)) if birthday_names else ""
 
     if birthday_names:
-        intro = (
-            f"<p>This list excludes today’s birthday person: <strong>{safe_joined}</strong>.</p>"
-        )
+        intro = f"<p>This list excludes today’s birthday person: <strong>{safe_joined}</strong>.</p>"
     else:
         intro = "<p>No birthday person to exclude for this date, so the full list is shown.</p>"
 
@@ -195,7 +199,7 @@ def _render_upcoming_birthdays(today: date, birthdays: list[dict], limit: int = 
         occurrence = _next_occurrence(today, month, day)
         relation = clean_optional_text(item.get("relation"))
         delta_days = (occurrence - today).days
-        upcoming.append((occurrence, delta_days, name.lower(), name, relation))
+        upcoming.append((occurrence, delta_days, _sort_name_key(name), name, relation))
 
     upcoming.sort(key=lambda x: (x[0], x[2]))
     rows = upcoming[:limit]
@@ -220,6 +224,89 @@ def _render_upcoming_birthdays(today: date, birthdays: list[dict], limit: int = 
             "</li>"
         )
     html_parts.append("</ul>")
+    return "".join(html_parts)
+
+
+def _render_month_overview(today: date, birthdays: list[dict]) -> str:
+    month_rows = []
+    for item in birthdays:
+        try:
+            month = int(item.get("month", 0))
+            day = int(item.get("day", 0))
+        except (TypeError, ValueError):
+            continue
+
+        if month != today.month or not (1 <= day <= 31):
+            continue
+
+        name = str(item.get("name", "")).strip()
+        if not name:
+            continue
+
+        relation = clean_optional_text(item.get("relation"))
+        marker = ""
+        if day == today.day:
+            marker = " <span class='birthday-chip'>Selected day</span>"
+        elif day < today.day:
+            marker = " <span class='birthday-chip'>Passed</span>"
+
+        relation_text = f" — {escape(relation)}" if relation else ""
+        month_rows.append(
+            (day, _sort_name_key(name),
+             f"<li><strong>{day:02d}</strong> · {escape(name)}{relation_text}{marker}</li>")
+        )
+
+    month_rows.sort(key=lambda x: (x[0], x[1]))
+
+    if not month_rows:
+        return f"<p><em>No birthdays on file for {escape(today.strftime('%B'))}.</em></p>"
+
+    html_parts = [
+        f"<p><strong>{len(month_rows)}</strong> birthday{'s' if len(month_rows) != 1 else ''} on file for {escape(today.strftime('%B'))}.</p>",
+        "<ul class='birthday-list birthday-list--compact'>",
+    ]
+    html_parts.extend(row[2] for row in month_rows)
+    html_parts.append("</ul>")
+    return "".join(html_parts)
+
+
+def _render_circle_snapshot(birthdays: list[dict]) -> str:
+    loaded_count = len(birthdays)
+    with_phone = sum(1 for item in birthdays if str(item.get("phone", "")).strip())
+    with_note = sum(1 for item in birthdays if clean_optional_text(item.get("note")))
+    relation_counts = Counter(
+        clean_optional_text(item.get("relation")).title()
+        for item in birthdays
+        if clean_optional_text(item.get("relation"))
+    )
+    relation_rows = relation_counts.most_common(5)
+
+    html_parts = ["<div class='birthday-stats-grid'>"]
+    html_parts.append(
+        f"<div class='birthday-stat'><div class='birthday-stat-num'>{loaded_count}</div><div class='birthday-stat-label'>people loaded</div></div>"
+    )
+    html_parts.append(
+        f"<div class='birthday-stat'><div class='birthday-stat-num'>{with_phone}</div><div class='birthday-stat-label'>with phone</div></div>"
+    )
+    html_parts.append(
+        f"<div class='birthday-stat'><div class='birthday-stat-num'>{with_note}</div><div class='birthday-stat-label'>with note</div></div>"
+    )
+    html_parts.append(
+        f"<div class='birthday-stat'><div class='birthday-stat-num'>{len(relation_counts)}</div><div class='birthday-stat-label'>relation groups</div></div>"
+    )
+    html_parts.append("</div>")
+
+    if relation_rows:
+        html_parts.append("<div class='birthday-subsection-title'>Top relation groups</div>")
+        html_parts.append("<ul class='birthday-list birthday-list--compact'>")
+        for label, count in relation_rows:
+            html_parts.append(
+                f"<li><strong>{escape(label)}</strong> · {count} entr{'y' if count == 1 else 'ies'}</li>"
+            )
+        html_parts.append("</ul>")
+    else:
+        html_parts.append("<p><em>No relation labels are populated yet.</em></p>")
+
     return "".join(html_parts)
 
 
@@ -284,7 +371,9 @@ def _extra_css() -> str:
 
     .card--birthday_message_starter,
     .card--birthday_phone_helper,
-    .card--birthday_upcoming {
+    .card--birthday_upcoming,
+    .card--birthday_month_overview,
+    .card--birthday_circle_snapshot {
         grid-column: span 4;
     }
 
@@ -302,7 +391,9 @@ def _extra_css() -> str:
 
     .card--birthday_message_starter,
     .card--birthday_phone_helper,
-    .card--birthday_upcoming {
+    .card--birthday_upcoming,
+    .card--birthday_month_overview,
+    .card--birthday_circle_snapshot {
         background:
             linear-gradient(180deg, rgba(73,197,182,0.10), rgba(255,255,255,0.02)),
             var(--card);
@@ -544,6 +635,10 @@ def _extra_css() -> str:
         margin: 0.55rem 0;
     }
 
+    .birthday-list--compact li {
+        margin: 0.45rem 0;
+    }
+
     .birthday-chip {
         display: inline-flex;
         align-items: center;
@@ -555,6 +650,40 @@ def _extra_css() -> str:
         color: var(--muted);
         font-size: 0.74rem;
         font-weight: 700;
+    }
+
+    .birthday-subsection-title {
+        margin-top: 0.9rem;
+        margin-bottom: 0.25rem;
+        color: var(--ink);
+        font-weight: 800;
+        font-size: 0.92rem;
+    }
+
+    .birthday-stats-grid {
+        display: grid;
+        grid-template-columns: repeat(2, minmax(0, 1fr));
+        gap: 0.75rem;
+    }
+
+    .birthday-stat {
+        padding: 0.85rem;
+        border-radius: 14px;
+        background: rgba(255,255,255,0.05);
+        border: 1px solid rgba(255,255,255,0.08);
+    }
+
+    .birthday-stat-num {
+        color: var(--ink);
+        font-size: 1.5rem;
+        font-weight: 800;
+        line-height: 1;
+    }
+
+    .birthday-stat-label {
+        color: var(--muted);
+        margin-top: 0.35rem;
+        font-size: 0.84rem;
     }
 
     .birthday-textarea {
@@ -583,7 +712,9 @@ def _extra_css() -> str:
         .card--birthday_spotlight,
         .card--birthday_message_starter,
         .card--birthday_phone_helper,
-        .card--birthday_upcoming {
+        .card--birthday_upcoming,
+        .card--birthday_month_overview,
+        .card--birthday_circle_snapshot {
             grid-column: span 6;
         }
     }
@@ -593,7 +724,9 @@ def _extra_css() -> str:
         .card--birthday_spotlight,
         .card--birthday_message_starter,
         .card--birthday_phone_helper,
-        .card--birthday_upcoming {
+        .card--birthday_upcoming,
+        .card--birthday_month_overview,
+        .card--birthday_circle_snapshot {
             grid-column: auto;
         }
 
@@ -604,6 +737,10 @@ def _extra_css() -> str:
 
         .birthday-calendar-nav {
             justify-content: flex-start;
+        }
+
+        .birthday-stats-grid {
+            grid-template-columns: 1fr;
         }
     }
     """
@@ -882,10 +1019,17 @@ def _extra_js(today: date, birthday_index: dict[str, list[str]]) -> str:
     """
 
 
-def _dynamic_header_subtitle(today: date, birthday_hits: list[dict]) -> str:
+def _dynamic_header_subtitle(today: date, birthday_hits: list[dict], birthdays: list[dict]) -> str:
+    month_count = sum(
+        1
+        for item in birthdays
+        if int(item.get("month", 0) or 0) == today.month
+    )
+
     if not birthday_hits:
         return (
-            f"No birthdays are listed for {today.strftime('%B %d')} — use the calendar to plan ahead, prep a message, and keep the workflow warm."
+            f"No birthdays are listed for {today.strftime('%B %d')} — "
+            f"{month_count} birthday{'s' if month_count != 1 else ''} are on file for {today.strftime('%B')}."
         )
 
     names = [
@@ -894,16 +1038,23 @@ def _dynamic_header_subtitle(today: date, birthday_hits: list[dict]) -> str:
         if str(item.get("name", "")).strip()
     ]
     if len(names) == 1:
-        return f"{names[0]} is up today — quick outreach, clean contact helpers, and the next birthdays in view."
-    return f"{len(names)} birthdays are up today — fast outreach, a clean exclusion list, and the next birthdays in view."
+        return (
+            f"{names[0]} is up today — quick outreach, a month view, and a clean snapshot of your birthday list."
+        )
+    return (
+        f"{len(names)} birthdays are up today — fast outreach, a month view, and a clean snapshot of your birthday list."
+    )
 
 
-def _dynamic_hero_summary_pill(today: date, birthday_hits: list[dict]) -> str:
-    if not birthday_hits:
-        return f"No birthdays on {today.strftime('%b %d')}"
-    if len(birthday_hits) == 1:
-        return f"1 birthday on {today.strftime('%b %d')}"
-    return f"{len(birthday_hits)} birthdays on {today.strftime('%b %d')}"
+def _dynamic_hero_summary_pill(today: date, birthday_hits: list[dict], birthdays: list[dict]) -> str:
+    month_count = sum(
+        1
+        for item in birthdays
+        if int(item.get("month", 0) or 0) == today.month
+    )
+    if birthday_hits:
+        return f"{len(birthday_hits)} today · {month_count} in {today.strftime('%B')}"
+    return f"{month_count} in {today.strftime('%B')} · planning view"
 
 
 def build_theme_page(date_str: str | None = None, seed: int | None = None) -> PageContext:
@@ -921,6 +1072,7 @@ def build_theme_page(date_str: str | None = None, seed: int | None = None) -> Pa
     )
 
     message_text = _message_text_for_hits(birthday_hits, rng)
+    loaded_count = len(birthdays)
 
     cards = [
         CardItem(
@@ -958,9 +1110,22 @@ def build_theme_page(date_str: str | None = None, seed: int | None = None) -> Pa
             body=_render_upcoming_birthdays(today, birthdays),
             source_url=None,
         ),
+        CardItem(
+            card_type="birthday_month_overview",
+            eyebrow="This Month",
+            title=f"{today.strftime('%B')} Overview",
+            body=_render_month_overview(today, birthdays),
+            source_url=None,
+        ),
+        CardItem(
+            card_type="birthday_circle_snapshot",
+            eyebrow="Birthday Data",
+            title="Circle Snapshot",
+            body=_render_circle_snapshot(birthdays),
+            source_url=None,
+        ),
     ]
 
-    loaded_count = len(birthdays)
     footer_suffix = (
         f" {loaded_count} birthday entr{'y' if loaded_count == 1 else 'ies'} loaded."
         if loaded_count
@@ -970,7 +1135,7 @@ def build_theme_page(date_str: str | None = None, seed: int | None = None) -> Pa
     return PageContext(
         page_title=f"BirthDay Today — {today.strftime('%B %d, %Y')}",
         header_title=THEME_CONFIG["header_title"],
-        header_subtitle=_dynamic_header_subtitle(today, birthday_hits),
+        header_subtitle=_dynamic_header_subtitle(today, birthday_hits, birthdays),
         today_str=today.strftime("%A, %B %d, %Y"),
         cards=cards,
         footer_text=THEME_CONFIG["footer_text"] + footer_suffix,
@@ -980,7 +1145,7 @@ def build_theme_page(date_str: str | None = None, seed: int | None = None) -> Pa
             "background": None,
             "header_title_image": THEME_CONFIG.get("header_title_image"),
             "hero_kicker": THEME_CONFIG.get("hero_kicker", "Daily Flyer • Theme"),
-            "hero_summary_pill": _dynamic_hero_summary_pill(today, birthday_hits),
+            "hero_summary_pill": _dynamic_hero_summary_pill(today, birthday_hits, birthdays),
             "extra_css": _extra_css(),
             "extra_js": _extra_js(today, birthday_index),
             "extra_head_html": "",
