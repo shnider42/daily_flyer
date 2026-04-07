@@ -555,6 +555,11 @@ def _icon_for_card(card_type: str) -> str:
         "military": "⚔️",
         "trivia": "✨",
         "birthday": "🎂",
+        "birthday_calendar": "📅",
+        "birthday_spotlight": "🎂",
+        "birthday_phone_helper": "📱",
+        "birthday_message_starter": "💬",
+        "birthday_upcoming": "🗓️",
     }
     return icons.get(card_type, "✦")
 
