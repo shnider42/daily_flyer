@@ -9,7 +9,7 @@ from daily_flyer.theme_validation import ThemeNotFoundError, ThemeValidationErro
 app = Flask(__name__)
 REPO_ROOT = Path(__file__).resolve().parent
 
-DEFAULT_THEME = "irish_today"
+DEFAULT_THEME = "this_day_birthday"
 
 
 def _clean_theme_name(raw: str | None) -> str:
