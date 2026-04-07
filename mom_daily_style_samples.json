@@ -1,0 +1,23 @@
+[
+  {
+    "sample_id": "mom_daily_style_001",
+    "label": "Reference text from family message",
+    "tone_notes": [
+      "warm",
+      "busy but affectionate",
+      "enthusiastic punctuation",
+      "mixes history, birthdays, music, and novelty-day flavor"
+    ],
+    "do_more_of": [
+      "sound personal",
+      "connect the world fact back to the birthday person",
+      "keep the ending affectionate"
+    ],
+    "do_less_of": [
+      "raw dumping of too many unrelated facts",
+      "internet-sounding trivia voice",
+      "overly formal phrasing"
+    ],
+    "sample_text": "Sorry I’m a little late today, I was distracted by the sun, beach and Florida Men 😆!!! Today is a very important day... please take a minute to wish Peter a Happy Birthday!!! Happy Easter and hope you all had a great day 🐰😘!!!"
+  }
+]
