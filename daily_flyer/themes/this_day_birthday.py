@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import json
 import random
-from collections import Counter
 from datetime import date
 from html import escape
 
@@ -15,18 +14,27 @@ from daily_flyer.birthdays import (
     people_to_phone_list,
     phones_to_to_field_text,
 )
+from daily_flyer.curated_fact_store import CuratedFact, approved_facts, select_fact_for_card_type
 from daily_flyer.models import CardItem, PageContext
 from daily_flyer.utils import resolve_date
 
 
 THEME_NAME = "this_day_birthday"
+CURATED_CARD_ORDER = (
+    "classic_rock",
+    "irish_history",
+    "boston_sports",
+    "famous_person_birthday",
+    "fun_fact",
+)
+
 THEME_CONFIG = {
     "page_title": "BirthDay Today — Celebrate the right people, on the right day",
     "header_title": "BirthDay Today 🎂",
     "header_subtitle": "Birthday reminders, a visual date picker, and fast outreach helpers",
     "footer_text": "Built on Daily Flyer. Birthday theme prototype.",
     "hero_kicker": "Daily Flyer • Birthday Theme",
-    "hero_summary_pill": "Calendar-driven birthday planning and contact helpers",
+    "hero_summary_pill": "Calendar-driven birthday planning and curated cards",
 }
 
 
@@ -123,9 +131,7 @@ def _render_birthday_spotlight(birthday_hits: list[dict], message_text: str) -> 
         sms_href = _sms_href(phone)
 
         parts.append("<div class='birthday-person'>")
-        parts.append("<div class='birthday-person-head'>")
         parts.append(f"<div class='birthday-name'>🎉 {escape(raw_name)}</div>")
-        parts.append("</div>")
 
         meta_bits: list[str] = []
         if relation:
@@ -182,9 +188,8 @@ def _render_phone_helper(phones: list[dict[str, str]], birthday_hits: list[dict]
     """
 
 
-def _render_upcoming_birthdays(today: date, birthdays: list[dict], limit: int = 10) -> str:
+def _render_upcoming_birthdays(today: date, birthdays: list[dict], limit: int = 8) -> str:
     upcoming = []
-
     for item in birthdays:
         try:
             month = int(item.get("month", 0))
@@ -203,7 +208,6 @@ def _render_upcoming_birthdays(today: date, birthdays: list[dict], limit: int = 
 
     upcoming.sort(key=lambda x: (x[0], x[2]))
     rows = upcoming[:limit]
-
     if not rows:
         return "<p><em>No upcoming birthdays found.</em></p>"
 
@@ -216,7 +220,6 @@ def _render_upcoming_birthdays(today: date, birthdays: list[dict], limit: int = 
             delta_text = "Tomorrow"
         else:
             delta_text = f"In {delta_days} days"
-
         html_parts.append(
             "<li>"
             f"<strong>{escape(occurrence.strftime('%b %d'))}</strong> · {escape(name)}{relation_text} "
@@ -225,105 +228,6 @@ def _render_upcoming_birthdays(today: date, birthdays: list[dict], limit: int = 
         )
     html_parts.append("</ul>")
     return "".join(html_parts)
-
-
-def _render_month_overview(today: date, birthdays: list[dict]) -> str:
-    month_rows = []
-    for item in birthdays:
-        try:
-            month = int(item.get("month", 0))
-            day = int(item.get("day", 0))
-        except (TypeError, ValueError):
-            continue
-
-        if month != today.month or not (1 <= day <= 31):
-            continue
-
-        name = str(item.get("name", "")).strip()
-        if not name:
-            continue
-
-        relation = clean_optional_text(item.get("relation"))
-        marker = ""
-        if day == today.day:
-            marker = " <span class='birthday-chip'>Selected day</span>"
-        elif day < today.day:
-            marker = " <span class='birthday-chip'>Passed</span>"
-
-        relation_text = f" — {escape(relation)}" if relation else ""
-        month_rows.append(
-            (day, _sort_name_key(name),
-             f"<li><strong>{day:02d}</strong> · {escape(name)}{relation_text}{marker}</li>")
-        )
-
-    month_rows.sort(key=lambda x: (x[0], x[1]))
-
-    if not month_rows:
-        return f"<p><em>No birthdays on file for {escape(today.strftime('%B'))}.</em></p>"
-
-    html_parts = [
-        f"<p><strong>{len(month_rows)}</strong> birthday{'s' if len(month_rows) != 1 else ''} on file for {escape(today.strftime('%B'))}.</p>",
-        "<ul class='birthday-list birthday-list--compact'>",
-    ]
-    html_parts.extend(row[2] for row in month_rows)
-    html_parts.append("</ul>")
-    return "".join(html_parts)
-
-
-def _render_circle_snapshot(birthdays: list[dict]) -> str:
-    loaded_count = len(birthdays)
-    with_phone = sum(1 for item in birthdays if str(item.get("phone", "")).strip())
-    with_note = sum(1 for item in birthdays if clean_optional_text(item.get("note")))
-    relation_counts = Counter(
-        clean_optional_text(item.get("relation")).title()
-        for item in birthdays
-        if clean_optional_text(item.get("relation"))
-    )
-    relation_rows = relation_counts.most_common(5)
-
-    html_parts = ["<div class='birthday-stats-grid'>"]
-    html_parts.append(
-        f"<div class='birthday-stat'><div class='birthday-stat-num'>{loaded_count}</div><div class='birthday-stat-label'>people loaded</div></div>"
-    )
-    html_parts.append(
-        f"<div class='birthday-stat'><div class='birthday-stat-num'>{with_phone}</div><div class='birthday-stat-label'>with phone</div></div>"
-    )
-    html_parts.append(
-        f"<div class='birthday-stat'><div class='birthday-stat-num'>{with_note}</div><div class='birthday-stat-label'>with note</div></div>"
-    )
-    html_parts.append(
-        f"<div class='birthday-stat'><div class='birthday-stat-num'>{len(relation_counts)}</div><div class='birthday-stat-label'>relation groups</div></div>"
-    )
-    html_parts.append("</div>")
-
-    if relation_rows:
-        html_parts.append("<div class='birthday-subsection-title'>Top relation groups</div>")
-        html_parts.append("<ul class='birthday-list birthday-list--compact'>")
-        for label, count in relation_rows:
-            html_parts.append(
-                f"<li><strong>{escape(label)}</strong> · {count} entr{'y' if count == 1 else 'ies'}</li>"
-            )
-        html_parts.append("</ul>")
-    else:
-        html_parts.append("<p><em>No relation labels are populated yet.</em></p>")
-
-    return "".join(html_parts)
-
-
-def _render_message_starter(message_text: str, birthday_hits: list[dict]) -> str:
-    if birthday_hits:
-        intro = "<p>Editable starter you can copy into a text message.</p>"
-    else:
-        intro = "<p>No birthday today, but this keeps the workflow easy to test.</p>"
-
-    return f"""
-        {intro}
-        <textarea id="birthday-message-starter" class="birthday-textarea">{escape(message_text)}</textarea>
-        <div class="birthday-actions">
-            <button class="birthday-btn" type="button" id="birthdayMessageCopyBtn">Copy message</button>
-            <span id="birthday-message-copy-status" class="birthday-hint"></span>
-        </div>
-    """
 
 
 def _calendar_card_html(today: date) -> str:
@@ -362,69 +266,129 @@ def _calendar_card_html(today: date) -> str:
     """
 
 
+def _render_fact_card_body(fact: CuratedFact | None, fallback_title: str, fallback_body: str) -> tuple[str, str, str | None]:
+    if fact is None:
+        return fallback_title, f"<p>{escape(fallback_body)}</p>", None
+    body_html = f"<p>{escape(fact.body)}</p><p class='birthday-hint'>Source: {escape(fact.source_name)}</p>"
+    return fact.title, body_html, fact.source_url
+
+
+def _mom_opening(target: date, birthday_hits: list[dict], rng: random.Random) -> str:
+    openers = [
+        f"Happy {target.strftime('%A')} everybody!",
+        "Well hello there cousins!",
+        "Hi everyone — here is your little daily update!",
+        "Hope everybody is doing well today!",
+    ]
+    if birthday_hits:
+        openers.append("Big birthday energy today!")
+    return rng.choice(openers)
+
+
+def _mom_fact_sentence(label: str, fact: CuratedFact | None) -> str:
+    if not fact:
+        return ""
+    return f"For {label}, {fact.body.rstrip('.! ')}."
+
+
+def _render_mom_daily(
+    target: date,
+    birthday_hits: list[dict],
+    message_text: str,
+    selected_facts: dict[str, CuratedFact | None],
+    rng: random.Random,
+) -> str:
+    names = [
+        str(item.get("name", "")).strip()
+        for item in birthday_hits
+        if str(item.get("name", "")).strip()
+    ]
+    first_names = [_first_name(name) for name in names]
+    birthday_joined = _join_names_human(first_names)
+
+    lines: list[str] = []
+    lines.append(_mom_opening(target, birthday_hits, rng))
+
+    for label, card_type in (
+        ("classic rock", "classic_rock"),
+        ("Irish history", "irish_history"),
+        ("Boston sports", "boston_sports"),
+        ("a famous birthday", "famous_person_birthday"),
+        ("today’s fun fact", "fun_fact"),
+    ):
+        line = _mom_fact_sentence(label, selected_facts.get(card_type))
+        if line:
+            lines.append(line)
+
+    if birthday_hits:
+        lines.append(
+            f"But of course the most important thing today is wishing {birthday_joined} a very happy birthday!"
+        )
+        lines.append(message_text)
+    else:
+        lines.append("No family birthday lands on this date, so this is a nice little planning day.")
+
+    closer = rng.choice(
+        [
+            "Have a great day everybody 💕",
+            "Love you all and hope you have a fun day 😊",
+            "Enjoy the day and do not forget to check in on each other 💖",
+            "Sending love to everybody and hope somebody has cake somewhere 🎂",
+        ]
+    )
+    lines.append(closer)
+
+    body = " ".join(lines)
+    return f"""
+        <p class="birthday-hint">Warm, casual, copy-paste-ready draft in Patti mode.</p>
+        <textarea id="mom-daily-text" class="birthday-textarea birthday-textarea--large">{escape(body)}</textarea>
+        <div class="birthday-actions">
+            <button class="birthday-btn" type="button" id="momDailyCopyBtn">Copy full draft</button>
+            <span id="mom-daily-copy-status" class="birthday-hint"></span>
+        </div>
+    """
+
+
 def _extra_css() -> str:
     return r"""
     .card--birthday_calendar,
-    .card--birthday_spotlight {
+    .card--birthday_spotlight,
+    .card--mom_daily {
         grid-column: span 6;
     }
 
-    .card--birthday_message_starter,
     .card--birthday_phone_helper,
+    .card--birthday_message_starter,
     .card--birthday_upcoming,
-    .card--birthday_month_overview,
-    .card--birthday_circle_snapshot {
+    .card--classic_rock,
+    .card--irish_history,
+    .card--boston_sports,
+    .card--famous_person_birthday,
+    .card--fun_fact {
         grid-column: span 4;
     }
 
-    .card--birthday_calendar {
+    .card--mom_daily {
         background:
-            linear-gradient(180deg, rgba(125,183,217,0.12), rgba(255,255,255,0.02)),
+            linear-gradient(180deg, rgba(255, 170, 90, 0.12), rgba(255,255,255,0.02)),
             var(--card-strong);
     }
 
-    .card--birthday_spotlight {
-        background:
-            linear-gradient(180deg, rgba(255, 170, 90, 0.10), rgba(255,255,255,0.02)),
-            var(--card-strong);
-    }
-
-    .card--birthday_message_starter,
-    .card--birthday_phone_helper,
-    .card--birthday_upcoming,
-    .card--birthday_month_overview,
-    .card--birthday_circle_snapshot {
+    .card--classic_rock,
+    .card--irish_history,
+    .card--boston_sports,
+    .card--famous_person_birthday,
+    .card--fun_fact {
         background:
             linear-gradient(180deg, rgba(73,197,182,0.10), rgba(255,255,255,0.02)),
             var(--card);
     }
 
-    .birthday-calendar-wrap {
-        display: grid;
-        gap: 0.85rem;
-    }
-
-    .birthday-calendar-head {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 0.75rem;
-    }
-
-    .birthday-calendar-title {
-        font-weight: 800;
-        color: var(--ink);
-    }
-
-    .birthday-calendar-nav {
-        display: flex;
-        gap: 0.5rem;
-        flex-wrap: wrap;
-        justify-content: flex-end;
-    }
-
-    .birthday-iconbtn,
-    .birthday-btn {
+    .birthday-calendar-wrap { display: grid; gap: 0.85rem; }
+    .birthday-calendar-head { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; }
+    .birthday-calendar-title { font-weight: 800; color: var(--ink); }
+    .birthday-calendar-nav { display: flex; gap: 0.5rem; flex-wrap: wrap; justify-content: flex-end; }
+    .birthday-iconbtn, .birthday-btn {
         border: 1px solid rgba(255,255,255,0.14);
         background: rgba(255,255,255,0.08);
         color: var(--ink);
@@ -433,315 +397,53 @@ def _extra_css() -> str:
         text-decoration: none;
         font: inherit;
     }
-
-    .birthday-iconbtn {
-        min-width: 36px;
-        height: 36px;
-        padding: 0 0.7rem;
-        font-size: 0.95rem;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-    }
-
-    .birthday-btn {
-        padding: 0.65rem 0.95rem;
-        font-weight: 700;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-    }
-
-    .birthday-btn--link {
-        color: var(--ink);
-    }
-
-    .birthday-iconbtn:hover,
-    .birthday-btn:hover {
-        background: rgba(255,255,255,0.12);
-        text-decoration: none;
-    }
-
-    .birthday-calendar {
-        width: 100%;
-        border-collapse: collapse;
-    }
-
-    .birthday-calendar th {
-        font-size: 0.78rem;
-        color: var(--muted);
-        padding: 0.35rem 0;
-        text-align: center;
-    }
-
-    .birthday-calendar td {
-        padding: 0.15rem;
-    }
-
-    .birthday-day {
-        width: 100%;
-        min-height: 48px;
-        display: flex;
-        align-items: center;
-        justify-content: center;
-        position: relative;
-        border-radius: 12px;
-        border: 1px solid rgba(255,255,255,0.08);
-        background: rgba(255,255,255,0.04);
-        color: var(--ink);
-        cursor: pointer;
-        user-select: none;
-        font-weight: 700;
-    }
-
-    .birthday-day:hover {
-        background: rgba(255,255,255,0.08);
-    }
-
-    .birthday-day.muted {
-        opacity: 0.28;
-        cursor: default;
-    }
-
-    .birthday-day.today {
-        outline: 2px solid rgba(255,255,255,0.22);
-    }
-
-    .birthday-day.selected {
-        outline: 2px solid rgba(255, 215, 120, 0.72);
-        background: rgba(255, 215, 120, 0.10);
-    }
-
-    .birthday-day.has-birthday {
-        background: rgba(255, 170, 90, 0.12);
-        border-color: rgba(255, 170, 90, 0.28);
-    }
-
-    .birthday-day-dot,
-    .birthday-day-count {
-        position: absolute;
-        bottom: 5px;
-        border-radius: 999px;
-        background: rgba(255, 215, 120, 0.95);
-        box-shadow: 0 0 10px rgba(255, 215, 120, 0.45);
-    }
-
-    .birthday-day-dot {
-        width: 6px;
-        height: 6px;
-    }
-
-    .birthday-day-count {
-        min-width: 18px;
-        height: 18px;
-        padding: 0 0.35rem;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        color: #24160a;
-        font-size: 0.72rem;
-        font-weight: 800;
-    }
-
-    .birthday-calendar-legend {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 0.9rem;
-        color: var(--muted);
-        font-size: 0.84rem;
-    }
-
-    .birthday-calendar-legend span {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.45rem;
-    }
-
-    .birthday-legend-dot {
-        width: 8px;
-        height: 8px;
-        border-radius: 999px;
-        background: rgba(255, 215, 120, 0.95);
-        display: inline-block;
-    }
-
-    .birthday-legend-pill {
-        width: 18px;
-        height: 12px;
-        border-radius: 999px;
-        background: rgba(255, 215, 120, 0.30);
-        border: 1px solid rgba(255, 215, 120, 0.72);
-        display: inline-block;
-    }
-
-    .birthday-calendar-controls {
-        display: flex;
-        align-items: center;
-        gap: 0.85rem;
-        flex-wrap: wrap;
-    }
-
-    .birthday-selected {
-        font-weight: 700;
-        color: var(--ink-soft);
-    }
-
-    .birthday-hint {
-        color: var(--muted);
-        font-size: 0.85rem;
-    }
-
-    .birthday-stack {
-        display: grid;
-        gap: 0.75rem;
-    }
-
-    .birthday-person {
-        padding: 0.9rem;
-        border-radius: 14px;
-        background: rgba(255,255,255,0.05);
-        border: 1px solid rgba(255,255,255,0.08);
-    }
-
-    .birthday-person-head {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 0.75rem;
-    }
-
-    .birthday-name {
-        font-weight: 800;
-        font-size: 1.02rem;
-        color: var(--ink);
-    }
-
-    .birthday-meta {
-        margin-top: 0.28rem;
-        color: var(--muted);
-    }
-
-    .birthday-note {
-        margin-top: 0.45rem;
-        color: var(--ink-soft);
-    }
-
-    .birthday-list {
-        margin: 0;
-        padding-left: 1.1rem;
-    }
-
-    .birthday-list li {
-        margin: 0.55rem 0;
-    }
-
-    .birthday-list--compact li {
-        margin: 0.45rem 0;
-    }
-
-    .birthday-chip {
-        display: inline-flex;
-        align-items: center;
-        margin-left: 0.45rem;
-        padding: 0.1rem 0.45rem;
-        border-radius: 999px;
-        background: rgba(255,255,255,0.08);
-        border: 1px solid rgba(255,255,255,0.08);
-        color: var(--muted);
-        font-size: 0.74rem;
-        font-weight: 700;
-    }
-
-    .birthday-subsection-title {
-        margin-top: 0.9rem;
-        margin-bottom: 0.25rem;
-        color: var(--ink);
-        font-weight: 800;
-        font-size: 0.92rem;
-    }
-
-    .birthday-stats-grid {
-        display: grid;
-        grid-template-columns: repeat(2, minmax(0, 1fr));
-        gap: 0.75rem;
-    }
-
-    .birthday-stat {
-        padding: 0.85rem;
-        border-radius: 14px;
-        background: rgba(255,255,255,0.05);
-        border: 1px solid rgba(255,255,255,0.08);
-    }
-
-    .birthday-stat-num {
-        color: var(--ink);
-        font-size: 1.5rem;
-        font-weight: 800;
-        line-height: 1;
-    }
-
-    .birthday-stat-label {
-        color: var(--muted);
-        margin-top: 0.35rem;
-        font-size: 0.84rem;
-    }
-
-    .birthday-textarea {
-        width: 100%;
-        min-height: 120px;
-        resize: vertical;
-        padding: 0.85rem;
-        border-radius: 14px;
-        border: 1px solid rgba(255,255,255,0.12);
-        background: rgba(0,0,0,0.16);
-        color: var(--ink);
-        font: inherit;
-        line-height: 1.45;
-    }
-
-    .birthday-actions {
-        display: flex;
-        align-items: center;
-        gap: 0.75rem;
-        flex-wrap: wrap;
-        margin-top: 0.75rem;
-    }
+    .birthday-iconbtn { min-width: 36px; height: 36px; padding: 0 0.7rem; font-size: 0.95rem; display: inline-flex; align-items: center; justify-content: center; }
+    .birthday-btn { padding: 0.65rem 0.95rem; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; }
+    .birthday-btn--link { color: var(--ink); }
+    .birthday-iconbtn:hover, .birthday-btn:hover { background: rgba(255,255,255,0.12); text-decoration: none; }
+    .birthday-calendar { width: 100%; border-collapse: collapse; }
+    .birthday-calendar th { font-size: 0.78rem; color: var(--muted); padding: 0.35rem 0; text-align: center; }
+    .birthday-calendar td { padding: 0.15rem; }
+    .birthday-day { width: 100%; min-height: 48px; display: flex; align-items: center; justify-content: center; position: relative; border-radius: 12px; border: 1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.04); color: var(--ink); cursor: pointer; user-select: none; font-weight: 700; }
+    .birthday-day:hover { background: rgba(255,255,255,0.08); }
+    .birthday-day.muted { opacity: 0.28; cursor: default; }
+    .birthday-day.today { outline: 2px solid rgba(255,255,255,0.22); }
+    .birthday-day.selected { outline: 2px solid rgba(255, 215, 120, 0.72); background: rgba(255, 215, 120, 0.10); }
+    .birthday-day.has-birthday { background: rgba(255, 170, 90, 0.12); border-color: rgba(255, 170, 90, 0.28); }
+    .birthday-day-dot, .birthday-day-count { position: absolute; bottom: 5px; border-radius: 999px; background: rgba(255, 215, 120, 0.95); box-shadow: 0 0 10px rgba(255, 215, 120, 0.45); }
+    .birthday-day-dot { width: 6px; height: 6px; }
+    .birthday-day-count { min-width: 18px; height: 18px; padding: 0 0.35rem; display: inline-flex; align-items: center; justify-content: center; color: #24160a; font-size: 0.72rem; font-weight: 800; }
+    .birthday-calendar-legend { display: flex; flex-wrap: wrap; gap: 0.9rem; color: var(--muted); font-size: 0.84rem; }
+    .birthday-calendar-legend span { display: inline-flex; align-items: center; gap: 0.45rem; }
+    .birthday-legend-dot { width: 8px; height: 8px; border-radius: 999px; background: rgba(255, 215, 120, 0.95); display: inline-block; }
+    .birthday-legend-pill { width: 18px; height: 12px; border-radius: 999px; background: rgba(255, 215, 120, 0.30); border: 1px solid rgba(255, 215, 120, 0.72); display: inline-block; }
+    .birthday-calendar-controls { display: flex; align-items: center; gap: 0.85rem; flex-wrap: wrap; }
+    .birthday-selected { font-weight: 700; color: var(--ink-soft); }
+    .birthday-hint { color: var(--muted); font-size: 0.85rem; }
+    .birthday-stack { display: grid; gap: 0.75rem; }
+    .birthday-person { padding: 0.9rem; border-radius: 14px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08); }
+    .birthday-name { font-weight: 800; font-size: 1.02rem; color: var(--ink); }
+    .birthday-meta { margin-top: 0.28rem; color: var(--muted); }
+    .birthday-note { margin-top: 0.45rem; color: var(--ink-soft); }
+    .birthday-list { margin: 0; padding-left: 1.1rem; }
+    .birthday-list li { margin: 0.55rem 0; }
+    .birthday-chip { display: inline-flex; align-items: center; margin-left: 0.45rem; padding: 0.1rem 0.45rem; border-radius: 999px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.08); color: var(--muted); font-size: 0.74rem; font-weight: 700; }
+    .birthday-textarea { width: 100%; min-height: 120px; resize: vertical; padding: 0.85rem; border-radius: 14px; border: 1px solid rgba(255,255,255,0.12); background: rgba(0,0,0,0.16); color: var(--ink); font: inherit; line-height: 1.45; }
+    .birthday-textarea--large { min-height: 240px; }
+    .birthday-actions { display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; margin-top: 0.75rem; }
 
     @media (max-width: 980px) {
-        .card--birthday_calendar,
-        .card--birthday_spotlight,
-        .card--birthday_message_starter,
-        .card--birthday_phone_helper,
-        .card--birthday_upcoming,
-        .card--birthday_month_overview,
-        .card--birthday_circle_snapshot {
+        .card--birthday_calendar, .card--birthday_spotlight, .card--mom_daily, .card--birthday_phone_helper, .card--birthday_message_starter, .card--birthday_upcoming, .card--classic_rock, .card--irish_history, .card--boston_sports, .card--famous_person_birthday, .card--fun_fact {
             grid-column: span 6;
         }
     }
 
     @media (max-width: 720px) {
-        .card--birthday_calendar,
-        .card--birthday_spotlight,
-        .card--birthday_message_starter,
-        .card--birthday_phone_helper,
-        .card--birthday_upcoming,
-        .card--birthday_month_overview,
-        .card--birthday_circle_snapshot {
+        .card--birthday_calendar, .card--birthday_spotlight, .card--mom_daily, .card--birthday_phone_helper, .card--birthday_message_starter, .card--birthday_upcoming, .card--classic_rock, .card--irish_history, .card--boston_sports, .card--famous_person_birthday, .card--fun_fact {
             grid-column: auto;
         }
-
-        .birthday-calendar-head {
-            align-items: flex-start;
-            flex-direction: column;
-        }
-
-        .birthday-calendar-nav {
-            justify-content: flex-start;
-        }
-
-        .birthday-stats-grid {
-            grid-template-columns: 1fr;
-        }
+        .birthday-calendar-head { align-items: flex-start; flex-direction: column; }
+        .birthday-calendar-nav { justify-content: flex-start; }
     }
     """
 
@@ -749,41 +451,27 @@ def _extra_css() -> str:
 def _extra_js(today: date, birthday_index: dict[str, list[str]]) -> str:
     payload_index = json.dumps(birthday_index, ensure_ascii=False)
     payload_init = json.dumps(
-        {
-            "year": today.year,
-            "month": today.month,
-            "day": today.day,
-            "theme": THEME_NAME,
-        },
+        {"year": today.year, "month": today.month, "day": today.day, "theme": THEME_NAME},
         ensure_ascii=False,
     )
-
     return f"""
     const BDAY_INDEX = {payload_index};
     const BDAY_INIT = {payload_init};
 
     async function copyTextValue(value, statusId) {{
         const status = statusId ? document.getElementById(statusId) : null;
-
         function updateStatus(text) {{
             if (!status) return;
             status.textContent = text;
-            setTimeout(() => {{
-                if (status.textContent === text) {{
-                    status.textContent = "";
-                }}
-            }}, 1600);
+            setTimeout(() => {{ if (status.textContent === text) status.textContent = ""; }}, 1600);
         }}
-
         try {{
             if (navigator.clipboard && window.isSecureContext) {{
                 await navigator.clipboard.writeText(value);
                 updateStatus("Copied ✅");
                 return true;
             }}
-        }} catch (err) {{
-        }}
-
+        }} catch (err) {{}}
         const helper = document.createElement("textarea");
         helper.value = value;
         helper.setAttribute("readonly", "readonly");
@@ -792,7 +480,6 @@ def _extra_js(today: date, birthday_index: dict[str, list[str]]) -> str:
         document.body.appendChild(helper);
         helper.focus();
         helper.select();
-
         try {{
             document.execCommand("copy");
             updateStatus("Copied ✅");
@@ -806,19 +493,16 @@ def _extra_js(today: date, birthday_index: dict[str, list[str]]) -> str:
     }}
 
     (function () {{
-        const phoneCopyBtn = document.getElementById("birthdayPhoneCopyBtn");
-        const messageCopyBtn = document.getElementById("birthdayMessageCopyBtn");
-        const phoneList = document.getElementById("birthday-phone-list");
-        const messageStarter = document.getElementById("birthday-message-starter");
-
-        if (phoneCopyBtn && phoneList) {{
-            phoneCopyBtn.addEventListener("click", () => copyTextValue(phoneList.value, "birthday-phone-copy-status"));
-        }}
-
-        if (messageCopyBtn && messageStarter) {{
-            messageCopyBtn.addEventListener("click", () => copyTextValue(messageStarter.value, "birthday-message-copy-status"));
-        }}
-
+        const binds = [
+            ["birthdayPhoneCopyBtn", "birthday-phone-list", "birthday-phone-copy-status"],
+            ["birthdayMessageCopyBtn", "birthday-message-starter", "birthday-message-copy-status"],
+            ["momDailyCopyBtn", "mom-daily-text", "mom-daily-copy-status"],
+        ];
+        binds.forEach(([btnId, fieldId, statusId]) => {{
+            const btn = document.getElementById(btnId);
+            const field = document.getElementById(fieldId);
+            if (btn && field) btn.addEventListener("click", () => copyTextValue(field.value, statusId));
+        }});
         document.querySelectorAll("[data-copy-text]").forEach((el) => {{
             el.addEventListener("click", () => copyTextValue(el.getAttribute("data-copy-text") || "", "birthday-message-copy-status"));
         }});
@@ -834,95 +518,50 @@ def _extra_js(today: date, birthday_index: dict[str, list[str]]) -> str:
         const generateEl = document.getElementById("birthdayGenerateBtn");
         const selectedLabelEl = document.getElementById("birthdaySelectedLabel");
         const hintEl = document.getElementById("birthdayGenerateHint");
-
-        if (!titleEl || !bodyEl || !headRowEl || !prevEl || !nextEl || !generateEl || !selectedLabelEl || !hintEl) {{
-            return;
-        }}
+        if (!titleEl || !bodyEl || !headRowEl || !prevEl || !nextEl || !generateEl || !selectedLabelEl || !hintEl) return;
 
         const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
         const dow = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
-
         let viewYear = BDAY_INIT.year;
         let viewMonth = BDAY_INIT.month;
-        let selected = {{
-            year: BDAY_INIT.year,
-            month: BDAY_INIT.month,
-            day: BDAY_INIT.day,
-        }};
+        let selected = {{ year: BDAY_INIT.year, month: BDAY_INIT.month, day: BDAY_INIT.day }};
 
-        function pad2(n) {{
-            return String(n).padStart(2, "0");
-        }}
-
-        function keyMMDD(month, day) {{
-            return `${{pad2(month)}}-${{pad2(day)}}`;
-        }}
-
-        function daysInMonth(year, month) {{
-            return new Date(year, month, 0).getDate();
-        }}
-
-        function firstDow(year, month) {{
-            return new Date(year, month - 1, 1).getDay();
-        }}
-
-        function sameDate(a, b) {{
-            return a && b && a.year === b.year && a.month === b.month && a.day === b.day;
-        }}
-
-        function renderHead() {{
-            headRowEl.innerHTML = "";
-            for (const label of dow) {{
-                const th = document.createElement("th");
-                th.textContent = label;
-                headRowEl.appendChild(th);
-            }}
-        }}
-
+        function pad2(n) {{ return String(n).padStart(2, "0"); }}
+        function keyMMDD(month, day) {{ return `${{pad2(month)}}-${{pad2(day)}}`; }}
+        function daysInMonth(year, month) {{ return new Date(year, month, 0).getDate(); }}
+        function firstDow(year, month) {{ return new Date(year, month - 1, 1).getDay(); }}
+        function sameDate(a, b) {{ return a && b && a.year === b.year && a.month === b.month && a.day === b.day; }}
+        function renderHead() {{ headRowEl.innerHTML = ""; dow.forEach((label) => {{ const th = document.createElement("th"); th.textContent = label; headRowEl.appendChild(th); }}); }}
         function updateSelectedText() {{
             const pretty = `${{monthNames[selected.month - 1]}} ${{String(selected.day).padStart(2, "0")}}, ${{selected.year}}`;
             selectedLabelEl.textContent = `Selected: ${{pretty}}`;
-
             const key = keyMMDD(selected.month, selected.day);
             const hits = BDAY_INDEX[key] || [];
-            if (hits.length === 1) {{
-                hintEl.textContent = `🎂 Birthday: ${{hits[0]}}`;
-            }} else if (hits.length > 1) {{
-                hintEl.textContent = `🎂 Birthdays: ${{hits.join(", ")}}`;
-            }} else {{
-                hintEl.textContent = "Click Generate to reload the page for that date.";
-            }}
+            if (hits.length === 1) hintEl.textContent = `🎂 Birthday: ${{hits[0]}}`;
+            else if (hits.length > 1) hintEl.textContent = `🎂 Birthdays: ${{hits.join(", ")}}`;
+            else hintEl.textContent = "Click Generate to reload the page for that date.";
         }}
-
         function renderCalendar() {{
             titleEl.textContent = `${{monthNames[viewMonth - 1]}} ${{viewYear}}`;
             bodyEl.innerHTML = "";
-
             const realToday = new Date();
             const isCurrentMonth = realToday.getFullYear() === viewYear && (realToday.getMonth() + 1) === viewMonth;
-
             const first = firstDow(viewYear, viewMonth);
             const total = daysInMonth(viewYear, viewMonth);
             let day = 1;
-
             for (let row = 0; row < 6; row++) {{
                 const tr = document.createElement("tr");
-
                 for (let col = 0; col < 7; col++) {{
                     const td = document.createElement("td");
-
                     if ((row === 0 && col < first) || day > total) {{
                         td.innerHTML = "<div class='birthday-day muted'></div>";
                     }} else {{
                         const cell = document.createElement("div");
                         cell.className = "birthday-day";
                         cell.textContent = String(day);
-
                         const mmdd = keyMMDD(viewMonth, day);
                         const hits = Array.isArray(BDAY_INDEX[mmdd]) ? BDAY_INDEX[mmdd] : [];
-                        const hasBirthday = hits.length > 0;
-
-                        if (hasBirthday) {{
+                        if (hits.length > 0) {{
                             cell.classList.add("has-birthday");
                             if (hits.length > 1) {{
                                 const count = document.createElement("div");
@@ -936,65 +575,36 @@ def _extra_js(today: date, birthday_index: dict[str, list[str]]) -> str:
                             }}
                             cell.title = `Birthdays: ${{hits.join(", ")}}`;
                         }}
-
-                        if (isCurrentMonth && day === realToday.getDate()) {{
-                            cell.classList.add("today");
-                        }}
-
+                        if (isCurrentMonth && day === realToday.getDate()) cell.classList.add("today");
                         const candidate = {{ year: viewYear, month: viewMonth, day }};
-                        if (sameDate(candidate, selected)) {{
-                            cell.classList.add("selected");
-                        }}
-
-                        cell.addEventListener("click", () => {{
-                            selected = candidate;
-                            updateSelectedText();
-                            renderCalendar();
-                        }});
-
+                        if (sameDate(candidate, selected)) cell.classList.add("selected");
+                        cell.addEventListener("click", () => {{ selected = candidate; updateSelectedText(); renderCalendar(); }});
                         td.appendChild(cell);
                         day += 1;
                     }}
-
                     tr.appendChild(td);
                 }}
-
                 bodyEl.appendChild(tr);
                 if (day > total) break;
             }}
         }}
-
         function goMonth(delta) {{
             let nextMonth = viewMonth + delta;
             let nextYear = viewYear;
-
-            if (nextMonth < 1) {{
-                nextMonth = 12;
-                nextYear -= 1;
-            }}
-            if (nextMonth > 12) {{
-                nextMonth = 1;
-                nextYear += 1;
-            }}
-
+            if (nextMonth < 1) {{ nextMonth = 12; nextYear -= 1; }}
+            if (nextMonth > 12) {{ nextMonth = 1; nextYear += 1; }}
             viewMonth = nextMonth;
             viewYear = nextYear;
             renderCalendar();
         }}
-
         function jumpToToday() {{
             const now = new Date();
             viewYear = now.getFullYear();
             viewMonth = now.getMonth() + 1;
-            selected = {{
-                year: now.getFullYear(),
-                month: now.getMonth() + 1,
-                day: now.getDate(),
-            }};
+            selected = {{ year: now.getFullYear(), month: now.getMonth() + 1, day: now.getDate() }};
             updateSelectedText();
             renderCalendar();
         }}
-
         function generate() {{
             const mm = pad2(selected.month);
             const dd = pad2(selected.day);
@@ -1004,14 +614,10 @@ def _extra_js(today: date, birthday_index: dict[str, list[str]]) -> str:
             params.set("date", iso);
             window.location.search = params.toString();
         }}
-
         prevEl.addEventListener("click", () => goMonth(-1));
         nextEl.addEventListener("click", () => goMonth(1));
-        if (todayEl) {{
-            todayEl.addEventListener("click", jumpToToday);
-        }}
+        if (todayEl) todayEl.addEventListener("click", jumpToToday);
         generateEl.addEventListener("click", generate);
-
         renderHead();
         updateSelectedText();
         renderCalendar();
@@ -1019,133 +625,95 @@ def _extra_js(today: date, birthday_index: dict[str, list[str]]) -> str:
     """
 
 
-def _dynamic_header_subtitle(today: date, birthday_hits: list[dict], birthdays: list[dict]) -> str:
-    month_count = sum(
-        1
-        for item in birthdays
-        if int(item.get("month", 0) or 0) == today.month
-    )
-
-    if not birthday_hits:
-        return (
-            f"No birthdays are listed for {today.strftime('%B %d')} — "
-            f"{month_count} birthday{'s' if month_count != 1 else ''} are on file for {today.strftime('%B')}."
-        )
-
-    names = [
-        str(item.get("name", "")).strip()
-        for item in birthday_hits
-        if str(item.get("name", "")).strip()
-    ]
-    if len(names) == 1:
-        return (
-            f"{names[0]} is up today — quick outreach, a month view, and a clean snapshot of your birthday list."
-        )
-    return (
-        f"{len(names)} birthdays are up today — fast outreach, a month view, and a clean snapshot of your birthday list."
-    )
-
-
-def _dynamic_hero_summary_pill(today: date, birthday_hits: list[dict], birthdays: list[dict]) -> str:
-    month_count = sum(
-        1
-        for item in birthdays
-        if int(item.get("month", 0) or 0) == today.month
-    )
+def _dynamic_header_subtitle(today: date, birthday_hits: list[dict], selected_facts: dict[str, CuratedFact | None]) -> str:
+    fact_count = sum(1 for fact in selected_facts.values() if fact is not None)
     if birthday_hits:
-        return f"{len(birthday_hits)} today · {month_count} in {today.strftime('%B')}"
-    return f"{month_count} in {today.strftime('%B')} · planning view"
+        names = [str(item.get("name", "")).strip() for item in birthday_hits if str(item.get("name", "")).strip()]
+        if len(names) == 1:
+            return f"{names[0]} is up today — birthday tools plus {fact_count} curated fun cards for Patti to mix and match."
+        return f"{len(names)} birthdays are up today — birthday tools plus {fact_count} curated fun cards for Patti to mix and match."
+    return f"No family birthday lands on {today.strftime('%B %d')} — use this as a planning day with {fact_count} curated fun cards."
+
+
+def _dynamic_hero_summary_pill(birthday_hits: list[dict], selected_facts: dict[str, CuratedFact | None]) -> str:
+    fact_count = sum(1 for fact in selected_facts.values() if fact is not None)
+    birthday_count = len(birthday_hits)
+    if birthday_count:
+        return f"{birthday_count} birthday{'s' if birthday_count != 1 else ''} today · {fact_count} fun cards"
+    return f"Planning view · {fact_count} fun cards"
 
 
 def build_theme_page(date_str: str | None = None, seed: int | None = None) -> PageContext:
     today = resolve_date(date_str)
-    rng = random.Random(seed if seed is not None else today.toordinal())
+    rng_seed = seed if seed is not None else today.toordinal()
+    rng = random.Random(rng_seed)
 
     birthdays = load_birthdays()
     birthday_hits = birthdays_for_date(birthdays, today.month, today.day)
     birthday_index = build_birthday_index(birthdays)
-
     all_phones = people_to_phone_list(birthdays)
-    phones_without_birthday_person = filter_phones_excluding_birthday_people(
-        all_phones,
-        birthday_hits,
-    )
-
+    phones_without_birthday_person = filter_phones_excluding_birthday_people(all_phones, birthday_hits)
     message_text = _message_text_for_hits(birthday_hits, rng)
-    loaded_count = len(birthdays)
+    selected_facts = {card_type: select_fact_for_card_type(card_type, today, seed=rng_seed) for card_type in CURATED_CARD_ORDER}
+    available_curated = approved_facts()
 
-    cards = [
-        CardItem(
-            card_type="birthday_calendar",
-            eyebrow="Pick a Date",
-            title="Birthday Calendar",
-            body=_calendar_card_html(today),
-            source_url=None,
-        ),
-        CardItem(
-            card_type="birthday_spotlight",
-            eyebrow="Birthday Spotlight",
-            title=today.strftime("%B %d"),
-            body=_render_birthday_spotlight(birthday_hits, message_text),
-            source_url=None,
-        ),
-        CardItem(
-            card_type="birthday_phone_helper",
-            eyebrow="Quick Outreach",
-            title="Phone List Helper",
-            body=_render_phone_helper(phones_without_birthday_person, birthday_hits),
-            source_url=None,
-        ),
-        CardItem(
-            card_type="birthday_message_starter",
-            eyebrow="Message Starter",
-            title="What to Say",
-            body=_render_message_starter(message_text, birthday_hits),
-            source_url=None,
-        ),
-        CardItem(
-            card_type="birthday_upcoming",
-            eyebrow="Plan Ahead",
-            title="Upcoming Birthdays",
-            body=_render_upcoming_birthdays(today, birthdays),
-            source_url=None,
-        ),
-        CardItem(
-            card_type="birthday_month_overview",
-            eyebrow="This Month",
-            title=f"{today.strftime('%B')} Overview",
-            body=_render_month_overview(today, birthdays),
-            source_url=None,
-        ),
-        CardItem(
-            card_type="birthday_circle_snapshot",
-            eyebrow="Birthday Data",
-            title="Circle Snapshot",
-            body=_render_circle_snapshot(birthdays),
-            source_url=None,
-        ),
+    cards: list[CardItem] = [
+        CardItem("birthday_calendar", "Pick a Date", "Birthday Calendar", _calendar_card_html(today), None),
+        CardItem("birthday_spotlight", "Birthday Spotlight", today.strftime("%B %d"), _render_birthday_spotlight(birthday_hits, message_text), None),
+        CardItem("birthday_phone_helper", "Quick Outreach", "Phone List Helper", _render_phone_helper(phones_without_birthday_person, birthday_hits), None),
     ]
 
-    footer_suffix = (
-        f" {loaded_count} birthday entr{'y' if loaded_count == 1 else 'ies'} loaded."
-        if loaded_count
-        else " No birthdays loaded yet."
+    fact_meta = {
+        "classic_rock": ("Classic Rock", "Classic Rock", "No approved classic rock fact matched this date yet."),
+        "irish_history": ("Irish History", "Irish History", "No approved Irish history fact matched this date yet."),
+        "boston_sports": ("Boston Sports", "Boston Sports", "No approved Boston sports fact matched this date yet."),
+        "famous_person_birthday": ("Famous Birthday", "Famous Person Birthday", "No approved famous birthday fact matched this date yet."),
+        "fun_fact": ("Fun Fact", "Fun Fact", "No approved fun fact matched this date yet."),
+    }
+
+    for card_type in CURATED_CARD_ORDER:
+        eyebrow, fallback_title, fallback_body = fact_meta[card_type]
+        title, body_html, source_url = _render_fact_card_body(selected_facts.get(card_type), fallback_title, fallback_body)
+        cards.append(CardItem(card_type, eyebrow, title, body_html, source_url))
+
+    cards.extend([
+        CardItem(
+            "birthday_message_starter",
+            "Message Starter",
+            "What to Say",
+            f"""
+                <p>Editable starter you can copy into a text message.</p>
+                <textarea id=\"birthday-message-starter\" class=\"birthday-textarea\">{escape(message_text)}</textarea>
+                <div class=\"birthday-actions\">
+                    <button class=\"birthday-btn\" type=\"button\" id=\"birthdayMessageCopyBtn\">Copy message</button>
+                    <span id=\"birthday-message-copy-status\" class=\"birthday-hint\"></span>
+                </div>
+            """,
+            None,
+        ),
+        CardItem("birthday_upcoming", "Plan Ahead", "Upcoming Birthdays", _render_upcoming_birthdays(today, birthdays), None),
+        CardItem("mom_daily", "Patti Mode", "Mom Daily Draft", _render_mom_daily(today, birthday_hits, message_text, selected_facts, rng), None),
+    ])
+
+    footer_text = (
+        f"{THEME_CONFIG['footer_text']} {len(birthdays)} birthday entr{'y' if len(birthdays) == 1 else 'ies'} loaded. "
+        f"{len(available_curated)} approved curated fact{'s' if len(available_curated) != 1 else ''} available."
     )
 
     return PageContext(
         page_title=f"BirthDay Today — {today.strftime('%B %d, %Y')}",
         header_title=THEME_CONFIG["header_title"],
-        header_subtitle=_dynamic_header_subtitle(today, birthday_hits, birthdays),
+        header_subtitle=_dynamic_header_subtitle(today, birthday_hits, selected_facts),
         today_str=today.strftime("%A, %B %d, %Y"),
         cards=cards,
-        footer_text=THEME_CONFIG["footer_text"] + footer_suffix,
+        footer_text=footer_text,
         metadata={
             "theme_name": THEME_NAME,
             "date_key": today.strftime("%m-%d"),
             "background": None,
             "header_title_image": THEME_CONFIG.get("header_title_image"),
             "hero_kicker": THEME_CONFIG.get("hero_kicker", "Daily Flyer • Theme"),
-            "hero_summary_pill": _dynamic_hero_summary_pill(today, birthday_hits, birthdays),
+            "hero_summary_pill": _dynamic_hero_summary_pill(birthday_hits, selected_facts),
             "extra_css": _extra_css(),
             "extra_js": _extra_js(today, birthday_index),
             "extra_head_html": "",

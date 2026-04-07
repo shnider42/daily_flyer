@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+import random
 from dataclasses import asdict, dataclass, field
 from datetime import date, timedelta
 from pathlib import Path
@@ -40,23 +41,54 @@ class CuratedFact:
     within_days: int | None = None
     notes: str = ""
 
+    def cadence_label(self) -> str:
+        if self.month and self.day and not self.week_mode:
+            return "day_of"
+        if self.week_mode == "week_of":
+            return "week_of"
+        if self.week_mode == "within_days":
+            return "within_days"
+        return "unknown"
+
     def matches_date(self, target: date) -> bool:
-        if self.month and self.day:
+        if self.month is None:
+            return False
+
+        if self.day is not None and not self.week_mode:
             return self.month == target.month and self.day == target.day
 
-        if self.month and self.week_mode == "week_of" and self.week_of_day:
+        if self.week_mode == "week_of" and self.week_of_day is not None:
             if self.month != target.month:
                 return False
             start = date(target.year, self.month, self.week_of_day) - timedelta(days=3)
             end = date(target.year, self.month, self.week_of_day) + timedelta(days=3)
             return start <= target <= end
 
-        if self.month and self.day and self.week_mode == "within_days" and self.within_days is not None:
-            anchor = date(target.year, self.month, self.day)
+        if self.week_mode == "within_days" and self.day is not None and self.within_days is not None:
+            try:
+                anchor = date(target.year, self.month, self.day)
+            except ValueError:
+                return False
             return abs((target - anchor).days) <= self.within_days
 
         return False
 
+    def distance_from(self, target: date) -> int:
+        if self.month is None:
+            return 9999
+        if self.day is not None:
+            try:
+                anchor = date(target.year, self.month, self.day)
+            except ValueError:
+                return 9999
+            return abs((target - anchor).days)
+        if self.week_mode == "week_of" and self.week_of_day is not None:
+            try:
+                anchor = date(target.year, self.month, self.week_of_day)
+            except ValueError:
+                return 9999
+            return abs((target - anchor).days)
+        return 9999
 
 
 def _safe_int(value: Any) -> int | None:
@@ -174,8 +206,62 @@ def facts_for_card_type(card_type: str, path: str | Path = DEFAULT_CURATED_FACTS
 
 
 
+def approved_facts_for_card_type(card_type: str, path: str | Path = DEFAULT_CURATED_FACTS_FILE) -> list[CuratedFact]:
+    return [fact for fact in approved_facts(path) if fact.card_type == card_type]
+
+
+
 def facts_for_date(target: date, path: str | Path = DEFAULT_CURATED_FACTS_FILE) -> list[CuratedFact]:
     return [fact for fact in approved_facts(path) if fact.matches_date(target)]
+
+
+
+def facts_for_card_type_and_date(
+    card_type: str,
+    target: date,
+    path: str | Path = DEFAULT_CURATED_FACTS_FILE,
+) -> list[CuratedFact]:
+    return [
+        fact
+        for fact in approved_facts_for_card_type(card_type, path)
+        if fact.matches_date(target)
+    ]
+
+
+
+def select_fact_for_card_type(
+    card_type: str,
+    target: date,
+    path: str | Path = DEFAULT_CURATED_FACTS_FILE,
+    seed: int | None = None,
+) -> CuratedFact | None:
+    matches = facts_for_card_type_and_date(card_type, target, path)
+    if not matches:
+        return None
+
+    matches = sorted(
+        matches,
+        key=lambda fact: (
+            fact.distance_from(target),
+            0 if fact.cadence_label() == "day_of" else 1,
+            fact.fact_id.lower(),
+        ),
+    )
+
+    best_distance = matches[0].distance_from(target)
+    tightest = [fact for fact in matches if fact.distance_from(target) == best_distance]
+
+    rng_seed = seed if seed is not None else target.toordinal()
+    rng = random.Random(f"{card_type}|{target.isoformat()}|{rng_seed}")
+    return rng.choice(tightest)
+
+
+
+def card_coverage_summary(path: str | Path = DEFAULT_CURATED_FACTS_FILE) -> dict[str, int]:
+    summary = {card_type: 0 for card_type in CARD_TYPES}
+    for fact in approved_facts(path):
+        summary[fact.card_type] = summary.get(fact.card_type, 0) + 1
+    return summary
 
 
 
