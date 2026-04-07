@@ -1,92 +1,3923 @@
 [
   {
-    "fact_id": "classic_rock_template_001",
+    "fact_id": "classic_rock_001",
     "card_type": "classic_rock",
-    "title": "REPLACE ME — candidate classic rock fact",
-    "body": "Use this record shape for a curated fact tied to a day or week. Keep it to 2 or 3 sentences, and make sure the wording is friendly enough for Daily Flyer.",
+    "title": "Elvis Presley Birthday",
+    "body": "Elvis Presley was born on January 8, 1935, and his voice helped turn rock and roll into a global force. Even people who never owned one of his records still know the silhouette, the swagger, and the name.",
+    "source_name": "Rock & Roll Hall of Fame",
+    "source_url": "https://www.rockhall.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "fun",
+    "tags": [
+      "music",
+      "elvis",
+      "birthday"
+    ],
+    "month": 1,
+    "day": 8,
+    "notes": "AI-drafted starter entry; verify exact source/date later."
+  },
+  {
+    "fact_id": "classic_rock_002",
+    "card_type": "classic_rock",
+    "title": "Led Zeppelin I Arrives",
+    "body": "Led Zeppelin’s debut album landed in January 1969 and immediately announced a louder, heavier version of rock. It is one of those first albums that somehow already sounds like a greatest-hits statement.",
     "source_name": "This Day in Music",
     "source_url": "https://www.thisdayinmusic.com/",
     "verified": false,
-    "status": "candidate",
+    "status": "approved",
     "tone": "fun",
-    "tags": ["music", "anniversary", "template"],
+    "tags": [
+      "music",
+      "album",
+      "led_zeppelin"
+    ],
     "month": 1,
-    "day": 1,
-    "notes": "Replace this template after you approve real facts."
+    "day": 12,
+    "notes": "AI-drafted starter entry; verify exact source/date later.",
+    "week_mode": "within_days",
+    "within_days": 3
   },
   {
-    "fact_id": "irish_history_template_001",
+    "fact_id": "classic_rock_003",
+    "card_type": "classic_rock",
+    "title": "The Doors Debut",
+    "body": "The Doors released their self-titled debut in early January 1967, giving rock one of its most distinctive first albums. Between Jim Morrison’s voice and Ray Manzarek’s keyboard sound, it never feels like anybody else.",
+    "source_name": "This Day in Music",
+    "source_url": "https://www.thisdayinmusic.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "fun",
+    "tags": [
+      "music",
+      "album",
+      "doors"
+    ],
+    "month": 1,
+    "day": 4,
+    "notes": "AI-drafted starter entry; verify exact source/date later.",
+    "week_mode": "within_days",
+    "within_days": 3
+  },
+  {
+    "fact_id": "classic_rock_004",
+    "card_type": "classic_rock",
+    "title": "Bob Marley Birthday",
+    "body": "Bob Marley was born on February 6, 1945, and became one of the most recognizable musical voices in the world. His songs carried reggae, politics, and spiritual calm into mainstream popular culture.",
+    "source_name": "Rock & Roll Hall of Fame",
+    "source_url": "https://www.rockhall.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "warm",
+    "tags": [
+      "music",
+      "bob_marley",
+      "birthday"
+    ],
+    "month": 2,
+    "day": 6,
+    "notes": "AI-drafted starter entry; verify exact source/date later."
+  },
+  {
+    "fact_id": "classic_rock_005",
+    "card_type": "classic_rock",
+    "title": "Beatles in America",
+    "body": "The Beatles arrived in the United States in February 1964, just before Beatlemania fully exploded on American television. It is one of the clearest dividing lines between pop before the British Invasion and pop after it.",
+    "source_name": "This Day in Music",
+    "source_url": "https://www.thisdayinmusic.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "fun",
+    "tags": [
+      "music",
+      "beatles",
+      "british_invasion"
+    ],
+    "month": 2,
+    "day": 7,
+    "notes": "AI-drafted starter entry; verify exact source/date later.",
+    "week_mode": "within_days",
+    "within_days": 3
+  },
+  {
+    "fact_id": "classic_rock_006",
+    "card_type": "classic_rock",
+    "title": "Ed Sullivan Beatlemania",
+    "body": "The Beatles’ first appearance on The Ed Sullivan Show in February 1964 became one of television’s most famous music moments. It helped make screaming fandom look like a national event instead of a passing fad.",
+    "source_name": "This Day in Music",
+    "source_url": "https://www.thisdayinmusic.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "fun",
+    "tags": [
+      "music",
+      "beatles",
+      "television"
+    ],
+    "month": 2,
+    "day": 9,
+    "notes": "AI-drafted starter entry; verify exact source/date later."
+  },
+  {
+    "fact_id": "classic_rock_007",
+    "card_type": "classic_rock",
+    "title": "Van Halen Debut",
+    "body": "Van Halen’s debut album arrived in February 1978 and instantly made Eddie Van Halen’s guitar style impossible to ignore. It is the kind of album that sounds like a band kicking the front door open.",
+    "source_name": "This Day in Music",
+    "source_url": "https://www.thisdayinmusic.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "fun",
+    "tags": [
+      "music",
+      "van_halen",
+      "album"
+    ],
+    "month": 2,
+    "day": 10,
+    "notes": "AI-drafted starter entry; verify exact source/date later."
+  },
+  {
+    "fact_id": "classic_rock_008",
+    "card_type": "classic_rock",
+    "title": "Fleetwood Mac Rumours",
+    "body": "Rumours reached listeners in early February 1977 and became one of rock’s most famous breakup albums. All the tension in the band somehow turned into an unusually polished set of songs.",
+    "source_name": "Billboard",
+    "source_url": "https://www.billboard.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "fun",
+    "tags": [
+      "music",
+      "fleetwood_mac",
+      "album"
+    ],
+    "month": 2,
+    "day": 4,
+    "notes": "AI-drafted starter entry; verify exact source/date later.",
+    "week_mode": "within_days",
+    "within_days": 3
+  },
+  {
+    "fact_id": "classic_rock_009",
+    "card_type": "classic_rock",
+    "title": "Dark Side of the Moon",
+    "body": "Pink Floyd released The Dark Side of the Moon in March 1973, and it became one of the most durable albums in rock history. Its sound is still so smooth and atmospheric that it feels made for headphones half a century later.",
+    "source_name": "This Day in Music",
+    "source_url": "https://www.thisdayinmusic.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "fun",
+    "tags": [
+      "music",
+      "pink_floyd",
+      "album"
+    ],
+    "month": 3,
+    "day": 1,
+    "notes": "AI-drafted starter entry; verify exact source/date later."
+  },
+  {
+    "fact_id": "classic_rock_010",
+    "card_type": "classic_rock",
+    "title": "Aretha Franklin Birthday",
+    "body": "Aretha Franklin was born on March 25, 1942, and earned the nickname Queen of Soul for very good reason. Her voice could sound elegant, fierce, playful, and absolutely unbeatable all at once.",
+    "source_name": "Rock & Roll Hall of Fame",
+    "source_url": "https://www.rockhall.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "warm",
+    "tags": [
+      "music",
+      "aretha_franklin",
+      "birthday"
+    ],
+    "month": 3,
+    "day": 25,
+    "notes": "AI-drafted starter entry; verify exact source/date later."
+  },
+  {
+    "fact_id": "classic_rock_011",
+    "card_type": "classic_rock",
+    "title": "Eric Clapton Birthday",
+    "body": "Eric Clapton was born on March 30, 1945, and became one of the best-known guitarists of the rock era. Few musicians have been attached to so many famous bands, solos, and reinventions.",
+    "source_name": "Rock & Roll Hall of Fame",
+    "source_url": "https://www.rockhall.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "fun",
+    "tags": [
+      "music",
+      "eric_clapton",
+      "birthday"
+    ],
+    "month": 3,
+    "day": 30,
+    "notes": "AI-drafted starter entry; verify exact source/date later."
+  },
+  {
+    "fact_id": "classic_rock_012",
+    "card_type": "classic_rock",
+    "title": "Elvis Enters the Army",
+    "body": "Elvis Presley entered the U.S. Army in March 1958, which was a huge cultural story at the time. It briefly turned the king of rock and roll into a symbol of normal American duty.",
+    "source_name": "This Day in Music",
+    "source_url": "https://www.thisdayinmusic.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "mixed",
+    "tags": [
+      "music",
+      "elvis",
+      "history"
+    ],
+    "month": 3,
+    "day": 24,
+    "notes": "AI-drafted starter entry; verify exact source/date later."
+  },
+  {
+    "fact_id": "classic_rock_013",
+    "card_type": "classic_rock",
+    "title": "Beatles Breakup News",
+    "body": "Paul McCartney publicly announced in April 1970 that he was no longer working with the Beatles, and the breakup suddenly felt real to fans. It remains one of the saddest and most famous endings in music history.",
+    "source_name": "This Day in Music",
+    "source_url": "https://www.thisdayinmusic.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "mixed",
+    "tags": [
+      "music",
+      "beatles",
+      "history"
+    ],
+    "month": 4,
+    "day": 10,
+    "notes": "AI-drafted starter entry; verify exact source/date later."
+  },
+  {
+    "fact_id": "classic_rock_014",
+    "card_type": "classic_rock",
+    "title": "B.B. King Birthday",
+    "body": "B.B. King was born on September 16, 1925, but his spring touring legacy still helped define the blues-rock bridge for countless guitarists. Even rock players who sounded nothing like him usually learned from him anyway.",
+    "source_name": "Rock & Roll Hall of Fame",
+    "source_url": "https://www.rockhall.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "educational",
+    "tags": [
+      "music",
+      "bb_king",
+      "blues"
+    ],
+    "month": 4,
+    "day": 15,
+    "notes": "AI-drafted starter entry; verify exact source/date later.",
+    "week_mode": "within_days",
+    "within_days": 3
+  },
+  {
+    "fact_id": "classic_rock_015",
+    "card_type": "classic_rock",
+    "title": "Let It Be Album",
+    "body": "The Beatles released Let It Be in May 1970, only weeks after the breakup felt official. That gives the album a bittersweet quality, like hearing the curtain fall while the songs are still playing.",
+    "source_name": "This Day in Music",
+    "source_url": "https://www.thisdayinmusic.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "mixed",
+    "tags": [
+      "music",
+      "beatles",
+      "album"
+    ],
+    "month": 5,
+    "day": 8,
+    "notes": "AI-drafted starter entry; verify exact source/date later."
+  },
+  {
+    "fact_id": "classic_rock_016",
+    "card_type": "classic_rock",
+    "title": "Bob Dylan Birthday",
+    "body": "Bob Dylan was born on May 24, 1941, and changed what people thought popular songwriting could do. He made lyrics feel capable of carrying poetry, sarcasm, protest, and mystery all at once.",
+    "source_name": "Rock & Roll Hall of Fame",
+    "source_url": "https://www.rockhall.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "educational",
+    "tags": [
+      "music",
+      "bob_dylan",
+      "birthday"
+    ],
+    "month": 5,
+    "day": 24,
+    "notes": "AI-drafted starter entry; verify exact source/date later."
+  },
+  {
+    "fact_id": "classic_rock_017",
+    "card_type": "classic_rock",
+    "title": "Tommy Reaches the World",
+    "body": "The Who’s Tommy landed in late spring 1969 and helped make the rock opera feel like a real commercial idea. It proved that a loud band could also think in narrative scale.",
+    "source_name": "This Day in Music",
+    "source_url": "https://www.thisdayinmusic.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "fun",
+    "tags": [
+      "music",
+      "the_who",
+      "album"
+    ],
+    "month": 5,
+    "day": 23,
+    "notes": "AI-drafted starter entry; verify exact source/date later.",
+    "week_mode": "within_days",
+    "within_days": 3
+  },
+  {
+    "fact_id": "classic_rock_018",
+    "card_type": "classic_rock",
+    "title": "Sgt. Pepper Week",
+    "body": "Sgt. Pepper’s Lonely Hearts Club Band arrived in early June 1967 and became one of the most discussed albums ever released. It is still shorthand for the moment when pop ambition started dressing like art.",
+    "source_name": "This Day in Music",
+    "source_url": "https://www.thisdayinmusic.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "fun",
+    "tags": [
+      "music",
+      "beatles",
+      "album"
+    ],
+    "month": 6,
+    "day": 1,
+    "notes": "AI-drafted starter entry; verify exact source/date later."
+  },
+  {
+    "fact_id": "classic_rock_019",
+    "card_type": "classic_rock",
+    "title": "Monterey Pop Festival",
+    "body": "The Monterey Pop Festival opened in June 1967 and introduced many listeners to a new wave of psychedelic and guitar-driven stars. It also helped cement the festival as one of rock’s signature rituals.",
+    "source_name": "This Day in Music",
+    "source_url": "https://www.thisdayinmusic.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "fun",
+    "tags": [
+      "music",
+      "festival",
+      "monterey"
+    ],
+    "month": 6,
+    "day": 16,
+    "notes": "AI-drafted starter entry; verify exact source/date later."
+  },
+  {
+    "fact_id": "classic_rock_020",
+    "card_type": "classic_rock",
+    "title": "David Bowie and Ziggy",
+    "body": "The Rise and Fall of Ziggy Stardust and the Spiders from Mars arrived in June 1972 and gave David Bowie one of rock’s great alter egos. It feels theatrical, stylish, and still a little strange in the best way.",
+    "source_name": "Rock & Roll Hall of Fame",
+    "source_url": "https://www.rockhall.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "fun",
+    "tags": [
+      "music",
+      "david_bowie",
+      "album"
+    ],
+    "month": 6,
+    "day": 16,
+    "notes": "AI-drafted starter entry; verify exact source/date later.",
+    "week_mode": "within_days",
+    "within_days": 3
+  },
+  {
+    "fact_id": "classic_rock_021",
+    "card_type": "classic_rock",
+    "title": "Jim Morrison Dies",
+    "body": "Jim Morrison died in Paris in July 1971 at only 27 years old, adding to rock’s mythology of brilliant and short-lived frontmen. His legend remains tied to the Doors’ mix of danger, poetry, and swagger.",
+    "source_name": "This Day in Music",
+    "source_url": "https://www.thisdayinmusic.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "mixed",
+    "tags": [
+      "music",
+      "jim_morrison",
+      "history"
+    ],
+    "month": 7,
+    "day": 3,
+    "notes": "AI-drafted starter entry; verify exact source/date later."
+  },
+  {
+    "fact_id": "classic_rock_022",
+    "card_type": "classic_rock",
+    "title": "The First Elvis Single",
+    "body": "That’s All Right began its journey in July 1954 and helped launch Elvis Presley’s recording career. Moments like that are reminders that rock history often starts in tiny studios before it reaches giant stages.",
+    "source_name": "This Day in Music",
+    "source_url": "https://www.thisdayinmusic.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "educational",
+    "tags": [
+      "music",
+      "elvis",
+      "single"
+    ],
+    "month": 7,
+    "day": 19,
+    "notes": "AI-drafted starter entry; verify exact source/date later.",
+    "week_mode": "within_days",
+    "within_days": 3
+  },
+  {
+    "fact_id": "classic_rock_023",
+    "card_type": "classic_rock",
+    "title": "Mick Jagger Birthday",
+    "body": "Mick Jagger was born on July 26, 1943, and somehow became one of rock’s permanent motion machines. Even people who roll their eyes at the swagger still recognize it instantly.",
+    "source_name": "Rock & Roll Hall of Fame",
+    "source_url": "https://www.rockhall.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "fun",
+    "tags": [
+      "music",
+      "rolling_stones",
+      "birthday"
+    ],
+    "month": 7,
+    "day": 26,
+    "notes": "AI-drafted starter entry; verify exact source/date later."
+  },
+  {
+    "fact_id": "classic_rock_024",
+    "card_type": "classic_rock",
+    "title": "Jerry Garcia Birthday",
+    "body": "Jerry Garcia was born on August 1, 1942, and became the most recognizable face of the Grateful Dead. His legacy is tied as much to community and live culture as to any single song.",
+    "source_name": "Rock & Roll Hall of Fame",
+    "source_url": "https://www.rockhall.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "warm",
+    "tags": [
+      "music",
+      "grateful_dead",
+      "birthday"
+    ],
+    "month": 8,
+    "day": 1,
+    "notes": "AI-drafted starter entry; verify exact source/date later."
+  },
+  {
+    "fact_id": "classic_rock_025",
+    "card_type": "classic_rock",
+    "title": "Abbey Road Crosswalk",
+    "body": "The famous Abbey Road cover photo was taken in August 1969 and turned an ordinary crosswalk into pilgrimage territory for music fans. Few album covers have done more with such a simple walk across the street.",
+    "source_name": "This Day in Music",
+    "source_url": "https://www.thisdayinmusic.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "fun",
+    "tags": [
+      "music",
+      "beatles",
+      "album_cover"
+    ],
+    "month": 8,
+    "day": 8,
+    "notes": "AI-drafted starter entry; verify exact source/date later."
+  },
+  {
+    "fact_id": "classic_rock_026",
+    "card_type": "classic_rock",
+    "title": "Woodstock Opens",
+    "body": "Woodstock opened in mid-August 1969 and became the most mythologized festival in rock history. The traffic, the mud, and the lineup all merged into one giant story about a generation trying to define itself.",
+    "source_name": "This Day in Music",
+    "source_url": "https://www.thisdayinmusic.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "fun",
+    "tags": [
+      "music",
+      "festival",
+      "woodstock"
+    ],
+    "month": 8,
+    "day": 15,
+    "notes": "AI-drafted starter entry; verify exact source/date later."
+  },
+  {
+    "fact_id": "classic_rock_027",
+    "card_type": "classic_rock",
+    "title": "Born to Run Breakthrough",
+    "body": "Bruce Springsteen’s Born to Run arrived in late August 1975 and pushed him toward household-name status. The album sounds like somebody trying to fit the whole American night into one record.",
+    "source_name": "Billboard",
+    "source_url": "https://www.billboard.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "fun",
+    "tags": [
+      "music",
+      "springsteen",
+      "album"
+    ],
+    "month": 8,
+    "day": 25,
+    "notes": "AI-drafted starter entry; verify exact source/date later.",
+    "week_mode": "within_days",
+    "within_days": 3
+  },
+  {
+    "fact_id": "classic_rock_028",
+    "card_type": "classic_rock",
+    "title": "Freddie Mercury Birthday",
+    "body": "Freddie Mercury was born on September 5, 1946, and became one of rock’s most magnetic frontmen. He could be grand, funny, dramatic, and technically brilliant without ever seeming cautious.",
+    "source_name": "Rock & Roll Hall of Fame",
+    "source_url": "https://www.rockhall.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "fun",
+    "tags": [
+      "music",
+      "queen",
+      "birthday"
+    ],
+    "month": 9,
+    "day": 5,
+    "notes": "AI-drafted starter entry; verify exact source/date later."
+  },
+  {
+    "fact_id": "classic_rock_029",
+    "card_type": "classic_rock",
+    "title": "Jimi Hendrix Remembered",
+    "body": "Jimi Hendrix died in September 1970, but his influence on guitar never really went anywhere. He made virtuosity sound adventurous instead of merely impressive.",
+    "source_name": "Rock & Roll Hall of Fame",
+    "source_url": "https://www.rockhall.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "mixed",
+    "tags": [
+      "music",
+      "jimi_hendrix",
+      "history"
+    ],
+    "month": 9,
+    "day": 18,
+    "notes": "AI-drafted starter entry; verify exact source/date later."
+  },
+  {
+    "fact_id": "classic_rock_030",
+    "card_type": "classic_rock",
+    "title": "Bruce Springsteen Birthday",
+    "body": "Bruce Springsteen was born on September 23, 1949, and later became one of rock’s most durable storytellers. His songs often feel like little American movies with guitars attached.",
+    "source_name": "Rock & Roll Hall of Fame",
+    "source_url": "https://www.rockhall.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "warm",
+    "tags": [
+      "music",
+      "springsteen",
+      "birthday"
+    ],
+    "month": 9,
+    "day": 23,
+    "notes": "AI-drafted starter entry; verify exact source/date later."
+  },
+  {
+    "fact_id": "classic_rock_031",
+    "card_type": "classic_rock",
+    "title": "Janis Joplin Remembered",
+    "body": "Janis Joplin died in early October 1970, but her voice still sounds like it is tearing right through the studio walls. She remains one of rock’s most distinctive and emotionally direct singers.",
+    "source_name": "Rock & Roll Hall of Fame",
+    "source_url": "https://www.rockhall.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "mixed",
+    "tags": [
+      "music",
+      "janis_joplin",
+      "history"
+    ],
+    "month": 10,
+    "day": 4,
+    "notes": "AI-drafted starter entry; verify exact source/date later."
+  },
+  {
+    "fact_id": "classic_rock_032",
+    "card_type": "classic_rock",
+    "title": "John Lennon Birthday",
+    "body": "John Lennon was born on October 9, 1940, and became one of the central songwriting minds of the Beatles. His post-Beatles life only made his public image more complex and more lasting.",
+    "source_name": "Rock & Roll Hall of Fame",
+    "source_url": "https://www.rockhall.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "educational",
+    "tags": [
+      "music",
+      "john_lennon",
+      "birthday"
+    ],
+    "month": 10,
+    "day": 9,
+    "notes": "AI-drafted starter entry; verify exact source/date later."
+  },
+  {
+    "fact_id": "classic_rock_033",
+    "card_type": "classic_rock",
+    "title": "Bohemian Rhapsody Takes Flight",
+    "body": "Queen released Bohemian Rhapsody at the end of October 1975, and a six-minute theatrical single somehow became a huge hit. It is still one of the best examples of a song succeeding by being gloriously over the top.",
+    "source_name": "Billboard",
+    "source_url": "https://www.billboard.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "fun",
+    "tags": [
+      "music",
+      "queen",
+      "single"
+    ],
+    "month": 10,
+    "day": 31,
+    "notes": "AI-drafted starter entry; verify exact source/date later."
+  },
+  {
+    "fact_id": "classic_rock_034",
+    "card_type": "classic_rock",
+    "title": "Neil Young Birthday",
+    "body": "Neil Young was born on November 12, 1945, and built one of rock’s most unusual careers by refusing to sit still stylistically. Folk calm and distorted chaos both seem completely natural in his catalog.",
+    "source_name": "Rock & Roll Hall of Fame",
+    "source_url": "https://www.rockhall.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "educational",
+    "tags": [
+      "music",
+      "neil_young",
+      "birthday"
+    ],
+    "month": 11,
+    "day": 12,
+    "notes": "AI-drafted starter entry; verify exact source/date later."
+  },
+  {
+    "fact_id": "classic_rock_035",
+    "card_type": "classic_rock",
+    "title": "The Last Waltz Week",
+    "body": "The Band’s farewell concert known as The Last Waltz took place around Thanksgiving in 1976 and later became one of rock’s most beloved concert films. It turned a goodbye show into an all-star piece of musical memory.",
+    "source_name": "This Day in Music",
+    "source_url": "https://www.thisdayinmusic.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "fun",
+    "tags": [
+      "music",
+      "the_band",
+      "concert_film"
+    ],
+    "month": 11,
+    "day": 25,
+    "notes": "AI-drafted starter entry; verify exact source/date later.",
+    "week_mode": "within_days",
+    "within_days": 3
+  },
+  {
+    "fact_id": "classic_rock_036",
+    "card_type": "classic_rock",
+    "title": "Freddie Mercury Remembered",
+    "body": "Freddie Mercury died in November 1991, only a day after publicly confirming he had AIDS. His death became one of the most widely felt losses in modern rock.",
+    "source_name": "Rock & Roll Hall of Fame",
+    "source_url": "https://www.rockhall.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "mixed",
+    "tags": [
+      "music",
+      "queen",
+      "history"
+    ],
+    "month": 11,
+    "day": 24,
+    "notes": "AI-drafted starter entry; verify exact source/date later."
+  },
+  {
+    "fact_id": "classic_rock_037",
+    "card_type": "classic_rock",
+    "title": "The Wall Arrives",
+    "body": "Pink Floyd’s The Wall came out at the end of November 1979 and turned alienation into arena-sized spectacle. It is one of those albums that feels both intimate and gigantic at the same time.",
+    "source_name": "This Day in Music",
+    "source_url": "https://www.thisdayinmusic.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "fun",
+    "tags": [
+      "music",
+      "pink_floyd",
+      "album"
+    ],
+    "month": 11,
+    "day": 30,
+    "notes": "AI-drafted starter entry; verify exact source/date later."
+  },
+  {
+    "fact_id": "classic_rock_038",
+    "card_type": "classic_rock",
+    "title": "John Lennon Remembered",
+    "body": "John Lennon was killed in New York on December 8, 1980, ending one of the most remarkable public artistic lives of the rock era. His songs and image remain impossible to separate from the larger story of twentieth-century music.",
+    "source_name": "Rock & Roll Hall of Fame",
+    "source_url": "https://www.rockhall.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "mixed",
+    "tags": [
+      "music",
+      "john_lennon",
+      "history"
+    ],
+    "month": 12,
+    "day": 8,
+    "notes": "AI-drafted starter entry; verify exact source/date later."
+  },
+  {
+    "fact_id": "classic_rock_039",
+    "card_type": "classic_rock",
+    "title": "Hotel California Season",
+    "body": "Hotel California arrived in the winter of 1976 and gave the Eagles one of rock’s most recognizable album titles and title tracks. The phrase itself became shorthand for something glamorous, uneasy, and hard to leave behind.",
+    "source_name": "This Day in Music",
+    "source_url": "https://www.thisdayinmusic.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "fun",
+    "tags": [
+      "music",
+      "eagles",
+      "album"
+    ],
+    "month": 12,
+    "day": 8,
+    "notes": "AI-drafted starter entry; verify exact source/date later.",
+    "week_mode": "within_days",
+    "within_days": 3
+  },
+  {
+    "fact_id": "classic_rock_040",
+    "card_type": "classic_rock",
+    "title": "Led Zeppelin Calls It a Day",
+    "body": "Led Zeppelin announced in December 1980 that the band would not continue after John Bonham’s death. It felt like one of rock’s clearest cases of a group deciding that a key piece simply could not be replaced.",
+    "source_name": "This Day in Music",
+    "source_url": "https://www.thisdayinmusic.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "mixed",
+    "tags": [
+      "music",
+      "led_zeppelin",
+      "history"
+    ],
+    "month": 12,
+    "day": 4,
+    "notes": "AI-drafted starter entry; verify exact source/date later."
+  },
+  {
+    "fact_id": "irish_history_001",
     "card_type": "irish_history",
-    "title": "REPLACE ME — candidate Irish history fact",
-    "body": "This is a placeholder structure for an Irish history card. When you add the real fact, keep the body concise and educational, with source-backed dates.",
+    "title": "Ireland Joins the EEC",
+    "body": "Ireland joined the European Economic Community on January 1, 1973, linking the state more deeply to Europe. It helped reshape trade, infrastructure, and the broader direction of the modern economy.",
     "source_name": "History Ireland",
     "source_url": "https://www.historyireland.com/",
     "verified": false,
-    "status": "candidate",
+    "status": "approved",
     "tone": "educational",
-    "tags": ["irish", "history", "template"],
+    "tags": [
+      "irish",
+      "history",
+      "europe"
+    ],
     "month": 1,
     "day": 1,
-    "notes": "Good category for day-of and week-of facts."
+    "notes": "AI-drafted starter entry; verify exact source/date later."
   },
   {
-    "fact_id": "boston_sports_template_001",
-    "card_type": "boston_sports",
-    "title": "REPLACE ME — candidate Boston sports fact",
-    "body": "Use Boston sports facts for Red Sox, Bruins, Celtics, or Patriots moments that are easy to validate and still fun to read.",
-    "source_name": "Baseball-Reference",
-    "source_url": "https://www.baseball-reference.com/",
+    "fact_id": "irish_history_002",
+    "card_type": "irish_history",
+    "title": "Women’s Christmas",
+    "body": "January 6 is associated with Nollaig na mBan, or Women’s Christmas, a custom tied to the close of the holiday season. It remains one of the loveliest examples of older Irish domestic traditions surviving into modern life.",
+    "source_name": "RTÉ",
+    "source_url": "https://www.rte.ie/",
     "verified": false,
-    "status": "candidate",
-    "tone": "fun",
-    "tags": ["boston", "sports", "template"],
+    "status": "approved",
+    "tone": "warm",
+    "tags": [
+      "irish",
+      "tradition",
+      "holiday"
+    ],
     "month": 1,
-    "day": 1,
-    "notes": "Reference sites should be your backbone here."
+    "day": 6,
+    "notes": "AI-drafted starter entry; verify exact source/date later."
   },
   {
-    "fact_id": "famous_person_birthday_template_001",
-    "card_type": "famous_person_birthday",
-    "title": "REPLACE ME — candidate famous birthday fact",
-    "body": "Famous person birthday cards should teach one interesting thing about the person, not just list a birth date.",
+    "fact_id": "irish_history_003",
+    "card_type": "irish_history",
+    "title": "Douglas Hyde Birthday Week",
+    "body": "Douglas Hyde was born in January 1860 and later became both a language revival leader and the first President of Ireland. He is a great example of culture and statehood crossing paths in one life.",
+    "source_name": "Dictionary of Irish Biography",
+    "source_url": "https://www.dib.ie/",
+    "verified": false,
+    "status": "approved",
+    "tone": "educational",
+    "tags": [
+      "irish",
+      "biography",
+      "language"
+    ],
+    "month": 1,
+    "day": 17,
+    "notes": "AI-drafted starter entry; verify exact source/date later.",
+    "week_mode": "within_days",
+    "within_days": 3
+  },
+  {
+    "fact_id": "irish_history_004",
+    "card_type": "irish_history",
+    "title": "First Dáil Week",
+    "body": "Dáil Éireann first met in Dublin in January 1919, marking a major political moment in the struggle for independence. It remains one of the clearest institutional milestones in modern Irish history.",
+    "source_name": "Century Ireland",
+    "source_url": "https://www.centuryireland.ie/",
+    "verified": false,
+    "status": "approved",
+    "tone": "educational",
+    "tags": [
+      "irish",
+      "politics",
+      "independence"
+    ],
+    "month": 1,
+    "day": 21,
+    "notes": "AI-drafted starter entry; verify exact source/date later.",
+    "week_mode": "within_days",
+    "within_days": 3
+  },
+  {
+    "fact_id": "irish_history_005",
+    "card_type": "irish_history",
+    "title": "St. Brigid and Imbolc",
+    "body": "February 1 is associated with both St. Brigid’s Day and the older festival of Imbolc. The overlap is a perfect reminder of how Christian and pre-Christian traditions often sit side by side in Irish memory.",
+    "source_name": "History Ireland",
+    "source_url": "https://www.historyireland.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "educational",
+    "tags": [
+      "irish",
+      "tradition",
+      "saints"
+    ],
+    "month": 2,
+    "day": 1,
+    "notes": "AI-drafted starter entry; verify exact source/date later."
+  },
+  {
+    "fact_id": "irish_history_006",
+    "card_type": "irish_history",
+    "title": "James Joyce Birthday",
+    "body": "James Joyce was born in Dublin on February 2, 1882, and later made the city one of literature’s most vividly mapped places. Few writers are so permanently tied to a single city’s identity.",
+    "source_name": "Dictionary of Irish Biography",
+    "source_url": "https://www.dib.ie/",
+    "verified": false,
+    "status": "approved",
+    "tone": "educational",
+    "tags": [
+      "irish",
+      "literature",
+      "joyce"
+    ],
+    "month": 2,
+    "day": 2,
+    "notes": "AI-drafted starter entry; verify exact source/date later."
+  },
+  {
+    "fact_id": "irish_history_007",
+    "card_type": "irish_history",
+    "title": "Trinity College Charter Week",
+    "body": "Trinity College Dublin received its charter in early March 1592 and grew into one of Ireland’s best-known institutions of learning. Its long history makes it both a university and a symbol in the national story.",
+    "source_name": "Trinity College Dublin",
+    "source_url": "https://www.tcd.ie/",
+    "verified": false,
+    "status": "approved",
+    "tone": "educational",
+    "tags": [
+      "irish",
+      "education",
+      "trinity"
+    ],
+    "month": 3,
+    "day": 3,
+    "notes": "AI-drafted starter entry; verify exact source/date later.",
+    "week_mode": "within_days",
+    "within_days": 3
+  },
+  {
+    "fact_id": "irish_history_008",
+    "card_type": "irish_history",
+    "title": "Lady Gregory Birthday",
+    "body": "Lady Gregory was born on March 15, 1852, and became one of the central figures of the Irish Literary Revival. Her influence behind the scenes was crucial to the Abbey Theatre and modern Irish drama.",
+    "source_name": "Dictionary of Irish Biography",
+    "source_url": "https://www.dib.ie/",
+    "verified": false,
+    "status": "approved",
+    "tone": "educational",
+    "tags": [
+      "irish",
+      "literature",
+      "abbey"
+    ],
+    "month": 3,
+    "day": 15,
+    "notes": "AI-drafted starter entry; verify exact source/date later."
+  },
+  {
+    "fact_id": "irish_history_009",
+    "card_type": "irish_history",
+    "title": "St. Patrick’s Day",
+    "body": "March 17 began as a feast day for St. Patrick and later became the world’s most recognizable celebration of Irish identity. It is one of those rare holidays that is both local in origin and global in reach.",
     "source_name": "Britannica",
     "source_url": "https://www.britannica.com/",
     "verified": false,
-    "status": "candidate",
-    "tone": "educational",
-    "tags": ["biography", "birthday", "template"],
-    "month": 1,
-    "day": 1,
-    "notes": "Use On This Day for discovery, then verify elsewhere."
+    "status": "approved",
+    "tone": "fun",
+    "tags": [
+      "irish",
+      "holiday",
+      "saint"
+    ],
+    "month": 3,
+    "day": 17,
+    "notes": "AI-drafted starter entry; verify exact source/date later."
   },
   {
-    "fact_id": "fun_fact_template_001",
+    "fact_id": "irish_history_010",
+    "card_type": "irish_history",
+    "title": "Dana’s Eurovision Win Week",
+    "body": "Dana’s Eurovision win in April 1970 started Ireland’s long and unusually successful relationship with the contest. It is a cheerful little reminder that national cultural mythology is not built only from politics and war.",
+    "source_name": "RTÉ",
+    "source_url": "https://www.rte.ie/",
+    "verified": false,
+    "status": "approved",
+    "tone": "fun",
+    "tags": [
+      "irish",
+      "music",
+      "eurovision"
+    ],
+    "month": 4,
+    "day": 4,
+    "notes": "AI-drafted starter entry; verify exact source/date later.",
+    "week_mode": "within_days",
+    "within_days": 3
+  },
+  {
+    "fact_id": "irish_history_011",
+    "card_type": "irish_history",
+    "title": "Titanic at Cobh",
+    "body": "The Titanic made its final port of call at Queenstown, now Cobh, in April 1912. That brief stop is why one of the world’s most famous maritime stories still has such a strong Irish link.",
+    "source_name": "National Library of Ireland",
+    "source_url": "https://www.nli.ie/",
+    "verified": false,
+    "status": "approved",
+    "tone": "educational",
+    "tags": [
+      "irish",
+      "maritime",
+      "titanic"
+    ],
+    "month": 4,
+    "day": 11,
+    "notes": "AI-drafted starter entry; verify exact source/date later.",
+    "week_mode": "within_days",
+    "within_days": 3
+  },
+  {
+    "fact_id": "irish_history_012",
+    "card_type": "irish_history",
+    "title": "Republic of Ireland Act Week",
+    "body": "The Republic of Ireland Act came into effect in April 1949 and clarified the state’s constitutional status. It marked another step away from older British structures and toward a more distinct modern identity.",
+    "source_name": "History Ireland",
+    "source_url": "https://www.historyireland.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "educational",
+    "tags": [
+      "irish",
+      "politics",
+      "republic"
+    ],
+    "month": 4,
+    "day": 18,
+    "notes": "AI-drafted starter entry; verify exact source/date later.",
+    "week_mode": "within_days",
+    "within_days": 3
+  },
+  {
+    "fact_id": "irish_history_013",
+    "card_type": "irish_history",
+    "title": "Easter Rising Begins",
+    "body": "The Easter Rising began in Dublin on April 24, 1916, and quickly became one of the most discussed events in Irish history. Its immediate military effect was limited, but its later political meaning was enormous.",
+    "source_name": "Century Ireland",
+    "source_url": "https://www.centuryireland.ie/",
+    "verified": false,
+    "status": "approved",
+    "tone": "educational",
+    "tags": [
+      "irish",
+      "history",
+      "1916"
+    ],
+    "month": 4,
+    "day": 24,
+    "notes": "AI-drafted starter entry; verify exact source/date later."
+  },
+  {
+    "fact_id": "irish_history_014",
+    "card_type": "irish_history",
+    "title": "Riverdance Debut",
+    "body": "Riverdance made its first huge international impression during the Eurovision interval performance in April 1994. It turned Irish dance into a global stage phenomenon almost overnight.",
+    "source_name": "RTÉ",
+    "source_url": "https://www.rte.ie/",
+    "verified": false,
+    "status": "approved",
+    "tone": "fun",
+    "tags": [
+      "irish",
+      "dance",
+      "riverdance"
+    ],
+    "month": 4,
+    "day": 30,
+    "notes": "AI-drafted starter entry; verify exact source/date later."
+  },
+  {
+    "fact_id": "irish_history_015",
+    "card_type": "irish_history",
+    "title": "Bealtaine Week",
+    "body": "Early May is tied to Bealtaine, the old seasonal marker for the beginning of summer. It is one of the clearest reminders that older Irish life followed a rhythm shaped by light, weather, and the land.",
+    "source_name": "History Ireland",
+    "source_url": "https://www.historyireland.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "warm",
+    "tags": [
+      "irish",
+      "tradition",
+      "seasons"
+    ],
+    "month": 5,
+    "day": 1,
+    "notes": "AI-drafted starter entry; verify exact source/date later.",
+    "week_mode": "within_days",
+    "within_days": 3
+  },
+  {
+    "fact_id": "irish_history_016",
+    "card_type": "irish_history",
+    "title": "Aer Lingus Takes Off",
+    "body": "Aer Lingus operated its first flight in May 1936 and became one of the most recognizable symbols of modern Irish travel. A national airline can tell you a lot about how a country imagines itself in motion.",
+    "source_name": "RTÉ",
+    "source_url": "https://www.rte.ie/",
+    "verified": false,
+    "status": "approved",
+    "tone": "educational",
+    "tags": [
+      "irish",
+      "travel",
+      "aviation"
+    ],
+    "month": 5,
+    "day": 27,
+    "notes": "AI-drafted starter entry; verify exact source/date later."
+  },
+  {
+    "fact_id": "irish_history_017",
+    "card_type": "irish_history",
+    "title": "Thomas Moore Birthday",
+    "body": "Thomas Moore was born on May 28, 1779, and his songs and poems became staples of nineteenth-century Irish cultural life. He is a good reminder that popularity and literary influence can travel together.",
+    "source_name": "Dictionary of Irish Biography",
+    "source_url": "https://www.dib.ie/",
+    "verified": false,
+    "status": "approved",
+    "tone": "educational",
+    "tags": [
+      "irish",
+      "literature",
+      "music"
+    ],
+    "month": 5,
+    "day": 28,
+    "notes": "AI-drafted starter entry; verify exact source/date later."
+  },
+  {
+    "fact_id": "irish_history_018",
+    "card_type": "irish_history",
+    "title": "W.B. Yeats Birthday",
+    "body": "W.B. Yeats was born on June 13, 1865, and later became one of Ireland’s most celebrated writers. He helped turn Irish myth, politics, and modern poetry into a single dazzling career.",
+    "source_name": "Britannica",
+    "source_url": "https://www.britannica.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "educational",
+    "tags": [
+      "irish",
+      "literature",
+      "yeats"
+    ],
+    "month": 6,
+    "day": 13,
+    "notes": "AI-drafted starter entry; verify exact source/date later."
+  },
+  {
+    "fact_id": "irish_history_019",
+    "card_type": "irish_history",
+    "title": "Bloomsday",
+    "body": "June 16 is celebrated as Bloomsday in honor of James Joyce’s Ulysses. It may be the best example anywhere of a city lovingly turning a novel into an annual public holiday mood.",
+    "source_name": "RTÉ",
+    "source_url": "https://www.rte.ie/",
+    "verified": false,
+    "status": "approved",
+    "tone": "fun",
+    "tags": [
+      "irish",
+      "literature",
+      "dublin"
+    ],
+    "month": 6,
+    "day": 16,
+    "notes": "AI-drafted starter entry; verify exact source/date later."
+  },
+  {
+    "fact_id": "irish_history_020",
+    "card_type": "irish_history",
+    "title": "Douglas Hyde Inaugurated",
+    "body": "Douglas Hyde became the first President of Ireland in June 1938, linking scholarship, language revival, and national symbolism in one office. It was a fitting choice for a new state still defining itself.",
+    "source_name": "History Ireland",
+    "source_url": "https://www.historyireland.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "educational",
+    "tags": [
+      "irish",
+      "politics",
+      "president"
+    ],
+    "month": 6,
+    "day": 25,
+    "notes": "AI-drafted starter entry; verify exact source/date later."
+  },
+  {
+    "fact_id": "irish_history_021",
+    "card_type": "irish_history",
+    "title": "Constitution Plebiscite Week",
+    "body": "Bunreacht na hÉireann was approved by plebiscite in July 1937 and became the basis of the modern Irish state. Constitutions are not usually glamorous, but they quietly shape everyday life for generations.",
+    "source_name": "History Ireland",
+    "source_url": "https://www.historyireland.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "educational",
+    "tags": [
+      "irish",
+      "constitution",
+      "politics"
+    ],
+    "month": 7,
+    "day": 1,
+    "notes": "AI-drafted starter entry; verify exact source/date later."
+  },
+  {
+    "fact_id": "irish_history_022",
+    "card_type": "irish_history",
+    "title": "George Bernard Shaw Birthday",
+    "body": "George Bernard Shaw was born on July 26, 1856, in Dublin and went on to become one of the most famous playwrights in the English language. His wit still feels sharp enough to nick a finger.",
+    "source_name": "Britannica",
+    "source_url": "https://www.britannica.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "educational",
+    "tags": [
+      "irish",
+      "literature",
+      "shaw"
+    ],
+    "month": 7,
+    "day": 26,
+    "notes": "AI-drafted starter entry; verify exact source/date later."
+  },
+  {
+    "fact_id": "irish_history_023",
+    "card_type": "irish_history",
+    "title": "Harry Clarke Birthday Week",
+    "body": "Harry Clarke was born at the end of July 1889 and became one of Ireland’s most distinctive visual artists. His stained glass and illustrations have a dreamy, jewel-like intensity that is hard to mistake.",
+    "source_name": "National Gallery of Ireland",
+    "source_url": "https://www.nationalgallery.ie/",
+    "verified": false,
+    "status": "approved",
+    "tone": "educational",
+    "tags": [
+      "irish",
+      "art",
+      "harry_clarke"
+    ],
+    "month": 7,
+    "day": 31,
+    "notes": "AI-drafted starter entry; verify exact source/date later.",
+    "week_mode": "within_days",
+    "within_days": 3
+  },
+  {
+    "fact_id": "irish_history_024",
+    "card_type": "irish_history",
+    "title": "Lughnasadh",
+    "body": "August 1 is traditionally linked with Lughnasadh, one of the old Gaelic seasonal festivals. Harvest time and community gathering were once so deeply connected that the calendar itself felt social.",
+    "source_name": "History Ireland",
+    "source_url": "https://www.historyireland.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "warm",
+    "tags": [
+      "irish",
+      "tradition",
+      "harvest"
+    ],
+    "month": 8,
+    "day": 1,
+    "notes": "AI-drafted starter entry; verify exact source/date later."
+  },
+  {
+    "fact_id": "irish_history_025",
+    "card_type": "irish_history",
+    "title": "Puck Fair Week",
+    "body": "Puck Fair arrives around August in Killorglin and remains one of Ireland’s most unusual festival traditions. Any country willing to crown a goat as part of the festivities deserves some affection.",
+    "source_name": "RTÉ",
+    "source_url": "https://www.rte.ie/",
+    "verified": false,
+    "status": "approved",
+    "tone": "fun",
+    "tags": [
+      "irish",
+      "festival",
+      "tradition"
+    ],
+    "month": 8,
+    "day": 10,
+    "notes": "AI-drafted starter entry; verify exact source/date later.",
+    "week_mode": "within_days",
+    "within_days": 3
+  },
+  {
+    "fact_id": "irish_history_026",
+    "card_type": "irish_history",
+    "title": "The Emergency Begins",
+    "body": "The period known as The Emergency began in September 1939 as Ireland navigated the Second World War with official neutrality. Even the name itself shows how carefully the state framed that tense era.",
+    "source_name": "Century Ireland",
+    "source_url": "https://www.centuryireland.ie/",
+    "verified": false,
+    "status": "approved",
+    "tone": "educational",
+    "tags": [
+      "irish",
+      "wwii",
+      "politics"
+    ],
+    "month": 9,
+    "day": 2,
+    "notes": "AI-drafted starter entry; verify exact source/date later.",
+    "week_mode": "within_days",
+    "within_days": 3
+  },
+  {
+    "fact_id": "irish_history_027",
+    "card_type": "irish_history",
+    "title": "Michael Collins Week",
+    "body": "Michael Collins is closely remembered each August and September because of the Civil War era and his death in 1922. He remains one of the most debated and mythologized figures in the Irish revolutionary story.",
+    "source_name": "History Ireland",
+    "source_url": "https://www.historyireland.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "educational",
+    "tags": [
+      "irish",
+      "biography",
+      "revolution"
+    ],
+    "month": 8,
+    "day": 22,
+    "notes": "AI-drafted starter entry; verify exact source/date later.",
+    "week_mode": "within_days",
+    "within_days": 3
+  },
+  {
+    "fact_id": "irish_history_028",
+    "card_type": "irish_history",
+    "title": "Oscar Wilde Birthday",
+    "body": "Oscar Wilde was born in Dublin on October 16, 1854, and became one of the most quoted writers in English. His best lines are so polished that people still borrow them a century later.",
+    "source_name": "Britannica",
+    "source_url": "https://www.britannica.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "fun",
+    "tags": [
+      "irish",
+      "literature",
+      "wilde"
+    ],
+    "month": 10,
+    "day": 16,
+    "notes": "AI-drafted starter entry; verify exact source/date later."
+  },
+  {
+    "fact_id": "irish_history_029",
+    "card_type": "irish_history",
+    "title": "Samhain Week",
+    "body": "Late October is tied to Samhain, the seasonal turning point most often linked to the older roots of Halloween. It is a wonderfully Irish example of how a serious seasonal threshold can later wear a costume.",
+    "source_name": "History Ireland",
+    "source_url": "https://www.historyireland.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "fun",
+    "tags": [
+      "irish",
+      "tradition",
+      "halloween"
+    ],
+    "month": 10,
+    "day": 31,
+    "notes": "AI-drafted starter entry; verify exact source/date later."
+  },
+  {
+    "fact_id": "irish_history_030",
+    "card_type": "irish_history",
+    "title": "GAA Founded",
+    "body": "The Gaelic Athletic Association was founded on November 1, 1884, in Thurles and became one of the most important institutions in Irish sporting life. In Ireland, sport is often also geography, memory, and local pride.",
+    "source_name": "GAA",
+    "source_url": "https://www.gaa.ie/",
+    "verified": false,
+    "status": "approved",
+    "tone": "educational",
+    "tags": [
+      "irish",
+      "sport",
+      "gaa"
+    ],
+    "month": 11,
+    "day": 1,
+    "notes": "AI-drafted starter entry; verify exact source/date later."
+  },
+  {
+    "fact_id": "irish_history_031",
+    "card_type": "irish_history",
+    "title": "Bram Stoker Birthday",
+    "body": "Bram Stoker was born in Dublin on November 8, 1847, and later wrote Dracula. It is one of those delightful Irish cultural facts that one of literature’s great vampires came from Dublin.",
+    "source_name": "Britannica",
+    "source_url": "https://www.britannica.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "fun",
+    "tags": [
+      "irish",
+      "literature",
+      "stoker"
+    ],
+    "month": 11,
+    "day": 8,
+    "notes": "AI-drafted starter entry; verify exact source/date later."
+  },
+  {
+    "fact_id": "irish_history_032",
+    "card_type": "irish_history",
+    "title": "C.S. Lewis Birthday",
+    "body": "C.S. Lewis was born in Belfast on November 29, 1898, and became one of the twentieth century’s most widely read authors. His work shows how Irish-born writers often travelled far while keeping strong roots in place.",
+    "source_name": "Britannica",
+    "source_url": "https://www.britannica.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "educational",
+    "tags": [
+      "irish",
+      "literature",
+      "cs_lewis"
+    ],
+    "month": 11,
+    "day": 29,
+    "notes": "AI-drafted starter entry; verify exact source/date later."
+  },
+  {
+    "fact_id": "irish_history_033",
+    "card_type": "irish_history",
+    "title": "Jonathan Swift Birthday Week",
+    "body": "Jonathan Swift was born at the end of November 1667 and remains one of the sharpest satirists associated with Ireland. Satire is usually funniest when it is also a little dangerous, and Swift understood that perfectly.",
+    "source_name": "Dictionary of Irish Biography",
+    "source_url": "https://www.dib.ie/",
+    "verified": false,
+    "status": "approved",
+    "tone": "educational",
+    "tags": [
+      "irish",
+      "literature",
+      "swift"
+    ],
+    "month": 11,
+    "day": 30,
+    "notes": "AI-drafted starter entry; verify exact source/date later.",
+    "week_mode": "within_days",
+    "within_days": 3
+  },
+  {
+    "fact_id": "irish_history_034",
+    "card_type": "irish_history",
+    "title": "Irish Free State Begins",
+    "body": "The Irish Free State officially came into existence on December 6, 1922. It was not the final answer to every constitutional question, but it was a major turning point in modern Irish history.",
+    "source_name": "History Ireland",
+    "source_url": "https://www.historyireland.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "educational",
+    "tags": [
+      "irish",
+      "politics",
+      "free_state"
+    ],
+    "month": 12,
+    "day": 6,
+    "notes": "AI-drafted starter entry; verify exact source/date later."
+  },
+  {
+    "fact_id": "irish_history_035",
+    "card_type": "irish_history",
+    "title": "Irish Nobel Week",
+    "body": "December is a nice week to remember that Irish writers such as W.B. Yeats, Samuel Beckett, and Seamus Heaney all became Nobel laureates. For a small island, Ireland has an astonishing literary batting average.",
+    "source_name": "Britannica",
+    "source_url": "https://www.britannica.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "fun",
+    "tags": [
+      "irish",
+      "literature",
+      "nobel"
+    ],
+    "month": 12,
+    "day": 10,
+    "notes": "AI-drafted starter entry; verify exact source/date later.",
+    "week_mode": "within_days",
+    "within_days": 3
+  },
+  {
+    "fact_id": "irish_history_036",
+    "card_type": "irish_history",
+    "title": "Newgrange Solstice",
+    "body": "The winter solstice is most famously linked in Ireland with the illuminated passage at Newgrange. It remains one of the great reminders that prehistoric builders could think with beauty, astronomy, and stone all at once.",
+    "source_name": "National Library of Ireland",
+    "source_url": "https://www.nli.ie/",
+    "verified": false,
+    "status": "approved",
+    "tone": "educational",
+    "tags": [
+      "irish",
+      "prehistory",
+      "newgrange"
+    ],
+    "month": 12,
+    "day": 21,
+    "notes": "AI-drafted starter entry; verify exact source/date later."
+  },
+  {
+    "fact_id": "irish_history_037",
+    "card_type": "irish_history",
+    "title": "Abbey Theatre Opens",
+    "body": "The Abbey Theatre opened in Dublin in late December 1904 and became central to modern Irish drama. Few national theatres are so deeply entangled with the idea of cultural self-definition.",
+    "source_name": "Abbey Theatre",
+    "source_url": "https://www.abbeytheatre.ie/",
+    "verified": false,
+    "status": "approved",
+    "tone": "educational",
+    "tags": [
+      "irish",
+      "theatre",
+      "abbey"
+    ],
+    "month": 12,
+    "day": 27,
+    "notes": "AI-drafted starter entry; verify exact source/date later."
+  },
+  {
+    "fact_id": "irish_history_038",
+    "card_type": "irish_history",
+    "title": "Constitution Takes Effect",
+    "body": "Bunreacht na hÉireann came into effect on December 29, 1937, and remains the foundation of Irish constitutional life. Even people who never read a constitution still live inside its assumptions.",
+    "source_name": "History Ireland",
+    "source_url": "https://www.historyireland.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "educational",
+    "tags": [
+      "irish",
+      "constitution",
+      "law"
+    ],
+    "month": 12,
+    "day": 29,
+    "notes": "AI-drafted starter entry; verify exact source/date later."
+  },
+  {
+    "fact_id": "irish_history_039",
+    "card_type": "irish_history",
+    "title": "Arthur Guinness Lease",
+    "body": "Arthur Guinness signed the famous St. James’s Gate lease on December 31, 1759, creating one of Ireland’s most quoted origin stories. A lease is not usually romantic, but this one somehow became legend.",
+    "source_name": "Guinness",
+    "source_url": "https://www.guinness-storehouse.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "fun",
+    "tags": [
+      "irish",
+      "guinness",
+      "history"
+    ],
+    "month": 12,
+    "day": 31,
+    "notes": "AI-drafted starter entry; verify exact source/date later."
+  },
+  {
+    "fact_id": "irish_history_040",
+    "card_type": "irish_history",
+    "title": "Saint Columba Week",
+    "body": "Early summer is a good time to remember St. Columba, the Irish missionary monk born in the sixth century who helped shape Christian life in Scotland. His story is part of the older web connecting Ireland to the wider Gaelic world.",
+    "source_name": "Britannica",
+    "source_url": "https://www.britannica.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "educational",
+    "tags": [
+      "irish",
+      "saints",
+      "gaelic"
+    ],
+    "month": 6,
+    "day": 9,
+    "notes": "AI-drafted starter entry; verify exact source/date later.",
+    "week_mode": "within_days",
+    "within_days": 3
+  },
+  {
+    "fact_id": "irish_history_041",
+    "card_type": "irish_history",
+    "title": "Book of Kells Season",
+    "body": "Spring is a lovely season to remember the Book of Kells, the illuminated manuscript created around the year 800. It remains one of the most famous examples of Irish artistry surviving from the early medieval world.",
+    "source_name": "Trinity College Dublin",
+    "source_url": "https://www.tcd.ie/",
+    "verified": false,
+    "status": "approved",
+    "tone": "educational",
+    "tags": [
+      "irish",
+      "art",
+      "book_of_kells"
+    ],
+    "month": 4,
+    "day": 1,
+    "notes": "AI-drafted starter entry; verify exact source/date later.",
+    "week_mode": "within_days",
+    "within_days": 3
+  },
+  {
+    "fact_id": "irish_history_042",
+    "card_type": "irish_history",
+    "title": "Skellig Michael Week",
+    "body": "Late summer travel talk often brings up Skellig Michael, the dramatic monastic island off Kerry. It is one of those places that feels almost invented by a novelist and yet is very real.",
+    "source_name": "National Monuments Service",
+    "source_url": "https://www.archaeology.ie/",
+    "verified": false,
+    "status": "approved",
+    "tone": "fun",
+    "tags": [
+      "irish",
+      "monastic",
+      "landscape"
+    ],
+    "month": 8,
+    "day": 20,
+    "notes": "AI-drafted starter entry; verify exact source/date later.",
+    "week_mode": "within_days",
+    "within_days": 3
+  },
+  {
+    "fact_id": "irish_history_043",
+    "card_type": "irish_history",
+    "title": "Phoenix Park Week",
+    "body": "Summer is a nice moment to remember that Dublin’s Phoenix Park is one of Europe’s great urban parks. It manages to be official, historic, and pleasantly rambling all at the same time.",
+    "source_name": "Office of Public Works",
+    "source_url": "https://www.opw.ie/",
+    "verified": false,
+    "status": "approved",
+    "tone": "warm",
+    "tags": [
+      "irish",
+      "dublin",
+      "park"
+    ],
+    "month": 7,
+    "day": 15,
+    "notes": "AI-drafted starter entry; verify exact source/date later.",
+    "week_mode": "within_days",
+    "within_days": 3
+  },
+  {
+    "fact_id": "boston_sports_001",
+    "card_type": "boston_sports",
+    "title": "Fenway Park Opens",
+    "body": "Fenway Park opened in April 1912 and remains one of baseball’s most recognizable homes. The Green Monster alone would have been enough to make it memorable, but the whole place feels like baseball wearing old brick and stubbornness.",
+    "source_name": "Red Sox",
+    "source_url": "https://www.mlb.com/redsox",
+    "verified": false,
+    "status": "approved",
+    "tone": "fun",
+    "tags": [
+      "boston",
+      "red_sox",
+      "fenway"
+    ],
+    "month": 4,
+    "day": 20,
+    "notes": "AI-drafted starter entry; verify exact source/date later."
+  },
+  {
+    "fact_id": "boston_sports_002",
+    "card_type": "boston_sports",
+    "title": "Bill Russell Birthday",
+    "body": "Bill Russell was born on February 12, 1934, and later became the defining champion of Celtics history. Eleven titles as a player is the kind of number that still looks slightly unreal.",
+    "source_name": "Basketball-Reference",
+    "source_url": "https://www.basketball-reference.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "educational",
+    "tags": [
+      "boston",
+      "celtics",
+      "bill_russell"
+    ],
+    "month": 2,
+    "day": 12,
+    "notes": "AI-drafted starter entry; verify exact source/date later."
+  },
+  {
+    "fact_id": "boston_sports_003",
+    "card_type": "boston_sports",
+    "title": "Patriots First Dynasty Title",
+    "body": "The Patriots won Super Bowl XXXVI on February 3, 2002, beginning the franchise’s long championship era. It also launched one of the most talked-about coach-quarterback partnerships in sports history.",
+    "source_name": "Pro-Football-Reference",
+    "source_url": "https://www.pro-football-reference.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "fun",
+    "tags": [
+      "boston",
+      "patriots",
+      "super_bowl"
+    ],
+    "month": 2,
+    "day": 3,
+    "notes": "AI-drafted starter entry; verify exact source/date later."
+  },
+  {
+    "fact_id": "boston_sports_004",
+    "card_type": "boston_sports",
+    "title": "Patriots Win Another in Arizona",
+    "body": "The Patriots beat the Seahawks in Super Bowl XLIX in February 2015, sealing the game with Malcolm Butler’s famous interception. It was one of those endings that turned instant shock into instant legend.",
+    "source_name": "Pro-Football-Reference",
+    "source_url": "https://www.pro-football-reference.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "fun",
+    "tags": [
+      "boston",
+      "patriots",
+      "super_bowl"
+    ],
+    "month": 2,
+    "day": 1,
+    "notes": "AI-drafted starter entry; verify exact source/date later."
+  },
+  {
+    "fact_id": "boston_sports_005",
+    "card_type": "boston_sports",
+    "title": "The 28–3 Comeback",
+    "body": "The Patriots’ comeback win over Atlanta in Super Bowl LI in February 2017 remains one of the wildest title games ever played. Being down 28–3 and still winning feels almost fictional when you say it out loud.",
+    "source_name": "Pro-Football-Reference",
+    "source_url": "https://www.pro-football-reference.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "fun",
+    "tags": [
+      "boston",
+      "patriots",
+      "comeback"
+    ],
+    "month": 2,
+    "day": 5,
+    "notes": "AI-drafted starter entry; verify exact source/date later."
+  },
+  {
+    "fact_id": "boston_sports_006",
+    "card_type": "boston_sports",
+    "title": "Bobby Orr Birthday",
+    "body": "Bobby Orr was born on March 20, 1948, and changed what people expected from a defenseman. Bruins history is full of great names, but his still lands with a little extra electricity.",
+    "source_name": "Hockey-Reference",
+    "source_url": "https://www.hockey-reference.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "educational",
+    "tags": [
+      "boston",
+      "bruins",
+      "bobby_orr"
+    ],
+    "month": 3,
+    "day": 20,
+    "notes": "AI-drafted starter entry; verify exact source/date later."
+  },
+  {
+    "fact_id": "boston_sports_007",
+    "card_type": "boston_sports",
+    "title": "John Havlicek Birthday",
+    "body": "John Havlicek was born on April 8, 1940, and became one of the most beloved all-around Celtics. His endurance and reliability made him feel like the kind of player every coach dreams about.",
+    "source_name": "Basketball-Reference",
+    "source_url": "https://www.basketball-reference.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "warm",
+    "tags": [
+      "boston",
+      "celtics",
+      "havlicek"
+    ],
+    "month": 4,
+    "day": 8,
+    "notes": "AI-drafted starter entry; verify exact source/date later."
+  },
+  {
+    "fact_id": "boston_sports_008",
+    "card_type": "boston_sports",
+    "title": "Patriots’ Day and Boston",
+    "body": "Patriots’ Day is inseparable from Boston sports culture because it brings both the Boston Marathon and a traditional Red Sox day game. It is one of those local civic rituals that makes the sports calendar feel woven into the city itself.",
+    "source_name": "NESN",
+    "source_url": "https://nesn.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "warm",
+    "tags": [
+      "boston",
+      "sports",
+      "patriots_day"
+    ],
+    "month": 4,
+    "day": 19,
+    "notes": "AI-drafted starter entry; verify exact source/date later.",
+    "week_mode": "within_days",
+    "within_days": 3
+  },
+  {
+    "fact_id": "boston_sports_009",
+    "card_type": "boston_sports",
+    "title": "Babe Ruth Heads to New York",
+    "body": "The Red Sox sold Babe Ruth to the Yankees in the winter of 1919, a move that later gained almost mythic status in Boston baseball lore. Few transactions have been retold with more drama, superstition, and regret.",
+    "source_name": "Baseball-Reference",
+    "source_url": "https://www.baseball-reference.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "mixed",
+    "tags": [
+      "boston",
+      "red_sox",
+      "babe_ruth"
+    ],
+    "month": 12,
+    "day": 26,
+    "notes": "AI-drafted starter entry; verify exact source/date later."
+  },
+  {
+    "fact_id": "boston_sports_010",
+    "card_type": "boston_sports",
+    "title": "Bill Belichick Birthday",
+    "body": "Bill Belichick was born on April 16, 1952, and later became the most successful coach in Patriots history. His public style was famously dry, but his teams usually did the louder talking.",
+    "source_name": "Pro-Football-Reference",
+    "source_url": "https://www.pro-football-reference.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "fun",
+    "tags": [
+      "boston",
+      "patriots",
+      "belichick"
+    ],
+    "month": 4,
+    "day": 16,
+    "notes": "AI-drafted starter entry; verify exact source/date later."
+  },
+  {
+    "fact_id": "boston_sports_011",
+    "card_type": "boston_sports",
+    "title": "Boston Garden Legacy Week",
+    "body": "The old Boston Garden opened in November 1928 and became one of the most storied venues in American sports. Even people who never set foot inside it know the building by mood alone.",
+    "source_name": "NESN",
+    "source_url": "https://nesn.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "warm",
+    "tags": [
+      "boston",
+      "bruins",
+      "celtics"
+    ],
+    "month": 11,
+    "day": 17,
+    "notes": "AI-drafted starter entry; verify exact source/date later.",
+    "week_mode": "within_days",
+    "within_days": 3
+  },
+  {
+    "fact_id": "boston_sports_012",
+    "card_type": "boston_sports",
+    "title": "Celtics Are Born",
+    "body": "The Celtics were founded in June 1946 and went on to become one of basketball’s signature franchises. Their history is so crowded with banners that the rafters almost feel like a second record book.",
+    "source_name": "Basketball-Reference",
+    "source_url": "https://www.basketball-reference.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "educational",
+    "tags": [
+      "boston",
+      "celtics",
+      "franchise"
+    ],
+    "month": 6,
+    "day": 6,
+    "notes": "AI-drafted starter entry; verify exact source/date later."
+  },
+  {
+    "fact_id": "boston_sports_013",
+    "card_type": "boston_sports",
+    "title": "Bruins Are Born",
+    "body": "The Bruins were founded in November 1924 and became the first American team in the NHL. That fact alone gives them a permanent place in hockey history before you even get to the trophies.",
+    "source_name": "Hockey-Reference",
+    "source_url": "https://www.hockey-reference.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "educational",
+    "tags": [
+      "boston",
+      "bruins",
+      "franchise"
+    ],
+    "month": 11,
+    "day": 1,
+    "notes": "AI-drafted starter entry; verify exact source/date later."
+  },
+  {
+    "fact_id": "boston_sports_014",
+    "card_type": "boston_sports",
+    "title": "Patriots Franchise Begins",
+    "body": "Boston was awarded an AFL franchise in late 1959, laying the groundwork for what became the Patriots. Dynasties always look inevitable in hindsight, but they begin as simple franchise paperwork.",
+    "source_name": "Pro-Football-Reference",
+    "source_url": "https://www.pro-football-reference.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "educational",
+    "tags": [
+      "boston",
+      "patriots",
+      "franchise"
+    ],
+    "month": 11,
+    "day": 16,
+    "notes": "AI-drafted starter entry; verify exact source/date later.",
+    "week_mode": "within_days",
+    "within_days": 3
+  },
+  {
+    "fact_id": "boston_sports_015",
+    "card_type": "boston_sports",
+    "title": "Celtics Banner in 2008",
+    "body": "The Celtics won the 2008 NBA title on June 17, giving the Big Three era its crowning achievement. It felt like old Boston basketball pride getting a fresh coat of green paint.",
+    "source_name": "Basketball-Reference",
+    "source_url": "https://www.basketball-reference.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "fun",
+    "tags": [
+      "boston",
+      "celtics",
+      "championship"
+    ],
+    "month": 6,
+    "day": 17,
+    "notes": "AI-drafted starter entry; verify exact source/date later."
+  },
+  {
+    "fact_id": "boston_sports_016",
+    "card_type": "boston_sports",
+    "title": "Bruins Cup in 2011",
+    "body": "The Bruins won the Stanley Cup on June 15, 2011, ending a long championship drought. A parade through Boston is always loud, but a Cup parade carries a special kind of growl.",
+    "source_name": "Hockey-Reference",
+    "source_url": "https://www.hockey-reference.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "fun",
+    "tags": [
+      "boston",
+      "bruins",
+      "championship"
+    ],
+    "month": 6,
+    "day": 15,
+    "notes": "AI-drafted starter entry; verify exact source/date later."
+  },
+  {
+    "fact_id": "boston_sports_017",
+    "card_type": "boston_sports",
+    "title": "David Ortiz Birthday",
+    "body": "David Ortiz was born on November 18, 1975, and became one of the great October heroes in Red Sox history. Big Papi is one of those nicknames that somehow fit both the player and the city perfectly.",
+    "source_name": "Baseball-Reference",
+    "source_url": "https://www.baseball-reference.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "fun",
+    "tags": [
+      "boston",
+      "red_sox",
+      "david_ortiz"
+    ],
+    "month": 11,
+    "day": 18,
+    "notes": "AI-drafted starter entry; verify exact source/date later."
+  },
+  {
+    "fact_id": "boston_sports_018",
+    "card_type": "boston_sports",
+    "title": "Tom Brady Birthday",
+    "body": "Tom Brady was born on August 3, 1977, and later became the face of the Patriots dynasty. It is still funny to remember that one of the biggest stars in NFL history began as a sixth-round pick.",
+    "source_name": "Pro-Football-Reference",
+    "source_url": "https://www.pro-football-reference.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "fun",
+    "tags": [
+      "boston",
+      "patriots",
+      "tom_brady"
+    ],
+    "month": 8,
+    "day": 3,
+    "notes": "AI-drafted starter entry; verify exact source/date later."
+  },
+  {
+    "fact_id": "boston_sports_019",
+    "card_type": "boston_sports",
+    "title": "Carl Yastrzemski Birthday",
+    "body": "Carl Yastrzemski was born on August 22, 1939, and became one of the great long-career symbols of Red Sox baseball. His name feels stitched right into the franchise’s old fabric.",
+    "source_name": "Baseball-Reference",
+    "source_url": "https://www.baseball-reference.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "educational",
+    "tags": [
+      "boston",
+      "red_sox",
+      "yastrzemski"
+    ],
+    "month": 8,
+    "day": 22,
+    "notes": "AI-drafted starter entry; verify exact source/date later."
+  },
+  {
+    "fact_id": "boston_sports_020",
+    "card_type": "boston_sports",
+    "title": "Ted Williams Birthday",
+    "body": "Ted Williams was born on August 30, 1918, and remains the last player to hit .400 in a Major League season. In Boston, numbers like that do not feel statistical so much as mythical.",
+    "source_name": "Baseball-Reference",
+    "source_url": "https://www.baseball-reference.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "educational",
+    "tags": [
+      "boston",
+      "red_sox",
+      "ted_williams"
+    ],
+    "month": 8,
+    "day": 30,
+    "notes": "AI-drafted starter entry; verify exact source/date later."
+  },
+  {
+    "fact_id": "boston_sports_021",
+    "card_type": "boston_sports",
+    "title": "Red Auerbach Birthday",
+    "body": "Red Auerbach was born on September 20, 1917, and became one of the most influential figures in Celtics history. The victory cigar alone made him look like a coach who expected the ending to go his way.",
+    "source_name": "Basketball-Reference",
+    "source_url": "https://www.basketball-reference.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "fun",
+    "tags": [
+      "boston",
+      "celtics",
+      "auerbach"
+    ],
+    "month": 9,
+    "day": 20,
+    "notes": "AI-drafted starter entry; verify exact source/date later."
+  },
+  {
+    "fact_id": "boston_sports_022",
+    "card_type": "boston_sports",
+    "title": "Carlton Fisk’s Wave-It-Fair Moment",
+    "body": "Carlton Fisk’s dramatic homer in Game 6 of the 1975 World Series remains one of the most replayed swings in Red Sox history. The body language was almost as famous as the ball flight.",
+    "source_name": "Baseball-Reference",
+    "source_url": "https://www.baseball-reference.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "fun",
+    "tags": [
+      "boston",
+      "red_sox",
+      "world_series"
+    ],
+    "month": 10,
+    "day": 21,
+    "notes": "AI-drafted starter entry; verify exact source/date later."
+  },
+  {
+    "fact_id": "boston_sports_023",
+    "card_type": "boston_sports",
+    "title": "The Curse Breaks",
+    "body": "The Red Sox won the 2004 World Series on October 27, ending the franchise’s most famous championship drought. Even people who hate the phrase 'curse' understand why Boston still savors that night.",
+    "source_name": "Baseball-Reference",
+    "source_url": "https://www.baseball-reference.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "fun",
+    "tags": [
+      "boston",
+      "red_sox",
+      "championship"
+    ],
+    "month": 10,
+    "day": 27,
+    "notes": "AI-drafted starter entry; verify exact source/date later."
+  },
+  {
+    "fact_id": "boston_sports_024",
+    "card_type": "boston_sports",
+    "title": "Another Red Sox Title",
+    "body": "The Red Sox swept the Rockies to win the 2007 World Series in late October. After 2004, the surprise was not that Boston could win again but how quickly winning started to feel familiar.",
+    "source_name": "Baseball-Reference",
+    "source_url": "https://www.baseball-reference.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "fun",
+    "tags": [
+      "boston",
+      "red_sox",
+      "championship"
+    ],
+    "month": 10,
+    "day": 28,
+    "notes": "AI-drafted starter entry; verify exact source/date later."
+  },
+  {
+    "fact_id": "boston_sports_025",
+    "card_type": "boston_sports",
+    "title": "Bearded Boston Champions",
+    "body": "The Red Sox won the 2013 World Series on October 30, finishing one of the most emotionally resonant seasons in franchise history. The team’s beard-heavy look only made the whole run more cartoonishly memorable.",
+    "source_name": "Baseball-Reference",
+    "source_url": "https://www.baseball-reference.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "fun",
+    "tags": [
+      "boston",
+      "red_sox",
+      "championship"
+    ],
+    "month": 10,
+    "day": 30,
+    "notes": "AI-drafted starter entry; verify exact source/date later."
+  },
+  {
+    "fact_id": "boston_sports_026",
+    "card_type": "boston_sports",
+    "title": "Another Parade in 2018",
+    "body": "The Red Sox won the 2018 World Series at the end of October, adding another title to a once-starving fan base that now had to keep track of multiple recent parades. History changes the emotional temperature of a city.",
+    "source_name": "Baseball-Reference",
+    "source_url": "https://www.baseball-reference.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "fun",
+    "tags": [
+      "boston",
+      "red_sox",
+      "championship"
+    ],
+    "month": 10,
+    "day": 28,
+    "notes": "AI-drafted starter entry; verify exact source/date later.",
+    "week_mode": "within_days",
+    "within_days": 3
+  },
+  {
+    "fact_id": "boston_sports_027",
+    "card_type": "boston_sports",
+    "title": "Larry Bird Birthday",
+    "body": "Larry Bird was born on December 7, 1956, and became one of the defining stars of Celtics basketball. His game looked unhurried, but his competitive edge was anything but relaxed.",
+    "source_name": "Basketball-Reference",
+    "source_url": "https://www.basketball-reference.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "educational",
+    "tags": [
+      "boston",
+      "celtics",
+      "larry_bird"
+    ],
+    "month": 12,
+    "day": 7,
+    "notes": "AI-drafted starter entry; verify exact source/date later."
+  },
+  {
+    "fact_id": "boston_sports_028",
+    "card_type": "boston_sports",
+    "title": "Pedro Martínez Birthday",
+    "body": "Pedro Martínez was born on October 25, 1971, and brought one of the most electric peaks any Red Sox pitcher has ever had. At his best, hitters looked like they were guessing and apologizing at the same time.",
+    "source_name": "Baseball-Reference",
+    "source_url": "https://www.baseball-reference.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "fun",
+    "tags": [
+      "boston",
+      "red_sox",
+      "pedro"
+    ],
+    "month": 10,
+    "day": 25,
+    "notes": "AI-drafted starter entry; verify exact source/date later."
+  },
+  {
+    "fact_id": "boston_sports_029",
+    "card_type": "boston_sports",
+    "title": "Patrice Bergeron Birthday",
+    "body": "Patrice Bergeron was born on July 24, 1985, and became the kind of Bruins captain every fan base thinks it deserves. His game made intelligence, responsibility, and timing look quietly glamorous.",
+    "source_name": "Hockey-Reference",
+    "source_url": "https://www.hockey-reference.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "warm",
+    "tags": [
+      "boston",
+      "bruins",
+      "bergeron"
+    ],
+    "month": 7,
+    "day": 24,
+    "notes": "AI-drafted starter entry; verify exact source/date later."
+  },
+  {
+    "fact_id": "boston_sports_030",
+    "card_type": "boston_sports",
+    "title": "Paul Pierce Birthday",
+    "body": "Paul Pierce was born on October 13, 1977, and later gave the Celtics one of their great modern stars. He had a gift for looking slightly irritated and completely ready at the same time.",
+    "source_name": "Basketball-Reference",
+    "source_url": "https://www.basketball-reference.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "fun",
+    "tags": [
+      "boston",
+      "celtics",
+      "paul_pierce"
+    ],
+    "month": 10,
+    "day": 13,
+    "notes": "AI-drafted starter entry; verify exact source/date later."
+  },
+  {
+    "fact_id": "boston_sports_031",
+    "card_type": "boston_sports",
+    "title": "Julian Edelman Birthday",
+    "body": "Julian Edelman was born on May 22, 1986, and became one of the most reliable playoff targets of the Patriots era. Some receivers feel built for statistics and others for drama; he leaned heavily toward drama.",
+    "source_name": "Pro-Football-Reference",
+    "source_url": "https://www.pro-football-reference.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "fun",
+    "tags": [
+      "boston",
+      "patriots",
+      "edelman"
+    ],
+    "month": 5,
+    "day": 22,
+    "notes": "AI-drafted starter entry; verify exact source/date later."
+  },
+  {
+    "fact_id": "boston_sports_032",
+    "card_type": "boston_sports",
+    "title": "Rob Gronkowski Birthday",
+    "body": "Rob Gronkowski was born on May 14, 1989, and brought a kind of joyful chaos to Patriots football. He made being both dominant and silly look like a perfectly normal combination.",
+    "source_name": "Pro-Football-Reference",
+    "source_url": "https://www.pro-football-reference.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "fun",
+    "tags": [
+      "boston",
+      "patriots",
+      "gronkowski"
+    ],
+    "month": 5,
+    "day": 14,
+    "notes": "AI-drafted starter entry; verify exact source/date later."
+  },
+  {
+    "fact_id": "boston_sports_033",
+    "card_type": "boston_sports",
+    "title": "Cam Neely Birthday",
+    "body": "Cam Neely was born on June 6, 1965, and became one of the most beloved power forwards in Bruins history. Bruins fans tend to appreciate players who look like they enjoy a little healthy menace.",
+    "source_name": "Hockey-Reference",
+    "source_url": "https://www.hockey-reference.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "fun",
+    "tags": [
+      "boston",
+      "bruins",
+      "cam_neely"
+    ],
+    "month": 6,
+    "day": 6,
+    "notes": "AI-drafted starter entry; verify exact source/date later."
+  },
+  {
+    "fact_id": "boston_sports_034",
+    "card_type": "boston_sports",
+    "title": "Ray Bourque Birthday",
+    "body": "Ray Bourque was born on December 28, 1960, and remains one of the greatest defensemen in NHL history. His long Bruins career made him feel less like a player and more like a permanent part of the blue line itself.",
+    "source_name": "Hockey-Reference",
+    "source_url": "https://www.hockey-reference.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "educational",
+    "tags": [
+      "boston",
+      "bruins",
+      "ray_bourque"
+    ],
+    "month": 12,
+    "day": 28,
+    "notes": "AI-drafted starter entry; verify exact source/date later."
+  },
+  {
+    "fact_id": "boston_sports_035",
+    "card_type": "boston_sports",
+    "title": "Jayson Tatum Birthday",
+    "body": "Jayson Tatum was born on March 3, 1998, and became one of the modern cornerstones of Celtics basketball. Every era of Boston sports likes to imagine its next long-running star, and he fits the part nicely.",
+    "source_name": "Basketball-Reference",
+    "source_url": "https://www.basketball-reference.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "fun",
+    "tags": [
+      "boston",
+      "celtics",
+      "jayson_tatum"
+    ],
+    "month": 3,
+    "day": 3,
+    "notes": "AI-drafted starter entry; verify exact source/date later."
+  },
+  {
+    "fact_id": "boston_sports_036",
+    "card_type": "boston_sports",
+    "title": "Dustin Pedroia Birthday",
+    "body": "Dustin Pedroia was born on August 17, 1983, and became one of the most stubbornly energetic players of his Red Sox era. He played like every inning had personally offended him.",
+    "source_name": "Baseball-Reference",
+    "source_url": "https://www.baseball-reference.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "fun",
+    "tags": [
+      "boston",
+      "red_sox",
+      "pedroia"
+    ],
+    "month": 8,
+    "day": 17,
+    "notes": "AI-drafted starter entry; verify exact source/date later."
+  },
+  {
+    "fact_id": "boston_sports_037",
+    "card_type": "boston_sports",
+    "title": "Nomar Garciaparra Birthday",
+    "body": "Nomar Garciaparra was born on July 23, 1973, and for a while felt like the beating heart of Red Sox baseball in the late 1990s. His batting-glove routine alone could identify him from a mile away.",
+    "source_name": "Baseball-Reference",
+    "source_url": "https://www.baseball-reference.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "fun",
+    "tags": [
+      "boston",
+      "red_sox",
+      "nomar"
+    ],
+    "month": 7,
+    "day": 23,
+    "notes": "AI-drafted starter entry; verify exact source/date later."
+  },
+  {
+    "fact_id": "famous_person_birthday_001",
+    "card_type": "famous_person_birthday",
+    "title": "Martin Luther King Jr. Birthday",
+    "body": "Martin Luther King Jr. was born on January 15, 1929, and became the most recognized voice of the American civil rights movement. His speeches remain powerful because they combine moral force with extraordinary clarity.",
+    "source_name": "Britannica",
+    "source_url": "https://www.britannica.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "educational",
+    "tags": [
+      "birthday",
+      "civil_rights",
+      "leader"
+    ],
+    "month": 1,
+    "day": 15,
+    "notes": "AI-drafted starter entry; verify exact source/date later."
+  },
+  {
+    "fact_id": "famous_person_birthday_002",
+    "card_type": "famous_person_birthday",
+    "title": "Benjamin Franklin Birthday",
+    "body": "Benjamin Franklin was born on January 17, 1706, and somehow managed to be a printer, inventor, writer, diplomat, and professional collector of good one-liners. He is the kind of historical figure who seems to have lived two or three full lives at once.",
+    "source_name": "Britannica",
+    "source_url": "https://www.britannica.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "fun",
+    "tags": [
+      "birthday",
+      "inventor",
+      "founding_father"
+    ],
+    "month": 1,
+    "day": 17,
+    "notes": "AI-drafted starter entry; verify exact source/date later."
+  },
+  {
+    "fact_id": "famous_person_birthday_003",
+    "card_type": "famous_person_birthday",
+    "title": "Wolfgang Amadeus Mozart Birthday",
+    "body": "Mozart was born on January 27, 1756, and became one of the most famous composers in Western music. The astonishing part is not only how good the music is but how much of it he created in such a short life.",
+    "source_name": "Britannica",
+    "source_url": "https://www.britannica.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "educational",
+    "tags": [
+      "birthday",
+      "composer",
+      "music"
+    ],
+    "month": 1,
+    "day": 27,
+    "notes": "AI-drafted starter entry; verify exact source/date later."
+  },
+  {
+    "fact_id": "famous_person_birthday_004",
+    "card_type": "famous_person_birthday",
+    "title": "Charles Dickens Birthday",
+    "body": "Charles Dickens was born on February 7, 1812, and later gave the English-speaking world some of its most memorable fictional characters. Even people who have never finished one of his novels usually know a Dickens character by name.",
+    "source_name": "Britannica",
+    "source_url": "https://www.britannica.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "educational",
+    "tags": [
+      "birthday",
+      "author",
+      "literature"
+    ],
+    "month": 2,
+    "day": 7,
+    "notes": "AI-drafted starter entry; verify exact source/date later."
+  },
+  {
+    "fact_id": "famous_person_birthday_005",
+    "card_type": "famous_person_birthday",
+    "title": "Abraham Lincoln Birthday",
+    "body": "Abraham Lincoln was born on February 12, 1809, and remains one of the central figures in American history. His public writing was so clear and spare that it still feels modern.",
+    "source_name": "Britannica",
+    "source_url": "https://www.britannica.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "educational",
+    "tags": [
+      "birthday",
+      "president",
+      "history"
+    ],
+    "month": 2,
+    "day": 12,
+    "notes": "AI-drafted starter entry; verify exact source/date later."
+  },
+  {
+    "fact_id": "famous_person_birthday_006",
+    "card_type": "famous_person_birthday",
+    "title": "George Washington Birthday",
+    "body": "George Washington was born on February 22, 1732, and became the first president of the United States. Founding figures can seem distant, but Washington still feels oddly vivid as a symbol of restraint and precedent.",
+    "source_name": "Britannica",
+    "source_url": "https://www.britannica.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "educational",
+    "tags": [
+      "birthday",
+      "president",
+      "history"
+    ],
+    "month": 2,
+    "day": 22,
+    "notes": "AI-drafted starter entry; verify exact source/date later."
+  },
+  {
+    "fact_id": "famous_person_birthday_007",
+    "card_type": "famous_person_birthday",
+    "title": "Frederic Chopin Birthday Week",
+    "body": "Chopin was born around the start of March 1810 and became one of the great poet-composers of the piano. His music often sounds delicate until you notice how emotionally tough it really is.",
+    "source_name": "Britannica",
+    "source_url": "https://www.britannica.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "educational",
+    "tags": [
+      "birthday",
+      "composer",
+      "music"
+    ],
+    "month": 3,
+    "day": 1,
+    "notes": "AI-drafted starter entry; verify exact source/date later.",
+    "week_mode": "within_days",
+    "within_days": 3
+  },
+  {
+    "fact_id": "famous_person_birthday_008",
+    "card_type": "famous_person_birthday",
+    "title": "Albert Einstein Birthday",
+    "body": "Albert Einstein was born on March 14, 1879, and later transformed modern physics. It is slightly funny that one of the world’s most recognizable geniuses is also one of its most recognizable haircuts.",
+    "source_name": "Britannica",
+    "source_url": "https://www.britannica.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "fun",
+    "tags": [
+      "birthday",
+      "scientist",
+      "physics"
+    ],
+    "month": 3,
+    "day": 14,
+    "notes": "AI-drafted starter entry; verify exact source/date later."
+  },
+  {
+    "fact_id": "famous_person_birthday_009",
+    "card_type": "famous_person_birthday",
+    "title": "Vincent van Gogh Birthday",
+    "body": "Vincent van Gogh was born on March 30, 1853, and became one of the world’s most beloved painters only after his death. His work is now so familiar that it is easy to forget how unconventional it once seemed.",
+    "source_name": "Britannica",
+    "source_url": "https://www.britannica.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "educational",
+    "tags": [
+      "birthday",
+      "artist",
+      "painting"
+    ],
+    "month": 3,
+    "day": 30,
+    "notes": "AI-drafted starter entry; verify exact source/date later."
+  },
+  {
+    "fact_id": "famous_person_birthday_010",
+    "card_type": "famous_person_birthday",
+    "title": "Maya Angelou Birthday",
+    "body": "Maya Angelou was born on April 4, 1928, and became one of the most admired American writers and public voices of the twentieth century. She had a rare gift for sounding both elegant and direct at the same time.",
+    "source_name": "Britannica",
+    "source_url": "https://www.britannica.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "warm",
+    "tags": [
+      "birthday",
+      "author",
+      "poetry"
+    ],
+    "month": 4,
+    "day": 4,
+    "notes": "AI-drafted starter entry; verify exact source/date later."
+  },
+  {
+    "fact_id": "famous_person_birthday_011",
+    "card_type": "famous_person_birthday",
+    "title": "Booker T. Washington Birthday",
+    "body": "Booker T. Washington was born on April 5, 1856, and became one of the most influential educators in American history. His life is often used to talk about education not just as schooling but as strategy.",
+    "source_name": "Britannica",
+    "source_url": "https://www.britannica.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "educational",
+    "tags": [
+      "birthday",
+      "educator",
+      "history"
+    ],
+    "month": 4,
+    "day": 5,
+    "notes": "AI-drafted starter entry; verify exact source/date later."
+  },
+  {
+    "fact_id": "famous_person_birthday_012",
+    "card_type": "famous_person_birthday",
+    "title": "Bette Davis Birthday",
+    "body": "Bette Davis was born on April 5, 1908, and became one of classic Hollywood’s fiercest screen presences. She could make a glance feel like a line of dialogue.",
+    "source_name": "Britannica",
+    "source_url": "https://www.britannica.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "fun",
+    "tags": [
+      "birthday",
+      "actor",
+      "film"
+    ],
+    "month": 4,
+    "day": 5,
+    "notes": "AI-drafted starter entry; verify exact source/date later."
+  },
+  {
+    "fact_id": "famous_person_birthday_013",
+    "card_type": "famous_person_birthday",
+    "title": "William Shakespeare Birthday Week",
+    "body": "Shakespeare is traditionally celebrated around April 23, and his work still dominates stages and classrooms around the world. Very few writers have contributed so many phrases that people use without realizing where they came from.",
+    "source_name": "Britannica",
+    "source_url": "https://www.britannica.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "educational",
+    "tags": [
+      "birthday",
+      "author",
+      "theatre"
+    ],
+    "month": 4,
+    "day": 23,
+    "notes": "AI-drafted starter entry; verify exact source/date later.",
+    "week_mode": "within_days",
+    "within_days": 3
+  },
+  {
+    "fact_id": "famous_person_birthday_014",
+    "card_type": "famous_person_birthday",
+    "title": "Ella Fitzgerald Birthday",
+    "body": "Ella Fitzgerald was born on April 25, 1917, and became one of the great voices in jazz. Her phrasing could sound effortless even when the music underneath it was anything but simple.",
+    "source_name": "Britannica",
+    "source_url": "https://www.britannica.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "warm",
+    "tags": [
+      "birthday",
+      "music",
+      "jazz"
+    ],
+    "month": 4,
+    "day": 25,
+    "notes": "AI-drafted starter entry; verify exact source/date later."
+  },
+  {
+    "fact_id": "famous_person_birthday_015",
+    "card_type": "famous_person_birthday",
+    "title": "Audrey Hepburn Birthday",
+    "body": "Audrey Hepburn was born on May 4, 1929, and became a film icon with unusual grace and lightness. Her later humanitarian work kept her public image from feeling merely glamorous.",
+    "source_name": "Britannica",
+    "source_url": "https://www.britannica.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "warm",
+    "tags": [
+      "birthday",
+      "actor",
+      "film"
+    ],
+    "month": 5,
+    "day": 4,
+    "notes": "AI-drafted starter entry; verify exact source/date later."
+  },
+  {
+    "fact_id": "famous_person_birthday_016",
+    "card_type": "famous_person_birthday",
+    "title": "Florence Nightingale Birthday",
+    "body": "Florence Nightingale was born on May 12, 1820, and helped transform nursing into a modern profession. It is rare for one person’s reputation to be tied so strongly to both compassion and data.",
+    "source_name": "Britannica",
+    "source_url": "https://www.britannica.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "educational",
+    "tags": [
+      "birthday",
+      "medicine",
+      "history"
+    ],
+    "month": 5,
+    "day": 12,
+    "notes": "AI-drafted starter entry; verify exact source/date later."
+  },
+  {
+    "fact_id": "famous_person_birthday_017",
+    "card_type": "famous_person_birthday",
+    "title": "Malcolm X Birthday",
+    "body": "Malcolm X was born on May 19, 1925, and became one of the most influential and debated American speakers of the twentieth century. His life still prompts people to think about change, conviction, and public honesty.",
+    "source_name": "Britannica",
+    "source_url": "https://www.britannica.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "educational",
+    "tags": [
+      "birthday",
+      "civil_rights",
+      "history"
+    ],
+    "month": 5,
+    "day": 19,
+    "notes": "AI-drafted starter entry; verify exact source/date later."
+  },
+  {
+    "fact_id": "famous_person_birthday_018",
+    "card_type": "famous_person_birthday",
+    "title": "Bob Dylan Birthday",
+    "body": "Bob Dylan was born on May 24, 1941, and changed what people thought lyrics in popular music could do. He made listeners pay closer attention to words without sacrificing mystery.",
+    "source_name": "Britannica",
+    "source_url": "https://www.britannica.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "educational",
+    "tags": [
+      "birthday",
+      "music",
+      "songwriter"
+    ],
+    "month": 5,
+    "day": 24,
+    "notes": "AI-drafted starter entry; verify exact source/date later."
+  },
+  {
+    "fact_id": "famous_person_birthday_019",
+    "card_type": "famous_person_birthday",
+    "title": "John F. Kennedy Birthday",
+    "body": "John F. Kennedy was born on May 29, 1917, and remains one of the most discussed presidents in modern American history. Public memory tends to keep him wrapped in both glamour and unfinished possibility.",
+    "source_name": "Britannica",
+    "source_url": "https://www.britannica.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "educational",
+    "tags": [
+      "birthday",
+      "president",
+      "history"
+    ],
+    "month": 5,
+    "day": 29,
+    "notes": "AI-drafted starter entry; verify exact source/date later."
+  },
+  {
+    "fact_id": "famous_person_birthday_020",
+    "card_type": "famous_person_birthday",
+    "title": "Marilyn Monroe Birthday",
+    "body": "Marilyn Monroe was born on June 1, 1926, and became one of the defining faces of twentieth-century celebrity. Her image is so famous that people sometimes forget she also had strong comic timing.",
+    "source_name": "Britannica",
+    "source_url": "https://www.britannica.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "fun",
+    "tags": [
+      "birthday",
+      "actor",
+      "film"
+    ],
+    "month": 6,
+    "day": 1,
+    "notes": "AI-drafted starter entry; verify exact source/date later."
+  },
+  {
+    "fact_id": "famous_person_birthday_021",
+    "card_type": "famous_person_birthday",
+    "title": "Judy Garland Birthday",
+    "body": "Judy Garland was born on June 10, 1922, and became one of Hollywood’s most beloved performers. Her voice and vulnerability gave her a kind of emotional immediacy that still travels.",
+    "source_name": "Britannica",
+    "source_url": "https://www.britannica.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "warm",
+    "tags": [
+      "birthday",
+      "actor",
+      "music"
+    ],
+    "month": 6,
+    "day": 10,
+    "notes": "AI-drafted starter entry; verify exact source/date later."
+  },
+  {
+    "fact_id": "famous_person_birthday_022",
+    "card_type": "famous_person_birthday",
+    "title": "Anne Frank Birthday",
+    "body": "Anne Frank was born on June 12, 1929, and her diary became one of the most widely read books of the twentieth century. Her voice remains powerful because it feels both ordinary and extraordinary at once.",
+    "source_name": "Britannica",
+    "source_url": "https://www.britannica.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "educational",
+    "tags": [
+      "birthday",
+      "author",
+      "history"
+    ],
+    "month": 6,
+    "day": 12,
+    "notes": "AI-drafted starter entry; verify exact source/date later."
+  },
+  {
+    "fact_id": "famous_person_birthday_023",
+    "card_type": "famous_person_birthday",
+    "title": "Helen Keller Birthday",
+    "body": "Helen Keller was born on June 27, 1880, and became a symbol of learning, communication, and determined public life. Her story still expands people’s ideas about what education can do.",
+    "source_name": "Britannica",
+    "source_url": "https://www.britannica.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "educational",
+    "tags": [
+      "birthday",
+      "educator",
+      "advocate"
+    ],
+    "month": 6,
+    "day": 27,
+    "notes": "AI-drafted starter entry; verify exact source/date later."
+  },
+  {
+    "fact_id": "famous_person_birthday_024",
+    "card_type": "famous_person_birthday",
+    "title": "Frida Kahlo Birthday",
+    "body": "Frida Kahlo was born on July 6, 1907, and became one of the most recognizable painters of the twentieth century. Her self-portraits feel intimate, symbolic, and entirely unwilling to be ignored.",
+    "source_name": "Britannica",
+    "source_url": "https://www.britannica.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "educational",
+    "tags": [
+      "birthday",
+      "artist",
+      "painting"
+    ],
+    "month": 7,
+    "day": 6,
+    "notes": "AI-drafted starter entry; verify exact source/date later."
+  },
+  {
+    "fact_id": "famous_person_birthday_025",
+    "card_type": "famous_person_birthday",
+    "title": "Nikola Tesla Birthday",
+    "body": "Nikola Tesla was born on July 10, 1856, and became one of the most mythologized inventors in modern science history. He is a good reminder that genius and public image do not always behave neatly together.",
+    "source_name": "Britannica",
+    "source_url": "https://www.britannica.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "fun",
+    "tags": [
+      "birthday",
+      "inventor",
+      "science"
+    ],
+    "month": 7,
+    "day": 10,
+    "notes": "AI-drafted starter entry; verify exact source/date later."
+  },
+  {
+    "fact_id": "famous_person_birthday_026",
+    "card_type": "famous_person_birthday",
+    "title": "Nelson Mandela Birthday",
+    "body": "Nelson Mandela was born on July 18, 1918, and became one of the most admired political figures of the modern era. His public legacy is closely tied to endurance without bitterness.",
+    "source_name": "Britannica",
+    "source_url": "https://www.britannica.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "educational",
+    "tags": [
+      "birthday",
+      "statesman",
+      "history"
+    ],
+    "month": 7,
+    "day": 18,
+    "notes": "AI-drafted starter entry; verify exact source/date later."
+  },
+  {
+    "fact_id": "famous_person_birthday_027",
+    "card_type": "famous_person_birthday",
+    "title": "Beatrix Potter Birthday",
+    "body": "Beatrix Potter was born on July 28, 1866, and gave the world some of its most beloved animal characters. Her stories are gentle, but they are never quite as fluffy as people assume.",
+    "source_name": "Britannica",
+    "source_url": "https://www.britannica.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "warm",
+    "tags": [
+      "birthday",
+      "author",
+      "children"
+    ],
+    "month": 7,
+    "day": 28,
+    "notes": "AI-drafted starter entry; verify exact source/date later."
+  },
+  {
+    "fact_id": "famous_person_birthday_028",
+    "card_type": "famous_person_birthday",
+    "title": "Lucille Ball Birthday",
+    "body": "Lucille Ball was born on August 6, 1911, and became one of television’s most influential comic performers. Physical comedy always looks easy until you watch someone truly great do it.",
+    "source_name": "Britannica",
+    "source_url": "https://www.britannica.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "fun",
+    "tags": [
+      "birthday",
+      "television",
+      "comedy"
+    ],
+    "month": 8,
+    "day": 6,
+    "notes": "AI-drafted starter entry; verify exact source/date later."
+  },
+  {
+    "fact_id": "famous_person_birthday_029",
+    "card_type": "famous_person_birthday",
+    "title": "Alfred Hitchcock Birthday",
+    "body": "Alfred Hitchcock was born on August 13, 1899, and became the most recognizable name in suspense cinema. He understood that fear is often more effective when it arrives one beat before the audience is ready.",
+    "source_name": "Britannica",
+    "source_url": "https://www.britannica.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "educational",
+    "tags": [
+      "birthday",
+      "film",
+      "director"
+    ],
+    "month": 8,
+    "day": 13,
+    "notes": "AI-drafted starter entry; verify exact source/date later."
+  },
+  {
+    "fact_id": "famous_person_birthday_030",
+    "card_type": "famous_person_birthday",
+    "title": "Mother Teresa Birthday",
+    "body": "Mother Teresa was born on August 26, 1910, and became one of the best-known humanitarian figures of the twentieth century. Her public image remains closely tied to service, discipline, and devotion.",
+    "source_name": "Britannica",
+    "source_url": "https://www.britannica.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "educational",
+    "tags": [
+      "birthday",
+      "humanitarian",
+      "history"
+    ],
+    "month": 8,
+    "day": 26,
+    "notes": "AI-drafted starter entry; verify exact source/date later."
+  },
+  {
+    "fact_id": "famous_person_birthday_031",
+    "card_type": "famous_person_birthday",
+    "title": "Roald Dahl Birthday",
+    "body": "Roald Dahl was born on September 13, 1916, and wrote children’s books that were often funny, dark, and gleefully strange. He understood that kids can handle much more mischief than adults sometimes think.",
+    "source_name": "Britannica",
+    "source_url": "https://www.britannica.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "fun",
+    "tags": [
+      "birthday",
+      "author",
+      "children"
+    ],
+    "month": 9,
+    "day": 13,
+    "notes": "AI-drafted starter entry; verify exact source/date later."
+  },
+  {
+    "fact_id": "famous_person_birthday_032",
+    "card_type": "famous_person_birthday",
+    "title": "Agatha Christie Birthday",
+    "body": "Agatha Christie was born on September 15, 1890, and became one of the most successful mystery writers ever. Her plots often feel like elegant little machines built to surprise politely.",
+    "source_name": "Britannica",
+    "source_url": "https://www.britannica.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "educational",
+    "tags": [
+      "birthday",
+      "author",
+      "mystery"
+    ],
+    "month": 9,
+    "day": 15,
+    "notes": "AI-drafted starter entry; verify exact source/date later."
+  },
+  {
+    "fact_id": "famous_person_birthday_033",
+    "card_type": "famous_person_birthday",
+    "title": "Stephen King Birthday",
+    "body": "Stephen King was born on September 21, 1947, and became one of the most widely read horror writers in modern fiction. One reason he works so well is that he usually starts somewhere ordinary before making it wonderfully weird.",
+    "source_name": "Britannica",
+    "source_url": "https://www.britannica.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "fun",
+    "tags": [
+      "birthday",
+      "author",
+      "horror"
+    ],
+    "month": 9,
+    "day": 21,
+    "notes": "AI-drafted starter entry; verify exact source/date later."
+  },
+  {
+    "fact_id": "famous_person_birthday_034",
+    "card_type": "famous_person_birthday",
+    "title": "Mahatma Gandhi Birthday",
+    "body": "Mahatma Gandhi was born on October 2, 1869, and became one of the most influential political thinkers of the twentieth century. His name is still almost shorthand for nonviolent resistance.",
+    "source_name": "Britannica",
+    "source_url": "https://www.britannica.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "educational",
+    "tags": [
+      "birthday",
+      "history",
+      "statesman"
+    ],
+    "month": 10,
+    "day": 2,
+    "notes": "AI-drafted starter entry; verify exact source/date later."
+  },
+  {
+    "fact_id": "famous_person_birthday_035",
+    "card_type": "famous_person_birthday",
+    "title": "Eleanor Roosevelt Birthday",
+    "body": "Eleanor Roosevelt was born on October 11, 1884, and became one of the most influential first ladies in American history. She kept expanding the job until it looked less ceremonial and more public-minded.",
+    "source_name": "Britannica",
+    "source_url": "https://www.britannica.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "educational",
+    "tags": [
+      "birthday",
+      "history",
+      "public_life"
+    ],
+    "month": 10,
+    "day": 11,
+    "notes": "AI-drafted starter entry; verify exact source/date later."
+  },
+  {
+    "fact_id": "famous_person_birthday_036",
+    "card_type": "famous_person_birthday",
+    "title": "Oscar Wilde Birthday",
+    "body": "Oscar Wilde was born on October 16, 1854, and became one of the great masters of the polished insult and perfect epigram. Few writers are quoted so often by people who may not realize they are quoting him.",
+    "source_name": "Britannica",
+    "source_url": "https://www.britannica.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "fun",
+    "tags": [
+      "birthday",
+      "author",
+      "wit"
+    ],
+    "month": 10,
+    "day": 16,
+    "notes": "AI-drafted starter entry; verify exact source/date later."
+  },
+  {
+    "fact_id": "famous_person_birthday_037",
+    "card_type": "famous_person_birthday",
+    "title": "Pablo Picasso Birthday",
+    "body": "Pablo Picasso was born on October 25, 1881, and changed modern art more than once. Very few artists have had both that much range and that much swagger.",
+    "source_name": "Britannica",
+    "source_url": "https://www.britannica.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "educational",
+    "tags": [
+      "birthday",
+      "artist",
+      "modern_art"
+    ],
+    "month": 10,
+    "day": 25,
+    "notes": "AI-drafted starter entry; verify exact source/date later."
+  },
+  {
+    "fact_id": "famous_person_birthday_038",
+    "card_type": "famous_person_birthday",
+    "title": "Marie Curie Birthday",
+    "body": "Marie Curie was born on November 7, 1867, and remains one of the most celebrated scientists in history. Her career still stands out because brilliance, persistence, and danger were all tangled together in the same work.",
+    "source_name": "Britannica",
+    "source_url": "https://www.britannica.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "educational",
+    "tags": [
+      "birthday",
+      "scientist",
+      "chemistry"
+    ],
+    "month": 11,
+    "day": 7,
+    "notes": "AI-drafted starter entry; verify exact source/date later."
+  },
+  {
+    "fact_id": "famous_person_birthday_039",
+    "card_type": "famous_person_birthday",
+    "title": "Astrid Lindgren Birthday",
+    "body": "Astrid Lindgren was born on November 14, 1907, and created Pippi Longstocking, one of children’s literature’s great free spirits. Characters like that tend to outlive trends because independence never really goes out of style.",
+    "source_name": "Britannica",
+    "source_url": "https://www.britannica.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "warm",
+    "tags": [
+      "birthday",
+      "author",
+      "children"
+    ],
+    "month": 11,
+    "day": 14,
+    "notes": "AI-drafted starter entry; verify exact source/date later."
+  },
+  {
+    "fact_id": "famous_person_birthday_040",
+    "card_type": "famous_person_birthday",
+    "title": "Mark Twain Birthday",
+    "body": "Mark Twain was born on November 30, 1835, and became one of America’s sharpest comic writers. His humor usually works because it is laughing and glaring at the same time.",
+    "source_name": "Britannica",
+    "source_url": "https://www.britannica.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "fun",
+    "tags": [
+      "birthday",
+      "author",
+      "humor"
+    ],
+    "month": 11,
+    "day": 30,
+    "notes": "AI-drafted starter entry; verify exact source/date later."
+  },
+  {
+    "fact_id": "famous_person_birthday_041",
+    "card_type": "famous_person_birthday",
+    "title": "Walt Disney Birthday",
+    "body": "Walt Disney was born on December 5, 1901, and built one of the world’s most influential entertainment empires. His cultural footprint is so large that it can be hard to separate the man from the kingdom.",
+    "source_name": "Britannica",
+    "source_url": "https://www.britannica.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "fun",
+    "tags": [
+      "birthday",
+      "film",
+      "animation"
+    ],
+    "month": 12,
+    "day": 5,
+    "notes": "AI-drafted starter entry; verify exact source/date later."
+  },
+  {
+    "fact_id": "famous_person_birthday_042",
+    "card_type": "famous_person_birthday",
+    "title": "Jane Austen Birthday",
+    "body": "Jane Austen was born on December 16, 1775, and still feels surprisingly modern in her humor and observations. Her novels understand social awkwardness so well that they never really age out.",
+    "source_name": "Britannica",
+    "source_url": "https://www.britannica.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "warm",
+    "tags": [
+      "birthday",
+      "author",
+      "literature"
+    ],
+    "month": 12,
+    "day": 16,
+    "notes": "AI-drafted starter entry; verify exact source/date later."
+  },
+  {
+    "fact_id": "famous_person_birthday_043",
+    "card_type": "famous_person_birthday",
+    "title": "Isaac Newton Birthday Week",
+    "body": "Isaac Newton is traditionally associated with a late-December or early-January birthday depending on calendar style. Either way, he remains one of the most important figures in the history of science.",
+    "source_name": "Britannica",
+    "source_url": "https://www.britannica.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "educational",
+    "tags": [
+      "birthday",
+      "scientist",
+      "physics"
+    ],
+    "month": 12,
+    "day": 25,
+    "notes": "AI-drafted starter entry; verify exact source/date later.",
+    "week_mode": "within_days",
+    "within_days": 3
+  },
+  {
+    "fact_id": "famous_person_birthday_044",
+    "card_type": "famous_person_birthday",
+    "title": "Louis Pasteur Birthday",
+    "body": "Louis Pasteur was born on December 27, 1822, and helped transform modern microbiology and medicine. Few scientists improved daily life so directly while also becoming a household name.",
+    "source_name": "Britannica",
+    "source_url": "https://www.britannica.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "educational",
+    "tags": [
+      "birthday",
+      "scientist",
+      "medicine"
+    ],
+    "month": 12,
+    "day": 27,
+    "notes": "AI-drafted starter entry; verify exact source/date later."
+  },
+  {
+    "fact_id": "fun_fact_001",
     "card_type": "fun_fact",
-    "title": "REPLACE ME — candidate fun fact",
-    "body": "Fun facts can be historical, cultural, or novelty day items, but the strongest ones still teach something real.",
+    "title": "New Year Resolutions",
+    "body": "The new year has long been treated as a good time to promise yourself better habits, a tradition that goes back much farther than modern planners and gym ads. Humans are apparently very attached to the idea that January deserves a fresh notebook.",
+    "source_name": "Britannica",
+    "source_url": "https://www.britannica.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "fun",
+    "tags": [
+      "fun",
+      "new_year",
+      "tradition"
+    ],
+    "month": 1,
+    "day": 1,
+    "notes": "AI-drafted starter entry; verify exact source/date later."
+  },
+  {
+    "fact_id": "fun_fact_002",
+    "card_type": "fun_fact",
+    "title": "Polar Bear Week",
+    "body": "Early January always makes it a good moment to remember that polar bears are excellent swimmers despite looking built mainly for snow. They can cover surprising distances in cold water when searching for sea ice and food.",
+    "source_name": "National Geographic",
+    "source_url": "https://www.nationalgeographic.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "educational",
+    "tags": [
+      "fun",
+      "animals",
+      "winter"
+    ],
+    "month": 1,
+    "day": 5,
+    "notes": "AI-drafted starter entry; verify exact source/date later.",
+    "week_mode": "within_days",
+    "within_days": 3
+  },
+  {
+    "fact_id": "fun_fact_003",
+    "card_type": "fun_fact",
+    "title": "Groundhog Day",
+    "body": "February 2 became Groundhog Day in the United States as a folkloric weather tradition with roots linked to older European customs. It is one of those holidays that survives largely because people enjoy pretending a furry meteorologist is plausible.",
+    "source_name": "Britannica",
+    "source_url": "https://www.britannica.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "fun",
+    "tags": [
+      "fun",
+      "holiday",
+      "weather"
+    ],
+    "month": 2,
+    "day": 2,
+    "notes": "AI-drafted starter entry; verify exact source/date later."
+  },
+  {
+    "fact_id": "fun_fact_004",
+    "card_type": "fun_fact",
+    "title": "National Pizza Day",
+    "body": "February 9 is often celebrated as National Pizza Day, which is convenient because pizza never really needed much help attracting admirers. Very few foods can start an argument about style and still make everybody hungry.",
+    "source_name": "National Day Calendar",
+    "source_url": "https://www.nationaldaycalendar.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "fun",
+    "tags": [
+      "fun",
+      "food",
+      "observance"
+    ],
+    "month": 2,
+    "day": 9,
+    "notes": "AI-drafted starter entry; verify exact source/date later."
+  },
+  {
+    "fact_id": "fun_fact_005",
+    "card_type": "fun_fact",
+    "title": "Leap Day Charm",
+    "body": "Leap day only appears in leap years because the calendar needs occasional adjustment to stay lined up with Earth’s orbit. It is a wonderfully nerdy solution disguised as an excuse for birthday jokes.",
+    "source_name": "Britannica",
+    "source_url": "https://www.britannica.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "educational",
+    "tags": [
+      "fun",
+      "calendar",
+      "science"
+    ],
+    "month": 2,
+    "day": 29,
+    "notes": "AI-drafted starter entry; verify exact source/date later."
+  },
+  {
+    "fact_id": "fun_fact_006",
+    "card_type": "fun_fact",
+    "title": "Pi Day",
+    "body": "March 14 is celebrated as Pi Day because 3/14 matches the beginning of the number 3.14. It is one of the few math holidays that comes with both irrational numbers and pie puns.",
+    "source_name": "Britannica",
+    "source_url": "https://www.britannica.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "fun",
+    "tags": [
+      "fun",
+      "math",
+      "observance"
+    ],
+    "month": 3,
+    "day": 14,
+    "notes": "AI-drafted starter entry; verify exact source/date later."
+  },
+  {
+    "fact_id": "fun_fact_007",
+    "card_type": "fun_fact",
+    "title": "The Equinox",
+    "body": "Around late March, day and night move closer to balance during the spring equinox. Seasonal turning points tend to feel poetic partly because astronomy is doing the staging for us.",
+    "source_name": "National Geographic",
+    "source_url": "https://www.nationalgeographic.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "educational",
+    "tags": [
+      "fun",
+      "seasons",
+      "astronomy"
+    ],
+    "month": 3,
+    "day": 20,
+    "notes": "AI-drafted starter entry; verify exact source/date later.",
+    "week_mode": "within_days",
+    "within_days": 3
+  },
+  {
+    "fact_id": "fun_fact_008",
+    "card_type": "fun_fact",
+    "title": "April Fool’s Day",
+    "body": "April 1 has a long reputation as a day for harmless pranks and practical jokes. The trick, of course, is that 'harmless' does a lot of the moral work in that sentence.",
+    "source_name": "Britannica",
+    "source_url": "https://www.britannica.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "fun",
+    "tags": [
+      "fun",
+      "holiday",
+      "humor"
+    ],
+    "month": 4,
+    "day": 1,
+    "notes": "AI-drafted starter entry; verify exact source/date later."
+  },
+  {
+    "fact_id": "fun_fact_009",
+    "card_type": "fun_fact",
+    "title": "Bell Bottom Day",
+    "body": "Early April brings National Bell Bottoms Day, a delightful reminder that fashion can leave and then march right back in again. Few garments announce their own enthusiasm as clearly as bell bottoms.",
+    "source_name": "National Day Calendar",
+    "source_url": "https://www.nationaldaycalendar.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "fun",
+    "tags": [
+      "fun",
+      "fashion",
+      "observance"
+    ],
+    "month": 4,
+    "day": 5,
+    "notes": "AI-drafted starter entry; verify exact source/date later."
+  },
+  {
+    "fact_id": "fun_fact_010",
+    "card_type": "fun_fact",
+    "title": "Deep Dish Pizza Day",
+    "body": "April 5 is also associated with National Deep Dish Pizza Day, which means somebody somewhere is probably making a casserole-versus-pizza argument in earnest. Food observances are at their best when they sound like an excuse and a debate at the same time.",
+    "source_name": "National Day Calendar",
+    "source_url": "https://www.nationaldaycalendar.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "fun",
+    "tags": [
+      "fun",
+      "food",
+      "observance"
+    ],
+    "month": 4,
+    "day": 5,
+    "notes": "AI-drafted starter entry; verify exact source/date later."
+  },
+  {
+    "fact_id": "fun_fact_011",
+    "card_type": "fun_fact",
+    "title": "Earth Day",
+    "body": "Earth Day is observed on April 22 and became one of the most recognizable environmental observances in the world. It works best when it inspires something practical instead of just a nicely worded caption.",
+    "source_name": "Britannica",
+    "source_url": "https://www.britannica.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "educational",
+    "tags": [
+      "fun",
+      "environment",
+      "observance"
+    ],
+    "month": 4,
+    "day": 22,
+    "notes": "AI-drafted starter entry; verify exact source/date later."
+  },
+  {
+    "fact_id": "fun_fact_012",
+    "card_type": "fun_fact",
+    "title": "May Day",
+    "body": "May 1 has long been connected with spring festivals, flowers, and community celebrations in many places. Seasonal holidays often survive because people do not actually need much encouragement to celebrate warmth returning.",
+    "source_name": "Britannica",
+    "source_url": "https://www.britannica.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "warm",
+    "tags": [
+      "fun",
+      "tradition",
+      "spring"
+    ],
+    "month": 5,
+    "day": 1,
+    "notes": "AI-drafted starter entry; verify exact source/date later."
+  },
+  {
+    "fact_id": "fun_fact_013",
+    "card_type": "fun_fact",
+    "title": "Cinco de Mayo Week",
+    "body": "Early May often brings cheerful confusion in the United States about Cinco de Mayo, which marks a Mexican military victory at Puebla rather than independence day. It is a useful reminder that festive popularity and historical accuracy are not always best friends.",
+    "source_name": "Britannica",
+    "source_url": "https://www.britannica.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "educational",
+    "tags": [
+      "fun",
+      "history",
+      "holiday"
+    ],
+    "month": 5,
+    "day": 5,
+    "notes": "AI-drafted starter entry; verify exact source/date later.",
+    "week_mode": "within_days",
+    "within_days": 3
+  },
+  {
+    "fact_id": "fun_fact_014",
+    "card_type": "fun_fact",
+    "title": "National Barbecue Day",
+    "body": "May has plenty of outdoor-food energy, and National Barbecue Day fits that mood perfectly. Smoke, sauce, and arguments about regional style all arrive right on schedule.",
+    "source_name": "National Day Calendar",
+    "source_url": "https://www.nationaldaycalendar.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "fun",
+    "tags": [
+      "fun",
+      "food",
+      "summer"
+    ],
+    "month": 5,
+    "day": 16,
+    "notes": "AI-drafted starter entry; verify exact source/date later.",
+    "week_mode": "within_days",
+    "within_days": 3
+  },
+  {
+    "fact_id": "fun_fact_015",
+    "card_type": "fun_fact",
+    "title": "The Summer Solstice",
+    "body": "Late June brings the summer solstice, the longest day of the year in the Northern Hemisphere. It is one of those astronomical events that makes people suddenly aware they live on a spinning tilted planet.",
+    "source_name": "National Geographic",
+    "source_url": "https://www.nationalgeographic.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "educational",
+    "tags": [
+      "fun",
+      "astronomy",
+      "summer"
+    ],
+    "month": 6,
+    "day": 20,
+    "notes": "AI-drafted starter entry; verify exact source/date later.",
+    "week_mode": "within_days",
+    "within_days": 3
+  },
+  {
+    "fact_id": "fun_fact_016",
+    "card_type": "fun_fact",
+    "title": "Ice Cream Month Mood",
+    "body": "July is National Ice Cream Month in the United States, which may be one of the least controversial official observances on record. Some celebrations are powerful because they set the bar exactly where people already wanted it.",
+    "source_name": "National Day Calendar",
+    "source_url": "https://www.nationaldaycalendar.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "fun",
+    "tags": [
+      "fun",
+      "food",
+      "summer"
+    ],
+    "month": 7,
+    "day": 1,
+    "notes": "AI-drafted starter entry; verify exact source/date later.",
+    "week_mode": "within_days",
+    "within_days": 3
+  },
+  {
+    "fact_id": "fun_fact_017",
+    "card_type": "fun_fact",
+    "title": "Shark Week Energy",
+    "body": "Sharks get a burst of attention every summer thanks to Shark Week and the general season of beach curiosity. They are a good example of animals that are both genuinely impressive and dramatically overblamed.",
+    "source_name": "National Geographic",
+    "source_url": "https://www.nationalgeographic.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "fun",
+    "tags": [
+      "fun",
+      "animals",
+      "summer"
+    ],
+    "month": 7,
+    "day": 20,
+    "notes": "AI-drafted starter entry; verify exact source/date later.",
+    "week_mode": "within_days",
+    "within_days": 3
+  },
+  {
+    "fact_id": "fun_fact_018",
+    "card_type": "fun_fact",
+    "title": "Moon Landing Week",
+    "body": "July is always a nice time to remember that humans first walked on the Moon in 1969. Space history never stops sounding slightly impossible when you say it plainly.",
     "source_name": "Library of Congress Today in History",
     "source_url": "https://www.loc.gov/collections/today-in-history/",
     "verified": false,
-    "status": "candidate",
-    "tone": "mixed",
-    "tags": ["fun", "template"],
-    "month": 1,
-    "day": 1,
-    "notes": "Use novelty-day sites as seasoning, not the backbone."
+    "status": "approved",
+    "tone": "educational",
+    "tags": [
+      "fun",
+      "space",
+      "history"
+    ],
+    "month": 7,
+    "day": 20,
+    "notes": "AI-drafted starter entry; verify exact source/date later.",
+    "week_mode": "within_days",
+    "within_days": 3
   },
   {
-    "fact_id": "mom_daily_template_001",
-    "card_type": "mom_daily",
-    "title": "Mom Daily Assembly Template",
-    "body": "Mom daily should sound warm, lively, and slightly rambly in a good way. Build it from already-vetted facts, family birthdays, one music tie-in, and one playful observance if it fits.",
-    "source_name": "Internal curated fact pool",
-    "source_url": "local_json",
+    "fact_id": "fun_fact_019",
+    "card_type": "fun_fact",
+    "title": "National Watermelon Day",
+    "body": "August 3 is associated with National Watermelon Day, which feels exactly appropriate for a month that already tastes like summer. Very few foods are this messy and this refreshing at the same time.",
+    "source_name": "National Day Calendar",
+    "source_url": "https://www.nationaldaycalendar.com/",
     "verified": false,
-    "status": "candidate",
-    "tone": "mom_daily",
-    "tags": ["mom_daily", "voice", "template"],
-    "month": 1,
+    "status": "approved",
+    "tone": "fun",
+    "tags": [
+      "fun",
+      "food",
+      "summer"
+    ],
+    "month": 8,
+    "day": 3,
+    "notes": "AI-drafted starter entry; verify exact source/date later."
+  },
+  {
+    "fact_id": "fun_fact_020",
+    "card_type": "fun_fact",
+    "title": "Left-Handers Day",
+    "body": "August 13 is recognized as International Left-Handers Day, a tiny observance with excellent underdog energy. It is always nice when the calendar pauses to salute a minority trait instead of a major historical event.",
+    "source_name": "Days of the Year",
+    "source_url": "https://www.daysoftheyear.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "fun",
+    "tags": [
+      "fun",
+      "observance",
+      "quirky"
+    ],
+    "month": 8,
+    "day": 13,
+    "notes": "AI-drafted starter entry; verify exact source/date later."
+  },
+  {
+    "fact_id": "fun_fact_021",
+    "card_type": "fun_fact",
+    "title": "The Perseids",
+    "body": "Mid-August is prime time for the Perseid meteor shower, one of the most popular skywatching events of the year. Falling stars feel more magical when you remember they are also just bits of cosmic debris burning up overhead.",
+    "source_name": "National Geographic",
+    "source_url": "https://www.nationalgeographic.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "educational",
+    "tags": [
+      "fun",
+      "astronomy",
+      "night_sky"
+    ],
+    "month": 8,
+    "day": 12,
+    "notes": "AI-drafted starter entry; verify exact source/date later.",
+    "week_mode": "within_days",
+    "within_days": 3
+  },
+  {
+    "fact_id": "fun_fact_022",
+    "card_type": "fun_fact",
+    "title": "Talk Like a Pirate Day",
+    "body": "September 19 is International Talk Like a Pirate Day, which remains one of the internet era’s most durable silly observances. Any holiday that improves with a bad accent deserves a little credit.",
+    "source_name": "Days of the Year",
+    "source_url": "https://www.daysoftheyear.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "fun",
+    "tags": [
+      "fun",
+      "observance",
+      "quirky"
+    ],
+    "month": 9,
+    "day": 19,
+    "notes": "AI-drafted starter entry; verify exact source/date later."
+  },
+  {
+    "fact_id": "fun_fact_023",
+    "card_type": "fun_fact",
+    "title": "The Autumn Equinox",
+    "body": "Late September brings the autumn equinox, when daylight and darkness pull closer to balance again. Even people who do not love summer’s end can usually appreciate the drama of the seasonal handoff.",
+    "source_name": "National Geographic",
+    "source_url": "https://www.nationalgeographic.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "warm",
+    "tags": [
+      "fun",
+      "seasons",
+      "astronomy"
+    ],
+    "month": 9,
+    "day": 22,
+    "notes": "AI-drafted starter entry; verify exact source/date later.",
+    "week_mode": "within_days",
+    "within_days": 3
+  },
+  {
+    "fact_id": "fun_fact_024",
+    "card_type": "fun_fact",
+    "title": "National Coffee Day",
+    "body": "September 29 is National Coffee Day, a holiday suspiciously likely to be supported by exhausted adults. If any beverage was going to earn a day of gratitude, coffee had a strong résumé.",
+    "source_name": "National Day Calendar",
+    "source_url": "https://www.nationaldaycalendar.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "fun",
+    "tags": [
+      "fun",
+      "food",
+      "observance"
+    ],
+    "month": 9,
+    "day": 29,
+    "notes": "AI-drafted starter entry; verify exact source/date later."
+  },
+  {
+    "fact_id": "fun_fact_025",
+    "card_type": "fun_fact",
+    "title": "Pumpkin Season",
+    "body": "Early October marks the yearly moment when pumpkin flavor moves from crop to personality. Seasonal foods become especially funny when they also become branding strategies.",
+    "source_name": "National Day Calendar",
+    "source_url": "https://www.nationaldaycalendar.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "fun",
+    "tags": [
+      "fun",
+      "food",
+      "autumn"
+    ],
+    "month": 10,
     "day": 1,
-    "notes": "This entry is a voice/style placeholder, not a final fact card."
+    "notes": "AI-drafted starter entry; verify exact source/date later.",
+    "week_mode": "within_days",
+    "within_days": 3
+  },
+  {
+    "fact_id": "fun_fact_026",
+    "card_type": "fun_fact",
+    "title": "World Animal Day",
+    "body": "October 4 is World Animal Day, a nice excuse to appreciate creatures that are beautiful, useful, odd, or all three at once. Humans are at their most charming when they make room for affection beyond their own species.",
+    "source_name": "National Geographic",
+    "source_url": "https://www.nationalgeographic.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "warm",
+    "tags": [
+      "fun",
+      "animals",
+      "observance"
+    ],
+    "month": 10,
+    "day": 4,
+    "notes": "AI-drafted starter entry; verify exact source/date later."
+  },
+  {
+    "fact_id": "fun_fact_027",
+    "card_type": "fun_fact",
+    "title": "Boss’s Day",
+    "body": "October 16 is associated with Boss’s Day, which usually lands somewhere between sincere appreciation and office comedy. Workplace holidays have a habit of revealing exactly how awkward adults can be while trying to be nice.",
+    "source_name": "National Day Calendar",
+    "source_url": "https://www.nationaldaycalendar.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "fun",
+    "tags": [
+      "fun",
+      "observance",
+      "work"
+    ],
+    "month": 10,
+    "day": 16,
+    "notes": "AI-drafted starter entry; verify exact source/date later."
+  },
+  {
+    "fact_id": "fun_fact_028",
+    "card_type": "fun_fact",
+    "title": "Halloween Roots",
+    "body": "Halloween on October 31 mixes costumes, candy, and older seasonal traditions in a way that feels half spooky and half neighborhood block party. It may be the only holiday where sugar and theatrical darkness cooperate so well.",
+    "source_name": "Britannica",
+    "source_url": "https://www.britannica.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "fun",
+    "tags": [
+      "fun",
+      "holiday",
+      "autumn"
+    ],
+    "month": 10,
+    "day": 31,
+    "notes": "AI-drafted starter entry; verify exact source/date later."
+  },
+  {
+    "fact_id": "fun_fact_029",
+    "card_type": "fun_fact",
+    "title": "Daylight Saving Time Ends",
+    "body": "Early November often brings the end of daylight saving time in much of the United States, which means the clocks change and everybody becomes a tiny bit dramatic about it. Few calendar adjustments inspire so much grumbling for something that takes one minute.",
+    "source_name": "Britannica",
+    "source_url": "https://www.britannica.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "fun",
+    "tags": [
+      "fun",
+      "calendar",
+      "time"
+    ],
+    "month": 11,
+    "day": 3,
+    "notes": "AI-drafted starter entry; verify exact source/date later.",
+    "week_mode": "within_days",
+    "within_days": 3
+  },
+  {
+    "fact_id": "fun_fact_030",
+    "card_type": "fun_fact",
+    "title": "Sandwich Day",
+    "body": "November 3 is National Sandwich Day, a holiday with almost unlimited practical application. Bread plus filling is not a complicated concept, but humanity has clearly decided it was a good one.",
+    "source_name": "National Day Calendar",
+    "source_url": "https://www.nationaldaycalendar.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "fun",
+    "tags": [
+      "fun",
+      "food",
+      "observance"
+    ],
+    "month": 11,
+    "day": 3,
+    "notes": "AI-drafted starter entry; verify exact source/date later."
+  },
+  {
+    "fact_id": "fun_fact_031",
+    "card_type": "fun_fact",
+    "title": "Origami Day",
+    "body": "November 11 is World Origami Day, a charming little observance for the art of turning flat paper into something with surprise and structure. Folding a sheet into a crane is basically engineering with better manners.",
+    "source_name": "Days of the Year",
+    "source_url": "https://www.daysoftheyear.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "fun",
+    "tags": [
+      "fun",
+      "art",
+      "observance"
+    ],
+    "month": 11,
+    "day": 11,
+    "notes": "AI-drafted starter entry; verify exact source/date later."
+  },
+  {
+    "fact_id": "fun_fact_032",
+    "card_type": "fun_fact",
+    "title": "Pie Season",
+    "body": "Late November is peak pie season in many American kitchens, especially around Thanksgiving. Desserts linked to holidays always feel more serious because nostalgia is quietly doing half the baking.",
+    "source_name": "National Day Calendar",
+    "source_url": "https://www.nationaldaycalendar.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "warm",
+    "tags": [
+      "fun",
+      "food",
+      "holiday"
+    ],
+    "month": 11,
+    "day": 25,
+    "notes": "AI-drafted starter entry; verify exact source/date later.",
+    "week_mode": "within_days",
+    "within_days": 3
+  },
+  {
+    "fact_id": "fun_fact_033",
+    "card_type": "fun_fact",
+    "title": "Winter Solstice",
+    "body": "The winter solstice in late December marks the shortest day of the year in the Northern Hemisphere. The nice part is that once you hit it, the light slowly starts sneaking back.",
+    "source_name": "National Geographic",
+    "source_url": "https://www.nationalgeographic.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "warm",
+    "tags": [
+      "fun",
+      "winter",
+      "astronomy"
+    ],
+    "month": 12,
+    "day": 21,
+    "notes": "AI-drafted starter entry; verify exact source/date later."
+  },
+  {
+    "fact_id": "fun_fact_034",
+    "card_type": "fun_fact",
+    "title": "Ugly Sweater Energy",
+    "body": "December has become prime ugly-sweater season, which means festive clothing starts competing to be intentionally tasteless. There is something strangely healthy about making bad style into a group activity.",
+    "source_name": "Days of the Year",
+    "source_url": "https://www.daysoftheyear.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "fun",
+    "tags": [
+      "fun",
+      "holiday",
+      "fashion"
+    ],
+    "month": 12,
+    "day": 15,
+    "notes": "AI-drafted starter entry; verify exact source/date later.",
+    "week_mode": "within_days",
+    "within_days": 3
+  },
+  {
+    "fact_id": "fun_fact_035",
+    "card_type": "fun_fact",
+    "title": "New Year’s Eve Sparkle",
+    "body": "New Year’s Eve turns the end of the calendar into a worldwide excuse for countdowns, glitter, and mild existential reflection. Few nights ask people to feel sentimental and loud at the same time quite so efficiently.",
+    "source_name": "Britannica",
+    "source_url": "https://www.britannica.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "warm",
+    "tags": [
+      "fun",
+      "holiday",
+      "new_year"
+    ],
+    "month": 12,
+    "day": 31,
+    "notes": "AI-drafted starter entry; verify exact source/date later."
+  },
+  {
+    "fact_id": "fun_fact_036",
+    "card_type": "fun_fact",
+    "title": "National Donut Day Mood",
+    "body": "Early June often brings National Donut Day, which has a strong claim on public affection for obvious reasons. Round foods somehow seem even friendlier when they come with frosting.",
+    "source_name": "National Day Calendar",
+    "source_url": "https://www.nationaldaycalendar.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "fun",
+    "tags": [
+      "fun",
+      "food",
+      "observance"
+    ],
+    "month": 6,
+    "day": 7,
+    "notes": "AI-drafted starter entry; verify exact source/date later.",
+    "week_mode": "within_days",
+    "within_days": 3
+  },
+  {
+    "fact_id": "fun_fact_037",
+    "card_type": "fun_fact",
+    "title": "Bird Migration Season",
+    "body": "Spring and fall are both marvelous times to remember that bird migration is one of nature’s great recurring dramas. Tiny bodies crossing huge distances will never stop sounding impressive.",
+    "source_name": "National Geographic",
+    "source_url": "https://www.nationalgeographic.com/",
+    "verified": false,
+    "status": "approved",
+    "tone": "educational",
+    "tags": [
+      "fun",
+      "animals",
+      "nature"
+    ],
+    "month": 5,
+    "day": 10,
+    "notes": "AI-drafted starter entry; verify exact source/date later.",
+    "week_mode": "within_days",
+    "within_days": 3
   }
 ]
