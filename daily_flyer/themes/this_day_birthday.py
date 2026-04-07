@@ -1,3 +1,4 @@
+
 from __future__ import annotations
 
 import json
@@ -117,11 +118,27 @@ def _message_text_for_hits(birthday_hits: list[dict], rng: random.Random) -> str
 def _render_birthday_spotlight(birthday_hits: list[dict], message_text: str) -> str:
     if not birthday_hits:
         return (
-            "<p><em>No birthdays are listed for this date.</em></p>"
-            "<p>Use the calendar to jump to a highlighted date, or keep this open as a planning view.</p>"
+            "<div class='birthday-empty-state'>"
+            "<div class='birthday-empty-emoji'>🎈</div>"
+            "<div>"
+            "<div class='birthday-empty-title'>No birthday is on file for this date</div>"
+            "<p>Use the calendar to jump ahead, or treat this as a planning day with fun cards and a future-message draft.</p>"
+            "</div>"
+            "</div>"
         )
 
-    parts: list[str] = ["<div class='birthday-stack'>"]
+    count = len(birthday_hits)
+    count_label = f"{count} birthday{'s' if count != 1 else ''} on file"
+
+    parts: list[str] = [
+        "<div class='birthday-spotlight-shell'>",
+        "<div class='birthday-summary-row'>",
+        f"<span class='birthday-summary-pill birthday-summary-pill--warm'>🎂 {escape(count_label)}</span>",
+        "<span class='birthday-summary-pill'>💬 Message starter ready</span>",
+        "<span class='birthday-summary-pill'>📱 Text helpers below</span>",
+        "</div>",
+        "<div class='birthday-stack'>",
+    ]
 
     for hit in birthday_hits:
         raw_name = str(hit.get("name", "")).strip() or "Someone Awesome"
@@ -130,18 +147,29 @@ def _render_birthday_spotlight(birthday_hits: list[dict], message_text: str) -> 
         phone = str(hit.get("phone", "")).strip()
         sms_href = _sms_href(phone)
 
-        parts.append("<div class='birthday-person'>")
+        parts.append("<article class='birthday-person'>")
+        parts.append("<div class='birthday-person-top'>")
+        parts.append("<div>")
+        parts.append("<div class='birthday-mini-label'>Today’s celebration</div>")
         parts.append(f"<div class='birthday-name'>🎉 {escape(raw_name)}</div>")
+        parts.append("</div>")
+        parts.append("<div class='birthday-person-badge' aria-hidden='true'>🎂</div>")
+        parts.append("</div>")
 
         meta_bits: list[str] = []
         if relation:
-            meta_bits.append(escape(relation))
+            meta_bits.append(f"👥 {escape(relation)}")
         if phone:
             meta_bits.append(f"📱 {escape(_display_phone(phone))}")
         if meta_bits:
             parts.append(f"<div class='birthday-meta'>{' · '.join(meta_bits)}</div>")
         if note:
             parts.append(f"<div class='birthday-note'>{escape(note)}</div>")
+
+        parts.append("<div class='birthday-message-preview'>")
+        parts.append("<div class='birthday-mini-label'>Suggested text</div>")
+        parts.append(f"<p>{escape(message_text)}</p>")
+        parts.append("</div>")
 
         parts.append("<div class='birthday-actions'>")
         if sms_href:
@@ -152,8 +180,9 @@ def _render_birthday_spotlight(birthday_hits: list[dict], message_text: str) -> 
             f"<button class='birthday-btn' type='button' data-copy-text='{escape(message_text, quote=True)}'>Copy message</button>"
         )
         parts.append("</div>")
-        parts.append("</div>")
+        parts.append("</article>")
 
+    parts.append("</div>")
     parts.append("</div>")
     return "".join(parts)
 
@@ -174,16 +203,27 @@ def _render_phone_helper(phones: list[dict[str, str]], birthday_hits: list[dict]
         intro = "<p>No birthday person to exclude for this date, so the full list is shown.</p>"
 
     if not phones_text.strip():
-        return intro + "<p><em>No phone numbers are available yet.</em></p>"
+        return (
+            "<div class='birthday-helper-panel'>"
+            f"{intro}"
+            "<p><em>No phone numbers are available yet.</em></p>"
+            "</div>"
+        )
 
     count_label = f"{len(phones)} recipient{'s' if len(phones) != 1 else ''}"
     return f"""
-        {intro}
-        <p class="birthday-hint">Ready to paste into a new group text “To:” field · {escape(count_label)}</p>
-        <textarea id="birthday-phone-list" class="birthday-textarea" readonly>{escape(phones_text)}</textarea>
-        <div class="birthday-actions">
-            <button class="birthday-btn" type="button" id="birthdayPhoneCopyBtn">Copy numbers</button>
-            <span id="birthday-phone-copy-status" class="birthday-hint"></span>
+        <div class="birthday-helper-panel">
+            {intro}
+            <div class="birthday-stat-row">
+                <span class="birthday-soft-pill">👥 {escape(count_label)}</span>
+                <span class="birthday-soft-pill">📋 Copy-paste ready</span>
+            </div>
+            <p class="birthday-hint">Ready to paste into a new group text “To:” field.</p>
+            <textarea id="birthday-phone-list" class="birthday-textarea" readonly>{escape(phones_text)}</textarea>
+            <div class="birthday-actions">
+                <button class="birthday-btn" type="button" id="birthdayPhoneCopyBtn">Copy numbers</button>
+                <span id="birthday-phone-copy-status" class="birthday-hint"></span>
+            </div>
         </div>
     """
 
@@ -209,24 +249,31 @@ def _render_upcoming_birthdays(today: date, birthdays: list[dict], limit: int = 
     upcoming.sort(key=lambda x: (x[0], x[2]))
     rows = upcoming[:limit]
     if not rows:
-        return "<p><em>No upcoming birthdays found.</em></p>"
+        return "<div class='birthday-helper-panel'><p><em>No upcoming birthdays found.</em></p></div>"
 
-    html_parts = ["<ul class='birthday-list'>"]
+    html_parts = ["<div class='birthday-upcoming-list'>"]
     for occurrence, delta_days, _, name, relation in rows:
-        relation_text = f" — {escape(relation)}" if relation else ""
+        relation_text = f" · {escape(relation)}" if relation else ""
         if delta_days == 0:
             delta_text = "Today"
         elif delta_days == 1:
             delta_text = "Tomorrow"
         else:
             delta_text = f"In {delta_days} days"
+
         html_parts.append(
-            "<li>"
-            f"<strong>{escape(occurrence.strftime('%b %d'))}</strong> · {escape(name)}{relation_text} "
-            f"<span class='birthday-chip'>{escape(delta_text)}</span>"
-            "</li>"
+            "<div class='birthday-upcoming-item'>"
+            "<div class='birthday-date-badge'>"
+            f"<span class='birthday-date-month'>{escape(occurrence.strftime('%b'))}</span>"
+            f"<strong>{escape(occurrence.strftime('%d'))}</strong>"
+            "</div>"
+            "<div class='birthday-upcoming-copy'>"
+            f"<div class='birthday-upcoming-name'>{escape(name)}</div>"
+            f"<div class='birthday-upcoming-meta'>{escape(delta_text)}{relation_text}</div>"
+            "</div>"
+            "</div>"
         )
-    html_parts.append("</ul>")
+    html_parts.append("</div>")
     return "".join(html_parts)
 
 
@@ -235,7 +282,10 @@ def _calendar_card_html(today: date) -> str:
     return f"""
         <div class="birthday-calendar-wrap">
             <div class="birthday-calendar-head">
-                <div class="birthday-calendar-title" id="birthdayCalTitle">Month YYYY</div>
+                <div>
+                    <div class="birthday-calendar-title" id="birthdayCalTitle">Month YYYY</div>
+                    <div class="birthday-calendar-subtitle">Browse birthdays across the year and jump to any date.</div>
+                </div>
                 <div class="birthday-calendar-nav">
                     <button class="birthday-iconbtn" type="button" id="birthdayTodayBtn">Today</button>
                     <button class="birthday-iconbtn" type="button" id="birthdayCalPrev" aria-label="Previous month">‹</button>
@@ -349,12 +399,162 @@ def _render_mom_daily(
     """
 
 
+def _extra_head_html() -> str:
+    return """
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    """
+
+
 def _extra_css() -> str:
     return r"""
-    .card--birthday_calendar,
-    .card--birthday_spotlight,
-    .card--mom_daily {
-        grid-column: span 6;
+    body {
+        font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
+        background:
+            radial-gradient(circle at 10% 10%, rgba(255, 170, 196, 0.20), transparent 22%),
+            radial-gradient(circle at 88% 12%, rgba(255, 218, 122, 0.18), transparent 24%),
+            radial-gradient(circle at 50% 100%, rgba(123, 197, 255, 0.15), transparent 28%),
+            linear-gradient(180deg, #1b1323 0%, #141d2e 42%, #0a1320 100%);
+    }
+
+    body::before {
+        width: 480px;
+        height: 480px;
+        top: -110px;
+        left: -140px;
+        background: radial-gradient(circle, rgba(255, 170, 196, 0.18), transparent 70%);
+    }
+
+    body::after {
+        width: 420px;
+        height: 420px;
+        right: -120px;
+        top: 120px;
+        background: radial-gradient(circle, rgba(255, 218, 122, 0.16), transparent 70%);
+    }
+
+    header.hero {
+        padding: 46px 30px 38px;
+        border-radius: 34px;
+        border-color: rgba(255,255,255,0.16);
+        background:
+            radial-gradient(circle at top left, rgba(255, 199, 112, 0.18), transparent 28%),
+            radial-gradient(circle at 78% 18%, rgba(255, 146, 175, 0.14), transparent 24%),
+            linear-gradient(135deg, rgba(255,255,255,0.10), rgba(255,255,255,0.03)),
+            linear-gradient(150deg, rgba(64, 32, 84, 0.92), rgba(25, 32, 52, 0.94));
+        box-shadow:
+            0 28px 80px rgba(0,0,0,0.34),
+            inset 0 1px 0 rgba(255,255,255,0.10);
+    }
+
+    header.hero::before {
+        background:
+            linear-gradient(90deg, transparent, rgba(255,255,255,0.05), transparent),
+            radial-gradient(circle at 10% 20%, rgba(255, 211, 127, 0.18), transparent 20%),
+            radial-gradient(circle at 90% 24%, rgba(255, 146, 175, 0.18), transparent 22%);
+        opacity: 1;
+    }
+
+    header.hero::after {
+        content: "";
+        position: absolute;
+        inset: 0;
+        pointer-events: none;
+        background:
+            radial-gradient(circle at 14% 72%, rgba(255,255,255,0.16) 0 2px, transparent 3px),
+            radial-gradient(circle at 24% 18%, rgba(255, 211, 127, 0.35) 0 3px, transparent 4px),
+            radial-gradient(circle at 60% 16%, rgba(255, 155, 183, 0.28) 0 3px, transparent 4px),
+            radial-gradient(circle at 88% 72%, rgba(146, 219, 255, 0.20) 0 3px, transparent 4px);
+        opacity: 0.7;
+    }
+
+    .hero-kicker,
+    .hero-pill,
+    .birthday-soft-pill,
+    .birthday-summary-pill,
+    .birthday-chip {
+        box-shadow: inset 0 1px 0 rgba(255,255,255,0.08);
+    }
+
+    .hero-kicker {
+        background: rgba(255,255,255,0.09);
+        border-color: rgba(255,255,255,0.14);
+        color: #ffe7c2;
+    }
+
+    .hero h1,
+    h2,
+    .birthday-calendar-title,
+    .birthday-name,
+    .birthday-upcoming-name,
+    .birthday-empty-title {
+        font-family: "Fraunces", Georgia, serif;
+    }
+
+    .hero h1 {
+        max-width: 11ch;
+        font-size: clamp(2.7rem, 6.4vw, 5.25rem);
+        line-height: 0.94;
+        letter-spacing: -0.04em;
+        text-shadow: 0 8px 30px rgba(0,0,0,0.22);
+    }
+
+    .hero .subtitle {
+        max-width: 60ch;
+        font-size: 1.08rem;
+        color: #eadff4;
+    }
+
+    .hero-pill {
+        background: rgba(255,255,255,0.08);
+        border-color: rgba(255,255,255,0.10);
+    }
+
+    .eyebrow {
+        color: #f7d6a3;
+    }
+
+    .icon-badge {
+        background: linear-gradient(180deg, rgba(255,255,255,0.12), rgba(255,255,255,0.06));
+        border-color: rgba(255,255,255,0.12);
+        box-shadow: 0 12px 24px rgba(0,0,0,0.16);
+    }
+
+    .card {
+        min-height: 230px;
+        border-color: rgba(255,255,255,0.10);
+        background:
+            linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.03)),
+            rgba(18, 26, 43, 0.82);
+        box-shadow:
+            0 18px 44px rgba(0,0,0,0.22),
+            inset 0 1px 0 rgba(255,255,255,0.05);
+    }
+
+    .card:hover {
+        transform: translateY(-5px);
+    }
+
+    .card::after {
+        height: 5px;
+        background: linear-gradient(90deg, #ffd16a, #ff8cb0, #7dd5ff);
+    }
+
+    .card--birthday_calendar {
+        grid-column: span 7;
+        background:
+            radial-gradient(circle at top left, rgba(255, 211, 127, 0.16), transparent 26%),
+            linear-gradient(180deg, rgba(143, 213, 255, 0.10), rgba(255,255,255,0.02)),
+            rgba(15, 27, 46, 0.90);
+    }
+
+    .card--birthday_spotlight {
+        grid-column: span 5;
+        background:
+            radial-gradient(circle at top right, rgba(255, 151, 179, 0.18), transparent 28%),
+            linear-gradient(180deg, rgba(255, 199, 112, 0.12), rgba(255,255,255,0.03)),
+            rgba(32, 24, 45, 0.92);
     }
 
     .card--birthday_phone_helper,
@@ -368,82 +568,551 @@ def _extra_css() -> str:
         grid-column: span 4;
     }
 
-    .card--mom_daily {
+    .card--birthday_phone_helper {
         background:
-            linear-gradient(180deg, rgba(255, 170, 90, 0.12), rgba(255,255,255,0.02)),
-            var(--card-strong);
+            linear-gradient(180deg, rgba(122, 219, 187, 0.14), rgba(255,255,255,0.03)),
+            rgba(16, 35, 41, 0.88);
     }
 
-    .card--classic_rock,
-    .card--irish_history,
-    .card--boston_sports,
-    .card--famous_person_birthday,
+    .card--birthday_message_starter {
+        background:
+            linear-gradient(180deg, rgba(255, 163, 193, 0.16), rgba(255,255,255,0.03)),
+            rgba(34, 21, 38, 0.90);
+    }
+
+    .card--birthday_upcoming {
+        background:
+            linear-gradient(180deg, rgba(160, 188, 255, 0.16), rgba(255,255,255,0.03)),
+            rgba(20, 28, 48, 0.90);
+    }
+
+    .card--classic_rock {
+        background:
+            linear-gradient(180deg, rgba(255, 170, 90, 0.18), rgba(255,255,255,0.03)),
+            rgba(39, 26, 29, 0.90);
+    }
+
+    .card--irish_history {
+        background:
+            linear-gradient(180deg, rgba(88, 196, 133, 0.18), rgba(255,255,255,0.03)),
+            rgba(15, 36, 30, 0.90);
+    }
+
+    .card--boston_sports {
+        background:
+            linear-gradient(180deg, rgba(128, 182, 255, 0.18), rgba(255,255,255,0.03)),
+            rgba(16, 27, 45, 0.90);
+    }
+
+    .card--famous_person_birthday {
+        background:
+            linear-gradient(180deg, rgba(255, 188, 120, 0.18), rgba(255,255,255,0.03)),
+            rgba(40, 27, 34, 0.90);
+    }
+
     .card--fun_fact {
         background:
-            linear-gradient(180deg, rgba(73,197,182,0.10), rgba(255,255,255,0.02)),
-            var(--card);
+            linear-gradient(180deg, rgba(115, 220, 228, 0.18), rgba(255,255,255,0.03)),
+            rgba(16, 34, 39, 0.90);
     }
 
-    .birthday-calendar-wrap { display: grid; gap: 0.85rem; }
-    .birthday-calendar-head { display: flex; align-items: center; justify-content: space-between; gap: 0.75rem; }
-    .birthday-calendar-title { font-weight: 800; color: var(--ink); }
-    .birthday-calendar-nav { display: flex; gap: 0.5rem; flex-wrap: wrap; justify-content: flex-end; }
-    .birthday-iconbtn, .birthday-btn {
+    .card--mom_daily {
+        grid-column: span 12;
+        background:
+            radial-gradient(circle at top left, rgba(255, 203, 122, 0.16), transparent 24%),
+            linear-gradient(180deg, rgba(255, 170, 90, 0.14), rgba(255,255,255,0.02)),
+            rgba(43, 28, 28, 0.92);
+    }
+
+    .birthday-calendar-wrap {
+        display: grid;
+        gap: 1rem;
+    }
+
+    .birthday-calendar-head {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 1rem;
+    }
+
+    .birthday-calendar-title {
+        font-size: 1.28rem;
+        font-weight: 700;
+        color: var(--ink);
+    }
+
+    .birthday-calendar-subtitle {
+        margin-top: 0.2rem;
+        color: #d4c9e7;
+        font-size: 0.92rem;
+    }
+
+    .birthday-calendar-nav {
+        display: flex;
+        gap: 0.55rem;
+        flex-wrap: wrap;
+        justify-content: flex-end;
+    }
+
+    .birthday-iconbtn,
+    .birthday-btn {
         border: 1px solid rgba(255,255,255,0.14);
         background: rgba(255,255,255,0.08);
         color: var(--ink);
-        border-radius: 12px;
+        border-radius: 14px;
         cursor: pointer;
         text-decoration: none;
         font: inherit;
+        transition: background 160ms ease, transform 160ms ease, border-color 160ms ease;
     }
-    .birthday-iconbtn { min-width: 36px; height: 36px; padding: 0 0.7rem; font-size: 0.95rem; display: inline-flex; align-items: center; justify-content: center; }
-    .birthday-btn { padding: 0.65rem 0.95rem; font-weight: 700; display: inline-flex; align-items: center; justify-content: center; }
-    .birthday-btn--link { color: var(--ink); }
-    .birthday-iconbtn:hover, .birthday-btn:hover { background: rgba(255,255,255,0.12); text-decoration: none; }
-    .birthday-calendar { width: 100%; border-collapse: collapse; }
-    .birthday-calendar th { font-size: 0.78rem; color: var(--muted); padding: 0.35rem 0; text-align: center; }
-    .birthday-calendar td { padding: 0.15rem; }
-    .birthday-day { width: 100%; min-height: 48px; display: flex; align-items: center; justify-content: center; position: relative; border-radius: 12px; border: 1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.04); color: var(--ink); cursor: pointer; user-select: none; font-weight: 700; }
-    .birthday-day:hover { background: rgba(255,255,255,0.08); }
-    .birthday-day.muted { opacity: 0.28; cursor: default; }
-    .birthday-day.today { outline: 2px solid rgba(255,255,255,0.22); }
-    .birthday-day.selected { outline: 2px solid rgba(255, 215, 120, 0.72); background: rgba(255, 215, 120, 0.10); }
-    .birthday-day.has-birthday { background: rgba(255, 170, 90, 0.12); border-color: rgba(255, 170, 90, 0.28); }
-    .birthday-day-dot, .birthday-day-count { position: absolute; bottom: 5px; border-radius: 999px; background: rgba(255, 215, 120, 0.95); box-shadow: 0 0 10px rgba(255, 215, 120, 0.45); }
-    .birthday-day-dot { width: 6px; height: 6px; }
-    .birthday-day-count { min-width: 18px; height: 18px; padding: 0 0.35rem; display: inline-flex; align-items: center; justify-content: center; color: #24160a; font-size: 0.72rem; font-weight: 800; }
-    .birthday-calendar-legend { display: flex; flex-wrap: wrap; gap: 0.9rem; color: var(--muted); font-size: 0.84rem; }
-    .birthday-calendar-legend span { display: inline-flex; align-items: center; gap: 0.45rem; }
-    .birthday-legend-dot { width: 8px; height: 8px; border-radius: 999px; background: rgba(255, 215, 120, 0.95); display: inline-block; }
-    .birthday-legend-pill { width: 18px; height: 12px; border-radius: 999px; background: rgba(255, 215, 120, 0.30); border: 1px solid rgba(255, 215, 120, 0.72); display: inline-block; }
-    .birthday-calendar-controls { display: flex; align-items: center; gap: 0.85rem; flex-wrap: wrap; }
-    .birthday-selected { font-weight: 700; color: var(--ink-soft); }
-    .birthday-hint { color: var(--muted); font-size: 0.85rem; }
-    .birthday-stack { display: grid; gap: 0.75rem; }
-    .birthday-person { padding: 0.9rem; border-radius: 14px; background: rgba(255,255,255,0.05); border: 1px solid rgba(255,255,255,0.08); }
-    .birthday-name { font-weight: 800; font-size: 1.02rem; color: var(--ink); }
-    .birthday-meta { margin-top: 0.28rem; color: var(--muted); }
-    .birthday-note { margin-top: 0.45rem; color: var(--ink-soft); }
-    .birthday-list { margin: 0; padding-left: 1.1rem; }
-    .birthday-list li { margin: 0.55rem 0; }
-    .birthday-chip { display: inline-flex; align-items: center; margin-left: 0.45rem; padding: 0.1rem 0.45rem; border-radius: 999px; background: rgba(255,255,255,0.08); border: 1px solid rgba(255,255,255,0.08); color: var(--muted); font-size: 0.74rem; font-weight: 700; }
-    .birthday-textarea { width: 100%; min-height: 120px; resize: vertical; padding: 0.85rem; border-radius: 14px; border: 1px solid rgba(255,255,255,0.12); background: rgba(0,0,0,0.16); color: var(--ink); font: inherit; line-height: 1.45; }
-    .birthday-textarea--large { min-height: 240px; }
-    .birthday-actions { display: flex; align-items: center; gap: 0.75rem; flex-wrap: wrap; margin-top: 0.75rem; }
+
+    .birthday-iconbtn {
+        min-width: 38px;
+        height: 38px;
+        padding: 0 0.8rem;
+        font-size: 0.95rem;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .birthday-btn {
+        padding: 0.72rem 1rem;
+        font-weight: 700;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+    }
+
+    .birthday-btn--link {
+        color: var(--ink);
+    }
+
+    .birthday-iconbtn:hover,
+    .birthday-btn:hover {
+        background: rgba(255,255,255,0.12);
+        border-color: rgba(255,255,255,0.18);
+        transform: translateY(-1px);
+        text-decoration: none;
+    }
+
+    .birthday-calendar {
+        width: 100%;
+        border-collapse: separate;
+        border-spacing: 0.3rem;
+    }
+
+    .birthday-calendar th {
+        font-size: 0.78rem;
+        color: #d3c5e8;
+        padding: 0.2rem 0;
+        text-align: center;
+    }
+
+    .birthday-calendar td {
+        padding: 0;
+    }
+
+    .birthday-day {
+        width: 100%;
+        min-height: 58px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        position: relative;
+        border-radius: 18px;
+        border: 1px solid rgba(255,255,255,0.09);
+        background: rgba(255,255,255,0.05);
+        color: var(--ink);
+        cursor: pointer;
+        user-select: none;
+        font-weight: 700;
+        transition: transform 150ms ease, background 150ms ease, border-color 150ms ease, box-shadow 150ms ease;
+    }
+
+    .birthday-day:hover {
+        background: rgba(255,255,255,0.09);
+        transform: translateY(-1px);
+    }
+
+    .birthday-day.muted {
+        opacity: 0.24;
+        cursor: default;
+    }
+
+    .birthday-day.today {
+        outline: 2px solid rgba(255,255,255,0.22);
+    }
+
+    .birthday-day.selected {
+        outline: 2px solid rgba(255, 214, 116, 0.78);
+        background: rgba(255, 214, 116, 0.14);
+        box-shadow: 0 12px 24px rgba(255, 214, 116, 0.14);
+    }
+
+    .birthday-day.has-birthday {
+        background: rgba(255, 170, 90, 0.12);
+        border-color: rgba(255, 170, 90, 0.30);
+    }
+
+    .birthday-day-dot,
+    .birthday-day-count {
+        position: absolute;
+        bottom: 6px;
+        border-radius: 999px;
+        background: rgba(255, 215, 120, 0.96);
+        box-shadow: 0 0 10px rgba(255, 215, 120, 0.40);
+    }
+
+    .birthday-day-dot {
+        width: 6px;
+        height: 6px;
+    }
+
+    .birthday-day-count {
+        min-width: 18px;
+        height: 18px;
+        padding: 0 0.35rem;
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        color: #24160a;
+        font-size: 0.72rem;
+        font-weight: 800;
+    }
+
+    .birthday-calendar-legend {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.9rem;
+        color: #d7cbe7;
+        font-size: 0.84rem;
+    }
+
+    .birthday-calendar-legend span {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.45rem;
+    }
+
+    .birthday-legend-dot {
+        width: 8px;
+        height: 8px;
+        border-radius: 999px;
+        background: rgba(255, 215, 120, 0.95);
+        display: inline-block;
+    }
+
+    .birthday-legend-pill {
+        width: 18px;
+        height: 12px;
+        border-radius: 999px;
+        background: rgba(255, 215, 120, 0.30);
+        border: 1px solid rgba(255, 215, 120, 0.72);
+        display: inline-block;
+    }
+
+    .birthday-calendar-controls {
+        display: flex;
+        align-items: center;
+        gap: 0.85rem;
+        flex-wrap: wrap;
+    }
+
+    .birthday-selected {
+        font-weight: 700;
+        color: var(--ink-soft);
+    }
+
+    .birthday-hint {
+        color: #d5c8e6;
+        font-size: 0.85rem;
+    }
+
+    .birthday-spotlight-shell,
+    .birthday-helper-panel {
+        display: grid;
+        gap: 0.9rem;
+    }
+
+    .birthday-summary-row,
+    .birthday-stat-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.55rem;
+    }
+
+    .birthday-summary-pill,
+    .birthday-soft-pill {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        padding: 0.42rem 0.72rem;
+        border-radius: 999px;
+        border: 1px solid rgba(255,255,255,0.10);
+        background: rgba(255,255,255,0.06);
+        font-size: 0.8rem;
+        color: var(--ink);
+        font-weight: 700;
+    }
+
+    .birthday-summary-pill--warm {
+        background: rgba(255, 204, 122, 0.18);
+        border-color: rgba(255, 204, 122, 0.28);
+        color: #fff0ca;
+    }
+
+    .birthday-stack {
+        display: grid;
+        gap: 1rem;
+    }
+
+    .birthday-person {
+        padding: 1rem;
+        border-radius: 18px;
+        background: linear-gradient(180deg, rgba(255,255,255,0.07), rgba(255,255,255,0.03));
+        border: 1px solid rgba(255,255,255,0.10);
+        box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
+    }
+
+    .birthday-person-top {
+        display: flex;
+        align-items: flex-start;
+        justify-content: space-between;
+        gap: 1rem;
+    }
+
+    .birthday-mini-label {
+        color: #ffd9a0;
+        font-size: 0.74rem;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+    }
+
+    .birthday-person-badge {
+        width: 42px;
+        height: 42px;
+        border-radius: 14px;
+        display: grid;
+        place-items: center;
+        background: rgba(255,255,255,0.08);
+        border: 1px solid rgba(255,255,255,0.10);
+        font-size: 1.1rem;
+    }
+
+    .birthday-name {
+        margin-top: 0.18rem;
+        font-weight: 700;
+        font-size: 1.26rem;
+        line-height: 1.08;
+        color: var(--ink);
+    }
+
+    .birthday-meta {
+        margin-top: 0.4rem;
+        color: #e5d8f6;
+    }
+
+    .birthday-note {
+        margin-top: 0.55rem;
+        color: var(--ink-soft);
+    }
+
+    .birthday-message-preview {
+        margin-top: 0.8rem;
+        padding: 0.8rem 0.9rem;
+        border-radius: 16px;
+        background: rgba(255,255,255,0.05);
+        border: 1px solid rgba(255,255,255,0.08);
+    }
+
+    .birthday-message-preview p {
+        margin: 0.35rem 0 0;
+        color: var(--ink);
+    }
+
+    .birthday-empty-state {
+        min-height: 220px;
+        display: flex;
+        align-items: center;
+        gap: 1rem;
+        padding: 1rem;
+        border-radius: 20px;
+        background: linear-gradient(180deg, rgba(255,255,255,0.07), rgba(255,255,255,0.03));
+        border: 1px solid rgba(255,255,255,0.10);
+    }
+
+    .birthday-empty-emoji {
+        width: 68px;
+        height: 68px;
+        border-radius: 22px;
+        display: grid;
+        place-items: center;
+        font-size: 1.9rem;
+        background: rgba(255,255,255,0.08);
+        border: 1px solid rgba(255,255,255,0.10);
+        flex: 0 0 auto;
+    }
+
+    .birthday-empty-title {
+        font-size: 1.18rem;
+        color: var(--ink);
+    }
+
+    .birthday-upcoming-list {
+        display: grid;
+        gap: 0.8rem;
+    }
+
+    .birthday-upcoming-item {
+        display: flex;
+        align-items: center;
+        gap: 0.9rem;
+        padding: 0.8rem 0.85rem;
+        border-radius: 18px;
+        background: rgba(255,255,255,0.05);
+        border: 1px solid rgba(255,255,255,0.09);
+    }
+
+    .birthday-date-badge {
+        width: 64px;
+        min-width: 64px;
+        border-radius: 18px;
+        padding: 0.55rem 0.35rem;
+        background: linear-gradient(180deg, rgba(255, 214, 116, 0.22), rgba(255,255,255,0.06));
+        border: 1px solid rgba(255,255,255,0.10);
+        text-align: center;
+        color: var(--ink);
+    }
+
+    .birthday-date-badge strong {
+        display: block;
+        font-size: 1.2rem;
+        line-height: 1;
+    }
+
+    .birthday-date-month {
+        display: block;
+        font-size: 0.72rem;
+        font-weight: 800;
+        letter-spacing: 0.08em;
+        text-transform: uppercase;
+        color: #ffe6b8;
+        margin-bottom: 0.22rem;
+    }
+
+    .birthday-upcoming-copy {
+        min-width: 0;
+    }
+
+    .birthday-upcoming-name {
+        font-size: 1.02rem;
+        color: var(--ink);
+    }
+
+    .birthday-upcoming-meta {
+        margin-top: 0.2rem;
+        color: #d5c8e6;
+    }
+
+    .birthday-chip {
+        display: inline-flex;
+        align-items: center;
+        margin-left: 0.45rem;
+        padding: 0.12rem 0.5rem;
+        border-radius: 999px;
+        background: rgba(255,255,255,0.08);
+        border: 1px solid rgba(255,255,255,0.08);
+        color: var(--muted);
+        font-size: 0.74rem;
+        font-weight: 700;
+    }
+
+    .birthday-textarea {
+        width: 100%;
+        min-height: 120px;
+        resize: vertical;
+        padding: 0.95rem 1rem;
+        border-radius: 16px;
+        border: 1px solid rgba(255,255,255,0.12);
+        background: rgba(255,255,255,0.06);
+        color: var(--ink);
+        font: inherit;
+        line-height: 1.55;
+        box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
+    }
+
+    .birthday-textarea:focus {
+        outline: 2px solid rgba(255, 214, 116, 0.38);
+        border-color: rgba(255, 214, 116, 0.48);
+    }
+
+    .birthday-textarea--large {
+        min-height: 280px;
+    }
+
+    .birthday-actions {
+        display: flex;
+        align-items: center;
+        gap: 0.75rem;
+        flex-wrap: wrap;
+        margin-top: 0.75rem;
+    }
 
     @media (max-width: 980px) {
-        .card--birthday_calendar, .card--birthday_spotlight, .card--mom_daily, .card--birthday_phone_helper, .card--birthday_message_starter, .card--birthday_upcoming, .card--classic_rock, .card--irish_history, .card--boston_sports, .card--famous_person_birthday, .card--fun_fact {
+        .card--birthday_calendar,
+        .card--birthday_spotlight,
+        .card--birthday_phone_helper,
+        .card--birthday_message_starter,
+        .card--birthday_upcoming,
+        .card--classic_rock,
+        .card--irish_history,
+        .card--boston_sports,
+        .card--famous_person_birthday,
+        .card--fun_fact {
             grid-column: span 6;
+        }
+
+        .card--mom_daily {
+            grid-column: span 12;
         }
     }
 
     @media (max-width: 720px) {
-        .card--birthday_calendar, .card--birthday_spotlight, .card--mom_daily, .card--birthday_phone_helper, .card--birthday_message_starter, .card--birthday_upcoming, .card--classic_rock, .card--irish_history, .card--boston_sports, .card--famous_person_birthday, .card--fun_fact {
+        .card--birthday_calendar,
+        .card--birthday_spotlight,
+        .card--birthday_phone_helper,
+        .card--birthday_message_starter,
+        .card--birthday_upcoming,
+        .card--classic_rock,
+        .card--irish_history,
+        .card--boston_sports,
+        .card--famous_person_birthday,
+        .card--fun_fact,
+        .card--mom_daily {
             grid-column: auto;
         }
-        .birthday-calendar-head { align-items: flex-start; flex-direction: column; }
-        .birthday-calendar-nav { justify-content: flex-start; }
+
+        header.hero {
+            padding: 38px 22px 30px;
+            border-radius: 26px;
+        }
+
+        .birthday-calendar-head {
+            align-items: flex-start;
+            flex-direction: column;
+        }
+
+        .birthday-calendar-nav {
+            justify-content: flex-start;
+        }
+
+        .birthday-empty-state {
+            align-items: flex-start;
+            flex-direction: column;
+        }
     }
     """
 
@@ -716,6 +1385,6 @@ def build_theme_page(date_str: str | None = None, seed: int | None = None) -> Pa
             "hero_summary_pill": _dynamic_hero_summary_pill(birthday_hits, selected_facts),
             "extra_css": _extra_css(),
             "extra_js": _extra_js(today, birthday_index),
-            "extra_head_html": "",
+            "extra_head_html": _extra_head_html(),
         },
     )
