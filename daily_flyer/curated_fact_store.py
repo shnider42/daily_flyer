@@ -16,6 +16,11 @@ ALLOWED_FACT_STATUSES = {"candidate", "approved", "published"}
 ALLOWED_FACT_TONES = {"educational", "fun", "warm", "mom_daily", "mixed"}
 ALLOWED_WEEK_MODES = {"week_of", "within_days"}
 
+# Fallback window used when a card has no exact or metadata-defined match for the
+# requested date. This keeps the birthday theme interesting without requiring a
+# fully dense 365-day fact corpus for every card type.
+DEFAULT_FALLBACK_RELEVANCE_DAYS = 14
+
 
 class CuratedFactValidationError(ValueError):
     pass
@@ -58,36 +63,23 @@ class CuratedFact:
             return self.month == target.month and self.day == target.day
 
         if self.week_mode == "week_of" and self.week_of_day is not None:
-            if self.month != target.month:
-                return False
-            start = date(target.year, self.month, self.week_of_day) - timedelta(days=3)
-            end = date(target.year, self.month, self.week_of_day) + timedelta(days=3)
-            return start <= target <= end
+            return _annual_distance_to_month_day(target, self.month, self.week_of_day) <= 3
 
         if self.week_mode == "within_days" and self.day is not None and self.within_days is not None:
-            try:
-                anchor = date(target.year, self.month, self.day)
-            except ValueError:
-                return False
-            return abs((target - anchor).days) <= self.within_days
+            return _annual_distance_to_month_day(target, self.month, self.day) <= self.within_days
 
         return False
 
     def distance_from(self, target: date) -> int:
         if self.month is None:
             return 9999
+
         if self.day is not None:
-            try:
-                anchor = date(target.year, self.month, self.day)
-            except ValueError:
-                return 9999
-            return abs((target - anchor).days)
+            return _annual_distance_to_month_day(target, self.month, self.day)
+
         if self.week_mode == "week_of" and self.week_of_day is not None:
-            try:
-                anchor = date(target.year, self.month, self.week_of_day)
-            except ValueError:
-                return 9999
-            return abs((target - anchor).days)
+            return _annual_distance_to_month_day(target, self.month, self.week_of_day)
+
         return 9999
 
 
@@ -99,6 +91,29 @@ def _safe_int(value: Any) -> int | None:
     except (TypeError, ValueError) as exc:
         raise CuratedFactValidationError(f"Expected integer-like value, got {value!r}") from exc
 
+
+def _safe_anchor_date(year: int, month: int, day: int) -> date:
+    try:
+        return date(year, month, day)
+    except ValueError:
+        if month == 2 and day == 29:
+            return date(year, 2, 28)
+        raise
+
+
+def _annual_anchor_candidates(target: date, month: int, day: int) -> list[date]:
+    return [
+        _safe_anchor_date(target.year - 1, month, day),
+        _safe_anchor_date(target.year, month, day),
+        _safe_anchor_date(target.year + 1, month, day),
+    ]
+
+
+def _annual_distance_to_month_day(target: date, month: int, day: int) -> int:
+    try:
+        return min(abs((target - anchor).days) for anchor in _annual_anchor_candidates(target, month, day))
+    except ValueError:
+        return 9999
 
 
 def _validate_fact_dict(item: dict[str, Any], index: int) -> CuratedFact:
@@ -182,7 +197,6 @@ def _validate_fact_dict(item: dict[str, Any], index: int) -> CuratedFact:
     )
 
 
-
 def load_curated_facts(path: str | Path = DEFAULT_CURATED_FACTS_FILE) -> list[CuratedFact]:
     fact_path = Path(path)
     if not fact_path.exists():
@@ -195,25 +209,20 @@ def load_curated_facts(path: str | Path = DEFAULT_CURATED_FACTS_FILE) -> list[Cu
     return [_validate_fact_dict(item, index + 1) for index, item in enumerate(data)]
 
 
-
 def approved_facts(path: str | Path = DEFAULT_CURATED_FACTS_FILE) -> list[CuratedFact]:
     return [fact for fact in load_curated_facts(path) if fact.status in {"approved", "published"}]
-
 
 
 def facts_for_card_type(card_type: str, path: str | Path = DEFAULT_CURATED_FACTS_FILE) -> list[CuratedFact]:
     return [fact for fact in load_curated_facts(path) if fact.card_type == card_type]
 
 
-
 def approved_facts_for_card_type(card_type: str, path: str | Path = DEFAULT_CURATED_FACTS_FILE) -> list[CuratedFact]:
     return [fact for fact in approved_facts(path) if fact.card_type == card_type]
 
 
-
 def facts_for_date(target: date, path: str | Path = DEFAULT_CURATED_FACTS_FILE) -> list[CuratedFact]:
     return [fact for fact in approved_facts(path) if fact.matches_date(target)]
-
 
 
 def facts_for_card_type_and_date(
@@ -228,14 +237,38 @@ def facts_for_card_type_and_date(
     ]
 
 
+def nearby_facts_for_card_type(
+    card_type: str,
+    target: date,
+    path: str | Path = DEFAULT_CURATED_FACTS_FILE,
+    max_days: int = DEFAULT_FALLBACK_RELEVANCE_DAYS,
+) -> list[CuratedFact]:
+    return [
+        fact
+        for fact in approved_facts_for_card_type(card_type, path)
+        if fact.month is not None and fact.distance_from(target) <= max_days
+    ]
+
 
 def select_fact_for_card_type(
     card_type: str,
     target: date,
     path: str | Path = DEFAULT_CURATED_FACTS_FILE,
     seed: int | None = None,
+    fallback_relevance_days: int = DEFAULT_FALLBACK_RELEVANCE_DAYS,
 ) -> CuratedFact | None:
     matches = facts_for_card_type_and_date(card_type, target, path)
+
+    fallback_used = False
+    if not matches and fallback_relevance_days >= 0:
+        matches = nearby_facts_for_card_type(
+            card_type,
+            target,
+            path=path,
+            max_days=fallback_relevance_days,
+        )
+        fallback_used = True
+
     if not matches:
         return None
 
@@ -243,6 +276,7 @@ def select_fact_for_card_type(
         matches,
         key=lambda fact: (
             fact.distance_from(target),
+            0 if fact.matches_date(target) else 1,
             0 if fact.cadence_label() == "day_of" else 1,
             fact.fact_id.lower(),
         ),
@@ -251,10 +285,14 @@ def select_fact_for_card_type(
     best_distance = matches[0].distance_from(target)
     tightest = [fact for fact in matches if fact.distance_from(target) == best_distance]
 
-    rng_seed = seed if seed is not None else target.toordinal()
-    rng = random.Random(f"{card_type}|{target.isoformat()}|{rng_seed}")
-    return rng.choice(tightest)
+    if fallback_used:
+        exactish = [fact for fact in tightest if fact.matches_date(target)]
+        if exactish:
+            tightest = exactish
 
+    rng_seed = seed if seed is not None else target.toordinal()
+    rng = random.Random(f"{card_type}|{target.isoformat()}|{rng_seed}|{fallback_relevance_days}")
+    return rng.choice(tightest)
 
 
 def card_coverage_summary(path: str | Path = DEFAULT_CURATED_FACTS_FILE) -> dict[str, int]:
@@ -262,7 +300,6 @@ def card_coverage_summary(path: str | Path = DEFAULT_CURATED_FACTS_FILE) -> dict
     for fact in approved_facts(path):
         summary[fact.card_type] = summary.get(fact.card_type, 0) + 1
     return summary
-
 
 
 def save_curated_facts(facts: list[CuratedFact], path: str | Path = DEFAULT_CURATED_FACTS_FILE) -> None:
