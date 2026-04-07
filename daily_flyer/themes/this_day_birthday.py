@@ -7,6 +7,7 @@ from datetime import date
 from daily_flyer.birthdays import (
     birthdays_for_date,
     build_birthday_index,
+    clean_optional_text,
     filter_phones_excluding_birthday_people,
     load_birthdays,
     people_to_phone_list,
@@ -53,8 +54,8 @@ def _render_birthday_spotlight(birthday_hits: list[dict]) -> str:
 
     for hit in birthday_hits:
         name = str(hit.get("name", "")).strip() or "Someone Awesome"
-        relation = str(hit.get("relation", "")).strip()
-        note = str(hit.get("note", "")).strip()
+        relation = clean_optional_text(hit.get("relation"))
+        note = clean_optional_text(hit.get("note"))
         phone = str(hit.get("phone", "")).strip()
 
         parts.append("<div class='birthday-person'>")
@@ -89,11 +90,11 @@ def _render_phone_helper(phones_text: str, birthday_hits: list[dict]) -> str:
 
     return f"""
         {intro}
-        <textarea id=\"birthday-phone-list\" class=\"birthday-textarea\" readonly>{phones_text}</textarea>
-        <div class=\"birthday-actions\">
-            <button class=\"birthday-btn\" onclick=\"copyBirthdayPhones()\">Copy numbers</button>
-            <span id=\"birthday-phone-copy-status\" class=\"birthday-hint\"></span>
-            <span class=\"birthday-hint\">Paste into a new group text “To:” field.</span>
+        <textarea id="birthday-phone-list" class="birthday-textarea" readonly>{phones_text}</textarea>
+        <div class="birthday-actions">
+            <button class="birthday-btn" onclick="copyBirthdayPhones()">Copy numbers</button>
+            <span id="birthday-phone-copy-status" class="birthday-hint"></span>
+            <span class="birthday-hint">Paste into a new group text “To:” field.</span>
         </div>
     """
 
@@ -113,7 +114,7 @@ def _render_upcoming_birthdays(today: date, birthdays: list[dict], limit: int = 
             continue
 
         occurrence = _next_occurrence(today, month, day)
-        relation = str(item.get("relation", "")).strip()
+        relation = clean_optional_text(item.get("relation"))
 
         upcoming.append((occurrence, name.lower(), name, relation))
 
@@ -160,27 +161,27 @@ def _render_message_starter(birthday_hits: list[dict], rng: random.Random) -> st
 def _calendar_card_html(today: date) -> str:
     selected_label = today.strftime("%B %d, %Y")
     return f"""
-        <div class=\"birthday-calendar-wrap\">
-            <div class=\"birthday-calendar-head\">
-                <div class=\"birthday-calendar-title\" id=\"birthdayCalTitle\">Month YYYY</div>
-                <div class=\"birthday-calendar-nav\">
-                    <button class=\"birthday-iconbtn\" id=\"birthdayCalPrev\" aria-label=\"Previous month\">‹</button>
-                    <button class=\"birthday-iconbtn\" id=\"birthdayCalNext\" aria-label=\"Next month\">›</button>
+        <div class="birthday-calendar-wrap">
+            <div class="birthday-calendar-head">
+                <div class="birthday-calendar-title" id="birthdayCalTitle">Month YYYY</div>
+                <div class="birthday-calendar-nav">
+                    <button class="birthday-iconbtn" id="birthdayCalPrev" aria-label="Previous month">‹</button>
+                    <button class="birthday-iconbtn" id="birthdayCalNext" aria-label="Next month">›</button>
                 </div>
             </div>
 
-            <table class=\"birthday-calendar\">
+            <table class="birthday-calendar">
                 <thead>
-                    <tr id=\"birthdayCalHeadRow\"></tr>
+                    <tr id="birthdayCalHeadRow"></tr>
                 </thead>
-                <tbody id=\"birthdayCalBody\"></tbody>
+                <tbody id="birthdayCalBody"></tbody>
             </table>
 
-            <div class=\"birthday-calendar-controls\">
-                <button class=\"birthday-btn\" id=\"birthdayGenerateBtn\">Generate</button>
+            <div class="birthday-calendar-controls">
+                <button class="birthday-btn" id="birthdayGenerateBtn">Generate</button>
                 <div>
-                    <div class=\"birthday-selected\" id=\"birthdaySelectedLabel\">Selected: {selected_label}</div>
-                    <div class=\"birthday-hint\" id=\"birthdayGenerateHint\">Click a date, then Generate.</div>
+                    <div class="birthday-selected" id="birthdaySelectedLabel">Selected: {selected_label}</div>
+                    <div class="birthday-hint" id="birthdayGenerateHint">Click a date, then Generate.</div>
                 </div>
             </div>
         </div>
@@ -617,7 +618,7 @@ def build_theme_page(date_str: str | None = None, seed: int | None = None) -> Pa
             source_url=None,
         ),
         CardItem(
-            card_type="history",
+            card_type="birthday",
             eyebrow="Birthday Spotlight",
             title=today.strftime("%B %d"),
             body=_render_birthday_spotlight(birthday_hits),
@@ -658,12 +659,13 @@ def build_theme_page(date_str: str | None = None, seed: int | None = None) -> Pa
             "date_key": today.strftime("%m-%d"),
             "background": None,
             "header_title_image": THEME_CONFIG.get("header_title_image"),
-            "hero_kicker": THEME_CONFIG.get("hero_kicker", "Daily Flyer"),
+            "hero_kicker": THEME_CONFIG.get("hero_kicker", "Daily Flyer • Theme"),
             "hero_summary_pill": THEME_CONFIG.get(
                 "hero_summary_pill",
                 "Curated cards and timely sources",
             ),
             "extra_css": _extra_css(),
             "extra_js": _extra_js(today, birthday_index),
+            "extra_head_html": "",
         },
     )

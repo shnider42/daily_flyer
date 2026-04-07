@@ -1,11 +1,22 @@
 from __future__ import annotations
 
 import json
+import os
 from pathlib import Path
 from typing import Any
 
 
 DEFAULT_BIRTHDAYS_FILE = "birthdays.json"
+PLACEHOLDER_STRINGS = {
+    "",
+    "placeholder",
+    "relation_placeholder",
+    "note_placeholder",
+    "n/a",
+    "na",
+    "none",
+    "null",
+}
 
 
 def _safe_int(value: Any) -> int:
@@ -27,8 +38,26 @@ def normalize_phone(raw: str) -> str:
     return raw
 
 
-def load_birthdays(path: str | Path = DEFAULT_BIRTHDAYS_FILE) -> list[dict[str, Any]]:
-    birthday_path = Path(path)
+def clean_optional_text(value: Any) -> str:
+    text = str(value or "").strip()
+    if text.lower() in PLACEHOLDER_STRINGS:
+        return ""
+    return text
+
+
+def _resolve_birthdays_path(path: str | Path | None = None) -> Path:
+    if path is not None:
+        return Path(path)
+
+    env_path = os.environ.get("BIRTHDAYS_FILE", "").strip()
+    if env_path:
+        return Path(env_path)
+
+    return Path(DEFAULT_BIRTHDAYS_FILE)
+
+
+def load_birthdays(path: str | Path | None = None) -> list[dict[str, Any]]:
+    birthday_path = _resolve_birthdays_path(path)
     if not birthday_path.exists():
         return []
 
@@ -40,9 +69,17 @@ def load_birthdays(path: str | Path = DEFAULT_BIRTHDAYS_FILE) -> list[dict[str, 
     for item in data:
         if not isinstance(item, dict):
             continue
+
         entry = dict(item)
+        entry["name"] = str(entry.get("name", "")).strip()
+        entry["relation"] = clean_optional_text(entry.get("relation"))
+        entry["note"] = clean_optional_text(entry.get("note"))
+
         if entry.get("phone"):
             entry["phone"] = normalize_phone(str(entry["phone"]))
+        else:
+            entry["phone"] = ""
+
         cleaned.append(entry)
 
     return cleaned

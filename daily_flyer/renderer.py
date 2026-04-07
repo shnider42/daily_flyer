@@ -130,8 +130,8 @@ def build_html(context: PageContext) -> str:
         backdrop-filter: blur(12px);
         -webkit-backdrop-filter: blur(12px);
     }
-    
-        .hero-title-image {
+
+    .hero-title-image {
         display: block;
         max-width: min(560px, 100%);
         width: 100%;
@@ -226,7 +226,7 @@ def build_html(context: PageContext) -> str:
         transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
         overflow: hidden;
     }
-    
+
     .card-image-wrap {
         margin: 0.2rem 0 0.9rem;
         border-radius: 16px;
@@ -417,6 +417,15 @@ def build_html(context: PageContext) -> str:
     }
     """
 
+    hero_kicker = escape(context.metadata.get("hero_kicker", "Daily Flyer • Theme") or "Daily Flyer • Theme")
+    hero_summary_pill = escape(
+        context.metadata.get("hero_summary_pill", "Curated cards and timely sources")
+        or "Curated cards and timely sources"
+    )
+    extra_css = context.metadata.get("extra_css", "") or ""
+    extra_js = context.metadata.get("extra_js", "") or ""
+    extra_head_html = context.metadata.get("extra_head_html", "") or ""
+
     header_title_image = escape(context.metadata.get("header_title_image", "") or "")
     header_title_text = escape(context.header_title)
 
@@ -452,19 +461,22 @@ def build_html(context: PageContext) -> str:
 <meta charset="utf-8">
 <title>{context.page_title}</title>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<style>{css}</style>
+<style>{css}
+{extra_css}
+</style>
+{extra_head_html}
 </head>
 <body>
     {background_html}
     <div class="page-shell">
         <div class="hero-wrap">
             <header class="hero">
-                <div class="hero-kicker">Daily Flyer • Irish Edition</div>
+                <div class="hero-kicker">{hero_kicker}</div>
                     <h1>{header_title_html}</h1>
                 <div class="subtitle">{context.header_subtitle}</div>
                 <div class="hero-meta">
                     <div class="hero-pill">📅 {context.today_str}</div>
-                    <div class="hero-pill">☘️ Daily culture, language, and history</div>
+                    <div class="hero-pill">✨ {hero_summary_pill}</div>
                 </div>
             </header>
         </div>
@@ -493,9 +505,13 @@ def build_html(context: PageContext) -> str:
         window.addEventListener("scroll", updateParallax, {{ passive: true }});
     }})();
     </script>
+    <script>
+    {extra_js}
+    </script>
 </body>
 </html>
 """
+
 
 def _render_card(card: CardItem) -> str:
     icon = _icon_for_card(card.card_type)
@@ -525,6 +541,7 @@ def _render_card(card: CardItem) -> str:
         </section>
     """
 
+
 def _icon_for_card(card_type: str) -> str:
     icons = {
         "word": "🗣️",
@@ -537,13 +554,16 @@ def _icon_for_card(card_type: str) -> str:
         "news": "📰",
         "military": "⚔️",
         "trivia": "✨",
+        "birthday": "🎂",
     }
     return icons.get(card_type, "✦")
+
 
 def _source_html(source_url: str | None) -> str:
     if not source_url:
         return ""
     return f'<div class="source"><a href="{source_url}" target="_blank" rel="noopener noreferrer">Read more</a></div>'
+
 
 def render_html_to_file(context: PageContext, outfile: str) -> None:
     html = build_html(context)

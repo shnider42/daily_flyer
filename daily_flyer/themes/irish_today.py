@@ -10,6 +10,16 @@ THEME_CONFIG = {
     "footer_text": "Built by Holtsnider Tech. Driven by Davy Holden History.",
 }
 
+THEME_CONFIG.update({
+    "hero_kicker": "Daily Flyer • Irish Edition",
+    "hero_summary_pill": "Daily culture, language, and history",
+    "history_today_title": "This Day in Irish History",
+    "history_week_title": "This Week in Irish History",
+    "did_you_know_title": "Irish Fact",
+    "connection_eyebrow": "Irish Connection",
+    "county_eyebrow": "County of the Week",
+})
+
 
 WORDS = [
     {"native_text": "Craic", "pronunciation": "crack", "english": "Fun / good times / banter"},
