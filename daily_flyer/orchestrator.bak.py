@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import random
 from datetime import date
-from typing import Any
 
 from daily_flyer.models import CardItem, PageContext
 from daily_flyer.providers.county import fetch_county_of_the_week
@@ -30,23 +29,10 @@ def _circular_day_distance(a: int, b: int) -> int:
     return min(raw, 365 - raw)
 
 
-def _normalize_history_entry(entry: Any) -> tuple[str, str | None]:
+def _normalize_history_entry(entry) -> tuple[str, str | None]:
     if isinstance(entry, dict):
         return entry.get("body", ""), entry.get("source_url")
     return str(entry), None
-
-
-def _normalize_connection_entry(
-    entry: Any,
-    fallback_title: str,
-) -> tuple[str, str, str | None]:
-    if isinstance(entry, dict):
-        title = str(entry.get("title", "")).strip() or fallback_title
-        body = str(entry.get("body", "")).strip()
-        source_url = entry.get("source_url")
-        return title, body, source_url
-
-    return fallback_title, str(entry).strip(), None
 
 
 def _get_curated_history_card(theme, today, theme_config: dict) -> CardItem | None:
@@ -122,10 +108,6 @@ def build_daily_page(
     enable_sport = theme_config.get("enable_sport_card", True)
     enable_connection = theme_config.get("enable_connection_card", True)
     enable_county = theme_config.get("enable_county_card", True)
-
-    use_provider_sport = theme_config.get("use_provider_sport", True)
-    use_provider_connection = theme_config.get("use_provider_connection", True)
-    use_provider_county = theme_config.get("use_provider_county", True)
 
     if enable_word:
         word_source = None
@@ -204,7 +186,7 @@ def build_daily_page(
             )
 
     if enable_sport:
-        dynamic_sport = fetch_sport_spotlight() if use_provider_sport else None
+        dynamic_sport = fetch_sport_spotlight()
         if dynamic_sport:
             sport_body = dynamic_sport[0]
             sport_source = dynamic_sport[1]
@@ -231,40 +213,19 @@ def build_daily_page(
         )
 
     if enable_connection:
-        connection_card = None
-
-        if use_provider_connection:
-            provider_fact = fetch_irish_connection(rng)
-            if provider_fact:
-                connection_card = CardItem(
-                    card_type=theme_config.get("connection_card_type", "irish_connection"),
+        fact = fetch_irish_connection(rng)
+        if fact:
+            optional_cards.append(
+                CardItem(
+                    card_type="irish_connection",
                     eyebrow=theme_config.get("connection_eyebrow", "Theme Connection"),
-                    title=provider_fact["title"],
-                    body=provider_fact["body"],
-                    source_url=provider_fact["source_url"],
+                    title=fact["title"],
+                    body=fact["body"],
+                    source_url=fact["source_url"],
                 )
+            )
 
-        if connection_card is None:
-            connection_pool = getattr(theme, "CONNECTION_FACTS", [])
-            if connection_pool:
-                chosen_connection = rng.choice(connection_pool)
-                title, body, source_url = _normalize_connection_entry(
-                    chosen_connection,
-                    fallback_title=theme_config.get("connection_title", "Connection"),
-                )
-                if body:
-                    connection_card = CardItem(
-                        card_type=theme_config.get("connection_card_type", "irish_connection"),
-                        eyebrow=theme_config.get("connection_eyebrow", "Theme Connection"),
-                        title=title,
-                        body=body,
-                        source_url=source_url,
-                    )
-
-        if connection_card is not None:
-            optional_cards.append(connection_card)
-
-    if enable_county and use_provider_county:
+    if enable_county:
         county = fetch_county_of_the_week(today)
         if county:
             core_cards.append(
