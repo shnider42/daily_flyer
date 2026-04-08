@@ -13,33 +13,23 @@
         --card-strong: rgba(12, 28, 40, 0.90);
         --border: rgba(255,255,255,0.10);
         --border-strong: rgba(255,255,255,0.18);
-
         --ink: #ecf6f3;
         --ink-soft: #bfd6cf;
         --muted: #8fb7c4;
-
         --irish-green: #29b36a;
         --gold: #d7b96b;
         --teal: #49c5b6;
         --blue: #7db7d9;
-
         --shadow-lg: 0 24px 70px rgba(0,0,0,0.35);
         --shadow-md: 0 12px 32px rgba(0,0,0,0.22);
-
         --radius-xl: 26px;
         --radius-lg: 20px;
         --radius-md: 16px;
-
         --max-width: 1180px;
         --bg-shift: 0px;
     }
-
     * { box-sizing: border-box; }
-
-    html {
-        scroll-behavior: smooth;
-    }
-
+    html { scroll-behavior: smooth; }
     body {
         margin: 0;
         font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
@@ -53,402 +43,108 @@
         position: relative;
         overflow-x: hidden;
     }
-
-    .site-bg {
-        position: fixed;
-        inset: 0;
-        z-index: 0;
-        background-size: cover;
-        background-position: center center;
-        background-repeat: no-repeat;
-        transform: translateY(var(--bg-shift)) scale(1.04);
-        transform-origin: center center;
-        will-change: transform;
-        filter: saturate(0.90) brightness(0.76);
-    }
-
-    body::before,
-    body::after {
-        content: "";
-        position: fixed;
-        inset: auto;
-        pointer-events: none;
-        z-index: 0;
-        filter: blur(10px);
-        opacity: 0.55;
-    }
-
-    body::before {
-        width: 420px;
-        height: 420px;
-        top: -80px;
-        left: -120px;
-        background: radial-gradient(circle, rgba(41,179,106,0.20), transparent 70%);
-    }
-
-    body::after {
-        width: 360px;
-        height: 360px;
-        right: -100px;
-        top: 180px;
-        background: radial-gradient(circle, rgba(215,185,107,0.14), transparent 70%);
-    }
-
-    .page-shell {
-        position: relative;
-        z-index: 1;
-    }
-
-    .hero-wrap {
-        max-width: var(--max-width);
-        margin: 0 auto;
-        padding: 28px 18px 10px;
-    }
-
+    .site-bg { position: fixed; inset: 0; z-index: 0; background-size: cover; background-position: center center; background-repeat: no-repeat; transform: translateY(var(--bg-shift)) scale(1.04); transform-origin: center center; will-change: transform; filter: saturate(0.90) brightness(0.76); }
+    body::before, body::after { content: ""; position: fixed; inset: auto; pointer-events: none; z-index: 0; filter: blur(10px); opacity: 0.55; }
+    body::before { width: 420px; height: 420px; top: -80px; left: -120px; background: radial-gradient(circle, rgba(41,179,106,0.20), transparent 70%); }
+    body::after { width: 360px; height: 360px; right: -100px; top: 180px; background: radial-gradient(circle, rgba(215,185,107,0.14), transparent 70%); }
+    .page-shell { position: relative; z-index: 1; }
+    .hero-wrap { max-width: var(--max-width); margin: 0 auto; padding: 28px 18px 10px; }
     header.hero {
-        position: relative;
-        overflow: hidden;
-        padding: 42px 26px 34px;
-        border-radius: 30px;
-        border: 1px solid var(--border);
+        position: relative; overflow: hidden; padding: 42px 26px 34px; border-radius: 30px; border: 1px solid var(--border);
         background:
-            linear-gradient(
-                90deg,
-                rgba(22, 163, 74, 0.10) 0%,
-                rgba(22, 163, 74, 0.06) 18%,
-                rgba(255, 255, 255, 0.03) 38%,
-                rgba(255, 255, 255, 0.05) 50%,
-                rgba(255, 153, 51, 0.04) 68%,
-                rgba(255, 153, 51, 0.08) 100%
-            ),
+            linear-gradient(90deg, rgba(22,163,74,0.10) 0%, rgba(22,163,74,0.06) 18%, rgba(255,255,255,0.03) 38%, rgba(255,255,255,0.05) 50%, rgba(255,153,51,0.04) 68%, rgba(255,153,51,0.08) 100%),
             linear-gradient(135deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02)),
             linear-gradient(160deg, rgba(41,179,106,0.10), rgba(73,197,182,0.04) 45%, rgba(125,183,217,0.08));
-        box-shadow: var(--shadow-lg);
-        backdrop-filter: blur(12px);
-        -webkit-backdrop-filter: blur(12px);
+        box-shadow: var(--shadow-lg); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
     }
-    
-        .hero-title-image {
-        display: block;
-        max-width: min(560px, 100%);
-        width: 100%;
-        height: auto;
-    }
-
-    header.hero::before {
-        content: "";
-        position: absolute;
-        inset: 0;
-        pointer-events: none;
-        background:
-            linear-gradient(90deg, transparent, rgba(255,255,255,0.04), transparent),
-            radial-gradient(circle at 12% 22%, rgba(22,163,74,0.10), transparent 20%),
-            radial-gradient(circle at 88% 28%, rgba(255,153,51,0.08), transparent 22%);
-        opacity: 0.9;
-    }
-
-    .hero-kicker {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.5rem;
-        padding: 0.45rem 0.8rem;
-        border-radius: 999px;
-        border: 1px solid rgba(255,255,255,0.10);
-        background: rgba(255,255,255,0.05);
-        color: var(--ink-soft);
-        font-size: 0.8rem;
-        letter-spacing: 0.08em;
-        text-transform: uppercase;
-    }
-
-    .hero h1 {
-        margin: 1rem 0 0;
-        font-size: clamp(2.4rem, 6vw, 4.8rem);
-        line-height: 0.96;
-        letter-spacing: -0.03em;
-        font-weight: 800;
-        max-width: 10ch;
-        text-shadow: 0 2px 18px rgba(0,0,0,0.18);
-    }
-
-    .hero .subtitle {
-        margin-top: 0.95rem;
-        max-width: 56ch;
-        font-size: 1.06rem;
-        line-height: 1.6;
-        color: var(--ink-soft);
-    }
-
-    .hero-meta {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 0.75rem;
-        margin-top: 1.35rem;
-    }
-
-    .hero-pill {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.5rem;
-        padding: 0.7rem 0.95rem;
-        border-radius: 999px;
-        background: rgba(255,255,255,0.06);
-        border: 1px solid rgba(255,255,255,0.08);
-        color: var(--ink);
-        font-size: 0.92rem;
-    }
-
-    main {
-        max-width: var(--max-width);
-        margin: 0 auto;
-        padding: 16px 18px 26px;
-        display: grid;
-        grid-template-columns: repeat(12, minmax(0, 1fr));
-        gap: 18px;
-    }
-
-    .card {
-        position: relative;
-        grid-column: span 4;
-        min-height: 220px;
-        padding: 1.15rem 1.15rem 1.05rem;
-        border-radius: var(--radius-xl);
-        border: 1px solid var(--border);
-        background:
-            linear-gradient(180deg, rgba(255,255,255,0.045), rgba(255,255,255,0.02)),
-            var(--card);
-        box-shadow: var(--shadow-md);
-        backdrop-filter: blur(10px);
-        -webkit-backdrop-filter: blur(10px);
-        transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease;
-        overflow: hidden;
-    }
-    
-    .card-image-wrap {
-        margin: 0.2rem 0 0.9rem;
-        border-radius: 16px;
-        overflow: hidden;
-        border: 1px solid rgba(255,255,255,0.08);
-        background: rgba(255,255,255,0.04);
-    }
-
-    .card-image {
-        display: block;
-        width: 100%;
-        aspect-ratio: 16 / 9;
-        object-fit: cover;
-    }
-
-    .card:hover {
-        transform: translateY(-4px);
-        border-color: var(--border-strong);
-        box-shadow: 0 20px 45px rgba(0,0,0,0.26);
-    }
-
-    .card::before {
-        content: "";
-        position: absolute;
-        inset: 0;
-        pointer-events: none;
-        background:
-            linear-gradient(180deg, rgba(255,255,255,0.04), transparent 24%),
-            radial-gradient(circle at top right, rgba(255,255,255,0.06), transparent 28%);
-    }
-
-    .card::after {
-        content: "";
-        position: absolute;
-        top: 0;
-        left: 0;
-        width: 100%;
-        height: 4px;
-        background: linear-gradient(90deg, var(--irish-green), var(--teal), var(--gold));
-        opacity: 0.95;
-    }
-
-    .card--word,
-    .card--history,
-    .card--did_you_know {
-        grid-column: span 6;
-    }
-
-    .card--word {
-        background:
-            linear-gradient(180deg, rgba(41,179,106,0.12), rgba(255,255,255,0.02)),
-            var(--card-strong);
-    }
-
-    .card--history {
-        background:
-            linear-gradient(180deg, rgba(215,185,107,0.10), rgba(255,255,255,0.02)),
-            var(--card-strong);
-    }
-
-    .card--did_you_know {
-        background:
-            linear-gradient(180deg, rgba(125,183,217,0.12), rgba(255,255,255,0.02)),
-            var(--card-strong);
-    }
-
-    .card--county,
-    .card--irish_connection {
-        background:
-            linear-gradient(180deg, rgba(73,197,182,0.10), rgba(255,255,255,0.02)),
-            var(--card);
-    }
-
-    .card-head {
-        display: flex;
-        align-items: flex-start;
-        justify-content: space-between;
-        gap: 1rem;
-        margin-bottom: 0.85rem;
-    }
-
-    .eyebrow {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.55rem;
-        color: var(--muted);
-        font-size: 0.77rem;
-        font-weight: 700;
-        text-transform: uppercase;
-        letter-spacing: 0.12em;
-    }
-
-    .icon-badge {
-        flex: 0 0 auto;
-        width: 42px;
-        height: 42px;
-        display: grid;
-        place-items: center;
-        border-radius: 14px;
-        background: rgba(255,255,255,0.065);
-        border: 1px solid rgba(255,255,255,0.08);
-        font-size: 1.1rem;
-    }
-
-    h2 {
-        margin: 0;
-        font-size: clamp(1.16rem, 2vw, 1.5rem);
-        line-height: 1.15;
-        letter-spacing: -0.02em;
-    }
-
-    .body {
-        margin-top: 0.35rem;
-        color: var(--ink-soft);
-        line-height: 1.68;
-        font-size: 0.985rem;
-    }
-
-    .body strong,
-    .body b {
-        color: var(--ink);
-    }
-
-    .source {
-        margin-top: 1rem;
-        padding-top: 0.8rem;
-        border-top: 1px solid rgba(255,255,255,0.08);
-        font-size: 0.88rem;
-    }
-
-    a {
-        color: #8fe6cb;
-        text-decoration: none;
-        font-weight: 600;
-    }
-
-    a:hover {
-        text-decoration: underline;
-    }
-
-    footer {
-        max-width: var(--max-width);
-        margin: 0 auto;
-        padding: 10px 18px 38px;
-    }
-
-    .footer-inner {
-        text-align: center;
-        padding: 1.15rem 1rem;
-        border-radius: 18px;
-        color: #9fb2bb;
-        border: 1px solid rgba(255,255,255,0.07);
-        background: rgba(255,255,255,0.03);
-        backdrop-filter: blur(8px);
-        -webkit-backdrop-filter: blur(8px);
-    }
-
-    @media (max-width: 980px) {
-        .card,
-        .card--word,
-        .card--history,
-        .card--did_you_know {
-            grid-column: span 6;
-        }
-    }
-
+    .hero-title-image { display: block; max-width: min(560px, 100%); width: 100%; height: auto; }
+    header.hero::before { content: ""; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.04), transparent), radial-gradient(circle at 12% 22%, rgba(22,163,74,0.10), transparent 20%), radial-gradient(circle at 88% 28%, rgba(255,153,51,0.08), transparent 22%); opacity: 0.9; }
+    .hero-kicker { display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.45rem 0.8rem; border-radius: 999px; border: 1px solid rgba(255,255,255,0.10); background: rgba(255,255,255,0.05); color: var(--ink-soft); font-size: 0.8rem; letter-spacing: 0.08em; text-transform: uppercase; }
+    .hero h1 { margin: 1rem 0 0; font-size: clamp(2.4rem, 6vw, 4.8rem); line-height: 0.96; letter-spacing: -0.03em; font-weight: 800; max-width: 10ch; text-shadow: 0 2px 18px rgba(0,0,0,0.18); }
+    .hero .subtitle { margin-top: 0.95rem; max-width: 56ch; font-size: 1.06rem; line-height: 1.6; color: var(--ink-soft); }
+    .hero-meta { display: flex; flex-wrap: wrap; gap: 0.75rem; margin-top: 1.35rem; }
+    .hero-pill { display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.7rem 0.95rem; border-radius: 999px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.08); color: var(--ink); font-size: 0.92rem; }
+    main { max-width: var(--max-width); margin: 0 auto; padding: 16px 18px 26px; display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 18px; }
+    .card { position: relative; grid-column: span 4; min-height: 220px; padding: 1.15rem 1.15rem 1.05rem; border-radius: var(--radius-xl); border: 1px solid var(--border); background: linear-gradient(180deg, rgba(255,255,255,0.045), rgba(255,255,255,0.02)), var(--card); box-shadow: var(--shadow-md); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease; overflow: hidden; }
+    .card-image-wrap { margin: 0.2rem 0 0.9rem; border-radius: 16px; overflow: hidden; border: 1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.04); }
+    .card-image { display: block; width: 100%; aspect-ratio: 16 / 9; object-fit: cover; }
+    .card:hover { transform: translateY(-4px); border-color: var(--border-strong); box-shadow: 0 20px 45px rgba(0,0,0,0.26); }
+    .card::before { content: ""; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(180deg, rgba(255,255,255,0.04), transparent 24%), radial-gradient(circle at top right, rgba(255,255,255,0.06), transparent 28%); }
+    .card::after { content: ""; position: absolute; top: 0; left: 0; width: 100%; height: 4px; background: linear-gradient(90deg, var(--irish-green), var(--teal), var(--gold)); opacity: 0.95; }
+    .card--word, .card--history, .card--did_you_know { grid-column: span 6; }
+    .card--word { background: linear-gradient(180deg, rgba(41,179,106,0.12), rgba(255,255,255,0.02)), var(--card-strong); }
+    .card--history { background: linear-gradient(180deg, rgba(215,185,107,0.10), rgba(255,255,255,0.02)), var(--card-strong); }
+    .card--did_you_know { background: linear-gradient(180deg, rgba(125,183,217,0.12), rgba(255,255,255,0.02)), var(--card-strong); }
+    .card--county, .card--irish_connection { background: linear-gradient(180deg, rgba(73,197,182,0.10), rgba(255,255,255,0.02)), var(--card); }
+    .card-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; margin-bottom: 0.85rem; }
+    .eyebrow { display: inline-flex; align-items: center; gap: 0.55rem; color: var(--muted); font-size: 0.77rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.12em; }
+    .icon-badge { flex: 0 0 auto; width: 42px; height: 42px; display: grid; place-items: center; border-radius: 14px; background: rgba(255,255,255,0.065); border: 1px solid rgba(255,255,255,0.08); font-size: 1.1rem; }
+    h2 { margin: 0; font-size: clamp(1.16rem, 2vw, 1.5rem); line-height: 1.15; letter-spacing: -0.02em; }
+    .body { margin-top: 0.35rem; color: var(--ink-soft); line-height: 1.68; font-size: 0.985rem; }
+    .body strong, .body b { color: var(--ink); }
+    .source { margin-top: 1rem; padding-top: 0.8rem; border-top: 1px solid rgba(255,255,255,0.08); font-size: 0.88rem; }
+    a { color: #8fe6cb; text-decoration: none; font-weight: 600; }
+    a:hover { text-decoration: underline; }
+    footer { max-width: var(--max-width); margin: 0 auto; padding: 10px 18px 38px; }
+    .footer-inner { text-align: center; padding: 1.15rem 1rem; border-radius: 18px; color: #9fb2bb; border: 1px solid rgba(255,255,255,0.07); background: rgba(255,255,255,0.03); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
+    @media (max-width: 980px) { .card, .card--word, .card--history, .card--did_you_know { grid-column: span 6; } }
     @media (max-width: 720px) {
-        header.hero {
-            padding: 34px 20px 28px;
-            border-radius: 24px;
-        }
-
-        .hero h1 {
-            max-width: none;
-        }
-
-        main {
-            grid-template-columns: 1fr;
-        }
-
-        .card,
-        .card--word,
-        .card--history,
-        .card--did_you_know {
-            grid-column: auto;
-            min-height: unset;
-        }
+        header.hero { padding: 34px 20px 28px; border-radius: 24px; }
+        .hero h1 { max-width: none; }
+        main { grid-template-columns: 1fr; }
+        .card, .card--word, .card--history, .card--did_you_know { grid-column: auto; min-height: unset; }
     }
-    </style>
+    
+
+</style>
+
 </head>
 <body>
     
-            <div
-                class="site-bg"
-                aria-hidden="true"
-                style="background-image:
-                    linear-gradient(rgba(4, 12, 18, 0.58), rgba(4, 12, 18, 0.80)),
-                    url('daily_flyer/themes/irish_misty_hills_background.jpg');">
-            </div>
+            <div class="site-bg" aria-hidden="true" style="background-image: linear-gradient(rgba(4, 12, 18, 0.58), rgba(4, 12, 18, 0.80)), url('daily_flyer/themes/irish_historic_map_background.jpg');"></div>
         
     <div class="page-shell">
         <div class="hero-wrap">
             <header class="hero">
                 <div class="hero-kicker">Daily Flyer • Irish Edition</div>
-                    <h1><img class="hero-title-image" src="daily_flyer/themes/irish_today_title.png" alt="Irish Today ☘️"></h1>
+                <h1><img class="hero-title-image" src="daily_flyer/themes/irish_today_title.png" alt="Irish Today ☘️"></h1>
                 <div class="subtitle">Gaeilge - Irish history - sport - craic</div>
                 <div class="hero-meta">
-                    <div class="hero-pill">📅 Saturday, April 25, 2026</div>
-                    <div class="hero-pill">☘️ Daily culture, language, and history</div>
+                    <div class="hero-pill">📅 Wednesday, April 08, 2026</div>
+                    <div class="hero-pill">✨ Daily culture, language, and history</div>
                 </div>
             </header>
         </div>
-
         <main>
             
-        <section class="card card--word">
+        <section class="card card--phrase">
             <div class="card-head">
                 <div>
-                    <div class="eyebrow">Word of the Day</div>
-                    <h2>Fear</h2>
+                    <div class="eyebrow">Phrase of the Day</div>
+                    <h2>Go n-éirí an bóthar leat.</h2>
                 </div>
-                <div class="icon-badge" aria-hidden="true">🗣️</div>
+                <div class="icon-badge" aria-hidden="true">💬</div>
             </div>
             
-            <div class="body">Pronunciation: far<br>Man</div>
+            <div class="body">Pronunciation: guh ny-ree on boh-her lat<br>May the road rise to meet you.</div>
+            
+        </section>
+    
+
+        <section class="card card--county">
+            <div class="card-head">
+                <div>
+                    <div class="eyebrow">County of the Week</div>
+                    <h2>County Westmeath</h2>
+                </div>
+                <div class="icon-badge" aria-hidden="true">🗺️</div>
+            </div>
+            
+            <div class="card-image-wrap">
+                <img class="card-image" src="daily_flyer/themes/counties/westmeath.png" alt="County Westmeath" loading="lazy">
+            </div>
+        
+            <div class="body">A lakeside county known for Athlone and access to the River Shannon.</div>
             
         </section>
     
@@ -457,54 +153,26 @@
             <div class="card-head">
                 <div>
                     <div class="eyebrow">Irish Connection</div>
-                    <h2>Guinness Harp</h2>
+                    <h2>Newgrange</h2>
                 </div>
                 <div class="icon-badge" aria-hidden="true">☘️</div>
             </div>
             
-            <div class="body">The Guinness harp faces the opposite direction of the official Irish state harp.</div>
+            <div class="body">Newgrange is older than both Stonehenge and the Egyptian pyramids.</div>
             
         </section>
     
 
-        <section class="card card--did_you_know">
+        <section class="card card--word">
             <div class="card-head">
                 <div>
-                    <div class="eyebrow">Did You Know?</div>
-                    <h2>Irish Fact</h2>
+                    <div class="eyebrow">Word of the Day</div>
+                    <h2>Cairde</h2>
                 </div>
-                <div class="icon-badge" aria-hidden="true">💡</div>
+                <div class="icon-badge" aria-hidden="true">🗣️</div>
             </div>
             
-            <div class="body">TG4 brought modern television to Irish-speaking audiences in a fresh and ambitious way. The channel helped show that Irish could thrive in contemporary media.</div>
-            
-        </section>
-    
-
-        <section class="card card--phrase">
-            <div class="card-head">
-                <div>
-                    <div class="eyebrow">Phrase of the Day</div>
-                    <h2>Tá ocras orm.</h2>
-                </div>
-                <div class="icon-badge" aria-hidden="true">💬</div>
-            </div>
-            
-            <div class="body">Pronunciation: taw uk-rus ur-im<br>I’m hungry.</div>
-            
-        </section>
-    
-
-        <section class="card card--sport">
-            <div class="card-head">
-                <div>
-                    <div class="eyebrow">Sports Spotlight</div>
-                    <h2>Today’s Pick</h2>
-                </div>
-                <div class="icon-badge" aria-hidden="true">🏆</div>
-            </div>
-            
-            <div class="body">Boxing has been Ireland’s most successful Olympic sport by medal count. Irish boxing medals make up more than half of the country’s overall Olympic total, which says a lot about the sport’s place in Irish athletics.</div>
+            <div class="body">Pronunciation: car-juh<br>Friends</div>
             
         </section>
     
@@ -518,49 +186,40 @@
                 <div class="icon-badge" aria-hidden="true">📜</div>
             </div>
             
-            <div class="body">1916 — The Easter Rising began around this week in Dublin. Though brief in military terms, it became one of the defining moments in modern Irish history.</div>
-            <div class="source"><a href="https://en.wikipedia.org/wiki/Easter_Rising" target="_blank" rel="noopener noreferrer">Read more</a></div>
+            <div class="body">1912 — The Titanic made its last port of call at Queenstown, now Cobh, around this week. That link keeps the ship closely tied to Irish maritime memory.</div>
+            <div class="source"><a href="https://en.wikipedia.org/wiki/Cobh" target="_blank" rel="noopener noreferrer">Read more</a></div>
         </section>
     
 
-        <section class="card card--county">
+        <section class="card card--sport">
             <div class="card-head">
                 <div>
-                    <div class="eyebrow">County of the Week</div>
-                    <h2>County Wicklow</h2>
+                    <div class="eyebrow">Sports Spotlight</div>
+                    <h2>Today&#x27;s Pick</h2>
                 </div>
-                <div class="icon-badge" aria-hidden="true">🗺️</div>
+                <div class="icon-badge" aria-hidden="true">🏆</div>
             </div>
             
-            <div class="card-image-wrap">
-                <img class="card-image" src="daily_flyer/themes/counties/wicklow.png" alt="County Wicklow" loading="lazy">
-            </div>
-        
-            <div class="body">Known as the “Garden of Ireland,” famous for mountains, valleys, and scenic landscapes.</div>
+            <div class="body">Irish women’s rugby has also produced landmark achievements of its own. One of the most celebrated came in 2013, when Ireland won the Women’s Six Nations Grand Slam for the first time.</div>
             
         </section>
     
         </main>
-
         <footer>
-            <div class="footer-inner">
-                Built by Holtsnider Tech. Driven by Davy Holden History.
-            </div>
+            <div class="footer-inner">Built by Holtsnider Tech. Driven by Davy Holden History.</div>
         </footer>
     </div>
-
     <script>
     (function () {
         const root = document.documentElement;
-
         function updateParallax() {
             const y = Math.min(window.scrollY * 0.10, 36);
             root.style.setProperty("--bg-shift", `${y}px`);
         }
-
         updateParallax();
         window.addEventListener("scroll", updateParallax, { passive: true });
     })();
     </script>
+    <script></script>
 </body>
 </html>
