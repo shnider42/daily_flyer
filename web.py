@@ -1,3 +1,4 @@
+import os
 from pathlib import Path
 
 from flask import Flask, Response, abort, request, send_from_directory
@@ -9,7 +10,7 @@ from daily_flyer.theme_validation import ThemeNotFoundError, ThemeValidationErro
 app = Flask(__name__)
 REPO_ROOT = Path(__file__).resolve().parent
 
-DEFAULT_THEME = "this_day_birthday"
+DEFAULT_THEME = os.environ.get("DEFAULT_THEME", "irish_today")
 
 
 def _clean_theme_name(raw: str | None) -> str:
