@@ -4,7 +4,7 @@ ENABLE_DYNAMIC_WORD = False
 
 THEME_CONFIG = {
     "page_title": "Irish Today — Learn a little, every day",
-    "header_title": "Irish Today ☘️",
+    "header_title": "☘️ Irish Today ☘️",
     "header_title_image": "daily_flyer/themes/irish_today_title.png",
     "header_subtitle": "Gaeilge - Irish history - sport - craic",
     "footer_text": "Built by Holtsnider Tech. Driven by Davy Holden History.",
