@@ -5,43 +5,57 @@ from typing import Optional
 
 
 DAVY_WEBSITE_URL = "https://davyholdenhistory.com"
+DAVY_INSTAGRAM_URL = "https://www.instagram.com/davy_holden/"
+DAVY_YOUTUBE_URL = "https://www.youtube.com/@davyholden"
 
 
 _CHANNEL_URLS = {
     "Website": DAVY_WEBSITE_URL,
-    "Instagram": None,
-    "YouTube": None,
+    "Instagram": DAVY_INSTAGRAM_URL,
+    "YouTube": DAVY_YOUTUBE_URL,
 }
 
 
 _CURATED_CONTENT = [
     {
         "title": "Featured from Davy Holden History",
-        "snippet": "Use this slot for Davy's strongest history piece of the moment, whether it begins on his site or is promoted elsewhere.",
+        "snippet": (
+            "A website-first spotlight slot for Davy’s strongest Irish-history piece, "
+            "whether that is a featured article, a themed collection, or a client-facing landing page."
+        ),
         "source_name": "Website",
         "media_type": "article",
         "source_url": DAVY_WEBSITE_URL,
         "thumbnail_url": None,
     },
     {
-        "title": "Short-form history clip",
-        "snippet": "Designed for an Instagram-first or reels-style post that can highlight a fast, memorable Irish-history angle.",
+        "title": "Instagram history reel",
+        "snippet": (
+            "A short-form Irish-history card designed to push visitors toward Davy’s Instagram presence "
+            "for faster, more visual storytelling and shareable clips."
+        ),
         "source_name": "Instagram",
         "media_type": "short_video",
-        "source_url": None,
+        "source_url": DAVY_INSTAGRAM_URL,
         "thumbnail_url": None,
     },
     {
-        "title": "Long-form history video",
-        "snippet": "Designed for a YouTube feature, documentary segment, or deeper explainer that deserves a longer watch.",
+        "title": "YouTube history feature",
+        "snippet": (
+            "A long-form explainer slot for deeper Irish-history storytelling, ideal for a featured video, "
+            "a lecture-style upload, or a richer client spotlight."
+        ),
         "source_name": "YouTube",
         "media_type": "video",
-        "source_url": None,
+        "source_url": DAVY_YOUTUBE_URL,
         "thumbnail_url": None,
     },
     {
         "title": "Client spotlight slot",
-        "snippet": "This is a flexible card slot for a talk, event, article, collaboration, or any piece Davy wants Irish Today to amplify.",
+        "snippet": (
+            "A flexible promotion slot for an event, collaboration, guided history feature, "
+            "talk, article, or anything Davy wants Irish Today to amplify."
+        ),
         "source_name": "Website",
         "media_type": "spotlight",
         "source_url": DAVY_WEBSITE_URL,

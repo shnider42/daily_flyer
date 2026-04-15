@@ -1,0 +1,648 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Irish Today Plus — Interactive Irish culture, history, and client storytelling</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<style>
+    :root {
+        --bg: #07131c;
+        --bg-deep: #041018;
+        --bg-soft: #0b1f2b;
+        --card: rgba(8, 22, 31, 0.78);
+        --card-strong: rgba(12, 28, 40, 0.90);
+        --border: rgba(255,255,255,0.10);
+        --border-strong: rgba(255,255,255,0.18);
+        --ink: #ecf6f3;
+        --ink-soft: #bfd6cf;
+        --muted: #8fb7c4;
+        --irish-green: #29b36a;
+        --gold: #d7b96b;
+        --teal: #49c5b6;
+        --blue: #7db7d9;
+        --shadow-lg: 0 24px 70px rgba(0,0,0,0.35);
+        --shadow-md: 0 12px 32px rgba(0,0,0,0.22);
+        --radius-xl: 26px;
+        --radius-lg: 20px;
+        --radius-md: 16px;
+        --max-width: 1180px;
+        --bg-shift: 0px;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+        margin: 0;
+        font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        color: var(--ink);
+        background:
+            radial-gradient(circle at top left, rgba(41,179,106,0.18), transparent 32%),
+            radial-gradient(circle at top right, rgba(73,197,182,0.14), transparent 28%),
+            radial-gradient(circle at bottom center, rgba(125,183,217,0.10), transparent 30%),
+            linear-gradient(180deg, var(--bg-soft) 0%, var(--bg) 38%, var(--bg-deep) 100%);
+        min-height: 100vh;
+        position: relative;
+        overflow-x: hidden;
+    }
+    .site-bg { position: fixed; inset: 0; z-index: 0; background-size: cover; background-position: center center; background-repeat: no-repeat; transform: translateY(var(--bg-shift)) scale(1.04); transform-origin: center center; will-change: transform; filter: saturate(0.90) brightness(0.76); }
+    body::before, body::after { content: ""; position: fixed; inset: auto; pointer-events: none; z-index: 0; filter: blur(10px); opacity: 0.55; }
+    body::before { width: 420px; height: 420px; top: -80px; left: -120px; background: radial-gradient(circle, rgba(41,179,106,0.20), transparent 70%); }
+    body::after { width: 360px; height: 360px; right: -100px; top: 180px; background: radial-gradient(circle, rgba(215,185,107,0.14), transparent 70%); }
+    .page-shell { position: relative; z-index: 1; }
+    .hero-wrap { max-width: var(--max-width); margin: 0 auto; padding: 28px 18px 10px; }
+    header.hero {
+        position: relative; overflow: hidden; padding: 42px 26px 34px; border-radius: 30px; border: 1px solid var(--border);
+        background:
+            linear-gradient(90deg, rgba(22,163,74,0.10) 0%, rgba(22,163,74,0.06) 18%, rgba(255,255,255,0.03) 38%, rgba(255,255,255,0.05) 50%, rgba(255,153,51,0.04) 68%, rgba(255,153,51,0.08) 100%),
+            linear-gradient(135deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02)),
+            linear-gradient(160deg, rgba(41,179,106,0.10), rgba(73,197,182,0.04) 45%, rgba(125,183,217,0.08));
+        box-shadow: var(--shadow-lg); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+    }
+    .hero-title-image { display: block; max-width: min(560px, 100%); width: 100%; height: auto; }
+    header.hero::before { content: ""; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.04), transparent), radial-gradient(circle at 12% 22%, rgba(22,163,74,0.10), transparent 20%), radial-gradient(circle at 88% 28%, rgba(255,153,51,0.08), transparent 22%); opacity: 0.9; }
+    .hero-kicker { display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.45rem 0.8rem; border-radius: 999px; border: 1px solid rgba(255,255,255,0.10); background: rgba(255,255,255,0.05); color: var(--ink-soft); font-size: 0.8rem; letter-spacing: 0.08em; text-transform: uppercase; }
+    .hero h1 { margin: 1rem 0 0; font-size: clamp(2.4rem, 6vw, 4.8rem); line-height: 0.96; letter-spacing: -0.03em; font-weight: 800; max-width: 10ch; text-shadow: 0 2px 18px rgba(0,0,0,0.18); }
+    .hero .subtitle { margin-top: 0.95rem; max-width: 56ch; font-size: 1.06rem; line-height: 1.6; color: var(--ink-soft); }
+    .hero-meta { display: flex; flex-wrap: wrap; gap: 0.75rem; margin-top: 1.35rem; }
+    .hero-pill { display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.7rem 0.95rem; border-radius: 999px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.08); color: var(--ink); font-size: 0.92rem; }
+    main { max-width: var(--max-width); margin: 0 auto; padding: 16px 18px 26px; display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 18px; }
+    .card { position: relative; grid-column: span 4; min-height: 220px; padding: 1.15rem 1.15rem 1.05rem; border-radius: var(--radius-xl); border: 1px solid var(--border); background: linear-gradient(180deg, rgba(255,255,255,0.045), rgba(255,255,255,0.02)), var(--card); box-shadow: var(--shadow-md); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease; overflow: hidden; }
+    .card-image-wrap { margin: 0.2rem 0 0.9rem; border-radius: 16px; overflow: hidden; border: 1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.04); }
+    .card-image { display: block; width: 100%; aspect-ratio: 16 / 9; object-fit: cover; }
+    .card:hover { transform: translateY(-4px); border-color: var(--border-strong); box-shadow: 0 20px 45px rgba(0,0,0,0.26); }
+    .card::before { content: ""; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(180deg, rgba(255,255,255,0.04), transparent 24%), radial-gradient(circle at top right, rgba(255,255,255,0.06), transparent 28%); }
+    .card::after { content: ""; position: absolute; top: 0; left: 0; width: 100%; height: 4px; background: linear-gradient(90deg, var(--irish-green), var(--teal), var(--gold)); opacity: 0.95; }
+    .card--word, .card--history, .card--did_you_know { grid-column: span 6; }
+    .card--word { background: linear-gradient(180deg, rgba(41,179,106,0.12), rgba(255,255,255,0.02)), var(--card-strong); }
+    .card--history { background: linear-gradient(180deg, rgba(215,185,107,0.10), rgba(255,255,255,0.02)), var(--card-strong); }
+    .card--did_you_know { background: linear-gradient(180deg, rgba(125,183,217,0.12), rgba(255,255,255,0.02)), var(--card-strong); }
+    .card--county, .card--irish_connection { background: linear-gradient(180deg, rgba(73,197,182,0.10), rgba(255,255,255,0.02)), var(--card); }
+    .card-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; margin-bottom: 0.85rem; }
+    .eyebrow { display: inline-flex; align-items: center; gap: 0.55rem; color: var(--muted); font-size: 0.77rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.12em; }
+    .icon-badge { flex: 0 0 auto; width: 42px; height: 42px; display: grid; place-items: center; border-radius: 14px; background: rgba(255,255,255,0.065); border: 1px solid rgba(255,255,255,0.08); font-size: 1.1rem; }
+    h2 { margin: 0; font-size: clamp(1.16rem, 2vw, 1.5rem); line-height: 1.15; letter-spacing: -0.02em; }
+    .body { margin-top: 0.35rem; color: var(--ink-soft); line-height: 1.68; font-size: 0.985rem; }
+    .body strong, .body b { color: var(--ink); }
+    .source { margin-top: 1rem; padding-top: 0.8rem; border-top: 1px solid rgba(255,255,255,0.08); font-size: 0.88rem; }
+    a { color: #8fe6cb; text-decoration: none; font-weight: 600; }
+    a:hover { text-decoration: underline; }
+    footer { max-width: var(--max-width); margin: 0 auto; padding: 10px 18px 38px; }
+    .footer-inner { text-align: center; padding: 1.15rem 1rem; border-radius: 18px; color: #9fb2bb; border: 1px solid rgba(255,255,255,0.07); background: rgba(255,255,255,0.03); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
+    @media (max-width: 980px) { .card, .card--word, .card--history, .card--did_you_know { grid-column: span 6; } }
+    @media (max-width: 720px) {
+        header.hero { padding: 34px 20px 28px; border-radius: 24px; }
+        .hero h1 { max-width: none; }
+        main { grid-template-columns: 1fr; }
+        .card, .card--word, .card--history, .card--did_you_know { grid-column: auto; min-height: unset; }
+    }
+    
+
+    .hero h1,
+    h2,
+    .it-language-primary,
+    .it-trivia-question {
+        font-family: "Fraunces", Georgia, serif;
+    }
+
+    .hero {
+        background:
+            radial-gradient(circle at top left, rgba(26, 168, 93, 0.18), transparent 24%),
+            radial-gradient(circle at 88% 20%, rgba(255, 164, 82, 0.16), transparent 22%),
+            linear-gradient(135deg, rgba(255,255,255,0.09), rgba(255,255,255,0.02)),
+            linear-gradient(155deg, rgba(12, 55, 43, 0.92), rgba(15, 34, 52, 0.94));
+    }
+
+    .hero h1 {
+        max-width: 12ch;
+    }
+
+    .card {
+        border-color: rgba(255,255,255,0.11);
+        box-shadow:
+            0 18px 46px rgba(0,0,0,0.24),
+            inset 0 1px 0 rgba(255,255,255,0.05);
+    }
+
+    .card--history {
+        grid-column: span 7;
+        background:
+            radial-gradient(circle at top left, rgba(255, 214, 116, 0.16), transparent 28%),
+            linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.03)),
+            rgba(35, 29, 21, 0.88);
+    }
+
+    .card--trivia {
+        grid-column: span 5;
+        background:
+            radial-gradient(circle at top right, rgba(91, 208, 187, 0.18), transparent 30%),
+            linear-gradient(180deg, rgba(73,197,182,0.10), rgba(255,255,255,0.03)),
+            rgba(12, 33, 40, 0.90);
+    }
+
+    .card--news {
+        grid-column: span 6;
+        background:
+            radial-gradient(circle at top left, rgba(41,179,106,0.18), transparent 26%),
+            linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.03)),
+            rgba(14, 36, 30, 0.90);
+    }
+
+    .card--word {
+        grid-column: span 6;
+        background:
+            radial-gradient(circle at top left, rgba(125,183,217,0.18), transparent 24%),
+            linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.03)),
+            rgba(16, 28, 42, 0.90);
+    }
+
+    .card--county,
+    .card--sport,
+    .card--did_you_know,
+    .card--irish_connection {
+        grid-column: span 6;
+    }
+
+    .it-story-shell,
+    .it-davy-shell,
+    .it-language-shell,
+    .it-trivia-shell,
+    .it-visual-shell {
+        display: grid;
+        gap: 0.9rem;
+    }
+
+    .it-story-kicker,
+    .it-language-sub,
+    .it-trivia-hint {
+        color: var(--ink-soft);
+        font-size: 0.92rem;
+        line-height: 1.55;
+    }
+
+    .it-story-text {
+        margin: 0;
+        color: var(--ink);
+        line-height: 1.72;
+        font-size: 1rem;
+    }
+
+    .it-chip-row,
+    .it-action-row {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.6rem;
+    }
+
+    .it-chip {
+        display: inline-flex;
+        align-items: center;
+        gap: 0.4rem;
+        padding: 0.42rem 0.7rem;
+        border-radius: 999px;
+        background: rgba(255,255,255,0.07);
+        border: 1px solid rgba(255,255,255,0.10);
+        color: var(--ink);
+        font-size: 0.8rem;
+        font-weight: 700;
+    }
+
+    .it-btn {
+        appearance: none;
+        border: 1px solid rgba(255,255,255,0.14);
+        background: rgba(255,255,255,0.09);
+        color: var(--ink);
+        border-radius: 14px;
+        padding: 0.72rem 1rem;
+        font: inherit;
+        font-weight: 700;
+        cursor: pointer;
+        text-decoration: none;
+        transition: background 150ms ease, transform 150ms ease, border-color 150ms ease;
+    }
+
+    .it-btn:hover {
+        background: rgba(255,255,255,0.14);
+        border-color: rgba(255,255,255,0.22);
+        transform: translateY(-1px);
+        text-decoration: none;
+    }
+
+    .it-btn--ghost {
+        background: transparent;
+    }
+
+    .it-trivia-head {
+        display: flex;
+        justify-content: space-between;
+        gap: 0.6rem;
+        flex-wrap: wrap;
+    }
+
+    .it-trivia-question {
+        font-size: 1.35rem;
+        line-height: 1.22;
+        color: var(--ink);
+    }
+
+    .it-trivia-answer,
+    .it-reveal {
+        padding: 0.85rem 0.95rem;
+        border-radius: 16px;
+        background: rgba(255,255,255,0.07);
+        border: 1px solid rgba(255,255,255,0.10);
+        color: var(--ink);
+        line-height: 1.65;
+    }
+
+    .it-language-primary {
+        font-size: 1.75rem;
+        line-height: 1;
+        color: var(--ink);
+    }
+
+    .it-list {
+        display: grid;
+        gap: 0.65rem;
+    }
+
+    .it-list-link {
+        display: flex;
+        align-items: center;
+        justify-content: space-between;
+        gap: 0.8rem;
+        padding: 0.8rem 0.9rem;
+        border-radius: 15px;
+        background: rgba(255,255,255,0.06);
+        border: 1px solid rgba(255,255,255,0.08);
+        text-decoration: none;
+        color: var(--ink);
+    }
+
+    .it-list-link span:last-child {
+        color: var(--ink-soft);
+        font-size: 0.88rem;
+        white-space: nowrap;
+    }
+
+    .it-list-link--static {
+        opacity: 0.92;
+    }
+
+    @media (max-width: 980px) {
+        .card--history,
+        .card--trivia,
+        .card--news,
+        .card--word,
+        .card--county,
+        .card--sport,
+        .card--did_you_know,
+        .card--irish_connection {
+            grid-column: span 6;
+        }
+    }
+
+    @media (max-width: 720px) {
+        .card--history,
+        .card--trivia,
+        .card--news,
+        .card--word,
+        .card--county,
+        .card--sport,
+        .card--did_you_know,
+        .card--irish_connection {
+            grid-column: auto;
+        }
+
+        .it-list-link {
+            align-items: flex-start;
+            flex-direction: column;
+        }
+    }
+    
+</style>
+
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Fraunces:opsz,wght@9..144,600;9..144,700&family=Inter:wght@400;500;600;700;800&display=swap" rel="stylesheet">
+    
+</head>
+<body>
+    
+            <div class="site-bg" aria-hidden="true" style="background-image: linear-gradient(rgba(4, 12, 18, 0.58), rgba(4, 12, 18, 0.80)), url('daily_flyer/themes/irish_celtic_knot_background.jpg');"></div>
+        
+    <div class="page-shell">
+        <div class="hero-wrap">
+            <header class="hero">
+                <div class="hero-kicker">Daily Flyer • Irish Today Plus</div>
+                <h1><img class="hero-title-image" src="daily_flyer/themes/irish_today_title.png" alt="☘️ Irish Today Plus ☘️"></h1>
+                <div class="subtitle">A richer Irish Today prototype with interactivity, visuals, and a client spotlight layer for Davy Holden History.</div>
+                <div class="hero-meta">
+                    <div class="hero-pill">📅 Wednesday, April 15, 2026</div>
+                    <div class="hero-pill">✨ Interactive cards, richer visuals, and a client-ready spotlight</div>
+                </div>
+            </header>
+        </div>
+        <main>
+            
+        <section class="card card--history">
+            <div class="card-head">
+                <div>
+                    <div class="eyebrow">Irish History</div>
+                    <h2>This Week in Irish History</h2>
+                </div>
+                <div class="icon-badge" aria-hidden="true">📜</div>
+            </div>
+            
+            <div class="body">
+        <div class="it-story-shell">
+            <div class="it-story-kicker">Featured history card</div>
+            <p class="it-story-text">This week is associated with the births of major Irish Nobel laureates. Samuel Beckett was born on 13 April 1906, and Seamus Heaney was born on 13 April 1939.</p>
+            <div class="it-chip-row">
+                <span class="it-chip">📚 Curated Irish history</span>
+                <span class="it-chip">🗓️ Rotates with the calendar</span>
+            </div>
+        </div>
+    </div>
+            <div class="source"><a href="https://en.wikipedia.org/wiki/Samuel_Beckett" target="_blank" rel="noopener noreferrer">Read more</a></div>
+        </section>
+    
+
+        <section class="card card--trivia">
+            <div class="card-head">
+                <div>
+                    <div class="eyebrow">Irish Trivia</div>
+                    <h2>Quick Craic Challenge</h2>
+                </div>
+                <div class="icon-badge" aria-hidden="true">✨</div>
+            </div>
+            
+            <div class="body">
+        <div class="it-trivia-shell" data-it-trivia="[{&quot;question&quot;: &quot;What seasonal festival is widely connected to the older roots of Halloween in Ireland?&quot;, &quot;answer&quot;: &quot;Samhain.&quot;, &quot;hint&quot;: &quot;It marks the turn toward winter.&quot;}, {&quot;question&quot;: &quot;What is the Irish word &#x27;sláinte&#x27; most commonly used to mean in everyday speech?&quot;, &quot;answer&quot;: &quot;A toast meaning &#x27;cheers&#x27; or &#x27;health.&#x27;&quot;, &quot;hint&quot;: &quot;You would often hear it raised with a drink.&quot;}, {&quot;question&quot;: &quot;What is the name of Ireland&#x27;s Irish-language television channel?&quot;, &quot;answer&quot;: &quot;TG4.&quot;, &quot;hint&quot;: &quot;Its name includes a number.&quot;}, {&quot;question&quot;: &quot;What are regions where Irish is still recognized as the community language called?&quot;, &quot;answer&quot;: &quot;Gaeltacht areas.&quot;, &quot;hint&quot;: &quot;The term starts with a capital G in English writing.&quot;}, {&quot;question&quot;: &quot;Which Irish sport uses a hurley and a sliotar?&quot;, &quot;answer&quot;: &quot;Hurling.&quot;, &quot;hint&quot;: &quot;It is often described as one of the fastest field games in the world.&quot;}, {&quot;question&quot;: &quot;Which prehistoric monument in County Meath is especially famous for its winter-solstice light alignment?&quot;, &quot;answer&quot;: &quot;Newgrange.&quot;, &quot;hint&quot;: &quot;It predates the pyramids and sits in the Boyne Valley.&quot;}]">
+            <div class="it-trivia-head">
+                <span class="it-chip">🎯 Mini game</span>
+                <span class="it-chip">6-question pool</span>
+            </div>
+            <div class="it-trivia-question">What seasonal festival is widely connected to the older roots of Halloween in Ireland?</div>
+            <div class="it-trivia-hint">Hint: It marks the turn toward winter.</div>
+            <div class="it-trivia-answer" hidden>Samhain.</div>
+            <div class="it-action-row">
+                <button class="it-btn" type="button" data-action="reveal-answer">Reveal answer</button>
+                <button class="it-btn it-btn--ghost" type="button" data-action="next-question">Next question</button>
+            </div>
+        </div>
+    </div>
+            
+        </section>
+    
+
+        <section class="card card--news">
+            <div class="card-head">
+                <div>
+                    <div class="eyebrow">From Davy Holden</div>
+                    <h2>Instagram history reel</h2>
+                </div>
+                <div class="icon-badge" aria-hidden="true">📰</div>
+            </div>
+            
+            <div class="body">
+        <div class="it-davy-shell">
+            <div class="it-chip-row">
+                <span class="it-chip">Client spotlight</span>
+                <span class="it-chip">Instagram</span>
+                <span class="it-chip">short_video</span>
+            </div>
+            <p class="it-story-text">A short-form Irish-history card designed to push visitors toward Davy’s Instagram presence for faster, more visual storytelling and shareable clips.</p>
+            <div class="it-action-row">
+                <a class="it-btn" href="https://www.instagram.com/davy_holden/" target="_blank" rel="noopener noreferrer">Open feature</a>
+                <a class="it-btn it-btn--ghost" href="https://davyholdenhistory.com" target="_blank" rel="noopener noreferrer">Visit site</a>
+            </div>
+            <div class="it-list">
+                <a class="it-list-link" href="https://davyholdenhistory.com" target="_blank" rel="noopener noreferrer"><span>Featured from Davy Holden History</span><span>Website</span></a><a class="it-list-link" href="https://www.instagram.com/davy_holden/" target="_blank" rel="noopener noreferrer"><span>Instagram history reel</span><span>Instagram</span></a><a class="it-list-link" href="https://www.youtube.com/@davyholden" target="_blank" rel="noopener noreferrer"><span>YouTube history feature</span><span>YouTube</span></a>
+            </div>
+        </div>
+    </div>
+            <div class="source"><a href="https://www.instagram.com/davy_holden/" target="_blank" rel="noopener noreferrer">Read more</a></div>
+        </section>
+    
+
+        <section class="card card--word">
+            <div class="card-head">
+                <div>
+                    <div class="eyebrow">Gaeilge</div>
+                    <h2>Language Lab</h2>
+                </div>
+                <div class="icon-badge" aria-hidden="true">🗣️</div>
+            </div>
+            
+            <div class="body">
+        <div class="it-language-shell">
+            <div class="it-language-primary">Bainne</div>
+            <div class="it-language-sub">Tap to reveal the meaning, pronunciation, and a bonus phrase.</div>
+
+            <div class="it-action-row">
+                <button class="it-btn" type="button" data-toggle-target="itlang-739721-meaning">Meaning</button>
+                <button class="it-btn" type="button" data-toggle-target="itlang-739721-pronunciation">Pronunciation</button>
+                <button class="it-btn it-btn--ghost" type="button" data-toggle-target="itlang-739721-phrase">Bonus phrase</button>
+            </div>
+
+            <div class="it-reveal" id="itlang-739721-meaning" hidden>Milk</div>
+            <div class="it-reveal" id="itlang-739721-pronunciation" hidden>bahn-yeh</div>
+            <div class="it-reveal" id="itlang-739721-phrase" hidden>
+                <strong>Cad é mar atá tú?</strong><br>
+                cod ay mar a-taw too?<br>
+                How are you?
+            </div>
+        </div>
+    </div>
+            
+        </section>
+    
+
+        <section class="card card--did_you_know">
+            <div class="card-head">
+                <div>
+                    <div class="eyebrow">Visual Layer</div>
+                    <h2>Irish Celtic Knot Background</h2>
+                </div>
+                <div class="icon-badge" aria-hidden="true">💡</div>
+            </div>
+            
+            <div class="card-image-wrap">
+                <img class="card-image" src="daily_flyer/themes/irish_celtic_knot_background.jpg" alt="Irish Celtic Knot Background" loading="lazy">
+            </div>
+        
+            <div class="body">
+        <div class="it-visual-shell">
+            <p class="it-story-text">A visual card gives Irish Today a breather between text-heavy cards and helps the page feel more like a polished daily product than a plain article grid.</p>
+            <div class="it-chip-row">
+                <span class="it-chip">🖼️ Reuses theme assets</span>
+                <span class="it-chip">✨ Easy place for future photography</span>
+            </div>
+        </div>
+    </div>
+            
+        </section>
+    
+
+        <section class="card card--did_you_know">
+            <div class="card-head">
+                <div>
+                    <div class="eyebrow">Irish Fact</div>
+                    <h2>Did You Know?</h2>
+                </div>
+                <div class="icon-badge" aria-hidden="true">💡</div>
+            </div>
+            
+            <div class="body">
+        <div class="it-story-shell">
+            <p class="it-story-text">Phoenix Park is one of the largest enclosed public parks in any European capital city. It contains official residences, monuments, and broad spaces that make it central to Dublin life.</p>
+            <div class="it-chip-row">
+                <span class="it-chip">💡 Curiosity card</span>
+                <span class="it-chip">☘️ Irish culture</span>
+            </div>
+        </div>
+    </div>
+            
+        </section>
+    
+
+        <section class="card card--sport">
+            <div class="card-head">
+                <div>
+                    <div class="eyebrow">Sports Spotlight</div>
+                    <h2>Play, Pride, and Rivalry</h2>
+                </div>
+                <div class="icon-badge" aria-hidden="true">🏆</div>
+            </div>
+            
+            <div class="body">
+        <div class="it-story-shell">
+            <p class="it-story-text">Camogie is the women’s stick-and-ball game closely related to hurling, and it has a proud history of its own. The Camogie Association was founded in 1904, showing how deep the roots of women’s Irish sport run.</p>
+            <div class="it-chip-row">
+                <span class="it-chip">🏆 Sporting identity</span>
+                <span class="it-chip">📣 County pride</span>
+            </div>
+        </div>
+    </div>
+            
+        </section>
+    
+
+        <section class="card card--county">
+            <div class="card-head">
+                <div>
+                    <div class="eyebrow">County of the Week</div>
+                    <h2>County Wexford</h2>
+                </div>
+                <div class="icon-badge" aria-hidden="true">🗺️</div>
+            </div>
+            
+            <div class="card-image-wrap">
+                <img class="card-image" src="daily_flyer/themes/counties/wexford.png" alt="County Wexford" loading="lazy">
+            </div>
+        
+            <div class="body">
+        <div class="it-story-shell">
+            <p class="it-story-text">A coastal county with strong ties to the 1798 Rebellion and maritime history.</p>
+            <div class="it-chip-row">
+                <span class="it-chip">🗺️ Rotating county card</span>
+                <span class="it-chip">📸 Visual-first</span>
+            </div>
+        </div>
+    </div>
+            
+        </section>
+    
+
+        <section class="card card--irish_connection">
+            <div class="card-head">
+                <div>
+                    <div class="eyebrow">Irish Connection</div>
+                    <h2>Halloween</h2>
+                </div>
+                <div class="icon-badge" aria-hidden="true">☘️</div>
+            </div>
+            
+            <div class="body">
+        <div class="it-story-shell">
+            <p class="it-story-text">Halloween traces back to the Irish festival of Samhain, marking the end of the harvest season.</p>
+            <div class="it-chip-row">
+                <span class="it-chip">🔗 Cross-cultural connection</span>
+            </div>
+        </div>
+    </div>
+            
+        </section>
+    
+        </main>
+        <footer>
+            <div class="footer-inner">Built by Holtsnider Tech. Irish Today Plus prototype for Davy Holden History.</div>
+        </footer>
+    </div>
+    <script>
+    (function () {
+        const root = document.documentElement;
+        function updateParallax() {
+            const y = Math.min(window.scrollY * 0.10, 36);
+            root.style.setProperty("--bg-shift", `${y}px`);
+        }
+        updateParallax();
+        window.addEventListener("scroll", updateParallax, { passive: true });
+    })();
+    </script>
+    <script>
+    (function () {
+        document.querySelectorAll("[data-toggle-target]").forEach((button) => {
+            button.addEventListener("click", () => {
+                const targetId = button.getAttribute("data-toggle-target");
+                if (!targetId) return;
+                const target = document.getElementById(targetId);
+                if (!target) return;
+                target.hidden = !target.hidden;
+            });
+        });
+
+        document.querySelectorAll("[data-it-trivia]").forEach((root) => {
+            let questions = [];
+            try {
+                questions = JSON.parse(root.getAttribute("data-it-trivia") || "[]");
+            } catch (err) {
+                questions = [];
+            }
+            if (!Array.isArray(questions) || !questions.length) return;
+
+            let index = 0;
+            const questionEl = root.querySelector(".it-trivia-question");
+            const hintEl = root.querySelector(".it-trivia-hint");
+            const answerEl = root.querySelector(".it-trivia-answer");
+            const revealBtn = root.querySelector('[data-action="reveal-answer"]');
+            const nextBtn = root.querySelector('[data-action="next-question"]');
+
+            function renderCurrent() {
+                const current = questions[index % questions.length];
+                if (questionEl) questionEl.textContent = current.question || "";
+                if (hintEl) hintEl.textContent = current.hint ? `Hint: ${current.hint}` : "";
+                if (answerEl) {
+                    answerEl.textContent = current.answer || "";
+                    answerEl.hidden = true;
+                }
+            }
+
+            if (revealBtn) {
+                revealBtn.addEventListener("click", () => {
+                    if (answerEl) answerEl.hidden = false;
+                });
+            }
+
+            if (nextBtn) {
+                nextBtn.addEventListener("click", () => {
+                    index = (index + 1) % questions.length;
+                    renderCurrent();
+                });
+            }
+
+            renderCurrent();
+        });
+    })();
+    </script>
+</body>
+</html>
