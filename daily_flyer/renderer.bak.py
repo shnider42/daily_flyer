@@ -1,3 +1,4 @@
+
 from __future__ import annotations
 
 from html import escape
@@ -9,14 +10,14 @@ from daily_flyer.models import CardItem, PageContext
 def build_html(context: PageContext) -> str:
     css = """
     :root {
-        --black: #0A0A0A;
-        --black-deep: #050507;
-        --black-soft: #13131a;
-        --black-ink: #1a1a24;
-        --electric-purple: #8B5CF6;
-        --electric-purple-soft: rgba(139, 92, 246, 0.18);
-        --hot-pink: #EC4899;
-        --hot-pink-soft: rgba(236, 72, 153, 0.18);
+        --charcoal: #1F2937;
+        --charcoal-deep: #111827;
+        --charcoal-soft: #374151;
+        --charcoal-ink: #0b1220;
+        --signal-green: #22C55E;
+        --signal-green-soft: rgba(34, 197, 94, 0.18);
+        --bright-orange: #F97316;
+        --bright-orange-soft: rgba(249, 115, 22, 0.18);
         --cream: #f8fafc;
         --slate-100: #f1f5f9;
         --slate-200: #e2e8f0;
@@ -27,19 +28,19 @@ def build_html(context: PageContext) -> str:
         --glass-strong: rgba(255, 255, 255, 0.09);
         --glass-border: rgba(255, 255, 255, 0.10);
         --glass-border-strong: rgba(255, 255, 255, 0.18);
-        --shadow-xl: 0 30px 80px rgba(0, 0, 0, 0.50);
-        --shadow-lg: 0 18px 44px rgba(0, 0, 0, 0.38);
-        --shadow-md: 0 12px 28px rgba(0, 0, 0, 0.30);
+        --shadow-xl: 0 30px 80px rgba(2, 6, 23, 0.42);
+        --shadow-lg: 0 18px 44px rgba(2, 6, 23, 0.34);
+        --shadow-md: 0 12px 28px rgba(2, 6, 23, 0.26);
         --radius-2xl: 32px;
         --radius-xl: 24px;
         --radius-lg: 18px;
         --radius-md: 14px;
         --max-width: 1240px;
         --bg-shift: 0px;
-        --card-accent: var(--electric-purple);
+        --card-accent: var(--signal-green);
         --hero-gradient:
             linear-gradient(135deg, rgba(255,255,255,0.11), rgba(255,255,255,0.04)),
-            linear-gradient(120deg, rgba(139,92,246,0.16), rgba(139,92,246,0.05) 28%, rgba(236,72,153,0.06) 70%, rgba(236,72,153,0.15) 100%);
+            linear-gradient(120deg, rgba(34,197,94,0.14), rgba(34,197,94,0.04) 28%, rgba(249,115,22,0.05) 70%, rgba(249,115,22,0.14) 100%);
     }
 
     * { box-sizing: border-box; }
@@ -51,10 +52,10 @@ def build_html(context: PageContext) -> str:
         color: var(--cream);
         font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
         background:
-            radial-gradient(circle at 14% 14%, rgba(139,92,246,0.16), transparent 26%),
-            radial-gradient(circle at 86% 10%, rgba(236,72,153,0.14), transparent 24%),
-            radial-gradient(circle at 50% 100%, rgba(192,132,252,0.08), transparent 28%),
-            linear-gradient(180deg, #171720 0%, #0A0A0A 42%, #050507 100%);
+            radial-gradient(circle at 14% 14%, rgba(34,197,94,0.14), transparent 26%),
+            radial-gradient(circle at 86% 10%, rgba(249,115,22,0.13), transparent 24%),
+            radial-gradient(circle at 50% 100%, rgba(56,189,248,0.07), transparent 28%),
+            linear-gradient(180deg, #182332 0%, #111827 40%, #0b1220 100%);
         min-height: 100vh;
         overflow-x: hidden;
         position: relative;
@@ -80,32 +81,32 @@ def build_html(context: PageContext) -> str:
 
     body::after {
         background:
-            radial-gradient(circle at 12% 22%, rgba(139,92,246,0.14), transparent 24%),
-            radial-gradient(circle at 88% 16%, rgba(236,72,153,0.14), transparent 22%);
+            radial-gradient(circle at 12% 22%, rgba(34,197,94,0.12), transparent 24%),
+            radial-gradient(circle at 88% 16%, rgba(249,115,22,0.12), transparent 22%);
         filter: blur(24px);
-        opacity: 0.90;
+        opacity: 0.85;
     }
 
     ::selection {
-        background: rgba(236, 72, 153, 0.28);
+        background: rgba(249, 115, 22, 0.24);
         color: white;
     }
 
     * {
         scrollbar-width: thin;
-        scrollbar-color: rgba(236,72,153,0.55) rgba(255,255,255,0.08);
+        scrollbar-color: rgba(249,115,22,0.5) rgba(255,255,255,0.08);
     }
 
     *::-webkit-scrollbar { width: 11px; }
     *::-webkit-scrollbar-track { background: rgba(255,255,255,0.05); }
     *::-webkit-scrollbar-thumb {
-        background: linear-gradient(180deg, rgba(139,92,246,0.70), rgba(236,72,153,0.78));
+        background: linear-gradient(180deg, rgba(34,197,94,0.65), rgba(249,115,22,0.75));
         border-radius: 999px;
-        border: 2px solid rgba(10,10,10,0.78);
+        border: 2px solid rgba(17,24,39,0.75);
     }
 
     a {
-        color: #f5d0fe;
+        color: #a7f3d0;
         text-decoration: none;
         transition: color 180ms ease, opacity 180ms ease;
     }
@@ -122,7 +123,7 @@ def build_html(context: PageContext) -> str:
         transform: translateY(var(--bg-shift)) scale(1.045);
         transform-origin: center center;
         will-change: transform;
-        filter: saturate(0.96) brightness(0.50);
+        filter: saturate(0.92) brightness(0.56);
         opacity: 0.75;
     }
 
@@ -131,9 +132,9 @@ def build_html(context: PageContext) -> str:
         position: absolute;
         inset: 0;
         background:
-            linear-gradient(180deg, rgba(5,5,7,0.34), rgba(5,5,7,0.76)),
-            radial-gradient(circle at top, rgba(139,92,246,0.12), transparent 30%),
-            radial-gradient(circle at bottom right, rgba(236,72,153,0.10), transparent 25%);
+            linear-gradient(180deg, rgba(11,18,32,0.30), rgba(11,18,32,0.72)),
+            radial-gradient(circle at top, rgba(34,197,94,0.10), transparent 30%),
+            radial-gradient(circle at bottom right, rgba(249,115,22,0.08), transparent 25%);
     }
 
     .page-shell {
@@ -166,8 +167,8 @@ def build_html(context: PageContext) -> str:
         position: absolute;
         inset: 0;
         background:
-            radial-gradient(circle at top left, rgba(139,92,246,0.20), transparent 24%),
-            radial-gradient(circle at top right, rgba(236,72,153,0.18), transparent 24%),
+            radial-gradient(circle at top left, rgba(34,197,94,0.18), transparent 24%),
+            radial-gradient(circle at top right, rgba(249,115,22,0.18), transparent 24%),
             linear-gradient(120deg, transparent 15%, rgba(255,255,255,0.06) 50%, transparent 85%);
         pointer-events: none;
         z-index: -1;
@@ -178,8 +179,8 @@ def build_html(context: PageContext) -> str:
         position: absolute;
         inset: auto 24px 0;
         height: 1px;
-        background: linear-gradient(90deg, rgba(139,92,246,0), rgba(139,92,246,0.82), rgba(236,72,153,0.82), rgba(236,72,153,0));
-        opacity: 0.82;
+        background: linear-gradient(90deg, rgba(34,197,94,0), rgba(34,197,94,0.8), rgba(249,115,22,0.8), rgba(249,115,22,0));
+        opacity: 0.75;
     }
 
     .hero-topline {
@@ -211,8 +212,8 @@ def build_html(context: PageContext) -> str:
         width: 0.6rem;
         height: 0.6rem;
         border-radius: 999px;
-        background: linear-gradient(135deg, var(--electric-purple), var(--hot-pink));
-        box-shadow: 0 0 18px rgba(139,92,246,0.45);
+        background: linear-gradient(135deg, var(--signal-green), var(--bright-orange));
+        box-shadow: 0 0 18px rgba(34,197,94,0.42);
     }
 
     .hero-status {
@@ -221,7 +222,7 @@ def build_html(context: PageContext) -> str:
         gap: 0.55rem;
         padding: 0.52rem 0.92rem;
         border-radius: 999px;
-        background: rgba(10,10,10,0.42);
+        background: rgba(17,24,39,0.38);
         border: 1px solid rgba(255,255,255,0.08);
         color: var(--slate-200);
         font-size: 0.84rem;
@@ -250,17 +251,16 @@ def build_html(context: PageContext) -> str:
 
     .hero-title-text {
         margin: 0;
-        font-family: "Avenir Next", "Trebuchet MS", "Segoe UI", Inter, system-ui, sans-serif;
         font-size: clamp(2.55rem, 6vw, 5.35rem);
         line-height: 0.93;
-        letter-spacing: -0.05em;
-        font-weight: 800;
+        letter-spacing: -0.045em;
+        font-weight: 900;
         text-wrap: balance;
-        text-shadow: 0 10px 36px rgba(0,0,0,0.26);
+        text-shadow: 0 10px 36px rgba(0,0,0,0.22);
     }
 
     .hero-title-text .accent {
-        background: linear-gradient(135deg, #ffffff 0%, #ddd6fe 38%, #f9a8d4 100%);
+        background: linear-gradient(135deg, #ffffff 0%, #d1fae5 42%, #fed7aa 100%);
         -webkit-background-clip: text;
         background-clip: text;
         color: transparent;
@@ -309,8 +309,8 @@ def build_html(context: PageContext) -> str:
         color: white;
     }
 
-    .hero-pill--date { border-color: rgba(139,92,246,0.26); }
-    .hero-pill--summary { border-color: rgba(236,72,153,0.24); }
+    .hero-pill--date { border-color: rgba(34,197,94,0.24); }
+    .hero-pill--summary { border-color: rgba(249,115,22,0.22); }
 
     main {
         max-width: var(--max-width);
@@ -322,7 +322,7 @@ def build_html(context: PageContext) -> str:
     }
 
     .card {
-        --card-accent: var(--electric-purple);
+        --card-accent: var(--signal-green);
         position: relative;
         grid-column: span 4;
         min-height: 220px;
@@ -331,7 +331,7 @@ def build_html(context: PageContext) -> str:
         border: 1px solid var(--glass-border);
         background:
             linear-gradient(180deg, rgba(255,255,255,0.07), rgba(255,255,255,0.025)),
-            rgba(18, 18, 24, 0.76);
+            rgba(17, 24, 39, 0.72);
         box-shadow: var(--shadow-lg);
         backdrop-filter: blur(14px);
         -webkit-backdrop-filter: blur(14px);
@@ -370,7 +370,7 @@ def build_html(context: PageContext) -> str:
         position: absolute;
         inset: 0 0 auto;
         height: 4px;
-        background: linear-gradient(90deg, var(--card-accent), color-mix(in srgb, var(--card-accent) 30%, white), var(--hot-pink));
+        background: linear-gradient(90deg, var(--card-accent), color-mix(in srgb, var(--card-accent) 30%, white), var(--bright-orange));
         opacity: 0.95;
     }
 
@@ -378,7 +378,7 @@ def build_html(context: PageContext) -> str:
     .card:focus-within {
         transform: translateY(-6px);
         border-color: var(--glass-border-strong);
-        box-shadow: 0 24px 56px rgba(0, 0, 0, 0.42);
+        box-shadow: 0 24px 56px rgba(2, 6, 23, 0.42);
     }
 
     .card--word,
@@ -393,13 +393,13 @@ def build_html(context: PageContext) -> str:
     .card--phrase,
     .card--sport,
     .card--classic_rock,
-    .card--boston_sports { --card-accent: var(--electric-purple); }
+    .card--boston_sports { --card-accent: var(--signal-green); }
 
     .card--history,
     .card--military,
     .card--trivia,
     .card--fun_fact,
-    .card--birthday_spotlight { --card-accent: var(--hot-pink); }
+    .card--birthday_spotlight { --card-accent: var(--bright-orange); }
 
     .card--did_you_know,
     .card--county,
@@ -411,7 +411,7 @@ def build_html(context: PageContext) -> str:
     .card--birthday_phone_helper,
     .card--birthday_upcoming,
     .card--famous_person_birthday,
-    .card--mom_daily { --card-accent: #c084fc; }
+    .card--mom_daily { --card-accent: #38bdf8; }
 
     .card-head {
         display: flex;
@@ -632,7 +632,7 @@ def build_html(context: PageContext) -> str:
 <meta charset="utf-8">
 <title>{page_title}</title>
 <meta name="viewport" content="width=device-width, initial-scale=1" />
-<meta name="theme-color" content="#0A0A0A" />
+<meta name="theme-color" content="#1F2937" />
 <style>{css}
 {extra_css}
 </style>
