@@ -251,6 +251,15 @@ def _extra_js() -> str:
         roomStatus.textContent = text || "";
       }
 
+      function voteButtons(trackId) {
+        return `
+          <div class="ls-actions">
+            <button class="ls-btn" type="button" data-action="vote" data-track-id="${esc(trackId)}">Upvote</button>
+            <button class="ls-btn ls-btn--ghost" type="button" data-action="downvote" data-track-id="${esc(trackId)}">Downvote</button>
+          </div>
+        `;
+      }
+
       function rowHtml(item, actionsHtml) {
         const imageHtml = item.track?.image ? `<img class="ls-art" src="${esc(item.track.image)}" alt="">` : "";
         return `
@@ -266,6 +275,13 @@ def _extra_js() -> str:
             </div>
           </div>
         `;
+      }
+
+      async function submitVote(action, trackId) {
+        setStatus(action === "vote" ? "Adding vote…" : "Removing vote…");
+        await postJson(`${apiBase}/${action === "vote" ? "vote" : "downvote"}`, { track_id: trackId });
+        await refreshStatus();
+        setStatus("");
       }
 
       function renderNowPlaying(data) {
@@ -297,7 +313,9 @@ def _extra_js() -> str:
           queueEl.innerHTML = `<div class="ls-empty">No votes yet. Search above and start building the queue.</div>`;
           return;
         }
-        queueEl.innerHTML = data.queue.map((item) => rowHtml(item, "")).join("");
+        queueEl.innerHTML = data.queue
+          .map((item) => rowHtml(item, voteButtons(item.track_id)))
+          .join("");
       }
 
       function renderSearch(results) {
@@ -358,10 +376,19 @@ def _extra_js() -> str:
         const trackId = target.getAttribute("data-track-id");
         const action = target.getAttribute("data-action");
         try {
-          setStatus(action === "vote" ? "Adding vote…" : "Removing vote…");
-          await postJson(`${apiBase}/${action === "vote" ? "vote" : "downvote"}`, { track_id: trackId });
-          await refreshStatus();
-          setStatus("");
+          await submitVote(action, trackId);
+        } catch (err) {
+          setStatus(err.message || "Vote failed.");
+        }
+      });
+
+      queueEl.addEventListener("click", async (event) => {
+        const target = event.target.closest("[data-action]");
+        if (!target) return;
+        const trackId = target.getAttribute("data-track-id");
+        const action = target.getAttribute("data-action");
+        try {
+          await submitVote(action, trackId);
         } catch (err) {
           setStatus(err.message || "Vote failed.");
         }
