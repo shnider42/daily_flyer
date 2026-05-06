@@ -121,6 +121,7 @@ class WebRouteTests(unittest.TestCase):
                 "name": "Chris Holtsnider",
                 "month": 7,
                 "day": 10,
+                "year": 1986,
                 "relation": "son",
                 "note": "moe",
                 "phone": "774-573-9352",
@@ -129,6 +130,7 @@ class WebRouteTests(unittest.TestCase):
                 "name": "Stephen Holtsnider",
                 "month": 8,
                 "day": 12,
+                "year": 1988,
                 "relation": "son",
                 "note": "larry",
                 "phone": "774-573-9351",
@@ -141,9 +143,14 @@ class WebRouteTests(unittest.TestCase):
 
         try:
             with patch.dict(os.environ, {"BIRTHDAYS_FILE": temp_path}):
-                response = self.client.get("/?theme=this_day_birthday&date=2026-07-10")
+                response = self.client.get("/?theme=this_day_birthday&date=2026-07-10&seed=7")
             self.assertEqual(response.status_code, 200)
             self.assertIn(b"Chris Holtsnider", response.data)
+            self.assertIn(b"Patti Mode", response.data)
+            self.assertIn(b"Turns 40th", response.data)
+            self.assertIn(b"facts as seasoning", response.data)
+            self.assertIn(b"birthday stays central", response.data)
+            self.assertIn(b"More birthday-theme facts", response.data)
         finally:
             os.remove(temp_path)
 

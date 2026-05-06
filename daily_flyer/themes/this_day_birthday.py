@@ -1,10 +1,10 @@
-
 from __future__ import annotations
 
 import json
 import random
 from datetime import date
 from html import escape
+from typing import Any
 
 from daily_flyer.birthdays import (
     birthdays_for_date,
@@ -15,7 +15,7 @@ from daily_flyer.birthdays import (
     people_to_phone_list,
     phones_to_to_field_text,
 )
-from daily_flyer.curated_fact_store import CuratedFact, approved_facts, select_fact_for_card_type
+from daily_flyer.curated_fact_store import CuratedFact, approved_facts
 from daily_flyer.models import CardItem, PageContext
 from daily_flyer.utils import resolve_date
 
@@ -32,10 +32,10 @@ CURATED_CARD_ORDER = (
 THEME_CONFIG = {
     "page_title": "BirthDay Today — Celebrate the right people, on the right day",
     "header_title": "BirthDay Today 🎂",
-    "header_subtitle": "Birthday reminders, a visual date picker, and fast outreach helpers",
+    "header_subtitle": "A birthday-first Daily Flyer with Patti-style warmup facts, outreach helpers, and calendar planning.",
     "footer_text": "Built on Daily Flyer. Birthday theme prototype.",
     "hero_kicker": "Daily Flyer • Birthday Theme",
-    "hero_summary_pill": "Calendar-driven birthday planning and curated cards",
+    "hero_summary_pill": "Patti-mode birthday draft plus quick outreach helpers",
 }
 
 
@@ -53,6 +53,48 @@ def _next_occurrence(base: date, month: int, day: int) -> date:
     if candidate < base:
         candidate = _safe_birthday_date(base.year + 1, month, day)
     return candidate
+
+
+def _safe_int(value: Any) -> int | None:
+    if value in (None, ""):
+        return None
+    try:
+        return int(str(value).strip())
+    except (TypeError, ValueError):
+        return None
+
+
+def _birth_year_for_hit(hit: dict) -> int | None:
+    for key in ("year", "birth_year", "born_year"):
+        year = _safe_int(hit.get(key))
+        if year and 1800 <= year <= 2200:
+            return year
+
+    dob = str(hit.get("dob", "") or hit.get("birthdate", "") or "").strip()
+    if len(dob) >= 4:
+        year = _safe_int(dob[:4])
+        if year and 1800 <= year <= 2200:
+            return year
+
+    return None
+
+
+def _age_for_hit(target: date, hit: dict) -> int | None:
+    year = _birth_year_for_hit(hit)
+    if not year:
+        return None
+    age = target.year - year
+    if 0 <= age <= 130:
+        return age
+    return None
+
+
+def _ordinal(value: int) -> str:
+    if 10 <= value % 100 <= 20:
+        suffix = "th"
+    else:
+        suffix = {1: "st", 2: "nd", 3: "rd"}.get(value % 10, "th")
+    return f"{value}{suffix}"
 
 
 def _digits_only(value: str) -> str:
@@ -79,13 +121,14 @@ def _first_name(full_name: str) -> str:
 
 
 def _join_names_human(names: list[str]) -> str:
-    if not names:
+    clean = [str(name).strip() for name in names if str(name).strip()]
+    if not clean:
         return ""
-    if len(names) == 1:
-        return names[0]
-    if len(names) == 2:
-        return f"{names[0]} and {names[1]}"
-    return f"{', '.join(names[:-1])}, and {names[-1]}"
+    if len(clean) == 1:
+        return clean[0]
+    if len(clean) == 2:
+        return f"{clean[0]} and {clean[1]}"
+    return f"{', '.join(clean[:-1])}, and {clean[-1]}"
 
 
 def _sort_name_key(name: str) -> str:
@@ -95,27 +138,33 @@ def _sort_name_key(name: str) -> str:
 
 
 def _message_text_for_hits(birthday_hits: list[dict], rng: random.Random) -> str:
-    names = [
-        str(item.get("name", "")).strip()
+    first_names = [
+        _first_name(str(item.get("name", "")).strip())
         for item in birthday_hits
         if str(item.get("name", "")).strip()
     ]
 
-    if not names:
+    if not first_names:
         return "No birthday today — good day to check the calendar and plan ahead."
 
-    first_names = [_first_name(name) for name in names]
     joined = _join_names_human(first_names)
     prompts = [
-        f"Happy birthday, {joined}! Hope you have a great day.",
-        f"Happy birthday, {joined}! Wishing you a fun day and a great year ahead.",
-        f"Happy birthday, {joined}! Hope today treats you really well.",
-        f"Happy birthday, {joined}! Hope you get to celebrate and enjoy the day.",
+        f"Happy birthday, {joined}! Hope you have a great day 🎂",
+        f"Happy birthday, {joined}! Wishing you a fun day and a great year ahead 🥳",
+        f"Happy birthday, {joined}! Hope today treats you really well 🎉",
+        f"Happy birthday, {joined}! Hope you get to celebrate and enjoy the day 🎈",
     ]
     return rng.choice(prompts)
 
 
-def _render_birthday_spotlight(birthday_hits: list[dict], message_text: str) -> str:
+def _age_badge(target: date, hit: dict) -> str:
+    age = _age_for_hit(target, hit)
+    if age is None:
+        return ""
+    return f"🎈 Turns {_ordinal(age)}"
+
+
+def _render_birthday_spotlight(target: date, birthday_hits: list[dict], message_text: str) -> str:
     if not birthday_hits:
         return (
             "<div class='birthday-empty-state'>"
@@ -146,11 +195,12 @@ def _render_birthday_spotlight(birthday_hits: list[dict], message_text: str) -> 
         note = clean_optional_text(hit.get("note"))
         phone = str(hit.get("phone", "")).strip()
         sms_href = _sms_href(phone)
+        age_badge = _age_badge(target, hit)
 
         parts.append("<article class='birthday-person'>")
         parts.append("<div class='birthday-person-top'>")
         parts.append("<div>")
-        parts.append("<div class='birthday-mini-label'>Today’s celebration</div>")
+        parts.append("<div class='birthday-mini-label'>Today’s real headline</div>")
         parts.append(f"<div class='birthday-name'>🎉 {escape(raw_name)}</div>")
         parts.append("</div>")
         parts.append("<div class='birthday-person-badge' aria-hidden='true'>🎂</div>")
@@ -159,6 +209,8 @@ def _render_birthday_spotlight(birthday_hits: list[dict], message_text: str) -> 
         meta_bits: list[str] = []
         if relation:
             meta_bits.append(f"👥 {escape(relation)}")
+        if age_badge:
+            meta_bits.append(escape(age_badge))
         if phone:
             meta_bits.append(f"📱 {escape(_display_phone(phone))}")
         if meta_bits:
@@ -167,7 +219,7 @@ def _render_birthday_spotlight(birthday_hits: list[dict], message_text: str) -> 
             parts.append(f"<div class='birthday-note'>{escape(note)}</div>")
 
         parts.append("<div class='birthday-message-preview'>")
-        parts.append("<div class='birthday-mini-label'>Suggested text</div>")
+        parts.append("<div class='birthday-mini-label'>Suggested quick text</div>")
         parts.append(f"<p>{escape(message_text)}</p>")
         parts.append("</div>")
 
@@ -243,8 +295,9 @@ def _render_upcoming_birthdays(today: date, birthdays: list[dict], limit: int = 
 
         occurrence = _next_occurrence(today, month, day)
         relation = clean_optional_text(item.get("relation"))
+        age = _age_for_hit(occurrence, item)
         delta_days = (occurrence - today).days
-        upcoming.append((occurrence, delta_days, _sort_name_key(name), name, relation))
+        upcoming.append((occurrence, delta_days, _sort_name_key(name), name, relation, age))
 
     upcoming.sort(key=lambda x: (x[0], x[2]))
     rows = upcoming[:limit]
@@ -252,14 +305,18 @@ def _render_upcoming_birthdays(today: date, birthdays: list[dict], limit: int = 
         return "<div class='birthday-helper-panel'><p><em>No upcoming birthdays found.</em></p></div>"
 
     html_parts = ["<div class='birthday-upcoming-list'>"]
-    for occurrence, delta_days, _, name, relation in rows:
-        relation_text = f" · {escape(relation)}" if relation else ""
+    for occurrence, delta_days, _, name, relation, age in rows:
+        details: list[str] = []
         if delta_days == 0:
-            delta_text = "Today"
+            details.append("Today")
         elif delta_days == 1:
-            delta_text = "Tomorrow"
+            details.append("Tomorrow")
         else:
-            delta_text = f"In {delta_days} days"
+            details.append(f"In {delta_days} days")
+        if relation:
+            details.append(relation)
+        if age is not None:
+            details.append(f"turns {_ordinal(age)}")
 
         html_parts.append(
             "<div class='birthday-upcoming-item'>"
@@ -269,7 +326,7 @@ def _render_upcoming_birthdays(today: date, birthdays: list[dict], limit: int = 
             "</div>"
             "<div class='birthday-upcoming-copy'>"
             f"<div class='birthday-upcoming-name'>{escape(name)}</div>"
-            f"<div class='birthday-upcoming-meta'>{escape(delta_text)}{relation_text}</div>"
+            f"<div class='birthday-upcoming-meta'>{escape(' · '.join(details))}</div>"
             "</div>"
             "</div>"
         )
@@ -316,85 +373,296 @@ def _calendar_card_html(today: date) -> str:
     """
 
 
-def _render_fact_card_body(fact: CuratedFact | None, fallback_title: str, fallback_body: str) -> tuple[str, str, str | None]:
-    if fact is None:
+def _dedupe_facts(facts: list[CuratedFact]) -> list[CuratedFact]:
+    seen: set[str] = set()
+    out: list[CuratedFact] = []
+    for fact in facts:
+        if fact.fact_id in seen:
+            continue
+        seen.add(fact.fact_id)
+        out.append(fact)
+    return out
+
+
+def _select_facts_for_card_type(
+    all_facts: list[CuratedFact],
+    card_type: str,
+    target: date,
+    seed: int,
+    limit: int = 3,
+) -> list[CuratedFact]:
+    """Return a small, useful packet of facts so each day feels less thin.
+
+    Priority is exact date, then nearby date, then same month, then a stable
+    fallback from that category. This keeps the cards populated while still
+    preferring date-relevant material.
+    """
+    pool = [fact for fact in all_facts if fact.card_type == card_type]
+    if not pool:
+        return []
+
+    exact = [fact for fact in pool if fact.matches_date(target)]
+    nearby = [
+        fact
+        for fact in pool
+        if fact.month is not None and fact.distance_from(target) <= 21
+    ]
+    same_month = [fact for fact in pool if fact.month == target.month]
+    dated = [fact for fact in pool if fact.month is not None]
+    fallback = sorted(pool, key=lambda fact: fact.fact_id.lower())
+
+    def sort_key(fact: CuratedFact) -> tuple[int, int, str]:
+        return (
+            fact.distance_from(target),
+            0 if fact.matches_date(target) else 1,
+            fact.fact_id.lower(),
+        )
+
+    nearby = sorted(nearby, key=sort_key)
+    same_month = sorted(same_month, key=sort_key)
+    dated = sorted(dated, key=sort_key)
+
+    primary = exact or nearby[:limit] or same_month[:limit] or dated[:limit] or fallback[:limit]
+
+    # Keep the first item very date-relevant, but add light variety to the
+    # second/third slots when there are several equally plausible choices.
+    rng = random.Random(f"{card_type}|{target.isoformat()}|{seed}|fact-packet")
+    extras = [fact for fact in _dedupe_facts(nearby + same_month + dated + fallback) if fact not in primary]
+    rng.shuffle(extras)
+
+    return _dedupe_facts(primary + extras)[:limit]
+
+
+def _trim_fact_text(text: str, limit: int = 210) -> str:
+    clean = " ".join(str(text or "").split()).rstrip(".! ")
+    if len(clean) <= limit:
+        return clean
+    return clean[: limit - 1].rsplit(" ", 1)[0].rstrip(",;:") + "…"
+
+
+def _fact_relevance_label(fact: CuratedFact, target: date) -> str:
+    if fact.matches_date(target):
+        return "date match"
+    if fact.month == target.month:
+        distance = fact.distance_from(target)
+        if distance <= 7:
+            return "nearby this week"
+        if distance <= 21:
+            return "nearby this month"
+        return "same month"
+    return "fallback"
+
+
+def _render_fact_card_body(
+    facts: list[CuratedFact],
+    target: date,
+    fallback_title: str,
+    fallback_body: str,
+) -> tuple[str, str, str | None]:
+    if not facts:
         return fallback_title, f"<p>{escape(fallback_body)}</p>", None
-    body_html = f"<p>{escape(fact.body)}</p><p class='birthday-hint'>Source: {escape(fact.source_name)}</p>"
-    return fact.title, body_html, fact.source_url
+
+    lead = facts[0]
+    more = facts[1:]
+    title = lead.title
+    parts = [
+        "<div class='fact-stack'>",
+        "<article class='fact-lead'>",
+        f"<div class='fact-relevance'>{escape(_fact_relevance_label(lead, target))}</div>",
+        f"<p>{escape(lead.body)}</p>",
+        f"<p class='birthday-hint'>Source: {escape(lead.source_name)}</p>",
+        "</article>",
+    ]
+
+    if more:
+        parts.append("<details class='fact-more' open>")
+        parts.append(f"<summary>More birthday-theme facts for {escape(target.strftime('%B'))}</summary>")
+        parts.append("<ul>")
+        for fact in more:
+            label = _fact_relevance_label(fact, target)
+            parts.append(
+                "<li>"
+                f"<strong>{escape(fact.title)}</strong> "
+                f"<span class='fact-relevance fact-relevance--inline'>{escape(label)}</span>"
+                f"<p>{escape(_trim_fact_text(fact.body, 175))}</p>"
+                f"<p class='birthday-hint'>Source: {escape(fact.source_name)}</p>"
+                "</li>"
+            )
+        parts.append("</ul>")
+        parts.append("</details>")
+
+    parts.append("</div>")
+    return title, "".join(parts), lead.source_url
+
+
+def _fact_title(fact: CuratedFact | None) -> str:
+    return str(fact.title).strip() if fact and str(fact.title).strip() else ""
+
+
+def _fact_nugget(fact: CuratedFact | None, limit: int = 135) -> str:
+    if not fact:
+        return ""
+    title = _fact_title(fact)
+    body = _trim_fact_text(fact.body, limit)
+    if title:
+        return f"{title}: {body}"
+    return body
+
+
+def _flatten_fact_groups(fact_groups: dict[str, list[CuratedFact]]) -> list[CuratedFact]:
+    ordered: list[CuratedFact] = []
+    for card_type in CURATED_CARD_ORDER:
+        ordered.extend(fact_groups.get(card_type, []))
+    return _dedupe_facts(ordered)
 
 
 def _mom_opening(target: date, birthday_hits: list[dict], rng: random.Random) -> str:
+    weekday = target.strftime("%A")
+    date_label = target.strftime("%B %d")
     openers = [
-        f"Happy {target.strftime('%A')} everybody!",
-        "Well hello there cousins!",
-        "Hi everyone — here is your little daily update!",
-        "Hope everybody is doing well today!",
+        f"Hope everybody is having a good {weekday}😊!!!",
+        f"Today is {date_label}, which means the calendar is giving us plenty to talk about😆!!!",
+        "Checking in with a little birthday-adjacent history, trivia, and family news🎂!!!",
+        f"Before everybody gets too busy today, here is your {date_label} update👏!!!",
     ]
     if birthday_hits:
-        openers.append("Big birthday energy today!")
+        openers.extend([
+            "Big day on the family calendar today🎂!!!",
+            "The calendar has some interesting facts today, but the family calendar wins😊!!!",
+        ])
     return rng.choice(openers)
 
 
-def _mom_fact_sentence(label: str, fact: CuratedFact | None) -> str:
-    if not fact:
+def _birthday_arrival_line(target: date, birthday_hits: list[dict], rng: random.Random) -> str:
+    if not birthday_hits:
         return ""
-    return f"For {label}, {fact.body.rstrip('.! ')}."
+
+    names = [
+        _first_name(str(item.get("name", "")).strip())
+        for item in birthday_hits
+        if str(item.get("name", "")).strip()
+    ]
+    joined = _join_names_human(names)
+    birth_years = sorted({year for hit in birthday_hits if (year := _birth_year_for_hit(hit))})
+    ages = [_age_for_hit(target, hit) for hit in birthday_hits]
+    ages = [age for age in ages if age is not None]
+
+    if len(birthday_hits) == 1:
+        age = ages[0] if ages else None
+        year_phrase = f" back in {birth_years[0]}" if birth_years else ""
+        if age == 21:
+            milestone = "and is now legally ready to celebrate responsibly with a first official beer🍺"
+        elif age == 30:
+            milestone = "and can claim full frontal-lobe maturity, at least according to the birthday committee🧠"
+        elif age:
+            milestone = f"and turns {_ordinal(age)} today"
+        else:
+            milestone = "and gave us the best reason to remember this date"
+
+        templates = [
+            f"Of course, the real headline is that our own {joined} made their grand entrance{year_phrase}, {milestone}!!!",
+            f"The best thing on the calendar is still our own {joined}, who arrived{year_phrase} {milestone}!!!",
+            f"All of that is fun, but today really belongs to {joined}, who {milestone}!!!",
+        ]
+        return rng.choice(templates)
+
+    if ages:
+        age_text = _join_names_human([_ordinal(age) for age in ages])
+        return f"Most importantly, our own {joined} are bringing {age_text} birthday energy to the family calendar today🎂!!!"
+
+    return f"Most importantly, our own {joined} are the real reason to remember today🎂!!!"
+
+
+def _wish_line(birthday_hits: list[dict]) -> str:
+    names = [
+        _first_name(str(item.get("name", "")).strip())
+        for item in birthday_hits
+        if str(item.get("name", "")).strip()
+    ]
+    joined = _join_names_human(names)
+    if not joined:
+        return "please take a minute to check the birthday list and make somebody feel remembered"
+    return f"please take a moment to wish {joined} a very Happy Birthday"
+
+
+def _activity_line(fact_groups: dict[str, list[CuratedFact]], rng: random.Random) -> str:
+    options: list[str] = []
+    if fact_groups.get("fun_fact"):
+        options.append(f"celebrating {_fact_title(fact_groups['fun_fact'][0]) or 'one of today’s extremely official-sounding holidays'}")
+    if fact_groups.get("classic_rock"):
+        options.append("listening to something loud enough to count as classic rock")
+    if fact_groups.get("boston_sports"):
+        options.append("checking the score like a true Boston fan")
+    if fact_groups.get("irish_history"):
+        options.append("raising an imaginary glass to Irish history ☘️")
+    if fact_groups.get("famous_person_birthday"):
+        options.append("sharing a birthday month with some very recognizable company")
+
+    rng.shuffle(options)
+    return _join_names_human(options[:3]) if options else "looking for an excuse to have cake"
 
 
 def _render_mom_daily(
     target: date,
     birthday_hits: list[dict],
     message_text: str,
-    selected_facts: dict[str, CuratedFact | None],
+    fact_groups: dict[str, list[CuratedFact]],
     rng: random.Random,
 ) -> str:
-    names = [
-        str(item.get("name", "")).strip()
-        for item in birthday_hits
-        if str(item.get("name", "")).strip()
-    ]
-    first_names = [_first_name(name) for name in names]
-    birthday_joined = _join_names_human(first_names)
+    facts = _flatten_fact_groups(fact_groups)
+    fact_nuggets = [_fact_nugget(fact) for fact in facts[:5]]
+    fact_nuggets = [nugget for nugget in fact_nuggets if nugget]
 
-    lines: list[str] = []
-    lines.append(_mom_opening(target, birthday_hits, rng))
+    lines: list[str] = [_mom_opening(target, birthday_hits, rng)]
 
-    for label, card_type in (
-        ("classic rock", "classic_rock"),
-        ("Irish history", "irish_history"),
-        ("Boston sports", "boston_sports"),
-        ("a famous birthday", "famous_person_birthday"),
-        ("today’s fun fact", "fun_fact"),
-    ):
-        line = _mom_fact_sentence(label, selected_facts.get(card_type))
-        if line:
-            lines.append(line)
+    if fact_nuggets:
+        intro = rng.choice([
+            "A few things are sharing space on today's calendar:",
+            "The calendar is doing its usual random but interesting thing today:",
+            "For anyone keeping score at home, today also comes with a few fun facts:",
+        ])
+        if len(fact_nuggets) == 1:
+            lines.append(f"{intro} {fact_nuggets[0]}.")
+        else:
+            lines.append(f"{intro} {fact_nuggets[0]}. Also, {fact_nuggets[1]}.")
+        if len(fact_nuggets) > 2 and rng.random() < 0.75:
+            lines.append(f"And because apparently one fact is never enough, {fact_nuggets[2]}.")
+    else:
+        lines.append("The trivia department is a little light today, which probably means we should focus on cake anyway🎂!!!")
 
     if birthday_hits:
-        lines.append(
-            f"But of course the most important thing today is wishing {birthday_joined} a very happy birthday!"
-        )
-        lines.append(message_text)
+        lines.append(_birthday_arrival_line(target, birthday_hits, rng))
+        lines.append(f"So while you are {_activity_line(fact_groups, rng)}, {_wish_line(birthday_hits)}!!!")
+        if rng.random() < 0.7:
+            lines.append(message_text)
     else:
-        lines.append("No family birthday lands on this date, so this is a nice little planning day.")
+        lines.append("No family birthday lands on this date, so this is a planning day for future cake, texts, and calendar heroics.")
 
-    closer = rng.choice(
-        [
-            "Have a great day everybody 💕",
-            "Love you all and hope you have a fun day 😊",
-            "Enjoy the day and do not forget to check in on each other 💖",
-            "Sending love to everybody and hope somebody has cake somewhere 🎂",
-        ]
-    )
-    lines.append(closer)
+    lines.append(rng.choice([
+        "Hope you all have a great day😘!!!",
+        "Love you all and hope everyone has a great day😊!!!",
+        "Enjoy the day and do not forget to be nice to each other😘!!!",
+    ]))
 
-    body = " ".join(lines)
+    body = " ".join(part for part in lines if part)
+    anatomy = [
+        "warm family tone",
+        "facts as seasoning",
+        "birthday stays central",
+        "editable before sending",
+    ]
+
     return f"""
-        <p class="birthday-hint">Warm, casual, copy-paste-ready draft in Patti mode.</p>
-        <textarea id="mom-daily-text" class="birthday-textarea birthday-textarea--large">{escape(body)}</textarea>
-        <div class="birthday-actions">
-            <button class="birthday-btn" type="button" id="momDailyCopyBtn">Copy full draft</button>
-            <span id="mom-daily-copy-status" class="birthday-hint"></span>
+        <div class="mom-daily-frame">
+            <p class="birthday-hint">Copy-paste-ready draft in Patti mode. The examples guide the warmth and rhythm, but this version avoids forcing the same joke structure every day.</p>
+            <textarea id="mom-daily-text" class="birthday-textarea birthday-textarea--large">{escape(body)}</textarea>
+            <div class="birthday-actions">
+                <button class="birthday-btn" type="button" id="momDailyCopyBtn">Copy Patti draft</button>
+                <span id="mom-daily-copy-status" class="birthday-hint"></span>
+            </div>
+            <div class="mom-daily-anatomy">
+                {''.join(f"<span>{escape(item)}</span>" for item in anatomy)}
+            </div>
         </div>
     """
 
@@ -418,21 +686,8 @@ def _extra_css() -> str:
             linear-gradient(180deg, #1b1323 0%, #141d2e 42%, #0a1320 100%);
     }
 
-    body::before {
-        width: 480px;
-        height: 480px;
-        top: -110px;
-        left: -140px;
-        background: radial-gradient(circle, rgba(255, 170, 196, 0.18), transparent 70%);
-    }
-
-    body::after {
-        width: 420px;
-        height: 420px;
-        right: -120px;
-        top: 120px;
-        background: radial-gradient(circle, rgba(255, 218, 122, 0.16), transparent 70%);
-    }
+    body::before { width: 480px; height: 480px; top: -110px; left: -140px; background: radial-gradient(circle, rgba(255, 170, 196, 0.18), transparent 70%); }
+    body::after { width: 420px; height: 420px; right: -120px; top: 120px; background: radial-gradient(circle, rgba(255, 218, 122, 0.16), transparent 70%); }
 
     header.hero {
         padding: 46px 30px 38px;
@@ -443,52 +698,10 @@ def _extra_css() -> str:
             radial-gradient(circle at 78% 18%, rgba(255, 146, 175, 0.14), transparent 24%),
             linear-gradient(135deg, rgba(255,255,255,0.10), rgba(255,255,255,0.03)),
             linear-gradient(150deg, rgba(64, 32, 84, 0.92), rgba(25, 32, 52, 0.94));
-        box-shadow:
-            0 28px 80px rgba(0,0,0,0.34),
-            inset 0 1px 0 rgba(255,255,255,0.10);
+        box-shadow: 0 28px 80px rgba(0,0,0,0.34), inset 0 1px 0 rgba(255,255,255,0.10);
     }
 
-    header.hero::before {
-        background:
-            linear-gradient(90deg, transparent, rgba(255,255,255,0.05), transparent),
-            radial-gradient(circle at 10% 20%, rgba(255, 211, 127, 0.18), transparent 20%),
-            radial-gradient(circle at 90% 24%, rgba(255, 146, 175, 0.18), transparent 22%);
-        opacity: 1;
-    }
-
-    header.hero::after {
-        content: "";
-        position: absolute;
-        inset: 0;
-        pointer-events: none;
-        background:
-            radial-gradient(circle at 14% 72%, rgba(255,255,255,0.16) 0 2px, transparent 3px),
-            radial-gradient(circle at 24% 18%, rgba(255, 211, 127, 0.35) 0 3px, transparent 4px),
-            radial-gradient(circle at 60% 16%, rgba(255, 155, 183, 0.28) 0 3px, transparent 4px),
-            radial-gradient(circle at 88% 72%, rgba(146, 219, 255, 0.20) 0 3px, transparent 4px);
-        opacity: 0.7;
-    }
-
-    .hero-kicker,
-    .hero-pill,
-    .birthday-soft-pill,
-    .birthday-summary-pill,
-    .birthday-chip {
-        box-shadow: inset 0 1px 0 rgba(255,255,255,0.08);
-    }
-
-    .hero-kicker {
-        background: rgba(255,255,255,0.09);
-        border-color: rgba(255,255,255,0.14);
-        color: #ffe7c2;
-    }
-
-    .hero h1,
-    h2,
-    .birthday-calendar-title,
-    .birthday-name,
-    .birthday-upcoming-name,
-    .birthday-empty-title {
+    .hero h1, h2, .birthday-calendar-title, .birthday-name, .birthday-upcoming-name, .birthday-empty-title {
         font-family: "Fraunces", Georgia, serif;
     }
 
@@ -500,133 +713,52 @@ def _extra_css() -> str:
         text-shadow: 0 8px 30px rgba(0,0,0,0.22);
     }
 
+    .hero-kicker {
+        background: rgba(255,255,255,0.09);
+        border-color: rgba(255,255,255,0.14);
+        color: #ffe7c2;
+    }
+
     .hero .subtitle {
-        max-width: 60ch;
+        max-width: 62ch;
         font-size: 1.08rem;
         color: #eadff4;
-    }
-
-    .hero-pill {
-        background: rgba(255,255,255,0.08);
-        border-color: rgba(255,255,255,0.10);
-    }
-
-    .eyebrow {
-        color: #f7d6a3;
-    }
-
-    .icon-badge {
-        background: linear-gradient(180deg, rgba(255,255,255,0.12), rgba(255,255,255,0.06));
-        border-color: rgba(255,255,255,0.12);
-        box-shadow: 0 12px 24px rgba(0,0,0,0.16);
     }
 
     .card {
         min-height: 230px;
         border-color: rgba(255,255,255,0.10);
-        background:
-            linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.03)),
-            rgba(18, 26, 43, 0.82);
-        box-shadow:
-            0 18px 44px rgba(0,0,0,0.22),
-            inset 0 1px 0 rgba(255,255,255,0.05);
+        background: linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.03)), rgba(18, 26, 43, 0.82);
+        box-shadow: 0 18px 44px rgba(0,0,0,0.22), inset 0 1px 0 rgba(255,255,255,0.05);
     }
 
-    .card:hover {
-        transform: translateY(-5px);
-    }
-
-    .card::after {
-        height: 5px;
-        background: linear-gradient(90deg, #ffd16a, #ff8cb0, #7dd5ff);
-    }
+    .card:hover { transform: translateY(-5px); }
+    .card::after { height: 5px; background: linear-gradient(90deg, #ffd16a, #ff8cb0, #7dd5ff); }
 
     .card--birthday_calendar {
         grid-column: span 7;
-        background:
-            radial-gradient(circle at top left, rgba(255, 211, 127, 0.16), transparent 26%),
-            linear-gradient(180deg, rgba(143, 213, 255, 0.10), rgba(255,255,255,0.02)),
-            rgba(15, 27, 46, 0.90);
+        background: radial-gradient(circle at top left, rgba(255, 211, 127, 0.16), transparent 26%), linear-gradient(180deg, rgba(143, 213, 255, 0.10), rgba(255,255,255,0.02)), rgba(15, 27, 46, 0.90);
     }
 
     .card--birthday_spotlight {
         grid-column: span 5;
-        background:
-            radial-gradient(circle at top right, rgba(255, 151, 179, 0.18), transparent 28%),
-            linear-gradient(180deg, rgba(255, 199, 112, 0.12), rgba(255,255,255,0.03)),
-            rgba(32, 24, 45, 0.92);
-    }
-
-    .card--birthday_phone_helper,
-    .card--birthday_message_starter,
-    .card--birthday_upcoming,
-    .card--classic_rock,
-    .card--irish_history,
-    .card--boston_sports,
-    .card--famous_person_birthday,
-    .card--fun_fact {
-        grid-column: span 4;
-    }
-
-    .card--birthday_phone_helper {
-        background:
-            linear-gradient(180deg, rgba(122, 219, 187, 0.14), rgba(255,255,255,0.03)),
-            rgba(16, 35, 41, 0.88);
-    }
-
-    .card--birthday_message_starter {
-        background:
-            linear-gradient(180deg, rgba(255, 163, 193, 0.16), rgba(255,255,255,0.03)),
-            rgba(34, 21, 38, 0.90);
-    }
-
-    .card--birthday_upcoming {
-        background:
-            linear-gradient(180deg, rgba(160, 188, 255, 0.16), rgba(255,255,255,0.03)),
-            rgba(20, 28, 48, 0.90);
-    }
-
-    .card--classic_rock {
-        background:
-            linear-gradient(180deg, rgba(255, 170, 90, 0.18), rgba(255,255,255,0.03)),
-            rgba(39, 26, 29, 0.90);
-    }
-
-    .card--irish_history {
-        background:
-            linear-gradient(180deg, rgba(88, 196, 133, 0.18), rgba(255,255,255,0.03)),
-            rgba(15, 36, 30, 0.90);
-    }
-
-    .card--boston_sports {
-        background:
-            linear-gradient(180deg, rgba(128, 182, 255, 0.18), rgba(255,255,255,0.03)),
-            rgba(16, 27, 45, 0.90);
-    }
-
-    .card--famous_person_birthday {
-        background:
-            linear-gradient(180deg, rgba(255, 188, 120, 0.18), rgba(255,255,255,0.03)),
-            rgba(40, 27, 34, 0.90);
-    }
-
-    .card--fun_fact {
-        background:
-            linear-gradient(180deg, rgba(115, 220, 228, 0.18), rgba(255,255,255,0.03)),
-            rgba(16, 34, 39, 0.90);
+        background: radial-gradient(circle at top right, rgba(255, 151, 179, 0.18), transparent 28%), linear-gradient(180deg, rgba(255, 199, 112, 0.12), rgba(255,255,255,0.03)), rgba(32, 24, 45, 0.92);
     }
 
     .card--mom_daily {
         grid-column: span 12;
-        background:
-            radial-gradient(circle at top left, rgba(255, 203, 122, 0.16), transparent 24%),
-            linear-gradient(180deg, rgba(255, 170, 90, 0.14), rgba(255,255,255,0.02)),
-            rgba(43, 28, 28, 0.92);
+        background: radial-gradient(circle at top left, rgba(255, 203, 122, 0.16), transparent 24%), linear-gradient(180deg, rgba(255, 170, 90, 0.14), rgba(255,255,255,0.02)), rgba(43, 28, 28, 0.92);
     }
 
-    .birthday-calendar-wrap {
+    .card--birthday_phone_helper, .card--birthday_message_starter, .card--birthday_upcoming,
+    .card--classic_rock, .card--irish_history, .card--boston_sports,
+    .card--famous_person_birthday, .card--fun_fact {
+        grid-column: span 4;
+    }
+
+    .birthday-calendar-wrap, .birthday-spotlight-shell, .birthday-helper-panel, .mom-daily-frame, .fact-stack {
         display: grid;
-        gap: 1rem;
+        gap: 0.9rem;
     }
 
     .birthday-calendar-head {
@@ -636,27 +768,16 @@ def _extra_css() -> str:
         gap: 1rem;
     }
 
-    .birthday-calendar-title {
-        font-size: 1.28rem;
-        font-weight: 700;
-        color: var(--ink);
-    }
+    .birthday-calendar-title { font-size: 1.28rem; font-weight: 700; color: var(--ink); }
+    .birthday-calendar-subtitle, .birthday-hint { color: #d5c8e6; font-size: 0.88rem; }
 
-    .birthday-calendar-subtitle {
-        margin-top: 0.2rem;
-        color: #d4c9e7;
-        font-size: 0.92rem;
-    }
-
-    .birthday-calendar-nav {
+    .birthday-calendar-nav, .birthday-actions, .birthday-summary-row, .birthday-stat-row, .mom-daily-anatomy {
         display: flex;
-        gap: 0.55rem;
         flex-wrap: wrap;
-        justify-content: flex-end;
+        gap: 0.55rem;
     }
 
-    .birthday-iconbtn,
-    .birthday-btn {
+    .birthday-iconbtn, .birthday-btn {
         border: 1px solid rgba(255,255,255,0.14);
         background: rgba(255,255,255,0.08);
         color: var(--ink);
@@ -664,38 +785,13 @@ def _extra_css() -> str:
         cursor: pointer;
         text-decoration: none;
         font: inherit;
+        font-weight: 700;
         transition: background 160ms ease, transform 160ms ease, border-color 160ms ease;
     }
 
-    .birthday-iconbtn {
-        min-width: 38px;
-        height: 38px;
-        padding: 0 0.8rem;
-        font-size: 0.95rem;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-    }
-
-    .birthday-btn {
-        padding: 0.72rem 1rem;
-        font-weight: 700;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-    }
-
-    .birthday-btn--link {
-        color: var(--ink);
-    }
-
-    .birthday-iconbtn:hover,
-    .birthday-btn:hover {
-        background: rgba(255,255,255,0.12);
-        border-color: rgba(255,255,255,0.18);
-        transform: translateY(-1px);
-        text-decoration: none;
-    }
+    .birthday-iconbtn { min-width: 38px; height: 38px; padding: 0 0.8rem; }
+    .birthday-btn { padding: 0.72rem 1rem; align-items: center; justify-content: center; }
+    .birthday-iconbtn:hover, .birthday-btn:hover { background: rgba(255,255,255,0.12); border-color: rgba(255,255,255,0.18); transform: translateY(-1px); text-decoration: none; }
 
     .birthday-calendar {
         width: 100%;
@@ -703,16 +799,8 @@ def _extra_css() -> str:
         border-spacing: 0.3rem;
     }
 
-    .birthday-calendar th {
-        font-size: 0.78rem;
-        color: #d3c5e8;
-        padding: 0.2rem 0;
-        text-align: center;
-    }
-
-    .birthday-calendar td {
-        padding: 0;
-    }
+    .birthday-calendar th { font-size: 0.78rem; color: #d3c5e8; padding: 0.2rem 0; text-align: center; }
+    .birthday-calendar td { padding: 0; }
 
     .birthday-day {
         width: 100%;
@@ -728,36 +816,15 @@ def _extra_css() -> str:
         cursor: pointer;
         user-select: none;
         font-weight: 700;
-        transition: transform 150ms ease, background 150ms ease, border-color 150ms ease, box-shadow 150ms ease;
     }
 
-    .birthday-day:hover {
-        background: rgba(255,255,255,0.09);
-        transform: translateY(-1px);
-    }
+    .birthday-day:hover { background: rgba(255,255,255,0.09); transform: translateY(-1px); }
+    .birthday-day.muted { opacity: 0.24; cursor: default; }
+    .birthday-day.today { outline: 2px solid rgba(255,255,255,0.22); }
+    .birthday-day.selected { outline: 2px solid rgba(255, 214, 116, 0.78); background: rgba(255, 214, 116, 0.14); box-shadow: 0 12px 24px rgba(255, 214, 116, 0.14); }
+    .birthday-day.has-birthday { background: rgba(255, 170, 90, 0.12); border-color: rgba(255, 170, 90, 0.30); }
 
-    .birthday-day.muted {
-        opacity: 0.24;
-        cursor: default;
-    }
-
-    .birthday-day.today {
-        outline: 2px solid rgba(255,255,255,0.22);
-    }
-
-    .birthday-day.selected {
-        outline: 2px solid rgba(255, 214, 116, 0.78);
-        background: rgba(255, 214, 116, 0.14);
-        box-shadow: 0 12px 24px rgba(255, 214, 116, 0.14);
-    }
-
-    .birthday-day.has-birthday {
-        background: rgba(255, 170, 90, 0.12);
-        border-color: rgba(255, 170, 90, 0.30);
-    }
-
-    .birthday-day-dot,
-    .birthday-day-count {
+    .birthday-day-dot, .birthday-day-count {
         position: absolute;
         bottom: 6px;
         border-radius: 999px;
@@ -765,86 +832,15 @@ def _extra_css() -> str:
         box-shadow: 0 0 10px rgba(255, 215, 120, 0.40);
     }
 
-    .birthday-day-dot {
-        width: 6px;
-        height: 6px;
-    }
+    .birthday-day-dot { width: 6px; height: 6px; }
+    .birthday-day-count { min-width: 18px; height: 18px; padding: 0 0.35rem; color: #24160a; font-size: 0.72rem; font-weight: 800; }
 
-    .birthday-day-count {
-        min-width: 18px;
-        height: 18px;
-        padding: 0 0.35rem;
-        display: inline-flex;
-        align-items: center;
-        justify-content: center;
-        color: #24160a;
-        font-size: 0.72rem;
-        font-weight: 800;
-    }
+    .birthday-calendar-legend { display: flex; flex-wrap: wrap; gap: 0.9rem; color: #d7cbe7; font-size: 0.84rem; }
+    .birthday-legend-dot, .birthday-legend-pill { display: inline-block; border-radius: 999px; background: rgba(255, 215, 120, 0.95); margin-right: 0.35rem; }
+    .birthday-legend-dot { width: 8px; height: 8px; }
+    .birthday-legend-pill { width: 18px; height: 12px; background: rgba(255, 215, 120, 0.30); border: 1px solid rgba(255, 215, 120, 0.72); }
 
-    .birthday-calendar-legend {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 0.9rem;
-        color: #d7cbe7;
-        font-size: 0.84rem;
-    }
-
-    .birthday-calendar-legend span {
-        display: inline-flex;
-        align-items: center;
-        gap: 0.45rem;
-    }
-
-    .birthday-legend-dot {
-        width: 8px;
-        height: 8px;
-        border-radius: 999px;
-        background: rgba(255, 215, 120, 0.95);
-        display: inline-block;
-    }
-
-    .birthday-legend-pill {
-        width: 18px;
-        height: 12px;
-        border-radius: 999px;
-        background: rgba(255, 215, 120, 0.30);
-        border: 1px solid rgba(255, 215, 120, 0.72);
-        display: inline-block;
-    }
-
-    .birthday-calendar-controls {
-        display: flex;
-        align-items: center;
-        gap: 0.85rem;
-        flex-wrap: wrap;
-    }
-
-    .birthday-selected {
-        font-weight: 700;
-        color: var(--ink-soft);
-    }
-
-    .birthday-hint {
-        color: #d5c8e6;
-        font-size: 0.85rem;
-    }
-
-    .birthday-spotlight-shell,
-    .birthday-helper-panel {
-        display: grid;
-        gap: 0.9rem;
-    }
-
-    .birthday-summary-row,
-    .birthday-stat-row {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 0.55rem;
-    }
-
-    .birthday-summary-pill,
-    .birthday-soft-pill {
+    .birthday-summary-pill, .birthday-soft-pill, .mom-daily-anatomy span, .fact-relevance {
         display: inline-flex;
         align-items: center;
         gap: 0.4rem;
@@ -857,39 +853,39 @@ def _extra_css() -> str:
         font-weight: 700;
     }
 
-    .birthday-summary-pill--warm {
-        background: rgba(255, 204, 122, 0.18);
-        border-color: rgba(255, 204, 122, 0.28);
-        color: #fff0ca;
-    }
+    .birthday-summary-pill--warm { background: rgba(255, 204, 122, 0.18); border-color: rgba(255, 204, 122, 0.28); color: #fff0ca; }
+    .fact-relevance { width: fit-content; color: #ffe6b8; text-transform: uppercase; letter-spacing: 0.08em; font-size: 0.68rem; }
+    .fact-relevance--inline { margin-left: 0.35rem; padding: 0.18rem 0.45rem; vertical-align: middle; }
 
-    .birthday-stack {
-        display: grid;
-        gap: 1rem;
-    }
+    .birthday-stack, .birthday-upcoming-list { display: grid; gap: 0.8rem; }
 
-    .birthday-person {
+    .birthday-person, .birthday-upcoming-item, .fact-lead, .fact-more {
         padding: 1rem;
         border-radius: 18px;
         background: linear-gradient(180deg, rgba(255,255,255,0.07), rgba(255,255,255,0.03));
         border: 1px solid rgba(255,255,255,0.10);
-        box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
     }
 
-    .birthday-person-top {
-        display: flex;
-        align-items: flex-start;
-        justify-content: space-between;
-        gap: 1rem;
-    }
-
-    .birthday-mini-label {
-        color: #ffd9a0;
-        font-size: 0.74rem;
+    .fact-more summary {
+        cursor: pointer;
+        color: #ffe6b8;
         font-weight: 800;
-        letter-spacing: 0.08em;
-        text-transform: uppercase;
     }
+
+    .fact-more ul {
+        margin: 0.85rem 0 0;
+        padding-left: 1.1rem;
+        display: grid;
+        gap: 0.75rem;
+    }
+
+    .fact-more li p, .fact-lead p {
+        margin: 0.45rem 0 0;
+    }
+
+    .birthday-person-top, .birthday-upcoming-item { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
+
+    .birthday-mini-label { color: #ffd9a0; font-size: 0.74rem; font-weight: 800; letter-spacing: 0.08em; text-transform: uppercase; }
 
     .birthday-person-badge {
         width: 42px;
@@ -902,23 +898,8 @@ def _extra_css() -> str:
         font-size: 1.1rem;
     }
 
-    .birthday-name {
-        margin-top: 0.18rem;
-        font-weight: 700;
-        font-size: 1.26rem;
-        line-height: 1.08;
-        color: var(--ink);
-    }
-
-    .birthday-meta {
-        margin-top: 0.4rem;
-        color: #e5d8f6;
-    }
-
-    .birthday-note {
-        margin-top: 0.55rem;
-        color: var(--ink-soft);
-    }
+    .birthday-name { margin-top: 0.18rem; font-weight: 700; font-size: 1.26rem; line-height: 1.08; color: var(--ink); }
+    .birthday-meta, .birthday-note, .birthday-upcoming-meta { margin-top: 0.35rem; color: #e5d8f6; }
 
     .birthday-message-preview {
         margin-top: 0.8rem;
@@ -928,10 +909,7 @@ def _extra_css() -> str:
         border: 1px solid rgba(255,255,255,0.08);
     }
 
-    .birthday-message-preview p {
-        margin: 0.35rem 0 0;
-        color: var(--ink);
-    }
+    .birthday-message-preview p { margin: 0.35rem 0 0; color: var(--ink); }
 
     .birthday-empty-state {
         min-height: 220px;
@@ -956,25 +934,7 @@ def _extra_css() -> str:
         flex: 0 0 auto;
     }
 
-    .birthday-empty-title {
-        font-size: 1.18rem;
-        color: var(--ink);
-    }
-
-    .birthday-upcoming-list {
-        display: grid;
-        gap: 0.8rem;
-    }
-
-    .birthday-upcoming-item {
-        display: flex;
-        align-items: center;
-        gap: 0.9rem;
-        padding: 0.8rem 0.85rem;
-        border-radius: 18px;
-        background: rgba(255,255,255,0.05);
-        border: 1px solid rgba(255,255,255,0.09);
-    }
+    .birthday-empty-title { font-size: 1.18rem; color: var(--ink); }
 
     .birthday-date-badge {
         width: 64px;
@@ -987,11 +947,7 @@ def _extra_css() -> str:
         color: var(--ink);
     }
 
-    .birthday-date-badge strong {
-        display: block;
-        font-size: 1.2rem;
-        line-height: 1;
-    }
+    .birthday-date-badge strong { display: block; font-size: 1.2rem; line-height: 1; }
 
     .birthday-date-month {
         display: block;
@@ -1003,32 +959,8 @@ def _extra_css() -> str:
         margin-bottom: 0.22rem;
     }
 
-    .birthday-upcoming-copy {
-        min-width: 0;
-    }
-
-    .birthday-upcoming-name {
-        font-size: 1.02rem;
-        color: var(--ink);
-    }
-
-    .birthday-upcoming-meta {
-        margin-top: 0.2rem;
-        color: #d5c8e6;
-    }
-
-    .birthday-chip {
-        display: inline-flex;
-        align-items: center;
-        margin-left: 0.45rem;
-        padding: 0.12rem 0.5rem;
-        border-radius: 999px;
-        background: rgba(255,255,255,0.08);
-        border: 1px solid rgba(255,255,255,0.08);
-        color: var(--muted);
-        font-size: 0.74rem;
-        font-weight: 700;
-    }
+    .birthday-upcoming-copy { min-width: 0; flex: 1; }
+    .birthday-upcoming-name { font-size: 1.02rem; color: var(--ink); }
 
     .birthday-textarea {
         width: 100%;
@@ -1044,75 +976,27 @@ def _extra_css() -> str:
         box-shadow: inset 0 1px 0 rgba(255,255,255,0.04);
     }
 
-    .birthday-textarea:focus {
-        outline: 2px solid rgba(255, 214, 116, 0.38);
-        border-color: rgba(255, 214, 116, 0.48);
-    }
-
-    .birthday-textarea--large {
-        min-height: 280px;
-    }
-
-    .birthday-actions {
-        display: flex;
-        align-items: center;
-        gap: 0.75rem;
-        flex-wrap: wrap;
-        margin-top: 0.75rem;
-    }
+    .birthday-textarea:focus { outline: 2px solid rgba(255, 214, 116, 0.38); border-color: rgba(255, 214, 116, 0.48); }
+    .birthday-textarea--large { min-height: 320px; font-size: 1rem; }
 
     @media (max-width: 980px) {
-        .card--birthday_calendar,
-        .card--birthday_spotlight,
-        .card--birthday_phone_helper,
-        .card--birthday_message_starter,
-        .card--birthday_upcoming,
-        .card--classic_rock,
-        .card--irish_history,
-        .card--boston_sports,
-        .card--famous_person_birthday,
-        .card--fun_fact {
+        .card--birthday_calendar, .card--birthday_spotlight, .card--birthday_phone_helper,
+        .card--birthday_message_starter, .card--birthday_upcoming, .card--classic_rock,
+        .card--irish_history, .card--boston_sports, .card--famous_person_birthday, .card--fun_fact {
             grid-column: span 6;
         }
-
-        .card--mom_daily {
-            grid-column: span 12;
-        }
+        .card--mom_daily { grid-column: span 12; }
     }
 
     @media (max-width: 720px) {
-        .card--birthday_calendar,
-        .card--birthday_spotlight,
-        .card--birthday_phone_helper,
-        .card--birthday_message_starter,
-        .card--birthday_upcoming,
-        .card--classic_rock,
-        .card--irish_history,
-        .card--boston_sports,
-        .card--famous_person_birthday,
-        .card--fun_fact,
-        .card--mom_daily {
-            grid-column: auto;
-        }
+        .card--birthday_calendar, .card--birthday_spotlight, .card--birthday_phone_helper,
+        .card--birthday_message_starter, .card--birthday_upcoming, .card--classic_rock,
+        .card--irish_history, .card--boston_sports, .card--famous_person_birthday,
+        .card--fun_fact, .card--mom_daily { grid-column: auto; }
 
-        header.hero {
-            padding: 38px 22px 30px;
-            border-radius: 26px;
-        }
-
-        .birthday-calendar-head {
-            align-items: flex-start;
-            flex-direction: column;
-        }
-
-        .birthday-calendar-nav {
-            justify-content: flex-start;
-        }
-
-        .birthday-empty-state {
-            align-items: flex-start;
-            flex-direction: column;
-        }
+        header.hero { padding: 38px 22px 30px; border-radius: 26px; }
+        .birthday-calendar-head, .birthday-empty-state { align-items: flex-start; flex-direction: column; }
+        .birthday-calendar-nav { justify-content: flex-start; }
     }
     """
 
@@ -1190,7 +1074,8 @@ def _extra_js(today: date, birthday_index: dict[str, list[str]]) -> str:
         if (!titleEl || !bodyEl || !headRowEl || !prevEl || !nextEl || !generateEl || !selectedLabelEl || !hintEl) return;
 
         const monthNames = ["January", "February", "March", "April", "May", "June", "July", "August", "September", "October", "November", "December"];
-        const dow = ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"];
+        const dow = ["Sun", "Mon", "Tue", "Thu", "Fri", "Sat"];
+        dow.splice(3, 0, "Wed");
         let viewYear = BDAY_INIT.year;
         let viewMonth = BDAY_INIT.month;
         let selected = {{ year: BDAY_INIT.year, month: BDAY_INIT.month, day: BDAY_INIT.day }};
@@ -1232,16 +1117,10 @@ def _extra_js(today: date, birthday_index: dict[str, list[str]]) -> str:
                         const hits = Array.isArray(BDAY_INDEX[mmdd]) ? BDAY_INDEX[mmdd] : [];
                         if (hits.length > 0) {{
                             cell.classList.add("has-birthday");
-                            if (hits.length > 1) {{
-                                const count = document.createElement("div");
-                                count.className = "birthday-day-count";
-                                count.textContent = String(hits.length);
-                                cell.appendChild(count);
-                            }} else {{
-                                const dot = document.createElement("div");
-                                dot.className = "birthday-day-dot";
-                                cell.appendChild(dot);
-                            }}
+                            const marker = document.createElement("div");
+                            marker.className = hits.length > 1 ? "birthday-day-count" : "birthday-day-dot";
+                            marker.textContent = hits.length > 1 ? String(hits.length) : "";
+                            cell.appendChild(marker);
                             cell.title = `Birthdays: ${{hits.join(", ")}}`;
                         }}
                         if (isCurrentMonth && day === realToday.getDate()) cell.classList.add("today");
@@ -1294,22 +1173,22 @@ def _extra_js(today: date, birthday_index: dict[str, list[str]]) -> str:
     """
 
 
-def _dynamic_header_subtitle(today: date, birthday_hits: list[dict], selected_facts: dict[str, CuratedFact | None]) -> str:
-    fact_count = sum(1 for fact in selected_facts.values() if fact is not None)
+def _dynamic_header_subtitle(today: date, birthday_hits: list[dict], fact_groups: dict[str, list[CuratedFact]]) -> str:
+    fact_count = sum(len(facts) for facts in fact_groups.values())
     if birthday_hits:
         names = [str(item.get("name", "")).strip() for item in birthday_hits if str(item.get("name", "")).strip()]
         if len(names) == 1:
-            return f"{names[0]} is up today — birthday tools plus {fact_count} curated fun cards for Patti to mix and match."
-        return f"{len(names)} birthdays are up today — birthday tools plus {fact_count} curated fun cards for Patti to mix and match."
-    return f"No family birthday lands on {today.strftime('%B %d')} — use this as a planning day with {fact_count} curated fun cards."
+            return f"{names[0]} is up today — birthday tools plus a Patti-style draft built from {fact_count} curated fact options."
+        return f"{len(names)} birthdays are up today — birthday tools plus a Patti-style draft built from {fact_count} curated fact options."
+    return f"No family birthday lands on {today.strftime('%B %d')} — use this as a planning day with {fact_count} curated fact options."
 
 
-def _dynamic_hero_summary_pill(birthday_hits: list[dict], selected_facts: dict[str, CuratedFact | None]) -> str:
-    fact_count = sum(1 for fact in selected_facts.values() if fact is not None)
+def _dynamic_hero_summary_pill(birthday_hits: list[dict], fact_groups: dict[str, list[CuratedFact]]) -> str:
+    fact_count = sum(len(facts) for facts in fact_groups.values())
     birthday_count = len(birthday_hits)
     if birthday_count:
-        return f"{birthday_count} birthday{'s' if birthday_count != 1 else ''} today · {fact_count} fun cards"
-    return f"Planning view · {fact_count} fun cards"
+        return f"{birthday_count} birthday{'s' if birthday_count != 1 else ''} today · Patti draft · {fact_count} fact options"
+    return f"Planning view · Patti draft · {fact_count} fact options"
 
 
 def build_theme_page(date_str: str | None = None, seed: int | None = None) -> PageContext:
@@ -1323,13 +1202,17 @@ def build_theme_page(date_str: str | None = None, seed: int | None = None) -> Pa
     all_phones = people_to_phone_list(birthdays)
     phones_without_birthday_person = filter_phones_excluding_birthday_people(all_phones, birthday_hits)
     message_text = _message_text_for_hits(birthday_hits, rng)
-    selected_facts = {card_type: select_fact_for_card_type(card_type, today, seed=rng_seed) for card_type in CURATED_CARD_ORDER}
     available_curated = approved_facts()
+    fact_groups = {
+        card_type: _select_facts_for_card_type(available_curated, card_type, today, rng_seed)
+        for card_type in CURATED_CARD_ORDER
+    }
 
     cards: list[CardItem] = [
         CardItem("birthday_calendar", "Pick a Date", "Birthday Calendar", _calendar_card_html(today), None),
-        CardItem("birthday_spotlight", "Birthday Spotlight", today.strftime("%B %d"), _render_birthday_spotlight(birthday_hits, message_text), None),
+        CardItem("birthday_spotlight", "Birthday Spotlight", today.strftime("%B %d"), _render_birthday_spotlight(today, birthday_hits, message_text), None),
         CardItem("birthday_phone_helper", "Quick Outreach", "Phone List Helper", _render_phone_helper(phones_without_birthday_person, birthday_hits), None),
+        CardItem("mom_daily", "Patti Mode", "Mom Daily Draft", _render_mom_daily(today, birthday_hits, message_text, fact_groups, rng), None),
     ]
 
     fact_meta = {
@@ -1342,7 +1225,7 @@ def build_theme_page(date_str: str | None = None, seed: int | None = None) -> Pa
 
     for card_type in CURATED_CARD_ORDER:
         eyebrow, fallback_title, fallback_body = fact_meta[card_type]
-        title, body_html, source_url = _render_fact_card_body(selected_facts.get(card_type), fallback_title, fallback_body)
+        title, body_html, source_url = _render_fact_card_body(fact_groups.get(card_type, []), today, fallback_title, fallback_body)
         cards.append(CardItem(card_type, eyebrow, title, body_html, source_url))
 
     cards.extend([
@@ -1351,7 +1234,7 @@ def build_theme_page(date_str: str | None = None, seed: int | None = None) -> Pa
             "Message Starter",
             "What to Say",
             f"""
-                <p>Editable starter you can copy into a text message.</p>
+                <p>Editable starter you can copy into a direct birthday text.</p>
                 <textarea id=\"birthday-message-starter\" class=\"birthday-textarea\">{escape(message_text)}</textarea>
                 <div class=\"birthday-actions\">
                     <button class=\"birthday-btn\" type=\"button\" id=\"birthdayMessageCopyBtn\">Copy message</button>
@@ -1361,7 +1244,6 @@ def build_theme_page(date_str: str | None = None, seed: int | None = None) -> Pa
             None,
         ),
         CardItem("birthday_upcoming", "Plan Ahead", "Upcoming Birthdays", _render_upcoming_birthdays(today, birthdays), None),
-        CardItem("mom_daily", "Patti Mode", "Mom Daily Draft", _render_mom_daily(today, birthday_hits, message_text, selected_facts, rng), None),
     ])
 
     footer_text = (
@@ -1372,7 +1254,7 @@ def build_theme_page(date_str: str | None = None, seed: int | None = None) -> Pa
     return PageContext(
         page_title=f"BirthDay Today — {today.strftime('%B %d, %Y')}",
         header_title=THEME_CONFIG["header_title"],
-        header_subtitle=_dynamic_header_subtitle(today, birthday_hits, selected_facts),
+        header_subtitle=_dynamic_header_subtitle(today, birthday_hits, fact_groups),
         today_str=today.strftime("%A, %B %d, %Y"),
         cards=cards,
         footer_text=footer_text,
@@ -1382,7 +1264,7 @@ def build_theme_page(date_str: str | None = None, seed: int | None = None) -> Pa
             "background": None,
             "header_title_image": THEME_CONFIG.get("header_title_image"),
             "hero_kicker": THEME_CONFIG.get("hero_kicker", "Daily Flyer • Theme"),
-            "hero_summary_pill": _dynamic_hero_summary_pill(birthday_hits, selected_facts),
+            "hero_summary_pill": _dynamic_hero_summary_pill(birthday_hits, fact_groups),
             "extra_css": _extra_css(),
             "extra_js": _extra_js(today, birthday_index),
             "extra_head_html": _extra_head_html(),
