@@ -147,9 +147,10 @@ class WebRouteTests(unittest.TestCase):
             self.assertEqual(response.status_code, 200)
             self.assertIn(b"Chris Holtsnider", response.data)
             self.assertIn(b"Patti Mode", response.data)
-            self.assertIn(b"WRONG!!", response.data)
             self.assertIn(b"Turns 40th", response.data)
-            self.assertIn(b"family birthday as real headline", response.data)
+            self.assertIn(b"facts as seasoning", response.data)
+            self.assertIn(b"birthday stays central", response.data)
+            self.assertIn(b"More birthday-theme facts", response.data)
         finally:
             os.remove(temp_path)
 
