@@ -1,0 +1,71 @@
+from __future__ import annotations
+
+import json
+from pathlib import Path
+from typing import Any
+
+from daily_flyer.curated_fact_store import CuratedFact, CuratedFactValidationError
+
+
+DEFAULT_BIRTHDAY_THEME_FACTS_FILE = Path("birthday_theme_facts.json")
+
+
+def _safe_int_or_none(value: Any) -> int | None:
+    if value in (None, ""):
+        return None
+    try:
+        return int(value)
+    except (TypeError, ValueError):
+        return None
+
+
+def _fact_from_dict(item: dict[str, Any], index: int) -> CuratedFact:
+    fact_id = str(item.get("fact_id", "")).strip()
+    card_type = str(item.get("card_type", "")).strip()
+    title = str(item.get("title", "")).strip()
+    body = str(item.get("body", "")).strip()
+    source_name = str(item.get("source_name", "Birthday theme supplemental facts")).strip()
+    source_url = str(item.get("source_url", "https://github.com/shnider42/daily_flyer")).strip()
+
+    if not fact_id:
+        raise CuratedFactValidationError(f"Birthday theme fact #{index} is missing fact_id.")
+    if not card_type:
+        raise CuratedFactValidationError(f"Birthday theme fact {fact_id!r} is missing card_type.")
+    if not title or not body:
+        raise CuratedFactValidationError(f"Birthday theme fact {fact_id!r} must have title and body.")
+
+    return CuratedFact(
+        fact_id=fact_id,
+        card_type=card_type,
+        title=title,
+        body=body,
+        source_name=source_name,
+        source_url=source_url,
+        verified=bool(item.get("verified", False)),
+        status=str(item.get("status", "approved") or "approved"),
+        tone=str(item.get("tone", "warm") or "warm"),
+        tags=[str(tag).strip() for tag in (item.get("tags", []) or []) if str(tag).strip()],
+        month=_safe_int_or_none(item.get("month")),
+        day=_safe_int_or_none(item.get("day")),
+        week_mode=str(item.get("week_mode", "") or "") or None,
+        week_of_month=_safe_int_or_none(item.get("week_of_month")),
+        week_of_day=_safe_int_or_none(item.get("week_of_day")),
+        within_days=_safe_int_or_none(item.get("within_days")),
+        notes=str(item.get("notes", "") or ""),
+    )
+
+
+def load_birthday_theme_facts(path: str | Path = DEFAULT_BIRTHDAY_THEME_FACTS_FILE) -> list[CuratedFact]:
+    fact_path = Path(path)
+    if not fact_path.exists():
+        return []
+
+    data = json.loads(fact_path.read_text(encoding="utf-8"))
+    if not isinstance(data, list):
+        raise CuratedFactValidationError("birthday_theme_facts.json must contain a JSON array.")
+
+    return [_fact_from_dict(item, index + 1) for index, item in enumerate(data) if isinstance(item, dict)]
+
+
+def approved_birthday_theme_facts(path: str | Path = DEFAULT_BIRTHDAY_THEME_FACTS_FILE) -> list[CuratedFact]:
+    return [fact for fact in load_birthday_theme_facts(path) if fact.status in {"approved", "published"}]
