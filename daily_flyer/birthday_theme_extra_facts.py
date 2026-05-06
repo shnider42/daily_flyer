@@ -2,12 +2,17 @@ from __future__ import annotations
 
 import json
 from pathlib import Path
-from typing import Any
+from typing import Any, Iterable
 
 from daily_flyer.curated_fact_store import CuratedFact, CuratedFactValidationError
 
 
 DEFAULT_BIRTHDAY_THEME_FACTS_FILE = Path("birthday_theme_facts.json")
+DEFAULT_BIRTHDAY_HISTORY_FACTS_FILE = Path("birthday_history_facts.json")
+DEFAULT_BIRTHDAY_SUPPLEMENTAL_FACT_FILES = (
+    DEFAULT_BIRTHDAY_THEME_FACTS_FILE,
+    DEFAULT_BIRTHDAY_HISTORY_FACTS_FILE,
+)
 
 
 def _safe_int_or_none(value: Any) -> int | None:
@@ -19,7 +24,7 @@ def _safe_int_or_none(value: Any) -> int | None:
         return None
 
 
-def _fact_from_dict(item: dict[str, Any], index: int) -> CuratedFact:
+def _fact_from_dict(item: dict[str, Any], index: int, source_path: Path) -> CuratedFact:
     fact_id = str(item.get("fact_id", "")).strip()
     card_type = str(item.get("card_type", "")).strip()
     title = str(item.get("title", "")).strip()
@@ -28,11 +33,11 @@ def _fact_from_dict(item: dict[str, Any], index: int) -> CuratedFact:
     source_url = str(item.get("source_url", "https://github.com/shnider42/daily_flyer")).strip()
 
     if not fact_id:
-        raise CuratedFactValidationError(f"Birthday theme fact #{index} is missing fact_id.")
+        raise CuratedFactValidationError(f"Birthday theme fact #{index} in {source_path} is missing fact_id.")
     if not card_type:
-        raise CuratedFactValidationError(f"Birthday theme fact {fact_id!r} is missing card_type.")
+        raise CuratedFactValidationError(f"Birthday theme fact {fact_id!r} in {source_path} is missing card_type.")
     if not title or not body:
-        raise CuratedFactValidationError(f"Birthday theme fact {fact_id!r} must have title and body.")
+        raise CuratedFactValidationError(f"Birthday theme fact {fact_id!r} in {source_path} must have title and body.")
 
     return CuratedFact(
         fact_id=fact_id,
@@ -62,10 +67,21 @@ def load_birthday_theme_facts(path: str | Path = DEFAULT_BIRTHDAY_THEME_FACTS_FI
 
     data = json.loads(fact_path.read_text(encoding="utf-8"))
     if not isinstance(data, list):
-        raise CuratedFactValidationError("birthday_theme_facts.json must contain a JSON array.")
+        raise CuratedFactValidationError(f"{fact_path} must contain a JSON array.")
 
-    return [_fact_from_dict(item, index + 1) for index, item in enumerate(data) if isinstance(item, dict)]
+    return [_fact_from_dict(item, index + 1, fact_path) for index, item in enumerate(data) if isinstance(item, dict)]
 
 
-def approved_birthday_theme_facts(path: str | Path = DEFAULT_BIRTHDAY_THEME_FACTS_FILE) -> list[CuratedFact]:
-    return [fact for fact in load_birthday_theme_facts(path) if fact.status in {"approved", "published"}]
+def load_birthday_supplemental_fact_files(
+    paths: Iterable[str | Path] = DEFAULT_BIRTHDAY_SUPPLEMENTAL_FACT_FILES,
+) -> list[CuratedFact]:
+    facts: list[CuratedFact] = []
+    for path in paths:
+        facts.extend(load_birthday_theme_facts(path))
+    return facts
+
+
+def approved_birthday_theme_facts(
+    paths: Iterable[str | Path] = DEFAULT_BIRTHDAY_SUPPLEMENTAL_FACT_FILES,
+) -> list[CuratedFact]:
+    return [fact for fact in load_birthday_supplemental_fact_files(paths) if fact.status in {"approved", "published"}]
