@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import json
 import random
 from datetime import date
 from html import escape
@@ -187,10 +188,7 @@ def _select_facts_for_card_type(
     if not pool:
         return []
 
-    # Keep negative facts in the data, but avoid making them lead/copy candidates
-    # unless there is truly nothing else for the card type.
     primary_pool = [fact for fact in pool if is_primary_friendly(fact, profile)] or pool
-
     rng = random.Random(f"{card_type}|{target.isoformat()}|{seed}|weighted-facts")
     jitter = {fact.fact_id: rng.random() * 0.01 for fact in primary_pool}
 
@@ -203,9 +201,6 @@ def _select_facts_for_card_type(
         )
 
     ranked = sorted(primary_pool, key=sort_key)
-
-    # Add extra non-lead options after the friendly ranked packet, so an editor can
-    # still find them manually if needed without Patti Mode using them first.
     backup = [fact for fact in pool if fact not in ranked]
     return _dedupe_facts(ranked + backup)[:limit]
 
@@ -367,17 +362,36 @@ def _render_upcoming_birthdays(today: date, birthdays: list[dict], limit: int = 
     return "".join(parts)
 
 
-def _calendar_card_html(today: date, birthday_index: dict[str, list[str]]) -> str:
-    names = birthday_index.get(today.strftime("%m-%d"), [])
-    if names:
-        today_note = " · ".join(names)
-    else:
-        today_note = "No birthday on file for this date"
+def _calendar_card_html(today: date) -> str:
+    selected_label = today.strftime("%B %d, %Y")
     return f"""
-        <div class="birthday-helper-panel">
-            <p><strong>Selected date:</strong> {escape(today.strftime('%B %d, %Y'))}</p>
-            <p class="birthday-hint">{escape(today_note)}</p>
-            <p>Use the URL date parameter to test any date, for example <code>?theme=this_day_birthday&amp;date=2026-07-10&amp;seed=7</code>.</p>
+        <div class="birthday-calendar-wrap">
+            <div class="birthday-calendar-head">
+                <div>
+                    <div class="birthday-calendar-title" id="birthdayCalTitle">Month YYYY</div>
+                    <div class="birthday-calendar-subtitle">Browse birthdays across the year and jump to any date.</div>
+                </div>
+                <div class="birthday-calendar-nav">
+                    <button class="birthday-iconbtn" type="button" id="birthdayTodayBtn">Today</button>
+                    <button class="birthday-iconbtn" type="button" id="birthdayCalPrev" aria-label="Previous month">‹</button>
+                    <button class="birthday-iconbtn" type="button" id="birthdayCalNext" aria-label="Next month">›</button>
+                </div>
+            </div>
+            <table class="birthday-calendar">
+                <thead><tr id="birthdayCalHeadRow"></tr></thead>
+                <tbody id="birthdayCalBody"></tbody>
+            </table>
+            <div class="birthday-calendar-legend">
+                <span><span class="birthday-legend-dot"></span> birthday on file</span>
+                <span><span class="birthday-legend-pill"></span> selected date</span>
+            </div>
+            <div class="birthday-calendar-controls">
+                <button class="birthday-btn" type="button" id="birthdayGenerateBtn">Generate</button>
+                <div>
+                    <div class="birthday-selected" id="birthdaySelectedLabel">Selected: {escape(selected_label)}</div>
+                    <div class="birthday-hint" id="birthdayGenerateHint">Click a date, then Generate.</div>
+                </div>
+            </div>
         </div>
     """
 
@@ -472,16 +486,36 @@ def _extra_css() -> str:
     .card--birthday_spotlight { grid-column: span 5; }
     .card--mom_daily { grid-column: span 12; }
     .card--birthday_phone_helper, .card--birthday_message_starter, .card--birthday_upcoming, .card--classic_rock, .card--irish_history, .card--boston_sports, .card--famous_person_birthday, .card--fun_fact { grid-column: span 4; }
-    .birthday-helper-panel, .birthday-spotlight-shell, .mom-daily-frame, .fact-stack, .birthday-upcoming-list, .birthday-stack { display: grid; gap: .9rem; }
-    .birthday-summary-row, .birthday-stat-row, .birthday-actions, .mom-daily-anatomy { display: flex; flex-wrap: wrap; gap: .55rem; }
-    .birthday-btn, .birthday-soft-pill, .birthday-summary-pill, .mom-daily-anatomy span, .fact-relevance { border: 1px solid rgba(255,255,255,.12); background: rgba(255,255,255,.08); color: var(--ink); border-radius: 999px; padding: .45rem .75rem; font-weight: 700; }
-    .birthday-btn { border-radius: 14px; cursor: pointer; font: inherit; }
+    .birthday-helper-panel, .birthday-spotlight-shell, .mom-daily-frame, .fact-stack, .birthday-upcoming-list, .birthday-stack, .birthday-calendar-wrap { display: grid; gap: .9rem; }
+    .birthday-calendar-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; }
+    .birthday-calendar-title { font-size: 1.28rem; font-weight: 800; color: var(--ink); }
+    .birthday-calendar-subtitle, .birthday-selected, .birthday-hint { color: #d5c8e6; font-size: .88rem; }
+    .birthday-calendar-nav, .birthday-calendar-controls, .birthday-summary-row, .birthday-stat-row, .birthday-actions, .mom-daily-anatomy { display: flex; flex-wrap: wrap; gap: .55rem; align-items: center; }
+    .birthday-iconbtn, .birthday-btn, .birthday-soft-pill, .birthday-summary-pill, .mom-daily-anatomy span, .fact-relevance { border: 1px solid rgba(255,255,255,.12); background: rgba(255,255,255,.08); color: var(--ink); border-radius: 999px; padding: .45rem .75rem; font-weight: 700; }
+    .birthday-iconbtn, .birthday-btn { cursor: pointer; font: inherit; }
+    .birthday-btn { border-radius: 14px; }
     .birthday-summary-pill--warm { background: rgba(255,204,122,.18); color: #fff0ca; }
+    .birthday-calendar { width: 100%; border-collapse: separate; border-spacing: .3rem; }
+    .birthday-calendar th { font-size: .78rem; color: #d3c5e8; padding: .2rem 0; text-align: center; }
+    .birthday-calendar td { padding: 0; }
+    .birthday-day { width: 100%; min-height: 58px; display: flex; align-items: center; justify-content: center; position: relative; border-radius: 18px; border: 1px solid rgba(255,255,255,.09); background: rgba(255,255,255,.05); color: var(--ink); cursor: pointer; user-select: none; font-weight: 800; }
+    .birthday-day:hover { background: rgba(255,255,255,.09); transform: translateY(-1px); }
+    .birthday-day.muted { opacity: .24; cursor: default; }
+    .birthday-day.today { outline: 2px solid rgba(255,255,255,.22); }
+    .birthday-day.selected { outline: 2px solid rgba(255,214,116,.78); background: rgba(255,214,116,.14); box-shadow: 0 12px 24px rgba(255,214,116,.14); }
+    .birthday-day.has-birthday { background: rgba(255,170,90,.12); border-color: rgba(255,170,90,.30); }
+    .birthday-day-dot, .birthday-day-count { position: absolute; bottom: 6px; border-radius: 999px; background: rgba(255,215,120,.96); box-shadow: 0 0 10px rgba(255,215,120,.40); }
+    .birthday-day-dot { width: 6px; height: 6px; }
+    .birthday-day-count { min-width: 18px; height: 18px; padding: 0 .35rem; color: #24160a; font-size: .72rem; font-weight: 900; }
+    .birthday-calendar-legend { display: flex; flex-wrap: wrap; gap: .9rem; color: #d7cbe7; font-size: .84rem; }
+    .birthday-legend-dot, .birthday-legend-pill { display: inline-block; border-radius: 999px; background: rgba(255,215,120,.95); margin-right: .35rem; }
+    .birthday-legend-dot { width: 8px; height: 8px; }
+    .birthday-legend-pill { width: 18px; height: 12px; background: rgba(255,215,120,.30); border: 1px solid rgba(255,215,120,.72); }
     .birthday-person, .birthday-upcoming-item, .fact-lead, .fact-more, .birthday-empty-state { padding: 1rem; border-radius: 18px; background: linear-gradient(180deg, rgba(255,255,255,.07), rgba(255,255,255,.03)); border: 1px solid rgba(255,255,255,.10); }
     .birthday-person-top, .birthday-upcoming-item { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
     .birthday-mini-label { color: #ffd9a0; font-size: .74rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
     .birthday-name { margin-top: .18rem; font-weight: 700; font-size: 1.26rem; color: var(--ink); }
-    .birthday-meta, .birthday-note, .birthday-upcoming-meta, .birthday-hint { color: #d5c8e6; font-size: .88rem; }
+    .birthday-meta, .birthday-note, .birthday-upcoming-meta { color: #d5c8e6; font-size: .88rem; }
     .birthday-textarea { width: 100%; min-height: 120px; resize: vertical; padding: .95rem 1rem; border-radius: 16px; border: 1px solid rgba(255,255,255,.12); background: rgba(255,255,255,.06); color: var(--ink); font: inherit; line-height: 1.55; }
     .birthday-textarea--large { min-height: 320px; }
     .birthday-date-badge { width: 64px; min-width: 64px; border-radius: 18px; padding: .55rem .35rem; background: rgba(255,214,116,.18); text-align: center; }
@@ -491,24 +525,159 @@ def _extra_css() -> str:
     .fact-more summary { cursor: pointer; color: #ffe6b8; font-weight: 800; }
     .fact-more ul { margin: .85rem 0 0; padding-left: 1.1rem; display: grid; gap: .75rem; }
     @media (max-width: 980px) { .card--birthday_calendar, .card--birthday_spotlight, .card--birthday_phone_helper, .card--birthday_message_starter, .card--birthday_upcoming, .card--classic_rock, .card--irish_history, .card--boston_sports, .card--famous_person_birthday, .card--fun_fact { grid-column: span 6; } }
-    @media (max-width: 720px) { .card--birthday_calendar, .card--birthday_spotlight, .card--birthday_phone_helper, .card--birthday_message_starter, .card--birthday_upcoming, .card--classic_rock, .card--irish_history, .card--boston_sports, .card--famous_person_birthday, .card--fun_fact, .card--mom_daily { grid-column: auto; } }
+    @media (max-width: 720px) { .card--birthday_calendar, .card--birthday_spotlight, .card--birthday_phone_helper, .card--birthday_message_starter, .card--birthday_upcoming, .card--classic_rock, .card--irish_history, .card--boston_sports, .card--famous_person_birthday, .card--fun_fact, .card--mom_daily { grid-column: auto; } .birthday-calendar-head { flex-direction: column; } }
     """
 
 
-def _extra_js() -> str:
-    return """
-    async function copyTextValue(value, statusId) {
+def _extra_js(today: date, birthday_index: dict[str, list[str]]) -> str:
+    payload_index = json.dumps(birthday_index, ensure_ascii=False)
+    payload_init = json.dumps({"year": today.year, "month": today.month, "day": today.day, "theme": THEME_NAME}, ensure_ascii=False)
+    return f"""
+    const BDAY_INDEX = {payload_index};
+    const BDAY_INIT = {payload_init};
+
+    async function copyTextValue(value, statusId) {{
       const status = statusId ? document.getElementById(statusId) : null;
-      try { await navigator.clipboard.writeText(value); if (status) status.textContent = 'Copied ✅'; }
-      catch (err) { if (status) status.textContent = 'Copy manually'; }
-    }
-    (function () {
-      [['birthdayPhoneCopyBtn','birthday-phone-list','birthday-phone-copy-status'], ['birthdayMessageCopyBtn','birthday-message-starter','birthday-message-copy-status'], ['momDailyCopyBtn','mom-daily-text','mom-daily-copy-status']].forEach(([btnId, fieldId, statusId]) => {
+      function updateStatus(text) {{
+        if (!status) return;
+        status.textContent = text;
+        setTimeout(() => {{ if (status.textContent === text) status.textContent = ''; }}, 1600);
+      }}
+      try {{
+        if (navigator.clipboard && window.isSecureContext) {{
+          await navigator.clipboard.writeText(value);
+          updateStatus('Copied ✅');
+          return true;
+        }}
+      }} catch (err) {{}}
+      const helper = document.createElement('textarea');
+      helper.value = value;
+      helper.setAttribute('readonly', 'readonly');
+      helper.style.position = 'fixed';
+      helper.style.opacity = '0';
+      document.body.appendChild(helper);
+      helper.focus();
+      helper.select();
+      try {{ document.execCommand('copy'); updateStatus('Copied ✅'); }}
+      catch (err) {{ updateStatus('Copy manually'); }}
+      document.body.removeChild(helper);
+    }}
+
+    (function () {{
+      [['birthdayPhoneCopyBtn','birthday-phone-list','birthday-phone-copy-status'], ['birthdayMessageCopyBtn','birthday-message-starter','birthday-message-copy-status'], ['momDailyCopyBtn','mom-daily-text','mom-daily-copy-status']].forEach(([btnId, fieldId, statusId]) => {{
         const btn = document.getElementById(btnId); const field = document.getElementById(fieldId);
         if (btn && field) btn.addEventListener('click', () => copyTextValue(field.value, statusId));
-      });
+      }});
       document.querySelectorAll('[data-copy-text]').forEach((el) => el.addEventListener('click', () => copyTextValue(el.getAttribute('data-copy-text') || '', 'birthday-message-copy-status')));
-    })();
+    }})();
+
+    (function () {{
+      const titleEl = document.getElementById('birthdayCalTitle');
+      const bodyEl = document.getElementById('birthdayCalBody');
+      const headRowEl = document.getElementById('birthdayCalHeadRow');
+      const prevEl = document.getElementById('birthdayCalPrev');
+      const nextEl = document.getElementById('birthdayCalNext');
+      const todayEl = document.getElementById('birthdayTodayBtn');
+      const generateEl = document.getElementById('birthdayGenerateBtn');
+      const selectedLabelEl = document.getElementById('birthdaySelectedLabel');
+      const hintEl = document.getElementById('birthdayGenerateHint');
+      if (!titleEl || !bodyEl || !headRowEl || !prevEl || !nextEl || !generateEl || !selectedLabelEl || !hintEl) return;
+
+      const monthNames = ['January','February','March','April','May','June','July','August','September','October','November','December'];
+      const dow = ['Sun','Mon','Tue','Wed','Thu','Fri','Sat'];
+      let viewYear = BDAY_INIT.year;
+      let viewMonth = BDAY_INIT.month;
+      let selected = {{ year: BDAY_INIT.year, month: BDAY_INIT.month, day: BDAY_INIT.day }};
+
+      function pad2(n) {{ return String(n).padStart(2, '0'); }}
+      function keyMMDD(month, day) {{ return `${{pad2(month)}}-${{pad2(day)}}`; }}
+      function daysInMonth(year, month) {{ return new Date(year, month, 0).getDate(); }}
+      function firstDow(year, month) {{ return new Date(year, month - 1, 1).getDay(); }}
+      function sameDate(a, b) {{ return a && b && a.year === b.year && a.month === b.month && a.day === b.day; }}
+      function renderHead() {{
+        headRowEl.innerHTML = '';
+        dow.forEach((label) => {{ const th = document.createElement('th'); th.textContent = label; headRowEl.appendChild(th); }});
+      }}
+      function updateSelectedText() {{
+        const pretty = `${{monthNames[selected.month - 1]}} ${{String(selected.day).padStart(2, '0')}}, ${{selected.year}}`;
+        selectedLabelEl.textContent = `Selected: ${{pretty}}`;
+        const hits = BDAY_INDEX[keyMMDD(selected.month, selected.day)] || [];
+        if (hits.length === 1) hintEl.textContent = `🎂 Birthday: ${{hits[0]}}`;
+        else if (hits.length > 1) hintEl.textContent = `🎂 Birthdays: ${{hits.join(', ')}}`;
+        else hintEl.textContent = 'Click Generate to reload the page for that date.';
+      }}
+      function renderCalendar() {{
+        titleEl.textContent = `${{monthNames[viewMonth - 1]}} ${{viewYear}}`;
+        bodyEl.innerHTML = '';
+        const realToday = new Date();
+        const isCurrentMonth = realToday.getFullYear() === viewYear && (realToday.getMonth() + 1) === viewMonth;
+        const first = firstDow(viewYear, viewMonth);
+        const total = daysInMonth(viewYear, viewMonth);
+        let day = 1;
+        for (let row = 0; row < 6; row++) {{
+          const tr = document.createElement('tr');
+          for (let col = 0; col < 7; col++) {{
+            const td = document.createElement('td');
+            if ((row === 0 && col < first) || day > total) {{
+              td.innerHTML = "<div class='birthday-day muted'></div>";
+            }} else {{
+              const cell = document.createElement('div');
+              cell.className = 'birthday-day';
+              cell.textContent = String(day);
+              const mmdd = keyMMDD(viewMonth, day);
+              const hits = Array.isArray(BDAY_INDEX[mmdd]) ? BDAY_INDEX[mmdd] : [];
+              if (hits.length > 0) {{
+                cell.classList.add('has-birthday');
+                const marker = document.createElement('div');
+                marker.className = hits.length > 1 ? 'birthday-day-count' : 'birthday-day-dot';
+                marker.textContent = hits.length > 1 ? String(hits.length) : '';
+                cell.appendChild(marker);
+                cell.title = `Birthdays: ${{hits.join(', ')}}`;
+              }}
+              if (isCurrentMonth && day === realToday.getDate()) cell.classList.add('today');
+              const candidate = {{ year: viewYear, month: viewMonth, day }};
+              if (sameDate(candidate, selected)) cell.classList.add('selected');
+              cell.addEventListener('click', () => {{ selected = candidate; updateSelectedText(); renderCalendar(); }});
+              td.appendChild(cell);
+              day += 1;
+            }}
+            tr.appendChild(td);
+          }}
+          bodyEl.appendChild(tr);
+          if (day > total) break;
+        }}
+      }}
+      function goMonth(delta) {{
+        let nextMonth = viewMonth + delta;
+        let nextYear = viewYear;
+        if (nextMonth < 1) {{ nextMonth = 12; nextYear -= 1; }}
+        if (nextMonth > 12) {{ nextMonth = 1; nextYear += 1; }}
+        viewMonth = nextMonth;
+        viewYear = nextYear;
+        renderCalendar();
+      }}
+      function jumpToToday() {{
+        const now = new Date();
+        viewYear = now.getFullYear();
+        viewMonth = now.getMonth() + 1;
+        selected = {{ year: now.getFullYear(), month: now.getMonth() + 1, day: now.getDate() }};
+        updateSelectedText();
+        renderCalendar();
+      }}
+      function generate() {{
+        const params = new URLSearchParams(window.location.search);
+        params.set('theme', BDAY_INIT.theme);
+        params.set('date', `${{selected.year}}-${{pad2(selected.month)}}-${{pad2(selected.day)}}`);
+        window.location.search = params.toString();
+      }}
+      prevEl.addEventListener('click', () => goMonth(-1));
+      nextEl.addEventListener('click', () => goMonth(1));
+      todayEl.addEventListener('click', jumpToToday);
+      generateEl.addEventListener('click', generate);
+      renderHead();
+      updateSelectedText();
+      renderCalendar();
+    }})();
     """
 
 
@@ -531,7 +700,7 @@ def build_theme_page(date_str: str | None = None, seed: int | None = None) -> Pa
     }
 
     cards: list[CardItem] = [
-        CardItem("birthday_calendar", "Pick a Date", "Birthday Calendar", _calendar_card_html(today, birthday_index), None),
+        CardItem("birthday_calendar", "Pick a Date", "Birthday Calendar", _calendar_card_html(today), None),
         CardItem("birthday_spotlight", "Birthday Spotlight", today.strftime("%B %d"), _render_birthday_spotlight(today, birthday_hits, message_text), None),
         CardItem("birthday_phone_helper", "Quick Outreach", "Phone List Helper", _render_phone_helper(phones_without_birthday_person, birthday_hits), None),
         CardItem("mom_daily", "Patti Mode", "Mom Daily Draft", _render_mom_daily(today, birthday_hits, message_text, fact_groups, profile, rng), None),
@@ -579,7 +748,7 @@ def build_theme_page(date_str: str | None = None, seed: int | None = None) -> Pa
             "hero_kicker": THEME_CONFIG.get("hero_kicker", "Daily Flyer • Theme"),
             "hero_summary_pill": f"{birthday_count} birthday{'s' if birthday_count != 1 else ''} · {fact_count} weighted facts" if birthday_count else f"Planning view · {fact_count} weighted facts",
             "extra_css": _extra_css(),
-            "extra_js": _extra_js(),
+            "extra_js": _extra_js(today, birthday_index),
             "extra_head_html": _extra_head_html(),
         },
     )
