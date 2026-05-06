@@ -7,6 +7,8 @@ import unittest
 from types import SimpleNamespace
 from unittest.mock import patch
 
+from daily_flyer.content_weighting import load_keyword_weight_profile, score_content_item
+from daily_flyer.curated_fact_store import CuratedFact
 from daily_flyer.theme_validation import ThemeValidationError, validate_theme_module
 from web import app
 
@@ -97,6 +99,38 @@ class ThemeValidationTests(unittest.TestCase):
             validate_theme_module(theme, "bad_background_theme")
 
 
+class ContentWeightingTests(unittest.TestCase):
+    def test_birthday_profile_penalizes_negative_copy_keywords(self) -> None:
+        profile = load_keyword_weight_profile("birthday_family_friendly")
+        negative = CuratedFact(
+            fact_id="negative_music_fact",
+            card_type="classic_rock",
+            title="Jim Morrison Dies",
+            body="Jim Morrison died in Paris in 1971.",
+            source_name="Example",
+            source_url="https://example.com",
+            status="approved",
+            tags=["music"],
+            month=7,
+            day=3,
+        )
+        positive = CuratedFact(
+            fact_id="positive_music_fact",
+            card_type="classic_rock",
+            title="Dolly Parton Birthday",
+            body="Dolly Parton was born and built a warm music career around humor and generosity.",
+            source_name="Example",
+            source_url="https://example.com",
+            status="approved",
+            tags=["birthday", "music", "born"],
+            month=1,
+            day=19,
+        )
+
+        self.assertLess(score_content_item(negative, profile), profile.copy_floor)
+        self.assertGreater(score_content_item(positive, profile), score_content_item(negative, profile))
+
+
 class WebRouteTests(unittest.TestCase):
     def setUp(self) -> None:
         self.client = app.test_client()
@@ -151,6 +185,7 @@ class WebRouteTests(unittest.TestCase):
             self.assertIn(b"facts as seasoning", response.data)
             self.assertIn(b"birthday stays central", response.data)
             self.assertIn(b"More birthday-theme facts", response.data)
+            self.assertIn(b"keyword-weighted facts", response.data)
         finally:
             os.remove(temp_path)
 
