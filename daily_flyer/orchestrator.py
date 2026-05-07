@@ -78,6 +78,24 @@ def _normalize_extra_card_entry(
     )
 
 
+def _pin_cards(cards: list[CardItem], pinned_card_types: Any) -> list[CardItem]:
+    if not isinstance(pinned_card_types, (list, tuple)) or not pinned_card_types:
+        return cards
+
+    pinned_order = {str(card_type): index for index, card_type in enumerate(pinned_card_types)}
+    pinned: list[tuple[int, int, CardItem]] = []
+    rest: list[CardItem] = []
+
+    for original_index, card in enumerate(cards):
+        if card.card_type in pinned_order:
+            pinned.append((pinned_order[card.card_type], original_index, card))
+        else:
+            rest.append(card)
+
+    pinned.sort(key=lambda item: (item[0], item[1]))
+    return [card for _, _, card in pinned] + rest
+
+
 def _get_curated_history_card(theme, today, theme_config: dict) -> CardItem | None:
     mmdd = today.strftime("%m-%d")
 
@@ -350,6 +368,7 @@ def build_daily_page(
         cards = core_cards.copy()
 
     rng.shuffle(cards)
+    cards = _pin_cards(cards, theme_config.get("pinned_card_types", []))
 
     background = None
     theme_backgrounds = getattr(theme, "BACKGROUNDS", [])
