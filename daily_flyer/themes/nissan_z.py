@@ -40,9 +40,10 @@ THEME_CONFIG = {
 
     "min_optional_cards": 5,
     "max_optional_cards": 7,
+    "pinned_card_types": ["z_of_the_day", "nissan_z_connection"],
 
-    "extra_css": """
-    :root {
+    "extra_css": f"""
+    :root {{
         --bg: #090908;
         --bg-deep: #020202;
         --bg-soft: #151411;
@@ -59,49 +60,52 @@ THEME_CONFIG = {
         --blue: #d72f2f;
         --shadow-lg: 0 30px 90px rgba(0,0,0,0.58);
         --shadow-md: 0 18px 44px rgba(0,0,0,0.40);
-    }
+    }}
 
-    body {
+    body {{
         background:
             radial-gradient(circle at 18% 8%, rgba(210,165,88,0.18), transparent 30%),
             radial-gradient(circle at 78% 16%, rgba(215,47,47,0.16), transparent 26%),
             radial-gradient(circle at 50% 100%, rgba(255,255,255,0.08), transparent 34%),
             linear-gradient(180deg, #161411 0%, #080807 48%, #020202 100%);
-    }
+    }}
 
-    .site-bg {
+    .site-bg {{
+        background-image: linear-gradient(rgba(4, 4, 4, 0.18), rgba(4, 4, 4, 0.48)), url('{BACKGROUND_IMAGE_DATA_URL}') !important;
         background-position: center top !important;
-        filter: saturate(1.04) contrast(1.08) brightness(0.62) !important;
-        transform: translateY(var(--bg-shift)) scale(1.16) !important;
-    }
+        background-size: cover !important;
+        filter: saturate(1.12) contrast(1.06) brightness(0.86) !important;
+        transform: translateY(var(--bg-shift)) scale(1.08) !important;
+        opacity: 1 !important;
+    }}
 
-    body::before {
+    body::before {{
         width: 520px;
         height: 520px;
         top: -120px;
         left: -120px;
-        background: radial-gradient(circle, rgba(213,172,98,0.22), transparent 70%);
-        opacity: 0.50;
-    }
+        background: radial-gradient(circle, rgba(213,172,98,0.20), transparent 70%);
+        opacity: 0.38;
+    }}
 
-    body::after {
+    body::after {{
         width: 440px;
         height: 440px;
         right: -120px;
         top: 210px;
-        background: radial-gradient(circle, rgba(215,47,47,0.20), transparent 70%);
-        opacity: 0.44;
-    }
+        background: radial-gradient(circle, rgba(215,47,47,0.18), transparent 70%);
+        opacity: 0.36;
+    }}
 
-    header.hero {
-        border-color: rgba(225,190,126,0.20);
+    header.hero {{
+        border-color: rgba(225,190,126,0.22);
         background:
-            linear-gradient(110deg, rgba(0,0,0,0.70), rgba(18,16,13,0.64) 36%, rgba(87,58,34,0.22) 68%, rgba(215,47,47,0.15)),
-            radial-gradient(circle at 80% 36%, rgba(213,172,98,0.24), transparent 28%),
-            linear-gradient(160deg, rgba(17,17,16,0.92), rgba(6,6,6,0.86));
-    }
+            linear-gradient(110deg, rgba(0,0,0,0.72), rgba(18,16,13,0.58) 36%, rgba(87,58,34,0.20) 68%, rgba(215,47,47,0.12)),
+            radial-gradient(circle at 80% 36%, rgba(213,172,98,0.22), transparent 28%),
+            linear-gradient(160deg, rgba(17,17,16,0.84), rgba(6,6,6,0.76));
+    }}
 
-    header.hero::after {
+    header.hero::after {{
         content: "Z";
         position: absolute;
         right: clamp(18px, 8vw, 86px);
@@ -113,76 +117,140 @@ THEME_CONFIG = {
         color: rgba(213,172,98,0.08);
         line-height: 0.8;
         pointer-events: none;
-    }
+    }}
 
-    header.hero::before {
+    header.hero::before {{
         background:
             linear-gradient(90deg, transparent, rgba(255,255,255,0.04), transparent),
             radial-gradient(circle at 14% 22%, rgba(213,172,98,0.14), transparent 22%),
             radial-gradient(circle at 88% 28%, rgba(215,47,47,0.13), transparent 24%);
-    }
+    }}
 
-    .hero h1 {
+    .hero h1 {{
         max-width: 13ch;
         text-transform: uppercase;
-    }
+    }}
 
     .hero-kicker,
     .hero-pill,
-    .icon-badge {
-        border-color: rgba(213,172,98,0.22);
-        background: rgba(0,0,0,0.22);
-    }
+    .icon-badge {{
+        border-color: rgba(213,172,98,0.24);
+        background: rgba(0,0,0,0.26);
+    }}
 
-    .card {
-        border-color: rgba(225,190,126,0.13);
+    .card {{
+        border-color: rgba(225,190,126,0.15);
         background:
-            linear-gradient(180deg, rgba(255,255,255,0.055), rgba(255,255,255,0.018)),
-            rgba(12,12,12,0.72);
-    }
+            linear-gradient(180deg, rgba(255,255,255,0.060), rgba(255,255,255,0.022)),
+            rgba(12,12,12,0.74);
+    }}
 
-    .card:hover {
-        border-color: rgba(225,190,126,0.32);
+    .card:hover {{
+        border-color: rgba(225,190,126,0.34);
         box-shadow: 0 24px 58px rgba(0,0,0,0.46);
-    }
+    }}
 
-    .card::after {
+    .card::after {{
         background: linear-gradient(90deg, #d72f2f, #d5ac62, #776452);
-    }
+    }}
 
-    .card-image-wrap {
+    .card-image-wrap {{
         border-color: rgba(213,172,98,0.22);
         background: rgba(0,0,0,0.30);
-    }
+    }}
 
-    .card--word {
+    .card--word {{
         background: linear-gradient(180deg, rgba(213,172,98,0.16), rgba(255,255,255,0.025)), var(--card-strong);
-    }
+    }}
 
-    .card--history {
+    .card--history {{
         background: linear-gradient(180deg, rgba(215,47,47,0.15), rgba(255,255,255,0.02)), var(--card-strong);
-    }
+    }}
 
     .card--did_you_know,
     .card--nissan_z_connection,
     .card--z_of_the_day,
-    .card--z_games {
+    .card--z_games {{
         background: linear-gradient(180deg, rgba(213,172,98,0.13), rgba(255,255,255,0.02)), var(--card-strong);
-    }
+    }}
 
     .card--z_of_the_day,
-    .card--z_games {
+    .card--z_games,
+    .card--nissan_z_connection {{
         grid-column: span 6;
-    }
+    }}
 
     .card--sport,
-    .card--phrase {
+    .card--phrase {{
         background:
             linear-gradient(135deg, rgba(255,255,255,0.05), rgba(215,47,47,0.08)),
             var(--card);
-    }
+    }}
 
-    a { color: #f0c47a; }
+    a {{ color: #f0c47a; }}
+
+    @media (min-width: 981px) {{
+        main {{ padding-top: 22px; }}
+        .card--z_of_the_day {{ grid-column: span 7; }}
+        .card--nissan_z_connection {{ grid-column: span 5; }}
+    }}
+
+    @media (max-width: 980px) {{
+        .card,
+        .card--word,
+        .card--history,
+        .card--did_you_know,
+        .card--z_of_the_day,
+        .card--z_games,
+        .card--nissan_z_connection {{
+            grid-column: span 6 !important;
+        }}
+    }}
+
+    @media (max-width: 720px) {{
+        .site-bg {{
+            background-position: center top !important;
+            filter: saturate(1.08) contrast(1.02) brightness(0.74) !important;
+            transform: translateY(var(--bg-shift)) scale(1.34) !important;
+        }}
+
+        header.hero {{
+            padding: 30px 18px 24px;
+            background:
+                linear-gradient(160deg, rgba(0,0,0,0.82), rgba(20,17,13,0.72)),
+                radial-gradient(circle at 80% 22%, rgba(213,172,98,0.18), transparent 26%);
+        }}
+
+        main {{
+            grid-template-columns: 1fr !important;
+            gap: 14px;
+            padding: 12px 12px 22px;
+        }}
+
+        .card,
+        .card--word,
+        .card--history,
+        .card--did_you_know,
+        .card--sport,
+        .card--phrase,
+        .card--nissan_z_connection,
+        .card--z_of_the_day,
+        .card--z_games {{
+            grid-column: 1 / -1 !important;
+            min-height: unset !important;
+            padding: 1rem;
+            border-radius: 20px;
+            background:
+                linear-gradient(180deg, rgba(255,255,255,0.052), rgba(255,255,255,0.018)),
+                rgba(10,10,10,0.84) !important;
+        }}
+
+        .card-head {{ gap: 0.75rem; margin-bottom: 0.7rem; }}
+        .icon-badge {{ width: 38px; height: 38px; border-radius: 12px; }}
+        .card-image-wrap {{ margin-top: 0; border-radius: 14px; }}
+        .card-image {{ aspect-ratio: 16 / 10; }}
+        .body {{ font-size: 0.95rem; line-height: 1.58; }}
+    }}
     """,
 }
 
