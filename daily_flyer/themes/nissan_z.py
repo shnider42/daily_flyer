@@ -2,13 +2,15 @@ from __future__ import annotations
 
 ENABLE_DYNAMIC_WORD = False
 
+COMMONS_FILEPATH = "https://commons.wikimedia.org/wiki/Special:FilePath/"
+
 THEME_CONFIG = {
     "page_title": "Nissan Z Daily — Heritage, horsepower, and garage lore",
     "header_title": "Nissan Z Daily 🏁",
-    "header_subtitle": "A Daily Flyer theme for the Z-car family: 240Z roots, Fairlady heritage, turbo eras, chassis codes, and enthusiast garage notes.",
+    "header_subtitle": "A Daily Flyer theme for the Z-car family: 240Z roots, Fairlady heritage, turbo eras, chassis codes, video-game appearances, and enthusiast garage notes.",
     "footer_text": "Built on Daily Flyer. Nissan Z theme prototype.",
     "hero_kicker": "Daily Flyer • Z-Car Edition",
-    "hero_summary_pill": "Heritage • specs • driver notes",
+    "hero_summary_pill": "Heritage • specs • driver notes • game garage",
 
     "word_eyebrow": "Garage Term",
     "phrase_eyebrow": "Driver Note",
@@ -35,8 +37,8 @@ THEME_CONFIG = {
     "use_provider_connection": False,
     "use_provider_county": False,
 
-    "min_optional_cards": 3,
-    "max_optional_cards": 5,
+    "min_optional_cards": 5,
+    "max_optional_cards": 7,
 
     "extra_css": """
     :root {
@@ -108,8 +110,15 @@ THEME_CONFIG = {
     }
 
     .card--did_you_know,
-    .card--nissan_z_connection {
+    .card--nissan_z_connection,
+    .card--z_of_the_day,
+    .card--z_games {
         background: linear-gradient(180deg, rgba(198,40,40,0.16), rgba(255,255,255,0.02)), var(--card-strong);
+    }
+
+    .card--z_of_the_day,
+    .card--z_games {
+        grid-column: span 6;
     }
 
     .card--sport,
@@ -163,62 +172,14 @@ HISTORY_THIS_DAY = {
 
 
 HISTORY_WEEK_EVENTS = [
-    {
-        "month": 1,
-        "day": 1,
-        "title": "S30 Sets the Template",
-        "body": "The Datsun 240Z reached buyers for the 1970 model year and helped define what an attainable Japanese sports car could be. Its long hood, hatchback practicality, and inline-six power made the Z name stick fast.",
-        "source_url": "https://en.wikipedia.org/wiki/Nissan_S30",
-    },
-    {
-        "month": 3,
-        "day": 1,
-        "title": "280ZX Goes Grand Touring",
-        "body": "The S130-generation 280ZX shifted the Z toward a more comfort-focused grand touring personality. It kept the Z silhouette but added more refinement, technology, and daily usability.",
-        "source_url": "https://en.wikipedia.org/wiki/Nissan_S130",
-    },
-    {
-        "month": 5,
-        "day": 1,
-        "title": "350Z Revival",
-        "body": "After a pause in the U.S. market, the 350Z revived the Z name for a new era. The Z33 generation put the focus back on a front-engine, rear-drive coupe with a strong V6 and relatively simple enthusiast appeal.",
-        "source_url": "https://en.wikipedia.org/wiki/Nissan_350Z",
-    },
-    {
-        "month": 7,
-        "day": 1,
-        "title": "370Z Sharpens the Formula",
-        "body": "The 370Z shortened and tightened the 350Z formula while adding a larger 3.7-liter V6. It became one of the longest-running modern Z generations and kept the analog coupe vibe alive.",
-        "source_url": "https://en.wikipedia.org/wiki/Nissan_370Z",
-    },
-    {
-        "month": 8,
-        "day": 17,
-        "title": "Modern Z Reveal",
-        "body": "The RZ34 Nissan Z reveal emphasized heritage without simply copying the past. Round headlight references, a fastback profile, and turbo power all nodded back to earlier Z eras.",
-        "source_url": "https://en.wikipedia.org/wiki/Nissan_Z_(RZ34)",
-    },
-    {
-        "month": 9,
-        "day": 1,
-        "title": "Z32 Technology Era",
-        "body": "The Z32 300ZX became a technology showcase for the Z family, especially in twin-turbo form. Its shape, multi-link suspension, and high-output V6 made it one of the defining Japanese performance cars of the 1990s.",
-        "source_url": "https://en.wikipedia.org/wiki/Nissan_300ZX",
-    },
-    {
-        "month": 10,
-        "day": 22,
-        "title": "Original Z Heritage",
-        "body": "The first Z-car generation gave Nissan a global sports-car icon. Enthusiasts still use the S30 as the emotional reference point for what a Z should look and feel like.",
-        "source_url": "https://en.wikipedia.org/wiki/Nissan_Z-car",
-    },
-    {
-        "month": 11,
-        "day": 1,
-        "title": "Z31 Turbo Character",
-        "body": "The Z31 300ZX brought wedge-shaped 1980s styling and widespread V6 identity to the Z line. Turbo versions helped carry the Z into the boost era before the more rounded Z32 arrived.",
-        "source_url": "https://en.wikipedia.org/wiki/Nissan_300ZX",
-    },
+    {"month": 1, "day": 1, "title": "S30 Sets the Template", "body": "The Datsun 240Z reached buyers for the 1970 model year and helped define what an attainable Japanese sports car could be. Its long hood, hatchback practicality, and inline-six power made the Z name stick fast.", "source_url": "https://en.wikipedia.org/wiki/Nissan_S30"},
+    {"month": 3, "day": 1, "title": "280ZX Goes Grand Touring", "body": "The S130-generation 280ZX shifted the Z toward a more comfort-focused grand touring personality. It kept the Z silhouette but added more refinement, technology, and daily usability.", "source_url": "https://en.wikipedia.org/wiki/Nissan_S130"},
+    {"month": 5, "day": 1, "title": "350Z Revival", "body": "After a pause in the U.S. market, the 350Z revived the Z name for a new era. The Z33 generation put the focus back on a front-engine, rear-drive coupe with a strong V6 and relatively simple enthusiast appeal.", "source_url": "https://en.wikipedia.org/wiki/Nissan_350Z"},
+    {"month": 7, "day": 1, "title": "370Z Sharpens the Formula", "body": "The 370Z shortened and tightened the 350Z formula while adding a larger 3.7-liter V6. It became one of the longest-running modern Z generations and kept the analog coupe vibe alive.", "source_url": "https://en.wikipedia.org/wiki/Nissan_370Z"},
+    {"month": 8, "day": 17, "title": "Modern Z Reveal", "body": "The RZ34 Nissan Z reveal emphasized heritage without simply copying the past. Round headlight references, a fastback profile, and turbo power all nodded back to earlier Z eras.", "source_url": "https://en.wikipedia.org/wiki/Nissan_Z_(RZ34)"},
+    {"month": 9, "day": 1, "title": "Z32 Technology Era", "body": "The Z32 300ZX became a technology showcase for the Z family, especially in twin-turbo form. Its shape, multi-link suspension, and high-output V6 made it one of the defining Japanese performance cars of the 1990s.", "source_url": "https://en.wikipedia.org/wiki/Nissan_300ZX"},
+    {"month": 10, "day": 22, "title": "Original Z Heritage", "body": "The first Z-car generation gave Nissan a global sports-car icon. Enthusiasts still use the S30 as the emotional reference point for what a Z should look and feel like.", "source_url": "https://en.wikipedia.org/wiki/Nissan_Z-car"},
+    {"month": 11, "day": 1, "title": "Z31 Turbo Character", "body": "The Z31 300ZX brought wedge-shaped 1980s styling and widespread V6 identity to the Z line. Turbo versions helped carry the Z into the boost era before the more rounded Z32 arrived.", "source_url": "https://en.wikipedia.org/wiki/Nissan_300ZX"},
 ]
 
 
@@ -247,35 +208,95 @@ SPORTS_SPOTLIGHT = [
 
 
 CONNECTION_FACTS = [
+    {"title": "S30: The Origin Story", "body": "The S30 is the emotional center of the Z universe. It gave the line the long-hood fastback silhouette, approachable performance, and global reputation that later generations kept referencing.", "source_url": "https://en.wikipedia.org/wiki/Nissan_S30"},
+    {"title": "Z31: The Wedge Years", "body": "The Z31 300ZX made the Z feel unmistakably 1980s, with angular styling, V6 identity, and turbocharged versions that carried the badge into a new performance decade.", "source_url": "https://en.wikipedia.org/wiki/Nissan_300ZX"},
+    {"title": "Z32: The Tech Hero", "body": "The Z32 300ZX was sleek, complex, and serious. Twin-turbo models showed how far the Z could move from simple sports coupe toward high-performance technology showcase.", "source_url": "https://en.wikipedia.org/wiki/Nissan_300ZX"},
+    {"title": "Z33: The Comeback", "body": "The 350Z brought the Z name back with a simpler front-engine, rear-drive formula. It mattered because it made the Z feel attainable and relevant again.", "source_url": "https://en.wikipedia.org/wiki/Nissan_350Z"},
+    {"title": "Z34: Analog Holdout", "body": "The 370Z stuck around long enough to become a symbol of old-school coupe character. Hydraulic steering feel, compact dimensions, and naturally aspirated V6 personality became part of its appeal.", "source_url": "https://en.wikipedia.org/wiki/Nissan_370Z"},
+    {"title": "RZ34: Heritage Remix", "body": "The modern Z combines a turbocharged V6 with heritage design references and an available manual transmission. It is less a clean-sheet reset than a deliberate remix of the Z story.", "source_url": "https://en.wikipedia.org/wiki/Nissan_Z_(RZ34)"},
+]
+
+
+EXTRA_CARD_POOLS = [
     {
-        "title": "S30: The Origin Story",
-        "body": "The S30 is the emotional center of the Z universe. It gave the line the long-hood fastback silhouette, approachable performance, and global reputation that later generations kept referencing.",
-        "source_url": "https://en.wikipedia.org/wiki/Nissan_S30",
+        "card_type": "z_of_the_day",
+        "eyebrow": "Z of the Day",
+        "title": "Nissan Z year / car / fact",
+        "items": [
+            {
+                "title": "1970 Datsun 240Z",
+                "body": "The original U.S.-market 240Z is the cleanest expression of the Z idea: a simple inline-six, rear-wheel drive, hatchback practicality, and styling that looked far more expensive than it was.",
+                "source_url": "https://en.wikipedia.org/wiki/Nissan_S30",
+                "image_url": f"{COMMONS_FILEPATH}Datsun_240Z.jpg",
+            },
+            {
+                "title": "1984 300ZX Z31",
+                "body": "The Z31 300ZX traded the early Z's rounded sports-car innocence for wedge-shaped 1980s confidence. It helped move the Z identity toward V6 power, turbo options, and grand-touring comfort.",
+                "source_url": "https://en.wikipedia.org/wiki/Nissan_300ZX",
+                "image_url": f"{COMMONS_FILEPATH}Nissan_300ZX_(Z31).jpg",
+            },
+            {
+                "title": "1990 300ZX Z32",
+                "body": "The Z32 reset the Z's image with a low, wide body and serious technology. Twin-turbo cars became the poster-child version, but the whole generation feels like Nissan aiming the Z at the top tier.",
+                "source_url": "https://en.wikipedia.org/wiki/Nissan_300ZX",
+                "image_url": f"{COMMONS_FILEPATH}Nissan_300ZX_Z32.jpg",
+            },
+            {
+                "title": "2003 350Z",
+                "body": "The 350Z brought the Z back after a U.S. market pause. It was not trying to be delicate; it was muscular, relatively simple, and built around front-engine, rear-drive fundamentals.",
+                "source_url": "https://en.wikipedia.org/wiki/Nissan_350Z",
+                "image_url": f"{COMMONS_FILEPATH}Nissan350Z-01.jpg",
+            },
+            {
+                "title": "2009 370Z",
+                "body": "The 370Z tightened the 350Z formula with a shorter body, a larger V6, and a more compact feel. Over time it became a modern analog holdout in a world of increasingly digital performance cars.",
+                "source_url": "https://en.wikipedia.org/wiki/Nissan_370Z",
+                "image_url": f"{COMMONS_FILEPATH}Nissan_370Z_--_07-13-2011.jpg",
+            },
+            {
+                "title": "2023 Nissan Z",
+                "body": "The modern Z uses turbo power and heritage styling to reconnect with multiple earlier eras at once. It is a modern car, but the emotional pitch is classic: coupe, manual option, rear-wheel drive, and boost.",
+                "source_url": "https://en.wikipedia.org/wiki/Nissan_Z_(RZ34)",
+                "image_url": f"{COMMONS_FILEPATH}2023_Nissan_Z_Performance.jpg",
+            },
+        ],
     },
     {
-        "title": "Z31: The Wedge Years",
-        "body": "The Z31 300ZX made the Z feel unmistakably 1980s, with angular styling, V6 identity, and turbocharged versions that carried the badge into a new performance decade.",
-        "source_url": "https://en.wikipedia.org/wiki/Nissan_300ZX",
-    },
-    {
-        "title": "Z32: The Tech Hero",
-        "body": "The Z32 300ZX was sleek, complex, and serious. Twin-turbo models showed how far the Z could move from simple sports coupe toward high-performance technology showcase.",
-        "source_url": "https://en.wikipedia.org/wiki/Nissan_300ZX",
-    },
-    {
-        "title": "Z33: The Comeback",
-        "body": "The 350Z brought the Z name back with a simpler front-engine, rear-drive formula. It mattered because it made the Z feel attainable and relevant again.",
-        "source_url": "https://en.wikipedia.org/wiki/Nissan_350Z",
-    },
-    {
-        "title": "Z34: Analog Holdout",
-        "body": "The 370Z stuck around long enough to become a symbol of old-school coupe character. Hydraulic steering feel, compact dimensions, and naturally aspirated V6 personality became part of its appeal.",
-        "source_url": "https://en.wikipedia.org/wiki/Nissan_370Z",
-    },
-    {
-        "title": "RZ34: Heritage Remix",
-        "body": "The modern Z combines a turbocharged V6 with heritage design references and an available manual transmission. It is less a clean-sheet reset than a deliberate remix of the Z story.",
-        "source_url": "https://en.wikipedia.org/wiki/Nissan_Z_(RZ34)",
+        "card_type": "z_games",
+        "eyebrow": "Z in Video Games",
+        "title": "Digital Garage",
+        "items": [
+            {
+                "title": "Gran Turismo Garage Staple",
+                "body": "Gran Turismo helped turn Japanese performance cars into bedroom-wall cars for a generation of players. The Z fits that world perfectly because the series rewards learning generations, specs, tuning, and driving feel.",
+                "source_url": "https://en.wikipedia.org/wiki/Gran_Turismo_(series)",
+                "image_url": f"{COMMONS_FILEPATH}Datsun_240_Z.jpg",
+            },
+            {
+                "title": "Need for Speed: 350Z Energy",
+                "body": "The 350Z became one of the cars people associate with the tuner-game era. In a Daily Flyer card, it is a great bridge between real Z heritage and the neon, body-kit, street-racing imagination of the early 2000s.",
+                "source_url": "https://en.wikipedia.org/wiki/Nissan_350Z",
+                "image_url": f"{COMMONS_FILEPATH}Nissan350Z-02.jpg",
+            },
+            {
+                "title": "Forza: Build It Your Way",
+                "body": "Forza-style sandbox racing suits the Z because the car can be anything: restored classic, drift missile, track coupe, highway pull car, or photo-mode hero. That flexibility mirrors real Z ownership culture.",
+                "source_url": "https://en.wikipedia.org/wiki/Forza_(series)",
+                "image_url": f"{COMMONS_FILEPATH}Nissan_350Z_01.jpg",
+            },
+            {
+                "title": "Tokyo Xtreme Racer Mood",
+                "body": "The Z belongs naturally in highway-battle game culture: low coupe profile, strong tuning identity, and enough generations to create rival builds. It is the kind of car that feels right under city lights.",
+                "source_url": "https://en.wikipedia.org/wiki/Tokyo_Xtreme_Racer",
+                "image_url": f"{COMMONS_FILEPATH}Nissan_300ZX_(Z32)_IMG_5269.jpg",
+            },
+            {
+                "title": "Drift Game Favorite",
+                "body": "The Z33 and Z34 generations make sense in drift games because they are front-engine, rear-drive, reasonably powerful, and visually recognizable. A sideways Z is basically a shortcut to saying 'driver car.'",
+                "source_url": "https://en.wikipedia.org/wiki/Nissan_Z-car",
+                "image_url": f"{COMMONS_FILEPATH}2004_Nissan_350Z.png",
+            },
+        ],
     },
 ]
 
