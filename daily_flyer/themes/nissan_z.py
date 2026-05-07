@@ -5,59 +5,11 @@ from urllib.parse import quote
 from daily_flyer.themes.nissan_z_assets import BACKGROUND_IMAGE_DATA_URL
 
 ENABLE_DYNAMIC_WORD = False
+COMMONS_FILEPATH = "https://commons.wikimedia.org/wiki/Special:FilePath/"
 
 
-def _svg_image(title: str, subtitle: str, accent: str = "#d5ac62") -> str:
-    """Return a self-contained stylized card image so Render never depends on remote image hosts."""
-    svg = f"""
-    <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 1600 900" role="img" aria-label="{title}">
-      <defs>
-        <linearGradient id="bg" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0" stop-color="#050505"/>
-          <stop offset="0.46" stop-color="#17120d"/>
-          <stop offset="1" stop-color="#080706"/>
-        </linearGradient>
-        <radialGradient id="glow" cx="74%" cy="23%" r="65%">
-          <stop offset="0" stop-color="{accent}" stop-opacity="0.38"/>
-          <stop offset="0.55" stop-color="{accent}" stop-opacity="0.08"/>
-          <stop offset="1" stop-color="{accent}" stop-opacity="0"/>
-        </radialGradient>
-        <filter id="shadow" x="-20%" y="-30%" width="140%" height="180%">
-          <feDropShadow dx="0" dy="34" stdDeviation="28" flood-color="#000" flood-opacity="0.65"/>
-        </filter>
-      </defs>
-      <rect width="1600" height="900" fill="url(#bg)"/>
-      <rect width="1600" height="900" fill="url(#glow)"/>
-      <path d="M0 650 C240 580 460 560 720 600 C1000 642 1280 608 1600 520 L1600 900 L0 900 Z" fill="#0d0c0b" opacity="0.78"/>
-      <g opacity="0.28">
-        <path d="M90 220 H1510" stroke="#f2d08a" stroke-width="2"/>
-        <path d="M90 310 H1510" stroke="#ffffff" stroke-width="1" opacity="0.25"/>
-        <path d="M90 400 H1510" stroke="#ffffff" stroke-width="1" opacity="0.18"/>
-        <path d="M220 110 V690" stroke="#ffffff" stroke-width="1" opacity="0.16"/>
-        <path d="M520 90 V690" stroke="#ffffff" stroke-width="1" opacity="0.13"/>
-        <path d="M980 90 V690" stroke="#ffffff" stroke-width="1" opacity="0.13"/>
-        <path d="M1280 110 V690" stroke="#ffffff" stroke-width="1" opacity="0.16"/>
-      </g>
-      <g filter="url(#shadow)" transform="translate(118 332)">
-        <path d="M142 296 C210 196 328 143 505 132 L747 119 C846 114 947 150 1055 227 L1228 241 C1294 246 1338 278 1370 337 L1325 377 L242 383 Z" fill="#1a1714"/>
-        <path d="M252 270 C348 184 469 148 636 147 L741 147 C838 149 930 181 1034 239 L1162 250 C944 273 691 285 252 270 Z" fill="#2d2822"/>
-        <path d="M512 151 C598 93 734 83 846 112 C899 126 956 168 1020 232 L742 214 Z" fill="#070707" opacity="0.88"/>
-        <path d="M288 264 C358 209 470 179 617 171" stroke="{accent}" stroke-width="7" stroke-linecap="round" opacity="0.78"/>
-        <path d="M1117 272 C1198 275 1260 294 1306 334" stroke="#d72f2f" stroke-width="10" stroke-linecap="round" opacity="0.74"/>
-        <circle cx="412" cy="383" r="116" fill="#060606"/>
-        <circle cx="412" cy="383" r="78" fill="none" stroke="{accent}" stroke-width="20"/>
-        <circle cx="412" cy="383" r="24" fill="#151515" stroke="#e9d3a2" stroke-width="8"/>
-        <circle cx="1064" cy="383" r="116" fill="#060606"/>
-        <circle cx="1064" cy="383" r="78" fill="none" stroke="{accent}" stroke-width="20"/>
-        <circle cx="1064" cy="383" r="24" fill="#151515" stroke="#e9d3a2" stroke-width="8"/>
-        <path d="M392 383 H432 M412 363 V403 M1044 383 H1084 M1064 363 V403" stroke="#e9d3a2" stroke-width="9" stroke-linecap="round"/>
-      </g>
-      <text x="88" y="112" fill="#f7f3eb" font-family="Inter, Arial, sans-serif" font-size="64" font-weight="900" letter-spacing="-1">{title}</text>
-      <text x="92" y="168" fill="{accent}" font-family="Inter, Arial, sans-serif" font-size="30" font-weight="800" letter-spacing="4">{subtitle}</text>
-      <text x="1364" y="814" fill="#ffffff" opacity="0.13" font-family="Inter, Arial, sans-serif" font-size="210" font-weight="900" font-style="italic">Z</text>
-    </svg>
-    """
-    return "data:image/svg+xml;charset=utf-8," + quote(svg)
+def _commons_image(file_name: str) -> str:
+    return f"{COMMONS_FILEPATH}{quote(file_name)}"
 
 
 EXTRA_CSS = """
@@ -146,39 +98,61 @@ EXTRA_CSS = """
 
 EXTRA_JS = """
     (function () {
+        const fallbackImage = "__FALLBACK_IMAGE__";
+
+        function installImageFallbacks() {
+            document.querySelectorAll("img.card-image").forEach((img) => {
+                if (img.dataset.zFallbackInstalled === "true") return;
+                img.dataset.zFallbackInstalled = "true";
+                img.addEventListener("error", () => {
+                    if (img.src !== fallbackImage) {
+                        img.src = fallbackImage;
+                        img.alt = `${img.alt || "Nissan Z"} — fallback real Nissan Z studio photo`;
+                    }
+                });
+                if (img.complete && img.naturalWidth === 0 && img.src !== fallbackImage) {
+                    img.src = fallbackImage;
+                }
+            });
+        }
+
         const hero = document.querySelector("header.hero");
-        if (!hero || document.querySelector(".z-day-nav")) return;
-        function pad(value) { return String(value).padStart(2, "0"); }
-        function parseDate(value) {
-            const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value || "");
-            if (match) return new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
-            const today = new Date();
-            return new Date(today.getFullYear(), today.getMonth(), today.getDate());
+        if (hero && !document.querySelector(".z-day-nav")) {
+            function pad(value) { return String(value).padStart(2, "0"); }
+            function parseDate(value) {
+                const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value || "");
+                if (match) return new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+                const today = new Date();
+                return new Date(today.getFullYear(), today.getMonth(), today.getDate());
+            }
+            function toIsoDate(date) { return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`; }
+            function buildHref(offset, useToday) {
+                const params = new URLSearchParams(window.location.search);
+                const base = useToday ? parseDate(null) : parseDate(params.get("date"));
+                base.setDate(base.getDate() + offset);
+                params.set("theme", "nissan_z");
+                params.set("date", toIsoDate(base));
+                params.delete("seed");
+                return `${window.location.pathname}?${params.toString()}`;
+            }
+            const nav = document.createElement("nav");
+            nav.className = "z-day-nav";
+            nav.setAttribute("aria-label", "Nissan Z Daily date navigation");
+            nav.innerHTML = `
+                <span class="z-day-nav__label">Daily controls</span>
+                <a class="z-day-nav__link" href="${buildHref(-1, false)}" aria-label="Show previous day">← Previous day</a>
+                <a class="z-day-nav__link z-day-nav__link--today" href="${buildHref(0, true)}" aria-label="Show today">Today</a>
+                <a class="z-day-nav__link" href="${buildHref(1, false)}" aria-label="Show next day">Next day →</a>
+            `;
+            const heroMeta = hero.querySelector(".hero-meta");
+            if (heroMeta) heroMeta.insertAdjacentElement("afterend", nav);
+            else hero.appendChild(nav);
         }
-        function toIsoDate(date) { return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`; }
-        function buildHref(offset, useToday) {
-            const params = new URLSearchParams(window.location.search);
-            const base = useToday ? parseDate(null) : parseDate(params.get("date"));
-            base.setDate(base.getDate() + offset);
-            params.set("theme", "nissan_z");
-            params.set("date", toIsoDate(base));
-            params.delete("seed");
-            return `${window.location.pathname}?${params.toString()}`;
-        }
-        const nav = document.createElement("nav");
-        nav.className = "z-day-nav";
-        nav.setAttribute("aria-label", "Nissan Z Daily date navigation");
-        nav.innerHTML = `
-            <span class="z-day-nav__label">Daily controls</span>
-            <a class="z-day-nav__link" href="${buildHref(-1, false)}" aria-label="Show previous day">← Previous day</a>
-            <a class="z-day-nav__link z-day-nav__link--today" href="${buildHref(0, true)}" aria-label="Show today">Today</a>
-            <a class="z-day-nav__link" href="${buildHref(1, false)}" aria-label="Show next day">Next day →</a>
-        `;
-        const heroMeta = hero.querySelector(".hero-meta");
-        if (heroMeta) heroMeta.insertAdjacentElement("afterend", nav);
-        else hero.appendChild(nav);
+
+        installImageFallbacks();
+        window.addEventListener("load", installImageFallbacks);
     })();
-"""
+""".replace("__FALLBACK_IMAGE__", BACKGROUND_IMAGE_DATA_URL)
 
 THEME_CONFIG = {
     "page_title": "Nissan Z Daily — Heritage, horsepower, and garage lore",
@@ -293,12 +267,12 @@ EXTRA_CARD_POOLS = [
         "eyebrow": "Z of the Day",
         "title": "Nissan Z year / car / fact",
         "items": [
-            {"title": "1970 Datsun 240Z", "body": "The original U.S.-market 240Z is the cleanest expression of the Z idea: a simple inline-six, rear-wheel drive, hatchback practicality, and styling that looked far more expensive than it was.", "source_url": "https://en.wikipedia.org/wiki/Nissan_S30", "image_url": _svg_image("1970 Datsun 240Z", "S30 • original template")},
-            {"title": "1984 300ZX Z31", "body": "The Z31 300ZX traded the early Z's rounded sports-car innocence for wedge-shaped 1980s confidence. It helped move the Z identity toward V6 power, turbo options, and grand-touring comfort.", "source_url": "https://en.wikipedia.org/wiki/Nissan_300ZX", "image_url": _svg_image("1984 300ZX Z31", "wedge era • turbo attitude", "#c08a43")},
-            {"title": "1990 300ZX Z32", "body": "The Z32 reset the Z's image with a low, wide body and serious technology. Twin-turbo cars became the poster-child version, but the whole generation feels like Nissan aiming the Z at the top tier.", "source_url": "https://en.wikipedia.org/wiki/Nissan_300ZX", "image_url": _svg_image("1990 300ZX Z32", "tech hero • twin-turbo legend", "#d72f2f")},
-            {"title": "2003 350Z", "body": "The 350Z brought the Z back after a U.S. market pause. It was not trying to be delicate; it was muscular, relatively simple, and built around front-engine, rear-drive fundamentals.", "source_url": "https://en.wikipedia.org/wiki/Nissan_350Z", "image_url": _svg_image("2003 350Z", "the comeback • Z33", "#d5ac62")},
-            {"title": "2009 370Z", "body": "The 370Z tightened the 350Z formula with a shorter body, a larger V6, and a more compact feel. Over time it became a modern analog holdout in a world of increasingly digital performance cars.", "source_url": "https://en.wikipedia.org/wiki/Nissan_370Z", "image_url": _svg_image("2009 370Z", "analog holdout • Z34", "#b08a45")},
-            {"title": "2023 Nissan Z", "body": "The modern Z uses turbo power and heritage styling to reconnect with multiple earlier eras at once. It is a modern car, but the emotional pitch is classic: coupe, manual option, rear-wheel drive, and boost.", "source_url": "https://en.wikipedia.org/wiki/Nissan_Z_(RZ34)", "image_url": _svg_image("2023 Nissan Z", "RZ34 • heritage remix", "#d72f2f")},
+            {"title": "1970 Datsun 240Z", "body": "The original U.S.-market 240Z is the cleanest expression of the Z idea: a simple inline-six, rear-wheel drive, hatchback practicality, and styling that looked far more expensive than it was.", "source_url": "https://en.wikipedia.org/wiki/Nissan_S30", "image_url": _commons_image("Datsun_240Z.jpg")},
+            {"title": "1984 300ZX Z31", "body": "The Z31 300ZX traded the early Z's rounded sports-car innocence for wedge-shaped 1980s confidence. It helped move the Z identity toward V6 power, turbo options, and grand-touring comfort.", "source_url": "https://en.wikipedia.org/wiki/Nissan_300ZX", "image_url": _commons_image("Nissan_300ZX_(Z31).jpg")},
+            {"title": "1990 300ZX Z32", "body": "The Z32 reset the Z's image with a low, wide body and serious technology. Twin-turbo cars became the poster-child version, but the whole generation feels like Nissan aiming the Z at the top tier.", "source_url": "https://en.wikipedia.org/wiki/Nissan_300ZX", "image_url": _commons_image("Nissan_300ZX_Z32.jpg")},
+            {"title": "2003 350Z", "body": "The 350Z brought the Z back after a U.S. market pause. It was not trying to be delicate; it was muscular, relatively simple, and built around front-engine, rear-drive fundamentals.", "source_url": "https://en.wikipedia.org/wiki/Nissan_350Z", "image_url": _commons_image("Nissan350Z-01.jpg")},
+            {"title": "2009 370Z", "body": "The 370Z tightened the 350Z formula with a shorter body, a larger V6, and a more compact feel. Over time it became a modern analog holdout in a world of increasingly digital performance cars.", "source_url": "https://en.wikipedia.org/wiki/Nissan_370Z", "image_url": _commons_image("Nissan_370Z_--_07-13-2011.jpg")},
+            {"title": "2023 Nissan Z", "body": "The modern Z uses turbo power and heritage styling to reconnect with multiple earlier eras at once. It is a modern car, but the emotional pitch is classic: coupe, manual option, rear-wheel drive, and boost.", "source_url": "https://en.wikipedia.org/wiki/Nissan_Z_(RZ34)", "image_url": BACKGROUND_IMAGE_DATA_URL},
         ],
     },
     {
@@ -306,11 +280,11 @@ EXTRA_CARD_POOLS = [
         "eyebrow": "Z in Video Games",
         "title": "Digital Garage",
         "items": [
-            {"title": "Gran Turismo Garage Staple", "body": "Gran Turismo helped turn Japanese performance cars into bedroom-wall cars for a generation of players. The Z fits that world perfectly because the series rewards learning generations, specs, tuning, and driving feel.", "source_url": "https://en.wikipedia.org/wiki/Gran_Turismo_(series)", "image_url": _svg_image("Gran Turismo", "digital garage • spec culture", "#d5ac62")},
-            {"title": "Need for Speed: 350Z Energy", "body": "The 350Z became one of the cars people associate with the tuner-game era. In a Daily Flyer card, it is a great bridge between real Z heritage and the neon, body-kit, street-racing imagination of the early 2000s.", "source_url": "https://en.wikipedia.org/wiki/Nissan_350Z", "image_url": _svg_image("Need for Speed", "350Z • tuner era", "#d72f2f")},
-            {"title": "Forza: Build It Your Way", "body": "Forza-style sandbox racing suits the Z because the car can be anything: restored classic, drift missile, track coupe, highway pull car, or photo-mode hero. That flexibility mirrors real Z ownership culture.", "source_url": "https://en.wikipedia.org/wiki/Forza_(series)", "image_url": _svg_image("Forza Builds", "restore • drift • track", "#b08a45")},
-            {"title": "Tokyo Xtreme Racer Mood", "body": "The Z belongs naturally in highway-battle game culture: low coupe profile, strong tuning identity, and enough generations to create rival builds. It is the kind of car that feels right under city lights.", "source_url": "https://en.wikipedia.org/wiki/Tokyo_Xtreme_Racer", "image_url": _svg_image("Tokyo Xtreme", "night highway • rival builds", "#d5ac62")},
-            {"title": "Drift Game Favorite", "body": "The Z33 and Z34 generations make sense in drift games because they are front-engine, rear-drive, reasonably powerful, and visually recognizable. A sideways Z is basically a shortcut to saying 'driver car.'", "source_url": "https://en.wikipedia.org/wiki/Nissan_Z-car", "image_url": _svg_image("Drift Game Favorite", "FR layout • sideways Z", "#d72f2f")},
+            {"title": "Gran Turismo Garage Staple", "body": "Gran Turismo helped turn Japanese performance cars into bedroom-wall cars for a generation of players. The Z fits that world perfectly because the series rewards learning generations, specs, tuning, and driving feel.", "source_url": "https://en.wikipedia.org/wiki/Gran_Turismo_(series)", "image_url": _commons_image("Datsun_240Z.jpg")},
+            {"title": "Need for Speed: 350Z Energy", "body": "The 350Z became one of the cars people associate with the tuner-game era. In a Daily Flyer card, it is a great bridge between real Z heritage and the neon, body-kit, street-racing imagination of the early 2000s.", "source_url": "https://en.wikipedia.org/wiki/Nissan_350Z", "image_url": _commons_image("Nissan350Z-01.jpg")},
+            {"title": "Forza: Build It Your Way", "body": "Forza-style sandbox racing suits the Z because the car can be anything: restored classic, drift missile, track coupe, highway pull car, or photo-mode hero. That flexibility mirrors real Z ownership culture.", "source_url": "https://en.wikipedia.org/wiki/Forza_(series)", "image_url": BACKGROUND_IMAGE_DATA_URL},
+            {"title": "Tokyo Xtreme Racer Mood", "body": "The Z belongs naturally in highway-battle game culture: low coupe profile, strong tuning identity, and enough generations to create rival builds. It is the kind of car that feels right under city lights.", "source_url": "https://en.wikipedia.org/wiki/Tokyo_Xtreme_Racer", "image_url": _commons_image("Nissan_300ZX_Z32.jpg")},
+            {"title": "Drift Game Favorite", "body": "The Z33 and Z34 generations make sense in drift games because they are front-engine, rear-drive, reasonably powerful, and visually recognizable. A sideways Z is basically a shortcut to saying 'driver car.'", "source_url": "https://en.wikipedia.org/wiki/Nissan_Z-car", "image_url": _commons_image("Nissan_370Z_--_07-13-2011.jpg")},
         ],
     },
 ]
