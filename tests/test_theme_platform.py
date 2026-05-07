@@ -115,6 +115,13 @@ class WebRouteTests(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertIn(b"Irish Today", response.data)
 
+    def test_nissan_z_theme_renders(self) -> None:
+        response = self.client.get("/?theme=nissan_z&date=2026-08-17&seed=7")
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(b"Nissan Z Daily", response.data)
+        self.assertIn(b"Modern Z Reveal", response.data)
+        self.assertIn(b"Generation Spotlight", response.data)
+
     def test_birthday_theme_renders_with_realistic_data(self) -> None:
         birthdays = [
             {
