@@ -138,6 +138,56 @@ THEME_CONFIG = {
         background: rgba(0,0,0,0.26);
     }}
 
+    .z-day-nav {{
+        position: relative;
+        z-index: 2;
+        display: flex;
+        flex-wrap: wrap;
+        align-items: center;
+        gap: 0.58rem;
+        margin-top: 1.05rem;
+    }}
+
+    .z-day-nav__label,
+    .z-day-nav__link {{
+        display: inline-flex;
+        align-items: center;
+        justify-content: center;
+        min-height: 38px;
+        border-radius: 999px;
+        border: 1px solid rgba(213,172,98,0.24);
+        background: rgba(0,0,0,0.28);
+        color: var(--ink);
+        font-size: 0.88rem;
+        line-height: 1;
+        box-shadow: 0 10px 24px rgba(0,0,0,0.18);
+    }}
+
+    .z-day-nav__label {{
+        padding: 0.63rem 0.82rem;
+        color: var(--ink-soft);
+        letter-spacing: 0.05em;
+        text-transform: uppercase;
+        font-size: 0.72rem;
+        font-weight: 800;
+    }}
+
+    .z-day-nav__link {{
+        padding: 0.65rem 0.92rem;
+        text-decoration: none;
+        font-weight: 800;
+    }}
+
+    .z-day-nav__link:hover {{
+        border-color: rgba(240,196,122,0.58);
+        background: rgba(213,172,98,0.14);
+        text-decoration: none;
+    }}
+
+    .z-day-nav__link--today {{
+        background: linear-gradient(135deg, rgba(215,47,47,0.22), rgba(213,172,98,0.18));
+    }}
+
     .card {{
         border-color: rgba(225,190,126,0.15);
         background:
@@ -221,6 +271,10 @@ THEME_CONFIG = {
                 radial-gradient(circle at 80% 22%, rgba(213,172,98,0.18), transparent 26%);
         }}
 
+        .z-day-nav {{ gap: 0.45rem; }}
+        .z-day-nav__label {{ flex: 1 0 100%; min-height: 32px; }}
+        .z-day-nav__link {{ flex: 1 1 0; padding-inline: 0.72rem; font-size: 0.82rem; }}
+
         main {{
             grid-template-columns: 1fr !important;
             gap: 14px;
@@ -251,6 +305,57 @@ THEME_CONFIG = {
         .card-image {{ aspect-ratio: 16 / 10; }}
         .body {{ font-size: 0.95rem; line-height: 1.58; }}
     }}
+    """,
+
+    "extra_js": """
+    (function () {
+        const hero = document.querySelector("header.hero");
+        if (!hero || document.querySelector(".z-day-nav")) return;
+
+        function pad(value) {
+            return String(value).padStart(2, "0");
+        }
+
+        function parseDate(value) {
+            const match = /^(\d{4})-(\d{2})-(\d{2})$/.exec(value || "");
+            if (match) {
+                return new Date(Number(match[1]), Number(match[2]) - 1, Number(match[3]));
+            }
+            const today = new Date();
+            return new Date(today.getFullYear(), today.getMonth(), today.getDate());
+        }
+
+        function toIsoDate(date) {
+            return `${date.getFullYear()}-${pad(date.getMonth() + 1)}-${pad(date.getDate())}`;
+        }
+
+        function buildHref(offset, useToday) {
+            const params = new URLSearchParams(window.location.search);
+            const base = useToday ? parseDate(null) : parseDate(params.get("date"));
+            base.setDate(base.getDate() + offset);
+            params.set("theme", "nissan_z");
+            params.set("date", toIsoDate(base));
+            params.delete("seed");
+            return `${window.location.pathname}?${params.toString()}`;
+        }
+
+        const nav = document.createElement("nav");
+        nav.className = "z-day-nav";
+        nav.setAttribute("aria-label", "Nissan Z Daily date navigation");
+        nav.innerHTML = `
+            <span class="z-day-nav__label">Daily controls</span>
+            <a class="z-day-nav__link" href="${buildHref(-1, false)}" aria-label="Show previous day">← Previous day</a>
+            <a class="z-day-nav__link z-day-nav__link--today" href="${buildHref(0, true)}" aria-label="Show today">Today</a>
+            <a class="z-day-nav__link" href="${buildHref(1, false)}" aria-label="Show next day">Next day →</a>
+        `;
+
+        const heroMeta = hero.querySelector(".hero-meta");
+        if (heroMeta) {
+            heroMeta.insertAdjacentElement("afterend", nav);
+        } else {
+            hero.appendChild(nav);
+        }
+    })();
     """,
 }
 
