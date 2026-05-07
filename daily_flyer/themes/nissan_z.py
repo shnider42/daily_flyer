@@ -1,7 +1,8 @@
 from __future__ import annotations
 
-ENABLE_DYNAMIC_WORD = False
+from daily_flyer.themes.nissan_z_assets import BACKGROUND_IMAGE_DATA_URL
 
+ENABLE_DYNAMIC_WORD = False
 COMMONS_FILEPATH = "https://commons.wikimedia.org/wiki/Special:FilePath/"
 
 THEME_CONFIG = {
@@ -42,34 +43,62 @@ THEME_CONFIG = {
 
     "extra_css": """
     :root {
-        --bg: #08090b;
-        --bg-deep: #020304;
-        --bg-soft: #11141a;
-        --card: rgba(14, 16, 21, 0.82);
-        --card-strong: rgba(22, 24, 30, 0.92);
-        --ink: #f5f7fa;
-        --ink-soft: #c9d0d8;
-        --muted: #a0a9b4;
-        --irish-green: #e53935;
-        --gold: #d7dde6;
-        --teal: #9aa7b8;
-        --blue: #c62828;
+        --bg: #090908;
+        --bg-deep: #020202;
+        --bg-soft: #151411;
+        --card: rgba(13, 13, 13, 0.70);
+        --card-strong: rgba(17, 16, 15, 0.82);
+        --border: rgba(225, 190, 126, 0.14);
+        --border-strong: rgba(225, 190, 126, 0.30);
+        --ink: #f7f3eb;
+        --ink-soft: #d4c8b8;
+        --muted: #aa9880;
+        --irish-green: #b08a45;
+        --gold: #d5ac62;
+        --teal: #67584a;
+        --blue: #d72f2f;
+        --shadow-lg: 0 30px 90px rgba(0,0,0,0.58);
+        --shadow-md: 0 18px 44px rgba(0,0,0,0.40);
     }
 
     body {
         background:
-            radial-gradient(circle at 12% 8%, rgba(229,57,53,0.28), transparent 28%),
-            radial-gradient(circle at 86% 18%, rgba(215,221,230,0.18), transparent 26%),
-            linear-gradient(120deg, rgba(255,255,255,0.045) 0 1px, transparent 1px 100%),
-            linear-gradient(180deg, #151820 0%, #08090b 48%, #020304 100%);
-        background-size: auto, auto, 34px 34px, auto;
+            radial-gradient(circle at 18% 8%, rgba(210,165,88,0.18), transparent 30%),
+            radial-gradient(circle at 78% 16%, rgba(215,47,47,0.16), transparent 26%),
+            radial-gradient(circle at 50% 100%, rgba(255,255,255,0.08), transparent 34%),
+            linear-gradient(180deg, #161411 0%, #080807 48%, #020202 100%);
+    }
+
+    .site-bg {
+        background-position: center top !important;
+        filter: saturate(1.04) contrast(1.08) brightness(0.62) !important;
+        transform: translateY(var(--bg-shift)) scale(1.16) !important;
+    }
+
+    body::before {
+        width: 520px;
+        height: 520px;
+        top: -120px;
+        left: -120px;
+        background: radial-gradient(circle, rgba(213,172,98,0.22), transparent 70%);
+        opacity: 0.50;
+    }
+
+    body::after {
+        width: 440px;
+        height: 440px;
+        right: -120px;
+        top: 210px;
+        background: radial-gradient(circle, rgba(215,47,47,0.20), transparent 70%);
+        opacity: 0.44;
     }
 
     header.hero {
+        border-color: rgba(225,190,126,0.20);
         background:
-            linear-gradient(110deg, rgba(229,57,53,0.22), rgba(255,255,255,0.04) 34%, rgba(0,0,0,0.20) 68%, rgba(215,221,230,0.10)),
-            radial-gradient(circle at 85% 22%, rgba(229,57,53,0.22), transparent 24%),
-            linear-gradient(160deg, rgba(18,20,27,0.98), rgba(7,8,11,0.92));
+            linear-gradient(110deg, rgba(0,0,0,0.70), rgba(18,16,13,0.64) 36%, rgba(87,58,34,0.22) 68%, rgba(215,47,47,0.15)),
+            radial-gradient(circle at 80% 36%, rgba(213,172,98,0.24), transparent 28%),
+            linear-gradient(160deg, rgba(17,17,16,0.92), rgba(6,6,6,0.86));
     }
 
     header.hero::after {
@@ -81,9 +110,16 @@ THEME_CONFIG = {
         font-weight: 900;
         font-style: italic;
         letter-spacing: -0.16em;
-        color: rgba(255,255,255,0.055);
+        color: rgba(213,172,98,0.08);
         line-height: 0.8;
         pointer-events: none;
+    }
+
+    header.hero::before {
+        background:
+            linear-gradient(90deg, transparent, rgba(255,255,255,0.04), transparent),
+            radial-gradient(circle at 14% 22%, rgba(213,172,98,0.14), transparent 22%),
+            radial-gradient(circle at 88% 28%, rgba(215,47,47,0.13), transparent 24%);
     }
 
     .hero h1 {
@@ -92,28 +128,46 @@ THEME_CONFIG = {
     }
 
     .hero-kicker,
-    .hero-pill {
-        border-color: rgba(229,57,53,0.22);
-        background: rgba(255,255,255,0.055);
+    .hero-pill,
+    .icon-badge {
+        border-color: rgba(213,172,98,0.22);
+        background: rgba(0,0,0,0.22);
+    }
+
+    .card {
+        border-color: rgba(225,190,126,0.13);
+        background:
+            linear-gradient(180deg, rgba(255,255,255,0.055), rgba(255,255,255,0.018)),
+            rgba(12,12,12,0.72);
+    }
+
+    .card:hover {
+        border-color: rgba(225,190,126,0.32);
+        box-shadow: 0 24px 58px rgba(0,0,0,0.46);
     }
 
     .card::after {
-        background: linear-gradient(90deg, #e53935, #f2f4f8, #5f6875);
+        background: linear-gradient(90deg, #d72f2f, #d5ac62, #776452);
+    }
+
+    .card-image-wrap {
+        border-color: rgba(213,172,98,0.22);
+        background: rgba(0,0,0,0.30);
     }
 
     .card--word {
-        background: linear-gradient(180deg, rgba(229,57,53,0.18), rgba(255,255,255,0.025)), var(--card-strong);
+        background: linear-gradient(180deg, rgba(213,172,98,0.16), rgba(255,255,255,0.025)), var(--card-strong);
     }
 
     .card--history {
-        background: linear-gradient(180deg, rgba(215,221,230,0.14), rgba(255,255,255,0.02)), var(--card-strong);
+        background: linear-gradient(180deg, rgba(215,47,47,0.15), rgba(255,255,255,0.02)), var(--card-strong);
     }
 
     .card--did_you_know,
     .card--nissan_z_connection,
     .card--z_of_the_day,
     .card--z_games {
-        background: linear-gradient(180deg, rgba(198,40,40,0.16), rgba(255,255,255,0.02)), var(--card-strong);
+        background: linear-gradient(180deg, rgba(213,172,98,0.13), rgba(255,255,255,0.02)), var(--card-strong);
     }
 
     .card--z_of_the_day,
@@ -124,14 +178,13 @@ THEME_CONFIG = {
     .card--sport,
     .card--phrase {
         background:
-            linear-gradient(135deg, rgba(255,255,255,0.05), rgba(229,57,53,0.08)),
+            linear-gradient(135deg, rgba(255,255,255,0.05), rgba(215,47,47,0.08)),
             var(--card);
     }
 
-    a { color: #ffb4ad; }
+    a { color: #f0c47a; }
     """,
 }
-
 
 WORDS = [
     {"native_text": "S30", "pronunciation": "ess-thirty", "english": "The original Z-car chassis family, best known through the Datsun 240Z, 260Z, and 280Z."},
@@ -148,7 +201,6 @@ WORDS = [
     {"native_text": "Chassis code", "pronunciation": "platform shorthand", "english": "The internal generation label enthusiasts use: S30, S130, Z31, Z32, Z33, Z34, and RZ34."},
 ]
 
-
 PHRASES = [
     {"native_text": "Respect the chassis code.", "pronunciation": "garage rule", "english": "Every Z generation has its own personality; the code is the shortcut to knowing which one you are talking about."},
     {"native_text": "Keep the long hood honest.", "pronunciation": "driver note", "english": "The Z shape looks dramatic, but the point is still balance, visibility, and confidence from the driver's seat."},
@@ -158,18 +210,10 @@ PHRASES = [
     {"native_text": "The badge is small; the shadow is long.", "pronunciation": "heritage note", "english": "The Z does not need exotic-car drama to matter. Its reputation comes from decades of accessible performance."},
 ]
 
-
 HISTORY_THIS_DAY = {
-    "08-17": {
-        "body": "2021 — Nissan revealed the modern Z for the U.S. market, bringing back a turbocharged six-cylinder Z with an available manual transmission. The RZ34 leaned hard into heritage cues while updating the car around modern performance hardware.",
-        "source_url": "https://en.wikipedia.org/wiki/Nissan_Z_(RZ34)",
-    },
-    "10-22": {
-        "body": "1969 — The original Fairlady Z / Datsun 240Z era began around the 1969 Tokyo Motor Show period. The S30 formula helped make the Z famous: handsome proportions, inline-six character, usable performance, and a price point that reached real enthusiasts.",
-        "source_url": "https://en.wikipedia.org/wiki/Nissan_S30",
-    },
+    "08-17": {"body": "2021 — Nissan revealed the modern Z for the U.S. market, bringing back a turbocharged six-cylinder Z with an available manual transmission. The RZ34 leaned hard into heritage cues while updating the car around modern performance hardware.", "source_url": "https://en.wikipedia.org/wiki/Nissan_Z_(RZ34)"},
+    "10-22": {"body": "1969 — The original Fairlady Z / Datsun 240Z era began around the 1969 Tokyo Motor Show period. The S30 formula helped make the Z famous: handsome proportions, inline-six character, usable performance, and a price point that reached real enthusiasts.", "source_url": "https://en.wikipedia.org/wiki/Nissan_S30"},
 }
-
 
 HISTORY_WEEK_EVENTS = [
     {"month": 1, "day": 1, "title": "S30 Sets the Template", "body": "The Datsun 240Z reached buyers for the 1970 model year and helped define what an attainable Japanese sports car could be. Its long hood, hatchback practicality, and inline-six power made the Z name stick fast.", "source_url": "https://en.wikipedia.org/wiki/Nissan_S30"},
@@ -181,7 +225,6 @@ HISTORY_WEEK_EVENTS = [
     {"month": 10, "day": 22, "title": "Original Z Heritage", "body": "The first Z-car generation gave Nissan a global sports-car icon. Enthusiasts still use the S30 as the emotional reference point for what a Z should look and feel like.", "source_url": "https://en.wikipedia.org/wiki/Nissan_Z-car"},
     {"month": 11, "day": 1, "title": "Z31 Turbo Character", "body": "The Z31 300ZX brought wedge-shaped 1980s styling and widespread V6 identity to the Z line. Turbo versions helped carry the Z into the boost era before the more rounded Z32 arrived.", "source_url": "https://en.wikipedia.org/wiki/Nissan_300ZX"},
 ]
-
 
 DID_YOU_KNOW = [
     "The Z-car lineage is often discussed by chassis code because the personality shifts so much generation to generation: S30, S130, Z31, Z32, Z33, Z34, and RZ34 all mean something different to enthusiasts.",
@@ -196,7 +239,6 @@ DID_YOU_KNOW = [
     "A manual transmission is not just a spec-sheet item for many Z fans. It is part of the car's identity as an accessible driver-focused coupe.",
 ]
 
-
 SPORTS_SPOTLIGHT = [
     "Garage pick: compare the Z32 300ZX Twin Turbo and the RZ34 Nissan Z as two answers to the same question — what should a turbocharged Z feel like?",
     "Setup note: tires, brake fluid, and alignment often matter more than horsepower for making a Z enjoyable on a back road or track day.",
@@ -205,7 +247,6 @@ SPORTS_SPOTLIGHT = [
     "Weekend thought: a stock Z is not automatically boring. Sometimes the most satisfying version is the one that feels tight, healthy, and coherent.",
     "Mod path: start with maintenance, then tires and brakes, then suspension, then power. A Z that drives well beats a Z that only makes a number.",
 ]
-
 
 CONNECTION_FACTS = [
     {"title": "S30: The Origin Story", "body": "The S30 is the emotional center of the Z universe. It gave the line the long-hood fastback silhouette, approachable performance, and global reputation that later generations kept referencing.", "source_url": "https://en.wikipedia.org/wiki/Nissan_S30"},
@@ -216,49 +257,18 @@ CONNECTION_FACTS = [
     {"title": "RZ34: Heritage Remix", "body": "The modern Z combines a turbocharged V6 with heritage design references and an available manual transmission. It is less a clean-sheet reset than a deliberate remix of the Z story.", "source_url": "https://en.wikipedia.org/wiki/Nissan_Z_(RZ34)"},
 ]
 
-
 EXTRA_CARD_POOLS = [
     {
         "card_type": "z_of_the_day",
         "eyebrow": "Z of the Day",
         "title": "Nissan Z year / car / fact",
         "items": [
-            {
-                "title": "1970 Datsun 240Z",
-                "body": "The original U.S.-market 240Z is the cleanest expression of the Z idea: a simple inline-six, rear-wheel drive, hatchback practicality, and styling that looked far more expensive than it was.",
-                "source_url": "https://en.wikipedia.org/wiki/Nissan_S30",
-                "image_url": f"{COMMONS_FILEPATH}Datsun_240Z.jpg",
-            },
-            {
-                "title": "1984 300ZX Z31",
-                "body": "The Z31 300ZX traded the early Z's rounded sports-car innocence for wedge-shaped 1980s confidence. It helped move the Z identity toward V6 power, turbo options, and grand-touring comfort.",
-                "source_url": "https://en.wikipedia.org/wiki/Nissan_300ZX",
-                "image_url": f"{COMMONS_FILEPATH}Nissan_300ZX_(Z31).jpg",
-            },
-            {
-                "title": "1990 300ZX Z32",
-                "body": "The Z32 reset the Z's image with a low, wide body and serious technology. Twin-turbo cars became the poster-child version, but the whole generation feels like Nissan aiming the Z at the top tier.",
-                "source_url": "https://en.wikipedia.org/wiki/Nissan_300ZX",
-                "image_url": f"{COMMONS_FILEPATH}Nissan_300ZX_Z32.jpg",
-            },
-            {
-                "title": "2003 350Z",
-                "body": "The 350Z brought the Z back after a U.S. market pause. It was not trying to be delicate; it was muscular, relatively simple, and built around front-engine, rear-drive fundamentals.",
-                "source_url": "https://en.wikipedia.org/wiki/Nissan_350Z",
-                "image_url": f"{COMMONS_FILEPATH}Nissan350Z-01.jpg",
-            },
-            {
-                "title": "2009 370Z",
-                "body": "The 370Z tightened the 350Z formula with a shorter body, a larger V6, and a more compact feel. Over time it became a modern analog holdout in a world of increasingly digital performance cars.",
-                "source_url": "https://en.wikipedia.org/wiki/Nissan_370Z",
-                "image_url": f"{COMMONS_FILEPATH}Nissan_370Z_--_07-13-2011.jpg",
-            },
-            {
-                "title": "2023 Nissan Z",
-                "body": "The modern Z uses turbo power and heritage styling to reconnect with multiple earlier eras at once. It is a modern car, but the emotional pitch is classic: coupe, manual option, rear-wheel drive, and boost.",
-                "source_url": "https://en.wikipedia.org/wiki/Nissan_Z_(RZ34)",
-                "image_url": f"{COMMONS_FILEPATH}2023_Nissan_Z_Performance.jpg",
-            },
+            {"title": "1970 Datsun 240Z", "body": "The original U.S.-market 240Z is the cleanest expression of the Z idea: a simple inline-six, rear-wheel drive, hatchback practicality, and styling that looked far more expensive than it was.", "source_url": "https://en.wikipedia.org/wiki/Nissan_S30", "image_url": f"{COMMONS_FILEPATH}Datsun_240Z.jpg"},
+            {"title": "1984 300ZX Z31", "body": "The Z31 300ZX traded the early Z's rounded sports-car innocence for wedge-shaped 1980s confidence. It helped move the Z identity toward V6 power, turbo options, and grand-touring comfort.", "source_url": "https://en.wikipedia.org/wiki/Nissan_300ZX", "image_url": f"{COMMONS_FILEPATH}Nissan_300ZX_(Z31).jpg"},
+            {"title": "1990 300ZX Z32", "body": "The Z32 reset the Z's image with a low, wide body and serious technology. Twin-turbo cars became the poster-child version, but the whole generation feels like Nissan aiming the Z at the top tier.", "source_url": "https://en.wikipedia.org/wiki/Nissan_300ZX", "image_url": f"{COMMONS_FILEPATH}Nissan_300ZX_Z32.jpg"},
+            {"title": "2003 350Z", "body": "The 350Z brought the Z back after a U.S. market pause. It was not trying to be delicate; it was muscular, relatively simple, and built around front-engine, rear-drive fundamentals.", "source_url": "https://en.wikipedia.org/wiki/Nissan_350Z", "image_url": f"{COMMONS_FILEPATH}Nissan350Z-01.jpg"},
+            {"title": "2009 370Z", "body": "The 370Z tightened the 350Z formula with a shorter body, a larger V6, and a more compact feel. Over time it became a modern analog holdout in a world of increasingly digital performance cars.", "source_url": "https://en.wikipedia.org/wiki/Nissan_370Z", "image_url": f"{COMMONS_FILEPATH}Nissan_370Z_--_07-13-2011.jpg"},
+            {"title": "2023 Nissan Z", "body": "The modern Z uses turbo power and heritage styling to reconnect with multiple earlier eras at once. It is a modern car, but the emotional pitch is classic: coupe, manual option, rear-wheel drive, and boost.", "source_url": "https://en.wikipedia.org/wiki/Nissan_Z_(RZ34)", "image_url": f"{COMMONS_FILEPATH}2023_Nissan_Z_Performance.jpg"},
         ],
     },
     {
@@ -266,40 +276,19 @@ EXTRA_CARD_POOLS = [
         "eyebrow": "Z in Video Games",
         "title": "Digital Garage",
         "items": [
-            {
-                "title": "Gran Turismo Garage Staple",
-                "body": "Gran Turismo helped turn Japanese performance cars into bedroom-wall cars for a generation of players. The Z fits that world perfectly because the series rewards learning generations, specs, tuning, and driving feel.",
-                "source_url": "https://en.wikipedia.org/wiki/Gran_Turismo_(series)",
-                "image_url": f"{COMMONS_FILEPATH}Datsun_240_Z.jpg",
-            },
-            {
-                "title": "Need for Speed: 350Z Energy",
-                "body": "The 350Z became one of the cars people associate with the tuner-game era. In a Daily Flyer card, it is a great bridge between real Z heritage and the neon, body-kit, street-racing imagination of the early 2000s.",
-                "source_url": "https://en.wikipedia.org/wiki/Nissan_350Z",
-                "image_url": f"{COMMONS_FILEPATH}Nissan350Z-02.jpg",
-            },
-            {
-                "title": "Forza: Build It Your Way",
-                "body": "Forza-style sandbox racing suits the Z because the car can be anything: restored classic, drift missile, track coupe, highway pull car, or photo-mode hero. That flexibility mirrors real Z ownership culture.",
-                "source_url": "https://en.wikipedia.org/wiki/Forza_(series)",
-                "image_url": f"{COMMONS_FILEPATH}Nissan_350Z_01.jpg",
-            },
-            {
-                "title": "Tokyo Xtreme Racer Mood",
-                "body": "The Z belongs naturally in highway-battle game culture: low coupe profile, strong tuning identity, and enough generations to create rival builds. It is the kind of car that feels right under city lights.",
-                "source_url": "https://en.wikipedia.org/wiki/Tokyo_Xtreme_Racer",
-                "image_url": f"{COMMONS_FILEPATH}Nissan_300ZX_(Z32)_IMG_5269.jpg",
-            },
-            {
-                "title": "Drift Game Favorite",
-                "body": "The Z33 and Z34 generations make sense in drift games because they are front-engine, rear-drive, reasonably powerful, and visually recognizable. A sideways Z is basically a shortcut to saying 'driver car.'",
-                "source_url": "https://en.wikipedia.org/wiki/Nissan_Z-car",
-                "image_url": f"{COMMONS_FILEPATH}2004_Nissan_350Z.png",
-            },
+            {"title": "Gran Turismo Garage Staple", "body": "Gran Turismo helped turn Japanese performance cars into bedroom-wall cars for a generation of players. The Z fits that world perfectly because the series rewards learning generations, specs, tuning, and driving feel.", "source_url": "https://en.wikipedia.org/wiki/Gran_Turismo_(series)", "image_url": f"{COMMONS_FILEPATH}Datsun_240_Z.jpg"},
+            {"title": "Need for Speed: 350Z Energy", "body": "The 350Z became one of the cars people associate with the tuner-game era. In a Daily Flyer card, it is a great bridge between real Z heritage and the neon, body-kit, street-racing imagination of the early 2000s.", "source_url": "https://en.wikipedia.org/wiki/Nissan_350Z", "image_url": f"{COMMONS_FILEPATH}Nissan350Z-02.jpg"},
+            {"title": "Forza: Build It Your Way", "body": "Forza-style sandbox racing suits the Z because the car can be anything: restored classic, drift missile, track coupe, highway pull car, or photo-mode hero. That flexibility mirrors real Z ownership culture.", "source_url": "https://en.wikipedia.org/wiki/Forza_(series)", "image_url": f"{COMMONS_FILEPATH}Nissan_350Z_01.jpg"},
+            {"title": "Tokyo Xtreme Racer Mood", "body": "The Z belongs naturally in highway-battle game culture: low coupe profile, strong tuning identity, and enough generations to create rival builds. It is the kind of car that feels right under city lights.", "source_url": "https://en.wikipedia.org/wiki/Tokyo_Xtreme_Racer", "image_url": f"{COMMONS_FILEPATH}Nissan_300ZX_(Z32)_IMG_5269.jpg"},
+            {"title": "Drift Game Favorite", "body": "The Z33 and Z34 generations make sense in drift games because they are front-engine, rear-drive, reasonably powerful, and visually recognizable. A sideways Z is basically a shortcut to saying 'driver car.'", "source_url": "https://en.wikipedia.org/wiki/Nissan_Z-car", "image_url": f"{COMMONS_FILEPATH}2004_Nissan_350Z.png"},
         ],
     },
 ]
 
-
 BACKGROUND_CADENCE = "daily"
-BACKGROUNDS = []
+BACKGROUNDS = [
+    {
+        "path": BACKGROUND_IMAGE_DATA_URL,
+        "label": "User-provided Nissan Z studio background",
+    },
+]
