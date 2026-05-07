@@ -121,6 +121,9 @@ class WebRouteTests(unittest.TestCase):
         self.assertIn(b"Nissan Z Daily", response.data)
         self.assertIn(b"Modern Z Reveal", response.data)
         self.assertIn(b"Generation Spotlight", response.data)
+        self.assertIn(b"Z of the Day", response.data)
+        self.assertIn(b"Z in Video Games", response.data)
+        self.assertIn(b"card-image", response.data)
 
     def test_birthday_theme_renders_with_realistic_data(self) -> None:
         birthdays = [
