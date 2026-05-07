@@ -126,6 +126,9 @@ class WebRouteTests(unittest.TestCase):
         self.assertIn(b"card-image", response.data)
         self.assertIn(b"data:image/jpeg;base64", response.data)
         self.assertIn(b"User-provided Nissan Z studio background", response.data)
+        self.assertIn(b"background-image: linear-gradient", response.data)
+        self.assertIn(b"@media (max-width: 720px)", response.data)
+        self.assertLess(response.data.index(b"Z of the Day"), response.data.index(b"Generation Spotlight"))
 
     def test_birthday_theme_renders_with_realistic_data(self) -> None:
         birthdays = [
