@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from datetime import date
 
 from daily_flyer.birthday_theme_extra_facts import approved_birthday_theme_facts
@@ -15,7 +16,7 @@ THEME_NAME = weighted.THEME_NAME
 WEIGHT_PROFILE_NAME = weighted.WEIGHT_PROFILE_NAME
 CURATED_CARD_ORDER = ("this_day_history",) + weighted.CURATED_CARD_ORDER
 THEME_CONFIG = dict(weighted.THEME_CONFIG)
-THEME_CONFIG["hero_summary_pill"] = "Exact-date history, birthday-safe facts plus Patti Mode"
+THEME_CONFIG["hero_summary_pill"] = "Birthday-safe facts, family reminders, and Patti Mode"
 
 
 def _insert_after_first_card_type(cards: list[CardItem], after_card_type: str, new_card: CardItem) -> list[CardItem]:
@@ -75,8 +76,8 @@ def _select_exact_first_facts(
     if len(exact) >= limit:
         return exact[:limit]
 
-    # Nearby/week/month facts are intentionally only used as filler. This keeps
-    # the birthday theme focused on "on this day" rather than loose trivia.
+    # Nearby/week/month facts are only used as filler so birthday-specific dates
+    # stay first whenever an exact match exists.
     fallback = _sort_weighted_exact_first([fact for fact in friendly if fact not in exact], target, profile)
     return (exact + fallback)[:limit]
 
@@ -84,26 +85,92 @@ def _select_exact_first_facts(
 def _birthday_focus_status_card(target: date, exact_count: int, fallback_count: int) -> CardItem:
     birthdays = birthdays_for_date(load_birthdays(), target.month, target.day)
     birthday_names = [str(item.get("name", "")).strip() for item in birthdays if str(item.get("name", "")).strip()]
+    selected_date = target.strftime("%B %d")
     if birthday_names:
         birthday_text = weighted._join_names_human(birthday_names)  # noqa: SLF001 - tiny formatting helper
-        headline = f"Focused on {birthday_text}'s birthday date"
+        headline = f"{selected_date} is built around {birthday_text}"
     else:
-        headline = "No birthday on file for this selected date"
+        headline = f"{selected_date} is in planning mode"
 
     if exact_count:
         body = (
             f"<p><strong>{headline}.</strong></p>"
-            f"<p>This page found <strong>{exact_count}</strong> exact-date history fact{'s' if exact_count != 1 else ''}. "
-            "Nearby or month-level facts are only used after exact-date options.</p>"
+            f"<p>The history card below is using <strong>{exact_count}</strong> exact-date fact"
+            f"{'s' if exact_count != 1 else ''} for this day, so the birthday copy can feel more specific and less generic.</p>"
         )
     else:
         body = (
             f"<p><strong>{headline}.</strong></p>"
-            "<p>No exact-date history facts are available yet for this date, so the page is using nearby/month fallback material. "
-            "This is now a clear signal that this birthday date needs more data.</p>"
+            "<p>No exact-date history facts are available for this day yet, so nearby facts are filling in until the date bank grows.</p>"
         )
-    body += f"<p class='birthday-hint'>Fallback facts shown: {fallback_count}. Goal: build exact-date facts first for each cousin birthday.</p>"
-    return CardItem("birthday_focus_status", "Coverage", "Birthday Date Focus", body, None)
+    if fallback_count:
+        body += "<p class='birthday-hint'>A few nearby facts may appear after the exact-date items.</p>"
+    return CardItem("birthday_focus_status", "Date Lens", "Why This Day Matters", body, None)
+
+
+def _polish_fact_labels(html: str) -> str:
+    replacements = {
+        "date match": "On this date",
+        "nearby": "Near this date",
+        "same month": "Same month",
+        "fallback": "Related",
+        "low copy fit": "Background",
+    }
+    polished = html
+    for old, new in replacements.items():
+        polished = polished.replace(old, new)
+    return re.sub(r"\s*·\s*weight\s+[-0-9.]+", "", polished)
+
+
+def _soften_weighted_context(context: PageContext) -> None:
+    for card in context.cards:
+        card.body = _polish_fact_labels(card.body)
+        if card.card_type == "mom_daily":
+            card.body = card.body.replace(
+                "<p class=\"birthday-hint\">Copy-paste-ready draft in Patti mode. Negative keywords are weighted down so facts about death, tragedy, or disasters are less likely to appear in sendable birthday copy.</p>",
+                "<p class=\"birthday-hint\">Copy-paste-ready family note in Patti mode.</p>",
+            )
+            card.body = card.body.replace("keyword-weighted facts", "family-friendly facts")
+
+    context.footer_text = "Built on Daily Flyer. Birthday theme prototype."
+    context.metadata["hero_summary_pill"] = "Birthday tools · Patti Mode · exact-date facts"
+    context.metadata["extra_css"] = f"{context.metadata.get('extra_css', '')}\n{_compatibility_css()}"
+
+
+def _compatibility_css() -> str:
+    return r"""
+    .card--birthday_focus_status, .card--this_day_history { grid-column: span 6; }
+    .card--birthday_focus_status .birthday-hint,
+    .card--this_day_history .birthday-hint,
+    .card--mom_daily .birthday-hint { opacity: .88; }
+    .card--this_day_history .fact-relevance,
+    .card--classic_rock .fact-relevance,
+    .card--irish_history .fact-relevance,
+    .card--boston_sports .fact-relevance,
+    .card--famous_person_birthday .fact-relevance,
+    .card--fun_fact .fact-relevance {
+        color: #fff2c8;
+        background: rgba(255, 255, 255, .07);
+        border-color: rgba(255, 255, 255, .12);
+    }
+    .card--birthday_focus_status {
+        min-height: 0;
+        background: linear-gradient(180deg, rgba(255, 219, 145, .10), rgba(255, 255, 255, .035)), rgba(18, 26, 43, .82);
+    }
+    .card--this_day_history {
+        background: linear-gradient(180deg, rgba(125, 213, 255, .10), rgba(255, 255, 255, .035)), rgba(18, 26, 43, .82);
+    }
+    .birthday-textarea { box-sizing: border-box; }
+    .birthday-message-preview { margin-top: .85rem; }
+    @media (max-width: 980px) {
+        .card--birthday_focus_status, .card--this_day_history { grid-column: span 6; }
+    }
+    @media (max-width: 720px) {
+        .card--birthday_focus_status, .card--this_day_history { grid-column: auto; }
+        .birthday-day { min-height: 48px; border-radius: 14px; }
+        .birthday-date-badge { width: 56px; min-width: 56px; }
+    }
+    """
 
 
 def build_theme_page(date_str: str | None = None, seed: int | None = None) -> PageContext:
@@ -133,20 +200,11 @@ def build_theme_page(date_str: str | None = None, seed: int | None = None) -> Pa
         "this_day_history",
         "This Day in History",
         title,
-        body_html,
+        _polish_fact_labels(body_html),
         source_url,
     )
+
+    _soften_weighted_context(context)
     context.cards = _insert_after_first_card_type(context.cards, "mom_daily", _birthday_focus_status_card(target, exact_count, fallback_count))
     context.cards = _insert_after_first_card_type(context.cards, "birthday_focus_status", history_card)
-
-    if exact_count:
-        focus_note = f" Exact-date history coverage: {exact_count} fact{'s' if exact_count != 1 else ''}."
-    else:
-        focus_note = " Exact-date history coverage missing; using fallback facts."
-    context.header_subtitle = f"{context.header_subtitle}{focus_note}"
-    context.footer_text = f"{context.footer_text} Exact-first history supplement enabled."
-    context.metadata["hero_summary_pill"] = str(context.metadata.get("hero_summary_pill", "")).replace(
-        "weighted facts",
-        "exact-first weighted facts",
-    )
     return context
