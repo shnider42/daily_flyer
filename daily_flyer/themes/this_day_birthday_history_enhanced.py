@@ -255,7 +255,7 @@ def _message_text_for_hits(birthday_hits: list[dict]) -> str:
 
 
 def _natural_fact_paragraph(target: date, facts_for_copy: list[CuratedFact], exact_facts: list[CuratedFact]) -> str:
-    date_label = target.strftime("B %d") if False else target.strftime("%B %d")
+    date_label = target.strftime("%B %d")
     if exact_facts:
         fact_bits = [_fact_body_sentence(fact) for fact in exact_facts[:3]]
         if len(fact_bits) == 1:
@@ -545,9 +545,9 @@ def _compatibility_css() -> str:
     .card::after { background: linear-gradient(90deg, var(--card-accent-a), var(--card-accent-b)); }
     .card::before { opacity: .75; }
 
-    .card--birthday_calendar { grid-column: span 5; --card-accent-a: rgba(255, 214, 116, .70); --card-accent-b: rgba(255, 140, 176, .46); --card-radius-a: 34px; --card-radius-b: 18px; --card-radius-c: 30px; --card-radius-d: 26px; }
-    .card--mom_daily { grid-column: span 7; --card-accent-a: rgba(255, 140, 176, .64); --card-accent-b: rgba(255, 214, 116, .54); --card-radius-a: 22px; --card-radius-b: 38px; --card-radius-c: 24px; --card-radius-d: 34px; }
-    .card--birthday_phone_helper { grid-column: span 4; --card-accent-a: rgba(125, 213, 255, .60); --card-accent-b: rgba(255, 214, 116, .42); --card-radius-a: 28px; --card-radius-b: 24px; --card-radius-c: 18px; --card-radius-d: 32px; }
+    .card--birthday_calendar { grid-column: span 5; --card-accent-a: rgba(255, 214, 116, .85); --card-accent-b: rgba(255, 140, 176, .56); --card-radius-a: 38px; --card-radius-b: 14px; --card-radius-c: 32px; --card-radius-d: 28px; }
+    .card--mom_daily { grid-column: span 7; --card-accent-a: rgba(255, 140, 176, .74); --card-accent-b: rgba(255, 214, 116, .64); --card-radius-a: 18px; --card-radius-b: 42px; --card-radius-c: 24px; --card-radius-d: 38px; }
+    .card--birthday_phone_helper { grid-column: span 4; --card-accent-a: rgba(125, 213, 255, .70); --card-accent-b: rgba(255, 214, 116, .48); --card-radius-a: 12px; --card-radius-b: 34px; --card-radius-c: 12px; --card-radius-d: 34px; }
     .card--birthday_spotlight { grid-column: span 8; --card-accent-a: rgba(255, 214, 116, .58); --card-accent-b: rgba(255, 140, 176, .58); --card-radius-a: 40px; --card-radius-b: 20px; --card-radius-c: 34px; --card-radius-d: 20px; }
     .card--this_day_history { grid-column: span 6; --card-accent-a: rgba(125, 213, 255, .58); --card-accent-b: rgba(255, 214, 116, .44); --card-radius-a: 20px; --card-radius-b: 34px; --card-radius-c: 22px; --card-radius-d: 34px; }
     .card--famous_person_birthday { grid-column: span 4; --card-accent-a: rgba(255, 214, 116, .50); --card-accent-b: rgba(255, 255, 255, .18); --card-radius-a: 24px; --card-radius-b: 24px; --card-radius-c: 38px; --card-radius-d: 18px; }
@@ -556,6 +556,99 @@ def _compatibility_css() -> str:
     .card--irish_history { grid-column: span 4; --card-accent-a: rgba(96, 214, 151, .52); --card-accent-b: rgba(255, 214, 116, .40); --card-radius-a: 30px; --card-radius-b: 20px; --card-radius-c: 18px; --card-radius-d: 34px; }
     .card--boston_sports { grid-column: span 4; --card-accent-a: rgba(125, 183, 217, .52); --card-accent-b: rgba(255, 140, 176, .34); --card-radius-a: 22px; --card-radius-b: 30px; --card-radius-c: 36px; --card-radius-d: 18px; }
     .card--birthday_message_starter, .card--birthday_upcoming { grid-column: span 6; }
+
+    /* Showcase style 1: Birthday Calendar as a glowing date-console/dashboard. */
+    .card--birthday_calendar {
+        background:
+            radial-gradient(circle at 14% 12%, rgba(255, 214, 116, .23), transparent 28%) padding-box,
+            linear-gradient(180deg, rgba(22, 18, 40, .94), rgba(20, 30, 52, .90)) padding-box,
+            linear-gradient(135deg, rgba(255, 214, 116, .82), rgba(255,255,255,.18), rgba(255, 140, 176, .58)) border-box;
+        box-shadow: 0 28px 80px rgba(255, 160, 96, .12), 0 20px 48px rgba(0,0,0,.28);
+    }
+    .card--birthday_calendar .birthday-calendar-wrap {
+        padding: .9rem;
+        border: 1px solid rgba(255,255,255,.10);
+        border-radius: 26px 12px 24px 18px;
+        background:
+            linear-gradient(rgba(255,255,255,.04) 1px, transparent 1px),
+            linear-gradient(90deg, rgba(255,255,255,.035) 1px, transparent 1px),
+            rgba(255,255,255,.035);
+        background-size: 22px 22px;
+    }
+    .card--birthday_calendar .birthday-calendar-title { font-size: clamp(1.35rem, 2vw, 1.9rem); }
+    .card--birthday_calendar .birthday-day {
+        border-radius: 12px;
+        background: rgba(255,255,255,.07);
+        box-shadow: inset 0 1px 0 rgba(255,255,255,.08);
+    }
+    .card--birthday_calendar .birthday-day.has-birthday { background: rgba(255, 214, 116, .18); }
+    .card--birthday_calendar .birthday-day.selected { transform: scale(1.04); }
+
+    /* Showcase style 2: Mom Daily Draft as a warm message composer / notepad. */
+    .card--mom_daily {
+        background:
+            radial-gradient(circle at 96% 0%, rgba(255, 214, 116, .20), transparent 28%) padding-box,
+            linear-gradient(145deg, rgba(54, 31, 54, .92), rgba(25, 29, 48, .92)) padding-box,
+            linear-gradient(135deg, rgba(255, 140, 176, .76), rgba(255, 214, 116, .66)) border-box;
+        box-shadow: 0 24px 64px rgba(255, 140, 176, .13), 0 18px 42px rgba(0,0,0,.26);
+    }
+    .card--mom_daily .mom-daily-frame {
+        position: relative;
+        padding: 1rem;
+        border-radius: 24px 34px 20px 30px;
+        background: linear-gradient(180deg, rgba(255,255,255,.075), rgba(255,255,255,.035));
+        border: 1px solid rgba(255,255,255,.11);
+    }
+    .card--mom_daily .mom-daily-frame::before {
+        content: "";
+        position: absolute;
+        inset: .85rem auto .85rem .72rem;
+        width: 4px;
+        border-radius: 999px;
+        background: linear-gradient(180deg, rgba(255,140,176,.85), rgba(255,214,116,.80));
+    }
+    .card--mom_daily .birthday-textarea--large {
+        min-height: 360px;
+        padding-left: 1.25rem;
+        background:
+            linear-gradient(transparent 95%, rgba(255,255,255,.055) 96%),
+            rgba(255, 248, 232, .075);
+        background-size: 100% 2.05rem;
+        border-color: rgba(255, 214, 116, .22);
+        box-shadow: inset 0 0 0 1px rgba(255,255,255,.035);
+    }
+    .card--mom_daily .birthday-btn { background: rgba(255, 214, 116, .18); border-color: rgba(255, 214, 116, .32); }
+
+    /* Showcase style 3: Phone helper as an outreach control panel. */
+    .card--birthday_phone_helper {
+        background:
+            radial-gradient(circle at 20% 0%, rgba(125, 213, 255, .24), transparent 30%) padding-box,
+            radial-gradient(circle at 100% 80%, rgba(255, 214, 116, .13), transparent 32%) padding-box,
+            linear-gradient(180deg, rgba(11, 27, 48, .94), rgba(7, 17, 31, .92)) padding-box,
+            linear-gradient(135deg, rgba(125, 213, 255, .72), rgba(255,255,255,.12), rgba(255, 214, 116, .48)) border-box;
+        box-shadow: 0 24px 66px rgba(125, 213, 255, .10), 0 18px 42px rgba(0,0,0,.30);
+    }
+    .card--birthday_phone_helper .birthday-helper-panel {
+        padding: .8rem;
+        border-radius: 10px 26px 10px 26px;
+        border: 1px solid rgba(125, 213, 255, .18);
+        background: rgba(255,255,255,.035);
+    }
+    .card--birthday_phone_helper .birthday-stat-row { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); }
+    .card--birthday_phone_helper .birthday-soft-pill {
+        justify-content: center;
+        border-radius: 10px;
+        background: rgba(125, 213, 255, .12);
+        border-color: rgba(125, 213, 255, .22);
+    }
+    .card--birthday_phone_helper .birthday-textarea {
+        min-height: 150px;
+        font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+        font-size: .9rem;
+        background: rgba(4, 11, 22, .38);
+        border-color: rgba(125, 213, 255, .20);
+    }
+    .card--birthday_phone_helper .birthday-btn { width: 100%; justify-content: center; border-radius: 10px 18px 10px 18px; }
 
     .card-head { gap: .85rem; }
     .eyebrow { line-height: 1.35; overflow-wrap: anywhere; }
@@ -567,7 +660,7 @@ def _compatibility_css() -> str:
     .birthday-calendar-subtitle, .birthday-selected, .birthday-hint { color: #d5c8e6; font-size: .88rem; }
     .birthday-calendar-nav, .birthday-calendar-controls, .birthday-summary-row, .birthday-stat-row, .birthday-actions, .mom-daily-anatomy { display: flex; flex-wrap: wrap; gap: .55rem; align-items: center; }
     .birthday-iconbtn, .birthday-btn, .birthday-soft-pill, .birthday-summary-pill, .mom-daily-anatomy span, .fact-relevance { border: 1px solid rgba(255,255,255,.12); background: rgba(255,255,255,.08); color: var(--ink); border-radius: 999px; padding: .45rem .75rem; font-weight: 700; }
-    .birthday-iconbtn, .birthday-btn { cursor: pointer; font: inherit; }
+    .birthday-iconbtn, .birthday-btn { cursor: pointer; font: inherit; display: inline-flex; align-items: center; gap: .4rem; }
     .birthday-btn { border-radius: 14px; }
     .birthday-summary-pill--warm { background: rgba(255,204,122,.18); color: #fff0ca; }
     .birthday-calendar { width: 100%; border-collapse: separate; border-spacing: .3rem; }
@@ -627,6 +720,7 @@ def _compatibility_css() -> str:
     @media (max-width: 980px) {
         :root { --max-width: calc(100vw - 28px); }
         .card--birthday_calendar, .card--mom_daily, .card--birthday_phone_helper, .card--birthday_spotlight, .card--this_day_history, .card--birthday_message_starter, .card--birthday_upcoming, .card--famous_person_birthday, .card--fun_fact, .card--classic_rock, .card--irish_history, .card--boston_sports { grid-column: span 6; }
+        .card--birthday_phone_helper .birthday-stat-row { grid-template-columns: 1fr; }
     }
     @media (max-width: 720px) {
         :root { --max-width: calc(100vw - 18px); }
