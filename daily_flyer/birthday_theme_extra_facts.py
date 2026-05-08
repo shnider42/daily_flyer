@@ -10,10 +10,12 @@ from daily_flyer.curated_fact_store import CuratedFact, CuratedFactValidationErr
 DEFAULT_BIRTHDAY_THEME_FACTS_FILE = Path("birthday_theme_facts.json")
 DEFAULT_BIRTHDAY_HISTORY_FACTS_FILE = Path("birthday_history_facts.json")
 DEFAULT_BIRTHDAY_FOCUS_HISTORY_FACTS_FILE = Path("birthday_focus_history_facts.json")
+DEFAULT_BIRTHDAY_FAMILY_DATE_FACTS_FILE = Path("birthday_family_date_facts.json")
 DEFAULT_BIRTHDAY_SUPPLEMENTAL_FACT_FILES = (
     DEFAULT_BIRTHDAY_THEME_FACTS_FILE,
     DEFAULT_BIRTHDAY_HISTORY_FACTS_FILE,
     DEFAULT_BIRTHDAY_FOCUS_HISTORY_FACTS_FILE,
+    DEFAULT_BIRTHDAY_FAMILY_DATE_FACTS_FILE,
 )
 
 
