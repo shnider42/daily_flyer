@@ -64,6 +64,42 @@ border-radius: var(--card-radius-a) var(--card-radius-b) var(--card-radius-c) va
 
 This gives each card family a little personality without making every card look completely different.
 
+## Showcase card styles in this branch
+
+The top three cards are intentionally exaggerated a bit to show what Daily Flyer cards could become:
+
+### Birthday Calendar: date-console / dashboard
+
+```css
+.card--birthday_calendar { ... }
+.card--birthday_calendar .birthday-calendar-wrap { ... }
+.card--birthday_calendar .birthday-day { ... }
+```
+
+This style uses a glowing grid panel, stronger date-cell treatment, and a more dashboard-like container.
+
+### Mom Daily Draft: warm message composer / notepad
+
+```css
+.card--mom_daily { ... }
+.card--mom_daily .mom-daily-frame { ... }
+.card--mom_daily .birthday-textarea--large { ... }
+```
+
+This style treats the card like a family-note composer, with a notepad texture, warm border, and a left accent rail.
+
+### Phone List Helper: outreach control panel
+
+```css
+.card--birthday_phone_helper { ... }
+.card--birthday_phone_helper .birthday-helper-panel { ... }
+.card--birthday_phone_helper .birthday-textarea { ... }
+```
+
+This style feels more like a utility panel: angular corners, cool blue accents, monospaced number field, and button emphasis.
+
+The cards below those stay closer to the common card system on purpose, so the contrast is visible without the entire page becoming visually noisy.
+
 ## Fact subcards and sources
 
 The category cards keep stable titles such as `This Day in History`, `Famous Birthdays`, and `Fun Fact`.
