@@ -200,6 +200,18 @@ def _fact_body_sentence(fact: CuratedFact, limit: int = 170) -> str:
     return weighted._trim_fact_text(fact.body, limit)  # noqa: SLF001 - shared theme text helper
 
 
+def _source_link(fact: CuratedFact) -> str:
+    source_name = str(getattr(fact, "source_name", "") or "Source").strip() or "Source"
+    source_url = str(getattr(fact, "source_url", "") or "").strip()
+    if source_url:
+        return (
+            "<p class='birthday-hint fact-source'>"
+            f"<a href='{escape(source_url, quote=True)}' target='_blank' rel='noopener noreferrer'>Source: {escape(source_name)}</a>"
+            "</p>"
+        )
+    return f"<p class='birthday-hint fact-source'>Source: {escape(source_name)}</p>"
+
+
 def _birthday_names_for_copy(birthday_hits: list[dict], first_names_only: bool = True) -> list[str]:
     names: list[str] = []
     for item in birthday_hits:
@@ -226,12 +238,12 @@ def _birthday_copy_line(target: date, birthday_hits: list[dict]) -> str:
     ages = [weighted._age_for_hit(target, hit) for hit in birthday_hits]  # noqa: SLF001 - shared theme age helper
     ages = [age for age in ages if age is not None]
     if len(birthday_hits) == 1:
-        age_text = f" turns {weighted._ordinal(ages[0])}" if ages else " gets the real headline"
-        return f"Today really belongs to {joined}, who{age_text} today!!!"
+        age_text = f" turns {weighted._ordinal(ages[0])}" if ages else " gets the headline"
+        return f"The real reason to remember the day is {joined}, who{age_text} today."
     if ages:
         age_text = weighted._join_names_human([weighted._ordinal(age) for age in ages])  # noqa: SLF001
-        return f"Today really belongs to {joined}, bringing {age_text} birthday energy to the family calendar!!!"
-    return f"Today really belongs to {joined}!!!"
+        return f"The real reason to remember the day is {joined}, bringing {age_text} birthday energy to the family calendar."
+    return f"The real reason to remember the day is {joined}."
 
 
 def _message_text_for_hits(birthday_hits: list[dict]) -> str:
@@ -243,19 +255,19 @@ def _message_text_for_hits(birthday_hits: list[dict]) -> str:
 
 
 def _natural_fact_paragraph(target: date, facts_for_copy: list[CuratedFact], exact_facts: list[CuratedFact]) -> str:
-    date_label = target.strftime("%B %d")
+    date_label = target.strftime("B %d") if False else target.strftime("%B %d")
     if exact_facts:
         fact_bits = [_fact_body_sentence(fact) for fact in exact_facts[:3]]
         if len(fact_bits) == 1:
-            return f"Before we get to the real headline, {date_label} already had one pretty good calendar note: {fact_bits[0]}."
+            return f"{date_label} already has a good calendar note: {fact_bits[0]}."
         if len(fact_bits) == 2:
-            return f"Before we get to the real headline, {date_label} already had a couple of calendar notes: {fact_bits[0]} Also sharing the date, {fact_bits[1]}."
-        return f"Before we get to the real headline, {date_label} already had a busy calendar: {fact_bits[0]} Also sharing the date, {fact_bits[1]} And just to keep the day interesting, {fact_bits[2]}."
+            return f"{date_label} already has a couple of calendar notes. {fact_bits[0]} Also sharing the date: {fact_bits[1]}."
+        return f"{date_label} has a busy calendar. {fact_bits[0]} Also sharing the date: {fact_bits[1]} And one more for the pile: {fact_bits[2]}."
 
     if facts_for_copy:
         return f"The exact-date trivia shelf is still a little light for {date_label}, but the nearby calendar gives us this: {_fact_body_sentence(facts_for_copy[0])}."
 
-    return f"The history department is quiet for {date_label}, which is fine because the family calendar is doing the heavy lifting anyway🎂!!!"
+    return f"The history department is quiet for {date_label}, which is fine because the family calendar is doing the heavy lifting."
 
 
 def _render_exact_day_mom_daily(
@@ -270,27 +282,25 @@ def _render_exact_day_mom_daily(
     date_label = target.strftime("%B %d")
 
     paragraphs = [
-        f"Before everyone gets too busy, here is your {date_label} family calendar update👏!!!",
+        f"Here is your {date_label} family calendar update 🎂",
         _natural_fact_paragraph(target, facts_for_copy, exact_facts),
     ]
 
     birthday_line = _birthday_copy_line(target, birthday_hits)
     if birthday_hits:
-        paragraphs.append(f"All of that is interesting, but obviously not the main event. {birthday_line}")
-        paragraphs.append(f"So please take a second to send some love today: {_message_text_for_hits(birthday_hits)}")
+        paragraphs.append(f"Interesting stuff, but not the main event. {birthday_line}")
+        paragraphs.append(f"Please send some love today: {_message_text_for_hits(birthday_hits)}")
     else:
         paragraphs.append(birthday_line)
 
-    paragraphs.append("Love you all and hope everyone has a great day😘!!!")
+    paragraphs.append("Love you all, and hope everyone has a great day 😘")
     body = "\n\n".join(paragraphs)
 
-    day_fact_label = f"{len(exact_facts)} exact-date fact{'s' if len(exact_facts) != 1 else ''}" if exact_facts else "nearby fallback facts"
     return f"""
         <div class="mom-daily-frame mom-daily-frame--exact-day">
-            <p class="birthday-hint">Copy-paste-ready family note in Patti mode. This draft prioritizes facts that actually happened on {escape(date_label)}.</p>
+            <p class="birthday-hint">Copy-paste-ready family note in Patti mode. The draft favors facts from {escape(date_label)} when they are available.</p>
             <textarea id="mom-daily-text" class="birthday-textarea birthday-textarea--large">{escape(body)}</textarea>
             <div class="birthday-actions"><button class="birthday-btn" type="button" id="momDailyCopyBtn">Copy Patti draft</button><span id="mom-daily-copy-status" class="birthday-hint"></span></div>
-            <div class="mom-daily-anatomy"><span>{escape(day_fact_label)}</span><span>birthday stays central</span><span>natural family copy</span></div>
         </div>
     """
 
@@ -317,7 +327,7 @@ def _render_birthday_spotlight(
         "<div class='birthday-spotlight-shell birthday-spotlight-shell--headline'>",
         "<div class='birthday-headline-intro'>",
         f"<div class='birthday-mini-label'>The family headline for {escape(date_label)}</div>",
-        f"<p>Everything else on the calendar is just the opening act. Today’s name to remember is <strong>{escape(joined)}</strong>.</p>",
+        f"<p>Everything else on the calendar is the opening act. Today’s name to remember is <strong>{escape(joined)}</strong>.</p>",
         "</div>",
     ]
     if opening_act:
@@ -404,7 +414,7 @@ def _render_grouped_fact_card_body(
         f"<div class='fact-title'>{escape(lead.title)}</div>",
         f"<div class='fact-relevance'>{escape(_fact_label(lead, target, profile))}</div>",
         f"<p>{escape(lead.body)}</p>",
-        f"<p class='birthday-hint'>Source: {escape(lead.source_name)}</p>",
+        _source_link(lead),
         "</article>",
     ]
     if more:
@@ -416,7 +426,7 @@ def _render_grouped_fact_card_body(
                 f"<strong>{escape(fact.title)}</strong> "
                 f"<span class='fact-relevance fact-relevance--inline'>{escape(_fact_label(fact, target, profile))}</span>"
                 f"<p>{escape(weighted._trim_fact_text(fact.body, 175))}</p>"  # noqa: SLF001
-                f"<p class='birthday-hint'>Source: {escape(fact.source_name)}</p>"
+                f"{_source_link(fact)}"
                 "</li>"
             )
         parts.append("</ul></details>")
@@ -522,19 +532,29 @@ def _compatibility_css() -> str:
     .card {
         --card-accent-a: rgba(255, 209, 106, .55);
         --card-accent-b: rgba(125, 213, 255, .42);
+        --card-radius-a: 30px;
+        --card-radius-b: 22px;
+        --card-radius-c: 34px;
+        --card-radius-d: 20px;
         border: 1px solid transparent;
+        border-radius: var(--card-radius-a) var(--card-radius-b) var(--card-radius-c) var(--card-radius-d);
         background:
             linear-gradient(180deg, rgba(255,255,255,.082), rgba(255,255,255,.028)) padding-box,
             linear-gradient(135deg, var(--card-accent-a), rgba(255,255,255,.10), var(--card-accent-b)) border-box;
     }
     .card::after { background: linear-gradient(90deg, var(--card-accent-a), var(--card-accent-b)); }
+    .card::before { opacity: .75; }
 
-    .card--birthday_calendar { grid-column: span 5; --card-accent-a: rgba(255, 214, 116, .70); --card-accent-b: rgba(255, 140, 176, .46); }
-    .card--mom_daily { grid-column: span 7; --card-accent-a: rgba(255, 140, 176, .64); --card-accent-b: rgba(255, 214, 116, .54); }
-    .card--birthday_phone_helper { grid-column: span 4; --card-accent-a: rgba(125, 213, 255, .60); --card-accent-b: rgba(255, 214, 116, .42); }
-    .card--birthday_spotlight { grid-column: span 8; --card-accent-a: rgba(255, 214, 116, .58); --card-accent-b: rgba(255, 140, 176, .58); }
-    .card--this_day_history { grid-column: span 6; --card-accent-a: rgba(125, 213, 255, .58); --card-accent-b: rgba(255, 214, 116, .44); }
-    .card--famous_person_birthday, .card--fun_fact, .card--classic_rock, .card--irish_history, .card--boston_sports { grid-column: span 4; }
+    .card--birthday_calendar { grid-column: span 5; --card-accent-a: rgba(255, 214, 116, .70); --card-accent-b: rgba(255, 140, 176, .46); --card-radius-a: 34px; --card-radius-b: 18px; --card-radius-c: 30px; --card-radius-d: 26px; }
+    .card--mom_daily { grid-column: span 7; --card-accent-a: rgba(255, 140, 176, .64); --card-accent-b: rgba(255, 214, 116, .54); --card-radius-a: 22px; --card-radius-b: 38px; --card-radius-c: 24px; --card-radius-d: 34px; }
+    .card--birthday_phone_helper { grid-column: span 4; --card-accent-a: rgba(125, 213, 255, .60); --card-accent-b: rgba(255, 214, 116, .42); --card-radius-a: 28px; --card-radius-b: 24px; --card-radius-c: 18px; --card-radius-d: 32px; }
+    .card--birthday_spotlight { grid-column: span 8; --card-accent-a: rgba(255, 214, 116, .58); --card-accent-b: rgba(255, 140, 176, .58); --card-radius-a: 40px; --card-radius-b: 20px; --card-radius-c: 34px; --card-radius-d: 20px; }
+    .card--this_day_history { grid-column: span 6; --card-accent-a: rgba(125, 213, 255, .58); --card-accent-b: rgba(255, 214, 116, .44); --card-radius-a: 20px; --card-radius-b: 34px; --card-radius-c: 22px; --card-radius-d: 34px; }
+    .card--famous_person_birthday { grid-column: span 4; --card-accent-a: rgba(255, 214, 116, .50); --card-accent-b: rgba(255, 255, 255, .18); --card-radius-a: 24px; --card-radius-b: 24px; --card-radius-c: 38px; --card-radius-d: 18px; }
+    .card--fun_fact { grid-column: span 4; --card-accent-a: rgba(255, 140, 176, .50); --card-accent-b: rgba(125, 213, 255, .40); --card-radius-a: 34px; --card-radius-b: 18px; --card-radius-c: 26px; --card-radius-d: 26px; }
+    .card--classic_rock { grid-column: span 4; --card-accent-a: rgba(180, 154, 255, .48); --card-accent-b: rgba(255, 214, 116, .38); --card-radius-a: 18px; --card-radius-b: 34px; --card-radius-c: 30px; --card-radius-d: 20px; }
+    .card--irish_history { grid-column: span 4; --card-accent-a: rgba(96, 214, 151, .52); --card-accent-b: rgba(255, 214, 116, .40); --card-radius-a: 30px; --card-radius-b: 20px; --card-radius-c: 18px; --card-radius-d: 34px; }
+    .card--boston_sports { grid-column: span 4; --card-accent-a: rgba(125, 183, 217, .52); --card-accent-b: rgba(255, 140, 176, .34); --card-radius-a: 22px; --card-radius-b: 30px; --card-radius-c: 36px; --card-radius-d: 18px; }
     .card--birthday_message_starter, .card--birthday_upcoming { grid-column: span 6; }
 
     .card-head { gap: .85rem; }
@@ -566,18 +586,20 @@ def _compatibility_css() -> str:
     .birthday-legend-dot, .birthday-legend-pill { display: inline-block; border-radius: 999px; background: rgba(255,215,120,.95); margin-right: .35rem; }
     .birthday-legend-dot { width: 8px; height: 8px; }
     .birthday-legend-pill { width: 18px; height: 12px; background: rgba(255,215,120,.30); border: 1px solid rgba(255,215,120,.72); }
-    .birthday-person, .birthday-upcoming-item, .fact-lead, .fact-more, .birthday-empty-state, .birthday-headline-intro, .birthday-opening-act { padding: 1rem; border-radius: 18px; background: linear-gradient(180deg, rgba(255,255,255,.07), rgba(255,255,255,.03)); border: 1px solid rgba(255,255,255,.10); }
+    .birthday-person, .birthday-upcoming-item, .fact-lead, .fact-more, .birthday-empty-state, .birthday-headline-intro, .birthday-opening-act { padding: 1rem; border-radius: 18px 22px 18px 26px; background: linear-gradient(180deg, rgba(255,255,255,.07), rgba(255,255,255,.03)); border: 1px solid rgba(255,255,255,.10); }
     .birthday-person-top, .birthday-upcoming-item { display: flex; align-items: center; justify-content: space-between; gap: 1rem; }
     .birthday-mini-label { color: #ffd9a0; font-size: .74rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
     .birthday-name { margin-top: .18rem; font-weight: 700; font-size: 1.26rem; color: var(--ink); }
     .birthday-meta, .birthday-note, .birthday-upcoming-meta { color: #d5c8e6; font-size: .88rem; }
     .birthday-opening-act span { display: inline-flex; margin-bottom: .35rem; color: #ffd9a0; font-size: .72rem; font-weight: 900; letter-spacing: .08em; text-transform: uppercase; }
     .birthday-opening-act p, .birthday-headline-intro p { margin: .2rem 0 0; }
-    .birthday-textarea { width: 100%; min-height: 120px; resize: vertical; padding: .95rem 1rem; border-radius: 16px; border: 1px solid rgba(255,255,255,.12); background: rgba(255,255,255,.06); color: var(--ink); font: inherit; line-height: 1.55; box-sizing: border-box; }
-    .birthday-textarea--large { min-height: 360px; }
+    .birthday-textarea { width: 100%; min-height: 120px; resize: vertical; padding: .95rem 1rem; border-radius: 16px 22px 16px 22px; border: 1px solid rgba(255,255,255,.12); background: rgba(255,255,255,.06); color: var(--ink); font: inherit; line-height: 1.55; box-sizing: border-box; }
+    .birthday-textarea--large { min-height: 330px; }
     .birthday-date-badge { width: 64px; min-width: 64px; border-radius: 18px; padding: .55rem .35rem; background: rgba(255,214,116,.18); text-align: center; }
     .birthday-date-month { display: block; color: #ffe6b8; font-size: .72rem; font-weight: 800; letter-spacing: .08em; text-transform: uppercase; }
     .fact-title { color: var(--ink); font-weight: 800; font-size: 1.08rem; margin-bottom: .45rem; }
+    .fact-source a { color: #ffe6b8; font-weight: 800; text-decoration: none; }
+    .fact-source a:hover { text-decoration: underline; }
     .fact-relevance {
         display: inline-flex;
         align-items: center;
@@ -596,11 +618,6 @@ def _compatibility_css() -> str:
     .fact-relevance--inline { margin-left: .35rem; padding: .18rem .45rem; vertical-align: middle; }
     .fact-more summary { cursor: pointer; color: #ffe6b8; font-weight: 800; }
     .fact-more ul { margin: .85rem 0 0; padding-left: 1.1rem; display: grid; gap: .75rem; }
-    .mom-daily-frame--exact-day .mom-daily-anatomy span:first-child {
-        background: rgba(255, 214, 116, .18);
-        color: #fff2c8;
-        border-color: rgba(255, 214, 116, .30);
-    }
     .birthday-message-preview { margin-top: .85rem; }
 
     @media (max-width: 1180px) {
