@@ -13,15 +13,25 @@ REPO_ROOT = Path(__file__).resolve().parent
 DEFAULT_THEME = os.environ.get("DEFAULT_THEME", "irish_today")
 
 
-def _clean_theme_name(raw: str | None) -> str:
-    theme_name = (raw or DEFAULT_THEME).strip()
+def _normalize_theme_name(raw: str | None) -> str:
+    """Return a Python module-safe Daily Flyer theme name.
+
+    Render env vars and URLs are easy places to type theme names with hyphens
+    (`topic-signal-daily`), while Daily Flyer theme modules use underscores
+    (`topic_signal_daily`). Accept both spellings at the web boundary.
+    """
+    theme_name = (raw or DEFAULT_THEME).strip().replace("-", "_")
     if not theme_name:
-        return DEFAULT_THEME
+        theme_name = DEFAULT_THEME.strip().replace("-", "_")
 
     if not theme_name.replace("_", "").isalnum():
         abort(400, description="Invalid theme name.")
 
     return theme_name
+
+
+# Backward-compatible name for existing tests/imports.
+_clean_theme_name = _normalize_theme_name
 
 
 def _parse_seed(raw: str | None) -> int | None:
@@ -36,7 +46,7 @@ def _parse_seed(raw: str | None) -> int | None:
 
 @app.route("/")
 def home():
-    theme_name = _clean_theme_name(request.args.get("theme"))
+    theme_name = _normalize_theme_name(request.args.get("theme"))
     date_str = (request.args.get("date") or "").strip() or None
     seed = _parse_seed(request.args.get("seed"))
 
