@@ -3,12 +3,10 @@ from __future__ import annotations
 """
 Passages Daily theme.
 
-A Daily Flyer companion theme for My Passages-style content: warm, practical,
-transition-focused daily guidance for young people, parents, mentors, coaches,
-and community partners.
-
-This intentionally de-emphasizes market research/dashboard language. The page
-should feel like a daily next-step guide that can sit beside mypassages.net.
+A Daily Flyer companion theme for My Passages-style content: bright, practical,
+student-facing, and confidence-oriented. The visual direction intentionally pulls
+closer to the Passages homepage: airy white space, navy type, teal accents,
+rounded cards, friendly labels, and lightweight interactive moments.
 """
 
 from daily_flyer.models import CardItem, PageContext
@@ -16,189 +14,777 @@ from daily_flyer.utils import resolve_date
 
 
 THEME_CONFIG = {
-    "page_title": "Passages Daily — Next-Step Guidance",
-    "header_title": "Passages Daily",
+    "page_title": "Passages Daily — Skills and Confidence",
+    "header_title": "Step Into Today with Skills and Confidence",
     "header_subtitle": (
-        "A daily companion for young people moving through school, work, training, "
-        "early adulthood, and the in-between moments that shape what comes next."
+        '<div class="passages-hero-copy">'
+        '<p>Passages Daily is a friendly one-page companion for students, families, mentors, and coaches. '
+        'Each day gives you one focus, one real-world skill, one next step, and a couple of playful ways to practice.</p>'
+        '<div class="passages-hero-actions">'
+        '<span class="passages-cta">Let’s Do It!</span>'
+        '<span class="passages-soft-pill">Confidence starts here</span>'
+        '</div>'
+        '</div>'
     ),
     "footer_text": (
-        "Built on Daily Flyer as a companion-style theme for My Passages. "
-        "Each daily entry offers one topic, one practical step, and one conversation starter."
+        "Built on Daily Flyer as a Passages-style companion page: one focus, one skill, "
+        "one next step, and one better conversation."
     ),
-    "hero_kicker": "Daily Flyer • My Passages Companion",
-    "hero_summary_pill": "One passage • one next step • one useful conversation",
-    "extra_css": """
+    "hero_kicker": "Passages Daily • Daily Flyer Companion",
+    "hero_summary_pill": "Skills • Confidence • Clarity • Real-world prep",
+}
+
+
+PASSAGES_CSS = """
+:root {
+    --passages-navy: #0b2d68;
+    --passages-navy-soft: #163f7a;
+    --passages-text: #142033;
+    --passages-muted: #5d6d80;
+    --passages-bg: #ffffff;
+    --passages-bg-soft: #eef9fb;
+    --passages-bg-mint: #e7fbf5;
+    --passages-card: #ffffff;
+    --passages-card-soft: #f8fcfd;
+    --passages-teal: #00cc9a;
+    --passages-teal-dark: #059d83;
+    --passages-aqua: #a8e2e5;
+    --passages-yellow: #fff2a6;
+    --passages-yellow-strong: #ffe37f;
+    --passages-shadow: 0 18px 48px rgba(11, 45, 104, 0.10);
+    --passages-shadow-soft: 0 10px 28px rgba(11, 45, 104, 0.08);
+    --passages-border: rgba(11, 45, 104, 0.10);
+    --passages-radius: 28px;
+}
+
+body {
+    color: var(--passages-text);
+    background:
+        radial-gradient(circle at 90% 12%, rgba(168,226,229,0.48), transparent 22rem),
+        radial-gradient(circle at 8% 35%, rgba(0,204,154,0.12), transparent 18rem),
+        linear-gradient(180deg, var(--passages-bg-soft) 0 116px, #ffffff 116px 72%, #eef9fb 100%);
+}
+
+body::before {
+    width: 420px;
+    height: 420px;
+    top: 250px;
+    left: auto;
+    right: -190px;
+    background: radial-gradient(circle, rgba(0,204,154,0.13), transparent 70%);
+    opacity: 0.9;
+    filter: blur(8px);
+}
+
+body::after {
+    width: 320px;
+    height: 320px;
+    right: auto;
+    left: -150px;
+    top: 620px;
+    background: radial-gradient(circle, rgba(255,242,166,0.42), transparent 70%);
+    opacity: 0.75;
+    filter: blur(8px);
+}
+
+.hero-wrap {
+    padding-top: 22px;
+}
+
+header.hero {
+    color: var(--passages-navy);
+    min-height: 500px;
+    display: grid;
+    grid-template-columns: minmax(0, 1.02fr) minmax(300px, 0.98fr);
+    align-items: center;
+    gap: clamp(1rem, 4vw, 3.8rem);
+    padding: clamp(2.4rem, 5vw, 4.4rem) clamp(1.6rem, 4vw, 4rem);
+    border: 1px solid rgba(11, 45, 104, 0.06);
+    background:
+        radial-gradient(circle at 82% 26%, rgba(168,226,229,0.64), transparent 12rem),
+        radial-gradient(circle at 91% 58%, rgba(255,242,166,0.45), transparent 10rem),
+        linear-gradient(135deg, #ffffff 0%, #ffffff 58%, #f1fbfc 100%);
+    box-shadow: var(--passages-shadow);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+}
+
+header.hero::before {
+    content: "";
+    position: absolute;
+    inset: auto 5.6% 12% auto;
+    width: min(34vw, 390px);
+    aspect-ratio: 1;
+    border: 34px solid rgba(168,226,229,0.95);
+    border-radius: 30px;
+    transform: rotate(0deg);
+    background: rgba(255,255,255,0.68);
+    box-shadow: 0 20px 60px rgba(11,45,104,0.11);
+}
+
+header.hero::after {
+    content: "Starts Here";
+    position: absolute;
+    right: clamp(1.2rem, 7vw, 4.7rem);
+    top: 52%;
+    z-index: 1;
+    display: inline-flex;
+    align-items: center;
+    min-height: 54px;
+    padding: 0 1.6rem;
+    border-radius: 16px;
+    background: var(--passages-teal);
+    color: var(--passages-navy);
+    font-size: clamp(1rem, 1.8vw, 1.35rem);
+    font-weight: 800;
+    box-shadow: 0 16px 28px rgba(0, 204, 154, 0.28);
+}
+
+.hero-kicker {
+    width: max-content;
+    max-width: 100%;
+    padding: 0.56rem 0.82rem;
+    background: var(--passages-bg-soft);
+    border: 1px solid rgba(11, 45, 104, 0.08);
+    color: var(--passages-navy);
+    font-weight: 800;
+}
+
+.hero h1 {
+    position: relative;
+    max-width: 10.5ch;
+    margin-top: 1.1rem;
+    color: var(--passages-navy);
+    font-size: clamp(2.55rem, 6.3vw, 5rem);
+    line-height: 0.98;
+    letter-spacing: -0.055em;
+    text-shadow: none;
+    z-index: 2;
+}
+
+.hero h1::after {
+    content: "";
+    display: block;
+    width: min(170px, 44%);
+    height: 7px;
+    margin-top: 0.24rem;
+    border-radius: 999px;
+    background: var(--passages-teal);
+}
+
+.hero .subtitle {
+    position: relative;
+    z-index: 2;
+    max-width: 48rem;
+    margin-top: 1.2rem;
+    color: var(--passages-text);
+    font-size: 1.05rem;
+}
+
+.passages-hero-copy p {
+    max-width: 58ch;
+    margin: 0;
+    color: var(--passages-text);
+    line-height: 1.65;
+    font-size: clamp(1rem, 1.35vw, 1.15rem);
+}
+
+.passages-hero-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.8rem;
+    margin-top: 1.45rem;
+}
+
+.passages-cta,
+.passages-soft-pill {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 52px;
+    padding: 0 1.45rem;
+    border-radius: 14px;
+    font-weight: 800;
+}
+
+.passages-cta {
+    background: var(--passages-navy);
+    color: #ffffff;
+    box-shadow: 0 12px 24px rgba(11,45,104,0.18);
+}
+
+.passages-soft-pill {
+    background: var(--passages-yellow);
+    color: var(--passages-navy);
+    box-shadow: 0 12px 24px rgba(11,45,104,0.10);
+}
+
+.hero-meta {
+    position: relative;
+    z-index: 2;
+}
+
+.hero-pill {
+    background: #ffffff;
+    border: 1px solid rgba(11, 45, 104, 0.08);
+    color: var(--passages-navy);
+    box-shadow: var(--passages-shadow-soft);
+}
+
+main {
+    padding-top: 26px;
+    padding-bottom: 34px;
+}
+
+.card {
+    color: var(--passages-text);
+    min-height: 230px;
+    border: 1px solid var(--passages-border);
+    border-radius: var(--passages-radius);
+    background: linear-gradient(180deg, rgba(255,255,255,0.96), rgba(248,252,253,0.98));
+    box-shadow: var(--passages-shadow-soft);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+}
+
+.card:hover {
+    transform: translateY(-5px);
+    border-color: rgba(0,204,154,0.34);
+    box-shadow: 0 24px 58px rgba(11,45,104,0.14);
+}
+
+.card::before {
+    background:
+        radial-gradient(circle at top right, rgba(168,226,229,0.26), transparent 32%),
+        linear-gradient(180deg, rgba(255,255,255,0.42), transparent 36%);
+}
+
+.card::after {
+    height: 6px;
+    background: linear-gradient(90deg, var(--passages-teal), var(--passages-aqua), var(--passages-yellow));
+}
+
+.card--passage_topic,
+.card--passage_why,
+.card--passage_step,
+.card--passage_prompt,
+.card--passage_game,
+.card--passage_shuffle {
+    grid-column: span 6;
+}
+
+.card--passage_topic,
+.card--passage_step {
+    background:
+        radial-gradient(circle at 100% 0%, rgba(0,204,154,0.12), transparent 30%),
+        linear-gradient(180deg, #ffffff, #f7fcfd);
+}
+
+.card--passage_why,
+.card--passage_prompt {
+    background:
+        radial-gradient(circle at 100% 0%, rgba(255,242,166,0.30), transparent 34%),
+        linear-gradient(180deg, #ffffff, #fffef8);
+}
+
+.card--passage_feeling,
+.card--passage_reflection {
+    background:
+        radial-gradient(circle at 100% 0%, rgba(168,226,229,0.32), transparent 34%),
+        linear-gradient(180deg, #ffffff, #f8fcfd);
+}
+
+.card--passage_game {
+    background:
+        radial-gradient(circle at 90% 0%, rgba(0,204,154,0.18), transparent 34%),
+        radial-gradient(circle at 12% 100%, rgba(255,242,166,0.38), transparent 34%),
+        linear-gradient(180deg, #ffffff, #f4fffb);
+}
+
+.card--passage_shuffle {
+    background:
+        radial-gradient(circle at 92% 0%, rgba(168,226,229,0.32), transparent 34%),
+        radial-gradient(circle at 12% 100%, rgba(255,242,166,0.28), transparent 32%),
+        linear-gradient(180deg, #ffffff, #f7fcfd);
+}
+
+.eyebrow {
+    color: var(--passages-teal-dark);
+    font-weight: 900;
+}
+
+h2 {
+    color: var(--passages-navy);
+    letter-spacing: -0.035em;
+}
+
+.body {
+    color: var(--passages-text);
+}
+
+.body strong,
+.body b {
+    color: var(--passages-navy);
+}
+
+.icon-badge {
+    background: var(--passages-bg-soft);
+    border: 1px solid rgba(11, 45, 104, 0.08);
+    color: var(--passages-navy);
+}
+
+.passage-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.55rem;
+    margin-top: 0.9rem;
+}
+
+.passage-chip {
+    display: inline-flex;
+    align-items: center;
+    border: 1px solid rgba(11, 45, 104, 0.09);
+    border-radius: 999px;
+    padding: 0.42rem 0.68rem;
+    background: #ffffff;
+    color: var(--passages-navy);
+    box-shadow: 0 8px 18px rgba(11,45,104,0.06);
+    font-size: 0.84rem;
+    font-weight: 750;
+    line-height: 1.2;
+}
+
+.passage-chip--sage { background: #e9fbf4; border-color: rgba(0,204,154,0.18); }
+.passage-chip--sky { background: #eef9fb; border-color: rgba(62,111,149,0.14); }
+.passage-chip--gold { background: var(--passages-yellow); border-color: rgba(11,45,104,0.08); }
+.passage-chip--clay { background: #fff0ea; border-color: rgba(198,129,98,0.22); }
+.passage-chip--navy { background: var(--passages-navy); color: #ffffff; border-color: var(--passages-navy); }
+
+.passage-list {
+    margin: 0.75rem 0 0;
+    padding-left: 1.08rem;
+}
+
+.passage-list li {
+    margin: 0.42rem 0;
+    padding-left: 0.12rem;
+}
+
+.passage-label {
+    display: block;
+    margin-top: 1rem;
+    color: var(--passages-muted);
+    font-size: 0.76rem;
+    font-weight: 900;
+    letter-spacing: 0.11em;
+    text-transform: uppercase;
+}
+
+.passage-callout {
+    margin-top: 0.8rem;
+    padding: 0.95rem 1rem;
+    border-left: 5px solid var(--passages-teal);
+    border-radius: 14px;
+    background: #f2fbfc;
+    color: var(--passages-text);
+}
+
+.passage-note {
+    margin-top: 0.95rem;
+    color: var(--passages-muted);
+    font-size: 0.94rem;
+}
+
+.passage-mini-hero {
+    position: absolute;
+    right: clamp(1.3rem, 6vw, 4.2rem);
+    bottom: 11%;
+    z-index: 1;
+    width: min(31vw, 340px);
+    min-width: 240px;
+    display: grid;
+    gap: 0.8rem;
+    pointer-events: none;
+}
+
+.passage-floating-label {
+    justify-self: start;
+    display: inline-flex;
+    align-items: center;
+    gap: 0.45rem;
+    padding: 0.8rem 1.05rem;
+    border-radius: 16px;
+    background: var(--passages-yellow);
+    color: var(--passages-navy);
+    font-weight: 900;
+    box-shadow: 0 16px 30px rgba(11,45,104,0.14);
+}
+
+.passage-floating-label:nth-child(2) {
+    justify-self: end;
+    background: var(--passages-teal);
+}
+
+.passage-floating-label:nth-child(3) {
+    justify-self: center;
+    background: #ffffff;
+    border: 1px solid rgba(11,45,104,0.08);
+}
+
+.game-board {
+    margin-top: 0.95rem;
+    display: grid;
+    gap: 0.75rem;
+}
+
+.game-question {
+    padding: 0.95rem 1rem;
+    border-radius: 16px;
+    background: rgba(255,242,166,0.52);
+    color: var(--passages-navy);
+    font-weight: 850;
+}
+
+.game-choices,
+.shuffle-words,
+.shuffle-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.6rem;
+}
+
+.game-choice,
+.shuffle-word,
+.game-reset,
+.shuffle-check,
+.shuffle-reset {
+    appearance: none;
+    border: 1px solid rgba(11,45,104,0.10);
+    border-radius: 999px;
+    background: #ffffff;
+    color: var(--passages-navy);
+    padding: 0.66rem 0.84rem;
+    font: inherit;
+    font-size: 0.92rem;
+    font-weight: 800;
+    cursor: pointer;
+    box-shadow: 0 8px 18px rgba(11,45,104,0.06);
+    transition: transform 160ms ease, border-color 160ms ease, background 160ms ease;
+}
+
+.game-choice:hover,
+.shuffle-word:hover,
+.game-reset:hover,
+.shuffle-check:hover,
+.shuffle-reset:hover {
+    transform: translateY(-2px);
+    border-color: rgba(0,204,154,0.32);
+}
+
+.game-choice.is-correct {
+    background: var(--passages-teal);
+    color: var(--passages-navy);
+    border-color: var(--passages-teal);
+}
+
+.game-choice.is-wrong {
+    background: #fff0ea;
+    border-color: rgba(198,129,98,0.30);
+}
+
+.game-result,
+.shuffle-result {
+    min-height: 2.3rem;
+    padding: 0.78rem 0.9rem;
+    border-radius: 14px;
+    background: #f2fbfc;
+    color: var(--passages-text);
+}
+
+.shuffle-target {
+    min-height: 58px;
+    padding: 0.72rem;
+    border: 2px dashed rgba(11,45,104,0.18);
+    border-radius: 16px;
+    background: rgba(255,255,255,0.72);
+    color: var(--passages-muted);
+}
+
+.shuffle-target .shuffle-picked {
+    display: inline-flex;
+    margin: 0.15rem;
+    padding: 0.42rem 0.62rem;
+    border-radius: 999px;
+    background: var(--passages-bg-soft);
+    color: var(--passages-navy);
+    font-weight: 850;
+}
+
+.footer-inner {
+    background: #ffffff;
+    color: var(--passages-muted);
+    border: 1px solid rgba(11,45,104,0.08);
+    box-shadow: var(--passages-shadow-soft);
+}
+
+@media (prefers-color-scheme: dark) {
     :root {
-        --passages-navy: #12233a;
-        --passages-blue: #3e6f95;
-        --passages-sky: #9fc7df;
-        --passages-sage: #9bbf9f;
-        --passages-cream: #f4ead8;
-        --passages-clay: #c68162;
-        --passages-gold: #dfbd74;
-        --passages-ink: #fbf7ef;
-        --passages-muted: #c9d4dc;
+        --passages-text: #edf7fb;
+        --passages-muted: #bdd0dc;
+        --passages-card: #102844;
+        --passages-card-soft: #14304f;
+        --passages-border: rgba(232, 247, 251, 0.13);
+        --passages-shadow: 0 18px 48px rgba(0, 0, 0, 0.26);
+        --passages-shadow-soft: 0 10px 28px rgba(0, 0, 0, 0.22);
     }
 
     body {
+        color: var(--passages-text);
         background:
-            radial-gradient(circle at top left, rgba(159,199,223,0.16), transparent 32%),
-            radial-gradient(circle at top right, rgba(155,191,159,0.13), transparent 30%),
-            radial-gradient(circle at bottom center, rgba(223,189,116,0.10), transparent 32%),
-            linear-gradient(180deg, #142740 0%, #0e1d31 48%, #081421 100%);
+            radial-gradient(circle at 92% 12%, rgba(0,204,154,0.13), transparent 22rem),
+            radial-gradient(circle at 6% 36%, rgba(168,226,229,0.10), transparent 18rem),
+            linear-gradient(180deg, #10243c 0 116px, #091a2c 116px 72%, #071421 100%);
     }
 
     header.hero {
+        color: #f4fbff;
+        border-color: rgba(232,247,251,0.12);
         background:
-            radial-gradient(circle at 15% 20%, rgba(159,199,223,0.18), transparent 28%),
-            radial-gradient(circle at 84% 18%, rgba(223,189,116,0.14), transparent 28%),
-            linear-gradient(135deg, rgba(244,234,216,0.08), rgba(255,255,255,0.02)),
-            linear-gradient(160deg, rgba(28,55,86,0.96), rgba(14,29,49,0.94));
+            radial-gradient(circle at 82% 26%, rgba(0,204,154,0.16), transparent 12rem),
+            radial-gradient(circle at 91% 58%, rgba(255,242,166,0.10), transparent 10rem),
+            linear-gradient(135deg, #102844 0%, #0d2139 58%, #091a2c 100%);
     }
 
-    .hero h1 {
-        max-width: 12ch;
+    header.hero::before {
+        border-color: rgba(168,226,229,0.36);
+        background: rgba(255,255,255,0.05);
+        box-shadow: 0 20px 60px rgba(0,0,0,0.24);
+    }
+
+    .hero h1,
+    h2,
+    .body strong,
+    .body b,
+    .hero-kicker,
+    .hero-pill,
+    .passages-soft-pill,
+    .passage-chip,
+    .game-question,
+    .game-choice,
+    .shuffle-word,
+    .game-reset,
+    .shuffle-check,
+    .shuffle-reset {
+        color: #f4fbff;
+    }
+
+    .passages-hero-copy p,
+    .body,
+    .passage-callout,
+    .game-result,
+    .shuffle-result {
+        color: var(--passages-text);
+    }
+
+    .card,
+    .card--passage_topic,
+    .card--passage_why,
+    .card--passage_step,
+    .card--passage_prompt,
+    .card--passage_feeling,
+    .card--passage_reflection,
+    .card--passage_game,
+    .card--passage_shuffle {
+        background:
+            radial-gradient(circle at 100% 0%, rgba(168,226,229,0.09), transparent 34%),
+            linear-gradient(180deg, #102844, #0d223a);
+        border-color: var(--passages-border);
+    }
+
+    .hero-kicker,
+    .hero-pill,
+    .icon-badge,
+    .passage-callout,
+    .game-result,
+    .shuffle-result,
+    .shuffle-target,
+    .footer-inner {
+        background: rgba(255,255,255,0.06);
+        border-color: rgba(232,247,251,0.12);
+    }
+
+    .passage-chip,
+    .game-choice,
+    .shuffle-word,
+    .game-reset,
+    .shuffle-check,
+    .shuffle-reset {
+        background: rgba(255,255,255,0.07);
+        border-color: rgba(232,247,251,0.14);
+    }
+
+    .passages-cta,
+    header.hero::after,
+    .passage-floating-label:nth-child(2),
+    .game-choice.is-correct {
+        color: #062146;
+    }
+
+    .passage-chip--gold,
+    .passage-floating-label,
+    .game-question {
+        color: #062146;
+    }
+}
+
+@media (max-width: 980px) {
+    header.hero {
+        grid-template-columns: 1fr;
+        min-height: unset;
+        padding-bottom: 3rem;
+    }
+
+    header.hero::before,
+    header.hero::after,
+    .passage-mini-hero {
+        display: none;
     }
 
     .card--passage_topic,
     .card--passage_why,
     .card--passage_step,
-    .card--passage_prompt {
+    .card--passage_prompt,
+    .card--passage_game,
+    .card--passage_shuffle {
         grid-column: span 6;
     }
-
-    .card--passage_topic {
-        background:
-            linear-gradient(180deg, rgba(159,199,223,0.16), rgba(255,255,255,0.025)),
-            var(--card-strong);
-    }
-
-    .card--passage_why {
-        background:
-            linear-gradient(180deg, rgba(155,191,159,0.15), rgba(255,255,255,0.025)),
-            var(--card-strong);
-    }
-
-    .card--passage_feeling {
-        background:
-            linear-gradient(180deg, rgba(198,129,98,0.12), rgba(255,255,255,0.02)),
-            var(--card);
-    }
-
-    .card--passage_skill {
-        background:
-            linear-gradient(180deg, rgba(159,199,223,0.11), rgba(255,255,255,0.02)),
-            var(--card);
-    }
-
-    .card--passage_step {
-        background:
-            linear-gradient(180deg, rgba(223,189,116,0.15), rgba(255,255,255,0.025)),
-            var(--card-strong);
-    }
-
-    .card--passage_prompt {
-        background:
-            linear-gradient(180deg, rgba(155,191,159,0.13), rgba(255,255,255,0.02)),
-            var(--card-strong);
-    }
-
-    .card--passage_connection {
-        background:
-            linear-gradient(180deg, rgba(244,234,216,0.10), rgba(255,255,255,0.02)),
-            var(--card);
-    }
-
-    .card--passage_reflection {
-        background:
-            linear-gradient(180deg, rgba(159,199,223,0.09), rgba(255,255,255,0.02)),
-            var(--card);
-    }
-
-    .passage-chips {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 0.55rem;
-        margin-top: 0.85rem;
-    }
-
-    .passage-chip {
-        display: inline-flex;
-        align-items: center;
-        border: 1px solid rgba(244,234,216,0.16);
-        border-radius: 999px;
-        padding: 0.38rem 0.62rem;
-        background: rgba(244,234,216,0.065);
-        color: var(--passages-ink);
-        font-size: 0.82rem;
-        line-height: 1.2;
-    }
-
-    .passage-chip--sage { border-color: rgba(155,191,159,0.34); color: #d7f0d9; }
-    .passage-chip--sky { border-color: rgba(159,199,223,0.36); color: #d6edf9; }
-    .passage-chip--gold { border-color: rgba(223,189,116,0.38); color: #ffe5aa; }
-    .passage-chip--clay { border-color: rgba(198,129,98,0.36); color: #ffd7c8; }
-
-    .passage-list {
-        margin: 0.65rem 0 0;
-        padding-left: 1.08rem;
-    }
-
-    .passage-list li {
-        margin: 0.34rem 0;
-    }
-
-    .passage-label {
-        display: block;
-        margin-top: 0.95rem;
-        color: var(--passages-muted);
-        font-size: 0.76rem;
-        font-weight: 800;
-        letter-spacing: 0.11em;
-        text-transform: uppercase;
-    }
-
-    .passage-callout {
-        margin-top: 0.75rem;
-        padding: 0.86rem 0.98rem;
-        border-left: 4px solid rgba(223,189,116,0.78);
-        border-radius: 12px;
-        background: rgba(244,234,216,0.065);
-        color: var(--passages-ink);
-    }
-
-    .passage-note {
-        margin-top: 0.9rem;
-        color: var(--passages-muted);
-        font-size: 0.92rem;
-    }
-
-    @media (max-width: 980px) {
-        .card--passage_topic,
-        .card--passage_why,
-        .card--passage_step,
-        .card--passage_prompt {
-            grid-column: span 6;
-        }
-    }
-
-    @media (max-width: 720px) {
-        .card--passage_topic,
-        .card--passage_why,
-        .card--passage_step,
-        .card--passage_prompt {
-            grid-column: auto;
-        }
-    }
-    """,
 }
+
+@media (max-width: 720px) {
+    .hero h1 {
+        max-width: none;
+        font-size: clamp(2.3rem, 12vw, 3.6rem);
+    }
+
+    .passages-cta,
+    .passages-soft-pill {
+        width: 100%;
+    }
+
+    .card--passage_topic,
+    .card--passage_why,
+    .card--passage_step,
+    .card--passage_prompt,
+    .card--passage_game,
+    .card--passage_shuffle {
+        grid-column: auto;
+    }
+}
+"""
+
+
+PASSAGES_JS = """
+(function () {
+    function setText(node, text) {
+        if (node) node.textContent = text;
+    }
+
+    document.querySelectorAll('[data-confidence-quest]').forEach(function (game) {
+        const buttons = game.querySelectorAll('.game-choice');
+        const result = game.querySelector('.game-result');
+        const reset = game.querySelector('.game-reset');
+
+        buttons.forEach(function (button) {
+            button.addEventListener('click', function () {
+                buttons.forEach(function (item) {
+                    item.classList.remove('is-correct', 'is-wrong');
+                    item.disabled = true;
+                });
+
+                if (button.dataset.correct === 'true') {
+                    button.classList.add('is-correct');
+                    setText(result, 'Nice. That is the strongest next-step move: specific, calm, and doable.');
+                } else {
+                    button.classList.add('is-wrong');
+                    const correct = game.querySelector('[data-correct="true"]');
+                    if (correct) correct.classList.add('is-correct');
+                    setText(result, 'Not a disaster. The better move is the one that creates clarity without trying to solve your whole life today.');
+                }
+            });
+        });
+
+        if (reset) {
+            reset.addEventListener('click', function () {
+                buttons.forEach(function (item) {
+                    item.classList.remove('is-correct', 'is-wrong');
+                    item.disabled = false;
+                });
+                setText(result, 'Pick the move that feels most like confidence plus common sense.');
+            });
+        }
+    });
+
+    document.querySelectorAll('[data-phrase-shuffle]').forEach(function (game) {
+        const target = game.querySelector('.shuffle-target');
+        const words = game.querySelectorAll('.shuffle-word');
+        const check = game.querySelector('.shuffle-check');
+        const reset = game.querySelector('.shuffle-reset');
+        const result = game.querySelector('.shuffle-result');
+        const answer = (game.dataset.answer || '').trim().toLowerCase();
+        const picked = [];
+
+        function renderTarget() {
+            if (!target) return;
+            if (!picked.length) {
+                target.textContent = 'Tap the words in the order that makes the best mini-mantra.';
+                return;
+            }
+            target.innerHTML = picked.map(function (word) {
+                return '<span class="shuffle-picked">' + word + '</span>';
+            }).join(' ');
+        }
+
+        words.forEach(function (button) {
+            button.addEventListener('click', function () {
+                picked.push(button.dataset.word || button.textContent.trim());
+                button.disabled = true;
+                renderTarget();
+                setText(result, 'Keep building it. Tiny mantras count.');
+            });
+        });
+
+        if (check) {
+            check.addEventListener('click', function () {
+                const guess = picked.join(' ').trim().toLowerCase();
+                if (!picked.length) {
+                    setText(result, 'Start by tapping a word. No pressure.');
+                } else if (guess === answer) {
+                    setText(result, 'You got it. Put that one in your pocket for today.');
+                } else {
+                    setText(result, 'Close enough to learn from. Try a phrase that sounds like a useful reminder, not a bumper sticker.');
+                }
+            });
+        }
+
+        if (reset) {
+            reset.addEventListener('click', function () {
+                picked.splice(0, picked.length);
+                words.forEach(function (button) { button.disabled = false; });
+                renderTarget();
+                setText(result, 'Shuffle reset. Try again.');
+            });
+        }
+
+        renderTarget();
+    });
+})();
+"""
 
 
 DAILY_PASSAGES = [
     {
         "passage": "Finding a First Direction",
-        "audience": "Young people who feel pressure to choose a future before they have enough real-world information.",
+        "audience": "Students who feel pressure to choose a future before they have enough real-world information.",
         "why": (
             "A first direction does not have to be a forever decision. It can be a starting point: a way to learn, "
             "meet people, build confidence, and gather better information about what fits."
@@ -214,11 +800,20 @@ DAILY_PASSAGES = [
             "Choose one small experiment for this week: a conversation, a video, a job shadow, a course page, or a local posting to read closely.",
         ],
         "prompt": "What kind of day would you rather have: busy and social, quiet and focused, physical and hands-on, or mixed?",
+        "parent_note": "Try asking about energy and environment before asking about a job title. It keeps the conversation less loaded.",
         "connection": (
-            "This is the heart of a passages-style approach: helping a young person move from vague pressure to one "
+            "This is the heart of a Passages-style approach: helping a young person move from vague pressure to one "
             "clearer next step."
         ),
         "reflection": "What is one option you do not need to decide today, and what is one thing you can learn this week?",
+        "quest_question": "Your friend says, “I have no idea what I want to do.” What is the best first move?",
+        "quest_options": [
+            ("Tell them to pick a major immediately", False),
+            ("Ask what kind of workday they might enjoy", True),
+            ("Send them a list of 100 careers", False),
+        ],
+        "shuffle_words": ["one", "step", "gives", "me", "momentum"],
+        "shuffle_answer": "one step gives me momentum",
         "chips": ["Career exploration", "Confidence", "Next step", "Low pressure"],
     },
     {
@@ -239,14 +834,23 @@ DAILY_PASSAGES = [
             "At the end of the day, note one thing you learned and one thing to ask about next time.",
         ],
         "prompt": "When you are unsure at work, what would make it easier to ask for help?",
+        "parent_note": "A young worker may need scripts more than speeches. Give them words they can actually use with a manager.",
         "connection": (
             "A daily flyer beside My Passages can make the hidden curriculum of early work visible, friendly, and teachable."
         ),
         "reflection": "What is one workplace habit that would make someone easier to train?",
+        "quest_question": "You are confused during a shift. What move shows maturity?",
+        "quest_options": [
+            ("Pretend you understand and hope it works out", False),
+            ("Ask one clear question before guessing", True),
+            ("Disappear into the break room forever", False),
+        ],
+        "shuffle_words": ["ask", "listen", "try", "again"],
+        "shuffle_answer": "ask listen try again",
         "chips": ["First job", "Work habits", "Communication", "Trust"],
     },
     {
-        "passage": "Considering College, Trade School, Work, or Apprenticeship",
+        "passage": "Choosing Between College, Trade School, Work, or Apprenticeship",
         "audience": "Students and families comparing post-high-school options without wanting a one-size-fits-all answer.",
         "why": (
             "The real question is not whether one path is universally best. The better question is which path gives this "
@@ -263,10 +867,19 @@ DAILY_PASSAGES = [
             "Circle the option that would create the most useful momentum over the next six months.",
         ],
         "prompt": "Which path gives you the best chance to keep learning without feeling stuck or overwhelmed?",
+        "parent_note": "Try not to make the first conversation about prestige. Make it about fit, structure, support, cost, and momentum.",
         "connection": (
             "This topic belongs beside My Passages because it supports the transition itself, not just the final choice."
         ),
         "reflection": "What would make one option feel more real: a visit, a conversation, a budget, or a trial step?",
+        "quest_question": "Which comparison is most useful when weighing paths?",
+        "quest_options": [
+            ("The option that sounds most impressive", False),
+            ("The option with support, momentum, and realistic next steps", True),
+            ("The option everyone argues about online", False),
+        ],
+        "shuffle_words": ["fit", "beats", "pressure", "today"],
+        "shuffle_answer": "fit beats pressure today",
         "chips": ["After high school", "Trade school", "College alternatives", "Family decision"],
     },
     {
@@ -287,10 +900,19 @@ DAILY_PASSAGES = [
             "Practice saying it out loud until it sounds natural instead of scripted.",
         ],
         "prompt": "What are you learning right now, and what kind of opportunity would help you learn more?",
+        "parent_note": "Help them name real responsibilities they already carry. Experience is not only paid work.",
         "connection": (
-            "A passages-style resource can help young people talk about themselves without pretending to have everything figured out."
+            "A Passages-style resource can help young people talk about themselves without pretending to have everything figured out."
         ),
         "reflection": "What is one honest strength you can name without exaggerating?",
+        "quest_question": "What is the strongest beginner introduction?",
+        "quest_options": [
+            ("I am still learning, and I am interested in hands-on experience", True),
+            ("I am basically an expert in everything", False),
+            ("I have no skills at all, sorry", False),
+        ],
+        "shuffle_words": ["clear", "honest", "easy", "to", "help"],
+        "shuffle_answer": "clear honest easy to help",
         "chips": ["LinkedIn", "Networking", "Self-introduction", "Confidence"],
     },
     {
@@ -311,10 +933,19 @@ DAILY_PASSAGES = [
             "Agree on one small next step and one calm time to check back in.",
         ],
         "prompt": "What kind of help would feel useful right now instead of stressful?",
+        "parent_note": "The tone matters. Curiosity usually opens more doors than urgency.",
         "connection": (
             "This is an ideal companion lane for My Passages: helping families turn pressure into practical support."
         ),
         "reflection": "What question could open a better conversation this week?",
+        "quest_question": "A conversation is getting tense. What helps most?",
+        "quest_options": [
+            ("Ask what kind of help would actually feel useful", True),
+            ("Repeat the same advice louder", False),
+            ("Compare them to someone else's kid", False),
+        ],
+        "shuffle_words": ["curiosity", "beats", "pressure"],
+        "shuffle_answer": "curiosity beats pressure",
         "chips": ["Parents", "Mentors", "Family support", "Conversation"],
     },
 ]
@@ -337,18 +968,51 @@ def _list_html(items: list[str]) -> str:
     return '<ul class="passage-list">' + "".join(f"<li>{item}</li>" for item in items) + "</ul>"
 
 
+def _quest_html(passage: dict) -> str:
+    buttons = "".join(
+        f'<button class="game-choice" type="button" data-correct="{str(is_correct).lower()}">{label}</button>'
+        for label, is_correct in passage["quest_options"]
+    )
+    return f"""
+    <div class="game-board" data-confidence-quest>
+        <div class="game-question">{passage["quest_question"]}</div>
+        <div class="game-choices">{buttons}</div>
+        <div class="game-result">Pick the move that feels most like confidence plus common sense.</div>
+        <button class="game-reset" type="button">Reset the quest</button>
+    </div>
+    """
+
+
+def _shuffle_html(passage: dict) -> str:
+    words = "".join(
+        f'<button class="shuffle-word" type="button" data-word="{word}">{word}</button>'
+        for word in passage["shuffle_words"]
+    )
+    return f"""
+    <div class="game-board" data-phrase-shuffle data-answer="{passage["shuffle_answer"]}">
+        <div class="shuffle-target"></div>
+        <div class="shuffle-words">{words}</div>
+        <div class="shuffle-actions">
+            <button class="shuffle-check" type="button">Check my phrase</button>
+            <button class="shuffle-reset" type="button">Shuffle reset</button>
+        </div>
+        <div class="shuffle-result">Build a tiny reminder that is useful enough to actually remember.</div>
+    </div>
+    """
+
+
 def build_theme_page(date_str: str | None = None, seed: int | None = None) -> PageContext:
     today, passage = _passage_for_date(date_str, seed)
 
     cards = [
         CardItem(
             card_type="passage_topic",
-            eyebrow="Today’s Passage",
+            eyebrow="Today’s Focus",
             title=passage["passage"],
             body=(
                 f"<strong>Who this is for:</strong> {passage['audience']}"
                 + _chip_html(passage["chips"], "sky")
-                + '<p class="passage-note">This is designed as a daily companion piece: useful, human, and easy to talk about.</p>'
+                + '<p class="passage-note">A quick daily page for building clarity, confidence, and real-world readiness.</p>'
             ),
         ),
         CardItem(
@@ -369,27 +1033,49 @@ def build_theme_page(date_str: str | None = None, seed: int | None = None) -> Pa
         ),
         CardItem(
             card_type="passage_step",
-            eyebrow="Practical Next Step",
-            title="Try this before trying to solve everything",
+            eyebrow="Try This Today",
+            title="A practical next step",
             body=(
                 "Small steps matter because they create motion without demanding a perfect life plan."
                 + _list_html(passage["steps"])
             ),
         ),
         CardItem(
+            card_type="passage_game",
+            eyebrow="Mini Confidence Quest",
+            title="Pick the strongest next move",
+            body=(
+                "A tiny game for practicing judgment without making the day feel like homework."
+                + _quest_html(passage)
+            ),
+        ),
+        CardItem(
+            card_type="passage_shuffle",
+            eyebrow="Phrase Shuffle",
+            title="Build today’s mini-mantra",
+            body=(
+                "Tap the words into an order that sounds like something you could actually say to yourself."
+                + _shuffle_html(passage)
+            ),
+        ),
+        CardItem(
             card_type="passage_prompt",
-            eyebrow="Conversation Prompt",
+            eyebrow="Conversation Starter",
             title="A better question to ask today",
             body=(
                 f'<div class="passage-callout">{passage["prompt"]}</div>'
-                + _chip_html(["For young adults", "For parents", "For mentors"], "gold")
+                + _chip_html(["For students", "For parents", "For mentors"], "gold")
             ),
         ),
         CardItem(
             card_type="passage_connection",
-            eyebrow="My Passages Connection",
-            title="How this fits the larger mission",
-            body=passage["connection"],
+            eyebrow="Parent / Mentor Note",
+            title="Support without taking over",
+            body=(
+                f'<div class="passage-callout">{passage["parent_note"]}</div>'
+                + '<span class="passage-label">My Passages Connection</span>'
+                + f'<p>{passage["connection"]}</p>'
+            ),
         ),
         CardItem(
             card_type="passage_skill",
@@ -421,6 +1107,12 @@ def build_theme_page(date_str: str | None = None, seed: int | None = None) -> Pa
             "date_key": today.strftime("%m-%d"),
             "hero_kicker": THEME_CONFIG["hero_kicker"],
             "hero_summary_pill": THEME_CONFIG["hero_summary_pill"],
-            "extra_css": THEME_CONFIG["extra_css"],
+            "extra_css": PASSAGES_CSS,
+            "extra_js": PASSAGES_JS,
+            "extra_head_html": (
+                '<meta name="color-scheme" content="light dark">'
+                '<meta name="theme-color" content="#eef9fb" media="(prefers-color-scheme: light)">'
+                '<meta name="theme-color" content="#091a2c" media="(prefers-color-scheme: dark)">'
+            ),
         },
     )
