@@ -115,20 +115,21 @@ class WebRouteTests(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertIn(b"Irish Today", response.data)
 
-    def test_topic_signal_daily_renders_research_brief(self) -> None:
+    def test_topic_signal_daily_renders_passages_companion(self) -> None:
         response = self.client.get("/?theme=topic_signal_daily&date=2026-05-13&seed=0")
         self.assertEqual(response.status_code, 200)
-        self.assertIn(b"Topic Signal Daily", response.data)
-        self.assertIn(b"Young Adult Career Coaching", response.data)
-        self.assertIn(b"Signal Snapshot", response.data)
-        self.assertIn(b"Opportunity Gaps", response.data)
-        self.assertIn(b"Recommended Action", response.data)
+        self.assertIn(b"Passages Daily", response.data)
+        self.assertIn(b"Finding a First Direction", response.data)
+        self.assertIn(b"Today\xe2\x80\x99s Passage", response.data)
+        self.assertIn(b"Practical Next Step", response.data)
+        self.assertIn(b"Conversation Prompt", response.data)
+        self.assertIn(b"My Passages Connection", response.data)
 
     def test_topic_signal_daily_accepts_hyphenated_theme_alias(self) -> None:
         response = self.client.get("/?theme=topic-signal-daily&date=2026-05-13&seed=0")
         self.assertEqual(response.status_code, 200)
-        self.assertIn(b"Topic Signal Daily", response.data)
-        self.assertIn(b"Young Adult Career Coaching", response.data)
+        self.assertIn(b"Passages Daily", response.data)
+        self.assertIn(b"Finding a First Direction", response.data)
 
     def test_birthday_theme_renders_with_realistic_data(self) -> None:
         birthdays = [
