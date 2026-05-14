@@ -4,9 +4,7 @@ from __future__ import annotations
 Passages Daily theme.
 
 A Daily Flyer companion theme for My Passages-style content: bright, practical,
-student-facing, and confidence-oriented. The visual direction intentionally pulls
-closer to the Passages homepage: airy white space, navy type, teal accents,
-rounded cards, friendly labels, and lightweight interactive moments.
+student-facing, confidence-oriented, and lightly interactive.
 """
 
 from daily_flyer.models import CardItem, PageContext
@@ -24,6 +22,11 @@ THEME_CONFIG = {
         '<span class="passages-cta">Let’s Do It!</span>'
         '<span class="passages-soft-pill">Confidence starts here</span>'
         '</div>'
+        '<div class="passage-mini-hero" aria-hidden="true">'
+        '<span class="passage-floating-label">Confidence</span>'
+        '<span class="passage-floating-label">Skills</span>'
+        '<span class="passage-floating-label">Real-world prep</span>'
+        '</div>'
         '</div>'
     ),
     "footer_text": (
@@ -37,72 +40,96 @@ THEME_CONFIG = {
 
 PASSAGES_CSS = """
 :root {
-    --passages-navy: #0b2d68;
-    --passages-navy-soft: #163f7a;
-    --passages-text: #142033;
+    --passages-navy: #092c68;
+    --passages-navy-2: #143b77;
+    --passages-text: #172033;
     --passages-muted: #5d6d80;
-    --passages-bg: #ffffff;
     --passages-bg-soft: #eef9fb;
-    --passages-bg-mint: #e7fbf5;
-    --passages-card: #ffffff;
-    --passages-card-soft: #f8fcfd;
-    --passages-teal: #00cc9a;
-    --passages-teal-dark: #059d83;
+    --passages-teal: #00cd9b;
+    --passages-teal-deep: #079a84;
     --passages-aqua: #a8e2e5;
     --passages-yellow: #fff2a6;
-    --passages-yellow-strong: #ffe37f;
-    --passages-shadow: 0 18px 48px rgba(11, 45, 104, 0.10);
-    --passages-shadow-soft: 0 10px 28px rgba(11, 45, 104, 0.08);
-    --passages-border: rgba(11, 45, 104, 0.10);
+    --passages-coral: #ff9b7a;
+    --passages-lav: #eef0ff;
+    --passages-shadow: 0 18px 48px rgba(9, 44, 104, 0.10);
+    --passages-shadow-soft: 0 10px 28px rgba(9, 44, 104, 0.075);
+    --passages-border: rgba(9, 44, 104, 0.10);
     --passages-radius: 28px;
 }
 
 body {
+    font-family: "Poppins", "Nunito Sans", Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     color: var(--passages-text);
     background:
-        radial-gradient(circle at 90% 12%, rgba(168,226,229,0.48), transparent 22rem),
-        radial-gradient(circle at 8% 35%, rgba(0,204,154,0.12), transparent 18rem),
-        linear-gradient(180deg, var(--passages-bg-soft) 0 116px, #ffffff 116px 72%, #eef9fb 100%);
+        radial-gradient(circle at 88% 13%, rgba(168,226,229,0.55), transparent 22rem),
+        radial-gradient(circle at 10% 38%, rgba(0,205,155,0.12), transparent 19rem),
+        linear-gradient(180deg, var(--passages-bg-soft) 0 118px, #ffffff 118px 72%, #eef9fb 100%);
+}
+
+.hero-wrap {
+    position: relative;
+    padding-top: 104px;
+}
+
+.hero-wrap::before,
+.hero-wrap::after {
+    position: absolute;
+    top: 22px;
+    z-index: 3;
+    color: var(--passages-navy);
+}
+
+.hero-wrap::before {
+    content: "▱ Passages";
+    left: 22px;
+    font-weight: 850;
+    font-size: clamp(1.55rem, 2.6vw, 2.2rem);
+    letter-spacing: -0.045em;
+}
+
+.hero-wrap::after {
+    content: "Services    About Us    Contact Us    Get Started";
+    right: 22px;
+    font-size: 0.98rem;
+    font-weight: 550;
+    word-spacing: 1.6rem;
 }
 
 body::before {
-    width: 420px;
-    height: 420px;
+    width: 440px;
+    height: 440px;
     top: 250px;
     left: auto;
     right: -190px;
-    background: radial-gradient(circle, rgba(0,204,154,0.13), transparent 70%);
+    background: radial-gradient(circle, rgba(0,205,155,0.13), transparent 70%);
     opacity: 0.9;
     filter: blur(8px);
 }
 
 body::after {
-    width: 320px;
-    height: 320px;
+    width: 340px;
+    height: 340px;
     right: auto;
     left: -150px;
-    top: 620px;
+    top: 650px;
     background: radial-gradient(circle, rgba(255,242,166,0.42), transparent 70%);
     opacity: 0.75;
     filter: blur(8px);
 }
 
-.hero-wrap {
-    padding-top: 22px;
-}
-
 header.hero {
     color: var(--passages-navy);
-    min-height: 500px;
+    min-height: 520px;
     display: grid;
     grid-template-columns: minmax(0, 1.02fr) minmax(300px, 0.98fr);
     align-items: center;
     gap: clamp(1rem, 4vw, 3.8rem);
-    padding: clamp(2.4rem, 5vw, 4.4rem) clamp(1.6rem, 4vw, 4rem);
-    border: 1px solid rgba(11, 45, 104, 0.06);
+    padding: clamp(2.4rem, 5vw, 4.5rem) clamp(1.6rem, 4vw, 4rem);
+    border: 1px solid rgba(9, 44, 104, 0.06);
+    border-radius: 34px;
     background:
-        radial-gradient(circle at 82% 26%, rgba(168,226,229,0.64), transparent 12rem),
-        radial-gradient(circle at 91% 58%, rgba(255,242,166,0.45), transparent 10rem),
+        radial-gradient(circle at 83% 27%, rgba(168,226,229,0.70), transparent 12rem),
+        radial-gradient(circle at 91% 58%, rgba(255,242,166,0.48), transparent 10rem),
         linear-gradient(135deg, #ffffff 0%, #ffffff 58%, #f1fbfc 100%);
     box-shadow: var(--passages-shadow);
     backdrop-filter: none;
@@ -112,14 +139,13 @@ header.hero {
 header.hero::before {
     content: "";
     position: absolute;
-    inset: auto 5.6% 12% auto;
+    inset: auto 5.4% 12% auto;
     width: min(34vw, 390px);
     aspect-ratio: 1;
     border: 34px solid rgba(168,226,229,0.95);
     border-radius: 30px;
-    transform: rotate(0deg);
-    background: rgba(255,255,255,0.68);
-    box-shadow: 0 20px 60px rgba(11,45,104,0.11);
+    background: rgba(255,255,255,0.72);
+    box-shadow: 0 20px 60px rgba(9,44,104,0.11);
 }
 
 header.hero::after {
@@ -130,34 +156,36 @@ header.hero::after {
     z-index: 1;
     display: inline-flex;
     align-items: center;
-    min-height: 54px;
-    padding: 0 1.6rem;
+    min-height: 56px;
+    padding: 0 1.7rem;
     border-radius: 16px;
     background: var(--passages-teal);
     color: var(--passages-navy);
     font-size: clamp(1rem, 1.8vw, 1.35rem);
     font-weight: 800;
-    box-shadow: 0 16px 28px rgba(0, 204, 154, 0.28);
+    box-shadow: 0 16px 28px rgba(0, 205, 155, 0.28);
 }
 
 .hero-kicker {
     width: max-content;
     max-width: 100%;
-    padding: 0.56rem 0.82rem;
+    padding: 0.56rem 0.86rem;
+    border-radius: 999px;
     background: var(--passages-bg-soft);
-    border: 1px solid rgba(11, 45, 104, 0.08);
+    border: 1px solid rgba(9, 44, 104, 0.08);
     color: var(--passages-navy);
     font-weight: 800;
 }
 
 .hero h1 {
     position: relative;
-    max-width: 10.5ch;
+    max-width: 10.6ch;
     margin-top: 1.1rem;
     color: var(--passages-navy);
-    font-size: clamp(2.55rem, 6.3vw, 5rem);
+    font-size: clamp(2.55rem, 6.2vw, 5rem);
     line-height: 0.98;
-    letter-spacing: -0.055em;
+    letter-spacing: -0.058em;
+    font-weight: 750;
     text-shadow: none;
     z-index: 2;
 }
@@ -167,26 +195,24 @@ header.hero::after {
     display: block;
     width: min(170px, 44%);
     height: 7px;
-    margin-top: 0.24rem;
+    margin-top: 0.28rem;
     border-radius: 999px;
     background: var(--passages-teal);
 }
 
-.hero .subtitle {
+.hero .subtitle,
+.passages-hero-copy p {
     position: relative;
     z-index: 2;
-    max-width: 48rem;
-    margin-top: 1.2rem;
     color: var(--passages-text);
-    font-size: 1.05rem;
+    line-height: 1.72;
+    font-size: clamp(1rem, 1.25vw, 1.13rem);
+    font-weight: 400;
 }
 
 .passages-hero-copy p {
     max-width: 58ch;
     margin: 0;
-    color: var(--passages-text);
-    line-height: 1.65;
-    font-size: clamp(1rem, 1.35vw, 1.15rem);
 }
 
 .passages-hero-actions {
@@ -203,20 +229,20 @@ header.hero::after {
     justify-content: center;
     min-height: 52px;
     padding: 0 1.45rem;
-    border-radius: 14px;
-    font-weight: 800;
+    border-radius: 15px;
+    font-weight: 750;
 }
 
 .passages-cta {
     background: var(--passages-navy);
     color: #ffffff;
-    box-shadow: 0 12px 24px rgba(11,45,104,0.18);
+    box-shadow: 0 12px 24px rgba(9,44,104,0.18);
 }
 
 .passages-soft-pill {
     background: var(--passages-yellow);
     color: var(--passages-navy);
-    box-shadow: 0 12px 24px rgba(11,45,104,0.10);
+    box-shadow: 0 12px 24px rgba(9,44,104,0.10);
 }
 
 .hero-meta {
@@ -226,180 +252,17 @@ header.hero::after {
 
 .hero-pill {
     background: #ffffff;
-    border: 1px solid rgba(11, 45, 104, 0.08);
+    border: 1px solid rgba(9, 44, 104, 0.08);
     color: var(--passages-navy);
     box-shadow: var(--passages-shadow-soft);
-}
-
-main {
-    padding-top: 26px;
-    padding-bottom: 34px;
-}
-
-.card {
-    color: var(--passages-text);
-    min-height: 230px;
-    border: 1px solid var(--passages-border);
-    border-radius: var(--passages-radius);
-    background: linear-gradient(180deg, rgba(255,255,255,0.96), rgba(248,252,253,0.98));
-    box-shadow: var(--passages-shadow-soft);
-    backdrop-filter: none;
-    -webkit-backdrop-filter: none;
-}
-
-.card:hover {
-    transform: translateY(-5px);
-    border-color: rgba(0,204,154,0.34);
-    box-shadow: 0 24px 58px rgba(11,45,104,0.14);
-}
-
-.card::before {
-    background:
-        radial-gradient(circle at top right, rgba(168,226,229,0.26), transparent 32%),
-        linear-gradient(180deg, rgba(255,255,255,0.42), transparent 36%);
-}
-
-.card::after {
-    height: 6px;
-    background: linear-gradient(90deg, var(--passages-teal), var(--passages-aqua), var(--passages-yellow));
-}
-
-.card--passage_topic,
-.card--passage_why,
-.card--passage_step,
-.card--passage_prompt,
-.card--passage_game,
-.card--passage_shuffle {
-    grid-column: span 6;
-}
-
-.card--passage_topic,
-.card--passage_step {
-    background:
-        radial-gradient(circle at 100% 0%, rgba(0,204,154,0.12), transparent 30%),
-        linear-gradient(180deg, #ffffff, #f7fcfd);
-}
-
-.card--passage_why,
-.card--passage_prompt {
-    background:
-        radial-gradient(circle at 100% 0%, rgba(255,242,166,0.30), transparent 34%),
-        linear-gradient(180deg, #ffffff, #fffef8);
-}
-
-.card--passage_feeling,
-.card--passage_reflection {
-    background:
-        radial-gradient(circle at 100% 0%, rgba(168,226,229,0.32), transparent 34%),
-        linear-gradient(180deg, #ffffff, #f8fcfd);
-}
-
-.card--passage_game {
-    background:
-        radial-gradient(circle at 90% 0%, rgba(0,204,154,0.18), transparent 34%),
-        radial-gradient(circle at 12% 100%, rgba(255,242,166,0.38), transparent 34%),
-        linear-gradient(180deg, #ffffff, #f4fffb);
-}
-
-.card--passage_shuffle {
-    background:
-        radial-gradient(circle at 92% 0%, rgba(168,226,229,0.32), transparent 34%),
-        radial-gradient(circle at 12% 100%, rgba(255,242,166,0.28), transparent 32%),
-        linear-gradient(180deg, #ffffff, #f7fcfd);
-}
-
-.eyebrow {
-    color: var(--passages-teal-dark);
-    font-weight: 900;
-}
-
-h2 {
-    color: var(--passages-navy);
-    letter-spacing: -0.035em;
-}
-
-.body {
-    color: var(--passages-text);
-}
-
-.body strong,
-.body b {
-    color: var(--passages-navy);
-}
-
-.icon-badge {
-    background: var(--passages-bg-soft);
-    border: 1px solid rgba(11, 45, 104, 0.08);
-    color: var(--passages-navy);
-}
-
-.passage-chips {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.55rem;
-    margin-top: 0.9rem;
-}
-
-.passage-chip {
-    display: inline-flex;
-    align-items: center;
-    border: 1px solid rgba(11, 45, 104, 0.09);
-    border-radius: 999px;
-    padding: 0.42rem 0.68rem;
-    background: #ffffff;
-    color: var(--passages-navy);
-    box-shadow: 0 8px 18px rgba(11,45,104,0.06);
-    font-size: 0.84rem;
-    font-weight: 750;
-    line-height: 1.2;
-}
-
-.passage-chip--sage { background: #e9fbf4; border-color: rgba(0,204,154,0.18); }
-.passage-chip--sky { background: #eef9fb; border-color: rgba(62,111,149,0.14); }
-.passage-chip--gold { background: var(--passages-yellow); border-color: rgba(11,45,104,0.08); }
-.passage-chip--clay { background: #fff0ea; border-color: rgba(198,129,98,0.22); }
-.passage-chip--navy { background: var(--passages-navy); color: #ffffff; border-color: var(--passages-navy); }
-
-.passage-list {
-    margin: 0.75rem 0 0;
-    padding-left: 1.08rem;
-}
-
-.passage-list li {
-    margin: 0.42rem 0;
-    padding-left: 0.12rem;
-}
-
-.passage-label {
-    display: block;
-    margin-top: 1rem;
-    color: var(--passages-muted);
-    font-size: 0.76rem;
-    font-weight: 900;
-    letter-spacing: 0.11em;
-    text-transform: uppercase;
-}
-
-.passage-callout {
-    margin-top: 0.8rem;
-    padding: 0.95rem 1rem;
-    border-left: 5px solid var(--passages-teal);
-    border-radius: 14px;
-    background: #f2fbfc;
-    color: var(--passages-text);
-}
-
-.passage-note {
-    margin-top: 0.95rem;
-    color: var(--passages-muted);
-    font-size: 0.94rem;
+    font-weight: 600;
 }
 
 .passage-mini-hero {
     position: absolute;
     right: clamp(1.3rem, 6vw, 4.2rem);
     bottom: 11%;
-    z-index: 1;
+    z-index: 2;
     width: min(31vw, 340px);
     min-width: 240px;
     display: grid;
@@ -412,12 +275,12 @@ h2 {
     display: inline-flex;
     align-items: center;
     gap: 0.45rem;
-    padding: 0.8rem 1.05rem;
+    padding: 0.82rem 1.08rem;
     border-radius: 16px;
     background: var(--passages-yellow);
     color: var(--passages-navy);
-    font-weight: 900;
-    box-shadow: 0 16px 30px rgba(11,45,104,0.14);
+    font-weight: 850;
+    box-shadow: 0 16px 30px rgba(9,44,104,0.14);
 }
 
 .passage-floating-label:nth-child(2) {
@@ -428,7 +291,204 @@ h2 {
 .passage-floating-label:nth-child(3) {
     justify-self: center;
     background: #ffffff;
-    border: 1px solid rgba(11,45,104,0.08);
+    border: 1px solid rgba(9,44,104,0.08);
+}
+
+main {
+    padding-top: 30px;
+    padding-bottom: 38px;
+}
+
+.card {
+    color: var(--passages-text);
+    min-height: 230px;
+    padding: 1.22rem 1.18rem 1.08rem;
+    border: 1px solid var(--passages-border);
+    border-radius: var(--passages-radius);
+    background: #ffffff;
+    box-shadow: var(--passages-shadow-soft);
+    backdrop-filter: none;
+    -webkit-backdrop-filter: none;
+}
+
+.card:hover {
+    transform: translateY(-6px);
+    border-color: rgba(0,205,155,0.38);
+    box-shadow: 0 26px 58px rgba(9,44,104,0.14);
+}
+
+.card::before {
+    background: radial-gradient(circle at top right, rgba(168,226,229,0.24), transparent 32%);
+}
+
+.card::after {
+    height: 9px;
+    background: var(--card-accent, linear-gradient(90deg, var(--passages-teal), var(--passages-aqua), var(--passages-yellow)));
+}
+
+.card-head {
+    padding-bottom: 0.65rem;
+    border-bottom: 1px solid rgba(9,44,104,0.075);
+}
+
+.card--passage_topic { --card-accent: linear-gradient(90deg, var(--passages-teal), #6ee7c8); grid-column: span 7; background: linear-gradient(180deg, #ffffff, #f0fffa); }
+.card--passage_why { --card-accent: linear-gradient(90deg, var(--passages-yellow), #ffffff); grid-column: span 5; background: linear-gradient(180deg, #fffef6, #ffffff); }
+.card--passage_feeling { --card-accent: linear-gradient(90deg, var(--passages-coral), #ffd8c9); grid-column: span 4; background: linear-gradient(180deg, #fff6f2, #ffffff); }
+.card--passage_step { --card-accent: linear-gradient(90deg, var(--passages-navy), var(--passages-teal)); grid-column: span 8; background: linear-gradient(180deg, #ffffff, #f7fcfd); }
+.card--passage_game { --card-accent: linear-gradient(90deg, #6ee7c8, var(--passages-yellow)); grid-column: span 6; background: linear-gradient(180deg, #f4fffb, #ffffff); }
+.card--passage_shuffle { --card-accent: linear-gradient(90deg, var(--passages-aqua), var(--passages-teal)); grid-column: span 6; background: linear-gradient(180deg, #f3fbff, #ffffff); }
+.card--passage_prompt { --card-accent: linear-gradient(90deg, var(--passages-yellow), var(--passages-teal)); grid-column: span 5; background: linear-gradient(180deg, #fffdf1, #ffffff); }
+.card--passage_connection { --card-accent: linear-gradient(90deg, var(--passages-navy), #8fb6ff); grid-column: span 7; background: linear-gradient(180deg, #f7f9ff, #ffffff); }
+.card--passage_skill { --card-accent: linear-gradient(90deg, var(--passages-teal), var(--passages-navy)); grid-column: span 4; background: linear-gradient(180deg, #f1fffb, #ffffff); }
+.card--passage_reflection { --card-accent: linear-gradient(90deg, #8fb6ff, var(--passages-aqua)); grid-column: span 8; background: linear-gradient(180deg, #f5f8ff, #ffffff); }
+
+.card--passage_topic .icon-badge,
+.card--passage_step .icon-badge,
+.card--passage_game .icon-badge {
+    background: var(--passages-teal);
+    color: var(--passages-navy);
+}
+
+.card--passage_why .icon-badge,
+.card--passage_prompt .icon-badge {
+    background: var(--passages-yellow);
+    color: var(--passages-navy);
+}
+
+.card--passage_feeling .icon-badge {
+    background: #ffe4d9;
+    color: var(--passages-navy);
+}
+
+.card--passage_connection .icon-badge,
+.card--passage_reflection .icon-badge {
+    background: var(--passages-navy);
+    color: #ffffff;
+}
+
+.eyebrow {
+    display: inline-flex;
+    width: fit-content;
+    padding: 0.32rem 0.56rem;
+    border-radius: 999px;
+    background: rgba(0,205,155,0.10);
+    color: var(--passages-teal-deep);
+    font-size: 0.72rem;
+    font-weight: 850;
+    letter-spacing: 0.08em;
+}
+
+h2 {
+    color: var(--passages-navy);
+    letter-spacing: -0.04em;
+    font-weight: 750;
+}
+
+.body {
+    color: var(--passages-text);
+    font-size: 0.97rem;
+    line-height: 1.72;
+}
+
+.body strong,
+.body b {
+    color: var(--passages-navy);
+    font-weight: 750;
+}
+
+.icon-badge {
+    background: var(--passages-bg-soft);
+    border: 1px solid rgba(9, 44, 104, 0.08);
+    color: var(--passages-navy);
+    font-weight: 850;
+    box-shadow: 0 8px 18px rgba(9,44,104,0.07);
+}
+
+.passage-chips {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.55rem;
+    margin-top: 0.9rem;
+}
+
+.passage-chip {
+    display: inline-flex;
+    align-items: center;
+    border: 1px solid rgba(9, 44, 104, 0.09);
+    border-radius: 999px;
+    padding: 0.42rem 0.68rem;
+    background: #ffffff;
+    color: var(--passages-navy);
+    box-shadow: 0 8px 18px rgba(9,44,104,0.06);
+    font-size: 0.84rem;
+    font-weight: 650;
+    line-height: 1.2;
+}
+
+.passage-chip--sage { background: #e9fbf4; border-color: rgba(0,205,155,0.18); }
+.passage-chip--sky { background: #eef9fb; border-color: rgba(62,111,149,0.14); }
+.passage-chip--gold { background: var(--passages-yellow); border-color: rgba(9,44,104,0.08); }
+.passage-chip--clay { background: #fff0ea; border-color: rgba(198,129,98,0.22); }
+.passage-chip--navy { background: var(--passages-navy); color: #ffffff; border-color: var(--passages-navy); }
+
+.passage-list {
+    margin: 0.85rem 0 0;
+    padding: 0;
+    list-style: none;
+    counter-reset: passage-step;
+}
+
+.passage-list li {
+    position: relative;
+    margin: 0.62rem 0;
+    padding: 0.74rem 0.78rem 0.74rem 3.05rem;
+    border-radius: 16px;
+    background: rgba(255,255,255,0.76);
+    border: 1px solid rgba(9,44,104,0.075);
+    box-shadow: 0 8px 18px rgba(9,44,104,0.045);
+}
+
+.passage-list li::before {
+    counter-increment: passage-step;
+    content: counter(passage-step);
+    position: absolute;
+    left: 0.72rem;
+    top: 50%;
+    transform: translateY(-50%);
+    width: 1.65rem;
+    height: 1.65rem;
+    display: grid;
+    place-items: center;
+    border-radius: 999px;
+    background: var(--passages-teal);
+    color: var(--passages-navy);
+    font-weight: 850;
+}
+
+.passage-label {
+    display: block;
+    margin-top: 1rem;
+    color: var(--passages-muted);
+    font-size: 0.74rem;
+    font-weight: 850;
+    letter-spacing: 0.1em;
+    text-transform: uppercase;
+}
+
+.passage-callout {
+    margin-top: 0.8rem;
+    padding: 0.96rem 1rem;
+    border-left: 6px solid var(--passages-teal);
+    border-radius: 16px;
+    background: #f2fbfc;
+    color: var(--passages-text);
+    font-weight: 450;
+}
+
+.passage-note {
+    margin-top: 0.95rem;
+    color: var(--passages-muted);
+    font-size: 0.94rem;
 }
 
 .game-board {
@@ -438,11 +498,11 @@ h2 {
 }
 
 .game-question {
-    padding: 0.95rem 1rem;
-    border-radius: 16px;
-    background: rgba(255,242,166,0.52);
+    padding: 0.96rem 1rem;
+    border-radius: 17px;
+    background: rgba(255,242,166,0.58);
     color: var(--passages-navy);
-    font-weight: 850;
+    font-weight: 750;
 }
 
 .game-choices,
@@ -459,16 +519,16 @@ h2 {
 .shuffle-check,
 .shuffle-reset {
     appearance: none;
-    border: 1px solid rgba(11,45,104,0.10);
+    border: 1px solid rgba(9,44,104,0.10);
     border-radius: 999px;
     background: #ffffff;
     color: var(--passages-navy);
-    padding: 0.66rem 0.84rem;
+    padding: 0.68rem 0.86rem;
     font: inherit;
-    font-size: 0.92rem;
-    font-weight: 800;
+    font-size: 0.91rem;
+    font-weight: 700;
     cursor: pointer;
-    box-shadow: 0 8px 18px rgba(11,45,104,0.06);
+    box-shadow: 0 8px 18px rgba(9,44,104,0.06);
     transition: transform 160ms ease, border-color 160ms ease, background 160ms ease;
 }
 
@@ -478,7 +538,7 @@ h2 {
 .shuffle-check:hover,
 .shuffle-reset:hover {
     transform: translateY(-2px);
-    border-color: rgba(0,204,154,0.32);
+    border-color: rgba(0,205,155,0.32);
 }
 
 .game-choice.is-correct {
@@ -496,7 +556,7 @@ h2 {
 .shuffle-result {
     min-height: 2.3rem;
     padding: 0.78rem 0.9rem;
-    border-radius: 14px;
+    border-radius: 15px;
     background: #f2fbfc;
     color: var(--passages-text);
 }
@@ -504,8 +564,8 @@ h2 {
 .shuffle-target {
     min-height: 58px;
     padding: 0.72rem;
-    border: 2px dashed rgba(11,45,104,0.18);
-    border-radius: 16px;
+    border: 2px dashed rgba(9,44,104,0.18);
+    border-radius: 17px;
     background: rgba(255,255,255,0.72);
     color: var(--passages-muted);
 }
@@ -517,13 +577,13 @@ h2 {
     border-radius: 999px;
     background: var(--passages-bg-soft);
     color: var(--passages-navy);
-    font-weight: 850;
+    font-weight: 750;
 }
 
 .footer-inner {
     background: #ffffff;
     color: var(--passages-muted);
-    border: 1px solid rgba(11,45,104,0.08);
+    border: 1px solid rgba(9,44,104,0.08);
     box-shadow: var(--passages-shadow-soft);
 }
 
@@ -531,8 +591,6 @@ h2 {
     :root {
         --passages-text: #edf7fb;
         --passages-muted: #bdd0dc;
-        --passages-card: #102844;
-        --passages-card-soft: #14304f;
         --passages-border: rgba(232, 247, 251, 0.13);
         --passages-shadow: 0 18px 48px rgba(0, 0, 0, 0.26);
         --passages-shadow-soft: 0 10px 28px rgba(0, 0, 0, 0.22);
@@ -541,16 +599,15 @@ h2 {
     body {
         color: var(--passages-text);
         background:
-            radial-gradient(circle at 92% 12%, rgba(0,204,154,0.13), transparent 22rem),
+            radial-gradient(circle at 92% 12%, rgba(0,205,155,0.13), transparent 22rem),
             radial-gradient(circle at 6% 36%, rgba(168,226,229,0.10), transparent 18rem),
-            linear-gradient(180deg, #10243c 0 116px, #091a2c 116px 72%, #071421 100%);
+            linear-gradient(180deg, #10243c 0 118px, #091a2c 118px 72%, #071421 100%);
     }
 
     header.hero {
-        color: #f4fbff;
         border-color: rgba(232,247,251,0.12);
         background:
-            radial-gradient(circle at 82% 26%, rgba(0,204,154,0.16), transparent 12rem),
+            radial-gradient(circle at 82% 26%, rgba(0,205,155,0.16), transparent 12rem),
             radial-gradient(circle at 91% 58%, rgba(255,242,166,0.10), transparent 10rem),
             linear-gradient(135deg, #102844 0%, #0d2139 58%, #091a2c 100%);
     }
@@ -567,14 +624,15 @@ h2 {
     .body b,
     .hero-kicker,
     .hero-pill,
-    .passages-soft-pill,
     .passage-chip,
     .game-question,
     .game-choice,
     .shuffle-word,
     .game-reset,
     .shuffle-check,
-    .shuffle-reset {
+    .shuffle-reset,
+    .hero-wrap::before,
+    .hero-wrap::after {
         color: #f4fbff;
     }
 
@@ -594,7 +652,9 @@ h2 {
     .card--passage_feeling,
     .card--passage_reflection,
     .card--passage_game,
-    .card--passage_shuffle {
+    .card--passage_shuffle,
+    .card--passage_connection,
+    .card--passage_skill {
         background:
             radial-gradient(circle at 100% 0%, rgba(168,226,229,0.09), transparent 34%),
             linear-gradient(180deg, #102844, #0d223a);
@@ -603,12 +663,12 @@ h2 {
 
     .hero-kicker,
     .hero-pill,
-    .icon-badge,
     .passage-callout,
     .game-result,
     .shuffle-result,
     .shuffle-target,
-    .footer-inner {
+    .footer-inner,
+    .passage-list li {
         background: rgba(255,255,255,0.06);
         border-color: rgba(232,247,251,0.12);
     }
@@ -626,59 +686,53 @@ h2 {
     .passages-cta,
     header.hero::after,
     .passage-floating-label:nth-child(2),
-    .game-choice.is-correct {
+    .game-choice.is-correct,
+    .passage-list li::before {
         color: #062146;
     }
 
     .passage-chip--gold,
     .passage-floating-label,
-    .game-question {
+    .game-question,
+    .passages-soft-pill {
         color: #062146;
     }
 }
 
 @media (max-width: 980px) {
-    header.hero {
-        grid-template-columns: 1fr;
-        min-height: unset;
-        padding-bottom: 3rem;
-    }
-
+    .hero-wrap { padding-top: 92px; }
+    .hero-wrap::after { display: none; }
+    header.hero { grid-template-columns: 1fr; min-height: unset; padding-bottom: 3rem; }
     header.hero::before,
     header.hero::after,
-    .passage-mini-hero {
-        display: none;
-    }
-
+    .passage-mini-hero { display: none; }
     .card--passage_topic,
     .card--passage_why,
     .card--passage_step,
     .card--passage_prompt,
     .card--passage_game,
-    .card--passage_shuffle {
-        grid-column: span 6;
-    }
+    .card--passage_shuffle,
+    .card--passage_feeling,
+    .card--passage_connection,
+    .card--passage_skill,
+    .card--passage_reflection { grid-column: span 6; }
 }
 
 @media (max-width: 720px) {
-    .hero h1 {
-        max-width: none;
-        font-size: clamp(2.3rem, 12vw, 3.6rem);
-    }
-
+    .hero-wrap::before { left: 18px; font-size: 1.5rem; }
+    .hero h1 { max-width: none; font-size: clamp(2.3rem, 12vw, 3.6rem); }
     .passages-cta,
-    .passages-soft-pill {
-        width: 100%;
-    }
-
+    .passages-soft-pill { width: 100%; }
     .card--passage_topic,
     .card--passage_why,
     .card--passage_step,
     .card--passage_prompt,
     .card--passage_game,
-    .card--passage_shuffle {
-        grid-column: auto;
-    }
+    .card--passage_shuffle,
+    .card--passage_feeling,
+    .card--passage_connection,
+    .card--passage_skill,
+    .card--passage_reflection { grid-column: auto; }
 }
 """
 
@@ -801,10 +855,7 @@ DAILY_PASSAGES = [
         ],
         "prompt": "What kind of day would you rather have: busy and social, quiet and focused, physical and hands-on, or mixed?",
         "parent_note": "Try asking about energy and environment before asking about a job title. It keeps the conversation less loaded.",
-        "connection": (
-            "This is the heart of a Passages-style approach: helping a young person move from vague pressure to one "
-            "clearer next step."
-        ),
+        "connection": "This is the heart of a Passages-style approach: helping a young person move from vague pressure to one clearer next step.",
         "reflection": "What is one option you do not need to decide today, and what is one thing you can learn this week?",
         "quest_question": "Your friend says, “I have no idea what I want to do.” What is the best first move?",
         "quest_options": [
@@ -823,10 +874,7 @@ DAILY_PASSAGES = [
             "First-job readiness is about more than getting hired. It is about learning how to show up, ask questions, "
             "receive feedback, recover from mistakes, and become someone others can trust."
         ),
-        "feeling": (
-            "A first job can feel intimidating because many expectations are invisible. Young workers may not know what "
-            "counts as professional until someone explains it plainly."
-        ),
+        "feeling": "A first job can feel intimidating because many expectations are invisible. Young workers may not know what counts as professional until someone explains it plainly.",
         "skill": "Workplace confidence",
         "steps": [
             "Practice a simple check-in sentence: 'I want to make sure I am doing this the right way. Can you show me what good looks like?'",
@@ -835,9 +883,7 @@ DAILY_PASSAGES = [
         ],
         "prompt": "When you are unsure at work, what would make it easier to ask for help?",
         "parent_note": "A young worker may need scripts more than speeches. Give them words they can actually use with a manager.",
-        "connection": (
-            "A daily flyer beside My Passages can make the hidden curriculum of early work visible, friendly, and teachable."
-        ),
+        "connection": "A daily flyer beside My Passages can make the hidden curriculum of early work visible, friendly, and teachable.",
         "reflection": "What is one workplace habit that would make someone easier to train?",
         "quest_question": "You are confused during a shift. What move shows maturity?",
         "quest_options": [
@@ -852,14 +898,8 @@ DAILY_PASSAGES = [
     {
         "passage": "Choosing Between College, Trade School, Work, or Apprenticeship",
         "audience": "Students and families comparing post-high-school options without wanting a one-size-fits-all answer.",
-        "why": (
-            "The real question is not whether one path is universally best. The better question is which path gives this "
-            "person structure, momentum, support, and a realistic way to grow."
-        ),
-        "feeling": (
-            "Families can feel pulled between cost, pride, fear, opportunity, and expectations. A calm comparison can turn "
-            "a stressful debate into a practical planning conversation."
-        ),
+        "why": "The real question is not whether one path is universally best. The better question is which path gives this person structure, momentum, support, and a realistic way to grow.",
+        "feeling": "Families can feel pulled between cost, pride, fear, opportunity, and expectations. A calm comparison can turn a stressful debate into a practical planning conversation.",
         "skill": "Comparing options fairly",
         "steps": [
             "List the next-step options without ranking them yet: college, community college, trade school, apprenticeship, work, military, certificate, or gap period with structure.",
@@ -868,9 +908,7 @@ DAILY_PASSAGES = [
         ],
         "prompt": "Which path gives you the best chance to keep learning without feeling stuck or overwhelmed?",
         "parent_note": "Try not to make the first conversation about prestige. Make it about fit, structure, support, cost, and momentum.",
-        "connection": (
-            "This topic belongs beside My Passages because it supports the transition itself, not just the final choice."
-        ),
+        "connection": "This topic belongs beside My Passages because it supports the transition itself, not just the final choice.",
         "reflection": "What would make one option feel more real: a visit, a conversation, a budget, or a trial step?",
         "quest_question": "Which comparison is most useful when weighing paths?",
         "quest_options": [
@@ -885,14 +923,8 @@ DAILY_PASSAGES = [
     {
         "passage": "Building a Simple Professional Identity",
         "audience": "Students and early-career young adults who need to introduce themselves but do not yet feel established.",
-        "why": (
-            "A professional identity does not have to be polished or final. It can simply explain what someone is learning, "
-            "what they are curious about, and what kind of opportunity they are open to."
-        ),
-        "feeling": (
-            "Many young people worry they have nothing to say because they do not have much experience yet. But honesty, "
-            "curiosity, reliability, and willingness to learn are all real signals."
-        ),
+        "why": "A professional identity does not have to be polished or final. It can simply explain what someone is learning, what they are curious about, and what kind of opportunity they are open to.",
+        "feeling": "Many young people worry they have nothing to say because they do not have much experience yet. But honesty, curiosity, reliability, and willingness to learn are all real signals.",
         "skill": "Introducing yourself clearly",
         "steps": [
             "Write a two-sentence introduction: who you are, what you are exploring, and what kind of experience you hope to get.",
@@ -901,9 +933,7 @@ DAILY_PASSAGES = [
         ],
         "prompt": "What are you learning right now, and what kind of opportunity would help you learn more?",
         "parent_note": "Help them name real responsibilities they already carry. Experience is not only paid work.",
-        "connection": (
-            "A Passages-style resource can help young people talk about themselves without pretending to have everything figured out."
-        ),
+        "connection": "A Passages-style resource can help young people talk about themselves without pretending to have everything figured out.",
         "reflection": "What is one honest strength you can name without exaggerating?",
         "quest_question": "What is the strongest beginner introduction?",
         "quest_options": [
@@ -918,14 +948,8 @@ DAILY_PASSAGES = [
     {
         "passage": "Parents Supporting Without Taking Over",
         "audience": "Parents, guardians, mentors, and family members trying to help a young adult take the next step.",
-        "why": (
-            "Support works best when it lowers pressure and increases clarity. The goal is not to force a perfect plan; "
-            "the goal is to help the young person stay engaged long enough to take a useful next step."
-        ),
-        "feeling": (
-            "Parents may feel worried, impatient, or afraid time is being wasted. Young adults may feel judged, compared, "
-            "or overwhelmed. Both sides often want progress but get stuck in the same conversation."
-        ),
+        "why": "Support works best when it lowers pressure and increases clarity. The goal is not to force a perfect plan; the goal is to help the young person stay engaged long enough to take a useful next step.",
+        "feeling": "Parents may feel worried, impatient, or afraid time is being wasted. Young adults may feel judged, compared, or overwhelmed. Both sides often want progress but get stuck in the same conversation.",
         "skill": "Better transition conversations",
         "steps": [
             "Replace 'What is your plan?' with 'What feels like the next thing you are willing to learn more about?'",
@@ -934,9 +958,7 @@ DAILY_PASSAGES = [
         ],
         "prompt": "What kind of help would feel useful right now instead of stressful?",
         "parent_note": "The tone matters. Curiosity usually opens more doors than urgency.",
-        "connection": (
-            "This is an ideal companion lane for My Passages: helping families turn pressure into practical support."
-        ),
+        "connection": "This is an ideal companion lane for My Passages: helping families turn pressure into practical support.",
         "reflection": "What question could open a better conversation this week?",
         "quest_question": "A conversation is getting tense. What helps most?",
         "quest_options": [
@@ -1110,6 +1132,9 @@ def build_theme_page(date_str: str | None = None, seed: int | None = None) -> Pa
             "extra_css": PASSAGES_CSS,
             "extra_js": PASSAGES_JS,
             "extra_head_html": (
+                '<link rel="preconnect" href="https://fonts.googleapis.com">'
+                '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>'
+                '<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">'
                 '<meta name="color-scheme" content="light dark">'
                 '<meta name="theme-color" content="#eef9fb" media="(prefers-color-scheme: light)">'
                 '<meta name="theme-color" content="#091a2c" media="(prefers-color-scheme: dark)">'
