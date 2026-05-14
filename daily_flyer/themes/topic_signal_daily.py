@@ -22,11 +22,6 @@ THEME_CONFIG = {
         '<span class="passages-cta">Let’s Do It!</span>'
         '<span class="passages-soft-pill">Confidence starts here</span>'
         '</div>'
-        '<div class="passage-mini-hero" aria-hidden="true">'
-        '<span class="passage-floating-label">Confidence</span>'
-        '<span class="passage-floating-label">Skills</span>'
-        '<span class="passage-floating-label">Real-world prep</span>'
-        '</div>'
         '</div>'
     ),
     "footer_text": (
@@ -50,7 +45,7 @@ PASSAGES_CSS = """
     --passages-aqua: #a8e2e5;
     --passages-yellow: #fff2a6;
     --passages-coral: #ff9b7a;
-    --passages-lav: #eef0ff;
+    --passages-blue-soft: #eef4ff;
     --passages-shadow: 0 18px 48px rgba(9, 44, 104, 0.10);
     --passages-shadow-soft: 0 10px 28px rgba(9, 44, 104, 0.075);
     --passages-border: rgba(9, 44, 104, 0.10);
@@ -61,38 +56,9 @@ body {
     font-family: "Poppins", "Nunito Sans", Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     color: var(--passages-text);
     background:
-        radial-gradient(circle at 88% 13%, rgba(168,226,229,0.55), transparent 22rem),
-        radial-gradient(circle at 10% 38%, rgba(0,205,155,0.12), transparent 19rem),
+        radial-gradient(circle at 88% 12%, rgba(168,226,229,0.55), transparent 22rem),
+        radial-gradient(circle at 10% 34%, rgba(0,205,155,0.10), transparent 19rem),
         linear-gradient(180deg, var(--passages-bg-soft) 0 118px, #ffffff 118px 72%, #eef9fb 100%);
-}
-
-.hero-wrap {
-    position: relative;
-    padding-top: 104px;
-}
-
-.hero-wrap::before,
-.hero-wrap::after {
-    position: absolute;
-    top: 22px;
-    z-index: 3;
-    color: var(--passages-navy);
-}
-
-.hero-wrap::before {
-    content: "▱ Passages";
-    left: 22px;
-    font-weight: 850;
-    font-size: clamp(1.55rem, 2.6vw, 2.2rem);
-    letter-spacing: -0.045em;
-}
-
-.hero-wrap::after {
-    content: "Services    About Us    Contact Us    Get Started";
-    right: 22px;
-    font-size: 0.98rem;
-    font-weight: 550;
-    word-spacing: 1.6rem;
 }
 
 body::before {
@@ -101,7 +67,7 @@ body::before {
     top: 250px;
     left: auto;
     right: -190px;
-    background: radial-gradient(circle, rgba(0,205,155,0.13), transparent 70%);
+    background: radial-gradient(circle, rgba(0,205,155,0.12), transparent 70%);
     opacity: 0.9;
     filter: blur(8px);
 }
@@ -117,19 +83,23 @@ body::after {
     filter: blur(8px);
 }
 
+.hero-wrap {
+    padding-top: 24px;
+}
+
 header.hero {
     color: var(--passages-navy);
-    min-height: 520px;
+    min-height: 500px;
     display: grid;
-    grid-template-columns: minmax(0, 1.02fr) minmax(300px, 0.98fr);
+    grid-template-columns: minmax(0, 1.05fr) minmax(280px, 0.95fr);
     align-items: center;
     gap: clamp(1rem, 4vw, 3.8rem);
     padding: clamp(2.4rem, 5vw, 4.5rem) clamp(1.6rem, 4vw, 4rem);
     border: 1px solid rgba(9, 44, 104, 0.06);
     border-radius: 34px;
     background:
-        radial-gradient(circle at 83% 27%, rgba(168,226,229,0.70), transparent 12rem),
-        radial-gradient(circle at 91% 58%, rgba(255,242,166,0.48), transparent 10rem),
+        radial-gradient(circle at 82% 28%, rgba(168,226,229,0.68), transparent 12rem),
+        radial-gradient(circle at 92% 61%, rgba(255,242,166,0.48), transparent 10rem),
         linear-gradient(135deg, #ffffff 0%, #ffffff 58%, #f1fbfc 100%);
     box-shadow: var(--passages-shadow);
     backdrop-filter: none;
@@ -139,12 +109,13 @@ header.hero {
 header.hero::before {
     content: "";
     position: absolute;
-    inset: auto 5.4% 12% auto;
-    width: min(34vw, 390px);
+    right: clamp(1.3rem, 6vw, 4.4rem);
+    bottom: 14%;
+    width: min(32vw, 360px);
     aspect-ratio: 1;
-    border: 34px solid rgba(168,226,229,0.95);
+    border: clamp(18px, 3vw, 34px) solid rgba(168,226,229,0.92);
     border-radius: 30px;
-    background: rgba(255,255,255,0.72);
+    background: rgba(255,255,255,0.70);
     box-shadow: 0 20px 60px rgba(9,44,104,0.11);
 }
 
@@ -256,42 +227,6 @@ header.hero::after {
     color: var(--passages-navy);
     box-shadow: var(--passages-shadow-soft);
     font-weight: 600;
-}
-
-.passage-mini-hero {
-    position: absolute;
-    right: clamp(1.3rem, 6vw, 4.2rem);
-    bottom: 11%;
-    z-index: 2;
-    width: min(31vw, 340px);
-    min-width: 240px;
-    display: grid;
-    gap: 0.8rem;
-    pointer-events: none;
-}
-
-.passage-floating-label {
-    justify-self: start;
-    display: inline-flex;
-    align-items: center;
-    gap: 0.45rem;
-    padding: 0.82rem 1.08rem;
-    border-radius: 16px;
-    background: var(--passages-yellow);
-    color: var(--passages-navy);
-    font-weight: 850;
-    box-shadow: 0 16px 30px rgba(9,44,104,0.14);
-}
-
-.passage-floating-label:nth-child(2) {
-    justify-self: end;
-    background: var(--passages-teal);
-}
-
-.passage-floating-label:nth-child(3) {
-    justify-self: center;
-    background: #ffffff;
-    border: 1px solid rgba(9,44,104,0.08);
 }
 
 main {
@@ -630,9 +565,7 @@ h2 {
     .shuffle-word,
     .game-reset,
     .shuffle-check,
-    .shuffle-reset,
-    .hero-wrap::before,
-    .hero-wrap::after {
+    .shuffle-reset {
         color: #f4fbff;
     }
 
@@ -685,14 +618,12 @@ h2 {
 
     .passages-cta,
     header.hero::after,
-    .passage-floating-label:nth-child(2),
     .game-choice.is-correct,
     .passage-list li::before {
         color: #062146;
     }
 
     .passage-chip--gold,
-    .passage-floating-label,
     .game-question,
     .passages-soft-pill {
         color: #062146;
@@ -700,12 +631,17 @@ h2 {
 }
 
 @media (max-width: 980px) {
-    .hero-wrap { padding-top: 92px; }
-    .hero-wrap::after { display: none; }
-    header.hero { grid-template-columns: 1fr; min-height: unset; padding-bottom: 3rem; }
+    header.hero {
+        grid-template-columns: 1fr;
+        min-height: unset;
+        padding-bottom: 3rem;
+    }
+
     header.hero::before,
-    header.hero::after,
-    .passage-mini-hero { display: none; }
+    header.hero::after {
+        display: none;
+    }
+
     .card--passage_topic,
     .card--passage_why,
     .card--passage_step,
@@ -715,14 +651,22 @@ h2 {
     .card--passage_feeling,
     .card--passage_connection,
     .card--passage_skill,
-    .card--passage_reflection { grid-column: span 6; }
+    .card--passage_reflection {
+        grid-column: span 6;
+    }
 }
 
 @media (max-width: 720px) {
-    .hero-wrap::before { left: 18px; font-size: 1.5rem; }
-    .hero h1 { max-width: none; font-size: clamp(2.3rem, 12vw, 3.6rem); }
+    .hero h1 {
+        max-width: none;
+        font-size: clamp(2.3rem, 12vw, 3.6rem);
+    }
+
     .passages-cta,
-    .passages-soft-pill { width: 100%; }
+    .passages-soft-pill {
+        width: 100%;
+    }
+
     .card--passage_topic,
     .card--passage_why,
     .card--passage_step,
@@ -732,7 +676,9 @@ h2 {
     .card--passage_feeling,
     .card--passage_connection,
     .card--passage_skill,
-    .card--passage_reflection { grid-column: auto; }
+    .card--passage_reflection {
+        grid-column: auto;
+    }
 }
 """
 
