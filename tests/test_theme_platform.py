@@ -115,6 +115,15 @@ class WebRouteTests(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertIn(b"Irish Today", response.data)
 
+    def test_commander_readiness_theme_renders(self) -> None:
+        response = self.client.get("/?theme=commander_readiness&date=2026-05-15&seed=7")
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(b"Commander Opening Plan", response.data)
+        self.assertIn(b"99-Card Composition", response.data)
+        self.assertIn(b"Turn 5", response.data)
+        self.assertIn(b"How Often It Comes Together", response.data)
+        self.assertIn(b"Reroll sample hands", response.data)
+
     def test_birthday_theme_renders_with_realistic_data(self) -> None:
         birthdays = [
             {
