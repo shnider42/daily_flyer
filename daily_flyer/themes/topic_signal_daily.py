@@ -35,52 +35,49 @@ THEME_CONFIG = {
 
 PASSAGES_CSS = """
 :root {
-    --passages-navy: #092c68;
-    --passages-navy-2: #143b77;
+    --passages-navy: #082b66;
+    --passages-navy-2: #143c78;
     --passages-text: #172033;
-    --passages-muted: #5d6d80;
-    --passages-bg-soft: #eef9fb;
-    --passages-teal: #00cd9b;
-    --passages-teal-deep: #079a84;
+    --passages-muted: #617083;
+    --passages-bg: #f0fbfd;
+    --passages-teal: #00cf9a;
+    --passages-teal-deep: #068b79;
     --passages-aqua: #a8e2e5;
     --passages-yellow: #fff2a6;
-    --passages-coral: #ff9b7a;
-    --passages-blue-soft: #eef4ff;
-    --passages-shadow: 0 18px 48px rgba(9, 44, 104, 0.10);
-    --passages-shadow-soft: 0 10px 28px rgba(9, 44, 104, 0.075);
-    --passages-border: rgba(9, 44, 104, 0.10);
-    --passages-radius: 28px;
+    --passages-coral: #ff9d7b;
+    --passages-blue-soft: #edf5ff;
+    --passages-card-shadow: 0 16px 42px rgba(8, 43, 102, 0.10);
+    --passages-soft-shadow: 0 9px 24px rgba(8, 43, 102, 0.075);
+    --passages-border: rgba(8, 43, 102, 0.10);
 }
 
 body {
     font-family: "Poppins", "Nunito Sans", Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
     color: var(--passages-text);
     background:
-        radial-gradient(circle at 88% 12%, rgba(168,226,229,0.55), transparent 22rem),
-        radial-gradient(circle at 10% 34%, rgba(0,205,155,0.10), transparent 19rem),
-        linear-gradient(180deg, var(--passages-bg-soft) 0 118px, #ffffff 118px 72%, #eef9fb 100%);
+        radial-gradient(circle at 82% 8%, rgba(168,226,229,0.55), transparent 20rem),
+        radial-gradient(circle at 9% 32%, rgba(0,207,154,0.10), transparent 18rem),
+        linear-gradient(180deg, var(--passages-bg) 0 128px, #ffffff 128px 74%, #eef9fb 100%);
 }
 
 body::before {
-    width: 440px;
-    height: 440px;
-    top: 250px;
+    width: 430px;
+    height: 430px;
+    top: 320px;
+    right: -210px;
     left: auto;
-    right: -190px;
-    background: radial-gradient(circle, rgba(0,205,155,0.12), transparent 70%);
-    opacity: 0.9;
-    filter: blur(8px);
+    background: radial-gradient(circle, rgba(0,207,154,0.12), transparent 70%);
+    opacity: 0.85;
 }
 
 body::after {
-    width: 340px;
-    height: 340px;
+    width: 330px;
+    height: 330px;
+    top: 690px;
+    left: -160px;
     right: auto;
-    left: -150px;
-    top: 650px;
-    background: radial-gradient(circle, rgba(255,242,166,0.42), transparent 70%);
+    background: radial-gradient(circle, rgba(255,242,166,0.45), transparent 70%);
     opacity: 0.75;
-    filter: blur(8px);
 }
 
 .hero-wrap {
@@ -88,20 +85,18 @@ body::after {
 }
 
 header.hero {
-    color: var(--passages-navy);
-    min-height: 500px;
-    display: grid;
-    grid-template-columns: minmax(0, 1.05fr) minmax(280px, 0.95fr);
-    align-items: center;
-    gap: clamp(1rem, 4vw, 3.8rem);
-    padding: clamp(2.4rem, 5vw, 4.5rem) clamp(1.6rem, 4vw, 4rem);
-    border: 1px solid rgba(9, 44, 104, 0.06);
+    position: relative;
+    min-height: 470px;
+    padding: clamp(2.2rem, 5vw, 4.5rem) clamp(1.45rem, 5vw, 4.6rem);
+    border: 1px solid rgba(8, 43, 102, 0.06);
     border-radius: 34px;
+    color: var(--passages-navy);
     background:
-        radial-gradient(circle at 82% 28%, rgba(168,226,229,0.68), transparent 12rem),
-        radial-gradient(circle at 92% 61%, rgba(255,242,166,0.48), transparent 10rem),
-        linear-gradient(135deg, #ffffff 0%, #ffffff 58%, #f1fbfc 100%);
-    box-shadow: var(--passages-shadow);
+        radial-gradient(circle at 82% 25%, rgba(168,226,229,0.72), transparent 12rem),
+        radial-gradient(circle at 90% 62%, rgba(255,242,166,0.50), transparent 10rem),
+        linear-gradient(135deg, #ffffff 0%, #ffffff 62%, #f1fbfc 100%);
+    box-shadow: var(--passages-card-shadow);
+    overflow: hidden;
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
 }
@@ -109,56 +104,63 @@ header.hero {
 header.hero::before {
     content: "";
     position: absolute;
-    right: clamp(1.3rem, 6vw, 4.4rem);
+    right: clamp(1.2rem, 6vw, 4.4rem);
     bottom: 14%;
-    width: min(32vw, 360px);
+    width: min(31vw, 340px);
     aspect-ratio: 1;
-    border: clamp(18px, 3vw, 34px) solid rgba(168,226,229,0.92);
+    border: clamp(18px, 3vw, 32px) solid rgba(168,226,229,0.92);
     border-radius: 30px;
     background: rgba(255,255,255,0.70);
-    box-shadow: 0 20px 60px rgba(9,44,104,0.11);
+    box-shadow: 0 20px 60px rgba(8,43,102,0.11);
 }
 
 header.hero::after {
     content: "Starts Here";
     position: absolute;
-    right: clamp(1.2rem, 7vw, 4.7rem);
+    right: clamp(1.35rem, 7vw, 4.8rem);
     top: 52%;
     z-index: 1;
+    min-height: 54px;
     display: inline-flex;
     align-items: center;
-    min-height: 56px;
-    padding: 0 1.7rem;
+    padding: 0 1.55rem;
     border-radius: 16px;
     background: var(--passages-teal);
     color: var(--passages-navy);
-    font-size: clamp(1rem, 1.8vw, 1.35rem);
+    font-size: clamp(1rem, 1.8vw, 1.3rem);
     font-weight: 800;
-    box-shadow: 0 16px 28px rgba(0, 205, 155, 0.28);
+    box-shadow: 0 16px 28px rgba(0, 207, 154, 0.26);
+}
+
+.hero-kicker,
+.hero h1,
+.hero .subtitle,
+.hero-meta {
+    position: relative;
+    z-index: 2;
+    max-width: min(690px, 64%);
 }
 
 .hero-kicker {
     width: max-content;
     max-width: 100%;
-    padding: 0.56rem 0.86rem;
+    padding: 0.56rem 0.9rem;
     border-radius: 999px;
-    background: var(--passages-bg-soft);
-    border: 1px solid rgba(9, 44, 104, 0.08);
+    background: #f0fbfd;
+    border: 1px solid rgba(8, 43, 102, 0.08);
     color: var(--passages-navy);
+    font-size: 0.78rem;
     font-weight: 800;
 }
 
 .hero h1 {
-    position: relative;
-    max-width: 10.6ch;
-    margin-top: 1.1rem;
+    margin-top: 1.08rem;
     color: var(--passages-navy);
-    font-size: clamp(2.55rem, 6.2vw, 5rem);
+    font-size: clamp(2.55rem, 6.1vw, 5rem);
     line-height: 0.98;
     letter-spacing: -0.058em;
     font-weight: 750;
     text-shadow: none;
-    z-index: 2;
 }
 
 .hero h1::after {
@@ -166,15 +168,13 @@ header.hero::after {
     display: block;
     width: min(170px, 44%);
     height: 7px;
-    margin-top: 0.28rem;
+    margin-top: 0.32rem;
     border-radius: 999px;
     background: var(--passages-teal);
 }
 
 .hero .subtitle,
 .passages-hero-copy p {
-    position: relative;
-    z-index: 2;
     color: var(--passages-text);
     line-height: 1.72;
     font-size: clamp(1rem, 1.25vw, 1.13rem);
@@ -182,14 +182,13 @@ header.hero::after {
 }
 
 .passages-hero-copy p {
-    max-width: 58ch;
     margin: 0;
 }
 
 .passages-hero-actions {
     display: flex;
     flex-wrap: wrap;
-    gap: 0.8rem;
+    gap: 0.78rem;
     margin-top: 1.45rem;
 }
 
@@ -207,25 +206,24 @@ header.hero::after {
 .passages-cta {
     background: var(--passages-navy);
     color: #ffffff;
-    box-shadow: 0 12px 24px rgba(9,44,104,0.18);
+    box-shadow: 0 12px 24px rgba(8,43,102,0.18);
 }
 
 .passages-soft-pill {
     background: var(--passages-yellow);
     color: var(--passages-navy);
-    box-shadow: 0 12px 24px rgba(9,44,104,0.10);
+    box-shadow: 0 12px 24px rgba(8,43,102,0.10);
 }
 
 .hero-meta {
-    position: relative;
-    z-index: 2;
+    margin-top: 1.15rem;
 }
 
 .hero-pill {
     background: #ffffff;
-    border: 1px solid rgba(9, 44, 104, 0.08);
+    border: 1px solid rgba(8, 43, 102, 0.08);
     color: var(--passages-navy);
-    box-shadow: var(--passages-shadow-soft);
+    box-shadow: var(--passages-soft-shadow);
     font-weight: 600;
 }
 
@@ -239,17 +237,17 @@ main {
     min-height: 230px;
     padding: 1.22rem 1.18rem 1.08rem;
     border: 1px solid var(--passages-border);
-    border-radius: var(--passages-radius);
+    border-radius: 28px;
     background: #ffffff;
-    box-shadow: var(--passages-shadow-soft);
+    box-shadow: var(--passages-soft-shadow);
     backdrop-filter: none;
     -webkit-backdrop-filter: none;
 }
 
 .card:hover {
     transform: translateY(-6px);
-    border-color: rgba(0,205,155,0.38);
-    box-shadow: 0 26px 58px rgba(9,44,104,0.14);
+    border-color: rgba(0,207,154,0.38);
+    box-shadow: 0 26px 58px rgba(8,43,102,0.14);
 }
 
 .card::before {
@@ -263,7 +261,7 @@ main {
 
 .card-head {
     padding-bottom: 0.65rem;
-    border-bottom: 1px solid rgba(9,44,104,0.075);
+    border-bottom: 1px solid rgba(8,43,102,0.075);
 }
 
 .card--passage_topic { --card-accent: linear-gradient(90deg, var(--passages-teal), #6ee7c8); grid-column: span 7; background: linear-gradient(180deg, #ffffff, #f0fffa); }
@@ -306,7 +304,7 @@ main {
     width: fit-content;
     padding: 0.32rem 0.56rem;
     border-radius: 999px;
-    background: rgba(0,205,155,0.10);
+    background: rgba(0,207,154,0.10);
     color: var(--passages-teal-deep);
     font-size: 0.72rem;
     font-weight: 850;
@@ -332,39 +330,68 @@ h2 {
 }
 
 .icon-badge {
-    background: var(--passages-bg-soft);
-    border: 1px solid rgba(9, 44, 104, 0.08);
+    background: var(--passages-bg);
+    border: 1px solid rgba(8, 43, 102, 0.08);
     color: var(--passages-navy);
     font-weight: 850;
-    box-shadow: 0 8px 18px rgba(9,44,104,0.07);
+    box-shadow: 0 8px 18px rgba(8,43,102,0.07);
+}
+
+.passage-chips,
+.game-choices,
+.shuffle-words,
+.shuffle-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.58rem;
 }
 
 .passage-chips {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.55rem;
     margin-top: 0.9rem;
 }
 
-.passage-chip {
+.passage-chip,
+.game-choice,
+.shuffle-word,
+.game-reset,
+.shuffle-check,
+.shuffle-reset {
     display: inline-flex;
     align-items: center;
-    border: 1px solid rgba(9, 44, 104, 0.09);
+    border: 1px solid rgba(8, 43, 102, 0.09);
     border-radius: 999px;
-    padding: 0.42rem 0.68rem;
+    padding: 0.44rem 0.72rem;
     background: #ffffff;
     color: var(--passages-navy);
-    box-shadow: 0 8px 18px rgba(9,44,104,0.06);
-    font-size: 0.84rem;
-    font-weight: 650;
+    box-shadow: 0 8px 18px rgba(8,43,102,0.06);
+    font: inherit;
+    font-size: 0.88rem;
+    font-weight: 700;
     line-height: 1.2;
 }
 
-.passage-chip--sage { background: #e9fbf4; border-color: rgba(0,205,155,0.18); }
+.game-choice,
+.shuffle-word,
+.game-reset,
+.shuffle-check,
+.shuffle-reset {
+    cursor: pointer;
+    transition: transform 160ms ease, border-color 160ms ease, background 160ms ease;
+}
+
+.game-choice:hover,
+.shuffle-word:hover,
+.game-reset:hover,
+.shuffle-check:hover,
+.shuffle-reset:hover {
+    transform: translateY(-2px);
+    border-color: rgba(0,207,154,0.32);
+}
+
+.passage-chip--sage { background: #e9fbf4; border-color: rgba(0,207,154,0.18); }
 .passage-chip--sky { background: #eef9fb; border-color: rgba(62,111,149,0.14); }
-.passage-chip--gold { background: var(--passages-yellow); border-color: rgba(9,44,104,0.08); }
+.passage-chip--gold { background: var(--passages-yellow); border-color: rgba(8,43,102,0.08); }
 .passage-chip--clay { background: #fff0ea; border-color: rgba(198,129,98,0.22); }
-.passage-chip--navy { background: var(--passages-navy); color: #ffffff; border-color: var(--passages-navy); }
 
 .passage-list {
     margin: 0.85rem 0 0;
@@ -379,8 +406,8 @@ h2 {
     padding: 0.74rem 0.78rem 0.74rem 3.05rem;
     border-radius: 16px;
     background: rgba(255,255,255,0.76);
-    border: 1px solid rgba(9,44,104,0.075);
-    box-shadow: 0 8px 18px rgba(9,44,104,0.045);
+    border: 1px solid rgba(8,43,102,0.075);
+    box-shadow: 0 8px 18px rgba(8,43,102,0.045);
 }
 
 .passage-list li::before {
@@ -410,14 +437,19 @@ h2 {
     text-transform: uppercase;
 }
 
-.passage-callout {
+.passage-callout,
+.game-result,
+.shuffle-result,
+.shuffle-target {
     margin-top: 0.8rem;
-    padding: 0.96rem 1rem;
-    border-left: 6px solid var(--passages-teal);
+    padding: 0.9rem 1rem;
     border-radius: 16px;
     background: #f2fbfc;
     color: var(--passages-text);
-    font-weight: 450;
+}
+
+.passage-callout {
+    border-left: 6px solid var(--passages-teal);
 }
 
 .passage-note {
@@ -440,42 +472,6 @@ h2 {
     font-weight: 750;
 }
 
-.game-choices,
-.shuffle-words,
-.shuffle-actions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.6rem;
-}
-
-.game-choice,
-.shuffle-word,
-.game-reset,
-.shuffle-check,
-.shuffle-reset {
-    appearance: none;
-    border: 1px solid rgba(9,44,104,0.10);
-    border-radius: 999px;
-    background: #ffffff;
-    color: var(--passages-navy);
-    padding: 0.68rem 0.86rem;
-    font: inherit;
-    font-size: 0.91rem;
-    font-weight: 700;
-    cursor: pointer;
-    box-shadow: 0 8px 18px rgba(9,44,104,0.06);
-    transition: transform 160ms ease, border-color 160ms ease, background 160ms ease;
-}
-
-.game-choice:hover,
-.shuffle-word:hover,
-.game-reset:hover,
-.shuffle-check:hover,
-.shuffle-reset:hover {
-    transform: translateY(-2px);
-    border-color: rgba(0,205,155,0.32);
-}
-
 .game-choice.is-correct {
     background: var(--passages-teal);
     color: var(--passages-navy);
@@ -487,21 +483,9 @@ h2 {
     border-color: rgba(198,129,98,0.30);
 }
 
-.game-result,
-.shuffle-result {
-    min-height: 2.3rem;
-    padding: 0.78rem 0.9rem;
-    border-radius: 15px;
-    background: #f2fbfc;
-    color: var(--passages-text);
-}
-
 .shuffle-target {
     min-height: 58px;
-    padding: 0.72rem;
-    border: 2px dashed rgba(9,44,104,0.18);
-    border-radius: 17px;
-    background: rgba(255,255,255,0.72);
+    border: 2px dashed rgba(8,43,102,0.18);
     color: var(--passages-muted);
 }
 
@@ -510,7 +494,7 @@ h2 {
     margin: 0.15rem;
     padding: 0.42rem 0.62rem;
     border-radius: 999px;
-    background: var(--passages-bg-soft);
+    background: var(--passages-bg);
     color: var(--passages-navy);
     font-weight: 750;
 }
@@ -518,8 +502,8 @@ h2 {
 .footer-inner {
     background: #ffffff;
     color: var(--passages-muted);
-    border: 1px solid rgba(9,44,104,0.08);
-    box-shadow: var(--passages-shadow-soft);
+    border: 1px solid rgba(8,43,102,0.08);
+    box-shadow: var(--passages-soft-shadow);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -527,14 +511,14 @@ h2 {
         --passages-text: #edf7fb;
         --passages-muted: #bdd0dc;
         --passages-border: rgba(232, 247, 251, 0.13);
-        --passages-shadow: 0 18px 48px rgba(0, 0, 0, 0.26);
-        --passages-shadow-soft: 0 10px 28px rgba(0, 0, 0, 0.22);
+        --passages-card-shadow: 0 18px 48px rgba(0, 0, 0, 0.26);
+        --passages-soft-shadow: 0 10px 28px rgba(0, 0, 0, 0.22);
     }
 
     body {
         color: var(--passages-text);
         background:
-            radial-gradient(circle at 92% 12%, rgba(0,205,155,0.13), transparent 22rem),
+            radial-gradient(circle at 92% 12%, rgba(0,207,154,0.13), transparent 22rem),
             radial-gradient(circle at 6% 36%, rgba(168,226,229,0.10), transparent 18rem),
             linear-gradient(180deg, #10243c 0 118px, #091a2c 118px 72%, #071421 100%);
     }
@@ -542,7 +526,7 @@ h2 {
     header.hero {
         border-color: rgba(232,247,251,0.12);
         background:
-            radial-gradient(circle at 82% 26%, rgba(0,205,155,0.16), transparent 12rem),
+            radial-gradient(circle at 82% 26%, rgba(0,207,154,0.16), transparent 12rem),
             radial-gradient(circle at 91% 58%, rgba(255,242,166,0.10), transparent 10rem),
             linear-gradient(135deg, #102844 0%, #0d2139 58%, #091a2c 100%);
     }
@@ -601,11 +585,7 @@ h2 {
     .shuffle-result,
     .shuffle-target,
     .footer-inner,
-    .passage-list li {
-        background: rgba(255,255,255,0.06);
-        border-color: rgba(232,247,251,0.12);
-    }
-
+    .passage-list li,
     .passage-chip,
     .game-choice,
     .shuffle-word,
@@ -619,11 +599,7 @@ h2 {
     .passages-cta,
     header.hero::after,
     .game-choice.is-correct,
-    .passage-list li::before {
-        color: #062146;
-    }
-
-    .passage-chip--gold,
+    .passage-list li::before,
     .game-question,
     .passages-soft-pill {
         color: #062146;
@@ -632,7 +608,6 @@ h2 {
 
 @media (max-width: 980px) {
     header.hero {
-        grid-template-columns: 1fr;
         min-height: unset;
         padding-bottom: 3rem;
     }
@@ -640,6 +615,13 @@ h2 {
     header.hero::before,
     header.hero::after {
         display: none;
+    }
+
+    .hero-kicker,
+    .hero h1,
+    .hero .subtitle,
+    .hero-meta {
+        max-width: 100%;
     }
 
     .card--passage_topic,
@@ -785,14 +767,8 @@ DAILY_PASSAGES = [
     {
         "passage": "Finding a First Direction",
         "audience": "Students who feel pressure to choose a future before they have enough real-world information.",
-        "why": (
-            "A first direction does not have to be a forever decision. It can be a starting point: a way to learn, "
-            "meet people, build confidence, and gather better information about what fits."
-        ),
-        "feeling": (
-            "This stage can feel like everyone else has a plan. Many people only look certain from the outside. "
-            "Uncertainty is not failure; it is often the beginning of honest exploration."
-        ),
+        "why": "A first direction does not have to be a forever decision. It can be a starting point: a way to learn, meet people, build confidence, and gather better information about what fits.",
+        "feeling": "This stage can feel like everyone else has a plan. Many people only look certain from the outside. Uncertainty is not failure; it is often the beginning of honest exploration.",
         "skill": "Decision-making without panic",
         "steps": [
             "Write down three work environments you might tolerate or enjoy: outdoors, office, hands-on, helping people, technical, creative, or fast-paced.",
@@ -816,10 +792,7 @@ DAILY_PASSAGES = [
     {
         "passage": "Getting Ready for a First Job",
         "audience": "Teens and young adults preparing for first jobs, internships, apprenticeships, or part-time work.",
-        "why": (
-            "First-job readiness is about more than getting hired. It is about learning how to show up, ask questions, "
-            "receive feedback, recover from mistakes, and become someone others can trust."
-        ),
+        "why": "First-job readiness is about more than getting hired. It is about learning how to show up, ask questions, receive feedback, recover from mistakes, and become someone others can trust.",
         "feeling": "A first job can feel intimidating because many expectations are invisible. Young workers may not know what counts as professional until someone explains it plainly.",
         "skill": "Workplace confidence",
         "steps": [
