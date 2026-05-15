@@ -49,56 +49,66 @@ PASSAGES_CSS = """
     --passages-card-shadow: 0 16px 42px rgba(8, 43, 102, 0.10);
     --passages-soft-shadow: 0 9px 24px rgba(8, 43, 102, 0.075);
     --passages-border: rgba(8, 43, 102, 0.10);
+    color-scheme: light;
+}
+
+html,
+body {
+    color-scheme: light !important;
 }
 
 body {
-    font-family: "Poppins", "Nunito Sans", Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-    color: var(--passages-text);
+    font-family: "Poppins", "Nunito Sans", Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif !important;
+    color: var(--passages-text) !important;
     background:
-        radial-gradient(circle at 82% 8%, rgba(168,226,229,0.55), transparent 20rem),
-        radial-gradient(circle at 9% 32%, rgba(0,207,154,0.10), transparent 18rem),
-        linear-gradient(180deg, var(--passages-bg) 0 128px, #ffffff 128px 74%, #eef9fb 100%);
+        radial-gradient(circle at 84% 10%, rgba(168,226,229,0.58), transparent 22rem),
+        radial-gradient(circle at 10% 34%, rgba(0,207,154,0.12), transparent 19rem),
+        linear-gradient(180deg, var(--passages-bg) 0 128px, #ffffff 128px 74%, #eef9fb 100%) !important;
+}
+
+.site-bg {
+    display: none !important;
 }
 
 body::before {
-    width: 430px;
-    height: 430px;
-    top: 320px;
-    right: -210px;
-    left: auto;
-    background: radial-gradient(circle, rgba(0,207,154,0.12), transparent 70%);
-    opacity: 0.85;
+    width: 430px !important;
+    height: 430px !important;
+    top: 320px !important;
+    right: -210px !important;
+    left: auto !important;
+    background: radial-gradient(circle, rgba(0,207,154,0.12), transparent 70%) !important;
+    opacity: 0.85 !important;
 }
 
 body::after {
-    width: 330px;
-    height: 330px;
-    top: 690px;
-    left: -160px;
-    right: auto;
-    background: radial-gradient(circle, rgba(255,242,166,0.45), transparent 70%);
-    opacity: 0.75;
+    width: 330px !important;
+    height: 330px !important;
+    top: 690px !important;
+    left: -160px !important;
+    right: auto !important;
+    background: radial-gradient(circle, rgba(255,242,166,0.45), transparent 70%) !important;
+    opacity: 0.75 !important;
 }
 
 .hero-wrap {
-    padding-top: 24px;
+    padding-top: 24px !important;
 }
 
 header.hero {
     position: relative;
     min-height: 470px;
-    padding: clamp(2.2rem, 5vw, 4.5rem) clamp(1.45rem, 5vw, 4.6rem);
-    border: 1px solid rgba(8, 43, 102, 0.06);
-    border-radius: 34px;
-    color: var(--passages-navy);
+    padding: clamp(2.2rem, 5vw, 4.5rem) clamp(1.45rem, 5vw, 4.6rem) !important;
+    border: 1px solid rgba(8, 43, 102, 0.06) !important;
+    border-radius: 34px !important;
+    color: var(--passages-navy) !important;
     background:
         radial-gradient(circle at 82% 25%, rgba(168,226,229,0.72), transparent 12rem),
         radial-gradient(circle at 90% 62%, rgba(255,242,166,0.50), transparent 10rem),
-        linear-gradient(135deg, #ffffff 0%, #ffffff 62%, #f1fbfc 100%);
-    box-shadow: var(--passages-card-shadow);
+        linear-gradient(135deg, #ffffff 0%, #ffffff 62%, #f1fbfc 100%) !important;
+    box-shadow: var(--passages-card-shadow) !important;
     overflow: hidden;
-    backdrop-filter: none;
-    -webkit-backdrop-filter: none;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
 }
 
 header.hero::before {
@@ -110,7 +120,7 @@ header.hero::before {
     aspect-ratio: 1;
     border: clamp(18px, 3vw, 32px) solid rgba(168,226,229,0.92);
     border-radius: 30px;
-    background: rgba(255,255,255,0.70);
+    background: rgba(255,255,255,0.70) !important;
     box-shadow: 0 20px 60px rgba(8,43,102,0.11);
 }
 
@@ -125,8 +135,8 @@ header.hero::after {
     align-items: center;
     padding: 0 1.55rem;
     border-radius: 16px;
-    background: var(--passages-teal);
-    color: var(--passages-navy);
+    background: var(--passages-teal) !important;
+    color: var(--passages-navy) !important;
     font-size: clamp(1rem, 1.8vw, 1.3rem);
     font-weight: 800;
     box-shadow: 0 16px 28px rgba(0, 207, 154, 0.26);
@@ -144,23 +154,23 @@ header.hero::after {
 .hero-kicker {
     width: max-content;
     max-width: 100%;
-    padding: 0.56rem 0.9rem;
-    border-radius: 999px;
-    background: #f0fbfd;
-    border: 1px solid rgba(8, 43, 102, 0.08);
-    color: var(--passages-navy);
-    font-size: 0.78rem;
-    font-weight: 800;
+    padding: 0.56rem 0.9rem !important;
+    border-radius: 999px !important;
+    background: #f0fbfd !important;
+    border: 1px solid rgba(8, 43, 102, 0.08) !important;
+    color: var(--passages-navy) !important;
+    font-size: 0.78rem !important;
+    font-weight: 800 !important;
 }
 
 .hero h1 {
-    margin-top: 1.08rem;
-    color: var(--passages-navy);
-    font-size: clamp(2.55rem, 6.1vw, 5rem);
-    line-height: 0.98;
-    letter-spacing: -0.058em;
-    font-weight: 750;
-    text-shadow: none;
+    margin-top: 1.08rem !important;
+    color: var(--passages-navy) !important;
+    font-size: clamp(2.55rem, 6.1vw, 5rem) !important;
+    line-height: 0.98 !important;
+    letter-spacing: -0.058em !important;
+    font-weight: 750 !important;
+    text-shadow: none !important;
 }
 
 .hero h1::after {
@@ -175,10 +185,10 @@ header.hero::after {
 
 .hero .subtitle,
 .passages-hero-copy p {
-    color: var(--passages-text);
-    line-height: 1.72;
-    font-size: clamp(1rem, 1.25vw, 1.13rem);
-    font-weight: 400;
+    color: var(--passages-text) !important;
+    line-height: 1.72 !important;
+    font-size: clamp(1rem, 1.25vw, 1.13rem) !important;
+    font-weight: 400 !important;
 }
 
 .passages-hero-copy p {
@@ -204,14 +214,14 @@ header.hero::after {
 }
 
 .passages-cta {
-    background: var(--passages-navy);
-    color: #ffffff;
+    background: var(--passages-navy) !important;
+    color: #ffffff !important;
     box-shadow: 0 12px 24px rgba(8,43,102,0.18);
 }
 
 .passages-soft-pill {
-    background: var(--passages-yellow);
-    color: var(--passages-navy);
+    background: var(--passages-yellow) !important;
+    color: var(--passages-navy) !important;
     box-shadow: 0 12px 24px rgba(8,43,102,0.10);
 }
 
@@ -220,43 +230,43 @@ header.hero::after {
 }
 
 .hero-pill {
-    background: #ffffff;
-    border: 1px solid rgba(8, 43, 102, 0.08);
-    color: var(--passages-navy);
-    box-shadow: var(--passages-soft-shadow);
+    background: #ffffff !important;
+    border: 1px solid rgba(8, 43, 102, 0.08) !important;
+    color: var(--passages-navy) !important;
+    box-shadow: var(--passages-soft-shadow) !important;
     font-weight: 600;
 }
 
 main {
-    padding-top: 30px;
-    padding-bottom: 38px;
+    padding-top: 30px !important;
+    padding-bottom: 38px !important;
 }
 
 .card {
-    color: var(--passages-text);
+    color: var(--passages-text) !important;
     min-height: 230px;
-    padding: 1.22rem 1.18rem 1.08rem;
-    border: 1px solid var(--passages-border);
-    border-radius: 28px;
-    background: #ffffff;
-    box-shadow: var(--passages-soft-shadow);
-    backdrop-filter: none;
-    -webkit-backdrop-filter: none;
+    padding: 1.22rem 1.18rem 1.08rem !important;
+    border: 1px solid var(--passages-border) !important;
+    border-radius: 28px !important;
+    background: #ffffff !important;
+    box-shadow: var(--passages-soft-shadow) !important;
+    backdrop-filter: none !important;
+    -webkit-backdrop-filter: none !important;
 }
 
 .card:hover {
     transform: translateY(-6px);
-    border-color: rgba(0,207,154,0.38);
-    box-shadow: 0 26px 58px rgba(8,43,102,0.14);
+    border-color: rgba(0,207,154,0.38) !important;
+    box-shadow: 0 26px 58px rgba(8,43,102,0.14) !important;
 }
 
 .card::before {
-    background: radial-gradient(circle at top right, rgba(168,226,229,0.24), transparent 32%);
+    background: radial-gradient(circle at top right, rgba(168,226,229,0.24), transparent 32%) !important;
 }
 
 .card::after {
-    height: 9px;
-    background: var(--card-accent, linear-gradient(90deg, var(--passages-teal), var(--passages-aqua), var(--passages-yellow)));
+    height: 9px !important;
+    background: var(--card-accent, linear-gradient(90deg, var(--passages-teal), var(--passages-aqua), var(--passages-yellow))) !important;
 }
 
 .card-head {
@@ -264,77 +274,77 @@ main {
     border-bottom: 1px solid rgba(8,43,102,0.075);
 }
 
-.card--passage_topic { --card-accent: linear-gradient(90deg, var(--passages-teal), #6ee7c8); grid-column: span 7; background: linear-gradient(180deg, #ffffff, #f0fffa); }
-.card--passage_why { --card-accent: linear-gradient(90deg, var(--passages-yellow), #ffffff); grid-column: span 5; background: linear-gradient(180deg, #fffef6, #ffffff); }
-.card--passage_feeling { --card-accent: linear-gradient(90deg, var(--passages-coral), #ffd8c9); grid-column: span 4; background: linear-gradient(180deg, #fff6f2, #ffffff); }
-.card--passage_step { --card-accent: linear-gradient(90deg, var(--passages-navy), var(--passages-teal)); grid-column: span 8; background: linear-gradient(180deg, #ffffff, #f7fcfd); }
-.card--passage_game { --card-accent: linear-gradient(90deg, #6ee7c8, var(--passages-yellow)); grid-column: span 6; background: linear-gradient(180deg, #f4fffb, #ffffff); }
-.card--passage_shuffle { --card-accent: linear-gradient(90deg, var(--passages-aqua), var(--passages-teal)); grid-column: span 6; background: linear-gradient(180deg, #f3fbff, #ffffff); }
-.card--passage_prompt { --card-accent: linear-gradient(90deg, var(--passages-yellow), var(--passages-teal)); grid-column: span 5; background: linear-gradient(180deg, #fffdf1, #ffffff); }
-.card--passage_connection { --card-accent: linear-gradient(90deg, var(--passages-navy), #8fb6ff); grid-column: span 7; background: linear-gradient(180deg, #f7f9ff, #ffffff); }
-.card--passage_skill { --card-accent: linear-gradient(90deg, var(--passages-teal), var(--passages-navy)); grid-column: span 4; background: linear-gradient(180deg, #f1fffb, #ffffff); }
-.card--passage_reflection { --card-accent: linear-gradient(90deg, #8fb6ff, var(--passages-aqua)); grid-column: span 8; background: linear-gradient(180deg, #f5f8ff, #ffffff); }
+.card--passage_topic { --card-accent: linear-gradient(90deg, var(--passages-teal), #6ee7c8); grid-column: span 7; background: linear-gradient(180deg, #ffffff, #f0fffa) !important; }
+.card--passage_why { --card-accent: linear-gradient(90deg, var(--passages-yellow), #ffffff); grid-column: span 5; background: linear-gradient(180deg, #fffef6, #ffffff) !important; }
+.card--passage_feeling { --card-accent: linear-gradient(90deg, var(--passages-coral), #ffd8c9); grid-column: span 4; background: linear-gradient(180deg, #fff6f2, #ffffff) !important; }
+.card--passage_step { --card-accent: linear-gradient(90deg, var(--passages-navy), var(--passages-teal)); grid-column: span 8; background: linear-gradient(180deg, #ffffff, #f7fcfd) !important; }
+.card--passage_game { --card-accent: linear-gradient(90deg, #6ee7c8, var(--passages-yellow)); grid-column: span 6; background: linear-gradient(180deg, #f4fffb, #ffffff) !important; }
+.card--passage_shuffle { --card-accent: linear-gradient(90deg, var(--passages-aqua), var(--passages-teal)); grid-column: span 6; background: linear-gradient(180deg, #f3fbff, #ffffff) !important; }
+.card--passage_prompt { --card-accent: linear-gradient(90deg, var(--passages-yellow), var(--passages-teal)); grid-column: span 5; background: linear-gradient(180deg, #fffdf1, #ffffff) !important; }
+.card--passage_connection { --card-accent: linear-gradient(90deg, var(--passages-navy), #8fb6ff); grid-column: span 7; background: linear-gradient(180deg, #f7f9ff, #ffffff) !important; }
+.card--passage_skill { --card-accent: linear-gradient(90deg, var(--passages-teal), var(--passages-navy)); grid-column: span 4; background: linear-gradient(180deg, #f1fffb, #ffffff) !important; }
+.card--passage_reflection { --card-accent: linear-gradient(90deg, #8fb6ff, var(--passages-aqua)); grid-column: span 8; background: linear-gradient(180deg, #f5f8ff, #ffffff) !important; }
 
 .card--passage_topic .icon-badge,
 .card--passage_step .icon-badge,
 .card--passage_game .icon-badge {
-    background: var(--passages-teal);
-    color: var(--passages-navy);
+    background: var(--passages-teal) !important;
+    color: var(--passages-navy) !important;
 }
 
 .card--passage_why .icon-badge,
 .card--passage_prompt .icon-badge {
-    background: var(--passages-yellow);
-    color: var(--passages-navy);
+    background: var(--passages-yellow) !important;
+    color: var(--passages-navy) !important;
 }
 
 .card--passage_feeling .icon-badge {
-    background: #ffe4d9;
-    color: var(--passages-navy);
+    background: #ffe4d9 !important;
+    color: var(--passages-navy) !important;
 }
 
 .card--passage_connection .icon-badge,
 .card--passage_reflection .icon-badge {
-    background: var(--passages-navy);
-    color: #ffffff;
+    background: var(--passages-navy) !important;
+    color: #ffffff !important;
 }
 
 .eyebrow {
     display: inline-flex;
     width: fit-content;
-    padding: 0.32rem 0.56rem;
-    border-radius: 999px;
-    background: rgba(0,207,154,0.10);
-    color: var(--passages-teal-deep);
-    font-size: 0.72rem;
-    font-weight: 850;
-    letter-spacing: 0.08em;
+    padding: 0.32rem 0.56rem !important;
+    border-radius: 999px !important;
+    background: rgba(0,207,154,0.10) !important;
+    color: var(--passages-teal-deep) !important;
+    font-size: 0.72rem !important;
+    font-weight: 850 !important;
+    letter-spacing: 0.08em !important;
 }
 
 h2 {
-    color: var(--passages-navy);
-    letter-spacing: -0.04em;
-    font-weight: 750;
+    color: var(--passages-navy) !important;
+    letter-spacing: -0.04em !important;
+    font-weight: 750 !important;
 }
 
 .body {
-    color: var(--passages-text);
-    font-size: 0.97rem;
-    line-height: 1.72;
+    color: var(--passages-text) !important;
+    font-size: 0.97rem !important;
+    line-height: 1.72 !important;
 }
 
 .body strong,
 .body b {
-    color: var(--passages-navy);
-    font-weight: 750;
+    color: var(--passages-navy) !important;
+    font-weight: 750 !important;
 }
 
 .icon-badge {
-    background: var(--passages-bg);
-    border: 1px solid rgba(8, 43, 102, 0.08);
-    color: var(--passages-navy);
-    font-weight: 850;
-    box-shadow: 0 8px 18px rgba(8,43,102,0.07);
+    background: var(--passages-bg) !important;
+    border: 1px solid rgba(8, 43, 102, 0.08) !important;
+    color: var(--passages-navy) !important;
+    font-weight: 850 !important;
+    box-shadow: 0 8px 18px rgba(8,43,102,0.07) !important;
 }
 
 .passage-chips,
@@ -358,15 +368,15 @@ h2 {
 .shuffle-reset {
     display: inline-flex;
     align-items: center;
-    border: 1px solid rgba(8, 43, 102, 0.09);
-    border-radius: 999px;
-    padding: 0.44rem 0.72rem;
-    background: #ffffff;
-    color: var(--passages-navy);
-    box-shadow: 0 8px 18px rgba(8,43,102,0.06);
+    border: 1px solid rgba(8, 43, 102, 0.09) !important;
+    border-radius: 999px !important;
+    padding: 0.44rem 0.72rem !important;
+    background: #ffffff !important;
+    color: var(--passages-navy) !important;
+    box-shadow: 0 8px 18px rgba(8,43,102,0.06) !important;
     font: inherit;
-    font-size: 0.88rem;
-    font-weight: 700;
+    font-size: 0.88rem !important;
+    font-weight: 700 !important;
     line-height: 1.2;
 }
 
@@ -385,13 +395,13 @@ h2 {
 .shuffle-check:hover,
 .shuffle-reset:hover {
     transform: translateY(-2px);
-    border-color: rgba(0,207,154,0.32);
+    border-color: rgba(0,207,154,0.32) !important;
 }
 
-.passage-chip--sage { background: #e9fbf4; border-color: rgba(0,207,154,0.18); }
-.passage-chip--sky { background: #eef9fb; border-color: rgba(62,111,149,0.14); }
-.passage-chip--gold { background: var(--passages-yellow); border-color: rgba(8,43,102,0.08); }
-.passage-chip--clay { background: #fff0ea; border-color: rgba(198,129,98,0.22); }
+.passage-chip--sage { background: #e9fbf4 !important; border-color: rgba(0,207,154,0.18) !important; }
+.passage-chip--sky { background: #eef9fb !important; border-color: rgba(62,111,149,0.14) !important; }
+.passage-chip--gold { background: var(--passages-yellow) !important; border-color: rgba(8,43,102,0.08) !important; }
+.passage-chip--clay { background: #fff0ea !important; border-color: rgba(198,129,98,0.22) !important; }
 
 .passage-list {
     margin: 0.85rem 0 0;
@@ -405,9 +415,9 @@ h2 {
     margin: 0.62rem 0;
     padding: 0.74rem 0.78rem 0.74rem 3.05rem;
     border-radius: 16px;
-    background: rgba(255,255,255,0.76);
-    border: 1px solid rgba(8,43,102,0.075);
-    box-shadow: 0 8px 18px rgba(8,43,102,0.045);
+    background: rgba(255,255,255,0.76) !important;
+    border: 1px solid rgba(8,43,102,0.075) !important;
+    box-shadow: 0 8px 18px rgba(8,43,102,0.045) !important;
 }
 
 .passage-list li::before {
@@ -422,15 +432,15 @@ h2 {
     display: grid;
     place-items: center;
     border-radius: 999px;
-    background: var(--passages-teal);
-    color: var(--passages-navy);
+    background: var(--passages-teal) !important;
+    color: var(--passages-navy) !important;
     font-weight: 850;
 }
 
 .passage-label {
     display: block;
     margin-top: 1rem;
-    color: var(--passages-muted);
+    color: var(--passages-muted) !important;
     font-size: 0.74rem;
     font-weight: 850;
     letter-spacing: 0.1em;
@@ -444,17 +454,17 @@ h2 {
     margin-top: 0.8rem;
     padding: 0.9rem 1rem;
     border-radius: 16px;
-    background: #f2fbfc;
-    color: var(--passages-text);
+    background: #f2fbfc !important;
+    color: var(--passages-text) !important;
 }
 
 .passage-callout {
-    border-left: 6px solid var(--passages-teal);
+    border-left: 6px solid var(--passages-teal) !important;
 }
 
 .passage-note {
     margin-top: 0.95rem;
-    color: var(--passages-muted);
+    color: var(--passages-muted) !important;
     font-size: 0.94rem;
 }
 
@@ -465,28 +475,28 @@ h2 {
 }
 
 .game-question {
-    padding: 0.96rem 1rem;
-    border-radius: 17px;
-    background: rgba(255,242,166,0.58);
-    color: var(--passages-navy);
-    font-weight: 750;
+    padding: 0.96rem 1rem !important;
+    border-radius: 17px !important;
+    background: rgba(255,242,166,0.58) !important;
+    color: var(--passages-navy) !important;
+    font-weight: 750 !important;
 }
 
 .game-choice.is-correct {
-    background: var(--passages-teal);
-    color: var(--passages-navy);
-    border-color: var(--passages-teal);
+    background: var(--passages-teal) !important;
+    color: var(--passages-navy) !important;
+    border-color: var(--passages-teal) !important;
 }
 
 .game-choice.is-wrong {
-    background: #fff0ea;
-    border-color: rgba(198,129,98,0.30);
+    background: #fff0ea !important;
+    border-color: rgba(198,129,98,0.30) !important;
 }
 
 .shuffle-target {
     min-height: 58px;
-    border: 2px dashed rgba(8,43,102,0.18);
-    color: var(--passages-muted);
+    border: 2px dashed rgba(8,43,102,0.18) !important;
+    color: var(--passages-muted) !important;
 }
 
 .shuffle-target .shuffle-picked {
@@ -494,122 +504,22 @@ h2 {
     margin: 0.15rem;
     padding: 0.42rem 0.62rem;
     border-radius: 999px;
-    background: var(--passages-bg);
-    color: var(--passages-navy);
+    background: var(--passages-bg) !important;
+    color: var(--passages-navy) !important;
     font-weight: 750;
 }
 
 .footer-inner {
-    background: #ffffff;
-    color: var(--passages-muted);
-    border: 1px solid rgba(8,43,102,0.08);
-    box-shadow: var(--passages-soft-shadow);
-}
-
-@media (prefers-color-scheme: dark) {
-    :root {
-        --passages-text: #edf7fb;
-        --passages-muted: #bdd0dc;
-        --passages-border: rgba(232, 247, 251, 0.13);
-        --passages-card-shadow: 0 18px 48px rgba(0, 0, 0, 0.26);
-        --passages-soft-shadow: 0 10px 28px rgba(0, 0, 0, 0.22);
-    }
-
-    body {
-        color: var(--passages-text);
-        background:
-            radial-gradient(circle at 92% 12%, rgba(0,207,154,0.13), transparent 22rem),
-            radial-gradient(circle at 6% 36%, rgba(168,226,229,0.10), transparent 18rem),
-            linear-gradient(180deg, #10243c 0 118px, #091a2c 118px 72%, #071421 100%);
-    }
-
-    header.hero {
-        border-color: rgba(232,247,251,0.12);
-        background:
-            radial-gradient(circle at 82% 26%, rgba(0,207,154,0.16), transparent 12rem),
-            radial-gradient(circle at 91% 58%, rgba(255,242,166,0.10), transparent 10rem),
-            linear-gradient(135deg, #102844 0%, #0d2139 58%, #091a2c 100%);
-    }
-
-    header.hero::before {
-        border-color: rgba(168,226,229,0.36);
-        background: rgba(255,255,255,0.05);
-        box-shadow: 0 20px 60px rgba(0,0,0,0.24);
-    }
-
-    .hero h1,
-    h2,
-    .body strong,
-    .body b,
-    .hero-kicker,
-    .hero-pill,
-    .passage-chip,
-    .game-question,
-    .game-choice,
-    .shuffle-word,
-    .game-reset,
-    .shuffle-check,
-    .shuffle-reset {
-        color: #f4fbff;
-    }
-
-    .passages-hero-copy p,
-    .body,
-    .passage-callout,
-    .game-result,
-    .shuffle-result {
-        color: var(--passages-text);
-    }
-
-    .card,
-    .card--passage_topic,
-    .card--passage_why,
-    .card--passage_step,
-    .card--passage_prompt,
-    .card--passage_feeling,
-    .card--passage_reflection,
-    .card--passage_game,
-    .card--passage_shuffle,
-    .card--passage_connection,
-    .card--passage_skill {
-        background:
-            radial-gradient(circle at 100% 0%, rgba(168,226,229,0.09), transparent 34%),
-            linear-gradient(180deg, #102844, #0d223a);
-        border-color: var(--passages-border);
-    }
-
-    .hero-kicker,
-    .hero-pill,
-    .passage-callout,
-    .game-result,
-    .shuffle-result,
-    .shuffle-target,
-    .footer-inner,
-    .passage-list li,
-    .passage-chip,
-    .game-choice,
-    .shuffle-word,
-    .game-reset,
-    .shuffle-check,
-    .shuffle-reset {
-        background: rgba(255,255,255,0.07);
-        border-color: rgba(232,247,251,0.14);
-    }
-
-    .passages-cta,
-    header.hero::after,
-    .game-choice.is-correct,
-    .passage-list li::before,
-    .game-question,
-    .passages-soft-pill {
-        color: #062146;
-    }
+    background: #ffffff !important;
+    color: var(--passages-muted) !important;
+    border: 1px solid rgba(8,43,102,0.08) !important;
+    box-shadow: var(--passages-soft-shadow) !important;
 }
 
 @media (max-width: 980px) {
     header.hero {
         min-height: unset;
-        padding-bottom: 3rem;
+        padding-bottom: 3rem !important;
     }
 
     header.hero::before,
@@ -641,7 +551,7 @@ h2 {
 @media (max-width: 720px) {
     .hero h1 {
         max-width: none;
-        font-size: clamp(2.3rem, 12vw, 3.6rem);
+        font-size: clamp(2.3rem, 12vw, 3.6rem) !important;
     }
 
     .passages-cta,
@@ -1054,9 +964,8 @@ def build_theme_page(date_str: str | None = None, seed: int | None = None) -> Pa
                 '<link rel="preconnect" href="https://fonts.googleapis.com">'
                 '<link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>'
                 '<link href="https://fonts.googleapis.com/css2?family=Poppins:wght@400;500;600;700;800;900&display=swap" rel="stylesheet">'
-                '<meta name="color-scheme" content="light dark">'
-                '<meta name="theme-color" content="#eef9fb" media="(prefers-color-scheme: light)">'
-                '<meta name="theme-color" content="#091a2c" media="(prefers-color-scheme: dark)">'
+                '<meta name="color-scheme" content="light">'
+                '<meta name="theme-color" content="#eef9fb">'
             ),
         },
     )
