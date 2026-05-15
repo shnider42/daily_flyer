@@ -18,10 +18,7 @@ THEME_CONFIG = {
         '<div class="passages-hero-copy">'
         '<p>Passages Daily is a friendly one-page companion for students, families, mentors, and coaches. '
         'Each day gives you one focus, one real-world skill, one next step, and a couple of playful ways to practice.</p>'
-        '<div class="passages-hero-actions">'
-        '<span class="passages-cta">Let’s Do It!</span>'
-        '<span class="passages-soft-pill">Confidence starts here</span>'
-        '</div>'
+        '<p class="passages-hero-rhythm">Daily rhythm: <strong>Read</strong> → <strong>Try</strong> → <strong>Reflect</strong></p>'
         '</div>'
     ),
     "footer_text": (
@@ -36,7 +33,6 @@ THEME_CONFIG = {
 PASSAGES_CSS = """
 :root {
     --passages-navy: #082b66;
-    --passages-navy-2: #143c78;
     --passages-text: #172033;
     --passages-muted: #617083;
     --passages-bg: #f0fbfd;
@@ -45,7 +41,6 @@ PASSAGES_CSS = """
     --passages-aqua: #a8e2e5;
     --passages-yellow: #fff2a6;
     --passages-coral: #ff9d7b;
-    --passages-blue-soft: #edf5ff;
     --passages-card-shadow: 0 16px 42px rgba(8, 43, 102, 0.10);
     --passages-soft-shadow: 0 9px 24px rgba(8, 43, 102, 0.075);
     --passages-border: rgba(8, 43, 102, 0.10);
@@ -96,7 +91,7 @@ body::after {
 
 header.hero {
     position: relative;
-    min-height: 470px;
+    min-height: 440px;
     padding: clamp(2.2rem, 5vw, 4.5rem) clamp(1.45rem, 5vw, 4.6rem) !important;
     border: 1px solid rgba(8, 43, 102, 0.06) !important;
     border-radius: 34px !important;
@@ -125,21 +120,8 @@ header.hero::before {
 }
 
 header.hero::after {
-    content: "Starts Here";
-    position: absolute;
-    right: clamp(1.35rem, 7vw, 4.8rem);
-    top: 52%;
-    z-index: 1;
-    min-height: 54px;
-    display: inline-flex;
-    align-items: center;
-    padding: 0 1.55rem;
-    border-radius: 16px;
-    background: var(--passages-teal) !important;
-    color: var(--passages-navy) !important;
-    font-size: clamp(1rem, 1.8vw, 1.3rem);
-    font-weight: 800;
-    box-shadow: 0 16px 28px rgba(0, 207, 154, 0.26);
+    content: none !important;
+    display: none !important;
 }
 
 .hero-kicker,
@@ -195,34 +177,19 @@ header.hero::after {
     margin: 0;
 }
 
-.passages-hero-actions {
-    display: flex;
-    flex-wrap: wrap;
-    gap: 0.78rem;
-    margin-top: 1.45rem;
-}
-
-.passages-cta,
-.passages-soft-pill {
-    display: inline-flex;
-    align-items: center;
-    justify-content: center;
-    min-height: 52px;
-    padding: 0 1.45rem;
-    border-radius: 15px;
-    font-weight: 750;
-}
-
-.passages-cta {
-    background: var(--passages-navy) !important;
-    color: #ffffff !important;
-    box-shadow: 0 12px 24px rgba(8,43,102,0.18);
-}
-
-.passages-soft-pill {
-    background: var(--passages-yellow) !important;
+.passages-hero-rhythm {
+    display: inline-block;
+    margin-top: 1.15rem !important;
+    padding-bottom: 0.22rem;
+    border-bottom: 3px solid var(--passages-teal);
     color: var(--passages-navy) !important;
-    box-shadow: 0 12px 24px rgba(8,43,102,0.10);
+    font-size: 0.98rem !important;
+    letter-spacing: -0.01em;
+}
+
+.passages-hero-rhythm strong {
+    color: var(--passages-navy) !important;
+    font-weight: 750;
 }
 
 .hero-meta {
@@ -250,14 +217,30 @@ main {
     border-radius: 28px !important;
     background: #ffffff !important;
     box-shadow: var(--passages-soft-shadow) !important;
+    transform: none !important;
     backdrop-filter: none !important;
     -webkit-backdrop-filter: none !important;
+    transition: border-color 180ms ease, box-shadow 180ms ease, opacity 180ms ease !important;
 }
 
 .card:hover {
-    transform: translateY(-6px);
-    border-color: rgba(0,207,154,0.38) !important;
-    box-shadow: 0 26px 58px rgba(8,43,102,0.14) !important;
+    transform: none !important;
+    border-color: rgba(8, 43, 102, 0.10) !important;
+    box-shadow: var(--passages-soft-shadow) !important;
+}
+
+@media (hover: hover) and (pointer: fine) {
+    .card {
+        opacity: 0.86;
+    }
+
+    .card:hover,
+    .card:focus-within {
+        opacity: 1;
+        transform: none !important;
+        border-color: rgba(0,207,154,0.38) !important;
+        box-shadow: 0 22px 48px rgba(8,43,102,0.13) !important;
+    }
 }
 
 .card::before {
@@ -554,11 +537,6 @@ h2 {
         font-size: clamp(2.3rem, 12vw, 3.6rem) !important;
     }
 
-    .passages-cta,
-    .passages-soft-pill {
-        width: 100%;
-    }
-
     .card--passage_topic,
     .card--passage_why,
     .card--passage_step,
@@ -690,11 +668,7 @@ DAILY_PASSAGES = [
         "connection": "This is the heart of a Passages-style approach: helping a young person move from vague pressure to one clearer next step.",
         "reflection": "What is one option you do not need to decide today, and what is one thing you can learn this week?",
         "quest_question": "Your friend says, “I have no idea what I want to do.” What is the best first move?",
-        "quest_options": [
-            ("Tell them to pick a major immediately", False),
-            ("Ask what kind of workday they might enjoy", True),
-            ("Send them a list of 100 careers", False),
-        ],
+        "quest_options": [("Tell them to pick a major immediately", False), ("Ask what kind of workday they might enjoy", True), ("Send them a list of 100 careers", False)],
         "shuffle_words": ["one", "step", "gives", "me", "momentum"],
         "shuffle_answer": "one step gives me momentum",
         "chips": ["Career exploration", "Confidence", "Next step", "Low pressure"],
@@ -705,21 +679,13 @@ DAILY_PASSAGES = [
         "why": "First-job readiness is about more than getting hired. It is about learning how to show up, ask questions, receive feedback, recover from mistakes, and become someone others can trust.",
         "feeling": "A first job can feel intimidating because many expectations are invisible. Young workers may not know what counts as professional until someone explains it plainly.",
         "skill": "Workplace confidence",
-        "steps": [
-            "Practice a simple check-in sentence: 'I want to make sure I am doing this the right way. Can you show me what good looks like?'",
-            "Before the first shift or first week, write down three questions you are allowed to ask.",
-            "At the end of the day, note one thing you learned and one thing to ask about next time.",
-        ],
+        "steps": ["Practice a simple check-in sentence: 'I want to make sure I am doing this the right way. Can you show me what good looks like?'", "Before the first shift or first week, write down three questions you are allowed to ask.", "At the end of the day, note one thing you learned and one thing to ask about next time."],
         "prompt": "When you are unsure at work, what would make it easier to ask for help?",
         "parent_note": "A young worker may need scripts more than speeches. Give them words they can actually use with a manager.",
         "connection": "A daily flyer beside My Passages can make the hidden curriculum of early work visible, friendly, and teachable.",
         "reflection": "What is one workplace habit that would make someone easier to train?",
         "quest_question": "You are confused during a shift. What move shows maturity?",
-        "quest_options": [
-            ("Pretend you understand and hope it works out", False),
-            ("Ask one clear question before guessing", True),
-            ("Disappear into the break room forever", False),
-        ],
+        "quest_options": [("Pretend you understand and hope it works out", False), ("Ask one clear question before guessing", True), ("Disappear into the break room forever", False)],
         "shuffle_words": ["ask", "listen", "try", "again"],
         "shuffle_answer": "ask listen try again",
         "chips": ["First job", "Work habits", "Communication", "Trust"],
@@ -730,21 +696,13 @@ DAILY_PASSAGES = [
         "why": "The real question is not whether one path is universally best. The better question is which path gives this person structure, momentum, support, and a realistic way to grow.",
         "feeling": "Families can feel pulled between cost, pride, fear, opportunity, and expectations. A calm comparison can turn a stressful debate into a practical planning conversation.",
         "skill": "Comparing options fairly",
-        "steps": [
-            "List the next-step options without ranking them yet: college, community college, trade school, apprenticeship, work, military, certificate, or gap period with structure.",
-            "For each option, write one cost, one benefit, one risk, and one person to talk to.",
-            "Circle the option that would create the most useful momentum over the next six months.",
-        ],
+        "steps": ["List the next-step options without ranking them yet: college, community college, trade school, apprenticeship, work, military, certificate, or gap period with structure.", "For each option, write one cost, one benefit, one risk, and one person to talk to.", "Circle the option that would create the most useful momentum over the next six months."],
         "prompt": "Which path gives you the best chance to keep learning without feeling stuck or overwhelmed?",
         "parent_note": "Try not to make the first conversation about prestige. Make it about fit, structure, support, cost, and momentum.",
         "connection": "This topic belongs beside My Passages because it supports the transition itself, not just the final choice.",
         "reflection": "What would make one option feel more real: a visit, a conversation, a budget, or a trial step?",
         "quest_question": "Which comparison is most useful when weighing paths?",
-        "quest_options": [
-            ("The option that sounds most impressive", False),
-            ("The option with support, momentum, and realistic next steps", True),
-            ("The option everyone argues about online", False),
-        ],
+        "quest_options": [("The option that sounds most impressive", False), ("The option with support, momentum, and realistic next steps", True), ("The option everyone argues about online", False)],
         "shuffle_words": ["fit", "beats", "pressure", "today"],
         "shuffle_answer": "fit beats pressure today",
         "chips": ["After high school", "Trade school", "College alternatives", "Family decision"],
@@ -755,21 +713,13 @@ DAILY_PASSAGES = [
         "why": "A professional identity does not have to be polished or final. It can simply explain what someone is learning, what they are curious about, and what kind of opportunity they are open to.",
         "feeling": "Many young people worry they have nothing to say because they do not have much experience yet. But honesty, curiosity, reliability, and willingness to learn are all real signals.",
         "skill": "Introducing yourself clearly",
-        "steps": [
-            "Write a two-sentence introduction: who you are, what you are exploring, and what kind of experience you hope to get.",
-            "Add one example of responsibility: a job, sport, class project, family role, volunteer work, or personal project.",
-            "Practice saying it out loud until it sounds natural instead of scripted.",
-        ],
+        "steps": ["Write a two-sentence introduction: who you are, what you are exploring, and what kind of experience you hope to get.", "Add one example of responsibility: a job, sport, class project, family role, volunteer work, or personal project.", "Practice saying it out loud until it sounds natural instead of scripted."],
         "prompt": "What are you learning right now, and what kind of opportunity would help you learn more?",
         "parent_note": "Help them name real responsibilities they already carry. Experience is not only paid work.",
         "connection": "A Passages-style resource can help young people talk about themselves without pretending to have everything figured out.",
         "reflection": "What is one honest strength you can name without exaggerating?",
         "quest_question": "What is the strongest beginner introduction?",
-        "quest_options": [
-            ("I am still learning, and I am interested in hands-on experience", True),
-            ("I am basically an expert in everything", False),
-            ("I have no skills at all, sorry", False),
-        ],
+        "quest_options": [("I am still learning, and I am interested in hands-on experience", True), ("I am basically an expert in everything", False), ("I have no skills at all, sorry", False)],
         "shuffle_words": ["clear", "honest", "easy", "to", "help"],
         "shuffle_answer": "clear honest easy to help",
         "chips": ["LinkedIn", "Networking", "Self-introduction", "Confidence"],
@@ -780,21 +730,13 @@ DAILY_PASSAGES = [
         "why": "Support works best when it lowers pressure and increases clarity. The goal is not to force a perfect plan; the goal is to help the young person stay engaged long enough to take a useful next step.",
         "feeling": "Parents may feel worried, impatient, or afraid time is being wasted. Young adults may feel judged, compared, or overwhelmed. Both sides often want progress but get stuck in the same conversation.",
         "skill": "Better transition conversations",
-        "steps": [
-            "Replace 'What is your plan?' with 'What feels like the next thing you are willing to learn more about?'",
-            "Ask before advising: 'Do you want ideas, help sorting options, or just someone to listen for a minute?'",
-            "Agree on one small next step and one calm time to check back in.",
-        ],
+        "steps": ["Replace 'What is your plan?' with 'What feels like the next thing you are willing to learn more about?'", "Ask before advising: 'Do you want ideas, help sorting options, or just someone to listen for a minute?'", "Agree on one small next step and one calm time to check back in."],
         "prompt": "What kind of help would feel useful right now instead of stressful?",
         "parent_note": "The tone matters. Curiosity usually opens more doors than urgency.",
         "connection": "This is an ideal companion lane for My Passages: helping families turn pressure into practical support.",
         "reflection": "What question could open a better conversation this week?",
         "quest_question": "A conversation is getting tense. What helps most?",
-        "quest_options": [
-            ("Ask what kind of help would actually feel useful", True),
-            ("Repeat the same advice louder", False),
-            ("Compare them to someone else's kid", False),
-        ],
+        "quest_options": [("Ask what kind of help would actually feel useful", True), ("Repeat the same advice louder", False), ("Compare them to someone else's kid", False)],
         "shuffle_words": ["curiosity", "beats", "pressure"],
         "shuffle_answer": "curiosity beats pressure",
         "chips": ["Parents", "Mentors", "Family support", "Conversation"],
@@ -805,8 +747,7 @@ DAILY_PASSAGES = [
 def _passage_for_date(date_str: str | None, seed: int | None) -> tuple[object, dict]:
     today = resolve_date(date_str)
     selector = seed if seed is not None else today.toordinal()
-    passage = DAILY_PASSAGES[selector % len(DAILY_PASSAGES)]
-    return today, passage
+    return today, DAILY_PASSAGES[selector % len(DAILY_PASSAGES)]
 
 
 def _chip_html(labels: list[str], tone: str = "sky") -> str:
@@ -856,94 +797,16 @@ def build_theme_page(date_str: str | None = None, seed: int | None = None) -> Pa
     today, passage = _passage_for_date(date_str, seed)
 
     cards = [
-        CardItem(
-            card_type="passage_topic",
-            eyebrow="Today’s Focus",
-            title=passage["passage"],
-            body=(
-                f"<strong>Who this is for:</strong> {passage['audience']}"
-                + _chip_html(passage["chips"], "sky")
-                + '<p class="passage-note">A quick daily page for building clarity, confidence, and real-world readiness.</p>'
-            ),
-        ),
-        CardItem(
-            card_type="passage_why",
-            eyebrow="Why It Matters",
-            title="The transition underneath the topic",
-            body=(
-                passage["why"]
-                + '<span class="passage-label">Core skill</span>'
-                + f'<div class="passage-chips"><span class="passage-chip passage-chip--sage">{passage["skill"]}</span></div>'
-            ),
-        ),
-        CardItem(
-            card_type="passage_feeling",
-            eyebrow="What This Can Feel Like",
-            title="Name the real-life tension",
-            body=f'<div class="passage-callout">{passage["feeling"]}</div>',
-        ),
-        CardItem(
-            card_type="passage_step",
-            eyebrow="Try This Today",
-            title="A practical next step",
-            body=(
-                "Small steps matter because they create motion without demanding a perfect life plan."
-                + _list_html(passage["steps"])
-            ),
-        ),
-        CardItem(
-            card_type="passage_game",
-            eyebrow="Mini Confidence Quest",
-            title="Pick the strongest next move",
-            body=(
-                "A tiny game for practicing judgment without making the day feel like homework."
-                + _quest_html(passage)
-            ),
-        ),
-        CardItem(
-            card_type="passage_shuffle",
-            eyebrow="Phrase Shuffle",
-            title="Build today’s mini-mantra",
-            body=(
-                "Tap the words into an order that sounds like something you could actually say to yourself."
-                + _shuffle_html(passage)
-            ),
-        ),
-        CardItem(
-            card_type="passage_prompt",
-            eyebrow="Conversation Starter",
-            title="A better question to ask today",
-            body=(
-                f'<div class="passage-callout">{passage["prompt"]}</div>'
-                + _chip_html(["For students", "For parents", "For mentors"], "gold")
-            ),
-        ),
-        CardItem(
-            card_type="passage_connection",
-            eyebrow="Parent / Mentor Note",
-            title="Support without taking over",
-            body=(
-                f'<div class="passage-callout">{passage["parent_note"]}</div>'
-                + '<span class="passage-label">My Passages Connection</span>'
-                + f'<p>{passage["connection"]}</p>'
-            ),
-        ),
-        CardItem(
-            card_type="passage_skill",
-            eyebrow="Skill to Practice",
-            title=passage["skill"],
-            body=(
-                "Today’s skill is intentionally small enough to practice in real life. "
-                "The goal is not instant transformation; the goal is one repeatable behavior that builds confidence."
-                + _chip_html(["Practice", "Repeat", "Reflect"], "sage")
-            ),
-        ),
-        CardItem(
-            card_type="passage_reflection",
-            eyebrow="Reflection",
-            title="End with one honest answer",
-            body=f'<div class="passage-callout">{passage["reflection"]}</div>',
-        ),
+        CardItem(card_type="passage_topic", eyebrow="Today’s Focus", title=passage["passage"], body=f"<strong>Who this is for:</strong> {passage['audience']}" + _chip_html(passage["chips"], "sky") + '<p class="passage-note">A quick daily page for building clarity, confidence, and real-world readiness.</p>'),
+        CardItem(card_type="passage_why", eyebrow="Why It Matters", title="The transition underneath the topic", body=passage["why"] + '<span class="passage-label">Core skill</span>' + f'<div class="passage-chips"><span class="passage-chip passage-chip--sage">{passage["skill"]}</span></div>'),
+        CardItem(card_type="passage_feeling", eyebrow="What This Can Feel Like", title="Name the real-life tension", body=f'<div class="passage-callout">{passage["feeling"]}</div>'),
+        CardItem(card_type="passage_step", eyebrow="Try This Today", title="A practical next step", body="Small steps matter because they create motion without demanding a perfect life plan." + _list_html(passage["steps"])),
+        CardItem(card_type="passage_game", eyebrow="Mini Confidence Quest", title="Pick the strongest next move", body="A tiny game for practicing judgment without making the day feel like homework." + _quest_html(passage)),
+        CardItem(card_type="passage_shuffle", eyebrow="Phrase Shuffle", title="Build today’s mini-mantra", body="Tap the words into an order that sounds like something you could actually say to yourself." + _shuffle_html(passage)),
+        CardItem(card_type="passage_prompt", eyebrow="Conversation Starter", title="A better question to ask today", body=f'<div class="passage-callout">{passage["prompt"]}</div>' + _chip_html(["For students", "For parents", "For mentors"], "gold")),
+        CardItem(card_type="passage_connection", eyebrow="Parent / Mentor Note", title="Support without taking over", body=f'<div class="passage-callout">{passage["parent_note"]}</div>' + '<span class="passage-label">My Passages Connection</span>' + f'<p>{passage["connection"]}</p>'),
+        CardItem(card_type="passage_skill", eyebrow="Skill to Practice", title=passage["skill"], body="Today’s skill is intentionally small enough to practice in real life. The goal is not instant transformation; the goal is one repeatable behavior that builds confidence." + _chip_html(["Practice", "Repeat", "Reflect"], "sage")),
+        CardItem(card_type="passage_reflection", eyebrow="Reflection", title="End with one honest answer", body=f'<div class="passage-callout">{passage["reflection"]}</div>'),
     ]
 
     return PageContext(
