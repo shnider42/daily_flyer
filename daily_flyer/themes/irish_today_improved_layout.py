@@ -198,7 +198,7 @@ main > .card:nth-of-type(8n) { animation-delay: 490ms; }
             border-color 180ms ease,
             box-shadow 180ms ease,
             filter 180ms ease,
-            opacity 140ms ease !important;
+            opacity 180ms ease !important;
     }
 
     .card {
@@ -217,15 +217,29 @@ main > .card:nth-of-type(8n) { animation-delay: 490ms; }
         aspect-ratio: 16 / 9;
     }
 
+    @media (hover: hover) and (pointer: fine) {
+        main.it-masonry-ready > .card {
+            opacity: 0.78;
+            filter: saturate(0.58) brightness(0.88) contrast(0.96);
+        }
+
+        main.it-masonry-ready > .card:hover,
+        main.it-masonry-ready > .card:focus-within {
+            opacity: 1;
+            filter: saturate(1.08) brightness(1.035) contrast(1);
+        }
+    }
+
     .card:hover,
-    main > .card:hover {
+    main > .card:hover,
+    main > .card:focus-within {
         transform: none !important;
         border-color: var(--border-strong) !important;
         box-shadow: 0 22px 54px rgba(0,0,0,0.30), inset 0 1px 0 rgba(255,255,255,0.09) !important;
-        filter: brightness(1.035);
     }
 
-    .card--visual_layer:hover .card-image {
+    .card--visual_layer:hover .card-image,
+    .card--visual_layer:focus-within .card-image {
         transform: scale(1.018) !important;
     }
 
@@ -295,6 +309,48 @@ main > .card:nth-of-type(8n) { animation-delay: 490ms; }
         background-attachment: scroll !important;
         background-position: center center !important;
     }
+}
+
+.it-hurling-game.is-waiting .it-hurling-aim {
+    left: 50% !important;
+    opacity: 0.52;
+}
+
+.it-hurling-game.is-waiting .it-hurling-strike {
+    pointer-events: none;
+    opacity: 0.48;
+}
+
+.it-hurling-start {
+    position: absolute;
+    left: 50%;
+    top: 50%;
+    z-index: 8;
+    transform: translate(-50%, -50%);
+    border: 1px solid rgba(255,255,255,0.24);
+    border-radius: 999px;
+    padding: 0.76rem 1.05rem;
+    background: rgba(3, 16, 11, 0.72);
+    color: #fff;
+    font: inherit;
+    font-weight: 900;
+    cursor: pointer;
+    box-shadow: 0 14px 38px rgba(0,0,0,0.34);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+}
+
+.it-hurling-game.is-started .it-hurling-start {
+    display: none !important;
+}
+
+.it-hurling-game.is-waiting .it-hurling-pitch::before {
+    content: "";
+    position: absolute;
+    inset: 0;
+    z-index: 7;
+    pointer-events: none;
+    background: radial-gradient(circle at 50% 45%, rgba(0,0,0,0.10), rgba(0,0,0,0.24));
 }
 
 .card--memory_match .df-lab-tile,
@@ -501,11 +557,74 @@ HERO_PARALLAX_JS = r"""
 """
 
 
+HURLING_START_GUARD_JS = r"""
+(function () {
+    function prepareGame(root) {
+        const pitch = root.querySelector('[data-hurling-pitch]');
+        const strike = root.querySelector('[data-hurling-strike]');
+        const reset = root.querySelector('[data-hurling-reset]');
+        const result = root.querySelector('[data-hurling-result]');
+        if (!pitch || !strike || root.dataset.startGuardReady === 'true') return;
+
+        root.dataset.startGuardReady = 'true';
+        root.classList.add('is-waiting');
+        strike.disabled = true;
+        if (result) {
+            result.textContent = 'Press Start when you are ready. The aim marker will begin moving after that.';
+        }
+
+        const start = document.createElement('button');
+        start.type = 'button';
+        start.className = 'it-hurling-start';
+        start.textContent = 'Start game';
+        pitch.appendChild(start);
+
+        function startGame() {
+            root.classList.remove('is-waiting');
+            root.classList.add('is-started');
+            strike.disabled = false;
+            if (result) {
+                result.textContent = 'Aim is live. Tap / click to strike through the posts.';
+            }
+        }
+
+        function waitForStart() {
+            root.classList.remove('is-started');
+            root.classList.add('is-waiting');
+            strike.disabled = true;
+            if (result) {
+                result.textContent = 'Press Start when you are ready. The aim marker will begin moving after that.';
+            }
+        }
+
+        start.addEventListener('click', function (event) {
+            event.preventDefault();
+            event.stopPropagation();
+            startGame();
+        });
+
+        if (reset) {
+            reset.addEventListener('click', function () {
+                window.setTimeout(waitForStart, 0);
+            });
+        }
+    }
+
+    function boot() {
+        document.querySelectorAll('[data-it-hurling-game]').forEach(prepareGame);
+    }
+
+    if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
+    else boot();
+})();
+"""
+
+
 def build_theme_page(date_str: str | None = None, seed: int | None = None) -> PageContext:
     context = base_theme.build_theme_page(date_str=date_str, seed=seed)
     previous_css = context.metadata.get("extra_css", "") or ""
     previous_js = context.metadata.get("extra_js", "") or ""
     context.metadata["extra_css"] = previous_css + _hero_background_css(date_str) + DESKTOP_LAYOUT_CSS
-    context.metadata["extra_js"] = MASONRY_LAYOUT_JS + (previous_js or "") + MEMORY_VISIBLE_JS + FREEZE_BACKGROUND_JS + HERO_PARALLAX_JS
+    context.metadata["extra_js"] = MASONRY_LAYOUT_JS + (previous_js or "") + MEMORY_VISIBLE_JS + FREEZE_BACKGROUND_JS + HERO_PARALLAX_JS + HURLING_START_GUARD_JS
     context.metadata["theme_name"] = "irish_today"
     return context
