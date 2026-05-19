@@ -11,16 +11,20 @@ BACKGROUNDS = getattr(base_theme, "BACKGROUNDS", [])
 
 DESKTOP_LAYOUT_CSS = r"""
 /* Irish Today improved layout pass.
-   Goal: six cards, enough breathing room, and deliberate card-shape personality. */
+   Goal: six cards, enough breathing room, and proportional desktop sizing. */
 @media (min-width: 981px) {
-    :root { --max-width: min(1480px, calc(100vw - 64px)); }
+    :root {
+        --it-page-width: 92%;
+        --it-card-gap: 4%;
+        --it-card-row-gap: 2.2rem;
+    }
 
-    /* Keep the hero/banner width as-is, and make the card wall share that same outer width. */
+    /* Keep the hero/banner width behavior consistent, and make the card wall match it proportionally. */
     .hero-wrap,
     main,
     footer {
-        width: min(1480px, calc(100vw - 64px)) !important;
-        max-width: min(1480px, calc(100vw - 64px)) !important;
+        width: var(--it-page-width) !important;
+        max-width: var(--max-width) !important;
         margin-left: auto !important;
         margin-right: auto !important;
     }
@@ -31,12 +35,12 @@ DESKTOP_LAYOUT_CSS = r"""
         padding-right: 0 !important;
     }
 
-    /* Explicit grid gap guarantees left/right cards never touch. */
+    /* Percentage columns/gap: 48% + 4% + 48% = 100%. */
     main {
         display: grid !important;
-        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
-        column-gap: 42px !important;
-        row-gap: 32px !important;
+        grid-template-columns: 48% 48% !important;
+        column-gap: var(--it-card-gap) !important;
+        row-gap: var(--it-card-row-gap) !important;
         align-items: start !important;
     }
 
@@ -84,15 +88,16 @@ DESKTOP_LAYOUT_CSS = r"""
 
     main > .card:nth-of-type(3) {
         border-radius: 0 !important;
-        clip-path: polygon(14px 0, 100% 0, 100% calc(100% - 14px), calc(100% - 14px) 100%, 0 100%, 0 14px);
+        clip-path: polygon(2.4% 0, 100% 0, 100% calc(100% - 2.4%), calc(100% - 2.4%) 100%, 0 100%, 0 2.4%);
         padding: 1.30rem 1.42rem 1.20rem !important;
     }
 }
 
 @media (min-width: 1720px) {
+    :root { --it-card-gap: 3%; }
     main {
-        grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
-        column-gap: 42px !important;
+        grid-template-columns: 31.333% 31.333% 31.333% !important;
+        column-gap: var(--it-card-gap) !important;
     }
 }
 
