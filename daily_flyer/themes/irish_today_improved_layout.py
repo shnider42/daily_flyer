@@ -75,6 +75,14 @@ body {
         align-self: start !important;
     }
 
+    /* The visual layer has no text, so it must own its height explicitly.
+       This appears after the generic .card reset so 1440p/fullscreen does not
+       collapse it into a thin panoramic strip. */
+    main > .card--visual_layer {
+        min-height: clamp(22rem, 34vw, 34rem) !important;
+        aspect-ratio: 16 / 9;
+    }
+
     .card:hover { transform: translateY(-2px) !important; }
 
     .card-head { margin-bottom: 0.68rem !important; }
