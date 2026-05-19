@@ -32,11 +32,19 @@ DESKTOP_LAYOUT_CSS = r"""
     main {
         grid-template-columns: repeat(12, minmax(0, 1fr)) !important;
         grid-auto-flow: dense !important;
-        grid-auto-rows: auto !important;
+        grid-auto-rows: 8px !important;
         align-items: start !important;
         gap: 18px !important;
         padding-left: 0 !important;
         padding-right: 0 !important;
+    }
+
+    main.it-masonry-ready .card {
+        transition:
+            transform 180ms ease,
+            border-color 180ms ease,
+            box-shadow 180ms ease,
+            opacity 140ms ease !important;
     }
 
     .card {
@@ -140,9 +148,111 @@ DESKTOP_LAYOUT_CSS = r"""
 """
 
 
+MASONRY_LAYOUT_JS = r"""
+(function () {
+    const MIN_DESKTOP_WIDTH = 981;
+    const LAYOUT_SELECTOR = "main";
+    const CARD_SELECTOR = ".card";
+    let resizeObserver = null;
+    let scheduled = false;
+
+    function isDesktop() {
+        return window.matchMedia("(min-width: " + MIN_DESKTOP_WIDTH + "px)").matches;
+    }
+
+    function scheduleLayout() {
+        if (scheduled) return;
+        scheduled = true;
+        window.requestAnimationFrame(function () {
+            scheduled = false;
+            applyMasonryLayout();
+        });
+    }
+
+    function resetCard(card) {
+        card.style.gridRowEnd = "";
+    }
+
+    function applyMasonryLayout() {
+        const grid = document.querySelector(LAYOUT_SELECTOR);
+        if (!grid) return;
+
+        const cards = Array.from(grid.querySelectorAll(CARD_SELECTOR));
+        if (!cards.length) return;
+
+        if (!isDesktop()) {
+            grid.classList.remove("it-masonry-ready");
+            cards.forEach(resetCard);
+            return;
+        }
+
+        const computed = window.getComputedStyle(grid);
+        const rowHeight = parseFloat(computed.getPropertyValue("grid-auto-rows")) || 8;
+        const rowGap = parseFloat(computed.getPropertyValue("row-gap")) || 18;
+
+        cards.forEach(function (card) {
+            resetCard(card);
+        });
+
+        cards.forEach(function (card) {
+            const height = card.getBoundingClientRect().height;
+            const span = Math.max(1, Math.ceil((height + rowGap) / (rowHeight + rowGap)));
+            card.style.gridRowEnd = "span " + span;
+        });
+
+        grid.classList.add("it-masonry-ready");
+    }
+
+    function watchCardSizeChanges() {
+        const grid = document.querySelector(LAYOUT_SELECTOR);
+        if (!grid || !("ResizeObserver" in window)) return;
+
+        if (resizeObserver) {
+            resizeObserver.disconnect();
+        }
+
+        resizeObserver = new ResizeObserver(scheduleLayout);
+        grid.querySelectorAll(CARD_SELECTOR).forEach(function (card) {
+            resizeObserver.observe(card);
+        });
+    }
+
+    function boot() {
+        scheduleLayout();
+        watchCardSizeChanges();
+
+        window.addEventListener("resize", scheduleLayout, { passive: true });
+        window.addEventListener("load", scheduleLayout, { once: true });
+
+        document.querySelectorAll("img").forEach(function (image) {
+            if (!image.complete) {
+                image.addEventListener("load", scheduleLayout, { once: true });
+                image.addEventListener("error", scheduleLayout, { once: true });
+            }
+        });
+
+        document.addEventListener("click", function (event) {
+            if (event.target && event.target.closest(".df-lab-widget, .card")) {
+                window.setTimeout(scheduleLayout, 40);
+                window.setTimeout(scheduleLayout, 240);
+            }
+        });
+    }
+
+    if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", boot);
+    } else {
+        boot();
+    }
+})();
+"""
+
+
 def build_theme_page(date_str: str | None = None, seed: int | None = None) -> PageContext:
     context = base_theme.build_theme_page(date_str=date_str, seed=seed)
     previous_css = context.metadata.get("extra_css", "") or ""
+    previous_js = context.metadata.get("extra_js", "") or ""
     context.metadata["extra_css"] = previous_css + DESKTOP_LAYOUT_CSS
+    context.metadata["extra_js"] = previous_js + MASONRY_LAYOUT_JS
     context.metadata["theme_name"] = "irish_today"
     return context
