@@ -14,6 +14,8 @@ DESKTOP_LAYOUT_CSS = r"""
    Goal: dynamic tile wall, little wasted space, breathable gaps, and hero-width alignment. */
 :root {
     --bg-shift: 0px !important;
+    --it-site-width: 94%;
+    --it-card-min: 18.5rem;
 }
 
 body {
@@ -26,17 +28,22 @@ body {
 }
 
 @media (min-width: 981px) {
-    main {
-        width: auto !important;
-        max-width: var(--max-width) !important;
+    .hero-wrap,
+    main,
+    footer {
+        width: var(--it-site-width) !important;
+        max-width: none !important;
         margin-left: auto !important;
         margin-right: auto !important;
-        padding: 16px 18px 26px !important;
+    }
+
+    main {
+        padding: 16px 0 26px !important;
         display: grid !important;
-        grid-template-columns: repeat(auto-fit, minmax(min(100%, 18.5rem), 1fr)) !important;
+        grid-template-columns: repeat(auto-fit, minmax(min(100%, var(--it-card-min)), 1fr)) !important;
         grid-auto-flow: dense !important;
         grid-auto-rows: 0.5rem !important;
-        column-gap: clamp(1rem, 2.4%, 1.9rem) !important;
+        column-gap: clamp(1rem, 2.4%, 2rem) !important;
         row-gap: clamp(1rem, 2.2vw, 1.65rem) !important;
         align-items: start !important;
     }
@@ -81,15 +88,14 @@ body {
         main > .card--trivia,
         main > .card--history_sort,
         main > .card--county_clues,
-        main > .card--memory_match {
+        main > .card--memory_match,
+        main > .card--news {
             grid-column: span 2 !important;
         }
     }
 
     @media (min-width: 1480px) {
-        main {
-            grid-template-columns: repeat(auto-fit, minmax(min(100%, 19.5rem), 1fr)) !important;
-        }
+        :root { --it-card-min: 19.25rem; }
     }
 
     /* Runtime shape set: first three of the six get the special shapes. */
