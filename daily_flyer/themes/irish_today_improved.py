@@ -1,6 +1,8 @@
 from __future__ import annotations
 
 import random
+import re
+from html import unescape
 
 from daily_flyer.models import CardItem, PageContext
 from daily_flyer.themes.interactive_showcase import (
@@ -21,18 +23,56 @@ from daily_flyer.utils import resolve_date
 
 
 THEME_NAME = "irish_today"
+CARD_COUNT = 6
+
+# For now, these are the daily anchors for Irish Today Improved.
+REQUIRED_CARD_TYPES = (
+    "word",
+    "trivia",
+    "history_sort",
+    "county_clues",
+)
+
+# These rotate into the remaining two slots. History spotlight only joins this
+# pool when it contains an actual dated/nearby fact, not the generic fallback.
+OPTIONAL_CARD_TYPES = (
+    "gaeilge_quiz",
+    "phrase_builder",
+    "memory_match",
+    "did_you_know",
+    "news",
+    "sport",
+    "irish_connection",
+    "county",
+    "phrase",
+    "history",
+)
+
 
 THEME_CONFIG = {
     "page_title": "Irish Today — Interactive culture, language, history, and craic",
     "header_title": "☘️ Irish Today ☘️",
     "header_subtitle": (
-        "A more alive Irish Today: colorful card personalities, quick quizzes, "
-        "Gaeilge practice, county clues, and history that feels worth poking at."
+        "A tighter Irish Today: six lively cards per day, rotating between "
+        "language, history, county clues, trivia, and playful practice."
     ),
     "footer_text": "Built by Holtsnider Tech. Driven by Davy Holden History.",
     "hero_kicker": "Daily Flyer • Irish Edition",
-    "hero_summary_pill": "Language • History • County pride • Playful practice",
+    "hero_summary_pill": "Six-card daily edition • Language • History • County pride • Play",
 }
+
+
+def _plain_text(value: str) -> str:
+    return re.sub(r"\s+", " ", re.sub(r"<[^>]+>", " ", unescape(str(value or "")))).strip()
+
+
+def _is_generic_history_card(card: CardItem) -> bool:
+    text = _plain_text(card.body).lower()
+    generic_markers = (
+        "irish history is full of strong daily hooks",
+        "uprisings, literature, sport, and language revival",
+    )
+    return any(marker in text for marker in generic_markers) or len(text) < 120
 
 
 def _interactive_cards(rng: random.Random) -> list[CardItem]:
@@ -48,7 +88,7 @@ def _interactive_cards(rng: random.Random) -> list[CardItem]:
                 widget_type="trivia",
                 card_id="irish-today-trivia",
                 config={"questions": TRIVIA_QUESTIONS},
-                intro="Multiple choice, streak tracking, and quick replay. This replaces the simpler Plus trivia card.",
+                intro="Multiple choice, streak tracking, and quick replay.",
                 footnote="Scores stay in this browser only.",
             ),
         ),
@@ -61,7 +101,7 @@ def _interactive_cards(rng: random.Random) -> list[CardItem]:
                 card_id="irish-today-history-sort",
                 config={"rounds": HISTORY_SORT_ROUNDS},
                 intro="Move the milestones until the years run from earliest to latest.",
-                footnote="A little interaction for the history-card part of the page.",
+                footnote="This is the safe history card when the date-specific history pool is thin.",
             ),
         ),
         CardItem(
@@ -109,42 +149,61 @@ def _interactive_cards(rng: random.Random) -> list[CardItem]:
                 card_id="irish-today-memory-grid",
                 config={"pairs": memory_pairs},
                 intro="Match Irish words to their English meanings.",
-                footnote="Small replayable game, no fly swatter required.",
+                footnote="Visible-pair mode: no blind guessing.",
             ),
         ),
     ]
 
 
-def _compose_cards(base_cards: list[CardItem], interactive_cards: list[CardItem]) -> list[CardItem]:
-    # Remove the simpler Irish Today Plus trivia card and replace it with the richer showcase version.
-    base = [card for card in base_cards if card.card_type != "trivia"]
+def _first_by_type(cards: list[CardItem]) -> dict[str, CardItem]:
+    by_type: dict[str, CardItem] = {}
+    for card in cards:
+        by_type.setdefault(card.card_type, card)
+    return by_type
 
-    history_cards = [card for card in base if card.card_type == "history"]
-    rest = [card for card in base if card.card_type != "history"]
 
-    composed: list[CardItem] = []
-    if history_cards:
-        composed.append(history_cards[0])
-    composed.extend(interactive_cards[:2])
+def _eligible_optional_base_cards(base_cards: list[CardItem]) -> list[CardItem]:
+    optional: list[CardItem] = []
+    for card in base_cards:
+        if card.card_type == "trivia":
+            continue
+        if card.card_type == "history" and _is_generic_history_card(card):
+            continue
+        if card.card_type in OPTIONAL_CARD_TYPES:
+            optional.append(card)
+    return optional
 
-    # Keep the Plus visual/client/content cards, but interleave richer interactive learning cards.
-    inserted_language = False
-    for card in rest:
-        composed.append(card)
-        if card.card_type == "word" and not inserted_language:
-            composed.extend(interactive_cards[2:4])
-            inserted_language = True
-        elif card.card_type == "county":
-            composed.append(interactive_cards[4])
 
-    if not inserted_language:
-        composed.extend(interactive_cards[2:4])
+def _compose_cards(base_cards: list[CardItem], interactive_cards: list[CardItem], rng: random.Random) -> list[CardItem]:
+    base_by_type = _first_by_type([card for card in base_cards if card.card_type != "trivia"])
+    interactive_by_type = _first_by_type(interactive_cards)
 
-    if not any(card.card_type == "county_clues" for card in composed):
-        composed.append(interactive_cards[4])
+    required_candidates = [
+        base_by_type.get("word"),
+        interactive_by_type.get("trivia"),
+        interactive_by_type.get("history_sort"),
+        interactive_by_type.get("county_clues"),
+    ]
+    final_cards: list[CardItem] = [card for card in required_candidates if card is not None]
 
-    composed.append(interactive_cards[5])
-    return composed
+    optional_pool = [
+        interactive_by_type.get("gaeilge_quiz"),
+        interactive_by_type.get("phrase_builder"),
+        interactive_by_type.get("memory_match"),
+        *_eligible_optional_base_cards(base_cards),
+    ]
+    optional_pool = [card for card in optional_pool if card is not None]
+
+    seen = {id(card) for card in final_cards}
+    unique_optional = [card for card in optional_pool if id(card) not in seen]
+    rng.shuffle(unique_optional)
+
+    for card in unique_optional:
+        if len(final_cards) >= CARD_COUNT:
+            break
+        final_cards.append(card)
+
+    return final_cards[:CARD_COUNT]
 
 
 def _extra_css() -> str:
@@ -179,7 +238,6 @@ def _extra_css() -> str:
     }
 
     header.hero {
-        min-height: 360px;
         border-radius: 38px 38px 26px 38px !important;
         background:
             radial-gradient(circle at 82% 28%, rgba(255,159,67,0.20), transparent 13rem),
@@ -188,212 +246,58 @@ def _extra_css() -> str:
             linear-gradient(155deg, rgba(7,58,39,0.94), rgba(8,38,58,0.95)) !important;
     }
 
-    .hero h1 {
-        max-width: 12ch;
-    }
-
-    .hero-title-image {
-        filter: drop-shadow(0 18px 30px rgba(0,0,0,0.24));
-    }
-
-    main {
-        gap: 20px !important;
-    }
+    .hero-title-image { filter: drop-shadow(0 18px 30px rgba(0,0,0,0.24)); }
 
     .card {
         isolation: isolate;
-        min-height: 245px;
         border-width: 1px;
         border-color: rgba(255,255,255,0.14) !important;
-        box-shadow:
-            0 22px 54px rgba(0,0,0,0.25),
-            inset 0 1px 0 rgba(255,255,255,0.07) !important;
+        box-shadow: 0 22px 54px rgba(0,0,0,0.25), inset 0 1px 0 rgba(255,255,255,0.07) !important;
     }
-
-    .card::before {
-        z-index: -1;
-    }
-
+    .card::before { z-index: -1; }
     .eyebrow {
         border-radius: 999px;
         padding: 0.28rem 0.52rem;
         background: rgba(255,255,255,0.08);
         width: fit-content;
     }
-
-    .df-lab-shell {
-        background: rgba(255,255,255,0.07) !important;
-        border-color: rgba(255,255,255,0.14) !important;
-    }
-
-    .df-lab-option,
-    .df-lab-ghost,
-    .df-lab-primary,
-    .df-lab-chip,
-    .df-lab-stack-btn,
-    .df-lab-tile,
-    .df-lab-clue-btn {
-        border-color: rgba(255,255,255,0.15) !important;
-    }
-
-    .card--history {
-        grid-column: span 7;
-        border-radius: 34px 18px 34px 18px !important;
-        background:
-            linear-gradient(120deg, rgba(232,196,91,0.18), transparent 52%),
-            radial-gradient(circle at 0% 0%, rgba(255,255,255,0.14), transparent 12rem),
-            rgba(49, 38, 22, 0.92) !important;
-    }
-
-    .card--history::after {
-        background: linear-gradient(90deg, var(--it-gold), #fff2a6, var(--it-orange)) !important;
-    }
+    .df-lab-shell { background: rgba(255,255,255,0.07) !important; border-color: rgba(255,255,255,0.14) !important; }
 
     .card--history_sort {
-        grid-column: span 5;
-        border-radius: 18px 34px 34px 18px !important;
-        background:
-            radial-gradient(circle at top right, rgba(232,196,91,0.22), transparent 12rem),
-            rgba(38, 31, 22, 0.92) !important;
+        background: radial-gradient(circle at top right, rgba(232,196,91,0.22), transparent 12rem), rgba(38, 31, 22, 0.92) !important;
     }
-
     .card--trivia {
-        grid-column: span 5;
-        border-radius: 18px 34px 18px 34px !important;
-        background:
-            repeating-linear-gradient(135deg, rgba(255,255,255,0.045) 0 10px, transparent 10px 20px),
-            linear-gradient(180deg, rgba(60,183,177,0.22), rgba(255,255,255,0.03)),
-            rgba(8, 42, 47, 0.92) !important;
+        background: repeating-linear-gradient(135deg, rgba(255,255,255,0.045) 0 10px, transparent 10px 20px), linear-gradient(180deg, rgba(60,183,177,0.22), rgba(255,255,255,0.03)), rgba(8, 42, 47, 0.92) !important;
     }
-
-    .card--word {
-        border-radius: 28px 28px 14px 28px !important;
-        background:
-            radial-gradient(circle at 12% 12%, rgba(63,127,177,0.28), transparent 13rem),
-            linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.03)),
-            rgba(10, 29, 52, 0.92) !important;
+    .card--word, .card--gaeilge_quiz {
+        background: radial-gradient(circle at 12% 12%, rgba(63,127,177,0.30), transparent 13rem), rgba(9, 28, 52, 0.92) !important;
     }
-
-    .card--gaeilge_quiz {
-        grid-column: span 6;
-        border-radius: 22px 34px 14px 28px !important;
-        background:
-            radial-gradient(circle at 12% 12%, rgba(63,127,177,0.32), transparent 13rem),
-            rgba(9, 28, 52, 0.92) !important;
+    .card--phrase, .card--phrase_builder {
+        background: radial-gradient(circle at 88% 8%, rgba(109,91,208,0.26), transparent 12rem), rgba(28, 22, 55, 0.92) !important;
     }
-
-    .card--phrase_builder {
-        grid-column: span 6;
-        border-radius: 28px 14px 28px 28px !important;
-        background:
-            radial-gradient(circle at 88% 8%, rgba(109,91,208,0.26), transparent 12rem),
-            rgba(28, 22, 55, 0.92) !important;
-    }
-
     .card--memory_match {
-        grid-column: span 5;
-        border-radius: 18px 30px 30px 18px !important;
-        background:
-            radial-gradient(circle at 50% 0%, rgba(31,171,98,0.24), transparent 12rem),
-            rgba(10, 44, 33, 0.92) !important;
+        background: radial-gradient(circle at 50% 0%, rgba(31,171,98,0.24), transparent 12rem), rgba(10, 44, 33, 0.92) !important;
     }
-
-    .card--county,
-    .card--county_clues {
-        grid-column: span 7;
-        border-radius: 34px 34px 18px 18px !important;
-        background:
-            linear-gradient(90deg, rgba(31,171,98,0.18), transparent 45%),
-            radial-gradient(circle at 88% 18%, rgba(232,196,91,0.18), transparent 12rem),
-            rgba(13, 46, 32, 0.92) !important;
+    .card--county, .card--county_clues {
+        background: linear-gradient(90deg, rgba(31,171,98,0.18), transparent 45%), radial-gradient(circle at 88% 18%, rgba(232,196,91,0.18), transparent 12rem), rgba(13, 46, 32, 0.92) !important;
     }
-
-    .card--county .card-image-wrap,
-    .card--did_you_know .card-image-wrap {
-        border-radius: 24px 24px 12px 24px;
-        transform: rotate(-0.7deg);
-        box-shadow: 0 14px 28px rgba(0,0,0,0.18);
-    }
-
     .card--news {
-        border-radius: 24px 36px 24px 24px !important;
-        background:
-            radial-gradient(circle at 14% 10%, rgba(255,159,67,0.24), transparent 12rem),
-            linear-gradient(180deg, rgba(255,255,255,0.08), rgba(255,255,255,0.03)),
-            rgba(46, 28, 18, 0.92) !important;
+        background: radial-gradient(circle at 14% 10%, rgba(255,159,67,0.24), transparent 12rem), rgba(46, 28, 18, 0.92) !important;
     }
-
-    .card--did_you_know {
-        border-radius: 36px 20px 36px 20px !important;
-        background:
-            radial-gradient(circle at 80% 0%, rgba(60,183,177,0.20), transparent 14rem),
-            rgba(7, 37, 42, 0.92) !important;
-    }
-
-    .card--sport {
-        border-radius: 18px 18px 34px 34px !important;
-        background:
-            linear-gradient(180deg, rgba(31,171,98,0.20), rgba(255,255,255,0.03)),
-            repeating-linear-gradient(90deg, rgba(255,255,255,0.035) 0 2px, transparent 2px 18px),
-            rgba(9, 45, 25, 0.92) !important;
-    }
-
-    .card--irish_connection {
-        border-radius: 12px 30px 30px 30px !important;
-        background:
-            radial-gradient(circle at 90% 12%, rgba(63,127,177,0.25), transparent 13rem),
-            rgba(11, 31, 51, 0.92) !important;
-    }
+    .card--did_you_know { background: radial-gradient(circle at 80% 0%, rgba(60,183,177,0.20), transparent 14rem), rgba(7, 37, 42, 0.92) !important; }
+    .card--sport { background: linear-gradient(180deg, rgba(31,171,98,0.20), rgba(255,255,255,0.03)), rgba(9, 45, 25, 0.92) !important; }
+    .card--irish_connection { background: radial-gradient(circle at 90% 12%, rgba(63,127,177,0.25), transparent 13rem), rgba(11, 31, 51, 0.92) !important; }
 
     .card--history_sort .icon-badge,
     .card--gaeilge_quiz .icon-badge,
     .card--phrase_builder .icon-badge,
     .card--memory_match .icon-badge,
-    .card--county_clues .icon-badge {
-        font-size: 0;
-    }
-
+    .card--county_clues .icon-badge { font-size: 0; }
     .card--history_sort .icon-badge::before { content: "📜"; font-size: 1.15rem; }
     .card--gaeilge_quiz .icon-badge::before { content: "🗣️"; font-size: 1.15rem; }
     .card--phrase_builder .icon-badge::before { content: "💬"; font-size: 1.15rem; }
     .card--memory_match .icon-badge::before { content: "🧩"; font-size: 1.15rem; }
     .card--county_clues .icon-badge::before { content: "🗺️"; font-size: 1.15rem; }
-
-    @media (max-width: 980px) {
-        .card--history,
-        .card--history_sort,
-        .card--trivia,
-        .card--word,
-        .card--gaeilge_quiz,
-        .card--phrase_builder,
-        .card--memory_match,
-        .card--county,
-        .card--county_clues,
-        .card--news,
-        .card--did_you_know,
-        .card--sport,
-        .card--irish_connection {
-            grid-column: span 6;
-        }
-    }
-
-    @media (max-width: 720px) {
-        .card--history,
-        .card--history_sort,
-        .card--trivia,
-        .card--word,
-        .card--gaeilge_quiz,
-        .card--phrase_builder,
-        .card--memory_match,
-        .card--county,
-        .card--county_clues,
-        .card--news,
-        .card--did_you_know,
-        .card--sport,
-        .card--irish_connection {
-            grid-column: auto;
-        }
-    }
     """
     )
 
@@ -409,7 +313,7 @@ def build_theme_page(date_str: str | None = None, seed: int | None = None) -> Pa
     context.header_title = THEME_CONFIG["header_title"]
     context.header_subtitle = THEME_CONFIG["header_subtitle"]
     context.footer_text = THEME_CONFIG["footer_text"]
-    context.cards = _compose_cards(context.cards, interactive_cards)
+    context.cards = _compose_cards(context.cards, interactive_cards, rng)
 
     previous_css = context.metadata.get("extra_css", "") or ""
     previous_js = context.metadata.get("extra_js", "") or ""
