@@ -40,41 +40,61 @@ def _hero_background_css(date_str: str | None) -> str:
     return f"""
 header.hero {{
     --it-hero-parallax-y: 0%;
+    isolation: isolate;
+    position: relative;
+    overflow: hidden;
     background:
-        linear-gradient(90deg, rgba(2,10,8,0.78) 0%, rgba(2,10,8,0.56) 36%, rgba(2,10,8,0.38) 64%, rgba(2,10,8,0.62) 100%),
-        linear-gradient(180deg, rgba(0,0,0,0.26), rgba(0,0,0,0.54)),
-        radial-gradient(circle at 18% 18%, rgba(31,171,98,0.34), transparent 18rem),
-        radial-gradient(circle at 88% 26%, rgba(255,159,67,0.22), transparent 16rem),
-        url('{image_url}') center calc(50% + var(--it-hero-parallax-y)) / cover no-repeat !important;
+        linear-gradient(135deg, rgba(7, 58, 39, 0.92), rgba(8, 38, 58, 0.88)) !important;
     background-color: rgba(7, 33, 22, 0.96) !important;
 }}
 
+header.hero::after {{
+    content: "";
+    position: absolute;
+    inset: -24% -4%;
+    z-index: 0;
+    pointer-events: none;
+    background-image: url('{image_url}');
+    background-size: cover;
+    background-position: center center;
+    background-repeat: no-repeat;
+    transform: translate3d(0, var(--it-hero-parallax-y), 0) scale(1.18);
+    transform-origin: center center;
+    will-change: transform;
+    filter: saturate(0.96) brightness(0.86);
+}}
+
 header.hero::before {{
+    z-index: 1 !important;
     background:
-        linear-gradient(90deg, transparent, rgba(255,255,255,0.05), transparent),
-        radial-gradient(circle at 12% 22%, rgba(22,163,74,0.18), transparent 22%),
-        radial-gradient(circle at 88% 28%, rgba(255,153,51,0.14), transparent 24%) !important;
-    opacity: 0.86 !important;
+        linear-gradient(90deg, rgba(2,10,8,0.82) 0%, rgba(2,10,8,0.60) 34%, rgba(2,10,8,0.34) 66%, rgba(2,10,8,0.58) 100%),
+        linear-gradient(180deg, rgba(0,0,0,0.22), rgba(0,0,0,0.62)),
+        radial-gradient(circle at 18% 18%, rgba(31,171,98,0.34), transparent 18rem),
+        radial-gradient(circle at 88% 26%, rgba(255,159,67,0.22), transparent 16rem) !important;
+    opacity: 1 !important;
+}}
+
+header.hero > * {{
+    position: relative;
+    z-index: 2;
 }}
 
 header.hero .hero-kicker,
 header.hero .hero-pill {{
-    background: rgba(0,0,0,0.24) !important;
-    border-color: rgba(255,255,255,0.16) !important;
+    background: rgba(0,0,0,0.26) !important;
+    border-color: rgba(255,255,255,0.17) !important;
     box-shadow: 0 12px 26px rgba(0,0,0,0.16);
 }}
 
 header.hero .subtitle,
 header.hero .hero-pill,
 header.hero .hero-kicker {{
-    text-shadow: 0 2px 16px rgba(0,0,0,0.42);
+    text-shadow: 0 2px 16px rgba(0,0,0,0.44);
 }}
 """
 
 
 DESKTOP_LAYOUT_CSS = r"""
-/* Irish Today improved layout pass.
-   Goal: dynamic tile wall, little wasted space, breathable gaps, and hero-width alignment. */
 :root {
     --bg-shift: 0px !important;
     --it-site-width: 94%;
@@ -114,7 +134,6 @@ main > .card {
     transform: translate3d(var(--it-enter-x), var(--it-enter-y), 0);
     animation: it-card-enter 560ms cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
     animation-delay: 0ms;
-    will-change: opacity, transform;
 }
 
 main > .card:nth-of-type(2n) {
@@ -147,6 +166,10 @@ main > .card:nth-of-type(8n) { animation-delay: 490ms; }
         animation: none !important;
         transition: none !important;
     }
+    header.hero::after {
+        transform: none !important;
+        will-change: auto !important;
+    }
 }
 
 @media (min-width: 981px) {
@@ -159,8 +182,6 @@ main > .card:nth-of-type(8n) { animation-delay: 490ms; }
         margin-right: auto !important;
     }
 
-    /* The hero card is inside .hero-wrap's gutter. Give the card wall the same
-       visual inset so cards never extend wider than the hero/banner card. */
     main {
         padding: 16px var(--it-edge-gutter) 26px !important;
         display: grid !important;
@@ -174,9 +195,9 @@ main > .card:nth-of-type(8n) { animation-delay: 490ms; }
 
     main.it-masonry-ready .card {
         transition:
-            transform 180ms ease,
             border-color 180ms ease,
             box-shadow 180ms ease,
+            filter 180ms ease,
             opacity 140ms ease !important;
     }
 
@@ -191,15 +212,22 @@ main > .card:nth-of-type(8n) { animation-delay: 490ms; }
         align-self: start !important;
     }
 
-    /* The visual layer has no text, so it must own its height explicitly.
-       This appears after the generic .card reset so 1440p/fullscreen does not
-       collapse it into a thin panoramic strip. */
     main > .card--visual_layer {
         min-height: clamp(22rem, 34vw, 34rem) !important;
         aspect-ratio: 16 / 9;
     }
 
-    .card:hover { transform: translateY(-1.2%) !important; }
+    .card:hover,
+    main > .card:hover {
+        transform: none !important;
+        border-color: var(--border-strong) !important;
+        box-shadow: 0 22px 54px rgba(0,0,0,0.30), inset 0 1px 0 rgba(255,255,255,0.09) !important;
+        filter: brightness(1.035);
+    }
+
+    .card--visual_layer:hover .card-image {
+        transform: scale(1.018) !important;
+    }
 
     .card-head { margin-bottom: 0.68rem !important; }
     .body { margin-top: 0.24rem !important; line-height: 1.60 !important; }
@@ -215,7 +243,6 @@ main > .card:nth-of-type(8n) { animation-delay: 490ms; }
         padding-bottom: 0.62rem !important;
     }
 
-    /* Give dense, visual, or game content more room when the browser can afford it. */
     @media (min-width: 1240px) {
         main > .card--trivia,
         main > .card--history_sort,
@@ -232,12 +259,10 @@ main > .card:nth-of-type(8n) { animation-delay: 490ms; }
         :root { --it-card-min: 19.25rem; }
     }
 
-    /* Runtime shape set: first three of the eight get the special shapes. */
     main > .card:nth-of-type(1) {
         border-radius: 0 !important;
     }
 
-    /* Softer notched/star treatment. Keep this subtle so the outline never bites into text. */
     main > .card:nth-of-type(2) {
         border-radius: 26px !important;
         clip-path: polygon(
@@ -272,7 +297,6 @@ main > .card:nth-of-type(8n) { animation-delay: 490ms; }
     }
 }
 
-/* Visible-pair memory mode for Irish Today: no blind matching boxes. */
 .card--memory_match .df-lab-tile,
 .card--memory_match .df-lab-tile.is-hidden,
 .card--memory_match .df-lab-tile.is-open,
@@ -331,9 +355,6 @@ MASONRY_LAYOUT_JS = r"""
         const rowHeight = parseFloat(computed.getPropertyValue("grid-auto-rows")) || 8;
         const rowGap = parseFloat(computed.getPropertyValue("row-gap")) || 18;
 
-        /* Do not clear gridRowEnd before measuring on desktop. Clearing every
-           span briefly collapses the masonry wall, and browsers can clamp the
-           scroll position back toward the top during game/quiz clicks. */
         cards.forEach(function (card) {
             const height = card.getBoundingClientRect().height;
             const span = Math.max(1, Math.ceil((height + rowGap) / (rowHeight + rowGap)));
@@ -450,25 +471,32 @@ HERO_PARALLAX_JS = r"""
     const hero = document.querySelector('header.hero');
     if (!hero) return;
     const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+    let scheduled = false;
 
-    function updateHeroParallax() {
-        if (reduceMotion) {
-            hero.style.setProperty('--it-hero-parallax-y', '0%');
-            return;
-        }
+    function calculateShift() {
+        if (reduceMotion) return 0;
         const rect = hero.getBoundingClientRect();
         const viewportHeight = window.innerHeight || document.documentElement.clientHeight || 1;
-        const heroMidpoint = rect.top + rect.height / 2;
-        const viewportMidpoint = viewportHeight / 2;
-        const progress = Math.max(-1, Math.min(1, (viewportMidpoint - heroMidpoint) / viewportHeight));
-        const shift = progress * 6;
+        const progress = Math.max(-1, Math.min(1, (0 - rect.top) / Math.max(rect.height, 1)));
+        return progress * -22;
+    }
+
+    function updateHeroParallax() {
+        scheduled = false;
+        const shift = calculateShift();
         hero.style.setProperty('--it-hero-parallax-y', shift.toFixed(2) + '%');
     }
 
+    function scheduleHeroParallax() {
+        if (scheduled) return;
+        scheduled = true;
+        window.requestAnimationFrame(updateHeroParallax);
+    }
+
     updateHeroParallax();
-    window.addEventListener('scroll', updateHeroParallax, { passive: true });
-    window.addEventListener('resize', updateHeroParallax, { passive: true });
-    window.addEventListener('load', updateHeroParallax, { once: true });
+    window.addEventListener('scroll', scheduleHeroParallax, { passive: true });
+    window.addEventListener('resize', scheduleHeroParallax, { passive: true });
+    window.addEventListener('load', scheduleHeroParallax, { once: true });
 })();
 """
 
