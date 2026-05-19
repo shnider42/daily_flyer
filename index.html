@@ -1,0 +1,148 @@
+<!doctype html>
+<html lang='en'>
+<head>
+  <meta charset='utf-8'>
+  <meta name='viewport' content='width=device-width, initial-scale=1'>
+  <title>Chrono Explain</title>
+  <style>
+    :root{
+      --bg:#0d1117;--panel:#161b22;--panel2:#1f2733;--text:#f0f6fc;--muted:#9aa7b4;
+      --accent:#f6a04d;--blue:#7dd3fc;--good:#7ee787;--bad:#ff7b72;--border:#30363d;
+    }
+    *{box-sizing:border-box} body{margin:0;min-height:100vh;font-family:system-ui,-apple-system,Segoe UI,sans-serif;color:var(--text);background:radial-gradient(circle at top left,rgba(246,160,77,.18),transparent 34rem),radial-gradient(circle at bottom right,rgba(125,211,252,.12),transparent 32rem),var(--bg)}
+    .page{width:min(1180px,calc(100% - 32px));margin:auto;padding:32px 0 56px}.hero,.grid{display:grid;grid-template-columns:1.2fr .8fr;gap:24px}.grid{grid-template-columns:.85fr 1.15fr}.card{background:linear-gradient(180deg,rgba(255,255,255,.04),rgba(255,255,255,.015)),var(--panel);border:1px solid var(--border);border-radius:22px;box-shadow:0 20px 60px rgba(0,0,0,.35);padding:24px}.hero .card:first-child{padding:34px}.eyebrow{color:var(--accent);font-size:.76rem;font-weight:900;letter-spacing:.16em;text-transform:uppercase;margin-bottom:12px}h1{font-size:clamp(2.4rem,7vw,5.4rem);line-height:.9;letter-spacing:-.06em;margin:0 0 18px}h2{font-size:1.05rem;margin:0 0 14px}p,li{color:var(--muted);line-height:1.55}.hero p{font-size:1.1rem;max-width:66ch}.controls{display:grid;gap:14px}label{display:grid;gap:7px;color:var(--muted);font-size:.92rem}input,select{width:100%;border:1px solid var(--border);background:#0b1017;color:var(--text);border-radius:14px;padding:12px 13px}button{border:0;border-radius:999px;padding:12px 17px;font-weight:900;cursor:pointer;color:#111;background:var(--accent)}button.secondary{background:var(--panel2);color:var(--text);border:1px solid var(--border)}button.danger{background:#45242a;color:#ffd5d2;border:1px solid #7f3438}.buttons{display:flex;flex-wrap:wrap;gap:10px}.challenge{display:grid;grid-template-columns:1fr 1fr;gap:14px}.box,.mini,.history-entry{border:1px solid var(--border);background:#0b1017;border-radius:18px;padding:16px}.label{text-transform:uppercase;letter-spacing:.12em;color:var(--muted);font-size:.72rem;font-weight:900;margin-bottom:10px}.value{font-size:clamp(1.75rem,4vw,3rem);font-weight:950;line-height:1;letter-spacing:-.05em}.sub{color:var(--muted);line-height:1.45;margin-top:10px}.timer-wrap{display:grid;grid-template-columns:160px 1fr;gap:16px;align-items:center;border:1px solid var(--border);border-radius:18px;padding:16px;background:rgba(255,255,255,.025);margin-top:14px}.timer{font-size:3.35rem;font-weight:950;font-variant-numeric:tabular-nums}.bar{height:18px;background:#0b1017;border:1px solid var(--border);border-radius:999px;overflow:hidden}.bar span{display:block;height:100%;width:100%;background:linear-gradient(90deg,var(--good),var(--accent));transition:width .25s linear}.three{display:grid;grid-template-columns:repeat(3,1fr);gap:14px;margin-top:14px}.mini h3{margin:0 0 8px;font-size:.95rem}.mini p,.mini ul{margin:0;color:var(--muted);font-size:.93rem}.mini ul{padding-left:18px}.score{display:grid;grid-template-columns:1fr 1fr;gap:10px;margin-top:10px}.score label{display:flex;align-items:center;gap:10px;border:1px solid var(--border);background:#0b1017;border-radius:14px;padding:11px}.score input{width:18px;height:18px;accent-color:var(--accent)}.result{min-height:52px;color:var(--muted);line-height:1.5;border-left:4px solid var(--border);padding-left:14px}.result.win{color:#d9ffe1;border-color:var(--good)}.result.lose{color:#ffe2df;border-color:var(--bad)}.hidden{display:none}.history{display:grid;gap:10px;margin-top:12px;max-height:280px;overflow:auto}.pill{display:inline-flex;border:1px solid var(--border);background:rgba(255,255,255,.04);border-radius:999px;padding:5px 9px;color:var(--muted);font-size:.78rem;font-weight:900}.footer{text-align:center;color:var(--muted);margin-top:24px;font-size:.92rem}@media(max-width:900px){.hero,.grid,.challenge,.three,.score,.timer-wrap{grid-template-columns:1fr}.timer{text-align:left}}
+  </style>
+</head>
+<body>
+  <main class='page'>
+    <section class='hero'>
+      <div class='card'>
+        <div class='eyebrow'>Party game / communication challenge</div>
+        <h1>Chrono Explain</h1>
+        <p>One player is from 2026. Everyone else is from another era. Explain a modern thing in two minutes without leaning on modern assumptions, technical jargon, or obvious concepts your audience has never seen.</p>
+      </div>
+      <aside class='card'>
+        <h2>How to play</h2>
+        <ol>
+          <li>Pick Player 1, the modern explainer.</li>
+          <li>Generate a modern object and a historical audience.</li>
+          <li>Player 1 has 2 minutes to explain it.</li>
+          <li>Judges decide whether the audience understood what it is, what it does, and why people use it.</li>
+        </ol>
+      </aside>
+    </section>
+
+    <section class='grid' style='margin-top:24px'>
+      <aside class='card'>
+        <h2>Round setup</h2>
+        <div class='controls'>
+          <label>Player 1 name<input id='playerName' placeholder='Example: Chris'></label>
+          <label>Number of judging players<select id='judgeCount'><option>1</option><option selected>2</option><option>3</option><option>4</option><option>5</option><option>6</option><option>7</option><option>8</option></select></label>
+          <label>Difficulty<select id='difficulty'><option value='gentle'>Gentle</option><option value='normal' selected>Normal</option><option value='chaos'>Chaos</option></select></label>
+          <label>Optional custom object<input id='customObject' placeholder='Leave blank for random'></label>
+          <label>Optional custom era/audience<input id='customEra' placeholder='Leave blank for random'></label>
+          <div class='buttons'><button id='newRoundBtn'>Generate round</button><button class='secondary' id='rerollObjectBtn'>Reroll object</button><button class='secondary' id='rerollEraBtn'>Reroll era</button></div>
+          <div class='buttons'><button id='startBtn'>Start 2:00 timer</button><button class='secondary' id='pauseBtn'>Pause</button><button class='danger' id='resetBtn'>Reset timer</button></div>
+        </div>
+      </aside>
+
+      <section class='card'>
+        <div class='challenge'>
+          <div class='box'><div class='label'>Modern thing to explain</div><div class='value' id='objectValue'>Generate a round</div><div class='sub' id='objectSub'>Your object will appear here.</div></div>
+          <div class='box'><div class='label'>Historical audience</div><div class='value' id='eraValue'>—</div><div class='sub' id='eraSub'>Your audience will appear here.</div></div>
+        </div>
+        <div class='timer-wrap'>
+          <div class='timer' id='timer'>2:00</div>
+          <div><div class='bar'><span id='barFill'></span></div><p class='sub' id='timerStatus'>Timer ready. Generate a round, then start when Player 1 begins explaining.</p></div>
+        </div>
+        <div class='three'>
+          <div class='mini'><h3>Player 1 goal</h3><p id='goalText'>Explain the thing well enough that the audience can describe it back in their own words.</p></div>
+          <div class='mini'><h3>Avoid saying</h3><ul id='forbiddenList'><li>Technical terms</li><li>It is obvious</li><li>Modern brand names</li></ul></div>
+          <div class='mini'><h3>Era-friendly angle</h3><p id='hintText'>Use metaphors from the audience's world, not yours.</p></div>
+        </div>
+        <div style='margin-top:18px'>
+          <h2>Judge the explanation</h2>
+          <div class='score'>
+            <label><input type='checkbox' class='point'> Audience understands what it is</label>
+            <label><input type='checkbox' class='point'> Audience understands why people use it</label>
+            <label><input type='checkbox' class='point'> Player used era-friendly analogies</label>
+            <label><input type='checkbox' class='point'> Player avoided heavy jargon</label>
+            <label><input type='checkbox' class='point'> Player answered follow-up questions</label>
+            <label><input type='checkbox' class='point'> Player finished before time ran out</label>
+          </div>
+          <div class='buttons' style='margin-top:14px'><button id='scoreBtn'>Score round</button><button class='secondary' id='showSeedBtn'>Show explanation seed</button></div>
+          <p class='result' id='resultText'>A successful round needs at least 4 of 6 points. For a harder game, require 5.</p>
+        </div>
+        <div class='mini hidden' id='seedBox'><h3>Explanation seed</h3><p id='seedText'></p></div>
+      </section>
+    </section>
+
+    <section class='card' style='margin-top:24px'>
+      <div style='display:flex;justify-content:space-between;gap:12px;align-items:center;flex-wrap:wrap'><h2 style='margin:0'>Round history</h2><button class='secondary' id='clearHistoryBtn'>Clear history</button></div>
+      <div class='history' id='history'></div>
+    </section>
+    <p class='footer'>Variant: historical players can ask questions only from their own worldview. A person from 400 BC can ask about gods, animals, fire, craft, trade, war, ships, scribes, and rulers — not apps, batteries, plastics, satellites, or factories.</p>
+  </main>
+
+  <script>
+    const objects=[
+      {name:'Smartphone',level:'chaos',sub:'A pocket-sized glowing slab used for messages, maps, photos, entertainment, payment, and knowledge lookup.',forbidden:['internet','touchscreen','app','cell tower','computer'],hint:'Compare it to a messenger, mapmaker, painter, library, market clerk, and theater squeezed into one enchanted tablet.',seed:'A smartphone is a small carried tool that lets people send words, pictures, and sounds over great distances, find directions, remember information, and ask for help. It works because many invisible signals and machines pass messages between people.'},
+      {name:'Bicycle',level:'gentle',sub:'A human-powered two-wheel vehicle.',forbidden:['gear ratio','pneumatic tire','chain drive','torque'],hint:'Frame it as a very efficient walking machine: legs push pedals instead of the ground.',seed:'A bicycle is a light two-wheeled machine. A rider balances on it and pushes pedals with their feet, which turns the wheels and moves them faster than walking without needing an animal.'},
+      {name:'Stapler',level:'gentle',sub:'A hand tool that fastens papers together with a small bent piece of metal.',forbidden:['spring-loaded','office supply','staple cartridge'],hint:'Compare it to a tiny metal stitcher for paper.',seed:'A stapler is like a little paper-sewing tool. You press it down, and it pushes a small piece of metal through several sheets, then bends the metal legs so the sheets stay together.'},
+      {name:'Fast food drive-thru',level:'normal',sub:'A place where people buy prepared meals without leaving their vehicle.',forbidden:['franchise','speaker box','supply chain','processed food'],hint:'Compare it to an inn that hands food through a window to travelers who never dismount.',seed:'A drive-thru is a food-selling place for travelers in vehicles. People stop beside a window, ask for food that is already mostly prepared, pay, receive it quickly, and continue traveling.'},
+      {name:'Airplane',level:'normal',sub:'A machine that carries people through the sky over long distances.',forbidden:['aerodynamics','jet engine','lift coefficient','runway'],hint:'Bird, ship, and wagon metaphors all help, but be careful: it is not alive and does not flap.',seed:'An airplane is a large crafted machine with wings. It moves very fast until air holds it up, then carries people and goods through the sky before landing at another prepared place.'},
+      {name:'Microwave oven',level:'chaos',sub:'A kitchen box that heats food quickly using invisible energy.',forbidden:['radiation','frequency','magnetron','molecule'],hint:'Use the idea of invisible heat-stirring, but avoid making it sound magical if possible.',seed:'A microwave oven is a box for warming food. Instead of using flame, it uses an invisible force made by the machine that makes water inside the food become hot very quickly.'},
+      {name:'Sticky note',level:'gentle',sub:'A small note paper with weak glue on the back.',forbidden:['adhesive','Post-it','pressure-sensitive'],hint:'A temporary message scrap that can stick to a wall, door, book, or table.',seed:'A sticky note is a small piece of paper for short reminders. Its back has a gentle glue, so it can cling to a surface and later be removed without much damage.'},
+      {name:'GPS navigation',level:'chaos',sub:'A tool that tells you where you are and how to get somewhere.',forbidden:['satellite','orbit','coordinates','algorithm'],hint:'Use stars, surveyors, signal towers, and a talking map as stepping stones.',seed:'GPS navigation is a direction-finding system. A small device receives signals from many distant machines in the sky, figures out where it is, and tells the traveler which path to take.'},
+      {name:'Flashlight',level:'normal',sub:'A portable electric light.',forbidden:['LED','battery chemistry','circuit','voltage'],hint:'Compare it to a tiny lantern that does not need flame.',seed:'A flashlight is a small carried lamp. Instead of fire, it uses stored energy inside it to make a bright point of light, useful for seeing in darkness.'},
+      {name:'Email',level:'normal',sub:'Written messages sent almost instantly between distant people.',forbidden:['server','protocol','inbox','cloud'],hint:'Start with letters, then remove the horse, ship, paper, and delay.',seed:'Email is a way to send written messages through machines. A person writes a message, chooses another person, and the message appears for them very quickly even if they are far away.'},
+      {name:'Streaming movie',level:'chaos',sub:'Watching a moving picture story sent to your home instantly.',forbidden:['buffering','platform','subscription','bandwidth'],hint:'Compare theater, shadow plays, and a library that performs on command.',seed:'A streaming movie is a moving-picture story that appears on a home screen when requested. The story is not physically brought to the home; machines far away send the picture and sound as it is watched.'},
+      {name:'Vending machine',level:'normal',sub:'A box that sells snacks or drinks without a shopkeeper standing there.',forbidden:['automation','sensor','inventory','payment terminal'],hint:'A locked market stall with a mechanical clerk inside.',seed:'A vending machine is a locked box filled with goods. A buyer puts in money, chooses an item, and the machine releases that item without needing a person to hand it over.'},
+      {name:'Traffic light',level:'normal',sub:'A colored signal that tells vehicles and walkers when to stop or go.',forbidden:['intersection','traffic control system','sensor loop'],hint:'Use flags, guards, bells, and colored lanterns.',seed:'A traffic light is a public signal at busy roads. Its colors tell travelers when to stop, wait, or go, so many people can cross paths without crashing into each other.'},
+      {name:'Credit card',level:'chaos',sub:'A small card that lets someone buy things now and pay later.',forbidden:['bank network','interest rate','magnetic stripe','credit score'],hint:'Compare it to a trusted written promise backed by a money-house.',seed:'A credit card is a small proof-token from a money-house. A shop accepts it because the money-house promises payment, and the buyer later repays the money-house.'},
+      {name:'3D printer',level:'chaos',sub:'A machine that builds an object layer by layer from a digital design.',forbidden:['CAD','filament','slicer','extruder'],hint:'Compare it to a patient potter or mason following a precise invisible pattern.',seed:'A 3D printer is a making machine. It follows a very exact plan and lays down tiny amounts of material again and again until a real object is built.'},
+      {name:'Dishwasher',level:'normal',sub:'A kitchen machine that washes dishes automatically.',forbidden:['detergent pod','spray arm','cycle','plumbing'],hint:'A sealed washing servant that throws hot water at plates.',seed:'A dishwasher is a box for cleaning plates, cups, and tools. You place dirty things inside, add cleaning soap, close it, and the machine washes and rinses them with hot water.'},
+      {name:'Search engine',level:'chaos',sub:'A tool for finding information across countless pages of writing.',forbidden:['indexing','ranking','query','web crawler'],hint:'Compare it to a librarian who has read millions of books and answers by pointing to pages.',seed:'A search engine is a question tool. You write a few words, and it searches through a huge collection of writings, then shows the places most likely to contain the answer.'},
+      {name:'Elevator',level:'gentle',sub:'A small room that carries people up and down inside a building.',forbidden:['hydraulic','cable system','shaft','counterweight'],hint:'Like a vertical carriage inside a tall building.',seed:'An elevator is a little room that moves upward and downward inside a tall building. People enter, choose a level, and the room carries them there without using stairs.'}
+    ];
+    const eras=[
+      {name:'Sumerian scribe, about 2000 BC',level:'chaos',sub:'Knows clay tablets, grain records, temples, rivers, donkeys, bronze tools, and royal authority.',known:'writing, trade, irrigation, priests, carts',gap:'electricity, engines, mass literacy, plastic, global communication'},
+      {name:'Athenian philosopher, about 400 BC',level:'chaos',sub:'Knows ships, markets, geometry, debate, bronze, oil lamps, slaves, and city-states.',known:'debate, craft, ships, geometry, theater',gap:'electricity, modern medicine, engines, industrial production'},
+      {name:'Roman road builder, about 50 AD',level:'normal',sub:'Knows roads, aqueducts, armies, concrete, coins, wagons, couriers, and empire logistics.',known:'roads, maps, military order, public works',gap:'electricity, air travel, electronics, digital records'},
+      {name:'Viking trader, about 900 AD',level:'normal',sub:'Knows ships, iron, trade routes, oral stories, raids, farms, silver, and weather navigation.',known:'ships, trade, iron tools, navigation by nature',gap:'factories, electricity, cameras, engines'},
+      {name:'Medieval monastery copyist, about 1200 AD',level:'normal',sub:'Knows manuscripts, bells, candles, church calendars, horses, mills, and slow communication.',known:'books, copying, schedules, bells, craft tools',gap:'mass printing, electricity, instant messaging, plastics'},
+      {name:'Ming Dynasty scholar, about 1435 AD',level:'normal',sub:'Knows paper, printing, bureaucracy, ships, porcelain, gunpowder, examinations, and astronomy.',known:'paper, state records, trade, astronomy, gunpowder',gap:'electronics, cars, aviation, global internet'},
+      {name:'Elizabethan theater actor, about 1599 AD',level:'normal',sub:'Knows stagecraft, printed plays, candles, horses, ships, plague, courts, and public crowds.',known:'performance, printing, crowds, letters, ships',gap:'electricity, photography, cars, recorded sound'},
+      {name:'Colonial Boston printer, about 1770 AD',level:'gentle',sub:'Knows newspapers, pamphlets, ships, horses, trade, political argument, and mechanical craft.',known:'printing, mail, trade, clocks, mechanics',gap:'electronics, cars, flight, digital networks'},
+      {name:'Factory worker, about 1890 AD',level:'gentle',sub:'Knows steam power, railroads, telegraphs, factories, printed catalogs, gaslight, and early electricity.',known:'machines, factories, trains, telegraph, mass goods',gap:'computers, satellites, internet, plastics everywhere'},
+      {name:'1950s suburban family',level:'gentle',sub:'Knows cars, radios, television, airplanes, paper maps, phones, diners, and household appliances.',known:'cars, TV, radio, phones, appliances, highways',gap:'personal computers, internet, smartphones, GPS, digital payments'},
+      {name:'1980s arcade teenager',level:'gentle',sub:'Knows early computers, pay phones, cassette tapes, arcades, malls, TV, and paper maps.',known:'arcade games, TV, landlines, cassettes, simple computers',gap:'modern internet, smartphones, AI, streaming, GPS everywhere'}
+    ];
+    let currentObject=null,currentEra=null,totalSeconds=120,secondsLeft=120,timerId=null;
+    let history=JSON.parse(localStorage.getItem('chronoExplainHistory')||'[]');
+    const $=id=>document.getElementById(id); const pick=arr=>arr[Math.floor(Math.random()*arr.length)];
+    function byDifficulty(list){const d=$('difficulty').value;if(d==='normal')return pick(list);const found=list.filter(x=>x.level===d);return pick(found.length?found:list)}
+    function escapeHtml(s){return String(s).replaceAll('&','&amp;').replaceAll('<','&lt;').replaceAll('>','&gt;')}
+    function render(){
+      $('objectValue').textContent=currentObject?.name||'Generate a round';$('objectSub').textContent=currentObject?.sub||'Your object will appear here.';$('eraValue').textContent=currentEra?.name||'—';$('eraSub').textContent=currentEra?.sub||'Your audience will appear here.';
+      const forbidden=currentObject?.forbidden||['Technical terms','It is obvious','Modern brand names'];$('forbiddenList').innerHTML=forbidden.map(x=>`<li>${escapeHtml(x)}</li>`).join('');
+      $('hintText').textContent=currentObject&&currentEra?`${currentObject.hint} They know: ${currentEra.known}. They likely do not know: ${currentEra.gap}.`:'Use metaphors from the audience\'s world, not yours.';
+      $('goalText').textContent=currentObject&&currentEra?`Explain ${currentObject.name.toLowerCase()} to ${currentEra.name.toLowerCase()} well enough that they can describe it back.`:'Explain the thing well enough that the audience can describe it back in their own words.';
+      $('seedText').textContent=currentObject?.seed||'';$('seedBox').classList.add('hidden');$('resultText').className='result';$('resultText').textContent='A successful round needs at least 4 of 6 points. For a harder game, require 5.';document.querySelectorAll('.point').forEach(x=>x.checked=false)
+    }
+    function generateRound(){
+      const co=$('customObject').value.trim(),ce=$('customEra').value.trim();
+      currentObject=co?{name:co,level:'custom',sub:'Custom object chosen by the players.',forbidden:['specialized jargon','brand-only explanations','assuming modern knowledge'],hint:'Start from what it does for a person, then explain what problem it solves.',seed:`Explain ${co} by starting with its human purpose, then compare it to tools or habits the audience already understands.`}:byDifficulty(objects);
+      currentEra=ce?{name:ce,level:'custom',sub:'Custom audience chosen by the players.',known:'whatever the players agree this audience would plausibly know',gap:'whatever concepts would not exist yet'}:byDifficulty(eras);
+      resetTimer();render();
+    }
+    function updateTimer(){const m=Math.floor(secondsLeft/60),s=secondsLeft%60;$('timer').textContent=`${m}:${String(s).padStart(2,'0')}`;$('barFill').style.width=`${secondsLeft/totalSeconds*100}%`;if(secondsLeft<=0)$('timerStatus').textContent='Time is up. Judges score the explanation.';else if(secondsLeft<=15)$('timerStatus').textContent='Final seconds. The audience should be preparing their verdict.';else if(timerId)$('timerStatus').textContent='Timer running. Explain with analogies, not jargon.';else $('timerStatus').textContent='Timer ready. Generate a round, then start when Player 1 begins explaining.'}
+    function startTimer(){if(!currentObject||!currentEra)generateRound();if(timerId)return;timerId=setInterval(()=>{secondsLeft--;if(secondsLeft<=0){secondsLeft=0;clearInterval(timerId);timerId=null}updateTimer()},1000);updateTimer()}
+    function pauseTimer(){clearInterval(timerId);timerId=null;updateTimer();$('timerStatus').textContent='Timer paused.'}
+    function resetTimer(){clearInterval(timerId);timerId=null;secondsLeft=totalSeconds;updateTimer()}
+    function scoreRound(){if(!currentObject||!currentEra)generateRound();const score=[...document.querySelectorAll('.point')].filter(x=>x.checked).length;const player=$('playerName').value.trim()||'Player 1';const judges=$('judgeCount').value;const success=score>=4;$('resultText').className=`result ${success?'win':'lose'}`;$('resultText').innerHTML=success?`<strong>Success:</strong> ${escapeHtml(player)} scored ${score}/6. The ${judges} judging player(s) understood the explanation well enough.`:`<strong>Not quite:</strong> ${escapeHtml(player)} scored ${score}/6. Try again with fewer modern assumptions and more era-friendly examples.`;history.unshift({date:new Date().toLocaleString(),player,object:currentObject.name,era:currentEra.name,score,success});history=history.slice(0,12);localStorage.setItem('chronoExplainHistory',JSON.stringify(history));renderHistory()}
+    function renderHistory(){const h=$('history');if(!history.length){h.innerHTML=`<div class='history-entry'>No completed rounds yet.</div>`;return}h.innerHTML=history.map(e=>`<div class='history-entry'><span class='pill'>${e.success?'Success':'Try again'} · ${e.score}/6</span><div style='margin-top:8px'><strong>${escapeHtml(e.player)}</strong> explained <strong>${escapeHtml(e.object)}</strong> to <strong>${escapeHtml(e.era)}</strong>.</div><div>${escapeHtml(e.date)}</div></div>`).join('')}
+    $('newRoundBtn').onclick=generateRound;$('rerollObjectBtn').onclick=()=>{currentObject=$('customObject').value.trim()?currentObject:byDifficulty(objects);render()};$('rerollEraBtn').onclick=()=>{currentEra=$('customEra').value.trim()?currentEra:byDifficulty(eras);render()};$('startBtn').onclick=startTimer;$('pauseBtn').onclick=pauseTimer;$('resetBtn').onclick=resetTimer;$('scoreBtn').onclick=scoreRound;$('showSeedBtn').onclick=()=>{if(!currentObject||!currentEra)generateRound();$('seedBox').classList.toggle('hidden')};$('clearHistoryBtn').onclick=()=>{history=[];localStorage.removeItem('chronoExplainHistory');renderHistory()};renderHistory();updateTimer();
+  </script>
+</body>
+</html>

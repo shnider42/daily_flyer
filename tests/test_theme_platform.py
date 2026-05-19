@@ -7,6 +7,8 @@ import unittest
 from types import SimpleNamespace
 from unittest.mock import patch
 
+from daily_flyer.content_weighting import load_keyword_weight_profile, score_content_item
+from daily_flyer.curated_fact_store import CuratedFact
 from daily_flyer.theme_validation import ThemeValidationError, validate_theme_module
 from web import app
 
@@ -97,6 +99,38 @@ class ThemeValidationTests(unittest.TestCase):
             validate_theme_module(theme, "bad_background_theme")
 
 
+class ContentWeightingTests(unittest.TestCase):
+    def test_birthday_profile_penalizes_negative_copy_keywords(self) -> None:
+        profile = load_keyword_weight_profile("birthday_family_friendly")
+        negative = CuratedFact(
+            fact_id="negative_music_fact",
+            card_type="classic_rock",
+            title="Jim Morrison Dies",
+            body="Jim Morrison died in Paris in 1971.",
+            source_name="Example",
+            source_url="https://example.com",
+            status="approved",
+            tags=["music"],
+            month=7,
+            day=3,
+        )
+        positive = CuratedFact(
+            fact_id="positive_music_fact",
+            card_type="classic_rock",
+            title="Dolly Parton Birthday",
+            body="Dolly Parton was born and built a warm music career around humor and generosity.",
+            source_name="Example",
+            source_url="https://example.com",
+            status="approved",
+            tags=["birthday", "music", "born"],
+            month=1,
+            day=19,
+        )
+
+        self.assertLess(score_content_item(negative, profile), profile.copy_floor)
+        self.assertGreater(score_content_item(positive, profile), score_content_item(negative, profile))
+
+
 class WebRouteTests(unittest.TestCase):
     def setUp(self) -> None:
         self.client = app.test_client()
@@ -134,6 +168,34 @@ class WebRouteTests(unittest.TestCase):
         self.assertIn(b"Passages Daily", response.data)
         self.assertIn(b"Finding a First Direction", response.data)
         self.assertIn(b"Mini Confidence Quest", response.data)
+        
+    def test_nissan_z_theme_renders(self) -> None:
+        response = self.client.get("/?theme=nissan_z&date=2026-08-17&seed=7")
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(b"Nissan Z Daily", response.data)
+        self.assertIn(b"Modern Z Reveal", response.data)
+        self.assertIn(b"Generation Spotlight", response.data)
+        self.assertIn(b"Z of the Day", response.data)
+        self.assertIn(b"Z in Video Games", response.data)
+        self.assertIn(b"card-image", response.data)
+        self.assertIn(b"data:image/jpeg;base64", response.data)
+        self.assertIn(b"User-provided Nissan Z studio background", response.data)
+        self.assertIn(b"background-image: linear-gradient", response.data)
+        self.assertIn(b"@media (max-width: 720px)", response.data)
+        self.assertIn(b"z-day-nav", response.data)
+        self.assertIn(b"Previous day", response.data)
+        self.assertIn(b"Next day", response.data)
+        self.assertIn(b"Daily controls", response.data)
+        self.assertLess(response.data.index(b"Z of the Day"), response.data.index(b"Generation Spotlight"))
+        
+    def test_commander_readiness_theme_renders(self) -> None:
+        response = self.client.get("/?theme=commander_readiness&date=2026-05-15&seed=7")
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(b"Commander Opening Plan", response.data)
+        self.assertIn(b"99-Card Composition", response.data)
+        self.assertIn(b"Turn 5", response.data)
+        self.assertIn(b"How Often It Comes Together", response.data)
+        self.assertIn(b"Reroll sample hands", response.data)
 
     def test_birthday_theme_renders_with_realistic_data(self) -> None:
         birthdays = [
@@ -171,6 +233,7 @@ class WebRouteTests(unittest.TestCase):
             self.assertIn(b"facts as seasoning", response.data)
             self.assertIn(b"birthday stays central", response.data)
             self.assertIn(b"More birthday-theme facts", response.data)
+            self.assertIn(b"keyword-weighted facts", response.data)
         finally:
             os.remove(temp_path)
 

@@ -1,0 +1,56 @@
+{
+  "profiles": {
+    "default": {
+      "description": "Neutral baseline profile for themes that do not need tone-specific keyword weighting.",
+      "keyword_weights": {},
+      "title_multiplier": 1.4,
+      "body_multiplier": 1.0,
+      "tag_multiplier": 0.75,
+      "primary_floor": -8,
+      "copy_floor": -4
+    },
+    "birthday_family_friendly": {
+      "description": "Prefer upbeat, copy-paste-safe birthday facts. Negative history can still exist in the data pool, but it should rarely become a lead card or Patti Mode copy.",
+      "keyword_weights": {
+        "birthday": 2.5,
+        "born": 2.0,
+        "released": 1.2,
+        "debut": 1.1,
+        "premiered": 1.1,
+        "won": 1.0,
+        "championship": 1.0,
+        "celebration": 1.0,
+        "holiday": 0.8,
+        "music": 0.8,
+        "food": 0.8,
+        "family": 0.8,
+        "fun": 0.7,
+        "classic": 0.5,
+        "irish": 0.5,
+        "boston": 0.5,
+        "dies": -12.0,
+        "died": -12.0,
+        "death": -12.0,
+        "killed": -12.0,
+        "murder": -12.0,
+        "assassination": -12.0,
+        "assassinated": -12.0,
+        "war": -5.0,
+        "battle": -5.0,
+        "disaster": -8.0,
+        "tragedy": -8.0,
+        "crash": -8.0,
+        "collapse": -6.0,
+        "funeral": -10.0,
+        "illness": -6.0,
+        "divorce": -3.0,
+        "breakup": -2.0
+      },
+      "title_multiplier": 1.8,
+      "body_multiplier": 1.0,
+      "tag_multiplier": 0.7,
+      "primary_floor": -6,
+      "copy_floor": -2
+    }
+  }
+}

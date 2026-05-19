@@ -49,6 +49,53 @@ def _normalize_connection_entry(
     return fallback_title, str(entry).strip(), None
 
 
+def _normalize_extra_card_entry(
+    entry: Any,
+    fallback_card_type: str,
+    fallback_eyebrow: str,
+    fallback_title: str,
+) -> CardItem | None:
+    if not isinstance(entry, dict):
+        return None
+
+    body = str(entry.get("body", "")).strip()
+    if not body:
+        return None
+
+    card_type = str(entry.get("card_type", "")).strip() or fallback_card_type
+    eyebrow = str(entry.get("eyebrow", "")).strip() or fallback_eyebrow
+    title = str(entry.get("title", "")).strip() or fallback_title
+
+    return CardItem(
+        card_type=card_type,
+        eyebrow=eyebrow,
+        title=title,
+        body=body,
+        source_url=entry.get("source_url"),
+        image_url=entry.get("image_url"),
+        cadence=str(entry.get("cadence", "daily") or "daily"),
+        weight=int(entry.get("weight", 1) or 1),
+    )
+
+
+def _pin_cards(cards: list[CardItem], pinned_card_types: Any) -> list[CardItem]:
+    if not isinstance(pinned_card_types, (list, tuple)) or not pinned_card_types:
+        return cards
+
+    pinned_order = {str(card_type): index for index, card_type in enumerate(pinned_card_types)}
+    pinned: list[tuple[int, int, CardItem]] = []
+    rest: list[CardItem] = []
+
+    for original_index, card in enumerate(cards):
+        if card.card_type in pinned_order:
+            pinned.append((pinned_order[card.card_type], original_index, card))
+        else:
+            rest.append(card)
+
+    pinned.sort(key=lambda item: (item[0], item[1]))
+    return [card for _, _, card in pinned] + rest
+
+
 def _get_curated_history_card(theme, today, theme_config: dict) -> CardItem | None:
     mmdd = today.strftime("%m-%d")
 
@@ -264,6 +311,32 @@ def build_daily_page(
         if connection_card is not None:
             optional_cards.append(connection_card)
 
+    extra_card_pools = getattr(theme, "EXTRA_CARD_POOLS", [])
+    for pool_index, pool_config in enumerate(extra_card_pools):
+        if isinstance(pool_config, dict):
+            entries = pool_config.get("items", [])
+            fallback_card_type = str(pool_config.get("card_type", "extra_card"))
+            fallback_eyebrow = str(pool_config.get("eyebrow", "Spotlight"))
+            fallback_title = str(pool_config.get("title", "Spotlight"))
+        else:
+            entries = pool_config
+            fallback_card_type = "extra_card"
+            fallback_eyebrow = "Spotlight"
+            fallback_title = "Spotlight"
+
+        if not entries:
+            continue
+
+        chosen_extra = entries[(today.toordinal() + pool_index) % len(entries)]
+        extra_card = _normalize_extra_card_entry(
+            chosen_extra,
+            fallback_card_type=fallback_card_type,
+            fallback_eyebrow=fallback_eyebrow,
+            fallback_title=fallback_title,
+        )
+        if extra_card is not None:
+            optional_cards.append(extra_card)
+
     if enable_county and use_provider_county:
         county = fetch_county_of_the_week(today)
         if county:
@@ -295,6 +368,7 @@ def build_daily_page(
         cards = core_cards.copy()
 
     rng.shuffle(cards)
+    cards = _pin_cards(cards, theme_config.get("pinned_card_types", []))
 
     background = None
     theme_backgrounds = getattr(theme, "BACKGROUNDS", [])
