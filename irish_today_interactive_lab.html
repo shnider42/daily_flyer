@@ -1,0 +1,889 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Irish Today Lab — Interactive cards</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<style>
+    :root {
+        --bg: #07131c;
+        --bg-deep: #041018;
+        --bg-soft: #0b1f2b;
+        --card: rgba(8, 22, 31, 0.78);
+        --card-strong: rgba(12, 28, 40, 0.90);
+        --border: rgba(255,255,255,0.10);
+        --border-strong: rgba(255,255,255,0.18);
+        --ink: #ecf6f3;
+        --ink-soft: #bfd6cf;
+        --muted: #8fb7c4;
+        --irish-green: #29b36a;
+        --gold: #d7b96b;
+        --teal: #49c5b6;
+        --blue: #7db7d9;
+        --shadow-lg: 0 24px 70px rgba(0,0,0,0.35);
+        --shadow-md: 0 12px 32px rgba(0,0,0,0.22);
+        --radius-xl: 26px;
+        --radius-lg: 20px;
+        --radius-md: 16px;
+        --max-width: 1180px;
+        --bg-shift: 0px;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+        margin: 0;
+        font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        color: var(--ink);
+        background:
+            radial-gradient(circle at top left, rgba(41,179,106,0.18), transparent 32%),
+            radial-gradient(circle at top right, rgba(73,197,182,0.14), transparent 28%),
+            radial-gradient(circle at bottom center, rgba(125,183,217,0.10), transparent 30%),
+            linear-gradient(180deg, var(--bg-soft) 0%, var(--bg) 38%, var(--bg-deep) 100%);
+        min-height: 100vh;
+        position: relative;
+        overflow-x: hidden;
+    }
+    .site-bg { position: fixed; inset: 0; z-index: 0; background-size: cover; background-position: center center; background-repeat: no-repeat; transform: translateY(var(--bg-shift)) scale(1.04); transform-origin: center center; will-change: transform; filter: saturate(0.90) brightness(0.76); }
+    body::before, body::after { content: ""; position: fixed; inset: auto; pointer-events: none; z-index: 0; filter: blur(10px); opacity: 0.55; }
+    body::before { width: 420px; height: 420px; top: -80px; left: -120px; background: radial-gradient(circle, rgba(41,179,106,0.20), transparent 70%); }
+    body::after { width: 360px; height: 360px; right: -100px; top: 180px; background: radial-gradient(circle, rgba(215,185,107,0.14), transparent 70%); }
+    .page-shell { position: relative; z-index: 1; }
+    .hero-wrap { max-width: var(--max-width); margin: 0 auto; padding: 28px 18px 10px; }
+    header.hero {
+        position: relative; overflow: hidden; padding: 42px 26px 34px; border-radius: 30px; border: 1px solid var(--border);
+        background:
+            linear-gradient(90deg, rgba(22,163,74,0.10) 0%, rgba(22,163,74,0.06) 18%, rgba(255,255,255,0.03) 38%, rgba(255,255,255,0.05) 50%, rgba(255,153,51,0.04) 68%, rgba(255,153,51,0.08) 100%),
+            linear-gradient(135deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02)),
+            linear-gradient(160deg, rgba(41,179,106,0.10), rgba(73,197,182,0.04) 45%, rgba(125,183,217,0.08));
+        box-shadow: var(--shadow-lg); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+    }
+    .hero-title-image { display: block; max-width: min(560px, 100%); width: 100%; height: auto; }
+    header.hero::before { content: ""; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.04), transparent), radial-gradient(circle at 12% 22%, rgba(22,163,74,0.10), transparent 20%), radial-gradient(circle at 88% 28%, rgba(255,153,51,0.08), transparent 22%); opacity: 0.9; }
+    .hero-kicker { display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.45rem 0.8rem; border-radius: 999px; border: 1px solid rgba(255,255,255,0.10); background: rgba(255,255,255,0.05); color: var(--ink-soft); font-size: 0.8rem; letter-spacing: 0.08em; text-transform: uppercase; }
+    .hero h1 { margin: 1rem 0 0; font-size: clamp(2.4rem, 6vw, 4.8rem); line-height: 0.96; letter-spacing: -0.03em; font-weight: 800; max-width: 10ch; text-shadow: 0 2px 18px rgba(0,0,0,0.18); }
+    .hero .subtitle { margin-top: 0.95rem; max-width: 56ch; font-size: 1.06rem; line-height: 1.6; color: var(--ink-soft); }
+    .hero-meta { display: flex; flex-wrap: wrap; gap: 0.75rem; margin-top: 1.35rem; }
+    .hero-pill { display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.7rem 0.95rem; border-radius: 999px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.08); color: var(--ink); font-size: 0.92rem; }
+    main { max-width: var(--max-width); margin: 0 auto; padding: 16px 18px 26px; display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 18px; }
+    .card { position: relative; grid-column: span 4; min-height: 220px; padding: 1.15rem 1.15rem 1.05rem; border-radius: var(--radius-xl); border: 1px solid var(--border); background: linear-gradient(180deg, rgba(255,255,255,0.045), rgba(255,255,255,0.02)), var(--card); box-shadow: var(--shadow-md); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease; overflow: hidden; }
+    .card-image-wrap { margin: 0.2rem 0 0.9rem; border-radius: 16px; overflow: hidden; border: 1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.04); }
+    .card-image { display: block; width: 100%; aspect-ratio: 16 / 9; object-fit: cover; }
+    .card:hover { transform: translateY(-4px); border-color: var(--border-strong); box-shadow: 0 20px 45px rgba(0,0,0,0.26); }
+    .card::before { content: ""; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(180deg, rgba(255,255,255,0.04), transparent 24%), radial-gradient(circle at top right, rgba(255,255,255,0.06), transparent 28%); }
+    .card::after { content: ""; position: absolute; top: 0; left: 0; width: 100%; height: 4px; background: linear-gradient(90deg, var(--irish-green), var(--teal), var(--gold)); opacity: 0.95; }
+    .card--word, .card--history, .card--did_you_know { grid-column: span 6; }
+    .card--word { background: linear-gradient(180deg, rgba(41,179,106,0.12), rgba(255,255,255,0.02)), var(--card-strong); }
+    .card--history { background: linear-gradient(180deg, rgba(215,185,107,0.10), rgba(255,255,255,0.02)), var(--card-strong); }
+    .card--did_you_know { background: linear-gradient(180deg, rgba(125,183,217,0.12), rgba(255,255,255,0.02)), var(--card-strong); }
+    .card--county, .card--irish_connection { background: linear-gradient(180deg, rgba(73,197,182,0.10), rgba(255,255,255,0.02)), var(--card); }
+    .card-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; margin-bottom: 0.85rem; }
+    .eyebrow { display: inline-flex; align-items: center; gap: 0.55rem; color: var(--muted); font-size: 0.77rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.12em; }
+    .icon-badge { flex: 0 0 auto; width: 42px; height: 42px; display: grid; place-items: center; border-radius: 14px; background: rgba(255,255,255,0.065); border: 1px solid rgba(255,255,255,0.08); font-size: 1.1rem; }
+    h2 { margin: 0; font-size: clamp(1.16rem, 2vw, 1.5rem); line-height: 1.15; letter-spacing: -0.02em; }
+    .body { margin-top: 0.35rem; color: var(--ink-soft); line-height: 1.68; font-size: 0.985rem; }
+    .body strong, .body b { color: var(--ink); }
+    .source { margin-top: 1rem; padding-top: 0.8rem; border-top: 1px solid rgba(255,255,255,0.08); font-size: 0.88rem; }
+    a { color: #8fe6cb; text-decoration: none; font-weight: 600; }
+    a:hover { text-decoration: underline; }
+    footer { max-width: var(--max-width); margin: 0 auto; padding: 10px 18px 38px; }
+    .footer-inner { text-align: center; padding: 1.15rem 1rem; border-radius: 18px; color: #9fb2bb; border: 1px solid rgba(255,255,255,0.07); background: rgba(255,255,255,0.03); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
+    @media (max-width: 980px) { .card, .card--word, .card--history, .card--did_you_know { grid-column: span 6; } }
+    @media (max-width: 720px) {
+        header.hero { padding: 34px 20px 28px; border-radius: 24px; }
+        .hero h1 { max-width: none; }
+        main { grid-template-columns: 1fr; }
+        .card, .card--word, .card--history, .card--did_you_know { grid-column: auto; min-height: unset; }
+    }
+    
+
+.df-lab-widget { display: grid; gap: 0.85rem; }
+.df-lab-intro, .df-lab-footnote { margin: 0; color: var(--ink-soft); }
+.df-lab-footnote { font-size: 0.86rem; opacity: 0.82; }
+.df-lab-shell {
+    display: grid;
+    gap: 0.85rem;
+    padding: 0.95rem;
+    border-radius: 18px;
+    border: 1px solid rgba(255,255,255,0.09);
+    background: rgba(255,255,255,0.035);
+}
+.df-lab-statrow {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+.df-lab-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.46rem 0.72rem;
+    border-radius: 999px;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.08);
+    color: var(--ink);
+    font-size: 0.84rem;
+}
+.df-lab-meta {
+    color: var(--muted);
+    font-size: 0.9rem;
+}
+.df-lab-question {
+    font-size: 1.04rem;
+    line-height: 1.55;
+    color: var(--ink);
+}
+.df-lab-options {
+    display: grid;
+    gap: 0.65rem;
+}
+.df-lab-option,
+.df-lab-ghost,
+.df-lab-primary {
+    appearance: none;
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 14px;
+    font: inherit;
+    cursor: pointer;
+    transition: transform 160ms ease, border-color 160ms ease, background 160ms ease;
+}
+.df-lab-option {
+    width: 100%;
+    padding: 0.82rem 0.9rem;
+    text-align: left;
+    color: var(--ink);
+    background: rgba(255,255,255,0.055);
+}
+.df-lab-option:hover,
+.df-lab-ghost:hover,
+.df-lab-primary:hover {
+    transform: translateY(-1px);
+    border-color: rgba(255,255,255,0.22);
+}
+.df-lab-option[disabled] {
+    cursor: default;
+    opacity: 0.95;
+}
+.df-lab-option.is-correct {
+    background: rgba(41,179,106,0.18);
+    border-color: rgba(41,179,106,0.65);
+}
+.df-lab-option.is-wrong {
+    background: rgba(215,90,90,0.18);
+    border-color: rgba(215,90,90,0.52);
+}
+.df-lab-result {
+    min-height: 1.5rem;
+    color: var(--ink-soft);
+    line-height: 1.5;
+}
+.df-lab-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.65rem;
+}
+.df-lab-ghost,
+.df-lab-primary {
+    padding: 0.7rem 0.95rem;
+}
+.df-lab-ghost {
+    color: var(--ink);
+    background: rgba(255,255,255,0.045);
+}
+.df-lab-primary {
+    color: #062016;
+    background: linear-gradient(180deg, rgba(143,230,203,0.96), rgba(118,211,183,0.96));
+    border-color: rgba(143,230,203,0.7);
+    font-weight: 700;
+}
+.df-lab-canvas-wrap {
+    display: grid;
+    gap: 0.75rem;
+}
+.df-lab-canvas {
+    width: 100%;
+    height: auto;
+    border-radius: 18px;
+    border: 1px solid rgba(255,255,255,0.10);
+    background:
+        radial-gradient(circle at top, rgba(90,140,255,0.18), transparent 32%),
+        linear-gradient(180deg, rgba(4,14,30,0.98), rgba(5,18,24,0.98));
+}
+.df-lab-help {
+    color: var(--muted);
+    font-size: 0.9rem;
+    line-height: 1.45;
+}
+.df-lab-citybar {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+.df-lab-city {
+    padding: 0.35rem 0.6rem;
+    border-radius: 999px;
+    border: 1px solid rgba(255,255,255,0.08);
+    background: rgba(255,255,255,0.045);
+    font-size: 0.8rem;
+}
+.df-lab-city.is-lost {
+    opacity: 0.45;
+    text-decoration: line-through;
+}
+@media (max-width: 720px) {
+    .df-lab-shell { padding: 0.8rem; }
+    .df-lab-question { font-size: 0.98rem; }
+}
+
+</style>
+
+</head>
+<body>
+    
+            <div class="site-bg" aria-hidden="true" style="background-image: linear-gradient(rgba(4, 12, 18, 0.58), rgba(4, 12, 18, 0.80)), url('daily_flyer/themes/irish_celtic_knot_background.jpg');"></div>
+        
+    <div class="page-shell">
+        <div class="hero-wrap">
+            <header class="hero">
+                <div class="hero-kicker">Daily Flyer • Interactive Lab</div>
+                <h1><img class="hero-title-image" src="daily_flyer/themes/irish_today_title.png" alt="Irish Today Lab ☘️"></h1>
+                <div class="subtitle">Experimental trivia, language, and arcade-style cards inside Daily Flyer</div>
+                <div class="hero-meta">
+                    <div class="hero-pill">📅 Saturday, April 11, 2026</div>
+                    <div class="hero-pill">✨ Prototype cards: quiz, Gaeilge, and microgame</div>
+                </div>
+            </header>
+        </div>
+        <main>
+            
+        <section class="card card--word">
+            <div class="card-head">
+                <div>
+                    <div class="eyebrow">Word of the Day</div>
+                    <h2>Amhrán</h2>
+                </div>
+                <div class="icon-badge" aria-hidden="true">🗣️</div>
+            </div>
+            
+            <div class="body">Pronunciation: ow-rawn<br>Song</div>
+            
+        </section>
+    
+
+        <section class="card card--history">
+            <div class="card-head">
+                <div>
+                    <div class="eyebrow">History</div>
+                    <h2>This Week in Irish History</h2>
+                </div>
+                <div class="icon-badge" aria-hidden="true">📜</div>
+            </div>
+            
+            <div class="body">1912 — The Titanic made its last port of call at Queenstown, now Cobh, around this week. That link keeps the ship closely tied to Irish maritime memory.</div>
+            <div class="source"><a href="https://en.wikipedia.org/wiki/Cobh" target="_blank" rel="noopener noreferrer">Read more</a></div>
+        </section>
+    
+
+        <section class="card card--phrase">
+            <div class="card-head">
+                <div>
+                    <div class="eyebrow">Phrase of the Day</div>
+                    <h2>Tá ocras orm.</h2>
+                </div>
+                <div class="icon-badge" aria-hidden="true">💬</div>
+            </div>
+            
+            <div class="body">Pronunciation: taw uk-rus ur-im<br>I’m hungry.</div>
+            
+        </section>
+    
+
+        <section class="card card--trivia">
+            <div class="card-head">
+                <div>
+                    <div class="eyebrow">Interactive Lab</div>
+                    <h2>Irish Trivia Challenge</h2>
+                </div>
+                <div class="icon-badge" aria-hidden="true">✨</div>
+            </div>
+            
+            <div class="body"><div class="df-lab-widget" data-lab-widget="trivia" data-lab-card-id="irish-lab-trivia" data-lab-config="{&quot;questions&quot;:[{&quot;prompt&quot;:&quot;Which Irish sport is often described as one of the fastest field games in the world?&quot;,&quot;options&quot;:[&quot;Gaelic football&quot;,&quot;Hurling&quot;,&quot;Rugby union&quot;,&quot;Rowing&quot;],&quot;answerIndex&quot;:1,&quot;explanation&quot;:&quot;Hurling is famous for combining speed, skill, and hand-eye coordination at an intense pace.&quot;},{&quot;prompt&quot;:&quot;Which Irish festival is closely linked to the deeper roots of Halloween?&quot;,&quot;options&quot;:[&quot;Bealtaine&quot;,&quot;Lughnasadh&quot;,&quot;Samhain&quot;,&quot;Bloomsday&quot;],&quot;answerIndex&quot;:2,&quot;explanation&quot;:&quot;Samhain marks the seasonal turn into winter and is often cited as a major precursor to Halloween traditions.&quot;},{&quot;prompt&quot;:&quot;What is the name of the large stadium strongly associated with Gaelic games in Dublin?&quot;,&quot;options&quot;:[&quot;Aviva Stadium&quot;,&quot;Semple Stadium&quot;,&quot;Croke Park&quot;,&quot;Pairc Ui Chaoimh&quot;],&quot;answerIndex&quot;:2,&quot;explanation&quot;:&quot;Croke Park is one of the symbolic hearts of Gaelic games and hosts the All-Ireland finals.&quot;},{&quot;prompt&quot;:&quot;Which prehistoric Irish monument is famous for its winter solstice illumination?&quot;,&quot;options&quot;:[&quot;Trim Castle&quot;,&quot;Newgrange&quot;,&quot;Glendalough&quot;,&quot;The Rock of Cashel&quot;],&quot;answerIndex&quot;:1,&quot;explanation&quot;:&quot;Newgrange is especially well known for the sunlight alignment that reaches into the passage at the winter solstice.&quot;},{&quot;prompt&quot;:&quot;Which organization founded in 1884 became central to promoting hurling and Gaelic football?&quot;,&quot;options&quot;:[&quot;IRFU&quot;,&quot;FAI&quot;,&quot;GAA&quot;,&quot;RTE&quot;],&quot;answerIndex&quot;:2,&quot;explanation&quot;:&quot;The Gaelic Athletic Association, or GAA, became one of the most important institutions in Irish sporting and cultural life.&quot;},{&quot;prompt&quot;:&quot;What does the Irish word &#x27;craic&#x27; usually refer to?&quot;,&quot;options&quot;:[&quot;A type of bread&quot;,&quot;Fun and good company&quot;,&quot;A county badge&quot;,&quot;A musical instrument&quot;],&quot;answerIndex&quot;:1,&quot;explanation&quot;:&quot;Craic usually means enjoyable talk, fun, and lively company.&quot;}]}">
+  <p class="df-lab-intro">Multiple choice, local score tracking, and a next-question loop. This is the fastest way to prove interactive cards belong on Daily Flyer.</p>
+  <div class="df-lab-mount"></div>
+  <noscript>This card has an interactive mode when JavaScript is enabled.</noscript>
+  <p class="df-lab-footnote">Scores stay in this browser via localStorage.</p>
+</div></div>
+            
+        </section>
+    
+
+        <section class="card card--word">
+            <div class="card-head">
+                <div>
+                    <div class="eyebrow">Interactive Lab</div>
+                    <h2>Gaeilge Match-Up</h2>
+                </div>
+                <div class="icon-badge" aria-hidden="true">🗣️</div>
+            </div>
+            
+            <div class="body"><div class="df-lab-widget" data-lab-widget="language_quiz" data-lab-card-id="irish-lab-language" data-lab-config="{&quot;questions&quot;:[{&quot;prompt&quot;:&quot;What does &#x27;Slán&#x27; mean?&quot;,&quot;options&quot;:[&quot;Coffee&quot;,&quot;Sea&quot;,&quot;Goodbye&quot;,&quot;A hundred thousand welcomes&quot;],&quot;answerIndex&quot;:2,&quot;meta&quot;:&quot;Pronunciation: slawn&quot;,&quot;explanation&quot;:&quot;Slán means &#x27;Goodbye&#x27;.&quot;},{&quot;prompt&quot;:&quot;What does &#x27;Dia dhuit&#x27; mean?&quot;,&quot;options&quot;:[&quot;Road&quot;,&quot;Please&quot;,&quot;New Year&quot;,&quot;Hello&quot;],&quot;answerIndex&quot;:3,&quot;meta&quot;:&quot;Pronunciation: dee-ah gwit&quot;,&quot;explanation&quot;:&quot;Dia dhuit means &#x27;Hello&#x27;.&quot;},{&quot;prompt&quot;:&quot;What does &#x27;Arán&#x27; mean?&quot;,&quot;options&quot;:[&quot;Bread&quot;,&quot;Ireland&quot;,&quot;It’s beautiful&quot;,&quot;Tea&quot;],&quot;answerIndex&quot;:0,&quot;meta&quot;:&quot;Pronunciation: uh-rawn&quot;,&quot;explanation&quot;:&quot;Arán means &#x27;Bread&#x27;.&quot;},{&quot;prompt&quot;:&quot;What does &#x27;Le do thoil&#x27; mean?&quot;,&quot;options&quot;:[&quot;Please&quot;,&quot;Home / town&quot;,&quot;Summer&quot;,&quot;Road&quot;],&quot;answerIndex&quot;:0,&quot;meta&quot;:&quot;Pronunciation: leh duh hull&quot;,&quot;explanation&quot;:&quot;Le do thoil means &#x27;Please&#x27;.&quot;},{&quot;prompt&quot;:&quot;What does &#x27;Báisteach&#x27; mean?&quot;,&quot;options&quot;:[&quot;Rain&quot;,&quot;Sun&quot;,&quot;House&quot;,&quot;Welcome&quot;],&quot;answerIndex&quot;:0,&quot;meta&quot;:&quot;Pronunciation: bawsh-chakh&quot;,&quot;explanation&quot;:&quot;Báisteach means &#x27;Rain&#x27;.&quot;}]}">
+  <p class="df-lab-intro">A lightweight Irish-language quiz driven directly from the existing WORDS pool.</p>
+  <div class="df-lab-mount"></div>
+  <noscript>This card has an interactive mode when JavaScript is enabled.</noscript>
+  <p class="df-lab-footnote">This one reuses the theme data you already have instead of needing a separate backend.</p>
+</div></div>
+            
+        </section>
+    
+
+        <section class="card card--sport">
+            <div class="card-head">
+                <div>
+                    <div class="eyebrow">Interactive Lab</div>
+                    <h2>Sky Defender</h2>
+                </div>
+                <div class="icon-badge" aria-hidden="true">🏆</div>
+            </div>
+            
+            <div class="body"><div class="df-lab-widget" data-lab-widget="sky_defender" data-lab-card-id="irish-lab-sky-defender" data-lab-config="{&quot;roundSeconds&quot;:45,&quot;spawnEverySeconds&quot;:0.8}">
+  <p class="df-lab-intro">A tiny canvas microgame to prove the platform can host more than static content.</p>
+  <div class="df-lab-mount"></div>
+  <noscript>This card has an interactive mode when JavaScript is enabled.</noscript>
+  <p class="df-lab-footnote">Experimental by design: simple shapes, simple rules, quick replay loop.</p>
+</div></div>
+            
+        </section>
+    
+
+        <section class="card card--did_you_know">
+            <div class="card-head">
+                <div>
+                    <div class="eyebrow">Irish Fact</div>
+                    <h2>Still here for the static cards</h2>
+                </div>
+                <div class="icon-badge" aria-hidden="true">💡</div>
+            </div>
+            
+            <div class="body">Dublin began as a Viking settlement before becoming Ireland’s largest city. Its origins as a trading port shaped its long-term political and economic importance.</div>
+            
+        </section>
+    
+
+        <section class="card card--sport">
+            <div class="card-head">
+                <div>
+                    <div class="eyebrow">Sports Spotlight</div>
+                    <h2>Today&#x27;s Pick</h2>
+                </div>
+                <div class="icon-badge" aria-hidden="true">🏆</div>
+            </div>
+            
+            <div class="body">Shamrock Rovers are widely recognized as the most successful club in the Republic of Ireland. Their history includes a record haul of League of Ireland titles and a long-standing place in Dublin football culture.</div>
+            
+        </section>
+    
+        </main>
+        <footer>
+            <div class="footer-inner">Experimental Daily Flyer branch — interactive card lab for Irish Today.</div>
+        </footer>
+    </div>
+    <script>
+    (function () {
+        const root = document.documentElement;
+        function updateParallax() {
+            const y = Math.min(window.scrollY * 0.10, 36);
+            root.style.setProperty("--bg-shift", `${y}px`);
+        }
+        updateParallax();
+        window.addEventListener("scroll", updateParallax, { passive: true });
+    })();
+    </script>
+    <script>
+(function () {
+    const STORAGE_PREFIX = "dailyflyer:interactive-lab:";
+
+    function escapeHtml(value) {
+        return String(value ?? "")
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/\"/g, "&quot;")
+            .replace(/'/g, "&#39;");
+    }
+
+    function parseConfig(el) {
+        try {
+            return JSON.parse(el.dataset.labConfig || "{}");
+        } catch (error) {
+            console.error("Invalid interactive card config", error, el);
+            return {};
+        }
+    }
+
+    function readState(cardId, fallback) {
+        try {
+            const raw = localStorage.getItem(STORAGE_PREFIX + cardId);
+            return Object.assign({}, fallback, raw ? JSON.parse(raw) : {});
+        } catch (error) {
+            return Object.assign({}, fallback);
+        }
+    }
+
+    function writeState(cardId, state) {
+        try {
+            localStorage.setItem(STORAGE_PREFIX + cardId, JSON.stringify(state));
+        } catch (error) {
+            console.warn("Could not persist interactive card state", error);
+        }
+    }
+
+    function mountQuizCard(widgetEl, flavorLabel) {
+        const mount = widgetEl.querySelector(".df-lab-mount");
+        const config = parseConfig(widgetEl);
+        const questions = Array.isArray(config.questions) ? config.questions : [];
+        const cardId = widgetEl.dataset.labCardId || flavorLabel;
+
+        if (!mount || !questions.length) {
+            if (mount) {
+                mount.innerHTML = "<div class=\"df-lab-result\">No questions were configured for this card yet.</div>";
+            }
+            return;
+        }
+
+        const state = readState(cardId, {
+            position: 0,
+            asked: 0,
+            correct: 0,
+            streak: 0,
+            bestStreak: 0
+        });
+
+        let locked = false;
+
+        function currentQuestion() {
+            return questions[state.position % questions.length];
+        }
+
+        function renderQuestion() {
+            const question = currentQuestion();
+            locked = false;
+
+            mount.innerHTML = `
+                <div class="df-lab-shell">
+                    <div class="df-lab-statrow">
+                        <div class="df-lab-pill">Asked: ${state.asked}</div>
+                        <div class="df-lab-pill">Correct: ${state.correct}</div>
+                        <div class="df-lab-pill">Streak: ${state.streak}</div>
+                        <div class="df-lab-pill">Best: ${state.bestStreak}</div>
+                    </div>
+                    ${question.meta ? `<div class="df-lab-meta">${escapeHtml(question.meta)}</div>` : ""}
+                    <div class="df-lab-question">${escapeHtml(question.prompt || "Question")}</div>
+                    <div class="df-lab-options"></div>
+                    <div class="df-lab-result" aria-live="polite"></div>
+                    <div class="df-lab-actions">
+                        <button class="df-lab-ghost" type="button" data-action="next">Next prompt</button>
+                        <button class="df-lab-ghost" type="button" data-action="reset">Reset stats</button>
+                    </div>
+                </div>
+            `;
+
+            const optionsWrap = mount.querySelector(".df-lab-options");
+            const resultEl = mount.querySelector(".df-lab-result");
+
+            (question.options || []).forEach((optionText, index) => {
+                const button = document.createElement("button");
+                button.type = "button";
+                button.className = "df-lab-option";
+                button.innerHTML = escapeHtml(optionText);
+                button.addEventListener("click", function () {
+                    if (locked) {
+                        return;
+                    }
+                    locked = true;
+
+                    const isCorrect = index === question.answerIndex;
+                    state.asked += 1;
+                    if (isCorrect) {
+                        state.correct += 1;
+                        state.streak += 1;
+                        state.bestStreak = Math.max(state.bestStreak, state.streak);
+                    } else {
+                        state.streak = 0;
+                    }
+                    writeState(cardId, state);
+
+                    optionsWrap.querySelectorAll(".df-lab-option").forEach((optionButton, optionIndex) => {
+                        optionButton.disabled = true;
+                        if (optionIndex === question.answerIndex) {
+                            optionButton.classList.add("is-correct");
+                        } else if (optionIndex === index) {
+                            optionButton.classList.add("is-wrong");
+                        }
+                    });
+
+                    const lead = isCorrect ? "Correct." : "Not quite.";
+                    const explanation = question.explanation ? ` ${escapeHtml(question.explanation)}` : "";
+                    resultEl.innerHTML = `${lead}${explanation}`;
+
+                    mount.querySelector(".df-lab-statrow").innerHTML = `
+                        <div class="df-lab-pill">Asked: ${state.asked}</div>
+                        <div class="df-lab-pill">Correct: ${state.correct}</div>
+                        <div class="df-lab-pill">Streak: ${state.streak}</div>
+                        <div class="df-lab-pill">Best: ${state.bestStreak}</div>
+                    `;
+                });
+                optionsWrap.appendChild(button);
+            });
+
+            mount.querySelector('[data-action="next"]').addEventListener("click", function () {
+                state.position = (state.position + 1) % questions.length;
+                writeState(cardId, state);
+                renderQuestion();
+            });
+
+            mount.querySelector('[data-action="reset"]').addEventListener("click", function () {
+                state.position = 0;
+                state.asked = 0;
+                state.correct = 0;
+                state.streak = 0;
+                state.bestStreak = 0;
+                writeState(cardId, state);
+                renderQuestion();
+            });
+        }
+
+        renderQuestion();
+    }
+
+    function mountSkyDefender(widgetEl) {
+        const mount = widgetEl.querySelector(".df-lab-mount");
+        const config = parseConfig(widgetEl);
+        const cardId = widgetEl.dataset.labCardId || "sky-defender";
+
+        if (!mount) {
+            return;
+        }
+
+        const stored = readState(cardId, { bestScore: 0 });
+
+        mount.innerHTML = `
+            <div class="df-lab-shell">
+                <div class="df-lab-statrow">
+                    <div class="df-lab-pill" data-stat="score">Score: 0</div>
+                    <div class="df-lab-pill" data-stat="time">Time: 45s</div>
+                    <div class="df-lab-pill" data-stat="best">Best: ${stored.bestScore}</div>
+                </div>
+                <div class="df-lab-canvas-wrap">
+                    <canvas class="df-lab-canvas" width="340" height="220"></canvas>
+                    <div class="df-lab-citybar" data-citybar></div>
+                    <div class="df-lab-help">Click or tap inside the radar screen to trigger a defensive blast. Keep at least one city standing until the timer expires.</div>
+                    <div class="df-lab-actions">
+                        <button class="df-lab-primary" type="button" data-action="start">Start round</button>
+                        <button class="df-lab-ghost" type="button" data-action="reset">Reset best</button>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        const canvas = mount.querySelector("canvas");
+        const ctx = canvas.getContext("2d");
+        const scoreEl = mount.querySelector('[data-stat="score"]');
+        const timeEl = mount.querySelector('[data-stat="time"]');
+        const bestEl = mount.querySelector('[data-stat="best"]');
+        const cityBar = mount.querySelector("[data-citybar]");
+        const startButton = mount.querySelector('[data-action="start"]');
+        const resetButton = mount.querySelector('[data-action="reset"]');
+
+        const game = {
+            running: false,
+            lastFrame: 0,
+            spawnClock: 0,
+            score: 0,
+            timeLeft: Number(config.roundSeconds || 45),
+            bestScore: stored.bestScore || 0,
+            missiles: [],
+            explosions: [],
+            cities: [],
+            animationId: 0,
+        };
+
+        function freshCities() {
+            return [
+                { name: "West", x: 55, alive: true },
+                { name: "Mid", x: 170, alive: true },
+                { name: "East", x: 285, alive: true }
+            ];
+        }
+
+        function renderCityBar() {
+            cityBar.innerHTML = game.cities.map((city) => `
+                <div class="df-lab-city ${city.alive ? "" : "is-lost"}">${city.name}</div>
+            `).join("");
+        }
+
+        function updateHud() {
+            scoreEl.textContent = `Score: ${game.score}`;
+            timeEl.textContent = `Time: ${Math.max(0, Math.ceil(game.timeLeft))}s`;
+            bestEl.textContent = `Best: ${game.bestScore}`;
+            renderCityBar();
+        }
+
+        function startGame() {
+            game.running = true;
+            game.lastFrame = 0;
+            game.spawnClock = 0;
+            game.score = 0;
+            game.timeLeft = Number(config.roundSeconds || 45);
+            game.missiles = [];
+            game.explosions = [];
+            game.cities = freshCities();
+            startButton.textContent = "Restart round";
+            updateHud();
+            cancelAnimationFrame(game.animationId);
+            game.animationId = requestAnimationFrame(loop);
+        }
+
+        function finishGame() {
+            game.running = false;
+            if (game.score > game.bestScore) {
+                game.bestScore = game.score;
+                writeState(cardId, { bestScore: game.bestScore });
+            }
+            updateHud();
+            startButton.textContent = "Play again";
+        }
+
+        function addExplosion(x, y) {
+            game.explosions.push({ x, y, r: 6, max: 34, alive: true });
+        }
+
+        function spawnMissile() {
+            const livingCities = game.cities.filter((city) => city.alive);
+            if (!livingCities.length) {
+                return;
+            }
+            const target = livingCities[Math.floor(Math.random() * livingCities.length)];
+            const startX = 18 + Math.random() * (canvas.width - 36);
+            const speed = 28 + Math.random() * 28;
+            const angle = Math.atan2(canvas.height - 26, target.x - startX);
+            game.missiles.push({
+                x: startX,
+                y: -8,
+                vx: Math.cos(angle) * (speed * 0.2),
+                vy: Math.max(18, Math.sin(angle) * speed),
+                targetX: target.x
+            });
+        }
+
+        function loseCity(nearX) {
+            let closest = null;
+            let bestDistance = Infinity;
+            game.cities.forEach((city) => {
+                if (!city.alive) {
+                    return;
+                }
+                const distance = Math.abs(city.x - nearX);
+                if (distance < bestDistance) {
+                    bestDistance = distance;
+                    closest = city;
+                }
+            });
+            if (closest) {
+                closest.alive = false;
+            }
+        }
+
+        function update(dt) {
+            if (!game.running) {
+                return;
+            }
+
+            game.timeLeft -= dt;
+            if (game.timeLeft <= 0) {
+                game.timeLeft = 0;
+                finishGame();
+                return;
+            }
+
+            game.spawnClock += dt;
+            const spawnEvery = Number(config.spawnEverySeconds || 0.8);
+            while (game.spawnClock >= spawnEvery) {
+                game.spawnClock -= spawnEvery;
+                spawnMissile();
+            }
+
+            game.missiles.forEach((missile) => {
+                missile.x += missile.vx * dt;
+                missile.y += missile.vy * dt;
+            });
+
+            game.explosions.forEach((explosion) => {
+                explosion.r += 52 * dt;
+                if (explosion.r >= explosion.max) {
+                    explosion.alive = false;
+                }
+            });
+
+            game.missiles = game.missiles.filter((missile) => {
+                let destroyed = false;
+
+                game.explosions.forEach((explosion) => {
+                    if (!explosion.alive || destroyed) {
+                        return;
+                    }
+                    const dx = missile.x - explosion.x;
+                    const dy = missile.y - explosion.y;
+                    if ((dx * dx) + (dy * dy) <= explosion.r * explosion.r) {
+                        destroyed = true;
+                        game.score += 1;
+                    }
+                });
+
+                if (destroyed) {
+                    return false;
+                }
+
+                if (missile.y >= canvas.height - 24) {
+                    loseCity(missile.x);
+                    if (!game.cities.some((city) => city.alive)) {
+                        finishGame();
+                    }
+                    return false;
+                }
+
+                return true;
+            });
+
+            game.explosions = game.explosions.filter((explosion) => explosion.alive);
+            updateHud();
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+
+            ctx.fillStyle = "rgba(6, 18, 28, 0.88)";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+
+            ctx.strokeStyle = "rgba(143, 230, 203, 0.12)";
+            ctx.lineWidth = 1;
+            for (let y = 22; y < canvas.height; y += 22) {
+                ctx.beginPath();
+                ctx.moveTo(0, y);
+                ctx.lineTo(canvas.width, y);
+                ctx.stroke();
+            }
+
+            ctx.fillStyle = "rgba(92, 201, 161, 0.88)";
+            game.cities.forEach((city) => {
+                ctx.globalAlpha = city.alive ? 1 : 0.28;
+                ctx.fillRect(city.x - 16, canvas.height - 18, 32, 10);
+            });
+            ctx.globalAlpha = 1;
+
+            ctx.fillStyle = "rgba(255, 214, 102, 0.96)";
+            game.missiles.forEach((missile) => {
+                ctx.beginPath();
+                ctx.arc(missile.x, missile.y, 3, 0, Math.PI * 2);
+                ctx.fill();
+                ctx.strokeStyle = "rgba(255, 214, 102, 0.25)";
+                ctx.beginPath();
+                ctx.moveTo(missile.x, missile.y);
+                ctx.lineTo(missile.x - missile.vx * 0.22, missile.y - missile.vy * 0.22);
+                ctx.stroke();
+            });
+
+            game.explosions.forEach((explosion) => {
+                ctx.strokeStyle = "rgba(143, 230, 203, 0.90)";
+                ctx.lineWidth = 2;
+                ctx.beginPath();
+                ctx.arc(explosion.x, explosion.y, explosion.r, 0, Math.PI * 2);
+                ctx.stroke();
+            });
+
+            ctx.fillStyle = "rgba(255,255,255,0.7)";
+            ctx.font = "12px system-ui, sans-serif";
+            ctx.fillText("SKY DEFENDER // experimental microgame", 12, 18);
+        }
+
+        function loop(timestamp) {
+            if (!game.running) {
+                draw();
+                return;
+            }
+
+            if (!game.lastFrame) {
+                game.lastFrame = timestamp;
+            }
+            const dt = Math.min(0.033, (timestamp - game.lastFrame) / 1000);
+            game.lastFrame = timestamp;
+
+            update(dt);
+            draw();
+
+            if (game.running) {
+                game.animationId = requestAnimationFrame(loop);
+            }
+        }
+
+        canvas.addEventListener("pointerdown", function (event) {
+            if (!game.running) {
+                return;
+            }
+            const bounds = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / bounds.width;
+            const scaleY = canvas.height / bounds.height;
+            const x = (event.clientX - bounds.left) * scaleX;
+            const y = (event.clientY - bounds.top) * scaleY;
+            addExplosion(x, y);
+        });
+
+        document.addEventListener("visibilitychange", function () {
+            if (document.hidden && game.running) {
+                game.running = false;
+                startButton.textContent = "Resume round";
+            }
+        });
+
+        startButton.addEventListener("click", function () {
+            if (startButton.textContent === "Resume round" && !game.running) {
+                game.running = true;
+                game.lastFrame = 0;
+                startButton.textContent = "Restart round";
+                game.animationId = requestAnimationFrame(loop);
+                return;
+            }
+            startGame();
+        });
+
+        resetButton.addEventListener("click", function () {
+            game.bestScore = 0;
+            writeState(cardId, { bestScore: 0 });
+            updateHud();
+        });
+
+        game.cities = freshCities();
+        updateHud();
+        draw();
+    }
+
+    function boot() {
+        document.querySelectorAll(".df-lab-widget").forEach(function (widgetEl) {
+            const widgetType = widgetEl.dataset.labWidget;
+            if (widgetType === "trivia") {
+                mountQuizCard(widgetEl, "trivia");
+            } else if (widgetType === "language_quiz") {
+                mountQuizCard(widgetEl, "language");
+            } else if (widgetType === "sky_defender") {
+                mountSkyDefender(widgetEl);
+            }
+        });
+    }
+
+    if (document.readyState === "loading") {
+        document.addEventListener("DOMContentLoaded", boot);
+    } else {
+        boot();
+    }
+})();
+</script>
+</body>
+</html>

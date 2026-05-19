@@ -1,0 +1,1291 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Irish Today Showcase — Interactive cards</title>
+<meta name="viewport" content="width=device-width, initial-scale=1" />
+<style>
+    :root {
+        --bg: #07131c;
+        --bg-deep: #041018;
+        --bg-soft: #0b1f2b;
+        --card: rgba(8, 22, 31, 0.78);
+        --card-strong: rgba(12, 28, 40, 0.90);
+        --border: rgba(255,255,255,0.10);
+        --border-strong: rgba(255,255,255,0.18);
+        --ink: #ecf6f3;
+        --ink-soft: #bfd6cf;
+        --muted: #8fb7c4;
+        --irish-green: #29b36a;
+        --gold: #d7b96b;
+        --teal: #49c5b6;
+        --blue: #7db7d9;
+        --shadow-lg: 0 24px 70px rgba(0,0,0,0.35);
+        --shadow-md: 0 12px 32px rgba(0,0,0,0.22);
+        --radius-xl: 26px;
+        --radius-lg: 20px;
+        --radius-md: 16px;
+        --max-width: 1180px;
+        --bg-shift: 0px;
+    }
+    * { box-sizing: border-box; }
+    html { scroll-behavior: smooth; }
+    body {
+        margin: 0;
+        font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+        color: var(--ink);
+        background:
+            radial-gradient(circle at top left, rgba(41,179,106,0.18), transparent 32%),
+            radial-gradient(circle at top right, rgba(73,197,182,0.14), transparent 28%),
+            radial-gradient(circle at bottom center, rgba(125,183,217,0.10), transparent 30%),
+            linear-gradient(180deg, var(--bg-soft) 0%, var(--bg) 38%, var(--bg-deep) 100%);
+        min-height: 100vh;
+        position: relative;
+        overflow-x: hidden;
+    }
+    .site-bg { position: fixed; inset: 0; z-index: 0; background-size: cover; background-position: center center; background-repeat: no-repeat; transform: translateY(var(--bg-shift)) scale(1.04); transform-origin: center center; will-change: transform; filter: saturate(0.90) brightness(0.76); }
+    body::before, body::after { content: ""; position: fixed; inset: auto; pointer-events: none; z-index: 0; filter: blur(10px); opacity: 0.55; }
+    body::before { width: 420px; height: 420px; top: -80px; left: -120px; background: radial-gradient(circle, rgba(41,179,106,0.20), transparent 70%); }
+    body::after { width: 360px; height: 360px; right: -100px; top: 180px; background: radial-gradient(circle, rgba(215,185,107,0.14), transparent 70%); }
+    .page-shell { position: relative; z-index: 1; }
+    .hero-wrap { max-width: var(--max-width); margin: 0 auto; padding: 28px 18px 10px; }
+    header.hero {
+        position: relative; overflow: hidden; padding: 42px 26px 34px; border-radius: 30px; border: 1px solid var(--border);
+        background:
+            linear-gradient(90deg, rgba(22,163,74,0.10) 0%, rgba(22,163,74,0.06) 18%, rgba(255,255,255,0.03) 38%, rgba(255,255,255,0.05) 50%, rgba(255,153,51,0.04) 68%, rgba(255,153,51,0.08) 100%),
+            linear-gradient(135deg, rgba(255,255,255,0.05), rgba(255,255,255,0.02)),
+            linear-gradient(160deg, rgba(41,179,106,0.10), rgba(73,197,182,0.04) 45%, rgba(125,183,217,0.08));
+        box-shadow: var(--shadow-lg); backdrop-filter: blur(12px); -webkit-backdrop-filter: blur(12px);
+    }
+    .hero-title-image { display: block; max-width: min(560px, 100%); width: 100%; height: auto; }
+    header.hero::before { content: ""; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(90deg, transparent, rgba(255,255,255,0.04), transparent), radial-gradient(circle at 12% 22%, rgba(22,163,74,0.10), transparent 20%), radial-gradient(circle at 88% 28%, rgba(255,153,51,0.08), transparent 22%); opacity: 0.9; }
+    .hero-kicker { display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.45rem 0.8rem; border-radius: 999px; border: 1px solid rgba(255,255,255,0.10); background: rgba(255,255,255,0.05); color: var(--ink-soft); font-size: 0.8rem; letter-spacing: 0.08em; text-transform: uppercase; }
+    .hero h1 { margin: 1rem 0 0; font-size: clamp(2.4rem, 6vw, 4.8rem); line-height: 0.96; letter-spacing: -0.03em; font-weight: 800; max-width: 10ch; text-shadow: 0 2px 18px rgba(0,0,0,0.18); }
+    .hero .subtitle { margin-top: 0.95rem; max-width: 56ch; font-size: 1.06rem; line-height: 1.6; color: var(--ink-soft); }
+    .hero-meta { display: flex; flex-wrap: wrap; gap: 0.75rem; margin-top: 1.35rem; }
+    .hero-pill { display: inline-flex; align-items: center; gap: 0.5rem; padding: 0.7rem 0.95rem; border-radius: 999px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.08); color: var(--ink); font-size: 0.92rem; }
+    main { max-width: var(--max-width); margin: 0 auto; padding: 16px 18px 26px; display: grid; grid-template-columns: repeat(12, minmax(0, 1fr)); gap: 18px; }
+    .card { position: relative; grid-column: span 4; min-height: 220px; padding: 1.15rem 1.15rem 1.05rem; border-radius: var(--radius-xl); border: 1px solid var(--border); background: linear-gradient(180deg, rgba(255,255,255,0.045), rgba(255,255,255,0.02)), var(--card); box-shadow: var(--shadow-md); backdrop-filter: blur(10px); -webkit-backdrop-filter: blur(10px); transition: transform 180ms ease, border-color 180ms ease, box-shadow 180ms ease; overflow: hidden; }
+    .card-image-wrap { margin: 0.2rem 0 0.9rem; border-radius: 16px; overflow: hidden; border: 1px solid rgba(255,255,255,0.08); background: rgba(255,255,255,0.04); }
+    .card-image { display: block; width: 100%; aspect-ratio: 16 / 9; object-fit: cover; }
+    .card:hover { transform: translateY(-4px); border-color: var(--border-strong); box-shadow: 0 20px 45px rgba(0,0,0,0.26); }
+    .card::before { content: ""; position: absolute; inset: 0; pointer-events: none; background: linear-gradient(180deg, rgba(255,255,255,0.04), transparent 24%), radial-gradient(circle at top right, rgba(255,255,255,0.06), transparent 28%); }
+    .card::after { content: ""; position: absolute; top: 0; left: 0; width: 100%; height: 4px; background: linear-gradient(90deg, var(--irish-green), var(--teal), var(--gold)); opacity: 0.95; }
+    .card--word, .card--history, .card--did_you_know { grid-column: span 6; }
+    .card--word { background: linear-gradient(180deg, rgba(41,179,106,0.12), rgba(255,255,255,0.02)), var(--card-strong); }
+    .card--history { background: linear-gradient(180deg, rgba(215,185,107,0.10), rgba(255,255,255,0.02)), var(--card-strong); }
+    .card--did_you_know { background: linear-gradient(180deg, rgba(125,183,217,0.12), rgba(255,255,255,0.02)), var(--card-strong); }
+    .card--county, .card--irish_connection { background: linear-gradient(180deg, rgba(73,197,182,0.10), rgba(255,255,255,0.02)), var(--card); }
+    .card-head { display: flex; align-items: flex-start; justify-content: space-between; gap: 1rem; margin-bottom: 0.85rem; }
+    .eyebrow { display: inline-flex; align-items: center; gap: 0.55rem; color: var(--muted); font-size: 0.77rem; font-weight: 700; text-transform: uppercase; letter-spacing: 0.12em; }
+    .icon-badge { flex: 0 0 auto; width: 42px; height: 42px; display: grid; place-items: center; border-radius: 14px; background: rgba(255,255,255,0.065); border: 1px solid rgba(255,255,255,0.08); font-size: 1.1rem; }
+    h2 { margin: 0; font-size: clamp(1.16rem, 2vw, 1.5rem); line-height: 1.15; letter-spacing: -0.02em; }
+    .body { margin-top: 0.35rem; color: var(--ink-soft); line-height: 1.68; font-size: 0.985rem; }
+    .body strong, .body b { color: var(--ink); }
+    .source { margin-top: 1rem; padding-top: 0.8rem; border-top: 1px solid rgba(255,255,255,0.08); font-size: 0.88rem; }
+    a { color: #8fe6cb; text-decoration: none; font-weight: 600; }
+    a:hover { text-decoration: underline; }
+    footer { max-width: var(--max-width); margin: 0 auto; padding: 10px 18px 38px; }
+    .footer-inner { text-align: center; padding: 1.15rem 1rem; border-radius: 18px; color: #9fb2bb; border: 1px solid rgba(255,255,255,0.07); background: rgba(255,255,255,0.03); backdrop-filter: blur(8px); -webkit-backdrop-filter: blur(8px); }
+    @media (max-width: 980px) { .card, .card--word, .card--history, .card--did_you_know { grid-column: span 6; } }
+    @media (max-width: 720px) {
+        header.hero { padding: 34px 20px 28px; border-radius: 24px; }
+        .hero h1 { max-width: none; }
+        main { grid-template-columns: 1fr; }
+        .card, .card--word, .card--history, .card--did_you_know { grid-column: auto; min-height: unset; }
+    }
+    
+
+.df-lab-widget { display: grid; gap: 0.85rem; }
+.df-lab-intro, .df-lab-footnote { margin: 0; color: var(--ink-soft); }
+.df-lab-footnote { font-size: 0.86rem; opacity: 0.82; }
+.df-lab-shell {
+    display: grid;
+    gap: 0.85rem;
+    padding: 0.95rem;
+    border-radius: 18px;
+    border: 1px solid rgba(255,255,255,0.09);
+    background: rgba(255,255,255,0.035);
+}
+.df-lab-statrow {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+.df-lab-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: 0.35rem;
+    padding: 0.46rem 0.72rem;
+    border-radius: 999px;
+    background: rgba(255,255,255,0.06);
+    border: 1px solid rgba(255,255,255,0.08);
+    color: var(--ink);
+    font-size: 0.84rem;
+}
+.df-lab-meta {
+    color: var(--muted);
+    font-size: 0.9rem;
+}
+.df-lab-question {
+    font-size: 1.04rem;
+    line-height: 1.55;
+    color: var(--ink);
+}
+.df-lab-options,
+.df-lab-grid,
+.df-lab-wordbank {
+    display: grid;
+    gap: 0.65rem;
+}
+.df-lab-grid--two {
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+}
+.df-lab-option,
+.df-lab-ghost,
+.df-lab-primary,
+.df-lab-chip,
+.df-lab-stack-btn,
+.df-lab-tile,
+.df-lab-clue-btn {
+    appearance: none;
+    border: 1px solid rgba(255,255,255,0.12);
+    border-radius: 14px;
+    font: inherit;
+    cursor: pointer;
+    transition: transform 160ms ease, border-color 160ms ease, background 160ms ease, opacity 160ms ease;
+}
+.df-lab-option {
+    width: 100%;
+    padding: 0.82rem 0.9rem;
+    text-align: left;
+    color: var(--ink);
+    background: rgba(255,255,255,0.055);
+}
+.df-lab-option:hover,
+.df-lab-ghost:hover,
+.df-lab-primary:hover,
+.df-lab-chip:hover,
+.df-lab-stack-btn:hover,
+.df-lab-tile:hover,
+.df-lab-clue-btn:hover {
+    transform: translateY(-1px);
+    border-color: rgba(255,255,255,0.22);
+}
+.df-lab-option[disabled],
+.df-lab-chip[disabled],
+.df-lab-tile[disabled] {
+    cursor: default;
+    opacity: 0.95;
+}
+.df-lab-option.is-correct,
+.df-lab-chip.is-correct,
+.df-lab-stack-btn.is-correct {
+    background: rgba(41,179,106,0.18);
+    border-color: rgba(41,179,106,0.65);
+}
+.df-lab-option.is-wrong,
+.df-lab-chip.is-wrong,
+.df-lab-stack-btn.is-wrong {
+    background: rgba(215,90,90,0.18);
+    border-color: rgba(215,90,90,0.52);
+}
+.df-lab-result {
+    min-height: 1.5rem;
+    color: var(--ink-soft);
+    line-height: 1.5;
+}
+.df-lab-actions {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.65rem;
+}
+.df-lab-ghost,
+.df-lab-primary,
+.df-lab-clue-btn {
+    padding: 0.7rem 0.95rem;
+}
+.df-lab-ghost,
+.df-lab-clue-btn {
+    color: var(--ink);
+    background: rgba(255,255,255,0.045);
+}
+.df-lab-primary {
+    color: #062016;
+    background: linear-gradient(180deg, rgba(143,230,203,0.96), rgba(118,211,183,0.96));
+    border-color: rgba(143,230,203,0.7);
+    font-weight: 700;
+}
+.df-lab-canvas-wrap {
+    display: grid;
+    gap: 0.75rem;
+}
+.df-lab-canvas {
+    width: 100%;
+    height: auto;
+    border-radius: 18px;
+    border: 1px solid rgba(255,255,255,0.10);
+    background:
+        radial-gradient(circle at top, rgba(90,140,255,0.18), transparent 32%),
+        linear-gradient(180deg, rgba(4,14,30,0.98), rgba(5,18,24,0.98));
+}
+.df-lab-help {
+    color: var(--muted);
+    font-size: 0.9rem;
+    line-height: 1.45;
+}
+.df-lab-clue-list,
+.df-lab-answer-line {
+    display: flex;
+    flex-wrap: wrap;
+    gap: 0.5rem;
+}
+.df-lab-clue-list {
+    flex-direction: column;
+    gap: 0.45rem;
+}
+.df-lab-clue-chip {
+    padding: 0.42rem 0.65rem;
+    border-radius: 12px;
+    border: 1px solid rgba(255,255,255,0.08);
+    background: rgba(255,255,255,0.045);
+    font-size: 0.88rem;
+    line-height: 1.45;
+}
+.df-lab-clue-chip.is-hidden {
+    opacity: 0.55;
+}
+.df-lab-stack-item {
+    display: grid;
+    grid-template-columns: 1fr auto;
+    gap: 0.55rem;
+    align-items: center;
+    padding: 0.75rem 0.8rem;
+    border-radius: 14px;
+    border: 1px solid rgba(255,255,255,0.08);
+    background: rgba(255,255,255,0.045);
+}
+.df-lab-stack-controls {
+    display: flex;
+    gap: 0.4rem;
+}
+.df-lab-stack-btn {
+    padding: 0.45rem 0.6rem;
+    background: rgba(255,255,255,0.04);
+    color: var(--ink);
+}
+.df-lab-tile {
+    min-height: 78px;
+    display: grid;
+    place-items: center;
+    padding: 0.8rem;
+    text-align: center;
+    color: var(--ink);
+    background: rgba(255,255,255,0.05);
+}
+.df-lab-tile.is-hidden {
+    background: rgba(255,255,255,0.03);
+    color: transparent;
+}
+.df-lab-tile.is-open {
+    background: rgba(125,183,217,0.18);
+    border-color: rgba(125,183,217,0.5);
+}
+.df-lab-tile.is-matched {
+    background: rgba(41,179,106,0.18);
+    border-color: rgba(41,179,106,0.55);
+}
+.df-lab-chip {
+    padding: 0.62rem 0.78rem;
+    color: var(--ink);
+    background: rgba(255,255,255,0.055);
+}
+.df-lab-chip.is-used {
+    opacity: 0.45;
+    cursor: default;
+}
+.df-lab-answer-slot {
+    min-height: 46px;
+    min-width: 90px;
+    padding: 0.55rem 0.7rem;
+    border-radius: 12px;
+    border: 1px dashed rgba(255,255,255,0.18);
+    background: rgba(255,255,255,0.03);
+    color: var(--ink-soft);
+}
+@media (max-width: 720px) {
+    .df-lab-shell { padding: 0.8rem; }
+    .df-lab-question { font-size: 0.98rem; }
+    .df-lab-grid--two { grid-template-columns: 1fr; }
+}
+
+</style>
+
+</head>
+<body>
+    
+            <div class="site-bg" aria-hidden="true" style="background-image: linear-gradient(rgba(4, 12, 18, 0.58), rgba(4, 12, 18, 0.80)), url('daily_flyer/themes/irish_misty_hills_background.jpg');"></div>
+        
+    <div class="page-shell">
+        <div class="hero-wrap">
+            <header class="hero">
+                <div class="hero-kicker">Daily Flyer • Interactive Showcase</div>
+                <h1><img class="hero-title-image" src="daily_flyer/themes/irish_today_title.png" alt="Irish Today Showcase ☘️"></h1>
+                <div class="subtitle">Trivia, language drills, clue ladders, memory, and playful micro-interactions inside Daily Flyer</div>
+                <div class="hero-meta">
+                    <div class="hero-pill">📅 Monday, April 13, 2026</div>
+                    <div class="hero-pill">✨ Trivia, Gaeilge, Fly Swatter, county clues, history order, memory, and phrase building</div>
+                </div>
+            </header>
+        </div>
+        <main>
+            
+        <section class="card card--word">
+            <div class="card-head">
+                <div>
+                    <div class="eyebrow">Word of the Day</div>
+                    <h2>Uisce</h2>
+                </div>
+                <div class="icon-badge" aria-hidden="true">🗣️</div>
+            </div>
+            
+            <div class="body">Pronunciation: ish-ka<br>Water</div>
+            
+        </section>
+    
+
+        <section class="card card--history">
+            <div class="card-head">
+                <div>
+                    <div class="eyebrow">History</div>
+                    <h2>This Week in Irish History</h2>
+                </div>
+                <div class="icon-badge" aria-hidden="true">📜</div>
+            </div>
+            
+            <div class="body">This week is associated with the births of major Irish Nobel laureates. Samuel Beckett was born on 13 April 1906, and Seamus Heaney was born on 13 April 1939.</div>
+            <div class="source"><a href="https://en.wikipedia.org/wiki/Samuel_Beckett" target="_blank" rel="noopener noreferrer">Read more</a></div>
+        </section>
+    
+
+        <section class="card card--phrase">
+            <div class="card-head">
+                <div>
+                    <div class="eyebrow">Phrase of the Day</div>
+                    <h2>Ádh mór!</h2>
+                </div>
+                <div class="icon-badge" aria-hidden="true">💬</div>
+            </div>
+            
+            <div class="body">Pronunciation: aww more<br>Good luck!</div>
+            
+        </section>
+    
+
+        <section class="card card--trivia">
+            <div class="card-head">
+                <div>
+                    <div class="eyebrow">Interactive Lab</div>
+                    <h2>Irish Trivia Challenge</h2>
+                </div>
+                <div class="icon-badge" aria-hidden="true">✨</div>
+            </div>
+            
+            <div class="body"><div class="df-lab-widget" data-lab-widget="trivia" data-lab-card-id="irish-showcase-trivia" data-lab-config="{&quot;questions&quot;:[{&quot;prompt&quot;:&quot;Which Irish sport is often described as one of the fastest field games in the world?&quot;,&quot;options&quot;:[&quot;Gaelic football&quot;,&quot;Hurling&quot;,&quot;Rugby union&quot;,&quot;Rowing&quot;],&quot;answerIndex&quot;:1,&quot;explanation&quot;:&quot;Hurling is famous for combining speed, skill, and hand-eye coordination at an intense pace.&quot;},{&quot;prompt&quot;:&quot;Which Irish festival is closely linked to the deeper roots of Halloween?&quot;,&quot;options&quot;:[&quot;Bealtaine&quot;,&quot;Lughnasadh&quot;,&quot;Samhain&quot;,&quot;Bloomsday&quot;],&quot;answerIndex&quot;:2,&quot;explanation&quot;:&quot;Samhain marks the seasonal turn into winter and is often cited as a major precursor to Halloween traditions.&quot;},{&quot;prompt&quot;:&quot;What is the name of the large stadium strongly associated with Gaelic games in Dublin?&quot;,&quot;options&quot;:[&quot;Aviva Stadium&quot;,&quot;Semple Stadium&quot;,&quot;Croke Park&quot;,&quot;Páirc Uí Chaoimh&quot;],&quot;answerIndex&quot;:2,&quot;explanation&quot;:&quot;Croke Park is one of the symbolic hearts of Gaelic games and hosts the All-Ireland finals.&quot;},{&quot;prompt&quot;:&quot;Which prehistoric Irish monument is famous for its winter solstice illumination?&quot;,&quot;options&quot;:[&quot;Trim Castle&quot;,&quot;Newgrange&quot;,&quot;Glendalough&quot;,&quot;The Rock of Cashel&quot;],&quot;answerIndex&quot;:1,&quot;explanation&quot;:&quot;Newgrange is especially well known for the sunlight alignment that reaches into the passage at the winter solstice.&quot;}]}">
+  <p class="df-lab-intro">Multiple choice, local streak tracking, and quick replay.</p>
+  <div class="df-lab-mount"></div>
+  <noscript>This card has an interactive mode when JavaScript is enabled.</noscript>
+  <p class="df-lab-footnote">This is the cleanest baseline for Daily Flyer interactivity.</p>
+</div></div>
+            
+        </section>
+    
+
+        <section class="card card--word">
+            <div class="card-head">
+                <div>
+                    <div class="eyebrow">Interactive Lab</div>
+                    <h2>Gaeilge Match-Up</h2>
+                </div>
+                <div class="icon-badge" aria-hidden="true">🗣️</div>
+            </div>
+            
+            <div class="body"><div class="df-lab-widget" data-lab-widget="language_quiz" data-lab-card-id="irish-showcase-language" data-lab-config="{&quot;questions&quot;:[{&quot;prompt&quot;:&quot;What does &#x27;Bóthar&#x27; mean?&quot;,&quot;options&quot;:[&quot;Family / children&quot;,&quot;Day&quot;,&quot;Home / town&quot;,&quot;Road&quot;],&quot;answerIndex&quot;:3,&quot;meta&quot;:&quot;Pronunciation: boh-her&quot;,&quot;explanation&quot;:&quot;Bóthar means &#x27;Road&#x27;.&quot;},{&quot;prompt&quot;:&quot;What does &#x27;Clann&#x27; mean?&quot;,&quot;options&quot;:[&quot;Family / children&quot;,&quot;Friends&quot;,&quot;Man&quot;,&quot;A hundred thousand welcomes&quot;],&quot;answerIndex&quot;:0,&quot;meta&quot;:&quot;Pronunciation: clown&quot;,&quot;explanation&quot;:&quot;Clann means &#x27;Family / children&#x27;.&quot;},{&quot;prompt&quot;:&quot;What does &#x27;Le do thoil&#x27; mean?&quot;,&quot;options&quot;:[&quot;House&quot;,&quot;Please&quot;,&quot;New Year&quot;,&quot;Day&quot;],&quot;answerIndex&quot;:1,&quot;meta&quot;:&quot;Pronunciation: leh duh hull&quot;,&quot;explanation&quot;:&quot;Le do thoil means &#x27;Please&#x27;.&quot;},{&quot;prompt&quot;:&quot;What does &#x27;Maidin mhaith&#x27; mean?&quot;,&quot;options&quot;:[&quot;Cat&quot;,&quot;Thank you&quot;,&quot;Good morning&quot;,&quot;Good night&quot;],&quot;answerIndex&quot;:2,&quot;meta&quot;:&quot;Pronunciation: ma-jin wah&quot;,&quot;explanation&quot;:&quot;Maidin mhaith means &#x27;Good morning&#x27;.&quot;},{&quot;prompt&quot;:&quot;What does &#x27;Oíche mhaith&#x27; mean?&quot;,&quot;options&quot;:[&quot;Song&quot;,&quot;Woman&quot;,&quot;Thank you&quot;,&quot;Good night&quot;],&quot;answerIndex&quot;:3,&quot;meta&quot;:&quot;Pronunciation: ee-hah wah&quot;,&quot;explanation&quot;:&quot;Oíche mhaith means &#x27;Good night&#x27;.&quot;}]}">
+  <p class="df-lab-intro">A lightweight Irish-language quiz driven from the existing WORDS pool.</p>
+  <div class="df-lab-mount"></div>
+  <noscript>This card has an interactive mode when JavaScript is enabled.</noscript>
+  <p class="df-lab-footnote">No backend required.</p>
+</div></div>
+            
+        </section>
+    
+
+        <section class="card card--sport">
+            <div class="card-head">
+                <div>
+                    <div class="eyebrow">Interactive Lab</div>
+                    <h2>Fly Swatter</h2>
+                </div>
+                <div class="icon-badge" aria-hidden="true">🏆</div>
+            </div>
+            
+            <div class="body"><div class="df-lab-widget" data-lab-widget="fly_swatter" data-lab-card-id="irish-showcase-fly-swatter" data-lab-config="{&quot;roundSeconds&quot;:30,&quot;spawnEverySeconds&quot;:0.65}">
+  <p class="df-lab-intro">Formerly Sky Defender. Same spirit, better name for this branch.</p>
+  <div class="df-lab-mount"></div>
+  <noscript>This card has an interactive mode when JavaScript is enabled.</noscript>
+  <p class="df-lab-footnote">Quick canvas microgame.</p>
+</div></div>
+            
+        </section>
+    
+
+        <section class="card card--county">
+            <div class="card-head">
+                <div>
+                    <div class="eyebrow">Interactive Lab</div>
+                    <h2>County Clue Ladder</h2>
+                </div>
+                <div class="icon-badge" aria-hidden="true">🗺️</div>
+            </div>
+            
+            <div class="body"><div class="df-lab-widget" data-lab-widget="county_clues" data-lab-card-id="irish-showcase-county-clues" data-lab-config="{&quot;questions&quot;:[{&quot;prompt&quot;:&quot;Which county fits these clues?&quot;,&quot;clues&quot;:[&quot;This county is strongly associated with hurling success.&quot;,&quot;Its county colors are black and amber.&quot;,&quot;Its best-known city shares the county name.&quot;],&quot;options&quot;:[&quot;Kilkenny&quot;,&quot;Clare&quot;,&quot;Galway&quot;,&quot;Tipperary&quot;],&quot;answerIndex&quot;:0,&quot;explanation&quot;:&quot;Kilkenny is famous for black-and-amber hurling identity and a city with the same name.&quot;},{&quot;prompt&quot;:&quot;Which county fits these clues?&quot;,&quot;clues&quot;:[&quot;This county includes the Cliffs of Moher.&quot;,&quot;It is strongly associated with traditional music and the Burren.&quot;,&quot;Its county town is Ennis.&quot;],&quot;options&quot;:[&quot;Mayo&quot;,&quot;Clare&quot;,&quot;Sligo&quot;,&quot;Donegal&quot;],&quot;answerIndex&quot;:1,&quot;explanation&quot;:&quot;Clare is the county of the Cliffs of Moher, the Burren, and Ennis.&quot;},{&quot;prompt&quot;:&quot;Which county fits these clues?&quot;,&quot;clues&quot;:[&quot;This county includes Newgrange and other Boyne Valley monuments.&quot;,&quot;It has strong associations with Tara and Trim.&quot;,&quot;It is in the province of Leinster.&quot;],&quot;options&quot;:[&quot;Meath&quot;,&quot;Louth&quot;,&quot;Kildare&quot;,&quot;Wexford&quot;],&quot;answerIndex&quot;:0,&quot;explanation&quot;:&quot;Meath contains Newgrange, Tara, and Trim and is central to Boyne Valley history.&quot;}]}">
+  <p class="df-lab-intro">Reveal clues one by one and guess the county before the answer gets obvious.</p>
+  <div class="df-lab-mount"></div>
+  <noscript>This card has an interactive mode when JavaScript is enabled.</noscript>
+  <p class="df-lab-footnote">This is a strong fit for Irish Today because it can tie directly into counties, landmarks, and history.</p>
+</div></div>
+            
+        </section>
+    
+
+        <section class="card card--history">
+            <div class="card-head">
+                <div>
+                    <div class="eyebrow">Interactive Lab</div>
+                    <h2>History Order Challenge</h2>
+                </div>
+                <div class="icon-badge" aria-hidden="true">📜</div>
+            </div>
+            
+            <div class="body"><div class="df-lab-widget" data-lab-widget="history_sort" data-lab-card-id="irish-showcase-history-sort" data-lab-config="{&quot;rounds&quot;:[{&quot;prompt&quot;:&quot;Arrange these from earliest to latest.&quot;,&quot;items&quot;:[{&quot;label&quot;:&quot;Norman arrival in Ireland&quot;,&quot;year&quot;:1169},{&quot;label&quot;:&quot;The Great Famine begins&quot;,&quot;year&quot;:1845},{&quot;label&quot;:&quot;Republic of Ireland Act takes effect&quot;,&quot;year&quot;:1949}]},{&quot;prompt&quot;:&quot;Arrange these from earliest to latest.&quot;,&quot;items&quot;:[{&quot;label&quot;:&quot;Founding of the GAA&quot;,&quot;year&quot;:1884},{&quot;label&quot;:&quot;Easter Rising&quot;,&quot;year&quot;:1916},{&quot;label&quot;:&quot;Ireland joins the EEC&quot;,&quot;year&quot;:1973}]},{&quot;prompt&quot;:&quot;Arrange these from earliest to latest.&quot;,&quot;items&quot;:[{&quot;label&quot;:&quot;Douglas Hyde becomes President&quot;,&quot;year&quot;:1938},{&quot;label&quot;:&quot;Irish Free State comes into existence&quot;,&quot;year&quot;:1922},{&quot;label&quot;:&quot;Bunreacht na hÉireann takes effect&quot;,&quot;year&quot;:1937}]}]}">
+  <p class="df-lab-intro">Reorder milestones from earliest to latest using simple up/down controls.</p>
+  <div class="df-lab-mount"></div>
+  <noscript>This card has an interactive mode when JavaScript is enabled.</noscript>
+  <p class="df-lab-footnote">This keeps a history card interactive without turning it into a full game.</p>
+</div></div>
+            
+        </section>
+    
+
+        <section class="card card--word">
+            <div class="card-head">
+                <div>
+                    <div class="eyebrow">Interactive Lab</div>
+                    <h2>Gaeilge Memory Grid</h2>
+                </div>
+                <div class="icon-badge" aria-hidden="true">🗣️</div>
+            </div>
+            
+            <div class="body"><div class="df-lab-widget" data-lab-widget="memory_match" data-lab-card-id="irish-showcase-memory-grid" data-lab-config="{&quot;pairs&quot;:[{&quot;left&quot;:&quot;Tae&quot;,&quot;right&quot;:&quot;Tea&quot;},{&quot;left&quot;:&quot;Inniu&quot;,&quot;right&quot;:&quot;Today&quot;},{&quot;left&quot;:&quot;Báisteach&quot;,&quot;right&quot;:&quot;Rain&quot;},{&quot;left&quot;:&quot;Oíche mhaith&quot;,&quot;right&quot;:&quot;Good night&quot;}]}">
+  <p class="df-lab-intro">Match Irish words to their English meanings.</p>
+  <div class="df-lab-mount"></div>
+  <noscript>This card has an interactive mode when JavaScript is enabled.</noscript>
+  <p class="df-lab-footnote">Good for repetition and quick replay value.</p>
+</div></div>
+            
+        </section>
+    
+
+        <section class="card card--phrase">
+            <div class="card-head">
+                <div>
+                    <div class="eyebrow">Interactive Lab</div>
+                    <h2>Phrase Builder</h2>
+                </div>
+                <div class="icon-badge" aria-hidden="true">💬</div>
+            </div>
+            
+            <div class="body"><div class="df-lab-widget" data-lab-widget="phrase_builder" data-lab-card-id="irish-showcase-phrase-builder" data-lab-config="{&quot;questions&quot;:[{&quot;prompt&quot;:&quot;Build the Irish phrase for &#x27;Good morning.&#x27;&quot;,&quot;answerParts&quot;:[&quot;Maidin&quot;,&quot;mhaith&quot;],&quot;meta&quot;:&quot;Pronunciation: ma-jin wah&quot;,&quot;explanation&quot;:&quot;Maidin mhaith means &#x27;Good morning.&#x27;&quot;},{&quot;prompt&quot;:&quot;Build the Irish phrase for &#x27;Thank you.&#x27;&quot;,&quot;answerParts&quot;:[&quot;Go&quot;,&quot;raibh&quot;,&quot;maith&quot;,&quot;agat&quot;],&quot;meta&quot;:&quot;Pronunciation: guh rev mah ah-gut&quot;,&quot;explanation&quot;:&quot;Go raibh maith agat means &#x27;Thank you.&#x27;&quot;},{&quot;prompt&quot;:&quot;Build the Irish phrase for &#x27;How are you?&#x27;&quot;,&quot;answerParts&quot;:[&quot;Cad&quot;,&quot;é&quot;,&quot;mar&quot;,&quot;atá&quot;,&quot;tú?&quot;],&quot;meta&quot;:&quot;Pronunciation: cod ay mar a-taw too?&quot;,&quot;explanation&quot;:&quot;Cad é mar atá tú? means &#x27;How are you?&#x27;&quot;}]}">
+  <p class="df-lab-intro">Tap words into order to build useful Irish phrases.</p>
+  <div class="df-lab-mount"></div>
+  <noscript>This card has an interactive mode when JavaScript is enabled.</noscript>
+  <p class="df-lab-footnote">This is the best bridge between static phrase cards and actual learning interaction.</p>
+</div></div>
+            
+        </section>
+    
+
+        <section class="card card--did_you_know">
+            <div class="card-head">
+                <div>
+                    <div class="eyebrow">Irish Fact</div>
+                    <h2>Static cards still belong here</h2>
+                </div>
+                <div class="icon-badge" aria-hidden="true">💡</div>
+            </div>
+            
+            <div class="body">The Ordnance Survey mapped Ireland in extraordinary detail during the 19th century. Its work helped standardize place names, boundaries, and modern geographical records.</div>
+            
+        </section>
+    
+
+        <section class="card card--sport">
+            <div class="card-head">
+                <div>
+                    <div class="eyebrow">Sports Spotlight</div>
+                    <h2>Today&#x27;s Pick</h2>
+                </div>
+                <div class="icon-badge" aria-hidden="true">🏆</div>
+            </div>
+            
+            <div class="body">The All-Ireland finals are not just championship games; they are major national occasions. Demand for tickets is famously intense, and the matches are followed by Irish audiences at home and abroad.</div>
+            
+        </section>
+    
+        </main>
+        <footer>
+            <div class="footer-inner">Experimental Daily Flyer branch — Irish Today interactive showcase.</div>
+        </footer>
+    </div>
+    <script>
+    (function () {
+        const root = document.documentElement;
+        function updateParallax() {
+            const y = Math.min(window.scrollY * 0.10, 36);
+            root.style.setProperty("--bg-shift", `${y}px`);
+        }
+        updateParallax();
+        window.addEventListener("scroll", updateParallax, { passive: true });
+    })();
+    </script>
+    <script>
+(function () {
+    const STORAGE_PREFIX = "dailyflyer:interactive-showcase:";
+
+    function escapeHtml(value) {
+        return String(value ?? "")
+            .replace(/&/g, "&amp;")
+            .replace(/</g, "&lt;")
+            .replace(/>/g, "&gt;")
+            .replace(/\"/g, "&quot;")
+            .replace(/'/g, "&#39;");
+    }
+
+    function parseConfig(el) {
+        try {
+            return JSON.parse(el.dataset.labConfig || "{}");
+        } catch (error) {
+            console.error("Invalid interactive card config", error, el);
+            return {};
+        }
+    }
+
+    function readState(cardId, fallback) {
+        try {
+            const raw = localStorage.getItem(STORAGE_PREFIX + cardId);
+            return Object.assign({}, fallback, raw ? JSON.parse(raw) : {});
+        } catch (error) {
+            return Object.assign({}, fallback);
+        }
+    }
+
+    function writeState(cardId, state) {
+        try {
+            localStorage.setItem(STORAGE_PREFIX + cardId, JSON.stringify(state));
+        } catch (error) {
+            console.warn("Could not persist interactive card state", error);
+        }
+    }
+
+    function shuffleCopy(items) {
+        const next = items.slice();
+        for (let index = next.length - 1; index > 0; index -= 1) {
+            const swapIndex = Math.floor(Math.random() * (index + 1));
+            const temp = next[index];
+            next[index] = next[swapIndex];
+            next[swapIndex] = temp;
+        }
+        return next;
+    }
+
+    function mountQuizCard(widgetEl, flavorLabel) {
+        const mount = widgetEl.querySelector(".df-lab-mount");
+        const config = parseConfig(widgetEl);
+        const questions = Array.isArray(config.questions) ? config.questions : [];
+        const cardId = widgetEl.dataset.labCardId || flavorLabel;
+        if (!mount || !questions.length) {
+            if (mount) {
+                mount.innerHTML = "<div class=\"df-lab-result\">No questions were configured for this card yet.</div>";
+            }
+            return;
+        }
+
+        const state = readState(cardId, { position: 0, asked: 0, correct: 0, streak: 0, bestStreak: 0 });
+        let locked = false;
+
+        function currentQuestion() {
+            return questions[state.position % questions.length];
+        }
+
+        function updateStatrow(statrowEl) {
+            statrowEl.innerHTML = `
+                <div class="df-lab-pill">Asked: ${state.asked}</div>
+                <div class="df-lab-pill">Correct: ${state.correct}</div>
+                <div class="df-lab-pill">Streak: ${state.streak}</div>
+                <div class="df-lab-pill">Best: ${state.bestStreak}</div>
+            `;
+        }
+
+        function renderQuestion() {
+            const question = currentQuestion();
+            locked = false;
+            mount.innerHTML = `
+                <div class="df-lab-shell">
+                    <div class="df-lab-statrow"></div>
+                    ${question.meta ? `<div class="df-lab-meta">${escapeHtml(question.meta)}</div>` : ""}
+                    <div class="df-lab-question">${escapeHtml(question.prompt || "Question")}</div>
+                    <div class="df-lab-options"></div>
+                    <div class="df-lab-result" aria-live="polite"></div>
+                    <div class="df-lab-actions">
+                        <button class="df-lab-ghost" type="button" data-action="next">Next prompt</button>
+                        <button class="df-lab-ghost" type="button" data-action="reset">Reset stats</button>
+                    </div>
+                </div>
+            `;
+
+            const statrowEl = mount.querySelector(".df-lab-statrow");
+            const optionsWrap = mount.querySelector(".df-lab-options");
+            const resultEl = mount.querySelector(".df-lab-result");
+            updateStatrow(statrowEl);
+
+            (question.options || []).forEach((optionText, index) => {
+                const button = document.createElement("button");
+                button.type = "button";
+                button.className = "df-lab-option";
+                button.innerHTML = escapeHtml(optionText);
+                button.addEventListener("click", function () {
+                    if (locked) return;
+                    locked = true;
+                    const isCorrect = index === question.answerIndex;
+                    state.asked += 1;
+                    if (isCorrect) {
+                        state.correct += 1;
+                        state.streak += 1;
+                        state.bestStreak = Math.max(state.bestStreak, state.streak);
+                    } else {
+                        state.streak = 0;
+                    }
+                    writeState(cardId, state);
+
+                    optionsWrap.querySelectorAll(".df-lab-option").forEach((optionButton, optionIndex) => {
+                        optionButton.disabled = true;
+                        if (optionIndex === question.answerIndex) {
+                            optionButton.classList.add("is-correct");
+                        } else if (optionIndex === index) {
+                            optionButton.classList.add("is-wrong");
+                        }
+                    });
+
+                    const lead = isCorrect ? "Correct." : "Not quite.";
+                    const explanation = question.explanation ? ` ${escapeHtml(question.explanation)}` : "";
+                    resultEl.innerHTML = `${lead}${explanation}`;
+                    updateStatrow(statrowEl);
+                });
+                optionsWrap.appendChild(button);
+            });
+
+            mount.querySelector('[data-action="next"]').addEventListener("click", function () {
+                state.position = (state.position + 1) % questions.length;
+                writeState(cardId, state);
+                renderQuestion();
+            });
+
+            mount.querySelector('[data-action="reset"]').addEventListener("click", function () {
+                state.position = 0;
+                state.asked = 0;
+                state.correct = 0;
+                state.streak = 0;
+                state.bestStreak = 0;
+                writeState(cardId, state);
+                renderQuestion();
+            });
+        }
+
+        renderQuestion();
+    }
+
+    function mountFlySwatter(widgetEl) {
+        const mount = widgetEl.querySelector(".df-lab-mount");
+        const config = parseConfig(widgetEl);
+        const cardId = widgetEl.dataset.labCardId || "fly-swatter";
+        if (!mount) return;
+
+        const stored = readState(cardId, { bestScore: 0 });
+        mount.innerHTML = `
+            <div class="df-lab-shell">
+                <div class="df-lab-statrow">
+                    <div class="df-lab-pill" data-stat="score">Swats: 0</div>
+                    <div class="df-lab-pill" data-stat="time">Time: 30s</div>
+                    <div class="df-lab-pill" data-stat="best">Best: ${stored.bestScore}</div>
+                </div>
+                <div class="df-lab-canvas-wrap">
+                    <canvas class="df-lab-canvas" width="340" height="220"></canvas>
+                    <div class="df-lab-help">Click or tap the buzzing flies before they escape the card. Simple, silly, and perfect for an experimental branch.</div>
+                    <div class="df-lab-actions">
+                        <button class="df-lab-primary" type="button" data-action="start">Start round</button>
+                        <button class="df-lab-ghost" type="button" data-action="reset">Reset best</button>
+                    </div>
+                </div>
+            </div>
+        `;
+
+        const canvas = mount.querySelector("canvas");
+        const ctx = canvas.getContext("2d");
+        const scoreEl = mount.querySelector('[data-stat="score"]');
+        const timeEl = mount.querySelector('[data-stat="time"]');
+        const bestEl = mount.querySelector('[data-stat="best"]');
+        const startButton = mount.querySelector('[data-action="start"]');
+        const resetButton = mount.querySelector('[data-action="reset"]');
+
+        const game = { running: false, lastFrame: 0, spawnClock: 0, score: 0, timeLeft: Number(config.roundSeconds || 30), bestScore: stored.bestScore || 0, flies: [], animationId: 0 };
+
+        function updateHud() {
+            scoreEl.textContent = `Swats: ${game.score}`;
+            timeEl.textContent = `Time: ${Math.max(0, Math.ceil(game.timeLeft))}s`;
+            bestEl.textContent = `Best: ${game.bestScore}`;
+        }
+
+        function spawnFly() {
+            const radius = 12 + Math.random() * 8;
+            const speed = 45 + Math.random() * 55;
+            const angle = Math.random() * Math.PI * 2;
+            game.flies.push({ x: 28 + Math.random() * (canvas.width - 56), y: 28 + Math.random() * (canvas.height - 56), radius, vx: Math.cos(angle) * speed, vy: Math.sin(angle) * speed, wing: Math.random() * Math.PI * 2 });
+        }
+
+        function startGame() {
+            game.running = true;
+            game.lastFrame = 0;
+            game.spawnClock = 0;
+            game.score = 0;
+            game.timeLeft = Number(config.roundSeconds || 30);
+            game.flies = [];
+            updateHud();
+            startButton.textContent = "Restart round";
+            cancelAnimationFrame(game.animationId);
+            game.animationId = requestAnimationFrame(loop);
+        }
+
+        function finishGame() {
+            game.running = false;
+            if (game.score > game.bestScore) {
+                game.bestScore = game.score;
+                writeState(cardId, { bestScore: game.bestScore });
+            }
+            updateHud();
+            startButton.textContent = "Play again";
+        }
+
+        function update(dt) {
+            if (!game.running) return;
+            game.timeLeft -= dt;
+            if (game.timeLeft <= 0) {
+                game.timeLeft = 0;
+                finishGame();
+                return;
+            }
+            game.spawnClock += dt;
+            const spawnEvery = Number(config.spawnEverySeconds || 0.65);
+            while (game.spawnClock >= spawnEvery) {
+                game.spawnClock -= spawnEvery;
+                spawnFly();
+            }
+            game.flies.forEach((fly) => {
+                fly.x += fly.vx * dt;
+                fly.y += fly.vy * dt;
+                fly.wing += dt * 16;
+                if (fly.x <= fly.radius || fly.x >= canvas.width - fly.radius) fly.vx *= -1;
+                if (fly.y <= fly.radius || fly.y >= canvas.height - fly.radius) fly.vy *= -1;
+            });
+            updateHud();
+        }
+
+        function drawFly(fly) {
+            ctx.save();
+            ctx.translate(fly.x, fly.y);
+            ctx.fillStyle = "rgba(28, 28, 28, 0.92)";
+            ctx.beginPath();
+            ctx.ellipse(0, 0, fly.radius * 0.65, fly.radius * 0.45, 0, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = "rgba(200, 235, 255, 0.62)";
+            const wingOffset = Math.sin(fly.wing) * 3;
+            ctx.beginPath();
+            ctx.ellipse(-fly.radius * 0.35, -fly.radius * 0.35, fly.radius * 0.45, fly.radius * 0.26 + wingOffset * 0.04, -0.8, 0, Math.PI * 2);
+            ctx.ellipse(fly.radius * 0.35, -fly.radius * 0.35, fly.radius * 0.45, fly.radius * 0.26 - wingOffset * 0.04, 0.8, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = "rgba(255, 87, 87, 0.8)";
+            ctx.beginPath();
+            ctx.arc(0, 0, 2.2, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.restore();
+        }
+
+        function draw() {
+            ctx.clearRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = "rgba(8, 20, 18, 0.96)";
+            ctx.fillRect(0, 0, canvas.width, canvas.height);
+            ctx.fillStyle = "rgba(32, 74, 52, 0.25)";
+            for (let i = 0; i < 6; i += 1) ctx.fillRect(i * 62, 0, 3, canvas.height);
+            game.flies.forEach(drawFly);
+            ctx.fillStyle = "rgba(255,255,255,0.72)";
+            ctx.font = "12px system-ui, sans-serif";
+            ctx.fillText("FLY SWATTER // experimental microgame", 12, 18);
+        }
+
+        function loop(timestamp) {
+            if (!game.running) {
+                draw();
+                return;
+            }
+            if (!game.lastFrame) game.lastFrame = timestamp;
+            const dt = Math.min(0.033, (timestamp - game.lastFrame) / 1000);
+            game.lastFrame = timestamp;
+            update(dt);
+            draw();
+            if (game.running) game.animationId = requestAnimationFrame(loop);
+        }
+
+        canvas.addEventListener("pointerdown", function (event) {
+            if (!game.running) return;
+            const bounds = canvas.getBoundingClientRect();
+            const scaleX = canvas.width / bounds.width;
+            const scaleY = canvas.height / bounds.height;
+            const x = (event.clientX - bounds.left) * scaleX;
+            const y = (event.clientY - bounds.top) * scaleY;
+            game.flies = game.flies.filter((fly) => {
+                const dx = fly.x - x;
+                const dy = fly.y - y;
+                const hit = (dx * dx) + (dy * dy) <= (fly.radius + 10) * (fly.radius + 10);
+                if (hit) game.score += 1;
+                return !hit;
+            });
+            updateHud();
+        });
+
+        document.addEventListener("visibilitychange", function () {
+            if (document.hidden && game.running) {
+                game.running = false;
+                startButton.textContent = "Resume round";
+            }
+        });
+
+        startButton.addEventListener("click", function () {
+            if (startButton.textContent === "Resume round" && !game.running) {
+                game.running = true;
+                game.lastFrame = 0;
+                startButton.textContent = "Restart round";
+                game.animationId = requestAnimationFrame(loop);
+                return;
+            }
+            startGame();
+        });
+
+        resetButton.addEventListener("click", function () {
+            game.bestScore = 0;
+            writeState(cardId, { bestScore: 0 });
+            updateHud();
+        });
+
+        updateHud();
+        draw();
+    }
+
+    function mountHistorySort(widgetEl) {
+        const mount = widgetEl.querySelector(".df-lab-mount");
+        const config = parseConfig(widgetEl);
+        const rounds = Array.isArray(config.rounds) ? config.rounds : [];
+        const cardId = widgetEl.dataset.labCardId || "history-sort";
+        if (!mount || !rounds.length) return;
+
+        const state = readState(cardId, { position: 0, solved: 0, attempts: 0 });
+
+        function currentRound() { return rounds[state.position % rounds.length]; }
+
+        function renderRound() {
+            const round = currentRound();
+            const items = shuffleCopy(round.items || []);
+            mount.innerHTML = `
+                <div class="df-lab-shell">
+                    <div class="df-lab-statrow">
+                        <div class="df-lab-pill">Solved: ${state.solved}</div>
+                        <div class="df-lab-pill">Attempts: ${state.attempts}</div>
+                    </div>
+                    <div class="df-lab-question">${escapeHtml(round.prompt || "Put these in order.")}</div>
+                    <div class="df-lab-grid" data-stack></div>
+                    <div class="df-lab-result" aria-live="polite"></div>
+                    <div class="df-lab-actions">
+                        <button class="df-lab-primary" type="button" data-action="check">Check order</button>
+                        <button class="df-lab-ghost" type="button" data-action="shuffle">Shuffle again</button>
+                        <button class="df-lab-ghost" type="button" data-action="next">Next round</button>
+                    </div>
+                </div>
+            `;
+            const stackEl = mount.querySelector("[data-stack]");
+            const resultEl = mount.querySelector(".df-lab-result");
+
+            function drawStack() {
+                stackEl.innerHTML = "";
+                items.forEach((item, index) => {
+                    const row = document.createElement("div");
+                    row.className = "df-lab-stack-item";
+                    row.innerHTML = `
+                        <div>${escapeHtml(item.label)}</div>
+                        <div class="df-lab-stack-controls">
+                            <button class="df-lab-stack-btn" type="button" data-dir="-1">↑</button>
+                            <button class="df-lab-stack-btn" type="button" data-dir="1">↓</button>
+                        </div>
+                    `;
+                    row.querySelectorAll("[data-dir]").forEach((btn) => {
+                        btn.addEventListener("click", function () {
+                            const direction = Number(btn.dataset.dir);
+                            const swapIndex = index + direction;
+                            if (swapIndex < 0 || swapIndex >= items.length) return;
+                            const current = items[index];
+                            items[index] = items[swapIndex];
+                            items[swapIndex] = current;
+                            drawStack();
+                        });
+                    });
+                    stackEl.appendChild(row);
+                });
+            }
+
+            drawStack();
+            mount.querySelector('[data-action="check"]').addEventListener("click", function () {
+                state.attempts += 1;
+                const years = items.map((item) => item.year);
+                const ordered = years.every((year, index) => index === 0 || years[index - 1] <= year);
+                if (ordered) {
+                    state.solved += 1;
+                    resultEl.textContent = "Nice. That order works chronologically.";
+                } else {
+                    resultEl.textContent = "Not yet. Try nudging the entries until the years flow from earliest to latest.";
+                }
+                writeState(cardId, state);
+                mount.querySelector(".df-lab-statrow").innerHTML = `
+                    <div class="df-lab-pill">Solved: ${state.solved}</div>
+                    <div class="df-lab-pill">Attempts: ${state.attempts}</div>
+                `;
+            });
+            mount.querySelector('[data-action="shuffle"]').addEventListener("click", renderRound);
+            mount.querySelector('[data-action="next"]').addEventListener("click", function () {
+                state.position = (state.position + 1) % rounds.length;
+                writeState(cardId, state);
+                renderRound();
+            });
+        }
+
+        renderRound();
+    }
+
+    function mountCountyClues(widgetEl) {
+        const mount = widgetEl.querySelector(".df-lab-mount");
+        const config = parseConfig(widgetEl);
+        const questions = Array.isArray(config.questions) ? config.questions : [];
+        const cardId = widgetEl.dataset.labCardId || "county-clues";
+        if (!mount || !questions.length) return;
+
+        const state = readState(cardId, { position: 0, solved: 0, attempts: 0, clueStep: 1 });
+
+        function currentQuestion() { return questions[state.position % questions.length]; }
+
+        function renderQuestion() {
+            const question = currentQuestion();
+            const clueCount = Math.max(1, Math.min(state.clueStep || 1, (question.clues || []).length));
+            mount.innerHTML = `
+                <div class="df-lab-shell">
+                    <div class="df-lab-statrow">
+                        <div class="df-lab-pill">Solved: ${state.solved}</div>
+                        <div class="df-lab-pill">Attempts: ${state.attempts}</div>
+                        <div class="df-lab-pill">Clues shown: ${clueCount}</div>
+                    </div>
+                    <div class="df-lab-question">${escapeHtml(question.prompt || "Which county fits these clues?")}</div>
+                    <div class="df-lab-clue-list">
+                        ${(question.clues || []).map((clue, index) => `<div class="df-lab-clue-chip ${index < clueCount ? "" : "is-hidden"}">${index < clueCount ? escapeHtml(clue) : "Hidden clue"}</div>`).join("")}
+                    </div>
+                    <div class="df-lab-options"></div>
+                    <div class="df-lab-result" aria-live="polite"></div>
+                    <div class="df-lab-actions">
+                        <button class="df-lab-clue-btn" type="button" data-action="reveal">Reveal one more clue</button>
+                        <button class="df-lab-ghost" type="button" data-action="next">Next county</button>
+                    </div>
+                </div>
+            `;
+            const optionsWrap = mount.querySelector(".df-lab-options");
+            const resultEl = mount.querySelector(".df-lab-result");
+            (question.options || []).forEach((optionText, index) => {
+                const button = document.createElement("button");
+                button.type = "button";
+                button.className = "df-lab-option";
+                button.innerHTML = escapeHtml(optionText);
+                button.addEventListener("click", function () {
+                    state.attempts += 1;
+                    const isCorrect = index === question.answerIndex;
+                    if (isCorrect) {
+                        state.solved += 1;
+                        resultEl.textContent = `Correct. ${question.explanation || ""}`.trim();
+                        button.classList.add("is-correct");
+                    } else {
+                        resultEl.textContent = `Nope. ${question.explanation || ""}`.trim();
+                        button.classList.add("is-wrong");
+                        const correctButton = optionsWrap.querySelectorAll(".df-lab-option")[question.answerIndex];
+                        if (correctButton) correctButton.classList.add("is-correct");
+                    }
+                    optionsWrap.querySelectorAll(".df-lab-option").forEach((optionButton) => { optionButton.disabled = true; });
+                    writeState(cardId, state);
+                    mount.querySelector(".df-lab-statrow").innerHTML = `
+                        <div class="df-lab-pill">Solved: ${state.solved}</div>
+                        <div class="df-lab-pill">Attempts: ${state.attempts}</div>
+                        <div class="df-lab-pill">Clues shown: ${clueCount}</div>
+                    `;
+                });
+                optionsWrap.appendChild(button);
+            });
+            mount.querySelector('[data-action="reveal"]').addEventListener("click", function () {
+                state.clueStep = Math.min((question.clues || []).length, clueCount + 1);
+                writeState(cardId, state);
+                renderQuestion();
+            });
+            mount.querySelector('[data-action="next"]').addEventListener("click", function () {
+                state.position = (state.position + 1) % questions.length;
+                state.clueStep = 1;
+                writeState(cardId, state);
+                renderQuestion();
+            });
+        }
+
+        renderQuestion();
+    }
+
+    function mountPhraseBuilder(widgetEl) {
+        const mount = widgetEl.querySelector(".df-lab-mount");
+        const config = parseConfig(widgetEl);
+        const questions = Array.isArray(config.questions) ? config.questions : [];
+        const cardId = widgetEl.dataset.labCardId || "phrase-builder";
+        if (!mount || !questions.length) return;
+
+        const state = readState(cardId, { position: 0, solved: 0, attempts: 0 });
+
+        function currentQuestion() { return questions[state.position % questions.length]; }
+
+        function renderQuestion() {
+            const question = currentQuestion();
+            const bank = shuffleCopy((question.answerParts || []).map((part, index) => ({ id: `${index}-${part}`, text: part, used: false })));
+            let built = [];
+            mount.innerHTML = `
+                <div class="df-lab-shell">
+                    <div class="df-lab-statrow">
+                        <div class="df-lab-pill">Solved: ${state.solved}</div>
+                        <div class="df-lab-pill">Attempts: ${state.attempts}</div>
+                    </div>
+                    <div class="df-lab-question">${escapeHtml(question.prompt || "Build the phrase.")}</div>
+                    ${question.meta ? `<div class="df-lab-meta">${escapeHtml(question.meta)}</div>` : ""}
+                    <div class="df-lab-answer-line" data-answer-line></div>
+                    <div class="df-lab-wordbank" data-bank></div>
+                    <div class="df-lab-result" aria-live="polite"></div>
+                    <div class="df-lab-actions">
+                        <button class="df-lab-primary" type="button" data-action="check">Check phrase</button>
+                        <button class="df-lab-ghost" type="button" data-action="clear">Clear</button>
+                        <button class="df-lab-ghost" type="button" data-action="next">Next phrase</button>
+                    </div>
+                </div>
+            `;
+            const answerLine = mount.querySelector("[data-answer-line]");
+            const bankEl = mount.querySelector("[data-bank]");
+            const resultEl = mount.querySelector(".df-lab-result");
+
+            function draw() {
+                answerLine.innerHTML = "";
+                if (!built.length) {
+                    const slot = document.createElement("div");
+                    slot.className = "df-lab-answer-slot";
+                    slot.textContent = "Build the phrase here";
+                    answerLine.appendChild(slot);
+                } else {
+                    built.forEach((part) => {
+                        const chip = document.createElement("button");
+                        chip.type = "button";
+                        chip.className = "df-lab-chip";
+                        chip.textContent = part.text;
+                        chip.addEventListener("click", function () {
+                            built = built.filter((item) => item.id !== part.id);
+                            const bankItem = bank.find((item) => item.id === part.id);
+                            if (bankItem) bankItem.used = false;
+                            draw();
+                        });
+                        answerLine.appendChild(chip);
+                    });
+                }
+                bankEl.innerHTML = "";
+                bank.forEach((part) => {
+                    const chip = document.createElement("button");
+                    chip.type = "button";
+                    chip.className = "df-lab-chip";
+                    if (part.used) {
+                        chip.classList.add("is-used");
+                        chip.disabled = true;
+                    }
+                    chip.textContent = part.text;
+                    chip.addEventListener("click", function () {
+                        if (part.used) return;
+                        part.used = true;
+                        built.push({ id: part.id, text: part.text });
+                        draw();
+                    });
+                    bankEl.appendChild(chip);
+                });
+            }
+
+            mount.querySelector('[data-action="check"]').addEventListener("click", function () {
+                state.attempts += 1;
+                const builtPhrase = built.map((part) => part.text).join(" ").trim();
+                const target = (question.answerParts || []).join(" ").trim();
+                const isCorrect = builtPhrase === target;
+                if (isCorrect) {
+                    state.solved += 1;
+                    resultEl.textContent = `Correct. ${question.explanation || ""}`.trim();
+                } else {
+                    resultEl.textContent = `Not quite. ${question.explanation || ""}`.trim();
+                }
+                writeState(cardId, state);
+                mount.querySelector(".df-lab-statrow").innerHTML = `
+                    <div class="df-lab-pill">Solved: ${state.solved}</div>
+                    <div class="df-lab-pill">Attempts: ${state.attempts}</div>
+                `;
+            });
+            mount.querySelector('[data-action="clear"]').addEventListener("click", function () {
+                built = [];
+                bank.forEach((part) => { part.used = false; });
+                draw();
+            });
+            mount.querySelector('[data-action="next"]').addEventListener("click", function () {
+                state.position = (state.position + 1) % questions.length;
+                writeState(cardId, state);
+                renderQuestion();
+            });
+            draw();
+        }
+
+        renderQuestion();
+    }
+
+    function mountMemoryMatch(widgetEl) {
+        const mount = widgetEl.querySelector(".df-lab-mount");
+        const config = parseConfig(widgetEl);
+        const pairs = Array.isArray(config.pairs) ? config.pairs : [];
+        const cardId = widgetEl.dataset.labCardId || "memory-match";
+        if (!mount || !pairs.length) return;
+
+        const state = readState(cardId, { bestMoves: 0 });
+        let deck = [];
+        let openIndexes = [];
+        let lockBoard = false;
+        let moves = 0;
+        let resultMessage = "";
+
+        function setupDeck() {
+            deck = shuffleCopy(pairs.flatMap((pair, pairIndex) => ([
+                { key: pairIndex, text: pair.left, matched: false },
+                { key: pairIndex, text: pair.right, matched: false }
+            ])));
+            openIndexes = [];
+            lockBoard = false;
+            moves = 0;
+            resultMessage = "";
+        }
+
+        function drawBoard() {
+            mount.innerHTML = `
+                <div class="df-lab-shell">
+                    <div class="df-lab-statrow">
+                        <div class="df-lab-pill">Moves: ${moves}</div>
+                        <div class="df-lab-pill">Best: ${state.bestMoves || "—"}</div>
+                    </div>
+                    <div class="df-lab-grid df-lab-grid--two"></div>
+                    <div class="df-lab-result" aria-live="polite">${escapeHtml(resultMessage)}</div>
+                    <div class="df-lab-actions">
+                        <button class="df-lab-ghost" type="button" data-action="reset">New board</button>
+                    </div>
+                </div>
+            `;
+            const gridEl = mount.querySelector(".df-lab-grid");
+            deck.forEach((card, index) => {
+                const button = document.createElement("button");
+                button.type = "button";
+                button.className = "df-lab-tile";
+                const isOpen = openIndexes.includes(index) || card.matched;
+                button.classList.add(isOpen ? (card.matched ? "is-matched" : "is-open") : "is-hidden");
+                button.textContent = isOpen ? card.text : "•";
+                button.addEventListener("click", function () {
+                    if (lockBoard || card.matched || openIndexes.includes(index)) return;
+                    openIndexes.push(index);
+                    drawBoard();
+                    if (openIndexes.length === 2) {
+                        moves += 1;
+                        const first = openIndexes[0];
+                        const second = openIndexes[1];
+                        const match = deck[first].key === deck[second].key;
+                        if (match) {
+                            deck[first].matched = true;
+                            deck[second].matched = true;
+                            openIndexes = [];
+                            resultMessage = "Nice match.";
+                            if (deck.every((item) => item.matched)) {
+                                resultMessage = "Matched them all.";
+                                if (!state.bestMoves || moves < state.bestMoves) {
+                                    state.bestMoves = moves;
+                                    writeState(cardId, state);
+                                }
+                            }
+                            drawBoard();
+                        } else {
+                            resultMessage = "Not a match.";
+                            lockBoard = true;
+                            setTimeout(function () {
+                                openIndexes = [];
+                                lockBoard = false;
+                                drawBoard();
+                            }, 700);
+                        }
+                    }
+                });
+                gridEl.appendChild(button);
+            });
+            mount.querySelector('[data-action="reset"]').addEventListener("click", function () {
+                setupDeck();
+                drawBoard();
+            });
+        }
+
+        setupDeck();
+        drawBoard();
+    }
+
+    function boot() {
+        document.querySelectorAll(".df-lab-widget").forEach(function (widgetEl) {
+            const widgetType = widgetEl.dataset.labWidget;
+            if (widgetType === "trivia") mountQuizCard(widgetEl, "trivia");
+            else if (widgetType === "language_quiz") mountQuizCard(widgetEl, "language");
+            else if (widgetType === "fly_swatter") mountFlySwatter(widgetEl);
+            else if (widgetType === "history_sort") mountHistorySort(widgetEl);
+            else if (widgetType === "county_clues") mountCountyClues(widgetEl);
+            else if (widgetType === "phrase_builder") mountPhraseBuilder(widgetEl);
+            else if (widgetType === "memory_match") mountMemoryMatch(widgetEl);
+        });
+    }
+
+    if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot);
+    else boot();
+})();
+</script>
+</body>
+</html>
