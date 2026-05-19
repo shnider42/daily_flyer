@@ -15,11 +15,14 @@ DESKTOP_LAYOUT_CSS = r"""
 @media (min-width: 981px) {
     :root { --max-width: min(1480px, calc(100vw - 64px)); }
 
+    /* Keep the hero/banner width as-is, and make the card wall share that same outer width. */
     .hero-wrap,
     main,
     footer {
         width: min(1480px, calc(100vw - 64px)) !important;
         max-width: min(1480px, calc(100vw - 64px)) !important;
+        margin-left: auto !important;
+        margin-right: auto !important;
     }
 
     .hero-wrap,
@@ -28,11 +31,12 @@ DESKTOP_LAYOUT_CSS = r"""
         padding-right: 0 !important;
     }
 
-    /* CSS columns give a truer masonry/Pinterest pack than row-spanning grid. */
+    /* CSS columns give a truer masonry/Pinterest pack than row-spanning grid.
+       Keep columns intentionally wide so the cards breathe horizontally. */
     main {
         display: block !important;
         column-count: 2;
-        column-gap: 24px;
+        column-gap: 34px;
         gap: 0 !important;
     }
 
@@ -41,10 +45,10 @@ DESKTOP_LAYOUT_CSS = r"""
         width: 100% !important;
         min-height: 0 !important;
         height: auto !important;
-        margin: 0 0 24px !important;
+        margin: 0 0 30px !important;
         break-inside: avoid;
         page-break-inside: avoid;
-        padding: 1.22rem 1.25rem 1.12rem !important;
+        padding: 1.24rem 1.34rem 1.16rem !important;
         vertical-align: top;
     }
 
@@ -78,22 +82,19 @@ DESKTOP_LAYOUT_CSS = r"""
             97% 100%, 54% 100%, 51% 97.5%, 48% 100%, 3% 100%,
             0% 97%, 0% 53%, 2.5% 50%, 0% 47%, 0% 3%
         );
-        padding: 1.42rem 1.48rem 1.28rem !important;
+        padding: 1.44rem 1.56rem 1.32rem !important;
     }
 
     main > .card:nth-of-type(3) {
         border-radius: 0 !important;
         clip-path: polygon(14px 0, 100% 0, 100% calc(100% - 14px), calc(100% - 14px) 100%, 0 100%, 0 14px);
-        padding: 1.28rem 1.32rem 1.16rem !important;
+        padding: 1.30rem 1.42rem 1.20rem !important;
     }
 }
 
-@media (min-width: 1360px) {
-    main { column-count: 3; }
-}
-
-@media (min-width: 1920px) {
-    main { column-count: 4; }
+/* Do not jump to extra columns too early. The hero can be wide, but the cards still need air. */
+@media (min-width: 1720px) {
+    main { column-count: 3; column-gap: 36px; }
 }
 
 @media (max-width: 980px) {
