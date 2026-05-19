@@ -115,6 +115,25 @@ class WebRouteTests(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertIn(b"Irish Today", response.data)
 
+    def test_nissan_z_theme_renders(self) -> None:
+        response = self.client.get("/?theme=nissan_z&date=2026-08-17&seed=7")
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(b"Nissan Z Daily", response.data)
+        self.assertIn(b"Modern Z Reveal", response.data)
+        self.assertIn(b"Generation Spotlight", response.data)
+        self.assertIn(b"Z of the Day", response.data)
+        self.assertIn(b"Z in Video Games", response.data)
+        self.assertIn(b"card-image", response.data)
+        self.assertIn(b"data:image/jpeg;base64", response.data)
+        self.assertIn(b"User-provided Nissan Z studio background", response.data)
+        self.assertIn(b"background-image: linear-gradient", response.data)
+        self.assertIn(b"@media (max-width: 720px)", response.data)
+        self.assertIn(b"z-day-nav", response.data)
+        self.assertIn(b"Previous day", response.data)
+        self.assertIn(b"Next day", response.data)
+        self.assertIn(b"Daily controls", response.data)
+        self.assertLess(response.data.index(b"Z of the Day"), response.data.index(b"Generation Spotlight"))
+        
     def test_commander_readiness_theme_renders(self) -> None:
         response = self.client.get("/?theme=commander_readiness&date=2026-05-15&seed=7")
         self.assertEqual(response.status_code, 200)
