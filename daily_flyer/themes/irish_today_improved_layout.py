@@ -91,13 +91,14 @@ body {
         padding-bottom: 0.62rem !important;
     }
 
-    /* Give dense content a little more room when the browser can afford it. */
+    /* Give dense or visual content more room when the browser can afford it. */
     @media (min-width: 1240px) {
         main > .card--trivia,
         main > .card--history_sort,
         main > .card--county_clues,
         main > .card--memory_match,
-        main > .card--news {
+        main > .card--news,
+        main > .card--visual_layer {
             grid-column: span 2 !important;
         }
     }
@@ -106,7 +107,7 @@ body {
         :root { --it-card-min: 19.25rem; }
     }
 
-    /* Runtime shape set: first three of the six get the special shapes. */
+    /* Runtime shape set: first three of the seven get the special shapes. */
     main > .card:nth-of-type(1) {
         border-radius: 0 !important;
     }
