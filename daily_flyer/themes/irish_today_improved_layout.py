@@ -33,6 +33,59 @@ body {
     will-change: auto !important;
 }
 
+@keyframes it-card-enter {
+    from {
+        opacity: 0;
+        transform: translate3d(var(--it-enter-x, 0%), var(--it-enter-y, 4%), 0);
+    }
+    to {
+        opacity: 1;
+        transform: translate3d(0%, 0%, 0);
+    }
+}
+
+main > .card {
+    --it-enter-x: 0%;
+    --it-enter-y: 4%;
+    opacity: 0;
+    transform: translate3d(var(--it-enter-x), var(--it-enter-y), 0);
+    animation: it-card-enter 560ms cubic-bezier(0.2, 0.8, 0.2, 1) forwards;
+    animation-delay: 0ms;
+    will-change: opacity, transform;
+}
+
+main > .card:nth-of-type(2n) {
+    --it-enter-x: 3.5%;
+    --it-enter-y: 0%;
+    animation-delay: 70ms;
+}
+
+main > .card:nth-of-type(3n) {
+    --it-enter-x: -3.5%;
+    --it-enter-y: 0%;
+    animation-delay: 140ms;
+}
+
+main > .card:nth-of-type(4n) {
+    --it-enter-x: 0%;
+    --it-enter-y: 3%;
+    animation-delay: 210ms;
+}
+
+main > .card:nth-of-type(5n) { animation-delay: 280ms; }
+main > .card:nth-of-type(6n) { animation-delay: 350ms; }
+main > .card:nth-of-type(7n) { animation-delay: 420ms; }
+main > .card:nth-of-type(8n) { animation-delay: 490ms; }
+
+@media (prefers-reduced-motion: reduce) {
+    main > .card {
+        opacity: 1 !important;
+        transform: none !important;
+        animation: none !important;
+        transition: none !important;
+    }
+}
+
 @media (min-width: 981px) {
     .hero-wrap,
     main,
@@ -83,7 +136,7 @@ body {
         aspect-ratio: 16 / 9;
     }
 
-    .card:hover { transform: translateY(-2px) !important; }
+    .card:hover { transform: translateY(-1.2%) !important; }
 
     .card-head { margin-bottom: 0.68rem !important; }
     .body { margin-top: 0.24rem !important; line-height: 1.60 !important; }
@@ -215,8 +268,9 @@ MASONRY_LAYOUT_JS = r"""
         const rowHeight = parseFloat(computed.getPropertyValue("grid-auto-rows")) || 8;
         const rowGap = parseFloat(computed.getPropertyValue("row-gap")) || 18;
 
-        cards.forEach(resetCard);
-
+        /* Do not clear gridRowEnd before measuring on desktop. Clearing every
+           span briefly collapses the masonry wall, and browsers can clamp the
+           scroll position back toward the top during game/quiz clicks. */
         cards.forEach(function (card) {
             const height = card.getBoundingClientRect().height;
             const span = Math.max(1, Math.ceil((height + rowGap) / (rowHeight + rowGap)));
@@ -333,6 +387,6 @@ def build_theme_page(date_str: str | None = None, seed: int | None = None) -> Pa
     previous_css = context.metadata.get("extra_css", "") or ""
     previous_js = context.metadata.get("extra_js", "") or ""
     context.metadata["extra_css"] = previous_css + DESKTOP_LAYOUT_CSS
-    context.metadata["extra_js"] = previous_js + MASONRY_LAYOUT_JS + MEMORY_VISIBLE_JS + FREEZE_BACKGROUND_JS
+    context.metadata["extra_js"] = MASONRY_LAYOUT_JS + (previous_js or "") + MEMORY_VISIBLE_JS + FREEZE_BACKGROUND_JS
     context.metadata["theme_name"] = "irish_today"
     return context
