@@ -25,7 +25,7 @@ from daily_flyer.utils import resolve_date
 
 
 THEME_NAME = "irish_today"
-CARD_COUNT = 7
+CARD_COUNT = 8
 VISUAL_LAYER_PHOTO_DIR = Path(__file__).resolve().parent / "df-it-photos"
 VISUAL_LAYER_PHOTO_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp"}
 
@@ -36,9 +36,10 @@ REQUIRED_CARD_TYPES = (
     "did_you_know",
     "news",
     "visual_layer",
+    "hurling_game",
 )
 
-# Optional rotation pool after the five anchors are present.
+# Optional rotation pool after the six anchors are present.
 OPTIONAL_CARD_TYPES = (
     "trivia",
     "history_sort",
@@ -58,12 +59,12 @@ THEME_CONFIG = {
     "page_title": "Irish Today — Interactive culture, language, history, and craic",
     "header_title": "☘️ Irish Today ☘️",
     "header_subtitle": (
-        "A tighter Irish Today: seven lively cards per day built around language, "
-        "county identity, Irish curiosity, Davy Holden History, a visual layer, and rotating play."
+        "A tighter Irish Today: eight lively cards per day built around language, "
+        "county identity, Irish curiosity, Davy Holden History, a visual layer, hurling, and rotating play."
     ),
     "footer_text": "Built by Holtsnider Tech. Driven by Davy Holden History.",
     "hero_kicker": "Daily Flyer • Irish Edition",
-    "hero_summary_pill": "Seven-card daily edition • Word • County • Fact • Davy feature • Visual layer",
+    "hero_summary_pill": "Eight-card daily edition • Word • County • Fact • Davy feature • Hurling game",
 }
 
 
@@ -134,6 +135,44 @@ def _build_visual_layer_card(today) -> CardItem | None:
         title="",
         body="",
         image_url=image_url,
+        source_url=None,
+    )
+
+
+def _build_hurling_game_card(today) -> CardItem:
+    storage_key = f"irish-today-hurling-{today.isoformat()}"
+    body = f"""
+        <div class="it-hurling-game" data-it-hurling-game data-storage-key="{storage_key}">
+            <div class="it-hurling-scorebar" aria-live="polite">
+                <span><strong data-hurling-score>0</strong> pts</span>
+                <span><strong data-hurling-shots>5</strong> sliotars left</span>
+                <span>Best: <strong data-hurling-best>0</strong></span>
+            </div>
+            <div class="it-hurling-pitch" data-hurling-pitch aria-label="Hurling posts timing game">
+                <div class="it-hurling-sky" aria-hidden="true"></div>
+                <div class="it-hurling-posts" aria-hidden="true">
+                    <span class="it-hurling-post it-hurling-post--left"></span>
+                    <span class="it-hurling-post it-hurling-post--right"></span>
+                    <span class="it-hurling-crossbar"></span>
+                    <span class="it-hurling-net"></span>
+                </div>
+                <div class="it-hurling-aim" data-hurling-aim aria-hidden="true"></div>
+                <div class="it-hurling-sliotar" data-hurling-ball aria-hidden="true"></div>
+                <button class="it-hurling-strike" type="button" data-hurling-strike>
+                    Tap / click to strike
+                </button>
+            </div>
+            <div class="it-hurling-result" data-hurling-result>
+                Time the moving marker: over the bar is 1 point, a perfect centre strike is a goal worth 3.
+            </div>
+            <button class="it-hurling-reset" type="button" data-hurling-reset>Reset five shots</button>
+        </div>
+    """
+    return CardItem(
+        card_type="hurling_game",
+        eyebrow="Hurling Mini Game",
+        title="Split the Posts",
+        body=body,
         source_url=None,
     )
 
@@ -249,9 +288,19 @@ def _compose_cards(
     fact_card = _find_card(base_cards, _is_fact_did_you_know_card)
     davy_card = _find_card(base_cards, _is_davy_feature_card)
     visual_layer_card = _build_visual_layer_card(today)
+    hurling_game_card = _build_hurling_game_card(today)
 
     final_cards: list[CardItem] = [
-        card for card in (word_card, county_card, fact_card, davy_card, visual_layer_card) if card is not None
+        card
+        for card in (
+            word_card,
+            county_card,
+            fact_card,
+            davy_card,
+            visual_layer_card,
+            hurling_game_card,
+        )
+        if card is not None
     ]
 
     optional_pool = [*interactive_cards, *_eligible_optional_base_cards(base_cards)]
@@ -403,6 +452,166 @@ def _extra_css() -> str:
         cursor: pointer;
     }
 
+    .card--hurling_game {
+        background:
+            radial-gradient(circle at 12% 10%, rgba(232,196,91,0.20), transparent 12rem),
+            linear-gradient(180deg, rgba(31,171,98,0.20), rgba(255,255,255,0.03)),
+            rgba(7, 48, 28, 0.94) !important;
+    }
+    .it-hurling-game {
+        display: grid;
+        gap: 0.78rem;
+    }
+    .it-hurling-scorebar {
+        display: flex;
+        flex-wrap: wrap;
+        gap: 0.5rem;
+        justify-content: space-between;
+        align-items: center;
+        color: var(--ink);
+        font-size: 0.9rem;
+    }
+    .it-hurling-scorebar span {
+        padding: 0.38rem 0.55rem;
+        border-radius: 999px;
+        background: rgba(255,255,255,0.08);
+        border: 1px solid rgba(255,255,255,0.10);
+    }
+    .it-hurling-pitch {
+        position: relative;
+        min-height: 13.5rem;
+        border-radius: 22px;
+        overflow: hidden;
+        border: 1px solid rgba(255,255,255,0.14);
+        background:
+            linear-gradient(180deg, rgba(124,204,255,0.22) 0 38%, transparent 38%),
+            repeating-linear-gradient(90deg, rgba(255,255,255,0.035) 0 1px, transparent 1px 18px),
+            linear-gradient(180deg, #18753d 0%, #0f5b32 100%);
+        touch-action: manipulation;
+    }
+    .it-hurling-pitch::after {
+        content: "";
+        position: absolute;
+        inset: auto 0 0;
+        height: 34%;
+        background: repeating-linear-gradient(0deg, rgba(255,255,255,0.08) 0 1px, transparent 1px 22px);
+        opacity: 0.45;
+    }
+    .it-hurling-posts {
+        position: absolute;
+        left: 50%;
+        top: 14%;
+        width: min(58%, 17rem);
+        height: 72%;
+        transform: translateX(-50%);
+        z-index: 2;
+    }
+    .it-hurling-post {
+        position: absolute;
+        top: 0;
+        bottom: 0;
+        width: 0.38rem;
+        border-radius: 999px;
+        background: #fff8e7;
+        box-shadow: 0 0 16px rgba(255,255,255,0.22);
+    }
+    .it-hurling-post--left { left: 10%; }
+    .it-hurling-post--right { right: 10%; }
+    .it-hurling-crossbar {
+        position: absolute;
+        left: 10%;
+        right: 10%;
+        top: 48%;
+        height: 0.34rem;
+        border-radius: 999px;
+        background: #fff8e7;
+    }
+    .it-hurling-net {
+        position: absolute;
+        left: 18%;
+        right: 18%;
+        top: 50%;
+        bottom: 0;
+        border: 1px solid rgba(255,255,255,0.34);
+        border-top: 0;
+        background:
+            repeating-linear-gradient(90deg, rgba(255,255,255,0.16) 0 1px, transparent 1px 18px),
+            repeating-linear-gradient(0deg, rgba(255,255,255,0.12) 0 1px, transparent 1px 18px);
+        opacity: 0.7;
+    }
+    .it-hurling-aim {
+        position: absolute;
+        left: 50%;
+        top: 10%;
+        bottom: 15%;
+        width: 0.28rem;
+        border-radius: 999px;
+        background: #ffdf70;
+        box-shadow: 0 0 18px rgba(255,223,112,0.58);
+        transform: translateX(-50%);
+        z-index: 4;
+        pointer-events: none;
+    }
+    .it-hurling-sliotar {
+        position: absolute;
+        left: 50%;
+        bottom: 9%;
+        width: 1.15rem;
+        height: 1.15rem;
+        border-radius: 999px;
+        background: radial-gradient(circle at 35% 35%, #fff, #e8dec0 68%, #9f916e);
+        transform: translate(-50%, 0);
+        z-index: 5;
+        pointer-events: none;
+        transition: left 260ms ease, bottom 260ms ease, opacity 260ms ease;
+    }
+    .it-hurling-sliotar.is-shot {
+        bottom: 62%;
+        opacity: 0.88;
+    }
+    .it-hurling-strike {
+        position: absolute;
+        inset: auto 1rem 1rem;
+        z-index: 6;
+        border: 1px solid rgba(255,255,255,0.20);
+        border-radius: 16px;
+        padding: 0.72rem 0.9rem;
+        background: rgba(3, 16, 11, 0.54);
+        color: #fff;
+        font: inherit;
+        font-weight: 800;
+        cursor: pointer;
+        backdrop-filter: blur(8px);
+        -webkit-backdrop-filter: blur(8px);
+    }
+    .it-hurling-strike:disabled {
+        opacity: 0.58;
+        cursor: not-allowed;
+    }
+    .it-hurling-result {
+        min-height: 2.4rem;
+        color: var(--ink);
+        line-height: 1.48;
+        padding: 0.62rem 0.72rem;
+        border-radius: 16px;
+        background: rgba(255,255,255,0.07);
+        border: 1px solid rgba(255,255,255,0.10);
+    }
+    .it-hurling-result.is-goal { background: rgba(255,159,67,0.18); border-color: rgba(255,159,67,0.38); }
+    .it-hurling-result.is-point { background: rgba(41,179,106,0.18); border-color: rgba(41,179,106,0.38); }
+    .it-hurling-result.is-wide { background: rgba(255,255,255,0.07); border-color: rgba(255,255,255,0.14); }
+    .it-hurling-reset {
+        justify-self: start;
+        border: 1px solid rgba(255,255,255,0.14);
+        background: rgba(255,255,255,0.08);
+        color: var(--ink);
+        border-radius: 14px;
+        padding: 0.58rem 0.75rem;
+        font: inherit;
+        font-weight: 800;
+        cursor: pointer;
+    }
+
     .card--history_sort {
         background: radial-gradient(circle at top right, rgba(232,196,91,0.22), transparent 12rem), rgba(38, 31, 22, 0.92) !important;
     }
@@ -440,12 +649,14 @@ def _extra_css() -> str:
     .card--gaeilge_quiz .icon-badge,
     .card--phrase_builder .icon-badge,
     .card--memory_match .icon-badge,
-    .card--county_clues .icon-badge { font-size: 0; }
+    .card--county_clues .icon-badge,
+    .card--hurling_game .icon-badge { font-size: 0; }
     .card--history_sort .icon-badge::before { content: "📜"; font-size: 1.15rem; }
     .card--gaeilge_quiz .icon-badge::before { content: "🗣️"; font-size: 1.15rem; }
     .card--phrase_builder .icon-badge::before { content: "💬"; font-size: 1.15rem; }
     .card--memory_match .icon-badge::before { content: "🧩"; font-size: 1.15rem; }
     .card--county_clues .icon-badge::before { content: "🗺️"; font-size: 1.15rem; }
+    .card--hurling_game .icon-badge::before { content: "🏑"; font-size: 1.15rem; }
     """
     )
 
@@ -512,6 +723,129 @@ def _visual_layer_js() -> str:
     """
 
 
+def _hurling_game_js() -> str:
+    return r"""
+    (function () {
+        function bootGame(root) {
+            const aim = root.querySelector('[data-hurling-aim]');
+            const ball = root.querySelector('[data-hurling-ball]');
+            const strike = root.querySelector('[data-hurling-strike]');
+            const reset = root.querySelector('[data-hurling-reset]');
+            const scoreEl = root.querySelector('[data-hurling-score]');
+            const shotsEl = root.querySelector('[data-hurling-shots]');
+            const bestEl = root.querySelector('[data-hurling-best]');
+            const resultEl = root.querySelector('[data-hurling-result]');
+            const storageKey = root.getAttribute('data-storage-key') || 'irish-today-hurling-best';
+            const maxShots = 5;
+            let score = 0;
+            let shotsLeft = maxShots;
+            let aimPercent = 50;
+            let locked = false;
+            let best = 0;
+
+            try { best = Number(window.localStorage.getItem(storageKey) || '0') || 0; }
+            catch (err) { best = 0; }
+
+            function setResult(text, className) {
+                resultEl.textContent = text;
+                resultEl.className = 'it-hurling-result' + (className ? ' ' + className : '');
+            }
+
+            function render() {
+                scoreEl.textContent = String(score);
+                shotsEl.textContent = String(shotsLeft);
+                bestEl.textContent = String(best);
+                strike.disabled = shotsLeft <= 0 || locked;
+                if (shotsLeft <= 0) {
+                    setResult('Full time. Final score: ' + score + '. Reset for five more sliotars.', score >= 6 ? 'is-goal' : '');
+                }
+            }
+
+            function saveBest() {
+                if (score <= best) return;
+                best = score;
+                try { window.localStorage.setItem(storageKey, String(best)); }
+                catch (err) { /* ignore private mode */ }
+            }
+
+            function animateAim() {
+                const period = 1800;
+                const phase = (performance.now() % period) / period;
+                const sweep = phase < 0.5 ? phase * 2 : (1 - phase) * 2;
+                aimPercent = 16 + sweep * 68;
+                aim.style.left = aimPercent.toFixed(2) + '%';
+                requestAnimationFrame(animateAim);
+            }
+
+            function resetBall() {
+                ball.classList.remove('is-shot');
+                ball.style.left = '50%';
+            }
+
+            function takeShot() {
+                if (locked || shotsLeft <= 0) return;
+                locked = true;
+                shotsLeft -= 1;
+                const distance = Math.abs(aimPercent - 50);
+                let points = 0;
+                let message = 'Wide. The sliotar tails away from the posts.';
+                let className = 'is-wide';
+
+                if (distance <= 4.5) {
+                    points = 3;
+                    message = 'Goal! Perfect centre strike into the net — 3 points.';
+                    className = 'is-goal';
+                } else if (distance <= 19) {
+                    points = 1;
+                    message = 'Over the bar. That is a point.';
+                    className = 'is-point';
+                }
+
+                score += points;
+                ball.style.left = aimPercent.toFixed(2) + '%';
+                ball.classList.add('is-shot');
+                setResult(message, className);
+                saveBest();
+                render();
+
+                window.setTimeout(function () {
+                    resetBall();
+                    locked = false;
+                    render();
+                }, 520);
+            }
+
+            function resetGame() {
+                score = 0;
+                shotsLeft = maxShots;
+                locked = false;
+                resetBall();
+                setResult('Time the moving marker: over the bar is 1 point, a perfect centre strike is a goal worth 3.', '');
+                render();
+            }
+
+            strike.addEventListener('click', takeShot);
+            reset.addEventListener('click', resetGame);
+            root.addEventListener('keydown', function (event) {
+                if ((event.key === 'Enter' || event.key === ' ') && document.activeElement === strike) {
+                    event.preventDefault();
+                    takeShot();
+                }
+            });
+            render();
+            requestAnimationFrame(animateAim);
+        }
+
+        function boot() {
+            document.querySelectorAll('[data-it-hurling-game]').forEach(bootGame);
+        }
+
+        if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', boot);
+        else boot();
+    })();
+    """
+
+
 def build_theme_page(date_str: str | None = None, seed: int | None = None) -> PageContext:
     today = resolve_date(date_str)
     rng = random.Random(seed if seed is not None else today.toordinal())
@@ -534,7 +868,7 @@ def build_theme_page(date_str: str | None = None, seed: int | None = None) -> Pa
             "hero_kicker": THEME_CONFIG["hero_kicker"],
             "hero_summary_pill": THEME_CONFIG["hero_summary_pill"],
             "extra_css": previous_css + _extra_css(),
-            "extra_js": previous_js + interactive_showcase_js() + _visual_layer_js(),
+            "extra_js": previous_js + interactive_showcase_js() + _visual_layer_js() + _hurling_game_js(),
         }
     )
     return context
