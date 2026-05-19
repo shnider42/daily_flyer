@@ -25,7 +25,7 @@ from daily_flyer.utils import resolve_date
 
 
 THEME_NAME = "irish_today"
-CARD_COUNT = 6
+CARD_COUNT = 7
 VISUAL_LAYER_PHOTO_DIR = Path(__file__).resolve().parent / "df-it-photos"
 VISUAL_LAYER_PHOTO_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp"}
 
@@ -35,11 +35,11 @@ REQUIRED_CARD_TYPES = (
     "county",
     "did_you_know",
     "news",
+    "visual_layer",
 )
 
-# Optional rotation pool after the four anchors are present.
+# Optional rotation pool after the five anchors are present.
 OPTIONAL_CARD_TYPES = (
-    "visual_layer",
     "trivia",
     "history_sort",
     "gaeilge_quiz",
@@ -58,12 +58,12 @@ THEME_CONFIG = {
     "page_title": "Irish Today — Interactive culture, language, history, and craic",
     "header_title": "☘️ Irish Today ☘️",
     "header_subtitle": (
-        "A tighter Irish Today: six lively cards per day built around language, "
-        "county identity, Irish curiosity, Davy Holden History, and rotating play."
+        "A tighter Irish Today: seven lively cards per day built around language, "
+        "county identity, Irish curiosity, Davy Holden History, a visual layer, and rotating play."
     ),
     "footer_text": "Built by Holtsnider Tech. Driven by Davy Holden History.",
     "hero_kicker": "Daily Flyer • Irish Edition",
-    "hero_summary_pill": "Six-card daily edition • Word • County • Fact • Davy feature • Rotation",
+    "hero_summary_pill": "Seven-card daily edition • Word • County • Fact • Davy feature • Visual layer",
 }
 
 
@@ -130,14 +130,9 @@ def _build_visual_layer_card(today) -> CardItem | None:
 
     return CardItem(
         card_type="visual_layer",
-        eyebrow="Visual Layer",
-        title="Irish Viewfinder",
-        body=(
-            '<div class="it-photo-caption">'
-            '<span>Daily photo layer</span>'
-            '<strong>Rotates from df-it-photos</strong>'
-            '</div>'
-        ),
+        eyebrow="",
+        title="",
+        body="",
         image_url=image_url,
         source_url=None,
     )
@@ -256,10 +251,10 @@ def _compose_cards(
     visual_layer_card = _build_visual_layer_card(today)
 
     final_cards: list[CardItem] = [
-        card for card in (word_card, county_card, fact_card, davy_card) if card is not None
+        card for card in (word_card, county_card, fact_card, davy_card, visual_layer_card) if card is not None
     ]
 
-    optional_pool = [visual_layer_card, *interactive_cards, *_eligible_optional_base_cards(base_cards)]
+    optional_pool = [*interactive_cards, *_eligible_optional_base_cards(base_cards)]
     optional_pool = [card for card in optional_pool if card is not None]
 
     seen = {id(card) for card in final_cards}
@@ -332,21 +327,26 @@ def _extra_css() -> str:
     .df-lab-shell { background: rgba(255,255,255,0.07) !important; border-color: rgba(255,255,255,0.14) !important; }
 
     .card--visual_layer {
-        min-height: 22rem !important;
+        min-height: 24rem !important;
         background: #08131a !important;
         overflow: hidden;
-        display: grid;
-        align-content: end;
+        cursor: zoom-in;
+        display: block;
     }
     .card--visual_layer::before {
         z-index: 0;
         background:
-            linear-gradient(180deg, rgba(0,0,0,0.06) 0%, rgba(0,0,0,0.10) 40%, rgba(0,0,0,0.66) 100%),
-            radial-gradient(circle at 16% 12%, rgba(255,255,255,0.16), transparent 12rem) !important;
+            linear-gradient(180deg, rgba(0,0,0,0.02) 0%, rgba(0,0,0,0.10) 100%),
+            radial-gradient(circle at 16% 12%, rgba(255,255,255,0.12), transparent 12rem) !important;
     }
-    .card--visual_layer::after {
-        height: 0 !important;
-        opacity: 0 !important;
+    .card--visual_layer::after { height: 0 !important; opacity: 0 !important; }
+    .card--visual_layer .card-head,
+    .card--visual_layer .body,
+    .card--visual_layer .source,
+    .card--visual_layer .icon-badge,
+    .card--visual_layer .eyebrow,
+    .card--visual_layer h2 {
+        display: none !important;
     }
     .card--visual_layer .card-image-wrap {
         position: absolute;
@@ -363,40 +363,44 @@ def _extra_css() -> str:
         aspect-ratio: auto !important;
         object-fit: cover;
         object-position: center center;
+        transition: transform 260ms ease, filter 260ms ease;
     }
-    .card--visual_layer .card-head,
-    .card--visual_layer .body {
-        position: relative;
-        z-index: 1;
-        text-shadow: 0 2px 16px rgba(0,0,0,0.56);
+    .card--visual_layer:hover .card-image {
+        transform: scale(1.025);
+        filter: saturate(1.05) brightness(1.02);
     }
-    .card--visual_layer .body {
-        color: rgba(255,255,255,0.90) !important;
+    .it-photo-lightbox {
+        position: fixed;
+        inset: 0;
+        z-index: 9999;
+        display: grid;
+        place-items: center;
+        padding: min(6vw, 3rem);
+        background: rgba(2, 8, 12, 0.86);
+        backdrop-filter: blur(10px);
+        -webkit-backdrop-filter: blur(10px);
     }
-    .card--visual_layer .icon-badge {
-        background: rgba(0,0,0,0.28) !important;
-        border-color: rgba(255,255,255,0.22) !important;
-    }
-    .it-photo-caption {
-        display: inline-grid;
-        gap: 0.18rem;
-        padding: 0.68rem 0.78rem;
-        border-radius: 16px;
-        background: rgba(0,0,0,0.28);
+    .it-photo-lightbox[hidden] { display: none !important; }
+    .it-photo-lightbox img {
+        max-width: min(96vw, 1400px);
+        max-height: 88vh;
+        object-fit: contain;
+        border-radius: 22px;
+        box-shadow: 0 30px 90px rgba(0,0,0,0.55);
         border: 1px solid rgba(255,255,255,0.18);
-        width: fit-content;
-        max-width: 100%;
     }
-    .it-photo-caption span {
-        color: rgba(255,255,255,0.72);
-        font-size: 0.78rem;
-        font-weight: 700;
-        letter-spacing: 0.08em;
-        text-transform: uppercase;
-    }
-    .it-photo-caption strong {
+    .it-photo-lightbox button {
+        position: absolute;
+        top: 1rem;
+        right: 1rem;
+        width: 2.75rem;
+        height: 2.75rem;
+        border-radius: 999px;
+        border: 1px solid rgba(255,255,255,0.22);
+        background: rgba(0,0,0,0.38);
         color: #fff;
-        font-size: 0.94rem;
+        font-size: 1.35rem;
+        cursor: pointer;
     }
 
     .card--history_sort {
@@ -436,16 +440,76 @@ def _extra_css() -> str:
     .card--gaeilge_quiz .icon-badge,
     .card--phrase_builder .icon-badge,
     .card--memory_match .icon-badge,
-    .card--county_clues .icon-badge,
-    .card--visual_layer .icon-badge { font-size: 0; }
+    .card--county_clues .icon-badge { font-size: 0; }
     .card--history_sort .icon-badge::before { content: "📜"; font-size: 1.15rem; }
     .card--gaeilge_quiz .icon-badge::before { content: "🗣️"; font-size: 1.15rem; }
     .card--phrase_builder .icon-badge::before { content: "💬"; font-size: 1.15rem; }
     .card--memory_match .icon-badge::before { content: "🧩"; font-size: 1.15rem; }
     .card--county_clues .icon-badge::before { content: "🗺️"; font-size: 1.15rem; }
-    .card--visual_layer .icon-badge::before { content: "📷"; font-size: 1.15rem; }
     """
     )
+
+
+def _visual_layer_js() -> str:
+    return r"""
+    (function () {
+        function closeLightbox(lightbox) {
+            if (!lightbox) return;
+            lightbox.hidden = true;
+            lightbox.remove();
+            document.body.style.removeProperty('overflow');
+        }
+
+        function openLightbox(src, alt) {
+            const existing = document.querySelector('.it-photo-lightbox');
+            if (existing) closeLightbox(existing);
+
+            const lightbox = document.createElement('div');
+            lightbox.className = 'it-photo-lightbox';
+            lightbox.setAttribute('role', 'dialog');
+            lightbox.setAttribute('aria-modal', 'true');
+            lightbox.innerHTML = '<button type="button" aria-label="Close photo">×</button><img alt="">';
+            const image = lightbox.querySelector('img');
+            const button = lightbox.querySelector('button');
+            image.src = src;
+            image.alt = alt || 'Irish Today visual layer photo';
+            document.body.appendChild(lightbox);
+            document.body.style.overflow = 'hidden';
+
+            button.addEventListener('click', function () { closeLightbox(lightbox); });
+            lightbox.addEventListener('click', function (event) {
+                if (event.target === lightbox) closeLightbox(lightbox);
+            });
+            document.addEventListener('keydown', function onKeydown(event) {
+                if (event.key === 'Escape') {
+                    closeLightbox(lightbox);
+                    document.removeEventListener('keydown', onKeydown);
+                }
+            });
+        }
+
+        function bootVisualLayer() {
+            document.querySelectorAll('.card--visual_layer').forEach(function (card) {
+                const image = card.querySelector('.card-image');
+                if (!image) return;
+                card.setAttribute('role', 'button');
+                card.setAttribute('tabindex', '0');
+                card.setAttribute('aria-label', 'Open Irish Today photo');
+                function activate() { openLightbox(image.currentSrc || image.src, image.alt); }
+                card.addEventListener('click', activate);
+                card.addEventListener('keydown', function (event) {
+                    if (event.key === 'Enter' || event.key === ' ') {
+                        event.preventDefault();
+                        activate();
+                    }
+                });
+            });
+        }
+
+        if (document.readyState === 'loading') document.addEventListener('DOMContentLoaded', bootVisualLayer);
+        else bootVisualLayer();
+    })();
+    """
 
 
 def build_theme_page(date_str: str | None = None, seed: int | None = None) -> PageContext:
@@ -470,7 +534,7 @@ def build_theme_page(date_str: str | None = None, seed: int | None = None) -> Pa
             "hero_kicker": THEME_CONFIG["hero_kicker"],
             "hero_summary_pill": THEME_CONFIG["hero_summary_pill"],
             "extra_css": previous_css + _extra_css(),
-            "extra_js": previous_js + interactive_showcase_js(),
+            "extra_js": previous_js + interactive_showcase_js() + _visual_layer_js(),
         }
     )
     return context
