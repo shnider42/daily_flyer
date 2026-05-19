@@ -11,7 +11,7 @@ BACKGROUNDS = getattr(base_theme, "BACKGROUNDS", [])
 
 DESKTOP_LAYOUT_CSS = r"""
 /* Irish Today improved layout pass.
-   Goal: six cards, less dead space, and deliberate card-shape personality. */
+   Goal: six cards, enough breathing room, and deliberate card-shape personality. */
 @media (min-width: 981px) {
     :root { --max-width: min(1480px, calc(100vw - 64px)); }
 
@@ -31,25 +31,22 @@ DESKTOP_LAYOUT_CSS = r"""
         padding-right: 0 !important;
     }
 
-    /* CSS columns give a truer masonry/Pinterest pack than row-spanning grid.
-       Keep columns intentionally wide so the cards breathe horizontally. */
+    /* Explicit grid gap guarantees left/right cards never touch. */
     main {
-        display: block !important;
-        column-count: 2;
-        column-gap: 34px;
-        gap: 0 !important;
+        display: grid !important;
+        grid-template-columns: repeat(2, minmax(0, 1fr)) !important;
+        column-gap: 42px !important;
+        row-gap: 32px !important;
+        align-items: start !important;
     }
 
     .card {
-        display: inline-block !important;
         width: 100% !important;
         min-height: 0 !important;
         height: auto !important;
-        margin: 0 0 30px !important;
-        break-inside: avoid;
-        page-break-inside: avoid;
+        margin: 0 !important;
         padding: 1.24rem 1.34rem 1.16rem !important;
-        vertical-align: top;
+        align-self: start !important;
     }
 
     .card:hover { transform: translateY(-2px) !important; }
@@ -92,9 +89,11 @@ DESKTOP_LAYOUT_CSS = r"""
     }
 }
 
-/* Do not jump to extra columns too early. The hero can be wide, but the cards still need air. */
 @media (min-width: 1720px) {
-    main { column-count: 3; column-gap: 36px; }
+    main {
+        grid-template-columns: repeat(3, minmax(0, 1fr)) !important;
+        column-gap: 42px !important;
+    }
 }
 
 @media (max-width: 980px) {
