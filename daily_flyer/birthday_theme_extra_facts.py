@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import json
+from functools import lru_cache
 from pathlib import Path
 from typing import Any, Iterable
 
@@ -64,16 +65,25 @@ def _fact_from_dict(item: dict[str, Any], index: int, source_path: Path) -> Cura
     )
 
 
-def load_birthday_theme_facts(path: str | Path = DEFAULT_BIRTHDAY_THEME_FACTS_FILE) -> list[CuratedFact]:
-    fact_path = Path(path)
+@lru_cache(maxsize=None)
+def _load_birthday_theme_facts_cached(path_key: str) -> tuple[CuratedFact, ...]:
+    fact_path = Path(path_key)
     if not fact_path.exists():
-        return []
+        return ()
 
     data = json.loads(fact_path.read_text(encoding="utf-8"))
     if not isinstance(data, list):
         raise CuratedFactValidationError(f"{fact_path} must contain a JSON array.")
 
-    return [_fact_from_dict(item, index + 1, fact_path) for index, item in enumerate(data) if isinstance(item, dict)]
+    return tuple(
+        _fact_from_dict(item, index + 1, fact_path)
+        for index, item in enumerate(data)
+        if isinstance(item, dict)
+    )
+
+
+def load_birthday_theme_facts(path: str | Path = DEFAULT_BIRTHDAY_THEME_FACTS_FILE) -> list[CuratedFact]:
+    return list(_load_birthday_theme_facts_cached(str(Path(path))))
 
 
 def load_birthday_supplemental_fact_files(

@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 import re
 from dataclasses import dataclass, field
+from functools import lru_cache
 from pathlib import Path
 from typing import Any, Iterable, Protocol
 
@@ -36,6 +37,7 @@ def _safe_float(value: Any, default: float) -> float:
         return default
 
 
+@lru_cache(maxsize=None)
 def _compile_keyword_pattern(keyword: str) -> re.Pattern[str]:
     clean = keyword.strip().lower()
     escaped = re.escape(clean)
@@ -45,6 +47,7 @@ def _compile_keyword_pattern(keyword: str) -> re.Pattern[str]:
     return re.compile(escaped, re.IGNORECASE)
 
 
+@lru_cache(maxsize=None)
 def load_keyword_profiles(path: str | Path = DEFAULT_KEYWORD_WEIGHTS_FILE) -> dict[str, KeywordWeightProfile]:
     weights_path = Path(path)
     if not weights_path.exists():
