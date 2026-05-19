@@ -12,7 +12,7 @@ REPO_ROOT = Path(__file__).resolve().parent
 
 DEFAULT_THEME = os.environ.get("DEFAULT_THEME", "irish_today")
 THEME_ROUTE_ALIASES = {
-    "irish_today": "irish_today_improved",
+    "irish_today": "irish_today_improved_layout",
 }
 
 
