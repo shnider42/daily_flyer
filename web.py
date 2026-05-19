@@ -11,6 +11,9 @@ app = Flask(__name__)
 REPO_ROOT = Path(__file__).resolve().parent
 
 DEFAULT_THEME = os.environ.get("DEFAULT_THEME", "irish_today")
+THEME_ROUTE_ALIASES = {
+    "irish_today": "irish_today_improved",
+}
 
 
 def _normalize_theme_name(raw: str | None) -> str:
@@ -27,7 +30,7 @@ def _normalize_theme_name(raw: str | None) -> str:
     if not theme_name.replace("_", "").isalnum():
         abort(400, description="Invalid theme name.")
 
-    return theme_name
+    return THEME_ROUTE_ALIASES.get(theme_name, theme_name)
 
 
 # Backward-compatible name for existing tests/imports.
