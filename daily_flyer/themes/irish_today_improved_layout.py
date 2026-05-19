@@ -16,6 +16,7 @@ DESKTOP_LAYOUT_CSS = r"""
     --bg-shift: 0px !important;
     --it-site-width: 94%;
     --it-card-min: 18.5rem;
+    --it-edge-gutter: clamp(1rem, 1.25vw, 1.35rem);
 }
 
 body {
@@ -37,8 +38,10 @@ body {
         margin-right: auto !important;
     }
 
+    /* The hero card is inside .hero-wrap's gutter. Give the card wall the same
+       visual inset so cards never extend wider than the hero/banner card. */
     main {
-        padding: 16px 0 26px !important;
+        padding: 16px var(--it-edge-gutter) 26px !important;
         display: grid !important;
         grid-template-columns: repeat(auto-fit, minmax(min(100%, var(--it-card-min)), 1fr)) !important;
         grid-auto-flow: dense !important;
