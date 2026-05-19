@@ -13,13 +13,13 @@ DESKTOP_LAYOUT_CSS = r"""
 /* Irish Today improved layout pass.
    Goal: six cards, less dead space, and deliberate card-shape personality. */
 @media (min-width: 981px) {
-    :root { --max-width: min(1540px, calc(100vw - 48px)); }
+    :root { --max-width: min(1480px, calc(100vw - 64px)); }
 
     .hero-wrap,
     main,
     footer {
-        width: min(1540px, calc(100vw - 48px)) !important;
-        max-width: min(1540px, calc(100vw - 48px)) !important;
+        width: min(1480px, calc(100vw - 64px)) !important;
+        max-width: min(1480px, calc(100vw - 64px)) !important;
     }
 
     .hero-wrap,
@@ -31,8 +31,8 @@ DESKTOP_LAYOUT_CSS = r"""
     /* CSS columns give a truer masonry/Pinterest pack than row-spanning grid. */
     main {
         display: block !important;
-        column-count: 3;
-        column-gap: 18px;
+        column-count: 2;
+        column-gap: 24px;
         gap: 0 !important;
     }
 
@@ -41,27 +41,27 @@ DESKTOP_LAYOUT_CSS = r"""
         width: 100% !important;
         min-height: 0 !important;
         height: auto !important;
-        margin: 0 0 18px !important;
+        margin: 0 0 24px !important;
         break-inside: avoid;
         page-break-inside: avoid;
-        padding: 1rem 1rem 0.95rem !important;
+        padding: 1.22rem 1.25rem 1.12rem !important;
         vertical-align: top;
     }
 
     .card:hover { transform: translateY(-2px) !important; }
 
-    .card-head { margin-bottom: 0.58rem !important; }
-    .body { margin-top: 0.18rem !important; line-height: 1.54 !important; }
-    .source { margin-top: 0.72rem !important; padding-top: 0.62rem !important; }
-    .card-image-wrap { margin-bottom: 0.68rem !important; }
-    .card-image { aspect-ratio: 16 / 8.5 !important; }
+    .card-head { margin-bottom: 0.72rem !important; }
+    .body { margin-top: 0.24rem !important; line-height: 1.62 !important; }
+    .source { margin-top: 0.84rem !important; padding-top: 0.72rem !important; }
+    .card-image-wrap { margin-bottom: 0.76rem !important; }
+    .card-image { aspect-ratio: 16 / 9 !important; }
 
-    .df-lab-shell { gap: 0.62rem !important; padding: 0.78rem !important; }
-    .df-lab-question { line-height: 1.35 !important; }
-    .df-lab-options, .df-lab-grid, .df-lab-wordbank { gap: 0.48rem !important; }
+    .df-lab-shell { gap: 0.78rem !important; padding: 0.92rem !important; }
+    .df-lab-question { line-height: 1.45 !important; }
+    .df-lab-options, .df-lab-grid, .df-lab-wordbank { gap: 0.58rem !important; }
     .df-lab-option, .df-lab-chip, .df-lab-ghost, .df-lab-primary, .df-lab-clue-btn, .df-lab-stack-btn {
-        padding-top: 0.54rem !important;
-        padding-bottom: 0.54rem !important;
+        padding-top: 0.64rem !important;
+        padding-bottom: 0.64rem !important;
     }
 
     /* Runtime shape set: first three of the six get the special shapes. */
@@ -69,28 +69,31 @@ DESKTOP_LAYOUT_CSS = r"""
         border-radius: 0 !important;
     }
 
+    /* Softer notched/star treatment. Keep this subtle so the outline never bites into text. */
     main > .card:nth-of-type(2) {
-        border-radius: 30px !important;
+        border-radius: 26px !important;
         clip-path: polygon(
-            6% 0%, 50% 0%, 54% 5%, 58% 0%, 94% 0%,
-            100% 6%, 100% 45%, 95% 50%, 100% 55%, 100% 94%,
-            94% 100%, 58% 100%, 54% 95%, 50% 100%, 6% 100%,
-            0% 94%, 0% 55%, 5% 50%, 0% 45%, 0% 6%
+            3% 0%, 48% 0%, 51% 2.5%, 54% 0%, 97% 0%,
+            100% 3%, 100% 47%, 97.5% 50%, 100% 53%, 100% 97%,
+            97% 100%, 54% 100%, 51% 97.5%, 48% 100%, 3% 100%,
+            0% 97%, 0% 53%, 2.5% 50%, 0% 47%, 0% 3%
         );
+        padding: 1.42rem 1.48rem 1.28rem !important;
     }
 
     main > .card:nth-of-type(3) {
         border-radius: 0 !important;
-        clip-path: polygon(24px 0, 100% 0, 100% calc(100% - 24px), calc(100% - 24px) 100%, 0 100%, 0 24px);
+        clip-path: polygon(14px 0, 100% 0, 100% calc(100% - 14px), calc(100% - 14px) 100%, 0 100%, 0 14px);
+        padding: 1.28rem 1.32rem 1.16rem !important;
     }
 }
 
-@media (min-width: 1320px) {
-    main { column-count: 4; }
+@media (min-width: 1360px) {
+    main { column-count: 3; }
 }
 
-@media (min-width: 1720px) {
-    main { column-count: 5; }
+@media (min-width: 1920px) {
+    main { column-count: 4; }
 }
 
 @media (max-width: 980px) {
