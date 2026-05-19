@@ -1,12 +1,75 @@
 from __future__ import annotations
 
+from pathlib import Path
+
 from daily_flyer.models import PageContext
 from daily_flyer.themes import irish_today_improved as base_theme
+from daily_flyer.utils import resolve_date
 
 
 THEME_CONFIG = base_theme.THEME_CONFIG
 BACKGROUND_CADENCE = getattr(base_theme, "BACKGROUND_CADENCE", "daily")
 BACKGROUNDS = getattr(base_theme, "BACKGROUNDS", [])
+HERO_BACKGROUND_DIR = Path(__file__).resolve().parent / "df-it-backgrounds"
+HERO_BACKGROUND_EXTENSIONS = {".jpg", ".jpeg", ".png", ".webp"}
+
+
+def _hero_background_paths() -> list[Path]:
+    if not HERO_BACKGROUND_DIR.exists():
+        return []
+    return sorted(
+        path
+        for path in HERO_BACKGROUND_DIR.iterdir()
+        if path.is_file() and path.suffix.lower() in HERO_BACKGROUND_EXTENSIONS
+    )
+
+
+def _hero_background_url(date_str: str | None) -> str | None:
+    today = resolve_date(date_str)
+    backgrounds = _hero_background_paths()
+    if not backgrounds:
+        return None
+    chosen = backgrounds[today.toordinal() % len(backgrounds)]
+    return f"/daily_flyer/themes/df-it-backgrounds/{chosen.name}"
+
+
+def _hero_background_css(date_str: str | None) -> str:
+    image_url = _hero_background_url(date_str)
+    if not image_url:
+        return ""
+    return f"""
+header.hero {{
+    --it-hero-parallax-y: 0%;
+    background:
+        linear-gradient(90deg, rgba(2,10,8,0.78) 0%, rgba(2,10,8,0.56) 36%, rgba(2,10,8,0.38) 64%, rgba(2,10,8,0.62) 100%),
+        linear-gradient(180deg, rgba(0,0,0,0.26), rgba(0,0,0,0.54)),
+        radial-gradient(circle at 18% 18%, rgba(31,171,98,0.34), transparent 18rem),
+        radial-gradient(circle at 88% 26%, rgba(255,159,67,0.22), transparent 16rem),
+        url('{image_url}') center calc(50% + var(--it-hero-parallax-y)) / cover no-repeat !important;
+    background-color: rgba(7, 33, 22, 0.96) !important;
+}}
+
+header.hero::before {{
+    background:
+        linear-gradient(90deg, transparent, rgba(255,255,255,0.05), transparent),
+        radial-gradient(circle at 12% 22%, rgba(22,163,74,0.18), transparent 22%),
+        radial-gradient(circle at 88% 28%, rgba(255,153,51,0.14), transparent 24%) !important;
+    opacity: 0.86 !important;
+}}
+
+header.hero .hero-kicker,
+header.hero .hero-pill {{
+    background: rgba(0,0,0,0.24) !important;
+    border-color: rgba(255,255,255,0.16) !important;
+    box-shadow: 0 12px 26px rgba(0,0,0,0.16);
+}}
+
+header.hero .subtitle,
+header.hero .hero-pill,
+header.hero .hero-kicker {{
+    text-shadow: 0 2px 16px rgba(0,0,0,0.42);
+}}
+"""
 
 
 DESKTOP_LAYOUT_CSS = r"""
@@ -382,11 +445,39 @@ FREEZE_BACKGROUND_JS = r"""
 """
 
 
+HERO_PARALLAX_JS = r"""
+(function () {
+    const hero = document.querySelector('header.hero');
+    if (!hero) return;
+    const reduceMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
+
+    function updateHeroParallax() {
+        if (reduceMotion) {
+            hero.style.setProperty('--it-hero-parallax-y', '0%');
+            return;
+        }
+        const rect = hero.getBoundingClientRect();
+        const viewportHeight = window.innerHeight || document.documentElement.clientHeight || 1;
+        const heroMidpoint = rect.top + rect.height / 2;
+        const viewportMidpoint = viewportHeight / 2;
+        const progress = Math.max(-1, Math.min(1, (viewportMidpoint - heroMidpoint) / viewportHeight));
+        const shift = progress * 6;
+        hero.style.setProperty('--it-hero-parallax-y', shift.toFixed(2) + '%');
+    }
+
+    updateHeroParallax();
+    window.addEventListener('scroll', updateHeroParallax, { passive: true });
+    window.addEventListener('resize', updateHeroParallax, { passive: true });
+    window.addEventListener('load', updateHeroParallax, { once: true });
+})();
+"""
+
+
 def build_theme_page(date_str: str | None = None, seed: int | None = None) -> PageContext:
     context = base_theme.build_theme_page(date_str=date_str, seed=seed)
     previous_css = context.metadata.get("extra_css", "") or ""
     previous_js = context.metadata.get("extra_js", "") or ""
-    context.metadata["extra_css"] = previous_css + DESKTOP_LAYOUT_CSS
-    context.metadata["extra_js"] = MASONRY_LAYOUT_JS + (previous_js or "") + MEMORY_VISIBLE_JS + FREEZE_BACKGROUND_JS
+    context.metadata["extra_css"] = previous_css + _hero_background_css(date_str) + DESKTOP_LAYOUT_CSS
+    context.metadata["extra_js"] = MASONRY_LAYOUT_JS + (previous_js or "") + MEMORY_VISIBLE_JS + FREEZE_BACKGROUND_JS + HERO_PARALLAX_JS
     context.metadata["theme_name"] = "irish_today"
     return context
