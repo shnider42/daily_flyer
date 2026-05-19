@@ -11,62 +11,85 @@ BACKGROUNDS = getattr(base_theme, "BACKGROUNDS", [])
 
 DESKTOP_LAYOUT_CSS = r"""
 /* Irish Today improved layout pass.
-   Goal: six cards, enough breathing room, and proportional desktop sizing. */
-@media (min-width: 981px) {
-    :root {
-        --it-page-width: 92%;
-        --it-card-gap: 4%;
-        --it-card-row-gap: 2.2rem;
-    }
+   Goal: dynamic tile wall, little wasted space, breathable gaps, and hero-width alignment. */
+:root {
+    --bg-shift: 0px !important;
+}
 
-    /* Keep the hero/banner width behavior consistent, and make the card wall match it proportionally. */
-    .hero-wrap,
-    main,
-    footer {
-        width: var(--it-page-width) !important;
+body {
+    background-attachment: fixed !important;
+}
+
+.site-bg {
+    transform: scale(1.04) !important;
+    will-change: auto !important;
+}
+
+@media (min-width: 981px) {
+    main {
+        width: auto !important;
         max-width: var(--max-width) !important;
         margin-left: auto !important;
         margin-right: auto !important;
-    }
-
-    .hero-wrap,
-    main {
-        padding-left: 0 !important;
-        padding-right: 0 !important;
-    }
-
-    /* Percentage columns/gap: 48% + 4% + 48% = 100%. */
-    main {
+        padding: 16px 18px 26px !important;
         display: grid !important;
-        grid-template-columns: 48% 48% !important;
-        column-gap: var(--it-card-gap) !important;
-        row-gap: var(--it-card-row-gap) !important;
+        grid-template-columns: repeat(auto-fit, minmax(min(100%, 18.5rem), 1fr)) !important;
+        grid-auto-flow: dense !important;
+        grid-auto-rows: 0.5rem !important;
+        column-gap: clamp(1rem, 2.4%, 1.9rem) !important;
+        row-gap: clamp(1rem, 2.2vw, 1.65rem) !important;
         align-items: start !important;
     }
 
+    main.it-masonry-ready .card {
+        transition:
+            transform 180ms ease,
+            border-color 180ms ease,
+            box-shadow 180ms ease,
+            opacity 140ms ease !important;
+    }
+
     .card {
+        grid-column: auto !important;
         width: 100% !important;
+        min-width: 0 !important;
         min-height: 0 !important;
         height: auto !important;
         margin: 0 !important;
-        padding: 1.24rem 1.34rem 1.16rem !important;
+        padding: 1.16rem 1.22rem 1.08rem !important;
         align-self: start !important;
     }
 
     .card:hover { transform: translateY(-2px) !important; }
 
-    .card-head { margin-bottom: 0.72rem !important; }
-    .body { margin-top: 0.24rem !important; line-height: 1.62 !important; }
-    .source { margin-top: 0.84rem !important; padding-top: 0.72rem !important; }
-    .card-image-wrap { margin-bottom: 0.76rem !important; }
+    .card-head { margin-bottom: 0.68rem !important; }
+    .body { margin-top: 0.24rem !important; line-height: 1.60 !important; }
+    .source { margin-top: 0.82rem !important; padding-top: 0.70rem !important; }
+    .card-image-wrap { margin-bottom: 0.74rem !important; }
     .card-image { aspect-ratio: 16 / 9 !important; }
 
-    .df-lab-shell { gap: 0.78rem !important; padding: 0.92rem !important; }
-    .df-lab-question { line-height: 1.45 !important; }
-    .df-lab-options, .df-lab-grid, .df-lab-wordbank { gap: 0.58rem !important; }
+    .df-lab-shell { gap: 0.74rem !important; padding: 0.88rem !important; }
+    .df-lab-question { line-height: 1.42 !important; }
+    .df-lab-options, .df-lab-grid, .df-lab-wordbank { gap: 0.56rem !important; }
     .df-lab-option, .df-lab-chip, .df-lab-ghost, .df-lab-primary, .df-lab-clue-btn, .df-lab-stack-btn {
-        padding-top: 0.64rem !important;
-        padding-bottom: 0.64rem !important;
+        padding-top: 0.62rem !important;
+        padding-bottom: 0.62rem !important;
+    }
+
+    /* Give dense content a little more room when the browser can afford it. */
+    @media (min-width: 1240px) {
+        main > .card--trivia,
+        main > .card--history_sort,
+        main > .card--county_clues,
+        main > .card--memory_match {
+            grid-column: span 2 !important;
+        }
+    }
+
+    @media (min-width: 1480px) {
+        main {
+            grid-template-columns: repeat(auto-fit, minmax(min(100%, 19.5rem), 1fr)) !important;
+        }
     }
 
     /* Runtime shape set: first three of the six get the special shapes. */
@@ -83,27 +106,19 @@ DESKTOP_LAYOUT_CSS = r"""
             97% 100%, 54% 100%, 51% 97.5%, 48% 100%, 3% 100%,
             0% 97%, 0% 53%, 2.5% 50%, 0% 47%, 0% 3%
         );
-        padding: 1.44rem 1.56rem 1.32rem !important;
+        padding: 1.36rem 1.46rem 1.24rem !important;
     }
 
     main > .card:nth-of-type(3) {
         border-radius: 0 !important;
-        clip-path: polygon(2.4% 0, 100% 0, 100% calc(100% - 2.4%), calc(100% - 2.4%) 100%, 0 100%, 0 2.4%);
-        padding: 1.30rem 1.42rem 1.20rem !important;
-    }
-}
-
-@media (min-width: 1720px) {
-    :root { --it-card-gap: 3%; }
-    main {
-        grid-template-columns: 31.333% 31.333% 31.333% !important;
-        column-gap: var(--it-card-gap) !important;
+        clip-path: polygon(2.2% 0, 100% 0, 100% calc(100% - 2.2%), calc(100% - 2.2%) 100%, 0 100%, 0 2.2%);
+        padding: 1.24rem 1.34rem 1.14rem !important;
     }
 }
 
 @media (max-width: 980px) {
     main { display: grid !important; }
-    .card { clip-path: none !important; }
+    .card { clip-path: none !important; grid-row-end: auto !important; }
 }
 
 /* Visible-pair memory mode for Irish Today: no blind matching boxes. */
@@ -120,6 +135,96 @@ DESKTOP_LAYOUT_CSS = r"""
     background: rgba(41,179,106,0.20) !important;
     border-color: rgba(41,179,106,0.60) !important;
 }
+"""
+
+
+MASONRY_LAYOUT_JS = r"""
+(function () {
+    const MIN_DESKTOP_WIDTH = 981;
+    const LAYOUT_SELECTOR = "main";
+    const CARD_SELECTOR = ".card";
+    let resizeObserver = null;
+    let scheduled = false;
+
+    function isDesktop() {
+        return window.matchMedia("(min-width: " + MIN_DESKTOP_WIDTH + "px)").matches;
+    }
+
+    function scheduleLayout() {
+        if (scheduled) return;
+        scheduled = true;
+        window.requestAnimationFrame(function () {
+            scheduled = false;
+            applyMasonryLayout();
+        });
+    }
+
+    function resetCard(card) {
+        card.style.gridRowEnd = "";
+    }
+
+    function applyMasonryLayout() {
+        const grid = document.querySelector(LAYOUT_SELECTOR);
+        if (!grid) return;
+
+        const cards = Array.from(grid.querySelectorAll(CARD_SELECTOR));
+        if (!cards.length) return;
+
+        if (!isDesktop()) {
+            grid.classList.remove("it-masonry-ready");
+            cards.forEach(resetCard);
+            return;
+        }
+
+        const computed = window.getComputedStyle(grid);
+        const rowHeight = parseFloat(computed.getPropertyValue("grid-auto-rows")) || 8;
+        const rowGap = parseFloat(computed.getPropertyValue("row-gap")) || 18;
+
+        cards.forEach(resetCard);
+
+        cards.forEach(function (card) {
+            const height = card.getBoundingClientRect().height;
+            const span = Math.max(1, Math.ceil((height + rowGap) / (rowHeight + rowGap)));
+            card.style.gridRowEnd = "span " + span;
+        });
+
+        grid.classList.add("it-masonry-ready");
+    }
+
+    function watchCardSizeChanges() {
+        const grid = document.querySelector(LAYOUT_SELECTOR);
+        if (!grid || !("ResizeObserver" in window)) return;
+
+        if (resizeObserver) resizeObserver.disconnect();
+        resizeObserver = new ResizeObserver(scheduleLayout);
+        grid.querySelectorAll(CARD_SELECTOR).forEach(function (card) {
+            resizeObserver.observe(card);
+        });
+    }
+
+    function bootMasonry() {
+        scheduleLayout();
+        watchCardSizeChanges();
+        window.addEventListener("resize", scheduleLayout, { passive: true });
+        window.addEventListener("load", scheduleLayout, { once: true });
+        document.querySelectorAll("img").forEach(function (image) {
+            if (!image.complete) {
+                image.addEventListener("load", scheduleLayout, { once: true });
+                image.addEventListener("error", scheduleLayout, { once: true });
+            }
+        });
+        document.addEventListener("click", function (event) {
+            if (event.target && event.target.closest(".df-lab-widget, .card")) {
+                window.setTimeout(scheduleLayout, 40);
+                window.setTimeout(scheduleLayout, 240);
+                window.setTimeout(scheduleLayout, 760);
+            }
+        });
+    }
+
+    if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", bootMasonry);
+    else bootMasonry();
+})();
 """
 
 
@@ -170,6 +275,6 @@ def build_theme_page(date_str: str | None = None, seed: int | None = None) -> Pa
     previous_css = context.metadata.get("extra_css", "") or ""
     previous_js = context.metadata.get("extra_js", "") or ""
     context.metadata["extra_css"] = previous_css + DESKTOP_LAYOUT_CSS
-    context.metadata["extra_js"] = previous_js + MEMORY_VISIBLE_JS
+    context.metadata["extra_js"] = previous_js + MASONRY_LAYOUT_JS + MEMORY_VISIBLE_JS
     context.metadata["theme_name"] = "irish_today"
     return context
