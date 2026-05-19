@@ -3,6 +3,7 @@ from __future__ import annotations
 import random
 import re
 from html import unescape
+from typing import Callable
 
 from daily_flyer.models import CardItem, PageContext
 from daily_flyer.themes.interactive_showcase import (
@@ -25,27 +26,27 @@ from daily_flyer.utils import resolve_date
 THEME_NAME = "irish_today"
 CARD_COUNT = 6
 
-# For now, these are the daily anchors for Irish Today Improved.
+# Irish Today Improved daily anchors. These are content-first, not game-first.
 REQUIRED_CARD_TYPES = (
     "word",
-    "trivia",
-    "history_sort",
-    "county_clues",
-)
-
-# These rotate into the remaining two slots. History spotlight only joins this
-# pool when it contains an actual dated/nearby fact, not the generic fallback.
-OPTIONAL_CARD_TYPES = (
-    "gaeilge_quiz",
-    "phrase_builder",
-    "memory_match",
+    "county",
     "did_you_know",
     "news",
+)
+
+# Optional rotation pool after the four anchors are present.
+OPTIONAL_CARD_TYPES = (
+    "trivia",
+    "history_sort",
+    "gaeilge_quiz",
+    "phrase_builder",
+    "county_clues",
+    "memory_match",
+    "history",
     "sport",
     "irish_connection",
-    "county",
     "phrase",
-    "history",
+    "did_you_know",
 )
 
 
@@ -53,12 +54,12 @@ THEME_CONFIG = {
     "page_title": "Irish Today — Interactive culture, language, history, and craic",
     "header_title": "☘️ Irish Today ☘️",
     "header_subtitle": (
-        "A tighter Irish Today: six lively cards per day, rotating between "
-        "language, history, county clues, trivia, and playful practice."
+        "A tighter Irish Today: six lively cards per day built around language, "
+        "county identity, Irish curiosity, Davy Holden History, and rotating play."
     ),
     "footer_text": "Built by Holtsnider Tech. Driven by Davy Holden History.",
     "hero_kicker": "Daily Flyer • Irish Edition",
-    "hero_summary_pill": "Six-card daily edition • Language • History • County pride • Play",
+    "hero_summary_pill": "Six-card daily edition • Word • County • Fact • Davy feature • Rotation",
 }
 
 
@@ -73,6 +74,24 @@ def _is_generic_history_card(card: CardItem) -> bool:
         "uprisings, literature, sport, and language revival",
     )
     return any(marker in text for marker in generic_markers) or len(text) < 120
+
+
+def _is_davy_feature_card(card: CardItem) -> bool:
+    return card.card_type == "news" and "davy" in (card.eyebrow or "").lower()
+
+
+def _is_fact_did_you_know_card(card: CardItem) -> bool:
+    if card.card_type != "did_you_know":
+        return False
+    label = f"{card.eyebrow} {card.title}".lower()
+    return "irish fact" in label or "did you know" in label
+
+
+def _find_card(cards: list[CardItem], predicate: Callable[[CardItem], bool]) -> CardItem | None:
+    for card in cards:
+        if predicate(card):
+            return card
+    return None
 
 
 def _interactive_cards(rng: random.Random) -> list[CardItem]:
@@ -155,19 +174,17 @@ def _interactive_cards(rng: random.Random) -> list[CardItem]:
     ]
 
 
-def _first_by_type(cards: list[CardItem]) -> dict[str, CardItem]:
-    by_type: dict[str, CardItem] = {}
-    for card in cards:
-        by_type.setdefault(card.card_type, card)
-    return by_type
-
-
 def _eligible_optional_base_cards(base_cards: list[CardItem]) -> list[CardItem]:
     optional: list[CardItem] = []
     for card in base_cards:
+        # The Plus trivia card is replaced by the richer interactive trivia card.
         if card.card_type == "trivia":
             continue
+        # History only rotates in when it has a real dated/nearby fact.
         if card.card_type == "history" and _is_generic_history_card(card):
+            continue
+        # The Davy feature and fact Did You Know are required, not optional duplicates.
+        if _is_davy_feature_card(card) or _is_fact_did_you_know_card(card):
             continue
         if card.card_type in OPTIONAL_CARD_TYPES:
             optional.append(card)
@@ -175,23 +192,16 @@ def _eligible_optional_base_cards(base_cards: list[CardItem]) -> list[CardItem]:
 
 
 def _compose_cards(base_cards: list[CardItem], interactive_cards: list[CardItem], rng: random.Random) -> list[CardItem]:
-    base_by_type = _first_by_type([card for card in base_cards if card.card_type != "trivia"])
-    interactive_by_type = _first_by_type(interactive_cards)
+    word_card = _find_card(base_cards, lambda card: card.card_type == "word")
+    county_card = _find_card(base_cards, lambda card: card.card_type == "county")
+    fact_card = _find_card(base_cards, _is_fact_did_you_know_card)
+    davy_card = _find_card(base_cards, _is_davy_feature_card)
 
-    required_candidates = [
-        base_by_type.get("word"),
-        interactive_by_type.get("trivia"),
-        interactive_by_type.get("history_sort"),
-        interactive_by_type.get("county_clues"),
+    final_cards: list[CardItem] = [
+        card for card in (word_card, county_card, fact_card, davy_card) if card is not None
     ]
-    final_cards: list[CardItem] = [card for card in required_candidates if card is not None]
 
-    optional_pool = [
-        interactive_by_type.get("gaeilge_quiz"),
-        interactive_by_type.get("phrase_builder"),
-        interactive_by_type.get("memory_match"),
-        *_eligible_optional_base_cards(base_cards),
-    ]
+    optional_pool = [*interactive_cards, *_eligible_optional_base_cards(base_cards)]
     optional_pool = [card for card in optional_pool if card is not None]
 
     seen = {id(card) for card in final_cards}
@@ -283,6 +293,20 @@ def _extra_css() -> str:
     }
     .card--news {
         background: radial-gradient(circle at 14% 10%, rgba(255,159,67,0.24), transparent 12rem), rgba(46, 28, 18, 0.92) !important;
+    }
+    .card--news .it-davy-shell {
+        gap: 0.75rem;
+    }
+    .card--news .it-list {
+        gap: 0.5rem;
+    }
+    .card--news .it-list-link {
+        align-items: flex-start;
+        flex-direction: column;
+        gap: 0.25rem;
+    }
+    .card--news .it-list-link span:last-child {
+        white-space: normal;
     }
     .card--did_you_know { background: radial-gradient(circle at 80% 0%, rgba(60,183,177,0.20), transparent 14rem), rgba(7, 37, 42, 0.92) !important; }
     .card--sport { background: linear-gradient(180deg, rgba(31,171,98,0.20), rgba(255,255,255,0.03)), rgba(9, 45, 25, 0.92) !important; }
