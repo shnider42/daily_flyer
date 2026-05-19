@@ -4,6 +4,7 @@ import json
 import random
 from dataclasses import asdict, dataclass, field
 from datetime import date, timedelta
+from functools import lru_cache
 from pathlib import Path
 from typing import Any
 
@@ -197,16 +198,21 @@ def _validate_fact_dict(item: dict[str, Any], index: int) -> CuratedFact:
     )
 
 
-def load_curated_facts(path: str | Path = DEFAULT_CURATED_FACTS_FILE) -> list[CuratedFact]:
-    fact_path = Path(path)
+@lru_cache(maxsize=None)
+def _load_curated_facts_cached(path_key: str) -> tuple[CuratedFact, ...]:
+    fact_path = Path(path_key)
     if not fact_path.exists():
-        return []
+        return ()
 
     data = json.loads(fact_path.read_text(encoding="utf-8"))
     if not isinstance(data, list):
         raise CuratedFactValidationError("curated_facts.json must contain a JSON array.")
 
-    return [_validate_fact_dict(item, index + 1) for index, item in enumerate(data)]
+    return tuple(_validate_fact_dict(item, index + 1) for index, item in enumerate(data))
+
+
+def load_curated_facts(path: str | Path = DEFAULT_CURATED_FACTS_FILE) -> list[CuratedFact]:
+    return list(_load_curated_facts_cached(str(Path(path))))
 
 
 def approved_facts(path: str | Path = DEFAULT_CURATED_FACTS_FILE) -> list[CuratedFact]:
