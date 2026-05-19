@@ -149,6 +149,26 @@ class WebRouteTests(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertIn(b"Irish Today", response.data)
 
+    def test_topic_signal_daily_renders_passages_companion(self) -> None:
+        response = self.client.get("/?theme=topic_signal_daily&date=2026-05-13&seed=0")
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(b"Passages Daily", response.data)
+        self.assertIn(b"Step Into Today with Skills and Confidence", response.data)
+        self.assertIn(b"Finding a First Direction", response.data)
+        self.assertIn(b"Today\xe2\x80\x99s Focus", response.data)
+        self.assertIn(b"Try This Today", response.data)
+        self.assertIn(b"Mini Confidence Quest", response.data)
+        self.assertIn(b"Phrase Shuffle", response.data)
+        self.assertIn(b"Conversation Starter", response.data)
+        self.assertIn(b"Parent / Mentor Note", response.data)
+
+    def test_topic_signal_daily_accepts_hyphenated_theme_alias(self) -> None:
+        response = self.client.get("/?theme=topic-signal-daily&date=2026-05-13&seed=0")
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(b"Passages Daily", response.data)
+        self.assertIn(b"Finding a First Direction", response.data)
+        self.assertIn(b"Mini Confidence Quest", response.data)
+        
     def test_nissan_z_theme_renders(self) -> None:
         response = self.client.get("/?theme=nissan_z&date=2026-08-17&seed=7")
         self.assertEqual(response.status_code, 200)
