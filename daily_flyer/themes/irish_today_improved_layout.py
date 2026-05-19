@@ -19,12 +19,17 @@ DESKTOP_LAYOUT_CSS = r"""
     --it-edge-gutter: clamp(1rem, 1.25vw, 1.35rem);
 }
 
+html,
 body {
     background-attachment: fixed !important;
 }
 
 .site-bg {
-    transform: scale(1.04) !important;
+    position: fixed !important;
+    inset: 0 !important;
+    transform: none !important;
+    background-position: center center !important;
+    background-size: cover !important;
     will-change: auto !important;
 }
 
@@ -128,6 +133,17 @@ body {
 @media (max-width: 980px) {
     main { display: grid !important; }
     .card { clip-path: none !important; grid-row-end: auto !important; }
+
+    .site-bg {
+        position: fixed !important;
+        inset: 0 !important;
+        width: 100vw !important;
+        height: 100vh !important;
+        min-height: 100svh !important;
+        transform: none !important;
+        background-attachment: scroll !important;
+        background-position: center center !important;
+    }
 }
 
 /* Visible-pair memory mode for Irish Today: no blind matching boxes. */
@@ -279,11 +295,34 @@ MEMORY_VISIBLE_JS = r"""
 """
 
 
+FREEZE_BACKGROUND_JS = r"""
+(function () {
+    function freezeBackground() {
+        document.documentElement.style.setProperty('--bg-shift', '0px', 'important');
+        const siteBg = document.querySelector('.site-bg');
+        if (siteBg) {
+            siteBg.style.setProperty('transform', 'none', 'important');
+            siteBg.style.setProperty('will-change', 'auto', 'important');
+        }
+    }
+
+    freezeBackground();
+    window.addEventListener('scroll', freezeBackground, { passive: true });
+    window.addEventListener('resize', freezeBackground, { passive: true });
+    window.addEventListener('load', freezeBackground, { once: true });
+    if (window.visualViewport) {
+        window.visualViewport.addEventListener('resize', freezeBackground, { passive: true });
+        window.visualViewport.addEventListener('scroll', freezeBackground, { passive: true });
+    }
+})();
+"""
+
+
 def build_theme_page(date_str: str | None = None, seed: int | None = None) -> PageContext:
     context = base_theme.build_theme_page(date_str=date_str, seed=seed)
     previous_css = context.metadata.get("extra_css", "") or ""
     previous_js = context.metadata.get("extra_js", "") or ""
     context.metadata["extra_css"] = previous_css + DESKTOP_LAYOUT_CSS
-    context.metadata["extra_js"] = previous_js + MASONRY_LAYOUT_JS + MEMORY_VISIBLE_JS
+    context.metadata["extra_js"] = previous_js + MASONRY_LAYOUT_JS + MEMORY_VISIBLE_JS + FREEZE_BACKGROUND_JS
     context.metadata["theme_name"] = "irish_today"
     return context
