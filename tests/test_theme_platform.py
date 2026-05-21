@@ -150,13 +150,15 @@ class WebRouteTests(unittest.TestCase):
         self.assertIn(b"Irish Today", response.data)
 
     def test_irish_today_visual_lab_renders_style_switcher(self) -> None:
-        response = self.client.get("/?theme=irish_today_visual_lab&date=2026-04-24&seed=7&style=glass")
+        response = self.client.get("/?theme=irish_today_visual_lab&date=2026-04-24&seed=7&style=sample")
         self.assertEqual(response.status_code, 200)
         self.assertIn(b"Irish Today", response.data)
         self.assertIn(b"Visual Lab", response.data)
         self.assertIn(b"data-visual-lab-style", response.data)
         self.assertIn(b"it-visual-lab-controls", response.data)
-        self.assertIn(b"paper|glass|broadcast|museum|sticker", response.data)
+        self.assertIn(b"paper|glass|broadcast|museum|sticker|watercolor|newsroom|neon|terminal|sample", response.data)
+        self.assertIn(b"it-card-style-terminal", response.data)
+        self.assertIn(b"data-visual-card-style", response.data)
 
     def test_topic_signal_daily_renders_passages_companion(self) -> None:
         response = self.client.get("/?theme=topic_signal_daily&date=2026-05-13&seed=0")
