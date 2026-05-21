@@ -216,7 +216,8 @@ VISUAL_LAB_MENU_JS = r"""
             label: 'Samples',
             items: [
                 ['sample', 'Sample', 'mixed random'],
-                ['strict_sample', 'Strict sample', 'no repeats per day']
+                ['strict_sample', 'Strict sample', 'no repeats per day'],
+                ['custom_cards', 'Custom cards', 'per-card debug controls']
             ]
         },
         {
@@ -257,13 +258,14 @@ VISUAL_LAB_MENU_JS = r"""
 
     function applyStyle(style) {
         const existingButton = document.querySelector('.it-visual-lab-controls > button[data-style="' + style + '"]');
-        if (existingButton) existingButton.click();
+        if (existingButton && style !== 'custom_cards') existingButton.click();
         else {
             document.documentElement.setAttribute('data-visual-lab-style', style);
             if (document.body) document.body.setAttribute('data-visual-lab-style', style);
             const url = new URL(window.location.href);
             url.searchParams.set('style', style);
             window.history.replaceState({}, '', url.toString());
+            window.dispatchEvent(new PopStateEvent('popstate'));
         }
         window.setTimeout(() => setPressedStates(style), 0);
     }
