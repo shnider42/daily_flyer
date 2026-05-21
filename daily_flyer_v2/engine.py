@@ -3,12 +3,27 @@ from __future__ import annotations
 from daily_flyer.utils import resolve_date
 from daily_flyer_v2.context import FlyerContext
 from daily_flyer_v2.experience import FlyerExperience
-from daily_flyer_v2.products import irish_today
+from daily_flyer_v2.products import birthday_helper, irish_today, scrum_daily, your_passage
+from daily_flyer_v2.renderers.birthday_helper import render_birthday_helper
+from daily_flyer_v2.renderers.passage_path import render_passage_path
 from daily_flyer_v2.renderers.publication import render_publication
+from daily_flyer_v2.renderers.scrum_board import render_scrum_board
 
 
 PRODUCT_BUILDERS = {
     "irish_today": irish_today.build,
+    "your_passage": your_passage.build,
+    "topic_signal_daily": your_passage.build,
+    "this_day_birthday": birthday_helper.build,
+    "birthday_helper": birthday_helper.build,
+    "scrum_daily": scrum_daily.build,
+}
+
+RENDERERS = {
+    "publication": render_publication,
+    "passage_path": render_passage_path,
+    "birthday_helper": render_birthday_helper,
+    "scrum_board": render_scrum_board,
 }
 
 
@@ -25,6 +40,7 @@ def build_flyer_experience(product: str, date_str: str | None = None, seed: int 
 
 def build_flyer_html(product: str, date_str: str | None = None, seed: int | None = None) -> str:
     experience = build_flyer_experience(product=product, date_str=date_str, seed=seed)
-    if experience.layout == "publication":
-        return render_publication(experience)
-    raise ValueError("Unknown Flyer Engine v2 layout: " + experience.layout)
+    renderer = RENDERERS.get(experience.layout)
+    if not renderer:
+        raise ValueError("Unknown Flyer Engine v2 layout: " + experience.layout)
+    return renderer(experience)
