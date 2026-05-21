@@ -14,6 +14,7 @@ DEFAULT_THEME = os.environ.get("DEFAULT_THEME", "irish_today")
 THEME_ROUTE_ALIASES = {
     "irish_today": "irish_today_improved_layout",
     "irish_today_improved": "irish_today_improved_layout",
+    "irish_today_visual_lab": "irish_today_visual_lab_more",
 }
 
 
