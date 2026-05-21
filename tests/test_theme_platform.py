@@ -175,6 +175,9 @@ class WebRouteTests(unittest.TestCase):
         self.assertIn(b"main &gt; .card.it-card-style-hinge", response.data)
         self.assertIn(b"main &gt; .card.it-card-style-spotlight", response.data)
         self.assertIn(b"cardUsesSpotlight", response.data)
+        self.assertIn(b"Glass stability patch", response.data)
+        self.assertIn(b"grid-auto-rows: auto", response.data)
+        self.assertIn(b"backdrop-filter: none", response.data)
 
     def test_topic_signal_daily_renders_passages_companion(self) -> None:
         response = self.client.get("/?theme=topic_signal_daily&date=2026-05-13&seed=0")
