@@ -175,7 +175,8 @@ class WebRouteTests(unittest.TestCase):
         self.assertIn(b"main &gt; .card.it-card-style-hinge", response.data)
         self.assertIn(b"main &gt; .card.it-card-style-spotlight", response.data)
         self.assertIn(b"cardUsesSpotlight", response.data)
-        self.assertIn(b"Glass stability patch", response.data)
+        self.assertIn(b"Visual lab stability patch", response.data)
+        self.assertIn(b"html[data-visual-lab-style] main", response.data)
         self.assertIn(b"grid-auto-rows: auto", response.data)
         self.assertIn(b"backdrop-filter: none", response.data)
 
