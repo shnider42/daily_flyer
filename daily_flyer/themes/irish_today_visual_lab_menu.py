@@ -57,7 +57,7 @@ VISUAL_LAB_MENU_CSS = r"""
 }
 
 .it-visual-lab-group.is-active > .it-visual-lab-group-trigger,
-.it-visual-lab-group:focus-within > .it-visual-lab-group-trigger,
+.it-visual-lab-group.is-open > .it-visual-lab-group-trigger,
 .it-visual-lab-group:hover > .it-visual-lab-group-trigger {
     background: rgba(255,255,255,0.92);
     color: #092016;
@@ -82,16 +82,27 @@ VISUAL_LAB_MENU_CSS = r"""
     opacity: 0;
     visibility: hidden;
     pointer-events: none;
-    transition: opacity 140ms ease, transform 140ms ease, visibility 140ms ease;
+    transition: opacity 140ms ease, transform 140ms ease, visibility 140ms ease, filter 140ms ease;
 }
 
+/* Hover is only a preview: visible, usable, but deliberately faded until the group is clicked open. */
 .it-visual-lab-group:hover .it-visual-lab-options,
-.it-visual-lab-group:focus-within .it-visual-lab-options,
-.it-visual-lab-group.is-open .it-visual-lab-options {
+.it-visual-lab-group:focus-within .it-visual-lab-options {
+    opacity: 0.32;
+    visibility: visible;
+    pointer-events: auto;
+    transform: translateX(-50%) translateY(0);
+    filter: saturate(0.72) brightness(0.82);
+}
+
+.it-visual-lab-group.is-open .it-visual-lab-options,
+.it-visual-lab-group.is-open:hover .it-visual-lab-options,
+.it-visual-lab-group.is-open:focus-within .it-visual-lab-options {
     opacity: 1;
     visibility: visible;
     pointer-events: auto;
     transform: translateX(-50%) translateY(0);
+    filter: none;
 }
 
 .it-visual-lab-option {
@@ -261,6 +272,10 @@ VISUAL_LAB_MENU_JS = r"""
         document.querySelectorAll('.it-visual-lab-group.is-open').forEach((group) => {
             if (group !== except) group.classList.remove('is-open');
         });
+        document.querySelectorAll('.it-visual-lab-group-trigger[aria-expanded="true"]').forEach((trigger) => {
+            const group = trigger.closest('.it-visual-lab-group');
+            if (group !== except) trigger.setAttribute('aria-expanded', 'false');
+        });
     }
 
     function buildCategorizedMenu() {
@@ -325,9 +340,6 @@ VISUAL_LAB_MENU_JS = r"""
         document.addEventListener('click', (event) => {
             if (event.target && event.target.closest && event.target.closest('.it-visual-lab-controls')) return;
             closeAllGroups(null);
-            document.querySelectorAll('.it-visual-lab-group-trigger[aria-expanded="true"]').forEach((trigger) => {
-                trigger.setAttribute('aria-expanded', 'false');
-            });
         });
     }
 
