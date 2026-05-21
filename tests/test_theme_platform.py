@@ -179,6 +179,11 @@ class WebRouteTests(unittest.TestCase):
         self.assertIn(b"html[data-visual-lab-style] main", response.data)
         self.assertIn(b"grid-auto-rows: auto", response.data)
         self.assertIn(b"backdrop-filter: none", response.data)
+        self.assertIn(b"Modular card style layer", response.data)
+        self.assertIn(b"df-card-surface-", response.data)
+        self.assertIn(b"df-card-frame-", response.data)
+        self.assertIn(b"df-card-motion-", response.data)
+        self.assertIn(b"data-df-card-style-ready", response.data)
 
     def test_topic_signal_daily_renders_passages_companion(self) -> None:
         response = self.client.get("/?theme=topic_signal_daily&date=2026-05-13&seed=0")
