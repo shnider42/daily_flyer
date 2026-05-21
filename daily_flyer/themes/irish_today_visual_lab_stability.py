@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+from daily_flyer.card_style_registry import MODULAR_CARD_STYLE_CSS, MODULAR_CARD_STYLE_JS
 from daily_flyer.models import PageContext
 from daily_flyer.themes import irish_today_visual_lab_card_motion as base_theme
 
@@ -198,10 +199,12 @@ def build_theme_page(date_str: str | None = None, seed: int | None = None) -> Pa
     context = base_theme.build_theme_page(date_str=date_str, seed=seed)
 
     previous_css = context.metadata.get("extra_css", "") or ""
+    previous_js = context.metadata.get("extra_js", "") or ""
     context.metadata.update(
         {
             "theme_name": "irish_today_visual_lab_stability",
-            "extra_css": previous_css + VISUAL_LAB_STABILITY_CSS,
+            "extra_css": previous_css + MODULAR_CARD_STYLE_CSS + VISUAL_LAB_STABILITY_CSS,
+            "extra_js": previous_js + MODULAR_CARD_STYLE_JS,
         }
     )
     return context
