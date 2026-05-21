@@ -165,6 +165,12 @@ class WebRouteTests(unittest.TestCase):
         self.assertIn(b"it-lab-drift-card", response.data)
         self.assertIn(b"it-lab-hinge-in", response.data)
         self.assertIn(b"it-lab-cascade-in", response.data)
+        self.assertIn(b"it-visual-lab-group", response.data)
+        self.assertIn(b"Transparent", response.data)
+        self.assertIn(b"Dark", response.data)
+        self.assertIn(b"Light", response.data)
+        self.assertIn(b"Samples", response.data)
+        self.assertIn(b"Other / Motion", response.data)
 
     def test_topic_signal_daily_renders_passages_companion(self) -> None:
         response = self.client.get("/?theme=topic_signal_daily&date=2026-05-13&seed=0")
