@@ -12,7 +12,10 @@ THEME_CONFIG.update(
             "A sandbox version of Irish Today for testing mood, motion, borders, "
             "backgrounds, gradients, and card feel without changing the live theme."
         ),
-        "hero_summary_pill": "Visual sandbox • paper • glass • broadcast • museum • sticker",
+        "hero_summary_pill": (
+            "Visual sandbox • paper • glass • broadcast • museum • sticker • "
+            "watercolor • newsroom • neon • terminal • sample"
+        ),
     }
 )
 
@@ -23,7 +26,18 @@ BACKGROUNDS = getattr(base_theme, "BACKGROUNDS", [])
 VISUAL_LAB_HEAD = r"""
 <script>
 (function () {
-    var allowed = { paper: true, glass: true, broadcast: true, museum: true, sticker: true };
+    var allowed = {
+        paper: true,
+        glass: true,
+        broadcast: true,
+        museum: true,
+        sticker: true,
+        watercolor: true,
+        newsroom: true,
+        neon: true,
+        terminal: true,
+        sample: true
+    };
     var params = new URLSearchParams(window.location.search || "");
     var style = (params.get("style") || "paper").toLowerCase();
     if (!allowed[style]) style = "paper";
@@ -34,7 +48,7 @@ VISUAL_LAB_HEAD = r"""
 
 
 VISUAL_LAB_CSS = r"""
-/* Irish Today visual lab: style presets are selected with ?style=paper|glass|broadcast|museum|sticker. */
+/* Irish Today visual lab: style presets are selected with ?style=paper|glass|broadcast|museum|sticker|watercolor|newsroom|neon|terminal|sample. */
 :root {
     --visual-lab-panel: rgba(3, 14, 10, 0.72);
     --visual-lab-panel-border: rgba(255,255,255,0.18);
@@ -50,7 +64,7 @@ VISUAL_LAB_CSS = r"""
     flex-wrap: wrap;
     justify-content: center;
     gap: 0.38rem;
-    width: min(92vw, 46rem);
+    width: min(94vw, 68rem);
     padding: 0.48rem;
     border-radius: 999px;
     border: 1px solid var(--visual-lab-panel-border);
@@ -260,6 +274,329 @@ body[data-visual-lab-style="sticker"] .card {
     body[data-visual-lab-style="sticker"] main > .card:hover { transform: rotate(0deg) translateY(-2px) !important; }
 }
 
+html[data-visual-lab-style="watercolor"] body,
+body[data-visual-lab-style="watercolor"] {
+    --ink: #163238;
+    --ink-soft: #37565d;
+    --muted: #5d7f80;
+    --card: rgba(255,255,252,0.72);
+    --card-strong: rgba(255,255,252,0.82);
+    --border: rgba(72, 132, 127, 0.22);
+    --border-strong: rgba(72, 132, 127, 0.40);
+    background:
+        radial-gradient(ellipse at 18% 12%, rgba(92, 191, 161, 0.34), transparent 22rem),
+        radial-gradient(ellipse at 86% 18%, rgba(105, 170, 215, 0.28), transparent 24rem),
+        radial-gradient(ellipse at 58% 88%, rgba(255, 180, 106, 0.20), transparent 24rem),
+        linear-gradient(180deg, #eef9f1 0%, #e6f5f6 48%, #f9ecd8 100%) !important;
+}
+
+html[data-visual-lab-style="watercolor"] .site-bg,
+body[data-visual-lab-style="watercolor"] .site-bg { opacity: 0.12 !important; filter: saturate(0.62) brightness(1.25) blur(1px) !important; }
+
+html[data-visual-lab-style="watercolor"] header.hero,
+body[data-visual-lab-style="watercolor"] header.hero,
+html[data-visual-lab-style="watercolor"] .card,
+body[data-visual-lab-style="watercolor"] .card {
+    border-radius: 38px 28px 44px 30px !important;
+    border-color: rgba(72,132,127,0.22) !important;
+    background:
+        radial-gradient(ellipse at 20% 5%, rgba(255,255,255,0.70), transparent 14rem),
+        radial-gradient(ellipse at 82% 12%, rgba(88, 185, 156, 0.18), transparent 12rem),
+        rgba(255,255,252,0.70) !important;
+    color: var(--ink) !important;
+    box-shadow: 0 18px 48px rgba(54, 97, 92, 0.14) !important;
+    backdrop-filter: blur(10px) saturate(0.95) !important;
+    -webkit-backdrop-filter: blur(10px) saturate(0.95) !important;
+}
+
+html[data-visual-lab-style="watercolor"] .body,
+html[data-visual-lab-style="watercolor"] .subtitle,
+body[data-visual-lab-style="watercolor"] .body,
+body[data-visual-lab-style="watercolor"] .subtitle { color: var(--ink-soft) !important; }
+
+html[data-visual-lab-style="watercolor"] .card::after,
+body[data-visual-lab-style="watercolor"] .card::after {
+    height: 5px !important;
+    background: linear-gradient(90deg, rgba(69,171,125,0.55), rgba(109,178,219,0.42), rgba(255,172,98,0.38)) !important;
+}
+
+html[data-visual-lab-style="newsroom"] body,
+body[data-visual-lab-style="newsroom"] {
+    --ink: #111111;
+    --ink-soft: #343434;
+    --muted: #626262;
+    --card: rgba(255,255,255,0.96);
+    --card-strong: #ffffff;
+    --border: rgba(0,0,0,0.24);
+    --border-strong: rgba(0,0,0,0.48);
+    background:
+        repeating-linear-gradient(0deg, rgba(0,0,0,0.025) 0 1px, transparent 1px 10px),
+        linear-gradient(180deg, #f6f3ea 0%, #ebe7dc 100%) !important;
+}
+
+html[data-visual-lab-style="newsroom"] .site-bg,
+body[data-visual-lab-style="newsroom"] .site-bg { opacity: 0.06 !important; filter: grayscale(1) contrast(1.25) brightness(1.15) !important; }
+
+html[data-visual-lab-style="newsroom"] header.hero,
+body[data-visual-lab-style="newsroom"] header.hero {
+    border-radius: 0 !important;
+    border: 2px solid #111 !important;
+    background: #fffdf7 !important;
+    color: #111 !important;
+    box-shadow: 10px 10px 0 rgba(17,17,17,0.13) !important;
+}
+
+html[data-visual-lab-style="newsroom"] .hero h1,
+html[data-visual-lab-style="newsroom"] h2,
+body[data-visual-lab-style="newsroom"] .hero h1,
+body[data-visual-lab-style="newsroom"] h2 {
+    font-family: Georgia, "Times New Roman", serif !important;
+    text-transform: none;
+}
+
+html[data-visual-lab-style="newsroom"] .hero-kicker,
+html[data-visual-lab-style="newsroom"] .hero-pill,
+body[data-visual-lab-style="newsroom"] .hero-kicker,
+body[data-visual-lab-style="newsroom"] .hero-pill {
+    background: #111 !important;
+    color: #fff !important;
+    border-radius: 0 !important;
+}
+
+html[data-visual-lab-style="newsroom"] .card,
+body[data-visual-lab-style="newsroom"] .card {
+    border-radius: 0 !important;
+    border: 2px solid #111 !important;
+    background: #fffdf7 !important;
+    color: #111 !important;
+    box-shadow: 8px 8px 0 rgba(17,17,17,0.12) !important;
+}
+
+html[data-visual-lab-style="newsroom"] .card::after,
+body[data-visual-lab-style="newsroom"] .card::after { background: #d94c2a !important; height: 6px !important; }
+html[data-visual-lab-style="newsroom"] .eyebrow,
+body[data-visual-lab-style="newsroom"] .eyebrow { background: #d94c2a !important; color: #fff !important; border-radius: 0 !important; }
+html[data-visual-lab-style="newsroom"] .body,
+body[data-visual-lab-style="newsroom"] .body { color: #343434 !important; }
+
+html[data-visual-lab-style="neon"] body,
+body[data-visual-lab-style="neon"] {
+    --ink: #f7fbff;
+    --ink-soft: #cfe7ff;
+    --muted: #8ecfff;
+    --card: rgba(11, 11, 34, 0.86);
+    --card-strong: rgba(17, 13, 46, 0.94);
+    --border: rgba(85, 232, 255, 0.24);
+    --border-strong: rgba(255, 120, 233, 0.50);
+    --irish-green: #38ffb2;
+    --teal: #53e8ff;
+    --gold: #ffdf6e;
+    background:
+        radial-gradient(circle at 18% 16%, rgba(83,232,255,0.27), transparent 18rem),
+        radial-gradient(circle at 86% 24%, rgba(255,120,233,0.22), transparent 18rem),
+        radial-gradient(circle at 48% 94%, rgba(56,255,178,0.16), transparent 22rem),
+        linear-gradient(180deg, #060617 0%, #09051d 100%) !important;
+}
+
+html[data-visual-lab-style="neon"] .card,
+body[data-visual-lab-style="neon"] .card {
+    border-radius: 24px !important;
+    background:
+        linear-gradient(180deg, rgba(83,232,255,0.08), rgba(255,120,233,0.05)),
+        rgba(9, 9, 31, 0.86) !important;
+    border-color: rgba(83,232,255,0.24) !important;
+    box-shadow: 0 0 0 1px rgba(83,232,255,0.10), 0 0 42px rgba(83,232,255,0.11), 0 30px 80px rgba(0,0,0,0.36) !important;
+}
+
+html[data-visual-lab-style="neon"] .card:hover,
+body[data-visual-lab-style="neon"] .card:hover {
+    border-color: rgba(255,120,233,0.50) !important;
+    box-shadow: 0 0 0 1px rgba(255,120,233,0.20), 0 0 56px rgba(255,120,233,0.20), 0 30px 80px rgba(0,0,0,0.38) !important;
+}
+
+html[data-visual-lab-style="neon"] .eyebrow,
+body[data-visual-lab-style="neon"] .eyebrow { color: #a8f5ff !important; background: rgba(83,232,255,0.10) !important; }
+html[data-visual-lab-style="neon"] a,
+body[data-visual-lab-style="neon"] a { color: #7bffd1 !important; }
+
+/* Extreme but usable: every card becomes a command-console module. */
+html[data-visual-lab-style="terminal"] body,
+body[data-visual-lab-style="terminal"] {
+    --ink: #d8ffe7;
+    --ink-soft: #a6d8b4;
+    --muted: #6dcc88;
+    --card: rgba(1, 8, 5, 0.94);
+    --card-strong: rgba(0, 14, 8, 0.98);
+    --border: rgba(78, 255, 139, 0.24);
+    --border-strong: rgba(78, 255, 139, 0.58);
+    background:
+        repeating-linear-gradient(0deg, rgba(78,255,139,0.045) 0 1px, transparent 1px 4px),
+        radial-gradient(circle at 50% 0%, rgba(78,255,139,0.16), transparent 24rem),
+        linear-gradient(180deg, #020604 0%, #000 100%) !important;
+}
+
+html[data-visual-lab-style="terminal"] .hero h1,
+html[data-visual-lab-style="terminal"] h2,
+html[data-visual-lab-style="terminal"] .body,
+html[data-visual-lab-style="terminal"] .eyebrow,
+body[data-visual-lab-style="terminal"] .hero h1,
+body[data-visual-lab-style="terminal"] h2,
+body[data-visual-lab-style="terminal"] .body,
+body[data-visual-lab-style="terminal"] .eyebrow {
+    font-family: "Cascadia Mono", "SFMono-Regular", Consolas, "Liberation Mono", monospace !important;
+}
+
+html[data-visual-lab-style="terminal"] header.hero,
+body[data-visual-lab-style="terminal"] header.hero,
+html[data-visual-lab-style="terminal"] .card,
+body[data-visual-lab-style="terminal"] .card {
+    border-radius: 0 !important;
+    border: 1px solid rgba(78,255,139,0.30) !important;
+    background:
+        linear-gradient(180deg, rgba(78,255,139,0.06), rgba(78,255,139,0.015)),
+        rgba(1, 8, 5, 0.94) !important;
+    color: #d8ffe7 !important;
+    box-shadow: 0 0 0 1px rgba(78,255,139,0.08), 0 22px 70px rgba(0,0,0,0.50) !important;
+}
+
+html[data-visual-lab-style="terminal"] .card {
+    padding-top: 2.45rem !important;
+}
+
+html[data-visual-lab-style="terminal"] .card::before,
+body[data-visual-lab-style="terminal"] .card::before {
+    content: "./irish_today --card" !important;
+    position: absolute !important;
+    inset: 0 0 auto 0 !important;
+    z-index: 3 !important;
+    display: block !important;
+    height: 1.65rem !important;
+    padding: 0.34rem 0.74rem !important;
+    background: rgba(78,255,139,0.10) !important;
+    border-bottom: 1px solid rgba(78,255,139,0.22) !important;
+    color: rgba(216,255,231,0.70) !important;
+    font-family: "Cascadia Mono", "SFMono-Regular", Consolas, monospace !important;
+    font-size: 0.68rem !important;
+    letter-spacing: 0.04em !important;
+    pointer-events: none !important;
+}
+
+html[data-visual-lab-style="terminal"] .card::after,
+body[data-visual-lab-style="terminal"] .card::after { height: 1px !important; background: rgba(78,255,139,0.50) !important; top: 1.65rem !important; }
+html[data-visual-lab-style="terminal"] .eyebrow,
+body[data-visual-lab-style="terminal"] .eyebrow { color: #6dff98 !important; background: transparent !important; padding-left: 0 !important; }
+html[data-visual-lab-style="terminal"] .icon-badge,
+body[data-visual-lab-style="terminal"] .icon-badge { border-radius: 0 !important; background: rgba(78,255,139,0.07) !important; }
+html[data-visual-lab-style="terminal"] a,
+body[data-visual-lab-style="terminal"] a { color: #9effbb !important; text-decoration: underline; }
+
+html[data-visual-lab-style="sample"] body,
+body[data-visual-lab-style="sample"] {
+    --ink: #edf7f3;
+    --ink-soft: #c9d7d0;
+    --muted: #96b2a6;
+    background:
+        radial-gradient(circle at 18% 14%, rgba(255,255,255,0.10), transparent 20rem),
+        radial-gradient(circle at 82% 24%, rgba(41,179,106,0.18), transparent 19rem),
+        linear-gradient(180deg, #101820 0%, #071014 100%) !important;
+}
+
+html[data-visual-lab-style="sample"] header.hero,
+body[data-visual-lab-style="sample"] header.hero {
+    background:
+        linear-gradient(90deg, rgba(41,179,106,0.22), rgba(255,255,255,0.04), rgba(255,159,67,0.16)),
+        rgba(8, 18, 21, 0.86) !important;
+    border-color: rgba(255,255,255,0.18) !important;
+}
+
+html[data-visual-lab-style="sample"] .hero-summary-label::after,
+body[data-visual-lab-style="sample"] .hero-summary-label::after { content: ""; }
+
+/* Sample-mode card styles. These are compact echoes of the full presets above. */
+html[data-visual-lab-style="sample"] .card.it-card-style-paper,
+body[data-visual-lab-style="sample"] .card.it-card-style-paper {
+    border-radius: 18px !important;
+    background: repeating-linear-gradient(0deg, rgba(78,55,24,0.04) 0 1px, transparent 1px 7px), rgba(255,247,225,0.92) !important;
+    color: #172018 !important;
+    border-color: rgba(78,55,24,0.28) !important;
+    box-shadow: 0 16px 34px rgba(78,55,24,0.18) !important;
+}
+html[data-visual-lab-style="sample"] .card.it-card-style-paper .body,
+body[data-visual-lab-style="sample"] .card.it-card-style-paper .body { color: #314336 !important; }
+
+html[data-visual-lab-style="sample"] .card.it-card-style-glass,
+body[data-visual-lab-style="sample"] .card.it-card-style-glass {
+    border-radius: 34px !important;
+    background: linear-gradient(180deg, rgba(255,255,255,0.16), rgba(255,255,255,0.05)), rgba(6,20,28,0.52) !important;
+    border-color: rgba(255,255,255,0.24) !important;
+    backdrop-filter: blur(22px) saturate(1.16) !important;
+    -webkit-backdrop-filter: blur(22px) saturate(1.16) !important;
+}
+
+html[data-visual-lab-style="sample"] .card.it-card-style-broadcast,
+body[data-visual-lab-style="sample"] .card.it-card-style-broadcast {
+    border-radius: 20px !important;
+    background: repeating-linear-gradient(90deg, rgba(255,255,255,0.032) 0 2px, transparent 2px 28px), rgba(5,33,22,0.90) !important;
+    border-color: rgba(53,233,133,0.30) !important;
+}
+
+html[data-visual-lab-style="sample"] .card.it-card-style-museum,
+body[data-visual-lab-style="sample"] .card.it-card-style-museum {
+    border-radius: 4px !important;
+    background: linear-gradient(180deg, rgba(214,184,128,0.08), rgba(255,255,255,0.015)), rgba(18,16,15,0.90) !important;
+    border-color: rgba(214,184,128,0.24) !important;
+    color: #f7efe0 !important;
+}
+
+html[data-visual-lab-style="sample"] .card.it-card-style-sticker,
+body[data-visual-lab-style="sample"] .card.it-card-style-sticker {
+    border-radius: 30px 18px 34px 20px !important;
+    border: 3px solid rgba(255,255,255,0.76) !important;
+    box-shadow: 0 14px 0 rgba(0,0,0,0.18), 0 24px 56px rgba(0,0,0,0.32) !important;
+}
+
+html[data-visual-lab-style="sample"] .card.it-card-style-watercolor,
+body[data-visual-lab-style="sample"] .card.it-card-style-watercolor {
+    border-radius: 38px 28px 44px 30px !important;
+    background: radial-gradient(ellipse at 82% 12%, rgba(88,185,156,0.20), transparent 12rem), rgba(255,255,252,0.78) !important;
+    color: #163238 !important;
+    border-color: rgba(72,132,127,0.24) !important;
+}
+html[data-visual-lab-style="sample"] .card.it-card-style-watercolor .body,
+body[data-visual-lab-style="sample"] .card.it-card-style-watercolor .body { color: #37565d !important; }
+
+html[data-visual-lab-style="sample"] .card.it-card-style-newsroom,
+body[data-visual-lab-style="sample"] .card.it-card-style-newsroom {
+    border-radius: 0 !important;
+    border: 2px solid #111 !important;
+    background: #fffdf7 !important;
+    color: #111 !important;
+    box-shadow: 8px 8px 0 rgba(17,17,17,0.14) !important;
+}
+html[data-visual-lab-style="sample"] .card.it-card-style-newsroom .body,
+body[data-visual-lab-style="sample"] .card.it-card-style-newsroom .body { color: #343434 !important; }
+
+html[data-visual-lab-style="sample"] .card.it-card-style-neon,
+body[data-visual-lab-style="sample"] .card.it-card-style-neon {
+    border-radius: 24px !important;
+    background: linear-gradient(180deg, rgba(83,232,255,0.08), rgba(255,120,233,0.05)), rgba(9,9,31,0.88) !important;
+    border-color: rgba(83,232,255,0.28) !important;
+    box-shadow: 0 0 42px rgba(83,232,255,0.13), 0 28px 70px rgba(0,0,0,0.34) !important;
+}
+
+html[data-visual-lab-style="sample"] .card.it-card-style-terminal,
+body[data-visual-lab-style="sample"] .card.it-card-style-terminal {
+    border-radius: 0 !important;
+    border: 1px solid rgba(78,255,139,0.30) !important;
+    background: linear-gradient(180deg, rgba(78,255,139,0.06), rgba(78,255,139,0.015)), rgba(1,8,5,0.94) !important;
+    color: #d8ffe7 !important;
+    font-family: "Cascadia Mono", "SFMono-Regular", Consolas, monospace !important;
+}
+html[data-visual-lab-style="sample"] .card.it-card-style-terminal h2,
+html[data-visual-lab-style="sample"] .card.it-card-style-terminal .body,
+body[data-visual-lab-style="sample"] .card.it-card-style-terminal h2,
+body[data-visual-lab-style="sample"] .card.it-card-style-terminal .body { font-family: "Cascadia Mono", "SFMono-Regular", Consolas, monospace !important; }
+
 @media (max-width: 720px) {
     .it-visual-lab-controls {
         border-radius: 24px;
@@ -280,8 +617,14 @@ VISUAL_LAB_JS = r"""
         { key: "glass", label: "Glass" },
         { key: "broadcast", label: "Broadcast" },
         { key: "museum", label: "Museum" },
-        { key: "sticker", label: "Sticker" }
+        { key: "sticker", label: "Sticker" },
+        { key: "watercolor", label: "Watercolor" },
+        { key: "newsroom", label: "Newsroom" },
+        { key: "neon", label: "Neon" },
+        { key: "terminal", label: "Terminal" },
+        { key: "sample", label: "Sample" }
     ];
+    var cardStyles = ["paper", "glass", "broadcast", "museum", "sticker", "watercolor", "newsroom", "neon", "terminal"];
     var allowed = styles.reduce(function (map, style) {
         map[style.key] = true;
         return map;
@@ -293,10 +636,48 @@ VISUAL_LAB_JS = r"""
         return allowed[style] ? style : "paper";
     }
 
+    function hashString(value) {
+        var hash = 2166136261;
+        for (var i = 0; i < value.length; i += 1) {
+            hash ^= value.charCodeAt(i);
+            hash = Math.imul(hash, 16777619);
+        }
+        return hash >>> 0;
+    }
+
+    function sampleSeed() {
+        var params = new URLSearchParams(window.location.search || "");
+        var date = params.get("date") || "";
+        var seed = params.get("seed") || "";
+        var heroDate = document.querySelector(".hero-pill") ? document.querySelector(".hero-pill").textContent : "";
+        return [date, seed, heroDate].join("|");
+    }
+
+    function clearCardSampleStyles() {
+        document.querySelectorAll("main > .card").forEach(function (card) {
+            cardStyles.forEach(function (key) { card.classList.remove("it-card-style-" + key); });
+            card.removeAttribute("data-visual-card-style");
+        });
+    }
+
+    function applySampleCardStyles() {
+        var seed = sampleSeed();
+        document.querySelectorAll("main > .card").forEach(function (card, index) {
+            cardStyles.forEach(function (key) { card.classList.remove("it-card-style-" + key); });
+            var text = (card.textContent || "").replace(/\s+/g, " ").slice(0, 180);
+            var styleIndex = hashString(seed + "|" + index + "|" + text) % cardStyles.length;
+            var key = cardStyles[styleIndex];
+            card.classList.add("it-card-style-" + key);
+            card.setAttribute("data-visual-card-style", key);
+        });
+    }
+
     function applyStyle(style) {
         if (!allowed[style]) style = "paper";
         document.documentElement.setAttribute("data-visual-lab-style", style);
         if (document.body) document.body.setAttribute("data-visual-lab-style", style);
+        if (style === "sample") applySampleCardStyles();
+        else clearCardSampleStyles();
         document.querySelectorAll(".it-visual-lab-controls button[data-style]").forEach(function (button) {
             button.setAttribute("aria-pressed", button.dataset.style === style ? "true" : "false");
         });
@@ -331,6 +712,9 @@ VISUAL_LAB_JS = r"""
     function boot() {
         applyStyle(currentStyle());
         mountControls();
+        window.setTimeout(function () {
+            if (currentStyle() === "sample") applySampleCardStyles();
+        }, 80);
     }
 
     if (document.readyState === "loading") document.addEventListener("DOMContentLoaded", boot);
