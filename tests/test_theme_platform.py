@@ -150,13 +150,14 @@ class WebRouteTests(unittest.TestCase):
         self.assertIn(b"Irish Today", response.data)
 
     def test_irish_today_visual_lab_renders_style_switcher(self) -> None:
-        response = self.client.get("/?theme=irish_today_visual_lab&date=2026-04-24&seed=7&style=strict_sample")
+        response = self.client.get("/?theme=irish_today_visual_lab&date=2026-04-24&seed=7&style=custom_cards&c1=glass.rounded_glass.drift")
         self.assertEqual(response.status_code, 200)
         self.assertIn(b"Irish Today", response.data)
         self.assertIn(b"Visual Lab", response.data)
         self.assertIn(b"data-visual-lab-style", response.data)
         self.assertIn(b"it-visual-lab-controls", response.data)
         self.assertIn(b"strict_sample", response.data)
+        self.assertIn(b"custom_cards", response.data)
         self.assertIn(b"data-visual-day-action", response.data)
         self.assertIn(b"Previous day", response.data)
         self.assertIn(b"it-card-style-terminal", response.data)
@@ -171,6 +172,8 @@ class WebRouteTests(unittest.TestCase):
         self.assertIn(b"Light", response.data)
         self.assertIn(b"Samples", response.data)
         self.assertIn(b"Other / Motion", response.data)
+        self.assertIn(b"Custom cards", response.data)
+        self.assertIn(b"Per-card visual controls", response.data)
         self.assertIn(b"main &gt; .card.it-card-style-drift", response.data)
         self.assertIn(b"main &gt; .card.it-card-style-hinge", response.data)
         self.assertIn(b"main &gt; .card.it-card-style-spotlight", response.data)
@@ -191,6 +194,10 @@ class WebRouteTests(unittest.TestCase):
         self.assertIn(b"df-card-motion-drift", response.data)
         self.assertIn(b"df-card-motion-flipbook", response.data)
         self.assertIn(b"df-card-motion-spotlight", response.data)
+        self.assertIn(b"it-card-debug-panel", response.data)
+        self.assertIn(b"c1=glass.rounded_glass.drift", response.data)
+        self.assertIn(b"Apply URL + reload", response.data)
+        self.assertIn(b"customAssignmentForCard", response.data)
 
     def test_topic_signal_daily_renders_passages_companion(self) -> None:
         response = self.client.get("/?theme=topic_signal_daily&date=2026-05-13&seed=0")
