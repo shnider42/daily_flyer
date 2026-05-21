@@ -191,6 +191,67 @@ VISUAL_LAB_STABILITY_CSS = r"""
         animation: it-lab-flipbook-breathe 4.8s ease-in-out infinite !important;
         transform-origin: left center !important;
     }
+
+    /* Re-enable modular card motions after the visual-lab stability reset.
+       This is what lets strict_sample combine any surface/frame with a separate motion. */
+    html[data-visual-lab-style="strict_sample"] main > .card.df-card-motion-drift,
+    body[data-visual-lab-style="strict_sample"] main > .card.df-card-motion-drift,
+    html[data-visual-lab-style="sample"] main > .card.df-card-motion-drift,
+    body[data-visual-lab-style="sample"] main > .card.df-card-motion-drift {
+        animation: df-card-drift 5.6s ease-in-out infinite !important;
+    }
+
+    html[data-visual-lab-style="strict_sample"] main > .card.df-card-motion-hinge,
+    body[data-visual-lab-style="strict_sample"] main > .card.df-card-motion-hinge,
+    html[data-visual-lab-style="sample"] main > .card.df-card-motion-hinge,
+    body[data-visual-lab-style="sample"] main > .card.df-card-motion-hinge {
+        animation: df-card-hinge-in 680ms cubic-bezier(0.16, 1, 0.3, 1) both !important;
+        transform-origin: top center !important;
+    }
+
+    html[data-visual-lab-style="strict_sample"] main > .card.df-card-motion-hinge:hover,
+    body[data-visual-lab-style="strict_sample"] main > .card.df-card-motion-hinge:hover,
+    html[data-visual-lab-style="sample"] main > .card.df-card-motion-hinge:hover,
+    body[data-visual-lab-style="sample"] main > .card.df-card-motion-hinge:hover {
+        transform: perspective(900px) rotateX(4deg) translateY(-4px) !important;
+    }
+
+    html[data-visual-lab-style="strict_sample"] main > .card.df-card-motion-spotlight:hover,
+    body[data-visual-lab-style="strict_sample"] main > .card.df-card-motion-spotlight:hover,
+    html[data-visual-lab-style="sample"] main > .card.df-card-motion-spotlight:hover,
+    body[data-visual-lab-style="sample"] main > .card.df-card-motion-spotlight:hover {
+        transform: translateY(-3px) rotateX(var(--df-card-tilt-y, 0deg)) rotateY(var(--df-card-tilt-x, 0deg)) !important;
+    }
+
+    html[data-visual-lab-style="strict_sample"] main > .card.df-card-motion-cascade,
+    body[data-visual-lab-style="strict_sample"] main > .card.df-card-motion-cascade,
+    html[data-visual-lab-style="sample"] main > .card.df-card-motion-cascade,
+    body[data-visual-lab-style="sample"] main > .card.df-card-motion-cascade {
+        animation: df-card-cascade-in 520ms cubic-bezier(0.16, 1, 0.3, 1) both !important;
+    }
+
+    html[data-visual-lab-style="strict_sample"] main > .card.df-card-motion-cascade:hover,
+    body[data-visual-lab-style="strict_sample"] main > .card.df-card-motion-cascade:hover,
+    html[data-visual-lab-style="sample"] main > .card.df-card-motion-cascade:hover,
+    body[data-visual-lab-style="sample"] main > .card.df-card-motion-cascade:hover {
+        transform: translate(-3px, -3px) !important;
+        box-shadow: 14px 14px 0 rgba(0,0,0,0.20) !important;
+    }
+
+    html[data-visual-lab-style="strict_sample"] main > .card.df-card-motion-flipbook,
+    body[data-visual-lab-style="strict_sample"] main > .card.df-card-motion-flipbook,
+    html[data-visual-lab-style="sample"] main > .card.df-card-motion-flipbook,
+    body[data-visual-lab-style="sample"] main > .card.df-card-motion-flipbook {
+        animation: df-card-flipbook-breathe 4.8s ease-in-out infinite !important;
+        transform-origin: left center !important;
+    }
+
+    html[data-visual-lab-style="strict_sample"] main > .card.df-card-motion-flipbook:hover,
+    body[data-visual-lab-style="strict_sample"] main > .card.df-card-motion-flipbook:hover,
+    html[data-visual-lab-style="sample"] main > .card.df-card-motion-flipbook:hover,
+    body[data-visual-lab-style="sample"] main > .card.df-card-motion-flipbook:hover {
+        transform: perspective(1200px) rotateY(-6deg) translateX(4px) !important;
+    }
 }
 """
 
