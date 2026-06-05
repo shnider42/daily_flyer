@@ -244,8 +244,11 @@ class WebRouteTests(unittest.TestCase):
         self.assertIn(b"Commander Opening Plan", response.data)
         self.assertIn(b"Submit A New Deck", response.data)
         self.assertIn(b"Analyze decklist", response.data)
-        self.assertIn(b"Supported category tags", response.data)
+        self.assertIn(b"Plain exported decklist", response.data)
+        self.assertIn(b"Korvold / Vihaan example", response.data)
         self.assertIn(b"decklist-input", response.data)
+        self.assertIn(b"1 Academy Manufactor", response.data)
+        self.assertIn(b"Korvold, Fae-Cursed King", response.data)
         self.assertIn(b"99-Card Composition", response.data)
         self.assertIn(b"Turn 5", response.data)
         self.assertIn(b"How Often It Comes Together", response.data)
@@ -253,7 +256,7 @@ class WebRouteTests(unittest.TestCase):
         self.assertIn(b"Recommendation Experiments", response.data)
         self.assertIn(b"Best Category-Level Changes", response.data)
         self.assertIn(b"category-level experiments", response.data)
-        self.assertIn(b"Add cheap aura carriers", response.data)
+        self.assertIn(b"Add cheap early bodies", response.data)
 
     def test_birthday_theme_renders_with_realistic_data(self) -> None:
         birthdays = [
