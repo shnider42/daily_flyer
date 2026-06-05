@@ -19,7 +19,7 @@ THEME_CONFIG = {
     "header_subtitle": "A visual early-game readiness check for a 99-card Commander deck: mana, castable cards, board presence, damage, and value by turns 5–6.",
     "footer_text": "Built on Daily Flyer. Commander readiness prototype.",
     "hero_kicker": "Daily Flyer • Magic Commander Theme",
-    "hero_summary_pill": "99-card deck audit · deck intake · mana-value model · board/value forecast",
+    "hero_summary_pill": "plain decklist intake · 99-card audit · recommendation experiments",
 }
 
 DEFAULT_DECK = {
@@ -47,13 +47,13 @@ DEFAULT_GOAL = {
 
 DECK_INPUTS = (
     ("lands", "Lands", "Mana base; one land can be played per turn."),
-    ("cheap_creatures", "Cheap creatures", "MV 1–2 bodies that can carry auras."),
+    ("cheap_creatures", "Cheap creatures", "MV 1–2 bodies that can carry the plan early."),
     ("mid_creatures", "Mid creatures", "MV 3–4 bodies / payoff creatures."),
     ("cheap_auras", "Cheap auras", "MV 1–2 auras, protection, or buffs."),
     ("mid_auras", "Mid auras", "MV 3–4 auras or larger payoffs."),
     ("cheap_interaction", "Cheap interaction", "MV 1–2 removal, tricks, protection, answers."),
     ("mid_interaction", "Mid interaction", "MV 3–4 interaction / higher-cost answers."),
-    ("value_engines", "Ramp / draw / value", "Cards that generate more cards, mana, or repeated value."),
+    ("value_engines", "Ramp / draw / value", "Cards that generate more cards, mana, treasures, tokens, or repeated value."),
 )
 
 TOKEN_META = {
@@ -70,16 +70,16 @@ TOKEN_META = {
 
 RECOMMENDATION_PLANS = (
     {
-        "title": "Add cheap aura carriers",
+        "title": "Add cheap early bodies",
         "adds": {"cheap_creatures": 2},
         "removes": {"other": 2},
-        "why": "Auras need something to wear them. This tests whether more low-cost bodies improve board development.",
+        "why": "This tests whether more low-cost bodies improve early board development and pressure.",
     },
     {
-        "title": "Lower the aura curve",
-        "adds": {"cheap_auras": 2},
-        "removes": {"mid_auras": 2},
-        "why": "The deck may already have enough aura density, but cheap auras are easier to deploy before turn 6.",
+        "title": "Lower the payoff curve",
+        "adds": {"cheap_creatures": 1, "cheap_interaction": 1},
+        "removes": {"mid_creatures": 1, "other": 1},
+        "why": "This checks whether replacing slower cards with early live plays improves the first 5–6 turns.",
     },
     {
         "title": "Add live early interaction",
@@ -90,7 +90,7 @@ RECOMMENDATION_PLANS = (
     {
         "title": "Add ramp / draw / value",
         "adds": {"value_engines": 2},
-        "removes": {"mid_auras": 2},
+        "removes": {"other": 2},
         "why": "Early value engines help the model cast more cards and raise the value/answer score.",
     },
     {
@@ -101,26 +101,107 @@ RECOMMENDATION_PLANS = (
     },
     {
         "title": "Trim clunky midrange for speed",
-        "adds": {"cheap_creatures": 2, "cheap_auras": 2},
-        "removes": {"mid_creatures": 2, "mid_auras": 2},
+        "adds": {"cheap_creatures": 2, "cheap_interaction": 1},
+        "removes": {"mid_creatures": 2, "other": 1},
         "why": "This tests whether the same deck plan performs better when more of it costs 1–2 mana.",
     },
 )
 
-EXAMPLE_DECKLIST = """Commander:
-1 Light-Paws, Emperor's Voice
+EXAMPLE_DECKLIST = """1 Academy Manufactor
+1 Akroma's Will
+1 Anim Pakal, Thousandth Moon
+1 Anointed Procession
+1 Arcane Signet
+1 Arid Mesa
+1 Azusa, Lost but Seeking
+1 Badlands
+1 Bayou
+1 Beamtown Beatstick
+1 Birds of Paradise
+1 Black Market Connections
+1 Blasphemous Act
+1 Blood Artist
+1 Blood Crypt
+1 Bloodstained Mire
+1 Braids, Arisen Nightmare
+1 Bristly Bill, Spine Sower
+1 Command Tower
+1 Conduit of Worlds
+1 Crop Rotation
+1 Crucible of Worlds
+1 Dark Ritual
+1 Deadly Rollick
+1 Demonic Tutor
+1 Doubling Season
+1 Eldritch Evolution
+1 Enlightened Tutor
+1 Esper Sentinel
+1 Exalted Sunborn
+1 Exotic Orchard
+1 Exploration
+3 Forest
+1 Gamble
+1 Generous Plunderer
+1 Gilded Goose
+1 Godless Shrine
+1 Hearthhull, the Worldseed
+1 Icetill Explorer
+1 Ignoble Hierarch
+1 Illustrious Wanderglyph
+1 Kellogg, Dangerous Mind
+1 Knuckles's Gloves
+1 Lotho, Corrupt Shirriff
+1 Lotus Cobra
+1 Lumra, Bellow of the Woods
+1 Luxury Suite
+1 Mahadi, Emporium Master
+1 Marsh Flats
+1 Mayhem Devil
+1 Mirkwood Bats
+1 Mondrak, Glory Dominus
+1 Monologue Tax
+2 Mountain
+1 Mox Opal
+1 Nature's Lore
+1 Olivia, Opulent Outlaw
+1 Overgrown Tomb
+1 Path to Exile
+2 Plains
+1 Plateau
+1 Rampant Growth
+1 Ramunap Excavator
+1 Reanimate
+1 Ruthless Technomancer
+1 Sacred Foundry
+1 Savannah
+1 Scrubland
+1 Six
+1 Slicer, Hired Muscle
+1 Smothering Tithe
+1 Sol Ring
+1 Spire Garden
+1 Stomping Ground
+3 Swamp
+1 Swords to Plowshares
+1 Taiga
+1 Temple Garden
+1 The Meathook Massacre
+1 Three Visits
+1 Tireless Provisioner
+1 Toxic Deluge
+1 Unexpected Windfall
+1 Verdant Catacombs
+1 Warren Soultrader
+1 Wayward Swordtooth
+1 Windswept Heath
+1 Wooded Foothills
+1 Worldly Tutor
+1 Xorn
+1 Zidane Tribal
+1 Zulaport Cutthroat
 
-Deck:
-28 Plains # land
-9 Utility Land # land
-8 Cheap Aura Carrier # cheap_creature
-10 Midrange Aura Payoff # mid_creature
-14 Cheap Aura / Protection Aura # cheap_aura
-8 Larger Aura Payoff # mid_aura
-7 Cheap Protection or Removal # cheap_interaction
-3 Bigger Answer # mid_interaction
-5 Draw / Ramp / Value Engine # value_engine
-7 Flexible Other Card # other"""
+1 Korvold, Fae-Cursed King
+1 Vihaan, Goldwaker"""
 
 
 def _deck_with_other(deck: dict[str, int]) -> dict[str, int]:
@@ -293,14 +374,10 @@ def _aggregate_simulation(deck: dict[str, int], goal: dict[str, int], seed: int,
     def avg(key: str) -> float:
         return sum(float(outcome[key]) for outcome in outcomes) / len(outcomes)
 
-    success_rate = sum(1 for outcome in outcomes if outcome["success"]) / len(outcomes)
-    commander_rate = sum(1 for outcome in outcomes if outcome["commander_cast"]) / len(outcomes)
-    interaction_rate = sum(1 for outcome in outcomes if outcome["interaction_ready"] > 0) / len(outcomes)
-
     return {
-        "success_rate": success_rate,
-        "commander_rate": commander_rate,
-        "interaction_rate": interaction_rate,
+        "success_rate": sum(1 for outcome in outcomes if outcome["success"]) / len(outcomes),
+        "commander_rate": sum(1 for outcome in outcomes if outcome["commander_cast"]) / len(outcomes),
+        "interaction_rate": sum(1 for outcome in outcomes if outcome["interaction_ready"] > 0) / len(outcomes),
         "avg_nonland": avg("nonland_permanents"),
         "avg_battlefield": avg("battlefield_permanents"),
         "avg_damage": avg("damage"),
@@ -345,25 +422,21 @@ def _recommendation_experiments(
     baseline_summary: dict[str, Any],
     seed: int,
 ) -> list[dict[str, Any]]:
-    baseline = baseline_summary["success_rate"]
     experiments: list[dict[str, Any]] = []
-
     for index, plan in enumerate(RECOMMENDATION_PLANS):
         variant = _apply_recommendation_plan(deck, plan)
         if variant is None:
             continue
         summary = _aggregate_simulation(variant, goal, seed + 1009 + index * 97)
-        delta = summary["success_rate"] - baseline
         experiments.append(
             {
                 "title": plan["title"],
                 "changes": _format_plan_changes(plan),
                 "why": plan["why"],
                 "summary": summary,
-                "delta": delta,
+                "delta": summary["success_rate"] - baseline_summary["success_rate"],
             }
         )
-
     experiments.sort(key=lambda item: item["delta"], reverse=True)
     return experiments
 
@@ -371,34 +444,34 @@ def _recommendation_experiments(
 def _deck_submission_html() -> str:
     return f"""
         <div class="commander-panel deck-intake-panel">
-            <p class="commander-lede">Paste a Commander decklist or use the quick-count fields below. The first intake version supports category tags so the tool can rerun the numbers without knowing every Magic card yet.</p>
+            <p class="commander-lede">Paste the plain exported decklist format: <code>1 Card Name</code> per line. Tags are optional; the intake will guess known lands, ramp/value, interaction, and creature buckets, then fold unclear cards into Other for review.</p>
             <div class="deck-intake-grid">
                 <label class="commander-input-row deck-intake-field">
                     <span><strong>Deck name</strong><small>Used only for the on-page summary.</small></span>
-                    <input id="deck-name-input" type="text" value="Aura Opening Test" autocomplete="off">
+                    <input id="deck-name-input" type="text" value="Korvold / Vihaan Test" autocomplete="off">
                 </label>
                 <label class="commander-input-row deck-intake-field">
-                    <span><strong>Commander</strong><small>The commander is always accessible but still costs mana.</small></span>
-                    <input id="commander-name-input" type="text" value="Unknown Aura Commander" autocomplete="off">
+                    <span><strong>Commander candidate(s)</strong><small>If the final blank-separated block has 1–2 cards, intake treats those as commanders.</small></span>
+                    <input id="commander-name-input" type="text" value="Korvold, Fae-Cursed King / Vihaan, Goldwaker" autocomplete="off">
                 </label>
             </div>
             <label class="decklist-label" for="decklist-input">
-                <strong>Paste decklist</strong>
-                <small>Best MVP format: one card per line with an optional category tag, like <code>1 Ethereal Armor # cheap_aura</code>.</small>
+                <strong>Plain exported decklist</strong>
+                <small>Primary format: <code>1 Sol Ring</code>. Optional override: <code>1 Sol Ring # value_engine</code>.</small>
             </label>
-            <textarea id="decklist-input" class="decklist-input" spellcheck="false" placeholder="Commander:\n1 Commander Name\n\nDeck:\n1 Card Name # cheap_aura\n1 Card Name # cheap_creature"></textarea>
+            <textarea id="decklist-input" class="decklist-input" spellcheck="false" placeholder="1 Academy Manufactor&#10;1 Akroma's Will&#10;1 Arcane Signet&#10;3 Forest&#10;&#10;1 Korvold, Fae-Cursed King"></textarea>
             <div class="deck-intake-actions">
                 <button class="commander-btn" type="button" id="analyze-decklist">Analyze decklist</button>
-                <button class="commander-btn commander-btn--ghost" type="button" id="load-example-decklist">Load tagged example</button>
+                <button class="commander-btn commander-btn--ghost" type="button" id="load-example-decklist">Load Korvold / Vihaan example</button>
                 <button class="commander-btn commander-btn--ghost" type="button" id="clear-decklist">Clear</button>
             </div>
             <div id="deck-intake-status" class="deck-intake-status" aria-live="polite">
-                <strong>Deck intake ready.</strong>
-                <span>Paste a list, tag uncertain cards, then analyze to update the stats and recommendations.</span>
+                <strong>Plain list intake ready.</strong>
+                <span>Paste a quantity/card-name list, then analyze to update the stats and recommendations.</span>
             </div>
             <details class="deck-intake-help">
-                <summary>Supported category tags</summary>
-                <p>Use tags after <code>#</code> or inside brackets: <code>land</code>, <code>cheap_creature</code>, <code>mid_creature</code>, <code>cheap_aura</code>, <code>mid_aura</code>, <code>cheap_interaction</code>, <code>mid_interaction</code>, <code>value_engine</code>, or <code>other</code>. Untagged basic lands are detected; untagged unknown cards become Other.</p>
+                <summary>Optional category tags and commander detection</summary>
+                <p>The normal format is just <code>1 Card Name</code>. To override a guess, add <code># land</code>, <code># cheap_creature</code>, <code># mid_creature</code>, <code># cheap_interaction</code>, <code># mid_interaction</code>, <code># value_engine</code>, or <code># other</code>. If there is no <code>Commander:</code> header, the final blank-separated block of one or two cards is treated as command-zone candidate(s), not library cards.</p>
             </details>
             <script type="application/json" id="example-decklist-json">{escape(json.dumps(EXAMPLE_DECKLIST))}</script>
         </div>
@@ -426,7 +499,7 @@ def _deck_recipe_html(deck: dict[str, int]) -> str:
 
     return f"""
         <div class="commander-panel">
-            <p class="commander-lede">This version no longer treats “aura” or “creature” as automatically useful. It estimates whether the deck can actually spend mana on those cards before the target turn.</p>
+            <p class="commander-lede">These quick-count buckets are the model inputs. Deck intake above can fill them automatically; you can still adjust any bucket by hand.</p>
             <div class="commander-controls">{controls}</div>
             <div class="commander-derived">
                 <span>Commander: <strong id="commander-summary">available, but costs mana</strong></span>
@@ -444,13 +517,12 @@ def _mana_goal_html(goal: dict[str, int]) -> str:
         ("commander-mv", "Commander mana value", "Commander is always accessible, but not free.", goal["commander_mv"], 0, 10),
         ("commander-power", "Commander power", "Used for rough damage-pressure estimates.", goal["commander_power"], 0, 20),
         ("cards-seen", "Cards seen", "Opening hand plus draw steps.", goal["cards_seen"], 7, 20),
-        ("nonland-permanents-min", "Board pieces goal", "Nonland permanents: commander, creatures, auras, value engines.", goal["nonland_permanents_min"], 0, 20),
+        ("nonland-permanents-min", "Board pieces goal", "Nonland permanents: commander, creatures, auras/equipment/value engines.", goal["nonland_permanents_min"], 0, 20),
         ("damage-min", "Damage pressure goal", "Rough potential damage, not exact combat math.", goal["damage_min"], 0, 40),
         ("value-min", "Value / answer goal", "Draw/ramp/value engines plus ready interaction.", goal["value_min"], 0, 10),
         ("restriction-friction", "Restriction friction %", "Card text, timing, target, color, or board-state restrictions.", goal["restriction_friction"], 0, 95),
-        ("aura-bonus", "Aura damage bonus", "Average extra pressure from a cast aura.", goal["aura_bonus"], 0, 10),
+        ("aura-bonus", "Payoff damage bonus", "Average extra pressure from a cast payoff/equipment/aura-like card.", goal["aura_bonus"], 0, 10),
     )
-
     controls = "".join(
         f"""
         <label class="commander-input-row">
@@ -460,20 +532,16 @@ def _mana_goal_html(goal: dict[str, int]) -> str:
         """
         for key, label, help, value, low, high in fields
     )
-
     return f"""
         <div class="commander-panel">
-            <p class="commander-lede">The goal is now value-oriented: do we get enough mana, board presence, damage pressure, and usable value/answers by the target turn?</p>
+            <p class="commander-lede">The goal is value-oriented: do we get enough mana, board presence, damage pressure, and usable value/answers by the target turn?</p>
             <div class="goal-grid">{controls}</div>
-            <div class="commander-derived">
-                <span id="goal-summary">{escape(_goal_summary(goal))}</span>
-            </div>
+            <div class="commander-derived"><span id="goal-summary">{escape(_goal_summary(goal))}</span></div>
         </div>
     """
 
 
 def _probability_meter_html(summary: dict[str, Any], goal: dict[str, int]) -> str:
-    success = summary["success_rate"]
     stat_rows = (
         ("Commander castable", _format_pct(summary["commander_rate"])),
         ("Interaction/value seen", _format_pct(summary["interaction_rate"])),
@@ -483,15 +551,10 @@ def _probability_meter_html(summary: dict[str, Any], goal: dict[str, int]) -> st
         ("Avg value / answer score", f"{summary['avg_value']:.1f}"),
     )
     rows_html = "".join(
-        f"""
-        <div class="stat-tile">
-            <span>{escape(label)}</span>
-            <strong>{escape(value)}</strong>
-        </div>
-        """
+        f"<div class='stat-tile'><span>{escape(label)}</span><strong>{escape(value)}</strong></div>"
         for label, value in stat_rows
     )
-
+    success = summary["success_rate"]
     return f"""
         <div class="commander-panel">
             <div class="confidence-hero">
@@ -515,17 +578,13 @@ def _token_row_html(outcome: dict[str, Any]) -> str:
         if cast:
             classes += " is-cast"
         tokens.append(f"<span class='{classes}' title='{escape(label)} · MV {card['mv']}'>{emoji}</span>")
-
     verdict = "GOOD OUTCOME" if outcome["success"] else "CLUNKY / SLOW"
     verdict_class = "pass" if outcome["success"] else "miss"
     return f"""
         <article class="sample-hand sample-hand--{verdict_class}">
             <div class="sample-hand-top">
                 <strong>{verdict}</strong>
-                <span>
-                    {outcome['lands_in_play']} lands · {outcome['nonland_permanents']} nonland permanents ·
-                    {outcome['damage']} damage · {outcome['value_score']} value/answer
-                </span>
+                <span>{outcome['lands_in_play']} lands · {outcome['nonland_permanents']} nonland permanents · {outcome['damage']} damage · {outcome['value_score']} value/answer</span>
             </div>
             <div class="commander-token-row">{''.join(tokens)}</div>
         </article>
@@ -535,47 +594,36 @@ def _token_row_html(outcome: dict[str, Any]) -> str:
 def _sample_hands_html(hands: list[dict[str, Any]]) -> str:
     return f"""
         <div class="commander-panel">
-            <p class="commander-lede">Sample openings now show whether cards are likely to be castable. Highlighted tokens were spent into the board/value model.</p>
+            <p class="commander-lede">Sample openings show whether cards are likely to be castable. Highlighted tokens were spent into the board/value model.</p>
             <div class="token-legend">
-                <span>🟫 Land</span>
-                <span>🧍 Creature</span>
-                <span>🟣 Aura</span>
-                <span>⚡ Interaction</span>
-                <span>💎 Value</span>
-                <span>Outlined = castable/used</span>
+                <span>🟫 Land</span><span>🧍 Creature</span><span>🟣 Payoff</span><span>⚡ Interaction</span><span>💎 Value</span><span>Outlined = castable/used</span>
             </div>
-            <div id="sample-hands" class="sample-hand-list">
-                {''.join(_token_row_html(hand) for hand in hands)}
-            </div>
+            <div id="sample-hands" class="sample-hand-list">{''.join(_token_row_html(hand) for hand in hands)}</div>
             <button class="commander-btn" type="button" id="sample-reroll">Reroll sample hands</button>
         </div>
     """
 
 
 def _tuning_advice_html(summary: dict[str, Any], goal: dict[str, int]) -> str:
-    success = summary["success_rate"]
     advice: list[str] = []
-
     if summary["commander_rate"] < 0.80:
         advice.append("Commander access is being limited by mana. Lower the commander mana value assumption, add ramp/value, or increase early land consistency.")
     if summary["avg_nonland"] < goal["nonland_permanents_min"]:
-        advice.append("The deck is not putting enough nonland material onto the board by the target turn. Cheap creatures, cheap auras, and value engines help more than expensive payoffs.")
+        advice.append("The deck is not putting enough nonland material onto the board by the target turn. Cheap creatures, cheap payoffs, and value engines help more than expensive payoffs.")
     if summary["avg_damage"] < goal["damage_min"]:
-        advice.append("Damage pressure is below the target. Either the aura bonus/payoff assumption is too low, or too many cards are not castable early enough.")
+        advice.append("Damage pressure is below the target. Either the payoff assumption is too low, or too many cards are not castable early enough.")
     if summary["avg_value"] < goal["value_min"]:
         advice.append("The value/answer score is light. Add draw, ramp, protection, or cheap interaction that is live in the first few turns.")
     if not advice:
         advice.append("The model likes this opening plan. Next improvement would be using real card names, mana values, colors, and card text restrictions.")
-
     bullets = "".join(f"<li>{escape(item)}</li>" for item in advice)
-
     return f"""
         <div class="commander-panel">
             <div class="advice-stack" id="tuning-advice">
-                <p><strong>Outcome confidence:</strong> {_format_pct(success)} ({escape(_score_label(success))}).</p>
-                <p><strong>What changed:</strong> this is now measuring castable value, not just whether the opening cards contain labels like “aura” or “instant.”</p>
+                <p><strong>Outcome confidence:</strong> {_format_pct(summary['success_rate'])} ({escape(_score_label(summary['success_rate']))}).</p>
+                <p><strong>What changed:</strong> intake can now start from a plain exported decklist, then classify into model buckets.</p>
                 <ul>{bullets}</ul>
-                <p class="commander-hint">Best next version: paste/import the actual decklist, then calculate this from real mana values, colors, card types, and rules text tags.</p>
+                <p class="commander-hint">Best next version: fetch real card data from a card API, then classify from actual mana values, colors, type lines, and rules text.</p>
             </div>
         </div>
     """
@@ -585,11 +633,11 @@ def _recommendations_html(recommendations: list[dict[str, Any]], baseline_summar
     if not recommendations:
         body = "<p>No valid category-level experiments could be generated from this recipe.</p>"
     else:
-        top_cards = []
+        cards = []
         for rank, item in enumerate(recommendations[:4], start=1):
             summary = item["summary"]
             delta_class = "is-positive" if item["delta"] >= 0 else "is-negative"
-            top_cards.append(
+            cards.append(
                 f"""
                 <article class="recommendation-card">
                     <div class="recommendation-rank">#{rank}</div>
@@ -605,13 +653,12 @@ def _recommendations_html(recommendations: list[dict[str, Any]], baseline_summar
                 </article>
                 """
             )
-        body = "".join(top_cards)
-
+        body = "".join(cards)
     return f"""
         <div class="commander-panel">
-            <p class="commander-lede">These are not card-name recommendations. They are small category-level experiments: change a few buckets, rerun the model, and rank what improved the outcome most.</p>
+            <p class="commander-lede">These are not card-name recommendations. They are category-level experiments: change a few buckets, rerun the model, and rank what improved the outcome most.</p>
             <div id="recommendations-list" class="recommendations-list">{body}</div>
-            <p class="commander-hint">Use this as a conversation starter with someone who knows the deck. The model still does not know the actual commander text, colors, tutors, or individual card quality.</p>
+            <p class="commander-hint">Use this as a conversation starter with someone who knows the deck. The model still does not know exact card text unless a card is explicitly tagged or recognized by a simple name map.</p>
         </div>
     """
 
@@ -626,175 +673,39 @@ def _extra_head_html() -> str:
 
 def _extra_css() -> str:
     return r"""
-    body {
-        font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
-        background:
-            radial-gradient(circle at 8% 10%, rgba(144, 83, 255, 0.18), transparent 24%),
-            radial-gradient(circle at 88% 12%, rgba(255, 185, 91, 0.16), transparent 24%),
-            radial-gradient(circle at 50% 100%, rgba(77, 201, 164, 0.14), transparent 28%),
-            linear-gradient(180deg, #16101f 0%, #101826 46%, #071018 100%);
-    }
-
-    header.hero {
-        background:
-            radial-gradient(circle at top left, rgba(156, 100, 255, 0.20), transparent 30%),
-            radial-gradient(circle at 80% 20%, rgba(255, 190, 99, 0.12), transparent 26%),
-            linear-gradient(135deg, rgba(255,255,255,0.09), rgba(255,255,255,0.03)),
-            linear-gradient(150deg, rgba(38, 25, 57, 0.94), rgba(17, 27, 44, 0.95));
-    }
-
+    body { font-family: "Inter", system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif; background: radial-gradient(circle at 8% 10%, rgba(144, 83, 255, 0.18), transparent 24%), radial-gradient(circle at 88% 12%, rgba(255, 185, 91, 0.16), transparent 24%), radial-gradient(circle at 50% 100%, rgba(77, 201, 164, 0.14), transparent 28%), linear-gradient(180deg, #16101f 0%, #101826 46%, #071018 100%); }
+    header.hero { background: radial-gradient(circle at top left, rgba(156, 100, 255, 0.20), transparent 30%), radial-gradient(circle at 80% 20%, rgba(255, 190, 99, 0.12), transparent 26%), linear-gradient(135deg, rgba(255,255,255,0.09), rgba(255,255,255,0.03)), linear-gradient(150deg, rgba(38, 25, 57, 0.94), rgba(17, 27, 44, 0.95)); }
     .hero h1, h2, .confidence-number { font-family: "Cinzel", Georgia, serif; }
     .card::after { background: linear-gradient(90deg, #9c64ff, #ffbe63, #4dc9a4); }
-
     .card--deck_submission, .card--tuning_advice, .card--recommendations { grid-column: span 12; }
-    .card--deck_recipe { grid-column: span 5; }
-    .card--turn_goal { grid-column: span 7; }
-    .card--probability_meter { grid-column: span 6; }
-    .card--sample_hands { grid-column: span 6; }
-
-    .commander-panel { display: grid; gap: 0.95rem; }
-    .commander-lede, .commander-hint { color: #d3cce2; margin: 0; }
-    .commander-hint { font-size: 0.92rem; }
-
+    .card--deck_recipe { grid-column: span 5; } .card--turn_goal { grid-column: span 7; } .card--probability_meter, .card--sample_hands { grid-column: span 6; }
+    .commander-panel { display: grid; gap: 0.95rem; } .commander-lede, .commander-hint { color: #d3cce2; margin: 0; } .commander-hint { font-size: 0.92rem; }
     .commander-controls, .goal-grid, .sample-hand-list, .advice-stack, .recommendations-list, .deck-intake-panel { display: grid; gap: 0.75rem; }
     .goal-grid, .deck-intake-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.75rem; }
-
-    .commander-input-row {
-        display: flex;
-        align-items: center;
-        justify-content: space-between;
-        gap: 1rem;
-        padding: 0.8rem 0.9rem;
-        border-radius: 16px;
-        background: rgba(255,255,255,0.06);
-        border: 1px solid rgba(255,255,255,0.09);
-    }
-
-    .commander-input-row span { display: grid; gap: 0.16rem; }
-    .commander-input-row small { color: #b8adc9; line-height: 1.25; }
-    .commander-input-row input {
-        width: 76px;
-        border: 1px solid rgba(255,255,255,0.16);
-        border-radius: 12px;
-        padding: 0.55rem 0.6rem;
-        background: rgba(255,255,255,0.08);
-        color: var(--ink);
-        font: inherit;
-        font-weight: 800;
-    }
-
-    .deck-intake-field { align-items: stretch; }
-    .deck-intake-field input { width: min(280px, 100%); font-weight: 700; }
-    .decklist-label { display: grid; gap: 0.2rem; color: var(--ink); }
-    .decklist-label small { color: #b8adc9; }
-    .decklist-label code { color: #ffdf9a; }
-    .decklist-input {
-        width: 100%;
-        min-height: 190px;
-        resize: vertical;
-        border: 1px solid rgba(255,255,255,0.14);
-        border-radius: 18px;
-        background: rgba(5, 8, 14, 0.38);
-        color: var(--ink);
-        font: 0.92rem/1.45 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace;
-        padding: 0.9rem;
-    }
-
-    .deck-intake-actions { display: flex; flex-wrap: wrap; gap: 0.55rem; }
-    .deck-intake-status {
-        display: grid;
-        gap: 0.25rem;
-        padding: 0.8rem 0.9rem;
-        border-radius: 16px;
-        background: rgba(77, 201, 164, 0.09);
-        border: 1px solid rgba(77, 201, 164, 0.18);
-        color: #d3cce2;
-    }
-    .deck-intake-status strong { color: var(--ink); }
-    .deck-intake-help { color: #d3cce2; }
-    .deck-intake-help summary { cursor: pointer; color: #ffdf9a; font-weight: 800; }
-    .deck-intake-help p { margin: 0.55rem 0 0; }
-    .deck-intake-help code { color: #ffdf9a; }
-
-    .commander-derived, .token-legend {
-        display: flex;
-        flex-wrap: wrap;
-        gap: 0.55rem;
-    }
-
-    .commander-derived span, .token-legend span, .stat-tile {
-        border: 1px solid rgba(255,255,255,0.10);
-        background: rgba(255,255,255,0.06);
-        border-radius: 18px;
-        padding: 0.55rem 0.72rem;
-        font-size: 0.86rem;
-    }
-
-    .confidence-hero {
-        display: flex;
-        align-items: baseline;
-        justify-content: space-between;
-        gap: 1rem;
-        padding: 1rem;
-        border-radius: 22px;
-        border: 1px solid rgba(255,255,255,0.10);
-        background: linear-gradient(135deg, rgba(156, 100, 255, 0.18), rgba(255, 190, 99, 0.10));
-    }
-
-    .confidence-number { font-size: clamp(2.2rem, 7vw, 4.4rem); line-height: 1; letter-spacing: -0.05em; }
-    .confidence-label { font-weight: 800; color: #ffdf9a; text-transform: uppercase; letter-spacing: 0.08em; }
-
-    .outcome-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.7rem; }
-    .stat-tile { display: flex; align-items: center; justify-content: space-between; gap: 0.7rem; }
-    .stat-tile span { color: #d3cce2; }
-    .stat-tile strong { color: var(--ink); font-size: 1.08rem; }
-
-    .sample-hand, .recommendation-card {
-        padding: 0.85rem;
-        border-radius: 18px;
-        background: rgba(255,255,255,0.055);
-        border: 1px solid rgba(255,255,255,0.09);
-    }
-
-    .sample-hand--pass { border-color: rgba(77, 201, 164, 0.38); }
-    .sample-hand--miss { border-color: rgba(255, 190, 99, 0.20); }
-
-    .sample-hand-top { display: flex; justify-content: space-between; gap: 0.7rem; color: #d3cce2; font-size: 0.86rem; margin-bottom: 0.55rem; }
-    .sample-hand-top strong { color: var(--ink); }
-
-    .commander-token-row { display: flex; flex-wrap: wrap; gap: 0.28rem; }
-    .commander-token { width: 31px; height: 31px; display: grid; place-items: center; border-radius: 10px; background: rgba(255,255,255,0.075); border: 1px solid rgba(255,255,255,0.09); font-size: 0.95rem; opacity: 0.68; }
-    .commander-token.is-cast { opacity: 1; outline: 2px solid rgba(77, 201, 164, 0.65); box-shadow: 0 0 16px rgba(77, 201, 164, 0.18); }
-
-    .commander-btn { width: fit-content; border: 1px solid rgba(255,255,255,0.14); background: rgba(255,255,255,0.08); color: var(--ink); border-radius: 14px; cursor: pointer; font: inherit; font-weight: 800; padding: 0.72rem 1rem; }
-    .commander-btn:hover { background: rgba(255,255,255,0.13); transform: translateY(-1px); }
-    .commander-btn--ghost { background: rgba(255,255,255,0.035); }
-
+    .commander-input-row { display: flex; align-items: center; justify-content: space-between; gap: 1rem; padding: 0.8rem 0.9rem; border-radius: 16px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.09); }
+    .commander-input-row span { display: grid; gap: 0.16rem; } .commander-input-row small { color: #b8adc9; line-height: 1.25; }
+    .commander-input-row input { width: 76px; border: 1px solid rgba(255,255,255,0.16); border-radius: 12px; padding: 0.55rem 0.6rem; background: rgba(255,255,255,0.08); color: var(--ink); font: inherit; font-weight: 800; }
+    .deck-intake-field { align-items: stretch; } .deck-intake-field input { width: min(340px, 100%); font-weight: 700; }
+    .decklist-label { display: grid; gap: 0.2rem; color: var(--ink); } .decklist-label small, .deck-intake-help, .deck-intake-status { color: #d3cce2; } .decklist-label code, .deck-intake-help code { color: #ffdf9a; }
+    .decklist-input { width: 100%; min-height: 250px; resize: vertical; border: 1px solid rgba(255,255,255,0.14); border-radius: 18px; background: rgba(5, 8, 14, 0.38); color: var(--ink); font: 0.92rem/1.45 ui-monospace, SFMono-Regular, Menlo, Consolas, monospace; padding: 0.9rem; }
+    .deck-intake-actions { display: flex; flex-wrap: wrap; gap: 0.55rem; } .deck-intake-status { display: grid; gap: 0.25rem; padding: 0.8rem 0.9rem; border-radius: 16px; background: rgba(77, 201, 164, 0.09); border: 1px solid rgba(77, 201, 164, 0.18); } .deck-intake-status strong { color: var(--ink); }
+    .deck-intake-help summary { cursor: pointer; color: #ffdf9a; font-weight: 800; } .deck-intake-help p { margin: 0.55rem 0 0; }
+    .commander-derived, .token-legend { display: flex; flex-wrap: wrap; gap: 0.55rem; }
+    .commander-derived span, .token-legend span, .stat-tile { border: 1px solid rgba(255,255,255,0.10); background: rgba(255,255,255,0.06); border-radius: 18px; padding: 0.55rem 0.72rem; font-size: 0.86rem; }
+    .confidence-hero { display: flex; align-items: baseline; justify-content: space-between; gap: 1rem; padding: 1rem; border-radius: 22px; border: 1px solid rgba(255,255,255,0.10); background: linear-gradient(135deg, rgba(156, 100, 255, 0.18), rgba(255, 190, 99, 0.10)); }
+    .confidence-number { font-size: clamp(2.2rem, 7vw, 4.4rem); line-height: 1; letter-spacing: -0.05em; } .confidence-label { font-weight: 800; color: #ffdf9a; text-transform: uppercase; letter-spacing: 0.08em; }
+    .outcome-grid { display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 0.7rem; } .stat-tile { display: flex; align-items: center; justify-content: space-between; gap: 0.7rem; } .stat-tile span { color: #d3cce2; } .stat-tile strong { color: var(--ink); font-size: 1.08rem; }
+    .sample-hand, .recommendation-card { padding: 0.85rem; border-radius: 18px; background: rgba(255,255,255,0.055); border: 1px solid rgba(255,255,255,0.09); }
+    .sample-hand--pass { border-color: rgba(77, 201, 164, 0.38); } .sample-hand--miss { border-color: rgba(255, 190, 99, 0.20); }
+    .sample-hand-top { display: flex; justify-content: space-between; gap: 0.7rem; color: #d3cce2; font-size: 0.86rem; margin-bottom: 0.55rem; } .sample-hand-top strong { color: var(--ink); }
+    .commander-token-row { display: flex; flex-wrap: wrap; gap: 0.28rem; } .commander-token { width: 31px; height: 31px; display: grid; place-items: center; border-radius: 10px; background: rgba(255,255,255,0.075); border: 1px solid rgba(255,255,255,0.09); font-size: 0.95rem; opacity: 0.68; } .commander-token.is-cast { opacity: 1; outline: 2px solid rgba(77, 201, 164, 0.65); box-shadow: 0 0 16px rgba(77, 201, 164, 0.18); }
+    .commander-btn { width: fit-content; border: 1px solid rgba(255,255,255,0.14); background: rgba(255,255,255,0.08); color: var(--ink); border-radius: 14px; cursor: pointer; font: inherit; font-weight: 800; padding: 0.72rem 1rem; } .commander-btn:hover { background: rgba(255,255,255,0.13); transform: translateY(-1px); } .commander-btn--ghost { background: rgba(255,255,255,0.035); }
     .commander-warning { margin: 0; padding: 0.75rem 0.85rem; border-radius: 14px; background: rgba(255, 99, 99, 0.12); border: 1px solid rgba(255, 99, 99, 0.22); color: #ffd1d1; }
-    .advice-stack p { margin: 0; }
-    .advice-stack ul { margin: 0; padding-left: 1.2rem; display: grid; gap: 0.45rem; color: #d3cce2; }
-
-    .recommendation-card { display: grid; grid-template-columns: auto 1fr; gap: 0.85rem; align-items: flex-start; }
-    .recommendation-rank { width: 44px; height: 44px; display: grid; place-items: center; border-radius: 15px; background: rgba(255, 190, 99, 0.14); border: 1px solid rgba(255, 190, 99, 0.24); color: #ffdf9a; font-weight: 900; }
-    .recommendation-copy { display: grid; gap: 0.45rem; }
-    .recommendation-copy h3 { margin: 0; font-size: 1.08rem; }
-    .recommendation-copy p { margin: 0; color: #d3cce2; }
-    .recommendation-change { color: #ffdf9a !important; font-weight: 800; }
-    .recommendation-metrics { display: flex; flex-wrap: wrap; gap: 0.55rem; }
-    .recommendation-metrics span { padding: 0.38rem 0.55rem; border-radius: 999px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.09); color: #d3cce2; font-size: 0.84rem; }
-    .recommendation-metrics strong, .is-positive strong { color: #8ef1c2; }
-    .is-negative strong { color: #ffb6a7; }
-
-    @media (max-width: 980px) {
-        .card--deck_submission, .card--deck_recipe, .card--turn_goal, .card--probability_meter, .card--sample_hands, .card--tuning_advice, .card--recommendations { grid-column: span 12; }
-    }
-
-    @media (max-width: 720px) {
-        .goal-grid, .outcome-grid, .deck-intake-grid { grid-template-columns: 1fr; }
-        .commander-input-row { align-items: stretch; }
-        .sample-hand-top { flex-direction: column; }
-        .recommendation-card { grid-template-columns: 1fr; }
-    }
+    .advice-stack p { margin: 0; } .advice-stack ul { margin: 0; padding-left: 1.2rem; display: grid; gap: 0.45rem; color: #d3cce2; }
+    .recommendation-card { display: grid; grid-template-columns: auto 1fr; gap: 0.85rem; align-items: flex-start; } .recommendation-rank { width: 44px; height: 44px; display: grid; place-items: center; border-radius: 15px; background: rgba(255, 190, 99, 0.14); border: 1px solid rgba(255, 190, 99, 0.24); color: #ffdf9a; font-weight: 900; } .recommendation-copy { display: grid; gap: 0.45rem; } .recommendation-copy h3 { margin: 0; font-size: 1.08rem; } .recommendation-copy p { margin: 0; color: #d3cce2; } .recommendation-change { color: #ffdf9a !important; font-weight: 800; }
+    .recommendation-metrics { display: flex; flex-wrap: wrap; gap: 0.55rem; } .recommendation-metrics span { padding: 0.38rem 0.55rem; border-radius: 999px; background: rgba(255,255,255,0.06); border: 1px solid rgba(255,255,255,0.09); color: #d3cce2; font-size: 0.84rem; } .recommendation-metrics strong, .is-positive strong { color: #8ef1c2; } .is-negative strong { color: #ffb6a7; }
+    @media (max-width: 980px) { .card--deck_submission, .card--deck_recipe, .card--turn_goal, .card--probability_meter, .card--sample_hands, .card--tuning_advice, .card--recommendations { grid-column: span 12; } }
+    @media (max-width: 720px) { .goal-grid, .outcome-grid, .deck-intake-grid { grid-template-columns: 1fr; } .commander-input-row { align-items: stretch; } .sample-hand-top { flex-direction: column; } .recommendation-card { grid-template-columns: 1fr; } }
     """
 
 
@@ -808,365 +719,132 @@ def _extra_js(deck: dict[str, int], goal: dict[str, int], seed: int) -> str:
     const INTERACTIVE_RUNS = 300;
     const DECK_STORAGE_KEY = "dailyFlyerCommanderDeckIntake";
 
-    const TOKEN_META = {
-        land: ["🟫", "Land"], cheap_creature: ["🧍", "Cheap creature"], mid_creature: ["🧍", "Mid creature"],
-        cheap_aura: ["🟣", "Cheap aura"], mid_aura: ["🔮", "Mid aura"], cheap_interaction: ["⚡", "Cheap interaction"],
-        mid_interaction: ["🌩️", "Mid interaction"], value_engine: ["💎", "Value"], other: ["◇", "Other"],
+    const TOKEN_META = { land: ["🟫", "Land"], cheap_creature: ["🧍", "Cheap creature"], mid_creature: ["🧍", "Mid creature"], cheap_aura: ["🟣", "Cheap payoff"], mid_aura: ["🔮", "Mid payoff"], cheap_interaction: ["⚡", "Cheap interaction"], mid_interaction: ["🌩️", "Mid interaction"], value_engine: ["💎", "Value"], other: ["◇", "Other"] };
+    const MODEL_KEYS = ["lands", "cheap_creatures", "mid_creatures", "cheap_auras", "mid_auras", "cheap_interaction", "mid_interaction", "value_engines"];
+    const LAND_NAMES = new Set(["plains", "island", "swamp", "mountain", "forest", "wastes", "arid mesa", "badlands", "bayou", "blood crypt", "bloodstained mire", "command tower", "exotic orchard", "godless shrine", "luxury suite", "marsh flats", "overgrown tomb", "plateau", "sacred foundry", "savannah", "scrubland", "spire garden", "stomping ground", "taiga", "temple garden", "verdant catacombs", "windswept heath", "wooded foothills"]);
+    const KNOWN_BUCKETS = {
+        "academy manufactor": "value_engines", "anointed procession": "value_engines", "arcane signet": "value_engines", "azusa, lost but seeking": "value_engines", "black market connections": "value_engines", "conduit of worlds": "value_engines", "crucible of worlds": "value_engines", "doubling season": "value_engines", "exploration": "value_engines", "monologue tax": "value_engines", "mox opal": "value_engines", "smothering tithe": "value_engines", "sol ring": "value_engines", "tireless provisioner": "value_engines", "unexpected windfall": "value_engines", "xorn": "value_engines",
+        "birds of paradise": "cheap_creatures", "blood artist": "cheap_creatures", "esper sentinel": "cheap_creatures", "gilded goose": "cheap_creatures", "ignoble hierarch": "cheap_creatures", "lotho, corrupt shirriff": "cheap_creatures", "lotus cobra": "cheap_creatures", "mayhem devil": "cheap_creatures", "mirkwood bats": "cheap_creatures", "warren soultrader": "cheap_creatures", "zulaport cutthroat": "cheap_creatures",
+        "anim pakal, thousandth moon": "mid_creatures", "braids, arisen nightmare": "mid_creatures", "bristly bill, spine sower": "mid_creatures", "generous plunderer": "mid_creatures", "hearthhull, the worldseed": "mid_creatures", "icetill explorer": "mid_creatures", "illustrious wanderglyph": "mid_creatures", "kellogg, dangerous mind": "mid_creatures", "lumra, bellow of the woods": "mid_creatures", "mahadi, emporium master": "mid_creatures", "mondrak, glory dominus": "mid_creatures", "olivia, opulent outlaw": "mid_creatures", "ramunap excavator": "mid_creatures", "ruthless technomancer": "mid_creatures", "six": "mid_creatures", "slicer, hired muscle": "mid_creatures", "wayward swordtooth": "mid_creatures", "zidane tribal": "mid_creatures",
+        "beamtown beatstick": "cheap_auras", "knuckles's gloves": "cheap_auras",
+        "akroma's will": "mid_interaction", "blasphemous act": "mid_interaction", "deadly rollick": "mid_interaction", "the meathook massacre": "mid_interaction", "toxic deluge": "mid_interaction",
+        "crop rotation": "cheap_interaction", "dark ritual": "cheap_interaction", "demonic tutor": "cheap_interaction", "eldritch evolution": "cheap_interaction", "enlightened tutor": "cheap_interaction", "gamble": "cheap_interaction", "nature's lore": "cheap_interaction", "path to exile": "cheap_interaction", "rampant growth": "cheap_interaction", "reanimate": "cheap_interaction", "swords to plowshares": "cheap_interaction", "three visits": "cheap_interaction", "worldly tutor": "cheap_interaction"
     };
+    const TAG_ALIASES = { land: "lands", lands: "lands", creature: "cheap_creatures", creatures: "cheap_creatures", cheap_creature: "cheap_creatures", cheap_creatures: "cheap_creatures", body: "cheap_creatures", bodies: "cheap_creatures", mid_creature: "mid_creatures", mid_creatures: "mid_creatures", aura: "cheap_auras", auras: "cheap_auras", equipment: "cheap_auras", payoff: "cheap_auras", cheap_aura: "cheap_auras", cheap_auras: "cheap_auras", mid_aura: "mid_auras", mid_auras: "mid_auras", interaction: "cheap_interaction", instant: "cheap_interaction", sorcery: "cheap_interaction", removal: "cheap_interaction", protection: "cheap_interaction", cheap_interaction: "cheap_interaction", mid_interaction: "mid_interaction", answer: "mid_interaction", answers: "mid_interaction", value: "value_engines", value_engine: "value_engines", value_engines: "value_engines", draw: "value_engines", ramp: "value_engines", treasure: "value_engines", token: "value_engines", other: "other", unknown: "other", flex: "other" };
 
-    const TAG_ALIASES = {
-        land: "lands", lands: "lands",
-        creature: "cheap_creatures", creatures: "cheap_creatures", cheap_creature: "cheap_creatures", cheap_creatures: "cheap_creatures", body: "cheap_creatures", bodies: "cheap_creatures",
-        mid_creature: "mid_creatures", mid_creatures: "mid_creatures", payoff_creature: "mid_creatures",
-        aura: "cheap_auras", auras: "cheap_auras", cheap_aura: "cheap_auras", cheap_auras: "cheap_auras",
-        mid_aura: "mid_auras", mid_auras: "mid_auras", payoff_aura: "mid_auras",
-        interaction: "cheap_interaction", instant: "cheap_interaction", sorcery: "cheap_interaction", removal: "cheap_interaction", protection: "cheap_interaction", cheap_interaction: "cheap_interaction",
-        mid_interaction: "mid_interaction", answer: "mid_interaction", answers: "mid_interaction",
-        value: "value_engines", value_engine: "value_engines", value_engines: "value_engines", draw: "value_engines", ramp: "value_engines",
-        other: "other", unknown: "other", flex: "other",
-    };
-
-    function readInt(id, fallback) {
-        const el = document.getElementById(id);
-        if (!el) return fallback;
-        const value = parseInt(el.value, 10);
-        return Number.isFinite(value) ? Math.max(0, value) : fallback;
-    }
-
+    function readInt(id, fallback) { const el = document.getElementById(id); if (!el) return fallback; const value = parseInt(el.value, 10); return Number.isFinite(value) ? Math.max(0, value) : fallback; }
     function pct(value) { return `${(value * 100).toFixed(1)}%`; }
     function delta(value) { return `${value >= 0 ? "+" : ""}${(value * 100).toFixed(1)} pts`; }
     function scoreLabel(value) { if (value >= 0.70) return "Strong"; if (value >= 0.50) return "Playable"; if (value >= 0.30) return "Developing"; return "Needs tuning"; }
-
-    function readCommanderState() {
-        const deck = {
-            lands: readInt("deck-lands", 0), cheap_creatures: readInt("deck-cheap_creatures", 0), mid_creatures: readInt("deck-mid_creatures", 0),
-            cheap_auras: readInt("deck-cheap_auras", 0), mid_auras: readInt("deck-mid_auras", 0), cheap_interaction: readInt("deck-cheap_interaction", 0),
-            mid_interaction: readInt("deck-mid_interaction", 0), value_engines: readInt("deck-value_engines", 0),
-        };
-        deck.other = Math.max(0, DECK_SIZE - Object.values(deck).reduce((a, b) => a + b, 0));
-        const goal = {
-            target_turn: readInt("goal-target-turn", 6), commander_mv: readInt("goal-commander-mv", 3), commander_power: readInt("goal-commander-power", 2),
-            cards_seen: readInt("goal-cards-seen", 13), nonland_permanents_min: readInt("goal-nonland-permanents-min", 4), damage_min: readInt("goal-damage-min", 7),
-            value_min: readInt("goal-value-min", 1), restriction_friction: readInt("goal-restriction-friction", 10), aura_bonus: readInt("goal-aura-bonus", 2),
-        };
-        return { deck, goal };
-    }
-
-    function setDeckInput(key, value) {
-        const el = document.getElementById(`deck-${key}`);
-        if (el) el.value = String(Math.max(0, value));
-    }
-
-    function setStatus(title, detail) {
-        const target = document.getElementById("deck-intake-status");
-        if (!target) return;
-        target.innerHTML = `<strong>${title}</strong><span>${detail}</span>`;
-    }
-
-    function cleanCardName(raw) {
-        return raw
-            .replace(/^\s*\d+x?\s+/i, "")
-            .replace(/^\s*x\d+\s+/i, "")
-            .replace(/\s+x\d+\s*$/i, "")
-            .trim();
-    }
-
-    function lineQuantity(rawLine) {
-        const trimmed = rawLine.trim();
-        const leading = trimmed.match(/^(\d+)x?\s+/i);
-        if (leading) return Math.max(1, parseInt(leading[1], 10));
-        const trailing = trimmed.match(/\s+x(\d+)\s*$/i);
-        if (trailing) return Math.max(1, parseInt(trailing[1], 10));
-        return 1;
-    }
-
-    function tagFromLine(rawLine) {
-        const hash = rawLine.match(/#\s*([a-zA-Z_ -]+)/);
-        const bracket = rawLine.match(/\[\s*([a-zA-Z_ -]+)\s*\]/);
-        const paren = rawLine.match(/\(\s*([a-zA-Z_ -]+)\s*\)\s*$/);
-        const rawTag = (hash || bracket || paren || [null, ""])[1].toLowerCase().trim().replaceAll(" ", "_").replaceAll("-", "_");
-        return TAG_ALIASES[rawTag] || null;
-    }
-
-    function guessedCategory(name) {
-        const lower = name.toLowerCase();
-        const basics = ["plains", "island", "swamp", "mountain", "forest", "wastes"];
-        if (basics.includes(lower) || lower.includes(" land") || lower.endsWith("land")) return "lands";
-        if (lower.includes("aura") || lower.includes("armor") || lower.includes("umbra") || lower.includes("cartouche") || lower.includes("rancor")) return "cheap_auras";
-        if (lower.includes("swords to plowshares") || lower.includes("path to exile") || lower.includes("counterspell") || lower.includes("removal") || lower.includes("protection")) return "cheap_interaction";
-        if (lower.includes("draw") || lower.includes("ramp") || lower.includes("value") || lower.includes("engine")) return "value_engines";
-        return "other";
-    }
+    function normalizedName(name) { return name.toLowerCase().replace(/[’]/g, "'").replace(/\s+/g, " ").trim(); }
+    function lineQuantity(rawLine) { const trimmed = rawLine.trim(); const leading = trimmed.match(/^(\d+)x?\s+/i); if (leading) return Math.max(1, parseInt(leading[1], 10)); const trailing = trimmed.match(/\s+x(\d+)\s*$/i); if (trailing) return Math.max(1, parseInt(trailing[1], 10)); return 1; }
+    function cleanCardName(raw) { return raw.replace(/^\s*\d+x?\s+/i, "").replace(/^\s*x\d+\s+/i, "").replace(/\s+x\d+\s*$/i, "").replace(/\s*\[[^\]]+\]\s*/g, " ").replace(/\s*\([^)]*\)\s*$/g, "").trim(); }
+    function tagFromLine(rawLine) { const hash = rawLine.match(/#\s*([a-zA-Z_ -]+)/); const bracket = rawLine.match(/\[\s*([a-zA-Z_ -]+)\s*\]/); const rawTag = (hash || bracket || [null, ""])[1].toLowerCase().trim().replaceAll(" ", "_").replaceAll("-", "_"); return TAG_ALIASES[rawTag] || null; }
+    function guessedCategory(name) { const n = normalizedName(name); if (LAND_NAMES.has(n) || n.includes(" land") || n.endsWith("land")) return "lands"; if (KNOWN_BUCKETS[n]) return KNOWN_BUCKETS[n]; if (/(signet|tithe|treasure|manufactor|procession|season|engine|draw|ramp|lore|visits|ring|mox|exploration|crucible|worlds)/.test(n)) return "value_engines"; if (/(swords to plowshares|path to exile|tutor|ritual|deluge|blasphemous|rollick|removal|reanimate|will)/.test(n)) return "cheap_interaction"; if (/(gloves|beatstick|aura|equipment|armor|blade|sword)/.test(n)) return "cheap_auras"; return "other"; }
+    function nonEmptyBlocks(text) { return text.split(/\n\s*\n+/).map((block) => block.split(/\r?\n/).map((line) => line.trim()).filter(Boolean)).filter((block) => block.length); }
+    function cardNameFromLine(line) { return cleanCardName(line.split("#")[0]); }
 
     function parseDecklist(text) {
         const counts = { lands: 0, cheap_creatures: 0, mid_creatures: 0, cheap_auras: 0, mid_auras: 0, cheap_interaction: 0, mid_interaction: 0, value_engines: 0, other: 0 };
         const review = [];
-        let commander = "";
-        let mode = "deck";
+        const blocks = nonEmptyBlocks(text);
+        let commanderNames = [];
+        let deckLines = [];
+        const hasExplicitCommander = /^commander\s*:?$/im.test(text);
+
+        if (!hasExplicitCommander && blocks.length > 1) {
+            const lastBlock = blocks[blocks.length - 1];
+            const previousLines = blocks.slice(0, -1).flat();
+            const lastBlockCards = lastBlock.reduce((sum, line) => sum + lineQuantity(line), 0);
+            const previousCards = previousLines.reduce((sum, line) => sum + lineQuantity(line), 0);
+            if (lastBlock.length <= 2 && lastBlockCards <= 2 && previousCards >= 60) {
+                commanderNames = lastBlock.map(cardNameFromLine).filter(Boolean);
+                deckLines = previousLines;
+            } else {
+                deckLines = blocks.flat();
+            }
+        } else if (!hasExplicitCommander) {
+            deckLines = blocks.flat();
+        } else {
+            let mode = "deck";
+            for (const raw of text.split(/\r?\n/)) {
+                const line = raw.trim();
+                if (!line) continue;
+                if (/^commander\s*:?$/i.test(line)) { mode = "commander"; continue; }
+                if (/^(deck|main|mainboard)\s*:?$/i.test(line)) { mode = "deck"; continue; }
+                if (/^(sideboard|maybeboard)\s*:?$/i.test(line)) { mode = "ignore"; continue; }
+                if (mode === "ignore") continue;
+                if (mode === "commander") { commanderNames.push(cardNameFromLine(line)); continue; }
+                deckLines.push(line);
+            }
+        }
+
         let deckCards = 0;
         let tagged = 0;
-        const lines = text.split(/\r?\n/);
-        for (const line of lines) {
-            const trimmed = line.trim();
-            if (!trimmed || trimmed.startsWith("//")) continue;
-            if (/^commander\s*:?$/i.test(trimmed)) { mode = "commander"; continue; }
-            if (/^(deck|main|mainboard)\s*:?$/i.test(trimmed)) { mode = "deck"; continue; }
-            if (/^(sideboard|maybeboard)\s*:?$/i.test(trimmed)) { mode = "ignore"; continue; }
-            if (mode === "ignore") continue;
-
-            const quantity = lineQuantity(trimmed);
-            const cardName = cleanCardName(trimmed.split("#")[0].replace(/\[[^\]]+\]/g, "").trim());
+        let guessed = 0;
+        for (const line of deckLines) {
+            if (/^(deck|main|mainboard|commander|sideboard|maybeboard)\s*:?$/i.test(line)) continue;
+            const quantity = lineQuantity(line);
+            const cardName = cardNameFromLine(line);
             if (!cardName) continue;
-            if (mode === "commander" && !commander) {
-                commander = cardName;
-                mode = "deck";
-                continue;
-            }
-
-            const explicitTag = tagFromLine(trimmed);
+            const explicitTag = tagFromLine(line);
             const category = explicitTag || guessedCategory(cardName);
             if (explicitTag) tagged += quantity;
+            else if (category !== "other") guessed += quantity;
             if (category === "other" && !explicitTag) review.push(cardName);
             counts[category] = (counts[category] || 0) + quantity;
             deckCards += quantity;
         }
-        return { counts, commander, deckCards, tagged, review };
+        return { counts, commander: commanderNames.filter(Boolean).join(" / "), commanders: commanderNames.filter(Boolean), deckCards, tagged, guessed, review };
     }
+
+    function readCommanderState() { const deck = { lands: readInt("deck-lands", 0), cheap_creatures: readInt("deck-cheap_creatures", 0), mid_creatures: readInt("deck-mid_creatures", 0), cheap_auras: readInt("deck-cheap_auras", 0), mid_auras: readInt("deck-mid_auras", 0), cheap_interaction: readInt("deck-cheap_interaction", 0), mid_interaction: readInt("deck-mid_interaction", 0), value_engines: readInt("deck-value_engines", 0) }; deck.other = Math.max(0, DECK_SIZE - Object.values(deck).reduce((a, b) => a + b, 0)); const goal = { target_turn: readInt("goal-target-turn", 6), commander_mv: readInt("goal-commander-mv", 3), commander_power: readInt("goal-commander-power", 2), cards_seen: readInt("goal-cards-seen", 13), nonland_permanents_min: readInt("goal-nonland-permanents-min", 4), damage_min: readInt("goal-damage-min", 7), value_min: readInt("goal-value-min", 1), restriction_friction: readInt("goal-restriction-friction", 10), aura_bonus: readInt("goal-aura-bonus", 2) }; return { deck, goal }; }
+    function setDeckInput(key, value) { const el = document.getElementById(`deck-${key}`); if (el) el.value = String(Math.max(0, value)); }
+    function setStatus(title, detail) { const target = document.getElementById("deck-intake-status"); if (target) target.innerHTML = `<strong>${title}</strong><span>${detail}</span>`; }
 
     function applyDecklistAnalysis() {
         const text = document.getElementById("decklist-input")?.value || "";
         const deckName = document.getElementById("deck-name-input")?.value || "Untitled deck";
         const commanderInput = document.getElementById("commander-name-input");
         const parsed = parseDecklist(text);
-        if (parsed.commander && commanderInput && (!commanderInput.value || commanderInput.value === "Unknown Aura Commander")) commanderInput.value = parsed.commander;
-        ["lands", "cheap_creatures", "mid_creatures", "cheap_auras", "mid_auras", "cheap_interaction", "mid_interaction", "value_engines"].forEach((key) => setDeckInput(key, parsed.counts[key] || 0));
-        const known = ["lands", "cheap_creatures", "mid_creatures", "cheap_auras", "mid_auras", "cheap_interaction", "mid_interaction", "value_engines"].reduce((sum, key) => sum + (parsed.counts[key] || 0), 0);
-        const unclassified = Math.max(0, parsed.deckCards - known);
-        const countNote = parsed.deckCards === 99 ? "99-card deck detected" : `${parsed.deckCards} deck cards detected`;
-        const reviewNote = unclassified ? `${unclassified} unclassified/other cards folded into Other.` : "No unclassified cards detected.";
-        setStatus(`${deckName}: ${countNote}.`, `${reviewNote} ${parsed.tagged} cards used explicit category tags. Stats and recommendations updated.`);
+        if (parsed.commander && commanderInput) commanderInput.value = parsed.commander;
+        MODEL_KEYS.forEach((key) => setDeckInput(key, parsed.counts[key] || 0));
+        const countNote = parsed.deckCards === 99 ? "99-card library detected" : `${parsed.deckCards} library cards detected`;
+        const commanderNote = parsed.commander ? `${parsed.commanders.length} commander candidate(s): ${parsed.commander}.` : "No commander candidate detected; use the commander field manually.";
+        const reviewNote = parsed.review.length ? `${parsed.review.length} unique unclassified names folded into Other.` : "No unclassified names detected.";
+        setStatus(`${deckName}: ${countNote}.`, `${commanderNote} ${parsed.guessed} cards guessed by name; ${parsed.tagged} cards used explicit tags. ${reviewNote} Stats and recommendations updated.`);
         localStorage.setItem(DECK_STORAGE_KEY, JSON.stringify({ deckName, commander: commanderInput?.value || parsed.commander, text }));
         updateCommanderReadiness({ reroll: true });
     }
 
-    function loadSavedDeckIntake() {
-        try {
-            const saved = JSON.parse(localStorage.getItem(DECK_STORAGE_KEY) || "null");
-            if (!saved) return;
-            if (saved.deckName && document.getElementById("deck-name-input")) document.getElementById("deck-name-input").value = saved.deckName;
-            if (saved.commander && document.getElementById("commander-name-input")) document.getElementById("commander-name-input").value = saved.commander;
-            if (saved.text && document.getElementById("decklist-input")) document.getElementById("decklist-input").value = saved.text;
-        } catch (error) {
-            console.warn("Could not load saved commander deck intake", error);
-        }
-    }
-
+    function loadSavedDeckIntake() { try { const saved = JSON.parse(localStorage.getItem(DECK_STORAGE_KEY) || "null"); if (!saved) return; if (saved.deckName && document.getElementById("deck-name-input")) document.getElementById("deck-name-input").value = saved.deckName; if (saved.commander && document.getElementById("commander-name-input")) document.getElementById("commander-name-input").value = saved.commander; if (saved.text && document.getElementById("decklist-input")) document.getElementById("decklist-input").value = saved.text; } catch (error) { console.warn("Could not load saved commander deck intake", error); } }
     function addCards(pool, count, attrs, cycle) { for (let i = 0; i < count; i += 1) pool.push({ ...attrs, id: `${attrs.kind}-${i}`, mv: cycle ? cycle[i % cycle.length] : attrs.mv }); }
-    function buildDeck(deck, auraBonus) {
-        const pool = [];
-        addCards(pool, deck.lands, { kind: "land", mv: 0, permanent: true, damage: 0, value: 0 });
-        addCards(pool, deck.cheap_creatures, { kind: "cheap_creature", permanent: true, creature: true, damage: 2, value: 0 }, [1, 2]);
-        addCards(pool, deck.mid_creatures, { kind: "mid_creature", permanent: true, creature: true, damage: 3, value: 0 }, [3, 4]);
-        addCards(pool, deck.cheap_auras, { kind: "cheap_aura", permanent: true, aura: true, damage: Math.max(1, auraBonus), value: 0 }, [1, 2]);
-        addCards(pool, deck.mid_auras, { kind: "mid_aura", permanent: true, aura: true, damage: Math.max(1, auraBonus + 1), value: 0 }, [3, 4]);
-        addCards(pool, deck.cheap_interaction, { kind: "cheap_interaction", permanent: false, interaction: true, damage: 0, value: 0 }, [1, 2]);
-        addCards(pool, deck.mid_interaction, { kind: "mid_interaction", permanent: false, interaction: true, damage: 0, value: 0 }, [3, 4]);
-        addCards(pool, deck.value_engines, { kind: "value_engine", permanent: true, value_engine: true, damage: 0, value: 1 }, [2, 3]);
-        addCards(pool, deck.other, { kind: "other", permanent: false, damage: 0, value: 0 }, [2, 3, 4]);
-        return pool;
-    }
-
-    function sampleWithoutReplacement(pool, sampleSize) {
-        const copy = [...pool];
-        const drawn = [];
-        for (let i = 0; i < sampleSize && copy.length; i += 1) {
-            const index = Math.floor(Math.random() * copy.length);
-            drawn.push(copy.splice(index, 1)[0]);
-        }
-        return drawn;
-    }
-
-    function priority(card, hasCarrier) {
-        if (card.kind === "value_engine") return [0, card.mv];
-        if (card.kind === "cheap_creature") return [1, card.mv];
-        if (card.kind === "mid_creature") return [2, card.mv];
-        if (card.kind === "cheap_aura" || card.kind === "mid_aura") return [hasCarrier ? 3 : 8, card.mv];
-        if (card.interaction) return [6, card.mv];
-        return [9, card.mv];
-    }
-
-    function simulateOpening(deck, goal) {
-        const cards = buildDeck(deck, goal.aura_bonus);
-        const drawn = sampleWithoutReplacement(cards, Math.min(goal.cards_seen, cards.length));
-        const landsDrawn = drawn.filter((card) => card.kind === "land").length;
-        const landsInPlay = Math.min(landsDrawn, goal.target_turn);
-        let peakMana = landsInPlay;
-        let manaBudget = 0;
-        for (let turn = 1; turn <= goal.target_turn; turn += 1) manaBudget += Math.min(landsDrawn, turn);
-        const friction = Math.min(95, Math.max(0, goal.restriction_friction)) / 100;
-        const spells = drawn.filter((card) => card.kind !== "land");
-        const usableSpells = spells.filter(() => Math.random() >= friction);
-        const commanderCast = peakMana >= goal.commander_mv && manaBudget >= goal.commander_mv;
-        if (commanderCast) manaBudget -= goal.commander_mv;
-
-        const castCards = [];
-        let valueScore = 0;
-        let virtualResourceBonus = 0;
-        function hasCarrier() { return commanderCast || castCards.some((card) => card.creature); }
-        let remaining = [...usableSpells];
-        let changed = true;
-        while (changed) {
-            changed = false;
-            remaining.sort((a, b) => { const pa = priority(a, hasCarrier()); const pb = priority(b, hasCarrier()); return pa[0] - pb[0] || pa[1] - pb[1]; });
-            for (const card of [...remaining]) {
-                if (card.aura && !hasCarrier()) continue;
-                if (card.interaction) continue;
-                if (card.mv <= peakMana + virtualResourceBonus && card.mv <= manaBudget) {
-                    castCards.push(card);
-                    manaBudget -= card.mv;
-                    remaining = remaining.filter((candidate) => `${candidate.kind}:${candidate.id}` !== `${card.kind}:${card.id}`);
-                    changed = true;
-                    if (card.value_engine) { valueScore += 1; virtualResourceBonus = Math.min(2, virtualResourceBonus + 1); manaBudget += 1; }
-                    break;
-                }
-            }
-        }
-
-        const interactionReady = usableSpells.filter((card) => card.interaction && card.mv <= peakMana + virtualResourceBonus).length;
-        const auras = castCards.filter((card) => card.aura).length;
-        const nonland = (commanderCast ? 1 : 0) + castCards.filter((card) => card.permanent).length;
-        const battlefield = landsInPlay + nonland;
-        const damage = (commanderCast ? goal.commander_power : 0) + castCards.reduce((sum, card) => sum + (card.damage || 0), 0);
-        valueScore += Math.min(2, interactionReady);
-        const success = commanderCast && nonland >= goal.nonland_permanents_min && damage >= goal.damage_min && valueScore >= goal.value_min;
-        return { drawn, castCards, lands_in_play: landsInPlay, peak_mana: peakMana + virtualResourceBonus, commander_cast: commanderCast, auras, interaction_ready: interactionReady, nonland_permanents: nonland, battlefield_permanents: battlefield, damage, value_score: valueScore, success };
-    }
-
-    function aggregate(deck, goal, runs = INTERACTIVE_RUNS) {
-        const outcomes = Array.from({ length: runs }, () => simulateOpening(deck, goal));
-        const avg = (key) => outcomes.reduce((sum, outcome) => sum + outcome[key], 0) / runs;
-        return { success_rate: outcomes.filter((o) => o.success).length / runs, commander_rate: outcomes.filter((o) => o.commander_cast).length / runs, interaction_rate: outcomes.filter((o) => o.interaction_ready > 0).length / runs, avg_nonland: avg("nonland_permanents"), avg_battlefield: avg("battlefield_permanents"), avg_damage: avg("damage"), avg_value: avg("value_score"), avg_auras: avg("auras"), runs };
-    }
-
+    function buildDeck(deck, auraBonus) { const pool = []; addCards(pool, deck.lands, { kind: "land", mv: 0, permanent: true, damage: 0, value: 0 }); addCards(pool, deck.cheap_creatures, { kind: "cheap_creature", permanent: true, creature: true, damage: 2, value: 0 }, [1, 2]); addCards(pool, deck.mid_creatures, { kind: "mid_creature", permanent: true, creature: true, damage: 3, value: 0 }, [3, 4]); addCards(pool, deck.cheap_auras, { kind: "cheap_aura", permanent: true, aura: true, damage: Math.max(1, auraBonus), value: 0 }, [1, 2]); addCards(pool, deck.mid_auras, { kind: "mid_aura", permanent: true, aura: true, damage: Math.max(1, auraBonus + 1), value: 0 }, [3, 4]); addCards(pool, deck.cheap_interaction, { kind: "cheap_interaction", permanent: false, interaction: true, damage: 0, value: 0 }, [1, 2]); addCards(pool, deck.mid_interaction, { kind: "mid_interaction", permanent: false, interaction: true, damage: 0, value: 0 }, [3, 4]); addCards(pool, deck.value_engines, { kind: "value_engine", permanent: true, value_engine: true, damage: 0, value: 1 }, [2, 3]); addCards(pool, deck.other, { kind: "other", permanent: false, damage: 0, value: 0 }, [2, 3, 4]); return pool; }
+    function sampleWithoutReplacement(pool, sampleSize) { const copy = [...pool]; const drawn = []; for (let i = 0; i < sampleSize && copy.length; i += 1) { const index = Math.floor(Math.random() * copy.length); drawn.push(copy.splice(index, 1)[0]); } return drawn; }
+    function priority(card, hasCarrier) { if (card.kind === "value_engine") return [0, card.mv]; if (card.kind === "cheap_creature") return [1, card.mv]; if (card.kind === "mid_creature") return [2, card.mv]; if (card.kind === "cheap_aura" || card.kind === "mid_aura") return [hasCarrier ? 3 : 8, card.mv]; if (card.interaction) return [6, card.mv]; return [9, card.mv]; }
+    function simulateOpening(deck, goal) { const cards = buildDeck(deck, goal.aura_bonus); const drawn = sampleWithoutReplacement(cards, Math.min(goal.cards_seen, cards.length)); const landsDrawn = drawn.filter((card) => card.kind === "land").length; const landsInPlay = Math.min(landsDrawn, goal.target_turn); let peakMana = landsInPlay; let manaBudget = 0; for (let turn = 1; turn <= goal.target_turn; turn += 1) manaBudget += Math.min(landsDrawn, turn); const friction = Math.min(95, Math.max(0, goal.restriction_friction)) / 100; const spells = drawn.filter((card) => card.kind !== "land"); const usableSpells = spells.filter(() => Math.random() >= friction); const commanderCast = peakMana >= goal.commander_mv && manaBudget >= goal.commander_mv; if (commanderCast) manaBudget -= goal.commander_mv; const castCards = []; let valueScore = 0; let virtualResourceBonus = 0; function hasCarrier() { return commanderCast || castCards.some((card) => card.creature); } let remaining = [...usableSpells]; let changed = true; while (changed) { changed = false; remaining.sort((a, b) => { const pa = priority(a, hasCarrier()); const pb = priority(b, hasCarrier()); return pa[0] - pb[0] || pa[1] - pb[1]; }); for (const card of [...remaining]) { if (card.aura && !hasCarrier()) continue; if (card.interaction) continue; if (card.mv <= peakMana + virtualResourceBonus && card.mv <= manaBudget) { castCards.push(card); manaBudget -= card.mv; remaining = remaining.filter((candidate) => `${candidate.kind}:${candidate.id}` !== `${card.kind}:${card.id}`); changed = true; if (card.value_engine) { valueScore += 1; virtualResourceBonus = Math.min(2, virtualResourceBonus + 1); manaBudget += 1; } break; } } } const interactionReady = usableSpells.filter((card) => card.interaction && card.mv <= peakMana + virtualResourceBonus).length; const auras = castCards.filter((card) => card.aura).length; const nonland = (commanderCast ? 1 : 0) + castCards.filter((card) => card.permanent).length; const battlefield = landsInPlay + nonland; const damage = (commanderCast ? goal.commander_power : 0) + castCards.reduce((sum, card) => sum + (card.damage || 0), 0); valueScore += Math.min(2, interactionReady); const success = commanderCast && nonland >= goal.nonland_permanents_min && damage >= goal.damage_min && valueScore >= goal.value_min; return { drawn, castCards, lands_in_play: landsInPlay, peak_mana: peakMana + virtualResourceBonus, commander_cast: commanderCast, auras, interaction_ready: interactionReady, nonland_permanents: nonland, battlefield_permanents: battlefield, damage, value_score: valueScore, success }; }
+    function aggregate(deck, goal, runs = INTERACTIVE_RUNS) { const outcomes = Array.from({ length: runs }, () => simulateOpening(deck, goal)); const avg = (key) => outcomes.reduce((sum, outcome) => sum + outcome[key], 0) / runs; return { success_rate: outcomes.filter((o) => o.success).length / runs, commander_rate: outcomes.filter((o) => o.commander_cast).length / runs, interaction_rate: outcomes.filter((o) => o.interaction_ready > 0).length / runs, avg_nonland: avg("nonland_permanents"), avg_battlefield: avg("battlefield_permanents"), avg_damage: avg("damage"), avg_value: avg("value_score"), avg_auras: avg("auras"), runs }; }
     function goalSummary(goal) { return `Turn ${goal.target_turn} · commander MV ${goal.commander_mv} · ${goal.nonland_permanents_min}+ nonland permanents · ${goal.damage_min}+ potential damage · ${goal.value_min}+ value/answer`; }
-    function planChanges(plan) {
-        const adds = Object.entries(plan.adds || {}).map(([key, value]) => `+${value} ${key.replaceAll("_", " ")}`);
-        const removes = Object.entries(plan.removes || {}).map(([key, value]) => `-${value} ${key.replaceAll("_", " ")}`);
-        return [...adds, ...removes].join(" · ");
-    }
-    function applyPlan(deck, plan) {
-        const variant = { ...deck };
-        for (const [key, value] of Object.entries(plan.removes || {})) { if ((variant[key] || 0) < value) return null; variant[key] -= value; }
-        for (const [key, value] of Object.entries(plan.adds || {})) variant[key] = (variant[key] || 0) + value;
-        return variant;
-    }
-    function recommendationExperiments(deck, goal, baselineSummary) {
-        return RECOMMENDATION_PLANS.map((plan) => {
-            const variant = applyPlan(deck, plan);
-            if (!variant) return null;
-            const summary = aggregate(variant, goal);
-            return { ...plan, changes: planChanges(plan), summary, delta: summary.success_rate - baselineSummary.success_rate };
-        }).filter(Boolean).sort((a, b) => b.delta - a.delta);
-    }
-
-    function renderOutcomeGrid(summary) {
-        const rows = [["Commander castable", pct(summary.commander_rate)], ["Interaction/value seen", pct(summary.interaction_rate)], ["Avg nonland board pieces", summary.avg_nonland.toFixed(1)], ["Avg battlefield permanents", summary.avg_battlefield.toFixed(1)], ["Avg damage pressure", summary.avg_damage.toFixed(1)], ["Avg value / answer score", summary.avg_value.toFixed(1)]];
-        const target = document.getElementById("outcome-grid");
-        if (!target) return;
-        target.innerHTML = rows.map(([label, value]) => `<div class="stat-tile"><span>${label}</span><strong>${value}</strong></div>`).join("");
-    }
-
-    function renderAdvice(summary, goal) {
-        const target = document.getElementById("tuning-advice");
-        if (!target) return;
-        const advice = [];
-        if (summary.commander_rate < 0.80) advice.push("Commander access is being limited by mana. Lower the commander mana value assumption, add ramp/value, or increase early land consistency.");
-        if (summary.avg_nonland < goal.nonland_permanents_min) advice.push("The deck is not putting enough nonland material onto the board by the target turn. Cheap creatures, cheap auras, and value engines help more than expensive payoffs.");
-        if (summary.avg_damage < goal.damage_min) advice.push("Damage pressure is below the target. Either the aura bonus/payoff assumption is too low, or too many cards are not castable early enough.");
-        if (summary.avg_value < goal.value_min) advice.push("The value/answer score is light. Add draw, ramp, protection, or cheap interaction that is live in the first few turns.");
-        if (!advice.length) advice.push("The model likes this opening plan. Next improvement would be using real card names, mana values, colors, card types, and rules text restrictions.");
-        target.innerHTML = `<p><strong>Outcome confidence:</strong> ${pct(summary.success_rate)} (${scoreLabel(summary.success_rate)}).</p><p><strong>What changed:</strong> this is now measuring castable value, not just whether the opening cards contain labels like “aura” or “instant.”</p><ul>${advice.map((item) => `<li>${item}</li>`).join("")}</ul><p class="commander-hint">Best next version: paste/import the actual decklist, then calculate this from real mana values, colors, card types, and rules text tags.</p>`;
-    }
-
-    function renderRecommendations(deck, goal, baselineSummary) {
-        const target = document.getElementById("recommendations-list");
-        if (!target) return;
-        const experiments = recommendationExperiments(deck, goal, baselineSummary).slice(0, 4);
-        if (!experiments.length) { target.innerHTML = "<p>No valid category-level experiments could be generated from this recipe.</p>"; return; }
-        target.innerHTML = experiments.map((item, index) => `<article class="recommendation-card"><div class="recommendation-rank">#${index + 1}</div><div class="recommendation-copy"><h3>${item.title}</h3><p class="recommendation-change">${item.changes}</p><p>${item.why}</p><div class="recommendation-metrics"><span>Outcome: <strong>${pct(baselineSummary.success_rate)} → ${pct(item.summary.success_rate)}</strong></span><span class="${item.delta >= 0 ? "is-positive" : "is-negative"}">Lift: <strong>${delta(item.delta)}</strong></span></div></div></article>`).join("");
-    }
-
-    function renderSampleHands(deck, goal) {
-        const target = document.getElementById("sample-hands");
-        if (!target) return;
-        target.innerHTML = Array.from({ length: 6 }, () => simulateOpening(deck, goal)).map((outcome) => {
-            const castIds = new Set(outcome.castCards.map((card) => `${card.kind}:${card.id}`));
-            const tokens = outcome.drawn.map((card) => { const meta = TOKEN_META[card.kind] || ["◇", "Card"]; const cast = castIds.has(`${card.kind}:${card.id}`); return `<span class="commander-token commander-token--${card.kind}${cast ? " is-cast" : ""}" title="${meta[1]} · MV ${card.mv}">${meta[0]}</span>`; }).join("");
-            return `<article class="sample-hand sample-hand--${outcome.success ? "pass" : "miss"}"><div class="sample-hand-top"><strong>${outcome.success ? "GOOD OUTCOME" : "CLUNKY / SLOW"}</strong><span>${outcome.lands_in_play} lands · ${outcome.nonland_permanents} nonland permanents · ${outcome.damage} damage · ${outcome.value_score} value/answer</span></div><div class="commander-token-row">${tokens}</div></article>`;
-        }).join("");
-    }
-
-    function updateCommanderReadiness({ reroll = false } = {}) {
-        const { deck, goal } = readCommanderState();
-        const total = Object.entries(deck).reduce((sum, [key, value]) => key === "other" ? sum : sum + value, 0) + deck.other;
-        const otherEl = document.getElementById("deck-other");
-        const totalEl = document.getElementById("deck-total");
-        const goalEl = document.getElementById("goal-summary");
-        const commanderEl = document.getElementById("commander-summary");
-        const commanderName = document.getElementById("commander-name-input")?.value || "Commander";
-        if (otherEl) otherEl.textContent = String(deck.other);
-        if (totalEl) totalEl.textContent = String(total);
-        if (goalEl) goalEl.textContent = goalSummary(goal);
-        if (commanderEl) commanderEl.textContent = `${commanderName} available, but costs mana`;
-        const summary = aggregate(deck, goal);
-        const probabilityEl = document.getElementById("opening-probability");
-        const labelEl = document.getElementById("opening-label");
-        const noteEl = document.getElementById("simulation-note");
-        if (probabilityEl) probabilityEl.textContent = pct(summary.success_rate);
-        if (labelEl) labelEl.textContent = scoreLabel(summary.success_rate);
-        if (noteEl) noteEl.textContent = `Interactive model: ${summary.runs} simulated openings. ${goalSummary(goal)}.`;
-        renderOutcomeGrid(summary);
-        renderAdvice(summary, goal);
-        renderRecommendations(deck, goal, summary);
-        if (reroll) renderSampleHands(deck, goal);
-    }
-
-    (function () {
-        loadSavedDeckIntake();
-        document.querySelectorAll(".commander-input-row input").forEach((input) => input.addEventListener("input", () => updateCommanderReadiness({ reroll: false })));
-        const analyze = document.getElementById("analyze-decklist");
-        if (analyze) analyze.addEventListener("click", applyDecklistAnalysis);
-        const example = document.getElementById("load-example-decklist");
-        if (example) example.addEventListener("click", () => {
-            const data = JSON.parse(document.getElementById("example-decklist-json")?.textContent || "\"\"");
-            const input = document.getElementById("decklist-input");
-            if (input) input.value = data;
-            setStatus("Tagged example loaded.", "Click Analyze decklist to push the example through the intake process.");
-        });
-        const clear = document.getElementById("clear-decklist");
-        if (clear) clear.addEventListener("click", () => {
-            const input = document.getElementById("decklist-input");
-            if (input) input.value = "";
-            localStorage.removeItem(DECK_STORAGE_KEY);
-            setStatus("Decklist cleared.", "Manual quick-count fields are still available below.");
-        });
-        const reroll = document.getElementById("sample-reroll");
-        if (reroll) reroll.addEventListener("click", () => { const { deck, goal } = readCommanderState(); renderSampleHands(deck, goal); updateCommanderReadiness({ reroll: false }); });
-        updateCommanderReadiness({ reroll: false });
-    })();
+    function planChanges(plan) { const adds = Object.entries(plan.adds || {}).map(([key, value]) => `+${value} ${key.replaceAll("_", " ")}`); const removes = Object.entries(plan.removes || {}).map(([key, value]) => `-${value} ${key.replaceAll("_", " ")}`); return [...adds, ...removes].join(" · "); }
+    function applyPlan(deck, plan) { const variant = { ...deck }; for (const [key, value] of Object.entries(plan.removes || {})) { if ((variant[key] || 0) < value) return null; variant[key] -= value; } for (const [key, value] of Object.entries(plan.adds || {})) variant[key] = (variant[key] || 0) + value; return variant; }
+    function recommendationExperiments(deck, goal, baselineSummary) { return RECOMMENDATION_PLANS.map((plan) => { const variant = applyPlan(deck, plan); if (!variant) return null; const summary = aggregate(variant, goal); return { ...plan, changes: planChanges(plan), summary, delta: summary.success_rate - baselineSummary.success_rate }; }).filter(Boolean).sort((a, b) => b.delta - a.delta); }
+    function renderOutcomeGrid(summary) { const rows = [["Commander castable", pct(summary.commander_rate)], ["Interaction/value seen", pct(summary.interaction_rate)], ["Avg nonland board pieces", summary.avg_nonland.toFixed(1)], ["Avg battlefield permanents", summary.avg_battlefield.toFixed(1)], ["Avg damage pressure", summary.avg_damage.toFixed(1)], ["Avg value / answer score", summary.avg_value.toFixed(1)]]; const target = document.getElementById("outcome-grid"); if (!target) return; target.innerHTML = rows.map(([label, value]) => `<div class="stat-tile"><span>${label}</span><strong>${value}</strong></div>`).join(""); }
+    function renderAdvice(summary, goal) { const target = document.getElementById("tuning-advice"); if (!target) return; const advice = []; if (summary.commander_rate < 0.80) advice.push("Commander access is being limited by mana. Lower the commander mana value assumption, add ramp/value, or increase early land consistency."); if (summary.avg_nonland < goal.nonland_permanents_min) advice.push("The deck is not putting enough nonland material onto the board by the target turn. Cheap creatures, cheap payoffs, and value engines help more than expensive payoffs."); if (summary.avg_damage < goal.damage_min) advice.push("Damage pressure is below the target. Either the payoff assumption is too low, or too many cards are not castable early enough."); if (summary.avg_value < goal.value_min) advice.push("The value/answer score is light. Add draw, ramp, protection, or cheap interaction that is live in the first few turns."); if (!advice.length) advice.push("The model likes this opening plan. Next improvement would be using real card names, mana values, colors, card types, and rules text restrictions."); target.innerHTML = `<p><strong>Outcome confidence:</strong> ${pct(summary.success_rate)} (${scoreLabel(summary.success_rate)}).</p><p><strong>What changed:</strong> intake can now start from a plain exported decklist, then classify into model buckets.</p><ul>${advice.map((item) => `<li>${item}</li>`).join("")}</ul><p class="commander-hint">Best next version: fetch real card data from a card API, then classify from actual mana values, colors, type lines, and rules text.</p>`; }
+    function renderRecommendations(deck, goal, baselineSummary) { const target = document.getElementById("recommendations-list"); if (!target) return; const experiments = recommendationExperiments(deck, goal, baselineSummary).slice(0, 4); if (!experiments.length) { target.innerHTML = "<p>No valid category-level experiments could be generated from this recipe.</p>"; return; } target.innerHTML = experiments.map((item, index) => `<article class="recommendation-card"><div class="recommendation-rank">#${index + 1}</div><div class="recommendation-copy"><h3>${item.title}</h3><p class="recommendation-change">${item.changes}</p><p>${item.why}</p><div class="recommendation-metrics"><span>Outcome: <strong>${pct(baselineSummary.success_rate)} → ${pct(item.summary.success_rate)}</strong></span><span class="${item.delta >= 0 ? "is-positive" : "is-negative"}">Lift: <strong>${delta(item.delta)}</strong></span></div></div></article>`).join(""); }
+    function renderSampleHands(deck, goal) { const target = document.getElementById("sample-hands"); if (!target) return; target.innerHTML = Array.from({ length: 6 }, () => simulateOpening(deck, goal)).map((outcome) => { const castIds = new Set(outcome.castCards.map((card) => `${card.kind}:${card.id}`)); const tokens = outcome.drawn.map((card) => { const meta = TOKEN_META[card.kind] || ["◇", "Card"]; const cast = castIds.has(`${card.kind}:${card.id}`); return `<span class="commander-token commander-token--${card.kind}${cast ? " is-cast" : ""}" title="${meta[1]} · MV ${card.mv}">${meta[0]}</span>`; }).join(""); return `<article class="sample-hand sample-hand--${outcome.success ? "pass" : "miss"}"><div class="sample-hand-top"><strong>${outcome.success ? "GOOD OUTCOME" : "CLUNKY / SLOW"}</strong><span>${outcome.lands_in_play} lands · ${outcome.nonland_permanents} nonland permanents · ${outcome.damage} damage · ${outcome.value_score} value/answer</span></div><div class="commander-token-row">${tokens}</div></article>`; }).join(""); }
+    function updateCommanderReadiness({ reroll = false } = {}) { const { deck, goal } = readCommanderState(); const total = Object.entries(deck).reduce((sum, [key, value]) => key === "other" ? sum : sum + value, 0) + deck.other; const otherEl = document.getElementById("deck-other"); const totalEl = document.getElementById("deck-total"); const goalEl = document.getElementById("goal-summary"); const commanderEl = document.getElementById("commander-summary"); const commanderName = document.getElementById("commander-name-input")?.value || "Commander"; if (otherEl) otherEl.textContent = String(deck.other); if (totalEl) totalEl.textContent = String(total); if (goalEl) goalEl.textContent = goalSummary(goal); if (commanderEl) commanderEl.textContent = `${commanderName} available, but costs mana`; const summary = aggregate(deck, goal); const probabilityEl = document.getElementById("opening-probability"); const labelEl = document.getElementById("opening-label"); const noteEl = document.getElementById("simulation-note"); if (probabilityEl) probabilityEl.textContent = pct(summary.success_rate); if (labelEl) labelEl.textContent = scoreLabel(summary.success_rate); if (noteEl) noteEl.textContent = `Interactive model: ${summary.runs} simulated openings. ${goalSummary(goal)}.`; renderOutcomeGrid(summary); renderAdvice(summary, goal); renderRecommendations(deck, goal, summary); if (reroll) renderSampleHands(deck, goal); }
+    (function () { loadSavedDeckIntake(); document.querySelectorAll(".commander-input-row input").forEach((input) => input.addEventListener("input", () => updateCommanderReadiness({ reroll: false }))); const analyze = document.getElementById("analyze-decklist"); if (analyze) analyze.addEventListener("click", applyDecklistAnalysis); const example = document.getElementById("load-example-decklist"); if (example) example.addEventListener("click", () => { const data = JSON.parse(document.getElementById("example-decklist-json")?.textContent || "\"\""); const input = document.getElementById("decklist-input"); if (input) input.value = data; setStatus("Korvold / Vihaan example loaded.", "Click Analyze decklist to push the plain exported list through the intake process."); }); const clear = document.getElementById("clear-decklist"); if (clear) clear.addEventListener("click", () => { const input = document.getElementById("decklist-input"); if (input) input.value = ""; localStorage.removeItem(DECK_STORAGE_KEY); setStatus("Decklist cleared.", "Manual quick-count fields are still available below."); }); const reroll = document.getElementById("sample-reroll"); if (reroll) reroll.addEventListener("click", () => { const { deck, goal } = readCommanderState(); renderSampleHands(deck, goal); updateCommanderReadiness({ reroll: false }); }); updateCommanderReadiness({ reroll: false }); })();
     """.replace("__PAYLOAD__", payload).replace("__PLANS__", plans)
 
 
 def build_theme_page(date_str: str | None = None, seed: int | None = None) -> PageContext:
     today = resolve_date(date_str)
     rng_seed = seed if seed is not None else today.toordinal()
-
     deck = _deck_with_other(DEFAULT_DECK)
     goal = _goal_from_defaults()
     summary = _aggregate_simulation(deck, goal, rng_seed)
     recommendations = _recommendation_experiments(deck, goal, summary, rng_seed)
     hands = _sample_hands(deck, goal, rng_seed)
-
     cards = [
         CardItem("deck_submission", "Deck Intake", "Submit A New Deck", _deck_submission_html()),
         CardItem("deck_recipe", "Deck + Mana Model", "99-Card Composition", _deck_recipe_html(deck)),
@@ -1176,21 +854,17 @@ def build_theme_page(date_str: str | None = None, seed: int | None = None) -> Pa
         CardItem("tuning_advice", "Deck Tuning", "What This Suggests", _tuning_advice_html(summary, goal)),
         CardItem("recommendations", "Recommendation Experiments", "Best Category-Level Changes", _recommendations_html(recommendations, summary)),
     ]
-
     footer = (
         f"{THEME_CONFIG['footer_text']} Default recipe: "
         f"{deck['lands']} lands, {deck['cheap_creatures'] + deck['mid_creatures']} creatures, "
-        f"{deck['cheap_auras'] + deck['mid_auras']} auras, "
+        f"{deck['cheap_auras'] + deck['mid_auras']} payoffs, "
         f"{deck['cheap_interaction'] + deck['mid_interaction']} interaction, "
         f"{deck['value_engines']} value/ramp, {deck['other']} other."
     )
-
     return PageContext(
         page_title=f"Commander Opening Plan — {today.strftime('%B %d, %Y')}",
         header_title=THEME_CONFIG["header_title"],
-        header_subtitle=(
-            "Paste a new decklist or tune quick-count buckets, then rerun the mana-aware forecast and recommendation experiments."
-        ),
+        header_subtitle="Paste a plain exported decklist, detect commander candidates, then rerun the mana-aware forecast and recommendation experiments.",
         today_str=today.strftime("%A, %B %d, %Y"),
         cards=cards,
         footer_text=footer,
@@ -1200,9 +874,7 @@ def build_theme_page(date_str: str | None = None, seed: int | None = None) -> Pa
             "background": None,
             "header_title_image": THEME_CONFIG.get("header_title_image"),
             "hero_kicker": THEME_CONFIG["hero_kicker"],
-            "hero_summary_pill": (
-                f"{_format_pct(summary['success_rate'])} default outcome confidence · deck intake · recommendations"
-            ),
+            "hero_summary_pill": f"{_format_pct(summary['success_rate'])} default outcome confidence · plain decklist intake · recommendations",
             "extra_css": _extra_css(),
             "extra_js": _extra_js(deck, goal, rng_seed),
             "extra_head_html": _extra_head_html(),
