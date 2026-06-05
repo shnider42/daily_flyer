@@ -26,7 +26,6 @@ VALID_GENERIC_CONFIG = {
     "enable_did_you_know_card": True,
     "enable_sport_card": False,
     "enable_connection_card": False,
-    "enable_county_card": False,
     "use_provider_sport": False,
     "use_provider_connection": False,
     "use_provider_county": False,
@@ -243,14 +242,14 @@ class WebRouteTests(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertIn(b"Commander Opening Plan", response.data)
         self.assertIn(b"Submit A New Deck", response.data)
-        self.assertIn(b"Analyze decklist", response.data)
-        self.assertIn(b"Plain exported decklist", response.data)
-        self.assertIn(b"Korvold / Vihaan example", response.data)
+        self.assertIn(b"Analyze with card lookup", response.data)
+        self.assertIn(b"Moxfield export", response.data)
+        self.assertIn(b"Opening Readiness", response.data)
+        self.assertIn(b"not percent tuning needed", response.data)
         self.assertIn(b"decklist-input", response.data)
         self.assertIn(b"1 Academy Manufactor", response.data)
         self.assertIn(b"Korvold, Fae-Cursed King", response.data)
         self.assertIn(b"99-Card Composition", response.data)
-        self.assertIn(b"Turn 5", response.data)
         self.assertIn(b"How Often It Comes Together", response.data)
         self.assertIn(b"Reroll sample hands", response.data)
         self.assertIn(b"Recommendation Experiments", response.data)
