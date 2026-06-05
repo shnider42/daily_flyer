@@ -246,6 +246,10 @@ class WebRouteTests(unittest.TestCase):
         self.assertIn(b"Turn 5", response.data)
         self.assertIn(b"How Often It Comes Together", response.data)
         self.assertIn(b"Reroll sample hands", response.data)
+        self.assertIn(b"Recommendation Experiments", response.data)
+        self.assertIn(b"Best Category-Level Changes", response.data)
+        self.assertIn(b"category-level experiments", response.data)
+        self.assertIn(b"Add cheap aura carriers", response.data)
 
     def test_birthday_theme_renders_with_realistic_data(self) -> None:
         birthdays = [
