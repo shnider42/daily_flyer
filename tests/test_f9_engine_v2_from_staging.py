@@ -12,7 +12,7 @@ class F9EngineV2FromStagingTests(unittest.TestCase):
 
         self.assertIn("F9 Hub", html)
         self.assertNotIn("F9 Daily", html)
-        self.assertIn("/static/f9_logo.png", html)
+        self.assertIn("/static/f9_logo.png?v=transparent-2", html)
         self.assertNotIn("/static/f9_logo.svg", html)
         self.assertNotIn("F9 Community Control", html)
         self.assertNotIn("F9 match control", html)
@@ -80,7 +80,7 @@ class F9EngineV2FromStagingTests(unittest.TestCase):
 
         self.assertIn("F9 Hub", html)
         self.assertIn("F9 Command Board", html)
-        self.assertIn("/static/f9_logo.png", html)
+        self.assertIn("/static/f9_logo.png?v=transparent-2", html)
         self.assertNotIn("/static/f9_logo.svg", html)
         self.assertNotIn("F9 Daily", html)
 
@@ -90,7 +90,7 @@ class F9EngineV2FromStagingTests(unittest.TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertIn(b"F9 Hub", response.data)
-        self.assertIn(b"/static/f9_logo.png", response.data)
+        self.assertIn(b"/static/f9_logo.png?v=transparent-2", response.data)
         self.assertNotIn(b"/static/f9_logo.svg", response.data)
         self.assertNotIn(b"F9 Community Control", response.data)
         self.assertNotIn(b"F9 match control", response.data)
