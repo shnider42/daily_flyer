@@ -39,12 +39,6 @@ def _chips(item: FlyerItem) -> str:
     return '<div class="fa-chips">' + "".join(f"<span>{_e(chip)}</span>" for chip in chips) + "</div>"
 
 
-def _menu_row(label: str, href: str = "#", active: bool = False, badge: str = "") -> str:
-    klass = "fa-menu-row is-active" if active else "fa-menu-row"
-    badge_html = f'<em>{_e(badge)}</em>' if badge else ""
-    return f'<a class="{klass}" href="{_a(href)}"><span>{_e(label)}</span>{badge_html}</a>'
-
-
 def _roster_html(item: FlyerItem) -> str:
     roster_url = item.data.get("roster_url", "")
     attr = f' data-fa-roster-url="{_a(roster_url)}"' if roster_url else ""
@@ -55,15 +49,9 @@ def _roster_html(item: FlyerItem) -> str:
 def _queue_section(item: FlyerItem) -> str:
     return f"""
     <section class="fa-stage fa-stage--queue" id="queue">
-        <aside class="fa-section-menu" aria-label="F9 queue menu">
-            {_menu_row("PLAY ONLINE", "#queue", True, "A")}
-            {_menu_row("PLAY LOCAL", "#queue")}
-            {_menu_row("PRIVATE MATCH", "#queue")}
-            {_menu_row("TOURNAMENTS", "#queue")}
-            {_menu_row("CREATE CLUB", "#queue")}
-        </aside>
-        <div class="fa-menu-detail">
-            <div class="fa-detail-topline"><span>QUEUE DESK</span><strong>F9 2V2</strong></div>
+        <div class="fa-terminal">
+            <div class="fa-terminal-bar"><span></span><span></span><span></span><strong>queue://f9-2v2</strong></div>
+            <div class="fa-label">{_e(item.label)}</div>
             <h2>{_e(item.title)}</h2>
             <p>{_e(item.body)}</p>
             {_chips(item)}
@@ -73,6 +61,11 @@ def _queue_section(item: FlyerItem) -> str:
             </div>
             {_roster_html(item)}
         </div>
+        <aside class="fa-queue-side">
+            <span class="fa-side-number">01</span>
+            <strong>Queue desk</strong>
+            <p>Fast access to the tournament signup flow without making the page pretend to be the actual game menu.</p>
+        </aside>
     </section>
     """
 
@@ -80,22 +73,17 @@ def _queue_section(item: FlyerItem) -> str:
 def _watch_section(item: FlyerItem) -> str:
     return f"""
     <section class="fa-stage fa-stage--broadcast" id="watch">
-        <div class="fa-news-board">
-            <div class="fa-news-hero">
-                <span>NEWS</span>
-                <strong>RLCS WATCH DESK</strong>
-            </div>
-            <div class="fa-news-grid">
-                <article><span>TICKETS AVAILABLE NOW</span></article>
-                <article><span>ESPORTS SHOP UPDATE</span></article>
-            </div>
-        </div>
-        <div class="fa-menu-detail">
-            <div class="fa-detail-topline"><span>{_e(item.label)}</span><strong>LIVE FEED</strong></div>
+        <div class="fa-broadcast-copy">
+            <div class="fa-label">{_e(item.label)}</div>
             <h2>{_e(item.title)}</h2>
             <p>{_e(item.body)}</p>
             {_chips(item)}
             <div class="fa-actions">{_button(item.url, "Open RL Esports", True)}</div>
+        </div>
+        <div class="fa-broadcast-screen" aria-hidden="true">
+            <div class="fa-screen-top">F9 WATCH DESK</div>
+            <div class="fa-screen-pitch"><span></span><span></span><span></span></div>
+            <div class="fa-ticker">RLCS prompt • replay review • panic clear tracking • boost routes</div>
         </div>
     </section>
     """
@@ -103,9 +91,9 @@ def _watch_section(item: FlyerItem) -> str:
 
 def _feature_section(item: FlyerItem, index: int) -> str:
     return f"""
-    <section class="fa-option-card fa-option-card--{_a(item.kind)}" id="{_a(item.kind)}">
-        <a class="fa-menu-row is-active" href="#{_a(item.kind)}"><span>{_e(item.label)}</span><em>{index:02d}</em></a>
-        <div class="fa-option-body">
+    <section class="fa-feature fa-feature--{_a(item.kind)}" id="{_a(item.kind)}">
+        <div class="fa-slant-tab"><span>{_e(item.label)}</span><em>{index:02d}</em></div>
+        <div class="fa-feature-body">
             <h3>{_e(item.title)}</h3>
             <p>{_e(item.body)}</p>
             {_chips(item)}
@@ -120,7 +108,7 @@ def _guess_pro_section(item: FlyerItem) -> str:
     answer = f'{item.data.get("name", "")} — {item.data.get("role", "")}'
     return f"""
     <article class="fa-game fa-game--pro" data-fa-pro-clues="{_json(clues)}">
-        <a class="fa-menu-row is-active" href="#games"><span>{_e(item.title)}</span><em>?</em></a>
+        <div class="fa-slant-tab"><span>{_e(item.title)}</span><em>?</em></div>
         <div class="fa-game-body">
             <div class="fa-label">{_e(item.label)}</div>
             <p>{_e(item.body)}</p>
@@ -140,7 +128,7 @@ def _jiporady_section(item: FlyerItem) -> str:
     packs = item.data.get("packs", [])
     return f"""
     <article class="fa-game fa-game--jiporady" data-fa-jiporady="{_json(packs)}">
-        <a class="fa-menu-row is-active" href="#games"><span>{_e(item.title)}</span><em>J</em></a>
+        <div class="fa-slant-tab"><span>{_e(item.title)}</span><em>J</em></div>
         <div class="fa-game-body">
             <div class="fa-label">{_e(item.label)}</div>
             <p>{_e(item.body)}</p>
@@ -172,22 +160,11 @@ def render_f9_arena(experience: FlyerExperience) -> str:
     stadium_url = str(experience.data.get("stadium_url", "") or "")
     lanes = experience.data.get("lanes", [])
 
-    menu_html = "".join([
-        _menu_row("SHOP", "#top"),
-        _menu_row("ROCKET PASS", "#queue", False, "1"),
-        _menu_row("PLAY", "#queue", True),
-        _menu_row("GARAGE", "#garage"),
-        _menu_row("TRAINING", "#warmup"),
-        _menu_row("CAREER", "#watch"),
-        _menu_row("EXTRAS", "#games"),
-        _menu_row("OPTIONS", "#games"),
-        _menu_row("EXIT GAME", "#footer"),
-    ])
-    sub_menu_html = "".join(
-        _menu_row(str(lane.get("label", "")), "#" + str(lane.get("label", "")).lower(), index == 0)
-        for index, lane in enumerate(lanes)
+    lane_html = "".join(
+        f'<a class="fa-lane-option" href="#{_a(str(lane.get("label", "")).lower())}"><span>{_e(lane.get("label"))}</span><strong>{_e(lane.get("value"))}</strong></a>'
+        for lane in lanes
     )
-    feature_html = "".join(_feature_section(item, index + 1) for index, item in enumerate(features))
+    feature_html = "".join(_feature_section(item, index + 2) for index, item in enumerate(features))
     games_html = "".join(
         html for html in [
             _guess_pro_section(guess) if guess else "",
@@ -197,74 +174,76 @@ def render_f9_arena(experience: FlyerExperience) -> str:
 
     css = """
     :root {
-        --bg:#05070c; --ink:#f5f9ff; --muted:#c6d0dc; --faint:#8090a3;
-        --line:rgba(255,255,255,.14); --glass:rgba(6,12,18,.70);
-        --rl-blue:#58c9ff; --rl-blue2:#d7f6ff; --rl-blue3:#0a86c4;
-        --rl-dark:rgba(0,0,0,.68); --rl-dark2:rgba(4,8,10,.86);
-        --orange:#ff8a3d; --orange2:#e15b3e; --green:#7dff9b; --gold:#e1b53e;
-        --boost:0%;
+        --bg:#05070c; --ink:#fff8ee; --muted:#c6d0dc; --faint:#8492a6;
+        --line:rgba(255,255,255,.14); --glass:rgba(8,13,23,.72);
+        --orange:#ff8a3d; --orange2:#e15b3e; --blue:#59e0ff; --blue2:#2678ff;
+        --green:#7dff9b; --gold:#e1b53e; --boost:0%;
     }
     * { box-sizing:border-box; }
     html { scroll-behavior:smooth; background:var(--bg); }
-    body { margin:0; color:var(--ink); background:linear-gradient(180deg,#081018,#05070c); font-family:Inter,system-ui,sans-serif; overflow-x:hidden; }
+    body { margin:0; color:var(--ink); background:radial-gradient(circle at 15% 8%,rgba(255,138,61,.22),transparent 24rem),radial-gradient(circle at 88% 12%,rgba(89,224,255,.16),transparent 24rem),linear-gradient(180deg,#081018,#05070c); font-family:Inter,system-ui,sans-serif; overflow-x:hidden; }
     a { color:inherit; }
-    .fa-page { position:relative; isolation:isolate; width:min(1360px,calc(100vw - 20px)); margin:0 auto; padding:16px 0 48px; min-height:100vh; }
-    .fa-page:before { content:""; position:fixed; inset:-4%; z-index:-3; background:linear-gradient(90deg,rgba(0,0,0,.18),rgba(0,0,0,.70) 60%,rgba(0,0,0,.90)),linear-gradient(180deg,rgba(5,7,12,.32),rgba(5,7,12,.88)),var(--stadium) center/cover no-repeat; filter:saturate(1.08) brightness(.60); transform:scale(1.03); }
-    .fa-page:after { content:""; position:fixed; left:0; right:0; bottom:0; height:42vh; z-index:-2; pointer-events:none; background:linear-gradient(180deg,transparent,rgba(0,0,0,.72)),repeating-linear-gradient(0deg,rgba(83,201,255,.20) 0 2px,transparent 2px 16px); opacity:.32; transform:skewY(-1deg); transform-origin:bottom left; }
-    .fa-corner-mark { position:fixed; top:14px; left:14px; z-index:8; display:flex; gap:.7rem; align-items:center; max-width:min(420px,calc(100vw - 150px)); padding:.54rem .74rem; border:1px solid rgba(88,201,255,.36); border-radius:6px; background:linear-gradient(90deg,rgba(8,39,58,.88),rgba(5,13,18,.56)); box-shadow:0 0 0 1px rgba(0,0,0,.55),0 14px 44px rgba(0,0,0,.28); text-decoration:none; clip-path:polygon(0 0,calc(100% - 12px) 0,100% 50%,calc(100% - 12px) 100%,0 100%); }
+    .fa-page { position:relative; isolation:isolate; width:min(1320px,calc(100vw - 24px)); margin:0 auto; padding:18px 0 48px; min-height:100vh; }
+    .fa-page:before { content:""; position:fixed; inset:-4%; z-index:-3; background:linear-gradient(180deg,rgba(5,7,12,.46),rgba(5,7,12,.94)),var(--stadium) center/cover no-repeat; filter:saturate(1.12) brightness(.52); transform:scale(1.03); }
+    .fa-page:after { content:""; position:fixed; inset:0; z-index:-2; pointer-events:none; opacity:.28; background:linear-gradient(rgba(255,255,255,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.04) 1px,transparent 1px); background-size:44px 44px; mask-image:linear-gradient(180deg,transparent,#000 12%,#000 82%,transparent); transform:perspective(900px) rotateX(62deg) translateY(24%); transform-origin:center bottom; }
+    .fa-corner-mark { position:fixed; top:14px; left:14px; z-index:8; display:flex; gap:.7rem; align-items:center; max-width:min(420px,calc(100vw - 150px)); padding:.58rem .72rem; border:1px solid var(--line); border-radius:999px; background:rgba(5,7,12,.66); backdrop-filter:blur(16px); box-shadow:0 14px 44px rgba(0,0,0,.28); text-decoration:none; }
     .fa-corner-mark img { width:32px; height:auto; filter:drop-shadow(0 8px 18px rgba(0,0,0,.55)); }
-    .fa-corner-mark span { display:block; font-family:Rajdhani,Inter,sans-serif; text-transform:uppercase; letter-spacing:.16em; color:var(--rl-blue2); font-weight:800; font-size:.72rem; }
-    .fa-corner-mark strong { display:block; font-size:.86rem; color:#d9f4ff; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
-    .fa-boost-meter { position:fixed; top:14px; right:14px; z-index:9; width:116px; aspect-ratio:1; display:grid; place-items:center; border-radius:999px; border:1px solid rgba(255,255,255,.16); background:radial-gradient(circle at center,rgba(5,7,12,.96) 0 54%,transparent 55%),conic-gradient(var(--orange) 0 var(--boost),rgba(255,255,255,.12) var(--boost) 100%); box-shadow:0 0 54px rgba(255,138,61,.24),inset 0 0 34px rgba(255,255,255,.04); backdrop-filter:blur(12px); }
+    .fa-corner-mark span { display:block; font-family:Rajdhani,Inter,sans-serif; text-transform:uppercase; letter-spacing:.16em; color:var(--green); font-weight:800; font-size:.72rem; }
+    .fa-corner-mark strong { display:block; font-size:.9rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .fa-boost-meter { position:fixed; top:14px; right:14px; z-index:9; width:116px; aspect-ratio:1; display:grid; place-items:center; border-radius:999px; border:1px solid rgba(255,255,255,.16); background:radial-gradient(circle at center,rgba(5,7,12,.96) 0 54%,transparent 55%),conic-gradient(var(--orange) 0 var(--boost), rgba(255,255,255,.12) var(--boost) 100%); box-shadow:0 0 54px rgba(255,138,61,.24), inset 0 0 34px rgba(255,255,255,.04); backdrop-filter:blur(12px); }
     .fa-boost-meter strong { display:block; font-family:Rajdhani,Inter,sans-serif; font-size:2.25rem; line-height:.82; text-align:center; }
     .fa-boost-meter span { display:block; margin-top:.16rem; color:var(--orange); font-size:.62rem; font-weight:900; letter-spacing:.16em; text-align:center; }
-    .fa-hero { min-height:94vh; display:grid; grid-template-columns:minmax(235px,.34fr) minmax(0,1fr) minmax(320px,.72fr); gap:clamp(16px,3vw,42px); align-items:center; padding:86px 0 38px; }
-    .fa-main-menu,.fa-sub-menu { display:grid; gap:5px; align-content:center; }
-    .fa-main-menu { max-width:260px; }
-    .fa-menu-row { position:relative; min-height:31px; display:flex; align-items:center; justify-content:space-between; gap:.75rem; padding:.3rem .78rem .28rem 1rem; color:#edf6ff; text-decoration:none; font-family:Rajdhani,Inter,sans-serif; font-weight:700; letter-spacing:.04em; text-transform:uppercase; background:linear-gradient(90deg,rgba(0,0,0,.82),rgba(0,0,0,.58)); border-left:3px solid rgba(255,255,255,.08); clip-path:polygon(0 0,calc(100% - 16px) 0,100% 50%,calc(100% - 16px) 100%,0 100%); text-shadow:0 1px 1px #000; transition:transform .14s ease,filter .14s ease; }
-    .fa-menu-row:hover { transform:translateX(4px); filter:brightness(1.18); }
-    .fa-menu-row.is-active { color:#062033; background:linear-gradient(90deg,#eafcff 0%,#85ddff 48%,#30aeea 80%,rgba(48,174,234,.28)); border-left-color:#d8f8ff; box-shadow:0 0 0 1px rgba(255,255,255,.24),0 0 20px rgba(88,201,255,.42); }
-    .fa-menu-row em { min-width:22px; height:22px; display:grid; place-items:center; border-radius:999px; color:#06314a; background:linear-gradient(#eafcff,#65cfff); font-style:normal; font-size:.74rem; box-shadow:0 0 0 1px rgba(0,0,0,.3); }
-    .fa-title { align-self:end; padding-bottom:9vh; }
-    .fa-label { font-family:Rajdhani,Inter,sans-serif; letter-spacing:.16em; text-transform:uppercase; color:var(--rl-blue); font-weight:800; font-size:.76rem; }
-    .fa-title h1 { max-width:10.5ch; margin:.8rem 0 0; font-family:Rajdhani,Inter,sans-serif; font-size:clamp(4rem,8vw,8.8rem); line-height:.78; letter-spacing:-.075em; text-shadow:0 0 40px rgba(255,138,61,.22); }
+    .fa-hero { min-height:92vh; display:grid; grid-template-columns:minmax(0,1.05fr) minmax(300px,.95fr); gap:clamp(18px,5vw,70px); align-items:center; padding:96px 0 42px; }
+    .fa-label { font-family:Rajdhani,Inter,sans-serif; letter-spacing:.16em; text-transform:uppercase; color:var(--green); font-weight:800; font-size:.76rem; }
+    .fa-title h1 { max-width:10.5ch; margin:.8rem 0 0; font-family:Rajdhani,Inter,sans-serif; font-size:clamp(4rem,9vw,9.4rem); line-height:.78; letter-spacing:-.075em; text-shadow:0 0 40px rgba(255,138,61,.22); }
     .fa-title p { max-width:62ch; margin:1.2rem 0 0; color:var(--muted); line-height:1.7; font-size:1.08rem; }
     .fa-actions,.fa-chips { display:flex; flex-wrap:wrap; gap:.65rem; align-items:center; margin-top:1rem; }
-    .fa-btn { display:inline-flex; align-items:center; justify-content:center; min-height:38px; padding:0 .95rem; border-radius:4px; border:1px solid rgba(88,201,255,.38); background:linear-gradient(180deg,#6dd7ff,#128ec9); color:#062033; font:inherit; font-weight:850; text-decoration:none; cursor:pointer; margin:.35rem .35rem 0 0; text-transform:uppercase; clip-path:polygon(0 0,calc(100% - 10px) 0,100% 50%,calc(100% - 10px) 100%,0 100%); }
-    .fa-btn--ghost { color:#d9f4ff; background:linear-gradient(90deg,rgba(0,0,0,.78),rgba(0,0,0,.42)); border-color:rgba(255,255,255,.14); }
-    .fa-sub-menu { align-self:end; padding-bottom:13vh; max-width:285px; opacity:.78; }
-    .fa-track { display:grid; gap:clamp(18px,3vw,34px); }
-    .fa-stage { border:1px solid rgba(88,201,255,.22); box-shadow:0 22px 70px rgba(0,0,0,.36); background:linear-gradient(180deg,rgba(8,24,34,.82),rgba(3,8,12,.72)); backdrop-filter:blur(10px); }
-    .fa-stage--queue { min-height:56vh; display:grid; grid-template-columns:minmax(230px,.32fr) minmax(0,1fr); gap:0; border-radius:8px; overflow:hidden; }
-    .fa-section-menu { display:grid; gap:6px; align-content:start; padding:1.15rem .85rem; background:linear-gradient(90deg,rgba(0,0,0,.54),rgba(0,0,0,.18)); border-right:1px solid rgba(88,201,255,.18); }
-    .fa-menu-detail { padding:clamp(22px,4vw,44px); }
-    .fa-detail-topline { display:flex; justify-content:space-between; gap:1rem; margin-bottom:1rem; color:var(--rl-blue); font-family:Rajdhani,Inter,sans-serif; letter-spacing:.14em; text-transform:uppercase; font-weight:800; }
-    .fa-stage h2,.fa-option-card h3,.fa-game h3 { margin:.45rem 0 0; font-family:Rajdhani,Inter,sans-serif; line-height:.92; letter-spacing:-.045em; }
-    .fa-stage h2 { font-size:clamp(2.7rem,5vw,5.8rem); }
-    .fa-stage p,.fa-option-card p,.fa-game p { color:var(--muted); line-height:1.68; }
-    .fa-roster,.fa-clue,.fa-pack,.fa-answer { margin-top:1rem; padding:.9rem 1rem; border-radius:4px; background:rgba(0,0,0,.36); border:1px solid rgba(88,201,255,.18); }
-    .fa-roster span { display:block; color:var(--rl-blue); font-family:Rajdhani,Inter,sans-serif; letter-spacing:.16em; text-transform:uppercase; font-weight:800; font-size:.72rem; }
-    .fa-stage--broadcast { display:grid; grid-template-columns:1.1fr .9fr; gap:0; align-items:stretch; border-radius:8px; overflow:hidden; }
-    .fa-news-board { min-height:430px; padding:1rem; background:linear-gradient(180deg,rgba(6,18,28,.94),rgba(0,0,0,.74)); border-right:1px solid rgba(88,201,255,.18); }
-    .fa-news-hero { height:260px; display:flex; flex-direction:column; justify-content:flex-end; padding:1rem; border:1px solid rgba(88,201,255,.22); background:radial-gradient(circle at 72% 38%,rgba(255,138,61,.44),transparent 9rem),linear-gradient(135deg,rgba(88,201,255,.18),rgba(0,0,0,.22)); }
-    .fa-news-hero span,.fa-news-grid span { color:#bfefff; font-family:Rajdhani,Inter,sans-serif; letter-spacing:.12em; text-transform:uppercase; font-weight:800; }
-    .fa-news-hero strong { font-family:Rajdhani,Inter,sans-serif; font-size:2.6rem; line-height:.9; }
-    .fa-news-grid { display:grid; grid-template-columns:1fr 1fr; gap:.7rem; margin-top:.75rem; }
-    .fa-news-grid article { min-height:110px; padding:.8rem; display:flex; align-items:end; background:linear-gradient(135deg,rgba(255,138,61,.18),rgba(88,201,255,.12)),rgba(0,0,0,.42); border:1px solid rgba(88,201,255,.16); }
-    .fa-option-grid { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }
-    .fa-option-card { display:grid; grid-template-rows:auto 1fr; min-height:210px; }
-    .fa-option-card > .fa-menu-row { min-height:38px; font-size:1.03rem; }
-    .fa-option-body { margin-top:3px; padding:1rem; background:linear-gradient(90deg,rgba(0,0,0,.76),rgba(0,0,0,.42)); border-left:3px solid rgba(88,201,255,.28); min-height:170px; clip-path:polygon(0 0,calc(100% - 18px) 0,100% 10px,100% 100%,0 100%); }
-    .fa-option-card--warmup .fa-menu-row,.fa-option-card--garage .fa-menu-row { background:linear-gradient(90deg,#eafcff,#7fdcff 50%,#1597d0); color:#062033; }
-    .fa-option-card--house_rule .fa-menu-row { background:linear-gradient(90deg,#fff4ce,#e1b53e 70%,rgba(225,181,62,.28)); color:#221904; }
-    .fa-chips span { display:inline-flex; min-height:26px; align-items:center; padding:0 .58rem; border-radius:3px; background:rgba(88,201,255,.10); border:1px solid rgba(88,201,255,.18); color:#d9f4ff; font-size:.72rem; font-weight:800; text-transform:uppercase; }
-    .fa-games { display:grid; grid-template-columns:1fr 1fr; gap:12px; }
-    .fa-game { min-height:320px; display:grid; grid-template-rows:auto 1fr; }
-    .fa-game-body { margin-top:3px; padding:1rem; background:linear-gradient(180deg,rgba(0,0,0,.68),rgba(0,0,0,.42)); border:1px solid rgba(88,201,255,.16); }
-    .fa-pack { display:grid; gap:.5rem; } .fa-pack span { color:var(--rl-blue); font-weight:850; } .fa-pack em { font-style:normal; }
+    .fa-btn { display:inline-flex; align-items:center; justify-content:center; min-height:42px; padding:0 .95rem; border-radius:999px; border:1px solid rgba(255,138,61,.38); background:linear-gradient(135deg,var(--orange),var(--orange2)); color:#130f0a; font:inherit; font-weight:850; text-decoration:none; cursor:pointer; margin:.35rem .35rem 0 0; }
+    .fa-btn--ghost { color:var(--ink); background:rgba(255,255,255,.06); border-color:rgba(255,255,255,.14); }
+    .fa-lane-nav { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:12px; }
+    .fa-lane-option { position:relative; min-height:126px; padding:1rem 1.25rem 1rem 1rem; border:1px solid rgba(89,224,255,.22); background:linear-gradient(90deg,rgba(0,0,0,.76),rgba(8,13,23,.62)); text-decoration:none; box-shadow:0 18px 52px rgba(0,0,0,.26); backdrop-filter:blur(14px); clip-path:polygon(0 0,calc(100% - 22px) 0,100% 50%,calc(100% - 22px) 100%,0 100%); transition:transform .14s ease,filter .14s ease; }
+    .fa-lane-option:hover { transform:translateX(4px); filter:brightness(1.14); }
+    .fa-lane-option:first-child { background:linear-gradient(90deg,#eafcff 0%,#83dcff 54%,#28a9df 82%,rgba(40,169,223,.32)); color:#062033; box-shadow:0 0 0 1px rgba(255,255,255,.22),0 0 24px rgba(89,224,255,.32); }
+    .fa-lane-option span { display:block; color:var(--green); font-family:Rajdhani,Inter,sans-serif; letter-spacing:.16em; text-transform:uppercase; font-weight:800; font-size:.72rem; }
+    .fa-lane-option:first-child span { color:#06415e; }
+    .fa-lane-option strong { display:block; margin-top:.5rem; font-family:Rajdhani,Inter,sans-serif; font-size:1.8rem; line-height:.95; }
+    .fa-track { display:grid; gap:clamp(20px,4vw,42px); }
+    .fa-stage { min-height:58vh; border:1px solid var(--line); overflow:hidden; position:relative; background:linear-gradient(180deg,rgba(255,255,255,.07),rgba(255,255,255,.022)),var(--glass); box-shadow:0 24px 72px rgba(0,0,0,.34); backdrop-filter:blur(14px); }
+    .fa-stage--queue { display:grid; grid-template-columns:minmax(0,1fr) minmax(240px,.34fr); gap:0; border-radius:34px; }
+    .fa-terminal { padding:clamp(22px,4vw,44px); background:radial-gradient(circle at top right,rgba(255,138,61,.18),transparent 32%); }
+    .fa-terminal-bar { display:flex; align-items:center; gap:.45rem; padding:.65rem .75rem; border:1px solid rgba(255,255,255,.10); border-radius:16px; background:rgba(0,0,0,.28); color:var(--faint); font-family:ui-monospace,Menlo,Consolas,monospace; font-size:.78rem; margin-bottom:1.35rem; }
+    .fa-terminal-bar span { width:.7rem; aspect-ratio:1; border-radius:999px; background:var(--orange); }
+    .fa-terminal-bar span:nth-child(2) { background:var(--gold); } .fa-terminal-bar span:nth-child(3) { background:var(--green); }
+    .fa-stage h2,.fa-feature h3,.fa-game h3 { margin:.45rem 0 0; font-family:Rajdhani,Inter,sans-serif; line-height:.92; letter-spacing:-.045em; }
+    .fa-stage h2 { font-size:clamp(2.7rem,6vw,6.2rem); }
+    .fa-stage p,.fa-feature p,.fa-game p { color:var(--muted); line-height:1.68; }
+    .fa-queue-side { display:flex; flex-direction:column; justify-content:space-between; padding:1.25rem; background:linear-gradient(180deg,rgba(255,138,61,.18),rgba(255,255,255,.04)); border-left:1px solid rgba(255,255,255,.11); }
+    .fa-side-number { font-family:Rajdhani,Inter,sans-serif; font-size:5rem; line-height:.8; color:rgba(255,255,255,.20); }
+    .fa-roster,.fa-clue,.fa-pack,.fa-answer { margin-top:1rem; padding:.9rem 1rem; border-radius:18px; background:rgba(255,255,255,.055); border:1px solid rgba(255,255,255,.10); }
+    .fa-roster span { display:block; color:var(--green); font-family:Rajdhani,Inter,sans-serif; letter-spacing:.16em; text-transform:uppercase; font-weight:800; font-size:.72rem; }
+    .fa-stage--broadcast { display:grid; grid-template-columns:.82fr 1.18fr; align-items:center; gap:clamp(18px,4vw,46px); padding:clamp(22px,4vw,44px); border-radius:46px 18px 46px 18px; }
+    .fa-broadcast-screen { min-height:360px; border:1px solid rgba(89,224,255,.26); border-radius:28px; background:linear-gradient(180deg,rgba(89,224,255,.12),rgba(0,0,0,.26)); overflow:hidden; box-shadow:inset 0 0 40px rgba(89,224,255,.10); }
+    .fa-screen-top,.fa-ticker { padding:.8rem 1rem; font-family:ui-monospace,Menlo,Consolas,monospace; color:var(--green); background:rgba(0,0,0,.28); }
+    .fa-screen-pitch { height:260px; display:grid; grid-template-columns:repeat(3,1fr); gap:1px; background:linear-gradient(90deg,rgba(255,255,255,.10) 1px,transparent 1px),radial-gradient(circle at center,transparent 0 52px,rgba(255,255,255,.16) 53px 55px,transparent 56px); background-size:50% 100%,100% 100%; }
+    .fa-screen-pitch span { border:1px solid rgba(255,255,255,.09); }
+    .fa-feature-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:16px; }
+    .fa-feature { min-height:300px; display:grid; grid-template-rows:auto 1fr; filter:drop-shadow(0 18px 38px rgba(0,0,0,.28)); }
+    .fa-slant-tab { display:flex; align-items:center; justify-content:space-between; gap:.7rem; min-height:38px; padding:.35rem .9rem .32rem 1rem; background:linear-gradient(90deg,#eafcff,#86ddff 52%,#2aa9df 82%,rgba(42,169,223,.24)); color:#062033; font-family:Rajdhani,Inter,sans-serif; text-transform:uppercase; letter-spacing:.06em; font-weight:800; clip-path:polygon(0 0,calc(100% - 18px) 0,100% 50%,calc(100% - 18px) 100%,0 100%); }
+    .fa-slant-tab em { width:24px; height:24px; display:grid; place-items:center; border-radius:999px; background:rgba(255,255,255,.72); color:#06314a; font-style:normal; font-size:.72rem; }
+    .fa-feature-body,.fa-game-body { margin-top:3px; min-height:240px; padding:1rem; border:1px solid rgba(89,224,255,.18); background:linear-gradient(90deg,rgba(0,0,0,.74),rgba(8,13,23,.58)); clip-path:polygon(0 0,calc(100% - 18px) 0,100% 10px,100% 100%,0 100%); }
+    .fa-feature--arena .fa-slant-tab { background:linear-gradient(90deg,#dff8ff,#59e0ff 62%,rgba(89,224,255,.24)); }
+    .fa-feature--warmup .fa-slant-tab { background:linear-gradient(90deg,#e8fff0,#7dff9b 62%,rgba(125,255,155,.22)); }
+    .fa-feature--house_rule .fa-slant-tab { background:linear-gradient(90deg,#fff5d1,#e1b53e 62%,rgba(225,181,62,.22)); }
+    .fa-feature h3 { font-size:2rem; }
+    .fa-chips span { display:inline-flex; min-height:26px; align-items:center; padding:0 .58rem; border-radius:3px; background:rgba(89,224,255,.10); border:1px solid rgba(89,224,255,.18); color:#d9f4ff; font-size:.72rem; font-weight:800; text-transform:uppercase; }
+    .fa-games { display:grid; grid-template-columns:1fr 1fr; gap:18px; }
+    .fa-game { min-height:340px; display:grid; grid-template-rows:auto 1fr; }
+    .fa-game--pro .fa-slant-tab { background:linear-gradient(90deg,#fff5d1,#e1b53e 62%,rgba(225,181,62,.22)); }
+    .fa-game--jiporady .fa-slant-tab { background:linear-gradient(90deg,#eafcff,#59e0ff 62%,rgba(89,224,255,.22)); }
+    .fa-pack { display:grid; gap:.5rem; } .fa-pack span { color:var(--green); font-weight:850; } .fa-pack em { font-style:normal; }
     .fa-footer { margin-top:24px; text-align:center; color:var(--faint); font-weight:750; }
-    @media(max-width:1050px){ .fa-hero { grid-template-columns:minmax(220px,.38fr) 1fr; } .fa-sub-menu { display:none; } .fa-stage--broadcast,.fa-stage--queue,.fa-games { grid-template-columns:1fr; } .fa-news-board { border-right:0; border-bottom:1px solid rgba(88,201,255,.18); } }
-    @media(max-width:720px){ .fa-page { width:calc(100vw - 16px); } .fa-boost-meter { width:92px; } .fa-boost-meter strong { font-size:1.85rem; } .fa-corner-mark strong { display:none; } .fa-hero,.fa-option-grid { grid-template-columns:1fr; } .fa-main-menu { max-width:100%; padding-top:96px; } .fa-title { padding-bottom:0; } .fa-title h1 { font-size:clamp(3.3rem,20vw,5.4rem); } }
+    @media(max-width:960px){ .fa-corner-mark { max-width:calc(100vw - 128px); } .fa-hero,.fa-stage--queue,.fa-stage--broadcast,.fa-games { grid-template-columns:1fr; } .fa-hero { min-height:auto; padding-top:110px; } .fa-feature-grid { grid-template-columns:repeat(2,1fr); } .fa-queue-side { border-left:0; border-top:1px solid rgba(255,255,255,.11); } }
+    @media(max-width:640px){ .fa-page { width:calc(100vw - 16px); } .fa-boost-meter { width:92px; } .fa-boost-meter strong { font-size:1.85rem; } .fa-corner-mark strong { display:none; } .fa-lane-nav,.fa-feature-grid { grid-template-columns:1fr; } .fa-title h1 { font-size:clamp(3.3rem,20vw,5.4rem); } }
     """
 
     js = """
@@ -288,7 +267,7 @@ def render_f9_arena(experience: FlyerExperience) -> str:
 <main class="fa-page" style="--stadium:url('{_a(stadium_url)}')">
     <a class="fa-corner-mark" href="#top" aria-label="Back to top"><img src="{_a(logo_url)}" alt="F9 logo"><span>F9 Daily</span><strong>{_e(experience.date_label)}</strong></a>
     <div class="fa-boost-meter" data-fa-boost-meter role="meter" aria-label="Scroll boost" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div><strong data-fa-boost-value>0</strong><span>BOOST</span></div></div>
-    <section class="fa-hero" id="top"><nav class="fa-main-menu" aria-label="Rocket League inspired main menu">{menu_html}</nav><div class="fa-title"><div class="fa-label">{_e(lead.label)}</div><h1>{_e(lead.title)}</h1><p>{_e(lead.body)}</p><div class="fa-actions">{_button(str(experience.data.get("tournament_url", "")), "Signup hub")}{_button(str(experience.data.get("rl_esports_news_url", "")), "RLCS news", True)}{_button(str(experience.data.get("jiporady_repo_url", "")), "Jiporady source", True)}</div></div><nav class="fa-sub-menu" aria-label="F9 Daily sections">{sub_menu_html}</nav></section>
-    <div class="fa-track">{_queue_section(tournament) if tournament else ""}{_watch_section(watch) if watch else ""}<section class="fa-option-grid">{feature_html}</section><section class="fa-games" id="games">{games_html}</section></div>
-    <footer class="fa-footer" id="footer">{_e(experience.footer)}</footer>
+    <section class="fa-hero" id="top"><div class="fa-title"><div class="fa-label">{_e(lead.label)}</div><h1>{_e(lead.title)}</h1><p>{_e(lead.body)}</p><div class="fa-actions">{_button(str(experience.data.get("tournament_url", "")), "Signup hub")}{_button(str(experience.data.get("rl_esports_news_url", "")), "RLCS news", True)}{_button(str(experience.data.get("jiporady_repo_url", "")), "Jiporady source", True)}</div></div><nav class="fa-lane-nav" aria-label="F9 Daily sections">{lane_html}</nav></section>
+    <div class="fa-track">{_queue_section(tournament) if tournament else ""}{_watch_section(watch) if watch else ""}<section class="fa-feature-grid">{feature_html}</section><section class="fa-games">{games_html}</section></div>
+    <footer class="fa-footer">{_e(experience.footer)}</footer>
 </main><script>{js}</script></body></html>"""
