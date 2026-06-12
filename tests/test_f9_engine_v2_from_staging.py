@@ -65,6 +65,16 @@ class F9EngineV2FromStagingTests(unittest.TestCase):
         self.assertNotIn("fa-scoreboard", html)
         self.assertNotIn("hero-pill", html)
 
+    def test_f9_logo_static_asset_is_vector_and_not_embedded_png(self) -> None:
+        client = app.test_client()
+        response = client.get("/static/f9_logo.svg")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(b"<svg", response.data)
+        self.assertIn(b"f9-orange", response.data)
+        self.assertIn(b"f9-cream", response.data)
+        self.assertNotIn(b"data:image/png", response.data)
+
     def test_f9_daily_alias_still_renders_hub(self) -> None:
         html = build_flyer_html(product="f9_daily", date_str="2026-06-12", seed=9)
 
