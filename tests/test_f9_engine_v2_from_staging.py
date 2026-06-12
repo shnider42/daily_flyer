@@ -12,7 +12,8 @@ class F9EngineV2FromStagingTests(unittest.TestCase):
 
         self.assertIn("F9 Hub", html)
         self.assertNotIn("F9 Daily", html)
-        self.assertIn("/static/f9_logo.svg", html)
+        self.assertIn("/static/f9_logo.png", html)
+        self.assertNotIn("/static/f9_logo.svg", html)
         self.assertNotIn("F9 Community Control", html)
         self.assertNotIn("F9 match control", html)
         self.assertIn("Rocket League daily hub", html)
@@ -65,22 +66,20 @@ class F9EngineV2FromStagingTests(unittest.TestCase):
         self.assertNotIn("fa-scoreboard", html)
         self.assertNotIn("hero-pill", html)
 
-    def test_f9_logo_static_asset_is_vector_and_not_embedded_png(self) -> None:
+    def test_f9_logo_static_asset_is_png(self) -> None:
         client = app.test_client()
-        response = client.get("/static/f9_logo.svg")
+        response = client.get("/static/f9_logo.png")
 
         self.assertEqual(response.status_code, 200)
-        self.assertIn(b"<svg", response.data)
-        self.assertIn(b"f9-orange", response.data)
-        self.assertIn(b"f9-cream", response.data)
-        self.assertNotIn(b"data:image/png", response.data)
+        self.assertTrue(response.data.startswith(b"\x89PNG\r\n\x1a\n"))
 
     def test_f9_daily_alias_still_renders_hub(self) -> None:
         html = build_flyer_html(product="f9_daily", date_str="2026-06-12", seed=9)
 
         self.assertIn("F9 Hub", html)
         self.assertIn("F9 Command Board", html)
-        self.assertIn("/static/f9_logo.svg", html)
+        self.assertIn("/static/f9_logo.png", html)
+        self.assertNotIn("/static/f9_logo.svg", html)
         self.assertNotIn("F9 Daily", html)
 
     def test_v2_route_renders_f9_daily_alias(self) -> None:
@@ -89,7 +88,8 @@ class F9EngineV2FromStagingTests(unittest.TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertIn(b"F9 Hub", response.data)
-        self.assertIn(b"/static/f9_logo.svg", response.data)
+        self.assertIn(b"/static/f9_logo.png", response.data)
+        self.assertNotIn(b"/static/f9_logo.svg", response.data)
         self.assertNotIn(b"F9 Community Control", response.data)
         self.assertNotIn(b"F9 match control", response.data)
         self.assertNotIn(b"F9 Daily", response.data)
