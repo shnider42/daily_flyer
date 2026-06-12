@@ -12,6 +12,10 @@ class F9EngineV2FromStagingTests(unittest.TestCase):
 
         self.assertIn("F9 Hub", html)
         self.assertNotIn("F9 Daily", html)
+        self.assertIn("/static/f9_logo.svg", html)
+        self.assertNotIn("F9 Community Control", html)
+        self.assertNotIn("F9 match control", html)
+        self.assertIn("Rocket League daily hub", html)
         self.assertIn("Space Grotesk", html)
         self.assertIn("HT 2026", html)
         self.assertIn("fa-boost-meter", html)
@@ -66,6 +70,7 @@ class F9EngineV2FromStagingTests(unittest.TestCase):
 
         self.assertIn("F9 Hub", html)
         self.assertIn("F9 Command Board", html)
+        self.assertIn("/static/f9_logo.svg", html)
         self.assertNotIn("F9 Daily", html)
 
     def test_v2_route_renders_f9_daily_alias(self) -> None:
@@ -74,6 +79,9 @@ class F9EngineV2FromStagingTests(unittest.TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertIn(b"F9 Hub", response.data)
+        self.assertIn(b"/static/f9_logo.svg", response.data)
+        self.assertNotIn(b"F9 Community Control", response.data)
+        self.assertNotIn(b"F9 match control", response.data)
         self.assertNotIn(b"F9 Daily", response.data)
         self.assertIn(b"Featured cards", response.data)
         self.assertIn(b"F9 Command Board", response.data)
