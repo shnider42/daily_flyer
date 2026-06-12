@@ -11,6 +11,7 @@ F9_STADIUM_URL = "https://raw.githubusercontent.com/shnider42/f9-tourney/main/st
 F9_TOURNEY_URL = os.environ.get("F9_TOURNEY_URL", "").strip()
 F9_SIGNUP_ENABLED = os.environ.get("F9_SIGNUP_ENABLED", "").strip().lower() in {"1", "true", "yes", "on"}
 F9_JIPORADY_URL = os.environ.get("F9_JIPORADY_URL", "").strip()
+F9_DISCORD_URL = os.environ.get("F9_DISCORD_URL", "").strip()
 RL_ESPORTS_NEWS_URL = "https://esports.rocketleague.com/news"
 
 GARAGE_ITEMS = [
@@ -117,9 +118,9 @@ def build(context: FlyerContext) -> FlyerExperience:
     sections.extend([
         FlyerItem("watch", "Bring one headline into Discord", _pick(WATCH_PROMPTS, ordinal, 3), "RLCS watch prompt", RL_ESPORTS_NEWS_URL, data={"chips": ["source-ready", "watch party"]}),
         FlyerItem("garage", garage_name, garage_body, "Garage pick", data={"chips": ["daily", "cosmetic"]}),
-        FlyerItem("arena", arena_name, arena_body, "Arena read", data={"chips": ["map feel", "rotation"]}),
-        FlyerItem("warmup", warmup_name, warmup_body, "Warmup drill", data={"chips": ["freeplay", "before ranked"]}),
-        FlyerItem("house_rule", "Tonight's comms rule", _pick(HOUSE_RULES, ordinal, 23), "House rule", data={"chips": ["Discord", "ranked hygiene"]}),
+        FlyerItem("arena", arena_name, arena_body, "Arena read", data={"chips": ["weekly", "map feel", "rotation"]}),
+        FlyerItem("warmup", warmup_name, warmup_body, "Warmup drill", data={"chips": ["daily", "freeplay", "before ranked"]}),
+        FlyerItem("house_rule", "Tonight's comms rule", _pick(HOUSE_RULES, ordinal, 23), "House rule", data={"chips": ["daily", "Discord", "ranked hygiene"]}),
     ])
 
     actions = [
@@ -146,5 +147,5 @@ def build(context: FlyerContext) -> FlyerExperience:
         sections=sections,
         actions=actions,
         footer="F9 Hub • Flyer Engine v2 product + dedicated arena renderer",
-        data={"logo_url": F9_LOGO_URL, "stadium_url": F9_STADIUM_URL, "signup_enabled": F9_SIGNUP_ENABLED and bool(_tournament_url()), "tournament_url": _tournament_url(), "jiporady_url": F9_JIPORADY_URL, "rl_esports_news_url": RL_ESPORTS_NEWS_URL, "lanes": lanes},
+        data={"logo_url": F9_LOGO_URL, "stadium_url": F9_STADIUM_URL, "signup_enabled": F9_SIGNUP_ENABLED and bool(_tournament_url()), "tournament_url": _tournament_url(), "jiporady_url": F9_JIPORADY_URL, "discord_url": F9_DISCORD_URL, "rl_esports_news_url": RL_ESPORTS_NEWS_URL, "lanes": lanes},
     )
