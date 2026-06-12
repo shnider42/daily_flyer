@@ -11,10 +11,14 @@ class F9EngineV2FromStagingTests(unittest.TestCase):
         html = build_flyer_html(product="f9_daily", date_str="2026-06-12", seed=9)
 
         self.assertIn("F9 Daily", html)
+        self.assertIn("fa-main-menu", html)
+        self.assertIn("fa-menu-row is-active", html)
+        self.assertIn("ROCKET PASS", html)
+        self.assertIn("PLAY", html)
+        self.assertIn("fa-option-card", html)
+        self.assertIn("fa-news-board", html)
         self.assertIn("fa-boost-meter", html)
         self.assertIn("data-fa-boost-value", html)
-        self.assertIn("fa-stage--queue", html)
-        self.assertIn("fa-stage--broadcast", html)
         self.assertIn("Guess the Pro", html)
         self.assertIn("Rocket League Jiporady", html)
         self.assertIn("Signup hub", html)
@@ -27,6 +31,8 @@ class F9EngineV2FromStagingTests(unittest.TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertIn(b"F9 Daily", response.data)
+        self.assertIn(b"fa-main-menu", response.data)
+        self.assertIn(b"ROCKET PASS", response.data)
         self.assertIn(b"fa-boost-meter", response.data)
         self.assertNotIn(b"fa-scoreboard", response.data)
 
