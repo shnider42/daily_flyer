@@ -59,16 +59,15 @@ def build(context: FlyerContext) -> FlyerExperience:
     workshop = _pick(WORKSHOP_MAPS, selected.isocalendar().week, 3)
     jiporady = _pick(JIPORADY_BOARD, selected.isocalendar().week)
 
+    kickoff_call = rng.choice(["LEFT GOES", "CHEAT UP", "FAKE?", "BACK LEFT", "NO DOUBLE COMMIT"])
+    playlist = rng.choice(["2v2", "Private Match", "Replay Review", "RLCS Watch", "Freeplay Lab"])
+
     lead = FlyerItem(
         kind="match_lobby",
         label="F9 match control",
         title="Queue, warm up, watch, and play from one place.",
         body="A Rocket League community hub for F9: warmup plan, command board, garage pick, RLCS Daily, and Jiporady.",
-        data={
-            "boost": 33 + (ordinal % 68),
-            "kickoff_call": rng.choice(["LEFT GOES", "CHEAT UP", "FAKE?", "BACK LEFT", "NO DOUBLE COMMIT"]),
-            "playlist": rng.choice(["2v2", "Private Match", "Replay Review", "RLCS Watch", "Freeplay Lab"]),
-        },
+        data={"boost": 33 + (ordinal % 68), "kickoff_call": kickoff_call, "playlist": playlist},
     )
 
     sections: list[FlyerItem] = []
@@ -104,10 +103,12 @@ def build(context: FlyerContext) -> FlyerExperience:
     actions = [
         FlyerItem("rlcs_daily", "RLCS Daily", "Guess today's pro from clues. One answer, four choices, and a deeper pro pool than the first prototype.", "Daily mini-game", data=_rlcs_daily_payload(ordinal, rng)),
         FlyerItem("jiporady", "Rocket League Jiporady", "Embedded Rocket League Jiporady board pulled into the Hub experience instead of sending people to a source repo.", "Party board", F9_JIPORADY_URL or None, data={"active_category": jiporady, "board": JIPORADY_BOARD}),
+        FlyerItem("kickoff_call", "Kickoff Call", f"Tonight's callout is {kickoff_call}. Make the first word useful before the countdown hits one.", "Daily callout", data={"chips": ["daily", "comms"]}),
+        FlyerItem("queue_focus", "Queue Focus", f"Playlist focus: {playlist}. Track one repeat mistake across three games and bring it back to Discord.", "Session card", data={"chips": ["daily", "focus"]}),
     ]
 
     lanes = [
-        {"label": "Command", "value": command["mode"]},
+        {"label": "Command", "value": str(command["mode"]).title()},
         {"label": "Featured", "value": "Cards"},
         {"label": "Games", "value": "RLCS + Jiporady"},
         {"label": "Discord", "value": "Join request" if F9_DISCORD_URL else "Set invite"},
@@ -124,7 +125,7 @@ def build(context: FlyerContext) -> FlyerExperience:
         lead=lead,
         sections=sections,
         actions=actions,
-        footer="F9 Hub • Flyer Engine v2 product + dedicated arena renderer",
+        footer="HT 2026",
         data={
             "logo_url": F9_LOGO_URL,
             "stadium_url": F9_STADIUM_URL,
@@ -134,5 +135,6 @@ def build(context: FlyerContext) -> FlyerExperience:
             "discord_url": F9_DISCORD_URL,
             "rl_esports_news_url": RL_ESPORTS_NEWS_URL,
             "lanes": lanes,
+            "content_card_count": 8,
         },
     )
