@@ -6,6 +6,7 @@ from flask import Flask, Response, abort, request, send_from_directory
 from daily_flyer.orchestrator import build_daily_page
 from daily_flyer.renderer import build_html
 from daily_flyer.theme_validation import ThemeNotFoundError, ThemeValidationError
+from daily_flyer_v2 import build_flyer_html
 
 app = Flask(__name__)
 REPO_ROOT = Path(__file__).resolve().parent
@@ -72,6 +73,24 @@ def home():
     return Response(html, mimetype="text/html")
 
 
+@app.route("/v2")
+def flyer_engine_v2():
+    product = (request.args.get("product") or "f9_daily").strip() or "f9_daily"
+    date_str = (request.args.get("date") or "").strip() or None
+    seed = _parse_seed(request.args.get("seed"))
+
+    try:
+        html = build_flyer_html(product=product, date_str=date_str, seed=seed)
+    except ValueError as exc:
+        abort(400, description=str(exc) or "Invalid Flyer Engine v2 request.")
+
+    return Response(html, mimetype="text/html")
+
+
 @app.route("/daily_flyer/<path:filename>")
 def daily_flyer_static(filename: str):
     return send_from_directory(REPO_ROOT / "daily_flyer", filename)
+
+
+if __name__ == "__main__":
+    app.run(debug=True)
