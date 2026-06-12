@@ -1,7 +1,7 @@
 import os
 from pathlib import Path
 
-from flask import Flask, Response, abort, request, send_from_directory
+from flask import Flask, Response, abort, request, send_file, send_from_directory
 
 from daily_flyer.orchestrator import build_daily_page
 from daily_flyer.renderer import build_html
@@ -85,6 +85,18 @@ def flyer_engine_v2():
         abort(400, description=str(exc) or "Invalid Flyer Engine v2 request.")
 
     return Response(html, mimetype="text/html")
+
+
+@app.route("/f9-logo-debug.png")
+def f9_logo_debug():
+    logo_path = REPO_ROOT / "static" / "f9_logo.png"
+    if not logo_path.exists():
+        abort(404, description=f"F9 logo missing at {logo_path}")
+    response = send_file(logo_path, mimetype="image/png", max_age=0)
+    response.headers["Cache-Control"] = "no-store, no-cache, must-revalidate, max-age=0"
+    response.headers["X-F9-Logo-Path"] = str(logo_path)
+    response.headers["X-F9-Logo-Bytes"] = str(logo_path.stat().st_size)
+    return response
 
 
 @app.route("/daily_flyer/<path:filename>")
