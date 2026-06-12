@@ -7,7 +7,7 @@ from web import app
 
 
 class F9EngineV2FromStagingTests(unittest.TestCase):
-    def test_f9_daily_builds_arena_html(self) -> None:
+    def test_f9_hub_builds_arena_html_without_signup_by_default(self) -> None:
         html = build_flyer_html(product="f9_daily", date_str="2026-06-12", seed=9)
 
         self.assertIn("F9 Hub", html)
@@ -18,11 +18,16 @@ class F9EngineV2FromStagingTests(unittest.TestCase):
         self.assertIn("fa-lane-option", html)
         self.assertIn("fa-slant-tab", html)
         self.assertIn("fa-feature-grid", html)
-        self.assertIn("fa-stage--queue", html)
         self.assertIn("fa-stage--broadcast", html)
-        self.assertIn("Guess the Pro", html)
+        self.assertIn("RLCS Daily", html)
+        self.assertIn("data-fa-rlcs-answer", html)
+        self.assertIn("fa-choice-grid", html)
         self.assertIn("Rocket League Jiporady", html)
-        self.assertIn("Signup hub", html)
+        self.assertIn("data-fa-jiporady-board", html)
+        self.assertNotIn("Guess the Pro", html)
+        self.assertNotIn("fa-stage--queue", html)
+        self.assertNotIn("Open signup hub", html)
+        self.assertNotIn("github.com/shnider42", html)
         self.assertNotIn("fa-main-menu", html)
         self.assertNotIn("ROCKET PASS", html)
         self.assertNotIn("fa-scoreboard", html)
@@ -35,8 +40,11 @@ class F9EngineV2FromStagingTests(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertIn(b"F9 Hub", response.data)
         self.assertNotIn(b"F9 Daily", response.data)
+        self.assertIn(b"RLCS Daily", response.data)
         self.assertIn(b"fa-boost-meter", response.data)
         self.assertIn(b"fa-slant-tab", response.data)
+        self.assertNotIn(b"Open signup hub", response.data)
+        self.assertNotIn(b"github.com/shnider42", response.data)
         self.assertNotIn(b"fa-main-menu", response.data)
         self.assertNotIn(b"ROCKET PASS", response.data)
         self.assertNotIn(b"fa-scoreboard", response.data)
