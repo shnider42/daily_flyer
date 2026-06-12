@@ -83,11 +83,19 @@ class F9EngineV2FromStagingTests(unittest.TestCase):
     def test_f9_items_load_from_curated_json_catalog(self) -> None:
         items = load_f9_items()
 
-        self.assertGreaterEqual(len(items), 4)
+        self.assertGreaterEqual(len(items), 10)
         self.assertTrue(all(item["image_url"].startswith("/static/f9/items/") for item in items))
         self.assertTrue(all("caption" in item for item in items))
         self.assertTrue(any(item["id"] == "titanium-white-zomba" for item in items))
+        self.assertTrue(any(item["id"] == "interstellar-decal" for item in items))
         self.assertFalse(any("Special:FilePath" in item["image_url"] for item in items))
+
+    def test_f9_item_background_assets_are_served(self) -> None:
+        client = app.test_client()
+        for filename in ["titanium-white-zomba.png", "cristiano.png", "interstellar-decal.png"]:
+            response = client.get(f"/static/f9/items/{filename}")
+            self.assertEqual(response.status_code, 200)
+            self.assertTrue(response.data.startswith(b"\x89PNG\r\n\x1a\n"))
 
     def test_f9_daily_alias_still_renders_hub(self) -> None:
         html = build_flyer_html(product="f9_daily", date_str="2026-06-12", seed=9)
