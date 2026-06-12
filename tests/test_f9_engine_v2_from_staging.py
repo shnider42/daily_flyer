@@ -8,7 +8,7 @@ from web import app
 
 class F9EngineV2FromStagingTests(unittest.TestCase):
     def test_f9_hub_builds_arena_html_without_signup_by_default(self) -> None:
-        html = build_flyer_html(product="f9_daily", date_str="2026-06-12", seed=9)
+        html = build_flyer_html(product="f9_hub", date_str="2026-06-12", seed=9)
 
         self.assertIn("F9 Hub", html)
         self.assertNotIn("F9 Daily", html)
@@ -17,15 +17,18 @@ class F9EngineV2FromStagingTests(unittest.TestCase):
         self.assertIn("data-fa-boost-value", html)
         self.assertIn("fa-lane-option", html)
         self.assertIn("fa-slant-tab", html)
+        self.assertIn("F9 Command Board", html)
+        self.assertIn("Position board", html)
         self.assertIn("Featured cards", html)
+        self.assertIn("This Week in Rocket League History", html)
+        self.assertIn("Workshop Map of the Week", html)
         self.assertIn("daily", html)
         self.assertIn("weekly", html)
         self.assertIn("fa-feature-grid", html)
-        self.assertIn("fa-stage--broadcast", html)
-        self.assertIn("Position board placeholder", html)
         self.assertIn("RLCS Daily", html)
         self.assertIn("data-fa-rlcs-answer", html)
         self.assertIn("fa-choice-grid", html)
+        self.assertIn("Copy result", html)
         self.assertIn("Rocket League Jiporady", html)
         self.assertIn("data-fa-jiporady-board", html)
         self.assertNotIn("Guess the Pro", html)
@@ -37,6 +40,13 @@ class F9EngineV2FromStagingTests(unittest.TestCase):
         self.assertNotIn("fa-scoreboard", html)
         self.assertNotIn("hero-pill", html)
 
+    def test_f9_daily_alias_still_renders_hub(self) -> None:
+        html = build_flyer_html(product="f9_daily", date_str="2026-06-12", seed=9)
+
+        self.assertIn("F9 Hub", html)
+        self.assertIn("F9 Command Board", html)
+        self.assertNotIn("F9 Daily", html)
+
     def test_v2_route_renders_f9_daily_alias(self) -> None:
         client = app.test_client()
         response = client.get("/v2?product=f9-daily&date=2026-06-12&seed=9")
@@ -45,6 +55,7 @@ class F9EngineV2FromStagingTests(unittest.TestCase):
         self.assertIn(b"F9 Hub", response.data)
         self.assertNotIn(b"F9 Daily", response.data)
         self.assertIn(b"Featured cards", response.data)
+        self.assertIn(b"F9 Command Board", response.data)
         self.assertIn(b"RLCS Daily", response.data)
         self.assertIn(b"fa-boost-meter", response.data)
         self.assertIn(b"fa-slant-tab", response.data)
