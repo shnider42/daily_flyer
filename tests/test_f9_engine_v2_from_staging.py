@@ -12,7 +12,7 @@ class F9EngineV2FromStagingTests(unittest.TestCase):
 
         self.assertIn("F9 Hub", html)
         self.assertNotIn("F9 Daily", html)
-        self.assertIn("/static/f9_logo.png?v=transparent-2", html)
+        self.assertIn("/f9-logo-debug.png?v=transparent-3", html)
         self.assertNotIn("/static/f9_logo.svg", html)
         self.assertNotIn("F9 Community Control", html)
         self.assertNotIn("F9 match control", html)
@@ -66,12 +66,14 @@ class F9EngineV2FromStagingTests(unittest.TestCase):
         self.assertNotIn("fa-scoreboard", html)
         self.assertNotIn("hero-pill", html)
 
-    def test_f9_logo_static_asset_is_transparent_png(self) -> None:
+    def test_f9_logo_debug_route_serves_transparent_png(self) -> None:
         client = app.test_client()
-        response = client.get("/static/f9_logo.png")
+        response = client.get("/f9-logo-debug.png")
 
         self.assertEqual(response.status_code, 200)
         self.assertTrue(response.data.startswith(b"\x89PNG\r\n\x1a\n"))
+        self.assertEqual(response.headers.get("Cache-Control"), "no-store, no-cache, must-revalidate, max-age=0")
+        self.assertIn("X-F9-Logo-Bytes", response.headers)
         # PNG IHDR color type byte: 6 = truecolor with alpha, 4 = grayscale with alpha.
         self.assertIn(response.data[25], {4, 6})
 
@@ -80,7 +82,7 @@ class F9EngineV2FromStagingTests(unittest.TestCase):
 
         self.assertIn("F9 Hub", html)
         self.assertIn("F9 Command Board", html)
-        self.assertIn("/static/f9_logo.png?v=transparent-2", html)
+        self.assertIn("/f9-logo-debug.png?v=transparent-3", html)
         self.assertNotIn("/static/f9_logo.svg", html)
         self.assertNotIn("F9 Daily", html)
 
@@ -90,7 +92,7 @@ class F9EngineV2FromStagingTests(unittest.TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertIn(b"F9 Hub", response.data)
-        self.assertIn(b"/static/f9_logo.png?v=transparent-2", response.data)
+        self.assertIn(b"/f9-logo-debug.png?v=transparent-3", response.data)
         self.assertNotIn(b"/static/f9_logo.svg", response.data)
         self.assertNotIn(b"F9 Community Control", response.data)
         self.assertNotIn(b"F9 match control", response.data)
