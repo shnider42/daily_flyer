@@ -42,7 +42,7 @@ def _chips(item: FlyerItem) -> str:
 def _roster_html(item: FlyerItem) -> str:
     roster_url = item.data.get("roster_url", "")
     attr = f' data-fa-roster-url="{_a(roster_url)}"' if roster_url else ""
-    text = "Checking live roster…" if roster_url else "Live roster disabled until F9_TOURNEY_URL is set."
+    text = "Checking live roster…" if roster_url else "Live roster unavailable."
     return f'<div class="fa-roster"{attr}><span>Roster feed</span><strong>{_e(text)}</strong></div>'
 
 
@@ -55,16 +55,13 @@ def _queue_section(item: FlyerItem) -> str:
             <h2>{_e(item.title)}</h2>
             <p>{_e(item.body)}</p>
             {_chips(item)}
-            <div class="fa-actions">
-                {_button(item.url, "Open signup hub")}
-                {_button(str(item.data.get("repo_url", "")), "Repo", True)}
-            </div>
+            <div class="fa-actions">{_button(item.url, "Open signup hub")}</div>
             {_roster_html(item)}
         </div>
         <aside class="fa-queue-side">
             <span class="fa-side-number">01</span>
-            <strong>Queue desk</strong>
-            <p>Fast access to the tournament signup flow without making the page pretend to be the actual game menu.</p>
+            <strong>Signup live</strong>
+            <p>This panel only appears when an F9 event is active.</p>
         </aside>
     </section>
     """
@@ -102,45 +99,60 @@ def _feature_section(item: FlyerItem, index: int) -> str:
     """
 
 
-def _guess_pro_section(item: FlyerItem) -> str:
+def _rlcs_daily_section(item: FlyerItem) -> str:
     clues = item.data.get("clues", [])
     first = clues[0] if clues else "No clue loaded."
-    answer = f'{item.data.get("name", "")} — {item.data.get("role", "")}'
+    options = item.data.get("options", [])
+    options_html = "".join(
+        f'<button class="fa-choice" type="button" data-fa-choice="{_a(option)}">{_e(option)}</button>'
+        for option in options
+    )
     return f"""
-    <article class="fa-game fa-game--pro" data-fa-pro-clues="{_json(clues)}">
-        <div class="fa-slant-tab"><span>{_e(item.title)}</span><em>?</em></div>
+    <article class="fa-game fa-game--rlcs" data-fa-rlcs-answer="{_a(item.data.get("answer", ""))}" data-fa-rlcs-role="{_a(item.data.get("role", ""))}" data-fa-rlcs-clues="{_json(clues)}">
+        <div class="fa-slant-tab"><span>{_e(item.title)}</span><em>{_e(item.data.get("pool_size", ""))}</em></div>
         <div class="fa-game-body">
             <div class="fa-label">{_e(item.label)}</div>
             <p>{_e(item.body)}</p>
             <div class="fa-clue">Clue 1: {_e(first)}</div>
+            <div class="fa-choice-grid">{options_html}</div>
             <div class="fa-actions">
-                <button class="fa-btn" type="button" data-fa-action="next-clue">Next clue</button>
-                <button class="fa-btn fa-btn--ghost" type="button" data-fa-action="reveal-pro">Reveal</button>
+                <button class="fa-btn" type="button" data-fa-action="next-rlcs-clue">Next clue</button>
+                <button class="fa-btn fa-btn--ghost" type="button" data-fa-action="reveal-rlcs">Reveal</button>
             </div>
-            <div class="fa-answer" hidden>{_e(answer)}</div>
+            <div class="fa-answer" hidden></div>
         </div>
     </article>
     """
 
 
 def _jiporady_section(item: FlyerItem) -> str:
-    active = item.data.get("active_pack", {})
-    packs = item.data.get("packs", [])
+    board = item.data.get("board", [])
+    active = item.data.get("active_category", board[0] if board else {})
+    clues = active.get("clues", [])
+    clues_html = "".join(
+        f'<button class="fa-jip-clue" type="button" data-question="{_a(clue.get("question", ""))}" data-answer="{_a(clue.get("answer", ""))}">{_e(clue.get("value", ""))}</button>'
+        for clue in clues
+    )
+    launch = _button(item.url, "Open live Jiporady demo", True)
     return f"""
-    <article class="fa-game fa-game--jiporady" data-fa-jiporady="{_json(packs)}">
+    <article class="fa-game fa-game--jiporady" data-fa-jiporady-board="{_json(board)}">
         <div class="fa-slant-tab"><span>{_e(item.title)}</span><em>J</em></div>
         <div class="fa-game-body">
             <div class="fa-label">{_e(item.label)}</div>
             <p>{_e(item.body)}</p>
-            <div class="fa-pack">
-                <span>{_e(active.get("name"))}</span>
-                <strong>{_e(active.get("sample_question"))}</strong>
-                <em hidden>{_e(active.get("sample_answer"))}</em>
+            <div class="fa-jip-board">
+                <div class="fa-jip-category">{_e(active.get("category", ""))}</div>
+                <div class="fa-jip-clues">{clues_html}</div>
+            </div>
+            <div class="fa-pack" data-fa-jip-output>
+                <span>Choose a clue</span>
+                <strong>Pick a value to show the question here.</strong>
+                <em hidden></em>
             </div>
             <div class="fa-actions">
-                <button class="fa-btn" type="button" data-fa-action="next-pack">Switch pack</button>
-                <button class="fa-btn fa-btn--ghost" type="button" data-fa-action="reveal-pack">Reveal answer</button>
-                {_button(item.url, "Source", True)}
+                <button class="fa-btn" type="button" data-fa-action="next-jip-category">Switch category</button>
+                <button class="fa-btn fa-btn--ghost" type="button" data-fa-action="reveal-jip-answer">Reveal answer</button>
+                {launch}
             </div>
         </div>
     </article>
@@ -153,7 +165,7 @@ def render_f9_arena(experience: FlyerExperience) -> str:
     tournament = sections.get("tournament")
     watch = sections.get("watch")
     features = [item for item in experience.sections if item.kind not in {"tournament", "watch"}]
-    guess = _find(experience.actions, "guess_pro")
+    rlcs_daily = _find(experience.actions, "rlcs_daily")
     jiporady = _find(experience.actions, "jiporady")
 
     logo_url = str(experience.data.get("logo_url", "") or "")
@@ -167,38 +179,36 @@ def render_f9_arena(experience: FlyerExperience) -> str:
     feature_html = "".join(_feature_section(item, index + 2) for index, item in enumerate(features))
     games_html = "".join(
         html for html in [
-            _guess_pro_section(guess) if guess else "",
+            _rlcs_daily_section(rlcs_daily) if rlcs_daily else "",
             _jiporady_section(jiporady) if jiporady else "",
         ]
     )
 
     css = """
-    :root {
-        --bg:#05070c; --ink:#fff8ee; --muted:#c6d0dc; --faint:#8492a6;
-        --line:rgba(255,255,255,.14); --glass:rgba(8,13,23,.72);
-        --orange:#ff8a3d; --orange2:#e15b3e; --blue:#59e0ff; --blue2:#2678ff;
-        --green:#7dff9b; --gold:#e1b53e; --boost:0%;
-    }
+    :root { --bg:#05070c; --ink:#fff8ee; --muted:#c6d0dc; --faint:#8492a6; --line:rgba(255,255,255,.14); --glass:rgba(8,13,23,.72); --orange:#ff8a3d; --orange2:#e15b3e; --blue:#59e0ff; --blue2:#2678ff; --green:#7dff9b; --gold:#e1b53e; --f9-cyan:#2bc7ff; --f9-navy:#071522; --boost:0%; }
     * { box-sizing:border-box; }
     html { scroll-behavior:smooth; background:var(--bg); }
-    body { margin:0; color:var(--ink); background:radial-gradient(circle at 12% 10%,rgba(45,143,139,.14),transparent 26%),radial-gradient(circle at 84% 8%,rgba(255,138,61,.16),transparent 24%),linear-gradient(180deg,#071018 0%,#0a1017 44%,#05070c 100%); font-family:Inter,system-ui,sans-serif; overflow-x:hidden; }
+    body { margin:0; color:var(--ink); background:radial-gradient(circle at 12% 10%,rgba(43,199,255,.16),transparent 26%),radial-gradient(circle at 84% 8%,rgba(255,138,61,.18),transparent 24%),linear-gradient(180deg,#071018 0%,#0a1017 44%,#05070c 100%); font-family:Inter,system-ui,sans-serif; overflow-x:hidden; }
     a { color:inherit; }
     .fa-page { position:relative; isolation:isolate; width:min(1320px,calc(100vw - 24px)); margin:0 auto; padding:18px 0 48px; min-height:100vh; }
     .fa-page:before { content:""; position:fixed; inset:-4%; z-index:-3; background:linear-gradient(180deg,rgba(5,7,12,.46),rgba(5,7,12,.94)),var(--stadium) center/cover no-repeat; filter:saturate(1.12) brightness(.52); transform:scale(1.03); }
     .fa-page:after { content:""; position:fixed; inset:0; z-index:-2; pointer-events:none; opacity:.24; background:linear-gradient(rgba(255,255,255,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.04) 1px,transparent 1px); background-size:44px 44px; mask-image:linear-gradient(180deg,transparent,#000 12%,#000 82%,transparent); transform:perspective(900px) rotateX(62deg) translateY(24%); transform-origin:center bottom; }
-    .fa-corner-mark { position:fixed; top:14px; left:14px; z-index:8; display:flex; gap:.7rem; align-items:center; max-width:min(420px,calc(100vw - 150px)); padding:.58rem .72rem; border:1px solid var(--line); border-radius:999px; background:rgba(5,7,12,.66); backdrop-filter:blur(16px); box-shadow:0 14px 44px rgba(0,0,0,.28); text-decoration:none; }
-    .fa-corner-mark img { width:32px; height:auto; filter:drop-shadow(0 8px 18px rgba(0,0,0,.55)); }
-    .fa-corner-mark span { display:block; font-family:Rajdhani,Inter,sans-serif; text-transform:uppercase; letter-spacing:.16em; color:var(--green); font-weight:800; font-size:.72rem; }
-    .fa-corner-mark strong { display:block; font-size:.9rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; }
+    .fa-corner-mark { position:fixed; top:14px; left:14px; z-index:8; display:flex; gap:.85rem; align-items:center; max-width:min(460px,calc(100vw - 150px)); padding:.54rem .92rem .54rem .62rem; border:1px solid rgba(43,199,255,.45); border-radius:999px; background:linear-gradient(135deg,rgba(7,21,34,.88),rgba(43,199,255,.10) 46%,rgba(255,138,61,.14)); backdrop-filter:blur(16px); box-shadow:0 0 0 1px rgba(255,255,255,.04),0 14px 44px rgba(0,0,0,.30),0 0 34px rgba(43,199,255,.16); text-decoration:none; }
+    .fa-corner-mark img { width:54px; height:54px; object-fit:contain; border-radius:14px; padding:4px; background:rgba(255,255,255,.06); filter:drop-shadow(0 0 18px rgba(43,199,255,.46)); }
+    .fa-corner-mark span { display:block; font-family:Rajdhani,Inter,sans-serif; text-transform:uppercase; letter-spacing:.16em; color:var(--f9-cyan); font-weight:900; font-size:.72rem; }
+    .fa-corner-mark strong { display:block; font-size:.95rem; white-space:nowrap; overflow:hidden; text-overflow:ellipsis; color:#f7fbff; }
     .fa-boost-meter { position:fixed; top:14px; right:14px; z-index:9; width:116px; aspect-ratio:1; display:grid; place-items:center; border-radius:999px; border:1px solid rgba(255,255,255,.16); background:radial-gradient(circle at center,rgba(5,7,12,.96) 0 54%,transparent 55%),conic-gradient(var(--orange) 0 var(--boost), rgba(255,255,255,.12) var(--boost) 100%); box-shadow:0 0 54px rgba(255,138,61,.24), inset 0 0 34px rgba(255,255,255,.04); backdrop-filter:blur(12px); }
     .fa-boost-meter strong { display:block; font-family:Rajdhani,Inter,sans-serif; font-size:2.25rem; line-height:.82; text-align:center; }
     .fa-boost-meter span { display:block; margin-top:.16rem; color:var(--orange); font-size:.62rem; font-weight:900; letter-spacing:.16em; text-align:center; }
-    .fa-hero { min-height:92vh; display:grid; grid-template-columns:minmax(0,1.08fr) minmax(300px,.92fr); gap:clamp(18px,5vw,70px); align-items:center; padding:96px 0 42px; position:relative; }
+    .fa-hero { min-height:92vh; display:grid; grid-template-columns:minmax(0,1.08fr) minmax(300px,.92fr); gap:clamp(18px,5vw,70px); align-items:center; padding:112px 0 42px; position:relative; }
     .fa-hero:before { content:""; position:absolute; right:5%; top:11%; width:min(36vw,470px); height:min(36vw,470px); border-radius:999px; background:radial-gradient(circle,rgba(255,138,61,.24),rgba(255,138,61,.10) 34%,transparent 72%); filter:blur(18px); z-index:-1; }
-    .fa-hero:after { content:""; position:absolute; right:13%; top:20%; width:min(18vw,220px); height:min(18vw,220px); border-radius:50%; border:1px solid rgba(125,255,155,.16); box-shadow:0 0 0 24px rgba(125,255,155,.03),0 0 0 56px rgba(125,255,155,.02); z-index:-1; }
+    .fa-hero:after { content:""; position:absolute; right:13%; top:20%; width:min(18vw,220px); height:min(18vw,220px); border-radius:50%; border:1px solid rgba(43,199,255,.22); box-shadow:0 0 0 24px rgba(43,199,255,.04),0 0 0 56px rgba(255,138,61,.025); z-index:-1; }
+    .fa-hero-logo { display:flex; align-items:center; gap:1rem; margin-bottom:1.1rem; }
+    .fa-hero-logo img { width:96px; height:96px; object-fit:contain; filter:drop-shadow(0 0 32px rgba(43,199,255,.45)); }
+    .fa-hero-logo span { font-family:Rajdhani,Inter,sans-serif; color:var(--f9-cyan); letter-spacing:.18em; text-transform:uppercase; font-weight:900; }
     .fa-label { position:relative; display:inline-block; padding-left:18px; font-family:Rajdhani,Inter,sans-serif; letter-spacing:.16em; text-transform:uppercase; color:var(--green); font-weight:800; font-size:.76rem; }
     .fa-label:before { content:""; position:absolute; left:0; top:.52rem; width:8px; height:1px; background:currentColor; }
-    .fa-title { max-width:800px; padding:74px 0 24px; }
+    .fa-title { max-width:800px; padding:54px 0 24px; }
     .fa-title h1 { max-width:11.5ch; margin:14px 0 0; font-family:"Space Grotesk",Inter,system-ui,sans-serif; font-size:clamp(3.9rem,8vw,7.9rem); line-height:.88; letter-spacing:-.06em; font-weight:700; text-wrap:balance; text-shadow:0 0 40px rgba(255,138,61,.16); }
     .fa-title p { max-width:56ch; margin:32px 0 0; color:var(--muted); line-height:1.82; font-size:1.05rem; }
     .fa-actions,.fa-chips { display:flex; flex-wrap:wrap; gap:.65rem; align-items:center; margin-top:1rem; }
@@ -233,7 +243,7 @@ def render_f9_arena(experience: FlyerExperience) -> str:
     .fa-feature-grid { display:grid; grid-template-columns:repeat(4,minmax(0,1fr)); gap:16px; }
     .fa-feature { min-height:300px; display:grid; grid-template-rows:auto 1fr; filter:drop-shadow(0 18px 38px rgba(0,0,0,.28)); }
     .fa-slant-tab { display:flex; align-items:center; justify-content:space-between; gap:.7rem; min-height:38px; padding:.35rem .9rem .32rem 1rem; background:linear-gradient(90deg,#eafcff,#86ddff 52%,#2aa9df 82%,rgba(42,169,223,.24)); color:#062033; font-family:Rajdhani,Inter,sans-serif; text-transform:uppercase; letter-spacing:.06em; font-weight:800; clip-path:polygon(0 0,calc(100% - 18px) 0,100% 50%,calc(100% - 18px) 100%,0 100%); }
-    .fa-slant-tab em { width:24px; height:24px; display:grid; place-items:center; border-radius:999px; background:rgba(255,255,255,.72); color:#06314a; font-style:normal; font-size:.72rem; }
+    .fa-slant-tab em { min-width:24px; height:24px; padding:0 .35rem; display:grid; place-items:center; border-radius:999px; background:rgba(255,255,255,.72); color:#06314a; font-style:normal; font-size:.72rem; }
     .fa-feature-body,.fa-game-body { margin-top:3px; min-height:240px; padding:1rem; border:1px solid rgba(89,224,255,.18); background:linear-gradient(90deg,rgba(0,0,0,.74),rgba(8,13,23,.58)); clip-path:polygon(0 0,calc(100% - 18px) 0,100% 10px,100% 100%,0 100%); }
     .fa-feature--arena .fa-slant-tab { background:linear-gradient(90deg,#dff8ff,#59e0ff 62%,rgba(89,224,255,.24)); }
     .fa-feature--warmup .fa-slant-tab { background:linear-gradient(90deg,#e8fff0,#7dff9b 62%,rgba(125,255,155,.22)); }
@@ -242,12 +252,18 @@ def render_f9_arena(experience: FlyerExperience) -> str:
     .fa-chips span { display:inline-flex; min-height:26px; align-items:center; padding:0 .58rem; border-radius:3px; background:rgba(89,224,255,.10); border:1px solid rgba(89,224,255,.18); color:#d9f4ff; font-size:.72rem; font-weight:800; text-transform:uppercase; }
     .fa-games { display:grid; grid-template-columns:1fr 1fr; gap:18px; }
     .fa-game { min-height:340px; display:grid; grid-template-rows:auto 1fr; }
-    .fa-game--pro .fa-slant-tab { background:linear-gradient(90deg,#fff5d1,#e1b53e 62%,rgba(225,181,62,.22)); }
+    .fa-game--rlcs .fa-slant-tab { background:linear-gradient(90deg,#fff5d1,#e1b53e 62%,rgba(225,181,62,.22)); }
     .fa-game--jiporady .fa-slant-tab { background:linear-gradient(90deg,#eafcff,#59e0ff 62%,rgba(89,224,255,.22)); }
-    .fa-pack { display:grid; gap:.5rem; } .fa-pack span { color:var(--green); font-weight:850; } .fa-pack em { font-style:normal; }
+    .fa-choice-grid,.fa-jip-clues { display:grid; grid-template-columns:repeat(2,minmax(0,1fr)); gap:.55rem; margin-top:1rem; }
+    .fa-choice,.fa-jip-clue { min-height:38px; padding:.55rem .65rem; border:1px solid rgba(89,224,255,.24); background:rgba(89,224,255,.08); color:#eafcff; font:inherit; font-weight:800; cursor:pointer; text-align:left; clip-path:polygon(0 0,calc(100% - 12px) 0,100% 50%,calc(100% - 12px) 100%,0 100%); }
+    .fa-choice.is-correct { background:rgba(125,255,155,.22); border-color:rgba(125,255,155,.55); color:#f4fff7; }
+    .fa-choice.is-wrong { background:rgba(255,102,102,.18); border-color:rgba(255,102,102,.45); }
+    .fa-jip-board { margin-top:1rem; }
+    .fa-jip-category { padding:.65rem .8rem; color:#062033; background:linear-gradient(90deg,#eafcff,#59e0ff); font-family:Rajdhani,Inter,sans-serif; font-weight:900; letter-spacing:.08em; text-transform:uppercase; clip-path:polygon(0 0,calc(100% - 16px) 0,100% 50%,calc(100% - 16px) 100%,0 100%); }
+    .fa-pack { display:grid; gap:.5rem; } .fa-pack span { color:var(--green); font-weight:850; } .fa-pack em { font-style:normal; color:#f8fdff; }
     .fa-footer { margin-top:24px; text-align:center; color:var(--faint); font-weight:750; }
-    @media(max-width:960px){ .fa-corner-mark { max-width:calc(100vw - 128px); } .fa-hero,.fa-stage--queue,.fa-stage--broadcast,.fa-games { grid-template-columns:1fr; } .fa-hero { min-height:auto; padding-top:110px; } .fa-feature-grid { grid-template-columns:repeat(2,1fr); } .fa-queue-side { border-left:0; border-top:1px solid rgba(255,255,255,.11); } }
-    @media(max-width:640px){ .fa-page { width:calc(100vw - 16px); } .fa-boost-meter { width:92px; } .fa-boost-meter strong { font-size:1.85rem; } .fa-corner-mark strong { display:none; } .fa-lane-nav,.fa-feature-grid { grid-template-columns:1fr; } .fa-title h1 { font-size:clamp(3.3rem,20vw,5.4rem); } }
+    @media(max-width:960px){ .fa-corner-mark { max-width:calc(100vw - 128px); } .fa-hero,.fa-stage--queue,.fa-stage--broadcast,.fa-games { grid-template-columns:1fr; } .fa-hero { min-height:auto; padding-top:130px; } .fa-feature-grid { grid-template-columns:repeat(2,1fr); } .fa-queue-side { border-left:0; border-top:1px solid rgba(255,255,255,.11); } }
+    @media(max-width:640px){ .fa-page { width:calc(100vw - 16px); } .fa-boost-meter { width:92px; } .fa-boost-meter strong { font-size:1.85rem; } .fa-corner-mark strong { display:none; } .fa-corner-mark img { width:44px; height:44px; } .fa-lane-nav,.fa-feature-grid,.fa-choice-grid,.fa-jip-clues { grid-template-columns:1fr; } .fa-title h1 { font-size:clamp(3.3rem,20vw,5.4rem); } }
     """
 
     js = """
@@ -259,8 +275,8 @@ def render_f9_arena(experience: FlyerExperience) -> str:
         function requestBoostUpdate() { if (!ticking) { window.requestAnimationFrame(setBoost); ticking = true; } }
         window.addEventListener("scroll", requestBoostUpdate, { passive: true }); window.addEventListener("resize", requestBoostUpdate); setBoost();
         document.querySelectorAll("[data-fa-roster-url]").forEach(function(root){ var u = root.getAttribute("data-fa-roster-url"); if (!u) return; fetch(u,{cache:"no-store"}).then(function(r){return r.ok?r.json():null}).then(function(p){ if(!p) return; var e = Array.isArray(p.entries) ? p.entries : []; root.innerHTML = "<span>Roster feed</span><strong>" + e.length + " registered • signups " + (p.signups_open ? "open" : "closed") + "</strong>"; }).catch(function(){ root.innerHTML = "<span>Roster feed</span><strong>Roster feed unavailable.</strong>"; }); });
-        document.querySelectorAll("[data-fa-pro-clues]").forEach(function(root){ var clues = []; try { clues = JSON.parse(root.getAttribute("data-fa-pro-clues") || "[]"); } catch(e) {} var i = 0; var clue = root.querySelector(".fa-clue"); var ans = root.querySelector(".fa-answer"); var next = root.querySelector("[data-fa-action='next-clue']"); var reveal = root.querySelector("[data-fa-action='reveal-pro']"); if (next) next.addEventListener("click", function(){ i = Math.min(i + 1, Math.max(clues.length - 1, 0)); if (clue) clue.textContent = "Clue " + (i + 1) + ": " + (clues[i] || ""); }); if (reveal) reveal.addEventListener("click", function(){ if (ans) ans.hidden = false; }); });
-        document.querySelectorAll("[data-fa-jiporady]").forEach(function(root){ var packs = []; try { packs = JSON.parse(root.getAttribute("data-fa-jiporady") || "[]"); } catch(e) {} if (!packs.length) return; var i = 0; var n = root.querySelector(".fa-pack span"); var q = root.querySelector(".fa-pack strong"); var a = root.querySelector(".fa-pack em"); function render(){ var p = packs[i % packs.length] || {}; if (n) n.textContent = p.name || ""; if (q) q.textContent = p.sample_question || ""; if (a) { a.textContent = p.sample_answer || ""; a.hidden = true; } } var next = root.querySelector("[data-fa-action='next-pack']"); var reveal = root.querySelector("[data-fa-action='reveal-pack']"); if (next) next.addEventListener("click", function(){ i = (i + 1) % packs.length; render(); }); if (reveal) reveal.addEventListener("click", function(){ if (a) a.hidden = false; }); });
+        document.querySelectorAll("[data-fa-rlcs-answer]").forEach(function(root){ var clues=[]; try{clues=JSON.parse(root.getAttribute("data-fa-rlcs-clues")||"[]");}catch(e){} var answer=root.getAttribute("data-fa-rlcs-answer")||""; var role=root.getAttribute("data-fa-rlcs-role")||""; var i=0; var clue=root.querySelector(".fa-clue"); var output=root.querySelector(".fa-answer"); function showAnswer(prefix){ if(output){ output.hidden=false; output.innerHTML="<span>"+prefix+"</span><strong>"+answer+"</strong><em>"+role+"</em>"; }} root.querySelectorAll("[data-fa-choice]").forEach(function(btn){ btn.addEventListener("click",function(){ var pick=btn.getAttribute("data-fa-choice")||""; btn.classList.add(pick===answer?"is-correct":"is-wrong"); root.querySelectorAll("[data-fa-choice]").forEach(function(other){ if((other.getAttribute("data-fa-choice")||"")===answer) other.classList.add("is-correct"); }); showAnswer(pick===answer?"Correct":"Answer"); }); }); var next=root.querySelector("[data-fa-action='next-rlcs-clue']"); if(next) next.addEventListener("click",function(){ i=Math.min(i+1,Math.max(clues.length-1,0)); if(clue) clue.textContent="Clue "+(i+1)+": "+(clues[i]||""); }); var reveal=root.querySelector("[data-fa-action='reveal-rlcs']"); if(reveal) reveal.addEventListener("click",function(){ showAnswer("Answer"); }); });
+        document.querySelectorAll("[data-fa-jiporady-board]").forEach(function(root){ var board=[]; try{board=JSON.parse(root.getAttribute("data-fa-jiporady-board")||"[]");}catch(e){} if(!board.length)return; var index=0; var category=root.querySelector(".fa-jip-category"); var clueGrid=root.querySelector(".fa-jip-clues"); var output=root.querySelector("[data-fa-jip-output]"); var activeAnswer=""; function renderCategory(){ var cat=board[index%board.length]||{}; if(category) category.textContent=cat.category||""; if(clueGrid){ clueGrid.innerHTML=""; (cat.clues||[]).forEach(function(clue){ var btn=document.createElement("button"); btn.className="fa-jip-clue"; btn.type="button"; btn.textContent=clue.value||""; btn.addEventListener("click",function(){ activeAnswer=clue.answer||""; if(output){ output.innerHTML="<span>"+(cat.category||"Clue")+"</span><strong>"+(clue.question||"")+"</strong><em hidden>"+activeAnswer+"</em>"; } }); clueGrid.appendChild(btn); }); } if(output){ output.innerHTML="<span>Choose a clue</span><strong>Pick a value to show the question here.</strong><em hidden></em>"; } activeAnswer=""; } var next=root.querySelector("[data-fa-action='next-jip-category']"); if(next) next.addEventListener("click",function(){ index=(index+1)%board.length; renderCategory(); }); var reveal=root.querySelector("[data-fa-action='reveal-jip-answer']"); if(reveal) reveal.addEventListener("click",function(){ var em=output?output.querySelector("em"):null; if(em) em.hidden=false; }); });
     })();
     """
 
@@ -271,7 +287,7 @@ def render_f9_arena(experience: FlyerExperience) -> str:
 <main class="fa-page" style="--stadium:url('{_a(stadium_url)}')">
     <a class="fa-corner-mark" href="#top" aria-label="Back to top"><img src="{_a(logo_url)}" alt="F9 logo"><span>{_e(experience.title)}</span><strong>{_e(experience.date_label)}</strong></a>
     <div class="fa-boost-meter" data-fa-boost-meter role="meter" aria-label="Scroll boost" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div><strong data-fa-boost-value>0</strong><span>BOOST</span></div></div>
-    <section class="fa-hero" id="top"><div class="fa-title"><div class="fa-label">{_e(lead.label)}</div><h1>{_e(experience.title)}</h1><p>{_e(lead.title)} {_e(lead.body)}</p><div class="fa-actions">{_button(str(experience.data.get("tournament_url", "")), "Signup hub")}{_button(str(experience.data.get("rl_esports_news_url", "")), "RLCS news", True)}{_button(str(experience.data.get("jiporady_repo_url", "")), "Jiporady source", True)}</div></div><nav class="fa-lane-nav" aria-label="F9 Hub sections">{lane_html}</nav></section>
-    <div class="fa-track">{_queue_section(tournament) if tournament else ""}{_watch_section(watch) if watch else ""}<section class="fa-feature-grid">{feature_html}</section><section class="fa-games">{games_html}</section></div>
+    <section class="fa-hero" id="top"><div class="fa-title"><div class="fa-hero-logo"><img src="{_a(logo_url)}" alt="F9 logo"><span>F9 Community Control</span></div><div class="fa-label">{_e(lead.label)}</div><h1>{_e(experience.title)}</h1><p>{_e(lead.title)} {_e(lead.body)}</p><div class="fa-actions">{_button(str(experience.data.get("tournament_url", "")), "Signup hub")}{_button(str(experience.data.get("rl_esports_news_url", "")), "RLCS news", True)}{_button(str(experience.data.get("jiporady_url", "")), "Open live Jiporady", True)}</div></div><nav class="fa-lane-nav" aria-label="F9 Hub sections">{lane_html}</nav></section>
+    <div class="fa-track">{_queue_section(tournament) if tournament else ""}{_watch_section(watch) if watch else ""}<section class="fa-feature-grid">{feature_html}</section><section class="fa-games" id="games">{games_html}</section></div>
     <footer class="fa-footer">{_e(experience.footer)}</footer>
 </main><script>{js}</script></body></html>"""
