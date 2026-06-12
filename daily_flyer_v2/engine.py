@@ -3,8 +3,9 @@ from __future__ import annotations
 from daily_flyer.utils import resolve_date
 from daily_flyer_v2.context import FlyerContext
 from daily_flyer_v2.experience import FlyerExperience
-from daily_flyer_v2.products import birthday_helper, irish_today, scrum_daily, your_passage
+from daily_flyer_v2.products import birthday_helper, f9_daily, irish_today, scrum_daily, your_passage
 from daily_flyer_v2.renderers.birthday_helper import render_birthday_helper
+from daily_flyer_v2.renderers.f9_arena import render_f9_arena
 from daily_flyer_v2.renderers.passage_path import render_passage_path
 from daily_flyer_v2.renderers.publication import render_publication
 from daily_flyer_v2.renderers.scrum_board import render_scrum_board
@@ -17,6 +18,8 @@ PRODUCT_BUILDERS = {
     "this_day_birthday": birthday_helper.build,
     "birthday_helper": birthday_helper.build,
     "scrum_daily": scrum_daily.build,
+    "f9_daily": f9_daily.build,
+    "f9": f9_daily.build,
 }
 
 RENDERERS = {
@@ -24,6 +27,7 @@ RENDERERS = {
     "passage_path": render_passage_path,
     "birthday_helper": render_birthday_helper,
     "scrum_board": render_scrum_board,
+    "f9_arena": render_f9_arena,
 }
 
 
