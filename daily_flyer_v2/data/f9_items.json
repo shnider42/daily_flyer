@@ -6,9 +6,9 @@
     "rarity": "Exotic",
     "image_url": "/static/f9/items/titanium-white-zomba.png",
     "source_url": "",
-    "source_name": "Curated reference",
+    "source_name": "F9 starter art",
     "caption": "The classic flex. Use only if the post-game apology is also premium.",
-    "rights_note": "Curated fan/community use; replace if project scales."
+    "rights_note": "Original stylized starter background for F9 Hub; replace with curated item art if the project scales."
   },
   {
     "id": "cristiano",
@@ -17,9 +17,9 @@
     "rarity": "Common",
     "image_url": "/static/f9/items/cristiano.png",
     "source_url": "",
-    "source_name": "Curated reference",
+    "source_name": "F9 starter art",
     "caption": "Readable, clean, and impossible to blame for a missed open net.",
-    "rights_note": "Curated fan/community use; replace if project scales."
+    "rights_note": "Original stylized starter background for F9 Hub; replace with curated item art if the project scales."
   },
   {
     "id": "alpha-boost",
@@ -28,9 +28,9 @@
     "rarity": "Limited",
     "image_url": "/static/f9/items/alpha-boost.png",
     "source_url": "",
-    "source_name": "Curated reference",
+    "source_name": "F9 starter art",
     "caption": "The mythical sound of someone either peaking or pretending they are.",
-    "rights_note": "Curated fan/community use; replace if project scales."
+    "rights_note": "Original stylized starter background for F9 Hub; replace with curated item art if the project scales."
   },
   {
     "id": "big-splash",
@@ -39,9 +39,9 @@
     "rarity": "Limited",
     "image_url": "/static/f9/items/big-splash.png",
     "source_url": "",
-    "source_name": "Curated reference",
+    "source_name": "F9 starter art",
     "caption": "For goals that deserved cinema, or at least a laugh in Discord.",
-    "rights_note": "Curated fan/community use; replace if project scales."
+    "rights_note": "Original stylized starter background for F9 Hub; replace with curated item art if the project scales."
   },
   {
     "id": "dueling-dragons",
@@ -50,9 +50,9 @@
     "rarity": "Import",
     "image_url": "/static/f9/items/dueling-dragons.png",
     "source_url": "",
-    "source_name": "Curated reference",
+    "source_name": "F9 starter art",
     "caption": "Overqualified goal explosion for suspicious ranked goals.",
-    "rights_note": "Curated fan/community use; replace if project scales."
+    "rights_note": "Original stylized starter background for F9 Hub; replace with curated item art if the project scales."
   },
   {
     "id": "standard-boost",
@@ -61,8 +61,52 @@
     "rarity": "Common",
     "image_url": "/static/f9/items/standard-boost.png",
     "source_url": "",
-    "source_name": "Curated reference",
+    "source_name": "F9 starter art",
     "caption": "Low visual noise. High teammate appreciation.",
-    "rights_note": "Curated fan/community use; replace if project scales."
+    "rights_note": "Original stylized starter background for F9 Hub; replace with curated item art if the project scales."
+  },
+  {
+    "id": "fennec-body",
+    "name": "Fennec Body",
+    "category": "Body",
+    "rarity": "Import",
+    "image_url": "/static/f9/items/fennec-body.png",
+    "source_url": "",
+    "source_name": "F9 starter art",
+    "caption": "Boxy, readable, and built for players who want the touch to feel honest.",
+    "rights_note": "Original stylized starter background for F9 Hub; replace with curated item art if the project scales."
+  },
+  {
+    "id": "octane-body",
+    "name": "Octane Body",
+    "category": "Body",
+    "rarity": "Common",
+    "image_url": "/static/f9/items/octane-body.png",
+    "source_url": "",
+    "source_name": "F9 starter art",
+    "caption": "The default legend. No excuses, just kickoff, recover, repeat.",
+    "rights_note": "Original stylized starter background for F9 Hub; replace with curated item art if the project scales."
+  },
+  {
+    "id": "black-dieci",
+    "name": "Black Dieci",
+    "category": "Wheels",
+    "rarity": "Exotic",
+    "image_url": "/static/f9/items/black-dieci.png",
+    "source_url": "",
+    "source_name": "F9 starter art",
+    "caption": "Clean wheels for players who want the flex to whisper instead of shout.",
+    "rights_note": "Original stylized starter background for F9 Hub; replace with curated item art if the project scales."
+  },
+  {
+    "id": "interstellar-decal",
+    "name": "Interstellar Decal",
+    "category": "Decal",
+    "rarity": "Black Market",
+    "image_url": "/static/f9/items/interstellar-decal.png",
+    "source_url": "",
+    "source_name": "F9 starter art",
+    "caption": "Space car energy for nights when every touch feels slightly cosmic.",
+    "rights_note": "Original stylized starter background for F9 Hub; replace with curated item art if the project scales."
   }
 ]
