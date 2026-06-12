@@ -3,33 +3,37 @@ from __future__ import annotations
 F9_LOGO_URL = "/f9-logo-debug.png?v=transparent-3"
 F9_STADIUM_URL = "https://raw.githubusercontent.com/shnider42/f9-tourney/main/static/stadium.jpg"
 RL_ESPORTS_NEWS_URL = "https://esports.rocketleague.com/news"
-ROCKET_LEAGUE_WIKI_FILE = "https://rocketleague.fandom.com/wiki/Special:FilePath/"
 
 GARAGE_ITEMS = [
     {
+        "slug": "cristiano",
         "name": "Cristiano wheels",
         "body": "Readable, clean, and impossible to blame for a missed open net.",
-        "image_url": ROCKET_LEAGUE_WIKI_FILE + "Cristiano_wheels_icon.png",
+        "image_url": "/f9-item-image/cristiano?v=garage-1",
     },
     {
+        "slug": "zomba",
         "name": "Titanium White Zomba",
         "body": "The classic flex. Use only if the post-game apology is also premium.",
-        "image_url": ROCKET_LEAGUE_WIKI_FILE + "Zomba_wheels_icon.png",
+        "image_url": "/f9-item-image/zomba?v=garage-1",
     },
     {
+        "slug": "standard",
         "name": "Standard boost",
         "body": "Low visual noise. High teammate appreciation.",
-        "image_url": ROCKET_LEAGUE_WIKI_FILE + "Standard_rocket_boost_icon.png",
+        "image_url": "/f9-item-image/standard?v=garage-1",
     },
     {
+        "slug": "big-splash",
         "name": "Big Splash",
         "body": "For goals that deserved cinema, or at least a laugh in Discord.",
-        "image_url": ROCKET_LEAGUE_WIKI_FILE + "Big_Splash_goal_explosion_icon.png",
+        "image_url": "/f9-item-image/big-splash?v=garage-1",
     },
     {
+        "slug": "dueling-dragons",
         "name": "Dueling Dragons",
         "body": "Overqualified goal explosion for suspicious ranked goals.",
-        "image_url": ROCKET_LEAGUE_WIKI_FILE + "Dueling_Dragons_goal_explosion_icon.png",
+        "image_url": "/f9-item-image/dueling-dragons?v=garage-1",
     },
 ]
 
