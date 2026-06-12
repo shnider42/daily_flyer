@@ -3,13 +3,34 @@ from __future__ import annotations
 F9_LOGO_URL = "https://raw.githubusercontent.com/shnider42/f9-tourney/main/static/f9_logo.png"
 F9_STADIUM_URL = "https://raw.githubusercontent.com/shnider42/f9-tourney/main/static/stadium.jpg"
 RL_ESPORTS_NEWS_URL = "https://esports.rocketleague.com/news"
+ROCKET_LEAGUE_WIKI_FILE = "https://rocketleague.fandom.com/wiki/Special:FilePath/"
 
 GARAGE_ITEMS = [
-    ("Cristiano wheels", "Readable, clean, and impossible to blame for a missed open net."),
-    ("Titanium White Zomba", "The classic flex. Use only if the post-game apology is also premium."),
-    ("Standard boost", "Low visual noise. High teammate appreciation."),
-    ("Big Splash", "For goals that deserved cinema, or at least a laugh in Discord."),
-    ("Dueling Dragons", "Overqualified goal explosion for suspicious ranked goals."),
+    {
+        "name": "Cristiano wheels",
+        "body": "Readable, clean, and impossible to blame for a missed open net.",
+        "image_url": ROCKET_LEAGUE_WIKI_FILE + "Cristiano_wheels_icon.png",
+    },
+    {
+        "name": "Titanium White Zomba",
+        "body": "The classic flex. Use only if the post-game apology is also premium.",
+        "image_url": ROCKET_LEAGUE_WIKI_FILE + "Zomba_wheels_icon.png",
+    },
+    {
+        "name": "Standard boost",
+        "body": "Low visual noise. High teammate appreciation.",
+        "image_url": ROCKET_LEAGUE_WIKI_FILE + "Standard_rocket_boost_icon.png",
+    },
+    {
+        "name": "Big Splash",
+        "body": "For goals that deserved cinema, or at least a laugh in Discord.",
+        "image_url": ROCKET_LEAGUE_WIKI_FILE + "Big_Splash_goal_explosion_icon.png",
+    },
+    {
+        "name": "Dueling Dragons",
+        "body": "Overqualified goal explosion for suspicious ranked goals.",
+        "image_url": ROCKET_LEAGUE_WIKI_FILE + "Dueling_Dragons_goal_explosion_icon.png",
+    },
 ]
 
 WARMUPS = [
@@ -27,8 +48,38 @@ COMMAND_BOARD_PROMPTS = [
 ]
 
 ROCKET_LEAGUE_HISTORY = [
-    {"title": "This Week in Rocket League History", "body": "Manual placeholder: feature one remembered RLCS moment, roster era, mechanic discovery, or community milestone for the current week.", "cadence": "weekly", "source_note": "Curated manually until a better source is chosen."},
-    {"title": "This Week in Rocket League History", "body": "Manual placeholder: highlight a classic team, caster call, or old ranked relic that newer players may not know.", "cadence": "weekly", "source_note": "Curated manually until a better source is chosen."},
+    {
+        "month_day": "06-10",
+        "title": "This Week in Rocket League History",
+        "body": "June 10, 2018: Team Dignitas won the RLCS Season 5 world championship after jstn.'s zero-second equalizer forced overtime and Turbopolsa scored the winner.",
+        "cadence": "weekly",
+        "source_note": "Seeded curated history entry; verify against source before publishing broadly.",
+        "source_url": "https://en.wikipedia.org/wiki/Turbopolsa",
+    },
+    {
+        "month_day": "06-15",
+        "title": "This Week in Rocket League History",
+        "body": "June 2016: the first RLCS season reached its finals era, with iBUYPOWER Cosmic becoming the first RLCS champion.",
+        "cadence": "weekly",
+        "source_note": "Seeded curated history entry; verify exact event date before publishing broadly.",
+        "source_url": "https://en.wikipedia.org/wiki/Rocket_League_Championship_Series",
+    },
+    {
+        "month_day": "07-07",
+        "title": "This Week in Rocket League History",
+        "body": "July 7, 2015: Rocket League launched on PlayStation 4 and Windows, beginning the car-soccer timeline that eventually became RLCS culture.",
+        "cadence": "weekly",
+        "source_note": "Seeded curated history entry.",
+        "source_url": "https://en.wikipedia.org/wiki/Rocket_League",
+    },
+    {
+        "month_day": "09-23",
+        "title": "This Week in Rocket League History",
+        "body": "September 23, 2020: Rocket League moved to free-to-play, changing the size and shape of the player base overnight.",
+        "cadence": "weekly",
+        "source_note": "Seeded curated history entry.",
+        "source_url": "https://en.wikipedia.org/wiki/Rocket_League",
+    },
 ]
 
 WORKSHOP_MAPS = [
