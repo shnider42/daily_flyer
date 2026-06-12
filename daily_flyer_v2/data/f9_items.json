@@ -1,0 +1,68 @@
+[
+  {
+    "id": "titanium-white-zomba",
+    "name": "Titanium White Zomba",
+    "category": "Wheels",
+    "rarity": "Exotic",
+    "image_url": "/static/f9/items/titanium-white-zomba.png",
+    "source_url": "",
+    "source_name": "Curated reference",
+    "caption": "The classic flex. Use only if the post-game apology is also premium.",
+    "rights_note": "Curated fan/community use; replace if project scales."
+  },
+  {
+    "id": "cristiano",
+    "name": "Cristiano wheels",
+    "category": "Wheels",
+    "rarity": "Common",
+    "image_url": "/static/f9/items/cristiano.png",
+    "source_url": "",
+    "source_name": "Curated reference",
+    "caption": "Readable, clean, and impossible to blame for a missed open net.",
+    "rights_note": "Curated fan/community use; replace if project scales."
+  },
+  {
+    "id": "alpha-boost",
+    "name": "Alpha Boost",
+    "category": "Rocket Boost",
+    "rarity": "Limited",
+    "image_url": "/static/f9/items/alpha-boost.png",
+    "source_url": "",
+    "source_name": "Curated reference",
+    "caption": "The mythical sound of someone either peaking or pretending they are.",
+    "rights_note": "Curated fan/community use; replace if project scales."
+  },
+  {
+    "id": "big-splash",
+    "name": "Big Splash",
+    "category": "Goal Explosion",
+    "rarity": "Limited",
+    "image_url": "/static/f9/items/big-splash.png",
+    "source_url": "",
+    "source_name": "Curated reference",
+    "caption": "For goals that deserved cinema, or at least a laugh in Discord.",
+    "rights_note": "Curated fan/community use; replace if project scales."
+  },
+  {
+    "id": "dueling-dragons",
+    "name": "Dueling Dragons",
+    "category": "Goal Explosion",
+    "rarity": "Import",
+    "image_url": "/static/f9/items/dueling-dragons.png",
+    "source_url": "",
+    "source_name": "Curated reference",
+    "caption": "Overqualified goal explosion for suspicious ranked goals.",
+    "rights_note": "Curated fan/community use; replace if project scales."
+  },
+  {
+    "id": "standard-boost",
+    "name": "Standard boost",
+    "category": "Rocket Boost",
+    "rarity": "Common",
+    "image_url": "/static/f9/items/standard-boost.png",
+    "source_url": "",
+    "source_name": "Curated reference",
+    "caption": "Low visual noise. High teammate appreciation.",
+    "rights_note": "Curated fan/community use; replace if project scales."
+  }
+]
