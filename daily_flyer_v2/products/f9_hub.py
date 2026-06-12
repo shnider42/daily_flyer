@@ -24,6 +24,7 @@ F9_TOURNEY_URL = os.environ.get("F9_TOURNEY_URL", "").strip()
 F9_SIGNUP_ENABLED = os.environ.get("F9_SIGNUP_ENABLED", "").strip().lower() in {"1", "true", "yes", "on"}
 F9_JIPORADY_URL = os.environ.get("F9_JIPORADY_URL", "").strip()
 F9_DISCORD_URL = os.environ.get("F9_DISCORD_URL", "").strip()
+F9_LEGAL_NOTE = "F9 Hub is an unofficial Rocket League community project."
 
 
 def _pick(items, ordinal: int, offset: int = 0):
@@ -93,6 +94,12 @@ def build(context: FlyerContext) -> FlyerExperience:
             )
         )
 
+    garage_chips = ["daily"]
+    if garage.get("category"):
+        garage_chips.append(garage["category"])
+    if garage.get("rarity"):
+        garage_chips.append(garage["rarity"])
+
     sections.extend(
         [
             FlyerItem(
@@ -106,9 +113,17 @@ def build(context: FlyerContext) -> FlyerExperience:
             FlyerItem(
                 "garage",
                 garage["name"],
-                garage["body"],
+                garage.get("caption") or garage.get("body") or "",
                 "Garage pick",
-                data={"chips": ["daily", "cosmetic"], "image_url": garage.get("image_url", "")},
+                garage.get("source_url") or None,
+                data={
+                    "chips": garage_chips,
+                    "image_url": garage.get("image_url", ""),
+                    "category": garage.get("category", ""),
+                    "rarity": garage.get("rarity", ""),
+                    "source_name": garage.get("source_name", ""),
+                    "rights_note": garage.get("rights_note", ""),
+                },
             ),
             FlyerItem("warmup", warmup_name, warmup_body, "Warmup drill", data={"chips": ["daily", "freeplay", "before ranked"]}),
             FlyerItem(
@@ -159,5 +174,6 @@ def build(context: FlyerContext) -> FlyerExperience:
             "rl_esports_news_url": RL_ESPORTS_NEWS_URL,
             "lanes": lanes,
             "content_card_count": 8,
+            "legal_note": F9_LEGAL_NOTE,
         },
     )
