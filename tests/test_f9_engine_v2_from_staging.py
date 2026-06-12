@@ -11,10 +11,14 @@ class F9EngineV2FromStagingTests(unittest.TestCase):
         html = build_flyer_html(product="f9_daily", date_str="2026-06-12", seed=9)
 
         self.assertIn("F9 Daily", html)
-        self.assertIn("fa-scoreboard", html)
+        self.assertIn("fa-boost-meter", html)
+        self.assertIn("data-fa-boost-value", html)
+        self.assertIn("fa-stage--queue", html)
+        self.assertIn("fa-stage--broadcast", html)
         self.assertIn("Guess the Pro", html)
         self.assertIn("Rocket League Jiporady", html)
         self.assertIn("Signup hub", html)
+        self.assertNotIn("fa-scoreboard", html)
         self.assertNotIn("hero-pill", html)
 
     def test_v2_route_renders_f9_daily_alias(self) -> None:
@@ -23,7 +27,8 @@ class F9EngineV2FromStagingTests(unittest.TestCase):
 
         self.assertEqual(response.status_code, 200)
         self.assertIn(b"F9 Daily", response.data)
-        self.assertIn(b"fa-scoreboard", response.data)
+        self.assertIn(b"fa-boost-meter", response.data)
+        self.assertNotIn(b"fa-scoreboard", response.data)
 
 
 if __name__ == "__main__":
