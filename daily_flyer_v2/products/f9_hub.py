@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import os
 import random
+from datetime import timedelta
 
 from daily_flyer_v2.context import FlyerContext
 from daily_flyer_v2.data.f9_hub import (
@@ -33,6 +34,15 @@ def _tournament_url() -> str:
     return F9_TOURNEY_URL.rstrip("/") if F9_TOURNEY_URL else ""
 
 
+def _pick_history(selected_date, ordinal: int) -> dict:
+    week_start = selected_date - timedelta(days=selected_date.weekday())
+    week_days = {(week_start + timedelta(days=offset)).strftime("%m-%d") for offset in range(7)}
+    matches = [entry for entry in ROCKET_LEAGUE_HISTORY if entry.get("month_day") in week_days]
+    if matches:
+        return matches[ordinal % len(matches)]
+    return _pick(ROCKET_LEAGUE_HISTORY, selected_date.isocalendar().week, 1)
+
+
 def _rlcs_daily_payload(ordinal: int, rng: random.Random) -> dict:
     answer = _pick(RLCS_DAILY_PROS, ordinal, 17)
     decoys = [pro["name"] for pro in RLCS_DAILY_PROS if pro["name"] != answer["name"]]
@@ -52,10 +62,10 @@ def build(context: FlyerContext) -> FlyerExperience:
     ordinal = selected.toordinal()
     rng = random.Random(context.seed)
 
-    garage_name, garage_body = _pick(GARAGE_ITEMS, ordinal, 2)
+    garage = _pick(GARAGE_ITEMS, ordinal, 2)
     warmup_name, warmup_body = _pick(WARMUPS, ordinal, 11)
     command = _pick(COMMAND_BOARD_PROMPTS, ordinal, 5)
-    history = _pick(ROCKET_LEAGUE_HISTORY, selected.isocalendar().week, 1)
+    history = _pick_history(selected, ordinal)
     workshop = _pick(WORKSHOP_MAPS, selected.isocalendar().week, 3)
     jiporady = _pick(JIPORADY_BOARD, selected.isocalendar().week)
 
@@ -93,9 +103,22 @@ def build(context: FlyerContext) -> FlyerExperience:
                 command.get("cta_url") or None,
                 data={"mode": command["mode"], "chips": ["daily", command["mode"], "community"]},
             ),
-            FlyerItem("garage", garage_name, garage_body, "Garage pick", data={"chips": ["daily", "cosmetic"]}),
+            FlyerItem(
+                "garage",
+                garage["name"],
+                garage["body"],
+                "Garage pick",
+                data={"chips": ["daily", "cosmetic"], "image_url": garage.get("image_url", "")},
+            ),
             FlyerItem("warmup", warmup_name, warmup_body, "Warmup drill", data={"chips": ["daily", "freeplay", "before ranked"]}),
-            FlyerItem("history", history["title"], history["body"], "History card", data={"chips": [history["cadence"], "manual source"], "source_note": history["source_note"]}),
+            FlyerItem(
+                "history",
+                history["title"],
+                history["body"],
+                "History card",
+                history.get("source_url") or None,
+                data={"chips": [history["cadence"], "sourced"], "source_note": history["source_note"], "source_url": history.get("source_url", "")},
+            ),
             FlyerItem("workshop", workshop["title"], workshop["body"], "Workshop card", data={"chips": [workshop["cadence"], "manual source"], "source_note": workshop["source_note"]}),
         ]
     )
