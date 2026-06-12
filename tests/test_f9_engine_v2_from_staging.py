@@ -3,6 +3,7 @@ from __future__ import annotations
 import unittest
 
 from daily_flyer_v2 import build_flyer_html
+from daily_flyer_v2.data.f9_items import load_f9_items
 from web import app
 
 
@@ -41,7 +42,8 @@ class F9EngineV2FromStagingTests(unittest.TestCase):
         self.assertIn("--card-bg:url", html)
         self.assertIn("fa-card-image-wrap", html)
         self.assertIn("fa-card-image", html)
-        self.assertIn("/f9-item-image/", html)
+        self.assertIn("/static/f9/items/", html)
+        self.assertNotIn("/f9-item-image/", html)
         self.assertNotIn("Special:FilePath", html)
         self.assertIn("RLCS Daily", html)
         self.assertIn("data-fa-rlcs-answer", html)
@@ -78,14 +80,14 @@ class F9EngineV2FromStagingTests(unittest.TestCase):
         # PNG IHDR color type byte: 6 = truecolor with alpha, 4 = grayscale with alpha.
         self.assertIn(response.data[25], {4, 6})
 
-    def test_f9_item_image_route_has_local_fallback_art(self) -> None:
-        client = app.test_client()
-        response = client.get("/f9-item-image/cristiano?fallback=1")
+    def test_f9_items_load_from_curated_json_catalog(self) -> None:
+        items = load_f9_items()
 
-        self.assertEqual(response.status_code, 200)
-        self.assertEqual(response.mimetype, "image/svg+xml")
-        self.assertIn(b"Cristiano wheels", response.data)
-        self.assertEqual(response.headers.get("X-F9-Item-Image-Source"), "fallback")
+        self.assertGreaterEqual(len(items), 4)
+        self.assertTrue(all(item["image_url"].startswith("/static/f9/items/") for item in items))
+        self.assertTrue(all("caption" in item for item in items))
+        self.assertTrue(any(item["id"] == "titanium-white-zomba" for item in items))
+        self.assertFalse(any("Special:FilePath" in item["image_url"] for item in items))
 
     def test_f9_daily_alias_still_renders_hub(self) -> None:
         html = build_flyer_html(product="f9_daily", date_str="2026-06-12", seed=9)
@@ -93,7 +95,8 @@ class F9EngineV2FromStagingTests(unittest.TestCase):
         self.assertIn("F9 Hub", html)
         self.assertIn("F9 Command Board", html)
         self.assertIn("/f9-logo-debug.png?v=transparent-3", html)
-        self.assertIn("/f9-item-image/", html)
+        self.assertIn("/static/f9/items/", html)
+        self.assertNotIn("/f9-item-image/", html)
         self.assertNotIn("/static/f9_logo.svg", html)
         self.assertNotIn("F9 Daily", html)
 
@@ -104,7 +107,8 @@ class F9EngineV2FromStagingTests(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertIn(b"F9 Hub", response.data)
         self.assertIn(b"/f9-logo-debug.png?v=transparent-3", response.data)
-        self.assertIn(b"/f9-item-image/", response.data)
+        self.assertIn(b"/static/f9/items/", response.data)
+        self.assertNotIn(b"/f9-item-image/", response.data)
         self.assertNotIn(b"/static/f9_logo.svg", response.data)
         self.assertNotIn(b"F9 Community Control", response.data)
         self.assertNotIn(b"F9 match control", response.data)
