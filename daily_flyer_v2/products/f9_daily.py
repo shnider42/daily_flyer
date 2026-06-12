@@ -82,9 +82,9 @@ def build(context: FlyerContext) -> FlyerExperience:
 
     lead = FlyerItem(
         kind="match_lobby",
-        label="Tonight's lobby",
-        title="Queue the flyer like a match.",
-        body="A Rocket League community dashboard for F9: tournament signup, warmup plan, watch prompt, garage pick, Guess the Pro, and Jiporady.",
+        label="F9 match control",
+        title="Queue, warm up, watch, and play from one place.",
+        body="A Rocket League community hub for F9: tournament signup, warmup plan, watch prompt, garage pick, Guess the Pro, and Jiporady.",
         data={
             "boost": 33 + (ordinal % 68),
             "kickoff_call": rng.choice(["LEFT GOES", "CHEAT UP", "FAKE?", "BACK LEFT", "NO DOUBLE COMMIT"]),
@@ -109,13 +109,13 @@ def build(context: FlyerContext) -> FlyerExperience:
     return FlyerExperience(
         product="f9_daily",
         layout="f9_arena",
-        title="F9 Daily",
-        subtitle="Rocket League community dashboard, not a repainted newspaper.",
+        title="F9 Hub",
+        subtitle="Rocket League community control center for F9.",
         date_label=selected.strftime("%A • %B %d, %Y"),
         lead=lead,
         sections=sections,
         actions=actions,
-        footer="F9 Daily • Flyer Engine v2 product + dedicated arena renderer",
+        footer="F9 Hub • Flyer Engine v2 product + dedicated arena renderer",
         data={
             "logo_url": F9_LOGO_URL,
             "stadium_url": F9_STADIUM_URL,
