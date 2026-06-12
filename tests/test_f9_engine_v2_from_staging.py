@@ -66,12 +66,14 @@ class F9EngineV2FromStagingTests(unittest.TestCase):
         self.assertNotIn("fa-scoreboard", html)
         self.assertNotIn("hero-pill", html)
 
-    def test_f9_logo_static_asset_is_png(self) -> None:
+    def test_f9_logo_static_asset_is_transparent_png(self) -> None:
         client = app.test_client()
         response = client.get("/static/f9_logo.png")
 
         self.assertEqual(response.status_code, 200)
         self.assertTrue(response.data.startswith(b"\x89PNG\r\n\x1a\n"))
+        # PNG IHDR color type byte: 6 = truecolor with alpha, 4 = grayscale with alpha.
+        self.assertIn(response.data[25], {4, 6})
 
     def test_f9_daily_alias_still_renders_hub(self) -> None:
         html = build_flyer_html(product="f9_daily", date_str="2026-06-12", seed=9)
