@@ -46,6 +46,18 @@ class FlyerEngineV2Tests(unittest.TestCase):
         self.assertIn("Standup notes", html)
         self.assertNotIn("hero-pill", html)
 
+    def test_f9_daily_v2_builds_arena_html(self) -> None:
+        html = build_flyer_html(product="f9_daily", date_str="2026-06-12", seed=9)
+
+        self.assertIn("F9 Daily", html)
+        self.assertIn("fa-scoreboard", html)
+        self.assertIn("F9 Arena", html)
+        self.assertIn("Guess the Pro", html)
+        self.assertIn("Rocket League Jiporady", html)
+        self.assertIn("Signup hub", html)
+        self.assertNotIn("class=\"card", html)
+        self.assertNotIn("hero-pill", html)
+
     def test_v2_route_renders_irish_today(self) -> None:
         client = app.test_client()
         response = client.get("/v2?product=irish_today&date=2026-04-24&seed=7")
@@ -62,6 +74,14 @@ class FlyerEngineV2Tests(unittest.TestCase):
         self.assertEqual(response.status_code, 200)
         self.assertIn(b"Your Passage", response.data)
         self.assertIn(b"yp-path", response.data)
+
+    def test_v2_route_renders_f9_daily_alias(self) -> None:
+        client = app.test_client()
+        response = client.get("/v2?product=f9-daily&date=2026-06-12&seed=9")
+
+        self.assertEqual(response.status_code, 200)
+        self.assertIn(b"F9 Daily", response.data)
+        self.assertIn(b"fa-scoreboard", response.data)
 
     def test_v2_route_rejects_unknown_product(self) -> None:
         client = app.test_client()
