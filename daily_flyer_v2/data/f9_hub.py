@@ -1,6 +1,6 @@
 from __future__ import annotations
 
-F9_LOGO_URL = "https://raw.githubusercontent.com/shnider42/f9-tourney/main/static/f9_logo.png"
+F9_LOGO_URL = "/static/f9_logo.svg"
 F9_STADIUM_URL = "https://raw.githubusercontent.com/shnider42/f9-tourney/main/static/stadium.jpg"
 RL_ESPORTS_NEWS_URL = "https://esports.rocketleague.com/news"
 ROCKET_LEAGUE_WIKI_FILE = "https://rocketleague.fandom.com/wiki/Special:FilePath/"
