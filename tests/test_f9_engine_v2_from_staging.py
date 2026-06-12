@@ -10,7 +10,9 @@ class F9EngineV2FromStagingTests(unittest.TestCase):
     def test_f9_daily_builds_arena_html(self) -> None:
         html = build_flyer_html(product="f9_daily", date_str="2026-06-12", seed=9)
 
-        self.assertIn("F9 Daily", html)
+        self.assertIn("F9 Hub", html)
+        self.assertNotIn("F9 Daily", html)
+        self.assertIn("Space Grotesk", html)
         self.assertIn("fa-boost-meter", html)
         self.assertIn("data-fa-boost-value", html)
         self.assertIn("fa-lane-option", html)
@@ -31,7 +33,8 @@ class F9EngineV2FromStagingTests(unittest.TestCase):
         response = client.get("/v2?product=f9-daily&date=2026-06-12&seed=9")
 
         self.assertEqual(response.status_code, 200)
-        self.assertIn(b"F9 Daily", response.data)
+        self.assertIn(b"F9 Hub", response.data)
+        self.assertNotIn(b"F9 Daily", response.data)
         self.assertIn(b"fa-boost-meter", response.data)
         self.assertIn(b"fa-slant-tab", response.data)
         self.assertNotIn(b"fa-main-menu", response.data)
