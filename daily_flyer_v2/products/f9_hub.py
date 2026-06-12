@@ -74,9 +74,9 @@ def build(context: FlyerContext) -> FlyerExperience:
 
     lead = FlyerItem(
         kind="match_lobby",
-        label="F9 match control",
-        title="Queue, warm up, watch, and play from one place.",
-        body="A Rocket League community hub for F9: warmup plan, command board, garage pick, RLCS Daily, and Jiporady.",
+        label="Rocket League daily hub",
+        title="F9 Hub",
+        body="Daily cards, games, garage picks, RLCS history, and community links for the F9 Rocket League crew.",
         data={"boost": 33 + (ordinal % 68), "kickoff_call": kickoff_call, "playlist": playlist},
     )
 
