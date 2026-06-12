@@ -181,11 +181,11 @@ def render_f9_arena(experience: FlyerExperience) -> str:
     }
     * { box-sizing:border-box; }
     html { scroll-behavior:smooth; background:var(--bg); }
-    body { margin:0; color:var(--ink); background:radial-gradient(circle at 15% 8%,rgba(255,138,61,.22),transparent 24rem),radial-gradient(circle at 88% 12%,rgba(89,224,255,.16),transparent 24rem),linear-gradient(180deg,#081018,#05070c); font-family:Inter,system-ui,sans-serif; overflow-x:hidden; }
+    body { margin:0; color:var(--ink); background:radial-gradient(circle at 12% 10%,rgba(45,143,139,.14),transparent 26%),radial-gradient(circle at 84% 8%,rgba(255,138,61,.16),transparent 24%),linear-gradient(180deg,#071018 0%,#0a1017 44%,#05070c 100%); font-family:Inter,system-ui,sans-serif; overflow-x:hidden; }
     a { color:inherit; }
     .fa-page { position:relative; isolation:isolate; width:min(1320px,calc(100vw - 24px)); margin:0 auto; padding:18px 0 48px; min-height:100vh; }
     .fa-page:before { content:""; position:fixed; inset:-4%; z-index:-3; background:linear-gradient(180deg,rgba(5,7,12,.46),rgba(5,7,12,.94)),var(--stadium) center/cover no-repeat; filter:saturate(1.12) brightness(.52); transform:scale(1.03); }
-    .fa-page:after { content:""; position:fixed; inset:0; z-index:-2; pointer-events:none; opacity:.28; background:linear-gradient(rgba(255,255,255,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.04) 1px,transparent 1px); background-size:44px 44px; mask-image:linear-gradient(180deg,transparent,#000 12%,#000 82%,transparent); transform:perspective(900px) rotateX(62deg) translateY(24%); transform-origin:center bottom; }
+    .fa-page:after { content:""; position:fixed; inset:0; z-index:-2; pointer-events:none; opacity:.24; background:linear-gradient(rgba(255,255,255,.04) 1px,transparent 1px),linear-gradient(90deg,rgba(255,255,255,.04) 1px,transparent 1px); background-size:44px 44px; mask-image:linear-gradient(180deg,transparent,#000 12%,#000 82%,transparent); transform:perspective(900px) rotateX(62deg) translateY(24%); transform-origin:center bottom; }
     .fa-corner-mark { position:fixed; top:14px; left:14px; z-index:8; display:flex; gap:.7rem; align-items:center; max-width:min(420px,calc(100vw - 150px)); padding:.58rem .72rem; border:1px solid var(--line); border-radius:999px; background:rgba(5,7,12,.66); backdrop-filter:blur(16px); box-shadow:0 14px 44px rgba(0,0,0,.28); text-decoration:none; }
     .fa-corner-mark img { width:32px; height:auto; filter:drop-shadow(0 8px 18px rgba(0,0,0,.55)); }
     .fa-corner-mark span { display:block; font-family:Rajdhani,Inter,sans-serif; text-transform:uppercase; letter-spacing:.16em; color:var(--green); font-weight:800; font-size:.72rem; }
@@ -193,10 +193,14 @@ def render_f9_arena(experience: FlyerExperience) -> str:
     .fa-boost-meter { position:fixed; top:14px; right:14px; z-index:9; width:116px; aspect-ratio:1; display:grid; place-items:center; border-radius:999px; border:1px solid rgba(255,255,255,.16); background:radial-gradient(circle at center,rgba(5,7,12,.96) 0 54%,transparent 55%),conic-gradient(var(--orange) 0 var(--boost), rgba(255,255,255,.12) var(--boost) 100%); box-shadow:0 0 54px rgba(255,138,61,.24), inset 0 0 34px rgba(255,255,255,.04); backdrop-filter:blur(12px); }
     .fa-boost-meter strong { display:block; font-family:Rajdhani,Inter,sans-serif; font-size:2.25rem; line-height:.82; text-align:center; }
     .fa-boost-meter span { display:block; margin-top:.16rem; color:var(--orange); font-size:.62rem; font-weight:900; letter-spacing:.16em; text-align:center; }
-    .fa-hero { min-height:92vh; display:grid; grid-template-columns:minmax(0,1.05fr) minmax(300px,.95fr); gap:clamp(18px,5vw,70px); align-items:center; padding:96px 0 42px; }
-    .fa-label { font-family:Rajdhani,Inter,sans-serif; letter-spacing:.16em; text-transform:uppercase; color:var(--green); font-weight:800; font-size:.76rem; }
-    .fa-title h1 { max-width:10.5ch; margin:.8rem 0 0; font-family:Rajdhani,Inter,sans-serif; font-size:clamp(4rem,9vw,9.4rem); line-height:.78; letter-spacing:-.075em; text-shadow:0 0 40px rgba(255,138,61,.22); }
-    .fa-title p { max-width:62ch; margin:1.2rem 0 0; color:var(--muted); line-height:1.7; font-size:1.08rem; }
+    .fa-hero { min-height:92vh; display:grid; grid-template-columns:minmax(0,1.08fr) minmax(300px,.92fr); gap:clamp(18px,5vw,70px); align-items:center; padding:96px 0 42px; position:relative; }
+    .fa-hero:before { content:""; position:absolute; right:5%; top:11%; width:min(36vw,470px); height:min(36vw,470px); border-radius:999px; background:radial-gradient(circle,rgba(255,138,61,.24),rgba(255,138,61,.10) 34%,transparent 72%); filter:blur(18px); z-index:-1; }
+    .fa-hero:after { content:""; position:absolute; right:13%; top:20%; width:min(18vw,220px); height:min(18vw,220px); border-radius:50%; border:1px solid rgba(125,255,155,.16); box-shadow:0 0 0 24px rgba(125,255,155,.03),0 0 0 56px rgba(125,255,155,.02); z-index:-1; }
+    .fa-label { position:relative; display:inline-block; padding-left:18px; font-family:Rajdhani,Inter,sans-serif; letter-spacing:.16em; text-transform:uppercase; color:var(--green); font-weight:800; font-size:.76rem; }
+    .fa-label:before { content:""; position:absolute; left:0; top:.52rem; width:8px; height:1px; background:currentColor; }
+    .fa-title { max-width:800px; padding:74px 0 24px; }
+    .fa-title h1 { max-width:11.5ch; margin:14px 0 0; font-family:"Space Grotesk",Inter,system-ui,sans-serif; font-size:clamp(3.9rem,8vw,7.9rem); line-height:.88; letter-spacing:-.06em; font-weight:700; text-wrap:balance; text-shadow:0 0 40px rgba(255,138,61,.16); }
+    .fa-title p { max-width:56ch; margin:32px 0 0; color:var(--muted); line-height:1.82; font-size:1.05rem; }
     .fa-actions,.fa-chips { display:flex; flex-wrap:wrap; gap:.65rem; align-items:center; margin-top:1rem; }
     .fa-btn { display:inline-flex; align-items:center; justify-content:center; min-height:42px; padding:0 .95rem; border-radius:999px; border:1px solid rgba(255,138,61,.38); background:linear-gradient(135deg,var(--orange),var(--orange2)); color:#130f0a; font:inherit; font-weight:850; text-decoration:none; cursor:pointer; margin:.35rem .35rem 0 0; }
     .fa-btn--ghost { color:var(--ink); background:rgba(255,255,255,.06); border-color:rgba(255,255,255,.14); }
@@ -208,10 +212,10 @@ def render_f9_arena(experience: FlyerExperience) -> str:
     .fa-lane-option:first-child span { color:#06415e; }
     .fa-lane-option strong { display:block; margin-top:.5rem; font-family:Rajdhani,Inter,sans-serif; font-size:1.8rem; line-height:.95; }
     .fa-track { display:grid; gap:clamp(20px,4vw,42px); }
-    .fa-stage { min-height:58vh; border:1px solid var(--line); overflow:hidden; position:relative; background:linear-gradient(180deg,rgba(255,255,255,.07),rgba(255,255,255,.022)),var(--glass); box-shadow:0 24px 72px rgba(0,0,0,.34); backdrop-filter:blur(14px); }
-    .fa-stage--queue { display:grid; grid-template-columns:minmax(0,1fr) minmax(240px,.34fr); gap:0; border-radius:34px; }
+    .fa-stage { min-height:58vh; border:1px solid rgba(89,224,255,.20); overflow:hidden; position:relative; background:linear-gradient(180deg,rgba(255,255,255,.07),rgba(255,255,255,.022)),var(--glass); box-shadow:0 24px 72px rgba(0,0,0,.34); backdrop-filter:blur(14px); clip-path:polygon(0 0,calc(100% - 34px) 0,100% 34px,100% 100%,34px 100%,0 calc(100% - 34px)); }
+    .fa-stage--queue { display:grid; grid-template-columns:minmax(0,1fr) minmax(240px,.34fr); gap:0; }
     .fa-terminal { padding:clamp(22px,4vw,44px); background:radial-gradient(circle at top right,rgba(255,138,61,.18),transparent 32%); }
-    .fa-terminal-bar { display:flex; align-items:center; gap:.45rem; padding:.65rem .75rem; border:1px solid rgba(255,255,255,.10); border-radius:16px; background:rgba(0,0,0,.28); color:var(--faint); font-family:ui-monospace,Menlo,Consolas,monospace; font-size:.78rem; margin-bottom:1.35rem; }
+    .fa-terminal-bar { display:flex; align-items:center; gap:.45rem; padding:.65rem .75rem; border:1px solid rgba(255,255,255,.10); border-radius:4px; background:rgba(0,0,0,.28); color:var(--faint); font-family:ui-monospace,Menlo,Consolas,monospace; font-size:.78rem; margin-bottom:1.35rem; clip-path:polygon(0 0,calc(100% - 16px) 0,100% 50%,calc(100% - 16px) 100%,0 100%); }
     .fa-terminal-bar span { width:.7rem; aspect-ratio:1; border-radius:999px; background:var(--orange); }
     .fa-terminal-bar span:nth-child(2) { background:var(--gold); } .fa-terminal-bar span:nth-child(3) { background:var(--green); }
     .fa-stage h2,.fa-feature h3,.fa-game h3 { margin:.45rem 0 0; font-family:Rajdhani,Inter,sans-serif; line-height:.92; letter-spacing:-.045em; }
@@ -219,10 +223,10 @@ def render_f9_arena(experience: FlyerExperience) -> str:
     .fa-stage p,.fa-feature p,.fa-game p { color:var(--muted); line-height:1.68; }
     .fa-queue-side { display:flex; flex-direction:column; justify-content:space-between; padding:1.25rem; background:linear-gradient(180deg,rgba(255,138,61,.18),rgba(255,255,255,.04)); border-left:1px solid rgba(255,255,255,.11); }
     .fa-side-number { font-family:Rajdhani,Inter,sans-serif; font-size:5rem; line-height:.8; color:rgba(255,255,255,.20); }
-    .fa-roster,.fa-clue,.fa-pack,.fa-answer { margin-top:1rem; padding:.9rem 1rem; border-radius:18px; background:rgba(255,255,255,.055); border:1px solid rgba(255,255,255,.10); }
+    .fa-roster,.fa-clue,.fa-pack,.fa-answer { margin-top:1rem; padding:.9rem 1rem; border-radius:4px; background:rgba(255,255,255,.055); border:1px solid rgba(255,255,255,.10); }
     .fa-roster span { display:block; color:var(--green); font-family:Rajdhani,Inter,sans-serif; letter-spacing:.16em; text-transform:uppercase; font-weight:800; font-size:.72rem; }
-    .fa-stage--broadcast { display:grid; grid-template-columns:.82fr 1.18fr; align-items:center; gap:clamp(18px,4vw,46px); padding:clamp(22px,4vw,44px); border-radius:46px 18px 46px 18px; }
-    .fa-broadcast-screen { min-height:360px; border:1px solid rgba(89,224,255,.26); border-radius:28px; background:linear-gradient(180deg,rgba(89,224,255,.12),rgba(0,0,0,.26)); overflow:hidden; box-shadow:inset 0 0 40px rgba(89,224,255,.10); }
+    .fa-stage--broadcast { display:grid; grid-template-columns:.82fr 1.18fr; align-items:center; gap:clamp(18px,4vw,46px); padding:clamp(22px,4vw,44px); }
+    .fa-broadcast-screen { min-height:360px; border:1px solid rgba(89,224,255,.26); border-radius:8px; background:linear-gradient(180deg,rgba(89,224,255,.12),rgba(0,0,0,.26)); overflow:hidden; box-shadow:inset 0 0 40px rgba(89,224,255,.10); clip-path:polygon(0 0,calc(100% - 22px) 0,100% 22px,100% 100%,0 100%); }
     .fa-screen-top,.fa-ticker { padding:.8rem 1rem; font-family:ui-monospace,Menlo,Consolas,monospace; color:var(--green); background:rgba(0,0,0,.28); }
     .fa-screen-pitch { height:260px; display:grid; grid-template-columns:repeat(3,1fr); gap:1px; background:linear-gradient(90deg,rgba(255,255,255,.10) 1px,transparent 1px),radial-gradient(circle at center,transparent 0 52px,rgba(255,255,255,.16) 53px 55px,transparent 56px); background-size:50% 100%,100% 100%; }
     .fa-screen-pitch span { border:1px solid rgba(255,255,255,.09); }
@@ -262,12 +266,12 @@ def render_f9_arena(experience: FlyerExperience) -> str:
 
     return f"""<!DOCTYPE html>
 <html lang="en">
-<head><meta charset="utf-8"><title>{_e(experience.title)}</title><meta name="viewport" content="width=device-width, initial-scale=1"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&family=Rajdhani:wght@500;600;700&display=swap" rel="stylesheet"><style>{css}</style></head>
+<head><meta charset="utf-8"><title>{_e(experience.title)}</title><meta name="viewport" content="width=device-width, initial-scale=1"><link rel="preconnect" href="https://fonts.googleapis.com"><link rel="preconnect" href="https://fonts.gstatic.com" crossorigin><link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;600;800;900&family=Rajdhani:wght@500;600;700&family=Space+Grotesk:wght@500;600;700&display=swap" rel="stylesheet"><style>{css}</style></head>
 <body>
 <main class="fa-page" style="--stadium:url('{_a(stadium_url)}')">
-    <a class="fa-corner-mark" href="#top" aria-label="Back to top"><img src="{_a(logo_url)}" alt="F9 logo"><span>F9 Daily</span><strong>{_e(experience.date_label)}</strong></a>
+    <a class="fa-corner-mark" href="#top" aria-label="Back to top"><img src="{_a(logo_url)}" alt="F9 logo"><span>{_e(experience.title)}</span><strong>{_e(experience.date_label)}</strong></a>
     <div class="fa-boost-meter" data-fa-boost-meter role="meter" aria-label="Scroll boost" aria-valuemin="0" aria-valuemax="100" aria-valuenow="0"><div><strong data-fa-boost-value>0</strong><span>BOOST</span></div></div>
-    <section class="fa-hero" id="top"><div class="fa-title"><div class="fa-label">{_e(lead.label)}</div><h1>{_e(lead.title)}</h1><p>{_e(lead.body)}</p><div class="fa-actions">{_button(str(experience.data.get("tournament_url", "")), "Signup hub")}{_button(str(experience.data.get("rl_esports_news_url", "")), "RLCS news", True)}{_button(str(experience.data.get("jiporady_repo_url", "")), "Jiporady source", True)}</div></div><nav class="fa-lane-nav" aria-label="F9 Daily sections">{lane_html}</nav></section>
+    <section class="fa-hero" id="top"><div class="fa-title"><div class="fa-label">{_e(lead.label)}</div><h1>{_e(experience.title)}</h1><p>{_e(lead.title)} {_e(lead.body)}</p><div class="fa-actions">{_button(str(experience.data.get("tournament_url", "")), "Signup hub")}{_button(str(experience.data.get("rl_esports_news_url", "")), "RLCS news", True)}{_button(str(experience.data.get("jiporady_repo_url", "")), "Jiporady source", True)}</div></div><nav class="fa-lane-nav" aria-label="F9 Hub sections">{lane_html}</nav></section>
     <div class="fa-track">{_queue_section(tournament) if tournament else ""}{_watch_section(watch) if watch else ""}<section class="fa-feature-grid">{feature_html}</section><section class="fa-games">{games_html}</section></div>
     <footer class="fa-footer">{_e(experience.footer)}</footer>
 </main><script>{js}</script></body></html>"""
