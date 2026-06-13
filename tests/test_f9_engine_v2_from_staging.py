@@ -5,7 +5,6 @@ import unittest
 
 from daily_flyer_v2 import build_flyer_html
 from daily_flyer_v2.data.f9_items import (
-    F9_ITEM_CATEGORY_ORDER,
     load_f9_item_library,
     select_f9_item_type_cards,
 )
@@ -43,6 +42,7 @@ class F9EngineV2FromStagingTests(unittest.TestCase):
         self.assertIn("fa-card-image", html)
         self.assertIn("/static/f9/items/", html)
         self.assertGreaterEqual(html.count("of the day"), 4)
+        self.assertNotIn("/static/f9/items/x-", html)
         self.assertNotIn("Garage pick", html)
         self.assertNotIn("/f9-item-image/", html)
         self.assertNotIn("Special:FilePath", html)
@@ -81,15 +81,29 @@ class F9EngineV2FromStagingTests(unittest.TestCase):
         # PNG IHDR color type byte: 6 = truecolor with alpha, 4 = grayscale with alpha.
         self.assertIn(response.data[25], {4, 6})
 
-    def test_f9_items_load_from_categorized_manifest(self) -> None:
+    def test_f9_items_load_from_active_manifest_folders(self) -> None:
         items = load_f9_item_library()
         categories = {item["category"] for item in items}
+        important_categories = {
+            "bodies",
+            "toppers",
+            "decals",
+            "boosts",
+            "paint_finishes",
+            "wheels",
+            "antennas",
+            "goal_explosions",
+            "player_banners",
+            "avatar_borders",
+        }
 
-        self.assertGreaterEqual(len(items), 400)
-        self.assertTrue(set(F9_ITEM_CATEGORY_ORDER).issubset(categories))
+        self.assertGreaterEqual(len(items), 250)
+        self.assertTrue(important_categories.issubset(categories))
         self.assertTrue(all(item["image_url"].startswith("/static/f9/items/") for item in items))
-        self.assertTrue(any(item["name"] == "Octane" and item["category"] == "bodies" for item in items))
-        self.assertTrue(any(item["name"] == "20XX" and item["category"] == "decals" for item in items))
+        self.assertFalse(any(item["category"].startswith("x-") for item in items))
+        self.assertFalse(any("/x-" in item["image_url"] for item in items))
+        self.assertTrue(any(item["category"] == "bodies" for item in items))
+        self.assertTrue(any(item["category"] == "decals" for item in items))
         self.assertFalse(any("Special:FilePath" in item["image_url"] for item in items))
 
     def test_f9_item_type_cards_pick_four_daily_categories(self) -> None:
@@ -100,10 +114,12 @@ class F9EngineV2FromStagingTests(unittest.TestCase):
         self.assertEqual(len(categories), 4)
         self.assertTrue(all(card["label"].endswith("of the day") for card in cards))
         self.assertTrue(all(card["image_url"].startswith("/static/f9/items/") for card in cards))
+        self.assertFalse(any(card["category"].startswith("x-") for card in cards))
+        self.assertFalse(any("/x-" in card["image_url"] for card in cards))
 
     def test_f9_item_background_assets_are_served(self) -> None:
         client = app.test_client()
-        for filename in ["bodies/01_armadillo.png", "decals/01_20xx.png", "boosts/01_standard.png"]:
+        for filename in ["bodies/001_anniversary_banner_jpg_default.png", "antennas/001_8_ball_default.png", "boosts/030_frostbite_default.png"]:
             response = client.get(f"/static/f9/items/{filename}")
             self.assertEqual(response.status_code, 200)
             self.assertTrue(response.data.startswith(b"\x89PNG\r\n\x1a\n"))
@@ -116,6 +132,7 @@ class F9EngineV2FromStagingTests(unittest.TestCase):
         self.assertIn("/f9-logo-debug.png?v=transparent-3", html)
         self.assertIn("/static/f9/items/", html)
         self.assertGreaterEqual(html.count("of the day"), 4)
+        self.assertNotIn("/static/f9/items/x-", html)
         self.assertNotIn("Garage pick", html)
         self.assertNotIn("/f9-item-image/", html)
         self.assertNotIn("/static/f9_logo.svg", html)
@@ -130,6 +147,7 @@ class F9EngineV2FromStagingTests(unittest.TestCase):
         self.assertIn(b"/f9-logo-debug.png?v=transparent-3", response.data)
         self.assertIn(b"/static/f9/items/", response.data)
         self.assertIn(b"of the day", response.data)
+        self.assertNotIn(b"/static/f9/items/x-", response.data)
         self.assertNotIn(b"Garage pick", response.data)
         self.assertNotIn(b"/f9-item-image/", response.data)
         self.assertNotIn(b"/static/f9_logo.svg", response.data)
