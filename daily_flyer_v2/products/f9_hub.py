@@ -9,7 +9,6 @@ from daily_flyer_v2.data.f9_hub import (
     COMMAND_BOARD_PROMPTS,
     F9_LOGO_URL,
     F9_STADIUM_URL,
-    GARAGE_ITEMS,
     JIPORADY_BOARD,
     RLCS_DAILY_PROS,
     RL_ESPORTS_NEWS_URL,
@@ -17,6 +16,7 @@ from daily_flyer_v2.data.f9_hub import (
     WARMUPS,
     WORKSHOP_MAPS,
 )
+from daily_flyer_v2.data.f9_items import select_f9_item_type_cards
 from daily_flyer_v2.experience import FlyerExperience, FlyerItem
 
 
@@ -58,12 +58,30 @@ def _rlcs_daily_payload(ordinal: int, rng: random.Random) -> dict:
     }
 
 
+def _item_type_section(card: dict) -> FlyerItem:
+    return FlyerItem(
+        card["kind"],
+        card["title"],
+        card["body"],
+        card["label"],
+        data={
+            "chips": card.get("chips", []),
+            "image_url": card.get("image_url", ""),
+            "category": card.get("category", ""),
+            "category_label": card.get("category_label", ""),
+            "source_type": card.get("source_type", ""),
+            "confidence": card.get("confidence", ""),
+            "notes": card.get("notes", ""),
+        },
+    )
+
+
 def build(context: FlyerContext) -> FlyerExperience:
     selected = context.selected_date
     ordinal = selected.toordinal()
     rng = random.Random(context.seed)
 
-    garage = _pick(GARAGE_ITEMS, ordinal, 2)
+    item_type_cards = select_f9_item_type_cards(selected, context.seed, count=4)
     warmup_name, warmup_body = _pick(WARMUPS, ordinal, 11)
     command = _pick(COMMAND_BOARD_PROMPTS, ordinal, 5)
     history = _pick_history(selected, ordinal)
@@ -94,12 +112,6 @@ def build(context: FlyerContext) -> FlyerExperience:
             )
         )
 
-    garage_chips = ["daily"]
-    if garage.get("category"):
-        garage_chips.append(garage["category"])
-    if garage.get("rarity"):
-        garage_chips.append(garage["rarity"])
-
     sections.extend(
         [
             FlyerItem(
@@ -110,21 +122,7 @@ def build(context: FlyerContext) -> FlyerExperience:
                 command.get("cta_url") or None,
                 data={"mode": command["mode"], "chips": ["daily", command["mode"], "community"]},
             ),
-            FlyerItem(
-                "garage",
-                garage["name"],
-                garage.get("caption") or garage.get("body") or "",
-                "Garage pick",
-                garage.get("source_url") or None,
-                data={
-                    "chips": garage_chips,
-                    "image_url": garage.get("image_url", ""),
-                    "category": garage.get("category", ""),
-                    "rarity": garage.get("rarity", ""),
-                    "source_name": garage.get("source_name", ""),
-                    "rights_note": garage.get("rights_note", ""),
-                },
-            ),
+            *[_item_type_section(card) for card in item_type_cards],
             FlyerItem("warmup", warmup_name, warmup_body, "Warmup drill", data={"chips": ["daily", "freeplay", "before ranked"]}),
             FlyerItem(
                 "history",
@@ -173,7 +171,7 @@ def build(context: FlyerContext) -> FlyerExperience:
             "discord_url": F9_DISCORD_URL,
             "rl_esports_news_url": RL_ESPORTS_NEWS_URL,
             "lanes": lanes,
-            "content_card_count": 8,
+            "content_card_count": 10,
             "legal_note": F9_LEGAL_NOTE,
         },
     )
