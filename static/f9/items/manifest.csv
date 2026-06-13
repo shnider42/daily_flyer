@@ -1,0 +1,421 @@
+category,rank,item_name,filename,width,height,source_type,confidence,notes
+bodies,1,Armadillo,bodies/01_armadillo.png,256,256,copied_from_previous_static_icon_pack,high,Copied from the earlier verified static-icon pack in this conversation.
+bodies,2,Azura,bodies/02_azura.png,220,220,copied_from_previous_static_icon_pack,high,Copied from the earlier verified static-icon pack in this conversation.
+bodies,3,BMW 1 Series,bodies/03_bmw_1_series.png,220,220,copied_from_previous_static_icon_pack,high,Copied from the earlier verified static-icon pack in this conversation.
+bodies,4,BMW 1 Series RLE,bodies/04_bmw_1_series_rle.png,256,256,copied_from_previous_static_icon_pack,high,Copied from the earlier verified static-icon pack in this conversation.
+bodies,5,Backfire,bodies/05_backfire.png,220,220,copied_from_previous_static_icon_pack,high,Copied from the earlier verified static-icon pack in this conversation.
+bodies,6,Breakout Type-S,bodies/06_breakout_type_s.png,256,256,copied_from_previous_static_icon_pack,high,Copied from the earlier verified static-icon pack in this conversation.
+bodies,7,Centio,bodies/07_centio.png,256,256,copied_from_previous_static_icon_pack,high,Copied from the earlier verified static-icon pack in this conversation.
+bodies,8,Cyclone,bodies/08_cyclone.png,220,220,copied_from_previous_static_icon_pack,high,Copied from the earlier verified static-icon pack in this conversation.
+bodies,9,Diestro,bodies/09_diestro.png,220,220,copied_from_previous_static_icon_pack,high,Copied from the earlier verified static-icon pack in this conversation.
+bodies,10,Dingo,bodies/10_dingo.png,220,220,copied_from_previous_static_icon_pack,high,Copied from the earlier verified static-icon pack in this conversation.
+bodies,11,Octane,bodies/11_octane.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+bodies,12,Fennec,bodies/12_fennec.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+bodies,13,Dominus,bodies/13_dominus.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+bodies,14,Takumi,bodies/14_takumi.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+bodies,15,Road Hog,bodies/15_road_hog.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+bodies,16,Merc,bodies/16_merc.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+bodies,17,Venom,bodies/17_venom.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+bodies,18,X-Devil,bodies/18_x_devil.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+bodies,19,Breakout,bodies/19_breakout.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+bodies,20,Gizmo,bodies/20_gizmo.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+bodies,21,Mantis,bodies/21_mantis.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+bodies,22,Jäger 619,bodies/22_jäger_619.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+bodies,23,Endo,bodies/23_endo.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+bodies,24,Imperator DT5,bodies/24_imperator_dt5.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+bodies,25,Nimbus,bodies/25_nimbus.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+bodies,26,Peregrine TT,bodies/26_peregrine_tt.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+bodies,27,Komodo,bodies/27_komodo.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+bodies,28,Insidio,bodies/28_insidio.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+bodies,29,Jackal,bodies/29_jackal.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+bodies,30,Nexus SC,bodies/30_nexus_sc.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+toppers,1,Biker Cap,toppers/01_biker_cap.png,159,159,copied_from_previous_static_icon_pack,high,Copied from the earlier verified static-icon pack in this conversation.
+toppers,2,Birthday Cake,toppers/02_birthday_cake.png,159,159,copied_from_previous_static_icon_pack,high,Copied from the earlier verified static-icon pack in this conversation.
+toppers,3,Bowler,toppers/03_bowler.png,159,159,copied_from_previous_static_icon_pack,high,Copied from the earlier verified static-icon pack in this conversation.
+toppers,4,Brodie Helmet,toppers/04_brodie_helmet.png,159,159,copied_from_previous_static_icon_pack,high,Copied from the earlier verified static-icon pack in this conversation.
+toppers,5,Bycocket,toppers/05_bycocket.png,159,159,copied_from_previous_static_icon_pack,high,Copied from the earlier verified static-icon pack in this conversation.
+toppers,6,Captain's Hat,toppers/06_captain_s_hat.png,159,159,copied_from_previous_static_icon_pack,high,Copied from the earlier verified static-icon pack in this conversation.
+toppers,7,Cattleman,toppers/07_cattleman.png,159,159,copied_from_previous_static_icon_pack,high,Copied from the earlier verified static-icon pack in this conversation.
+toppers,8,Chainsaw,toppers/08_chainsaw.png,159,159,copied_from_previous_static_icon_pack,high,Copied from the earlier verified static-icon pack in this conversation.
+toppers,9,Chef's Hat,toppers/09_chef_s_hat.png,159,159,copied_from_previous_static_icon_pack,high,Copied from the earlier verified static-icon pack in this conversation.
+toppers,10,Cockroach,toppers/10_cockroach.png,159,159,copied_from_previous_static_icon_pack,high,Copied from the earlier verified static-icon pack in this conversation.
+toppers,11,Antlers,toppers/11_antlers.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+toppers,12,Baseball Cap,toppers/12_baseball_cap.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+toppers,13,Beret,toppers/13_beret.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+toppers,14,Bobby Helmet,toppers/14_bobby_helmet.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+toppers,15,Brunnehilde,toppers/15_brunnehilde.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+toppers,16,Cherry Top,toppers/16_cherry_top.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+toppers,17,Cromulon,toppers/17_cromulon.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+toppers,18,Derby,toppers/18_derby.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+toppers,19,Devil Horns,toppers/19_devil_horns.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+toppers,20,Fez,toppers/20_fez.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+toppers,21,Fire Helmet,toppers/21_fire_helmet.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+toppers,22,Halo,toppers/22_halo.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+toppers,23,Hard Hat,toppers/23_hard_hat.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+toppers,24,Heart Glasses,toppers/24_heart_glasses.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+toppers,25,Homburg,toppers/25_homburg.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+toppers,26,Ivy Cap,toppers/26_ivy_cap.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+toppers,27,Little Bow,toppers/27_little_bow.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+toppers,28,Mohawk,toppers/28_mohawk.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+toppers,29,Pirate's Hat,toppers/29_pirate_s_hat.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+toppers,30,Royal Crown,toppers/30_royal_crown.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+decals,1,20XX,decals/01_20xx.png,159,159,copied_from_previous_static_icon_pack,high,Copied from the earlier verified static-icon pack in this conversation.
+decals,2,Biomass,decals/02_biomass.png,159,159,copied_from_previous_static_icon_pack,high,Copied from the earlier verified static-icon pack in this conversation.
+decals,3,Bubbly,decals/03_bubbly.png,159,159,copied_from_previous_static_icon_pack,high,Copied from the earlier verified static-icon pack in this conversation.
+decals,4,Blockparty,decals/04_blockparty.png,159,159,copied_from_previous_static_icon_pack,high,Copied from the earlier verified static-icon pack in this conversation.
+decals,5,Chameleon,decals/05_chameleon.png,159,159,copied_from_previous_static_icon_pack,high,Copied from the earlier verified static-icon pack in this conversation.
+decals,6,Discoid,decals/06_discoid.png,159,159,copied_from_previous_static_icon_pack,high,Copied from the earlier verified static-icon pack in this conversation.
+decals,7,Dissolver,decals/07_dissolver.png,159,159,copied_from_previous_static_icon_pack,high,Copied from the earlier verified static-icon pack in this conversation.
+decals,8,Encryption,decals/08_encryption.png,159,159,copied_from_previous_static_icon_pack,high,Copied from the earlier verified static-icon pack in this conversation.
+decals,9,Fire God,decals/09_fire_god.png,159,159,copied_from_previous_static_icon_pack,high,Copied from the earlier verified static-icon pack in this conversation.
+decals,10,Glorifier,decals/10_glorifier.png,159,159,copied_from_previous_static_icon_pack,high,Copied from the earlier verified static-icon pack in this conversation.
+decals,11,Heatwave,decals/11_heatwave.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+decals,12,Hexed,decals/12_hexed.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+decals,13,Interstellar,decals/13_interstellar.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+decals,14,Mainframe,decals/14_mainframe.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+decals,15,Magma,decals/15_magma.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+decals,16,Slipstream,decals/16_slipstream.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+decals,17,Stipple Gait,decals/17_stipple_gait.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+decals,18,Storm Watch,decals/18_storm_watch.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+decals,19,Streamline,decals/19_streamline.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+decals,20,Tidal Stream,decals/20_tidal_stream.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+decals,21,Trigon,decals/21_trigon.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+decals,22,Wet Paint,decals/22_wet_paint.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+decals,23,Labyrinth,decals/23_labyrinth.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+decals,24,Spectre,decals/24_spectre.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+decals,25,Parallax,decals/25_parallax.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+decals,26,Hex Tide,decals/26_hex_tide.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+decals,27,Intrudium,decals/27_intrudium.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+decals,28,Tora,decals/28_tora.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+decals,29,Humid Haze,decals/29_humid_haze.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+decals,30,Neural Network,decals/30_neural_network.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+boosts,1,Standard,boosts/01_standard.png,105,105,copied_from_previous_static_icon_pack,high,Copied from the earlier verified static-icon pack in this conversation.
+boosts,2,Flamethrower,boosts/02_flamethrower.png,105,105,copied_from_previous_static_icon_pack,high,Copied from the earlier verified static-icon pack in this conversation.
+boosts,3,Blamite Overthruster,boosts/03_blamite_overthruster.png,105,105,copied_from_previous_static_icon_pack,high,Copied from the earlier verified static-icon pack in this conversation.
+boosts,4,Faded Cosmos,boosts/04_faded_cosmos.png,105,105,copied_from_previous_static_icon_pack,high,Copied from the earlier verified static-icon pack in this conversation.
+boosts,5,Golden Cosmos,boosts/05_golden_cosmos.png,105,105,copied_from_previous_static_icon_pack,high,Copied from the earlier verified static-icon pack in this conversation.
+boosts,6,Sweet Tooth,boosts/06_sweet_tooth.png,105,105,copied_from_previous_static_icon_pack,high,Copied from the earlier verified static-icon pack in this conversation.
+boosts,7,Imulsion,boosts/07_imulsion.png,105,105,copied_from_previous_static_icon_pack,high,Copied from the earlier verified static-icon pack in this conversation.
+boosts,8,Overcharge,boosts/08_overcharge.png,105,105,copied_from_previous_static_icon_pack,high,Copied from the earlier verified static-icon pack in this conversation.
+boosts,9,UV Turret,boosts/09_uv_turret.png,105,105,copied_from_previous_static_icon_pack,high,Copied from the earlier verified static-icon pack in this conversation.
+boosts,10,Super Star,boosts/10_super_star.png,105,105,copied_from_previous_static_icon_pack,high,Copied from the earlier verified static-icon pack in this conversation.
+boosts,11,Ion,boosts/11_ion.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+boosts,12,Sacred,boosts/12_sacred.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+boosts,13,Sparkles,boosts/13_sparkles.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+boosts,14,Thermal,boosts/14_thermal.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+boosts,15,Comet,boosts/15_comet.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+boosts,16,Dark Matter,boosts/16_dark_matter.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+boosts,17,Datastream,boosts/17_datastream.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+boosts,18,Fractal Fire,boosts/18_fractal_fire.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+boosts,19,Hexphase,boosts/19_hexphase.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+boosts,20,Lightning,boosts/20_lightning.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+boosts,21,Magic Missile,boosts/21_magic_missile.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+boosts,22,Neo-Thermal,boosts/22_neo_thermal.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+boosts,23,Ninja Star,boosts/23_ninja_star.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+boosts,24,Pixel Fire,boosts/24_pixel_fire.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+boosts,25,Plasma,boosts/25_plasma.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+boosts,26,Proton,boosts/26_proton.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+boosts,27,Synthwave,boosts/27_synthwave.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+boosts,28,Tachyon,boosts/28_tachyon.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+boosts,29,Toon Sketch,boosts/29_toon_sketch.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+boosts,30,Trinity,boosts/30_trinity.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+paint_finishes,1,Anodized,paint_finishes/01_anodized.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+paint_finishes,2,Anodized Pearl,paint_finishes/02_anodized_pearl.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+paint_finishes,3,Brushed Metal,paint_finishes/03_brushed_metal.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+paint_finishes,4,Carbon Fiber,paint_finishes/04_carbon_fiber.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+paint_finishes,5,Cookie Dough,paint_finishes/05_cookie_dough.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+paint_finishes,6,Denim,paint_finishes/06_denim.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+paint_finishes,7,Dino,paint_finishes/07_dino.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+paint_finishes,8,Furry,paint_finishes/08_furry.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+paint_finishes,9,Glossy,paint_finishes/09_glossy.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+paint_finishes,10,Metallic Pearl,paint_finishes/10_metallic_pearl.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+paint_finishes,11,Moon Rock,paint_finishes/11_moon_rock.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+paint_finishes,12,Pearlescent Matte,paint_finishes/12_pearlescent_matte.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+paint_finishes,13,Semi-Gloss,paint_finishes/13_semi_gloss.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+paint_finishes,14,Sun-Damaged,paint_finishes/14_sun_damaged.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+paint_finishes,15,Toon Glossy,paint_finishes/15_toon_glossy.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+paint_finishes,16,Wood,paint_finishes/16_wood.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+paint_finishes,17,Zebra,paint_finishes/17_zebra.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+paint_finishes,18,Bling,paint_finishes/18_bling.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+paint_finishes,19,Circuit Board,paint_finishes/19_circuit_board.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+paint_finishes,20,Knitted Yarn,paint_finishes/20_knitted_yarn.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+paint_finishes,21,Stamped Metal,paint_finishes/21_stamped_metal.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+paint_finishes,22,Straight-Line,paint_finishes/22_straight_line.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+paint_finishes,23,Grassy,paint_finishes/23_grassy.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+paint_finishes,24,Swirl,paint_finishes/24_swirl.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+paint_finishes,25,Burlap,paint_finishes/25_burlap.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+paint_finishes,26,Camo,paint_finishes/26_camo.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+paint_finishes,27,Glitter,paint_finishes/27_glitter.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+paint_finishes,28,Matte,paint_finishes/28_matte.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+paint_finishes,29,Metallic,paint_finishes/29_metallic.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+paint_finishes,30,Polished,paint_finishes/30_polished.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+wheels,1,Alchemist,wheels/01_alchemist.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+wheels,2,Apex,wheels/02_apex.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+wheels,3,Astro-CSX,wheels/03_astro_csx.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+wheels,4,Balla-Carrà,wheels/04_balla_carrà.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+wheels,5,Blender,wheels/05_blender.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+wheels,6,Chakram,wheels/06_chakram.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+wheels,7,Cristiano,wheels/07_cristiano.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+wheels,8,Dieci,wheels/08_dieci.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+wheels,9,Discotheque,wheels/09_discotheque.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+wheels,10,Draco,wheels/10_draco.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+wheels,11,Emerald,wheels/11_emerald.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+wheels,12,FSL,wheels/12_fsl.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+wheels,13,Gaiden,wheels/13_gaiden.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+wheels,14,Gripstride HX,wheels/14_gripstride_hx.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+wheels,15,Infinium,wheels/15_infinium.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+wheels,16,Invader,wheels/16_invader.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+wheels,17,Kalos,wheels/17_kalos.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+wheels,18,K2,wheels/18_k2.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+wheels,19,Lowrider,wheels/19_lowrider.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+wheels,20,OEM,wheels/20_oem.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+wheels,21,Photon,wheels/21_photon.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+wheels,22,Reaper,wheels/22_reaper.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+wheels,23,Reactor,wheels/23_reactor.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+wheels,24,Rocket Forge II,wheels/24_rocket_forge_ii.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+wheels,25,Septem,wheels/25_septem.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+wheels,26,Stern,wheels/26_stern.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+wheels,27,Tunica,wheels/27_tunica.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+wheels,28,Veloce,wheels/28_veloce.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+wheels,29,Voltaic,wheels/29_voltaic.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+wheels,30,Zomba,wheels/30_zomba.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+antennas,1,Alien,antennas/01_alien.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+antennas,2,Balloons,antennas/02_balloons.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+antennas,3,Candle,antennas/03_candle.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+antennas,4,Chick Magnet,antennas/04_chick_magnet.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+antennas,5,Cupcake,antennas/05_cupcake.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+antennas,6,Disco Ball,antennas/06_disco_ball.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+antennas,7,Doughnut,antennas/07_doughnut.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+antennas,8,Foam Finger,antennas/08_foam_finger.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+antennas,9,Giant Panda,antennas/09_giant_panda.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+antennas,10,Gold Nugget,antennas/10_gold_nugget.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+antennas,11,Harpoon,antennas/11_harpoon.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+antennas,12,Hot Dog,antennas/12_hot_dog.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+antennas,13,Lollipop,antennas/13_lollipop.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+antennas,14,Macaron,antennas/14_macaron.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+antennas,15,Mage Glass,antennas/15_mage_glass.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+antennas,16,Mr. Carrot,antennas/16_mr_carrot.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+antennas,17,Piñata,antennas/17_piñata.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+antennas,18,Rainbow Flag,antennas/18_rainbow_flag.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+antennas,19,Rubber Duckie,antennas/19_rubber_duckie.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+antennas,20,Satellite,antennas/20_satellite.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+antennas,21,Shadow Witch,antennas/21_shadow_witch.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+antennas,22,Starfish,antennas/22_starfish.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+antennas,23,Trident,antennas/23_trident.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+antennas,24,Unicorn,antennas/24_unicorn.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+antennas,25,Venus Flytrap,antennas/25_venus_flytrap.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+antennas,26,Waffle,antennas/26_waffle.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+antennas,27,WWE,antennas/27_wwe.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+antennas,28,Zombie,antennas/28_zombie.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+antennas,29,Calculated,antennas/29_calculated.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+antennas,30,Peace,antennas/30_peace.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+goal_explosions,1,Air Strike,goal_explosions/01_air_strike.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+goal_explosions,2,Big Splash,goal_explosions/02_big_splash.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+goal_explosions,3,Dueling Dragons,goal_explosions/03_dueling_dragons.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+goal_explosions,4,Electroshock,goal_explosions/04_electroshock.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+goal_explosions,5,Fireworks,goal_explosions/05_fireworks.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+goal_explosions,6,Hellfire,goal_explosions/06_hellfire.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+goal_explosions,7,Juiced,goal_explosions/07_juiced.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+goal_explosions,8,Meteor Storm,goal_explosions/08_meteor_storm.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+goal_explosions,9,Neuro-Agitator,goal_explosions/09_neuro_agitator.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+goal_explosions,10,Party Time,goal_explosions/10_party_time.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+goal_explosions,11,Poly Pop,goal_explosions/11_poly_pop.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+goal_explosions,12,Popcorn,goal_explosions/12_popcorn.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+goal_explosions,13,Shattered,goal_explosions/13_shattered.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+goal_explosions,14,Singularity,goal_explosions/14_singularity.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+goal_explosions,15,Solar Flare,goal_explosions/15_solar_flare.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+goal_explosions,16,Sub-Zero,goal_explosions/16_sub_zero.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+goal_explosions,17,Toon,goal_explosions/17_toon.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+goal_explosions,18,Voxel,goal_explosions/18_voxel.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+goal_explosions,19,Atomizer,goal_explosions/19_atomizer.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+goal_explosions,20,Gravity Bomb,goal_explosions/20_gravity_bomb.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+goal_explosions,21,Mister Monsoon,goal_explosions/21_mister_monsoon.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+goal_explosions,22,Overgrowth,goal_explosions/22_overgrowth.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+goal_explosions,23,Rad Rock,goal_explosions/23_rad_rock.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+goal_explosions,24,Righteous Gale,goal_explosions/24_righteous_gale.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+goal_explosions,25,Supernova III,goal_explosions/25_supernova_iii.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+goal_explosions,26,Light Show,goal_explosions/26_light_show.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+goal_explosions,27,Kablooey,goal_explosions/27_kablooey.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+goal_explosions,28,Yeehaw,goal_explosions/28_yeehaw.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+goal_explosions,29,Beach Party,goal_explosions/29_beach_party.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+goal_explosions,30,Reaper,goal_explosions/30_reaper.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+trails,1,Binary,trails/01_binary.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+trails,2,Blazer,trails/02_blazer.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+trails,3,Candy Cane,trails/03_candy_cane.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+trails,4,Discotheque,trails/04_discotheque.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+trails,5,EKG-OMG,trails/05_ekg_omg.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+trails,6,Friction,trails/06_friction.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+trails,7,Hack Swerve III,trails/07_hack_swerve_iii.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+trails,8,Hex Fade,trails/08_hex_fade.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+trails,9,HoloData,trails/09_holodata.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+trails,10,Hot Rocks,trails/10_hot_rocks.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+trails,11,Laser Wave III,trails/11_laser_wave_iii.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+trails,12,Lightning,trails/12_lightning.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+trails,13,Lightspeed,trails/13_lightspeed.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+trails,14,Luminous,trails/14_luminous.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+trails,15,Rainbow,trails/15_rainbow.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+trails,16,Rad Rock,trails/16_rad_rock.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+trails,17,Rally Tracks,trails/17_rally_tracks.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+trails,18,Ruckus,trails/18_ruckus.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+trails,19,SARPBC,trails/19_sarpbc.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+trails,20,Tachyon III,trails/20_tachyon_iii.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+trails,21,Toon Hydro,trails/21_toon_hydro.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+trails,22,Truth Beam,trails/22_truth_beam.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+trails,23,Xmas Lights,trails/23_xmas_lights.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+trails,24,Zigzag,trails/24_zigzag.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+trails,25,Excavator,trails/25_excavator.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+trails,26,Fissure,trails/26_fissure.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+trails,27,Flame Chain,trails/27_flame_chain.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+trails,28,Warp Wave,trails/28_warp_wave.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+trails,29,Dream Beam,trails/29_dream_beam.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+trails,30,Tarnation,trails/30_tarnation.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+player_anthems,1,Rocket League Theme,player_anthems/01_rocket_league_theme.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+player_anthems,2,Solar Eclipses,player_anthems/02_solar_eclipses.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+player_anthems,3,Breathing Underwater,player_anthems/03_breathing_underwater.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+player_anthems,4,All I Need,player_anthems/04_all_i_need.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+player_anthems,5,Glide,player_anthems/05_glide.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+player_anthems,6,Cities,player_anthems/06_cities.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+player_anthems,7,Crab Rave,player_anthems/07_crab_rave.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+player_anthems,8,Flip Reset,player_anthems/08_flip_reset.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+player_anthems,9,Gold,player_anthems/09_gold.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+player_anthems,10,LUV U NEED U,player_anthems/10_luv_u_need_u.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+player_anthems,11,RAVE,player_anthems/11_rave.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+player_anthems,12,Seeing What's Next,player_anthems/12_seeing_what_s_next.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+player_anthems,13,We Speak Chinese,player_anthems/13_we_speak_chinese.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+player_anthems,14,Bone Dry,player_anthems/14_bone_dry.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+player_anthems,15,ROCK IT,player_anthems/15_rock_it.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+player_anthems,16,Shiawase,player_anthems/16_shiawase.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+player_anthems,17,Angel Wings,player_anthems/17_angel_wings.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+player_anthems,18,Walking on the Moon,player_anthems/18_walking_on_the_moon.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+player_anthems,19,Therapy,player_anthems/19_therapy.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+player_anthems,20,Stronger,player_anthems/20_stronger.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+player_anthems,21,Moment,player_anthems/21_moment.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+player_anthems,22,Champions Field,player_anthems/22_champions_field.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+player_anthems,23,Firework,player_anthems/23_firework.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+player_anthems,24,Love Thru The Night,player_anthems/24_love_thru_the_night.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+player_anthems,25,Good 4 Me,player_anthems/25_good_4_me.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+player_anthems,26,Don't Stop The Party,player_anthems/26_don_t_stop_the_party.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+player_anthems,27,Playing with the Boys,player_anthems/27_playing_with_the_boys.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+player_anthems,28,So Good,player_anthems/28_so_good.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+player_anthems,29,Tokyo Drift,player_anthems/29_tokyo_drift.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+player_anthems,30,Without You,player_anthems/30_without_you.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+player_banners,1,Blueprint,player_banners/01_blueprint.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+player_banners,2,Calculated,player_banners/02_calculated.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+player_banners,3,Circuit Pro,player_banners/03_circuit_pro.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+player_banners,4,Cold Sweater,player_banners/04_cold_sweater.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+player_banners,5,Dragon,player_banners/05_dragon.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+player_banners,6,Fallen Angel,player_banners/06_fallen_angel.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+player_banners,7,Gamer Pad,player_banners/07_gamer_pad.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+player_banners,8,Ghost Story,player_banners/08_ghost_story.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+player_banners,9,Gold-Plated,player_banners/09_gold_plated.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+player_banners,10,Haunted Hallows,player_banners/10_haunted_hallows.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+player_banners,11,Hoagie,player_banners/11_hoagie.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+player_banners,12,Hypnoteks,player_banners/12_hypnoteks.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+player_banners,13,Kaze,player_banners/13_kaze.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+player_banners,14,Lift-Off,player_banners/14_lift_off.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+player_banners,15,Lucky Stars,player_banners/15_lucky_stars.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+player_banners,16,NeOctane,player_banners/16_neoctane.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+player_banners,17,RL Esports,player_banners/17_rl_esports.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+player_banners,18,Shark Attack,player_banners/18_shark_attack.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+player_banners,19,Soccer Ball,player_banners/19_soccer_ball.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+player_banners,20,Statesman,player_banners/20_statesman.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+player_banners,21,Sticker Shock,player_banners/21_sticker_shock.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+player_banners,22,Sunset 1986,player_banners/22_sunset_1986.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+player_banners,23,Tread Heavy,player_banners/23_tread_heavy.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+player_banners,24,Tranquility,player_banners/24_tranquility.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+player_banners,25,Vice,player_banners/25_vice.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+player_banners,26,Winning Streak,player_banners/26_winning_streak.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+player_banners,27,WWE,player_banners/27_wwe.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+player_banners,28,Xmas Lights,player_banners/28_xmas_lights.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+player_banners,29,Blueprint II,player_banners/29_blueprint_ii.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+player_banners,30,Faboo,player_banners/30_faboo.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+avatar_borders,1,Crown,avatar_borders/01_crown.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+avatar_borders,2,Damaged,avatar_borders/02_damaged.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+avatar_borders,3,Fire Main,avatar_borders/03_fire_main.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+avatar_borders,4,Free Ride,avatar_borders/04_free_ride.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+avatar_borders,5,Jolted,avatar_borders/05_jolted.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+avatar_borders,6,Paladin,avatar_borders/06_paladin.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+avatar_borders,7,SDTV,avatar_borders/07_sdtv.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+avatar_borders,8,Snowstorm,avatar_borders/08_snowstorm.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+avatar_borders,9,Tranquility,avatar_borders/09_tranquility.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+avatar_borders,10,Twinkle Box,avatar_borders/10_twinkle_box.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+avatar_borders,11,Dinosaurus,avatar_borders/11_dinosaurus.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+avatar_borders,12,Ghost Story,avatar_borders/12_ghost_story.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+avatar_borders,13,Honor Guard,avatar_borders/13_honor_guard.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+avatar_borders,14,Ice Age,avatar_borders/14_ice_age.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+avatar_borders,15,Joker,avatar_borders/15_joker.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+avatar_borders,16,Lucky Cat,avatar_borders/16_lucky_cat.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+avatar_borders,17,Neon Runner,avatar_borders/17_neon_runner.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+avatar_borders,18,RLCS X,avatar_borders/18_rlcs_x.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+avatar_borders,19,Season 1,avatar_borders/19_season_1.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+avatar_borders,20,Season 2,avatar_borders/20_season_2.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+avatar_borders,21,Season 3,avatar_borders/21_season_3.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+avatar_borders,22,Season 4,avatar_borders/22_season_4.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+avatar_borders,23,Season 5,avatar_borders/23_season_5.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+avatar_borders,24,Season 6,avatar_borders/24_season_6.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+avatar_borders,25,Spring Pagoda,avatar_borders/25_spring_pagoda.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+avatar_borders,26,Sunrise,avatar_borders/26_sunrise.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+avatar_borders,27,Temple Guardian,avatar_borders/27_temple_guardian.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+avatar_borders,28,Twilight,avatar_borders/28_twilight.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+avatar_borders,29,Vintage,avatar_borders/29_vintage.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+avatar_borders,30,XP Level,avatar_borders/30_xp_level.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+engine_audio,1,Aftershock,engine_audio/01_aftershock.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+engine_audio,2,Backfire,engine_audio/02_backfire.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+engine_audio,3,Breakout,engine_audio/03_breakout.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+engine_audio,4,Dominus,engine_audio/04_dominus.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+engine_audio,5,Endo,engine_audio/05_endo.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+engine_audio,6,Esper,engine_audio/06_esper.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+engine_audio,7,Fennec,engine_audio/07_fennec.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+engine_audio,8,Gizmo,engine_audio/08_gizmo.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+engine_audio,9,Hotshot,engine_audio/09_hotshot.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+engine_audio,10,Imperator DT5,engine_audio/10_imperator_dt5.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+engine_audio,11,Jäger 619,engine_audio/11_jäger_619.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+engine_audio,12,Mantis,engine_audio/12_mantis.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+engine_audio,13,Marauder,engine_audio/13_marauder.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+engine_audio,14,Masamune,engine_audio/14_masamune.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+engine_audio,15,Merc,engine_audio/15_merc.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+engine_audio,16,Nimbus,engine_audio/16_nimbus.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+engine_audio,17,Octane,engine_audio/17_octane.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+engine_audio,18,Paladin,engine_audio/18_paladin.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+engine_audio,19,Road Hog,engine_audio/19_road_hog.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+engine_audio,20,Takumi,engine_audio/20_takumi.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+engine_audio,21,Twinzer,engine_audio/21_twinzer.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+engine_audio,22,Venom,engine_audio/22_venom.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+engine_audio,23,Werewolf,engine_audio/23_werewolf.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+engine_audio,24,X-Devil,engine_audio/24_x_devil.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+engine_audio,25,Animus GP,engine_audio/25_animus_gp.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+engine_audio,26,Artemis,engine_audio/26_artemis.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+engine_audio,27,Centio,engine_audio/27_centio.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+engine_audio,28,Cyclone,engine_audio/28_cyclone.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+engine_audio,29,Diestro,engine_audio/29_diestro.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+engine_audio,30,Dingo,engine_audio/30_dingo.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+titles,1,Veteran,titles/01_veteran.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+titles,2,Expert,titles/02_expert.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+titles,3,Master,titles/03_master.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+titles,4,Legend,titles/04_legend.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+titles,5,Rocketeer,titles/05_rocketeer.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+titles,6,Elite Challenger,titles/06_elite_challenger.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+titles,7,All-Star,titles/07_all_star.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+titles,8,Superstar,titles/08_superstar.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+titles,9,Champion,titles/09_champion.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+titles,10,Grand Champion,titles/10_grand_champion.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+titles,11,Supersonic Legend,titles/11_supersonic_legend.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+titles,12,Seasoned Veteran,titles/12_seasoned_veteran.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+titles,13,Est. 2015,titles/13_est_2015.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+titles,14,Est. 2016,titles/14_est_2016.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+titles,15,Est. 2017,titles/15_est_2017.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+titles,16,Est. 2018,titles/16_est_2018.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+titles,17,Est. 2019,titles/17_est_2019.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+titles,18,Est. 2020,titles/18_est_2020.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+titles,19,Rocket Demigod,titles/19_rocket_demigod.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+titles,20,RNG Champ,titles/20_rng_champ.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+titles,21,Dunk Master,titles/21_dunk_master.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+titles,22,Drift Queen,titles/22_drift_queen.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+titles,23,Carpooler,titles/23_carpooler.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+titles,24,Quick Chat Champion,titles/24_quick_chat_champion.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+titles,25,Tournament Winner,titles/25_tournament_winner.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+titles,26,Ball Chaser,titles/26_ball_chaser.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+titles,27,Midfield Magician,titles/27_midfield_magician.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+titles,28,Aerial Ace,titles/28_aerial_ace.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+titles,29,Demolition Demon,titles/29_demolition_demon.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
+titles,30,Boost Hog,titles/30_boost_hog.png,256,256,generated_placeholder,low,Generated local placeholder icon using the item/category name; not official game art.
