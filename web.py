@@ -1,7 +1,7 @@
 import os
 from pathlib import Path
 
-from flask import Flask, Response, abort, request, send_file, send_from_directory
+from flask import Flask, Response, abort, redirect, request, send_file, send_from_directory, url_for
 
 from daily_flyer.orchestrator import build_daily_page
 from daily_flyer.renderer import build_html
@@ -50,8 +50,23 @@ def _parse_seed(raw: str | None) -> int | None:
         abort(400, description="Invalid seed value.")
 
 
+def _forced_root_product() -> str:
+    return (os.environ.get("F9_ROOT_PRODUCT") or os.environ.get("ROOT_PRODUCT") or "").strip()
+
+
 @app.route("/")
 def home():
+    forced_product = _forced_root_product()
+    if forced_product:
+        redirect_args = {"product": forced_product}
+        date_str = (request.args.get("date") or "").strip()
+        seed_str = (request.args.get("seed") or "").strip()
+        if date_str:
+            redirect_args["date"] = date_str
+        if seed_str:
+            redirect_args["seed"] = seed_str
+        return redirect(url_for("flyer_engine_v2", **redirect_args))
+
     theme_name = _normalize_theme_name(request.args.get("theme"))
     date_str = (request.args.get("date") or "").strip() or None
     seed = _parse_seed(request.args.get("seed"))
