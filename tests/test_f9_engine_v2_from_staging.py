@@ -2,6 +2,7 @@ from __future__ import annotations
 
 from datetime import date
 import unittest
+from unittest.mock import patch
 
 from daily_flyer_v2 import build_flyer_html
 from daily_flyer_v2.data.f9_items import (
@@ -69,6 +70,14 @@ class F9EngineV2FromStagingTests(unittest.TestCase):
         self.assertNotIn("ROCKET PASS", html)
         self.assertNotIn("fa-scoreboard", html)
         self.assertNotIn("hero-pill", html)
+
+    def test_root_can_redirect_to_f9_hub_product_on_render(self) -> None:
+        client = app.test_client()
+        with patch.dict("os.environ", {"F9_ROOT_PRODUCT": "f9-daily"}):
+            response = client.get("/?date=2026-06-12&seed=9")
+
+        self.assertEqual(response.status_code, 302)
+        self.assertEqual(response.headers["Location"], "/v2?product=f9-daily&date=2026-06-12&seed=9")
 
     def test_f9_logo_debug_route_serves_transparent_png(self) -> None:
         client = app.test_client()
