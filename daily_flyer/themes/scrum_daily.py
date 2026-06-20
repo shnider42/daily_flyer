@@ -6,44 +6,227 @@ from daily_flyer.models import CardItem, PageContext
 from daily_flyer.utils import resolve_date
 
 THEME_CONFIG = {
-    "page_title": "Scrum Daily — Personal Board",
-    "header_title": "Scrum Daily",
-    "header_subtitle": "A personal backlog board for career and personal work.",
-    "footer_text": "Built on Daily Flyer.",
-    "hero_kicker": "Daily Flyer • Scrum Daily",
-    "hero_summary_pill": "Backlog, focus, and done — without Jira-sized overhead",
+    "page_title": "SRE Scrum Daily — 60-Day Board",
+    "header_title": "SRE Scrum Daily",
+    "header_subtitle": "A lightweight operating board for the SRE transition plan.",
+    "footer_text": "Built on Daily Flyer. Source-of-truth workflow starts from staging.",
+    "hero_kicker": "Daily Flyer • SRE Transition Board",
+    "hero_summary_pill": "Positioning, lab proof, applications, and interview reps",
 }
 
+EPICS = [
+    {"key": "positioning", "label": "Positioning"},
+    {"key": "sre_lab", "label": "SRE Lab"},
+    {"key": "observability", "label": "Observability"},
+    {"key": "applications", "label": "Applications"},
+    {"key": "interview_prep", "label": "Interview Prep"},
+    {"key": "board_improvements", "label": "Board Improvements"},
+]
+
 SEED_STATE = {
-    "activeSprint": "Sprint 1",
+    "activeSprint": "SRE Sprint 1 — Positioning + Lab Foundation",
+    "wipLimit": 3,
+    "epics": EPICS,
     "stories": [
         {
-            "id": "career-1",
-            "title": "Refresh Daily Flyer repo structure understanding",
-            "epic": "career",
+            "id": "pos-001",
+            "title": "Rewrite LinkedIn headline for SRE",
+            "epic": "positioning",
             "status": "in_progress",
-            "notes": "Get clear on master, staging, and experimental branches.",
+            "priority": "P0",
+            "due": "Week 1",
+            "acceptanceCriteria": "Headline explicitly says Infrastructure / Platform Reliability Engineer and mentions Dell/EMC, automation, Linux, Kubernetes, and observability.",
+            "notes": "Make the market identity obvious. No 'open to anything technical' energy.",
         },
         {
-            "id": "career-2",
-            "title": "Prototype Scrum Daily theme",
-            "epic": "career",
+            "id": "pos-002",
+            "title": "Create SRE-specific resume",
+            "epic": "positioning",
             "status": "backlog",
-            "notes": "Keep it single-user and intentionally lightweight.",
+            "priority": "P0",
+            "due": "Week 1",
+            "acceptanceCriteria": "A separate SRE resume exists and the top third emphasizes reliability, incident response, automation, infrastructure, and production troubleshooting.",
+            "notes": "Every bullet should pass the test: would an SRE manager care?",
         },
         {
-            "id": "personal-1",
-            "title": "Plan this week's personal admin tasks",
-            "epic": "personal",
+            "id": "pos-003",
+            "title": "Write and rehearse 30-second SRE intro",
+            "epic": "positioning",
             "status": "backlog",
-            "notes": "Bills, errands, and one house task.",
+            "priority": "P1",
+            "due": "Week 1",
+            "acceptanceCriteria": "Intro can be said out loud without hedging and frames the lane as reliability engineering where software meets systems.",
+            "notes": "Use Dell/EMC as the credibility anchor and recent Kubernetes/observability work as the bridge.",
         },
         {
-            "id": "career-3",
-            "title": "Close one small Daily Flyer improvement",
-            "epic": "career",
+            "id": "lab-001",
+            "title": "Create sre-reliability-lab repo",
+            "epic": "sre_lab",
+            "status": "backlog",
+            "priority": "P0",
+            "due": "Week 2",
+            "acceptanceCriteria": "Repo exists with a README explaining purpose, architecture, local run instructions, and planned failure scenarios.",
+            "notes": "One polished proof project beats five half-finished labs.",
+        },
+        {
+            "id": "lab-002",
+            "title": "Build app health/readiness/metrics endpoints",
+            "epic": "sre_lab",
+            "status": "backlog",
+            "priority": "P0",
+            "due": "Week 2",
+            "acceptanceCriteria": "App exposes /health, /ready, /metrics, /slow, /error, and /dependency-check with documented behavior.",
+            "notes": "Keep the app simple. The reliability workflow is the artifact.",
+        },
+        {
+            "id": "lab-003",
+            "title": "Deploy app to Minikube",
+            "epic": "sre_lab",
+            "status": "backlog",
+            "priority": "P0",
+            "due": "Week 2",
+            "acceptanceCriteria": "Kubernetes manifests or Helm chart deploy the app with Service, Ingress, requests, and limits.",
+            "notes": "This should be boring, reproducible, and documented.",
+        },
+        {
+            "id": "obs-001",
+            "title": "Add Prometheus metrics and scrape config",
+            "epic": "observability",
+            "status": "backlog",
+            "priority": "P0",
+            "due": "Week 3",
+            "acceptanceCriteria": "Prometheus can scrape request count, error count, and latency metrics from the app.",
+            "notes": "Do not overbuild. Make it readable and screenshot-worthy.",
+        },
+        {
+            "id": "obs-002",
+            "title": "Create Grafana dashboard",
+            "epic": "observability",
+            "status": "backlog",
+            "priority": "P1",
+            "due": "Week 3",
+            "acceptanceCriteria": "Dashboard shows request rate, error rate, latency, and pod health/status.",
+            "notes": "Dashboard should support the incident stories, not exist for decoration.",
+        },
+        {
+            "id": "lab-004",
+            "title": "Write CrashLoopBackOff runbook",
+            "epic": "sre_lab",
+            "status": "backlog",
+            "priority": "P0",
+            "due": "Week 4",
+            "acceptanceCriteria": "Runbook includes symptom, customer impact, detection, kubectl commands, remediation, and prevention.",
+            "notes": "This is one of the clearest SRE interview proof points.",
+        },
+        {
+            "id": "lab-005",
+            "title": "Write bad config incident postmortem",
+            "epic": "sre_lab",
+            "status": "backlog",
+            "priority": "P1",
+            "due": "Week 4",
+            "acceptanceCriteria": "Postmortem includes timeline, impact, root cause, detection gap, remediation, and follow-up action items.",
+            "notes": "No blame. Show systems thinking.",
+        },
+        {
+            "id": "apps-001",
+            "title": "Build SRE target-role filter",
+            "epic": "applications",
+            "status": "backlog",
+            "priority": "P0",
+            "due": "Week 5",
+            "acceptanceCriteria": "Green/yellow/red job criteria are written down and used before applying.",
+            "notes": "This prevents shotgun applications and protects the SRE positioning.",
+        },
+        {
+            "id": "apps-002",
+            "title": "Apply to 8–12 SRE-adjacent roles",
+            "epic": "applications",
+            "status": "backlog",
+            "priority": "P0",
+            "due": "Weekly starting Week 5",
+            "acceptanceCriteria": "Tracker has 8–12 entries with company, role, fit reason, resume version, contact, follow-up date, and status.",
+            "notes": "No tracker equals vibes. Vibes have not been working.",
+        },
+        {
+            "id": "apps-003",
+            "title": "Send 5 targeted networking messages",
+            "epic": "applications",
+            "status": "backlog",
+            "priority": "P1",
+            "due": "Weekly starting Week 5",
+            "acceptanceCriteria": "Five messages sent to SRE/platform/reliability people with a concrete reason for outreach.",
+            "notes": "Avoid generic recruiter spam. Specific beats broad.",
+        },
+        {
+            "id": "prep-001",
+            "title": "Prepare 6 SRE interview stories",
+            "epic": "interview_prep",
+            "status": "backlog",
+            "priority": "P0",
+            "due": "Week 6",
+            "acceptanceCriteria": "Six stories exist in Situation → Failure mode → Investigation → Fix → Prevention → Lesson format.",
+            "notes": "Must include Dell escalation, lab build, cross-layer debugging, automation, Quantum/API work, and the new SRE lab.",
+        },
+        {
+            "id": "prep-002",
+            "title": "Drill Kubernetes troubleshooting",
+            "epic": "interview_prep",
+            "status": "backlog",
+            "priority": "P0",
+            "due": "Week 6",
+            "acceptanceCriteria": "Can explain pods, deployments, services, ingress, events, logs, describe, rollout undo, requests/limits, and CrashLoopBackOff debugging.",
+            "notes": "Fluency matters more than pretending to be a principal Kubernetes platform owner.",
+        },
+        {
+            "id": "prep-003",
+            "title": "Practice SLO/error-budget explanation",
+            "epic": "interview_prep",
+            "status": "backlog",
+            "priority": "P1",
+            "due": "Week 6",
+            "acceptanceCriteria": "Can explain SLI, SLO, error budget, alert relevance, and toil reduction in plain English.",
+            "notes": "Make it sound operational, not memorized.",
+        },
+        {
+            "id": "board-001",
+            "title": "Support custom epics instead of career/personal only",
+            "epic": "board_improvements",
             "status": "done",
-            "notes": "Bias toward finishing over collecting more WIP.",
+            "priority": "P0",
+            "due": "Now",
+            "acceptanceCriteria": "Board normalizes and renders configurable epics from state and does not collapse everything into career/personal.",
+            "notes": "This keeps the board aligned to the actual SRE plan.",
+        },
+        {
+            "id": "board-002",
+            "title": "Add priority, due, and acceptance criteria fields",
+            "epic": "board_improvements",
+            "status": "done",
+            "priority": "P0",
+            "due": "Now",
+            "acceptanceCriteria": "Cards display priority, due target, and done criteria so work cannot hide behind vague titles.",
+            "notes": "Done means evidence exists.",
+        },
+        {
+            "id": "board-003",
+            "title": "Add WIP limit warning",
+            "epic": "board_improvements",
+            "status": "done",
+            "priority": "P1",
+            "due": "Now",
+            "acceptanceCriteria": "Summary warns when In Progress exceeds the configured WIP limit.",
+            "notes": "The board should gently shame excess multitasking.",
+        },
+        {
+            "id": "board-004",
+            "title": "Add JSON export/import",
+            "epic": "board_improvements",
+            "status": "done",
+            "priority": "P1",
+            "due": "Now",
+            "acceptanceCriteria": "Board state can be exported and imported as JSON for backup, sharing, or migration.",
+            "notes": "Lightweight portability without building a Jira clone.",
         },
     ],
 }
@@ -58,25 +241,26 @@ def _board_markup() -> str:
             Epic
             <select data-filter-epic>
               <option value="all">All</option>
-              <option value="career">Career</option>
-              <option value="personal">Personal</option>
             </select>
           </label>
 
           <label class="scrum-label scrum-sprint-wrap">
             Active sprint
-            <input type="text" value="" placeholder="Sprint 1" data-sprint-name />
+            <input type="text" value="" placeholder="SRE Sprint 1" data-sprint-name />
           </label>
         </div>
 
         <div class="scrum-toolbar-group">
           <button type="button" class="scrum-btn scrum-btn--primary" data-action="add-story">Add story</button>
+          <button type="button" class="scrum-btn" data-action="export-board">Export JSON</button>
+          <button type="button" class="scrum-btn" data-action="import-board">Import JSON</button>
           <button type="button" class="scrum-btn" data-action="archive-done">Archive done</button>
-          <button type="button" class="scrum-btn" data-action="reset-board">Reset seed</button>
+          <button type="button" class="scrum-btn" data-action="reset-board">Reset SRE seed</button>
         </div>
       </div>
 
       <div class="scrum-summary" data-scrum-summary></div>
+      <div class="scrum-alert" data-wip-warning hidden></div>
       <div class="scrum-board" data-scrum-board></div>
     </div>
     """
@@ -87,10 +271,11 @@ def _agreements_markup() -> str:
     <div class="scrum-agreements">
       <p><strong>Working agreements</strong></p>
       <ul>
-        <li>Keep in-progress intentionally small.</li>
-        <li>Move at least one story every day.</li>
-        <li>Done means actually done, not “I touched it once.”</li>
-        <li>Epics are only lightweight tags here, not Jira bureaucracy.</li>
+        <li><strong>Staging is the source of truth.</strong> New Daily Flyer work branches from staging, not master.</li>
+        <li>Keep in-progress intentionally small. Default WIP limit: 3.</li>
+        <li>Board improvements are allowed only when they directly help the SRE plan.</li>
+        <li>Done means evidence exists: committed code, a real application entry, a resume file, or a written runbook/postmortem.</li>
+        <li>Move at least one story every day, even if it is small.</li>
       </ul>
     </div>
     """
@@ -172,6 +357,15 @@ def _extra_css() -> str:
         font-size: 0.9rem;
     }
 
+    .scrum-alert {
+        padding: 0.85rem 1rem;
+        border-radius: 16px;
+        border: 1px solid rgba(255, 205, 117, 0.32);
+        background: rgba(255, 205, 117, 0.10);
+        color: var(--ink);
+        line-height: 1.5;
+    }
+
     .scrum-board {
         display: grid;
         grid-template-columns: repeat(3, minmax(0, 1fr));
@@ -241,10 +435,16 @@ def _extra_css() -> str:
         line-height: 1.35;
     }
 
-    .scrum-story-notes {
+    .scrum-story-notes,
+    .scrum-story-acceptance {
         color: var(--ink-soft);
         font-size: 0.93rem;
         line-height: 1.55;
+    }
+
+    .scrum-story-acceptance {
+        padding-top: 0.55rem;
+        border-top: 1px solid rgba(255,255,255,0.06);
     }
 
     .scrum-chip {
@@ -261,8 +461,8 @@ def _extra_css() -> str:
         letter-spacing: 0.07em;
     }
 
-    .scrum-chip--career { background: rgba(125,183,217,0.14); }
-    .scrum-chip--personal { background: rgba(215,185,107,0.14); }
+    .scrum-chip--priority { background: rgba(255, 117, 117, 0.12); }
+    .scrum-chip--due { background: rgba(143, 230, 203, 0.12); }
 
     .scrum-story-actions { gap: 0.5rem; }
     .scrum-story-actions .scrum-btn {
@@ -288,156 +488,258 @@ def _extra_css() -> str:
 def _extra_js() -> str:
     seed_json = json.dumps(SEED_STATE, ensure_ascii=False, separators=(",", ":"))
 
-    return rf"""
-    (function () {{
-        const STORAGE_KEY = "dailyflyer:scrum-daily:v1";
+    return r"""
+    (function () {
+        const STORAGE_KEY = "dailyflyer:scrum-daily:sre:v2";
         const API_URL = "/api/scrum-daily/state";
-        const SEED = {seed_json};
+        const SEED = __SEED_JSON__;
         const STATUSES = ["backlog", "in_progress", "done"];
-        const STATUS_LABELS = {{
+        const STATUS_LABELS = {
             backlog: "Backlog",
             in_progress: "In Progress",
             done: "Done",
-        }};
+        };
+        const PRIORITIES = ["P0", "P1", "P2"];
+        const DEFAULT_EPICS = [
+            { key: "positioning", label: "Positioning" },
+            { key: "sre_lab", label: "SRE Lab" },
+            { key: "observability", label: "Observability" },
+            { key: "applications", label: "Applications" },
+            { key: "interview_prep", label: "Interview Prep" },
+            { key: "board_improvements", label: "Board Improvements" },
+        ];
 
         let state = null;
         let storageMode = "local";
 
-        function esc(value) {{
+        function esc(value) {
             return String(value ?? "")
                 .replace(/&/g, "&amp;")
                 .replace(/</g, "&lt;")
                 .replace(/>/g, "&gt;")
                 .replace(/"/g, "&quot;")
                 .replace(/'/g, "&#39;");
-        }}
+        }
 
-        function uid() {{
+        function uid() {
             return "story-" + Math.random().toString(36).slice(2, 10);
-        }}
+        }
 
-        function normalizeStory(story) {{
-            const source = story && typeof story === "object" ? story : {{}};
-            const epic = source.epic === "personal" ? "personal" : "career";
+        function slug(value) {
+            return String(value || "general")
+                .trim()
+                .toLowerCase()
+                .replace(/[^a-z0-9]+/g, "_")
+                .replace(/^_+|_+$/g, "") || "general";
+        }
+
+        function titleCase(value) {
+            return String(value || "General")
+                .replace(/[_-]+/g, " ")
+                .replace(/\b\w/g, (match) => match.toUpperCase());
+        }
+
+        function normalizeEpic(epic) {
+            if (typeof epic === "string") {
+                const key = slug(epic);
+                return { key, label: titleCase(key) };
+            }
+
+            const source = epic && typeof epic === "object" ? epic : {};
+            const key = slug(source.key || source.label || "general");
+            return {
+                key,
+                label: String(source.label || titleCase(key)),
+            };
+        }
+
+        function normalizeEpics(input, stories) {
+            const configured = Array.isArray(input) && input.length ? input.map(normalizeEpic) : DEFAULT_EPICS;
+            const byKey = new Map(configured.map((epic) => [epic.key, epic]));
+
+            for (const story of stories || []) {
+                const epicKey = slug(story.epic || "general");
+                if (!byKey.has(epicKey)) {
+                    byKey.set(epicKey, { key: epicKey, label: titleCase(epicKey) });
+                }
+            }
+
+            return Array.from(byKey.values());
+        }
+
+        function epicLabel(epicKey) {
+            const match = state.epics.find((epic) => epic.key === epicKey);
+            return match ? match.label : titleCase(epicKey);
+        }
+
+        function normalizeStory(story) {
+            const source = story && typeof story === "object" ? story : {};
             const status = STATUSES.includes(source.status) ? source.status : "backlog";
+            const priority = PRIORITIES.includes(String(source.priority || "").toUpperCase())
+                ? String(source.priority).toUpperCase()
+                : "P2";
 
-            return {{
+            return {
                 id: String(source.id || uid()),
                 title: String(source.title || "Untitled story"),
-                epic,
+                epic: slug(source.epic || "general"),
                 status,
+                priority,
+                due: String(source.due || ""),
+                acceptanceCriteria: String(source.acceptanceCriteria || source.acceptance || ""),
                 notes: String(source.notes || ""),
-            }};
-        }}
+            };
+        }
 
-        function normalizeState(input) {{
-            const source = input && typeof input === "object" ? input : {{}};
+        function normalizeState(input) {
+            const source = input && typeof input === "object" ? input : {};
             const rawStories = Array.isArray(source.stories) ? source.stories : SEED.stories;
-            return {{
-                activeSprint: String(source.activeSprint || SEED.activeSprint || "Sprint 1"),
-                stories: rawStories.map(normalizeStory),
-            }};
-        }}
+            const stories = rawStories.map(normalizeStory);
+            const epics = normalizeEpics(source.epics || SEED.epics, stories);
+            const wipLimit = Number.isFinite(Number(source.wipLimit)) ? Math.max(1, Number(source.wipLimit)) : 3;
 
-        function loadLocalState() {{
-            try {{
+            return {
+                activeSprint: String(source.activeSprint || SEED.activeSprint || "SRE Sprint 1"),
+                wipLimit,
+                epics,
+                stories,
+            };
+        }
+
+        function loadLocalState() {
+            try {
                 const raw = localStorage.getItem(STORAGE_KEY);
                 return normalizeState(raw ? JSON.parse(raw) : SEED);
-            }} catch (error) {{
+            } catch (error) {
                 return normalizeState(SEED);
-            }}
-        }}
+            }
+        }
 
-        async function loadState() {{
-            try {{
-                const response = await fetch(API_URL, {{ cache: "no-store" }});
-                if (!response.ok) {{
+        async function loadState() {
+            try {
+                const response = await fetch(API_URL, { cache: "no-store" });
+                if (!response.ok) {
                     throw new Error("No server state endpoint");
-                }}
+                }
                 storageMode = "server";
                 return normalizeState(await response.json());
-            }} catch (error) {{
+            } catch (error) {
                 storageMode = "local";
                 return loadLocalState();
-            }}
-        }}
+            }
+        }
 
-        async function persist() {{
-            if (storageMode === "server") {{
-                try {{
-                    await fetch(API_URL, {{
+        async function persist() {
+            if (storageMode === "server") {
+                try {
+                    const response = await fetch(API_URL, {
                         method: "POST",
-                        headers: {{ "Content-Type": "application/json" }},
+                        headers: { "Content-Type": "application/json" },
                         body: JSON.stringify(state),
-                    }});
+                    });
+                    if (!response.ok) {
+                        throw new Error("Server rejected board state");
+                    }
                     return;
-                }} catch (error) {{
+                } catch (error) {
                     storageMode = "local";
-                }}
-            }}
+                }
+            }
 
-            try {{
+            try {
                 localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
-            }} catch (error) {{
+            } catch (error) {
                 console.warn("Could not persist Scrum Daily state", error);
-            }}
-        }}
+            }
+        }
 
-        function statusIndex(status) {{
+        function statusIndex(status) {
             return STATUSES.indexOf(status);
-        }}
+        }
 
-        function filteredStories() {{
+        function renderEpicFilter() {
+            const epicFilterEl = document.querySelector("[data-filter-epic]");
+            if (!epicFilterEl || !state) {
+                return;
+            }
+
+            const selected = epicFilterEl.value || "all";
+            epicFilterEl.innerHTML = [
+                `<option value="all">All</option>`,
+                ...state.epics.map((epic) => `<option value="${esc(epic.key)}">${esc(epic.label)}</option>`),
+            ].join("");
+
+            epicFilterEl.value = state.epics.some((epic) => epic.key === selected) ? selected : "all";
+        }
+
+        function filteredStories() {
             const epicFilterEl = document.querySelector("[data-filter-epic]");
             const epicFilter = epicFilterEl ? epicFilterEl.value : "all";
 
-            return state.stories.filter((story) => {{
-                if (epicFilter === "all") {{
+            return state.stories.filter((story) => {
+                if (epicFilter === "all") {
                     return true;
-                }}
+                }
                 return story.epic === epicFilter;
-            }});
-        }}
+            });
+        }
 
-        function renderSummary(stories) {{
+        function renderSummary(stories) {
             const summaryEl = document.querySelector("[data-scrum-summary]");
-            if (!summaryEl) {{
+            const warningEl = document.querySelector("[data-wip-warning]");
+            if (!summaryEl) {
                 return;
-            }}
+            }
 
             const backlog = stories.filter((story) => story.status === "backlog").length;
             const inProgress = stories.filter((story) => story.status === "in_progress").length;
             const done = stories.filter((story) => story.status === "done").length;
+            const p0Open = stories.filter((story) => story.priority === "P0" && story.status !== "done").length;
 
             summaryEl.innerHTML = `
-                <div class="scrum-pill">Sprint: <strong>${{esc(state.activeSprint || "Unscheduled")}}</strong></div>
-                <div class="scrum-pill">Backlog: <strong>${{backlog}}</strong></div>
-                <div class="scrum-pill">In Progress: <strong>${{inProgress}}</strong></div>
-                <div class="scrum-pill">Done: <strong>${{done}}</strong></div>
+                <div class="scrum-pill">Sprint: <strong>${esc(state.activeSprint || "Unscheduled")}</strong></div>
+                <div class="scrum-pill">Backlog: <strong>${backlog}</strong></div>
+                <div class="scrum-pill">In Progress: <strong>${inProgress}/${esc(state.wipLimit)}</strong></div>
+                <div class="scrum-pill">Done: <strong>${done}</strong></div>
+                <div class="scrum-pill">Open P0: <strong>${p0Open}</strong></div>
+                <div class="scrum-pill">Storage: <strong>${esc(storageMode)}</strong></div>
             `;
-        }}
 
-        function renderBoard(stories) {{
+            if (warningEl) {
+                if (inProgress > state.wipLimit) {
+                    warningEl.hidden = false;
+                    warningEl.innerHTML = `<strong>WIP limit exceeded.</strong> ${inProgress} items are in progress, but the configured limit is ${esc(state.wipLimit)}. Finish or move something back before starting more.`;
+                } else {
+                    warningEl.hidden = true;
+                    warningEl.innerHTML = "";
+                }
+            }
+        }
+
+        function renderBoard(stories) {
             const boardEl = document.querySelector("[data-scrum-board]");
-            if (!boardEl) {{
+            if (!boardEl) {
                 return;
-            }}
+            }
 
-            boardEl.innerHTML = STATUSES.map((status) => {{
+            boardEl.innerHTML = STATUSES.map((status) => {
                 const storiesForStatus = stories.filter((story) => story.status === status);
 
                 const cards = storiesForStatus.length
                     ? storiesForStatus.map((story) => `
                         <article class="scrum-story">
                             <div class="scrum-story-meta">
-                                <span class="scrum-chip scrum-chip--${{esc(story.epic)}}">${{esc(story.epic)}}</span>
+                                <span class="scrum-chip scrum-chip--${esc(story.epic)}">${esc(epicLabel(story.epic))}</span>
+                                <span class="scrum-chip scrum-chip--priority">${esc(story.priority)}</span>
+                                ${story.due ? `<span class="scrum-chip scrum-chip--due">${esc(story.due)}</span>` : ""}
                             </div>
-                            <h3 class="scrum-story-title">${{esc(story.title)}}</h3>
-                            <div class="scrum-story-notes">${{esc(story.notes || "No notes yet.")}}</div>
+                            <h3 class="scrum-story-title">${esc(story.title)}</h3>
+                            <div class="scrum-story-notes">${esc(story.notes || "No notes yet.")}</div>
+                            ${story.acceptanceCriteria ? `<div class="scrum-story-acceptance"><strong>Done when:</strong> ${esc(story.acceptanceCriteria)}</div>` : ""}
                             <div class="scrum-story-actions">
-                                <button type="button" class="scrum-btn" data-action="move-left" data-story-id="${{esc(story.id)}}">←</button>
-                                <button type="button" class="scrum-btn" data-action="move-right" data-story-id="${{esc(story.id)}}">→</button>
-                                <button type="button" class="scrum-btn" data-action="edit-story" data-story-id="${{esc(story.id)}}">Edit</button>
+                                <button type="button" class="scrum-btn" data-action="move-left" data-story-id="${esc(story.id)}">←</button>
+                                <button type="button" class="scrum-btn" data-action="move-right" data-story-id="${esc(story.id)}">→</button>
+                                <button type="button" class="scrum-btn" data-action="edit-story" data-story-id="${esc(story.id)}">Edit</button>
                             </div>
                         </article>
                     `).join("")
@@ -446,165 +748,226 @@ def _extra_js() -> str:
                 return `
                     <section class="scrum-column">
                         <div class="scrum-column-head">
-                            <h3 class="scrum-column-title">${{STATUS_LABELS[status]}}</h3>
-                            <span class="scrum-count">${{storiesForStatus.length}}</span>
+                            <h3 class="scrum-column-title">${STATUS_LABELS[status]}</h3>
+                            <span class="scrum-count">${storiesForStatus.length}</span>
                         </div>
-                        <div class="scrum-story-list">${{cards}}</div>
+                        <div class="scrum-story-list">${cards}</div>
                     </section>
                 `;
-            }}).join("");
-        }}
+            }).join("");
+        }
 
-        function render() {{
-            if (!state) {{
+        function render() {
+            if (!state) {
                 return;
-            }}
+            }
+
+            renderEpicFilter();
 
             const sprintInput = document.querySelector("[data-sprint-name]");
-            if (sprintInput && sprintInput.value !== state.activeSprint) {{
+            if (sprintInput && sprintInput.value !== state.activeSprint) {
                 sprintInput.value = state.activeSprint;
-            }}
+            }
 
             const stories = filteredStories();
             renderSummary(stories);
             renderBoard(stories);
-        }}
+        }
 
-        function moveStory(storyId, direction) {{
+        function moveStory(storyId, direction) {
             const story = state.stories.find((item) => item.id === storyId);
-            if (!story) {{
+            if (!story) {
                 return;
-            }}
+            }
 
             const nextIndex = statusIndex(story.status) + direction;
-            if (nextIndex < 0 || nextIndex >= STATUSES.length) {{
+            if (nextIndex < 0 || nextIndex >= STATUSES.length) {
                 return;
-            }}
+            }
 
             story.status = STATUSES[nextIndex];
             void persist();
             render();
-        }}
+        }
 
-        function editStory(storyId) {{
+        function editStory(storyId) {
             const story = state.stories.find((item) => item.id === storyId);
-            if (!story) {{
+            if (!story) {
                 return;
-            }}
+            }
 
             const title = window.prompt("Story title", story.title);
-            if (title === null) {{
+            if (title === null) {
                 return;
-            }}
+            }
 
-            const epic = window.prompt("Epic: career or personal", story.epic);
-            if (epic === null) {{
+            const epic = window.prompt("Epic key", story.epic);
+            if (epic === null) {
                 return;
-            }}
+            }
+
+            const priority = window.prompt("Priority: P0, P1, or P2", story.priority);
+            if (priority === null) {
+                return;
+            }
+
+            const due = window.prompt("Due / target week", story.due);
+            if (due === null) {
+                return;
+            }
+
+            const acceptanceCriteria = window.prompt("Acceptance criteria / done means", story.acceptanceCriteria);
+            if (acceptanceCriteria === null) {
+                return;
+            }
 
             const notes = window.prompt("Notes", story.notes);
-            if (notes === null) {{
+            if (notes === null) {
                 return;
-            }}
+            }
 
             story.title = title.trim() || story.title;
-            story.epic = epic.trim().toLowerCase() === "personal" ? "personal" : "career";
+            story.epic = slug(epic);
+            story.priority = PRIORITIES.includes(priority.trim().toUpperCase()) ? priority.trim().toUpperCase() : "P2";
+            story.due = due.trim();
+            story.acceptanceCriteria = acceptanceCriteria.trim();
             story.notes = notes.trim();
 
+            state.epics = normalizeEpics(state.epics, state.stories);
             void persist();
             render();
-        }}
+        }
 
-        function addStory() {{
+        function addStory() {
             const title = window.prompt("New story title");
-            if (!title) {{
+            if (!title) {
                 return;
-            }}
+            }
 
-            const epic = window.prompt("Epic: career or personal", "career");
-            if (epic === null) {{
+            const epic = window.prompt("Epic key", "sre_lab");
+            if (epic === null) {
                 return;
-            }}
+            }
 
+            const priority = window.prompt("Priority: P0, P1, or P2", "P1");
+            if (priority === null) {
+                return;
+            }
+
+            const due = window.prompt("Due / target week", "") ?? "";
+            const acceptanceCriteria = window.prompt("Acceptance criteria / done means", "") ?? "";
             const notes = window.prompt("Notes", "") ?? "";
 
-            state.stories.unshift({{
+            state.stories.unshift({
                 id: uid(),
                 title: title.trim(),
-                epic: epic.trim().toLowerCase() === "personal" ? "personal" : "career",
+                epic: slug(epic),
                 status: "backlog",
+                priority: PRIORITIES.includes(priority.trim().toUpperCase()) ? priority.trim().toUpperCase() : "P1",
+                due: due.trim(),
+                acceptanceCriteria: acceptanceCriteria.trim(),
                 notes: notes.trim(),
-            }});
+            });
 
+            state.epics = normalizeEpics(state.epics, state.stories);
             void persist();
             render();
-        }}
+        }
 
-        function archiveDone() {{
+        function archiveDone() {
             state.stories = state.stories.filter((story) => story.status !== "done");
             void persist();
             render();
-        }}
+        }
 
-        function resetBoard() {{
+        function resetBoard() {
             state = normalizeState(SEED);
             storageMode = "local";
             void persist();
             render();
-        }}
+        }
 
-        document.addEventListener("click", function (event) {{
-            const button = event.target.closest("[data-action]");
-            if (!button || !state) {{
+        function exportBoard() {
+            const payload = JSON.stringify(state, null, 2);
+            try {
+                navigator.clipboard.writeText(payload);
+                window.alert("Board JSON copied to clipboard.");
+            } catch (error) {
+                window.prompt("Copy board JSON", payload);
+            }
+        }
+
+        function importBoard() {
+            const raw = window.prompt("Paste board JSON");
+            if (!raw) {
                 return;
-            }}
+            }
+
+            try {
+                state = normalizeState(JSON.parse(raw));
+                void persist();
+                render();
+            } catch (error) {
+                window.alert("That JSON could not be imported.");
+            }
+        }
+
+        document.addEventListener("click", function (event) {
+            const button = event.target.closest("[data-action]");
+            if (!button || !state) {
+                return;
+            }
 
             const action = button.dataset.action;
             const storyId = button.dataset.storyId;
 
-            if (action === "add-story") {{
+            if (action === "add-story") {
                 addStory();
-            }} else if (action === "archive-done") {{
+            } else if (action === "archive-done") {
                 archiveDone();
-            }} else if (action === "reset-board") {{
+            } else if (action === "reset-board") {
                 resetBoard();
-            }} else if (action === "move-left" && storyId) {{
+            } else if (action === "export-board") {
+                exportBoard();
+            } else if (action === "import-board") {
+                importBoard();
+            } else if (action === "move-left" && storyId) {
                 moveStory(storyId, -1);
-            }} else if (action === "move-right" && storyId) {{
+            } else if (action === "move-right" && storyId) {
                 moveStory(storyId, 1);
-            }} else if (action === "edit-story" && storyId) {{
+            } else if (action === "edit-story" && storyId) {
                 editStory(storyId);
-            }}
-        }});
+            }
+        });
 
-        document.addEventListener("change", function (event) {{
-            if (!state) {{
+        document.addEventListener("change", function (event) {
+            if (!state) {
                 return;
-            }}
+            }
 
-            if (event.target.matches("[data-filter-epic]")) {{
+            if (event.target.matches("[data-filter-epic]")) {
                 render();
-            }}
+            }
 
-            if (event.target.matches("[data-sprint-name]")) {{
-                state.activeSprint = event.target.value.trim() || "Sprint 1";
+            if (event.target.matches("[data-sprint-name]")) {
+                state.activeSprint = event.target.value.trim() || "SRE Sprint 1";
                 void persist();
                 render();
-            }}
-        }});
+            }
+        });
 
-        async function boot() {{
+        async function boot() {
             state = await loadState();
             render();
-        }}
+        }
 
-        if (document.readyState === "loading") {{
+        if (document.readyState === "loading") {
             document.addEventListener("DOMContentLoaded", boot);
-        }} else {{
+        } else {
             boot();
-        }}
-    }})();
-    """
+        }
+    })();
+    """.replace("__SEED_JSON__", seed_json)
 
 
 def build_theme_page(date_str: str | None = None, seed: int | None = None) -> PageContext:
@@ -614,12 +977,12 @@ def build_theme_page(date_str: str | None = None, seed: int | None = None) -> Pa
         CardItem(
             card_type="scrum_agreements",
             eyebrow="Working Agreement",
-            title="Keep it small and real",
+            title="Use the board without hiding in the board",
             body=_agreements_markup(),
         ),
         CardItem(
             card_type="scrum_board",
-            eyebrow="Board",
+            eyebrow="SRE Transition Board",
             title="Backlog → In Progress → Done",
             body=_board_markup(),
         ),
