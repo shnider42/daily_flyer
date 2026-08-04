@@ -24,7 +24,11 @@ PRODUCTION_CLARITY_CSS = r"""
     to { opacity: 1; transform: translate3d(0, 0, 0); }
 }
 
-main > .card {
+/*
+   Match the specificity of the inherited nth-of-type layout rules so these
+   later production declarations actually remove their position-based shapes.
+*/
+main > .card:nth-of-type(n) {
     --it-enter-x: 0%;
     --it-enter-y: 0%;
     clip-path: none !important;
@@ -36,33 +40,33 @@ main > .card {
 }
 
 /* Card family: editorial / reference content. */
-main > .card--word,
-main > .card--did_you_know,
-main > .card--news,
-main > .card--history,
-main > .card--sport,
-main > .card--irish_connection,
-main > .card--phrase {
+main > .card.card--word,
+main > .card.card--did_you_know,
+main > .card.card--news,
+main > .card.card--history,
+main > .card.card--sport,
+main > .card.card--irish_connection,
+main > .card.card--phrase {
     border-radius: 22px !important;
     border-color: rgba(255,255,255,0.13) !important;
 }
 
 /* Card family: photographic features. */
-main > .card--county,
-main > .card--visual_layer {
+main > .card.card--county,
+main > .card.card--visual_layer {
     border-radius: 28px !important;
     border-color: rgba(143,230,203,0.24) !important;
     overflow: hidden !important;
 }
 
 /* Card family: interactive / game cards. */
-main > .card--trivia,
-main > .card--history_sort,
-main > .card--gaeilge_quiz,
-main > .card--phrase_builder,
-main > .card--county_clues,
-main > .card--memory_match,
-main > .card--hurling_game {
+main > .card.card--trivia,
+main > .card.card--history_sort,
+main > .card.card--gaeilge_quiz,
+main > .card.card--phrase_builder,
+main > .card.card--county_clues,
+main > .card.card--memory_match,
+main > .card.card--hurling_game {
     border-radius: 26px !important;
     border-color: rgba(255,196,104,0.20) !important;
     background:
