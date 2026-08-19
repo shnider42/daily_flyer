@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 import re
+from concurrent.futures import ThreadPoolExecutor
 from datetime import date
 from functools import lru_cache
 from typing import Any
@@ -148,25 +149,48 @@ def facts_from_payload(payload: dict[str, Any], target: date) -> list[CuratedFac
     return facts
 
 
-@lru_cache(maxsize=366)
-def _fetch_for_month_day(month: int, day: int) -> tuple[CuratedFact, ...]:
-    target = date(2000, month, day)
+def _fetch_group(kind: str, month: int, day: int) -> list[dict[str, Any]]:
     url = config.WIKIPEDIA_ONTHISDAY_TYPE_URL.format(
-        kind="all",
+        kind=kind,
         month=month,
         day=day,
     )
     try:
-        response = safe_get(url, headers={"Accept": "application/json"})
+        response = safe_get(
+            url,
+            timeout=3,
+            headers={"Accept": "application/json"},
+        )
         payload = response.json()
         if not isinstance(payload, dict):
-            return ()
-        return tuple(facts_from_payload(payload, target))
+            return []
+        items = payload.get(kind) or []
+        return [item for item in items if isinstance(item, dict)] if isinstance(items, list) else []
     except Exception:
-        # This is enrichment, not a hard dependency. Curated birthday content must
-        # still render if Wikipedia is unavailable or changes this experimental API.
-        return ()
+        return []
+
+
+@lru_cache(maxsize=366)
+def _fetch_for_month_day(month: int, day: int) -> tuple[CuratedFact, ...]:
+    # The documented `all` feed is large and can be slow. Three smaller feeds in
+    # parallel are faster and also better match the birthday vibe: Wikipedia's
+    # hand-selected anniversaries, famous births, and fixed holidays.
+    with ThreadPoolExecutor(max_workers=3) as executor:
+        selected_future = executor.submit(_fetch_group, "selected", month, day)
+        births_future = executor.submit(_fetch_group, "births", month, day)
+        holidays_future = executor.submit(_fetch_group, "holidays", month, day)
+
+        payload = {
+            "events": selected_future.result(),
+            "births": births_future.result(),
+            "holidays": holidays_future.result(),
+        }
+
+    target = date(2000, month, day)
+    return tuple(facts_from_payload(payload, target))
 
 
 def fetch_birthday_on_this_day(target: date) -> list[CuratedFact]:
+    # This is enrichment, not a hard dependency. Individual group failures return
+    # an empty list, and the curated birthday banks continue rendering normally.
     return list(_fetch_for_month_day(target.month, target.day))
