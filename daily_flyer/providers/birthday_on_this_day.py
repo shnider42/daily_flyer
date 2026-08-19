@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 from datetime import date
 from functools import lru_cache
 from typing import Any
@@ -46,7 +47,12 @@ def _clean_text(value: Any) -> str:
 
 def _is_birthday_friendly(text: str) -> bool:
     lowered = text.lower()
-    return not any(term in lowered for term in BLOCKED_DYNAMIC_TERMS)
+    # Word-start matching keeps "war" out without accidentally rejecting
+    # "award", and keeps "dies" from matching words such as "studies".
+    return not any(
+        re.search(rf"\b{re.escape(term)}", lowered)
+        for term in BLOCKED_DYNAMIC_TERMS
+    )
 
 
 def _first_page(item: dict[str, Any]) -> dict[str, Any]:
@@ -163,6 +169,4 @@ def _fetch_for_month_day(month: int, day: int) -> tuple[CuratedFact, ...]:
 
 
 def fetch_birthday_on_this_day(target: date) -> list[CuratedFact]:
-    # Re-anchor cached annual facts to the selected year only for display logic;
-    # CuratedFact itself stores month/day rather than a specific occurrence year.
     return list(_fetch_for_month_day(target.month, target.day))
