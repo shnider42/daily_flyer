@@ -3,6 +3,7 @@ from __future__ import annotations
 import json
 from datetime import date
 from functools import lru_cache
+from html import escape
 from pathlib import Path
 
 from daily_flyer.birthday_theme_extra_facts import approved_birthday_theme_facts
@@ -16,6 +17,7 @@ from daily_flyer.content_weighting import (
 )
 from daily_flyer.curated_fact_store import CuratedFact, approved_facts
 from daily_flyer.models import CardItem, PageContext
+from daily_flyer.providers.birthday_on_this_day import fetch_birthday_on_this_day
 from daily_flyer.themes import this_day_birthday_history_enhanced as enhanced
 from daily_flyer.utils import resolve_date
 
@@ -24,19 +26,21 @@ THEME_NAME = enhanced.THEME_NAME
 WEIGHT_PROFILE_NAME = enhanced.WEIGHT_PROFILE_NAME
 CURATED_CARD_ORDER = enhanced.CURATED_CARD_ORDER
 THEME_CONFIG = dict(enhanced.THEME_CONFIG)
-THEME_CONFIG["hero_summary_pill"] = "Exact-date facts first, family reminders, and Patti Mode"
+THEME_CONFIG["hero_summary_pill"] = "Birthdays first, lots of exact-date facts, then this-week extras"
 VERIFIED_FACT_IDS_FILE = Path("birthday_verified_fact_ids.json")
 
-# This theme has one known reader. Optimize for a small number of useful, relevant
-# facts rather than filling every available card slot with loosely related material.
+# Exact-date breadth is a feature for this theme. Wikipedia supplies a large live
+# pool; the curated banks keep the voice personal and whimsical. These limits keep
+# a rich birthday edition readable without going back to unrelated filler.
 CARD_LIMITS = {
-    "this_day_history": 3,
-    "famous_person_birthday": 3,
-    "fun_fact": 2,
-    "classic_rock": 2,
-    "irish_history": 2,
-    "boston_sports": 2,
+    "this_day_history": 7,
+    "famous_person_birthday": 7,
+    "fun_fact": 5,
+    "classic_rock": 4,
+    "irish_history": 4,
+    "boston_sports": 4,
 }
+RELATED_FACT_LIMIT = 10
 
 # These boosts sit on top of the existing birthday_family_friendly keyword profile.
 # They intentionally encode the editorial shape of Patti Mode without changing the
@@ -51,8 +55,13 @@ PATTI_CATEGORY_BOOSTS = {
 }
 
 
-def _all_fact_sources() -> list[CuratedFact]:
-    return approved_facts() + approved_birthday_theme_facts()
+def _all_fact_sources(target: date | None = None) -> list[CuratedFact]:
+    facts = approved_facts() + approved_birthday_theme_facts()
+    if target is not None:
+        # Live Wikipedia breadth is exact-date only. It is enrichment and fails
+        # open, so the curated birthday page still works if Wikipedia is down.
+        facts.extend(fetch_birthday_on_this_day(target))
+    return facts
 
 
 @lru_cache(maxsize=1)
@@ -83,8 +92,8 @@ def _is_exact_calendar_date(fact: CuratedFact, target: date) -> bool:
     """Return True only for a literal month/day match.
 
     CuratedFact.matches_date() also treats week-of/within-days facts as matches.
-    That is useful for broad discovery, but it is too loose for a card labeled
-    "On This Date" or for copy that Mom will read as today's fact.
+    Those now have a legitimate home in the bottom-of-page week/nearby section,
+    but they should never masquerade as something that happened today.
     """
     return (
         fact.month == target.month
@@ -112,10 +121,8 @@ def _quality_sort_key(
     fact: CuratedFact,
     profile: KeywordWeightProfile,
 ) -> tuple[int, float, str]:
-    # Verified facts should win every tie/near-tie. The corpus is still being
-    # hardened, so unverified facts are not hidden wholesale yet; doing that now
-    # would erase nearly the entire birthday fact bank. Exact-date gating is the
-    # first trust improvement, while verified coverage grows in the ledger.
+    # Human-verified facts still win the first tie-break. Live source-backed facts
+    # and legacy curated facts then compete on Patti relevance/whimsy.
     verified_rank = 0 if _is_fact_verified(fact) else 1
     editorial_score = (
         score_content_item(fact, profile)
@@ -139,8 +146,6 @@ def _select_exact_facts(
     if copy_friendly:
         pool = [fact for fact in pool if is_copy_friendly(fact, profile)]
 
-    # Unlike the older selector, do not fall back to facts that fail the primary
-    # family-friendly threshold just to keep a card populated.
     pool = [fact for fact in pool if is_primary_friendly(fact, profile)]
     pool = _dedupe_facts(pool)
     pool.sort(key=lambda fact: _quality_sort_key(fact, profile))
@@ -151,9 +156,9 @@ def _select_patti_copy_facts(
     all_facts: list[CuratedFact],
     target: date,
     profile: KeywordWeightProfile,
-    limit: int = 4,
+    limit: int = 5,
 ) -> list[CuratedFact]:
-    """Choose only genuinely same-day facts for the copy-paste family note."""
+    """Keep the sendable Patti copy anchored to genuinely same-day material."""
     return _select_exact_facts(
         all_facts,
         target,
@@ -175,14 +180,119 @@ def _build_quality_fact_cards(
             target,
             profile,
             card_type=card_type,
-            limit=CARD_LIMITS.get(card_type, 2),
+            limit=CARD_LIMITS.get(card_type, 4),
         )
-        # Empty category cards add no value for this single-reader theme. The
-        # birthday tools remain available; the fact section simply gets shorter.
         if not facts:
             continue
         cards.append(enhanced._build_fact_card(card_type, facts, target, profile))  # noqa: SLF001
     return cards
+
+
+def _safe_anchor(year: int, month: int, day: int) -> date | None:
+    try:
+        return date(year, month, day)
+    except ValueError:
+        if month == 2 and day == 29:
+            return date(year, 2, 28)
+        return None
+
+
+def _annual_delta_days(fact: CuratedFact, target: date) -> int | None:
+    if fact.month is None or fact.day is None:
+        return None
+    candidates = [
+        _safe_anchor(target.year - 1, fact.month, fact.day),
+        _safe_anchor(target.year, fact.month, fact.day),
+        _safe_anchor(target.year + 1, fact.month, fact.day),
+    ]
+    deltas = [(candidate - target).days for candidate in candidates if candidate is not None]
+    return min(deltas, key=abs) if deltas else None
+
+
+def _related_tier(fact: CuratedFact, target: date) -> int | None:
+    if _is_exact_calendar_date(fact, target):
+        return None
+    # week_mode is intentional editorial metadata: it means the fact belongs in a
+    # fuzzy current-week context instead of pretending its anchor date is exact.
+    if fact.week_mode and fact.matches_date(target):
+        return 0
+    delta = _annual_delta_days(fact, target)
+    if delta is not None and abs(delta) <= 3:
+        return 1
+    return None
+
+
+def _related_label(fact: CuratedFact, target: date) -> str:
+    if fact.week_mode and fact.matches_date(target):
+        return "This week"
+    delta = _annual_delta_days(fact, target)
+    if delta is None:
+        return "Around this date"
+    if delta == -1:
+        return "Yesterday"
+    if delta == 1:
+        return "Tomorrow"
+    if delta < 0:
+        return f"{abs(delta)} days ago"
+    if delta > 0:
+        return f"In {delta} days"
+    return "Around this date"
+
+
+def _select_related_facts(
+    all_facts: list[CuratedFact],
+    target: date,
+    profile: KeywordWeightProfile,
+    limit: int = RELATED_FACT_LIMIT,
+) -> list[CuratedFact]:
+    pool = [
+        fact for fact in all_facts
+        if _related_tier(fact, target) is not None and is_primary_friendly(fact, profile)
+    ]
+    pool = _dedupe_facts(pool)
+
+    def sort_key(fact: CuratedFact) -> tuple[int, int, int, float, str]:
+        tier = _related_tier(fact, target) or 0
+        delta = _annual_delta_days(fact, target)
+        distance = abs(delta) if delta is not None else 99
+        verified_rank, negative_score, fact_id = _quality_sort_key(fact, profile)
+        return (tier, distance, verified_rank, negative_score, fact_id)
+
+    pool.sort(key=sort_key)
+    return pool[:limit]
+
+
+def _build_related_card(
+    facts: list[CuratedFact],
+    target: date,
+) -> CardItem | None:
+    if not facts:
+        return None
+
+    parts = [
+        "<div class='fact-stack fact-stack--grouped'>",
+        "<p class='birthday-hint'>These are bonus calendar notes, deliberately kept below the exact-date material. They are either happening this week or anchored within three days of the selected birthday.</p>",
+        "<ul class='birthday-related-list'>",
+    ]
+    for fact in facts:
+        label = _related_label(fact, target)
+        body = enhanced.weighted._trim_fact_text(fact.body, 190)  # noqa: SLF001
+        parts.append(
+            "<li class='birthday-related-item'>"
+            f"<span class='fact-relevance fact-relevance--inline'>{escape(label)}</span> "
+            f"<strong>{escape(fact.title)}</strong>"
+            f"<p>{escape(body)}</p>"
+            f"{enhanced._source_link(fact)}"  # noqa: SLF001
+            "</li>"
+        )
+    parts.append("</ul></div>")
+    return CardItem(
+        "birthday_this_week",
+        "Bonus Calendar Stuff",
+        "This Week & Around This Date",
+        "".join(parts),
+        facts[0].source_url,
+    )
 
 
 def build_theme_page(date_str: str | None = None, seed: int | None = None) -> PageContext:
@@ -193,15 +303,15 @@ def build_theme_page(date_str: str | None = None, seed: int | None = None) -> Pa
     profile = load_keyword_weight_profile(WEIGHT_PROFILE_NAME)
     birthdays = load_birthdays()
     birthday_hits = birthdays_for_date(birthdays, target.month, target.day)
-    all_facts = _all_fact_sources()
+    all_facts = _all_fact_sources(target)
 
-    exact_facts = _select_exact_facts(all_facts, target, profile)
-    patti_facts = _select_patti_copy_facts(all_facts, target, profile, limit=4)
+    exact_facts = _select_exact_facts(all_facts, target, profile, limit=20)
+    patti_facts = _select_patti_copy_facts(all_facts, target, profile, limit=5)
     fact_cards = _build_quality_fact_cards(all_facts, target, profile)
+    related_facts = _select_related_facts(all_facts, target, profile)
+    related_card = _build_related_card(related_facts, target)
 
     enhanced._normalize_base_cards(context)  # noqa: SLF001
-    # Passing only exact-date facts into these renderers prevents their legacy
-    # nearby-date fallback from leaking into Patti Mode or the birthday spotlight.
     enhanced._replace_mom_daily_card(  # noqa: SLF001
         context,
         target,
@@ -217,5 +327,10 @@ def build_theme_page(date_str: str | None = None, seed: int | None = None) -> Pa
     )
     enhanced._reorder_cards(context, fact_cards)  # noqa: SLF001
 
-    context.metadata["hero_summary_pill"] = "Exact-date facts · family reminders · Patti Mode"
+    # The family/birthday tools and exact-day cards stay ahead of fuzzy material.
+    # This card is intentionally appended last so "this week" never outranks today.
+    if related_card is not None:
+        context.cards.append(related_card)
+
+    context.metadata["hero_summary_pill"] = "Birthdays first · exact-day facts · this-week extras"
     return context
