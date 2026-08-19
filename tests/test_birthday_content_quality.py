@@ -7,6 +7,7 @@ from daily_flyer.curated_fact_store import CuratedFact
 from daily_flyer.providers import birthday_on_this_day as birthday_feed
 from daily_flyer.themes import this_day_birthday
 from daily_flyer.themes import this_day_birthday_content_quality as quality
+from daily_flyer.themes import this_day_birthday_mom_drafts as mom_drafts
 
 
 def _fact(
@@ -163,8 +164,8 @@ def test_dynamic_filter_does_not_confuse_award_with_war() -> None:
     assert not birthday_feed._is_birthday_friendly("A war began.")
 
 
-def test_public_birthday_wrapper_uses_content_quality_layer() -> None:
-    assert this_day_birthday.build_theme_page is quality.build_theme_page
+def test_public_birthday_wrapper_uses_mom_draft_layer() -> None:
+    assert this_day_birthday.build_theme_page is mom_drafts.build_theme_page
 
 
 def test_august_19_integration_keeps_fuzzy_material_out_of_exact_cards(monkeypatch) -> None:
