@@ -1,6 +1,9 @@
 from __future__ import annotations
 
+import json
 from datetime import date
+from functools import lru_cache
+from pathlib import Path
 
 from daily_flyer.birthday_theme_extra_facts import approved_birthday_theme_facts
 from daily_flyer.birthdays import birthdays_for_date, load_birthdays
@@ -22,6 +25,7 @@ WEIGHT_PROFILE_NAME = enhanced.WEIGHT_PROFILE_NAME
 CURATED_CARD_ORDER = enhanced.CURATED_CARD_ORDER
 THEME_CONFIG = dict(enhanced.THEME_CONFIG)
 THEME_CONFIG["hero_summary_pill"] = "Exact-date facts first, family reminders, and Patti Mode"
+VERIFIED_FACT_IDS_FILE = Path("birthday_verified_fact_ids.json")
 
 # This theme has one known reader. Optimize for a small number of useful, relevant
 # facts rather than filling every available card slot with loosely related material.
@@ -49,6 +53,30 @@ PATTI_CATEGORY_BOOSTS = {
 
 def _all_fact_sources() -> list[CuratedFact]:
     return approved_facts() + approved_birthday_theme_facts()
+
+
+@lru_cache(maxsize=1)
+def _verified_fact_ids() -> frozenset[str]:
+    """Load the small human-reviewed verification ledger.
+
+    The original fact banks predate strict verification metadata, so their
+    `verified` flags are mostly false even when an entry has since been checked.
+    Keeping a separate ledger lets us harden facts incrementally without making
+    risky bulk edits to the legacy JSON files.
+    """
+    if not VERIFIED_FACT_IDS_FILE.exists():
+        return frozenset()
+    try:
+        raw = json.loads(VERIFIED_FACT_IDS_FILE.read_text(encoding="utf-8"))
+    except (OSError, json.JSONDecodeError):
+        return frozenset()
+    if not isinstance(raw, dict):
+        return frozenset()
+    return frozenset(str(fact_id).strip() for fact_id in raw if str(fact_id).strip())
+
+
+def _is_fact_verified(fact: CuratedFact) -> bool:
+    return bool(fact.verified or fact.fact_id in _verified_fact_ids())
 
 
 def _is_exact_calendar_date(fact: CuratedFact, target: date) -> bool:
@@ -87,8 +115,8 @@ def _quality_sort_key(
     # Verified facts should win every tie/near-tie. The corpus is still being
     # hardened, so unverified facts are not hidden wholesale yet; doing that now
     # would erase nearly the entire birthday fact bank. Exact-date gating is the
-    # first trust improvement, while verified coverage can grow incrementally.
-    verified_rank = 0 if fact.verified else 1
+    # first trust improvement, while verified coverage grows in the ledger.
+    verified_rank = 0 if _is_fact_verified(fact) else 1
     editorial_score = (
         score_content_item(fact, profile)
         + PATTI_CATEGORY_BOOSTS.get(fact.card_type, 0.0)
