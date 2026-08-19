@@ -65,6 +65,11 @@ def test_verified_exact_fact_sorts_ahead_of_unverified_fact() -> None:
     assert [fact.fact_id for fact in selected] == ["verified", "unverified"]
 
 
+def test_manual_verification_ledger_is_honored() -> None:
+    fact = _fact("birthday_family_date_0819_002")
+    assert quality._is_fact_verified(fact)
+
+
 def test_selector_never_fills_from_another_date() -> None:
     target = date(2026, 8, 19)
     profile = load_keyword_weight_profile(quality.WEIGHT_PROFILE_NAME)
