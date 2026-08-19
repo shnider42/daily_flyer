@@ -5,6 +5,7 @@ DEFAULT_TIMEOUT_SECONDS = 6
 USER_AGENT = "DailyFlyer/1.0"
 
 WIKIPEDIA_ONTHISDAY_URL = "https://en.wikipedia.org/api/rest_v1/feed/onthisday/events/{month}/{day}"
+WIKIPEDIA_ONTHISDAY_TYPE_URL = "https://en.wikipedia.org/api/rest_v1/feed/onthisday/{kind}/{month:02d}/{day:02d}"
 WIKIPEDIA_SUMMARY_URL = "https://en.wikipedia.org/api/rest_v1/page/summary/{title}"
 
 RTE_NEWS_URL = "https://www.rte.ie/news/"
