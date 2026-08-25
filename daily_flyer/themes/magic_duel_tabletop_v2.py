@@ -89,7 +89,7 @@ TABLETOP_COLOR_CSS = r"""
     filter: saturate(0.54) brightness(0.80) !important;
 }
 .md-card.is-color-blocked::after {
-    content: "wrong mana" !important;
+    content: "mana locked" !important;
     top: 40px !important;
     bottom: auto !important;
     left: 7px !important;
@@ -137,9 +137,21 @@ TABLETOP_COLOR_JS = r"""
         }
     }
 
-    const observer = new MutationObserver(relabelWells);
+    function disableNonCreatureCombatClicks() {
+        root.querySelectorAll('[data-zone="player-battlefield"] .md-card').forEach(card => {
+            const typeLine = card.querySelector('.md-card-type')?.textContent || "";
+            if (!typeLine.startsWith("Creature")) card.dataset.clickable = "false";
+        });
+    }
+
+    function decorateColorRules() {
+        relabelWells();
+        disableNonCreatureCombatClicks();
+    }
+
+    const observer = new MutationObserver(decorateColorRules);
     observer.observe(root, { childList: true, subtree: true });
-    requestAnimationFrame(relabelWells);
+    requestAnimationFrame(decorateColorRules);
 })();
 """
 
