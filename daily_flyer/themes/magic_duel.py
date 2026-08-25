@@ -792,7 +792,7 @@ def _magic_js() -> str:
 
         switch (action.type) {
             case "PLAY_CARD":
-                if (state.active !== "player" || state.phase !== "main") return;
+                if (state.active !== "player" || !["main", "secondMain"].includes(state.phase)) return;
                 if (playCard(state, "player", action.cardId)) {
                     state.message = "Card played. Continue your main phase or move to combat.";
                 }
