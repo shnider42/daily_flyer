@@ -122,13 +122,18 @@ TABLETOP_COLOR_JS = r"""
     if (!root) return;
     const letters = ["W", "U", "B", "R", "G"];
     const names = ["White", "Blue", "Black", "Red", "Green"];
+    let decorateQueued = false;
 
     function relabelWells() {
         const wells = root.querySelectorAll(".md-arcane-well");
         if (wells.length !== 5) return;
         wells.forEach((well, index) => {
-            well.textContent = letters[index];
-            well.title = `${names[index]} mana`;
+            if (well.textContent !== letters[index]) {
+                well.textContent = letters[index];
+            }
+            if (well.title !== `${names[index]} mana`) {
+                well.title = `${names[index]} mana`;
+            }
         });
         const group = root.querySelector(".md-arcane-wells");
         if (group) {
@@ -140,18 +145,27 @@ TABLETOP_COLOR_JS = r"""
     function disableNonCreatureCombatClicks() {
         root.querySelectorAll('[data-zone="player-battlefield"] .md-card').forEach(card => {
             const typeLine = card.querySelector('.md-card-type')?.textContent || "";
-            if (!typeLine.startsWith("Creature")) card.dataset.clickable = "false";
+            if (!typeLine.startsWith("Creature") && card.dataset.clickable !== "false") {
+                card.dataset.clickable = "false";
+            }
         });
     }
 
     function decorateColorRules() {
+        decorateQueued = false;
         relabelWells();
         disableNonCreatureCombatClicks();
     }
 
-    const observer = new MutationObserver(decorateColorRules);
+    function queueDecorate() {
+        if (decorateQueued) return;
+        decorateQueued = true;
+        requestAnimationFrame(decorateColorRules);
+    }
+
+    const observer = new MutationObserver(queueDecorate);
     observer.observe(root, { childList: true, subtree: true });
-    requestAnimationFrame(decorateColorRules);
+    queueDecorate();
 })();
 """
 
