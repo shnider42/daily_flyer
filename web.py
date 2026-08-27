@@ -15,7 +15,7 @@ THEME_ROUTE_ALIASES = {
     "irish_today": "irish_today_improved_layout",
     "irish_today_improved": "irish_today_improved_layout",
     "irish_today_visual_lab": "irish_today_visual_lab_debug_safe",
-    "e46_owner_companion": "e46_owner_companion_v2",
+    "e46_owner_companion": "e46_owner_companion_v3",
 }
 
 
