@@ -3,6 +3,7 @@ from __future__ import annotations
 from daily_flyer.themes import e46_owner_companion_v5 as base
 
 THEME_NAME = "e46_owner_companion_v6"
+THEME_CONFIG = base.THEME_CONFIG
 
 EXTRA_CSS = base.EXTRA_CSS + r'''
 /* BMW identity — roundel blue, white, graphite; technical rather than M-branded */
