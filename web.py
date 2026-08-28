@@ -16,9 +16,9 @@ THEME_ROUTE_ALIASES = {
     "irish_today_improved": "irish_today_improved_layout",
     "irish_today_visual_lab": "irish_today_visual_lab_debug_safe",
     # Keep the existing Render env var working while Garage Journey becomes the product shell.
-    "e46_owner_companion": "garage_journey_v2",
-    "garage": "garage_journey_v2",
-    "garage_journey": "garage_journey_v2",
+    "e46_owner_companion": "garage_journey_v3",
+    "garage": "garage_journey_v3",
+    "garage_journey": "garage_journey_v3",
     # Preserve a short, explicit route to the deep BMW workshop.
     "e46_workshop": "e46_owner_companion_v5",
 }
