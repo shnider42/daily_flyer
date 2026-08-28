@@ -3,6 +3,7 @@ from __future__ import annotations
 from daily_flyer.themes import porsche_718_cayman_gt4_2023_v2 as base
 
 THEME_NAME = "porsche_718_cayman_gt4_2023_v3"
+THEME_CONFIG = base.THEME_CONFIG
 
 EXTRA_CSS = base.EXTRA_CSS + r'''
 /* Porsche GT identity — black/graphite, Guards-red family, warm metallic accent */
