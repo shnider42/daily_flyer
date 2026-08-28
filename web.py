@@ -21,7 +21,7 @@ THEME_ROUTE_ALIASES = {
     "garage_journey": "garage_journey_v6",
     # Explicit deep-workshop routes for Garage vehicles.
     "e46_workshop": "e46_owner_companion_v5",
-    "porsche_gt4_workshop": "porsche_718_cayman_gt4_2023",
+    "porsche_gt4_workshop": "porsche_718_cayman_gt4_2023_v2",
 }
 
 
