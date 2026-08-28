@@ -16,13 +16,14 @@ THEME_ROUTE_ALIASES = {
     "irish_today_improved": "irish_today_improved_layout",
     "irish_today_visual_lab": "irish_today_visual_lab_debug_safe",
     # Keep the existing Render env var working while Garage Journey is the product shell.
-    "e46_owner_companion": "garage_journey_v10",
-    "garage": "garage_journey_v10",
-    "garage_journey": "garage_journey_v10",
+    "e46_owner_companion": "garage_journey_v11",
+    "garage": "garage_journey_v11",
+    "garage_journey": "garage_journey_v11",
     # Explicit deep-workshop routes for Garage vehicles.
     "e46_workshop": "e46_owner_companion_v7",
     "porsche_gt4_workshop": "porsche_718_cayman_gt4_2023_v4",
     "mustang_gt_workshop": "mustang_gt_2016",
+    "focus_st_workshop": "focus_st_2015",
 }
 
 
