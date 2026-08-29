@@ -1,4 +1,6 @@
+import gzip
 import os
+import time
 from pathlib import Path
 
 from flask import Flask, Response, abort, request, send_from_directory
@@ -16,9 +18,9 @@ THEME_ROUTE_ALIASES = {
     "irish_today_improved": "irish_today_improved_layout",
     "irish_today_visual_lab": "irish_today_visual_lab_debug_safe",
     # Keep the existing Render env var working while Garage Journey is the product shell.
-    "e46_owner_companion": "garage_journey_v12",
-    "garage": "garage_journey_v12",
-    "garage_journey": "garage_journey_v12",
+    "e46_owner_companion": "garage_journey_v13",
+    "garage": "garage_journey_v13",
+    "garage_journey": "garage_journey_v13",
     # Explicit deep-workshop routes for Garage vehicles.
     "e46_workshop": "e46_owner_companion_v7",
     "porsche_gt4_workshop": "porsche_718_cayman_gt4_2023_v4",
@@ -58,12 +60,79 @@ def _parse_seed(raw: str | None) -> int | None:
         abort(400, description="Invalid seed value.")
 
 
+def _versioned_asset_response(content: str, mimetype: str) -> Response:
+    response = Response(content, mimetype=mimetype)
+    # The URL changes when the compiled Garage asset version changes, so a very
+    # long cache lifetime is safe and lets repeat visits skip the payload.
+    response.headers["Cache-Control"] = "public, max-age=31536000, immutable"
+    return response
+
+
+@app.route("/garage-journey-assets-v13.css")
+def garage_journey_css():
+    from daily_flyer.themes import garage_journey_v13
+
+    return _versioned_asset_response(garage_journey_v13.asset_css(), "text/css")
+
+
+@app.route("/garage-journey-assets-v13.js")
+def garage_journey_js():
+    from daily_flyer.themes import garage_journey_v13
+
+    return _versioned_asset_response(
+        garage_journey_v13.asset_js(),
+        "application/javascript",
+    )
+
+
+@app.after_request
+def compress_text_response(response: Response):
+    """Gzip sizeable text responses when the client supports it.
+
+    Render/CDN layers may also compress responses, but doing this here makes the
+    behavior explicit and substantially reduces the large generated Garage
+    HTML/CSS/JS payloads even when an upstream proxy does not.
+    """
+    if request.method != "GET" or response.status_code != 200:
+        return response
+    if response.direct_passthrough or response.headers.get("Content-Encoding"):
+        return response
+    if "gzip" not in request.headers.get("Accept-Encoding", "").lower():
+        return response
+
+    content_type = response.headers.get("Content-Type", "").lower()
+    compressible = (
+        content_type.startswith("text/")
+        or "javascript" in content_type
+        or "json" in content_type
+        or "xml" in content_type
+    )
+    if not compressible:
+        return response
+
+    data = response.get_data()
+    if len(data) < 1024:
+        return response
+
+    compressed = gzip.compress(data, compresslevel=5)
+    if len(compressed) >= len(data):
+        return response
+
+    response.set_data(compressed)
+    response.headers["Content-Encoding"] = "gzip"
+    response.headers["Content-Length"] = str(len(compressed))
+    vary = response.headers.get("Vary", "")
+    response.headers["Vary"] = "Accept-Encoding" if not vary else f"{vary}, Accept-Encoding"
+    return response
+
+
 @app.route("/")
 def home():
     theme_name = _normalize_theme_name(request.args.get("theme"))
     date_str = (request.args.get("date") or "").strip() or None
     seed = _parse_seed(request.args.get("seed"))
 
+    started = time.perf_counter()
     try:
         context = build_daily_page(
             theme_name=theme_name,
@@ -76,9 +145,17 @@ def home():
         abort(400, description=str(exc))
     except ValueError as exc:
         abort(400, description=str(exc) or "Invalid request.")
+    theme_ms = (time.perf_counter() - started) * 1000
 
+    render_started = time.perf_counter()
     html = build_html(context)
-    return Response(html, mimetype="text/html")
+    render_ms = (time.perf_counter() - render_started) * 1000
+
+    response = Response(html, mimetype="text/html")
+    response.headers["Server-Timing"] = (
+        f"theme;dur={theme_ms:.1f}, render;dur={render_ms:.1f}"
+    )
+    return response
 
 
 @app.route("/daily_flyer/<path:filename>")
