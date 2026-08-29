@@ -19,20 +19,21 @@ THEME_ROUTE_ALIASES = {
     "irish_today": "irish_today_improved_layout",
     "irish_today_improved": "irish_today_improved_layout",
     "irish_today_visual_lab": "irish_today_visual_lab_debug_safe",
+    # Keep the existing Render env var working while Garage Journey is the product shell.
     "e46_owner_companion": "garage_journey_v13",
     "garage": "garage_journey_v13",
     "garage_journey": "garage_journey_v13",
+    # Explicit deep-workshop routes for Garage vehicles.
     "e46_workshop": "e46_owner_companion_v7",
     "porsche_gt4_workshop": "porsche_718_cayman_gt4_2023_v4",
     "mustang_gt_workshop": "mustang_gt_2016",
     "focus_st_workshop": "focus_st_2015",
 }
 
-# These pages are server-static for a code version. Personal Garage/profile
-# state lives in localStorage and is applied by browser-side JS, so it is safe
-# to reuse one compiled PageContext per Gunicorn worker.
+# These vehicle-workshop pages are static on the server for a given code
+# version. Cache one compiled PageContext per Gunicorn worker and clone it for
+# warm requests instead of rebuilding all system/component markup every time.
 CACHEABLE_VEHICLE_THEMES = {
-    "garage_journey_v13",
     "e46_owner_companion_v7",
     "porsche_718_cayman_gt4_2023_v4",
     "mustang_gt_2016",
@@ -40,6 +41,8 @@ CACHEABLE_VEHICLE_THEMES = {
 }
 _STATIC_CONTEXT_CACHE: dict[str, object] = {}
 
+# Versioned asset keys let browsers keep workshop CSS/JS for a year. A future
+# workshop revision gets a new key, so immutable caching is safe.
 THEME_ASSET_KEYS = {
     "e46_owner_companion_v7": "e46-workshop-v7",
     "porsche_718_cayman_gt4_2023_v4": "porsche-gt4-workshop-v4",
@@ -51,14 +54,23 @@ _THEME_ASSET_CACHE: dict[str, tuple[str, str]] = {}
 
 
 def _normalize_theme_name(raw: str | None) -> str:
+    """Return a Python module-safe Daily Flyer theme name.
+
+    Render env vars and URLs are easy places to type theme names with hyphens
+    (`topic-signal-daily`), while Daily Flyer theme modules use underscores
+    (`topic_signal_daily`). Accept both spellings at the web boundary.
+    """
     theme_name = (raw or DEFAULT_THEME).strip().replace("-", "_")
     if not theme_name:
         theme_name = DEFAULT_THEME.strip().replace("-", "_")
+
     if not theme_name.replace("_", "").isalnum():
         abort(400, description="Invalid theme name.")
+
     return THEME_ROUTE_ALIASES.get(theme_name, theme_name)
 
 
+# Backward-compatible name for existing tests/imports.
 _clean_theme_name = _normalize_theme_name
 
 
@@ -74,18 +86,28 @@ def _parse_seed(raw: str | None) -> int | None:
 
 def _versioned_asset_response(content: str, mimetype: str) -> Response:
     response = Response(content, mimetype=mimetype)
+    # The URL changes when the compiled Garage asset version changes, so a very
+    # long cache lifetime is safe and lets repeat visits skip the payload.
     response.headers["Cache-Control"] = "public, max-age=31536000, immutable"
     return response
 
 
 def _build_context(theme_name: str, date_str: str | None, seed: int | None):
     if theme_name not in CACHEABLE_VEHICLE_THEMES:
-        return build_daily_page(theme_name=theme_name, date_str=date_str, seed=seed)
+        return build_daily_page(
+            theme_name=theme_name,
+            date_str=date_str,
+            seed=seed,
+        )
 
     today = resolve_date(date_str)
     template = _STATIC_CONTEXT_CACHE.get(theme_name)
     if template is None:
-        context = build_daily_page(theme_name=theme_name, date_str=date_str, seed=seed)
+        context = build_daily_page(
+            theme_name=theme_name,
+            date_str=date_str,
+            seed=seed,
+        )
         _STATIC_CONTEXT_CACHE[theme_name] = deepcopy(context)
         return context
 
@@ -125,27 +147,33 @@ def _compiled_workshop_assets(asset_key: str) -> tuple[str, str]:
     if not theme_name:
         abort(404)
 
+    # This is a fallback for the unlikely case that the asset request lands on a
+    # different worker than the HTML request. Compile once on that worker too.
     context = build_daily_page(theme_name=theme_name)
     assets = (
         context.metadata.get("extra_css", "") or "",
         context.metadata.get("extra_js", "") or "",
     )
     _THEME_ASSET_CACHE[asset_key] = assets
-    _STATIC_CONTEXT_CACHE.setdefault(theme_name, deepcopy(context))
+    if theme_name in CACHEABLE_VEHICLE_THEMES:
+        _STATIC_CONTEXT_CACHE.setdefault(theme_name, deepcopy(context))
     return assets
 
 
 @app.route("/garage-journey-assets-v13.css")
 def garage_journey_css():
     from daily_flyer.themes import garage_journey_v13
+
     return _versioned_asset_response(garage_journey_v13.asset_css(), "text/css")
 
 
 @app.route("/garage-journey-assets-v13.js")
 def garage_journey_js():
     from daily_flyer.themes import garage_journey_v13
+
     return _versioned_asset_response(
-        garage_journey_v13.asset_js(), "application/javascript"
+        garage_journey_v13.asset_js(),
+        "application/javascript",
     )
 
 
@@ -163,6 +191,7 @@ def vehicle_theme_js(asset_key: str):
 
 @app.after_request
 def compress_text_response(response: Response):
+    """Gzip sizeable text responses when the client supports it."""
     if request.method != "GET" or response.status_code != 200:
         return response
     if response.direct_passthrough or response.headers.get("Content-Encoding"):
@@ -171,17 +200,19 @@ def compress_text_response(response: Response):
         return response
 
     content_type = response.headers.get("Content-Type", "").lower()
-    if not (
+    compressible = (
         content_type.startswith("text/")
         or "javascript" in content_type
         or "json" in content_type
         or "xml" in content_type
-    ):
+    )
+    if not compressible:
         return response
 
     data = response.get_data()
     if len(data) < 1024:
         return response
+
     compressed = gzip.compress(data, compresslevel=5)
     if len(compressed) >= len(data):
         return response
@@ -221,13 +252,6 @@ def home():
     response.headers["Server-Timing"] = (
         f"theme;dur={theme_ms:.1f}, render;dur={render_ms:.1f}"
     )
-
-    # Garage + vehicle Workshop HTML is identical for all users; localStorage
-    # applies ownership/profile state after load. Give browsers/proxies a short
-    # cache window so repeat navigation can avoid the Render worker entirely.
-    if theme_name in CACHEABLE_VEHICLE_THEMES and not date_str and seed is None:
-        response.headers["Cache-Control"] = "public, max-age=120, stale-while-revalidate=600"
-
     return response
 
 
