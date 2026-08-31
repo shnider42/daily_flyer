@@ -1,0 +1,94 @@
+{
+  "generated_at": "2026-08-30",
+  "disclaimer": "This tracker records public evidence. It does not infer a root cause when the available evidence does not establish one.",
+  "issues": [
+    {
+      "id": "HLLV-001",
+      "title": "Persistent Recon markers",
+      "category": "gameplay",
+      "scope": ["PC", "PS5", "Xbox", "community-server"],
+      "official_status": "acknowledged",
+      "reproduction_status": "inconsistent",
+      "fix_status": "improvement-shipped",
+      "post_fix_status": "monitoring",
+      "root_cause": "unknown",
+      "summary": "Developers acknowledged persistent Recon marker reports, shipped improvements in Patch 1.3, and continued monitoring because exact reproduction remained difficult.",
+      "sources": [
+        {"type": "official-update", "publisher": "Hell Let Loose", "url": "https://www.hellletloose.com/blog/community-update-2", "claim": "acknowledged-and-investigating"},
+        {"type": "patch-notes", "publisher": "Hell Let Loose", "url": "https://www.hellletloose.com/blog/hllv-patch-1-3", "claim": "improvement-shipped"}
+      ]
+    },
+    {
+      "id": "HLLV-002",
+      "title": "Robotic / distorted Proximity VOIP",
+      "category": "voip",
+      "scope": ["PC", "PS5", "Xbox"],
+      "official_status": "acknowledged",
+      "reproduction_status": "investigating-with-vendor",
+      "fix_status": "identified-testing",
+      "post_fix_status": "not-shipped",
+      "root_cause": "not-publicly-established",
+      "summary": "The team reported work with its external VOIP partner and said a candidate fix had produced positive initial results, but the exact failing component was not publicly established.",
+      "sources": [
+        {"type": "official-update", "publisher": "Hell Let Loose", "url": "https://www.hellletloose.com/blog/community-update-2", "claim": "fix-identified-testing"}
+      ]
+    },
+    {
+      "id": "HLLV-003",
+      "title": "AMD-associated crash reports",
+      "category": "stability",
+      "scope": ["PC"],
+      "official_status": "acknowledged-issue-family",
+      "reproduction_status": "multiple-causes-suspected",
+      "fix_status": "investigating",
+      "post_fix_status": "not-applicable",
+      "root_cause": "unknown-multiple",
+      "summary": "Developers described several stability problems occurring more frequently on AMD hardware and cautioned against treating all AMD crashes as one defect.",
+      "sources": [
+        {"type": "official-update", "publisher": "Hell Let Loose", "url": "https://www.hellletloose.com/blog/community-update-2", "claim": "issue-family-under-investigation"}
+      ]
+    },
+    {
+      "id": "HLLV-004",
+      "title": "Extended / invisible collision reports",
+      "category": "map-collision",
+      "scope": ["PC", "PS5", "Xbox"],
+      "official_status": "related-fix-family-documented",
+      "reproduction_status": "case-by-case",
+      "fix_status": "some-fixes-shipped",
+      "post_fix_status": "requires-case-verification",
+      "root_cause": "asset-specific-or-unknown",
+      "summary": "Patch 1.3 documents many map fixes including extended collision. Individual community reports must not be assumed to be the exact assets covered by those fixes without direct linkage.",
+      "sources": [
+        {"type": "patch-notes", "publisher": "Hell Let Loose", "url": "https://www.hellletloose.com/blog/hllv-patch-1-3", "claim": "related-fixes-shipped"}
+      ]
+    },
+    {
+      "id": "HLLV-005",
+      "title": "Community-server VIP list removed by reset",
+      "category": "community-server",
+      "scope": ["community-server"],
+      "official_status": "confirmed-by-patch-notes",
+      "reproduction_status": "historical",
+      "fix_status": "shipped",
+      "post_fix_status": "needs-independent-verification",
+      "root_cause": "not-publicly-established",
+      "summary": "Patch 1.3 explicitly states that resetting a community server no longer removes its VIP list. This confirms the defect class, but not the cause of every historical SoulSniper VIP incident.",
+      "sources": [
+        {"type": "patch-notes", "publisher": "Hell Let Loose", "url": "https://www.hellletloose.com/blog/hllv-patch-1-3", "claim": "fix-shipped"}
+      ]
+    }
+  ],
+  "incidents": [
+    {
+      "id": "SS-INC-TEMPLATE",
+      "environment": "SoulSniper's Unfortunate Sons",
+      "title": "Community-server incident template",
+      "status": "template",
+      "observed": [],
+      "possible_associations": [],
+      "root_cause": "unknown",
+      "note": "An incident is an observed operational event. Do not convert a plausible association into a cause without evidence."
+    }
+  ]
+}
