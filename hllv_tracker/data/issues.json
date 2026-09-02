@@ -1,81 +1,168 @@
 {
-  "generated_at": "2026-08-30",
-  "disclaimer": "This tracker records public evidence. It does not infer a root cause when the available evidence does not establish one.",
+  "generated_at": "2026-09-02",
+  "method": "Public evidence only. Official acknowledgement, reproduction, a shipped change, and post-fix verification are recorded separately.",
   "issues": [
     {
       "id": "HLLV-001",
       "title": "Persistent Recon markers",
       "category": "gameplay",
-      "scope": ["PC", "PS5", "Xbox", "community-server"],
-      "official_status": "acknowledged",
-      "reproduction_status": "inconsistent",
-      "fix_status": "improvement-shipped",
-      "post_fix_status": "monitoring",
-      "root_cause": "unknown",
-      "summary": "Developers acknowledged persistent Recon marker reports, shipped improvements in Patch 1.3, and continued monitoring because exact reproduction remained difficult.",
+      "kind": "game defect",
+      "status_key": "investigating",
+      "status_label": "Investigation ongoing",
+      "last_updated": "2026-08-28",
+      "scope": ["PC", "PS5", "Xbox", "community servers"],
+      "symptom": "Enemy markers created by Recon Planes and Flares can remain on the Tactical Map longer than intended.",
+      "official_position": "The developers acknowledged increased reports and shipped improvements in Patch 1.3, but explicitly declined to call the issue resolved because the reported behavior remained difficult to reproduce internally.",
+      "workaround": "For community-server owners, rebooting the server will typically clear persistent markers when the issue occurs.",
+      "known": [
+        "The report is officially acknowledged.",
+        "Changes intended to improve the behavior shipped in Patch 1.3.",
+        "A server reboot is an official temporary workaround for community servers.",
+        "The developers are monitoring a possible server-side degradation factor."
+      ],
+      "unknown": [
+        "The root cause has not been publicly established.",
+        "It is not known whether every persistent-marker report has the same cause.",
+        "There is no public declaration that Patch 1.3 fully resolved the issue."
+      ],
+      "timeline": [
+        {"date": "2026-08-27", "event": "Community Update #2", "detail": "Developers report increased player reports, difficult internal reproduction, and improvements prepared for Patch 1.3."},
+        {"date": "2026-08-28", "event": "Patch 1.3", "detail": "The planned improvements ship; the issue remains under observation rather than closed."},
+        {"date": "2026-08-28", "event": "Developer AMA", "detail": "The team mentions a possible server-side degradation factor and says it will monitor post-patch behavior."}
+      ],
       "sources": [
-        {"type": "official-update", "publisher": "Hell Let Loose", "url": "https://www.hellletloose.com/blog/community-update-2", "claim": "acknowledged-and-investigating"},
-        {"type": "patch-notes", "publisher": "Hell Let Loose", "url": "https://www.hellletloose.com/blog/hllv-patch-1-3", "claim": "improvement-shipped"}
+        {"type": "official update", "publisher": "Hell Let Loose", "date": "2026-08-27", "title": "Community Update #2", "url": "https://www.hellletloose.com/blog/community-update-2", "claim": "Acknowledged; improvements prepared; further investigation ongoing"},
+        {"type": "patch notes", "publisher": "Hell Let Loose", "date": "2026-08-28", "title": "Patch 1.3", "url": "https://www.hellletloose.com/blog/hllv-patch-1-3", "claim": "Patch containing the planned improvements shipped"},
+        {"type": "developer AMA", "publisher": "Expression Games / Hell Let Loose", "date": "2026-08-28", "title": "Developer AMA #1", "url": "https://www.reddit.com/r/HellLetLooseVietnam/comments/1vxeovn/developer_ama_1_hell_let_loose_vietnam_reddit/", "claim": "Possible server-side degradation discussed; monitoring continues"}
       ]
     },
     {
       "id": "HLLV-002",
-      "title": "Robotic / distorted Proximity VOIP",
+      "title": "Robotic Proximity VOIP",
       "category": "voip",
+      "kind": "game / service defect",
+      "status_key": "testing",
+      "status_label": "Fix in testing",
+      "last_updated": "2026-08-27",
       "scope": ["PC", "PS5", "Xbox"],
-      "official_status": "acknowledged",
-      "reproduction_status": "investigating-with-vendor",
-      "fix_status": "identified-testing",
-      "post_fix_status": "not-shipped",
-      "root_cause": "not-publicly-established",
-      "summary": "The team reported work with its external VOIP partner and said a candidate fix had produced positive initial results, but the exact failing component was not publicly established.",
+      "symptom": "Proximity Chat can sound distorted or robotic, reducing the usefulness of local voice communication.",
+      "official_position": "The team said it was working with its external VOIP partner at Epic Games, believed a fix had been identified, and had seen positive initial test results. Larger-scale testing was still required.",
+      "workaround": null,
+      "known": [
+        "The symptom is officially acknowledged.",
+        "The investigation involves the external VOIP partner at Epic Games.",
+        "A candidate fix produced positive initial results.",
+        "Patch 1.4 was a target, subject to testing—not a guaranteed release commitment."
+      ],
+      "unknown": [
+        "The exact failing component has not been publicly identified.",
+        "The public material reviewed does not establish that the candidate fix has shipped.",
+        "It is not established that every VOIP failure report is this specific robotic-audio defect."
+      ],
+      "timeline": [
+        {"date": "2026-08-20", "event": "Community Update #1", "detail": "VOIP and wider audio problems are elevated among major community-reported issues."},
+        {"date": "2026-08-27", "event": "Community Update #2", "detail": "A candidate fix is identified with positive initial results; larger-scale testing begins."},
+        {"date": "2026-08-28", "event": "Patch 1.3", "detail": "The candidate fix is not included; Patch 1.4 remains the stated target subject to testing."}
+      ],
       "sources": [
-        {"type": "official-update", "publisher": "Hell Let Loose", "url": "https://www.hellletloose.com/blog/community-update-2", "claim": "fix-identified-testing"}
+        {"type": "official update", "publisher": "Hell Let Loose", "date": "2026-08-20", "title": "Community Update #1", "url": "https://www.hellletloose.com/blog/community-update-1", "claim": "VOIP issue publicly elevated and under investigation"},
+        {"type": "official update", "publisher": "Hell Let Loose", "date": "2026-08-27", "title": "Community Update #2", "url": "https://www.hellletloose.com/blog/community-update-2", "claim": "Candidate fix identified and undergoing larger-scale testing"}
       ]
     },
     {
       "id": "HLLV-003",
-      "title": "AMD-associated crash reports",
+      "title": "AMD-associated crashes",
       "category": "stability",
-      "scope": ["PC"],
-      "official_status": "acknowledged-issue-family",
-      "reproduction_status": "multiple-causes-suspected",
-      "fix_status": "investigating",
-      "post_fix_status": "not-applicable",
-      "root_cause": "unknown-multiple",
-      "summary": "Developers described several stability problems occurring more frequently on AMD hardware and cautioned against treating all AMD crashes as one defect.",
+      "kind": "issue family",
+      "status_key": "investigating",
+      "status_label": "Under investigation",
+      "last_updated": "2026-08-28",
+      "scope": ["PC", "AMD GPUs"],
+      "symptom": "Some client crashes appear more frequently on systems using AMD graphics hardware.",
+      "official_position": "The developers describe multiple individual stability problems—not one universal AMD bug—and say they are working directly with AMD. Improvements are expected to arrive incrementally as individual causes are identified.",
+      "workaround": "Disabling gore is the only mitigation publicly identified by the developers in the reviewed update; they say it will likely reduce crash frequency for affected players.",
+      "known": [
+        "The developers acknowledge a higher frequency of some crashes on AMD hardware.",
+        "Several individual stability problems have been identified.",
+        "The development team says it is working directly with AMD.",
+        "Disabling gore is an official mitigation, not a guaranteed fix."
+      ],
+      "unknown": [
+        "A crash occurring on AMD hardware cannot automatically be assigned to this issue family.",
+        "No single public root cause explains all reports.",
+        "The proportion of AMD users affected is not publicly established."
+      ],
+      "timeline": [
+        {"date": "2026-08-20", "event": "Community Update #1", "detail": "Stability, including AMD-associated crashes, is identified as a major feedback area."},
+        {"date": "2026-08-27", "event": "Community Update #2", "detail": "Developers report progress on multiple individual issues, direct work with AMD, and the gore-disabled mitigation."},
+        {"date": "2026-08-28", "event": "Patch 1.3", "detail": "Further stability and performance work ships; the broader AMD-associated family remains open."
+        }
+      ],
       "sources": [
-        {"type": "official-update", "publisher": "Hell Let Loose", "url": "https://www.hellletloose.com/blog/community-update-2", "claim": "issue-family-under-investigation"}
+        {"type": "official update", "publisher": "Hell Let Loose", "date": "2026-08-20", "title": "Community Update #1", "url": "https://www.hellletloose.com/blog/community-update-1", "claim": "AMD-associated stability problems acknowledged"},
+        {"type": "official update", "publisher": "Hell Let Loose", "date": "2026-08-27", "title": "Community Update #2", "url": "https://www.hellletloose.com/blog/community-update-2", "claim": "Multiple causes, direct AMD collaboration, and gore-disabled mitigation documented"},
+        {"type": "patch notes", "publisher": "Hell Let Loose", "date": "2026-08-28", "title": "Patch 1.3", "url": "https://www.hellletloose.com/blog/hllv-patch-1-3", "claim": "Additional client and server stability work shipped"}
       ]
     },
     {
       "id": "HLLV-004",
-      "title": "Extended / invisible collision reports",
+      "title": "Invisible prop collision",
       "category": "map-collision",
-      "scope": ["PC", "PS5", "Xbox"],
-      "official_status": "related-fix-family-documented",
-      "reproduction_status": "case-by-case",
-      "fix_status": "some-fixes-shipped",
-      "post_fix_status": "requires-case-verification",
-      "root_cause": "asset-specific-or-unknown",
-      "summary": "Patch 1.3 documents many map fixes including extended collision. Individual community reports must not be assumed to be the exact assets covered by those fixes without direct linkage.",
+      "kind": "report cluster",
+      "status_key": "partial",
+      "status_label": "Partial linkage",
+      "last_updated": "2026-08-28",
+      "scope": ["PC", "PS5", "Xbox", "map assets"],
+      "symptom": "Bullets can be blocked by invisible collision between visible gaps in fences, chairs, tables, and other props.",
+      "official_position": "Team17 Support requested map and location details for a direct report. Separately, Patch 1.3 shipped more than 100 map fixes across six maps, including extended collision. The public evidence does not link every reported prop to a particular patch item.",
+      "workaround": null,
+      "known": [
+        "A specific fence-and-furniture report was received by Team17 Support.",
+        "Support requested exact map and location information for investigation.",
+        "Patch 1.3 documents a broad set of map fixes that includes extended collision."
+      ],
+      "unknown": [
+        "A support response is not proof that developers reproduced the exact report.",
+        "It is not known which individual assets were included in the Patch 1.3 collision fixes.",
+        "Different props or maps may represent separate defects."
+      ],
+      "timeline": [
+        {"date": "2026-08-14", "event": "Player report", "detail": "A Steam Report a Problem thread documents bullets blocked by gaps in fences and furniture."},
+        {"date": "2026-08-15", "event": "Team17 Support response", "detail": "Support asks for exact maps and locations so the team can investigate."},
+        {"date": "2026-08-28", "event": "Patch 1.3", "detail": "More than 100 map fixes ship, with extended collision named as one addressed issue class."}
+      ],
       "sources": [
-        {"type": "patch-notes", "publisher": "Hell Let Loose", "url": "https://www.hellletloose.com/blog/hllv-patch-1-3", "claim": "related-fixes-shipped"}
+        {"type": "support thread", "publisher": "Steam / Team17 Support", "date": "2026-08-14", "title": "Cannot shoot between fence boards or furniture", "url": "https://steamcommunity.com/app/3079210/discussions/1/631219091886213685/", "claim": "Specific report received; location details requested"},
+        {"type": "patch notes", "publisher": "Hell Let Loose", "date": "2026-08-28", "title": "Patch 1.3", "url": "https://www.hellletloose.com/blog/hllv-patch-1-3", "claim": "Extended collision included in a broad map-fix family"}
       ]
     },
     {
       "id": "HLLV-005",
-      "title": "Community-server VIP list removed by reset",
+      "title": "VIP list removed on reset",
       "category": "community-server",
-      "scope": ["community-server"],
-      "official_status": "confirmed-by-patch-notes",
-      "reproduction_status": "historical",
-      "fix_status": "shipped",
-      "post_fix_status": "needs-independent-verification",
-      "root_cause": "not-publicly-established",
-      "summary": "Patch 1.3 explicitly states that resetting a community server no longer removes its VIP list. This confirms the defect class, but not the cause of every historical SoulSniper VIP incident.",
+      "kind": "community-server defect",
+      "status_key": "shipped",
+      "status_label": "Fix shipped",
+      "last_updated": "2026-08-28",
+      "scope": ["community servers", "server administration"],
+      "symptom": "Resetting a community server could remove its VIP list.",
+      "official_position": "Patch 1.3 explicitly states that VIP lists are now retained following server resets. The defect class and shipped change are clear; independent post-patch verification is not included in the reviewed official record.",
+      "workaround": null,
+      "known": [
+        "The defect class is confirmed by official patch notes.",
+        "A fix shipped in Patch 1.3 on August 28.",
+        "The same patch also corrected VIP comments not appearing as intended."
+      ],
+      "unknown": [
+        "The underlying technical cause was not published.",
+        "The patch note alone does not prove that every historical SoulSniper VIP incident was this defect.",
+        "Independent post-patch verification has not yet been recorded in this tracker."
+      ],
+      "timeline": [
+        {"date": "2026-08-28", "event": "Patch 1.3", "detail": "VIP lists are changed to remain intact following community-server resets; VIP comments are also corrected."}
+      ],
       "sources": [
-        {"type": "patch-notes", "publisher": "Hell Let Loose", "url": "https://www.hellletloose.com/blog/hllv-patch-1-3", "claim": "fix-shipped"}
+        {"type": "patch notes", "publisher": "Hell Let Loose", "date": "2026-08-28", "title": "Patch 1.3", "url": "https://www.hellletloose.com/blog/hllv-patch-1-3", "claim": "Community-server VIP reset fix shipped"}
       ]
     }
   ],
@@ -85,10 +172,8 @@
       "environment": "SoulSniper's Unfortunate Sons",
       "title": "Community-server incident template",
       "status": "template",
-      "observed": [],
-      "possible_associations": [],
       "root_cause": "unknown",
-      "note": "An incident is an observed operational event. Do not convert a plausible association into a cause without evidence."
+      "note": "Operational incidents remain separate from game issues until evidence establishes a relationship."
     }
   ]
 }
