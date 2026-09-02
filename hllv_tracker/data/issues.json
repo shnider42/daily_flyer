@@ -184,6 +184,327 @@
       "sources": [
         {"type": "patch notes", "publisher": "Hell Let Loose", "date": "2026-08-28", "title": "Patch 1.3", "url": "https://www.hellletloose.com/blog/hllv-patch-1-3", "claim": "Community-server VIP reset fix shipped"}
       ]
+    },
+    {
+      "id": "HLLV-006",
+      "title": "Console image quality",
+      "category": "graphics",
+      "kind": "visual-quality issue",
+      "status_key": "partial",
+      "status_label": "Improvements ongoing",
+      "bottom_line": "Patches 1.2 and 1.3 improved shimmer and sharpness, but developers describe this as ongoing work rather than solved.",
+      "official_short": "Acknowledged",
+      "fix_short": "Incremental",
+      "cause_short": "Optimization limits",
+      "last_updated": "2026-08-28",
+      "scope": ["PS5", "Xbox", "graphics"],
+      "symptom": "Console players report foliage shimmer, reduced clarity, image noise, and inconsistent sharpness.",
+      "official_position": "Developers say console image fidelity remains a long-term priority. Patch 1.2 reduced some shimmer but changed when Dynamic Resolution Scaling activates; Patch 1.3 added image-stability, shadow, and performance adjustments.",
+      "workaround": null,
+      "known": [
+        "The issue is officially acknowledged.",
+        "Patch 1.2 reduced some shimmer but could lower resolution more often in some circumstances.",
+        "Patch 1.3 added further image-stability and performance changes."
+      ],
+      "unknown": [
+        "No final resolution date has been published.",
+        "The remaining symptoms may not all share one cause.",
+        "The public record does not quantify improvement by console model."
+      ],
+      "timeline": [
+        {"date": "2026-08-21", "event": "Patch 1.2", "detail": "An initial shimmer reduction ships, with a Dynamic Resolution Scaling tradeoff later acknowledged."},
+        {"date": "2026-08-27", "event": "Community Update #2", "detail": "The team explains the tradeoff and describes additional Patch 1.3 work."},
+        {"date": "2026-08-28", "event": "Patch 1.3", "detail": "Further shadow, image-noise, stability, and performance changes ship."}
+      ],
+      "sources": [
+        {"type": "official update", "publisher": "Hell Let Loose", "date": "2026-08-27", "title": "Community Update #2", "url": "https://www.hellletloose.com/blog/community-update-2", "claim": "Console fidelity acknowledged as a long-term improvement area"},
+        {"type": "patch notes", "publisher": "Hell Let Loose", "date": "2026-08-28", "title": "Patch 1.3", "url": "https://www.hellletloose.com/blog/hllv-patch-1-3", "claim": "Additional console image-quality changes shipped"}
+      ]
+    },
+    {
+      "id": "HLLV-007",
+      "title": "Keybindings reset or conflict",
+      "category": "controls",
+      "kind": "control issue family",
+      "status_key": "partial",
+      "status_label": "Multiple fixes shipped",
+      "bottom_line": "Patch 1.3 included about a dozen control fixes, but developers did not claim every keybinding edge case was solved.",
+      "official_short": "Acknowledged",
+      "fix_short": "Multiple in 1.3",
+      "cause_short": "Not public",
+      "last_updated": "2026-08-28",
+      "scope": ["PC", "console", "helicopter controls"],
+      "symptom": "Custom bindings may fail to save, reset after leaving the menu, or produce conflicting assignments.",
+      "official_position": "Team17 Support confirmed similar reports and escalated a helicopter-control example. Developers later said approximately a dozen keybinding and controller fixes were included in Patch 1.3, while warning that some edge cases might remain.",
+      "workaround": null,
+      "known": [
+        "Team17 Support received multiple similar reports.",
+        "The broader issue family is acknowledged in an official community update.",
+        "Approximately a dozen control-related fixes were prepared for Patch 1.3."
+      ],
+      "unknown": [
+        "The remaining affected bindings are not listed as one complete set.",
+        "A specific player's post-patch report cannot be assumed to have the same cause as the pre-patch cases.",
+        "The underlying persistence or conflict mechanism has not been published."
+      ],
+      "timeline": [
+        {"date": "2026-08-19", "event": "Pilot-control report", "detail": "A player reports helicopter bindings resetting and conflicting after saving."},
+        {"date": "2026-08-20", "event": "Team17 Support", "detail": "Support confirms similar reports and says the information was added to the investigation."},
+        {"date": "2026-08-27", "event": "Community Update #2", "detail": "Developers describe roughly a dozen fixes while cautioning that edge cases may remain."},
+        {"date": "2026-08-28", "event": "Patch 1.3", "detail": "The control and keybinding fixes ship."}
+      ],
+      "sources": [
+        {"type": "support thread", "publisher": "Steam / Team17 Support", "date": "2026-08-20", "title": "Key binding failure for pilot control", "url": "https://steamcommunity.com/app/3079210/discussions/1/590687230526328326/", "claim": "Similar reports received and escalated"},
+        {"type": "official update", "publisher": "Hell Let Loose", "date": "2026-08-27", "title": "Community Update #2", "url": "https://www.hellletloose.com/blog/community-update-2", "claim": "Multiple fixes prepared; complete resolution not guaranteed"},
+        {"type": "patch notes", "publisher": "Hell Let Loose", "date": "2026-08-28", "title": "Patch 1.3", "url": "https://www.hellletloose.com/blog/hllv-patch-1-3", "claim": "Control fixes shipped"}
+      ]
+    },
+    {
+      "id": "HLLV-008",
+      "title": "Server crashes and disconnects",
+      "category": "stability",
+      "kind": "server issue family",
+      "status_key": "investigating",
+      "status_label": "Under investigation",
+      "bottom_line": "Server stability improved after Patch 1.2, but later crash reports cannot all be assigned to one cause.",
+      "official_short": "Acknowledged family",
+      "fix_short": "Ongoing",
+      "cause_short": "Multiple / unknown",
+      "last_updated": "2026-08-27",
+      "scope": ["community servers", "match servers", "all platforms"],
+      "symptom": "Players can lose connection to the host or be returned to the menu during a match; some community servers may restart or disappear.",
+      "official_position": "Server crashes were included among major stability concerns. A specific NVA Tunnel crash was reproduced and fixed, and developers later reported improved overall server stability, but public evidence does not establish one cause for every disconnect or outage.",
+      "workaround": null,
+      "known": [
+        "Team17 Support said the team was working on server-crash reports.",
+        "At least one specific NVA Tunnel crash was reproduced and fixed in Patch 1.2.",
+        "Developers reported improved server stability after Patch 1.2."
+      ],
+      "unknown": [
+        "A client 'lost connection' message does not prove the server process crashed.",
+        "Game defects, hosting, networking, EOS, and administrative restarts remain separate possible causes.",
+        "SoulSniper incidents require their own operator evidence before being linked here."
+      ],
+      "timeline": [
+        {"date": "2026-08-17", "event": "Player report", "detail": "A Report a Problem thread describes late-match lost-connection events."},
+        {"date": "2026-08-18", "event": "Team17 Support", "detail": "Support says the team is working on the server-crash issue and forwards the report."},
+        {"date": "2026-08-21", "event": "Patch 1.2", "detail": "A reproduced NVA Tunnel server-crash scenario is fixed alongside wider stability work."},
+        {"date": "2026-08-27", "event": "Community Update #2", "detail": "Developers report improved server stability while continuing to review reports."}
+      ],
+      "sources": [
+        {"type": "support thread", "publisher": "Steam / Team17 Support", "date": "2026-08-18", "title": "Server side crashes", "url": "https://steamcommunity.com/app/3079210/discussions/1/631219394426598831/", "claim": "Report received; Team17 says work is ongoing"},
+        {"type": "official update", "publisher": "Hell Let Loose", "date": "2026-08-20", "title": "Community Update #1", "url": "https://www.hellletloose.com/blog/community-update-1", "claim": "Server stability elevated; specific tunnel crash described"},
+        {"type": "patch notes", "publisher": "Hell Let Loose", "date": "2026-08-21", "title": "Patch 1.2", "url": "https://www.hellletloose.com/blog/hllv-patch-1-2", "claim": "Specific tunnel-related server crash fixed"}
+      ]
+    },
+    {
+      "id": "HLLV-009",
+      "title": "NVA Tunnel server crash",
+      "category": "community-server",
+      "kind": "server defect",
+      "status_key": "shipped",
+      "status_label": "Fix released",
+      "bottom_line": "Patch 1.2 fixed a reproduced crash involving tunnel changes while a player was travelling through the tunnel.",
+      "official_short": "Reproduced",
+      "fix_short": "Shipped in 1.2",
+      "cause_short": "Tunnel event timing",
+      "last_updated": "2026-08-21",
+      "scope": ["servers", "NVA Tunnels"],
+      "symptom": "A server could crash when an NVA Tunnel was destroyed, replaced, or reconnected while a player was travelling through it.",
+      "official_position": "Developers identified and reproduced the scenario, QA confirmed the fix, and Patch 1.2 lists the server-crash correction as shipped.",
+      "workaround": null,
+      "known": [
+        "The developers reproduced a specific trigger sequence.",
+        "The fix passed QA before release.",
+        "The fix shipped in Patch 1.2."
+      ],
+      "unknown": [
+        "This fix does not explain unrelated server crashes.",
+        "Independent post-patch verification is not yet stored in this tracker."
+      ],
+      "timeline": [
+        {"date": "2026-08-20", "event": "Community Update #1", "detail": "The reproduced tunnel-event sequence and QA-tested fix are described."},
+        {"date": "2026-08-21", "event": "Patch 1.2", "detail": "The server-crash fix ships."}
+      ],
+      "sources": [
+        {"type": "official update", "publisher": "Hell Let Loose", "date": "2026-08-20", "title": "Community Update #1", "url": "https://www.hellletloose.com/blog/community-update-1", "claim": "Crash reproduced and fix QA-confirmed"},
+        {"type": "patch notes", "publisher": "Hell Let Loose", "date": "2026-08-21", "title": "Patch 1.2", "url": "https://www.hellletloose.com/blog/hllv-patch-1-2", "claim": "Tunnel-related server crash fix shipped"}
+      ]
+    },
+    {
+      "id": "HLLV-010",
+      "title": "White flashes and flicker",
+      "category": "graphics",
+      "kind": "support-level report cluster",
+      "status_key": "investigating",
+      "status_label": "Reports escalated",
+      "bottom_line": "Team17 escalated reports of brief white flashes. Reports include both AMD and Nvidia systems, so the cause remains unclear.",
+      "official_short": "Support acknowledged",
+      "fix_short": "None confirmed",
+      "cause_short": "Unknown",
+      "last_updated": "2026-08-14",
+      "scope": ["PC", "AMD reports", "Nvidia reports"],
+      "symptom": "The screen, ground, or world can briefly flash white or show an artifact-like flicker during play.",
+      "official_position": "Team17 Support said the reports were passed to the team for deeper investigation. Early replies focused on AMD systems, but later reports in the same thread included Nvidia hardware.",
+      "workaround": "Support suggested DX12 launch options and disabling the AMD Adrenalin overlay; individual results in the thread were mixed, so neither is treated as a confirmed fix.",
+      "known": [
+        "The support thread contains reports from multiple players.",
+        "Team17 Support escalated the issue.",
+        "Reports are not limited to one GPU brand."
+      ],
+      "unknown": [
+        "Developer reproduction has not been publicly established.",
+        "It is not clear whether every described flicker is the same defect.",
+        "No shipped fix is identified in the reviewed record."
+      ],
+      "timeline": [
+        {"date": "2026-08-13", "event": "Player reports", "detail": "A multi-user thread documents brief white flashes and artifact-like flicker."},
+        {"date": "2026-08-14", "event": "Team17 Support", "detail": "Support escalates the reports and offers launch-option and overlay troubleshooting."}
+      ],
+      "sources": [
+        {"type": "support thread", "publisher": "Steam / Team17 Support", "date": "2026-08-14", "title": "White flash / flicker", "url": "https://steamcommunity.com/app/3079210/discussions/1/631219091886191710/", "claim": "Multiple reports received and escalated; troubleshooting suggested"}
+      ]
+    },
+    {
+      "id": "HLLV-011",
+      "title": "Combat stutter when shot",
+      "category": "performance",
+      "kind": "support-level report cluster",
+      "status_key": "investigating",
+      "status_label": "Reports escalated",
+      "bottom_line": "Players on several hardware combinations report a short freeze during close combat. Support forwarded the reports; no cause is confirmed.",
+      "official_short": "Support acknowledged",
+      "fix_short": "None confirmed",
+      "cause_short": "Unknown",
+      "last_updated": "2026-08-27",
+      "scope": ["PC", "close combat", "multiple GPU brands"],
+      "symptom": "The game can freeze or stutter for roughly half a second when the player fires, is hit, or enters a close-range engagement.",
+      "official_position": "Team17 Support gathered diagnostics and forwarded the reports for investigation. The thread includes AMD, Nvidia, and Intel Arc systems, which argues against assigning the symptom to a single GPU brand without further evidence.",
+      "workaround": null,
+      "known": [
+        "The symptom was reported in both testing and the full release.",
+        "Multiple hardware configurations appear in the same report thread.",
+        "Team17 Support forwarded the reports for investigation."
+      ],
+      "unknown": [
+        "The trigger—firing, being hit, asset loading, effects, or another event—is not established.",
+        "Developer reproduction is not public.",
+        "No reliable workaround or shipped fix is documented."
+      ],
+      "timeline": [
+        {"date": "2026-05-30", "event": "Playtest report", "detail": "The original thread describes a brief freeze when being shot."},
+        {"date": "2026-08-15", "event": "Full-release confirmation", "detail": "A player reports that the same symptom continues after launch."},
+        {"date": "2026-08-24", "event": "Team17 Support", "detail": "Support says the collected reports were sent for further investigation."},
+        {"date": "2026-08-27", "event": "Additional report", "detail": "The thread continues to receive reports from other hardware configurations."}
+      ],
+      "sources": [
+        {"type": "support thread", "publisher": "Steam / Team17 Support", "date": "2026-08-27", "title": "Game freezes when getting shot", "url": "https://steamcommunity.com/app/3079210/discussions/1/663863457493431808/", "claim": "Multi-hardware report cluster forwarded for investigation"}
+      ]
+    },
+    {
+      "id": "HLLV-012",
+      "title": "Map Shuffle not randomizing",
+      "category": "community-server",
+      "kind": "community-server defect",
+      "status_key": "shipped",
+      "status_label": "Fix released",
+      "bottom_line": "Patch 1.3 says community-server Map Shuffle now correctly randomizes the selected content.",
+      "official_short": "Confirmed",
+      "fix_short": "Shipped in 1.3",
+      "cause_short": "Not public",
+      "last_updated": "2026-08-28",
+      "scope": ["community servers", "map rotation"],
+      "symptom": "Map Shuffle could fail to randomize the maps or modes selected by a community-server administrator.",
+      "official_position": "Patch 1.3 explicitly identifies the incorrect Map Shuffle behavior and states that it was corrected.",
+      "workaround": null,
+      "known": ["The defect class is confirmed by patch notes.", "A fix shipped in Patch 1.3."],
+      "unknown": ["The root cause was not published.", "Independent post-patch verification is not yet recorded."],
+      "timeline": [{"date": "2026-08-28", "event": "Patch 1.3", "detail": "Map Shuffle is changed to correctly randomize selected community-server content."}],
+      "sources": [{"type": "patch notes", "publisher": "Hell Let Loose", "date": "2026-08-28", "title": "Patch 1.3", "url": "https://www.hellletloose.com/blog/hllv-patch-1-3", "claim": "Map Shuffle fix shipped"}]
+    },
+    {
+      "id": "HLLV-013",
+      "title": "Tank gear changes required throttle",
+      "category": "vehicles",
+      "kind": "vehicle-control defect",
+      "status_key": "shipped",
+      "status_label": "Fix released",
+      "bottom_line": "Patch 1.3 removed the unintended requirement to hold the throttle while changing tank gears.",
+      "official_short": "Confirmed",
+      "fix_short": "Shipped in 1.3",
+      "cause_short": "Not public",
+      "last_updated": "2026-08-28",
+      "scope": ["tank drivers", "vehicle controls"],
+      "symptom": "Tank drivers could not shift up or down unless the throttle was engaged.",
+      "official_position": "Developers said the throttle requirement was unintended. Patch 1.3 allows tank drivers to change gear without applying throttle.",
+      "workaround": "Before Patch 1.3, applying throttle allowed the gear change.",
+      "known": ["The behavior was officially identified as unintended.", "The fix shipped in Patch 1.3."],
+      "unknown": ["Independent post-patch verification is not yet recorded."],
+      "timeline": [{"date": "2026-08-28", "event": "Patch 1.3", "detail": "Tank gear selection is decoupled from throttle input."}],
+      "sources": [{"type": "patch notes", "publisher": "Hell Let Loose", "date": "2026-08-28", "title": "Patch 1.3", "url": "https://www.hellletloose.com/blog/hllv-patch-1-3", "claim": "Unintended tank-gearing behavior fixed"}]
+    },
+    {
+      "id": "HLLV-014",
+      "title": "Co-pilot can lose helicopter turning",
+      "category": "vehicles",
+      "kind": "launch-known issue",
+      "status_key": "investigating",
+      "status_label": "Known at launch",
+      "bottom_line": "Developers listed this as a launch issue. The public sources reviewed here do not establish a later fix.",
+      "official_short": "Official known issue",
+      "fix_short": "Not located",
+      "cause_short": "Not public",
+      "last_updated": "2026-08-12",
+      "scope": ["helicopters", "co-pilot controls"],
+      "symptom": "The co-pilot can lose the ability to turn the helicopter with the right trigger after the main pilot dies.",
+      "official_position": "The behavior appears in the official launch known-issues list. This tracker has not found a later public statement that clearly closes the exact issue.",
+      "workaround": null,
+      "known": ["The issue was officially listed before launch.", "The trigger described involves the main pilot dying."],
+      "unknown": ["Current reproducibility is not established.", "A later fix may exist without being clearly linked to the original wording.", "The technical cause is not public."],
+      "timeline": [{"date": "2026-08-12", "event": "Launch known issues", "detail": "The co-pilot turning-loss scenario is publicly listed."}],
+      "sources": [{"type": "official known issues", "publisher": "Hell Let Loose", "date": "2026-08-12", "title": "Known Issues, Launch Time & More", "url": "https://www.hellletloose.com/blog/5-before-launch", "claim": "Co-pilot control-loss scenario officially listed"}]
+    },
+    {
+      "id": "HLLV-015",
+      "title": "M183 charge could not destroy NVA Mortars",
+      "category": "gameplay",
+      "kind": "combat interaction defect",
+      "status_key": "shipped",
+      "status_label": "Fix released",
+      "bottom_line": "Patch 1.3 says the US M183 Demolition Charge can now destroy NVA Mortars.",
+      "official_short": "Confirmed",
+      "fix_short": "Shipped in 1.3",
+      "cause_short": "Not public",
+      "last_updated": "2026-08-28",
+      "scope": ["US M183", "NVA Mortars"],
+      "symptom": "The US M183 Demolition Charge could fail to destroy an NVA Mortar.",
+      "official_position": "Patch 1.3 lists the corrected weapon-to-emplacement interaction.",
+      "workaround": null,
+      "known": ["The defect class is confirmed by patch notes.", "The fix shipped in Patch 1.3."],
+      "unknown": ["The underlying damage or classification error was not explained.", "Independent verification is not yet recorded."],
+      "timeline": [{"date": "2026-08-28", "event": "Patch 1.3", "detail": "M183 charges are changed to destroy NVA Mortars."}],
+      "sources": [{"type": "patch notes", "publisher": "Hell Let Loose", "date": "2026-08-28", "title": "Patch 1.3", "url": "https://www.hellletloose.com/blog/hllv-patch-1-3", "claim": "M183-to-Mortar interaction fixed"}]
+    },
+    {
+      "id": "HLLV-016",
+      "title": "Tunnels and Garrisons vanished at distance",
+      "category": "graphics",
+      "kind": "visibility defect",
+      "status_key": "shipped",
+      "status_label": "Fix released",
+      "bottom_line": "Patch 1.3 says Tunnels and Garrisons no longer visibly disappear at roughly 200 meters.",
+      "official_short": "Confirmed",
+      "fix_short": "Shipped in 1.3",
+      "cause_short": "Distance rendering",
+      "last_updated": "2026-08-28",
+      "scope": ["Tunnels", "Garrisons", "long distance"],
+      "symptom": "NVA Tunnels and Garrisons could visibly disappear when viewed from approximately 200 meters away.",
+      "official_position": "Patch 1.3 explicitly lists the distance-based disappearance as corrected.",
+      "workaround": null,
+      "known": ["The defect class and approximate distance are documented.", "A fix shipped in Patch 1.3."],
+      "unknown": ["Independent post-patch verification is not yet recorded.", "The precise rendering cause was not published."],
+      "timeline": [{"date": "2026-08-28", "event": "Patch 1.3", "detail": "Tunnels and Garrisons are changed to remain visible beyond the prior disappearance distance."}],
+      "sources": [{"type": "patch notes", "publisher": "Hell Let Loose", "date": "2026-08-28", "title": "Patch 1.3", "url": "https://www.hellletloose.com/blog/hllv-patch-1-3", "claim": "Distance-visibility defect fixed"}]
     }
   ],
   "incidents": [
