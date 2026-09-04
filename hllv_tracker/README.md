@@ -2,7 +2,7 @@
 
 A public evidence ledger for Hell Let Loose: Vietnam issues and community-server incidents.
 
-The current prototype contains 44 issue dossiers and 66 source records. It separates support reports, official acknowledgement, reproduction, released changes, post-fix verification, and root-cause certainty.
+The current tracker contains 48 issue dossiers and 78 source records. It separates support reports, official acknowledgement, reproduction, released changes, post-fix monitoring, and root-cause certainty.
 
 ## Core rule
 

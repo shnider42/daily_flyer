@@ -1,5 +1,11 @@
 {
-  "generated_at": "2026-09-03",
+  "generated_at": "2026-09-04",
+  "latest_change": {
+    "date": "2026-09-03",
+    "label": "Community Feedback #3",
+    "url": "https://www.hellletloose.com/blog/community-update-3",
+    "summary": "Combat audio reproduced; EOS keyboard cause identified; spawn failures under investigation."
+  },
   "method": "Public evidence only. Official acknowledgement, reproduction, a shipped change, and post-fix verification are recorded separately.",
   "issues": [
     {
@@ -7,37 +13,42 @@
       "title": "Persistent Recon markers",
       "category": "gameplay",
       "kind": "game defect",
-      "status_key": "investigating",
-      "status_label": "Investigation ongoing",
-      "bottom_line": "Patch 1.3 improved it, but developers have not called it resolved. Server restarts may clear it temporarily.",
-      "official_short": "Acknowledged",
-      "fix_short": "1.3 improvement",
-      "cause_short": "Unknown",
-      "last_updated": "2026-08-28",
+      "status_key": "monitoring",
+      "status_label": "Fix shipped · monitoring",
+      "bottom_line": "Patch 1.4 addressed one identified cause of persistent Recon Plane and Flare markers. The fix is live, but developers are monitoring reports rather than declaring the issue fully resolved.",
+      "official_short": "Fix shipped",
+      "fix_short": "Patch 1.4",
+      "cause_short": "One cause identified",
+      "last_updated": "2026-09-03",
       "scope": ["PC", "PS5", "Xbox", "community servers"],
       "symptom": "Enemy markers created by Recon Planes and Flares can remain on the Tactical Map longer than intended.",
-      "official_position": "The developers acknowledged increased reports and shipped improvements in Patch 1.3, but explicitly declined to call the issue resolved because the reported behavior remained difficult to reproduce internally.",
+      "official_position": "After Patch 1.3, the developers identified one cause of persistent Recon Plane and Flare markers and shipped a fix in Patch 1.4. They are monitoring post-patch reports and have not said that every possible cause is resolved.",
       "workaround": "For community-server owners, rebooting the server will typically clear persistent markers when the issue occurs.",
       "known": [
         "The report is officially acknowledged.",
-        "Changes intended to improve the behavior shipped in Patch 1.3.",
+        "Initial improvements shipped in Patch 1.3.",
+        "One cause was identified and addressed in Patch 1.4.",
         "A server reboot is an official temporary workaround for community servers.",
-        "The developers are monitoring a possible server-side degradation factor."
+        "The developers are monitoring post-patch reports."
       ],
       "unknown": [
-        "The root cause has not been publicly established.",
+        "It is not public whether the identified cause explains every report.",
         "It is not known whether every persistent-marker report has the same cause.",
-        "There is no public declaration that Patch 1.3 fully resolved the issue."
+        "Patch 1.4 has not been declared a complete resolution."
       ],
       "timeline": [
         {"date": "2026-08-27", "event": "Community Update #2", "detail": "Developers report increased player reports, difficult internal reproduction, and improvements prepared for Patch 1.3."},
         {"date": "2026-08-28", "event": "Patch 1.3", "detail": "The planned improvements ship; the issue remains under observation rather than closed."},
-        {"date": "2026-08-28", "event": "Developer AMA", "detail": "The team mentions a possible server-side degradation factor and says it will monitor post-patch behavior."}
+        {"date": "2026-08-28", "event": "Developer AMA", "detail": "The team mentions a possible server-side degradation factor and says it will monitor post-patch behavior."},
+        {"date": "2026-09-02", "event": "Patch 1.4", "detail": "A fix for one identified cause of persistent Recon Plane and Flare markers ships."},
+        {"date": "2026-09-03", "event": "Community Feedback #3", "detail": "The team keeps the issue under monitoring rather than declaring every case resolved."}
       ],
       "sources": [
         {"type": "official update", "publisher": "Hell Let Loose", "date": "2026-08-27", "title": "Community Update #2", "url": "https://www.hellletloose.com/blog/community-update-2", "claim": "Acknowledged; improvements prepared; further investigation ongoing"},
         {"type": "patch notes", "publisher": "Hell Let Loose", "date": "2026-08-28", "title": "Patch 1.3", "url": "https://www.hellletloose.com/blog/hllv-patch-1-3", "claim": "Patch containing the planned improvements shipped"},
-        {"type": "developer AMA", "publisher": "Expression Games / Hell Let Loose", "date": "2026-08-28", "title": "Developer AMA #1", "url": "https://www.reddit.com/r/HellLetLooseVietnam/comments/1vxeovn/developer_ama_1_hell_let_loose_vietnam_reddit/", "claim": "Possible server-side degradation discussed; monitoring continues"}
+        {"type": "developer AMA", "publisher": "Expression Games / Hell Let Loose", "date": "2026-08-28", "title": "Developer AMA #1", "url": "https://www.reddit.com/r/HellLetLooseVietnam/comments/1vxeovn/developer_ama_1_hell_let_loose_vietnam_reddit/", "claim": "Possible server-side degradation discussed; monitoring continues"},
+        {"type": "patch notes", "publisher": "Hell Let Loose", "date": "2026-09-02", "title": "Patch 1.4", "url": "https://www.hellletloose.com/blog/hllv-patch-1-4", "claim": "Fix for one identified persistent-marker cause shipped"},
+        {"type": "official update", "publisher": "Hell Let Loose", "date": "2026-09-03", "title": "Community Feedback #3", "url": "https://www.hellletloose.com/blog/community-update-3", "claim": "Post-fix monitoring continues"}
       ]
     },
     {
@@ -45,75 +56,83 @@
       "title": "Robotic Proximity VOIP",
       "category": "voip",
       "kind": "game / service defect",
-      "status_key": "testing",
-      "status_label": "Fix in testing",
-      "bottom_line": "A candidate fix tested positively and was targeted for Patch 1.4, subject to further testing.",
-      "official_short": "Acknowledged",
-      "fix_short": "Testing",
+      "status_key": "monitoring",
+      "status_label": "Main fix shipped · monitoring",
+      "bottom_line": "Patch 1.4 shipped the main fix for robotic Proximity Chat. Brief echo or stutter can still occur around interruptions such as opening a menu or leaving the game.",
+      "official_short": "Main issue fixed",
+      "fix_short": "Patch 1.4",
       "cause_short": "Not public",
-      "last_updated": "2026-08-27",
+      "last_updated": "2026-09-03",
       "scope": ["PC", "PS5", "Xbox"],
       "symptom": "Proximity Chat can sound distorted or robotic, reducing the usefulness of local voice communication.",
-      "official_position": "The team said it was working with its external VOIP partner at Epic Games, believed a fix had been identified, and had seen positive initial test results. Larger-scale testing was still required.",
+      "official_position": "The main robotic and distorted Proximity Chat fix shipped in Patch 1.4. Community Feedback #3 says brief echo or stutter can remain when speech coincides with interruptions; those edge cases are being treated as separate defects.",
       "workaround": null,
       "known": [
         "The symptom is officially acknowledged.",
         "The investigation involves the external VOIP partner at Epic Games.",
-        "A candidate fix produced positive initial results.",
-        "Patch 1.4 was a target, subject to testing—not a guaranteed release commitment."
+        "The main robotic-voice fix shipped in Patch 1.4.",
+        "The team continues to monitor VOIP behavior.",
+        "Brief interruption-related echo or stutter remains under separate investigation."
       ],
       "unknown": [
-        "The exact failing component has not been publicly identified.",
-        "The public material reviewed does not establish that the candidate fix has shipped.",
-        "It is not established that every VOIP failure report is this specific robotic-audio defect."
+        "The exact failing component behind the original distortion has not been published.",
+        "The remaining edge cases do not yet have a public fix target.",
+        "Other voice-channel failures are separate from this specific defect."
       ],
       "timeline": [
         {"date": "2026-08-20", "event": "Community Update #1", "detail": "VOIP and wider audio problems are elevated among major community-reported issues."},
         {"date": "2026-08-27", "event": "Community Update #2", "detail": "A candidate fix is identified with positive initial results; larger-scale testing begins."},
-        {"date": "2026-08-28", "event": "Patch 1.3", "detail": "The candidate fix is not included; Patch 1.4 remains the stated target subject to testing."}
+        {"date": "2026-08-28", "event": "Patch 1.3", "detail": "The candidate fix is not included; Patch 1.4 remains the stated target subject to testing."},
+        {"date": "2026-09-02", "event": "Patch 1.4", "detail": "The main robotic and distorted Proximity Chat fix ships."},
+        {"date": "2026-09-03", "event": "Community Feedback #3", "detail": "The main issue is described as fixed while brief interruption-related edge cases remain open."}
       ],
       "sources": [
         {"type": "official update", "publisher": "Hell Let Loose", "date": "2026-08-20", "title": "Community Update #1", "url": "https://www.hellletloose.com/blog/community-update-1", "claim": "VOIP issue publicly elevated and under investigation"},
-        {"type": "official update", "publisher": "Hell Let Loose", "date": "2026-08-27", "title": "Community Update #2", "url": "https://www.hellletloose.com/blog/community-update-2", "claim": "Candidate fix identified and undergoing larger-scale testing"}
+        {"type": "official update", "publisher": "Hell Let Loose", "date": "2026-08-27", "title": "Community Update #2", "url": "https://www.hellletloose.com/blog/community-update-2", "claim": "Candidate fix identified and undergoing larger-scale testing"},
+        {"type": "patch notes", "publisher": "Hell Let Loose", "date": "2026-09-02", "title": "Patch 1.4", "url": "https://www.hellletloose.com/blog/hllv-patch-1-4", "claim": "Main robotic Proximity Chat fix shipped"},
+        {"type": "official update", "publisher": "Hell Let Loose", "date": "2026-09-03", "title": "Community Feedback #3", "url": "https://www.hellletloose.com/blog/community-update-3", "claim": "Main issue fixed; interruption-related edge cases remain"}
       ]
     },
     {
       "id": "HLLV-003",
-      "title": "AMD-associated crashes",
+      "title": "Crashes and stability",
       "category": "stability",
       "kind": "issue family",
       "status_key": "investigating",
-      "status_label": "Under investigation",
-      "bottom_line": "This is several crash problems, not one AMD bug. Disabling gore may reduce their frequency.",
-      "official_short": "Acknowledged family",
-      "fix_short": "Investigating",
-      "cause_short": "Multiple / unknown",
-      "last_updated": "2026-08-28",
-      "scope": ["PC", "AMD GPUs"],
-      "symptom": "Some client crashes appear more frequently on systems using AMD graphics hardware.",
-      "official_position": "The developers describe multiple individual stability problems—not one universal AMD bug—and say they are working directly with AMD. Improvements are expected to arrive incrementally as individual causes are identified.",
-      "workaround": "Disabling gore is the only mitigation publicly identified by the developers in the reviewed update; they say it will likely reduce crash frequency for affected players.",
+      "status_label": "Investigation ongoing",
+      "bottom_line": "Patch 1.4 substantially reduced crashes tied to large quantities of blood and decal effects. Team17 says that cause was not AMD-specific; other crash causes remain under investigation.",
+      "official_short": "Multiple causes",
+      "fix_short": "1.4 reduction",
+      "cause_short": "Blood/decal load + others",
+      "last_updated": "2026-09-03",
+      "scope": ["PC", "client stability", "all hardware"],
+      "symptom": "Clients can crash for several distinct reasons, including a documented failure associated with large quantities of blood and decal effects.",
+      "official_position": "The developers continue to treat stability as several individual problems. Patch 1.4 addressed a crash associated with large quantities of blood and decal effects; internal testing showed a considerable reduction, and Team17 explicitly said that cause was not AMD-specific.",
+      "workaround": "Disabling gore may reduce crashes tied to the blood-and-decal cause. It is not a general fix for every crash.",
       "known": [
-        "The developers acknowledge a higher frequency of some crashes on AMD hardware.",
         "Several individual stability problems have been identified.",
-        "The development team says it is working directly with AMD.",
-        "Disabling gore is an official mitigation, not a guaranteed fix."
+        "One crash cause is associated with large quantities of blood and decal effects.",
+        "Patch 1.4 considerably reduced crashes from that cause in internal testing.",
+        "Team17 says that documented cause was not AMD-specific."
       ],
       "unknown": [
-        "A crash occurring on AMD hardware cannot automatically be assigned to this issue family.",
-        "No single public root cause explains all reports.",
-        "The proportion of AMD users affected is not publicly established."
+        "No single public root cause explains all crash reports.",
+        "The other active crash causes have not been enumerated publicly.",
+        "Independent post-1.4 verification is not yet recorded."
       ],
       "timeline": [
         {"date": "2026-08-20", "event": "Community Update #1", "detail": "Stability, including AMD-associated crashes, is identified as a major feedback area."},
         {"date": "2026-08-27", "event": "Community Update #2", "detail": "Developers report progress on multiple individual issues, direct work with AMD, and the gore-disabled mitigation."},
-        {"date": "2026-08-28", "event": "Patch 1.3", "detail": "Further stability and performance work ships; the broader AMD-associated family remains open."
-        }
+        {"date": "2026-08-28", "event": "Patch 1.3", "detail": "Further stability and performance work ships; the broader crash family remains open."},
+        {"date": "2026-09-02", "event": "Patch 1.4", "detail": "A fix targeting crashes associated with heavy blood and decal effects ships."},
+        {"date": "2026-09-03", "event": "Community Feedback #3", "detail": "Team17 reports a considerable reduction from that fix and clarifies that the cause was not AMD-specific."}
       ],
       "sources": [
         {"type": "official update", "publisher": "Hell Let Loose", "date": "2026-08-20", "title": "Community Update #1", "url": "https://www.hellletloose.com/blog/community-update-1", "claim": "AMD-associated stability problems acknowledged"},
         {"type": "official update", "publisher": "Hell Let Loose", "date": "2026-08-27", "title": "Community Update #2", "url": "https://www.hellletloose.com/blog/community-update-2", "claim": "Multiple causes, direct AMD collaboration, and gore-disabled mitigation documented"},
-        {"type": "patch notes", "publisher": "Hell Let Loose", "date": "2026-08-28", "title": "Patch 1.3", "url": "https://www.hellletloose.com/blog/hllv-patch-1-3", "claim": "Additional client and server stability work shipped"}
+        {"type": "patch notes", "publisher": "Hell Let Loose", "date": "2026-08-28", "title": "Patch 1.3", "url": "https://www.hellletloose.com/blog/hllv-patch-1-3", "claim": "Additional client and server stability work shipped"},
+        {"type": "patch notes", "publisher": "Hell Let Loose", "date": "2026-09-02", "title": "Patch 1.4", "url": "https://www.hellletloose.com/blog/hllv-patch-1-4", "claim": "Blood-and-decal-associated crash fix shipped"},
+        {"type": "official update", "publisher": "Hell Let Loose", "date": "2026-09-03", "title": "Community Feedback #3", "url": "https://www.hellletloose.com/blog/community-update-3", "claim": "Considerable crash reduction; documented cause not AMD-specific"}
       ]
     },
     {
@@ -516,22 +535,28 @@
       "id": "HLLV-017",
       "title": "Tank gunner inversion uses the wrong setting",
       "category": "controls",
-      "kind": "official known issue",
-      "status_key": "investigating",
-      "status_label": "Fix planned",
-      "bottom_line": "Patch 1.3 introduced a control-setting mix-up. The developers said it is planned for Patch 1.4.",
+      "kind": "fixed control regression",
+      "status_key": "shipped",
+      "status_label": "Fix released in 1.4",
+      "bottom_line": "Patch 1.4 separated aiming inversion from vehicle and helicopter inversion, fixing the control-setting regression introduced in Patch 1.3.",
       "official_short": "Confirmed",
-      "fix_short": "Planned for 1.4",
+      "fix_short": "Shipped in 1.4",
       "cause_short": "1.3 regression",
-      "last_updated": "2026-08-28",
+      "last_updated": "2026-09-02",
       "scope": ["tank gunners", "controller settings"],
       "symptom": "Tank gunner inversion is controlled by the Vehicle Inversion setting instead of the intended Look Inversion setting.",
-      "official_position": "The Patch 1.3 notes explicitly identify this as a known issue caused by the inversion-setting change and state that it will be resolved in Patch 1.4.",
-      "workaround": "Use the Vehicle Inversion setting to control tank gunner inversion until the intended setting is restored.",
-      "known": ["The regression is explicitly acknowledged in Patch 1.3.", "The affected and intended settings are identified.", "Patch 1.4 is the stated target."],
-      "unknown": ["The fix has not yet been documented as shipped.", "Independent reproduction details are not provided."],
-      "timeline": [{"date": "2026-08-28", "event": "Patch 1.3", "detail": "The regression is disclosed and a Patch 1.4 resolution is announced."}],
-      "sources": [{"type": "patch notes", "publisher": "Hell Let Loose", "date": "2026-08-28", "title": "Patch 1.3", "url": "https://www.hellletloose.com/blog/hllv-patch-1-3", "claim": "Regression acknowledged; Patch 1.4 fix planned"}]
+      "official_position": "Patch 1.3 identified the inversion-setting regression. Patch 1.4 then separated aiming inversion from vehicle and helicopter inversion, restoring independent control of those settings.",
+      "workaround": null,
+      "known": ["The regression is explicitly acknowledged in Patch 1.3.", "The affected and intended settings are identified.", "The corrective setting separation shipped in Patch 1.4."],
+      "unknown": ["Independent post-patch verification is not yet recorded.", "The internal cause of the Patch 1.3 regression was not published."],
+      "timeline": [
+        {"date": "2026-08-28", "event": "Patch 1.3", "detail": "The regression is disclosed and a Patch 1.4 resolution is announced."},
+        {"date": "2026-09-02", "event": "Patch 1.4", "detail": "Aiming inversion is separated from vehicle and helicopter inversion."}
+      ],
+      "sources": [
+        {"type": "patch notes", "publisher": "Hell Let Loose", "date": "2026-08-28", "title": "Patch 1.3", "url": "https://www.hellletloose.com/blog/hllv-patch-1-3", "claim": "Regression acknowledged; Patch 1.4 fix planned"},
+        {"type": "patch notes", "publisher": "Hell Let Loose", "date": "2026-09-02", "title": "Patch 1.4", "url": "https://www.hellletloose.com/blog/hllv-patch-1-4", "claim": "Independent aiming and vehicle inversion controls restored"}
+      ]
     },
     {
       "id": "HLLV-018",
@@ -778,24 +803,29 @@
       "title": "Gunfire and explosions sound echoed or muffled",
       "category": "audio",
       "kind": "post-patch audio report cluster",
-      "status_key": "reported",
-      "status_label": "Reported to support",
-      "bottom_line": "Several players reported echoed or muffled combat sounds after Patch 1.3. Team17 forwarded the details; no cause or fix is confirmed.",
-      "official_short": "Support escalated",
-      "fix_short": "None confirmed",
+      "status_key": "investigating",
+      "status_label": "Officially reproduced",
+      "bottom_line": "Multiple developers have reproduced the muffled or echoing combat-audio problem internally. Team17 is actively investigating; no cause or fix is confirmed.",
+      "official_short": "Reproduced",
+      "fix_short": "Investigating",
       "cause_short": "Unknown",
       "last_updated": "2026-09-03",
+      "featured": true,
       "scope": ["PC", "combat audio", "post-1.3 reports"],
       "symptom": "Gunshots, tank fire, grenades, and explosions can sound heavily echoed, muffled, or as if heard inside a metal room while vehicles, movement, and music sound normal.",
-      "official_position": "Team17 Support collected diagnostic information and passed the report to the team. That establishes an escalated report, not developer reproduction or a confirmed Patch 1.3 regression.",
-      "workaround": "Support suggested switching output to stereo. The original reporter said stereo did not change the symptom, so it is not treated as a reliable workaround.",
-      "known": ["Multiple players described a similar change after the August 28 update.", "The reports distinguish combat effects from vehicle, movement, and music audio.", "Team17 Support forwarded the details to the team."],
-      "unknown": ["Developer reproduction is not public.", "The audio format, device, or game component responsible is unknown.", "A direct causal link to Patch 1.3 has not been officially established."],
+      "official_position": "Team17 says multiple developers reproduced muffled or echoing gunfire and explosions internally, particularly on PC. The issue is under active investigation, but the cause and relationship to Patch 1.3 have not been confirmed publicly.",
+      "workaround": "Forcing stereo output has helped some players, but not reliably. It is a workaround to try, not a confirmed fix.",
+      "known": ["Multiple players described a similar change after the August 28 update.", "The reports distinguish combat effects from vehicle, movement, and music audio.", "Team17 Support forwarded the details to the team.", "Multiple developers have now reproduced the behavior internally."],
+      "unknown": ["The audio format, device, or game component responsible is unknown.", "A direct causal link to Patch 1.3 has not been officially established.", "No fix target or reliable workaround has been announced."],
       "timeline": [
         {"date": "2026-08-30", "event": "Post-patch report", "detail": "Players begin documenting echoed and muffled combat sounds after Patch 1.3."},
-        {"date": "2026-09-03", "event": "Support escalation", "detail": "Team17 Support forwards detailed symptom and diagnostic information to the team."}
+        {"date": "2026-09-03", "event": "Support escalation", "detail": "Team17 Support forwards detailed symptom and diagnostic information to the team."},
+        {"date": "2026-09-03", "event": "Official reproduction", "detail": "Community Feedback #3 says multiple developers reproduced the issue internally and the investigation is active."}
       ],
-      "sources": [{"type": "support thread", "publisher": "Steam / Team17 Support", "date": "2026-09-03", "title": "Fix the Audio PLEASEEEEEEEE", "url": "https://steamcommunity.com/app/3079210/discussions/1/583932755647329810/", "claim": "Multi-player report cluster documented and forwarded"}]
+      "sources": [
+        {"type": "support thread", "publisher": "Steam / Team17 Support", "date": "2026-09-03", "title": "Fix the Audio PLEASEEEEEEEE", "url": "https://steamcommunity.com/app/3079210/discussions/1/583932755647329810/", "claim": "Multi-player report cluster documented and forwarded"},
+        {"type": "official update", "publisher": "Hell Let Loose", "date": "2026-09-03", "title": "Community Feedback #3", "url": "https://www.hellletloose.com/blog/community-update-3", "claim": "Multiple developers reproduced the combat-audio issue; investigation active"}
+      ]
     },
     {
       "id": "HLLV-029",
@@ -1164,6 +1194,108 @@
       "sources": [
         {"type": "official update", "publisher": "Hell Let Loose", "date": "2026-08-20", "title": "Community Update #1", "url": "https://www.hellletloose.com/blog/community-update-1", "claim": "Community steps reproduced; known methods fixed"},
         {"type": "patch notes", "publisher": "Hell Let Loose", "date": "2026-08-21", "title": "Patch 1.2", "url": "https://www.hellletloose.com/blog/hllv-patch-1-2", "claim": "Above-ground swimming issue fixed"}
+      ]
+    },
+    {
+      "id": "HLLV-045",
+      "title": "Keyboard input stops while mouse still works",
+      "category": "controls",
+      "kind": "EOS overlay input defect",
+      "status_key": "investigating",
+      "status_label": "Cause identified",
+      "bottom_line": "Team17 traced the keyboard-only input failure to the Epic Online Services overlay. Epic is preparing an EOS SDK update; Shift+F3 is the official temporary workaround.",
+      "official_short": "Cause identified",
+      "fix_short": "Awaiting EOS SDK",
+      "cause_short": "EOS overlay",
+      "last_updated": "2026-09-03",
+      "featured": true,
+      "scope": ["PC", "keyboard input", "Epic Online Services overlay"],
+      "symptom": "Keyboard input can stop responding while mouse input continues to work.",
+      "official_position": "Team17 says its investigation traced the failure to the Epic Online Services overlay. Epic Games is working on an EOS SDK update; no release date for that update is public.",
+      "workaround": "Press Shift+F3 to open and close the Epic Online Services overlay. Team17 lists this as the temporary workaround.",
+      "known": ["The issue is officially acknowledged.", "The failure has been traced to the EOS overlay.", "Epic Games is working on an EOS SDK update.", "Shift+F3 is the official temporary workaround."],
+      "unknown": ["The SDK update release date is not public.", "Post-fix verification is not possible until the update ships.", "It is not established that every keyboard-input report has this exact cause."],
+      "timeline": [
+        {"date": "2026-09-03", "event": "Community Feedback #3", "detail": "Team17 identifies the EOS overlay as the cause, publishes Shift+F3 as a workaround, and says Epic is preparing an SDK update."}
+      ],
+      "sources": [
+        {"type": "official update", "publisher": "Hell Let Loose", "date": "2026-09-03", "title": "Community Feedback #3", "url": "https://www.hellletloose.com/blog/community-update-3", "claim": "EOS overlay cause identified; Shift+F3 workaround; SDK update in progress"}
+      ]
+    },
+    {
+      "id": "HLLV-046",
+      "title": "Spawn choices and Commander abilities can disappear",
+      "category": "gameplay",
+      "kind": "spawn and deployment issue family",
+      "status_key": "investigating",
+      "status_label": "Official investigation",
+      "bottom_line": "Team17 is investigating cases where Garrisons or Outposts disappear as spawn choices, players cannot deploy, or Commander abilities become unavailable.",
+      "official_short": "Acknowledged",
+      "fix_short": "Investigating",
+      "cause_short": "Unknown",
+      "last_updated": "2026-09-03",
+      "featured": true,
+      "scope": ["spawn menu", "Garrisons", "Outposts", "Commander abilities"],
+      "symptom": "Available Garrisons or Outposts can disappear from the deployment screen, preventing players from spawning; Commander abilities may also become unavailable.",
+      "official_position": "Team17 grouped these spawn and deployment failures into an active investigation. QA reopened an older issue with similar behavior, but no shared root cause or fix is confirmed.",
+      "workaround": null,
+      "known": ["The issue family is officially acknowledged.", "Garrison and Outpost spawn choices can be affected.", "Commander abilities can become unavailable.", "QA reopened an older issue with similar behavior."],
+      "unknown": ["A common root cause has not been established.", "It is not public which platforms or server conditions are most affected.", "No fix target or reliable workaround is published."],
+      "timeline": [
+        {"date": "2026-09-03", "event": "Community Feedback #3", "detail": "The spawn and Commander-ability failures enter active investigation and QA reopens a similar older issue."}
+      ],
+      "sources": [
+        {"type": "official update", "publisher": "Hell Let Loose", "date": "2026-09-03", "title": "Community Feedback #3", "url": "https://www.hellletloose.com/blog/community-update-3", "claim": "Spawn/deployment failures acknowledged; similar older issue reopened"}
+      ]
+    },
+    {
+      "id": "HLLV-047",
+      "title": "Career level can reset to Level 1",
+      "category": "gameplay",
+      "kind": "progression data issue",
+      "status_key": "monitoring",
+      "status_label": "Safeguards shipped · monitoring",
+      "bottom_line": "Patch 1.4 added further safeguards against unexpected Career Level resets to Level 1. The change is live, but the underlying progression problem has not been declared fully resolved.",
+      "official_short": "Acknowledged",
+      "fix_short": "1.4 safeguards",
+      "cause_short": "Not public",
+      "last_updated": "2026-09-02",
+      "scope": ["career level", "progression", "all platforms"],
+      "symptom": "A player's displayed or recorded Career Level can unexpectedly return to Level 1.",
+      "official_position": "Patch 1.4 adds more safeguards intended to prevent unexpected Level 1 resets. The changelog does not describe the change as a complete root-cause fix.",
+      "workaround": null,
+      "known": ["Unexpected Level 1 resets are officially acknowledged.", "Additional safeguards shipped in Patch 1.4."],
+      "unknown": ["The technical cause is not public.", "It is not clear whether the safeguards cover every reset path.", "Post-patch verification is not yet recorded."],
+      "timeline": [
+        {"date": "2026-09-02", "event": "Patch 1.4", "detail": "Additional safeguards against unexpected Career Level resets ship."}
+      ],
+      "sources": [
+        {"type": "patch notes", "publisher": "Hell Let Loose", "date": "2026-09-02", "title": "Patch 1.4", "url": "https://www.hellletloose.com/blog/hllv-patch-1-4", "claim": "Additional safeguards against Level 1 resets shipped"}
+      ]
+    },
+    {
+      "id": "HLLV-048",
+      "title": "Non-VIP party members could trigger a false free-slot warning",
+      "category": "community-server",
+      "kind": "community-server join warning defect",
+      "status_key": "shipped",
+      "status_label": "Fix released in 1.4",
+      "bottom_line": "Patch 1.4 fixed an incorrect warning claiming there were not enough free slots for non-VIP party members joining a community server.",
+      "official_short": "Confirmed",
+      "fix_short": "Shipped in 1.4",
+      "cause_short": "Party slot validation",
+      "last_updated": "2026-09-02",
+      "scope": ["community servers", "parties", "VIP access", "join flow"],
+      "symptom": "A party could receive an erroneous warning that the server lacked enough free slots for non-VIP party members.",
+      "official_position": "Patch 1.4 explicitly lists the incorrect non-VIP party-member free-slot warning as fixed.",
+      "workaround": null,
+      "known": ["The affected warning and party context are documented.", "The fix shipped in Patch 1.4."],
+      "unknown": ["Independent post-patch verification on a community server is not yet recorded.", "This does not establish a relationship with separate VIP-list or server-settings issues."],
+      "timeline": [
+        {"date": "2026-09-02", "event": "Patch 1.4", "detail": "The erroneous non-VIP party-member free-slot warning is fixed."}
+      ],
+      "sources": [
+        {"type": "patch notes", "publisher": "Hell Let Loose", "date": "2026-09-02", "title": "Patch 1.4", "url": "https://www.hellletloose.com/blog/hllv-patch-1-4", "claim": "Incorrect party free-slot warning fixed"}
       ]
     }
   ],
