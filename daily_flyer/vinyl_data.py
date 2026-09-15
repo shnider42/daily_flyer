@@ -85,7 +85,7 @@ def search_releases(artist: str, title: str, catalog: str = "") -> list[dict]:
 def get_release(release_id: str) -> dict:
     if not RELEASE_ID.fullmatch(release_id):
         raise ValueError("Invalid MusicBrainz release ID.")
-    release = _get(f"release/{release_id.lower()}", (("inc", "recordings+artist-rels+recording-level-rels"), ("fmt", "json")))
+    release = _get(f"release/{release_id.lower()}", (("inc", "recordings+labels+artist-rels+recording-level-rels"), ("fmt", "json")))
     edition = _edition(release)
     credits: dict[tuple[str, str, str], dict] = {}
 

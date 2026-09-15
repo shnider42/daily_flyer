@@ -23,7 +23,7 @@ RELEASE = {
 def test_release_credit_evidence_and_edition():
     with patch("daily_flyer.vinyl_data._get", return_value=RELEASE) as fetch:
         record = get_release(RELEASE_ID)
-    assert fetch.call_args.args[1][0][1] == "recordings+artist-rels+recording-level-rels"
+    assert fetch.call_args.args[1][0][1] == "recordings+labels+artist-rels+recording-level-rels"
     assert record["catalog"] == "EX-22"
     assert record["formats"] == ['12" Vinyl']
     assert {("Guest Singer", "A Song"), ("Guest Singer", "")} <= {(c["name"], c["track"]) for c in record["credits"]}
