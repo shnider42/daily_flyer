@@ -1,0 +1,33 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><meta name="theme-color" content="#172722"><title>Village Crossing · WWII Tactics</title><link rel="stylesheet" href="/assets/game.css"><script src="/assets/game.js" defer></script></head>
+<body>
+<header><a href="/" class="brand">FIELD / NOTES <span>01</span></a><button id="rulesButton" class="quiet">Field manual</button></header>
+<main>
+<section id="lobby">
+ <p class="eyebrow">WESTERN FRONT · TWO PLAYER</p><h1>Village<br><em>Crossing.</em></h1>
+ <p class="intro">One village. Two commanders.<br>A small battle, played together.</p>
+ <div class="mini-map" aria-hidden="true"><span>＋</span><i></i><b>1944</b></div>
+ <p class="brief">Lead the Americans into the square, or hold the line with the Germans. Send your opponent an invitation and play from two phones.</p>
+ <button id="create" class="primary">Command the Americans <span>↗</span></button>
+ <form id="joinForm"><label for="code">Have an invitation? Join the Germans.</label><div class="join-row"><input id="code" maxlength="10" placeholder="MATCH CODE" autocomplete="off" autocapitalize="characters" spellcheck="false" required pattern="[a-fA-F0-9]{10}"><button type="submit">Join →</button></div></form>
+ <p class="footnote">Original simplified rules · No account needed<br>Your player key stays in this browser. Keep site data to reconnect.</p>
+</section>
+<section id="game" hidden>
+ <div class="game-title"><div><p class="eyebrow">OPERATION 01</p><h1>Village Crossing</h1></div><div class="round">ROUND <strong id="round">1 / 8</strong></div></div>
+ <div class="status-line"><span id="side"></span><span id="connection">Connecting…</span></div>
+ <div id="waiting" hidden><h2>Your opponent is up next.</h2><p>Send this invitation to the other phone. You command the Americans; they command the Germans.</p><button id="share" class="primary">Share invitation ↗</button><input id="invite" readonly aria-label="Invitation URL"><p id="matchCode"></p></div>
+ <div id="turnBanner" role="status"></div>
+ <div class="mission"><span>★ VILLAGE SQUARE</span><span id="objective">Hold: 0 / 2</span></div>
+ <div id="mapWrap"><svg id="map" viewBox="0 0 400 470" role="group" aria-label="Village battlefield. Select your unit, then a highlighted hex to move or an enemy to inspect a shot."></svg></div>
+ <div class="legend"><span><i class="us-dot"></i>Americans</span><span><i class="de-dot"></i>Germans</span><span>★ Objective</span><span>▧ Cover</span></div>
+ <section id="orders" aria-label="Unit orders"><p id="selection">Tap one of your units to see its orders.</p><p id="hint"></p><div class="order-buttons"><button id="fire" class="danger" hidden>Fire</button><button id="rally" hidden>Rally · 1 action</button><button id="end" class="primary">End turn →</button></div></section>
+ <details class="journal"><summary>Battle log <span id="latest"></span></summary><ol id="log"></ol></details>
+ <div class="match-tools"><button id="reset" class="quiet" hidden>Start a new match</button><button id="refresh" class="quiet">Reconnect</button><button id="leave" class="quiet">Other invitation</button></div>
+</section>
+<p id="message" role="alert" hidden></p>
+</main>
+<dialog id="rules"><div class="manual-head"><p class="eyebrow">FIELD MANUAL / V1</p><button id="closeRules" aria-label="Close field manual">✕</button></div><h2>A village worth holding.</h2>
+<p><strong>Americans:</strong> occupy ★ at the end of two consecutive American turns. Losing the occupying unit or moving off breaks the hold. <strong>Germans:</strong> prevent this through the end of round 8. Either side also wins by eliminating all enemy units.</p>
+<h3>Give your orders</h3><p>Tap your unit. Green hexes are legal moves. Tap an enemy in range to preview a shot, then confirm Fire. End turn when ready; unused actions are lost.</p>
+<ul><li><strong>2 actions per unit each turn.</strong> One adjacent hex costs 1; entering woods or buildings costs 2. No stacking or melee.</li><li><strong>Fire costs 2.</strong> A server-rolled six-sided die hits on 4+. Target cover adds 1; distance over 3 hexes adds 1. A friendly leader within 1 hex subtracts 1; machine guns subtract 1. Minimum 2+.</li><li><strong>Range:</strong> squad 4 hexes, MG 6, leader 3. Intervening buildings and woods block fire; you can shoot into or out of them. The square gives cover but does not block fire.</li><li><strong>A hit removes 1 strength and pins.</strong> Pinned units cannot move or fire. Rally always succeeds and costs 1 action. Strength: squads/MGs 3, leaders 2. Pins persist across turns until rallied.</li><li><strong>Open information.</strong> Both players see all units. No hidden movement, reaction fire, tanks, or AI in this first version.</li></ul><p class="footnote">An original fictional scenario inspired by tactical board games, not an official Squad Leader or Advanced Squad Leader adaptation. Early playtest: balance is not yet established.</p></dialog>
+</body></html>
