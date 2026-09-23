@@ -24,7 +24,8 @@
  <p id="missionHint" class="mission-hint"></p>
  <div class="map-tools"><span id="armyCount"></span><button id="zoom" class="quiet" aria-pressed="false">Enlarge map ＋</button></div>
  <div id="mapWrap"><svg id="map" viewBox="0 0 400 470" role="group" aria-label="Village battlefield. Select your unit, then a highlighted hex to move or an enemy to inspect a shot."></svg></div>
- <div class="legend"><span><i class="us-dot"></i>Americans</span><span><i class="de-dot"></i>Germans</span><span>★ Objective</span><span>◎ Overwatch</span><span>Orange hex: exposed move</span></div>
+ <div class="legend team-legend"><span class="team-key us-key"><i class="us-dot"></i>US · Americans</span><span class="team-key de-key"><i class="de-dot"></i>DE · Germans</span></div>
+ <div class="legend terrain-legend"><span><i class="woods-dot"></i>Woods</span><span><i class="building-dot"></i>Buildings</span><span><i class="road-dot"></i>Road</span><span><i class="water-dot"></i>Water</span><span>★ Objective</span><span>◎ Overwatch</span><span>Dashed hex: move · Orange: exposed</span></div>
  <div id="roster" class="roster" aria-label="Your units"></div>
  <section id="orders" aria-label="Unit orders"><p id="selection">Tap one of your units to see its orders.</p><p id="hint"></p><p id="odds" class="odds" hidden></p><div class="order-buttons"><button id="fire" class="danger" hidden>Fire</button><button id="assault" class="danger" hidden>Assault</button><button id="rally" hidden>Rally · 1 action</button><button id="dig" hidden>Dig in · 2 actions</button><button id="smoke" hidden>Smoke · 1 action</button><button id="overwatch" hidden>Overwatch · 2 actions</button><button id="nextUnit" class="quiet">Next unit →</button><button id="end" class="primary">End turn →</button></div></section>
  <div id="combat" class="combat" role="status" hidden></div>

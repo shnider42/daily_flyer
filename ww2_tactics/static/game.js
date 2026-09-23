@@ -41,6 +41,8 @@ function render(){
  $('battleNumber').textContent=`BATTLE ${String(state.battle_number||1).padStart(2,'0')}`;
  $('objectiveName').textContent=`★ ${board.objective_name.toUpperCase()}`;
  $('round').textContent=`${state.round} / ${board.rounds}`;$('side').textContent=`You command the ${names[state.side]}`;
+ $('game').dataset.side=state.side;
+ $('turnBanner').dataset.side=state.winner||state.turn;
  $('waiting').hidden=state.ready;$('invite').value=invitation();$('matchCode').textContent=`MATCH CODE · ${session.code}`;
  $('turnBanner').textContent=state.winner?`${names[state.winner]} win. ${state.winner===state.side?'Mission accomplished.':'The battle is over.'}`:!state.ready?'Waiting for the German commander…':myTurn?'Your turn · select a unit':`${names[state.turn]} are giving orders…`;
  $('objective').textContent=`Hold: ${state.hold} / 2`;
@@ -74,8 +76,8 @@ function render(){
   const [cx,cy]=center(...u.pos),g=element('g',{class:`unit ${u.side}${selected===u.id?' selected':''}${target===u.id?' target':''}`,role:'button',tabindex:0,'aria-label':`${names[u.side]} ${kinds[u.kind]}, ${u.hp} strength, ${u.ap} actions${u.pinned?', pinned':''}`});
   // Transparent hit area is larger than the counter for comfortable phone taps.
   g.append(element('circle',{cx,cy,r:23,fill:'transparent'}));
-  g.append(element('rect',{x:cx-20,y:cy-16,width:40,height:33,rx:3}));
-  g.append(element('text',{x:cx,y:cy-3,'text-anchor':'middle'},u.kind==='mg'?'MG':u.kind==='leader'?'LT':'SQ'));
+  g.append(element('rect',{x:cx-20,y:cy-16,width:40,height:33,rx:u.side==='us'?9:1}));
+  g.append(element('text',{x:cx,y:cy-3,'text-anchor':'middle',class:'unit-name'},`${u.side==='us'?'US':'DE'} ${u.kind==='mg'?'MG':u.kind==='leader'?'LT':'SQ'}`));
   g.append(element('text',{x:cx,y:cy+10,'text-anchor':'middle',class:'strength'},'●'.repeat(u.hp)+' · '+u.ap));
   if(u.pinned)g.append(element('text',{x:cx+17,y:cy-13,'text-anchor':'middle',class:'pin'},'!'));
   if(u.entrenched)g.append(element('path',{d:`M${cx-22} ${cy+19}h44`,class:'dug-marker'}));

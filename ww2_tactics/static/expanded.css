@@ -32,4 +32,48 @@ select { width: 100%; padding: 12px; min-height: 48px; font: inherit; font-size:
 .check-label { display: flex; align-items: center; gap: 10px; min-height: 48px; margin: 16px 0; font-size: 13px; }
 .check-label input { width: 20px; height: 20px; }
 #rematchDialog .primary { width: 100%; }
+/* Team identity is repeated in color, counter shape, and explicit US/DE labels. */
+:root { --us-team: #1264b1; --de-team: #b53c25; }
+.unit.us rect { fill: var(--us-team); }
+.unit.de rect { fill: var(--de-team); }
+.unit rect { stroke: #fffdf5; stroke-width: 2; filter: drop-shadow(0 2px 1px #17272280); }
+.unit .unit-name { font-size: 9px; font-weight: 850; fill: white; }
+.unit .strength { fill: white; font-weight: 650; }
+.unit.selected rect, .unit:focus-visible rect { stroke: #ffe440; stroke-width: 4; }
+.unit.target rect { stroke: #ffebda; stroke-width: 3; stroke-dasharray: 4 2; }
+#side { padding: 6px 9px; border-radius: 5px; background: #deedfc; color: #124e86; }
+#game[data-side="de"] #side { background: #fbe2d9; color: #902d1c; border-radius: 1px; }
+.status-line { align-items: center; gap: 8px; }
+#turnBanner[data-side="us"] { background: #deedfc; border-color: var(--us-team); }
+#turnBanner[data-side="de"] { background: #fbe2d9; border-color: var(--de-team); }
+.roster-unit.active { background: var(--us-team); border-color: var(--us-team); color: white; }
+#game[data-side="de"] .roster-unit.active { background: var(--de-team); border-color: var(--de-team); }
+.team-legend { gap: 8px; margin-bottom: 7px; }
+.team-key { padding: 7px 9px; font-size: 12px; font-weight: 750; }
+.us-key { background: #deedfc; color: #124e86; border-radius: 9px; }
+.de-key { background: #fbe2d9; color: #902d1c; border-radius: 1px; }
+.legend .us-dot { background: var(--us-team); border-radius: 4px; width: 11px; height: 11px; }
+.legend .de-dot { background: var(--de-team); width: 11px; height: 11px; }
+.terrain-legend { font-size: 10px; color: #405041; gap: 9px; }
+#mapWrap { background: #cddcc1; border-color: #8caa7d; }
+.hex { stroke: #91aa7a; }
+.hex.field { fill: #deebc6; }
+.hex.woods { fill: #8fbe69; }
+.terrain-icon { fill: #326132; stroke: #326132; }
+.hex.building { fill: #cfaa8c; }
+.building-icon { fill: #85543a; stroke: #5f3b29; }
+.hex.road { fill: #f6e2af; }
+.hex.water { fill: #68bddd; stroke: #338fae; }
+.hex.bridge { fill: #d8b574; }
+.bridge-icon { stroke: #725022; stroke-width: 3; }
+.hex.objective { fill: #f7cd55; stroke: #ac7a13; stroke-width: 2; }
+.objective-icon { fill: #77500c; }
+.tile-label { fill: #42573b; font-weight: 600; }
+.hex.move { fill: #b7e5a0; stroke: #277234; stroke-width: 2.5; stroke-dasharray: 4 2; }
+.hex.move.threatened { fill: #ffbf74; stroke: #a24a13; }
+.hex.smoke-choice { fill: #c2d5ef; stroke: #305f9c; }
+.woods-dot { background: #8fbe69; }
+.building-dot { background: #cfaa8c; }
+.road-dot { background: #f6e2af; border: 1px solid #aa8b48; }
+.water-dot { background: #68bddd; }
 @media (max-width: 430px) { #orders { padding: 12px 0; } .order-buttons button { font-size: 12px; } }
