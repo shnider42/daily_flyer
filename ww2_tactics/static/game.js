@@ -1,6 +1,6 @@
 'use strict';
 const $ = id => document.getElementById(id);
-let session = null, state = null, selected = null, target = null, busy = false, polling = false, toastTimer, smokeMode = false, lobbyMode = false;
+let session = null, state = null, selected = null, target = null, busy = false, polling = false, toastTimer, smokeMode = false, lobbyMode = false, renderedBattle = null, scenarios = [];
 try { session = JSON.parse(localStorage.getItem('ww2-session')); } catch (_) {}
 const names = {us:'Americans',de:'Germans'}, kinds={squad:'Rifle squad',leader:'Leader',mg:'Machine gun'};
 function notify(text){$('message').textContent=text;$('message').hidden=false;clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('message').hidden=true,6500);}
@@ -23,15 +23,29 @@ function activate(e,callback){e.addEventListener('click',callback);e.addEventLis
 function chooseUnit(u){if(busy)return;if(smokeMode){placeSmoke(u.pos);return;}if(u.side===state.side){selected=u.id;target=null;}else{target=u.id;}render();}
 function placeSmoke(pos){if(state.legal[selected]?.smoke?.some(p=>p[0]===pos[0]&&p[1]===pos[1]))act({kind:'smoke',unit:selected,pos});}
 function chance(threshold){return Math.max(0,Math.min(100,Math.round((7-threshold)/6*100)));}
+function moveUnit(move){if(!move.threats||confirm(`${move.threats} enemy unit${move.threats===1?' is':'s are'} watching this hex. Move and risk reaction fire?`))act({kind:'move',unit:selected,pos:move.pos});}
+function scenarioPreview(){
+ const board=scenarios.find(s=>s.id===$('scenarioSelect').value);if(!board)return;
+ $('scenarioBrief').textContent=board.brief;
+ const svg=$('scenarioPreview');svg.replaceChildren();svg.setAttribute('viewBox',`0 0 ${board.width*52+36} ${board.height*49+29}`);svg.setAttribute('aria-label',`${board.name}, ${board.width} by ${board.height} hex battlefield`);
+ board.map.forEach((row,y)=>row.forEach((type,x)=>{const [cx,cy]=center(x,y);const points=Array.from({length:6},(_,i)=>{const a=(60*i-30)*Math.PI/180;return `${cx+30*Math.cos(a)},${cy+30*Math.sin(a)}`;}).join(' ');svg.append(element('polygon',{points,class:`hex ${type}`}));if(type==='objective')svg.append(element('text',{x:cx,y:cy+8,'text-anchor':'middle',class:'objective-icon'},'★'));}));
+}
+async function rematchRequest(body){await run(async()=>{state=await api(`/api/match/${session.code}/rematch`,{...body,revision:state.revision});render();});}
 function render(){
  if(!state||lobbyMode)return;$('lobby').hidden=true;$('game').hidden=false;
  const myTurn=state.ready&&!state.winner&&state.turn===state.side;
- $('round').textContent=`${state.round} / 8`;$('side').textContent=`You command the ${names[state.side]}`;
+ const board=state.scenario||{id:'village',name:'Village Crossing',objective_name:'Village square',rounds:8};
+ const battleKey=`${state.code}:${state.battle_number||1}`;
+ if(renderedBattle!==battleKey){selected=null;target=null;smokeMode=false;renderedBattle=battleKey;$('mapWrap').scrollTo?.(0,0);}
+ $('battleTitle').textContent=board.name;document.title=`${board.name} · WWII Tactics`;
+ $('battleNumber').textContent=`BATTLE ${String(state.battle_number||1).padStart(2,'0')}`;
+ $('objectiveName').textContent=`★ ${board.objective_name.toUpperCase()}`;
+ $('round').textContent=`${state.round} / ${board.rounds}`;$('side').textContent=`You command the ${names[state.side]}`;
  $('waiting').hidden=state.ready;$('invite').value=invitation();$('matchCode').textContent=`MATCH CODE · ${session.code}`;
  $('turnBanner').textContent=state.winner?`${names[state.winner]} win. ${state.winner===state.side?'Mission accomplished.':'The battle is over.'}`:!state.ready?'Waiting for the German commander…':myTurn?'Your turn · select a unit':`${names[state.turn]} are giving orders…`;
  $('objective').textContent=`Hold: ${state.hold} / 2`;
- $('legacyNotice').hidden=(state.rules_version||1)>=2;
- $('missionHint').textContent=state.winner?`Battle complete in round ${state.round}.`:state.hold?'Americans hold the square. Germans must dislodge them before the next American turn ends.':state.side==='us'?'Capture ★ and hold through two American turn endings.':'Keep the Americans from holding ★ through round 8.';
+ $('legacyNotice').hidden=(state.rules_version||1)>=3;
+ $('missionHint').textContent=state.winner?`Battle complete in round ${state.round}.`:state.hold?'Americans hold the objective. Germans must dislodge them before the next American turn ends.':state.side==='us'?`Capture ★ and hold through two American turn endings. You have ${board.rounds-state.round+1} rounds left.`:`Keep the Americans from holding ★ through round ${board.rounds}.`;
  $('armyCount').textContent=['us','de'].map(s=>`${names[s]} ${state.units.filter(u=>u.side===s&&u.hp>0).length}/5`).join(' · ');
  const unit=state.units.find(u=>u.id===selected&&u.hp>0);
  if(!unit)selected=null;
@@ -40,16 +54,19 @@ function render(){
  const assault=enemy&&legal?.assaults?.find(t=>t.id===enemy.id);
  if(!myTurn||!legal?.smoke?.length)smokeMode=false;
  const svg=$('map');svg.replaceChildren();
- for(let y=0;y<9;y++)for(let x=0;x<7;x++){
+ svg.setAttribute('viewBox',`0 0 ${state.map[0].length*52+36} ${state.map.length*49+29}`);
+ svg.setAttribute('aria-label',`${board.name} battlefield. Select your unit then a highlighted hex to move.`);
+ for(let y=0;y<state.map.length;y++)for(let x=0;x<state.map[y].length;x++){
   const [cx,cy]=center(x,y),type=state.map[y][x],move=myTurn&&legal?.moves.find(m=>m.pos[0]===x&&m.pos[1]===y);
   const points=Array.from({length:6},(_,i)=>{const a=(60*i-30)*Math.PI/180;return `${cx+30*Math.cos(a)},${cy+30*Math.sin(a)}`;}).join(' ');
   const smokeHere=smokeMode&&legal.smoke.some(p=>p[0]===x&&p[1]===y);
-  const tile=element('polygon',{points,class:`hex ${type}${move&&!smokeMode?' move':''}${smokeHere?' smoke-choice':''}`,...(smokeHere?{tabindex:0,role:'button','aria-label':`Smoke at ${String.fromCharCode(65+x)}${y+1}`} :move&&!smokeMode?{tabindex:0,role:'button','aria-label':`Move to ${String.fromCharCode(65+x)}${y+1}, ${type}, ${move.cost} action${move.cost>1?'s':''}`}:{})});
-  if(smokeHere)activate(tile,()=>placeSmoke([x,y]));else if(move&&!smokeMode)activate(tile,()=>act({kind:'move',unit:selected,pos:[x,y]}));svg.append(tile);
+  const tile=element('polygon',{points,class:`hex ${type}${move&&!smokeMode?' move':''}${move?.threats&&!smokeMode?' threatened':''}${smokeHere?' smoke-choice':''}`,...(smokeHere?{tabindex:0,role:'button','aria-label':`Smoke at ${String.fromCharCode(65+x)}${y+1}`} :move&&!smokeMode?{tabindex:0,role:'button','aria-label':`Move to ${String.fromCharCode(65+x)}${y+1}, ${type}, ${move.cost} action${move.cost>1?'s':''}${move.threats?', exposed to overwatch':''}`}:{})});
+  if(smokeHere)activate(tile,()=>placeSmoke([x,y]));else if(move&&!smokeMode)activate(tile,()=>moveUnit(move));svg.append(tile);
   svg.append(element('text',{x:cx-18,y:cy-16,class:'tile-label'},`${String.fromCharCode(65+x)}${y+1}`));
   if(type==='woods')svg.append(element('path',{d:`M${cx-9} ${cy+9}l9 -20l9 20z M${cx} ${cy+9}v5`,class:'terrain-icon'}));
   if(type==='building')svg.append(element('path',{d:`M${cx-12} ${cy-5}l12 -8l12 8v19h-24z M${cx-12} ${cy-5}h24`,class:'building-icon'}));
   if(type==='objective')svg.append(element('text',{x:cx,y:cy+8,'text-anchor':'middle',class:'objective-icon'},'★'));
+  if(type==='bridge')svg.append(element('path',{d:`M${cx-15} ${cy-15}v30m30 -30v30m-30 -24h30m-30 18h30`,class:'bridge-icon'}));
   if(state.smoke?.some(s=>s.pos[0]===x&&s.pos[1]===y))svg.append(element('ellipse',{cx,cy,rx:25,ry:22,class:'smoke-cloud'}));
  }
  if(unit&&enemy){const [x1,y1]=center(...unit.pos),[x2,y2]=center(...enemy.pos);svg.append(element('line',{x1,y1,x2,y2,class:`aim-line${shot?' clear':''}`}));}
@@ -62,6 +79,7 @@ function render(){
   g.append(element('text',{x:cx,y:cy+10,'text-anchor':'middle',class:'strength'},'●'.repeat(u.hp)+' · '+u.ap));
   if(u.pinned)g.append(element('text',{x:cx+17,y:cy-13,'text-anchor':'middle',class:'pin'},'!'));
   if(u.entrenched)g.append(element('path',{d:`M${cx-22} ${cy+19}h44`,class:'dug-marker'}));
+  if(u.overwatch)g.append(element('text',{x:cx-17,y:cy-13,'text-anchor':'middle',class:'watch-marker'},'◎'));
   activate(g,()=>chooseUnit(u));svg.append(g);
  }
  $('selection').textContent=unit?`${kinds[unit.kind]} · ${unit.hp} strength · ${unit.ap} actions${unit.pinned?' · PINNED':''}`:'Tap one of your units to see its orders.';
@@ -72,19 +90,27 @@ function render(){
  $('fire').disabled=busy||!!shot&&chance(shot.threshold)===0;
  $('assault').hidden=!myTurn||!assault;$('assault').disabled=busy;$('assault').textContent=assault?`Assault · ${chance(assault.threshold)}% · 2 actions`:'Assault';
  $('dig').hidden=!myTurn||!legal?.dig;$('dig').disabled=busy;
+ $('overwatch').hidden=!myTurn||!legal?.overwatch;$('overwatch').disabled=busy;
  $('smoke').hidden=!myTurn||!legal?.smoke?.length;$('smoke').disabled=busy;$('smoke').textContent=smokeMode?'Cancel smoke':'Smoke · 1 action';
  $('rally').hidden=!myTurn||!legal?.rally;$('rally').disabled=busy;$('end').disabled=!myTurn||busy;$('reset').hidden=state.side!=='us';
  $('latest').textContent=state.log.at(-1);$('log').replaceChildren(...state.log.slice().reverse().map(text=>{const li=document.createElement('li');li.textContent=text;return li;}));
- $('roster').replaceChildren(...state.units.filter(u=>u.side===state.side).map((u,i)=>{const b=document.createElement('button');b.className=`roster-unit${u.id===selected?' active':''}`;b.disabled=u.hp<=0||busy;b.textContent=`${u.kind==='leader'?'LT':u.kind==='mg'?'MG':'SQ'} ${i+1} · ${u.hp<=0?'Lost':u.pinned?'Pinned':u.ap+' AP'}`;b.setAttribute('aria-label',`${kinds[u.kind]} ${i+1}, ${u.hp<=0?'eliminated':u.hp+' strength, '+u.ap+' actions'}`);b.onclick=()=>{smokeMode=false;chooseUnit(u);};return b;}));
+ $('roster').replaceChildren(...state.units.filter(u=>u.side===state.side).map((u,i)=>{const b=document.createElement('button');b.className=`roster-unit${u.id===selected?' active':''}`;b.disabled=u.hp<=0||busy;b.textContent=`${u.kind==='leader'?'LT':u.kind==='mg'?'MG':'SQ'} ${i+1} · ${u.hp<=0?'Lost':u.pinned?'Pinned':u.overwatch?'Watching':u.ap+' AP'}`;b.setAttribute('aria-label',`${kinds[u.kind]} ${i+1}, ${u.hp<=0?'eliminated':u.hp+' strength, '+u.ap+' actions'}`);b.onclick=()=>{smokeMode=false;chooseUnit(u);};return b;}));
  $('nextUnit').disabled=busy||!state.units.some(u=>u.side===state.side&&u.hp>0);
  $('combat').hidden=!state.last_combat;
  if(state.last_combat){const c=state.last_combat;$('combat').textContent=`⚄ ${c.kind}: rolled ${c.roll} / needed ${c.threshold}+ — ${c.result}.`;}
+ $('battleReport').hidden=!state.winner;
+ if(state.winner){$('reportTitle').textContent=`${names[state.winner]} take the field.`;$('reportBody').textContent=['us','de'].map(s=>{const alive=state.units.filter(u=>u.side===s&&u.hp>0);return `${names[s]}: ${alive.length} surviving units, ${alive.reduce((n,u)=>n+u.hp,0)} strength`;}).join(' · ');}
+ $('seriesScore').textContent=`Army victories this session · Americans ${state.victories?.us||0} / Germans ${state.victories?.de||0}`;
+ $('rematchButton').hidden=!state.ready;$('rematchButton').disabled=busy||!!state.rematch;
+ $('rematchProposal').hidden=!state.rematch;
+ if(state.rematch){const p=state.rematch,mine=p.by===state.side;$('proposalText').textContent=`${mine?'You proposed':names[p.by]+' propose'} ${p.name}${p.swap?' with armies swapped':' with the same armies'}. ${mine?'Waiting for the other commander.':'Accept to replace the current battle.'}`;$('acceptRematch').hidden=mine;$('acceptRematch').disabled=busy;$('declineRematch').disabled=busy;$('declineRematch').textContent=mine?'Cancel proposal':'Decline';}
 }
-$('create').onclick=()=>run(async()=>{remember(await api('/api/match',{}));});
+$('create').onclick=()=>run(async()=>{remember(await api('/api/match',{scenario:$('scenarioSelect').value}));});
 $('joinForm').onsubmit=e=>{e.preventDefault();run(async()=>{remember(await api(`/api/match/${$('code').value.trim().toUpperCase()}/join`,{}));});};
 $('fire').onclick=()=>act({kind:'fire',unit:selected,target});$('rally').onclick=()=>act({kind:'rally',unit:selected});
 $('assault').onclick=()=>{if(confirm('Assault? Success deals 2 damage; failure costs your unit 1 strength and pins it.'))act({kind:'assault',unit:selected,target});};
 $('dig').onclick=()=>act({kind:'dig',unit:selected});$('smoke').onclick=()=>{smokeMode=!smokeMode;target=null;render();};
+$('overwatch').onclick=()=>act({kind:'overwatch',unit:selected});
 $('nextUnit').onclick=()=>{const alive=state.units.filter(u=>u.side===state.side&&u.hp>0);const ready=alive.filter(u=>u.ap>0);const units=ready.length?ready:alive;smokeMode=false;chooseUnit(units[(units.findIndex(u=>u.id===selected)+1)%units.length]);};
 $('zoom').onclick=()=>{const enlarged=$('mapWrap').classList.toggle('enlarged');$('zoom').setAttribute('aria-pressed',String(enlarged));$('zoom').textContent=enlarged?'Fit map −':'Enlarge map ＋';};
 $('end').onclick=()=>{const count=state.units.filter(u=>u.side===state.side&&u.hp>0&&u.ap>0).length;if(confirm(`End your turn? ${count} unit${count===1?' has':'s have'} unused actions.`))act({kind:'end'});};
@@ -93,6 +119,13 @@ $('refresh').onclick=refresh;
 $('share').onclick=async()=>{try{if(navigator.share){await navigator.share({title:'Village Crossing',text:'Command the Germans. Join my WWII tactics match.',url:invitation()});}else{await navigator.clipboard.writeText(invitation());notify('Invitation copied. Send it to the other player.');}}catch(e){if(e.name!=='AbortError'){ $('invite').select();notify('Copy the invitation from the field below.');}}};
 $('leave').onclick=()=>{if(confirm('Show the invitation screen? Your saved player key is kept; reload to return to this match.')){lobbyMode=true;$('game').hidden=true;$('lobby').hidden=false;}};
 $('rulesButton').onclick=()=>$('rules').showModal();$('closeRules').onclick=()=>$('rules').close();
+$('scenarioSelect').onchange=scenarioPreview;
+$('rematchButton').onclick=()=>{$('rematchScenario').value=state.scenario?.id||'village';$('rematchDialog').showModal();};
+$('closeRematch').onclick=()=>$('rematchDialog').close();
+$('proposeRematch').onclick=()=>{const settings={operation:'propose',scenario:$('rematchScenario').value,swap:$('swapArmies').checked};$('rematchDialog').close();rematchRequest(settings);};
+$('acceptRematch').onclick=()=>rematchRequest({operation:'accept'});
+$('declineRematch').onclick=()=>rematchRequest({operation:'decline'});
+api('/api/scenarios').then(data=>{scenarios=data.scenarios;scenarioPreview();}).catch(()=>{notify('Map preview unavailable. You can still choose a battlefield and try to create a match.');});
 const invited=new URLSearchParams(location.search).get('join');
 if(invited){$('code').value=invited.toUpperCase();if(session&&session.code!==invited.toUpperCase()){notify('Joining this invitation will replace your saved player key. Keep your original browser if you need the old seat.');session=null;}}
 if(session)refresh();

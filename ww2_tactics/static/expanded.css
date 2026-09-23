@@ -16,4 +16,20 @@
 #legacyNotice { border-left: 3px solid #b26b24; padding-left: 12px; }
 .order-buttons { align-items: center; }
 .order-buttons button { flex-grow: 1; }
+select { width: 100%; padding: 12px; min-height: 48px; font: inherit; font-size: 16px; border: 1px solid #bdc5b7; border-radius: 4px; background: #fffdf6; color: #172722; }
+#scenarioPreview { display: block; width: 100%; height: 155px; background: #e3e6d6; margin-top: 12px; border-radius: 5px; }
+.hex.water { fill: #99bfc4; stroke: #82afb5; }
+.hex.bridge { fill: #c7b994; }
+.bridge-icon { fill: none; stroke: #827457; stroke-width: 2; pointer-events: none; }
+.hex.move.threatened { fill: #e6c28c; stroke: #ad622c; stroke-width: 2; }
+.unit .watch-marker { fill: #ffd17d; font-size: 16px; paint-order: stroke; stroke: #34463b; stroke-width: 2px; }
+.battle-report { padding: 18px 0; border-top: 1px solid #b7c1a8; }
+.battle-report p { font-size: 12px; line-height: 1.7; }
+.rematch-proposal { padding: 14px; background: #e0e6d7; border-left: 3px solid #547549; margin: 10px 0; }
+.rematch-proposal p { font-size: 13px; line-height: 1.65; margin-top: 0; }
+.rematch-proposal button { margin: 4px 4px 0 0; }
+.series-score { color: #65715c; font-size: 11px; text-align: center; }
+.check-label { display: flex; align-items: center; gap: 10px; min-height: 48px; margin: 16px 0; font-size: 13px; }
+.check-label input { width: 20px; height: 20px; }
+#rematchDialog .primary { width: 100%; }
 @media (max-width: 430px) { #orders { padding: 12px 0; } .order-buttons button { font-size: 12px; } }

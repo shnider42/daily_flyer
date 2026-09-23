@@ -1,9 +1,29 @@
 # Village Crossing — expanded rules
 
-## September expansion
+## Battlefields and overwatch expansion
 
-New matches use rules version 2. Saved matches without a rules version retain the original
-rules until the host chooses **Start a new match**. No database schema or Render setting changes.
+New battles use rules version 3. Existing saved battles retain their rules and map until
+both players accept a next-battle proposal, or the American player creates a new invitation.
+No database migration or Render configuration change is needed.
+
+- Choose Village Crossing (7×9, 8 rounds), Orchard Road (9×9, 10 rounds), or Stonebridge
+  (7×11, 12 rounds). Each has a preview and briefing. Stonebridge water is impassable;
+  cross at the two bridges. Americans must hold the marked objective for two turns.
+- **Overwatch:** spend 2 actions to prepare one reaction shot at a visible enemy moving
+  into range. Adds +1 to the normal required roll. Smoke blocks it; pinning cancels it.
+  Unused overwatch expires at the start of your next turn. Orange movement highlights
+  warn about enemy overwatch, with confirmation before entering a threatened hex.
+- **Plan next battle:** propose a battlefield and optional army swap. Your opponent must
+  accept. Both browsers keep their existing player keys and invitation. Accepting during
+  a battle abandons it without a win. Decline/cancel preserves the current battle.
+- Battle reports, battle numbering, and session victories by army carry across rematches.
+  Scores follow the Americans/Germans, not individual players when armies are swapped.
+- **New invitation** replaces the shared match and player keys; use this to invite a new
+  opponent. Connected rematches are the normal way to keep playing together.
+
+## Earlier smoke and assault expansion
+
+Rules version 2 introduced these actions, also available in version 3:
 
 - **Smoke:** each rifle squad has one grenade per match. Costs 1 action; place in your own or
   an adjacent hex. Blocks shooting into, out of, and through that hex until the end of the
@@ -16,7 +36,7 @@ rules until the host chooses **Start a new match**. No database schema or Render
   the attacker. MG teams cannot initiate assaults. Terrain/digging-in do not modify assaults.
 - Mobile roster with action status, next-unit cycling, scrollable enlarged map, firing line,
   modifier breakdown, combat-result panel, army counts, and contextual objective reminders.
-- No terrain/army/starting-position changes in this iteration. Balance still needs playtesting.
+- Scenario balance still needs playtesting.
 
 The same build/start commands below apply. Refresh both phones after deployment. A persistent
 disk is still required to retain the database through deployments.
@@ -47,12 +67,13 @@ Render-account deployment has to be performed separately; creating this branch d
 
 ## Play
 
-1. First player opens the service and chooses **Command the Americans**.
+1. First player chooses a battlefield and **Command the Americans**.
 2. Share the invitation with the second phone. That player taps **Join** to command the Germans.
 3. Tap a friendly counter. Green hexes are legal moves. Tap an enemy to preview odds, then **Fire**.
 4. **End turn** hands control to the other player. Both screens refresh automatically.
 5. Refresh/reopen the same browser to reconnect. Player keys are saved in localStorage.
-6. Only the American host can **Start a new match**. Confirmation warns that this ends the old match.
+6. Either player can **Plan next battle**; both must agree. Only the current American player
+   can create a **New invitation**, which replaces the match and invalidates old player keys.
 
 The invitation lets someone claim the unoccupied German seat; share it privately.
 The per-player bearer keys are never in invitation URLs or state responses; only their hashes are
@@ -63,7 +84,7 @@ service as a public lobby: there is no signup, abuse throttling or spectator mod
 
 ## Rules
 
-7×9 offset hex map; Americans advance from the bottom, Germans from the top.
+Offset hex maps; Americans advance from the bottom, Germans from the top.
 Each side has three rifle squads, one leader and one MG. Both sides see all units.
 Units get two actions at the start of their side's turn; unused actions do not carry over.
 
@@ -76,11 +97,11 @@ Units get two actions at the start of their side's turn; unused actions do not c
   any threshold above 6 is impossible (the UI disables that shot).
 - A hit removes one strength and pins the target. Zero strength removes it from the board.
 - Pinned units cannot move/fire. Rally costs 1 action, always succeeds, removes the pin.
-- Americans win by occupying the square at the end of two consecutive American turns.
+- Americans win by occupying the marked objective at the end of two consecutive American turns.
   Moving off or losing the occupying unit interrupts the hold. Pinned units can hold.
-- Germans win at the end of round 8 if the Americans have not won.
+- Germans win at the scenario's round limit if the Americans have not won.
 - Eliminating all enemies wins immediately. Expanded games include close assaults as described
-  above; no tanks, reaction fire, fog of war or AI yet.
+  above; no tanks, fog of war or AI yet.
 
 The armies are mechanically symmetric for the first playtest. Historical asymmetry and scenario
 balance are future iterations, not claims made by this prototype.
@@ -104,15 +125,20 @@ share a player key and are not two independent players).
 
 ### Verification
 
-- 26 rules/API tests pass, including concurrent seat claims, duplicate move rejection,
+- 45 rules/API tests pass, including concurrent seat claims, duplicate move rejection,
   persistence, reset, original-rules compatibility, smoke expiration/LOS, digging-in protection,
-  assault successes/failures, combat and victory conditions.
+  assault successes/failures, combat and victory conditions, all battlefield objectives and
+  round limits, river traversal, overwatch/expiry/cancellation, rematch consent, army swaps,
+  stale proposals, reconnection and score carryover.
 - JavaScript syntax check passes; Gunicorn boots successfully.
 - Two independent DOM clients exercised real HTTP against Gunicorn: smoke, digging in, turn
   handoff, smoke expiration, roster controls, zoom toggle, next unit, reconnect and invitation
   screen persistence. This verifies interactions, not browser layout or rendering.
 - Existing full repository suite has 3 failures, reproduced on the untouched base commit:
   birthday realistic-data rendering, Irish visual-lab style switcher, Nissan Z rendering.
-- `tests/ww2-browser.cjs` contains a two-phone browser smoke test. Visual/browser execution
-  was not completed in the build environment because the Chromium download timed out.
-  Run it against a fresh disposable database before treating this as visually verified.
+- `tests/ww2-battlefields-browser.cjs` passes in Chromium with two independent mobile browser
+  contexts: scenario previews, overwatch and expiry, turn handoff, consenting rematches,
+  army swaps, preserved player keys, reload, zoom, battle reports and scores. No page errors
+  or horizontal page overflow at widths 320–1280px. Phone screenshots visually inspected.
+  Run against a fresh disposable database; requires Playwright (or playwright-core with
+  `WW2_PLAYWRIGHT=playwright-core WW2_PACKAGED_CHROMIUM=1` and @sparticuz/chromium).
