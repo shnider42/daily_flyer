@@ -28,7 +28,9 @@ def distance(a, b):
     return max(abs(x-y) for x, y in zip(cube(a), cube(b)))
 
 
-def line_clear(a, b):
+def line_clear(a, b, smoke=()):
+    if any(s['pos'] in (a, b) for s in smoke):
+        return False
     n = distance(a, b)
     ac, bc = cube(a), cube(b)
     for i in range(1, n):
@@ -39,7 +41,7 @@ def line_clear(a, b):
         r[k] = -sum(r[j] for j in range(3) if j != k)
         y = r[2]
         x = r[0] + (y-(y & 1))//2
-        if terrain(x, y) in {"building", "woods"}:
+        if terrain(x, y) in {"building", "woods"} or any(s['pos'] == [x, y] for s in smoke):
             return False
     return True
 
@@ -50,24 +52,31 @@ def initial():
         for i, (kind, col) in enumerate([("squad", 1), ("leader", 2), ("mg", 3), ("squad", 4), ("squad", 5)]):
             hp, reach = STATS[kind]
             units.append(dict(id=f"{side}{i}", side=side, kind=kind, pos=[col, row], hp=hp,
-                              range=reach, ap=2, pinned=False))
-    return dict(units=units, turn="us", round=1, hold=0, winner=None,
+                              range=reach, ap=2, pinned=False, entrenched=False,
+                              smoke=1 if kind == 'squad' else 0))
+    return dict(units=units, turn="us", round=1, hold=0, winner=None, rules_version=2, smoke=[],
                 log=["Village Crossing · Americans move first. Hold the square at the end of two consecutive American turns. German defense wins after round 8."],
                 revision=0, ready=False)
 
 
-def fire_threshold(state, unit, target):
+def fire_modifiers(state, unit, target):
     cover = terrain(*target["pos"]) in {"building", "woods", "objective"}
     supported = any(u["side"] == unit["side"] and u["kind"] == "leader" and u["hp"] > 0
                     and distance(u["pos"], unit["pos"]) <= 1 for u in state["units"])
-    return max(2, 4 + int(cover) + int(distance(unit["pos"], target["pos"]) > 3)
-               - int(supported) - int(unit["kind"] == "mg"))
+    return dict(cover=int(cover), distance=int(distance(unit['pos'], target['pos']) > 3),
+                leader=-int(supported), machine_gun=-int(unit['kind'] == 'mg'),
+                dug_in=int(state.get('rules_version', 1) >= 2 and target.get('entrenched', False)))
+
+
+def fire_threshold(state, unit, target):
+    return max(2, 4 + sum(fire_modifiers(state, unit, target).values()))
 
 
 def options(state, unit):
     moves, targets = [], []
+    extras = dict(smoke=[], dig=False, assaults=[])
     if not state["ready"] or state["winner"] or unit["hp"] <= 0 or unit["side"] != state["turn"]:
-        return dict(moves=moves, targets=targets, rally=False)
+        return dict(moves=moves, targets=targets, rally=False, **extras)
     occupied = [u["pos"] for u in state["units"] if u["hp"] > 0]
     if not unit["pinned"]:
         for y in range(HEIGHT):
@@ -77,9 +86,19 @@ def options(state, unit):
                     moves.append(dict(pos=[x, y], cost=cost))
         if unit["ap"] >= 2:
             for target in state["units"]:
-                if target["side"] != unit["side"] and target["hp"] > 0 and distance(unit["pos"], target["pos"]) <= unit["range"] and line_clear(unit["pos"], target["pos"]):
-                    targets.append(dict(id=target["id"], threshold=fire_threshold(state, unit, target)))
-    return dict(moves=moves, targets=targets, rally=unit["pinned"] and unit["ap"] >= 1)
+                if target["side"] != unit["side"] and target["hp"] > 0 and distance(unit["pos"], target["pos"]) <= unit["range"] and line_clear(unit["pos"], target["pos"], state.get('smoke', [])):
+                    targets.append(dict(id=target["id"], threshold=fire_threshold(state, unit, target), modifiers=fire_modifiers(state, unit, target)))
+        if state.get('rules_version', 1) >= 2:
+            extras['dig'] = unit['ap'] >= 2 and not unit.get('entrenched', False)
+            if unit['ap'] >= 1 and unit.get('smoke', 0):
+                extras['smoke'] = [[x, y] for y in range(HEIGHT) for x in range(WIDTH)
+                                   if distance(unit['pos'], [x, y]) <= 1
+                                   and not any(s['pos'] == [x, y] for s in state.get('smoke', []))]
+            if unit['kind'] != 'mg' and unit['ap'] >= 2:
+                extras['assaults'] = [dict(id=t['id'], threshold=3 if t['pinned'] else 4)
+                                     for t in state['units'] if t['hp'] > 0 and t['side'] != unit['side']
+                                     and distance(unit['pos'], t['pos']) == 1]
+    return dict(moves=moves, targets=targets, rally=unit["pinned"] and unit["ap"] >= 1, **extras)
 
 
 def apply(state, side, action, roll=None):
@@ -93,6 +112,7 @@ def apply(state, side, action, roll=None):
     kind = action.get("kind")
     message = ""
     if kind == "end":
+        state['smoke'] = [dict(s, ttl=s['ttl']-1) for s in state.get('smoke', []) if s['ttl'] > 1]
         if side == "us":
             held = any(u["side"] == "us" and u["hp"] > 0 and u["pos"] == OBJECTIVE for u in state["units"])
             state["hold"] = state["hold"] + 1 if held else 0
@@ -118,6 +138,7 @@ def apply(state, side, action, roll=None):
                 raise ValueError("That hex is not a legal move.")
             unit["pos"] = move["pos"]
             unit["ap"] -= move["cost"]
+            unit['entrenched'] = False
             message = f"{NAMES[side]} {unit['kind']} moved to {chr(65+unit['pos'][0])}{unit['pos'][1]+1}."
         elif kind == "fire":
             shot = next((t for t in legal["targets"] if t["id"] == action.get("target")), None)
@@ -132,6 +153,38 @@ def apply(state, side, action, roll=None):
                 target["pinned"] = True
             result = "eliminated" if target["hp"] <= 0 else "hit and pinned" if hit else "missed"
             message = f"{NAMES[side]} {unit['kind']} fired: rolled {die}, needed {shot['threshold']}+. Target {result}."
+            state['last_combat'] = dict(kind='Fire', roll=die, threshold=shot['threshold'], result=result,
+                                        attacker=unit['id'], target=target['id'], revision=state['revision']+1)
+        elif kind == 'dig' and legal['dig']:
+            unit['ap'] -= 2
+            unit['entrenched'] = True
+            message = f"{NAMES[side]} {unit['kind']} dug in. Incoming fire needs +1 until this unit moves."
+        elif kind == 'smoke' and action.get('pos') in legal['smoke']:
+            unit['ap'] -= 1
+            unit['smoke'] -= 1
+            state.setdefault('smoke', []).append(dict(pos=action['pos'], ttl=2))
+            message = f"{NAMES[side]} {unit['kind']} threw smoke. It blocks fire until the end of the opponent's turn."
+        elif kind == 'assault':
+            assault = next((a for a in legal['assaults'] if a['id'] == action.get('target')), None)
+            if not assault:
+                raise ValueError('Assault requires an unpinned squad or leader, 2 actions, and an adjacent enemy.')
+            target = next(u for u in state['units'] if u['id'] == assault['id'])
+            die = (roll or (lambda: secrets.randbelow(6)+1))()
+            unit['ap'] -= 2
+            unit['entrenched'] = False
+            if die >= assault['threshold']:
+                target['hp'] -= 2
+                target['pinned'] = True
+                result = 'eliminated; attacker advanced' if target['hp'] <= 0 else 'hit for 2 and pinned'
+                if target['hp'] <= 0:
+                    unit['pos'] = list(target['pos'])
+            else:
+                unit['hp'] -= 1
+                unit['pinned'] = True
+                result = 'repulsed; attacker lost 1 and pinned' if unit['hp'] > 0 else 'repulsed; attacker eliminated'
+            message = f"{NAMES[side]} assaulted: rolled {die}, needed {assault['threshold']}+. {result}."
+            state['last_combat'] = dict(kind='Assault', roll=die, threshold=assault['threshold'], result=result,
+                                        attacker=unit['id'], target=target['id'], revision=state['revision']+1)
         elif kind == "rally" and legal["rally"]:
             unit["pinned"] = False
             unit["ap"] -= 1

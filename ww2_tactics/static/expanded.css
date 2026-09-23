@@ -1,0 +1,19 @@
+.mission-hint { font-size: 12px; line-height: 1.5; color: #5b644f; margin: 0 0 8px; }
+.map-tools { display: flex; align-items: center; justify-content: space-between; font-size: 11px; color: #67705d; }
+#mapWrap { overflow: auto; overscroll-behavior: contain; }
+#mapWrap.enlarged { max-height: 65svh; }
+#mapWrap.enlarged #map { min-width: 600px; max-height: none; }
+.roster { display: flex; gap: 6px; overflow-x: auto; padding: 2px 0 12px; }
+.roster-unit { white-space: nowrap; flex-shrink: 0; font-size: 11px; min-height: 44px; padding: 8px 10px; }
+.roster-unit.active { background: #345840; color: #fff9e8; border-color: #345840; }
+.odds { font-size: 11px; line-height: 1.6; padding: 9px; background: #e8e3d2; border-radius: 3px; }
+.combat { border-left: 3px solid #ad7942; padding: 12px; background: #eae3d0; font-size: 12px; line-height: 1.6; margin-bottom: 10px; }
+.hex.smoke-choice { fill: #c2d5d5; stroke: #3b727e; stroke-width: 2; cursor: pointer; }
+.smoke-cloud { fill: #eaf0ed; fill-opacity: .85; stroke: #829998; stroke-width: 2; stroke-dasharray: 3 2; pointer-events: none; }
+.dug-marker { stroke: #d4b46c; stroke-width: 4; pointer-events: none; }
+.aim-line { stroke: #aa493c; stroke-width: 2; stroke-dasharray: 4 4; pointer-events: none; }
+.aim-line.clear { stroke: #b26b24; }
+#legacyNotice { border-left: 3px solid #b26b24; padding-left: 12px; }
+.order-buttons { align-items: center; }
+.order-buttons button { flex-grow: 1; }
+@media (max-width: 430px) { #orders { padding: 12px 0; } .order-buttons button { font-size: 12px; } }
