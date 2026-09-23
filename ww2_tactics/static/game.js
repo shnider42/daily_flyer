@@ -45,8 +45,12 @@ function render(){
  $('round').textContent=`${state.round} / ${board.rounds}`;$('side').textContent=`You command the ${names[state.side]}`;
  $('game').dataset.side=state.side;
  $('turnBanner').dataset.side=state.winner||state.turn;
+ $('soloButton').hidden=!!state.ai_side;
+ $('computerReview').hidden=!state.computer_orders?.length;
+ $('computerOrders').replaceChildren(...(state.computer_orders||[]).map(text=>{const li=document.createElement('li');li.textContent=text;return li;}));
  $('waiting').hidden=state.ready;$('invite').value=invitation();$('matchCode').textContent=`MATCH CODE · ${session.code}`;
  $('turnBanner').textContent=state.winner?`${names[state.winner]} win. ${state.winner===state.side?'Mission accomplished.':'The battle is over.'}`:!state.ready?'Waiting for the German commander…':myTurn?'Your turn · select a unit':`${names[state.turn]} are giving orders…`;
+ if(state.ai_side&&!state.winner)$('turnBanner').textContent=`Your turn · vs computer (${names[state.ai_side]})`;
  $('objective').textContent=`Hold: ${state.hold} / 2`;
  $('legacyNotice').hidden=(state.rules_version||1)>=4;
  $('missionHint').textContent=state.winner?`Battle complete in round ${state.round}.`:state.hold?'Americans hold the objective. Germans must dislodge them before the next American turn ends.':state.side==='us'?`Capture ★ and hold through two American turn endings. You have ${board.rounds-state.round+1} rounds left.`:`Keep the Americans from holding ★ through round ${board.rounds}.`;
@@ -114,6 +118,7 @@ function render(){
  $('overwatch').hidden=!myTurn||!legal?.overwatch;$('overwatch').disabled=busy;
  $('smoke').hidden=!myTurn||!legal?.smoke?.length;$('smoke').disabled=busy;$('smoke').textContent=smokeMode?'Cancel smoke':'Smoke · 1 action';
  $('rally').hidden=!myTurn||!legal?.rally;$('rally').disabled=busy;$('end').disabled=!myTurn||busy;$('reset').hidden=state.side!=='us';
+ if(state.ai_side)$('reset').hidden=false;
  $('latest').textContent=state.log.at(-1);$('log').replaceChildren(...state.log.slice().reverse().map(text=>{const li=document.createElement('li');li.textContent=text;return li;}));
  $('roster').replaceChildren(...state.units.filter(u=>u.side===state.side).map((u,i)=>{const b=document.createElement('button');b.className=`roster-unit${u.id===selected?' active':''}`;b.disabled=u.hp<=0||busy;b.textContent=`${u.kind==='leader'?'LT':u.kind==='mg'?'MG':'SQ'} ${i+1} · ${u.hp<=0?'Lost':u.pinned?'Pinned':u.overwatch?'Watching':u.ap+' AP'}`;b.setAttribute('aria-label',`${kinds[u.kind]} ${i+1}, ${u.hp<=0?'eliminated':u.hp+' strength, '+u.ap+' actions'}`);b.onclick=()=>{smokeMode=false;barrageMode=false;chooseUnit(u);};return b;}));
  $('nextUnit').disabled=busy||!state.units.some(u=>u.side===state.side&&u.hp>0);
@@ -145,11 +150,14 @@ $('share').onclick=async()=>{try{if(navigator.share){await navigator.share({titl
 $('leave').onclick=()=>{if(confirm('Show the invitation screen? Your saved player key is kept; reload to return to this match.')){lobbyMode=true;$('game').hidden=true;$('lobby').hidden=false;}};
 $('rulesButton').onclick=()=>$('rules').showModal();$('closeRules').onclick=()=>$('rules').close();
 $('scenarioSelect').onchange=scenarioPreview;
-$('rematchButton').onclick=()=>{$('rematchScenario').value=state.scenario?.id||'village';$('rematchDialog').showModal();};
+$('rematchButton').onclick=()=>{$('rematchScenario').value=state.scenario?.id||'village';$('rematchDialog').querySelector('h2').textContent=state.ai_side?'Another round?':'Stay connected. Fight again.';$('rematchDialog').querySelector('h2 + p').textContent=state.ai_side?'Start immediately against the computer. An unfinished battle will be abandoned without awarding a win.':'Your opponent must accept. An unfinished battle will be abandoned without awarding a win.';$('proposeRematch').textContent=state.ai_side?'Start next battle':'Send proposal';$('rematchDialog').showModal();};
 $('closeRematch').onclick=()=>$('rematchDialog').close();
 $('proposeRematch').onclick=()=>{const settings={operation:'propose',scenario:$('rematchScenario').value,swap:$('swapArmies').checked};$('rematchDialog').close();rematchRequest(settings);};
 $('acceptRematch').onclick=()=>rematchRequest({operation:'accept'});
 $('declineRematch').onclick=()=>rematchRequest({operation:'decline'});
+function openSolo(){ $('soloScenario').value=state?.scenario?.id||$('scenarioSelect').value;$('soloReplace').textContent=session?'Starting solo replaces the current shared match and invitation. Both players’ progress in that match will be lost.':'Choose a battlefield and start playing immediately.';$('soloDialog').showModal(); }
+$('createSolo').onclick=openSolo;$('soloButton').onclick=openSolo;$('closeSolo').onclick=()=>$('soloDialog').close();
+$('startSolo').onclick=()=>{const body={opponent:'computer',scenario:$('soloScenario').value};$('soloDialog').close();run(async()=>{remember(await api(session?`/api/match/${session.code}/reset`:'/api/match',body));});};
 api('/api/scenarios').then(data=>{scenarios=data.scenarios;scenarioPreview();}).catch(()=>{notify('Map preview unavailable. You can still choose a battlefield and try to create a match.');});
 const invited=new URLSearchParams(location.search).get('join');
 if(invited){$('code').value=invited.toUpperCase();if(session&&session.code!==invited.toUpperCase()){notify('Joining this invitation will replace your saved player key. Keep your original browser if you need the old seat.');session=null;}}

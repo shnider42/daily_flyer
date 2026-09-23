@@ -1,5 +1,26 @@
 # Village Crossing — expanded rules
 
+## Solo play
+
+Choose **Play against the computer** on the landing page, or **Play computer** in an
+existing match. Choose a battlefield and start as the Americans. Starting solo from an
+existing match explicitly replaces its progress and invitation; both old player keys are
+revoked. The setup dialog warns before you start. There is still one match per instance.
+
+The computer automatically completes its turn when you end yours. Open **Computer's last
+turn** to review its orders; combat details remain in the battle log. Refreshing reconnects
+without repeating its turn. **Plan next battle** starts immediately in solo mode and lets
+you swap armies; the computer takes the opening American turn when you choose the Germans.
+**New invitation** returns to two-player mode. Computer seats cannot be claimed by joining.
+
+This is a local heuristic practice opponent, not a hosted language model. It uses legal
+engine actions, normal server dice and the same open information as the human. It routes
+around rivers toward the objective, holds it, prioritizes attacks/rallies, and considers
+suppression, overwatch, grenades, smoke and mortar support. It is an early tactical opponent,
+not a claim of expert play. No difficulty selector, external API, keys or new dependencies.
+Turns are bounded and committed with the player's action in the existing SQLite transaction;
+revision checks reject duplicate requests. Render configuration stays the same.
+
 ## Role abilities and mortar support
 
 New battles now use rules version 4. Start a connected rematch to activate the new rules;
@@ -22,8 +43,8 @@ US/DE counter labels remain. No Render settings, packages or database migration 
 - Contextual role descriptions, ability buttons, mortar availability, incoming alerts,
   marked blast zones, and end-turn warnings for troops caught in an imminent barrage.
 
-AI opponents remain deferred. Role choices are returned by the same pure legal-action
-engine used to validate human orders; no AI service, agent, key, or dependency is added.
+Role choices are returned by the same pure legal-action engine used to validate human
+and computer orders.
 
 ## Battlefields and overwatch expansion
 
@@ -126,7 +147,7 @@ Units get two actions at the start of their side's turn; unused actions do not c
   Moving off or losing the occupying unit interrupts the hold. Pinned units can hold.
 - Germans win at the scenario's round limit if the Americans have not won.
 - Eliminating all enemies wins immediately. Expanded games include close assaults as described
-  above; no tanks, fog of war or AI yet.
+  above; no tanks or fog of war yet.
 
 The armies are mechanically symmetric for the first playtest. Historical asymmetry and scenario
 balance are future iterations, not claims made by this prototype.
@@ -150,7 +171,7 @@ share a player key and are not two independent players).
 
 ### Verification
 
-- 58 rules/API tests pass, including concurrent seat claims, duplicate move rejection,
+- 66 rules/API tests pass, including concurrent seat claims, duplicate move rejection,
   persistence, reset, original-rules compatibility, smoke expiration/LOS, digging-in protection,
   assault successes/failures, combat and victory conditions, all battlefield objectives and
   round limits, river traversal, overwatch/expiry/cancellation, rematch consent, army swaps,
@@ -158,6 +179,12 @@ share a player key and are not two independent players).
 - Role tests cover grenade cover/damage/resources, suppression, adjacent leader rally,
   sight/range/pin/action restrictions, barrage delay/escape/friendly effects, caller death,
   one-call limits, legacy rules and immutable inputs.
+- Solo tests cover complete games on every battlefield, both armies, objective occupation,
+  river routing, bounded turns, group rally, automatic turns, locked computer seats,
+  stale actions, reconnection, army swaps, and replacement/revocation between game modes.
+- `tests/ww2-solo-browser.cjs` uses a disposable server/database to verify solo creation,
+  automatic turns, order review, reload, army swaps, return to multiplayer, switching an
+  existing match to solo, and phone layout widths.
 - `tests/ww2-role-browser.cjs` seeds its own disposable SQLite database and exercises the
   role abilities through two mobile browsers, including visible danger zones on both screens,
   delayed impact, leader rally, reload persistence, and mobile page overflow checks.

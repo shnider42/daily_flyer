@@ -1,0 +1,43 @@
+// Self-contained solo-mode browser test with its own disposable database/server.
+const {chromium}=require(process.env.WW2_PLAYWRIGHT||'playwright');
+const assert=require('node:assert/strict');
+const fs=require('node:fs'),os=require('node:os'),path=require('node:path'),cp=require('node:child_process');
+const temp=fs.mkdtempSync(path.join(os.tmpdir(),'ww2-solo-browser-'));
+const base='http://127.0.0.1:8093';
+const server=cp.spawn('python',['-m','gunicorn','ww2_web:app','--bind','127.0.0.1:8093','--workers','1','--threads','4'],{env:{...process.env,WW2_DB_PATH:path.join(temp,'match.sqlite3')},stdio:'ignore'});
+let browser;
+(async()=>{
+ for(let i=0;i<60;i++){try{if((await fetch(base+'/healthz')).ok)break;}catch{}await new Promise(r=>setTimeout(r,100));}
+ const mod=process.env.WW2_PACKAGED_CHROMIUM?require('@sparticuz/chromium'):null,pack=mod?.default||mod;
+ browser=await chromium.launch({headless:true,...(pack?{executablePath:await pack.executablePath(),args:pack.args.filter(a=>a!=='--single-process')}:{args:['--no-sandbox']})});
+ const page=await browser.newPage({viewport:{width:390,height:844},isMobile:true,hasTouch:true});
+ const errors=[];page.on('pageerror',e=>errors.push(e.message));page.on('dialog',d=>d.accept());
+ await page.goto(base);await page.locator('#createSolo').click();
+ await page.locator('#soloScenario').selectOption('stonebridge');await page.locator('#startSolo').click();
+ await page.locator('#game').waitFor({state:'visible'});
+ assert.match(await page.locator('#turnBanner').textContent(),/vs computer/);
+ assert.equal(await page.locator('#waiting').isVisible(),false);
+ await page.locator('#end').click();
+ await page.waitForFunction(()=>document.querySelector('#round').textContent==='2 / 12');
+ assert.equal(await page.locator('#computerReview').isVisible(),true);
+ await page.locator('#computerReview summary').click();
+ assert.ok(await page.locator('#computerOrders li').count()>1);
+ await page.screenshot({path:path.join(temp,'solo-turn.png'),fullPage:true});
+ await page.reload();await page.locator('#game').waitFor({state:'visible'});
+ assert.match(await page.locator('#turnBanner').textContent(),/vs computer/);
+ await page.locator('#rematchButton').click();await page.locator('#rematchScenario').selectOption('village');
+ assert.equal(await page.locator('#proposeRematch').textContent(),'Start next battle');
+ await page.locator('#proposeRematch').click();
+ await page.waitForFunction(()=>document.querySelector('#side').textContent.includes('Germans'));
+ assert.match(await page.locator('#turnBanner').textContent(),/Your turn.*Americans/);
+ await page.locator('#end').click();
+ await page.waitForFunction(()=>document.querySelector('#round').textContent==='2 / 8');
+ await page.locator('#reset').click();await page.locator('#waiting').waitFor({state:'visible'});
+ await page.locator('#soloButton').click();
+ assert.match(await page.locator('#soloReplace').textContent(),/replaces the current shared match/);
+ await page.locator('#startSolo').click();
+ await page.waitForFunction(()=>document.querySelector('#turnBanner').textContent.includes('vs computer'));
+ for(const width of [320,375,430,768]){await page.setViewportSize({width,height:844});assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);}
+ assert.deepEqual(errors,[]);
+ console.log('PASS: solo creation, automatic computer turn, readable orders, reconnect, army swap/computer first turn, return to multiplayer, replace with solo, mobile widths. Screenshots: '+temp);
+})().catch(e=>{console.error(e);process.exitCode=1;}).finally(async()=>{if(browser)await browser.close();server.kill();});

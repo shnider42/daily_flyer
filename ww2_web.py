@@ -11,6 +11,7 @@ from flask import Flask, jsonify, request, send_from_directory
 from werkzeug.exceptions import HTTPException
 from ww2_tactics.engine import initial, apply, options, terrain, WIDTH, HEIGHT
 from ww2_tactics.scenarios import battlefield, catalog, get_scenario
+from ww2_tactics.computer import play_turn
 
 
 def create_app(db_path=None):
@@ -88,10 +89,22 @@ def create_app(db_path=None):
             raise ValueError('Expected a match settings object.')
         return get_scenario(body.get('scenario', 'village'))['id']
 
+    def new_battle(scenario):
+        body = request.get_json(silent=True) or {}
+        mode = body.get('opponent', 'human')
+        if mode not in ('human', 'computer'):
+            raise ValueError('Choose a human or computer opponent.')
+        state = initial(scenario)
+        if mode == 'computer':
+            state.update(ai_side='de', ready=True)
+            state['log'].append('Solo battle: you command the Americans; the computer commands the Germans.')
+        return state
+
     @app.post("/api/match")
     def create():
         try:
             scenario = scenario_input()
+            state = new_battle(scenario)
         except ValueError as error:
             return jsonify(error=str(error)), 400
         token = secrets.token_urlsafe(32)
@@ -101,7 +114,7 @@ def create_app(db_path=None):
             existing = db.execute("SELECT * FROM match WHERE slot=1").fetchone()
             if existing:
                 return jsonify(error="A match already exists. Rejoin on your original browser, or ask its American player to start a new match."), 409
-            db.execute("INSERT INTO match VALUES (1,?,?,?,?)", (code, digest(token), None, json.dumps(initial(scenario))))
+            db.execute("INSERT INTO match VALUES (1,?,?,?,?)", (code, digest(token), None, json.dumps(state)))
         return jsonify(code=code, token=token), 201
 
     @app.post("/api/match/<code>/join")
@@ -112,6 +125,8 @@ def create_app(db_path=None):
             row = db.execute("SELECT * FROM match WHERE code=?", (code.upper(),)).fetchone()
             if row is None:
                 return jsonify(error="Match not found. Check the invitation code."), 404
+            if json.loads(row['state']).get('ai_side'):
+                return jsonify(error='This is a solo battle. The computer seat cannot be joined.'), 409
             if row["guest"]:
                 return jsonify(error="Both seats are taken. Use your original browser to reconnect."), 409
             if identify(row) == "us":
@@ -143,6 +158,7 @@ def create_app(db_path=None):
                     return jsonify(error="The match changed. Refreshing the battlefield; try again."), 409
                 try:
                     state = apply(state, side, body)
+                    state = play_turn(state)
                 except ValueError as error:
                     return jsonify(error=str(error)), 400
                 db.execute("UPDATE match SET state=? WHERE slot=1", (json.dumps(state),))
@@ -153,16 +169,17 @@ def create_app(db_path=None):
     def reset(code):
         try:
             scenario = scenario_input()
+            state = new_battle(scenario)
         except ValueError as error:
             return jsonify(error=str(error)), 400
         with connect() as db:
             db.execute("BEGIN IMMEDIATE")
             row = db.execute("SELECT * FROM match WHERE code=?", (code.upper(),)).fetchone()
-            if row is None or identify(row) != "us":
+            if row is None or not identify(row) or (identify(row) != 'us' and not state.get('ai_side') and not json.loads(row['state']).get('ai_side')):
                 return jsonify(error="Only the American host can start a new match."), 403
             # New code revokes both old seats; no accidental reuse of an old invitation.
             new_code, token = secrets.token_hex(5).upper(), secrets.token_urlsafe(32)
-            db.execute("UPDATE match SET code=?,host=?,guest=NULL,state=? WHERE slot=1", (new_code, digest(token), json.dumps(initial(scenario))))
+            db.execute("UPDATE match SET code=?,host=?,guest=NULL,state=? WHERE slot=1", (new_code, digest(token), json.dumps(state)))
         return jsonify(code=new_code, token=token)
 
     @app.post('/api/match/<code>/rematch')
@@ -192,6 +209,18 @@ def create_app(db_path=None):
                 if type(body.get('swap')) is not bool:
                     return jsonify(error='Choose whether to swap armies.'), 400
                 state['rematch'] = dict(by=side, scenario=scenario['id'], name=scenario['name'], swap=body['swap'])
+                if state.get('ai_side'):
+                    next_state = initial(scenario['id'])
+                    next_state.update(ready=True, revision=state['revision'],
+                                      ai_side=('us' if state['ai_side'] == 'de' else 'de') if body['swap'] else state['ai_side'],
+                                      battle_number=state.get('battle_number', 1)+1,
+                                      victories=state.get('victories', {'us': 0, 'de': 0}))
+                    if body['swap']:
+                        # Store an unguessable placeholder hash for the computer seat.
+                        db.execute('UPDATE match SET host=?,guest=? WHERE slot=1',
+                                   (row['guest'] or digest(secrets.token_urlsafe(32)), row['host']))
+                        side = 'de' if side == 'us' else 'us'
+                    state = play_turn(next_state)
             elif operation == 'decline':
                 if not state.get('rematch'):
                     return jsonify(error='There is no pending proposal.'), 400
