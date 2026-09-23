@@ -2,6 +2,7 @@
 import copy
 import secrets
 from .scenarios import battlefield, get_scenario
+from .support import role_options, role_action, resolve_barrages
 
 WIDTH, HEIGHT = 7, 9
 OBJECTIVE = [3, 4]
@@ -57,8 +58,10 @@ def initial(scenario='village'):
             hp, reach = STATS[kind]
             units.append(dict(id=f"{side}{i}", side=side, kind=kind, pos=[col+(board['width']-7)//2, row], hp=hp,
                               range=reach, ap=2, pinned=False, entrenched=False,
-                              overwatch=False, smoke=1 if kind == 'squad' else 0))
-    return dict(units=units, turn="us", round=1, hold=0, winner=None, rules_version=3, smoke=[], battlefield=board,
+                              overwatch=False, smoke=1 if kind == 'squad' else 0,
+                              grenades=1 if kind == 'squad' else 0))
+    return dict(units=units, turn="us", round=1, hold=0, winner=None, rules_version=4, smoke=[], battlefield=board,
+                support={'us': 1, 'de': 1}, barrages=[],
                 battle_number=1, victories={'us': 0, 'de': 0},
                 log=[f"{board['name']} · Americans move first. Hold the objective at the end of two consecutive American turns. German defense wins after round {board['rounds']}."],
                 revision=0, ready=False)
@@ -111,7 +114,8 @@ def react(state, mover, roll):
 def options(state, unit):
     moves, targets = [], []
     board = battlefield(state)
-    extras = dict(smoke=[], dig=False, assaults=[], overwatch=False)
+    extras = dict(smoke=[], dig=False, assaults=[], overwatch=False,
+                  grenades=[], suppress=[], inspire=[], barrage=[])
     if not state["ready"] or state["winner"] or unit["hp"] <= 0 or unit["side"] != state["turn"]:
         return dict(moves=moves, targets=targets, rally=False, **extras)
     occupied = [u["pos"] for u in state["units"] if u["hp"] > 0]
@@ -137,6 +141,7 @@ def options(state, unit):
                                      for t in state['units'] if t['hp'] > 0 and t['side'] != unit['side']
                                      and distance(unit['pos'], t['pos']) == 1]
         extras['overwatch'] = state.get('rules_version', 1) >= 3 and unit['ap'] >= 2 and not unit.get('overwatch', False)
+        extras.update(role_options(state, unit, distance, line_clear, terrain, board))
     return dict(moves=moves, targets=targets, rally=unit["pinned"] and unit["ap"] >= 1, **extras)
 
 
@@ -154,6 +159,7 @@ def apply(state, side, action, roll=None):
     message = ""
     reactions = []
     if kind == "end":
+        reactions = resolve_barrages(state, NAMES) if state.get('rules_version', 1) >= 4 else []
         state['smoke'] = [dict(s, ttl=s['ttl']-1) for s in state.get('smoke', []) if s['ttl'] > 1]
         if side == "us":
             held = any(u["side"] == "us" and u["hp"] > 0 and u["pos"] == board['objective'] for u in state["units"])
@@ -175,7 +181,9 @@ def apply(state, side, action, roll=None):
         if unit is None:
             raise ValueError("Choose one of your surviving units.")
         legal = options(state, unit)
-        if kind == "move":
+        if kind in {'grenade', 'suppress', 'inspire', 'barrage'}:
+            message = role_action(state, unit, action, legal, roll_die, distance, NAMES)
+        elif kind == "move":
             move = next((m for m in legal["moves"] if m["pos"] == action.get("pos")), None)
             if not move:
                 raise ValueError("That hex is not a legal move.")

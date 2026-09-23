@@ -76,4 +76,11 @@ select { width: 100%; padding: 12px; min-height: 48px; font: inherit; font-size:
 .building-dot { background: #cfaa8c; }
 .road-dot { background: #f6e2af; border: 1px solid #aa8b48; }
 .water-dot { background: #68bddd; }
+.role-brief { border-left: 3px solid #a7b59d; padding: 8px 10px; background: #e9ecdf; font-size: 11px; line-height: 1.6; margin: 8px 0 12px; }
+.support-status { font-size: 11px; color: #55614f; margin: 7px 0; }
+.incoming { border: 2px solid #ba5b10; border-left-width: 6px; background: #ffe4b8; color: #6c3408; padding: 10px; font-size: 12px; font-weight: 700; line-height: 1.5; }
+.hex.barrage-choice { fill: #f6d3a2; stroke: #9948a4; stroke-width: 2; stroke-dasharray: 3 2; cursor: crosshair; }
+.barrage-zone { fill: #eb821d; fill-opacity: .18; stroke: #a84b0b; stroke-width: 3; stroke-dasharray: 6 3; pointer-events: none; }
+.incoming-mark { font: 900 13px system-ui; fill: #833702; pointer-events: none; }
+#barrage { border-color: #9d6c29; background: #f6e1ba; }
 @media (max-width: 430px) { #orders { padding: 12px 0; } .order-buttons button { font-size: 12px; } }

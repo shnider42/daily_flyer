@@ -1,8 +1,33 @@
 # Village Crossing — expanded rules
 
+## Role abilities and mortar support
+
+New battles now use rules version 4. Start a connected rematch to activate the new rules;
+existing saved battles retain their previous mechanics. The saturated team colors and
+US/DE counter labels remain. No Render settings, packages or database migration change.
+
+- **Rifle squads — frag grenade:** 2 actions, one per squad, separate from smoke. Visible
+  enemy within 2 hexes; hits on 4+, or 5+ in woods/buildings/objective. Deals 2 strength and
+  pins, with no advance or failure damage. Digging in and leader bonuses do not change
+  grenade odds. Misses consume the grenade. Smoke blocks targeting.
+- **MG — suppress:** 2 actions; guaranteed pin on an unpinned visible enemy within 4 hexes.
+  Cancels overwatch but deals no damage. Cover does not prevent suppression; sight blockers do.
+- **Leader — rally nearby:** 1 action removes pins from every adjacent friendly unit,
+  preserving their actions. The leader must be unpinned. Normal shooting support remains.
+- **Leader — call mortars:** 2 actions, once per army. Choose a visible hex within 6 hexes.
+  Both screens mark it and neighboring hexes. The opponent gets one turn to escape; impact
+  occurs at the end of that turn. All units remaining in the marked area are pinned and
+  lose overwatch and dug-in cover, including friendly units. No strength damage. The strike
+  still lands if the leader is eliminated. Pinned units can continue holding the objective.
+- Contextual role descriptions, ability buttons, mortar availability, incoming alerts,
+  marked blast zones, and end-turn warnings for troops caught in an imminent barrage.
+
+AI opponents remain deferred. Role choices are returned by the same pure legal-action
+engine used to validate human orders; no AI service, agent, key, or dependency is added.
+
 ## Battlefields and overwatch expansion
 
-New battles use rules version 3. Existing saved battles retain their rules and map until
+This expansion introduced rules version 3. Existing saved battles retain their rules and map until
 both players accept a next-battle proposal, or the American player creates a new invitation.
 No database migration or Render configuration change is needed.
 
@@ -125,11 +150,17 @@ share a player key and are not two independent players).
 
 ### Verification
 
-- 45 rules/API tests pass, including concurrent seat claims, duplicate move rejection,
+- 58 rules/API tests pass, including concurrent seat claims, duplicate move rejection,
   persistence, reset, original-rules compatibility, smoke expiration/LOS, digging-in protection,
   assault successes/failures, combat and victory conditions, all battlefield objectives and
   round limits, river traversal, overwatch/expiry/cancellation, rematch consent, army swaps,
   stale proposals, reconnection and score carryover.
+- Role tests cover grenade cover/damage/resources, suppression, adjacent leader rally,
+  sight/range/pin/action restrictions, barrage delay/escape/friendly effects, caller death,
+  one-call limits, legacy rules and immutable inputs.
+- `tests/ww2-role-browser.cjs` seeds its own disposable SQLite database and exercises the
+  role abilities through two mobile browsers, including visible danger zones on both screens,
+  delayed impact, leader rally, reload persistence, and mobile page overflow checks.
 - JavaScript syntax check passes; Gunicorn boots successfully.
 - Two independent DOM clients exercised real HTTP against Gunicorn: smoke, digging in, turn
   handoff, smoke expiration, roster controls, zoom toggle, next unit, reconnect and invitation

@@ -1,6 +1,7 @@
 'use strict';
 const $ = id => document.getElementById(id);
 let session = null, state = null, selected = null, target = null, busy = false, polling = false, toastTimer, smokeMode = false, lobbyMode = false, renderedBattle = null, scenarios = [];
+let barrageMode = false;
 try { session = JSON.parse(localStorage.getItem('ww2-session')); } catch (_) {}
 const names = {us:'Americans',de:'Germans'}, kinds={squad:'Rifle squad',leader:'Leader',mg:'Machine gun'};
 function notify(text){$('message').textContent=text;$('message').hidden=false;clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('message').hidden=true,6500);}
@@ -16,11 +17,12 @@ async function refresh(){
  catch(e){$('connection').textContent='○ Reconnecting';if(!state)notify(e.message);}finally{polling=false;}
 }
 async function run(task){if(busy)return;busy=true;document.querySelectorAll('button').forEach(b=>b.disabled=true);try{await task();}catch(e){notify(e.message);}finally{busy=false;document.querySelectorAll('button').forEach(b=>b.disabled=false);if(state)render();await refresh();}}
-async function act(body){await run(async()=>{state=await api(`/api/match/${session.code}`,{...body,revision:state.revision});target=null;smokeMode=false;render();});}
+async function act(body){await run(async()=>{state=await api(`/api/match/${session.code}`,{...body,revision:state.revision});target=null;smokeMode=false;barrageMode=false;render();});}
 function element(tag,attrs={},text){const e=document.createElementNS('http://www.w3.org/2000/svg',tag);Object.entries(attrs).forEach(([k,v])=>e.setAttribute(k,v));if(text!==undefined)e.textContent=text;return e;}
 function center(x,y){return [27+x*52+(y%2)*26,30+y*49];}
 function activate(e,callback){e.addEventListener('click',callback);e.addEventListener('keydown',event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();callback();}});}
-function chooseUnit(u){if(busy)return;if(smokeMode){placeSmoke(u.pos);return;}if(u.side===state.side){selected=u.id;target=null;}else{target=u.id;}render();}
+function chooseUnit(u){if(busy)return;if(barrageMode){placeBarrage(u.pos);return;}if(smokeMode){placeSmoke(u.pos);return;}if(u.side===state.side){selected=u.id;target=null;}else{target=u.id;}render();}
+function placeBarrage(pos){if(state.legal[selected]?.barrage?.some(p=>p[0]===pos[0]&&p[1]===pos[1])&&confirm(`Call your army's only mortar barrage at ${String.fromCharCode(65+pos[0])}${pos[1]+1}? The marked hex and its neighbors will be hit at the end of your opponent's turn. ALL units there will be pinned and lose dug-in cover, including yours. No strength damage.`))act({kind:'barrage',unit:selected,pos});}
 function placeSmoke(pos){if(state.legal[selected]?.smoke?.some(p=>p[0]===pos[0]&&p[1]===pos[1]))act({kind:'smoke',unit:selected,pos});}
 function chance(threshold){return Math.max(0,Math.min(100,Math.round((7-threshold)/6*100)));}
 function moveUnit(move){if(!move.threats||confirm(`${move.threats} enemy unit${move.threats===1?' is':'s are'} watching this hex. Move and risk reaction fire?`))act({kind:'move',unit:selected,pos:move.pos});}
@@ -36,7 +38,7 @@ function render(){
  const myTurn=state.ready&&!state.winner&&state.turn===state.side;
  const board=state.scenario||{id:'village',name:'Village Crossing',objective_name:'Village square',rounds:8};
  const battleKey=`${state.code}:${state.battle_number||1}`;
- if(renderedBattle!==battleKey){selected=null;target=null;smokeMode=false;renderedBattle=battleKey;$('mapWrap').scrollTo?.(0,0);}
+ if(renderedBattle!==battleKey){selected=null;target=null;smokeMode=false;barrageMode=false;renderedBattle=battleKey;$('mapWrap').scrollTo?.(0,0);}
  $('battleTitle').textContent=board.name;document.title=`${board.name} · WWII Tactics`;
  $('battleNumber').textContent=`BATTLE ${String(state.battle_number||1).padStart(2,'0')}`;
  $('objectiveName').textContent=`★ ${board.objective_name.toUpperCase()}`;
@@ -46,7 +48,7 @@ function render(){
  $('waiting').hidden=state.ready;$('invite').value=invitation();$('matchCode').textContent=`MATCH CODE · ${session.code}`;
  $('turnBanner').textContent=state.winner?`${names[state.winner]} win. ${state.winner===state.side?'Mission accomplished.':'The battle is over.'}`:!state.ready?'Waiting for the German commander…':myTurn?'Your turn · select a unit':`${names[state.turn]} are giving orders…`;
  $('objective').textContent=`Hold: ${state.hold} / 2`;
- $('legacyNotice').hidden=(state.rules_version||1)>=3;
+ $('legacyNotice').hidden=(state.rules_version||1)>=4;
  $('missionHint').textContent=state.winner?`Battle complete in round ${state.round}.`:state.hold?'Americans hold the objective. Germans must dislodge them before the next American turn ends.':state.side==='us'?`Capture ★ and hold through two American turn endings. You have ${board.rounds-state.round+1} rounds left.`:`Keep the Americans from holding ★ through round ${board.rounds}.`;
  $('armyCount').textContent=['us','de'].map(s=>`${names[s]} ${state.units.filter(u=>u.side===s&&u.hp>0).length}/5`).join(' · ');
  const unit=state.units.find(u=>u.id===selected&&u.hp>0);
@@ -54,7 +56,15 @@ function render(){
  const legal=unit?state.legal[unit.id]:null, enemy=state.units.find(u=>u.id===target&&u.hp>0);
  const shot=enemy&&legal?.targets.find(t=>t.id===enemy.id);
  const assault=enemy&&legal?.assaults?.find(t=>t.id===enemy.id);
+ const grenade=enemy&&legal?.grenades?.find(t=>t.id===enemy.id);
+ const suppress=enemy&&legal?.suppress?.includes(enemy.id);
  if(!myTurn||!legal?.smoke?.length)smokeMode=false;
+ if(!myTurn||!legal?.barrage?.length)barrageMode=false;
+ const picking=smokeMode||barrageMode;
+ $('supportStatus').hidden=(state.rules_version||1)<4;
+ $('supportStatus').textContent=`Mortar calls left · US ${state.support?.us||0} / DE ${state.support?.de||0}`;
+ $('incoming').hidden=!state.barrages?.length;
+ $('incoming').textContent=(state.barrages||[]).map(b=>`INCOMING at ${String.fromCharCode(65+b.pos[0])}${b.pos[1]+1} + neighboring hexes. ${b.ttl===1?'Impact at the end of this turn':'Impact at the end of the next turn'}. Move clear—even friendly troops!`).join(' ');
  const svg=$('map');svg.replaceChildren();
  svg.setAttribute('viewBox',`0 0 ${state.map[0].length*52+36} ${state.map.length*49+29}`);
  svg.setAttribute('aria-label',`${board.name} battlefield. Select your unit then a highlighted hex to move.`);
@@ -62,14 +72,16 @@ function render(){
   const [cx,cy]=center(x,y),type=state.map[y][x],move=myTurn&&legal?.moves.find(m=>m.pos[0]===x&&m.pos[1]===y);
   const points=Array.from({length:6},(_,i)=>{const a=(60*i-30)*Math.PI/180;return `${cx+30*Math.cos(a)},${cy+30*Math.sin(a)}`;}).join(' ');
   const smokeHere=smokeMode&&legal.smoke.some(p=>p[0]===x&&p[1]===y);
-  const tile=element('polygon',{points,class:`hex ${type}${move&&!smokeMode?' move':''}${move?.threats&&!smokeMode?' threatened':''}${smokeHere?' smoke-choice':''}`,...(smokeHere?{tabindex:0,role:'button','aria-label':`Smoke at ${String.fromCharCode(65+x)}${y+1}`} :move&&!smokeMode?{tabindex:0,role:'button','aria-label':`Move to ${String.fromCharCode(65+x)}${y+1}, ${type}, ${move.cost} action${move.cost>1?'s':''}${move.threats?', exposed to overwatch':''}`}:{})});
-  if(smokeHere)activate(tile,()=>placeSmoke([x,y]));else if(move&&!smokeMode)activate(tile,()=>moveUnit(move));svg.append(tile);
+  const barrageHere=barrageMode&&legal.barrage.some(p=>p[0]===x&&p[1]===y);
+  const tile=element('polygon',{points,class:`hex ${type}${move&&!picking?' move':''}${move?.threats&&!picking?' threatened':''}${smokeHere?' smoke-choice':''}${barrageHere?' barrage-choice':''}`,...(barrageHere?{tabindex:0,role:'button','aria-label':`Mortar at ${String.fromCharCode(65+x)}${y+1}`} :smokeHere?{tabindex:0,role:'button','aria-label':`Smoke at ${String.fromCharCode(65+x)}${y+1}`} :move&&!picking?{tabindex:0,role:'button','aria-label':`Move to ${String.fromCharCode(65+x)}${y+1}, ${type}, ${move.cost} action${move.cost>1?'s':''}${move.threats?', exposed to overwatch':''}`}:{})});
+  if(barrageHere)activate(tile,()=>placeBarrage([x,y]));else if(smokeHere)activate(tile,()=>placeSmoke([x,y]));else if(move&&!picking)activate(tile,()=>moveUnit(move));svg.append(tile);
   svg.append(element('text',{x:cx-18,y:cy-16,class:'tile-label'},`${String.fromCharCode(65+x)}${y+1}`));
   if(type==='woods')svg.append(element('path',{d:`M${cx-9} ${cy+9}l9 -20l9 20z M${cx} ${cy+9}v5`,class:'terrain-icon'}));
   if(type==='building')svg.append(element('path',{d:`M${cx-12} ${cy-5}l12 -8l12 8v19h-24z M${cx-12} ${cy-5}h24`,class:'building-icon'}));
   if(type==='objective')svg.append(element('text',{x:cx,y:cy+8,'text-anchor':'middle',class:'objective-icon'},'★'));
   if(type==='bridge')svg.append(element('path',{d:`M${cx-15} ${cy-15}v30m30 -30v30m-30 -24h30m-30 18h30`,class:'bridge-icon'}));
   if(state.smoke?.some(s=>s.pos[0]===x&&s.pos[1]===y))svg.append(element('ellipse',{cx,cy,rx:25,ry:22,class:'smoke-cloud'}));
+  if(state.barrages?.some(b=>b.area.some(p=>p[0]===x&&p[1]===y))){svg.append(element('path',{d:`M${points.split(' ').join(' L')} Z`,class:'barrage-zone'}));svg.append(element('text',{x:cx+16,y:cy+23,class:'incoming-mark'},'!'));}
  }
  if(unit&&enemy){const [x1,y1]=center(...unit.pos),[x2,y2]=center(...enemy.pos);svg.append(element('line',{x1,y1,x2,y2,class:`aim-line${shot?' clear':''}`}));}
  for(const u of state.units.filter(u=>u.hp>0)){
@@ -86,6 +98,13 @@ function render(){
  }
  $('selection').textContent=unit?`${kinds[unit.kind]} · ${unit.hp} strength · ${unit.ap} actions${unit.pinned?' · PINNED':''}`:'Tap one of your units to see its orders.';
  $('hint').textContent=state.winner?'Start a new match for another battle.':!myTurn?'You can inspect units while you wait.':smokeMode?'Tap a blue-outlined hex to throw smoke, or tap Cancel smoke.':shot?`Fire at ${kinds[enemy.kind]}: ${shot.threshold}+ to hit (${chance(shot.threshold)}%).`:assault?'Enemy adjacent: a close assault is available.':enemy?'No clear shot: check range, sight lines, smoke, or actions.':unit?.pinned?'Rally to remove the pin. It costs 1 action.':unit?`${state.map[unit.pos[1]][unit.pos[0]]}${unit.entrenched?' · dug in':''} · range ${unit.range} · ${unit.smoke||0} smoke grenades`:'Counters show strength dots and remaining actions.';
+ if(barrageMode)$('hint').textContent='Choose a marked hex for mortar support. It and its neighbors will be hit after your opponent gets a turn to escape.';
+ $('roleBrief').hidden=!unit||(state.rules_version||1)<4;
+ $('roleBrief').textContent=unit?.kind==='squad'?`ASSAULT TROOPS · ${unit.grenades||0} frag grenade left. Range 2; 2 damage on a hit. Tap an enemy to see available attacks.`:unit?.kind==='mg'?'FIRE SUPPORT · Suppress a visible enemy within 4 hexes: guaranteed pin, no damage. Cancels overwatch. Tap an enemy.':'COMMAND · Rally all adjacent pinned allies for 1 action. Call one delayed mortar barrage per army for 2 actions.';
+ $('grenade').hidden=!myTurn||!grenade||picking;$('grenade').disabled=busy;$('grenade').textContent=grenade?`Frag · ${chance(grenade.threshold)}% · 2 actions`:'Frag';
+ $('suppress').hidden=!myTurn||!suppress||picking;$('suppress').disabled=busy;
+ $('inspire').hidden=!myTurn||!legal?.inspire?.length||picking;$('inspire').disabled=busy;$('inspire').textContent=`Rally nearby (${legal?.inspire?.length||0}) · 1 action`;
+ $('barrage').hidden=!myTurn||!legal?.barrage?.length;$('barrage').disabled=busy;$('barrage').textContent=barrageMode?'Cancel mortar':'Call mortars · 2 actions';
  $('odds').hidden=!shot||smokeMode;
  if(shot){const labels={cover:'Cover',distance:'Long range',leader:'Leader support',machine_gun:'MG',dug_in:'Dug in'};$('odds').textContent='Base 4 '+Object.entries(shot.modifiers||{}).filter(([,v])=>v).map(([k,v])=>`${v>0?'+':''}${v} ${labels[k]}`).join(' ')+` → ${shot.threshold}+`;}
  $('fire').hidden=!myTurn||!shot;$('fire').disabled=busy;$('fire').textContent=shot?`Fire · ${shot.threshold}+ · 2 actions`:'Fire';
@@ -96,10 +115,10 @@ function render(){
  $('smoke').hidden=!myTurn||!legal?.smoke?.length;$('smoke').disabled=busy;$('smoke').textContent=smokeMode?'Cancel smoke':'Smoke · 1 action';
  $('rally').hidden=!myTurn||!legal?.rally;$('rally').disabled=busy;$('end').disabled=!myTurn||busy;$('reset').hidden=state.side!=='us';
  $('latest').textContent=state.log.at(-1);$('log').replaceChildren(...state.log.slice().reverse().map(text=>{const li=document.createElement('li');li.textContent=text;return li;}));
- $('roster').replaceChildren(...state.units.filter(u=>u.side===state.side).map((u,i)=>{const b=document.createElement('button');b.className=`roster-unit${u.id===selected?' active':''}`;b.disabled=u.hp<=0||busy;b.textContent=`${u.kind==='leader'?'LT':u.kind==='mg'?'MG':'SQ'} ${i+1} · ${u.hp<=0?'Lost':u.pinned?'Pinned':u.overwatch?'Watching':u.ap+' AP'}`;b.setAttribute('aria-label',`${kinds[u.kind]} ${i+1}, ${u.hp<=0?'eliminated':u.hp+' strength, '+u.ap+' actions'}`);b.onclick=()=>{smokeMode=false;chooseUnit(u);};return b;}));
+ $('roster').replaceChildren(...state.units.filter(u=>u.side===state.side).map((u,i)=>{const b=document.createElement('button');b.className=`roster-unit${u.id===selected?' active':''}`;b.disabled=u.hp<=0||busy;b.textContent=`${u.kind==='leader'?'LT':u.kind==='mg'?'MG':'SQ'} ${i+1} · ${u.hp<=0?'Lost':u.pinned?'Pinned':u.overwatch?'Watching':u.ap+' AP'}`;b.setAttribute('aria-label',`${kinds[u.kind]} ${i+1}, ${u.hp<=0?'eliminated':u.hp+' strength, '+u.ap+' actions'}`);b.onclick=()=>{smokeMode=false;barrageMode=false;chooseUnit(u);};return b;}));
  $('nextUnit').disabled=busy||!state.units.some(u=>u.side===state.side&&u.hp>0);
  $('combat').hidden=!state.last_combat;
- if(state.last_combat){const c=state.last_combat;$('combat').textContent=`⚄ ${c.kind}: rolled ${c.roll} / needed ${c.threshold}+ — ${c.result}.`;}
+ if(state.last_combat){const c=state.last_combat;$('combat').textContent=`${c.kind}: ${c.roll===undefined?'':`rolled ${c.roll} / needed ${c.threshold}+ — `}${c.result}.`;}
  $('battleReport').hidden=!state.winner;
  if(state.winner){$('reportTitle').textContent=`${names[state.winner]} take the field.`;$('reportBody').textContent=['us','de'].map(s=>{const alive=state.units.filter(u=>u.side===s&&u.hp>0);return `${names[s]}: ${alive.length} surviving units, ${alive.reduce((n,u)=>n+u.hp,0)} strength`;}).join(' · ');}
  $('seriesScore').textContent=`Army victories this session · Americans ${state.victories?.us||0} / Germans ${state.victories?.de||0}`;
@@ -111,11 +130,15 @@ $('create').onclick=()=>run(async()=>{remember(await api('/api/match',{scenario:
 $('joinForm').onsubmit=e=>{e.preventDefault();run(async()=>{remember(await api(`/api/match/${$('code').value.trim().toUpperCase()}/join`,{}));});};
 $('fire').onclick=()=>act({kind:'fire',unit:selected,target});$('rally').onclick=()=>act({kind:'rally',unit:selected});
 $('assault').onclick=()=>{if(confirm('Assault? Success deals 2 damage; failure costs your unit 1 strength and pins it.'))act({kind:'assault',unit:selected,target});};
-$('dig').onclick=()=>act({kind:'dig',unit:selected});$('smoke').onclick=()=>{smokeMode=!smokeMode;target=null;render();};
+$('dig').onclick=()=>act({kind:'dig',unit:selected});$('smoke').onclick=()=>{barrageMode=false;smokeMode=!smokeMode;target=null;render();};
+$('grenade').onclick=()=>{if(confirm('Use this squad’s only fragmentation grenade? It deals 2 damage and pins on a hit, without advancing.'))act({kind:'grenade',unit:selected,target});};
+$('suppress').onclick=()=>act({kind:'suppress',unit:selected,target});
+$('inspire').onclick=()=>act({kind:'inspire',unit:selected});
+$('barrage').onclick=()=>{smokeMode=false;barrageMode=!barrageMode;target=null;render();};
 $('overwatch').onclick=()=>act({kind:'overwatch',unit:selected});
-$('nextUnit').onclick=()=>{const alive=state.units.filter(u=>u.side===state.side&&u.hp>0);const ready=alive.filter(u=>u.ap>0);const units=ready.length?ready:alive;smokeMode=false;chooseUnit(units[(units.findIndex(u=>u.id===selected)+1)%units.length]);};
+$('nextUnit').onclick=()=>{const alive=state.units.filter(u=>u.side===state.side&&u.hp>0);const ready=alive.filter(u=>u.ap>0);const units=ready.length?ready:alive;smokeMode=false;barrageMode=false;chooseUnit(units[(units.findIndex(u=>u.id===selected)+1)%units.length]);};
 $('zoom').onclick=()=>{const enlarged=$('mapWrap').classList.toggle('enlarged');$('zoom').setAttribute('aria-pressed',String(enlarged));$('zoom').textContent=enlarged?'Fit map −':'Enlarge map ＋';};
-$('end').onclick=()=>{const count=state.units.filter(u=>u.side===state.side&&u.hp>0&&u.ap>0).length;if(confirm(`End your turn? ${count} unit${count===1?' has':'s have'} unused actions.`))act({kind:'end'});};
+$('end').onclick=()=>{const count=state.units.filter(u=>u.side===state.side&&u.hp>0&&u.ap>0).length;const exposed=state.units.filter(u=>u.side===state.side&&u.hp>0&&state.barrages?.some(b=>b.ttl===1&&b.area.some(p=>p[0]===u.pos[0]&&p[1]===u.pos[1]))).length;if(confirm(`End your turn? ${count} unit${count===1?' has':'s have'} unused actions.${exposed?` WARNING: ${exposed} of your units will be caught in the incoming barrage.`:''}`))act({kind:'end'});};
 $('reset').onclick=()=>{if(confirm('Replace this match? Progress and the old invitation will be lost. Your opponent will need the new invitation.'))run(async()=>{remember(await api(`/api/match/${session.code}/reset`,{}));});};
 $('refresh').onclick=refresh;
 $('share').onclick=async()=>{try{if(navigator.share){await navigator.share({title:'Village Crossing',text:'Command the Germans. Join my WWII tactics match.',url:invitation()});}else{await navigator.clipboard.writeText(invitation());notify('Invitation copied. Send it to the other player.');}}catch(e){if(e.name!=='AbortError'){ $('invite').select();notify('Copy the invitation from the field below.');}}};
