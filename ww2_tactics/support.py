@@ -1,4 +1,5 @@
 """Role abilities and delayed support. Legal choices are shared with every client."""
+from .combat_display import record_combat
 
 
 def role_options(state, unit, distance, line_clear, terrain, board):
@@ -41,6 +42,7 @@ def role_action(state, unit, action, legal, roll, distance, names):
         unit['ap'] -= 2
         state['last_combat'] = dict(kind='Suppressive fire', result='target pinned; no strength lost',
                                     attacker=unit['id'], target=target['id'], revision=state['revision']+1)
+        record_combat(state, note='Automatic effect: a legal suppression order does not roll a die.')
         return f"{names[side]} MG suppressed {names[target['side']]} {target['kind']}. Pinned, overwatch cancelled; no damage."
     if kind == 'grenade':
         shot = next((s for s in legal['grenades'] if s['id'] == action.get('target')), None)
@@ -55,6 +57,7 @@ def role_action(state, unit, action, legal, roll, distance, names):
             result = 'eliminated' if target['hp'] <= 0 else 'hit for 2 and pinned' if die >= shot['threshold'] else 'missed'
             state['last_combat'] = dict(kind='Grenade', roll=die, threshold=shot['threshold'], result=result,
                                         attacker=unit['id'], target=target['id'], revision=state['revision']+1)
+            record_combat(state, {'cover': shot['threshold']-4}, 'One frag spent. A hit deals 2 damage and pins; no advance.')
             return f"{names[side]} threw a fragmentation grenade: rolled {die}, needed {shot['threshold']}+. Target {result}."
     if kind == 'barrage' and action.get('pos') in legal['barrage']:
         unit['ap'] -= 2
@@ -79,5 +82,6 @@ def resolve_barrages(state, names):
         result = f"{len(affected)} unit(s) pinned and stripped of dug-in cover; no strength lost"
         messages.append(f"{names[strike['side']]} mortar barrage landed: {result}.")
         state['last_combat'] = dict(kind='Mortar barrage', result=result, revision=state['revision']+1)
+        record_combat(state, note='Automatic effect: all units in the marked area are pinned and lose dug-in cover. No damage roll.')
     state['barrages'] = remaining
     return messages

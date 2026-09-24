@@ -1,5 +1,21 @@
 # Village Crossing — expanded rules
 
+## Visible dice and mechanics
+
+Presentation update only: no rule, odds, computer decision, action cost or turn-flow changes.
+Refresh to use it in an existing match; no rematch is required.
+
+- Attack previews show all six die faces, highlight successful rolls, and show the hit
+  percentage and actual modifiers. Optional comparisons show grenade and assault odds.
+- Combat results show the actual server roll, required threshold, hit/miss and effect.
+  Suppression and mortars explicitly say they are automatic and do not roll dice.
+- An expandable history retains the latest 40 combat results, including every separate
+  overwatch reaction and computer attack. Names, coordinates and modifiers are recorded
+  at resolution time, so later movement does not change the explanation. Old saves work;
+  detailed history begins with new combat after this update. Existing text logs remain.
+- Selected units show strength/action meters. Optional terrain/status explanations cover
+  cover, movement cost, range, pins, digging in, smoke and overwatch without a tutorial.
+
 ## Solo play
 
 Choose **Play against the computer** on the landing page, or **Play computer** in an
@@ -171,7 +187,7 @@ share a player key and are not two independent players).
 
 ### Verification
 
-- 66 rules/API tests pass, including concurrent seat claims, duplicate move rejection,
+- 70 rules/API tests pass, including concurrent seat claims, duplicate move rejection,
   persistence, reset, original-rules compatibility, smoke expiration/LOS, digging-in protection,
   assault successes/failures, combat and victory conditions, all battlefield objectives and
   round limits, river traversal, overwatch/expiry/cancellation, rematch consent, army swaps,
@@ -182,6 +198,9 @@ share a player key and are not two independent players).
 - Solo tests cover complete games on every battlefield, both armies, objective occupation,
   river routing, bounded turns, group rally, automatic turns, locked computer seats,
   stale actions, reconnection, army swaps, and replacement/revocation between game modes.
+- Combat-display tests verify actual dice/modifier snapshots, separate reaction rolls,
+  bounded history, immutable inputs, and automatic no-roll effects. Role browser checks
+  also verify die previews, actual result faces, and expandable previous results.
 - `tests/ww2-solo-browser.cjs` uses a disposable server/database to verify solo creation,
   automatic turns, order review, reload, army swaps, return to multiplayer, switching an
   existing match to solo, and phone layout widths.

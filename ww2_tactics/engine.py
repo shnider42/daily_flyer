@@ -3,6 +3,7 @@ import copy
 import secrets
 from .scenarios import battlefield, get_scenario
 from .support import role_options, role_action, resolve_barrages
+from .combat_display import record_combat
 
 WIDTH, HEIGHT = 7, 9
 OBJECTIVE = [3, 4]
@@ -108,6 +109,7 @@ def react(state, mover, roll):
         messages.append(f"{NAMES[shooter['side']]} {shooter['kind']} overwatch: rolled {die}, needed {threshold}+. Target {result}.")
         state['last_combat'] = dict(kind='Overwatch', roll=die, threshold=threshold, result=result,
                                     attacker=shooter['id'], target=mover['id'], revision=state['revision']+1)
+        record_combat(state, dict(fire_modifiers(state, shooter, mover), reaction=1))
     return messages
 
 
@@ -208,6 +210,7 @@ def apply(state, side, action, roll=None):
             message = f"{NAMES[side]} {unit['kind']} fired: rolled {die}, needed {shot['threshold']}+. Target {result}."
             state['last_combat'] = dict(kind='Fire', roll=die, threshold=shot['threshold'], result=result,
                                         attacker=unit['id'], target=target['id'], revision=state['revision']+1)
+            record_combat(state, shot['modifiers'])
         elif kind == 'dig' and legal['dig']:
             unit['ap'] -= 2
             unit['entrenched'] = True
@@ -243,6 +246,8 @@ def apply(state, side, action, roll=None):
             message = f"{NAMES[side]} assaulted: rolled {die}, needed {assault['threshold']}+. {result}."
             state['last_combat'] = dict(kind='Assault', roll=die, threshold=assault['threshold'], result=result,
                                         attacker=unit['id'], target=target['id'], revision=state['revision']+1)
+            record_combat(state, {'pinned_target': -1 if assault['threshold'] == 3 else 0},
+                          'Success: 2 damage and pin; advance on elimination. Failure: attacker loses 1 strength and is pinned.')
             if target['hp'] <= 0 and unit['hp'] > 0:
                 reactions = react(state, unit, roll_die)
         elif kind == "rally" and legal["rally"]:

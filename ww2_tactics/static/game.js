@@ -109,8 +109,7 @@ function render(){
  $('suppress').hidden=!myTurn||!suppress||picking;$('suppress').disabled=busy;
  $('inspire').hidden=!myTurn||!legal?.inspire?.length||picking;$('inspire').disabled=busy;$('inspire').textContent=`Rally nearby (${legal?.inspire?.length||0}) · 1 action`;
  $('barrage').hidden=!myTurn||!legal?.barrage?.length;$('barrage').disabled=busy;$('barrage').textContent=barrageMode?'Cancel mortar':'Call mortars · 2 actions';
- $('odds').hidden=!shot||smokeMode;
- if(shot){const labels={cover:'Cover',distance:'Long range',leader:'Leader support',machine_gun:'MG',dug_in:'Dug in'};$('odds').textContent='Base 4 '+Object.entries(shot.modifiers||{}).filter(([,v])=>v).map(([k,v])=>`${v>0?'+':''}${v} ${labels[k]}`).join(' ')+` → ${shot.threshold}+`;}
+ renderOdds(shot,assault,grenade,picking);renderUnitMechanics(state,unit);renderCombat(state);
  $('fire').hidden=!myTurn||!shot;$('fire').disabled=busy;$('fire').textContent=shot?`Fire · ${shot.threshold}+ · 2 actions`:'Fire';
  $('fire').disabled=busy||!!shot&&chance(shot.threshold)===0;
  $('assault').hidden=!myTurn||!assault;$('assault').disabled=busy;$('assault').textContent=assault?`Assault · ${chance(assault.threshold)}% · 2 actions`:'Assault';
@@ -122,8 +121,6 @@ function render(){
  $('latest').textContent=state.log.at(-1);$('log').replaceChildren(...state.log.slice().reverse().map(text=>{const li=document.createElement('li');li.textContent=text;return li;}));
  $('roster').replaceChildren(...state.units.filter(u=>u.side===state.side).map((u,i)=>{const b=document.createElement('button');b.className=`roster-unit${u.id===selected?' active':''}`;b.disabled=u.hp<=0||busy;b.textContent=`${u.kind==='leader'?'LT':u.kind==='mg'?'MG':'SQ'} ${i+1} · ${u.hp<=0?'Lost':u.pinned?'Pinned':u.overwatch?'Watching':u.ap+' AP'}`;b.setAttribute('aria-label',`${kinds[u.kind]} ${i+1}, ${u.hp<=0?'eliminated':u.hp+' strength, '+u.ap+' actions'}`);b.onclick=()=>{smokeMode=false;barrageMode=false;chooseUnit(u);};return b;}));
  $('nextUnit').disabled=busy||!state.units.some(u=>u.side===state.side&&u.hp>0);
- $('combat').hidden=!state.last_combat;
- if(state.last_combat){const c=state.last_combat;$('combat').textContent=`${c.kind}: ${c.roll===undefined?'':`rolled ${c.roll} / needed ${c.threshold}+ — `}${c.result}.`;}
  $('battleReport').hidden=!state.winner;
  if(state.winner){$('reportTitle').textContent=`${names[state.winner]} take the field.`;$('reportBody').textContent=['us','de'].map(s=>{const alive=state.units.filter(u=>u.side===s&&u.hp>0);return `${names[s]}: ${alive.length} surviving units, ${alive.reduce((n,u)=>n+u.hp,0)} strength`;}).join(' · ');}
  $('seriesScore').textContent=`Army victories this session · Americans ${state.victories?.us||0} / Germans ${state.victories?.de||0}`;
