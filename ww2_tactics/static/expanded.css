@@ -88,6 +88,17 @@ select { width: 100%; padding: 12px; min-height: 48px; font: inherit; font-size:
 .computer-review summary { min-height: 24px; }
 .computer-review ol { padding-left: 20px; font-size: 12px; line-height: 1.7; }
 #startSolo { width: 100%; margin-top: 12px; }
+#playbackPanel { border-left: 4px solid #1264b1; background: #e0ebf2; padding: 10px 12px; margin: 12px 0; scroll-margin-top: 12px; }
+#playbackStep { margin: 0 0 6px; }
+#playbackDescription { font-size: 13px; font-weight: 750; line-height: 1.5; margin: 5px 0 10px; }
+.playback-controls { display: flex; gap: 6px; flex-wrap: wrap; }
+.playback-controls button { font-size: 11px; padding: 8px 10px; min-height: 44px; background: #fffdf6; }
+#playbackResult { max-height: 180px; overflow: auto; }
+#playbackMap { display: block; width: 100%; height: auto; max-height: 58svh; pointer-events: none; }
+#mapWrap.enlarged #playbackMap { min-width: 600px; max-height: none; }
+.replay-line { stroke: #b65216; stroke-width: 5; stroke-dasharray: 7 3; }
+.replay-destination { fill: none; stroke: #b65216; stroke-width: 3; }
+.replay-danger { fill: #eb821d33; stroke: #a84b0b; stroke-width: 2; stroke-dasharray: 5 3; }
 .die-face { display: inline-grid; grid-template-columns: repeat(3,1fr); grid-template-rows: repeat(3,1fr); gap: 3px; width: 40px; height: 40px; padding: 6px; border: 1px solid #8a9587; border-radius: 7px; background: #fffdf6; flex-shrink: 0; color: #27382b; }
 .pip { border-radius: 50%; }
 .pip.on { background: currentColor; }

@@ -1,5 +1,20 @@
 # Village Crossing — expanded rules
 
+## Computer turn playback
+
+New computer turns record a bounded sequence of before/after board snapshots and actual
+combat results. Playback starts automatically after the turn resolves. The acting unit,
+movement/target line, dice and resulting unit changes are shown on the board. Pause,
+advance one step, or skip directly to the live board. **Replay computer turn** watches
+the most recent recording again, including after reconnecting.
+
+This is presentation only: the complete turn still commits atomically on the server.
+Playback sends no game actions and never rerolls dice. Live orders are blocked while
+watching. Completion/skip restores the authoritative board; reloading during playback
+returns directly to it. The last recording persists with the match in SQLite and is
+replaced on the next computer turn. Old matches need no migration or new battle: refresh
+and finish a turn to create the first recording. Older turns cannot be reconstructed.
+
 ## Visible dice and mechanics
 
 Presentation update only: no rule, odds, computer decision, action cost or turn-flow changes.
@@ -187,7 +202,7 @@ share a player key and are not two independent players).
 
 ### Verification
 
-- 70 rules/API tests pass, including concurrent seat claims, duplicate move rejection,
+- 73 rules/API tests pass, including concurrent seat claims, duplicate move rejection,
   persistence, reset, original-rules compatibility, smoke expiration/LOS, digging-in protection,
   assault successes/failures, combat and victory conditions, all battlefield objectives and
   round limits, river traversal, overwatch/expiry/cancellation, rematch consent, army swaps,
@@ -201,6 +216,11 @@ share a player key and are not two independent players).
 - Combat-display tests verify actual dice/modifier snapshots, separate reaction rolls,
   bounded history, immutable inputs, and automatic no-roll effects. Role browser checks
   also verify die previews, actual result faces, and expandable previous results.
+- Playback tests verify frame continuity, exact final boards, single actual dice rolls,
+  bounded non-nested snapshots and replacement on the next turn. Solo browser tests verify
+  automatic playback, pause/step/skip/replay and blocked live orders. The dedicated
+  `tests/ww2-playback-browser.cjs` checks actual die/health/pin rendering, automatic
+  completion, reload during playback, zero POSTs and unchanged server state.
 - `tests/ww2-solo-browser.cjs` uses a disposable server/database to verify solo creation,
   automatic turns, order review, reload, army swaps, return to multiplayer, switching an
   existing match to solo, and phone layout widths.

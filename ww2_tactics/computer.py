@@ -1,5 +1,6 @@
 """Local, bounded tactical opponent. Uses public information and legal engine orders."""
 import heapq
+import copy
 
 from .engine import apply, options, distance, terrain
 from .scenarios import battlefield
@@ -107,10 +108,22 @@ def play_turn(state, roll=None):
     costs = objective_costs(state)
     visited = {u['id']: {tuple(u['pos'])} for u in state['units']}
     orders = []
+    frames = []
+    def snapshot(value):
+        return copy.deepcopy({key: value.get(key) for key in
+                              ('units', 'smoke', 'barrages', 'round', 'turn', 'hold', 'winner')})
+    def perform(action):
+        nonlocal state
+        before = snapshot(state)
+        sequence = state.get('combat_sequence', 0)
+        state = apply(state, state['ai_side'], action, roll=roll)
+        frames.append(dict(action=copy.deepcopy(action), before=before, after=snapshot(state),
+                           combat=copy.deepcopy([e for e in state.get('combat_history', [])
+                                                 if e.get('sequence', 0) > sequence])))
     # Five units with two AP: bounded even if additional abilities are added later.
     for _ in range(24):
         action = choose_order(state, costs, visited)
-        state = apply(state, state['ai_side'], action, roll=roll)
+        perform(action)
         actor = next((u for u in state['units'] if u['id'] == action.get('unit')), None)
         target = next((u for u in state['units'] if u['id'] == action.get('target')), None)
         orders.extend(['Turn ended.'] if action['kind'] == 'end' else
@@ -122,6 +135,7 @@ def play_turn(state, roll=None):
         if state['winner'] or state['turn'] != state['ai_side']:
             break
     else:
-        state = apply(state, state['ai_side'], dict(kind='end'), roll=roll)
+        perform(dict(kind='end'))
     state['computer_orders'] = orders
+    state['computer_playback'] = dict(id=state['revision'], frames=frames)
     return state

@@ -12,16 +12,16 @@ async function api(path, body){
 function remember(data){session=data;localStorage.setItem('ww2-session',JSON.stringify(data));selected=null;target=null;state=null;smokeMode=false;lobbyMode=false;history.replaceState(null,'','/');}
 function invitation(){return `${location.origin}/?join=${session.code}`;}
 async function refresh(){
- if(!session||busy||polling||lobbyMode)return;polling=true;const requestedCode=session.code;
- try{const next=await api(`/api/match/${requestedCode}`);if(session?.code!==requestedCode)return;$('connection').textContent='● Connected';if(!state||next.revision>state.revision||next.code!==state.code){state=next;render();}}
+ if(!session||busy||polling||lobbyMode||playbackSession)return;polling=true;const requestedCode=session.code;
+ try{const next=await api(`/api/match/${requestedCode}`);if(session?.code!==requestedCode)return;$('connection').textContent='● Connected';if(!state||next.revision>state.revision||next.code!==state.code){const oldKey=playbackKey(state),hadState=!!state;state=next;render();if(hadState&&playbackKey(state)&&oldKey!==playbackKey(state))startPlayback();}}
  catch(e){$('connection').textContent='○ Reconnecting';if(!state)notify(e.message);}finally{polling=false;}
 }
-async function run(task){if(busy)return;busy=true;document.querySelectorAll('button').forEach(b=>b.disabled=true);try{await task();}catch(e){notify(e.message);}finally{busy=false;document.querySelectorAll('button').forEach(b=>b.disabled=false);if(state)render();await refresh();}}
+async function run(task){if(busy||playbackSession)return;const oldPlayback=playbackKey(state);busy=true;document.querySelectorAll('button').forEach(b=>b.disabled=true);try{await task();}catch(e){notify(e.message);}finally{busy=false;document.querySelectorAll('button').forEach(b=>b.disabled=false);if(state)render();await refresh();if(playbackKey(state)&&oldPlayback!==playbackKey(state))startPlayback();}}
 async function act(body){await run(async()=>{state=await api(`/api/match/${session.code}`,{...body,revision:state.revision});target=null;smokeMode=false;barrageMode=false;render();});}
 function element(tag,attrs={},text){const e=document.createElementNS('http://www.w3.org/2000/svg',tag);Object.entries(attrs).forEach(([k,v])=>e.setAttribute(k,v));if(text!==undefined)e.textContent=text;return e;}
 function center(x,y){return [27+x*52+(y%2)*26,30+y*49];}
 function activate(e,callback){e.addEventListener('click',callback);e.addEventListener('keydown',event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();callback();}});}
-function chooseUnit(u){if(busy)return;if(barrageMode){placeBarrage(u.pos);return;}if(smokeMode){placeSmoke(u.pos);return;}if(u.side===state.side){selected=u.id;target=null;}else{target=u.id;}render();}
+function chooseUnit(u){if(busy||playbackSession)return;if(barrageMode){placeBarrage(u.pos);return;}if(smokeMode){placeSmoke(u.pos);return;}if(u.side===state.side){selected=u.id;target=null;}else{target=u.id;}render();}
 function placeBarrage(pos){if(state.legal[selected]?.barrage?.some(p=>p[0]===pos[0]&&p[1]===pos[1])&&confirm(`Call your army's only mortar barrage at ${String.fromCharCode(65+pos[0])}${pos[1]+1}? The marked hex and its neighbors will be hit at the end of your opponent's turn. ALL units there will be pinned and lose dug-in cover, including yours. No strength damage.`))act({kind:'barrage',unit:selected,pos});}
 function placeSmoke(pos){if(state.legal[selected]?.smoke?.some(p=>p[0]===pos[0]&&p[1]===pos[1]))act({kind:'smoke',unit:selected,pos});}
 function chance(threshold){return Math.max(0,Math.min(100,Math.round((7-threshold)/6*100)));}
@@ -127,6 +127,7 @@ function render(){
  $('rematchButton').hidden=!state.ready;$('rematchButton').disabled=busy||!!state.rematch;
  $('rematchProposal').hidden=!state.rematch;
  if(state.rematch){const p=state.rematch,mine=p.by===state.side;$('proposalText').textContent=`${mine?'You proposed':names[p.by]+' propose'} ${p.name}${p.swap?' with armies swapped':' with the same armies'}. ${mine?'Waiting for the other commander.':'Accept to replace the current battle.'}`;$('acceptRematch').hidden=mine;$('acceptRematch').disabled=busy;$('declineRematch').disabled=busy;$('declineRematch').textContent=mine?'Cancel proposal':'Decline';}
+ syncPlayback();
 }
 $('create').onclick=()=>run(async()=>{remember(await api('/api/match',{scenario:$('scenarioSelect').value}));});
 $('joinForm').onsubmit=e=>{e.preventDefault();run(async()=>{remember(await api(`/api/match/${$('code').value.trim().toUpperCase()}/join`,{}));});};
