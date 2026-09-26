@@ -25,6 +25,20 @@ let browser;
  const before=await p.evaluate(()=>JSON.stringify(state));await p.locator('#simpleToggle').click();await p.locator('#simpleToggle').click();
  assert.equal(await p.evaluate(()=>JSON.stringify(state)),before);
  await p.reload();await p.waitForFunction(()=>state&&!busy);assert.equal(await p.locator('#simpleToggle').getAttribute('aria-pressed'),'true');assert.equal(await p.locator('#tutorialCoach').isVisible(),true);
+ // Browser automation clicks auto-scroll targets; invoke the same selection handler to
+ // measure only game-caused movement, including preserved manual pan in enlarged view.
+ await p.locator('#mapWrap').scrollIntoViewIfNeeded();
+ const stability=await p.evaluate(()=>{
+  const wrap=$('mapWrap'),read=()=>{const r=wrap.getBoundingClientRect();return [r.top,r.left,wrap.scrollLeft,wrap.scrollTop];};
+  const checks=[],units=state.units.filter(u=>u.side===state.side);
+  let before=read();chooseUnit(units[0]);checks.push([before,read()]);
+  before=read();chooseUnit(units[1]);checks.push([before,read()]);
+  before=read();$('mobileOrderToggle').click();checks.push([before,read()]);
+  $('zoom').click();wrap.scrollTo(65,90);before=read();chooseUnit(units[2]);checks.push([before,read()]);
+  before=read();render();checks.push([before,read()]);
+  $('zoom').click();return checks;
+ });
+ for(const [before,after] of stability)before.forEach((value,i)=>assert.ok(Math.abs(value-after[i])<=1,`Map moved: ${before} -> ${after}`));
  await p.locator('#roster button').nth(1).click();
  await p.screenshot({path:path.join(temp,'mobile.png'),fullPage:true});
  for(const width of [1280,390,1440,320,844,390]){

@@ -392,9 +392,15 @@ share a player key and are not two independent players).
   `WW2_PLAYWRIGHT=playwright-core WW2_PACKAGED_CHROMIUM=1` and @sparticuz/chromium).
 # DSL learning and compact controls
 
+- Mobile selection preserves the map's screen position and manual pan. The orders header
+  has a fixed height; its dropdown floats over the board rather than pushing it down.
+  Selecting counters no longer automatically recenters an enlarged map. Use Find selected,
+  zoom, or platoon navigation to deliberately move the camera. Rendering keeps the current
+  viewport except when starting a new battle; desktop camera behavior is unchanged.
+
 - On phones/tablets below 1100px, DSL unit selection opens a sticky orders dropdown above
   the battlefield. Its header retains unit name, hex, AP and pin status alongside End turn.
-  Actions scroll inside a panel capped at 28% of screen height (25% on short screens).
+  Actions scroll inside a floating panel capped at 20% of screen height, up to 180px.
   Unit details and odds are expandable in full view. Moving/spending actions collapses the
   panel; smoke and mortar targeting also collapse it so the map stays accessible. Tap the
   header or select a unit again to reopen. Playback temporarily hides live orders.

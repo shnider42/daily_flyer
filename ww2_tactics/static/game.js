@@ -48,6 +48,12 @@ async function act(body){await run(async()=>{state=await api(`/api/match/${sessi
 function element(tag,attrs={},text){const e=document.createElementNS('http://www.w3.org/2000/svg',tag);Object.entries(attrs).forEach(([k,v])=>e.setAttribute(k,v));if(text!==undefined)e.textContent=text;return e;}
 function center(x,y){return [27+x*52+(y%2)*26,30+y*49];}
 function unitName(u){return kinds[u.kind]+(u.platoon?` ${u.platoon}${u.number}`:'');}
+function holdMobileMap(){
+ if(matchMedia('(min-width:1100px)').matches||$('game').hidden)return ()=>{};
+ const wrap=$('mapWrap'),rect=wrap.getBoundingClientRect(),left=wrap.scrollLeft,top=wrap.scrollTop;
+ const visible=rect.bottom>0&&rect.top<innerHeight;
+ return ()=>{wrap.scrollLeft=left;wrap.scrollTop=top;if(visible)window.scrollTo({top:window.scrollY+wrap.getBoundingClientRect().top-rect.top,left:window.scrollX,behavior:'instant'});};
+}
 function focusMapUnit(u,svg=$('map')){
  if(window.ww2Desktop?.active){window.ww2Desktop.focus(u,svg);return;}
  if(!u||!$('mapWrap').classList.contains('enlarged'))return;
@@ -63,7 +69,7 @@ function renderPlatoons(board){
  }
 }
 function activate(e,callback){e.addEventListener('click',callback);e.addEventListener('keydown',event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();callback();}});}
-function chooseUnit(u){if(busy||playbackSession)return;if(barrageMode){placeBarrage(u.pos);return;}if(smokeMode){placeSmoke(u.pos);return;}if(u.side===state.side){selected=u.id;target=null;if(u.platoon&&platoonFilter!=='all')platoonFilter=u.platoon;}else{target=u.id;}render();document.dispatchEvent(new Event('ww2:selection'));if(u.side===state.side)focusMapUnit(u);}
+function chooseUnit(u){if(busy||playbackSession)return;if(barrageMode){placeBarrage(u.pos);return;}if(smokeMode){placeSmoke(u.pos);return;}const restore=holdMobileMap();if(u.side===state.side){selected=u.id;target=null;if(u.platoon&&platoonFilter!=='all')platoonFilter=u.platoon;}else{target=u.id;}render();document.dispatchEvent(new Event('ww2:selection'));restore();if(u.side===state.side&&window.ww2Desktop?.active)focusMapUnit(u);}
 function placeBarrage(pos){if(state.legal[selected]?.barrage?.some(p=>p[0]===pos[0]&&p[1]===pos[1])&&confirm(`Call your army's only mortar barrage at ${String.fromCharCode(65+pos[0])}${pos[1]+1}? The marked hex and its neighbors will be hit at the end of your opponent's turn. ALL units there will be pinned and lose dug-in cover, including yours. No strength damage.`))act({kind:'barrage',unit:selected,pos});}
 function placeSmoke(pos){if(state.legal[selected]?.smoke?.some(p=>p[0]===pos[0]&&p[1]===pos[1]))act({kind:'smoke',unit:selected,pos});}
 function chance(threshold){return Math.max(0,Math.min(100,Math.round((7-threshold)/6*100)));}
@@ -76,7 +82,7 @@ function scenarioPreview(){
 }
 async function rematchRequest(body){await run(async()=>{state=await api(`/api/match/${session.code}/rematch`,{...body,revision:state.revision});render();});}
 function render(){
- if(!state||lobbyMode)return;$('lobby').hidden=true;$('game').hidden=false;
+ if(!state||lobbyMode)return;const restoreMap=holdMobileMap();$('lobby').hidden=true;$('game').hidden=false;
  const myTurn=state.ready&&!state.winner&&state.turn===state.side;
  const board=state.scenario||{id:'village',name:'Village Crossing',objective_name:'Village square',rounds:8};
  const large=!!board.platoons;
@@ -187,9 +193,10 @@ function render(){
  $('rematchButton').hidden=!state.ready;$('rematchButton').disabled=busy||!!state.rematch;
  $('rematchProposal').hidden=!state.rematch;
  if(state.rematch){const p=state.rematch,mine=p.by===state.side;$('proposalText').textContent=`${mine?'You proposed':names[p.by]+' propose'} ${p.name} · ${p.ruleset==='dsl'?'DSL v1':'Classic'}${p.swap?' with armies swapped':' with the same armies'}. ${mine?'Waiting for the other commander.':'Accept to replace the current battle.'}`;$('acceptRematch').hidden=mine;$('acceptRematch').disabled=busy;$('declineRematch').disabled=busy;$('declineRematch').textContent=mine?'Cancel proposal':'Decline';}
- renderPlatoons(board);$('findUnit').hidden=!large||!selected;if(newBattle&&large)focusMapUnit(state.units.find(u=>u.side===state.side&&u.platoon==='A'&&u.kind==='leader'));
+ renderPlatoons(board);$('findUnit').hidden=!selected||!(large||$('mapWrap').classList.contains('enlarged'));if(newBattle&&large)focusMapUnit(state.units.find(u=>u.side===state.side&&u.platoon==='A'&&u.kind==='leader'));
  syncPlayback();renderBattleEffects(state,svg);
  document.dispatchEvent(new Event('ww2:render'));
+ if(!newBattle)restoreMap();
 }
 $('create').onclick=()=>run(async()=>{remember(await api('/api/match',{scenario:$('scenarioSelect').value,ruleset:$('rulesetSelect').value}));});
 $('joinForm').onsubmit=e=>{e.preventDefault();run(async()=>{remember(await api(`/api/match/${$('code').value.trim().toUpperCase()}/join`,{}));});};
