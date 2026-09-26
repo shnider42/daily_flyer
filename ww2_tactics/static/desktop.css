@@ -119,3 +119,10 @@
  .desktop-forces .roster-unit { font-size:13px; }
  .desktop-orders .dice-options .die-face { width:39px; height:39px; }
 }
+@media(min-width:1100px) {
+ .desktop-briefing #rulesetBadge { grid-column:1/-1; margin:0 0 7px; }
+ #game:has(#rulesetBadge:not([hidden])) .desktop-layout { height:calc(100svh - 268px); }
+ .desktop-lobby-setup #rulesetPicker label { margin-top:0; }
+ .desktop-lobby-setup #rulesetPicker select { font-size:13px; }
+ .desktop-lobby-setup .ruleset-help { min-height:0; font-size:10px; }
+}

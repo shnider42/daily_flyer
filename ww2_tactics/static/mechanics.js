@@ -35,17 +35,18 @@ function renderOdds(shot,assault,grenade,picking){
 function renderUnitMechanics(state,unit){
  const panel=document.getElementById('unitMechanics');panel.hidden=!unit;panel.replaceChildren();if(!unit)return;
  const meters=uiNode('div','unit-meters');
- for(const [label,current,max] of [['Strength',Math.max(0,unit.hp),unit.kind==='leader'?2:3],['Actions',unit.ap,2]]){
+ for(const [label,current,max] of [['Strength',Math.max(0,unit.hp),unit.kind==='leader'?2:3],['Actions',unit.ap,state.ruleset==='dsl'?(unit.kind==='leader'?5:3):2]]){
   const meter=uiNode('span','unit-meter');meter.append(uiNode('strong','',`${label} ${current}/${max}`));
   const marks=uiNode('span','meter-marks');marks.setAttribute('aria-hidden','true');
   for(let i=0;i<max;i++)marks.append(uiNode('i',i<current?'filled':''));meter.append(marks);meters.append(meter);
  }
  panel.append(meters);
+ if(state.ruleset==='dsl')panel.append(uiNode('p','mechanics-caption',`Base ${unit.kind==='leader'?3:2} AP · carried ${unit.carried_ap||0} · received ${unit.ap_received}/${unit.kind==='leader'?5:3} this turn. ${unit.side===state.turn?'End now to bank '+Math.min(unit.ap,unit.kind==='leader'?2:1):'Banked: '+(unit.banked_ap||0)} AP. Spending actions does not reset the received limit.`));
  const details=uiNode('details','unit-explanation');details.append(uiNode('summary','','Terrain & status explained'));
  const type=state.map[unit.pos[1]][unit.pos[0]],cover=['woods','building','objective'].includes(type);
  const items=[`${type[0].toUpperCase()+type.slice(1)}: ${cover?'incoming fire needs +1 on the die':'no terrain cover bonus'}. Entering this terrain costs ${['woods','building'].includes(type)?2:1} action(s).`,
   `Range ${unit.range} hexes. Intervening woods, buildings and smoke block direct fire. Strength is remaining health; zero removes the unit.`,
-  `Actions refresh to 2 at the start of this army’s turn. Moving on open ground costs 1; firing costs 2.`];
+  state.ruleset==='dsl'?`DSL: ${unit.kind==='leader'?3:2} base AP plus up to ${unit.kind==='leader'?2:1} banked AP. A paid road-to-road move earns one free connected road hex, once per turn. Firing costs 2 AP.`:`Actions refresh to 2 at the start of this army’s turn. Moving on open ground costs 1; firing costs 2.`];
  if(unit.pinned)items.push('PINNED: cannot move or attack. Rally costs 1 action. Pins remain until rallied; pinned units can still hold the objective.');
  if(unit.entrenched)items.push('DUG IN: incoming fire needs another +1. Moving or assaulting removes this protection.');
  if(unit.overwatch)items.push('OVERWATCH: one automatic reaction shot, with +1 to the normal hit threshold. Expires at your next turn or when pinned.');

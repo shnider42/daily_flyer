@@ -64,7 +64,7 @@ document.addEventListener('DOMContentLoaded',()=>{
  function activate(){
   if(active)return;active=true;document.body.classList.add('desktop-mode');
   const tag=el('span','desktop-header-tag','WESTERN FRONT / TACTICAL OPERATIONS');document.querySelector('header .brand').after(tag);mounts.push(tag);
-  group(game,'desktop-briefing',['.game-title','.status-line','#turnBanner']);
+  group(game,'desktop-briefing',['.game-title','.status-line','#rulesetBadge','#turnBanner']);
   const layout=el('div','desktop-layout');game.append(layout);mounts.push(layout);
   const force=group(layout,'desktop-forces',['#platoonFilters','#roster'],'Task force');
   const summary=el('p','desktop-force-summary');summary.id='desktopForceSummary';force.querySelector('h2').after(summary);
@@ -86,7 +86,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   const dock=group(commands,'desktop-action-dock',['#nextUnit','#end']);dock.id='desktopActionDock';
   group(game,'desktop-footer',['.match-tools','#seriesScore']);
   group(lobby,'desktop-lobby-intro',[lobby.querySelector('.eyebrow'),lobby.querySelector('h1'),lobby.querySelector('.intro'),lobby.querySelector('.brief:not(#scenarioBrief)'),lobby.querySelector(':scope > .footnote')]);
-  group(lobby,'desktop-lobby-setup',[lobby.querySelector('label[for="scenarioSelect"]'),'#scenarioSelect','#scenarioPreview','#scenarioBrief','#create','#createSolo'],'Choose your operation');
+  group(lobby,'desktop-lobby-setup',['#rulesetPicker',lobby.querySelector('label[for="scenarioSelect"]'),'#scenarioSelect','#scenarioPreview','#scenarioBrief','#create','#createSolo'],'Choose your operation');
   group(lobby,'desktop-lobby-return',['#savedSessions','#joinForm','#recoverForm'],'Return to the field');
   sync();
  }

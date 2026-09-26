@@ -159,3 +159,21 @@ textarea { box-sizing:border-box; display:block; width:100%; max-width:100%; pad
 #sessionList { display:grid; gap:8px; }
 .saved-session { text-align:left; overflow-wrap:anywhere; }
 #accessDialog { width:min(480px,calc(100% - 40px)); box-sizing:border-box; }
+
+.ruleset-help { margin:8px 0 18px; }
+.ruleset-badge { margin:0 0 10px; font-size:10px; color:#566742; font-weight:750; letter-spacing:.5px; }
+#soloRuleset,#rematchRuleset { margin-bottom:16px; }
+#dslManual { border-left:3px solid #8b7935; padding:0 12px; background:#ece8d6; }
+.hex.road-bonus { fill:#f1df88; stroke:#8b671b; stroke-width:3; stroke-dasharray:2 3; }
+#commandOrders p { flex-basis:100%; }
+.battle-effect { pointer-events:none; }
+.effect-puff { fill:#e3e9e1; stroke:#98aba2; stroke-width:1; opacity:.65; transform-box:fill-box; transform-origin:center; animation:smoke-bloom 1.6s ease-out forwards; }
+.effect-flash { fill:#ffd761; opacity:.8; animation:blast-flash .65s ease-out forwards; }
+.effect-ring { fill:none; stroke:#c45b20; stroke-width:3; transform-origin:center; animation:blast-ring 1s ease-out forwards; }
+.effect-spark { stroke:#bd531d; stroke-width:3; animation:blast-flash .7s ease-out forwards; }
+@keyframes smoke-bloom { from { transform:scale(.35); opacity:.65; } to { transform:scale(1.4) translateY(-5px); opacity:0; } }
+@keyframes blast-flash { from { opacity:.85; } to { opacity:0; } }
+@keyframes blast-ring { from { transform:scale(.3); opacity:.9; } to { transform:scale(1.35); opacity:0; } }
+@media(prefers-reduced-motion:reduce) { .battle-effect * { animation:none; opacity:.45; } }
+
+.hex.road-bonus.threatened { fill:#ffbf74; stroke:#a24a13; }

@@ -14,6 +14,7 @@ from werkzeug.exceptions import HTTPException
 from ww2_tactics.engine import initial, apply, options, terrain, WIDTH, HEIGHT
 from ww2_tactics.scenarios import battlefield, catalog, get_scenario
 from ww2_tactics.computer import play_turn
+from ww2_tactics.rulesets import profile, PROFILES
 
 
 def create_app(db_path=None):
@@ -99,6 +100,10 @@ def create_app(db_path=None):
     def scenarios():
         return jsonify(scenarios=catalog())
 
+    @app.get('/api/rulesets')
+    def rulesets():
+        return jsonify(rulesets=list(PROFILES.values()))
+
     def scenario_input():
         body = request.get_json(silent=True)
         if body is None:
@@ -112,7 +117,7 @@ def create_app(db_path=None):
         mode = body.get('opponent', 'human')
         if mode not in ('human', 'computer'):
             raise ValueError('Choose a human or computer opponent.')
-        state = initial(scenario)
+        state = initial(scenario, body.get('ruleset', 'classic'))
         if mode == 'computer':
             state.update(ai_side='de', ready=True)
             state['log'].append('Solo battle: you command the Americans; the computer commands the Germans.')
@@ -219,13 +224,14 @@ def create_app(db_path=None):
                     return jsonify(error='Accept, decline, or cancel the pending proposal first.'), 409
                 try:
                     scenario = get_scenario(body.get('scenario'))
+                    rules = profile(body.get('ruleset', state.get('ruleset', 'classic')))
                 except ValueError as error:
                     return jsonify(error=str(error)), 400
                 if type(body.get('swap')) is not bool:
                     return jsonify(error='Choose whether to swap armies.'), 400
-                state['rematch'] = dict(by=side, scenario=scenario['id'], name=scenario['name'], swap=body['swap'])
+                state['rematch'] = dict(by=side, scenario=scenario['id'], name=scenario['name'], swap=body['swap'], ruleset=rules['id'])
                 if state.get('ai_side'):
-                    next_state = initial(scenario['id'])
+                    next_state = initial(scenario['id'], rules['id'])
                     next_state.update(ready=True, revision=state['revision'],
                                       ai_side=('us' if state['ai_side'] == 'de' else 'de') if body['swap'] else state['ai_side'],
                                       battle_number=state.get('battle_number', 1)+1,
@@ -244,7 +250,7 @@ def create_app(db_path=None):
                 proposal = state.get('rematch')
                 if not proposal or proposal['by'] == side:
                     return jsonify(error='Only the other commander can accept the proposal.'), 400
-                next_state = initial(proposal['scenario'])
+                next_state = initial(proposal['scenario'], proposal.get('ruleset', state.get('ruleset', 'classic')))
                 next_state.update(ready=True, revision=state['revision'],
                                   battle_number=state.get('battle_number', 1)+1,
                                   victories=state.get('victories', {'us': int(state['winner'] == 'us'), 'de': int(state['winner'] == 'de')}))

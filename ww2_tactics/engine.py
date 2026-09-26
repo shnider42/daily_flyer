@@ -4,6 +4,8 @@ import secrets
 from .scenarios import battlefield, get_scenario
 from .support import role_options, role_action, resolve_barrages
 from .combat_display import record_combat
+from .rulesets import profile, dsl, base_ap, bank_limit, turn_limit, road
+from .effects import record_effect
 
 WIDTH, HEIGHT = 7, 9
 OBJECTIVE = [3, 4]
@@ -51,7 +53,8 @@ def line_clear(a, b, smoke=(), state=None):
     return True
 
 
-def initial(scenario='village'):
+def initial(scenario='village', ruleset='classic'):
+    rules = profile(ruleset)
     board = get_scenario(scenario)
     units = []
     for side, row in [("us", board['height']-1), ("de", 0)]:
@@ -70,9 +73,11 @@ def initial(scenario='village'):
                               range=reach, ap=2, pinned=False, entrenched=False,
                               overwatch=False, smoke=1 if kind == 'squad' else 0,
                               grenades=1 if kind == 'squad' else 0))
+            if ruleset == 'dsl':
+                units[-1].update(ap=base_ap(units[-1]), ap_received=base_ap(units[-1]), banked_ap=0, carried_ap=0, road_pending=False, road_used=False)
             if platoon:
                 units[-1].update(platoon=platoon, number=number)
-    return dict(units=units, turn="us", round=1, hold=0, winner=None, rules_version=4, smoke=[], battlefield=board,
+    return dict(ruleset=ruleset, ruleset_version=rules['version'], units=units, turn="us", round=1, hold=0, winner=None, rules_version=4, smoke=[], battlefield=board,
                 support={'us': 1, 'de': 1}, barrages=[],
                 battle_number=1, victories={'us': 0, 'de': 0},
                 log=[f"{board['name']} · Americans move first. Hold the objective at the end of two consecutive American turns. German defense wins after round {board['rounds']}."],
@@ -136,9 +141,10 @@ def options(state, unit):
         for y in range(board['height']):
             for x in range(board['width']):
                 tile = terrain(x, y, state)
-                cost = 2 if tile in {"woods", "building"} else 1
+                free_road = dsl(state) and unit.get('road_pending', False) and not unit.get('road_used', False) and road(terrain(*unit['pos'], state)) and road(tile)
+                cost = 0 if free_road else 2 if tile in {"woods", "building"} else 1
                 if tile != 'water' and distance(unit["pos"], [x, y]) == 1 and [x, y] not in occupied and unit["ap"] >= cost:
-                    moves.append(dict(pos=[x, y], cost=cost, threats=len(watchers(state, unit, [x, y]))))
+                    moves.append(dict(pos=[x, y], cost=cost, threats=len(watchers(state, unit, [x, y])), **({'road_bonus': True} if free_road else {})))
         if unit["ap"] >= 2:
             for target in state["units"]:
                 if target["side"] != unit["side"] and target["hp"] > 0 and distance(unit["pos"], target["pos"]) <= unit["range"] and line_clear(unit["pos"], target["pos"], state.get('smoke', []), state):
@@ -187,8 +193,16 @@ def apply(state, side, action, roll=None):
         state["turn"] = "de" if side == "us" else "us"
         state['command_used'] = [key for key in state.get('command_used', []) if not key.startswith(state['turn']+':')]
         for u in state["units"]:
+            if dsl(state) and u['side'] == side:
+                u['banked_ap'] = min(max(0, u['ap']), bank_limit(u)) if u['hp'] > 0 else 0
+                u['road_pending'] = False
             if u["side"] == state["turn"]:
-                u["ap"] = 2
+                if dsl(state):
+                    u['carried_ap'] = u.get('banked_ap', 0)
+                    u['ap'] = base_ap(u)+u['carried_ap']
+                    u.update(ap_received=u['ap'], banked_ap=0, road_pending=False, road_used=False)
+                else:
+                    u["ap"] = 2
                 u['overwatch'] = False
         message = f"{NAMES[side]} ended their turn."
     else:
@@ -196,17 +210,29 @@ def apply(state, side, action, roll=None):
         if unit is None:
             raise ValueError("Choose one of your surviving units.")
         legal = options(state, unit)
+        if dsl(state) and kind != 'move':
+            unit['road_pending'] = False
         if kind in {'grenade', 'suppress', 'inspire', 'barrage', 'command'}:
             message = role_action(state, unit, action, legal, roll_die, distance, NAMES)
         elif kind == "move":
             move = next((m for m in legal["moves"] if m["pos"] == action.get("pos")), None)
             if not move:
                 raise ValueError("That hex is not a legal move.")
+            if dsl(state):
+                both_road = road(terrain(*unit['pos'], state)) and road(terrain(*move['pos'], state))
+                if move.get('road_bonus'):
+                    unit.update(road_used=True, road_pending=False)
+                else:
+                    unit['road_pending'] = both_road and not unit.get('road_used', False)
             unit["pos"] = move["pos"]
             unit["ap"] -= move["cost"]
             unit['entrenched'] = False
             message = f"{NAMES[side]} {unit['kind']} moved to {chr(65+unit['pos'][0])}{unit['pos'][1]+1}."
             reactions = react(state, unit, roll_die)
+            if dsl(state) and unit['pinned']:
+                unit['road_pending'] = False
+            if move.get('road_bonus'):
+                message += ' Road bonus: no AP spent.'
         elif kind == "fire":
             shot = next((t for t in legal["targets"] if t["id"] == action.get("target")), None)
             if not shot:
@@ -269,6 +295,11 @@ def apply(state, side, action, roll=None):
             message = f"{NAMES[side]} {unit['kind']} rallied (1 action)."
         else:
             raise ValueError("Invalid action.")
+    if kind == 'smoke':
+        record_effect(state, 'smoke', [action['pos']])
+    elif kind == 'grenade':
+        target = next(u for u in state['units'] if u['id'] == action['target'])
+        record_effect(state, 'explosion', [target['pos']])
     for team in ("us", "de"):
         if not any(u["hp"] > 0 and u["side"] == team for u in state["units"]):
             state["winner"] = "de" if team == "us" else "us"

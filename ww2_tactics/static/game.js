@@ -80,6 +80,11 @@ function render(){
  const myTurn=state.ready&&!state.winner&&state.turn===state.side;
  const board=state.scenario||{id:'village',name:'Village Crossing',objective_name:'Village square',rounds:8};
  const large=!!board.platoons;
+ const dsl=state.ruleset==='dsl';
+ $('rulesetBadge').hidden=!dsl;$('rulesetBadge').textContent='DSL v1 · Double Secret Probation Squad Leader';
+ $('dslManual').hidden=!dsl;$('classicCommandManual').hidden=dsl;
+ $('manualAP').textContent=dsl?'DSL: rifles/MGs get 2 AP, LTs get 3. Bank up to 1 AP (LT: 2). Total AP received per turn is capped at 3 (LT: 5). Woods/buildings cost 2 AP to enter. No stacking.':'2 actions per unit each turn. One adjacent hex costs 1; entering woods or buildings costs 2. No stacking.';
+ $('manualOrders').textContent=dsl?'Tap your unit, then a highlighted hex to move or an enemy to preview an attack. Gold dashed road hexes cost 0 AP. End turn banks unused AP up to each unit’s limit.':'Tap your unit. Green hexes are legal moves. Tap an enemy in range to preview a shot, then confirm Fire. End turn when ready; unused actions are lost.';
  const battleKey=`${state.code}:${state.battle_number||1}`;
  const newBattle=renderedBattle!==battleKey;
  if(newBattle){platoonFilter=large?'A':'all';$('mapWrap').classList.toggle('enlarged',large);selected=null;target=null;smokeMode=false;barrageMode=false;renderedBattle=battleKey;$('mapWrap').scrollTo?.(0,0);}
@@ -125,7 +130,7 @@ function render(){
   const points=Array.from({length:6},(_,i)=>{const a=(60*i-30)*Math.PI/180;return `${cx+30*Math.cos(a)},${cy+30*Math.sin(a)}`;}).join(' ');
   const smokeHere=smokeMode&&legal.smoke.some(p=>p[0]===x&&p[1]===y);
   const barrageHere=barrageMode&&legal.barrage.some(p=>p[0]===x&&p[1]===y);
-  const tile=element('polygon',{points,class:`hex ${type}${move&&!picking?' move':''}${move?.threats&&!picking?' threatened':''}${smokeHere?' smoke-choice':''}${barrageHere?' barrage-choice':''}`,...(barrageHere?{tabindex:0,role:'button','aria-label':`Mortar at ${String.fromCharCode(65+x)}${y+1}`} :smokeHere?{tabindex:0,role:'button','aria-label':`Smoke at ${String.fromCharCode(65+x)}${y+1}`} :move&&!picking?{tabindex:0,role:'button','aria-label':`Move to ${String.fromCharCode(65+x)}${y+1}, ${type}, ${move.cost} action${move.cost>1?'s':''}${move.threats?', exposed to overwatch':''}`}:{})});
+  const tile=element('polygon',{points,class:`hex ${type}${move&&!picking?' move':''}${move?.threats&&!picking?' threatened':''}${move?.road_bonus&&!picking?' road-bonus':''}${smokeHere?' smoke-choice':''}${barrageHere?' barrage-choice':''}`,...(barrageHere?{tabindex:0,role:'button','aria-label':`Mortar at ${String.fromCharCode(65+x)}${y+1}`} :smokeHere?{tabindex:0,role:'button','aria-label':`Smoke at ${String.fromCharCode(65+x)}${y+1}`} :move&&!picking?{tabindex:0,role:'button','aria-label':`Move to ${String.fromCharCode(65+x)}${y+1}, ${type}, ${move.cost} action${move.cost!==1?'s':''}${move.road_bonus?', road bonus':''}${move.threats?', exposed to overwatch':''}`}:{})});
   if(barrageHere)activate(tile,()=>placeBarrage([x,y]));else if(smokeHere)activate(tile,()=>placeSmoke([x,y]));else if(move&&!picking)activate(tile,()=>moveUnit(move));svg.append(tile);
   svg.append(element('text',{x:cx-18,y:cy-16,class:'tile-label'},`${String.fromCharCode(65+x)}${y+1}`));
   if(type==='woods')svg.append(element('path',{d:`M${cx-9} ${cy+9}l9 -20l9 20z M${cx} ${cy+9}v5`,class:'terrain-icon'}));
@@ -152,15 +157,18 @@ function render(){
  }
  $('selection').textContent=unit?`${unitName(unit)} · ${unit.hp} strength · ${unit.ap} actions${unit.pinned?' · PINNED':''}`:'Tap one of your units to see its orders.';
  $('hint').textContent=state.winner?'Start a new match for another battle.':!myTurn?'You can inspect units while you wait.':smokeMode?'Tap a blue-outlined hex to throw smoke, or tap Cancel smoke.':shot?`Fire at ${kinds[enemy.kind]}: ${shot.threshold}+ to hit (${chance(shot.threshold)}%).`:assault?'Enemy adjacent: a close assault is available.':enemy?'No clear shot: check range, sight lines, smoke, or actions.':unit?.pinned?'Rally to remove the pin. It costs 1 action.':unit?`${state.map[unit.pos[1]][unit.pos[0]]}${unit.entrenched?' · dug in':''} · range ${unit.range} · ${unit.smoke||0} smoke grenades`:'Counters show strength dots and remaining actions.';
+ if(dsl&&unit?.road_pending&&!unit.pinned&&!picking)$('hint').textContent+=' · ROAD BONUS: your next connected road hex costs 0 AP.';
  if(barrageMode)$('hint').textContent='Choose a marked hex for mortar support. It and its neighbors will be hit after your opponent gets a turn to escape.';
  $('roleBrief').hidden=!unit||(state.rules_version||1)<4;
  $('roleBrief').textContent=unit?.kind==='squad'?`ASSAULT TROOPS · ${unit.grenades||0} frag grenade left. Range 2; 2 damage on a hit. Tap an enemy to see available attacks.`:unit?.kind==='mg'?'FIRE SUPPORT · Suppress a visible enemy within 4 hexes: guaranteed pin, no damage. Cancels overwatch. Tap an enemy.':unit?.platoon?`PLATOON ${unit.platoon} COMMAND · Rally adjacent pinned members of this platoon for 1 action. On your feet: spend 2 actions to restore 1 to an adjacent, unpinned squad or MG (max 2); once per platoon per turn. Mortars remain shared by the army.`:'COMMAND · Rally all adjacent pinned allies for 1 action. Call one delayed mortar barrage per army for 2 actions.';
+ if(dsl&&unit?.kind==='leader')$('roleBrief').textContent=`DSL COMMAND · 3 base AP, bank up to 2. On your feet: 2 AP grants 1 to each eligible adjacent squad/MG in your platoon; once per platoon per turn. A unit that has already received 3 AP cannot gain more this turn. Rally: 1 AP. Mortars: 2 AP.`;
  $('grenade').hidden=!myTurn||!grenade||picking;$('grenade').disabled=busy;$('grenade').textContent=grenade?`Frag · ${chance(grenade.threshold)}% · 2 actions`:'Frag';
  $('suppress').hidden=!myTurn||!suppress||picking;$('suppress').disabled=busy;
  $('inspire').hidden=!myTurn||!legal?.inspire?.length||picking;$('inspire').disabled=busy;$('inspire').textContent=`Rally ${unit?.platoon?'platoon':'nearby'} (${legal?.inspire?.length||0}) · 1 action`;
  $('barrage').hidden=!myTurn||!legal?.barrage?.length;$('barrage').disabled=busy;$('barrage').textContent=barrageMode?'Cancel mortar':'Call mortars · 2 actions';
  $('commandOrders').replaceChildren();$('commandOrders').hidden=!myTurn||picking||!legal?.command?.length;
- for(const id of legal?.command||[]){const recipient=state.units.find(u=>u.id===id),b=document.createElement('button');b.textContent=`On your feet → ${unitName(recipient)} · 2 actions`;b.disabled=busy;b.onclick=()=>act({kind:'command',unit:unit.id,target:id});$('commandOrders').append(b);}
+ if(dsl&&legal?.command?.length){const b=document.createElement('button');b.textContent=`On your feet → ${legal.command.length} units · 2 AP`;b.disabled=busy;b.onclick=()=>act({kind:'command',unit:unit.id});$('commandOrders').append(b);const p=document.createElement('p');p.className='mechanics-caption';p.textContent='Recipients: '+legal.command.map(id=>unitName(state.units.find(u=>u.id===id))).join(', ');$('commandOrders').append(p);}
+ for(const id of (dsl?[]:legal?.command||[])){const recipient=state.units.find(u=>u.id===id),b=document.createElement('button');b.textContent=`On your feet → ${unitName(recipient)} · 2 actions`;b.disabled=busy;b.onclick=()=>act({kind:'command',unit:unit.id,target:id});$('commandOrders').append(b);}
  renderOdds(shot,assault,grenade,picking);renderUnitMechanics(state,unit);renderCombat(state);
  $('fire').hidden=!myTurn||!shot;$('fire').disabled=busy;$('fire').textContent=shot?`Fire · ${shot.threshold}+ · 2 actions`:'Fire';
  $('fire').disabled=busy||!!shot&&chance(shot.threshold)===0;
@@ -178,12 +186,12 @@ function render(){
  $('seriesScore').textContent=`Army victories this session · Americans ${state.victories?.us||0} / Germans ${state.victories?.de||0}`;
  $('rematchButton').hidden=!state.ready;$('rematchButton').disabled=busy||!!state.rematch;
  $('rematchProposal').hidden=!state.rematch;
- if(state.rematch){const p=state.rematch,mine=p.by===state.side;$('proposalText').textContent=`${mine?'You proposed':names[p.by]+' propose'} ${p.name}${p.swap?' with armies swapped':' with the same armies'}. ${mine?'Waiting for the other commander.':'Accept to replace the current battle.'}`;$('acceptRematch').hidden=mine;$('acceptRematch').disabled=busy;$('declineRematch').disabled=busy;$('declineRematch').textContent=mine?'Cancel proposal':'Decline';}
+ if(state.rematch){const p=state.rematch,mine=p.by===state.side;$('proposalText').textContent=`${mine?'You proposed':names[p.by]+' propose'} ${p.name} · ${p.ruleset==='dsl'?'DSL v1':'Classic'}${p.swap?' with armies swapped':' with the same armies'}. ${mine?'Waiting for the other commander.':'Accept to replace the current battle.'}`;$('acceptRematch').hidden=mine;$('acceptRematch').disabled=busy;$('declineRematch').disabled=busy;$('declineRematch').textContent=mine?'Cancel proposal':'Decline';}
  renderPlatoons(board);$('findUnit').hidden=!large||!selected;if(newBattle&&large)focusMapUnit(state.units.find(u=>u.side===state.side&&u.platoon==='A'&&u.kind==='leader'));
- syncPlayback();
+ syncPlayback();renderBattleEffects(state,svg);
  document.dispatchEvent(new Event('ww2:render'));
 }
-$('create').onclick=()=>run(async()=>{remember(await api('/api/match',{scenario:$('scenarioSelect').value}));});
+$('create').onclick=()=>run(async()=>{remember(await api('/api/match',{scenario:$('scenarioSelect').value,ruleset:$('rulesetSelect').value}));});
 $('joinForm').onsubmit=e=>{e.preventDefault();run(async()=>{remember(await api(`/api/match/${$('code').value.trim().toUpperCase()}/join`,{}));});};
 $('fire').onclick=()=>act({kind:'fire',unit:selected,target});$('rally').onclick=()=>act({kind:'rally',unit:selected});
 $('assault').onclick=()=>{if(confirm('Assault? Success deals 2 damage; failure costs your unit 1 strength and pins it.'))act({kind:'assault',unit:selected,target});};
@@ -193,24 +201,24 @@ $('suppress').onclick=()=>act({kind:'suppress',unit:selected,target});
 $('inspire').onclick=()=>act({kind:'inspire',unit:selected});
 $('barrage').onclick=()=>{smokeMode=false;barrageMode=!barrageMode;target=null;render();};
 $('overwatch').onclick=()=>act({kind:'overwatch',unit:selected});
-$('nextUnit').onclick=()=>{const alive=state.units.filter(u=>u.side===state.side&&u.hp>0&&(platoonFilter==='all'||u.platoon===platoonFilter));const ready=alive.filter(u=>u.ap>0);const units=ready.length?ready:alive;smokeMode=false;barrageMode=false;chooseUnit(units[(units.findIndex(u=>u.id===selected)+1)%units.length]);};
+$('nextUnit').onclick=()=>{const alive=state.units.filter(u=>u.side===state.side&&u.hp>0&&(platoonFilter==='all'||u.platoon===platoonFilter));const ready=alive.filter(u=>u.ap>0||state.legal[u.id]?.moves.some(m=>m.road_bonus));const units=ready.length?ready:alive;smokeMode=false;barrageMode=false;chooseUnit(units[(units.findIndex(u=>u.id===selected)+1)%units.length]);};
 $('zoom').onclick=()=>{const enlarged=$('mapWrap').classList.toggle('enlarged');$('zoom').setAttribute('aria-pressed',String(enlarged));$('zoom').textContent=state.scenario?.platoons?(enlarged?'Overview':'Detail'):(enlarged?'Fit map −':'Enlarge map +');if(playbackSession){drawPlayback();return;}if(enlarged)focusMapUnit(state.units.find(u=>u.id===selected)||state.units.find(u=>u.side===state.side&&u.hp>0&&(platoonFilter==='all'||u.platoon===platoonFilter)));};
-$('end').onclick=()=>{const count=state.units.filter(u=>u.side===state.side&&u.hp>0&&u.ap>0).length;const exposed=state.units.filter(u=>u.side===state.side&&u.hp>0&&state.barrages?.some(b=>b.ttl===1&&b.area.some(p=>p[0]===u.pos[0]&&p[1]===u.pos[1]))).length;if(confirm(`End your turn? ${count} unit${count===1?' has':'s have'} unused actions.${exposed?` WARNING: ${exposed} of your units will be caught in the incoming barrage.`:''}`))act({kind:'end'});};
-$('reset').onclick=()=>{if(confirm('Replace this match? Progress and the old invitation will be lost. Your opponent will need the new invitation.'))run(async()=>{const old=session.code;const next=await api(`/api/match/${old}/reset`,{});savedSessions=savedSessions.filter(s=>s.code!==old);remember(next);});};
+$('end').onclick=()=>{const count=state.units.filter(u=>u.side===state.side&&u.hp>0&&u.ap>0).length;const exposed=state.units.filter(u=>u.side===state.side&&u.hp>0&&state.barrages?.some(b=>b.ttl===1&&b.area.some(p=>p[0]===u.pos[0]&&p[1]===u.pos[1]))).length;if(confirm(`End your turn? ${count} unit${count===1?' has':'s have'} unused actions.${state.ruleset==='dsl'?' Unused AP carries over up to 1 per unit, or 2 per LT; excess is lost.':''}${exposed?` WARNING: ${exposed} of your units will be caught in the incoming barrage.`:''}`))act({kind:'end'});};
+$('reset').onclick=()=>{if(confirm('Replace this match? Progress and the old invitation will be lost. Your opponent will need the new invitation.'))run(async()=>{const old=session.code;const next=await api(`/api/match/${old}/reset`,{ruleset:state.ruleset||'classic'});savedSessions=savedSessions.filter(s=>s.code!==old);remember(next);});};
 $('refresh').onclick=refresh;
 $('findUnit').onclick=()=>focusMapUnit(state.units.find(u=>u.id===selected));
 $('share').onclick=async()=>{try{if(navigator.share){await navigator.share({title:'Village Crossing',text:'Command the Germans. Join my WWII tactics match.',url:invitation()});}else{await navigator.clipboard.writeText(invitation());notify('Invitation copied. Send it to the other player.');}}catch(e){if(e.name!=='AbortError'){ $('invite').select();notify('Copy the invitation from the field below.');}}};
 $('leave').onclick=()=>{lobbyMode=true;$('game').hidden=true;$('lobby').hidden=false;renderSessions();window.scrollTo(0,0);};
 $('rulesButton').onclick=()=>$('rules').showModal();$('closeRules').onclick=()=>$('rules').close();
 $('scenarioSelect').onchange=scenarioPreview;
-$('rematchButton').onclick=()=>{$('rematchScenario').value=state.scenario?.id||'village';$('rematchDialog').querySelector('h2').textContent=state.ai_side?'Another round?':'Stay connected. Fight again.';$('rematchDialog').querySelector('h2 + p').textContent=state.ai_side?'Start immediately against the computer. An unfinished battle will be abandoned without awarding a win.':'Your opponent must accept. An unfinished battle will be abandoned without awarding a win.';$('proposeRematch').textContent=state.ai_side?'Start next battle':'Send proposal';$('rematchDialog').showModal();};
+$('rematchButton').onclick=()=>{$('rematchRuleset').value=state.ruleset||'classic';$('rematchScenario').value=state.scenario?.id||'village';$('rematchDialog').querySelector('h2').textContent=state.ai_side?'Another round?':'Stay connected. Fight again.';$('rematchDialog').querySelector('h2 + p').textContent=state.ai_side?'Start immediately against the computer. An unfinished battle will be abandoned without awarding a win.':'Your opponent must accept. An unfinished battle will be abandoned without awarding a win.';$('proposeRematch').textContent=state.ai_side?'Start next battle':'Send proposal';$('rematchDialog').showModal();};
 $('closeRematch').onclick=()=>$('rematchDialog').close();
-$('proposeRematch').onclick=()=>{const settings={operation:'propose',scenario:$('rematchScenario').value,swap:$('swapArmies').checked};$('rematchDialog').close();rematchRequest(settings);};
+$('proposeRematch').onclick=()=>{const settings={operation:'propose',scenario:$('rematchScenario').value,ruleset:$('rematchRuleset').value,swap:$('swapArmies').checked};$('rematchDialog').close();rematchRequest(settings);};
 $('acceptRematch').onclick=()=>rematchRequest({operation:'accept'});
 $('declineRematch').onclick=()=>rematchRequest({operation:'decline'});
-function openSolo(){ $('soloScenario').value=state?.scenario?.id||$('scenarioSelect').value;$('soloReplace').textContent=session?'This starts a separate solo battle. Your current battle stays available under Battles / load code.':'Choose a battlefield and start playing immediately.';$('soloDialog').showModal(); }
+function openSolo(){ $('soloRuleset').value=$('rulesetSelect').value; $('soloScenario').value=state?.scenario?.id||$('scenarioSelect').value;$('soloReplace').textContent=session?'This starts a separate solo battle. Your current battle stays available under Battles / load code.':'Choose a battlefield and start playing immediately.';$('soloDialog').showModal(); }
 $('createSolo').onclick=openSolo;$('soloButton').onclick=openSolo;$('closeSolo').onclick=()=>$('soloDialog').close();
-$('startSolo').onclick=()=>{const body={opponent:'computer',scenario:$('soloScenario').value};$('soloDialog').close();run(async()=>{remember(await api('/api/match',body));});};
+$('startSolo').onclick=()=>{const body={opponent:'computer',scenario:$('soloScenario').value,ruleset:$('soloRuleset').value};$('soloDialog').close();run(async()=>{remember(await api('/api/match',body));});};
 api('/api/scenarios').then(data=>{scenarios=data.scenarios;scenarioPreview();}).catch(()=>{notify('Map preview unavailable. You can still choose a battlefield and try to create a match.');});
 const invited=new URLSearchParams(location.search).get('join');
 if(invited){$('code').value=invited.toUpperCase();if(session&&session.code!==invited.toUpperCase()){notify('Your other battles stay available under Continue a battle.');session=null;}}

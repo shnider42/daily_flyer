@@ -1,5 +1,7 @@
 """Role abilities and delayed support. Legal choices are shared with every client."""
 from .combat_display import record_combat
+from .rulesets import dsl, command_key, turn_limit
+from .effects import record_effect
 
 
 def role_options(state, unit, distance, line_clear, terrain, board):
@@ -13,8 +15,13 @@ def role_options(state, unit, distance, line_clear, terrain, board):
                              and (not unit.get('platoon') or u.get('platoon') == unit['platoon'])]
     if unit['ap'] < 2:
         return result
-    command_key = unit['side']+':'+unit.get('platoon', '')
-    if unit['kind'] == 'leader' and unit.get('platoon') and command_key not in state.get('command_used', []):
+    key = command_key(unit)
+    if dsl(state) and unit['kind'] == 'leader' and key not in state.get('command_used', []):
+        result['command'] = [u['id'] for u in living if u['side'] == unit['side']
+                             and u.get('platoon') == unit.get('platoon') and u['kind'] in {'squad', 'mg'}
+                             and not u['pinned'] and u.get('ap_received', 2) < turn_limit(u)
+                             and distance(unit['pos'], u['pos']) == 1]
+    elif unit['kind'] == 'leader' and unit.get('platoon') and key not in state.get('command_used', []):
         result['command'] = [u['id'] for u in living if u['side'] == unit['side']
                              and u.get('platoon') == unit['platoon'] and u['kind'] != 'leader'
                              and not u['pinned'] and u['ap'] < 2 and distance(unit['pos'], u['pos']) == 1]
@@ -36,6 +43,19 @@ def role_options(state, unit, distance, line_clear, terrain, board):
 
 def role_action(state, unit, action, legal, roll, distance, names):
     kind, side = action['kind'], unit['side']
+    if kind == 'command' and dsl(state) and legal['command']:
+        if action.get('target') is not None:
+            raise ValueError('DSL On your feet affects the eligible platoon group; do not select a single target.')
+        recipients = [u for u in state['units'] if u['id'] in legal['command']]
+        unit['ap'] -= 2
+        for target in recipients:
+            target['ap'] += 1
+            target['ap_received'] = target.get('ap_received', 2)+1
+        state.setdefault('command_used', []).append(command_key(unit))
+        state['last_combat'] = dict(kind='On your feet', result=f'{len(recipients)} platoon units gained 1 AP each',
+                                   attacker=unit['id'], recipients=[u['id'] for u in recipients], revision=state['revision']+1)
+        record_combat(state, note='LT spends 2 AP. Adjacent unpinned rifles/MGs in his own platoon; once per platoon per turn. Maximum 3 total AP received this turn, including banking and orders.')
+        return f"{names[side]} LT issued On your feet: {len(recipients)} platoon units each gained 1 AP."
     if kind == 'command' and action.get('target') in legal['command']:
         target = next(u for u in state['units'] if u['id'] == action['target'])
         unit['ap'] -= 2
@@ -91,6 +111,7 @@ def resolve_barrages(state, names):
         if strike['ttl'] > 1:
             remaining.append(dict(strike, ttl=strike['ttl']-1))
             continue
+        record_effect(state, 'explosion', strike['area'])
         affected = [u for u in state['units'] if u['hp'] > 0 and u['pos'] in strike['area']]
         for u in affected:
             u['pinned'], u['overwatch'], u['entrenched'] = True, False, False

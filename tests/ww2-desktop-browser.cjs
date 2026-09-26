@@ -17,7 +17,7 @@ let browser;
   assert.ok(await pc.evaluate(()=>{const word=document.querySelector('.desktop-lobby-intro h1 em'),range=document.createRange();range.selectNodeContents(word);return range.getBoundingClientRect().right<document.querySelector('.desktop-lobby-setup').getBoundingClientRect().left;}));
  }
  await pc.screenshot({path:path.join(temp,'desktop-lobby.png'),fullPage:true});
- await pc.locator('#createSolo').click();await pc.locator('#startSolo').click();await pc.locator('#game').waitFor({state:'visible'});await settle(pc);
+ await pc.locator('#createSolo').click();await pc.locator('#soloRuleset').selectOption('classic');await pc.locator('#startSolo').click();await pc.locator('#game').waitFor({state:'visible'});await settle(pc);
  let bounds=await pc.evaluate(()=>Object.fromEntries(['desktop-forces','desktop-battlefield','desktop-orders'].map(cls=>{const r=document.querySelector('.'+cls).getBoundingClientRect();return [cls,{x:r.x,y:r.y,width:r.width,height:r.height}]})));
  assert.ok(bounds['desktop-forces'].x<bounds['desktop-battlefield'].x&&bounds['desktop-battlefield'].x<bounds['desktop-orders'].x);
  assert.ok(bounds['desktop-battlefield'].width>500);

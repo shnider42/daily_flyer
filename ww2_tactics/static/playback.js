@@ -76,7 +76,7 @@ function drawPlayback(){
   else if(changes.length){const more=uiNode('details');more.append(uiNode('summary','','Unit changes'),uiNode('p','mechanics-caption',changes.join(' · ')));result.append(more);}
  }
  const svg=document.getElementById('map').cloneNode(true);svg.id='playbackMap';svg.hidden=false;svg.removeAttribute('hidden');svg.setAttribute('aria-label',`Turn playback: ${description}`);
- svg.querySelectorAll('.unit,.smoke-cloud,.barrage-zone,.incoming-mark,.aim-line').forEach(e=>e.remove());
+ svg.querySelectorAll('.unit,.smoke-cloud,.barrage-zone,.incoming-mark,.aim-line,.battle-effect').forEach(e=>e.remove());
  svg.querySelectorAll('[tabindex]').forEach(e=>{e.removeAttribute('tabindex');e.removeAttribute('role');e.removeAttribute('aria-label');});
  svg.querySelectorAll('.hex').forEach(e=>e.classList.remove('move','threatened','smoke-choice','barrage-choice','selected'));
  for(const smoke of snapshot.smoke||[]){const [cx,cy]=center(...smoke.pos);svg.append(element('ellipse',{cx,cy,rx:25,ry:22,class:'smoke-cloud'}));}
@@ -94,7 +94,7 @@ function drawPlayback(){
   if(u.overwatch)g.append(element('text',{x:cx-17,y:cy-13,class:'watch-marker'},'◎'));
   svg.append(g);
  }
- document.getElementById('playbackMap')?.remove();document.getElementById('mapWrap').append(svg);document.dispatchEvent(new Event('ww2:playback'));if(state.scenario?.platoons&&actor)focusMapUnit(snapshot.units.find(u=>u.id===actor.id)||actor,svg);
+ document.getElementById('playbackMap')?.remove();document.getElementById('mapWrap').append(svg);renderPlaybackEffects(state,frame,svg,p);document.dispatchEvent(new Event('ww2:playback'));if(state.scenario?.platoons&&actor)focusMapUnit(snapshot.units.find(u=>u.id===actor.id)||actor,svg);
 }
 document.addEventListener('DOMContentLoaded',()=>{
  document.getElementById('replayTurn').onclick=startPlayback;

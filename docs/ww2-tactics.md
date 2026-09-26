@@ -1,5 +1,64 @@
 # Village Crossing — expanded rules
 
+## DSL v1 and ruleset selection
+
+New-battle screens default to **DSL v1 — Double Secret Probation Squad Leader**.
+**Classic** keeps the existing simplified rules. **ASL-inspired** is a reserved, visibly
+unavailable future track, not a claim that Classic implements ASL. The server rejects
+unavailable/unknown profiles. Rules identities (`ruleset`, `ruleset_version`) are distinct
+from the older feature/schema `rules_version`. Missing identities always mean Classic;
+loading a pre-DSL match or save never upgrades its mechanics.
+
+- **Base AP:** rifles and MG teams get 2; LTs get 3.
+- **Banking:** at the end of your army's turn, living units bank unused AP up to 1, or 2
+  for an LT. On that army's next turn, AP resets to base plus that reserve. Reserves do not
+  accumulate beyond these limits, and the second army gets no free bank on its first turn.
+  Pinning does not erase a reserve; rally still costs 1 AP.
+- **Received AP limit:** rifles/MGs may receive at most 3 total AP over their entire turn;
+  LTs at most 5. `ap_received` counts base, carried and granted actions. Spending actions
+  never resets it. UI meters show remaining AP, carried AP, and the received limit.
+- **On your feet:** an unpinned LT spends 2 AP to grant 1 to every eligible adjacent
+  unpinned rifle/MG in his own platoon. Units already at the received limit, other LTs,
+  and other platoons are ineligible. One order per platoon per turn, shared by any leaders
+  in that platoon. Small scenarios count as one platoon. The order previews recipients.
+  Classic's original single-recipient Riverfront order remains unchanged.
+- **Road bonus:** a paid road-to-road move earns one immediate extra adjacent road/bridge
+  step for 0 AP, once per unit per turn. Both tiles must be unoccupied. Select each hex
+  separately; overwatch resolves at both. A pin prevents continuation. A different action
+  by that unit, leaving the road, or ending its turn discards the pending step. This is
+  one extra hex, not doubled road speed. Free steps remain usable at 0 AP. Gold dashed
+  hexes mark the bonus; an overwatch threat retains the orange warning.
+
+Choose DSL using **Plan next battle** to switch from a current Classic game. Multiplayer
+proposals explicitly show the proposed ruleset and require the other commander to accept.
+Solo rematches can switch immediately. Save codes preserve exact profiles, banked/received
+AP and pending road bonuses. Old API clients that omit a ruleset still create Classic games;
+rematch requests that omit it retain the current profile. Render settings do not change.
+
+The computer uses the same legal options and caps, issues group orders, can bank instead
+of spending on low-value actions, and has a bounded action budget that includes reserves,
+command grants and free road steps. This is an initial playtest balance, not a difficulty
+upgrade or a claim that either side is competitively balanced.
+
+## Recorded battlefield effects
+
+Grenades and arriving mortars record explosion locations; smoke deployment records a smoke
+bloom. Effects are presentation-only SVG animations with no extra dice or game actions.
+The persistent smoke marker remains after the deployment effect ends. Live effects are
+shown once for new events; reconnecting does not replay old explosions. Computer frames
+carry their effects so pause/step/replay use recorded locations and outcomes. Reduced-motion
+users receive static short-lived markers. These visuals also work with Classic games.
+
+`tests/test_ww2_dsl.py` checks AP banking/caps, first turns, road interruption and reuse,
+leadership eligibility, legacy compatibility, effects, save/restore and rematch consent.
+`tests/ww2-dsl-browser.cjs` covers DSL setup, AP previews/orders, roads, AI playback, restoring
+on desktop, Classic rematches, actual effects and reduced-motion read-only replay.
+
+The next DSL stages remain: army asymmetry and a commander, then stationary guns, tanks
+with infantry anti-tank counters, paratroopers and amphibious transport. No such units or
+bonuses are included in DSL v1. Traditional ASL-style phases and morale need a separate
+implementation and are likewise not enabled by selecting DSL.
+
 ## Desktop command table
 
 At viewport widths of 1100px and above the interface uses a desktop layout:

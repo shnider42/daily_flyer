@@ -4,6 +4,7 @@ import copy
 
 from .engine import apply, options, distance, terrain
 from .scenarios import battlefield
+from .rulesets import dsl, turn_limit
 
 
 def objective_costs(state):
@@ -41,7 +42,10 @@ def choose_order(state, costs, visited):
             add(9, unit, 'rally')
         if legal['inspire']:
             add(12+len(legal['inspire']), unit, 'inspire')
-        for target_id in legal['command']:
+        if dsl(state) and legal['command']:
+            ready_shots = sum(units[i]['ap'] == 1 and any(enemy['side'] != side and distance(units[i]['pos'], enemy['pos']) <= units[i]['range'] for enemy in units.values()) for i in legal['command'])
+            add(5+len(legal['command'])+ready_shots*2, unit, 'command')
+        for target_id in ([] if dsl(state) else legal['command']):
             recipient = units[target_id]
             # Prefer restoring a second AP for an attack, otherwise aid an advance.
             armed = recipient['ap'] == 1 and any(u['side'] != side and distance(recipient['pos'], u['pos']) <= recipient['range'] for u in units.values())
@@ -104,7 +108,7 @@ def choose_order(state, costs, visited):
     if not choices:
         return dict(kind='end')
     score, action = max(choices, key=lambda item: item[0])
-    return action if score > 0 else dict(kind='end')
+    return action if score > (1.5 if dsl(state) else 0) else dict(kind='end')
 
 
 def play_turn(state, roll=None):
@@ -121,12 +125,14 @@ def play_turn(state, roll=None):
         nonlocal state
         before = snapshot(state)
         sequence = state.get('combat_sequence', 0)
+        effect_sequence = state.get('effect_sequence', 0)
         state = apply(state, state['ai_side'], action, roll=roll)
         frames.append(dict(action=copy.deepcopy(action), before=before, after=snapshot(state),
+                           effects=copy.deepcopy([e for e in state.get('effects', []) if e['sequence'] > effect_sequence]),
                            combat=copy.deepcopy([e for e in state.get('combat_history', [])
                                                  if e.get('sequence', 0) > sequence])))
     # Scale the guard to the army's AP budget, including the larger scenario.
-    budget = max(24, 2*sum(u['side']==state['ai_side'] and u['hp']>0 for u in state['units'])+1)
+    budget = max(24, sum((turn_limit(u)+1 if dsl(state) else 2) for u in state['units'] if u['side']==state['ai_side'] and u['hp']>0)+1)
     for _ in range(budget):
         action = choose_order(state, costs, visited)
         perform(action)
