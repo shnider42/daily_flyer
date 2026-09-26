@@ -165,7 +165,7 @@ class RematchTests(unittest.TestCase):
         self.tmp.cleanup()
 
     def test_scenario_catalog_and_dimensions(self):
-        self.assertEqual(len(self.client.get('/api/scenarios').get_json()['scenarios']), 3)
+        self.assertEqual(len(self.client.get('/api/scenarios').get_json()['scenarios']), 4)
         state = self.client.get(self.url, headers=self.us).get_json()
         self.assertEqual(len(state['map'][0]), 9)
         self.assertEqual(state['scenario']['rounds'], 10)

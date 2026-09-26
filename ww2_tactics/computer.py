@@ -120,8 +120,9 @@ def play_turn(state, roll=None):
         frames.append(dict(action=copy.deepcopy(action), before=before, after=snapshot(state),
                            combat=copy.deepcopy([e for e in state.get('combat_history', [])
                                                  if e.get('sequence', 0) > sequence])))
-    # Five units with two AP: bounded even if additional abilities are added later.
-    for _ in range(24):
+    # Scale the guard to the army's AP budget, including the larger scenario.
+    budget = max(24, 2*sum(u['side']==state['ai_side'] and u['hp']>0 for u in state['units'])+1)
+    for _ in range(budget):
         action = choose_order(state, costs, visited)
         perform(action)
         actor = next((u for u in state['units'] if u['id'] == action.get('unit')), None)

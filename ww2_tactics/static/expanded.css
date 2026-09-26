@@ -6,6 +6,12 @@
 .roster { display: flex; flex-wrap: wrap; gap: 6px; padding: 2px 0 12px; }
 .roster-unit { white-space: normal; flex: 1 1 105px; min-width: 0; font-size: 11px; min-height: 44px; padding: 8px 10px; }
 .roster-unit.active { background: #345840; color: #fff9e8; border-color: #345840; }
+.platoon-filters { display: flex; flex-wrap: wrap; gap: 5px; margin: 8px 0; }
+.platoon-filters button { flex: 1; padding: 8px; font-size: 11px; }
+.platoon-filters [aria-pressed="true"] { background: #172722; color: white; }
+.unit .platoon-marker { fill: #172722; font-size: 8px; font-weight: 800; paint-order: stroke; stroke: #f4f1e8; stroke-width: 2px; }
+#mapWrap.large-map.enlarged #map,#mapWrap.large-map.enlarged #playbackMap { min-width: 1050px; max-height: none; }
+.map-tools { flex-wrap: wrap; gap: 4px; }
 .odds { font-size: 11px; line-height: 1.6; padding: 9px; background: #e8e3d2; border-radius: 3px; }
 .combat { border-left: 3px solid #ad7942; padding: 12px; background: #eae3d0; font-size: 12px; line-height: 1.6; margin-bottom: 10px; }
 .hex.smoke-choice { fill: #c2d5d5; stroke: #3b727e; stroke-width: 2; cursor: pointer; }

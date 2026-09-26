@@ -1,5 +1,26 @@
 # Village Crossing — expanded rules
 
+## Riverfront Offensive
+
+An optional one-off 18×18 battlefield: 324 hexes, exactly four times Orchard Road's
+81 hexes (the previous largest map). Select it when creating a match or planning
+the next battle. Existing matches and the original three scenarios keep their forces.
+
+Each army has three platoons—Alpha, Bravo and Charlie—with three rifle squads,
+one leader and one MG each: 15 individually controlled units per army. Each unit
+still receives two AP. Mortar support remains one shared call per army.
+Three river bridges create west, center and east approaches; lateral roads allow
+forces to shift between crossings, with woods and farm buildings providing cover.
+Americans must hold the north-bank rail junction through two American turn endings;
+Germans must prevent that through round 24. Balance is provisional pending playtests.
+
+Large maps open in a scrollable detail view. Drag/pan the map, use platoon filters
+to jump between formations, or choose Overview to inspect the whole battlefield.
+Counters and combat results carry platoon/unit IDs. Next unit cycles within the
+selected platoon; All shows the entire army. Find selected returns to your unit.
+Computer playback follows the acting unit and returns to the previous map position.
+The computer's action guard scales to the larger army's AP budget.
+
 ## Computer turn playback
 
 New computer turns record a bounded sequence of before/after board snapshots and actual
@@ -202,7 +223,7 @@ share a player key and are not two independent players).
 
 ### Verification
 
-- 73 rules/API tests pass, including concurrent seat claims, duplicate move rejection,
+- 77 rules/API tests pass, including concurrent seat claims, duplicate move rejection,
   persistence, reset, original-rules compatibility, smoke expiration/LOS, digging-in protection,
   assault successes/failures, combat and victory conditions, all battlefield objectives and
   round limits, river traversal, overwatch/expiry/cancellation, rematch consent, army swaps,
@@ -228,6 +249,10 @@ share a player key and are not two independent players).
   role abilities through two mobile browsers, including visible danger zones on both screens,
   delayed impact, leader rally, reload persistence, and mobile page overflow checks.
 - JavaScript syntax check passes; Gunicorn boots successfully.
+- Riverfront tests verify exact area, forces, bridge connectivity, objective access,
+  full computer action budget and round limit. `tests/ww2-riverfront-browser.cjs`
+  checks 324 hexes/30 counters, platoon navigation, overview/detail, mobile widths,
+  playback, reconnect and a rematch back to the original force size.
 - Two independent DOM clients exercised real HTTP against Gunicorn: smoke, digging in, turn
   handoff, smoke expiration, roster controls, zoom toggle, next unit, reconnect and invitation
   screen persistence. This verifies interactions, not browser layout or rendering.

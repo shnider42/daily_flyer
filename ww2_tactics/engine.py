@@ -55,12 +55,23 @@ def initial(scenario='village'):
     board = get_scenario(scenario)
     units = []
     for side, row in [("us", board['height']-1), ("de", 0)]:
-        for i, (kind, col) in enumerate([("squad", 1), ("leader", 2), ("mg", 3), ("squad", 4), ("squad", 5)]):
+        formation = []
+        if board.get('platoons'):
+            for platoon in board['platoons']:
+                for number, (kind, offset) in enumerate([('squad',-2),('leader',-1),('mg',0),('squad',1),('squad',2)],1):
+                    formation.append((kind, platoon['center']+offset, platoon['id'], number))
+            row = board['height']-2 if side == 'us' else 1
+        else:
+            formation = [(kind,col+(board['width']-7)//2,None,None) for kind,col in
+                         [('squad',1),('leader',2),('mg',3),('squad',4),('squad',5)]]
+        for i, (kind, col, platoon, number) in enumerate(formation):
             hp, reach = STATS[kind]
-            units.append(dict(id=f"{side}{i}", side=side, kind=kind, pos=[col+(board['width']-7)//2, row], hp=hp,
+            units.append(dict(id=f"{side}{i}", side=side, kind=kind, pos=[col, row], hp=hp,
                               range=reach, ap=2, pinned=False, entrenched=False,
                               overwatch=False, smoke=1 if kind == 'squad' else 0,
                               grenades=1 if kind == 'squad' else 0))
+            if platoon:
+                units[-1].update(platoon=platoon, number=number)
     return dict(units=units, turn="us", round=1, hold=0, winner=None, rules_version=4, smoke=[], battlefield=board,
                 support={'us': 1, 'de': 1}, barrages=[],
                 battle_number=1, victories={'us': 0, 'de': 0},
