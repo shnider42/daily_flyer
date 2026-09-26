@@ -94,7 +94,7 @@ function render(){
   g.append(element('circle',{cx,cy,r:23,fill:'transparent'}));
   g.append(element('rect',{x:cx-20,y:cy-16,width:40,height:33,rx:u.side==='us'?9:1}));
   g.append(element('text',{x:cx,y:cy-3,'text-anchor':'middle',class:'unit-name'},`${u.side==='us'?'US':'DE'} ${u.kind==='mg'?'MG':u.kind==='leader'?'LT':'SQ'}`));
-  g.append(element('text',{x:cx,y:cy+10,'text-anchor':'middle',class:'strength'},'●'.repeat(u.hp)+' · '+u.ap));
+  g.append(element('text',{x:cx,y:cy+10,'text-anchor':'middle',class:'strength',textLength:11+7*u.hp,lengthAdjust:'spacingAndGlyphs'},'●'.repeat(u.hp)+' · '+u.ap));
   if(u.pinned)g.append(element('text',{x:cx+17,y:cy-13,'text-anchor':'middle',class:'pin'},'!'));
   if(u.entrenched)g.append(element('path',{d:`M${cx-22} ${cy+19}h44`,class:'dug-marker'}));
   if(u.overwatch)g.append(element('text',{x:cx-17,y:cy-13,'text-anchor':'middle',class:'watch-marker'},'◎'));

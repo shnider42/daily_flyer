@@ -3,8 +3,8 @@
 #mapWrap { overflow: auto; overscroll-behavior: contain; }
 #mapWrap.enlarged { max-height: 65svh; }
 #mapWrap.enlarged #map { min-width: 600px; max-height: none; }
-.roster { display: flex; gap: 6px; overflow-x: auto; padding: 2px 0 12px; }
-.roster-unit { white-space: nowrap; flex-shrink: 0; font-size: 11px; min-height: 44px; padding: 8px 10px; }
+.roster { display: flex; flex-wrap: wrap; gap: 6px; padding: 2px 0 12px; }
+.roster-unit { white-space: normal; flex: 1 1 105px; min-width: 0; font-size: 11px; min-height: 44px; padding: 8px 10px; }
 .roster-unit.active { background: #345840; color: #fff9e8; border-color: #345840; }
 .odds { font-size: 11px; line-height: 1.6; padding: 9px; background: #e8e3d2; border-radius: 3px; }
 .combat { border-left: 3px solid #ad7942; padding: 12px; background: #eae3d0; font-size: 12px; line-height: 1.6; margin-bottom: 10px; }
