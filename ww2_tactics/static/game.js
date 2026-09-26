@@ -109,6 +109,7 @@ function render(){
   const [cx,cy]=center(...u.pos),g=element('g',{class:`unit ${u.side} platoon-${u.platoon||'none'}${selected===u.id?' selected':''}${target===u.id?' target':''}`,role:'button',tabindex:0,'aria-label':`${names[u.side]} ${unitName(u)}, ${u.hp} strength, ${u.ap} actions${u.pinned?', pinned':''}`});
   // Transparent hit area is larger than the counter for comfortable phone taps.
   g.append(element('circle',{cx,cy,r:23,fill:'transparent'}));
+  if(u.side===state.side&&u.platoon===platoonFilter)g.append(element('path',{d:`M${cx-24} ${cy-20}h48v41h-48z`,class:'platoon-halo'}));
   g.append(element('rect',{x:cx-20,y:cy-16,width:40,height:33,rx:u.side==='us'?9:1}));
   g.append(element('text',{x:cx,y:cy-3,'text-anchor':'middle',class:'unit-name'},`${u.side==='us'?'US':'DE'} ${u.kind==='mg'?'MG':u.kind==='leader'?'LT':'SQ'}`));
   g.append(element('text',{x:cx,y:cy+10,'text-anchor':'middle',class:'strength',textLength:11+7*u.hp,lengthAdjust:'spacingAndGlyphs'},'●'.repeat(u.hp)+' · '+u.ap));

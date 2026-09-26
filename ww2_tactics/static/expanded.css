@@ -42,16 +42,19 @@ select { width: 100%; padding: 12px; min-height: 48px; font: inherit; font-size:
 :root { --us-team: #1264b1; --de-team: #b53c25; }
 .unit.us rect { fill: var(--us-team); }
 .unit.de rect { fill: var(--de-team); }
-/* Gentle shade shifts retain the army hue; letters remain the primary platoon ID. */
+/* Three readable shades per army, shared by counters and platoon controls. */
 .unit.us.platoon-A, #game[data-side="us"] [data-platoon="A"] { --platoon-color: #1264b1; }
-.unit.us.platoon-B, #game[data-side="us"] [data-platoon="B"] { --platoon-color: #2673ba; }
-.unit.us.platoon-C, #game[data-side="us"] [data-platoon="C"] { --platoon-color: #195797; }
+.unit.us.platoon-B, #game[data-side="us"] [data-platoon="B"] { --platoon-color: #247bae; }
+.unit.us.platoon-C, #game[data-side="us"] [data-platoon="C"] { --platoon-color: #243f78; }
 .unit.de.platoon-A, #game[data-side="de"] [data-platoon="A"] { --platoon-color: #b53c25; }
-.unit.de.platoon-B, #game[data-side="de"] [data-platoon="B"] { --platoon-color: #c14c32; }
-.unit.de.platoon-C, #game[data-side="de"] [data-platoon="C"] { --platoon-color: #a33423; }
+.unit.de.platoon-B, #game[data-side="de"] [data-platoon="B"] { --platoon-color: #b96336; }
+.unit.de.platoon-C, #game[data-side="de"] [data-platoon="C"] { --platoon-color: #812c2b; }
 .unit[class*="platoon-"] rect { fill: var(--platoon-color, var(--us-team)); }
 .unit.de.platoon-none rect { fill: var(--de-team); }
 #platoonFilters button[data-platoon]:not([data-platoon="all"]), .roster-unit[data-platoon]:not([data-platoon="none"]) { border-bottom: 3px solid var(--platoon-color); }
+#platoonFilters button[data-platoon]:not([data-platoon="all"]) { background: var(--platoon-color); color: white; border-color: var(--platoon-color); }
+#platoonFilters button[aria-pressed="true"] { outline: 2px solid #172722; outline-offset: 2px; box-shadow: inset 0 0 0 2px #fff2a8; }
+.unit .platoon-halo { fill: none; stroke: #fff2a8; stroke-width: 3; pointer-events: none; filter: drop-shadow(0 0 1px #172722); }
 #game .roster-unit.active[data-platoon]:not([data-platoon="none"]) { background: var(--platoon-color); }
 #commandOrders { margin-bottom: 8px; }
 .unit rect { stroke: #fffdf5; stroke-width: 2; filter: drop-shadow(0 2px 1px #17272280); }
