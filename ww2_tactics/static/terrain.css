@@ -1,0 +1,22 @@
+.terrain-art{pointer-events:none}
+#playTools #terrainToggle{width:116px;flex:none;white-space:nowrap;font-size:10px;padding-inline:6px}
+.detailed-terrain :is(#map,#playbackMap,#scenarioPreview) .hex{stroke:#87987a;stroke-width:.8}
+.detailed-terrain .hex.field:not(.move){fill:#c6d3a8}
+.detailed-terrain .hex.woods:not(.move){fill:#a9be8c}
+.detailed-terrain .hex.building:not(.move){fill:#ccbea1}
+.detailed-terrain .hex.road:not(.move){fill:#c8d0a6}
+.detailed-terrain .hex.water{fill:#85b7ba}
+.detailed-terrain .hex.bridge:not(.move){fill:#85b7ba}
+.detailed-terrain .hex.objective:not(.move){fill:#d6c591}
+.detailed-terrain :is(.terrain-icon,.building-icon,.bridge-icon){display:none}
+.detailed-terrain .tile-label{fill:#354f3f;paint-order:stroke;stroke:#f2f0d6;stroke-width:1.3;stroke-linejoin:round}
+.detailed-terrain .objective-icon{fill:#85601b;paint-order:stroke;stroke:#fff1bd;stroke-width:1;pointer-events:none}
+.detailed-terrain .hex.move{stroke:#387a38!important;stroke-width:2.5!important}
+.detailed-terrain .hex.move+.terrain-art{opacity:.55}
+.detailed-terrain .hex.threatened{stroke:#c06620!important}
+.detailed-terrain .hex.smoke-choice,.detailed-terrain .hex.barrage-choice{stroke-width:3!important}
+.detailed-terrain .hex.smoke-choice{fill:#c2d5ef!important;stroke:#305f9c!important}
+.detailed-terrain .hex.barrage-choice{fill:#f6d3a2!important;stroke:#9948a4!important}
+.detailed-terrain .hex.road-bonus{stroke:#8b671b!important}
+.detailed-terrain .hex.road-bonus.threatened{stroke:#a24a13!important}
+.detailed-terrain :is(.hex.smoke-choice,.hex.barrage-choice)+.terrain-art{opacity:.4}

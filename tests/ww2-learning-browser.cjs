@@ -24,6 +24,12 @@ let browser;
  assert.equal(await p.locator('#mobileOrderBody').isVisible(),true);
  const before=await p.evaluate(()=>JSON.stringify(state));await p.locator('#simpleToggle').click();await p.locator('#simpleToggle').click();
  assert.equal(await p.evaluate(()=>JSON.stringify(state)),before);
+ const terrainBefore=await p.evaluate(()=>({state:JSON.stringify(state),left:$('mapWrap').scrollLeft,top:$('mapWrap').scrollTop}));
+ assert.equal(await p.locator('#map .terrain-art').count(),63);
+ await p.locator('#terrainToggle').click();assert.equal(await p.locator('#map .terrain-art').count(),0);
+ assert.equal(await p.locator('#terrainToggle').textContent(),'Terrain: basic');
+ await p.locator('#terrainToggle').click();assert.equal(await p.locator('#map .terrain-art').count(),63);
+ assert.deepEqual(await p.evaluate(()=>({state:JSON.stringify(state),left:$('mapWrap').scrollLeft,top:$('mapWrap').scrollTop})),terrainBefore);
  await p.reload();await p.waitForFunction(()=>state&&!busy);assert.equal(await p.locator('#simpleToggle').getAttribute('aria-pressed'),'true');assert.equal(await p.locator('#tutorialCoach').isVisible(),true);
  // Browser automation clicks auto-scroll targets; invoke the same selection handler to
  // measure only game-caused movement, including preserved manual pan in enlarged view.
@@ -61,6 +67,9 @@ let browser;
   assert.ok(await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));
  }
  await p.locator('#end').click();await p.locator('#playbackPanel').waitFor({state:'visible'});await p.locator('#pausePlayback').click();
+ assert.equal(await p.locator('#playbackMap .terrain-art').count(),63);
+ await p.locator('#terrainToggle').click();assert.equal(await p.locator('#playbackMap .terrain-art').count(),0);
+ await p.locator('#terrainToggle').click();assert.equal(await p.locator('#playbackMap .terrain-art').count(),63);
  assert.equal(await p.locator('#mobileOrderDock').isVisible(),false);
  await p.setViewportSize({width:1280,height:900});await p.waitForFunction(()=>window.ww2Desktop.active);
  assert.equal(await p.locator('#desktopActionDock').isVisible(),false);

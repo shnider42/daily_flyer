@@ -79,6 +79,7 @@ function scenarioPreview(){
  $('scenarioBrief').textContent=board.brief;
  const svg=$('scenarioPreview');svg.replaceChildren();svg.setAttribute('viewBox',`0 0 ${board.width*52+36} ${board.height*49+29}`);svg.setAttribute('aria-label',`${board.name}, ${board.width} by ${board.height} hex battlefield`);
  board.map.forEach((row,y)=>row.forEach((type,x)=>{const [cx,cy]=center(x,y);const points=Array.from({length:6},(_,i)=>{const a=(60*i-30)*Math.PI/180;return `${cx+30*Math.cos(a)},${cy+30*Math.sin(a)}`;}).join(' ');svg.append(element('polygon',{points,class:`hex ${type}`}));if(type==='objective')svg.append(element('text',{x:cx,y:cy+8,'text-anchor':'middle',class:'objective-icon'},'★'));}));
+ document.dispatchEvent(new Event('ww2:preview'));
 }
 async function rematchRequest(body){await run(async()=>{state=await api(`/api/match/${session.code}/rematch`,{...body,revision:state.revision});render();});}
 function render(){

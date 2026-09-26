@@ -392,6 +392,13 @@ share a player key and are not two independent players).
   `WW2_PLAYWRIGHT=playwright-core WW2_PACKAGED_CHROMIUM=1` and @sparticuz/chromium).
 # DSL learning and compact controls
 
+- **Terrain: detailed / basic** switches decorative SVG artwork immediately, including
+  computer replays and scenario previews. Detailed (default) adds grass, tree clusters,
+  roofed buildings, connected dirt roads, water ripples, timber bridges and a paved objective.
+  Basic restores the original flat terrain and icons. The preference is browser-local;
+  gameplay state, map position, legal moves and dice are unchanged. Art ignores pointer
+  events and remains below coordinates, smoke, targeting warnings and unit counters.
+
 - Mobile selection preserves the map's screen position and manual pan. The orders header
   and action strip reserve a fixed height above the board, without floating over any hexes.
   Selecting counters no longer automatically recenters an enlarged map. Use Find selected,
