@@ -17,7 +17,7 @@ function startPlayback(){
  for(const el of document.querySelectorAll('#orders,#roster,#platoonFilters,.match-tools,#rematchProposal'))el.inert=true;
  document.getElementById('turnBanner').textContent='Watching the computer’s turn · orders paused';
  syncPlayback();drawPlayback();
- document.getElementById('playbackPanel').scrollIntoView({block:'start',behavior:'auto'});
+ if(!window.ww2Desktop?.active)document.getElementById('playbackPanel').scrollIntoView({block:'start',behavior:'auto'});
  document.getElementById('pausePlayback').focus({preventScroll:true});
  schedulePlayback();
 }
@@ -94,7 +94,7 @@ function drawPlayback(){
   if(u.overwatch)g.append(element('text',{x:cx-17,y:cy-13,class:'watch-marker'},'◎'));
   svg.append(g);
  }
- document.getElementById('playbackMap')?.remove();document.getElementById('mapWrap').append(svg);if(state.scenario?.platoons&&actor)focusMapUnit(snapshot.units.find(u=>u.id===actor.id)||actor,svg);
+ document.getElementById('playbackMap')?.remove();document.getElementById('mapWrap').append(svg);document.dispatchEvent(new Event('ww2:playback'));if(state.scenario?.platoons&&actor)focusMapUnit(snapshot.units.find(u=>u.id===actor.id)||actor,svg);
 }
 document.addEventListener('DOMContentLoaded',()=>{
  document.getElementById('replayTurn').onclick=startPlayback;

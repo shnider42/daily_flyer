@@ -1,0 +1,121 @@
+/* Deliberately desktop-only: the established mobile stylesheet stays authoritative. */
+@media (min-width:1100px) {
+ body { background:#e8e8de; }
+ body > header { max-width:none; height:58px; padding:0 30px; background:#1b2b25; border-bottom:3px solid #ab935d; color:#eeeada; gap:32px; }
+ .brand { color:#f3edda; }
+ a.brand { color:#f3edda; }
+ .brand span { color:#afbaaa; }
+ .desktop-header-tag { margin-right:auto; font-size:10px; letter-spacing:2px; color:#a7b4a8; }
+ #rulesButton { color:#f0ebd9; border:1px solid #566258; padding:8px 16px; min-height:34px; }
+ main { max-width:1920px; padding:20px 28px 14px; }
+ button { border-radius:3px; transition:background-color .12s,box-shadow .12s; }
+ button:not(:disabled):hover { box-shadow:inset 0 0 0 1px #607361; }
+ button:focus-visible, textarea:focus-visible { outline:3px solid #b87327; outline-offset:3px; }
+ .desktop-briefing { display:grid; grid-template-columns:minmax(0,1fr) auto; column-gap:35px; align-items:start; }
+ .desktop-briefing .game-title { gap:24px; }
+ .desktop-briefing .game-title h1 { font-size:34px; margin:0 0 10px; }
+ .desktop-briefing .game-title .eyebrow { margin-bottom:5px; font-size:9px; }
+ .desktop-briefing .round { padding:2px 24px 0 0; border-right:1px solid #bcc5b4; min-width:110px; }
+ .desktop-briefing .round strong { font-size:22px; }
+ .desktop-briefing .status-line { flex-direction:column; align-items:flex-end; padding:0; gap:5px; }
+ #connection { font-size:10px; }
+ .desktop-briefing #turnBanner { grid-column:1/-1; margin:0 0 14px; padding:8px 13px; font-size:12px; }
+ .desktop-layout { display:grid; grid-template-columns:205px minmax(0,1fr) 316px; gap:20px; height:calc(100svh - 248px); min-height:440px; }
+ .desktop-forces,.desktop-orders { min-width:0; min-height:0; overflow-y:auto; overscroll-behavior:contain; scrollbar-width:thin; scrollbar-color:#a2ac99 transparent; }
+ .desktop-panel-title { font-size:25px; margin:0 0 8px; padding-top:2px; }
+ .desktop-forces { padding:0 15px 0 0; border-right:1px solid #bbc3b3; }
+ .desktop-force-summary { color:#61705f; font-size:11px; line-height:1.6; margin:0 0 16px; }
+ .desktop-forces #platoonFilters { gap:6px; margin:0 2px 14px; }
+ .desktop-forces #platoonFilters button { flex:1 1 42%; min-height:35px; font-size:11px; }
+ .desktop-forces #roster { display:grid; grid-template-columns:1fr; gap:7px; padding-bottom:0; }
+ .desktop-forces .roster-unit { text-align:left; padding:11px 10px; min-height:66px; font-size:12px; background:#f4f2e8; border:1px solid #c7ccbe; border-left:4px solid var(--platoon-color,var(--us-team)); border-bottom:1px solid #c7ccbe; }
+ .desktop-forces .roster-unit.active { background:var(--platoon-color,var(--us-team)); color:white; box-shadow:inset 0 0 0 1px #fff8cb; }
+ #game[data-side="de"] .desktop-forces .roster-unit.active { background:var(--platoon-color,var(--de-team)); }
+ .desktop-unit-meta { display:block; margin-top:7px; font-size:10px; font-weight:450; line-height:1.5; opacity:.8; }
+ .desktop-force-tip,.desktop-playback-note { border-top:1px solid #bfc6b6; padding-top:16px; color:#67735f; font-size:11px; line-height:1.7; margin-top:20px; }
+ .desktop-battlefield { min-width:0; min-height:0; display:flex; flex-direction:column; }
+ .desktop-map-heading { display:flex; align-items:baseline; justify-content:space-between; margin:0 0 12px; gap:10px; }
+ .desktop-map-heading h2 { font-size:25px; margin:0; }
+ .desktop-map-heading span { color:#67725e; letter-spacing:1.5px; font-size:9px; }
+ .desktop-battlefield .mission { padding:10px 12px; margin:0; background:#313f31; color:#f3e5b8; font-size:10px; border-left:3px solid #c6a648; }
+ .desktop-battlefield #missionHint { margin:8px 0 4px; font-size:11px; line-height:1.5; min-height:17px; }
+ .desktop-battlefield .map-tools { flex:none; min-height:39px; margin:2px 0 7px; gap:6px; }
+ #zoom { display:none; }
+ #findUnit { min-height:30px; padding:5px 8px; background:#f4f2e8; border:1px solid #bec7b2; font-size:10px; }
+ .desktop-camera { margin-left:auto; display:flex; align-items:center; gap:4px; }
+ .desktop-camera button { min-height:30px; padding:4px 10px; font-size:12px; background:#f4f2e8; }
+ .desktop-zoom-value { font-size:10px; font-variant-numeric:tabular-nums; min-width:35px; text-align:center; color:#495941; }
+ .desktop-pan-hint { display:none; font-size:10px; color:#62725b; margin-left:6px; }
+ #game #mapWrap { position:relative; flex:1 1 0; min-height:200px; height:auto; max-height:none; border:1px solid #819573; border-radius:2px; overflow:auto; padding:16px; background:repeating-linear-gradient(0deg,#cad6bd44 0 1px,transparent 1px 26px),repeating-linear-gradient(90deg,#cad6bd44 0 1px,transparent 1px 26px),#bbc9ab; scrollbar-width:thin; scrollbar-color:#667b58 #c0ceaf; box-shadow:inset 0 0 30px #566a4522; cursor:grab; }
+ #game #mapWrap #map,#game #mapWrap #playbackMap { display:block; width:var(--desktop-map-width,100%); height:auto; min-width:0; max-width:none; max-height:none; margin:0 auto; user-select:none; }
+ #game #mapWrap.desktop-panning,#game #mapWrap.desktop-panning * { cursor:grabbing; }
+ #mapWrap:focus-visible { outline:3px solid #ab935d; outline-offset:3px; }
+ .desktop-battlefield .team-legend { flex:none; margin:9px 0 4px; gap:7px; }
+ .desktop-battlefield .team-key { font-size:10px; padding:4px 7px; }
+ .desktop-battlefield .terrain-legend { flex:none; margin:3px 0 0; font-size:9px; gap:9px; line-height:1.5; }
+ .desktop-command-column { display:flex; flex-direction:column; min-width:0; min-height:0; padding-left:18px; border-left:1px solid #bbc3b3; }
+ .desktop-orders { flex:1 1 0; padding:0 0 8px; }
+ .desktop-action-dock { display:grid; grid-template-columns:1fr 1.25fr; gap:8px; flex:none; border-top:1px solid #b9c3ae; padding:10px 0 0; }
+ .desktop-action-dock button { min-height:44px; font-size:12px; }
+ .desktop-action-dock #nextUnit { border:1px solid #b9c3ae; background:#f3f1e7; }
+ .desktop-orders > .desktop-panel-title { position:sticky; top:0; background:#e8e8de; padding:2px 0 10px; z-index:1; margin-bottom:0; }
+ .desktop-orders #orders { padding:13px 0 16px; border-top:1px solid #bdc7b4; }
+ .desktop-orders #selection { font-size:16px; line-height:1.45; }
+ .desktop-orders #hint { font-size:12px; line-height:1.6; }
+ .desktop-orders .role-brief { background:#dfe4d7; }
+ .desktop-orders .order-buttons { gap:7px; }
+ .desktop-orders .order-buttons button { min-height:40px; font-size:12px; }
+ .desktop-orders #end { flex-basis:100%; margin:5px 0 0; min-height:44px; letter-spacing:.5px; }
+ .desktop-orders #nextUnit { border:1px solid #bac5b1; background:#f3f1e7; }
+ .desktop-orders .odds { background:#f3efdf; border:1px solid #c7c5ab; padding:10px; }
+ .desktop-orders .dice-options { gap:4px; }
+ .desktop-orders .dice-options .die-face { width:36px; height:36px; padding:5px; gap:3px; }
+ .desktop-orders .combat { background:#f5f0de; margin:0 0 14px; }
+ .desktop-orders #supportStatus { margin:3px 0 12px; font-size:10px; }
+ .desktop-orders .computer-review { background:#dce5e6; }
+ .desktop-orders #replayTurn { border:1px solid #a8b7ab; margin:8px 0 12px; background:#f3f2e8; width:100%; }
+ .desktop-orders .journal { padding-bottom:0; }
+ .desktop-orders #log { max-height:360px; overflow:auto; padding-right:8px; }
+ .desktop-orders #playbackPanel { margin:0 0 15px; padding:12px; }
+ .desktop-orders .playback-controls { gap:5px; }
+ .desktop-orders .playback-controls button { flex-grow:1; }
+ .desktop-orders #skipPlayback { flex-basis:100%; }
+ .desktop-orders #playbackResult { max-height:none; }
+ .desktop-orders #waiting { padding:12px; }
+ .desktop-orders #waiting h2 { font-size:23px; }
+ .desktop-orders #share { width:100%; }
+ .desktop-footer { display:flex; gap:18px; align-items:center; margin-top:14px; border-top:1px solid #b7c1ad; padding-top:7px; }
+ .desktop-footer .match-tools { border:0; flex:1; justify-content:flex-start; gap:5px; }
+ .desktop-footer .quiet { min-height:32px; font-size:10px; padding:5px 9px; }
+ .desktop-footer .quiet:hover { background:#f3f1e7; }
+ .desktop-footer .series-score { margin:0; font-size:10px; }
+ #lobby { display:grid; grid-template-columns:minmax(240px,.9fr) minmax(350px,1.15fr) minmax(260px,.85fr); align-items:start; gap:44px; padding:45px 20px; max-width:1500px; margin:0 auto; }
+ .desktop-lobby-intro { container-type:inline-size; }
+ .desktop-lobby-intro h1 { font-size:clamp(48px,21cqw,92px); margin:36px 0 25px; letter-spacing:-4px; }
+ .desktop-lobby-intro .intro { font-size:18px; line-height:1.7; }
+ .desktop-lobby-intro .eyebrow { color:#4a634d; line-height:1.8; }
+ .desktop-lobby-intro .brief { font-size:13px; line-height:1.9; padding-top:20px; border-top:1px solid #b5c0ab; margin-top:32px; }
+ .desktop-lobby-intro .footnote { max-width:290px; }
+ .desktop-lobby-setup { background:#f4f1e7; padding:25px; border:1px solid #c4ccb9; border-top:4px solid #526a4b; }
+ .desktop-lobby-setup h2 { margin-bottom:24px; font-size:27px; }
+ .desktop-lobby-setup #scenarioPreview { height:290px; background:#dce4d0; border-radius:0; margin-top:18px; }
+ .desktop-lobby-setup .brief { font-size:12px; min-height:60px; }
+ .desktop-lobby-setup #create { margin-top:18px; }
+ .desktop-lobby-return { padding-left:26px; border-left:1px solid #bbc5b0; }
+ .desktop-lobby-return > h2 { font-size:27px; margin-bottom:24px; }
+ .desktop-lobby-return #savedSessions { margin:0 0 24px; padding:0; border:0; }
+ .desktop-lobby-return #savedSessions h2 { font-family:system-ui,sans-serif; font-size:12px; font-weight:700; letter-spacing:0; margin-bottom:12px; }
+ .desktop-lobby-return #sessionList { max-height:225px; overflow:auto; }
+ .desktop-lobby-return .saved-session { background:#f4f1e7; font-size:12px; line-height:1.5; }
+ .desktop-lobby-return #joinForm { margin-top:0; padding-top:0; }
+ .desktop-lobby-return #recoverForm { margin-top:24px; }
+ .desktop-lobby-return .footnote { font-size:10px; }
+ #message { bottom:22px; box-shadow:0 8px 28px #17272255; }
+ dialog { box-shadow:0 20px 80px #0005; }
+}
+@media (min-width:1500px) {
+ .desktop-layout { grid-template-columns:230px minmax(0,1fr) 340px; gap:24px; }
+ .desktop-pan-hint { display:inline; }
+ .desktop-forces .roster-unit { font-size:13px; }
+ .desktop-orders .dice-options .die-face { width:39px; height:39px; }
+}

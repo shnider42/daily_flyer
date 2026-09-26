@@ -1,5 +1,26 @@
 # Village Crossing — expanded rules
 
+## Desktop command table
+
+At viewport widths of 1100px and above the interface uses a desktop layout:
+
+- Left: platoon filters and unit roster, with role, strength, and coordinates.
+- Center: mission, an expanding battlefield viewport, camera controls, and terrain key.
+- Right: the existing orders, dice/results, battle log, and computer playback controls.
+  Next unit and End turn stay in a fixed action dock beneath the scrolling orders panel.
+- Desktop map: drag to pan, use + / − or Fit map to zoom, and Find selected to recenter.
+  Focus the map viewport for keyboard + / − / 0 and arrow-key navigation. Dragging does
+  not issue orders. Selecting counters and legal hexes uses the original action handlers.
+- The landing page separates briefing, battlefield selection, and saved/invited battles.
+
+`desktop.css` applies only above the breakpoint. `desktop.js` relocates the existing DOM
+controls and restores their original positions below it, including on window resize.
+There are no duplicate orders or changes to game rules, odds, saved state, or turn flow.
+Mobile retains its original stylesheet and controls. The desktop browser check compares
+320px, 390px, and 768px screenshots byte-for-byte against commit `c77ca989` and exercises
+laptop/desktop layouts, zoom and pan without POSTs, orders, playback, saves, and breakpoint
+roundtrips. Run `node tests/ww2-desktop-browser.cjs` with the existing Playwright setup.
+
 ## Independent battles, device transfer, and save codes
 
 Each new solo or two-player battle now has its own database record. Anyone can start a

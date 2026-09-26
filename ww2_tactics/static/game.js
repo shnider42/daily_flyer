@@ -49,6 +49,7 @@ function element(tag,attrs={},text){const e=document.createElementNS('http://www
 function center(x,y){return [27+x*52+(y%2)*26,30+y*49];}
 function unitName(u){return kinds[u.kind]+(u.platoon?` ${u.platoon}${u.number}`:'');}
 function focusMapUnit(u,svg=$('map')){
+ if(window.ww2Desktop?.active){window.ww2Desktop.focus(u,svg);return;}
  if(!u||!$('mapWrap').classList.contains('enlarged'))return;
  const [x,y]=center(...u.pos),wrap=$('mapWrap'),scale=svg.getBoundingClientRect().width/svg.viewBox.baseVal.width;
  wrap.scrollTo({left:x*scale-wrap.clientWidth/2,top:y*scale-wrap.clientHeight/2,behavior:'auto'});
@@ -180,6 +181,7 @@ function render(){
  if(state.rematch){const p=state.rematch,mine=p.by===state.side;$('proposalText').textContent=`${mine?'You proposed':names[p.by]+' propose'} ${p.name}${p.swap?' with armies swapped':' with the same armies'}. ${mine?'Waiting for the other commander.':'Accept to replace the current battle.'}`;$('acceptRematch').hidden=mine;$('acceptRematch').disabled=busy;$('declineRematch').disabled=busy;$('declineRematch').textContent=mine?'Cancel proposal':'Decline';}
  renderPlatoons(board);$('findUnit').hidden=!large||!selected;if(newBattle&&large)focusMapUnit(state.units.find(u=>u.side===state.side&&u.platoon==='A'&&u.kind==='leader'));
  syncPlayback();
+ document.dispatchEvent(new Event('ww2:render'));
 }
 $('create').onclick=()=>run(async()=>{remember(await api('/api/match',{scenario:$('scenarioSelect').value}));});
 $('joinForm').onsubmit=e=>{e.preventDefault();run(async()=>{remember(await api(`/api/match/${$('code').value.trim().toUpperCase()}/join`,{}));});};
