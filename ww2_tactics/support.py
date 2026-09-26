@@ -3,15 +3,21 @@ from .combat_display import record_combat
 
 
 def role_options(state, unit, distance, line_clear, terrain, board):
-    result = dict(grenades=[], suppress=[], inspire=[], barrage=[])
+    result = dict(grenades=[], suppress=[], inspire=[], barrage=[], command=[])
     if state.get('rules_version', 1) < 4 or unit['pinned']:
         return result
     living = [u for u in state['units'] if u['hp'] > 0]
     if unit['kind'] == 'leader' and unit['ap'] >= 1:
         result['inspire'] = [u['id'] for u in living if u['side'] == unit['side']
-                             and u['pinned'] and distance(unit['pos'], u['pos']) <= 1]
+                             and u['pinned'] and distance(unit['pos'], u['pos']) <= 1
+                             and (not unit.get('platoon') or u.get('platoon') == unit['platoon'])]
     if unit['ap'] < 2:
         return result
+    command_key = unit['side']+':'+unit.get('platoon', '')
+    if unit['kind'] == 'leader' and unit.get('platoon') and command_key not in state.get('command_used', []):
+        result['command'] = [u['id'] for u in living if u['side'] == unit['side']
+                             and u.get('platoon') == unit['platoon'] and u['kind'] != 'leader'
+                             and not u['pinned'] and u['ap'] < 2 and distance(unit['pos'], u['pos']) == 1]
     visible = [u for u in living if u['side'] != unit['side']
                and line_clear(unit['pos'], u['pos'], state.get('smoke', []), state)]
     if unit['kind'] == 'squad' and unit.get('grenades', 0):
@@ -30,6 +36,15 @@ def role_options(state, unit, distance, line_clear, terrain, board):
 
 def role_action(state, unit, action, legal, roll, distance, names):
     kind, side = action['kind'], unit['side']
+    if kind == 'command' and action.get('target') in legal['command']:
+        target = next(u for u in state['units'] if u['id'] == action['target'])
+        unit['ap'] -= 2
+        target['ap'] += 1
+        state.setdefault('command_used', []).append(side+':'+unit['platoon'])
+        state['last_combat'] = dict(kind='On your feet', result='one action restored to platoon unit',
+                                    attacker=unit['id'], target=target['id'], revision=state['revision']+1)
+        record_combat(state, note='Costs the LT 2 actions. Adjacent, unpinned squad or MG in his own platoon; maximum 2 actions. Once per platoon per turn.')
+        return f"{names[side]} LT {unit['platoon']}{unit['number']} restored one action to {target['platoon']}{target['number']}."
     if kind == 'inspire' and legal['inspire']:
         for u in state['units']:
             if u['id'] in legal['inspire']:

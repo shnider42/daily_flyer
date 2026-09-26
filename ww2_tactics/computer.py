@@ -41,6 +41,11 @@ def choose_order(state, costs, visited):
             add(9, unit, 'rally')
         if legal['inspire']:
             add(12+len(legal['inspire']), unit, 'inspire')
+        for target_id in legal['command']:
+            recipient = units[target_id]
+            # Prefer restoring a second AP for an attack, otherwise aid an advance.
+            armed = recipient['ap'] == 1 and any(u['side'] != side and distance(recipient['pos'], u['pos']) <= recipient['range'] for u in units.values())
+            add(8 if armed else 4.5, unit, 'command', target=target_id)
         for shot in legal['targets']:
             target = units[shot['id']]
             chance = max(0, (7-shot['threshold'])/6)
@@ -130,7 +135,7 @@ def play_turn(state, roll=None):
         orders.extend(['Turn ended.'] if action['kind'] == 'end' else
                       [f"{actor['kind'].capitalize()}: {action['kind']}" +
                        (f" → {chr(65+action['pos'][0])}{action['pos'][1]+1}" if 'pos' in action else
-                        f" → enemy {target['kind']}" if target else '')])
+                        f" → {'friendly' if target['side']==actor['side'] else 'enemy'} {target['kind']}" if target else '')])
         for unit in state['units']:
             visited[unit['id']].add(tuple(unit['pos']))
         if state['winner'] or state['turn'] != state['ai_side']:

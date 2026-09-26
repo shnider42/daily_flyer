@@ -29,7 +29,7 @@ function focusMapUnit(u,svg=$('map')){
 function renderPlatoons(board){
  const nav=$('platoonFilters');nav.hidden=!board.platoons;nav.replaceChildren();if(!board.platoons)return;
  for(const p of [{id:'all',name:'All'},...board.platoons]){
-  const button=document.createElement('button');const units=state.units.filter(u=>u.side===state.side&&(p.id==='all'||u.platoon===p.id));
+  const button=document.createElement('button');button.dataset.platoon=p.id;const units=state.units.filter(u=>u.side===state.side&&(p.id==='all'||u.platoon===p.id));
   button.textContent=`${p.name} · ${units.filter(u=>u.hp>0).length}`;button.setAttribute('aria-pressed',String(platoonFilter===p.id));
   button.onclick=()=>{if(busy||playbackSession)return;platoonFilter=p.id;target=null;smokeMode=false;barrageMode=false;selected=null;render();focusMapUnit(units.find(u=>u.hp>0&&u.ap>0)||units.find(u=>u.hp>0));};nav.append(button);
  }
@@ -106,7 +106,7 @@ function render(){
  }
  if(unit&&enemy){const [x1,y1]=center(...unit.pos),[x2,y2]=center(...enemy.pos);svg.append(element('line',{x1,y1,x2,y2,class:`aim-line${shot?' clear':''}`}));}
  for(const u of state.units.filter(u=>u.hp>0)){
-  const [cx,cy]=center(...u.pos),g=element('g',{class:`unit ${u.side}${selected===u.id?' selected':''}${target===u.id?' target':''}`,role:'button',tabindex:0,'aria-label':`${names[u.side]} ${unitName(u)}, ${u.hp} strength, ${u.ap} actions${u.pinned?', pinned':''}`});
+  const [cx,cy]=center(...u.pos),g=element('g',{class:`unit ${u.side} platoon-${u.platoon||'none'}${selected===u.id?' selected':''}${target===u.id?' target':''}`,role:'button',tabindex:0,'aria-label':`${names[u.side]} ${unitName(u)}, ${u.hp} strength, ${u.ap} actions${u.pinned?', pinned':''}`});
   // Transparent hit area is larger than the counter for comfortable phone taps.
   g.append(element('circle',{cx,cy,r:23,fill:'transparent'}));
   g.append(element('rect',{x:cx-20,y:cy-16,width:40,height:33,rx:u.side==='us'?9:1}));
@@ -122,11 +122,13 @@ function render(){
  $('hint').textContent=state.winner?'Start a new match for another battle.':!myTurn?'You can inspect units while you wait.':smokeMode?'Tap a blue-outlined hex to throw smoke, or tap Cancel smoke.':shot?`Fire at ${kinds[enemy.kind]}: ${shot.threshold}+ to hit (${chance(shot.threshold)}%).`:assault?'Enemy adjacent: a close assault is available.':enemy?'No clear shot: check range, sight lines, smoke, or actions.':unit?.pinned?'Rally to remove the pin. It costs 1 action.':unit?`${state.map[unit.pos[1]][unit.pos[0]]}${unit.entrenched?' · dug in':''} · range ${unit.range} · ${unit.smoke||0} smoke grenades`:'Counters show strength dots and remaining actions.';
  if(barrageMode)$('hint').textContent='Choose a marked hex for mortar support. It and its neighbors will be hit after your opponent gets a turn to escape.';
  $('roleBrief').hidden=!unit||(state.rules_version||1)<4;
- $('roleBrief').textContent=unit?.kind==='squad'?`ASSAULT TROOPS · ${unit.grenades||0} frag grenade left. Range 2; 2 damage on a hit. Tap an enemy to see available attacks.`:unit?.kind==='mg'?'FIRE SUPPORT · Suppress a visible enemy within 4 hexes: guaranteed pin, no damage. Cancels overwatch. Tap an enemy.':'COMMAND · Rally all adjacent pinned allies for 1 action. Call one delayed mortar barrage per army for 2 actions.';
+ $('roleBrief').textContent=unit?.kind==='squad'?`ASSAULT TROOPS · ${unit.grenades||0} frag grenade left. Range 2; 2 damage on a hit. Tap an enemy to see available attacks.`:unit?.kind==='mg'?'FIRE SUPPORT · Suppress a visible enemy within 4 hexes: guaranteed pin, no damage. Cancels overwatch. Tap an enemy.':unit?.platoon?`PLATOON ${unit.platoon} COMMAND · Rally adjacent pinned members of this platoon for 1 action. On your feet: spend 2 actions to restore 1 to an adjacent, unpinned squad or MG (max 2); once per platoon per turn. Mortars remain shared by the army.`:'COMMAND · Rally all adjacent pinned allies for 1 action. Call one delayed mortar barrage per army for 2 actions.';
  $('grenade').hidden=!myTurn||!grenade||picking;$('grenade').disabled=busy;$('grenade').textContent=grenade?`Frag · ${chance(grenade.threshold)}% · 2 actions`:'Frag';
  $('suppress').hidden=!myTurn||!suppress||picking;$('suppress').disabled=busy;
- $('inspire').hidden=!myTurn||!legal?.inspire?.length||picking;$('inspire').disabled=busy;$('inspire').textContent=`Rally nearby (${legal?.inspire?.length||0}) · 1 action`;
+ $('inspire').hidden=!myTurn||!legal?.inspire?.length||picking;$('inspire').disabled=busy;$('inspire').textContent=`Rally ${unit?.platoon?'platoon':'nearby'} (${legal?.inspire?.length||0}) · 1 action`;
  $('barrage').hidden=!myTurn||!legal?.barrage?.length;$('barrage').disabled=busy;$('barrage').textContent=barrageMode?'Cancel mortar':'Call mortars · 2 actions';
+ $('commandOrders').replaceChildren();$('commandOrders').hidden=!myTurn||picking||!legal?.command?.length;
+ for(const id of legal?.command||[]){const recipient=state.units.find(u=>u.id===id),b=document.createElement('button');b.textContent=`On your feet → ${unitName(recipient)} · 2 actions`;b.disabled=busy;b.onclick=()=>act({kind:'command',unit:unit.id,target:id});$('commandOrders').append(b);}
  renderOdds(shot,assault,grenade,picking);renderUnitMechanics(state,unit);renderCombat(state);
  $('fire').hidden=!myTurn||!shot;$('fire').disabled=busy;$('fire').textContent=shot?`Fire · ${shot.threshold}+ · 2 actions`:'Fire';
  $('fire').disabled=busy||!!shot&&chance(shot.threshold)===0;
@@ -137,7 +139,7 @@ function render(){
  $('rally').hidden=!myTurn||!legal?.rally;$('rally').disabled=busy;$('end').disabled=!myTurn||busy;$('reset').hidden=state.side!=='us';
  if(state.ai_side)$('reset').hidden=false;
  $('latest').textContent=state.log.at(-1);$('log').replaceChildren(...state.log.slice().reverse().map(text=>{const li=document.createElement('li');li.textContent=text;return li;}));
- $('roster').replaceChildren(...state.units.filter(u=>u.side===state.side&&(platoonFilter==='all'||u.platoon===platoonFilter)).map((u,i)=>{const b=document.createElement('button');b.className=`roster-unit${u.id===selected?' active':''}`;b.disabled=u.hp<=0||busy;b.textContent=`${u.kind==='leader'?'LT':u.kind==='mg'?'MG':'SQ'} ${u.platoon?u.platoon+u.number:i+1} · ${u.hp<=0?'Lost':u.pinned?'Pinned':u.overwatch?'Watching':u.ap+' AP'}`;b.setAttribute('aria-label',`${unitName(u)}${u.platoon?'':' '+(i+1)}, ${u.hp<=0?'eliminated':u.hp+' strength, '+u.ap+' actions'}`);b.onclick=()=>{smokeMode=false;barrageMode=false;chooseUnit(u);};return b;}));
+ $('roster').replaceChildren(...state.units.filter(u=>u.side===state.side&&(platoonFilter==='all'||u.platoon===platoonFilter)).map((u,i)=>{const b=document.createElement('button');b.dataset.platoon=u.platoon||'none';b.className=`roster-unit${u.id===selected?' active':''}`;b.disabled=u.hp<=0||busy;b.textContent=`${u.kind==='leader'?'LT':u.kind==='mg'?'MG':'SQ'} ${u.platoon?u.platoon+u.number:i+1} · ${u.hp<=0?'Lost':u.pinned?'Pinned':u.overwatch?'Watching':u.ap+' AP'}`;b.setAttribute('aria-label',`${unitName(u)}${u.platoon?'':' '+(i+1)}, ${u.hp<=0?'eliminated':u.hp+' strength, '+u.ap+' actions'}`);b.onclick=()=>{smokeMode=false;barrageMode=false;chooseUnit(u);};return b;}));
  $('nextUnit').disabled=busy||!state.units.some(u=>u.side===state.side&&u.hp>0&&(platoonFilter==='all'||u.platoon===platoonFilter));
  $('battleReport').hidden=!state.winner;
  if(state.winner){$('reportTitle').textContent=`${names[state.winner]} take the field.`;$('reportBody').textContent=['us','de'].map(s=>{const alive=state.units.filter(u=>u.side===s&&u.hp>0);return `${names[s]}: ${alive.length} surviving units, ${alive.reduce((n,u)=>n+u.hp,0)} strength`;}).join(' · ');}

@@ -21,6 +21,18 @@ selected platoon; All shows the entire army. Find selected returns to your unit.
 Computer playback follows the acting unit and returns to the previous map position.
 The computer's action guard scales to the larger army's AP budget.
 
+Platoon counters use three subtle shades of their army's blue/rust, repeated in
+roster and platoon-filter accents and playback. A/B/C labels remain visible.
+Riverfront LTs rally only adjacent pinned members of their own platoon. They can
+also use **On your feet**: spend 2 actions to restore 1 action to an adjacent,
+unpinned rifle squad or MG in their platoon, capped at 2. Select the LT and choose
+the named recipient. Each platoon gets one use per army turn; that limit persists
+across reconnects and resets when the army's next turn starts. Leaders cannot
+receive the order. Mortars and the normal shooting bonus retain their existing rules.
+The computer can issue the order and playback displays the actual AP changes.
+Refresh after deployment to use this in an existing Riverfront match; no reset is
+needed. The original smaller scenarios retain their existing leader abilities.
+
 ## Computer turn playback
 
 New computer turns record a bounded sequence of before/after board snapshots and actual
@@ -223,7 +235,7 @@ share a player key and are not two independent players).
 
 ### Verification
 
-- 77 rules/API tests pass, including concurrent seat claims, duplicate move rejection,
+- 82 rules/API tests pass, including concurrent seat claims, duplicate move rejection,
   persistence, reset, original-rules compatibility, smoke expiration/LOS, digging-in protection,
   assault successes/failures, combat and victory conditions, all battlefield objectives and
   round limits, river traversal, overwatch/expiry/cancellation, rematch consent, army swaps,

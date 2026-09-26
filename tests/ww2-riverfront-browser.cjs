@@ -15,6 +15,23 @@ let browser;
  await page.locator('#game').waitFor({state:'visible'});
  assert.equal(await page.locator('#map .hex').count(),324);assert.equal(await page.locator('#map .unit').count(),30);
  assert.equal(await page.locator('#map .platoon-marker').count(),30);
+ for(const side of ['us','de']){
+  const shades=[];
+  for(const platoon of ['A','B','C'])shades.push(await page.locator(`#map .unit.${side}.platoon-${platoon} rect`).first().evaluate(e=>getComputedStyle(e).fill));
+  assert.equal(new Set(shades).size,3);
+ }
+ await page.locator('#roster button').first().click();
+ await page.getByRole('button',{name:'Move to B16, road, 1 action',exact:true}).click();
+ await page.locator('#roster button').nth(1).click();
+ await page.locator('#commandOrders button').filter({hasText:'Rifle squad A1'}).waitFor({state:'visible'});
+ await page.screenshot({path:path.join(temp,'platoon-command.png'),fullPage:true});
+ await page.locator('#commandOrders button').filter({hasText:'Rifle squad A1'}).click();
+ await page.waitForFunction(()=>state.command_used?.includes('us:A'));
+ assert.equal(await page.evaluate(()=>state.units.find(u=>u.id==='us0').ap),2);
+ assert.equal(await page.evaluate(()=>state.units.find(u=>u.id==='us1').ap),0);
+ assert.match(await page.locator('#latestCombat').textContent(),/On your feet/);
+ await page.reload();await page.locator('#game').waitFor({state:'visible'});
+ assert.equal(await page.evaluate(()=>state.command_used.includes('us:A')),true);
  assert.match(await page.locator('#armyCount').textContent(),/15\/15.*15\/15/);
  assert.equal(await page.locator('#platoonFilters button').count(),4);assert.equal(await page.locator('#roster button').count(),5);
  assert.ok(await page.locator('#mapWrap').evaluate(e=>e.scrollTop>0&&e.scrollWidth>e.clientWidth));
@@ -32,6 +49,10 @@ let browser;
  await page.screenshot({path:path.join(temp,'detail.png'),fullPage:true});
  await page.locator('#end').click();await page.locator('#playbackPanel').waitFor({state:'visible'});await page.locator('#pausePlayback').click();
  assert.equal(await page.locator('#playbackMap .unit').count(),30);
+ for(const side of ['us','de'])for(const platoon of ['A','B','C']){
+  const selector=`.unit.${side}.platoon-${platoon} rect`;
+  assert.equal(await page.locator('#playbackMap '+selector).first().evaluate(e=>getComputedStyle(e).fill),await page.locator('#map '+selector).first().evaluate(e=>getComputedStyle(e).fill));
+ }
  await page.locator('#zoom').click();await page.locator('#zoom').click();
  assert.ok(await page.locator('#mapWrap').evaluate(e=>e.scrollWidth>e.clientWidth));
  await page.locator('#stepPlayback').click();await page.locator('#skipPlayback').click();

@@ -128,7 +128,7 @@ def options(state, unit):
     moves, targets = [], []
     board = battlefield(state)
     extras = dict(smoke=[], dig=False, assaults=[], overwatch=False,
-                  grenades=[], suppress=[], inspire=[], barrage=[])
+                  grenades=[], suppress=[], inspire=[], barrage=[], command=[])
     if not state["ready"] or state["winner"] or unit["hp"] <= 0 or unit["side"] != state["turn"]:
         return dict(moves=moves, targets=targets, rally=False, **extras)
     occupied = [u["pos"] for u in state["units"] if u["hp"] > 0]
@@ -184,6 +184,7 @@ def apply(state, side, action, roll=None):
         else:
             state["round"] += 1
         state["turn"] = "de" if side == "us" else "us"
+        state['command_used'] = [key for key in state.get('command_used', []) if not key.startswith(state['turn']+':')]
         for u in state["units"]:
             if u["side"] == state["turn"]:
                 u["ap"] = 2
@@ -194,7 +195,7 @@ def apply(state, side, action, roll=None):
         if unit is None:
             raise ValueError("Choose one of your surviving units.")
         legal = options(state, unit)
-        if kind in {'grenade', 'suppress', 'inspire', 'barrage'}:
+        if kind in {'grenade', 'suppress', 'inspire', 'barrage', 'command'}:
             message = role_action(state, unit, action, legal, roll_die, distance, NAMES)
         elif kind == "move":
             move = next((m for m in legal["moves"] if m["pos"] == action.get("pos")), None)

@@ -42,6 +42,18 @@ select { width: 100%; padding: 12px; min-height: 48px; font: inherit; font-size:
 :root { --us-team: #1264b1; --de-team: #b53c25; }
 .unit.us rect { fill: var(--us-team); }
 .unit.de rect { fill: var(--de-team); }
+/* Gentle shade shifts retain the army hue; letters remain the primary platoon ID. */
+.unit.us.platoon-A, #game[data-side="us"] [data-platoon="A"] { --platoon-color: #1264b1; }
+.unit.us.platoon-B, #game[data-side="us"] [data-platoon="B"] { --platoon-color: #2673ba; }
+.unit.us.platoon-C, #game[data-side="us"] [data-platoon="C"] { --platoon-color: #195797; }
+.unit.de.platoon-A, #game[data-side="de"] [data-platoon="A"] { --platoon-color: #b53c25; }
+.unit.de.platoon-B, #game[data-side="de"] [data-platoon="B"] { --platoon-color: #c14c32; }
+.unit.de.platoon-C, #game[data-side="de"] [data-platoon="C"] { --platoon-color: #a33423; }
+.unit[class*="platoon-"] rect { fill: var(--platoon-color, var(--us-team)); }
+.unit.de.platoon-none rect { fill: var(--de-team); }
+#platoonFilters button[data-platoon]:not([data-platoon="all"]), .roster-unit[data-platoon]:not([data-platoon="none"]) { border-bottom: 3px solid var(--platoon-color); }
+#game .roster-unit.active[data-platoon]:not([data-platoon="none"]) { background: var(--platoon-color); }
+#commandOrders { margin-bottom: 8px; }
 .unit rect { stroke: #fffdf5; stroke-width: 2; filter: drop-shadow(0 2px 1px #17272280); }
 .unit .unit-name { font-size: 9px; font-weight: 850; fill: white; }
 .unit .strength { fill: white; font-weight: 650; }

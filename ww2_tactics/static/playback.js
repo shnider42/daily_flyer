@@ -47,7 +47,7 @@ function stopPlayback(){
 function drawPlayback(){
  const p=playbackSession,frame=p.frames[p.index],snapshot=frame[p.phase],action=frame.action;
  const actor=frame.before.units.find(u=>u.id===action.unit),targetUnit=frame.before.units.find(u=>u.id===action.target);
- const labels={move:'moves',fire:'fires',grenade:'throws a frag',assault:'assaults',suppress:'suppresses',inspire:'rallies nearby troops',rally:'rallies',dig:'digs in',smoke:'throws smoke',overwatch:'takes overwatch',barrage:'calls mortars',end:'ends the turn'};
+ const labels={move:'moves',fire:'fires',grenade:'throws a frag',assault:'assaults',suppress:'suppresses',inspire:'rallies nearby troops',command:'orders On your feet',rally:'rallies',dig:'digs in',smoke:'throws smoke',overwatch:'takes overwatch',barrage:'calls mortars',end:'ends the turn'};
  const loc=pos=>`${String.fromCharCode(65+pos[0])}${pos[1]+1}`;
  const description=actor?`${actor.side.toUpperCase()} ${unitName(actor)} at ${loc(actor.pos)} ${labels[action.kind]||action.kind}${action.pos?' → '+loc(action.pos):targetUnit?' → '+targetUnit.side.toUpperCase()+' '+unitName(targetUnit)+' at '+loc(targetUnit.pos):''}`:'Computer ends its turn';
  document.getElementById('playbackStep').textContent=`Action ${p.index+1} / ${p.frames.length} · ${p.phase==='before'?'Before':'Result'}`;
@@ -84,7 +84,7 @@ function drawPlayback(){
  const destination=action.pos||targetUnit?.pos;
  if(actor&&destination){const [x1,y1]=center(...actor.pos),[x2,y2]=center(...destination);svg.append(element('line',{x1,y1,x2,y2,class:'replay-line'}));svg.append(element('circle',{cx:x2,cy:y2,r:23,class:'replay-destination'}));}
  for(const u of snapshot.units.filter(u=>u.hp>0)){
-  const [cx,cy]=center(...u.pos),g=element('g',{class:`unit ${u.side}${u.id===action.unit?' selected':''}${u.id===action.target?' target':''}`});
+  const [cx,cy]=center(...u.pos),g=element('g',{class:`unit ${u.side} platoon-${u.platoon||'none'}${u.id===action.unit?' selected':''}${u.id===action.target?' target':''}`});
   g.append(element('rect',{x:cx-20,y:cy-16,width:40,height:33,rx:u.side==='us'?9:1}));
   g.append(element('text',{x:cx,y:cy-3,'text-anchor':'middle',class:'unit-name'},`${u.side.toUpperCase()} ${u.kind==='mg'?'MG':u.kind==='leader'?'LT':'SQ'}`));
   g.append(element('text',{x:cx,y:cy+10,'text-anchor':'middle',class:'strength',textLength:11+7*u.hp,lengthAdjust:'spacingAndGlyphs'},'●'.repeat(u.hp)+' · '+u.ap));
