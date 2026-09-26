@@ -390,3 +390,27 @@ share a player key and are not two independent players).
   or horizontal page overflow at widths 320–1280px. Phone screenshots visually inspected.
   Run against a fresh disposable database; requires Playwright (or playwright-core with
   `WW2_PLAYWRIGHT=playwright-core WW2_PACKAGED_CHROMIUM=1` and @sparticuz/chromium).
+# DSL learning and compact controls
+
+- On phones/tablets below 1100px, DSL unit selection opens a sticky orders dropdown above
+  the battlefield. Its header retains unit name, hex, AP and pin status alongside End turn.
+  Actions scroll inside a panel capped at 28% of screen height (25% on short screens).
+  Unit details and odds are expandable in full view. Moving/spending actions collapses the
+  panel; smoke and mortar targeting also collapse it so the map stays accessible. Tap the
+  header or select a unit again to reopen. Playback temporarily hides live orders.
+- **Simple view** is a reversible browser preference. It hides odds, dice, modifiers,
+  detailed stats and logs, while retaining legal actions, AP, strength/pin markers, round,
+  turn, objective, danger warnings and plain-language combat outcomes. Battle options and
+  save codes remain available in an expandable section. It never changes the rules or rolls.
+- **Start guided practice** creates a separate Village Crossing solo DSL battle in Simple
+  view, preserving existing matches. **Learn as you play** opens eight short lessons in
+  the current DSL battle without resetting it. Selection and movement lessons advance on
+  actual play; other tips have explicit Back/Next/Show me/Exit controls. No scripted orders
+  are issued. Players can skip any lesson, even when no enemy is in range.
+- Preferences and current lesson are remembered locally when storage is available. Private
+  browsing without storage still works for the current page; UI preferences are not part of
+  SAVE codes. Existing save/reconnect mechanics and Classic game rules are unchanged.
+- `tests/ww2-learning-browser.cjs` covers independent practice, local persistence, blocked
+  storage, capped mobile orders, smoke targeting, lesson progression, zero state changes
+  from presentation toggles, responsive resizing and replay. The desktop browser test now
+  verifies mobile controls/overflow rather than comparing pixels to the old mobile UI.

@@ -1,5 +1,5 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><meta name="theme-color" content="#172722"><title>Village Crossing · WWII Tactics</title><link rel="stylesheet" href="/assets/game.css"><link rel="stylesheet" href="/assets/expanded.css"><link rel="stylesheet" href="/assets/desktop.css"><script src="/assets/desktop.js" defer></script><script src="/assets/mechanics.js" defer></script><script src="/assets/playback.js" defer></script><script src="/assets/effects.js" defer></script><script src="/assets/game.js" defer></script></head>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover"><meta name="theme-color" content="#172722"><title>Village Crossing · WWII Tactics</title><link rel="stylesheet" href="/assets/game.css"><link rel="stylesheet" href="/assets/expanded.css"><link rel="stylesheet" href="/assets/desktop.css"><script src="/assets/desktop.js" defer></script><script src="/assets/mechanics.js" defer></script><script src="/assets/playback.js" defer></script><script src="/assets/effects.js" defer></script><script src="/assets/game.js" defer></script><link rel="stylesheet" href="/assets/play-ui.css"><script src="/assets/play-ui.js" defer></script></head>
 <body>
 <header><a href="/" class="brand">FIELD / NOTES <span>01</span></a><button id="rulesButton" class="quiet">Field manual</button></header>
 <main>
@@ -15,6 +15,7 @@
  <p class="brief">Lead the Americans to the objective, or hold the line with the Germans. Send an invitation and play from two phones.</p>
  <button id="create" class="primary">Command the Americans <span>↗</span></button>
  <button id="createSolo" class="solo-button">Play against the computer →</button>
+ <button id="learnStart">Start guided practice →</button><p id="learnHelp" class="footnote">Learn DSL in a separate solo battle. Your existing battles stay saved.</p>
  <form id="joinForm"><label for="code">Have an invitation? Join the Germans.</label><div class="join-row"><input id="code" maxlength="10" placeholder="MATCH CODE" autocomplete="off" autocapitalize="characters" spellcheck="false" required pattern="[a-fA-F0-9]{10}"><button type="submit">Join →</button></div></form>
  <form id="recoverForm"><label for="recoveryCode">Continue on another device or restore a save</label><textarea id="recoveryCode" rows="3" maxlength="100" placeholder="MOVE-… or SAVE-…" autocomplete="off" autocapitalize="characters" spellcheck="false" required></textarea><button type="submit">Load code →</button><p class="footnote">MOVE reconnects your live seat. SAVE opens a separate solo battle at the saved moment. Use codes generated on this site.</p></form>
  <p class="footnote">Original simplified rules · No account needed<br>This browser remembers your battles when storage is available. In private browsing, keep a save code before leaving.</p>
@@ -25,6 +26,8 @@
  <div id="waiting" hidden><h2>Your opponent is up next.</h2><p>Send this invitation to the other phone. You command the Americans; they command the Germans.</p><button id="share" class="primary">Share invitation ↗</button><input id="invite" readonly aria-label="Invitation URL"><p id="matchCode"></p></div>
  <p id="rulesetBadge" class="ruleset-badge" hidden></p>
  <div id="turnBanner" role="status"></div>
+ <nav id="playTools" aria-label="Play preferences"><button id="simpleToggle" aria-pressed="false">Simple view: off</button><button id="guideToggle" aria-pressed="false">Learn as you play</button></nav>
+ <section id="tutorialCoach" hidden aria-label="Guided learning"><p id="lessonCount" class="eyebrow"></p><h2 id="lessonTitle"></h2><p id="lessonText"></p><div class="lesson-controls"><button id="lessonBack">Back</button><button id="lessonShow">Show me</button><button id="lessonNext">Next tip →</button><button id="lessonExit" class="quiet">Exit guide</button></div></section>
  <button id="replayTurn" class="quiet" hidden>Replay computer turn</button><details id="computerReview" class="computer-review" hidden><summary>Computer's last turn</summary><ol id="computerOrders"></ol></details>
  <div class="mission"><span id="objectiveName">★ VILLAGE SQUARE</span><span id="objective">Hold: 0 / 2</span></div>
  <p id="missionHint" class="mission-hint"></p>
@@ -38,11 +41,12 @@
  <div id="roster" class="roster" aria-label="Your units"></div>
  <section id="orders" aria-label="Unit orders"><p id="selection">Tap one of your units to see its orders.</p><p id="hint"></p><p id="roleBrief" class="role-brief" hidden></p><div id="unitMechanics" hidden></div><div id="odds" class="odds" hidden></div><div id="commandOrders" class="order-buttons" hidden></div><div class="order-buttons"><button id="fire" class="danger" hidden>Fire</button><button id="assault" class="danger" hidden>Assault</button><button id="rally" hidden>Rally · 1 action</button><button id="dig" hidden>Dig in · 2 actions</button><button id="smoke" hidden>Smoke · 1 action</button><button id="overwatch" hidden>Overwatch · 2 actions</button><button id="grenade" class="danger" hidden>Frag</button><button id="suppress" hidden>Suppress · 2 actions</button><button id="inspire" hidden>Rally nearby · 1 action</button><button id="barrage" hidden>Call mortars · 2 actions</button><button id="nextUnit" class="quiet">Next unit →</button><button id="end" class="primary">End turn →</button></div></section>
  <section id="combat" class="combat" aria-label="Combat results" hidden><div id="latestCombat" role="status"></div><details id="combatHistory"><summary id="combatHistoryLabel">Earlier combat</summary><div id="combatHistoryEntries"></div></details></section>
+ <p id="simpleOutcome" role="status" hidden></p>
  <section id="battleReport" class="battle-report" hidden><p class="eyebrow">AFTER THE BATTLE</p><h2 id="reportTitle"></h2><p id="reportBody"></p></section>
  <section id="rematchProposal" class="rematch-proposal" hidden aria-label="Next battle proposal"><p id="proposalText" role="status"></p><button id="acceptRematch" class="primary">Accept next battle</button><button id="declineRematch">Decline</button></section>
  <details class="journal"><summary>Battle log <span id="latest"></span></summary><ol id="log"></ol></details>
  <p id="seriesScore" class="series-score"></p>
- <div class="match-tools"><button id="transferButton" class="quiet">Continue on another device</button><button id="saveButton" class="quiet" hidden>Generate save code</button><button id="rematchButton" class="quiet" hidden>Plan next battle</button><button id="soloButton" class="quiet">Play computer</button><button id="reset" class="quiet" hidden>New invitation</button><button id="refresh" class="quiet">Reconnect</button><button id="leave" class="quiet">Battles / load code</button></div>
+ <details id="battleOptions" open><summary>Battle options &amp; save codes</summary><div class="match-tools"><button id="transferButton" class="quiet">Continue on another device</button><button id="saveButton" class="quiet" hidden>Generate save code</button><button id="rematchButton" class="quiet" hidden>Plan next battle</button><button id="soloButton" class="quiet">Play computer</button><button id="reset" class="quiet" hidden>New invitation</button><button id="refresh" class="quiet">Reconnect</button><button id="leave" class="quiet">Battles / load code</button></div></details>
 </section>
 <p id="message" role="alert" hidden></p>
 </main>

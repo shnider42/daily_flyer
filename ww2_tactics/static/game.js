@@ -63,7 +63,7 @@ function renderPlatoons(board){
  }
 }
 function activate(e,callback){e.addEventListener('click',callback);e.addEventListener('keydown',event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();callback();}});}
-function chooseUnit(u){if(busy||playbackSession)return;if(barrageMode){placeBarrage(u.pos);return;}if(smokeMode){placeSmoke(u.pos);return;}if(u.side===state.side){selected=u.id;target=null;if(u.platoon&&platoonFilter!=='all')platoonFilter=u.platoon;}else{target=u.id;}render();if(u.side===state.side)focusMapUnit(u);}
+function chooseUnit(u){if(busy||playbackSession)return;if(barrageMode){placeBarrage(u.pos);return;}if(smokeMode){placeSmoke(u.pos);return;}if(u.side===state.side){selected=u.id;target=null;if(u.platoon&&platoonFilter!=='all')platoonFilter=u.platoon;}else{target=u.id;}render();document.dispatchEvent(new Event('ww2:selection'));if(u.side===state.side)focusMapUnit(u);}
 function placeBarrage(pos){if(state.legal[selected]?.barrage?.some(p=>p[0]===pos[0]&&p[1]===pos[1])&&confirm(`Call your army's only mortar barrage at ${String.fromCharCode(65+pos[0])}${pos[1]+1}? The marked hex and its neighbors will be hit at the end of your opponent's turn. ALL units there will be pinned and lose dug-in cover, including yours. No strength damage.`))act({kind:'barrage',unit:selected,pos});}
 function placeSmoke(pos){if(state.legal[selected]?.smoke?.some(p=>p[0]===pos[0]&&p[1]===pos[1]))act({kind:'smoke',unit:selected,pos});}
 function chance(threshold){return Math.max(0,Math.min(100,Math.round((7-threshold)/6*100)));}

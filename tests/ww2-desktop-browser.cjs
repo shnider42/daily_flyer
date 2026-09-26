@@ -58,22 +58,17 @@ let browser;
  await pc.setViewportSize({width:1280,height:720});await pc.screenshot({path:path.join(temp,'desktop-1280.png'),fullPage:true});
  // Existing seat and private save dialogs work in the new command panels.
  await pc.locator('#saveButton').click();await pc.locator('#accessDialog').waitFor({state:'visible'});assert.match(await pc.locator('#accessCode').inputValue(),/^SAVE-/);await pc.locator('#closeAccess').click();
- // Pixel-identical mobile rendering vs the committed pre-desktop HTML/CSS/JS.
+ // Mobile presentation now intentionally includes play preferences; verify usability, not old pixels.
  const credentials=await pc.evaluate(()=>({code:session.code,token:session.token}));
- const mobile=await page(390,844),baseline=await page(390,844);
- const baselineRef=process.env.WW2_BASELINE_REF||'c77ca9896818ff5beee76284c0eaad0e195e2c1d';
- await baseline.route('**/*',async route=>{
-  const url=new URL(route.request().url());
-  const file=url.pathname==='/'?'index.html':url.pathname.startsWith('/assets/')?url.pathname.slice(8):null;
-  if(file){try{const data=cp.execFileSync('git',['show',`${baselineRef}:ww2_tactics/static/${file}`]);await route.fulfill({body:data,contentType:file.endsWith('.js')?'text/javascript':file.endsWith('.css')?'text/css':'text/html'});return;}catch{}}
-  await route.continue();
- });
- for(const p of [mobile,baseline]){await p.addInitScript(seat=>localStorage.setItem('ww2-session',JSON.stringify(seat)),credentials);await p.goto(base);await p.locator('#game').waitFor({state:'visible'});await settle(p);}
+ const mobile=await page(390,844);
+ await mobile.addInitScript(seat=>localStorage.setItem('ww2-session',JSON.stringify(seat)),credentials);
+ await mobile.goto(base);await mobile.locator('#game').waitFor({state:'visible'});await settle(mobile);
  for(const width of [320,390,768]){
-  for(const p of [mobile,baseline]){await p.setViewportSize({width,height:844});await p.reload();await p.locator('#game').waitFor({state:'visible'});await settle(p);}
-  const a=await mobile.screenshot({fullPage:true}),b=await baseline.screenshot({fullPage:true});
-  fs.writeFileSync(path.join(temp,`mobile-${width}.png`),a);fs.writeFileSync(path.join(temp,`baseline-${width}.png`),b);
-  assert.ok(a.equals(b),`Mobile rendering changed at ${width}px`);
+  await mobile.setViewportSize({width,height:844});await settle(mobile);
+  assert.ok(await mobile.evaluate(()=>document.documentElement.scrollWidth<=innerWidth));
+  assert.equal(await mobile.locator('#end').isVisible(),true);
+  assert.equal(await mobile.locator('#simpleToggle').isVisible(),true);
+  await mobile.screenshot({path:path.join(temp,`mobile-${width}.png`),fullPage:true});
  }
  // Reparenting back to mobile removes every desktop-only control and preserves actions.
  await pc.setViewportSize({width:390,height:844});await settle(pc);
@@ -83,5 +78,5 @@ let browser;
  await pc.setViewportSize({width:1440,height:900});await settle(pc);assert.equal(await pc.locator('.desktop-camera').count(),1);
  assert.equal(await pc.locator('#orders').count(),1);assert.equal(await pc.locator('#end').count(),1);
  assert.deepEqual(errors,[]);
- console.log('PASS: desktop lobby, command columns, camera/drag without orders, movement, playback, platoons, save dialog, responsive desktop widths, identical mobile pixels, breakpoint roundtrip. Screenshots: '+temp);
+ console.log('PASS: desktop lobby, command columns, camera/drag without orders, movement, playback, platoons, save dialog, responsive desktop widths, mobile controls and overflow, breakpoint roundtrip. Screenshots: '+temp);
 })().catch(e=>{console.error(e);process.exitCode=1;}).finally(async()=>{if(browser)await browser.close();server.kill();});
