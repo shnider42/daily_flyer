@@ -13,15 +13,15 @@ let browser;
  await p.locator('#leave').click();await p.locator('#learnStart').click();await p.waitForFunction(()=>state&&!busy&&document.body.classList.contains('simple-play'));
  assert.notEqual(await p.evaluate(()=>session.code),original.code);assert.equal(await p.locator('#tutorialCoach').isVisible(),true);
  await p.locator('#lessonNext').click();await p.locator('#map .unit.us').first().click();
- assert.match(await p.locator('#lessonTitle').textContent(),/Move/);assert.equal(await p.locator('#mobileOrderToggle').getAttribute('aria-expanded'),'true');
+ assert.match(await p.locator('#lessonTitle').textContent(),/Move/);
  assert.match(await p.locator('#mobileOrderToggle').textContent(),/2 AP/);
  assert.ok((await p.locator('#mobileOrderBody').boundingBox()).height<=844*.28+1);
  assert.equal(await p.locator('#unitMechanics').isVisible(),false);
- await p.locator('#smoke').click();assert.equal(await p.locator('#mobileOrderToggle').getAttribute('aria-expanded'),'false');
- await p.locator('#mobileOrderToggle').click();await p.locator('#smoke').click();
+ await p.locator('#smoke').click();assert.match(await p.locator('#smoke').textContent(),/Cancel smoke/);
+ await p.locator('#smoke').click();
  await p.locator('#map .hex.move').first().click();await p.waitForFunction(()=>!busy&&state.revision===1);
  assert.match(await p.locator('#lessonTitle').textContent(),/Spend actions/);
- assert.equal(await p.locator('#mobileOrderToggle').getAttribute('aria-expanded'),'false');
+ assert.equal(await p.locator('#mobileOrderBody').isVisible(),true);
  const before=await p.evaluate(()=>JSON.stringify(state));await p.locator('#simpleToggle').click();await p.locator('#simpleToggle').click();
  assert.equal(await p.evaluate(()=>JSON.stringify(state)),before);
  await p.reload();await p.waitForFunction(()=>state&&!busy);assert.equal(await p.locator('#simpleToggle').getAttribute('aria-pressed'),'true');assert.equal(await p.locator('#tutorialCoach').isVisible(),true);
@@ -33,13 +33,24 @@ let browser;
   const checks=[],units=state.units.filter(u=>u.side===state.side);
   let before=read();chooseUnit(units[0]);checks.push([before,read()]);
   before=read();chooseUnit(units[1]);checks.push([before,read()]);
-  before=read();$('mobileOrderToggle').click();checks.push([before,read()]);
+  before=read();$('mobileActionsMore').click();checks.push([before,read()]);
   $('zoom').click();wrap.scrollTo(65,90);before=read();chooseUnit(units[2]);checks.push([before,read()]);
   before=read();render();checks.push([before,read()]);
   $('zoom').click();return checks;
  });
  for(const [before,after] of stability)before.forEach((value,i)=>assert.ok(Math.abs(value-after[i])<=1,`Map moved: ${before} -> ${after}`));
  await p.locator('#roster button').nth(1).click();
+ // Orders never overlap a move hex; every card fits vertically and all are reachable.
+ for(const width of [320,390]){
+  await p.setViewportSize({width,height:844});
+  const layout=await p.evaluate(()=>{const rail=$('orders'),dock=$('mobileOrderDock').getBoundingClientRect(),map=$('mapWrap').getBoundingClientRect();return {bottom:dock.bottom,mapTop:map.top,cards:[...rail.querySelectorAll('button')].filter(b=>!b.hidden).map(b=>({height:b.clientHeight,content:b.scrollHeight}))};});
+  assert.ok(layout.bottom<=layout.mapTop);for(const card of layout.cards)assert.ok(card.content<=card.height+1,JSON.stringify(card));
+ }
+ await p.locator('#mobileActionsMore').click();assert.match(await p.locator('#mobileActionCount').textContent(),/of/);
+ await p.locator('#mobileOrderToggle').click();await p.locator('#mobileUnitDetails').waitFor({state:'visible'});await p.locator('#mobileUnitDetails>button').click();
+ await p.evaluate(()=>new Promise(resolve=>{let still=0,last=-1;function check(){const x=$('orders').scrollLeft;still=x===last?still+1:0;last=x;if(still>=12)resolve();else requestAnimationFrame(check);}check();}));
+ assert.ok(await p.evaluate(()=>{const r=$('orders').getBoundingClientRect();return [...$('orders').querySelectorAll('button')].filter(b=>!b.hidden).map(b=>b.getBoundingClientRect()).filter(b=>b.right>r.left+1&&b.left<r.right-1).every(b=>b.left>=r.left-1&&b.right<=r.right+1);}),'Scrolling must settle on whole cards');
+ await p.locator('#mobileOrderDock').screenshot({path:path.join(temp,'action-strip.png')});
  await p.screenshot({path:path.join(temp,'mobile.png'),fullPage:true});
  for(const width of [1280,390,1440,320,844,390]){
   console.log('Checking width',width);

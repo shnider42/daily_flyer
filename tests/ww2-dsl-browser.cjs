@@ -54,15 +54,13 @@ let browser;
  const field=await page();await field.addInitScript(()=>localStorage.setItem('ww2-session',JSON.stringify({code:'DD00112233',token:'dsl-human'})));
  await field.goto(base);await field.locator('#game').waitFor({state:'visible'});
  await field.locator('#roster button').first().click();
- // Orders now float over the map; dismiss them to reach a covered destination.
- await field.locator('#mobileOrderToggle').click();
  await field.locator('#map [aria-label^="Move to C5,"]').click();await field.waitForFunction(()=>!busy&&state.revision===1);
  assert.match(await field.locator('#hint').textContent(),/ROAD BONUS/);
  assert.ok(await field.locator('#map .road-bonus').count()>0);
  await field.locator('#map [aria-label^="Move to D5,"]').click();await field.waitForFunction(()=>!busy&&state.revision===2);
  assert.equal(await field.evaluate(()=>state.units[0].ap),1);
  await field.locator('#roster button').nth(1).click();await field.locator('#commandOrders button').click();await field.waitForFunction(()=>!busy&&state.revision===3);
- await field.locator('#roster button').first().click();await field.locator('#mobileOrderToggle').click();await field.locator('#map .unit.de').first().click();await field.locator('#grenade').click();
+ await field.locator('#roster button').first().click();await field.locator('#map .unit.de').first().click();await field.locator('#grenade').click();
  await field.locator('#map .effect-explosion').waitFor({state:'attached'});
  assert.equal(await field.evaluate(()=>state.units[0].ap),0);
  await field.locator('#roster button').nth(3).click();await field.locator('#smoke').click();await field.locator('#map .unit.us.selected').click();

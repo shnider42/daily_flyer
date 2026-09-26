@@ -393,17 +393,17 @@ share a player key and are not two independent players).
 # DSL learning and compact controls
 
 - Mobile selection preserves the map's screen position and manual pan. The orders header
-  has a fixed height; its dropdown floats over the board rather than pushing it down.
+  and action strip reserve a fixed height above the board, without floating over any hexes.
   Selecting counters no longer automatically recenters an enlarged map. Use Find selected,
   zoom, or platoon navigation to deliberately move the camera. Rendering keeps the current
   viewport except when starting a new battle; desktop camera behavior is unchanged.
 
-- On phones/tablets below 1100px, DSL unit selection opens a sticky orders dropdown above
+- On phones/tablets below 1100px, DSL unit selection updates a compact action strip above
   the battlefield. Its header retains unit name, hex, AP and pin status alongside End turn.
-  Actions scroll inside a floating panel capped at 20% of screen height, up to 180px.
-  Unit details and odds are expandable in full view. Moving/spending actions collapses the
-  panel; smoke and mortar targeting also collapse it so the map stays accessible. Tap the
-  header or select a unit again to reopen. Playback temporarily hides live orders.
+  Two complete action cards fit per view. Swipe sideways or use the arrows for more;
+  a counter shows the visible action range. No vertical scrolling or partially cut-off rows.
+  Tap the unit name for a separate details/odds dialog. Smoke and mortar targeting retain
+  their Cancel action while leaving the map unobstructed. Playback temporarily hides orders.
 - **Simple view** is a reversible browser preference. It hides odds, dice, modifiers,
   detailed stats and logs, while retaining legal actions, AP, strength/pin markers, round,
   turn, objective, danger warnings and plain-language combat outcomes. Battle options and

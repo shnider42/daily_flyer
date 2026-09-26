@@ -27,6 +27,27 @@
 #mobileOrderBody .action-copy{display:contents}#mobileOrderBody .action-icon{grid-column:1;grid-row:1/3}#mobileOrderBody .action-name{grid-column:2/4;grid-row:1;overflow-wrap:anywhere}#mobileOrderBody .action-purpose{grid-column:2;grid-row:2;margin:0}#mobileOrderBody .action-cost{grid-column:3;grid-row:2;align-self:end}
 
 /* Compact battle chrome: reserve visual weight for the map and actual orders. */
+/* A reserved, non-floating rail keeps every map hex available for movement. */
+#mobileOrderDock{position:relative!important;top:auto!important;backdrop-filter:none!important;-webkit-backdrop-filter:none!important}
+#mobileOrderDock #mobileOrderBody{position:static;max-height:none;height:162px;overflow:hidden;background:transparent;border:0;box-shadow:none;padding:0 8px}
+#mobileOrderBody #hint{height:32px;overflow:auto;font-size:11px;line-height:16px;margin:0 0 4px}
+#mobileOrderBody #orders{display:flex;flex-wrap:nowrap;gap:6px;height:82px;padding:0!important;overflow-x:auto;overflow-y:hidden;scroll-snap-type:x mandatory;scrollbar-width:none;overscroll-behavior-x:contain;border:0}
+#mobileOrderBody #orders::-webkit-scrollbar{display:none}
+#mobileOrderBody #orders>.order-buttons{display:contents}
+#mobileOrderBody #orders #commandOrders[hidden]{display:none!important}
+#mobileOrderBody #orders #commandOrders p{display:none}
+#mobileOrderBody #orders button,#mobileOrderBody #orders #commandOrders .tactical-action{flex:0 0 calc((100% - 6px)/2)!important;width:calc((100% - 6px)/2);height:80px;min-height:80px;scroll-snap-align:start;margin:0;box-sizing:border-box}
+#mobileOrderBody #orders .action-name{font-size:12px;line-height:15px}
+#mobileOrderBody #orders .tactical-action{grid-template-columns:28px minmax(0,1fr);align-content:center}
+#mobileOrderBody #orders .action-icon{grid-column:1;grid-row:1}
+#mobileOrderBody #orders .action-name{grid-column:2;grid-row:1}
+#mobileOrderBody #orders .action-purpose{grid-column:2;grid-row:2}
+#mobileOrderBody #orders .action-cost{grid-column:1;grid-row:2;align-self:start;justify-self:start}
+#mobileActionNav{display:flex;align-items:center;justify-content:space-between;height:44px;gap:8px}
+#mobileActionNav button{width:44px;min-height:44px;padding:0;background:transparent;border:0;font-size:24px}
+#mobileActionCount{font-size:10px;color:#52604e}
+#mobileUnitDetails{margin:auto!important}#mobileUnitDetails>button{float:right;margin-bottom:12px}#mobileUnitDetails h2{clear:both}
+.simple-play #mobileUnitDetails[open]{display:block!important}.simple-play #mobileUnitDetails :is(#roleBrief,#unitMechanics,#odds):not([hidden]){display:block!important}
 /* Expanding orders overlays the field instead of changing the field's position. */
 #mobileOrderHead{height:54px}
 #mobileOrderToggle{overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
