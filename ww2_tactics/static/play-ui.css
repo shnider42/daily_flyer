@@ -25,3 +25,51 @@
 #commandOrders .tactical-action{flex-basis:100%!important}
 #mobileOrderBody #orders .tactical-action{display:grid;grid-template-columns:21px minmax(0,1fr) auto;column-gap:5px;row-gap:3px}
 #mobileOrderBody .action-copy{display:contents}#mobileOrderBody .action-icon{grid-column:1;grid-row:1/3}#mobileOrderBody .action-name{grid-column:2/4;grid-row:1;overflow-wrap:anywhere}#mobileOrderBody .action-purpose{grid-column:2;grid-row:2;margin:0}#mobileOrderBody .action-cost{grid-column:3;grid-row:2;align-self:end}
+
+/* Compact battle chrome: reserve visual weight for the map and actual orders. */
+body>header{padding:0 16px;min-height:44px;border-bottom:1px solid #17272218}
+header a.brand{font-size:10px;letter-spacing:1.5px}header .brand span{display:none}
+header #rulesButton{min-height:44px;padding:6px 8px;font-size:11px;background:transparent;border:0}
+main{padding-top:8px}
+#game .game-title{align-items:center;gap:12px;margin:4px 0 6px}
+#game .game-title h1{font-size:23px;line-height:1.15;letter-spacing:-.6px;margin:0}
+#game .game-title .eyebrow{display:none}
+#game .round{font-size:9px;white-space:nowrap;min-width:0}
+#game .round strong{display:inline;font-size:16px;margin-left:4px}
+#game .status-line{margin:0;padding:0 0 4px;gap:8px;font-size:10px}
+#game #side{background:transparent;padding:0;font-size:10px}
+#game #connection{font-size:10px}
+#game #rulesetBadge{font-size:9px;line-height:1.3;margin:2px 0 5px;padding:0;background:transparent;border:0;color:#596552}
+#game #turnBanner{margin:4px 0;padding:7px 9px;font-size:12px;border-left-width:2px;background:#46674c0c;color:var(--ink)}
+#game #turnBanner.enemy{background:#9e443410}
+#playTools{gap:4px;margin:0 0 3px;align-items:center}
+#playTools button{min-height:44px;padding:6px 10px;font-size:11px;border:1px solid transparent;background:transparent;color:#465747}
+#playTools button[aria-pressed=true]{background:#46674c0e;border-color:#46674c35;color:#29472f}
+#game .mission{margin:4px 0;padding:7px 0;background:transparent;color:#536039;font-size:10px;border:0;border-bottom:1px solid #17272218}
+#game #missionHint{margin:3px 0;font-size:11px;line-height:1.4}
+#game .map-tools{margin:2px 0;gap:6px;min-height:44px}
+#game .map-tools button{min-height:44px;font-size:11px;padding:6px 8px;background:transparent}
+#game #armyCount{font-size:10px;color:#61705f}
+#tutorialCoach{padding:9px 10px;margin:4px 0 6px;background:#46674c08;border-color:#46674c26;border-left-width:2px}
+#tutorialCoach .eyebrow{font-size:9px;letter-spacing:1px;margin:0 0 4px}
+#tutorialCoach h2{font-size:18px;margin:0}
+#tutorialCoach #lessonText{font-size:12px;line-height:1.45;margin:6px 0}
+.lesson-controls{gap:2px}.lesson-controls button{min-height:44px;padding:6px 8px;font-size:11px;background:transparent;border-color:#46674c26}
+.lesson-controls #lessonExit{border-color:transparent}
+#mobileOrderDock{margin:3px 0 5px;background:#f4f1e8f2;border-color:#a7b29b88;box-shadow:0 2px 8px #17272212}
+#mobileOrderToggle{background:transparent;border-color:transparent}
+@supports(backdrop-filter:blur(12px)){#mobileOrderDock{background:#f4f1e8e8;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}}
+@media(min-width:1100px){
+ body>header{height:44px;min-height:44px;padding:0 28px;border-bottom-width:1px}
+ .desktop-header-tag{font-size:9px;letter-spacing:1px;opacity:.7}
+ main{padding-top:10px}
+ .desktop-briefing{column-gap:18px}
+ .desktop-briefing .game-title{grid-column:1;grid-row:1}
+ #game .desktop-briefing .round{padding:0 0 0 16px;border:0}
+ #game .desktop-briefing .status-line{grid-column:2;grid-row:1;flex-direction:row;align-items:center;align-self:center;gap:12px}
+ #game .desktop-briefing #turnBanner{grid-column:1;grid-row:2;align-self:center;margin:0;padding:6px 9px}
+ .desktop-briefing #playTools{grid-column:2;grid-row:2;justify-content:flex-end;margin:0}
+ #game .desktop-briefing #rulesetBadge{grid-column:1/-1;grid-row:3;margin:0 0 5px}
+ .desktop-mode #game .desktop-layout,.desktop-mode.simple-play #game .desktop-layout{height:calc(100svh - 210px)}
+ .desktop-panel-title,.desktop-map-heading h2{font-size:20px}
+}
