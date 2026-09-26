@@ -28,13 +28,13 @@ class CombatDisplayTests(unittest.TestCase):
         self.assertEqual([e['sequence'] for e in s['combat_history']],[1,2])
         self.assertTrue(all(e['modifiers']['reaction']==1 for e in s['combat_history']))
 
-    def test_history_bounded_and_snapshots_independent(self):
+    def test_full_history_and_snapshots_independent(self):
         s=initial()
         for i in range(45):
             s['last_combat']=dict(kind='Fire',roll=1,threshold=4,result='missed',attacker='us0')
             record_combat(s,{'cover':0})
-        self.assertEqual(len(s['combat_history']),40)
-        self.assertEqual(s['combat_history'][0]['sequence'],6)
+        self.assertEqual(len(s['combat_history']),45)
+        self.assertEqual(s['combat_history'][0]['sequence'],1)
         label=s['combat_history'][0]['attacker_label']
         s['units'][0]['pos']=[0,0]
         self.assertEqual(s['combat_history'][0]['attacker_label'],label)

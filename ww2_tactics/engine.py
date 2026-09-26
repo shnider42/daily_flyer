@@ -166,6 +166,7 @@ def apply(state, side, action, roll=None):
     if state["turn"] != side:
         raise ValueError("It is your opponent's turn.")
     state = copy.deepcopy(state)
+    action_round = state["round"]
     board = battlefield(state)
     roll_die = roll or (lambda: secrets.randbelow(6)+1)
     kind = action.get("kind")
@@ -274,10 +275,13 @@ def apply(state, side, action, roll=None):
     # Losing the objective breaks the consecutive-turn hold immediately.
     if not any(u["side"] == "us" and u["hp"] > 0 and u["pos"] == board['objective'] for u in state["units"]):
         state["hold"] = 0
-    state["log"] = (state["log"] + [message] + reactions)[-40:]
+    state["log"] = state["log"] + [message] + reactions
     if state["winner"]:
         state["log"].append(f"{NAMES[state['winner']]} win.")
         wins = state.setdefault('victories', {'us': 0, 'de': 0})
         wins[state['winner']] += 1
     state["revision"] += 1
+    state.setdefault('action_history', []).append(dict(
+        revision=state['revision'], round=action_round, side=side,
+        action=copy.deepcopy({k: action[k] for k in ('kind', 'unit', 'target', 'pos') if k in action})))
     return state

@@ -151,3 +151,11 @@ select { width: 100%; padding: 12px; min-height: 48px; font: inherit; font-size:
 .compact .roll-result .die-face { width: 40px; height: 40px; padding: 6px; gap: 3px; }
 @media(max-width:360px){.dice-options{gap:4px}.dice-options .die-face{width:34px;height:34px;padding:5px;gap:2px}}
 @media (max-width: 430px) { #orders { padding: 12px 0; } .order-buttons button { font-size: 12px; } }
+
+/* Portable seats and independent battles. */
+textarea { box-sizing:border-box; display:block; width:100%; max-width:100%; padding:12px; border:1px solid #879991; border-radius:8px; background:#f5f2e8; color:#172722; font:16px/1.5 monospace; resize:vertical; overflow-wrap:anywhere; }
+#recoverForm, #savedSessions { margin:24px 0; padding-top:18px; border-top:1px solid #a1afa6; }
+#recoverForm button, #copyAccess { margin-top:10px; }
+#sessionList { display:grid; gap:8px; }
+.saved-session { text-align:left; overflow-wrap:anywhere; }
+#accessDialog { width:min(480px,calc(100% - 40px)); box-sizing:border-box; }

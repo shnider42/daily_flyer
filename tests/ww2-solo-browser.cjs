@@ -57,7 +57,7 @@ let browser;
  await page.waitForFunction(()=>document.querySelector('#round').textContent==='2 / 8');
  await page.locator('#reset').click();await page.locator('#waiting').waitFor({state:'visible'});
  await page.locator('#soloButton').click();
- assert.match(await page.locator('#soloReplace').textContent(),/replaces the current shared match/);
+ assert.match(await page.locator('#soloReplace').textContent(),/starts a separate solo battle/);
  await page.locator('#startSolo').click();
  await page.waitForFunction(()=>document.querySelector('#turnBanner').textContent.includes('vs computer'));
  for(const width of [320,375,430,768]){await page.setViewportSize({width,height:844});assert.equal(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);}

@@ -1,5 +1,39 @@
 # Village Crossing — expanded rules
 
+## Independent battles, device transfer, and save codes
+
+Each new solo or two-player battle now has its own database record. Anyone can start a
+computer game while other matches are running. **Battles / load code** opens the lobby,
+where this browser remembers its battles using localStorage. Starting another solo game
+keeps the previous match and invitation intact. No cookies or account are required;
+if browser storage is blocked, play still works in memory for that tab.
+
+- **Continue on another device** creates a private `MOVE-…` code. Open this same site
+  on the other device and paste it into **Load code**. The code works once within 15 minutes.
+  Both devices then control the same live seat; normal revision checks prevent duplicate
+  orders. Transfers follow that player through army swaps, and reset revokes old access.
+  Either human seat can transfer; this also works in solo mode.
+- **Generate save code** captures the current solo battle in an immutable checkpoint.
+  Copy the private `SAVE-…` code into Notes before closing a private browser. Paste it into
+  **Load code** on any device to create a separate solo match at that exact moment.
+  The original game and saved checkpoint remain unchanged. A save can be loaded repeatedly,
+  does not expire, and keeps the player's army, rules version, board, resources, pending
+  smoke/mortars, log, action/combat history, victories, and latest computer-turn playback.
+  Restore never runs AI or rerolls dice. Generate a new code to capture later progress.
+- Codes are unguessable random references to data on **this server's persistent disk**,
+  not self-contained compressed boards. They require the same site and its retained database.
+  Anyone holding a code has access to that seat/checkpoint; only code hashes are stored.
+  Keep the existing `WW2_DB_PATH` and persistent disk. No new Render configuration is needed.
+- Startup atomically migrates the old singleton table while retaining the existing match,
+  invitation, and player keys. Logs and combat history are no longer trimmed to 40 entries;
+  structured human/computer move history is retained from this update forward. Previously
+  discarded history cannot be reconstructed. Rematches still begin a new battle history.
+
+`tests/test_ww2_portability.py` covers isolation, exact restore, migration, concurrency,
+seat transfer, expiry/reuse, credential boundaries, army swaps, and server restarts.
+`tests/ww2-portability-browser.cjs` checks phone-to-PC transfer, independent sessions,
+storage-disabled play/save/restore, immutable checkpoints, local reconnection, and layouts.
+
 ## Riverfront Offensive
 
 An optional one-off 18×18 battlefield: 324 hexes, exactly four times Orchard Road's
@@ -57,7 +91,7 @@ Refresh to use it in an existing match; no rematch is required.
   percentage and actual modifiers. Optional comparisons show grenade and assault odds.
 - Combat results show the actual server roll, required threshold, hit/miss and effect.
   Suppression and mortars explicitly say they are automatic and do not roll dice.
-- An expandable history retains the latest 40 combat results, including every separate
+- An expandable history retains combat results, including every separate
   overwatch reaction and computer attack. Names, coordinates and modifiers are recorded
   at resolution time, so later movement does not change the explanation. Old saves work;
   detailed history begins with new combat after this update. Existing text logs remain.
@@ -68,8 +102,8 @@ Refresh to use it in an existing match; no rematch is required.
 
 Choose **Play against the computer** on the landing page, or **Play computer** in an
 existing match. Choose a battlefield and start as the Americans. Starting solo from an
-existing match explicitly replaces its progress and invitation; both old player keys are
-revoked. The setup dialog warns before you start. There is still one match per instance.
+existing match creates a separate battle; the previous match remains available in this
+browser’s battle list. Multiple independent matches can run on the same instance.
 
 The computer automatically completes its turn when you end yours. Open **Computer's last
 turn** to review its orders; combat details remain in the battle log. Refreshing reconnects
@@ -151,7 +185,7 @@ Rules version 2 introduced these actions, also available in version 3:
 The same build/start commands below apply. Refresh both phones after deployment. A persistent
 disk is still required to retain the database through deployments.
 
-Original simplified WWII tactics for two mobile browsers. One shared match per service.
+Original simplified WWII tactics for two mobile browsers. Independent solo and shared matches on one service.
 Built from `staging` commit `2a053196d33f6b50299b8c342cc2316960314e21` on
 `feat/ww2-tactics`. No existing Daily Flyer routes or themes were modified.
 This is not an official Squad Leader/ASL implementation; the scenario, art and rules are original.
@@ -187,10 +221,10 @@ Render-account deployment has to be performed separately; creating this branch d
 
 The invitation lets someone claim the unoccupied German seat; share it privately.
 The per-player bearer keys are never in invitation URLs or state responses; only their hashes are
-stored in SQLite. No login/recovery service yet. Clearing browser site data loses that player's key.
-For a host-key loss, the service operator must deliberately archive the SQLite file and restart to
-clear the occupied slot (all match progress will be lost). Do not expose this small private-playtest
-service as a public lobby: there is no signup, abuse throttling or spectator mode in v1.
+stored in SQLite. Clearing browser site data loses locally remembered seats. Before leaving a
+private browser, save a solo checkpoint or transfer the live seat to another device. Without
+a retained seat or save code, there is no account-based recovery; a new independent match
+can still be started. The service has no signup, public match directory, or spectator mode.
 
 ## Rules
 
@@ -247,7 +281,7 @@ share a player key and are not two independent players).
   river routing, bounded turns, group rally, automatic turns, locked computer seats,
   stale actions, reconnection, army swaps, and replacement/revocation between game modes.
 - Combat-display tests verify actual dice/modifier snapshots, separate reaction rolls,
-  bounded history, immutable inputs, and automatic no-roll effects. Role browser checks
+  retained history, immutable inputs, and automatic no-roll effects. Role browser checks
   also verify die previews, actual result faces, and expandable previous results.
 - Playback tests verify frame continuity, exact final boards, single actual dice rolls,
   bounded non-nested snapshots and replacement on the next turn. Solo browser tests verify

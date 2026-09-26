@@ -1,22 +1,49 @@
 'use strict';
 const $ = id => document.getElementById(id);
 let session = null, state = null, selected = null, target = null, busy = false, polling = false, toastTimer, smokeMode = false, lobbyMode = false, renderedBattle = null, scenarios = [];
-let barrageMode = false, platoonFilter = 'all';
-try { session = JSON.parse(localStorage.getItem('ww2-session')); } catch (_) {}
+let barrageMode = false, platoonFilter = 'all', savedSessions = [];
+try {
+ session = JSON.parse(localStorage.getItem('ww2-session'));
+ const saved = JSON.parse(localStorage.getItem('ww2-sessions')||'[]');
+ savedSessions = Array.isArray(saved)?saved.filter(s=>s&&typeof s.code==='string'&&typeof s.token==='string'):[];
+ if(session&&typeof session.code==='string'&&typeof session.token==='string'){
+  if(!savedSessions.some(s=>s.code===session.code))savedSessions.unshift(session);
+ }else session=null;
+} catch (_) {}
 const names = {us:'Americans',de:'Germans'}, kinds={squad:'Rifle squad',leader:'Leader',mg:'Machine gun'};
 function notify(text){$('message').textContent=text;$('message').hidden=false;clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('message').hidden=true,6500);}
 async function api(path, body){
  const response=await fetch(path,{method:body===undefined?'GET':'POST',headers:{'Content-Type':'application/json',...(session?{Authorization:`Bearer ${session.token}`}:{})},...(body===undefined?{}:{body:JSON.stringify(body)})});
  const data=await response.json();if(!response.ok)throw new Error(data.error||'The server could not complete that action.');return data;
 }
-function remember(data){session=data;localStorage.setItem('ww2-session',JSON.stringify(data));selected=null;target=null;state=null;smokeMode=false;lobbyMode=false;history.replaceState(null,'','/');}
+function persistSessions(){
+ try{localStorage.setItem('ww2-session',JSON.stringify(session));localStorage.setItem('ww2-sessions',JSON.stringify(savedSessions));}
+ catch(_){notify('Browser storage is unavailable. Keep a save code or transfer code before leaving.');}
+}
+function remember(data){
+ session=data;savedSessions=[data,...savedSessions.filter(s=>s.code!==data.code)];persistSessions();
+ selected=null;target=null;state=null;smokeMode=false;barrageMode=false;platoonFilter='all';renderedBattle=null;lobbyMode=false;
+ history.replaceState(null,'','/');renderSessions();
+}
+function renderSessions(){
+ $('savedSessions').hidden=!savedSessions.length;
+ $('sessionList').replaceChildren(...savedSessions.map(saved=>{
+  const button=document.createElement('button');button.className='saved-session';
+  button.textContent=saved.label||`Battle ${saved.code}`;
+  button.onclick=()=>run(async()=>{const next=await apiWithSession(saved);remember(saved);state=next;render();});return button;
+ }));
+}
+async function apiWithSession(saved){
+ const response=await fetch(`/api/match/${saved.code}`,{headers:{Authorization:`Bearer ${saved.token}`}});
+ const data=await response.json();if(!response.ok)throw new Error(data.error||'Battle unavailable.');return data;
+}
 function invitation(){return `${location.origin}/?join=${session.code}`;}
 async function refresh(){
  if(!session||busy||polling||lobbyMode||playbackSession)return;polling=true;const requestedCode=session.code;
  try{const next=await api(`/api/match/${requestedCode}`);if(session?.code!==requestedCode)return;$('connection').textContent='● Connected';if(!state||next.revision>state.revision||next.code!==state.code){const oldKey=playbackKey(state),hadState=!!state;state=next;render();if(hadState&&playbackKey(state)&&oldKey!==playbackKey(state))startPlayback();}}
  catch(e){$('connection').textContent='○ Reconnecting';if(!state)notify(e.message);}finally{polling=false;}
 }
-async function run(task){if(busy||playbackSession)return;const oldPlayback=playbackKey(state);busy=true;document.querySelectorAll('button').forEach(b=>b.disabled=true);try{await task();}catch(e){notify(e.message);}finally{busy=false;document.querySelectorAll('button').forEach(b=>b.disabled=false);if(state)render();await refresh();if(playbackKey(state)&&oldPlayback!==playbackKey(state))startPlayback();}}
+async function run(task){if(busy||playbackSession)return;const oldPlayback=playbackKey(state),oldCode=session?.code;busy=true;document.querySelectorAll('button').forEach(b=>b.disabled=true);try{await task();}catch(e){notify(e.message);}finally{busy=false;document.querySelectorAll('button').forEach(b=>b.disabled=false);if(state)render();await refresh();if(session?.code===oldCode&&playbackKey(state)&&oldPlayback!==playbackKey(state))startPlayback();}}
 async function act(body){await run(async()=>{state=await api(`/api/match/${session.code}`,{...body,revision:state.revision});target=null;smokeMode=false;barrageMode=false;render();});}
 function element(tag,attrs={},text){const e=document.createElementNS('http://www.w3.org/2000/svg',tag);Object.entries(attrs).forEach(([k,v])=>e.setAttribute(k,v));if(text!==undefined)e.textContent=text;return e;}
 function center(x,y){return [27+x*52+(y%2)*26,30+y*49];}
@@ -63,6 +90,9 @@ function render(){
  $('game').dataset.side=state.side;
  $('turnBanner').dataset.side=state.winner||state.turn;
  $('soloButton').hidden=!!state.ai_side;
+ $('saveButton').hidden=!state.ai_side;
+ const label=`${state.scenario.name} · ${state.ai_side?'Solo':'Two player'} · ${names[state.side]} · Round ${state.round}`;
+ if(session.label!==label){session.label=label;savedSessions=savedSessions.map(s=>s.code===session.code?session:s);persistSessions();}
  $('computerReview').hidden=!state.computer_orders?.length;
  $('computerOrders').replaceChildren(...(state.computer_orders||[]).map(text=>{const li=document.createElement('li');li.textContent=text;return li;}));
  $('waiting').hidden=state.ready;$('invite').value=invitation();$('matchCode').textContent=`MATCH CODE · ${session.code}`;
@@ -164,11 +194,11 @@ $('overwatch').onclick=()=>act({kind:'overwatch',unit:selected});
 $('nextUnit').onclick=()=>{const alive=state.units.filter(u=>u.side===state.side&&u.hp>0&&(platoonFilter==='all'||u.platoon===platoonFilter));const ready=alive.filter(u=>u.ap>0);const units=ready.length?ready:alive;smokeMode=false;barrageMode=false;chooseUnit(units[(units.findIndex(u=>u.id===selected)+1)%units.length]);};
 $('zoom').onclick=()=>{const enlarged=$('mapWrap').classList.toggle('enlarged');$('zoom').setAttribute('aria-pressed',String(enlarged));$('zoom').textContent=state.scenario?.platoons?(enlarged?'Overview':'Detail'):(enlarged?'Fit map −':'Enlarge map +');if(playbackSession){drawPlayback();return;}if(enlarged)focusMapUnit(state.units.find(u=>u.id===selected)||state.units.find(u=>u.side===state.side&&u.hp>0&&(platoonFilter==='all'||u.platoon===platoonFilter)));};
 $('end').onclick=()=>{const count=state.units.filter(u=>u.side===state.side&&u.hp>0&&u.ap>0).length;const exposed=state.units.filter(u=>u.side===state.side&&u.hp>0&&state.barrages?.some(b=>b.ttl===1&&b.area.some(p=>p[0]===u.pos[0]&&p[1]===u.pos[1]))).length;if(confirm(`End your turn? ${count} unit${count===1?' has':'s have'} unused actions.${exposed?` WARNING: ${exposed} of your units will be caught in the incoming barrage.`:''}`))act({kind:'end'});};
-$('reset').onclick=()=>{if(confirm('Replace this match? Progress and the old invitation will be lost. Your opponent will need the new invitation.'))run(async()=>{remember(await api(`/api/match/${session.code}/reset`,{}));});};
+$('reset').onclick=()=>{if(confirm('Replace this match? Progress and the old invitation will be lost. Your opponent will need the new invitation.'))run(async()=>{const old=session.code;const next=await api(`/api/match/${old}/reset`,{});savedSessions=savedSessions.filter(s=>s.code!==old);remember(next);});};
 $('refresh').onclick=refresh;
 $('findUnit').onclick=()=>focusMapUnit(state.units.find(u=>u.id===selected));
 $('share').onclick=async()=>{try{if(navigator.share){await navigator.share({title:'Village Crossing',text:'Command the Germans. Join my WWII tactics match.',url:invitation()});}else{await navigator.clipboard.writeText(invitation());notify('Invitation copied. Send it to the other player.');}}catch(e){if(e.name!=='AbortError'){ $('invite').select();notify('Copy the invitation from the field below.');}}};
-$('leave').onclick=()=>{if(confirm('Show the invitation screen? Your saved player key is kept; reload to return to this match.')){lobbyMode=true;$('game').hidden=true;$('lobby').hidden=false;}};
+$('leave').onclick=()=>{lobbyMode=true;$('game').hidden=true;$('lobby').hidden=false;renderSessions();window.scrollTo(0,0);};
 $('rulesButton').onclick=()=>$('rules').showModal();$('closeRules').onclick=()=>$('rules').close();
 $('scenarioSelect').onchange=scenarioPreview;
 $('rematchButton').onclick=()=>{$('rematchScenario').value=state.scenario?.id||'village';$('rematchDialog').querySelector('h2').textContent=state.ai_side?'Another round?':'Stay connected. Fight again.';$('rematchDialog').querySelector('h2 + p').textContent=state.ai_side?'Start immediately against the computer. An unfinished battle will be abandoned without awarding a win.':'Your opponent must accept. An unfinished battle will be abandoned without awarding a win.';$('proposeRematch').textContent=state.ai_side?'Start next battle':'Send proposal';$('rematchDialog').showModal();};
@@ -176,12 +206,36 @@ $('closeRematch').onclick=()=>$('rematchDialog').close();
 $('proposeRematch').onclick=()=>{const settings={operation:'propose',scenario:$('rematchScenario').value,swap:$('swapArmies').checked};$('rematchDialog').close();rematchRequest(settings);};
 $('acceptRematch').onclick=()=>rematchRequest({operation:'accept'});
 $('declineRematch').onclick=()=>rematchRequest({operation:'decline'});
-function openSolo(){ $('soloScenario').value=state?.scenario?.id||$('scenarioSelect').value;$('soloReplace').textContent=session?'Starting solo replaces the current shared match and invitation. Both players’ progress in that match will be lost.':'Choose a battlefield and start playing immediately.';$('soloDialog').showModal(); }
+function openSolo(){ $('soloScenario').value=state?.scenario?.id||$('scenarioSelect').value;$('soloReplace').textContent=session?'This starts a separate solo battle. Your current battle stays available under Battles / load code.':'Choose a battlefield and start playing immediately.';$('soloDialog').showModal(); }
 $('createSolo').onclick=openSolo;$('soloButton').onclick=openSolo;$('closeSolo').onclick=()=>$('soloDialog').close();
-$('startSolo').onclick=()=>{const body={opponent:'computer',scenario:$('soloScenario').value};$('soloDialog').close();run(async()=>{remember(await api(session?`/api/match/${session.code}/reset`:'/api/match',body));});};
+$('startSolo').onclick=()=>{const body={opponent:'computer',scenario:$('soloScenario').value};$('soloDialog').close();run(async()=>{remember(await api('/api/match',body));});};
 api('/api/scenarios').then(data=>{scenarios=data.scenarios;scenarioPreview();}).catch(()=>{notify('Map preview unavailable. You can still choose a battlefield and try to create a match.');});
 const invited=new URLSearchParams(location.search).get('join');
-if(invited){$('code').value=invited.toUpperCase();if(session&&session.code!==invited.toUpperCase()){notify('Joining this invitation will replace your saved player key. Keep your original browser if you need the old seat.');session=null;}}
+if(invited){$('code').value=invited.toUpperCase();if(session&&session.code!==invited.toUpperCase()){notify('Your other battles stay available under Continue a battle.');session=null;}}
+renderSessions();
 if(session)refresh();
 setInterval(()=>{if(!document.hidden&&!$('game').hidden)refresh();},1800);
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)refresh();});
+
+function showAccess(title,help,code){
+ $('accessTitle').textContent=title;$('accessHelp').textContent=help;$('accessCode').value=code;$('copyStatus').textContent='';$('accessDialog').showModal();
+}
+$('closeAccess').onclick=()=>$('accessDialog').close();
+$('transferButton').onclick=()=>run(async()=>{
+ const data=await api(`/api/match/${session.code}/transfer`,{});
+ showAccess('Continue on another device','Open this same site on the other device and paste this code into Load code. It reconnects to your live army, including in multiplayer. Valid for 15 minutes, once only. This device remains connected.',data.transfer_code);
+});
+$('saveButton').onclick=()=>run(async()=>{
+ const data=await api(`/api/match/${session.code}/save`,{revision:state.revision});
+ showAccess('Your checkpoint is saved',`Round ${data.round}, saved now. Copy this code into Notes. Load it on this same site from any browser to open a separate solo battle at this exact moment. It preserves units, actions, dice history, and the latest computer playback. The code does not expire and can be reused; later moves do not change it. It relies on this server’s saved data.`,data.save_code);
+});
+$('copyAccess').onclick=async()=>{
+ try{await navigator.clipboard.writeText($('accessCode').value);$('copyStatus').textContent='Copied. Keep it in your notes.';}
+ catch(_){$('accessCode').focus();$('accessCode').select();$('copyStatus').textContent='Select and copy the code above.';}
+};
+$('recoverForm').onsubmit=e=>{
+ e.preventDefault();const code=$('recoveryCode').value.trim();
+ const prefix=code.replace(/[\s-]/g,'').toUpperCase();
+ if(!prefix.startsWith('MOVE')&&!prefix.startsWith('SAVE')){notify('Paste a MOVE transfer code or SAVE checkpoint code.');return;}
+ run(async()=>{remember(await api(prefix.startsWith('MOVE')?'/api/transfer':'/api/restore',{code}));$('recoveryCode').value='';});
+};

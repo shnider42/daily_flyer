@@ -129,8 +129,8 @@ class APITests(unittest.TestCase):
         self.assertNotIn('host',state)
         self.assertEqual(state['side'],'us')
 
-    def test_single_slot_seat_and_join(self):
-        self.assertEqual(self.client.post('/api/match',json={}).status_code,409)
+    def test_independent_matches_seat_and_join(self):
+        self.assertEqual(self.client.post('/api/match',json={}).status_code,201)
         self.assertEqual(self.client.post(self.url+'/join',json={},headers=self.auth).status_code,409)
         guest=self.join()
         self.assertEqual(self.client.post(self.url+'/join',json={}).status_code,409)

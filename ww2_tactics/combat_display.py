@@ -19,4 +19,4 @@ def record_combat(state, modifiers=None, note=None):
     state['combat_sequence'] = state.get('combat_sequence', 0)+1
     event['sequence'] = state['combat_sequence']
     state['last_combat'] = event
-    state['combat_history'] = (state.get('combat_history', [])+[event])[-40:]
+    state['combat_history'] = state.get('combat_history', [])+[event]

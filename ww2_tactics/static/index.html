@@ -4,8 +4,9 @@
 <header><a href="/" class="brand">FIELD / NOTES <span>01</span></a><button id="rulesButton" class="quiet">Field manual</button></header>
 <main>
 <section id="lobby">
- <p class="eyebrow">WESTERN FRONT · TWO PLAYER</p><h1>Village<br><em>Crossing.</em></h1>
+ <p class="eyebrow">WESTERN FRONT · SOLO OR TWO PLAYER</p><h1>Village<br><em>Crossing.</em></h1>
  <p class="intro">Four battlefields. Two commanders.<br>Your next battle starts here.</p>
+ <section id="savedSessions" hidden><h2>Continue a battle</h2><div id="sessionList"></div></section>
  <label for="scenarioSelect">Choose your battlefield</label>
  <select id="scenarioSelect"><option value="village">Village Crossing · 8 rounds</option><option value="orchard">Orchard Road · 10 rounds</option><option value="stonebridge">Stonebridge · 12 rounds</option><option value="riverfront">Riverfront Offensive · 18×18 · 24 rounds</option></select>
  <svg id="scenarioPreview" viewBox="0 0 400 470" role="img" aria-label="Battlefield preview"></svg>
@@ -14,7 +15,8 @@
  <button id="create" class="primary">Command the Americans <span>↗</span></button>
  <button id="createSolo" class="solo-button">Play against the computer →</button>
  <form id="joinForm"><label for="code">Have an invitation? Join the Germans.</label><div class="join-row"><input id="code" maxlength="10" placeholder="MATCH CODE" autocomplete="off" autocapitalize="characters" spellcheck="false" required pattern="[a-fA-F0-9]{10}"><button type="submit">Join →</button></div></form>
- <p class="footnote">Original simplified rules · No account needed<br>Your player key stays in this browser. Keep site data to reconnect.</p>
+ <form id="recoverForm"><label for="recoveryCode">Continue on another device or restore a save</label><textarea id="recoveryCode" rows="3" maxlength="100" placeholder="MOVE-… or SAVE-…" autocomplete="off" autocapitalize="characters" spellcheck="false" required></textarea><button type="submit">Load code →</button><p class="footnote">MOVE reconnects your live seat. SAVE opens a separate solo battle at the saved moment. Use codes generated on this site.</p></form>
+ <p class="footnote">Original simplified rules · No account needed<br>This browser remembers your battles when storage is available. In private browsing, keep a save code before leaving.</p>
 </section>
 <section id="game" hidden>
  <div class="game-title"><div><p class="eyebrow" id="battleNumber">BATTLE 01</p><h1 id="battleTitle">Village Crossing</h1></div><div class="round">ROUND <strong id="round">1 / 8</strong></div></div>
@@ -38,10 +40,11 @@
  <section id="rematchProposal" class="rematch-proposal" hidden aria-label="Next battle proposal"><p id="proposalText" role="status"></p><button id="acceptRematch" class="primary">Accept next battle</button><button id="declineRematch">Decline</button></section>
  <details class="journal"><summary>Battle log <span id="latest"></span></summary><ol id="log"></ol></details>
  <p id="seriesScore" class="series-score"></p>
- <div class="match-tools"><button id="rematchButton" class="quiet" hidden>Plan next battle</button><button id="soloButton" class="quiet">Play computer</button><button id="reset" class="quiet" hidden>New invitation</button><button id="refresh" class="quiet">Reconnect</button><button id="leave" class="quiet">Other invitation</button></div>
+ <div class="match-tools"><button id="transferButton" class="quiet">Continue on another device</button><button id="saveButton" class="quiet" hidden>Generate save code</button><button id="rematchButton" class="quiet" hidden>Plan next battle</button><button id="soloButton" class="quiet">Play computer</button><button id="reset" class="quiet" hidden>New invitation</button><button id="refresh" class="quiet">Reconnect</button><button id="leave" class="quiet">Battles / load code</button></div>
 </section>
 <p id="message" role="alert" hidden></p>
 </main>
+<dialog id="accessDialog"><div class="manual-head"><p class="eyebrow">YOUR BATTLE</p><button id="closeAccess" aria-label="Close code">✕</button></div><h2 id="accessTitle"></h2><p id="accessHelp"></p><label for="accessCode">Private code</label><textarea id="accessCode" rows="3" readonly spellcheck="false"></textarea><button id="copyAccess" class="primary">Copy code</button><p id="copyStatus" role="status"></p><p class="footnote">Treat this code like a password. Anyone with it can access this seat or saved battle.</p></dialog>
 <dialog id="soloDialog"><div class="manual-head"><p class="eyebrow">SOLO BATTLE</p><button id="closeSolo" aria-label="Close solo settings">✕</button></div><h2>Your opponent is ready.</h2><p>You command the Americans. The computer defends as the Germans. Swap armies in your next battle to try defending.</p><p id="soloReplace"></p><label for="soloScenario">Battlefield</label><select id="soloScenario"><option value="village">Village Crossing</option><option value="orchard">Orchard Road</option><option value="stonebridge">Stonebridge</option><option value="riverfront">Riverfront Offensive · 18×18</option></select><p class="footnote">Local tactical opponent · No account or AI subscription. Uses the same actions and dice as you. A first-pass practice opponent that can make tactical mistakes.</p><button id="startSolo" class="primary">Start solo battle</button></dialog>
 <dialog id="rematchDialog"><div class="manual-head"><p class="eyebrow">NEXT OPERATION</p><button id="closeRematch" aria-label="Close next battle settings">✕</button></div><h2>Stay connected. Fight again.</h2><p>Your opponent must accept. An unfinished battle will be abandoned without awarding a win.</p><label for="rematchScenario">Battlefield</label><select id="rematchScenario"><option value="village">Village Crossing · 8 rounds</option><option value="orchard">Orchard Road · 10 rounds</option><option value="stonebridge">Stonebridge · 12 rounds</option><option value="riverfront">Riverfront Offensive · 18×18 · 24 rounds</option></select><label class="check-label"><input type="checkbox" id="swapArmies" checked> Swap armies for the next battle</label><button id="proposeRematch" class="primary">Send proposal</button></dialog>
 <dialog id="rules"><div class="manual-head"><p class="eyebrow">FIELD MANUAL / EXPANDED RULES</p><button id="closeRules" aria-label="Close field manual">✕</button></div><h2>A village worth holding.</h2>
