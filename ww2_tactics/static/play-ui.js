@@ -5,6 +5,43 @@
  let prefs={simple:false,guide:null};
  try{const saved=JSON.parse(localStorage.getItem(key));if(saved&&typeof saved.simple==='boolean')prefs={simple:saved.simple,guide:saved.guide};}catch{}
  const save=()=>{try{localStorage.setItem(key,JSON.stringify(prefs));}catch{}};
+ // Distinct silhouettes and plain-language effects supplement color, including on touch screens.
+ const actionDesign={
+  dig:['earth','Gain cover','M4 18h16M8 18v-5l5-8 4 3-5 8H8M12 6l2-3 4 3-2 3'],
+  smoke:['slate','Block sight','M7 18h10a4 4 0 0 0 1-8 6 6 0 0 0-11-2 5 5 0 0 0 0 10M9 4l1-2M15 4l1-2'],
+  overwatch:['amber','Shoot moving enemies','M2 12s4-6 10-6 10 6 10 6-4 6-10 6S2 12 2 12ZM12 9v6M9 12h6'],
+  fire:['red','Shoot selected enemy','M12 2v5M12 17v5M2 12h5M17 12h5M19 12a7 7 0 1 1-14 0 7 7 0 0 1 14 0'],
+  assault:['rust','Risky close attack','M5 3l13 13M3 5l13 13M14 19l5-5M17 17l4 4M19 3L6 16M3 17l4 4'],
+  grenade:['orange','Blast · damage + pin','M9 7h6l3 5-1 7H7l-1-7 3-5ZM10 7V4h6l3 3M9 12h6M9 16h6'],
+  suppress:['violet','Pin · no damage','M4 6h16M7 10h10M10 14h4M12 14v7M9 18l3 3 3-3'],
+  rally:['green','Remove this unit’s pin','M12 20V4M6 10l6-6 6 6M4 20h16'],
+  inspire:['teal','Unpin nearby allies','M12 4v9M8 8l4-4 4 4M4 17h6M14 17h6M7 14v6M17 14v6'],
+  barrage:['indigo','Delayed area pin','M4 4l8 8M8 3l6 6M12 17l2-4 3-1M7 20l3-3M16 20l-1-3M21 15l-3 1M20 8l-3 3'],
+  command:['blue','Give nearby troops AP','M4 9h5l10-5v16L9 15H4V9ZM7 15l2 6h4l-2-5']
+ };
+ function styleActions(){
+  const buttons=Object.keys(actionDesign).filter(id=>id!=='command').map(id=>[$(id),id]);
+  for(const b of $('commandOrders').querySelectorAll('button'))buttons.push([b,'command']);
+  for(const [b,id] of buttons){
+   if(b.hidden)continue;
+   const raw=b.querySelector('.action-copy')?b.dataset.orderLabel:b.textContent;
+   b.dataset.orderLabel=raw;
+   const cancel=raw.startsWith('Cancel'),[tone,purpose,path]=actionDesign[id];
+   b.classList.add('tactical-action');b.dataset.tone=cancel?'slate':tone;
+   b.classList.toggle('cancel-order',cancel);
+   const cost=raw.match(/ · (\d+) (?:actions?|AP)$/);
+   const title=cost?raw.slice(0,cost.index):raw;
+   const icon=document.createElementNS('http://www.w3.org/2000/svg','svg');
+   icon.setAttribute('viewBox','0 0 24 24');icon.setAttribute('aria-hidden','true');icon.classList.add('action-icon');
+   const shape=document.createElementNS(icon.namespaceURI,'path');shape.setAttribute('d',cancel?'M5 5l14 14M19 5L5 19':path);icon.append(shape);
+   const copy=node('span');copy.className='action-copy';
+   const heading=node('span',null,title);heading.className='action-name';
+   const effect=node('span',null,cancel?'Return to normal orders':purpose);effect.className='action-purpose';copy.append(heading,effect);
+   b.replaceChildren(icon,copy);
+   if(cost){const badge=node('span',null,`${cost[1]} AP`);badge.className='action-cost';b.append(badge);}
+   b.setAttribute('aria-label',`${raw}. ${effect.textContent}`);
+  }
+ }
  const node=(tag,id,text)=>{const n=document.createElement(tag);if(id)n.id=id;if(text)n.textContent=text;return n;};
  let dock=null,anchors=[],expanded=false,lastSelection=null,lastTarget=null,lastRevision=null,lastSimple=null;
  function move(n,to){const anchor=document.createComment('mobile orders anchor');n.before(anchor);anchors.push([n,anchor]);to.append(n);}
@@ -55,6 +92,7 @@
    if($('hint').textContent.startsWith('Fire at '))$('hint').textContent='Target in sight. Choose an available attack.';
   }
   $('simpleOutcome').hidden=!prefs.simple||!state.last_combat||!!playbackSession;
+  styleActions();
   $('simpleOutcome').textContent=state.last_combat?.result||'';
   $('guideToggle').hidden=state.ruleset!=='dsl';
   const active=guideActive();

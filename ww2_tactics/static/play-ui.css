@@ -4,3 +4,24 @@
 @media(min-width:1100px){.desktop-mode #game .desktop-layout{height:calc(100svh - 330px)}.desktop-mode.simple-play #game .desktop-layout{height:calc(100svh - 270px)}}
 .simple-play #playbackResult .combat-entry .mechanics-caption{display:none!important}
 .simple-play #playbackResult>p.mechanics-caption,.simple-play #playbackResult details .mechanics-caption{display:block!important}
+
+/* Orders have individual colors, icons and purpose labels; navigation stays neutral. */
+#orders .tactical-action{--action-ink:#344959;--action-bg:#e4ebee;display:flex;align-items:center;gap:8px;flex:1 1 190px;min-width:0;text-align:left;position:relative;background:var(--action-bg);color:var(--action-ink);border:1px solid var(--action-ink);border-left:4px solid var(--action-ink);padding:9px 10px;min-height:60px;border-radius:6px;box-shadow:0 1px 1px #17272212}
+#orders .tactical-action[data-tone=earth]{--action-ink:#63502d;--action-bg:#f0e7d4}
+#orders .tactical-action[data-tone=slate]{--action-ink:#435b70;--action-bg:#e1eaf0}
+#orders .tactical-action[data-tone=amber]{--action-ink:#775008;--action-bg:#fbefc7}
+#orders .tactical-action[data-tone=red]{--action-ink:#8f2929;--action-bg:#f9dddd}
+#orders .tactical-action[data-tone=rust]{--action-ink:#873d27;--action-bg:#f4e0d5}
+#orders .tactical-action[data-tone=orange]{--action-ink:#8b430f;--action-bg:#fbe4cb}
+#orders .tactical-action[data-tone=violet]{--action-ink:#6b3c80;--action-bg:#eee0f5}
+#orders .tactical-action[data-tone=green]{--action-ink:#326037;--action-bg:#dfefdc}
+#orders .tactical-action[data-tone=teal]{--action-ink:#21625c;--action-bg:#dcefeb}
+#orders .tactical-action[data-tone=indigo]{--action-ink:#444882;--action-bg:#e5e6f8}
+#orders .tactical-action[data-tone=blue]{--action-ink:#295b80;--action-bg:#dfeef9}
+.action-icon{width:25px;height:25px;flex:none;fill:none;stroke:currentColor;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}.action-copy{min-width:0;flex:1}.action-name{display:block;font-size:13px;font-weight:800;line-height:1.3}.action-purpose{display:block;font-size:11px;line-height:1.3;font-weight:500;margin-top:3px}.action-cost{font-size:10px;font-weight:800;white-space:nowrap;padding:4px;border:1px solid currentColor;border-radius:4px;align-self:flex-start}
+#orders .tactical-action:disabled{opacity:.5;box-shadow:none}#orders .tactical-action:focus-visible{outline:3px solid #172722;outline-offset:3px}#orders .cancel-order{border-style:dashed}
+@media(hover:hover){#orders .tactical-action:not(:disabled):hover{filter:brightness(.96);box-shadow:0 2px 5px #17272225}}
+#mobileOrderBody #orders .tactical-action{flex-basis:calc(50% - 6px);gap:5px;padding:8px 6px;min-height:62px}#mobileOrderBody .action-icon{width:21px;height:21px}#mobileOrderBody .action-name{font-size:12px}#mobileOrderBody .action-purpose{font-size:10px}#mobileOrderBody .action-cost{padding:3px;font-size:9px}
+#commandOrders .tactical-action{flex-basis:100%!important}
+#mobileOrderBody #orders .tactical-action{display:grid;grid-template-columns:21px minmax(0,1fr) auto;column-gap:5px;row-gap:3px}
+#mobileOrderBody .action-copy{display:contents}#mobileOrderBody .action-icon{grid-column:1;grid-row:1/3}#mobileOrderBody .action-name{grid-column:2/4;grid-row:1;overflow-wrap:anywhere}#mobileOrderBody .action-purpose{grid-column:2;grid-row:2;margin:0}#mobileOrderBody .action-cost{grid-column:3;grid-row:2;align-self:end}
