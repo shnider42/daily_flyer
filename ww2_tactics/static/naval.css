@@ -14,6 +14,7 @@
 .naval-battle .unit.us>rect{fill:#1267ac;stroke:#b9e8ff;stroke-width:2}
 .naval-battle .unit.de>rect{fill:#ab352e;stroke:#ffd8a6;stroke-width:2}
 .naval-battle .unit.selected>rect{stroke:#fff952!important;stroke-width:3.5!important}
+.naval-battle .unit rect,.naval-battle .unit .platoon-halo,.naval-battle .unit .selection-brackets{filter:none}
 .naval-battle .portrait-panel{fill:#081e2a;fill-opacity:.9}
 .naval-battle .ship-hull{fill:#dae7e7;stroke:#071e30;stroke-width:.8}
 .naval-battle .unit.de .ship-hull{fill:#e8cfad}

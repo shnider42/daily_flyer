@@ -13,8 +13,13 @@
   svg.querySelectorAll('.terrain-art,.terrain-defs').forEach(n=>n.remove());
   if(!detailed)return;
   const defs=shape('defs',{class:'terrain-defs'});svg.prepend(defs);
+  // One reusable ocean texture avoids hundreds of individual clip masks and
+  // wave paths on Midway. Hex polygons still provide the exact clipping edge.
+  const waterId=`water-texture-${svg.id}`,water=shape('pattern',{id:waterId,patternUnits:'userSpaceOnUse',width:48,height:30});
+  water.append(shape('path',{d:'M-24 5Q-12-1 0 5T24 5T48 5T72 5M-24 20Q-12 14 0 20T24 20T48 20T72 20',fill:'none',stroke:'#c9e4dd','stroke-width':1.3}),shape('path',{d:'M3 8l10-2M27 23l9 1',fill:'none',stroke:'#5d99a2','stroke-width':1}));defs.append(water);
   [...svg.querySelectorAll(':scope > .hex')].forEach((tile,i)=>{
    const x=i%grid[0].length,y=Math.floor(i/grid[0].length),type=grid[y]?.[x];if(!type)return;
+   if(type==='water'){tile.after(shape('polygon',{class:'terrain-art',points:tile.getAttribute('points'),fill:`url(#${waterId})`,'aria-hidden':'true'}));return;}
    const [cx,cy]=center(x,y),id=`terrain-${svg.id}-${i}`;
    const clip=shape('clipPath',{id});clip.append(shape('polygon',{points:tile.getAttribute('points')}));defs.append(clip);
    const outer=shape('g',{class:'terrain-art','clip-path':`url(#${id})`,'aria-hidden':'true'}),g=shape('g',{transform:`translate(${cx} ${cy})`});outer.append(g);tile.after(outer);

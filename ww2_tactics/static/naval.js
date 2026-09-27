@@ -23,13 +23,16 @@
  function hexPoints(x,y){const [cx,cy]=center(x,y);return Array.from({length:6},(_,i)=>{const a=(60*i-30)*Math.PI/180;return `${cx+30*Math.cos(a)},${cy+30*Math.sin(a)}`;}).join(' ');}
  function gap(a,b){const cube=([x,y])=>{const q=x-(y-(y&1))/2;return [q,-q-y,y];},ac=cube(a),bc=cube(b);return Math.max(...ac.map((v,i)=>Math.abs(v-bc[i])));}
  function zone(svg,snapshot){
+  if(!svg._seaControl?.isConnected){
   svg.querySelectorAll('.sea-control').forEach(e=>e.remove());
   const group=element('g',{class:'sea-control','aria-hidden':'true'});
   state.map.forEach((row,y)=>row.forEach((tile,x)=>{if(['water','objective'].includes(tile)&&gap([x,y],state.scenario.objective)<=2)group.append(element('polygon',{points:hexPoints(x,y)}));}));
   svg.insertBefore(group,svg.querySelector('.unit'));
+  svg._seaControl=group;
   svg.querySelectorAll('.island-marker').forEach(e=>e.remove());
   for(const [i,pos] of (state.scenario.island_objectives||[]).entries()){
    const [x,y]=center(...pos);svg.append(element('text',{x,y:y+24,class:'island-marker'},`⚑ ${i+1} · +1`));
+  }
   }
   const score=snapshot.sea_score||state.sea_score;$('objective').textContent=`US ${score.us}/6 · Japan ${score.de}/6`;
  }

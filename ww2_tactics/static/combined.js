@@ -28,6 +28,7 @@
  }
  function points(x,y){const [cx,cy]=center(x,y);return Array.from({length:6},(_,i)=>{const a=(60*i-30)*Math.PI/180;return `${cx+30*Math.cos(a)},${cy+30*Math.sin(a)}`;}).join(' ');}
  window.drawFog=(svg,snapshot)=>{
+  if(state.fog_of_war){const own=snapshot.units.filter(u=>u.side===state.side&&u.hp>0).length,enemy=snapshot.units.filter(u=>u.side!==state.side&&u.hp>0).length;$('armyCount').textContent=`Your forces ${own} · Enemy spotted ${enemy} · Last seen ${snapshot.contacts?.length||0}`;}
   if(svg._fogSnapshot===snapshot&&svg.querySelector('.fog-layer'))return;
   svg._fogSnapshot=snapshot;
   svg.querySelectorAll('.fog-layer,.contact-marker,.passenger-marker').forEach(n=>n.remove());
@@ -39,8 +40,6 @@
    const [cx,cy]=center(...contact.pos),g=element('g',{class:'contact-marker'});
    g.append(element('title',{},`Last seen ${kinds[contact.kind]} · round ${contact.last_seen_round} · ${sideLabel(contact.last_seen_turn)} turn. Current location unknown.`),element('rect',{x:cx-19,y:cy-16,width:38,height:32,rx:3}),element('text',{x:cx,y:cy-2,'text-anchor':'middle'},`${unitCodes[contact.kind]} ?`),element('text',{x:cx,y:cy+10,'text-anchor':'middle',class:'contact-age'},`R${contact.last_seen_round}`));svg.append(g);
   }
-  const own=snapshot.units.filter(u=>u.side===state.side&&u.hp>0).length,enemy=snapshot.units.filter(u=>u.side!==state.side&&u.hp>0).length;
-  $('armyCount').textContent=`Your forces ${own} · Enemy spotted ${enemy} · Last seen ${snapshot.contacts?.length||0}`;
   for(const troop of snapshot.units.filter(u=>u.side===state.side&&u.hp>0&&u.carrier_id)){
    const counter=svg.querySelector(`.unit[data-unit-id="${troop.carrier_id}"]`);if(!counter)continue;
    const [cx,cy]=center(...troop.pos),badge=element('g',{class:'passenger-marker','aria-hidden':'true'});

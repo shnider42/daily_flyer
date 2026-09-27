@@ -2,6 +2,17 @@
 
 ## Responsive selection, order history and contextual help
 
+Midway additionally updates only the union of old/new actionable hexes (normally
+at most 12), keeps sea-control/island overlays and unchanged platoon halos, and
+does not reset the SVG viewBox during selection. Detailed ocean art shares one
+wave pattern instead of per-hex clip masks; naval counters omit small shadow
+filters. The mobile action grid avoids a mid-update scroll/layout flush and only
+changes its reserved row count when needed. `ww2-midway-selection-browser.cjs`
+checks retained overlays, exact legal highlights, stale-action cleanup, smoke,
+search and movement. Its optional baseline mode compares selection execution and
+the following animation-frame callback, with configurable CPU throttling; these
+are local Chromium measurements, not physical iPhone or screen-presentation times.
+
 Selecting a unit reuses the current map's hexes, terrain art, counters and fog.
 Only interaction highlights and order controls update; a new server state rebuilds
 the scene. This keeps selection local, without a network request. The optional

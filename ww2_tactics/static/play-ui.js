@@ -54,7 +54,7 @@
  }
  const node=(tag,id,text)=>{const n=document.createElement(tag);if(id)n.id=id;if(text)n.textContent=text;return n;};
  $('selection').after(node('p','unitPurpose','Select a unit to see its name and role'));
- let dock=null,screen=null,anchors=[],sheets=[],lastSelection=null,lastTarget=null,lastRevision=null,lastSimple=null,oldNext=null,guidePresented=null,noticeKey=null,wasPlaying=false;
+ let dock=null,screen=null,anchors=[],sheets=[],lastSimple=null,oldNext=null,guidePresented=null,noticeKey=null,wasPlaying=false;
  function move(n,to){const anchor=document.createComment('mobile orders anchor');n.before(anchor);anchors.push([n,anchor]);to.append(n);}
  function openSheet(id){if(playbackSession){playbackSession.paused=true;clearTimeout(playbackTimer);$('pausePlayback').textContent='Resume';}for(const sheet of sheets)if(sheet.id!==id)sheet.close();const sheet=$(id);if(sheet&&!sheet.open)sheet.showModal();}
  function sheet(id,title){const d=node('dialog',id);d.className='mobile-battle-sheet';d.setAttribute('aria-label',title);const h=node('div');h.className='mobile-sheet-heading';const close=node('button',id+'Close','Back to battle');close.onclick=()=>d.close();h.append(node('h2',null,title),close);d.append(h);document.body.append(d);sheets.push(d);return d;}
@@ -64,7 +64,6 @@
   for(const [n,a] of anchors)a.replaceWith(n);anchors=[];
   for(const s of sheets)s.remove();sheets=[];screen?.remove();screen=null;dock=null;
   document.body.classList.remove('mobile-battle','mobile-replaying');
-  lastSelection=null;lastTarget=null;lastRevision=null;
  }
  function focusMobile(unit){
   if(!dock||!unit)return;
@@ -140,8 +139,8 @@
    $('unitDetailTitle').textContent=unit?unitName(unit):'Unit details & odds';
    $('mobileOrderToggle').setAttribute('aria-label',`${unit?unitName(unit)+'. ':''}${$('mobileOrderToggle').textContent}. Open unit details and odds`);
    $('mobileOrderToggle').disabled=!unit;
-   if(selected!==lastSelection||target!==lastTarget||state.revision!==lastRevision)$('orders').scrollLeft=0;
-   lastSelection=selected;lastTarget=target;lastRevision=state.revision;
+   // The fixed mobile grid never scrolls horizontally. Writing scrollLeft here
+   // forced layout halfway through updating a large SVG battlefield.
    $('nextUnit').textContent='›';$('nextUnit').setAttribute('aria-label','Next ready unit');
    $('previousUnit').disabled=$('nextUnit').disabled=busy||!!playbackSession||!state.units.some(u=>u.side===state.side&&u.hp>0);
    $('mobileRosterOpen').disabled=!!playbackSession;$('findUnit').textContent='Find';$('findUnit').hidden=false;$('findUnit').disabled=!unit||!!playbackSession;
@@ -156,7 +155,8 @@
   styleActions();
   if(dock){
    const columns=innerWidth<360?2:3,buttons=[...$('orders').querySelectorAll('button')].filter(b=>!b.hidden&&!b.closest('[hidden]'));
-   screen.style.setProperty('--order-rows',Math.max(columns===2?4:3,Math.ceil(buttons.length/columns)));
+   const rows=String(Math.max(columns===2?4:3,Math.ceil(buttons.length/columns)));
+   if(screen.style.getPropertyValue('--order-rows')!==rows)screen.style.setProperty('--order-rows',rows);
    if(state.last_combat?.revision===state.revision&&!smokeMode&&!barrageMode&&!target&&!$('hint').textContent.startsWith('Tap a marked'))$('hint').textContent=state.last_combat.result;
   }
   $('simpleOutcome').textContent=state.last_combat?.result||'';
