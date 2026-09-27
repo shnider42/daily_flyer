@@ -49,7 +49,7 @@ function drawPlayback(){
  const actor=frame.before.units.find(u=>u.id===action.unit),targetUnit=frame.before.units.find(u=>u.id===action.target);
  const labels={move:'moves',fire:'fires',grenade:'throws a frag',assault:'assaults',suppress:'suppresses',inspire:'rallies nearby troops',command:'orders On your feet',rally:'rallies',dig:'digs in',smoke:'throws smoke',overwatch:'takes overwatch',barrage:'calls mortars',end:'ends the turn'};
  const loc=pos=>`${String.fromCharCode(65+pos[0])}${pos[1]+1}`;
- const description=actor?`${actor.side.toUpperCase()} ${unitName(actor)} at ${loc(actor.pos)} ${labels[action.kind]||action.kind}${action.pos?' → '+loc(action.pos):targetUnit?' → '+targetUnit.side.toUpperCase()+' '+unitName(targetUnit)+' at '+loc(targetUnit.pos):''}`:action.kind==='end'?'Computer ends its turn':'Contact update · movement outside sight is concealed';
+ const description=actor?`${sideLabel(actor.side)} ${unitName(actor)} at ${loc(actor.pos)} ${labels[action.kind]||action.kind}${action.pos?' → '+loc(action.pos):targetUnit?' → '+sideLabel(targetUnit.side)+' '+unitName(targetUnit)+' at '+loc(targetUnit.pos):''}`:action.kind==='end'?'Computer ends its turn':'Contact update · movement outside sight is concealed';
  document.getElementById('playbackStep').textContent=`Action ${p.index+1} / ${p.frames.length} · ${p.phase==='before'?'Before':'Result'}`;
  document.getElementById('playbackDescription').textContent=description;
  document.getElementById('round').textContent=`${snapshot.round} / ${state.scenario?.rounds||8}`;
@@ -68,7 +68,7 @@ function drawPlayback(){
    if(u.ap!==old.ap)details.push(`actions ${old.ap} → ${u.ap}`);
    if(u.entrenched!==old.entrenched)details.push(u.entrenched?'dug in':'dug-in cover removed');
    if(u.overwatch!==old.overwatch)details.push(u.overwatch?'watching':'overwatch ended');
-   if(details.length)changes.push(`${u.side.toUpperCase()} ${unitName(u)} · ${loc(u.pos)}: ${details.join(', ')}`);
+   if(details.length)changes.push(`${sideLabel(u.side)} ${unitName(u)} · ${loc(u.pos)}: ${details.join(', ')}`);
   }
   if(frame.after.hold!==frame.before.hold)changes.push(`Objective hold: ${frame.before.hold} → ${frame.after.hold} / 2`);
   if(frame.after.winner)changes.push(`${names[frame.after.winner]} win.`);
@@ -76,7 +76,7 @@ function drawPlayback(){
   else if(changes.length){const more=uiNode('details');more.append(uiNode('summary','','Unit changes'),uiNode('p','mechanics-caption',changes.join(' · ')));result.append(more);}
  }
  const svg=document.getElementById('map').cloneNode(true);svg.id='playbackMap';svg.hidden=false;svg.removeAttribute('hidden');svg.setAttribute('aria-label',`Turn playback: ${description}`);
- svg.querySelectorAll('.unit,.smoke-cloud,.barrage-zone,.incoming-mark,.aim-line,.battle-effect,.fog-layer,.contact-marker,.landing-zone').forEach(e=>e.remove());
+ svg.querySelectorAll('.unit,.smoke-cloud,.barrage-zone,.incoming-mark,.aim-line,.battle-effect,.fog-layer,.contact-marker,.landing-zone,.recon-choice,.sea-control').forEach(e=>e.remove());
  svg.querySelectorAll('[tabindex]').forEach(e=>{e.removeAttribute('tabindex');e.removeAttribute('role');e.removeAttribute('aria-label');});
  svg.querySelectorAll('.hex').forEach(e=>e.classList.remove('move','threatened','smoke-choice','barrage-choice','selected'));
  for(const smoke of snapshot.smoke||[]){const [cx,cy]=center(...smoke.pos);svg.append(element('ellipse',{cx,cy,rx:25,ry:22,class:'smoke-cloud'}));}
@@ -87,8 +87,8 @@ function drawPlayback(){
   const [cx,cy]=center(...u.pos),g=element('g',{class:`unit ${u.side} platoon-${u.platoon||'none'}${u.id===action.unit?' selected':''}${u.id===action.target?' target':''}`});
   g.dataset.unitId=u.id;
   g.append(element('rect',{x:cx-20,y:cy-16,width:40,height:33,rx:u.side==='us'?9:1}));
-  g.append(element('text',{x:cx,y:cy-3,'text-anchor':'middle',class:'unit-name'},`${u.side.toUpperCase()} ${unitCodes[u.kind]||'SQ'}`));
-  g.append(element('text',{x:cx,y:cy+10,'text-anchor':'middle',class:'strength',textLength:Math.min(34,11+7*u.hp),lengthAdjust:'spacingAndGlyphs'},'●'.repeat(u.hp)+' · '+u.ap));
+  g.append(element('text',{x:cx,y:cy-3,'text-anchor':'middle',class:'unit-name'},unitCodes[u.kind]||'SQ'));
+  g.append(element('text',{x:cx,y:cy+10,'text-anchor':'middle',class:'strength',textLength:Math.min(34,11+7*u.hp),lengthAdjust:'spacingAndGlyphs'},strengthLabel(u)));
   if(u.platoon)g.append(element('text',{x:cx,y:cy+28,'text-anchor':'middle',class:'platoon-marker'},`${u.platoon}${u.number}`));
   if(u.pinned)g.append(element('text',{x:cx+17,y:cy-13,class:'pin'},'!'));
   if(u.entrenched)g.append(element('path',{d:`M${cx-22} ${cy+19}h44`,class:'dug-marker'}));

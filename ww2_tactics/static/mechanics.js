@@ -26,7 +26,7 @@ function chanceRow(label,threshold,modifiers,effect){
 function renderOdds(shot,assault,grenade,picking){
  const panel=document.getElementById('odds');panel.replaceChildren();panel.hidden=picking||!(shot||assault||grenade);
  if(panel.hidden)return;
- if(shot)panel.append(chanceRow('Fire',shot.threshold,shot.modifiers,`Hit: −${shot.damage||1} strength and pinned. Costs 2 actions.${shot.suppression_threshold?' The same die also pins infantry on '+shot.suppression_threshold+'+, even if the damage roll misses.':''}`));
+ if(shot)panel.append(chanceRow('Fire',shot.threshold,shot.modifiers,shot.naval?`Hit: −${shot.damage} hull. Costs 2 AP. Ships do not suffer pins.`:`Hit: −${shot.damage||1} strength and pinned. Costs 2 actions.${shot.suppression_threshold?' The same die also pins infantry on '+shot.suppression_threshold+'+, even if the damage roll misses.':''}`));
  const alternatives=[];
  if(grenade)alternatives.push(chanceRow('Frag',grenade.threshold,{cover:grenade.threshold-4},'Hit: −2 strength and pinned. Costs 2 actions and one frag.'));
  if(assault)alternatives.push(chanceRow('Assault',assault.threshold,{pinned_target:assault.threshold===3?-1:0},'Hit: −2 strength; advance if eliminated. Miss: attacker loses 1 strength and is pinned. Costs 2 actions.'));

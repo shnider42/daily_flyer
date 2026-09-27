@@ -12,10 +12,13 @@ def active(unit):
 
 def sees_hex(state, side, pos, concealed=False):
     from .engine import distance, line_clear
+    if any(r['side']==side and distance(r['pos'],pos)<=r['radius'] for r in state.get('recon',[])):
+        return True
     for scout in state['units']:
         if scout['side'] != side or not active(scout):
             continue
         reach = 9 if scout['kind']=='scout' else max(6,scout['range']) if scout['kind'] in {'tank','at_gun'} else 6
+        reach=scout.get('sight',reach)
         if concealed:
             reach = 4 if scout['kind']=='scout' else 2
         gap = distance(scout['pos'], pos)
@@ -55,6 +58,8 @@ def view(state, side, terrain_visibility=True):
                   contacts=copy.deepcopy([u for uid,u in state.get('intel',{}).get(side,{}).items() if uid not in seen]),
                   smoke=copy.deepcopy([s for s in state.get('smoke', []) if sees_hex(state,side,s['pos'])]), barrages=copy.deepcopy(state.get('barrages', [])),
                   round=state['round'], turn=state['turn'], hold=state['hold'], winner=state['winner'])
+    if state.get('naval_version'):
+        result.update(sea_score=copy.deepcopy(state['sea_score']),recon=copy.deepcopy([r for r in state.get('recon',[]) if r['side']==side]))
     if terrain_visibility:
         board=state['battlefield']
         result['visible_hexes']=[[x,y] for y in range(board['height']) for x in range(board['width']) if sees_hex(state,side,[x,y])]
@@ -73,7 +78,8 @@ def record_reports(state, before, action, message):
         elif actor and actor['side']==side:
             report['log'].append(message)
         elif actor and actor['id'] in seen:
-            report['log'].append(f"Observed {actor['side'].upper()} {actor['kind']}: {action['kind']}.")
+            faction=state.get('factions',{}).get(actor['side'],actor['side'].upper())
+            report['log'].append(f"Observed {faction} {actor['kind']}: {action['kind']}.")
         for event in state.get('combat_history',[]):
             if event.get('revision') != state['revision']:
                 continue

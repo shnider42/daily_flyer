@@ -1,5 +1,17 @@
 #playTools #unitStyleToggle{width:116px;flex:none;white-space:nowrap;font-size:10px;padding-inline:6px}
 .unit-art{pointer-events:none}
+.unit-art .parachute-canopy{fill:#e6d9ac;stroke:#263b31;stroke-width:.8}
+.unit-art .parachute-rib{fill:none;stroke:#9a9d74;stroke-width:.7}
+.unit-art .parachute-cord{fill:none;stroke:#e9e5d0;stroke-width:.75}
+.unit-art .parachute-pack{fill:#abbd8d;stroke:#1c3429;stroke-width:.7}
+.unit-art .tool-handle{fill:none;stroke:#cba16a;stroke-width:2;stroke-linecap:round}
+.unit-art .tool-steel{fill:#cbd7cf;stroke:#1d3630;stroke-width:.7}
+.unit-art .ship-hull{fill:#c5d8db;stroke:#102f3d;stroke-width:.9}
+.unit-art .ship-deck{fill:#9bac9e;stroke:#e3e8d4;stroke-width:.5}
+.unit-art .ship-superstructure{fill:#728f99;stroke:#203e48;stroke-width:.6}
+.unit-art .ship-turret{fill:#879da0;stroke:#203e48;stroke-width:.5}
+.unit-art .ship-marking{fill:none;stroke:#f1ecd1;stroke-width:.65;stroke-linecap:round}
+.unit-art .ship-wake{fill:none;stroke:#9fe0e6;stroke-width:.65;stroke-linecap:round}
 .illustrated-units .unit>:is(.unit-name,.pin,.dug-marker,.watch-marker){display:none}
 .illustrated-units .unit>rect{fill:var(--platoon-color,var(--us-team));stroke:#eee7cb;stroke-width:1.5}
 .illustrated-units .unit.de>rect{fill:var(--platoon-color,var(--de-team))}

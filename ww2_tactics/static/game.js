@@ -13,6 +13,10 @@ try {
 const names = {us:'Americans',de:'Germans'}, kinds={squad:'Rifle squad',leader:'Lieutenant',mg:'Machine gun',commander:'Commander',scout:'Scout team',engineer:'Engineers',at_team:'Anti-tank team',tank:'Tank',at_gun:'Anti-tank gun',amphibious:'Amphibious section',paratrooper:'Paratroopers'};
 const unitCodes={squad:'SQ',leader:'LT',mg:'MG',commander:'CO',scout:'SC',engineer:'EN',at_team:'AT',tank:'TK',at_gun:'AG',amphibious:'AM',paratrooper:'PA'};
 kinds.halftrack='Half-track section';unitCodes.halftrack='HT';
+Object.assign(kinds,{carrier:'Aircraft carrier',battleship:'Battleship',cruiser:'Cruiser',destroyer:'Destroyer'});
+Object.assign(unitCodes,{carrier:'CV',battleship:'BB',cruiser:'CA',destroyer:'DD'});
+function sideLabel(side){return state?.factions?.[side]||names[side];}
+function strengthLabel(u){return state?.naval_version?`${u.hp}/${u.max_hp} · ${u.ap}`:'●'.repeat(u.hp)+' · '+u.ap;}
 function notify(text){$('message').textContent=text;$('message').hidden=false;clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('message').hidden=true,6500);}
 async function api(path, body){
  const response=await fetch(path,{method:body===undefined?'GET':'POST',headers:{'Content-Type':'application/json',...(session?{Authorization:`Bearer ${session.token}`}:{})},...(body===undefined?{}:{body:JSON.stringify(body)})});
@@ -86,6 +90,7 @@ function scenarioPreview(){
 async function rematchRequest(body){await run(async()=>{state=await api(`/api/match/${session.code}/rematch`,{...body,revision:state.revision});render();});}
 function render(){
  if(!state||lobbyMode)return;const restoreMap=holdMobileMap();$('lobby').hidden=true;$('game').hidden=false;
+ Object.assign(names,state.factions||{us:'Americans',de:'Germans'});
  const myTurn=state.ready&&!state.winner&&state.turn===state.side;
  const board=state.scenario||{id:'village',name:'Village Crossing',objective_name:'Village square',rounds:8};
  const large=!!board.platoons;
@@ -157,8 +162,8 @@ function render(){
   g.append(element('circle',{cx,cy,r:23,fill:'transparent'}));
   if(u.side===state.side&&u.platoon===platoonFilter)g.append(element('path',{d:`M${cx-24} ${cy-20}h48v41h-48z`,class:'platoon-halo'}));
   g.append(element('rect',{x:cx-20,y:cy-16,width:40,height:33,rx:u.side==='us'?9:1}));
-  g.append(element('text',{x:cx,y:cy-3,'text-anchor':'middle',class:'unit-name'},`${u.side.toUpperCase()} ${unitCodes[u.kind]||'SQ'}`));
-  g.append(element('text',{x:cx,y:cy+10,'text-anchor':'middle',class:'strength',textLength:Math.min(34,11+7*u.hp),lengthAdjust:'spacingAndGlyphs'},'●'.repeat(u.hp)+' · '+u.ap));
+  g.append(element('text',{x:cx,y:cy-3,'text-anchor':'middle',class:'unit-name'},unitCodes[u.kind]||'SQ'));
+  g.append(element('text',{x:cx,y:cy+10,'text-anchor':'middle',class:'strength',textLength:Math.min(34,11+7*u.hp),lengthAdjust:'spacingAndGlyphs'},strengthLabel(u)));
   if(u.platoon)g.append(element('text',{x:cx,y:cy+28,'text-anchor':'middle',class:'platoon-marker'},`${u.platoon}${u.number}`));
   if(u.pinned)g.append(element('text',{x:cx+17,y:cy-13,'text-anchor':'middle',class:'pin'},'!'));
   if(u.entrenched)g.append(element('path',{d:`M${cx-22} ${cy+19}h44`,class:'dug-marker'}));
@@ -197,9 +202,10 @@ function render(){
  $('rematchButton').hidden=!state.ready;$('rematchButton').disabled=busy||!!state.rematch;
  $('rematchProposal').hidden=!state.rematch;
  if(state.rematch){const p=state.rematch,mine=p.by===state.side;$('proposalText').textContent=`${mine?'You proposed':names[p.by]+' propose'} ${p.name} · ${p.ruleset==='dsl'?'DSL v1':'Classic'}${p.swap?' with armies swapped':' with the same armies'}. ${mine?'Waiting for the other commander.':'Accept to replace the current battle.'}`;$('acceptRematch').hidden=mine;$('acceptRematch').disabled=busy;$('declineRematch').disabled=busy;$('declineRematch').textContent=mine?'Cancel proposal':'Decline';}
- renderPlatoons(board);$('findUnit').hidden=!selected||!(large||$('mapWrap').classList.contains('enlarged'));if(newBattle&&large)focusMapUnit(state.units.find(u=>u.side===state.side&&u.platoon==='A'&&u.kind==='leader'));
+ renderPlatoons(board);$('findUnit').hidden=!selected||!(large||$('mapWrap').classList.contains('enlarged'));if(newBattle&&large)focusMapUnit(state.units.find(u=>u.side===state.side&&u.platoon==='A'&&u.kind===(state.naval_version?'carrier':'leader')));
  syncPlayback();renderBattleEffects(state,svg);
  if(window.renderCombined)window.renderCombined(unit,legal,svg);
+ if(window.renderNaval)window.renderNaval(unit,legal,svg);
  document.dispatchEvent(new Event('ww2:render'));
  if(!newBattle)restoreMap();
 }
@@ -219,7 +225,7 @@ $('end').onclick=()=>{const count=state.units.filter(u=>u.side===state.side&&u.h
 $('reset').onclick=()=>{if(confirm('Replace this match? Progress and the old invitation will be lost. Your opponent will need the new invitation.'))run(async()=>{const old=session.code;const next=await api(`/api/match/${old}/reset`,{ruleset:state.ruleset||'classic'});savedSessions=savedSessions.filter(s=>s.code!==old);remember(next);});};
 $('refresh').onclick=refresh;
 $('findUnit').onclick=()=>focusMapUnit(state.units.find(u=>u.id===selected));
-$('share').onclick=async()=>{try{if(navigator.share){await navigator.share({title:'Village Crossing',text:'Command the Germans. Join my WWII tactics match.',url:invitation()});}else{await navigator.clipboard.writeText(invitation());notify('Invitation copied. Send it to the other player.');}}catch(e){if(e.name!=='AbortError'){ $('invite').select();notify('Copy the invitation from the field below.');}}};
+$('share').onclick=async()=>{try{if(navigator.share){await navigator.share({title:state.scenario?.name||'Village Crossing',text:`Command the ${sideLabel('de')}. Join my WWII tactics match.`,url:invitation()});}else{await navigator.clipboard.writeText(invitation());notify('Invitation copied. Send it to the other player.');}}catch(e){if(e.name!=='AbortError'){ $('invite').select();notify('Copy the invitation from the field below.');}}};
 $('leave').onclick=()=>{lobbyMode=true;$('game').hidden=true;$('lobby').hidden=false;renderSessions();window.scrollTo(0,0);};
 $('rulesButton').onclick=()=>$('rules').showModal();$('closeRules').onclick=()=>$('rules').close();
 $('scenarioSelect').onchange=scenarioPreview;

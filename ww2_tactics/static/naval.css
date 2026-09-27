@@ -1,0 +1,8 @@
+.sea-control{pointer-events:none;fill:none;stroke:#f2d58c;stroke-width:1.7;stroke-dasharray:5 4}
+.recon-choice{fill:#9ae6ef;fill-opacity:.12;stroke:#8bd4e4;stroke-width:1;cursor:crosshair}
+.recon-choice:focus{fill-opacity:.6;stroke-width:3;outline:none}
+.naval-battle #guideToggle{display:none!important}
+.naval-battle #mapWrap{background:#426d83}
+.naval-battle .hex.water{fill:#87b6c9;stroke:#6994aa}
+.naval-battle .hex.objective{fill:#80acba}
+.naval-manual{border-top:1px solid #b8b09a;margin-top:18px;padding-top:14px}

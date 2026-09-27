@@ -25,7 +25,7 @@
   svg.insertBefore(layer,svg.querySelector('.unit'));
   for(const contact of snapshot.contacts||[]){
    const [cx,cy]=center(...contact.pos),g=element('g',{class:'contact-marker'});
-   g.append(element('title',{},`Last seen ${kinds[contact.kind]} · round ${contact.last_seen_round} · ${contact.last_seen_turn.toUpperCase()} turn. Current location unknown.`),element('rect',{x:cx-19,y:cy-16,width:38,height:32,rx:3}),element('text',{x:cx,y:cy-2,'text-anchor':'middle'},`${unitCodes[contact.kind]} ?`),element('text',{x:cx,y:cy+10,'text-anchor':'middle',class:'contact-age'},`R${contact.last_seen_round}`));svg.append(g);
+   g.append(element('title',{},`Last seen ${kinds[contact.kind]} · round ${contact.last_seen_round} · ${sideLabel(contact.last_seen_turn)} turn. Current location unknown.`),element('rect',{x:cx-19,y:cy-16,width:38,height:32,rx:3}),element('text',{x:cx,y:cy-2,'text-anchor':'middle'},`${unitCodes[contact.kind]} ?`),element('text',{x:cx,y:cy+10,'text-anchor':'middle',class:'contact-age'},`R${contact.last_seen_round}`));svg.append(g);
   }
   const own=snapshot.units.filter(u=>u.side===state.side&&u.hp>0).length,enemy=snapshot.units.filter(u=>u.side!==state.side&&u.hp>0).length;
   $('armyCount').textContent=`Your forces ${own} · Enemy spotted ${enemy} · Last seen ${snapshot.contacts?.length||0}`;

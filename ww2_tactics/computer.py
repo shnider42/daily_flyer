@@ -6,6 +6,7 @@ from .engine import apply, options, distance, terrain
 from .scenarios import battlefield
 from .rulesets import dsl, turn_limit
 from .visibility import fog, view, visible_ids
+from . import naval
 
 
 def objective_costs(state):
@@ -20,7 +21,8 @@ def objective_costs(state):
         neighbors=((x,y) for y in range(max(0,pos[1]-1),min(board['height'],pos[1]+2))
                    for x in range(max(0,pos[0]-1),min(board['width'],pos[0]+2)))
         for nxt in neighbors:
-            if terrain(*nxt,state)=='water': continue
+            tile=terrain(*nxt,state)
+            if (state.get('naval_version') and not naval.navigable(tile)) or (not state.get('naval_version') and tile=='water'):continue
             if distance(pos, nxt) == 1 and cost+step < costs.get(nxt, float('inf')):
                 costs[nxt] = cost+step
                 heapq.heappush(queue, (cost+step, nxt))
@@ -28,6 +30,8 @@ def objective_costs(state):
 
 
 def choose_order(state, costs, visited):
+    if state.get('naval_version'):
+        return naval.choose_order(state,costs,visited)
     side = state['turn']
     board = battlefield(state)
     seen=visible_ids(state,side)

@@ -1,5 +1,40 @@
 # Village Crossing — expanded rules
 
+## Midway naval sandbox
+
+Midway is a fictional DSL-only US–Japan operation: 26×30 hexes, mostly ocean,
+with islands that block surface sight and movement. Each fleet starts with two
+carriers, two battleships, four cruisers and six destroyers in two task forces.
+Existing land battles and saves retain their rules. The legacy `de` player slot
+represents Japan here; faction metadata supplies all visible names.
+
+- Ships move one navigable hex per AP and bank one unused AP. Hull replaces
+  infantry strength; ships do not suffer pinning or use infantry abilities.
+- US destroyers are faster; Japanese battleships have longer gun range and
+  Japanese destroyers have stronger, longer-range torpedoes with more salvos.
+- Carriers launch search flights (1 AP) and air strikes (2 AP), each once per
+  turn. Search reveals a radius of three through the opposing turn. Aircraft
+  are abstract sorties, not separate aircraft tokens. US strikes are more
+  accurate; Japanese strikes reach farther and hit harder. Spotted cruiser
+  escorts within two hexes improve anti-aircraft defense without stacking.
+- Destroyers carry two smoke screens. Each ship has two damage-control uses
+  costing 2 AP; US repairs restore two hull and Japanese repairs restore one.
+- Win by sinking both enemy carriers or earning six sea-control points. A
+  point requires ending your turn as the only fleet within two hexes of the
+  central star. Round 30 breaks ties by control score, then surviving hull,
+  then Japan. The field manual lists exact ranges, damage and dice thresholds.
+- Naval AI, fog/last-known contacts, filtered replays, save codes and side-swap
+  rematches are supported. Balance is an experimental first pass.
+
+Unit counters omit nationality letters in both visual styles and replays.
+Illustrated ships have distinct hull/deck silhouettes; paratrooper parachutes
+and engineer tools replace rough placeholders. Faction names remain available
+in accessible labels. Phone action strips and local map pinch/pan are preserved.
+
+Validation: 128 Python rules/API tests; learning/mobile and naval Playwright
+checks, including scouting, strikes, fog-safe replays, saves, both counter styles,
+and layouts at 320, 390 and 1440 pixels.
+
 ## DSL v1 and ruleset selection
 
 New-battle screens default to **DSL v1 — Double Secret Probation Squad Leader**.

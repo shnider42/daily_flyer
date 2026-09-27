@@ -121,7 +121,8 @@ def create_app(db_path=None):
         state = initial(scenario, body.get('ruleset', 'classic'))
         if mode == 'computer':
             state.update(ai_side='de', ready=True)
-            state['log'].append('Solo battle: you command the Americans; the computer commands the Germans.')
+            opponent=state.get('factions',{}).get('de','Germans')
+            state['log'].append(f'Solo battle: you command the Americans; the computer commands the {opponent}.')
         return state
 
     @app.post("/api/match")
@@ -155,7 +156,7 @@ def create_app(db_path=None):
             state = json.loads(row["state"])
             state["ready"] = True
             state["revision"] += 1
-            state["log"].append("German player joined. The battle begins.")
+            state["log"].append("Opponent joined. The battle begins.")
             db.execute("UPDATE match SET guest=?, state=? WHERE code=?", (digest(token), json.dumps(state), row["code"]))
         return jsonify(code=code.upper(), token=token), 200
 
@@ -227,7 +228,7 @@ def create_app(db_path=None):
                     scenario = get_scenario(body.get('scenario'))
                     rules = profile(body.get('ruleset', state.get('ruleset', 'classic')))
                     if scenario.get('dsl_only') and rules['id']!='dsl':
-                        raise ValueError('Operation Long Reach requires the DSL ruleset.')
+                        raise ValueError(f"{scenario['name']} requires the DSL ruleset.")
                 except ValueError as error:
                     return jsonify(error=str(error)), 400
                 if type(body.get('swap')) is not bool:

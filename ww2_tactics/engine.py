@@ -6,7 +6,7 @@ from .support import role_options, role_action, resolve_barrages
 from .combat_display import record_combat
 from .rulesets import profile, dsl, base_ap, bank_limit, turn_limit, road
 from .effects import record_effect
-from . import combined
+from . import combined, naval
 from .visibility import fog, active, visible_ids, sees_hex, update_intel, record_reports
 
 WIDTH, HEIGHT = 7, 9
@@ -50,7 +50,10 @@ def line_clear(a, b, smoke=(), state=None):
         r[k] = -sum(r[j] for j in range(3) if j != k)
         y = r[2]
         x = r[0] + (y-(y & 1))//2
-        if terrain(x, y, state) in {"building", "woods"} or any(s['pos'] == [x, y] for s in smoke):
+        if state and state.get('battlefield') and not (0<=y<state['battlefield']['height'] and 0<=x<state['battlefield']['width']):
+            return False
+        tile=terrain(x,y,state)
+        if tile in {"building", "woods"} or (state and state.get('naval_version') and not naval.navigable(tile)) or any(s['pos'] == [x, y] for s in smoke):
             return False
     return True
 
@@ -59,7 +62,9 @@ def initial(scenario='village', ruleset='classic'):
     rules = profile(ruleset)
     board = get_scenario(scenario)
     if board.get('dsl_only') and ruleset != 'dsl':
-        raise ValueError('Operation Long Reach requires the DSL ruleset.')
+        raise ValueError(f"{board['name']} requires the DSL ruleset.")
+    if board.get('naval'):
+        return naval.initial(board,rules)
     units = []
     for side, row in [("us", board['height']-1), ("de", 0)]:
         formation = []
@@ -150,6 +155,8 @@ def react(state, mover, roll):
 
 
 def options(state, unit):
+    if state.get('naval_version'):
+        return naval.options(state,unit)
     moves, targets = [], []
     board = battlefield(state)
     extras = dict(smoke=[], dig=False, assaults=[], overwatch=False,
@@ -202,6 +209,8 @@ def apply(state, side, action, roll=None):
         raise ValueError("This match has ended.")
     if state["turn"] != side:
         raise ValueError("It is your opponent's turn.")
+    if state.get('naval_version'):
+        return naval.apply(state,side,action,roll)
     state = copy.deepcopy(state)
     before_sight={team:visible_ids(state,team) for team in ('us','de')} if fog(state) else {}
     action_round = state["round"]

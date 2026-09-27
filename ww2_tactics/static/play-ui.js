@@ -7,6 +7,10 @@
  const save=()=>{try{localStorage.setItem(key,JSON.stringify(prefs));}catch{}};
  // Distinct silhouettes and plain-language effects supplement color, including on touch screens.
  const actionDesign={
+  recon:['teal','Reveal nearby sea contacts','M3 12l7-2 2-7 2 7 7 2-7 2-2 7-2-7-7-2Z'],
+  airstrike:['red','Attack a spotted ship','M3 5l9 5 9-5-5 9-4-2-4 2-5-9ZM12 15v6M9 19l3 3 3-3'],
+  torpedo:['indigo','Heavy anti-ship attack','M3 10h13l5 2-5 2H3v-4ZM6 8v8M1 9v6'],
+  repair:['green','Restore damaged hull','M5 3l5 5-2 3 10 10 3-3-10-10 1-3-7-2Z'],
   airdrop:['teal','Deploy airborne reserve','M3 10a9 8 0 0 1 18 0H3ZM3 10l7 9h4l7-9M12 10v9M9 21h6'],
   dig:['earth','Gain cover','M4 18h16M8 18v-5l5-8 4 3-5 8H8M12 6l2-3 4 3-2 3'],
   smoke:['slate','Block sight','M7 18h10a4 4 0 0 0 1-8 6 6 0 0 0-11-2 5 5 0 0 0 0 10M9 4l1-2M15 4l1-2'],

@@ -40,6 +40,7 @@ document.addEventListener('DOMContentLoaded',()=>{
  }
  function sync(){
   if(!active||!state||game.hidden)return;
+  document.querySelector('.desktop-header-tag').textContent=state.naval_version?'PACIFIC / NAVAL OPERATIONS':'WESTERN FRONT / TACTICAL OPERATIONS';
   const key=`${state.code}:${state.battle_number||1}`;
   const changed=key!==battle;
   if(changed){
@@ -49,17 +50,17 @@ document.addEventListener('DOMContentLoaded',()=>{
   document.getElementById('findUnit').hidden=!selected;
   document.getElementById('desktopMapSize').textContent=`${state.map[0].length} × ${state.map.length} HEXES`;
   const troops=state.units.filter(u=>u.side===state.side);
-  document.getElementById('desktopForceSummary').textContent=`${troops.filter(u=>u.hp>0).length} units in the field · ${names[state.side]}`;
+  document.getElementById('desktopForceSummary').textContent=`${troops.filter(u=>u.hp>0).length} ${state.naval_version?'ships afloat':'units in the field'} · ${names[state.side]}`;
   const visible=troops.filter(u=>platoonFilter==='all'||u.platoon===platoonFilter);
   document.querySelectorAll('#roster button').forEach((button,index)=>{
    button.querySelector('.desktop-unit-meta')?.remove();const unit=visible[index];if(!unit)return;
-   button.append(el('span','desktop-unit-meta',unit.hp>0?`${kinds[unit.kind]} · Strength ${unit.hp} · ${String.fromCharCode(65+unit.pos[0])}${unit.pos[1]+1}`:'Eliminated'));
+   button.append(el('span','desktop-unit-meta',unit.hp>0?`${kinds[unit.kind]} · ${state.naval_version?'Hull':'Strength'} ${unit.hp} · ${String.fromCharCode(65+unit.pos[0])}${unit.pos[1]+1}`:state.naval_version?'Sunk':'Eliminated'));
   });
   document.getElementById('desktopOrderTitle').textContent=playbackSession?'Opponent’s turn':'Unit orders';
   document.getElementById('desktopPlaybackNote').hidden=!playbackSession;
   document.getElementById('desktopActionDock').hidden=!!playbackSession;
   measure();
-  if(changed&&state.scenario?.platoons)focus(troops.find(u=>u.hp>0&&u.kind==='leader'));
+  if(changed&&state.scenario?.platoons)focus(troops.find(u=>u.hp>0&&u.kind===(state.naval_version?'carrier':'leader')));
  }
  function activate(){
   document.dispatchEvent(new Event('ww2:before-layout'));

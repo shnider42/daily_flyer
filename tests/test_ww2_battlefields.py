@@ -30,7 +30,8 @@ class BattlefieldsTests(unittest.TestCase):
                     for y in range(max(0,pos[1]-1),min(board['height'],pos[1]+2)):
                         for x in range(max(0,pos[0]-1),min(board['width'],pos[0]+2)):
                             dest = (x, y)
-                            if dest not in seen and terrain(x, y, state) != 'water' and distance(pos, dest) == 1:
+                            passable=terrain(x,y,state) in {'water','objective'} if state.get('naval_version') else terrain(x,y,state)!='water'
+                            if dest not in seen and passable and distance(pos, dest) == 1:
                                 seen.add(dest)
                                 queue.append(dest)
                 self.assertIn(tuple(board['objective']), seen, (key, unit['id']))
@@ -59,6 +60,7 @@ class BattlefieldsTests(unittest.TestCase):
 
     def test_scenario_objectives_use_their_actual_hex(self):
         for key in SCENARIOS:
+            if SCENARIOS[key].get('naval'):continue  # Naval sea control is tested separately.
             state = initial(key,'dsl' if SCENARIOS[key].get('dsl_only') else 'classic')
             state['ready'] = True
             state['units'][0]['pos'] = list(state['battlefield']['objective'])
@@ -165,7 +167,7 @@ class RematchTests(unittest.TestCase):
         self.tmp.cleanup()
 
     def test_scenario_catalog_and_dimensions(self):
-        self.assertEqual(len(self.client.get('/api/scenarios').get_json()['scenarios']), 5)
+        self.assertEqual(len(self.client.get('/api/scenarios').get_json()['scenarios']), 6)
         state = self.client.get(self.url, headers=self.us).get_json()
         self.assertEqual(len(state['map'][0]), 9)
         self.assertEqual(state['scenario']['rounds'], 10)

@@ -15,12 +15,31 @@
    counter.querySelector('.unit-art')?.remove();counter.querySelector('.unit-art-title')?.remove();
    const u=byId.get(counter.dataset.unitId);if(!illustrated||!u)continue;
    const [cx,cy]=center(...u.pos),art=el('g',{class:`unit-art${u.pinned?' is-pinned':''}`,transform:`translate(${cx} ${cy})`,'aria-hidden':'true'});
-   const title=el('title',{class:'unit-art-title'},`${u.side.toUpperCase()} ${unitName(u)} · ${u.hp} strength · ${u.ap} AP${u.pinned?' · pinned':''}${u.entrenched?' · dug in':''}${u.overwatch?' · overwatch':''}`);counter.prepend(title);
+   const title=el('title',{class:'unit-art-title'},`${sideLabel(u.side)} ${unitName(u)} · ${u.hp} strength · ${u.ap} AP${u.pinned?' · pinned':''}${u.entrenched?' · dug in':''}${u.overwatch?' · overwatch':''}`);counter.prepend(title);
    art.append(el('path',{class:'portrait-panel',d:'M-17-14H16Q18-14 18-12V3H-18V-12Q-18-14-17-14Z'}));
    const drawing=el('g',{class:`unit-portrait portrait-${u.kind}`});art.append(drawing);
    const add=(tag,attrs,parent=drawing)=>{const n=el(tag,attrs);parent.append(n);return n;};
    const path=(d,cls,parent=drawing)=>add('path',{d,class:cls},parent);
-   if(u.kind==='commander'){
+   if(['carrier','battleship','cruiser','destroyer'].includes(u.kind)){
+    drawing.classList.add('naval-silhouette');
+    const beam=u.kind==='destroyer'?4:6;
+    path(`M-15 ${-6-beam}H8Q13 ${-6-beam} 17-6Q13 ${-6+beam} 8 ${-6+beam}H-15Z`,'ship-hull');
+    if(u.kind==='carrier'){
+     path('M-13-11H10L14-6 10-1H-13Z','ship-deck');
+     path('M-11-6H11M-8-9V-3M-5-9V-3','ship-marking');
+     path('M-1-12H5V-9H-1Z','ship-superstructure');
+     path('M3-5V-2M0-4H6','ship-marking');
+    }else{
+     path('M-4-9H4V-3H-4Z','ship-superstructure');
+     path('M-1-12V-1M-4-10H2','ship-marking');
+     for(const x of (u.kind==='battleship'?[-10,7]:[8])){
+      add('circle',{cx:x,cy:-6,r:u.kind==='battleship'?2.4:1.8,class:'ship-turret'});
+      path(`M${x}-7h5M${x}-5h5`,'ship-marking');
+     }
+     if(u.kind==='destroyer')path('M-10-7H-5M-10-5H-5','ship-marking');
+    }
+    path('M-17-11L-19-12M-17-6H-20M-17-1L-19 0','ship-wake insignia-detail');
+   }else if(u.kind==='commander'){
     path('M2-14L5-8 12-8 7-3 9 3 2-1-5 3-3-3-8-8-1-8Z','commander-star');
    }else if(u.kind==='tank'){
     path('M-13-3H14Q17-3 17 0Q17 3 14 3H-13Q-16 3-16 0Q-16-3-13-3Z','vehicle-track');
@@ -42,15 +61,18 @@
     path('M-15-7H15L11 0H-10Z M-6-11H5L8-7H-6Z','vehicle-body');
     path('M-15 3q4-3 8 0t8 0t8 0M4-10H13','specialist-line');
    }else if(u.kind==='paratrooper'){
-    path('M-8-6a10 8 0 0 1 20 0Z M-8-6L0 2H4L12-6M2-13V2','specialist-line');
-    path('M0 1H4V4H0Z','rank-gold');
+    path('M-12-5Q-11-14 1-14Q13-14 14-5Q10-7 7-5Q3-7 1-5Q-3-7-6-5Q-9-7-12-5Z','parachute-canopy');
+    path('M1-14Q-5-12-6-5M1-14Q7-12 7-5M1-13V-6','parachute-rib');
+    path('M-11-5L-1 2M-6-5L0 2M7-5L2 2M13-5L3 2','parachute-cord');
+    path('M-1 0H3V4H-1Z','parachute-pack');
    }else if(u.kind==='scout'){
     path('M-7-9H-2L0-2H-10Z M5-9H10L13-2H3Z','vehicle-body');
     path('M-2-6H5','specialist-line');
     for(const x of [-5,8])add('circle',{cx:x,cy:-1,r:3.6,class:'vehicle-track'});
    }else if(u.kind==='engineer'){
-    path('M-6-12L8 1M9-12L-5 1','specialist-line');
-    path('M6-2L12 3 8 4 4 0Z M6-12L9-9 12-12','vehicle-body');
+    path('M-7-12L7 1M8-11L-6 2','tool-handle');
+    path('M4-2L9-5 13 0Q11 5 7 3Z M3-12Q8-16 13-9L8-11Z','tool-steel');
+    path('M-10-13L-7-15-4-12-7-9Z','tool-steel');
    }else if(u.kind==='at_team'){
     path('M-12-9H13V-5H-12Z M-6-5V-1H-3V-5Z','vehicle-body');
     path('M-14-10V-4M14-10V-4M2-3L-1 2M2-3L6 2','specialist-line');
@@ -105,7 +127,6 @@
     for(const x of [3.5,6,8.5,11])add('rect',{x,y:-6.8,width:1.4,height:1.1,rx:.4,class:'mg-vent'});
     path('M-8-7H-3L-1-8H1','mg-engraving insignia-detail');
    }
-   art.append(el('text',{x:-16,y:-9,class:'counter-army'},u.side.toUpperCase()));
    if(u.entrenched){
     const bags=el('g',{class:'counter-sandbags'});art.append(bags);
     for(let x=-19;x<19;x+=9)path(`M${x} 16q-2 0-2 3t2 3h6q2 0 2-3t-2-3Z`,'sandbag',bags);
