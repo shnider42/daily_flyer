@@ -87,9 +87,6 @@ document.addEventListener('DOMContentLoaded',()=>{
   orders.querySelector('h2').id='desktopOrderTitle';
   const dock=group(commands,'desktop-action-dock',['#nextUnit','#end']);dock.id='desktopActionDock';
   group(game,'desktop-footer',['#battleOptions','#seriesScore']);
-  group(lobby,'desktop-lobby-intro',[lobby.querySelector('.eyebrow'),lobby.querySelector('h1'),lobby.querySelector('.intro'),'#entryStatus',lobby.querySelector('.brief:not(#scenarioBrief)'),lobby.querySelector(':scope > .footnote:not(#learnHelp)')]);
-  group(lobby,'desktop-lobby-setup',['#rulesetPicker',lobby.querySelector('label[for="scenarioSelect"]'),'#scenarioSelect','#scenarioPreview','#scenarioBrief','#create','#createSolo','#learnStart','#learnHelp'],'Choose your operation');
-  group(lobby,'desktop-lobby-return',['#savedSessions','#joinForm','#recoverForm'],'Return to the field');
   sync();
  }
  function deactivate(){

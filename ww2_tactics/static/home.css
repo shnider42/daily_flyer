@@ -1,0 +1,80 @@
+/* Operations room. All rules are scoped to home so battle layouts stay independent. */
+body.home-screen{
+ color:#eee9d8;background-color:#1c2926;
+ background-image:radial-gradient(ellipse at 82% 12%,#78816926,transparent 50%),repeating-linear-gradient(0deg,transparent 0 79px,#dce6ca08 79px 80px),repeating-linear-gradient(90deg,transparent 0 79px,#dce6ca08 79px 80px);
+}
+.home-screen>header{max-width:1280px;margin:auto;padding:22px 32px;border-bottom:1px solid #cbd5b729;color:#eee9d8;gap:16px}
+.home-screen .brand{color:#eee9d8;font-size:25px;letter-spacing:2px}
+.home-screen .brand span{font-size:10px;color:#b2bda9;letter-spacing:2px;margin-left:12px}
+.home-screen>header .quiet{color:#d9dfcc;border:1px solid #abb69c50;padding:10px 14px;background:#ffffff05}
+.home-screen .desktop-header-tag{display:none}
+.home-screen main{max-width:1280px;margin:auto;padding:0 32px}
+.home-screen #lobby{display:block;max-width:none;padding:42px 0 20px;margin:0}
+.home-heading{position:relative;padding-right:180px}
+.home-heading:after{content:'DSL';position:absolute;right:24px;top:10px;font:900 96px Georgia,serif;color:#c9d0ad12;transform:rotate(-9deg);border:3px double #c9d0ad23;padding:0 14px;letter-spacing:2px}
+.home-screen .eyebrow{font-size:11px;letter-spacing:2.3px;color:#d7bc7c;margin:0 0 16px;font-weight:700}
+.home-screen h1{font:normal clamp(42px,5vw,68px)/.99 Georgia,serif;letter-spacing:-2px;margin:0 0 20px;color:#f5f0df}
+.home-screen h1 br{display:none}
+.home-screen h1 em{color:#d7bc7c;font-weight:normal}
+.home-screen h1 em:before{content:' '}
+.home-screen .intro br:after{content:' '}
+.home-screen .intro{color:#c3caba;font-size:17px;line-height:1.55;margin:0 0 24px;max-width:none}
+.home-screen .intro br{display:none}
+.home-screen #entryStatus{margin:0 0 24px;padding:0 0 0 14px;border:0;border-left:3px solid #c9af75;border-radius:0;background:none;font-size:13px;color:#d3d9c8;line-height:1.5}
+.home-operation{display:grid;grid-template-columns:1.05fr 1fr;background:#ece8d9;color:#28372e;border:1px solid #e5debc70;box-shadow:0 15px 40px #0003}
+.home-map-panel{display:flex;flex-direction:column;justify-content:space-between;min-width:0;padding:22px;background:radial-gradient(ellipse,#d9dbc8,#abb49d);position:relative;border-right:1px solid #546c493d;overflow:hidden}
+.home-map-panel:before{content:'';position:absolute;inset:0;pointer-events:none;background-image:repeating-linear-gradient(0deg,transparent 0 39px,#374c3510 39px 40px),repeating-linear-gradient(90deg,transparent 0 39px,#374c3510 39px 40px)}
+.home-map-caption,.home-map-footer{display:flex;justify-content:space-between;gap:12px;font-size:10px;letter-spacing:1.6px;font-weight:800;position:relative;color:#40523e}
+.home-map-caption{border-bottom:1px solid #445d3740;padding-bottom:12px}
+.home-map-footer{border-top:1px solid #445d3740;padding-top:12px}
+.home-screen #scenarioPreview{display:block;width:100%;height:350px;max-height:none;margin:16px 0;opacity:1;filter:drop-shadow(0 8px 8px #28341e26);position:relative}
+.home-setup{padding:30px 32px;min-width:0}
+.home-setup .eyebrow{color:#796339;margin-bottom:10px}
+.home-screen h2{font:normal 29px/1.2 Georgia,serif;letter-spacing:-.5px;margin:0 0 24px;color:inherit}
+.home-screen label{font-size:12px;letter-spacing:.4px;font-weight:700;display:block;margin-bottom:7px;color:inherit}
+.home-screen select,.home-screen input,.home-screen textarea{font:inherit;font-size:16px;background:#f9f6eb;color:#24362c;border:1px solid #8c967d;border-radius:3px;min-height:46px;padding:10px;width:100%;box-sizing:border-box}
+.home-screen #scenarioBrief{font-size:14px;line-height:1.55;color:#4d5b49;margin:14px 0 18px;min-height:44px}
+.home-screen #rulesetPicker{display:flex;align-items:center;gap:14px;border:0;background:none;padding:0;margin:0 0 22px}
+.home-screen #rulesetPicker label{margin:0;flex:none}
+.home-screen #rulesetSelect{font-size:14px;min-height:40px;background:transparent;padding:8px}
+.home-play-buttons{display:grid;gap:10px}
+.home-screen #createSolo,.home-screen #create{display:flex;justify-content:space-between;align-items:center;width:100%;margin:0;padding:15px 17px;min-height:52px;font-size:16px;font-weight:700;border-radius:3px}
+.home-screen #createSolo{color:#fff6dd;background:#2b4c3c;border:1px solid #2b4c3c;box-shadow:0 3px 0 #13271b}
+.home-screen #create{background:transparent;color:#2c4434;border:1px solid #818d76}
+.home-screen #createSolo:hover{background:#355c49}
+.home-screen #create:hover{background:#dce1cf}
+.home-play-note{font-size:12px;line-height:1.5;color:#59664f;margin:14px 0 24px}
+.home-learn{border-top:1px solid #a4ad9570;padding-top:18px;display:flex;align-items:center;gap:16px}
+.home-learn strong{font-size:14px}
+.home-screen #learnHelp{font-size:13px;line-height:1.4;margin:5px 0 0;color:#59664f}
+.home-screen #learnStart{font-size:13px;flex:none;width:auto;min-height:44px;background:transparent;border:0;border-bottom:1px solid #808e74;padding:8px 0;color:#2b4c3c;margin:0}
+.home-return{display:grid;grid-template-columns:1fr 1fr;gap:16px;margin:22px 0 0}
+.home-return details{background:#16231fb3;border:1px solid #b4c2a338;border-radius:3px;padding:0 20px;min-width:0}
+.home-return summary{padding:20px 0;font-size:14px;color:#bac5b2;cursor:pointer;line-height:1.65}
+.home-return summary span{font-weight:700;color:#f0e6c8;display:block;margin-left:18px;font-size:16px}
+.home-screen .home-return form{margin:0;padding:0 0 20px;border:0}
+.home-screen .home-return button{min-height:46px;background:#d9c48d;color:#26392d;border:0;padding:10px 18px;font-weight:700}
+.home-screen .home-return .footnote{color:#b6c2ad;font-size:13px;line-height:1.5;margin-bottom:0}
+.home-screen #recoverForm button{margin-top:10px;width:100%}
+.home-screen #savedSessions{border:1px solid #c5b47a66;background:#26382ccc;padding:20px 24px;margin:0 0 24px}
+.home-section-heading{display:flex;justify-content:space-between;align-items:center;gap:10px;margin-bottom:14px}
+.home-section-heading h2{font-size:22px;margin:0}
+.home-section-heading>span{font-size:12px;color:#b8c6ac}
+.home-screen #sessionList{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px}
+.home-screen .session-row{border:0;gap:8px;margin:0;background:#11251e66;padding:8px}
+.home-screen .saved-session{color:#eee9d5;background:none;border:0;min-width:0;text-align:left;padding:8px}
+.home-screen .saved-session span{color:#bfcaaf;font-size:12px;line-height:1.5}
+.home-screen .session-row>.quiet{color:#bdc8ae;font-size:12px;min-height:44px}
+.home-footer{padding:30px 0 12px;text-align:center;color:#a9b7a0;font-size:13px;line-height:1.5}
+.home-footer>span{letter-spacing:2px;font-size:10px;font-weight:800;color:#c3ceba}
+.home-footer p{margin:12px auto;max-width:540px}
+.home-footer small{font-size:11px;color:#9cab96}
+.home-screen button:focus-visible,.home-screen summary:focus-visible,.home-screen select:focus-visible,.home-screen input:focus-visible,.home-screen textarea:focus-visible{outline:3px solid #c18a30;outline-offset:3px}
+.home-screen #message{background:#f6ebcf;color:#672f1c;padding:16px;border:1px solid #cba15d}
+@media(max-width:749px){
+ .home-screen>header{padding:16px 18px;gap:8px}.home-screen .brand{font-size:22px}.home-screen .brand span{font-size:8px;letter-spacing:1px;margin-left:5px}.home-screen>header .quiet{font-size:12px;padding:10px;min-height:44px}
+ .home-screen main{padding:0 18px}.home-screen #lobby{padding:26px 0 16px}.home-heading{padding:0}.home-heading:after{display:none}
+ .home-screen .eyebrow{font-size:9px;letter-spacing:1.5px;margin-bottom:14px}.home-screen h1{font-size:43px;line-height:1.03;letter-spacing:-1.5px;margin-bottom:16px}.home-screen h1 br{display:block}.home-screen .intro{font-size:15px;margin-bottom:18px}.home-screen .intro br{display:block}
+ .home-screen #entryStatus{font-size:12px;margin-bottom:18px}.home-operation{grid-template-columns:1fr}.home-map-panel{padding:12px 16px;border-right:0;border-bottom:1px solid #546c493d}.home-map-caption,.home-map-footer{font-size:9px;padding:0;border:0}.home-screen #scenarioPreview{height:170px;margin:10px 0}.home-setup{padding:22px 18px}.home-screen h2{font-size:26px;margin-bottom:18px}.home-screen #scenarioBrief{min-height:0}.home-learn{gap:12px}.home-screen #learnStart{font-size:12px}.home-return{grid-template-columns:1fr;gap:10px;margin-top:16px}.home-return summary{padding:14px 0}.home-screen #savedSessions{padding:16px;margin-bottom:18px}.home-section-heading{display:block}.home-section-heading h2{font-size:22px;margin-bottom:6px}.home-screen #sessionList{grid-template-columns:1fr}
+}
+@media(prefers-reduced-motion:no-preference){.home-screen button{transition:background .15s ease}}

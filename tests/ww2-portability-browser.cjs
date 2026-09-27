@@ -21,7 +21,7 @@ let browser;
   await p.locator('#game').waitFor({state:'visible'});await p.waitForFunction(()=>!busy&&state?.ready);
  }
  async function load(p,code){
-  await p.locator('#recoveryCode').fill(code);await p.locator('#recoverForm button').click();
+  await p.locator('#restoreOptions').evaluate(e=>{e.open=true;});await p.locator('#recoveryCode').fill(code);await p.locator('#recoverForm button').click();
   await p.locator('#game').waitFor({state:'visible'});await p.waitForFunction(()=>!busy&&state?.ready);
  }
  async function checkpoint(p){
@@ -68,7 +68,7 @@ let browser;
  await phone.reload();await phone.locator('.saved-session').first().click();await phone.locator('#game').waitFor({state:'visible'});
  assert.equal(await phone.evaluate(()=>state.code),original);
  // Used and malformed codes leave the current saved battle intact.
- await fresh.locator('#leave').click();await fresh.locator('#recoveryCode').fill(transfer);await fresh.locator('#recoverForm button').click();
+ await fresh.locator('#leave').click();await fresh.locator('#restoreOptions').evaluate(e=>{e.open=true;});await fresh.locator('#recoveryCode').fill(transfer);await fresh.locator('#recoverForm button').click();
  await fresh.waitForFunction(()=>document.querySelector('#message').textContent.includes('already used'));
  assert.equal(await fresh.locator('#lobby').isVisible(),true);
  for(const width of [320,390,768,1280]){await fresh.setViewportSize({width,height:844});assert.equal(await fresh.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);}

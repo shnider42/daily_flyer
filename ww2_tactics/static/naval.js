@@ -6,7 +6,6 @@
   const option=document.createElement('option');option.value='midway';option.textContent='Midway · 26×30 · US vs Japan · naval DSL';$(id).append(option);
   $(id).addEventListener('change',()=>{if($(id).value==='midway')$(id==='scenarioSelect'?'rulesetSelect':id==='soloScenario'?'soloRuleset':'rematchRuleset').value='dsl';});
  }
- $('joinForm').querySelector('label').textContent='Have an invitation? Join the opposing force.';
  $('soloDialog').querySelector('h2 + p').textContent='Command the Americans against the computer. Midway pits the US against Japan; land operations face Germany. Swap sides in your next battle.';
  const buttons={};
  for(const id of ['recon','airstrike','torpedo','repair']){

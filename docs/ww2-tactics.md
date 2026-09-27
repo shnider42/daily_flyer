@@ -63,6 +63,15 @@ landing sections show infantry when ashore. Mobile map positioning is preserved.
 
 ### Explicit battle entry
 
+The home screen uses DSL branding and an operations-room presentation across
+phone and desktop sizes. A battlefield preview shows Europe/Pacific and map size;
+Play the computer, Play with a friend and Learn to play are separate choices.
+Saved battles appear above new-battle setup. Invitation and save-code forms live
+in labeled disclosures; invitation links open their form automatically. Home
+styling is scoped to lobby visibility and the title resets when leaving a battle.
+`tests/ww2-home-browser.cjs` covers responsive layout, scenario selection, solo
+start, saved-session resume, invitation joining and cross-device SAVE recovery.
+
 Opening the base URL now shows the lobby, never silently resumes the last match.
 Browser-local saved shortcuts show last-viewed scenario, mode, faction, round and
 turn/finished status plus match ID. Resume fetches current server state. A visible

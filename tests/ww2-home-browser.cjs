@@ -1,0 +1,54 @@
+const {chromium}=require('playwright');
+const assert=require('node:assert/strict'),fs=require('node:fs'),os=require('node:os'),path=require('node:path'),cp=require('node:child_process');
+const {tap}=require('./ww2-ui-helpers.cjs');
+const temp=fs.mkdtempSync(path.join(os.tmpdir(),'ww2-home-')),base='http://127.0.0.1:8105';
+const server=cp.spawn('python',['-m','gunicorn','ww2_web:app','--bind','127.0.0.1:8105','--workers','1','--threads','4'],{env:{...process.env,WW2_DB_PATH:path.join(temp,'game.sqlite3')},stdio:'ignore'});
+let browser;
+(async()=>{
+ for(let i=0;i<60;i++){try{if((await fetch(base+'/healthz')).ok)break;}catch{}await new Promise(r=>setTimeout(r,100));}
+ const mod=require('@sparticuz/chromium'),pack=mod.default||mod;
+ browser=await chromium.launch({executablePath:await pack.executablePath(),args:pack.args.filter(a=>a!=='--single-process'),headless:true});
+ const p=await browser.newPage({viewport:{width:1440,height:1000}}),errors=[];
+ p.on('pageerror',e=>errors.push(e.message));
+ await p.goto(base);await p.locator('#scenarioPreview > polygon.hex').first().waitFor();
+ assert.equal(await p.title(),'DSL · Tactical Command');
+ for(const width of [1440,390,320,844,1440]){
+  await p.setViewportSize({width,height:width===844?390:1000});
+  await p.waitForTimeout(100);
+  await p.screenshot({path:path.join(temp,`home-${width}.png`),fullPage:true});
+  const overflow=await p.evaluate(()=>[...document.querySelectorAll('body *')].filter(e=>e.getBoundingClientRect().right>innerWidth+1).map(e=>`${e.tagName}#${e.id}.${e.className}`));
+  assert.ok(await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),`No horizontal overflow at ${width}: ${overflow.join(', ')}`);
+  assert.equal(await p.locator('#createSolo').count(),1);
+  await p.screenshot({path:path.join(temp,`home-${width}.png`),fullPage:true});
+ }
+ await p.locator('#scenarioSelect').selectOption('midway');
+ assert.equal(await p.locator('#homeTheater').textContent(),'PACIFIC');
+ await p.screenshot({path:path.join(temp,'midway-home.png'),fullPage:true});
+ await p.locator('#createSolo').click();assert.equal(await p.locator('#soloScenario').inputValue(),'midway');
+ await p.locator('#closeSolo').click();await p.locator('#scenarioSelect').selectOption('village');
+ await p.setViewportSize({width:390,height:844});await p.locator('#createSolo').click();await p.locator('#startSolo').click();
+ await p.waitForFunction(()=>state&&!busy&&!document.body.classList.contains('home-screen'));
+ const original=await p.evaluate(()=>session.code);
+ await tap(p,p.locator('#saveButton'));await p.locator('#accessDialog').waitFor({state:'visible'});
+ const save=await p.locator('#accessCode').inputValue();await p.locator('#closeAccess').click();
+ await tap(p,p.locator('#leave'));await p.waitForFunction(()=>document.body.classList.contains('home-screen'));
+ assert.equal(await p.title(),'DSL · Tactical Command');assert.equal(await p.locator('#savedSessions').isVisible(),true);
+ await p.screenshot({path:path.join(temp,'home-saved-mobile.png'),fullPage:true});
+ await p.locator('.saved-session').first().click();await p.waitForFunction(()=>!busy&&!lobbyMode);
+ assert.equal(await p.evaluate(()=>session.code),original);
+ await tap(p,p.locator('#leave'));await p.locator('#create').click();await p.waitForFunction(()=>state&&!busy&&!lobbyMode);
+ const invitation=await p.evaluate(()=>session.code);
+ const guest=await browser.newPage({viewport:{width:390,height:844}});
+ await guest.goto(`${base}/?join=${invitation}`);
+ assert.equal(await guest.locator('#joinOptions').getAttribute('open'),'');
+ assert.equal(await guest.locator('#code').inputValue(),invitation.toUpperCase());
+ await guest.locator('#joinForm button').click();await guest.waitForFunction(()=>state&&!busy&&!lobbyMode);
+ assert.equal(await guest.evaluate(()=>state.side),'de');
+ const restoring=await browser.newPage({viewport:{width:320,height:568}});
+ await restoring.goto(base);await restoring.locator('#restoreOptions summary').click();
+ await restoring.locator('#recoveryCode').fill(save);await restoring.locator('#recoverForm button').click();
+ await restoring.waitForFunction(()=>state&&!busy&&!lobbyMode);
+ assert.notEqual(await restoring.evaluate(()=>session.code),original);
+ assert.equal(await restoring.evaluate(()=>state.scenario.id),'village');
+ assert.deepEqual(errors,[]);console.log('Home layout, map selection, solo, resume, invitation and save-code flows passed.',temp);
+})().catch(e=>{console.error(e);process.exitCode=1;}).finally(async()=>{await browser?.close();server.kill();});

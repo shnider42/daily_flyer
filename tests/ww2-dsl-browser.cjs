@@ -45,7 +45,7 @@ let browser;
  await mobile.locator('#rulesButton').click();assert.equal(await mobile.locator('#dslManual').isVisible(),true);await mobile.locator('#closeRules').click();
  await mobile.locator('#saveButton').click();await mobile.locator('#accessDialog').waitFor({state:'visible'});
  const saved=await mobile.locator('#accessCode').inputValue();await mobile.locator('#closeAccess').click();
- const pc=await page(1440);await pc.goto(base);await pc.locator('#recoveryCode').fill(saved);await pc.locator('#recoverForm button').click();await pc.locator('#game').waitFor({state:'visible'});
+ const pc=await page(1440);await pc.goto(base);await pc.locator('#restoreOptions').evaluate(e=>{e.open=true;});await pc.locator('#recoveryCode').fill(saved);await pc.locator('#recoverForm button').click();await pc.locator('#game').waitFor({state:'visible'});
  assert.equal(await pc.evaluate(()=>state.ruleset),'dsl');assert.equal(await pc.evaluate(()=>state.units[1].ap),4);
  await pc.screenshot({path:path.join(temp,'dsl-desktop.png'),fullPage:true});
  await pc.locator('#rematchButton').click();await pc.locator('#rematchRuleset').selectOption('classic');await pc.locator('#swapArmies').uncheck();await pc.locator('#proposeRematch').click();await pc.waitForFunction(()=>!busy&&state.ruleset==='classic');
