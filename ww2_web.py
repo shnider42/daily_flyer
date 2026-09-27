@@ -16,6 +16,7 @@ from ww2_tactics.scenarios import battlefield, catalog, get_scenario
 from ww2_tactics.computer import play_turn
 from ww2_tactics.rulesets import profile, PROFILES
 from ww2_tactics.visibility import public_state
+from ww2_tactics.order_history import perform, status as history_status, KEY as HISTORY_KEY
 
 
 def create_app(db_path=None):
@@ -65,10 +66,15 @@ def create_app(db_path=None):
 
     def public(row, side):
         state = json.loads(row["state"])
+        state['order_history'] = history_status(state, side)
+        state.pop(HISTORY_KEY, None)
         board = battlefield(state)
         state.update(code=row["code"], side=side,
                      map=board['map'], scenario={k: v for k, v in board.items() if k != 'map'})
         state["legal"] = {u["id"]: options(state, u) for u in state["units"] if u["side"] == side}
+        if state['order_history']['redo_required']:
+            state['legal'] = {uid: {key: [] if isinstance(value, list) else False
+                                   for key, value in legal.items()} for uid, legal in state['legal'].items()}
         return public_state(state,side)
 
     @app.after_request
@@ -181,8 +187,7 @@ def create_app(db_path=None):
                 if type(body.get("revision")) is not int or body["revision"] != state["revision"]:
                     return jsonify(error="The match changed. Refreshing the battlefield; try again."), 409
                 try:
-                    state = apply(state, side, body)
-                    state = play_turn(state)
+                    state = perform(state, side, body)
                 except ValueError as error:
                     return jsonify(error=str(error)), 400
                 db.execute("UPDATE match SET state=? WHERE code=?", (json.dumps(state), row["code"]))

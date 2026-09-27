@@ -42,8 +42,11 @@
    icon.setAttribute('viewBox','0 0 24 24');icon.setAttribute('aria-hidden','true');icon.classList.add('action-icon');
    const shape=document.createElementNS(icon.namespaceURI,'path');shape.setAttribute('d',cancel?'M5 5l14 14M19 5L5 19':path);icon.append(shape);
    const copy=node('span');copy.className='action-copy';
-   const heading=node('span',null,title);heading.className='action-name';
-   const effect=node('span',null,cancel?'Return to normal orders':purpose);effect.className='action-purpose';copy.append(heading,effect);
+   const shortNames={command:'Give actions',inspire:'Rally allies',recon:'Air search',repair:'Repair',airdrop:'Land troops',barrage:'Mortars',grenade:'Grenade',fire:'Fire',assault:'Assault',load:'Load troops',unload:'Unload',overwatch:'Overwatch',dig:'Dig in'};
+   const heading=node('span',null,cancel?title:shortNames[id]||title);heading.className='action-name';
+   const unit=state?.units.find(u=>u.id===selected),legal=state?.legal[selected];
+   const description=window.orderHelp?.(id,unit,legal,prefs.simple)||purpose;
+   const effect=node('span',null,cancel?'Return to orders':description);effect.className='action-purpose';copy.append(heading,effect);
    b.replaceChildren(icon,copy);
    if(cost){const badge=node('span',null,`${cost[1]} ${id==='load'||id==='unload'?'infantry ':''}AP`);badge.className='action-cost';b.append(badge);}
    b.setAttribute('aria-label',`${raw}. ${effect.textContent}`);
@@ -85,6 +88,7 @@
   const top=node('header','mobileBattleTop'),menu=node('button','mobileMenuOpen','Battle ☰'),status=node('div','mobileBattleStatus'),guide=node('button','mobileGuideOpen','Learn');
   menu.setAttribute('aria-controls','mobileBattleMenu');menu.setAttribute('aria-haspopup','dialog');guide.setAttribute('aria-controls','mobileGuide');guide.setAttribute('aria-haspopup','dialog');
   status.setAttribute('role','status');menu.onclick=()=>openSheet('mobileBattleMenu');guide.onclick=()=>openSheet('mobileGuide');top.append(status,guide,menu);screen.append(top);
+  move($('orderHistory'),top);top.insertBefore($('orderHistory'),guide);
   move($('mapWrap'),screen);
   dock=node('section','mobileOrderDock');dock.setAttribute('aria-label','Selected unit orders');
   const head=node('div','mobileOrderHead'),toggle=node('button','mobileOrderToggle','Select a unit');

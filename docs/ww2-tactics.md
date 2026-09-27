@@ -1,4 +1,31 @@
-# Village Crossing — expanded rules
+# DSL — WWII tactical game
+
+## Responsive selection, order history and contextual help
+
+Selecting a unit reuses the current map's hexes, terrain art, counters and fog.
+Only interaction highlights and order controls update; a new server state rebuilds
+the scene. This keeps selection local, without a network request. The optional
+historical benchmark in `ww2-responsive-orders-browser.cjs` measured median
+selection work at 131.1 ms before / 19.1 ms after on Long Reach (headless Chromium;
+not a physical iPhone measurement). Gesture handling and map anchoring are unchanged.
+
+Undo and redo are server-validated, revision-checked and limited to 20 orders in
+the current turn, for solo and two-player games. Snapshots include AP, ammunition,
+positions, passengers, combat, logs and scores; redo restores the recorded result
+without rolling again. Stacks persist in the match and solo SAVE checkpoints but
+are never sent to either player. A different ordinary order clears quiet redo
+history. Once dice have been revealed, undone combat must be redone before any
+different order (including End turn), preventing alternate attacks or repeated
+rolls after inspecting results. New visible enemy identities for either side,
+search orders and turn endings commit earlier orders. Rematch proposals block
+takebacks until resolved; a new battle starts with no history.
+
+Desktop pointer hover and keyboard focus show translucent help for units, terrain,
+actions and history controls. Help uses only the player's public state and legal
+options. Mobile action buttons show purpose text: Simple view uses plain effects,
+while detailed view gives costs, thresholds, damage or modifiers. Descriptions
+occupy reserved space so selecting a unit does not move the map. Battle settings
+explain the takeback limits.
 
 ## Mobile battle screen
 

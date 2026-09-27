@@ -19,6 +19,8 @@
   if(!observed.has(svg)){observer.observe(svg);observed.add(svg);}
   const byId=new Map(units.map(u=>[u.id,u]));
   for(const counter of svg.querySelectorAll('.unit')){
+   if(counter._illustrated===illustrated)continue;
+   counter._illustrated=illustrated;
    counter.querySelector('.unit-art')?.remove();counter.querySelector('.unit-art-title')?.remove();
    const u=byId.get(counter.dataset.unitId);if(!illustrated||!u)continue;
    const [cx,cy]=center(...u.pos),art=el('g',{class:`unit-art${u.pinned?' is-pinned':''}`,transform:`translate(${cx} ${cy})`,'aria-hidden':'true'});

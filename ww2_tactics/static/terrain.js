@@ -7,6 +7,9 @@
  function shape(tag,attrs){const n=document.createElementNS(ns,tag);for(const [k,v] of Object.entries(attrs))n.setAttribute(k,v);return n;}
  function paint(svg,grid){
   if(!svg||!grid)return;
+  const tile=svg.querySelector(':scope > .hex');
+  if(svg._terrainTile===tile&&svg._terrainDetailed===detailed)return;
+  svg._terrainTile=tile;svg._terrainDetailed=detailed;
   svg.querySelectorAll('.terrain-art,.terrain-defs').forEach(n=>n.remove());
   if(!detailed)return;
   const defs=shape('defs',{class:'terrain-defs'});svg.prepend(defs);

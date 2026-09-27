@@ -6,6 +6,7 @@
 <link rel="stylesheet" href="/assets/combined.css"><script src="/assets/combined.js" defer></script>
 <link rel="stylesheet" href="/assets/mobile-battle.css">
 <link rel="stylesheet" href="/assets/home.css"><script src="/assets/home.js" defer></script>
+<link rel="stylesheet" href="/assets/battle-help.css"><script src="/assets/battle-help.js" defer></script>
 <header><a href="/" class="brand">DSL <span>TACTICAL COMMAND</span></a><button id="homeBattles" class="quiet" hidden>Battles / home</button><button id="rulesButton" class="quiet">Field manual</button></header>
 <main>
 <section id="lobby">
@@ -38,7 +39,7 @@
  <p id="missionHint" class="mission-hint"></p>
  <p id="supportStatus" class="support-status" hidden></p><p id="incoming" class="incoming" role="status" hidden></p>
  <section id="playbackPanel" hidden aria-label="Computer turn playback"><p id="playbackStep" class="eyebrow"></p><p id="playbackDescription" role="status"></p><div class="playback-controls"><button id="pausePlayback">Pause</button><button id="stepPlayback">Next step</button><button id="skipPlayback">Skip to live board</button></div><div id="playbackResult"></div></section>
- <div class="map-tools"><span id="armyCount"></span><button id="findUnit" class="quiet" hidden>Find selected</button><button id="zoom" class="quiet" aria-pressed="false">Enlarge map ＋</button></div>
+ <div class="map-tools"><span id="armyCount"></span><div id="orderHistory" aria-label="Undo and redo orders"><button id="undoOrder" aria-label="Undo last order" disabled>↶</button><button id="redoOrder" aria-label="Redo last order" disabled>↷</button></div><button id="findUnit" class="quiet" hidden>Find selected</button><button id="zoom" class="quiet" aria-pressed="false">Enlarge map ＋</button></div>
  <div id="mapWrap"><svg id="map" viewBox="0 0 400 470" role="group" aria-label="Village battlefield. Select your unit, then a highlighted hex to move or an enemy to inspect a shot."></svg></div>
  <div class="legend team-legend"><span class="team-key us-key"><i class="us-dot"></i>US · Americans</span><span class="team-key de-key"><i class="de-dot"></i>DE · Germans</span></div>
  <div class="legend terrain-legend"><span><i class="woods-dot"></i>Woods</span><span><i class="building-dot"></i>Buildings</span><span><i class="road-dot"></i>Road</span><span><i class="water-dot"></i>Water</span><span>★ Objective</span><span>◎ Overwatch</span><span>Dashed hex: move · Orange: exposed</span></div>

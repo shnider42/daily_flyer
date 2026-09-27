@@ -118,7 +118,7 @@ async function rematchRequest(body){await run(async()=>{state=await api(`/api/ma
 function render(){
  if(!state||lobbyMode)return;const restoreMap=holdMobileMap();$('lobby').hidden=true;$('game').hidden=false;
  Object.assign(names,state.factions||{us:'Americans',de:'Germans'});
- const myTurn=state.ready&&!state.winner&&state.turn===state.side;
+ const myTurn=state.ready&&!state.winner&&state.turn===state.side&&!state.order_history?.redo_required;
  const board=state.scenario||{id:'village',name:'Village Crossing',objective_name:'Village square',rounds:8};
  const large=!!board.platoons;
  const dsl=state.ruleset==='dsl';
@@ -165,7 +165,9 @@ function render(){
  $('supportStatus').textContent=`Mortar calls left · US ${state.support?.us||0} / DE ${state.support?.de||0}`;
  $('incoming').hidden=!state.barrages?.length;
  $('incoming').textContent=(state.barrages||[]).map(b=>`INCOMING at ${String.fromCharCode(65+b.pos[0])}${b.pos[1]+1} + neighboring hexes. ${b.ttl===1?'Impact at the end of this turn':'Impact at the end of the next turn'}. Move clear—even friendly troops!`).join(' ');
- const svg=$('map');svg.replaceChildren();
+ const svg=$('map'),reuse=svg._state===state;
+ if(!reuse){svg.replaceChildren();svg._tiles=[];svg._state=state;}
+ else svg.querySelectorAll('.aim-line,.landing-zone,.transport-choice,.recon-choice,.move-beacon').forEach(n=>n.remove());
  svg.setAttribute('viewBox',`0 0 ${state.map[0].length*52+36} ${state.map.length*49+29}`);
  svg.setAttribute('aria-label',`${board.name} battlefield. Select your unit then a highlighted hex to move.`);
  for(let y=0;y<state.map.length;y++)for(let x=0;x<state.map[y].length;x++){
@@ -173,8 +175,15 @@ function render(){
   const points=Array.from({length:6},(_,i)=>{const a=(60*i-30)*Math.PI/180;return `${cx+30*Math.cos(a)},${cy+30*Math.sin(a)}`;}).join(' ');
   const smokeHere=smokeMode&&legal.smoke.some(p=>p[0]===x&&p[1]===y);
   const barrageHere=barrageMode&&legal.barrage.some(p=>p[0]===x&&p[1]===y);
-  const tile=element('polygon',{points,class:`hex ${type}${move&&!picking?' move':''}${move?.threats&&!picking?' threatened':''}${move?.road_bonus&&!picking?' road-bonus':''}${smokeHere?' smoke-choice':''}${barrageHere?' barrage-choice':''}`,...(barrageHere?{tabindex:0,role:'button','aria-label':`Mortar at ${String.fromCharCode(65+x)}${y+1}`} :smokeHere?{tabindex:0,role:'button','aria-label':`Smoke at ${String.fromCharCode(65+x)}${y+1}`} :move&&!picking?{tabindex:0,role:'button','aria-label':`Move to ${String.fromCharCode(65+x)}${y+1}, ${type}, ${move.cost} action${move.cost!==1?'s':''}${move.road_bonus?', road bonus':''}${move.threats?', exposed to overwatch':''}`}:{})});
-  if(barrageHere)activate(tile,()=>placeBarrage([x,y]));else if(smokeHere)activate(tile,()=>placeSmoke([x,y]));else if(move&&!picking)activate(tile,()=>moveUnit(move));svg.append(tile);
+  const tile=reuse?svg._tiles[y*state.map[0].length+x]:element('polygon',{points});
+  tile.setAttribute('class',`hex ${type}${move&&!picking?' move':''}${move?.threats&&!picking?' threatened':''}${move?.road_bonus&&!picking?' road-bonus':''}${smokeHere?' smoke-choice':''}${barrageHere?' barrage-choice':''}`);
+  tile.dataset.x=x;tile.dataset.y=y;
+  const label=barrageHere?`Mortar at ${String.fromCharCode(65+x)}${y+1}`:smokeHere?`Smoke at ${String.fromCharCode(65+x)}${y+1}`:move&&!picking?`Move to ${String.fromCharCode(65+x)}${y+1}, ${type}, ${move.cost} action${move.cost!==1?'s':''}${move.road_bonus?', road bonus':''}${move.threats?', exposed to overwatch':''}`:null;
+  for(const attr of ['tabindex','role','aria-label'])tile.removeAttribute(attr);
+  if(label){tile.setAttribute('tabindex','0');tile.setAttribute('role','button');tile.setAttribute('aria-label',label);}
+  tile._order=barrageHere?()=>placeBarrage([x,y]):smokeHere?()=>placeSmoke([x,y]):move&&!picking?()=>moveUnit(move):null;
+  if(!reuse){activate(tile,()=>tile._order?.());svg._tiles.push(tile);svg.append(tile);}
+  if(reuse)continue;
   svg.append(element('text',{x:cx-18,y:cy-16,class:'tile-label'},`${String.fromCharCode(65+x)}${y+1}`));
   if(type==='woods')svg.append(element('path',{d:`M${cx-9} ${cy+9}l9 -20l9 20z M${cx} ${cy+9}v5`,class:'terrain-icon'}));
   if(type==='building')svg.append(element('path',{d:`M${cx-12} ${cy-5}l12 -8l12 8v19h-24z M${cx-12} ${cy-5}h24`,class:'building-icon'}));
@@ -185,6 +194,7 @@ function render(){
  }
  if(unit&&enemy){const [x1,y1]=center(...unit.pos),[x2,y2]=center(...enemy.pos);svg.append(element('line',{x1,y1,x2,y2,class:`aim-line${shot?' clear':''}`}));}
  for(const u of state.units.filter(u=>u.hp>0&&!u.reserve&&!u.carrier_id)){
+  if(reuse){const g=svg.querySelector(`[data-unit-id="${u.id}"]`);g.classList.toggle('selected',selected===u.id);g.classList.toggle('target',target===u.id);g.querySelector('.platoon-halo')?.remove();if(u.side===state.side&&u.platoon===platoonFilter){const [x,y]=center(...u.pos);g.prepend(element('path',{d:`M${x-24} ${y-20}h48v41h-48z`,class:'platoon-halo'}));}continue;}
   const [cx,cy]=center(...u.pos),g=element('g',{class:`unit ${u.side} platoon-${u.platoon||'none'}${selected===u.id?' selected':''}${target===u.id?' target':''}`,role:'button',tabindex:0,'aria-label':`${names[u.side]} ${unitName(u)}, ${u.hp} strength, ${u.ap} actions${u.pinned?', pinned':''}`});
   g.dataset.unitId=u.id;
   // Transparent hit area is larger than the counter for comfortable phone taps.

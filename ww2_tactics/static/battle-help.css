@@ -1,0 +1,31 @@
+#battleTooltip{position:fixed;z-index:90;pointer-events:none;max-width:300px;width:max-content;padding:12px 15px;border:1px solid #cdd6bd88;border-radius:7px;background:#1b302be8;backdrop-filter:blur(9px);color:#f5f0df;box-shadow:0 6px 20px #0003;font-size:13px;line-height:1.45}
+#battleTooltip strong{display:block;font-size:14px}#battleTooltip p{margin:5px 0 0}#battleTooltip[hidden]{display:none}
+#orderHistory{display:flex;gap:3px;flex:none}#orderHistory button{font-size:22px;line-height:1;min-width:40px;min-height:40px;padding:4px 8px;background:#e7eddf;border:1px solid #83978166;color:#2e503b}
+#orderHistory button:disabled{opacity:.38;cursor:default}
+#historyHelp{font-size:12px;line-height:1.5;color:#52614f;max-width:680px}
+#mobileBattleTop #orderHistory button{font-size:23px;min-width:44px;padding:4px;min-height:44px}
+.mobile-battle #mobileOrderBody #orders .action-purpose{display:block;grid-column:1/-1;grid-row:3;font-size:10px;line-height:11px;margin:1px 0 0;font-weight:500}
+.mobile-battle #mobileOrderBody #orders .action-icon{display:none}
+.mobile-battle #mobileOrderBody #orders .tactical-action{grid-template-columns:minmax(0,1fr) auto;grid-template-rows:auto auto 1fr;align-content:start}
+.mobile-battle #mobileOrderBody #orders .action-name{grid-column:1;grid-row:1/3;font-size:11px;line-height:12px}
+.mobile-battle #mobileOrderBody #orders .action-cost{grid-column:2;grid-row:1/3;align-self:start;font-size:9px;padding:2px}
+/* Reserve the same space before selection; descriptions must not shift the map. */
+.mobile-battle #mobileBattleScreen{grid-template-rows:48px minmax(0,1fr) 44px calc(88px + var(--order-rows)*64px)}
+.mobile-battle #mobileOrderBody #orders{grid-auto-rows:60px;height:calc(var(--order-rows)*64px - 4px)}
+.mobile-battle #mobileOrderBody #orders button{min-height:60px}
+@media(max-width:359px){
+ .mobile-battle #mobileBattleScreen{grid-template-rows:48px minmax(0,1fr) 44px calc(88px + var(--order-rows)*56px)}
+ .mobile-battle #mobileOrderBody #orders{grid-auto-rows:52px;height:calc(var(--order-rows)*56px - 4px)}
+ .mobile-battle #mobileOrderBody #orders button{min-height:52px}
+}
+@media(max-height:520px) and (min-width:650px) and (max-width:1099px){
+ .mobile-battle #mobileBattleScreen{grid-template-rows:44px minmax(0,1fr) 44px;grid-template-columns:minmax(0,1fr) 390px}
+ .mobile-battle #mobileOrderBody #orders{grid-auto-rows:48px;height:calc(var(--order-rows)*52px - 4px)}
+ .mobile-battle #mobileOrderBody #orders button{min-height:48px}
+ .mobile-battle #mobileOrderBody #orders .action-purpose{font-size:9px;line-height:10px}
+}
+@media(max-height:380px) and (min-width:650px) and (max-width:1099px){
+ .mobile-battle #mobileBattleScreen{grid-template-columns:minmax(0,1fr) 430px}
+ .mobile-battle #mobileOrderBody #orders{grid-auto-rows:44px;height:calc(var(--order-rows)*48px - 4px)}
+ .mobile-battle #mobileOrderBody #orders button{min-height:44px}
+}

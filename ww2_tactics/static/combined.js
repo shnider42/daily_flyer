@@ -28,6 +28,8 @@
  }
  function points(x,y){const [cx,cy]=center(x,y);return Array.from({length:6},(_,i)=>{const a=(60*i-30)*Math.PI/180;return `${cx+30*Math.cos(a)},${cy+30*Math.sin(a)}`;}).join(' ');}
  window.drawFog=(svg,snapshot)=>{
+  if(svg._fogSnapshot===snapshot&&svg.querySelector('.fog-layer'))return;
+  svg._fogSnapshot=snapshot;
   svg.querySelectorAll('.fog-layer,.contact-marker,.passenger-marker').forEach(n=>n.remove());
   if(!state.fog_of_war)return;
   const seen=new Set((snapshot.visible_hexes||[]).map(p=>p.join(','))),layer=element('g',{class:'fog-layer','aria-hidden':'true'});
