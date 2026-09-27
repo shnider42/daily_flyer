@@ -150,6 +150,7 @@ function render(){
  if(unit&&enemy){const [x1,y1]=center(...unit.pos),[x2,y2]=center(...enemy.pos);svg.append(element('line',{x1,y1,x2,y2,class:`aim-line${shot?' clear':''}`}));}
  for(const u of state.units.filter(u=>u.hp>0)){
   const [cx,cy]=center(...u.pos),g=element('g',{class:`unit ${u.side} platoon-${u.platoon||'none'}${selected===u.id?' selected':''}${target===u.id?' target':''}`,role:'button',tabindex:0,'aria-label':`${names[u.side]} ${unitName(u)}, ${u.hp} strength, ${u.ap} actions${u.pinned?', pinned':''}`});
+  g.dataset.unitId=u.id;
   // Transparent hit area is larger than the counter for comfortable phone taps.
   g.append(element('circle',{cx,cy,r:23,fill:'transparent'}));
   if(u.side===state.side&&u.platoon===platoonFilter)g.append(element('path',{d:`M${cx-24} ${cy-20}h48v41h-48z`,class:'platoon-halo'}));

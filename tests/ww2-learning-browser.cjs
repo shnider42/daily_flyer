@@ -30,7 +30,19 @@ let browser;
  assert.equal(await p.locator('#terrainToggle').textContent(),'Terrain: basic');
  await p.locator('#terrainToggle').click();assert.equal(await p.locator('#map .terrain-art').count(),63);
  assert.deepEqual(await p.evaluate(()=>({state:JSON.stringify(state),left:$('mapWrap').scrollLeft,top:$('mapWrap').scrollTop})),terrainBefore);
+ assert.equal(await p.locator('#map .unit-art').count(),10);
+ const originalStrength=await p.locator('#map .strength').allTextContents();
+ await p.locator('#unitStyleToggle').click();assert.equal(await p.locator('#map .unit-art').count(),0);
+ assert.equal(await p.locator('#map .terrain-art').count(),63);
+ assert.deepEqual(await p.locator('#map .strength').allTextContents(),originalStrength);
+ assert.equal(await p.evaluate(()=>JSON.stringify(state)),terrainBefore.state);
  await p.reload();await p.waitForFunction(()=>state&&!busy);assert.equal(await p.locator('#simpleToggle').getAttribute('aria-pressed'),'true');assert.equal(await p.locator('#tutorialCoach').isVisible(),true);
+ assert.equal(await p.locator('#unitStyleToggle').textContent(),'Units: classic');
+ await p.locator('#unitStyleToggle').click();assert.equal(await p.locator('#map .unit-art').count(),10);
+ await p.locator('#roster button').nth(2).click();await p.locator('#dig').click();await p.waitForFunction(()=>!busy&&state.revision===2);
+ assert.equal(await p.locator('#map .counter-sandbags').count(),1);
+ await p.locator('#roster button').nth(3).click();await p.locator('#overwatch').click();await p.waitForFunction(()=>!busy&&state.revision===3);
+ assert.equal(await p.locator('#map .counter-overwatch').count(),1);
  // Browser automation clicks auto-scroll targets; invoke the same selection handler to
  // measure only game-caused movement, including preserved manual pan in enlarged view.
  await p.locator('#mapWrap').scrollIntoViewIfNeeded();
@@ -57,6 +69,7 @@ let browser;
  await p.evaluate(()=>new Promise(resolve=>{let still=0,last=-1;function check(){const x=$('orders').scrollLeft;still=x===last?still+1:0;last=x;if(still>=12)resolve();else requestAnimationFrame(check);}check();}));
  assert.ok(await p.evaluate(()=>{const r=$('orders').getBoundingClientRect();return [...$('orders').querySelectorAll('button')].filter(b=>!b.hidden).map(b=>b.getBoundingClientRect()).filter(b=>b.right>r.left+1&&b.left<r.right-1).every(b=>b.left>=r.left-1&&b.right<=r.right+1);}),'Scrolling must settle on whole cards');
  await p.locator('#mobileOrderDock').screenshot({path:path.join(temp,'action-strip.png')});
+ await p.locator('#map').screenshot({path:path.join(temp,'illustrated-units.png')});
  await p.screenshot({path:path.join(temp,'mobile.png'),fullPage:true});
  for(const width of [1280,390,1440,320,844,390]){
   console.log('Checking width',width);
@@ -68,6 +81,11 @@ let browser;
  }
  await p.locator('#end').click();await p.locator('#playbackPanel').waitFor({state:'visible'});await p.locator('#pausePlayback').click();
  assert.equal(await p.locator('#playbackMap .terrain-art').count(),63);
+ assert.equal(await p.locator('#playbackMap .unit-art').count(),await p.locator('#playbackMap .unit').count());
+ const replayBefore=await p.evaluate(()=>JSON.stringify(state));
+ await p.locator('#unitStyleToggle').click();assert.equal(await p.locator('#playbackMap .unit-art').count(),0);
+ await p.locator('#unitStyleToggle').click();assert.equal(await p.evaluate(()=>JSON.stringify(state)),replayBefore);
+ assert.equal(await p.locator('#playbackMap .counter-sandbags').count(),await p.evaluate(()=>playbackSession.frames[playbackSession.index][playbackSession.phase].units.filter(u=>u.hp>0&&u.entrenched).length));
  await p.locator('#terrainToggle').click();assert.equal(await p.locator('#playbackMap .terrain-art').count(),0);
  await p.locator('#terrainToggle').click();assert.equal(await p.locator('#playbackMap .terrain-art').count(),63);
  assert.equal(await p.locator('#mobileOrderDock').isVisible(),false);

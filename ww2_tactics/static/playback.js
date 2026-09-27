@@ -85,6 +85,7 @@ function drawPlayback(){
  if(actor&&destination){const [x1,y1]=center(...actor.pos),[x2,y2]=center(...destination);svg.append(element('line',{x1,y1,x2,y2,class:'replay-line'}));svg.append(element('circle',{cx:x2,cy:y2,r:23,class:'replay-destination'}));}
  for(const u of snapshot.units.filter(u=>u.hp>0)){
   const [cx,cy]=center(...u.pos),g=element('g',{class:`unit ${u.side} platoon-${u.platoon||'none'}${u.id===action.unit?' selected':''}${u.id===action.target?' target':''}`});
+  g.dataset.unitId=u.id;
   g.append(element('rect',{x:cx-20,y:cy-16,width:40,height:33,rx:u.side==='us'?9:1}));
   g.append(element('text',{x:cx,y:cy-3,'text-anchor':'middle',class:'unit-name'},`${u.side.toUpperCase()} ${u.kind==='mg'?'MG':u.kind==='leader'?'LT':'SQ'}`));
   g.append(element('text',{x:cx,y:cy+10,'text-anchor':'middle',class:'strength',textLength:11+7*u.hp,lengthAdjust:'spacingAndGlyphs'},'●'.repeat(u.hp)+' · '+u.ap));

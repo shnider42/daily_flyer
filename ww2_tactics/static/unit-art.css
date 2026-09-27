@@ -1,0 +1,30 @@
+#playTools #unitStyleToggle{width:116px;flex:none;white-space:nowrap;font-size:10px;padding-inline:6px}
+.unit-art{pointer-events:none}
+.illustrated-units .unit>:is(.unit-name,.pin,.dug-marker,.watch-marker){display:none}
+.illustrated-units .unit>rect{fill:var(--platoon-color,var(--us-team));stroke:#eee7cb;stroke-width:1.5}
+.illustrated-units .unit.de>rect{fill:var(--platoon-color,var(--de-team))}
+.illustrated-units .unit.us>rect{rx:9px}.illustrated-units .unit.de>rect{rx:1px}
+.unit-art .portrait-coat{fill:#f4e5b9;stroke:#283b38;stroke-width:.5}
+.unit-art .portrait-face{fill:#dec793;stroke:none}
+.unit-art .portrait-helmet{fill:#c7d4b8;stroke:#f9efd0;stroke-width:.7;stroke-linejoin:round}
+.unit-art .portrait-rifle{fill:none;stroke:#f3e4b6;stroke-width:1.7;stroke-linecap:round}
+.unit-art .portrait-arm{fill:none;stroke:#f4e5b9;stroke-width:2.5;stroke-linecap:round}
+.unit-art .portrait-optics{fill:#273f43;stroke:#fff0c8;stroke-width:1}
+.unit-art .portrait-gun{fill:#f2e7c8;stroke:#f2e7c8;stroke-width:1.8;stroke-linejoin:round;stroke-linecap:round}
+.unit-art .portrait-detail{fill:none;stroke:#759181;stroke-width:.7;stroke-linecap:round}
+.unit .unit-art .counter-army{font-size:5px;font-weight:850;fill:#fff9e3;stroke:none}
+.unit-art .is-pinned,.unit-art.is-pinned .unit-portrait{opacity:.6}
+.unit-art .sandbag{fill:#c1ac78;stroke:#514e38;stroke-width:.8}
+.unit-art .sandbag-seam{fill:none;stroke:#eee0b2;stroke-width:.7}
+.unit-art .status-disc{fill:#263e3b;stroke:#f4df96;stroke-width:1}
+.unit-art .status-eye{fill:none;stroke:#ffe9a0;stroke-width:1}
+.unit-art .eye-pupil{fill:#ffe9a0}
+.unit-art .pin-flag{fill:#ffc44f;stroke:#382e20;stroke-width:1}
+.unit-art .pin-alert{fill:none;stroke:#382e20;stroke-width:1.7;stroke-linecap:round}
+.unit-art .selection-brackets,.unit-art .selection-corner{display:none}
+.illustrated-units .unit:is(.selected,:focus-visible)>rect{stroke:#ffe440;stroke-width:2.5}
+.illustrated-units .unit:is(.selected,:focus-visible) .selection-brackets{display:block;fill:none;stroke:#ffe440;stroke-width:2;filter:drop-shadow(0 0 .6px #22372a)}
+.illustrated-units .unit:is(.selected,:focus-visible) .selection-corner{display:block;fill:#ffe440;stroke:#344439;stroke-width:.5}
+.illustrated-units .unit.target>rect{stroke:#ffebda;stroke-width:3;stroke-dasharray:4 2}
+.compact-unit-art .unit-art :is(.portrait-detail,.sandbag-seam){display:none}
+.compact-unit-art .unit-art .portrait-coat{stroke:none}

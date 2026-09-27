@@ -392,6 +392,14 @@ share a player key and are not two independent players).
   `WW2_PLAYWRIGHT=playwright-core WW2_PACKAGED_CHROMIUM=1` and @sparticuz/chromium).
 # DSL learning and compact controls
 
+- **Units: illustrated / classic** is independent of the terrain style and persists locally.
+  Illustrated counters use infantry groups, an officer with binoculars, and a bipod MG;
+  army colors/shapes, strength/AP text, hit areas and platoon labels remain unchanged.
+  Selection adds brackets and a corner tab; pinned troops have a subdued portrait and pin
+  badge; sandbags mark dug-in troops and an eye marks overwatch (no facing cone). Small
+  rendered counters hide fine uniform details automatically; zoom reveals them. No idle
+  animation. Replay artwork uses the recorded frame's statuses rather than the live board.
+
 - **Terrain: detailed / basic** switches decorative SVG artwork immediately, including
   computer replays and scenario previews. Detailed (default) adds grass, tree clusters,
   roofed buildings, connected dirt roads, water ripples, timber bridges and a paved objective.
