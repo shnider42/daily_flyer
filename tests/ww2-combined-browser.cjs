@@ -56,6 +56,52 @@ let browser;
  await p.locator('#platoonFilters button[data-platoon="HQ"]').click();
  await p.locator('#roster button').filter({hasText:/Half-track section.*HQ7/}).click();
  await p.screenshot({path:path.join(temp,'halftrack-mobile.png'),fullPage:true});
+ // Disposable local fixture: test real transport API, UI, checkpoint and movement.
+ const code=await p.evaluate(()=>session.code);
+ cp.execFileSync('python',['-c',`
+import json,sqlite3,sys
+from ww2_tactics.engine import initial
+db=sqlite3.connect(sys.argv[1]);old=json.loads(db.execute('SELECT state FROM match WHERE code=?',(sys.argv[2],)).fetchone()[0])
+s=initial('frontier','dsl');s.update(ready=True,turn='de',ai_side='us',revision=old['revision']+1,intel={})
+s['battlefield']['map']=[['field']*24 for _ in range(24)];s['battlefield']['map'][5]=['road']*24;s['battlefield']['map'][5][7]='woods'
+s['units']=[next(u for u in s['units'] if u['id']==uid) for uid in ['de18','de4','us13']]
+for u,pos in zip(s['units'],[[5,5],[6,5],[22,22]]):u.update(pos=pos,reserve=False)
+db.execute('UPDATE match SET state=? WHERE code=?',(json.dumps(s),sys.argv[2]));db.commit()
+`,path.join(temp,'game.db'),code]);
+ await p.evaluate(async()=>{state=await api('/api/match/'+session.code);render();chooseUnit(state.units.find(u=>u.kind==='halftrack'));});
+ assert.equal(await p.locator('#load').isVisible(),true);
+ await p.locator('#load').click();assert.equal(await p.locator('.transport-choice').count(),1);
+ await p.locator('.transport-choice').click();await p.waitForFunction(()=>!busy&&state.units.some(u=>u.carrier_id));
+ assert.equal(await p.locator('#map .unit[data-unit-id="de4"]').count(),0);
+ assert.equal(await p.locator('#map .passenger-marker').count(),1);
+ assert.match(await p.locator('#unitPurpose').textContent(),/Carrying Engineers/);
+ assert.match(await p.locator('#unload').textContent(),/1 infantry AP/);
+ await p.evaluate(()=>chooseUnit(state.units.find(u=>u.id==='de4')));
+ assert.match(await p.locator('#roster .active').textContent(),/Aboard/);
+ assert.equal(await p.locator('#fire').isVisible(),false);
+ await p.locator('#viewTransport').click();assert.match(await p.locator('#mobileOrderToggle').textContent(),/Half-track/);
+ const save=await p.evaluate(async()=>api('/api/match/'+session.code+'/save',{revision:state.revision}));
+ await p.reload();await p.locator('.saved-session').first().click();await p.waitForFunction(()=>state&&!busy);
+ assert.ok(await p.evaluate(()=>state.units.some(u=>u.carrier_id)));
+ await p.evaluate(()=>chooseUnit(state.units.find(u=>u.kind==='halftrack')));
+ await p.evaluate(async()=>act({kind:'move',unit:selected,pos:[6,5]}));
+ assert.deepEqual(await p.evaluate(()=>state.units.find(u=>u.id==='de4').pos),[6,5]);
+ await p.locator('#unload').click();
+ await p.getByRole('button',{name:'Unload infantry at H6 · 1 infantry AP',exact:true}).click();
+ await p.waitForFunction(()=>!busy&&!state.units.find(u=>u.id==='de4').carrier_id);
+ assert.equal(await p.locator('#map .unit[data-unit-id="de4"]').count(),1);
+ assert.equal(await p.evaluate(()=>state.units.find(u=>u.id==='de4').ap),0);
+ // Loading the checkpoint restores the still-embarked unit, not its newer position.
+ await p.evaluate(async saveCode=>{remember(await api('/api/restore',{code:saveCode}));await refresh();},save.save_code);
+ assert.ok(await p.evaluate(()=>state.units.find(u=>u.id==='de4').carrier_id));
+ await p.evaluate(()=>chooseUnit(state.units.find(u=>u.kind==='halftrack')));
+ for(const width of [320,390,1440]){
+  await p.setViewportSize({width,height:844});
+  assert.equal(await p.locator('#unload').isVisible(),true);
+  assert.ok(await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));
+  if(width<1100)assert.ok(await p.evaluate(()=>{const r=$('orders');return r.scrollWidth<=r.clientWidth+1&&r.scrollHeight<=r.clientHeight+1;}));
+  await p.screenshot({path:path.join(temp,`transport-${width}.png`),fullPage:true});
+ }
  assert.deepEqual(errors,[]);
  console.log('Combined arms: mobile/desktop, reserve landing, stable map, fog replay, save passed. '+temp);
 })().catch(e=>{console.error(e);process.exitCode=1;}).finally(async()=>{if(browser)await browser.close();server.kill();});

@@ -7,6 +7,8 @@
  const save=()=>{try{localStorage.setItem(key,JSON.stringify(prefs));}catch{}};
  // Distinct silhouettes and plain-language effects supplement color, including on touch screens.
  const actionDesign={
+  load:['blue','Board one friendly infantry unit; costs infantry AP','M3 7h11v13H3ZM17 5l4 4-4 4M10 9h11'],
+  unload:['teal','Disembark onto adjacent land; costs infantry AP','M3 7h11v13H3ZM17 12l4 4-4 4M10 16h11'],
   recon:['teal','Reveal nearby sea contacts','M3 12l7-2 2-7 2 7 7 2-7 2-2 7-2-7-7-2Z'],
   airstrike:['red','Attack a spotted ship','M3 5l9 5 9-5-5 9-4-2-4 2-5-9ZM12 15v6M9 19l3 3 3-3'],
   torpedo:['indigo','Heavy anti-ship attack','M3 10h13l5 2-5 2H3v-4ZM6 8v8M1 9v6'],
@@ -43,7 +45,7 @@
    const heading=node('span',null,title);heading.className='action-name';
    const effect=node('span',null,cancel?'Return to normal orders':purpose);effect.className='action-purpose';copy.append(heading,effect);
    b.replaceChildren(icon,copy);
-   if(cost){const badge=node('span',null,`${cost[1]} AP`);badge.className='action-cost';b.append(badge);}
+   if(cost){const badge=node('span',null,`${cost[1]} ${id==='load'||id==='unload'?'infantry ':''}AP`);badge.className='action-cost';b.append(badge);}
    b.setAttribute('aria-label',`${raw}. ${effect.textContent}`);
   }
  }

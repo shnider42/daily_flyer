@@ -63,6 +63,8 @@ function center(x,y){return [27+x*52+(y%2)*26,30+y*49];}
 function unitTypeName(u){return state?.naval_version&&u.kind==='amphibious'?'Landing section':kinds[u.kind];}
 function unitName(u){return unitTypeName(u)+(u.platoon?` ${u.platoon}${u.number}`:'');}
 function unitRoleSummary(u){
+ if(u.carrier_id)return 'Aboard half-track · select transport to unload';
+ if(u.kind==='halftrack'){const troop=state.units.find(t=>t.hp>0&&t.carrier_id===u.id);return troop?`Carrying ${unitName(troop)} · roads: 2 hexes/AP`:'Transport 1 infantry unit · roads: 2 hexes/AP';}
  const roles={squad:'Capture and hold ground with rifle infantry',leader:state?.ruleset==='dsl'?'Rally platoon members and grant extra actions':'Rally troops and call mortar support',mg:'Suppress enemy infantry with sustained fire',commander:'Rally and support nearby troops',scout:'Spot concealed enemies ahead of your squads',engineer:'Use smoke and grenades to clear cover',at_team:'Hunt armored vehicles with anti-tank weapons',tank:'Armored direct fire against troops and vehicles',at_gun:'Long-range anti-tank fire; cannot move',halftrack:'Mobile armored support; suppress infantry',amphibious:state?.naval_version?'Cross water and land troops at island outposts':'Move your troops across water and open land',paratrooper:u.reserve?'Airborne reserve; choose a landing zone':'Airborne infantry; capture and hold ground',carrier:'Scout with aircraft and launch air strikes',battleship:'Armored warship with heavy long-range guns',cruiser:'Escort ships with guns and aircraft defense',destroyer:'Fast warship with torpedoes and smoke'};
  return roles[u.kind]||'Select a highlighted move or available action';
 }
@@ -73,7 +75,7 @@ function renderUnitClarity(unit){
   const u=troops[i];if(!u)return;
   const title=document.createElement('strong');title.className='roster-unit-name';title.textContent=unitTypeName(u);
   const meta=document.createElement('span');meta.className='roster-unit-state';
-  meta.textContent=`${u.platoon?u.platoon+u.number:i+1} · ${u.hp<=0?'Lost':u.reserve?'Airborne reserve':u.pinned?`Pinned · ${u.ap} AP`:u.overwatch?`Watching · ${u.ap} AP`:`${u.ap} AP`}`;
+  meta.textContent=`${u.platoon?u.platoon+u.number:i+1} · ${u.hp<=0?'Lost':u.carrier_id?`Aboard · ${u.ap} AP`:u.reserve?'Airborne reserve':u.pinned?`Pinned · ${u.ap} AP`:u.overwatch?`Watching · ${u.ap} AP`:`${u.ap} AP`}`;
   button.replaceChildren(title,meta);button.dataset.unitId=u.id;
   button.title=`${unitName(u)} — ${unitRoleSummary(u)}`;button.setAttribute('aria-label',`${unitName(u)}. ${meta.textContent}. ${unitRoleSummary(u)}`);
  });
@@ -181,7 +183,7 @@ function render(){
   if(state.barrages?.some(b=>b.area.some(p=>p[0]===x&&p[1]===y))){svg.append(element('path',{d:`M${points.split(' ').join(' L')} Z`,class:'barrage-zone'}));svg.append(element('text',{x:cx+16,y:cy+23,class:'incoming-mark'},'!'));}
  }
  if(unit&&enemy){const [x1,y1]=center(...unit.pos),[x2,y2]=center(...enemy.pos);svg.append(element('line',{x1,y1,x2,y2,class:`aim-line${shot?' clear':''}`}));}
- for(const u of state.units.filter(u=>u.hp>0&&!u.reserve)){
+ for(const u of state.units.filter(u=>u.hp>0&&!u.reserve&&!u.carrier_id)){
   const [cx,cy]=center(...u.pos),g=element('g',{class:`unit ${u.side} platoon-${u.platoon||'none'}${selected===u.id?' selected':''}${target===u.id?' target':''}`,role:'button',tabindex:0,'aria-label':`${names[u.side]} ${unitName(u)}, ${u.hp} strength, ${u.ap} actions${u.pinned?', pinned':''}`});
   g.dataset.unitId=u.id;
   // Transparent hit area is larger than the counter for comfortable phone taps.

@@ -486,13 +486,27 @@ New German armies replace the two airborne reserves with two on-map half-track
 sections deployed as forward reserves near the depot: 3 strength, 3 base AP,
 bank 1, range 5, armor 1, no anti-tank penetration.
 They can suppress infantry at range 5 on 3+ for 2 AP. They cannot air drop, cross
-water, enter woods/buildings or load passengers. US armies retain their airborne
+water or enter woods/buildings. US armies retain their airborne
 reserves. This is a game-balance distinction, not a historical availability claim.
 Existing saved rosters are not rewritten; start a new operation to use this change.
 
-The mobile action rail now presents one full-width card per swipe, with larger
-type/icons and an explicit action index. Its height remains fixed, and it stays
-above the map instead of obscuring hexes. Desktop action layout is unchanged.
+Half-tracks now carry one adjacent friendly infantry unit (including officers,
+MGs and specialists). Select the half-track, Load infantry, then a marked unit.
+Boarding and unloading each spend 1 infantry AP, not vehicle AP; one boarding
+per infantry unit per turn. Unload onto adjacent empty land (including cover),
+subject to overwatch. Passengers cannot fight, spot, command or hold objectives.
+They remain in the roster and save/checkpoint with their carrier association.
+Each paid connected road/bridge move grants a free connected road step: six
+hexes at 3 AP, eight with a banked AP. Other orders or leaving roads cancel the
+pending step. Small arms/frag cannot hurt armor; tanks and AT guns ignore the
+half-track armor hit modifier and deal 3 damage (a full-strength one-hit kill).
+AT teams deal 2. Destroyed transport passengers lose 1 strength; survivors bail
+out in the wreck hex, pinned with 0 AP. Existing half-tracks gain these abilities
+without rewriting saved rosters; other vehicles and classic rules are unchanged.
+
+Mobile actions now use a two-column grid, with four rows reserved to keep the
+map steady. No action-strip scrolling; future extra rows expand without clipping.
+Full names and AP costs remain visible. Desktop action layout is unchanged.
 
 Two-finger gestures inside the battlefield zoom the map around the finger midpoint;
 one-finger dragging pans it. Page zoom remains available outside the map. The map

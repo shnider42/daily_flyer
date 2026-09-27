@@ -6,7 +6,7 @@ from .support import role_options, role_action, resolve_barrages
 from .combat_display import record_combat
 from .rulesets import profile, dsl, base_ap, bank_limit, turn_limit, road
 from .effects import record_effect
-from . import combined, naval
+from . import combined, naval, transport
 from .visibility import fog, active, visible_ids, sees_hex, update_intel, record_reports
 
 WIDTH, HEIGHT = 7, 9
@@ -109,7 +109,7 @@ def fire_modifiers(state, unit, target):
                 dug_in=int(state.get('rules_version', 1) >= 2 and target.get('entrenched', False)))
     if combined.enabled(state):
         mods.update(faction=-int(unit['side']=='us' and unit['kind'] not in {'tank','at_gun','at_team','amphibious'}),
-                    armor=int(target.get('armor',0)>0),anti_tank=-int(unit['kind']=='at_gun' and target.get('armor',0)>0))
+                    armor=int(target.get('armor',0)>0 and not (target['kind']=='halftrack' and unit['kind'] in {'tank','at_gun'})),anti_tank=-int(unit['kind']=='at_gun' and target.get('armor',0)>0))
     return mods
 
 
@@ -161,11 +161,14 @@ def options(state, unit):
     moves, targets = [], []
     board = battlefield(state)
     extras = dict(smoke=[], dig=False, assaults=[], overwatch=False,
-                  grenades=[], suppress=[], inspire=[], barrage=[], command=[], drops=[])
+                  grenades=[], suppress=[], inspire=[], barrage=[], command=[], drops=[], load=[], unload=[])
     if not state["ready"] or state["winner"] or unit["hp"] <= 0 or unit["side"] != state["turn"]:
         return dict(moves=moves, targets=targets, rally=False, **extras)
     seen=visible_ids(state,unit['side'])
     occupied = [u["pos"] for u in state["units"] if active(u) and u['id'] in seen]
+    if unit.get('carrier_id'):
+        return dict(moves=[], targets=[], rally=False, **extras)
+    extras.update(transport.options(state, unit))
     if unit.get('reserve'):
         if unit['ap']>=2:
             extras['drops']=[[x,y] for y in range(2,board['height']-2) for x in range(board['width'])
@@ -176,7 +179,7 @@ def options(state, unit):
         for y in range(max(0,unit['pos'][1]-1),min(board['height'],unit['pos'][1]+2)):
             for x in range(max(0,unit['pos'][0]-1),min(board['width'],unit['pos'][0]+2)):
                 tile = terrain(x, y, state)
-                free_road = dsl(state) and unit.get('road_pending', False) and not unit.get('road_used', False) and road(terrain(*unit['pos'], state)) and road(tile)
+                free_road = dsl(state) and unit.get('road_pending', False) and (unit['kind']=='halftrack' or not unit.get('road_used', False)) and road(terrain(*unit['pos'], state)) and road(tile)
                 cost = 0 if free_road else 2 if tile in {"woods", "building"} else 1
                 passable=tile!='water' or unit['kind']=='amphibious'
                 if unit['kind'] in combined.VEHICLES and tile in {'woods','building'}: passable=False
@@ -242,7 +245,7 @@ def apply(state, side, action, roll=None):
                 if dsl(state):
                     u['carried_ap'] = u.get('banked_ap', 0)
                     u['ap'] = base_ap(u)+u['carried_ap']
-                    u.update(ap_received=u['ap'], banked_ap=0, road_pending=False, road_used=False)
+                    u.update(ap_received=u['ap'], banked_ap=0, road_pending=False, road_used=False, transport_used=False)
                 else:
                     u["ap"] = 2
                 u['overwatch'] = False
@@ -254,7 +257,20 @@ def apply(state, side, action, roll=None):
         legal = options(state, unit)
         if dsl(state) and kind != 'move':
             unit['road_pending'] = False
-        if kind in {'grenade', 'suppress', 'inspire', 'barrage', 'command'}:
+        if kind == 'load' and action.get('target') in legal['load']:
+            troop = next(u for u in state['units'] if u['id'] == action['target'])
+            troop.update(carrier_id=unit['id'], pos=list(unit['pos']), ap=troop['ap']-1,
+                         entrenched=False, overwatch=False, road_pending=False, transport_used=True)
+            message = f"{NAMES[side]} {troop['kind']} boarded half-track; infantry spent 1 AP."
+        elif kind == 'unload' and action.get('pos') in [m['pos'] for m in legal['unload']]:
+            if any(active(u) and u['pos'] == action['pos'] for u in state['units']):
+                raise ValueError('That disembark hex is occupied. Choose another hex.')
+            troop = transport.passengers(state, unit)[0]
+            troop.pop('carrier_id', None)
+            troop.update(pos=list(action['pos']), ap=troop['ap']-1, road_pending=False)
+            message = f"{NAMES[side]} {troop['kind']} disembarked; infantry spent 1 AP."
+            reactions = react(state, troop, roll_die)
+        elif kind in {'grenade', 'suppress', 'inspire', 'barrage', 'command'}:
             message = role_action(state, unit, action, legal, roll_die, distance, NAMES)
         elif kind == 'drop' and action.get('pos') in legal['drops']:
             unit.update(pos=list(action['pos']),reserve=False,ap=unit['ap']-2)
@@ -270,10 +286,11 @@ def apply(state, side, action, roll=None):
                 if move.get('road_bonus'):
                     unit.update(road_used=True, road_pending=False)
                 else:
-                    unit['road_pending'] = both_road and not unit.get('road_used', False)
+                    unit['road_pending'] = both_road and (unit['kind']=='halftrack' or not unit.get('road_used', False))
             unit["pos"] = move["pos"]
             unit["ap"] -= move["cost"]
             unit['entrenched'] = False
+            transport.follow(state, unit)
             message = f"{NAMES[side]} {unit['kind']} moved to {chr(65+unit['pos'][0])}{unit['pos'][1]+1}."
             reactions = react(state, unit, roll_die)
             if dsl(state) and unit['pinned']:
@@ -355,7 +372,7 @@ def apply(state, side, action, roll=None):
         if not any(u["hp"] > 0 and u["side"] == team for u in state["units"]):
             state["winner"] = "de" if team == "us" else "us"
     # Losing the objective breaks the consecutive-turn hold immediately.
-    if not any(u["side"] == "us" and u["hp"] > 0 and u["pos"] == board['objective'] for u in state["units"]):
+    if not any(u["side"] == "us" and active(u) and u["pos"] == board['objective'] for u in state["units"]):
         state["hold"] = 0
     state["log"] = state["log"] + [message] + reactions
     if state["winner"]:

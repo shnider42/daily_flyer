@@ -5,6 +5,10 @@
 .contact-marker .contact-age{font-size:7px;font-weight:600}
 .landing-zone{fill:#6adfc2;fill-opacity:.18;stroke:#126b60;stroke-width:2;stroke-dasharray:5 3;cursor:pointer}
 .landing-zone:focus{fill-opacity:.6;outline:none;stroke-width:3}
+.transport-choice{fill:#64d7b5;fill-opacity:.25;stroke:#075e4c;stroke-width:3;stroke-dasharray:5 2;cursor:pointer;pointer-events:auto}
+.transport-choice:focus{fill-opacity:.55;stroke-width:4;outline:none}
+.transport-picking :is(.hex,.unit){pointer-events:none}
+.unit .passenger-marker{pointer-events:none}.unit .passenger-marker rect{fill:#f7d673;stroke:#493d17;stroke-width:1;filter:none}.unit .passenger-marker text{fill:#30270d;font-size:10px;font-weight:800}
 #airdrop{background:#dae9e1;border-color:#447b70;color:#153a31}
 #game .game-title>div:first-child{min-width:0;flex:1}
 #game .game-title .round{flex:none}

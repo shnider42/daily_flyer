@@ -45,6 +45,18 @@ def choose_order(state, costs, visited):
         if unit['side'] != side:
             continue
         legal = options(state, unit)
+        # Embark on a distant approach; deploy near the fight, before using support fire.
+        if legal.get('load') and costs.get(tuple(unit['pos']),100)>5 and not any(
+                u['side']!=side and distance(u['pos'],unit['pos'])<=6 for u in units.values()):
+            for uid in legal['load']:
+                if units[uid]['ap']>=2:
+                    add(7,unit,'load',target=uid)
+        if legal.get('unload'):
+            threatened=any(u['side']!=side and distance(u['pos'],unit['pos'])<=5 for u in units.values())
+            if threatened or unit['pinned'] or unit['hp']<3 or costs.get(tuple(unit['pos']),100)<=4:
+                for move in legal['unload']:
+                    cover=terrain(*move['pos'],state) in {'woods','building','objective'}
+                    add(14+int(cover)-move['threats']*3-costs.get(tuple(move['pos']),100)*.1,unit,'unload',pos=move['pos'])
         for pos in legal.get('drops',[]):
             add(20-costs.get(tuple(pos),100)*.6,unit,'drop',pos=pos)
         if legal['rally']:
@@ -158,7 +170,7 @@ def play_turn(state, roll=None):
                 safe_action={'kind':'contact'}
         frames.append(dict(action=safe_action,before=before,after=after,effects=copy.deepcopy(effects),combat=copy.deepcopy(combat)))
     # Scale the guard to the army's AP budget, including the larger scenario.
-    budget = max(24, sum((turn_limit(u)+1 if dsl(state) else 2) for u in state['units'] if u['side']==state['ai_side'] and u['hp']>0)+1)
+    budget = max(24, sum((turn_limit(u)+(turn_limit(u) if u['kind']=='halftrack' else 1) if dsl(state) else 2) for u in state['units'] if u['side']==state['ai_side'] and u['hp']>0)+1)
     for _ in range(budget):
         action = choose_order(state, costs, visited)
         perform(action)

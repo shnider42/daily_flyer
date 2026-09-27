@@ -57,6 +57,8 @@ def can_damage(unit, target):
 
 
 def damage(unit, target):
+    if target['kind'] == 'halftrack' and unit['kind'] in {'tank', 'at_gun'}:
+        return 3
     return 2 if unit['kind'] in {'tank','at_gun','at_team'} and target.get('armor') else 1
 
 
@@ -71,4 +73,7 @@ def resolve_fire(state, unit, target, die, threshold):
         target['hp'] = max(0, target['hp']-damage(unit, target))
     if hit or suppressed:
         target['pinned'], target['overwatch'] = True, False
+    if target['hp'] <= 0:
+        from .transport import bail_out
+        bail_out(state, target)
     return 'eliminated' if target['hp'] <= 0 else f'hit for {damage(unit,target)} and pinned' if hit else 'suppressed; no damage' if suppressed else 'missed'

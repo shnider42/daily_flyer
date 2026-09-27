@@ -7,7 +7,7 @@ def fog(state):
 
 
 def active(unit):
-    return unit['hp'] > 0 and not unit.get('reserve')
+    return unit['hp'] > 0 and not unit.get('reserve') and not unit.get('carrier_id')
 
 
 def sees_hex(state, side, pos, concealed=False):
@@ -30,7 +30,7 @@ def sees_hex(state, side, pos, concealed=False):
 def visible_ids(state, side):
     from .engine import terrain
     if not fog(state):
-        return {u['id'] for u in state['units']}
+        return {u['id'] for u in state['units'] if u['side']==side or not u.get('carrier_id')}
     return {u['id'] for u in state['units'] if u['side']==side or
             (active(u) and sees_hex(state, side, u['pos'],
              not u.get('armor') and terrain(*u['pos'],state) in {'woods','building'}))}
