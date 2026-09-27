@@ -52,13 +52,6 @@
  let dock=null,anchors=[],lastSelection=null,lastTarget=null,lastRevision=null,lastSimple=null;
  function move(n,to){const anchor=document.createComment('mobile orders anchor');n.before(anchor);anchors.push([n,anchor]);to.append(n);}
  function unmount(){$('mobileUnitDetails')?.close();for(const [n,a] of anchors)a.replaceWith(n);anchors=[];$('mobileUnitDetails')?.remove();dock?.remove();dock=null;lastSelection=null;lastTarget=null;lastRevision=null;}
- function stripStatus(){
-  if(!dock)return;const rail=$('orders'),buttons=[...rail.querySelectorAll('button')].filter(b=>!b.hidden);
-  const first=Math.round(rail.scrollLeft/Math.max(1,rail.clientWidth+6));
-  $('mobileActionCount').textContent=buttons.length>1?`Action ${Math.min(first+1,buttons.length)} of ${buttons.length} · swipe`:`${buttons.length} orders`;
-  $('mobileActionsBack').disabled=rail.scrollLeft<2;
-  $('mobileActionsMore').disabled=rail.scrollLeft+rail.clientWidth>=rail.scrollWidth-2;
- }
  function mount(){
   if(dock)return;
   dock=node('section','mobileOrderDock');dock.setAttribute('aria-label','Selected unit orders');
@@ -71,14 +64,10 @@
   const detail=node('dialog','mobileUnitDetails');detail.setAttribute('aria-label','Selected unit details');
   const close=node('button',null,'Back to map');close.onclick=()=>detail.close();detail.append(close,node('h2','unitDetailTitle','Unit details & odds'));dock.append(detail);
   for(const id of ['roleBrief','unitMechanics','odds'])move($(id),detail);
-  const nav=node('div','mobileActionNav'),back=node('button','mobileActionsBack','‹'),more=node('button','mobileActionsMore','›');
-  back.setAttribute('aria-label','Previous actions');more.setAttribute('aria-label','More actions');
-  for(const [button,direction] of [[back,-1],[more,1]])button.onclick=()=>{$('orders').scrollBy({left:direction*($('orders').clientWidth+6),behavior:'auto'});stripStatus();};
-  nav.append(back,node('span','mobileActionCount'),more);body.append(nav);$('orders').addEventListener('scroll',stripStatus);
  }
  const lessons=[
   ['Your mission','Find the ★ objective. Americans win by holding it at the end of two consecutive American turns. Germans must prevent that until the final round. Either army can also win by eliminating the enemy.','.mission'],
-  ['Choose your unit','Tap one of your counters on the map. Its name and actions stay in the mobile orders bar. Swipe the actions sideways or use the arrows for more. Tap the unit name for details. AP means action points.','#map'],
+  ['Choose your unit','Tap one of your counters on the map. Its name and all available actions appear together above the map. Tap the unit name for details. AP means action points.','#map'],
   ['Move into position','With your unit selected, tap a highlighted neighboring hex to move. Woods and buildings cost more but offer cover. Orange move hexes warn of enemy overwatch. Connected roads can grant one extra hex each turn.','#map'],
   ['Spend actions, not dice','Squads and MGs start with 2 AP; lieutenants start with 3. Available orders are shown for your selected unit. Select an enemy to see attacks. You can learn the flow without reading the dice math.','#orders'],
   ['Cover and attacks','Fire costs 2 AP and may miss. Cover makes units harder to hit; smoke blocks shots. An MG can suppress to pin a visible enemy without damage. Pinned troops must rally before moving or attacking. If no attack is available, keep advancing or skip this tip.','#orders'],
@@ -114,7 +103,6 @@
   }
   $('simpleOutcome').hidden=!prefs.simple||!state.last_combat||!!playbackSession;
   styleActions();
-  stripStatus();
   $('simpleOutcome').textContent=state.last_combat?.result||'';
   $('guideToggle').hidden=state.ruleset!=='dsl';
   const active=guideActive();
