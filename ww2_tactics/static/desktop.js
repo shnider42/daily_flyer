@@ -50,11 +50,11 @@ document.addEventListener('DOMContentLoaded',()=>{
   document.getElementById('findUnit').hidden=!selected;
   document.getElementById('desktopMapSize').textContent=`${state.map[0].length} × ${state.map.length} HEXES`;
   const troops=state.units.filter(u=>u.side===state.side);
-  document.getElementById('desktopForceSummary').textContent=`${troops.filter(u=>u.hp>0).length} ${state.naval_version?'ships afloat':'units in the field'} · ${names[state.side]}`;
+  document.getElementById('desktopForceSummary').textContent=`${troops.filter(u=>u.hp>0).length} units active · ${names[state.side]}`;
   const visible=troops.filter(u=>platoonFilter==='all'||u.platoon===platoonFilter);
   document.querySelectorAll('#roster button').forEach((button,index)=>{
    button.querySelector('.desktop-unit-meta')?.remove();const unit=visible[index];if(!unit)return;
-   button.append(el('span','desktop-unit-meta',unit.hp>0?`${kinds[unit.kind]} · ${state.naval_version?'Hull':'Strength'} ${unit.hp} · ${String.fromCharCode(65+unit.pos[0])}${unit.pos[1]+1}`:state.naval_version?'Sunk':'Eliminated'));
+   button.append(el('span','desktop-unit-meta',unit.hp>0?`${kinds[unit.kind]} · ${state.naval_version&&unit.kind!=='amphibious'?'Hull':'Strength'} ${unit.hp} · ${String.fromCharCode(65+unit.pos[0])}${unit.pos[1]+1}`:'Lost'));
   });
   document.getElementById('desktopOrderTitle').textContent=playbackSession?'Opponent’s turn':'Unit orders';
   document.getElementById('desktopPlaybackNote').hidden=!playbackSession;
@@ -87,7 +87,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   orders.querySelector('h2').id='desktopOrderTitle';
   const dock=group(commands,'desktop-action-dock',['#nextUnit','#end']);dock.id='desktopActionDock';
   group(game,'desktop-footer',['#battleOptions','#seriesScore']);
-  group(lobby,'desktop-lobby-intro',[lobby.querySelector('.eyebrow'),lobby.querySelector('h1'),lobby.querySelector('.intro'),lobby.querySelector('.brief:not(#scenarioBrief)'),lobby.querySelector(':scope > .footnote:not(#learnHelp)')]);
+  group(lobby,'desktop-lobby-intro',[lobby.querySelector('.eyebrow'),lobby.querySelector('h1'),lobby.querySelector('.intro'),'#entryStatus',lobby.querySelector('.brief:not(#scenarioBrief)'),lobby.querySelector(':scope > .footnote:not(#learnHelp)')]);
   group(lobby,'desktop-lobby-setup',['#rulesetPicker',lobby.querySelector('label[for="scenarioSelect"]'),'#scenarioSelect','#scenarioPreview','#scenarioBrief','#create','#createSolo','#learnStart','#learnHelp'],'Choose your operation');
   group(lobby,'desktop-lobby-return',['#savedSessions','#joinForm','#recoverForm'],'Return to the field');
   sync();

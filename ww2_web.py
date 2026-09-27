@@ -150,7 +150,7 @@ def create_app(db_path=None):
             if json.loads(row['state']).get('ai_side'):
                 return jsonify(error='This is a solo battle. The computer seat cannot be joined.'), 409
             if row["guest"]:
-                return jsonify(error="Both seats are taken. Use your original browser to reconnect."), 409
+                return jsonify(error="This two-player battle is full. Resume from your original browser or load a MOVE code for your seat. To play independently, choose New solo battle."), 409
             if identify(row) == "us":
                 return jsonify(error="You already command the Americans. Open the invitation on the other phone."), 409
             state = json.loads(row["state"])

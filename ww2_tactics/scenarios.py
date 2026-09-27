@@ -85,15 +85,18 @@ SCENARIOS['frontier']=frontier()
 
 def midway():
     rows=[['~']*26 for _ in range(30)]
-    # Small atolls flank a navigable central sea-control zone.
-    for x,y in [(9,13),(10,13),(9,14),(10,14),(16,16),(17,16),(16,17),
-                (2,18),(3,18),(22,10),(23,10)]: rows[y][x]='.'
-    for x,y in [(9,13),(10,14),(16,16),(3,18),(22,10)]: rows[y][x]='T'
+    # Broad island chains leave the central channel and both fleet starts open.
+    for cx,cy in [(6,14),(19,15),(2,19),(23,10)]:
+        for y in range(max(0,cy-3),min(30,cy+4)):
+            for x in range(max(0,cx-3),min(26,cx+4)):
+                if abs(x-cx)+abs(y-cy)<=4:
+                    rows[y][x]='T' if abs(x-cx)+abs(y-cy)<=2 else '.'
+    for x,y in [(6,14),(19,15)]:rows[y][x]='B'
     rows[15][13]='*'
     board=build('midway','Midway','Midway sea-control zone',30,
-                'DSL naval sandbox · 26×30 · US vs Japan · 14 ships per fleet. Two carriers, two battleships, four cruisers and six destroyers per side. Sink both enemy carriers or earn 6 uncontested sea-control points near ★. Fictional fleets, not a historical reenactment.',
+                'DSL island campaign · 26×30 · US vs Japan · 14 warships and 4 amphibious sections per side. Land troops on the island outposts for control points, contest the central sea zone, or sink both enemy carriers. Fictional sandbox, not a historical reenactment.',
                 [''.join(row) for row in rows])
-    board.update(dsl_only=True,naval=True,platoons=[dict(id='A',name='Task Force A',center=6),dict(id='B',name='Task Force B',center=19)])
+    board.update(dsl_only=True,naval=True,island_objectives=[[6,14],[19,15]],platoons=[dict(id='A',name='Task Force A',center=6),dict(id='B',name='Task Force B',center=19)])
     return board
 
 

@@ -36,7 +36,7 @@ let browser;
  assert.equal(await p.locator('#map .terrain-art').count(),63);
  assert.deepEqual(await p.locator('#map .strength').allTextContents(),originalStrength);
  assert.equal(await p.evaluate(()=>JSON.stringify(state)),terrainBefore.state);
- await p.reload();await p.waitForFunction(()=>state&&!busy);assert.equal(await p.locator('#simpleToggle').getAttribute('aria-pressed'),'true');assert.equal(await p.locator('#tutorialCoach').isVisible(),true);
+ await p.reload();await p.locator('.saved-session').first().click();await p.waitForFunction(()=>state&&!busy);assert.equal(await p.locator('#simpleToggle').getAttribute('aria-pressed'),'true');assert.equal(await p.locator('#tutorialCoach').isVisible(),true);
  assert.equal(await p.locator('#unitStyleToggle').textContent(),'Units: classic');
  await p.locator('#unitStyleToggle').click();assert.equal(await p.locator('#map .unit-art').count(),10);
  await p.locator('#roster button').nth(2).click();await p.locator('#dig').click();await p.waitForFunction(()=>!busy&&state.revision===2);

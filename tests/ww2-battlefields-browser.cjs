@@ -53,7 +53,7 @@ const shots=process.env.WW2_SCREENSHOTS||'/tmp/ww2-battlefields-screens';
  assert.equal(await de.locator('#map .water').count(),5);
  assert.equal(await de.locator('#map .bridge').count(),2);
  assert.equal(await de.locator('#selection').textContent(),'Tap one of your units to see its orders.');
- await de.reload();await de.locator('#game').waitFor({state:'visible'});
+ await de.reload();await de.locator('.saved-session').first().click();await de.locator('#game').waitFor({state:'visible'});
  await de.waitForFunction(()=>document.querySelector('#side').textContent.includes('Americans'));
  await de.locator('#roster button').first().click();
  await de.screenshot({path:shots+'/stonebridge.png',fullPage:true});

@@ -97,8 +97,8 @@
   const mobile=!matchMedia('(min-width:1100px)').matches&&state.ruleset==='dsl';
   if(mobile){mount();dock.hidden=!!playbackSession;dock.inert=!!playbackSession;
    const unit=state.units.find(u=>u.id===selected&&u.hp>0);
-   $('mobileOrderToggle').textContent=unit?`${unitName(unit)} · ${String.fromCharCode(65+unit.pos[0])}${unit.pos[1]+1} · ${unit.ap} AP${unit.pinned?' · PINNED':''}`:'Select a unit';
-   $('mobileOrderToggle').setAttribute('aria-label',`${$('mobileOrderToggle').textContent}. Open unit details and odds`);
+   $('mobileOrderToggle').textContent=unit?(state.naval_version?`${unitCodes[unit.kind]} ${unit.platoon}${unit.number} · ${unit.ap} AP · ${String.fromCharCode(65+unit.pos[0])}${unit.pos[1]+1}`:`${unitName(unit)} · ${String.fromCharCode(65+unit.pos[0])}${unit.pos[1]+1} · ${unit.ap} AP${unit.pinned?' · PINNED':''}`):'Select a unit';
+   $('mobileOrderToggle').setAttribute('aria-label',`${unit?unitName(unit)+'. ':''}${$('mobileOrderToggle').textContent}. Open unit details and odds`);
    $('mobileOrderToggle').disabled=!unit;
    if(selected!==lastSelection||target!==lastTarget||state.revision!==lastRevision)$('orders').scrollLeft=0;
    lastSelection=selected;lastTarget=target;lastRevision=state.revision;

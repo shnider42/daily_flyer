@@ -2,6 +2,42 @@
 
 ## Midway naval sandbox
 
+### Island and readability update
+
+New Midway battles have four substantial islands (over 100 land hexes) and four
+amphibious sections per side in addition to the 14 warships. Sections move directly
+between water and land: a craft at sea, infantry ashore. They have 4 strength,
+3 AP, bank 1, range 2, 1 damage and one smoke screen; no repairs or pinning.
+Jungle/building movement costs 2 AP, other movement 1. Jungle/buildings add +1
+to the defender's hit threshold. Torpedoes target warships only. Each flagged
+outpost occupied by a friendly section grants +1 control point at turn end, in
+addition to the central zone. The win target remains six control points.
+Existing saved maps and rosters are not replaced: start a new Midway battle for
+the island campaign. Land-only sight can cross open ground; jungle/buildings
+block sight, and ships cannot see through islands.
+
+Dark ocean, bright lime movement hexes, solid cream outlines and arrow/AP markers
+separate legal moves from terrain in both visual styles. Broadside ship artwork
+distinguishes carrier flight decks/aircraft, battleship turrets and lean destroyers;
+landing sections show infantry when ashore. Mobile map positioning is preserved.
+
+### Explicit battle entry
+
+Opening the base URL now shows the lobby, never silently resumes the last match.
+Browser-local saved shortcuts show last-viewed scenario, mode, faction, round and
+turn/finished status plus match ID. Resume fetches current server state. A visible
+Battles/home button returns to this chooser without deleting progress; Forget
+removes only a local shortcut. Invitations explicitly show the target match;
+joining an invitation already owned by this browser resumes that seat.
+The in-game heading always shows solo/two-player mode and match ID.
+
+The existing SQLite backend stores separate match rows, each with private player
+credentials; it is not a global single-match store. A regression test creates five
+players concurrently, verifies unique matches/credentials, rejects cross-player
+reads and writes, and checks actions change only their intended match. Browser
+checks cover reload-to-lobby, explicit resume, invitation re-entry, fresh-browser
+isolation, movement contrast and phone/desktop layouts. 130 Python tests pass.
+
 Midway is a fictional DSL-only US–Japan operation: 26×30 hexes, mostly ocean,
 with islands that block surface sight and movement. Each fleet starts with two
 carriers, two battleships, four cruisers and six destroyers in two task forces.

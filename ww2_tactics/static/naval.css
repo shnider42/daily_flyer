@@ -2,7 +2,37 @@
 .recon-choice{fill:#9ae6ef;fill-opacity:.12;stroke:#8bd4e4;stroke-width:1;cursor:crosshair}
 .recon-choice:focus{fill-opacity:.6;stroke-width:3;outline:none}
 .naval-battle #guideToggle{display:none!important}
-.naval-battle #mapWrap{background:#426d83}
-.naval-battle .hex.water{fill:#87b6c9;stroke:#6994aa}
-.naval-battle .hex.objective{fill:#80acba}
+.naval-battle #mapWrap{background:#183e58}
+.naval-battle :is(#map,#playbackMap) .hex.water{fill:#295974;stroke:#4e8299;stroke-width:1}
+.naval-battle :is(#map,#playbackMap) .hex.objective{fill:#386881}
+.naval-battle :is(#map,#playbackMap) .hex.move{fill:#b7f45b!important;stroke:#fffbd0!important;stroke-width:4!important;stroke-dasharray:none!important}
+.naval-battle .hex.move+.terrain-art{opacity:.12}
+.naval-battle .hex.water+.terrain-art{opacity:.25}
+.naval-battle .tile-label{fill:#d7ecf2;stroke:#17394c;stroke-width:2;paint-order:stroke}
+.naval-battle .hex:is(.field,.woods,.building)+.terrain-art+.tile-label{fill:#263a29;stroke:#f0dfb5}
+.naval-battle .fog-layer{fill:#051e32;fill-opacity:.23}
+.naval-battle .unit.us>rect{fill:#1267ac;stroke:#b9e8ff;stroke-width:2}
+.naval-battle .unit.de>rect{fill:#ab352e;stroke:#ffd8a6;stroke-width:2}
+.naval-battle .unit.selected>rect{stroke:#fff952!important;stroke-width:3.5!important}
+.naval-battle .portrait-panel{fill:#081e2a;fill-opacity:.9}
+.naval-battle .ship-hull{fill:#dae7e7;stroke:#071e30;stroke-width:.8}
+.naval-battle .unit.de .ship-hull{fill:#e8cfad}
+.naval-battle .ship-superstructure{fill:#b1cad0;stroke:#0b2535;stroke-width:.6}
+.naval-battle .ship-deck{fill:#e5b46c;stroke:#fff0c4;stroke-width:.5}
+.naval-battle .ship-turret{fill:#d9e1d4;stroke:#193440;stroke-width:.5}
+.naval-battle .ship-funnel{fill:#638394;stroke:#d0e0df;stroke-width:.5}
+.naval-battle :is(.ship-mast,.ship-barrel){fill:none;stroke:#f1f4d9;stroke-width:1.2;stroke-linecap:round}
+.naval-battle .ship-aircraft{fill:none;stroke:#fff1a7;stroke-width:1.5;stroke-linecap:round}
+.naval-battle .ship-keel{fill:none;stroke:#d1764d;stroke-width:1.1}
+.naval-battle .ship-porthole{fill:#183449}
+.naval-battle .ship-wake{fill:none;stroke:#94e8ed;stroke-width:1.1}
+.naval-battle .landing-helmet{fill:#ead99a;stroke:#13261d;stroke-width:.7}
+.naval-battle .landing-uniform{fill:#afc77b;stroke:#13261d;stroke-width:.7}
+.move-beacon{pointer-events:none;fill:#163521;font-size:13px;font-weight:900;text-anchor:middle;paint-order:stroke;stroke:#d6ff8b;stroke-width:2}
+.island-marker{pointer-events:none;fill:#fff2b1;stroke:#172c32;stroke-width:2;paint-order:stroke;font-size:14px;font-weight:900;text-anchor:middle}
+.entry-status{padding:12px 14px;border-left:3px solid #427183;background:#e1eaeb;font-size:13px;line-height:1.6}
+.session-row{display:flex;gap:5px;margin:8px 0;align-items:center}.session-row .saved-session{flex:1;min-width:0;text-align:left}.saved-session strong,.saved-session span{display:block}.saved-session span{font-size:10px;font-weight:400;margin-top:6px;letter-spacing:.3px}
+.invited-battle{border:2px solid #427183;padding:12px;border-radius:6px}
+#homeBattles{white-space:nowrap;font-weight:750}#battleNumber{letter-spacing:.6px;font-size:9px}
+#game .game-title #battleNumber{display:block;margin:0 0 5px;line-height:1.5;color:#455f67}
 .naval-manual{border-top:1px solid #b8b09a;margin-top:18px;padding-top:14px}

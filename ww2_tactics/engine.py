@@ -53,7 +53,8 @@ def line_clear(a, b, smoke=(), state=None):
         if state and state.get('battlefield') and not (0<=y<state['battlefield']['height'] and 0<=x<state['battlefield']['width']):
             return False
         tile=terrain(x,y,state)
-        if tile in {"building", "woods"} or (state and state.get('naval_version') and not naval.navigable(tile)) or any(s['pos'] == [x, y] for s in smoke):
+        coastal_block=state and state.get('naval_version') and not naval.navigable(tile) and (naval.navigable(terrain(*a,state)) or naval.navigable(terrain(*b,state)))
+        if tile in {"building", "woods"} or coastal_block or any(s['pos'] == [x, y] for s in smoke):
             return False
     return True
 

@@ -34,6 +34,15 @@ def initial(board, rules):
                                   recon_range=16 if us else 14,repair_amount=2 if us else 1,repairs=2,
                                   air_used=False,recon_used=False,torpedo_used=False,repair_used=False,
                                   ap_received=ap,banked_ap=0,carried_ap=0,road_pending=False,road_used=False))
+    if board.get('island_objectives'):
+        for side in ('us','de'):
+            for group,cx in [('A',6),('B',19)]:
+                for number,dx in [(8,-1),(9,1)]:
+                    template=copy.deepcopy(next(u for u in units if u['side']==side and u['kind']=='destroyer'))
+                    template.update(id=f'{side}_landing_{group}{number}',kind='amphibious',platoon=group,number=number,
+                        pos=[cx+dx,21 if side=='us' else 8],hp=4,max_hp=4,range=2,ap=3,base_ap=3,
+                        ap_received=3,gun_damage=1,sight=5,armor=0,torpedoes=0,smoke=1,repairs=0)
+                    units.append(template)
     s=dict(ruleset='dsl',ruleset_version=rules['version'],naval_version=1,factions=FACTIONS.copy(),
            units=units,turn='us',round=1,hold=0,winner=None,rules_version=4,smoke=[],barrages=[],support={'us':0,'de':0},
            battlefield=board,battle_number=1,victories={'us':0,'de':0},sea_score={'us':0,'de':0},recon=[],
@@ -44,6 +53,10 @@ def initial(board, rules):
 
 def navigable(tile):
     return tile in {'water','objective'}
+
+
+def passable(unit,tile):
+    return unit['kind']=='amphibious' or navigable(tile)
 
 
 def options(state, unit):
@@ -58,8 +71,10 @@ def options(state, unit):
     if unit['ap']>=1:
         for y in range(max(0,unit['pos'][1]-1),min(board['height'],unit['pos'][1]+2)):
             for x in range(max(0,unit['pos'][0]-1),min(board['width'],unit['pos'][0]+2)):
-                if distance(unit['pos'],[x,y])==1 and navigable(terrain(x,y,state)) and (x,y) not in occupied:
-                    result['moves'].append(dict(pos=[x,y],cost=1,threats=0))
+                tile=terrain(x,y,state)
+                cost=2 if unit['kind']=='amphibious' and tile in {'woods','building'} else 1
+                if distance(unit['pos'],[x,y])==1 and passable(unit,tile) and unit['ap']>=cost and (x,y) not in occupied:
+                    result['moves'].append(dict(pos=[x,y],cost=cost,threats=0))
         if unit.get('smoke') and not any(s['pos']==unit['pos'] for s in state['smoke']):
             result['smoke']=[list(unit['pos'])]
         if unit['kind']=='carrier' and not unit['recon_used']:
@@ -74,10 +89,10 @@ def options(state, unit):
         gap=distance(unit['pos'],target['pos'])
         clear=line_clear(unit['pos'],target['pos'],state['smoke'],state)
         if gap<=unit['range'] and clear:
-            mods=dict(distance=int(gap>5),evasion=int(target['kind']=='destroyer'))
+            mods=dict(distance=int(gap>5),evasion=int(target['kind']=='destroyer'),cover=int(terrain(*target['pos'],state) in {'woods','building'}))
             result['targets'].append(dict(id=target['id'],threshold=4+sum(mods.values()),modifiers=mods,
                                           damage=max(1,unit['gun_damage']-target['armor']),naval=True))
-        if unit['kind']=='destroyer' and unit['torpedoes']>0 and not unit['torpedo_used'] and gap<=unit['torpedo_range'] and clear:
+        if unit['kind']=='destroyer' and target['kind'] in SHIPS and unit['torpedoes']>0 and not unit['torpedo_used'] and gap<=unit['torpedo_range'] and clear:
             result['torpedoes'].append(dict(id=target['id'],threshold=4,damage=unit['torpedo_damage']))
         if unit['kind']=='carrier' and not unit['air_used'] and gap<=unit['strike_range']:
             # Only observed escorts affect the preview; nearby water contacts are normally spotted together.
@@ -95,6 +110,9 @@ def apply(state,side,action,roll=None):
         zone=state['battlefield']['objective']
         holders={u['side'] for u in state['units'] if active(u) and distance(u['pos'],zone)<=2}
         if holders=={side}:state['sea_score'][side]+=1
+        for point in state['battlefield'].get('island_objectives',[]):
+            if any(active(u) and u['side']==side and u['kind']=='amphibious' and u['pos']==point for u in state['units']):
+                state['sea_score'][side]+=1
         state['smoke']=[dict(s,ttl=s['ttl']-1) for s in state['smoke'] if s['ttl']>1]
         state['recon']=[dict(s,ttl=s['ttl']-1) for s in state['recon'] if s['ttl']>1]
         other='de' if side=='us' else 'us';state['turn']=other
@@ -107,11 +125,12 @@ def apply(state,side,action,roll=None):
         message=f"{FACTIONS[side]} ended their turn. Sea control {state['sea_score'][side]}/6."
     else:
         unit=next((u for u in state['units'] if u['id']==action.get('unit') and u['side']==side and active(u)),None)
-        if unit is None:raise ValueError('Choose one of your surviving ships.')
+        if unit is None:raise ValueError('Choose one of your surviving units.')
         legal=options(state,unit)
         if kind=='move' and any(m['pos']==action.get('pos') for m in legal['moves']):
-            unit['pos']=list(action['pos']);unit['ap']-=1
-            message=f"{FACTIONS[side]} {unit['kind']} sailed to {chr(65+unit['pos'][0])}{unit['pos'][1]+1}."
+            cost=next(m['cost'] for m in legal['moves'] if m['pos']==action['pos'])
+            unit['pos']=list(action['pos']);unit['ap']-=cost
+            message=f"{FACTIONS[side]} {unit['kind']} moved to {chr(65+unit['pos'][0])}{unit['pos'][1]+1}."
         elif kind=='recon' and action.get('pos') in legal['recon']:
             unit['ap']-=1;unit['recon_used']=True
             state['recon'].append(dict(side=side,pos=list(action['pos']),radius=3,ttl=2))
@@ -122,7 +141,7 @@ def apply(state,side,action,roll=None):
             message=f"{FACTIONS[side]} {unit['kind']} damage control restored {amount} hull."
         elif kind=='smoke' and action.get('pos') in legal['smoke']:
             unit['ap']-=1;unit['smoke']-=1;state['smoke'].append(dict(pos=list(unit['pos']),ttl=2))
-            record_effect(state,'smoke',[unit['pos']]);message='Destroyer laid a smoke screen. It blocks surface sight, guns and torpedoes.'
+            record_effect(state,'smoke',[unit['pos']]);message='Unit laid a smoke screen. It blocks surface sight, guns and torpedoes.'
         elif kind in {'fire','airstrike','torpedo'}:
             key={'fire':'targets','airstrike':'airstrikes','torpedo':'torpedoes'}[kind]
             shot=next((s for s in legal[key] if s['id']==action.get('target')),None)
@@ -178,9 +197,14 @@ def choose_order(state,costs,visited):
         for move in legal['moves']:
             pos=move['pos']
             if tuple(pos) in visited.get(u['id'],set()):continue
-            gain=costs.get(tuple(u['pos']),100)-costs.get(tuple(pos),100)
+            goal_for_unit=goal
+            if u['kind']=='amphibious' and state['battlefield'].get('island_objectives'):
+                points=state['battlefield']['island_objectives']
+                available=[p for p in points if not any(v['side']==u['side'] and v['id']!=u['id'] and v['pos']==p for v in units.values())]
+                goal_for_unit=min(available or points,key=lambda p:distance(u['pos'],p))
+            gain=(distance(u['pos'],goal_for_unit)-distance(pos,goal_for_unit)) if u['kind']=='amphibious' else costs.get(tuple(u['pos']),100)-costs.get(tuple(pos),100)
             score=2+gain*2
-            if distance(u['pos'],goal)<=2:score-=7
+            if (u['kind']=='amphibious' and u['pos']==goal_for_unit) or (u['kind']!='amphibious' and distance(u['pos'],goal)<=2):score-=7
             if u['kind']=='carrier' and distance(pos,goal)<6:score-=6
             add(score,u,'move',pos=pos)
         if legal['smoke'] and u['hp']<=2 and any(v['side']!=u['side'] and distance(v['pos'],u['pos'])<=6 for v in units.values()):

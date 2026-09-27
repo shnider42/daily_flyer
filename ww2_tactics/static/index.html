@@ -4,20 +4,21 @@
 <link rel="stylesheet" href="/assets/naval.css"><script src="/assets/naval.js" defer></script>
 <link rel="stylesheet" href="/assets/map-touch.css"><script src="/assets/map-touch.js" defer></script>
 <link rel="stylesheet" href="/assets/combined.css"><script src="/assets/combined.js" defer></script>
-<header><a href="/" class="brand">FIELD / NOTES <span>01</span></a><button id="rulesButton" class="quiet">Field manual</button></header>
+<header><a href="/" class="brand">FIELD / NOTES <span>01</span></a><button id="homeBattles" class="quiet" hidden>Battles / home</button><button id="rulesButton" class="quiet">Field manual</button></header>
 <main>
 <section id="lobby">
  <p class="eyebrow">WESTERN FRONT · SOLO OR TWO PLAYER</p><h1>Village<br><em>Crossing.</em></h1>
- <p class="intro">Four battlefields. Two commanders.<br>Your next battle starts here.</p>
- <section id="savedSessions" hidden><h2>Continue a battle</h2><div id="sessionList"></div></section>
+ <p class="intro">Choose your next operation.</p>
+ <p id="entryStatus" class="entry-status" role="status">No battle is open. Start a new battle, join an invitation, or resume one saved on this browser. Every new battle is separate.</p>
+ <section id="savedSessions" hidden><h2>Resume a saved battle</h2><p class="footnote">These shortcuts belong to this browser. Status updates when you resume. Other visitors get their own battles unless they join your invitation.</p><div id="sessionList"></div></section>
  <div id="rulesetPicker"><label for="rulesetSelect">Ruleset</label><select id="rulesetSelect"><option value="dsl">DSL v1 · Double Secret Probation Squad Leader</option><option value="classic">Classic · existing simplified rules</option><option value="asl" disabled>ASL-inspired · planned</option></select><p class="footnote ruleset-help">DSL: road bonus, banked actions, and platoon orders. ASL-inspired play is a separate future track.</p></div>
  <label for="scenarioSelect">Choose your battlefield</label>
  <select id="scenarioSelect"><option value="village">Village Crossing · 8 rounds</option><option value="orchard">Orchard Road · 10 rounds</option><option value="stonebridge">Stonebridge · 12 rounds</option><option value="riverfront">Riverfront Offensive · 18×18 · 24 rounds</option></select>
  <svg id="scenarioPreview" viewBox="0 0 400 470" role="img" aria-label="Battlefield preview"></svg>
  <p id="scenarioBrief" class="brief">The familiar village. Buildings shelter the approaches; the central road is exposed.</p>
  <p class="brief">Lead the Americans to the objective, or hold the line with the Germans. Send an invitation and play from two phones.</p>
- <button id="create" class="primary">Command the Americans <span>↗</span></button>
- <button id="createSolo" class="solo-button">Play against the computer →</button>
+ <button id="create" class="primary">New two-player battle <span>↗</span></button>
+ <button id="createSolo" class="solo-button">New solo battle →</button>
  <button id="learnStart">Start guided practice →</button><p id="learnHelp" class="footnote">Learn DSL in a separate solo battle. Your existing battles stay saved.</p>
  <form id="joinForm"><label for="code">Have an invitation? Join the Germans.</label><div class="join-row"><input id="code" maxlength="10" placeholder="MATCH CODE" autocomplete="off" autocapitalize="characters" spellcheck="false" required pattern="[a-fA-F0-9]{10}"><button type="submit">Join →</button></div></form>
  <form id="recoverForm"><label for="recoveryCode">Continue on another device or restore a save</label><textarea id="recoveryCode" rows="3" maxlength="100" placeholder="MOVE-… or SAVE-…" autocomplete="off" autocapitalize="characters" spellcheck="false" required></textarea><button type="submit">Load code →</button><p class="footnote">MOVE reconnects your live seat. SAVE opens a separate solo battle at the saved moment. Use codes generated on this site.</p></form>

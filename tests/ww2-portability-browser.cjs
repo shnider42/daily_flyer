@@ -57,15 +57,15 @@ let browser;
  const fresh=await page(375);await load(fresh,secondSave);
  const again=await fresh.evaluate(()=>state);delete again.code;assert.deepEqual(again,before);
  // Independent solo creation leaves the original live match available locally.
- await phone.reload();await phone.locator('#game').waitFor({state:'visible'});await phone.waitForFunction(()=>!busy&&state?.round===3);
+ await phone.reload();await phone.locator('.saved-session').first().click();await phone.locator('#game').waitFor({state:'visible'});await phone.waitForFunction(()=>!busy&&state?.round===3);
  await phone.locator('#leave').click();await start(phone);
  assert.notEqual(await phone.evaluate(()=>state.code),original);
- await phone.locator('#leave').click();assert.equal(await phone.locator('#sessionList button').count(),2);
+ await phone.locator('#leave').click();assert.equal(await phone.locator('#sessionList .saved-session').count(),2);
  await phone.screenshot({path:path.join(temp,'phone-battles.png'),fullPage:true});
- await phone.locator('#sessionList button').filter({hasText:'Riverfront'}).click();
+ await phone.locator('#sessionList .saved-session').filter({hasText:'Riverfront'}).click();
  await phone.waitForFunction(code=>state?.code===code&&!busy,original);
  assert.equal(await phone.evaluate(()=>state.round),3);
- await phone.reload();await phone.locator('#game').waitFor({state:'visible'});
+ await phone.reload();await phone.locator('.saved-session').first().click();await phone.locator('#game').waitFor({state:'visible'});
  assert.equal(await phone.evaluate(()=>state.code),original);
  // Used and malformed codes leave the current saved battle intact.
  await fresh.locator('#leave').click();await fresh.locator('#recoveryCode').fill(transfer);await fresh.locator('#recoverForm button').click();

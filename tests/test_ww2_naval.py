@@ -19,15 +19,36 @@ class NavalTests(unittest.TestCase):
         return s
 
     def test_fleets_and_island_movement(self):
-        s=self.battle();self.assertEqual(len(s['units']),28)
+        s=self.battle();self.assertEqual(len(s['units']),36)
         self.assertEqual((s['battlefield']['width'],s['battlefield']['height']),(26,30))
         self.assertEqual(s['factions']['de'],'Japanese')
         self.assertTrue(all(u['faction']=='jp' for u in s['units'] if u['side']=='de'))
-        self.assertEqual(len({tuple(u['pos']) for u in s['units']}),28)
-        u=self.ship(s,'us','destroyer');u['pos']=[8,13]
-        legal=options(s,u);self.assertNotIn([9,13],[m['pos'] for m in legal['moves']])
+        self.assertEqual(len({tuple(u['pos']) for u in s['units']}),36)
+        self.assertTrue(all(s['battlefield']['map'][u['pos'][1]][u['pos'][0]]=='water' for u in s['units']))
+        self.assertGreater(sum(t!='water' for row in s['battlefield']['map'] for t in row),100)
+        u=self.ship(s,'us','destroyer');u['pos']=[10,14]
+        legal=options(s,u);self.assertNotIn([9,14],[m['pos'] for m in legal['moves']])
         self.assertTrue(legal['moves']);self.assertFalse(legal['dig']);self.assertFalse(legal['rally'])
         self.assertFalse(line_clear([8,13],[11,13],state=s))
+
+    def test_amphibious_landing_fire_and_outpost(self):
+        s=self.battle();u=self.ship(s,'us','amphibious');enemy=self.ship(s,'de','amphibious')
+        u['pos']=[10,14]
+        out=apply(s,'us',dict(kind='move',unit=u['id'],pos=[9,14]))
+        landed=next(v for v in out['units'] if v['id']==u['id'])
+        self.assertEqual(landed['ap'],2)
+        self.assertIn([10,14],[m['pos'] for m in options(out,landed)['moves']])
+        u['pos']=[6,13];u['ap']=3;enemy['pos']=[6,14]
+        shot=next(t for t in options(s,u)['targets'] if t['id']==enemy['id'])
+        self.assertEqual(shot['threshold'],5)
+        out=apply(s,'us',dict(kind='fire',unit=u['id'],target=enemy['id']),roll=lambda:6)
+        self.assertEqual(next(v for v in out['units'] if v['id']==enemy['id'])['hp'],3)
+        enemy['pos']=[25,29]
+        out=apply(s,'us',dict(kind='move',unit=u['id'],pos=[6,14]))
+        self.assertEqual(next(v for v in out['units'] if v['id']==u['id'])['ap'],1)
+        out=apply(out,'us',dict(kind='end'));self.assertEqual(out['sea_score']['us'],1)
+        destroyer=self.ship(s,'us','destroyer');destroyer['pos']=[6,15]
+        self.assertNotIn(enemy['id'],[t['id'] for t in options(s,destroyer)['torpedoes']])
 
     def test_guns_damage_armor_without_pins(self):
         s=self.open_sea();u=self.ship(s,'us','battleship');t=self.ship(s,'de','battleship')
@@ -101,12 +122,36 @@ class NavalTests(unittest.TestCase):
             c=create_app(os.path.join(tmp,'g.db')).test_client()
             seat=c.post('/api/match',json={'scenario':'midway','ruleset':'dsl','opponent':'computer'}).get_json()
             url='/api/match/'+seat['code'];auth={'Authorization':'Bearer '+seat['token']}
-            state=c.get(url,headers=auth).get_json();self.assertEqual(len(state['units']),14)
+            state=c.get(url,headers=auth).get_json();self.assertEqual(len(state['units']),18)
             code=c.post(url+'/save',json={'revision':0},headers=auth).get_json()['save_code']
             restored=c.post('/api/restore',json={'code':code}).get_json()
             loaded=c.get('/api/match/'+restored['code'],headers={'Authorization':'Bearer '+restored['token']}).get_json()
             state.pop('code');loaded.pop('code');self.assertEqual(state,loaded)
             swapped=c.post(url+'/rematch',json={'operation':'propose','scenario':'midway','ruleset':'dsl','swap':True,'revision':0},headers=auth).get_json()
             self.assertEqual(swapped['side'],'de');self.assertEqual(swapped['factions']['de'],'Japanese')
+
+    def test_five_concurrent_players_have_isolated_matches(self):
+        from concurrent.futures import ThreadPoolExecutor
+        with tempfile.TemporaryDirectory() as tmp:
+            app=create_app(os.path.join(tmp,'g.db'))
+            def create_player(_):
+                with app.test_client() as client:
+                    result=client.post('/api/match',json={'scenario':'midway','ruleset':'dsl','opponent':'computer'})
+                    self.assertEqual(result.status_code,201)
+                    return result.get_json()
+            with ThreadPoolExecutor(max_workers=5) as pool:seats=list(pool.map(create_player,range(5)))
+            self.assertEqual(len({s['code'] for s in seats}),5)
+            self.assertEqual(len({s['token'] for s in seats}),5)
+            with app.test_client() as client:
+                for i,seat in enumerate(seats):
+                    url='/api/match/'+seat['code'];auth={'Authorization':'Bearer '+seat['token']}
+                    state=client.get(url,headers=auth).get_json();self.assertEqual(state['revision'],0)
+                    wrong={'Authorization':'Bearer '+seats[(i+1)%5]['token']}
+                    self.assertEqual(client.get(url,headers=wrong).status_code,403)
+                    self.assertEqual(client.post(url,headers=wrong,json={'kind':'end','revision':0}).status_code,403)
+                    move=state['legal']['us0']['moves'][0]
+                    moved=client.post(url,headers=auth,json={'kind':'move','unit':'us0','pos':move['pos'],'revision':0})
+                    self.assertEqual(moved.status_code,200)
+                    self.assertEqual(moved.get_json()['revision'],1)
 
 if __name__=='__main__':unittest.main()

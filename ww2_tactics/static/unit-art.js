@@ -22,23 +22,33 @@
    const path=(d,cls,parent=drawing)=>add('path',{d,class:cls},parent);
    if(['carrier','battleship','cruiser','destroyer'].includes(u.kind)){
     drawing.classList.add('naval-silhouette');
-    const beam=u.kind==='destroyer'?4:6;
-    path(`M-15 ${-6-beam}H8Q13 ${-6-beam} 17-6Q13 ${-6+beam} 8 ${-6+beam}H-15Z`,'ship-hull');
+    path('M-18 2Q-8 0 0 2T18 2','ship-wake');
+    path(u.kind==='destroyer'?'M-16-4H17L12 0H-12Z':'M-17-5H18L12 1H-13Z','ship-hull');
+    path('M-12 0H12','ship-keel');
     if(u.kind==='carrier'){
-     path('M-13-11H10L14-6 10-1H-13Z','ship-deck');
-     path('M-11-6H11M-8-9V-3M-5-9V-3','ship-marking');
-     path('M-1-12H5V-9H-1Z','ship-superstructure');
-     path('M3-5V-2M0-4H6','ship-marking');
+     path('M-18-7H18V-4H-18Z','ship-deck');
+     path('M3-12H9V-7H1V-9H3Z','ship-superstructure');
+     path('M5-15V-12M3-14H8','ship-mast');
+     path('M-13-10H-5M-9-13V-8M-11-9H-7','ship-aircraft');
+     path('M-16-6H0','ship-marking');
     }else{
-     path('M-4-9H4V-3H-4Z','ship-superstructure');
-     path('M-1-12V-1M-4-10H2','ship-marking');
-     for(const x of (u.kind==='battleship'?[-10,7]:[8])){
-      add('circle',{cx:x,cy:-6,r:u.kind==='battleship'?2.4:1.8,class:'ship-turret'});
-      path(`M${x}-7h5M${x}-5h5`,'ship-marking');
+     path(u.kind==='battleship'?'M-5-5V-9H-3V-13H2V-10H5V-5Z':'M-4-5V-10H1V-8H4V-5Z','ship-superstructure');
+     path('M-1-15V-10M-4-13H2','ship-mast');
+     path('M4-9H6V-5H4Z','ship-funnel');
+     if(u.kind!=='destroyer')path('M7-9H9V-5H7Z','ship-funnel');
+     for(const x of (u.kind==='battleship'?[-12,10]:[10])){
+      path(`M${x-2}-5V-8H${x+2}V-5Z`,'ship-turret');
+      path(`M${x}-8h${x<0?-6:6}`,'ship-barrel');
      }
-     if(u.kind==='destroyer')path('M-10-7H-5M-10-5H-5','ship-marking');
+     if(u.kind==='destroyer')path('M-12-6H-6M-10-8H-5','ship-barrel');
     }
-    path('M-17-11L-19-12M-17-6H-20M-17-1L-19 0','ship-wake insignia-detail');
+    for(const x of [-10,-6,7,11])add('circle',{cx:x,cy:-2,r:.65,class:'ship-porthole'});
+   }else if(u.kind==='amphibious'&&state?.naval_version&&!['water','objective'].includes(state.map[u.pos[1]][u.pos[0]])){
+    for(const x of [-9,0,9]){
+     add('circle',{cx:x,cy:-9,r:2.8,class:'landing-helmet'});
+     path(`M${x-3}-5H${x+3}L${x+4}2H${x-4}Z`,'landing-uniform');
+     path(`M${x+2}-5L${x+5}-10`,'ship-barrel');
+    }
    }else if(u.kind==='commander'){
     path('M2-14L5-8 12-8 7-3 9 3 2-1-5 3-3-3-8-8-1-8Z','commander-star');
    }else if(u.kind==='tank'){

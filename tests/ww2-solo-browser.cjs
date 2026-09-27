@@ -42,7 +42,7 @@ let browser;
  await page.locator('#computerReview summary').click();
  assert.ok(await page.locator('#computerOrders li').count()>1);
  await page.screenshot({path:path.join(temp,'solo-turn.png'),fullPage:true});
- await page.reload();await page.locator('#game').waitFor({state:'visible'});
+ await page.reload();await page.locator('.saved-session').first().click();await page.locator('#game').waitFor({state:'visible'});
  assert.equal(await page.locator('#playbackPanel').isVisible(),false);
  assert.equal(await page.locator('#replayTurn').isVisible(),true);
  assert.match(await page.locator('#turnBanner').textContent(),/vs computer/);

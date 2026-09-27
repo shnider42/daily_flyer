@@ -77,7 +77,7 @@ let browser;
  await us.locator('#map .unit.us').nth(0).click();
  assert.doesNotMatch(await us.locator('#selection').textContent(),/PINNED/);
  assert.match(await us.locator('#selection').textContent(),/2 actions/);
- await us.reload();await us.locator('#game').waitFor({state:'visible'});
+ await us.reload();await us.locator('.saved-session').first().click();await us.locator('#game').waitFor({state:'visible'});
  assert.match(await us.locator('#supportStatus').textContent(),/US 0/);
  for(const width of [320,375,430,768]){await us.setViewportSize({width,height:844});assert.equal(await us.evaluate(()=>document.documentElement.scrollWidth<=innerWidth),true);}
  assert.deepEqual(errors,[]);

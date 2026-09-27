@@ -76,7 +76,7 @@ function drawPlayback(){
   else if(changes.length){const more=uiNode('details');more.append(uiNode('summary','','Unit changes'),uiNode('p','mechanics-caption',changes.join(' · ')));result.append(more);}
  }
  const svg=document.getElementById('map').cloneNode(true);svg.id='playbackMap';svg.hidden=false;svg.removeAttribute('hidden');svg.setAttribute('aria-label',`Turn playback: ${description}`);
- svg.querySelectorAll('.unit,.smoke-cloud,.barrage-zone,.incoming-mark,.aim-line,.battle-effect,.fog-layer,.contact-marker,.landing-zone,.recon-choice,.sea-control').forEach(e=>e.remove());
+ svg.querySelectorAll('.unit,.smoke-cloud,.barrage-zone,.incoming-mark,.aim-line,.battle-effect,.fog-layer,.contact-marker,.landing-zone,.recon-choice,.sea-control,.move-beacon,.island-marker').forEach(e=>e.remove());
  svg.querySelectorAll('[tabindex]').forEach(e=>{e.removeAttribute('tabindex');e.removeAttribute('role');e.removeAttribute('aria-label');});
  svg.querySelectorAll('.hex').forEach(e=>e.classList.remove('move','threatened','smoke-choice','barrage-choice','selected'));
  for(const smoke of snapshot.smoke||[]){const [cx,cy]=center(...smoke.pos);svg.append(element('ellipse',{cx,cy,rx:25,ry:22,class:'smoke-cloud'}));}

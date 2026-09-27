@@ -38,7 +38,7 @@ let browser;
  await page.locator('#playbackPanel').waitFor({state:'hidden'});
  assert.equal(await page.locator('#orders').evaluate(e=>e.inert),false);
  assert.deepEqual(await read(),before);
- await page.locator('#replayTurn').click();await page.reload();
+ await page.locator('#replayTurn').click();await page.reload();await page.locator('.saved-session').first().click();
  await page.locator('#game').waitFor({state:'visible'});
  assert.equal(await page.locator('#playbackPanel').isVisible(),false);
  assert.deepEqual(await read(),before);assert.equal(posts,0);assert.deepEqual(errors,[]);

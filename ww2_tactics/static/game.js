@@ -1,6 +1,6 @@
 'use strict';
 const $ = id => document.getElementById(id);
-let session = null, state = null, selected = null, target = null, busy = false, polling = false, toastTimer, smokeMode = false, lobbyMode = false, renderedBattle = null, scenarios = [];
+let session = null, state = null, selected = null, target = null, busy = false, polling = false, toastTimer, smokeMode = false, lobbyMode = true, renderedBattle = null, scenarios = [];
 let barrageMode = false, platoonFilter = 'all', savedSessions = [];
 try {
  session = JSON.parse(localStorage.getItem('ww2-session'));
@@ -35,8 +35,14 @@ function renderSessions(){
  $('savedSessions').hidden=!savedSessions.length;
  $('sessionList').replaceChildren(...savedSessions.map(saved=>{
   const button=document.createElement('button');button.className='saved-session';
-  button.textContent=saved.label||`Battle ${saved.code}`;
-  button.onclick=()=>run(async()=>{const next=await apiWithSession(saved);remember(saved);state=next;render();});return button;
+  const row=document.createElement('div');row.className='session-row';
+  const title=document.createElement('strong');title.textContent=saved.label||'Saved battle';
+  const meta=document.createElement('span');meta.textContent=`Resume · ${saved.code} · last viewed status`;
+  button.append(title,meta);
+  button.onclick=()=>run(async()=>{const next=await apiWithSession(saved);remember(saved);state=next;render();});
+  const forget=document.createElement('button');forget.className='quiet';forget.textContent='Forget';forget.setAttribute('aria-label',`Forget saved battle ${saved.code} on this browser`);
+  forget.onclick=()=>{if(confirm('Remove this shortcut from this browser? The battle is not deleted. Keep a MOVE or SAVE code if you want to return.')){savedSessions=savedSessions.filter(s=>s.code!==saved.code);if(session?.code===saved.code){session=null;state=null;}persistSessions();renderSessions();}};
+  row.append(button,forget);return row;
  }));
 }
 async function apiWithSession(saved){
@@ -104,14 +110,16 @@ function render(){
  if(newBattle){platoonFilter=large?'A':'all';$('mapWrap').classList.toggle('enlarged',large);selected=null;target=null;smokeMode=false;barrageMode=false;renderedBattle=battleKey;$('mapWrap').scrollTo?.(0,0);}
  $('mapWrap').classList.toggle('large-map',large);$('zoom').textContent=large?($('mapWrap').classList.contains('enlarged')?'Overview':'Detail'):($('mapWrap').classList.contains('enlarged')?'Fit map −':'Enlarge map +');$('zoom').setAttribute('aria-pressed',String($('mapWrap').classList.contains('enlarged')));
  $('battleTitle').textContent=board.name;document.title=`${board.name} · WWII Tactics`;
- $('battleNumber').textContent=`BATTLE ${String(state.battle_number||1).padStart(2,'0')}`;
+ $('battleNumber').textContent=`${state.ai_side?'SOLO · COMPUTER':'TWO PLAYER'} · ${state.code} · BATTLE ${state.battle_number||1}`;
+ $('homeBattles').hidden=false;
  $('objectiveName').textContent=`★ ${board.objective_name.toUpperCase()}`;
  $('round').textContent=`${state.round} / ${board.rounds}`;$('side').textContent=`You command the ${names[state.side]}`;
  $('game').dataset.side=state.side;
  $('turnBanner').dataset.side=state.winner||state.turn;
  $('soloButton').hidden=!!state.ai_side;
  $('saveButton').hidden=!state.ai_side;
- const label=`${state.scenario.name} · ${state.ai_side?'Solo':'Two player'} · ${names[state.side]} · Round ${state.round}`;
+ const phase=state.winner?'Finished':!state.ready?'Waiting for opponent':state.turn===state.side?'Your turn':'Opponent’s turn';
+ const label=`${state.scenario.name} · ${state.ai_side?'Solo':'Two player'} · ${names[state.side]} · Round ${state.round} · ${phase}`;
  if(session.label!==label){session.label=label;savedSessions=savedSessions.map(s=>s.code===session.code?session:s);persistSessions();}
  $('computerReview').hidden=!state.computer_orders?.length;
  $('computerOrders').replaceChildren(...(state.computer_orders||[]).map(text=>{const li=document.createElement('li');li.textContent=text;return li;}));
@@ -210,7 +218,7 @@ function render(){
  if(!newBattle)restoreMap();
 }
 $('create').onclick=()=>run(async()=>{remember(await api('/api/match',{scenario:$('scenarioSelect').value,ruleset:$('rulesetSelect').value}));});
-$('joinForm').onsubmit=e=>{e.preventDefault();run(async()=>{remember(await api(`/api/match/${$('code').value.trim().toUpperCase()}/join`,{}));});};
+$('joinForm').onsubmit=e=>{e.preventDefault();run(async()=>{const code=$('code').value.trim().toUpperCase(),saved=savedSessions.find(s=>s.code===code);if(saved){const next=await apiWithSession(saved);remember(saved);state=next;render();}else remember(await api(`/api/match/${code}/join`,{}));});};
 $('fire').onclick=()=>act({kind:'fire',unit:selected,target});$('rally').onclick=()=>act({kind:'rally',unit:selected});
 $('assault').onclick=()=>{if(confirm('Assault? Success deals 2 damage; failure costs your unit 1 strength and pins it.'))act({kind:'assault',unit:selected,target});};
 $('dig').onclick=()=>act({kind:'dig',unit:selected});$('smoke').onclick=()=>{barrageMode=false;smokeMode=!smokeMode;target=null;render();};
@@ -226,7 +234,8 @@ $('reset').onclick=()=>{if(confirm('Replace this match? Progress and the old inv
 $('refresh').onclick=refresh;
 $('findUnit').onclick=()=>focusMapUnit(state.units.find(u=>u.id===selected));
 $('share').onclick=async()=>{try{if(navigator.share){await navigator.share({title:state.scenario?.name||'Village Crossing',text:`Command the ${sideLabel('de')}. Join my WWII tactics match.`,url:invitation()});}else{await navigator.clipboard.writeText(invitation());notify('Invitation copied. Send it to the other player.');}}catch(e){if(e.name!=='AbortError'){ $('invite').select();notify('Copy the invitation from the field below.');}}};
-$('leave').onclick=()=>{lobbyMode=true;$('game').hidden=true;$('lobby').hidden=false;renderSessions();window.scrollTo(0,0);};
+$('leave').onclick=()=>{if(playbackSession)stopPlayback();lobbyMode=true;$('game').hidden=true;$('lobby').hidden=false;$('homeBattles').hidden=true;document.body.classList.remove('naval-battle');renderSessions();window.scrollTo(0,0);};
+$('homeBattles').onclick=()=>$('leave').click();
 $('rulesButton').onclick=()=>$('rules').showModal();$('closeRules').onclick=()=>$('rules').close();
 $('scenarioSelect').onchange=scenarioPreview;
 $('rematchButton').onclick=()=>{$('rematchRuleset').value=state.ruleset||'classic';$('rematchScenario').value=state.scenario?.id||'village';$('rematchDialog').querySelector('h2').textContent=state.ai_side?'Another round?':'Stay connected. Fight again.';$('rematchDialog').querySelector('h2 + p').textContent=state.ai_side?'Start immediately against the computer. An unfinished battle will be abandoned without awarding a win.':'Your opponent must accept. An unfinished battle will be abandoned without awarding a win.';$('proposeRematch').textContent=state.ai_side?'Start next battle':'Send proposal';$('rematchDialog').showModal();};
@@ -234,14 +243,14 @@ $('closeRematch').onclick=()=>$('rematchDialog').close();
 $('proposeRematch').onclick=()=>{const settings={operation:'propose',scenario:$('rematchScenario').value,ruleset:$('rematchRuleset').value,swap:$('swapArmies').checked};$('rematchDialog').close();rematchRequest(settings);};
 $('acceptRematch').onclick=()=>rematchRequest({operation:'accept'});
 $('declineRematch').onclick=()=>rematchRequest({operation:'decline'});
-function openSolo(){ $('soloRuleset').value=$('rulesetSelect').value; $('soloScenario').value=state?.scenario?.id||$('scenarioSelect').value;$('soloReplace').textContent=session?'This starts a separate solo battle. Your current battle stays available under Battles / load code.':'Choose a battlefield and start playing immediately.';$('soloDialog').showModal(); }
+function openSolo(){ $('soloRuleset').value=$('rulesetSelect').value; $('soloScenario').value=lobbyMode?$('scenarioSelect').value:(state?.scenario?.id||$('scenarioSelect').value);$('soloReplace').textContent=session?'This starts a separate solo battle. Your current battle stays available under Battles / load code.':'Choose a battlefield and start playing immediately.';$('soloDialog').showModal(); }
 $('createSolo').onclick=openSolo;$('soloButton').onclick=openSolo;$('closeSolo').onclick=()=>$('soloDialog').close();
 $('startSolo').onclick=()=>{const body={opponent:'computer',scenario:$('soloScenario').value,ruleset:$('soloRuleset').value};$('soloDialog').close();run(async()=>{remember(await api('/api/match',body));});};
 api('/api/scenarios').then(data=>{scenarios=data.scenarios;scenarioPreview();}).catch(()=>{notify('Map preview unavailable. You can still choose a battlefield and try to create a match.');});
 const invited=new URLSearchParams(location.search).get('join');
-if(invited){$('code').value=invited.toUpperCase();if(session&&session.code!==invited.toUpperCase()){notify('Your other battles stay available under Continue a battle.');session=null;}}
+if(invited){$('code').value=invited.toUpperCase();$('entryStatus').textContent=`Invitation to battle ${invited.toUpperCase()}. Press Join below to join or resume your seat. Other battles stay separate.`;$('joinForm').classList.add('invited-battle');}
+session=null;
 renderSessions();
-if(session)refresh();
 setInterval(()=>{if(!document.hidden&&!$('game').hidden)refresh();},1800);
 document.addEventListener('visibilitychange',()=>{if(!document.hidden)refresh();});
 
