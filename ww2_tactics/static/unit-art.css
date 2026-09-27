@@ -1,5 +1,6 @@
 #playTools #unitStyleToggle{width:116px;flex:none;white-space:nowrap;font-size:10px;padding-inline:6px}
 .unit-art{pointer-events:none}
+.unit-art .unit-bitmap{pointer-events:none;image-rendering:auto}
 .unit-art .parachute-canopy{fill:#e6d9ac;stroke:#263b31;stroke-width:.8}
 .unit-art .parachute-rib{fill:none;stroke:#9a9d74;stroke-width:.7}
 .unit-art .parachute-cord{fill:none;stroke:#e9e5d0;stroke-width:.75}

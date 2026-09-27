@@ -16,6 +16,8 @@ c=sqlite3.connect(sys.argv[1]);r=c.execute('select state from match where code=?
  await p.reload();assert.equal(await p.locator('#game').isVisible(),false);await p.locator('.saved-session').first().click();await p.waitForFunction(()=>state&&!busy&&state.revision===1);
  assert.equal(await p.locator('#map .counter-army').count(),0);
  assert.equal(await p.locator('#map .unit.us .naval-silhouette').count(),14);
+ await p.waitForFunction(()=>document.querySelectorAll('#map .unit.us .bitmap-ready').length===18);
+ assert.equal(await p.locator('#map .unit.us .raster-fallback:not([display="none"])').count(),0);
  assert.match(await p.locator('.team-legend').textContent(),/Japanese/);
  assert.doesNotMatch(await p.locator('#turnBanner').textContent(),/German/);
  assert.equal(await p.locator('#battleNumber').isVisible(),true);assert.match(await p.locator('#battleNumber').textContent(),new RegExp(code));
@@ -59,6 +61,7 @@ c=sqlite3.connect(sys.argv[1]);s=json.loads(c.execute('select state from match w
  await p.waitForFunction(()=>!busy&&state.units.find(u=>u.id===selected)?.pos[0]===9);
  assert.equal(await p.locator('#map .unit.selected .landing-helmet').count(),3);
  assert.match(await p.locator('#selection').textContent(),/Ashore/);
+ assert.match(await p.locator('#map .unit.selected .unit-bitmap').getAttribute('href'),/landing-infantry-v1.webp/);
  await p.setViewportSize({width:390,height:844});await p.screenshot({path:path.join(temp,'midway-landing-390.png'),fullPage:true});
  await p.locator('#homeBattles').click();await p.locator('.session-row .quiet').click();await p.reload();assert.equal(await p.locator('.saved-session').count(),0);
  assert.deepEqual(errors,[]);console.log('Midway: roster, lettering, scouting, strike, fog replay, save and responsive layout passed. '+temp);

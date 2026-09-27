@@ -74,6 +74,8 @@ def create_app(db_path=None):
     @app.after_request
     def headers(response):
         response.headers["Cache-Control"] = "no-store"
+        if request.path.startswith('/assets/unit-images/') and response.status_code == 200:
+            response.headers['Cache-Control'] = 'public, max-age=31536000, immutable'
         response.headers["Referrer-Policy"] = "no-referrer"
         response.headers["X-Content-Type-Options"] = "nosniff"
         response.headers["Content-Security-Policy"] = "default-src 'self'; style-src 'self'; script-src 'self'; img-src 'self' data:; frame-ancestors 'none'; base-uri 'none'"

@@ -4,6 +4,13 @@
  let illustrated=true;
  try{illustrated=localStorage.getItem('ww2-unit-style')!=='classic';}catch{}
  const ns='http://www.w3.org/2000/svg',observed=new Set();
+ const rasterKinds=new Set(['carrier','battleship','cruiser','destroyer','paratrooper']);
+ function rasterName(u){
+  if(rasterKinds.has(u.kind))return u.kind;
+  if(u.kind==='tank')return `tank-${u.side}`;
+  if(u.kind==='amphibious')return ['water','objective'].includes(state.map[u.pos[1]][u.pos[0]])?'landing-craft':'landing-infantry';
+  return null;
+ }
  function el(tag,attrs,text){const n=document.createElementNS(ns,tag);for(const [k,v] of Object.entries(attrs))n.setAttribute(k,v);if(text)n.textContent=text;return n;}
  function size(svg){const width=svg.viewBox.baseVal.width;svg.classList.toggle('compact-unit-art',!!width&&svg.getBoundingClientRect().width/width*40<40);}
  const observer=new ResizeObserver(entries=>entries.forEach(e=>size(e.target)));
@@ -136,6 +143,16 @@
     path('M11-10V-8M-7-9H-5','mg-sight');
     for(const x of [3.5,6,8.5,11])add('rect',{x,y:-6.8,width:1.4,height:1.1,rx:.4,class:'mg-vent'});
     path('M-8-7H-3L-1-8H1','mg-engraving insignia-detail');
+   }
+   const raster=rasterName(u);
+   if(raster){
+    // Keep the deterministic symbol as an immediate fallback until the bitmap loads.
+    const fallback=el('g',{class:'raster-fallback'});
+    while(drawing.firstChild)fallback.append(drawing.firstChild);
+    const picture=el('image',{class:'unit-bitmap',x:-20,y:-16,width:40,height:21,preserveAspectRatio:'xMidYMid meet',href:`/assets/unit-images/${raster}-v1.webp`});
+    picture.addEventListener('load',()=>{fallback.setAttribute('display','none');picture.classList.add('bitmap-ready');});
+    picture.addEventListener('error',()=>{fallback.removeAttribute('display');picture.remove();});
+    drawing.append(fallback,picture);
    }
    if(u.entrenched){
     const bags=el('g',{class:'counter-sandbags'});art.append(bags);
