@@ -6,6 +6,8 @@ from .support import role_options, role_action, resolve_barrages
 from .combat_display import record_combat
 from .rulesets import profile, dsl, base_ap, bank_limit, turn_limit, road
 from .effects import record_effect
+from . import combined
+from .visibility import fog, active, visible_ids, sees_hex, update_intel, record_reports
 
 WIDTH, HEIGHT = 7, 9
 OBJECTIVE = [3, 4]
@@ -56,6 +58,8 @@ def line_clear(a, b, smoke=(), state=None):
 def initial(scenario='village', ruleset='classic'):
     rules = profile(ruleset)
     board = get_scenario(scenario)
+    if board.get('dsl_only') and ruleset != 'dsl':
+        raise ValueError('Operation Long Reach requires the DSL ruleset.')
     units = []
     for side, row in [("us", board['height']-1), ("de", 0)]:
         formation = []
@@ -77,23 +81,35 @@ def initial(scenario='village', ruleset='classic'):
                 units[-1].update(ap=base_ap(units[-1]), ap_received=base_ap(units[-1]), banked_ap=0, carried_ap=0, road_pending=False, road_used=False)
             if platoon:
                 units[-1].update(platoon=platoon, number=number)
-    return dict(ruleset=ruleset, ruleset_version=rules['version'], units=units, turn="us", round=1, hold=0, winner=None, rules_version=4, smoke=[], battlefield=board,
+    if board.get('combined_arms'):
+        units=combined.roster('us',board['height'])+combined.roster('de',board['height'])
+    state = dict(ruleset=ruleset, ruleset_version=rules['version'], units=units, turn="us", round=1, hold=0, winner=None, rules_version=4, smoke=[], battlefield=board,
                 support={'us': 1, 'de': 1}, barrages=[],
                 battle_number=1, victories={'us': 0, 'de': 0},
                 log=[f"{board['name']} · Americans move first. Hold the objective at the end of two consecutive American turns. German defense wins after round {board['rounds']}."],
                 revision=0, ready=False)
+    if board.get('combined_arms'):
+        state.update(dsl_expansion=1,fog_of_war=True)
+        update_intel(state)
+    return state
 
 
 def fire_modifiers(state, unit, target):
     cover = terrain(*target["pos"], state) in {"building", "woods", "objective"}
-    supported = any(u["side"] == unit["side"] and u["kind"] == "leader" and u["hp"] > 0
-                    and distance(u["pos"], unit["pos"]) <= 1 for u in state["units"])
-    return dict(cover=int(cover), distance=int(distance(unit['pos'], target['pos']) > 3),
+    supported = any(u["side"] == unit["side"] and u["kind"] in {"leader","commander"} and active(u)
+                    and distance(u["pos"], unit["pos"]) <= (2 if u['kind']=='commander' else 1) for u in state["units"])
+    mods = dict(cover=int(cover), distance=int(distance(unit['pos'], target['pos']) > (5 if unit['kind'] in {'tank','at_gun'} else 3)),
                 leader=-int(supported), machine_gun=-int(unit['kind'] == 'mg'),
                 dug_in=int(state.get('rules_version', 1) >= 2 and target.get('entrenched', False)))
+    if combined.enabled(state):
+        mods.update(faction=-int(unit['side']=='us' and unit['kind'] not in {'tank','at_gun','at_team','amphibious'}),
+                    armor=int(target.get('armor',0)>0),anti_tank=-int(unit['kind']=='at_gun' and target.get('armor',0)>0))
+    return mods
 
 
 def fire_threshold(state, unit, target):
+    if combined.enabled(state) and not combined.can_damage(unit,target):
+        return 7
     return max(2, 4 + sum(fire_modifiers(state, unit, target).values()))
 
 
@@ -102,10 +118,11 @@ def watchers(state, target, pos):
     if state.get('rules_version', 1) < 3:
         return []
     destination = dict(target, pos=pos, entrenched=False)
-    return [u for u in state['units'] if u['side'] != target['side'] and u['hp'] > 0
+    return [u for u in state['units'] if u['side'] != target['side'] and active(u)
             and u.get('overwatch') and not u['pinned']
             and distance(u['pos'], pos) <= u['range']
             and line_clear(u['pos'], pos, state.get('smoke', []), state)
+            and (not fog(state) or sees_hex(state,u['side'],pos,not target.get('armor') and terrain(*pos,state) in {'woods','building'}))
             and fire_threshold(state, u, destination)+1 <= 6]
 
 
@@ -117,11 +134,14 @@ def react(state, mover, roll):
         shooter['overwatch'] = False
         die = roll()
         threshold = fire_threshold(state, shooter, mover)+1
-        if die >= threshold:
+        if combined.enabled(state):
+            result=combined.resolve_fire(state,shooter,mover,die,threshold)
+        elif die >= threshold:
             mover['hp'] -= 1
             mover['pinned'] = True
             mover['overwatch'] = False
-        result = 'eliminated' if mover['hp'] <= 0 else 'hit and pinned' if die >= threshold else 'missed'
+        if not combined.enabled(state):
+            result = 'eliminated' if mover['hp'] <= 0 else 'hit and pinned' if die >= threshold else 'missed'
         messages.append(f"{NAMES[shooter['side']]} {shooter['kind']} overwatch: rolled {die}, needed {threshold}+. Target {result}.")
         state['last_combat'] = dict(kind='Overwatch', roll=die, threshold=threshold, result=result,
                                     attacker=shooter['id'], target=mover['id'], revision=state['revision']+1)
@@ -133,31 +153,42 @@ def options(state, unit):
     moves, targets = [], []
     board = battlefield(state)
     extras = dict(smoke=[], dig=False, assaults=[], overwatch=False,
-                  grenades=[], suppress=[], inspire=[], barrage=[], command=[])
+                  grenades=[], suppress=[], inspire=[], barrage=[], command=[], drops=[])
     if not state["ready"] or state["winner"] or unit["hp"] <= 0 or unit["side"] != state["turn"]:
         return dict(moves=moves, targets=targets, rally=False, **extras)
-    occupied = [u["pos"] for u in state["units"] if u["hp"] > 0]
+    seen=visible_ids(state,unit['side'])
+    occupied = [u["pos"] for u in state["units"] if active(u) and u['id'] in seen]
+    if unit.get('reserve'):
+        if unit['ap']>=2:
+            extras['drops']=[[x,y] for y in range(2,board['height']-2) for x in range(board['width'])
+                             if terrain(x,y,state) in {'field','road'} and [x,y] not in occupied
+                             and sees_hex(state,unit['side'],[x,y])]
+        return dict(moves=[],targets=[],rally=False,**extras)
     if not unit["pinned"]:
-        for y in range(board['height']):
-            for x in range(board['width']):
+        for y in range(max(0,unit['pos'][1]-1),min(board['height'],unit['pos'][1]+2)):
+            for x in range(max(0,unit['pos'][0]-1),min(board['width'],unit['pos'][0]+2)):
                 tile = terrain(x, y, state)
                 free_road = dsl(state) and unit.get('road_pending', False) and not unit.get('road_used', False) and road(terrain(*unit['pos'], state)) and road(tile)
                 cost = 0 if free_road else 2 if tile in {"woods", "building"} else 1
-                if tile != 'water' and distance(unit["pos"], [x, y]) == 1 and [x, y] not in occupied and unit["ap"] >= cost:
-                    moves.append(dict(pos=[x, y], cost=cost, threats=len(watchers(state, unit, [x, y])), **({'road_bonus': True} if free_road else {})))
+                passable=tile!='water' or unit['kind']=='amphibious'
+                if unit['kind'] in combined.VEHICLES and tile in {'woods','building'}: passable=False
+                if unit['kind']=='at_gun': passable=False
+                if passable and distance(unit["pos"], [x, y]) == 1 and [x, y] not in occupied and unit["ap"] >= cost:
+                    moves.append(dict(pos=[x, y], cost=cost, threats=sum(w['id'] in seen for w in watchers(state, unit, [x, y])), **({'road_bonus': True} if free_road else {})))
         if unit["ap"] >= 2:
             for target in state["units"]:
-                if target["side"] != unit["side"] and target["hp"] > 0 and distance(unit["pos"], target["pos"]) <= unit["range"] and line_clear(unit["pos"], target["pos"], state.get('smoke', []), state):
-                    targets.append(dict(id=target["id"], threshold=fire_threshold(state, unit, target), modifiers=fire_modifiers(state, unit, target)))
+                if target["side"] != unit["side"] and active(target) and target['id'] in seen and distance(unit["pos"], target["pos"]) <= unit["range"] and line_clear(unit["pos"], target["pos"], state.get('smoke', []), state):
+                    if combined.enabled(state) and not combined.can_damage(unit,target): continue
+                    targets.append(dict(id=target["id"], threshold=fire_threshold(state, unit, target), modifiers=fire_modifiers(state, unit, target), **(dict(damage=combined.damage(unit,target),suppression_threshold=combined.suppression_threshold(unit) if not target.get('armor') else None) if combined.enabled(state) else {})))
         if state.get('rules_version', 1) >= 2:
-            extras['dig'] = unit['ap'] >= 2 and not unit.get('entrenched', False)
+            extras['dig'] = unit['ap'] >= 2 and not unit.get('entrenched', False) and unit['kind'] not in combined.VEHICLES
             if unit['ap'] >= 1 and unit.get('smoke', 0):
                 extras['smoke'] = [[x, y] for y in range(board['height']) for x in range(board['width'])
                                    if distance(unit['pos'], [x, y]) <= 1
                                    and not any(s['pos'] == [x, y] for s in state.get('smoke', []))]
-            if unit['kind'] != 'mg' and unit['ap'] >= 2:
+            if unit['kind'] in combined.INFANTRY-{'mg'} and unit['ap'] >= 2:
                 extras['assaults'] = [dict(id=t['id'], threshold=3 if t['pinned'] else 4)
-                                     for t in state['units'] if t['hp'] > 0 and t['side'] != unit['side']
+                                     for t in state['units'] if active(t) and t['side'] != unit['side'] and t['id'] in seen and not t.get('armor')
                                      and distance(unit['pos'], t['pos']) == 1]
         extras['overwatch'] = state.get('rules_version', 1) >= 3 and unit['ap'] >= 2 and not unit.get('overwatch', False)
         extras.update(role_options(state, unit, distance, line_clear, terrain, board))
@@ -172,6 +203,7 @@ def apply(state, side, action, roll=None):
     if state["turn"] != side:
         raise ValueError("It is your opponent's turn.")
     state = copy.deepcopy(state)
+    before_sight={team:visible_ids(state,team) for team in ('us','de')} if fog(state) else {}
     action_round = state["round"]
     board = battlefield(state)
     roll_die = roll or (lambda: secrets.randbelow(6)+1)
@@ -182,7 +214,7 @@ def apply(state, side, action, roll=None):
         reactions = resolve_barrages(state, NAMES) if state.get('rules_version', 1) >= 4 else []
         state['smoke'] = [dict(s, ttl=s['ttl']-1) for s in state.get('smoke', []) if s['ttl'] > 1]
         if side == "us":
-            held = any(u["side"] == "us" and u["hp"] > 0 and u["pos"] == board['objective'] for u in state["units"])
+            held = any(u["side"] == "us" and active(u) and u["pos"] == board['objective'] for u in state["units"])
             state["hold"] = state["hold"] + 1 if held else 0
             if state["hold"] >= 2:
                 state["winner"] = "us"
@@ -214,6 +246,11 @@ def apply(state, side, action, roll=None):
             unit['road_pending'] = False
         if kind in {'grenade', 'suppress', 'inspire', 'barrage', 'command'}:
             message = role_action(state, unit, action, legal, roll_die, distance, NAMES)
+        elif kind == 'drop' and action.get('pos') in legal['drops']:
+            unit.update(pos=list(action['pos']),reserve=False,ap=unit['ap']-2)
+            message=f"{NAMES[side]} paratroopers landed at {chr(65+unit['pos'][0])}{unit['pos'][1]+1}."
+            record_effect(state,'smoke',[unit['pos']])
+            reactions=react(state,unit,roll_die)
         elif kind == "move":
             move = next((m for m in legal["moves"] if m["pos"] == action.get("pos")), None)
             if not move:
@@ -241,11 +278,15 @@ def apply(state, side, action, roll=None):
             die = (roll or (lambda: secrets.randbelow(6)+1))()
             unit["ap"] -= 2
             hit = die >= shot["threshold"]
-            if hit:
+            if combined.enabled(state):
+                result=combined.resolve_fire(state,unit,target,die,shot['threshold'])
+                if unit['kind'] in {'tank','at_gun','at_team'}: record_effect(state,'explosion',[target['pos']])
+            elif hit:
                 target["hp"] -= 1
                 target["pinned"] = True
                 target['overwatch'] = False
-            result = "eliminated" if target["hp"] <= 0 else "hit and pinned" if hit else "missed"
+            if not combined.enabled(state):
+                result = "eliminated" if target["hp"] <= 0 else "hit and pinned" if hit else "missed"
             message = f"{NAMES[side]} {unit['kind']} fired: rolled {die}, needed {shot['threshold']}+. Target {result}."
             state['last_combat'] = dict(kind='Fire', roll=die, threshold=shot['threshold'], result=result,
                                         attacker=unit['id'], target=target['id'], revision=state['revision']+1)
@@ -312,6 +353,8 @@ def apply(state, side, action, roll=None):
         wins = state.setdefault('victories', {'us': 0, 'de': 0})
         wins[state['winner']] += 1
     state["revision"] += 1
+    update_intel(state)
+    record_reports(state,before_sight,action,message)
     state.setdefault('action_history', []).append(dict(
         revision=state['revision'], round=action_round, side=side,
         action=copy.deepcopy({k: action[k] for k in ('kind', 'unit', 'target', 'pos') if k in action})))

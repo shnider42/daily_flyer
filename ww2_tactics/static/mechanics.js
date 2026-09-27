@@ -26,7 +26,7 @@ function chanceRow(label,threshold,modifiers,effect){
 function renderOdds(shot,assault,grenade,picking){
  const panel=document.getElementById('odds');panel.replaceChildren();panel.hidden=picking||!(shot||assault||grenade);
  if(panel.hidden)return;
- if(shot)panel.append(chanceRow('Fire',shot.threshold,shot.modifiers,'Hit: −1 strength and pinned. Costs 2 actions.'));
+ if(shot)panel.append(chanceRow('Fire',shot.threshold,shot.modifiers,`Hit: −${shot.damage||1} strength and pinned. Costs 2 actions.${shot.suppression_threshold?' The same die also pins infantry on '+shot.suppression_threshold+'+, even if the damage roll misses.':''}`));
  const alternatives=[];
  if(grenade)alternatives.push(chanceRow('Frag',grenade.threshold,{cover:grenade.threshold-4},'Hit: −2 strength and pinned. Costs 2 actions and one frag.'));
  if(assault)alternatives.push(chanceRow('Assault',assault.threshold,{pinned_target:assault.threshold===3?-1:0},'Hit: −2 strength; advance if eliminated. Miss: attacker loses 1 strength and is pinned. Costs 2 actions.'));
@@ -35,18 +35,19 @@ function renderOdds(shot,assault,grenade,picking){
 function renderUnitMechanics(state,unit){
  const panel=document.getElementById('unitMechanics');panel.hidden=!unit;panel.replaceChildren();if(!unit)return;
  const meters=uiNode('div','unit-meters');
- for(const [label,current,max] of [['Strength',Math.max(0,unit.hp),unit.kind==='leader'?2:3],['Actions',unit.ap,state.ruleset==='dsl'?(unit.kind==='leader'?5:3):2]]){
+ const base=unit.base_ap||(unit.kind==='leader'?3:2),bank=['leader','commander'].includes(unit.kind)?2:1;
+ for(const [label,current,max] of [['Strength',Math.max(0,unit.hp),unit.max_hp||(unit.kind==='leader'?2:3)],['Actions',unit.ap,state.ruleset==='dsl'?base+bank:2]]){
   const meter=uiNode('span','unit-meter');meter.append(uiNode('strong','',`${label} ${current}/${max}`));
   const marks=uiNode('span','meter-marks');marks.setAttribute('aria-hidden','true');
   for(let i=0;i<max;i++)marks.append(uiNode('i',i<current?'filled':''));meter.append(marks);meters.append(meter);
  }
  panel.append(meters);
- if(state.ruleset==='dsl')panel.append(uiNode('p','mechanics-caption',`Base ${unit.kind==='leader'?3:2} AP · carried ${unit.carried_ap||0} · received ${unit.ap_received}/${unit.kind==='leader'?5:3} this turn. ${unit.side===state.turn?'End now to bank '+Math.min(unit.ap,unit.kind==='leader'?2:1):'Banked: '+(unit.banked_ap||0)} AP. Spending actions does not reset the received limit.`));
+ if(state.ruleset==='dsl')panel.append(uiNode('p','mechanics-caption',`Base ${base} AP · carried ${unit.carried_ap||0} · received ${unit.ap_received}/${base+bank} this turn. ${unit.side===state.turn?'End now to bank '+Math.min(unit.ap,bank):'Banked: '+(unit.banked_ap||0)} AP. Spending actions does not reset the received limit.`));
  const details=uiNode('details','unit-explanation');details.append(uiNode('summary','','Terrain & status explained'));
  const type=state.map[unit.pos[1]][unit.pos[0]],cover=['woods','building','objective'].includes(type);
  const items=[`${type[0].toUpperCase()+type.slice(1)}: ${cover?'incoming fire needs +1 on the die':'no terrain cover bonus'}. Entering this terrain costs ${['woods','building'].includes(type)?2:1} action(s).`,
   `Range ${unit.range} hexes. Intervening woods, buildings and smoke block direct fire. Strength is remaining health; zero removes the unit.`,
-  state.ruleset==='dsl'?`DSL: ${unit.kind==='leader'?3:2} base AP plus up to ${unit.kind==='leader'?2:1} banked AP. A paid road-to-road move earns one free connected road hex, once per turn. Firing costs 2 AP.`:`Actions refresh to 2 at the start of this army’s turn. Moving on open ground costs 1; firing costs 2.`];
+  state.ruleset==='dsl'?`DSL: ${base} base AP plus up to ${bank} banked AP. A paid road-to-road move earns one free connected road hex, once per turn. Firing costs 2 AP.`:`Actions refresh to 2 at the start of this army’s turn. Moving on open ground costs 1; firing costs 2.`];
  if(unit.pinned)items.push('PINNED: cannot move or attack. Rally costs 1 action. Pins remain until rallied; pinned units can still hold the objective.');
  if(unit.entrenched)items.push('DUG IN: incoming fire needs another +1. Moving or assaulting removes this protection.');
  if(unit.overwatch)items.push('OVERWATCH: one automatic reaction shot, with +1 to the normal hit threshold. Expires at your next turn or when pinned.');
@@ -60,7 +61,8 @@ function combatCard(event,compact=false){
  if(event.attacker_label)card.append(uiNode('p','mechanics-caption',event.attacker_label+(event.target_label?` → ${event.target_label}`:'')));
  if(event.roll!==undefined){
   const hit=event.roll>=event.threshold,row=uiNode('div','roll-result');row.append(dieFace(event.roll,hit?'winning-face':'miss-face'));
-  const text=uiNode('div');text.append(uiNode('strong','',`Rolled ${event.roll} · needed ${event.threshold}+`),uiNode('span',hit?'result-hit':'result-miss',hit?'HIT':'MISS'));row.append(text);card.append(row);
+  const suppressed=event.result?.startsWith('suppressed');
+  const text=uiNode('div');text.append(uiNode('strong','',`Rolled ${event.roll} · needed ${event.threshold}+`),uiNode('span',hit||suppressed?'result-hit':'result-miss',hit?'SUCCESS':suppressed?'PINNED · NO DAMAGE':'MISS'));row.append(text);card.append(row);
   card.append(uiNode('p','mechanics-caption',rollFormula(event.modifiers,event.threshold)));
  }else card.append(uiNode('strong','automatic-result','Automatic effect · no dice roll'));
  card.append(uiNode('p','combat-effect',event.result));

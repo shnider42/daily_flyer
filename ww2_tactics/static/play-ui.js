@@ -7,6 +7,7 @@
  const save=()=>{try{localStorage.setItem(key,JSON.stringify(prefs));}catch{}};
  // Distinct silhouettes and plain-language effects supplement color, including on touch screens.
  const actionDesign={
+  airdrop:['teal','Deploy airborne reserve','M3 10a9 8 0 0 1 18 0H3ZM3 10l7 9h4l7-9M12 10v9M9 21h6'],
   dig:['earth','Gain cover','M4 18h16M8 18v-5l5-8 4 3-5 8H8M12 6l2-3 4 3-2 3'],
   smoke:['slate','Block sight','M7 18h10a4 4 0 0 0 1-8 6 6 0 0 0-11-2 5 5 0 0 0 0 10M9 4l1-2M15 4l1-2'],
   overwatch:['amber','Shoot moving enemies','M2 12s4-6 10-6 10 6 10 6-4 6-10 6S2 12 2 12ZM12 9v6M9 12h6'],
@@ -23,7 +24,7 @@
   const buttons=Object.keys(actionDesign).filter(id=>id!=='command').map(id=>[$(id),id]);
   for(const b of $('commandOrders').querySelectorAll('button'))buttons.push([b,'command']);
   for(const [b,id] of buttons){
-   if(b.hidden)continue;
+   if(!b||b.hidden)continue;
    const raw=b.querySelector('.action-copy')?b.dataset.orderLabel:b.textContent;
    b.dataset.orderLabel=raw;
    const cancel=raw.startsWith('Cancel'),[tone,purpose,path]=actionDesign[id];

@@ -15,6 +15,7 @@ from ww2_tactics.engine import initial, apply, options, terrain, WIDTH, HEIGHT
 from ww2_tactics.scenarios import battlefield, catalog, get_scenario
 from ww2_tactics.computer import play_turn
 from ww2_tactics.rulesets import profile, PROFILES
+from ww2_tactics.visibility import public_state
 
 
 def create_app(db_path=None):
@@ -68,7 +69,7 @@ def create_app(db_path=None):
         state.update(code=row["code"], side=side,
                      map=board['map'], scenario={k: v for k, v in board.items() if k != 'map'})
         state["legal"] = {u["id"]: options(state, u) for u in state["units"] if u["side"] == side}
-        return state
+        return public_state(state,side)
 
     @app.after_request
     def headers(response):
@@ -225,6 +226,8 @@ def create_app(db_path=None):
                 try:
                     scenario = get_scenario(body.get('scenario'))
                     rules = profile(body.get('ruleset', state.get('ruleset', 'classic')))
+                    if scenario.get('dsl_only') and rules['id']!='dsl':
+                        raise ValueError('Operation Long Reach requires the DSL ruleset.')
                 except ValueError as error:
                     return jsonify(error=str(error)), 400
                 if type(body.get('swap')) is not bool:

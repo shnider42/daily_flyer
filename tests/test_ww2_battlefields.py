@@ -20,15 +20,15 @@ class BattlefieldsTests(unittest.TestCase):
 
     def test_every_army_can_reach_each_objective(self):
         for key in SCENARIOS:
-            state = initial(key)
+            state = initial(key,'dsl' if SCENARIOS[key].get('dsl_only') else 'classic')
             board = state['battlefield']
             for unit in state['units']:
                 seen = {tuple(unit['pos'])}
                 queue = deque(seen)
                 while queue:
                     pos = queue.popleft()
-                    for y in range(board['height']):
-                        for x in range(board['width']):
+                    for y in range(max(0,pos[1]-1),min(board['height'],pos[1]+2)):
+                        for x in range(max(0,pos[0]-1),min(board['width'],pos[0]+2)):
                             dest = (x, y)
                             if dest not in seen and terrain(x, y, state) != 'water' and distance(pos, dest) == 1:
                                 seen.add(dest)
@@ -48,7 +48,7 @@ class BattlefieldsTests(unittest.TestCase):
 
     def test_each_scenario_turn_limit_and_score(self):
         for key in SCENARIOS:
-            state = initial(key)
+            state = initial(key,'dsl' if SCENARIOS[key].get('dsl_only') else 'classic')
             state['ready'] = True
             limit = state['battlefield']['rounds']
             for turn in range(limit):
@@ -59,7 +59,7 @@ class BattlefieldsTests(unittest.TestCase):
 
     def test_scenario_objectives_use_their_actual_hex(self):
         for key in SCENARIOS:
-            state = initial(key)
+            state = initial(key,'dsl' if SCENARIOS[key].get('dsl_only') else 'classic')
             state['ready'] = True
             state['units'][0]['pos'] = list(state['battlefield']['objective'])
             for side in ['us', 'de', 'us']:
@@ -165,7 +165,7 @@ class RematchTests(unittest.TestCase):
         self.tmp.cleanup()
 
     def test_scenario_catalog_and_dimensions(self):
-        self.assertEqual(len(self.client.get('/api/scenarios').get_json()['scenarios']), 4)
+        self.assertEqual(len(self.client.get('/api/scenarios').get_json()['scenarios']), 5)
         state = self.client.get(self.url, headers=self.us).get_json()
         self.assertEqual(len(state['map'][0]), 9)
         self.assertEqual(state['scenario']['rounds'], 10)

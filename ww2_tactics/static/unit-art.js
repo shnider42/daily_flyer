@@ -20,7 +20,34 @@
    const drawing=el('g',{class:`unit-portrait portrait-${u.kind}`});art.append(drawing);
    const add=(tag,attrs,parent=drawing)=>{const n=el(tag,attrs);parent.append(n);return n;};
    const path=(d,cls,parent=drawing)=>add('path',{d,class:cls},parent);
-   if(u.kind==='squad'&&u.side==='us'){
+   if(u.kind==='commander'){
+    path('M2-14L5-8 12-8 7-3 9 3 2-1-5 3-3-3-8-8-1-8Z','commander-star');
+   }else if(u.kind==='tank'){
+    path('M-13-3H14Q17-3 17 0Q17 3 14 3H-13Q-16 3-16 0Q-16-3-13-3Z','vehicle-track');
+    path('M-12-6H12L15-2H-15Z M-5-11H5L8-6H-7Z','vehicle-body');
+    path(u.side==='us'?'M5-9H17':'M-5-9H-17','specialist-line');
+    for(const x of [-10,-4,2,8,13])add('circle',{cx:x,cy:0,r:1.1,class:'rank-silver-mid'});
+   }else if(u.kind==='at_gun'){
+    path('M-5-10H4L6-2H-7Z','vehicle-body');
+    path('M1-8H17M-3-2L-13 3M-3-2L5 3','specialist-line');
+    for(const x of [-6,5])add('circle',{cx:x,cy:0,r:3,class:'vehicle-track'});
+   }else if(u.kind==='amphibious'){
+    path('M-15-7H15L11 0H-10Z M-6-11H5L8-7H-6Z','vehicle-body');
+    path('M-15 3q4-3 8 0t8 0t8 0M4-10H13','specialist-line');
+   }else if(u.kind==='paratrooper'){
+    path('M-8-6a10 8 0 0 1 20 0Z M-8-6L0 2H4L12-6M2-13V2','specialist-line');
+    path('M0 1H4V4H0Z','rank-gold');
+   }else if(u.kind==='scout'){
+    path('M-7-9H-2L0-2H-10Z M5-9H10L13-2H3Z','vehicle-body');
+    path('M-2-6H5','specialist-line');
+    for(const x of [-5,8])add('circle',{cx:x,cy:-1,r:3.6,class:'vehicle-track'});
+   }else if(u.kind==='engineer'){
+    path('M-6-12L8 1M9-12L-5 1','specialist-line');
+    path('M6-2L12 3 8 4 4 0Z M6-12L9-9 12-12','vehicle-body');
+   }else if(u.kind==='at_team'){
+    path('M-12-9H13V-5H-12Z M-6-5V-1H-3V-5Z','vehicle-body');
+    path('M-14-10V-4M14-10V-4M2-3L-1 2M2-3L6 2','specialist-line');
+   }else if(u.kind==='squad'&&u.side==='us'){
     drawing.classList.add('insignia-us-infantry');
     path('M-9-2L2-13 13-2V2L2-8-9 2Z','rank-gold');
     path('M-8-2L2-12 12-2','rank-gold-highlight insignia-detail');

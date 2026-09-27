@@ -392,6 +392,49 @@ share a player key and are not two independent players).
   `WW2_PLAYWRIGHT=playwright-core WW2_PACKAGED_CHROMIUM=1` and @sparticuz/chromium).
 # DSL learning and compact controls
 
+## Operation Long Reach: combined-arms playtest
+
+Choose **DSL → Operation Long Reach** in solo, multiplayer or the next-battle picker.
+This new 24×24 operation has 20 units per side, three river crossings and a 36-round
+limit. It enables a separately saved `dsl_expansion: 1` profile and server-side fog.
+Existing scenarios, Classic rules and old saves retain their behavior.
+
+- US infantry receives −1 to its hit threshold. German infantry suppresses on 3+
+  versus US 5+, using the same fire die even if damage misses. MG suppression now
+  rolls those thresholds on this operation; German range 6, US range 4.
+- US rifles: 4 strength, 12 personnel; German rifles: 3 strength, 9 personnel.
+  Scouts have 2 strength, engineers and paratroopers 3, AT teams 2. Personnel is
+  descriptive full-strength size, distinct from game strength.
+- US tanks: 3 base AP, range 6, strength 4. German tanks: 2 AP, range 8,
+  strength 5. Tanks have armor 2. Small arms, frag grenades and close assaults
+  cannot damage armor. AT teams, tanks and fixed guns deal 2 damage to armor.
+  Vehicle hits can pin; rally represents restoring crew coordination.
+- Fixed AT guns start dug in and cannot move; US range 9, German range 10.
+  Amphibious sections have 3 AP, light armor and cross water/open land with their
+  organic troops. They are single fighting units; separate passenger transport
+  is not implemented. Vehicles cannot enter woods/buildings.
+- Commanders get 3 AP, bank 2, rally within radius 2 for 1 AP, and spend 2 AP
+  to grant eligible non-officers in radius 2 +1 AP across platoons. Once per
+  commander group per turn. LTs keep adjacent own-platoon orders. All recipients
+  retain a total-received cap of base AP plus banking allowance.
+- Engineers carry two smoke and two frag grenades. Two airborne squads begin
+  off-map; select one under Command & support, choose Airborne landing, then
+  a spotted empty field/road hex. Landing costs 2 AP and triggers overwatch.
+- Sight is normally 6 hexes; scouts see 9 and gun/tank sight reaches at least
+  weapon range. Concealed infantry in woods/buildings requires distance 2,
+  or 4 for scouts. Adjacent units are detected; intervening smoke/woods/buildings
+  block longer sight. Remembered contacts contain only last-seen role, position
+  and round/turn; search the old position to remove stale reports.
+- Enemy units are filtered on the server, including legal targeting, reports,
+  action history and replay snapshots. The computer evaluates only spotted
+  enemies. Terrain, objective hold and incoming mortar warning areas are public.
+  Full state, separate intelligence memories and airborne reserves survive saves.
+
+Validation: 119 engine/API tests, including combined-arms and fog tests; existing
+learning/mobile regression; combined-arms browser checks at 320, 390 and 1440px
+cover landing, map stability, fog replay and saving. Numbers are initial playtest
+values, not a claim of established faction balance or historical simulation.
+
 - **Units: illustrated / classic** is independent of the terrain style and persists locally.
   Illustrated counters follow the supplied reference insignia: US infantry gold chevron,
   German infantry green roundel/diamond, US leader silver double bars, German leader

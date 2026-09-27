@@ -5,20 +5,22 @@ import copy
 from .engine import apply, options, distance, terrain
 from .scenarios import battlefield
 from .rulesets import dsl, turn_limit
+from .visibility import fog, view, visible_ids
 
 
 def objective_costs(state):
     board = battlefield(state)
     goal = tuple(board['objective'])
     costs, queue = {goal: 0}, [(0, goal)]
-    cells = [(x, y) for y in range(board['height']) for x in range(board['width'])
-             if terrain(x, y, state) != 'water']
     while queue:
         cost, pos = heapq.heappop(queue)
         if cost != costs[pos]:
             continue
         step = 2 if terrain(*pos, state) in {'woods', 'building'} else 1
-        for nxt in cells:
+        neighbors=((x,y) for y in range(max(0,pos[1]-1),min(board['height'],pos[1]+2))
+                   for x in range(max(0,pos[0]-1),min(board['width'],pos[0]+2)))
+        for nxt in neighbors:
+            if terrain(*nxt,state)=='water': continue
             if distance(pos, nxt) == 1 and cost+step < costs.get(nxt, float('inf')):
                 costs[nxt] = cost+step
                 heapq.heappush(queue, (cost+step, nxt))
@@ -28,7 +30,8 @@ def objective_costs(state):
 def choose_order(state, costs, visited):
     side = state['turn']
     board = battlefield(state)
-    units = {u['id']: u for u in state['units'] if u['hp'] > 0}
+    seen=visible_ids(state,side)
+    units = {u['id']: u for u in state['units'] if u['hp'] > 0 and u['id'] in seen}
     choices = []
 
     def add(score, unit, kind, **data):
@@ -38,6 +41,8 @@ def choose_order(state, costs, visited):
         if unit['side'] != side:
             continue
         legal = options(state, unit)
+        for pos in legal.get('drops',[]):
+            add(20-costs.get(tuple(pos),100)*.6,unit,'drop',pos=pos)
         if legal['rally']:
             add(9, unit, 'rally')
         if legal['inspire']:
@@ -85,7 +90,7 @@ def choose_order(state, costs, visited):
             if tuple(pos) in visited.get(unit['id'], set()):
                 continue
             exposed = any(pos in b['area'] for b in imminent)
-            gain = costs.get(tuple(unit['pos']), 100)-costs.get(tuple(pos), 100)
+            gain = (distance(unit['pos'],board['objective'])-distance(pos,board['objective'])) if unit['kind']=='amphibious' else costs.get(tuple(unit['pos']), 100)-costs.get(tuple(pos), 100)
             score = 2+gain*2-move.get('threats', 0)*2
             score += .6 if terrain(*pos, state) in {'woods', 'building', 'objective'} else 0
             if pos == board['objective']:
@@ -119,6 +124,8 @@ def play_turn(state, roll=None):
     orders = []
     frames = []
     def snapshot(value):
+        if fog(value):
+            return view(value,'us' if value['ai_side']=='de' else 'de')
         return copy.deepcopy({key: value.get(key) for key in
                               ('units', 'smoke', 'barrages', 'round', 'turn', 'hold', 'winner')})
     def perform(action):
@@ -127,10 +134,25 @@ def play_turn(state, roll=None):
         sequence = state.get('combat_sequence', 0)
         effect_sequence = state.get('effect_sequence', 0)
         state = apply(state, state['ai_side'], action, roll=roll)
-        frames.append(dict(action=copy.deepcopy(action), before=before, after=snapshot(state),
-                           effects=copy.deepcopy([e for e in state.get('effects', []) if e['sequence'] > effect_sequence]),
-                           combat=copy.deepcopy([e for e in state.get('combat_history', [])
-                                                 if e.get('sequence', 0) > sequence])))
+        after=snapshot(state)
+        safe_action=copy.deepcopy(action)
+        effects=[e for e in state.get('effects', []) if e['sequence'] > effect_sequence]
+        combat=[e for e in state.get('combat_history', []) if e.get('sequence', 0) > sequence]
+        if fog(state):
+            seen={u['id'] for u in before['units']+after['units']}
+            for key in ('unit','target'):
+                if safe_action.get(key) not in seen: safe_action.pop(key,None)
+            tiles=before['visible_hexes']+after['visible_hexes']
+            if safe_action.get('pos') not in tiles: safe_action.pop('pos',None)
+            if action['kind'] in {'move','drop'} and action.get('unit') not in {u['id'] for u in after['units']}:
+                safe_action.pop('pos',None)
+            effects=[e for e in effects if all(p in tiles for p in e['positions'])]
+            human='us' if state['ai_side']=='de' else 'de'
+            combat=[e for e in state.get('reports',{}).get(human,{}).get('combat',[]) if e.get('sequence',0)>sequence]
+            if 'unit' not in safe_action and action['kind']!='end':
+                if before==after and not combat: return
+                safe_action={'kind':'contact'}
+        frames.append(dict(action=safe_action,before=before,after=after,effects=copy.deepcopy(effects),combat=copy.deepcopy(combat)))
     # Scale the guard to the army's AP budget, including the larger scenario.
     budget = max(24, sum((turn_limit(u)+1 if dsl(state) else 2) for u in state['units'] if u['side']==state['ai_side'] and u['hp']>0)+1)
     for _ in range(budget):

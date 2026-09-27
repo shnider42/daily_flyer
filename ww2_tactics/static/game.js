@@ -10,7 +10,8 @@ try {
   if(!savedSessions.some(s=>s.code===session.code))savedSessions.unshift(session);
  }else session=null;
 } catch (_) {}
-const names = {us:'Americans',de:'Germans'}, kinds={squad:'Rifle squad',leader:'Leader',mg:'Machine gun'};
+const names = {us:'Americans',de:'Germans'}, kinds={squad:'Rifle squad',leader:'Lieutenant',mg:'Machine gun',commander:'Commander',scout:'Scout team',engineer:'Engineers',at_team:'Anti-tank team',tank:'Tank',at_gun:'Anti-tank gun',amphibious:'Amphibious section',paratrooper:'Paratroopers'};
+const unitCodes={squad:'SQ',leader:'LT',mg:'MG',commander:'CO',scout:'SC',engineer:'EN',at_team:'AT',tank:'TK',at_gun:'AG',amphibious:'AM',paratrooper:'PA'};
 function notify(text){$('message').textContent=text;$('message').hidden=false;clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('message').hidden=true,6500);}
 async function api(path, body){
  const response=await fetch(path,{method:body===undefined?'GET':'POST',headers:{'Content-Type':'application/json',...(session?{Authorization:`Bearer ${session.token}`}:{})},...(body===undefined?{}:{body:JSON.stringify(body)})});
@@ -148,15 +149,15 @@ function render(){
   if(state.barrages?.some(b=>b.area.some(p=>p[0]===x&&p[1]===y))){svg.append(element('path',{d:`M${points.split(' ').join(' L')} Z`,class:'barrage-zone'}));svg.append(element('text',{x:cx+16,y:cy+23,class:'incoming-mark'},'!'));}
  }
  if(unit&&enemy){const [x1,y1]=center(...unit.pos),[x2,y2]=center(...enemy.pos);svg.append(element('line',{x1,y1,x2,y2,class:`aim-line${shot?' clear':''}`}));}
- for(const u of state.units.filter(u=>u.hp>0)){
+ for(const u of state.units.filter(u=>u.hp>0&&!u.reserve)){
   const [cx,cy]=center(...u.pos),g=element('g',{class:`unit ${u.side} platoon-${u.platoon||'none'}${selected===u.id?' selected':''}${target===u.id?' target':''}`,role:'button',tabindex:0,'aria-label':`${names[u.side]} ${unitName(u)}, ${u.hp} strength, ${u.ap} actions${u.pinned?', pinned':''}`});
   g.dataset.unitId=u.id;
   // Transparent hit area is larger than the counter for comfortable phone taps.
   g.append(element('circle',{cx,cy,r:23,fill:'transparent'}));
   if(u.side===state.side&&u.platoon===platoonFilter)g.append(element('path',{d:`M${cx-24} ${cy-20}h48v41h-48z`,class:'platoon-halo'}));
   g.append(element('rect',{x:cx-20,y:cy-16,width:40,height:33,rx:u.side==='us'?9:1}));
-  g.append(element('text',{x:cx,y:cy-3,'text-anchor':'middle',class:'unit-name'},`${u.side==='us'?'US':'DE'} ${u.kind==='mg'?'MG':u.kind==='leader'?'LT':'SQ'}`));
-  g.append(element('text',{x:cx,y:cy+10,'text-anchor':'middle',class:'strength',textLength:11+7*u.hp,lengthAdjust:'spacingAndGlyphs'},'●'.repeat(u.hp)+' · '+u.ap));
+  g.append(element('text',{x:cx,y:cy-3,'text-anchor':'middle',class:'unit-name'},`${u.side.toUpperCase()} ${unitCodes[u.kind]||'SQ'}`));
+  g.append(element('text',{x:cx,y:cy+10,'text-anchor':'middle',class:'strength',textLength:Math.min(34,11+7*u.hp),lengthAdjust:'spacingAndGlyphs'},'●'.repeat(u.hp)+' · '+u.ap));
   if(u.platoon)g.append(element('text',{x:cx,y:cy+28,'text-anchor':'middle',class:'platoon-marker'},`${u.platoon}${u.number}`));
   if(u.pinned)g.append(element('text',{x:cx+17,y:cy-13,'text-anchor':'middle',class:'pin'},'!'));
   if(u.entrenched)g.append(element('path',{d:`M${cx-22} ${cy+19}h44`,class:'dug-marker'}));
@@ -197,6 +198,7 @@ function render(){
  if(state.rematch){const p=state.rematch,mine=p.by===state.side;$('proposalText').textContent=`${mine?'You proposed':names[p.by]+' propose'} ${p.name} · ${p.ruleset==='dsl'?'DSL v1':'Classic'}${p.swap?' with armies swapped':' with the same armies'}. ${mine?'Waiting for the other commander.':'Accept to replace the current battle.'}`;$('acceptRematch').hidden=mine;$('acceptRematch').disabled=busy;$('declineRematch').disabled=busy;$('declineRematch').textContent=mine?'Cancel proposal':'Decline';}
  renderPlatoons(board);$('findUnit').hidden=!selected||!(large||$('mapWrap').classList.contains('enlarged'));if(newBattle&&large)focusMapUnit(state.units.find(u=>u.side===state.side&&u.platoon==='A'&&u.kind==='leader'));
  syncPlayback();renderBattleEffects(state,svg);
+ if(window.renderCombined)window.renderCombined(unit,legal,svg);
  document.dispatchEvent(new Event('ww2:render'));
  if(!newBattle)restoreMap();
 }

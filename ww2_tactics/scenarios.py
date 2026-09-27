@@ -55,6 +55,34 @@ def river_front():
 SCENARIOS['riverfront']=river_front()
 
 
+def frontier():
+    rows=[['.' for _ in range(24)] for _ in range(24)]
+    for y in range(24):
+        for x in (4,11,19): rows[y][x]='='
+    for y in (6,9,14,17): rows[y]=['=']*24
+    for y in range(4,20):
+        for x in range(24):
+            if rows[y][x]=='.' and (x*7+y*11)%19 in (0,1,2): rows[y][x]='T'
+    for x,y in [(3,8),(5,8),(10,9),(12,9),(18,8),(20,8),(3,15),(5,15),(10,15),(12,15),(18,15),(20,15)]: rows[y][x]='B'
+    for y in (11,12):
+        rows[y]=['~']*24
+        for x in (4,11,19): rows[y][x]='+'
+    rows[9][11]='*'
+    board=build('frontier','Operation Long Reach','Forward command depot',36,
+                'DSL combined arms · 24×24 · 20 units per army · fog of war. Scout wooded approaches, cross three bridges or ford the river with amphibious troops, and secure the north-bank depot. Commanders, armor, anti-tank guns and airborne reserves. 36 rounds.',
+                [''.join(row) for row in rows])
+    board.update(dsl_only=True,combined_arms=True,platoons=[dict(id='A',name='Alpha',center=4),dict(id='B',name='Bravo',center=19),dict(id='HQ',name='Command & support',center=11)])
+    from .combined import roster
+    for side in ('us','de'):
+        for u in roster(side,24):
+            x,y=u['pos']
+            if board['map'][y][x] not in {'road','bridge'}: board['map'][y][x]='field'
+    return board
+
+
+SCENARIOS['frontier']=frontier()
+
+
 def get_scenario(key='village'):
     if not isinstance(key, str) or key not in SCENARIOS:
         raise ValueError('Choose a battlefield from the scenario list.')

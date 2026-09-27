@@ -17,11 +17,11 @@ def dsl(state):
 
 
 def base_ap(unit):
-    return 3 if unit['kind'] == 'leader' else 2
+    return unit.get('base_ap', 3 if unit['kind'] in {'leader','commander'} else 2)
 
 
 def bank_limit(unit):
-    return 2 if unit['kind'] == 'leader' else 1
+    return 2 if unit['kind'] in {'leader','commander'} else 1
 
 
 def turn_limit(unit):
@@ -29,6 +29,8 @@ def turn_limit(unit):
 
 
 def command_key(unit):
+    if unit['kind']=='commander':
+        return unit['side']+':HQ-orders'
     return unit['side']+':'+unit.get('platoon', '')
 
 

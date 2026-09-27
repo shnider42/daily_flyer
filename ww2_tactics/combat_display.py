@@ -12,7 +12,7 @@ def record_combat(state, modifiers=None, note=None):
     for key in ('attacker', 'target'):
         unit = next((u for u in state['units'] if u['id'] == event.get(key)), None)
         if unit:
-            role = {'squad': 'rifle squad', 'leader': 'leader', 'mg': 'MG'}[unit['kind']]
+            role = {'squad': 'rifle squad', 'leader': 'leader', 'mg': 'MG'}.get(unit['kind'],unit['kind'].replace('_',' '))
             if unit.get('platoon'):
                 role += f" {unit['platoon']}{unit['number']}"
             event[key+'_label'] = f"{unit['side'].upper()} {role} · {chr(65+unit['pos'][0])}{unit['pos'][1]+1}"

@@ -1,0 +1,19 @@
+.fog-layer{fill:#142637;fill-opacity:.32;pointer-events:none}
+.contact-marker{pointer-events:none}
+.contact-marker rect{fill:#ddd4b6;fill-opacity:.8;stroke:#5c4b3a;stroke-width:1.5;stroke-dasharray:4 3}
+.contact-marker text{fill:#463827;font-size:10px;font-weight:800}
+.contact-marker .contact-age{font-size:7px;font-weight:600}
+.landing-zone{fill:#6adfc2;fill-opacity:.18;stroke:#126b60;stroke-width:2;stroke-dasharray:5 3;cursor:pointer}
+.landing-zone:focus{fill-opacity:.6;outline:none;stroke-width:3}
+#airdrop{background:#dae9e1;border-color:#447b70;color:#153a31}
+#game .game-title>div:first-child{min-width:0;flex:1}
+#game .game-title .round{flex:none}
+#platoonFilters [data-platoon="HQ"][aria-pressed="true"],.roster-unit[data-platoon="HQ"].active{background:#465b57;color:#fff}
+.unit.us.platoon-HQ{--platoon-color:#285e7c}.unit.de.platoon-HQ{--platoon-color:#854d40}
+#game[data-side="us"] [data-platoon="HQ"]{--platoon-color:#285e7c}
+#game[data-side="de"] [data-platoon="HQ"]{--platoon-color:#854d40}
+#combinedManual{border-top:1px solid #b8b09a;margin-top:18px;padding-top:14px}
+.unit-art .vehicle-body{fill:#c5d1bd;stroke:#122321;stroke-width:1;stroke-linejoin:round}
+.unit-art .vehicle-track{fill:#253a35;stroke:#d3dcc7;stroke-width:1}
+.unit-art .specialist-line{fill:none;stroke:#eadcb5;stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
+.unit-art .commander-star{fill:#f6d76d;stroke:#152824;stroke-width:.8}
