@@ -24,7 +24,7 @@ let browser;
   assert.ok(Math.abs(after.top-before.top)<1,'Map must not move in page');
   assert.equal(after.revision,before.revision,'Gesture must not issue orders');assert.equal(after.selected,before.selected,'Gesture must not select a unit');
   assert.ok(Math.abs(after.width/before.width-factor)<.05,JSON.stringify({before,after}));
-  for(let i=0;i<2;i++)assert.ok(Math.abs(after.world[i]-before.world[i])<3,'Pinch anchor drift');
+  for(let i=0;i<2;i++)assert.ok(Math.abs(after.world[i]-before.world[i])<3,'Pinch anchor drift: '+JSON.stringify({before,after}));
   return after;
  }
  await pinch(1.45);await pinch(.8);

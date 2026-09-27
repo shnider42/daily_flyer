@@ -2,7 +2,7 @@
 'use strict';
 (()=>{
  const key='ww2-play-preferences';
- let prefs={simple:false,guide:null};
+ let prefs={simple:true,guide:null};
  try{const saved=JSON.parse(localStorage.getItem(key));if(saved&&typeof saved.simple==='boolean')prefs={simple:saved.simple,guide:saved.guide};}catch{}
  const save=()=>{try{localStorage.setItem(key,JSON.stringify(prefs));}catch{}};
  // Distinct silhouettes and plain-language effects supplement color, including on touch screens.
@@ -51,53 +51,98 @@
  }
  const node=(tag,id,text)=>{const n=document.createElement(tag);if(id)n.id=id;if(text)n.textContent=text;return n;};
  $('selection').after(node('p','unitPurpose','Select a unit to see its name and role'));
- let dock=null,anchors=[],lastSelection=null,lastTarget=null,lastRevision=null,lastSimple=null;
+ let dock=null,screen=null,anchors=[],sheets=[],lastSelection=null,lastTarget=null,lastRevision=null,lastSimple=null,oldNext=null,guidePresented=null,noticeKey=null,wasPlaying=false;
  function move(n,to){const anchor=document.createComment('mobile orders anchor');n.before(anchor);anchors.push([n,anchor]);to.append(n);}
- function unmount(){$('mobileUnitDetails')?.close();for(const [n,a] of anchors)a.replaceWith(n);anchors=[];$('mobileUnitDetails')?.remove();dock?.remove();dock=null;lastSelection=null;lastTarget=null;lastRevision=null;}
+ function openSheet(id){if(playbackSession){playbackSession.paused=true;clearTimeout(playbackTimer);$('pausePlayback').textContent='Resume';}for(const sheet of sheets)if(sheet.id!==id)sheet.close();const sheet=$(id);if(sheet&&!sheet.open)sheet.showModal();}
+ function sheet(id,title){const d=node('dialog',id);d.className='mobile-battle-sheet';d.setAttribute('aria-label',title);const h=node('div');h.className='mobile-sheet-heading';const close=node('button',id+'Close','Back to battle');close.onclick=()=>d.close();h.append(node('h2',null,title),close);d.append(h);document.body.append(d);sheets.push(d);return d;}
+ function unmount(){
+  for(const s of sheets)s.close();
+  if(oldNext){$('nextUnit').onclick=oldNext;oldNext=null;$('nextUnit').textContent='Next unit →';$('nextUnit').removeAttribute('aria-label');}
+  for(const [n,a] of anchors)a.replaceWith(n);anchors=[];
+  for(const s of sheets)s.remove();sheets=[];screen?.remove();screen=null;dock=null;
+  document.body.classList.remove('mobile-battle','mobile-replaying');
+  lastSelection=null;lastTarget=null;lastRevision=null;
+ }
+ function focusMobile(unit){
+  if(!dock||!unit)return;
+  const wrap=$('mapWrap'),svg=$('playbackMap')||$('map'),matrix=svg.getScreenCTM();if(!matrix)return;
+  const [x,y]=center(...unit.pos),point=new DOMPoint(x,y).matrixTransform(matrix),r=wrap.getBoundingClientRect();
+  wrap.scrollBy({left:point.x-r.left-wrap.clientWidth/2,top:point.y-r.top-wrap.clientHeight/2,behavior:'auto'});
+ }
+ function cycleUnit(direction){
+  if(busy||playbackSession)return;
+  const alive=state.units.filter(u=>u.side===state.side&&u.hp>0);
+  const ready=alive.filter(u=>Object.values(state.legal[u.id]||{}).some(v=>Array.isArray(v)?v.length:v===true));
+  const pool=ready.length?ready:alive;if(!pool.length)return;
+  const index=pool.findIndex(u=>u.id===selected),unit=pool[(index<0?(direction>0?0:pool.length-1):(index+direction+pool.length)%pool.length)];
+  smokeMode=false;barrageMode=false;chooseUnit(unit);focusMobile(unit);
+ }
+ window.ww2Mobile={get active(){return !!dock;},focus:focusMobile,openMenu:()=>openSheet('mobileBattleMenu')};
  function mount(){
   if(dock)return;
+  document.body.classList.add('mobile-battle');
+  screen=node('section','mobileBattleScreen');screen.setAttribute('aria-label','Battle screen');$('game').append(screen);
+  const top=node('header','mobileBattleTop'),menu=node('button','mobileMenuOpen','Battle ☰'),status=node('div','mobileBattleStatus'),guide=node('button','mobileGuideOpen','Learn');
+  menu.setAttribute('aria-controls','mobileBattleMenu');menu.setAttribute('aria-haspopup','dialog');guide.setAttribute('aria-controls','mobileGuide');guide.setAttribute('aria-haspopup','dialog');
+  status.setAttribute('role','status');menu.onclick=()=>openSheet('mobileBattleMenu');guide.onclick=()=>openSheet('mobileGuide');top.append(status,guide,menu);screen.append(top);
+  move($('mapWrap'),screen);
   dock=node('section','mobileOrderDock');dock.setAttribute('aria-label','Selected unit orders');
   const head=node('div','mobileOrderHead'),toggle=node('button','mobileOrderToggle','Select a unit');
-  toggle.setAttribute('aria-controls','mobileUnitDetails');toggle.setAttribute('aria-haspopup','dialog');toggle.title='Unit details and odds';toggle.onclick=()=>$('mobileUnitDetails').showModal();head.append(toggle);
-  const body=node('div','mobileOrderBody');dock.append(head,body);$('mapWrap').before(dock);
+  toggle.setAttribute('aria-controls','mobileUnitDetails');toggle.setAttribute('aria-haspopup','dialog');toggle.title='Unit details and odds';toggle.onclick=()=>openSheet('mobileUnitDetails');head.append(toggle);
+  const body=node('div','mobileOrderBody');dock.append(head,body);screen.append(dock);
   move($('end'),head);move($('orders'),body);
   move($('hint'),body);body.prepend($('hint'));
-  move($('unitPurpose'),body);body.prepend($('unitPurpose'));
-  const detail=node('dialog','mobileUnitDetails');detail.setAttribute('aria-label','Selected unit details');
-  const close=node('button',null,'Back to map');close.onclick=()=>detail.close();detail.append(close,node('h2','unitDetailTitle','Unit details & odds'));dock.append(detail);
-  for(const id of ['roleBrief','unitMechanics','odds'])move($(id),detail);
+  const detail=sheet('mobileUnitDetails','Unit details');detail.append(node('h2','unitDetailTitle','Unit details & odds'));
+  for(const id of ['unitPurpose','roleBrief','unitMechanics','odds','simpleOutcome'])move($(id),detail);
+  const nav=node('nav','mobileUnitNav');nav.setAttribute('aria-label','Unit and map navigation');screen.append(nav);
+  const prev=node('button','previousUnit','‹'),roster=node('button','mobileRosterOpen','Your units');prev.setAttribute('aria-label','Previous ready unit');prev.onclick=()=>cycleUnit(-1);roster.onclick=()=>openSheet('mobileRoster');
+  roster.setAttribute('aria-controls','mobileRoster');roster.setAttribute('aria-haspopup','dialog');
+  nav.append(prev,roster);move($('nextUnit'),nav);oldNext=$('nextUnit').onclick;$('nextUnit').onclick=()=>cycleUnit(1);
+  move($('findUnit'),nav);move($('zoom'),nav);screen.append(nav);
+  const troops=sheet('mobileRoster','Your units');move($('platoonFilters'),troops);move($('roster'),troops);
+  const settings=sheet('mobileBattleMenu','Battle & settings');
+  for(const selector of ['.game-title','.status-line','#turnBanner','.mission','#missionHint','#waiting','#incoming','#battleReport','#rematchProposal','#playTools','#battleOptions','#replayTurn','#rulesButton','#homeBattles','#supportStatus','.team-legend','.terrain-legend','#combat','#computerReview','.journal','#seriesScore'])move(document.querySelector(selector),settings);
+  $('battleOptions').open=true;
+  const guideSheet=sheet('mobileGuide','Learn as you play');move($('tutorialCoach'),guideSheet);
+  move($('playbackPanel'),screen);
+  requestAnimationFrame(()=>{if(dock)focusMobile(state?.units.find(u=>u.id===selected)||state?.units.find(u=>u.side===state.side&&u.hp>0&&!u.reserve&&!u.carrier_id));});
  }
  const lessons=[
   ['Your mission','Find the ★ objective. Americans win by holding it at the end of two consecutive American turns. Germans must prevent that until the final round. Either army can also win by eliminating the enemy.','.mission'],
-  ['Choose your unit','Tap one of your counters on the map. Its name and all available actions appear together above the map. Tap the unit name for details. AP means action points.','#map'],
+  ['Choose your unit','Tap one of your counters on the map, or open Your units. Its name and all available actions stay beside the map. The arrows find your next ready unit. Tap the unit name for details. AP means action points.','#map'],
   ['Move into position','With your unit selected, tap a highlighted neighboring hex to move. Woods and buildings cost more but offer cover. Orange move hexes warn of enemy overwatch. Connected roads can grant one extra hex each turn.','#map'],
   ['Spend actions, not dice','Squads and MGs start with 2 AP; lieutenants start with 3. Available orders are shown for your selected unit. Select an enemy to see attacks. You can learn the flow without reading the dice math.','#orders'],
   ['Cover and attacks','Fire costs 2 AP and may miss. Cover makes units harder to hit; smoke blocks shots. An MG can suppress to pin a visible enemy without damage. Pinned troops must rally before moving or attacking. If no attack is available, keep advancing or skip this tip.','#orders'],
   ['Watch the other side','End turn when ready. In solo play the computer responds, then you can pause, step through, or skip its replay. In DSL, unused AP can carry over: up to 1 per unit, or 2 for a lieutenant.','#end'],
   ['Your specialist tools','Squads carry smoke and a frag grenade. Lieutenants can rally nearby troops, call delayed mortars, or spend 2 AP on “On your feet” for eligible adjacent squad/MG units in their platoon. Incoming mortars threaten both armies: move clear!','#orders'],
-  ['You are in command','Keep checking the objective, not just enemy losses. Toggle Simple view off whenever you want odds, modifiers and logs. Save codes and other battle options remain below the board. Finish this guide to keep playing normally.','#simpleToggle']
+  ['You are in command','Keep checking the objective, not just enemy losses. In the Battle menu, turn Simple view off whenever you want odds, modifiers and logs. The menu also holds terrain and unit styles, save codes and this guide. Finish to keep playing normally.','#simpleToggle']
  ];
  function guideActive(){return prefs.guide?.code===session?.code&&prefs.guide?.battle===(state?.battle_number||1)&&Number.isInteger(prefs.guide.step)&&prefs.guide.step>=0&&prefs.guide.step<lessons.length;}
  function startGuide(){prefs.guide={code:session.code,battle:state.battle_number||1,step:0,since:state.revision};save();sync();}
  function clearFocus(){document.querySelectorAll('.lesson-focus').forEach(n=>n.classList.remove('lesson-focus'));}
  function sync(){
   document.body.classList.toggle('simple-play',prefs.simple);
-  if(lastSimple!==prefs.simple){$('battleOptions').open=!prefs.simple;lastSimple=prefs.simple;}
+  if(lastSimple!==prefs.simple){$('battleOptions').open=!!dock||!prefs.simple;lastSimple=prefs.simple;}
   $('simpleToggle').textContent=`Simple view: ${prefs.simple?'on':'off'}`;$('simpleToggle').setAttribute('aria-pressed',String(prefs.simple));
-  if(!state||$('game').hidden)return;
+  if(!state||$('game').hidden){unmount();return;}
   // Desktop restores its anchors before mobile is allowed to move the same controls.
   if(!matchMedia('(min-width:1100px)').matches&&window.ww2Desktop?.active)return;
   const mobile=!matchMedia('(min-width:1100px)').matches&&state.ruleset==='dsl';
-  if(mobile){mount();dock.hidden=!!playbackSession;dock.inert=!!playbackSession;
+  if(mobile){mount();dock.hidden=!!playbackSession;dock.inert=!!playbackSession;document.body.classList.toggle('mobile-replaying',!!playbackSession);
    const unit=state.units.find(u=>u.id===selected&&u.hp>0);
    const title=node('strong',null,unit?unitTypeName(unit):'Select a unit');title.className='selected-unit-name';
-   const meta=node('span',null,unit?`${unit.platoon?unit.platoon+unit.number+' · ':''}${unit.ap} AP · ${unit.reserve?'Reserve':String.fromCharCode(65+unit.pos[0])+String(unit.pos[1]+1)}${unit.pinned?' · PINNED':''}`:'Tap a counter on the map');meta.className='selected-unit-meta';
+   const meta=node('span',null,unit?`${unit.platoon?unit.platoon+unit.number+' · ':''}${unit.hp}${unit.max_hp?'/'+unit.max_hp:''} ${state.naval_version?'HP':'strength'} · ${unit.ap} AP${unit.carrier_id?' · ABOARD':unit.reserve?' · RESERVE':unit.pinned?' · PINNED':''}`:'Tap the map or open Your units');meta.className='selected-unit-meta';
    $('mobileOrderToggle').replaceChildren(title,meta);
    $('unitDetailTitle').textContent=unit?unitName(unit):'Unit details & odds';
    $('mobileOrderToggle').setAttribute('aria-label',`${unit?unitName(unit)+'. ':''}${$('mobileOrderToggle').textContent}. Open unit details and odds`);
    $('mobileOrderToggle').disabled=!unit;
    if(selected!==lastSelection||target!==lastTarget||state.revision!==lastRevision)$('orders').scrollLeft=0;
    lastSelection=selected;lastTarget=target;lastRevision=state.revision;
+   $('nextUnit').textContent='›';$('nextUnit').setAttribute('aria-label','Next ready unit');
+   $('previousUnit').disabled=$('nextUnit').disabled=busy||!!playbackSession||!state.units.some(u=>u.side===state.side&&u.hp>0);
+   $('mobileRosterOpen').disabled=!!playbackSession;$('findUnit').textContent='Find';$('findUnit').hidden=false;$('findUnit').disabled=!unit||!!playbackSession;
+   $('zoom').textContent=$('mapWrap').classList.contains('enlarged')?'Fit map':'Detail';
+   $('mobileBattleStatus').replaceChildren(node('strong',null,playbackSession?'Computer replay':state.winner?`${sideLabel(state.winner)} win`:!state.ready?'Waiting for opponent':state.turn===state.side?'Your turn':'Opponent’s turn'),node('span',null,`${sideLabel(state.side)} · Round ${$('round').textContent}`));
   }else unmount();
   if(prefs.simple){
    for(const [id,label] of [['fire','Fire'],['assault','Assault'],['grenade','Frag']])if(!$(id).hidden)$(id).textContent=`${label} · 2 actions`;
@@ -105,8 +150,13 @@
   }
   $('simpleOutcome').hidden=!prefs.simple||!state.last_combat||!!playbackSession;
   styleActions();
+  if(dock){
+   const columns=innerWidth<360?2:3,buttons=[...$('orders').querySelectorAll('button')].filter(b=>!b.hidden&&!b.closest('[hidden]'));
+   screen.style.setProperty('--order-rows',Math.max(columns===2?4:3,Math.ceil(buttons.length/columns)));
+   if(state.last_combat?.revision===state.revision&&!smokeMode&&!barrageMode&&!target&&!$('hint').textContent.startsWith('Tap a marked'))$('hint').textContent=state.last_combat.result;
+  }
   $('simpleOutcome').textContent=state.last_combat?.result||'';
-  $('guideToggle').hidden=state.ruleset!=='dsl';
+  $('guideToggle').hidden=state.ruleset!=='dsl'||!!state.naval_version;
   const active=guideActive();
   if(active&&!playbackSession){const g=prefs.guide;
    if(g.step===2&&(state.action_history||[]).some(h=>h.revision>g.since&&h.side===state.side&&h.action.kind==='move')){g.step++;g.since=state.revision;clearFocus();save();}
@@ -114,18 +164,31 @@
   $('guideToggle').setAttribute('aria-pressed',String(active));$('guideToggle').textContent=active?'Hide learning guide':'Learn as you play';
   $('tutorialCoach').hidden=!active||!!playbackSession;
   if(active){const step=prefs.guide.step,[title,text]=lessons[step];$('lessonCount').textContent=`FIELD TRAINING · ${step+1} / ${lessons.length}`;$('lessonTitle').textContent=title;$('lessonText').textContent=text;$('lessonBack').disabled=step===0;$('lessonNext').textContent=step===lessons.length-1?'Finish guide':'Next tip →';}
+  if(dock){
+   $('mobileGuideOpen').hidden=!active||!!playbackSession;$('mobileGuideOpen').textContent=active?`Learn ${prefs.guide.step+1}/${lessons.length}`:'Learn';
+   if(!active)$('mobileGuide').close();
+   const key=`${session.code}:${state.battle_number||1}`;
+   if(active&&guidePresented!==key&&!playbackSession){guidePresented=key;openSheet('mobileGuide');}
+   const notice=`${key}:${state.winner||''}:${JSON.stringify(state.rematch||null)}:${state.ready}`;
+   if(notice!==noticeKey){noticeKey=notice;if(state.winner||state.rematch||!state.ready)openSheet('mobileBattleMenu');}
+   if(playbackSession&&!wasPlaying)for(const s of sheets)s.close();
+   wasPlaying=!!playbackSession;
+  }
  }
  $('simpleToggle').onclick=()=>{prefs.simple=!prefs.simple;save();if(playbackSession){sync();drawPlayback();}else render();};
- $('guideToggle').onclick=()=>{clearFocus();if(guideActive()){prefs.guide=null;save();sync();}else startGuide();};
+ $('guideToggle').onclick=()=>{clearFocus();if(guideActive()){prefs.guide=null;save();sync();}else{startGuide();if(dock)openSheet('mobileGuide');}};
  $('lessonNext').onclick=()=>{if(!guideActive())return;clearFocus();prefs.guide.since=state.revision;if(++prefs.guide.step===lessons.length){prefs.guide=null;notify('Training complete. Keep playing—and reopen the guide any time.');}save();sync();};
  $('lessonBack').onclick=()=>{if(!guideActive())return;clearFocus();prefs.guide.since=state.revision;prefs.guide.step=Math.max(0,prefs.guide.step-1);save();sync();};
  $('lessonExit').onclick=()=>{clearFocus();prefs.guide=null;save();sync();};
- $('lessonShow').onclick=()=>{if(!guideActive())return;clearFocus();const selector=lessons[prefs.guide.step][2];const target=document.querySelector(selector);target?.classList.add('lesson-focus');target?.scrollIntoView({block:'center',behavior:'auto'});};
+ $('lessonShow').onclick=()=>{if(!guideActive())return;clearFocus();const selector=lessons[prefs.guide.step][2];const target=document.querySelector(dock&&selector==='#map'?'#mapWrap':selector);target?.classList.add('lesson-focus');if(dock){$('mobileGuide').close();if(target?.closest('#mobileBattleMenu'))openSheet('mobileBattleMenu');}else target?.scrollIntoView({block:'center',behavior:'auto'});};
  $('learnStart').onclick=()=>run(async()=>{remember(await api('/api/match',{ruleset:'dsl',opponent:'computer',scenario:'village'}));prefs.simple=true;prefs.guide={code:session.code,battle:1,step:0,since:0};save();});
  document.addEventListener('ww2:before-layout',unmount);
  document.addEventListener('ww2:render',sync);
  document.addEventListener('ww2:selection',()=>{if(selected&&!playbackSession){if(guideActive()&&prefs.guide.step===1){prefs.guide.step=2;prefs.guide.since=state.revision;clearFocus();save();sync();}}});
  document.addEventListener('ww2:playback',sync);
  matchMedia('(min-width:1100px)').addEventListener('change',sync);
+ window.addEventListener('resize',()=>{if(dock)sync();});
+ new MutationObserver(()=>{if($('game').hidden)unmount();}).observe($('game'),{attributes:true,attributeFilter:['hidden']});
+ $('roster').addEventListener('click',event=>{if(dock&&event.target.closest('button')){$('mobileRoster').close();focusMobile(state.units.find(u=>u.id===selected));}});
  sync();
 })();

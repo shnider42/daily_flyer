@@ -1,11 +1,35 @@
 # Village Crossing — expanded rules
 
+## Mobile battle screen
+
+DSL battles below 1100px use a single dynamic viewport: a compact turn/round bar,
+stable map, ready-unit navigation and all available actions. Portrait puts controls
+below the map; short landscape screens put them beside it. Safe-area padding and
+dynamic viewport height accommodate phone browser bars. Map pinch/pan remains
+local, including when the fitted map has empty space above/below it.
+
+**Your units** opens the existing roster/platoon controls in a dialog. Selecting a
+unit closes the roster and brings it into view. Previous/next arrows cycle the
+army's units with legal actions (or living units when none can act). Map taps do
+not recenter the camera. The selected unit strip shows its full name, strength and
+AP; tap it for role, odds and mechanics. The **Battle** menu contains objectives,
+preferences, saves, rules and home navigation. Waiting, victory and next-battle
+proposals open the menu for the needed actions. Computer playback uses the same
+reserved control area; opening a menu pauses the replay.
+
+First-visit defaults: Simple view **on**, terrain **detailed**, units **illustrated**.
+Existing saved preferences are respected. Learning remains opt-in. Active training
+has a compact Learn step button, with the full tip in a dismissible dialog.
+Show me closes the tip and highlights the relevant control or opens its menu;
+normal unit/movement progress advances the guide without pushing the map around.
+Desktop and classic battle layouts retain their existing presentation.
+
 ## Unit identification and specialist artwork
 
 Rosters now use full unit names instead of role codes. `scout` / SC is displayed
 as **Recon team**; engineers, anti-tank teams/guns and naval classes are spelled
-out too. Mobile selection separates the full name from unit ID, AP and location,
-with a short plain-language purpose below it. The purpose stays visible in Simple
+out too. Mobile selection separates the full name from unit ID, strength and AP,
+with its plain-language purpose available by tapping the name, even in Simple
 view. The details dialog also names the selected unit. The mobile dock reserves
 a fixed height across selections, preserving the map's screen position.
 

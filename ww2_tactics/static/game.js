@@ -88,6 +88,7 @@ function holdMobileMap(){
 }
 function focusMapUnit(u,svg=$('map')){
  if(window.ww2Desktop?.active){window.ww2Desktop.focus(u,svg);return;}
+ if(window.ww2Mobile?.active){window.ww2Mobile.focus(u);return;}
  if(!u||!$('mapWrap').classList.contains('enlarged'))return;
  const [x,y]=center(...u.pos),wrap=$('mapWrap'),scale=svg.getBoundingClientRect().width/svg.viewBox.baseVal.width;
  wrap.scrollTo({left:x*scale-wrap.clientWidth/2,top:y*scale-wrap.clientHeight/2,behavior:'auto'});
