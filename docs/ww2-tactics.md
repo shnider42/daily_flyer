@@ -393,7 +393,9 @@ share a player key and are not two independent players).
 # DSL learning and compact controls
 
 - **Units: illustrated / classic** is independent of the terrain style and persists locally.
-  Illustrated counters use infantry groups, an officer with binoculars, and a bipod MG;
+  Illustrated counters follow the supplied reference insignia: US infantry gold chevron,
+  German infantry green roundel/diamond, US leader silver double bars, German leader
+  green three-stripe patch with foliage. MGs retain the gunner/bipod artwork;
   army colors/shapes, strength/AP text, hit areas and platoon labels remain unchanged.
   Selection adds brackets and a corner tab; pinned troops have a subdued portrait and pin
   badge; sandbags mark dug-in troops and an eye marks overwatch (no facing cone). Small

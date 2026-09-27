@@ -20,28 +20,34 @@
    const drawing=el('g',{class:`unit-portrait portrait-${u.kind}`});art.append(drawing);
    const add=(tag,attrs,parent=drawing)=>{const n=el(tag,attrs);parent.append(n);return n;};
    const path=(d,cls,parent=drawing)=>add('path',{d,class:cls},parent);
-   if(u.kind==='squad'){
-    // Staggered marching profiles, not a row of faces. Heads stay small relative to kit.
-    for(const [x,y,s,cls] of [[-7,-1,.78,'rear-rifleman'],[3,1,1,'front-rifleman']]){
-     const man=el('g',{transform:`translate(${x} ${y}) scale(${s})`,class:cls});drawing.append(man);
-     path('M-2-12Q0-14 2-12L3-10 1-9-1-10Z','portrait-face',man);
-     path('M-3-12Q-3-16 0-16Q3-16 3-12L4-11H-3Z','portrait-helmet',man);
-     path('M-2-9L1-10 4-5 2-2H-3L-4-6Z M-3-2L0-2-2 3H-5Z M0-2H2L5 2H2Z','portrait-coat',man);
-     path('M-4-9L-6-7-5-3-3-4Z','portrait-pack',man);
-     path('M0-8L4-5 7-7','portrait-arm',man);
-     path('M4-1L9-13','portrait-rifle',man);
-     path('M4-1L6-6','portrait-stock',man);
-     path('M-1-8L1-3M-3-3H2','portrait-detail',man);
+   if(u.kind==='squad'&&u.side==='us'){
+    drawing.classList.add('insignia-us-infantry');
+    path('M-10 0L-2-7 2-14 6-7 14 0V4L3-5 2-7 1-5-10 4Z','rank-gold');
+    path('M-8 0L0-8 2-12 4-8 12 0','rank-gold-highlight insignia-detail');
+   }else if(u.kind==='squad'){
+    drawing.classList.add('insignia-de-infantry');
+    add('circle',{cx:2,cy:-6,r:9,class:'rank-roundel'});
+    path('M2-12L8-6 2 0-4-6Z','rank-diamond');
+    path('M2-11L7-6H2Z','rank-silver-light');
+    path('M2-11L-3-6H2Z','rank-silver-mid');
+    path('M-3-6L2-1V-6Z','rank-silver-dark');
+    path('M2-6H7L2-1Z','rank-silver-shadow');
+    add('circle',{cx:2,cy:-6,r:1,class:'rank-rivet'});
+   }else if(u.kind==='leader'&&u.side==='us'){
+    drawing.classList.add('insignia-us-leader');
+    for(const x of [-6,6]){
+     path(`M${x}-14h6V3h-6Z`,'rank-silver-bar');
+     path(`M${x+1}-13h4v3l-4 2Z`,'rank-silver-light');
+     path(`M${x+1} 2V-8l1-1V1h3v1Z`,'rank-silver-dark');
     }
    }else if(u.kind==='leader'){
-    path('M-3-12L0-13 2-10 0-8-3-9Z','portrait-face');
-    path('M-5-13L-4-16H0L2-13 4-12H-4Z','portrait-helmet');
-    path('M-4-8L0-9 3-4 1-1H-4L-6-5Z M-4-1H-1L-2 3H-5Z M-1-1H1L3 3H0Z','portrait-coat');
-    path('M-1-7L4-4 6-10M-3-7L1-5 4-10','portrait-arm');
-    path('M3-12L9-13 10-10 4-9Z','portrait-optics');
-    path('M9-13L10-10','portrait-lens');
-    path('M-5-6L-7-4-5-1-3-2Z','portrait-pack');
-    path('M-3-7L0-2M-4-2H1M4-9L2-4','portrait-detail');
+    drawing.classList.add('insignia-de-leader');
+    path('M-10-15H15V3H-10Z','rank-green-patch');
+    for(const y of [-7,-3,1])path(`M-8 ${y}H13`,'rank-green-stripe');
+    path('M-7-11Q2-9 11-12','rank-branch');
+    for(const [x,y] of [[-6,-12],[-2,-11],[2,-11],[6,-12],[10,-13]]){
+     path(`M${x} ${y+1}q-3-4-4-2q1 3 4 2M${x} ${y+1}q3-4 4-2q-1 3-4 2`,'rank-leaf');
+    }
    }else{
     path('M-13-8L-10-9-8-6-11-5-13-6Z','portrait-face');
     path('M-15-8Q-15-12-12-12Q-9-12-8-8Z','portrait-helmet');
