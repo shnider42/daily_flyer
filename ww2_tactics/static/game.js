@@ -12,6 +12,7 @@ try {
 } catch (_) {}
 const names = {us:'Americans',de:'Germans'}, kinds={squad:'Rifle squad',leader:'Lieutenant',mg:'Machine gun',commander:'Commander',scout:'Scout team',engineer:'Engineers',at_team:'Anti-tank team',tank:'Tank',at_gun:'Anti-tank gun',amphibious:'Amphibious section',paratrooper:'Paratroopers'};
 const unitCodes={squad:'SQ',leader:'LT',mg:'MG',commander:'CO',scout:'SC',engineer:'EN',at_team:'AT',tank:'TK',at_gun:'AG',amphibious:'AM',paratrooper:'PA'};
+kinds.halftrack='Half-track section';unitCodes.halftrack='HT';
 function notify(text){$('message').textContent=text;$('message').hidden=false;clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('message').hidden=true,6500);}
 async function api(path, body){
  const response=await fetch(path,{method:body===undefined?'GET':'POST',headers:{'Content-Type':'application/json',...(session?{Authorization:`Bearer ${session.token}`}:{})},...(body===undefined?{}:{body:JSON.stringify(body)})});

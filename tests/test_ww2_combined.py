@@ -31,7 +31,10 @@ class CombinedRulesTests(unittest.TestCase):
         self.assertEqual(s['battlefield']['width'],24)
         self.assertEqual(len({tuple(u['pos']) for u in s['units']}),40)
         for side in ('us','de'):
-            self.assertEqual(sum(u.get('reserve',False) for u in s['units'] if u['side']==side),2)
+            self.assertEqual(sum(u.get('reserve',False) for u in s['units'] if u['side']==side),2 if side=='us' else 0)
+        self.assertEqual(sum(u['kind']=='halftrack' for u in s['units'] if u['side']=='de'),2)
+        self.assertTrue(all(u['pos'][1]==6 for u in s['units'] if u['kind']=='halftrack'))
+        self.assertFalse(any(u['kind']=='paratrooper' and u['side']=='de' for u in s['units']))
         us=next(u for u in s['units'] if u['kind']=='tank' and u['side']=='us')
         de=next(u for u in s['units'] if u['kind']=='tank' and u['side']=='de')
         self.assertEqual((us['ap'],us['range'],us['hp']),(3,6,4))
@@ -55,6 +58,21 @@ class CombinedRulesTests(unittest.TestCase):
         hit=apply(s,'de',dict(kind='suppress',unit=de['id'],target=us['id']),roll=lambda:3)
         self.assertFalse(miss['units'][0]['pinned']);self.assertTrue(hit['units'][0]['pinned'])
         self.assertEqual(hit['units'][0]['hp'],us['hp'])
+
+    def test_halftrack_ground_support_and_limits(self):
+        s=self.field(('de','halftrack',[5,5]),('us','squad',[10,5]),('us','tank',[7,5]))
+        s['turn']='de';ht,rifle,tank=s['units']
+        self.assertEqual((ht['ap'],ht['hp'],ht['range'],ht['armor']),(3,3,5,1))
+        legal=options(s,ht)
+        self.assertFalse(legal['drops']);self.assertFalse(legal['dig']);self.assertFalse(legal['assaults'])
+        self.assertIn(rifle['id'],legal['suppress']);self.assertNotIn(tank['id'],legal['suppress'])
+        self.assertNotIn(tank['id'],[t['id'] for t in legal['targets']])
+        result=apply(s,'de',dict(kind='suppress',unit=ht['id'],target=rifle['id']),roll=lambda:3)
+        self.assertTrue(result['units'][1]['pinned']);self.assertEqual(result['units'][0]['ap'],1)
+        for tile in ('woods','building','water'):
+            s['battlefield']['map'][5][6]=tile
+            self.assertNotIn([6,5],[m['pos'] for m in options(s,ht)['moves']])
+        rifle['pos']=[11,5];self.assertNotIn(rifle['id'],options(s,ht)['suppress'])
 
     def test_armor_and_anti_tank(self):
         s=self.field(('us','squad',[5,5]),('us','at_team',[6,5]),('de','tank',[7,5]))

@@ -35,8 +35,9 @@ def role_options(state, unit, distance, line_clear, terrain, board):
         result['grenades'] = [dict(id=u['id'], threshold=5 if terrain(*u['pos'], state)
                                   in {'woods', 'building', 'objective'} else 4)
                               for u in visible if distance(unit['pos'], u['pos']) <= 2 and not u.get('armor')]
-    if unit['kind'] == 'mg':
-        result['suppress'] = [u['id'] for u in visible if distance(unit['pos'], u['pos']) <= (6 if combined.enabled(state) and unit['side']=='de' else 4)
+    if unit['kind'] in {'mg','halftrack'}:
+        reach=5 if unit['kind']=='halftrack' else 6 if combined.enabled(state) and unit['side']=='de' else 4
+        result['suppress'] = [u['id'] for u in visible if distance(unit['pos'], u['pos']) <= reach
                               and not u['pinned'] and not u.get('armor')]
     if unit['kind'] in {'leader','commander'} and state.get('support', {}).get(unit['side'], 0):
         result['barrage'] = [[x, y] for y in range(board['height']) for x in range(board['width'])
@@ -85,7 +86,7 @@ def role_action(state, unit, action, legal, roll, distance, names):
                                     attacker=unit['id'], target=target['id'], revision=state['revision']+1)
         if die is not None: state['last_combat'].update(roll=die,threshold=combined.suppression_threshold(unit))
         record_combat(state, note='DSL combined arms: German suppression 3+, US 5+; no damage.' if die is not None else 'Automatic effect: a legal suppression order does not roll a die.')
-        return f"{names[side]} MG suppressive fire: {'target pinned, overwatch cancelled' if success else 'failed'}; no damage."
+        return f"{names[side]} {unit['kind']} suppressive fire: {'target pinned, overwatch cancelled' if success else 'failed'}; no damage."
     if kind == 'grenade':
         shot = next((s for s in legal['grenades'] if s['id'] == action.get('target')), None)
         if shot:

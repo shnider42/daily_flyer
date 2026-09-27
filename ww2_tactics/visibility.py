@@ -41,7 +41,7 @@ def update_intel(state):
         seen = visible_ids(state, side)
         memory = state.setdefault('intel', {}).setdefault(side, {})
         for uid, contact in list(memory.items()):
-            if sees_hex(state, side, contact['pos'], contact['kind'] not in {'tank','amphibious'} and terrain(*contact['pos'],state) in {'woods','building'}):
+            if sees_hex(state, side, contact['pos'], contact['kind'] not in {'tank','amphibious','halftrack'} and terrain(*contact['pos'],state) in {'woods','building'}):
                 del memory[uid]
         for unit in state['units']:
             if unit['side'] != side and unit['id'] in seen and active(unit):

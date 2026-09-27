@@ -31,6 +31,13 @@
     path('M-5-10H4L6-2H-7Z','vehicle-body');
     path('M1-8H17M-3-2L-13 3M-3-2L5 3','specialist-line');
     for(const x of [-6,5])add('circle',{cx:x,cy:0,r:3,class:'vehicle-track'});
+   }else if(u.kind==='halftrack'){
+    drawing.classList.add('insignia-halftrack');
+    path('M-13-2H2Q5-2 5 1Q5 3 2 3H-13Q-16 3-16 1Q-16-2-13-2Z','vehicle-track');
+    path('M-14-9H3L7-6H13L16-1H-14Z M-3-12H2V-9H-3Z','vehicle-body');
+    path('M0-11H10','specialist-line');
+    add('circle',{cx:12,cy:1,r:3,class:'vehicle-track'});
+    for(const x of [-11,-6,-1])add('circle',{cx:x,cy:1,r:1,class:'rank-silver-mid'});
    }else if(u.kind==='amphibious'){
     path('M-15-7H15L11 0H-10Z M-6-11H5L8-7H-6Z','vehicle-body');
     path('M-15 3q4-3 8 0t8 0t8 0M4-10H13','specialist-line');

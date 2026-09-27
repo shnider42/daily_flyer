@@ -6,7 +6,7 @@ def enabled(state):
 
 
 INFANTRY = {'squad', 'scout', 'engineer', 'paratrooper', 'leader', 'commander', 'mg', 'at_team'}
-VEHICLES = {'tank', 'amphibious'}
+VEHICLES = {'tank', 'amphibious', 'halftrack'}
 
 
 def roster(side, height):
@@ -24,6 +24,7 @@ def roster(side, height):
         'at_gun': (3, 9 if us else 10, 2, 5, 0, 3),
         'amphibious': (4, 3, 3, 8, 1, 1),
         'paratrooper': (3, 4, 3, 8 if us else 6, 0, 1),
+        'halftrack': (3, 5, 3, 8, 1, 0),
     }
     layout = [('squad',2,3,'A'),('leader',3,3,'A'),('mg',4,3,'A'),
               ('scout',5,4,'A'),('engineer',6,3,'A'),('at_team',7,3,'A'),
@@ -35,6 +36,9 @@ def roster(side, height):
     units = []
     counts = {}
     for i, (kind, x, depth, platoon) in enumerate(layout):
+        if not us and kind=='paratrooper':
+            kind='halftrack'
+            depth=6  # Forward reserve can respond to spotted US landing zones.
         hp, reach, ap, size, armor, penetration = specs[kind]
         counts[platoon] = counts.get(platoon, 0)+1
         units.append(dict(id=f'{side}{i}', side=side, kind=kind,

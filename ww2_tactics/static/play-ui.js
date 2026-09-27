@@ -49,8 +49,8 @@
  function unmount(){$('mobileUnitDetails')?.close();for(const [n,a] of anchors)a.replaceWith(n);anchors=[];$('mobileUnitDetails')?.remove();dock?.remove();dock=null;lastSelection=null;lastTarget=null;lastRevision=null;}
  function stripStatus(){
   if(!dock)return;const rail=$('orders'),buttons=[...rail.querySelectorAll('button')].filter(b=>!b.hidden);
-  const first=Math.round(rail.scrollLeft/Math.max(1,(rail.clientWidth+6)/2));
-  $('mobileActionCount').textContent=buttons.length>2?`${Math.min(first+1,buttons.length)}–${Math.min(first+2,buttons.length)} of ${buttons.length} · swipe`:`${buttons.length} orders`;
+  const first=Math.round(rail.scrollLeft/Math.max(1,rail.clientWidth+6));
+  $('mobileActionCount').textContent=buttons.length>1?`Action ${Math.min(first+1,buttons.length)} of ${buttons.length} · swipe`:`${buttons.length} orders`;
   $('mobileActionsBack').disabled=rail.scrollLeft<2;
   $('mobileActionsMore').disabled=rail.scrollLeft+rail.clientWidth>=rail.scrollWidth-2;
  }

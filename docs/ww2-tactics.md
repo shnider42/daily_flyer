@@ -395,6 +395,18 @@ share a player key and are not two independent players).
 ## Operation Long Reach: combined-arms playtest
 
 Choose **DSL → Operation Long Reach** in solo, multiplayer or the next-battle picker.
+New German armies replace the two airborne reserves with two on-map half-track
+sections deployed as forward reserves near the depot: 3 strength, 3 base AP,
+bank 1, range 5, armor 1, no anti-tank penetration.
+They can suppress infantry at range 5 on 3+ for 2 AP. They cannot air drop, cross
+water, enter woods/buildings or load passengers. US armies retain their airborne
+reserves. This is a game-balance distinction, not a historical availability claim.
+Existing saved rosters are not rewritten; start a new operation to use this change.
+
+The mobile action rail now presents one full-width card per swipe, with larger
+type/icons and an explicit action index. Its height remains fixed, and it stays
+above the map instead of obscuring hexes. Desktop action layout is unchanged.
+
 This new 24×24 operation has 20 units per side, three river crossings and a 36-round
 limit. It enables a separately saved `dsl_expansion: 1` profile and server-side fog.
 Existing scenarios, Classic rules and old saves retain their behavior.
@@ -417,7 +429,7 @@ Existing scenarios, Classic rules and old saves retain their behavior.
   to grant eligible non-officers in radius 2 +1 AP across platoons. Once per
   commander group per turn. LTs keep adjacent own-platoon orders. All recipients
   retain a total-received cap of base AP plus banking allowance.
-- Engineers carry two smoke and two frag grenades. Two airborne squads begin
+- Engineers carry two smoke and two frag grenades. Two US airborne squads begin
   off-map; select one under Command & support, choose Airborne landing, then
   a spotted empty field/road hex. Landing costs 2 AP and triggers overwatch.
 - Sight is normally 6 hexes; scouts see 9 and gun/tank sight reaches at least
@@ -430,7 +442,7 @@ Existing scenarios, Classic rules and old saves retain their behavior.
   enemies. Terrain, objective hold and incoming mortar warning areas are public.
   Full state, separate intelligence memories and airborne reserves survive saves.
 
-Validation: 119 engine/API tests, including combined-arms and fog tests; existing
+Validation: 120 engine/API tests, including combined-arms and fog tests; existing
 learning/mobile regression; combined-arms browser checks at 320, 390 and 1440px
 cover landing, map stability, fog replay and saving. Numbers are initial playtest
 values, not a claim of established faction balance or historical simulation.
