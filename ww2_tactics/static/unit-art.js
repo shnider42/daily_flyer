@@ -4,7 +4,7 @@
  let illustrated=true;
  try{illustrated=localStorage.getItem('ww2-unit-style')!=='classic';}catch{}
  const ns='http://www.w3.org/2000/svg',observed=new Set();
- const rasterKinds=new Set(['carrier','battleship','cruiser','destroyer','paratrooper']);
+ const rasterKinds=new Set(['carrier','battleship','cruiser','destroyer','paratrooper','scout','engineer','halftrack','at_gun','at_team']);
  function rasterName(u){
   if(rasterKinds.has(u.kind))return u.kind;
   if(u.kind==='tank')return `tank-${u.side}`;

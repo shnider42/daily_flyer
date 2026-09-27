@@ -13,6 +13,7 @@ try {
 const names = {us:'Americans',de:'Germans'}, kinds={squad:'Rifle squad',leader:'Lieutenant',mg:'Machine gun',commander:'Commander',scout:'Scout team',engineer:'Engineers',at_team:'Anti-tank team',tank:'Tank',at_gun:'Anti-tank gun',amphibious:'Amphibious section',paratrooper:'Paratroopers'};
 const unitCodes={squad:'SQ',leader:'LT',mg:'MG',commander:'CO',scout:'SC',engineer:'EN',at_team:'AT',tank:'TK',at_gun:'AG',amphibious:'AM',paratrooper:'PA'};
 kinds.halftrack='Half-track section';unitCodes.halftrack='HT';
+kinds.scout='Recon team';
 Object.assign(kinds,{carrier:'Aircraft carrier',battleship:'Battleship',cruiser:'Cruiser',destroyer:'Destroyer'});
 Object.assign(unitCodes,{carrier:'CV',battleship:'BB',cruiser:'CA',destroyer:'DD'});
 function sideLabel(side){return state?.factions?.[side]||names[side];}
@@ -59,7 +60,24 @@ async function run(task){if(busy||playbackSession)return;const oldPlayback=playb
 async function act(body){await run(async()=>{state=await api(`/api/match/${session.code}`,{...body,revision:state.revision});target=null;smokeMode=false;barrageMode=false;render();});}
 function element(tag,attrs={},text){const e=document.createElementNS('http://www.w3.org/2000/svg',tag);Object.entries(attrs).forEach(([k,v])=>e.setAttribute(k,v));if(text!==undefined)e.textContent=text;return e;}
 function center(x,y){return [27+x*52+(y%2)*26,30+y*49];}
-function unitName(u){return kinds[u.kind]+(u.platoon?` ${u.platoon}${u.number}`:'');}
+function unitTypeName(u){return state?.naval_version&&u.kind==='amphibious'?'Landing section':kinds[u.kind];}
+function unitName(u){return unitTypeName(u)+(u.platoon?` ${u.platoon}${u.number}`:'');}
+function unitRoleSummary(u){
+ const roles={squad:'Capture and hold ground with rifle infantry',leader:state?.ruleset==='dsl'?'Rally platoon members and grant extra actions':'Rally troops and call mortar support',mg:'Suppress enemy infantry with sustained fire',commander:'Rally and support nearby troops',scout:'Spot concealed enemies ahead of your squads',engineer:'Use smoke and grenades to clear cover',at_team:'Hunt armored vehicles with anti-tank weapons',tank:'Armored direct fire against troops and vehicles',at_gun:'Long-range anti-tank fire; cannot move',halftrack:'Mobile armored support; suppress infantry',amphibious:state?.naval_version?'Cross water and land troops at island outposts':'Move your troops across water and open land',paratrooper:u.reserve?'Airborne reserve; choose a landing zone':'Airborne infantry; capture and hold ground',carrier:'Scout with aircraft and launch air strikes',battleship:'Armored warship with heavy long-range guns',cruiser:'Escort ships with guns and aircraft defense',destroyer:'Fast warship with torpedoes and smoke'};
+ return roles[u.kind]||'Select a highlighted move or available action';
+}
+function renderUnitClarity(unit){
+ if($('unitPurpose'))$('unitPurpose').textContent=unit?unitRoleSummary(unit):'Select a unit to see its name and role';
+ const troops=state.units.filter(u=>u.side===state.side&&(platoonFilter==='all'||u.platoon===platoonFilter));
+ [...$('roster').children].forEach((button,i)=>{
+  const u=troops[i];if(!u)return;
+  const title=document.createElement('strong');title.className='roster-unit-name';title.textContent=unitTypeName(u);
+  const meta=document.createElement('span');meta.className='roster-unit-state';
+  meta.textContent=`${u.platoon?u.platoon+u.number:i+1} · ${u.hp<=0?'Lost':u.reserve?'Airborne reserve':u.pinned?`Pinned · ${u.ap} AP`:u.overwatch?`Watching · ${u.ap} AP`:`${u.ap} AP`}`;
+  button.replaceChildren(title,meta);button.dataset.unitId=u.id;
+  button.title=`${unitName(u)} — ${unitRoleSummary(u)}`;button.setAttribute('aria-label',`${unitName(u)}. ${meta.textContent}. ${unitRoleSummary(u)}`);
+ });
+}
 function holdMobileMap(){
  if(matchMedia('(min-width:1100px)').matches||$('game').hidden)return ()=>{};
  const wrap=$('mapWrap'),rect=wrap.getBoundingClientRect(),left=wrap.scrollLeft,top=wrap.scrollTop;
@@ -214,6 +232,7 @@ function render(){
  syncPlayback();renderBattleEffects(state,svg);
  if(window.renderCombined)window.renderCombined(unit,legal,svg);
  if(window.renderNaval)window.renderNaval(unit,legal,svg);
+ renderUnitClarity(unit);
  document.dispatchEvent(new Event('ww2:render'));
  if(!newBattle)restoreMap();
 }

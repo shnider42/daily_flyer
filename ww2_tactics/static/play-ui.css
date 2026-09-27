@@ -84,6 +84,14 @@ main{padding-top:8px}
 .lesson-controls #lessonExit{border-color:transparent}
 #mobileOrderDock{margin:3px 0 5px;background:#f4f1e8f2;border-color:#a7b29b88;box-shadow:0 2px 8px #17272212}
 #mobileOrderToggle{background:transparent;border-color:transparent}
+#mobileOrderToggle{white-space:normal;padding:4px 8px;text-overflow:clip}
+#mobileOrderToggle .selected-unit-name{display:block;font-size:12px;line-height:17px;white-space:nowrap}
+#mobileOrderToggle .selected-unit-meta{display:block;font-size:10px;line-height:15px;font-weight:500;margin-top:2px}
+#unitPurpose{font-size:11px;line-height:16px;font-weight:650;color:#435e58;margin:2px 0 6px}
+#mobileOrderDock #mobileOrderBody{height:184px}
+#mobileOrderBody #unitPurpose{height:18px;margin:0 0 4px;overflow:auto;white-space:nowrap;font-size:11px}
+.roster-unit-name{display:block;font-size:11px;line-height:15px;overflow-wrap:normal}
+.roster-unit-state{display:block;font-size:10px;line-height:14px;margin-top:3px;font-weight:500}
 @supports(backdrop-filter:blur(12px)){#mobileOrderDock{background:#f4f1e8e8;backdrop-filter:blur(12px);-webkit-backdrop-filter:blur(12px)}}
 @media(min-width:1100px){
  body>header{height:44px;min-height:44px;padding:0 28px;border-bottom-width:1px}

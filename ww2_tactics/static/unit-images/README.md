@@ -6,7 +6,7 @@ commercial pack screenshot. The earlier faction rank insignia and MG references
 remain in the code-native icon set. These illustrations are gameplay identifiers,
 not claims of exact historical ship classes or vehicle specifications.
 
-Production assets are the nine `*-v1.webp` files in this directory. They retain
+Production assets are the fourteen `*-v1.webp` files in this directory. They retain
 transparency and are resized to fit within 256×256 pixels, preserving aspect ratio.
 The browser displays them within the existing counter, with unchanged faction
 colors, strength/AP, status overlays and input targets. Failed image requests
@@ -33,6 +33,11 @@ for people. Use the built-in tool with `transparent_background: true`.
 | tank-de-v1.webp | Simple ivory-white stencil of a Tiger-inspired tank: angular turret, boxy hull, broad tracks and long barrel pointing right. Pure flat shapes like a military pictogram cut from paper; five simple navy cutouts; no gradients, vignette, glow, shadow or fine texture. |
 | landing-craft-v1.webp | Open-topped rectangular troop well, high squared loading ramp at right, small aft steering shelter at left; three helmet shapes inside; slightly overhead view. |
 | landing-infantry-v1.webp | One helmeted infantryman kneeling with one knee down and one raised, aiming a shoulder-braced rifle right; natural full-body proportions, thick rifle silhouette and minimal interior details. |
+| scout-v1.webp | One helmeted WWII scout crouching and looking right through large binoculars held to his eyes. Upper-body three-quarter profile with clearly readable two-lens binoculars and helmet. Square image. |
+| engineer-v1.webp | One helmeted WWII combat engineer, waist-up three-quarter view, holding a substantial entrenching shovel diagonally across his body. Broad shovel blade visible beside his shoulder; rolled equipment pack on his back. Human silhouette, not a crossed-tools emblem. Square image. |
+| halftrack-v1.webp | WWII half-track armored troop transport, side profile front pointing right, large front wheel, rear caterpillar track, sloping armored cab and open troop compartment. Broad simplified proportions, wide image. |
+| at_gun-v1.webp | WWII stationary anti-tank field gun with a long cannon pointing right, large protective gun shield, two wheels and long split support trails. Slightly overhead side view. Wide image; single gun, no people. |
+| at_team-v1.webp | WWII anti-tank soldier, crouched upper body wearing a helmet, aiming a large shoulder-fired bazooka tube right with both hands supporting it. Square image, compact pose. |
 
 Two German tank generations with unwanted background haze were rejected in favor
 of the final flat stencil. Only the selected production assets are included here.

@@ -48,6 +48,7 @@
   }
  }
  const node=(tag,id,text)=>{const n=document.createElement(tag);if(id)n.id=id;if(text)n.textContent=text;return n;};
+ $('selection').after(node('p','unitPurpose','Select a unit to see its name and role'));
  let dock=null,anchors=[],lastSelection=null,lastTarget=null,lastRevision=null,lastSimple=null;
  function move(n,to){const anchor=document.createComment('mobile orders anchor');n.before(anchor);anchors.push([n,anchor]);to.append(n);}
  function unmount(){$('mobileUnitDetails')?.close();for(const [n,a] of anchors)a.replaceWith(n);anchors=[];$('mobileUnitDetails')?.remove();dock?.remove();dock=null;lastSelection=null;lastTarget=null;lastRevision=null;}
@@ -66,8 +67,9 @@
   const body=node('div','mobileOrderBody');dock.append(head,body);$('mapWrap').before(dock);
   move($('end'),head);move($('orders'),body);
   move($('hint'),body);body.prepend($('hint'));
+  move($('unitPurpose'),body);body.prepend($('unitPurpose'));
   const detail=node('dialog','mobileUnitDetails');detail.setAttribute('aria-label','Selected unit details');
-  const close=node('button',null,'Back to map');close.onclick=()=>detail.close();detail.append(close,node('h2',null,'Unit details & odds'));dock.append(detail);
+  const close=node('button',null,'Back to map');close.onclick=()=>detail.close();detail.append(close,node('h2','unitDetailTitle','Unit details & odds'));dock.append(detail);
   for(const id of ['roleBrief','unitMechanics','odds'])move($(id),detail);
   const nav=node('div','mobileActionNav'),back=node('button','mobileActionsBack','‹'),more=node('button','mobileActionsMore','›');
   back.setAttribute('aria-label','Previous actions');more.setAttribute('aria-label','More actions');
@@ -97,7 +99,10 @@
   const mobile=!matchMedia('(min-width:1100px)').matches&&state.ruleset==='dsl';
   if(mobile){mount();dock.hidden=!!playbackSession;dock.inert=!!playbackSession;
    const unit=state.units.find(u=>u.id===selected&&u.hp>0);
-   $('mobileOrderToggle').textContent=unit?(state.naval_version?`${unitCodes[unit.kind]} ${unit.platoon}${unit.number} · ${unit.ap} AP · ${String.fromCharCode(65+unit.pos[0])}${unit.pos[1]+1}`:`${unitName(unit)} · ${String.fromCharCode(65+unit.pos[0])}${unit.pos[1]+1} · ${unit.ap} AP${unit.pinned?' · PINNED':''}`):'Select a unit';
+   const title=node('strong',null,unit?unitTypeName(unit):'Select a unit');title.className='selected-unit-name';
+   const meta=node('span',null,unit?`${unit.platoon?unit.platoon+unit.number+' · ':''}${unit.ap} AP · ${unit.reserve?'Reserve':String.fromCharCode(65+unit.pos[0])+String(unit.pos[1]+1)}${unit.pinned?' · PINNED':''}`:'Tap a counter on the map');meta.className='selected-unit-meta';
+   $('mobileOrderToggle').replaceChildren(title,meta);
+   $('unitDetailTitle').textContent=unit?unitName(unit):'Unit details & odds';
    $('mobileOrderToggle').setAttribute('aria-label',`${unit?unitName(unit)+'. ':''}${$('mobileOrderToggle').textContent}. Open unit details and odds`);
    $('mobileOrderToggle').disabled=!unit;
    if(selected!==lastSelection||target!==lastTarget||state.revision!==lastRevision)$('orders').scrollLeft=0;

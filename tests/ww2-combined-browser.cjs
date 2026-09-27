@@ -16,9 +16,9 @@ let browser;
  assert.ok(await p.locator('#map .fog-layer polygon').count()>0);
  assert.ok(await p.locator('#map .unit.de').count()<20);
  await p.locator('#platoonFilters button[data-platoon="HQ"]').click();
- await p.locator('#roster button').filter({hasText:'CO HQ'}).click();
+ await p.locator('#roster button').filter({hasText:'Commander'}).click();
  assert.ok(await p.locator('#map .commander-star').count()>0);
- await p.locator('#roster button').filter({hasText:'PA HQ7'}).click();
+ await p.locator('#roster button').filter({hasText:/Paratroopers.*HQ7/}).click();
  assert.match(await p.locator('#mobileOrderToggle').textContent(),/Paratroopers/);
  await p.locator('#airdrop').click();assert.ok(await p.locator('#map .landing-zone').count()>0);
  await p.evaluate(()=>document.querySelector('#map .landing-zone').dispatchEvent(new MouseEvent('click',{bubbles:true})));
@@ -29,6 +29,14 @@ let browser;
  assert.ok(Math.abs(stable[0]-stable[1])<=1);
  for(const width of [320,390,1440]){
   await p.setViewportSize({width,height:900});await p.waitForTimeout(200);
+  for(const [kind,label,role] of [['scout','Recon team',/concealed/],['engineer','Engineers',/smoke and grenades/]]){
+   const geometry=await p.evaluate(kind=>{const before=$('mapWrap').getBoundingClientRect().top;chooseUnit(state.units.find(u=>u.side===state.side&&u.kind===kind));return [before,$('mapWrap').getBoundingClientRect().top];},kind);
+   if(width<1100){assert.ok(Math.abs(geometry[0]-geometry[1])<=1);assert.equal(await p.locator('.selected-unit-name').textContent(),label);assert.ok(await p.locator('.selected-unit-name').evaluate(e=>e.scrollWidth<=e.clientWidth));}
+   assert.equal(await p.locator('#roster .active .roster-unit-name').textContent(),label);
+   assert.match(await p.locator('#unitPurpose').textContent(),role);assert.equal(await p.locator('#unitPurpose').isVisible(),true);
+   await p.waitForFunction(()=>document.querySelector('#map .unit.selected .unit-bitmap')?.classList.contains('bitmap-ready'));
+   assert.match(await p.locator('#map .unit.selected .unit-bitmap').getAttribute('href'),new RegExp(kind+'-v1.webp'));
+  }
   await p.screenshot({path:path.join(temp,`combined-${width}.png`),fullPage:true});
   assert.ok(await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),JSON.stringify(await p.evaluate(()=>({width:innerWidth,scroll:document.documentElement.scrollWidth,wide:[...document.querySelectorAll('body *')].filter(e=>e.getBoundingClientRect().right>innerWidth+1&&getComputedStyle(e).position!=='absolute').slice(0,15).map(e=>[e.tagName,e.id,e.className?.baseVal||e.className,e.getBoundingClientRect().width])}))));
   if(width<1100)assert.ok(await p.evaluate(()=>$('mobileOrderDock').getBoundingClientRect().bottom<=$('mapWrap').getBoundingClientRect().top));
@@ -46,7 +54,7 @@ let browser;
  assert.equal(await p.locator('#map .insignia-halftrack').count(),2);
  await p.setViewportSize({width:320,height:844});
  await p.locator('#platoonFilters button[data-platoon="HQ"]').click();
- await p.locator('#roster button').filter({hasText:'HT HQ7'}).click();
+ await p.locator('#roster button').filter({hasText:/Half-track section.*HQ7/}).click();
  await p.screenshot({path:path.join(temp,'halftrack-mobile.png'),fullPage:true});
  assert.deepEqual(errors,[]);
  console.log('Combined arms: mobile/desktop, reserve landing, stable map, fog replay, save passed. '+temp);

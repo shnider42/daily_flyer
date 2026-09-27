@@ -21,11 +21,11 @@ c=sqlite3.connect(sys.argv[1]);r=c.execute('select state from match where code=?
  assert.match(await p.locator('.team-legend').textContent(),/Japanese/);
  assert.doesNotMatch(await p.locator('#turnBanner').textContent(),/German/);
  assert.equal(await p.locator('#battleNumber').isVisible(),true);assert.match(await p.locator('#battleNumber').textContent(),new RegExp(code));
- await p.locator('#roster button').filter({hasText:'DD A5'}).click();
+ await p.locator('#roster button[data-unit-id="us4"]').click();
  assert.ok(await p.locator('#map .move-beacon').count()>0);
  assert.equal(await p.locator('#map .hex.move').first().evaluate(e=>getComputedStyle(e).fill),'rgb(183, 244, 91)');
  await p.screenshot({path:path.join(temp,'midway-movement-390.png'),fullPage:true});
- await p.locator('#roster button').filter({hasText:'CV A1'}).click();await p.locator('#recon').click();
+ await p.locator('#roster button[data-unit-id="us0"]').click();await p.locator('#recon').click();
  assert.ok(await p.locator('#map .recon-choice').count()>0);
  await p.evaluate(()=>document.querySelector('[aria-label="Search G7"]').dispatchEvent(new MouseEvent('click',{bubbles:true})));
  await p.waitForFunction(()=>!busy&&state.revision===2);

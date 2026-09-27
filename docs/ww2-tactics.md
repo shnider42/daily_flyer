@@ -1,5 +1,21 @@
 # Village Crossing — expanded rules
 
+## Unit identification and specialist artwork
+
+Rosters now use full unit names instead of role codes. `scout` / SC is displayed
+as **Recon team**; engineers, anti-tank teams/guns and naval classes are spelled
+out too. Mobile selection separates the full name from unit ID, AP and location,
+with a short plain-language purpose below it. The purpose stays visible in Simple
+view. The details dialog also names the selected unit. The mobile dock reserves
+a fixed height across selections, preserving the map's screen position.
+
+Engineers, recon, half-tracks, anti-tank infantry and stationary anti-tank guns now
+use the same original transparent raster style as the ships and tanks. Existing
+rank insignia and reference-based MG artwork are retained. Classic map counters
+keep compact codes for space; the selection panel and roster explain them without
+requiring players to memorize abbreviations. The artwork toggle, hit targets,
+selection/status overlays, game rules and saved positions are unchanged.
+
 ## Midway naval sandbox
 
 ### Island and readability update
