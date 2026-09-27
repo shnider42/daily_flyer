@@ -1,0 +1,61 @@
+#dadModeHome{display:none}.home-screen #dadModeHome{display:block;font-size:13px;letter-spacing:0;white-space:nowrap}
+#playTools #dadModeToggle{font-size:13px;min-height:44px;font-weight:750}
+.dad-unit-portrait{display:block;width:110px;height:104px;flex:none;pointer-events:none;overflow:hidden}
+.dad-unit-portrait .unit rect,.dad-unit-portrait .selection-brackets{filter:none!important}
+#dadUnitDetails .dad-unit-portrait{width:180px;height:170px;margin:auto}#dadUnitDetails>button{display:block;margin:0 0 12px auto}#dadUnitDetails h2{font-size:26px}
+.dad-mode #battleTooltip{max-width:min(360px,calc(100vw - 16px));font-size:16px;line-height:1.45}
+.dad-mode #battleTooltip>strong{font-size:19px}
+.dad-mode #battleTooltip .dad-unit-portrait{width:132px;height:120px;margin:0 auto 8px}
+.dad-mode button,.dad-mode select{min-height:48px;font-size:16px}
+.dad-mode :is(dialog p,dialog li,#historyHelp,#roleBrief,#unitPurpose,#hint){font-size:16px;line-height:1.45}
+.dad-mode #playTools button{font-size:14px;min-height:48px;width:auto}
+.dad-mode #roster .roster-unit-name{font-size:17px;line-height:1.3}
+.dad-mode #roster .roster-unit-state,.dad-mode .desktop-unit-meta{font-size:14px;line-height:1.4}
+.dad-mode #orders .action-name{font-size:17px;line-height:1.3}
+.dad-mode #orders .action-purpose{font-size:14px;line-height:1.35}
+.dad-mode #orders .action-cost{font-size:13px}
+.dad-mode #orders .tactical-action{min-height:76px;padding:10px;flex-basis:100%}
+.dad-mode #selection{font-size:18px}
+.dad-mode .desktop-panel-title{font-size:18px}
+.dad-mode.desktop-mode .desktop-layout{grid-template-columns:250px minmax(280px,1fr) 330px}
+.dad-mode #mobileBattleScreen{grid-template-rows:56px minmax(0,1fr) 52px 194px}
+.dad-mode #mobileBattleStatus strong{font-size:16px;line-height:20px}
+.dad-mode #mobileBattleStatus span{font-size:12px;line-height:16px}
+.dad-mode #mobileBattleTop button{font-size:14px;min-height:48px}
+.dad-mode #mobileUnitNav button{font-size:14px;min-height:48px}
+.dad-mode #mobileOrderDock #mobileOrderHead{height:94px;align-items:center}
+.dad-mode #mobileOrderToggle{display:grid;grid-template-columns:76px minmax(0,1fr);grid-template-rows:auto auto;column-gap:8px;text-align:left;align-content:center}
+.dad-mode #mobileOrderToggle .dad-unit-portrait{grid-column:1;grid-row:1/3;width:76px;height:78px}
+.dad-mode #mobileOrderToggle .selected-unit-name{grid-column:2;font-size:17px;line-height:21px;white-space:normal}
+.dad-mode #mobileOrderToggle .selected-unit-meta{grid-column:2;font-size:13px;line-height:17px;white-space:normal}
+.dad-mode #mobileOrderHead #end{font-size:14px;min-height:48px;padding:8px}
+.dad-mode #mobileOrderBody #hint{height:44px;font-size:14px;line-height:20px;margin-bottom:4px;overflow:auto}
+#dadOrdersOpen{width:100%;min-height:48px;font-size:17px;font-weight:800;background:#2b4c3c;color:#fff7df;border:0}
+.dad-mode #dadOrders{max-width:720px;width:calc(100% - 16px);padding:14px}
+.dad-mode #dadOrders .mobile-sheet-heading h2{font-size:22px}
+.dad-mode #dadOrders .mobile-sheet-heading button{font-size:15px}
+.dad-mode #dadOrders #orders{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:8px;padding:0;border:0}
+.dad-mode #dadOrders #orders>.order-buttons,.dad-mode #dadOrders #commandOrders{display:contents}
+.dad-mode #dadOrders :is(#selection,#commandOrders p){display:none}
+.dad-mode #dadOrders #orders .tactical-action{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:4px;min-height:94px;margin:0;width:100%;align-content:start}
+.dad-mode #dadOrders .action-icon{display:none}
+.dad-mode #dadOrders .action-copy{display:contents}
+.dad-mode #dadOrders .action-name{grid-column:1/-1;font-size:17px;overflow-wrap:anywhere}
+.dad-mode #dadOrders .action-cost{grid-column:1/-1;grid-row:3;justify-self:start;padding:2px;font-size:12px}
+.dad-mode #dadOrders .action-purpose{grid-column:1/-1;grid-row:2;font-size:14px;margin:0}
+.dad-mode #mobileRoster #roster{grid-template-columns:1fr}
+.dad-mode #mobileBattleMenu #playTools button{font-size:15px;min-height:48px}
+.dad-mode #mobileBattleMenu #missionHint{font-size:15px}
+.dad-mode .mobile-sheet-heading button{font-size:15px;min-height:48px}
+@media(max-height:520px) and (min-width:650px) and (max-width:1099px){
+ .dad-mode #mobileBattleScreen{grid-template-rows:52px minmax(0,1fr) 52px;grid-template-columns:minmax(0,1fr) 370px}
+ .dad-mode #dadOrders{max-width:none}.dad-mode #dadOrders #orders{grid-template-columns:repeat(3,minmax(0,1fr))}
+}
+@media(max-width:359px){
+ .dad-mode #mobileOrderToggle{grid-template-columns:60px minmax(0,1fr);gap:5px}.dad-mode #mobileOrderToggle .dad-unit-portrait{width:60px;height:74px}
+ .dad-mode #mobileOrderToggle .selected-unit-name{font-size:16px;line-height:19px}
+ .dad-mode #mobileOrderToggle .selected-unit-meta{font-size:12px;line-height:15px}
+ .dad-mode #mobileOrderHead #end{font-size:12px;padding:5px}
+ .dad-mode #dadOrders .action-name{font-size:16px}.dad-mode #dadOrders .action-purpose{font-size:13px}
+ .home-screen>header{flex-wrap:wrap}.home-screen #dadModeHome{margin-left:auto}
+}

@@ -7,7 +7,7 @@ exports.tap=async(page,locator)=>{
  });
  await locator.waitFor({state:'attached'});
  const target=await locator.evaluate(e=>e.closest('dialog')?.id||null);
- const routes={mobileBattleMenu:'mobileMenuOpen',mobileRoster:'mobileRosterOpen',mobileGuide:'mobileGuideOpen',mobileUnitDetails:'mobileOrderToggle'};
+ const routes={mobileBattleMenu:'mobileMenuOpen',mobileRoster:'mobileRosterOpen',mobileGuide:'mobileGuideOpen',mobileUnitDetails:'mobileOrderToggle',dadOrders:'dadOrdersOpen',dadUnitDetails:'mobileOrderToggle'};
  for(const id of Object.keys(routes)){
   const sheet=page.locator('#'+id);
   if(id!==target&&await sheet.count()&&await sheet.evaluate(e=>e.open))await page.locator('#'+id+'Close').click();

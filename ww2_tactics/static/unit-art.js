@@ -14,15 +14,16 @@
  function el(tag,attrs,text){const n=document.createElementNS(ns,tag);for(const [k,v] of Object.entries(attrs))n.setAttribute(k,v);if(text)n.textContent=text;return n;}
  function size(svg){const width=svg.viewBox.baseVal.width;svg.classList.toggle('compact-unit-art',!!width&&svg.getBoundingClientRect().width/width*40<40);}
  const observer=new ResizeObserver(entries=>entries.forEach(e=>size(e.target)));
- function decorate(svg,units){
+ function decorate(svg,units,force=false){
   if(!svg)return;
-  if(!observed.has(svg)){observer.observe(svg);observed.add(svg);}
+  if(!force&&!observed.has(svg)){observer.observe(svg);observed.add(svg);}
   const byId=new Map(units.map(u=>[u.id,u]));
   for(const counter of svg.querySelectorAll('.unit')){
-   if(counter._illustrated===illustrated)continue;
-   counter._illustrated=illustrated;
+   const show=force||illustrated;
+   if(counter._illustrated===show)continue;
+   counter._illustrated=show;
    counter.querySelector('.unit-art')?.remove();counter.querySelector('.unit-art-title')?.remove();
-   const u=byId.get(counter.dataset.unitId);if(!illustrated||!u)continue;
+   const u=byId.get(counter.dataset.unitId);if(!show||!u)continue;
    const [cx,cy]=center(...u.pos),art=el('g',{class:`unit-art${u.pinned?' is-pinned':''}`,transform:`translate(${cx} ${cy})`,'aria-hidden':'true'});
    const title=el('title',{class:'unit-art-title'},`${sideLabel(u.side)} ${unitName(u)} · ${u.hp} strength · ${u.ap} AP${u.pinned?' · pinned':''}${u.entrenched?' · dug in':''}${u.overwatch?' · overwatch':''}`);counter.prepend(title);
    art.append(el('path',{class:'portrait-panel',d:'M-17-14H16Q18-14 18-12V3H-18V-12Q-18-14-17-14Z'}));
@@ -174,7 +175,7 @@
    // Art covers only the old name area. Strength/AP, platoon and hit targets stay intact.
    const name=counter.querySelector('.unit-name');if(name)counter.insertBefore(art,name);else counter.append(art);
   }
-  size(svg);
+  if(!force)size(svg);
  }
  function sync(){
   document.body.classList.toggle('illustrated-units',illustrated);
@@ -185,6 +186,12 @@
   const replay=typeof playbackSession!=='undefined'&&playbackSession;
   if(replay)decorate(document.getElementById('playbackMap'),replay.frames[replay.index][replay.phase].units);
  }
+ // Reuse the real artwork for accessible close-ups, including off-map reserves.
+ window.makeUnitPortrait=u=>{
+  const [x,y]=center(...u.pos),svg=el('svg',{class:'dad-unit-portrait illustrated-units',viewBox:`${x-26} ${y-25} 52 50`,'aria-hidden':'true',focusable:'false'});
+  const counter=el('g',{class:`unit ${u.side}`,'data-unit-id':u.id});
+  counter.append(el('rect',{x:x-22,y:y-19,width:44,height:40,rx:3}));svg.append(counter);decorate(svg,[u],true);return svg;
+ };
  const button=document.createElement('button');button.id='unitStyleToggle';button.type='button';button.title='Switch unit counters independently of terrain';
  document.getElementById('playTools').append(button);
  button.onclick=()=>{illustrated=!illustrated;try{localStorage.setItem('ww2-unit-style',illustrated?'illustrated':'classic');}catch{}sync();};

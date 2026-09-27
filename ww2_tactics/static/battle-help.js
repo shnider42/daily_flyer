@@ -57,7 +57,7 @@ window.orderHelp=(id,u,legal,simple)=>{
   }
   return null;
  }
- function show(n){const lines=content(n);if(!lines){hide();return;}if(anchor!==n)hide();anchor=n;n.setAttribute('aria-describedby',tip.id);tip.replaceChildren(...lines.filter(Boolean).map((s,i)=>{const e=document.createElement(i?'p':'strong');e.textContent=s;return e;}));tip.hidden=false;place();}
+ function show(n){const lines=content(n);if(!lines){hide();return;}if(anchor!==n)hide();anchor=n;n.setAttribute('aria-describedby',tip.id);tip.replaceChildren(...lines.filter(Boolean).map((s,i)=>{const e=document.createElement(i?'p':'strong');e.textContent=s;return e;}));if(window.ww2Dad?.enabled&&n.dataset.unitId){const u=state.units.find(u=>u.id===n.dataset.unitId);if(u&&window.makeUnitPortrait)tip.prepend(makeUnitPortrait(u));}tip.hidden=false;place();}
  const selector='#map > .hex,#map .unit,#roster [data-unit-id],.tactical-action,#undoOrder,#redoOrder';
  document.addEventListener('pointerover',e=>{if(e.pointerType!=='mouse'||!matchMedia('(hover:hover)').matches)return;const n=e.target.closest(selector);point={x:e.clientX,y:e.clientY};if(n)show(n);else hide();});
  document.addEventListener('pointermove',e=>{if(!tip.hidden&&e.pointerType==='mouse'){point={x:e.clientX,y:e.clientY};place();}});
@@ -74,5 +74,6 @@ window.orderHelp=(id,u,legal,simple)=>{
   if(h.redo_required&&!playbackSession){$('hint').textContent='Dice already revealed: redo to keep the same result before giving new orders.';$('end').disabled=true;}
  }
  document.addEventListener('ww2:render',sync);document.addEventListener('ww2:playback',sync);
+ document.addEventListener('ww2:dad-mode',hide);
  new MutationObserver(()=>{if($('game').hidden)hide();}).observe($('game'),{attributes:true,attributeFilter:['hidden']});
 })();

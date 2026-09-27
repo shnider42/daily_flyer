@@ -40,6 +40,18 @@ explain the takeback limits.
 
 ## Mobile battle screen
 
+**Dad mode** is an optional browser-local preference available on the home screen and
+in battle settings. It enlarges key text, controls and roster labels. Desktop unit hover
+help includes a large illustration. Mobile selection shows an enlarged unit portrait;
+tap the selected-unit card for a close-up with its full name, role and status. A separate
+Orders panel provides roomy action cards and closes when choosing an action, leaving
+the map clear for targeting. The map frame stays fixed during selection. Switching the
+mode off restores the regular layout. Simple view, terrain, unit art and learning
+preferences remain independent; close-ups always use illustrations. Game rules, saved
+matches and the opponent's display are unaffected. `tests/ww2-dad-mode-browser.cjs`
+covers persistence, desktop hover, mobile layouts, targeting, Midway portraits and
+restoration of the regular interface.
+
 DSL battles below 1100px use a single dynamic viewport: a compact turn/round bar,
 stable map, ready-unit navigation and all available actions. Portrait puts controls
 below the map; short landscape screens put them beside it. Safe-area padding and

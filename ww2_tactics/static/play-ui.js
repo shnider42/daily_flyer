@@ -54,11 +54,13 @@
  }
  const node=(tag,id,text)=>{const n=document.createElement(tag);if(id)n.id=id;if(text)n.textContent=text;return n;};
  $('selection').after(node('p','unitPurpose','Select a unit to see its name and role'));
- let dock=null,screen=null,anchors=[],sheets=[],lastSimple=null,oldNext=null,guidePresented=null,noticeKey=null,wasPlaying=false;
+ let dock=null,screen=null,anchors=[],sheets=[],lastSimple=null,oldNext=null,guidePresented=null,noticeKey=null,wasPlaying=false,dadOrdersAnchor=null;
+ function restoreDadOrders(){if(dadOrdersAnchor){dadOrdersAnchor.replaceWith($('orders'));dadOrdersAnchor=null;}$('dadOrders')?.close();}
  function move(n,to){const anchor=document.createComment('mobile orders anchor');n.before(anchor);anchors.push([n,anchor]);to.append(n);}
  function openSheet(id){if(playbackSession){playbackSession.paused=true;clearTimeout(playbackTimer);$('pausePlayback').textContent='Resume';}for(const sheet of sheets)if(sheet.id!==id)sheet.close();const sheet=$(id);if(sheet&&!sheet.open)sheet.showModal();}
  function sheet(id,title){const d=node('dialog',id);d.className='mobile-battle-sheet';d.setAttribute('aria-label',title);const h=node('div');h.className='mobile-sheet-heading';const close=node('button',id+'Close','Back to battle');close.onclick=()=>d.close();h.append(node('h2',null,title),close);d.append(h);document.body.append(d);sheets.push(d);return d;}
  function unmount(){
+  restoreDadOrders();
   for(const s of sheets)s.close();
   if(oldNext){$('nextUnit').onclick=oldNext;oldNext=null;$('nextUnit').textContent='Next unit →';$('nextUnit').removeAttribute('aria-label');}
   for(const [n,a] of anchors)a.replaceWith(n);anchors=[];
@@ -91,9 +93,12 @@
   move($('mapWrap'),screen);
   dock=node('section','mobileOrderDock');dock.setAttribute('aria-label','Selected unit orders');
   const head=node('div','mobileOrderHead'),toggle=node('button','mobileOrderToggle','Select a unit');
-  toggle.setAttribute('aria-controls','mobileUnitDetails');toggle.setAttribute('aria-haspopup','dialog');toggle.title='Unit details and odds';toggle.onclick=()=>openSheet('mobileUnitDetails');head.append(toggle);
+  toggle.setAttribute('aria-controls','mobileUnitDetails');toggle.setAttribute('aria-haspopup','dialog');toggle.title='Unit details and odds';toggle.onclick=()=>{if(window.ww2Dad?.enabled)window.ww2Dad.inspect();else openSheet('mobileUnitDetails');};head.append(toggle);
   const body=node('div','mobileOrderBody');dock.append(head,body);screen.append(dock);
   move($('end'),head);move($('orders'),body);
+  const dadOpen=node('button','dadOrdersOpen','Orders');dadOpen.hidden=true;dadOpen.setAttribute('aria-controls','dadOrders');dadOpen.setAttribute('aria-haspopup','dialog');dadOpen.onclick=()=>openSheet('dadOrders');body.append(dadOpen);
+  const dadOrders=sheet('dadOrders','Unit orders');
+  dadOrders.addEventListener('click',event=>{if(event.target.closest('#orders button:not(:disabled)'))dadOrders.close();},true);
   move($('hint'),body);body.prepend($('hint'));
   const detail=sheet('mobileUnitDetails','Unit details');detail.append(node('h2','unitDetailTitle','Unit details & odds'));
   for(const id of ['unitPurpose','roleBrief','unitMechanics','odds','simpleOutcome'])move($(id),detail);
@@ -132,13 +137,19 @@
   if(!matchMedia('(min-width:1100px)').matches&&window.ww2Desktop?.active)return;
   const mobile=!matchMedia('(min-width:1100px)').matches&&state.ruleset==='dsl';
   if(mobile){mount();dock.hidden=!!playbackSession;dock.inert=!!playbackSession;document.body.classList.toggle('mobile-replaying',!!playbackSession);
+   const dad=!!window.ww2Dad?.enabled;$('dadOrdersOpen').hidden=!dad;
+   if(dad&&!dadOrdersAnchor){dadOrdersAnchor=document.createComment('Dad orders anchor');$('orders').before(dadOrdersAnchor);$('dadOrders').append($('orders'));}
+   if(!dad)restoreDadOrders();
    const unit=state.units.find(u=>u.id===selected&&u.hp>0);
    const title=node('strong',null,unit?unitTypeName(unit):'Select a unit');title.className='selected-unit-name';
    const meta=node('span',null,unit?`${unit.platoon?unit.platoon+unit.number+' · ':''}${unit.hp}${unit.max_hp?'/'+unit.max_hp:''} ${state.naval_version?'HP':'strength'} · ${unit.ap} AP${unit.carrier_id?' · ABOARD':unit.reserve?' · RESERVE':unit.pinned?' · PINNED':''}`:'Tap the map or open Your units');meta.className='selected-unit-meta';
    $('mobileOrderToggle').replaceChildren(title,meta);
+   if(dad){const inspected=state.units.find(u=>u.id===target&&u.hp>0)||unit;if(inspected){const portrait=window.makeUnitPortrait?.(inspected);if(portrait)$('mobileOrderToggle').prepend(portrait);if(inspected!==unit){title.textContent=`Target: ${unitTypeName(inspected)}`;meta.textContent=`${sideLabel(inspected.side)} · ${inspected.hp} ${state.naval_version?'HP':'strength'} · your unit: ${unit?unitTypeName(unit):'none'}`;}}}
    $('unitDetailTitle').textContent=unit?unitName(unit):'Unit details & odds';
-   $('mobileOrderToggle').setAttribute('aria-label',`${unit?unitName(unit)+'. ':''}${$('mobileOrderToggle').textContent}. Open unit details and odds`);
-   $('mobileOrderToggle').disabled=!unit;
+   $('mobileOrderToggle').setAttribute('aria-label',`${!dad&&unit?unitName(unit)+'. ':''}${$('mobileOrderToggle').textContent}. ${dad?'Open enlarged unit picture and details':'Open unit details and odds'}`);
+   $('mobileOrderToggle').disabled=!unit&&!(dad&&state.units.some(u=>u.id===target));
+   $('mobileOrderToggle').setAttribute('aria-controls',dad?'dadUnitDetails':'mobileUnitDetails');
+   $('dadOrders').querySelector('h2').textContent=unit?unitName(unit):'Select your unit';
    // The fixed mobile grid never scrolls horizontally. Writing scrollLeft here
    // forced layout halfway through updating a large SVG battlefield.
    $('nextUnit').textContent='›';$('nextUnit').setAttribute('aria-label','Next ready unit');
@@ -155,6 +166,7 @@
   styleActions();
   if(dock){
    const columns=innerWidth<360?2:3,buttons=[...$('orders').querySelectorAll('button')].filter(b=>!b.hidden&&!b.closest('[hidden]'));
+   $('dadOrdersOpen').disabled=!!playbackSession||!buttons.length;$('dadOrdersOpen').textContent=buttons.length?`Orders · ${buttons.length} available`:'Select a unit for orders';
    const rows=String(Math.max(columns===2?4:3,Math.ceil(buttons.length/columns)));
    if(screen.style.getPropertyValue('--order-rows')!==rows)screen.style.setProperty('--order-rows',rows);
    if(state.last_combat?.revision===state.revision&&!smokeMode&&!barrageMode&&!target&&!$('hint').textContent.startsWith('Tap a marked'))$('hint').textContent=state.last_combat.result;
@@ -184,7 +196,7 @@
  $('lessonNext').onclick=()=>{if(!guideActive())return;clearFocus();prefs.guide.since=state.revision;if(++prefs.guide.step===lessons.length){prefs.guide=null;notify('Training complete. Keep playing—and reopen the guide any time.');}save();sync();};
  $('lessonBack').onclick=()=>{if(!guideActive())return;clearFocus();prefs.guide.since=state.revision;prefs.guide.step=Math.max(0,prefs.guide.step-1);save();sync();};
  $('lessonExit').onclick=()=>{clearFocus();prefs.guide=null;save();sync();};
- $('lessonShow').onclick=()=>{if(!guideActive())return;clearFocus();const selector=lessons[prefs.guide.step][2];const target=document.querySelector(dock&&selector==='#map'?'#mapWrap':selector);target?.classList.add('lesson-focus');if(dock){$('mobileGuide').close();if(target?.closest('#mobileBattleMenu'))openSheet('mobileBattleMenu');}else target?.scrollIntoView({block:'center',behavior:'auto'});};
+ $('lessonShow').onclick=()=>{if(!guideActive())return;clearFocus();const selector=lessons[prefs.guide.step][2];const target=document.querySelector(dock&&selector==='#map'?'#mapWrap':selector);target?.classList.add('lesson-focus');if(dock){$('mobileGuide').close();if(target?.closest('#mobileBattleMenu'))openSheet('mobileBattleMenu');else if(target?.closest('#dadOrders'))openSheet('dadOrders');}else target?.scrollIntoView({block:'center',behavior:'auto'});};
  $('learnStart').onclick=()=>run(async()=>{remember(await api('/api/match',{ruleset:'dsl',opponent:'computer',scenario:'village'}));prefs.simple=true;prefs.guide={code:session.code,battle:1,step:0,since:0};save();});
  document.addEventListener('ww2:before-layout',unmount);
  document.addEventListener('ww2:render',sync);
