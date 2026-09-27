@@ -395,11 +395,14 @@ share a player key and are not two independent players).
 - **Units: illustrated / classic** is independent of the terrain style and persists locally.
   Illustrated counters follow the supplied reference insignia: US infantry gold chevron,
   German infantry green roundel/diamond, US leader silver double bars, German leader
-  green three-stripe patch with foliage. MGs retain the gunner/bipod artwork;
+  green three-stripe patch with foliage. US MGs have a broad receiver, left-facing
+  perforated barrel and tripod; German MGs have a shoulder stock, right-facing
+  barrel jacket and forward bipod, following the supplied weapon references. Tighter
+  insignia spacing and consistent outlines improve readability at phone scale;
   army colors/shapes, strength/AP text, hit areas and platoon labels remain unchanged.
   Selection adds brackets and a corner tab; pinned troops have a subdued portrait and pin
   badge; sandbags mark dug-in troops and an eye marks overwatch (no facing cone). Small
-  rendered counters hide fine uniform details automatically; zoom reveals them. No idle
+  rendered counters hide fine engraving details automatically; zoom reveals them. No idle
   animation. Replay artwork uses the recorded frame's statuses rather than the live board.
 
 - **Terrain: detailed / basic** switches decorative SVG artwork immediately, including

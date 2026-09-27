@@ -22,11 +22,11 @@
    const path=(d,cls,parent=drawing)=>add('path',{d,class:cls},parent);
    if(u.kind==='squad'&&u.side==='us'){
     drawing.classList.add('insignia-us-infantry');
-    path('M-10 0L-2-7 2-14 6-7 14 0V4L3-5 2-7 1-5-10 4Z','rank-gold');
-    path('M-8 0L0-8 2-12 4-8 12 0','rank-gold-highlight insignia-detail');
+    path('M-9-2L2-13 13-2V2L2-8-9 2Z','rank-gold');
+    path('M-8-2L2-12 12-2','rank-gold-highlight insignia-detail');
    }else if(u.kind==='squad'){
     drawing.classList.add('insignia-de-infantry');
-    add('circle',{cx:2,cy:-6,r:9,class:'rank-roundel'});
+    add('circle',{cx:2,cy:-6,r:8,class:'rank-roundel'});
     path('M2-12L8-6 2 0-4-6Z','rank-diamond');
     path('M2-11L7-6H2Z','rank-silver-light');
     path('M2-11L-3-6H2Z','rank-silver-mid');
@@ -35,27 +35,41 @@
     add('circle',{cx:2,cy:-6,r:1,class:'rank-rivet'});
    }else if(u.kind==='leader'&&u.side==='us'){
     drawing.classList.add('insignia-us-leader');
-    for(const x of [-6,6]){
-     path(`M${x}-14h6V3h-6Z`,'rank-silver-bar');
-     path(`M${x+1}-13h4v3l-4 2Z`,'rank-silver-light');
-     path(`M${x+1} 2V-8l1-1V1h3v1Z`,'rank-silver-dark');
+    for(const x of [-6,4]){
+     path(`M${x}-13h6V2h-6Z`,'rank-silver-bar');
+     path(`M${x+1}-12h4v2l-4 2Z`,'rank-silver-light');
+     path(`M${x+1} 1V-8l1-1V0h3v1Z`,'rank-silver-dark');
     }
    }else if(u.kind==='leader'){
     drawing.classList.add('insignia-de-leader');
-    path('M-10-15H15V3H-10Z','rank-green-patch');
-    for(const y of [-7,-3,1])path(`M-8 ${y}H13`,'rank-green-stripe');
+    path('M-10-14H14V2H-10Z','rank-green-patch');
+    for(const y of [-7,-3.5,0])path(`M-8 ${y}H12`,'rank-green-stripe');
     path('M-7-11Q2-9 11-12','rank-branch');
     for(const [x,y] of [[-6,-12],[-2,-11],[2,-11],[6,-12],[10,-13]]){
      path(`M${x} ${y+1}q-3-4-4-2q1 3 4 2M${x} ${y+1}q3-4 4-2q-1 3-4 2`,'rank-leaf');
     }
+   }else if(u.side==='us'){
+    drawing.classList.add('insignia-us-mg');
+    // Broad receiver, left-facing ventilated barrel and a three-legged mount.
+    path('M1-5V-2M1-2L-6 2M1-2L8 1M1-2L15 3','mg-mount');
+    path('M-7 2H-4M7 1H9M14 3H16','mg-feet');
+    path('M-16-8H-1V-5H-16Z M-1-10H11V-4H-1Z M11-8H14V-6H11Z','mg-metal');
+    path('M12-6H14L15-3H13Z','mg-grip');
+    path('M0-11H1V-10M8-11H10V-10','mg-sight');
+    for(const x of [-12,-9,-6,-3])add('circle',{cx:x,cy:-6.5,r:.65,class:'mg-vent'});
+    path('M1-9H10M-15-7.8H-2M2-7H5V-6H2','mg-engraving insignia-detail');
    }else{
-    path('M-13-8L-10-9-8-6-11-5-13-6Z','portrait-face');
-    path('M-15-8Q-15-12-12-12Q-9-12-8-8Z','portrait-helmet');
-    path('M-13-5L-9-5-5-1-10 1H-16L-17-1Z','portrait-coat');
-    path('M-10-4L-7-2-3-5','portrait-arm');
-    path('M-6-6H4V-3H-6Z M4-5H16 M9-4L5 3M9-4L13 3M-6-5L-10-3','portrait-gun');
-    path('M-2-7H2V-6M1-3V1H-2V-3','portrait-gun');
-    path('M5-5H6M8-5H9M11-5H12M-1-2V0','portrait-detail');
+    drawing.classList.add('insignia-de-mg');
+    // Shoulder stock, long barrel jacket and forward bipod distinguish the German MG.
+    path('M10-5L8 2M10-5L13 2','mg-mount');
+    path('M7 2H9M12 2H14','mg-feet');
+    path('M-16-10L-12-8H-9V-5H-12L-16-3Z','mg-grip');
+    path('M-9-8H-4L-2-9H2V-8H13L14-7H16V-5H14L13-4H2V-5H-9Z','mg-metal');
+    path('M-5-5H-2L-3-1H-5Z','mg-grip');
+    path('M-2-5V-3H0V-5','mg-trigger insignia-detail');
+    path('M11-10V-8M-7-9H-5','mg-sight');
+    for(const x of [3.5,6,8.5,11])add('rect',{x,y:-6.8,width:1.4,height:1.1,rx:.4,class:'mg-vent'});
+    path('M-8-7H-3L-1-8H1','mg-engraving insignia-detail');
    }
    art.append(el('text',{x:-16,y:-9,class:'counter-army'},u.side.toUpperCase()));
    if(u.entrenched){
