@@ -100,7 +100,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   // Reapply original map sizing and unit focus after crossing into the mobile layout.
   if(state&&!game.hidden){if(playbackSession)drawPlayback();else render();}
  }
- window.ww2Desktop={get active(){return active;},focus};
+ window.ww2Desktop={get active(){return active;},focus,zoomBy:factor=>changeZoom(zoom*factor)};
  desktop.addEventListener('change',()=>desktop.matches?activate():deactivate());
  document.addEventListener('ww2:render',sync);
  document.addEventListener('ww2:playback',()=>{if(active){document.getElementById('desktopOrderTitle').textContent='Opponent’s turn';document.getElementById('desktopPlaybackNote').hidden=false;document.getElementById('desktopActionDock').hidden=true;measure();}});

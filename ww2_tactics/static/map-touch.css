@@ -1,0 +1,4 @@
+/* Only the battlefield captures pinch/pan. Do not restrict zoom on the page. */
+#mapWrap{touch-action:none}
+#game #mapWrap.touch-camera{height:var(--touch-map-height);min-height:0;max-height:none;overflow:auto;overflow-anchor:none}
+#game #mapWrap.touch-camera #map,#game #mapWrap.touch-camera #playbackMap{width:var(--touch-map-width);height:auto;min-width:0;max-width:none;max-height:none}

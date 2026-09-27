@@ -407,6 +407,14 @@ The mobile action rail now presents one full-width card per swipe, with larger
 type/icons and an explicit action index. Its height remains fixed, and it stays
 above the map instead of obscuring hexes. Desktop action layout is unchanged.
 
+Two-finger gestures inside the battlefield zoom the map around the finger midpoint;
+one-finger dragging pans it. Page zoom remains available outside the map. The map
+viewport keeps its height during gestures, and touch-release clicks are suppressed
+after a pan/pinch. Zoom survives selection, rendering and replay; Overview/Fit map
+resets the mobile camera. Desktop touch uses the existing desktop zoom controls.
+Touch browser tests check page scale, anchor drift, accidental orders, panning,
+camera reset, small/large maps and replay.
+
 This new 24×24 operation has 20 units per side, three river crossings and a 36-round
 limit. It enables a separately saved `dsl_expansion: 1` profile and server-side fog.
 Existing scenarios, Classic rules and old saves retain their behavior.
