@@ -31,6 +31,18 @@ tables to the existing SQLite database. It stores password hashes and hashed
 keeps directory responses to summary fields. Keep `WW2_DB_PATH` on persistent
 storage: commander identities and games share that database. Spectating is deferred;
 unauthenticated visitors do not receive board state or fog-of-war information.
+
+Database reads for player-key aliases and game names reuse the request's existing
+connection. In particular, the response to a move must not open a second connection
+before committing a large state write: SQLite cache spill can hold an exclusive
+lock and cause the request to block itself. The fix preserves the existing database,
+seat keys, game state, rules and undo snapshots; no migration or new Render settings
+are needed. Genuine database contention returns a logged `503` with `Retry-After`
+and an instruction to refresh before trying again. Orders are never automatically
+replayed. `tests/test_ww2_database_locking.py` forces the exclusive-lock condition,
+checks undo/redo and concurrent revision guards, and plays five complete Midway
+rounds with growing history under the default SQLite settings.
+
 `tests/test_ww2_lobby.py` covers isolation, migration, login, recovery, ownership,
 rematches and concurrent joins. `tests/ww2-lobby-browser.cjs` exercises two games
 across independent browsers, returning login, old-seat linking and mobile layouts.

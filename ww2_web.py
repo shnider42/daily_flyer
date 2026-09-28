@@ -10,7 +10,7 @@ import re
 from contextlib import contextmanager
 
 from flask import Flask, jsonify, request, send_from_directory
-from werkzeug.exceptions import HTTPException
+from werkzeug.exceptions import HTTPException, InternalServerError
 from ww2_tactics.engine import initial, apply, options, terrain, WIDTH, HEIGHT
 from ww2_tactics.scenarios import battlefield, catalog, get_scenario
 from ww2_tactics.computer import play_turn
@@ -53,10 +53,9 @@ def create_app(db_path=None):
     def digest(token):
         return hashlib.sha256(token.encode()).hexdigest()
 
-    def identify(row):
+    def identify(db, row):
         hashed = digest(request.headers.get("Authorization", "").removeprefix("Bearer "))
-        with connect() as db:
-            alias = db.execute('SELECT owner_hash FROM player_access WHERE key_hash=?', (hashed,)).fetchone()
+        alias = db.execute('SELECT owner_hash FROM player_access WHERE key_hash=?', (hashed,)).fetchone()
         if alias:
             hashed = alias['owner_hash']
         if secrets.compare_digest(hashed, row["host"]):
@@ -67,7 +66,7 @@ def create_app(db_path=None):
 
     commander, bind_commander, battle_name, match_title, commander_side = install_lobby(app, connect, digest, identify)
 
-    def public(row, side):
+    def public(db, row, side):
         state = json.loads(row["state"])
         state['order_history'] = history_status(state, side)
         state.pop(HISTORY_KEY, None)
@@ -75,7 +74,9 @@ def create_app(db_path=None):
         state.update(code=row["code"], side=side,
                      map=board['map'], scenario={k: v for k, v in board.items() if k != 'map'})
         if not state.get('ai_side'):
-            state['match_name'] = match_title(row['code'])
+            # A large state write can hold SQLite's exclusive lock until commit.
+            # Read response metadata on that same connection, never a second one.
+            state['match_name'] = match_title(db, row['code'])
         state["legal"] = {u["id"]: options(state, u) for u in state["units"] if u["side"] == side}
         if state['order_history']['redo_required']:
             state['legal'] = {uid: {key: [] if isinstance(value, list) else False
@@ -95,6 +96,17 @@ def create_app(db_path=None):
     @app.errorhandler(HTTPException)
     def http_error(error):
         return jsonify(error=error.description), error.code
+
+    @app.errorhandler(sqlite3.OperationalError)
+    def database_error(error):
+        # The connection context has rolled back/closed before this handler runs.
+        # Do not replay an order automatically: it may involve dice or a turn end.
+        code = getattr(error, 'sqlite_errorcode', 0)
+        if (code & 0xff) in (sqlite3.SQLITE_BUSY, sqlite3.SQLITE_LOCKED):
+            app.logger.warning('Database busy on %s %s', request.method, request.path, exc_info=True)
+            return jsonify(error='The game database is temporarily busy. Refresh the game before trying again.'), 503, {'Retry-After': '1'}
+        app.logger.exception('Database failure on %s %s', request.method, request.path)
+        return http_error(InternalServerError())
 
     @app.get("/")
     def home():
@@ -176,7 +188,7 @@ def create_app(db_path=None):
                 return jsonify(code=row['code'], token=token)
             if row["guest"]:
                 return jsonify(error="Both seats are taken. Sign in as your commander to resume. Older seats need their saved browser or a MOVE code once, then can be linked to a commander."), 409
-            if identify(row) == "us":
+            if identify(db, row) == "us":
                 return jsonify(error="You already command the Americans. Open the invitation on the other phone."), 409
             state = json.loads(row["state"])
             state["ready"] = True
@@ -194,7 +206,7 @@ def create_app(db_path=None):
             row = db.execute("SELECT * FROM match WHERE code=?", (code.upper(),)).fetchone()
             if row is None:
                 return jsonify(error="This match no longer exists."), 404
-            side = identify(row)
+            side = identify(db, row)
             if not side:
                 return jsonify(error="Player key required. Rejoin using your original browser."), 403
             if request.method == "POST":
@@ -210,7 +222,7 @@ def create_app(db_path=None):
                     return jsonify(error=str(error)), 400
                 db.execute("UPDATE match SET state=? WHERE code=?", (json.dumps(state), row["code"]))
                 row = db.execute("SELECT * FROM match WHERE code=?", (row["code"],)).fetchone()
-            return jsonify(public(row, side))
+            return jsonify(public(db, row, side))
 
     @app.post("/api/match/<code>/reset")
     def reset(code):
@@ -222,11 +234,12 @@ def create_app(db_path=None):
         with connect() as db:
             db.execute("BEGIN IMMEDIATE")
             row = db.execute("SELECT * FROM match WHERE code=?", (code.upper(),)).fetchone()
-            if row is None or not identify(row) or (identify(row) != 'us' and not state.get('ai_side') and not json.loads(row['state']).get('ai_side')):
+            side = identify(db, row) if row else None
+            if not side or (side != 'us' and not state.get('ai_side') and not json.loads(row['state']).get('ai_side')):
                 return jsonify(error="Only the American host can start a new match."), 403
             # New code revokes both old seats; no accidental reuse of an old invitation.
             new_code, token = secrets.token_hex(5).upper(), secrets.token_urlsafe(32)
-            old_owner = row['host' if identify(row) == 'us' else 'guest']
+            old_owner = row['host' if side == 'us' else 'guest']
             linked = db.execute('SELECT commander_id FROM commander_seats WHERE owner_hash=?', (old_owner,)).fetchone()
             db.execute("UPDATE match SET code=?,host=?,guest=NULL,state=? WHERE code=?", (new_code, digest(token), json.dumps(state), row["code"]))
             if linked:
@@ -241,7 +254,7 @@ def create_app(db_path=None):
         with connect() as db:
             db.execute('BEGIN IMMEDIATE')
             row = db.execute('SELECT * FROM match WHERE code=?', (code.upper(),)).fetchone()
-            side = identify(row) if row else None
+            side = identify(db, row) if row else None
             if not side:
                 return jsonify(error='Player key required.'), 403
             state = json.loads(row['state'])
@@ -296,7 +309,7 @@ def create_app(db_path=None):
             state['revision'] += 1
             db.execute('UPDATE match SET state=? WHERE code=?', (json.dumps(state), row['code']))
             updated = db.execute('SELECT * FROM match WHERE code=?', (row['code'],)).fetchone()
-            return jsonify(public(updated, side))
+            return jsonify(public(db, updated, side))
 
     def secret_code(prefix):
         raw = secrets.token_hex(16).upper()
@@ -320,7 +333,7 @@ def create_app(db_path=None):
         with connect() as db:
             db.execute('BEGIN IMMEDIATE')
             row = db.execute('SELECT * FROM match WHERE code=?', (code.upper(),)).fetchone()
-            side = identify(row) if row else None
+            side = identify(db, row) if row else None
             if not side:
                 return jsonify(error='Player key required.'), 403
             value = secret_code('MOVE')
@@ -349,7 +362,7 @@ def create_app(db_path=None):
         with connect() as db:
             db.execute('BEGIN IMMEDIATE')
             row = db.execute('SELECT * FROM match WHERE code=?', (code.upper(),)).fetchone()
-            side = identify(row) if row else None
+            side = identify(db, row) if row else None
             if not side:
                 return jsonify(error='Player key required.'), 403
             state = json.loads(row['state'])

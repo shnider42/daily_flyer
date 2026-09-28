@@ -69,9 +69,8 @@ def install_lobby(app, connect, digest, identify):
             raise BadRequest('Use a game name between 3 and 64 characters.')
         return value
 
-    def title(code):
-        with connect() as db:
-            row = db.execute('SELECT name FROM lobby_names WHERE code=?', (code,)).fetchone()
+    def title(db, code):
+        row = db.execute('SELECT name FROM lobby_names WHERE code=?', (code,)).fetchone()
         return row['name'] if row else 'Multiplayer battle'
 
     def owns(db, row, player):
@@ -194,7 +193,7 @@ def install_lobby(app, connect, digest, identify):
             db.execute('BEGIN IMMEDIATE')
             player = commander(db, required=True)
             row = db.execute('SELECT * FROM match WHERE code=?', (code.upper(),)).fetchone()
-            side = identify(row) if row else None
+            side = identify(db, row) if row else None
             if not side:
                 raise Forbidden('Open this game using its saved browser or a MOVE code before linking it.')
             existing = owns(db, row, player)
@@ -210,7 +209,7 @@ def install_lobby(app, connect, digest, identify):
         with connect() as db:
             db.execute('BEGIN IMMEDIATE')
             row = db.execute('SELECT * FROM match WHERE code=?', (code.upper(),)).fetchone()
-            if not row or not identify(row):
+            if not row or not identify(db, row):
                 raise Forbidden('Only a player in this game can rename it.')
             db.execute('UPDATE lobby_names SET name=?,updated=? WHERE code=?', (name, time.time(), row['code']))
             db.execute("UPDATE match SET state=json_set(state,'$.revision',json_extract(state,'$.revision')+1) WHERE code=?", (row['code'],))
