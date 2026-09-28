@@ -25,7 +25,7 @@ async function api(path, body){
 }
 function persistSessions(){
  try{localStorage.setItem('ww2-session',JSON.stringify(session));localStorage.setItem('ww2-sessions',JSON.stringify(savedSessions));}
- catch(_){notify('Browser storage is unavailable. Keep a save code or transfer code before leaving.');}
+ catch(_){notify(session?.commander?'Browser storage is unavailable. Sign in as your commander to return to multiplayer games.':'Browser storage is unavailable. Link multiplayer to a commander, or keep a SAVE / MOVE code before leaving.');}
 }
 function remember(data){
  session=data;savedSessions=[data,...savedSessions.filter(s=>s.code!==data.code)];persistSessions();
@@ -33,8 +33,9 @@ function remember(data){
  history.replaceState(null,'','/');renderSessions();
 }
 function renderSessions(){
- $('savedSessions').hidden=!savedSessions.length;
- $('sessionList').replaceChildren(...savedSessions.map(saved=>{
+ const shortcuts=savedSessions.filter(s=>!s.commander||s.commander!==window.ww2Commander?.name);
+ $('savedSessions').hidden=!shortcuts.length;
+ $('sessionList').replaceChildren(...shortcuts.map(saved=>{
   const button=document.createElement('button');button.className='saved-session';
   const row=document.createElement('div');row.className='session-row';
   const title=document.createElement('strong');title.textContent=saved.label||'Saved battle';
@@ -130,8 +131,8 @@ function render(){
  const newBattle=renderedBattle!==battleKey;
  if(newBattle){platoonFilter=large?'A':'all';$('mapWrap').classList.toggle('enlarged',large);selected=null;target=null;smokeMode=false;barrageMode=false;renderedBattle=battleKey;$('mapWrap').scrollTo?.(0,0);}
  $('mapWrap').classList.toggle('large-map',large);$('zoom').textContent=large?($('mapWrap').classList.contains('enlarged')?'Overview':'Detail'):($('mapWrap').classList.contains('enlarged')?'Fit map −':'Enlarge map +');$('zoom').setAttribute('aria-pressed',String($('mapWrap').classList.contains('enlarged')));
- $('battleTitle').textContent=board.name;document.title=`${board.name} · WWII Tactics`;
- $('battleNumber').textContent=`${state.ai_side?'SOLO · COMPUTER':'TWO PLAYER'} · ${state.code} · BATTLE ${state.battle_number||1}`;
+ $('battleTitle').textContent=state.match_name||board.name;document.title=`${state.match_name||board.name} · WWII Tactics`;
+ $('battleNumber').textContent=`${state.ai_side?'SOLO · COMPUTER':board.name+' · TWO PLAYER'} · ${state.code} · BATTLE ${state.battle_number||1}`;
  $('homeBattles').hidden=false;
  $('objectiveName').textContent=`★ ${board.objective_name.toUpperCase()}`;
  $('round').textContent=`${state.round} / ${board.rounds}`;$('side').textContent=`You command the ${names[state.side]}`;
@@ -140,7 +141,7 @@ function render(){
  $('soloButton').hidden=!!state.ai_side;
  $('saveButton').hidden=!state.ai_side;
  const phase=state.winner?'Finished':!state.ready?'Waiting for opponent':state.turn===state.side?'Your turn':'Opponent’s turn';
- const label=`${state.scenario.name} · ${state.ai_side?'Solo':'Two player'} · ${names[state.side]} · Round ${state.round} · ${phase}`;
+ const label=`${state.match_name||state.scenario.name} · ${state.ai_side?'Solo':'Two player'} · ${names[state.side]} · Round ${state.round} · ${phase}`;
  if(session.label!==label){session.label=label;savedSessions=savedSessions.map(s=>s.code===session.code?session:s);persistSessions();}
  $('computerReview').hidden=!state.computer_orders?.length;
  $('computerOrders').replaceChildren(...(state.computer_orders||[]).map(text=>{const li=document.createElement('li');li.textContent=text;return li;}));

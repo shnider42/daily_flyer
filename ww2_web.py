@@ -17,6 +17,7 @@ from ww2_tactics.computer import play_turn
 from ww2_tactics.rulesets import profile, PROFILES
 from ww2_tactics.visibility import public_state
 from ww2_tactics.order_history import perform, status as history_status, KEY as HISTORY_KEY
+from ww2_tactics.lobby import install_lobby
 
 
 def create_app(db_path=None):
@@ -64,6 +65,8 @@ def create_app(db_path=None):
             return "de"
         return None
 
+    commander, bind_commander, battle_name, match_title, commander_side = install_lobby(app, connect, digest, identify)
+
     def public(row, side):
         state = json.loads(row["state"])
         state['order_history'] = history_status(state, side)
@@ -71,6 +74,8 @@ def create_app(db_path=None):
         board = battlefield(state)
         state.update(code=row["code"], side=side,
                      map=board['map'], scenario={k: v for k, v in board.items() if k != 'map'})
+        if not state.get('ai_side'):
+            state['match_name'] = match_title(row['code'])
         state["legal"] = {u["id"]: options(state, u) for u in state["units"] if u["side"] == side}
         if state['order_history']['redo_required']:
             state['legal'] = {uid: {key: [] if isinstance(value, list) else False
@@ -142,9 +147,16 @@ def create_app(db_path=None):
             return jsonify(error=str(error)), 400
         token = secrets.token_urlsafe(32)
         code = secrets.token_hex(5).upper()
+        body = request.get_json(silent=True) or {}
+        name = battle_name(body['name']) if 'name' in body else None
         with connect() as db:
             db.execute("BEGIN IMMEDIATE")
+            player = commander(db, required=bool(name or request.headers.get('X-Commander-Token')))
             db.execute("INSERT INTO match (code,host,guest,state) VALUES (?,?,?,?)", (code, digest(token), None, json.dumps(state)))
+            if not state.get('ai_side'):
+                bind_commander(db, digest(token), player)
+                if name:
+                    db.execute('UPDATE lobby_names SET name=? WHERE code=?', (name, code))
         return jsonify(code=code, token=token), 201
 
     @app.post("/api/match/<code>/join")
@@ -157,8 +169,13 @@ def create_app(db_path=None):
                 return jsonify(error="Match not found. Check the invitation code."), 404
             if json.loads(row['state']).get('ai_side'):
                 return jsonify(error='This is a solo battle. The computer seat cannot be joined.'), 409
+            player = commander(db, required=bool(request.headers.get('X-Commander-Token')))
+            existing = commander_side(db, row, player)
+            if existing:
+                db.execute('INSERT INTO player_access VALUES (?,?)', (digest(token), row['host' if existing == 'us' else 'guest']))
+                return jsonify(code=row['code'], token=token)
             if row["guest"]:
-                return jsonify(error="This two-player battle is full. Resume from your original browser or load a MOVE code for your seat. To play independently, choose New solo battle."), 409
+                return jsonify(error="Both seats are taken. Sign in as your commander to resume. Older seats need their saved browser or a MOVE code once, then can be linked to a commander."), 409
             if identify(row) == "us":
                 return jsonify(error="You already command the Americans. Open the invitation on the other phone."), 409
             state = json.loads(row["state"])
@@ -166,6 +183,7 @@ def create_app(db_path=None):
             state["revision"] += 1
             state["log"].append("Opponent joined. The battle begins.")
             db.execute("UPDATE match SET guest=?, state=? WHERE code=?", (digest(token), json.dumps(state), row["code"]))
+            bind_commander(db, digest(token), player)
         return jsonify(code=code.upper(), token=token), 200
 
     @app.route("/api/match/<code>", methods=["GET", "POST"])
@@ -208,7 +226,11 @@ def create_app(db_path=None):
                 return jsonify(error="Only the American host can start a new match."), 403
             # New code revokes both old seats; no accidental reuse of an old invitation.
             new_code, token = secrets.token_hex(5).upper(), secrets.token_urlsafe(32)
+            old_owner = row['host' if identify(row) == 'us' else 'guest']
+            linked = db.execute('SELECT commander_id FROM commander_seats WHERE owner_hash=?', (old_owner,)).fetchone()
             db.execute("UPDATE match SET code=?,host=?,guest=NULL,state=? WHERE code=?", (new_code, digest(token), json.dumps(state), row["code"]))
+            if linked:
+                db.execute('INSERT INTO commander_seats VALUES (?,?)', (digest(token), linked['commander_id']))
         return jsonify(code=new_code, token=token)
 
     @app.post('/api/match/<code>/rematch')

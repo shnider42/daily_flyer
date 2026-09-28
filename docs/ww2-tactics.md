@@ -1,5 +1,40 @@
 # DSL — WWII tactical game
 
+## Named multiplayer games and commanders
+
+The home screen now lists active multiplayer games from the server, with a game
+name, commander names, battlefield, round, open-seat status and whose turn it is.
+Search by game name, commander or invitation ID. **My games** filters to the signed-in
+commander; **Include finished games** keeps completed matches available for rematches.
+The list refreshes every 15 seconds while home is visible and provides pagination.
+Solo games remain private browser shortcuts and do not appear in this directory.
+
+The new multiplayer flow asks for a commander nickname and password, then a game
+name. Use that same sign-in on any device to resume all linked seats without MOVE
+codes. Nicknames and game names are public; passwords and seat keys are never in
+the directory. A returning commander resumes their own seat when opening an old
+invitation, even when the game is full or armies have swapped. Open opponent seats
+can be joined by anyone; occupied seats cannot be claimed by knowing the game name.
+No email or email password recovery is provided; save the commander credentials.
+
+Existing games and keys are preserved. Older multiplayer games get a default name
+using their battlefield and short ID. From a browser with the old seat, use **Missing
+an older game? → Link games saved on this browser**, or **Battle → Link to my commander**.
+A MOVE code can also recover the seat for linking. This initial link requires its
+existing player key: listing a game cannot recover an already-lost unlinked seat.
+Either player can rename a game in battle settings. SAVE and MOVE behavior remains
+available. Signing out removes this commander's shortcuts from that browser.
+
+`ww2_tactics/lobby.py` adds identity, seat-owner mapping, metadata and rate-limit
+tables to the existing SQLite database. It stores password hashes and hashed
+90-day login tokens, links to stable seat owners (including transfer aliases), and
+keeps directory responses to summary fields. Keep `WW2_DB_PATH` on persistent
+storage: commander identities and games share that database. Spectating is deferred;
+unauthenticated visitors do not receive board state or fog-of-war information.
+`tests/test_ww2_lobby.py` covers isolation, migration, login, recovery, ownership,
+rematches and concurrent joins. `tests/ww2-lobby-browser.cjs` exercises two games
+across independent browsers, returning login, old-seat linking and mobile layouts.
+
 ## Responsive selection, order history and contextual help
 
 Midway additionally updates only the union of old/new actionable hexes (normally
