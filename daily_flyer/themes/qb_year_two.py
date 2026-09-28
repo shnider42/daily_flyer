@@ -2,6 +2,8 @@ from __future__ import annotations
 
 from pathlib import Path
 import json
+import os
+import re
 
 from daily_flyer.models import CardItem, PageContext
 from daily_flyer.qb_explorer.data import load_dataset
@@ -16,11 +18,21 @@ THEME_CONFIG = {
 }
 BACKGROUNDS = []
 BACKGROUND_CADENCE = "daily"
+APP_VERSION = "1.1.0"
+
+
+def build_info():
+    """Render supplies the deployed revision; never label a local tree as deployed."""
+    commit = os.environ.get("RENDER_GIT_COMMIT", "").strip()
+    return {"version": APP_VERSION,
+            "commit": commit if re.fullmatch(r"[0-9a-fA-F]{40}", commit) else None}
 
 
 def build_theme_page(date_str=None, seed=None):
     today = resolve_date(date_str)
-    dataset = json.dumps(load_dataset(), separators=(",", ":"), ensure_ascii=False).replace("<", "\\u003c")
+    payload = load_dataset()
+    payload["build"] = build_info()
+    dataset = json.dumps(payload, separators=(",", ":"), ensure_ascii=False).replace("<", "\\u003c")
     return PageContext(
         page_title=THEME_CONFIG["page_title"], header_title=THEME_CONFIG["header_title"],
         header_subtitle=THEME_CONFIG["header_subtitle"], today_str=today.isoformat(),
@@ -28,5 +40,5 @@ def build_theme_page(date_str=None, seed=None):
         footer_text=THEME_CONFIG["footer_text"],
         metadata={"theme_name": "qb_year_two", "extra_css": (ASSETS / "style.css").read_text(),
                   "extra_head_html": '<script type="application/json" id="qb-data">'+dataset+'</script>',
-                  "extra_js": (ASSETS / "app.js").read_text()},
+                  "extra_js": (ASSETS / "chart_math.js").read_text() + "\n" + (ASSETS / "app.js").read_text()},
     )

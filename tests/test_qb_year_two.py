@@ -2,11 +2,13 @@ from __future__ import annotations
 
 import tempfile
 import unittest
+from unittest.mock import patch
 from pathlib import Path
 
 from daily_flyer.qb_explorer.data import build_dataset, load_dataset, metrics, summarize_season
 from scripts.build_qb_data import read_csv
 from web import app
+from daily_flyer.themes.qb_year_two import build_info
 
 
 def row(year=2000, team="BUF", gs=12, **kwargs):
@@ -96,6 +98,17 @@ class SnapshotTests(unittest.TestCase):
             self.assertIn(b'qb-data',response.data)
             self.assertIn(b'Years by quarterback',response.data)
             self.assertNotIn(b'<script src=',response.data)
+
+    def test_version_uses_deployed_commit_without_inventing_one(self):
+        with patch.dict('os.environ', {'RENDER_GIT_COMMIT': 'a' * 40}):
+            self.assertEqual(build_info()['commit'], 'a' * 40)
+            response = app.test_client().get('/?theme=qb_year_two')
+            self.assertIn(b'"version":"1.1.0"', response.data)
+            self.assertIn(b'"commit":"' + b'a' * 40 + b'"', response.data)
+        with patch.dict('os.environ', {'RENDER_GIT_COMMIT': ''}):
+            self.assertIsNone(build_info()['commit'])
+        with patch.dict('os.environ', {'RENDER_GIT_COMMIT': '<invalid>'}):
+            self.assertIsNone(build_info()['commit'])
 
 
 if __name__ == '__main__':

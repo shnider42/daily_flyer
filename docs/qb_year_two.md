@@ -18,6 +18,35 @@ Or use `/?theme=qb_year_two` on a service deploying this branch. No API key,
 database, background job, chart CDN or new production dependency is required.
 This change does not deploy or merge the branch.
 
+## Version 1.1.0 — chart controls
+
+- Linear, logarithmic, and signed-log Y scales. Logarithmic mode falls back to
+  signed log with an explicit notice if values or bounds include zero/negatives.
+  Signed log uses `sign(y) * ln(1 + abs(y))`; ticks display original axis units.
+- Actual metric values, change from the real year-one baseline, and each QB's
+  career z-score. Z-scores use an unweighted population mean and standard
+  deviation across all available post-anchor seasons, independent of the visible
+  time window. Missing/uncertain anchors, fewer than two values, or zero variance
+  produce an unavailable normalized line, never an invented value.
+- Overlay or separate QB charts with identical X and Y axes. Hover/focus and a
+  persistent spotlight fade other lines. Sparse markers, line strength, graph
+  height, fitted/zero/custom bounds and three presets help manage crowded views.
+  Custom clipping and unavailable normalization are disclosed. The table, CSV
+  and all-filtered summary always retain actual values for the selected metric.
+- Existing saved selections migrate automatically; new settings use the same
+  localStorage key. Reset graph settings retains the cohort and player selection.
+- The masthead displays `v1.1.0` and the first seven characters of Render's
+  automatically supplied `RENDER_GIT_COMMIT`, linked to the exact full commit.
+  No new Render variables are required. Outside Render it says `local build`;
+  there is no hard-coded or guessed deployment SHA. Data coverage is separate
+  and remains through 2024. The badge identifies the build, not a live claim
+  that it is the newest GitHub revision.
+
+Validation: Python cohort/theme tests plus
+`node --test tests/test_qb_chart_math.cjs`. Browser checks cover overlay/separate
+charts, signed-log fallback, positive log, custom bounds, persisted settings,
+265-player selection, keyboard/touch inspection, CSV and responsive layout.
+
 ## Research rules
 
 - Regular season only. A QB must have at least one season since 1970 with
