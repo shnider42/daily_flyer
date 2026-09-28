@@ -1,0 +1,17 @@
+{
+  "ARI": ["Arizona Cardinals", "#97233F"], "PHO": ["Phoenix Cardinals", "#97233F"], "SLC": ["St. Louis Cardinals", "#97233F"],
+  "ATL": ["Atlanta Falcons", "#A71930"], "BAL": ["Baltimore Ravens", "#6A329F"], "BCL": ["Baltimore Colts", "#003B7B"],
+  "BUF": ["Buffalo Bills", "#00338D"], "CAR": ["Carolina Panthers", "#0085CA"], "CHI": ["Chicago Bears", "#C83803"],
+  "CIN": ["Cincinnati Bengals", "#D74400"], "CLE": ["Cleveland Browns", "#653819"], "DAL": ["Dallas Cowboys", "#003594"],
+  "DEN": ["Denver Broncos", "#E25303"], "DET": ["Detroit Lions", "#0076B6"], "GNB": ["Green Bay Packers", "#166534"],
+  "HOU": ["Houston Texans", "#03202F"], "HOO": ["Houston Oilers", "#3483B5"], "IND": ["Indianapolis Colts", "#002C5F"],
+  "JAX": ["Jacksonville Jaguars", "#006778"], "KAN": ["Kansas City Chiefs", "#C61031"], "LAC": ["Los Angeles Chargers", "#0080C6"],
+  "SDG": ["San Diego Chargers", "#0080C6"], "LAR": ["Los Angeles Rams", "#003594"], "RAM": ["Los Angeles Rams", "#003594"],
+  "STL": ["St. Louis Rams", "#766133"], "LVR": ["Las Vegas Raiders", "#343A40"], "OAK": ["Oakland Raiders", "#343A40"],
+  "RAI": ["Los Angeles Raiders", "#343A40"], "MIA": ["Miami Dolphins", "#008E97"], "MIN": ["Minnesota Vikings", "#6A329F"],
+  "NWE": ["New England Patriots", "#002244"], "BOS": ["Boston Patriots", "#B21F34"], "NOR": ["New Orleans Saints", "#8A7039"],
+  "NYG": ["New York Giants", "#0B2265"], "NYJ": ["New York Jets", "#125740"], "PHI": ["Philadelphia Eagles", "#004C54"],
+  "PIT": ["Pittsburgh Steelers", "#9B7500"], "SEA": ["Seattle Seahawks", "#257A2B"], "SFO": ["San Francisco 49ers", "#AA0000"],
+  "TAM": ["Tampa Bay Buccaneers", "#D50A0A"], "TEN": ["Tennessee Titans / Oilers", "#367DAD"], "WAS": ["Washington", "#773141"],
+  "2TM": ["Multiple teams (season total)", "#747A7A"], "3TM": ["Multiple teams (season total)", "#747A7A"]
+}

@@ -1,0 +1,22 @@
+{
+  "title": "PFR-derived historical snapshot",
+  "status": "Historical snapshot; source mirrors have not been exhaustively reconciled against live PFR.",
+  "hof_as_of": "2026-09-28",
+  "sources": [
+    {"label": "PFR season archive via micahks/nfl-hof-predictor", "url": "https://github.com/micahks/nfl-hof-predictor/tree/1504cc5da12784c939385264602f115dc3766a68/Data", "used": "Pre-2010 player seasons, including pre-1970 anchor history; Hall of Fame list through 2020"},
+    {"label": "PFR annual tables via keltiwise/NFL-Analysis", "url": "https://github.com/keltiwise/NFL-Analysis/tree/ec3f7cce6d539463945daab6192ae6049fd5aec3/Data", "used": "2010–2023 only. Partial 2024 and 2025 snapshots rejected."},
+    {"label": "PFR 2024 export via Dkane28", "url": "https://github.com/Dkane28/nfl_2024_passing_analysis/blob/d7ed61ef3d1217d5dd6bae30bc84a850f95c85ef/2024_nfl_passing_yards.csv", "used": "Full 2024 regular-season passing table; QB records were spreadsheet-corrupted and are not used."},
+    {"label": "PFR player IDs and positions via NossaGTS/pfyscraper", "url": "https://github.com/NossaGTS/pfyscraper/tree/0af3b79e0c46c9f3d35ef767d2e4ea65a3e15540/data", "used": "Identity and position mapping only, not career totals."},
+    {"label": "Pro Football Hall of Fame: Peyton Manning", "url": "https://www.profootballhof.com/players/peyton-manning", "used": "2021 induction"},
+    {"label": "Pro Football Hall of Fame: Drew Brees", "url": "https://www.profootballhof.com/players/drew-brees", "used": "2026 induction"}
+  ],
+  "limitations": [
+    "The 2000 league ANY/A baseline is unavailable because one source passer has missing sack fields. Raw ANY/A and passer rating remain available for quarterbacks with complete inputs.",
+    "2025 and 2026 are not included. This is a historical snapshot, not a live feed.",
+    "The pre-2010 archive retains multi-team season totals without team splits. Such seasons cannot establish a 12-start single-team qualification; unresolved earlier totals flag an uncertain anchor.",
+    "A missing season is a gap, not a zero. The passing tables cannot distinguish retirement, injury, no appearance, or missing source data.",
+    "Career span ends at the last observed season, not a verified retirement date. Active careers are incomplete.",
+    "Hall of Fame means inducted as of the stated date. Not inducted includes active and not-yet-eligible players.",
+    "Team colors identify franchises with historical city labels; they are not a season-by-season uniform-color history."
+  ]
+}
