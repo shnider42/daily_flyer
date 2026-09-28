@@ -15,7 +15,7 @@
  <div class="home-heading"><p class="eyebrow">DOUBLE SECRET PROBATION SQUAD LEADER</p><h1>Your next<br><em>move matters.</em></h1><p class="intro">From village streets to Pacific waters. <br>Choose your battlefield. Take command.</p></div>
  <p id="entryStatus" class="entry-status" role="status">Operations room · No battle open</p>
  <section id="multiplayerLobby" aria-label="Multiplayer games">
-  <div class="commander-bar"><div><strong id="commanderIdentity">Your games, on any device.</strong><p id="commanderHint">Sign in with a commander name and password to keep all your multiplayer seats together.</p></div><div class="lobby-buttons"><button id="commanderSignIn">Sign in / create commander</button><button id="commanderSignOut" hidden>Sign out</button></div></div>
+  <div class="commander-bar"><div><strong id="commanderIdentity">Your games, on any device.</strong><p id="commanderHint">Sign in with a commander name and password to keep all your multiplayer seats together.</p></div><div class="lobby-buttons"><button id="commanderSignIn">Sign in / create commander</button><button id="commanderSignOut" hidden>Sign out</button><a id="adminConsoleLink" href="/admin" hidden>Admin console ↗</a></div></div>
   <div class="home-section-heading"><h2>Multiplayer games</h2><button id="lobbyRefresh" class="quiet">Refresh</button></div>
   <div class="lobby-filters"><label for="lobbySearch">Find a game or commander<input id="lobbySearch" type="search" placeholder="Chris vs Dad…" maxlength="80"></label><label for="lobbyScope">Show<select id="lobbyScope"><option value="all">All games</option><option value="mine">My games</option></select></label></div>
   <label class="lobby-finished"><input type="checkbox" id="lobbyFinished"> Include finished games</label>
@@ -63,7 +63,7 @@
  <section id="rematchProposal" class="rematch-proposal" hidden aria-label="Next battle proposal"><p id="proposalText" role="status"></p><button id="acceptRematch" class="primary">Accept next battle</button><button id="declineRematch">Decline</button></section>
  <details class="journal"><summary>Battle log <span id="latest"></span></summary><ol id="log"></ol></details>
  <p id="seriesScore" class="series-score"></p>
- <details id="battleOptions" open><summary>Battle options &amp; save codes</summary><div class="match-tools"><button id="transferButton" class="quiet">Continue on another device</button><button id="saveButton" class="quiet" hidden>Generate save code</button><button id="rematchButton" class="quiet" hidden>Plan next battle</button><button id="soloButton" class="quiet">Play computer</button><button id="reset" class="quiet" hidden>New invitation</button><button id="refresh" class="quiet">Reconnect</button><button id="leave" class="quiet">Battles / load code</button></div></details>
+ <details id="battleOptions" open><summary>Battle options &amp; save codes</summary><div class="match-tools"><button id="transferButton" class="quiet">Continue on another device</button><button id="saveButton" class="quiet" hidden>Generate save code</button><button id="rematchButton" class="quiet" hidden>Plan next battle</button><button id="resignButton" class="quiet" hidden>Resign battle</button><button id="soloButton" class="quiet">Play computer</button><button id="reset" class="quiet" hidden>New invitation</button><button id="refresh" class="quiet">Reconnect</button><button id="leave" class="quiet">Battles / load code</button></div></details>
 </section>
 <p id="message" role="alert" hidden></p>
 </main>

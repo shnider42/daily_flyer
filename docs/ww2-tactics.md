@@ -1,5 +1,17 @@
 # DSL — WWII tactical game
 
+## Operations and resignation
+
+The separate `/admin` console provides owner-bound access for `shnider42`, storage
+and version visibility, failure/request IDs, test evidence, audited match changes,
+recoverable removal, and credential-free diagnostic exports for local reproduction.
+See [Operations setup and workflow](ww2-operations.md) for the one-time Render
+setup key, persistent storage, local imports and test-report configuration.
+
+**Battle → Resign battle** concedes after confirmation, including on the opponent's
+turn. It awards one victory, commits history, and preserves both seats for rematches.
+Email and SMS notifications remain deferred.
+
 ## Named multiplayer games and commanders
 
 The home screen now lists active multiplayer games from the server, with a game

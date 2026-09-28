@@ -10,6 +10,25 @@ KEY = '_order_history'
 LIMIT = 20
 
 
+def resign(state, side):
+    """Concede from either turn, committing all orders and awarding one win."""
+    if side not in ('us', 'de') or not state['ready'] or state.get('winner'):
+        raise ValueError('Only an active battle can be resigned.')
+    result = copy.deepcopy({key: value for key, value in state.items() if key != KEY})
+    winner = 'de' if side == 'us' else 'us'
+    result.update(winner=winner, resigned_by=side, revision=state['revision'] + 1)
+    result.pop('rematch', None)
+    result.setdefault('victories', {'us': 0, 'de': 0})[winner] += 1
+    names = result.get('factions', {'us': 'Americans', 'de': 'Germans'})
+    message = f"{names.get(side, side)} resigned. {names.get(winner, winner)} win the battle."
+    result['log'].append(message)
+    for team in ('us', 'de'):
+        report = result.setdefault('reports', {}).setdefault(team, {'log': [], 'combat': []})
+        report['log'].append(message)
+    result[KEY] = dict(side=side, past=[], future=[], reason='The battle ended by resignation.')
+    return result
+
+
 def status(state, side):
     history = state.get(KEY, {})
     own = history.get('side') == side and state['turn'] == side
@@ -26,6 +45,8 @@ def status(state, side):
 
 
 def perform(state, side, action):
+    if action.get('kind') == 'resign':
+        return resign(state, side)
     # Journal entries are immutable snapshots. Copy the stacks, not every prior
     # battlefield on every order; apply() already copies the current battlefield.
     raw = state.get(KEY, {})

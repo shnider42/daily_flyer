@@ -7,12 +7,13 @@
  function storePlayer(){try{if(player)localStorage.setItem('ww2-commander',JSON.stringify(player));else localStorage.removeItem('ww2-commander');}catch{}}
  async function requestLobby(path,body,seat){
   const response=await fetch(path,{method:body===undefined?'GET':'POST',headers:{'Content-Type':'application/json',...(player?{'X-Commander-Token':player.token}:{}),...(seat?{Authorization:`Bearer ${seat.token}`}:{})},...(body===undefined?{}:{body:JSON.stringify(body)})});
-  const data=await response.json();if(!response.ok){const e=new Error(data.error||'Unable to load games. Try again.');e.status=response.status;throw e;}return data;
+  const data=await response.json();if(!response.ok){const e=new Error((data.error||'Unable to load games. Try again.')+(data.request_id?` Reference: ${data.request_id}`:''));e.status=response.status;throw e;}return data;
  }
  function identity(){
   $('commanderIdentity').textContent=player?`Commander ${player.name}`:'Your games, on any device.';
   $('commanderHint').textContent=player?'Your linked multiplayer games follow this sign-in, even in a fresh browser.':'Sign in with a commander name and password to keep all your multiplayer seats together.';
   $('commanderSignIn').hidden=!!player;$('commanderSignOut').hidden=!player;
+  $('adminConsoleLink').hidden=player?.name?.toLowerCase()!=='shnider42';
   renderSessions();
  }
  function mode(newPlayer){

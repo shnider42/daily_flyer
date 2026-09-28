@@ -18,6 +18,7 @@ from ww2_tactics.rulesets import profile, PROFILES
 from ww2_tactics.visibility import public_state
 from ww2_tactics.order_history import perform, status as history_status, KEY as HISTORY_KEY
 from ww2_tactics.lobby import install_lobby
+from ww2_tactics.admin import install_admin
 
 
 def create_app(db_path=None):
@@ -65,6 +66,7 @@ def create_app(db_path=None):
         return None
 
     commander, bind_commander, battle_name, match_title, commander_side = install_lobby(app, connect, digest, identify)
+    install_admin(app, connect, commander, battle_name, path)
 
     def public(db, row, side):
         state = json.loads(row["state"])
@@ -99,6 +101,7 @@ def create_app(db_path=None):
 
     @app.errorhandler(sqlite3.OperationalError)
     def database_error(error):
+        app.extensions['ww2_diagnostics'].record(error)
         # The connection context has rolled back/closed before this handler runs.
         # Do not replay an order automatically: it may involve dice or a turn end.
         code = getattr(error, 'sqlite_errorcode', 0)

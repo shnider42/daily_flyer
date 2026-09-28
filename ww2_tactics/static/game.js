@@ -21,7 +21,7 @@ function strengthLabel(u){return state?.naval_version?`${u.hp}/${u.max_hp} · ${
 function notify(text){$('message').textContent=text;$('message').hidden=false;clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('message').hidden=true,6500);}
 async function api(path, body){
  const response=await fetch(path,{method:body===undefined?'GET':'POST',headers:{'Content-Type':'application/json',...(session?{Authorization:`Bearer ${session.token}`}:{})},...(body===undefined?{}:{body:JSON.stringify(body)})});
- const data=await response.json();if(!response.ok)throw new Error(data.error||'The server could not complete that action.');return data;
+ const data=await response.json();if(!response.ok)throw new Error((data.error||'The server could not complete that action.')+(data.request_id?` Reference: ${data.request_id}`:''));return data;
 }
 function persistSessions(){
  try{localStorage.setItem('ww2-session',JSON.stringify(session));localStorage.setItem('ww2-sessions',JSON.stringify(savedSessions));}
@@ -49,7 +49,7 @@ function renderSessions(){
 }
 async function apiWithSession(saved){
  const response=await fetch(`/api/match/${saved.code}`,{headers:{Authorization:`Bearer ${saved.token}`}});
- const data=await response.json();if(!response.ok)throw new Error(data.error||'Battle unavailable.');return data;
+ const data=await response.json();if(!response.ok)throw new Error((data.error||'Battle unavailable.')+(data.request_id?` Reference: ${data.request_id}`:''));return data;
 }
 function invitation(){return `${location.origin}/?join=${session.code}`;}
 async function refresh(){
@@ -249,8 +249,9 @@ function render(){
  $('roster').replaceChildren(...state.units.filter(u=>u.side===state.side&&(platoonFilter==='all'||u.platoon===platoonFilter)).map((u,i)=>{const b=document.createElement('button');b.dataset.platoon=u.platoon||'none';b.className=`roster-unit${u.id===selected?' active':''}`;b.disabled=u.hp<=0||busy;b.textContent=`${u.kind==='leader'?'LT':u.kind==='mg'?'MG':'SQ'} ${u.platoon?u.platoon+u.number:i+1} · ${u.hp<=0?'Lost':u.pinned?'Pinned':u.overwatch?'Watching':u.ap+' AP'}`;b.setAttribute('aria-label',`${unitName(u)}${u.platoon?'':' '+(i+1)}, ${u.hp<=0?'eliminated':u.hp+' strength, '+u.ap+' actions'}`);b.onclick=()=>{smokeMode=false;barrageMode=false;chooseUnit(u);};return b;}));
  $('nextUnit').disabled=busy||!state.units.some(u=>u.side===state.side&&u.hp>0&&(platoonFilter==='all'||u.platoon===platoonFilter));
  $('battleReport').hidden=!state.winner;
- if(state.winner){$('reportTitle').textContent=`${names[state.winner]} take the field.`;$('reportBody').textContent=['us','de'].map(s=>{const alive=state.units.filter(u=>u.side===s&&u.hp>0);return `${names[s]}: ${alive.length} surviving units, ${alive.reduce((n,u)=>n+u.hp,0)} strength`;}).join(' · ');}
+ if(state.winner){$('reportTitle').textContent=state.resigned_by?`${names[state.resigned_by]} resigned. ${names[state.winner]} win.`:`${names[state.winner]} take the field.`;$('reportBody').textContent=['us','de'].map(s=>{const alive=state.units.filter(u=>u.side===s&&u.hp>0);return `${names[s]}: ${alive.length} surviving units, ${alive.reduce((n,u)=>n+u.hp,0)} strength`;}).join(' · ');}
  $('seriesScore').textContent=`Army victories this session · Americans ${state.victories?.us||0} / Germans ${state.victories?.de||0}`;
+ $('resignButton').hidden=!state.ready||!!state.winner;$('resignButton').disabled=busy;
  $('rematchButton').hidden=!state.ready;$('rematchButton').disabled=busy||!!state.rematch;
  $('rematchProposal').hidden=!state.rematch;
  if(state.rematch){const p=state.rematch,mine=p.by===state.side;$('proposalText').textContent=`${mine?'You proposed':names[p.by]+' propose'} ${p.name} · ${p.ruleset==='dsl'?'DSL v1':'Classic'}${p.swap?' with armies swapped':' with the same armies'}. ${mine?'Waiting for the other commander.':'Accept to replace the current battle.'}`;$('acceptRematch').hidden=mine;$('acceptRematch').disabled=busy;$('declineRematch').disabled=busy;$('declineRematch').textContent=mine?'Cancel proposal':'Decline';}
@@ -283,6 +284,7 @@ $('leave').onclick=()=>{if(playbackSession)stopPlayback();lobbyMode=true;$('game
 $('homeBattles').onclick=()=>$('leave').click();
 $('rulesButton').onclick=()=>$('rules').showModal();$('closeRules').onclick=()=>$('rules').close();
 $('scenarioSelect').onchange=scenarioPreview;
+$('resignButton').onclick=()=>{if(confirm(`Resign this battle? ${sideLabel(state.side==='us'?'de':'us')} will win. This cannot be undone; you can still arrange a rematch.`)){for(const dialog of document.querySelectorAll('dialog[open]'))dialog.close();act({kind:'resign'});}};
 $('rematchButton').onclick=()=>{$('rematchRuleset').value=state.ruleset||'classic';$('rematchScenario').value=state.scenario?.id||'village';$('rematchDialog').querySelector('h2').textContent=state.ai_side?'Another round?':'Stay connected. Fight again.';$('rematchDialog').querySelector('h2 + p').textContent=state.ai_side?'Start immediately against the computer. An unfinished battle will be abandoned without awarding a win.':'Your opponent must accept. An unfinished battle will be abandoned without awarding a win.';$('proposeRematch').textContent=state.ai_side?'Start next battle':'Send proposal';$('rematchDialog').showModal();};
 $('closeRematch').onclick=()=>$('rematchDialog').close();
 $('proposeRematch').onclick=()=>{const settings={operation:'propose',scenario:$('rematchScenario').value,ruleset:$('rematchRuleset').value,swap:$('swapArmies').checked};$('rematchDialog').close();rematchRequest(settings);};
