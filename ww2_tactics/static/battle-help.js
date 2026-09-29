@@ -3,14 +3,19 @@ window.orderHelp=(id,u,legal,simple)=>{
  const shot=legal?.targets?.find(s=>s.id===target),frag=legal?.grenades?.find(s=>s.id===target),assault=legal?.assaults?.find(s=>s.id===target);
  const strike=legal?.airstrikes?.find(s=>s.id===target),torpedo=legal?.torpedoes?.find(s=>s.id===target);
  const descriptions={
+  loadAP:['Pierce armor','2 vs tanks / 3 vs light armor'],loadHE:['Blast infantry · splash','2 vs infantry / 1 adjacent'],
+  repairTracks:['Restore movement','Fix tracks / no strength healed'],
+  bombard:['Aim beyond sight','6 hits / gun range +3'],
+  artillery:['Delayed heavy strike',`4+ / range 12 / ${u?.artillery_charges||0} calls`],
+  fieldRecon:['Reveal hidden troops',`Sight radius 3 / ${u?.field_recon_charges||0} sorties`],
   dig:['Extra cover','Enemy hit roll +1'],smoke:['Block sight','Blocks sight / 1 enemy turn'],
   overwatch:['React to movement','1 reaction shot / hit roll +1'],rally:['Remove pin','Unpin this unit / 1 AP'],
   fire:['Shoot the target',`${shot?.threshold||4}+ to hit${shot?.damage?` / ${shot.damage} damage`:''}`],
   assault:['Risky close attack',`${assault?.threshold||4}+ / hit 2, fail lose 1`],
   grenade:['Blast and pin',`${frag?.threshold||4}+ / 2 damage + pin`],
-  suppress:['Try to pin enemy',state?.dsl_expansion?`${u?.suppression??(u?.side==='de'?3:5)}+ to pin / no damage`:'Automatic pin / no damage'],
-  inspire:['Unpin nearby allies',`Unpin allies / radius ${u?.kind==='commander'?2:1}`],
-  barrage:['Delayed area pin','Pin radius 1 / after enemy turn'],
+  suppress:['Try to pin enemy',state?.dsl_expansion||state?.combat_version?`${u?.suppression??(u?.side==='de'?3:5)}+ to pin / no damage`:'Automatic pin / no damage'],
+  inspire:['Unpin nearby allies',`Unpin allies / radius ${u?.command_radius??(u?.kind==='commander'?2:1)}`],
+  barrage:state?.combat_version?['Blast infantry later','1 damage + pin / radius 1']:['Delayed area pin','Pin radius 1 / after enemy turn'],
   command:['Give troops actions','+1 AP each / eligible troops'],
   load:['Board infantry','1 passenger / 1 infantry AP'],unload:['Put infantry ashore','Adjacent land / 1 infantry AP'],
   airdrop:['Land airborne troops','Spotted open hex / 2 AP'],
@@ -21,7 +26,7 @@ window.orderHelp=(id,u,legal,simple)=>{
   rearm:['Repair and reload','+1 strength / bomber loads → 2']
  };
  if(state?.air_version){descriptions.overwatch=['Cover flight paths',`1 reaction / ${u?.kind==='aa_gun'?'normal hit roll':'hit roll +1'}`];if(u?.kind==='bomber')descriptions.fire=['Bomb ground target',`${shot?.threshold||3}+ / 2 damage / 1 load`];}
- if(simple&&id==='suppress'&&!state?.dsl_expansion)return 'Pin enemy';
+ if(simple&&id==='suppress'&&!state?.dsl_expansion&&!state?.combat_version)return 'Pin enemy';
  return descriptions[id]?.[simple?0:1]||'';
 };
 (()=>{
@@ -36,7 +41,7 @@ window.orderHelp=(id,u,legal,simple)=>{
   if(!state||lobbyMode||playbackSession)return null;
   const id=n.dataset.unitId;
   if(id){const u=state.units.find(u=>u.id===id);if(!u)return null;
-   const status=[u.hp<=0?'Lost':`${u.hp}${u.max_hp?'/'+u.max_hp:''} ${state.naval_version&&u.kind!=='amphibious'?'hull':'strength'}`,`${u.ap} AP`,u.pinned?'Pinned':'',u.entrenched?'Dug in':'',u.overwatch?'Overwatch':'',u.reserve?'Reserve':'',u.carrier_id?'Aboard transport':''].filter(Boolean).join(' · ');
+   const status=[u.hp<=0?'Lost':`${u.hp}${u.max_hp?'/'+u.max_hp:''} ${state.naval_version&&u.kind!=='amphibious'?'hull':'strength'}`,`${u.ap} AP`,u.pinned?'Pinned':'',u.immobilized?'Tracks disabled · gun operational':'',u.ammo?u.ammo.toUpperCase()+' loaded':'',u.entrenched?'Dug in':'',u.overwatch?'Overwatch':'',u.reserve?'Reserve':'',u.carrier_id?'Aboard transport':''].filter(Boolean).join(' · ');
    const base=u.base_ap??(state.ruleset==='dsl'&&['leader','commander'].includes(u.kind)?3:2),bank=base&&state.ruleset==='dsl'?(['leader','commander'].includes(u.kind)?2:1):0;
    return [unitName(u),`${sideLabel(u.side)} · ${status}`,unitRoleSummary(u),simple()?'':`Range ${u.range} hexes · ${base} base AP · bank up to ${bank}${u.armor!==undefined?` · armor ${u.armor}`:''}.`,simple()?'':[u.smoke!==undefined?`${u.smoke} smoke`:null,u.grenades!==undefined?`${u.grenades} grenades`:null,u.torpedoes!==undefined?`${u.torpedoes} torpedo salvos`:null].filter(Boolean).join(' · ')];
   }
@@ -46,7 +51,7 @@ window.orderHelp=(id,u,legal,simple)=>{
    const blocked=u&&(state.naval_version?u.kind!=='amphibious'&&!['water','objective'].includes(type):u.kind==='at_gun'||type==='water'&&u.kind!=='amphibious'||['tank','halftrack','amphibious'].includes(u.kind)&&['woods','building'].includes(type));
    const cover=['woods','building',...(state.naval_version?[]:['objective'])].includes(type),cost=move?.cost??(['woods','building'].includes(type)?2:1);
    const name={field:state.naval_version?'Beach / open ground':'Open ground',woods:state.naval_version?'Jungle':'Woods',building:state.naval_version?'Island outpost':'Buildings',objective:state.naval_version?'Sea-control objective':'Objective',road:'Road',bridge:'Bridge',water:state.naval_version?'Open sea':'Water'}[type]||type;
-   let movement=blocked?'Selected unit cannot enter.':move?`Move here: ${cost} AP${move.road_bonus?' · road bonus':''}.`:`Entry cost: ${cost} AP${u?' · not a legal move right now':''}.`;
+   let movement=u?.immobilized?'Tracks disabled. Repair for 2 AP to move again.':blocked?'Selected unit cannot enter.':move?`Move here: ${cost} AP${move.road_bonus?' · road bonus':''}.`:`Entry cost: ${cost} AP${u?' · not a legal move right now':''}.`;
    if(type==='water'&&!state.naval_version&&!u)movement='Amphibious units only · 1 AP.';
    const coverText=simple()?(cover?'Provides cover.':'No terrain cover.'):(cover?'Cover adds +1 to the required hit roll.':'Cover modifier: +0.');
    return [`${name} · ${String.fromCharCode(65+x)}${y+1}`,movement,coverText,
@@ -57,6 +62,7 @@ window.orderHelp=(id,u,legal,simple)=>{
   if(n.matches('.tactical-action')){const u=state.units.find(u=>u.id===selected),id=n.closest('#commandOrders')?'command':n.id;
    const details={dig:'Stacks with terrain cover. Lost when moving or assaulting.',smoke:'Choose a marked hex. Smoke blocks shots into, out of, and through it.',overwatch:'Wait for a visible enemy to move in range. Pinning cancels overwatch.',assault:'Adjacent infantry only. A failed assault damages your own unit.',barrage:'Friendly units in the marked area are affected too.',command:`Costs 2 AP. ${u?.kind==='commander'?'Radius 2, across platoons':'Adjacent eligible troops in your platoon'}. Once per command group per turn; banking caps apply.`,load:'The passenger pays the action, not the half-track.',unload:'The passenger pays the action. Enemy overwatch may react.',recon:'Search commits earlier orders; discovered contacts cannot be undone.'};
    if(state.air_version){details.overwatch='Checks every intervening hex, not just the destination. One reaction per watcher; terrain does not block it.';details.rearm='Beside a living friendly airfield. Once per turn, 2 AP. No service from enemy or destroyed airfields.';}
+   if(state.combat_version)Object.assign(details,{fire:state.legal[selected]?.targets?.find(s=>s.id===target)?.effect_text||'',command:`Costs 2 AP. Radius ${u?.command_radius||1}; Commander affects all platoons. Banking caps apply.`,loadAP:'Changes ammunition for 1 AP and cancels overwatch. Anti-tank shells penetrate armor; no adjacent splash.',loadHE:'Changes ammunition for 1 AP and cancels overwatch. Hits splash adjacent infantry, including friendlies; cannot damage tanks or ships.',repairTracks:'Restores movement for 2 AP. Does not heal strength. A disabled tank can still fire before repair.',bombard:'2 AP, no sight required. A natural 6 hits the aimed hex; all other rolls miss. Primary infantry is destroyed; adjacent infantry takes 1 damage and pins. Friendly fire applies.',artillery:'2 AP, range 12, two calls per battle. Lands after the enemy turn on 4+. Penetrating high hits can damage tracks. Marked neighbors contain infantry splash; friendly fire applies.',fieldRecon:'2 AP, range 12, two sorties per battle. Reveals radius 3 through the enemy turn, including concealed units. Commits earlier orders.'});
    return [n.dataset.orderLabel||n.textContent,orderHelp(id,u,state.legal[selected],simple()),simple()?'':details[id]||''];
   }
   return null;

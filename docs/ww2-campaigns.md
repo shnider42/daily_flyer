@@ -5,6 +5,11 @@ historically exact reconstructions. Choose them in solo, multiplayer or rematch.
 All three require DSL. Existing battles keep their saved maps, armies and rules.
 No database migration or Render configuration change is required.
 
+New DSL battles now use the shared [weapons and armor rules](ww2-weapons.md).
+The theater movement and victory rules below remain; weapon effects are shared
+across land, naval and air scenarios. Bombed AA crews can now be pinned and rally
+for 1 AP, while aircraft and installations cannot be pinned.
+
 ## Home
 
 The home page uses a map-table masthead, neutral sans-serif typography, a compact
@@ -36,7 +41,9 @@ costs the infantry 1 AP, not the craft. Passengers cannot fight, spot, command o
 hold objectives. Unloading onto adjacent empty land can trigger overwatch. Sunk
 craft permit a pinned, wounded escape only onto adjacent free land; otherwise
 their passengers are lost. The separate amphibious sections retain their existing
-self-contained land/water movement. Midway's landing sections are unchanged.
+self-contained land/water movement. Midway's landing sections keep their movement,
+but use infantry protection rules in new battles: small arms cannot harm warships
+and pins require a 1-AP rally.
 
 ## Air playtest v1
 

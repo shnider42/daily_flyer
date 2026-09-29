@@ -49,6 +49,7 @@ function drawPlayback(){
  const actor=frame.before.units.find(u=>u.id===action.unit),targetUnit=frame.before.units.find(u=>u.id===action.target);
  const labels={move:'moves',fire:'fires',grenade:'throws a frag',assault:'assaults',suppress:'suppresses',inspire:'rallies nearby troops',command:'orders On your feet',rally:'rallies',dig:'digs in',smoke:'throws smoke',overwatch:'takes overwatch',barrage:'calls mortars',end:'ends the turn'};
  labels.load='boards infantry';labels.unload='unloads infantry';labels.rearm='services aircraft';
+ Object.assign(labels,{load_ammo:'changes ammunition',repair_tracks:'repairs tracks',bombard:'bombards an area',artillery:'calls artillery',field_recon:'launches recon'});
  const loc=pos=>`${String.fromCharCode(65+pos[0])}${pos[1]+1}`;
  const description=actor?`${sideLabel(actor.side)} ${unitName(actor)} at ${loc(actor.pos)} ${labels[action.kind]||action.kind}${action.pos?' → '+loc(action.pos):targetUnit?' → '+sideLabel(targetUnit.side)+' '+unitName(targetUnit)+' at '+loc(targetUnit.pos):''}`:action.kind==='end'?'Computer ends its turn':'Contact update · movement outside sight is concealed';
  document.getElementById('playbackStep').textContent=`Action ${p.index+1} / ${p.frames.length} · ${p.phase==='before'?'Before':'Result'}`;
@@ -66,6 +67,8 @@ function drawPlayback(){
    const details=[];
    if(u.hp!==old.hp)details.push(u.hp<=0?'eliminated':`strength ${old.hp} → ${u.hp}`);
    if(u.pinned!==old.pinned)details.push(u.pinned?'pinned':'rallied');
+   if(!!u.immobilized!==!!old.immobilized)details.push(u.immobilized?'tracks disabled; gun operational':'tracks repaired');
+   if(u.ammo!==old.ammo)details.push(`${u.ammo?.toUpperCase()} ammunition loaded`);
    if(u.ap!==old.ap)details.push(`actions ${old.ap} → ${u.ap}`);
    if(u.entrenched!==old.entrenched)details.push(u.entrenched?'dug in':'dug-in cover removed');
    if(u.overwatch!==old.overwatch)details.push(u.overwatch?'watching':'overwatch ended');
@@ -82,7 +85,7 @@ function drawPlayback(){
  svg.classList.remove('transport-picking');
  svg.querySelectorAll('.unit,.smoke-cloud,.barrage-zone,.incoming-mark,.aim-line,.battle-effect,.fog-layer,.contact-marker,.landing-zone,.transport-choice,.recon-choice,.sea-control,.move-beacon,.island-marker,.flight-trail,.station-mark').forEach(e=>e.remove());
  svg.querySelectorAll('[tabindex]').forEach(e=>{e.removeAttribute('tabindex');e.removeAttribute('role');e.removeAttribute('aria-label');});
- svg.querySelectorAll('.hex').forEach(e=>e.classList.remove('move','threatened','smoke-choice','barrage-choice','selected'));
+ svg.querySelectorAll('.hex').forEach(e=>e.classList.remove('move','threatened','smoke-choice','barrage-choice','combat-choice','combat-search','selected'));
  for(const smoke of snapshot.smoke||[]){const [cx,cy]=center(...smoke.pos);svg.append(element('ellipse',{cx,cy,rx:25,ry:22,class:'smoke-cloud'}));}
  for(const barrage of snapshot.barrages||[])for(const pos of barrage.area){const [cx,cy]=center(...pos);svg.append(element('circle',{cx,cy,r:24,class:'replay-danger'}));}
  const destination=action.pos||targetUnit?.pos;
@@ -95,6 +98,7 @@ function drawPlayback(){
   g.append(element('text',{x:cx,y:cy+10,'text-anchor':'middle',class:'strength',textLength:Math.min(34,11+7*u.hp),lengthAdjust:'spacingAndGlyphs'},strengthLabel(u)));
   if(u.platoon)g.append(element('text',{x:cx,y:cy+28,'text-anchor':'middle',class:'platoon-marker'},`${u.platoon}${u.number}`));
   if(u.pinned)g.append(element('text',{x:cx+17,y:cy-13,class:'pin'},'!'));
+  if(u.immobilized)g.append(element('text',{x:cx,y:cy-23,'text-anchor':'middle',class:'track-marker'},'TRACKS'));
   if(u.entrenched)g.append(element('path',{d:`M${cx-22} ${cy+19}h44`,class:'dug-marker'}));
   if(u.overwatch)g.append(element('text',{x:cx-17,y:cy-13,class:'watch-marker'},'◎'));
   svg.append(g);

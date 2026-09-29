@@ -67,7 +67,9 @@ def view(state, side, terrain_visibility=True):
     seen = visible_ids(state, side)
     result = dict(units=copy.deepcopy([u for u in state['units'] if u['id'] in seen]),
                   contacts=copy.deepcopy([u for uid,u in state.get('intel',{}).get(side,{}).items() if uid not in seen]),
-                  smoke=copy.deepcopy([s for s in state.get('smoke', []) if sees_hex(state,side,s['pos'])]), barrages=copy.deepcopy(state.get('barrages', [])),
+                  smoke=copy.deepcopy([s for s in state.get('smoke', []) if sees_hex(state,side,s['pos'])]),
+                  barrages=copy.deepcopy([{k:v for k,v in b.items() if k != 'attacker'} for b in state.get('barrages', [])]),
+                  recon=copy.deepcopy([r for r in state.get('recon', []) if r['side']==side]),
                   round=state['round'], turn=state['turn'], hold=state['hold'], winner=state['winner'])
     if state.get('naval_version'):
         result.update(sea_score=copy.deepcopy(state['sea_score']),recon=copy.deepcopy([r for r in state.get('recon',[]) if r['side']==side]))
@@ -96,14 +98,22 @@ def record_reports(state, before, action, message):
         for event in state.get('combat_history',[]):
             if event.get('revision') != state['revision']:
                 continue
-            if not any(event.get(k) in seen for k in ('attacker','target')):
+            if not any(event.get(k) in seen for k in ('attacker','target')) and not any(i['id'] in seen for i in event.get('impacts', [])):
                 continue
             safe=copy.deepcopy(event)
+            if state.get('combat_version') and event.get('target') and event['target'] not in seen:
+                safe['result'] = 'Fire resolved; target not observed'
+                for key in ('threshold', 'modifiers'): safe.pop(key, None)
             for key in ('attacker','target'):
                 if safe.get(key) not in seen:
                     safe.pop(key,None)
                     safe[key+'_label']='Unidentified unit'
             if 'recipients' in safe: safe['recipients']=[uid for uid in safe['recipients'] if uid in seen]
+            if 'impacts' in safe: safe['impacts']=[i for i in safe['impacts'] if i['id'] in seen]
+            # A bombardment coordinate belongs to its shooter or an observer of
+            # that hex. Receiving adjacent shrapnel does not reveal the aim point.
+            if safe.get('aim') is not None and safe.get('attacker') not in seen and not sees_hex(state, side, safe['aim']):
+                safe.pop('aim', None)
             report['combat'].append(safe)
 
 

@@ -26,7 +26,7 @@ function chanceRow(label,threshold,modifiers,effect){
 function renderOdds(shot,assault,grenade,picking){
  const panel=document.getElementById('odds');panel.replaceChildren();panel.hidden=picking||!(shot||assault||grenade);
  if(panel.hidden)return;
- if(shot)panel.append(chanceRow('Fire',shot.threshold,shot.modifiers,shot.air?`Hit: −${shot.damage} strength. Costs 2 AP. No pinning or terrain cover.`:shot.naval?`Hit: −${shot.damage} hull. Costs 2 AP. Ships do not suffer pins.`:`Hit: −${shot.damage||1} strength and pinned. Costs 2 actions.${shot.suppression_threshold?' The same die also pins infantry on '+shot.suppression_threshold+'+, even if the damage roll misses.':''}`));
+ if(shot)panel.append(chanceRow(shot.weapon_label||'Fire',shot.threshold,shot.modifiers,shot.effect_text?`${shot.effect_text}. Costs 2 AP.${shot.suppression_threshold?' The same die also pins infantry on '+shot.suppression_threshold+'+, even if damage misses.':''}`:shot.air?`Hit: −${shot.damage} strength. Costs 2 AP. No pinning or terrain cover.`:shot.naval?`Hit: −${shot.damage} hull. Costs 2 AP. Ships do not suffer pins.`:`Hit: −${shot.damage||1} strength and pinned. Costs 2 actions.${shot.suppression_threshold?' The same die also pins infantry on '+shot.suppression_threshold+'+, even if the damage roll misses.':''}`));
  const alternatives=[];
  if(grenade)alternatives.push(chanceRow('Frag',grenade.threshold,{cover:grenade.threshold-4},'Hit: −2 strength and pinned. Costs 2 actions and one frag.'));
  if(assault)alternatives.push(chanceRow('Assault',assault.threshold,{pinned_target:assault.threshold===3?-1:0},'Hit: −2 strength; advance if eliminated. Miss: attacker loses 1 strength and is pinned. Costs 2 actions.'));
@@ -49,6 +49,7 @@ function renderUnitMechanics(state,unit){
   `Range ${unit.range} hexes. Intervening woods, buildings and smoke block direct fire. Strength is remaining health; zero removes the unit.`,
   state.ruleset==='dsl'?`DSL: ${base} base AP plus up to ${bank} banked AP. A paid road-to-road move earns one free connected road hex, once per turn. Firing costs 2 AP.`:`Actions refresh to 2 at the start of this army’s turn. Moving on open ground costs 1; firing costs 2.`];
  if(unit.pinned)items.push('PINNED: cannot move or attack. Rally costs 1 action. Pins remain until rallied; pinned units can still hold the objective.');
+ if(unit.immobilized)items.push('IMMOBILIZED: cannot move, but can still fire or take overwatch. Repair tracks costs 2 AP and restores movement without restoring strength.');
  if(unit.entrenched)items.push('DUG IN: incoming fire needs another +1. Moving or assaulting removes this protection.');
  if(unit.overwatch)items.push('OVERWATCH: one automatic reaction shot, with +1 to the normal hit threshold. Expires at your next turn or when pinned.');
  const smoke=state.smoke?.find(s=>s.pos[0]===unit.pos[0]&&s.pos[1]===unit.pos[1]);
@@ -59,13 +60,15 @@ function combatCard(event,compact=false){
  const card=uiNode('div',compact?'combat-entry compact':'combat-entry');
  card.append(uiNode('p','combat-heading',`${event.kind}${event.round?` · round ${event.round}`:''}`));
  if(event.attacker_label)card.append(uiNode('p','mechanics-caption',event.attacker_label+(event.target_label?` → ${event.target_label}`:'')));
- if(event.roll!==undefined){
+ if(event.roll!==undefined&&event.threshold!==undefined){
   const hit=event.roll>=event.threshold,row=uiNode('div','roll-result');row.append(dieFace(event.roll,hit?'winning-face':'miss-face'));
   const suppressed=event.result?.startsWith('suppressed');
   const text=uiNode('div');text.append(uiNode('strong','',`Rolled ${event.roll} · needed ${event.threshold}+`),uiNode('span',hit||suppressed?'result-hit':'result-miss',hit?'SUCCESS':suppressed?'PINNED · NO DAMAGE':'MISS'));row.append(text);card.append(row);
   card.append(uiNode('p','mechanics-caption',rollFormula(event.modifiers,event.threshold)));
- }else card.append(uiNode('strong','automatic-result','Automatic effect · no dice roll'));
+ }else if(event.roll!==undefined)card.append(uiNode('strong','automatic-result',`Rolled ${event.roll} · target unobserved`));
+ else card.append(uiNode('strong','automatic-result','Automatic effect · no dice roll'));
  card.append(uiNode('p','combat-effect',event.result));
+ for(const hit of event.impacts||[])if(hit.id!==event.target)card.append(uiNode('p','combat-impact',`${kinds[hit.kind]||hit.kind} · ${String.fromCharCode(65+hit.pos[0])}${hit.pos[1]+1}: ${hit.result}`));
  if(event.note)card.append(uiNode('p','mechanics-caption',event.note));
  return card;
 }

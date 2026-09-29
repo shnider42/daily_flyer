@@ -1,0 +1,7 @@
+.hex.combat-choice{fill:#edb46c!important;fill-opacity:.56;stroke:#ffecb3!important;stroke-width:3.5;stroke-dasharray:6 3;cursor:crosshair}
+.hex.combat-choice:hover,.hex.combat-choice:focus{fill:#ffd386!important;fill-opacity:.9;stroke:#fff!important;stroke-width:5}
+.hex.combat-search{fill:#3be5d4!important;stroke:#bafff4!important}
+.track-marker{font:900 8px system-ui;fill:#fff4dd;stroke:#6b260e;stroke-width:3px;paint-order:stroke;pointer-events:none}
+.weapon-summary{color:#263c33;font-weight:750;font-size:.9rem;line-height:1.4}
+.weapon-manual{border:1px solid #9aa68e;background:#e9eddf;padding:1rem;border-radius:8px;margin:1rem 0;color:#172722}
+.combat-impact{color:#293c31;font-size:.85rem;margin:.35rem 0}

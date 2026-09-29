@@ -6,7 +6,7 @@ from .engine import apply, options, distance, terrain
 from .scenarios import battlefield
 from .rulesets import dsl, turn_limit
 from .visibility import fog, view, visible_ids
-from . import naval, air
+from . import naval, air, weapons
 
 
 def objective_costs(state):
@@ -48,6 +48,7 @@ def choose_order(state, costs, visited):
         if unit['side'] != side:
             continue
         legal = options(state, unit)
+        choices.extend(weapons.ai_orders(state, unit, legal, units.values()))
         # Embark on a distant approach; deploy near the fight, before using support fire.
         if unit['kind']=='halftrack' and legal.get('load') and costs.get(tuple(unit['pos']),100)>5 and not any(
                 u['side']!=side and distance(u['pos'],unit['pos'])<=6 for u in units.values()):
@@ -78,7 +79,8 @@ def choose_order(state, costs, visited):
             target = units[shot['id']]
             chance = max(0, (7-shot['threshold'])/6)
             if chance:
-                add(3+chance*7+(2 if target['hp'] == 1 else 0)
+                splash_risk = sum(5 for friend in units.values() if friend['side']==side and distance(friend['pos'], target['pos'])<=1) if weapons.enabled(state) and weapons.profile(unit).get('splash') else 0
+                add(3+chance*7+(2 if target['hp'] == 1 else 0)-splash_risk
                     + (3 if target['pos'] == board['objective'] else 0), unit, 'fire', target=target['id'])
         for shot in legal['grenades']:
             target = units[shot['id']]
@@ -95,7 +97,7 @@ def choose_order(state, costs, visited):
             target = units[target_id]
             add(6+(4 if target.get('overwatch') else 0), unit, 'suppress', target=target_id)
         for pos in legal['barrage']:
-            nearby = [u for u in units.values() if distance(u['pos'], pos) <= 1]
+            nearby = [u for u in units.values() if distance(u['pos'], pos) <= 1 and (not weapons.enabled(state) or weapons.protection(u)=='infantry')]
             enemies = [u for u in nearby if u['side'] != side]
             value = sum(3+(2 if u.get('entrenched') else 0) for u in enemies)
             value -= sum(5 for u in nearby if u['side'] == side)

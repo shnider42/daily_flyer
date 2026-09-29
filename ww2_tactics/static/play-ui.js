@@ -7,6 +7,12 @@
  const save=()=>{try{localStorage.setItem(key,JSON.stringify(prefs));}catch{}};
  // Distinct silhouettes and plain-language effects supplement color, including on touch screens.
  const actionDesign={
+  loadAP:['indigo','Pierce armor','M5 20V7l4-4 4 4v13H5ZM5 14h8M17 6v14M16 7h4'],
+  loadHE:['orange','Blast infantry; nearby troops at risk','M5 20V7l4-4 4 4v13H5ZM5 14h8M18 6v5M16 9h5M16 16l5 4M21 16l-5 4'],
+  repairTracks:['green','Restore movement; gun stays operational','M4 7h16v11H4ZM7 7v11M17 7v11M9 12h6M12 9v6'],
+  bombard:['rust','Fire at an unseen hex','M3 18l13-9 3 3-13 9M15 4h6M18 1v6M4 10l4 3'],
+  artillery:['orange','Long-range delayed strike','M3 18l13-9 3 3-13 9M15 3l5 4M5 4v5M2 7h6'],
+  fieldRecon:['teal','Reveal a distant area','M3 12l7-2 2-7 2 7 7 2-7 2-2 7-2-7-7-2Z'],
   rearm:['green','Reload bombs and repair at a friendly airfield','M4 7h16v12H4ZM8 3v4M16 3v4M8 13h8M12 9v8'],
   load:['blue','Board one friendly infantry unit; costs infantry AP','M3 7h11v13H3ZM17 5l4 4-4 4M10 9h11'],
   unload:['teal','Disembark onto adjacent land; costs infantry AP','M3 7h11v13H3ZM17 12l4 4-4 4M10 16h11'],
@@ -81,7 +87,7 @@
   const ready=alive.filter(u=>Object.values(state.legal[u.id]||{}).some(v=>Array.isArray(v)?v.length:v===true));
   const pool=ready.length?ready:alive;if(!pool.length)return;
   const index=pool.findIndex(u=>u.id===selected),unit=pool[(index<0?(direction>0?0:pool.length-1):(index+direction+pool.length)%pool.length)];
-  smokeMode=false;barrageMode=false;chooseUnit(unit);focusMobile(unit);
+  smokeMode=false;barrageMode=false;combatMode=null;chooseUnit(unit);focusMobile(unit);
  }
  window.ww2Mobile={get active(){return !!dock;},focus:focusMobile,openMenu:()=>openSheet('mobileBattleMenu')};
  function mount(){
@@ -144,7 +150,7 @@
    if(!dad)restoreDadOrders();
    const unit=state.units.find(u=>u.id===selected&&u.hp>0);
    const title=node('strong',null,unit?unitTypeName(unit):'Select a unit');title.className='selected-unit-name';
-   const meta=node('span',null,unit?`${unit.platoon?unit.platoon+unit.number+' · ':''}${unit.hp}${unit.max_hp?'/'+unit.max_hp:''} ${state.naval_version?'HP':'strength'} · ${unit.ap} AP${unit.carrier_id?' · ABOARD':unit.reserve?' · RESERVE':unit.pinned?' · PINNED':''}`:'Tap the map or open Your units');meta.className='selected-unit-meta';
+   const meta=node('span',null,unit?`${unit.platoon?unit.platoon+unit.number+' · ':''}${unit.hp}${unit.max_hp?'/'+unit.max_hp:''} ${state.naval_version?'HP':'strength'} · ${unit.ap} AP${unit.carrier_id?' · ABOARD':unit.reserve?' · RESERVE':unit.immobilized?' · TRACKS DISABLED':unit.pinned?' · PINNED':''}${unit.ammo?' · '+unit.ammo.toUpperCase()+' loaded':''}`:'Tap the map or open Your units');meta.className='selected-unit-meta';
    $('mobileOrderToggle').replaceChildren(title,meta);
    if(dad){const inspected=state.units.find(u=>u.id===target&&u.hp>0)||unit;if(inspected){const portrait=window.makeUnitPortrait?.(inspected);if(portrait)$('mobileOrderToggle').prepend(portrait);if(inspected!==unit){title.textContent=`Target: ${unitTypeName(inspected)}`;meta.textContent=`${sideLabel(inspected.side)} · ${inspected.hp} ${state.naval_version?'HP':'strength'} · your unit: ${unit?unitTypeName(unit):'none'}`;}}}
    $('unitDetailTitle').textContent=unit?unitName(unit):'Unit details & odds';
@@ -171,7 +177,7 @@
    $('dadOrdersOpen').disabled=!!playbackSession||!buttons.length;$('dadOrdersOpen').textContent=buttons.length?`Orders · ${buttons.length} available`:'Select a unit for orders';
    const rows=String(Math.max(columns===2?4:3,Math.ceil(buttons.length/columns)));
    if(screen.style.getPropertyValue('--order-rows')!==rows)screen.style.setProperty('--order-rows',rows);
-   if(state.last_combat?.revision===state.revision&&!smokeMode&&!barrageMode&&!target&&!$('hint').textContent.startsWith('Tap a marked'))$('hint').textContent=state.last_combat.result;
+   if(state.last_combat?.revision===state.revision&&!smokeMode&&!barrageMode&&!combatMode&&!target&&!state.units.find(u=>u.id===selected)?.immobilized&&!$('hint').textContent.startsWith('Tap a marked'))$('hint').textContent=state.last_combat.result;
   }
   $('simpleOutcome').textContent=state.last_combat?.result||'';
   $('guideToggle').hidden=state.ruleset!=='dsl'||!!state.naval_version||!!state.air_version;

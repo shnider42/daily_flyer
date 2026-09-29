@@ -8,6 +8,7 @@ from .rulesets import base_ap, bank_limit
 from .visibility import active, visible_ids, update_intel, record_reports
 from .combat_display import record_combat
 from .effects import record_effect
+from . import weapons
 
 SHIPS={'battleship','carrier','cruiser','destroyer'}
 FACTIONS={'us':'Americans','de':'Japanese'}
@@ -62,8 +63,13 @@ def passable(unit,tile):
 def options(state, unit):
     from .engine import distance,line_clear,terrain
     result=dict(moves=[],targets=[],rally=False,smoke=[],dig=False,assaults=[],overwatch=False,
-                grenades=[],suppress=[],inspire=[],barrage=[],command=[],drops=[],airstrikes=[],torpedoes=[],recon=[],repair=False)
+                grenades=[],suppress=[],inspire=[],barrage=[],command=[],drops=[],airstrikes=[],torpedoes=[],recon=[],repair=False,
+                ammo=[],repair_tracks=False,bombard=[])
     if not state['ready'] or state['winner'] or not active(unit) or unit['side']!=state['turn']:
+        return result
+    result.update(weapons.orders(state, unit))
+    if weapons.enabled(state) and unit.get('pinned'):
+        result['rally'] = unit['ap'] >= 1
         return result
     board=state['battlefield'];seen=visible_ids(state,unit['side'])
     living=[u for u in state['units'] if active(u)]
@@ -73,7 +79,7 @@ def options(state, unit):
             for x in range(max(0,unit['pos'][0]-1),min(board['width'],unit['pos'][0]+2)):
                 tile=terrain(x,y,state)
                 cost=2 if unit['kind']=='amphibious' and tile in {'woods','building'} else 1
-                if distance(unit['pos'],[x,y])==1 and passable(unit,tile) and unit['ap']>=cost and (x,y) not in occupied:
+                if distance(unit['pos'],[x,y])==1 and passable(unit,tile) and unit['ap']>=cost and (x,y) not in occupied and not (weapons.enabled(state) and unit.get('immobilized')):
                     result['moves'].append(dict(pos=[x,y],cost=cost,threats=0))
         if unit.get('smoke') and not any(s['pos']==unit['pos'] for s in state['smoke']):
             result['smoke']=[list(unit['pos'])]
@@ -82,7 +88,7 @@ def options(state, unit):
                              if distance(unit['pos'],[x,y])<=unit['recon_range'] and navigable(terrain(x,y,state))]
     if unit['ap']<2:
         return result
-    result['repair']=unit['hp']<unit['max_hp'] and unit['repairs']>0 and not unit['repair_used']
+    result['repair']=unit['hp']<unit.get('max_hp',unit['hp']) and unit.get('repairs',0)>0 and not unit.get('repair_used')
     for target in living:
         if target['side']==unit['side'] or target['id'] not in seen:
             continue
@@ -90,8 +96,11 @@ def options(state, unit):
         clear=line_clear(unit['pos'],target['pos'],state['smoke'],state)
         if gap<=unit['range'] and clear:
             mods=dict(distance=int(gap>5),evasion=int(target['kind']=='destroyer'),cover=int(terrain(*target['pos'],state) in {'woods','building'}))
-            result['targets'].append(dict(id=target['id'],threshold=4+sum(mods.values()),modifiers=mods,
-                                          damage=max(1,unit['gun_damage']-target['armor']),naval=True))
+            if weapons.enabled(state):
+                if weapons.damage(unit, target): result['targets'].append(dict(weapons.preview(unit, target, 4+sum(mods.values()), mods), naval=True))
+            else:
+                result['targets'].append(dict(id=target['id'],threshold=4+sum(mods.values()),modifiers=mods,
+                                              damage=max(1,unit['gun_damage']-target['armor']),naval=True))
         if unit['kind']=='destroyer' and target['kind'] in SHIPS and unit['torpedoes']>0 and not unit['torpedo_used'] and gap<=unit['torpedo_range'] and clear:
             result['torpedoes'].append(dict(id=target['id'],threshold=4,damage=unit['torpedo_damage']))
         if unit['kind']=='carrier' and not unit['air_used'] and gap<=unit['strike_range']:
@@ -99,6 +108,10 @@ def options(state, unit):
             escort=any(u['kind']=='cruiser' and u['side']==target['side'] and u['id'] in seen and distance(u['pos'],target['pos'])<=2 for u in living)
             result['airstrikes'].append(dict(id=target['id'],threshold=(3 if unit['side']=='us' else 4)+int(escort),
                                             damage=unit['strike_damage'],aa=int(escort)))
+    if weapons.enabled(state):
+        for key, weapon in [('torpedoes', 'torpedo'), ('airstrikes', 'airstrike')]:
+            result[key] = [dict(s, **{k:v for k,v in weapons.preview(unit, next(t for t in living if t['id']==s['id']), s['threshold'], weapon=weapon).items()})
+                           for s in result[key]]
     return result
 
 
@@ -107,6 +120,8 @@ def apply(state,side,action,roll=None):
     state=copy.deepcopy(state);roll=roll or (lambda:secrets.randbelow(6)+1)
     before={team:visible_ids(state,team) for team in ('us','de')};kind=action.get('kind');action_round=state['round']
     if kind=='end':
+        from .support import resolve_barrages
+        resolve_barrages(state, FACTIONS, roll)
         zone=state['battlefield']['objective']
         holders={u['side'] for u in state['units'] if active(u) and distance(u['pos'],zone)<=2}
         if holders=={side}:state['sea_score'][side]+=1
@@ -127,7 +142,11 @@ def apply(state,side,action,roll=None):
         unit=next((u for u in state['units'] if u['id']==action.get('unit') and u['side']==side and active(u)),None)
         if unit is None:raise ValueError('Choose one of your surviving units.')
         legal=options(state,unit)
-        if kind=='move' and any(m['pos']==action.get('pos') for m in legal['moves']):
+        if kind in {'load_ammo', 'repair_tracks', 'bombard', 'artillery', 'field_recon'}:
+            message = weapons.action(state, unit, action, legal, roll)
+        elif kind == 'rally' and legal['rally']:
+            unit['pinned']=False;unit['ap']-=1;message='Infantry rallied · 1 AP.'
+        elif kind=='move' and any(m['pos']==action.get('pos') for m in legal['moves']):
             cost=next(m['cost'] for m in legal['moves'] if m['pos']==action['pos'])
             unit['pos']=list(action['pos']);unit['ap']-=cost
             message=f"{FACTIONS[side]} {unit['kind']} moved to {chr(65+unit['pos'][0])}{unit['pos'][1]+1}."
@@ -149,12 +168,16 @@ def apply(state,side,action,roll=None):
             target=next(u for u in state['units'] if u['id']==shot['id']);die=roll();unit['ap']-=2
             if kind=='airstrike':unit['air_used']=True
             if kind=='torpedo':unit['torpedo_used']=True;unit['torpedoes']-=1
-            if die>=shot['threshold']:target['hp']=max(0,target['hp']-shot['damage'])
-            result='sunk' if not target['hp'] else f"hit for {shot['damage']} hull" if die>=shot['threshold'] else 'missed'
+            impacts = []
+            if weapons.enabled(state):
+                result, impacts = weapons.resolve(state, unit, target, die, shot['threshold'], shot['weapon'])
+            else:
+                if die>=shot['threshold']:target['hp']=max(0,target['hp']-shot['damage'])
+                result='sunk' if not target['hp'] else f"hit for {shot['damage']} hull" if die>=shot['threshold'] else 'missed'
             message=f"{FACTIONS[side]} {unit['kind']} {kind}: rolled {die}, needed {shot['threshold']}+. Target {result}."
             state['last_combat']=dict(kind={'fire':'Naval guns','airstrike':'Air strike','torpedo':'Torpedoes'}[kind],
-                 roll=die,threshold=shot['threshold'],result=result,attacker=unit['id'],target=target['id'],revision=state['revision']+1)
-            record_combat(state,shot.get('modifiers'),f"{shot['damage']} hull on a hit. Ships do not suffer infantry pins."+(' Cruiser AA cover adds +1.' if shot.get('aa') else ''))
+                 roll=die,threshold=shot['threshold'],result=result,attacker=unit['id'],target=target['id'],impacts=impacts,revision=state['revision']+1)
+            record_combat(state,shot.get('modifiers'),shot.get('effect_text',f"{shot['damage']} hull on a hit. Ships do not suffer infantry pins.")+(' Cruiser AA cover adds +1.' if shot.get('aa') else ''))
             record_effect(state,'explosion',[target['pos']])
         else:raise ValueError('That naval order is unavailable.')
     for team in ('us','de'):
@@ -170,7 +193,7 @@ def apply(state,side,action,roll=None):
     state['log'].append(message);state['revision']+=1
     update_intel(state);record_reports(state,before,action,message)
     state.setdefault('action_history',[]).append(dict(revision=state['revision'],round=action_round,side=side,
-        action={k:copy.deepcopy(action[k]) for k in ('kind','unit','target','pos') if k in action}))
+        action={k:copy.deepcopy(action[k]) for k in ('kind','unit','target','pos','ammo') if k in action}))
     return state
 
 
@@ -182,10 +205,13 @@ def choose_order(state,costs,visited):
     for u in units.values():
         if u['side']!=state['turn']:continue
         legal=options(state,u)
+        choices.extend(weapons.ai_orders(state, u, legal, units.values()))
+        if legal['rally']: add(10, u, 'rally')
         for key,kind in [('targets','fire'),('airstrikes','airstrike'),('torpedoes','torpedo')]:
             for shot in legal[key]:
                 target=units[shot['id']]
-                add(5+(7-shot['threshold'])/6*shot['damage']*3+(3 if target['kind']=='carrier' else 0)+(2 if target['hp']<=shot['damage'] else 0),u,kind,target=target['id'])
+                risk = sum(6 for friend in units.values() if friend['side']==u['side'] and distance(friend['pos'],target['pos'])<=1 and weapons.protection(friend)=='infantry') if weapons.enabled(state) and weapons.profile(u, shot.get('weapon')).get('splash') else 0
+                add(5+(7-shot['threshold'])/6*shot['damage']*3+(3 if target['kind']=='carrier' else 0)+(2 if target['hp']<=shot['damage'] else 0)-risk,u,kind,target=target['id'])
         if legal['repair']:add(4+min(u['repair_amount'],u['max_hp']-u['hp'])*2,u,'repair')
         if legal['recon']:
             # Search along the approach, using only known terrain and contacts.

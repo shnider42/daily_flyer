@@ -8,6 +8,7 @@ import secrets
 from .visibility import active, update_intel, record_reports
 from .combat_display import record_combat
 from .effects import record_effect
+from . import weapons
 
 AIRCRAFT = {'fighter','bomber'}
 
@@ -41,6 +42,7 @@ def initial(board, rules):
 
 def sees_hex(state,side,pos,ground=False):
     from .engine import distance
+    if any(r['side']==side and distance(r['pos'],pos)<=r['radius'] for r in state.get('recon', [])): return True
     for u in state['units']:
         if u['side']!=side or not active(u):continue
         reach=(4 if u['kind'] in AIRCRAFT else 0 if u['kind']=='radar' else 2) if ground else u['sight']
@@ -69,7 +71,7 @@ def flight_path(start,end):
 def watchers(state,mover,pos):
     from .engine import distance
     if mover['kind'] not in AIRCRAFT:return []
-    return [u for u in state['units'] if active(u) and u['side']!=mover['side'] and u['overwatch']
+    return [u for u in state['units'] if active(u) and u['side']!=mover['side'] and u['overwatch'] and not u.get('pinned')
             and u['kind'] in {'fighter','aa_gun'} and distance(u['pos'],pos)<=u['range']
             and sees_hex(state,u['side'],pos)]
 
@@ -85,8 +87,13 @@ def shot(unit,target,reaction=False):
 def options(state,unit):
     from .engine import distance
     result=dict(moves=[],targets=[],rally=False,smoke=[],dig=False,assaults=[],overwatch=False,
-                grenades=[],suppress=[],inspire=[],barrage=[],command=[],drops=[],load=[],unload=[],rearm=False)
+                grenades=[],suppress=[],inspire=[],barrage=[],command=[],drops=[],load=[],unload=[],rearm=False,
+                ammo=[],repair_tracks=False,bombard=[])
     if not state['ready'] or state['winner'] or not active(unit) or unit['side']!=state['turn']:
+        return result
+    result.update(weapons.orders(state, unit))
+    if weapons.enabled(state) and unit.get('pinned'):
+        result['rally'] = unit['ap'] >= 1
         return result
     seen=visible_ids(state,unit['side']);board=state['battlefield']
     living=[u for u in state['units'] if active(u)]
@@ -109,19 +116,25 @@ def options(state,unit):
         if target['side']==unit['side'] or target['id'] not in seen or distance(unit['pos'],target['pos'])>unit['range']:continue
         if ((unit['kind'] in {'fighter','aa_gun'} and target['kind'] in AIRCRAFT) or
             (unit['kind']=='bomber' and unit['bombs']>0 and target['kind'] not in AIRCRAFT)):
-            result['targets'].append(shot(unit,target))
+            s = shot(unit,target)
+            result['targets'].append(dict(weapons.preview(unit, target, s['threshold'], s['modifiers']), air=True) if weapons.enabled(state) else s)
     return result
 
 
 def resolve_shot(state,unit,target,roll,reaction=False):
     s=shot(unit,target,reaction);die=roll()
-    if die>=s['threshold']:target['hp']=max(0,target['hp']-s['damage'])
-    if target['hp']<=0:target['overwatch']=False
-    result='destroyed' if not target['hp'] else f"hit for {s['damage']}" if die>=s['threshold'] else 'missed'
+    impacts = []
+    if weapons.enabled(state):
+        s = weapons.preview(unit, target, s['threshold'], s['modifiers'])
+        result, impacts = weapons.resolve(state, unit, target, die, s['threshold'])
+    else:
+        if die>=s['threshold']:target['hp']=max(0,target['hp']-s['damage'])
+        if target['hp']<=0:target['overwatch']=False
+        result='destroyed' if not target['hp'] else f"hit for {s['damage']}" if die>=s['threshold'] else 'missed'
     label='AA interception' if reaction and unit['kind']=='aa_gun' else 'Fighter interception' if reaction else 'Bombing run' if unit['kind']=='bomber' else 'Air combat'
     state['last_combat']=dict(kind=label,roll=die,threshold=s['threshold'],result=result,
-        attacker=unit['id'],target=target['id'],revision=state['revision']+1)
-    record_combat(state,s['modifiers'],f"{s['damage']} damage on a hit. Aircraft do not suffer infantry pins.")
+        attacker=unit['id'],target=target['id'],impacts=impacts,revision=state['revision']+1)
+    record_combat(state,s['modifiers'],s.get('effect_text',f"{s['damage']} damage on a hit. Aircraft do not suffer infantry pins."))
     record_effect(state,'explosion',[list(target['pos'])])
     return f'{label}: rolled {die}, needed {s["threshold"]}+. Target {result}.'
 
@@ -132,6 +145,9 @@ def apply(state,side,action,roll=None):
     before={team:visible_ids(state,team) for team in ('us','de')};kind=action.get('kind');action_round=state['round']
     names=state['factions']
     if kind=='end':
+        from .support import resolve_barrages
+        resolve_barrages(state, names, roll)
+        state['recon'] = [dict(r, ttl=r['ttl']-1) for r in state.get('recon', []) if r['ttl'] > 1]
         other='de' if side=='us' else 'us'
         state['turn']=other
         if side=='de':state['round']+=1
@@ -146,7 +162,11 @@ def apply(state,side,action,roll=None):
         unit=next((u for u in state['units'] if u['side']==side and u['id']==action.get('unit') and active(u)),None)
         if unit is None:raise ValueError('Choose one of your surviving aircraft or AA guns.')
         legal=options(state,unit)
-        if kind=='move':
+        if kind in {'load_ammo', 'repair_tracks', 'bombard', 'artillery', 'field_recon'}:
+            message = weapons.action(state, unit, action, legal, roll)
+        elif kind == 'rally' and legal['rally']:
+            unit['pinned']=False;unit['ap']-=1;message='Gun crew rallied · 1 AP.'
+        elif kind=='move':
             move=next((m for m in legal['moves'] if m['pos']==action.get('pos')),None)
             if not move:raise ValueError('Choose a highlighted flight destination.')
             unit['ap']-=1;unit['overwatch']=False;intercepted=False
@@ -193,7 +213,7 @@ def apply(state,side,action,roll=None):
     state['log'].append(message);state['revision']+=1
     update_intel(state);record_reports(state,before,action,message)
     state.setdefault('action_history',[]).append(dict(revision=state['revision'],round=action_round,side=side,
-        action={k:copy.deepcopy(action[k]) for k in ('kind','unit','target','pos') if k in action}))
+        action={k:copy.deepcopy(action[k]) for k in ('kind','unit','target','pos','ammo') if k in action}))
     return state
 
 
@@ -206,6 +226,8 @@ def choose_order(state,costs,visited):
     for u in units:
         if u['side']!=side:continue
         legal=options(state,u)
+        choices.extend(weapons.ai_orders(state, u, legal, units))
+        if legal['rally']:add(12,u,'rally')
         for s in legal['targets']:
             target=next(t for t in enemies if t['id']==s['id'])
             priority=5 if target['kind'] in {'bomber','airfield'} else 1

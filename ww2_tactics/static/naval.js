@@ -11,7 +11,8 @@
  for(const id of ['recon','airstrike','torpedo','repair']){
   const b=document.createElement('button');b.id=id;b.hidden=true;$('nextUnit').before(b);buttons[id]=b;
  }
- buttons.recon.onclick=()=>{reconUnit=reconUnit===selected?null:selected;smokeMode=false;barrageMode=false;render();};
+ buttons.recon.onclick=()=>{reconUnit=reconUnit===selected?null:selected;combatMode=null;smokeMode=false;barrageMode=false;render();};
+ document.addEventListener('ww2:cancel-targeting',()=>{reconUnit=null;});
  for(const id of ['airstrike','torpedo'])buttons[id].onclick=()=>act({kind:id,unit:selected,target});
  buttons.repair.onclick=()=>act({kind:'repair',unit:selected});
  const manual=uiNode('section','naval-manual');manual.id='navalManual';
@@ -60,7 +61,7 @@
   for(const [id,key,label] of [['airstrike','airstrikes','Air strike'],['torpedo','torpedoes','Torpedoes']]){
    const shot=legal?.[key]?.find(s=>s.id===target);buttons[id].hidden=!myTurn||!shot||!!reconUnit;buttons[id].disabled=busy;
    buttons[id].textContent=`${label} · 2 AP`;
-   if(shot&&!reconUnit){$('odds').hidden=false;$('odds').append(chanceRow(label,shot.threshold,null,`Hit: ${shot.damage} hull damage.${shot.aa?' Cruiser AA cover adds +1 to the roll.':''}`));}
+   if(shot&&!reconUnit){$('odds').hidden=false;$('odds').append(chanceRow(label,shot.threshold,null,(shot.effect_text||`Hit: ${shot.damage} hull damage.`)+(shot.aa?' Cruiser AA cover adds +1 to the roll.':'')));}
   }
   if(unit){
    const roles={carrier:`CARRIER · Search radius 3 within ${unit.recon_range} hexes. Air strike range ${unit.strike_range}, ${unit.strike_damage} hull damage. One search and one strike per turn.`,battleship:`BATTLESHIP · Range ${unit.range}; heavy guns deal 3 hull before armor. Armor reduces incoming gun damage by 1.`,cruiser:'CRUISER · Range 6; 2 gun damage before armor. AA cover makes air strikes against ships within 2 hexes harder to hit.',destroyer:`DESTROYER · ${unit.base_ap} base AP. Torpedoes: range ${unit.torpedo_range}, ${unit.torpedo_damage} hull damage, ${unit.torpedoes} salvos left. ${unit.smoke} smoke screens.`};
