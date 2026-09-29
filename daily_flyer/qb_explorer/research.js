@@ -113,14 +113,23 @@
     if(prior.prediction)predict();
   });
   document.addEventListener('qb:research-story',e=>{
-    const id=e.detail.id;if(!['hall','rings'].includes(id))return;
-    Object.assign(state,{metric:'relative_anya',outcome:id==='hall'?'hof':'sb',x:id==='hall'?'b':'delta',era:'all'});
+    const {id,preset}=e.detail;if(!preset||preset.mode!=='research')return;
+    const config=preset.research,factory=data.preset_factory.find(p=>p.id===id);
+    const stock=factory.mode==='research'&&Object.keys(factory.research).every(k=>factory.research[k]===config[k]);
+    for(const key of ['metric','outcome','x','era'])state[key]=config[key];
     for(const key of ['metric','outcome','x','era'])$(key).value=state[key];
-    $('hof').checked=$('field').checked=true;selectedId='';current=null;
+    $('hof').checked=config.hof;$('field').checked=config.field;selectedId='';current=null;
     q('research').querySelectorAll('details').forEach(el=>{el.open=false;});
     setMode('research');
     const rows=current.rows;let title,takeaway,reading,setup;
-    if(id==='hall'){
+    if(!stock){
+      const events=rows.filter(r=>r.event===1).length;
+      takeaway=!rows.length?'No eligible quarterbacks match this preset’s complete follow-up window. Try another era, measure or outcome.':
+        state.outcome==='efficiency'?`${rows.length} eligible QBs; their average later efficiency was ${fmt(M.mean(rows.map(r=>r.y)))} ANY/A vs. league in years 3–7.`:
+        `${events} of ${rows.length} eligible QBs (${pct(events/rows.length)}) reached this outcome: ${current.def.event.toLowerCase()}.`;
+      reading=$('answer').textContent;
+      setup=`${$('x').selectedOptions[0].textContent} · ${metricName()} · ${state.era==='all'?'all eligible eras':state.era+'s anchors'} · equal ${current.def.horizon}-year follow-up · ${config.hof?'Hall shown':'Hall hidden'}, ${config.field?'non-Hall shown':'non-Hall hidden'}; visibility does not change statistics · performance through ${data.meta.through}.`;
+    }else if(id==='hall'){
       title='Does year two add a Hall of Fame signal?';
       const events=rows.filter(r=>r.event===1).length;
       takeaway=`${events} of ${rows.length} eligible quarterbacks were inducted within 25 years after year two. `;
@@ -140,6 +149,8 @@
       reading='Left of zero = a year-two decline; right = improvement. Higher dots = more later Super Bowl wins. These are descriptive group rates, not proof that a slump changes someone’s championship chances. Rings are team outcomes.';
       setup=`${rows.length} eligible QBs · any decrease or increase in league-relative efficiency · ${tied} exactly unchanged cases omitted from those two rates · equal 10-season follow-up · both Hall groups · performance and wins through ${data.meta.through}.`;
     }
+    title=preset.title;
+    if(preset.note)reading+=' Editor note: '+preset.note;
     document.dispatchEvent(new CustomEvent('qb:story-result',{detail:{id,mode:'research',title,takeaway,reading,setup}}));
   });
   document.querySelectorAll('[data-mode]').forEach(button=>button.addEventListener('click',()=>setMode(button.dataset.mode)));

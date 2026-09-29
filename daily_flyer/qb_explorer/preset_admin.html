@@ -1,0 +1,26 @@
+<section id="qb-preset-admin" class="qb-preset-admin" hidden aria-labelledby="qa-title">
+  <header class="qa-heading"><div><div class="qb-kicker">SITE SETTINGS / NO LOGIN</div><h2 id="qa-title" tabindex="-1">Edit the five shortcuts</h2></div><button id="qa-close" type="button">Close editor</button></header>
+  <p>Saving changes the shared presets for everyone who opens or reloads the site. This editor is intentionally public; knowing the URL is not access protection.</p>
+  <p id="qa-storage" class="qb-research-note"></p>
+  <p id="qa-status" role="status" aria-live="polite"></p>
+  <form id="qa-form">
+    <div class="qa-grid">
+      <label>Preset slot<select id="qa-slot"></select></label>
+      <label>Opens in<select id="qa-mode"><option value="film">Film room / quarterback charts</option><option value="research">Prediction lab / later outcomes</option></select></label>
+      <label>Shortcut button text<input id="qa-label" type="text" required maxlength="48"></label>
+      <label>Takeaway heading<input id="qa-heading" type="text" required maxlength="140"></label>
+    </div>
+    <label>Your optional note (plain text; numbers are still calculated automatically)<textarea id="qa-note" rows="2" maxlength="1200" placeholder="What would you like people to notice?"></textarea></label>
+    <div class="qa-tools"><button type="button" id="qa-capture">Use my current view’s settings</button><button type="button" id="qa-default">Reset this slot to its factory preset</button></div>
+    <fieldset id="qa-film"><legend>Film-room values</legend>
+      <div class="qa-grid"><label>How to pick quarterbacks<select id="qa-selection"><option value="fixed">Specific quarterbacks</option><option value="declined">Largest year-two declines (automatic)</option><option value="improved">Largest year-two improvements (automatic)</option></select></label><label id="qa-count-wrap">How many to show<input type="number" id="qa-count" min="1" max="25" step="1"></label></div>
+      <div id="qa-pick-players"><label>Find quarterbacks<input type="search" id="qa-player-search" placeholder="Name…" autocomplete="off"></label><div id="qa-picked" class="qa-picked"></div><div id="qa-players" class="qa-players" aria-label="Quarterbacks to include"></div><p class="qb-small">Specific QBs must also pass the filters below. An empty or conflicting selection produces an empty chart.</p></div>
+      <div id="qa-film-primary" class="qa-grid"></div>
+      <details id="qa-advanced"><summary>Filters &amp; fine-tuning</summary><div id="qa-film-advanced" class="qa-grid"></div></details>
+    </fieldset>
+    <fieldset id="qa-research"><legend>Research values</legend><div id="qa-research-fields" class="qa-grid"></div><p class="qb-small">Outcome windows and model methodology are unchanged. Group visibility changes the plot, not the cohort used for statistics.</p></fieldset>
+    <div class="qa-actions"><button type="button" id="qa-preview">Preview without saving</button><button type="submit" id="qa-save">Save all preset changes for everyone</button></div>
+  </form>
+  <div class="qa-tools"><button type="button" id="qa-reload">Reload saved presets</button><button type="button" id="qa-export">Export draft backup JSON</button><label class="qa-import">Import backup into draft<input type="file" id="qa-import" accept="application/json,.json"></label></div>
+  <details class="qa-storage-help"><summary>Keep edits across Render restarts and deploys</summary><p>On a paid web service, attach a persistent disk at <code>/var/data</code>, then set <code>QB_PRESET_DB=/var/data/qb_presets.sqlite3</code>. The file must be on that disk; the environment variable alone does not make storage durable. Free Render services cannot attach disks. Export a backup before changing storage, then import and save it afterward. Use a single service instance with its attached disk.</p><p><a href="https://render.com/docs/disks" target="_blank" rel="noopener noreferrer">Render persistent-disk instructions ↗</a></p></details>
+</section>

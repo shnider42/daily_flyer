@@ -18,6 +18,64 @@ Or use `/?theme=qb_year_two` on a service deploying this branch. No API key,
 database, background job, chart CDN or new production dependency is required.
 This change does not deploy or merge the branch.
 
+## Version 2.3.0 — public shared preset editor
+
+Open the footer's **Preset editor** button, or add `preset_admin=1` to the query
+string (`/?theme=qb_year_two&preset_admin=1`). No login or API key is required.
+This is intentionally public write access, not security through an obscure URL.
+
+- All five fixed shortcut slots can change labels, headings, plain-text notes
+  and destination mode. Film options include dynamic improvement/decline rankings
+  (1–25 QBs), specific players, every metric, view, window, filter, normalization,
+  scale, range, layout, colors, markers, line strength and height. Research options
+  include metric, outcome, predictor, era and visible Hall groups.
+- Edits stay in a draft until Save. Switching slots keeps their draft values.
+  Preview validates and applies the draft without publishing it. “Use my current
+  view” captures the active film/lab controls; film capture uses explicit players.
+  Factory reset and JSON import affect drafts only. Export backs up all five slots.
+- Published presets are embedded into subsequent page loads. Saving updates the
+  editor's own shortcut buttons immediately; other open pages use their existing
+  copy until reloaded. Original factory settings keep the original story text;
+  changed configurations generate metric/cohort-aware summaries, not stale claims.
+- The new, isolated `/api/qb-presets` blueprint supports GET and revision-checked
+  PUT; POST `/api/qb-presets/validate` is read-only. Saves are SQLite transactions,
+  coordinating Gunicorn workers. Concurrent stale saves return 409 and retain the
+  browser draft rather than silently overwriting someone else's edits.
+- No authentication, but a strict schema still constrains fields, IDs, enums,
+  finite bounds and sizes. JSON requests are limited to 64 KiB; browser cross-site
+  requests are rejected. Labels/notes are inert text. A broken store does not get
+  silently replaced: the explorer can show factory presets while the editor
+  reports the storage error. Public write access allows anyone on the site to
+  change presets; do not repurpose this endpoint for sensitive settings.
+
+### Storage on Render — required for durable edits
+
+No new production package is needed. Default storage is
+`instance/qb_presets.sqlite3`, outside the publicly served `daily_flyer` directory.
+It is **temporary on Render** and can be lost on restarts or redeploys. The editor
+warns about this on opening and saving. Existing static deployments have no newly
+provisioned disk, database or paid service.
+
+For durable shared edits, attach a persistent disk to a paid web service at
+`/var/data`, and set `QB_PRESET_DB=/var/data/qb_presets.sqlite3`. The environment
+variable alone is not sufficient: its path must actually be on the persistent
+disk. Use one service instance with its attached disk. Free Render services do
+not support persistent disks. Export before changing storage or deployment,
+then import and save the backup afterward. Storage-path confirmation is shown
+without claiming the app can prove the volume is durable.
+
+### Validation
+
+Run `python -m unittest tests.test_qb_year_two tests.test_qb_presets`, the two
+existing JavaScript calculation suites, and both browser scripts:
+`tests/test_qb_browser.cjs` and `tests/test_qb_preset_admin.cjs`.
+The admin browser test uses a unique temporary SQLite database, never the live
+preset store. It covers shared saves across browsers, preview isolation, editing,
+mode switching, conflicts, inert text, capture, backups and mobile widths.
+The broader legacy platform suite has three pre-existing unrelated content
+assertion failures (birthday, Irish visual-lab and Nissan Z); the same failures
+were reproduced using this branch's pre-change `web.py`.
+
 ## Version 2.2.0 — one-tap stories
 
 - Five shortcuts above the season definition: Biggest slumps, Biggest leaps,

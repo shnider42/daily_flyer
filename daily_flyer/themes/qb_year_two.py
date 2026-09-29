@@ -7,6 +7,7 @@ import re
 
 from daily_flyer.models import CardItem, PageContext
 from daily_flyer.qb_explorer.data import load_dataset
+from daily_flyer.qb_explorer.presets import factory_presets, page_presets
 from daily_flyer.utils import resolve_date
 
 ASSETS = Path(__file__).resolve().parents[1] / "qb_explorer"
@@ -18,7 +19,7 @@ THEME_CONFIG = {
 }
 BACKGROUNDS = []
 BACKGROUND_CADENCE = "daily"
-APP_VERSION = "2.2.0"
+APP_VERSION = "2.3.0"
 
 
 def build_info():
@@ -32,14 +33,16 @@ def build_theme_page(date_str=None, seed=None):
     today = resolve_date(date_str)
     payload = load_dataset()
     payload["build"] = build_info()
+    payload["preset_config"] = page_presets()
+    payload["preset_factory"] = factory_presets()
     payload["super_bowls"] = json.loads((ASSETS.parent / "data" / "qb_super_bowls.json").read_text())
     dataset = json.dumps(payload, separators=(",", ":"), ensure_ascii=False).replace("<", "\\u003c")
     return PageContext(
         page_title=THEME_CONFIG["page_title"], header_title=THEME_CONFIG["header_title"],
         header_subtitle=THEME_CONFIG["header_subtitle"], today_str=today.isoformat(),
-        cards=[CardItem(card_type="qb_explorer", eyebrow="", title="", body=(ASSETS / "page.html").read_text().replace("<!-- RESEARCH_PANEL -->", (ASSETS / "research.html").read_text()))],
+        cards=[CardItem(card_type="qb_explorer", eyebrow="", title="", body=(ASSETS / "page.html").read_text().replace("<!-- RESEARCH_PANEL -->", (ASSETS / "research.html").read_text()).replace("<!-- PRESET_EDITOR -->", (ASSETS / "preset_admin.html").read_text()))],
         footer_text=THEME_CONFIG["footer_text"],
         metadata={"theme_name": "qb_year_two", "extra_css": (ASSETS / "style.css").read_text() + "\n" + (ASSETS / "football.css").read_text(),
                   "extra_head_html": '<script type="application/json" id="qb-data">'+dataset+'</script>',
-                  "extra_js": "\n".join((ASSETS / file).read_text() for file in ["chart_math.js", "app.js", "research_math.js", "research.js", "stories.js"])},
+                  "extra_js": "\n".join((ASSETS / file).read_text() for file in ["chart_math.js", "app.js", "research_math.js", "research.js", "stories.js", "preset_admin.js"])},
     )

@@ -336,21 +336,30 @@
   document.addEventListener('qb:film-snapshot',e=>{e.detail.value={...state,ids:[...state.ids]};});
   document.addEventListener('qb:film-restore',e=>loadFilmState(e.detail));
   document.addEventListener('qb:film-story',e=>{
-    const id=e.detail.id;if(!['slumps','leaps','rivals'].includes(id))return;
-    const ranked=id!=='rivals';
-    Object.assign(state,defaults,{ids:new Set(),layout:'separate',height:'compact',points:'all',
-      y2qual:ranked,normalize:ranked?'delta':'raw',sort:id==='slumps'?'declined':id==='leaps'?'improved':'name',
-      view:ranked?'year2':'performance',window:ranked?'5':'10'});
+    const {id,preset}=e.detail;if(!preset||preset.mode!=='film')return;
+    const {selection,count,...settings}=preset.film,ranked=selection!=='fixed';
+    const factory=data.preset_factory.find(p=>p.id===id);
+    const stock=factory.mode==='film'&&Object.keys(factory.film).every(k=>JSON.stringify(factory.film[k])===JSON.stringify(preset.film[k]));
+    Object.assign(state,defaults,settings,{ids:new Set(),focus:'',focusYear:null});
     let chosen,basis=[];
     if(ranked){
       basis=filtered().filter(p=>exists(pair(p).delta));
-      chosen=basis.filter(p=>id==='slumps'?pair(p).delta<0:pair(p).delta>0).slice(0,4);
-    }else chosen=['BradTo00','MannPe00'].map(id=>data.players.find(p=>p.id===id)).filter(Boolean);
-    loadFilmState({...state,ids:chosen.map(p=>p.id)});
+      const direction=metrics[state.metric][2];
+      chosen=basis.filter(p=>selection==='declined'?pair(p).delta*direction<0:pair(p).delta*direction>0)
+        .sort((a,b)=>(pair(b).delta-pair(a).delta)*direction*(selection==='declined'?-1:1)||a.name.localeCompare(b.name)).slice(0,count);
+    }else chosen=filtered().filter(p=>settings.ids.includes(p.id));
+    loadFilmState({...state,ids:ranked?chosen.map(p=>p.id):settings.ids});
     for(const name of ['settings','selected-details','chart-guide'])$(name).open=false;
     document.dispatchEvent(new CustomEvent('qb:mode',{detail:{mode:'film'}}));
     let takeaway,reading,setup,title;
-    if(ranked){
+    if(!stock){
+      const changes=chosen.slice(0,4).map(p=>`${p.name}: ${fmt(pair(p).delta,true)}`).join('; ');
+      takeaway=chosen.length?`Year-one-to-two change in ${metrics[state.metric][0].toLowerCase()}: ${changes}${chosen.length>4?'; plus '+(chosen.length-4)+' more QBs':''}.`:'No quarterbacks match this preset. Adjust the player selection or filters in the editor.';
+      reading=state.view==='career'?'This chart shows career length, not performance. The year-two changes above are actual metric values.':
+        (state.normalize==='delta'?'Zero is each QB’s year-one value. ':state.normalize==='zscore'?'Zero is each QB’s own career average. ':state.metric==='relative_anya'?'Zero is that season’s league-average passing efficiency. ':'The graph shows actual metric values. ')+
+        (metrics[state.metric][2]<0?'Lower is better on this measure. ':'Higher is better on this measure. ')+'These comparisons describe performance; they do not predict whole careers.';
+      setup=`${chosen.length} QBs shown · ${ranked?'largest '+(selection==='declined'?'declines':'improvements')+' among '+basis.length+' comparable filtered QBs':'specific player selection, subject to filters'} · ${state.y2qual?'12 starts for one team required in BOTH years (survivor restriction)':'fewer year-two starts allowed'} · ${state.scale} scale requested · ${state.range} bounds · data through ${data.meta.through}.`;
+    }else if(ranked){
       title=id==='slumps'?'The biggest year-two slumps':'The biggest year-two leaps';
       const leader=chosen[0],q=leader&&pair(leader);
       takeaway=leader?`${leader.name} leads this list: ${fmt(q.a)} in year one (${leader.first}) → ${fmt(q.b)} in year two (${leader.first+1}), a change of ${fmt(q.delta,true)} in passing efficiency vs. league.`:'No comparable quarterbacks match this ranking in the current snapshot.';
@@ -363,6 +372,8 @@
       reading='Compare the highlighted year-two points, then follow the next eight years. Zero here means league-average efficiency that season—not each player’s starting value. This two-player example cannot establish a general career prediction.';
       setup=`Two selected examples · first ten starter years · actual passing efficiency vs. league · shared linear axes · team colors · data through ${data.meta.through}.`;
     }
+    title=preset.title;
+    if(preset.note)reading+=' Editor note: '+preset.note;
     document.dispatchEvent(new CustomEvent('qb:story-result',{detail:{id,mode:'film',title,takeaway,reading,setup}}));
   });
   const teamCodes=[...new Set(data.players.flatMap(p=>p.seasons.flatMap(s=>[s.team,...s.teams.map(t=>t.team)])))].filter(t=>!/^\dTM$/.test(t)).sort((a,b)=>teamName(a).localeCompare(teamName(b)));
