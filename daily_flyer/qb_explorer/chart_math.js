@@ -2,6 +2,25 @@
 const QBChartMath = (() => {
   'use strict';
   const finite = v => typeof v === 'number' && Number.isFinite(v);
+  function quantile(sorted, fraction) {
+    const position=(sorted.length-1)*fraction, i=Math.floor(position);
+    return sorted[i]+(sorted[Math.min(i+1,sorted.length-1)]-sorted[i])*(position-i);
+  }
+  function densityMap(values) {
+    // Midranks preserve ties. Linear interpolation preserves ordering between knots.
+    const sorted=[...values].sort((a,b)=>a-b), knots=[], ranks=[];
+    for(let i=0;i<sorted.length;) {
+      let end=i+1;while(end<sorted.length&&sorted[end]===sorted[i])end++;
+      knots.push(sorted[i]);ranks.push((i+end-1)/2);i=end;
+    }
+    function interpolate(xs,ys,v) {
+      let lo=0,hi=xs.length-1;
+      while(hi-lo>1){const mid=Math.floor((lo+hi)/2);if(xs[mid]<=v)lo=mid;else hi=mid;}
+      return ys[lo]+(v-xs[lo])/(xs[hi]-xs[lo])*(ys[hi]-ys[lo]);
+    }
+    return knots.length<2?{transform:v=>v,inverse:v=>v}:
+      {transform:v=>interpolate(knots,ranks,v),inverse:v=>interpolate(ranks,knots,v)};
+  }
   function series(player, metric, mode) {
     const numbers = player.seasons.map(r => r[metric]).filter(finite);
     const anchor = player.seasons.find(r => r.year === player.first)?.[metric];
@@ -30,13 +49,19 @@ const QBChartMath = (() => {
       scale = 'symlog';
       notes.push('Signed log is in use: logarithmic scales cannot include zero or negative values. All observations are retained.');
     }
-    const transform = scale === 'log' ? Math.log10 : scale === 'symlog' ? v => Math.sign(v)*Math.log1p(Math.abs(v)) : v => v;
-    const inverse = scale === 'log' ? v => 10**v : scale === 'symlog' ? v => Math.sign(v)*Math.expm1(Math.abs(v)) : v => v;
+    const density=scale==='density'?densityMap(values):null;
+    const transform = density?density.transform:scale === 'log' ? Math.log10 : scale === 'symlog' ? v => Math.sign(v)*Math.log1p(Math.abs(v)) : v => v;
+    const inverse = density?density.inverse:scale === 'log' ? v => 10**v : scale === 'symlog' ? v => Math.sign(v)*Math.expm1(Math.abs(v)) : v => v;
     let low = values.length ? Math.min(...values) : scale === 'log' ? 1 : 0;
     let high = values.length ? Math.max(...values) : scale === 'log' ? 10 : 1;
     if (options.range === 'zero') { low = Math.min(0, low); high = Math.max(0, high); }
+    if (options.range === 'middle' && values.length>1) {
+      const sorted=[...values].sort((a,b)=>a-b);
+      low=quantile(sorted,.1);high=quantile(sorted,.9);
+      if(low===high){low=sorted[0];high=sorted[sorted.length-1];notes.push('The middle values are tied; showing the full range instead.');}
+    }
     let a = transform(low), b = transform(high);
-    const pad = Math.max((b-a)*.08, a === b ? Math.max(Math.abs(a)*.08, .5) : 1e-6);
+    const pad = options.range==='middle' && a!==b ? 0 : Math.max((b-a)*.08, a === b ? Math.max(Math.abs(a)*.08, .5) : 1e-6);
     a -= pad; b += pad;
     if (options.range === 'zero' && low === 0) a = 0;
     if (options.range === 'zero' && high === 0 && low < 0) b = 0;

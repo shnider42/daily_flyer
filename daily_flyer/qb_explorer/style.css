@@ -10,3 +10,46 @@ body{background:var(--qb-paper);color:var(--qb-ink);font-family:Arial,Helvetica,
 @media(max-width:760px){.qb-masthead{align-items:flex-start;gap:10px}.qb-masthead-right{gap:6px;flex-direction:column;align-items:flex-end;font-size:10px}#qb-version{font-size:10px}.qb-display-controls{grid-template-columns:1fr 1fr;gap:0 12px}.qb-display-controls>label:nth-child(2){grid-column:1/-1;grid-row:2}.qb-customize-grid{grid-template-columns:1fr 1fr}.qb-presets{gap:6px}.qb-presets>span{width:100%}.qb-presets button{min-height:36px}.qb-focus-bar{align-items:flex-end;gap:8px}.qb-focus-bar>label{min-width:0}.qb-focus-bar>button{margin:0 0 6px;max-width:100px;min-height:39px}.qb-chart-heading>span{max-width:100px;text-align:right}.qb-separated{grid-template-columns:1fr;max-height:1000px;padding-right:2px}.qb-selected{max-height:112px}#qb-app .qb-chip button{min-height:36px}.qb-chart-controls label,.qb-display-controls label{min-width:0}.qb-end-label{font-size:10px}}
 @media(prefers-reduced-motion:reduce){.qb-series,.qb-dot{transition:none}}
 .qb-separated{max-height:none;overflow:visible}.qb-separated.qb-many-panels{max-height:980px;overflow:auto}
+/* v1.2: keep the graph in reach and make touch selection deliberate. */
+.qb-chart-controls{grid-template-columns:2fr 1fr}
+.qb-quick-tools{display:flex;gap:8px;margin:0 0 14px;flex-wrap:wrap}
+#qb-app .qb-quick-tools button{min-height:42px;padding:9px 16px;font-weight:600}
+#qb-app .qb-quick-tools button[aria-pressed=true]{background:var(--qb-green);color:white;border-color:var(--qb-green)}
+.qb-settings{border-block:1px solid var(--qb-rule);margin-bottom:20px;padding:12px 0}
+.qb-settings>summary,.qb-selected-details>summary,.qb-chart-guide>summary{cursor:pointer;font-size:12px;font-weight:600}
+#qb-settings-summary{font-size:11px;font-weight:400;color:var(--qb-muted);margin-left:12px}
+.qb-settings .qb-display-controls{grid-template-columns:repeat(2,minmax(0,1fr));border-top:0}
+.qb-settings .qb-display-controls>label{grid-column:auto;grid-row:auto}
+.qb-settings .qb-customize{margin:0;border-bottom:0}
+.qb-selected-details{margin:12px 0}.qb-selected-details .qb-focus-bar{margin-top:5px}
+.qb-chart-guide{margin:8px 0 16px}.qb-chart-guide[open]>summary{margin-bottom:12px}
+.qb-pinned{display:flex;gap:12px;justify-content:space-between;align-items:center;padding:8px 12px;background:#e7ede1;border-left:3px solid var(--qb-green);font-size:13px;font-weight:600;margin-bottom:8px}
+.qb-pinned>span{min-width:0}.qb-pinned button{flex-shrink:0;min-height:40px;background:var(--qb-paper)!important}
+.qb-pinned{min-height:60px}.qb-pinned:not(.qb-is-pinned){background:transparent;border-left-color:var(--qb-rule);color:var(--qb-muted);font-weight:400}
+.qb-chart-scroll{touch-action:pan-x pan-y;overflow-anchor:none}
+.qb-display-note{font-size:11px;line-height:1.5}
+@media(max-width:760px){
+  .qb-intro{padding:20px 0 14px;gap:12px}#qb-app h1{font-size:35px;margin:10px 0}
+  .qb-intro p{font-size:12px;line-height:1.45}.qb-index strong{font-size:36px}.qb-index b{margin-top:10px}
+  .qb-workspace{gap:14px}.qb-tabs{margin-bottom:12px;gap:16px}
+  .qb-chart-controls{grid-template-columns:minmax(0,1.5fr) minmax(0,1fr);gap:10px}
+  .qb-chart-controls>label:first-child{grid-column:auto}
+  #qb-app .qb-chart-controls select{min-height:44px;margin:5px 0 12px;font-size:12px;padding:6px}
+  .qb-quick-tools{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:6px;margin-bottom:12px}
+  #qb-app .qb-quick-tools button{min-height:44px;padding:8px 5px;font-size:11px}
+  .qb-settings{padding:0;margin-bottom:18px}
+  .qb-settings>summary{min-height:44px;align-content:center;line-height:1.5;padding:10px 0}
+  #qb-settings-summary{font-size:10px;margin-left:7px}
+  .qb-settings .qb-display-controls{padding-top:10px;gap:0 10px}
+  #qb-app .qb-settings select{min-height:44px;font-size:12px}
+  .qb-selected-details{margin:8px 0}.qb-selected-details>summary,.qb-chart-guide>summary{padding:10px 0;min-height:44px}
+  .qb-chart-heading h2{font-size:22px!important}.qb-chart-heading>span{font-size:10px}
+  .qb-selected{max-height:160px}#qb-app .qb-chip button{min-height:44px}
+  .qb-selected-details .qb-focus-bar>label{max-width:none}
+  .qb-pinned{position:sticky;top:0;z-index:3;font-size:12px;gap:8px;padding:6px 8px;box-shadow:0 2px 4px #202d2914}
+  .qb-pinned:not(.qb-is-pinned){position:static;box-shadow:none}
+  #qb-app .qb-pinned button{min-height:44px;font-size:11px;padding:8px}
+  .qb-line-hit{stroke-width:22}
+  .qb-tooltip{min-height:0;padding:12px 0;font-size:12px}
+  #qb-chart-help{margin-bottom:4px}.qb-display-note{padding:5px 0 10px}
+}

@@ -41,3 +41,22 @@ test('fitted, custom and invalid bounds never fabricate or silently discard data
     values.forEach(v=>assert.ok(Number.isFinite(a.unit(v))));
   }
 });
+test('density spacing expands a dense cluster, preserves ordering and ties',()=>{
+  const values=[-100,1,1.1,1.2,1.2,1.3,100];
+  const dense=axis(values,{scale:'density'}),linear=axis(values,{scale:'linear'});
+  assert.ok(dense.unit(1.3)-dense.unit(1)>10*(linear.unit(1.3)-linear.unit(1)));
+  for(let i=1;i<values.length;i++)assert.ok(dense.unit(values[i])>=dense.unit(values[i-1]));
+  assert.equal(dense.unit(values[3]),dense.unit(values[4]));assert.equal(dense.clipped,0);
+  const shared=axis([...values],{scale:'density'});close(shared.unit(1.1),dense.unit(1.1));
+  const custom=axis(values,{scale:'density',range:'custom',min:1,max:1.3});
+  close(custom.unit(1),0);close(custom.unit(1.3),1);assert.equal(custom.clipped,2);
+  for(const v of [[],[0],[7,7]]){const a=axis(v,{scale:'density'});assert.ok(a.high>a.low);v.forEach(x=>assert.ok(Number.isFinite(a.unit(x))));}
+});
+test('middle 80% is an explicit linear zoom, with clipping disclosed',()=>{
+  const values=Array.from({length:101},(_,i)=>i);
+  const a=axis(values,{scale:'linear',range:'middle'});
+  assert.equal(a.low,10);assert.equal(a.high,90);assert.equal(a.clipped,20);
+  close(a.unit(30),.25);close(a.unit(50),.5);
+  const tied=axis([0,0,0,0,0,0,0,0,0,0,100],{range:'middle'});
+  assert.equal(tied.clipped,0);assert.ok(tied.notes.length);
+});

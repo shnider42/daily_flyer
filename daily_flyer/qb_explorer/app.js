@@ -19,11 +19,19 @@
   const palette = ['#176651','#AC452D','#305CAB','#85652C','#773B85','#087E8B','#77602B','#B33168'];
   const defaults = {search:'', era:'all', hof:'all', team:'all', sort:'name', y2qual:false,
     metric:'relative_anya', colors:'team', window:'5', view:'performance',
-    scale:'linear', normalize:'raw', layout:'overlay', range:'fit', ymin:'', ymax:'', points:'auto', opacity:75, height:'normal', focus:'', ids:['BradTo00','MannPe00','YounSt00','FitzRy00']};
+    scale:'linear', normalize:'raw', layout:'overlay', range:'fit', ymin:'', ymax:'', points:'auto', opacity:75, height:'normal', focus:'', focusYear:null, ids:['BradTo00','MannPe00','YounSt00','FitzRy00']};
   let saved = {};
   try { saved = JSON.parse(localStorage.getItem('qb-year-two-v1') || '{}'); } catch (_) {}
   const state = {...defaults, ...saved};
   $('selection').open = window.innerWidth > 760;
+  for(const id of ['settings','selected-details','chart-guide']) $(id).open=window.innerWidth>760;
+  const hoverDevice=window.matchMedia('(hover: hover) and (pointer: fine)');
+  let restoreInspection=()=>{}, pointerStart=null, moved=false;
+  // Keep native scrolling; only completed taps/clicks pin a line, never a drag.
+  $('charts').addEventListener('pointerdown',e=>{pointerStart={x:e.clientX,y:e.clientY};moved=false;},{passive:true});
+  $('charts').addEventListener('pointermove',e=>{if(pointerStart&&Math.hypot(e.clientX-pointerStart.x,e.clientY-pointerStart.y)>10)moved=true;},{passive:true});
+  $('charts').addEventListener('pointercancel',()=>{moved=true;pointerStart=null;},{passive:true});
+  const pin=(event,id,year=null)=>{if(!moved||event.detail===0)setFocus(id,year);};
   if (!Array.isArray(state.ids)) state.ids = defaults.ids;
   state.ids = new Set(state.ids.filter(id => data.players.some(p => p.id === id)));
   if (!metrics[state.metric]) state.metric = defaults.metric;
@@ -96,7 +104,7 @@
     $('normalize').title = $('layout').title = career ? 'Available in performance and year-one-to-two views.' : '';
   }
   function applyFocus(transient = '') {
-    const id = transient || state.focus;
+    const id = state.focus || transient;
     $('charts').querySelectorAll('[data-series]').forEach(g => {
       const active = id === g.dataset.series;
       g.style.opacity = id ? active ? '1' : '.13' : String(Number(state.opacity)/100);
@@ -106,9 +114,16 @@
       t.style.opacity = id && id !== t.dataset.endLabel ? '.2' : '1';
     });
     $('selected').querySelectorAll('[data-spotlight]').forEach(b => b.setAttribute('aria-pressed', String(state.focus === b.dataset.spotlight)));
+    const player=data.players.find(p=>p.id===state.focus);
+    $('pinned').classList.toggle('qb-is-pinned',!!player);
+    $('clear-focus').hidden=!player;
+    $('pinned-name').textContent=player?player.name+(state.focusYear?' · '+state.focusYear:'')+' · pinned':'Tap a line to pin it';
   }
-  function setFocus(id) {
-    state.focus = id; $('focus').value = id; applyFocus(); save();
+  function setFocus(id,year=null) {
+    state.focus = id; state.focusYear=year; $('focus').value = id; applyFocus();
+    // Bring a pinned career above its neighbors without moving the page or chart.
+    $('charts').querySelectorAll('[data-series]').forEach(g=>{if(g.dataset.series===id)g.parentElement.append(g);});
+    restoreInspection();save();
   }
   function renderChart(players) {
     syncGraphControls();
@@ -120,9 +135,10 @@
     $('chart-title').textContent = career ? 'Years since the first full season' : normTitle;
     $('chart-kicker').textContent = career ? 'THE CAREER TIMELINE' : mode !== 'raw' ? metrics[state.metric][0].toUpperCase() : state.view === 'year2' ? 'THE NEXT SEASON' : 'THE DEVELOPMENT CURVE';
     $('chart-help').textContent = career ? 'X: quarterback · Y: starter year. Year 1 is the first 12-start season. Career gaps remain gaps.' :
-      `X: starter year · Y: ${normTitle.toLowerCase()}. ${separate?'Every panel uses the same scales.':'Hover a line or spotlight a name to follow one career.'} Hollow markers: fewer than 12 starts. Diamonds: multi-team totals.`;
+      `X: starter year · Y: ${normTitle.toLowerCase()}. ${separate?'Shared scales. ':''}Tap a line to pin it; scroll without losing the highlight.`;
     $('metric-help').textContent = metrics[state.metric][3] + (state.metric==='relative_anya' && data.meta.missing_baseline_years.length ? ` League baseline unavailable for ${data.meta.missing_baseline_years.join(', ')} because source sack fields are incomplete; use raw ANY/A or passer rating to inspect those seasons.` : '');
-    if (!players.some(p=>p.id===state.focus)) state.focus='';
+    if (!players.some(p=>p.id===state.focus)) {state.focus='';state.focusYear=null;}
+    $('selected-summary').textContent=`Selected quarterbacks (${players.length})`;
     $('focus').innerHTML='<option value="">All selected quarterbacks</option>'+players.map(p=>`<option value="${escape(p.id)}">${escape(p.name)}</option>`).join('');
     $('focus').value=state.focus;
     $('selected').innerHTML = players.map(p=>`<span class="qb-chip"><button type="button" data-spotlight="${escape(p.id)}" aria-pressed="${state.focus===p.id}" aria-label="Spotlight ${escape(p.name)}"><i style="background:${color(p,p.seasons[0])}"></i>${escape(p.name)}${p.hof?' ★':''}</button><button type="button" data-remove="${escape(p.id)}" aria-label="Remove ${escape(p.name)}">×</button></span>`).join('');
@@ -136,13 +152,20 @@
     });
     const allRows=shown.flatMap(s=>s.rows), values=shown.flatMap(s=>s.rows.map(s.value)).filter(exists);
     const axis=QBChartMath.axis(values,{scale:state.scale,range:state.range,min:state.ymin,max:state.ymax});
-    const scaleName={linear:'Linear',log:'Logarithmic',symlog:'Signed log'}[axis.scale];
+    const scaleName={linear:'Linear',log:'Logarithmic',symlog:'Signed log',density:'Spread values'}[axis.scale];
+    $('settings-summary').textContent=scaleName+' · '+(mode==='raw'?'actual values':mode==='delta'?'year-one change':'career z-score');
+    document.querySelectorAll('[data-quick]').forEach(b=>{
+      b.disabled=career&&b.dataset.quick==='separate';
+      b.setAttribute('aria-pressed',String(b.dataset.quick==='spread'?state.scale==='density':b.dataset.quick==='zoom'?state.range==='middle':separate));
+    });
     const normNote=mode==='delta'?'Zero = that quarterback’s year-one value; differences keep the original units.' : mode==='zscore'?'Zero = that quarterback’s observed career mean; +1 = one standard deviation above it. Full available careers set the baseline, even in a shorter window.' : 'Actual values; no normalization.';
     const skipped=shown.filter(s=>s.reason).length;
     const messages=[`${scaleName} scale · ${career?'Starter years':normNote}`, ...axis.notes];
+    if(axis.scale==='density') messages.push('Rank spacing expands crowded values. Equal gaps are NOT equal numeric differences; ties still overlap.');
+    if(state.range==='middle') messages.push('Zoomed to the middle 80% of values (10th–90th percentiles).');
     if(skipped) messages.push(`${skipped} ${skipped===1?'quarterback has':'quarterbacks have'} no usable normalization baseline. Their lines are unavailable.`);
     if(axis.clipped) messages.push(`${axis.clipped} observations outside the Y bounds are clipped. Widen the bounds to see them.`);
-    if(players.length>12 && !separate) messages.push('Many lines selected. Try Separate quarterbacks or use the spotlight to reduce overlap.');
+    if(players.length>12 && !separate) messages.push('For crossing lines, try Separate QBs.');
     if(separate && players.length>8) messages.push('Scroll inside the chart area to browse every selected quarterback; all panels share the same axes.');
     if(!career && state.points==='auto' && players.length>12 && !separate) messages.push('Automatic markers emphasize year two; other seasons appear on hover, focus or spotlight.');
     if(career) messages.push('Normalization and separate panels apply only to performance views.');
@@ -157,12 +180,19 @@
     charts.setAttribute('aria-label','Quarterback charts; scroll for additional panels when many are selected');
     const maxYear=Math.max(2,...allRows.map(r=>r.starter_year));
     const xMax=Math.min(maxYear,Number.isFinite(maxWindow)?maxWindow:maxYear);
-    const tickLabel=n=>Math.abs(n)>=100000 || (n!==0 && Math.abs(n)<.001) ? n.toExponential(1) : n.toLocaleString('en-US',{maximumFractionDigits:Math.abs(axis.high-axis.low)<1?3:Math.abs(axis.high-axis.low)<20?2:1});
+    const tickGap=Math.min(...axis.ticks.slice(1).map((v,i)=>Math.abs(v-axis.ticks[i])).filter(v=>v>0));
+    const tickDigits=axis.scale==='density'?Math.min(8,Math.max(1,Math.ceil(-Math.log10(tickGap))+1)):Math.abs(axis.high-axis.low)<1?3:Math.abs(axis.high-axis.low)<20?2:1;
+    const tickLabel=n=>Math.abs(n)>=100000 || (n!==0 && Math.abs(n)<.001) ? n.toExponential(axis.scale==='density'?3:1) : n.toLocaleString('en-US',{maximumFractionDigits:tickDigits});
     const plottedFmt=v=>mode==='zscore'?v.toFixed(2)+' SD':fmt(v,mode==='delta');
     function inspect(p,row,v) {
       const starts=row.gs===null?'unknown':row.gs, multiple=/^\dTM$|^TOT$/.test(row.team);
       $('tooltip').innerHTML=`<b>${escape(p.name)}</b> · ${row.year} · Starter year ${row.starter_year} · ${escape(teamName(row.team))}<br><b>${fmt(value(row))}</b> ${escape(metrics[state.metric][0])}${mode!=='raw'?' · Plotted: <b>'+escape(plottedFmt(v))+'</b> '+escape(normTitle):''} · ${starts} starts / ${row.g??'unknown'} games${multiple?' · Season total; individual team values are not plotted':''} · ${p.hof?'Hall of Fame '+p.hof:'Not inducted'} · <a href="https://www.pro-football-reference.com/players/${escape(p.id[0])}/${escape(p.id)}.htm" target="_blank" rel="noopener noreferrer">PFR player record ↗</a>`;
     }
+    restoreInspection=()=>{
+      const entry=shown.find(s=>s.p.id===state.focus),row=entry?.rows.find(r=>r.year===state.focusYear);
+      if(row&&exists(entry.value(row)))inspect(entry.p,row,entry.value(row));
+      else $('tooltip').textContent=entry?entry.p.name+' is pinned. Tap a season marker for details; Clear highlight releases the line.':'Tap a line or season to pin it. Hollow markers: fewer than 12 starts; diamonds: multi-team totals.';
+    };
     const panels=separate?shown.map(s=>[s]):[shown];
     // Create every panel before measuring: CSS grid must know the full column count.
     const containers=panels.map((group,i)=>{
@@ -174,9 +204,10 @@
     });
     panels.forEach((group,panelIndex)=>{
       const {scroll,chart}=containers[panelIndex];
-      const width=Math.max(separate?290:650,scroll.clientWidth||650,career?players.length*100+140:0);
+      const mobile=window.innerWidth<=760;
+      const width=Math.max(separate||mobile?280:650,scroll.clientWidth||650,career?players.length*100+140:0);
       const height=separate?{compact:220,normal:285,tall:380}[state.height]:{compact:330,normal:440,tall:600}[state.height];
-      const endLabels=!separate&&!career&&players.length>0&&players.length<=8;
+      const endLabels=!mobile&&!separate&&!career&&players.length>0&&players.length<=8;
       const left=62,right=endLabels?125:22,top=34,bottom=career?115:48;
       chart.setAttribute('width',width);chart.setAttribute('height',height);chart.setAttribute('viewBox',`0 0 ${width} ${height}`);
       chart.dataset.scale=axis.scale;chart.dataset.normalization=mode;chart.dataset.yLow=axis.low;chart.dataset.yHigh=axis.high;
@@ -190,8 +221,9 @@
       });
       if(career) players.forEach((p,i)=>chart.append(svg('text',{x:x(i),y:height-bottom+20,transform:`rotate(-42 ${x(i)} ${height-bottom+20})`,'text-anchor':'end',class:'qb-axis'},p.name)));
       else {
-        for(let n=1;n<=xMax;n++)if(n===1||n===2||n===xMax||xMax<=8||n%(separate?5:2)===0)chart.append(svg('text',{x:x(n),y:height-bottom+20,'text-anchor':'middle',class:'qb-axis'},String(n)));
-        chart.append(svg('text',{x:(width+left-right)/2,y:height-6,'text-anchor':'middle',class:'qb-axis'},'Starter year · year 1 = first 12-start season'));
+        let lastTick=-Infinity;
+        for(let n=1;n<=xMax;n++)if((n===1||n===2||n===xMax||xMax<=8||n%(separate?5:2)===0)&&x(n)-lastTick>=23){chart.append(svg('text',{x:x(n),y:height-bottom+20,'text-anchor':'middle',class:'qb-axis'},String(n)));lastTick=x(n);}
+        chart.append(svg('text',{x:(width+left-right)/2,y:height-6,'text-anchor':'middle',class:'qb-axis'},mobile?'Starter year':'Starter year · year 1 = first 12-start season'));
       }
       const labels=[];
       group.forEach((entry,index)=>{
@@ -199,7 +231,7 @@
         const g=svg('g',{'data-series':p.id,'clip-path':`url(#qb-clip-${panelIndex})`,class:'qb-series'});
         const hideMarkers=state.points==='year2'||(state.points==='auto'&&players.length>12&&!separate);
         g.classList.toggle('qb-reduce-markers',hideMarkers);
-        g.addEventListener('mouseenter',()=>applyFocus(p.id));g.addEventListener('mouseleave',()=>applyFocus());
+        g.addEventListener('mouseenter',()=>{if(hoverDevice.matches)applyFocus(p.id);});g.addEventListener('mouseleave',()=>applyFocus());
         g.addEventListener('focusin',()=>applyFocus(p.id));g.addEventListener('focusout',()=>applyFocus());
         chart.append(g);
         let previous=null,last=null;
@@ -212,14 +244,19 @@
             const mx=(previous.x+px)/2,my=(previous.y+py)/2;
             g.append(svg('path',{...attrs,d:`M ${previous.x} ${previous.y} L ${mx} ${my}`,stroke:previous.c}),svg('path',{...attrs,d:`M ${mx} ${my} L ${px} ${py}`}));
             const hit=svg('path',{d:`M ${previous.x} ${previous.y} L ${px} ${py}`,class:'qb-line-hit'});
-            hit.addEventListener('mouseenter',()=>{$('tooltip').textContent=p.name+' · Choose a season marker for exact values, or spotlight this name above.';});g.prepend(hit);
+            hit.addEventListener('mouseenter',()=>{if(hoverDevice.matches&&!state.focus)$('tooltip').textContent=p.name+' · Click to pin this career.';});
+            hit.addEventListener('click',e=>pin(e,p.id));g.prepend(hit);
           }
           if(v>=axis.low-1e-9&&v<=axis.high+1e-9){
             const multiple=/^\dTM$|^TOT$/.test(row.team),radius=row.starter_year===2?4.8:3.3;
             const dot=multiple?svg('path',{d:`M ${px} ${py-radius-1} l ${radius+1} ${radius+1} l ${-radius-1} ${radius+1} l ${-radius-1} ${-radius-1} Z`}):svg('circle',{cx:px,cy:py,r:radius});
             const aria=`${p.name}, ${row.year}, starter year ${row.starter_year}, ${teamName(row.team)}, ${row.gs??'unknown'} starts, ${metrics[state.metric][0]} ${fmt(value(row))}${mode!=='raw'?', '+normTitle+' '+plottedFmt(v):''}`;
             Object.entries({class:'qb-dot'+(row.starter_year===2?' qb-year-two-dot':''),fill:(row.gs||0)>=12?c:'#f6f4ec',stroke:c,tabindex:0,'aria-label':aria,'data-value':v,'data-year':row.year}).forEach(([k,v])=>dot.setAttribute(k,v));dot.append(svg('title',{},aria));
-            for(const event of ['mouseenter','focus','click'])dot.addEventListener(event,()=>{applyFocus(p.id);inspect(p,row,v);});
+            dot.setAttribute('role','button');
+            dot.addEventListener('mouseenter',()=>{if(hoverDevice.matches&&!state.focus){applyFocus(p.id);inspect(p,row,v);}});
+            dot.addEventListener('focus',()=>{if(!state.focus){applyFocus(p.id);inspect(p,row,v);}});
+            dot.addEventListener('click',e=>pin(e,p.id,row.year));
+            dot.addEventListener('keydown',e=>{if(e.key==='Enter'||e.key===' '){e.preventDefault();setFocus(p.id,row.year);}});
             g.append(dot);last={x:px,y:py,c,p};
           }
           previous={x:px,y:py,c,row};
@@ -240,8 +277,7 @@
     else if(state.colors==='team')legend=[...new Set(allRows.map(r=>r.team))].sort().map(t=>[teamName(t),teamColor(t)]);
     else legend=players.map(p=>[p.name,color(p,p.seasons[0])]);
     $('legend').innerHTML=legend.map(([name,c])=>`<span><i style="background:${c}"></i>${escape(name)}</span>`).join('');
-    $('tooltip').textContent='Hover, tap, or focus a season for raw and plotted values. Use the spotlight to keep one quarterback emphasized.';
-    applyFocus();
+    applyFocus();restoreInspection();
   }
   function unavailable(p,q) {
     if(p.anchor_uncertain) return 'Anchor uncertain';
@@ -293,6 +329,12 @@
   if (!Number.isFinite(Number(state.opacity)) || Number(state.opacity)<15 || Number(state.opacity)>100) state.opacity=defaults.opacity;
   $('focus').addEventListener('change',()=>setFocus($('focus').value));
   $('clear-focus').addEventListener('click',()=>setFocus(''));
+  document.querySelectorAll('[data-quick]').forEach(b=>b.addEventListener('click',()=>{
+    if(b.dataset.quick==='spread'){state.scale=state.scale==='density'?'linear':'density';state.range='fit';}
+    if(b.dataset.quick==='zoom'){state.range=state.range==='middle'?'fit':'middle';state.scale='linear';}
+    if(b.dataset.quick==='separate')state.layout=state.layout==='separate'?'overlay':'separate';
+    render();
+  }));
   $('reset-chart').addEventListener('click',()=>{graphKeys.forEach(k=>state[k]=defaults[k]);state.focus='';render();});
   document.querySelectorAll('[data-preset]').forEach(b=>b.addEventListener('click',()=>{
     graphKeys.forEach(k=>state[k]=defaults[k]);state.focus='';
@@ -325,7 +367,11 @@
   $('hof-date').textContent=`Hall of Fame status checked through ${data.meta.hof_as_of}. ★ means inducted, not predicted to be inducted.`;
   $('limitations').innerHTML=data.meta.limitations.map(s=>'<li>'+escape(s)+'</li>').join('')+(data.meta.unresolved_players.length?'<li>Unresolved single-team qualification: '+escape(data.meta.unresolved_players.join(', '))+'. These players are not counted in the confirmed cohort.</li>':'');
   $('sources').innerHTML=data.meta.sources.map(s=>`<li><a href="${escape(s.url)}" target="_blank" rel="noopener noreferrer">${escape(s.label)} ↗</a><br>${escape(s.used)}</li>`).join('');
-  let resize;
-  window.addEventListener('resize',()=>{clearTimeout(resize);resize=setTimeout(()=>renderChart(filtered().filter(p=>state.ids.has(p.id))),150);});
+  let resize,lastWidth=window.innerWidth;
+  window.addEventListener('resize',()=>{
+    if(window.innerWidth===lastWidth)return; // Mobile browser chrome changes height while scrolling.
+    lastWidth=window.innerWidth;clearTimeout(resize);
+    resize=setTimeout(()=>renderChart(filtered().filter(p=>state.ids.has(p.id))),150);
+  });
   render();
 })();

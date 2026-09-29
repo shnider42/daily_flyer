@@ -18,6 +18,42 @@ Or use `/?theme=qb_year_two` on a service deploying this branch. No API key,
 database, background job, chart CDN or new production dependency is required.
 This change does not deploy or merge the branch.
 
+## Version 1.2.0 — mobile selection and dense data
+
+- Tapping a line or season now pins the QB; the name and optional season survive
+  page/graph scrolling, height-only browser chrome changes, rotation, display
+  changes and reload. Clear highlight explicitly unpins. Keyboard Enter/Space
+  pins markers; desktop hover remains temporary until clicked. Native scrolling
+  is not intercepted and dragging/cancelled pointer gestures cannot pin a line.
+- Height-only resize no longer redraws SVGs. Width changes redraw while restoring
+  the pinned selection and season details. Selecting another QB replaces the pin;
+  removing or filtering out the pinned QB clears it.
+- Mobile shows only the measure/time selectors and three quick actions. Graph
+  options, selected QBs and the legend collapse by default. Performance graphs
+  fit the phone width, while the names-on-X career chart retains horizontal scroll.
+- **Spread values** uses piecewise-linear interpolation between unique values
+  and their pooled midranks across selected observations in the visible window.
+  Dense numeric regions expand; extreme gaps compress. Ties are preserved, not
+  jittered. Negative values and zero are supported. All panels share this mapping.
+  Axis labels retain metric units but spacing is not proportional to numeric
+  differences, and slopes must not be interpreted as rates of change. Changing
+  selection/window changes the distribution and mapping; spotlight does not.
+- **Zoom middle** sets a linear scale with 10th–90th percentile bounds. The exact
+  count of clipped observations is shown. Tied percentile endpoints fall back to
+  the full range with a note. Tap the action again to return to fitted bounds.
+- **Separate QBs** is now a one-tap toggle. This remains the option that prevents
+  different players' lines from overlapping; no monotonic scale can separate ties.
+- Current masthead version: `v1.2.0`. No data refresh, Render setting change or
+  production dependency was introduced.
+
+Run `python -m unittest discover -s tests -p 'test_qb_year_two.py'` and
+`node --test tests/test_qb_chart_math.cjs`. For browser regressions, install
+Playwright in your test environment and run `node tests/test_qb_browser.cjs`;
+`CHROMIUM_EXECUTABLE` can select an existing Chromium binary. The check exercises
+native touch swipes, drag rejection, sticky selection, viewport changes, reload,
+keyboard controls, mobile disclosures, scale math integration, CSV consistency,
+desktop hover, and all 265 QBs. Optional `QB_SCREENSHOT_DIR` captures review images.
+
 ## Version 1.1.0 — chart controls
 
 - Linear, logarithmic, and signed-log Y scales. Logarithmic mode falls back to
