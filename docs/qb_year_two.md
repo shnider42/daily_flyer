@@ -1,4 +1,4 @@
-# Year Two — quarterback explorer
+# Soph(more) Slump(?) — quarterback explorer
 
 Theme: `qb_year_two` (URL alias `qb-year-two`). Base: `staging` at
 `2a053196d33f6b50299b8c342cc2316960314e21`. All implementation files are isolated;
@@ -17,6 +17,35 @@ DEFAULT_THEME=qb_year_two
 Or use `/?theme=qb_year_two` on a service deploying this branch. No API key,
 database, background job, chart CDN or new production dependency is required.
 This change does not deploy or merge the branch.
+
+## Version 2.0.0 — football identity and prediction lab
+
+- Stadium field hero, football laces, scoreboard typography, orange navigation,
+  and a separate Prediction lab; all existing Film room functions remain.
+- Gold diamonds distinguish current Hall of Famers from blue circles. Both
+  groups share the scatterplot by default; group toggles affect plotting only.
+- Research outcomes: Hall induction within 25 years after year two; starting-QB
+  Super Bowl wins in the next 10 seasons; recorded 12-start year-three job;
+  mean league-relative ANY/A in years 3–7 (at least three observations).
+- Equal complete follow-up windows exclude recent cohorts even if an early
+  success is already known. Missing outcomes are excluded, not imputed failures.
+  Later-season observation requirements introduce survivor/observation bias.
+- Pearson, Spearman, seeded 400-resample bootstrap intervals, strong/weak
+  trajectory groups and Wilson intervals; export the eligible research cohort.
+- Experimental L2 logistic models compare year one with year one + year two,
+  controlling for first qualifying season. Latest approximately 25% of season
+  cohorts are held out; training-only scaling, Brier/AUC and prevalence baseline.
+  Historical retrospective labels are not a point-in-time deployment backtest.
+  Small event counts, multiple exploration, confounding and lack of probability
+  calibration are disclosed. No causal or individual forecasting claim.
+- Super Bowl source map: `daily_flyer/data/qb_super_bowls.json`, 59 winning
+  starters for regular seasons 1966–2024. PFR winners/history/boxscore sources
+  cross-checked against the official Hall starter list; backups do not count.
+  Direct PFR requests returned 403; indexed PFR records and the official list
+  were used. Performance coverage still ends in 2024, Hall status 2026-09-28.
+- Validation: `python -m unittest tests.test_qb_year_two`,
+  `node --test tests/test_qb_chart_math.cjs tests/test_qb_research.cjs`, and the
+  optional Playwright regression script `tests/test_qb_browser.cjs`.
 
 ## Version 1.2.0 — mobile selection and dense data
 

@@ -34,7 +34,7 @@ async function pinned(page,id){
   assert.equal(await mobile.locator('#qb-settings').getAttribute('open'),null);
   assert.ok(await mobile.locator('#qb-chart').evaluate(e=>e.getBoundingClientRect().width<=innerWidth));
   const rawSummary=await mobile.locator('#qb-summary').innerText(),rawTable=await mobile.locator('#qb-table').innerText();
-  await screenshot(mobile,'qb-v12-mobile');
+  await screenshot(mobile,'qb-v20-mobile');
   const young=mobile.locator('[data-series="YounSt00"] .qb-dot').nth(1);
   await young.scrollIntoViewIfNeeded();
   const topBefore=await mobile.locator('#qb-charts').evaluate(e=>e.getBoundingClientRect().top+scrollY);
@@ -61,7 +61,7 @@ async function pinned(page,id){
   await mobile.click('[data-quick="spread"]');
   assert.equal(await mobile.locator('#qb-chart').getAttribute('data-scale'),'density');
   assert.ok((await mobile.locator('#qb-display-note').innerText()).includes('NOT equal'));
-  await pinned(mobile,'YounSt00');await screenshot(mobile,'qb-v12-spread');
+  await pinned(mobile,'YounSt00');await screenshot(mobile,'qb-v20-spread');
   await mobile.click('[data-quick="zoom"]');
   assert.equal(await mobile.locator('#qb-chart').getAttribute('data-scale'),'linear');
   assert.ok((await mobile.locator('#qb-display-note').innerText()).includes('clipped'));
@@ -94,12 +94,38 @@ async function pinned(page,id){
   await desktop.locator('[data-series="BradTo00"] .qb-dot').first().hover();await pinned(desktop,'YounSt00');
   await desktop.selectOption('#qb-colors','hof');assert.equal(await desktop.locator('[data-series="BradTo00"] .qb-trace').first().getAttribute('stroke-dasharray'),'5 3');
   await desktop.selectOption('#qb-scale','log');assert.equal(await desktop.locator('#qb-chart').getAttribute('data-scale'),'symlog');
-  await screenshot(desktop,'qb-v12-desktop');
+  await screenshot(desktop,'qb-v20-desktop');
   await desktop.click('#qb-select-all');await desktop.click('[data-quick="spread"]');
   assert.ok((await desktop.locator('#qb-selected-count').innerText()).includes('265'));
   assert.ok(await desktop.locator('#qb-chart').evaluate(e=>!e.innerHTML.includes('NaN')));
   await desktop.click('[data-quick="separate"]');assert.equal(await desktop.locator('.qb-chart-panel').count(),265);
   await desktop.click('#qb-clear');assert.equal(await focus(desktop),'');assert.ok(await desktop.locator('#qb-empty').isVisible());
+  await mobile.click('[data-mode="research"]');
+  assert.equal(await mobile.locator('#qr-chart [data-qb]').count(),112);
+  assert.ok((await mobile.locator('#qr-model').innerText()).includes('Fewer than five'));
+  const stats=await mobile.locator('#qr-stats').innerText();
+  await mobile.uncheck('#qr-field');assert.ok(await mobile.locator('#qr-chart [data-qb]').count()<112);
+  assert.equal(await mobile.locator('#qr-stats').innerText(),stats);
+  await mobile.check('#qr-field');
+  await mobile.locator('#qr-chart [data-qb]').first().focus();
+  const inspected=await mobile.locator('#qr-inspect').innerText();
+  await mobile.evaluate(()=>scrollBy(0,200));assert.equal(await mobile.locator('#qr-inspect').innerText(),inspected);
+  await mobile.locator('#qr-scenario>summary').click();await mobile.click('#qr-predict');
+  assert.ok((await mobile.locator('#qr-prediction').innerText()).includes('estimated probability'));
+  for(const outcome of ['sb','job','efficiency']){
+    await mobile.selectOption('#qr-outcome',outcome);
+    assert.ok(await mobile.locator('#qr-chart [data-qb]').count()>100);
+    assert.ok(await mobile.locator('#qr-chart').evaluate(e=>!e.innerHTML.includes('NaN')));
+  }
+  await mobile.selectOption('#qr-era','2020');assert.equal(await mobile.locator('#qr-chart [data-qb]').count(),0);
+  await mobile.selectOption('#qr-era','all');await mobile.selectOption('#qr-outcome','sb');
+  for(const width of [320,390,768,1024]){
+    await mobile.setViewportSize({width,height:844});await mobile.waitForTimeout(200);
+    assert.ok(await mobile.evaluate(()=>document.body.scrollWidth<=innerWidth+1),'Research page overflow at '+width);
+  }
+  await mobile.setViewportSize({width:390,height:844});await mobile.waitForTimeout(220);assert.ok(await mobile.locator('#qr-chart').evaluate(e=>e.clientWidth<=innerWidth));await screenshot(mobile,'qb-v20-research-mobile');
+  await desktop.click('[data-mode="research"]');await screenshot(desktop,'qb-v20-research-desktop');
+  await mobile.click('[data-mode="film"]');await pinned(mobile,'BradTo00');
   assert.deepEqual(errors,[]);
-  console.log('PASS: touch pin, native swipe, drag guard, height-only resize, rotation/reload, keyboard, mobile controls, density/zoom, shared axes, raw CSV, desktop hover, 265 QBs, zero browser errors');
+  console.log('PASS: touch pin, native swipe, drag guard, height-only resize, rotation/reload, keyboard, mobile controls, density/zoom, shared axes, raw CSV, desktop hover, 265 QBs, research outcomes/group toggles/scenarios, mobile lab widths, mode switching, zero browser errors');
 })().catch(e=>{console.error(e);process.exitCode=1;}).finally(async()=>{if(browser)await browser.close();server.kill();});

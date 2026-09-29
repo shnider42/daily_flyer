@@ -329,6 +329,7 @@
   if (!Number.isFinite(Number(state.opacity)) || Number(state.opacity)<15 || Number(state.opacity)>100) state.opacity=defaults.opacity;
   $('focus').addEventListener('change',()=>setFocus($('focus').value));
   $('clear-focus').addEventListener('click',()=>setFocus(''));
+  $('compare-hof').addEventListener('click',()=>{state.colors='hof';state.hof='all';$('colors').value='hof';$('hof').value='all';render();});
   document.querySelectorAll('[data-quick]').forEach(b=>b.addEventListener('click',()=>{
     if(b.dataset.quick==='spread'){state.scale=state.scale==='density'?'linear':'density';state.range='fit';}
     if(b.dataset.quick==='zoom'){state.range=state.range==='middle'?'fit':'middle';state.scale='linear';}
@@ -368,6 +369,7 @@
   $('limitations').innerHTML=data.meta.limitations.map(s=>'<li>'+escape(s)+'</li>').join('')+(data.meta.unresolved_players.length?'<li>Unresolved single-team qualification: '+escape(data.meta.unresolved_players.join(', '))+'. These players are not counted in the confirmed cohort.</li>':'');
   $('sources').innerHTML=data.meta.sources.map(s=>`<li><a href="${escape(s.url)}" target="_blank" rel="noopener noreferrer">${escape(s.label)} ↗</a><br>${escape(s.used)}</li>`).join('');
   let resize,lastWidth=window.innerWidth;
+  document.addEventListener('qb:layout',()=>renderChart(filtered().filter(p=>state.ids.has(p.id))));
   window.addEventListener('resize',()=>{
     if(window.innerWidth===lastWidth)return; // Mobile browser chrome changes height while scrolling.
     lastWidth=window.innerWidth;clearTimeout(resize);

@@ -1,0 +1,280 @@
+{
+  "through_season": 2024,
+  "checked_on": "2026-09-29",
+  "definition": "Winning starting quarterback in the Super Bowl, not backup rings. Season is the regular-season year, usually one year before the game date.",
+  "sources": [
+    {
+      "label": "PFR Super Bowl-winning quarterbacks",
+      "url": "https://www.pro-football-reference.com/pfr-blog/2023/10/complete-list-of-super-bowl-winning-quarterbacks/",
+      "used": "Winning starting-QB definition and list (indexed page; direct requests blocked)."
+    },
+    {
+      "label": "PFR Super Bowl history",
+      "url": "https://www.pro-football-reference.com/super-bowl/",
+      "used": "Champion and game-year cross-check; convert to regular-season year."
+    },
+    {
+      "label": "Pro Football Hall of Fame: Super Bowl starting quarterbacks",
+      "url": "https://www.profootballhof.com/news/super-bowl-starting-qbs",
+      "used": "Official starting-QB cross-check through LVI. Starter listing order is not assumed to identify the winner."
+    },
+    {
+      "label": "PFR Super Bowl LVI box score",
+      "url": "https://www.pro-football-reference.com/boxscores/202202130cin.htm",
+      "used": "2021 season: Matthew Stafford."
+    },
+    {
+      "label": "PFR Super Bowl LVIII box score",
+      "url": "https://www.pro-football-reference.com/boxscores/202402110kan.htm",
+      "used": "2023 season: Patrick Mahomes."
+    },
+    {
+      "label": "PFR Super Bowl LIX box score",
+      "url": "https://www.pro-football-reference.com/boxscores/202502090phi.htm",
+      "used": "2024 season: Jalen Hurts."
+    }
+  ],
+  "wins": [
+    {
+      "season": 1966,
+      "pfr_id": "StarBa00"
+    },
+    {
+      "season": 1967,
+      "pfr_id": "StarBa00"
+    },
+    {
+      "season": 1968,
+      "pfr_id": "NamaJo00"
+    },
+    {
+      "season": 1969,
+      "pfr_id": "DawsLe00"
+    },
+    {
+      "season": 1970,
+      "pfr_id": "UnitJo00"
+    },
+    {
+      "season": 1971,
+      "pfr_id": "StauRo00"
+    },
+    {
+      "season": 1972,
+      "pfr_id": "GrieBo00"
+    },
+    {
+      "season": 1973,
+      "pfr_id": "GrieBo00"
+    },
+    {
+      "season": 1974,
+      "pfr_id": "BradTe00"
+    },
+    {
+      "season": 1975,
+      "pfr_id": "BradTe00"
+    },
+    {
+      "season": 1976,
+      "pfr_id": "StabKe00"
+    },
+    {
+      "season": 1977,
+      "pfr_id": "StauRo00"
+    },
+    {
+      "season": 1978,
+      "pfr_id": "BradTe00"
+    },
+    {
+      "season": 1979,
+      "pfr_id": "BradTe00"
+    },
+    {
+      "season": 1980,
+      "pfr_id": "PlunJi00"
+    },
+    {
+      "season": 1981,
+      "pfr_id": "MontJo01"
+    },
+    {
+      "season": 1982,
+      "pfr_id": "TheiJo00"
+    },
+    {
+      "season": 1983,
+      "pfr_id": "PlunJi00"
+    },
+    {
+      "season": 1984,
+      "pfr_id": "MontJo01"
+    },
+    {
+      "season": 1985,
+      "pfr_id": "McMaJi00"
+    },
+    {
+      "season": 1986,
+      "pfr_id": "SimmPh00"
+    },
+    {
+      "season": 1987,
+      "pfr_id": "WillDo01"
+    },
+    {
+      "season": 1988,
+      "pfr_id": "MontJo01"
+    },
+    {
+      "season": 1989,
+      "pfr_id": "MontJo01"
+    },
+    {
+      "season": 1990,
+      "pfr_id": "HostJe00"
+    },
+    {
+      "season": 1991,
+      "pfr_id": "RypiMa00"
+    },
+    {
+      "season": 1992,
+      "pfr_id": "AikmTr00"
+    },
+    {
+      "season": 1993,
+      "pfr_id": "AikmTr00"
+    },
+    {
+      "season": 1994,
+      "pfr_id": "YounSt00"
+    },
+    {
+      "season": 1995,
+      "pfr_id": "AikmTr00"
+    },
+    {
+      "season": 1996,
+      "pfr_id": "FavrBr00"
+    },
+    {
+      "season": 1997,
+      "pfr_id": "ElwaJo00"
+    },
+    {
+      "season": 1998,
+      "pfr_id": "ElwaJo00"
+    },
+    {
+      "season": 1999,
+      "pfr_id": "WarnKu00"
+    },
+    {
+      "season": 2000,
+      "pfr_id": "DilfTr00"
+    },
+    {
+      "season": 2001,
+      "pfr_id": "BradTo00"
+    },
+    {
+      "season": 2002,
+      "pfr_id": "JohnBr00"
+    },
+    {
+      "season": 2003,
+      "pfr_id": "BradTo00"
+    },
+    {
+      "season": 2004,
+      "pfr_id": "BradTo00"
+    },
+    {
+      "season": 2005,
+      "pfr_id": "RoetBe00"
+    },
+    {
+      "season": 2006,
+      "pfr_id": "MannPe00"
+    },
+    {
+      "season": 2007,
+      "pfr_id": "MannEl00"
+    },
+    {
+      "season": 2008,
+      "pfr_id": "RoetBe00"
+    },
+    {
+      "season": 2009,
+      "pfr_id": "BreeDr00"
+    },
+    {
+      "season": 2010,
+      "pfr_id": "RodgAa00"
+    },
+    {
+      "season": 2011,
+      "pfr_id": "MannEl00"
+    },
+    {
+      "season": 2012,
+      "pfr_id": "FlacJo00"
+    },
+    {
+      "season": 2013,
+      "pfr_id": "WilsRu00"
+    },
+    {
+      "season": 2014,
+      "pfr_id": "BradTo00"
+    },
+    {
+      "season": 2015,
+      "pfr_id": "MannPe00"
+    },
+    {
+      "season": 2016,
+      "pfr_id": "BradTo00"
+    },
+    {
+      "season": 2017,
+      "pfr_id": "FoleNi00"
+    },
+    {
+      "season": 2018,
+      "pfr_id": "BradTo00"
+    },
+    {
+      "season": 2019,
+      "pfr_id": "MahoPa00"
+    },
+    {
+      "season": 2020,
+      "pfr_id": "BradTo00"
+    },
+    {
+      "season": 2021,
+      "pfr_id": "StafMa00"
+    },
+    {
+      "season": 2022,
+      "pfr_id": "MahoPa00"
+    },
+    {
+      "season": 2023,
+      "pfr_id": "MahoPa00"
+    },
+    {
+      "season": 2024,
+      "pfr_id": "HurtJa00"
+    }
+  ],
+  "notes": [
+    "Manually curated historical outcome map; does not automatically update.",
+    "2025-season Super Bowl is excluded to match the performance snapshot.",
+    "Nick Foles appears among winners but not in the 12-start single-team QB cohort."
+  ]
+}
