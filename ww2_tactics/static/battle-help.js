@@ -8,7 +8,7 @@ window.orderHelp=(id,u,legal,simple)=>{
   fire:['Shoot the target',`${shot?.threshold||4}+ to hit${shot?.damage?` / ${shot.damage} damage`:''}`],
   assault:['Risky close attack',`${assault?.threshold||4}+ / hit 2, fail lose 1`],
   grenade:['Blast and pin',`${frag?.threshold||4}+ / 2 damage + pin`],
-  suppress:['Try to pin enemy',state?.dsl_expansion?`${u?.side==='de'?3:5}+ to pin / no damage`:'Automatic pin / no damage'],
+  suppress:['Try to pin enemy',state?.dsl_expansion?`${u?.suppression??(u?.side==='de'?3:5)}+ to pin / no damage`:'Automatic pin / no damage'],
   inspire:['Unpin nearby allies',`Unpin allies / radius ${u?.kind==='commander'?2:1}`],
   barrage:['Delayed area pin','Pin radius 1 / after enemy turn'],
   command:['Give troops actions','+1 AP each / eligible troops'],
@@ -17,8 +17,10 @@ window.orderHelp=(id,u,legal,simple)=>{
   recon:['Reveal sea contacts','Sight radius 3 / 1 enemy turn'],
   airstrike:['Bomb a spotted ship',`${strike?.threshold||3}+ / ${strike?.damage||u?.strike_damage||0} damage`],
   torpedo:['Heavy ship attack',`${torpedo?.threshold||4}+ / ${torpedo?.damage||u?.torpedo_damage||0} damage`],
-  repair:['Restore hull',`+${u?.repair_amount||1} hull / once per turn`]
+  repair:['Restore hull',`+${u?.repair_amount||1} hull / once per turn`],
+  rearm:['Repair and reload','+1 strength / bomber loads → 2']
  };
+ if(state?.air_version){descriptions.overwatch=['Cover flight paths',`1 reaction / ${u?.kind==='aa_gun'?'normal hit roll':'hit roll +1'}`];if(u?.kind==='bomber')descriptions.fire=['Bomb ground target',`${shot?.threshold||3}+ / 2 damage / 1 load`];}
  if(simple&&id==='suppress'&&!state?.dsl_expansion)return 'Pin enemy';
  return descriptions[id]?.[simple?0:1]||'';
 };
@@ -35,11 +37,12 @@ window.orderHelp=(id,u,legal,simple)=>{
   const id=n.dataset.unitId;
   if(id){const u=state.units.find(u=>u.id===id);if(!u)return null;
    const status=[u.hp<=0?'Lost':`${u.hp}${u.max_hp?'/'+u.max_hp:''} ${state.naval_version&&u.kind!=='amphibious'?'hull':'strength'}`,`${u.ap} AP`,u.pinned?'Pinned':'',u.entrenched?'Dug in':'',u.overwatch?'Overwatch':'',u.reserve?'Reserve':'',u.carrier_id?'Aboard transport':''].filter(Boolean).join(' · ');
-   const base=u.base_ap||(state.ruleset==='dsl'&&['leader','commander'].includes(u.kind)?3:2),bank=state.ruleset==='dsl'?(['leader','commander'].includes(u.kind)?2:1):0;
+   const base=u.base_ap??(state.ruleset==='dsl'&&['leader','commander'].includes(u.kind)?3:2),bank=base&&state.ruleset==='dsl'?(['leader','commander'].includes(u.kind)?2:1):0;
    return [unitName(u),`${sideLabel(u.side)} · ${status}`,unitRoleSummary(u),simple()?'':`Range ${u.range} hexes · ${base} base AP · bank up to ${bank}${u.armor!==undefined?` · armor ${u.armor}`:''}.`,simple()?'':[u.smoke!==undefined?`${u.smoke} smoke`:null,u.grenades!==undefined?`${u.grenades} grenades`:null,u.torpedoes!==undefined?`${u.torpedoes} torpedo salvos`:null].filter(Boolean).join(' · ')];
   }
   if(n.matches('#map > .hex')){
    const x=+n.dataset.x,y=+n.dataset.y,type=state.map[y][x],u=state.units.find(u=>u.id===selected),move=state.legal[selected]?.moves?.find(m=>m.pos[0]===x&&m.pos[1]===y);
+   if(state.air_version)return [`Airspace · ${String.fromCharCode(65+x)}${y+1}`,move?`Fly here: 1 AP · ${move.path.length} hexes.`:u&&['fighter','bomber'].includes(u.kind)?'Not a legal flight destination right now.':'Select an aircraft to fly.','Terrain does not block flight or provide cover.',move?.threats?'Known interception covers this flight path.':'Unseen interceptors may still react.'];
    const blocked=u&&(state.naval_version?u.kind!=='amphibious'&&!['water','objective'].includes(type):u.kind==='at_gun'||type==='water'&&u.kind!=='amphibious'||['tank','halftrack','amphibious'].includes(u.kind)&&['woods','building'].includes(type));
    const cover=['woods','building',...(state.naval_version?[]:['objective'])].includes(type),cost=move?.cost??(['woods','building'].includes(type)?2:1);
    const name={field:state.naval_version?'Beach / open ground':'Open ground',woods:state.naval_version?'Jungle':'Woods',building:state.naval_version?'Island outpost':'Buildings',objective:state.naval_version?'Sea-control objective':'Objective',road:'Road',bridge:'Bridge',water:state.naval_version?'Open sea':'Water'}[type]||type;
@@ -53,6 +56,7 @@ window.orderHelp=(id,u,legal,simple)=>{
   if(n.id==='undoOrder'||n.id==='redoOrder')return [n.id==='undoOrder'?'Undo order':'Redo order',n.getAttribute('aria-label'),state.order_history?.reason||''];
   if(n.matches('.tactical-action')){const u=state.units.find(u=>u.id===selected),id=n.closest('#commandOrders')?'command':n.id;
    const details={dig:'Stacks with terrain cover. Lost when moving or assaulting.',smoke:'Choose a marked hex. Smoke blocks shots into, out of, and through it.',overwatch:'Wait for a visible enemy to move in range. Pinning cancels overwatch.',assault:'Adjacent infantry only. A failed assault damages your own unit.',barrage:'Friendly units in the marked area are affected too.',command:`Costs 2 AP. ${u?.kind==='commander'?'Radius 2, across platoons':'Adjacent eligible troops in your platoon'}. Once per command group per turn; banking caps apply.`,load:'The passenger pays the action, not the half-track.',unload:'The passenger pays the action. Enemy overwatch may react.',recon:'Search commits earlier orders; discovered contacts cannot be undone.'};
+   if(state.air_version){details.overwatch='Checks every intervening hex, not just the destination. One reaction per watcher; terrain does not block it.';details.rearm='Beside a living friendly airfield. Once per turn, 2 AP. No service from enemy or destroyed airfields.';}
    return [n.dataset.orderLabel||n.textContent,orderHelp(id,u,state.legal[selected],simple()),simple()?'':details[id]||''];
   }
   return null;

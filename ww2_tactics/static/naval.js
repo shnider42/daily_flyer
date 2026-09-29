@@ -6,7 +6,7 @@
   const option=document.createElement('option');option.value='midway';option.textContent='Midway · 26×30 · US vs Japan · naval DSL';$(id).append(option);
   $(id).addEventListener('change',()=>{if($(id).value==='midway')$(id==='scenarioSelect'?'rulesetSelect':id==='soloScenario'?'soloRuleset':'rematchRuleset').value='dsl';});
  }
- $('soloDialog').querySelector('h2 + p').textContent='Command the Americans against the computer. Midway pits the US against Japan; land operations face Germany. Swap sides in your next battle.';
+ $('soloDialog').querySelector('h2 + p').textContent='Choose an operation. You start on the first-listed side; swap sides when arranging the next battle.';
  const buttons={};
  for(const id of ['recon','airstrike','torpedo','repair']){
   const b=document.createElement('button');b.id=id;b.hidden=true;$('nextUnit').before(b);buttons[id]=b;
@@ -41,9 +41,9 @@
   terrainLegend.innerHTML=state.naval_version?'<span>🟩 Bright hex + arrow: legal move</span><span>★ Sea control</span><span>⚑ Island outpost</span><span>Blue: US · Red: Japan</span>':landLegend;
   for(const b of Object.values(buttons))b.hidden=true;
   for(const side of ['us','de']){const key=document.querySelector(`.team-legend .${side}-key`);key.replaceChildren();const dot=document.createElement('i');dot.className=side+'-dot';key.append(dot,document.createTextNode(sideLabel(side)));}
-  $('waiting').querySelector('p').textContent=`Send this invitation to the other player. You command the Americans; they command the ${names.de}.`;
+  $('waiting').querySelector('p').textContent=`Send this invitation to the other player. You command the ${names.us}; they command the ${names.de}.`;
   if(!state.ready)$('turnBanner').textContent=`Waiting for the ${names.de}…`;
-  $('seriesScore').textContent=`Victories · Americans ${state.victories?.us||0} / ${names.de} ${state.victories?.de||0}`;
+  $('seriesScore').textContent=`Victories · ${names.us} ${state.victories?.us||0} / ${names.de} ${state.victories?.de||0}`;
   if(!state.naval_version){reconUnit=null;return;}
   $('rulesetBadge').textContent='DSL · Midway · US vs Japan · Fog of war';
   $('supportStatus').hidden=true;$('guideToggle').hidden=true;

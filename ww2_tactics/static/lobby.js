@@ -10,8 +10,8 @@
   const data=await response.json();if(!response.ok){const e=new Error((data.error||'Unable to load games. Try again.')+(data.request_id?` Reference: ${data.request_id}`:''));e.status=response.status;throw e;}return data;
  }
  function identity(){
-  $('commanderIdentity').textContent=player?`Commander ${player.name}`:'Your games, on any device.';
-  $('commanderHint').textContent=player?'Your linked multiplayer games follow this sign-in, even in a fresh browser.':'Sign in with a commander name and password to keep all your multiplayer seats together.';
+  $('commanderIdentity').textContent=player?`Commander ${player.name}`:'Find your games';
+  $('commanderHint').textContent=player?'Your multiplayer seats follow this sign-in.':'Sign in to resume multiplayer on any device.';
   $('commanderSignIn').hidden=!!player;$('commanderSignOut').hidden=!player;
   $('adminConsoleLink').hidden=player?.name?.toLowerCase()!=='shnider42';
   renderSessions();
@@ -63,8 +63,8 @@
    const row=text('article','',`public-game${yourTurn?' your-turn':''}`);row.dataset.code=g.code;
    const details=document.createElement('div');details.append(text('h3',g.name));
    details.append(text('p',`${g.host_name||'Original commander'} vs ${g.full?(g.guest_name||'Original commander'):'Open seat'}`));
-   const phase=g.winner?'Finished':!g.ready?'Waiting for opponent':yourTurn?'Your turn':yours?'Opponent’s turn':`${g.turn==='us'?'Americans':g.opponent} to move`;
-   details.append(text('p',`${phase} · Round ${g.round}${yours?` · You: ${yours==='us'?'Americans':g.opponent}`:''}`,'game-phase'));
+   const phase=g.winner?'Finished':!g.ready?'Waiting for opponent':yourTurn?'Your turn':yours?'Opponent’s turn':`${g.turn==='us'?g.allies||'Americans':g.opponent} to move`;
+   details.append(text('p',`${phase} · Round ${g.round}${yours?` · You: ${yours==='us'?g.allies||'Americans':g.opponent}`:''}`,'game-phase'));
    details.append(text('p',`${g.scenario||'Village Crossing'} · ${(g.ruleset||'classic').toUpperCase()} · ${g.code}`));
    const button=text('button',yours||local?'Resume game':!g.full?`Join as ${g.opponent}`:player?'Both seats taken':'Sign in to resume');button.type='button';button.disabled=!!(g.full&&player&&!yours&&!local);
    button.onclick=async()=>{button.disabled=true;try{if(g.full&&!player&&!local){loginDialog(()=>load());}else await enter(g);}catch(e){notify(e.message);if(e.status===401){player=null;storePlayer();identity();loginDialog(()=>enter(g));}}finally{button.disabled=false;await load();}};

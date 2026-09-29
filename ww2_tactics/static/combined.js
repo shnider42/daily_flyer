@@ -48,6 +48,7 @@
  };
  const roles={
   halftrack:'HALF-TRACK · 3 AP, range 5. Two connected road hexes per AP. Carries one infantry unit; load/unload costs the infantry 1 AP each. Passengers cannot fire or spot. Rifle/MG-proof; tanks and AT guns deal 3 damage (one-hit kill). AT teams deal 2. Destroyed transport: passengers lose 1 strength and bail out pinned, 0 AP. Suppress on 3+ for 2 AP.',
+  landing_craft:'LANDING CRAFT · 3 AP, water only. Carries one infantry unit; infantry spends 1 AP to unload onto adjacent land. Two smoke screens. No weapons. If sunk away from shore, passengers are lost; beside free land they bail out with 1 less strength, pinned, 0 AP.',
   commander:'COMMANDER · 3 AP, bank 2. Rally radius 2 across platoons. On your feet: 2 AP to grant nearby non-officers +1 AP, once per turn.',
   scout:'RECON · 3 AP. Sight 9; spot concealed infantry within 4 hexes. Small team—use cover.',
   engineer:'ENGINEERS · Two smoke and two frag grenades. Clear infantry from cover; small arms cannot hurt tanks.',
@@ -77,12 +78,13 @@
    if(unit.carrier_id){
     transportButtons.viewTransport.hidden=false;
     const carrier=state.units.find(u=>u.id===unit.carrier_id);
-    $('hint').textContent=`Aboard ${carrier?unitName(carrier):'half-track'}. Select the transport to unload · 1 infantry AP.`;
+    $('hint').textContent=`Aboard ${carrier?unitName(carrier):'transport'}. Select it to unload · 1 infantry AP.`;
+    transportButtons.viewTransport.textContent='Select transport';
     $('roleBrief').textContent='PASSENGER · Cannot fire, spot or use abilities while aboard. AP still refreshes each turn. Unloading costs this unit 1 AP and can trigger overwatch.';
    }
-   if(unit.kind==='halftrack'){
+   if(['halftrack','landing_craft'].includes(unit.kind)){
     const troop=state.units.find(u=>u.hp>0&&u.carrier_id===unit.id);
-    if(!target)$('hint').textContent=troop?`Aboard: ${unitName(troop)} · ${troop.ap} AP. Unload costs infantry 1 AP.`:'Empty · carries 1 infantry unit. Load adjacent troops for 1 infantry AP. Roads: 2 hexes/AP.';
+    if(!target)$('hint').textContent=troop?`Aboard: ${unitName(troop)} · ${troop.ap} AP. Unload costs infantry 1 AP.`:unit.kind==='landing_craft'?'Empty · water only · load adjacent infantry for 1 infantry AP.':'Empty · carries 1 infantry unit. Roads: 2 hexes/AP.';
     for(const id of ['load','unload']){const b=transportButtons[id];b.hidden=!legal?.[id]?.length;b.disabled=busy;b.textContent=transportMode?.kind===id?`Cancel ${id}`:`${id==='load'?'Load':'Unload'} infantry · 1 AP`;}
    }
   }

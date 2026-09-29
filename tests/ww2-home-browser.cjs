@@ -4,6 +4,7 @@ const {tap}=require('./ww2-ui-helpers.cjs');
 const temp=fs.mkdtempSync(path.join(os.tmpdir(),'ww2-home-')),base='http://127.0.0.1:8105';
 const server=cp.spawn('python',['-m','gunicorn','ww2_web:app','--bind','127.0.0.1:8105','--workers','1','--threads','4'],{env:{...process.env,WW2_DB_PATH:path.join(temp,'game.sqlite3')},stdio:'ignore'});
 let browser;
+async function register(p,name){await p.locator('#commanderRegisterMode').click();await p.locator('#commanderName').fill(name);await p.locator('#commanderPassword').fill('home-browser-test-password');await p.locator('#commanderSubmit').click();await p.locator('#commanderDialog').waitFor({state:'hidden'});}
 (async()=>{
  for(let i=0;i<60;i++){try{if((await fetch(base+'/healthz')).ok)break;}catch{}await new Promise(r=>setTimeout(r,100));}
  const mod=require('@sparticuz/chromium'),pack=mod.default||mod;
@@ -36,13 +37,13 @@ let browser;
  await p.screenshot({path:path.join(temp,'home-saved-mobile.png'),fullPage:true});
  await p.locator('.saved-session').first().click();await p.waitForFunction(()=>!busy&&!lobbyMode);
  assert.equal(await p.evaluate(()=>session.code),original);
- await tap(p,p.locator('#leave'));await p.locator('#create').click();await p.waitForFunction(()=>state&&!busy&&!lobbyMode);
+ await tap(p,p.locator('#leave'));await p.locator('#create').click();await register(p,'HomeHost');await p.locator('#multiplayerName').fill('Home invitation');await p.locator('#namedGameSubmit').click();await p.waitForFunction(()=>state&&!busy&&!lobbyMode);
  const invitation=await p.evaluate(()=>session.code);
  const guest=await browser.newPage({viewport:{width:390,height:844}});
  await guest.goto(`${base}/?join=${invitation}`);
  assert.equal(await guest.locator('#joinOptions').getAttribute('open'),'');
  assert.equal(await guest.locator('#code').inputValue(),invitation.toUpperCase());
- await guest.locator('#joinForm button').click();await guest.waitForFunction(()=>state&&!busy&&!lobbyMode);
+ await guest.locator('#joinForm button').click();await register(guest,'HomeGuest');await guest.waitForFunction(()=>state&&!busy&&!lobbyMode);
  assert.equal(await guest.evaluate(()=>state.side),'de');
  const restoring=await browser.newPage({viewport:{width:320,height:568}});
  await restoring.goto(base);await restoring.locator('#restoreOptions summary').click();

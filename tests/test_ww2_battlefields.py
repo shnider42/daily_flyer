@@ -22,7 +22,9 @@ class BattlefieldsTests(unittest.TestCase):
         for key in SCENARIOS:
             state = initial(key,'dsl' if SCENARIOS[key].get('dsl_only') else 'classic')
             board = state['battlefield']
+            if state.get('air_version'):continue  # Air missions target stations, not ground capture.
             for unit in state['units']:
+                if unit['kind']=='landing_craft' or unit.get('carrier_id'):continue  # Landing/unload paths tested separately.
                 seen = {tuple(unit['pos'])}
                 queue = deque(seen)
                 while queue:
@@ -31,6 +33,7 @@ class BattlefieldsTests(unittest.TestCase):
                         for x in range(max(0,pos[0]-1),min(board['width'],pos[0]+2)):
                             dest = (x, y)
                             passable=terrain(x,y,state) in {'water','objective'} if state.get('naval_version') else terrain(x,y,state)!='water'
+                            if unit['kind']=='amphibious':passable=True  # Their own craft traverses sea approaches.
                             if dest not in seen and passable and distance(pos, dest) == 1:
                                 seen.add(dest)
                                 queue.append(dest)
@@ -52,15 +55,16 @@ class BattlefieldsTests(unittest.TestCase):
             state = initial(key,'dsl' if SCENARIOS[key].get('dsl_only') else 'classic')
             state['ready'] = True
             limit = state['battlefield']['rounds']
+            expected='us' if state.get('air_version') else 'de'
             for turn in range(limit):
                 state = apply(state, 'us', {'kind': 'end'})
                 state = apply(state, 'de', {'kind': 'end'})
-                self.assertEqual(state['winner'], 'de' if turn == limit-1 else None)
-            self.assertEqual(state['victories'], {'us': 0, 'de': 1})
+                self.assertEqual(state['winner'], expected if turn == limit-1 else None)
+            self.assertEqual(state['victories'], {'us':int(expected=='us'),'de':int(expected=='de')})
 
     def test_scenario_objectives_use_their_actual_hex(self):
         for key in SCENARIOS:
-            if SCENARIOS[key].get('naval'):continue  # Naval sea control is tested separately.
+            if SCENARIOS[key].get('naval') or SCENARIOS[key].get('air'):continue  # Separate victory rules.
             state = initial(key,'dsl' if SCENARIOS[key].get('dsl_only') else 'classic')
             state['ready'] = True
             state['units'][0]['pos'] = list(state['battlefield']['objective'])
@@ -167,7 +171,7 @@ class RematchTests(unittest.TestCase):
         self.tmp.cleanup()
 
     def test_scenario_catalog_and_dimensions(self):
-        self.assertEqual(len(self.client.get('/api/scenarios').get_json()['scenarios']), 6)
+        self.assertEqual(len(self.client.get('/api/scenarios').get_json()['scenarios']), 9)
         state = self.client.get(self.url, headers=self.us).get_json()
         self.assertEqual(len(state['map'][0]), 9)
         self.assertEqual(state['scenario']['rounds'], 10)

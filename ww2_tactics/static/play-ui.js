@@ -7,6 +7,7 @@
  const save=()=>{try{localStorage.setItem(key,JSON.stringify(prefs));}catch{}};
  // Distinct silhouettes and plain-language effects supplement color, including on touch screens.
  const actionDesign={
+  rearm:['green','Reload bombs and repair at a friendly airfield','M4 7h16v12H4ZM8 3v4M16 3v4M8 13h8M12 9v8'],
   load:['blue','Board one friendly infantry unit; costs infantry AP','M3 7h11v13H3ZM17 5l4 4-4 4M10 9h11'],
   unload:['teal','Disembark onto adjacent land; costs infantry AP','M3 7h11v13H3ZM17 12l4 4-4 4M10 16h11'],
   recon:['teal','Reveal nearby sea contacts','M3 12l7-2 2-7 2 7 7 2-7 2-2 7-2-7-7-2Z'],
@@ -42,9 +43,10 @@
    icon.setAttribute('viewBox','0 0 24 24');icon.setAttribute('aria-hidden','true');icon.classList.add('action-icon');
    const shape=document.createElementNS(icon.namespaceURI,'path');shape.setAttribute('d',cancel?'M5 5l14 14M19 5L5 19':path);icon.append(shape);
    const copy=node('span');copy.className='action-copy';
-   const shortNames={command:'Give actions',inspire:'Rally allies',recon:'Air search',repair:'Repair',airdrop:'Land troops',barrage:'Mortars',grenade:'Grenade',fire:'Fire',assault:'Assault',load:'Load troops',unload:'Unload',overwatch:'Overwatch',dig:'Dig in'};
-   const heading=node('span',null,cancel?title:shortNames[id]||title);heading.className='action-name';
    const unit=state?.units.find(u=>u.id===selected),legal=state?.legal[selected];
+   const shortNames={command:'Give actions',inspire:'Rally allies',recon:'Air search',repair:'Repair',airdrop:'Land troops',barrage:'Mortars',grenade:'Grenade',fire:'Fire',assault:'Assault',load:'Load troops',unload:'Unload',overwatch:'Overwatch',dig:'Dig in'};
+   if(state?.air_version){shortNames.overwatch=unit?.kind==='aa_gun'?'AA cover':'Intercept';shortNames.fire=unit?.kind==='bomber'?'Bomb':'Fire';shortNames.rearm='Service';}
+   const heading=node('span',null,cancel?title:shortNames[id]||title);heading.className='action-name';
    const description=window.orderHelp?.(id,unit,legal,prefs.simple)||purpose;
    const effect=node('span',null,cancel?'Return to orders':description);effect.className='action-purpose';copy.append(heading,effect);
    b.replaceChildren(icon,copy);
@@ -172,14 +174,14 @@
    if(state.last_combat?.revision===state.revision&&!smokeMode&&!barrageMode&&!target&&!$('hint').textContent.startsWith('Tap a marked'))$('hint').textContent=state.last_combat.result;
   }
   $('simpleOutcome').textContent=state.last_combat?.result||'';
-  $('guideToggle').hidden=state.ruleset!=='dsl'||!!state.naval_version;
+  $('guideToggle').hidden=state.ruleset!=='dsl'||!!state.naval_version||!!state.air_version;
   const active=guideActive();
   if(active&&!playbackSession){const g=prefs.guide;
    if(g.step===2&&(state.action_history||[]).some(h=>h.revision>g.since&&h.side===state.side&&h.action.kind==='move')){g.step++;g.since=state.revision;clearFocus();save();}
   }
   $('guideToggle').setAttribute('aria-pressed',String(active));$('guideToggle').textContent=active?'Hide learning guide':'Learn as you play';
   $('tutorialCoach').hidden=!active||!!playbackSession;
-  if(active){const step=prefs.guide.step,[title,text]=lessons[step];$('lessonCount').textContent=`FIELD TRAINING · ${step+1} / ${lessons.length}`;$('lessonTitle').textContent=title;$('lessonText').textContent=text;$('lessonBack').disabled=step===0;$('lessonNext').textContent=step===lessons.length-1?'Finish guide':'Next tip →';}
+  if(active){const step=prefs.guide.step,[title,text]=lessons[step];$('lessonCount').textContent=`FIELD TRAINING · ${step+1} / ${lessons.length}`;$('lessonTitle').textContent=title;$('lessonText').textContent=text.replaceAll('Americans',sideLabel('us')).replaceAll('American',sideLabel('us')).replaceAll('Germans',sideLabel('de'));$('lessonBack').disabled=step===0;$('lessonNext').textContent=step===lessons.length-1?'Finish guide':'Next tip →';}
   if(dock){
    $('mobileGuideOpen').hidden=!active||!!playbackSession;$('mobileGuideOpen').textContent=active?`Learn ${prefs.guide.step+1}/${lessons.length}`:'Learn';
    if(!active)$('mobileGuide').close();

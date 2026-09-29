@@ -40,7 +40,7 @@ document.addEventListener('DOMContentLoaded',()=>{
  }
  function sync(){
   if(!active||!state||game.hidden)return;
-  document.querySelector('.desktop-header-tag').textContent=state.naval_version?'PACIFIC / NAVAL OPERATIONS':'WESTERN FRONT / TACTICAL OPERATIONS';
+  document.querySelector('.desktop-header-tag').textContent=state.scenario?.theater?`${state.scenario.theater} / ${state.air_version?'AIR PLAYTEST':'TACTICAL OPERATIONS'}`:state.naval_version?'PACIFIC / NAVAL OPERATIONS':'WESTERN FRONT / TACTICAL OPERATIONS';
   const key=`${state.code}:${state.battle_number||1}`;
   const changed=key!==battle;
   if(changed){

@@ -11,6 +11,9 @@ def active(unit):
 
 
 def sees_hex(state, side, pos, concealed=False):
+    if state.get('air_version'):
+        from .air import sees_hex as air_sight
+        return air_sight(state,side,pos)
     from .engine import distance, line_clear
     if any(r['side']==side and distance(r['pos'],pos)<=r['radius'] for r in state.get('recon',[])):
         return True
@@ -28,6 +31,9 @@ def sees_hex(state, side, pos, concealed=False):
 
 
 def visible_ids(state, side):
+    if state.get('air_version'):
+        from .air import visible_ids as air_visible
+        return air_visible(state,side)
     from .engine import terrain
     if not fog(state):
         return {u['id'] for u in state['units'] if u['side']==side or not u.get('carrier_id')}
@@ -44,7 +50,12 @@ def update_intel(state):
         seen = visible_ids(state, side)
         memory = state.setdefault('intel', {}).setdefault(side, {})
         for uid, contact in list(memory.items()):
-            if sees_hex(state, side, contact['pos'], contact['kind'] not in {'tank','amphibious','halftrack'} and terrain(*contact['pos'],state) in {'woods','building'}):
+            if state.get('air_version'):
+                from .air import sees_hex as air_sight, AIRCRAFT
+                clear=air_sight(state,side,contact['pos'],contact['kind'] not in AIRCRAFT)
+            else:
+                clear=sees_hex(state, side, contact['pos'], contact['kind'] not in {'tank','amphibious','halftrack','landing_craft'} and terrain(*contact['pos'],state) in {'woods','building'})
+            if clear:
                 del memory[uid]
         for unit in state['units']:
             if unit['side'] != side and unit['id'] in seen and active(unit):
@@ -60,6 +71,8 @@ def view(state, side, terrain_visibility=True):
                   round=state['round'], turn=state['turn'], hold=state['hold'], winner=state['winner'])
     if state.get('naval_version'):
         result.update(sea_score=copy.deepcopy(state['sea_score']),recon=copy.deepcopy([r for r in state.get('recon',[]) if r['side']==side]))
+    if state.get('air_version'):
+        result['raid_destroyed']=copy.deepcopy(state.get('raid_destroyed',[]))
     if terrain_visibility:
         board=state['battlefield']
         result['visible_hexes']=[[x,y] for y in range(board['height']) for x in range(board['width']) if sees_hex(state,side,[x,y])]

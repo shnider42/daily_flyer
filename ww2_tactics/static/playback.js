@@ -48,13 +48,13 @@ function drawPlayback(){
  const p=playbackSession,frame=p.frames[p.index],snapshot=frame[p.phase],action=frame.action;
  const actor=frame.before.units.find(u=>u.id===action.unit),targetUnit=frame.before.units.find(u=>u.id===action.target);
  const labels={move:'moves',fire:'fires',grenade:'throws a frag',assault:'assaults',suppress:'suppresses',inspire:'rallies nearby troops',command:'orders On your feet',rally:'rallies',dig:'digs in',smoke:'throws smoke',overwatch:'takes overwatch',barrage:'calls mortars',end:'ends the turn'};
- labels.load='boards infantry';labels.unload='unloads infantry';
+ labels.load='boards infantry';labels.unload='unloads infantry';labels.rearm='services aircraft';
  const loc=pos=>`${String.fromCharCode(65+pos[0])}${pos[1]+1}`;
  const description=actor?`${sideLabel(actor.side)} ${unitName(actor)} at ${loc(actor.pos)} ${labels[action.kind]||action.kind}${action.pos?' → '+loc(action.pos):targetUnit?' → '+sideLabel(targetUnit.side)+' '+unitName(targetUnit)+' at '+loc(targetUnit.pos):''}`:action.kind==='end'?'Computer ends its turn':'Contact update · movement outside sight is concealed';
  document.getElementById('playbackStep').textContent=`Action ${p.index+1} / ${p.frames.length} · ${p.phase==='before'?'Before':'Result'}`;
  document.getElementById('playbackDescription').textContent=description;
  document.getElementById('round').textContent=`${snapshot.round} / ${state.scenario?.rounds||8}`;
- document.getElementById('objective').textContent=`Hold: ${snapshot.hold} / 2`;
+ document.getElementById('objective').textContent=state.air_version?`Stations lost: ${snapshot.raid_destroyed?.length||0} / 2`:`Hold: ${snapshot.hold} / 2`;
  document.getElementById('armyCount').textContent=['us','de'].map(side=>`${names[side]} ${snapshot.units.filter(u=>u.side===side&&u.hp>0).length}/${snapshot.units.filter(u=>u.side===side).length}`).join(' · ');
  document.getElementById('pausePlayback').textContent=p.paused?'Resume':'Pause';
  const result=document.getElementById('playbackResult');result.replaceChildren();
@@ -69,7 +69,8 @@ function drawPlayback(){
    if(u.ap!==old.ap)details.push(`actions ${old.ap} → ${u.ap}`);
    if(u.entrenched!==old.entrenched)details.push(u.entrenched?'dug in':'dug-in cover removed');
    if(u.overwatch!==old.overwatch)details.push(u.overwatch?'watching':'overwatch ended');
-   if(u.carrier_id!==old.carrier_id)details.push(u.carrier_id?'boarded half-track':'left half-track');
+   if(u.carrier_id!==old.carrier_id)details.push(u.carrier_id?'boarded transport':'left transport');
+   if(u.bombs!==old.bombs)details.push(`bomb loads ${old.bombs} → ${u.bombs}`);
    if(details.length)changes.push(`${sideLabel(u.side)} ${unitName(u)} · ${loc(u.pos)}: ${details.join(', ')}`);
   }
   if(frame.after.hold!==frame.before.hold)changes.push(`Objective hold: ${frame.before.hold} → ${frame.after.hold} / 2`);
@@ -79,7 +80,7 @@ function drawPlayback(){
  }
  const svg=document.getElementById('map').cloneNode(true);svg.id='playbackMap';svg.hidden=false;svg.removeAttribute('hidden');svg.setAttribute('aria-label',`Turn playback: ${description}`);
  svg.classList.remove('transport-picking');
- svg.querySelectorAll('.unit,.smoke-cloud,.barrage-zone,.incoming-mark,.aim-line,.battle-effect,.fog-layer,.contact-marker,.landing-zone,.transport-choice,.recon-choice,.sea-control,.move-beacon,.island-marker').forEach(e=>e.remove());
+ svg.querySelectorAll('.unit,.smoke-cloud,.barrage-zone,.incoming-mark,.aim-line,.battle-effect,.fog-layer,.contact-marker,.landing-zone,.transport-choice,.recon-choice,.sea-control,.move-beacon,.island-marker,.flight-trail,.station-mark').forEach(e=>e.remove());
  svg.querySelectorAll('[tabindex]').forEach(e=>{e.removeAttribute('tabindex');e.removeAttribute('role');e.removeAttribute('aria-label');});
  svg.querySelectorAll('.hex').forEach(e=>e.classList.remove('move','threatened','smoke-choice','barrage-choice','selected'));
  for(const smoke of snapshot.smoke||[]){const [cx,cy]=center(...smoke.pos);svg.append(element('ellipse',{cx,cy,rx:25,ry:22,class:'smoke-cloud'}));}

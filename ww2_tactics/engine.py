@@ -6,7 +6,7 @@ from .support import role_options, role_action, resolve_barrages
 from .combat_display import record_combat
 from .rulesets import profile, dsl, base_ap, bank_limit, turn_limit, road
 from .effects import record_effect
-from . import combined, naval, transport
+from . import combined, naval, transport, campaigns, air
 from .visibility import fog, active, visible_ids, sees_hex, update_intel, record_reports
 
 WIDTH, HEIGHT = 7, 9
@@ -66,6 +66,8 @@ def initial(scenario='village', ruleset='classic'):
         raise ValueError(f"{board['name']} requires the DSL ruleset.")
     if board.get('naval'):
         return naval.initial(board,rules)
+    if board.get('air'):
+        return air.initial(board,rules)
     units = []
     for side, row in [("us", board['height']-1), ("de", 0)]:
         formation = []
@@ -89,12 +91,17 @@ def initial(scenario='village', ruleset='classic'):
                 units[-1].update(platoon=platoon, number=number)
     if board.get('combined_arms'):
         units=combined.roster('us',board['height'])+combined.roster('de',board['height'])
+    if board.get('campaign'):
+        units=campaigns.setup(board)
     state = dict(ruleset=ruleset, ruleset_version=rules['version'], units=units, turn="us", round=1, hold=0, winner=None, rules_version=4, smoke=[], battlefield=board,
                 support={'us': 1, 'de': 1}, barrages=[],
                 battle_number=1, victories={'us': 0, 'de': 0},
                 log=[f"{board['name']} · Americans move first. Hold the objective at the end of two consecutive American turns. German defense wins after round {board['rounds']}."],
                 revision=0, ready=False)
-    if board.get('combined_arms'):
+    if board.get('campaign'):
+        state['factions']=board['factions'].copy()
+        state['log']=[f"{board['name']} · {state['factions']['us']} move first. Hold {board['objective_name']} for two consecutive turns; defenders win after round {board['rounds']}."]
+    if board.get('combined_arms') or board.get('campaign'):
         state.update(dsl_expansion=1,fog_of_war=True)
         update_intel(state)
     return state
@@ -108,7 +115,7 @@ def fire_modifiers(state, unit, target):
                 leader=-int(supported), machine_gun=-int(unit['kind'] == 'mg'),
                 dug_in=int(state.get('rules_version', 1) >= 2 and target.get('entrenched', False)))
     if combined.enabled(state):
-        mods.update(faction=-int(unit['side']=='us' and unit['kind'] not in {'tank','at_gun','at_team','amphibious'}),
+        mods.update(faction=-unit.get('accuracy_bonus',int(unit['side']=='us' and unit['kind'] not in {'tank','at_gun','at_team','amphibious'})),
                     armor=int(target.get('armor',0)>0 and not (target['kind']=='halftrack' and unit['kind'] in {'tank','at_gun'})),anti_tank=-int(unit['kind']=='at_gun' and target.get('armor',0)>0))
     return mods
 
@@ -133,6 +140,7 @@ def watchers(state, target, pos):
 
 
 def react(state, mover, roll):
+    names=state.get('factions',NAMES)
     messages = []
     for shooter in watchers(state, mover, mover['pos']):
         if mover['hp'] <= 0:
@@ -148,7 +156,7 @@ def react(state, mover, roll):
             mover['overwatch'] = False
         if not combined.enabled(state):
             result = 'eliminated' if mover['hp'] <= 0 else 'hit and pinned' if die >= threshold else 'missed'
-        messages.append(f"{NAMES[shooter['side']]} {shooter['kind']} overwatch: rolled {die}, needed {threshold}+. Target {result}.")
+        messages.append(f"{names[shooter['side']]} {shooter['kind']} overwatch: rolled {die}, needed {threshold}+. Target {result}.")
         state['last_combat'] = dict(kind='Overwatch', roll=die, threshold=threshold, result=result,
                                     attacker=shooter['id'], target=mover['id'], revision=state['revision']+1)
         record_combat(state, dict(fire_modifiers(state, shooter, mover), reaction=1))
@@ -158,6 +166,8 @@ def react(state, mover, roll):
 def options(state, unit):
     if state.get('naval_version'):
         return naval.options(state,unit)
+    if state.get('air_version'):
+        return air.options(state,unit)
     moves, targets = [], []
     board = battlefield(state)
     extras = dict(smoke=[], dig=False, assaults=[], overwatch=False,
@@ -182,6 +192,7 @@ def options(state, unit):
                 free_road = dsl(state) and unit.get('road_pending', False) and (unit['kind']=='halftrack' or not unit.get('road_used', False)) and road(terrain(*unit['pos'], state)) and road(tile)
                 cost = 0 if free_road else 2 if tile in {"woods", "building"} else 1
                 passable=tile!='water' or unit['kind']=='amphibious'
+                if unit['kind']=='landing_craft':passable=tile=='water'
                 if unit['kind'] in combined.VEHICLES and tile in {'woods','building'}: passable=False
                 if unit['kind']=='at_gun': passable=False
                 if passable and distance(unit["pos"], [x, y]) == 1 and [x, y] not in occupied and unit["ap"] >= cost:
@@ -200,8 +211,9 @@ def options(state, unit):
             if unit['kind'] in combined.INFANTRY-{'mg'} and unit['ap'] >= 2:
                 extras['assaults'] = [dict(id=t['id'], threshold=3 if t['pinned'] else 4)
                                      for t in state['units'] if active(t) and t['side'] != unit['side'] and t['id'] in seen and not t.get('armor')
+                                     and terrain(*t['pos'],state)!='water'
                                      and distance(unit['pos'], t['pos']) == 1]
-        extras['overwatch'] = state.get('rules_version', 1) >= 3 and unit['ap'] >= 2 and not unit.get('overwatch', False)
+        extras['overwatch'] = state.get('rules_version', 1) >= 3 and unit['ap'] >= 2 and unit['range']>0 and not unit.get('overwatch', False)
         extras.update(role_options(state, unit, distance, line_clear, terrain, board))
     return dict(moves=moves, targets=targets, rally=unit["pinned"] and unit["ap"] >= 1, **extras)
 
@@ -215,6 +227,9 @@ def apply(state, side, action, roll=None):
         raise ValueError("It is your opponent's turn.")
     if state.get('naval_version'):
         return naval.apply(state,side,action,roll)
+    if state.get('air_version'):
+        return air.apply(state,side,action,roll)
+    names=state.get('factions',NAMES)
     state = copy.deepcopy(state)
     before_sight={team:visible_ids(state,team) for team in ('us','de')} if fog(state) else {}
     action_round = state["round"]
@@ -224,7 +239,7 @@ def apply(state, side, action, roll=None):
     message = ""
     reactions = []
     if kind == "end":
-        reactions = resolve_barrages(state, NAMES) if state.get('rules_version', 1) >= 4 else []
+        reactions = resolve_barrages(state, names) if state.get('rules_version', 1) >= 4 else []
         state['smoke'] = [dict(s, ttl=s['ttl']-1) for s in state.get('smoke', []) if s['ttl'] > 1]
         if side == "us":
             held = any(u["side"] == "us" and active(u) and u["pos"] == board['objective'] for u in state["units"])
@@ -249,7 +264,7 @@ def apply(state, side, action, roll=None):
                 else:
                     u["ap"] = 2
                 u['overwatch'] = False
-        message = f"{NAMES[side]} ended their turn."
+        message = f"{names[side]} ended their turn."
     else:
         unit = next((u for u in state["units"] if u["id"] == action.get("unit") and u["hp"] > 0 and u["side"] == side), None)
         if unit is None:
@@ -261,20 +276,20 @@ def apply(state, side, action, roll=None):
             troop = next(u for u in state['units'] if u['id'] == action['target'])
             troop.update(carrier_id=unit['id'], pos=list(unit['pos']), ap=troop['ap']-1,
                          entrenched=False, overwatch=False, road_pending=False, transport_used=True)
-            message = f"{NAMES[side]} {troop['kind']} boarded half-track; infantry spent 1 AP."
+            message = f"{names[side]} {troop['kind']} boarded transport; infantry spent 1 AP."
         elif kind == 'unload' and action.get('pos') in [m['pos'] for m in legal['unload']]:
             if any(active(u) and u['pos'] == action['pos'] for u in state['units']):
                 raise ValueError('That disembark hex is occupied. Choose another hex.')
             troop = transport.passengers(state, unit)[0]
             troop.pop('carrier_id', None)
             troop.update(pos=list(action['pos']), ap=troop['ap']-1, road_pending=False)
-            message = f"{NAMES[side]} {troop['kind']} disembarked; infantry spent 1 AP."
+            message = f"{names[side]} {troop['kind']} disembarked; infantry spent 1 AP."
             reactions = react(state, troop, roll_die)
         elif kind in {'grenade', 'suppress', 'inspire', 'barrage', 'command'}:
-            message = role_action(state, unit, action, legal, roll_die, distance, NAMES)
+            message = role_action(state, unit, action, legal, roll_die, distance, names)
         elif kind == 'drop' and action.get('pos') in legal['drops']:
             unit.update(pos=list(action['pos']),reserve=False,ap=unit['ap']-2)
-            message=f"{NAMES[side]} paratroopers landed at {chr(65+unit['pos'][0])}{unit['pos'][1]+1}."
+            message=f"{names[side]} paratroopers landed at {chr(65+unit['pos'][0])}{unit['pos'][1]+1}."
             record_effect(state,'smoke',[unit['pos']])
             reactions=react(state,unit,roll_die)
         elif kind == "move":
@@ -287,11 +302,13 @@ def apply(state, side, action, roll=None):
                     unit.update(road_used=True, road_pending=False)
                 else:
                     unit['road_pending'] = both_road and (unit['kind']=='halftrack' or not unit.get('road_used', False))
+            if any(active(u) and u['id']!=unit['id'] and u['pos']==move['pos'] for u in state['units']):
+                raise ValueError('Movement blocked by a contact. Scout or choose another approach.')
             unit["pos"] = move["pos"]
             unit["ap"] -= move["cost"]
             unit['entrenched'] = False
             transport.follow(state, unit)
-            message = f"{NAMES[side]} {unit['kind']} moved to {chr(65+unit['pos'][0])}{unit['pos'][1]+1}."
+            message = f"{names[side]} {unit['kind']} moved to {chr(65+unit['pos'][0])}{unit['pos'][1]+1}."
             reactions = react(state, unit, roll_die)
             if dsl(state) and unit['pinned']:
                 unit['road_pending'] = False
@@ -314,23 +331,23 @@ def apply(state, side, action, roll=None):
                 target['overwatch'] = False
             if not combined.enabled(state):
                 result = "eliminated" if target["hp"] <= 0 else "hit and pinned" if hit else "missed"
-            message = f"{NAMES[side]} {unit['kind']} fired: rolled {die}, needed {shot['threshold']}+. Target {result}."
+            message = f"{names[side]} {unit['kind']} fired: rolled {die}, needed {shot['threshold']}+. Target {result}."
             state['last_combat'] = dict(kind='Fire', roll=die, threshold=shot['threshold'], result=result,
                                         attacker=unit['id'], target=target['id'], revision=state['revision']+1)
             record_combat(state, shot['modifiers'])
         elif kind == 'dig' and legal['dig']:
             unit['ap'] -= 2
             unit['entrenched'] = True
-            message = f"{NAMES[side]} {unit['kind']} dug in. Incoming fire needs +1 until this unit moves."
+            message = f"{names[side]} {unit['kind']} dug in. Incoming fire needs +1 until this unit moves."
         elif kind == 'overwatch' and legal['overwatch']:
             unit['ap'] -= 2
             unit['overwatch'] = True
-            message = f"{NAMES[side]} {unit['kind']} is on overwatch until its next turn."
+            message = f"{names[side]} {unit['kind']} is on overwatch until its next turn."
         elif kind == 'smoke' and action.get('pos') in legal['smoke']:
             unit['ap'] -= 1
             unit['smoke'] -= 1
             state.setdefault('smoke', []).append(dict(pos=action['pos'], ttl=2))
-            message = f"{NAMES[side]} {unit['kind']} threw smoke. It blocks fire until the end of the opponent's turn."
+            message = f"{names[side]} {unit['kind']} threw smoke. It blocks fire until the end of the opponent's turn."
         elif kind == 'assault':
             assault = next((a for a in legal['assaults'] if a['id'] == action.get('target')), None)
             if not assault:
@@ -350,7 +367,7 @@ def apply(state, side, action, roll=None):
                 unit['hp'] -= 1
                 unit['pinned'] = True
                 result = 'repulsed; attacker lost 1 and pinned' if unit['hp'] > 0 else 'repulsed; attacker eliminated'
-            message = f"{NAMES[side]} assaulted: rolled {die}, needed {assault['threshold']}+. {result}."
+            message = f"{names[side]} assaulted: rolled {die}, needed {assault['threshold']}+. {result}."
             state['last_combat'] = dict(kind='Assault', roll=die, threshold=assault['threshold'], result=result,
                                         attacker=unit['id'], target=target['id'], revision=state['revision']+1)
             record_combat(state, {'pinned_target': -1 if assault['threshold'] == 3 else 0},
@@ -360,7 +377,7 @@ def apply(state, side, action, roll=None):
         elif kind == "rally" and legal["rally"]:
             unit["pinned"] = False
             unit["ap"] -= 1
-            message = f"{NAMES[side]} {unit['kind']} rallied (1 action)."
+            message = f"{names[side]} {unit['kind']} rallied (1 action)."
         else:
             raise ValueError("Invalid action.")
     if kind == 'smoke':
@@ -368,6 +385,8 @@ def apply(state, side, action, roll=None):
     elif kind == 'grenade':
         target = next(u for u in state['units'] if u['id'] == action['target'])
         record_effect(state, 'explosion', [target['pos']])
+    for carrier in state['units']:
+        if carrier['hp']<=0 and carrier['kind']=='landing_craft':transport.bail_out(state,carrier)
     for team in ("us", "de"):
         if not any(u["hp"] > 0 and u["side"] == team for u in state["units"]):
             state["winner"] = "de" if team == "us" else "us"
@@ -376,7 +395,7 @@ def apply(state, side, action, roll=None):
         state["hold"] = 0
     state["log"] = state["log"] + [message] + reactions
     if state["winner"]:
-        state["log"].append(f"{NAMES[state['winner']]} win.")
+        state["log"].append(f"{names[state['winner']]} win.")
         wins = state.setdefault('victories', {'us': 0, 'de': 0})
         wins[state['winner']] += 1
     state["revision"] += 1

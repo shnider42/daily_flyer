@@ -16,6 +16,8 @@ kinds.halftrack='Half-track section';unitCodes.halftrack='HT';
 kinds.scout='Recon team';
 Object.assign(kinds,{carrier:'Aircraft carrier',battleship:'Battleship',cruiser:'Cruiser',destroyer:'Destroyer'});
 Object.assign(unitCodes,{carrier:'CV',battleship:'BB',cruiser:'CA',destroyer:'DD'});
+Object.assign(kinds,{fighter:'Fighter',bomber:'Bomber',aa_gun:'Anti-aircraft gun',radar:'Radar station',airfield:'Airfield',landing_craft:'Landing craft'});
+Object.assign(unitCodes,{fighter:'FTR',bomber:'BMR',aa_gun:'AA',radar:'RAD',airfield:'AF',landing_craft:'LC'});
 function sideLabel(side){return state?.factions?.[side]||names[side];}
 function strengthLabel(u){return state?.naval_version?`${u.hp}/${u.max_hp} · ${u.ap}`:'●'.repeat(u.hp)+' · '+u.ap;}
 function notify(text){$('message').textContent=text;$('message').hidden=false;clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('message').hidden=true,6500);}
@@ -64,7 +66,9 @@ function center(x,y){return [27+x*52+(y%2)*26,30+y*49];}
 function unitTypeName(u){return state?.naval_version&&u.kind==='amphibious'?'Landing section':kinds[u.kind];}
 function unitName(u){return unitTypeName(u)+(u.platoon?` ${u.platoon}${u.number}`:'');}
 function unitRoleSummary(u){
- if(u.carrier_id)return 'Aboard half-track · select transport to unload';
+ if(u.carrier_id)return 'Aboard transport · select it to unload';
+ if(u.kind==='landing_craft')return 'Carry one infantry unit to shore · water movement only';
+ if(state?.air_version)return {fighter:'Intercept aircraft · 3 hexes per flight action',bomber:'Bomb ground sites · 2 hexes per flight action · 2 bomb loads',aa_gun:'Anti-aircraft overwatch · range 5 · fixed position',radar:'Spot aircraft within 10 hexes · no ground spotting or attacks',airfield:'Rearm and repair aircraft in adjacent hexes'}[u.kind];
  if(u.kind==='halftrack'){const troop=state.units.find(t=>t.hp>0&&t.carrier_id===u.id);return troop?`Carrying ${unitName(troop)} · roads: 2 hexes/AP`:'Transport 1 infantry unit · roads: 2 hexes/AP';}
  const roles={squad:'Capture and hold ground with rifle infantry',leader:state?.ruleset==='dsl'?'Rally platoon members and grant extra actions':'Rally troops and call mortar support',mg:'Suppress enemy infantry with sustained fire',commander:'Rally and support nearby troops',scout:'Spot concealed enemies ahead of your squads',engineer:'Use smoke and grenades to clear cover',at_team:'Hunt armored vehicles with anti-tank weapons',tank:'Armored direct fire against troops and vehicles',at_gun:'Long-range anti-tank fire; cannot move',halftrack:'Mobile armored support; suppress infantry',amphibious:state?.naval_version?'Cross water and land troops at island outposts':'Move your troops across water and open land',paratrooper:u.reserve?'Airborne reserve; choose a landing zone':'Airborne infantry; capture and hold ground',carrier:'Scout with aircraft and launch air strikes',battleship:'Armored warship with heavy long-range guns',cruiser:'Escort ships with guns and aircraft defense',destroyer:'Fast warship with torpedoes and smoke'};
  return roles[u.kind]||'Select a highlighted move or available action';
@@ -107,7 +111,7 @@ function chooseUnit(u){if(busy||playbackSession)return;if(barrageMode){placeBarr
 function placeBarrage(pos){if(state.legal[selected]?.barrage?.some(p=>p[0]===pos[0]&&p[1]===pos[1])&&confirm(`Call your army's only mortar barrage at ${String.fromCharCode(65+pos[0])}${pos[1]+1}? The marked hex and its neighbors will be hit at the end of your opponent's turn. ALL units there will be pinned and lose dug-in cover, including yours. No strength damage.`))act({kind:'barrage',unit:selected,pos});}
 function placeSmoke(pos){if(state.legal[selected]?.smoke?.some(p=>p[0]===pos[0]&&p[1]===pos[1]))act({kind:'smoke',unit:selected,pos});}
 function chance(threshold){return Math.max(0,Math.min(100,Math.round((7-threshold)/6*100)));}
-function moveUnit(move){if(!move.threats||confirm(`${move.threats} enemy unit${move.threats===1?' is':'s are'} watching this hex. Move and risk reaction fire?`))act({kind:'move',unit:selected,pos:move.pos});}
+function moveUnit(move){if(!move.threats||confirm(`${move.threats} enemy unit${move.threats===1?' is':'s are'} watching ${state.air_version?'this flight path':'this hex'}. Move and risk reaction fire?`))act({kind:'move',unit:selected,pos:move.pos});}
 function scenarioPreview(){
  const board=scenarios.find(s=>s.id===$('scenarioSelect').value);if(!board)return;
  $('scenarioBrief').textContent=board.brief;
@@ -150,7 +154,7 @@ function render(){
  if(state.ai_side&&!state.winner)$('turnBanner').textContent=`Your turn · vs computer (${names[state.ai_side]})`;
  $('objective').textContent=`Hold: ${state.hold} / 2`;
  $('legacyNotice').hidden=(state.rules_version||1)>=4;
- $('missionHint').textContent=state.winner?`Battle complete in round ${state.round}.`:state.hold?'Americans hold the objective. Germans must dislodge them before the next American turn ends.':state.side==='us'?`Capture ★ and hold through two American turn endings. You have ${board.rounds-state.round+1} rounds left.`:`Keep the Americans from holding ★ through round ${board.rounds}.`;
+ $('missionHint').textContent=state.winner?`Battle complete in round ${state.round}.`:state.hold?`${names.us} hold the objective. ${names.de} must dislodge them before the next turn ends.`:state.side==='us'?`Capture ★ and hold through two of your turn endings. ${board.rounds-state.round+1} rounds left.`:`Keep the ${names.us} from holding ★ through round ${board.rounds}.`;
  $('armyCount').textContent=['us','de'].map(s=>`${names[s]} ${state.units.filter(u=>u.side===s&&u.hp>0).length}/${state.units.filter(u=>u.side===s).length}`).join(' · ');
  const unit=state.units.find(u=>u.id===selected&&u.hp>0);
  if(!unit)selected=null;
@@ -259,6 +263,7 @@ function render(){
  syncPlayback();renderBattleEffects(state,svg);
  if(window.renderCombined)window.renderCombined(unit,legal,svg);
  if(window.renderNaval)window.renderNaval(unit,legal,svg);
+ if(window.renderCampaign)window.renderCampaign(unit,legal,svg);
  renderUnitClarity(unit);
  document.dispatchEvent(new Event('ww2:render'));
  if(!newBattle)restoreMap();

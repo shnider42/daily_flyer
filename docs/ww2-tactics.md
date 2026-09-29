@@ -1,5 +1,13 @@
 # DSL — WWII tactical game
 
+## New theaters and home-page refresh
+
+Stalingrad, Omaha Beach and the Battle of Britain air-combat sandbox are available
+in DSL. The home page now has an original map-table masthead, cleaner type, shorter
+briefings and optional ambient motion. See [new theaters and playtest rules](ww2-campaigns.md)
+for aircraft, path-based AA, radar, landing-craft passengers, asset provenance and tests.
+Existing matches keep their saved maps; no new Render configuration is required.
+
 ## Operations and resignation
 
 The separate `/admin` console provides owner-bound access for `shnider42`, storage

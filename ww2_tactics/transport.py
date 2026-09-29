@@ -10,7 +10,7 @@ def passengers(state, carrier):
 def options(state, carrier):
     from .engine import distance, terrain, watchers
     result = dict(load=[], unload=[])
-    if not combined.enabled(state) or carrier['kind'] != 'halftrack' or not active(carrier):
+    if not combined.enabled(state) or carrier['kind'] not in {'halftrack','landing_craft'} or not active(carrier):
         return result
     aboard = passengers(state, carrier)
     if not aboard:
@@ -42,6 +42,15 @@ def bail_out(state, carrier):
     """Destroyed carrier frees its hex. Survivors cannot immediately fight or reboard."""
     for troop in passengers(state, carrier):
         troop.pop('carrier_id', None)
-        troop.update(pos=list(carrier['pos']), hp=max(0, troop['hp']-1), pinned=True,
+        pos=list(carrier['pos']);loss=1
+        if carrier['kind']=='landing_craft':
+            from .engine import distance,terrain
+            board=state['battlefield']
+            shore=[[x,y] for y in range(board['height']) for x in range(board['width'])
+                   if distance(carrier['pos'],[x,y])==1 and terrain(x,y,state)!='water'
+                   and not any(active(u) and u['id']!=troop['id'] and u['pos']==[x,y] for u in state['units'])]
+            if shore:pos=shore[0]
+            else:loss=troop['hp']  # No impossible infantry survivors stranded at sea.
+        troop.update(pos=pos, hp=max(0, troop['hp']-loss), pinned=True,
                      ap=0, banked_ap=0, overwatch=False, entrenched=False, road_pending=False,
                      transport_used=True)

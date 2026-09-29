@@ -9,10 +9,11 @@
 <link rel="stylesheet" href="/assets/battle-help.css"><script src="/assets/battle-help.js" defer></script>
 <link rel="stylesheet" href="/assets/dad-mode.css"><script src="/assets/dad-mode.js" defer></script>
 <link rel="stylesheet" href="/assets/lobby.css"><script src="/assets/lobby.js" defer></script>
+<link rel="stylesheet" href="/assets/campaigns.css"><script src="/assets/campaigns.js" defer></script>
 <header><a href="/" class="brand">DSL <span>TACTICAL COMMAND</span></a><button id="homeBattles" class="quiet" hidden>Battles / home</button><button id="rulesButton" class="quiet">Field manual</button></header>
 <main>
 <section id="lobby">
- <div class="home-heading"><p class="eyebrow">DOUBLE SECRET PROBATION SQUAD LEADER</p><h1>Your next<br><em>move matters.</em></h1><p class="intro">From village streets to Pacific waters. <br>Choose your battlefield. Take command.</p></div>
+ <div class="home-heading"><div class="home-heading-copy"><p class="eyebrow">DOUBLE SECRET PROBATION</p><h1>SQUAD LEADER</h1><p class="intro">A turn-based WWII sandbox.</p><nav class="home-shortcuts" aria-label="Home sections"><a href="#operationSetup">New battle</a><a href="#multiplayerLobby">Find / resume a game</a></nav></div><span class="home-stamp" aria-hidden="true">FIELD TABLE<br>DSL / 09</span></div>
  <p id="entryStatus" class="entry-status" role="status">Operations room · No battle open</p>
  <section id="multiplayerLobby" aria-label="Multiplayer games">
   <div class="commander-bar"><div><strong id="commanderIdentity">Your games, on any device.</strong><p id="commanderHint">Sign in with a commander name and password to keep all your multiplayer seats together.</p></div><div class="lobby-buttons"><button id="commanderSignIn">Sign in / create commander</button><button id="commanderSignOut" hidden>Sign out</button><a id="adminConsoleLink" href="/admin" hidden>Admin console ↗</a></div></div>
@@ -24,18 +25,20 @@
   <details class="lobby-recovery"><summary>Missing an older game?</summary><p>Older games appear under a battlefield name and a short ID. Open one from its saved browser or a MOVE code, then link it to your commander. After that, sign in from any device. Your opponent’s seat stays theirs.</p><button id="linkBrowserGames">Link games saved on this browser</button><p id="linkResult" role="status"></p></details>
  </section>
  <section id="savedSessions" hidden><div class="home-section-heading"><h2>Continue a battle</h2><span>Saved on this browser</span></div><div id="sessionList"></div></section>
- <section class="home-operation" aria-label="New battle">
+ <section class="home-operation" id="operationSetup" aria-label="New battle">
  <div class="home-map-panel"><div class="home-map-caption"><span>OPERATIONS MAP</span><span id="homeTheater">EUROPE</span></div><svg id="scenarioPreview" viewBox="0 0 400 470" role="img" aria-label="Battlefield preview"></svg><div class="home-map-footer"><span id="homeMapSize">SELECT AN OPERATION</span><span>★ OBJECTIVE</span></div></div>
- <div class="home-setup"><p class="eyebrow">NEW OPERATION</p><h2>Pick your battlefield.</h2><label for="scenarioSelect">Battlefield</label>
+ <div class="home-setup"><label for="scenarioSelect">Choose an operation</label>
  <select id="scenarioSelect"><option value="village">Village Crossing · 8 rounds</option><option value="orchard">Orchard Road · 10 rounds</option><option value="stonebridge">Stonebridge · 12 rounds</option><option value="riverfront">Riverfront Offensive · 18×18 · 24 rounds</option></select>
- <p id="scenarioBrief" class="brief">The familiar village. Buildings shelter the approaches; the central road is exposed.</p>
+ <div id="newOperations" class="new-operations" aria-label="New operations"><span>NEW</span><button type="button" data-scenario="stalingrad">Stalingrad</button><button type="button" data-scenario="britain">Britain <small>air test</small></button><button type="button" data-scenario="omaha">Omaha</button></div>
+ <h2 id="operationTitle">Village Crossing</h2><p id="operationSummary">Infantry · close-quarters tactics</p><p id="operationFactions">Americans vs Germans</p>
+ <details class="operation-briefing"><summary>Mission briefing</summary><p id="scenarioBrief" class="brief">Buildings shelter the approaches; the central road is exposed.</p><p id="playtestNote" hidden>Experimental aircraft rules. No altitude, fuel or facing yet. This is a fictional tactical layout, not a historical simulation.</p></details>
  <div id="rulesetPicker"><label for="rulesetSelect">Rules</label><select id="rulesetSelect"><option value="dsl">DSL · Full tactical rules</option><option value="classic">Classic · Simplified rules</option><option value="asl" disabled>ASL-inspired · Coming later</option></select></div>
- <div class="home-play-buttons"><button id="createSolo" class="solo-button">Play the computer <span aria-hidden="true">→</span></button><button id="create">Play with a friend <span aria-hidden="true">↗</span></button></div><p class="home-play-note">Every new battle is separate. Your saved battles stay yours.</p>
- <div class="home-learn"><div><strong>First time in command?</strong><p id="learnHelp">Practice against the computer with step-by-step tips.</p></div><button id="learnStart">Learn to play →</button></div>
+ <div class="home-play-buttons"><button id="createSolo" class="solo-button">Play solo <span aria-hidden="true">→</span></button><button id="create">Invite a friend <span aria-hidden="true">↗</span></button></div>
+ <div class="home-learn"><p id="learnHelp">First time playing?</p><button id="learnStart">Guided practice →</button></div>
  </div></section>
  <section class="home-return" aria-label="Battle codes"><details id="joinOptions"><summary>Have an invitation? <span>Join a battle</span></summary><form id="joinForm"><label for="code">Enter the 10-character invitation code</label><div class="join-row"><input id="code" maxlength="10" placeholder="MATCH CODE" autocomplete="off" autocapitalize="characters" spellcheck="false" required pattern="[a-fA-F0-9]{10}"><button type="submit">Join →</button></div></form></details>
  <details id="restoreOptions"><summary>Returning from another device? <span>Load a save code</span></summary><form id="recoverForm"><label for="recoveryCode">Paste your MOVE or SAVE code</label><textarea id="recoveryCode" rows="3" maxlength="100" placeholder="MOVE-… or SAVE-…" autocomplete="off" autocapitalize="characters" spellcheck="false" required></textarea><button type="submit">Load code →</button><p class="footnote">MOVE reconnects your live seat. SAVE creates a separate solo battle at the saved moment.</p></form></details></section>
- <footer class="home-footer"><span>SOLO INSTANTLY. MULTIPLAYER TOGETHER.</span><p>Sign in to find your multiplayer games on any device. Solo games stay in this browser; use a SAVE code to carry a checkpoint elsewhere.</p><small>An original WWII tactical game · In development</small></footer>
+ <footer class="home-footer"><small>Historical settings. Experimental rules.</small><button id="homeMotionToggle" type="button" aria-pressed="true">Ambient motion: on</button></footer>
 </section>
 <section id="game" hidden>
  <div class="game-title"><div><p class="eyebrow" id="battleNumber">BATTLE 01</p><h1 id="battleTitle">Village Crossing</h1></div><div class="round">ROUND <strong id="round">1 / 8</strong></div></div>

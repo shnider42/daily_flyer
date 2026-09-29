@@ -6,10 +6,11 @@ from .engine import apply, options, distance, terrain
 from .scenarios import battlefield
 from .rulesets import dsl, turn_limit
 from .visibility import fog, view, visible_ids
-from . import naval
+from . import naval, air
 
 
 def objective_costs(state):
+    if state.get('air_version'):return {}
     board = battlefield(state)
     goal = tuple(board['objective'])
     costs, queue = {goal: 0}, [(0, goal)]
@@ -32,6 +33,8 @@ def objective_costs(state):
 def choose_order(state, costs, visited):
     if state.get('naval_version'):
         return naval.choose_order(state,costs,visited)
+    if state.get('air_version'):
+        return air.choose_order(state,costs,visited)
     side = state['turn']
     board = battlefield(state)
     seen=visible_ids(state,side)
@@ -46,14 +49,14 @@ def choose_order(state, costs, visited):
             continue
         legal = options(state, unit)
         # Embark on a distant approach; deploy near the fight, before using support fire.
-        if legal.get('load') and costs.get(tuple(unit['pos']),100)>5 and not any(
+        if unit['kind']=='halftrack' and legal.get('load') and costs.get(tuple(unit['pos']),100)>5 and not any(
                 u['side']!=side and distance(u['pos'],unit['pos'])<=6 for u in units.values()):
             for uid in legal['load']:
                 if units[uid]['ap']>=2:
                     add(7,unit,'load',target=uid)
         if legal.get('unload'):
             threatened=any(u['side']!=side and distance(u['pos'],unit['pos'])<=5 for u in units.values())
-            if threatened or unit['pinned'] or unit['hp']<3 or costs.get(tuple(unit['pos']),100)<=4:
+            if unit['kind']=='landing_craft' or threatened or unit['pinned'] or unit['hp']<3 or costs.get(tuple(unit['pos']),100)<=4:
                 for move in legal['unload']:
                     cover=terrain(*move['pos'],state) in {'woods','building','objective'}
                     add(14+int(cover)-move['threats']*3-costs.get(tuple(move['pos']),100)*.1,unit,'unload',pos=move['pos'])
@@ -101,12 +104,20 @@ def choose_order(state, costs, visited):
         imminent = [b for b in state.get('barrages', []) if b['ttl'] == 1]
         danger = any(unit['pos'] in b['area'] for b in imminent)
         holding = unit['pos'] == board['objective']
+        landing_goal=None
+        if unit['kind']=='landing_craft':
+            shores=[[x,y] for y in range(board['height']) for x in range(board['width']) if terrain(x,y,state)=='water'
+                    and any(distance([x,y],[nx,ny])==1 and terrain(nx,ny,state)!='water'
+                            for nx,ny in ((x,y-1),(x,y+1),(x-1,y),(x+1,y)) if 0<=nx<board['width'] and 0<=ny<board['height'])]
+            if shores:landing_goal=min(shores,key=lambda p:distance(unit['pos'],p))
         for move in legal['moves']:
+            if unit['kind']=='landing_craft' and not any(v.get('carrier_id')==unit['id'] for v in units.values()):continue
             pos = move['pos']
             if tuple(pos) in visited.get(unit['id'], set()):
                 continue
             exposed = any(pos in b['area'] for b in imminent)
-            gain = (distance(unit['pos'],board['objective'])-distance(pos,board['objective'])) if unit['kind']=='amphibious' else costs.get(tuple(unit['pos']), 100)-costs.get(tuple(pos), 100)
+            goal=landing_goal or board['objective']
+            gain = (distance(unit['pos'],goal)-distance(pos,goal)) if unit['kind'] in {'amphibious','landing_craft'} else costs.get(tuple(unit['pos']), 100)-costs.get(tuple(pos), 100)
             score = 2+gain*2-move.get('threats', 0)*2
             score += .6 if terrain(*pos, state) in {'woods', 'building', 'objective'} else 0
             if pos == board['objective']:
@@ -125,7 +136,9 @@ def choose_order(state, costs, visited):
             add(4 if holding else 1 if near else .1, unit, 'dig')
         # Smoke buys cover when crossing a watched approach without a viable attack.
         if legal['smoke'] and any(m.get('threats') for m in legal['moves']):
-            add(5, unit, 'smoke', pos=list(unit['pos']))
+            # A second smoke screen cannot be placed on an already smoked hex.
+            pos=unit['pos'] if unit['pos'] in legal['smoke'] else min(legal['smoke'],key=lambda p:distance(p,landing_goal or board['objective']))
+            add(5, unit, 'smoke', pos=list(pos))
     if not choices:
         return dict(kind='end')
     score, action = max(choices, key=lambda item: item[0])

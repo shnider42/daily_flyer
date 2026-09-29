@@ -88,7 +88,7 @@ def create_app(db_path=None):
     @app.after_request
     def headers(response):
         response.headers["Cache-Control"] = "no-store"
-        if request.path.startswith('/assets/unit-images/') and response.status_code == 200:
+        if request.path.startswith(('/assets/unit-images/','/assets/operations/')) and response.status_code == 200:
             response.headers['Cache-Control'] = 'public, max-age=31536000, immutable'
         response.headers["Referrer-Policy"] = "no-referrer"
         response.headers["X-Content-Type-Options"] = "nosniff"
@@ -150,7 +150,8 @@ def create_app(db_path=None):
         if mode == 'computer':
             state.update(ai_side='de', ready=True)
             opponent=state.get('factions',{}).get('de','Germans')
-            state['log'].append(f'Solo battle: you command the Americans; the computer commands the {opponent}.')
+            own=state.get('factions',{}).get('us','Americans')
+            state['log'].append(f'Solo battle: you command the {own}; the computer commands the {opponent}.')
         return state
 
     @app.post("/api/match")
@@ -192,7 +193,7 @@ def create_app(db_path=None):
             if row["guest"]:
                 return jsonify(error="Both seats are taken. Sign in as your commander to resume. Older seats need their saved browser or a MOVE code once, then can be linked to a commander."), 409
             if identify(db, row) == "us":
-                return jsonify(error="You already command the Americans. Open the invitation on the other phone."), 409
+                return jsonify(error="You already own the host seat. Open the invitation on the other device."), 409
             state = json.loads(row["state"])
             state["ready"] = True
             state["revision"] += 1

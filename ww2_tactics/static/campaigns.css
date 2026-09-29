@@ -1,0 +1,11 @@
+:is(.air-battle,.beach-battle) #map .hex.move{fill:#70e9bd;stroke:#f6ffe8;stroke-width:3;fill-opacity:.9}
+:is(.air-battle,.beach-battle) #map .hex.move.threatened{fill:#ffbb6c;stroke:#682815;stroke-dasharray:5 3}
+:is(.air-battle,.beach-battle) #map .move-beacon{fill:#083b33;stroke:#effff4;stroke-width:1;paint-order:stroke;font-size:18px;font-weight:900;pointer-events:none}
+.air-battle #map .flight-trail{fill:none;stroke:#fff6af;stroke-width:4;stroke-dasharray:7 4;pointer-events:none;filter:drop-shadow(0 1px 1px #142724)}
+.air-battle .station-mark{fill:#fff;stroke:#172722;stroke-width:3;paint-order:stroke;font:700 10px Arial,sans-serif;pointer-events:none}
+.air-battle #map .objective-icon{opacity:.25}
+.unit-art .atlas-viewport{overflow:hidden}
+.unit-art .air-fallback{font:700 11px Arial,sans-serif;fill:#fff;text-anchor:middle}
+.city-battle #map .hex.building{fill:#948b7f}
+.city-battle #map .hex.move{fill:#a8d9b9}
+@media(prefers-reduced-motion:reduce){.home-screen *{animation:none!important;scroll-behavior:auto!important}}

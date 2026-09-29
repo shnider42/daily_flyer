@@ -6,6 +6,8 @@
  const ns='http://www.w3.org/2000/svg',observed=new Set();
  const rasterKinds=new Set(['carrier','battleship','cruiser','destroyer','paratrooper','scout','engineer','halftrack','at_gun','at_team']);
  function rasterName(u){
+  if(u.kind==='airfield')return 'airfield';
+  if(u.faction==='su'&&u.kind==='squad')return 'landing-infantry';
   if(rasterKinds.has(u.kind))return u.kind;
   if(u.kind==='tank')return `tank-${u.side}`;
   if(u.kind==='amphibious')return ['water','objective'].includes(state.map[u.pos[1]][u.pos[0]])?'landing-craft':'landing-infantry';
@@ -124,6 +126,8 @@
     for(const [x,y] of [[-6,-12],[-2,-11],[2,-11],[6,-12],[10,-13]]){
      path(`M${x} ${y+1}q-3-4-4-2q1 3 4 2M${x} ${y+1}q3-4 4-2q-1 3-4 2`,'rank-leaf');
     }
+   }else if(['fighter','bomber','aa_gun','radar','airfield','landing_craft'].includes(u.kind)){
+    drawing.append(el('text',{x:0,y:-3,class:'air-fallback'},unitCodes[u.kind]));
    }else if(u.side==='us'){
     drawing.classList.add('insignia-us-mg');
     // Broad receiver, left-facing ventilated barrel and a three-legged mount.
@@ -146,6 +150,14 @@
     path('M11-10V-8M-7-9H-5','mg-sight');
     for(const x of [3.5,6,8.5,11])add('rect',{x,y:-6.8,width:1.4,height:1.1,rx:.4,class:'mg-vent'});
     path('M-8-7H-3L-1-8H1','mg-engraving insignia-detail');
+   }
+   const atlasViews={fighter:u.side==='us'?'0 0 535 500':'530 0 500 500',bomber:'1030 0 506 500',aa_gun:'0 500 575 524',radar:'570 500 460 524',landing_craft:'1025 500 511 524'};
+   if(atlasViews[u.kind]){
+    const fallback=el('g',{class:'raster-fallback'});while(drawing.firstChild)fallback.append(drawing.firstChild);
+    const viewport=el('svg',{x:-20,y:-17,width:40,height:24,viewBox:atlasViews[u.kind],class:'atlas-viewport',preserveAspectRatio:'xMidYMid meet'});
+    const picture=el('image',{href:'/assets/unit-images/air-atlas-v1.webp',width:1536,height:1024});viewport.append(picture);
+    picture.addEventListener('load',()=>fallback.setAttribute('display','none'));
+    picture.addEventListener('error',()=>viewport.remove());drawing.append(fallback,viewport);
    }
    const raster=rasterName(u);
    if(raster){

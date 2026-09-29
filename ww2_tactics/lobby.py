@@ -156,6 +156,7 @@ def install_lobby(app, connect, digest, identify):
                     json_extract(m.state,'$.winner') AS winner,
                     json_extract(m.state,'$.ready') AS ready,
                     coalesce(json_extract(m.state,'$.factions.de'),'Germans') AS opponent,
+                    coalesce(json_extract(m.state,'$.factions.us'),'Americans') AS allies,
                     h.name AS host_name,g.name AS guest_name,
                     m.guest IS NOT NULL AS full,
                     CASE WHEN hs.commander_id=? THEN 'us' WHEN gs.commander_id=? THEN 'de' END AS your_side

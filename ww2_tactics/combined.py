@@ -6,7 +6,7 @@ def enabled(state):
 
 
 INFANTRY = {'squad', 'scout', 'engineer', 'paratrooper', 'leader', 'commander', 'mg', 'at_team'}
-VEHICLES = {'tank', 'amphibious', 'halftrack'}
+VEHICLES = {'tank', 'amphibious', 'halftrack', 'landing_craft'}
 
 
 def roster(side, height):
@@ -63,7 +63,7 @@ def damage(unit, target):
 
 
 def suppression_threshold(unit):
-    return 3 if unit['side']=='de' else 5
+    return unit.get('suppression',3 if unit['side']=='de' else 5)
 
 
 def resolve_fire(state, unit, target, die, threshold):

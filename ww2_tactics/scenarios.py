@@ -102,6 +102,9 @@ def midway():
 
 SCENARIOS['midway']=midway()
 
+from .campaigns import add_scenarios
+SCENARIOS.update(add_scenarios(build))
+
 
 def get_scenario(key='village'):
     if not isinstance(key, str) or key not in SCENARIOS:
