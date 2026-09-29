@@ -18,13 +18,13 @@
   };
   const palette = ['#176651','#AC452D','#305CAB','#85652C','#773B85','#087E8B','#77602B','#B33168'];
   const defaults = {search:'', era:'all', hof:'all', team:'all', sort:'name', y2qual:false,
-    metric:'relative_anya', colors:'team', window:'5', view:'performance',
+    metric:'relative_anya', colors:'team', window:'5', view:'year2',
     scale:'linear', normalize:'raw', layout:'overlay', range:'fit', ymin:'', ymax:'', points:'auto', opacity:75, height:'normal', focus:'', focusYear:null, ids:['BradTo00','MannPe00','YounSt00','FitzRy00']};
   let saved = {};
   try { saved = JSON.parse(localStorage.getItem('qb-year-two-v1') || '{}'); } catch (_) {}
   const state = {...defaults, ...saved};
   $('selection').open = window.innerWidth > 760;
-  for(const id of ['settings','selected-details','chart-guide']) $(id).open=window.innerWidth>760;
+  for(const id of ['settings','selected-details','chart-guide']) $(id).open=false;
   const hoverDevice=window.matchMedia('(hover: hover) and (pointer: fine)');
   let restoreInspection=()=>{}, pointerStart=null, moved=false;
   // Keep native scrolling; only completed taps/clicks pin a line, never a drag.
@@ -84,7 +84,7 @@
   function toggle(id) { state.ids.has(id) ? state.ids.delete(id) : state.ids.add(id); render(); }
   function renderPlayers(list) {
     $('found').textContent = `${list.length} results`;
-    $('players').innerHTML = list.map(p => `<label class="qb-player"><input type="checkbox" data-player="${escape(p.id)}" ${state.ids.has(p.id)?'checked':''}><span><strong>${escape(p.name)}${p.hof?'<span class="qb-hof-star" title="Hall of Fame"> ★</span>':''}</strong><small>First full season ${p.first}${p.anchor_uncertain?' · anchor uncertain':''}</small></span></label>`).join('') || '<p class="qb-small">No quarterbacks match these filters.</p>';
+    $('players').innerHTML = list.map(p => `<label class="qb-player"><input type="checkbox" data-player="${escape(p.id)}" ${state.ids.has(p.id)?'checked':''}><span><strong>${escape(p.name)}${p.hof?'<span class="qb-hof-star" title="Hall of Fame"> ★</span>':''}</strong><small>Year 1: ${p.first} → Year 2: ${p.first+1}${p.anchor_uncertain?' · anchor uncertain':''}</small></span></label>`).join('') || '<p class="qb-small">No quarterbacks match these filters.</p>';
     $('players').querySelectorAll('input').forEach(input => input.addEventListener('change', () => toggle(input.dataset.player)));
   }
   const NS = 'http://www.w3.org/2000/svg';
@@ -114,6 +114,7 @@
       t.style.opacity = id && id !== t.dataset.endLabel ? '.2' : '1';
     });
     $('selected').querySelectorAll('[data-spotlight]').forEach(b => b.setAttribute('aria-pressed', String(state.focus === b.dataset.spotlight)));
+    $('roster-key').querySelectorAll('[data-spotlight]').forEach(b => b.setAttribute('aria-pressed', String(state.focus === b.dataset.spotlight)));
     const player=data.players.find(p=>p.id===state.focus);
     $('pinned').classList.toggle('qb-is-pinned',!!player);
     $('clear-focus').hidden=!player;
@@ -132,10 +133,12 @@
     const normTitle = mode === 'delta' ? 'Change from year one' : mode === 'zscore' ? 'Relative to own career (standard deviations)' : metrics[state.metric][0];
     $('window-label').hidden = state.view !== 'performance';
     $('selected-count').textContent = `${players.length} quarterbacks · ${separate?'shared axes':'one graph'}`;
-    $('chart-title').textContent = career ? 'Years since the first full season' : normTitle;
-    $('chart-kicker').textContent = career ? 'THE CAREER TIMELINE' : mode !== 'raw' ? metrics[state.metric][0].toUpperCase() : state.view === 'year2' ? 'THE NEXT SEASON' : 'THE DEVELOPMENT CURVE';
+    $('view-question').textContent = career ? 'How much career followed year two?' : state.view==='year2' ? 'Did performance rise or fall in year two?' : 'Was year two a turning point or a one-season dip?';
+    $('view-purpose').textContent = career ? 'Each vertical line follows one quarterback through the available seasons. The year-two marker is the reference point; this shows career length, not performance.' : state.view==='year2' ? 'Each line joins a quarterback’s first 12-start season to the very next season. This is starter year two, not necessarily their second NFL season.' : 'Follow the same quarterbacks beyond the highlighted year-two season. A career curve provides context; it cannot by itself establish predictive value.';
+    $('chart-title').textContent = career ? 'Years since the first 12-start season' : normTitle;
+    $('chart-kicker').textContent = career ? 'YEAR TWO IN THE CAREER TIMELINE' : state.view==='year2' ? 'YEAR 1: BASELINE → YEAR 2: THE CHANGE' : 'YEAR TWO IN THE CAREER CURVE';
     $('chart-help').textContent = career ? 'X: quarterback · Y: starter year. Year 1 is the first 12-start season. Career gaps remain gaps.' :
-      `X: starter year · Y: ${normTitle.toLowerCase()}. ${separate?'Shared scales. ':''}Tap a line to pin it; scroll without losing the highlight.`;
+      `X: years from the first 12-start season · Y: ${normTitle.toLowerCase()}. ${metrics[state.metric][2]<0?'Lower is better on this measure.':'Higher is better on this measure.'} ${mode==='delta'?'Zero is each QB’s year-one value.':mode==='zscore'?'Zero is each QB’s career average.':state.metric==='relative_anya'?'Zero is league-average passing efficiency that season.':''} ${separate?'Panels share the same scales. ':''}Tap a line for its year-two comparison.`;
     $('metric-help').textContent = metrics[state.metric][3] + (state.metric==='relative_anya' && data.meta.missing_baseline_years.length ? ` League baseline unavailable for ${data.meta.missing_baseline_years.join(', ')} because source sack fields are incomplete; use raw ANY/A or passer rating to inspect those seasons.` : '');
     if (!players.some(p=>p.id===state.focus)) {state.focus='';state.focusYear=null;}
     $('selected-summary').textContent=`Selected quarterbacks (${players.length})`;
@@ -151,6 +154,11 @@
         value:career?r=>r.starter_year:normalized.value};
     });
     const allRows=shown.flatMap(s=>s.rows), values=shown.flatMap(s=>s.rows.map(s.value)).filter(exists);
+    $('roster-key').innerHTML=shown.map(({p,rows})=>{
+      const first=rows[0]||p.seasons[0],last=rows[rows.length-1]||first;
+      return `<button type="button" data-spotlight="${escape(p.id)}" aria-pressed="${state.focus===p.id}" aria-label="Pin ${escape(p.name)}"><i style="background:linear-gradient(90deg,${color(p,first)} 50%,${color(p,last)} 50%)"></i>${escape(p.name)}${p.hof?' ★':''}</button>`;
+    }).join('');
+    $('roster-key').querySelectorAll('[data-spotlight]').forEach(b=>b.addEventListener('click',()=>setFocus(state.focus===b.dataset.spotlight?'':b.dataset.spotlight)));
     const axis=QBChartMath.axis(values,{scale:state.scale,range:state.range,min:state.ymin,max:state.ymax});
     const scaleName={linear:'Linear',log:'Logarithmic',symlog:'Signed log',density:'Spread values'}[axis.scale];
     $('settings-summary').textContent=scaleName+' · '+(mode==='raw'?'actual values':mode==='delta'?'year-one change':'career z-score');
@@ -184,14 +192,20 @@
     const tickDigits=axis.scale==='density'?Math.min(8,Math.max(1,Math.ceil(-Math.log10(tickGap))+1)):Math.abs(axis.high-axis.low)<1?3:Math.abs(axis.high-axis.low)<20?2:1;
     const tickLabel=n=>Math.abs(n)>=100000 || (n!==0 && Math.abs(n)<.001) ? n.toExponential(axis.scale==='density'?3:1) : n.toLocaleString('en-US',{maximumFractionDigits:tickDigits});
     const plottedFmt=v=>mode==='zscore'?v.toFixed(2)+' SD':fmt(v,mode==='delta');
+    function yearTwoReadout(p) {
+      const q=pair(p),quality=exists(q.delta)?q.delta*metrics[state.metric][2]:null;
+      const verdict=quality===null?'Comparison unavailable':quality>0?'Improved in year two':quality<0?'Declined in year two':'Unchanged in year two';
+      return `<div class="qb-pair-readout"><b>${escape(p.name)} · ${verdict}</b><span>Year 1 (${p.first}): <strong>${fmt(q.a)}</strong> → Year 2 (${p.first+1}): <strong>${fmt(q.b)}</strong></span><span>${exists(q.delta)?'Change: '+fmt(q.delta,true):escape(unavailable(p,q))} · ${escape(metrics[state.metric][0])} · actual values</span><small>${q.two?'Year 2: '+(q.two.gs??'unknown')+' starts. ':''}This describes the two seasons; it does not predict the career.</small></div>`;
+    }
     function inspect(p,row,v) {
       const starts=row.gs===null?'unknown':row.gs, multiple=/^\dTM$|^TOT$/.test(row.team);
-      $('tooltip').innerHTML=`<b>${escape(p.name)}</b> · ${row.year} · Starter year ${row.starter_year} · ${escape(teamName(row.team))}<br><b>${fmt(value(row))}</b> ${escape(metrics[state.metric][0])}${mode!=='raw'?' · Plotted: <b>'+escape(plottedFmt(v))+'</b> '+escape(normTitle):''} · ${starts} starts / ${row.g??'unknown'} games${multiple?' · Season total; individual team values are not plotted':''} · ${p.hof?'Hall of Fame '+p.hof:'Not inducted'} · <a href="https://www.pro-football-reference.com/players/${escape(p.id[0])}/${escape(p.id)}.htm" target="_blank" rel="noopener noreferrer">PFR player record ↗</a>`;
+      $('tooltip').innerHTML=yearTwoReadout(p)+`<div class="qb-inspected-season"><b>Selected season: ${row.year} · Year ${row.starter_year}</b> · ${escape(teamName(row.team))}<br><b>${fmt(value(row))}</b> ${escape(metrics[state.metric][0])}${mode!=='raw'?' · Plotted: <b>'+escape(plottedFmt(v))+'</b> '+escape(normTitle):''} · ${starts} starts / ${row.g??'unknown'} games${multiple?' · Season total; individual team values are not plotted':''} · ${p.hof?'Hall of Fame '+p.hof:'Not inducted'} · <a href="https://www.pro-football-reference.com/players/${escape(p.id[0])}/${escape(p.id)}.htm" target="_blank" rel="noopener noreferrer">PFR player record ↗</a></div>`;
     }
     restoreInspection=()=>{
       const entry=shown.find(s=>s.p.id===state.focus),row=entry?.rows.find(r=>r.year===state.focusYear);
       if(row&&exists(entry.value(row)))inspect(entry.p,row,entry.value(row));
-      else $('tooltip').textContent=entry?entry.p.name+' is pinned. Tap a season marker for details; Clear highlight releases the line.':'Tap a line or season to pin it. Hollow markers: fewer than 12 starts; diamonds: multi-team totals.';
+      else if(entry) $('tooltip').innerHTML=yearTwoReadout(entry.p);
+      else $('tooltip').textContent='Tap a line to see that QB’s year-one value, year-two value and change. Hollow markers mean fewer than 12 starts; diamonds are multi-team season totals.';
     };
     const panels=separate?shown.map(s=>[s]):[shown];
     // Create every panel before measuring: CSS grid must know the full column count.
@@ -214,7 +228,8 @@
       const x=n=>career?(players.length===1?(width-left-right)/2+left:left+n/Math.max(1,players.length-1)*(width-left-right)):left+(n-1)/Math.max(1,xMax-1)*(width-left-right);
       const y=n=>top+(1-axis.unit(n))*(height-top-bottom);
       const defs=svg('defs'),clip=svg('clipPath',{id:'qb-clip-'+panelIndex});clip.append(svg('rect',{x:left-6,y:top-1,width:width-left-right+12,height:height-top-bottom+2}));defs.append(clip);chart.append(defs);
-      if(!career){chart.append(svg('rect',{x:x(2)-10,y:top,width:20,height:height-top-bottom,fill:'#e6eadb'}));chart.append(svg('text',{x:x(2),y:20,'text-anchor':'middle',class:'qb-axis'},'YEAR 2'));}
+      if(!career){chart.append(svg('rect',{x:x(2)-10,y:top,width:20,height:height-top-bottom,fill:'#f3dcc3'}));chart.append(svg('text',{x:x(2),y:20,'text-anchor':state.view==='year2'?'end':'middle',class:'qb-axis qb-year-two-label'},'YEAR 2'));}
+      else if(2>=axis.low&&2<=axis.high){chart.append(svg('rect',{x:left,y:y(2)-8,width:width-left-right,height:16,fill:'#f3dcc3'}));chart.append(svg('text',{x:width-right,y:y(2)-12,'text-anchor':'end',class:'qb-axis qb-year-two-label'},'YEAR 2'));}
       axis.ticks.forEach(n=>{
         const yy=y(n);chart.append(svg('line',{x1:left,y1:yy,x2:width-right,y2:yy,class:n===0?'qb-zero':'qb-grid'}));
         chart.append(svg('text',{x:left-9,y:yy+4,'text-anchor':'end',class:'qb-axis'},tickLabel(n)));
@@ -222,8 +237,8 @@
       if(career) players.forEach((p,i)=>chart.append(svg('text',{x:x(i),y:height-bottom+20,transform:`rotate(-42 ${x(i)} ${height-bottom+20})`,'text-anchor':'end',class:'qb-axis'},p.name)));
       else {
         let lastTick=-Infinity;
-        for(let n=1;n<=xMax;n++)if((n===1||n===2||n===xMax||xMax<=8||n%(separate?5:2)===0)&&x(n)-lastTick>=23){chart.append(svg('text',{x:x(n),y:height-bottom+20,'text-anchor':'middle',class:'qb-axis'},String(n)));lastTick=x(n);}
-        chart.append(svg('text',{x:(width+left-right)/2,y:height-6,'text-anchor':'middle',class:'qb-axis'},mobile?'Starter year':'Starter year · year 1 = first 12-start season'));
+        for(let n=1;n<=xMax;n++)if((n===1||n===2||n===xMax||xMax<=8||n%(separate?5:2)===0)&&x(n)-lastTick>=23){chart.append(svg('text',{x:x(n),y:height-bottom+20,'text-anchor':state.view==='year2'&&n===2?'end':'middle',class:'qb-axis'},state.view==='year2'?'Year '+n:String(n)));lastTick=x(n);}
+        chart.append(svg('text',{x:(width+left-right)/2,y:height-6,'text-anchor':'middle',class:'qb-axis'},state.view==='year2'?'First 12-start season → next season':mobile?'Years from first 12-start season':'Year 1 = first 12-start season · Year 2 = next calendar season'));
       }
       const labels=[];
       group.forEach((entry,index)=>{
@@ -330,6 +345,7 @@
   $('focus').addEventListener('change',()=>setFocus($('focus').value));
   $('clear-focus').addEventListener('click',()=>setFocus(''));
   $('compare-hof').addEventListener('click',()=>{state.colors='hof';state.hof='all';$('colors').value='hof';$('hof').value='all';render();});
+  $('open-research').addEventListener('click',()=>document.dispatchEvent(new CustomEvent('qb:study',{detail:{metric:state.metric}})));
   document.querySelectorAll('[data-quick]').forEach(b=>b.addEventListener('click',()=>{
     if(b.dataset.quick==='spread'){state.scale=state.scale==='density'?'linear':'density';state.range='fit';}
     if(b.dataset.quick==='zoom'){state.range=state.range==='middle'?'fit':'middle';state.scale='linear';}

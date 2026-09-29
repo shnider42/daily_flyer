@@ -18,6 +18,35 @@ Or use `/?theme=qb_year_two` on a service deploying this branch. No API key,
 database, background job, chart CDN or new production dependency is required.
 This change does not deploy or merge the branch.
 
+## Version 2.1.0 — make the year-two question the entry point
+
+- The landing page asks whether starter year two matters and defines the clock
+  in a visible three-step strip: first single-team 12-start season, next calendar
+  season (even with fewer starts), then later outcomes. This is not necessarily
+  the second NFL season.
+- Fresh visitors begin at Year 1 → 2 with the existing four example quarterbacks.
+  Saved views, filters, selections and pins are retained. Advanced graph settings
+  start collapsed on desktop as well as mobile. A visible name/color key makes
+  the selected lines identifiable without opening the management controls.
+- View questions distinguish the two-season comparison, later performance and
+  career length. Inspecting any selected season or line also displays the actual
+  year-one and year-two values, signed change and metric-aware direction. Missing
+  pairs remain unavailable; normalization never changes this readout.
+- The “Test what year two tells us” handoff opens the research lab with the same
+  measure, preserving film-room state. The lab explicitly uses its full eligible
+  cohort, independent of film-room line selection and filters.
+- Research questions, axis reading instructions and uncertainty explanations
+  respond to the measure, predictor, outcome and era. Year-one-only comparisons
+  and later efficiency are labeled distinctly. Plain-language model results
+  explain whether adding year two reduced held-out errors; they do not equate
+  association with incremental prediction or causal significance.
+- The comparison/era controls and cohort exclusions are expandable in the lab;
+  the measure and outcome stay visible. All previous modes, scales, exports,
+  outcome rules and source data remain available. No data refresh is included.
+- Validation includes the 24 existing Python/JS calculation tests and browser
+  checks for the fresh-entry view, saved career view, pinned year-two readouts,
+  research handoff, direction for interceptions, empty cohorts and mobile widths.
+
 ## Version 2.0.0 — football identity and prediction lab
 
 - Stadium field hero, football laces, scoreboard typography, orange navigation,

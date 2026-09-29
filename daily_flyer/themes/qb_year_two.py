@@ -11,14 +11,14 @@ from daily_flyer.utils import resolve_date
 
 ASSETS = Path(__file__).resolve().parents[1] / "qb_explorer"
 THEME_CONFIG = {
-    "page_title": "Soph(more) Slump(?) | The QB Film Room",
+    "page_title": "Soph(more) Slump(?) | Does a QB's Year Two Matter?",
     "header_title": "Soph(more) Slump(?)",
-    "header_subtitle": "Two seasons. A career of questions.",
+    "header_subtitle": "Compare a quarterback's first two starter seasons. Then test what year two tells us.",
     "footer_text": "Built on Daily Flyer. Statistics originate with Pro Football Reference; snapshot provenance is listed above.",
 }
 BACKGROUNDS = []
 BACKGROUND_CADENCE = "daily"
-APP_VERSION = "2.0.0"
+APP_VERSION = "2.1.0"
 
 
 def build_info():

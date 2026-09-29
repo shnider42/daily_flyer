@@ -63,3 +63,29 @@ main{padding:0 28px}#qb-app{background:var(--qb-paper);box-shadow:0 15px 70px #0
 }
 @media(prefers-reduced-motion:reduce){.qb-ball svg{animation:none}}
 #qb-app .qb-research b{color:inherit}
+/* v2.1: the question, the two-season clock, then the evidence. */
+.qb-intro{padding-block:32px}.qb-hero-copy{max-width:650px}
+#qb-app h1{font-size:clamp(56px,6.5vw,86px);margin:16px 0}.qb-intro p{max-width:550px}
+.qb-season-key{list-style:none;display:grid;grid-template-columns:repeat(3,minmax(0,1fr));margin:0;padding:0 28px;background:#e4eadd;border-bottom:1px solid #bdcbb9}
+.qb-season-key li{padding:19px 22px;border-right:1px solid #bdcbb9}.qb-season-key li:first-child{padding-left:0}.qb-season-key li:last-child{border-right:0}
+.qb-season-key b{font:800 20px monospace;color:#275445}.qb-season-key b span{font:700 12px Arial,sans-serif;margin-left:8px;color:#243d33}
+#qb-app .qb-season-key p{font-size:12px;line-height:1.5;margin:7px 0 0;color:#375145}.qb-season-key-two{box-shadow:inset 0 4px #c94f21;background:#f4eee0}
+.qb-view-intro{margin-bottom:20px}#qb-app .qb-view-intro h2{font-size:26px;line-height:1.15;margin:9px 0;max-width:650px}.qb-view-intro p{font-size:13px;color:var(--qb-muted);max-width:680px}
+.qb-chart-heading h2{font-size:22px!important}.qb-year-two-label{fill:#963d1e;font-weight:700}
+.qb-pair-readout{padding:14px 16px;background:#e6ecdf;border-left:3px solid #cc5825;color:#2a483c}.qb-pair-readout>b{font-size:15px;display:block;margin-bottom:6px}.qb-pair-readout span{display:block}.qb-pair-readout strong{font-variant-numeric:tabular-nums}.qb-pair-readout small{display:block;margin-top:6px;font-size:11px}.qb-inspected-season{padding:12px 0}
+.qb-next-question{display:flex;align-items:center;justify-content:space-between;gap:20px;background:#122e34;padding:20px 22px;margin:20px 0;color:#fff1d8}.qb-next-question b{font-size:16px;color:#fff1d8!important}#qb-app .qb-next-question p{font-size:12px;color:#c9dace;margin:5px 0 0}
+#qb-app .qb-next-question button{color:#fff4df;border:1px solid #b8cbb8;min-height:44px;max-width:220px;flex-shrink:0;text-align:left}#qb-app .qb-next-question button:hover{background:#275245}
+.qb-lab-controls{grid-template-columns:repeat(2,minmax(0,1fr))}.qb-research-options{border-bottom:1px solid var(--qb-rule)}.qb-research-options>summary{font-size:12px;font-weight:600;cursor:pointer;min-height:44px;align-content:center;padding:10px 0}.qb-research-options .qb-lab-controls{border-top:0}
+.qb-research-question{margin:24px 0 12px;padding-left:16px;border-left:4px solid #cc5825}.qb-research-question h3{max-width:800px}.qb-research-question p{font-size:13px;line-height:1.7;color:var(--qb-muted);max-width:930px}.qb-lab-scoreboard span{letter-spacing:.035em}
+@media(max-width:760px){
+ .qb-intro{padding:24px 16px 20px}.qb-intro .qb-kicker{font-size:9px;line-height:1.6}.qb-intro p{font-size:13px}#qb-app h1{font-size:clamp(43px,10vw,68px);margin:13px 0}.qb-hero-tape{display:none}.qb-index{width:86px;min-width:86px}
+ .qb-season-key{display:block;padding:0 16px}.qb-season-key li,.qb-season-key li:first-child{padding:11px 0;border-right:0;border-bottom:1px solid #c5d1c0;display:grid;grid-template-columns:36px 1fr;gap:8px}.qb-season-key li:last-child{border-bottom:0}.qb-season-key b{font-size:18px;align-self:center}.qb-season-key b span{display:none}.qb-season-key-two{box-shadow:none;background:none}.qb-season-key-two b{color:#9d401f}#qb-app .qb-season-key p{margin:0;font-size:12px}
+ .qb-view-intro{margin-bottom:14px}#qb-app .qb-view-intro h2{font-size:23px}.qb-view-intro p{font-size:12px}.qb-tabs{gap:16px}#qb-app .qb-tabs button{font-size:11px;min-height:40px}.qb-chart-heading h2{font-size:21px!important}
+ .qb-next-question{display:block;padding:16px}.qb-next-question b{font-size:15px}#qb-app .qb-next-question button{margin-top:13px;max-width:none;width:100%}.qb-pair-readout{padding:12px}.qb-pair-readout>b{font-size:14px}
+ .qb-research-question{margin-top:20px;padding-left:12px}.qb-research-question p{font-size:12px}.qb-lab-scoreboard span{font-size:8px;letter-spacing:0}.qb-lab-header{display:block}.qb-lab-badge{display:none}
+}
+#qb-app .qb-season-key strong{color:#243d33}#qb-app .qb-pair-readout strong{color:#234538}
+#qb-app .qb-mode-nav button[aria-pressed=true]{background:#b94421}
+.qb-roster-key{display:flex;gap:6px;flex-wrap:wrap;max-height:110px;overflow:auto;margin:0 0 8px}
+#qb-app .qb-roster-key button{display:inline-flex;align-items:center;gap:7px;min-height:36px;font-size:11px;padding:7px 8px;background:#fffdf7}.qb-roster-key i{display:block;width:16px;height:4px}.qb-roster-key button[aria-pressed=true]{outline:2px solid #275445;outline-offset:-2px}
+@media(max-width:760px){#qb-app .qb-roster-key button{min-height:44px}}

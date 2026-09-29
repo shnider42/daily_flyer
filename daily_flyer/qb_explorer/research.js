@@ -12,7 +12,7 @@
   const outcomeValue=r=>current.def.binary?(r.y?'Yes':'No'):state.outcome==='sb'?String(r.y)+' wins':fmt(r.y)+' ANY/A vs. league';
   function inspect(r){
     selectedId=r.id;
-    $('inspect').innerHTML=`<b>${esc(r.name)} ${r.hof?'◆ HOF '+r.hof:'● Not inducted'}</b><br>${r.first}: ${fmt(r.a)} → ${r.year2}: ${fmt(r.b)} · change ${fmt(r.delta)} · ${r.y2starts??'unknown'} year-two starts<br><b>${esc(outcomeValue(r))}</b> · ${esc(current.def.name)} · window ends ${r.end} · <a href="https://www.pro-football-reference.com/players/${esc(r.id[0])}/${esc(r.id)}.htm" target="_blank" rel="noopener noreferrer">PFR ↗</a>`;
+    $('inspect').innerHTML=`<b>${esc(r.name)} ${r.hof?'◆ HOF '+r.hof:'● Not inducted'}</b><br>Year 1 (${r.first}): ${fmt(r.a)} → Year 2 (${r.year2}): ${fmt(r.b)} · change ${fmt(r.delta)} · ${esc(metricName())} · ${r.y2starts??'unknown'} year-two starts<br><b>After year two: ${esc(outcomeValue(r))}</b> · ${esc(current.def.name)} · window ends ${r.end} · <a href="https://www.pro-football-reference.com/players/${esc(r.id[0])}/${esc(r.id)}.htm" target="_blank" rel="noopener noreferrer">PFR ↗</a>`;
     $('chart').querySelectorAll('[data-qb]').forEach(el=>el.setAttribute('stroke-width',el.dataset.qb===r.id?3:1));
   }
   function chart(){
@@ -41,7 +41,7 @@
     });
     if(!rows.length)chart.append(svg('text',{x:width/2,y:height/2,'text-anchor':'middle',class:'qb-axis'},all.length?'Enable a group above to show its quarterbacks.':'No eligible QBs. Try all cohorts or another outcome.'));
     $('chart-title').textContent=$('x').selectedOptions[0].textContent+' → '+current.def.name;
-    $('plot-help').textContent=`${rows.length} of ${all.length} eligible quarterbacks plotted. X: ${metricName()}. Y: ${current.def.name}.${current.def.binary||state.outcome==='sb'?' Slight vertical jitter separates markers; exact outcomes are in the inspection and table.':''} Hall markers reflect current induction status, not induction timing within the outcome window.`;
+    $('plot-help').textContent=`Each dot is one quarterback. ${rows.length} of ${all.length} eligible QBs shown. Left → right: ${state.x==='delta'?'larger year-one-to-two changes':state.x==='a'?'higher year-one values':'higher year-two values'} in ${metricName()}. ${['int','int_pct'].includes(state.metric)?'Higher means more interceptions, not better performance. ':''}Bottom → top: ${current.def.name}.${current.def.binary||state.outcome==='sb'?' Points are nudged vertically to reduce overlap; inspect for exact outcomes.':''} Marker colors show current Hall status, separately from the outcome window.`;
     const selected=rows.find(r=>r.id===selectedId);if(selected)inspect(selected);else{selectedId='';$('inspect').textContent='Tap or focus a quarterback to inspect its seasons and outcome.';}
   }
   function renderPatterns(){
@@ -59,15 +59,20 @@
     if(model.error){$('model').innerHTML='<p class="qb-research-note">'+esc(model.error)+'</p>';return;}
     const {train,test,boundary,full,fullScore,baseScore,nullBrier,testEvents}=model;
     const improvement=baseScore.brier-fullScore.brier;
-    $('model').innerHTML=`<div class="qb-model-verdict"><b>${improvement>0?'Year two helped on this holdout.':'Year two did not help on this holdout.'}</b><span>${Math.abs(improvement).toFixed(4)} ${improvement>0?'lower':'higher'} Brier error than the year-one-only model. This is one historical split, not proof of a general forecasting advantage.</span></div><p class="qb-small">Training: ${train.length} QBs (${Math.min(...train.map(r=>r.first))}–${Math.max(...train.map(r=>r.first))}), ${model.positives} events. Held out: ${test.length} QBs (${boundary}–${Math.max(...test.map(r=>r.first))}), ${testEvents} events. Outcome: ${esc(current.def.event)}. Calendar year is included in both fitted models.</p><div class="qb-table-scroll"><table><thead><tr><th>Held-out comparison</th><th>Brier ↓</th><th>AUC ↑</th></tr></thead><tbody><tr><td>Training event-rate baseline</td><td>${nullBrier.toFixed(4)}</td><td>${testEvents===0||testEvents===test.length?'—':'0.50'}</td></tr><tr><td>Year one + calendar year</td><td>${baseScore.brier.toFixed(4)}</td><td>${fmt(baseScore.auc)}</td></tr><tr><td>Year one + year two + calendar year</td><td>${fullScore.brier.toFixed(4)}</td><td>${fmt(fullScore.auc)}</td></tr></tbody></table></div><p class="qb-small">Lower Brier is better; 0 is perfect. AUC measures ranking, not calibrated probabilities. ${testEvents<5?'Fewer than five held-out events: these scores are especially unstable. ':''}${fullScore.brier>=nullBrier?'The two-year model does not beat the simple event-rate baseline on Brier error. ':''}Exploration across measures is not adjusted for multiple testing.</p>`;
+    const tied=Math.abs(improvement)<.00005;
+    $('model').innerHTML=`<div class="qb-model-verdict"><b>${tied?'Adding year two made no visible difference at this precision.':improvement>0?'Adding year two reduced prediction errors in this test.':'Adding year two did not reduce prediction errors in this test.'}</b><span>${Math.abs(improvement).toFixed(4)} ${improvement>=0?'lower':'higher'} Brier error than the year-one-only model. This is one historical split, not proof of a general forecasting advantage.</span></div><p class="qb-small">Training: ${train.length} QBs (${Math.min(...train.map(r=>r.first))}–${Math.max(...train.map(r=>r.first))}), ${model.positives} events. Held out: ${test.length} QBs (${boundary}–${Math.max(...test.map(r=>r.first))}), ${testEvents} events. Outcome: ${esc(current.def.event)}. Calendar year is included in both fitted models.</p><div class="qb-table-scroll"><table><thead><tr><th>What the model knows</th><th>Prediction error ↓<br>(Brier)</th><th>Ranking score ↑<br>(AUC)</th></tr></thead><tbody><tr><td>Historical outcome frequency only</td><td>${nullBrier.toFixed(4)}</td><td>${testEvents===0||testEvents===test.length?'—':'0.50'}</td></tr><tr><td>Year one + calendar year</td><td>${baseScore.brier.toFixed(4)}</td><td>${fmt(baseScore.auc)}</td></tr><tr><td>Year one + year two + calendar year</td><td>${fullScore.brier.toFixed(4)}</td><td>${fmt(fullScore.auc)}</td></tr></tbody></table></div><p class="qb-small">Lower Brier is better; 0 is perfect. AUC measures ranking, not calibrated probabilities. ${testEvents<5?'Fewer than five held-out events: these scores are especially unstable. ':''}${fullScore.brier>=nullBrier?'The two-year model does not beat the simple event-rate baseline on Brier error. ':''}Exploration across measures is not adjusted for multiple testing.</p>`;
     $('scenario').hidden=false;
     $('input-a').value=M.quantile(train.map(r=>r.a),.5).toFixed(2);$('input-b').value=M.quantile(train.map(r=>r.b),.5).toFixed(2);$('input-first').value=Math.round(M.quantile(train.map(r=>r.first),.5));
   }
   function render(){
     current=M.cohort(data,state);const {rows,excluded:e,cut,def}=current;
     const xs=rows.map(r=>r[state.x]),ys=rows.map(r=>r.y),r=M.pearson(xs,ys),rho=M.spearman(xs,ys),ci=M.interval(xs,ys),hall=rows.filter(r=>r.hof).length;
+    const predictor=state.x==='delta'?'the change from year one to year two':state.x==='a'?'year-one performance':'year-two performance';
+    $('question').textContent=`Was ${predictor} related to ${def.name.toLowerCase()}?`;
+    $('answer').textContent=!finite(r)?'This cohort does not have enough variation or comparable data to measure the relationship. Try a different outcome, measure or era.':`Using ${metricName().toLowerCase()}, the linear association is ${fmt(r)} on a −1 to +1 scale; zero means no linear association. ${ci?(ci[0]<=0&&ci[1]>=0?'The uncertainty interval includes zero, so the direction is unclear in this sample. ':'The uncertainty interval stays '+(ci[0]>0?'above':'below')+' zero in this sample. '):'There is not enough information for an uncertainty interval. '}${state.outcome==='efficiency'?'This describes association with later efficiency; an incremental prediction test is available for the Hall, Super Bowl and starting-job outcomes.':state.x==='a'?'This is the year-one baseline. The model below tests what adding year two changes.':'An association alone does not show that year two adds information beyond year one; the model below tests that separately.'}`;
+    $('cohort-summary').textContent=`Who counts? ${rows.length} eligible quarterbacks · equal follow-up windows`;
     $('cohort-note').textContent=`${rows.length} eligible of ${current.candidates} cohort candidates. Same ${def.horizon}-${state.outcome==='hof'?'year':'season'} follow-up for everyone; outcomes start AFTER year two. Excluded: ${e.anchor} pre-1970/uncertain anchors, ${e.pair} missing year-one/two measures, ${e.followup} incomplete follow-up windows, ${e.outcome} unavailable outcomes. Outcome cutoff: ${cut}. Year-two seasons with fewer than 12 starts remain included.`;
-    $('stats').innerHTML=`<div><span>ELIGIBLE QBs</span><strong>${rows.length}</strong><small>${hall} Hall · ${rows.length-hall} not inducted</small></div><div><span>PEARSON r</span><strong>${fmt(r)}</strong><small>${ci?'95% bootstrap '+fmt(ci[0])+' to '+fmt(ci[1]):'Interval unavailable / too few values'}</small></div><div><span>SPEARMAN ρ</span><strong>${fmt(rho)}</strong><small>Rank association · ties retained</small></div>`;
+    $('stats').innerHTML=`<div><span>QBs IN THIS TEST</span><strong>${rows.length}</strong><small>${hall} Hall · ${rows.length-hall} not inducted</small></div><div><span>LINEAR RELATIONSHIP</span><strong>${fmt(r)}</strong><small>Pearson r · ${ci?'95% interval '+fmt(ci[0])+' to '+fmt(ci[1]):'Interval unavailable'}</small></div><div><span>RANK RELATIONSHIP</span><strong>${fmt(rho)}</strong><small>Spearman ρ · compares the order of QBs</small></div>`;
     renderPatterns();modelPanel();chart();
     $('table').innerHTML=rows.map(r=>`<tr><td>${esc(r.name)} ${r.hof?'◆':''}</td><td>${r.first}</td><td>${fmt(r.a)}</td><td>${fmt(r.b)}</td><td>${fmt(r.delta)}</td><td>${esc(outcomeValue(r))}</td><td>${r.end}</td></tr>`).join('')||'<tr><td colspan="7">No eligible quarterbacks.</td></tr>';
   }
@@ -89,11 +94,17 @@
     const csv=rows.map(row=>row.map(v=>'"'+String(v??'').replace(/"/g,'""')+'"').join(',')).join('\r\n'),url=URL.createObjectURL(new Blob([csv],{type:'text/csv;charset=utf-8'})),a=document.createElement('a');a.href=url;a.download='sophmore-slump-research-'+state.outcome+'.csv';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);
   });
   $('sources').innerHTML=data.super_bowls.sources.map(s=>`<li><a href="${esc(s.url)}" target="_blank" rel="noopener noreferrer">${esc(s.label)} ↗</a> — ${esc(s.used)}</li>`).join('');
-  document.querySelectorAll('[data-mode]').forEach(button=>button.addEventListener('click',()=>{
-    mode=button.dataset.mode;q('film').hidden=mode!=='film';q('research').hidden=mode!=='research';
+  function setMode(next){
+    mode=next;q('film').hidden=mode!=='film';q('research').hidden=mode!=='research';
     document.querySelectorAll('[data-mode]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.mode===mode)));
     if(mode==='research'){if(!current)render();else chart();}else document.dispatchEvent(new Event('qb:layout'));
-  }));
+  }
+  document.querySelectorAll('[data-mode]').forEach(button=>button.addEventListener('click',()=>setMode(button.dataset.mode)));
+  document.addEventListener('qb:study',event=>{
+    state.metric=event.detail.metric;$('metric').value=state.metric;selectedId='';current=null;
+    setMode('research');
+    const heading=q('research').querySelector('h2');heading.tabIndex=-1;heading.focus({preventScroll:true});q('research').scrollIntoView({block:'start'});
+  });
   let resize,width=window.innerWidth;
   window.addEventListener('resize',()=>{if(width===window.innerWidth)return;width=window.innerWidth;clearTimeout(resize);resize=setTimeout(()=>{if(mode==='research'&&current)chart();},150);});
 })();
