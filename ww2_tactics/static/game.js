@@ -194,9 +194,10 @@ function render(){
   const barrageHere=barrageMode&&legal.barrage.some(p=>p[0]===x&&p[1]===y);
   const combatHere=combatMode&&legal[combatMode.kind].some(p=>p[0]===x&&p[1]===y);
   const tile=reuse?svg._tiles[y*state.map[0].length+x]:element('polygon',{points});
-  const tileClass=`hex ${type}${move&&!picking?' move':''}${move?.threats&&!picking?' threatened':''}${move?.road_bonus&&!picking?' road-bonus':''}${smokeHere?' smoke-choice':''}${barrageHere?' barrage-choice':''}`;
+  const condition=buildingCondition(state,[x,y]);
+  const tileClass=`hex ${type}${condition?' building-'+condition:''}${move&&!picking?' move':''}${move?.threats&&!picking?' threatened':''}${move?.road_bonus&&!picking?' road-bonus':''}${smokeHere?' smoke-choice':''}${barrageHere?' barrage-choice':''}`;
   if(tile.getAttribute('class')!==tileClass)tile.setAttribute('class',tileClass);
-  if(!reuse){tile.dataset.x=x;tile.dataset.y=y;}
+  if(!reuse){tile.dataset.x=x;tile.dataset.y=y;if(condition)tile.dataset.buildingState=condition;}
   const label=combatHere?`${combatMode.kind.replaceAll('_',' ')} at ${String.fromCharCode(65+x)}${y+1}`:barrageHere?`Mortar at ${String.fromCharCode(65+x)}${y+1}`:smokeHere?`Smoke at ${String.fromCharCode(65+x)}${y+1}`:move&&!picking?`Move to ${String.fromCharCode(65+x)}${y+1}, ${type}, ${move.cost} action${move.cost!==1?'s':''}${move.road_bonus?', road bonus':''}${move.threats?', exposed to overwatch':''}`:null;
   if(tile.getAttribute('aria-label')!==label){
    for(const attr of ['tabindex','role','aria-label'])tile.removeAttribute(attr);
@@ -208,7 +209,7 @@ function render(){
   if(reuse)continue;
   svg.append(element('text',{x:cx-18,y:cy-16,class:'tile-label'},`${String.fromCharCode(65+x)}${y+1}`));
   if(type==='woods')svg.append(element('path',{d:`M${cx-9} ${cy+9}l9 -20l9 20z M${cx} ${cy+9}v5`,class:'terrain-icon'}));
-  if(type==='building')svg.append(element('path',{d:`M${cx-12} ${cy-5}l12 -8l12 8v19h-24z M${cx-12} ${cy-5}h24`,class:'building-icon'}));
+  if(type==='building'&&!condition)svg.append(element('path',{d:`M${cx-12} ${cy-5}l12 -8l12 8v19h-24z M${cx-12} ${cy-5}h24`,class:'building-icon'}));
   if(type==='objective')svg.append(element('text',{x:cx,y:cy+8,'text-anchor':'middle',class:'objective-icon'},'★'));
   if(type==='bridge')svg.append(element('path',{d:`M${cx-15} ${cy-15}v30m30 -30v30m-30 -24h30m-30 18h30`,class:'bridge-icon'}));
   if(state.smoke?.some(s=>s.pos[0]===x&&s.pos[1]===y))svg.append(element('ellipse',{cx,cy,rx:25,ry:22,class:'smoke-cloud'}));
@@ -272,6 +273,9 @@ function render(){
  if(window.renderNaval)window.renderNaval(unit,legal,svg);
  if(window.renderCampaign)window.renderCampaign(unit,legal,svg);
  if(window.renderWeaponRules)window.renderWeaponRules(unit,legal,svg);
+ const buildingWarning=unit&&unit.hp>0&&!unit.reserve&&!unit.carrier_id&&buildingCondition(state,unit.pos)==='damaged'&&!picking&&!target;
+ $('hint').classList.toggle('building-warning',!!buildingWarning);
+ if(buildingWarning)$('hint').textContent='Damaged building · reduced cover. Explosive hits can collapse it and kill the occupants.';
  renderUnitClarity(unit);
  document.dispatchEvent(new Event('ww2:render'));
  if(!newBattle)restoreMap();

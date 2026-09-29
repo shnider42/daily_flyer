@@ -6,7 +6,7 @@ from .support import role_options, role_action, resolve_barrages
 from .combat_display import record_combat
 from .rulesets import profile, dsl, base_ap, bank_limit, turn_limit, road
 from .effects import record_effect
-from . import combined, naval, transport, campaigns, air, weapons
+from . import combined, naval, transport, campaigns, air, weapons, buildings
 from .visibility import fog, active, visible_ids, sees_hex, update_intel, record_reports
 
 WIDTH, HEIGHT = 7, 9
@@ -108,7 +108,7 @@ def initial(scenario='village', ruleset='classic'):
 
 
 def fire_modifiers(state, unit, target):
-    cover = terrain(*target["pos"], state) in {"building", "woods", "objective"}
+    cover = buildings.cover(state, target['pos'])
     supported = any(u["side"] == unit["side"] and u["kind"] in {"leader","commander"} and active(u)
                     and distance(u["pos"], unit["pos"]) <= (2 if u['kind']=='commander' else 1) for u in state["units"])
     mods = dict(cover=int(cover), distance=int(distance(unit['pos'], target['pos']) > (5 if unit['kind'] in {'tank','at_gun'} else 3)),
@@ -151,6 +151,7 @@ def react(state, mover, roll):
         shooter['overwatch'] = False
         die = roll()
         threshold = fire_threshold(state, shooter, mover)+1
+        modifiers = dict(fire_modifiers(state, shooter, mover), reaction=1)
         impacts = []
         if weapons.enabled(state):
             result, impacts = weapons.resolve(state, shooter, mover, die, threshold)
@@ -165,7 +166,7 @@ def react(state, mover, roll):
         messages.append(f"{names[shooter['side']]} {shooter['kind']} overwatch: rolled {die}, needed {threshold}+. Target {result}.")
         state['last_combat'] = dict(kind='Overwatch', roll=die, threshold=threshold, result=result,
                                     attacker=shooter['id'], target=mover['id'], impacts=impacts, revision=state['revision']+1)
-        record_combat(state, dict(fire_modifiers(state, shooter, mover), reaction=1))
+        record_combat(state, modifiers)
     return messages
 
 
@@ -204,6 +205,7 @@ def options(state, unit):
                 if unit['kind'] in combined.VEHICLES and tile in {'woods','building'}: passable=False
                 if unit['kind']=='at_gun': passable=False
                 if weapons.enabled(state) and unit.get('immobilized'): passable=False
+                if not buildings.enterable(state, [x, y], unit['side']): passable=False
                 if passable and distance(unit["pos"], [x, y]) == 1 and [x, y] not in occupied and unit["ap"] >= cost:
                     moves.append(dict(pos=[x, y], cost=cost, threats=sum(w['id'] in seen for w in watchers(state, unit, [x, y])), **({'road_bonus': True} if free_road else {})))
         if unit["ap"] >= 2:
@@ -211,7 +213,7 @@ def options(state, unit):
                 if target["side"] != unit["side"] and active(target) and target['id'] in seen and distance(unit["pos"], target["pos"]) <= unit["range"] and line_clear(unit["pos"], target["pos"], state.get('smoke', []), state):
                     if weapons.enabled(state):
                         if not weapons.damage(unit, target): continue
-                        targets.append(weapons.preview(unit, target, fire_threshold(state, unit, target), fire_modifiers(state, unit, target)))
+                        targets.append(weapons.preview(unit, target, fire_threshold(state, unit, target), fire_modifiers(state, unit, target), state=state))
                     else:
                         if combined.enabled(state) and not combined.can_damage(unit,target): continue
                         targets.append(dict(id=target["id"], threshold=fire_threshold(state, unit, target), modifiers=fire_modifiers(state, unit, target), **(dict(damage=combined.damage(unit,target),suppression_threshold=combined.suppression_threshold(unit) if not target.get('armor') else None) if combined.enabled(state) else {})))
@@ -226,6 +228,7 @@ def options(state, unit):
                                      for t in state['units'] if active(t) and t['side'] != unit['side'] and t['id'] in seen and not t.get('armor')
                                      and (not weapons.enabled(state) or weapons.protection(t) == 'infantry')
                                      and terrain(*t['pos'],state)!='water'
+                                     and buildings.enterable(state, t['pos'], unit['side'])
                                      and distance(unit['pos'], t['pos']) == 1]
         extras['overwatch'] = state.get('rules_version', 1) >= 3 and unit['ap'] >= 2 and unit['range']>0 and not unit.get('overwatch', False)
         extras.update(role_options(state, unit, distance, line_clear, terrain, board))
@@ -293,6 +296,8 @@ def apply(state, side, action, roll=None):
                          entrenched=False, overwatch=False, road_pending=False, transport_used=True)
             message = f"{names[side]} {troop['kind']} boarded transport; infantry spent 1 AP."
         elif kind == 'unload' and action.get('pos') in [m['pos'] for m in legal['unload']]:
+            if not buildings.enterable(state, action['pos']):
+                raise ValueError('That building has collapsed. Choose another hex.')
             if any(active(u) and u['pos'] == action['pos'] for u in state['units']):
                 raise ValueError('That disembark hex is occupied. Choose another hex.')
             troop = transport.passengers(state, unit)[0]
@@ -313,6 +318,8 @@ def apply(state, side, action, roll=None):
             move = next((m for m in legal["moves"] if m["pos"] == action.get("pos")), None)
             if not move:
                 raise ValueError("That hex is not a legal move.")
+            if not buildings.enterable(state, move['pos']):
+                raise ValueError('That building has collapsed. Choose another route.')
             if dsl(state):
                 both_road = road(terrain(*unit['pos'], state)) and road(terrain(*move['pos'], state))
                 if move.get('road_bonus'):

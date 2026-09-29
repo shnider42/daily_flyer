@@ -1,4 +1,10 @@
 .terrain-art{pointer-events:none}
+.hex.building-damaged:not(.move):not(.combat-choice):not(.smoke-choice):not(.barrage-choice){fill:#d6b784}
+.hex.building-destroyed:not(.combat-choice):not(.smoke-choice):not(.barrage-choice){fill:#9b9d91}
+.detailed-terrain .hex.building-damaged:not(.move):not(.combat-choice):not(.smoke-choice):not(.barrage-choice){fill:#c7b28e}
+.detailed-terrain .hex.building-destroyed:not(.combat-choice):not(.smoke-choice):not(.barrage-choice){fill:#a4a394}
+.building-condition-key{color:#473f32}
+#hint.building-warning{color:#71411f;font-weight:700}
 #playTools #terrainToggle{width:116px;flex:none;white-space:nowrap;font-size:10px;padding-inline:6px}
 .detailed-terrain :is(#map,#playbackMap,#scenarioPreview) .hex{stroke:#87987a;stroke-width:.8}
 .detailed-terrain .hex.field:not(.move){fill:#c6d3a8}

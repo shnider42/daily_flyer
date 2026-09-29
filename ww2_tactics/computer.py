@@ -6,7 +6,7 @@ from .engine import apply, options, distance, terrain
 from .scenarios import battlefield
 from .rulesets import dsl, turn_limit
 from .visibility import fog, view, visible_ids
-from . import naval, air, weapons
+from . import naval, air, weapons, buildings
 
 
 def objective_costs(state):
@@ -23,6 +23,7 @@ def objective_costs(state):
                    for x in range(max(0,pos[0]-1),min(board['width'],pos[0]+2)))
         for nxt in neighbors:
             tile=terrain(*nxt,state)
+            if not buildings.enterable(state, list(nxt), state['turn']):continue
             if (state.get('naval_version') and not naval.navigable(tile)) or (not state.get('naval_version') and tile=='water'):continue
             if distance(pos, nxt) == 1 and cost+step < costs.get(nxt, float('inf')):
                 costs[nxt] = cost+step
@@ -59,7 +60,7 @@ def choose_order(state, costs, visited):
             threatened=any(u['side']!=side and distance(u['pos'],unit['pos'])<=5 for u in units.values())
             if unit['kind']=='landing_craft' or threatened or unit['pinned'] or unit['hp']<3 or costs.get(tuple(unit['pos']),100)<=4:
                 for move in legal['unload']:
-                    cover=terrain(*move['pos'],state) in {'woods','building','objective'}
+                    cover=buildings.cover(state,move['pos'],side=side)
                     add(14+int(cover)-move['threats']*3-costs.get(tuple(move['pos']),100)*.1,unit,'unload',pos=move['pos'])
         for pos in legal.get('drops',[]):
             add(20-costs.get(tuple(pos),100)*.6,unit,'drop',pos=pos)
@@ -80,7 +81,8 @@ def choose_order(state, costs, visited):
             chance = max(0, (7-shot['threshold'])/6)
             if chance:
                 splash_risk = sum(5 for friend in units.values() if friend['side']==side and distance(friend['pos'], target['pos'])<=1) if weapons.enabled(state) and weapons.profile(unit).get('splash') else 0
-                add(3+chance*7+(2 if target['hp'] == 1 else 0)-splash_risk
+                collapse = buildings.condition(state,target['pos'],side)=='damaged' and weapons.profile(unit).get('structural')
+                add(3+chance*7+(2 if target['hp'] == 1 else 0)+chance*4*bool(collapse)-splash_risk
                     + (3 if target['pos'] == board['objective'] else 0), unit, 'fire', target=target['id'])
         for shot in legal['grenades']:
             target = units[shot['id']]
@@ -121,7 +123,10 @@ def choose_order(state, costs, visited):
             goal=landing_goal or board['objective']
             gain = (distance(unit['pos'],goal)-distance(pos,goal)) if unit['kind'] in {'amphibious','landing_craft'} else costs.get(tuple(unit['pos']), 100)-costs.get(tuple(pos), 100)
             score = 2+gain*2-move.get('threats', 0)*2
-            score += .6 if terrain(*pos, state) in {'woods', 'building', 'objective'} else 0
+            score += .6 * buildings.cover(state,pos,side=side)
+            if buildings.condition(state,pos,side)=='damaged':
+                score -= 3 * any(enemy['side']!=side and weapons.profile(enemy).get('structural')
+                                 and distance(enemy['pos'],pos)<=enemy['range'] for enemy in units.values())
             if pos == board['objective']:
                 score += 9
             if holding:
@@ -151,6 +156,7 @@ def play_turn(state, roll=None):
     if not state.get('ai_side') or state['turn'] != state['ai_side'] or state['winner']:
         return state
     costs = objective_costs(state)
+    terrain_memory = dict(buildings.known(state, state['ai_side']))
     visited = {u['id']: {tuple(u['pos'])} for u in state['units']}
     orders = []
     frames = []
@@ -158,7 +164,7 @@ def play_turn(state, roll=None):
         if fog(value):
             return view(value,'us' if value['ai_side']=='de' else 'de')
         return copy.deepcopy({key: value.get(key) for key in
-                              ('units', 'smoke', 'barrages', 'round', 'turn', 'hold', 'winner')})
+                              ('units', 'smoke', 'barrages', 'round', 'turn', 'hold', 'winner', 'buildings')})
     def perform(action):
         nonlocal state
         before = snapshot(state)
@@ -187,6 +193,10 @@ def play_turn(state, roll=None):
     # Scale the guard to the army's AP budget, including the larger scenario.
     budget = max(24, sum((turn_limit(u)+(turn_limit(u) if u['kind']=='halftrack' else 1) if dsl(state) else 2) for u in state['units'] if u['side']==state['ai_side'] and u['hp']>0)+1)
     for _ in range(budget):
+        memory = buildings.known(state, state['ai_side'])
+        if memory != terrain_memory:
+            costs = objective_costs(state)
+            terrain_memory = dict(memory)
         action = choose_order(state, costs, visited)
         perform(action)
         actor = next((u for u in state['units'] if u['id'] == action.get('unit')), None)

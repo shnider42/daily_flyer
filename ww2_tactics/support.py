@@ -3,7 +3,7 @@ from .combat_display import record_combat
 from .rulesets import dsl, command_key, turn_limit
 from .effects import record_effect
 from .visibility import active, visible_ids
-from . import combined, weapons
+from . import combined, weapons, buildings
 
 
 def role_options(state, unit, distance, line_clear, terrain, board):
@@ -33,8 +33,7 @@ def role_options(state, unit, distance, line_clear, terrain, board):
     visible = [u for u in living if u['side'] != unit['side'] and u['id'] in seen
                and line_clear(unit['pos'], u['pos'], state.get('smoke', []), state)]
     if unit['kind'] in {'squad','engineer','paratrooper'} and unit.get('grenades', 0):
-        result['grenades'] = [dict(id=u['id'], threshold=5 if terrain(*u['pos'], state)
-                                  in {'woods', 'building', 'objective'} else 4)
+        result['grenades'] = [dict(id=u['id'], threshold=4 + buildings.cover(state, u['pos']))
                               for u in visible if distance(unit['pos'], u['pos']) <= 2 and not u.get('armor')
                               and (not weapons.enabled(state) or weapons.damage(unit, u, 'fragmentation'))]
     if unit['kind'] in {'mg','halftrack'}:
@@ -132,13 +131,25 @@ def resolve_barrages(state, names, roll=None):
             continue
         affected = [u for u in state['units'] if active(u) and u['pos'] in strike['area']]
         if weapons.enabled(state):
-            impacts = [weapons.impact_record(u, weapons.impact(state, u, 1, strip_cover=True))
-                       for u in affected if weapons.protection(u) == 'infantry']
+            structure_roll = None
+            impacts = []
+            if buildings.enabled(state) and any(state['battlefield']['map'][p[1]][p[0]] == 'building' for p in strike['area']):
+                # One roll for the barrage, independent of hidden occupants or condition.
+                import secrets
+                structure_roll = (roll or (lambda: secrets.randbelow(6)+1))()
+                if structure_roll >= 5:
+                    for pos in strike['area']:
+                        impacts.extend(buildings.hit(state, pos))
+            impacts += [weapons.impact_record(u, weapons.impact(state, u, 1, strip_cover=True))
+                        for u in affected if active(u) and weapons.protection(u) == 'infantry']
             result = 'Mortar fragments hit the marked area; unobserved effects unknown'
             messages.append(result + '.')
             state['last_combat'] = dict(kind='Mortar barrage', attacker=strike.get('attacker'), impacts=impacts,
                                        result=result, revision=state['revision']+1)
-            record_combat(state, note='Infantry in the area takes 1 damage, is pinned and loses dug-in cover, including friendlies. Vehicles, armor, ships and aircraft are unaffected. No roll.')
+            if structure_roll is not None:
+                state['last_combat'].update(structure_roll=structure_roll, structure_threshold=5)
+            record_combat(state, note='Infantry in the area automatically takes 1 damage, is pinned and loses dug-in cover, including friendlies. Fragments cannot damage armor. '
+                          + ('Separate structural roll: 5+ damages buildings in the area; damaged buildings collapse and eliminate all ground occupants.' if structure_roll is not None else 'No roll.'))
             continue
         for u in affected:
             u['pinned'], u['overwatch'], u['entrenched'] = True, False, False

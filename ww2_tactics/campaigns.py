@@ -67,8 +67,9 @@ def add_scenarios(build):
             elif 4<=y<=15 and (x*3+y)%7==0: city[y][x]='T'
     city[6][8]='*'
     stalingrad=build('stalingrad','Stalingrad','Factory command post',22,
-        'Soviet counterattack through factory blocks. Engineers clear cover; tanks need the streets. Take the command post and hold it for two Soviet turns.', [''.join(r) for r in city])
+        'Soviet counterattack through factory blocks. Buildings begin intact, damaged or collapsed. Damaged shelter can collapse under explosives; tanks need the streets. Hold the command post for two Soviet turns.', [''.join(r) for r in city])
     stalingrad.update(dsl_only=True,campaign='stalingrad',theater='EASTERN FRONT',
+        building_conditions={'damaged':30,'destroyed':10},
         factions={'us':'Soviets','de':'Germans'},summary='Street fighting · Soviet counterattack',
         platoons=[dict(id='A',name='West assault group',center=3),dict(id='B',name='East assault group',center=11),dict(id='HQ',name='Armor & command',center=8)])
     coast=[['.' for _ in range(18)] for _ in range(20)]

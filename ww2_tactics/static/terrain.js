@@ -5,13 +5,12 @@
  try{detailed=localStorage.getItem('ww2-terrain-style')!=='basic';}catch{}
  const ns='http://www.w3.org/2000/svg';
  function shape(tag,attrs){const n=document.createElementNS(ns,tag);for(const [k,v] of Object.entries(attrs))n.setAttribute(k,v);return n;}
- function paint(svg,grid){
+ function paint(svg,grid,conditions){
   if(!svg||!grid)return;
   const tile=svg.querySelector(':scope > .hex');
-  if(svg._terrainTile===tile&&svg._terrainDetailed===detailed)return;
-  svg._terrainTile=tile;svg._terrainDetailed=detailed;
+  if(svg._terrainTile===tile&&svg._terrainDetailed===detailed&&svg._terrainBuildings===conditions)return;
+  svg._terrainTile=tile;svg._terrainDetailed=detailed;svg._terrainBuildings=conditions;
   svg.querySelectorAll('.terrain-art,.terrain-defs').forEach(n=>n.remove());
-  if(!detailed)return;
   const defs=shape('defs',{class:'terrain-defs'});svg.prepend(defs);
   // One reusable ocean texture avoids hundreds of individual clip masks and
   // wave paths on Midway. Hex polygons still provide the exact clipping edge.
@@ -19,6 +18,10 @@
   water.append(shape('path',{d:'M-24 5Q-12-1 0 5T24 5T48 5T72 5M-24 20Q-12 14 0 20T24 20T48 20T72 20',fill:'none',stroke:'#c9e4dd','stroke-width':1.3}),shape('path',{d:'M3 8l10-2M27 23l9 1',fill:'none',stroke:'#5d99a2','stroke-width':1}));defs.append(water);
   [...svg.querySelectorAll(':scope > .hex')].forEach((tile,i)=>{
    const x=i%grid[0].length,y=Math.floor(i/grid[0].length),type=grid[y]?.[x];if(!type)return;
+   const condition=type==='building'&&conditions?(conditions[`${x},${y}`]||'intact'):null;
+   for(const name of ['intact','damaged','destroyed'])tile.classList.toggle('building-'+name,condition===name);
+   if(condition)tile.dataset.buildingState=condition;else delete tile.dataset.buildingState;
+   if(!detailed&&!(type==='building'&&condition))return;
    if(type==='water'){tile.after(shape('polygon',{class:'terrain-art',points:tile.getAttribute('points'),fill:`url(#${waterId})`,'aria-hidden':'true'}));return;}
    const [cx,cy]=center(x,y),id=`terrain-${svg.id}-${i}`;
    const clip=shape('clipPath',{id});clip.append(shape('polygon',{points:tile.getAttribute('points')}));defs.append(clip);
@@ -36,7 +39,28 @@
      path(`M${tx-8*s} ${ty+7*s}l${8*s}-${18*s} ${8*s} ${18*s}z`,'#42684c',.6,'#557c50');
      path(`M${tx-4*s} ${ty+1*s}l${4*s}-${10*s}v${15*s}`,'#769258',.8,'#769258');
     }
+   }else if(type==='building'&&condition==='destroyed'){
+    outer.classList.add('structure-art','structure-destroyed');
+    add('ellipse',{cx:0,cy:9,rx:22,ry:12,fill:detailed?'#716e6660':'#827e72'});
+    path('M-18 10v-17l5 4 4-9 3 12v13M7 13V-3l5-4 6 7v10','#494b45',2,detailed?'#a29a88':'#c8bda8');
+    path('M-19 14l6-8 6 6 6-4 9 8 7-5 6 7z','#635d51',1.4,'#b2a48d');
+    path('M-9 17l4-4 4 5M5 5l3 4 5-1M-3-7l5 2-3 6','#5d5549',2);
+    path('M14-17l8 8M22-17l-8 8','#f3eee0',5);path('M14-17l8 8M22-17l-8 8','#783f31',2.5);
+   }else if(type==='building'&&condition==='damaged'){
+    outer.classList.add('structure-art','structure-damaged');
+    add('rect',{x:-16,y:-5,width:33,height:22,rx:2,fill:'#67524030'});
+    path('M-14 13V-8l12-9 14 9v21z','#61594b',1.5,detailed?'#d8c4a1':'#f0d79c');
+    path('M-18-6l16-13 4 5-7 5 5 4-6 6z','#704639',1.2,'#aa6e4c');
+    path('M4-12l12 6-9 5-4-4 3-3z','#704639',1.2,'#96634b');
+    path('M-2-13l-4 6 6 4-5 6 3 10','#3c3a34',2.5);
+    add('rect',{x:-10,y:4,width:4,height:5,fill:'#454b41'});
+    path('M7 13V5h5M13 16l7-3 3 4M-16 18h5','#74654f',2);
+    path('M18-17l7 12H11z','#5e4125',1.2,'#f0ba55');path('M18-13v3M18-7v.3','#3b3227',1.8);
+   }else if(type==='building'&&!detailed){
+    outer.classList.add('structure-art','structure-intact');
+    path('M-12-5l12-8 12 8v19h-24zM-12-5h24','#655a46',2,'#e4d2ab');
    }else if(type==='building'){
+    outer.classList.add('structure-art','structure-intact');
     add('rect',{x:-15,y:-5,width:32,height:22,rx:2,fill:'#77664c30'});
     add('rect',{x:-14,y:-9,width:26,height:22,fill:'#e5d3ad',stroke:'#897b61','stroke-width':1});
     path('M-18-6l16-13 18 13-17 7z','#835244',1,'#ad7154');
@@ -73,7 +97,11 @@
  function sync(){
   document.body.classList.toggle('detailed-terrain',detailed);
   const button=document.getElementById('terrainToggle');button.textContent=detailed?'Terrain: detailed':'Terrain: basic';button.setAttribute('aria-pressed',String(detailed));
-  if(typeof state!=='undefined'&&state){paint(document.getElementById('map'),state.map);paint(document.getElementById('playbackMap'),state.map);}
+  if(typeof state!=='undefined'&&state){
+   paint(document.getElementById('map'),state.map,state.building_version?state.buildings:null);
+   const snapshot=playbackSession?.frames[playbackSession.index]?.[playbackSession.phase];
+   paint(document.getElementById('playbackMap'),state.map,snapshot?.buildings);
+  }
   if(typeof scenarios!=='undefined')paint(document.getElementById('scenarioPreview'),scenarios.find(s=>s.id===document.getElementById('scenarioSelect').value)?.map);
  }
  const button=document.createElement('button');button.id='terrainToggle';button.type='button';button.title='Switch between basic and detailed terrain';

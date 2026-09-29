@@ -61,6 +61,7 @@ def passable(unit,tile):
 
 
 def options(state, unit):
+    from . import buildings
     from .engine import distance,line_clear,terrain
     result=dict(moves=[],targets=[],rally=False,smoke=[],dig=False,assaults=[],overwatch=False,
                 grenades=[],suppress=[],inspire=[],barrage=[],command=[],drops=[],airstrikes=[],torpedoes=[],recon=[],repair=False,
@@ -79,7 +80,7 @@ def options(state, unit):
             for x in range(max(0,unit['pos'][0]-1),min(board['width'],unit['pos'][0]+2)):
                 tile=terrain(x,y,state)
                 cost=2 if unit['kind']=='amphibious' and tile in {'woods','building'} else 1
-                if distance(unit['pos'],[x,y])==1 and passable(unit,tile) and unit['ap']>=cost and (x,y) not in occupied and not (weapons.enabled(state) and unit.get('immobilized')):
+                if distance(unit['pos'],[x,y])==1 and passable(unit,tile) and buildings.enterable(state,[x,y],unit['side']) and unit['ap']>=cost and (x,y) not in occupied and not (weapons.enabled(state) and unit.get('immobilized')):
                     result['moves'].append(dict(pos=[x,y],cost=cost,threats=0))
         if unit.get('smoke') and not any(s['pos']==unit['pos'] for s in state['smoke']):
             result['smoke']=[list(unit['pos'])]
@@ -95,9 +96,9 @@ def options(state, unit):
         gap=distance(unit['pos'],target['pos'])
         clear=line_clear(unit['pos'],target['pos'],state['smoke'],state)
         if gap<=unit['range'] and clear:
-            mods=dict(distance=int(gap>5),evasion=int(target['kind']=='destroyer'),cover=int(terrain(*target['pos'],state) in {'woods','building'}))
+            mods=dict(distance=int(gap>5),evasion=int(target['kind']=='destroyer'),cover=buildings.cover(state,target['pos'],objective=False))
             if weapons.enabled(state):
-                if weapons.damage(unit, target): result['targets'].append(dict(weapons.preview(unit, target, 4+sum(mods.values()), mods), naval=True))
+                if weapons.damage(unit, target): result['targets'].append(dict(weapons.preview(unit, target, 4+sum(mods.values()), mods, state=state), naval=True))
             else:
                 result['targets'].append(dict(id=target['id'],threshold=4+sum(mods.values()),modifiers=mods,
                                               damage=max(1,unit['gun_damage']-target['armor']),naval=True))
@@ -110,7 +111,7 @@ def options(state, unit):
                                             damage=unit['strike_damage'],aa=int(escort)))
     if weapons.enabled(state):
         for key, weapon in [('torpedoes', 'torpedo'), ('airstrikes', 'airstrike')]:
-            result[key] = [dict(s, **{k:v for k,v in weapons.preview(unit, next(t for t in living if t['id']==s['id']), s['threshold'], weapon=weapon).items()})
+            result[key] = [dict(s, **{k:v for k,v in weapons.preview(unit, next(t for t in living if t['id']==s['id']), s['threshold'], weapon=weapon, state=state).items()})
                            for s in result[key]]
     return result
 
@@ -147,6 +148,9 @@ def apply(state,side,action,roll=None):
         elif kind == 'rally' and legal['rally']:
             unit['pinned']=False;unit['ap']-=1;message='Infantry rallied · 1 AP.'
         elif kind=='move' and any(m['pos']==action.get('pos') for m in legal['moves']):
+            from .buildings import enterable
+            if not enterable(state, action['pos']):
+                raise ValueError('That building has collapsed. Choose another route.')
             cost=next(m['cost'] for m in legal['moves'] if m['pos']==action['pos'])
             unit['pos']=list(action['pos']);unit['ap']-=cost
             message=f"{FACTIONS[side]} {unit['kind']} moved to {chr(65+unit['pos'][0])}{unit['pos'][1]+1}."

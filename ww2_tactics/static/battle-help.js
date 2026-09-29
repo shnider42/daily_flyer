@@ -47,15 +47,17 @@ window.orderHelp=(id,u,legal,simple)=>{
   }
   if(n.matches('#map > .hex')){
    const x=+n.dataset.x,y=+n.dataset.y,type=state.map[y][x],u=state.units.find(u=>u.id===selected),move=state.legal[selected]?.moves?.find(m=>m.pos[0]===x&&m.pos[1]===y);
+   const condition=buildingCondition(state,[x,y]);
    if(state.air_version)return [`Airspace · ${String.fromCharCode(65+x)}${y+1}`,move?`Fly here: 1 AP · ${move.path.length} hexes.`:u&&['fighter','bomber'].includes(u.kind)?'Not a legal flight destination right now.':'Select an aircraft to fly.','Terrain does not block flight or provide cover.',move?.threats?'Known interception covers this flight path.':'Unseen interceptors may still react.'];
-   const blocked=u&&(state.naval_version?u.kind!=='amphibious'&&!['water','objective'].includes(type):u.kind==='at_gun'||type==='water'&&u.kind!=='amphibious'||['tank','halftrack','amphibious'].includes(u.kind)&&['woods','building'].includes(type));
-   const cover=['woods','building',...(state.naval_version?[]:['objective'])].includes(type),cost=move?.cost??(['woods','building'].includes(type)?2:1);
+   const blocked=condition==='destroyed'||u&&(state.naval_version?u.kind!=='amphibious'&&!['water','objective'].includes(type):u.kind==='at_gun'||type==='water'&&u.kind!=='amphibious'||['tank','halftrack','amphibious'].includes(u.kind)&&['woods','building'].includes(type));
+   const cover=['woods','building',...(state.naval_version?[]:['objective'])].includes(type)&&condition!=='damaged',cost=move?.cost??(['woods','building'].includes(type)?2:1);
    const name={field:state.naval_version?'Beach / open ground':'Open ground',woods:state.naval_version?'Jungle':'Woods',building:state.naval_version?'Island outpost':'Buildings',objective:state.naval_version?'Sea-control objective':'Objective',road:'Road',bridge:'Bridge',water:state.naval_version?'Open sea':'Water'}[type]||type;
-   let movement=u?.immobilized?'Tracks disabled. Repair for 2 AP to move again.':blocked?'Selected unit cannot enter.':move?`Move here: ${cost} AP${move.road_bonus?' · road bonus':''}.`:`Entry cost: ${cost} AP${u?' · not a legal move right now':''}.`;
+   let movement=condition==='destroyed'?'Collapsed · ground entry blocked.':u?.immobilized?'Tracks disabled. Repair for 2 AP to move again.':blocked?'Selected unit cannot enter.':move?`Move here: ${cost} AP${move.road_bonus?' · road bonus':''}.`:`Entry cost: ${cost} AP${u?' · not a legal move right now':''}.`;
    if(type==='water'&&!state.naval_version&&!u)movement='Amphibious units only · 1 AP.';
    const coverText=simple()?(cover?'Provides cover.':'No terrain cover.'):(cover?'Cover adds +1 to the required hit roll.':'Cover modifier: +0.');
-   return [`${name} · ${String.fromCharCode(65+x)}${y+1}`,movement,coverText,
+   return [`${name}${condition?' · '+condition:''} · ${String.fromCharCode(65+x)}${y+1}`,movement,condition?buildingHelp(condition,simple()):coverText,
     ['woods','building'].includes(type)?(simple()?'Blocks sight through this hex.':`Blocks intervening sight.${state.fog_of_war&&!state.naval_version?' Concealed infantry: spot within 2 hexes, or 4 with recon teams.':''}`):'',
+    condition&&state.fog_of_war?'Last observed condition; unseen damage stays unknown.':'',
     move?.threats?'Enemy overwatch threatens this move.':''];
   }
   if(n.id==='undoOrder'||n.id==='redoOrder')return [n.id==='undoOrder'?'Undo order':'Redo order',n.getAttribute('aria-label'),state.order_history?.reason||''];

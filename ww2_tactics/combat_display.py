@@ -4,6 +4,9 @@ import copy
 
 def record_combat(state, modifiers=None, note=None):
     event = copy.deepcopy(state['last_combat'])
+    changes = state.pop('_structure_events', [])
+    if changes:
+        event['terrain_changes'] = changes
     event['round'] = state['round']
     if modifiers is not None:
         event['modifiers'] = dict(modifiers)

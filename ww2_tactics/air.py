@@ -117,7 +117,7 @@ def options(state,unit):
         if ((unit['kind'] in {'fighter','aa_gun'} and target['kind'] in AIRCRAFT) or
             (unit['kind']=='bomber' and unit['bombs']>0 and target['kind'] not in AIRCRAFT)):
             s = shot(unit,target)
-            result['targets'].append(dict(weapons.preview(unit, target, s['threshold'], s['modifiers']), air=True) if weapons.enabled(state) else s)
+            result['targets'].append(dict(weapons.preview(unit, target, s['threshold'], s['modifiers'], state=state), air=True) if weapons.enabled(state) else s)
     return result
 
 
@@ -125,7 +125,7 @@ def resolve_shot(state,unit,target,roll,reaction=False):
     s=shot(unit,target,reaction);die=roll()
     impacts = []
     if weapons.enabled(state):
-        s = weapons.preview(unit, target, s['threshold'], s['modifiers'])
+        s = weapons.preview(unit, target, s['threshold'], s['modifiers'], state=state)
         result, impacts = weapons.resolve(state, unit, target, die, s['threshold'])
     else:
         if die>=s['threshold']:target['hp']=max(0,target['hp']-s['damage'])

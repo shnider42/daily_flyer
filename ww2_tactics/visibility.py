@@ -44,6 +44,8 @@ def visible_ids(state, side):
 
 def update_intel(state):
     from .engine import terrain
+    from .buildings import observe
+    observe(state)
     if not fog(state):
         return
     for side in ('us','de'):
@@ -64,6 +66,7 @@ def update_intel(state):
 
 
 def view(state, side, terrain_visibility=True):
+    from .buildings import known
     seen = visible_ids(state, side)
     result = dict(units=copy.deepcopy([u for u in state['units'] if u['id'] in seen]),
                   contacts=copy.deepcopy([u for uid,u in state.get('intel',{}).get(side,{}).items() if uid not in seen]),
@@ -71,6 +74,8 @@ def view(state, side, terrain_visibility=True):
                   barrages=copy.deepcopy([{k:v for k,v in b.items() if k != 'attacker'} for b in state.get('barrages', [])]),
                   recon=copy.deepcopy([r for r in state.get('recon', []) if r['side']==side]),
                   round=state['round'], turn=state['turn'], hold=state['hold'], winner=state['winner'])
+    if state.get('building_version'):
+        result['buildings'] = dict(known(state, side))
     if state.get('naval_version'):
         result.update(sea_score=copy.deepcopy(state['sea_score']),recon=copy.deepcopy([r for r in state.get('recon',[]) if r['side']==side]))
     if state.get('air_version'):
@@ -98,9 +103,12 @@ def record_reports(state, before, action, message):
         for event in state.get('combat_history',[]):
             if event.get('revision') != state['revision']:
                 continue
-            if not any(event.get(k) in seen for k in ('attacker','target')) and not any(i['id'] in seen for i in event.get('impacts', [])):
+            changes = [{k:v for k,v in c.items() if k != 'observers'} for c in event.get('terrain_changes', [])
+                       if side in c.get('observers', []) or sees_hex(state, side, c['pos'])]
+            if not changes and not any(event.get(k) in seen for k in ('attacker','target')) and not any(i['id'] in seen for i in event.get('impacts', [])):
                 continue
             safe=copy.deepcopy(event)
+            if 'terrain_changes' in safe: safe['terrain_changes'] = changes
             if state.get('combat_version') and event.get('target') and event['target'] not in seen:
                 safe['result'] = 'Fire resolved; target not observed'
                 for key in ('threshold', 'modifiers'): safe.pop(key, None)
@@ -132,4 +140,6 @@ def public_state(state, side):
     result.pop('intel',None)
     result.pop('reports',None)
     result.pop('command_used',None)
+    result.pop('building_intel',None)
+    result.pop('_structure_events',None)
     return result

@@ -177,7 +177,7 @@
    $('dadOrdersOpen').disabled=!!playbackSession||!buttons.length;$('dadOrdersOpen').textContent=buttons.length?`Orders · ${buttons.length} available`:'Select a unit for orders';
    const rows=String(Math.max(columns===2?4:3,Math.ceil(buttons.length/columns)));
    if(screen.style.getPropertyValue('--order-rows')!==rows)screen.style.setProperty('--order-rows',rows);
-   if(state.last_combat?.revision===state.revision&&!smokeMode&&!barrageMode&&!combatMode&&!target&&!state.units.find(u=>u.id===selected)?.immobilized&&!$('hint').textContent.startsWith('Tap a marked'))$('hint').textContent=state.last_combat.result;
+   if(state.last_combat?.revision===state.revision&&!smokeMode&&!barrageMode&&!combatMode&&!target&&!state.units.find(u=>u.id===selected)?.immobilized&&!$('hint').classList.contains('building-warning')&&!$('hint').textContent.startsWith('Tap a marked'))$('hint').textContent=state.last_combat.result;
   }
   $('simpleOutcome').textContent=state.last_combat?.result||'';
   $('guideToggle').hidden=state.ruleset!=='dsl'||!!state.naval_version||!!state.air_version;

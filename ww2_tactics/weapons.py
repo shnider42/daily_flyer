@@ -5,6 +5,7 @@ protection, tracked, ammo_options and weapon_overrides without changing resolver
 The version lives in the saved match; old matches retain their original rules.
 """
 from .visibility import active
+from . import buildings
 
 VERSION = 1
 PROFILES = {
@@ -25,6 +26,8 @@ PROFILES = {
     'artillery': dict(label='Heavy artillery', penetration=3, damage=2, ship_damage=1, splash=1, penetrating=True),
     'none': dict(label='Unarmed', penetration=0, damage=0, targets=()),
 }
+for _weapon in ('ap', 'he', 'at_shell', 'rocket', 'naval_shell', 'airstrike', 'bomb', 'artillery'):
+    PROFILES[_weapon]['structural'] = True
 DEFAULT_WEAPONS = dict(tank='ap', at_gun='at_shell', at_team='rocket', mg='machine_gun',
     halftrack='machine_gun', battleship='naval_shell', cruiser='naval_shell',
     destroyer='naval_shell', carrier='naval_shell', fighter='air_gun', aa_gun='flak',
@@ -63,7 +66,7 @@ def initialize(state):
             for key, value in dict(command_radius=4, artillery_range=12, artillery_charges=2,
                                    field_recon_range=12, field_recon_charges=2).items():
                 unit.setdefault(key, value)
-    return state
+    return buildings.initialize(state)
 
 
 def profile(unit, weapon=None):
@@ -71,7 +74,7 @@ def profile(unit, weapon=None):
     result = dict(PROFILES[key])
     if key == 'naval_shell':
         result['damage'] = unit.get('gun_damage', result['damage'])
-        if result['damage'] < 2: result.update(splash=0, critical_infantry=False, infantry_damage=1)
+        if result['damage'] < 2: result.update(splash=0, critical_infantry=False, infantry_damage=1, structural=False)
     if key == 'torpedo': result['damage'] = unit.get('torpedo_damage', 3)
     if key == 'airstrike': result['damage'] = unit.get('strike_damage', 2)
     result.update(unit.get('weapon_overrides', {}).get(key, {}))
@@ -97,7 +100,7 @@ def suppression(unit):
     return unit.get('suppression', 3 if unit['side'] == 'de' else 5)
 
 
-def preview(unit, target, threshold, modifiers=None, weapon=None):
+def preview(unit, target, threshold, modifiers=None, weapon=None, state=None):
     p = profile(unit, weapon); infantry = protection(target) == 'infantry'
     modifiers = dict(modifiers or {})
     if infantry and p.get('critical_infantry'):
@@ -109,6 +112,8 @@ def preview(unit, target, threshold, modifiers=None, weapon=None):
     if target.get('tracked') and p.get('penetrating'): text += '; a hit on 5–6 also immobilizes (can still fire)'
     if infantry and p.get('critical_infantry'): text += '; a natural 6 destroys the primary infantry target'
     if p.get('splash'): text += '; 1 damage + pin to adjacent infantry, including friendlies'
+    if state and buildings.enabled(state) and p.get('structural') and buildings.condition(state, target['pos'], unit['side']):
+        text += '; a hit collapses this damaged building and eliminates ground occupants' if buildings.condition(state, target['pos'], unit['side']) == 'damaged' else '; a hit damages this building'
     return dict(id=target['id'], threshold=threshold if amount else 7, modifiers=modifiers,
         damage=amount, weapon=p['id'], weapon_label=p['label'], effect_text=text,
         suppression_threshold=suppression(unit) if infantry and p.get('suppress') else None)
@@ -150,9 +155,14 @@ def resolve(state, unit, target, die, threshold, weapon=None):
     """Return the primary result and separate impacts for per-viewer redaction."""
     p = profile(unit, weapon); amount = damage(unit, target, weapon)
     if die >= threshold and amount:
+        impacts = buildings.hit(state, target['pos']) if p.get('structural') and protection(target) != 'aircraft' else []
+        if target['hp'] <= 0:
+            result = 'eliminated in building collapse'
+            if p.get('splash'): impacts += splash(state, target['pos'], exclude=target['id'])
+            return result, impacts
         if p.get('critical_infantry') and die == 6 and protection(target) == 'infantry': amount = target['hp']
         result = impact(state, target, amount, immobilize=p.get('penetrating') and die >= 5)
-        impacts = [impact_record(target, result)]
+        impacts.append(impact_record(target, result))
         if p.get('splash'): impacts += splash(state, target['pos'], exclude=target['id'])
         return result, impacts
     if amount and p.get('suppress') and protection(target) == 'infantry' and die >= suppression(unit):
@@ -209,8 +219,9 @@ def action(state, unit, order, legal, roll):
             if primary:
                 _, impacts = resolve(state, unit, primary, die, 6)
                 # Even an immune primary does not shield nearby infantry from fragments.
-                if not impacts: impacts = splash(state, pos, exclude=primary['id'])
-            else: impacts = splash(state, pos)
+                if not impacts:
+                    impacts = buildings.hit(state, pos) + splash(state, pos, exclude=primary['id'])
+            else: impacts = buildings.hit(state, pos) + splash(state, pos)
         result = 'Shells landed on the aimed hex; unobserved effects unknown' if die == 6 else 'Salvo missed; no damage'
         state['last_combat'] = dict(kind='Area bombardment', attacker=unit['id'], roll=die, threshold=6,
             result=result, impacts=impacts, aim=pos, revision=state['revision']+1)
@@ -229,8 +240,9 @@ def resolve_artillery(state, strike, roll):
         primary = next((u for u in state['units'] if active(u) and u['pos'] == pos), None)
         if primary:
             _, impacts = resolve(state, attacker, primary, die, 4, 'artillery')
-            if not impacts: impacts = splash(state, pos, exclude=primary['id'])
-        else: impacts = splash(state, pos)
+            if not impacts:
+                impacts = buildings.hit(state, pos) + splash(state, pos, exclude=primary['id'])
+        else: impacts = buildings.hit(state, pos) + splash(state, pos)
     result = 'Artillery landed; unobserved effects unknown' if die >= 4 else 'Artillery missed; no damage'
     state['last_combat'] = dict(kind='Heavy artillery', attacker=attacker['id'], aim=list(pos),
         roll=die, threshold=4, result=result, impacts=impacts, revision=state['revision']+1)
