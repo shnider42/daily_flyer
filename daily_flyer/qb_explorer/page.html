@@ -1,6 +1,17 @@
 <div id="qb-app">
   <div class="qb-masthead"><a href="?theme=qb_year_two" class="qb-wordmark">THE QB FILM ROOM<span> / DAILY FLYER</span></a><div class="qb-masthead-right"><span id="qb-version"></span><a href="#qb-method">The rulebook ↗</a></div></div>
   <header class="qb-intro"><div class="qb-hero-copy"><div class="qb-kicker">DOES A QB’S SECOND SEASON MATTER?</div><h1 aria-label="Soph(more) Slump(?)">Soph<span>(more)</span><br>Slump<span>(?)</span></h1><p>Did they improve or slump in year two?<br>Compare their first two starter seasons, then test the link to later success.</p><div class="qb-hero-tape">THE QUESTION IS OPEN. THE CAREERS ARE THE EVIDENCE.</div></div><div class="qb-index"><div class="qb-ball" aria-hidden="true"><svg viewBox="0 0 160 90"><path d="M8 45Q80-28 152 45Q80 118 8 45Z" fill="#9d4a27" stroke="#f4dbbb" stroke-width="3"/><path d="M32 24Q45 45 32 66M128 24Q115 45 128 66M55 45H105M65 35V55M80 35V55M95 35V55" fill="none" stroke="#fff4d9" stroke-width="4"/></svg></div><span>QUARTERBACKS ON THE ROSTER</span><strong id="qb-total">—</strong><b id="qb-coverage">1970 onward</b><span>Regular-season performance snapshot</span></div></header>
+  <section id="qb-stories" class="qb-stories" aria-labelledby="qb-stories-title">
+    <div class="qb-stories-heading"><div><h2 id="qb-stories-title">Skip the setup. Pick a story.</h2><p>One tap sets the stats, quarterbacks and view—with a takeaway to get you started.</p></div><button id="qb-story-undo" type="button" hidden>Restore my previous view</button></div>
+    <div class="qb-story-buttons" aria-label="Ready-made statistical views">
+      <button type="button" data-story="slumps" aria-pressed="false" aria-keyshortcuts="Alt+Shift+1"><span aria-hidden="true">1</span> Biggest slumps</button>
+      <button type="button" data-story="leaps" aria-pressed="false" aria-keyshortcuts="Alt+Shift+2"><span aria-hidden="true">2</span> Biggest leaps</button>
+      <button type="button" data-story="rivals" aria-pressed="false" aria-keyshortcuts="Alt+Shift+3"><span aria-hidden="true">3</span> Brady vs. Manning</button>
+      <button type="button" data-story="hall" aria-pressed="false" aria-keyshortcuts="Alt+Shift+4"><span aria-hidden="true">4</span> Hall of Fame signal?</button>
+      <button type="button" data-story="rings" aria-pressed="false" aria-keyshortcuts="Alt+Shift+5"><span aria-hidden="true">5</span> Slumps &amp; Super Bowls</button>
+    </div>
+    <details class="qb-story-help"><summary>What changes? / Keyboard shortcuts</summary><p>Presets replace the relevant filters and chart settings; nothing is locked. Restore your previous view to undo the shortcuts during this visit. Keyboard: <kbd>Alt</kbd> + <kbd>Shift</kbd> + <kbd>1–5</kbd> outside input fields, or Tab to a button and press Enter.</p></details>
+  </section>
   <ol class="qb-season-key" aria-label="How this study counts seasons">
     <li><b>01 <span>Set the baseline</span></b><p><strong>Year 1:</strong> first season with 12 starts for one team.</p></li>
     <li class="qb-season-key-two"><b>02 <span>Look for the change</span></b><p><strong>Year 2:</strong> the very next season, even with fewer starts.</p></li>
@@ -22,6 +33,7 @@
       </details>
     </aside>
     <section class="qb-main" aria-label="Quarterback charts">
+      <section id="qb-film-story" class="qb-story-readout" tabindex="-1" hidden aria-label="Ready-made view takeaway"></section>
       <div class="qb-view-intro"><div class="qb-kicker">01 / COMPARE THE TWO SEASONS</div><h2 id="qb-view-question">Did performance rise or fall in year two?</h2><p id="qb-view-purpose">Each line joins a quarterback’s year-one baseline to the next season. Start with these four, or choose your own.</p></div>
       <nav class="qb-tabs" aria-label="Chart view"><button data-view="year2" aria-pressed="true">Year 1 → 2</button><button data-view="performance" aria-pressed="false">What happened next?</button><button data-view="career" aria-pressed="false">Career length</button></nav>
       <div class="qb-chart-controls"><label>Measure<select id="qb-metric"><option value="relative_anya">Passing efficiency vs. league</option><option value="anya">Adjusted net yards / attempt</option><option value="rating">Passer rating</option><option value="cmp_pct">Completion percentage</option><option value="ypg">Passing yards / game</option><option value="td_pct">Touchdown percentage</option><option value="int_pct">Interception percentage</option><option value="yards">Passing yards</option><option value="td">Passing touchdowns</option><option value="int">Interceptions</option><option value="gs">Games started</option></select></label><label id="qb-window-label">Show<select id="qb-window"><option value="5">First five years</option><option value="10">First ten years</option><option value="all">Full observed career</option></select></label></div>

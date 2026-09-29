@@ -293,6 +293,7 @@
     else legend=players.map(p=>[p.name,color(p,p.seasons[0])]);
     $('legend').innerHTML=legend.map(([name,c])=>`<span><i style="background:${c}"></i>${escape(name)}</span>`).join('');
     applyFocus();restoreInspection();
+    document.dispatchEvent(new CustomEvent('qb:story-state',{detail:{mode:'film',signature:JSON.stringify({...state,ids:[...state.ids],focus:'',focusYear:null})}}));
   }
   function unavailable(p,q) {
     if(p.anchor_uncertain) return 'Anchor uncertain';
@@ -326,6 +327,44 @@
     document.querySelectorAll('[data-view]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.view===state.view)));
     save();
   }
+  function loadFilmState(next){
+    Object.assign(state,next,{ids:new Set(next.ids)});
+    for(const key of ['search','era','hof','team','sort','metric','colors','window'])$(key).value=String(state[key]);
+    $('y2qual').checked=!!state.y2qual;
+    render();
+  }
+  document.addEventListener('qb:film-snapshot',e=>{e.detail.value={...state,ids:[...state.ids]};});
+  document.addEventListener('qb:film-restore',e=>loadFilmState(e.detail));
+  document.addEventListener('qb:film-story',e=>{
+    const id=e.detail.id;if(!['slumps','leaps','rivals'].includes(id))return;
+    const ranked=id!=='rivals';
+    Object.assign(state,defaults,{ids:new Set(),layout:'separate',height:'compact',points:'all',
+      y2qual:ranked,normalize:ranked?'delta':'raw',sort:id==='slumps'?'declined':id==='leaps'?'improved':'name',
+      view:ranked?'year2':'performance',window:ranked?'5':'10'});
+    let chosen,basis=[];
+    if(ranked){
+      basis=filtered().filter(p=>exists(pair(p).delta));
+      chosen=basis.filter(p=>id==='slumps'?pair(p).delta<0:pair(p).delta>0).slice(0,4);
+    }else chosen=['BradTo00','MannPe00'].map(id=>data.players.find(p=>p.id===id)).filter(Boolean);
+    loadFilmState({...state,ids:chosen.map(p=>p.id)});
+    for(const name of ['settings','selected-details','chart-guide'])$(name).open=false;
+    document.dispatchEvent(new CustomEvent('qb:mode',{detail:{mode:'film'}}));
+    let takeaway,reading,setup,title;
+    if(ranked){
+      title=id==='slumps'?'The biggest year-two slumps':'The biggest year-two leaps';
+      const leader=chosen[0],q=leader&&pair(leader);
+      takeaway=leader?`${leader.name} leads this list: ${fmt(q.a)} in year one (${leader.first}) → ${fmt(q.b)} in year two (${leader.first+1}), a change of ${fmt(q.delta,true)} in passing efficiency vs. league.`:'No comparable quarterbacks match this ranking in the current snapshot.';
+      reading=`Each QB starts at zero—their own year-one baseline. ${id==='slumps'?'The lower the year-two endpoint, the bigger the drop.':'The higher the year-two endpoint, the bigger the gain.'} ${id==='slumps'&&q?.b>0?'The biggest drop still ended above league average; a slump does not automatically mean a bad season.':'These are changes in passing efficiency, not a ranking of whole careers.'}`;
+      setup=`Showing ${chosen.length} ${id==='slumps'?'largest declines':'largest gains'} among ${basis.length} comparable QBs with 12 starts for one team in BOTH years. This intentionally excludes those who lost starts. Linear scale · change from year one · shared axes · data through ${data.meta.through}.`;
+    }else{
+      title='Brady vs. Manning: two very different year twos';
+      const brady=chosen.find(p=>p.id==='BradTo00'),manning=chosen.find(p=>p.id==='MannPe00');
+      takeaway=`Year-one-to-two efficiency change: Tom Brady ${brady?fmt(pair(brady).delta,true):'—'}; Peyton Manning ${manning?fmt(pair(manning).delta,true):'—'}. A small year-two change and a big leap can lead to very different-looking career curves.`;
+      reading='Compare the highlighted year-two points, then follow the next eight years. Zero here means league-average efficiency that season—not each player’s starting value. This two-player example cannot establish a general career prediction.';
+      setup=`Two selected examples · first ten starter years · actual passing efficiency vs. league · shared linear axes · team colors · data through ${data.meta.through}.`;
+    }
+    document.dispatchEvent(new CustomEvent('qb:story-result',{detail:{id,mode:'film',title,takeaway,reading,setup}}));
+  });
   const teamCodes=[...new Set(data.players.flatMap(p=>p.seasons.flatMap(s=>[s.team,...s.teams.map(t=>t.team)])))].filter(t=>!/^\dTM$/.test(t)).sort((a,b)=>teamName(a).localeCompare(teamName(b)));
   $('team').innerHTML += teamCodes.map(t=>`<option value="${escape(t)}">${escape(teamName(t))}</option>`).join('');
   for(const key of ['search','era','hof','team','sort','metric','colors','window']) {

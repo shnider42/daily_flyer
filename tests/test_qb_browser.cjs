@@ -157,6 +157,84 @@ async function pinned(page,id){
   await mobile.selectOption('#qr-era','2020');
   assert.ok((await mobile.locator('#qr-answer').innerText()).includes('not have enough'));
   await mobile.click('[data-mode="film"]');await pinned(mobile,'BradTo00');
+  // Ready-made stories must replace stale filters, disclose selection, and undo.
+  const stories=await browser.newPage({viewport:{width:1440,height:1000}});
+  stories.on('pageerror',e=>errors.push(e.message));
+  await stories.goto(`http://127.0.0.1:${port}`);
+  const custom=await stories.evaluate(()=>{
+    const value={...JSON.parse(localStorage.getItem('qb-year-two-v1')),search:'Brady',metric:'rating',colors:'player',
+      view:'performance',window:'all',scale:'symlog',normalize:'delta',layout:'overlay',focus:'BradTo00',focusYear:2002,
+      ids:['BradTo00'],range:'custom',ymin:'-10',ymax:'10'};
+    localStorage.setItem('qb-year-two-v1',JSON.stringify(value));return value;
+  });
+  await stories.reload();await stories.locator('#qb-settings>summary').click();
+  const savedFilm=()=>stories.evaluate(()=>JSON.parse(localStorage.getItem('qb-year-two-v1')));
+  const researchSnapshot=()=>stories.evaluate(()=>{const detail={};document.dispatchEvent(new CustomEvent('qb:research-snapshot',{detail}));return detail.value;});
+  await screenshot(stories,'qb-v22-shortcuts-desktop');
+  await stories.locator('[data-story="slumps"]').press('Enter');
+  let preset=await savedFilm();
+  assert.deepEqual(preset.ids,['StabKe00','MariDa00','GarrDa00','FreeJo00']);
+  assert.equal(preset.search,'');assert.equal(preset.metric,'relative_anya');assert.equal(preset.y2qual,true);
+  assert.equal(preset.normalize,'delta');assert.equal(preset.scale,'linear');assert.equal(preset.range,'fit');
+  assert.equal(await stories.locator('.qb-chart-panel').count(),4);
+  assert.ok((await stories.locator('#qb-film-story').innerText()).includes('124 comparable QBs'));
+  assert.ok((await stories.locator('#qb-film-story').innerText()).includes('still ended above league average'));
+  await stories.locator('#qb-roster-key button').first().click();
+  assert.ok(await stories.locator('#qb-film-story').isVisible(),'Inspecting a QB keeps the guide');
+  await stories.setViewportSize({width:1300,height:850});await stories.waitForTimeout(200);
+  assert.ok(await stories.locator('#qb-film-story').isVisible(),'Resizing keeps the guide');
+  await stories.selectOption('#qb-metric','rating');
+  assert.ok(await stories.locator('#qb-film-story').isHidden(),'Do not retain a stale efficiency takeaway');
+  await stories.click('[data-story="leaps"]');
+  assert.deepEqual((await savedFilm()).ids,['TagoTu00','WentCa00','PalmCa00','MannPe00']);
+  await stories.click('[data-story="rivals"]');preset=await savedFilm();
+  assert.deepEqual(preset.ids,['BradTo00','MannPe00']);assert.equal(preset.view,'performance');
+  assert.equal(preset.window,'10');assert.equal(preset.normalize,'raw');assert.equal(preset.y2qual,false);
+  assert.ok((await stories.locator('#qb-film-story').innerText()).includes('Peyton Manning +2.35'));
+  await stories.click('[data-story="hall"]');
+  assert.equal(await stories.locator('#qr-chart [data-qb]').count(),112);
+  assert.ok((await stories.locator('#qb-research-story').innerText()).includes('only 2 Hall inductions'));
+  await stories.click('[data-story="rings"]');
+  assert.equal(await stories.locator('#qr-outcome').inputValue(),'sb');assert.equal(await stories.locator('#qr-x').inputValue(),'delta');
+  const expectedRings=await stories.evaluate(()=>{
+    const data=JSON.parse(document.getElementById('qb-data').textContent),rows=QBResearch.cohort(data,{outcome:'sb'}).rows;
+    return [rows.filter(r=>r.delta<0),rows.filter(r=>r.delta>0)].map(group=>`${group.filter(r=>r.event===1).length} of ${group.length}`);
+  });
+  for(const count of expectedRings)assert.ok((await stories.locator('#qb-research-story').innerText()).includes(count));
+  await screenshot(stories,'qb-v22-rings-desktop');
+  await stories.uncheck('#qr-field');assert.ok(await stories.locator('#qb-research-story').isHidden());
+  await stories.click('#qb-story-undo');
+  assert.deepEqual(await savedFilm(),custom,'Undo must restore the view before the whole shortcut session');
+  assert.ok(await stories.locator('#qb-film').isVisible());await pinned(stories,'BradTo00');
+  assert.equal(await stories.locator('#qb-settings').getAttribute('open'),'');
+  assert.equal((await researchSnapshot()).initialized,false,'An unvisited lab stays uninitialized');
+  // Restore an already configured research view, including hidden groups and inspection.
+  await stories.click('[data-mode="research"]');await stories.selectOption('#qr-metric','rating');
+  await stories.selectOption('#qr-outcome','sb');await stories.uncheck('#qr-hof');
+  await stories.locator('#qr-chart [data-qb]').first().focus();
+  await stories.locator('#qr-scenario>summary').click();await stories.fill('#qr-input-b','85');await stories.click('#qr-predict');
+  const priorResearch=await researchSnapshot();
+  await stories.click('[data-story="hall"]');assert.equal(await stories.locator('#qr-hof').isChecked(),true);
+  await stories.click('#qb-story-undo');assert.deepEqual(await researchSnapshot(),priorResearch);
+  assert.ok(await stories.locator('#qb-research').isVisible());
+  // Desktop shortcuts do not fire inside typing controls.
+  await stories.locator('#qr-input-b').focus();await stories.keyboard.press('Alt+Shift+1');
+  assert.ok(await stories.locator('#qb-story-undo').isHidden());
+  await stories.locator('[data-story="rings"]').focus();await stories.keyboard.press('Alt+Shift+1');
+  assert.equal(await stories.locator('[data-story="slumps"]').getAttribute('aria-pressed'),'true');
+  await stories.click('#qb-story-undo');
+  // Every shortcut remains usable by touch and fits the narrow screen.
+  for(const width of [320,390]){
+    await mobile.setViewportSize({width,height:844});await mobile.waitForTimeout(200);
+    for(const id of ['slumps','leaps','rivals','hall','rings']){
+      await mobile.locator(`[data-story="${id}"]`).tap();
+      assert.equal(await mobile.locator(`[data-story="${id}"]`).getAttribute('aria-pressed'),'true');
+      assert.ok(await mobile.evaluate(()=>document.body.scrollWidth<=innerWidth+1),'Shortcut overflow: '+id+' at '+width);
+      assert.ok(await mobile.locator('.qb-story-readout:visible').isVisible());
+    }
+  }
+  await screenshot(mobile,'qb-v22-rings-mobile');
+  await mobile.locator('[data-story="slumps"]').tap();await screenshot(mobile,'qb-v22-slumps-mobile');
   assert.deepEqual(errors,[]);
-  console.log('PASS: touch pin, native swipe, drag guard, height-only resize, rotation/reload, keyboard, mobile controls, density/zoom, shared axes, raw CSV, desktop hover, 265 QBs, research outcomes/group toggles/scenarios, mobile lab widths, mode switching, zero browser errors');
+  console.log('PASS: touch pin, native swipe, drag guard, height-only resize, rotation/reload, keyboard, mobile controls, density/zoom, shared axes, raw CSV, desktop hover, 265 QBs, research outcomes/group toggles/scenarios, mode switching, five story presets, ranking/rate checks, stale-guide removal, cross-mode undo, hotkey guards, narrow-screen presets, zero browser errors');
 })().catch(e=>{console.error(e);process.exitCode=1;}).finally(async()=>{if(browser)await browser.close();server.kill();});

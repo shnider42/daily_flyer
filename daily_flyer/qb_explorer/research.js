@@ -43,6 +43,7 @@
     $('chart-title').textContent=$('x').selectedOptions[0].textContent+' → '+current.def.name;
     $('plot-help').textContent=`Each dot is one quarterback. ${rows.length} of ${all.length} eligible QBs shown. Left → right: ${state.x==='delta'?'larger year-one-to-two changes':state.x==='a'?'higher year-one values':'higher year-two values'} in ${metricName()}. ${['int','int_pct'].includes(state.metric)?'Higher means more interceptions, not better performance. ':''}Bottom → top: ${current.def.name}.${current.def.binary||state.outcome==='sb'?' Points are nudged vertically to reduce overlap; inspect for exact outcomes.':''} Marker colors show current Hall status, separately from the outcome window.`;
     const selected=rows.find(r=>r.id===selectedId);if(selected)inspect(selected);else{selectedId='';$('inspect').textContent='Tap or focus a quarterback to inspect its seasons and outcome.';}
+    document.dispatchEvent(new CustomEvent('qb:story-state',{detail:{mode:'research',signature:JSON.stringify({...state,hof:$('hof').checked,field:$('field').checked})}}));
   }
   function renderPatterns(){
     const direction=['int','int_pct'].includes(state.metric)?-1:1,{groups,cut,mixed}=M.patterns(current.rows,direction);
@@ -99,6 +100,48 @@
     document.querySelectorAll('[data-mode]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.mode===mode)));
     if(mode==='research'){if(!current)render();else chart();}else document.dispatchEvent(new Event('qb:layout'));
   }
+  document.addEventListener('qb:mode',e=>{if(['film','research'].includes(e.detail.mode))setMode(e.detail.mode);});
+  document.addEventListener('qb:research-snapshot',e=>{e.detail.value={state:{...state},mode,selectedId,initialized:!!current,hof:$('hof').checked,field:$('field').checked,
+    scenario:['a','b','first'].map(k=>$('input-'+k).value),prediction:!!$('prediction').textContent};});
+  document.addEventListener('qb:research-restore',e=>{
+    const prior=e.detail;Object.assign(state,prior.state);selectedId=prior.selectedId;
+    for(const key of ['metric','outcome','x','era'])$(key).value=state[key];
+    $('hof').checked=prior.hof;$('field').checked=prior.field;
+    if(prior.initialized)render();else{current=null;model=null;$('prediction').replaceChildren();}
+    setMode(prior.mode);
+    ['a','b','first'].forEach((k,i)=>{$('input-'+k).value=prior.scenario[i];});
+    if(prior.prediction)predict();
+  });
+  document.addEventListener('qb:research-story',e=>{
+    const id=e.detail.id;if(!['hall','rings'].includes(id))return;
+    Object.assign(state,{metric:'relative_anya',outcome:id==='hall'?'hof':'sb',x:id==='hall'?'b':'delta',era:'all'});
+    for(const key of ['metric','outcome','x','era'])$(key).value=state[key];
+    $('hof').checked=$('field').checked=true;selectedId='';current=null;
+    q('research').querySelectorAll('details').forEach(el=>{el.open=false;});
+    setMode('research');
+    const rows=current.rows;let title,takeaway,reading,setup;
+    if(id==='hall'){
+      title='Does year two add a Hall of Fame signal?';
+      const events=rows.filter(r=>r.event===1).length;
+      takeaway=`${events} of ${rows.length} eligible quarterbacks were inducted within 25 years after year two. `;
+      if(model?.full){
+        const gain=model.baseScore.brier-model.fullScore.brier;
+        const rare=Math.min(model.testEvents,model.test.length-model.testEvents)<5;
+        takeaway+=rare?`The later-QB test group has only ${model.testEvents} Hall inductions among ${model.test.length} QBs: too few outcomes of both kinds for a stable prediction verdict.`:
+          `Adding year two ${Math.abs(gain)<.00005?'made no visible difference to':gain>0?'reduced':'increased'} prediction error in the later-QB test group.`;
+      }else takeaway+='The current cohort cannot support the prediction comparison.';
+      reading='Gold diamonds and blue circles share the graph. Farther right means a better year-two efficiency value; “Yes” means induction inside the outcome window. The model below asks whether year two improves on knowing year one—not whether it guarantees a Hall career.';
+      setup=`All eligible eras · both Hall groups · actual year-two passing efficiency vs. league · equal 25-year follow-up. Recent QBs without enough follow-up are excluded, not counted as failures. Performance through ${data.meta.through}.`;
+    }else{
+      title='Did a year-two slump rule out a later ring?';
+      const down=rows.filter(r=>r.delta<0),up=rows.filter(r=>r.delta>0),tied=rows.length-down.length-up.length;
+      const describe=group=>{const wins=group.filter(r=>r.event===1).length;return `${wins} of ${group.length}${group.length?' ('+pct(wins/group.length)+')':''}`;};
+      takeaway=`Later Super Bowl-winning starters: ${describe(down)} QBs whose efficiency fell in year two, versus ${describe(up)} whose efficiency rose. Wins are counted in the ten seasons AFTER year two.`;
+      reading='Left of zero = a year-two decline; right = improvement. Higher dots = more later Super Bowl wins. These are descriptive group rates, not proof that a slump changes someone’s championship chances. Rings are team outcomes.';
+      setup=`${rows.length} eligible QBs · any decrease or increase in league-relative efficiency · ${tied} exactly unchanged cases omitted from those two rates · equal 10-season follow-up · both Hall groups · performance and wins through ${data.meta.through}.`;
+    }
+    document.dispatchEvent(new CustomEvent('qb:story-result',{detail:{id,mode:'research',title,takeaway,reading,setup}}));
+  });
   document.querySelectorAll('[data-mode]').forEach(button=>button.addEventListener('click',()=>setMode(button.dataset.mode)));
   document.addEventListener('qb:study',event=>{
     state.metric=event.detail.metric;$('metric').value=state.metric;selectedId='';current=null;

@@ -18,6 +18,40 @@ Or use `/?theme=qb_year_two` on a service deploying this branch. No API key,
 database, background job, chart CDN or new production dependency is required.
 This change does not deploy or merge the branch.
 
+## Version 2.2.0 — one-tap stories
+
+- Five shortcuts above the season definition: Biggest slumps, Biggest leaps,
+  Brady vs. Manning, Hall of Fame signal?, and Slumps & Super Bowls. Each sets
+  the relevant existing controls, opens the right mode, and moves focus to a
+  plain-language takeaway beside the loaded view. No new data source or model.
+- Slumps/leaps use league-relative ANY/A, rank actual year-one-to-two changes,
+  and select the top four negative/positive changes. Both seasons must qualify
+  for 12 starts with one team and have a usable pair. The survivor restriction
+  and denominator are explicit (124 comparable QBs in the current snapshot).
+  Separate linear panels share axes, with zero at each QB's year-one baseline.
+- Brady/Manning is a labeled two-player example, showing the first ten starter
+  years on shared linear axes in actual league-relative efficiency units.
+- The Hall preset uses year-two efficiency and the existing fixed 25-year
+  outcome/model. Its takeaway puts sparse held-out outcomes ahead of a prediction
+  verdict. The Super Bowl preset compares any decrease with any increase in
+  efficiency, reporting counts and rates of winning starters in the following
+  ten seasons. Ties are disclosed, and these descriptive rates are not causal.
+- Both lab shortcuts reset the lab's measure, predictor, era and group toggles.
+  Film shortcuts reset film filters and graph settings. They do not change the
+  other mode's underlying settings. Normal manual exploration remains available.
+- “Restore my previous view” returns to the state before the first shortcut in
+  this visit, even after trying several stories: film state and pin, lab state,
+  group visibility, selected QB, scenario inputs/result and disclosure state.
+  The undo snapshot is in-memory only; saved film settings still work normally.
+- Guides disappear when their relevant controls change, but survive pinning and
+  resizing. Result numbers are calculated from the actual bundled cohort rather
+  than hard-coded into copy. Reload retains film settings, not a stale guide.
+- Optional Alt+Shift+1–5 shortcuts ignore inputs, selects, editable areas, repeat
+  and composition events. Native buttons also support keyboard and touch.
+- Validation: all 24 calculation/theme tests plus desktop/mobile browser checks
+  for every shortcut, ranking order, control reset, dynamic rate denominators,
+  undo across modes, stale-guide removal, hotkey guards, and 320/390px layouts.
+
 ## Version 2.1.0 — make the year-two question the entry point
 
 - The landing page asks whether starter year two matters and defines the clock

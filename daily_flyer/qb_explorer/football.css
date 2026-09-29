@@ -89,3 +89,22 @@ main{padding:0 28px}#qb-app{background:var(--qb-paper);box-shadow:0 15px 70px #0
 .qb-roster-key{display:flex;gap:6px;flex-wrap:wrap;max-height:110px;overflow:auto;margin:0 0 8px}
 #qb-app .qb-roster-key button{display:inline-flex;align-items:center;gap:7px;min-height:36px;font-size:11px;padding:7px 8px;background:#fffdf7}.qb-roster-key i{display:block;width:16px;height:4px}.qb-roster-key button[aria-pressed=true]{outline:2px solid #275445;outline-offset:-2px}
 @media(max-width:760px){#qb-app .qb-roster-key button{min-height:44px}}
+/* Story shortcuts are a small layer over the existing controls. */
+.qb-stories{padding:20px 28px;background:#f0e7d4;border-bottom:1px solid #cbbc9b}
+.qb-stories-heading{display:flex;justify-content:space-between;gap:16px;align-items:center}
+#qb-app .qb-stories h2{font-size:20px;margin:0;color:#19372e}#qb-app .qb-stories p{font-size:12px;color:#526052;margin:5px 0 12px}
+.qb-story-buttons{display:flex;gap:8px;flex-wrap:wrap}
+#qb-app .qb-story-buttons button{background:#fff9ea;border-color:#b1bba7;min-height:44px;font-size:12px;font-weight:700;display:flex;align-items:center;gap:8px}
+.qb-story-buttons span{font:700 11px monospace;color:#a34220;border-right:1px solid #d0c4ac;padding-right:8px}
+#qb-app .qb-story-buttons button:hover{background:#e0e9d7}#qb-app .qb-story-buttons button[aria-pressed=true]{background:#204f40;color:#fff3d8;border-color:#204f40}.qb-story-buttons button[aria-pressed=true] span{color:#f6c17b}
+#qb-app #qb-story-undo{min-height:44px;flex-shrink:0;font-size:11px}
+.qb-story-help{margin-top:10px;color:#506050;font-size:11px}.qb-story-help summary{cursor:pointer;min-height:28px;align-content:center}.qb-story-help kbd{font:11px monospace;border:1px solid #b9c2b1;padding:1px 4px;background:#fff9ea}
+.qb-story-readout{padding:18px 20px;margin:0 0 24px;border-left:4px solid #b74b23;background:#e8eede;scroll-margin-top:18px}
+.qb-story-readout h3{font-size:22px;line-height:1.2;letter-spacing:-.025em;margin:8px 0;color:#173a30}
+#qb-app .qb-story-readout p{font-size:12px;line-height:1.65;color:#3d564a;margin:8px 0}.qb-story-readout .qb-story-takeaway{font-size:15px!important;font-weight:600;color:#1c3b2e!important}
+.qb-story-readout small{display:block;font-size:11px;color:#52614e;line-height:1.6}.qb-story-readout a{display:inline-block;font-size:12px;font-weight:700;margin-top:10px;min-height:32px;align-content:center}
+@media(max-width:760px){
+ .qb-stories{padding:16px}.qb-stories-heading{display:block}#qb-app .qb-stories h2{font-size:19px}.qb-story-buttons{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:7px}
+ #qb-app .qb-story-buttons button{font-size:11px;text-align:left;gap:6px;padding:8px}.qb-story-buttons button:last-child{grid-column:1/-1}.qb-story-buttons span{padding-right:6px}
+ #qb-app #qb-story-undo{margin:0 0 10px}.qb-story-help summary{min-height:36px}.qb-story-readout{padding:15px;margin-bottom:20px;scroll-margin-top:12px}.qb-story-readout h3{font-size:21px}.qb-story-readout .qb-story-takeaway{font-size:14px!important}.qb-story-readout a{min-height:44px}
+}
