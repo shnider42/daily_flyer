@@ -7,16 +7,18 @@
   const palette=['#16654e','#aa412f','#305da5','#814285','#946216','#097c89','#bd3d70','#53603b'];
   const roleDefaults=role=>({...clone(config.defaults),role,metric:role==='batting'?'ops':'era',ids:role==='batting'?['ortizda01','bettsmo01','troutmi01','judgeaa01']:['martipe02','johnsra05','riverma01','ohtansh01']});
   let saved={};try{saved=JSON.parse(localStorage.getItem(storageKey)||'{}');}catch(_){}
-  let state={...roleDefaults(saved.state?.role==='pitching'?'pitching':'batting'),...saved.state},views=saved.views||{},players=[],byId=new Map(),focus=saved.focus||null;
+  let state={...roleDefaults(saved.state?.role==='pitching'?'pitching':'batting'),...saved.state},views=saved.views||{},players=[],byId=new Map(),playerIndex=new Map(),focus=saved.focus||null;
   const cache=new Map(),requests=new Map();let generation=0,presetIntent=0,activePreset=null,undo=null,study=null,visibleRows=[],lastWidth=0;
   let presets=clone(config.presets.presets),busy=false;
   function clean(s){
     const def=roleDefaults(s.role==='pitching'?'pitching':'batting');
     s={...def,...Object.fromEntries(Object.keys(def).filter(k=>Object.hasOwn(s,k)).map(k=>[k,s[k]]))};
     if(!config.metrics[s.role]?.[s.metric])s.metric=def.metric;
-    for(const [k,choices] of Object.entries({role:['batting','pitching'],mode:['compare','research','scan'],outcome:Object.keys(R.definitions),x:['a','b','delta'],view:['pair','career','span'],window:['5','10','all'],normalize:['raw','delta','zscore'],scale:['linear','density','log','symlog'],layout:['overlay','separate'],colors:['player','team','hof'],selection:['fixed','improved','declined'],sort:['name','improved','declined','newest','oldest','span'],hof:['all','yes','no'],era:['all','1950','1960','1970','1980','1990','2000','2010','2020']}))if(!choices.includes(s[k]))s[k]=def[k];
+    for(const [k,choices] of Object.entries({role:['batting','pitching'],mode:['compare','research','scan'],outcome:Object.keys(R.definitions),x:['a','b','delta'],view:['pair','career','span'],window:['5','10','all'],normalize:['raw','delta','zscore'],scale:['linear','density','log','symlog'],layout:['overlay','separate'],colors:['player','team','hof'],selection:['fixed','all','improved','declined'],sort:['name','improved','declined','newest','oldest','span'],hof:['all','yes','no'],era:['all','1950','1960','1970','1980','1990','2000','2010','2020']}))if(!choices.includes(s[k]))s[k]=def[k];
     s.search=typeof s.search==='string'?s.search.slice(0,100):'';s.qual2=s.qual2===true;s.skip2020=s.skip2020===true;
-    s.count=Number.isInteger(s.count)&&s.count>=1&&s.count<=25?s.count:4;s.ids=Array.isArray(s.ids)?s.ids.filter(x=>typeof x==='string').slice(0,100):def.ids;
+    if(!['25','50','100','250','500','all'].includes(s.display))s.display='all';
+    const maximum=config.meta.counts[s.role].players;
+    s.count=Number.isInteger(s.count)&&s.count>=1&&s.count<=maximum?s.count:4;s.ids=Array.isArray(s.ids)?[...new Set(s.ids.filter(x=>typeof x==='string'))].slice(0,maximum):def.ids;
     if(s.team!=='all'&&!Object.hasOwn(config.teams,s.team))s.team='all';return s;
   }
   state=clean(state);
@@ -35,14 +37,14 @@
   }
   async function activate(next,keepFocus=false){
     const token=++generation;busy=true;$('load').textContent='Loading '+(next.role==='batting'?'hitters':'pitchers')+'…';$('workspace').hidden=true;
-    try{const list=await loadRole(next.role);if(token!==generation)return;state=clean(next);players=list;byId=new Map(players.map(p=>[p.id,p]));state.ids=state.ids.filter(id=>byId.has(id));if(!keepFocus||!byId.has(focus?.id))focus=null;
+    try{const list=await loadRole(next.role);if(token!==generation)return;state=clean(next);players=list;byId=new Map(players.map(p=>[p.id,p]));playerIndex=new Map(players.map((p,i)=>[p.id,i]));state.ids=state.ids.filter(id=>byId.has(id));if(!keepFocus||!byId.has(focus?.id))focus=null;
       $('workspace').hidden=false;$('load').textContent='';busy=false;sync();render();lastWidth=Math.round($('workspace').getBoundingClientRect().width);return true;
     }catch(error){if(token!==generation)return false;busy=false;$('load').innerHTML='<span class="bb-error">The baseball data did not load. Your saved view is safe.</span> <button id="bb-retry">Retry</button>';$('retry').onclick=()=>activate(next,keepFocus);return false;}
   }
   function metricOptions(role,selected){
     return ['Rates','Counting','Fielding'].map(group=>'<optgroup label="'+group+'">'+Object.entries(config.metrics[role]).filter(([,m])=>m.group===group).map(([key,m])=>`<option value="${key}" ${key===selected?'selected':''}>${esc(m.name)}</option>`).join('')+'</optgroup>').join('');
   }
-  const formKeys=['search','era','team','hof','qual2','skip2020','sort','metric','window','normalize','scale','layout','colors','outcome','x'];
+  const formKeys=['search','era','team','hof','qual2','skip2020','sort','metric','window','normalize','scale','layout','colors','display','outcome','x'];
   function sync(){
     $('metric').innerHTML=metricOptions(state.role,state.metric);
     for(const key of formKeys){if(['qual2','skip2020'].includes(key))$(key).checked=state[key];else $(key).value=state[key];}
@@ -65,7 +67,7 @@
   });}
   function clearStory(){presetIntent++;activePreset=null;$('story').hidden=true;document.querySelectorAll('[data-story]').forEach(e=>e.setAttribute('aria-pressed','false'));}
   function changed(){clearStory();sync();render();}
-  function toggle(id){state.ids=state.ids.includes(id)?state.ids.filter(x=>x!==id):[...state.ids,id].slice(0,100);if(focus?.id===id&&!state.ids.includes(id))focus=null;changed();}
+  function toggle(id){state.ids=state.ids.includes(id)?state.ids.filter(x=>x!==id):[...state.ids,id];if(focus?.id===id&&!state.ids.includes(id))focus=null;changed();}
   function render(){
     const list=sorted(filtered());visibleRows=list;$('found').textContent=list.length.toLocaleString()+' players';
     // Render player options only as needed; the full table/export still includes every match.
@@ -77,7 +79,7 @@
     save();
   }
   function hashColor(value){let hash=0;for(const c of value)hash=(hash*31+c.charCodeAt(0))>>>0;return `hsl(${hash%360} 52% 34%)`;}
-  function color(p,season){return state.colors==='hof'?(p.hof?'#986817':'#246780'):state.colors==='team'?hashColor(season?.team||p.seasons[0].team):palette[players.indexOf(p)%palette.length];}
+  function color(p,season){return state.colors==='hof'?(p.hof?'#986817':'#246780'):state.colors==='team'?hashColor(season?.team||p.seasons[0].team):palette[playerIndex.get(p.id)%palette.length];}
   const NS='http://www.w3.org/2000/svg';
   function svg(tag,attrs={},text=''){const e=document.createElementNS(NS,tag);for(const [k,v] of Object.entries(attrs))e.setAttribute(k,String(v));e.textContent=text;return e;}
   function pin(p,year){focus={id:p.id,year};applyFocus();inspect(p,year);save();}
@@ -108,7 +110,9 @@
     $('table').querySelectorAll('button').forEach(e=>e.onclick=()=>toggle(e.dataset.toggle));
   }
   function renderCharts(list){
-    const selected=list.filter(p=>state.ids.includes(p.id)),drawn=selected.slice(0,25);$('charts').replaceChildren();$('charts').classList.toggle('bb-separated',state.layout==='separate'&&state.view!=='span');
+    const ids=new Set(state.ids),selected=list.filter(p=>ids.has(p.id)),drawn=state.display==='all'?selected:selected.slice(0,Number(state.display));$('charts').replaceChildren();$('charts').classList.toggle('bb-separated',state.layout==='separate'&&state.view!=='span');
+    $('selection-count').textContent=`${state.ids.length.toLocaleString()} selected · ${drawn.length.toLocaleString()} shown${state.ids.length>selected.length?' · '+(state.ids.length-selected.length).toLocaleString()+' outside current filters':''}`;
+    $('show-all').hidden=drawn.length===selected.length;
     $('legend').innerHTML=drawn.map(p=>`<button data-pin="${esc(p.id)}" aria-pressed="false"><i style="background:${color(p)}"></i>${esc(p.name)}${p.hof?' ★':''}</button>`).join('');
     $('legend').querySelectorAll('button').forEach(e=>e.onclick=()=>pin(byId.get(e.dataset.pin),byId.get(e.dataset.pin).first+1));
     if(!drawn.length){$('charts').textContent='No selected players match these filters. Choose players or open a story.';$('inspect').textContent='';$('graph-note').textContent='';applyFocus();return;}
@@ -116,7 +120,7 @@
     const maxYear=state.view==='pair'?2:state.window==='all'?Math.max(2,...drawn.map(p=>p.last-p.first+1)):Number(state.window);
     const series=drawn.map(p=>({p,transform:C.series(p,state.metric,state.normalize),rows:p.seasons.filter(s=>s.year-p.first+1<=maxYear)}));
     const numbers=series.flatMap(s=>s.rows.map(s.transform.value)).filter(finite),axis=C.axis(numbers,{scale:state.scale});
-    let note=selected.length>25?`Showing the first 25 of ${selected.length} selected matches. `:'';
+    let note=selected.length>drawn.length?`Showing the first ${drawn.length} of ${selected.length} selected matches in the current sort order. Choose “All selected players” to show the rest. `:'';
     note+=state.view==='span'?'Orange marker = year two; endpoint = last recorded season, not necessarily retirement.':state.normalize==='delta'?'Y-axis: change from each player’s year-one value.':state.normalize==='zscore'?'Y-axis: deviations from each player’s own observed-career mean.':'Y-axis: actual '+measure().name+'.';
     if(state.view!=='span'&&axis.scale==='density')note+=' Rank spacing: distances are NOT equal numerical differences.';
     if(state.view!=='span')note+=' '+axis.notes.join(' ');
@@ -213,7 +217,8 @@
     const intent=++presetIntent;
     if(!undo)undo={state:clone(state),focus:clone(focus)};
     const next=clean(p.settings),list=await loadRole(next.role);if(intent!==presetIntent)return;
-    if(next.selection!=='fixed'){
+    if(next.selection==='all')next.ids=R.filtered(list,next,config.teams).map(p=>p.id);
+    else if(next.selection!=='fixed'){
       const direction=config.metrics[next.role][next.metric].direction||1;
       next.ids=R.filtered(list,next,config.teams).filter(q=>finite(R.pair(q,next.metric).delta)).sort((a,b)=>{const delta=(R.pair(b,next.metric).delta-R.pair(a,next.metric).delta)*direction;return (next.selection==='declined'?-delta:delta)||a.id.localeCompare(b.id);}).slice(0,next.count).map(p=>p.id);
     }
@@ -236,7 +241,8 @@
   document.querySelectorAll('[data-view]').forEach(e=>e.onclick=()=>{state.view=e.dataset.view;changed();});
   $('study').onclick=()=>{state.mode='research';changed();$('research').scrollIntoView({block:'start'});};
   $('scan-target').onchange=()=>{state.outcome=$('scan-target').value;changed();};
-  $('select').onclick=()=>{state.ids=visibleRows.slice(0,25).map(p=>p.id);changed();};$('clear').onclick=()=>{state.ids=[];focus=null;changed();};
+  $('select').onclick=()=>{state.ids=visibleRows.map(p=>p.id);changed();};$('clear').onclick=()=>{state.ids=[];focus=null;changed();};
+  $('show-all').onclick=()=>{state.display='all';changed();};
   $('unpin').onclick=()=>{focus=null;applyFocus();$('inspect').textContent='Tap a season to inspect its numbers.';save();};
   document.addEventListener('keydown',e=>{if(e.repeat||e.isComposing||e.target.closest('input,select,textarea,[contenteditable=true]'))return;if(e.altKey&&e.shiftKey&&!e.ctrlKey&&!e.metaKey){const n=Number(e.code.replace('Digit',''))-1;if(n>=0&&n<5){e.preventDefault();applyPreset(presets[n]).catch(()=>{$('load').textContent='Could not open this story. Please retry.';});}}});
   let resizeTimer;window.addEventListener('resize',()=>{const width=Math.round($('workspace').getBoundingClientRect().width);if(width===lastWidth)return;lastWidth=width;clearTimeout(resizeTimer);resizeTimer=setTimeout(()=>{if(busy)return;if(state.mode==='compare')renderCharts(visibleRows);if(state.mode==='research'&&study)renderScatter(study.rows);},150);});

@@ -82,5 +82,20 @@ async function screenshot(page,name){if(process.env.BASEBALL_SCREENSHOT_DIR)awai
   await page.setViewportSize({width:320,height:844});assert.ok(await page.evaluate(()=>document.body.scrollWidth<=innerWidth+1));await page.locator('#bb-admin').scrollIntoViewIfNeeded();await screenshot(page,'baseball-admin-mobile');
   // Recover from an actual failed data request without a broken empty explorer.
   const failed=await browser.newPage();await failed.route('**/api/baseball-data/batting',route=>route.abort());await failed.goto(url);await failed.locator('#bb-retry').waitFor();await failed.unroute('**/api/baseball-data/batting');await failed.click('#bb-retry');await failed.locator('.bb-dot').first().waitFor();
+  // Full-cohort selection and drawing must not silently stop at 25 or 100.
+  const large=await browser.newPage({viewport:{width:1280,height:900}});large.on('pageerror',e=>errors.push(e.message));
+  await large.goto(url);await large.locator('.bb-dot').first().waitFor();await large.click('#bb-select');
+  assert.equal((await large.evaluate(()=>BaseballApp.getState())).ids.length,2852);
+  assert.equal(await large.locator('#bb-charts [data-series]').count(),2852);
+  await large.selectOption('#bb-display','100');assert.equal(await large.locator('#bb-charts [data-series]').count(),100);
+  assert.equal((await large.evaluate(()=>BaseballApp.getState())).ids.length,2852);
+  await large.reload();await large.locator('.bb-dot').first().waitFor();assert.equal((await large.evaluate(()=>BaseballApp.getState())).ids.length,2852);
+  assert.equal(await large.locator('#bb-display').inputValue(),'100');
+  await large.click('#bb-show-all');assert.equal(await large.locator('#bb-charts [data-series]').count(),2852);
+  await large.click('[data-view="career"]');assert.equal(await large.locator('#bb-charts [data-series]').count(),2852);
+  await large.click('[data-role="pitching"]');await waitState(large,'role','pitching');await large.click('#bb-select');
+  assert.equal((await large.evaluate(()=>BaseballApp.getState())).ids.length,3802);
+  assert.equal(await large.locator('#bb-charts [data-series]').count(),3802);
+  await large.close();
   assert.deepEqual(errors,[]);console.log('Baseball desktop/mobile, models, missing seasons, CSVs, sport persistence, presets, conflicts and recovery passed.');
 })().catch(error=>{console.error(error);process.exitCode=1;}).finally(async()=>{if(browser)await browser.close();server.kill();fs.rmSync(folder,{recursive:true,force:true});});

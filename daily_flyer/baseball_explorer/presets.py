@@ -7,13 +7,13 @@ from pathlib import Path
 import sqlite3
 from flask import Blueprint, jsonify
 from .data import load_dataset, METRICS
-from daily_flyer.qb_explorer.presets import Conflict, input_payload, revision
+from daily_flyer.qb_explorer.presets import Conflict, input_payload as read_payload, revision
 
 IDS = ("slumps", "leaps", "boston", "hall", "durable")
 DEFAULTS = dict(role="batting", mode="compare", metric="ops", outcome="durable", x="b",
                 search="", era="all", team="all", hof="all", qual2=False, skip2020=False,
                 sort="name", view="pair", window="10", normalize="raw", scale="linear",
-                layout="overlay", colors="player", selection="fixed", count=4,
+                layout="overlay", colors="player", display="all", selection="fixed", count=4,
                 ids=["ortizda01", "bettsmo01", "troutmi01", "judgeaa01"])
 CHOICES = dict(role=("batting", "pitching"), mode=("compare", "research", "scan"),
                outcome=("job", "durable", "future", "stars", "awards", "hof"), x=("a", "b", "delta"),
@@ -21,7 +21,13 @@ CHOICES = dict(role=("batting", "pitching"), mode=("compare", "research", "scan"
                hof=("all", "yes", "no"), sort=("name", "improved", "declined", "newest", "oldest", "span"),
                view=("pair", "career", "span"), window=("5", "10", "all"), normalize=("raw", "delta", "zscore"),
                scale=("linear", "density", "log", "symlog"), layout=("overlay", "separate"),
-               colors=("player", "team", "hof"), selection=("fixed", "improved", "declined"))
+               colors=("player", "team", "hof"), display=("25", "50", "100", "250", "500", "all"),
+               selection=("fixed", "all", "improved", "declined"))
+
+
+def input_payload():
+    # Five full-roster presets can exceed the QB editor's 64-KiB limit.
+    return read_payload(max_bytes=1024*1024)
 
 
 def factory_presets():
@@ -48,6 +54,8 @@ def validate_presets(value):
                 raise ValueError(f"{key} must be text, at most {limit} characters.")
             p[key] = p[key].strip()
         s = p["settings"]
+        if isinstance(s, dict):
+            s.setdefault("display", "all")  # Preserve pre-3.0.1 saved presets/backups.
         if not isinstance(s, dict) or set(s) != set(DEFAULTS):
             raise ValueError("Missing or unknown view settings.")
         for key, choices in CHOICES.items():
@@ -61,11 +69,11 @@ def validate_presets(value):
             raise ValueError("Search must be text of at most 100 characters.")
         if any(type(s[k]) is not bool for k in ("qual2", "skip2020")):
             raise ValueError("Year-two qualification and 2020 filters must be true or false.")
-        if type(s["count"]) is not int or not 1 <= s["count"] <= 25:
-            raise ValueError("Ranking count must be between 1 and 25.")
         players = {p["id"] for p in data[s["role"]]["players"]}
-        if not isinstance(s["ids"], list) or len(s["ids"]) > 100 or any(not isinstance(v, str) or v not in players for v in s["ids"]):
-            raise ValueError("Select at most 100 players from this role.")
+        if type(s["count"]) is not int or not 1 <= s["count"] <= len(players):
+            raise ValueError(f"Ranking count must be between 1 and {len(players):,}.")
+        if not isinstance(s["ids"], list) or len(s["ids"]) > len(players) or any(not isinstance(v, str) or v not in players for v in s["ids"]):
+            raise ValueError("Select players from this role's dataset.")
         s["ids"] = list(dict.fromkeys(s["ids"]))
     return result
 

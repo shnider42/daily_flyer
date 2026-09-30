@@ -112,12 +112,30 @@ class BaseballApiTests(unittest.TestCase):
         initial=self.client.get('/api/baseball-presets').json
         self.client.put('/api/baseball-presets',json={'presets':draft,'revision':initial['revision']})
         self.assertNotIn(b'</script><script>alert(1)',self.client.get('/?theme=baseball_year_two').data)
-        for key,value in [('count',26),('metric','relative_anya'),('ids',['BradTo00']),('qual2','yes')]:
+        for key,value in [('count',5000),('metric','relative_anya'),('ids',['BradTo00']),('qual2','yes')]:
             bad=factory_presets();bad[0]['settings'][key]=value
             self.assertEqual(self.client.post('/api/baseball-presets/validate',json={'presets':bad}).status_code,400,key)
         self.assertEqual(self.client.put('/api/baseball-presets',json={},headers={'Origin':'https://elsewhere.test'}).status_code,400)
         self.assertEqual(self.client.put('/api/baseball-presets',data='{}').status_code,400)
-        self.assertEqual(self.client.put('/api/baseball-presets',data=' '*65537,content_type='application/json').status_code,400)
+        self.assertEqual(self.client.put('/api/baseball-presets',data=' '*1048577,content_type='application/json').status_code,400)
+
+    def test_full_roster_presets_and_older_backups_round_trip(self):
+        draft=factory_presets()
+        ids=[p['id'] for p in load_dataset()['batting']['players']]
+        for p in draft:
+            p['settings'].update(role='batting',metric='ops',ids=ids,selection='all',count=len(ids))
+        # Full-roster edits exceed the old 64-KiB request limit.
+        self.assertGreater(len(json.dumps(draft)),65536)
+        initial=self.client.get('/api/baseball-presets').json
+        result=self.client.put('/api/baseball-presets',json={'presets':draft,'revision':initial['revision']})
+        self.assertEqual(result.status_code,200)
+        self.assertEqual(len(result.json['presets'][0]['settings']['ids']),2852)
+        self.assertEqual(self.client.get('/api/baseball-presets').json['presets'],draft)
+        old=factory_presets()
+        for p in old:del p['settings']['display']
+        migrated=self.client.post('/api/baseball-presets/validate',json={'presets':old})
+        self.assertEqual(migrated.status_code,200)
+        self.assertTrue(all(p['settings']['display']=='all' for p in migrated.json['presets']))
 
     def test_corrupt_storage_is_not_overwritten(self):
         self.path.write_text('not a SQLite database')

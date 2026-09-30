@@ -195,15 +195,15 @@ def no_cache(response):
     return response
 
 
-def input_payload():
+def input_payload(max_bytes=MAX_BYTES):
     if request.mimetype != "application/json":
         raise ValueError("Send an application/json request.")
     origin = request.headers.get("Origin")
     if request.headers.get("Sec-Fetch-Site") == "cross-site" or (origin and urlsplit(origin).netloc != request.host):
         raise ValueError("Use the preset editor on this site, not a cross-site form.")
-    raw = request.stream.read(MAX_BYTES + 1)
-    if len(raw) > MAX_BYTES:
-        raise ValueError("Preset document is too large (64 KiB maximum).")
+    raw = request.stream.read(max_bytes + 1)
+    if len(raw) > max_bytes:
+        raise ValueError(f"Preset document is too large ({max_bytes // 1024} KiB maximum).")
     payload = json.loads(raw)
     if not isinstance(payload, dict):
         raise ValueError("Expected a JSON object.")

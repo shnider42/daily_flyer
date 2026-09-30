@@ -1,4 +1,4 @@
-# Baseball year-two explorer · v3.0.0
+# Baseball year-two explorer · v3.0.1
 
 Repository: `shnider42/daily_flyer`, branch `feat/qb-year-two-explorer`.
 Theme: `baseball_year_two` (hyphenated URL alias also works).
@@ -92,8 +92,10 @@ Comparison supports Y1→Y2, later seasons and observed career span; linear,
 signed-log, log and rank spacing; raw / change / career z-score views; shared
 scales in separate panels; player, team or Hall colors; touch/keyboard season
 inspection; persistent pins; player/team/era/Hall/workload filters; raw CSVs.
-Only 25 chart lines are drawn at once to keep rendering readable; selection can
-retain up to 100 IDs. Search reaches every player; the option list shows the first
+“Select all filtered players” selects the entire cohort. The visible “Players to
+display” control offers 25, 50, 100, 250, 500 or all selected players; it defaults
+to all, without trimming the underlying selection. Counts distinguish selected,
+shown and filtered-out players. Search reaches every player; the option list shows the first
 300 matches, while the table and CSV contain the entire filtered set.
 
 The research cohort is independent of selected chart lines, but honors the
@@ -135,14 +137,17 @@ use later information and are not prospective subgroup predictors.
 
 No login is required, as requested. Five immutable slots have editable label,
 title, plain-text note and view settings. They can target hitters/pitchers,
-comparison/research/stat scan, any available metric, fixed players or ranked
+comparison/research/stat scan, any available metric, fixed players, all matching players or ranked
 selections, chart controls, filters and outcomes. Draft previews, current-view
 capture, slot factory reset and versioned JSON export/import are provided.
 Save publishes all five to new page loads; open pages retain their copy until
 reload. Conflict detection preserves drafts instead of overwriting another save.
 
 Routes: GET/PUT `/api/baseball-presets`, POST `/api/baseball-presets/validate`.
-JSON is bounded to 64 KiB and validated against dataset IDs and enums. Labels and
+Rankings and fixed selections can include the complete role dataset. Older
+presets/backups automatically acquire the default display setting. Baseball
+JSON is bounded to 1 MiB and validated against dataset IDs and enums; football
+retains its 64-KiB bound. Labels and
 notes remain inert text. Corrupt stores cause a factory fallback for the page and
 a visible 503 in the editor; saves do not overwrite the corrupt database.
 
