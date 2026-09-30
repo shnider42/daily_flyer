@@ -4,10 +4,13 @@ from .combined import roster
 
 
 def unit(side, kind, pos, group, number, **changes):
-    source = 'amphibious' if kind == 'landing_craft' else kind
+    source = 'amphibious' if kind == 'landing_craft' else 'scout' if kind=='sniper' else kind
     value = copy.deepcopy(next(u for u in roster(side, 24) if u['kind'] == source))
     value.update(id=f'{side}-{group}-{number}', kind=kind, pos=list(pos), platoon=group,
                  number=number, reserve=False)
+    if kind=='sniper':
+        value.update(hp=2,max_hp=2,base_ap=3 if side=='us' else 2,range=4,sight=8,
+                     snipe_range=6 if side=='us' else 7,personnel=2,smoke=1,grenades=0,accuracy_bonus=0)
     value.update(changes)
     value.update(ap=value['base_ap'], ap_received=value['base_ap'])
     return value
@@ -20,7 +23,7 @@ def stalingrad_roster():
         layout = [('squad',2,depth,'A'),('leader',3,depth,'A'),('engineer',4,depth,'A'),
                   ('mg',5,depth,'A'),('scout',6,depth,'A'),('squad',10,depth,'B'),
                   ('leader',11,depth,'B'),('engineer' if side=='us' else 'mg',12,depth,'B'),
-                  ('squad',13,depth,'B'),('at_team',14,depth,'B'),
+                  ('sniper',13,depth,'B'),('at_team',14,depth,'B'),
                   ('commander',8,depth,'HQ'),('tank',3,depth-1 if side=='us' else depth+1,'HQ'),
                   ('tank',11,depth-1 if side=='us' else depth+1,'HQ')]
         counts = {}
@@ -54,7 +57,10 @@ def omaha_roster():
 
 
 def setup(board):
-    return stalingrad_roster() if board['campaign']=='stalingrad' else omaha_roster()
+    if board['campaign']=='stalingrad':return stalingrad_roster()
+    if board['campaign']=='omaha':return omaha_roster()
+    from .western import roster as western_roster
+    return western_roster(board['campaign'])
 
 
 def add_scenarios(build):
@@ -66,6 +72,7 @@ def add_scenarios(build):
             elif 4<=y<=15 and (x+y)%5: city[y][x]='B'
             elif 4<=y<=15 and (x*3+y)%7==0: city[y][x]='T'
     city[6][8]='*'
+    city[9][5]='^';city[10][13]='^'
     stalingrad=build('stalingrad','Stalingrad','Factory command post',22,
         'Soviet counterattack through factory blocks. Buildings begin intact, damaged or collapsed. Damaged shelter can collapse under explosives; tanks need the streets. Hold the command post for two Soviet turns.', [''.join(r) for r in city])
     stalingrad.update(dsl_only=True,campaign='stalingrad',theater='EASTERN FRONT',
@@ -101,4 +108,5 @@ def add_scenarios(build):
     britain.update(dsl_only=True,air=True,playtest=True,theater='ENGLISH CHANNEL',summary='Aircraft · radar · anti-aircraft fire',
         factions={'us':'RAF','de':'Luftwaffe'},airfields={'us':[[5,3],[16,3]],'de':[[4,15],[17,15]]},
         platoons=[dict(id='A',name='Aircraft',center=10),dict(id='HQ',name='Ground stations',center=5)])
-    return {b['id']:b for b in (stalingrad,britain,omaha)}
+    from .western import scenarios as western_scenarios
+    return {b['id']:b for b in (stalingrad,britain,omaha,*western_scenarios(build))}

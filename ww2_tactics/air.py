@@ -8,7 +8,7 @@ import secrets
 from .visibility import active, update_intel, record_reports
 from .combat_display import record_combat
 from .effects import record_effect
-from . import weapons
+from . import weapons, operations
 
 AIRCRAFT = {'fighter','bomber'}
 
@@ -145,6 +145,7 @@ def apply(state,side,action,roll=None):
     before={team:visible_ids(state,team) for team in ('us','de')};kind=action.get('kind');action_round=state['round']
     names=state['factions']
     if kind=='end':
+        operations.end_turn(state)
         from .support import resolve_barrages
         resolve_barrages(state, names, roll)
         state['recon'] = [dict(r, ttl=r['ttl']-1) for r in state.get('recon', []) if r['ttl'] > 1]
@@ -162,7 +163,7 @@ def apply(state,side,action,roll=None):
         unit=next((u for u in state['units'] if u['side']==side and u['id']==action.get('unit') and active(u)),None)
         if unit is None:raise ValueError('Choose one of your surviving aircraft or AA guns.')
         legal=options(state,unit)
-        if kind in {'load_ammo', 'repair_tracks', 'bombard', 'artillery', 'field_recon'}:
+        if kind in {'load_ammo', 'repair_tracks', 'bombard', 'artillery', 'field_recon'} | operations.ORDER_KINDS:
             message = weapons.action(state, unit, action, legal, roll)
         elif kind == 'rally' and legal['rally']:
             unit['pinned']=False;unit['ap']-=1;message='Gun crew rallied · 1 AP.'

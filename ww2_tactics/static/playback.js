@@ -50,6 +50,7 @@ function drawPlayback(){
  const labels={move:'moves',fire:'fires',grenade:'throws a frag',assault:'assaults',suppress:'suppresses',inspire:'rallies nearby troops',command:'orders On your feet',rally:'rallies',dig:'digs in',smoke:'throws smoke',overwatch:'takes overwatch',barrage:'calls mortars',end:'ends the turn'};
  labels.load='boards infantry';labels.unload='unloads infantry';labels.rearm='services aircraft';
  Object.assign(labels,{load_ammo:'changes ammunition',repair_tracks:'repairs tracks',bombard:'bombards an area',artillery:'calls artillery',field_recon:'launches recon'});
+ Object.assign(labels,{area_fire:'fires at a hex',repair_tank:'repairs a tank',snipe:'takes an aimed sniper shot'});
  const loc=pos=>`${String.fromCharCode(65+pos[0])}${pos[1]+1}`;
  const description=actor?`${sideLabel(actor.side)} ${unitName(actor)} at ${loc(actor.pos)} ${labels[action.kind]||action.kind}${action.pos?' → '+loc(action.pos):targetUnit?' → '+sideLabel(targetUnit.side)+' '+unitName(targetUnit)+' at '+loc(targetUnit.pos):''}`:action.kind==='end'?'Computer ends its turn':'Contact update · movement outside sight is concealed';
  document.getElementById('playbackStep').textContent=`Action ${p.index+1} / ${p.frames.length} · ${p.phase==='before'?'Before':'Result'}`;
@@ -82,7 +83,8 @@ function drawPlayback(){
   else if(changes.length){const more=uiNode('details');more.append(uiNode('summary','','Unit changes'),uiNode('p','mechanics-caption',changes.join(' · ')));result.append(more);}
  }
  const svg=document.getElementById('map').cloneNode(true);svg.id='playbackMap';svg.hidden=false;svg.removeAttribute('hidden');svg.setAttribute('aria-label',`Turn playback: ${description}`);
- svg.classList.remove('transport-picking');
+ svg.classList.remove('transport-picking','support-picking');
+ svg.querySelectorAll('.range-guide,.support-choice').forEach(e=>e.remove());
  svg.querySelectorAll('.unit,.smoke-cloud,.barrage-zone,.incoming-mark,.aim-line,.battle-effect,.fog-layer,.contact-marker,.landing-zone,.transport-choice,.recon-choice,.sea-control,.move-beacon,.island-marker,.flight-trail,.station-mark').forEach(e=>e.remove());
  svg.querySelectorAll('[tabindex]').forEach(e=>{e.removeAttribute('tabindex');e.removeAttribute('role');e.removeAttribute('aria-label');});
  svg.querySelectorAll('.hex').forEach(e=>e.classList.remove('move','threatened','smoke-choice','barrage-choice','combat-choice','combat-search','selected'));

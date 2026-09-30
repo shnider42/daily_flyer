@@ -5,7 +5,8 @@ const server=cp.spawn('python',['-m','gunicorn','ww2_web:app','--bind','127.0.0.
 let browser;const errors=[],badAssets=[];
 (async()=>{
  for(let i=0;i<60;i++){try{if((await fetch(base+'/healthz')).ok)break;}catch{}await new Promise(r=>setTimeout(r,100));}
- const mod=require('@sparticuz/chromium'),pack=mod.default||mod;browser=await chromium.launch({headless:true,executablePath:await pack.executablePath(),args:pack.args.filter(a=>a!=='--single-process')});
+ const binary=process.env.CHROMIUM_EXECUTABLE_PATH;
+ const pack=binary?null:require('@sparticuz/chromium');browser=await chromium.launch({headless:true,executablePath:binary||await pack.executablePath(),args:binary?['--no-sandbox','--disable-dev-shm-usage','--disable-gpu','--disable-software-rasterizer']:pack.args.filter(a=>a!=='--single-process')});
  const p=await browser.newPage({viewport:{width:390,height:844},isMobile:true,hasTouch:true,deviceScaleFactor:1});p.setDefaultTimeout(12000);
  p.on('pageerror',e=>errors.push(e.message));p.on('response',r=>{if(r.url().includes('/assets/')&&r.status()>=400)badAssets.push(r.url());});p.on('dialog',d=>d.accept());
  await p.goto(base);await p.locator('#scenarioPreview .hex').first().waitFor();
@@ -14,7 +15,7 @@ let browser;const errors=[],badAssets=[];
  assert.equal(await p.locator('#homeMotionToggle').isDisabled(),true);
  await p.emulateMedia({reducedMotion:'no-preference'});await p.waitForFunction(()=>document.body.classList.contains('home-motion'));
  for(const name of ['stalingrad','britain','omaha']){
-  await p.locator(`#newOperations [data-scenario="${name}"]`).click();assert.equal(await p.locator('#scenarioSelect').inputValue(),name);
+  await p.selectOption('#scenarioSelect',name);assert.equal(await p.locator('#scenarioSelect').inputValue(),name);
   await p.screenshot({path:path.join(temp,`${name}-home-mobile.png`),fullPage:true});
   await p.locator('#createSolo').click();assert.equal(await p.locator('#soloScenario').inputValue(),name);await p.locator('#startSolo').click();
   await p.waitForFunction(name=>state?.scenario.id===name&&!busy&&!lobbyMode,name);

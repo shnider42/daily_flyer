@@ -2,11 +2,11 @@
 import heapq
 import copy
 
-from .engine import apply, options, distance, terrain
+from .engine import apply, options, distance, terrain, line_clear
 from .scenarios import battlefield
 from .rulesets import dsl, turn_limit
-from .visibility import fog, view, visible_ids
-from . import naval, air, weapons, buildings
+from .visibility import fog, view, visible_ids, active
+from . import naval, air, weapons, buildings, operations
 
 
 def objective_costs(state):
@@ -18,7 +18,7 @@ def objective_costs(state):
         cost, pos = heapq.heappop(queue)
         if cost != costs[pos]:
             continue
-        step = 2 if terrain(*pos, state) in {'woods', 'building'} else 1
+        step = 2 if terrain(*pos, state) in {'woods', 'building', 'tower'} else 1
         neighbors=((x,y) for y in range(max(0,pos[1]-1),min(board['height'],pos[1]+2))
                    for x in range(max(0,pos[0]-1),min(board['width'],pos[0]+2)))
         for nxt in neighbors:
@@ -50,6 +50,14 @@ def choose_order(state, costs, visited):
             continue
         legal = options(state, unit)
         choices.extend(weapons.ai_orders(state, unit, legal, units.values()))
+        # A low-AP marksman with a useful long shot banks instead of spending
+        # the last action walking into rifle range. Escape incoming fire first.
+        if operations.enabled(state) and unit['kind']=='sniper' and 0<unit['ap']<3 and not unit['pinned'] and not any(
+                unit['pos'] in b['area'] and b['ttl']==1 for b in state.get('barrages',[])) and any(
+                enemy['side']!=side and active(enemy) and weapons.protection(enemy)=='infantry'
+                and not enemy.get('armor') and distance(unit['pos'],enemy['pos'])<=operations.snipe_range(state,unit)
+                and line_clear(unit['pos'],enemy['pos'],state.get('smoke',[]),state) for enemy in units.values()):
+            continue
         # Embark on a distant approach; deploy near the fight, before using support fire.
         if unit['kind']=='halftrack' and legal.get('load') and costs.get(tuple(unit['pos']),100)>5 and not any(
                 u['side']!=side and distance(u['pos'],unit['pos'])<=6 for u in units.values()):
@@ -124,6 +132,9 @@ def choose_order(state, costs, visited):
             gain = (distance(unit['pos'],goal)-distance(pos,goal)) if unit['kind'] in {'amphibious','landing_craft'} else costs.get(tuple(unit['pos']), 100)-costs.get(tuple(pos), 100)
             score = 2+gain*2-move.get('threats', 0)*2
             score += .6 * buildings.cover(state,pos,side=side)
+            if unit['kind'] in {'scout','sniper'} and terrain(*pos,state)=='tower':score+=2
+            if unit.get('repair_kits') and any(friend['side']==side and friend['kind']=='tank'
+                    and friend['hp']<friend.get('max_hp',friend['hp']) and distance(pos,friend['pos'])==1 for friend in units.values()):score+=4
             if buildings.condition(state,pos,side)=='damaged':
                 score -= 3 * any(enemy['side']!=side and weapons.profile(enemy).get('structural')
                                  and distance(enemy['pos'],pos)<=enemy['range'] for enemy in units.values())

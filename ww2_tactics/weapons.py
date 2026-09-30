@@ -5,7 +5,7 @@ protection, tracked, ammo_options and weapon_overrides without changing resolver
 The version lives in the saved match; old matches retain their original rules.
 """
 from .visibility import active
-from . import buildings
+from . import buildings, operations
 
 VERSION = 1
 PROFILES = {
@@ -25,9 +25,11 @@ PROFILES = {
     'mortar': dict(label='Mortar fragments', penetration=0, damage=1, targets=('infantry',)),
     'artillery': dict(label='Heavy artillery', penetration=3, damage=2, ship_damage=1, splash=1, penetrating=True),
     'none': dict(label='Unarmed', penetration=0, damage=0, targets=()),
+    'sniper_round': dict(label='Aimed rifle shot', penetration=0, damage=1, targets=('infantry',)),
 }
 for _weapon in ('ap', 'he', 'at_shell', 'rocket', 'naval_shell', 'airstrike', 'bomb', 'artillery'):
     PROFILES[_weapon]['structural'] = True
+    PROFILES[_weapon]['area_fire'] = _weapon not in {'airstrike','artillery'}
 DEFAULT_WEAPONS = dict(tank='ap', at_gun='at_shell', at_team='rocket', mg='machine_gun',
     halftrack='machine_gun', battleship='naval_shell', cruiser='naval_shell',
     destroyer='naval_shell', carrier='naval_shell', fighter='air_gun', aa_gun='flak',
@@ -66,7 +68,7 @@ def initialize(state):
             for key, value in dict(command_radius=4, artillery_range=12, artillery_charges=2,
                                    field_recon_range=12, field_recon_charges=2).items():
                 unit.setdefault(key, value)
-    return buildings.initialize(state)
+    return buildings.initialize(operations.initialize(state))
 
 
 def profile(unit, weapon=None):
@@ -173,6 +175,7 @@ def resolve(state, unit, target, die, threshold, weapon=None):
 
 def orders(state, unit):
     result = dict(ammo=[], repair_tracks=False, bombard=[], artillery=[], field_recon=[])
+    result.update(operations.orders(state,unit))
     if not enabled(state) or not state['ready'] or state.get('winner') or not active(unit) or unit['side'] != state['turn'] or unit.get('pinned'):
         return result
     if unit['ap'] >= 1: result['ammo'] = [key for key in unit.get('ammo_options', []) if key != unit.get('ammo')]
@@ -184,6 +187,7 @@ def orders(state, unit):
         for kind in ('bombard', 'artillery', 'field_recon'):
             reach = unit.get(kind + '_range', 0)
             if kind != 'bombard' and not unit.get(kind + '_charges'): continue
+            if operations.cooldown(state,unit,kind):continue
             result[kind] = [[x, y] for y in range(board['height']) for x in range(board['width'])
                             if distance(unit['pos'], [x, y]) <= reach] if reach else []
     return result
@@ -193,6 +197,8 @@ def action(state, unit, order, legal, roll):
     from .combat_display import record_combat
     from .effects import record_effect
     kind = order['kind']
+    if kind in operations.ORDER_KINDS:
+        return operations.action(state,unit,order,legal,roll)
     if kind == 'load_ammo' and order.get('ammo') in legal.get('ammo', []):
         unit.update(ammo=order['ammo'], ap=unit['ap']-1, overwatch=False, road_pending=False)
         return f"Loaded {profile(unit)['label'].lower()}s · 1 AP."
@@ -202,6 +208,7 @@ def action(state, unit, order, legal, roll):
     if kind in {'artillery', 'field_recon'} and order.get('pos') in legal.get(kind, []):
         from .engine import distance
         pos = list(order['pos']); unit['ap'] -= 2; unit[kind + '_charges'] -= 1
+        operations.start_cooldown(state,unit,kind)
         if kind == 'field_recon':
             state.setdefault('recon', []).append(dict(side=unit['side'], pos=pos, radius=3, ttl=2))
             return 'Recon plane searched a 3-hex radius, including concealed troops. Sight lasts through the enemy turn · 2 AP.'
@@ -254,8 +261,9 @@ def ai_orders(state, unit, legal, observed):
     """Extra orders scored using observed units and remembered contacts only."""
     from .engine import distance, fire_threshold, line_clear
     from .visibility import sees_hex
-    if not enabled(state) or not any(legal.get(k) for k in ('ammo','repair_tracks','bombard','artillery','field_recon')): return []
-    choices = []; side = unit['side']
+    if not enabled(state) or not any(legal.get(k) for k in ('ammo','repair_tracks','bombard','artillery','field_recon','repair_tank','snipe','area_fire')): return []
+    observed=list(observed)
+    choices = operations.ai_orders(state,unit,legal,observed); side = unit['side']
     def add(score, kind, **data):
         choices.append((score, dict(kind=kind, unit=unit['id'], **data)))
     enemies = [u for u in observed if active(u) and u['side'] != side]

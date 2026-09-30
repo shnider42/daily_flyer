@@ -94,7 +94,8 @@ def perform(state, side, action):
         label = {'move':'Move', 'dig':'Dig in', 'inspire':'Rally nearby', 'command':'Give actions',
                  'drop':'Airborne landing', 'end':'End turn', 'load_ammo':'Change ammunition',
                  'repair_tracks':'Repair tracks', 'bombard':'Area bombardment', 'artillery':'Call artillery',
-                 'field_recon':'Recon plane'}.get(kind, str(kind).capitalize())
+                 'field_recon':'Recon plane', 'repair_tank':'Engineer repair',
+                 'snipe':'Aimed sniper shot', 'area_fire':'Fire at hex'}.get(kind, str(kind).capitalize())
         history.setdefault('past', []).append(dict(snapshot=state, label=label, rolled=bool(dice)))
         history['past'] = history['past'][-LIMIT:]
         history.update(future=[], reason='Undo recent orders this turn. Resolved dice must be redone before changing orders.')

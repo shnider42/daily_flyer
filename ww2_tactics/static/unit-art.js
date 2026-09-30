@@ -4,7 +4,7 @@
  let illustrated=true;
  try{illustrated=localStorage.getItem('ww2-unit-style')!=='classic';}catch{}
  const ns='http://www.w3.org/2000/svg',observed=new Set();
- const rasterKinds=new Set(['carrier','battleship','cruiser','destroyer','paratrooper','scout','engineer','halftrack','at_gun','at_team']);
+ const rasterKinds=new Set(['carrier','battleship','cruiser','destroyer','paratrooper','scout','engineer','halftrack','at_gun','at_team','sniper']);
  function rasterName(u){
   if(u.kind==='airfield')return 'airfield';
   if(u.faction==='su'&&u.kind==='squad')return 'landing-infantry';
@@ -165,6 +165,7 @@
     const fallback=el('g',{class:'raster-fallback'});
     while(drawing.firstChild)fallback.append(drawing.firstChild);
     const picture=el('image',{class:'unit-bitmap',x:-20,y:-16,width:40,height:21,preserveAspectRatio:'xMidYMid meet',href:`/assets/unit-images/${raster}-v1.webp`});
+    if(u.kind==='sniper'){picture.classList.add('sniper-bitmap');picture.setAttribute('y','-22');picture.setAttribute('height','30');}
     picture.addEventListener('load',()=>{fallback.setAttribute('display','none');picture.classList.add('bitmap-ready');});
     picture.addEventListener('error',()=>{fallback.removeAttribute('display');picture.remove();});
     drawing.append(fallback,picture);

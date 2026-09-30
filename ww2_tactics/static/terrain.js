@@ -18,10 +18,10 @@
   water.append(shape('path',{d:'M-24 5Q-12-1 0 5T24 5T48 5T72 5M-24 20Q-12 14 0 20T24 20T48 20T72 20',fill:'none',stroke:'#c9e4dd','stroke-width':1.3}),shape('path',{d:'M3 8l10-2M27 23l9 1',fill:'none',stroke:'#5d99a2','stroke-width':1}));defs.append(water);
   [...svg.querySelectorAll(':scope > .hex')].forEach((tile,i)=>{
    const x=i%grid[0].length,y=Math.floor(i/grid[0].length),type=grid[y]?.[x];if(!type)return;
-   const condition=type==='building'&&conditions?(conditions[`${x},${y}`]||'intact'):null;
+   const structure=['building','tower'].includes(type),condition=structure&&conditions?(conditions[`${x},${y}`]||'intact'):null;
    for(const name of ['intact','damaged','destroyed'])tile.classList.toggle('building-'+name,condition===name);
    if(condition)tile.dataset.buildingState=condition;else delete tile.dataset.buildingState;
-   if(!detailed&&!(type==='building'&&condition))return;
+   if(!detailed&&!(structure&&condition)&&type!=='tower')return;
    if(type==='water'){tile.after(shape('polygon',{class:'terrain-art',points:tile.getAttribute('points'),fill:`url(#${waterId})`,'aria-hidden':'true'}));return;}
    const [cx,cy]=center(x,y),id=`terrain-${svg.id}-${i}`;
    const clip=shape('clipPath',{id});clip.append(shape('polygon',{points:tile.getAttribute('points')}));defs.append(clip);
@@ -39,13 +39,27 @@
      path(`M${tx-8*s} ${ty+7*s}l${8*s}-${18*s} ${8*s} ${18*s}z`,'#42684c',.6,'#557c50');
      path(`M${tx-4*s} ${ty+1*s}l${4*s}-${10*s}v${15*s}`,'#769258',.8,'#769258');
     }
-   }else if(type==='building'&&condition==='destroyed'){
+   }else if(structure&&condition==='destroyed'){
     outer.classList.add('structure-art','structure-destroyed');
     add('ellipse',{cx:0,cy:9,rx:22,ry:12,fill:detailed?'#716e6660':'#827e72'});
     path('M-18 10v-17l5 4 4-9 3 12v13M7 13V-3l5-4 6 7v10','#494b45',2,detailed?'#a29a88':'#c8bda8');
     path('M-19 14l6-8 6 6 6-4 9 8 7-5 6 7z','#635d51',1.4,'#b2a48d');
     path('M-9 17l4-4 4 5M5 5l3 4 5-1M-3-7l5 2-3 6','#5d5549',2);
     path('M14-17l8 8M22-17l-8 8','#f3eee0',5);path('M14-17l8 8M22-17l-8 8','#783f31',2.5);
+   }else if(type==='tower'){
+    outer.classList.add('structure-art','tower-art','structure-'+(condition||'intact'));
+    if(detailed)add('ellipse',{cx:5,cy:18,rx:21,ry:7,fill:'#4d4e4855'});
+    path('M-13 17V-18h26v35z','#4d5550',1.7,detailed?'#d7ceae':'#f2e6bb');
+    path('M-16-18L0-32l16 14z','#454d49',1.5,'#687d75');
+    path('M2-29l12 11H2z','#52655e',.6,'#52655e');
+    path('M-15 17h30M-13-1h26M-13 4h26','#8c8871',1.4);
+    add('circle',{cx:0,cy:-10,r:6,fill:'#faf1d4',stroke:'#424d47','stroke-width':1.8});
+    path('M0-14v4l4 2','#303d35',1.6);
+    path('M-4 16V9Q0 4 4 9v7','#4d5a50',1.3,'#647467');
+    if(condition==='damaged'){
+     path('M-10-20l4 7-4 9 6 5-4 11','#5a4937',2.6);
+     path('M17-14l8 13H9z','#694627',1.3,'#ffc66b');path('M17-10v4M17-3v.2','#4c3826',1.8);
+    }
    }else if(type==='building'&&condition==='damaged'){
     outer.classList.add('structure-art','structure-damaged');
     add('rect',{x:-16,y:-5,width:33,height:22,rx:2,fill:'#67524030'});

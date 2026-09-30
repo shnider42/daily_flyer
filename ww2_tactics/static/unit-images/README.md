@@ -1,5 +1,9 @@
 # Unit silhouettes, v1
 
+The support/airborne update adds `sniper-v1.webp`, an original transparent 384×384
+illustration generated with the built-in image tool. Its full prompt and
+provenance are in [the update notes](../../../docs/ww2-support-and-airborne.md#sniper-artwork-provenance).
+
 Original artwork generated with the built-in image-generation tool, guided by the
 user's preference for bold military silhouettes. No images were extracted from the
 commercial pack screenshot. The earlier faction rank insignia and MG references

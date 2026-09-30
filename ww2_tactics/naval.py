@@ -8,7 +8,7 @@ from .rulesets import base_ap, bank_limit
 from .visibility import active, visible_ids, update_intel, record_reports
 from .combat_display import record_combat
 from .effects import record_effect
-from . import weapons
+from . import weapons, operations
 
 SHIPS={'battleship','carrier','cruiser','destroyer'}
 FACTIONS={'us':'Americans','de':'Japanese'}
@@ -79,7 +79,7 @@ def options(state, unit):
         for y in range(max(0,unit['pos'][1]-1),min(board['height'],unit['pos'][1]+2)):
             for x in range(max(0,unit['pos'][0]-1),min(board['width'],unit['pos'][0]+2)):
                 tile=terrain(x,y,state)
-                cost=2 if unit['kind']=='amphibious' and tile in {'woods','building'} else 1
+                cost=2 if unit['kind']=='amphibious' and tile in {'woods','building','tower'} else 1
                 if distance(unit['pos'],[x,y])==1 and passable(unit,tile) and buildings.enterable(state,[x,y],unit['side']) and unit['ap']>=cost and (x,y) not in occupied and not (weapons.enabled(state) and unit.get('immobilized')):
                     result['moves'].append(dict(pos=[x,y],cost=cost,threats=0))
         if unit.get('smoke') and not any(s['pos']==unit['pos'] for s in state['smoke']):
@@ -121,6 +121,7 @@ def apply(state,side,action,roll=None):
     state=copy.deepcopy(state);roll=roll or (lambda:secrets.randbelow(6)+1)
     before={team:visible_ids(state,team) for team in ('us','de')};kind=action.get('kind');action_round=state['round']
     if kind=='end':
+        operations.end_turn(state)
         from .support import resolve_barrages
         resolve_barrages(state, FACTIONS, roll)
         zone=state['battlefield']['objective']
@@ -143,7 +144,7 @@ def apply(state,side,action,roll=None):
         unit=next((u for u in state['units'] if u['id']==action.get('unit') and u['side']==side and active(u)),None)
         if unit is None:raise ValueError('Choose one of your surviving units.')
         legal=options(state,unit)
-        if kind in {'load_ammo', 'repair_tracks', 'bombard', 'artillery', 'field_recon'}:
+        if kind in {'load_ammo', 'repair_tracks', 'bombard', 'artillery', 'field_recon'} | operations.ORDER_KINDS:
             message = weapons.action(state, unit, action, legal, roll)
         elif kind == 'rally' and legal['rally']:
             unit['pinned']=False;unit['ap']-=1;message='Infantry rallied · 1 AP.'

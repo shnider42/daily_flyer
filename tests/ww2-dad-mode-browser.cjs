@@ -5,8 +5,8 @@ const server=cp.spawn('python',['-m','gunicorn','ww2_web:app','--bind','127.0.0.
 let browser;
 (async()=>{
  for(let i=0;i<60;i++){try{if((await fetch(base+'/healthz')).ok)break;}catch{}await new Promise(r=>setTimeout(r,100));}
- const mod=require('@sparticuz/chromium'),pack=mod.default||mod;
- browser=await chromium.launch({executablePath:await pack.executablePath(),args:pack.args.filter(a=>a!=='--single-process'),headless:true});
+ const binary=process.env.CHROMIUM_EXECUTABLE_PATH,pack=binary?null:require('@sparticuz/chromium');
+ browser=await chromium.launch({executablePath:binary||await pack.executablePath(),args:binary?['--no-sandbox','--disable-dev-shm-usage','--disable-gpu','--disable-software-rasterizer']:pack.args.filter(a=>a!=='--single-process'),headless:true});
  const p=await browser.newPage({viewport:{width:1440,height:1000}}),errors=[];p.on('pageerror',e=>errors.push(e.message));p.setDefaultTimeout(15000);
  await p.goto(base);assert.equal(await p.locator('#dadModeHome').getAttribute('aria-pressed'),'false');await p.locator('#dadModeHome').click();
  await p.locator('#createSolo').click();await p.locator('#startSolo').click();await p.waitForFunction(()=>state&&!busy);

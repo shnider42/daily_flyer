@@ -58,28 +58,17 @@ amber warning and rubble with an ×. Desktop hover explains entry/cover. Selecti
 troops inside damaged buildings shows a warning in the existing phone action
 hint, without adding another map overlay or changing the map viewport.
 
-## Future concept: Operation Market Garden (not implemented)
+## Support and observation update
 
-Keep bridges, airborne deployment, observation points and faction differences
-together in a future scenario rather than add disconnected units to Stalingrad.
+Carentan, Market Garden, snipers and towers are now implemented for new battles;
+see [support and airborne operations](ww2-support-and-airborne.md). Towers use
+this same structural-damage/condition system, with elevated observation and
+two-way exposure. New Stalingrad battles include two towers and one sniper team
+per army. Tower starts are intact. Their extra observation can look over one low
+obstacle, but direct weapons still need clear firing lanes.
 
-- **Bridges:** multiple linked objectives and alternate approaches, with bridge
-  control determining reinforcement routes. Separate bridge integrity rules from
-  buildings; wrecked bridges need their own crossing and repair design.
-- **Airborne forces:** Allied reserves deploy onto scouted open landing zones;
-  mobile German reinforcements contest the crossings. Balance arrival timing and
-  AP budgets before simply increasing unit counts.
-- **Sniper:** a small, fragile infantry team with accurate single-target fire,
-  limited shots/AP and no splash. Firing should risk revealing its position;
-  suppression, smoke and flanking should provide counterplay. No final numbers yet.
-- **Clock tower / observation post:** an enterable elevated structure. Recon and
-  snipers could gain sight range, with a separate decision about firing range.
-  Extra range should not automatically grant vision through intervening buildings
-  or smoke. Its visibility advantage trades against exposure and structural
-  collapse risk. Use terrain capabilities rather than map-name checks.
-- **Playtest:** check bridge stalemates, airborne landing safety, sniper dominance,
-  tower spotting and equal chances to react to reinforcements. Keep saved-match
-  versioning and per-side fog memory when implementing these capabilities.
+Bridge integrity and chained bridge objectives remain separate future designs;
+the new scenarios use existing bridge movement and capture-and-hold objectives.
 
 ## Verification
 

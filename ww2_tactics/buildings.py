@@ -7,6 +7,7 @@ import secrets
 
 VERSION = 1
 STATES = ('intact', 'damaged', 'destroyed')
+TILES = {'building', 'tower'}
 
 
 def enabled(state):
@@ -19,7 +20,7 @@ def key(pos):
 
 def positions(state):
     return [[x, y] for y, row in enumerate(state['battlefield']['map'])
-            for x, tile in enumerate(row) if tile == 'building']
+            for x, tile in enumerate(row) if tile in TILES]
 
 
 def initialize(state, rng=None):
@@ -27,18 +28,20 @@ def initialize(state, rng=None):
         return state
     state['building_version'] = VERSION
     tiles = positions(state)
-    conditions = ['intact'] * len(tiles)
+    occupied = {key(u['pos']) for u in state['units'] if u['hp'] > 0}
+    protected = {key(p) for p in tiles if key(p) in occupied or state['battlefield']['map'][p[1]][p[0]]=='tower'}
+    eligible = [p for p in tiles if key(p) not in protected]
+    conditions = ['intact'] * len(eligible)
     distribution = state['battlefield'].get('building_conditions', {})
     if distribution:
         # Fixed proportions keep random layouts comparable; never trap a spawn.
-        n = len(tiles)
+        n = len(eligible)
         conditions = ['destroyed'] * (n * distribution.get('destroyed', 0) // 100)
         conditions += ['damaged'] * (n * distribution.get('damaged', 0) // 100)
         conditions += ['intact'] * (n - len(conditions))
         (rng or secrets.SystemRandom()).shuffle(conditions)
-    occupied = {key(u['pos']) for u in state['units'] if u['hp'] > 0}
-    state['buildings'] = {key(p): 'intact' if key(p) in occupied else c
-                          for p, c in zip(tiles, conditions)}
+    state['buildings'] = {key(p):c for p,c in zip(eligible,conditions)}
+    state['buildings'].update({coord:'intact' for coord in protected})
     # Both armies start with the same terrain survey. Later changes require sight.
     state['building_intel'] = {side: dict(state['buildings']) for side in ('us', 'de')}
     return state
@@ -52,7 +55,7 @@ def known(state, side=None):
 
 def condition(state, pos, side=None):
     from .engine import terrain
-    if not enabled(state) or terrain(*pos, state) != 'building':
+    if not enabled(state) or terrain(*pos, state) not in TILES:
         return None
     return known(state, side).get(key(pos), 'intact')
 
@@ -64,7 +67,7 @@ def enterable(state, pos, side=None):
 def cover(state, pos, *, objective=True, side=None):
     from .engine import terrain
     tile = terrain(*pos, state)
-    return int(tile in ({'woods', 'building', 'objective'} if objective else {'woods', 'building'})
+    return int(tile in ({'woods', 'building', 'tower', 'objective'} if objective else {'woods', 'building', 'tower'})
                and condition(state, pos, side) != 'damaged')
 
 

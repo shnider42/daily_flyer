@@ -2,7 +2,7 @@
 import copy
 
 TILES = {'.': 'field', '=': 'road', 'T': 'woods', 'B': 'building',
-         '*': 'objective', '~': 'water', '+': 'bridge'}
+         '*': 'objective', '~': 'water', '+': 'bridge', '^': 'tower'}
 
 
 def build(key, name, label, rounds, brief, rows):

@@ -1,14 +1,14 @@
 /* The server supplies legal orders and effects; this file only presents them. */
 'use strict';
 (()=>{
- const labels={loadAP:'Load anti-tank',loadHE:'Load explosive',repairTracks:'Repair tracks',bombard:'Bombard area',artillery:'Call artillery',fieldRecon:'Recon plane'};
+ const labels={loadAP:'Load anti-tank',loadHE:'Load explosive',repairTracks:'Repair tracks',bombard:'Bombard area',artillery:'Call artillery',fieldRecon:'Recon plane',areaFire:'Aim at hex'};
  const buttons={};
  for(const [id,label] of Object.entries(labels)){
   const b=document.createElement('button');b.id=id;b.hidden=true;b.textContent=label;buttons[id]=b;$('nextUnit').before(b);
  }
  for(const [id,ammo] of [['loadAP','ap'],['loadHE','he']])buttons[id].onclick=()=>act({kind:'load_ammo',unit:selected,ammo});
  buttons.repairTracks.onclick=()=>act({kind:'repair_tracks',unit:selected});
- for(const [id,kind] of [['bombard','bombard'],['artillery','artillery'],['fieldRecon','field_recon']])buttons[id].onclick=()=>{
+ for(const [id,kind] of [['bombard','bombard'],['artillery','artillery'],['fieldRecon','field_recon'],['areaFire','area_fire']])buttons[id].onclick=()=>{
   const cancel=combatMode?.kind===kind;
   document.dispatchEvent(new Event('ww2:cancel-targeting'));
   smokeMode=false;barrageMode=false;target=null;
@@ -20,6 +20,10 @@
   const help={bombard:'Fire now for 2 AP? A 6 hits this hex. Infantry there is destroyed; adjacent infantry takes 1 damage and pins. Friendly fire applies. Hidden results remain unknown.',
    artillery:'Call artillery for 2 AP? It arrives at the end of the enemy turn. A 4+ hits for 2 damage at this hex; adjacent infantry takes 1 damage and pins. Penetrating hits on 5–6 can disable tracks. Friendly fire applies.',
    field_recon:'Launch a recon plane for 2 AP? Reveals a 3-hex radius through the enemy turn, including concealed troops. This commits earlier orders.'};
+  if(kind==='area_fire'){
+   const shot=state.legal[selected].area_fire_details.find(s=>s.pos[0]===pos[0]&&s.pos[1]===pos[1]),u=state.units.find(u=>u.id===selected);
+   help.area_fire=`Fire ${u.ammo?.toUpperCase()||'explosive'} at this hex for 2 AP? ${shot.fringe?'Speculative fringe: needs 6.':'Needs 5+ to land.'} Unit cover and armor still apply. Heavy rounds damage buildings; damaged buildings collapse and kill everyone inside. Splash may hit friendly troops. Hidden results stay unknown.`;
+  }
   if(!confirm(`${hex} · ${help[kind]}`))return;
   combatMode=null;act({kind,unit:selected,pos});
  };
@@ -61,10 +65,10 @@
   $('rulesetBadge').textContent+=' · Weapons & armor';
   if(!u)return;
   const available={loadAP:legal?.ammo?.includes('ap'),loadHE:legal?.ammo?.includes('he'),repairTracks:legal?.repair_tracks,
-   bombard:legal?.bombard?.length,artillery:legal?.artillery?.length,fieldRecon:legal?.field_recon?.length};
+   bombard:legal?.bombard?.length,artillery:legal?.artillery?.length,fieldRecon:legal?.field_recon?.length,areaFire:legal?.area_fire?.length};
   for(const [id,on] of Object.entries(available)){
    const b=buttons[id];b.hidden=!on;b.disabled=busy;
-   const kind=id==='fieldRecon'?'field_recon':id;
+   const kind={fieldRecon:'field_recon',areaFire:'area_fire'}[id]||id;
    b.textContent=combatMode?.kind===kind?'Cancel '+labels[id].toLowerCase():`${labels[id]} · ${id.startsWith('load')?1:2} AP`;
   }
   if(u.ammo){
@@ -75,6 +79,11 @@
   if(u.kind==='commander'){
    $('roleBrief').textContent=`COMMANDER · Support radius ${u.command_radius}. Artillery ${u.artillery_charges}/2 · recon sorties ${u.field_recon_charges}/2. Both reach 12 hexes and cost 2 AP.`;
    if(!target)$('hint').textContent=`Command radius 4 · ${u.artillery_charges} artillery / ${u.field_recon_charges} recon calls left.`;
+   if(state.tactics_version)for(const [id,kind] of [['artillery','artillery'],['fieldRecon','field_recon']]){
+    const b=buttons[id],ready=u.cooldowns?.[kind]||0,left=u[kind+'_charges']||0;
+    b.hidden=false;b.disabled=busy||!available[id];
+    if(!available[id])b.textContent=`${labels[id]} · ${!left?'No calls left':ready>state.round?'Ready R'+ready:'Needs 2 AP'}`;
+   }
   }
   if(u.kind==='battleship'&&!target)$('hint').textContent=`Guns ${u.range} · bombard ${u.bombard_range} hexes, including unseen positions. Friendly fire applies.`;
   if(state.naval_version&&u.kind==='amphibious'){
@@ -84,7 +93,7 @@
   const weapon={ap:'Armor piercing',he:'High explosive',small_arms:'Small arms',machine_gun:'Machine-gun fire',rocket:'Anti-tank rockets',at_shell:'Anti-tank shells',naval_shell:'Naval shells',air_gun:'Aircraft guns',flak:'Anti-aircraft fire',bomb:'Aerial bombs',none:'Unarmed'}[u.ammo||u.weapon]||u.weapon;
   $('unitMechanics').prepend(uiNode('p','weapon-summary',`${weapon} · ${(u.protection||'infantry').replaceAll('_',' ')}${u.immobilized?' · tracks disabled; gun operational':''}`));
   if(combatMode){
-   const descriptions={bombard:'Tap a marked hex · blind bombardment · 6 hits · friendly fire.',artillery:'Tap a marked hex · artillery lands after enemy turn · friendly fire.',field_recon:'Tap a marked hex · recon reveals radius 3 through the enemy turn.'};
+   const descriptions={bombard:'Tap a marked hex · blind bombardment · 6 hits · friendly fire.',artillery:'Tap a marked hex · artillery lands after enemy turn · friendly fire.',field_recon:'Tap a marked hex · recon reveals radius 3 through the enemy turn.',area_fire:'Tap a marked hex · 5+ to land, 6 on the outer fringe · friendly fire.'};
    $('hint').textContent=descriptions[combatMode.kind];
    svg.querySelectorAll('.move-beacon').forEach(n=>n.remove());
   }

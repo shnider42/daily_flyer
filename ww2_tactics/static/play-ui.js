@@ -7,6 +7,9 @@
  const save=()=>{try{localStorage.setItem(key,JSON.stringify(prefs));}catch{}};
  // Distinct silhouettes and plain-language effects supplement color, including on touch screens.
  const actionDesign={
+  areaFire:['orange','Aim at an empty or occupied hex','M12 2v5M12 17v5M2 12h5M17 12h5M5 5h14v14H5Z'],
+  repairTank:['green','Restore tank strength and movement','M3 9h18v10H3ZM7 5h10M12 6v11M8 13h8'],
+  snipe:['red','Accurate shot; exposes your team','M12 2v5M12 17v5M2 12h5M17 12h5M19 12a7 7 0 1 1-14 0 7 7 0 0 1 14 0M12 10v4M10 12h4'],
   loadAP:['indigo','Pierce armor','M5 20V7l4-4 4 4v13H5ZM5 14h8M17 6v14M16 7h4'],
   loadHE:['orange','Blast infantry; nearby troops at risk','M5 20V7l4-4 4 4v13H5ZM5 14h8M18 6v5M16 9h5M16 16l5 4M21 16l-5 4'],
   repairTracks:['green','Restore movement; gun stays operational','M4 7h16v11H4ZM7 7v11M17 7v11M9 12h6M12 9v6'],

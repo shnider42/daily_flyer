@@ -133,7 +133,7 @@ def resolve_barrages(state, names, roll=None):
         if weapons.enabled(state):
             structure_roll = None
             impacts = []
-            if buildings.enabled(state) and any(state['battlefield']['map'][p[1]][p[0]] == 'building' for p in strike['area']):
+            if buildings.enabled(state) and any(state['battlefield']['map'][p[1]][p[0]] in buildings.TILES for p in strike['area']):
                 # One roll for the barrage, independent of hidden occupants or condition.
                 import secrets
                 structure_roll = (roll or (lambda: secrets.randbelow(6)+1))()

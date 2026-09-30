@@ -14,6 +14,7 @@ const names = {us:'Americans',de:'Germans'}, kinds={squad:'Rifle squad',leader:'
 const unitCodes={squad:'SQ',leader:'LT',mg:'MG',commander:'CO',scout:'SC',engineer:'EN',at_team:'AT',tank:'TK',at_gun:'AG',amphibious:'AM',paratrooper:'PA'};
 kinds.halftrack='Half-track section';unitCodes.halftrack='HT';
 kinds.scout='Recon team';
+kinds.sniper='Sniper team';unitCodes.sniper='SN';
 Object.assign(kinds,{carrier:'Aircraft carrier',battleship:'Battleship',cruiser:'Cruiser',destroyer:'Destroyer'});
 Object.assign(unitCodes,{carrier:'CV',battleship:'BB',cruiser:'CA',destroyer:'DD'});
 Object.assign(kinds,{fighter:'Fighter',bomber:'Bomber',aa_gun:'Anti-aircraft gun',radar:'Radar station',airfield:'Airfield',landing_craft:'Landing craft'});
@@ -67,6 +68,11 @@ function unitTypeName(u){return state?.naval_version&&u.kind==='amphibious'?'Lan
 function unitName(u){return unitTypeName(u)+(u.platoon?` ${u.platoon}${u.number}`:'');}
 function unitRoleSummary(u){
  if(u.carrier_id)return 'Aboard transport · select it to unload';
+ if(state?.tactics_version&&['scout','sniper'].includes(u.kind)){
+  const g=state.legal?.[u.id]?.range_guide;
+  return g?`Sight ${g.sight_range} · ${u.kind==='sniper'?'Snipe '+g.snipe_range+' / 3 AP':'Rifle '+g.fire_range}${g.tower?' · tower exposes occupants':''}${u.exposed_turns?' · position exposed':''}`:u.kind==='sniper'?'Precision infantry fire · bank actions for a 3 AP aimed shot':'Observe farther than you can shoot';
+ }
+ if(state?.tactics_version&&u.kind==='engineer')return `Smoke, grenades & tank repairs · ${u.repair_kits||0} repair kits`;
  if(state?.combat_version&&u.kind==='commander')return 'Command radius 4 · long-range artillery · recon planes';
  if(state?.combat_version&&u.kind==='tank')return `${u.immobilized?'IMMOBILIZED · gun operational · ':''}${u.ammo==='he'?'High explosive loaded · infantry blast':'Armor piercing loaded · hunt armor'}`;
  if(state?.combat_version&&u.kind==='battleship')return 'Heavy guns · bombard unseen hexes beyond sight';
@@ -169,14 +175,14 @@ function render(){
  if(!myTurn||!legal?.smoke?.length)smokeMode=false;
  if(!myTurn||!legal?.barrage?.length)barrageMode=false;
  if(combatMode&&(combatMode.unit!==selected||combatMode.revision!==state.revision||!myTurn||smokeMode||barrageMode||!legal?.[combatMode.kind]?.length))combatMode=null;
- const picking=smokeMode||barrageMode||!!combatMode;
+ const picking=smokeMode||barrageMode||!!combatMode||!!window.operationsPicking?.(legal);
  $('supportStatus').hidden=(state.rules_version||1)<4;
  $('supportStatus').textContent=`Mortar calls left · US ${state.support?.us||0} / DE ${state.support?.de||0}`;
  $('incoming').hidden=!state.barrages?.length;
  $('incoming').textContent=(state.barrages||[]).map(b=>`INCOMING at ${String.fromCharCode(65+b.pos[0])}${b.pos[1]+1} + neighboring hexes. ${b.ttl===1?'Impact at the end of this turn':'Impact at the end of the next turn'}. Move clear—even friendly troops!`).join(' ');
  const svg=$('map'),reuse=svg._state===state;
  if(!reuse){svg.replaceChildren();svg._tiles=[];svg._counters=new Map();svg._state=state;}
- else svg.querySelectorAll('.aim-line,.landing-zone,.transport-choice,.recon-choice,.move-beacon').forEach(n=>n.remove());
+ else svg.querySelectorAll('.aim-line,.landing-zone,.transport-choice,.recon-choice,.move-beacon,.range-guide,.support-choice').forEach(n=>n.remove());
  if(!reuse){svg.setAttribute('viewBox',`0 0 ${state.map[0].length*52+36} ${state.map.length*49+29}`);
  svg.setAttribute('aria-label',`${board.name} battlefield. Select your unit then a highlighted hex to move.`);}
  const width=state.map[0].length,activeHexes=new Set();
@@ -273,6 +279,7 @@ function render(){
  if(window.renderNaval)window.renderNaval(unit,legal,svg);
  if(window.renderCampaign)window.renderCampaign(unit,legal,svg);
  if(window.renderWeaponRules)window.renderWeaponRules(unit,legal,svg);
+ if(window.renderOperations)window.renderOperations(unit,legal,svg);
  const buildingWarning=unit&&unit.hp>0&&!unit.reserve&&!unit.carrier_id&&buildingCondition(state,unit.pos)==='damaged'&&!picking&&!target;
  $('hint').classList.toggle('building-warning',!!buildingWarning);
  if(buildingWarning)$('hint').textContent='Damaged building · reduced cover. Explosive hits can collapse it and kill the occupants.';

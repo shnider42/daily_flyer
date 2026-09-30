@@ -10,6 +10,18 @@ def active(unit):
     return unit['hp'] > 0 and not unit.get('reserve') and not unit.get('carrier_id')
 
 
+def unit_sees_hex(state, scout, pos, concealed=False):
+    from .engine import distance, line_clear, terrain
+    from . import operations
+    if not active(scout):return False
+    gap=distance(scout['pos'],pos)
+    high=operations.tower(state,scout)
+    landmark=operations.enabled(state) and terrain(*pos,state)=='tower'
+    reach=operations.sight_range(state,scout,concealed and not landmark)
+    if landmark:reach=max(reach,12)  # Elevated silhouettes work both ways.
+    return gap<=1 or (gap<=reach and line_clear(scout['pos'],pos,state.get('smoke',[]),state,high_ground=high or landmark))
+
+
 def sees_hex(state, side, pos, concealed=False):
     if state.get('air_version'):
         from .air import sees_hex as air_sight
@@ -20,12 +32,7 @@ def sees_hex(state, side, pos, concealed=False):
     for scout in state['units']:
         if scout['side'] != side or not active(scout):
             continue
-        reach = 9 if scout['kind']=='scout' else max(6,scout['range']) if scout['kind'] in {'tank','at_gun'} else 6
-        reach=scout.get('sight',reach)
-        if concealed:
-            reach = 4 if scout['kind']=='scout' else 2
-        gap = distance(scout['pos'], pos)
-        if gap <= 1 or (gap <= reach and line_clear(scout['pos'], pos, state.get('smoke', []), state)):
+        if unit_sees_hex(state,scout,pos,concealed):
             return True
     return False
 
@@ -39,7 +46,7 @@ def visible_ids(state, side):
         return {u['id'] for u in state['units'] if u['side']==side or not u.get('carrier_id')}
     return {u['id'] for u in state['units'] if u['side']==side or
             (active(u) and sees_hex(state, side, u['pos'],
-             not u.get('armor') and terrain(*u['pos'],state) in {'woods','building'}))}
+             not u.get('armor') and not u.get('exposed_turns') and terrain(*u['pos'],state) in {'woods','building'}))}
 
 
 def update_intel(state):
