@@ -9,19 +9,19 @@ from daily_flyer.qb_explorer.presets import Conflict, input_payload, revision
 from daily_flyer.preset_storage import preset_db, storage_info
 
 IDS = ("rivals", "slumps", "leaps", "cashes", "future")
-DEFAULTS = dict(metric="average", threshold="10", view="career", layout="separate", height="normal",
+DEFAULTS = dict(metric="average", threshold="10", view="career", layout="overlay", height="normal", timeline="calendar",
                 mode="compare", normalize="raw", hand="all", search="", qual2=False, skip2020=False,
                 selection="fixed", count=4, ids=["jason-belmonte", "ej-tackett", "anthony-simonsen"],
                 predictor="delta", outcome="average")
 CHOICES = dict(metric=tuple(METRICS), threshold=("5", "10", "15"), view=("pair", "career"),
                layout=("separate", "overlay"), height=("compact", "normal", "tall"), mode=("compare", "research"),
                normalize=("raw", "delta"), hand=("all", "R", "L"), selection=("fixed", "improved", "declined"),
-               predictor=("a", "b", "delta"), outcome=("average", "cash_rate", "earnings_per_event"))
+               predictor=("a", "b", "delta"), outcome=("average", "cash_rate", "earnings_per_event"), timeline=("calendar", "career"))
 
 
 def factory_presets():
     specs = [
-        ("Belmonte · Tackett · Simonsen", "Three careers, three different starts", {}),
+        ("Belmonte · Tackett · Simonsen", "Scoring average over time — one graph, three bowlers", {}),
         ("After the drop", "What followed the largest year-two average drops?", dict(selection="declined", qual2=True)),
         ("The second-year leap", "What followed the largest year-two average gains?", dict(selection="improved", qual2=True)),
         ("Getting paid consistently", "How often did these bowlers cash?", dict(metric="cash_rate", ids=["kyle-troup", "bill-oneill", "jesper-svensson"])),
@@ -31,12 +31,25 @@ def factory_presets():
             for key, (label, title, settings) in zip(IDS, specs)]
 
 
+def legacy_factory_presets():
+    """Exact v3.3.0 defaults; upgrade only untouched slots, never custom edits."""
+    old = factory_presets()
+    old[0]["title"] = "Three careers, three different starts"
+    for p in old:
+        p["settings"].pop("timeline")
+        p["settings"]["layout"] = "separate"
+    return old
+
+
 def validate_presets(value):
     if not isinstance(value, list) or len(value) != len(IDS):
         raise ValueError("Include all five bowling preset slots.")
     result = deepcopy(value)
     players = {p["id"] for p in load_dataset()["players"]}
+    old, current = legacy_factory_presets(), factory_presets()
     for i, p in enumerate(result):
+        if p == old[i]:
+            p = result[i] = deepcopy(current[i])
         if not isinstance(p, dict) or set(p) != {"id", "label", "title", "note", "settings"} or p["id"] != IDS[i]:
             raise ValueError("Keep the five bowling slot IDs and fields intact.")
         for key, limit in (("label", 48), ("title", 140), ("note", 1200)):
@@ -44,6 +57,9 @@ def validate_presets(value):
                 raise ValueError(f"{key} must be text, at most {limit} characters.")
             p[key] = p[key].strip()
         s = p["settings"]
+        if isinstance(s, dict):
+            # Existing custom graphs keep their prior time alignment.
+            s.setdefault("timeline", "career")
         if not isinstance(s, dict) or set(s) != set(DEFAULTS):
             raise ValueError("Missing or unknown bowling view settings.")
         for key, choices in CHOICES.items():

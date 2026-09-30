@@ -5,7 +5,7 @@ from daily_flyer.utils import resolve_date
 from daily_flyer.year_two_sports import sport_switch, SPORT_CSS, BOWLING_ICON
 from daily_flyer.themes.qb_year_two import build_info
 from daily_flyer.bowling_explorer.data import load_dataset, METRICS
-from daily_flyer.bowling_explorer.presets import DEFAULTS, CHOICES, factory_presets, page_presets
+from daily_flyer.bowling_explorer.presets import DEFAULTS, CHOICES, factory_presets, legacy_factory_presets, page_presets
 
 ASSETS = Path(__file__).resolve().parents[1] / "bowling_explorer"
 THEME_CONFIG = dict(page_title="Soph(more) Slump(?) | Bowling · PBA Profiles",
@@ -17,7 +17,7 @@ BACKGROUND_CADENCE = "daily"
 
 def build_theme_page(date_str=None, seed=None):
     config = dict(**load_dataset(), metrics=METRICS, defaults=DEFAULTS, choices=CHOICES,
-                  presets=page_presets(), factory=factory_presets(), build=build_info())
+                  presets=page_presets(), factory=factory_presets(), legacy_factory=legacy_factory_presets(), build=build_info())
     encoded = json.dumps(config, ensure_ascii=False, separators=(",", ":")).replace("<", "\\u003c")
     page = (ASSETS/"page.html").read_text().replace("<!-- SPORT_SWITCH -->", sport_switch("bowling")).replace("<!-- BOWLING_ICON -->", BOWLING_ICON)
     return PageContext(**THEME_CONFIG, today_str=resolve_date(date_str).isoformat(),

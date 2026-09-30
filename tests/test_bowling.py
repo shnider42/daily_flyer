@@ -5,7 +5,7 @@ from pathlib import Path
 from unittest.mock import patch
 from web import app
 from daily_flyer.bowling_explorer.data import load_dataset
-from daily_flyer.bowling_explorer.presets import factory_presets, validate_presets
+from daily_flyer.bowling_explorer.presets import factory_presets, legacy_factory_presets, validate_presets
 from daily_flyer.preset_storage import preset_db
 from scripts.build_bowling_data import parse_profile
 
@@ -72,6 +72,21 @@ class BowlingTests(unittest.TestCase):
         self.assertEqual(self.client.get('/api/bowling-presets').status_code,503)
         self.assertEqual(self.client.put('/api/bowling-presets',json={'presets':factory_presets(),'revision':'x'}).status_code,503)
         self.assertEqual(path.read_bytes(),b'not a database')
+
+    def test_preset_migration_upgrades_only_untouched_slots(self):
+        old=legacy_factory_presets()
+        self.assertEqual(validate_presets(old),factory_presets())
+        old[0]['label']='My custom story'
+        old[0]['settings']['height']='tall'
+        result=validate_presets(old)
+        self.assertEqual(result[0]['label'],'My custom story')
+        self.assertEqual(result[0]['settings']['height'],'tall')
+        self.assertEqual(result[0]['settings']['layout'],'separate')
+        self.assertEqual(result[0]['settings']['timeline'],'career')
+        self.assertEqual(result[1]['settings']['layout'],'overlay')
+        self.assertEqual(result[1]['settings']['timeline'],'calendar')
+        current=factory_presets();current[0]['settings']['timeline']='not-real'
+        with self.assertRaises(ValueError):validate_presets(current)
 
 
 if __name__=='__main__':unittest.main()

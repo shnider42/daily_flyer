@@ -32,3 +32,21 @@ test('Filters and normalization keep missing observations and genuine zeros dist
  assert.equal(M.eligible([p],{...state,qual2:true}).length,0);assert.equal(M.eligible([p],{...state,hand:'R'}).length,0);
  assert.deepEqual(M.series(p,{...state,normalize:'delta'}).map(s=>s.value),[0,0,null]);
 });
+test('Picker search never changes eligibility or the research cohort',()=>{
+ assert.equal(M.eligible(data.players,{...state,search:'Tackett'}).length,M.eligible(data.players,state).length);
+ assert.deepEqual(M.cohort(data.players,{...state,search:'Simonsen'},2025),M.cohort(data.players,state,2025));
+});
+test('Both time axes preserve actual dates, relative years and gaps',()=>{
+ const points=[{year:2009,x:1},{year:2010,x:2},{year:2015,x:7}];
+ assert.deepEqual(M.timeDomain(points,{timeline:'calendar'}),{lo:2009,hi:2015});
+ assert.deepEqual(M.timeDomain(points,{timeline:'career'}),{lo:1,hi:7});
+ assert.equal(M.timeValue(points[2],{timeline:'calendar'}),2015);
+ assert.deepEqual(M.timeDomain([{year:2025,x:1}],{timeline:'calendar'}),{lo:2025,hi:2026});
+});
+test('End labels separate close values without leaving their plot',()=>{
+ const labels=M.labelPositions([{id:'a',y:80},{id:'b',y:81},{id:'c',y:82}],40,260,24);
+ assert.ok(labels.every(l=>l.labelY>=40&&l.labelY<=260));
+ assert.ok(labels[1].labelY-labels[0].labelY>=24);assert.ok(labels[2].labelY-labels[1].labelY>=24);
+ const crowded=M.labelPositions(Array.from({length:30},(_,i)=>({id:i,y:600})),40,260,24);
+ assert.ok(crowded.every(l=>l.labelY>=39.9999999&&l.labelY<=260));
+});

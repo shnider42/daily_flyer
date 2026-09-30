@@ -1,4 +1,4 @@
-# Bowling in Soph(more) Slump(?) · v3.3.0
+# Bowling in Soph(more) Slump(?) · v3.3.1
 
 Repository: `shnider42/daily_flyer`, branch `feat/qb-year-two-explorer`.
 Direct entry: `/?theme=bowling_year_two` (hyphenated alias also works).
@@ -14,16 +14,41 @@ dependency, API key, scraping at page load or hosting configuration is added.
   preference. Bowling selections and pins have their own local-storage key.
 - Compare scoring average, cash rate, nominal earnings per event, nominal season
   earnings, profile-table titles, cashes, and events.
-- Use separate career graphs (the default), overlays, first-two-year comparisons,
+- Use a shared, named-line career graph (the default), separate panels, first-two-year comparisons,
   tall / regular / compact heights, highlighting, baseline differences, and CSVs.
-  All panels share value bounds and years-from-baseline spacing. Their calendar
-  labels are the source's printed years. No future points or interpolated gaps.
-- Search names and hometowns, filter bowling hand, change the baseline threshold
+  Explicit axes show the statistic vertically and either calendar years or years
+  from each bowler's first substantial season horizontally. Both layouts share
+  the same value and time bounds. Source years retain gaps without interpolation.
+- Add/remove bowlers in every detail mode, including mobile Simple Mode. The
+  searchable picker and a second button above the graph are always accessible.
+  Searching names/hometowns affects only the picker: existing lines and the
+  research cohort do not disappear while you look for another bowler.
+- Filter bowling hand, change the baseline threshold
   to 5 / 10 / 15 events, optionally require that workload in year two, or exclude
   first/second-year pairs involving 2020. All matching players can be selected;
   there is no 25-player display cap.
 - Inspect points by touch, focus or keyboard, retaining pins across reloads and
   width changes. Height-only browser chrome changes do not rebuild the graph.
+
+## 3.3.1 preset and saved-view compatibility
+
+Factory comparison stories now use scoring/metric values against calendar years
+on one shared graph. The first story remains Belmonte, Tackett and Simonsen;
+scoring average in pins per game is its default metric. The alternate horizontal
+clock explicitly says years from the first 5/10/15-event profile season, not
+years since becoming a professional or joining the PBA.
+
+Named line labels sit beside their last measured points, with vertical spacing
+to avoid collisions. The legend lists every selected name. Crowded graphs still
+draw every selected player; highlighting reveals that bowler's direct label.
+Missing data and all first/second-year calculations are unchanged.
+
+Exact untouched 3.3.0 factory slots migrate to the new graph defaults. Any edited
+label, note, player choice, filter or display setting prevents that slot migration;
+older custom presets instead acquire `timeline=career` to retain their old time
+alignment. Exact untouched old browser defaults likewise upgrade; customized
+local views, height, selection and pins survive. Old JSON backups remain valid.
+No live preset database or user's custom configuration is forcibly reset.
 
 ## Source and limits
 

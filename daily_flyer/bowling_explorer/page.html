@@ -10,26 +10,30 @@
   <ol class="bw-clock"><li><b>01 · A substantial start</b><p id="bw-clock-one">First listed year with at least 10 profile events. This is our study baseline, not an official rookie designation.</p></li><li><b>02 · The next year label</b><p>Compare the next numeric year printed in the profile, even with fewer events. Missing rows stay missing.</p></li><li><b>03 · Follow the career</b><p>Look beyond that change. Scoring conditions, schedules and event mix all matter.</p></li></ol>
   <nav class="bw-modes" aria-label="Bowling views"><button data-mode="compare" aria-pressed="true">Compare careers<small>See the first two years in context</small></button><button data-mode="research" aria-pressed="false">Did it last?<small>Explore the next three years</small></button></nav>
   <div class="bw-workspace">
-    <aside class="bw-sidebar" data-detail-min="guided"><details id="bw-selection"><summary>Choose bowlers &amp; filters</summary>
-      <label>Search bowlers or hometown<input id="bw-search" type="search" maxlength="100" placeholder="Try Tackett or Sweden"></label>
+    <aside class="bw-sidebar" data-detail-min="guided"><details id="bw-filters"><summary>Study filters</summary>
       <label>First substantial year<select id="bw-threshold"><option value="5">At least 5 events</option><option value="10" selected>At least 10 events</option><option value="15">At least 15 events</option></select></label>
       <label>Bowling hand<select id="bw-hand"><option value="all">Either hand</option><option value="R">Right</option><option value="L">Left</option></select></label>
       <label class="bw-check"><input id="bw-qual2" type="checkbox">Require the same workload in year two</label>
       <label class="bw-check"><input id="bw-skip2020" type="checkbox">Exclude pairs involving 2020</label>
       <p class="bw-small">Changing the workload threshold changes the question. The first available average never resets the clock.</p>
-      <div class="bw-row"><button id="bw-select-all">Select all matches</button><button id="bw-clear">Clear selection</button></div>
-      <p id="bw-selection-count" class="bw-small"></p><div id="bw-players"></div>
     </details></aside>
     <div class="bw-main">
       <section id="bw-story" class="bw-story" tabindex="-1"><div class="bw-kicker">THE QUESTION ON THE LANE</div><h2 id="bw-story-title"></h2><p id="bw-story-note"></p></section>
+      <details id="bw-selection" class="bw-bowler-picker"><summary><strong>Add / remove bowlers</strong><span id="bw-picker-count"></span></summary>
+        <p class="bw-small">Check a name to add their line. Uncheck it to remove them. Searching this list does not hide bowlers already on your graph.</p>
+        <label>Find a bowler<input id="bw-search" type="search" maxlength="100" placeholder="Search name or hometown"></label>
+        <div class="bw-row"><button id="bw-select-all">Add all matches</button><button id="bw-clear">Remove all bowlers</button></div>
+        <p id="bw-selection-count" class="bw-small"></p><div id="bw-players"></div>
+        <button id="bw-picker-done" class="bw-primary">Done — back to graph</button>
+      </details>
       <div class="bw-measure" data-detail-min="guided"><label>What are we comparing?<select id="bw-metric"></select></label><p id="bw-metric-note"></p></div>
       <section id="bw-compare">
-        <div class="yt-explainer"><div class="yt-eyebrow">THE PLAIN-ENGLISH VERSION</div><h3>Did year two change the direction?</h3><p id="bw-takeaway"></p><p>Each point is a profile season. Orange marks year two. Separate graphs use the same scale so you can compare them.</p><button data-detail-level="guided">Choose bowlers &amp; stats</button></div>
+        <div class="yt-explainer"><div class="yt-eyebrow">THE PLAIN-ENGLISH VERSION</div><h3>Follow each bowler’s line</h3><p id="bw-takeaway"></p><p id="bw-reading"></p><button data-detail-level="guided">Change statistic &amp; filters</button></div>
         <div class="bw-tabs"><button data-view="pair">Year 1 → 2</button><button data-view="career">What happened next?</button></div>
-        <div class="bw-readability"><label>Graph height<select id="bw-height"><option value="compact">Compact</option><option value="normal">Regular</option><option value="tall">Tall</option></select></label><label>Compare lines<select id="bw-layout"><option value="separate">One graph per bowler</option><option value="overlay">All bowlers together</option></select></label><label>Highlight a bowler<select id="bw-highlight"><option value="">Everyone</option></select></label></div>
+        <div class="bw-readability"><label>Time along the bottom<select id="bw-timeline"><option value="calendar">Calendar years</option><option value="career">Years from first substantial season</option></select></label><label>Compare lines<select id="bw-layout"><option value="overlay">All bowlers together</option><option value="separate">One graph per bowler</option></select></label><label>Graph height<select id="bw-height"><option value="compact">Compact</option><option value="normal">Regular</option><option value="tall">Tall</option></select></label><label>Highlight a bowler<select id="bw-highlight"><option value="">Everyone</option></select></label></div>
         <details data-detail-min="full"><summary>More graph options</summary><label>Values on the graph<select id="bw-normalize"><option value="raw">Actual values</option><option value="delta">Change from each bowler’s year one</option></select></label><p>Changing from the baseline uses the same statistic’s units. If the baseline is missing, that bowler has no normalized line.</p></details>
         <div id="bw-legend" aria-label="Selected bowlers"></div>
-        <h2 id="bw-chart-title"></h2><p id="bw-chart-note" class="bw-small"></p>
+        <div class="bw-row"><h2 id="bw-chart-title"></h2><button id="bw-add-bowler">+ Add / remove bowlers</button></div><p id="bw-chart-note" class="bw-small"></p>
         <p id="bw-warning" class="bw-warning"></p>
         <div id="bw-charts"></div><p id="bw-inspect" class="bw-inspect" aria-live="polite">Tap or focus a point to inspect that season.</p>
         <details data-detail-min="full"><summary>Season numbers &amp; export</summary><button id="bw-csv">Download selected seasons (CSV)</button><div class="bw-table-wrap"><table><caption>Selected bowling profile seasons</caption><thead><tr><th>Bowler</th><th>Year</th><th>Events</th><th>Statistic</th><th>Value</th><th>Source</th></tr></thead><tbody id="bw-table"></tbody></table></div></details>

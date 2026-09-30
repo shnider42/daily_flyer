@@ -13,14 +13,29 @@ const BowlingMath = (() => {
     return {first,one,two,a,b,delta:finite(a)&&finite(b)?b-a:null};
   }
   function eligible(players, state) {
-    const query=state.search.trim().toLowerCase();
     return players.filter(p=>{
       const q=pair(p,state.metric,state.threshold);
       return q.first!==null && (state.hand==='all'||p.hand===state.hand) &&
-        (!query||(p.name+' '+p.hometown).toLowerCase().includes(query)) &&
         (!state.qual2||(q.two?.events??0)>=Number(state.threshold)) &&
         (!state.skip2020||(q.first!==2020&&q.first+1!==2020));
     });
+  }
+  function timeValue(point, state) {
+    return state.timeline==='calendar'?point.year:point.x;
+  }
+  function timeDomain(points, state) {
+    const values=points.map(p=>timeValue(p,state));
+    const lo=values.length?Math.min(...values):state.timeline==='calendar'?2000:1;
+    return {lo,hi:Math.max(lo+1,...values)};
+  }
+  function labelPositions(items, top, bottom, gap=22) {
+    const sorted=items.map(item=>({...item})).sort((a,b)=>a.y-b.y);
+    if(!sorted.length)return sorted;
+    const spacing=Math.min(gap,(bottom-top)/Math.max(1,sorted.length-1));
+    sorted.forEach((item,i)=>{item.labelY=Math.max(top,item.y,i?sorted[i-1].labelY+spacing:top);});
+    sorted[sorted.length-1].labelY=Math.min(bottom,sorted[sorted.length-1].labelY);
+    for(let i=sorted.length-2;i>=0;i--)sorted[i].labelY=Math.min(sorted[i].labelY,sorted[i+1].labelY-spacing);
+    return sorted;
   }
   function ranked(players,state) {
     const sign=state.selection==='declined'?-1:1;
@@ -54,6 +69,6 @@ const BowlingMath = (() => {
     }
     return {rows,excluded,candidates:candidates.length};
   }
-  return {finite,mean,anchor,pair,eligible,ranked,series,cohort};
+  return {finite,mean,anchor,pair,eligible,ranked,series,cohort,timeValue,timeDomain,labelPositions};
 })();
 if(typeof module!=='undefined'&&module.exports)module.exports=BowlingMath;

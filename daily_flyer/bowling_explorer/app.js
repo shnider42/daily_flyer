@@ -8,6 +8,10 @@
   const known=new Map(config.players.map(p=>[p.id,p]));
   function valid(s){
     if(!s||typeof s!=='object'||Array.isArray(s))throw Error('Invalid view');
+    if(!Object.hasOwn(s,'timeline')){
+      const i=config.legacy_factory.findIndex(p=>Object.keys(s).length===Object.keys(p.settings).length&&Object.keys(p.settings).every(k=>JSON.stringify(s[k])===JSON.stringify(p.settings[k])));
+      s=i<0?{...s,timeline:'career'}:clone(config.factory[i].settings);
+    }
     const result=clone(config.defaults);
     for(const k of Object.keys(result)){
       const v=s[k];
@@ -19,7 +23,7 @@
     }
     return result;
   }
-  try{const saved=JSON.parse(localStorage.getItem(key)||'null');if(saved){state=valid(saved.state);focus=known.has(saved.focus?.id)?saved.focus:focus;active='';}else state=valid(presets[0].settings);}catch(_){state=clone(config.defaults);active='rivals';}
+  try{const saved=JSON.parse(localStorage.getItem(key)||'null');if(saved){state=valid(saved.state);focus=known.has(saved.focus?.id)?saved.focus:focus;active='';}else state=materialize(presets[0].settings);}catch(_){state=materialize(presets[0].settings);active='rivals';}
   function persist(){try{localStorage.setItem(key,JSON.stringify({state,focus}));}catch(_){}}
   function fmt(value,metric=state.metric,sign=false){
     if(!M.finite(value))return 'Unavailable';
@@ -27,8 +31,9 @@
     return (value<0?'−':sign&&value>0?'+':'')+(metric.startsWith('earnings')?'$':'')+number+(metric==='cash_rate'?'%':'');
   }
   function delta(value){return state.metric==='cash_rate'?fmt(value,state.metric,true).replace('%','')+' percentage points':fmt(value,state.metric,true)+' '+config.metrics[state.metric].unit;}
-  function color(id){let h=0;for(const c of id)h=(h*31+c.charCodeAt(0))>>>0;return colors[h%colors.length];}
+  function color(id){const i=state.ids.indexOf(id);if(i>=0)return colors[i%colors.length];let h=0;for(const c of id)h=(h*31+c.charCodeAt(0))>>>0;return colors[h%colors.length];}
   const filtered=()=>M.eligible(config.players,state);
+  const matches=()=>{const query=state.search.trim().toLowerCase();return filtered().filter(p=>!query||(p.name+' '+p.hometown).toLowerCase().includes(query));};
   const selected=()=>{const ids=new Set(state.ids);return filtered().filter(p=>ids.has(p.id)).sort((a,b)=>state.ids.indexOf(a.id)-state.ids.indexOf(b.id));};
   function materialize(s){const value=valid(s);if(value.selection!=='fixed')value.ids=M.ranked(config.players,value);return value;}
   function snapshot(){return clone({state,focus,active});}
@@ -42,11 +47,11 @@
   function storyButtons(){
     $('stories').innerHTML=presets.map(p=>{
       const s=p.settings,who=s.mode==='research'?'Full filtered cohort':s.selection==='fixed'?s.ids.map(id=>known.get(id)?.name).filter(Boolean).join(', '):`Top ${s.count} ${s.selection==='declined'?'drops':'gains'} among qualifying profiles`;
-      return `<button data-story="${p.id}" aria-pressed="${active===p.id}"><strong>${esc(p.label)}</strong><span>${esc(p.title)}</span><small>${esc(config.metrics[s.metric].name)} · ${esc(who)}</small></button>`;
+      return `<button data-story="${p.id}" aria-pressed="${active===p.id}"><strong>${esc(p.label)}</strong><span>${esc(p.title)}</span><small>${esc(config.metrics[s.metric].name)} · ${s.mode==='research'?'Later-career study':s.layout==='overlay'?'One shared graph':'Separate graphs'} · ${esc(who)}</small></button>`;
     }).join('');
   }
   function controls(){
-    for(const k of ['metric','threshold','hand','height','layout','normalize','predictor','outcome','search'])$(k).value=state[k];
+    for(const k of ['metric','threshold','hand','height','layout','normalize','predictor','outcome','search','timeline'])$(k).value=state[k];
     for(const k of ['qual2','skip2020'])$(k).checked=state[k];
     document.querySelectorAll('#bw-app [data-mode]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.mode===state.mode)));
     document.querySelectorAll('#bw-app [data-view]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.view===state.view)));
@@ -55,9 +60,11 @@
     $('clock-one').textContent=`First listed year with at least ${state.threshold} profile events. This is our study baseline, not an official rookie designation.`;
   }
   function roster(){
-    const list=filtered(),ids=new Set(state.ids);
-    $('selection-count').textContent=`${list.length} matching bowlers · ${list.filter(p=>ids.has(p.id)).length} selected here · ${state.ids.length} selected overall. No display cap.`;
+    const list=matches(),ids=new Set(state.ids),scroll=$('players').scrollTop,focused=document.activeElement?.dataset.player;
+    $('picker-count').textContent=`${selected().length} on graph · tap to choose`;
+    $('selection-count').textContent=`${list.length} matching bowlers · ${state.ids.length} selected overall. ${filtered().length} of ${config.players.length} profiles meet the study filters. No display cap.`;
     $('players').innerHTML=list.map(p=>`<label class="bw-player"><input type="checkbox" data-player="${p.id}" ${ids.has(p.id)?'checked':''}><span>${esc(p.name)}<small>Baseline ${M.anchor(p,state.threshold)} · ${esc(p.hand||'Hand unlisted')} · ${esc(p.hometown)}</small></span></label>`).join('')||'<p>No profiles match these filters.</p>';
+    $('players').scrollTop=scroll;if(focused)$('players').querySelector(`[data-player="${focused}"]`)?.focus({preventScroll:true});
   }
   function pairReadout(p){
     const q=M.pair(p,state.metric,state.threshold),sample=q.two&&q.two.events<Number(state.threshold),missing=!M.finite(q.delta);
@@ -77,51 +84,60 @@
     const list=selected();if(!list.some(p=>p.id===focus.id)){focus={id:'',year:null};}
     $('highlight').value=focus.id;
     document.querySelectorAll('#bw-charts [data-series]').forEach(g=>g.style.opacity=state.layout==='overlay'&&focus.id&&g.dataset.series!==focus.id?'0.15':'1');
+    document.querySelectorAll('#bw-charts [data-line-label]').forEach(g=>{g.style.opacity=focus.id&&g.dataset.lineLabel!==focus.id?'0.15':'1';g.style.display=g.dataset.crowded==='true'&&focus.id!==g.dataset.lineLabel?'none':'';});
     document.querySelectorAll('#bw-legend button').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.pin===focus.id)));
     const p=known.get(focus.id),s=p&&M.series(p,state).find(s=>s.year===focus.year&&M.finite(s.value));
     $('inspect').textContent=s?seasonText(p,s):p?`${p.name} highlighted. Tap a season for its value.`:'Tap or focus a point to inspect that season.';
     document.querySelectorAll('.bw-panel-inspect').forEach(el=>el.textContent=s&&el.dataset.inspect===p.id?seasonText(p,s):'Tap a point for its season and event count.');
   }
-  function graph(list,bounds,maxX,width,height,separate){
-    const left=64,right=20,top=32,bottom=45,w=width-left-right,h=height-top-bottom,
-      x=v=>left+(v-1)/Math.max(1,maxX-1)*w,y=v=>top+(bounds.hi-v)/(bounds.hi-bounds.lo)*h;
-    let svg=`<svg viewBox="0 0 ${width} ${height}" role="img" aria-label="${esc(config.metrics[state.metric].name)} by ${separate?'profile year':'year from baseline'}"><title>${esc(config.metrics[state.metric].name)}. Orange is year two. Missing years break the line.</title>`;
+  function graph(list,bounds,time,width,height,separate){
+    const left=72,right=22,top=38,bottom=58,w=width-left-right,h=height-top-bottom,
+      x=v=>left+(v-time.lo)/(time.hi-time.lo)*w,y=v=>top+(bounds.hi-v)/(bounds.hi-bounds.lo)*h,
+      timeTitle=state.timeline==='calendar'?'Year (PBA profile)':`Years from first ${state.threshold}-event season`,
+      valueTitle=(state.normalize==='delta'?'Change in ':'')+config.metrics[state.metric].name+' ('+config.metrics[state.metric].unit+')';
+    let svg=`<svg viewBox="0 0 ${width} ${height}" role="img" aria-label="${esc(valueTitle)} by ${esc(timeTitle)}"><title>One line per named bowler. Orange is study year two. Missing years break the line.</title><text class="bw-axis-title bw-y-title" text-anchor="middle" transform="translate(15 ${top+h/2}) rotate(-90)">${esc(valueTitle)}</text><text class="bw-axis-title bw-x-title" text-anchor="middle" x="${left+w/2}" y="${height-10}">${esc(timeTitle)}</text>`;
     for(let i=0;i<5;i++){const v=bounds.lo+(bounds.hi-bounds.lo)*i/4;svg+=`<line class="bw-grid" x1="${left}" x2="${width-right}" y1="${y(v)}" y2="${y(v)}"/><text class="bw-axis" text-anchor="end" x="${left-8}" y="${y(v)+4}">${esc(fmt(v))}</text>`;}
-    const xs=[...new Set([1,2,...Array.from({length:4},(_,i)=>Math.round(1+(maxX-1)*(i+1)/4))])].sort((a,b)=>a-b);
-    // Avoid overlapping adjacent end labels on narrow phone graphs.
-    const ticks=[];
-    for(const v of xs){if(v===1&&x(2)-x(1)<38)continue;if(v===2||ticks.every(t=>Math.abs(x(v)-x(t))>38))ticks.push(v);}
-    for(const v of ticks){const year=separate?M.anchor(list[0],state.threshold)+v-1:'Y'+v;if(separate&&year>Math.max(...list[0].seasons.map(s=>s.year)))continue;svg+=`<text class="bw-axis" text-anchor="middle" x="${x(v)}" y="${height-24}">${year}</text>`;}
-    svg+=`<line class="bw-y2-rule" x1="${x(2)}" x2="${x(2)}" y1="${top}" y2="${height-bottom}"/><text class="bw-y2-label" text-anchor="${maxX===2?'end':'start'}" x="${x(2)+(maxX===2?-5:5)}" y="18">YEAR 2</text>`;
+    const n=Math.max(1,Math.min(5,Math.floor(w/52))),ticks=[...new Set(Array.from({length:n+1},(_,i)=>Math.round(time.lo+(time.hi-time.lo)*i/n)))];
+    for(const v of ticks)svg+=`<text class="bw-axis bw-time-tick" text-anchor="middle" x="${x(v)}" y="${height-33}">${v}</text>`;
+    if(state.timeline!=='calendar'||separate){const second=state.timeline==='calendar'?M.anchor(list[0],state.threshold)+1:2;if(second>=time.lo&&second<=time.hi)svg+=`<line class="bw-y2-rule" x1="${x(second)}" x2="${x(second)}" y1="${top}" y2="${height-bottom}"/>`;}
+    svg+=`<text class="bw-y2-label" x="${left}" y="20">Orange points = study year 2</text>`;
+    const endpoints=[];
     for(const p of list){
       const points=M.series(p,state);let path='',last=false;
-      for(const s of points){if(!M.finite(s.value)){last=false;continue;}path+=(last?'L':'M')+x(s.x)+','+y(s.value)+' ';last=true;}
-      svg+=`<g data-series="${p.id}"><path class="bw-trace" stroke="${color(p.id)}" d="${path}"/>`;
+      for(const s of points){if(!M.finite(s.value)){last=false;continue;}path+=(last?'L':'M')+x(M.timeValue(s,state))+','+y(s.value)+' ';last=true;}
+      const dash=['','7 3','2 3'][Math.floor(Math.max(0,state.ids.indexOf(p.id))/colors.length)%3];
+      svg+=`<g data-series="${p.id}"><path class="bw-trace" stroke="${color(p.id)}" stroke-dasharray="${dash}" d="${path}"/>`;
       for(const s of points.filter(s=>M.finite(s.value))){
         const fill=s.x===2?'#c45325':color(p.id),hollow=(s.row?.events??0)<Number(state.threshold);
-        svg+=`<circle class="bw-dot" data-point="${p.id}" data-year="${s.year}" cx="${x(s.x)}" cy="${y(s.value)}" r="${s.x===2?6:4.5}" fill="${hollow?'#fffcf6':fill}" stroke="${fill}" tabindex="0" role="button" aria-label="${esc(seasonText(p,s))}"><title>${esc(seasonText(p,s))}</title></circle>`;
+        svg+=`<circle class="bw-dot" data-point="${p.id}" data-year="${s.year}" cx="${x(M.timeValue(s,state))}" cy="${y(s.value)}" r="${s.x===2?6:4.5}" fill="${hollow?'#fffcf6':fill}" stroke="${fill}" tabindex="0" role="button" aria-label="${esc(seasonText(p,s))}"><title>${esc(seasonText(p,s))}</title></circle>`;
       }
       svg+='</g>';
+      const end=points.filter(s=>M.finite(s.value)).at(-1);if(end)endpoints.push({id:p.id,name:p.name,x:x(M.timeValue(end,state)),y:y(end.value)});
+    }
+    if(!separate){
+      const crowded=endpoints.length>Math.floor(h/24),positions=crowded?endpoints.map(p=>({...p,labelY:Math.max(top+14,Math.min(height-bottom-10,p.y-12))})):M.labelPositions(endpoints,top+14,height-bottom-10,24);
+      for(const p of positions){const labelX=width-right-7;svg+=`<g data-line-label="${p.id}" data-crowded="${crowded}" class="bw-line-label" pointer-events="none"><path d="M${p.x},${p.y} L${labelX+3},${p.labelY-4}" fill="none" stroke="${color(p.id)}" stroke-width="1"/><text text-anchor="end" x="${labelX}" y="${p.labelY}" fill="${color(p.id)}">${esc(p.name)}</text></g>`;}
     }
     return svg+'</svg>';
   }
   function compare(){
     const list=selected(),pairs=list.map(p=>M.pair(p,state.metric,state.threshold)),measured=pairs.filter(q=>M.finite(q.delta)),ups=measured.filter(q=>q.delta>0).length,downs=measured.filter(q=>q.delta<0).length;
-    $('takeaway').textContent=list.length?`${measured.length} of ${list.length} selected bowlers have both years measured: ${ups} rose, ${downs} fell and ${measured.length-ups-downs} stayed level in ${config.metrics[state.metric].name.toLowerCase()}. ${list.length-measured.length} lack a comparison. These changes describe this selection, not why it happened.`:'No selected bowlers match. Pick a story, or use Guided to choose bowlers.';
+    $('takeaway').textContent=list.length?`${list.length} bowlers · ${config.metrics[state.metric].name.toLowerCase()}. ${measured.length} have a measured first-to-second-year comparison: ${ups} rose, ${downs} fell and ${measured.length-ups-downs} stayed level.`:'No selected bowlers match. Use Add / remove bowlers above to choose names.';
+    $('reading').textContent=`Up the side: ${config.metrics[state.metric].name.toLowerCase()} (${config.metrics[state.metric].unit}). Along the bottom: ${state.timeline==='calendar'?'calendar years as printed in PBA profiles':`years from each bowler’s first ${state.threshold}-event season—not their membership/rookie year`}. ${state.layout==='overlay'?'Each named line is one bowler. Tap a name to highlight that line.':'Separate graphs share the same axes.'}`;
     $('chart-title').textContent=config.metrics[state.metric].name+' · '+(state.view==='pair'?'the first two years':'what came next');
-    $('chart-note').textContent=`${config.metrics[state.metric].note} ${state.normalize==='delta'?'Graph values are changes from each bowler’s first substantial year.':'Graph values are actual profile statistics.'} ${state.layout==='separate'?'All panels share value bounds and years-from-baseline spacing; labels show the actual source years.':'X = years from each bowler’s baseline, not shared calendar dates.'} Hollow dots indicate fewer than ${state.threshold} events.`;
+    $('chart-note').textContent=`${config.metrics[state.metric].note} ${state.normalize==='delta'?'Graph values are changes from each bowler’s first substantial year.':'Graph values are actual profile statistics.'} Hollow dots indicate fewer than ${state.threshold} events. ${list.length>8?'For a crowded graph, highlight a bowler by name; all selected lines are still drawn.':''}`;
     const noRow=pairs.filter(q=>!q.two).length,low=pairs.filter(q=>q.two&&q.two.events<Number(state.threshold)).length;
     $('warning').textContent=`${noRow} selected bowlers have no next-year row; ${low} have a smaller year-two workload. Missing data never becomes zero, and lines stop at gaps. Profile figures are not national Tour-only rankings.`;
     $('legend').innerHTML=list.map(p=>`<button data-pin="${p.id}" aria-pressed="false"><i style="background:${color(p.id)}"></i>${esc(p.name)}</button>`).join('');
     $('highlight').innerHTML='<option value="">Everyone</option>'+list.map(p=>`<option value="${p.id}">${esc(p.name)}</option>`).join('');
     const chart=$('charts');chart.classList.toggle('bw-separated',state.layout==='separate');
-    if(!list.length){chart.innerHTML='<p>No bowlers selected for these filters. Open Guided to select matching players.</p>';$('table').innerHTML='';highlight();return;}
-    const all=list.flatMap(p=>M.series(p,state)),bounds=scale(all.map(s=>s.value)),maxX=Math.max(2,...all.map(s=>s.x)),separate=state.layout==='separate',
+    if(!list.length){chart.innerHTML='<p>No bowlers selected for these filters. Use Add / remove bowlers to choose players.</p>';$('table').innerHTML='';highlight();return;}
+    const all=list.flatMap(p=>M.series(p,state)),bounds=scale(all.map(s=>s.value)),time=M.timeDomain(all,state),separate=state.layout==='separate',
       columns=separate&&innerWidth>1000?2:1,width=Math.max(260,Math.floor((chart.clientWidth-(columns-1)*20)/columns)),height={compact:210,normal:310,tall:550}[state.height];
     const groups=separate?list.map(p=>[p]):[list];
     chart.innerHTML=groups.map(group=>{
       const p=group[0],points=group.flatMap(p=>M.series(p,state)).filter(s=>M.finite(s.value));
-      return `<article class="bw-panel" data-panel="${separate?p.id:'overlay'}"><div class="bw-panel-header"><h3>${separate?esc(p.name):list.length+' bowlers · shared axes'}</h3>${separate?`<a href="${esc(p.source)}" target="_blank" rel="noopener">PBA profile ↗</a>`:''}</div>${points.length?graph(group,bounds,maxX,width,height,separate):'<p class="bw-warning">No measured values in this window. Choose another statistic or view.</p>'}${separate?pairReadout(p):''}${separate?`<p class="bw-panel-inspect" data-inspect="${p.id}"></p>`:''}</article>`;
+      return `<article class="bw-panel" data-panel="${separate?p.id:'overlay'}"><div class="bw-panel-header"><h3>${separate?esc(p.name):list.length+' bowlers · one graph'}</h3>${separate?`<a href="${esc(p.source)}" target="_blank" rel="noopener">PBA profile ↗</a>`:''}</div>${points.length?graph(group,bounds,time,width,height,separate):'<p class="bw-warning">No measured values in this window. Choose another statistic or view.</p>'}${separate?pairReadout(p):''}${separate?`<p class="bw-panel-inspect" data-inspect="${p.id}"></p>`:''}</article>`;
     }).join('');
     $('table').innerHTML=list.flatMap(p=>M.series(p,state).map(s=>`<tr><td>${esc(p.name)}</td><td>${s.year}</td><td>${s.row?.events??'Unavailable'}</td><td>${esc(config.metrics[state.metric].name)}</td><td>${fmt(s.raw)}</td><td><a href="${esc(p.source)}" target="_blank" rel="noopener">PBA</a></td></tr>`)).join('');
     highlight();
@@ -152,13 +168,15 @@
   function download(name,text,type){const blob=new Blob([text],{type}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
   function csv(rows){return rows.map(row=>row.map(v=>'"'+String(v??'').replace(/"/g,'""')+'"').join(',')).join('\r\n');}
   $('metric').innerHTML=Object.entries(config.metrics).map(([key,m])=>`<option value="${key}">${esc(m.name)}</option>`).join('');
-  for(const k of ['metric','threshold','hand','height','layout','normalize','predictor','outcome','qual2','skip2020'])$(k).addEventListener('change',()=>{state[k]=['qual2','skip2020'].includes(k)?$(k).checked:$(k).value;manual();render();});
-  $('search').addEventListener('input',()=>{state.search=$('search').value;manual();render();});
+  for(const k of ['metric','threshold','hand','height','layout','normalize','predictor','outcome','qual2','skip2020','timeline'])$(k).addEventListener('change',()=>{state[k]=['qual2','skip2020'].includes(k)?$(k).checked:$(k).value;manual();render();});
+  $('search').addEventListener('input',()=>{state.search=$('search').value;roster();persist();});
   $('highlight').onchange=()=>{focus={id:$('highlight').value,year:null};persist();highlight();};
-  $('select-all').onclick=()=>{state.ids=[...new Set([...state.ids,...filtered().map(p=>p.id)])];manual();render();};
+  $('select-all').onclick=()=>{state.ids=[...new Set([...state.ids,...matches().map(p=>p.id)])];manual();render();};
   $('clear').onclick=()=>{state.ids=[];manual();render();};
   $('undo').onclick=()=>{if(!undo)return;({state,focus,active}=clone(undo));undo=null;$('undo').hidden=true;render();};
   $('players').onchange=e=>{const id=e.target.dataset.player;if(!id)return;state.ids=e.target.checked?[...new Set([...state.ids,id])]:state.ids.filter(p=>p!==id);manual();render();};
+  $('add-bowler').onclick=()=>{$('selection').open=true;$('selection').scrollIntoView({block:'start'});$('search').focus({preventScroll:true});};
+  $('picker-done').onclick=()=>{$('selection').open=false;$('chart-title').scrollIntoView({block:'start'});$('add-bowler').focus({preventScroll:true});};
   $('app').addEventListener('click',e=>{
     const b=e.target.closest('button');if(!b)return;
     if(b.dataset.story)story(b.dataset.story);
@@ -191,7 +209,7 @@
   $('version').textContent='v'+config.build.version+(config.build.commit?' · '+config.build.commit.slice(0,7):'');
   $('coverage').textContent=`${config.meta.players} bowlers · ${config.meta.season_count} profile seasons · through ${config.meta.through}`;
   $('source-summary').textContent=`Retrieved ${config.meta.retrieved_at.slice(0,10)}. ${config.meta.directory_count} directory profiles checked; ${config.meta.directory_count-config.meta.players} had no usable season rows. ${config.meta.refresh}`;
-  if(innerWidth>760)$('selection').open=true;
-  window.BowlingApp={config,clone,esc,valid,download,apply,getState:()=>clone(state),updatePresets(value){presets=clone(value);storyButtons();},summary:s=>`${config.metrics[s.metric].name} · ${s.threshold}+ events · ${s.mode} · ${s.view} · ${s.layout} · ${s.height} · ${s.ids.map(id=>known.get(id)?.name).join(', ')}`};
+  if(innerWidth>760)$('filters').open=true;
+  window.BowlingApp={config,clone,esc,valid,download,apply,getState:()=>clone(state),updatePresets(value){presets=clone(value);storyButtons();},summary:s=>`${config.metrics[s.metric].name} · ${s.threshold}+ events · ${s.mode} · ${s.view} · ${s.timeline==='calendar'?'calendar years':'years from baseline'} · ${s.layout} · ${s.height} · ${s.ids.map(id=>known.get(id)?.name).join(', ')}`};
   render();lastWidth=document.querySelector('.bw-main').clientWidth;
 })();
