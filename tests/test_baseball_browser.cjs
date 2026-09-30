@@ -11,6 +11,7 @@ async function screenshot(page,name){if(process.env.BASEBALL_SCREENSHOT_DIR)awai
   await new Promise((resolve,reject)=>{const timer=setTimeout(()=>reject(new Error('Flask startup timed out')),10000);server.stderr.on('data',d=>{if(String(d).includes('Running on')){clearTimeout(timer);resolve();}});server.on('error',reject);});
   browser=await chromium.launch({headless:true,executablePath:process.env.CHROMIUM_EXECUTABLE||'/tmp/qb-chromium'});
   const page=await browser.newPage({viewport:{width:1440,height:1000}});page.on('pageerror',e=>errors.push(e.message));
+  await page.addInitScript(()=>localStorage.setItem('year-two-detail-v1','full'));
   await page.goto(url);await page.locator('.bb-dot').first().waitFor();
   assert.equal(await page.locator('.bb-dot').count(),8);
   assert.equal(await page.locator('#bb-metric option').count(),35);
@@ -37,7 +38,7 @@ async function screenshot(page,name){if(process.env.BASEBALL_SCREENSHOT_DIR)awai
   await page.click('#bb-scan-table [data-stat="ops"]');await waitState(page,'mode','research');
   await page.selectOption('#bb-outcome','future');await page.click('#bb-model');await page.waitForFunction(()=>document.querySelector('#bb-model-result').textContent.includes('held-out'));
   assert.ok((await page.locator('#bb-model-result').innerText()).includes('Mean squared error'));
-  await page.locator('#bb-research details').first().locator('summary').click();await page.click('#bb-bootstrap');await page.waitForFunction(()=>document.querySelector('#bb-uncertainty').textContent.includes('bootstrap interval'));
+  await page.locator('#bb-research > details').first().locator('summary').click();await page.click('#bb-bootstrap');await page.waitForFunction(()=>document.querySelector('#bb-uncertainty').textContent.includes('bootstrap interval'));
   await story(page,'hall');await page.click('#bb-model');await page.waitForFunction(()=>document.querySelector('#bb-model-result').textContent.includes('held-out'));
   assert.ok((await page.locator('#bb-model-result').innerText()).includes('Brier score'));
   await screenshot(page,'baseball-research');
@@ -47,6 +48,7 @@ async function screenshot(page,name){if(process.env.BASEBALL_SCREENSHOT_DIR)awai
   assert.equal(await page.locator('.bb-dot').count(),1);assert.ok((await page.locator('#bb-graph-note').innerText()).includes('no year-two season record'));
   // Fresh mobile visitor starts with the selection and graph settings collapsed.
   const mobile=await browser.newPage({viewport:{width:390,height:844},isMobile:true,hasTouch:true});mobile.on('pageerror',e=>errors.push(e.message));
+  await mobile.addInitScript(()=>localStorage.setItem('year-two-detail-v1','full'));
   await mobile.goto(url);await mobile.locator('.bb-dot').first().waitFor();
   assert.equal(await mobile.locator('#bb-selection').getAttribute('open'),null);
   assert.equal(await mobile.locator('#bb-graph-settings').getAttribute('open'),null);
@@ -61,7 +63,8 @@ async function screenshot(page,name){if(process.env.BASEBALL_SCREENSHOT_DIR)awai
   await mobile.click('.yt-sports a[href="?theme=baseball_year_two"]');await mobile.locator('.bb-dot').first().waitFor();assert.equal(await mobile.evaluate(()=>JSON.parse(localStorage.getItem('baseball-year-two-v1')).focus.id),pin);
   // Shared public editing, preview isolation, and concurrent-edit conflict handling.
   await page.goto(url+'&preset_admin=1');await page.locator('#bb-admin-field-role').waitFor();
-  const second=await browser.newPage();second.on('pageerror',e=>errors.push(e.message));await second.goto(url+'&preset_admin=1');await second.locator('#bb-admin-field-role').waitFor();
+  const second=await browser.newPage();second.on('pageerror',e=>errors.push(e.message));await second.addInitScript(()=>localStorage.setItem('year-two-detail-v1','full'));
+  await second.goto(url+'&preset_admin=1');await second.locator('#bb-admin-field-role').waitFor();
   const before=await page.request.get(`http://127.0.0.1:${port}/api/baseball-presets`).then(r=>r.json());
   await page.fill('#bb-admin-label','<b>My OPS story</b>');await page.fill('#bb-admin-count','2');await page.click('#bb-admin-preview');
   await page.waitForFunction(()=>document.querySelector('#bb-story').textContent.includes('DRAFT PREVIEW'));
@@ -72,7 +75,8 @@ async function screenshot(page,name){if(process.env.BASEBALL_SCREENSHOT_DIR)awai
   assert.ok((await page.locator('[data-story="slumps"]').innerText()).includes('<b>My OPS story</b>'));
   await second.fill('#bb-admin-label','Stale editor');await second.click('#bb-admin-save');await second.waitForFunction(()=>document.querySelector('#bb-admin-status').textContent.includes('Another editor'));
   assert.equal(await second.locator('#bb-admin-label').inputValue(),'Stale editor');
-  const third=await browser.newPage();await third.goto(url);assert.ok((await third.locator('[data-story="slumps"]').innerText()).includes('My OPS story'));
+  const third=await browser.newPage();await third.addInitScript(()=>localStorage.setItem('year-two-detail-v1','full'));
+  await third.goto(url);assert.ok((await third.locator('[data-story="slumps"]').innerText()).includes('My OPS story'));
   await page.selectOption('#bb-admin-slot','1');await page.selectOption('#bb-admin-field-metric','whip');await page.selectOption('#bb-admin-field-mode','research');await page.selectOption('#bb-admin-field-outcome','job');await page.click('#bb-admin-preview');
   await waitState(page,'mode','research');assert.equal(await page.locator('#bb-metric').inputValue(),'whip');
   await page.click('#bb-back-editor');await page.click('#bb-admin-capture');assert.equal(await page.locator('#bb-admin-selection').inputValue(),'fixed');
@@ -84,6 +88,7 @@ async function screenshot(page,name){if(process.env.BASEBALL_SCREENSHOT_DIR)awai
   const failed=await browser.newPage();await failed.route('**/api/baseball-data/batting',route=>route.abort());await failed.goto(url);await failed.locator('#bb-retry').waitFor();await failed.unroute('**/api/baseball-data/batting');await failed.click('#bb-retry');await failed.locator('.bb-dot').first().waitFor();
   // Full-cohort selection and drawing must not silently stop at 25 or 100.
   const large=await browser.newPage({viewport:{width:1280,height:900}});large.on('pageerror',e=>errors.push(e.message));
+  await large.addInitScript(()=>localStorage.setItem('year-two-detail-v1','full'));
   await large.goto(url);await large.locator('.bb-dot').first().waitFor();await large.click('#bb-select');
   assert.equal((await large.evaluate(()=>BaseballApp.getState())).ids.length,2852);
   assert.equal(await large.locator('#bb-charts [data-series]').count(),2852);

@@ -75,6 +75,14 @@
     $('cohort-note').textContent=`${rows.length} eligible of ${current.candidates} cohort candidates. Same ${def.horizon}-${state.outcome==='hof'?'year':'season'} follow-up for everyone; outcomes start AFTER year two. Excluded: ${e.anchor} pre-1970/uncertain anchors, ${e.pair} missing year-one/two measures, ${e.followup} incomplete follow-up windows, ${e.outcome} unavailable outcomes. Outcome cutoff: ${cut}. Year-two seasons with fewer than 12 starts remain included.`;
     $('stats').innerHTML=`<div><span>QBs IN THIS TEST</span><strong>${rows.length}</strong><small>${hall} Hall · ${rows.length-hall} not inducted</small></div><div><span>LINEAR RELATIONSHIP</span><strong>${fmt(r)}</strong><small>Pearson r · ${ci?'95% interval '+fmt(ci[0])+' to '+fmt(ci[1]):'Interval unavailable'}</small></div><div><span>RANK RELATIONSHIP</span><strong>${fmt(rho)}</strong><small>Spearman ρ · compares the order of QBs</small></div>`;
     renderPatterns();modelPanel();chart();
+    const modelReading=!model?'For this outcome, this page shows association only; it has not tested whether year two adds predictive value.':model.error?model.error:Math.abs(model.baseScore.brier-model.fullScore.brier)<.00005?'Adding year two made no visible difference to prediction errors at this precision.':model.fullScore.brier<model.baseScore.brier?'Adding year two reduced prediction errors in this historical test.':'Adding year two did not reduce prediction errors in this historical test.';
+    YearTwoView.explain('yt-qb-research',{
+      title:'Did the second season add a useful clue?',
+      takeaway:modelReading+' '+YearTwoView.relationship(rho,predictor+' ('+metricName()+')',def.name.toLowerCase()),
+      reading:`Each dot is a quarterback: left to right is ${predictor}; bottom to top is the later outcome. The study uses ${rows.length} eligible quarterbacks—not just your selected chart lines. ${state.era==='all'?'All eligible entry years.':'Entry-decade filter: '+state.era+'.'} Everyone needs the same completed ${def.horizon}-year follow-up after year two.`,
+      caution:(ci&&ci[0]<=0&&ci[1]>=0?'The uncertainty range for the straight-line relationship includes no relationship. ':'')+(model&&!model.error&&model.testEvents<5?'Fewer than five test successes: the prediction result is especially unstable. ':'')+(model&&!model.error&&model.fullScore.brier>=model.nullBrier?'The two-year model did not beat simply using the historical outcome frequency. ':'')+(['job','efficiency'].includes(state.outcome)?'Missing later observations leave some careers out, so this group may favor survivors. ':'')+'This is exploratory evidence, not a cause or a player forecast. One historical test and many possible statistics can produce chance findings.',
+      terms:'Correlation asks whether two numbers move together across players. It does not say whether year two adds information beyond year one. The prediction test learns from earlier players and checks new, later players. Brier score measures prediction error (lower is better); AUC measures how well successes rank above non-successes. An uncertainty interval shows how much the estimate varies when the sample is resampled.'
+    });
     $('table').innerHTML=rows.map(r=>`<tr><td>${esc(r.name)} ${r.hof?'◆':''}</td><td>${r.first}</td><td>${fmt(r.a)}</td><td>${fmt(r.b)}</td><td>${fmt(r.delta)}</td><td>${esc(outcomeValue(r))}</td><td>${r.end}</td></tr>`).join('')||'<tr><td colspan="7">No eligible quarterbacks.</td></tr>';
   }
   function predict(){
@@ -101,6 +109,7 @@
     if(mode==='research'){if(!current)render();else chart();}else document.dispatchEvent(new Event('qb:layout'));
   }
   document.addEventListener('qb:mode',e=>{if(['film','research'].includes(e.detail.mode))setMode(e.detail.mode);});
+  document.addEventListener('yt:layout',()=>{if(mode==='research'&&current)chart();});
   document.addEventListener('qb:research-snapshot',e=>{e.detail.value={state:{...state},mode,selectedId,initialized:!!current,hof:$('hof').checked,field:$('field').checked,
     scenario:['a','b','first'].map(k=>$('input-'+k).value),prediction:!!$('prediction').textContent};});
   document.addEventListener('qb:research-restore',e=>{

@@ -8,7 +8,16 @@ def sport_switch(active):
         f'<a href="?theme={theme}"'+(' aria-current="page"' if active==key else '')+f'><span aria-hidden="true">{icon}</span> {label}<small>{description}</small></a>'
         for key, theme, icon, label, description in [
             ("football", "qb_year_two", FOOTBALL_ICON, "Football", "Quarterbacks"),
-            ("baseball", "baseball_year_two", BASEBALL_ICON, "Baseball", "Hitters & pitchers")])+ '</nav>'
+            ("baseball", "baseball_year_two", BASEBALL_ICON, "Baseball", "Hitters & pitchers")])+ '</nav>' + DETAIL_CONTROL
+
+
+DETAIL_CONTROL = '''<section id="yt-levels" class="yt-levels" aria-label="Choose your detail level">
+<div class="yt-level-heading"><strong>How deep do you want to go?</strong><span>Same data. Your kind of explanation.</span></div>
+<div class="yt-level-buttons" role="group" aria-label="Detail level">
+<button type="button" data-detail-level="simple" aria-pressed="true">Simple Mode<small>Just tell me the story</small></button>
+<button type="button" data-detail-level="guided" aria-pressed="false">Guided<small>Let me explore, with help</small></button>
+<button type="button" data-detail-level="full" aria-pressed="false">Full detail<small>Give me every number</small></button>
+</div><p id="yt-level-status" role="status"></p></section>'''
 
 
 SPORT_CSS = """

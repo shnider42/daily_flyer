@@ -28,6 +28,7 @@ async function pinned(page,id){
   browser=await chromium.launch({headless:true,...(process.env.CHROMIUM_EXECUTABLE?{executablePath:process.env.CHROMIUM_EXECUTABLE}:{})});
   const mobile=await browser.newPage({viewport:{width:390,height:844},isMobile:true,hasTouch:true});
   mobile.on('pageerror',e=>errors.push(e.message));
+  await mobile.addInitScript(()=>localStorage.setItem('year-two-detail-v1','full'));
   await mobile.goto(`http://127.0.0.1:${port}`);
   await mobile.locator('#qb-chart .qb-dot').first().waitFor();
   assert.equal(await mobile.locator('select:visible').count(),1,'Mobile must not expose a wall of settings');
@@ -91,6 +92,7 @@ async function pinned(page,id){
   const csv=require('node:fs').readFileSync(await download.path(),'utf8');assert.equal(csv.split('\r\n').length,266);
   assert.ok(csv.includes('"relative_anya"'));
   const desktop=await browser.newPage({viewport:{width:1440,height:1000}});desktop.on('pageerror',e=>errors.push(e.message));
+  await desktop.addInitScript(()=>localStorage.setItem('year-two-detail-v1','full'));
   await desktop.goto(`http://127.0.0.1:${port}`);await desktop.locator('#qb-chart .qb-dot').first().waitFor();
   assert.equal(await desktop.locator('#qb-settings').getAttribute('open'),null);
   await desktop.locator('#qb-settings>summary').click();
@@ -160,6 +162,7 @@ async function pinned(page,id){
   // Ready-made stories must replace stale filters, disclose selection, and undo.
   const stories=await browser.newPage({viewport:{width:1440,height:1000}});
   stories.on('pageerror',e=>errors.push(e.message));
+  await stories.addInitScript(()=>localStorage.setItem('year-two-detail-v1','full'));
   await stories.goto(`http://127.0.0.1:${port}`);
   const custom=await stories.evaluate(()=>{
     const value={...JSON.parse(localStorage.getItem('qb-year-two-v1')),search:'Brady',metric:'rating',colors:'player',

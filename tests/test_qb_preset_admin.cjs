@@ -24,6 +24,7 @@ async function changeAndWait(page,button,method,endpoint){
   });
   browser=await chromium.launch({headless:true,...(process.env.CHROMIUM_EXECUTABLE?{executablePath:process.env.CHROMIUM_EXECUTABLE}:{})});
   const page=await browser.newPage({viewport:{width:1440,height:1000}});page.on('pageerror',e=>errors.push(e.message));
+  await page.addInitScript(()=>localStorage.setItem('year-two-detail-v1','full'));
   await page.goto(url+'/?preset_admin=1');
   await page.locator('#qa-label').waitFor();
   assert.ok((await page.locator('#qa-storage').innerText()).includes('ONLY if that path'));
@@ -40,6 +41,7 @@ async function changeAndWait(page,button,method,endpoint){
   assert.equal((await changeAndWait(page,'#qa-save','PUT','/api/qb-presets')).status(),200);
   assert.ok((await page.locator('#qa-status').innerText()).startsWith('Saved for everyone'));
   const visitor=await browser.newPage({viewport:{width:390,height:844},isMobile:true,hasTouch:true});visitor.on('pageerror',e=>errors.push(e.message));
+  await visitor.addInitScript(()=>localStorage.setItem('year-two-detail-v1','full'));
   await visitor.goto(url);assert.ok(await visitor.locator('#qb-preset-admin').isHidden());
   assert.ok((await visitor.locator('[data-story="slumps"]').innerText()).includes('Custom slumps'));
   await visitor.locator('[data-story="slumps"]').tap();assert.equal((await saved(visitor)).metric,'rating');
@@ -69,7 +71,8 @@ async function changeAndWait(page,button,method,endpoint){
   await visitor.reload();assert.equal(await visitor.locator('[data-story="slumps"] img').count(),0);
   assert.ok((await visitor.locator('[data-story="slumps"]').innerText()).includes('<img'));
   // Conflicting editors cannot silently overwrite one another.
-  const other=await browser.newPage();other.on('pageerror',e=>errors.push(e.message));await other.goto(url+'/?preset_admin=1');
+  const other=await browser.newPage();other.on('pageerror',e=>errors.push(e.message));await other.addInitScript(()=>localStorage.setItem('year-two-detail-v1','full'));
+  await other.goto(url+'/?preset_admin=1');
   await page.fill('#qa-label','Editor A');await changeAndWait(page,'#qa-save','PUT','/api/qb-presets');
   await other.fill('#qa-label','Editor B');
   assert.equal((await changeAndWait(other,'#qa-save','PUT','/api/qb-presets')).status(),409);

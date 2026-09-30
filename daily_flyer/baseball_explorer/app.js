@@ -58,6 +58,10 @@
     $('normalize').disabled=$('scale').disabled=$('layout').disabled=state.view==='span';
   }
   function filtered(){return R.filtered(players,state,config.teams);}
+  function filterReading(){
+    const active=[state.search&&'search: '+state.search,state.era!=='all'&&'entry decade: '+state.era,state.team!=='all'&&'team: '+(config.teams[state.team]||state.team),state.hof!=='all'&&'Hall status: '+state.hof,state.qual2&&'substantial year-two workload required',state.skip2020&&'2020 pairs excluded'].filter(Boolean);
+    return (active.length?'Active filters: '+active.join('; ')+'. ':'No cohort filters applied. ')+(state.qual2?'The workload filter leaves out players who lost playing time. ':'')+(state.team!=='all'||state.hof!=='all'?'Team / Hall filters use later-career information; these groups are not prospective forecasts. ':'');
+  }
   function sorted(list){return [...list].sort((a,b)=>{
     if(state.sort==='newest')return b.first-a.first||a.name.localeCompare(b.name);
     if(state.sort==='oldest')return a.first-b.first||a.name.localeCompare(b.name);
@@ -105,6 +109,14 @@
     $('purpose').textContent=state.view==='pair'?'Each line joins year one to the very next calendar season. The larger second marker is year two.':state.view==='career'?'Follow the career from its first substantial season. Gaps stay visible, and year two keeps the larger marker.':'Calendar span since the first substantial season. Gaps count in the span; active careers are unfinished. This is descriptive, not the prediction outcome.';
     renderCharts(list);
     const pairs=list.map(pair).filter(r=>finite(r.delta)),direction=measure().direction||1,up=pairs.filter(r=>r.delta*direction>0).length,down=pairs.filter(r=>r.delta*direction<0).length;
+    const selected=list.filter(p=>state.ids.includes(p.id)),drawn=state.display==='all'?selected:selected.slice(0,Number(state.display)),m=measure();
+    YearTwoView.explain('yt-bb-compare',{
+      title:state.view==='span'?'A longer career is not automatically a better career.':m.name+': what changed in year two?',
+      takeaway:YearTwoView.comparison(drawn.map(pair),m.direction),
+      reading:state.view==='span'?'Each bar shows a player’s observed calendar span, not how well they played. The orange marker is year two. Gaps count; active careers are unfinished.':(state.view==='pair'?'Follow each line from year one to year two. ':'Follow each career over time; the larger marker is year two. ')+(m.direction===0?'Higher or lower is not inherently better for this measure. ':m.direction<0?'Down is an improvement for this measure. ':'Up is an improvement for this measure. ')+(state.normalize==='zscore'?'Values are relative to each player’s own career, not a ranking of ability. ':state.normalize==='delta'?'Zero is each player’s year-one baseline. ':'')+(state.scale==='density'?'Rank spacing spreads crowded values; distances are not equal numerical changes. ':state.scale!=='linear'?'The axis compresses large values; read the tick labels, not just the slope. ':''),
+      caution:filterReading()+'Small workloads can produce big-looking changes. Totals also reflect playing time. A missing season is not zero performance. These selected careers do not establish predictive value.',
+      terms:m.note+(m.group==='Fielding'?' Fielding totals combine positions; chances and role affect comparisons.':'')+' PA means plate appearances; IP means innings pitched. Year two is the next calendar year after the first 300-PA hitting or 50-IP pitching season, not necessarily the second MLB season.'
+    });
     $('summary').innerHTML=`<div><strong>${pairs.length.toLocaleString()}</strong><span>measured year-one / year-two pairs</span></div><div><strong>${pairs.length?num(100*up/pairs.length,1)+'%':'—'}</strong><span>${measure().direction===0?'rose numerically':'improved'} · ${up} players</span></div><div><strong>${down.toLocaleString()}</strong><span>${measure().direction===0?'fell numerically':'declined'} · ${pairs.length-up-down} unchanged · ${list.length-pairs.length} missing pairs</span></div>`;
     $('table').innerHTML=list.map(p=>{const q=pair(p);return `<tr class="${state.ids.includes(p.id)?'bb-selected':''}"><td><button data-toggle="${esc(p.id)}">${esc(p.name)}${p.hof?' ★':''}</button></td><td>${p.first}</td><td>${fmt(q.a)}</td><td>${fmt(q.b)}</td><td>${fmt(q.delta,state.metric,true)}</td><td>${workload(q.two)}${q.two&&!q.two.qualifies?' · small sample':''}</td></tr>`;}).join('');
     $('table').querySelectorAll('button').forEach(e=>e.onclick=()=>toggle(e.dataset.toggle));
@@ -168,6 +180,14 @@
     $('outcome-note').textContent=outcomeNote();
     $('research-summary').innerHTML=`<div><strong>${rows.length.toLocaleString()}</strong><span>eligible ${state.role==='batting'?'hitters':'pitchers'}</span></div><div><strong>${num(c.spearman)}</strong><span>rank correlation (ρ)</span></div><div><strong>${state.outcome==='future'?fmt(S.mean(rows.map(r=>r.y))):rows.filter(r=>r.event===1).length.toLocaleString()}</strong><span>${state.outcome==='future'?'mean later-season value':'players with the later outcome'}</span></div>`;
     const sign=c.spearman>0?'Higher':'Lower',strength=Math.abs(c.spearman);
+    const predictor=(state.x==='a'?'year-one values':state.x==='b'?'year-two values':'year-one-to-two changes')+' in '+measure().name;
+    YearTwoView.explain('yt-bb-research',{
+      title:'A relationship is a clue—not a forecast.',
+      takeaway:YearTwoView.relationship(c.spearman,predictor,def.name.toLowerCase()),
+      reading:`Each dot is a player. Left to right: ${predictor}. Bottom to top: the later outcome. All ${rows.length.toLocaleString()} eligible ${state.role==='batting'?'hitters':'pitchers'} in the filtered group count, not just selected chart lines.`,
+      caution:filterReading()+`${study.candidates-rows.length} players lack the measurements or follow-up required. `+'This is a pattern, not a cause or a player forecast. Injuries, era, opportunity and chance can affect it.',
+      terms:'Correlation describes whether players with higher values of one number also tend to have higher (positive correlation) or lower (negative correlation) values of another. Near zero means little of this kind of relationship, not no possible relationship. The prediction test learns from earlier careers, then checks later players. Lower Brier error or squared error means fewer errors in that test; it is not a guarantee.'
+    });
     $('verdict').textContent=!finite(c.spearman)?'This cohort has too few observations or too little variation to estimate a relationship.':strength<.1?'There is little rank relationship in this cohort. The prediction test below checks whether year two adds anything beyond year one.':`${sign} ${state.x==='delta'?'year-one-to-two changes':state.x==='a'?'year-one values':'year-two values'} tended to accompany higher later outcomes (ρ = ${num(c.spearman)}). That relationship alone does not show that year two adds predictive value.`;
     $('exclusions').textContent=`${study.candidates} filtered candidates: ${excluded.pair} lack a measured Y1/Y2 pair; ${excluded.followup} lack a complete follow-up window; ${excluded.outcome} lack enough later performance measurements. ${rows.length} remain. The snapshot ends in ${study.cut}.`;
     $('uncertainty').textContent=`Pearson r = ${num(c.pearson)}; Spearman ρ = ${num(c.spearman)}. Calculate a deterministic 400-resample 95% bootstrap interval for Pearson r if you want a closer look.`;
@@ -196,8 +216,17 @@
   function renderScan(list){
     $('scan-outcome').textContent=R.definitions[state.outcome].name;$('scan-target').value=state.outcome;
     const results=Object.entries(config.metrics[state.role]).map(([key,m])=>{const {rows}=R.cohort(list,{...state,metric:key},config.meta);return {key,m,n:rows.length,a:R.correlation(rows,'a').spearman,b:R.correlation(rows,'b').spearman,d:R.correlation(rows,'delta').spearman};}).sort((a,b)=>(Math.abs(b.b??-0)-Math.abs(a.b??-0))||b.n-a.n);
+    YearTwoView.explain('yt-bb-scan',{
+      title:'Three questions to explore next',
+      takeaway:'These measures have the largest observed year-two rank relationships in the current scan. That makes them leads to investigate, not proven predictors.',
+      reading:'Open a question below to see the players behind it. Compare year one with year two, then run the prediction test. Full detail keeps the complete side-by-side table.',
+      caution:filterReading()+'Each statistic may have a different sample. '+(state.outcome==='future'?'“Same statistic” also changes the later outcome for every row, so the rows are not testing one shared target. ':'')+'Scanning many measures increases the risk of chance findings.',
+      terms:'A correlation near +1 means players tend to keep the same numerical order; near −1 means the order tends to reverse. Near zero means little rank relationship. The sign is not a good / bad grade. A high year-two correlation can simply repeat what year one already tells us.'
+    });
+    $('scan-picks').innerHTML=results.filter(r=>finite(r.b)).slice(0,3).map(r=>`<article><button data-stat="${r.key}">Explore ${esc(r.m.name)} →</button><p>${esc(YearTwoView.relationship(r.b,'year-two '+r.m.name,R.definitions[state.outcome].name.toLowerCase()))}</p><small>${r.n.toLocaleString()} eligible players · ${Math.abs(r.a)>Math.abs(r.b)?'The year-one relationship is at least as large.':'Check whether year two adds anything beyond year one.'}</small></article>`).join('')||'<p>No measures have enough comparable data for this outcome and these filters.</p>';
     $('scan-table').innerHTML=results.map(r=>`<tr><td><button data-stat="${r.key}">${esc(r.m.name)}</button></td><td>${r.n}</td><td>${num(r.a)}</td><td>${num(r.b)}</td><td>${num(r.d)}</td></tr>`).join('');
     $('scan-table').querySelectorAll('button').forEach(e=>e.onclick=()=>{state.metric=e.dataset.stat;state.mode='research';changed();$('research').scrollIntoView({block:'start'});});
+    $('scan-picks').querySelectorAll('button').forEach(e=>e.onclick=()=>{state.metric=e.dataset.stat;state.mode='research';changed();$('research').scrollIntoView({block:'start'});});
   }
   function renderModel(result){
     if(result.error){$('model-result').textContent=result.error;return;}
@@ -246,6 +275,7 @@
   $('unpin').onclick=()=>{focus=null;applyFocus();$('inspect').textContent='Tap a season to inspect its numbers.';save();};
   document.addEventListener('keydown',e=>{if(e.repeat||e.isComposing||e.target.closest('input,select,textarea,[contenteditable=true]'))return;if(e.altKey&&e.shiftKey&&!e.ctrlKey&&!e.metaKey){const n=Number(e.code.replace('Digit',''))-1;if(n>=0&&n<5){e.preventDefault();applyPreset(presets[n]).catch(()=>{$('load').textContent='Could not open this story. Please retry.';});}}});
   let resizeTimer;window.addEventListener('resize',()=>{const width=Math.round($('workspace').getBoundingClientRect().width);if(width===lastWidth)return;lastWidth=width;clearTimeout(resizeTimer);resizeTimer=setTimeout(()=>{if(busy)return;if(state.mode==='compare')renderCharts(visibleRows);if(state.mode==='research'&&study)renderScatter(study.rows);},150);});
+  document.addEventListener('yt:layout',()=>{if(busy)return;if(state.mode==='compare')renderCharts(visibleRows);if(state.mode==='research'&&study)renderScatter(study.rows);});
   $('team').innerHTML='<option value="all">All teams</option>'+Object.entries(config.teams).sort((a,b)=>a[1].localeCompare(b[1])).map(([code,name])=>`<option value="${esc(code)}">${esc(name)} (${esc(code)})</option>`).join('');
   $('scan-target').innerHTML=$('outcome').innerHTML;$('selection').open=innerWidth>760;$('version').textContent='v'+config.build.version;$('total').textContent=(config.meta.counts.batting.players+config.meta.counts.pitching.players).toLocaleString();
   window.BaseballApp={config,clone,esc,loadRole,metricOptions,getState:()=>clone(state),applyPreset,updatePresets:next=>{presets=clone(next);clearStory();storyButtons();},getPlayers:()=>players,defaults:roleDefaults};

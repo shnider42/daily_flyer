@@ -1,4 +1,4 @@
-# Baseball year-two explorer · v3.0.1
+# Baseball year-two explorer · v3.1.0
 
 Repository: `shnider42/daily_flyer`, branch `feat/qb-year-two-explorer`.
 Theme: `baseball_year_two` (hyphenated URL alias also works).
@@ -11,8 +11,12 @@ Theme: `baseball_year_two` (hyphenated URL alias also works).
 - Existing Render build/start commands and requirements are unchanged.
 - No data API keys, live scraping, external chart packages or scheduled jobs.
 
-Football's implementation is preserved, with only its sport navigation and
-displayed version changed. Baseball uses its own DOM, data, local saved views,
+Simple, Guided and Full detail are shared presentation levels, described in
+[qb_year_two.md](qb_year_two.md#version-310--choose-your-detail-level). New
+visitors start in Simple; the preference follows them between sports. Player
+limits, model inputs, underlying calculations and public presets are unchanged.
+
+Baseball uses its own DOM, data, local saved views,
 research cohort and preset database. Generic chart/statistical calculations are
 reused without changing them. Two-way players have independent hitting/pitching
 clocks and can appear in both datasets; counts are role-careers, not unique people.

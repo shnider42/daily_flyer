@@ -18,6 +18,29 @@ Or use `/?theme=qb_year_two` on a service deploying this branch. No API key,
 database, background job, chart CDN or new production dependency is required.
 This change does not deploy or merge the branch.
 
+## Version 3.1.0 — choose your detail level
+
+A prominent three-button control sits directly below the sport selector:
+
+- **Simple Mode** (default): story shortcuts, graphs and current-data explanations;
+  dense filters, numerical tables and model scorecards are tucked away.
+- **Guided**: player selection and metric controls, plus plain-English graph and
+  statistic explanations. Full model diagnostics remain out of the way.
+- **Full detail**: the complete existing explorer and exports.
+
+The preference is browser-local (`year-two-detail-v1`) and shared across sports.
+Like the WWII Simple View pattern, this is presentation-only: it does not replace
+selections, filters, chart transformations, pins, preset undo snapshots, model
+results or unsaved editor drafts. The editor remains fully available at every
+level. Important workload, missing-data, follow-up and exploratory-study caveats
+remain visible. Existing analyses are not recalculated when changing levels.
+Baseball's stat scan provides three live question cards in Simple/Guided and the
+full metric table in Full detail. Nothing is inferred from preset titles alone.
+
+Coverage: `tests/test_year_two_view.cjs` and
+`tests/test_year_two_levels_browser.cjs`, plus the original explorer regression
+suites explicitly selecting Full detail. No new data requests or dependencies.
+
 ## Version 3.0.0 — football / baseball switch
 
 The large sport selector opens the original quarterback explorer or the new

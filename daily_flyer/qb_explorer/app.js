@@ -308,6 +308,15 @@
     const changes=comparable.map(q=>q.delta).sort((a,b)=>a-b);
     const mid=Math.floor(changes.length/2), median=changes.length?(changes.length%2?changes[mid]:(changes[mid-1]+changes[mid])/2):null;
     const improved=comparable.filter(q=>q.delta*metrics[state.metric][2]>0).length;
+    const selected=list.filter(p=>state.ids.has(p.id)),m=metrics[state.metric];
+    const filterText=[state.search&&'search: '+state.search,state.era!=='all'&&'entry years: '+state.era,state.hof!=='all'&&'Hall status: '+state.hof,state.team!=='all'&&'team: '+teamName(state.team),state.y2qual&&'only QBs still making 12 starts in year two'].filter(Boolean).join('; ');
+    YearTwoView.explain('yt-qb-film',{
+      title:state.view==='career'?'A longer career is not automatically a better career.':m[0]+': what changed in year two?',
+      takeaway:YearTwoView.comparison(selected.map(pair),m[2]),
+      reading:state.view==='career'?'Each vertical line shows a quarterback’s observed calendar span. A longer line means more years, not better seasons; active careers are unfinished.':(state.view==='year2'?'Follow each line from year one to year two. ':'Follow each player over time; the larger marker is year two. ')+(m[2]<0?'Down is an improvement for this measure. ':'Up is an improvement for this measure. ')+(state.normalize==='zscore'?'Values are relative to each player’s own career, not a ranking of ability. ':state.normalize==='delta'?'Zero is each player’s year-one baseline. ':'')+(state.scale==='density'?'Rank spacing spreads crowded values; the distances are not equal numerical changes. ':state.scale!=='linear'?'The axis compresses large values; read the tick labels, not just the slope. ':''),
+      caution:(filterText?'Active filters: '+filterText+'. ':'All entry years and Hall statuses; no team filter. ')+(state.y2qual?'Requiring 12 starts in year two leaves out players who lost their starting role. ':'')+'Short seasons and fewer starts can make a change look bigger than it is. Missing seasons stay missing. These selected careers do not establish predictive value.',
+      terms:m[3]+' A rate describes production per opportunity; a total also reflects playing time. The summary below uses all filtered quarterbacks, not just the drawn lines.'
+    });
     $('summary').innerHTML=`<div class="qb-stat"><strong>${comparable.length}<small style="font:14px Arial"> / ${list.length}</small></strong><span>with comparable year-one and year-two values</span></div><div class="qb-stat"><strong>${comparable.length?Math.round(100*improved/comparable.length)+'%':'—'}</strong><span>improved on this measure (${improved} quarterbacks)</span></div><div class="qb-stat"><strong>${fmt(median,true)}</strong><span>median year-two change · ${metrics[state.metric][2]>0?'higher':'lower'} is better</span></div>`;
     $('table').innerHTML=pairs.map(q=>{
       const p=q.p, delta=q.delta, quality=exists(delta)?Math.sign(delta)*metrics[state.metric][2]:0;
@@ -334,6 +343,7 @@
     render();
   }
   document.addEventListener('qb:film-snapshot',e=>{e.detail.value={...state,ids:[...state.ids]};});
+  document.addEventListener('yt:layout',()=>{if(!$('film').hidden)renderChart(filtered().filter(p=>state.ids.has(p.id)));});
   document.addEventListener('qb:film-restore',e=>loadFilmState(e.detail));
   document.addEventListener('qb:film-story',e=>{
     const {id,preset}=e.detail;if(!preset||preset.mode!=='film')return;
