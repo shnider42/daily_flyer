@@ -116,7 +116,7 @@ function renderPlatoons(board){
  }
 }
 function activate(e,callback){e.addEventListener('click',callback);e.addEventListener('keydown',event=>{if(event.key==='Enter'||event.key===' '){event.preventDefault();callback();}});}
-function chooseUnit(u){if(busy||playbackSession)return;if(combatMode){window.pickCombatHex(u.pos);return;}if(barrageMode){placeBarrage(u.pos);return;}if(smokeMode){placeSmoke(u.pos);return;}const restore=holdMobileMap();if(u.side===state.side){selected=u.id;target=null;if(u.platoon&&platoonFilter!=='all')platoonFilter=u.platoon;}else{target=u.id;}render();document.dispatchEvent(new Event('ww2:selection'));restore();if(u.side===state.side&&window.ww2Desktop?.active)focusMapUnit(u);}
+function chooseUnit(u){if(busy||playbackSession)return;if(combatMode){window.pickCombatHex(u.pos);return;}if(barrageMode){placeBarrage(u.pos);return;}if(smokeMode){placeSmoke(u.pos);return;}const restore=holdMobileMap();if(u.side===state.side){selected=u.id;target=null;if(u.platoon&&platoonFilter!=='all')platoonFilter=u.platoon;}else{target=u.id;}render();document.dispatchEvent(new Event('ww2:selection'));restore();if(u.side===state.side&&window.ww2Desktop?.active)window.ww2Desktop.ensureVisible(u);}
 function placeBarrage(pos){const effect=state.combat_version?'Infantry there takes 1 damage, pins and loses dug-in cover, including yours. Armor, vehicles and ships are unaffected.':'ALL units there will be pinned and lose dug-in cover, including yours. No strength damage.';if(state.legal[selected]?.barrage?.some(p=>p[0]===pos[0]&&p[1]===pos[1])&&confirm(`Call your army's only mortar barrage at ${String.fromCharCode(65+pos[0])}${pos[1]+1}? The marked hex and its neighbors will be hit at the end of your opponent's turn. ${effect}`))act({kind:'barrage',unit:selected,pos});}
 function placeSmoke(pos){if(state.legal[selected]?.smoke?.some(p=>p[0]===pos[0]&&p[1]===pos[1]))act({kind:'smoke',unit:selected,pos});}
 function chance(threshold){return Math.max(0,Math.min(100,Math.round((7-threshold)/6*100)));}
@@ -280,6 +280,7 @@ function render(){
  if(window.renderCampaign)window.renderCampaign(unit,legal,svg);
  if(window.renderWeaponRules)window.renderWeaponRules(unit,legal,svg);
  if(window.renderOperations)window.renderOperations(unit,legal,svg);
+ if(window.renderOrderCapabilities)window.renderOrderCapabilities(unit);
  const buildingWarning=unit&&unit.hp>0&&!unit.reserve&&!unit.carrier_id&&buildingCondition(state,unit.pos)==='damaged'&&!picking&&!target;
  $('hint').classList.toggle('building-warning',!!buildingWarning);
  if(buildingWarning)$('hint').textContent='Damaged building · reduced cover. Explosive hits can collapse it and kill the occupants.';

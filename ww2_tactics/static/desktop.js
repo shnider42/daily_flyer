@@ -3,7 +3,7 @@
 document.addEventListener('DOMContentLoaded',()=>{
  const desktop=matchMedia('(min-width: 1100px)'), game=document.getElementById('game'), lobby=document.getElementById('lobby');
  const wrap=document.getElementById('mapWrap');
- let mounts=[], originals=[], active=false, battle=null, zoom=1, scale=1, drag=null, suppressClick=false, resizeFrame;
+ let mounts=[], originals=[], active=false, battle=null, zoom=1, scale=1, drag=null, suppressClick=false, resizeFrame, measured='',orderUnit=null;
  const el=(tag,cls,text)=>{const node=document.createElement(tag);node.className=cls;if(text)node.textContent=text;return node;};
  function move(node,destination){
   if(!node)return;
@@ -17,26 +17,35 @@ document.addEventListener('DOMContentLoaded',()=>{
  function measure(){
   if(!active||game.hidden)return;
   const svg=activeSvg(),box=svg.viewBox.baseVal;if(!box.width||!wrap.clientWidth)return;
+  document.getElementById('desktopZoomValue').textContent=`${Math.round(zoom*100)}%`;
+  document.getElementById('desktopZoomOut').disabled=zoom<=1;
+  document.getElementById('desktopZoomIn').disabled=zoom>=3.5;
+  const key=[box.width,box.height,wrap.clientWidth,wrap.clientHeight,zoom].join(':');
+  if(key===measured)return;measured=key;
   const previous=scale;
   const centerX=(wrap.scrollLeft+wrap.clientWidth/2)/previous,centerY=(wrap.scrollTop+wrap.clientHeight/2)/previous;
   const fit=Math.min((wrap.clientWidth-32)/box.width,(wrap.clientHeight-32)/box.height);
   scale=Math.max(.1,fit)*zoom;
   wrap.style.setProperty('--desktop-map-width',`${box.width*scale}px`);
   wrap.scrollLeft=centerX*scale-wrap.clientWidth/2;wrap.scrollTop=centerY*scale-wrap.clientHeight/2;
-  document.getElementById('desktopZoomValue').textContent=`${Math.round(zoom*100)}%`;
-  document.getElementById('desktopZoomOut').disabled=zoom<=1;
-  document.getElementById('desktopZoomIn').disabled=zoom>=3.5;
  }
- function focus(unit,svg=activeSvg()){
+ function focus(unit,svg=activeSvg(),onlyIfOutside=false){
   if(!active||!unit||game.hidden)return;
   const [x,y]=center(...unit.pos),ratio=svg.getBoundingClientRect().width/svg.viewBox.baseVal.width;
   // Small maps fit in full. Detail views keep the chosen unit centered.
   const field=svg.getBoundingClientRect(),viewport=wrap.getBoundingClientRect();
+  const px=field.left+x*ratio,py=field.top+y*ratio;
+  if(onlyIfOutside&&px>viewport.left+30&&px<viewport.right-30&&py>viewport.top+30&&py<viewport.bottom-30)return;
   wrap.scrollTo({left:wrap.scrollLeft+field.left-viewport.left+x*ratio-wrap.clientWidth/2,top:wrap.scrollTop+field.top-viewport.top+y*ratio-wrap.clientHeight/2,behavior:'auto'});
  }
- function changeZoom(value){
+ function changeZoom(value,point=null){
+  const before=activeSvg().getBoundingClientRect(),oldScale=scale;
   zoom=Math.max(1,Math.min(3.5,value));measure();
-  if(zoom===1)wrap.scrollTo(0,0);
+  if(point){
+   const after=activeSvg().getBoundingClientRect();
+   wrap.scrollLeft+=after.left+(point.x-before.left)*scale/oldScale-point.x;
+   wrap.scrollTop+=after.top+(point.y-before.top)*scale/oldScale-point.y;
+  }else if(zoom===1)wrap.scrollTo(0,0);
  }
  function sync(){
   if(!active||!state||game.hidden)return;
@@ -59,6 +68,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   document.getElementById('desktopOrderTitle').textContent=playbackSession?'Opponent’s turn':'Unit orders';
   document.getElementById('desktopPlaybackNote').hidden=!playbackSession;
   document.getElementById('desktopActionDock').hidden=!!playbackSession;
+  if(selected!==orderUnit){document.querySelector('.desktop-orders').scrollTop=0;orderUnit=selected;}
   measure();
   if(changed&&state.scenario?.platoons)focus(troops.find(u=>u.hp>0&&u.kind===(state.naval_version?'carrier':'leader')));
  }
@@ -75,13 +85,18 @@ document.addEventListener('DOMContentLoaded',()=>{
   const field=group(layout,'desktop-battlefield',['.mission','#missionHint','#tutorialCoach','.map-tools','#mapWrap','.team-legend','.terrain-legend']);
   const mapHead=el('div','desktop-map-heading');mapHead.append(el('h2','','Battlefield'));const size=el('span','');size.id='desktopMapSize';mapHead.append(size);field.prepend(mapHead);
   const camera=el('div','desktop-camera');mounts.push(camera);
-  for(const [id,label,title,fn] of [['desktopZoomOut','−','Zoom out',()=>changeZoom(zoom-.25)],['desktopZoomIn','+','Zoom in',()=>changeZoom(zoom+.25)],['desktopFit','Fit map','Show the whole battlefield',()=>changeZoom(1)]]){
-   const button=el('button','',label);button.id=id;button.type='button';button.title=title;button.setAttribute('aria-label',title);button.onclick=fn;camera.append(button);
+  for(const [id,label,title,fn] of [['desktopZoomOut','−','Zoom out',()=>changeZoom(zoom-.25)],['desktopZoomIn','+','Zoom in',()=>changeZoom(zoom+.25)],['desktopFit','Fit map','Show the whole battlefield',()=>changeZoom(1)],['desktopExpand','Widen map','Widen map',()=>{
+   const on=layout.classList.toggle('map-expanded');$('desktopExpand').setAttribute('aria-pressed',String(on));$('desktopExpand').textContent=on?'Show roster':'Widen map';
+  }]]){
+   const button=el('button','',label);button.id=id;button.type='button';button.setAttribute('aria-label',title);button.dataset.help=id==='desktopExpand'?'Hide the task-force list to give the map more space. Unit orders stay accessible. Select again to restore the roster.':id==='desktopFit'?'Fit every hex in the viewport. This changes your view, not movement range. Shortcut: 0 when the map is focused.':title+'. You can also scroll over the map to zoom around the pointer.';button.onclick=fn;if(id==='desktopExpand')button.setAttribute('aria-pressed','false');camera.append(button);
   }
   const value=el('span','desktop-zoom-value');value.id='desktopZoomValue';camera.insertBefore(value,camera.children[1]);
-  camera.append(el('span','desktop-pan-hint','Drag to pan · + / − to zoom'));
+  const cameraHint=el('p','desktop-camera-hint','Scroll to zoom · drag to pan · Find centers your unit');wrap.after(cameraHint);mounts.push(cameraHint);
+  $('findUnit').dataset.help='Center the selected unit without changing zoom. Selecting a unit already in view keeps the map still.';
+  $('nextUnit').dataset.help='Select the next unit. This does not spend actions or end your turn.';
+  $('end').dataset.help='Finish your turn and let the opponent act. Unused AP bank according to this battle’s rules.';
   field.querySelector('.map-tools').append(camera);
-  wrap.tabIndex=0;wrap.setAttribute('aria-label','Battlefield viewport. Drag to pan; plus and minus to zoom; zero fits the map.');
+  wrap.tabIndex=0;wrap.setAttribute('aria-label','Battlefield viewport. Scroll to zoom, drag to pan; plus and minus to zoom; zero fits the map.');
   const commands=el('section','desktop-command-column');layout.append(commands);mounts.push(commands);
   const orders=group(commands,'desktop-orders',['#waiting','#incoming','#supportStatus','#playbackPanel','#orders','#combat','#simpleOutcome','#battleReport','#rematchProposal','#replayTurn','#computerReview','.journal'],'Unit orders');
   orders.querySelector('h2').id='desktopOrderTitle';
@@ -94,11 +109,12 @@ document.addEventListener('DOMContentLoaded',()=>{
   document.querySelectorAll('.desktop-unit-meta').forEach(node=>node.remove());
   for(const [node,marker] of originals){marker.replaceWith(node);}originals=[];
   for(const node of mounts)node.remove();mounts=[];
-  wrap.style.removeProperty('--desktop-map-width');wrap.removeAttribute('tabindex');wrap.removeAttribute('aria-label');wrap.classList.remove('desktop-panning');battle=null;
+  wrap.style.removeProperty('--desktop-map-width');wrap.removeAttribute('tabindex');wrap.removeAttribute('aria-label');wrap.classList.remove('desktop-panning');battle=null;measured='';orderUnit=null;
+  for(const id of ['findUnit','nextUnit','end'])delete $(id).dataset.help;
   // Reapply original map sizing and unit focus after crossing into the mobile layout.
   if(state&&!game.hidden){if(playbackSession)drawPlayback();else render();}
  }
- window.ww2Desktop={get active(){return active;},focus,zoomBy:factor=>changeZoom(zoom*factor)};
+ window.ww2Desktop={get active(){return active;},focus,ensureVisible:u=>focus(u,activeSvg(),true),zoomBy:factor=>changeZoom(zoom*factor)};
  desktop.addEventListener('change',()=>desktop.matches?activate():deactivate());
  document.addEventListener('ww2:render',sync);
  document.addEventListener('ww2:playback',()=>{if(active){document.getElementById('desktopOrderTitle').textContent='Opponent’s turn';document.getElementById('desktopPlaybackNote').hidden=false;document.getElementById('desktopActionDock').hidden=true;measure();}});
@@ -110,9 +126,15 @@ document.addEventListener('DOMContentLoaded',()=>{
    if(!active||game.hidden)return;
    const box=activeSvg().viewBox.baseVal,fit=Math.min((wrap.clientWidth-32)/box.width,(wrap.clientHeight-32)/box.height);
    if(zoom>1&&fit>0)zoom=Math.min(3.5,Math.max(1,Math.round(scale/fit*4)/4));
-   measure();if(selected&&!playbackSession)focus(state?.units.find(u=>u.id===selected));
+   measure();
   });
  }).observe(wrap);
+ wrap.addEventListener('wheel',event=>{
+  if(!active||game.hidden||event.altKey||event.metaKey)return;
+  event.preventDefault();
+  const delta=event.deltaY*(event.deltaMode===1?16:event.deltaMode===2?wrap.clientHeight:1);
+  changeZoom(zoom*Math.exp(-Math.max(-120,Math.min(120,delta))*.0025),{x:event.clientX,y:event.clientY});
+ },{passive:false});
  wrap.addEventListener('pointerdown',event=>{
   if(!active||event.pointerType==='touch'||event.button!==0)return;
   drag={id:event.pointerId,x:event.clientX,y:event.clientY,left:wrap.scrollLeft,top:wrap.scrollTop,moved:false};suppressClick=false;

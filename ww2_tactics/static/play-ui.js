@@ -53,14 +53,15 @@
    const shape=document.createElementNS(icon.namespaceURI,'path');shape.setAttribute('d',cancel?'M5 5l14 14M19 5L5 19':path);icon.append(shape);
    const copy=node('span');copy.className='action-copy';
    const unit=state?.units.find(u=>u.id===selected),legal=state?.legal[selected];
-   const shortNames={command:'Give actions',inspire:'Rally allies',recon:'Air search',repair:'Repair',airdrop:'Land troops',barrage:'Mortars',grenade:'Grenade',fire:'Fire',assault:'Assault',load:'Load troops',unload:'Unload',overwatch:'Overwatch',dig:'Dig in'};
+   const shortNames={command:'Give actions',inspire:'Rally allies',recon:'Air search',repair:'Repair hull',airdrop:'Land troops',barrage:'Mortars',grenade:'Grenade',fire:'Fire at unit',assault:'Close assault',load:'Load troops',unload:'Unload',overwatch:'Overwatch',dig:'Dig in'};
    if(state?.air_version){shortNames.overwatch=unit?.kind==='aa_gun'?'AA cover':'Intercept';shortNames.fire=unit?.kind==='bomber'?'Bomb':'Fire';shortNames.rearm='Service';}
    const heading=node('span',null,cancel?title:shortNames[id]||title);heading.className='action-name';
    const description=window.orderHelp?.(id,unit,legal,prefs.simple)||purpose;
    const effect=node('span',null,cancel?'Return to orders':description);effect.className='action-purpose';copy.append(heading,effect);
+   if(b.dataset.orderReason){const reason=node('span',null,b.dataset.orderReason);reason.className='action-reason';copy.append(reason);}
    b.replaceChildren(icon,copy);
    if(cost){const badge=node('span',null,`${cost[1]} ${id==='load'||id==='unload'?'infantry ':''}AP`);badge.className='action-cost';b.append(badge);}
-   b.setAttribute('aria-label',`${raw}. ${effect.textContent}`);
+   b.setAttribute('aria-label',`${raw}. ${effect.textContent}${b.dataset.orderReason?'. Unavailable: '+b.dataset.orderReason:''}`);
   }
  }
  const node=(tag,id,text)=>{const n=document.createElement(tag);if(id)n.id=id;if(text)n.textContent=text;return n;};
@@ -177,8 +178,12 @@
   styleActions();
   if(dock){
    const columns=innerWidth<360?2:3,buttons=[...$('orders').querySelectorAll('button')].filter(b=>!b.hidden&&!b.closest('[hidden]'));
-   $('dadOrdersOpen').disabled=!!playbackSession||!buttons.length;$('dadOrdersOpen').textContent=buttons.length?`Orders · ${buttons.length} available`:'Select a unit for orders';
-   const rows=String(Math.max(columns===2?4:3,Math.ceil(buttons.length/columns)));
+   const ready=buttons.filter(b=>!b.disabled&&b.getAttribute('aria-disabled')!=='true').length;
+   $('dadOrdersOpen').disabled=!!playbackSession||!buttons.length;$('dadOrdersOpen').textContent=buttons.length?`Orders · ${ready} ready / ${buttons.length}`:'Select a unit for orders';
+   // Reserve the army's largest role, even before selection. Revealing orders
+   // never changes the map's height or pushes it away from a player's finger.
+   const capacity=window.unitOrderCapabilities?Math.max(0,...state.units.filter(u=>u.side===state.side).map(u=>unitOrderCapabilities(u).length)):0;
+   const rows=String(Math.max(columns===2?4:3,Math.ceil(Math.max(buttons.length,capacity)/columns)));
    if(screen.style.getPropertyValue('--order-rows')!==rows)screen.style.setProperty('--order-rows',rows);
    if(state.last_combat?.revision===state.revision&&!smokeMode&&!barrageMode&&!combatMode&&!target&&!state.units.find(u=>u.id===selected)?.immobilized&&!$('hint').classList.contains('building-warning')&&!$('hint').textContent.startsWith('Tap a marked'))$('hint').textContent=state.last_combat.result;
   }

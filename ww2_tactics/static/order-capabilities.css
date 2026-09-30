@@ -1,0 +1,28 @@
+/* Disabled means unavailable, not illegible. Color, silhouette and words all
+   distinguish attack, protection, support and recovery orders. */
+#orders .tactical-action.order-unavailable{opacity:1;filter:none;background:#eeede6;color:#52574f;border-color:#c6c9bd;border-left-color:#9b9e94;box-shadow:none;cursor:help}
+.action-reason{display:block;margin-top:4px;font-size:11px;line-height:1.3;font-weight:650;color:#53584e}
+#orders .order-unavailable .action-icon{color:#73786d}
+#orders .order-unavailable .action-cost{border-color:#b2b6a9}
+#orders .tactical-action:not(.order-unavailable):not(:disabled):hover{box-shadow:inset 0 0 0 1px currentColor,0 2px 6px #17272216}
+.mobile-battle #mobileOrderBody #orders .order-unavailable .action-purpose{display:none}
+.mobile-battle #mobileOrderBody #orders .action-reason{grid-column:1/-1;grid-row:3;font-size:10px;line-height:11px;margin:1px 0 0}
+@media(min-width:1100px){
+ .desktop-mode .desktop-layout{grid-template-columns:180px minmax(0,1fr) 306px;gap:14px}
+ .desktop-mode .desktop-map-heading{margin-bottom:6px}
+ .desktop-mode .desktop-camera button{border:1px solid #a4ae99;background:#faf7ed;color:#263d30;min-width:32px}
+ .desktop-mode .desktop-camera #desktopExpand{background:#2e493a;color:#fff8e7;border-color:#2e493a}
+ .desktop-mode .desktop-camera button[aria-pressed=true]{background:#e5d2a1!important;color:#263d30!important}
+ .desktop-mode .desktop-layout.map-expanded{grid-template-columns:minmax(0,1fr) 306px}
+ .desktop-mode .map-expanded .desktop-forces{display:none}
+ .desktop-mode .desktop-orders #orders .tactical-action{width:100%;min-height:58px;padding:8px 10px;gap:9px;border-left-width:5px}
+ .desktop-mode .desktop-orders #selection{position:sticky;top:38px;background:#e8e8de;z-index:2;padding:5px 0}
+ .desktop-mode .desktop-orders>.desktop-panel-title{z-index:3}
+ .desktop-mode:not(.dad-mode) .desktop-orders #orders .action-name{font-size:13px}
+ .desktop-mode:not(.dad-mode) .desktop-orders #orders .action-purpose{font-size:12px}
+ .desktop-mode:not(.dad-mode) .desktop-orders #orders .action-cost{font-size:11px}
+ .dad-mode.desktop-mode .desktop-layout.map-expanded{grid-template-columns:minmax(280px,1fr) 330px}
+ .desktop-mode .desktop-camera-hint{font-size:11px;color:#50604c;margin:5px 0 0}
+ .desktop-mode #homeBattles{color:#f3edda;border:1px solid #667566}
+}
+.dad-mode #orders .action-reason{font-size:14px}

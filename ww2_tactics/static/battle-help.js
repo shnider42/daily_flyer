@@ -13,7 +13,7 @@ window.orderHelp=(id,u,legal,simple)=>{
   fieldRecon:['Reveal hidden troops',`Sight radius 3 / ${u?.field_recon_charges||0} sorties`],
   dig:['Extra cover','Enemy hit roll +1'],smoke:['Block sight','Blocks sight / 1 enemy turn'],
   overwatch:['React to movement','1 reaction shot / hit roll +1'],rally:['Remove pin','Unpin this unit / 1 AP'],
-  fire:['Shoot the target',`${shot?.threshold||4}+ to hit${shot?.damage?` / ${shot.damage} damage`:''}`],
+  fire:['Shoot a visible target',shot?`${shot.threshold}+ to hit${shot.damage?` / ${shot.damage} damage`:''}`:`Weapon range ${u?.range||0} / select target for odds`],
   assault:['Risky close attack',`${assault?.threshold||4}+ / hit 2, fail lose 1`],
   grenade:['Blast and pin',`${frag?.threshold||4}+ / 2 damage + pin`],
   suppress:['Try to pin enemy',state?.dsl_expansion||state?.combat_version?`${u?.suppression??(u?.side==='de'?3:5)}+ to pin / no damage`:'Automatic pin / no damage'],
@@ -23,8 +23,8 @@ window.orderHelp=(id,u,legal,simple)=>{
   load:['Board infantry','1 passenger / 1 infantry AP'],unload:['Put infantry ashore','Adjacent land / 1 infantry AP'],
   airdrop:['Land airborne troops','Spotted open hex / 2 AP'],
   recon:['Reveal sea contacts','Sight radius 3 / 1 enemy turn'],
-  airstrike:['Bomb a spotted ship',`${strike?.threshold||3}+ / ${strike?.damage||u?.strike_damage||0} damage`],
-  torpedo:['Heavy ship attack',`${torpedo?.threshold||4}+ / ${torpedo?.damage||u?.torpedo_damage||0} damage`],
+  airstrike:['Bomb a spotted ship',strike?`${strike.threshold}+ / ${strike.damage} damage`:`Range ${u?.strike_range||0} / select target for odds`],
+  torpedo:['Heavy ship attack',torpedo?`${torpedo.threshold}+ / ${torpedo.damage} damage`:`Range ${u?.torpedo_range||0} / select target for odds`],
   repair:['Restore hull',`+${u?.repair_amount||1} hull / once per turn`],
   rearm:['Repair and reload','+1 strength / bomber loads → 2']
  };
@@ -65,18 +65,19 @@ window.orderHelp=(id,u,legal,simple)=>{
     move?.threats?'Enemy overwatch threatens this move.':''];
   }
   if(n.id==='undoOrder'||n.id==='redoOrder')return [n.id==='undoOrder'?'Undo order':'Redo order',n.getAttribute('aria-label'),state.order_history?.reason||''];
+  if(n.dataset.help)return [n.getAttribute('aria-label')||n.textContent,n.dataset.help];
   if(n.matches('.tactical-action')){const u=state.units.find(u=>u.id===selected),id=n.closest('#commandOrders')?'command':n.id;
    const details={dig:'Stacks with terrain cover. Lost when moving or assaulting.',smoke:'Choose a marked hex. Smoke blocks shots into, out of, and through it.',overwatch:'Wait for a visible enemy to move in range. Pinning cancels overwatch.',assault:'Adjacent infantry only. A failed assault damages your own unit.',barrage:'Friendly units in the marked area are affected too.',command:`Costs 2 AP. ${u?.kind==='commander'?'Radius 2, across platoons':'Adjacent eligible troops in your platoon'}. Once per command group per turn; banking caps apply.`,load:'The passenger pays the action, not the half-track.',unload:'The passenger pays the action. Enemy overwatch may react.',recon:'Search commits earlier orders; discovered contacts cannot be undone.'};
    if(state.air_version){details.overwatch='Checks every intervening hex, not just the destination. One reaction per watcher; terrain does not block it.';details.rearm='Beside a living friendly airfield. Once per turn, 2 AP. No service from enemy or destroyed airfields.';}
    if(state.combat_version)Object.assign(details,{fire:state.legal[selected]?.targets?.find(s=>s.id===target)?.effect_text||'',command:`Costs 2 AP. Radius ${u?.command_radius||1}; Commander affects all platoons. Banking caps apply.`,loadAP:'Changes ammunition for 1 AP and cancels overwatch. Anti-tank shells penetrate armor; no adjacent splash.',loadHE:'Changes ammunition for 1 AP and cancels overwatch. Hits splash adjacent infantry, including friendlies; cannot damage tanks or ships.',repairTracks:'Restores movement for 2 AP. Does not heal strength. A disabled tank can still fire before repair.',bombard:'2 AP, no sight required. A natural 6 hits the aimed hex; all other rolls miss. Primary infantry is destroyed; adjacent infantry takes 1 damage and pins. Friendly fire applies.',artillery:'2 AP, range 12, two calls per battle. Lands after the enemy turn on 4+. Penetrating high hits can damage tracks. Marked neighbors contain infantry splash; friendly fire applies.',fieldRecon:'2 AP, range 12, two sorties per battle. Reveals radius 3 through the enemy turn, including concealed units. Commits earlier orders.'});
    Object.assign(details,{areaFire:'2 AP. Heavy rounds damage the aimed structure. A damaged structure collapses and kills all ground occupants. Surface shots cannot pass through intervening obstacles; the extra one-hex fringe needs 6. Hidden casualties stay hidden.',repairTank:'Adjacent friendly tank only, once per tank per round. Costs 2 engineer AP and one kit. Restores 1 strength and fixes tracks; no overhealing or reviving wrecks.',snipe:'Visible infantry only, clear firing lane, 3 AP. Hits on 3+ before cover; 1 damage and pin. Misses do not pin. Firing exposes your team through the enemy turn.'});
    if(state.tactics_version&&['artillery','fieldRecon'].includes(id))details[id]+=' Independent cooldown: skip your next turn before reusing this ability.';
-   return [n.dataset.orderLabel||n.textContent,orderHelp(id,u,state.legal[selected],simple()),simple()?'':details[id]||''];
+   return [n.dataset.orderLabel||n.textContent,orderHelp(id,u,state.legal[selected],simple()),n.dataset.orderReason?'Unavailable: '+n.dataset.orderReason+'.':'Ready to order.',simple()?'':details[id]||''];
   }
   return null;
  }
  function show(n){const lines=content(n);if(!lines){hide();return;}if(anchor!==n)hide();anchor=n;n.setAttribute('aria-describedby',tip.id);tip.replaceChildren(...lines.filter(Boolean).map((s,i)=>{const e=document.createElement(i?'p':'strong');e.textContent=s;return e;}));if(window.ww2Dad?.enabled&&n.dataset.unitId){const u=state.units.find(u=>u.id===n.dataset.unitId);if(u&&window.makeUnitPortrait)tip.prepend(makeUnitPortrait(u));}tip.hidden=false;place();}
- const selector='#map > .hex,#map .unit,#roster [data-unit-id],.tactical-action,#undoOrder,#redoOrder';
+ const selector='#map > .hex,#map .unit,#roster [data-unit-id],.tactical-action,#undoOrder,#redoOrder,[data-help]';
  document.addEventListener('pointerover',e=>{if(e.pointerType!=='mouse'||!matchMedia('(hover:hover)').matches)return;const n=e.target.closest(selector);point={x:e.clientX,y:e.clientY};if(n)show(n);else hide();});
  document.addEventListener('pointermove',e=>{if(!tip.hidden&&e.pointerType==='mouse'){point={x:e.clientX,y:e.clientY};place();}});
  document.addEventListener('pointerout',e=>{if(!e.relatedTarget)hide();});
