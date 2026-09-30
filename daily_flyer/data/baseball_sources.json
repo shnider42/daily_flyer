@@ -1,0 +1,31 @@
+{
+  "from_year": 1954,
+  "through": 2025,
+  "hof_through": 2025,
+  "source": "https://sabr.org/lahman-database/",
+  "mirror": "https://github.com/cbwinslow/lahman-database-csv/tree/0377e0b8d3f1b8f6710cc4faee7d842d0e81f344/data",
+  "license": "https://creativecommons.org/licenses/by-sa/3.0/",
+  "attribution": "Lahman Baseball Database \u00a9 1996\u20132025 SABR, via Sean Lahman. CC BY-SA 3.0.",
+  "changes": "AL/NL subset; combined team stints, calculated rates, first qualifying season, compacted observations. Derived data licensed CC BY-SA 3.0.",
+  "scope": "AL/NL players whose first qualifying season was 1954\u20132025. Earlier career history checked for established players. No minor, postseason, or Negro League statistics in this study.",
+  "files": {
+    "People.csv": "9ee97110fc88b2c4ad72684577d696875035049e74a45cb93238458df8563c58",
+    "HallOfFame.csv": "0d0c8ddecbe789254651a8cad379dd949d343eba5e15cc17e6234ca0e4fcf456",
+    "AwardsPlayers.csv": "9afc0d3ab78462ddf9e234485dbee5406654aacb2b381e8acd86d34f351945cb",
+    "AllstarFull.csv": "9e89c77213a54f97785a79fa3898a69a72f6fb8203e27ddc63b9dc91f5a934b8",
+    "Teams.csv": "0e7afdd8b837d0edaca770a28817eec6613bd8255979c1be6e3f5827f4b88fd6",
+    "Fielding.csv": "0b4dc11fab05f59fd281ea716c9b1f9ead3fe6b838a33914998d1727d31e0135",
+    "Batting.csv": "007551e2fe3072aff396a8573de61dceabe14dbf8de20038c8b60e2abe16978f",
+    "Pitching.csv": "dbbe1baeb0a0fd81c1843a19eb4967e3d86c073fbe51bf96581bfd9faae35951"
+  },
+  "counts": {
+    "batting": {
+      "players": 2852,
+      "seasons": 23053
+    },
+    "pitching": {
+      "players": 3802,
+      "seasons": 24535
+    }
+  }
+}

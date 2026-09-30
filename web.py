@@ -7,9 +7,11 @@ from daily_flyer.orchestrator import build_daily_page
 from daily_flyer.renderer import build_html
 from daily_flyer.theme_validation import ThemeNotFoundError, ThemeValidationError
 from daily_flyer.qb_explorer.presets import api as qb_presets_api
+from daily_flyer.baseball_explorer.presets import api as baseball_api
 
 app = Flask(__name__)
 app.register_blueprint(qb_presets_api)
+app.register_blueprint(baseball_api)
 REPO_ROOT = Path(__file__).resolve().parent
 
 DEFAULT_THEME = os.environ.get("DEFAULT_THEME", "irish_today")

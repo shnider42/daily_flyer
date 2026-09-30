@@ -2,7 +2,7 @@
 
 Theme: `qb_year_two` (URL alias `qb-year-two`). Base: `staging` at
 `2a053196d33f6b50299b8c342cc2316960314e21`. All implementation files are isolated;
-the shared renderer, other themes, routing and default theme are unchanged.
+the shared renderer, other existing themes and default theme are unchanged.
 
 ## Run on Render
 
@@ -17,6 +17,17 @@ DEFAULT_THEME=qb_year_two
 Or use `/?theme=qb_year_two` on a service deploying this branch. No API key,
 database, background job, chart CDN or new production dependency is required.
 This change does not deploy or merge the branch.
+
+## Version 3.0.0 — football / baseball switch
+
+The large sport selector opens the original quarterback explorer or the new
+`baseball_year_two` theme. See [baseball_year_two.md](baseball_year_two.md) for
+source licensing, cohort definitions, all-stat research and baseball presets.
+Football's calculation code, source snapshot, controls and preset database are
+unchanged. The sport pages have separate URLs, local saved views and public
+preset endpoints; baseball data is only loaded when its page/API is requested.
+`DEFAULT_THEME=qb_year_two` continues to work. No Render configuration change
+is needed to make the switch available after deploying this branch.
 
 ## Version 2.3.0 — public shared preset editor
 
