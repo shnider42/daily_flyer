@@ -5,6 +5,9 @@
   const copy=value=>JSON.parse(JSON.stringify(value));
   const emit=(type,detail={})=>{document.dispatchEvent(new CustomEvent('qb:'+type,{detail}));return detail;};
   let bundle=copy(data.preset_config),draft=copy(bundle.presets),slot=0,dirty=false,busy=false;
+  const backup=YearTwoPresetBackup.create('qb',bundle,$('status'),presets=>run(async()=>{
+    const result=await api('/api/qb-presets/validate','POST',{presets});draft=copy(result.presets);markDirty();renderForm();status('Browser backup restored into the draft. Review or preview it, then Save to publish it.');
+  }));
   const filmFields=[
     ['metric','Measure','primary'],['view','Chart view','primary'],['window','Years shown','primary'],
     ['normalize','Compare as','primary'],['layout','Chart layout','primary'],['colors','Line colors','primary'],['scale','Y-axis scale','primary'],
@@ -72,8 +75,9 @@
     for(const [key] of researchFields){const el=$('r-'+key);if(el.type==='checkbox')el.checked=p.research[key];else el.value=p.research[key];}
     displayMode();playerPicker();
   }
-  function markDirty(){dirty=true;status('Draft changed — not saved for visitors yet.');}
+  function markDirty(){dirty=true;backup.draft(draft);status('Draft changed — not saved for visitors yet.');}
   function updateBundle(next){
+    backup.observe(next);
     bundle=copy(next);draft=copy(next.presets);dirty=false;renderForm();$('storage').textContent=next.storage.message;
     emit('presets-updated',{presets:next.presets});
   }
@@ -115,7 +119,7 @@
     event.preventDefault();readForm();
     run(async()=>{
       if(!bundle.revision)throw new Error('Storage could not be read. Export your draft, repair storage, then reload saved presets.');
-      const result=await api('/api/qb-presets','PUT',{presets:draft,revision:bundle.revision});updateBundle(result);
+      const result=await api('/api/qb-presets','PUT',{presets:draft,revision:bundle.revision});backup.saved(result);updateBundle(result);
       status('Saved for everyone. New or reloaded pages will use these presets. '+result.storage.message);
     });
   });

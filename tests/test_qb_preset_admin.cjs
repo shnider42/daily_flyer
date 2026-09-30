@@ -27,7 +27,7 @@ async function changeAndWait(page,button,method,endpoint){
   await page.addInitScript(()=>localStorage.setItem('year-two-detail-v1','full'));
   await page.goto(url+'/?preset_admin=1');
   await page.locator('#qa-label').waitFor();
-  assert.ok((await page.locator('#qa-storage').innerText()).includes('ONLY if that path'));
+  assert.ok((await page.locator('#qa-storage').innerText()).includes('only if that path'));
   assert.ok((await page.locator('#qb-preset-admin').innerText()).includes('intentionally public'));
   await page.fill('#qa-label','Custom slumps');await page.fill('#qa-heading','My two-player rating drops');
   await page.fill('#qa-count','2');await page.selectOption('#qa-f-metric','rating');

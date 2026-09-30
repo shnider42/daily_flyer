@@ -2,8 +2,6 @@
 from copy import deepcopy
 from datetime import datetime, timezone
 import json
-import os
-from pathlib import Path
 import sqlite3
 from flask import Blueprint, jsonify
 from .data import load_dataset, METRICS
@@ -13,14 +11,14 @@ IDS = ("slumps", "leaps", "boston", "hall", "durable")
 DEFAULTS = dict(role="batting", mode="compare", metric="ops", outcome="durable", x="b",
                 search="", era="all", team="all", hof="all", qual2=False, skip2020=False,
                 sort="name", view="pair", window="10", normalize="raw", scale="linear",
-                layout="overlay", colors="player", display="all", selection="fixed", count=4,
+                layout="overlay", height="normal", colors="player", display="all", selection="fixed", count=4,
                 ids=["ortizda01", "bettsmo01", "troutmi01", "judgeaa01"])
 CHOICES = dict(role=("batting", "pitching"), mode=("compare", "research", "scan"),
                outcome=("job", "durable", "future", "stars", "awards", "hof"), x=("a", "b", "delta"),
                era=("all", "1950", "1960", "1970", "1980", "1990", "2000", "2010", "2020"),
                hof=("all", "yes", "no"), sort=("name", "improved", "declined", "newest", "oldest", "span"),
                view=("pair", "career", "span"), window=("5", "10", "all"), normalize=("raw", "delta", "zscore"),
-               scale=("linear", "density", "log", "symlog"), layout=("overlay", "separate"),
+               scale=("linear", "density", "log", "symlog"), layout=("overlay", "separate"), height=("compact", "normal", "tall"),
                colors=("player", "team", "hof"), display=("25", "50", "100", "250", "500", "all"),
                selection=("fixed", "all", "improved", "declined"))
 
@@ -32,9 +30,9 @@ def input_payload():
 
 def factory_presets():
     specs = [
-        ("Biggest hitting slumps", "The biggest year-two OPS drops", dict(selection="declined", sort="declined", qual2=True, normalize="delta", layout="separate")),
-        ("Pitchers who leaped", "Which pitchers cut their ERA the most?", dict(role="pitching", metric="era", selection="improved", sort="improved", qual2=True, normalize="delta", layout="separate", ids=[])),
-        ("Boston beginnings", "Ortiz, Betts and Devers: what came after year two?", dict(ids=["ortizda01", "bettsmo01", "deverra01"], view="career", layout="separate")),
+        ("Slumps: what came next?", "After the biggest year-two OPS drops, did hitters recover?", dict(selection="declined", sort="declined", qual2=True, view="career", window="all", layout="separate")),
+        ("Pitching breakthroughs", "After the biggest year-two ERA improvements, did they last?", dict(role="pitching", metric="era", selection="improved", sort="improved", qual2=True, view="career", window="all", layout="separate", ids=[])),
+        ("Boston beginnings", "Ortiz, Betts and Devers: what came after year two?", dict(ids=["ortizda01", "bettsmo01", "deverra01"], view="career", window="all", layout="separate")),
         ("Hall of Fame signal?", "Does year two add a Hall of Fame signal?", dict(mode="research", outcome="hof", metric="relative_ops")),
         ("Who stuck around?", "Can year-two WHIP help explain staying power?", dict(role="pitching", mode="research", metric="whip", outcome="durable", ids=[])),
     ]
@@ -56,6 +54,7 @@ def validate_presets(value):
         s = p["settings"]
         if isinstance(s, dict):
             s.setdefault("display", "all")  # Preserve pre-3.0.1 saved presets/backups.
+            s.setdefault("height", "normal")  # Preserve existing public edits and backups.
         if not isinstance(s, dict) or set(s) != set(DEFAULTS):
             raise ValueError("Missing or unknown view settings.")
         for key, choices in CHOICES.items():
@@ -79,16 +78,14 @@ def validate_presets(value):
 
 
 def db_path():
-    if os.environ.get("BASEBALL_PRESET_DB"):
-        return Path(os.environ["BASEBALL_PRESET_DB"])
-    if os.environ.get("QB_PRESET_DB"):
-        return Path(os.environ["QB_PRESET_DB"]).with_name("baseball_presets.sqlite3")
-    return Path(__file__).resolve().parents[2] / "instance" / "baseball_presets.sqlite3"
+    from daily_flyer.preset_storage import preset_db
+    return preset_db("baseball")
 
 
 def bundle(presets, updated_at=None, source="factory"):
+    from daily_flyer.preset_storage import storage_info
     return dict(presets=presets, revision=revision(presets), updated_at=updated_at, source=source,
-                storage="Shared server saves survive deployment only when the database is on an attached persistent disk. Export a backup; BASEBALL_PRESET_DB sets the path, or it uses the folder containing QB_PRESET_DB.")
+                storage=storage_info("baseball")["message"])
 
 
 def read_presets():

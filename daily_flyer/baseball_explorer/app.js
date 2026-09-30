@@ -10,6 +10,7 @@
   let state={...roleDefaults(saved.state?.role==='pitching'?'pitching':'batting'),...saved.state},views=saved.views||{},players=[],byId=new Map(),playerIndex=new Map(),focus=saved.focus||null;
   const cache=new Map(),requests=new Map();let generation=0,presetIntent=0,activePreset=null,undo=null,study=null,visibleRows=[],lastWidth=0;
   let presets=clone(config.presets.presets),busy=false;
+  const orderedPresets=()=>[presets.find(p=>p.id==='boston'),...presets.filter(p=>p.id!=='boston')].filter(Boolean);
   function clean(s){
     const def=roleDefaults(s.role==='pitching'?'pitching':'batting');
     s={...def,...Object.fromEntries(Object.keys(def).filter(k=>Object.hasOwn(s,k)).map(k=>[k,s[k]]))};
@@ -17,6 +18,7 @@
     for(const [k,choices] of Object.entries({role:['batting','pitching'],mode:['compare','research','scan'],outcome:Object.keys(R.definitions),x:['a','b','delta'],view:['pair','career','span'],window:['5','10','all'],normalize:['raw','delta','zscore'],scale:['linear','density','log','symlog'],layout:['overlay','separate'],colors:['player','team','hof'],selection:['fixed','all','improved','declined'],sort:['name','improved','declined','newest','oldest','span'],hof:['all','yes','no'],era:['all','1950','1960','1970','1980','1990','2000','2010','2020']}))if(!choices.includes(s[k]))s[k]=def[k];
     s.search=typeof s.search==='string'?s.search.slice(0,100):'';s.qual2=s.qual2===true;s.skip2020=s.skip2020===true;
     if(!['25','50','100','250','500','all'].includes(s.display))s.display='all';
+    if(!['compact','normal','tall'].includes(s.height))s.height='normal';
     const maximum=config.meta.counts[s.role].players;
     s.count=Number.isInteger(s.count)&&s.count>=1&&s.count<=maximum?s.count:4;s.ids=Array.isArray(s.ids)?[...new Set(s.ids.filter(x=>typeof x==='string'))].slice(0,maximum):def.ids;
     if(s.team!=='all'&&!Object.hasOwn(config.teams,s.team))s.team='all';return s;
@@ -44,7 +46,7 @@
   function metricOptions(role,selected){
     return ['Rates','Counting','Fielding'].map(group=>'<optgroup label="'+group+'">'+Object.entries(config.metrics[role]).filter(([,m])=>m.group===group).map(([key,m])=>`<option value="${key}" ${key===selected?'selected':''}>${esc(m.name)}</option>`).join('')+'</optgroup>').join('');
   }
-  const formKeys=['search','era','team','hof','qual2','skip2020','sort','metric','window','normalize','scale','layout','colors','display','outcome','x'];
+  const formKeys=['search','era','team','hof','qual2','skip2020','sort','metric','window','normalize','scale','layout','height','colors','display','outcome','x'];
   function sync(){
     $('metric').innerHTML=metricOptions(state.role,state.metric);
     for(const key of formKeys){if(['qual2','skip2020'].includes(key))$(key).checked=state[key];else $(key).value=state[key];}
@@ -56,6 +58,7 @@
     $('metric-note').textContent=measure().note+(measure().direction===0?' Higher or lower is not inherently better.':'')+(measure().group==='Fielding'?' All positions combined; role and fielding chances affect comparisons.':'');
     $('role-note').textContent=(state.role==='batting'?'Year 1 = first 300-PA season.':'Year 1 = first 50-IP season; starters and relievers.')+' Two-way players have independent clocks.';
     $('normalize').disabled=$('scale').disabled=$('layout').disabled=state.view==='span';
+    $('height').disabled=state.view==='span';
   }
   function filtered(){return R.filtered(players,state,config.teams);}
   function filterReading(){
@@ -93,6 +96,7 @@
     $('charts').querySelectorAll('[data-panel]').forEach(e=>e.classList.toggle('bb-panel-pinned',focus?.id===e.dataset.panel));
     if(focus)$('charts').querySelectorAll('[data-series]').forEach(e=>{if(e.dataset.series===focus.id)e.parentElement.append(e);});
     $('legend').querySelectorAll('button').forEach(e=>e.setAttribute('aria-pressed',String(focus?.id===e.dataset.pin)));
+    $('highlight').value=focus?.id||'';
     $('pinned').textContent=focus&&byId.has(focus.id)?byId.get(focus.id).name+' pinned · tap another season to inspect':'Tap or focus a season to inspect it.';$('unpin').hidden=!focus;
   }
   function inspect(p,year){
@@ -129,6 +133,8 @@
     const ids=new Set(state.ids),selected=list.filter(p=>ids.has(p.id)),drawn=state.display==='all'?selected:selected.slice(0,Number(state.display));$('charts').replaceChildren();$('charts').classList.toggle('bb-separated',state.layout==='separate'&&state.view!=='span');
     $('selection-count').textContent=`${state.ids.length.toLocaleString()} selected · ${drawn.length.toLocaleString()} shown${state.ids.length>selected.length?' · '+(state.ids.length-selected.length).toLocaleString()+' outside current filters':''}`;
     $('show-all').hidden=drawn.length===selected.length;
+    $('highlight').replaceChildren(new Option('All players equally',''),...drawn.map(p=>new Option(p.name,p.id)));
+    $('readability-note').textContent=state.view==='span'?'Each player has a separate row; the graph grows to fit all selected players.':state.layout==='separate'?'One chart per player. Every panel uses the same scales, so heights and timing are comparable.':`${drawn.length} players together. Highlight one to fade the other lines, or choose one chart per player to separate them.`;
     $('chart-caption').hidden=!drawn.length;
     $('chart-measure').textContent=state.view==='span'?'Recorded career span':measure().name+' · '+(state.normalize==='delta'?'change from year one':state.normalize==='zscore'?'relative to each player’s own career':'season-by-season values');
     $('chart-reading').textContent=state.view==='span'?'Each bar is one player’s calendar span. The endpoint is the last recorded season—not necessarily retirement.':G.meaning(state.metric,state.role,measure())+(state.normalize==='raw'?'':state.normalize==='delta'?' The graph subtracts each player’s year-one value; the comparison boxes retain actual values.':' The graph uses each player’s own career average as zero; the comparison boxes retain actual values.');
@@ -168,7 +174,7 @@
         verdict.textContent=G.change(delta,measure().direction)+(finite(delta)?' · '+change+' '+measure().name:'');wrapper.append(verdict);
         if(two&&!two.qualifies){const warning=document.createElement('p');warning.className='bb-sample-warning';warning.textContent=`Year two: only ${workload(two)}—below the ${state.role==='batting'?'300-PA':'50-IP'} baseline. A small sample can make a change look extreme.`;wrapper.append(warning);}
       }
-      const height=state.view==='span'?Math.max(180,items.length*42+60):340,left=60,right=24,top=46,bottom=56;
+      const height=state.view==='span'?Math.max(180,items.length*42+60):({compact:260,normal:380,tall:680}[state.height]),left=60,right=24,top=46,bottom=56;
       const axisName=state.normalize==='raw'?measure().name:state.normalize==='delta'?measure().name+' change':'Career z-score';
       const chart=svg('svg',{viewBox:`0 0 ${width} ${height}`,role:'img','aria-label':`${state.view==='span'?'Recorded career span':axisName}: ${items.map(s=>s.p.name).join(', ')}. ${solo?'Calendar years':'Years from the study baseline'}; orange marks year two.`}),plotW=width-left-right,plotH=height-top-bottom;
       const end=state.view==='span'?Math.max(2,...items.map(s=>s.p.last-s.p.first+1)):maxYear;
@@ -195,6 +201,9 @@
             const dot=svg('circle',{cx:xx,cy:yy,r:row.year===p.first+1?7:4,fill:row.year===p.first+1?'#c45325':'#fffdf6',stroke:row.year===p.first+1?'#963813':color(p,row),class:'bb-dot',tabindex:0,role:'button','aria-label':`${p.name}, year ${row.year-p.first+1}, ${row.year}, ${measure().name} ${fmt(row[state.metric])}`});
             if(items.length<=12){const touch=svg('circle',{cx:xx,cy:yy,r:Math.min(12,Math.max(4,plotW/(end-1)/2)),fill:'transparent',class:'bb-dot-hit','aria-hidden':'true'});touch.onclick=e=>{if(!dragged||e.detail===0)pin(p,row.year);};g.prepend(touch);}
             dot.onclick=e=>{if(!dragged||e.detail===0)pin(p,row.year);};dot.onkeydown=e=>{if(['Enter',' '].includes(e.key)){e.preventDefault();pin(p,row.year);}};dot.onmouseenter=()=>{if(!focus&&matchMedia('(hover: hover)').matches)inspect(p,row.year);};g.append(dot);previous={x:xx,y:yy,year:row.year};});
+          // Season markers must stay above wide line hit targets, including the
+          // next segment that begins at the same dot on dense career charts.
+          g.querySelectorAll('.bb-dot-hit,.bb-dot').forEach(dot=>g.append(dot));
         }chart.append(g);
       });wrapper.append(chart);
       if(solo){
@@ -282,16 +291,16 @@
     ...study.rows.map(r=>[r.id,r.name,state.metric,state.outcome,r.first,r.a,r.b,r.delta,r.y,r.event,r.year2+1,r.end,config.meta.source,config.meta.license])]);
   $('bootstrap').onclick=async()=>{const button=$('bootstrap'),signature=JSON.stringify(state),rows=study.rows,x=state.x;button.disabled=true;$('uncertainty').textContent='Calculating 400 resamples…';await new Promise(requestAnimationFrame);await new Promise(resolve=>setTimeout(resolve,0));const ci=R.correlation(rows,x,true).interval;if(signature===JSON.stringify(state))$('uncertainty').textContent=ci?`95% percentile bootstrap interval for Pearson r: ${num(ci[0])} to ${num(ci[1])}. ${ci[0]<=0&&ci[1]>=0?'It includes zero.':'It excludes zero in this resampling procedure.'} This does not account for multiple testing, era clustering or omitted factors.`:'Not enough varying observations to estimate a reliable bootstrap interval.';button.disabled=false;};
   $('model').onclick=async()=>{const button=$('model'),signature=JSON.stringify(state),rows=study.rows,continuous=state.outcome==='future';button.disabled=true;$('model-result').textContent='Training on earlier players and testing on later players…';await new Promise(resolve=>setTimeout(resolve,30));const result=R.validate(rows,continuous);if(signature===JSON.stringify(state))renderModel(result);button.disabled=false;};
-  async function applyPreset(p,preview=false){
+  async function applyPreset(p,preview=false,initial=false){
     const intent=++presetIntent;
-    if(!undo)undo={state:clone(state),focus:clone(focus)};
+    if(!initial&&!undo)undo={state:clone(state),focus:clone(focus)};
     const next=clean(p.settings),list=await loadRole(next.role);if(intent!==presetIntent)return;
     if(next.selection==='all')next.ids=R.filtered(list,next,config.teams).map(p=>p.id);
     else if(next.selection!=='fixed'){
       const direction=config.metrics[next.role][next.metric].direction||1;
       next.ids=R.filtered(list,next,config.teams).filter(q=>finite(R.pair(q,next.metric).delta)).sort((a,b)=>{const delta=(R.pair(b,next.metric).delta-R.pair(a,next.metric).delta)*direction;return (next.selection==='declined'?-delta:delta)||a.id.localeCompare(b.id);}).slice(0,next.count).map(p=>p.id);
     }
-    const activated=await activate(next);if(!activated||intent!==presetIntent)return;activePreset=p.id;$('undo').hidden=false;
+    const activated=await activate(next);if(!activated||intent!==presetIntent)return;activePreset=p.id;$('undo').hidden=!undo;
     $('story').hidden=false;let takeaway='';
     if(state.mode==='compare'){
       const chosen=filtered().filter(p=>state.ids.includes(p.id)),p0=chosen[0],q=p0?pair(p0):null;
@@ -300,9 +309,15 @@
     else takeaway='Every metric is checked against this outcome. Open a row to examine its sample and test what year two adds.';
     $('story').innerHTML=`<div class="bb-kicker">${preview?'DRAFT PREVIEW':'READY-MADE VIEW'}</div><h2>${esc(p.title)}</h2><p>${esc(takeaway)}</p>${p.note?'<p>'+esc(p.note)+'</p>':''}${preview?'<button id="bb-back-editor">Back to preset editor</button>':''}`;
     if(preview)$('back-editor').onclick=()=>$('admin').scrollIntoView({block:'start'});
-    document.querySelectorAll('[data-story]').forEach(e=>e.setAttribute('aria-pressed',String(e.dataset.story===p.id)));$('story').focus({preventScroll:true});$('story').scrollIntoView({block:'start'});
+    document.querySelectorAll('[data-story]').forEach(e=>e.setAttribute('aria-pressed',String(e.dataset.story===p.id)));
+    if(!initial){$('story').focus({preventScroll:true});$('story').scrollIntoView({block:'start'});}
   }
-  function storyButtons(){ $('stories').innerHTML=presets.map((p,i)=>`<button data-story="${p.id}" aria-pressed="false" aria-keyshortcuts="Alt+Shift+${i+1}"><small>0${i+1} / OPEN STORY</small>${esc(p.label)}</button>`).join('');$('stories').querySelectorAll('button').forEach(e=>e.onclick=()=>applyPreset(presets.find(p=>p.id===e.dataset.story)).catch(()=>{$('load').textContent='Could not open this story. Please retry.';})); }
+  function storyButtons(){
+    $('stories').innerHTML=orderedPresets().map((p,i)=>{const s=p.settings,m=config.metrics[s.role][s.metric],research=s.mode!=='compare',count=s.selection==='fixed'?s.ids.length:s.selection==='all'?'All':s.count;
+      const detail=research?R.definitions[s.outcome].name:`${count} ${s.role==='batting'?'hitters':'pitchers'} · ${s.view==='career'?(s.window==='all'?'Full careers':'First '+s.window+' years'):s.view==='pair'?'Year 1 → 2':'Career spans'}`;
+      return `<button data-story="${p.id}" aria-pressed="false" aria-keyshortcuts="Alt+Shift+${i+1}"><small>0${i+1} / ${p.id==='boston'?'START HERE':research?'TEST A SIGNAL':'FOLLOW CAREERS'}</small><strong>${esc(p.label)}</strong><span>${esc(p.title)}</span><em>${esc(m.name)} · ${esc(detail)}</em></button>`;
+    }).join('');$('stories').querySelectorAll('button').forEach(e=>e.onclick=()=>applyPreset(presets.find(p=>p.id===e.dataset.story)).catch(()=>{$('load').textContent='Could not open this story. Please retry.';}));
+  }
   $('undo').onclick=async()=>{if(!undo)return;const previous=undo;undo=null;clearStory();focus=previous.focus;await activate(previous.state,true);$('undo').hidden=true;};
   for(const key of formKeys)$(key).addEventListener(key==='search'?'input':'change',()=>{state[key]=['qual2','skip2020'].includes(key)?$(key).checked:$(key).value;changed();});
   document.querySelectorAll('[data-role]').forEach(e=>e.onclick=async()=>{if(e.dataset.role===state.role||busy)return;save();clearStory();await activate(views[e.dataset.role]||roleDefaults(e.dataset.role));});
@@ -314,11 +329,14 @@
   $('show-all').onclick=()=>{state.display='all';changed();};
   $('full-career').onclick=()=>{state.window='all';changed();};
   $('unpin').onclick=()=>{focus=null;applyFocus();$('inspect').textContent='Tap a season to inspect its numbers.';save();};
-  document.addEventListener('keydown',e=>{if(e.repeat||e.isComposing||e.target.closest('input,select,textarea,[contenteditable=true]'))return;if(e.altKey&&e.shiftKey&&!e.ctrlKey&&!e.metaKey){const n=Number(e.code.replace('Digit',''))-1;if(n>=0&&n<5){e.preventDefault();applyPreset(presets[n]).catch(()=>{$('load').textContent='Could not open this story. Please retry.';});}}});
+  $('highlight').onchange=()=>{const p=byId.get($('highlight').value);if(p)pin(p,p.first+1);else $('unpin').click();};
+  document.addEventListener('keydown',e=>{if(e.repeat||e.isComposing||e.target.closest('input,select,textarea,[contenteditable=true]'))return;if(e.altKey&&e.shiftKey&&!e.ctrlKey&&!e.metaKey){const n=Number(e.code.replace('Digit',''))-1;if(n>=0&&n<5){e.preventDefault();applyPreset(orderedPresets()[n]).catch(()=>{$('load').textContent='Could not open this story. Please retry.';});}}});
   let resizeTimer;window.addEventListener('resize',()=>{const width=Math.round($('workspace').getBoundingClientRect().width);if(width===lastWidth)return;lastWidth=width;clearTimeout(resizeTimer);resizeTimer=setTimeout(()=>{if(busy)return;if(state.mode==='compare')renderCharts(visibleRows);if(state.mode==='research'&&study)renderScatter(study.rows);},150);});
   document.addEventListener('yt:layout',()=>{if(busy)return;if(state.mode==='compare')renderCharts(visibleRows);if(state.mode==='research'&&study)renderScatter(study.rows);});
   $('team').innerHTML='<option value="all">All teams</option>'+Object.entries(config.teams).sort((a,b)=>a[1].localeCompare(b[1])).map(([code,name])=>`<option value="${esc(code)}">${esc(name)} (${esc(code)})</option>`).join('');
   $('scan-target').innerHTML=$('outcome').innerHTML;$('selection').open=innerWidth>760;$('version').textContent='v'+config.build.version;$('total').textContent=(config.meta.counts.batting.players+config.meta.counts.pitching.players).toLocaleString();
-  window.BaseballApp={config,clone,esc,loadRole,metricOptions,getState:()=>clone(state),applyPreset,updatePresets:next=>{presets=clone(next);clearStory();storyButtons();},getPlayers:()=>players,defaults:roleDefaults};
-  storyButtons();activate(state,true);
+  window.BaseballApp={config,clone,esc,loadRole,metricOptions,getState:()=>clone(state),applyPreset,updatePresets:next=>{presets=clone(next);if(generation)clearStory();storyButtons();},getPlayers:()=>players,defaults:roleDefaults};
+  storyButtons();
+  if(!saved.state){busy=true;const start=()=>applyPreset(presets.find(p=>p.id==='boston'),false,true).catch(()=>{$('load').innerHTML='Boston beginnings could not load. <button id="bb-retry">Retry</button>';$('retry').onclick=start;});start();}
+  else activate(state,true);
 })();

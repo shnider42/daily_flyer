@@ -11,8 +11,6 @@ from functools import lru_cache
 from hashlib import sha256
 import json
 import math
-import os
-from pathlib import Path
 import sqlite3
 from urllib.parse import urlsplit
 
@@ -128,14 +126,13 @@ def validate_presets(value):
 
 
 def db_path():
-    return Path(os.environ.get("QB_PRESET_DB") or Path(__file__).resolve().parents[2] / "instance" / "qb_presets.sqlite3")
+    from daily_flyer.preset_storage import preset_db
+    return preset_db("qb")
 
 
 def storage_info():
-    configured = bool(os.environ.get("QB_PRESET_DB"))
-    return dict(configured=configured, message=(
-        "Shared server storage uses QB_PRESET_DB. It survives redeploys ONLY if that path is on an attached persistent disk."
-        if configured else "Shared temporary server storage: changes can be lost on Render restarts or redeploys. Export a backup. For durable saves, attach a persistent disk and set QB_PRESET_DB to a file on it."))
+    from daily_flyer.preset_storage import storage_info as info
+    return info("qb")
 
 
 def revision(presets):

@@ -20,7 +20,7 @@ THEME_CONFIG = {
 }
 BACKGROUNDS = []
 BACKGROUND_CADENCE = "daily"
-APP_VERSION = "3.1.1"
+APP_VERSION = "3.2.0"
 
 
 def build_info():
@@ -45,5 +45,5 @@ def build_theme_page(date_str=None, seed=None):
         footer_text=THEME_CONFIG["footer_text"],
         metadata={"theme_name": "qb_year_two", "extra_css": (ASSETS / "style.css").read_text() + "\n" + (ASSETS / "football.css").read_text() + SPORT_CSS + (ASSETS.parent / "year_two_view.css").read_text(),
                   "extra_head_html": '<script type="application/json" id="qb-data">'+dataset+'</script>',
-                  "extra_js": (ASSETS.parent / "year_two_view.js").read_text() + "\n" + "\n".join((ASSETS / file).read_text() for file in ["chart_math.js", "app.js", "research_math.js", "research.js", "stories.js", "preset_admin.js"])},
+                  "extra_js": (ASSETS.parent / "preset_backup.js").read_text() + "\n" + (ASSETS.parent / "year_two_view.js").read_text() + "\n" + "\n".join((ASSETS / file).read_text() for file in ["chart_math.js", "app.js", "research_math.js", "research.js", "stories.js", "preset_admin.js"])},
     )

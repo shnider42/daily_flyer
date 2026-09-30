@@ -3,7 +3,10 @@
   const A=window.BaseballApp,{config,clone,esc}=A,$=id=>document.getElementById('bb-admin-'+id);
   let draft=clone(config.presets.presets),revision=config.presets.revision,slot=0,dirty=false,loaded=false,busy=false,renderId=0,playerList=[];
   const panel=document.getElementById('bb-admin'),status=text=>{$('status').textContent=text;};
-  function mark(){dirty=true;status('Unsaved draft. Preview it or save all five presets when ready.');}
+  const backup=YearTwoPresetBackup.create('baseball',config.presets,$('status'),presets=>operation(async()=>{
+    const valid=await api('POST','/validate',{presets});draft=clone(valid.presets);mark();await render();status('Browser backup restored into the draft. Review or preview it, then Save to publish it.');
+  }));
+  function mark(){dirty=true;backup.draft(draft);status('Unsaved draft. Preview it or save all five presets when ready.');}
   async function api(method,path,payload){
     const response=await fetch('/api/baseball-presets'+path,{method,headers:payload?{'Content-Type':'application/json'}:{},body:payload?JSON.stringify(payload):undefined,signal:AbortSignal.timeout(15000)});
     const result=await response.json();if(!response.ok)throw new Error(result.error||'The request failed.');return result;
@@ -19,7 +22,7 @@
     ['mode','Open this view',[['compare','Compare seasons'],['research','Research later careers'],['scan','Explore every stat']]],
     ['metric','Statistic'],['outcome','Later-career outcome'],['x','Research comparison'],
     ['view','Chart view',[['pair','Year 1 → 2'],['career','What happened next?'],['span','Career span']]],
-    ['window','Career window'],['normalize','Compare as'],['scale','Scale'],['layout','Layout'],['colors','Colors'],['display','Players to display'],
+    ['window','Career window'],['normalize','Compare as'],['scale','Scale'],['layout','Layout'],['height','Graph height'],['colors','Colors'],['display','Players to display'],
     ['era','Year-one decade'],['team','Team at any point'],['hof','Hall status'],['sort','Player sort'],
     ['search','Player / team search filter','text'],['qual2','Require substantial year two','checkbox'],['skip2020','Exclude pairs involving 2020','checkbox']
   ];
@@ -45,7 +48,7 @@
     $('players').textContent='Loading player choices…';
     try{const list=await A.loadRole(s.role);if(token!==renderId)return;playerList=list;playerChoices();}catch(_){if(token===renderId)$('players').textContent='Player choices could not load. Close and reopen the editor to retry.';}
   }
-  async function reload(){const result=await api('GET','');draft=clone(result.presets);revision=result.revision;dirty=false;loaded=true;A.updatePresets(result.presets);await render();status('Loaded shared presets. '+result.storage);}
+  async function reload(){const result=await api('GET','');backup.observe(result);draft=clone(result.presets);revision=result.revision;dirty=false;loaded=true;A.updatePresets(result.presets);await render();status('Loaded shared presets. '+result.storage);}
   async function open(){
     panel.hidden=false;const url=new URL(location.href);url.searchParams.set('preset_admin','1');history.replaceState(null,'',url);panel.scrollIntoView({block:'start'});
     if(!loaded&&!dirty)await operation(reload);else await render();
@@ -60,7 +63,7 @@
   $('capture').onclick=async()=>{draft[slot].settings={...A.getState(),selection:'fixed'};mark();await render();status('Captured the current view, filters and selected players. Save to make this preset public.');};
   $('reset').onclick=async()=>{draft[slot]=clone(config.factory[slot]);mark();await render();status('Factory values are in this draft only. Save to publish them.');};
   $('preview').onclick=()=>operation(async()=>{const valid=await api('POST','/validate',{presets:draft});await A.applyPreset(valid.presets[slot],true);status('Preview opened above. This draft has not been saved.');});
-  $('save').onclick=()=>operation(async()=>{const result=await api('PUT','',{presets:draft,revision});draft=clone(result.presets);revision=result.revision;dirty=false;A.updatePresets(result.presets);await render();status('Saved all five baseball presets. New page loads will use them. '+result.storage);});
+  $('save').onclick=()=>operation(async()=>{const result=await api('PUT','',{presets:draft,revision});backup.saved(result);draft=clone(result.presets);revision=result.revision;dirty=false;A.updatePresets(result.presets);await render();status('Saved all five baseball presets. New page loads will use them. '+result.storage);});
   $('reload').onclick=()=>{if(dirty&&!confirm('Discard this unsaved draft and load the shared presets? Export first if you want to keep a backup.'))return;operation(reload);};
   $('export').onclick=()=>{const url=URL.createObjectURL(new Blob([JSON.stringify({schema_version:1,sport:'baseball',presets:draft},null,2)],{type:'application/json'})),a=document.createElement('a');a.href=url;a.download='baseball-preset-backup.json';a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);status('Draft backup exported. Shared presets have not changed.');};
   $('import').onchange=()=>operation(async()=>{const file=$('import').files[0];if(!file)return;if(file.size>1048576)throw new Error('Backup exceeds 1 MiB.');const document=JSON.parse(await file.text());if(document.schema_version!==1||document.sport!=='baseball')throw new Error('Use a version-one baseball preset backup.');const valid=await api('POST','/validate',{presets:document.presets});draft=clone(valid.presets);mark();await render();status('Imported into this draft. Preview or save to make it public.');$('import').value='';});

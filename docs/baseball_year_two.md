@@ -183,12 +183,41 @@ SQLite storage priority:
 
 1. `BASEBALL_PRESET_DB` if set.
 2. `baseball_presets.sqlite3` in the directory containing `QB_PRESET_DB`.
-3. Repository `instance/baseball_presets.sqlite3` (temporary default).
+3. `YEAR_TWO_DATA_DIR/baseball_presets.sqlite3` when configured.
+4. `/var/data/baseball_presets.sqlite3` when `/var/data` is an actual mounted filesystem.
+5. Repository `instance/baseball_presets.sqlite3` (temporary default).
 
 For durable Render saves, the path must be on an attached persistent disk, just
 as with football presets. Setting an environment variable alone does not make it
 durable. No paid resource was provisioned. Existing attached QB preset storage
 can host baseball presets beside it; the two databases stay separate.
+
+Version 3.2.0 starts fresh baseball visits with the shared Boston beginnings preset.
+Returning visitors retain their saved custom view. Boston is the first story and
+Alt+Shift+1 shortcut; the remaining shortcut numbers match their displayed order.
+Cards show the statistic, players/window or research outcome before opening.
+Factory Boston, slump and breakthrough stories now follow complete recorded careers.
+Existing shared preset settings are preserved, with a regular graph height added
+when an older preset lacks it. Reset a slot explicitly to adopt new factory values.
+
+Graph height (compact, regular, tall), separate-player layout and player highlighting
+are always visible, including Simple Mode. Tall increases vertical room at the same
+width. Separate panels retain shared scales; highlights fade only overlaid lines.
+Height is included in saved views, admin settings and exported presets.
+
+Both editors automatically keep the latest saved public presets and a separate
+unsaved draft in this browser, when local storage is available. Factory responses
+after a server reset never replace that saved backup. Restore validates a copy into
+the editor; only Save publishes it, retaining concurrent-edit protection. Clearing
+browser data removes these copies, so JSON export remains useful. Attach a Render
+persistent disk at `/var/data` for shared durability without extra environment
+variables. Before changing storage, export existing values; restore and save them
+on the new disk. Existing explicit database paths still take precedence.
+
+Recovery coverage: `tests/test_preset_recovery_browser.cjs` deletes each sport's
+server database and verifies explicit recovery; `tests/test_preset_storage.py`
+covers path precedence and older preset migration. Chart browser coverage verifies
+the Boston default, real tall geometry, highlights and persistence across reload.
 
 ## Validation
 

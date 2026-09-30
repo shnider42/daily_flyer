@@ -13,7 +13,7 @@ async function screenshot(page,name){if(process.env.BASEBALL_SCREENSHOT_DIR)awai
   const page=await browser.newPage({viewport:{width:1440,height:1000}});page.on('pageerror',e=>errors.push(e.message));
   await page.addInitScript(()=>localStorage.setItem('year-two-detail-v1','full'));
   await page.goto(url);await page.locator('.bb-dot').first().waitFor();
-  assert.equal(await page.locator('.bb-dot').count(),8);
+  assert.equal(await page.locator('.bb-dot').count(),38);
   assert.equal(await page.locator('#bb-metric option').count(),35);
   assert.ok((await page.locator('#bb-graph-note').innerText()).includes('below 300 PA'));
   assert.equal((await page.locator('.yt-sports [aria-current="page"]').innerText()).trim(),'Baseball\nHitters & pitchers');
@@ -25,7 +25,7 @@ async function screenshot(page,name){if(process.env.BASEBALL_SCREENSHOT_DIR)awai
   const improvement=await page.evaluate(async()=>{const s=BaseballApp.getState(),p=await BaseballApp.loadRole(s.role);return s.ids.map(id=>BaseballResearch.pair(p.find(p=>p.id===id),s.metric).delta);});
   assert.equal(improvement.length,4);assert.ok(improvement.every(d=>d<0),'Lower ERA is an improvement');
   await page.click('#bb-undo');await waitState(page,'role','batting');assert.deepEqual(await page.evaluate(()=>BaseballApp.getState()),initial);
-  await page.keyboard.press('Alt+Shift+Digit3');await page.waitForFunction(()=>document.querySelector('[data-story="boston"]').getAttribute('aria-pressed')==='true');
+  await page.keyboard.press('Alt+Shift+Digit1');await page.waitForFunction(()=>document.querySelector('[data-story="boston"]').getAttribute('aria-pressed')==='true');
   assert.equal(await page.locator('.bb-chart-panel').count(),3);
   await page.locator('.bb-dot').first().focus();await page.keyboard.press('Enter');
   const focus=await page.evaluate(()=>JSON.parse(localStorage.getItem('baseball-year-two-v1')).focus);
@@ -54,7 +54,7 @@ async function screenshot(page,name){if(process.env.BASEBALL_SCREENSHOT_DIR)awai
   assert.equal(await mobile.locator('#bb-graph-settings').getAttribute('open'),null);
   await mobile.evaluate(()=>scrollTo(0,0));await screenshot(mobile,'baseball-mobile');
   const dot=mobile.locator('[data-series="ortizda01"] .bb-dot').nth(1);await dot.tap();const pin=await mobile.evaluate(()=>JSON.parse(localStorage.getItem('baseball-year-two-v1')).focus.id);
-  const original=await mobile.locator('.bb-chart-panel svg').elementHandle();await mobile.setViewportSize({width:390,height:740});await mobile.waitForTimeout(200);
+  const original=await mobile.locator('.bb-chart-panel svg').first().elementHandle();await mobile.setViewportSize({width:390,height:740});await mobile.waitForTimeout(200);
   assert.ok(await original.evaluate(e=>e.isConnected),'Height-only browser chrome changes must not rebuild the chart');
   for(const width of [320,390,768,1024]){await mobile.setViewportSize({width,height:844});await mobile.waitForTimeout(200);assert.ok(await mobile.evaluate(()=>document.body.scrollWidth<=innerWidth+1));assert.equal(await mobile.evaluate(()=>JSON.parse(localStorage.getItem('baseball-year-two-v1')).focus.id),pin);}
   // Each sport restores its own view and data; baseball data isn't requested by football.
@@ -89,7 +89,7 @@ async function screenshot(page,name){if(process.env.BASEBALL_SCREENSHOT_DIR)awai
   // Full-cohort selection and drawing must not silently stop at 25 or 100.
   const large=await browser.newPage({viewport:{width:1280,height:900}});large.on('pageerror',e=>errors.push(e.message));
   await large.addInitScript(()=>localStorage.setItem('year-two-detail-v1','full'));
-  await large.goto(url);await large.locator('.bb-dot').first().waitFor();await large.click('#bb-select');
+  await large.goto(url);await large.locator('.bb-dot').first().waitFor();await large.selectOption('#bb-layout','overlay');await large.click('[data-view=pair]');await large.click('#bb-select');
   assert.equal((await large.evaluate(()=>BaseballApp.getState())).ids.length,2852);
   assert.equal(await large.locator('#bb-charts [data-series]').count(),2852);
   await large.selectOption('#bb-display','100');assert.equal(await large.locator('#bb-charts [data-series]').count(),100);
