@@ -3,8 +3,9 @@ const BowlingMath = (() => {
   'use strict';
   const finite = n => typeof n === 'number' && Number.isFinite(n);
   const mean = a => a.length ? a.reduce((s,n)=>s+n,0)/a.length : null;
+  const workload = (player,row) => (player.dataset==='usbc'?row?.games:row?.events)??null;
   function anchor(player, threshold=10) {
-    return player.seasons.find(s=>finite(s.events) && s.events>=Number(threshold))?.year ?? null;
+    return player.seasons.find(s=>finite(workload(player,s)) && workload(player,s)>=Number(threshold))?.year ?? null;
   }
   function pair(player, metric, threshold=10) {
     const first=anchor(player,threshold), one=player.seasons.find(s=>s.year===first),
@@ -16,7 +17,8 @@ const BowlingMath = (() => {
     return players.filter(p=>{
       const q=pair(p,state.metric,state.threshold);
       return q.first!==null && (state.hand==='all'||p.hand===state.hand) &&
-        (!state.qual2||(q.two?.events??0)>=Number(state.threshold)) &&
+        (!state.division||state.division==='all'||p.division===state.division) &&
+        (!state.qual2||(workload(p,q.two)??0)>=Number(state.threshold)) &&
         (!state.skip2020||(q.first!==2020&&q.first+1!==2020));
     });
   }
@@ -38,7 +40,8 @@ const BowlingMath = (() => {
     return sorted;
   }
   function ranked(players,state) {
-    const sign=state.selection==='declined'?-1:1;
+    const lowerBetter=state.dataset==='usbc'&&['finish','ranking_points'].includes(state.metric);
+    const sign=(state.selection==='declined'?-1:1)*(lowerBetter?-1:1);
     return eligible(players,state).map(p=>({p,q:pair(p,state.metric,state.threshold)}))
       .filter(({q})=>finite(q.delta)&&q.delta*sign>0)
       .sort((a,b)=>sign*(b.q.delta-a.q.delta)||a.p.name.localeCompare(b.p.name))
@@ -69,6 +72,6 @@ const BowlingMath = (() => {
     }
     return {rows,excluded,candidates:candidates.length};
   }
-  return {finite,mean,anchor,pair,eligible,ranked,series,cohort,timeValue,timeDomain,labelPositions};
+  return {finite,mean,workload,anchor,pair,eligible,ranked,series,cohort,timeValue,timeDomain,labelPositions};
 })();
 if(typeof module!=='undefined'&&module.exports)module.exports=BowlingMath;

@@ -1,4 +1,4 @@
-# Bowling in Soph(more) Slump(?) · v3.3.1
+# Bowling in Soph(more) Slump(?) · v3.4.0
 
 Repository: `shnider42/daily_flyer`, branch `feat/qb-year-two-explorer`.
 Direct entry: `/?theme=bowling_year_two` (hyphenated alias also works).
@@ -112,7 +112,7 @@ The footer editor or `preset_admin=1` opens bowling's independent five-slot edit
 Capture a current view, edit labels/notes, choose fixed bowlers or dynamic ranks,
 preview without publication, or save all five. All text is inert. GET/PUT
 `/api/bowling-presets` and POST `/api/bowling-presets/validate` use strict schema
-validation, same-origin write checks, 64-KiB requests, transactional SQLite writes
+validation, same-origin write checks, 256-KiB bowling requests, transactional SQLite writes
 and revision conflicts. Public write access is intentional, as in the other sports.
 
 Storage priority: `BOWLING_PRESET_DB`; a sibling of `QB_PRESET_DB` when configured;
@@ -139,3 +139,64 @@ geometry, all five stories, larger selections, missing-data math, research, CSV,
 cross-sport navigation/state, shared saves/conflicts, inert labels, import/export,
 server-reset recovery and blocked browser storage. Existing level and baseball
 chart browser suites cover the shared selector and presentation integration.
+
+## USBC expansion in 3.4.0
+
+Bowling remains the third sport. Its always-visible source selector switches
+between the original PBA career profiles and USBC Team USA Trials. Both sources
+use the existing named-line graphs, mobile bowler picker, calendar/relative axes,
+height controls, CSV exports, study tools and shared preset editor. Presets now
+save `dataset` and `division`; older saved PBA presets acquire `pba` / `all` without
+changing their selections or layout. Source/metric/workload validation prevents
+combining PBA career-season figures with USBC tournament observations.
+
+`bowling_usbc.json` contains **1,521 overall tournament entries** in the men's and
+women's 2022–2026 Trials, grouped into **832 name-based bowler records**. Of these,
+1,484 entry averages are verified against all 30 positive game scores in five
+daily result sheets. Thirty-seven partial or unverified entries keep the official
+finish, scratch pinfall and ranking points, but have null average and verified
+game count. The JSON download contains every entry; study graphs require a
+complete 30-game baseline. Final-standing ties and field size are retained.
+Lower finish and ranking points are better; neither is a stepladder outcome.
+
+This five-year window is not a full career history. Its baseline is the first
+complete entry in the window, not a first professional year or first Trials
+appearance. Follow-up calculations still require consecutive calendar years;
+missing entries never slide the clock. The source notes and controls explain
+these limits, and a USBC selector does not change the PBA snapshot's scope.
+
+Names match within division after case, punctuation and accent normalization;
+the explicit “Terrance (T.J.) Rock” nickname is normalized to T.J. Rock.
+Unverified name changes, spelling differences and aliases remain separate.
+Counts describe source name records, not unique USBC members. Daily sheets with
+unresolved name differences can withhold an average even if that person actually
+completed 30 games. They are listed in the manifest's `average_withheld` arrays.
+No member lookup, login, private league history or bulk membership export is used.
+
+The current Team USA roster supplies 26 compact biographies: hometown, throwing
+style, college when listed, and Team USA / Junior Team USA years. The roster's
+linked name is also retained when it differs from the biography heading. Exact
+name matches enrich player details in either source; PBA and Trials statistics
+are never joined or averaged together. Highlight a player to see their facts and
+original source links. Each USBC observation retains its original printed name,
+hometown, competition, division and results URL; the manifest records all 88
+source URLs with SHA-256 hashes and each event's five daily sheets.
+
+Rebuild with requests, Beautiful Soup and Poppler's `pdftotext` available:
+
+```sh
+python scripts/build_usbc_data.py --cache-dir /tmp/usbc-source-cache
+```
+
+A new cache fetches fresh sources; an existing cache reproduces the input bytes.
+The builder checks expected archive years/divisions, standings count ranges,
+unique names within each event, daily game totals, and agreement with overall
+pinfall before writing. Source PDFs/HTML stay in the build cache; only statistical
+facts and provenance ship. The builder fails for changed archive/roster layouts
+that require review. Refreshes are explicit, not scheduled.
+
+Bowling's preset/import limit is 256 KiB so five large USBC comparisons can round
+trip. Football and baseball keep their existing limits and storage. Verification
+covers source isolation, legacy preset migration, a large-roster preset payload,
+missing averages and years, ranking direction, real mobile source switching,
+women's selection, biography display, CSV attribution and saved state.

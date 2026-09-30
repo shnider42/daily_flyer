@@ -20,7 +20,7 @@ THEME_CONFIG = {
 }
 BACKGROUNDS = []
 BACKGROUND_CADENCE = "daily"
-APP_VERSION = "3.3.1"
+APP_VERSION = "3.4.0"
 
 
 def build_info():

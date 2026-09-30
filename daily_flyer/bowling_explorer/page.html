@@ -2,20 +2,25 @@
   <!-- SPORT_SWITCH -->
   <div class="bw-masthead"><b>THE BOWLING STUDY <span>/ DAILY FLYER</span></b><span id="bw-version"></span></div>
   <header class="bw-hero">
-    <div><div class="bw-kicker">PBA PROFILES · THE YEAR-TWO QUESTION</div><h1>Soph<span>(more)</span><br>Slump<span>(?)</span></h1><p>A rough second season. A breakthrough.<br>What happened down the lane?</p><a class="bw-hero-link" href="#bw-charts">Follow the careers ↓</a></div>
+    <div><div class="bw-kicker">PBA + USBC · THE YEAR-TWO QUESTION</div><h1>Soph<span>(more)</span><br>Slump<span>(?)</span></h1><p>A rough second season. A breakthrough.<br>What happened down the lane?</p><a class="bw-hero-link" href="#bw-charts">Follow the careers ↓</a></div>
     <div class="bw-lane" aria-hidden="true"><div class="bw-pins">●<br>● ●<br>● ● ●<br>● ● ● ●</div><div class="bw-ball"><!-- BOWLING_ICON --></div><span>ONE SEASON ISN’T THE WHOLE STORY.</span></div>
   </header>
-  <div class="bw-coverage"><strong id="bw-coverage"></strong><span>PBA profile statistics; event scope can extend beyond the national Tour. <a href="#bw-sources">Read the source notes ↗</a></span></div>
+  <div class="bw-coverage"><strong id="bw-coverage"></strong><span>PBA career profiles and USBC Team USA Trials. Each source has its own comparison. <a href="#bw-sources">Read the source notes ↗</a></span></div>
+  <section class="bw-dataset" aria-label="Bowling data source">
+    <label>Choose a bowling dataset<select id="bw-dataset"><option value="pba">PBA · career profile seasons</option><option value="usbc">USBC · Team USA Trials, 2022–2026</option></select></label>
+    <p id="bw-dataset-note"></p>
+    <div id="bw-usbc-options" hidden><label>Trials division<select id="bw-division"><option value="all">Men and women</option><option value="men">Men</option><option value="women">Women</option></select></label><div class="bw-row"><button id="bw-usbc-men">Compare men’s averages</button><button id="bw-usbc-women">Compare women’s averages</button><a href="/daily_flyer/data/bowling_usbc.json" download>Download full USBC dataset (JSON)</a></div></div>
+  </section>
   <section class="bw-stories" aria-label="Bowling story presets"><div class="bw-row"><div><h2>Pick a story. Follow the bowler.</h2><p>Each shortcut opens a complete comparison.</p></div><button id="bw-undo" hidden>Restore my previous view</button></div><div id="bw-stories"></div></section>
-  <ol class="bw-clock"><li><b>01 · A substantial start</b><p id="bw-clock-one">First listed year with at least 10 profile events. This is our study baseline, not an official rookie designation.</p></li><li><b>02 · The next year label</b><p>Compare the next numeric year printed in the profile, even with fewer events. Missing rows stay missing.</p></li><li><b>03 · Follow the career</b><p>Look beyond that change. Scoring conditions, schedules and event mix all matter.</p></li></ol>
+  <ol class="bw-clock"><li><b>01 · A substantial start</b><p id="bw-clock-one">First listed year with at least 10 profile events. This is our study baseline, not an official rookie designation.</p></li><li><b>02 · The next year label</b><p>Compare the next calendar year in the chosen source. Missing rows stay missing; an absence never becomes a zero.</p></li><li><b>03 · Follow the career</b><p>Look beyond that change. Scoring conditions, schedules and event mix all matter.</p></li></ol>
   <nav class="bw-modes" aria-label="Bowling views"><button data-mode="compare" aria-pressed="true">Compare careers<small>See the first two years in context</small></button><button data-mode="research" aria-pressed="false">Did it last?<small>Explore the next three years</small></button></nav>
   <div class="bw-workspace">
     <aside class="bw-sidebar" data-detail-min="guided"><details id="bw-filters"><summary>Study filters</summary>
-      <label>First substantial year<select id="bw-threshold"><option value="5">At least 5 events</option><option value="10" selected>At least 10 events</option><option value="15">At least 15 events</option></select></label>
-      <label>Bowling hand<select id="bw-hand"><option value="all">Either hand</option><option value="R">Right</option><option value="L">Left</option></select></label>
+      <label><span id="bw-threshold-label">First substantial year</span><select id="bw-threshold"><option value="5">At least 5 events</option><option value="10" selected>At least 10 events</option><option value="15">At least 15 events</option></select></label>
+      <label id="bw-hand-label">Bowling hand<select id="bw-hand"><option value="all">Either hand</option><option value="R">Right</option><option value="L">Left</option></select></label>
       <label class="bw-check"><input id="bw-qual2" type="checkbox">Require the same workload in year two</label>
       <label class="bw-check"><input id="bw-skip2020" type="checkbox">Exclude pairs involving 2020</label>
-      <p class="bw-small">Changing the workload threshold changes the question. The first available average never resets the clock.</p>
+      <p class="bw-small">Changing the workload threshold changes the question. The selected dataset defines the baseline; it is not an official rookie designation.</p>
     </details></aside>
     <div class="bw-main">
       <section id="bw-story" class="bw-story" tabindex="-1"><div class="bw-kicker">THE QUESTION ON THE LANE</div><h2 id="bw-story-title"></h2><p id="bw-story-note"></p></section>
@@ -32,11 +37,11 @@
         <div class="bw-tabs"><button data-view="pair">Year 1 → 2</button><button data-view="career">What happened next?</button></div>
         <div class="bw-readability"><label>Time along the bottom<select id="bw-timeline"><option value="calendar">Calendar years</option><option value="career">Years from first substantial season</option></select></label><label>Compare lines<select id="bw-layout"><option value="overlay">All bowlers together</option><option value="separate">One graph per bowler</option></select></label><label>Graph height<select id="bw-height"><option value="compact">Compact</option><option value="normal">Regular</option><option value="tall">Tall</option></select></label><label>Highlight a bowler<select id="bw-highlight"><option value="">Everyone</option></select></label></div>
         <details data-detail-min="full"><summary>More graph options</summary><label>Values on the graph<select id="bw-normalize"><option value="raw">Actual values</option><option value="delta">Change from each bowler’s year one</option></select></label><p>Changing from the baseline uses the same statistic’s units. If the baseline is missing, that bowler has no normalized line.</p></details>
-        <div id="bw-legend" aria-label="Selected bowlers"></div>
+        <div id="bw-legend" aria-label="Selected bowlers"></div><section id="bw-player-info" class="bw-player-info" aria-live="polite" hidden></section>
         <div class="bw-row"><h2 id="bw-chart-title"></h2><button id="bw-add-bowler">+ Add / remove bowlers</button></div><p id="bw-chart-note" class="bw-small"></p>
         <p id="bw-warning" class="bw-warning"></p>
         <div id="bw-charts"></div><p id="bw-inspect" class="bw-inspect" aria-live="polite">Tap or focus a point to inspect that season.</p>
-        <details data-detail-min="full"><summary>Season numbers &amp; export</summary><button id="bw-csv">Download selected seasons (CSV)</button><div class="bw-table-wrap"><table><caption>Selected bowling profile seasons</caption><thead><tr><th>Bowler</th><th>Year</th><th>Events</th><th>Statistic</th><th>Value</th><th>Source</th></tr></thead><tbody id="bw-table"></tbody></table></div></details>
+        <details data-detail-min="full"><summary>Season numbers &amp; export</summary><button id="bw-csv">Download selected seasons (CSV)</button><div class="bw-table-wrap"><table><caption>Selected bowling observations</caption><thead><tr><th>Bowler</th><th>Year</th><th id="bw-workload-heading">Events</th><th>Statistic</th><th>Value</th><th>Source</th></tr></thead><tbody id="bw-table"></tbody></table></div></details>
       </section>
       <section id="bw-research" hidden>
         <h2>Does the year-two change carry forward?</h2><p>The full filtered profile cohort is used here, independently of the bowlers selected for career graphs.</p>
@@ -50,13 +55,18 @@
     </div>
   </div>
   <details id="bw-sources" class="bw-sources"><summary>Sources, definitions &amp; missing data</summary>
-    <p id="bw-source-summary"></p><p>Each bowler links to their original <strong>PBA.com Career Stats</strong> table. The source tables can differ from PBA Tour annual leaderboards and award articles; we keep one source family instead of mixing their figures. “Profile titles” are not a national Tour title count.</p>
+    <p id="bw-source-summary"></p>
+    <h3>USBC / bowl.com</h3><p>The USBC dataset contains the men’s and women’s Team USA Trials standings after round five from 2022 through 2026. It includes scratch pinfall, ranking points, standing and field size. Lower ranking points and finish are better. This is one tournament per year, separate from a PBA season, league averages and the U.S. Amateur stepladder.</p>
+    <p>Scoring average is scratch pins divided by 30 only when all 30 positive game scores in the five daily sheets match the final total. Partial or unverified entries retain their published finish and pinfall, but their average is unavailable. The study baseline is the first complete entry within this five-year snapshot, not the first Trials appearance or a professional debut.</p>
+    <p>Names are matched within division after punctuation, case and accent normalization. Unverified aliases and name changes stay separate, so bowler records are not a deduplicated membership census. Hometowns are reported per event; Team USA profile information is a dated snapshot and is available for a subset. Missing biographical information is not inferred.</p>
+    <p><a href="https://bowl.com/tournaments/team-usa-trials/past-results" target="_blank" rel="noopener">USBC Trials archive ↗</a> · <a href="https://bowl.com/team-usa/team-members" target="_blank" rel="noopener">Team USA biographies ↗</a> · <a href="/daily_flyer/data/bowling_usbc_sources.json">USBC source manifest</a> · <a href="/daily_flyer/data/bowling_usbc.json" download>USBC statistical snapshot</a></p>
+    <h3>PBA career profiles</h3><p>Each bowler links to their original <strong>PBA.com Career Stats</strong> table. The source tables can differ from PBA Tour annual leaderboards and award articles; we keep one source family instead of mixing their figures. “Profile titles” are not a national Tour title count.</p>
     <p>The directory’s “current season” flag defines this snapshot’s roster, not a claim that everyone bowled in 2026. This is not an exhaustive history of PBA careers. No PBA50 or regional leaderboards are separately merged in; the profile rows themselves may have broader event scope.</p>
     <p>Source years are kept exactly as printed. Historical split-year seasons and the missing 2012 label make calendar interpretation imperfect. The clock never jumps to the next available row; missing averages, missing years and zero denominators stay unavailable. A missing later career is not treated as a failure.</p>
-    <p>Scoring average is not adjusted for oil pattern, venue, field or era. Earnings are nominal US dollars. Event counts and paid finishes depend on the schedule. No photos, logos or article text are copied; statistical facts are attributed to the PBA.</p>
+    <p>Scoring average is not adjusted for oil pattern, venue, field or era. Earnings are nominal US dollars. Event counts and paid finishes depend on the schedule. Statistical facts are attributed to their original publisher.</p>
     <p><a href="https://www.pba.com/players?current_season=1" target="_blank" rel="noopener">PBA player directory ↗</a> · <a href="/daily_flyer/data/bowling_sources.json">Source manifest</a> · <a href="/daily_flyer/data/bowling_seasons.json">Statistical snapshot</a></p>
   </details>
-  <footer class="bw-footer"><span>Independent bowling research · PBA sources · Daily Flyer</span><button id="bw-open-editor">Preset editor</button></footer>
+  <footer class="bw-footer"><span>Independent bowling research · PBA + USBC sources · Daily Flyer</span><button id="bw-open-editor">Preset editor</button></footer>
   <section id="bw-admin" hidden aria-label="Shared bowling preset editor">
     <div class="bw-row"><div><div class="bw-kicker">SHARED BOWLING STORIES</div><h2>Preset editor</h2></div><button id="bw-close-editor">Close editor</button></div>
     <p>This editor is public, just like the other sports. Save publishes the five bowling shortcuts for everyone. Preview and imported backups stay in your draft.</p>

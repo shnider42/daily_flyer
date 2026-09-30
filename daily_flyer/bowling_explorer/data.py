@@ -12,6 +12,19 @@ METRICS = {
     "events": dict(name="Events entered", digits=0, unit="events", note="Profile event count: a workload measure, not a performance grade. Event mix and season length differ."),
 }
 
+USBC_METRICS = {
+    "average": dict(name="Scoring average", digits=2, unit="pins / game", note="USBC Team USA Trials scratch pinfall ÷ 30, verified against all five daily game sheets. Incomplete entries have no average. This is a single tournament, not a PBA season or league average."),
+    "finish": dict(name="Overall finish", digits=0, unit="place", note="Place after round five, within the men's or women's field. Lower is better. Ties are retained. This is the ranking-points standing, not the U.S. Amateur stepladder result; field sizes vary."),
+    "ranking_points": dict(name="Ranking points", digits=1, unit="points", note="Total daily ranking points as published by USBC. Lower is better; the size and strength of each year's field affect comparisons."),
+    "pinfall": dict(name="Total scratch pinfall", digits=0, unit="pins", note="Total pins from the overall standings. Partial entries can have fewer games and are identified in the player details and export."),
+}
+
+
+@lru_cache(maxsize=1)
+def load_usbc_dataset():
+    path = Path(__file__).resolve().parents[1] / "data" / "bowling_usbc.json"
+    return json.loads(path.read_text(encoding="utf-8"))
+
 
 @lru_cache(maxsize=1)
 def load_dataset():

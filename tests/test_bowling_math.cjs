@@ -50,3 +50,18 @@ test('End labels separate close values without leaving their plot',()=>{
  const crowded=M.labelPositions(Array.from({length:30},(_,i)=>({id:i,y:600})),40,260,24);
  assert.ok(crowded.every(l=>l.labelY>=39.9999999&&l.labelY<=260));
 });
+
+test('USBC uses verified games and keeps competition history separate from PBA seasons',()=>{
+ const data=JSON.parse(require('node:fs').readFileSync(require('node:path').join(__dirname,'../daily_flyer/data/bowling_usbc.json'),'utf8'));
+ const state={dataset:'usbc',metric:'average',threshold:'30',hand:'all',division:'women',qual2:false,skip2020:false,view:'career',normalize:'raw',timeline:'calendar',selection:'improved',count:4,predictor:'delta',outcome:'average'};
+ const julia=data.players.find(p=>p.name==='Julia Bond');
+ assert.equal(M.anchor(julia,30),2022);
+ assert.equal(M.pair(julia,'average',30).b,202.566667);
+ assert.ok(M.eligible(data.players,state).every(p=>p.division==='women'));
+ assert.ok(M.cohort(data.players,state,2026).rows.every(p=>p.first===2022));
+ const shannon=data.players.find(p=>p.name==='Shannon Pluhowsky');
+ assert.equal(M.series(shannon,state).find(p=>p.year===2025).value,null);
+ state.metric='finish';
+ const ids=M.ranked(data.players,state);
+ assert.ok(ids.every(id=>M.pair(data.players.find(p=>p.id===id),'finish',30).delta<0),'A smaller finish is an improvement');
+});

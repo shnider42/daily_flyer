@@ -20,7 +20,7 @@
   function render(){
     $('slot').innerHTML=draft.map((p,i)=>`<option value="${i}">${i+1} · ${A.esc(p.label)}</option>`).join('');$('slot').value=String(slot);
     const p=draft[slot];for(const key of ['label','title','note'])$(key).value=p[key];
-    $('selection').value=p.settings.selection;$('count').value=p.settings.count;$('count').max=A.config.players.length;$('count').disabled=p.settings.selection==='fixed';
+    $('selection').value=p.settings.selection;$('count').value=p.settings.count;$('count').max=(p.settings.dataset==='usbc'?A.config.usbc:A.config).players.length;$('count').disabled=p.settings.selection==='fixed';
     $('settings').textContent='Captured settings: '+A.summary(p.settings);
   }
   function open(){panel.hidden=false;render();status(initial.error||initial.storage);panel.scrollIntoView({block:'start'});}
@@ -43,7 +43,7 @@
   });
   $('export').onclick=()=>A.download('bowling-presets.json',JSON.stringify({sport:'bowling',presets:draft},null,2),'application/json');
   $('import').onchange=()=>operation(async()=>{
-    const file=$('import').files[0];if(!file)return;if(file.size>65536)throw Error('Backup exceeds 64 KiB.');
+    const file=$('import').files[0];if(!file)return;if(file.size>262144)throw Error('Backup exceeds 256 KiB.');
     const parsed=JSON.parse(await file.text());if(parsed.sport&&parsed.sport!=='bowling')throw Error('Choose a bowling backup.');
     draft=clone((await api('POST','/validate',{presets:Array.isArray(parsed)?parsed:parsed.presets})).presets);mark();render();status('Imported into this draft. Preview or Save to publish.');$('import').value='';
   });

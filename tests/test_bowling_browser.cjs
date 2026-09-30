@@ -57,6 +57,28 @@ const level=(p,l)=>p.click(`#yt-levels [data-detail-level=${l}]`);
  for(const width of [320,390,768,1024]){await mobile.setViewportSize({width,height:844});await mobile.waitForTimeout(100);assert.ok(await mobile.evaluate(()=>document.body.scrollWidth<=innerWidth+1),'No body overflow at '+width);}
  await mobile.setViewportSize({width:390,height:844});await mobile.selectOption('#bw-height','normal');await mobile.screenshot({path:'/tmp/bowling-mobile.png',fullPage:true});
  await panel.scrollIntoViewIfNeeded();await mobile.screenshot({path:'/tmp/bowling-mobile-chart.png'});
+ // USBC remains inside the third sport with mobile selection, named lines and player facts.
+ await mobile.selectOption('#bw-dataset','usbc');assert.equal(await mobile.locator('#bw-threshold').inputValue(),'30');
+ assert.equal(await mobile.locator('#bw-charts [data-series]').count(),3);
+ assert.match(await mobile.locator('.bw-x-title').textContent(),/Year \(USBC Trials\)/);
+ await mobile.click('#bw-usbc-women');assert.equal(await mobile.locator('#bw-division').inputValue(),'women');
+ assert.equal(await mobile.locator('#bw-charts [data-series]').count(),3);
+ await mobile.click('#bw-add-bowler');await mobile.fill('#bw-search','Crystal Elliott');
+ await mobile.check('[data-player=usbc-women-crystalelliott]');assert.equal(await mobile.locator('#bw-charts [data-series]').count(),4);
+ await mobile.click('#bw-picker-done');await mobile.selectOption('#bw-highlight','usbc-women-juliabond');
+ assert.match(await mobile.locator('#bw-player-info').innerText(),/Nebraska/);
+ assert.equal(await mobile.locator('#bw-player-info a').first().getAttribute('href'),'https://bowl.com/team-usa/julia-bond');
+ await mobile.reload();await mobile.locator('.bw-dot').first().waitFor();assert.equal(await mobile.locator('#bw-dataset').inputValue(),'usbc');
+ assert.equal(await mobile.locator('#bw-charts [data-series]').count(),4);assert.match(await mobile.locator('#bw-player-info').innerText(),/Julia Bond/);
+ await level(mobile,'full');await mobile.selectOption('#bw-metric','finish');assert.match(await mobile.locator('#bw-metric-note').innerText(),/Lower is better/);
+ assert.equal(await mobile.locator('#bw-metric option[value=cash_rate]').count(),0);
+ await mobile.locator('details').filter({has:mobile.locator('#bw-csv')}).locator('summary').click();
+ const usbcDownload=mobile.waitForEvent('download');await mobile.click('#bw-csv');const ud=await usbcDownload;
+ const ucsv=fs.readFileSync(await ud.path(),'utf8');assert.ok(ucsv.includes('https://scores.bowl.com/'));assert.ok(ucsv.includes('Field size'));assert.ok(ucsv.includes('Julia Bond'));
+ await mobile.selectOption('#bw-metric','average');await mobile.selectOption('#bw-highlight','');
+ await level(mobile,'simple');for(const width of [320,390]){await mobile.setViewportSize({width,height:844});await mobile.waitForTimeout(100);assert.ok(await mobile.evaluate(()=>document.body.scrollWidth<=innerWidth+1),'No USBC body overflow at '+width);}
+ await mobile.locator('#bw-charts').scrollIntoViewIfNeeded();await mobile.screenshot({path:'/tmp/bowling-usbc-mobile.png'});
+ await mobile.click('[data-story=rivals]');assert.equal(await mobile.locator('#bw-dataset').inputValue(),'pba');assert.equal(await mobile.locator('#bw-charts [data-series]').count(),3);
  // Preview, public save, conflict, import/export, and server-reset recovery.
  await page.goto(url+'&preset_admin=1');await page.locator('#bw-admin-label').waitFor();
  const second=await browser.newPage();await second.goto(url+'&preset_admin=1');

@@ -4,19 +4,19 @@ from datetime import datetime, timezone
 import json
 import sqlite3
 from flask import Blueprint, jsonify
-from .data import load_dataset, METRICS
+from .data import load_dataset, load_usbc_dataset, METRICS, USBC_METRICS
 from daily_flyer.qb_explorer.presets import Conflict, input_payload, revision
 from daily_flyer.preset_storage import preset_db, storage_info
 
 IDS = ("rivals", "slumps", "leaps", "cashes", "future")
-DEFAULTS = dict(metric="average", threshold="10", view="career", layout="overlay", height="normal", timeline="calendar",
+DEFAULTS = dict(dataset="pba", division="all", metric="average", threshold="10", view="career", layout="overlay", height="normal", timeline="calendar",
                 mode="compare", normalize="raw", hand="all", search="", qual2=False, skip2020=False,
                 selection="fixed", count=4, ids=["jason-belmonte", "ej-tackett", "anthony-simonsen"],
                 predictor="delta", outcome="average")
-CHOICES = dict(metric=tuple(METRICS), threshold=("5", "10", "15"), view=("pair", "career"),
+CHOICES = dict(dataset=("pba", "usbc"), division=("all", "men", "women"), metric=tuple(dict(METRICS, **USBC_METRICS)), threshold=("5", "10", "15", "30"), view=("pair", "career"),
                layout=("separate", "overlay"), height=("compact", "normal", "tall"), mode=("compare", "research"),
                normalize=("raw", "delta"), hand=("all", "R", "L"), selection=("fixed", "improved", "declined"),
-               predictor=("a", "b", "delta"), outcome=("average", "cash_rate", "earnings_per_event"), timeline=("calendar", "career"))
+               predictor=("a", "b", "delta"), outcome=("average", "cash_rate", "earnings_per_event", "finish", "ranking_points", "pinfall"), timeline=("calendar", "career"))
 
 
 def factory_presets():
@@ -37,6 +37,8 @@ def legacy_factory_presets():
     old[0]["title"] = "Three careers, three different starts"
     for p in old:
         p["settings"].pop("timeline")
+        p["settings"].pop("dataset")
+        p["settings"].pop("division")
         p["settings"]["layout"] = "separate"
     return old
 
@@ -45,7 +47,6 @@ def validate_presets(value):
     if not isinstance(value, list) or len(value) != len(IDS):
         raise ValueError("Include all five bowling preset slots.")
     result = deepcopy(value)
-    players = {p["id"] for p in load_dataset()["players"]}
     old, current = legacy_factory_presets(), factory_presets()
     for i, p in enumerate(result):
         if p == old[i]:
@@ -60,11 +61,22 @@ def validate_presets(value):
         if isinstance(s, dict):
             # Existing custom graphs keep their prior time alignment.
             s.setdefault("timeline", "career")
+            s.setdefault("dataset", "pba")
+            s.setdefault("division", "all")
         if not isinstance(s, dict) or set(s) != set(DEFAULTS):
             raise ValueError("Missing or unknown bowling view settings.")
         for key, choices in CHOICES.items():
             if not isinstance(s[key], str) or s[key] not in choices:
                 raise ValueError(f"Invalid {key}.")
+        usbc = s["dataset"] == "usbc"
+        players = {p["id"] for p in (load_usbc_dataset() if usbc else load_dataset())["players"]}
+        metrics = USBC_METRICS if usbc else METRICS
+        if s["metric"] not in metrics or s["outcome"] not in metrics:
+            raise ValueError("Choose statistics available for this source.")
+        if s["threshold"] not in (("30",) if usbc else ("5", "10", "15")):
+            raise ValueError("Choose a workload threshold for this source.")
+        if not usbc and s["division"] != "all":
+            raise ValueError("Divisions apply to the USBC Trials dataset.")
         if not isinstance(s["search"], str) or len(s["search"]) > 100:
             raise ValueError("Search must be text of at most 100 characters.")
         if any(type(s[k]) is not bool for k in ("qual2", "skip2020")):
@@ -135,7 +147,7 @@ def get_presets():
 @api.post("/api/bowling-presets/validate")
 def validate_route():
     try:
-        return jsonify(presets=validate_presets(input_payload().get("presets")))
+        return jsonify(presets=validate_presets(input_payload(max_bytes=262144).get("presets")))
     except (ValueError, TypeError, UnicodeError) as exc:
         return jsonify(error=str(exc)), 400
 
@@ -143,7 +155,7 @@ def validate_route():
 @api.put("/api/bowling-presets")
 def save_route():
     try:
-        payload = input_payload()
+        payload = input_payload(max_bytes=262144)
         return jsonify(write_presets(payload.get("presets"), payload.get("revision")))
     except Conflict as exc:
         return jsonify(error=str(exc)), 409
