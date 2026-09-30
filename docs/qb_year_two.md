@@ -18,6 +18,14 @@ Or use `/?theme=qb_year_two` on a service deploying this branch. No API key,
 database, background job, chart CDN or new production dependency is required.
 This change does not deploy or merge the branch.
 
+## Version 3.3.0 — bowling / PBA profiles
+
+The shared selector now includes `bowling_year_two`, alongside football and
+baseball. Bowling has its own PBA profile snapshot, career comparisons, five
+stories, descriptive follow-up study and recoverable shared presets. Existing
+Render settings continue to work. See [bowling_year_two.md](bowling_year_two.md)
+for source scope, first-substantial-year definitions and coverage limits.
+
 ## Version 3.1.0 — choose your detail level
 
 A prominent three-button control sits directly below the sport selector:

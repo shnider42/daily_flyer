@@ -15,7 +15,7 @@
   const api={comparison,relationship};
   if(typeof module!=='undefined')module.exports=api;
   if(typeof document==='undefined')return;
-  const root=document.querySelector('#qb-app,#bb-app');if(!root)return;
+  const root=document.querySelector('#qb-app,#bb-app,#bw-app');if(!root)return;
   const key='year-two-detail-v1',levels=['simple','guided','full'];let level='simple';
   try{const saved=localStorage.getItem(key);if(levels.includes(saved))level=saved;}catch(_){}
   const descriptions={simple:'Stories, graphs and plain-English takeaways. Start with a story below.',guided:'Choose players and measures, with help reading each graph.',full:'Every filter, graph option, statistical result and export.'};

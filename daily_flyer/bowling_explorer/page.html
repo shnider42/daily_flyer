@@ -1,0 +1,65 @@
+<div id="bw-app">
+  <!-- SPORT_SWITCH -->
+  <div class="bw-masthead"><b>THE BOWLING STUDY <span>/ DAILY FLYER</span></b><span id="bw-version"></span></div>
+  <header class="bw-hero">
+    <div><div class="bw-kicker">PBA PROFILES · THE YEAR-TWO QUESTION</div><h1>Soph<span>(more)</span><br>Slump<span>(?)</span></h1><p>A rough second season. A breakthrough.<br>What happened down the lane?</p><a class="bw-hero-link" href="#bw-charts">Follow the careers ↓</a></div>
+    <div class="bw-lane" aria-hidden="true"><div class="bw-pins">●<br>● ●<br>● ● ●<br>● ● ● ●</div><div class="bw-ball"><!-- BOWLING_ICON --></div><span>ONE SEASON ISN’T THE WHOLE STORY.</span></div>
+  </header>
+  <div class="bw-coverage"><strong id="bw-coverage"></strong><span>PBA profile statistics; event scope can extend beyond the national Tour. <a href="#bw-sources">Read the source notes ↗</a></span></div>
+  <section class="bw-stories" aria-label="Bowling story presets"><div class="bw-row"><div><h2>Pick a story. Follow the bowler.</h2><p>Each shortcut opens a complete comparison.</p></div><button id="bw-undo" hidden>Restore my previous view</button></div><div id="bw-stories"></div></section>
+  <ol class="bw-clock"><li><b>01 · A substantial start</b><p id="bw-clock-one">First listed year with at least 10 profile events. This is our study baseline, not an official rookie designation.</p></li><li><b>02 · The next year label</b><p>Compare the next numeric year printed in the profile, even with fewer events. Missing rows stay missing.</p></li><li><b>03 · Follow the career</b><p>Look beyond that change. Scoring conditions, schedules and event mix all matter.</p></li></ol>
+  <nav class="bw-modes" aria-label="Bowling views"><button data-mode="compare" aria-pressed="true">Compare careers<small>See the first two years in context</small></button><button data-mode="research" aria-pressed="false">Did it last?<small>Explore the next three years</small></button></nav>
+  <div class="bw-workspace">
+    <aside class="bw-sidebar" data-detail-min="guided"><details id="bw-selection"><summary>Choose bowlers &amp; filters</summary>
+      <label>Search bowlers or hometown<input id="bw-search" type="search" maxlength="100" placeholder="Try Tackett or Sweden"></label>
+      <label>First substantial year<select id="bw-threshold"><option value="5">At least 5 events</option><option value="10" selected>At least 10 events</option><option value="15">At least 15 events</option></select></label>
+      <label>Bowling hand<select id="bw-hand"><option value="all">Either hand</option><option value="R">Right</option><option value="L">Left</option></select></label>
+      <label class="bw-check"><input id="bw-qual2" type="checkbox">Require the same workload in year two</label>
+      <label class="bw-check"><input id="bw-skip2020" type="checkbox">Exclude pairs involving 2020</label>
+      <p class="bw-small">Changing the workload threshold changes the question. The first available average never resets the clock.</p>
+      <div class="bw-row"><button id="bw-select-all">Select all matches</button><button id="bw-clear">Clear selection</button></div>
+      <p id="bw-selection-count" class="bw-small"></p><div id="bw-players"></div>
+    </details></aside>
+    <div class="bw-main">
+      <section id="bw-story" class="bw-story" tabindex="-1"><div class="bw-kicker">THE QUESTION ON THE LANE</div><h2 id="bw-story-title"></h2><p id="bw-story-note"></p></section>
+      <div class="bw-measure" data-detail-min="guided"><label>What are we comparing?<select id="bw-metric"></select></label><p id="bw-metric-note"></p></div>
+      <section id="bw-compare">
+        <div class="yt-explainer"><div class="yt-eyebrow">THE PLAIN-ENGLISH VERSION</div><h3>Did year two change the direction?</h3><p id="bw-takeaway"></p><p>Each point is a profile season. Orange marks year two. Separate graphs use the same scale so you can compare them.</p><button data-detail-level="guided">Choose bowlers &amp; stats</button></div>
+        <div class="bw-tabs"><button data-view="pair">Year 1 → 2</button><button data-view="career">What happened next?</button></div>
+        <div class="bw-readability"><label>Graph height<select id="bw-height"><option value="compact">Compact</option><option value="normal">Regular</option><option value="tall">Tall</option></select></label><label>Compare lines<select id="bw-layout"><option value="separate">One graph per bowler</option><option value="overlay">All bowlers together</option></select></label><label>Highlight a bowler<select id="bw-highlight"><option value="">Everyone</option></select></label></div>
+        <details data-detail-min="full"><summary>More graph options</summary><label>Values on the graph<select id="bw-normalize"><option value="raw">Actual values</option><option value="delta">Change from each bowler’s year one</option></select></label><p>Changing from the baseline uses the same statistic’s units. If the baseline is missing, that bowler has no normalized line.</p></details>
+        <div id="bw-legend" aria-label="Selected bowlers"></div>
+        <h2 id="bw-chart-title"></h2><p id="bw-chart-note" class="bw-small"></p>
+        <p id="bw-warning" class="bw-warning"></p>
+        <div id="bw-charts"></div><p id="bw-inspect" class="bw-inspect" aria-live="polite">Tap or focus a point to inspect that season.</p>
+        <details data-detail-min="full"><summary>Season numbers &amp; export</summary><button id="bw-csv">Download selected seasons (CSV)</button><div class="bw-table-wrap"><table><caption>Selected bowling profile seasons</caption><thead><tr><th>Bowler</th><th>Year</th><th>Events</th><th>Statistic</th><th>Value</th><th>Source</th></tr></thead><tbody id="bw-table"></tbody></table></div></details>
+      </section>
+      <section id="bw-research" hidden>
+        <h2>Does the year-two change carry forward?</h2><p>The full filtered profile cohort is used here, independently of the bowlers selected for career graphs.</p>
+        <div class="bw-research-controls" data-detail-min="guided"><label>Compare this early value<select id="bw-predictor"><option value="delta">Year-two change</option><option value="a">Year-one value</option><option value="b">Year-two value</option></select></label><label>With years 3–5<select id="bw-outcome"><option value="average">Mean scoring average</option><option value="cash_rate">Mean cash rate</option><option value="earnings_per_event">Mean earnings per event</option></select></label></div>
+        <div class="yt-explainer"><div class="yt-eyebrow">THE PLAIN-ENGLISH VERSION</div><h3>A pattern, not a prediction</h3><p id="bw-research-reading"></p></div>
+        <p id="bw-cohort-note" class="bw-warning"></p><p id="bw-research-axes"></p><div id="bw-scatter"></div><p id="bw-research-inspect" class="bw-inspect" aria-live="polite">Tap or focus a dot to see the bowler.</p>
+        <div id="bw-research-numbers" data-detail-min="full"></div>
+        <p class="bw-small">The later result is an unweighted mean of three season values, not a game-weighted career average. Requiring all three observations selects survivors with recorded results. These profiles are not a random historical sample, and this is not a causal test or a validated forecast.</p>
+        <button id="bw-research-csv" data-detail-min="full">Download research cohort (CSV)</button>
+      </section>
+    </div>
+  </div>
+  <details id="bw-sources" class="bw-sources"><summary>Sources, definitions &amp; missing data</summary>
+    <p id="bw-source-summary"></p><p>Each bowler links to their original <strong>PBA.com Career Stats</strong> table. The source tables can differ from PBA Tour annual leaderboards and award articles; we keep one source family instead of mixing their figures. “Profile titles” are not a national Tour title count.</p>
+    <p>The directory’s “current season” flag defines this snapshot’s roster, not a claim that everyone bowled in 2026. This is not an exhaustive history of PBA careers. No PBA50 or regional leaderboards are separately merged in; the profile rows themselves may have broader event scope.</p>
+    <p>Source years are kept exactly as printed. Historical split-year seasons and the missing 2012 label make calendar interpretation imperfect. The clock never jumps to the next available row; missing averages, missing years and zero denominators stay unavailable. A missing later career is not treated as a failure.</p>
+    <p>Scoring average is not adjusted for oil pattern, venue, field or era. Earnings are nominal US dollars. Event counts and paid finishes depend on the schedule. No photos, logos or article text are copied; statistical facts are attributed to the PBA.</p>
+    <p><a href="https://www.pba.com/players?current_season=1" target="_blank" rel="noopener">PBA player directory ↗</a> · <a href="/daily_flyer/data/bowling_sources.json">Source manifest</a> · <a href="/daily_flyer/data/bowling_seasons.json">Statistical snapshot</a></p>
+  </details>
+  <footer class="bw-footer"><span>Independent bowling research · PBA sources · Daily Flyer</span><button id="bw-open-editor">Preset editor</button></footer>
+  <section id="bw-admin" hidden aria-label="Shared bowling preset editor">
+    <div class="bw-row"><div><div class="bw-kicker">SHARED BOWLING STORIES</div><h2>Preset editor</h2></div><button id="bw-close-editor">Close editor</button></div>
+    <p>This editor is public, just like the other sports. Save publishes the five bowling shortcuts for everyone. Preview and imported backups stay in your draft.</p>
+    <p id="bw-admin-status" role="status"></p>
+    <div class="bw-admin-fields"><label>Story slot<select id="bw-admin-slot"></select></label><label>Button label<input id="bw-admin-label" maxlength="48"></label><label>Story heading<input id="bw-admin-title" maxlength="140"></label><label>Extra explanation<textarea id="bw-admin-note" maxlength="1200" rows="3"></textarea></label></div>
+    <p>Set bowlers, statistic, filters and graph controls in the explorer, then capture that view for this slot.</p><div class="bw-row"><button id="bw-admin-capture">Use my current view</button><button id="bw-admin-preview">Preview this draft</button><button id="bw-admin-reset">Reset this slot</button></div>
+    <div class="bw-admin-fields"><label>Player selection<select id="bw-admin-selection"><option value="fixed">Specific bowlers from captured view</option><option value="declined">Largest year-two drops</option><option value="improved">Largest year-two gains</option></select></label><label>How many in a ranking?<input id="bw-admin-count" type="number" min="1" value="4"></label></div><p id="bw-admin-settings"></p>
+    <div class="bw-row"><button id="bw-admin-save" class="bw-primary">Save all five presets</button><button id="bw-admin-reload">Reload shared presets</button><button id="bw-admin-export">Export draft JSON</button><label>Import into draft<input id="bw-admin-import" type="file" accept="application/json,.json"></label></div>
+  </section>
+</div>
