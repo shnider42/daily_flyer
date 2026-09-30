@@ -13,6 +13,7 @@
 <link rel="stylesheet" href="/assets/campaigns.css"><script src="/assets/campaigns.js" defer></script>
 <link rel="stylesheet" href="/assets/weapon-rules.css"><script src="/assets/weapon-rules.js" defer></script>
 <link rel="stylesheet" href="/assets/operations.css"><script src="/assets/operations.js" defer></script>
+<link rel="stylesheet" href="/assets/battle-briefing.css"><script src="/assets/battle-briefing.js" defer></script><script src="/assets/learning.js" defer></script>
 <header><a href="/" class="brand">DSL <span>TACTICAL COMMAND</span></a><button id="homeBattles" class="quiet" hidden>Battles / home</button><button id="rulesButton" class="quiet">Field manual</button></header>
 <main>
 <section id="lobby">
@@ -37,7 +38,7 @@
  <details class="operation-briefing"><summary>Mission briefing</summary><p id="scenarioBrief" class="brief">Buildings shelter the approaches; the central road is exposed.</p><p id="playtestNote" hidden>Experimental aircraft rules. No altitude, fuel or facing yet. This is a fictional tactical layout, not a historical simulation.</p></details>
  <div id="rulesetPicker"><label for="rulesetSelect">Rules</label><select id="rulesetSelect"><option value="dsl">DSL · Full tactical rules</option><option value="classic">Classic · Simplified rules</option><option value="asl" disabled>ASL-inspired · Coming later</option></select></div>
  <div class="home-play-buttons"><button id="createSolo" class="solo-button">Play solo <span aria-hidden="true">→</span></button><button id="create">Invite a friend <span aria-hidden="true">↗</span></button></div>
- <div class="home-learn"><p id="learnHelp">First time playing?</p><button id="learnStart">Guided practice →</button></div>
+ <div class="home-learn" hidden><p id="learnHelp">First time playing? Learn with a separate practice battle.</p><button id="learnStart">Guided practice →</button></div>
  </div></section>
  <section class="home-return" aria-label="Battle codes"><details id="joinOptions"><summary>Have an invitation? <span>Join a battle</span></summary><form id="joinForm"><label for="code">Enter the 10-character invitation code</label><div class="join-row"><input id="code" maxlength="10" placeholder="MATCH CODE" autocomplete="off" autocapitalize="characters" spellcheck="false" required pattern="[a-fA-F0-9]{10}"><button type="submit">Join →</button></div></form></details>
  <details id="restoreOptions"><summary>Returning from another device? <span>Load a save code</span></summary><form id="recoverForm"><label for="recoveryCode">Paste your MOVE or SAVE code</label><textarea id="recoveryCode" rows="3" maxlength="100" placeholder="MOVE-… or SAVE-…" autocomplete="off" autocapitalize="characters" spellcheck="false" required></textarea><button type="submit">Load code →</button><p class="footnote">MOVE reconnects your live seat. SAVE creates a separate solo battle at the saved moment.</p></form></details></section>
@@ -50,7 +51,7 @@
  <p id="rulesetBadge" class="ruleset-badge" hidden></p>
  <div id="turnBanner" role="status"></div>
  <nav id="playTools" aria-label="Play preferences"><button id="simpleToggle" aria-pressed="false">Simple view: off</button><button id="guideToggle" aria-pressed="false">Learn as you play</button></nav>
- <section id="tutorialCoach" hidden aria-label="Guided learning"><p id="lessonCount" class="eyebrow"></p><h2 id="lessonTitle"></h2><p id="lessonText"></p><div class="lesson-controls"><button id="lessonBack">Back</button><button id="lessonShow">Show me</button><button id="lessonNext">Next tip →</button><button id="lessonExit" class="quiet">Exit guide</button></div></section>
+ <section id="tutorialCoach" hidden aria-label="Guided learning"><p id="lessonCount" class="eyebrow"></p><h2 id="lessonTitle"></h2><p id="lessonText"></p><p id="lessonTask"></p><p id="lessonResult" role="status"></p><div class="lesson-controls"><button id="lessonBack">Back</button><button id="lessonShow">Try it on the map</button><button id="lessonNext">Next lesson →</button><button id="lessonExit" class="quiet">Pause guide</button></div><details id="lessonContents"><summary>Choose a topic</summary><nav id="lessonTopics" aria-label="Learning topics"></nav></details></section>
  <button id="replayTurn" class="quiet" hidden>Replay computer turn</button><details id="computerReview" class="computer-review" hidden><summary>Computer's last turn</summary><ol id="computerOrders"></ol></details>
  <div class="mission"><span id="objectiveName">★ VILLAGE SQUARE</span><span id="objective">Hold: 0 / 2</span></div>
  <p id="missionHint" class="mission-hint"></p>

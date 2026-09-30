@@ -1,0 +1,117 @@
+/* Guest-only, optional coaching. Lessons never issue game orders or change rules. */
+'use strict';
+(()=>{
+ const storage='ww2-learning-v2';let saved={},topicSignature='';
+ try{const value=JSON.parse(localStorage.getItem(storage));if(value&&typeof value==='object'&&!Array.isArray(value))for(const [k,g] of Object.entries(value)){if(g&&typeof g.lesson==='string'&&Array.isArray(g.done)&&Array.isArray(g.read)&&Number.isInteger(g.since)&&typeof g.enabled==='boolean')saved[k]=g;}}catch{}
+ const guest=()=>window.ww2Commander?.guest===true;
+ const key=()=>`${session?.code}:${state?.battle_number||1}`;
+ const current=()=>saved[key()];
+ const persist=()=>{try{localStorage.setItem(storage,JSON.stringify(saved));}catch{}};
+ const add=(list,id,title,text,task,selector,orders=[])=>list.push({id,title,text,task,selector,orders});
+ function lessons(s=state){
+  if(!s)return [];
+  const book=[],m=ww2Briefing.mission(s),air=!!s.air_version,sea=!!s.naval_version,land=!air&&!sea;
+  const own=s.units.filter(u=>u.side===s.side),has=(...kinds)=>own.some(u=>kinds.includes(u.kind));
+  add(book,'mission','First: how do you win?',m.goal+' '+m.rules[0]+' The green mission strip stays above the map. Open it for scoring, the round limit and the other side’s goal.','Open the win conditions and find the objective. You do not need to defeat every enemy to win.','@mission');
+  add(book,'turn','Whose turn is it?',`YOUR TURN means you may issue orders. OPPONENT’S TURN means you can inspect, but cannot move or shoot. Waiting for a player, resolving orders, replay and battle finished each have their own status. ${s.ai_side?'In solo play, the computer responds after you end your turn.':'In multiplayer, turns alternate between the two players.'}`,'Check the turn label. Your entire army shares the turn; selecting another unit does not end it.','#turnBanner');
+  add(book,'select','Choose a unit and read its card','Select one of your map counters, or use Your units / Task force. The full unit name, remaining strength and AP identify what you selected. AP means action points. Use the arrows to find another ready unit; Find centers your selected unit without spending AP.','Select one of your surviving units. On a phone, tap its name to inspect the larger details.','#mapWrap');
+  add(book,'move','Move using highlighted hexes',air?'Select an aircraft, then a highlighted flight destination. Each flight leg costs 1 AP: fighters can travel up to 3 hexes and bombers up to 2. Interception checks the whole path, not just where you land. Radar and airfields stay in place.':sea?'Bright highlighted hexes show legal moves. Ships stay on water; amphibious sections can move directly between sea and beach. Open ground costs 1 AP; jungle and buildings cost 2 for landing troops.':`Select a unit to reveal legal adjacent moves. Open ground costs 1 AP; woods and buildings cost 2. Water, destroyed buildings and vehicle restrictions may block entry. Roads can grant a free connected road move; choose the marked hex to use it. Fixed guns do not move.`, 'On your turn, move one unit to a highlighted hex. No highlight means this move is unavailable now.','#mapWrap',['move']);
+  add(book,'ap','Plan your AP before moving',`Every unit has its own AP budget. Most attacks cost 2 AP, so moving first can leave too little to shoot. The buttons show their costs.${land?' Lieutenants and Commanders start with 3 AP; other roles vary.':''} End turn banks up to 1 unused AP per unit${land?', or 2 for an officer':''}. Banking is limited; it does not accumulate without a cap.`, 'Read the AP number on your unit, then compare it with one of its order costs.','#orders');
+  add(book,'orders','Grey orders are still capabilities','A grey button means the unit knows the order but cannot use it right now. Its reason might be “Needs 2 AP,” “Already watching,” “Select a visible enemy,” a cooldown, or spent supplies. It does not predict targets from a hex you have not moved to.','Hover a grey order on desktop, or tap it on a phone, to learn why it is unavailable. No AP is spent.','#orders');
+  add(book,'fire',air?'Attack with the right aircraft':sea?'Spotted targets and naval attacks':'Select a target, then choose an attack',air?'Fighters and AA guns attack aircraft. Bombers attack ground units within their short bombing reach and spend one bomb load. Selecting a target shows which orders are legal; terrain does not block aircraft sight or flight.':sea?'Select a visible enemy to enable legal gunfire, carrier air strikes or destroyer torpedoes. Guns and torpedoes need clear surface sight. Air strikes use spotted ships. Long range, armor and cruiser escorts affect attacks; gunfire and torpedoes are different weapons.':'Select a visible enemy after selecting your own unit. Fire at unit uses the target’s normal odds. Clear sight, range, AP and a weapon that can hurt that target all matter. Close assault is adjacent and risky; grenades are separate consumables. A longer sight range does not mean a longer firing range.', 'When a legal target is available, try an attack. You may continue the guide without firing; do not waste an order just to complete a lesson.','#orders',['fire','grenade','suppress','snipe','area_fire','airstrike','torpedo']);
+  add(book,'dice','What does a roll mean?','An attack may miss even when it is legal. “4+” means a die must show 4, 5 or 6. Cover and other modifiers can change the required result. Simple view keeps the explanation short; turn it off for exact odds, modifiers and the combat log. There is no need to calculate rolls yourself.','Open unit details or turn Simple view off to inspect the numbers. Switching display settings never changes the rules.','#simpleToggle');
+  if(land)add(book,'cover','Cover, buildings and movement','Woods and intact buildings protect infantry but cost more to enter. Dig in adds cover until you move or assault; smoke blocks sight rather than making armor stronger.'+(s.building_version?' A damaged building has less cover. An explosive hit can collapse it and kill its ground occupants. Destroyed buildings cannot be entered.':''),'Inspect a terrain hex. On desktop, hover it to read movement cost and cover before committing to a move.','#mapWrap');
+  if(s.fog_of_war)add(book,'fog','Fog and last-known contacts','Solid enemy counters are currently visible. Dashed contacts are only last-known positions: that enemy may have moved or been destroyed. '+(air?'Radar spots aircraft, not distant ground installations. Terrain does not block aircraft sight.':sea?'Islands and smoke limit surface sight. Search aircraft reveal a temporary area.':'Concealed infantry in woods or buildings can require a closer observer.')+' A clear movement highlight never promises that the area is safe.','Inspect the difference between a visible counter and a last-known contact. Neither the guide nor destination previews reveal hidden enemies.','#mapWrap');
+  if(land||sea&&s.combat_version)add(book,'rally',sea?'Rally landing infantry':'Pinned infantry and damaged tracks',sea?'Amphibious landing sections are infantry: being pinned stops them moving and attacking until Rally self removes the pin for 1 AP. Warships never suffer infantry pins; damage control repairs hull instead.':s.combat_version?'Pinned infantry cannot move or attack until rallied. Rally self costs 1 AP; an officer can rally eligible nearby allies. Tanks do not suffer infantry pins: penetrating hits can disable their tracks while leaving their guns usable. Fix own tracks restores movement, not strength.':'Pinned units cannot move or attack. Rally self removes the pin for 1 AP. An officer can instead spend an action to rally eligible nearby allies.','If a unit becomes pinned, select it and check Rally self. Otherwise keep this in mind for later.','#orders',['rally','inspire']);
+  if(!sea)add(book,'watch',air?'Interception and anti-aircraft cover':'Overwatch is a reaction order',air?'Fighter Intercept and AA cover spend 2 AP to watch enemy flight paths. A watcher can react once when a hostile aircraft crosses a covered hex. Bombers do not intercept. Known threats appear in the move preview; unseen interceptors may still react.':'Overwatch spends 2 AP now for one reaction shot at a visible enemy moving within range. It is different from firing immediately. Pinning cancels infantry overwatch; smoke can block the shot. A known threat in a move preview is a warning, not a guaranteed hit.','Try Overwatch / Intercept with an eligible unit, or review its description before moving through a threatened area.','#orders',['overwatch']);
+  if(has('squad','engineer','paratrooper','mg','halftrack','destroyer','amphibious'))add(book,'tools','Smoke, suppression and grenades',sea?'A destroyer’s smoke screen blocks surface sight, guns and torpedoes. Amphibious sections also carry limited smoke. Smoke does not heal a ship or stop every kind of attack.':'Smoke blocks sight. Suppress tries to pin infantry without strength damage. A frag grenade attacks nearby infantry using a limited supply. These are different tactical choices, not three names for Fire. Check the unit details for faction differences.','Read the purpose and supply count on one of these orders. Keep a smoke charge for a difficult crossing.','#orders');
+  if(land&&has('leader','commander'))add(book,'command','Officers help the surrounding force',s.combat_version?'A Lieutenant rallies and grants AP to eligible troops in his own nearby platoon. A Commander reaches friendly units across platoons within 4 hexes. Rally allies removes pins; Give actions restores 1 AP to each eligible recipient for 2 officer AP, once per command group per turn. Officers cannot repeatedly feed unlimited AP to a squad.':'Lieutenants rally nearby platoon members or spend 2 AP to grant eligible troops 1 AP. Commanders reach across platoons. The server applies banking caps and prevents repeated commands.','Select an officer to see command range, eligible recipients and why a support order may be unavailable.','#orders');
+  if(s.combat_version&&has('commander'))add(book,'support','Artillery and recon do different jobs','Artillery is a delayed explosive strike; it can hurt friendly units, and its warning gives enemies time to move. Recon reveals a distant area without attacking. A Commander has two artillery calls and two recon sorties per battle.'+(s.tactics_version?' Each ability has an independent cooldown: use it in round 1 and it is ready again in round 3.':''),'Inspect Call artillery and Recon plane. Notice the remaining calls, AP cost and cooldown before choosing either.','#orders');
+  if(s.combat_version&&has('tank','engineer','at_gun','at_team'))add(book,'armor','Armor, ammunition and engineers','Small arms cannot damage tanks. Use penetrating weapons such as AT guns, rockets or armor-piercing tank rounds. Loading anti-tank or explosive rounds costs 1 AP; high explosive targets infantry and can splash nearby friendly troops. An immobilized tank can still fire.'+(s.tactics_version?' Engineers can spend 2 AP and a repair kit beside a friendly tank to restore 1 strength and fix tracks; a tank’s own track repair restores movement only.':''),'Select a tank or engineer and compare the repair or ammunition buttons. Already-loaded ammunition stays grey.','#orders');
+  if(s.tactics_version&&has('sniper','scout'))add(book,'observation','Seeing farther is not shooting farther','Recon teams and snipers gain wider observation from a tower, but the tower also makes its occupants easier to spot. Blue dots show observation-only hexes; red bars show firing lanes. A recon team does not gain a sniper’s aimed shot. Snipe costs 3 AP, attacks visible infantry and exposes the firing team.','Select recon or a sniper. Compare its sight and weapon ranges; never assume every observed hex is attackable.','#mapWrap');
+  if(has('halftrack','landing_craft','paratrooper'))add(book,'transport','Reserves, transports and landing zones','US paratroopers in reserve need 2 AP and a spotted open landing hex. After landing they operate as infantry. German half-tracks move especially well on roads and can carry one friendly infantry unit. Loading and unloading each cost passenger AP; the carrier’s AP is separate. Landing craft carry troops across water and unload onto adjacent land.','Select a reserve or transport if your force has one. Read who pays the AP and which terrain permits deployment.','#orders');
+  if(sea)add(book,'fleet','Carriers, escorts and hull repairs','Carriers launch search aircraft to reveal sea contacts and air strikes against spotted ships. Cruiser escorts hinder hostile air strikes. Destroyer torpedoes ignore armor but have limited salvos. Damage control restores hull with limited uses. A battleship’s Blind bombard can reach beyond sight; a guessed hex does not reveal hidden hit results.','Select a carrier, destroyer or battleship and compare its distinctive orders. Protect your carriers: losing all of them loses the battle.','#orders');
+  if(air)add(book,'service','Keep aircraft supplied','Bombers have limited loads. Beside a living friendly airfield, Airfield service costs 2 AP, repairs 1 strength and refills bomber loads, once per turn. Radar spots aircraft automatically; radar and airfields have no attack orders.','Select a bomber or an airfield and read its role. Plan a return route before emptying your bomb loads.','#orders');
+  add(book,'undo','Undo is not a new dice roll','Undo helps recover an accidental order when allowed. New sightings, searches and ending your turn commit earlier orders. If combat is undone after the dice were revealed, Redo restores those exact results; other orders stay blocked until then. The two curved arrows explain whether undo or redo is available.','Inspect Undo and Redo. Do not assume you can undo an order that reveals new information.','#orderHistory');
+  add(book,'end','Finish the whole turn deliberately',`Your units can act in any order while they have AP. End turn passes control to the opponent and banks eligible unused AP. ${s.ai_side?'The computer then acts. Its replay can be paused, stepped through or skipped; wait for YOUR TURN before issuing more orders.':'In multiplayer, the opponent’s turn label remains visible until the server confirms it is your turn again.'}`,'When ready, end your turn once. Watch for the turn indicator to return before continuing.','#end',['end']);
+  add(book,'save','Keep this battle when you leave',s.ai_side?'The browser keeps a shortcut to this solo battle. In private browsing or on another device, generate a SAVE code from Battle options before leaving. A SAVE code restores a separate solo battle from that saved moment.':'A browser shortcut is tied to this browser. A MOVE code reconnects this live seat from another device. A commander login can link multiplayer seats across browsers; named battles also appear in the lobby. Save your access before closing a private browser.','Open Battle & settings to find your game code, save options and display preferences.','#battleOptions');
+  add(book,'finish','Play toward the objective','You now know how to read the turn, mission, map and order buttons. Keep asking: what helps me win this scenario, which unit can do it, and will it have enough AP afterward? Return to any topic whenever you need it.','Continue the battle. Finishing the guide does not end the turn or change any unit.','#mapWrap');
+  return book;
+ }
+ const dialog=document.createElement('dialog');dialog.id='learningDialog';dialog.setAttribute('aria-label','Learn as you play');
+ const close=document.createElement('button');close.id='learningDialogClose';close.textContent='Back to battle';close.onclick=()=>dialog.close();dialog.append(close,$('tutorialCoach'));document.body.append(dialog);
+ function clearFocus(){document.querySelectorAll('.lesson-focus').forEach(n=>n.classList.remove('lesson-focus'));}
+ function closeGuides(){dialog.close();$('mobileGuide')?.close();clearFocus();}
+ function allowed(){return guest()&&state?.ruleset==='dsl'&&!$('game').hidden&&!lobbyMode;}
+ function start(){
+  if(!allowed())return;
+  const old=current();if(!old||!Array.isArray(old.done)||!Array.isArray(old.read))saved[key()]={lesson:'mission',done:[],read:[],since:state.revision,enabled:true};else old.enabled=true;
+  const keys=Object.keys(saved);while(keys.length>16){const oldest=keys.shift();if(oldest!==key())delete saved[oldest];}
+  persist();
+ }
+ function paint(book,g){
+  let index=book.findIndex(l=>l.id===g.lesson);if(index<0){index=0;g.lesson=book[0].id;}
+  const lesson=book[index];
+  $('lessonCount').textContent=`LEARN AS YOU PLAY · ${index+1} / ${book.length} · ${g.done.length} practiced`;
+  $('lessonTitle').textContent=lesson.title;$('lessonText').textContent=lesson.text;$('lessonTask').textContent='Try this: '+lesson.task;
+  $('lessonResult').textContent=g.done.includes(lesson.id)?'✓ You tried this in your battle.':lesson.orders.length&&state.turn!==state.side?'You can read ahead while you wait for your turn.':'Read at your own pace. You can skip a task and return later.';
+  $('lessonBack').disabled=index===0;$('lessonNext').textContent=index===book.length-1?'Finish guide':'Next lesson →';
+  $('lessonShow').textContent=lesson.selector==='@mission'?'Show win conditions':lesson.selector==='#end'?'Show End turn':lesson.selector==='#orders'?'Show unit orders':'Show me';
+  const signature=[key(),g.lesson,g.done.join(','),g.read.join(','),book.map(l=>l.id).join(',')].join('|');
+  if(signature!==topicSignature){topicSignature=signature;$('lessonTopics').replaceChildren(...book.map((l,i)=>{
+   const b=document.createElement('button');b.type='button';b.dataset.topic=l.id;b.dataset.complete=String(g.done.includes(l.id));b.textContent=`${g.done.includes(l.id)?'✓ ':g.read.includes(l.id)?'· ':''}${i+1}. ${l.title}`;
+   if(g.lesson===l.id)b.setAttribute('aria-current','step');b.onclick=()=>{g.lesson=l.id;clearFocus();persist();paint(lessons(),g);$('lessonContents').open=false;};return b;
+  }));}
+ }
+ function sync(){
+  const eligible=allowed(),g=current(),active=eligible&&g?.enabled,book=active?lessons():[];
+  document.querySelector('.home-learn').hidden=!guest();$('guideToggle').hidden=!eligible;
+  $('guideToggle').textContent=g?.enabled?'Resume learning guide':'Learn as you play';$('guideToggle').setAttribute('aria-pressed',String(!!active));
+  $('tutorialCoach').hidden=!active;
+  if($('mobileGuideOpen')){$('mobileGuideOpen').hidden=!eligible||!!playbackSession;$('mobileGuideOpen').textContent=active?'Guide':'Learn';$('mobileGuideOpen').setAttribute('aria-label',active?'Resume Learn as you play':'Open Learn as you play');}
+  if(!active){closeGuides();return;}
+  const l=book.find(l=>l.id===g.lesson);
+  if(l&&!g.done.includes(l.id)){
+   const performed=l.id==='select'?!!selected:(state.action_history||[]).some(h=>h.side===state.side&&h.revision>g.since&&l.orders.includes(h.action.kind));
+   if(performed){g.done.push(l.id);persist();}
+  }
+  if(playbackSession){closeGuides();return;}
+  if(dialog.open||$('mobileGuide')?.open)paint(book,g);
+ }
+ function open(){
+  if(!allowed()||playbackSession)return;start();sync();paint(lessons(),current());
+  const destination=window.ww2Mobile?.active?'mobileGuide':'learningDialog';
+  for(const d of document.querySelectorAll('dialog[open]'))if(d.id!==destination)d.close();
+  if(window.ww2Mobile?.active)ww2Mobile.openGuide();else if(!dialog.open)dialog.showModal();
+ }
+ $('guideToggle').onclick=open;
+ $('lessonNext').onclick=()=>{
+  if(!allowed()||!current()?.enabled)return;const g=current(),book=lessons(),i=Math.max(0,book.findIndex(l=>l.id===g.lesson));
+  if(!g.read.includes(g.lesson))g.read.push(g.lesson);clearFocus();
+  if(i===book.length-1){g.enabled=false;persist();sync();notify('Guide finished. Your battle continues; reopen any topic when you need it.');return;}
+  g.lesson=book[i+1].id;persist();paint(book,g);
+ };
+ $('lessonBack').onclick=()=>{if(!allowed()||!current()?.enabled)return;const g=current(),book=lessons(),i=book.findIndex(l=>l.id===g.lesson);g.lesson=book[Math.max(0,i-1)].id;persist();paint(book,g);clearFocus();};
+ $('lessonExit').onclick=()=>{if(current()){current().enabled=false;persist();}sync();};
+ $('lessonShow').onclick=()=>{
+  if(!allowed()||!current()?.enabled)return;const g=current(),l=lessons().find(l=>l.id===g.lesson);if(!l)return;closeGuides();
+  if(l.selector==='@mission'){if(!g.done.includes(l.id)){g.done.push(l.id);persist();}ww2Briefing.open();return;}
+  let selector=l.selector;if(window.ww2Mobile?.active&&selector==='#turnBanner')selector='#mobileBattleTop';
+  const target=document.querySelector(selector);if(!target)return;target.classList.add('lesson-focus');
+  const sheet=target.closest('.mobile-battle-sheet');if(sheet)ww2Mobile.openSheet(sheet.id);
+  if(selector==='#battleOptions')target.open=true;
+  // Highlighting the map must not scroll it, move a unit, or spend an order.
+  if(!window.ww2Mobile?.active&&selector!=='#mapWrap')target.scrollIntoView({block:'nearest',behavior:'auto'});
+ };
+ $('learnStart').onclick=async()=>{if(!guest())return;await run(async()=>{
+  remember(await api('/api/match',{ruleset:'dsl',opponent:'computer',scenario:'village'}));
+  state=await apiWithSession(session);render();start();
+ });open();};
+ window.ww2Learning={open,lessons,get enabled(){return allowed()&&!!current()?.enabled;}};
+ for(const event of ['ww2:render','ww2:selection','ww2:playback','ww2:commander'])document.addEventListener(event,sync);
+ // Reparenting preserves progress without leaving an empty modal over the map.
+ document.addEventListener('ww2:before-layout',closeGuides);
+ matchMedia('(min-width:1100px)').addEventListener('change',sync);
+ new MutationObserver(()=>{if($('game').hidden)sync();}).observe($('game'),{attributes:true,attributeFilter:['hidden']});
+ sync();
+})();

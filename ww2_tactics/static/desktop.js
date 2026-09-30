@@ -82,7 +82,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   const summary=el('p','desktop-force-summary');summary.id='desktopForceSummary';force.querySelector('h2').after(summary);
   const note=el('p','desktop-playback-note','The computer’s orders are playing on the map. Pause or step through them in the right panel.');note.id='desktopPlaybackNote';note.hidden=true;force.append(note);
   force.append(el('p','desktop-force-tip','Choose a platoon to highlight its units. Select a counter or a unit here to issue orders.'));
-  const field=group(layout,'desktop-battlefield',['.mission','#missionHint','#tutorialCoach','.map-tools','#mapWrap','.team-legend','.terrain-legend']);
+  const field=group(layout,'desktop-battlefield',['.mission','#missionHint','.map-tools','#mapWrap','.team-legend','.terrain-legend']);
   const mapHead=el('div','desktop-map-heading');mapHead.append(el('h2','','Battlefield'));const size=el('span','');size.id='desktopMapSize';mapHead.append(size);field.prepend(mapHead);
   const camera=el('div','desktop-camera');mounts.push(camera);
   for(const [id,label,title,fn] of [['desktopZoomOut','−','Zoom out',()=>changeZoom(zoom-.25)],['desktopZoomIn','+','Zoom in',()=>changeZoom(zoom+.25)],['desktopFit','Fit map','Show the whole battlefield',()=>changeZoom(1)],['desktopExpand','Widen map','Widen map',()=>{
@@ -103,6 +103,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   const dock=group(commands,'desktop-action-dock',['#nextUnit','#end']);dock.id='desktopActionDock';
   group(game,'desktop-footer',['#battleOptions','#seriesScore']);
   sync();
+  document.dispatchEvent(new Event('ww2:layout'));
  }
  function deactivate(){
   if(!active)return;active=false;drag=null;document.body.classList.remove('desktop-mode');

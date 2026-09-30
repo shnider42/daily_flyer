@@ -60,7 +60,7 @@ async function refresh(){
  try{const next=await api(`/api/match/${requestedCode}`);if(session?.code!==requestedCode)return;$('connection').textContent='● Connected';if(!state||next.revision>state.revision||next.code!==state.code){const oldKey=playbackKey(state),hadState=!!state;state=next;render();if(hadState&&playbackKey(state)&&oldKey!==playbackKey(state))startPlayback();}}
  catch(e){$('connection').textContent='○ Reconnecting';if(!state)notify(e.message);}finally{polling=false;}
 }
-async function run(task){if(busy||playbackSession)return;const oldPlayback=playbackKey(state),oldCode=session?.code;busy=true;document.querySelectorAll('button').forEach(b=>b.disabled=true);try{await task();}catch(e){notify(e.message);}finally{busy=false;document.querySelectorAll('button').forEach(b=>b.disabled=false);if(state)render();await refresh();if(session?.code===oldCode&&playbackKey(state)&&oldPlayback!==playbackKey(state))startPlayback();}}
+async function run(task){if(busy||playbackSession)return;const oldPlayback=playbackKey(state),oldCode=session?.code;busy=true;document.dispatchEvent(new Event('ww2:busy'));document.querySelectorAll('button').forEach(b=>b.disabled=true);try{await task();}catch(e){notify(e.message);}finally{busy=false;document.querySelectorAll('button').forEach(b=>b.disabled=false);if(state)render();await refresh();if(session?.code===oldCode&&playbackKey(state)&&oldPlayback!==playbackKey(state))startPlayback();}}
 async function act(body){await run(async()=>{state=await api(`/api/match/${session.code}`,{...body,revision:state.revision});target=null;smokeMode=false;barrageMode=false;render();});}
 function element(tag,attrs={},text){const e=document.createElementNS('http://www.w3.org/2000/svg',tag);Object.entries(attrs).forEach(([k,v])=>e.setAttribute(k,v));if(text!==undefined)e.textContent=text;return e;}
 function center(x,y){return [27+x*52+(y%2)*26,30+y*49];}
@@ -144,7 +144,7 @@ function render(){
  const newBattle=renderedBattle!==battleKey;
  if(newBattle){platoonFilter=large?'A':'all';$('mapWrap').classList.toggle('enlarged',large);selected=null;target=null;smokeMode=false;barrageMode=false;renderedBattle=battleKey;$('mapWrap').scrollTo?.(0,0);}
  $('mapWrap').classList.toggle('large-map',large);$('zoom').textContent=large?($('mapWrap').classList.contains('enlarged')?'Overview':'Detail'):($('mapWrap').classList.contains('enlarged')?'Fit map −':'Enlarge map +');$('zoom').setAttribute('aria-pressed',String($('mapWrap').classList.contains('enlarged')));
- $('battleTitle').textContent=state.match_name||board.name;document.title=`${state.match_name||board.name} · WWII Tactics`;
+ $('battleTitle').textContent=state.match_name||board.name;if(!window.ww2Briefing)document.title=`${state.match_name||board.name} · WWII Tactics`;
  $('battleNumber').textContent=`${state.ai_side?'SOLO · COMPUTER':board.name+' · TWO PLAYER'} · ${state.code} · BATTLE ${state.battle_number||1}`;
  $('homeBattles').hidden=false;
  $('objectiveName').textContent=`★ ${board.objective_name.toUpperCase()}`;
@@ -159,8 +159,8 @@ function render(){
  $('computerReview').hidden=!state.computer_orders?.length;
  $('computerOrders').replaceChildren(...(state.computer_orders||[]).map(text=>{const li=document.createElement('li');li.textContent=text;return li;}));
  $('waiting').hidden=state.ready;$('invite').value=invitation();$('matchCode').textContent=`MATCH CODE · ${session.code}`;
- $('turnBanner').textContent=state.winner?`${names[state.winner]} win. ${state.winner===state.side?'Mission accomplished.':'The battle is over.'}`:!state.ready?'Waiting for the German commander…':myTurn?'Your turn · select a unit':`${names[state.turn]} are giving orders…`;
- if(state.ai_side&&!state.winner)$('turnBanner').textContent=`Your turn · vs computer (${names[state.ai_side]})`;
+ if(!window.ww2Briefing)$('turnBanner').textContent=state.winner?`${names[state.winner]} win. ${state.winner===state.side?'Mission accomplished.':'The battle is over.'}`:!state.ready?'Waiting for the German commander…':myTurn?'Your turn · select a unit':`${names[state.turn]} are giving orders…`;
+ if(!window.ww2Briefing&&state.ai_side&&!state.winner)$('turnBanner').textContent=`Your turn · vs computer (${names[state.ai_side]})`;
  $('objective').textContent=`Hold: ${state.hold} / 2`;
  $('legacyNotice').hidden=(state.rules_version||1)>=4;
  $('missionHint').textContent=state.winner?`Battle complete in round ${state.round}.`:state.hold?`${names.us} hold the objective. ${names.de} must dislodge them before the next turn ends.`:state.side==='us'?`Capture ★ and hold through two of your turn endings. ${board.rounds-state.round+1} rounds left.`:`Keep the ${names.us} from holding ★ through round ${board.rounds}.`;

@@ -1,9 +1,9 @@
 /* Multiplayer discovery is server-backed; browser shortcuts remain independent. */
 'use strict';
 (()=>{
- let player=null,pending=null,register=false,offset=0,requestNumber=0,lastList='',renameCode=null,searchTimer;
+ let player=null,pending=null,register=false,offset=0,requestNumber=0,lastList='',renameCode=null,searchTimer,identityReady=false;
  try{const saved=JSON.parse(localStorage.getItem('ww2-commander'));if(typeof saved?.token==='string'&&typeof saved?.name==='string')player=saved;}catch{}
- window.ww2Commander={get name(){return player?.name;}};
+ window.ww2Commander={get name(){return player?.name;},get guest(){return identityReady&&!player;},get ready(){return identityReady;}};
  function storePlayer(){try{if(player)localStorage.setItem('ww2-commander',JSON.stringify(player));else localStorage.removeItem('ww2-commander');}catch{}}
  async function requestLobby(path,body,seat){
   const response=await fetch(path,{method:body===undefined?'GET':'POST',headers:{'Content-Type':'application/json',...(player?{'X-Commander-Token':player.token}:{}),...(seat?{Authorization:`Bearer ${seat.token}`}:{})},...(body===undefined?{}:{body:JSON.stringify(body)})});
@@ -15,6 +15,7 @@
   $('commanderSignIn').hidden=!!player;$('commanderSignOut').hidden=!player;
   $('adminConsoleLink').hidden=player?.name?.toLowerCase()!=='shnider42';
   renderSessions();
+  document.dispatchEvent(new Event('ww2:commander'));
  }
  function mode(newPlayer){
   register=newPlayer;$('commanderLoginMode').setAttribute('aria-pressed',String(!register));$('commanderRegisterMode').setAttribute('aria-pressed',String(register));
@@ -24,7 +25,7 @@
  function loginDialog(after){pending=after||null;mode(false);$('commanderPassword').value='';$('commanderDialog').showModal();}
  const ready=(async()=>{
   if(player){try{await requestLobby('/api/commander');}catch(e){if(e.status===401){player=null;storePlayer();}}}
-  identity();await load();
+  identityReady=true;identity();await load();
  })();
  async function ensure(after){await ready;if(player)return after();loginDialog(after);}
  $('commanderSignIn').onclick=()=>loginDialog();$('commanderLoginMode').onclick=()=>mode(false);$('commanderRegisterMode').onclick=()=>mode(true);
