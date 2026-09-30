@@ -1,7 +1,7 @@
 /* Baseball UI. Football has its own DOM, data, presets and saved view. */
 (() => {
   'use strict';
-  const config=JSON.parse(document.getElementById('bb-data').textContent),R=BaseballResearch,S=QBResearch,C=QBChartMath;
+  const config=JSON.parse(document.getElementById('bb-data').textContent),R=BaseballResearch,S=QBResearch,C=QBChartMath,G=BaseballChartGuide;
   const $=id=>document.getElementById('bb-'+id),esc=s=>String(s).replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const clone=x=>JSON.parse(JSON.stringify(x)),finite=R.finite,storageKey='baseball-year-two-v1';
   const palette=['#16654e','#aa412f','#305da5','#814285','#946216','#097c89','#bd3d70','#53603b'];
@@ -88,7 +88,9 @@
   function svg(tag,attrs={},text=''){const e=document.createElementNS(NS,tag);for(const [k,v] of Object.entries(attrs))e.setAttribute(k,String(v));e.textContent=text;return e;}
   function pin(p,year){focus={id:p.id,year};applyFocus();inspect(p,year);save();}
   function applyFocus(){
-    $('charts').querySelectorAll('[data-series]').forEach(e=>e.style.opacity=focus&&focus.id!==e.dataset.series?'.16':'1');
+    const separate=state.layout==='separate'&&state.view!=='span';
+    $('charts').querySelectorAll('[data-series]').forEach(e=>e.style.opacity=!separate&&focus&&focus.id!==e.dataset.series?'.16':'1');
+    $('charts').querySelectorAll('[data-panel]').forEach(e=>e.classList.toggle('bb-panel-pinned',focus?.id===e.dataset.panel));
     if(focus)$('charts').querySelectorAll('[data-series]').forEach(e=>{if(e.dataset.series===focus.id)e.parentElement.append(e);});
     $('legend').querySelectorAll('button').forEach(e=>e.setAttribute('aria-pressed',String(focus?.id===e.dataset.pin)));
     $('pinned').textContent=focus&&byId.has(focus.id)?byId.get(focus.id).name+' pinned · tap another season to inspect':'Tap or focus a season to inspect it.';$('unpin').hidden=!focus;
@@ -99,6 +101,8 @@
     if(two&&!two.qualifies)reading+=' Year-two workload is below the study threshold; treat the change cautiously.';
     const link=p.bref&&/^[a-zA-Z0-9]+$/.test(p.bref)?`<a href="https://www.baseball-reference.com/players/${p.bref[0]}/${p.bref}.shtml" target="_blank" rel="noopener">Read ${esc(p.name)}’s Baseball-Reference page ↗</a>`:'';
     $('inspect').innerHTML=`<b>${esc(p.name)} · ${esc(measure().name)}</b><br>Year 1 (${p.first}): <b>${fmt(a)}</b> · ${workload(one)} &nbsp; → &nbsp; Year 2 (${p.first+1}): <b>${fmt(b)}</b> · ${workload(two)}<br>${esc(reading)}${row&&year!==p.first&&year!==p.first+1?`<br>Selected season: ${year}, ${esc(row.team)} · ${fmt(row[state.metric])} · ${workload(row)}`:''}<br>${link}`;
+    const local=$('charts').querySelector(`[data-panel="${p.id}"] .bb-panel-inspect`);
+    if(local)local.textContent=row?`${p.name} · ${year} (year ${year-p.first+1}) · ${config.teams[row.team]||row.team} · ${measure().name}: ${fmt(row[state.metric])} · ${workload(row)}${row.qualifies?'':' · Below the study workload threshold.'}`:`${p.name} · ${year}: no recorded season. This is missing data, not a zero.`;
   }
   let pointer=null,dragged=false;
   $('charts').addEventListener('pointerdown',e=>{pointer={x:e.clientX,y:e.clientY};dragged=false;},{passive:true});
@@ -125,6 +129,13 @@
     const ids=new Set(state.ids),selected=list.filter(p=>ids.has(p.id)),drawn=state.display==='all'?selected:selected.slice(0,Number(state.display));$('charts').replaceChildren();$('charts').classList.toggle('bb-separated',state.layout==='separate'&&state.view!=='span');
     $('selection-count').textContent=`${state.ids.length.toLocaleString()} selected · ${drawn.length.toLocaleString()} shown${state.ids.length>selected.length?' · '+(state.ids.length-selected.length).toLocaleString()+' outside current filters':''}`;
     $('show-all').hidden=drawn.length===selected.length;
+    $('chart-caption').hidden=!drawn.length;
+    $('chart-measure').textContent=state.view==='span'?'Recorded career span':measure().name+' · '+(state.normalize==='delta'?'change from year one':state.normalize==='zscore'?'relative to each player’s own career':'season-by-season values');
+    $('chart-reading').textContent=state.view==='span'?'Each bar is one player’s calendar span. The endpoint is the last recorded season—not necessarily retirement.':G.meaning(state.metric,state.role,measure())+(state.normalize==='raw'?'':state.normalize==='delta'?' The graph subtracts each player’s year-one value; the comparison boxes retain actual values.':' The graph uses each player’s own career average as zero; the comparison boxes retain actual values.');
+    $('chart-window').textContent=state.view==='pair'?'Showing year one and the very next calendar year.':state.view==='span'?'Full observed spans; active careers are unfinished.':(state.window==='all'?'Showing full recorded careers.':`Showing the first ${state.window} calendar years from each player’s study baseline.`)+(state.layout==='separate'?' All panels share the same value scale and years-from-baseline scale.':'');
+    $('full-career').hidden=state.view!=='career'||state.window==='all';
+    $('chart-caption').querySelector('.bb-marker-key').hidden=state.view==='span';
+    $('inspect').setAttribute('aria-live',state.view!=='span'&&(state.layout==='separate'||drawn.length===1)?'off':'polite');
     $('legend').innerHTML=drawn.map(p=>`<button data-pin="${esc(p.id)}" aria-pressed="false"><i style="background:${color(p)}"></i>${esc(p.name)}${p.hof?' ★':''}</button>`).join('');
     $('legend').querySelectorAll('button').forEach(e=>e.onclick=()=>pin(byId.get(e.dataset.pin),byId.get(e.dataset.pin).first+1));
     if(!drawn.length){$('charts').textContent='No selected players match these filters. Choose players or open a story.';$('inspect').textContent='';$('graph-note').textContent='';applyFocus();return;}
@@ -141,17 +152,37 @@
     if(missing)note+=` ${missing} selected player(s) have no year-two season record.`;
     const omitted=series.filter(s=>s.transform.reason||!s.rows.some(r=>finite(s.transform.value(r))));if(omitted.length&&state.view!=='span')note+=` ${omitted.length} selected player(s) have no plottable values for this setting.`;
     $('graph-note').textContent=note;
-    const width=Math.max(260,Math.floor($('charts').getBoundingClientRect().width/(state.layout==='separate'&&innerWidth>1050?2:1))-(state.layout==='separate'&&innerWidth>1050?8:0));
+    const twoColumns=state.view!=='span'&&state.layout==='separate'&&innerWidth>1050;
+    const width=Math.max(260,Math.floor($('charts').getBoundingClientRect().width/(twoColumns?2:1))-(twoColumns?8:0));
     function panel(items){
-      const wrapper=document.createElement('div');wrapper.className='bb-chart-panel';if(state.layout==='separate'&&state.view!=='span'){const title=document.createElement('h3');title.textContent=items[0].p.name;wrapper.append(title);}
-      const height=state.view==='span'?Math.max(180,items.length*42+60):320,left=57,right=28,top=24,bottom=46;
-      const chart=svg('svg',{viewBox:`0 0 ${width} ${height}`,role:'img','aria-label':`${measure().name}: ${items.map(s=>s.p.name).join(', ')}`}),plotW=width-left-right,plotH=height-top-bottom;
+      const wrapper=document.createElement('div');wrapper.className='bb-chart-panel';
+      const solo=items.length===1&&state.view!=='span',player=solo?items[0].p:null;
+      if(solo){
+        wrapper.dataset.panel=player.id;
+        const title=document.createElement('h3');title.textContent=player.name;wrapper.append(title);
+        const {one,two,a,b,delta}=pair(player),readout=document.createElement('div');readout.className='bb-pair-readout';readout.setAttribute('aria-label',player.name+' actual year-one and year-two values');
+        const cell=(year,value,row,isTwo)=>`<div${isTwo?' class="bb-y2-value"':''}><span>YEAR ${isTwo?'2':'1'} · ${year}</span><strong>${fmt(value)} <small>${esc(measure().name)}</small></strong><small>${row?esc(row.team)+' · '+esc(workload(row)):'No season recorded'}</small></div>`;
+        readout.innerHTML=cell(player.first,a,one,false)+cell(player.first+1,b,two,true);wrapper.append(readout);
+        const verdict=document.createElement('p');verdict.className='bb-pair-verdict';
+        const threshold=10**-measure().digits,change=finite(delta)&&delta!==0&&Math.abs(delta)<threshold?(delta>0?'+':'−')+'<'+fmt(threshold):fmt(delta,state.metric,true);
+        verdict.textContent=G.change(delta,measure().direction)+(finite(delta)?' · '+change+' '+measure().name:'');wrapper.append(verdict);
+        if(two&&!two.qualifies){const warning=document.createElement('p');warning.className='bb-sample-warning';warning.textContent=`Year two: only ${workload(two)}—below the ${state.role==='batting'?'300-PA':'50-IP'} baseline. A small sample can make a change look extreme.`;wrapper.append(warning);}
+      }
+      const height=state.view==='span'?Math.max(180,items.length*42+60):340,left=60,right=24,top=46,bottom=56;
+      const axisName=state.normalize==='raw'?measure().name:state.normalize==='delta'?measure().name+' change':'Career z-score';
+      const chart=svg('svg',{viewBox:`0 0 ${width} ${height}`,role:'img','aria-label':`${state.view==='span'?'Recorded career span':axisName}: ${items.map(s=>s.p.name).join(', ')}. ${solo?'Calendar years':'Years from the study baseline'}; orange marks year two.`}),plotW=width-left-right,plotH=height-top-bottom;
       const end=state.view==='span'?Math.max(2,...items.map(s=>s.p.last-s.p.first+1)):maxYear;
       const x=n=>left+(n-1)/(end-1)*plotW,y=v=>top+(1-axis.unit(v))*plotH;
-      if(state.view!=='span')axis.ticks.forEach(t=>{const yy=y(t);chart.append(svg('line',{x1:left,x2:width-right,y1:yy,y2:yy,class:'bb-gridline'}),svg('text',{x:left-8,y:yy+4,'text-anchor':'end',class:'bb-graph-axis'},state.normalize==='zscore'?num(t,1):fmt(t)));});
-      const ticks=end===2?[1,2]:[1,2,...Array.from({length:Math.floor(end/5)},(_,i)=>(i+1)*5)].filter(v=>v<=end);
-      for(const n of ticks){if(n===2&&end>15&&width<500)continue;chart.append(svg('text',{x:x(n),y:height-23,'text-anchor':'middle',class:'bb-graph-axis'},'Y'+n));}
-      chart.append(svg('text',{x:left+plotW/2,y:height-5,'text-anchor':'middle',class:'bb-graph-axis'},'Calendar year since first substantial season'));
+      if(state.view!=='span'){
+        chart.append(svg('rect',{x:x(2)-9,y:top,width:18,height:plotH,fill:'#f7dfc3',class:'bb-year-two-band'}));
+        G.ticks(axis).forEach(t=>{const yy=y(t);chart.append(svg('line',{x1:left,x2:width-right,y1:yy,y2:yy,class:'bb-gridline'}),svg('text',{x:left-8,y:yy+4,'text-anchor':'end',class:'bb-graph-axis'},state.normalize==='zscore'?num(t,1):fmt(t)));});
+        chart.append(svg('line',{x1:x(2),x2:x(2),y1:top,y2:height-bottom,class:'bb-year-two-rule'}));
+        chart.append(svg('text',{x:state.view==='pair'?x(2):Math.max(left+26,x(2)),y:29,'text-anchor':state.view==='pair'?'end':'middle',class:'bb-year-two-label'},'YEAR 2'));
+        chart.append(svg('text',{x:15,y:top+plotH/2,transform:`rotate(-90 15 ${top+plotH/2})`,'text-anchor':'middle',class:'bb-axis-title'},axisName));
+      }
+      const ticks=G.years(end,plotW,solo?Math.max(2,player.last-player.first+1):end);
+      for(const n of ticks)chart.append(svg('text',{x:x(n),y:height-31,'text-anchor':'middle',class:n===2?'bb-graph-axis bb-year-two-tick':'bb-graph-axis'},solo?String(player.first+n-1):'Year '+n));
+      chart.append(svg('text',{x:left+plotW/2,y:height-9,'text-anchor':'middle',class:'bb-axis-title'},solo?'Season (calendar year)':'Years from the study baseline'));
       items.forEach((item,i)=>{
         const {p,rows,transform}=item,g=svg('g',{'data-series':p.id,class:'bb-series'});
         if(state.view==='span'){
@@ -161,10 +192,19 @@
           let previous=null;
           rows.forEach(row=>{const value=transform.value(row);if(!finite(value)){previous=null;return;}const xx=x(row.year-p.first+1),yy=y(value);
             if(previous&&row.year===previous.year+1){const d=`M${previous.x},${previous.y}L${xx},${yy}`;g.append(svg('path',{d,stroke:color(p,row),class:'bb-trace'}));const hit=svg('path',{d,class:'bb-line-hit'});hit.onclick=e=>{if(!dragged||e.detail===0)pin(p,row.year);};g.append(hit);}
-            const dot=svg('circle',{cx:xx,cy:yy,r:row.year===p.first+1?6:3.7,fill:row.year===p.first+1?color(p,row):'#fffdf6',stroke:color(p,row),class:'bb-dot',tabindex:0,role:'button','aria-label':`${p.name}, year ${row.year-p.first+1}, ${row.year}, ${measure().name} ${fmt(row[state.metric])}`});
+            const dot=svg('circle',{cx:xx,cy:yy,r:row.year===p.first+1?7:4,fill:row.year===p.first+1?'#c45325':'#fffdf6',stroke:row.year===p.first+1?'#963813':color(p,row),class:'bb-dot',tabindex:0,role:'button','aria-label':`${p.name}, year ${row.year-p.first+1}, ${row.year}, ${measure().name} ${fmt(row[state.metric])}`});
+            if(items.length<=12){const touch=svg('circle',{cx:xx,cy:yy,r:Math.min(12,Math.max(4,plotW/(end-1)/2)),fill:'transparent',class:'bb-dot-hit','aria-hidden':'true'});touch.onclick=e=>{if(!dragged||e.detail===0)pin(p,row.year);};g.prepend(touch);}
             dot.onclick=e=>{if(!dragged||e.detail===0)pin(p,row.year);};dot.onkeydown=e=>{if(['Enter',' '].includes(e.key)){e.preventDefault();pin(p,row.year);}};dot.onmouseenter=()=>{if(!focus&&matchMedia('(hover: hover)').matches)inspect(p,row.year);};g.append(dot);previous={x:xx,y:yy,year:row.year};});
         }chart.append(g);
-      });wrapper.append(chart);$('charts').append(wrapper);
+      });wrapper.append(chart);
+      if(solo){
+        const foot=document.createElement('p');foot.className='bb-panel-context';
+        const actual=items[0].rows.filter(r=>finite(items[0].transform.value(r)));
+        foot.textContent=actual.length?`${actual.length} measured seasons shown · ${actual[0].year}–${actual.at(-1).year}. ${state.window!=='all'&&player.last>player.first+maxYear-1?'Later seasons are outside this view. ':''}${items[0].rows.some(r=>r.year===player.first+1&&finite(items[0].transform.value(r)))?'':'Year two has no plottable value. '}${items[0].transform.reason||''}`:'No plottable seasons for these settings. '+(items[0].transform.reason||'Missing values are not zero.');
+        wrapper.append(foot);
+        const local=document.createElement('div');local.className='bb-panel-inspect';local.setAttribute('role','status');local.textContent='Tap a dot to see that season’s team, value and playing time here.';wrapper.append(local);
+      }
+      $('charts').append(wrapper);
     }
     if(state.layout==='separate'&&state.view!=='span')series.forEach(s=>panel([s]));else panel(series);
     applyFocus();if(focus)inspect(byId.get(focus.id),focus.year);else $('inspect').textContent='Tap a season or a player name above to see year one, year two and the playing time behind both.';
@@ -272,6 +312,7 @@
   $('scan-target').onchange=()=>{state.outcome=$('scan-target').value;changed();};
   $('select').onclick=()=>{state.ids=visibleRows.map(p=>p.id);changed();};$('clear').onclick=()=>{state.ids=[];focus=null;changed();};
   $('show-all').onclick=()=>{state.display='all';changed();};
+  $('full-career').onclick=()=>{state.window='all';changed();};
   $('unpin').onclick=()=>{focus=null;applyFocus();$('inspect').textContent='Tap a season to inspect its numbers.';save();};
   document.addEventListener('keydown',e=>{if(e.repeat||e.isComposing||e.target.closest('input,select,textarea,[contenteditable=true]'))return;if(e.altKey&&e.shiftKey&&!e.ctrlKey&&!e.metaKey){const n=Number(e.code.replace('Digit',''))-1;if(n>=0&&n<5){e.preventDefault();applyPreset(presets[n]).catch(()=>{$('load').textContent='Could not open this story. Please retry.';});}}});
   let resizeTimer;window.addEventListener('resize',()=>{const width=Math.round($('workspace').getBoundingClientRect().width);if(width===lastWidth)return;lastWidth=width;clearTimeout(resizeTimer);resizeTimer=setTimeout(()=>{if(busy)return;if(state.mode==='compare')renderCharts(visibleRows);if(state.mode==='research'&&study)renderScatter(study.rows);},150);});

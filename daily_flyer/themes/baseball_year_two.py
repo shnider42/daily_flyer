@@ -27,4 +27,4 @@ def build_theme_page(date_str=None, seed=None):
                       extra_head_html='<script type="application/json" id="bb-data">'+encoded+'</script>',
                       extra_js="\n".join([
                           (ASSETS.parent/"year_two_view.js").read_text(), (SHARED/"chart_math.js").read_text(), (SHARED/"research_math.js").read_text(),
-                          (ASSETS/"research.js").read_text(), (ASSETS/"app.js").read_text(), (ASSETS/"admin.js").read_text()])))
+                          (ASSETS/"research.js").read_text(), (ASSETS/"chart_guide.js").read_text(), (ASSETS/"app.js").read_text(), (ASSETS/"admin.js").read_text()])))

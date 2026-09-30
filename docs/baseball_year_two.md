@@ -1,4 +1,4 @@
-# Baseball year-two explorer · v3.1.0
+# Baseball year-two explorer · v3.1.1
 
 Repository: `shnider42/daily_flyer`, branch `feat/qb-year-two-explorer`.
 Theme: `baseball_year_two` (hyphenated URL alias also works).
@@ -20,6 +20,30 @@ Baseball uses its own DOM, data, local saved views,
 research cohort and preset database. Generic chart/statistical calculations are
 reused without changing them. Two-way players have independent hitting/pitching
 clocks and can appear in both datasets; counts are role-careers, not unique people.
+
+## Chart readability update (3.1.1)
+
+Individual player panels now label the actual first/second-season dates, values,
+teams, playing time and signed change without requiring hover or a tap. The
+second season has a consistent orange marker, guide line and calendar-year label.
+Career panels use calendar dates; overlaid charts still use years from each
+player's baseline. All separate panels retain identical value bounds and
+years-from-baseline spacing. Sparse linear axes gain additional readable ticks;
+nonlinear mappings and all statistical calculations are unchanged.
+
+The graph itself names and explains the measure and current display window. A
+visible button opens full recorded careers without entering advanced settings.
+Small second-season workloads are called out next to the comparison (including
+Ortiz's 25 PA in 1999). These are career beginnings, not necessarily Boston
+beginnings: Ortiz's baseline seasons were with Minnesota. Public preset values
+and the underlying data are not changed by this update.
+
+Tapping a point in a separate panel shows the inspected season directly below
+that graph. Pinning a player no longer fades unrelated separate panels, and all
+selections, normalization settings and missing-season gaps are preserved.
+
+Tests: `test_baseball_chart_guide.cjs`, `test_baseball_chart_browser.cjs`, plus
+the original baseball, football and three-level browser suites.
 
 ## Data provenance and license
 
