@@ -3,7 +3,7 @@ const {tap}=require('./ww2-ui-helpers.cjs');
 const temp=fs.mkdtempSync(path.join(os.tmpdir(),'ww2-guest-learning-')),base='http://127.0.0.1:8124',db=path.join(temp,'games.sqlite3');
 const server=cp.spawn('python',['-m','gunicorn','ww2_web:app','--bind','127.0.0.1:8124','--workers','1','--threads','4'],{env:{...process.env,WW2_DB_PATH:db},stdio:'ignore'});
 let browser;const errors=[];
-async function open(p){if(await p.locator('#tutorialCoach').isVisible())return;await tap(p,p.locator(await p.evaluate(()=>!!window.ww2Mobile?.active)?'#mobileGuideOpen':'#guideToggle'));await p.locator('#tutorialCoach').waitFor({state:'visible'});}
+async function open(p){if(await p.locator('#tutorialCoach').isVisible())return;await tap(p,p.locator('#guideToggle'));await p.locator('#tutorialCoach').waitFor({state:'visible'});}
 async function topic(p,id){await open(p);if(!await p.locator('#lessonContents').evaluate(n=>n.open))await p.locator('#lessonContents>summary').click();await p.locator(`#lessonTopics [data-topic="${id}"]`).click();}
 async function close(p){await p.evaluate(()=>document.querySelectorAll('dialog[open]').forEach(d=>d.close()));}
 async function fixture(p,name,side='us'){
@@ -69,9 +69,9 @@ db.execute('UPDATE match SET state=? WHERE code=?',(json.dumps(s),sys.argv[2]));
  await p.locator('#commanderName').fill('GuideTest'+Date.now());await p.locator('#commanderPassword').fill('Local-test-password-42');await p.locator('#commanderSubmit').click();await p.waitForFunction(()=>!!ww2Commander.name&&!document.getElementById('commanderDialog').open);
  assert.ok(await p.locator('.home-learn').isHidden());await tap(p,p.locator('.saved-session').first());await p.waitForFunction(()=>state&&!busy);
  assert.ok(await p.locator('#guideToggle').isHidden());await p.evaluate(()=>ww2Learning.open());assert.ok(await p.locator('#tutorialCoach').isHidden());assert.ok(await p.locator('#battleMission').isVisible());
- await p.setViewportSize({width:390,height:844});await p.waitForFunction(()=>!!document.getElementById('mobileBattleScreen'));assert.ok(await p.locator('#mobileGuideOpen').isHidden());
+ await p.setViewportSize({width:390,height:844});await p.waitForFunction(()=>!!document.getElementById('mobileBattleScreen'));assert.ok(await p.locator('#guideToggle').isHidden());
  await tap(p,p.locator('#leave'));await p.locator('#commanderSignOut').click();await p.waitForFunction(()=>ww2Commander.guest);assert.ok(await p.locator('#learnStart').isVisible());
- await tap(p,p.locator('.saved-session').first());await p.waitForFunction(()=>state&&!busy);assert.ok(await p.locator('#mobileGuideOpen').isVisible());
+ await tap(p,p.locator('.saved-session').first());await p.waitForFunction(()=>state&&!busy);assert.equal(await p.locator('#guideToggle').evaluate(e=>e.hidden),false);
  assert.deepEqual(await p.evaluate(()=>[document.body.classList.contains('simple-play'),$('terrainToggle').textContent,$('unitStyleToggle').textContent]),original.preferences);
  // Expired login and storage-disabled guests can still learn.
  const expired=await browser.newPage({viewport:{width:390,height:844}});await expired.addInitScript(()=>localStorage.setItem('ww2-commander',JSON.stringify({name:'Expired commander',token:'invalid-local-test-token'})));await expired.goto(base);await expired.waitForFunction(()=>ww2Commander.guest);assert.ok(await expired.locator('#learnStart').isVisible());

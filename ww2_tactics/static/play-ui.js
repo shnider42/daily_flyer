@@ -108,10 +108,10 @@
   if(dock)return;
   document.body.classList.add('mobile-battle');
   screen=node('section','mobileBattleScreen');screen.setAttribute('aria-label','Battle screen');$('game').append(screen);
-  const top=node('header','mobileBattleTop'),menu=node('button','mobileMenuOpen','Battle ☰'),status=node('div','mobileBattleStatus'),guide=node('button','mobileGuideOpen','Learn');
-  menu.setAttribute('aria-controls','mobileBattleMenu');menu.setAttribute('aria-haspopup','dialog');guide.setAttribute('aria-controls','mobileGuide');guide.setAttribute('aria-haspopup','dialog');
-  status.setAttribute('role','status');menu.onclick=()=>openSheet('mobileBattleMenu');guide.onclick=()=>window.ww2Learning?.open();const home=node('button','mobileHome','DSL');home.title='Home and saved battles';home.setAttribute('aria-label','DSL home and saved battles');home.onclick=()=>$('homeBattles').click();top.append(home,status,guide,menu);screen.append(top);
-  move($('orderHistory'),top);top.insertBefore($('orderHistory'),guide);
+  const top=node('header','mobileBattleTop'),menu=node('button','mobileMenuOpen','Battle'),status=node('div','mobileBattleStatus');
+  menu.setAttribute('aria-controls','mobileBattleMenu');menu.setAttribute('aria-haspopup','dialog');
+  status.setAttribute('role','status');menu.onclick=()=>openSheet('mobileBattleMenu');top.append(status,menu);screen.append(top);
+  move($('orderHistory'),top);
   move($('mapWrap'),screen);
   dock=node('section','mobileOrderDock');dock.setAttribute('aria-label','Selected unit orders');
   const head=node('div','mobileOrderHead'),toggle=node('button','mobileOrderToggle','Select a unit');
@@ -130,8 +130,8 @@
   nav.append(prev,roster);move($('nextUnit'),nav);oldNext=$('nextUnit').onclick;$('nextUnit').onclick=()=>cycleUnit(1);
   move($('findUnit'),nav);move($('zoom'),nav);screen.append(nav);
   const troops=sheet('mobileRoster','Your units');move($('platoonFilters'),troops);move($('roster'),troops);
-  const settings=sheet('mobileBattleMenu','Battle & settings');
-  for(const selector of ['.game-title','.status-line','#turnBanner','.mission','#missionHint','#waiting','#incoming','#signalNotice','#airliftReport','#battleReport','#rematchProposal','#playTools','#battleOptions','#replayTurn','#rulesButton','#homeBattles','#supportStatus','.team-legend','.terrain-legend','#combat','#computerReview','.journal','#seriesScore'])move(document.querySelector(selector),settings);
+  const settings=sheet('mobileBattleMenu','Battle & reports');
+  for(const selector of ['.game-title','.status-line','#turnBanner','.mission','#missionHint','#waiting','#incoming','#signalNotice','#airliftReport','#battleReport','#rematchProposal','#battleOptions','#replayTurn','#supportStatus','.team-legend','.terrain-legend','#combat','#computerReview','.journal','#seriesScore'])move(document.querySelector(selector),settings);
   $('battleOptions').open=true;
   const guideSheet=sheet('mobileGuide','Learn as you play');move($('tutorialCoach'),guideSheet);
   move($('playbackPanel'),screen);

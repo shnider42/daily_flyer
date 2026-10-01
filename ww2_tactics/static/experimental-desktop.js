@@ -23,7 +23,7 @@
   screen=el('section','experimentalDesktopScreen');screen.setAttribute('aria-label','Experimental desktop battle');$('game').append(screen);
   const top=el('header','experimentalDesktopTop'),turn=el('div','experimentalTurn');move('#turnBanner',turn);turn.append(el('span','experimentalRound'));
   top.append(button('experimentalRosterOpen','Units','experimentalRoster'),turn);move('.mission',top);
-  top.append(button('experimentalBattleOpen','Battle','experimentalBattle'));move('#desktopViewMenu',top);screen.append(top);
+  top.append(button('experimentalBattleOpen','Battle','experimentalBattle'));screen.append(top);
   const field=el('section','experimentalField');field.setAttribute('aria-label','Battlefield');move('#mapWrap',field);move('.map-tools',field);
   const notice=button('experimentalNotice','Battle report','experimentalBattle');notice.hidden=true;field.append(notice);screen.append(field);
   const dock=el('section','experimentalCommandBar');dock.setAttribute('aria-label','Selected unit and orders');
@@ -35,7 +35,7 @@
   for(const id of ['selection','unitPurpose','roleBrief','unitMechanics','odds'])move('#'+id,details);
   details.append(el('p','experimentalRecipients'));
   const battle=sheet('experimentalBattle','Battle & reports');
-  for(const selector of ['.game-title','.status-line','#waiting','#battleReport','#rematchProposal','#incoming','#signalNotice','#airliftReport','#simpleOutcome','#combat','#replayTurn','#computerReview','#supportStatus','#battleOptions','#seriesScore','#homeBattles','#rulesButton','#missionHint','.team-legend','.terrain-legend','.journal'])move(selector,battle);
+  for(const selector of ['.game-title','.status-line','#waiting','#battleReport','#rematchProposal','#incoming','#signalNotice','#airliftReport','#simpleOutcome','#combat','#replayTurn','#computerReview','#supportStatus','#battleOptions','#seriesScore','#missionHint','.team-legend','.terrain-legend','.journal'])move(selector,battle);
   // Selection redraws the roster, detaching the clicked button. Close before
   // that redraw; the existing chooseUnit handler already reveals the unit.
   roster.addEventListener('click',e=>{if(e.target.closest('#roster button'))roster.close();},true);
@@ -78,7 +78,7 @@
   if(!playing&&change!==noticeKey){noticeKey=change;if(!state.ready||state.winner||state.rematch)open('experimentalBattle');}
   if(playing)for(const d of dialogs)d.close();
  }
- window.ww2ExperimentalDesktop={get active(){return !!screen;},openContaining(n){const d=n?.closest('.experimental-sheet');if(d){open(d.id);return true;}if(n?.closest('#desktopViewMenu')){$('desktopViewMenu').open=true;return true;}return false;}};
+ window.ww2ExperimentalDesktop={get active(){return !!screen;},openContaining(n){const d=n?.closest('.experimental-sheet');if(d){open(d.id);return true;}return false;}};
  for(const event of ['ww2:render','ww2:playback','ww2:layout','ww2:dad-mode','ww2:busy'])document.addEventListener(event,sync);
  document.addEventListener('ww2:before-layout',unmount);
  window.addEventListener('resize',()=>{if(screen)sync();});

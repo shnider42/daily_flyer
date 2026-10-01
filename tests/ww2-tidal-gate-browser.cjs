@@ -40,7 +40,7 @@ db.execute('UPDATE match SET state=? WHERE code=?',(json.dumps(s),sys.argv[2]));
  await p.locator('#missionSectors button').filter({hasText:'Airborne'}).click();assert.ok(!await p.locator('#missionDialog').evaluate(n=>n.open));
  const usGoal=await p.evaluate(()=>ww2Briefing.mission(state).goal);
  assert.match(usGoal,/town AND either/);assert.match(await p.evaluate(()=>ww2Briefing.mission({...state,side:'de'}).goal),/Break/);
- await tap(p,p.locator('#mobileGuideOpen'));await p.locator('#lessonContents>summary').click();
+ await tap(p,p.locator('#guideToggle'));await p.locator('#lessonContents>summary').click();
  assert.equal(await p.locator('#lessonTopics [data-topic="engineering"]').count(),1);assert.equal(await p.locator('#lessonTopics [data-topic="linked"]').count(),1);
  await p.evaluate(()=>document.querySelectorAll('dialog[open]').forEach(d=>d.close()));
  for(const width of [320,390,1440]){

@@ -7,8 +7,7 @@ body.experimental-desktop{overflow:hidden;background:#182b25}
 .experimental-desktop #game>:not(#experimentalDesktopScreen){display:none!important}
 #experimentalDesktopScreen{--experimental-columns:6;--experimental-rows:2;--experimental-row:74px;--experimental-min-bar:128px;position:fixed;inset:0;display:grid;grid-template-rows:58px minmax(0,1fr) max(var(--experimental-min-bar),calc(var(--experimental-rows)*var(--experimental-row) + 20px));width:100%;height:100dvh;overflow:hidden;background:#ecebdf;color:#20372c}
 #experimentalDesktopTop{display:grid;grid-template-columns:100px 160px minmax(0,1fr) 78px 128px;align-items:center;gap:8px;max-width:none;margin:0;padding:5px 12px;background:#192f27;color:#fff9e8;border:0;min-height:0}
-#experimentalDesktopTop>button,#experimentalDesktopTop .desktop-view-menu>summary{min-height:40px;font-size:13px;background:#ffffff0b;color:#fff9e8;border:1px solid #84978288;padding:8px;text-align:center}
-#experimentalDesktopTop #desktopViewMenu{grid-column:auto;grid-row:auto;align-self:center;position:relative;z-index:20}
+#experimentalDesktopTop>button{min-height:40px;font-size:13px;background:#ffffff0b;color:#fff9e8;border:1px solid #84978288;padding:8px;text-align:center}
 #experimentalDesktopTop .mission{min-width:0;margin:0!important;padding:0!important;border:0;background:transparent}
 #experimentalDesktopTop #battleMission{min-height:42px;max-height:48px;padding:4px 8px;background:transparent;border:0;border-left:1px solid #91a18388;color:#f1edcb;font-size:12px;line-height:15px;font-weight:650}
 #experimentalDesktopTop #battleMission>span:first-child{display:block;flex:1;min-width:0}
@@ -83,7 +82,7 @@ body.experimental-desktop{overflow:hidden;background:#182b25}
 .dad-mode #experimentalUnitOpen span span,.dad-mode #experimentalUnit #hint{font-size:13px;line-height:17px}
 .dad-mode #experimentalUnitOpen .dad-unit-portrait{width:52px;height:58px}
 .dad-mode #experimentalNavigation #desktopActionDock button{min-height:44px;font-size:14px}
-.dad-mode #experimentalDesktopTop>button,.dad-mode #experimentalDesktopTop .desktop-view-menu>summary{font-size:15px}
+.dad-mode #experimentalDesktopTop>button{font-size:15px}
 
 @media(max-width:1199px){
  #experimentalDesktopScreen{--experimental-row:80px}
@@ -114,4 +113,3 @@ body.experimental-desktop{overflow:hidden;background:#182b25}
  .dad-mode #experimentalCommandBar .order-unavailable .action-reason{display:none}
  .dad-mode #experimentalCommandBar .order-unavailable::after{content:'Not ready';grid-column:1;grid-row:2;font-size:13px;line-height:15px;color:#53584e;text-align:left}
 }
-#experimentalDesktopTop .desktop-view-menu>summary{white-space:nowrap}

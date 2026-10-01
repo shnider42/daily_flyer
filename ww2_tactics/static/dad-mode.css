@@ -44,7 +44,6 @@
 .dad-mode #dadOrders .action-cost{grid-column:1/-1;grid-row:3;justify-self:start;padding:2px;font-size:12px}
 .dad-mode #dadOrders .action-purpose{grid-column:1/-1;grid-row:2;font-size:14px;margin:0}
 .dad-mode #mobileRoster #roster{grid-template-columns:1fr}
-.dad-mode #mobileBattleMenu #playTools button{font-size:15px;min-height:48px}
 .dad-mode #mobileBattleMenu #missionHint{font-size:15px}
 .dad-mode .mobile-sheet-heading button{font-size:15px;min-height:48px}
 @media(max-height:520px) and (min-width:650px) and (max-width:1099px){

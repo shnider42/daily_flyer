@@ -9,7 +9,6 @@ body.mobile-battle{overflow:hidden;overscroll-behavior:none}
 #mobileBattleStatus strong{display:block;font-size:13px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #mobileBattleStatus span{display:block;font-size:10px;color:#536254;white-space:nowrap}
 #mobileBattleTop button{min-height:44px;padding:5px 7px;font-size:11px;background:transparent;border-color:transparent;white-space:nowrap}
-#mobileGuideOpen{color:#2c6450!important;border-color:#416a4d55!important}
 .mobile-battle #game #mapWrap,.mobile-battle #game #mapWrap.touch-camera{grid-area:map;width:100%;height:100%;min-height:0;max-height:none!important;overflow:auto;overflow-anchor:none;border-radius:5px}
 .mobile-battle #mapWrap:not(.enlarged) :is(#map,#playbackMap){display:block;width:100%;height:100%;min-width:0;max-width:none;max-height:none}
 .mobile-battle #mapWrap.enlarged :is(#map,#playbackMap){height:auto;max-height:none;max-width:none}
@@ -37,8 +36,6 @@ body.mobile-battle{overflow:hidden;overscroll-behavior:none}
 .mobile-sheet-heading h2{font-size:22px;margin:0}
 .mobile-sheet-heading button{font-size:12px;min-height:44px;padding:6px 10px;flex:none}
 #mobileBattleMenu #battleOptions{display:block!important}
-#mobileBattleMenu #playTools{display:flex;flex-wrap:wrap;gap:6px;margin:12px 0}
-#mobileBattleMenu #playTools button{border:1px solid #a7b29b88;padding:8px 10px;min-height:44px}
 #mobileBattleMenu .game-title h1{font-size:24px;margin:0}
 #mobileBattleMenu .game-title .eyebrow{display:block;font-size:10px;margin:0 0 4px}
 #mobileBattleMenu #missionHint{display:block!important;font-size:12px;line-height:1.5}

@@ -16,7 +16,7 @@ const server=cp.spawn('python',['-m','gunicorn','ww2_web:app','--bind','127.0.0.
 let browser,current=null;const errors=[],posts=[];
 async function settle(p){await p.evaluate(()=>new Promise(r=>requestAnimationFrame(()=>requestAnimationFrame(r))));}
 async function load(p,name){current=structuredClone(fixtures[name]);await p.evaluate(s=>{document.dispatchEvent(new Event('ww2:cancel-targeting'));smokeMode=barrageMode=false;combatMode=target=null;state=s;render();},current);await settle(p);}
-async function openPrefs(p){if(!await p.locator('#desktopViewMenu').evaluate(d=>d.open))await p.locator('#desktopViewMenu>summary').click();}
+async function openPrefs(p){if(!await p.locator('#battleViewSettings').evaluate(d=>d.open))await p.locator('#battleViewOpen').click();}
 (async()=>{
  for(let i=0;i<60;i++){try{if((await fetch(base+'/healthz')).ok)break;}catch{}await new Promise(r=>setTimeout(r,100));}
  browser=await chromium.launch({headless:true,executablePath:process.env.CHROMIUM_EXECUTABLE_PATH,args:['--no-sandbox','--disable-dev-shm-usage']});
@@ -75,7 +75,7 @@ async function openPrefs(p){if(!await p.locator('#desktopViewMenu').evaluate(d=>
  const liveRect=await p.locator('#mapWrap').boundingBox();await p.locator('#end').click();await p.locator('#playbackPanel').waitFor({state:'visible'});await p.locator('#pausePlayback').click();
  assert.equal(await p.locator('#experimentalCommandBar').isVisible(),false);assert.equal(await p.locator('#playbackMap').count(),1);assert.deepEqual(await p.locator('#mapWrap').boundingBox(),liveRect);
  await p.screenshot({path:path.join(temp,'replay.png')});await p.locator('#skipPlayback').click();await p.waitForFunction(()=>!playbackSession);assert.ok(await p.locator('#experimentalCommandBar').isVisible());
- await p.locator('#experimentalBattleOpen').click();await p.locator('#homeBattles').click();await p.locator('#game').waitFor({state:'hidden'});assert.equal(await p.locator('#experimentalDesktopScreen').count(),0);assert.ok(await p.locator('body>header').isVisible());
+ await p.locator('#homeBattles').click();await p.locator('#game').waitFor({state:'hidden'});assert.equal(await p.locator('#experimentalDesktopScreen').count(),0);assert.ok(await p.locator('body>header').isVisible());
  await p.locator('#sessionList .saved-session').first().click();await p.waitForFunction(()=>ww2ExperimentalDesktop.active&&!busy);await p.reload();assert.equal(await p.evaluate(()=>ww2ViewMode.mode),'experimental');
  assert.deepEqual(errors,[]);console.log('Full-width experimental desktop: land, sea, air, all friendly roles, stable map, Dad mode, tooltips, dialogs, mode/breakpoint restoration, real movement and computer replay passed.',JSON.stringify({timing,screenshots:temp}));
 })().catch(e=>{console.error(e);process.exitCode=1}).finally(async()=>{await browser?.close();server.kill();});

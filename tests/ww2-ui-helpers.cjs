@@ -7,12 +7,12 @@ exports.tap=async(page,locator)=>{
  });
  await locator.waitFor({state:'attached'});
  const target=await locator.evaluate(e=>e.closest('dialog')?.id||null);
- const routes={mobileBattleMenu:'mobileMenuOpen',mobileRoster:'mobileRosterOpen',mobileGuide:'mobileGuideOpen',mobileUnitDetails:'mobileOrderToggle',dadOrders:'dadOrdersOpen',dadUnitDetails:'mobileOrderToggle',experimentalRoster:'experimentalRosterOpen',experimentalUnitDetails:'experimentalUnitOpen',experimentalBattle:'experimentalBattleOpen'};
+ const routes={mobileBattleMenu:'mobileMenuOpen',mobileRoster:'mobileRosterOpen',mobileGuide:'guideToggle',battleViewSettings:'battleViewOpen',mobileUnitDetails:'mobileOrderToggle',dadOrders:'dadOrdersOpen',dadUnitDetails:'mobileOrderToggle',experimentalRoster:'experimentalRosterOpen',experimentalUnitDetails:'experimentalUnitOpen',experimentalBattle:'experimentalBattleOpen'};
  for(const id of Object.keys(routes)){
   const sheet=page.locator('#'+id);
   if(id!==target&&await sheet.count()&&await sheet.evaluate(e=>e.open))await page.locator('#'+id+'Close').click();
  }
- if(await locator.evaluate(e=>!!e.closest('#desktopViewMenu'))&&!await page.locator('#desktopViewMenu').evaluate(e=>e.open))await page.locator('#desktopViewMenu>summary').click();
+ if(target==='mobileGuide'&&!await page.locator('#mobileGuide').evaluate(e=>e.open)&&!await page.locator('#battleViewSettings').evaluate(e=>e.open))await page.locator('#battleViewOpen').click();
  if(routes[target]&&!await page.locator('#'+target).evaluate(e=>e.open))await page.locator('#'+routes[target]).click();
  await locator.click();
 };

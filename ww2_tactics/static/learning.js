@@ -81,7 +81,6 @@
   document.querySelector('.home-learn').hidden=!guest();$('guideToggle').hidden=!eligible;
   $('guideToggle').textContent=g?.enabled?'Resume learning guide':'Learn as you play';$('guideToggle').setAttribute('aria-pressed',String(!!active));
   $('tutorialCoach').hidden=!active;
-  if($('mobileGuideOpen')){$('mobileGuideOpen').hidden=!eligible||!!playbackSession;$('mobileGuideOpen').textContent=active?'Guide':'Learn';$('mobileGuideOpen').setAttribute('aria-label',active?'Resume Learn as you play':'Open Learn as you play');}
   if(!active){closeGuides();return;}
   const l=book.find(l=>l.id===g.lesson);
   if(l&&!g.done.includes(l.id)){
@@ -113,6 +112,7 @@
   const target=document.querySelector(selector);if(!target)return;target.classList.add('lesson-focus');
   const sheet=target.closest('.mobile-battle-sheet');if(sheet)ww2Mobile.openSheet(sheet.id);
   window.ww2ExperimentalDesktop?.openContaining(target);
+  window.ww2BattleNavigation?.openContaining(target);
   if(selector==='#battleOptions')target.open=true;
   // Highlighting the map must not scroll it, move a unit, or spend an order.
   if(!window.ww2Mobile?.active&&selector!=='#mapWrap')target.scrollIntoView({block:'nearest',behavior:'auto'});

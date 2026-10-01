@@ -1,0 +1,74 @@
+/* The navigation pair has the same order and top-left home in every layout.
+   Opacity belongs to the surface, never the text or the whole control. */
+#battleNavigation{display:flex;align-items:center;gap:4px;flex:none;min-width:0;margin:0;padding:0}
+#battleNavigation button{min-height:44px;padding:8px 12px;border:1px solid #ffffff45;border-radius:4px;background:#ffffff0d;color:#fff9e8;font-size:13px;line-height:18px;font-weight:750;white-space:nowrap;transition:box-shadow .12s}
+#battleNavigation button:focus-visible{outline:3px solid #e0b46d;outline-offset:1px}
+#battleNavigation button[aria-expanded=true]{background:#f3f0df;color:#20392c;border-color:#f3f0df}
+.battle-navigation-active>header{justify-content:flex-start;gap:20px;padding-left:max(12px,env(safe-area-inset-left));position:sticky;top:0;z-index:15;background:#192f27;color:#fff9e8}
+.battle-navigation-active>header .brand{display:none}
+.battle-navigation-active.compact-desktop>header{height:48px;min-height:48px}
+.battle-navigation-active.compact-desktop:not(.experimental-desktop) main{height:calc(100dvh - 48px)}
+.battle-navigation-active.compact-desktop #game .desktop-briefing #turnBanner{grid-column:1/-1}
+#experimentalDesktopTop{grid-template-columns:auto 94px 160px minmax(0,1fr) 78px}
+#experimentalDesktopTop #battleNavigation{grid-column:1;grid-row:1}
+#experimentalDesktopTop #experimentalRosterOpen{grid-column:2;grid-row:1}
+#experimentalDesktopTop #experimentalTurn{grid-column:3;grid-row:1}
+#experimentalDesktopTop .mission{grid-column:4;grid-row:1}
+#experimentalDesktopTop #experimentalBattleOpen{grid-column:5;grid-row:1}
+/* Settings always opens the same real controls in the same order. */
+#battleViewSettings{width:min(520px,calc(100vw - 24px));max-width:none;max-height:calc(100dvh - 24px - env(safe-area-inset-top) - env(safe-area-inset-bottom));margin:auto;padding:16px;border:1px solid #7e9079;border-radius:8px;background:#f4f1e8;color:#20372c;overflow:auto;overscroll-behavior:contain;box-shadow:0 16px 70px #10211950}
+#battleViewSettings::backdrop{background:#14251e80}
+.battle-view-heading{position:sticky;top:-16px;z-index:2;display:flex;align-items:center;justify-content:space-between;gap:12px;padding:10px 0;margin:-6px 0 6px;background:#f4f1e8;border-bottom:1px solid #aebba6}
+.battle-view-heading h2{margin:0;font-family:inherit;font-size:20px;font-weight:750;letter-spacing:0}
+#battleViewSettingsClose{min-height:44px;flex:none;padding:8px 12px;font-size:13px;background:#254735;color:#fffbed;border:1px solid #254735}
+#battleViewSettings #playTools{display:block;margin:0;padding:0;width:auto;position:static;max-height:none;background:none;border:0;box-shadow:none}
+#battleViewSettings .battle-view-group{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:6px;margin:0 0 16px}
+#battleViewSettings .battle-view-group:last-child{margin-bottom:0}
+#battleViewSettings h3{grid-column:1/-1;font-size:13px;line-height:18px;letter-spacing:.3px;margin:6px 0 2px;color:#40583e}
+#battleViewSettings #playTools button{min-height:48px;width:100%;font-size:14px;line-height:19px;padding:10px;text-align:left;white-space:normal;border:1px solid #a1b095;background:#e8eddf;color:#213c2c;border-radius:4px}
+#battleViewSettings #playTools button[aria-pressed=true]{border-color:#507448;box-shadow:inset 3px 0 #507448}
+#battleViewSettings p{grid-column:1/-1;font-size:12px;line-height:18px;margin:2px 0;color:#44563f}
+.dad-mode #battleNavigation button{font-size:15px}
+.dad-mode #battleViewSettings #playTools button{font-size:17px;line-height:23px;min-height:54px}
+.dad-mode #battleViewSettings p{font-size:15px;line-height:21px}
+/* Two stable rows: navigation/turn, then mission/undo. All taps get 44px.
+   No navigation overlays a hex, and changing Simple view doesn't move it. */
+body.battle-navigation-active.mobile-battle #mobileBattleScreen{grid-template-rows:90px minmax(0,1fr) 44px calc(88px + var(--order-rows)*64px)}
+body.battle-navigation-active.mobile-battle #mobileBattleTop{grid-template-columns:auto minmax(0,1fr) 54px;grid-template-rows:44px 44px;gap:2px 4px;height:90px;background:#f4f1e8;z-index:4}
+#mobileBattleTop #battleNavigation{grid-column:1;grid-row:1}
+#mobileBattleTop #battleNavigation button{min-height:44px;padding:6px 7px;font-size:13px;color:#20392c;background:#dce4d655;border:1px solid #a2b09888}
+#mobileBattleTop #battleNavigation button[aria-expanded=true]{background:#254735;color:#fffbed}
+#mobileBattleTop #mobileBattleStatus{grid-column:2;grid-row:1;overflow:hidden}
+#mobileBattleTop #mobileBattleStatus span{overflow:hidden;text-overflow:ellipsis}
+#mobileBattleTop #mobileMenuOpen{grid-column:3;grid-row:1;min-height:44px;padding:4px;font-size:12px;border:1px solid #a2b09888;color:#20392c}
+body.battle-navigation-active.mobile-battle #mobileBattleTop #battleMission{grid-column:1/-1;grid-row:2;justify-self:start;width:calc(100% - 94px);height:44px;min-height:44px;max-height:44px;margin:0;padding:4px 7px;font-size:12px;letter-spacing:0;line-height:16px}
+body.battle-navigation-active.mobile-battle #mobileBattleTop #orderHistory{grid-column:1/-1;grid-row:2;justify-self:end;display:flex;gap:4px;margin:0;width:90px}
+body.battle-navigation-active.mobile-battle #mobileBattleTop #orderHistory button{width:43px;min-width:43px;height:44px;min-height:44px;padding:0;font-size:25px;border:1px solid #a2b09888;background:#dce4d655;color:#20392c}
+body.battle-navigation-active.experimental-play.mobile-battle #mobileBattleScreen{grid-template-rows:90px minmax(0,1fr) 40px 82px}
+body.battle-navigation-active.experimental-play.mobile-battle.mobile-replaying #mobileBattleScreen{grid-template-rows:90px minmax(0,1fr) 40px 100px}
+body.battle-navigation-active.dad-mode.mobile-battle:not(.experimental-play) #mobileBattleScreen{grid-template-rows:90px minmax(0,1fr) 52px 194px}
+body.battle-navigation-active.dad-mode.mobile-battle #mobileBattleTop #battleNavigation button{font-size:15px}
+@media(hover:hover) and (pointer:fine){
+ #battleNavigation button:hover{background:#35533e;color:#fff9e8;border-color:#b3c49e}
+ #mobileBattleTop #battleNavigation button:hover{background:#d2dec9;border-color:#638254}
+}
+@media(max-width:359px){
+ #battleViewSettings{padding:12px}
+ #battleViewSettings #playTools button{font-size:13px;padding:8px}
+ body.battle-navigation-active.mobile-battle:not(.dad-mode):not(.experimental-play) #mobileBattleScreen{grid-template-rows:90px minmax(0,1fr) 44px calc(88px + var(--order-rows)*52px)}
+ #mobileBattleTop #battleNavigation{gap:3px}
+ #mobileBattleTop #battleNavigation button{padding:5px}
+ body.battle-navigation-active.mobile-battle #mobileBattleTop #battleMission{font-size:11px;line-height:14px}
+}
+@media(hover:hover) and (pointer:fine) and (min-width:900px) and (max-width:1099px) and (min-height:521px){
+ body.battle-navigation-active.mobile-battle:not(.experimental-play) #mobileBattleScreen{grid-template-rows:90px minmax(0,1fr) 44px}
+}
+@media(max-height:520px) and (min-width:650px) and (max-width:1099px){
+ body.battle-navigation-active.mobile-battle #mobileBattleScreen{grid-template-rows:44px minmax(0,1fr) 44px}
+ body.battle-navigation-active.experimental-play.mobile-battle #mobileBattleScreen{grid-template-rows:44px minmax(0,1fr) 82px}
+ body.battle-navigation-active.experimental-play.mobile-battle.mobile-replaying #mobileBattleScreen{grid-template-rows:44px minmax(0,1fr) 100px}
+ body.battle-navigation-active.mobile-battle #mobileBattleTop{height:44px;grid-template-columns:auto 130px minmax(0,1fr) 90px 54px;grid-template-rows:44px}
+ body.battle-navigation-active.mobile-battle #mobileBattleTop #battleMission{grid-column:3;grid-row:1;width:100%}
+ body.battle-navigation-active.mobile-battle #mobileBattleTop #orderHistory{grid-column:4;grid-row:1}
+ body.battle-navigation-active.mobile-battle #mobileBattleTop #mobileMenuOpen{grid-column:5}
+}

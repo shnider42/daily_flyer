@@ -47,7 +47,7 @@
   $('seriesScore').textContent=`Victories · ${names.us} ${state.victories?.us||0} / ${names.de} ${state.victories?.de||0}`;
   if(!state.naval_version){reconUnit=null;return;}
   $('rulesetBadge').textContent='DSL · Midway · US vs Japan · Fog of war';
-  $('supportStatus').hidden=true;$('guideToggle').hidden=true;
+  $('supportStatus').hidden=true;
   $('missionHint').textContent=state.winner?`${names[state.winner]} win the naval operation.`:`Sink both enemy carriers OR earn 6 control points. Sea zone: +1/turn.${state.scenario.island_objectives?.length?' Land a section on each ⚑ outpost: +1/turn.':''}`;
   window.drawFog(svg,state);zone(svg,state);
   if(selected!==reconUnit||smokeMode)reconUnit=null;

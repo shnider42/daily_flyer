@@ -1,7 +1,6 @@
 /* Shared presentation; experimental layout is a reversible per-browser choice. */
 #orders .order-unavailable :is(.action-name,.action-purpose,.action-cost){color:#646961!important}
 #orders .order-unavailable .action-reason{color:#50564e!important}
-#mobileHome{display:none}
 .signal-choice{fill:#d1a04f;fill-opacity:.3;stroke:#6f4217;stroke-width:3;cursor:pointer}
 .signal-choice:focus-visible{outline:none;stroke:#ffe172;stroke-width:5}
 #signalNotice{padding:8px 10px;background:#ede2be;color:#493919;border-left:3px solid #80632c;font-size:12px;line-height:1.4}
@@ -11,9 +10,7 @@
 @media(max-width:1099px){
  body.experimental-play.mobile-battle #mobileBattleScreen{grid-template-rows:72px minmax(0,1fr) 40px 82px;grid-template-areas:'top' 'map' 'nav' 'orders';grid-template-columns:minmax(0,1fr);gap:0}
  body.experimental-play.mobile-battle #mobileBattleTop{background:#f4f1e8ed;z-index:4;gap:0 2px;height:72px;grid-template-columns:44px minmax(0,1fr) auto auto;grid-template-rows:44px 28px}
- body.experimental-play.mobile-battle #mobileHome{display:block;font-size:15px;font-weight:900;letter-spacing:-1px;min-width:44px;padding:0 4px;color:#193a2e}
  body.experimental-play.mobile-battle #mobileBattleStatus strong{font-size:11px}body.experimental-play.mobile-battle #mobileBattleStatus span{font-size:9px}
- body.experimental-play.mobile-battle #mobileGuideOpen{display:none}
  body.experimental-play.mobile-battle #mobileOrderHead{height:42px}
  body.experimental-play.mobile-battle #mobileOrderDock #mobileOrderBody{padding:0;height:40px}
  body.experimental-play.mobile-battle #mobileOrderBody #hint{display:none}

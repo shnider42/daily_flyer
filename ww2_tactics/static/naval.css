@@ -1,7 +1,6 @@
 .sea-control{pointer-events:none;fill:none;stroke:#f2d58c;stroke-width:1.7;stroke-dasharray:5 4}
 .recon-choice{fill:#9ae6ef;fill-opacity:.12;stroke:#8bd4e4;stroke-width:1;cursor:crosshair}
 .recon-choice:focus{fill-opacity:.6;stroke-width:3;outline:none}
-.naval-battle #guideToggle{display:none!important}
 .naval-battle #mapWrap{background:#183e58}
 .naval-battle :is(#map,#playbackMap) .hex.water{fill:#295974;stroke:#4e8299;stroke-width:1}
 .naval-battle :is(#map,#playbackMap) .hex.objective{fill:#386881}

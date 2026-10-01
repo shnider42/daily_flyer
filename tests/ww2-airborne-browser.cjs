@@ -24,7 +24,7 @@ let browser;const errors=[];
  const before=await p.evaluate(()=>{window.airborneTerrain=$('map').querySelector('.hex');return {revision:state.revision,ap:state.units.find(u=>u.id===selected).ap};});
  for(const [width,height] of [[320,568],[390,844],[430,932],[844,390]]){
   await p.setViewportSize({width,height});await p.waitForTimeout(120);
-  const map=await p.locator('#mapWrap').boundingBox(),home=await p.locator('#mobileHome').boundingBox();assert.ok(map.height/height>.60);assert.ok(home.y<15);
+  const map=await p.locator('#mapWrap').boundingBox(),home=await p.locator('#homeBattles').boundingBox();assert.ok(map.height/height>.60);assert.ok(home.y<15);
   await tap(p,p.locator('#callAirborne'));assert.equal(await p.locator('#map .airdrop-aim').count(),1020);
   assert.equal(await p.locator('#dadOrders').evaluate(d=>d.open),false);
   assert.ok(await p.evaluate(()=>airborneTerrain===$('map').querySelector('.hex')));
