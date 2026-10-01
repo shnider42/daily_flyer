@@ -44,9 +44,9 @@ def tower(state, unit):
 def sight_range(state, unit, concealed=False):
     base = unit.get('sight', 9 if unit['kind']=='scout' else max(6, unit['range']) if unit['kind'] in {'tank','at_gun'} else 6)
     if tower(state, unit):
-        return 6 if concealed else 12 if unit['kind'] in {'scout','sniper'} else 8
-    if concealed: return 4 if unit['kind'] in {'scout','sniper'} else 2
-    return base
+        base = 6 if concealed else 12 if unit['kind'] in {'scout','sniper'} else 8
+    elif concealed: base = 4 if unit['kind'] in {'scout','sniper'} else 2
+    return base + (2 if unit.get('observing') else 0)
 
 
 def snipe_range(state, unit):
@@ -97,7 +97,7 @@ def snipe_preview(state, unit, target):
 
 def orders(state, unit):
     from .engine import distance, line_clear
-    from .visibility import active, visible_ids
+    from .visibility import active, unit_visible_ids
     from . import weapons
     result = dict(area_fire=[], area_fire_details=[], repair_tank=[], snipe=[], range_guide=range_guide(state,unit))
     if not enabled(state) or not state['ready'] or state.get('winner') or not active(unit) or unit['side']!=state['turn'] or unit.get('pinned'):
@@ -110,7 +110,7 @@ def orders(state, unit):
                 and u['kind']=='tank' and distance(unit['pos'],u['pos'])==1 and u.get('repair_round')!=state['round']
                 and (u['hp']<u.get('max_hp',u['hp']) or u.get('immobilized'))]
     if unit.get('snipe_range') and unit['ap']>=3:
-        seen = visible_ids(state,unit['side'])
+        seen = unit_visible_ids(state,unit)
         result['snipe'] = [snipe_preview(state,unit,u) for u in state['units'] if active(u) and u['side']!=unit['side']
             and u['id'] in seen and weapons.protection(u)=='infantry' and not u.get('armor')
             and distance(unit['pos'],u['pos'])<=snipe_range(state,unit)

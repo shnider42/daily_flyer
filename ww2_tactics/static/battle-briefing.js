@@ -57,7 +57,7 @@
  function open(){if(!state||$('game').hidden)return;fill();for(const d of document.querySelectorAll('dialog[open]'))if(d!==dialog)d.close();if(!dialog.open)dialog.showModal();}
  button.onclick=open;
  function fill(){
-  const m=mission(state);goal.textContent=m.goal;progress.textContent=m.progress;
+  const m=mission(state);if(state.scenario.doctrine){m.rules=[...m.rules,'Your force: '+state.scenario.doctrine[state.side],state.scenario.historical_note,'Communications: each platoon spots locally. Radio reports allow distant mortar aiming, but never unlock direct fire on an unseen unit.'];}goal.textContent=m.goal;progress.textContent=m.progress;
   list.replaceChildren(...m.rules.map(t=>node('li',null,t)));
   flags.hidden=!state.linked_front_version;flags.textContent=(state.scenario.linked_objectives||[]).map(p=>`${p.name}: ${state.objective_control?.[p.id]?sideLabel(state.objective_control[p.id]):'Ungarrisoned'}`).join(' · ');
   sectors.replaceChildren(...(state.scenario.sectors||[]).map(s=>{const b=node('button',null,s.name);b.type='button';b.onclick=()=>{dialog.close();focusMapUnit({pos:s.pos});};return b;}));

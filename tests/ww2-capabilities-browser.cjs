@@ -13,7 +13,7 @@ def publish(s):
  s['legal']={u['id']:options(s,u) for u in s['units'] if u['side']=='us'}
  return public_state(s,'us')
 result={}
-for name in ['village','orchard','stonebridge','riverfront','frontier','midway','stalingrad','britain','omaha','carentan','market_garden','tidal_gate']:
+for name in ['village','orchard','stonebridge','riverfront','frontier','midway','stalingrad','britain','omaha','carentan','market_garden','tidal_gate','apennine','desert_signal','amba_dawn']:
  s=initial(name,'dsl');s['ready']=True;result[name]=publish(s)
 s=initial('market_garden','dsl');s.update(ready=True,buildings={},building_intel={})
 s['battlefield']['map']=[['field']*22 for _ in range(28)]
@@ -91,7 +91,7 @@ const summary=p=>p.locator('#orders [data-order-id]:visible').evaluateAll(ns=>ns
  await p.locator('#desktopFit').click();assert.equal(await p.locator('#desktopZoomValue').textContent(),'100%');
  // Mobile: all orders visible, no map jumps, no text clipping, preferences survive.
  for(const width of [320,390]){
-  await p.setViewportSize({width,height:844});await load(p,'fogA','us-A-2');
+  await p.evaluate(()=>ww2ViewMode.set('on'));await p.setViewportSize({width,height:844});await load(p,'fogA','us-A-2');
   await p.waitForFunction(()=>!!document.getElementById('mobileBattleScreen'));
   const rect=await p.locator('#mapWrap').boundingBox();
   for(const id of ['us-A-0','us-A-1','us-A-2','us-A-3','us-A-4']){
@@ -104,5 +104,5 @@ const summary=p=>p.locator('#orders [data-order-id]:visible').evaluateAll(ns=>ns
   await tap(p,p.locator('#simpleToggle'));await p.evaluate(()=>document.querySelectorAll('dialog[open]').forEach(d=>d.close()));
   assert.match(await p.locator('#artillery').textContent(),/Ready R3/);await tap(p,p.locator('#simpleToggle'));await p.evaluate(()=>document.querySelectorAll('dialog[open]').forEach(d=>d.close()));
  }
- assert.equal(posts.length,0);assert.deepEqual(errors,[]);console.log('Capabilities on 12 maps, fog invariance, unavailable click/keyboard guards, desktop zoom/selection/widen, phone stability and contrast passed.',temp);
+ assert.equal(posts.length,0);assert.deepEqual(errors,[]);console.log('Capabilities on 15 maps, fog invariance, unavailable click/keyboard guards, desktop zoom/selection/widen, phone stability and contrast passed.',temp);
 })().catch(e=>{console.error(e);process.exitCode=1;}).finally(async()=>{await browser?.close();server.kill();});

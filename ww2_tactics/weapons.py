@@ -25,6 +25,8 @@ PROFILES = {
     'fragmentation': dict(label='Fragmentation', penetration=0, damage=2, targets=('infantry',)),
     'mortar': dict(label='Mortar fragments', penetration=0, damage=1, targets=('infantry',)),
     'artillery': dict(label='Heavy artillery', penetration=3, damage=2, ship_damage=1, splash=1, penetrating=True),
+    'at_rifle': dict(label='Anti-tank rifle',penetration=1,damage=1,targets=('infantry','vehicle','light_armor')),
+    'demolition': dict(label='Demolition charge',penetration=3,damage=2,targets=('light_armor','heavy_armor'),penetrating=True),
     'none': dict(label='Unarmed', penetration=0, damage=0, targets=()),
     'sniper_round': dict(label='Aimed rifle shot', penetration=0, damage=1, targets=('infantry',)),
 }
@@ -211,6 +213,8 @@ def action(state, unit, order, legal, roll):
         pos = list(order['pos']); unit['ap'] -= 2; unit[kind + '_charges'] -= 1
         operations.start_cooldown(state,unit,kind)
         if kind == 'field_recon':
+            from .signals import alert
+            alert(state,unit['side'],pos,'recon')
             state.setdefault('recon', []).append(dict(side=unit['side'], pos=pos, radius=3, ttl=2))
             return 'Recon plane searched a 3-hex radius, including concealed troops. Sight lasts through the enemy turn · 2 AP.'
         board = state['battlefield']

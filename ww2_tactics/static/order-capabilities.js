@@ -2,11 +2,11 @@
    current legal orders are used here; never simulate a move or query hidden units. */
 'use strict';
 (()=>{
- const infantry=new Set(['squad','mg','leader','commander','scout','engineer','at_team','paratrooper','sniper']);
+ const infantry=new Set(['squad','mg','leader','commander','scout','engineer','at_team','paratrooper','sniper','radioman','commando','mountain','partisan','askari','mortar']);
  const vehicles=new Set(['tank','halftrack','amphibious','landing_craft']);
- const labels={breach:'Breach hedge',clearWreck:'Clear rubble',bridgeGap:'Build bridge',fire:'Fire at unit',areaFire:'Aim at hex',snipe:'Snipe',assault:'Close assault',grenade:'Grenade',suppress:'Suppress',overwatch:'Overwatch',dig:'Dig in',smoke:'Smoke',rally:'Rally self',inspire:'Rally allies',command:'Give actions',barrage:'Call mortars',artillery:'Call artillery',fieldRecon:'Recon plane',loadAP:'Load anti-tank',loadHE:'Load explosive',repairTracks:'Fix own tracks',repairTank:'Repair tank',bombard:'Blind bombard',recon:'Air search',airstrike:'Air strike',torpedo:'Torpedoes',repair:'Repair hull',airdrop:'Land troops',load:'Load troops',unload:'Unload troops',rearm:'Airfield service'};
- const costs={smoke:1,rally:1,inspire:1,loadAP:1,loadHE:1,recon:1,load:1,unload:1,snipe:3,bridgeGap:3};
- const cost=id=>costs[id]??2;
+ const labels={radioUpdate:'Radio update',observe:'Observe',conceal:'Camouflage',mortarFire:'Mortar fire',demolition:'Demolition',breach:'Breach hedge',clearWreck:'Clear rubble',bridgeGap:'Build bridge',fire:'Fire at unit',areaFire:'Aim at hex',snipe:'Snipe',assault:'Close assault',grenade:'Grenade',suppress:'Suppress',overwatch:'Overwatch',dig:'Dig in',smoke:'Smoke',rally:'Rally self',inspire:'Rally allies',command:'Give actions',barrage:'Call mortars',artillery:'Call artillery',fieldRecon:'Recon plane',loadAP:'Load anti-tank',loadHE:'Load explosive',repairTracks:'Fix own tracks',repairTank:'Repair tank',bombard:'Blind bombard',recon:'Air search',airstrike:'Air strike',torpedo:'Torpedoes',repair:'Repair hull',airdrop:'Land troops',load:'Load troops',unload:'Unload troops',rearm:'Airfield service'};
+ const costs={observe:1,smoke:1,rally:1,inspire:1,loadAP:1,loadHE:1,recon:1,load:1,unload:1,snipe:3,bridgeGap:3};
+ const cost=id=>id==='radioUpdate'?(state?.units.find(u=>u.id===selected)?.kind==='radioman'?1:2):costs[id]??2;
  function capabilities(u,s=state){
   if(!u||u.side!==s.side||u.hp<=0||s.ruleset!=='dsl')return [];
   const ids=[],add=(...names)=>ids.push(...names),kind=u.kind,v=s.rules_version||1;
@@ -30,7 +30,7 @@
    if(v>=3&&u.range>0)add('overwatch');
    if(!s.combat_version||u.protection==='infantry')add('rally');
    if(v>=4){
-    if(['squad','engineer','paratrooper'].includes(kind))add('grenade');
+    if(['squad','engineer','paratrooper','commando','mountain','partisan','askari'].includes(kind))add('grenade');
     if(['mg','halftrack'].includes(kind))add('suppress');
     if(['leader','commander'].includes(kind)){
      add('inspire','command');
@@ -56,6 +56,7 @@
    }
   }
   if(s.fieldworks_version&&kind==='engineer')add('breach','clearWreck','bridgeGap');
+  if(s.signals_version){if(['commander','radioman'].includes(kind))add('radioUpdate');if(['scout','radioman','mountain'].includes(kind))add('observe');if(u.stealth)add('conceal');if(u.mortar_range)add('mortarFire');if('demolition_charges' in u)add('demolition');}
   return [...new Set(ids)];
  }
  function reason(id,u){
@@ -69,6 +70,12 @@
   if(u.reserve&&u.arrival_round)return 'Arrives R'+u.arrival_round+' · entry must be clear';
   if(u.reserve&&id!=='airdrop')return 'Land troops first';
   if(u.pinned&&id!=='rally')return 'Rally this unit first';
+  if(id==='radioUpdate'&&u.radio_round===state.round)return 'Already sent this round';
+  if(id==='observe'&&u.observing)return 'Already observing';
+  if(id==='conceal'&&u.camouflaged)return 'Already camouflaged';
+  if(id==='mortarFire'&&!u.shells)return 'No shells left';
+  if(id==='mortarFire'&&u.mortar_round===state.round)return 'Already fired this round';
+  if(id==='demolition'&&!u.demolition_charges)return 'No charges left';
   if(id==='rally'&&!u.pinned)return 'Not pinned';
   if(id==='dig'&&u.entrenched)return 'Already dug in';
   if(id==='overwatch'&&u.overwatch)return 'Already watching';
@@ -83,6 +90,10 @@
   if(u.kind==='bomber'&&['fire','areaFire'].includes(id)&&!u.bombs)return 'Reload at airfield';
   if(!['load','unload'].includes(id)&&u.ap<cost(id))return `Needs ${cost(id)} AP`;
   if(['fire','grenade','assault','suppress','airstrike','torpedo'].includes(id))return target?'No legal attack on target':'Select a visible enemy';
+  if(id==='radioUpdate')return 'No recent reports to share';
+  if(id==='conceal')return 'Needs cover terrain';
+  if(id==='mortarFire')return 'Needs spotted or reported hex at range 2–8';
+  if(id==='demolition')return 'Needs adjacent spotted armor';
   if(id==='bridgeGap')return u.bridge_kits?'Needs a one-hex gap with firm banks':'No bridge kits left';
   if(id==='breach')return 'Needs adjacent bocage';
   if(id==='clearWreck')return 'Needs adjacent collapsed building';

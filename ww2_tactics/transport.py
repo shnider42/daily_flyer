@@ -8,7 +8,7 @@ def passengers(state, carrier):
 
 
 def options(state, carrier):
-    from .engine import distance, terrain, watchers
+    from .engine import distance, terrain, preview_threats
     result = dict(load=[], unload=[])
     if not combined.enabled(state) or carrier['kind'] not in {'halftrack','landing_craft'} or not active(carrier):
         return result
@@ -25,7 +25,7 @@ def options(state, carrier):
         occupied = [u['pos'] for u in state['units'] if active(u) and u['id'] in seen]
         board = state['battlefield']
         result['unload'] = [dict(pos=[x, y], cost=1,
-                                 threats=sum(w['id'] in seen for w in watchers(state, troop, [x, y])))
+                                 threats=preview_threats(state, troop, [x, y], seen))
                             for y in range(max(0, carrier['pos'][1]-1), min(board['height'], carrier['pos'][1]+2))
                             for x in range(max(0, carrier['pos'][0]-1), min(board['width'], carrier['pos'][0]+2))
                             if distance(carrier['pos'], [x, y]) == 1 and fieldworks.movement(troop, terrain(x, y, state))[0]

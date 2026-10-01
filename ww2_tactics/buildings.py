@@ -68,7 +68,7 @@ def cover(state, pos, *, objective=True, side=None):
     from .engine import terrain
     tile = terrain(*pos, state)
     if tile == 'bunker': return 1 if condition(state, pos, side) == 'damaged' else 2
-    return int(tile in ({'woods', 'building', 'tower', 'bocage', 'rubble', 'objective'} if objective else {'woods', 'building', 'tower', 'bocage', 'rubble'})
+    return int(tile in ({'woods', 'building', 'tower', 'bocage', 'rubble', 'mountain', 'ridge', 'wadi', 'oasis', 'objective'} if objective else {'woods', 'building', 'tower', 'bocage', 'rubble', 'mountain', 'ridge', 'wadi', 'oasis'})
                and condition(state, pos, side) != 'damaged')
 
 

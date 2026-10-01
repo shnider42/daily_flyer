@@ -45,7 +45,21 @@
    const outer=shape('g',{id,'clip-path':`url(#${clipId})`}),g=shape('g',{});outer.append(g);defs.append(outer);
    const add=(tag,attrs)=>g.append(shape(tag,attrs));
    const path=(d,stroke,width=1,fill='none')=>add('path',{d,stroke,'stroke-width':width,fill,'stroke-linecap':'round','stroke-linejoin':'round'});
-   if(type==='beach'){
+   if(type==='mountain'){
+    path('M-30 22L-5-25 9-2 16-13 32 22Z','#555f52',1.5,'#a8ae99');
+    path('M-5-25L1 4-8-2-15 4Z','#e4e2cd',1,'#dfdfc9');path('M-5-20l5 24 12 15','#73816b',2);
+   }else if(type==='ridge'){
+    path('M-31 14L-16-10-4-6 7-20 30 12M-20 18l13-12 8 8 10-10 14 14','#746e55',2.5);
+   }else if(type==='desert'){
+    path('M-25 8q14-8 28-1M-5-14l11 2M10 19l9-3','#b59966',1.2);
+   }else if(type==='dune'){
+    path('M-30 12Q-8-24 28 5M-25 21Q-1-10 29 17','#a7844f',2);path('M-28 11Q-8-20 27 6','#f2dfb5',3);
+   }else if(type==='wadi'){
+    path('M-26-25Q18-4-4 8T22 28','#807456',16);path('M-26-25Q18-4-4 8T22 28','#d5bd8f',9);
+   }else if(type==='oasis'){
+    add('ellipse',{cx:0,cy:8,rx:19,ry:10,fill:'#79b4b0'});
+    path('M-11 11l3-24M-8-13q-12-4-17 5M-8-13q9-6 15 3M-8-13q-3-12-12-10','#426a43',3);
+   }else if(type==='beach'){
     path('M-24 12q8-5 16 0t16 0M-18-8l5-2M8-16l7 2','#ad956c',1.3);
     add('circle',{cx:15,cy:8,r:1.5,fill:'#897e5c'});
    }else if(type==='marsh'){

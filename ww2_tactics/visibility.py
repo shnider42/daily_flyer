@@ -63,6 +63,7 @@ def unit_sees_hex(state, scout, pos, concealed=False):
     high,normal,hidden=profile
     landmark=operations.enabled(state) and terrain(*pos,state)=='tower'
     reach=hidden if concealed and not landmark else normal
+    if concealed=='camouflaged' and not landmark:reach=max(1,reach-1)
     if landmark:reach=max(reach,12)  # Elevated silhouettes work both ways.
     return gap<=reach and line_clear(scout['pos'],pos,state.get('smoke',[]),state,high_ground=high or landmark)
 
@@ -113,7 +114,12 @@ def _visible_ids(state, side):
         return {u['id'] for u in state['units'] if u['side']==side or not u.get('carrier_id')}
     return {u['id'] for u in state['units'] if u['side']==side or
             (active(u) and sees_hex(state, side, u['pos'],
-             not u.get('armor') and not u.get('exposed_turns') and terrain(*u['pos'],state) in fieldworks.CONCEALMENT))}
+             'camouflaged' if u.get('camouflaged') and not u.get('exposed_turns') else not u.get('armor') and not u.get('exposed_turns') and terrain(*u['pos'],state) in fieldworks.CONCEALMENT))}
+
+
+def unit_visible_ids(state, unit):
+    from . import signals
+    return signals.group_ids(state,unit['side'],signals.group(unit)) if signals.enabled(state) else visible_ids(state,unit['side'])
 
 
 def update_intel(state):
@@ -121,6 +127,8 @@ def update_intel(state):
     from .buildings import observe
     observe(state)
     fieldworks.observe(state)
+    from . import signals
+    signals.observe_intel(state)
     if not fog(state):
         return
     for side in ('us','de'):
@@ -150,6 +158,12 @@ def view(state, side, terrain_visibility=True):
                   barrages=copy.deepcopy([{k:v for k,v in b.items() if k != 'attacker'} for b in state.get('barrages', [])]),
                   recon=copy.deepcopy([r for r in state.get('recon', []) if r['side']==side]),
                   round=state['round'], turn=state['turn'], hold=state['hold'], winner=state['winner'])
+    if state.get('signals_version'):
+        for u in result['units']:
+            if u['side']!=side:
+                u['overwatch']=False
+                for key in ('radio_round','mortar_round','camouflaged','observing'):u.pop(key,None)
+    result['signal_alerts']=[copy.deepcopy(a) for a in state.get('signal_alerts',{}).get(side,[]) if state['round']<a['expires_round']]
     if state.get('fieldworks_version'):
         result['fieldworks'] = dict(fieldworks.known(state, side))
     if state.get('linked_front_version'):
@@ -214,6 +228,9 @@ def public_state(state, side):
             result['map']=fieldworks.map_for(state, side)
             result['battlefield']['map']=result['map']
         result.pop('fieldworks_intel',None)
+        result.pop('platoon_intel',None)
+        result.pop('radio_reports',None)
+        result['signal_alerts']=copy.deepcopy(state.get('signal_alerts',{}).get(side,[]))
         return result
     result=copy.deepcopy(state)
     result.update(view(state,side))
@@ -234,4 +251,10 @@ def public_state(state, side):
     result.pop('command_used',None)
     result.pop('building_intel',None)
     result.pop('_structure_events',None)
+    from . import signals
+    if signals.enabled(state):
+        result['platoon_views']=signals.public_views(state,side)
+        result['radio_reports']=signals.reports_for(state,side)
+    else:result.pop('radio_reports',None)
+    result.pop('platoon_intel',None)
     return result

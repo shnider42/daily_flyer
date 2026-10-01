@@ -38,7 +38,7 @@
   svg.insertBefore(layer,svg.querySelector('.unit'));
   for(const contact of snapshot.contacts||[]){
    const [cx,cy]=center(...contact.pos),g=element('g',{class:'contact-marker'});
-   g.append(element('title',{},`Last seen ${kinds[contact.kind]} · round ${contact.last_seen_round} · ${sideLabel(contact.last_seen_turn)} turn. Current location unknown.`),element('rect',{x:cx-19,y:cy-16,width:38,height:32,rx:3}),element('text',{x:cx,y:cy-2,'text-anchor':'middle'},`${unitCodes[contact.kind]} ?`),element('text',{x:cx,y:cy+10,'text-anchor':'middle',class:'contact-age'},`R${contact.last_seen_round}`));svg.append(g);
+   g.append(element('title',{},`${contact.source==='radio'?'Radio report':'Last seen'} ${kinds[contact.kind]} · round ${contact.last_seen_round} · ${sideLabel(contact.last_seen_turn)} turn. Current location unknown.`),element('rect',{x:cx-19,y:cy-16,width:38,height:32,rx:3}),element('text',{x:cx,y:cy-2,'text-anchor':'middle'},`${unitCodes[contact.kind]} ?`),element('text',{x:cx,y:cy+10,'text-anchor':'middle',class:'contact-age'},`${contact.source==='radio'?'RAD · ':''}R${contact.last_seen_round}`));svg.append(g);
   }
   for(const troop of snapshot.units.filter(u=>u.side===state.side&&u.hp>0&&u.carrier_id)){
    const counter=svg.querySelector(`.unit[data-unit-id="${troop.carrier_id}"]`);if(!counter)continue;
@@ -66,7 +66,7 @@
   if(transportMode&&(transportMode.unit!==selected||transportMode.revision!==state.revision||smokeMode||barrageMode))transportMode=null;
   $('rulesetBadge').textContent='DSL · Combined arms playtest · Fog of war';
   $('manualAP').textContent='Combined arms: unit details show base AP, banking cap, strength and range. Officers bank 2 AP; others bank 1. Armored vehicles cannot enter woods/buildings. Fixed guns cannot move. See Operation Long Reach below for the complete rules.';
-  window.drawFog(svg,state);
+  window.drawFog(svg,window.signalSnapshot?.(state)||state);
   if(unit){
    $('roleBrief').textContent=roles[unit.kind]|| (unit.kind==='mg'?`MG · Suppress within ${unit.side==='de'?6:4} hexes on ${unit.side==='de'?3:5}+. 2 AP; no damage.`:unit.kind==='leader'?'LIEUTENANT · Rally adjacent platoon members for 1 AP. On your feet grants eligible adjacent non-officers +1 AP for 2 AP.':'RIFLES · US accuracy advantage; German suppression advantage. Use scouts to find concealed enemies.');
    $('selection').textContent=`${unitName(unit)} · ${unit.hp}/${unit.max_hp} strength · ${unit.ap} AP`;
@@ -102,7 +102,7 @@
    for(const choice of choices){
     const tile=element('polygon',{points:points(...choice.pos),class:'transport-choice',role:'button',tabindex:0,'aria-label':`${choice.label} · 1 infantry AP`});
     tile.append(element('title',{},`${choice.label} · 1 infantry AP`));
-    activate(tile,()=>{if(choice.threats&&!confirm('Enemy overwatch covers this hex. Unload and risk fire?'))return;transportMode=null;act(loading?{kind:'load',unit:unit.id,target:choice.id}:{kind:'unload',unit:unit.id,pos:choice.pos});});svg.append(tile);
+    activate(tile,()=>{if(choice.threats&&!confirm(state.signals_version?'A spotted enemy could cover this hex. Actual overwatch is unknown. Unload and risk fire?':'Enemy overwatch covers this hex. Unload and risk fire?'))return;transportMode=null;act(loading?{kind:'load',unit:unit.id,target:choice.id}:{kind:'unload',unit:unit.id,pos:choice.pos});});svg.append(tile);
    }
   }
  };

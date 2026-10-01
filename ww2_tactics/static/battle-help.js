@@ -66,7 +66,7 @@ window.orderHelp=(id,u,legal,simple)=>{
     type==='tower'?(simple()?'High ground: see farther; enemies see you farther too.': 'Recon/sniper sight 12; other occupants 8. Concealment spotting 6. Occupants visible from up to 12. Looks over one low obstacle, never smoke; direct shots still need clear lanes. Sniper aimed range +2, no recon weapon bonus.'):'',
     ['woods','building'].includes(type)?(simple()?'Blocks sight through this hex.':`Blocks intervening sight.${state.fog_of_war&&!state.naval_version?' Concealed infantry: spot within 2 hexes, or 4 with recon teams.':''}`):'',
     condition&&state.fog_of_war?'Last observed condition; unseen damage stays unknown.':'',
-    move?.threats?'Enemy overwatch threatens this move.':''];
+    move?.threats?(state.signals_version?'Spotted enemy firing lane; actual overwatch readiness is unknown.':'Enemy overwatch threatens this move.'):'Hidden threats may still exist.'];
   }
   if(n.id==='undoOrder'||n.id==='redoOrder')return [n.id==='undoOrder'?'Undo order':'Redo order',n.getAttribute('aria-label'),state.order_history?.reason||''];
   if(n.dataset.help)return [n.getAttribute('aria-label')||n.textContent,n.dataset.help];

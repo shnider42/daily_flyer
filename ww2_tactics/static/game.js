@@ -65,9 +65,10 @@ async function run(task){if(busy||playbackSession)return;const oldPlayback=playb
 async function act(body){await run(async()=>{state=await api(`/api/match/${session.code}`,{...body,revision:state.revision});target=null;smokeMode=false;barrageMode=false;});}
 function element(tag,attrs={},text){const e=document.createElementNS('http://www.w3.org/2000/svg',tag);Object.entries(attrs).forEach(([k,v])=>e.setAttribute(k,v));if(text!==undefined)e.textContent=text;return e;}
 function center(x,y){return [27+x*52+(y%2)*26,30+y*49];}
-function unitTypeName(u){return state?.naval_version&&u.kind==='amphibious'?'Landing section':kinds[u.kind];}
+function unitTypeName(u){if(u.display_name)return u.display_name;return state?.naval_version&&u.kind==='amphibious'?'Landing section':kinds[u.kind];}
 function unitName(u){return unitTypeName(u)+(u.platoon?` ${u.platoon}${u.number}`:'');}
 function unitRoleSummary(u){
+ if(window.signalRole?.(u))return window.signalRole(u);
  if(u.carrier_id)return 'Aboard transport · select it to unload';
  if(state?.tactics_version&&['scout','sniper'].includes(u.kind)){
   const g=state.legal?.[u.id]?.range_guide;
@@ -121,7 +122,7 @@ function chooseUnit(u){if(busy||playbackSession)return;if(combatMode){window.pic
 function placeBarrage(pos){const effect=state.combat_version?'Infantry there takes 1 damage, pins and loses dug-in cover, including yours. Armor, vehicles and ships are unaffected.':'ALL units there will be pinned and lose dug-in cover, including yours. No strength damage.';if(state.legal[selected]?.barrage?.some(p=>p[0]===pos[0]&&p[1]===pos[1])&&confirm(`Call your army's only mortar barrage at ${hexColumn(pos[0])}${pos[1]+1}? The marked hex and its neighbors will be hit at the end of your opponent's turn. ${effect}`))act({kind:'barrage',unit:selected,pos});}
 function placeSmoke(pos){if(state.legal[selected]?.smoke?.some(p=>p[0]===pos[0]&&p[1]===pos[1]))act({kind:'smoke',unit:selected,pos});}
 function chance(threshold){return Math.max(0,Math.min(100,Math.round((7-threshold)/6*100)));}
-function moveUnit(move){if(!move.threats||confirm(`${move.threats} enemy unit${move.threats===1?' is':'s are'} watching ${state.air_version?'this flight path':'this hex'}. Move and risk reaction fire?`))act({kind:'move',unit:selected,pos:move.pos});}
+function moveUnit(move){if(!move.threats||confirm(state.signals_version?'This hex crosses a spotted enemy firing lane. It does not reveal whether they are on overwatch; hidden threats remain possible. Move?':`${move.threats} enemy unit${move.threats===1?' is':'s are'} watching ${state.air_version?'this flight path':'this hex'}. Move and risk reaction fire?`))act({kind:'move',unit:selected,pos:move.pos});}
 function scenarioPreview(){
  const board=scenarios.find(s=>s.id===$('scenarioSelect').value);if(!board)return;
  $('scenarioBrief').textContent=board.brief;
@@ -168,7 +169,9 @@ function render(){
  $('armyCount').textContent=['us','de'].map(s=>`${names[s]} ${state.units.filter(u=>u.side===s&&u.hp>0).length}/${state.units.filter(u=>u.side===s).length}`).join(' · ');
  const unit=state.units.find(u=>u.id===selected&&u.hp>0);
  if(!unit)selected=null;
- const legal=unit?state.legal[unit.id]:null, enemy=state.units.find(u=>u.id===target&&u.hp>0);
+ const display=window.signalSnapshot?.(state)||state;
+ if(target&&!display.units.some(u=>u.id===target))target=null;
+ const legal=unit?state.legal[unit.id]:null, enemy=display.units.find(u=>u.id===target&&u.hp>0);
  const shot=enemy&&legal?.targets.find(t=>t.id===enemy.id);
  const assault=enemy&&legal?.assaults?.find(t=>t.id===enemy.id);
  const grenade=enemy&&legal?.grenades?.find(t=>t.id===enemy.id);
@@ -176,18 +179,19 @@ function render(){
  if(!myTurn||!legal?.smoke?.length)smokeMode=false;
  if(!myTurn||!legal?.barrage?.length)barrageMode=false;
  if(combatMode&&(combatMode.unit!==selected||combatMode.revision!==state.revision||!myTurn||smokeMode||barrageMode||!legal?.[combatMode.kind]?.length))combatMode=null;
- const picking=smokeMode||barrageMode||!!combatMode||!!window.operationsPicking?.(legal)||!!window.fieldworksPicking?.(legal);
+ const picking=smokeMode||barrageMode||!!combatMode||!!window.operationsPicking?.(legal)||!!window.fieldworksPicking?.(legal)||!!window.signalsPicking?.(legal);
  $('supportStatus').hidden=(state.rules_version||1)<4;
- $('supportStatus').textContent=`Mortar calls left · US ${state.support?.us||0} / DE ${state.support?.de||0}`;
+ $('supportStatus').textContent=`Off-map mortar calls · ${names.us} ${state.support?.us||0} / ${names.de} ${state.support?.de||0}`;
  $('incoming').hidden=!state.barrages?.length;
  $('incoming').textContent=(state.barrages||[]).map(b=>`INCOMING at ${hexColumn(b.pos[0])}${b.pos[1]+1} + neighboring hexes. ${b.ttl===1?'Impact at the end of this turn':'Impact at the end of the next turn'}. Move clear—even friendly troops!`).join(' ');
  // Keep the geography across server revisions; only orders and counters change.
- const svg=$('map'),sameState=svg._state===state;
+ const svg=$('map'),sameState=svg._state===state,sameUnits=sameState&&svg._unitView===display;
+ svg._unitView=display;
  const mapKey=sameState?svg._mapKey:battleKey+JSON.stringify([state.map,state.buildings]);
  const reuse=svg._mapKey===mapKey;
  if(!reuse){svg.replaceChildren();svg._tiles=[];svg._counters=new Map();svg._mapKey=mapKey;}
- else svg.querySelectorAll('.aim-line,.landing-zone,.transport-choice,.recon-choice,.move-beacon,.range-guide,.support-choice,.engineering-choice').forEach(n=>n.remove());
- if(!sameState){svg.querySelectorAll('.unit,.smoke-cloud,.barrage-zone,.incoming-mark,.station-mark').forEach(n=>n.remove());svg._counters=new Map();}
+ else svg.querySelectorAll('.aim-line,.landing-zone,.transport-choice,.recon-choice,.move-beacon,.range-guide,.support-choice,.engineering-choice,.signal-choice').forEach(n=>n.remove());
+ if(!sameUnits){svg.querySelectorAll('.unit,.smoke-cloud,.barrage-zone,.incoming-mark,.station-mark').forEach(n=>n.remove());svg._counters=new Map();}
  svg._state=state;
  if(!reuse){svg.setAttribute('viewBox',`0 0 ${state.map[0].length*52+36} ${state.map.length*49+29}`);
  svg.setAttribute('aria-label',`${board.name} battlefield. Select your unit then a highlighted hex to move.`);}
@@ -210,7 +214,7 @@ function render(){
   const tileClass=`hex ${type}${condition?' building-'+condition:''}${move&&!picking?' move':''}${move?.threats&&!picking?' threatened':''}${move?.road_bonus&&!picking?' road-bonus':''}${smokeHere?' smoke-choice':''}${barrageHere?' barrage-choice':''}`;
   if(tile.getAttribute('class')!==tileClass)tile.setAttribute('class',tileClass);
   if(!reuse){tile.dataset.x=x;tile.dataset.y=y;if(condition)tile.dataset.buildingState=condition;}
-  const label=combatHere?`${combatMode.kind.replaceAll('_',' ')} at ${hexColumn(x)}${y+1}`:barrageHere?`Mortar at ${hexColumn(x)}${y+1}`:smokeHere?`Smoke at ${hexColumn(x)}${y+1}`:move&&!picking?`Move to ${hexColumn(x)}${y+1}, ${type}, ${move.cost} action${move.cost!==1?'s':''}${move.road_bonus?', road bonus':''}${move.threats?', exposed to overwatch':''}`:null;
+  const label=combatHere?`${combatMode.kind.replaceAll('_',' ')} at ${hexColumn(x)}${y+1}`:barrageHere?`Mortar at ${hexColumn(x)}${y+1}`:smokeHere?`Smoke at ${hexColumn(x)}${y+1}`:move&&!picking?`Move to ${hexColumn(x)}${y+1}, ${type}, ${move.cost} action${move.cost!==1?'s':''}${move.road_bonus?', road bonus':''}${move.threats?(state.signals_version?', spotted enemy firing lane; overwatch unknown':', exposed to overwatch'):''}`:null;
   if(tile.getAttribute('aria-label')!==label){
    for(const attr of ['tabindex','role','aria-label'])tile.removeAttribute(attr);
    if(label){tile.setAttribute('tabindex','0');tile.setAttribute('role','button');tile.setAttribute('aria-label',label);}
@@ -225,8 +229,8 @@ function render(){
   if(type==='objective')svg.append(element('text',{x:cx,y:cy+8,'text-anchor':'middle',class:'objective-icon'},'★'));
   if(type==='bridge')svg.append(element('path',{d:`M${cx-15} ${cy-15}v30m30 -30v30m-30 -24h30m-30 18h30`,class:'bridge-icon'}));
  }
- if(!sameState){
-  for(const smoke of state.smoke||[]){const [cx,cy]=center(...smoke.pos);svg.append(element('ellipse',{cx,cy,rx:25,ry:22,class:'smoke-cloud'}));}
+ if(!sameUnits){
+  for(const smoke of display.smoke||[]){const [cx,cy]=center(...smoke.pos);svg.append(element('ellipse',{cx,cy,rx:25,ry:22,class:'smoke-cloud'}));}
   const marked=new Set();
   for(const barrage of state.barrages||[])for(const [x,y] of barrage.area){
    const index=y*width+x;if(marked.has(index)||!svg._tiles[index])continue;marked.add(index);
@@ -235,8 +239,8 @@ function render(){
   }
  }
  if(unit&&enemy){const [x1,y1]=center(...unit.pos),[x2,y2]=center(...enemy.pos);svg.append(element('line',{x1,y1,x2,y2,class:`aim-line${shot?' clear':''}`}));}
- for(const u of state.units.filter(u=>u.hp>0&&!u.reserve&&!u.carrier_id)){
-  if(sameState&&reuse){const g=svg._counters.get(u.id);for(const [name,on] of [['selected',selected===u.id],['target',target===u.id]])if(g.classList.contains(name)!==on)g.classList.toggle(name,on);if(g._platoonFilter!==platoonFilter){g.querySelector('.platoon-halo')?.remove();if(u.side===state.side&&u.platoon===platoonFilter){const [x,y]=center(...u.pos);g.prepend(element('path',{d:`M${x-24} ${y-20}h48v41h-48z`,class:'platoon-halo'}));}g._platoonFilter=platoonFilter;}continue;}
+ for(const u of display.units.filter(u=>u.hp>0&&!u.reserve&&!u.carrier_id)){
+  if(sameUnits&&reuse){const g=svg._counters.get(u.id);for(const [name,on] of [['selected',selected===u.id],['target',target===u.id]])if(g.classList.contains(name)!==on)g.classList.toggle(name,on);if(g._platoonFilter!==platoonFilter){g.querySelector('.platoon-halo')?.remove();if(u.side===state.side&&u.platoon===platoonFilter){const [x,y]=center(...u.pos);g.prepend(element('path',{d:`M${x-24} ${y-20}h48v41h-48z`,class:'platoon-halo'}));}g._platoonFilter=platoonFilter;}continue;}
   const [cx,cy]=center(...u.pos),g=element('g',{class:`unit ${u.side} platoon-${u.platoon||'none'}${selected===u.id?' selected':''}${target===u.id?' target':''}`,role:'button',tabindex:0,'aria-label':`${names[u.side]} ${unitName(u)}, ${u.hp} strength, ${u.ap} actions${u.pinned?', pinned':''}`});
   g.dataset.unitId=u.id;
   svg._counters.set(u.id,g);g._platoonFilter=platoonFilter;
@@ -281,7 +285,7 @@ function render(){
  $('nextUnit').disabled=busy||!state.units.some(u=>u.side===state.side&&u.hp>0&&(platoonFilter==='all'||u.platoon===platoonFilter));
  $('battleReport').hidden=!state.winner;
  if(state.winner){$('reportTitle').textContent=state.resigned_by?`${names[state.resigned_by]} resigned. ${names[state.winner]} win.`:`${names[state.winner]} take the field.`;$('reportBody').textContent=['us','de'].map(s=>{const alive=state.units.filter(u=>u.side===s&&u.hp>0);return `${names[s]}: ${alive.length} surviving units, ${alive.reduce((n,u)=>n+u.hp,0)} strength`;}).join(' · ');}
- $('seriesScore').textContent=`Army victories this session · Americans ${state.victories?.us||0} / Germans ${state.victories?.de||0}`;
+ $('seriesScore').textContent=`Army victories this session · ${names.us} ${state.victories?.us||0} / ${names.de} ${state.victories?.de||0}`;
  $('resignButton').hidden=!state.ready||!!state.winner;$('resignButton').disabled=busy;
  $('rematchButton').hidden=!state.ready;$('rematchButton').disabled=busy||!!state.rematch;
  $('rematchProposal').hidden=!state.rematch;
@@ -294,6 +298,7 @@ function render(){
  if(window.renderWeaponRules)window.renderWeaponRules(unit,legal,svg);
  if(window.renderOperations)window.renderOperations(unit,legal,svg);
  if(window.renderFieldworks)window.renderFieldworks(unit,legal,svg);
+ if(window.renderSignals)window.renderSignals(unit,legal,svg);
  if(window.renderOrderCapabilities)window.renderOrderCapabilities(unit);
  const buildingWarning=unit&&unit.hp>0&&!unit.reserve&&!unit.carrier_id&&buildingCondition(state,unit.pos)==='damaged'&&!picking&&!target;
  $('hint').classList.toggle('building-warning',!!buildingWarning);

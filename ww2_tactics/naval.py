@@ -158,6 +158,8 @@ def apply(state,side,action,roll=None):
             message=f"{FACTIONS[side]} {unit['kind']} moved to {column(unit['pos'][0])}{unit['pos'][1]+1}."
         elif kind=='recon' and action.get('pos') in legal['recon']:
             unit['ap']-=1;unit['recon_used']=True
+            from .signals import alert
+            alert(state,side,action['pos'],'recon')
             state['recon'].append(dict(side=side,pos=list(action['pos']),radius=3,ttl=2))
             message='Scout aircraft reported contacts within 3 hexes of the search point. Reports expire after the enemy turn.'
         elif kind=='repair' and legal['repair']:

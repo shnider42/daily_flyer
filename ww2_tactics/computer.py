@@ -7,10 +7,10 @@ from .engine import apply, options, distance, terrain, line_clear
 from .scenarios import battlefield
 from .rulesets import dsl, turn_limit
 from .visibility import fog, view, visible_ids, active, sight_reader
-from . import naval, air, weapons, buildings, operations, fieldworks, linked_front
+from . import naval, air, weapons, buildings, operations, fieldworks, linked_front, signals
 
 
-def objective_costs(state, goal=None):
+def objective_costs(state, goal=None, unit=None):
     if state.get('air_version'):return {}
     if state.get('fieldworks_version'):
         state = dict(state, fieldworks=dict(fieldworks.known(state, state['turn'])))
@@ -21,12 +21,16 @@ def objective_costs(state, goal=None):
         cost, pos = heapq.heappop(queue)
         if cost != costs[pos]:
             continue
-        step = 2 if terrain(*pos, state) in {'woods', 'building', 'tower', 'bocage', 'bunker', 'marsh', 'rubble'} else 1
+        step = 2 if terrain(*pos, state) in {'woods', 'building', 'tower', 'bocage', 'bunker', 'marsh', 'rubble', 'mountain', 'ridge', 'wadi', 'oasis', 'dune'} else 1
+        if unit:
+            passable,step=fieldworks.movement(unit,terrain(*pos,state))
+            if not passable:continue
         neighbors=((x,y) for y in range(max(0,pos[1]-1),min(board['height'],pos[1]+2))
                    for x in range(max(0,pos[0]-1),min(board['width'],pos[0]+2)))
         for nxt in neighbors:
             tile=terrain(*nxt,state)
             if not buildings.enterable(state, list(nxt), state['turn']):continue
+            if unit and not fieldworks.movement(unit,tile)[0]:continue
             if (state.get('naval_version') and not naval.navigable(tile)) or (not state.get('naval_version') and tile=='water'):continue
             if distance(pos, nxt) == 1 and cost+step < costs.get(nxt, float('inf')):
                 costs[nxt] = cost+step
@@ -44,18 +48,32 @@ def choose_order(state, costs, visited, front_costs=None):
     board = battlefield(state)
     seen=visible_ids(state,side)
     units = {u['id']: u for u in state['units'] if u['hp'] > 0 and u['id'] in seen}
+    if signals.enabled(state) and fog(state):
+        units={uid:(dict(u,overwatch=False) if u['side']!=side else u) for uid,u in units.items()}
     choices = []
 
     def add(score, unit, kind, **data):
         choices.append((score, dict(kind=kind, unit=unit['id'], **data)))
 
     objective_maps = front_costs if front_costs is not None else {p['id']: objective_costs(state, p['pos']) for p in board.get('linked_objectives', [])}
+    mobility=objective_maps.setdefault('_mobility',{}) if signals.enabled(state) else {}
     for unit in units.values():
         if unit['side'] != side:
             continue
         goal = linked_front.goal(state, unit)
         unit_costs = next((objective_maps[p['id']] for p in board.get('linked_objectives', []) if p['pos'] == goal), costs)
+        if signals.enabled(state) and unit['kind']!='at_gun':
+            key=(tuple(goal),unit['kind'] if unit.get('armor') else 'mountain' if unit.get('mountain_movement') else 'foot')
+            if key not in mobility:mobility[key]=objective_costs(state,goal,unit)
+            unit_costs=mobility[key]
         legal = options(state, unit)
+        if legal.get('radio_update'):add(5,unit,'radio_update')
+        if legal.get('observe'):add(1.5 if distance(unit['pos'],goal)<8 else .1,unit,'observe')
+        if legal.get('conceal'):add(3 if unit['pos']==goal else .1,unit,'conceal')
+        for uid in legal.get('demolition',[]):add(14,unit,'demolition',target=uid)
+        for pos in legal.get('mortar_fire',[]):
+            value=sum((4 if t['side']!=side else -6) for t in units.values() if distance(t['pos'],pos)<=1 and weapons.protection(t)=='infantry')
+            if value>=4:add(value,unit,'mortar_fire',pos=pos)
         for kind in fieldworks.ORDERS:
             for pos in legal.get(kind, []):
                 if distance(pos, goal) < distance(unit['pos'], goal):
@@ -208,6 +226,7 @@ def play_turn(state, roll=None):
                 if safe_action.get(key) not in seen: safe_action.pop(key,None)
             tiles=before['visible_hexes']+after['visible_hexes']
             if safe_action.get('pos') not in tiles: safe_action.pop('pos',None)
+            if action['kind'] in {'recon','field_recon'}:safe_action.pop('pos',None)
             if action['kind'] in {'move','drop'} and action.get('unit') not in {u['id'] for u in after['units']}:
                 safe_action.pop('pos',None)
             effects=[e for e in effects if all(p in tiles for p in e['positions'])]

@@ -4,9 +4,10 @@ from .combined import roster
 
 
 def unit(side, kind, pos, group, number, **changes):
-    source = 'amphibious' if kind == 'landing_craft' else 'scout' if kind=='sniper' else kind
-    value = copy.deepcopy(next(u for u in roster(side, 24) if u['kind'] == source))
-    value.update(id=f'{side}-{group}-{number}', kind=kind, pos=list(pos), platoon=group,
+    source = {'radioman':'scout','commando':'squad','mountain':'squad','partisan':'squad','askari':'squad','mortar':'mg'}.get(kind,kind)
+    source = 'amphibious' if kind == 'landing_craft' else 'scout' if kind=='sniper' else source
+    value = copy.deepcopy(next(u for u in roster('de' if source=='halftrack' else side, 24) if u['kind'] == source))
+    value.update(id=f'{side}-{group}-{number}', side=side, kind=kind, pos=list(pos), platoon=group,
                  number=number, reserve=False)
     if kind=='sniper':
         value.update(hp=2,max_hp=2,base_ap=3 if side=='us' else 2,range=4,sight=8,
@@ -57,6 +58,9 @@ def omaha_roster():
 
 
 def setup(board):
+    if board['campaign'] in {'apennine','desert_signal','amba_dawn'}:
+        from .theaters import roster as theater_roster
+        return theater_roster(board['campaign'])
     if board['campaign']=='tidal_gate':
         from .tidal_gate import roster as tidal_roster
         return tidal_roster()

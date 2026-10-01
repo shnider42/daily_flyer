@@ -6,7 +6,7 @@ from .engine import apply
 from .computer import play_turn
 from .visibility import fog, visible_ids
 from .buildings import revealed
-from . import fieldworks
+from . import fieldworks, signals
 
 KEY = '_order_history'
 LIMIT = 20
@@ -89,7 +89,7 @@ def perform(state, side, action):
         # destination. Remembered information must not be erased by takebacks.
         reveals = any(contact.get('pos') != state.get('intel',{}).get(team,{}).get(uid,{}).get('pos')
                       for team in ('us','de') for uid,contact in result.get('intel',{}).get(team,{}).items())
-    if reveals or revealed(state, result) or fieldworks.revealed(state, result) or kind in {'recon', 'field_recon'}:
+    if reveals or revealed(state, result) or fieldworks.revealed(state, result) or signals.revealed(state,result) or kind in {'recon', 'field_recon', 'radio_update', 'observe'}:
         result[KEY] = dict(side=side, past=[], future=[], reason='New sighting or search: earlier orders are committed.')
     else:
         label = {'move':'Move', 'dig':'Dig in', 'inspire':'Rally nearby', 'command':'Give actions',

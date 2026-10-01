@@ -2,11 +2,16 @@
 'use strict';
 (()=>{
  const key='ww2-play-preferences';
- let prefs={simple:true};
- try{const saved=JSON.parse(localStorage.getItem(key));if(saved&&typeof saved.simple==='boolean')prefs={simple:saved.simple};}catch{}
+ let prefs={simple:true,mode:'on'};
+ try{const saved=JSON.parse(localStorage.getItem(key));if(saved&&typeof saved.simple==='boolean'){const mode=['on','off','experimental'].includes(saved.mode)?saved.mode:saved.simple?'on':'off';prefs={simple:mode!=='off',mode};}}catch{}
  const save=()=>{try{localStorage.setItem(key,JSON.stringify(prefs));}catch{}};
  // Distinct silhouettes and plain-language effects supplement color, including on touch screens.
  const actionDesign={
+  radioUpdate:['teal','Share dated contact reports','M6 20V8h12v12H6ZM10 8V2M9 12h6M9 16h2M15 16h1M15 3q7 2 6 8'],
+  observe:['blue','Extend sight, not weapon range','M3 19V8h6v11H3ZM15 19V8h6v11h-6ZM9 12h6M6 8V5M18 8V5'],
+  conceal:['earth','Hide in cover until moving or firing','M3 18l7-13 4 6 4-4 3 11H3ZM9 18v-5M15 18v-4'],
+  mortarFire:['indigo','Delayed fire on spotted or reported ground','M5 20h14M8 18l8-13 3 2-8 13M16 3l4 2M4 9h3'],
+  demolition:['orange','Limited anti-armor charge, adjacent only','M5 9h14v12H5ZM8 9V5h8v4M12 9v12M16 4q-1-4 4-3'],
   breach:['earth','Open a hedgerow for vehicles and fire','M3 4v16M21 4v16M3 12h6M15 12h6M9 8l6 8M15 8l-6 8'],
   clearWreck:['amber','Clear a collapsed building','M3 19h18M5 17l5-8 8 8M14 3l6 6M17 6L9 14'],
   bridgeGap:['blue','Bridge one hex of water','M3 20V8M21 20V8M3 12h18M7 12v7M17 12v7M3 8Q12 2 21 8'],
@@ -103,7 +108,7 @@
   screen=node('section','mobileBattleScreen');screen.setAttribute('aria-label','Battle screen');$('game').append(screen);
   const top=node('header','mobileBattleTop'),menu=node('button','mobileMenuOpen','Battle ☰'),status=node('div','mobileBattleStatus'),guide=node('button','mobileGuideOpen','Learn');
   menu.setAttribute('aria-controls','mobileBattleMenu');menu.setAttribute('aria-haspopup','dialog');guide.setAttribute('aria-controls','mobileGuide');guide.setAttribute('aria-haspopup','dialog');
-  status.setAttribute('role','status');menu.onclick=()=>openSheet('mobileBattleMenu');guide.onclick=()=>window.ww2Learning?.open();top.append(status,guide,menu);screen.append(top);
+  status.setAttribute('role','status');menu.onclick=()=>openSheet('mobileBattleMenu');guide.onclick=()=>window.ww2Learning?.open();const home=node('button','mobileHome','DSL');home.title='Home and saved battles';home.setAttribute('aria-label','DSL home and saved battles');home.onclick=()=>$('homeBattles').click();top.append(home,status,guide,menu);screen.append(top);
   move($('orderHistory'),top);top.insertBefore($('orderHistory'),guide);
   move($('mapWrap'),screen);
   dock=node('section','mobileOrderDock');dock.setAttribute('aria-label','Selected unit orders');
@@ -113,7 +118,7 @@
   move($('end'),head);move($('orders'),body);
   const dadOpen=node('button','dadOrdersOpen','Orders');dadOpen.hidden=true;dadOpen.setAttribute('aria-controls','dadOrders');dadOpen.setAttribute('aria-haspopup','dialog');dadOpen.onclick=()=>openSheet('dadOrders');body.append(dadOpen);
   const dadOrders=sheet('dadOrders','Unit orders');
-  dadOrders.addEventListener('click',event=>{if(event.target.closest('#orders button:not(:disabled)'))dadOrders.close();},true);
+  dadOrders.addEventListener('click',event=>{if(event.target.closest('#orders button:not(:disabled):not([aria-disabled="true"])'))dadOrders.close();},true);
   move($('hint'),body);body.prepend($('hint'));
   const detail=sheet('mobileUnitDetails','Unit details');detail.append(node('h2','unitDetailTitle','Unit details & odds'));
   for(const id of ['unitPurpose','roleBrief','unitMechanics','odds','simpleOutcome'])move($(id),detail);
@@ -124,7 +129,7 @@
   move($('findUnit'),nav);move($('zoom'),nav);screen.append(nav);
   const troops=sheet('mobileRoster','Your units');move($('platoonFilters'),troops);move($('roster'),troops);
   const settings=sheet('mobileBattleMenu','Battle & settings');
-  for(const selector of ['.game-title','.status-line','#turnBanner','.mission','#missionHint','#waiting','#incoming','#battleReport','#rematchProposal','#playTools','#battleOptions','#replayTurn','#rulesButton','#homeBattles','#supportStatus','.team-legend','.terrain-legend','#combat','#computerReview','.journal','#seriesScore'])move(document.querySelector(selector),settings);
+  for(const selector of ['.game-title','.status-line','#turnBanner','.mission','#missionHint','#waiting','#incoming','#signalNotice','#battleReport','#rematchProposal','#playTools','#battleOptions','#replayTurn','#rulesButton','#homeBattles','#supportStatus','.team-legend','.terrain-legend','#combat','#computerReview','.journal','#seriesScore'])move(document.querySelector(selector),settings);
   $('battleOptions').open=true;
   const guideSheet=sheet('mobileGuide','Learn as you play');move($('tutorialCoach'),guideSheet);
   move($('playbackPanel'),screen);
@@ -132,16 +137,17 @@
  }
  function sync(){
   document.body.classList.toggle('simple-play',prefs.simple);
+  document.body.classList.toggle('experimental-play',prefs.mode==='experimental');
   if(lastSimple!==prefs.simple){$('battleOptions').open=!!dock||!prefs.simple;lastSimple=prefs.simple;}
-  $('simpleToggle').textContent=`Simple view: ${prefs.simple?'on':'off'}`;$('simpleToggle').setAttribute('aria-pressed',String(prefs.simple));
+  $('simpleToggle').textContent=`Simple view: ${prefs.mode}`;$('simpleToggle').setAttribute('aria-pressed',String(prefs.simple));
   if(!state||$('game').hidden){unmount();return;}
   // Desktop restores its anchors before mobile is allowed to move the same controls.
   if(!matchMedia('(min-width:1100px)').matches&&window.ww2Desktop?.active)return;
   const mobile=!matchMedia('(min-width:1100px)').matches&&state.ruleset==='dsl';
   if(mobile){mount();dock.hidden=!!playbackSession;dock.inert=!!playbackSession;document.body.classList.toggle('mobile-replaying',!!playbackSession);
-   const dad=!!window.ww2Dad?.enabled;$('dadOrdersOpen').hidden=!dad;
-   if(dad&&!dadOrdersAnchor){dadOrdersAnchor=document.createComment('Dad orders anchor');$('orders').before(dadOrdersAnchor);$('dadOrders').append($('orders'));}
-   if(!dad)restoreDadOrders();
+   const dad=!!window.ww2Dad?.enabled,sheetOrders=dad||prefs.mode==='experimental';$('dadOrdersOpen').hidden=!sheetOrders;
+   if(sheetOrders&&!dadOrdersAnchor){dadOrdersAnchor=document.createComment('Dad orders anchor');$('orders').before(dadOrdersAnchor);$('dadOrders').append($('orders'));}
+   if(!sheetOrders)restoreDadOrders();
    const unit=state.units.find(u=>u.id===selected&&u.hp>0);
    const title=node('strong',null,unit?unitTypeName(unit):'Select a unit');title.className='selected-unit-name';
    const meta=node('span',null,unit?`${unit.platoon?unit.platoon+unit.number+' · ':''}${unit.hp}${unit.max_hp?'/'+unit.max_hp:''} ${state.naval_version?'HP':'strength'} · ${unit.ap} AP${unit.carrier_id?' · ABOARD':unit.reserve?(unit.arrival_round?' · ARRIVES R'+unit.arrival_round:' · RESERVE'):unit.immobilized?' · TRACKS DISABLED':unit.pinned?' · PINNED':''}${unit.ammo?' · '+unit.ammo.toUpperCase()+' loaded':''}`:'Tap the map or open Your units');meta.className='selected-unit-meta';
@@ -186,7 +192,9 @@
    wasPlaying=!!playbackSession;
   }
  }
- $('simpleToggle').onclick=()=>{prefs.simple=!prefs.simple;save();if(playbackSession){sync();drawPlayback();}else render();};
+ window.ww2ViewMode={get mode(){return prefs.mode;},set(mode){if(!['on','off','experimental'].includes(mode))return;prefs.mode=mode;prefs.simple=mode!=='off';save();if(state)render();else sync();}};
+ $('simpleToggle').setAttribute('aria-description','Cycles through on, off and experimental. Experimental gives the map most of the mobile screen.');
+ $('simpleToggle').onclick=()=>{prefs.mode=({on:'off',off:'experimental',experimental:'on'})[prefs.mode];prefs.simple=prefs.mode!=='off';save();if(playbackSession){sync();drawPlayback();}else render();};
  document.addEventListener('ww2:before-layout',unmount);
  document.addEventListener('ww2:render',sync);
  document.addEventListener('ww2:playback',sync);

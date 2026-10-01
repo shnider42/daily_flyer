@@ -27,6 +27,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   const factions=board.factions||(board.naval?{us:'Americans',de:'Japanese'}:{us:'Americans',de:'Germans'});
   $('operationFactions').textContent=`${factions.us} vs ${factions.de} · ${board.rounds} rounds${board.playtest?' · PLAYTEST':''}`;
   $('playtestNote').hidden=!board.playtest;
+  $('playtestNote').textContent=board.historical_note||'Experimental aircraft rules. No altitude, fuel or facing yet. This is a fictional tactical layout, not a historical simulation.';
   document.querySelector('.home-map-footer span:last-child').textContent=board.linked_objectives?'★ TOWN + EITHER EXIT':board.air?'RAF STATION DEFENSE':'★ OBJECTIVE';
   document.querySelector('.home-operation').dataset.theater=board.id;
   for(const b of $('newOperations').querySelectorAll('button'))b.setAttribute('aria-pressed',String(b.dataset.scenario===board.id));

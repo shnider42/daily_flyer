@@ -3,7 +3,7 @@ import copy
 
 TILES = {'.': 'field', '=': 'road', 'T': 'woods', 'B': 'building',
          '*': 'objective', '~': 'water', '+': 'bridge', '^': 'tower',
-         's': 'beach', 'm': 'marsh', 'h': 'bocage', 'k': 'bunker', 'c': 'causeway'}
+         's': 'beach', 'm': 'marsh', 'h': 'bocage', 'k': 'bunker', 'c': 'causeway', 'M':'mountain', 'r':'ridge', 'd':'desert', 'n':'dune', 'w':'wadi', 'o':'oasis'}
 
 
 def build(key, name, label, rounds, brief, rows):
@@ -107,6 +107,8 @@ from .campaigns import add_scenarios
 SCENARIOS.update(add_scenarios(build))
 from .tidal_gate import scenario as tidal_scenario
 SCENARIOS['tidal_gate'] = tidal_scenario(build)
+from .theaters import scenarios as theater_scenarios
+SCENARIOS.update(theater_scenarios(build))
 
 
 def get_scenario(key='village'):

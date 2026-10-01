@@ -3,7 +3,7 @@ from .coordinates import column
 from .combat_display import record_combat
 from .rulesets import dsl, command_key, turn_limit
 from .effects import record_effect
-from .visibility import active, visible_ids
+from .visibility import active, unit_visible_ids
 from . import combined, weapons, buildings
 
 
@@ -30,15 +30,15 @@ def role_options(state, unit, distance, line_clear, terrain, board):
         result['command'] = [u['id'] for u in living if u['side'] == unit['side']
                              and u.get('platoon') == unit['platoon'] and u['kind'] != 'leader'
                              and not u['pinned'] and u['ap'] < 2 and distance(unit['pos'], u['pos']) == 1]
-    seen=visible_ids(state,unit['side'])
+    seen=unit_visible_ids(state,unit)
     visible = [u for u in living if u['side'] != unit['side'] and u['id'] in seen
                and line_clear(unit['pos'], u['pos'], state.get('smoke', []), state)]
-    if unit['kind'] in {'squad','engineer','paratrooper'} and unit.get('grenades', 0):
+    if unit['kind'] in {'squad','engineer','paratrooper','commando','mountain','partisan','askari'} and unit.get('grenades', 0):
         result['grenades'] = [dict(id=u['id'], threshold=4 + buildings.cover(state, u['pos']))
                               for u in visible if distance(unit['pos'], u['pos']) <= 2 and not u.get('armor')
                               and (not weapons.enabled(state) or weapons.damage(unit, u, 'fragmentation'))]
     if unit['kind'] in {'mg','halftrack'}:
-        reach=5 if unit['kind']=='halftrack' else 6 if combined.enabled(state) and unit['side']=='de' else 4
+        reach=unit.get('suppress_range') or (5 if unit['kind']=='halftrack' else 6 if combined.enabled(state) and unit['side']=='de' else 4)
         result['suppress'] = [u['id'] for u in visible if distance(unit['pos'], u['pos']) <= reach
                               and not u['pinned'] and not u.get('armor')
                               and (not weapons.enabled(state) or weapons.protection(u) == 'infantry')]

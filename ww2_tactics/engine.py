@@ -8,8 +8,8 @@ from .support import role_options, role_action, resolve_barrages
 from .combat_display import record_combat
 from .rulesets import profile, dsl, base_ap, bank_limit, turn_limit, road
 from .effects import record_effect
-from . import combined, naval, transport, campaigns, air, weapons, buildings, operations, fieldworks, linked_front
-from .visibility import fog, active, visible_ids, sees_hex, update_intel, record_reports
+from . import combined, naval, transport, campaigns, air, weapons, buildings, operations, fieldworks, linked_front, signals
+from .visibility import fog, active, visible_ids, unit_visible_ids, sees_hex, update_intel, record_reports
 
 WIDTH, HEIGHT = 7, 9
 OBJECTIVE = [3, 4]
@@ -69,9 +69,9 @@ def line_clear(a, b, smoke=(), state=None, high_ground=False):
             return False
         tile=terrain(x,y,state)
         coastal_block=state and state.get('naval_version') and not naval.navigable(tile) and (naval.navigable(terrain(*a,state)) or naval.navigable(terrain(*b,state)))
-        if coastal_block or tile in {'tower','bunker'} or any(s['pos'] == [x, y] for s in smoke):
+        if coastal_block or tile in {'tower','bunker','mountain','ridge'} or any(s['pos'] == [x, y] for s in smoke):
             return False
-        if tile in {'building','woods','bocage'}:
+        if tile in {'building','woods','bocage','oasis'}:
             low_obstacles+=1
             if not high_ground or low_obstacles>1:return False
     return True
@@ -122,7 +122,7 @@ def initial(scenario='village', ruleset='classic'):
     if board.get('combined_arms') or board.get('campaign'):
         state.update(dsl_expansion=1,fog_of_war=True)
         update_intel(state)
-    return linked_front.initialize(weapons.initialize(state))
+    return signals.initialize(linked_front.initialize(weapons.initialize(state)))
 
 
 def fire_modifiers(state, unit, target):
@@ -156,8 +156,16 @@ def watchers(state, target, pos):
             and u.get('overwatch') and not u['pinned']
             and distance(u['pos'], pos) <= u['range']
             and line_clear(u['pos'], pos, state.get('smoke', []), state)
-            and (not fog(state) or sees_hex(state,u['side'],pos,not target.get('armor') and not target.get('exposed_turns') and terrain(*pos,state) in fieldworks.CONCEALMENT))
+            and (not fog(state) or (signals.group_sees(state,u['side'],signals.group(u),pos,signals.concealed(state,destination)) if signals.enabled(state)
+                 else sees_hex(state,u['side'],pos,not target.get('armor') and not target.get('exposed_turns') and terrain(*pos,state) in fieldworks.CONCEALMENT)))
             and fire_threshold(state, u, destination)+1 <= 6]
+
+
+def preview_threats(state,unit,pos,seen):
+    if not signals.enabled(state):return sum(w['id'] in seen for w in watchers(state,unit,pos))
+    return sum(active(u) and u['side']!=unit['side'] and u['id'] in seen and u['range']>0
+               and distance(u['pos'],pos)<=u['range'] and line_clear(u['pos'],pos,state.get('smoke',[]),state)
+               and weapons.damage(u,unit)>0 for u in state['units'])
 
 
 def react(state, mover, roll):
@@ -167,6 +175,7 @@ def react(state, mover, roll):
         if mover['hp'] <= 0:
             break
         shooter['overwatch'] = False
+        signals.before_order(shooter,'fire')
         if operations.enabled(state) and shooter['kind']=='sniper':shooter['exposed_turns']=2
         die = roll()
         threshold = fire_threshold(state, shooter, mover)+1
@@ -201,9 +210,10 @@ def options(state, unit):
                   ammo=[], repair_tracks=False, bombard=[])
     extras.update(weapons.orders(state, unit))
     extras.update(fieldworks.options(state, unit))
+    extras.update(signals.options(state,unit))
     if not state["ready"] or state["winner"] or unit["hp"] <= 0 or unit["side"] != state["turn"]:
         return dict(moves=moves, targets=targets, rally=False, **extras)
-    seen=visible_ids(state,unit['side'])
+    seen=unit_visible_ids(state,unit)
     occupied = [u["pos"] for u in state["units"] if active(u) and u['id'] in seen]
     if unit.get('carrier_id'):
         return dict(moves=[], targets=[], rally=False, **extras)
@@ -224,7 +234,7 @@ def options(state, unit):
                 if weapons.enabled(state) and unit.get('immobilized'): passable=False
                 if not buildings.enterable(state, [x, y], unit['side']): passable=False
                 if passable and distance(unit["pos"], [x, y]) == 1 and [x, y] not in occupied and unit["ap"] >= cost:
-                    moves.append(dict(pos=[x, y], cost=cost, threats=sum(w['id'] in seen for w in watchers(state, unit, [x, y])), **({'road_bonus': True} if free_road else {})))
+                    moves.append(dict(pos=[x, y], cost=cost, threats=preview_threats(state,unit,[x,y],seen), **({'road_bonus': True} if free_road else {})))
         if unit["ap"] >= 2:
             for target in state["units"]:
                 if target["side"] != unit["side"] and active(target) and target['id'] in seen and distance(unit["pos"], target["pos"]) <= unit["range"] and line_clear(unit["pos"], target["pos"], state.get('smoke', []), state):
@@ -289,6 +299,7 @@ def apply(state, side, action, roll=None):
         else:
             state["round"] += 1
         state["turn"] = "de" if side == "us" else "us"
+        signals.start_turn(state,state['turn'])
         state['command_used'] = [key for key in state.get('command_used', []) if not key.startswith(state['turn']+':')]
         for u in state["units"]:
             if dsl(state) and u['side'] == side:
@@ -309,9 +320,12 @@ def apply(state, side, action, roll=None):
         if unit is None:
             raise ValueError("Choose one of your surviving units.")
         legal = options(state, unit)
+        signals.before_order(unit,kind)
         if dsl(state) and kind != 'move':
             unit['road_pending'] = False
-        if kind == 'load' and action.get('target') in legal['load']:
+        if kind in signals.ORDERS:
+            message=signals.action(state,unit,action,legal,roll_die)
+        elif kind == 'load' and action.get('target') in legal['load']:
             troop = next(u for u in state['units'] if u['id'] == action['target'])
             troop.update(carrier_id=unit['id'], pos=list(unit['pos']), ap=troop['ap']-1,
                          entrenched=False, overwatch=False, road_pending=False, transport_used=True)

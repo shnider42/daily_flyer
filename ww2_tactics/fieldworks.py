@@ -4,7 +4,7 @@ import copy
 VERSION = 1
 ORDERS = {'breach', 'clear_wreck', 'bridge_gap'}
 COSTS = {'breach': 2, 'clear_wreck': 2, 'bridge_gap': 3}
-CONCEALMENT = {'woods', 'building', 'bocage', 'bunker'}
+CONCEALMENT = {'woods', 'building', 'bocage', 'bunker', 'mountain', 'ridge', 'wadi', 'oasis'}
 
 
 def key(pos):
@@ -39,6 +39,10 @@ def movement(unit, tile):
     """Shared entry rules used by movement, unloading and pathfinding."""
     if unit['kind'] == 'at_gun': return False, 1
     if unit['kind'] == 'landing_craft': return tile == 'water', 1
+    if tile=='mountain': return unit['kind'] not in {'tank','halftrack','amphibious'}, 1 if unit.get('mountain_movement') else 3
+    if tile in {'ridge','wadi'}: return unit['kind'] not in {'tank','halftrack','amphibious'}, 1 if unit.get('mountain_movement') else 2
+    if tile=='dune': return True, 2 if unit['kind'] in {'tank','halftrack','amphibious'} else 1
+    if tile=='oasis': return unit['kind'] not in {'tank','halftrack','amphibious'}, 2
     if tile == 'water': return unit['kind'] == 'amphibious', 1
     if tile == 'marsh': return unit['kind'] not in {'tank', 'halftrack'}, 1 if unit['kind'] == 'amphibious' else 2
     if tile in {'woods', 'building', 'tower', 'bocage', 'bunker'}:

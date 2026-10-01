@@ -5,7 +5,7 @@ def enabled(state):
     return state.get('dsl_expansion') == 1
 
 
-INFANTRY = {'squad', 'scout', 'sniper', 'engineer', 'paratrooper', 'leader', 'commander', 'mg', 'at_team'}
+INFANTRY = {'squad', 'scout', 'sniper', 'engineer', 'paratrooper', 'leader', 'commander', 'mg', 'at_team', 'radioman', 'commando', 'mountain', 'partisan', 'askari', 'mortar'}
 VEHICLES = {'tank', 'amphibious', 'halftrack', 'landing_craft'}
 
 
