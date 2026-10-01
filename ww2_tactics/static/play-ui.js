@@ -195,7 +195,7 @@
   }
  }
  window.ww2ViewMode={get mode(){return prefs.mode;},set(mode){if(!['on','off','experimental'].includes(mode))return;prefs.mode=mode;prefs.simple=mode!=='off';save();if(state)render();else sync();}};
- $('simpleToggle').setAttribute('aria-description','Cycles through on, off and experimental. Experimental gives the map most of the mobile screen.');
+ $('simpleToggle').setAttribute('aria-description','Cycles through on, off and experimental. Experimental gives the map most of the screen, with desktop orders in a bottom command bar.');
  $('simpleToggle').onclick=()=>{prefs.mode=({on:'off',off:'experimental',experimental:'on'})[prefs.mode];prefs.simple=prefs.mode!=='off';save();if(playbackSession){sync();drawPlayback();}else render();};
  document.addEventListener('ww2:before-layout',unmount);
  document.addEventListener('ww2:render',sync);

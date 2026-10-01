@@ -77,14 +77,15 @@
  function sync(){
   if(!state||$('game').hidden||lobbyMode){dialog.close();clearTimeout(timer);announcement='';lastPaint='';return;}
   const m=mission(state),p=phase(state),mobile=$('mobileBattleTop');
-  const paintKey=[state.code,state.battle_number,state.side,state.round,state.match_name,p.id,p.title,p.text,m.goal,m.compact,m.progress].join('|');
+  const compact=!!mobile||state.ruleset==='dsl'&&window.ww2Desktop?.active&&window.ww2ViewMode?.mode==='experimental';
+  const paintKey=[state.code,state.battle_number,state.side,state.round,state.match_name,p.id,p.title,p.text,m.goal,m.compact,m.progress,compact].join('|');
   // Unit selection cannot change this public briefing. Avoid rebuilding the
   // header on every tap: that forces large SVG maps through another layout.
   if(lastPaint===paintKey&&lastMobile===mobile)return;
   lastPaint=paintKey;lastMobile=mobile;
   missionRow.classList.toggle('has-mission-brief',!mobile);
   if(mobile){if(button.parentNode!==mobile)mobile.append(button);}else if(button.previousSibling!==desktopSlot)desktopSlot.after(button);
-  button.replaceChildren(node('span',null,mobile?m.compact:'Win: '+m.goal),node('span',null,'›'));
+  button.replaceChildren(node('span',null,compact?m.compact:'Win: '+m.goal),node('span',null,'›'));
   button.setAttribute('aria-label',`${m.goal} ${m.progress}. Open win conditions.`);
   $('game').dataset.phase=p.id;if(mobile)mobile.dataset.phase=p.id;
   const banner=$('turnBanner');banner.dataset.phase=p.id;banner.replaceChildren(node('strong',null,p.title),node('span',null,p.text));

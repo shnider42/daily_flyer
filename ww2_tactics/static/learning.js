@@ -112,6 +112,7 @@
   let selector=l.selector;if(window.ww2Mobile?.active&&selector==='#turnBanner')selector='#mobileBattleTop';
   const target=document.querySelector(selector);if(!target)return;target.classList.add('lesson-focus');
   const sheet=target.closest('.mobile-battle-sheet');if(sheet)ww2Mobile.openSheet(sheet.id);
+  window.ww2ExperimentalDesktop?.openContaining(target);
   if(selector==='#battleOptions')target.open=true;
   // Highlighting the map must not scroll it, move a unit, or spend an order.
   if(!window.ww2Mobile?.active&&selector!=='#mapWrap')target.scrollIntoView({block:'nearest',behavior:'auto'});

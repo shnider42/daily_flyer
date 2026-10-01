@@ -8,7 +8,7 @@ document.addEventListener('DOMContentLoaded',()=>{
  let mounts=[], originals=[], active=false, battle=null, zoom=1, scale=1, drag=null, suppressClick=false, resizeFrame, measured='',orderUnit=null;
  const el=(tag,cls,text)=>{const node=document.createElement(tag);node.className=cls;if(text)node.textContent=text;return node;};
  function compactLayout(){
-  const on=active&&compact.matches;document.body.classList.toggle('compact-desktop',on);
+  const on=active&&(compact.matches||window.ww2ViewMode?.mode==='experimental');document.body.classList.toggle('compact-desktop',on);
   if(!viewMenu)return;
   viewMenu.open=false;viewMenu.hidden=!on;
   if(on&&!toolsAnchor){toolsAnchor=document.createComment('desktop preferences anchor');$('playTools').before(toolsAnchor);viewMenu.append($('playTools'));}
@@ -117,7 +117,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   document.dispatchEvent(new Event('ww2:layout'));
  }
  function deactivate(){
-  if(!active)return;active=false;compactLayout();viewMenu=null;drag=null;document.body.classList.remove('desktop-mode');
+  if(!active)return;document.dispatchEvent(new Event('ww2:before-layout'));active=false;compactLayout();viewMenu=null;drag=null;document.body.classList.remove('desktop-mode');
   document.querySelectorAll('.desktop-unit-meta').forEach(node=>node.remove());
   for(const [node,marker] of originals){marker.replaceWith(node);}originals=[];
   for(const node of mounts)node.remove();mounts=[];
@@ -126,7 +126,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   // Reapply original map sizing and unit focus after crossing into the mobile layout.
   if(state&&!game.hidden){if(playbackSession)drawPlayback();else render();}
  }
- window.ww2Desktop={get active(){return active;},focus,ensureVisible:u=>focus(u,activeSvg(),true),zoomBy:factor=>changeZoom(zoom*factor)};
+ window.ww2Desktop={get active(){return active;},focus,ensureVisible:u=>focus(u,activeSvg(),true),zoomBy:factor=>changeZoom(zoom*factor),refreshPreferences:compactLayout};
  desktop.addEventListener('change',()=>desktop.matches?activate():deactivate());
  compact.addEventListener('change',compactLayout);
  document.addEventListener('click',event=>{if(viewMenu?.open&&!viewMenu.contains(event.target))viewMenu.open=false;});
@@ -142,6 +142,7 @@ document.addEventListener('DOMContentLoaded',()=>{
    const box=activeSvg().viewBox.baseVal,fit=Math.min((wrap.clientWidth-32)/box.width,(wrap.clientHeight-32)/box.height);
    if(zoom>1&&fit>0)zoom=Math.min(3.5,Math.max(1,Math.round(scale/fit*4)/4));
    measure();
+   if(window.ww2ExperimentalDesktop?.active&&selected&&!playbackSession)focus(state.units.find(u=>u.id===selected),activeSvg(),true);
   });
  }).observe(wrap);
  wrap.addEventListener('wheel',event=>{
