@@ -1,0 +1,57 @@
+/* Short laptop windows need space for the battlefield, not smaller type.
+   The class is desktop-only; phone and touch-tablet layouts are unchanged. */
+.compact-desktop:not(.home-screen)>header{box-sizing:border-box;height:44px;min-height:44px}
+.compact-desktop:not(.home-screen) main{height:calc(100dvh - 44px);min-height:540px;padding:8px 16px 8px;box-sizing:border-box}
+.compact-desktop #game{height:100%;display:flex;flex-direction:column;min-height:0}
+.compact-desktop #game .desktop-briefing{flex:none;grid-template-columns:minmax(0,1fr) auto;gap:5px 14px;margin-bottom:8px}
+.compact-desktop #game .game-title{min-width:0;margin:0;gap:12px}
+.compact-desktop #game .game-title h1{font-size:21px;overflow-wrap:anywhere}
+.compact-desktop #game .game-title .eyebrow{font-size:9px;margin:0 0 3px}
+.compact-desktop #game .desktop-briefing #turnBanner{grid-column:1;grid-row:2;margin:0;min-height:40px;padding:5px 10px;display:flex;align-items:center;gap:12px}
+.compact-desktop #turnBanner strong{flex:none;font-size:14px}
+.compact-desktop #turnBanner span{margin:0;font-size:12px}
+.compact-desktop .desktop-view-menu{grid-column:2;grid-row:2;align-self:center;position:relative;z-index:12}
+.desktop-view-menu>summary{min-height:40px;padding:10px 12px;border:1px solid #98a58e;border-radius:3px;background:#f4f2e8;color:#294332;font-size:13px;font-weight:750;cursor:pointer}
+.desktop-view-menu>summary:focus-visible{outline:3px solid #b87327;outline-offset:2px}
+.compact-desktop #game .desktop-view-menu #playTools{position:absolute;right:0;top:calc(100% + 5px);display:grid;grid-template-columns:repeat(2,minmax(0,1fr));width:410px;max-width:calc(100vw - 32px);max-height:calc(100dvh - 160px);overflow:auto;padding:10px;gap:6px;margin:0;border:1px solid #8e9f84;background:#f4f2e8;box-shadow:0 8px 26px #17272235;box-sizing:border-box}
+.compact-desktop .desktop-view-menu:not([open]) #playTools{display:none!important}
+.compact-desktop #playTools button{font-size:13px;min-height:44px;white-space:normal;text-align:left;border-color:#a6b39b}
+.compact-desktop #game .desktop-layout{height:auto;min-height:0;flex:1 1 0;grid-template-columns:160px minmax(0,1fr) 296px;gap:12px}
+.compact-desktop #game .desktop-layout.map-expanded{grid-template-columns:minmax(0,1fr) 296px}
+.compact-desktop .desktop-forces{padding-right:10px}
+.compact-desktop .desktop-command-column{padding-left:10px}
+.compact-desktop .desktop-panel-title,.compact-desktop .desktop-map-heading h2{font-size:19px}
+.compact-desktop .desktop-force-summary{margin-bottom:8px}
+.compact-desktop .desktop-forces #platoonFilters{margin-bottom:8px}
+.compact-desktop .desktop-forces .roster-unit{min-height:56px;padding:8px}
+.compact-desktop #game .map-tools{flex-wrap:wrap;min-height:36px;gap:4px;margin:0 0 4px}
+.compact-desktop #game .map-tools button{min-height:36px;padding:5px 7px}
+.compact-desktop #game #armyCount{flex:1 1 100%;line-height:14px}
+.compact-desktop .desktop-camera{gap:3px}
+.compact-desktop #game #mapWrap{min-height:180px}
+.compact-desktop .desktop-camera-hint{margin-top:3px;font-size:10px}
+.compact-desktop .desktop-battlefield .team-legend{margin:4px 0 0}
+.compact-desktop .desktop-battlefield .terrain-legend{max-height:44px;overflow:auto}
+.compact-desktop .desktop-orders #orders{padding:7px 0 10px}
+.compact-desktop:not(.dad-mode) .desktop-orders #orders .tactical-action{min-height:52px;padding:6px 8px}
+.compact-desktop .desktop-orders #orders .order-unavailable .action-purpose{display:none}
+.compact-desktop .desktop-action-dock{padding-top:6px}
+.compact-desktop .desktop-footer{flex:none;margin-top:6px;padding-top:0;max-height:26dvh;overflow:auto}
+.compact-desktop #battleOptions>summary{padding:8px 4px}
+/* Keep Dad mode's larger words and buttons; free map space from the roster. */
+.compact-desktop.dad-mode #game .desktop-layout{grid-template-columns:190px minmax(0,1fr) 330px}
+.compact-desktop.dad-mode #game .desktop-layout.map-expanded{grid-template-columns:minmax(0,1fr) 330px}
+.compact-desktop.dad-mode #playTools button{font-size:15px;min-height:48px}
+/* A narrow mouse-operated window gets the existing battle controls beside
+   the map. These rules do not apply to phones or touch-only tablets. */
+@media(hover:hover) and (pointer:fine) and (min-width:900px) and (max-width:1099px) and (min-height:521px){
+ .mobile-battle:not(.experimental-play) #mobileBattleScreen,.dad-mode.mobile-battle:not(.experimental-play) #mobileBattleScreen{grid-template-columns:minmax(0,1fr) 360px;grid-template-rows:82px minmax(0,1fr) 44px;grid-template-areas:'top top' 'map orders' 'map nav';column-gap:10px}
+ .mobile-battle:not(.experimental-play) #mobileOrderDock{border-top:0;overflow:auto;overscroll-behavior:contain}
+ .mobile-battle:not(.experimental-play) #mobileOrderHead{height:auto;min-height:52px;position:sticky;top:0;z-index:3;background:var(--paper)}
+ .mobile-battle:not(.experimental-play) #mobileOrderBody #orders{grid-template-columns:repeat(2,minmax(0,1fr));height:auto;grid-auto-rows:minmax(66px,auto)}
+ .mobile-battle:not(.experimental-play) #mobileOrderBody #orders button{min-height:66px}
+ .mobile-battle:not(.experimental-play) #mobileOrderBody #orders .action-name{font-size:13px;line-height:16px}
+ .mobile-battle:not(.experimental-play) #mobileOrderBody #orders .action-purpose,.mobile-battle:not(.experimental-play) #mobileOrderBody #orders .action-reason{font-size:12px;line-height:15px}
+ .mobile-battle:not(.experimental-play) #mobileOrderBody #orders .action-cost{font-size:10px;line-height:13px}
+ .dad-mode.mobile-battle:not(.experimental-play) #mobileOrderHead{min-height:94px}
+}

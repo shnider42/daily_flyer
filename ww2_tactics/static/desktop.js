@@ -3,8 +3,17 @@
 document.addEventListener('DOMContentLoaded',()=>{
  const desktop=matchMedia('(min-width: 1100px)'), game=document.getElementById('game'), lobby=document.getElementById('lobby');
  const wrap=document.getElementById('mapWrap');
+ const compact=matchMedia('(max-width:1399px), (max-height:800px)');
+ let viewMenu=null,toolsAnchor=null;
  let mounts=[], originals=[], active=false, battle=null, zoom=1, scale=1, drag=null, suppressClick=false, resizeFrame, measured='',orderUnit=null;
  const el=(tag,cls,text)=>{const node=document.createElement(tag);node.className=cls;if(text)node.textContent=text;return node;};
+ function compactLayout(){
+  const on=active&&compact.matches;document.body.classList.toggle('compact-desktop',on);
+  if(!viewMenu)return;
+  viewMenu.open=false;viewMenu.hidden=!on;
+  if(on&&!toolsAnchor){toolsAnchor=document.createComment('desktop preferences anchor');$('playTools').before(toolsAnchor);viewMenu.append($('playTools'));}
+  else if(!on&&toolsAnchor){toolsAnchor.replaceWith($('playTools'));toolsAnchor=null;}
+ }
  function move(node,destination){
   if(!node)return;
   const marker=document.createComment('desktop layout anchor');node.before(marker);originals.push([node,marker]);destination.append(node);
@@ -76,7 +85,9 @@ document.addEventListener('DOMContentLoaded',()=>{
   document.dispatchEvent(new Event('ww2:before-layout'));
   if(active)return;active=true;document.body.classList.add('desktop-mode');
   const tag=el('span','desktop-header-tag','WESTERN FRONT / TACTICAL OPERATIONS');document.querySelector('header .brand').after(tag);mounts.push(tag);
-  group(game,'desktop-briefing',['.game-title','.status-line','#rulesetBadge','#turnBanner','#playTools']);
+  const briefing=group(game,'desktop-briefing',['.game-title','.status-line','#rulesetBadge','#turnBanner','#playTools']);
+  viewMenu=el('details','desktop-view-menu');viewMenu.id='desktopViewMenu';
+  viewMenu.append(el('summary','','View & help'));briefing.append(viewMenu);mounts.push(viewMenu);compactLayout();
   const layout=el('div','desktop-layout');game.append(layout);mounts.push(layout);
   const force=group(layout,'desktop-forces',['#platoonFilters','#roster'],'Task force');
   const summary=el('p','desktop-force-summary');summary.id='desktopForceSummary';force.querySelector('h2').after(summary);
@@ -106,7 +117,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   document.dispatchEvent(new Event('ww2:layout'));
  }
  function deactivate(){
-  if(!active)return;active=false;drag=null;document.body.classList.remove('desktop-mode');
+  if(!active)return;active=false;compactLayout();viewMenu=null;drag=null;document.body.classList.remove('desktop-mode');
   document.querySelectorAll('.desktop-unit-meta').forEach(node=>node.remove());
   for(const [node,marker] of originals){marker.replaceWith(node);}originals=[];
   for(const node of mounts)node.remove();mounts=[];
@@ -117,6 +128,9 @@ document.addEventListener('DOMContentLoaded',()=>{
  }
  window.ww2Desktop={get active(){return active;},focus,ensureVisible:u=>focus(u,activeSvg(),true),zoomBy:factor=>changeZoom(zoom*factor)};
  desktop.addEventListener('change',()=>desktop.matches?activate():deactivate());
+ compact.addEventListener('change',compactLayout);
+ document.addEventListener('click',event=>{if(viewMenu?.open&&!viewMenu.contains(event.target))viewMenu.open=false;});
+ document.addEventListener('keydown',event=>{if(event.key==='Escape'&&viewMenu?.open){viewMenu.open=false;viewMenu.querySelector('summary').focus();}});
  document.addEventListener('ww2:render',sync);
  document.addEventListener('ww2:playback',()=>{if(active){document.getElementById('desktopOrderTitle').textContent='Opponent’s turn';document.getElementById('desktopPlaybackNote').hidden=false;document.getElementById('desktopActionDock').hidden=true;measure();}});
  let lastWidth=0,lastHeight=0;

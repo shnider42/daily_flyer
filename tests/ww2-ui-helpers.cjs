@@ -6,6 +6,7 @@ exports.tap=async(page,locator)=>{
   return state.ruleset!=='dsl'||(!window.ww2Desktop?.active&&!!document.getElementById('mobileOrderDock'));
  });
  await locator.waitFor({state:'attached'});
+ if(await locator.evaluate(e=>!!e.closest('#desktopViewMenu'))&&!await page.locator('#desktopViewMenu').evaluate(e=>e.open))await page.locator('#desktopViewMenu>summary').click();
  const target=await locator.evaluate(e=>e.closest('dialog')?.id||null);
  const routes={mobileBattleMenu:'mobileMenuOpen',mobileRoster:'mobileRosterOpen',mobileGuide:'mobileGuideOpen',mobileUnitDetails:'mobileOrderToggle',dadOrders:'dadOrdersOpen',dadUnitDetails:'mobileOrderToggle'};
  for(const id of Object.keys(routes)){
