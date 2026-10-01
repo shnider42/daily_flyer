@@ -35,4 +35,4 @@ def command_key(unit):
 
 
 def road(tile):
-    return tile in {'road', 'bridge'}
+    return tile in {'road', 'bridge', 'causeway'}

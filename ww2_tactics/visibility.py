@@ -1,5 +1,6 @@
 """Server-side sight and remembered contacts. Never send the hidden state to a client."""
 import copy
+from . import fieldworks
 
 
 def fog(state):
@@ -46,13 +47,14 @@ def visible_ids(state, side):
         return {u['id'] for u in state['units'] if u['side']==side or not u.get('carrier_id')}
     return {u['id'] for u in state['units'] if u['side']==side or
             (active(u) and sees_hex(state, side, u['pos'],
-             not u.get('armor') and not u.get('exposed_turns') and terrain(*u['pos'],state) in {'woods','building'}))}
+             not u.get('armor') and not u.get('exposed_turns') and terrain(*u['pos'],state) in fieldworks.CONCEALMENT))}
 
 
 def update_intel(state):
     from .engine import terrain
     from .buildings import observe
     observe(state)
+    fieldworks.observe(state)
     if not fog(state):
         return
     for side in ('us','de'):
@@ -63,7 +65,7 @@ def update_intel(state):
                 from .air import sees_hex as air_sight, AIRCRAFT
                 clear=air_sight(state,side,contact['pos'],contact['kind'] not in AIRCRAFT)
             else:
-                clear=sees_hex(state, side, contact['pos'], contact['kind'] not in {'tank','amphibious','halftrack','landing_craft'} and terrain(*contact['pos'],state) in {'woods','building'})
+                clear=sees_hex(state, side, contact['pos'], contact['kind'] not in {'tank','amphibious','halftrack','landing_craft'} and terrain(*contact['pos'],state) in fieldworks.CONCEALMENT)
             if clear:
                 del memory[uid]
         for unit in state['units']:
@@ -81,6 +83,10 @@ def view(state, side, terrain_visibility=True):
                   barrages=copy.deepcopy([{k:v for k,v in b.items() if k != 'attacker'} for b in state.get('barrages', [])]),
                   recon=copy.deepcopy([r for r in state.get('recon', []) if r['side']==side]),
                   round=state['round'], turn=state['turn'], hold=state['hold'], winner=state['winner'])
+    if state.get('fieldworks_version'):
+        result['fieldworks'] = dict(fieldworks.known(state, side))
+    if state.get('linked_front_version'):
+        result['objective_control'] = copy.deepcopy(state.get('objective_control', {}))
     if state.get('building_version'):
         result['buildings'] = dict(known(state, side))
     if state.get('naval_version'):
@@ -134,9 +140,20 @@ def record_reports(state, before, action, message):
 
 def public_state(state, side):
     if not fog(state):
-        return state
+        result=copy.deepcopy(state)
+        if state.get('fieldworks_version'):
+            result['scenarioBaseMap']=copy.deepcopy(state['battlefield']['map'])
+            result['map']=fieldworks.map_for(state, side)
+            result['battlefield']['map']=result['map']
+        result.pop('fieldworks_intel',None)
+        return result
     result=copy.deepcopy(state)
     result.update(view(state,side))
+    if state.get('fieldworks_version'):
+        result['scenarioBaseMap']=copy.deepcopy(state['battlefield']['map'])
+        result['map']=fieldworks.map_for(state, side)
+        result['battlefield']['map']=result['map']
+    result.pop('fieldworks_intel',None)
     report=state.get('reports',{}).get(side,{})
     result['log']=report.get('log') or ['Fog of war: scout ahead. Dashed contacts mark last sightings, not current positions.']
     result['combat_history']=copy.deepcopy(report.get('combat',[]))

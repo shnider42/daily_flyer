@@ -1,7 +1,7 @@
 /* Theater-specific presentation. Existing games retain their own versioned rules. */
 'use strict';
 (()=>{
- const operations=[['stalingrad','Stalingrad · 18×20 · street fighting'],['britain','Battle of Britain · 22×18 · air playtest'],['omaha','Omaha Beach · 18×20 · landing craft'],['carentan','Carentan · 18×22 · airborne causeways'],['market_garden','Market Garden · 22×28 · river corridor']];
+ const operations=[['tidal_gate','Operation Tidal Gate · 36×44 · combined-arms operation'],['stalingrad','Stalingrad · 18×20 · street fighting'],['britain','Battle of Britain · 22×18 · air playtest'],['omaha','Omaha Beach · 18×20 · landing craft'],['carentan','Carentan · 18×22 · airborne causeways'],['market_garden','Market Garden · 22×28 · river corridor']];
  for(const id of ['scenarioSelect','soloScenario','rematchScenario']){
   for(const [value,label] of operations){const option=document.createElement('option');option.value=value;option.textContent=label+' · DSL';$(id).append(option);}
   $(id).addEventListener('change',()=>{if(operations.some(([value])=>value===$(id).value))$(id==='scenarioSelect'?'rulesetSelect':id==='soloScenario'?'soloRuleset':'rematchRuleset').value='dsl';});

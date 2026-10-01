@@ -7,7 +7,7 @@ import secrets
 
 VERSION = 1
 STATES = ('intact', 'damaged', 'destroyed')
-TILES = {'building', 'tower'}
+TILES = {'building', 'tower', 'bunker'}
 
 
 def enabled(state):
@@ -67,7 +67,8 @@ def enterable(state, pos, side=None):
 def cover(state, pos, *, objective=True, side=None):
     from .engine import terrain
     tile = terrain(*pos, state)
-    return int(tile in ({'woods', 'building', 'tower', 'objective'} if objective else {'woods', 'building', 'tower'})
+    if tile == 'bunker': return 1 if condition(state, pos, side) == 'damaged' else 2
+    return int(tile in ({'woods', 'building', 'tower', 'bocage', 'rubble', 'objective'} if objective else {'woods', 'building', 'tower', 'bocage', 'rubble'})
                and condition(state, pos, side) != 'damaged')
 
 

@@ -1,4 +1,5 @@
 """Pure rules; every move is validated again on the server."""
+from .coordinates import column
 import copy
 import secrets
 from .scenarios import battlefield, get_scenario
@@ -6,7 +7,7 @@ from .support import role_options, role_action, resolve_barrages
 from .combat_display import record_combat
 from .rulesets import profile, dsl, base_ap, bank_limit, turn_limit, road
 from .effects import record_effect
-from . import combined, naval, transport, campaigns, air, weapons, buildings, operations
+from . import combined, naval, transport, campaigns, air, weapons, buildings, operations, fieldworks, linked_front
 from .visibility import fog, active, visible_ids, sees_hex, update_intel, record_reports
 
 WIDTH, HEIGHT = 7, 9
@@ -17,7 +18,7 @@ STATS = {"squad": (3, 4), "mg": (3, 6), "leader": (2, 3)}
 
 def terrain(x, y, state=None):
     if state is not None and state.get('battlefield'):
-        return state['battlefield']['map'][y][x]
+        return state.get('fieldworks', {}).get(f'{x},{y}', state['battlefield']['map'][y][x])
     if [x, y] == OBJECTIVE:
         return "objective"
     if (x, y) in {(2, 3), (4, 3), (2, 5), (4, 5)}:
@@ -55,9 +56,9 @@ def line_clear(a, b, smoke=(), state=None, high_ground=False):
             return False
         tile=terrain(x,y,state)
         coastal_block=state and state.get('naval_version') and not naval.navigable(tile) and (naval.navigable(terrain(*a,state)) or naval.navigable(terrain(*b,state)))
-        if coastal_block or tile=='tower' or any(s['pos'] == [x, y] for s in smoke):
+        if coastal_block or tile in {'tower','bunker'} or any(s['pos'] == [x, y] for s in smoke):
             return False
-        if tile in {'building','woods'}:
+        if tile in {'building','woods','bocage'}:
             low_obstacles+=1
             if not high_ground or low_obstacles>1:return False
     return True
@@ -108,7 +109,7 @@ def initial(scenario='village', ruleset='classic'):
     if board.get('combined_arms') or board.get('campaign'):
         state.update(dsl_expansion=1,fog_of_war=True)
         update_intel(state)
-    return weapons.initialize(state)
+    return linked_front.initialize(weapons.initialize(state))
 
 
 def fire_modifiers(state, unit, target):
@@ -142,7 +143,7 @@ def watchers(state, target, pos):
             and u.get('overwatch') and not u['pinned']
             and distance(u['pos'], pos) <= u['range']
             and line_clear(u['pos'], pos, state.get('smoke', []), state)
-            and (not fog(state) or sees_hex(state,u['side'],pos,not target.get('armor') and not target.get('exposed_turns') and terrain(*pos,state) in {'woods','building'}))
+            and (not fog(state) or sees_hex(state,u['side'],pos,not target.get('armor') and not target.get('exposed_turns') and terrain(*pos,state) in fieldworks.CONCEALMENT))
             and fire_threshold(state, u, destination)+1 <= 6]
 
 
@@ -186,6 +187,7 @@ def options(state, unit):
                   grenades=[], suppress=[], inspire=[], barrage=[], command=[], drops=[], load=[], unload=[],
                   ammo=[], repair_tracks=False, bombard=[])
     extras.update(weapons.orders(state, unit))
+    extras.update(fieldworks.options(state, unit))
     if not state["ready"] or state["winner"] or unit["hp"] <= 0 or unit["side"] != state["turn"]:
         return dict(moves=moves, targets=targets, rally=False, **extras)
     seen=visible_ids(state,unit['side'])
@@ -194,7 +196,7 @@ def options(state, unit):
         return dict(moves=[], targets=[], rally=False, **extras)
     extras.update(transport.options(state, unit))
     if unit.get('reserve'):
-        if unit['ap']>=2:
+        if unit['ap']>=2 and not unit.get('arrival_round'):
             extras['drops']=[[x,y] for y in range(2,board['height']-2) for x in range(board['width'])
                              if terrain(x,y,state) in {'field','road'} and [x,y] not in occupied
                              and sees_hex(state,unit['side'],[x,y])]
@@ -204,11 +206,8 @@ def options(state, unit):
             for x in range(max(0,unit['pos'][0]-1),min(board['width'],unit['pos'][0]+2)):
                 tile = terrain(x, y, state)
                 free_road = dsl(state) and unit.get('road_pending', False) and (unit['kind']=='halftrack' or not unit.get('road_used', False)) and road(terrain(*unit['pos'], state)) and road(tile)
-                cost = 0 if free_road else 2 if tile in {"woods", "building", "tower"} else 1
-                passable=tile!='water' or unit['kind']=='amphibious'
-                if unit['kind']=='landing_craft':passable=tile=='water'
-                if unit['kind'] in combined.VEHICLES and tile in {'woods','building','tower'}: passable=False
-                if unit['kind']=='at_gun': passable=False
+                passable, cost = fieldworks.movement(unit, tile)
+                if free_road: cost = 0
                 if weapons.enabled(state) and unit.get('immobilized'): passable=False
                 if not buildings.enterable(state, [x, y], unit['side']): passable=False
                 if passable and distance(unit["pos"], [x, y]) == 1 and [x, y] not in occupied and unit["ap"] >= cost:
@@ -265,7 +264,9 @@ def apply(state, side, action, roll=None):
         reactions = resolve_barrages(state, names, roll_die) if state.get('rules_version', 1) >= 4 else []
         state['smoke'] = [dict(s, ttl=s['ttl']-1) for s in state.get('smoke', []) if s['ttl'] > 1]
         state['recon'] = [dict(r, ttl=r['ttl']-1) for r in state.get('recon', []) if r['ttl'] > 1]
-        if side == "us":
+        if state.get('linked_front_version'):
+            linked_front.end_turn(state, side)
+        elif side == "us":
             held = any(u["side"] == "us" and active(u) and u["pos"] == board['objective'] for u in state["units"])
             state["hold"] = state["hold"] + 1 if held else 0
             if state["hold"] >= 2:
@@ -288,6 +289,7 @@ def apply(state, side, action, roll=None):
                 else:
                     u["ap"] = 2
                 u['overwatch'] = False
+        if not state["winner"]: reactions.extend(linked_front.arrive(state, react, roll_die))
         message = f"{names[side]} ended their turn."
     else:
         unit = next((u for u in state["units"] if u["id"] == action.get("unit") and u["hp"] > 0 and u["side"] == side), None)
@@ -311,13 +313,15 @@ def apply(state, side, action, roll=None):
             troop.update(pos=list(action['pos']), ap=troop['ap']-1, road_pending=False)
             message = f"{names[side]} {troop['kind']} disembarked; infantry spent 1 AP."
             reactions = react(state, troop, roll_die)
+        elif kind in fieldworks.ORDERS:
+            message = fieldworks.action(state, unit, action, legal)
         elif kind in {'load_ammo', 'repair_tracks', 'bombard', 'artillery', 'field_recon'} | operations.ORDER_KINDS:
             message = weapons.action(state, unit, action, legal, roll_die)
         elif kind in {'grenade', 'suppress', 'inspire', 'barrage', 'command'}:
             message = role_action(state, unit, action, legal, roll_die, distance, names)
         elif kind == 'drop' and action.get('pos') in legal['drops']:
             unit.update(pos=list(action['pos']),reserve=False,ap=unit['ap']-2)
-            message=f"{names[side]} paratroopers landed at {chr(65+unit['pos'][0])}{unit['pos'][1]+1}."
+            message=f"{names[side]} paratroopers landed at {column(unit['pos'][0])}{unit['pos'][1]+1}."
             record_effect(state,'smoke',[unit['pos']])
             reactions=react(state,unit,roll_die)
         elif kind == "move":
@@ -338,7 +342,7 @@ def apply(state, side, action, roll=None):
             unit["ap"] -= move["cost"]
             unit['entrenched'] = False
             transport.follow(state, unit)
-            message = f"{names[side]} {unit['kind']} moved to {chr(65+unit['pos'][0])}{unit['pos'][1]+1}."
+            message = f"{names[side]} {unit['kind']} moved to {column(unit['pos'][0])}{unit['pos'][1]+1}."
             reactions = react(state, unit, roll_die)
             if dsl(state) and unit['pinned']:
                 unit['road_pending'] = False
@@ -425,8 +429,9 @@ def apply(state, side, action, roll=None):
     for team in ("us", "de"):
         if not any(u["hp"] > 0 and u["side"] == team for u in state["units"]):
             state["winner"] = "de" if team == "us" else "us"
-    # Losing the objective breaks the consecutive-turn hold immediately.
-    if not any(u["side"] == "us" and active(u) and u["pos"] == board['objective'] for u in state["units"]):
+    # Losing any required link immediately breaks consecutive occupation.
+    linked_front.refresh(state)
+    if not state.get('linked_front_version') and not any(u["side"] == "us" and active(u) and u["pos"] == board['objective'] for u in state["units"]):
         state["hold"] = 0
     state["log"] = state["log"] + [message] + reactions
     if state["winner"]:

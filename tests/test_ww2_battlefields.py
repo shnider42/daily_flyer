@@ -24,7 +24,7 @@ class BattlefieldsTests(unittest.TestCase):
             board = state['battlefield']
             if state.get('air_version'):continue  # Air missions target stations, not ground capture.
             for unit in state['units']:
-                if unit['kind']=='landing_craft' or unit.get('carrier_id'):continue  # Landing/unload paths tested separately.
+                if unit['kind']=='landing_craft' or unit.get('carrier_id') or unit.get('reserve'):continue  # Landing/unload paths tested separately.
                 seen = {tuple(unit['pos'])}
                 queue = deque(seen)
                 while queue:
@@ -64,7 +64,7 @@ class BattlefieldsTests(unittest.TestCase):
 
     def test_scenario_objectives_use_their_actual_hex(self):
         for key in SCENARIOS:
-            if SCENARIOS[key].get('naval') or SCENARIOS[key].get('air'):continue  # Separate victory rules.
+            if SCENARIOS[key].get('naval') or SCENARIOS[key].get('air') or SCENARIOS[key].get('linked_objectives'):continue  # Separate victory rules.
             state = initial(key,'dsl' if SCENARIOS[key].get('dsl_only') else 'classic')
             state['ready'] = True
             state['units'][0]['pos'] = list(state['battlefield']['objective'])
@@ -171,7 +171,7 @@ class RematchTests(unittest.TestCase):
         self.tmp.cleanup()
 
     def test_scenario_catalog_and_dimensions(self):
-        self.assertEqual(len(self.client.get('/api/scenarios').get_json()['scenarios']), 11)
+        self.assertEqual(len(self.client.get('/api/scenarios').get_json()['scenarios']), len(SCENARIOS))
         state = self.client.get(self.url, headers=self.us).get_json()
         self.assertEqual(len(state['map'][0]), 9)
         self.assertEqual(state['scenario']['rounds'], 10)

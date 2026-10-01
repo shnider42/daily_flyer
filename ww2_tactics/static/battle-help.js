@@ -3,6 +3,9 @@ window.orderHelp=(id,u,legal,simple)=>{
  const shot=legal?.targets?.find(s=>s.id===target),frag=legal?.grenades?.find(s=>s.id===target),assault=legal?.assaults?.find(s=>s.id===target);
  const strike=legal?.airstrikes?.find(s=>s.id===target),torpedo=legal?.torpedoes?.find(s=>s.id===target);
  const descriptions={
+  breach:['Open a vehicle route','Adjacent bocage / 2 AP / opens sight'],
+  clearWreck:['Reopen a ruined hex','Adjacent collapse / 2 AP / leaves cover'],
+  bridgeGap:['Create a crossing',`3 AP / one-hex gap / ${u?.bridge_kits||0} kits`],
   areaFire:['Aim anywhere marked','5+ lands / outer fringe 6 / friendly fire'],
   repairTank:[`Heal tank · ${u?.repair_kits||0} kits`,`+1 strength & tracks / ${u?.repair_kits||0} kits`],
   snipe:[u?.ap<3?'Bank AP for aimed shot':'Accurate shot · exposes you','3+ base / 1 damage + pin / exposed'],
@@ -51,14 +54,15 @@ window.orderHelp=(id,u,legal,simple)=>{
   if(n.matches('#map > .hex')){
    const x=+n.dataset.x,y=+n.dataset.y,type=state.map[y][x],u=state.units.find(u=>u.id===selected),move=state.legal[selected]?.moves?.find(m=>m.pos[0]===x&&m.pos[1]===y);
    const condition=buildingCondition(state,[x,y]);
-   if(state.air_version)return [`Airspace · ${String.fromCharCode(65+x)}${y+1}`,move?`Fly here: 1 AP · ${move.path.length} hexes.`:u&&['fighter','bomber'].includes(u.kind)?'Not a legal flight destination right now.':'Select an aircraft to fly.','Terrain does not block flight or provide cover.',move?.threats?'Known interception covers this flight path.':'Unseen interceptors may still react.'];
+   if(state.air_version)return [`Airspace · ${hexColumn(x)}${y+1}`,move?`Fly here: 1 AP · ${move.path.length} hexes.`:u&&['fighter','bomber'].includes(u.kind)?'Not a legal flight destination right now.':'Select an aircraft to fly.','Terrain does not block flight or provide cover.',move?.threats?'Known interception covers this flight path.':'Unseen interceptors may still react.'];
+   if(window.fieldworksTerrainHelp&&state.fieldworks_version){const help=window.fieldworksTerrainHelp(type,u,move,condition,[x,y]);if(help)return help;}
    const blocked=condition==='destroyed'||u&&(state.naval_version?u.kind!=='amphibious'&&!['water','objective'].includes(type):u.kind==='at_gun'||type==='water'&&u.kind!=='amphibious'||['tank','halftrack','amphibious'].includes(u.kind)&&['woods','building','tower'].includes(type));
    const cover=['woods','building','tower',...(state.naval_version?[]:['objective'])].includes(type)&&condition!=='damaged',cost=move?.cost??(['woods','building','tower'].includes(type)?2:1);
    const name={field:state.naval_version?'Beach / open ground':'Open ground',woods:state.naval_version?'Jungle':'Woods',building:state.naval_version?'Island outpost':'Buildings',tower:'Clock / church tower',objective:state.naval_version?'Sea-control objective':'Objective',road:'Road',bridge:'Bridge',water:state.naval_version?'Open sea':'Water'}[type]||type;
    let movement=condition==='destroyed'?'Collapsed · ground entry blocked.':u?.immobilized?'Tracks disabled. Repair for 2 AP to move again.':blocked?'Selected unit cannot enter.':move?`Move here: ${cost} AP${move.road_bonus?' · road bonus':''}.`:`Entry cost: ${cost} AP${u?' · not a legal move right now':''}.`;
    if(type==='water'&&!state.naval_version&&!u)movement='Amphibious units only · 1 AP.';
    const coverText=simple()?(cover?'Provides cover.':'No terrain cover.'):(cover?'Cover adds +1 to the required hit roll.':'Cover modifier: +0.');
-   return [`${name}${condition?' · '+condition:''} · ${String.fromCharCode(65+x)}${y+1}`,movement,condition?buildingHelp(condition,simple()):coverText,
+   return [`${name}${condition?' · '+condition:''} · ${hexColumn(x)}${y+1}`,movement,condition?buildingHelp(condition,simple()):coverText,
     type==='tower'?(simple()?'High ground: see farther; enemies see you farther too.': 'Recon/sniper sight 12; other occupants 8. Concealment spotting 6. Occupants visible from up to 12. Looks over one low obstacle, never smoke; direct shots still need clear lanes. Sniper aimed range +2, no recon weapon bonus.'):'',
     ['woods','building'].includes(type)?(simple()?'Blocks sight through this hex.':`Blocks intervening sight.${state.fog_of_war&&!state.naval_version?' Concealed infantry: spot within 2 hexes, or 4 with recon teams.':''}`):'',
     condition&&state.fog_of_war?'Last observed condition; unseen damage stays unknown.':'',

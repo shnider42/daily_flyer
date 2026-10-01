@@ -2,7 +2,8 @@
 import copy
 
 TILES = {'.': 'field', '=': 'road', 'T': 'woods', 'B': 'building',
-         '*': 'objective', '~': 'water', '+': 'bridge', '^': 'tower'}
+         '*': 'objective', '~': 'water', '+': 'bridge', '^': 'tower',
+         's': 'beach', 'm': 'marsh', 'h': 'bocage', 'k': 'bunker', 'c': 'causeway'}
 
 
 def build(key, name, label, rounds, brief, rows):
@@ -104,6 +105,8 @@ SCENARIOS['midway']=midway()
 
 from .campaigns import add_scenarios
 SCENARIOS.update(add_scenarios(build))
+from .tidal_gate import scenario as tidal_scenario
+SCENARIOS['tidal_gate'] = tidal_scenario(build)
 
 
 def get_scenario(key='village'):

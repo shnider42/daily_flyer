@@ -13,6 +13,7 @@
 <link rel="stylesheet" href="/assets/campaigns.css"><script src="/assets/campaigns.js" defer></script>
 <link rel="stylesheet" href="/assets/weapon-rules.css"><script src="/assets/weapon-rules.js" defer></script>
 <link rel="stylesheet" href="/assets/operations.css"><script src="/assets/operations.js" defer></script>
+<link rel="stylesheet" href="/assets/fieldworks.css"><script src="/assets/fieldworks.js" defer></script>
 <link rel="stylesheet" href="/assets/battle-briefing.css"><script src="/assets/battle-briefing.js" defer></script><script src="/assets/learning.js" defer></script>
 <header><a href="/" class="brand">DSL <span>TACTICAL COMMAND</span></a><button id="homeBattles" class="quiet" hidden>Battles / home</button><button id="rulesButton" class="quiet">Field manual</button></header>
 <main>
@@ -33,7 +34,7 @@
  <div class="home-map-panel"><div class="home-map-caption"><span>OPERATIONS MAP</span><span id="homeTheater">EUROPE</span></div><svg id="scenarioPreview" viewBox="0 0 400 470" role="img" aria-label="Battlefield preview"></svg><div class="home-map-footer"><span id="homeMapSize">SELECT AN OPERATION</span><span>★ OBJECTIVE</span></div></div>
  <div class="home-setup"><label for="scenarioSelect">Choose an operation</label>
  <select id="scenarioSelect"><option value="village">Village Crossing · 8 rounds</option><option value="orchard">Orchard Road · 10 rounds</option><option value="stonebridge">Stonebridge · 12 rounds</option><option value="riverfront">Riverfront Offensive · 18×18 · 24 rounds</option></select>
- <div id="newOperations" class="new-operations" aria-label="New operations"><span>NEW</span><button type="button" data-scenario="carentan">Carentan</button><button type="button" data-scenario="market_garden">Market Garden</button></div>
+ <div id="newOperations" class="new-operations" aria-label="New operations"><span>NEW</span><button type="button" data-scenario="tidal_gate">Tidal Gate · huge</button><button type="button" data-scenario="carentan">Carentan</button><button type="button" data-scenario="market_garden">Market Garden</button></div>
  <h2 id="operationTitle">Village Crossing</h2><p id="operationSummary">Infantry · close-quarters tactics</p><p id="operationFactions">Americans vs Germans</p>
  <details class="operation-briefing"><summary>Mission briefing</summary><p id="scenarioBrief" class="brief">Buildings shelter the approaches; the central road is exposed.</p><p id="playtestNote" hidden>Experimental aircraft rules. No altitude, fuel or facing yet. This is a fictional tactical layout, not a historical simulation.</p></details>
  <div id="rulesetPicker"><label for="rulesetSelect">Rules</label><select id="rulesetSelect"><option value="dsl">DSL · Full tactical rules</option><option value="classic">Classic · Simplified rules</option><option value="asl" disabled>ASL-inspired · Coming later</option></select></div>

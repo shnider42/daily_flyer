@@ -70,8 +70,8 @@
   if(unit){
    $('roleBrief').textContent=roles[unit.kind]|| (unit.kind==='mg'?`MG · Suppress within ${unit.side==='de'?6:4} hexes on ${unit.side==='de'?3:5}+. 2 AP; no damage.`:unit.kind==='leader'?'LIEUTENANT · Rally adjacent platoon members for 1 AP. On your feet grants eligible adjacent non-officers +1 AP for 2 AP.':'RIFLES · US accuracy advantage; German suppression advantage. Use scouts to find concealed enemies.');
    $('selection').textContent=`${unitName(unit)} · ${unit.hp}/${unit.max_hp} strength · ${unit.ap} AP`;
-   $('unitMechanics').prepend(uiNode('p','mechanics-caption',`${unit.personnel} personnel at full strength · armor ${unit.armor} · range ${unit.range}${unit.reserve?' · AIRBORNE RESERVE':''}`));
-   if(unit.reserve){
+   $('unitMechanics').prepend(uiNode('p','mechanics-caption',`${unit.personnel} personnel at full strength · armor ${unit.armor} · range ${unit.range}${unit.reserve?(unit.arrival_round?' · REINFORCEMENTS R'+unit.arrival_round:' · AIRBORNE RESERVE'):''}`));
+   if(unit.reserve&&!unit.arrival_round){
     drop.hidden=!legal?.drops?.length||busy;drop.textContent=landingUnit===unit.id?'Cancel landing':'Airborne landing · 2 AP';
     $('hint').textContent='Airborne reserve · choose Airborne landing, then a marked clear hex. Scout farther ahead to unlock more landing zones.';
    }
@@ -88,17 +88,17 @@
     for(const id of ['load','unload']){const b=transportButtons[id];b.hidden=!legal?.[id]?.length;b.disabled=busy;b.textContent=transportMode?.kind===id?`Cancel ${id}`:`${id==='load'?'Load':'Unload'} infantry · 1 AP`;}
    }
   }
-  for(const b of $('roster').children){const u=state.units.filter(u=>u.side===state.side&&(platoonFilter==='all'||u.platoon===platoonFilter))[Array.from($('roster').children).indexOf(b)];if(u)b.textContent=`${unitCodes[u.kind]} ${u.platoon}${u.number} · ${u.hp<=0?'Lost':u.reserve?'Airborne reserve':u.pinned?'Pinned':u.ap+' AP'}`;}
+  for(const b of $('roster').children){const u=state.units.filter(u=>u.side===state.side&&(platoonFilter==='all'||u.platoon===platoonFilter))[Array.from($('roster').children).indexOf(b)];if(u)b.textContent=`${unitCodes[u.kind]} ${u.platoon}${u.number} · ${u.hp<=0?'Lost':u.reserve?(u.arrival_round?'Arrives R'+u.arrival_round:'Airborne reserve'):u.pinned?'Pinned':u.ap+' AP'}`;}
   if(landingUnit!==selected||!unit?.reserve)landingUnit=null;
   if(landingUnit){
    $('hint').textContent='Tap a marked landing zone · 2 AP · enemy overwatch can react.';
-   for(const pos of legal.drops){const tile=element('polygon',{points:points(...pos),class:'landing-zone',role:'button',tabindex:0,'aria-label':`Land paratroopers at ${String.fromCharCode(65+pos[0])}${pos[1]+1}`});activate(tile,()=>{if(confirm('Land here for 2 AP? Enemy overwatch may fire on arrival.')){landingUnit=null;act({kind:'drop',unit:unit.id,pos});}});svg.append(tile);}
+   for(const pos of legal.drops){const tile=element('polygon',{points:points(...pos),class:'landing-zone',role:'button',tabindex:0,'aria-label':`Land paratroopers at ${hexColumn(pos[0])}${pos[1]+1}`});activate(tile,()=>{if(confirm('Land here for 2 AP? Enemy overwatch may fire on arrival.')){landingUnit=null;act({kind:'drop',unit:unit.id,pos});}});svg.append(tile);}
   }
   if(transportMode&&!legal?.[transportMode.kind]?.length)transportMode=null;
   if(transportMode){
    const loading=transportMode.kind==='load';svg.classList.add('transport-picking');
    $('hint').textContent=loading?'Tap a marked friendly infantry unit to board · 1 infantry AP.':'Tap a marked land hex to unload · 1 infantry AP. Overwatch may fire.';
-   const choices=loading?legal.load.map(id=>{const u=state.units.find(u=>u.id===id);return {pos:u.pos,id,label:`Board ${unitName(u)}`};}):legal.unload.map(m=>({...m,label:`Unload infantry at ${String.fromCharCode(65+m.pos[0])}${m.pos[1]+1}`}));
+   const choices=loading?legal.load.map(id=>{const u=state.units.find(u=>u.id===id);return {pos:u.pos,id,label:`Board ${unitName(u)}`};}):legal.unload.map(m=>({...m,label:`Unload infantry at ${hexColumn(m.pos[0])}${m.pos[1]+1}`}));
    for(const choice of choices){
     const tile=element('polygon',{points:points(...choice.pos),class:'transport-choice',role:'button',tabindex:0,'aria-label':`${choice.label} · 1 infantry AP`});
     tile.append(element('title',{},`${choice.label} · 1 infantry AP`));

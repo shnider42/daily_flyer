@@ -1,5 +1,5 @@
 """One-unit half-track transport; passengers stay in saves, not on the battlefield."""
-from . import combined, buildings
+from . import combined, buildings, fieldworks
 from .visibility import active, visible_ids
 
 
@@ -28,7 +28,7 @@ def options(state, carrier):
                                  threats=sum(w['id'] in seen for w in watchers(state, troop, [x, y])))
                             for y in range(max(0, carrier['pos'][1]-1), min(board['height'], carrier['pos'][1]+2))
                             for x in range(max(0, carrier['pos'][0]-1), min(board['width'], carrier['pos'][0]+2))
-                            if distance(carrier['pos'], [x, y]) == 1 and terrain(x, y, state) != 'water'
+                            if distance(carrier['pos'], [x, y]) == 1 and fieldworks.movement(troop, terrain(x, y, state))[0]
                             and buildings.enterable(state, [x, y], carrier['side'])
                             and [x, y] not in occupied]
     return result
@@ -48,7 +48,7 @@ def bail_out(state, carrier):
             from .engine import distance,terrain
             board=state['battlefield']
             shore=[[x,y] for y in range(board['height']) for x in range(board['width'])
-                   if distance(carrier['pos'],[x,y])==1 and terrain(x,y,state)!='water'
+                   if distance(carrier['pos'],[x,y])==1 and fieldworks.movement(troop, terrain(x,y,state))[0]
                    and buildings.enterable(state, [x,y])
                    and not any(active(u) and u['id']!=troop['id'] and u['pos']==[x,y] for u in state['units'])]
             if shore:pos=shore[0]

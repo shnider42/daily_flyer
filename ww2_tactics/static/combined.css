@@ -14,8 +14,8 @@
 #game .game-title .round{flex:none}
 #platoonFilters [data-platoon="HQ"][aria-pressed="true"],.roster-unit[data-platoon="HQ"].active{background:#465b57;color:#fff}
 .unit.us.platoon-HQ{--platoon-color:#285e7c}.unit.de.platoon-HQ{--platoon-color:#854d40}
-#game[data-side="us"] [data-platoon="HQ"]{--platoon-color:#285e7c}
-#game[data-side="de"] [data-platoon="HQ"]{--platoon-color:#854d40}
+body[data-battle-side="us"] [data-platoon="HQ"]{--platoon-color:#285e7c}
+body[data-battle-side="de"] [data-platoon="HQ"]{--platoon-color:#854d40}
 #combinedManual{border-top:1px solid #b8b09a;margin-top:18px;padding-top:14px}
 .unit-art .vehicle-body{fill:#c5d1bd;stroke:#122321;stroke-width:1;stroke-linejoin:round}
 .unit-art .vehicle-track{fill:#253a35;stroke:#d3dcc7;stroke-width:1}

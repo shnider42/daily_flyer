@@ -63,7 +63,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   const visible=troops.filter(u=>platoonFilter==='all'||u.platoon===platoonFilter);
   document.querySelectorAll('#roster button').forEach((button,index)=>{
    button.querySelector('.desktop-unit-meta')?.remove();const unit=visible[index];if(!unit)return;
-   button.append(el('span','desktop-unit-meta',unit.hp>0?`${kinds[unit.kind]} · ${state.naval_version&&unit.kind!=='amphibious'?'Hull':'Strength'} ${unit.hp} · ${String.fromCharCode(65+unit.pos[0])}${unit.pos[1]+1}`:'Lost'));
+   button.append(el('span','desktop-unit-meta',unit.hp>0?`${kinds[unit.kind]} · ${state.naval_version&&unit.kind!=='amphibious'?'Hull':'Strength'} ${unit.hp} · ${hexColumn(unit.pos[0])}${unit.pos[1]+1}`:'Lost'));
   });
   document.getElementById('desktopOrderTitle').textContent=playbackSession?'Opponent’s turn':'Unit orders';
   document.getElementById('desktopPlaybackNote').hidden=!playbackSession;

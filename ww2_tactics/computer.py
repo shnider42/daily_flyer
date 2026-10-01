@@ -1,4 +1,5 @@
 """Local, bounded tactical opponent. Uses public information and legal engine orders."""
+from .coordinates import column
 import heapq
 import copy
 
@@ -6,19 +7,21 @@ from .engine import apply, options, distance, terrain, line_clear
 from .scenarios import battlefield
 from .rulesets import dsl, turn_limit
 from .visibility import fog, view, visible_ids, active
-from . import naval, air, weapons, buildings, operations
+from . import naval, air, weapons, buildings, operations, fieldworks, linked_front
 
 
-def objective_costs(state):
+def objective_costs(state, goal=None):
     if state.get('air_version'):return {}
+    if state.get('fieldworks_version'):
+        state = dict(state, fieldworks=dict(fieldworks.known(state, state['turn'])))
     board = battlefield(state)
-    goal = tuple(board['objective'])
+    goal = tuple(goal or board['objective'])
     costs, queue = {goal: 0}, [(0, goal)]
     while queue:
         cost, pos = heapq.heappop(queue)
         if cost != costs[pos]:
             continue
-        step = 2 if terrain(*pos, state) in {'woods', 'building', 'tower'} else 1
+        step = 2 if terrain(*pos, state) in {'woods', 'building', 'tower', 'bocage', 'bunker', 'marsh', 'rubble'} else 1
         neighbors=((x,y) for y in range(max(0,pos[1]-1),min(board['height'],pos[1]+2))
                    for x in range(max(0,pos[0]-1),min(board['width'],pos[0]+2)))
         for nxt in neighbors:
@@ -31,7 +34,7 @@ def objective_costs(state):
     return costs
 
 
-def choose_order(state, costs, visited):
+def choose_order(state, costs, visited, front_costs=None):
     if state.get('naval_version'):
         return naval.choose_order(state,costs,visited)
     if state.get('air_version'):
@@ -45,10 +48,18 @@ def choose_order(state, costs, visited):
     def add(score, unit, kind, **data):
         choices.append((score, dict(kind=kind, unit=unit['id'], **data)))
 
+    objective_maps = front_costs if front_costs is not None else {p['id']: objective_costs(state, p['pos']) for p in board.get('linked_objectives', [])}
     for unit in units.values():
         if unit['side'] != side:
             continue
+        goal = linked_front.goal(state, unit)
+        unit_costs = next((objective_maps[p['id']] for p in board.get('linked_objectives', []) if p['pos'] == goal), costs)
         legal = options(state, unit)
+        for kind in fieldworks.ORDERS:
+            for pos in legal.get(kind, []):
+                if distance(pos, goal) < distance(unit['pos'], goal):
+                    helps_armor = any(friend['side']==side and friend['kind'] in {'tank','halftrack'} and active(friend) and distance(friend['pos'],pos)<=3 for friend in units.values())
+                    add(9 if helps_armor else 6, unit, kind, pos=pos)
         choices.extend(weapons.ai_orders(state, unit, legal, units.values()))
         # A low-AP marksman with a useful long shot banks instead of spending
         # the last action walking into rifle range. Escape incoming fire first.
@@ -59,19 +70,19 @@ def choose_order(state, costs, visited):
                 and line_clear(unit['pos'],enemy['pos'],state.get('smoke',[]),state) for enemy in units.values()):
             continue
         # Embark on a distant approach; deploy near the fight, before using support fire.
-        if unit['kind']=='halftrack' and legal.get('load') and costs.get(tuple(unit['pos']),100)>5 and not any(
+        if unit['kind']=='halftrack' and legal.get('load') and unit_costs.get(tuple(unit['pos']),100)>5 and not any(
                 u['side']!=side and distance(u['pos'],unit['pos'])<=6 for u in units.values()):
             for uid in legal['load']:
                 if units[uid]['ap']>=2:
                     add(7,unit,'load',target=uid)
         if legal.get('unload'):
             threatened=any(u['side']!=side and distance(u['pos'],unit['pos'])<=5 for u in units.values())
-            if unit['kind']=='landing_craft' or threatened or unit['pinned'] or unit['hp']<3 or costs.get(tuple(unit['pos']),100)<=4:
+            if unit['kind']=='landing_craft' or threatened or unit['pinned'] or unit['hp']<3 or unit_costs.get(tuple(unit['pos']),100)<=4:
                 for move in legal['unload']:
                     cover=buildings.cover(state,move['pos'],side=side)
-                    add(14+int(cover)-move['threats']*3-costs.get(tuple(move['pos']),100)*.1,unit,'unload',pos=move['pos'])
+                    add(14+int(cover)-move['threats']*3-unit_costs.get(tuple(move['pos']),100)*.1,unit,'unload',pos=move['pos'])
         for pos in legal.get('drops',[]):
-            add(20-costs.get(tuple(pos),100)*.6,unit,'drop',pos=pos)
+            add(20-unit_costs.get(tuple(pos),100)*.6,unit,'drop',pos=pos)
         if legal['rally']:
             add(9, unit, 'rally')
         if legal['inspire']:
@@ -91,13 +102,13 @@ def choose_order(state, costs, visited):
                 splash_risk = sum(5 for friend in units.values() if friend['side']==side and distance(friend['pos'], target['pos'])<=1) if weapons.enabled(state) and weapons.profile(unit).get('splash') else 0
                 collapse = buildings.condition(state,target['pos'],side)=='damaged' and weapons.profile(unit).get('structural')
                 add(3+chance*7+(2 if target['hp'] == 1 else 0)+chance*4*bool(collapse)-splash_risk
-                    + (3 if target['pos'] == board['objective'] else 0), unit, 'fire', target=target['id'])
+                    + (3 if target['pos'] == goal else 0), unit, 'fire', target=target['id'])
         for shot in legal['grenades']:
             target = units[shot['id']]
             add(4+(7-shot['threshold'])/6*9+(2 if target['hp'] <= 2 else 0), unit, 'grenade', target=target['id'])
         for shot in legal['assaults']:
             target = units[shot['id']]
-            score = (7-shot['threshold'])/6*10-1+(4 if target['pos'] == board['objective'] else 0)
+            score = (7-shot['threshold'])/6*10-1+(4 if target['pos'] == goal else 0)
             if target['hp'] <= 2:
                 score += 3
             if unit['hp'] == 1:
@@ -115,7 +126,7 @@ def choose_order(state, costs, visited):
                 add(value, unit, 'barrage', pos=pos)
         imminent = [b for b in state.get('barrages', []) if b['ttl'] == 1]
         danger = any(unit['pos'] in b['area'] for b in imminent)
-        holding = unit['pos'] == board['objective']
+        holding = unit['pos'] == goal
         landing_goal=None
         if unit['kind']=='landing_craft':
             shores=[[x,y] for y in range(board['height']) for x in range(board['width']) if terrain(x,y,state)=='water'
@@ -125,11 +136,12 @@ def choose_order(state, costs, visited):
         for move in legal['moves']:
             if unit['kind']=='landing_craft' and not any(v.get('carrier_id')==unit['id'] for v in units.values()):continue
             pos = move['pos']
+            if board.get('linked_objectives') and unit['kind'] not in linked_front.INFANTRY and any(pos == p['pos'] for p in board['linked_objectives']): continue
             if tuple(pos) in visited.get(unit['id'], set()):
                 continue
             exposed = any(pos in b['area'] for b in imminent)
-            goal=landing_goal or board['objective']
-            gain = (distance(unit['pos'],goal)-distance(pos,goal)) if unit['kind'] in {'amphibious','landing_craft'} else costs.get(tuple(unit['pos']), 100)-costs.get(tuple(pos), 100)
+            move_goal=landing_goal or goal
+            gain = (distance(unit['pos'],move_goal)-distance(pos,move_goal)) if unit['kind'] in {'amphibious','landing_craft'} else unit_costs.get(tuple(unit['pos']), 100)-unit_costs.get(tuple(pos), 100)
             score = 2+gain*2-move.get('threats', 0)*2
             score += .6 * buildings.cover(state,pos,side=side)
             if unit['kind'] in {'scout','sniper'} and terrain(*pos,state)=='tower':score+=2
@@ -138,7 +150,7 @@ def choose_order(state, costs, visited):
             if buildings.condition(state,pos,side)=='damaged':
                 score -= 3 * any(enemy['side']!=side and weapons.profile(enemy).get('structural')
                                  and distance(enemy['pos'],pos)<=enemy['range'] for enemy in units.values())
-            if pos == board['objective']:
+            if pos == goal:
                 score += 9
             if holding:
                 score -= 15  # A pin does not interrupt objective occupation.
@@ -147,7 +159,7 @@ def choose_order(state, costs, visited):
             if exposed:
                 score -= 10
             add(score, unit, 'move', pos=pos)
-        near = costs.get(tuple(unit['pos']), 100) <= 2
+        near = unit_costs.get(tuple(unit['pos']), 100) <= 2
         if legal['overwatch']:
             add(3 if near else .5, unit, 'overwatch')
         if legal['dig']:
@@ -155,7 +167,7 @@ def choose_order(state, costs, visited):
         # Smoke buys cover when crossing a watched approach without a viable attack.
         if legal['smoke'] and any(m.get('threats') for m in legal['moves']):
             # A second smoke screen cannot be placed on an already smoked hex.
-            pos=unit['pos'] if unit['pos'] in legal['smoke'] else min(legal['smoke'],key=lambda p:distance(p,landing_goal or board['objective']))
+            pos=unit['pos'] if unit['pos'] in legal['smoke'] else min(legal['smoke'],key=lambda p:distance(p,landing_goal or goal))
             add(5, unit, 'smoke', pos=list(pos))
     if not choices:
         return dict(kind='end')
@@ -167,7 +179,8 @@ def play_turn(state, roll=None):
     if not state.get('ai_side') or state['turn'] != state['ai_side'] or state['winner']:
         return state
     costs = objective_costs(state)
-    terrain_memory = dict(buildings.known(state, state['ai_side']))
+    front_costs = {p['id']: objective_costs(state, p['pos']) for p in battlefield(state).get('linked_objectives', [])}
+    terrain_memory = (dict(buildings.known(state, state['ai_side'])), dict(fieldworks.known(state, state['ai_side'])))
     visited = {u['id']: {tuple(u['pos'])} for u in state['units']}
     orders = []
     frames = []
@@ -175,7 +188,7 @@ def play_turn(state, roll=None):
         if fog(value):
             return view(value,'us' if value['ai_side']=='de' else 'de')
         return copy.deepcopy({key: value.get(key) for key in
-                              ('units', 'smoke', 'barrages', 'round', 'turn', 'hold', 'winner', 'buildings')})
+                              ('units', 'smoke', 'barrages', 'round', 'turn', 'hold', 'winner', 'buildings', 'fieldworks', 'objective_control')})
     def perform(action):
         nonlocal state
         before = snapshot(state)
@@ -204,17 +217,18 @@ def play_turn(state, roll=None):
     # Scale the guard to the army's AP budget, including the larger scenario.
     budget = max(24, sum((turn_limit(u)+(turn_limit(u) if u['kind']=='halftrack' else 1) if dsl(state) else 2) for u in state['units'] if u['side']==state['ai_side'] and u['hp']>0)+1)
     for _ in range(budget):
-        memory = buildings.known(state, state['ai_side'])
+        memory = (dict(buildings.known(state, state['ai_side'])), dict(fieldworks.known(state, state['ai_side'])))
         if memory != terrain_memory:
             costs = objective_costs(state)
-            terrain_memory = dict(memory)
-        action = choose_order(state, costs, visited)
+            front_costs = {p['id']: objective_costs(state, p['pos']) for p in battlefield(state).get('linked_objectives', [])}
+            terrain_memory = memory
+        action = choose_order(state, costs, visited, front_costs)
         perform(action)
         actor = next((u for u in state['units'] if u['id'] == action.get('unit')), None)
         target = next((u for u in state['units'] if u['id'] == action.get('target')), None)
         orders.extend(['Turn ended.'] if action['kind'] == 'end' else
                       [f"{actor['kind'].capitalize()}: {action['kind']}" +
-                       (f" → {chr(65+action['pos'][0])}{action['pos'][1]+1}" if 'pos' in action else
+                       (f" → {column(action['pos'][0])}{action['pos'][1]+1}" if 'pos' in action else
                         f" → {'friendly' if target['side']==actor['side'] else 'enemy'} {target['kind']}" if target else '')])
         for unit in state['units']:
             visited[unit['id']].add(tuple(unit['pos']))

@@ -7,6 +7,9 @@
  const save=()=>{try{localStorage.setItem(key,JSON.stringify(prefs));}catch{}};
  // Distinct silhouettes and plain-language effects supplement color, including on touch screens.
  const actionDesign={
+  breach:['earth','Open a hedgerow for vehicles and fire','M3 4v16M21 4v16M3 12h6M15 12h6M9 8l6 8M15 8l-6 8'],
+  clearWreck:['amber','Clear a collapsed building','M3 19h18M5 17l5-8 8 8M14 3l6 6M17 6L9 14'],
+  bridgeGap:['blue','Bridge one hex of water','M3 20V8M21 20V8M3 12h18M7 12v7M17 12v7M3 8Q12 2 21 8'],
   areaFire:['orange','Aim at an empty or occupied hex','M12 2v5M12 17v5M2 12h5M17 12h5M5 5h14v14H5Z'],
   repairTank:['green','Restore tank strength and movement','M3 9h18v10H3ZM7 5h10M12 6v11M8 13h8'],
   snipe:['red','Accurate shot; exposes your team','M12 2v5M12 17v5M2 12h5M17 12h5M19 12a7 7 0 1 1-14 0 7 7 0 0 1 14 0M12 10v4M10 12h4'],
@@ -141,7 +144,7 @@
    if(!dad)restoreDadOrders();
    const unit=state.units.find(u=>u.id===selected&&u.hp>0);
    const title=node('strong',null,unit?unitTypeName(unit):'Select a unit');title.className='selected-unit-name';
-   const meta=node('span',null,unit?`${unit.platoon?unit.platoon+unit.number+' · ':''}${unit.hp}${unit.max_hp?'/'+unit.max_hp:''} ${state.naval_version?'HP':'strength'} · ${unit.ap} AP${unit.carrier_id?' · ABOARD':unit.reserve?' · RESERVE':unit.immobilized?' · TRACKS DISABLED':unit.pinned?' · PINNED':''}${unit.ammo?' · '+unit.ammo.toUpperCase()+' loaded':''}`:'Tap the map or open Your units');meta.className='selected-unit-meta';
+   const meta=node('span',null,unit?`${unit.platoon?unit.platoon+unit.number+' · ':''}${unit.hp}${unit.max_hp?'/'+unit.max_hp:''} ${state.naval_version?'HP':'strength'} · ${unit.ap} AP${unit.carrier_id?' · ABOARD':unit.reserve?(unit.arrival_round?' · ARRIVES R'+unit.arrival_round:' · RESERVE'):unit.immobilized?' · TRACKS DISABLED':unit.pinned?' · PINNED':''}${unit.ammo?' · '+unit.ammo.toUpperCase()+' loaded':''}`:'Tap the map or open Your units');meta.className='selected-unit-meta';
    $('mobileOrderToggle').replaceChildren(title,meta);
    if(dad){const inspected=state.units.find(u=>u.id===target&&u.hp>0)||unit;if(inspected){const portrait=window.makeUnitPortrait?.(inspected);if(portrait)$('mobileOrderToggle').prepend(portrait);if(inspected!==unit){title.textContent=`Target: ${unitTypeName(inspected)}`;meta.textContent=`${sideLabel(inspected.side)} · ${inspected.hp} ${state.naval_version?'HP':'strength'} · your unit: ${unit?unitTypeName(unit):'none'}`;}}}
    $('unitDetailTitle').textContent=unit?unitName(unit):'Unit details & odds';

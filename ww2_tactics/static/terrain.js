@@ -18,7 +18,7 @@
   water.append(shape('path',{d:'M-24 5Q-12-1 0 5T24 5T48 5T72 5M-24 20Q-12 14 0 20T24 20T48 20T72 20',fill:'none',stroke:'#c9e4dd','stroke-width':1.3}),shape('path',{d:'M3 8l10-2M27 23l9 1',fill:'none',stroke:'#5d99a2','stroke-width':1}));defs.append(water);
   [...svg.querySelectorAll(':scope > .hex')].forEach((tile,i)=>{
    const x=i%grid[0].length,y=Math.floor(i/grid[0].length),type=grid[y]?.[x];if(!type)return;
-   const structure=['building','tower'].includes(type),condition=structure&&conditions?(conditions[`${x},${y}`]||'intact'):null;
+   const structure=['building','tower','bunker'].includes(type),condition=structure&&conditions?(conditions[`${x},${y}`]||'intact'):null;
    for(const name of ['intact','damaged','destroyed'])tile.classList.toggle('building-'+name,condition===name);
    if(condition)tile.dataset.buildingState=condition;else delete tile.dataset.buildingState;
    if(!detailed&&!(structure&&condition)&&type!=='tower')return;
@@ -28,7 +28,22 @@
    const outer=shape('g',{class:'terrain-art','clip-path':`url(#${id})`,'aria-hidden':'true'}),g=shape('g',{transform:`translate(${cx} ${cy})`});outer.append(g);tile.after(outer);
    const add=(tag,attrs)=>g.append(shape(tag,attrs));
    const path=(d,stroke,width=1,fill='none')=>add('path',{d,stroke,'stroke-width':width,fill,'stroke-linecap':'round','stroke-linejoin':'round'});
-   if(type==='field'){
+   if(type==='beach'){
+    path('M-24 12q8-5 16 0t16 0M-18-8l5-2M8-16l7 2','#ad956c',1.3);
+    add('circle',{cx:15,cy:8,r:1.5,fill:'#897e5c'});
+   }else if(type==='marsh'){
+    path('M-28-10q10-6 20 0t20 0M-28 12q10-6 20 0t20 0','#c3ddd2',2);
+    path('M-14 14V-3m-4 3l4 5 4-8M12 7V-10m-4 3l4 5 4-8','#3e634e',2);
+   }else if(type==='bocage'){
+    path('M-30 4L30-4','#544f32',13);path('M-30 0L30-8','#355f3f',11);
+    for(const x of [-20,-5,10,24])add('circle',{cx:x,cy:-4-x/8,r:7,fill:x%2?'#476c38':'#537943'});
+   }else if(type==='bunker'&&condition!=='destroyed'){
+    path('M-23 12V-3l7-9h31l9 10v14z','#414b44',2,'#a8aa99');
+    path('M-23-3h47M-15 3h29','#4d5b4f',4);path('M-21 17h44','#636d55',4);
+    if(condition==='damaged')path('M2-12l-6 8 7 6-3 9','#543f2d',3);
+   }else if(type==='rubble'){
+    path('M-22 14l9-10 8 9 9-8 17 10M-14-7l6-6 9 6 10-2','#766d59',3);
+   }else if(type==='field'){
     path('M-21 9l3-4 1 4M12-9l2-4 2 4M7 19l2-3 1 3M-13-15l1-3 2 3','#829866',.8);
     add('ellipse',{cx:9,cy:4,rx:16,ry:7,fill:'#aebd8730'});
     path('M-19 17l9-2M3-20l9 1','#dce2b3',1.2);
@@ -84,15 +99,16 @@
    }else if(type==='water'){
     path('M-30-10Q-18-16-6-10T18-10T42-10M-34 5Q-22-1-10 5T14 5T38 5M-25 20Q-13 14-1 20T23 20','#c9e4dd',1.3);
     path('M-25-7l10-2M7 8l9 1M-4-22l8 1','#5d99a2',1);
-   }else if(type==='road'||type==='bridge'){
+   }else if(type==='road'||type==='bridge'||type==='causeway'){
     let links=[];
     for(let ny=Math.max(0,y-1);ny<=Math.min(grid.length-1,y+1);ny++)for(let nx=Math.max(0,x-1);nx<=Math.min(grid[0].length-1,x+1);nx++){
-     if(nx===x&&ny===y||!['road','bridge'].includes(grid[ny][nx]))continue;
+     if(nx===x&&ny===y||!['road','bridge','causeway'].includes(grid[ny][nx]))continue;
      const [px,py]=center(nx,ny),dx=px-cx,dy=py-cy;if(Math.hypot(dx,dy)<58)links.push([dx*.57,dy*.57]);
     }
     if(links.length===1)links.push([-links[0][0],-links[0][1]]);
     if(!links.length)links=[[0,-31],[0,31]];
     const d=links.map(([dx,dy])=>`M0 0L${dx} ${dy}`).join(' ');
+    if(type==='causeway')path(d,'#686e54',25);
     path(d,'#aa9471',18);path(d,'#d6c49c',15);path(d,'#eee0b6',1);
     if(type==='bridge'){
      add('rect',{x:-13,y:-29,width:26,height:58,fill:'#aa9873'});
@@ -114,7 +130,7 @@
   if(typeof state!=='undefined'&&state){
    paint(document.getElementById('map'),state.map,state.building_version?state.buildings:null);
    const snapshot=playbackSession?.frames[playbackSession.index]?.[playbackSession.phase];
-   paint(document.getElementById('playbackMap'),state.map,snapshot?.buildings);
+   paint(document.getElementById('playbackMap'),document.getElementById('playbackMap')?._grid||state.map,snapshot?.buildings);
   }
   if(typeof scenarios!=='undefined')paint(document.getElementById('scenarioPreview'),scenarios.find(s=>s.id===document.getElementById('scenarioSelect').value)?.map);
  }

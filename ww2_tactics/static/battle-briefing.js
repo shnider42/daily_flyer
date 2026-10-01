@@ -17,6 +17,16 @@
      `At the end of your turn, earn 1 point if your units are the only side within two hexes of ★.${s.scenario.island_objectives?.length?' Each flagged outpost occupied by your amphibious infantry adds another point.':''}`,
      `If round ${rounds} ends without a winner, higher control score wins. A tied score uses total remaining strength; an exact tie goes to Japan. Hidden fleet strength is not shown here.`],focus:s.scenario.objective};
   }
+  if(s.linked_front_version){
+   const attack=s.side==='us',hold=s.hold||0;
+   return {goal:attack?'Hold the town AND either beach exit with infantry for two consecutive turn endings.':`Break the town-to-beach link; prevent two linked holds through round ${rounds}.`,
+    compact:`Win: town + an exit · ${hold}/2 holds`,progress:`Linked American hold: ${hold}/2 · Round ${s.round}/${rounds}`,
+    rules:['Americans must occupy the inland command post and at least one causeway exit simultaneously when ending two consecutive turns. Losing either required link resets the hold immediately.',
+     'Only infantry can garrison an objective, including pinned infantry. Tanks, guns, amphibious sections, boats, passengers and off-map reserves cannot garrison. German infantry can replace an American garrison.',
+     `Germans win when their round ${rounds} ends without an American victory. Either side can also win by eliminating every enemy unit, including reserves.`,
+     'Objective flags are public mission signals. They report the garrison’s side only; nearby hidden units and their strength remain concealed.',
+     s.scenario.reinforcement_brief,'This is a fictional compressed Normandy-inspired playtest, not a reconstruction or an ASL rules simulation.'],focus:s.scenario.objective};
+  }
   const attack=s.side==='us',objective=s.scenario.objective_name,hold=s.hold||0;
   return {goal:attack?`Hold ${objective} at the end of two of your turns in a row.`:`Keep the attackers from holding ${objective} twice in a row; survive through round ${rounds}.`,
    compact:attack?`Win: hold ★ for 2 turns · ${hold}/2`:`Win: deny ★ to R${rounds} · enemy ${hold}/2`,progress:`${attacker} hold: ${hold}/2 · Round ${s.round}/${rounds}`,
@@ -40,7 +50,8 @@
  const close=node('button','missionClose','Back to battle');close.onclick=()=>dialog.close();
  const heading=node('h2','missionTitle','How to win'),goal=node('p','missionGoal'),progress=node('p','missionProgress'),list=node('ul','missionRules'),result=node('p','missionResult'),find=node('button','missionFind','Find the objective');
  find.onclick=()=>{dialog.close();const point=mission(state).focus;if(point)focusMapUnit({pos:point});};
- dialog.append(close,heading,result,goal,progress,list,find);document.body.append(dialog);
+ const flags=node('p','missionFlags'),sectors=node('nav','missionSectors');sectors.setAttribute('aria-label','Jump to battlefield sector');
+ dialog.append(close,heading,result,goal,progress,flags,sectors,list,find);document.body.append(dialog);
  const live=node('div','battleAnnouncer');live.className='screen-reader-only';live.setAttribute('role','status');live.setAttribute('aria-live','polite');live.setAttribute('aria-atomic','true');document.body.append(live);
  let announcement='',timer=null,lastPaint='',lastMobile=null;
  function open(){if(!state||$('game').hidden)return;fill();for(const d of document.querySelectorAll('dialog[open]'))if(d!==dialog)d.close();if(!dialog.open)dialog.showModal();}
@@ -48,6 +59,8 @@
  function fill(){
   const m=mission(state);goal.textContent=m.goal;progress.textContent=m.progress;
   list.replaceChildren(...m.rules.map(t=>node('li',null,t)));
+  flags.hidden=!state.linked_front_version;flags.textContent=(state.scenario.linked_objectives||[]).map(p=>`${p.name}: ${state.objective_control?.[p.id]?sideLabel(state.objective_control[p.id]):'Ungarrisoned'}`).join(' · ');
+  sectors.replaceChildren(...(state.scenario.sectors||[]).map(s=>{const b=node('button',null,s.name);b.type='button';b.onclick=()=>{dialog.close();focusMapUnit({pos:s.pos});};return b;}));
   result.hidden=!state.winner;result.textContent=state.winner?`${state.factions?.[state.winner]||names[state.winner]} won.${state.resigned_by?' The opponent resigned.':''}`:'';
   find.textContent=state.air_version?'Find a sector station':'Find ★ on the map';
  }

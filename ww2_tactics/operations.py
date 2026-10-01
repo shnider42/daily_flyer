@@ -3,6 +3,7 @@
 No map-name branches: a saved match opts in, units supply capabilities, and the
 terrain supplies height. Legal previews never consult hidden occupancy.
 """
+from .coordinates import column
 VERSION = 1
 ORDER_KINDS = {'area_fire', 'repair_tank', 'snipe'}
 
@@ -174,7 +175,7 @@ def action(state, unit, order, legal, roll):
                 result=result,impacts=impacts,revision=state['revision']+1)
             record_combat(state,note='2 AP. 5+ lands; speculative fringe needs 6. Direct unit cover/armor thresholds still apply. Heavy rounds damage the aimed structure. Friendly fire and loaded-ammunition effects apply; hidden results stay unknown.')
             record_effect(state,'explosion',[pos])
-            return f"Area fire at {chr(65+pos[0])}{pos[1]+1}: rolled {die}, needed {shot['threshold']}+. {result}."
+            return f"Area fire at {column(pos[0])}{pos[1]+1}: rolled {die}, needed {shot['threshold']}+. {result}."
     raise ValueError('That support or precision order is unavailable. Check AP, range, supplies and cooldown.')
 
 

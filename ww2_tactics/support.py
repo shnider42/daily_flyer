@@ -1,4 +1,5 @@
 """Role abilities and delayed support. Legal choices are shared with every client."""
+from .coordinates import column
 from .combat_display import record_combat
 from .rulesets import dsl, command_key, turn_limit
 from .effects import record_effect
@@ -115,7 +116,7 @@ def role_action(state, unit, action, legal, roll, distance, names):
         area = [[x, y] for y, row in enumerate(state['battlefield']['map']) for x in range(len(row))
                 if distance(pos, [x, y]) <= 1]
         state.setdefault('barrages', []).append(dict(side=side, pos=pos, area=area, ttl=2, attacker=unit['id']))
-        return f"{names[side]} called a mortar barrage at {chr(65+pos[0])}{pos[1]+1}. Impact at the end of the opponent's turn. Clear all marked hexes!"
+        return f"{names[side]} called a mortar barrage at {column(pos[0])}{pos[1]+1}. Impact at the end of the opponent's turn. Clear all marked hexes!"
     raise ValueError('That role ability is unavailable. Check the unit, actions, range and sight lines.')
 
 

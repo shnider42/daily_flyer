@@ -50,7 +50,7 @@ class BuildingTests(unittest.TestCase):
         for name in SCENARIOS:
             value = initial(name,'dsl')
             self.assertTrue(buildings.enabled(value))
-            if name!='stalingrad':self.assertTrue(all(c=='intact' for c in value['buildings'].values()))
+            if not value['battlefield'].get('building_conditions'):self.assertTrue(all(c=='intact' for c in value['buildings'].values()))
         self.assertNotIn('building_version',initial())
 
     def test_cover_entry_and_los_for_each_condition(self):

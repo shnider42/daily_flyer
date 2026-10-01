@@ -4,8 +4,8 @@
 (()=>{
  const infantry=new Set(['squad','mg','leader','commander','scout','engineer','at_team','paratrooper','sniper']);
  const vehicles=new Set(['tank','halftrack','amphibious','landing_craft']);
- const labels={fire:'Fire at unit',areaFire:'Aim at hex',snipe:'Snipe',assault:'Close assault',grenade:'Grenade',suppress:'Suppress',overwatch:'Overwatch',dig:'Dig in',smoke:'Smoke',rally:'Rally self',inspire:'Rally allies',command:'Give actions',barrage:'Call mortars',artillery:'Call artillery',fieldRecon:'Recon plane',loadAP:'Load anti-tank',loadHE:'Load explosive',repairTracks:'Fix own tracks',repairTank:'Repair tank',bombard:'Blind bombard',recon:'Air search',airstrike:'Air strike',torpedo:'Torpedoes',repair:'Repair hull',airdrop:'Land troops',load:'Load troops',unload:'Unload troops',rearm:'Airfield service'};
- const costs={smoke:1,rally:1,inspire:1,loadAP:1,loadHE:1,recon:1,load:1,unload:1,snipe:3};
+ const labels={breach:'Breach hedge',clearWreck:'Clear rubble',bridgeGap:'Build bridge',fire:'Fire at unit',areaFire:'Aim at hex',snipe:'Snipe',assault:'Close assault',grenade:'Grenade',suppress:'Suppress',overwatch:'Overwatch',dig:'Dig in',smoke:'Smoke',rally:'Rally self',inspire:'Rally allies',command:'Give actions',barrage:'Call mortars',artillery:'Call artillery',fieldRecon:'Recon plane',loadAP:'Load anti-tank',loadHE:'Load explosive',repairTracks:'Fix own tracks',repairTank:'Repair tank',bombard:'Blind bombard',recon:'Air search',airstrike:'Air strike',torpedo:'Torpedoes',repair:'Repair hull',airdrop:'Land troops',load:'Load troops',unload:'Unload troops',rearm:'Airfield service'};
+ const costs={smoke:1,rally:1,inspire:1,loadAP:1,loadHE:1,recon:1,load:1,unload:1,snipe:3,bridgeGap:3};
  const cost=id=>costs[id]??2;
  function capabilities(u,s=state){
   if(!u||u.side!==s.side||u.hp<=0||s.ruleset!=='dsl')return [];
@@ -55,6 +55,7 @@
     if(u.snipe_range)add('snipe');
    }
   }
+  if(s.fieldworks_version&&kind==='engineer')add('breach','clearWreck','bridgeGap');
   return [...new Set(ids)];
  }
  function reason(id,u){
@@ -65,6 +66,7 @@
   if(state.turn!==state.side)return 'Opponent’s turn';
   if(state.order_history?.redo_required)return 'Redo rolled order first';
   if(u.carrier_id)return 'Aboard transport';
+  if(u.reserve&&u.arrival_round)return 'Arrives R'+u.arrival_round+' · entry must be clear';
   if(u.reserve&&id!=='airdrop')return 'Land troops first';
   if(u.pinned&&id!=='rally')return 'Rally this unit first';
   if(id==='rally'&&!u.pinned)return 'Not pinned';
@@ -81,6 +83,9 @@
   if(u.kind==='bomber'&&['fire','areaFire'].includes(id)&&!u.bombs)return 'Reload at airfield';
   if(!['load','unload'].includes(id)&&u.ap<cost(id))return `Needs ${cost(id)} AP`;
   if(['fire','grenade','assault','suppress','airstrike','torpedo'].includes(id))return target?'No legal attack on target':'Select a visible enemy';
+  if(id==='bridgeGap')return u.bridge_kits?'Needs a one-hex gap with firm banks':'No bridge kits left';
+  if(id==='breach')return 'Needs adjacent bocage';
+  if(id==='clearWreck')return 'Needs adjacent collapsed building';
   if(id==='snipe')return 'Needs a visible firing lane';
   if(id==='repairTank')return 'Needs adjacent damaged tank';
   if(id==='repair')return 'Hull at full strength';

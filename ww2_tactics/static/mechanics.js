@@ -1,5 +1,5 @@
 'use strict';
-function buildingCondition(value,pos){return value?.building_version&&['building','tower'].includes(value.map?.[pos[1]]?.[pos[0]])?(value.buildings?.[pos.join(',')]||'intact'):null;}
+function buildingCondition(value,pos){return value?.building_version&&['building','tower','bunker'].includes(value.map?.[pos[1]]?.[pos[0]])?(value.buildings?.[pos.join(',')]||'intact'):null;}
 function buildingHelp(condition,simple=false){
  return {intact:simple?'Solid building · good cover.':'Intact building · 2 AP entry · +1 cover. A heavy explosive hit damages it.',
  damaged:simple?'Damaged building · explosive hits can collapse it.':'Damaged building · 2 AP entry · +0 terrain cover. A structural hit collapses it and eliminates all ground occupants, including friendlies.',
@@ -51,7 +51,8 @@ function renderUnitMechanics(state,unit){
  if(state.ruleset==='dsl')panel.append(uiNode('p','mechanics-caption',`Base ${base} AP · carried ${unit.carried_ap||0} · received ${unit.ap_received}/${base+bank} this turn. ${unit.side===state.turn?'End now to bank '+Math.min(unit.ap,bank):'Banked: '+(unit.banked_ap||0)} AP. Spending actions does not reset the received limit.`));
  const details=uiNode('details','unit-explanation');details.append(uiNode('summary','','Terrain & status explained'));
  const type=state.map[unit.pos[1]][unit.pos[0]],condition=buildingCondition(state,unit.pos),cover=['woods','building','tower',...(state.naval_version?[]:['objective'])].includes(type)&&condition!=='damaged';
- const items=[condition?buildingHelp(condition):`${type[0].toUpperCase()+type.slice(1)}: ${cover?'incoming fire needs +1 on the die':'no terrain cover bonus'}. Entering this terrain costs ${['woods','building','tower'].includes(type)?2:1} action(s).`,
+ const terrainCopy=window.fieldworksTerrainHelp?.(type,unit,null,condition,unit.pos)?.[1];
+ const items=[terrainCopy|| (condition?buildingHelp(condition):`${type[0].toUpperCase()+type.slice(1)}: ${cover?'incoming fire needs +1 on the die':'no terrain cover bonus'}. Entering this terrain costs ${['woods','building','tower'].includes(type)?2:1} action(s).`),
   `Range ${unit.range} hexes. Intervening woods, buildings and smoke block direct fire. Strength is remaining health; zero removes the unit.`,
   state.ruleset==='dsl'?`DSL: ${base} base AP plus up to ${bank} banked AP. A paid road-to-road move earns one free connected road hex, once per turn. Firing costs 2 AP.`:`Actions refresh to 2 at the start of this army’s turn. Moving on open ground costs 1; firing costs 2.`];
  if(unit.pinned)items.push('PINNED: cannot move or attack. Rally costs 1 action. Pins remain until rallied; pinned units can still hold the objective.');
@@ -75,8 +76,8 @@ function combatCard(event,compact=false){
  else card.append(uiNode('strong','automatic-result',event.structure_roll!==undefined?'Infantry fragments · automatic effect':'Automatic effect · no dice roll'));
  if(event.structure_roll!==undefined)card.append(uiNode('p','combat-effect',`Building damage: rolled ${event.structure_roll} · needed ${event.structure_threshold}+${event.structure_roll>=event.structure_threshold?' · structural hit':' · no structural damage'}`));
  card.append(uiNode('p','combat-effect',event.result));
- for(const change of event.terrain_changes||[])card.append(uiNode('p','combat-impact',`${String.fromCharCode(65+change.pos[0])}${change.pos[1]+1} · building ${change.after==='destroyed'?'collapsed — ground entry blocked':'damaged — reduced cover'}`));
- for(const hit of event.impacts||[])if(hit.id!==event.target)card.append(uiNode('p','combat-impact',`${kinds[hit.kind]||hit.kind} · ${String.fromCharCode(65+hit.pos[0])}${hit.pos[1]+1}: ${hit.result}`));
+ for(const change of event.terrain_changes||[])card.append(uiNode('p','combat-impact',`${hexColumn(change.pos[0])}${change.pos[1]+1} · building ${change.after==='destroyed'?'collapsed — ground entry blocked':'damaged — reduced cover'}`));
+ for(const hit of event.impacts||[])if(hit.id!==event.target)card.append(uiNode('p','combat-impact',`${kinds[hit.kind]||hit.kind} · ${hexColumn(hit.pos[0])}${hit.pos[1]+1}: ${hit.result}`));
  if(event.note)card.append(uiNode('p','mechanics-caption',event.note));
  return card;
 }

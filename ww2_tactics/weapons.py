@@ -4,8 +4,9 @@ Profiles are capabilities, not scenario rules. New unit types can supply weapon,
 protection, tracked, ammo_options and weapon_overrides without changing resolvers.
 The version lives in the saved match; old matches retain their original rules.
 """
+from .coordinates import column
 from .visibility import active
-from . import buildings, operations
+from . import buildings, operations, fieldworks
 
 VERSION = 1
 PROFILES = {
@@ -68,7 +69,7 @@ def initialize(state):
             for key, value in dict(command_radius=4, artillery_range=12, artillery_charges=2,
                                    field_recon_range=12, field_recon_charges=2).items():
                 unit.setdefault(key, value)
-    return buildings.initialize(operations.initialize(state))
+    return fieldworks.initialize(buildings.initialize(operations.initialize(state)))
 
 
 def profile(unit, weapon=None):
@@ -216,7 +217,7 @@ def action(state, unit, order, legal, roll):
         area = [[x, y] for y in range(board['height']) for x in range(board['width']) if distance(pos, [x, y]) <= 1]
         state.setdefault('barrages', []).append(dict(side=unit['side'], pos=pos, area=area, ttl=2,
                                                     attacker=unit['id'], weapon='artillery'))
-        return f"Artillery called at {chr(65+pos[0])}{pos[1]+1}. Impact at the end of the enemy turn; clear marked hexes. 2 AP."
+        return f"Artillery called at {column(pos[0])}{pos[1]+1}. Impact at the end of the enemy turn; clear marked hexes. 2 AP."
     if kind == 'bombard' and order.get('pos') in legal.get('bombard', []):
         pos = list(order['pos']); die = roll(); unit['ap'] -= 2
         unit.update(overwatch=False, road_pending=False)
@@ -234,7 +235,7 @@ def action(state, unit, order, legal, roll):
             result=result, impacts=impacts, aim=pos, revision=state['revision']+1)
         record_combat(state, note='2 AP. No sight required. Natural 6 hits the aimed hex; infantry there is destroyed, adjacent infantry takes 1 damage and pins. Friendly fire applies. Hidden results stay unknown.')
         record_effect(state, 'explosion', [pos])
-        return f"Bombardment at {chr(65+pos[0])}{pos[1]+1}: rolled {die}, needed 6. {result}."
+        return f"Bombardment at {column(pos[0])}{pos[1]+1}: rolled {die}, needed 6. {result}."
     raise ValueError('That ammunition, track repair or bombardment order is unavailable.')
 
 

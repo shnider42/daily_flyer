@@ -57,6 +57,9 @@ def omaha_roster():
 
 
 def setup(board):
+    if board['campaign']=='tidal_gate':
+        from .tidal_gate import roster as tidal_roster
+        return tidal_roster()
     if board['campaign']=='stalingrad':return stalingrad_roster()
     if board['campaign']=='omaha':return omaha_roster()
     from .western import roster as western_roster

@@ -2,6 +2,7 @@
 
 Faction identity is saved separately: Midway's second seat commands Japan.
 """
+from .coordinates import column
 import copy
 import secrets
 from .rulesets import base_ap, bank_limit
@@ -154,7 +155,7 @@ def apply(state,side,action,roll=None):
                 raise ValueError('That building has collapsed. Choose another route.')
             cost=next(m['cost'] for m in legal['moves'] if m['pos']==action['pos'])
             unit['pos']=list(action['pos']);unit['ap']-=cost
-            message=f"{FACTIONS[side]} {unit['kind']} moved to {chr(65+unit['pos'][0])}{unit['pos'][1]+1}."
+            message=f"{FACTIONS[side]} {unit['kind']} moved to {column(unit['pos'][0])}{unit['pos'][1]+1}."
         elif kind=='recon' and action.get('pos') in legal['recon']:
             unit['ap']-=1;unit['recon_used']=True
             state['recon'].append(dict(side=side,pos=list(action['pos']),radius=3,ttl=2))

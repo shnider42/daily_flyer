@@ -1,0 +1,15 @@
+:is(#map,#playbackMap,#scenarioPreview) .hex.beach:not(.move):not(.combat-choice){fill:#e2d1a4}
+:is(#map,#playbackMap,#scenarioPreview) .hex.marsh:not(.move):not(.combat-choice){fill:#789b8e}
+:is(#map,#playbackMap,#scenarioPreview) .hex.bocage:not(.move):not(.combat-choice){fill:#718951}
+:is(#map,#playbackMap,#scenarioPreview) .hex.bunker:not(.move):not(.combat-choice){fill:#939788}
+:is(#map,#playbackMap,#scenarioPreview) .hex.causeway:not(.move):not(.combat-choice){fill:#beab80}
+:is(#map,#playbackMap,#scenarioPreview) .hex.rubble:not(.move):not(.combat-choice){fill:#b1ab93}
+.linked-marker{pointer-events:none}.linked-marker circle{fill:none;stroke:#ffefb8;stroke-width:3;stroke-dasharray:6 3}
+.linked-marker text{font-size:12px;font-weight:800;fill:#fff6d3;paint-order:stroke;stroke:#263d30;stroke-width:3}
+.linked-marker.us circle{stroke:#95edb3}.linked-marker.de circle{stroke:#f7a594}
+.engineering-choice{fill:#fbeec899;stroke:#5c4017;stroke-width:3;stroke-dasharray:5 2;cursor:pointer}
+.engineering-choice:hover,.engineering-choice:focus{fill:#ffe093dd;stroke:#111;outline:none}
+#missionSectors{display:flex;flex-wrap:wrap;gap:8px;margin:12px 0}#missionSectors button{min-height:40px}
+#missionFlags{padding:10px;background:#e8eadf;color:#233f30;font-weight:650;border-left:4px solid #8b763d}
+.unit.us.platoon-D,body[data-battle-side="us"] [data-platoon="D"]{--platoon-color:#336d83}
+.unit.de.platoon-D,body[data-battle-side="de"] [data-platoon="D"]{--platoon-color:#76503b}

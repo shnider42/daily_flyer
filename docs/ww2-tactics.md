@@ -1,5 +1,13 @@
 # DSL — WWII tactical game
 
+## Operation Tidal Gate
+
+A 36×44 combined-arms operation with 64 units, 14 roles, two landings, airborne
+pockets and linked objectives. New DSL ground battles share engineer hedge
+breaching, rubble clearance and narrow-gap bridging. Read [the scenario and
+reusable rules](ww2-tidal-gate.md) for objectives, reserves, terrain, compatibility
+and playtesting. Start a new battle; existing saves keep their original rules.
+
 ## New theaters and home-page refresh
 
 Stalingrad, Omaha Beach and the Battle of Britain air-combat sandbox are available

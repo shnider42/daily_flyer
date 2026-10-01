@@ -1,4 +1,5 @@
 """Presentation-only snapshots; no dice or rules are evaluated here."""
+from .coordinates import column
 import copy
 
 
@@ -19,7 +20,7 @@ def record_combat(state, modifiers=None, note=None):
             if unit.get('platoon'):
                 role += f" {unit['platoon']}{unit['number']}"
             faction=state.get('factions',{}).get(unit['side'],unit['side'].upper())
-            event[key+'_label'] = f"{faction} {role} · {chr(65+unit['pos'][0])}{unit['pos'][1]+1}"
+            event[key+'_label'] = f"{faction} {role} · {column(unit['pos'][0])}{unit['pos'][1]+1}"
     state['combat_sequence'] = state.get('combat_sequence', 0)+1
     event['sequence'] = state['combat_sequence']
     state['last_combat'] = event

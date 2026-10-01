@@ -81,7 +81,7 @@
   [...$('roster').children].forEach((b,i)=>{const u=troops[i];b.textContent=`${unitCodes[u.kind]} ${u.platoon}${u.number} · ${u.hp>0?`${u.hp}/${u.max_hp} ${u.kind==='amphibious'?'troops':'hull'} · ${u.ap} AP`:'Lost'}`;});
   if(reconUnit){
    $('hint').textContent='Choose a sea hex to search · reveals radius 3 until the enemy turn ends.';
-   for(const pos of legal.recon){const tile=element('polygon',{points:hexPoints(...pos),class:'recon-choice',role:'button',tabindex:0,'aria-label':`Search ${String.fromCharCode(65+pos[0])}${pos[1]+1}`});activate(tile,()=>{reconUnit=null;act({kind:'recon',unit:unit.id,pos});});svg.append(tile);}
+   for(const pos of legal.recon){const tile=element('polygon',{points:hexPoints(...pos),class:'recon-choice',role:'button',tabindex:0,'aria-label':`Search ${hexColumn(pos[0])}${pos[1]+1}`});activate(tile,()=>{reconUnit=null;act({kind:'recon',unit:unit.id,pos});});svg.append(tile);}
   }
  };
  document.addEventListener('ww2:playback',()=>{if(state?.naval_version&&playbackSession)zone($('playbackMap'),playbackSession.frames[playbackSession.index][playbackSession.phase]);});
