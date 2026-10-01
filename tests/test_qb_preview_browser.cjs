@@ -1,7 +1,7 @@
 /* Local, isolated usability regressions. Human comprehension still needs review. */
 const assert=require('node:assert/strict'),fs=require('node:fs'),os=require('node:os'),path=require('node:path');
 const {spawn}=require('node:child_process'),{chromium}=require('playwright');
-const folder=fs.mkdtempSync(path.join(os.tmpdir(),'qb-preview-test-')),port=8784,base=`http://127.0.0.1:${port}`,url=base+'/?theme=qb_year_two_preview';
+const folder=fs.mkdtempSync(path.join(os.tmpdir(),'qb-preview-test-')),port=8784,base=`http://127.0.0.1:${port}`,url=base+'/?theme=qb_year_two_preview&classic=1';
 const server=spawn(process.env.PYTHON||'python',['-m','flask','--app','web','run','--port',String(port)],{cwd:path.resolve(__dirname,'..'),env:{...process.env,YEAR_TWO_DATA_DIR:folder,QB_PRESET_DB:path.join(folder,'qb.sqlite3')}});
 let browser;const errors=[],axes=p=>p.locator('#qp-charts svg').evaluateAll(es=>es.map(e=>[e.dataset.lo,e.dataset.hi,e.dataset.end||''].join(':')));
 const data=p=>p.evaluate(()=>QBPreview.getState());

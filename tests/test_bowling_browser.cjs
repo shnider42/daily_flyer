@@ -1,7 +1,7 @@
 /* Bowling plus cross-sport checks; every database is temporary. */
 const assert=require('node:assert/strict'),fs=require('node:fs'),os=require('node:os'),path=require('node:path');
 const {spawn}=require('node:child_process'),{chromium}=require('playwright');
-const folder=fs.mkdtempSync(path.join(os.tmpdir(),'bowling-test-')),port=8782,base=`http://127.0.0.1:${port}`,url=base+'/?theme=bowling_year_two';
+const folder=fs.mkdtempSync(path.join(os.tmpdir(),'bowling-test-')),port=8782,base=`http://127.0.0.1:${port}`,url=base+'/?theme=bowling_year_two&classic=1';
 const server=spawn(process.env.PYTHON||'python',['-m','flask','--app','web','run','--port',String(port)],{cwd:path.resolve(__dirname,'..'),env:{...process.env,YEAR_TWO_DATA_DIR:folder,BOWLING_PRESET_DB:path.join(folder,'bowling.sqlite3'),BASEBALL_PRESET_DB:path.join(folder,'baseball.sqlite3'),QB_PRESET_DB:path.join(folder,'qb.sqlite3')}});
 let browser;const errors=[];
 const level=(p,l)=>p.click(`#yt-levels [data-detail-level=${l}]`);
@@ -31,10 +31,10 @@ const level=(p,l)=>p.click(`#yt-levels [data-detail-level=${l}]`);
  await page.locator('details').filter({has:page.locator('#bw-csv')}).locator('summary').click();
  const downloadPromise=page.waitForEvent('download');await page.click('#bw-csv');const d=await downloadPromise;const csv=fs.readFileSync(await d.path(),'utf8');assert.ok(csv.includes('https://www.pba.com/players/ej-tackett'));
  // Three separate sports retain individual views while sharing the detail preference.
- await page.click('.yt-sports a[href="?theme=baseball_year_two"]');await page.locator('.bb-dot').first().waitFor();assert.equal(await page.locator('#bb-app').getAttribute('data-detail'),'full');
+ await page.click('.yt-sports a[href*="theme=baseball_year_two"]');await page.locator('.bb-dot').first().waitFor();assert.equal(await page.locator('#bb-app').getAttribute('data-detail'),'full');
  assert.equal(await page.locator('#bb-stories button').first().getAttribute('data-story'),'boston');
- await page.click('.yt-sports a[href="?theme=qb_year_two"]');await page.locator('.qb-dot').first().waitFor();
- await page.click('.yt-sports a[href="?theme=bowling_year_two"]');await page.locator('.bw-dot').first().waitFor();assert.equal(await page.locator('#bw-metric').inputValue(),'earnings_per_event');
+ await page.click('.yt-sports a[href*="theme=qb_year_two"]');await page.locator('.qb-dot').first().waitFor();
+ await page.click('.yt-sports a[href*="theme=bowling_year_two"]');await page.locator('.bw-dot').first().waitFor();assert.equal(await page.locator('#bw-metric').inputValue(),'earnings_per_event');
  // Touch inspection, true tall height, width-only redraw, and selection persistence.
  const mobile=await browser.newPage({viewport:{width:390,height:844},isMobile:true,hasTouch:true});mobile.on('pageerror',e=>errors.push(e.message));
  await mobile.goto(url);await mobile.locator('.bw-dot').first().waitFor();assert.equal(await mobile.locator('#bw-selection').getAttribute('open'),null);

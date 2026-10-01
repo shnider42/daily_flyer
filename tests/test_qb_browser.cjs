@@ -29,7 +29,7 @@ async function pinned(page,id){
   const mobile=await browser.newPage({viewport:{width:390,height:844},isMobile:true,hasTouch:true});
   mobile.on('pageerror',e=>errors.push(e.message));
   await mobile.addInitScript(()=>localStorage.setItem('year-two-detail-v1','full'));
-  await mobile.goto(`http://127.0.0.1:${port}`);
+  await mobile.goto(`http://127.0.0.1:${port}/?classic=1`);
   await mobile.locator('#qb-chart .qb-dot').first().waitFor();
   assert.equal(await mobile.locator('select:visible').count(),1,'Mobile must not expose a wall of settings');
   assert.equal(await mobile.locator('#qb-settings').getAttribute('open'),null);
@@ -93,7 +93,7 @@ async function pinned(page,id){
   assert.ok(csv.includes('"relative_anya"'));
   const desktop=await browser.newPage({viewport:{width:1440,height:1000}});desktop.on('pageerror',e=>errors.push(e.message));
   await desktop.addInitScript(()=>localStorage.setItem('year-two-detail-v1','full'));
-  await desktop.goto(`http://127.0.0.1:${port}`);await desktop.locator('#qb-chart .qb-dot').first().waitFor();
+  await desktop.goto(`http://127.0.0.1:${port}/?classic=1`);await desktop.locator('#qb-chart .qb-dot').first().waitFor();
   assert.equal(await desktop.locator('#qb-settings').getAttribute('open'),null);
   await desktop.locator('#qb-settings>summary').click();
   await desktop.locator('[data-series="YounSt00"] .qb-dot').nth(1).hover();assert.equal(await focus(desktop),'','Mouse hover is not a pin');
@@ -163,7 +163,7 @@ async function pinned(page,id){
   const stories=await browser.newPage({viewport:{width:1440,height:1000}});
   stories.on('pageerror',e=>errors.push(e.message));
   await stories.addInitScript(()=>localStorage.setItem('year-two-detail-v1','full'));
-  await stories.goto(`http://127.0.0.1:${port}`);
+  await stories.goto(`http://127.0.0.1:${port}/?classic=1`);
   const custom=await stories.evaluate(()=>{
     const value={...JSON.parse(localStorage.getItem('qb-year-two-v1')),search:'Brady',metric:'rating',colors:'player',
       view:'performance',window:'all',scale:'symlog',normalize:'delta',layout:'overlay',focus:'BradTo00',focusYear:2002,

@@ -1,6 +1,10 @@
 # Soph(more) Slump(?) — visualization standard and audit
 
-Status: proposed standard, with one football prototype for human evaluation.
+Status: the original v3.4.1 audit is retained below. The user requested simultaneous
+cross-sport functionality after reviewing that prototype; v3.5.0 now uses the
+[shared chart contract](shared_sports_charts.md) across all sports. Its shared
+graph option and optional interpretation lines supersede the initial panel-only,
+football-first rollout scope below.
 Audit baseline: `31c797528430685b00e2a271f5ab274b8779648e` (v3.4.0).
 Prepared: 2026-10-01 UTC. The source datasets are frozen for this work.
 

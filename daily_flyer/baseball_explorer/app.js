@@ -84,6 +84,7 @@
     if(state.mode==='research')renderResearch(list);
     if(state.mode==='scan')renderScan(list);
     save();
+    YearTwoCharts.refresh('baseball');
   }
   function hashColor(value){let hash=0;for(const c of value)hash=(hash*31+c.charCodeAt(0))>>>0;return `hsl(${hash%360} 52% 34%)`;}
   function color(p,season){return state.colors==='hof'?(p.hof?'#986817':'#246780'):state.colors==='team'?hashColor(season?.team||p.seasons[0].team):palette[playerIndex.get(p.id)%palette.length];}
@@ -113,6 +114,7 @@
   $('charts').addEventListener('pointermove',e=>{if(pointer&&Math.hypot(e.clientX-pointer.x,e.clientY-pointer.y)>10)dragged=true;},{passive:true});
   $('charts').addEventListener('pointercancel',()=>{dragged=true;pointer=null;},{passive:true});
   function renderCompare(list){
+    if(YearTwoCharts.get('baseball'))return;
     $('question').textContent=state.view==='pair'?'Did performance rise or fall in year two?':state.view==='career'?'What happened after the second season?':'How long did the observed career continue?';
     $('purpose').textContent=state.view==='pair'?'Each line joins year one to the very next calendar season. The larger second marker is year two.':state.view==='career'?'Follow the career from its first substantial season. Gaps stay visible, and year two keeps the larger marker.':'Calendar span since the first substantial season. Gaps count in the span; active careers are unfinished. This is descriptive, not the prediction outcome.';
     renderCharts(list);
@@ -130,6 +132,7 @@
     $('table').querySelectorAll('button').forEach(e=>e.onclick=()=>toggle(e.dataset.toggle));
   }
   function renderCharts(list){
+    if(YearTwoCharts.get('baseball'))return;
     const ids=new Set(state.ids),selected=list.filter(p=>ids.has(p.id)),drawn=state.display==='all'?selected:selected.slice(0,Number(state.display));$('charts').replaceChildren();$('charts').classList.toggle('bb-separated',state.layout==='separate'&&state.view!=='span');
     $('selection-count').textContent=`${state.ids.length.toLocaleString()} selected · ${drawn.length.toLocaleString()} shown${state.ids.length>selected.length?' · '+(state.ids.length-selected.length).toLocaleString()+' outside current filters':''}`;
     $('show-all').hidden=drawn.length===selected.length;
@@ -336,6 +339,19 @@
   $('team').innerHTML='<option value="all">All teams</option>'+Object.entries(config.teams).sort((a,b)=>a[1].localeCompare(b[1])).map(([code,name])=>`<option value="${esc(code)}">${esc(name)} (${esc(code)})</option>`).join('');
   $('scan-target').innerHTML=$('outcome').innerHTML;$('selection').open=innerWidth>760;$('version').textContent='v'+config.build.version;$('total').textContent=(config.meta.counts.batting.players+config.meta.counts.pitching.players).toLocaleString();
   window.BaseballApp={config,clone,esc,loadRole,metricOptions,getState:()=>clone(state),applyPreset,updatePresets:next=>{presets=clone(next);if(generation)clearStory();storyButtons();},getPlayers:()=>players,defaults:roleDefaults};
+  YearTwoCharts.register({id:'baseball',host:'#bb-compare',app:'#bb-app',
+    model:()=>players.length?{players,ids:state.ids,metric:state.metric,metrics:Object.fromEntries(Object.entries(config.metrics[state.role]).map(([key,m])=>[key,{...m,unit:key.endsWith('_pct')?'%':m.name}])),dataset:state.role,active:state.mode==='compare',
+      settings:{layout:state.layout,height:state.height,window:state.view==='pair'?'2':state.window,normalize:state.normalize==='delta'?'delta':'raw'},
+      clock:`Year 1 = first ${state.role==='batting'?'300-plate-appearance hitting':'50-inning pitching'} season. Year 2 = the next calendar season. Hitting and pitching use independent study starts.`,
+      source:'Lahman Baseball Database / SABR, via Sean Lahman (CC BY-SA 3.0)',sourceUrl:'https://sabr.org/lahman-database/',through:config.meta.through,
+      coverage:`Snapshot through ${config.meta.through}. Selected players only; cohort filters do not hide selected lines here.`,
+      info:p=>({links:p.bref&&/^[a-zA-Z0-9]+$/.test(p.bref)?[{label:'Baseball-Reference player record',url:`https://www.baseball-reference.com/players/${p.bref[0]}/${p.bref}.shtml`}]:[]}),
+      small:(p,r)=>!r.qualifies,context:(p,r,year)=>year>config.meta.through?'Outside snapshot':!r?'No season row':`${workload(r)} · ${r.team}${r.qualifies?'':' · below the study workload threshold'}`}:null,
+    set:patch=>{if(patch.ids)state.ids=patch.ids.filter(id=>byId.has(id));if(patch.metric&&config.metrics[state.role][patch.metric])state.metric=patch.metric;
+      for(const k of ['layout','height','normalize'])if(patch[k])state[k]=patch[k];
+      if(patch.window){state.view=patch.window==='2'?'pair':'career';if(patch.window!=='2')state.window=patch.window;}
+      changed();}
+  });
   storyButtons();
   if(!saved.state){busy=true;const start=()=>applyPreset(presets.find(p=>p.id==='boston'),false,true).catch(()=>{$('load').innerHTML='Boston beginnings could not load. <button id="bb-retry">Retry</button>';$('retry').onclick=start;});start();}
   else activate(state,true);

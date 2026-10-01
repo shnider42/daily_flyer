@@ -156,6 +156,7 @@
     return svg+'</svg>';
   }
   function compare(){
+    if(YearTwoCharts.get('bowling'))return;
     const list=selected(),pairs=list.map(p=>M.pair(p,state.metric,state.threshold)),measured=pairs.filter(q=>M.finite(q.delta)),ups=measured.filter(q=>q.delta>0).length,downs=measured.filter(q=>q.delta<0).length;
     $('takeaway').textContent=list.length?`${list.length} bowlers · ${data().metrics[state.metric].name.toLowerCase()}. ${measured.length} have a measured first-to-second-year comparison: ${ups} rose, ${downs} fell and ${measured.length-ups-downs} stayed level.`:'No selected bowlers match. Use Add / remove bowlers above to choose names.';
     $('reading').textContent=`Up the side: ${data().metrics[state.metric].name.toLowerCase()} (${data().metrics[state.metric].unit}). Along the bottom: ${state.timeline==='calendar'?`calendar years in ${sourceName()} results`:`years from each bowler’s ${baseline()}`}. ${state.layout==='overlay'?'Each named line is one bowler. Tap a name to highlight that line.':'Separate graphs share the same axes.'}`;
@@ -198,7 +199,7 @@
     const p=presets.find(p=>p.id===active);
     $('story-title').textContent=p?.title||(state.mode==='compare'?'Your bowling comparison':'Your later-career question');
     $('story-note').textContent=(p?.note?p.note+' ':'')+`${data().metrics[state.metric].name} · baseline ${state.threshold} ${unit()} · ${state.mode==='research'?'full filtered cohort':state.view==='career'?'recorded history from baseline':'year one to year two'}.`;
-    if(state.mode==='compare')compare();else research();persist();
+    if(state.mode==='compare')compare();else research();persist();YearTwoCharts.refresh('bowling');
   }
   function download(name,text,type){const blob=new Blob([text],{type}),url=URL.createObjectURL(blob),a=document.createElement('a');a.href=url;a.download=name;a.click();setTimeout(()=>URL.revokeObjectURL(url),1000);}
   function csv(rows){return rows.map(row=>row.map(v=>'"'+String(v??'').replace(/"/g,'""')+'"').join(',')).join('\r\n');}
@@ -251,5 +252,18 @@
   $('source-summary').textContent=`Retrieved ${config.meta.retrieved_at.slice(0,10)}. ${config.meta.directory_count} directory profiles checked; ${config.meta.directory_count-config.meta.players} had no usable season rows. ${config.meta.refresh} USBC: retrieved ${config.usbc.meta.retrieved_at.slice(0,10)}, ${config.usbc.meta.complete_averages} verified scoring averages and ${config.usbc.meta.profile_count} Team USA biographies.`;
   if(innerWidth>760)$('filters').open=true;
   window.BowlingApp={config,clone,esc,valid,download,apply,getState:()=>clone(state),updatePresets(value){presets=clone(value);storyButtons();},summary:s=>`${metricsFor(s)[s.metric].name} · ${s.dataset==='usbc'?'USBC Trials':'PBA profiles'} · ${s.threshold} ${s.dataset==='usbc'?'games':'events'} · ${s.division} · ${s.mode} · ${s.view} · ${s.timeline==='calendar'?'calendar years':'years from baseline'} · ${s.layout} · ${s.height} · ${s.ids.map(id=>known.get(id)?.name).join(', ')}`};
+  YearTwoCharts.register({id:'bowling',host:'#bw-compare',app:'#bw-app',
+    model:()=>({players:data().players.map(p=>({...p,first:M.anchor(p,state.threshold)})),ids:state.ids,metric:state.metric,metrics:data().metrics,dataset:state.dataset,active:state.mode==='compare',
+      available:data().players.filter(p=>!usbc()||state.division==='all'||p.division===state.division).map(p=>({...p,first:M.anchor(p,state.threshold)})),
+      settings:{layout:state.layout,height:state.height,window:state.view==='pair'?'2':'all',normalize:state.normalize,timeline:state.timeline},
+      clock:usbc()?'Year 1 = first complete 30-game Trials entry in the 2022–2026 snapshot, not a professional debut. Year 2 = the next calendar year.':`Year 1 = first listed PBA profile year with at least ${state.threshold} events. Year 2 = the next calendar year; this is not an official rookie clock.`,
+      source:usbc()?'USBC / bowl.com Team USA Trials':'PBA.com career profile tables',sourceUrl:usbc()?'/daily_flyer/data/bowling_usbc_sources.json':'/daily_flyer/data/bowling_sources.json',through:data().meta.through,
+      coverage:usbc()?'Separate men’s and women’s tournament records, 2022–2026. Selected players only.':'Profile seasons through 2025, not national Tour-only results. Selected players only.',
+      info:(p,row)=>({text:[p.hometown,p.profile?.college?'College: '+p.profile.college:'',p.profile?.team_usa_years?'Team USA: '+p.profile.team_usa_years:''].filter(Boolean).join(' · '),links:[{label:usbc()?'USBC official results':'PBA profile',url:row?.source||p.source},...(p.profile?.source?[{label:'USBC player biography',url:p.profile.source}]:[])]}),
+      small:(p,r)=>(M.workload(p,r)??0)<Number(state.threshold),context:(p,r,year)=>year>data().meta.through?'Outside snapshot':!r?'No source row':`${M.workload(p,r)??'Unverified'} ${unit()}${usbc()?' · '+p.division+' · finish '+r.finish+' / '+r.field_size:''}${(M.workload(p,r)??0)<Number(state.threshold)?' · below study workload':''}`}),
+    set:patch=>{if(patch.ids)state.ids=patch.ids.filter(id=>data().players.some(p=>p.id===id));if(patch.metric&&data().metrics[patch.metric])state.metric=patch.metric;
+      for(const k of ['layout','height','normalize','timeline'])if(patch[k])state[k]=patch[k];
+      if(patch.window)state.view=patch.window==='2'?'pair':'career';manual();render();}
+  });
   render();lastWidth=document.querySelector('.bw-main').clientWidth;
 })();

@@ -124,7 +124,7 @@
     roster();
     if(list.length){charts();if(state.display==='table')table();else $('tbody').innerHTML='';}
     else{$('charts').innerHTML='';$('tbody').innerHTML='';$('pagination').hidden=true;$('scope').textContent='';$('axis-note').textContent='';}
-    save();
+    save();YearTwoCharts.refresh('football-preview');
   }
   function reset(){state=clone(defaults);search='';$('search').value='';$('picker').open=false;render();}
   function csv(){
@@ -151,6 +151,7 @@
   $('share').onclick=()=>{
     const url=new URL(location.href);url.search='';url.hash='';
     for(const [k,v] of Object.entries({theme:'qb_year_two_preview',players:state.ids.join(','),measure:state.metric,view:state.view,window:state.window,display:state.display}))url.searchParams.set(k,v);
+    if(params.get('classic')==='1')url.searchParams.set('classic','1');
     $('share-url').value=url.href;$('share-box').hidden=false;$('share-url').focus();$('share-url').select();
   };
   $('export').onclick=()=>{
@@ -164,5 +165,14 @@
   $('build').textContent=`Comparison preview · v${data.build.version}${data.build.commit?' · '+data.build.commit.slice(0,7):''}`;
   window.addEventListener('resize',()=>{cancelAnimationFrame(frame);frame=requestAnimationFrame(()=>{const width=$('comparison').clientWidth;if(width===lastWidth)return;lastWidth=width;if(state.display==='chart'&&selected().length)charts();});});
   window.QBPreview={getState:()=>clone(state),defaults:clone(defaults),csv,valid};
+  YearTwoCharts.register({id:'football-preview',host:'#qp-comparison',app:'#qp-app',
+    model:()=>({players:data.players,ids:state.ids,metric:state.metric,metrics:M.metrics,
+      settings:{window:state.view==='pair'?'2':state.window},
+      clock:'Year 1 = first season with at least 12 starts for one team. Year 2 = the next calendar season, not necessarily the second NFL season.',
+      source:'PFR-derived historical snapshot',sourceUrl:'/daily_flyer/data/qb_sources.json',through:data.meta.through,coverage:`${data.meta.season_start}–${data.meta.through}. Selected players only.`,
+      info:p=>({links:[{label:'Pro Football Reference player record',url:`https://www.pro-football-reference.com/players/${p.id[0]}/${p.id}.htm`}]}),
+      small:(p,r)=>!r.qualifies,context:(p,r,year)=>year>data.meta.through?'Outside snapshot':!r?'No season row':`${r.gs??'Unknown'} starts · ${r.att??'Unknown'} attempts${r.qualifies?'':' · below the 12-start single-team threshold'}`}),
+    set:patch=>{if(patch.ids)state.ids=patch.ids.filter(id=>known.has(id));if(patch.metric&&M.metrics[patch.metric])state.metric=patch.metric;if(patch.window){state.view=patch.window==='2'?'pair':'career';if(patch.window!=='2')state.window=patch.window;}render();}
+  });
   render();lastWidth=$('comparison').clientWidth;
 })();

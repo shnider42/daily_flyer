@@ -1,4 +1,9 @@
 """Navigation shared by the year-two study themes."""
+from pathlib import Path
+
+_ROOT = Path(__file__).resolve().parent
+CHART_CSS = (_ROOT / "year_two_chart.css").read_text()
+CHART_JS = "\n".join((_ROOT / name).read_text() for name in ("year_two_chart_math.js", "year_two_chart.js"))
 BOWLING_ICON = '<svg viewBox="0 0 64 64" aria-hidden="true"><circle cx="25" cy="37" r="23" fill="#bd6748" stroke="currentColor" stroke-width="2"/><g fill="#342c38"><circle cx="22" cy="24" r="4"/><circle cx="33" cy="27" r="4"/><circle cx="25" cy="35" r="4"/></g><path d="M48 4c-8 0-7 9-4 15 3 7-5 13-5 27 0 10 19 10 19 0 0-14-8-20-5-27 3-6 4-15-5-15Z" fill="#fff4d9" stroke="#aa947e" stroke-width="2"/><path d="M44 19h10m-10 5h10" stroke="#ba493d" stroke-width="3"/></svg>'
 FOOTBALL_ICON = '<svg viewBox="0 0 64 40" aria-hidden="true"><path d="M3 20Q32-13 61 20Q32 53 3 20Z" fill="#ad6539" stroke="currentColor" stroke-width="2"/><path d="M20 20H44M26 14V26M33 14V26M40 14V26" stroke="#fff3d7" stroke-width="2"/></svg>'
 BASEBALL_ICON = '<svg viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="29" fill="#fff5dd" stroke="#d7c9ab" stroke-width="2"/><path d="M13 10Q35 32 13 54M51 10Q29 32 51 54" fill="none" stroke="#b44230" stroke-width="2"/><path d="M16 17l-6 2M21 25l-7 1M21 34l-7-1M18 43l-7-2M48 17l6 2M43 25l7 1M43 34l7-1M46 43l7-2" stroke="#b44230" stroke-width="2"/></svg>'

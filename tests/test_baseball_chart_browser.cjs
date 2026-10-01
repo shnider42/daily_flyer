@@ -1,7 +1,7 @@
 /* Chart readability regression, including actual iPhone-width geometry and touch. */
 const assert=require('node:assert/strict'),fs=require('node:fs'),os=require('node:os'),path=require('node:path');
 const {spawn}=require('node:child_process'),{chromium}=require('playwright');
-const folder=fs.mkdtempSync(path.join(os.tmpdir(),'bb-chart-')),port=8776,url=`http://127.0.0.1:${port}/?theme=baseball_year_two`;
+const folder=fs.mkdtempSync(path.join(os.tmpdir(),'bb-chart-')),port=8776,url=`http://127.0.0.1:${port}/?theme=baseball_year_two&classic=1`;
 const server=spawn(process.env.PYTHON||'python',['-m','flask','--app','web','run','--port',String(port)],{cwd:path.resolve(__dirname,'..'),env:{...process.env,BASEBALL_PRESET_DB:path.join(folder,'bb.sqlite3'),QB_PRESET_DB:path.join(folder,'qb.sqlite3')}});
 let browser;const errors=[];
 const story=async(page,id)=>{await page.click(`[data-story=${id}]`);await page.waitForFunction(id=>document.querySelector(`[data-story=${id}]`).getAttribute('aria-pressed')==='true',id);};

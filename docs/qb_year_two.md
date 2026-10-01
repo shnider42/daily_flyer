@@ -18,6 +18,16 @@ Or use `/?theme=qb_year_two` on a service deploying this branch. No API key,
 database, background job, chart CDN or new production dependency is required.
 This change does not deploy or merge the branch.
 
+## Version 3.5.0 — shared chart system across sports
+
+Football, baseball and bowling now use one shared chart component on their normal
+comparison pages. All selected players can share one graph, with multi-player
+highlighting, consistent height/time/marker controls and optional linear trends,
+three-year moving averages, mean/median lines and custom/zero references.
+The earlier compact football page also uses this component. Datasets and shared
+presets are unchanged. See [shared sports charts](shared_sports_charts.md) for
+calculation rules, the adapter contract, storage behavior and verification.
+
 ## Version 3.4.1 — opt-in comparison preview
 
 The football page now offers “Try the new, simpler football comparison” at

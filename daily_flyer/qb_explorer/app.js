@@ -127,6 +127,7 @@
     restoreInspection();save();
   }
   function renderChart(players) {
+    if(YearTwoCharts.get('football'))return;
     syncGraphControls();
     const career = state.view === 'career', separate = !career && state.layout === 'separate';
     const mode = career ? 'raw' : state.normalize;
@@ -335,6 +336,7 @@
     $('filter-warning').textContent=state.y2qual?'Only year-two 12-start survivors are included. This omits players who lost starts.':'Year two stays in the study even with fewer starts.';
     document.querySelectorAll('[data-view]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.view===state.view)));
     save();
+    YearTwoCharts.refresh('football');
   }
   function loadFilmState(next){
     Object.assign(state,next,{ids:new Set(next.ids)});
@@ -450,6 +452,20 @@
     if(window.innerWidth===lastWidth)return; // Mobile browser chrome changes height while scrolling.
     lastWidth=window.innerWidth;clearTimeout(resize);
     resize=setTimeout(()=>renderChart(filtered().filter(p=>state.ids.has(p.id))),150);
+  });
+  YearTwoCharts.register({id:'football',host:'#qb-film',app:'#qb-app',
+    model:()=>({players:data.players,ids:[...state.ids],metric:state.metric,
+      metrics:Object.fromEntries(Object.entries(metrics).map(([key,m])=>[key,{name:m[0],digits:m[1],note:m[3],unit:({relative_anya:'yards / dropback',anya:'yards / dropback',rating:'rating points',cmp_pct:'%',td_pct:'%',int_pct:'%',ypg:'yards / game',yards:'yards',td:'touchdowns',int:'interceptions',gs:'starts'})[key]}])),
+      settings:{layout:state.layout,height:state.height,window:state.view==='year2'?'2':state.window,normalize:state.normalize==='delta'?'delta':'raw'},
+      clock:'Year 1 = first season with at least 12 starts for one team. Year 2 = the next calendar season, not necessarily the second NFL season.',
+      source:'PFR-derived historical snapshot',sourceUrl:'/daily_flyer/data/qb_sources.json',through:data.meta.through,
+      coverage:`${data.meta.season_start}–${data.meta.through}. Selected players only; cohort filters do not hide selected lines here.`,
+      info:p=>({links:[{label:'Pro Football Reference player record',url:`https://www.pro-football-reference.com/players/${p.id[0]}/${p.id}.htm`}]}),
+      small:(p,r)=>!r.qualifies,context:(p,r,year)=>year>data.meta.through?'Outside snapshot':!r?'No season row':`${r.gs??'Unknown'} starts · ${r.att??'Unknown'} attempts${r.qualifies?'':' · below the 12-start single-team threshold'}`}),
+    set:patch=>{if(patch.ids)state.ids=new Set(patch.ids.filter(id=>data.players.some(p=>p.id===id)));if(patch.metric&&metrics[patch.metric]){state.metric=patch.metric;$('metric').value=state.metric;}
+      for(const k of ['layout','height','normalize'])if(patch[k])state[k]=patch[k];
+      if(patch.window){state.view=patch.window==='2'?'year2':'performance';if(patch.window!=='2')state.window=patch.window;}
+      render();}
   });
   render();
 })();

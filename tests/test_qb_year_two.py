@@ -103,7 +103,7 @@ class SnapshotTests(unittest.TestCase):
         with patch.dict('os.environ', {'RENDER_GIT_COMMIT': 'a' * 40}):
             self.assertEqual(build_info()['commit'], 'a' * 40)
             response = app.test_client().get('/?theme=qb_year_two')
-            self.assertIn(b'"version":"3.4.1"', response.data)
+            self.assertIn(b'"version":"3.5.0"', response.data)
             self.assertIn(b'"commit":"' + b'a' * 40 + b'"', response.data)
         with patch.dict('os.environ', {'RENDER_GIT_COMMIT': ''}):
             self.assertIsNone(build_info()['commit'])

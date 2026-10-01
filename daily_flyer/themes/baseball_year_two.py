@@ -2,7 +2,7 @@ from pathlib import Path
 import json
 from daily_flyer.models import CardItem, PageContext
 from daily_flyer.utils import resolve_date
-from daily_flyer.year_two_sports import sport_switch, SPORT_CSS, BASEBALL_ICON
+from daily_flyer.year_two_sports import sport_switch, SPORT_CSS, BASEBALL_ICON, CHART_CSS, CHART_JS
 from daily_flyer.themes.qb_year_two import build_info
 from daily_flyer.baseball_explorer.data import load_dataset
 from daily_flyer.baseball_explorer.presets import DEFAULTS, factory_presets, page_presets
@@ -23,8 +23,8 @@ def build_theme_page(date_str=None, seed=None):
     encoded = json.dumps(config, ensure_ascii=False, separators=(",", ":")).replace("<", "\\u003c")
     return PageContext(**THEME_CONFIG, today_str=resolve_date(date_str).isoformat(),
         cards=[CardItem(card_type="baseball_explorer", eyebrow="", title="", body=(ASSETS/"page.html").read_text().replace("<!-- SPORT_SWITCH -->", sport_switch("baseball")).replace("<!-- BASEBALL_ICON -->", BASEBALL_ICON))],
-        metadata=dict(theme_name="baseball_year_two", extra_css=(ASSETS/"style.css").read_text()+SPORT_CSS+(ASSETS.parent/"year_two_view.css").read_text(),
+        metadata=dict(theme_name="baseball_year_two", extra_css=(ASSETS/"style.css").read_text()+SPORT_CSS+(ASSETS.parent/"year_two_view.css").read_text()+CHART_CSS,
                       extra_head_html='<script type="application/json" id="bb-data">'+encoded+'</script>',
                       extra_js="\n".join([
-                          (ASSETS.parent/"preset_backup.js").read_text(), (ASSETS.parent/"year_two_view.js").read_text(), (SHARED/"chart_math.js").read_text(), (SHARED/"research_math.js").read_text(),
+                          CHART_JS, (ASSETS.parent/"preset_backup.js").read_text(), (ASSETS.parent/"year_two_view.js").read_text(), (SHARED/"chart_math.js").read_text(), (SHARED/"research_math.js").read_text(),
                           (ASSETS/"research.js").read_text(), (ASSETS/"chart_guide.js").read_text(), (ASSETS/"app.js").read_text(), (ASSETS/"admin.js").read_text()])))

@@ -1,7 +1,7 @@
 /* Isolated integration run: no live/persistent preset database is touched. */
 const assert=require('node:assert/strict'),fs=require('node:fs'),os=require('node:os'),path=require('node:path');
 const {spawn}=require('node:child_process'),{chromium}=require('playwright');
-const folder=fs.mkdtempSync(path.join(os.tmpdir(),'baseball-browser-')),port=8772,url=`http://127.0.0.1:${port}/?theme=baseball_year_two`;
+const folder=fs.mkdtempSync(path.join(os.tmpdir(),'baseball-browser-')),port=8772,url=`http://127.0.0.1:${port}/?theme=baseball_year_two&classic=1`;
 const server=spawn(process.env.PYTHON||'python',['-m','flask','--app','web','run','--port',String(port)],{cwd:path.resolve(__dirname,'..'),env:{...process.env,BASEBALL_PRESET_DB:path.join(folder,'baseball.sqlite3'),QB_PRESET_DB:path.join(folder,'football.sqlite3')}});
 const errors=[];let browser;
 const waitState=(page,key,value)=>page.waitForFunction(([key,value])=>window.BaseballApp?.getState()[key]===value,[key,value]);
@@ -58,9 +58,9 @@ async function screenshot(page,name){if(process.env.BASEBALL_SCREENSHOT_DIR)awai
   assert.ok(await original.evaluate(e=>e.isConnected),'Height-only browser chrome changes must not rebuild the chart');
   for(const width of [320,390,768,1024]){await mobile.setViewportSize({width,height:844});await mobile.waitForTimeout(200);assert.ok(await mobile.evaluate(()=>document.body.scrollWidth<=innerWidth+1));assert.equal(await mobile.evaluate(()=>JSON.parse(localStorage.getItem('baseball-year-two-v1')).focus.id),pin);}
   // Each sport restores its own view and data; baseball data isn't requested by football.
-  await mobile.click('.yt-sports a[href="?theme=qb_year_two"]');await mobile.locator('#qb-chart .qb-dot').first().waitFor();
+  await mobile.click('.yt-sports a[href*="theme=qb_year_two"]');await mobile.locator('#qb-chart .qb-dot').first().waitFor();
   assert.equal(await mobile.locator('#bb-app').count(),0);
-  await mobile.click('.yt-sports a[href="?theme=baseball_year_two"]');await mobile.locator('.bb-dot').first().waitFor();assert.equal(await mobile.evaluate(()=>JSON.parse(localStorage.getItem('baseball-year-two-v1')).focus.id),pin);
+  await mobile.click('.yt-sports a[href*="theme=baseball_year_two"]');await mobile.locator('.bb-dot').first().waitFor();assert.equal(await mobile.evaluate(()=>JSON.parse(localStorage.getItem('baseball-year-two-v1')).focus.id),pin);
   // Shared public editing, preview isolation, and concurrent-edit conflict handling.
   await page.goto(url+'&preset_admin=1');await page.locator('#bb-admin-field-role').waitFor();
   const second=await browser.newPage();second.on('pageerror',e=>errors.push(e.message));await second.addInitScript(()=>localStorage.setItem('year-two-detail-v1','full'));
