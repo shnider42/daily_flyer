@@ -8,14 +8,21 @@
  function paint(svg,grid,conditions){
   if(!svg||!grid)return;
   const tile=svg.querySelector(':scope > .hex');
-  if(svg._terrainTile===tile&&svg._terrainDetailed===detailed&&svg._terrainBuildings===conditions)return;
-  svg._terrainTile=tile;svg._terrainDetailed=detailed;svg._terrainBuildings=conditions;
+  const terrainKey=JSON.stringify([grid,conditions]);
+  if(svg._terrainTile===tile&&svg._terrainDetailed===detailed&&svg._terrainKey===terrainKey)return;
+  svg._terrainTile=tile;svg._terrainDetailed=detailed;svg._terrainKey=terrainKey;
   svg.querySelectorAll('.terrain-art,.terrain-defs').forEach(n=>n.remove());
   const defs=shape('defs',{class:'terrain-defs'});svg.prepend(defs);
   // One reusable ocean texture avoids hundreds of individual clip masks and
   // wave paths on Midway. Hex polygons still provide the exact clipping edge.
   const waterId=`water-texture-${svg.id}`,water=shape('pattern',{id:waterId,patternUnits:'userSpaceOnUse',width:48,height:30});
   water.append(shape('path',{d:'M-24 5Q-12-1 0 5T24 5T48 5T72 5M-24 20Q-12 14 0 20T24 20T48 20T72 20',fill:'none',stroke:'#c9e4dd','stroke-width':1.3}),shape('path',{d:'M3 8l10-2M27 23l9 1',fill:'none',stroke:'#5d99a2','stroke-width':1}));defs.append(water);
+  // Reuse artwork by terrain/condition/road shape. The old per-hex trees and
+  // clip masks multiplied into tens of thousands of SVG nodes on large maps.
+  const symbols=new Map(),clipId=`terrain-clip-${svg.id}`;
+  const clip=shape('clipPath',{id:clipId});
+  clip.append(shape('polygon',{points:Array.from({length:6},(_,i)=>{const a=(60*i-30)*Math.PI/180;return `${30*Math.cos(a)},${30*Math.sin(a)}`;}).join(' ')}));defs.append(clip);
+  const stamp=(tile,symbol,cx,cy)=>tile.after(shape('use',{class:'terrain-art'+(symbol.classes?' '+symbol.classes:''),href:`#${symbol.id}`,x:cx,y:cy,'aria-hidden':'true'}));
   [...svg.querySelectorAll(':scope > .hex')].forEach((tile,i)=>{
    const x=i%grid[0].length,y=Math.floor(i/grid[0].length),type=grid[y]?.[x];if(!type)return;
    const structure=['building','tower','bunker'].includes(type),condition=structure&&conditions?(conditions[`${x},${y}`]||'intact'):null;
@@ -23,9 +30,19 @@
    if(condition)tile.dataset.buildingState=condition;else delete tile.dataset.buildingState;
    if(!detailed&&!(structure&&condition)&&type!=='tower')return;
    if(type==='water'){tile.after(shape('polygon',{class:'terrain-art',points:tile.getAttribute('points'),fill:`url(#${waterId})`,'aria-hidden':'true'}));return;}
-   const [cx,cy]=center(x,y),id=`terrain-${svg.id}-${i}`;
-   const clip=shape('clipPath',{id});clip.append(shape('polygon',{points:tile.getAttribute('points')}));defs.append(clip);
-   const outer=shape('g',{class:'terrain-art','clip-path':`url(#${id})`,'aria-hidden':'true'}),g=shape('g',{transform:`translate(${cx} ${cy})`});outer.append(g);tile.after(outer);
+   const [cx,cy]=center(x,y),links=[];
+   if(['road','bridge','causeway'].includes(type)){
+    for(let ny=Math.max(0,y-1);ny<=Math.min(grid.length-1,y+1);ny++)for(let nx=Math.max(0,x-1);nx<=Math.min(grid[0].length-1,x+1);nx++){
+     if(nx===x&&ny===y||!['road','bridge','causeway'].includes(grid[ny][nx]))continue;
+     const [px,py]=center(nx,ny),dx=px-cx,dy=py-cy;if(Math.hypot(dx,dy)<58)links.push([dx*.57,dy*.57]);
+    }
+    if(links.length===1)links.push([-links[0][0],-links[0][1]]);
+    if(!links.length)links.push([0,-31],[0,31]);
+   }
+   const key=JSON.stringify([type,condition,links]),cached=symbols.get(key);
+   if(cached){stamp(tile,cached,cx,cy);return;}
+   const id=`terrain-${svg.id}-${symbols.size}`;
+   const outer=shape('g',{id,'clip-path':`url(#${clipId})`}),g=shape('g',{});outer.append(g);defs.append(outer);
    const add=(tag,attrs)=>g.append(shape(tag,attrs));
    const path=(d,stroke,width=1,fill='none')=>add('path',{d,stroke,'stroke-width':width,fill,'stroke-linecap':'round','stroke-linejoin':'round'});
    if(type==='beach'){
@@ -100,13 +117,6 @@
     path('M-30-10Q-18-16-6-10T18-10T42-10M-34 5Q-22-1-10 5T14 5T38 5M-25 20Q-13 14-1 20T23 20','#c9e4dd',1.3);
     path('M-25-7l10-2M7 8l9 1M-4-22l8 1','#5d99a2',1);
    }else if(type==='road'||type==='bridge'||type==='causeway'){
-    let links=[];
-    for(let ny=Math.max(0,y-1);ny<=Math.min(grid.length-1,y+1);ny++)for(let nx=Math.max(0,x-1);nx<=Math.min(grid[0].length-1,x+1);nx++){
-     if(nx===x&&ny===y||!['road','bridge','causeway'].includes(grid[ny][nx]))continue;
-     const [px,py]=center(nx,ny),dx=px-cx,dy=py-cy;if(Math.hypot(dx,dy)<58)links.push([dx*.57,dy*.57]);
-    }
-    if(links.length===1)links.push([-links[0][0],-links[0][1]]);
-    if(!links.length)links=[[0,-31],[0,31]];
     const d=links.map(([dx,dy])=>`M0 0L${dx} ${dy}`).join(' ');
     if(type==='causeway')path(d,'#686e54',25);
     path(d,'#aa9471',18);path(d,'#d6c49c',15);path(d,'#eee0b6',1);
@@ -122,6 +132,7 @@
     for(let xx=-10;xx<=14;xx+=8)path(`M${xx}-17v36`,'#b9ab7d',.7);
     add('circle',{cx:0,cy:0,r:13,fill:'#f2dfa4',stroke:'#9f8746','stroke-width':1});
    }
+   const symbol={id,classes:outer.getAttribute('class')};symbols.set(key,symbol);stamp(tile,symbol,cx,cy);
   });
  }
  function sync(){

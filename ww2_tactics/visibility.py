@@ -1,6 +1,43 @@
 """Server-side sight and remembered contacts. Never send the hidden state to a client."""
 import copy
+from contextlib import contextmanager
+from contextvars import ContextVar
+from functools import wraps
 from . import fieldworks
+
+
+_sight_work = ContextVar('sight_work', default=None)
+
+
+@contextmanager
+def sight_calculations(state):
+    """Share sight work only while reading one unchanged state, never in saves.
+
+    ContextVar isolates concurrent HTTP requests. Callers must leave the scope
+    before mutating units, smoke, recon or terrain (revision alone is not enough).
+    """
+    current = _sight_work.get()
+    if current is not None and current[0] is state:
+        yield
+        return
+    token = _sight_work.set((state, {}))
+    try:
+        yield
+    finally:
+        _sight_work.reset(token)
+
+
+def sight_reader(fn):
+    @wraps(fn)
+    def read(state, *args, **kwargs):
+        with sight_calculations(state):
+            return fn(state, *args, **kwargs)
+    return read
+
+
+def sight_cache(state):
+    current = _sight_work.get()
+    return current[1] if current is not None and current[0] is state else None
 
 
 def fog(state):
@@ -16,29 +53,58 @@ def unit_sees_hex(state, scout, pos, concealed=False):
     from . import operations
     if not active(scout):return False
     gap=distance(scout['pos'],pos)
-    high=operations.tower(state,scout)
+    if gap<=1:return True
+    cache=sight_cache(state)
+    key=('scout',scout['id'])
+    profile=cache.get(key) if cache is not None else None
+    if profile is None:
+        profile=(operations.tower(state,scout),operations.sight_range(state,scout),operations.sight_range(state,scout,True))
+        if cache is not None:cache[key]=profile
+    high,normal,hidden=profile
     landmark=operations.enabled(state) and terrain(*pos,state)=='tower'
-    reach=operations.sight_range(state,scout,concealed and not landmark)
+    reach=hidden if concealed and not landmark else normal
     if landmark:reach=max(reach,12)  # Elevated silhouettes work both ways.
-    return gap<=1 or (gap<=reach and line_clear(scout['pos'],pos,state.get('smoke',[]),state,high_ground=high or landmark))
+    return gap<=reach and line_clear(scout['pos'],pos,state.get('smoke',[]),state,high_ground=high or landmark)
 
 
 def sees_hex(state, side, pos, concealed=False):
+    cache=sight_cache(state)
+    key=('hex',side,tuple(pos),concealed)
+    if cache is not None and key in cache:return cache[key]
+    result=_sees_hex(state,side,pos,concealed)
+    if cache is not None:cache[key]=result
+    return result
+
+
+def _sees_hex(state, side, pos, concealed=False):
     if state.get('air_version'):
         from .air import sees_hex as air_sight
         return air_sight(state,side,pos)
-    from .engine import distance, line_clear
+    from .engine import distance
     if any(r['side']==side and distance(r['pos'],pos)<=r['radius'] for r in state.get('recon',[])):
         return True
-    for scout in state['units']:
-        if scout['side'] != side or not active(scout):
-            continue
+    cache=sight_cache(state)
+    key=('scouts',side)
+    scouts=cache.get(key) if cache is not None else None
+    if scouts is None:
+        scouts=[u for u in state['units'] if u['side']==side and active(u)]
+        if cache is not None:cache[key]=scouts
+    for scout in scouts:
         if unit_sees_hex(state,scout,pos,concealed):
             return True
     return False
 
 
 def visible_ids(state, side):
+    cache=sight_cache(state)
+    key=('ids',side)
+    if cache is not None and key in cache:return cache[key]
+    result=_visible_ids(state,side)
+    if cache is not None:cache[key]=result
+    return result
+
+
+def _visible_ids(state, side):
     if state.get('air_version'):
         from .air import visible_ids as air_visible
         return air_visible(state,side)
@@ -74,6 +140,7 @@ def update_intel(state):
                 memory[unit['id']].update(last_seen_round=state['round'],last_seen_turn=state['turn'])
 
 
+@sight_reader
 def view(state, side, terrain_visibility=True):
     from .buildings import known
     seen = visible_ids(state, side)
@@ -138,6 +205,7 @@ def record_reports(state, before, action, message):
             report['combat'].append(safe)
 
 
+@sight_reader
 def public_state(state, side):
     if not fog(state):
         result=copy.deepcopy(state)

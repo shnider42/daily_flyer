@@ -55,6 +55,10 @@ const summary=p=>p.locator('#orders [data-order-id]:visible').evaluateAll(ns=>ns
    }
    return bad;
   });assert.deepEqual(failures,[],name);
+  if(name==='britain'){
+   const retained=await p.evaluate(()=>{const tile=$('map').querySelector('.hex');state=structuredClone(state);state.raid_destroyed=[state.scenario.airfields.us[0]];render();return tile===$('map').querySelector('.hex');});
+   assert.ok(retained);assert.match(await p.locator('#map .station-mark').first().textContent(),/LOST/);
+  }
  }
  // Same public view, different hidden enemy position: identical choices/reasons.
  await load(p,'fogA','us-A-0');const a=await summary(p);

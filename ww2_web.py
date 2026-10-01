@@ -79,11 +79,13 @@ def create_app(db_path=None):
             # A large state write can hold SQLite's exclusive lock until commit.
             # Read response metadata on that same connection, never a second one.
             state['match_name'] = match_title(db, row['code'])
-        state["legal"] = {u["id"]: options(state, u) for u in state["units"] if u["side"] == side}
-        if state['order_history']['redo_required']:
-            state['legal'] = {uid: {key: [] if isinstance(value, list) else False
-                                   for key, value in legal.items()} for uid, legal in state['legal'].items()}
-        return public_state(state,side)
+        from ww2_tactics.visibility import sight_calculations
+        with sight_calculations(state):
+            state["legal"] = {u["id"]: options(state, u) for u in state["units"] if u["side"] == side}
+            if state['order_history']['redo_required']:
+                state['legal'] = {uid: {key: [] if isinstance(value, list) else False
+                                       for key, value in legal.items()} for uid, legal in state['legal'].items()}
+            return public_state(state,side)
 
     @app.after_request
     def headers(response):
@@ -213,6 +215,11 @@ def create_app(db_path=None):
             side = identify(db, row)
             if not side:
                 return jsonify(error="Player key required. Rejoin using your original browser."), 403
+            since = request.args.get('since', type=int)
+            if request.method == "GET" and since is not None and since == json.loads(row['state'])['revision']:
+                # Authenticate first; unchanged polls need no legal-order or fog
+                # calculation, and do not contend with orders for worker time.
+                return jsonify(code=row['code'], unchanged=True)
             if request.method == "POST":
                 body = request.get_json(silent=True)
                 if not isinstance(body, dict):

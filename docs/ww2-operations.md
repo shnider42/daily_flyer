@@ -154,3 +154,50 @@ support resignation. Waiting and already-finished games cannot be resigned.
 Email/SMS turn notifications are deferred. No contact details are collected yet.
 They should be a separate opt-in feature with verified contacts, unsubscribe,
 deduplicated delivery, and provider credentials held on the server.
+
+## Large-map responsiveness
+
+Tidal Gate exposed repeated work in the common map and rules paths. Ordinary
+server revisions now retain unchanged terrain; counters, fog, smoke, barrage and
+station status update independently. Terrain artwork shares SVG definitions
+instead of building a separate decoration tree and clip mask for every hex.
+Terrain or structure changes still invalidate the geography, including undo and
+historical replay. Successful orders use their returned state without a duplicate
+GET; authenticated polls return a small `unchanged` response at the same revision.
+
+Sight calculations share results only inside an explicitly read-only scope for
+one state. These caches are isolated by request/thread, never serialized, and
+never survive an order. The bounded line cache stores geometry only: current
+terrain, smoke and elevation rules are checked on each call. AI replay reuses the
+preceding after-snapshot as the next before-snapshot. Saved rules and dice are
+unchanged; the optimizations apply across maps and existing saves.
+
+Local Chromium measurements with a **4× CPU throttle** on 390×844 and 1440×1000
+viewports (not production Render latency or physical Safari measurements):
+
+| Tidal Gate measure | Before | After |
+| --- | ---: | ---: |
+| Live move, including response/render | 2.38–2.43 s | 0.33–0.39 s |
+| New server-state render | 663–666 ms | 89–115 ms |
+| Battlefield SVG nodes | 14,371 | 6,540 |
+| First AI turn, local Python / fixed roll | about 18 s | about 4.2 s |
+
+Panning was measured separately; median frame intervals were roughly 17 ms on the
+phone viewport and 30 ms on the desktop viewport under the same throttle. The
+large gain is in order response and state refresh, not a claim of universally
+60-fps navigation.
+
+Run the live HTTP/browser regression alongside the rules suite:
+
+```sh
+NODE_PATH="$CODEX_PRIMARY_RUNTIME_NODE_MODULES" \
+CHROMIUM_EXECUTABLE_PATH=/path/to/chromium \
+node tests/ww2-map-performance-browser.cjs
+```
+
+It checks terrain retention, one full-state request per move, actual position/AP,
+fog replacement, transient-overlay cleanup, stable camera/layout, and phone
+pinch/pan without issuing orders. It reports timings but does not impose a brittle
+wall-clock limit on shared CI machines. `test_ww2_sight_performance.py` checks
+cached/uncached equivalence, changing blockers, transport/death/recon, concurrent
+requests, and nested state reads.

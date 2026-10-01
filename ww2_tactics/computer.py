@@ -6,7 +6,7 @@ import copy
 from .engine import apply, options, distance, terrain, line_clear
 from .scenarios import battlefield
 from .rulesets import dsl, turn_limit
-from .visibility import fog, view, visible_ids, active
+from .visibility import fog, view, visible_ids, active, sight_reader
 from . import naval, air, weapons, buildings, operations, fieldworks, linked_front
 
 
@@ -34,6 +34,7 @@ def objective_costs(state, goal=None):
     return costs
 
 
+@sight_reader
 def choose_order(state, costs, visited, front_costs=None):
     if state.get('naval_version'):
         return naval.choose_order(state,costs,visited)
@@ -189,13 +190,15 @@ def play_turn(state, roll=None):
             return view(value,'us' if value['ai_side']=='de' else 'de')
         return copy.deepcopy({key: value.get(key) for key in
                               ('units', 'smoke', 'barrages', 'round', 'turn', 'hold', 'winner', 'buildings', 'fieldworks', 'objective_control')})
+    previous_snapshot = snapshot(state)
     def perform(action):
-        nonlocal state
-        before = snapshot(state)
+        nonlocal state, previous_snapshot
+        before = previous_snapshot
         sequence = state.get('combat_sequence', 0)
         effect_sequence = state.get('effect_sequence', 0)
         state = apply(state, state['ai_side'], action, roll=roll)
         after=snapshot(state)
+        previous_snapshot=after
         safe_action=copy.deepcopy(action)
         effects=[e for e in state.get('effects', []) if e['sequence'] > effect_sequence]
         combat=[e for e in state.get('combat_history', []) if e.get('sequence', 0) > sequence]

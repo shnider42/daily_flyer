@@ -2,6 +2,7 @@
 from .coordinates import column
 import copy
 import secrets
+from functools import lru_cache
 from .scenarios import battlefield, get_scenario
 from .support import role_options, role_action, resolve_barrages
 from .combat_display import record_combat
@@ -35,15 +36,18 @@ def cube(pos):
 
 
 def distance(a, b):
-    return max(abs(x-y) for x, y in zip(cube(a), cube(b)))
+    ax, ay = a; bx, by = b
+    dq = ax - (ay - (ay & 1)) // 2 - bx + (by - (by & 1)) // 2
+    dy = ay - by
+    return max(abs(dq), abs(dy), abs(dq+dy))
 
 
-def line_clear(a, b, smoke=(), state=None, high_ground=False):
-    if any(s['pos'] in (a, b) for s in smoke):
-        return False
+@lru_cache(maxsize=16384)
+def line_cells(a, b):
+    """Immutable geometry only; blockers are checked against live state below."""
     n = distance(a, b)
     ac, bc = cube(a), cube(b)
-    low_obstacles = 0
+    cells = []
     for i in range(1, n):
         # Consistent tiny nudge resolves lines exactly on hex edges.
         p = [ac[j] + (bc[j]-ac[j])*i/n + (1e-6 if j < 2 else -2e-6) for j in range(3)]
@@ -52,6 +56,15 @@ def line_clear(a, b, smoke=(), state=None, high_ground=False):
         r[k] = -sum(r[j] for j in range(3) if j != k)
         y = r[2]
         x = r[0] + (y-(y & 1))//2
+        cells.append((x,y))
+    return tuple(cells)
+
+
+def line_clear(a, b, smoke=(), state=None, high_ground=False):
+    if any(s['pos'] in (a, b) for s in smoke):
+        return False
+    low_obstacles = 0
+    for x,y in line_cells(tuple(a),tuple(b)):
         if state and state.get('battlefield') and not (0<=y<state['battlefield']['height'] and 0<=x<state['battlefield']['width']):
             return False
         tile=terrain(x,y,state)
@@ -224,9 +237,9 @@ def options(state, unit):
         if state.get('rules_version', 1) >= 2:
             extras['dig'] = unit['ap'] >= 2 and not unit.get('entrenched', False) and unit['kind'] not in combined.VEHICLES
             if unit['ap'] >= 1 and unit.get('smoke', 0):
-                extras['smoke'] = [[x, y] for y in range(board['height']) for x in range(board['width'])
-                                   if distance(unit['pos'], [x, y]) <= 1
-                                   and not any(s['pos'] == [x, y] for s in state.get('smoke', []))]
+                extras['smoke'] = [[x,y] for y in range(max(0,unit['pos'][1]-1),min(board['height'],unit['pos'][1]+2))
+                                   for x in range(max(0,unit['pos'][0]-1),min(board['width'],unit['pos'][0]+2))
+                                   if distance(unit['pos'],[x,y])<=1 and not any(s['pos']==[x,y] for s in state.get('smoke',[]))]
             if unit['kind'] in combined.INFANTRY-{'mg'} and unit['ap'] >= 2:
                 extras['assaults'] = [dict(id=t['id'], threshold=3 if t['pinned'] else 4)
                                      for t in state['units'] if active(t) and t['side'] != unit['side'] and t['id'] in seen and not t.get('armor')

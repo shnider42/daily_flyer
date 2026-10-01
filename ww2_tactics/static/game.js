@@ -58,11 +58,11 @@ async function apiWithSession(saved){
 function invitation(){return `${location.origin}/?join=${session.code}`;}
 async function refresh(){
  if(!session||busy||polling||lobbyMode||playbackSession)return;polling=true;const requestedCode=session.code;
- try{const next=await api(`/api/match/${requestedCode}`);if(session?.code!==requestedCode)return;$('connection').textContent='● Connected';if(!state||next.revision>state.revision||next.code!==state.code){const oldKey=playbackKey(state),hadState=!!state;state=next;render();if(hadState&&playbackKey(state)&&oldKey!==playbackKey(state))startPlayback();}}
+ try{const since=state?.code===requestedCode?`?since=${state.revision}`:'';const next=await api(`/api/match/${requestedCode}${since}`);if(session?.code!==requestedCode)return;$('connection').textContent='● Connected';if(!next.unchanged&&(!state||next.revision>state.revision||next.code!==state.code)){const oldKey=playbackKey(state),hadState=!!state;state=next;render();if(hadState&&playbackKey(state)&&oldKey!==playbackKey(state))startPlayback();}}
  catch(e){$('connection').textContent='○ Reconnecting';if(!state)notify(e.message);}finally{polling=false;}
 }
-async function run(task){if(busy||playbackSession)return;const oldPlayback=playbackKey(state),oldCode=session?.code;busy=true;document.dispatchEvent(new Event('ww2:busy'));document.querySelectorAll('button').forEach(b=>b.disabled=true);try{await task();}catch(e){notify(e.message);}finally{busy=false;document.querySelectorAll('button').forEach(b=>b.disabled=false);if(state)render();await refresh();if(session?.code===oldCode&&playbackKey(state)&&oldPlayback!==playbackKey(state))startPlayback();}}
-async function act(body){await run(async()=>{state=await api(`/api/match/${session.code}`,{...body,revision:state.revision});target=null;smokeMode=false;barrageMode=false;render();});}
+async function run(task){if(busy||playbackSession)return;const oldPlayback=playbackKey(state),oldCode=session?.code,oldState=state;busy=true;document.dispatchEvent(new Event('ww2:busy'));document.querySelectorAll('button').forEach(b=>b.disabled=true);try{await task();}catch(e){notify(e.message);}finally{busy=false;document.querySelectorAll('button').forEach(b=>b.disabled=false);if(state)render();if(!state||state===oldState)await refresh();if(session?.code===oldCode&&playbackKey(state)&&oldPlayback!==playbackKey(state))startPlayback();}}
+async function act(body){await run(async()=>{state=await api(`/api/match/${session.code}`,{...body,revision:state.revision});target=null;smokeMode=false;barrageMode=false;});}
 function element(tag,attrs={},text){const e=document.createElementNS('http://www.w3.org/2000/svg',tag);Object.entries(attrs).forEach(([k,v])=>e.setAttribute(k,v));if(text!==undefined)e.textContent=text;return e;}
 function center(x,y){return [27+x*52+(y%2)*26,30+y*49];}
 function unitTypeName(u){return state?.naval_version&&u.kind==='amphibious'?'Landing section':kinds[u.kind];}
@@ -181,9 +181,14 @@ function render(){
  $('supportStatus').textContent=`Mortar calls left · US ${state.support?.us||0} / DE ${state.support?.de||0}`;
  $('incoming').hidden=!state.barrages?.length;
  $('incoming').textContent=(state.barrages||[]).map(b=>`INCOMING at ${hexColumn(b.pos[0])}${b.pos[1]+1} + neighboring hexes. ${b.ttl===1?'Impact at the end of this turn':'Impact at the end of the next turn'}. Move clear—even friendly troops!`).join(' ');
- const svg=$('map'),reuse=svg._state===state;
- if(!reuse){svg.replaceChildren();svg._tiles=[];svg._counters=new Map();svg._state=state;}
+ // Keep the geography across server revisions; only orders and counters change.
+ const svg=$('map'),sameState=svg._state===state;
+ const mapKey=sameState?svg._mapKey:battleKey+JSON.stringify([state.map,state.buildings]);
+ const reuse=svg._mapKey===mapKey;
+ if(!reuse){svg.replaceChildren();svg._tiles=[];svg._counters=new Map();svg._mapKey=mapKey;}
  else svg.querySelectorAll('.aim-line,.landing-zone,.transport-choice,.recon-choice,.move-beacon,.range-guide,.support-choice,.engineering-choice').forEach(n=>n.remove());
+ if(!sameState){svg.querySelectorAll('.unit,.smoke-cloud,.barrage-zone,.incoming-mark,.station-mark').forEach(n=>n.remove());svg._counters=new Map();}
+ svg._state=state;
  if(!reuse){svg.setAttribute('viewBox',`0 0 ${state.map[0].length*52+36} ${state.map.length*49+29}`);
  svg.setAttribute('aria-label',`${board.name} battlefield. Select your unit then a highlighted hex to move.`);}
  const width=state.map[0].length,activeHexes=new Set();
@@ -219,12 +224,19 @@ function render(){
   if(type==='building'&&!condition)svg.append(element('path',{d:`M${cx-12} ${cy-5}l12 -8l12 8v19h-24z M${cx-12} ${cy-5}h24`,class:'building-icon'}));
   if(type==='objective')svg.append(element('text',{x:cx,y:cy+8,'text-anchor':'middle',class:'objective-icon'},'★'));
   if(type==='bridge')svg.append(element('path',{d:`M${cx-15} ${cy-15}v30m30 -30v30m-30 -24h30m-30 18h30`,class:'bridge-icon'}));
-  if(state.smoke?.some(s=>s.pos[0]===x&&s.pos[1]===y))svg.append(element('ellipse',{cx,cy,rx:25,ry:22,class:'smoke-cloud'}));
-  if(state.barrages?.some(b=>b.area.some(p=>p[0]===x&&p[1]===y))){svg.append(element('path',{d:`M${points.split(' ').join(' L')} Z`,class:'barrage-zone'}));svg.append(element('text',{x:cx+16,y:cy+23,class:'incoming-mark'},'!'));}
+ }
+ if(!sameState){
+  for(const smoke of state.smoke||[]){const [cx,cy]=center(...smoke.pos);svg.append(element('ellipse',{cx,cy,rx:25,ry:22,class:'smoke-cloud'}));}
+  const marked=new Set();
+  for(const barrage of state.barrages||[])for(const [x,y] of barrage.area){
+   const index=y*width+x;if(marked.has(index)||!svg._tiles[index])continue;marked.add(index);
+   const [cx,cy]=center(x,y),points=svg._tiles[index].getAttribute('points');
+   svg.append(element('path',{d:`M${points.split(' ').join(' L')} Z`,class:'barrage-zone'}),element('text',{x:cx+16,y:cy+23,class:'incoming-mark'},'!'));
+  }
  }
  if(unit&&enemy){const [x1,y1]=center(...unit.pos),[x2,y2]=center(...enemy.pos);svg.append(element('line',{x1,y1,x2,y2,class:`aim-line${shot?' clear':''}`}));}
  for(const u of state.units.filter(u=>u.hp>0&&!u.reserve&&!u.carrier_id)){
-  if(reuse){const g=svg._counters.get(u.id);for(const [name,on] of [['selected',selected===u.id],['target',target===u.id]])if(g.classList.contains(name)!==on)g.classList.toggle(name,on);if(g._platoonFilter!==platoonFilter){g.querySelector('.platoon-halo')?.remove();if(u.side===state.side&&u.platoon===platoonFilter){const [x,y]=center(...u.pos);g.prepend(element('path',{d:`M${x-24} ${y-20}h48v41h-48z`,class:'platoon-halo'}));}g._platoonFilter=platoonFilter;}continue;}
+  if(sameState&&reuse){const g=svg._counters.get(u.id);for(const [name,on] of [['selected',selected===u.id],['target',target===u.id]])if(g.classList.contains(name)!==on)g.classList.toggle(name,on);if(g._platoonFilter!==platoonFilter){g.querySelector('.platoon-halo')?.remove();if(u.side===state.side&&u.platoon===platoonFilter){const [x,y]=center(...u.pos);g.prepend(element('path',{d:`M${x-24} ${y-20}h48v41h-48z`,class:'platoon-halo'}));}g._platoonFilter=platoonFilter;}continue;}
   const [cx,cy]=center(...u.pos),g=element('g',{class:`unit ${u.side} platoon-${u.platoon||'none'}${selected===u.id?' selected':''}${target===u.id?' target':''}`,role:'button',tabindex:0,'aria-label':`${names[u.side]} ${unitName(u)}, ${u.hp} strength, ${u.ap} actions${u.pinned?', pinned':''}`});
   g.dataset.unitId=u.id;
   svg._counters.set(u.id,g);g._platoonFilter=platoonFilter;

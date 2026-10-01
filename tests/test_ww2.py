@@ -3,6 +3,7 @@ import copy
 import os
 import tempfile
 import unittest
+from unittest.mock import patch
 
 from ww2_tactics.engine import initial, apply, options, distance, line_clear, fire_threshold
 from ww2_web import create_app
@@ -128,6 +129,22 @@ class APITests(unittest.TestCase):
         self.assertNotIn('token',state)
         self.assertNotIn('host',state)
         self.assertEqual(state['side'],'us')
+
+    def test_unchanged_poll_authenticates_and_skips_expensive_state(self):
+        state = self.client.get(self.url, headers=self.auth).get_json()
+        poll = self.url + '?since=' + str(state['revision'])
+        self.assertEqual(self.client.get(poll).status_code, 403)
+        with patch('ww2_web.options', side_effect=AssertionError('unchanged poll computes orders')), \
+             patch('ww2_web.public_state', side_effect=AssertionError('unchanged poll computes fog')):
+            result = self.client.get(poll, headers=self.auth)
+            self.assertEqual(result.status_code, 200)
+            self.assertEqual(result.get_json(), dict(code=self.host['code'], unchanged=True))
+        # Joining advances the revision; the same poll must now return full state.
+        self.join()
+        changed = self.client.get(poll, headers=self.auth).get_json()
+        self.assertGreater(changed['revision'], state['revision'])
+        self.assertTrue(changed['ready']); self.assertIn('legal', changed)
+        self.assertIn('legal', self.client.get(self.url + '?since=invalid', headers=self.auth).get_json())
 
     def test_independent_matches_seat_and_join(self):
         self.assertEqual(self.client.post('/api/match',json={}).status_code,201)
