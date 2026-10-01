@@ -7,6 +7,8 @@
  const save=()=>{try{localStorage.setItem(key,JSON.stringify(prefs));}catch{}};
  // Distinct silhouettes and plain-language effects supplement color, including on touch screens.
  const actionDesign={
+  callAirborne:['teal','Call one finite reserve squad to any hex','M3 10a9 9 0 0 1 18 0H3ZM3 10l9 9 9-9M12 10v9M9 19h6v3H9Z'],
+  markLZ:['amber','Reduce nearby drop scatter','M12 2v20M4 20h16M12 3q9 1 9 9M12 7q5 1 5 5'],
   radioUpdate:['teal','Share dated contact reports','M6 20V8h12v12H6ZM10 8V2M9 12h6M9 16h2M15 16h1M15 3q7 2 6 8'],
   observe:['blue','Extend sight, not weapon range','M3 19V8h6v11H3ZM15 19V8h6v11h-6ZM9 12h6M6 8V5M18 8V5'],
   conceal:['earth','Hide in cover until moving or firing','M3 18l7-13 4 6 4-4 3 11H3ZM9 18v-5M15 18v-4'],
@@ -129,7 +131,7 @@
   move($('findUnit'),nav);move($('zoom'),nav);screen.append(nav);
   const troops=sheet('mobileRoster','Your units');move($('platoonFilters'),troops);move($('roster'),troops);
   const settings=sheet('mobileBattleMenu','Battle & settings');
-  for(const selector of ['.game-title','.status-line','#turnBanner','.mission','#missionHint','#waiting','#incoming','#signalNotice','#battleReport','#rematchProposal','#playTools','#battleOptions','#replayTurn','#rulesButton','#homeBattles','#supportStatus','.team-legend','.terrain-legend','#combat','#computerReview','.journal','#seriesScore'])move(document.querySelector(selector),settings);
+  for(const selector of ['.game-title','.status-line','#turnBanner','.mission','#missionHint','#waiting','#incoming','#signalNotice','#airliftReport','#battleReport','#rematchProposal','#playTools','#battleOptions','#replayTurn','#rulesButton','#homeBattles','#supportStatus','.team-legend','.terrain-legend','#combat','#computerReview','.journal','#seriesScore'])move(document.querySelector(selector),settings);
   $('battleOptions').open=true;
   const guideSheet=sheet('mobileGuide','Learn as you play');move($('tutorialCoach'),guideSheet);
   move($('playbackPanel'),screen);

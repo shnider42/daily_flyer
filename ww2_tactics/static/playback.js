@@ -50,7 +50,7 @@ function drawPlayback(){
  const labels={move:'moves',fire:'fires',grenade:'throws a frag',assault:'assaults',suppress:'suppresses',inspire:'rallies nearby troops',command:'orders On your feet',rally:'rallies',dig:'digs in',smoke:'throws smoke',overwatch:'takes overwatch',barrage:'calls mortars',end:'ends the turn'};
  labels.load='boards infantry';labels.unload='unloads infantry';labels.rearm='services aircraft';
  Object.assign(labels,{load_ammo:'changes ammunition',repair_tracks:'repairs tracks',bombard:'bombards an area',artillery:'calls artillery',field_recon:'launches recon'});
- Object.assign(labels,{radio_update:'broadcasts radio reports',observe:'observes',conceal:'camouflages',mortar_fire:'calls mortar fire',demolition:'places a demolition charge'});
+ Object.assign(labels,{airborne_drop:'calls airborne reserves',mark_lz:'marks a landing zone',radio_update:'broadcasts radio reports',observe:'observes',conceal:'camouflages',mortar_fire:'calls mortar fire',demolition:'places a demolition charge'});
  Object.assign(labels,{breach:'breaches a hedge',clear_wreck:'clears collapsed rubble',bridge_gap:'builds a bridge'});
  Object.assign(labels,{area_fire:'fires at a hex',repair_tank:'repairs a tank',snipe:'takes an aimed sniper shot'});
  const loc=pos=>`${hexColumn(pos[0])}${pos[1]+1}`;
@@ -86,10 +86,10 @@ function drawPlayback(){
  }
  const svg=document.getElementById('map').cloneNode(true);svg.id='playbackMap';svg.hidden=false;svg.removeAttribute('hidden');svg.setAttribute('aria-label',`Turn playback: ${description}`);
  svg.classList.remove('transport-picking','support-picking');
- svg.querySelectorAll('.range-guide,.support-choice,.engineering-choice,.signal-choice,.linked-marker').forEach(e=>e.remove());
+ svg.querySelectorAll('.range-guide,.support-choice,.engineering-choice,.signal-choice,.beacon-mark,.linked-marker').forEach(e=>e.remove());
  svg.querySelectorAll('.unit,.smoke-cloud,.barrage-zone,.incoming-mark,.aim-line,.battle-effect,.fog-layer,.contact-marker,.landing-zone,.transport-choice,.recon-choice,.sea-control,.move-beacon,.island-marker,.flight-trail,.station-mark').forEach(e=>e.remove());
  svg.querySelectorAll('[tabindex]').forEach(e=>{e.removeAttribute('tabindex');e.removeAttribute('role');e.removeAttribute('aria-label');});
- svg.querySelectorAll('.hex').forEach(e=>e.classList.remove('move','threatened','smoke-choice','barrage-choice','combat-choice','combat-search','selected'));
+ svg.querySelectorAll('.hex').forEach(e=>e.classList.remove('move','threatened','smoke-choice','barrage-choice','combat-choice','combat-search','airdrop-aim','selected'));
  if(state.fieldworks_version){
   const grid=state.scenarioBaseMap||state.battlefield.map;
   const known=grid.map(row=>row.slice());

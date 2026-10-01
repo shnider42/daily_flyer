@@ -26,6 +26,7 @@ PROFILES = {
     'mortar': dict(label='Mortar fragments', penetration=0, damage=1, targets=('infantry',)),
     'artillery': dict(label='Heavy artillery', penetration=3, damage=2, ship_damage=1, splash=1, penetrating=True),
     'at_rifle': dict(label='Anti-tank rifle',penetration=1,damage=1,targets=('infantry','vehicle','light_armor')),
+    'light_flak': dict(label='20 mm Flak',penetration=1,damage=1,targets=('infantry','vehicle','light_armor'),suppress=True),
     'demolition': dict(label='Demolition charge',penetration=3,damage=2,targets=('light_armor','heavy_armor'),penetrating=True),
     'none': dict(label='Unarmed', penetration=0, damage=0, targets=()),
     'sniper_round': dict(label='Aimed rifle shot', penetration=0, damage=1, targets=('infantry',)),

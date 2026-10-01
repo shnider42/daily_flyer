@@ -109,6 +109,8 @@ from .tidal_gate import scenario as tidal_scenario
 SCENARIOS['tidal_gate'] = tidal_scenario(build)
 from .theaters import scenarios as theater_scenarios
 SCENARIOS.update(theater_scenarios(build))
+from .iron_lantern import scenario as lantern_scenario
+SCENARIOS['iron_lantern']=lantern_scenario(build)
 
 
 def get_scenario(key='village'):

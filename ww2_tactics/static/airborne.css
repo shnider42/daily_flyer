@@ -1,0 +1,4 @@
+.hex.airdrop-aim{stroke:#328999;stroke-width:2;stroke-dasharray:4 3;cursor:crosshair}
+.hex.airdrop-aim:hover,.hex.airdrop-aim:focus-visible{stroke:#ffe16c;stroke-width:4;outline:none}
+#airliftReport{padding:10px;border-left:3px solid #367683;background:#e1ece7;color:#193e3b;font-size:12px;line-height:1.5}
+.beacon-mark{pointer-events:none}.beacon-mark circle{fill:none;stroke:#f7df6e;stroke-width:2;stroke-dasharray:4 3}.beacon-mark text{fill:#213f35;stroke:#f5efcf;stroke-width:2;paint-order:stroke;font-size:9px;font-weight:900}

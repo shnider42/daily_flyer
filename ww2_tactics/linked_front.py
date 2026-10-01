@@ -7,7 +7,7 @@ def initialize(state):
     if not state['battlefield'].get('linked_objectives'): return state
     state['linked_front_version'] = 1
     refresh(state)
-    state['log'] = ['Operation Tidal Gate · Americans must hold the inland command post AND either causeway exit with infantry for two consecutive turn endings. Germans must break that link or hold out through round '+str(state['battlefield']['rounds'])+'.']
+    state['log'] = [state['battlefield'].get('linked_brief') or 'Operation Tidal Gate · Americans must hold the inland command post AND either causeway exit with infantry for two consecutive turn endings. Germans must break that link or hold out through round '+str(state['battlefield']['rounds'])+'.']
     return state
 
 

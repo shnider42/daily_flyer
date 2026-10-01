@@ -2,14 +2,17 @@
 window.orderHelp=(id,u,legal,simple)=>{
  const shot=legal?.targets?.find(s=>s.id===target),frag=legal?.grenades?.find(s=>s.id===target),assault=legal?.assaults?.find(s=>s.id===target);
  const strike=legal?.airstrikes?.find(s=>s.id===target),torpedo=legal?.torpedoes?.find(s=>s.id===target);
+ const ap=u?.weapon_overrides?.ap||{},he=u?.weapon_overrides?.he||{};
  const descriptions={
+  callAirborne:['Risk a reserve drop anywhere','3 AP / 1 lift per round / natural 1 loses squad'],
+  markLZ:['Reduce drop scatter','2 AP / one beacon / aims within 2 hexes'],
   breach:['Open a vehicle route','Adjacent bocage / 2 AP / opens sight'],
   clearWreck:['Reopen a ruined hex','Adjacent collapse / 2 AP / leaves cover'],
   bridgeGap:['Create a crossing',`3 AP / one-hex gap / ${u?.bridge_kits||0} kits`],
   areaFire:['Aim anywhere marked','5+ lands / outer fringe 6 / friendly fire'],
   repairTank:[`Heal tank · ${u?.repair_kits||0} kits`,`+1 strength & tracks / ${u?.repair_kits||0} kits`],
   snipe:[u?.ap<3?'Bank AP for aimed shot':'Accurate shot · exposes you','3+ base / 1 damage + pin / exposed'],
-  loadAP:['Pierce armor','2 vs tanks / 3 vs light armor'],loadHE:['Blast infantry · splash','2 vs infantry / 1 adjacent'],
+  loadAP:['Pierce armor',`${ap.damage??2} vs tanks / ${ap.light_damage??3} vs light armor`],loadHE:[he.splash===0?'Target infantry · no splash':'Blast infantry · splash',`${he.infantry_damage??2} vs infantry / ${he.splash===0?'no splash':'1 adjacent'}`],
   repairTracks:['Restore movement','Fix tracks / no strength healed'],
   bombard:['Aim beyond sight','6 hits / gun range +3'],
   artillery:['Delayed heavy strike',`4+ / range 12 / ${u?.artillery_charges||0} calls`],
@@ -48,7 +51,7 @@ window.orderHelp=(id,u,legal,simple)=>{
   const id=n.dataset.unitId;
   if(id){const u=state.units.find(u=>u.id===id);if(!u)return null;
    const status=[u.hp<=0?'Lost':`${u.hp}${u.max_hp?'/'+u.max_hp:''} ${state.naval_version&&u.kind!=='amphibious'?'hull':'strength'}`,`${u.ap} AP`,u.pinned?'Pinned':'',u.immobilized?'Tracks disabled · gun operational':'',u.ammo?u.ammo.toUpperCase()+' loaded':'',u.entrenched?'Dug in':'',u.overwatch?'Overwatch':'',u.reserve?'Reserve':'',u.carrier_id?'Aboard transport':''].filter(Boolean).join(' · ');
-   const base=u.base_ap??(state.ruleset==='dsl'&&['leader','commander'].includes(u.kind)?3:2),bank=base&&state.ruleset==='dsl'?(['leader','commander'].includes(u.kind)?2:1):0;
+   const base=u.base_ap??(state.ruleset==='dsl'&&['leader','commander'].includes(u.kind)?3:2),bank=base&&state.ruleset==='dsl'&&!u.landing_limited?(['leader','commander'].includes(u.kind)?2:1):0;
    return [unitName(u),`${sideLabel(u.side)} · ${status}`,unitRoleSummary(u),simple()?'':`Range ${u.range} hexes · ${base} base AP · bank up to ${bank}${u.armor!==undefined?` · armor ${u.armor}`:''}.`,simple()?'':[u.smoke!==undefined?`${u.smoke} smoke`:null,u.grenades!==undefined?`${u.grenades} grenades`:null,u.torpedoes!==undefined?`${u.torpedoes} torpedo salvos`:null].filter(Boolean).join(' · ')];
   }
   if(n.matches('#map > .hex')){

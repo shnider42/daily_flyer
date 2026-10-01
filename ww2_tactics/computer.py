@@ -7,7 +7,7 @@ from .engine import apply, options, distance, terrain, line_clear
 from .scenarios import battlefield
 from .rulesets import dsl, turn_limit
 from .visibility import fog, view, visible_ids, active, sight_reader
-from . import naval, air, weapons, buildings, operations, fieldworks, linked_front, signals
+from . import naval, air, weapons, buildings, operations, fieldworks, linked_front, signals, airborne
 
 
 def objective_costs(state, goal=None, unit=None):
@@ -51,6 +51,7 @@ def choose_order(state, costs, visited, front_costs=None):
     if signals.enabled(state) and fog(state):
         units={uid:(dict(u,overwatch=False) if u['side']!=side else u) for uid,u in units.items()}
     choices = []
+    known_ground=fieldworks.map_for(state,side) if airborne.enabled(state) else None
 
     def add(score, unit, kind, **data):
         choices.append((score, dict(kind=kind, unit=unit['id'], **data)))
@@ -63,10 +64,22 @@ def choose_order(state, costs, visited, front_costs=None):
         goal = linked_front.goal(state, unit)
         unit_costs = next((objective_maps[p['id']] for p in board.get('linked_objectives', []) if p['pos'] == goal), costs)
         if signals.enabled(state) and unit['kind']!='at_gun':
-            key=(tuple(goal),unit['kind'] if unit.get('armor') else 'mountain' if unit.get('mountain_movement') else 'foot')
+            key=(tuple(goal),unit['kind'] if unit.get('armor') else 'mountain' if unit.get('mountain_movement') else 'foot',unit.get('move_ap'),bool(unit.get('afloat')))
             if key not in mobility:mobility[key]=objective_costs(state,goal,unit)
             unit_costs=mobility[key]
         legal = options(state, unit)
+        if legal.get('airborne_drop'):
+            candidates=[[x,y] for y in range(board['height']) for x in range(board['width']) if known_ground[y][x] in {'field','road','objective','beach'}
+                        and not any(t['pos']==[x,y] for t in units.values())]
+            def drop_score(pos):
+                # Static geography, own beacons and spotted guns only. Unknown
+                # Flak cannot influence destination selection or risk estimates.
+                nearby=fieldworks.neighbors(state,pos)
+                hazard=sum(known_ground[p[1]][p[0]] in {'water','woods','building','tower','bunker'} for p in nearby)
+                known_flak=any(t['side']!=side and t.get('aa_radius') and not t['pinned'] and distance(t['pos'],pos)<=t['aa_radius'] for t in units.values())
+                return -distance(pos,goal)-hazard*.7-8*known_flak+2*airborne.beacon_near(state,side,pos)
+            if candidates:add(9,unit,'airborne_drop',pos=max(candidates,key=drop_score))
+        if legal.get('mark_lz'):add(6 if distance(unit['pos'],goal)<=8 else .1,unit,'mark_lz')
         if legal.get('radio_update'):add(5,unit,'radio_update')
         if legal.get('observe'):add(1.5 if distance(unit['pos'],goal)<8 else .1,unit,'observe')
         if legal.get('conceal'):add(3 if unit['pos']==goal else .1,unit,'conceal')
@@ -162,6 +175,10 @@ def choose_order(state, costs, visited, front_costs=None):
             move_goal=landing_goal or goal
             gain = (distance(unit['pos'],move_goal)-distance(pos,move_goal)) if unit['kind'] in {'amphibious','landing_craft'} else unit_costs.get(tuple(unit['pos']), 100)-unit_costs.get(tuple(pos), 100)
             score = 2+gain*2-move.get('threats', 0)*2
+            if unit.get('afloat'):
+                # Survive before pursuing objectives. Move toward any dry bank.
+                dry=[[x,y] for y in range(board['height']) for x in range(board['width']) if known_ground[y][x]!='water' and fieldworks.movement(unit,known_ground[y][x])[0] and buildings.enterable(state,[x,y],side)]
+                if dry:score=25-min(distance(pos,p) for p in dry)*3+(10 if known_ground[pos[1]][pos[0]]!='water' else 0)
             score += .6 * buildings.cover(state,pos,side=side)
             if unit['kind'] in {'scout','sniper'} and terrain(*pos,state)=='tower':score+=2
             if unit.get('repair_kits') and any(friend['side']==side and friend['kind']=='tank'
@@ -226,7 +243,7 @@ def play_turn(state, roll=None):
                 if safe_action.get(key) not in seen: safe_action.pop(key,None)
             tiles=before['visible_hexes']+after['visible_hexes']
             if safe_action.get('pos') not in tiles: safe_action.pop('pos',None)
-            if action['kind'] in {'recon','field_recon'}:safe_action.pop('pos',None)
+            if action['kind'] in {'recon','field_recon','airborne_drop'}:safe_action.pop('pos',None)
             if action['kind'] in {'move','drop'} and action.get('unit') not in {u['id'] for u in after['units']}:
                 safe_action.pop('pos',None)
             effects=[e for e in effects if all(p in tiles for p in e['positions'])]

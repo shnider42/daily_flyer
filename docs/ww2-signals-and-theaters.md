@@ -7,7 +7,7 @@ inherent accuracy bonus.
 
 Choose **Italy**, **North Africa**, or **Ethiopia** under Operations, or use the
 normal solo, multiplayer and rematch selectors. Each requires DSL. The catalog
-now has 15 maps. Battles still have two player seats, one commander per army;
+has 16 maps with the later [Iron Lantern airborne playtest](ww2-iron-lantern.md). Battles still have two player seats, one commander per army;
 platoons are operational groups within that army, not extra human seats.
 
 | Map | Board / forces | Asymmetric problem |
@@ -24,7 +24,7 @@ deliberately unequal. Equal unit counts are not a claim of equal win rates.
 
 ## Platoon intelligence
 
-Only these new battles start with `signals_version=1`. Each platoon shares local
+These three battles and the later Iron Lantern playtest start with `signals_version=1`. Each platoon shares local
 spotting for direct fire, suppression, grenades and reactions. Selecting a unit
 shows its platoon's live enemies, sight and dated contacts. **Intelligence: army
 overview** lets the human commander inspect the combined observations of their

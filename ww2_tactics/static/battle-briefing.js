@@ -17,6 +17,16 @@
      `At the end of your turn, earn 1 point if your units are the only side within two hexes of ★.${s.scenario.island_objectives?.length?' Each flagged outpost occupied by your amphibious infantry adds another point.':''}`,
      `If round ${rounds} ends without a winner, higher control score wins. A tied score uses total remaining strength; an exact tie goes to Japan. Hidden fleet strength is not shown here.`],focus:s.scenario.objective};
   }
+  if(s.airborne_version){
+   const hold=s.hold||0;
+   return {goal:s.side==='us'?'Hold the command post AND either canal exit with infantry for two consecutive turn endings.':`Break the Allied canal link; hold out through round ${rounds}.`,
+    compact:`Win: post + canal exit · ${hold}/2 holds`,progress:`Linked Allied hold: ${hold}/2 · Round ${s.round}/${rounds}`,
+    rules:[s.scenario.linked_brief,'Only infantry can garrison, including pinned infantry. Tanks, guns, passengers and off-map reserves cannot. Losing either required link immediately resets the hold.',
+     'Three reserve squads; one commander airlift per Allied round for 3 AP. Any hex may be requested. A natural 1 loses the squad before spotting; higher rolls scatter less. Hidden Flak may intercept.',
+     'Successful arrivals have only 1 AP until their next turn. Water costs 2 strength at each own turn end; swim ashore for 1 AP. Woods and other rough landings cost 1 strength.',
+     'Pathfinders spend 2 AP on a one-use beacon: aims within two hexes scatter one hex less. Moving or attacking ends it. Pinning disables it.',
+     'Objective flags are public. Either side can also win by eliminating every enemy, including airborne reserves. Airlifts and beacons commit undo.'],focus:s.scenario.objective};
+  }
   if(s.linked_front_version){
    const attack=s.side==='us',hold=s.hold||0;
    return {goal:attack?'Hold the town AND either beach exit with infantry for two consecutive turn endings.':`Break the town-to-beach link; prevent two linked holds through round ${rounds}.`,

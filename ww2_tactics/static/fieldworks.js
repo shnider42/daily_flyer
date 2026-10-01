@@ -38,7 +38,7 @@
   if(state.linked_front_version){
    $('objective').textContent=`Linked hold: ${state.hold}/2`;
    $('objectiveName').textContent='★ TOWN + EITHER EXIT';
-   $('missionHint').textContent=state.side==='us'?'Garrison the town and either beach exit with infantry for two turn endings. Vehicles support the attack; they cannot garrison these objectives.':'Break either link: remove the town garrison or deny both beach exits. Hold out through round '+state.scenario.rounds+'.';
+   $('missionHint').textContent=state.side==='us'?`Garrison the town and either ${state.scenario.link_label||'beach exit'} with infantry for two turn endings. Vehicles support the attack; they cannot garrison these objectives.`:`Break either link: remove the town garrison or deny both ${state.scenario.link_label||'beach exit'}s. Hold out through round ${state.scenario.rounds}.`;
   }
  };
  window.fieldworksTerrainHelp=(type,u,move,condition,pos)=>{

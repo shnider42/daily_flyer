@@ -114,7 +114,7 @@ def options(state,u):
     if not enabled(state) or not state['ready'] or state['winner'] or not active(u) or u['pinned'] or u['side']!=state['turn']:return result
     if u['kind'] in {'commander','radioman'}:
         result['radio_update']=u['ap']>=radio_cost(state,u) and u.get('radio_round')!=state['round'] and bool(radio_contacts(state,u))
-    result['observe']=u['kind'] in {'scout','radioman','mountain'} and u['ap']>=1 and not u.get('observing')
+    result['observe']=u['kind'] in {'scout','radioman','mountain','pathfinder'} and u['ap']>=1 and not u.get('observing')
     result['conceal']=bool(u.get('stealth') and u['ap']>=2 and not u.get('camouflaged') and terrain(*u['pos'],state) in CONCEALMENT)
     if u.get('mortar_range') and u.get('shells') and u['ap']>=2 and u.get('mortar_round')!=state['round']:
         # Local observation or an explicitly received report; no hidden occupancy.
@@ -137,7 +137,7 @@ def alert(state,side,pos,kind):
     event=dict(kind=kind,sector=sector(state,pos),round=state['round'],expires_round=state['round']+2,revision=state['revision']+1)
     state.setdefault('signal_alerts',{}).setdefault(enemy,[]).append(event)
     state['signal_alerts'][enemy]=state['signal_alerts'][enemy][-12:]
-    message=('Enemy reconnaissance aircraft heard over the ' if kind=='recon' else 'Enemy wireless traffic heard from the ')+event['sector']+' sector. Exact locations unknown.'
+    message=({'recon':'Enemy reconnaissance aircraft heard over the ','airlift':'Enemy transport aircraft heard over the '}.get(kind,'Enemy wireless traffic heard from the '))+event['sector']+' sector. Exact locations unknown.'
     state.setdefault('reports',{}).setdefault(enemy,dict(log=[],combat=[]))['log'].append(message)
 
 

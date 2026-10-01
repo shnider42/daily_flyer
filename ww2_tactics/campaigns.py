@@ -4,7 +4,7 @@ from .combined import roster
 
 
 def unit(side, kind, pos, group, number, **changes):
-    source = {'radioman':'scout','commando':'squad','mountain':'squad','partisan':'squad','askari':'squad','mortar':'mg'}.get(kind,kind)
+    source = {'radioman':'scout','pathfinder':'scout','flak':'mg','commando':'squad','mountain':'squad','partisan':'squad','askari':'squad','mortar':'mg'}.get(kind,kind)
     source = 'amphibious' if kind == 'landing_craft' else 'scout' if kind=='sniper' else source
     value = copy.deepcopy(next(u for u in roster('de' if source=='halftrack' else side, 24) if u['kind'] == source))
     value.update(id=f'{side}-{group}-{number}', side=side, kind=kind, pos=list(pos), platoon=group,
@@ -58,6 +58,9 @@ def omaha_roster():
 
 
 def setup(board):
+    if board['campaign']=='iron_lantern':
+        from .iron_lantern import roster
+        return roster()
     if board['campaign'] in {'apennine','desert_signal','amba_dawn'}:
         from .theaters import roster as theater_roster
         return theater_roster(board['campaign'])

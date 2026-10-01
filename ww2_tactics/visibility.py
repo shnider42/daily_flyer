@@ -162,8 +162,11 @@ def view(state, side, terrain_visibility=True):
         for u in result['units']:
             if u['side']!=side:
                 u['overwatch']=False
-                for key in ('radio_round','mortar_round','camouflaged','observing'):u.pop(key,None)
+                for key in ('radio_round','mortar_round','camouflaged','observing','aa_round','beacon_active','beacon_charges'):u.pop(key,None)
     result['signal_alerts']=[copy.deepcopy(a) for a in state.get('signal_alerts',{}).get(side,[]) if state['round']<a['expires_round']]
+    if state.get('airborne_version'):
+        from .airborne import public_fields
+        result.update(public_fields(state,side))
     if state.get('fieldworks_version'):
         result['fieldworks'] = dict(fieldworks.known(state, side))
     if state.get('linked_front_version'):
@@ -230,6 +233,13 @@ def public_state(state, side):
         result.pop('fieldworks_intel',None)
         result.pop('platoon_intel',None)
         result.pop('radio_reports',None)
+        result.pop('airlift_reports',None);result.pop('airlift_rounds',None)
+        if state.get('airborne_version'):
+            from .airborne import public_fields
+            result.update(public_fields(state,side))
+            for u in result['units']:
+                if u['side']!=side:
+                    for key in ('aa_round','beacon_active','beacon_charges'):u.pop(key,None)
         result['signal_alerts']=copy.deepcopy(state.get('signal_alerts',{}).get(side,[]))
         return result
     result=copy.deepcopy(state)
@@ -257,4 +267,5 @@ def public_state(state, side):
         result['radio_reports']=signals.reports_for(state,side)
     else:result.pop('radio_reports',None)
     result.pop('platoon_intel',None)
+    result.pop('airlift_reports',None);result.pop('airlift_rounds',None)
     return result

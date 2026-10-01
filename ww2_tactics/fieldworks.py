@@ -37,7 +37,12 @@ def map_for(state, side):
 
 def movement(unit, tile):
     """Shared entry rules used by movement, unloading and pathfinding."""
-    if unit['kind'] == 'at_gun': return False, 1
+    if unit['kind'] in {'at_gun','flak'}: return False, 1
+    if unit.get('afloat'):return tile not in {'mountain','tower','bunker'},1
+    if unit.get('move_ap'):
+        basic=dict(unit);basic.pop('move_ap')
+        passable,cost=movement(basic,tile)
+        return passable,max(cost,unit['move_ap'])
     if unit['kind'] == 'landing_craft': return tile == 'water', 1
     if tile=='mountain': return unit['kind'] not in {'tank','halftrack','amphibious'}, 1 if unit.get('mountain_movement') else 3
     if tile in {'ridge','wadi'}: return unit['kind'] not in {'tank','halftrack','amphibious'}, 1 if unit.get('mountain_movement') else 2

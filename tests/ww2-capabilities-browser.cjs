@@ -13,7 +13,7 @@ def publish(s):
  s['legal']={u['id']:options(s,u) for u in s['units'] if u['side']=='us'}
  return public_state(s,'us')
 result={}
-for name in ['village','orchard','stonebridge','riverfront','frontier','midway','stalingrad','britain','omaha','carentan','market_garden','tidal_gate','apennine','desert_signal','amba_dawn']:
+for name in ['village','orchard','stonebridge','riverfront','frontier','midway','stalingrad','britain','omaha','carentan','market_garden','tidal_gate','apennine','desert_signal','amba_dawn','iron_lantern']:
  s=initial(name,'dsl');s['ready']=True;result[name]=publish(s)
 s=initial('market_garden','dsl');s.update(ready=True,buildings={},building_intel={})
 s['battlefield']['map']=[['field']*22 for _ in range(28)]
@@ -104,5 +104,5 @@ const summary=p=>p.locator('#orders [data-order-id]:visible').evaluateAll(ns=>ns
   await tap(p,p.locator('#simpleToggle'));await p.evaluate(()=>document.querySelectorAll('dialog[open]').forEach(d=>d.close()));
   assert.match(await p.locator('#artillery').textContent(),/Ready R3/);await tap(p,p.locator('#simpleToggle'));await p.evaluate(()=>document.querySelectorAll('dialog[open]').forEach(d=>d.close()));
  }
- assert.equal(posts.length,0);assert.deepEqual(errors,[]);console.log('Capabilities on 15 maps, fog invariance, unavailable click/keyboard guards, desktop zoom/selection/widen, phone stability and contrast passed.',temp);
+ assert.equal(posts.length,0);assert.deepEqual(errors,[]);console.log('Capabilities on 16 maps, fog invariance, unavailable click/keyboard guards, desktop zoom/selection/widen, phone stability and contrast passed.',temp);
 })().catch(e=>{console.error(e);process.exitCode=1;}).finally(async()=>{await browser?.close();server.kill();});

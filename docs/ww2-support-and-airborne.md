@@ -1,5 +1,8 @@
 # DSL: support, observation and airborne operations
 
+For the later commander-directed drop rules, see [Operation Iron Lantern](ww2-iron-lantern.md). The reserve rules below remain in effect on the earlier maps.
+
+
 New DSL battles save `tactics_version: 1`. Existing battles keep their saved
 rules; there is no database migration or live-match rewrite. Classic is unchanged.
 Start a new battle, or agree to a rematch, to use these additions.

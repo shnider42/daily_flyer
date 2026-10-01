@@ -93,7 +93,7 @@ main{padding-top:8px}
  body>header{height:44px;min-height:44px;padding:0 28px;border-bottom-width:1px}
  .desktop-header-tag{font-size:9px;letter-spacing:1px;opacity:.7}
  main{padding-top:10px}
- .desktop-briefing{column-gap:18px}
+ .desktop-briefing{column-gap:18px;grid-template-columns:minmax(320px,1fr) minmax(0,2fr)}
  .desktop-briefing .game-title{grid-column:1;grid-row:1}
  #game .desktop-briefing .round{padding:0 0 0 16px;border:0}
  #game .desktop-briefing .status-line{grid-column:2;grid-row:1;flex-direction:row;align-items:center;align-self:center;gap:12px}

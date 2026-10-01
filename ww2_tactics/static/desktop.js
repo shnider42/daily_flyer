@@ -59,7 +59,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   document.getElementById('findUnit').hidden=!selected;
   document.getElementById('desktopMapSize').textContent=`${state.map[0].length} × ${state.map.length} HEXES`;
   const troops=state.units.filter(u=>u.side===state.side);
-  document.getElementById('desktopForceSummary').textContent=`${troops.filter(u=>u.hp>0).length} units active · ${names[state.side]}`;
+  document.getElementById('desktopForceSummary').textContent=`${troops.filter(u=>u.hp>0&&!u.reserve&&!u.carrier_id).length} deployed · ${troops.filter(u=>u.hp>0&&u.reserve).length} reserve · ${names[state.side]}`;
   const visible=troops.filter(u=>platoonFilter==='all'||u.platoon===platoonFilter);
   document.querySelectorAll('#roster button').forEach((button,index)=>{
    button.querySelector('.desktop-unit-meta')?.remove();const unit=visible[index];if(!unit)return;
@@ -98,7 +98,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   field.querySelector('.map-tools').append(camera);
   wrap.tabIndex=0;wrap.setAttribute('aria-label','Battlefield viewport. Scroll to zoom, drag to pan; plus and minus to zoom; zero fits the map.');
   const commands=el('section','desktop-command-column');layout.append(commands);mounts.push(commands);
-  const orders=group(commands,'desktop-orders',['#waiting','#incoming','#supportStatus','#playbackPanel','#orders','#combat','#simpleOutcome','#battleReport','#rematchProposal','#replayTurn','#computerReview','.journal'],'Unit orders');
+  const orders=group(commands,'desktop-orders',['#waiting','#incoming','#signalNotice','#airliftReport','#supportStatus','#playbackPanel','#orders','#combat','#simpleOutcome','#battleReport','#rematchProposal','#replayTurn','#computerReview','.journal'],'Unit orders');
   orders.querySelector('h2').id='desktopOrderTitle';
   const dock=group(commands,'desktop-action-dock',['#nextUnit','#end']);dock.id='desktopActionDock';
   group(game,'desktop-footer',['#battleOptions','#seriesScore']);

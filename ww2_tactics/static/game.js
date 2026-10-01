@@ -68,6 +68,7 @@ function center(x,y){return [27+x*52+(y%2)*26,30+y*49];}
 function unitTypeName(u){if(u.display_name)return u.display_name;return state?.naval_version&&u.kind==='amphibious'?'Landing section':kinds[u.kind];}
 function unitName(u){return unitTypeName(u)+(u.platoon?` ${u.platoon}${u.number}`:'');}
 function unitRoleSummary(u){
+ if(window.airborneRole?.(u))return window.airborneRole(u);
  if(window.signalRole?.(u))return window.signalRole(u);
  if(u.carrier_id)return 'Aboard transport · select it to unload';
  if(state?.tactics_version&&['scout','sniper'].includes(u.kind)){
@@ -179,7 +180,8 @@ function render(){
  if(!myTurn||!legal?.smoke?.length)smokeMode=false;
  if(!myTurn||!legal?.barrage?.length)barrageMode=false;
  if(combatMode&&(combatMode.unit!==selected||combatMode.revision!==state.revision||!myTurn||smokeMode||barrageMode||!legal?.[combatMode.kind]?.length))combatMode=null;
- const picking=smokeMode||barrageMode||!!combatMode||!!window.operationsPicking?.(legal)||!!window.fieldworksPicking?.(legal)||!!window.signalsPicking?.(legal);
+ const airliftPicking=!!window.airbornePicking?.(legal);
+ const picking=airliftPicking||smokeMode||barrageMode||!!combatMode||!!window.operationsPicking?.(legal)||!!window.fieldworksPicking?.(legal)||!!window.signalsPicking?.(legal);
  $('supportStatus').hidden=(state.rules_version||1)<4;
  $('supportStatus').textContent=`Off-map mortar calls · ${names.us} ${state.support?.us||0} / ${names.de} ${state.support?.de||0}`;
  $('incoming').hidden=!state.barrages?.length;
@@ -197,6 +199,7 @@ function render(){
  svg.setAttribute('aria-label',`${board.name} battlefield. Select your unit then a highlighted hex to move.`);}
  const width=state.map[0].length,activeHexes=new Set();
  if(myTurn&&legal){
+  if(airliftPicking)for(let i=0;i<width*state.map.length;i++)activeHexes.add(i);
   if(!picking)for(const m of legal.moves)activeHexes.add(m.pos[1]*width+m.pos[0]);
   for(const pos of smokeMode?legal.smoke:barrageMode?legal.barrage:combatMode?legal[combatMode.kind]:[])activeHexes.add(pos[1]*width+pos[0]);
  }
@@ -211,16 +214,16 @@ function render(){
   const combatHere=combatMode&&legal[combatMode.kind].some(p=>p[0]===x&&p[1]===y);
   const tile=reuse?svg._tiles[y*state.map[0].length+x]:element('polygon',{points});
   const condition=buildingCondition(state,[x,y]);
-  const tileClass=`hex ${type}${condition?' building-'+condition:''}${move&&!picking?' move':''}${move?.threats&&!picking?' threatened':''}${move?.road_bonus&&!picking?' road-bonus':''}${smokeHere?' smoke-choice':''}${barrageHere?' barrage-choice':''}`;
+  const tileClass=`hex ${type}${airliftPicking?' airdrop-aim':''}${condition?' building-'+condition:''}${move&&!picking?' move':''}${move?.threats&&!picking?' threatened':''}${move?.road_bonus&&!picking?' road-bonus':''}${smokeHere?' smoke-choice':''}${barrageHere?' barrage-choice':''}`;
   if(tile.getAttribute('class')!==tileClass)tile.setAttribute('class',tileClass);
   if(!reuse){tile.dataset.x=x;tile.dataset.y=y;if(condition)tile.dataset.buildingState=condition;}
-  const label=combatHere?`${combatMode.kind.replaceAll('_',' ')} at ${hexColumn(x)}${y+1}`:barrageHere?`Mortar at ${hexColumn(x)}${y+1}`:smokeHere?`Smoke at ${hexColumn(x)}${y+1}`:move&&!picking?`Move to ${hexColumn(x)}${y+1}, ${type}, ${move.cost} action${move.cost!==1?'s':''}${move.road_bonus?', road bonus':''}${move.threats?(state.signals_version?', spotted enemy firing lane; overwatch unknown':', exposed to overwatch'):''}`:null;
+  const label=airliftPicking?`Call airborne at ${hexColumn(x)}${y+1}, ${type}; safety unknown`:combatHere?`${combatMode.kind.replaceAll('_',' ')} at ${hexColumn(x)}${y+1}`:barrageHere?`Mortar at ${hexColumn(x)}${y+1}`:smokeHere?`Smoke at ${hexColumn(x)}${y+1}`:move&&!picking?`Move to ${hexColumn(x)}${y+1}, ${type}, ${move.cost} action${move.cost!==1?'s':''}${move.road_bonus?', road bonus':''}${move.threats?(state.signals_version?', spotted enemy firing lane; overwatch unknown':', exposed to overwatch'):''}`:null;
   if(tile.getAttribute('aria-label')!==label){
    for(const attr of ['tabindex','role','aria-label'])tile.removeAttribute(attr);
    if(label){tile.setAttribute('tabindex','0');tile.setAttribute('role','button');tile.setAttribute('aria-label',label);}
   }
   tile.classList.toggle('combat-choice',!!combatHere);tile.classList.toggle('combat-search',!!combatHere&&combatMode.kind==='field_recon');
-  tile._order=combatHere?()=>window.pickCombatHex([x,y]):barrageHere?()=>placeBarrage([x,y]):smokeHere?()=>placeSmoke([x,y]):move&&!picking?()=>moveUnit(move):null;
+  tile._order=airliftPicking?()=>window.pickAirborneHex([x,y]):combatHere?()=>window.pickCombatHex([x,y]):barrageHere?()=>placeBarrage([x,y]):smokeHere?()=>placeSmoke([x,y]):move&&!picking?()=>moveUnit(move):null;
   if(!reuse){activate(tile,()=>tile._order?.());svg._tiles.push(tile);svg.append(tile);}
   if(reuse)continue;
   svg.append(element('text',{x:cx-18,y:cy-16,class:'tile-label'},`${hexColumn(x)}${y+1}`));
@@ -255,7 +258,7 @@ function render(){
   if(u.immobilized)g.append(element('text',{x:cx,y:cy-23,'text-anchor':'middle',class:'track-marker'},'TRACKS'));
   if(u.entrenched)g.append(element('path',{d:`M${cx-22} ${cy+19}h44`,class:'dug-marker'}));
   if(u.overwatch)g.append(element('text',{x:cx-17,y:cy-13,'text-anchor':'middle',class:'watch-marker'},'◎'));
-  activate(g,()=>chooseUnit(u));svg.append(g);
+  activate(g,()=>{if(window.airbornePicking?.(state.legal[selected]))window.pickAirborneHex(u.pos);else chooseUnit(u);});svg.append(g);
  }
  $('selection').textContent=unit?`${unitName(unit)} · ${unit.hp} strength · ${unit.ap} actions${unit.pinned?' · PINNED':''}`:'Tap one of your units to see its orders.';
  $('hint').textContent=state.winner?'Start a new match for another battle.':!myTurn?'You can inspect units while you wait.':smokeMode?'Tap a blue-outlined hex to throw smoke, or tap Cancel smoke.':shot?`Fire at ${kinds[enemy.kind]}: ${shot.threshold}+ to hit (${chance(shot.threshold)}%).`:assault?'Enemy adjacent: a close assault is available.':enemy?'No clear shot: check range, sight lines, smoke, or actions.':unit?.pinned?'Rally to remove the pin. It costs 1 action.':unit?`${state.map[unit.pos[1]][unit.pos[0]]}${unit.entrenched?' · dug in':''} · range ${unit.range} · ${unit.smoke||0} smoke grenades`:'Counters show strength dots and remaining actions.';
@@ -299,6 +302,7 @@ function render(){
  if(window.renderOperations)window.renderOperations(unit,legal,svg);
  if(window.renderFieldworks)window.renderFieldworks(unit,legal,svg);
  if(window.renderSignals)window.renderSignals(unit,legal,svg);
+ if(window.renderAirborne)window.renderAirborne(unit,legal,svg);
  if(window.renderOrderCapabilities)window.renderOrderCapabilities(unit);
  const buildingWarning=unit&&unit.hp>0&&!unit.reserve&&!unit.carrier_id&&buildingCondition(state,unit.pos)==='damaged'&&!picking&&!target;
  $('hint').classList.toggle('building-warning',!!buildingWarning);

@@ -2,10 +2,10 @@
    current legal orders are used here; never simulate a move or query hidden units. */
 'use strict';
 (()=>{
- const infantry=new Set(['squad','mg','leader','commander','scout','engineer','at_team','paratrooper','sniper','radioman','commando','mountain','partisan','askari','mortar']);
+ const infantry=new Set(['squad','mg','leader','commander','scout','engineer','at_team','paratrooper','sniper','radioman','commando','mountain','partisan','askari','mortar','pathfinder']);
  const vehicles=new Set(['tank','halftrack','amphibious','landing_craft']);
- const labels={radioUpdate:'Radio update',observe:'Observe',conceal:'Camouflage',mortarFire:'Mortar fire',demolition:'Demolition',breach:'Breach hedge',clearWreck:'Clear rubble',bridgeGap:'Build bridge',fire:'Fire at unit',areaFire:'Aim at hex',snipe:'Snipe',assault:'Close assault',grenade:'Grenade',suppress:'Suppress',overwatch:'Overwatch',dig:'Dig in',smoke:'Smoke',rally:'Rally self',inspire:'Rally allies',command:'Give actions',barrage:'Call mortars',artillery:'Call artillery',fieldRecon:'Recon plane',loadAP:'Load anti-tank',loadHE:'Load explosive',repairTracks:'Fix own tracks',repairTank:'Repair tank',bombard:'Blind bombard',recon:'Air search',airstrike:'Air strike',torpedo:'Torpedoes',repair:'Repair hull',airdrop:'Land troops',load:'Load troops',unload:'Unload troops',rearm:'Airfield service'};
- const costs={observe:1,smoke:1,rally:1,inspire:1,loadAP:1,loadHE:1,recon:1,load:1,unload:1,snipe:3,bridgeGap:3};
+ const labels={callAirborne:'Call airborne',markLZ:'Mark LZ',radioUpdate:'Radio update',observe:'Observe',conceal:'Camouflage',mortarFire:'Mortar fire',demolition:'Demolition',breach:'Breach hedge',clearWreck:'Clear rubble',bridgeGap:'Build bridge',fire:'Fire at unit',areaFire:'Aim at hex',snipe:'Snipe',assault:'Close assault',grenade:'Grenade',suppress:'Suppress',overwatch:'Overwatch',dig:'Dig in',smoke:'Smoke',rally:'Rally self',inspire:'Rally allies',command:'Give actions',barrage:'Call mortars',artillery:'Call artillery',fieldRecon:'Recon plane',loadAP:'Load anti-tank',loadHE:'Load explosive',repairTracks:'Fix own tracks',repairTank:'Repair tank',bombard:'Blind bombard',recon:'Air search',airstrike:'Air strike',torpedo:'Torpedoes',repair:'Repair hull',airdrop:'Land troops',load:'Load troops',unload:'Unload troops',rearm:'Airfield service'};
+ const costs={callAirborne:3,markLZ:2,observe:1,smoke:1,rally:1,inspire:1,loadAP:1,loadHE:1,recon:1,load:1,unload:1,snipe:3,bridgeGap:3};
  const cost=id=>id==='radioUpdate'?(state?.units.find(u=>u.id===selected)?.kind==='radioman'?1:2):costs[id]??2;
  function capabilities(u,s=state){
   if(!u||u.side!==s.side||u.hp<=0||s.ruleset!=='dsl')return [];
@@ -38,7 +38,7 @@
     }
    }
    if(s.dsl_expansion){
-    if(kind==='paratrooper')add('airdrop');
+    if(kind==='paratrooper'&&!u.airlift_reserve)add('airdrop');
     if(['halftrack','landing_craft'].includes(kind))add('load','unload');
    }
   }
@@ -56,7 +56,8 @@
    }
   }
   if(s.fieldworks_version&&kind==='engineer')add('breach','clearWreck','bridgeGap');
-  if(s.signals_version){if(['commander','radioman'].includes(kind))add('radioUpdate');if(['scout','radioman','mountain'].includes(kind))add('observe');if(u.stealth)add('conceal');if(u.mortar_range)add('mortarFire');if('demolition_charges' in u)add('demolition');}
+  if(s.signals_version){if(['commander','radioman'].includes(kind))add('radioUpdate');if(['scout','radioman','mountain','pathfinder'].includes(kind))add('observe');if(u.stealth)add('conceal');if(u.mortar_range)add('mortarFire');if('demolition_charges' in u)add('demolition');}
+  if(s.airborne_version){if(u.airlift_commander)add('callAirborne');if('beacon_charges' in u)add('markLZ');}
   return [...new Set(ids)];
  }
  function reason(id,u){
@@ -66,6 +67,12 @@
   if(!state.ready)return 'Waiting for opponent';
   if(state.turn!==state.side)return 'Opponent’s turn';
   if(state.order_history?.redo_required)return 'Redo rolled order first';
+  if(u.airlift_reserve)return 'Awaiting commander airlift';
+  if(u.afloat&&!['rally','load','unload'].includes(id))return 'Swim ashore first';
+  if(id==='markLZ'&&u.beacon_active)return 'Beacon already active';
+  if(id==='markLZ'&&!u.beacon_charges)return 'No beacons left';
+  if(id==='callAirborne'&&state.airlift_round===state.round)return 'Airlift used this round';
+  if(id==='callAirborne'&&!state.units.some(v=>v.side===u.side&&v.hp>0&&v.airlift_reserve&&v.reserve))return 'No airborne reserves left';
   if(u.carrier_id)return 'Aboard transport';
   if(u.reserve&&u.arrival_round)return 'Arrives R'+u.arrival_round+' · entry must be clear';
   if(u.reserve&&id!=='airdrop')return 'Land troops first';

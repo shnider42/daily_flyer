@@ -21,10 +21,12 @@ def base_ap(unit):
 
 
 def bank_limit(unit):
+    if unit.get('landing_limited'):return 0
     return 2 if unit['kind'] in {'leader','commander'} else 1
 
 
 def turn_limit(unit):
+    if unit.get('landing_limited'):return 1
     return base_ap(unit)+bank_limit(unit)
 
 

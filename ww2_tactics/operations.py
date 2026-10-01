@@ -42,10 +42,10 @@ def tower(state, unit):
 
 
 def sight_range(state, unit, concealed=False):
-    base = unit.get('sight', 9 if unit['kind']=='scout' else max(6, unit['range']) if unit['kind'] in {'tank','at_gun'} else 6)
+    base = unit.get('sight', 9 if unit['kind'] in {'scout','pathfinder'} else max(6, unit['range']) if unit['kind'] in {'tank','at_gun'} else 6)
     if tower(state, unit):
-        base = 6 if concealed else 12 if unit['kind'] in {'scout','sniper'} else 8
-    elif concealed: base = 4 if unit['kind'] in {'scout','sniper'} else 2
+        base = 6 if concealed else 12 if unit['kind'] in {'scout','sniper','pathfinder'} else 8
+    elif concealed: base = 4 if unit['kind'] in {'scout','sniper','pathfinder'} else 2
     return base + (2 if unit.get('observing') else 0)
 
 
@@ -64,7 +64,7 @@ def cells(state, pos, reach):
 def range_guide(state, unit):
     from .engine import distance, line_clear
     from .visibility import active, unit_sees_hex
-    if not enabled(state) or not active(unit) or unit['kind'] not in {'scout','sniper'}: return None
+    if not enabled(state) or not active(unit) or unit['kind'] not in {'scout','sniper','pathfinder'}: return None
     reach = sight_range(state, unit); aimed = snipe_range(state, unit)
     points = cells(state, unit['pos'], max(reach, aimed))
     return dict(tower=tower(state,unit), sight_range=reach, fire_range=unit['range'], snipe_range=aimed,

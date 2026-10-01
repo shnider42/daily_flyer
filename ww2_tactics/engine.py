@@ -8,7 +8,7 @@ from .support import role_options, role_action, resolve_barrages
 from .combat_display import record_combat
 from .rulesets import profile, dsl, base_ap, bank_limit, turn_limit, road
 from .effects import record_effect
-from . import combined, naval, transport, campaigns, air, weapons, buildings, operations, fieldworks, linked_front, signals
+from . import combined, naval, transport, campaigns, air, weapons, buildings, operations, fieldworks, linked_front, signals, airborne
 from .visibility import fog, active, visible_ids, unit_visible_ids, sees_hex, update_intel, record_reports
 
 WIDTH, HEIGHT = 7, 9
@@ -122,7 +122,7 @@ def initial(scenario='village', ruleset='classic'):
     if board.get('combined_arms') or board.get('campaign'):
         state.update(dsl_expansion=1,fog_of_war=True)
         update_intel(state)
-    return signals.initialize(linked_front.initialize(weapons.initialize(state)))
+    return airborne.initialize(signals.initialize(linked_front.initialize(weapons.initialize(state))))
 
 
 def fire_modifiers(state, unit, target):
@@ -176,6 +176,7 @@ def react(state, mover, roll):
             break
         shooter['overwatch'] = False
         signals.before_order(shooter,'fire')
+        airborne.before_order(shooter,'fire')
         if operations.enabled(state) and shooter['kind']=='sniper':shooter['exposed_turns']=2
         die = roll()
         threshold = fire_threshold(state, shooter, mover)+1
@@ -211,6 +212,7 @@ def options(state, unit):
     extras.update(weapons.orders(state, unit))
     extras.update(fieldworks.options(state, unit))
     extras.update(signals.options(state,unit))
+    extras.update(airborne.options(state,unit))
     if not state["ready"] or state["winner"] or unit["hp"] <= 0 or unit["side"] != state["turn"]:
         return dict(moves=moves, targets=targets, rally=False, **extras)
     seen=unit_visible_ids(state,unit)
@@ -219,7 +221,7 @@ def options(state, unit):
         return dict(moves=[], targets=[], rally=False, **extras)
     extras.update(transport.options(state, unit))
     if unit.get('reserve'):
-        if unit['ap']>=2 and not unit.get('arrival_round'):
+        if unit['ap']>=2 and not unit.get('arrival_round') and not unit.get('airlift_reserve'):
             extras['drops']=[[x,y] for y in range(2,board['height']-2) for x in range(board['width'])
                              if terrain(x,y,state) in {'field','road'} and [x,y] not in occupied
                              and sees_hex(state,unit['side'],[x,y])]
@@ -228,7 +230,7 @@ def options(state, unit):
         for y in range(max(0,unit['pos'][1]-1),min(board['height'],unit['pos'][1]+2)):
             for x in range(max(0,unit['pos'][0]-1),min(board['width'],unit['pos'][0]+2)):
                 tile = terrain(x, y, state)
-                free_road = dsl(state) and unit.get('road_pending', False) and (unit['kind']=='halftrack' or not unit.get('road_used', False)) and road(terrain(*unit['pos'], state)) and road(tile)
+                free_road = dsl(state) and not unit.get('no_road_bonus') and not unit.get('afloat') and unit.get('road_pending', False) and (unit['kind']=='halftrack' or not unit.get('road_used', False)) and road(terrain(*unit['pos'], state)) and road(tile)
                 passable, cost = fieldworks.movement(unit, tile)
                 if free_road: cost = 0
                 if weapons.enabled(state) and unit.get('immobilized'): passable=False
@@ -259,6 +261,9 @@ def options(state, unit):
                                      and distance(unit['pos'], t['pos']) == 1]
         extras['overwatch'] = state.get('rules_version', 1) >= 3 and unit['ap'] >= 2 and unit['range']>0 and not unit.get('overwatch', False)
         extras.update(role_options(state, unit, distance, line_clear, terrain, board))
+    if unit.get('afloat'):
+        extras={k:(v if k=='load' else [] if isinstance(v,list) else None if k=='range_guide' else False) for k,v in extras.items()}
+        targets=[]
     return dict(moves=moves, targets=targets, rally=unit["pinned"] and unit["ap"] >= 1, **extras)
 
 
@@ -285,6 +290,7 @@ def apply(state, side, action, roll=None):
     if kind == "end":
         operations.end_turn(state)
         reactions = resolve_barrages(state, names, roll_die) if state.get('rules_version', 1) >= 4 else []
+        reactions.extend(airborne.end_turn(state,side))
         state['smoke'] = [dict(s, ttl=s['ttl']-1) for s in state.get('smoke', []) if s['ttl'] > 1]
         state['recon'] = [dict(r, ttl=r['ttl']-1) for r in state.get('recon', []) if r['ttl'] > 1]
         if state.get('linked_front_version'):
@@ -306,6 +312,7 @@ def apply(state, side, action, roll=None):
                 u['banked_ap'] = min(max(0, u['ap']), bank_limit(u)) if u['hp'] > 0 else 0
                 u['road_pending'] = False
             if u["side"] == state["turn"]:
+                u.pop('landing_limited',None)
                 if dsl(state):
                     u['carried_ap'] = u.get('banked_ap', 0)
                     u['ap'] = base_ap(u)+u['carried_ap']
@@ -321,12 +328,16 @@ def apply(state, side, action, roll=None):
             raise ValueError("Choose one of your surviving units.")
         legal = options(state, unit)
         signals.before_order(unit,kind)
+        airborne.before_order(unit,kind)
         if dsl(state) and kind != 'move':
             unit['road_pending'] = False
-        if kind in signals.ORDERS:
+        if kind in airborne.ORDERS:
+            message,reactions=airborne.action(state,unit,action,legal,roll_die,react)
+        elif kind in signals.ORDERS:
             message=signals.action(state,unit,action,legal,roll_die)
         elif kind == 'load' and action.get('target') in legal['load']:
             troop = next(u for u in state['units'] if u['id'] == action['target'])
+            airborne.before_order(troop,'load')
             troop.update(carrier_id=unit['id'], pos=list(unit['pos']), ap=troop['ap']-1,
                          entrenched=False, overwatch=False, road_pending=False, transport_used=True)
             message = f"{names[side]} {troop['kind']} boarded transport; infantry spent 1 AP."
@@ -362,7 +373,7 @@ def apply(state, side, action, roll=None):
                 if move.get('road_bonus'):
                     unit.update(road_used=True, road_pending=False)
                 else:
-                    unit['road_pending'] = both_road and (unit['kind']=='halftrack' or not unit.get('road_used', False))
+                    unit['road_pending'] = both_road and not unit.get('no_road_bonus') and not unit.get('afloat') and (unit['kind']=='halftrack' or not unit.get('road_used', False))
             if any(active(u) and u['id']!=unit['id'] and u['pos']==move['pos'] for u in state['units']):
                 raise ValueError('Movement blocked by a contact. Scout or choose another approach.')
             unit["pos"] = move["pos"]
@@ -453,6 +464,7 @@ def apply(state, side, action, roll=None):
         record_effect(state, 'explosion', [target['pos']])
     for carrier in state['units']:
         if carrier['hp']<=0 and carrier['kind']=='landing_craft':transport.bail_out(state,carrier)
+    airborne.after_order(state)
     for team in ("us", "de"):
         if not any(u["hp"] > 0 and u["side"] == team for u in state["units"]):
             state["winner"] = "de" if team == "us" else "us"
