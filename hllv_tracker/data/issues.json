@@ -1,10 +1,10 @@
 {
-  "generated_at": "2026-09-22",
+  "generated_at": "2026-10-01",
   "latest_change": {
-    "date": "2026-09-22",
-    "label": "Hotfix 1.5.1",
-    "url": "https://steamcommunity.com/app/3079210/allnews",
-    "summary": "ADS visuals and mounted guns improved; M14/SKS controller feedback fixed. September hotfixes and Update 1.5 reviewed."
+    "date": "2026-10-01",
+    "label": "Community Feedback #6 · after Hotfix 1.5.2",
+    "url": "https://www.hellletloose.com/blog/community-update-6",
+    "summary": "Post-hotfix monitoring reviewed. Future patch targets remain separate from released fixes."
   },
   "method": "Public evidence only. Official acknowledgement, reproduction, a shipped change, and post-fix verification are recorded separately.",
   "issues": [
@@ -235,26 +235,27 @@
       "title": "Crashes and stability",
       "category": "stability",
       "kind": "issue family",
-      "status_key": "investigating",
-      "status_label": "Investigation ongoing",
-      "bottom_line": "Hotfix 1.4.2 fixed PSO decal, bone-indexing and DLSS/FSR-conflict crashes. AMD crashes and driver timeouts remain under investigation.",
+      "status_key": "monitoring",
+      "status_label": "Improvements released · monitoring",
+      "bottom_line": "Developers report fewer crashes after 1.5.2; longer monitoring continues.",
       "official_short": "Multiple causes",
-      "fix_short": "Several fixes shipped",
+      "fix_short": "Hotfix 1.5.2 + earlier fixes",
       "cause_short": "Blood/decal load + others",
-      "last_updated": "2026-09-10",
+      "last_updated": "2026-10-01",
       "scope": [
         "PC",
         "client stability",
         "all hardware"
       ],
       "symptom": "Clients can crash for several distinct reasons, including a documented failure associated with large quantities of blood and decal effects.",
-      "official_position": "Hotfix 1.4.1 targeted AMD stability; 1.4.2 addressed additional crash causes. Community Feedback #4 confirms remaining AMD crashes and driver timeouts. FSR 4.1 moved to a Patch 1.6 target, subject to testing.",
-      "workaround": "Disabling gore may reduce crashes tied to the blood-and-decal cause. It is not a general fix for every crash.",
+      "official_position": "The latest improvement is not a declaration that every crash cause is resolved.",
+      "workaround": "PC: finish shader caching before continuing; reset Video Settings after updating.",
       "known": [
         "Several individual stability problems have been identified.",
         "One crash cause is associated with large quantities of blood and decal effects.",
         "Patch 1.4 considerably reduced crashes from that cause in internal testing.",
-        "Team17 says that documented cause was not AMD-specific."
+        "Team17 says that documented cause was not AMD-specific.",
+        "1.5.2 adds memory-corruption and flare fixes, reduces VRAM use, and introduces FSR 4.1 for RX 7000+."
       ],
       "unknown": [
         "Remaining crash causes are not fully enumerated.",
@@ -296,6 +297,16 @@
           "date": "2026-09-10",
           "event": "Community Feedback #4",
           "detail": "AMD investigation continues; FSR 4.1 target moved to 1.6."
+        },
+        {
+          "date": "2026-09-29",
+          "event": "Hotfix 1.5.2",
+          "detail": "Additional stability fixes released."
+        },
+        {
+          "date": "2026-10-01",
+          "event": "Community Feedback #6",
+          "detail": "Early results remain provisional."
         }
       ],
       "sources": [
@@ -354,6 +365,22 @@
           "title": "Community Feedback #4",
           "url": "https://www.hellletloose.com/blog/community-feedback-4",
           "claim": "AMD investigation continues; FSR 4.1 target moved to 1.6."
+        },
+        {
+          "type": "patch notes",
+          "publisher": "Hell Let Loose",
+          "date": "2026-09-29",
+          "title": "Hotfix 1.5.2",
+          "url": "https://www.hellletloose.com/blog/hllv-hotfix-1-5-2",
+          "claim": "Stability, memory and PC guidance"
+        },
+        {
+          "type": "official update",
+          "publisher": "Hell Let Loose",
+          "date": "2026-10-01",
+          "title": "Community Feedback #6",
+          "url": "https://www.hellletloose.com/blog/community-update-6",
+          "claim": "Stability monitoring"
         }
       ]
     },
@@ -504,19 +531,19 @@
       "kind": "visual-quality issue",
       "status_key": "partial",
       "status_label": "Improvements ongoing",
-      "bottom_line": "Hotfix 1.5.1 improves shadow and object transitions when aiming. Wider console image-quality work continues.",
+      "bottom_line": "Console clarity work continues; further improvements are expected from Update 2.0 onward.",
       "official_short": "Acknowledged",
-      "fix_short": "1.5.1 ADS improvement",
+      "fix_short": "Partial fixes; more planned",
       "cause_short": "Optimization limits",
-      "last_updated": "2026-09-22",
+      "last_updated": "2026-10-01",
       "scope": [
         "PS5",
         "Xbox",
         "graphics"
       ],
       "symptom": "Console players report foliage shimmer, reduced clarity, image noise, and inconsistent sharpness.",
-      "official_position": "Developers describe console image quality as ongoing work. Hotfix 1.5.1 improves ADS visual stability across platforms; it does not declare resolution of resolution, foliage or draw-distance complaints.",
-      "workaround": null,
+      "official_position": "A target is not a released fix; complete resolution remains unverified.",
+      "workaround": "Avoid forcing HDR: the game outputs SDR.",
       "known": [
         "The issue is officially acknowledged.",
         "Patch 1.2 reduced some shimmer but could lower resolution more often in some circumstances.",
@@ -547,6 +574,11 @@
           "date": "2026-09-22",
           "event": "Hotfix 1.5.1 — live announcement",
           "detail": "ADS transition improvements released across platforms."
+        },
+        {
+          "date": "2026-10-01",
+          "event": "Community Feedback #6",
+          "detail": "Further visual work announced."
         }
       ],
       "sources": [
@@ -573,6 +605,14 @@
           "title": "Hotfix 1.5.1 — live announcement",
           "url": "https://steamcommunity.com/app/3079210/allnews",
           "claim": "ADS transition improvements released across platforms."
+        },
+        {
+          "type": "official update",
+          "publisher": "Hell Let Loose",
+          "date": "2026-10-01",
+          "title": "Community Feedback #6",
+          "url": "https://www.hellletloose.com/blog/community-update-6",
+          "claim": "Console visuals and HDR guidance"
         }
       ]
     },
@@ -1853,22 +1893,24 @@
       "id": "HLLV-029",
       "title": "All voice-chat channels can become unavailable",
       "category": "voip",
-      "kind": "support-level report cluster",
-      "status_key": "reported",
-      "status_label": "Reports escalated",
-      "bottom_line": "Team17 received similar reports of Proximity, Unit, and Command chat all failing after an update and forwarded them for investigation.",
-      "official_short": "Support acknowledged",
-      "fix_short": "None confirmed",
+      "kind": "officially acknowledged VOIP issue family",
+      "status_key": "partial",
+      "status_label": "Specific safeguards released",
+      "bottom_line": "1.5.2 adds silent-muting safeguards; broader VOIP failures remain open.",
+      "official_short": "Developer acknowledged",
+      "fix_short": "Hotfix 1.5.2 safeguards",
       "cause_short": "Unknown",
-      "last_updated": "2026-08-22",
+      "last_updated": "2026-10-01",
       "scope": [
         "PC",
+        "PS5",
+        "Xbox",
         "Proximity Chat",
         "Unit Chat",
         "Command Chat"
       ],
       "symptom": "A player may be unable to hear or transmit on every in-match voice channel, with no visible reconnect control available in the audio settings.",
-      "official_position": "Team17 Support said it had received similar reports and passed the issue to the team. The public thread does not establish reproduction, cause, or a released fix.",
+      "official_position": "The original all-channel report is not proven to share the cause addressed by the new safeguards.",
       "workaround": null,
       "known": [
         "The report covers all major in-match voice channels.",
@@ -1890,6 +1932,21 @@
           "date": "2026-08-22",
           "event": "Team17 Support",
           "detail": "Support confirms similar reports and forwards the issue to the team."
+        },
+        {
+          "date": "2026-09-25",
+          "event": "Community Feedback #5",
+          "detail": "Broader channel failures acknowledged."
+        },
+        {
+          "date": "2026-09-29",
+          "event": "Hotfix 1.5.2",
+          "detail": "Specific safeguards released."
+        },
+        {
+          "date": "2026-10-01",
+          "event": "Community Feedback #6",
+          "detail": "Monitoring continues."
         }
       ],
       "sources": [
@@ -1900,6 +1957,30 @@
           "title": "Voice chat not working after update",
           "url": "https://steamcommunity.com/app/3079210/discussions/1/590687230526492958/",
           "claim": "Similar reports received and forwarded"
+        },
+        {
+          "type": "official update",
+          "publisher": "Hell Let Loose",
+          "date": "2026-09-25",
+          "title": "Community Feedback #5",
+          "url": "https://www.hellletloose.com/blog/community-update-5",
+          "claim": "VOIP reliability"
+        },
+        {
+          "type": "patch notes",
+          "publisher": "Hell Let Loose",
+          "date": "2026-09-29",
+          "title": "Hotfix 1.5.2",
+          "url": "https://www.hellletloose.com/blog/hllv-hotfix-1-5-2",
+          "claim": "Silent muting"
+        },
+        {
+          "type": "official update",
+          "publisher": "Hell Let Loose",
+          "date": "2026-10-01",
+          "title": "Community Feedback #6",
+          "url": "https://www.hellletloose.com/blog/community-update-6",
+          "claim": "VOIP follow-up"
         }
       ]
     },
@@ -2094,14 +2175,14 @@
       "official_short": "Acknowledged",
       "fix_short": "Release unconfirmed",
       "cause_short": "Unknown",
-      "last_updated": "2026-09-16",
+      "last_updated": "2026-09-29",
       "scope": [
         "Tutorials",
         "role access",
         "online progression"
       ],
       "symptom": "A completed tutorial can later appear incomplete, forcing another completion before Squad Leader or Commander becomes available.",
-      "official_position": "Community Feedback #4 proposed a save-data fix for some cases while keeping the wider investigation open. A planned fix alone is not evidence of release.",
+      "official_position": "The earlier tutorial fix remains unconfirmed. Separate PS5 save-loss safeguards are tracked as HLLV-055; a shared cause is unproven.",
       "workaround": "Completing the required tutorial again may temporarily restore role access; this does not address the lost completion state.",
       "known": [
         "The issue is explicitly acknowledged in an official community update.",
@@ -2133,6 +2214,11 @@
           "date": "2026-09-16",
           "event": "Update 1.5 (released September 16)",
           "detail": "Review of the final changelog did not find explicit confirmation of the previously targeted tutorial save-data fix."
+        },
+        {
+          "date": "2026-09-29",
+          "event": "Hotfix 1.5.2",
+          "detail": "Separate save-loss evidence reviewed; this tutorial case remains open."
         }
       ],
       "sources": [
@@ -2167,6 +2253,14 @@
           "title": "Update 1.5 (released September 16)",
           "url": "https://www.hellletloose.com/blog/hllv-update-1-5",
           "claim": "Review of the final changelog did not find explicit confirmation of the previously targeted tutorial save-data fix."
+        },
+        {
+          "type": "patch notes",
+          "publisher": "Hell Let Loose",
+          "date": "2026-09-29",
+          "title": "Hotfix 1.5.2",
+          "url": "https://www.hellletloose.com/blog/hllv-hotfix-1-5-2",
+          "claim": "PS5 save data; tutorial linkage unconfirmed"
         }
       ]
     },
@@ -2177,11 +2271,11 @@
       "kind": "officially investigated gameplay issue",
       "status_key": "investigating",
       "status_label": "Under investigation",
-      "bottom_line": "Developers confirmed an Aim Assist interaction with some small foliage and said the solution is more complex than adding collision.",
+      "bottom_line": "Aim Assist improvements target Update 2.0, subject to testing.",
       "official_short": "Acknowledged",
-      "fix_short": "No target announced",
+      "fix_short": "Update 2.0 target",
       "cause_short": "Non-colliding foliage",
-      "last_updated": "2026-08-20",
+      "last_updated": "2026-10-01",
       "scope": [
         "controller",
         "PC",
@@ -2189,7 +2283,7 @@
         "foliage"
       ],
       "symptom": "Aim Assist may respond to a player hidden behind small foliage that does not use physical collision.",
-      "official_position": "Developers said conventional physics checks cannot determine whether non-colliding foliage obscures a player. Adding collision to all foliage was considered impractical because of performance and memory costs, so a more complex solution is being investigated.",
+      "official_position": "The announced target does not confirm release or complete resolution of this foliage interaction.",
       "workaround": "Aim Assist can be lowered or disabled in settings, but that changes assistance globally rather than correcting the foliage interaction.",
       "known": [
         "The specific foliage interaction is officially acknowledged.",
@@ -2197,15 +2291,20 @@
         "The developers investigated multiple possible approaches."
       ],
       "unknown": [
-        "No release target has been published.",
         "The affected foliage assets and maps are not listed.",
-        "It is not known which proposed solution, if any, will ship."
+        "It is not known which proposed solution, if any, will ship.",
+        "The exact scope and final release remain unverified."
       ],
       "timeline": [
         {
           "date": "2026-08-20",
           "event": "Community Update #1",
           "detail": "The team explains the non-colliding foliage interaction and marks it under investigation."
+        },
+        {
+          "date": "2026-10-01",
+          "event": "Community Feedback #6",
+          "detail": "A development target was announced."
         }
       ],
       "sources": [
@@ -2216,6 +2315,14 @@
           "title": "Community Update #1",
           "url": "https://www.hellletloose.com/blog/community-update-1",
           "claim": "Foliage interaction acknowledged and under investigation"
+        },
+        {
+          "type": "official update",
+          "publisher": "Hell Let Loose",
+          "date": "2026-10-01",
+          "title": "Community Feedback #6",
+          "url": "https://www.hellletloose.com/blog/community-update-6",
+          "claim": "Aim Assist"
         }
       ]
     },
@@ -2766,33 +2873,37 @@
       "title": "Spawn choices and Commander abilities can disappear",
       "category": "gameplay",
       "kind": "spawn and deployment issue family",
-      "status_key": "partial",
-      "status_label": "Specific fixes released",
-      "bottom_line": "Update 1.5 fixes controller spawn-list focus and adds a boat-deployment safeguard. Wider Garrison/Outpost failures remain unresolved in the public record.",
+      "status_key": "monitoring",
+      "status_label": "Fixes released · monitoring",
+      "bottom_line": "1.5.2 replication fixes show encouraging early results; monitoring continues.",
       "official_short": "Acknowledged",
-      "fix_short": "Partial fixes in 1.5",
-      "cause_short": "Unknown",
-      "last_updated": "2026-09-16",
+      "fix_short": "Hotfix 1.5.2 + earlier fixes",
+      "cause_short": "Replication; not every case",
+      "last_updated": "2026-10-01",
       "featured": true,
       "scope": [
         "spawn menu",
         "Garrisons",
         "Outposts",
-        "Commander abilities"
+        "Commander abilities",
+        "HQ spawns",
+        "Mortars",
+        "deployable objects"
       ],
       "symptom": "Available Garrisons or Outposts can disappear from the deployment screen, preventing players from spawning; Commander abilities may also become unavailable.",
-      "official_position": "Community Feedback #4 distinguishes a controller focus defect from difficult-to-reproduce Garrison and Outpost failures. Update 1.5 releases the focus correction and a boat safeguard without closing the whole issue family.",
-      "workaround": null,
+      "official_position": "The replication evidence does not establish that every historical spawn or Commander-ability failure shares one cause.",
+      "workaround": "Server owners: regular restarts were recommended before 1.5.2; this is mitigation, not proof of cause.",
       "known": [
         "The issue family is officially acknowledged.",
         "Garrison and Outpost spawn choices can be affected.",
         "Commander abilities can become unavailable.",
-        "QA reopened an older issue with similar behavior."
+        "QA reopened an older issue with similar behavior.",
+        "Mortar/deployable visibility reports remain."
       ],
       "unknown": [
-        "The wider Garrison/Outpost cause remains unknown.",
         "These fixes do not prove Commander ability failures are resolved.",
-        "Independent post-update verification is not recorded."
+        "Independent post-update verification is not recorded.",
+        "The extent of the replication fix across older reports remains unverified."
       ],
       "timeline": [
         {
@@ -2809,6 +2920,21 @@
           "date": "2026-09-16",
           "event": "Update 1.5 (released September 16)",
           "detail": "Controller focus correction and boat-deployment safeguard released."
+        },
+        {
+          "date": "2026-09-25",
+          "event": "Community Feedback #5",
+          "detail": "Replication investigation reached QA."
+        },
+        {
+          "date": "2026-09-29",
+          "event": "Hotfix 1.5.2",
+          "detail": "Iris replication changes released."
+        },
+        {
+          "date": "2026-10-01",
+          "event": "Community Feedback #6",
+          "detail": "Full resolution is not confirmed."
         }
       ],
       "sources": [
@@ -2835,6 +2961,30 @@
           "title": "Community Feedback #4",
           "url": "https://www.hellletloose.com/blog/community-feedback-4",
           "claim": "Controller focus is distinguished from difficult-to-reproduce Garrison and Outpost failures."
+        },
+        {
+          "type": "official update",
+          "publisher": "Hell Let Loose",
+          "date": "2026-09-25",
+          "title": "Community Feedback #5",
+          "url": "https://www.hellletloose.com/blog/community-update-5",
+          "claim": "Match-end cleanup and restart advice"
+        },
+        {
+          "type": "patch notes",
+          "publisher": "Hell Let Loose",
+          "date": "2026-09-29",
+          "title": "Hotfix 1.5.2",
+          "url": "https://www.hellletloose.com/blog/hllv-hotfix-1-5-2",
+          "claim": "Server degradation"
+        },
+        {
+          "type": "official update",
+          "publisher": "Hell Let Loose",
+          "date": "2026-10-01",
+          "title": "Community Feedback #6",
+          "url": "https://www.hellletloose.com/blog/community-update-6",
+          "claim": "Spawn and deployable follow-up"
         }
       ]
     },
@@ -3161,6 +3311,503 @@
           "claim": "1.4.2 restores the DLSS reconstruction option."
         }
       ]
+    },
+    {
+      "id": "HLLV-054",
+      "title": "Game settings reset after EOS sign-in",
+      "category": "controls",
+      "kind": "game settings defect",
+      "status_key": "shipped",
+      "status_label": "Fix released",
+      "bottom_line": "1.5.2 preserves settings through EOS sign-out/sign-in.",
+      "official_short": "Developer acknowledged",
+      "fix_short": "Hotfix 1.5.2",
+      "cause_short": "Not public",
+      "last_updated": "2026-09-29",
+      "scope": [
+        "game settings",
+        "EOS"
+      ],
+      "symptom": "Game settings reset after EOS sign-in",
+      "official_position": "The publisher reports a released correction. Independent verification is not recorded here.",
+      "workaround": null,
+      "known": [
+        "The linked official evidence documents this issue."
+      ],
+      "unknown": [
+        "No evidence links this to community-server configuration loss (HLLV-027)."
+      ],
+      "timeline": [
+        {
+          "date": "2026-09-29",
+          "event": "Hotfix 1.5.2",
+          "detail": "Publisher documents this issue and its stated status."
+        }
+      ],
+      "sources": [
+        {
+          "type": "patch notes",
+          "publisher": "Hell Let Loose",
+          "date": "2026-09-29",
+          "title": "Hotfix 1.5.2",
+          "url": "https://www.hellletloose.com/blog/hllv-hotfix-1-5-2",
+          "claim": "Documents the issue and stated status"
+        }
+      ]
+    },
+    {
+      "id": "HLLV-055",
+      "title": "Rare PS5 save-data loss",
+      "category": "gameplay",
+      "kind": "save-data defect",
+      "status_key": "monitoring",
+      "status_label": "Safeguards released · monitoring",
+      "bottom_line": "1.5.2 adds protection against PS5 save loss.",
+      "official_short": "Developer acknowledged",
+      "fix_short": "Hotfix 1.5.2 safeguards",
+      "cause_short": "Not public",
+      "last_updated": "2026-09-29",
+      "scope": [
+        "PS5"
+      ],
+      "symptom": "Rare PS5 save-data loss",
+      "official_position": "A safeguard is not evidence that every case is resolved.",
+      "workaround": null,
+      "known": [
+        "The linked official evidence documents this issue."
+      ],
+      "unknown": [
+        "No evidence closes the tutorial issue (HLLV-033) or career-level issue (HLLV-047)."
+      ],
+      "timeline": [
+        {
+          "date": "2026-09-29",
+          "event": "Hotfix 1.5.2",
+          "detail": "Publisher documents this issue and its stated status."
+        }
+      ],
+      "sources": [
+        {
+          "type": "patch notes",
+          "publisher": "Hell Let Loose",
+          "date": "2026-09-29",
+          "title": "Hotfix 1.5.2",
+          "url": "https://www.hellletloose.com/blog/hllv-hotfix-1-5-2",
+          "claim": "Documents the issue and stated status"
+        }
+      ]
+    },
+    {
+      "id": "HLLV-056",
+      "title": "Nearby trees display flat distant models",
+      "category": "graphics",
+      "kind": "rendering defect",
+      "status_key": "shipped",
+      "status_label": "Fix released",
+      "bottom_line": "1.5.2 corrects premature 2D tree models.",
+      "official_short": "Developer acknowledged",
+      "fix_short": "Hotfix 1.5.2",
+      "cause_short": "Not public",
+      "last_updated": "2026-09-29",
+      "scope": [
+        "PC",
+        "PS5",
+        "Xbox"
+      ],
+      "symptom": "Nearby trees display flat distant models",
+      "official_position": "The publisher reports a released correction. Independent verification is not recorded here.",
+      "workaround": null,
+      "known": [
+        "The linked official evidence documents this issue."
+      ],
+      "unknown": [
+        "Broader foliage complaints remain separate (HLLV-057)."
+      ],
+      "timeline": [
+        {
+          "date": "2026-09-29",
+          "event": "Hotfix 1.5.2",
+          "detail": "Publisher documents this issue and its stated status."
+        }
+      ],
+      "sources": [
+        {
+          "type": "patch notes",
+          "publisher": "Hell Let Loose",
+          "date": "2026-09-29",
+          "title": "Hotfix 1.5.2",
+          "url": "https://www.hellletloose.com/blog/hllv-hotfix-1-5-2",
+          "claim": "Documents the issue and stated status"
+        }
+      ]
+    },
+    {
+      "id": "HLLV-057",
+      "title": "Blurry foliage and disappearing cover",
+      "category": "graphics",
+      "kind": "rendering issue family",
+      "status_key": "partial",
+      "status_label": "Partially addressed",
+      "bottom_line": "Cover can disappear before players; distance-detail fixes continue.",
+      "official_short": "Developer acknowledged",
+      "fix_short": "More work planned",
+      "cause_short": "Not public",
+      "last_updated": "2026-10-01",
+      "scope": [
+        "PC",
+        "PS5",
+        "Xbox",
+        "foliage"
+      ],
+      "symptom": "Blurry foliage and disappearing cover",
+      "official_position": "A limited correction does not close the broader issue.",
+      "workaround": null,
+      "known": [
+        "The linked official evidence documents this issue."
+      ],
+      "unknown": [
+        "HLLV-056 covers one released correction; the wider rendering issue remains open."
+      ],
+      "timeline": [
+        {
+          "date": "2026-10-01",
+          "event": "Community Feedback #6",
+          "detail": "Publisher documents this issue and its stated status."
+        }
+      ],
+      "sources": [
+        {
+          "type": "official update",
+          "publisher": "Hell Let Loose",
+          "date": "2026-10-01",
+          "title": "Community Feedback #6",
+          "url": "https://www.hellletloose.com/blog/community-update-6",
+          "claim": "Documents the issue and stated status"
+        }
+      ]
+    },
+    {
+      "id": "HLLV-058",
+      "title": "Server Browser filters fail to persist",
+      "category": "community-server",
+      "kind": "browser defect",
+      "status_key": "testing",
+      "status_label": "Fix planned · not released",
+      "bottom_line": "Filter fixes target 1.6; release remains unverified.",
+      "official_short": "Developer acknowledged",
+      "fix_short": "Patch 1.6 planned",
+      "cause_short": "Not public",
+      "last_updated": "2026-10-01",
+      "scope": [
+        "Server Browser"
+      ],
+      "symptom": "Server Browser filters fail to persist",
+      "official_position": "The announced fix has not been verified as released.",
+      "workaround": null,
+      "known": [
+        "The linked official evidence documents this issue."
+      ],
+      "unknown": [
+        "The filter correction does not establish resolution of missing search results (HLLV-059)."
+      ],
+      "timeline": [
+        {
+          "date": "2026-09-25",
+          "event": "Community Feedback #5",
+          "detail": "Publisher documents this issue and its stated status."
+        },
+        {
+          "date": "2026-10-01",
+          "event": "Community Feedback #6",
+          "detail": "The future patch target was reaffirmed."
+        }
+      ],
+      "sources": [
+        {
+          "type": "official update",
+          "publisher": "Hell Let Loose",
+          "date": "2026-09-25",
+          "title": "Community Feedback #5",
+          "url": "https://www.hellletloose.com/blog/community-update-5",
+          "claim": "Documents the issue and stated status"
+        },
+        {
+          "type": "official update",
+          "publisher": "Hell Let Loose",
+          "date": "2026-10-01",
+          "title": "Community Feedback #6",
+          "url": "https://www.hellletloose.com/blog/community-update-6",
+          "claim": "Server Browser filters"
+        }
+      ]
+    },
+    {
+      "id": "HLLV-059",
+      "title": "Servers missing from browser results",
+      "category": "community-server",
+      "kind": "search limitation",
+      "status_key": "investigating",
+      "status_label": "Under investigation",
+      "bottom_line": "Searches can return only 200 sessions; broader retrieval improvements remain under investigation.",
+      "official_short": "Developer acknowledged",
+      "fix_short": "No complete fix confirmed",
+      "cause_short": "Search-result limit",
+      "last_updated": "2026-10-01",
+      "scope": [
+        "Server Browser",
+        "community servers"
+      ],
+      "symptom": "Servers missing from browser results",
+      "official_position": "Acknowledgement does not establish a released correction.",
+      "workaround": "Use narrower filters and favourite regular servers.",
+      "known": [
+        "The linked official evidence documents this issue.",
+        "Higher-population ordering is planned for 1.6."
+      ],
+      "unknown": [
+        "Exact affected configurations and independent verification are not recorded."
+      ],
+      "timeline": [
+        {
+          "date": "2026-09-25",
+          "event": "Community Feedback #5",
+          "detail": "Publisher documents this issue and its stated status."
+        },
+        {
+          "date": "2026-10-01",
+          "event": "Community Feedback #6",
+          "detail": "Ordering changes remain distinct from search coverage."
+        }
+      ],
+      "sources": [
+        {
+          "type": "official update",
+          "publisher": "Hell Let Loose",
+          "date": "2026-09-25",
+          "title": "Community Feedback #5",
+          "url": "https://www.hellletloose.com/blog/community-update-5",
+          "claim": "Documents the issue and stated status"
+        },
+        {
+          "type": "official update",
+          "publisher": "Hell Let Loose",
+          "date": "2026-10-01",
+          "title": "Community Feedback #6",
+          "url": "https://www.hellletloose.com/blog/community-update-6",
+          "claim": "Server Browser ordering"
+        }
+      ]
+    },
+    {
+      "id": "HLLV-060",
+      "title": "DLSS Frame Generation needs reapplying",
+      "category": "graphics",
+      "kind": "settings activation defect",
+      "status_key": "testing",
+      "status_label": "Fix planned · not released",
+      "bottom_line": "Frame Generation may need reapplying after restart; a 1.6 candidate awaits QA.",
+      "official_short": "Developer acknowledged",
+      "fix_short": "Patch 1.6 target; QA pending",
+      "cause_short": "Not public",
+      "last_updated": "2026-09-25",
+      "scope": [
+        "PC",
+        "NVIDIA"
+      ],
+      "symptom": "DLSS Frame Generation needs reapplying",
+      "official_position": "The announced fix has not been verified as released.",
+      "workaround": "Reapply the selected Frame Generation setting.",
+      "known": [
+        "The linked official evidence documents this issue."
+      ],
+      "unknown": [
+        "Exact affected configurations and independent verification are not recorded."
+      ],
+      "timeline": [
+        {
+          "date": "2026-09-25",
+          "event": "Community Feedback #5",
+          "detail": "Publisher documents this issue and its stated status."
+        }
+      ],
+      "sources": [
+        {
+          "type": "official update",
+          "publisher": "Hell Let Loose",
+          "date": "2026-09-25",
+          "title": "Community Feedback #5",
+          "url": "https://www.hellletloose.com/blog/community-update-5",
+          "claim": "Documents the issue and stated status"
+        }
+      ]
+    },
+    {
+      "id": "HLLV-061",
+      "title": "Voice volume stays excessively loud",
+      "category": "voip",
+      "kind": "volume-control defect",
+      "status_key": "investigating",
+      "status_label": "Under investigation",
+      "bottom_line": "Volume-control correction targets 1.7, possibly sooner.",
+      "official_short": "Developer acknowledged",
+      "fix_short": "Patch 1.7 target",
+      "cause_short": "Not public",
+      "last_updated": "2026-10-01",
+      "scope": [
+        "Voice Chat"
+      ],
+      "symptom": "Voice volume stays excessively loud",
+      "official_position": "Acknowledgement does not establish a released correction.",
+      "workaround": null,
+      "known": [
+        "The linked official evidence documents this issue."
+      ],
+      "unknown": [
+        "Release timing is provisional; this is separate from silent muting (HLLV-029)."
+      ],
+      "timeline": [
+        {
+          "date": "2026-10-01",
+          "event": "Community Feedback #6",
+          "detail": "Publisher documents this issue and its stated status."
+        }
+      ],
+      "sources": [
+        {
+          "type": "official update",
+          "publisher": "Hell Let Loose",
+          "date": "2026-10-01",
+          "title": "Community Feedback #6",
+          "url": "https://www.hellletloose.com/blog/community-update-6",
+          "claim": "Documents the issue and stated status"
+        }
+      ]
+    },
+    {
+      "id": "HLLV-062",
+      "title": "Running boat engines prevent spawning",
+      "category": "vehicles",
+      "kind": "spawn usability issue",
+      "status_key": "investigating",
+      "status_label": "Under investigation",
+      "bottom_line": "Automatic engine shutdown is being considered.",
+      "official_short": "Developer acknowledged",
+      "fix_short": "No release confirmed",
+      "cause_short": "Not public",
+      "last_updated": "2026-10-01",
+      "scope": [
+        "transport boats"
+      ],
+      "symptom": "Running boat engines prevent spawning",
+      "official_position": "Acknowledgement does not establish a released correction.",
+      "workaround": null,
+      "known": [
+        "The linked official evidence documents this issue."
+      ],
+      "unknown": [
+        "This is a usability problem, not evidence of a replication failure."
+      ],
+      "timeline": [
+        {
+          "date": "2026-10-01",
+          "event": "Community Feedback #6",
+          "detail": "Publisher documents this issue and its stated status."
+        }
+      ],
+      "sources": [
+        {
+          "type": "official update",
+          "publisher": "Hell Let Loose",
+          "date": "2026-10-01",
+          "title": "Community Feedback #6",
+          "url": "https://www.hellletloose.com/blog/community-update-6",
+          "claim": "Documents the issue and stated status"
+        }
+      ]
+    },
+    {
+      "id": "HLLV-063",
+      "title": "Vote Kick visibility and response time",
+      "category": "community-server",
+      "kind": "moderation usability issue",
+      "status_key": "testing",
+      "status_label": "Fix planned · not released",
+      "bottom_line": "1.6 plans visible notifications and a 30-second voting window.",
+      "official_short": "Developer acknowledged",
+      "fix_short": "Patch 1.6 planned",
+      "cause_short": "Not public",
+      "last_updated": "2026-10-01",
+      "scope": [
+        "Vote Kick"
+      ],
+      "symptom": "Vote Kick visibility and response time",
+      "official_position": "The announced fix has not been verified as released.",
+      "workaround": null,
+      "known": [
+        "The linked official evidence documents this issue."
+      ],
+      "unknown": [
+        "The announcement inconsistently describes the old timeout; only its new target is recorded."
+      ],
+      "timeline": [
+        {
+          "date": "2026-10-01",
+          "event": "Community Feedback #6",
+          "detail": "Publisher documents this issue and its stated status."
+        }
+      ],
+      "sources": [
+        {
+          "type": "official update",
+          "publisher": "Hell Let Loose",
+          "date": "2026-10-01",
+          "title": "Community Feedback #6",
+          "url": "https://www.hellletloose.com/blog/community-update-6",
+          "claim": "Documents the issue and stated status"
+        }
+      ]
+    },
+    {
+      "id": "HLLV-064",
+      "title": "Mounted MG deployment and aiming difficulties",
+      "category": "gameplay",
+      "kind": "weapon usability issue",
+      "status_key": "investigating",
+      "status_label": "Under investigation",
+      "bottom_line": "Deployment, elevation and forced aiming remain under review.",
+      "official_short": "Developer acknowledged",
+      "fix_short": "No release target confirmed",
+      "cause_short": "Not public",
+      "last_updated": "2026-10-01",
+      "scope": [
+        "mounted machine guns"
+      ],
+      "symptom": "Mounted MG deployment and aiming difficulties",
+      "official_position": "Acknowledgement does not establish a released correction.",
+      "workaround": null,
+      "known": [
+        "The linked official evidence documents this issue."
+      ],
+      "unknown": [
+        "Earlier movement-smoothing fixes (HLLV-049) do not establish resolution of these interaction complaints."
+      ],
+      "timeline": [
+        {
+          "date": "2026-10-01",
+          "event": "Community Feedback #6",
+          "detail": "Publisher documents this issue and its stated status."
+        }
+      ],
+      "sources": [
+        {
+          "type": "official update",
+          "publisher": "Hell Let Loose",
+          "date": "2026-10-01",
+          "title": "Community Feedback #6",
+          "url": "https://www.hellletloose.com/blog/community-update-6",
+          "claim": "Documents the issue and stated status"
+        }
+      ]
     }
   ],
   "incidents": [
@@ -3173,5 +3820,5 @@
       "note": "Operational incidents remain separate from game issues until evidence establishes a relationship."
     }
   ],
-  "review_notes": "Reviewed official releases through the September 22 live announcement. The website dates Hotfix 1.5.1 September 21; Steam announces it live September 22. Update 1.5 notes preceded its September 16 release. Older unresolved reports retain their evidence dates; absence from newer notes is not confirmation of persistence or resolution."
+  "review_notes": "Reviewed the official September 25 Community Feedback #5, September 29 Hotfix 1.5.2 and October 1 Community Feedback #6 posts, using their full publisher text on Steam. Targets for 1.6, 1.7 and 2.0 are not release confirmations. Old reports retain their evidence dates unless new evidence applies. Similar symptoms do not establish a shared cause; SoulSniper incidents remain separate. No independent gameplay verification was performed. Prior review: Reviewed official releases through the September 22 live announcement. The website dates Hotfix 1.5.1 September 21; Steam announces it live September 22. Update 1.5 notes preceded its September 16 release. Older unresolved reports retain their evidence dates; absence from newer notes is not confirmation of persistence or resolution."
 }
