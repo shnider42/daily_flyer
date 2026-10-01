@@ -4,13 +4,13 @@ FOOTBALL_ICON = '<svg viewBox="0 0 64 40" aria-hidden="true"><path d="M3 20Q32-1
 BASEBALL_ICON = '<svg viewBox="0 0 64 64" aria-hidden="true"><circle cx="32" cy="32" r="29" fill="#fff5dd" stroke="#d7c9ab" stroke-width="2"/><path d="M13 10Q35 32 13 54M51 10Q29 32 51 54" fill="none" stroke="#b44230" stroke-width="2"/><path d="M16 17l-6 2M21 25l-7 1M21 34l-7-1M18 43l-7-2M48 17l6 2M43 25l7 1M43 34l7-1M46 43l7-2" stroke="#b44230" stroke-width="2"/></svg>'
 
 
-def sport_switch(active):
+def sport_switch(active, detail_controls=True):
     return '<nav class="yt-sports" aria-label="Choose a sport">'+''.join(
         f'<a href="?theme={theme}"'+(' aria-current="page"' if active==key else '')+f'><span aria-hidden="true">{icon}</span> {label}<small>{description}</small></a>'
         for key, theme, icon, label, description in [
             ("football", "qb_year_two", FOOTBALL_ICON, "Football", "Quarterbacks"),
             ("baseball", "baseball_year_two", BASEBALL_ICON, "Baseball", "Hitters & pitchers"),
-            ("bowling", "bowling_year_two", BOWLING_ICON, "Bowling", "PBA profiles")])+ '</nav>' + DETAIL_CONTROL
+            ("bowling", "bowling_year_two", BOWLING_ICON, "Bowling", "PBA profiles")])+ '</nav>' + (DETAIL_CONTROL if detail_controls else '')
 
 
 DETAIL_CONTROL = '''<section id="yt-levels" class="yt-levels" aria-label="Choose your detail level">

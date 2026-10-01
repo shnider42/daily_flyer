@@ -1,0 +1,47 @@
+<div id="qp-app">
+  <a class="qp-skip" href="#qp-comparison">Skip to comparison</a>
+  <!-- SPORTS -->
+  <div class="qp-topline"><span>Soph(more) Slump(?) <b>Design preview</b></span><a href="?theme=qb_year_two">Return to current explorer ↗</a></div>
+  <header class="qp-intro"><h1>Did year two bring a slump?</h1><p>Compare year one with year two. Then follow the career.</p></header>
+  <section class="qp-controls" aria-label="Set up your comparison">
+    <div class="qp-control-row">
+      <details id="qp-picker"><summary>Change quarterbacks <span id="qp-selection-count"></span></summary>
+        <div class="qp-picker-body"><label for="qp-search">Find a quarterback</label><input id="qp-search" type="search" placeholder="Name or team" autocomplete="off" maxlength="100">
+          <div class="qp-tools"><button id="qp-add-all" type="button">Add all matches</button><button id="qp-clear" type="button">Clear selection</button></div>
+          <p id="qp-match-count" class="qp-small" role="status"></p><div id="qp-players"></div>
+          <button id="qp-done" type="button">Done choosing</button>
+        </div>
+      </details>
+      <label class="qp-measure" for="qp-metric">Measure<select id="qp-metric"></select></label>
+    </div>
+    <div id="qp-selected" class="qp-selected" aria-label="Selected quarterbacks"></div>
+    <div class="qp-view-row"><div class="qp-question-tabs" role="group" aria-label="Question"><button type="button" data-view="pair" aria-pressed="true">Year 1 → 2</button><button type="button" data-view="career" aria-pressed="false">What happened next?</button></div><label id="qp-window-label" for="qp-window" hidden>Show<select id="qp-window"><option value="5">First 5 years</option><option value="10">First 10 years</option><option value="all">Full recorded career</option></select></label></div>
+  </section>
+  <section id="qp-comparison" tabindex="-1" aria-labelledby="qp-title">
+    <div class="qp-chart-heading"><h2 id="qp-title"></h2><div class="qp-switch" role="group" aria-label="Display format"><button type="button" data-display="chart" aria-pressed="true">Chart</button><button type="button" data-display="table" aria-pressed="false">Table</button></div></div>
+    <p class="qp-clock"><b>Year 1:</b> first season with at least 12 starts for one team. <b>Year 2:</b> the next calendar season—not necessarily the second NFL season.</p>
+    <p id="qp-metric-note" class="qp-small"></p>
+    <div id="qp-key" class="qp-key"><span><i class="qp-circle" aria-hidden="true"></i> Year 1</span><span><i class="qp-diamond" aria-hidden="true"></i> Year 2</span></div>
+    <p id="qp-scope" class="qp-small"></p>
+    <div id="qp-empty" hidden><h3>No quarterbacks selected</h3><p>Open Change quarterbacks to choose names, or restore the example.</p><button id="qp-empty-reset" type="button">Show Brady &amp; Manning</button></div>
+    <div id="qp-charts"></div>
+    <div id="qp-table-wrap" class="qp-table-wrap" tabindex="0" role="region" aria-label="Scrollable table of selected quarterbacks" hidden><table><caption id="qp-caption"></caption><thead id="qp-thead"></thead><tbody id="qp-tbody"></tbody></table></div>
+    <nav id="qp-pagination" class="qp-pagination" aria-label="Comparison pages" hidden><button id="qp-previous" type="button">← Previous</button><span id="qp-page-count" role="status"></span><button id="qp-next" type="button">Next →</button></nav>
+    <p id="qp-summary" role="status"></p>
+    <p id="qp-axis-note" class="qp-small"></p>
+    <p class="qp-source">Source: Pro Football Reference-derived historical snapshot, <span id="qp-years"></span>. <a href="#qp-method">Coverage &amp; source trail</a>.</p>
+    <div class="qp-utilities"><button id="qp-reset" type="button">Reset comparison</button><button id="qp-export" type="button">Download selected data</button><button id="qp-share" type="button">Get a link to this view</button></div>
+    <div id="qp-share-box" hidden><label for="qp-share-url">Copy this link to share the current selection</label><input id="qp-share-url" type="text" readonly><p class="qp-small">This does not publish a preset or send the link to anyone.</p></div>
+  </section>
+  <details id="qp-method"><summary>How the comparison works</summary><div class="qp-method-body">
+    <h3>The statistic</h3><p id="qp-definition"></p>
+    <h3>The seasons</h3><p>The first recorded season with at least 12 regular-season starts for one team sets the study clock. It is not an official rookie designation. Year two remains the next calendar season even with fewer starts. Team changes do not reset the clock. An uncertain start prevents a calculated year-two change.</p>
+    <h3>What the chart can and cannot say</h3><p>A rise or fall describes this measure—not a cause, overall quarterback quality or a prediction. Small passing samples can produce extreme rates. Passing statistics exclude rushing contributions. Rating and percentages are not era-adjusted; only the league-relative option uses a same-season comparison.</p>
+    <p>Charts, tables and downloads use the same selected players. Six chart panels appear per page; all selected players remain in the table and download. Panels share identical scales across pages. Missing seasons or metrics leave gaps, never zeros. Changes use unrounded source-derived values, so a printed change can differ slightly from subtraction of rounded labels.</p>
+    <h3>Frozen coverage</h3><p id="qp-coverage"></p><ul id="qp-limitations"></ul>
+    <h3>Source trail</h3><ul id="qp-sources"></ul><p><a href="/daily_flyer/data/qb_sources.json">Source manifest</a> · <a href="/daily_flyer/data/qb_seasons.json" download>Existing source snapshot</a></p>
+    <h3>About this preview</h3><p>This tests a question-first layout using ONS chart guidance, NN/g progressive disclosure and WCAG accessibility requirements. It is not a claim of certification. Your existing explorers, saved selections and shared presets are untouched. More measures and research tools remain in the <a href="?theme=qb_year_two">current football explorer</a>.</p>
+  </div></details>
+  <footer class="qp-footer"><span id="qp-build"></span><a href="?theme=qb_year_two">Back to the current football explorer</a></footer>
+  <noscript><p>This preview needs JavaScript to draw comparisons. You can still download the <a href="/daily_flyer/data/qb_seasons.json">unchanged source snapshot</a>.</p></noscript>
+</div>

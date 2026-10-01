@@ -18,6 +18,20 @@ Or use `/?theme=qb_year_two` on a service deploying this branch. No API key,
 database, background job, chart CDN or new production dependency is required.
 This change does not deploy or merge the branch.
 
+## Version 3.4.1 — opt-in comparison preview
+
+The football page now offers “Try the new, simpler football comparison” at
+`/?theme=qb_year_two_preview`. It tests a question-first, named-player comparison
+with four familiar measures, shared linear scales, exact values, mobile player
+selection and a separate career-history view. The original explorers remain
+available. All source snapshots, existing selections and public presets are
+unchanged; preview state uses its own `qb-comparison-preview-v1` key.
+
+See the [visualization standard, three-sport audit and review checklist](year_two_visualization_standard.md).
+This is a prototype for casual/expert review before adopting the pattern for
+baseball and bowling. Existing Render settings and production dependencies work
+unchanged. A branch push is not verification of a live Render deployment.
+
 ## Version 3.3.0 — bowling / PBA profiles
 
 The shared selector now includes `bowling_year_two`, alongside football and
