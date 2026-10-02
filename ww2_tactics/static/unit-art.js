@@ -198,7 +198,12 @@
    // Art covers only the old name area. Strength/AP, platoon and hit targets stay intact.
    const name=counter.querySelector('.unit-name');if(name)counter.insertBefore(art,name);else counter.append(art);
   }
-  if(!force)size(svg);
+  // ResizeObserver handles physical size changes. A new map can change only
+  // the viewBox; measure that once after the rest of the render has finished.
+  if(!force&&svg._artViewWidth!==svg.viewBox.baseVal.width){
+   svg._artViewWidth=svg.viewBox.baseVal.width;
+   requestAnimationFrame(()=>{if(svg.isConnected)size(svg);});
+  }
  }
  function sync(){
   document.body.classList.toggle('illustrated-units',illustrated);

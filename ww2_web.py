@@ -72,6 +72,11 @@ def create_app(db_path=None):
         state = json.loads(row["state"])
         state['order_history'] = history_status(state, side)
         state.pop(HISTORY_KEY, None)
+        # Replay frames are already fog-filtered when the computer creates them.
+        # Keep their immutable payload outside the deep-copied live projection.
+        replay = state.get('computer_playback')
+        if isinstance(replay, dict):
+            state['computer_playback'] = {'id': replay.get('id')} if replay else {}
         board = battlefield(state)
         state.update(code=row["code"], side=side,
                      map=board['map'], scenario={k: v for k, v in board.items() if k != 'map'})
@@ -85,7 +90,15 @@ def create_app(db_path=None):
             if state['order_history']['redo_required']:
                 state['legal'] = {uid: {key: [] if isinstance(value, list) else False
                                        for key, value in legal.items()} for uid, legal in state['legal'].items()}
-            return public_state(state,side)
+            result = public_state(state,side)
+            if isinstance(replay, dict):
+                replay_key = f"{row['code']}:{side}:{state.get('battle_number') or 1}:{replay.get('id')}"
+                # Opt-in acknowledgement, never a cache shared between players.
+                # Old clients and fresh/reconnected browsers still receive it all.
+                known = request.headers.get('X-WW2-Replay')
+                result['computer_playback'] = ({'id': replay.get('id'), 'unchanged': True}
+                    if known == replay_key and isinstance(replay.get('frames'), list) else replay)
+            return result
 
     @app.after_request
     def headers(response):
