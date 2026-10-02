@@ -5,7 +5,8 @@ const server=cp.spawn('python',['-m','gunicorn','ww2_web:app','--bind','127.0.0.
 let browser;
 (async()=>{
  for(let i=0;i<60;i++){try{if((await fetch(base+'/healthz')).ok)break;}catch{}await new Promise(r=>setTimeout(r,100));}
- browser=await chromium.launch({executablePath:process.env.CHROMIUM_EXECUTABLE_PATH||'/tmp/dsl-chromium153',args:['--no-sandbox','--disable-dev-shm-usage'],headless:true});
+ const mod=require('@sparticuz/chromium'),pack=mod.default||mod;
+ browser=await chromium.launch({executablePath:await pack.executablePath(),args:pack.args.filter(a=>a!=='--single-process'),headless:true});
  const p=await browser.newPage({viewport:{width:390,height:844},hasTouch:true,isMobile:true}),errors=[];p.on('pageerror',e=>errors.push(e.message));p.setDefaultTimeout(15000);
  if(process.env.WW2_SELECTION_BASELINE)for(const file of ['game.js','naval.js','naval.css','combined.js','terrain.js','play-ui.js']){
   const body=cp.execFileSync('git',['show',`6de0d58c288c819617c62c8f2f8612fc29c89e17:ww2_tactics/static/${file}`],{encoding:'utf8'});
@@ -39,7 +40,7 @@ let browser;
    return {zone:zone.isConnected,fog:fog.isConnected,art:art.isConnected,changedHexes:changedHexes.size,expected,actual,top:[$('mapWrap').getBoundingClientRect().top,before.top]};
   });
   assert.ok(result.zone&&result.fog&&result.art,'Retain static Midway overlays');assert.ok(result.changedHexes<=12,JSON.stringify(result));assert.deepEqual(result.actual,result.expected);assert.equal(result.top[0],result.top[1]);
-  await tap(p,p.locator('#terrainToggle'));await p.locator('#battleViewSettingsClose').click();
+  await tap(p,p.locator('#terrainToggle'));await tap(p,p.locator('#mobileBattleMenuClose'));
   await p.evaluate(()=>chooseUnit(state.units.find(u=>u.side===state.side&&u.kind==='carrier')));
   await tap(p,p.locator('#recon'));assert.ok(await p.locator('#map .recon-choice').count()>100);await tap(p,p.locator('#recon'));assert.equal(await p.locator('#map .recon-choice').count(),0);
   await p.evaluate(()=>chooseUnit(state.units.find(u=>u.side===state.side&&u.kind==='destroyer')));
@@ -48,7 +49,7 @@ let browser;
   await p.locator(`#map .hex.move[data-x="${planned.pos[0]}"][data-y="${planned.pos[1]}"]`).dispatchEvent('click');
   await p.waitForFunction(r=>!busy&&state.revision>r,planned.revision);
   assert.deepEqual(await p.evaluate(id=>state.units.find(u=>u.id===id).pos,planned.unit),planned.pos);
-  await tap(p,p.locator('#terrainToggle'));await p.locator('#battleViewSettingsClose').click();await p.screenshot({path:path.join(temp,'midway.png')});
+  await tap(p,p.locator('#terrainToggle'));await tap(p,p.locator('#mobileBattleMenuClose'));await p.screenshot({path:path.join(temp,'midway.png')});
  }
  assert.deepEqual(errors,[]);console.log(JSON.stringify({timing,hottest,screenshots:temp}));
 })().catch(e=>{console.error(e);process.exitCode=1;}).finally(async()=>{await browser?.close();server.kill();});

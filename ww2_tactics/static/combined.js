@@ -33,15 +33,11 @@
   if(svg._fogSnapshot===snapshot&&svg._fogSky===sky&&svg.querySelector('.fog-layer'))return;
   svg._fogSky=sky;
   svg._fogSnapshot=snapshot;
-  svg.querySelectorAll('.contact-marker,.passenger-marker').forEach(n=>n.remove());
-  if(!state.fog_of_war){svg.querySelector('.fog-layer')?.remove();return;}
-  const seen=new Set(((sky?snapshot.visible_air_hexes:snapshot.visible_hexes)||[]).map(p=>p.join(',')));
-  let layer=svg.querySelector('.fog-layer');
-  if(!layer){layer=element('g',{class:'fog-layer','aria-hidden':'true'});layer._tiles=new Map();}
-  state.map.forEach((row,y)=>row.forEach((_,x)=>{const key=`${x},${y}`,tile=layer._tiles.get(key);if(seen.has(key)){if(tile){tile.remove();layer._tiles.delete(key);}}else if(!tile){const n=element('polygon',{points:points(x,y)});layer._tiles.set(key,n);layer.append(n);}}));
-  // Retained counters already follow the fog. Re-inserting the entire fog
-  // group on each platoon selection needlessly invalidates a large SVG layer.
-  if(!layer.isConnected)svg.insertBefore(layer,svg.querySelector('.unit'));
+  svg.querySelectorAll('.fog-layer,.contact-marker,.passenger-marker').forEach(n=>n.remove());
+  if(!state.fog_of_war)return;
+  const seen=new Set(((sky?snapshot.visible_air_hexes:snapshot.visible_hexes)||[]).map(p=>p.join(','))),layer=element('g',{class:'fog-layer','aria-hidden':'true'});
+  state.map.forEach((row,y)=>row.forEach((_,x)=>{if(!seen.has(`${x},${y}`))layer.append(element('polygon',{points:points(x,y)}));}));
+  svg.insertBefore(layer,svg.querySelector('.unit'));
   for(const contact of snapshot.contacts||[]){
    const [cx,cy]=center(...contact.pos),g=element('g',{class:'contact-marker'});
    g.dataset.kind=contact.kind;

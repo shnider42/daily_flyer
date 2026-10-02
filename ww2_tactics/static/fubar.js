@@ -23,8 +23,6 @@
   bar.hidden=r.bottom<44||r.top>innerHeight||!!playbackSession;
   bar.style.left=`${Math.max(6,r.left+8)}px`;bar.style.top=`${Math.max(6,r.top+8)}px`;
  }
- let positionFrame=null;
- function schedulePosition(){if(positionFrame===null)positionFrame=requestAnimationFrame(()=>{positionFrame=null;position();});}
  new ResizeObserver(position).observe($('mapWrap'));
  new MutationObserver(position).observe($('game'),{attributes:true,attributeFilter:['hidden']});
  window.addEventListener('resize',position);window.addEventListener('scroll',position,{passive:true});
@@ -32,11 +30,8 @@
   const units=snapshot.units.filter(u=>u.hp>0&&!u.reserve&&!u.carrier_id),counts=new Map();
   for(const u of units)counts.set(u.pos.join(','),(counts.get(u.pos.join(','))||0)+1);
   for(const u of units){
-   const g=svg._counters?.get(u.id)||svg.querySelector(`.unit[data-unit-id="${u.id}"]`);if(!g)continue;
+   const g=svg.querySelector(`.unit[data-unit-id="${u.id}"]`);if(!g)continue;
    const flying=air(u),hidden=layer==='air'&&!flying||layer==='surface'&&flying,stacked=layer==='both'&&counts.get(u.pos.join(','))>1;
-   const paintKey=JSON.stringify([u,layer,stacked]);
-   if(g._jointPaintKey===paintKey)continue;
-   g._jointPaintKey=paintKey;
    g.classList.toggle('joint-air',flying);g.classList.toggle('joint-hidden',hidden);
    if(hidden){g.setAttribute('aria-hidden','true');g.setAttribute('tabindex','-1');}
    else{g.removeAttribute('aria-hidden');if(svg.id==='map')g.setAttribute('tabindex','0');}
@@ -46,9 +41,6 @@
    if(svg.id==='map')g.setAttribute('aria-label',`${sideLabel(u.side)} ${unitName(u)}. ${flying?'Air':'Surface'} layer. ${u.hp} strength, ${u.ap} AP.${stacked?' Shared hex: choose a unit.':''}`);
   }
   for(const g of svg.querySelectorAll('.contact-marker'))g.classList.toggle('joint-hidden',layer==='air'&&!air({kind:g.dataset.kind})||layer==='surface'&&air({kind:g.dataset.kind}));
-  const objectiveKey=JSON.stringify(snapshot.joint_control||[]);
-  if(svg._jointObjectiveKey===objectiveKey&&svg.querySelector('.joint-objective'))return;
-  svg._jointObjectiveKey=objectiveKey;
   svg.querySelectorAll('.joint-objective').forEach(n=>n.remove());
   for(const p of snapshot.joint_control||[]){
    const [x,y]=center(...p.pos),g=element('g',{class:'joint-objective','aria-hidden':'true'});
@@ -70,7 +62,7 @@
    $('roleBrief').textContent=unitRoleSummary(unit)+(unit.kind==='flak'?' Anti-aircraft bursts reach 4 hexes; Overwatch can intercept a flight.':'');
    if(air(unit)&&!target&&!combatMode&&!smokeMode&&!barrageMode)$('hint').textContent=`AIR · fly up to ${unit.flight} hexes for 1 AP. Surface units do not block flight. ${unit.kind==='bomber'?`${unit.bombs} bomb loads; select a visible surface target.`:'Select a visible aircraft to attack.'}`;
   }
-  const snapshot=window.signalSnapshot?.(state)||state;paint(svg,snapshot);schedulePosition();
+  const snapshot=window.signalSnapshot?.(state)||state;paint(svg,snapshot);position();
  };
  function picking(){return smokeMode||barrageMode||combatMode||window.airbornePicking?.(state.legal[selected])||window.operationsPicking?.(state.legal[selected])||window.fieldworksPicking?.(state.legal[selected])||window.signalsPicking?.(state.legal[selected])||$('map').classList.contains('transport-picking')||$('map').querySelector('.landing-zone,.recon-choice');}
  function openStack(u){
@@ -98,7 +90,7 @@
   if(!state?.joint_ops_version)return;const u=state.units.find(u=>u.id===(target||selected));
   if(u&&layer!=='both'&&air(u)!==(layer==='air')){layer='both';render();}
  });
- document.addEventListener('ww2:render',schedulePosition);document.addEventListener('ww2:layout',schedulePosition);
+ document.addEventListener('ww2:render',position);document.addEventListener('ww2:layout',position);
  document.addEventListener('ww2:playback',()=>{if(state?.joint_ops_version&&playbackSession){paint($('playbackMap'),playbackSession.frames[playbackSession.index][playbackSession.phase]);position();}});
  const manual=node('section');manual.id='fubarManual';manual.append(node('h3','Fubar · joint operations playtest'),node('p','A deliberately fictional coalition battle containing all 31 current unit types. The 36×32 map links an ocean flank, landing coast, bridged river and inland town. The mission panel explains the three scoring zones. Existing battles keep their original rules.'),node('p','Both / Surface / Air changes only the view. At most one aircraft and one surface unit may share a hex; same-layer stacking is forbidden. Aircraft fly above ground cover and smoke; radar does not reveal ground troops. Bombing and artillery affect the surface only. Tap a shared hex to choose a counter by its full name.'),node('p','Movable fighters and bombers are separate from the carrier’s abstract search / strike sorties. Airfields service movable aircraft; carrier sorties retain their existing per-turn limits and cruiser escort penalty. Fixed AA, Flak and fighter overwatch react along actual flight paths. Aircraft cannot capture objectives. This is a balance sandbox, not a historical order of battle.'));
  $('rules').append(manual);

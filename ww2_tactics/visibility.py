@@ -124,52 +124,6 @@ def _visible_ids(state, side):
              'air' if domains.joint(state) and domains.is_air(u) else 'camouflaged' if u.get('camouflaged') and not u.get('exposed_turns') else not u.get('armor') and not u.get('exposed_turns') and terrain(*u['pos'],state) in fieldworks.CONCEALMENT))}
 
 
-def visible_terrain(state, side, platoon=None, air=False):
-    """Union nearby scout footprints instead of testing every scout at every hex.
-
-    Footprints live only in the existing unchanged-state read scope. Army and
-    platoon views reuse them, while enemy concealment still uses visible_ids.
-    Keep a brute-force path for uncached equivalence checks and legacy aircraft.
-    """
-    from . import operations, signals
-    board = state['battlefield']
-    cache = sight_cache(state)
-    mode = 'air' if air else False
-    if cache is None or state.get('air_version'):
-        sees = (lambda pos: sees_hex(state, side, pos, mode)) if platoon is None else (
-            lambda pos: signals.group_sees(state, side, platoon, pos, mode))
-        return [[x, y] for y in range(board['height']) for x in range(board['width']) if sees([x, y])]
-    if platoon is not None and not fog(state):
-        return [[x, y] for y in range(board['height']) for x in range(board['width'])]
-    towers_key = ('terrain_towers',)
-    if towers_key not in cache:
-        from .engine import terrain
-        cache[towers_key] = {(x, y) for y in range(board['height']) for x in range(board['width'])
-                             if operations.enabled(state) and terrain(x, y, state) == 'tower'}
-    seen = set()
-    for scout in state['units']:
-        if scout['side'] != side or not active(scout) or (platoon is not None and signals.group(scout) != platoon):
-            continue
-        key = ('terrain_footprint', scout['id'], air)
-        if key not in cache:
-            joint = domains.joint(state)
-            if joint and air: reach = scout.get('sight', 6)
-            elif joint and scout['kind'] == 'radar': reach = 1
-            elif joint and domains.is_air(scout): reach = 4
-            else: reach = max(1, operations.sight_range(state, scout))
-            candidates = {tuple(p) for p in operations.cells(state, scout['pos'], reach)}
-            # Towers can be visible beyond ordinary sight. The original sight
-            # predicate remains authoritative, including blocked lanes/smoke.
-            if not joint or (not air and scout['kind'] != 'radar' and not domains.is_air(scout)):
-                candidates.update(cache[towers_key])
-            cache[key] = {p for p in candidates if unit_sees_hex(state, scout, list(p), mode)}
-        seen.update(cache[key])
-    for recon in state.get('recon', []):
-        if recon['side'] == side:
-            seen.update(tuple(p) for p in operations.cells(state, recon['pos'], recon['radius']))
-    return [list(p) for p in sorted(seen, key=lambda p: (p[1], p[0]))]
-
-
 def unit_visible_ids(state, unit):
     from . import signals
     return signals.group_ids(state,unit['side'],signals.group(unit)) if signals.enabled(state) else visible_ids(state,unit['side'])
@@ -234,9 +188,10 @@ def view(state, side, terrain_visibility=True):
         from .fubar import controls
         result.update(joint_score=copy.deepcopy(state['joint_score']),joint_control=controls(state))
     if terrain_visibility:
-        result['visible_hexes']=visible_terrain(state, side)
+        board=state['battlefield']
+        result['visible_hexes']=[[x,y] for y in range(board['height']) for x in range(board['width']) if sees_hex(state,side,[x,y])]
         if domains.joint(state):
-            result['visible_air_hexes']=visible_terrain(state, side, air=True)
+            result['visible_air_hexes']=[[x,y] for y in range(board['height']) for x in range(board['width']) if sees_hex(state,side,[x,y],'air')]
     return result
 
 

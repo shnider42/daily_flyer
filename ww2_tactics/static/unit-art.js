@@ -20,9 +20,6 @@
  function decorate(svg,units,force=false){
   if(!svg)return;
   if(!force&&!observed.has(svg)){observer.observe(svg);observed.add(svg);}
-  // A new board can change counter scale without changing the SVG's CSS size.
-  // Recheck that case once; selections keep both dimensions unchanged.
-  if(!force&&svg._artViewWidth!==svg.viewBox.baseVal.width){svg._artViewWidth=svg.viewBox.baseVal.width;requestAnimationFrame(()=>{if(svg.isConnected)size(svg);});}
   const byId=new Map(units.map(u=>[u.id,u]));
   for(const counter of svg.querySelectorAll('.unit')){
    const show=force||illustrated;
@@ -201,8 +198,7 @@
    // Art covers only the old name area. Strength/AP, platoon and hit targets stay intact.
    const name=counter.querySelector('.unit-name');if(name)counter.insertBefore(art,name);else counter.append(art);
   }
-  // ResizeObserver owns zoom/size changes. Selection doesn't change SVG size;
-  // measuring after decoration synchronously laid out the entire battlefield.
+  if(!force)size(svg);
  }
  function sync(){
   document.body.classList.toggle('illustrated-units',illustrated);

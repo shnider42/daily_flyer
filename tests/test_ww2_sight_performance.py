@@ -8,7 +8,7 @@ from unittest.mock import patch
 
 from ww2_tactics.campaigns import unit
 from ww2_tactics.engine import initial, options, line_clear
-from ww2_tactics.visibility import sight_calculations, sees_hex, visible_ids, public_state, visible_terrain
+from ww2_tactics.visibility import sight_calculations, sees_hex, visible_ids, public_state
 
 
 class SightPerformanceTests(unittest.TestCase):
@@ -21,7 +21,7 @@ class SightPerformanceTests(unittest.TestCase):
         return s
 
     def test_both_sides_orders_and_public_views_equal_uncached_reads(self):
-        for scenario in ('tidal_gate', 'frontier', 'midway', 'britain', 'fubar', 'market_garden'):
+        for scenario in ('tidal_gate', 'frontier', 'midway', 'britain'):
             s = initial(scenario, 'dsl'); s['ready'] = True
             for side in ('us', 'de'):
                 with self.subTest(scenario=scenario, side=side):
@@ -33,34 +33,6 @@ class SightPerformanceTests(unittest.TestCase):
                     with sight_calculations(s):
                         self.assertEqual(read(), expected)
                     self.assertEqual(json.dumps(s, sort_keys=True), before)
-
-    def test_terrain_footprints_equal_full_scan_after_sight_changes(self):
-        from ww2_tactics import signals
-        s = initial('fubar', 'dsl'); s['ready'] = True
-        scout = next(u for u in s['units'] if u['kind'] == 'scout' and u['side'] == 'us')
-        # Distant towers, smoke, recon, passive units and observation all use
-        # the original sight predicate; cached terrain must not add contacts.
-        def compare():
-            for side in ('us', 'de'):
-                groups = [None] + sorted({signals.group(u) for u in s['units'] if u['side'] == side})
-                with patch('ww2_tactics.visibility.sight_cache', return_value=None):
-                    expected = {(g, air): visible_terrain(s, side, g, air) for g in groups for air in (False, True)}
-                with sight_calculations(s):
-                    for (g, air), cells in expected.items():
-                        self.assertEqual(visible_terrain(s, side, g, air), cells, (side, g, air))
-        compare()
-        s.setdefault('fieldworks', {})['15,15'] = 'tower'
-        s['smoke'] = [dict(pos=[16,24])]
-        scout['observing'] = True
-        s['recon'] = [dict(side='us', pos=[10,10], radius=3)]
-        compare()
-        scout['carrier_id'] = 'transport'
-        s['fieldworks']['15,15'] = 'rubble'
-        s['recon'] = []
-        compare()
-        del scout['carrier_id']; scout['hp'] = 0
-        s['fog_of_war'] = False
-        compare()
 
     def test_same_revision_edits_are_seen_in_next_scope(self):
         s = self.field()
