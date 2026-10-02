@@ -4,6 +4,7 @@ on:
     branches: [agent/dsl-move-pipeline-20261002]
 permissions:
   contents: write
+  actions: read
 defaults:
   run:
     shell: bash
@@ -16,6 +17,8 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
@@ -29,17 +32,37 @@ jobs:
           npx playwright install --with-deps chromium
           echo "CHROMIUM_EXECUTABLE_PATH=$(node -e 'console.log(require("playwright").chromium.executablePath())')" >> "$GITHUB_ENV"
           mkdir -p /tmp/dsl-validation
-      - name: Measure unchanged rollback browser baseline
+      - name: Verify unchanged runtime inputs and prior complete Python test pass
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          git diff --exit-code 478ce9e28ab183ce1645853c5f7f133aefbf83c7 -- ww2_web.py ww2_tactics requirements-ww2.txt _dsl-review/apply_pipeline.py 'tests/test_ww2*.py'
+          gh api repos/shnider42/daily_flyer/actions/jobs/110957171598 > /tmp/dsl-validation/prior-python-job.json
+          python - <<'PY'
+          import json
+          job=json.load(open('/tmp/dsl-validation/prior-python-job.json'))
+          assert job['run_id']==37042921404
+          assert any(step['name']=='DSL Python regression suite' and step['conclusion']=='success' for step in job['steps'])
+          print('Full 324-test Python pass verified on identical runtime inputs and identical patch script in run 37042921404; browser fixture only is corrected here.')
+          PY
+      - name: Measure rollback baseline and verify replay fixture on unchanged runtime
         run: |
           node tests/ww2-move-pipeline-benchmark.cjs "$PWD" | tee /tmp/dsl-validation/baseline-browser.log
           cp browser-results.json /tmp/dsl-validation/baseline-browser.json
-      - name: Apply reviewed runtime changes on validation branch only
+          node tests/ww2-playback-browser.cjs | tee /tmp/dsl-validation/baseline-playback.log
+      - name: Apply exact already-Python-tested runtime changes
         run: |
           python _dsl-review/apply_pipeline.py
           git diff --check
-          git diff --stat
-      - name: DSL Python regression suite
-        run: python -m unittest discover -s tests -p 'test_ww2*.py' -v 2>&1 | tee /tmp/dsl-validation/python-tests.log
+          python - <<'PY'
+          import subprocess
+          expected={'ww2_web.py':'a53ccf208eda7102400b7b0a688ba3dee635def4','ww2_tactics/order_history.py':'7b67fda3f439d263ed00de2897897432af105cf8','ww2_tactics/static/game.js':'15ef5137409fe8fcf69c7daf939bfba5451f9eb3','ww2_tactics/static/combined.js':'5e9cf8035149ae6e9826aa3b1c6221a77616966d','ww2_tactics/static/fubar.js':'e2e978c84cbbe1a5f90a0025228925b1cc99e528','ww2_tactics/static/unit-art.js':'f04447e47affd888cfc06aee766485c99bcca13b'}
+          for path,sha in expected.items():
+              actual=subprocess.check_output(['git','hash-object',path],text=True).strip()
+              assert actual==sha,(path,actual,sha)
+          print('All six runtime files match the tested patch byte-for-byte.')
+          PY
+          python -m unittest discover -s tests -p 'test_ww2_replay_pipeline.py' -v 2>&1 | tee /tmp/dsl-validation/replay-python-tests.log
       - name: Request adapter and actual browser regression suites
         run: |
           node tests/ww2-replay-transport.cjs | tee /tmp/dsl-validation/replay-adapter.log
@@ -60,9 +83,9 @@ jobs:
           git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
           git add ww2_web.py ww2_tactics/order_history.py ww2_tactics/static/game.js ww2_tactics/static/combined.js ww2_tactics/static/fubar.js ww2_tactics/static/unit-art.js
           git commit -m 'Validate replay transport and retained battlefield rendering [skip ci]'
+          git diff cde494de68d9a6aadb9196cb0ad2934281f008a5 -- ww2_web.py ww2_tactics tests > /tmp/dsl-validation/tested.patch
           git push origin HEAD:refs/heads/agent/dsl-move-pipeline-20261002
           git rev-parse HEAD > /tmp/dsl-validation/tested-commit.txt
-          git diff cde494de68d9a6aadb9196cb0ad2934281f008a5 -- ww2_web.py ww2_tactics tests > /tmp/dsl-validation/tested.patch
       - uses: actions/upload-artifact@v4
         if: always()
         with:

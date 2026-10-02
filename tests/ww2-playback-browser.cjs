@@ -19,11 +19,14 @@ let browser;
 (async()=>{
  for(let i=0;i<60;i++){try{if((await fetch(base+'/healthz')).ok)break;}catch{}await new Promise(r=>setTimeout(r,100));}
  const mod=process.env.WW2_PACKAGED_CHROMIUM?require('@sparticuz/chromium'):null,pack=mod?.default||mod;
- browser=await chromium.launch({headless:true,...(pack?{executablePath:await pack.executablePath(),args:pack.args.filter(a=>a!=='--single-process')}:{args:['--no-sandbox']})});
+ browser=await chromium.launch({headless:true,...(pack?{executablePath:await pack.executablePath(),args:pack.args.filter(a=>a!=='--single-process')}:{executablePath:process.env.CHROMIUM_EXECUTABLE_PATH,args:['--no-sandbox','--disable-dev-shm-usage']})});
  const page=await browser.newPage({viewport:{width:375,height:812},isMobile:true,hasTouch:true});
  await page.addInitScript(()=>localStorage.setItem('ww2-session',JSON.stringify({code:'AABBCCDDEE',token:'human'})));
  let posts=0;const errors=[];page.on('request',r=>{if(r.method()==='POST')posts++;});page.on('pageerror',e=>errors.push(e.message));
- await page.goto(base);await page.locator('#game').waitFor({state:'visible'});
+ // Home intentionally does not auto-open a stored battle. Resume it explicitly,
+ // as on reload below, without replacing the fixture or changing game state.
+ await page.goto(base);await page.locator('.saved-session').first().click();
+ await page.locator('#game').waitFor({state:'visible'});
  const read=async()=>await(await fetch(base+'/api/match/AABBCCDDEE',{headers:{Authorization:'Bearer human'}})).json();
  const before=await read();
  await page.locator('#replayTurn').click();await page.locator('#pausePlayback').click();
