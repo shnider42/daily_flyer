@@ -80,7 +80,8 @@ def reports_for(state,side):
 
 @sight_reader
 def public_views(state,side):
-    board=state['battlefield'];result={}
+    from .visibility import visible_terrain
+    result={}
     for platoon in sorted({group(u) for u in state['units'] if u['side']==side}):
         seen=group_ids(state,side,platoon)
         contacts=dict(state.get('platoon_intel',{}).get(side,{}).get(platoon,{}))
@@ -90,9 +91,9 @@ def public_views(state,side):
         # the target's secret current location or revealing its survival.
         remembered=[copy.deepcopy(c) for uid,c in contacts.items() if uid not in seen and not group_sees(state,side,platoon,c['pos'],'air' if domains.joint(state) and domains.is_air(c) else True)]
         result[platoon]=dict(enemy_ids=[u['id'] for u in state['units'] if u['side']!=side and u['id'] in seen],contacts=remembered,
-            visible_hexes=[[x,y] for y in range(board['height']) for x in range(board['width']) if group_sees(state,side,platoon,[x,y])])
+            visible_hexes=visible_terrain(state,side,platoon))
         if domains.joint(state):
-            result[platoon]['visible_air_hexes']=[[x,y] for y in range(board['height']) for x in range(board['width']) if group_sees(state,side,platoon,[x,y],'air')]
+            result[platoon]['visible_air_hexes']=visible_terrain(state,side,platoon,air=True)
     return result
 
 

@@ -1,0 +1,6 @@
+/* Pending movement is visibly provisional. No animation delay is added to taps. */
+#map .move-pending{opacity:.65;pointer-events:none}
+#map .move-pending>rect{stroke:#fff3b5;stroke-width:3;stroke-dasharray:5 3}
+.move-pending-mark{pointer-events:none;fill:none;stroke:#fff4ba;stroke-width:2}
+.move-origin{stroke-dasharray:3 4;opacity:.7}.move-destination{stroke-width:3}
+#moveStatus{position:fixed;left:50%;bottom:max(12px,env(safe-area-inset-bottom));transform:translateX(-50%);z-index:30;max-width:calc(100vw - 32px);padding:7px 12px;margin:0;border:1px solid #adbb9b;border-radius:5px;background:#20372cef;color:#fff8dc;font-size:13px;line-height:18px;pointer-events:none;box-shadow:0 2px 8px #10201830}

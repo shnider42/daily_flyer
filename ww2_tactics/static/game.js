@@ -62,7 +62,12 @@ async function refresh(){
  catch(e){$('connection').textContent='○ Reconnecting';if(!state)notify(e.message);}finally{polling=false;}
 }
 async function run(task){if(busy||playbackSession)return;const oldPlayback=playbackKey(state),oldCode=session?.code,oldState=state;busy=true;document.dispatchEvent(new Event('ww2:busy'));document.querySelectorAll('button').forEach(b=>b.disabled=true);try{await task();}catch(e){notify(e.message);}finally{busy=false;document.querySelectorAll('button').forEach(b=>b.disabled=false);if(state)render();if(!state||state===oldState)await refresh();if(session?.code===oldCode&&playbackKey(state)&&oldPlayback!==playbackKey(state))startPlayback();}}
-async function act(body){await run(async()=>{state=await api(`/api/match/${session.code}`,{...body,revision:state.revision});target=null;smokeMode=false;barrageMode=false;});}
+async function act(body){
+ if(busy||playbackSession)return;
+ const finish=window.ww2MoveFeedback?.begin(body)||(()=>{});
+ await run(async()=>{try{const next=await api(`/api/match/${session.code}`,{...body,revision:state.revision});finish();state=next;target=null;smokeMode=false;barrageMode=false;}catch(error){finish();throw error;}});
+ finish();
+}
 function element(tag,attrs={},text){const e=document.createElementNS('http://www.w3.org/2000/svg',tag);Object.entries(attrs).forEach(([k,v])=>e.setAttribute(k,v));if(text!==undefined)e.textContent=text;return e;}
 function center(x,y){return [27+x*52+(y%2)*26,30+y*49];}
 function unitTypeName(u){if(u.display_name)return u.display_name;return state?.naval_version&&u.kind==='amphibious'?'Landing section':kinds[u.kind];}
@@ -98,7 +103,9 @@ function renderUnitClarity(unit){
  });
 }
 function holdMobileMap(){
- if(matchMedia('(min-width:1100px)').matches||$('game').hidden)return ()=>{};
+ // The mounted mobile battle is a fixed grid with anchoring disabled. Its map
+ // cannot shift with selection; reading it here forced SVG layout twice per tap.
+ if(window.ww2Mobile?.active||matchMedia('(min-width:1100px)').matches||$('game').hidden)return ()=>{};
  const wrap=$('mapWrap'),rect=wrap.getBoundingClientRect(),left=wrap.scrollLeft,top=wrap.scrollTop;
  const visible=rect.bottom>0&&rect.top<innerHeight;
  return ()=>{wrap.scrollLeft=left;wrap.scrollTop=top;if(visible)window.scrollTo({top:window.scrollY+wrap.getBoundingClientRect().top-rect.top,left:window.scrollX,behavior:'instant'});};
@@ -133,7 +140,7 @@ function scenarioPreview(){
 }
 async function rematchRequest(body){await run(async()=>{state=await api(`/api/match/${session.code}/rematch`,{...body,revision:state.revision});render();});}
 function render(){
- if(!state||lobbyMode)return;const restoreMap=holdMobileMap();$('lobby').hidden=true;$('game').hidden=false;
+ if(!state||lobbyMode)return;const restoreMap=holdMobileMap();if(!$('lobby').hidden)$('lobby').hidden=true;if($('game').hidden)$('game').hidden=false;
  Object.assign(names,state.factions||{us:'Americans',de:'Germans'});
  const myTurn=state.ready&&!state.winner&&state.turn===state.side&&!state.order_history?.redo_required;
  const board=state.scenario||{id:'village',name:'Village Crossing',objective_name:'Village square',rounds:8};
@@ -152,7 +159,8 @@ function render(){
  $('homeBattles').hidden=false;
  $('objectiveName').textContent=`★ ${board.objective_name.toUpperCase()}`;
  $('round').textContent=`${state.round} / ${board.rounds}`;$('side').textContent=`You command the ${names[state.side]}`;
- $('game').dataset.side=state.side;document.body.dataset.battleSide=state.side;
+ if($('game').dataset.side!==state.side)$('game').dataset.side=state.side;
+ if(document.body.dataset.battleSide!==state.side)document.body.dataset.battleSide=state.side;
  $('turnBanner').dataset.side=state.winner||state.turn;
  $('soloButton').hidden=!!state.ai_side;
  $('saveButton').hidden=!state.ai_side;
@@ -193,7 +201,11 @@ function render(){
  const reuse=svg._mapKey===mapKey;
  if(!reuse){svg.replaceChildren();svg._tiles=[];svg._counters=new Map();svg._mapKey=mapKey;}
  else svg.querySelectorAll('.aim-line,.landing-zone,.transport-choice,.recon-choice,.move-beacon,.range-guide,.support-choice,.engineering-choice,.signal-choice').forEach(n=>n.remove());
- if(!sameUnits){svg.querySelectorAll('.unit,.smoke-cloud,.barrage-zone,.incoming-mark,.station-mark').forEach(n=>n.remove());svg._counters=new Map();}
+ if(!sameUnits){
+  svg.querySelectorAll('.smoke-cloud,.barrage-zone,.incoming-mark,.station-mark').forEach(n=>n.remove());
+  const visible=new Set(display.units.filter(u=>u.hp>0&&!u.reserve&&!u.carrier_id).map(u=>u.id));
+  for(const [id,g] of svg._counters)if(!visible.has(id)){g.remove();svg._counters.delete(id);}
+ }
  svg._state=state;
  if(!reuse){svg.setAttribute('viewBox',`0 0 ${state.map[0].length*52+36} ${state.map.length*49+29}`);
  svg.setAttribute('aria-label',`${board.name} battlefield. Select your unit then a highlighted hex to move.`);}
@@ -243,10 +255,12 @@ function render(){
  }
  if(unit&&enemy){const [x1,y1]=center(...unit.pos),[x2,y2]=center(...enemy.pos);svg.append(element('line',{x1,y1,x2,y2,class:`aim-line${shot?' clear':''}`}));}
  for(const u of display.units.filter(u=>u.hp>0&&!u.reserve&&!u.carrier_id)){
-  if(sameUnits&&reuse){const g=svg._counters.get(u.id);for(const [name,on] of [['selected',selected===u.id],['target',target===u.id]])if(g.classList.contains(name)!==on)g.classList.toggle(name,on);if(g._platoonFilter!==platoonFilter){g.querySelector('.platoon-halo')?.remove();if(u.side===state.side&&u.platoon===platoonFilter){const [x,y]=center(...u.pos);g.prepend(element('path',{d:`M${x-24} ${y-20}h48v41h-48z`,class:'platoon-halo'}));}g._platoonFilter=platoonFilter;}continue;}
+  const existing=svg._counters.get(u.id),unitKey=JSON.stringify(u);
+  if(reuse&&existing?._unitKey===unitKey){const g=existing;for(const [name,on] of [['selected',selected===u.id],['target',target===u.id]])if(g.classList.contains(name)!==on)g.classList.toggle(name,on);if(g._platoonFilter!==platoonFilter){g.querySelector('.platoon-halo')?.remove();if(u.side===state.side&&u.platoon===platoonFilter){const [x,y]=center(...u.pos);g.prepend(element('path',{d:`M${x-24} ${y-20}h48v41h-48z`,class:'platoon-halo'}));}g._platoonFilter=platoonFilter;}continue;}
+  existing?.remove();
   const [cx,cy]=center(...u.pos),g=element('g',{class:`unit ${u.side} platoon-${u.platoon||'none'}${selected===u.id?' selected':''}${target===u.id?' target':''}`,role:'button',tabindex:0,'aria-label':`${names[u.side]} ${unitName(u)}, ${u.hp} strength, ${u.ap} actions${u.pinned?', pinned':''}`});
   g.dataset.unitId=u.id;
-  svg._counters.set(u.id,g);g._platoonFilter=platoonFilter;
+  svg._counters.set(u.id,g);g._platoonFilter=platoonFilter;g._unitKey=unitKey;
   // Transparent hit area is larger than the counter for comfortable phone taps.
   g.append(element('circle',{cx,cy,r:23,fill:'transparent'}));
   if(u.side===state.side&&u.platoon===platoonFilter)g.append(element('path',{d:`M${cx-24} ${cy-20}h48v41h-48z`,class:'platoon-halo'}));

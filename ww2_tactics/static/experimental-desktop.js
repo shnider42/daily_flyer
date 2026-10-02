@@ -3,6 +3,7 @@
 'use strict';
 (()=>{
  let screen=null,anchors=[],dialogs=[],portraitKey='',noticeKey='',capacityKey='',capacity=0;
+ let orderColumns=innerWidth>=1600?8:6;
  const el=(tag,id,text)=>{const n=document.createElement(tag);if(id)n.id=id;if(text)n.textContent=text;return n;};
  const setText=(n,text)=>{if(n.textContent!==text)n.textContent=text;};
  function move(n,to){if(typeof n==='string')n=document.querySelector(n);if(!n)return;const a=document.createComment('experimental desktop anchor');n.before(a);anchors.push([n,a]);to.append(n);}
@@ -59,7 +60,7 @@
   if(capacityKey!==stamp){capacityKey=stamp;capacity=Math.max(0,...own.map(u=>unitOrderCapabilities(u).length));}
   // Capacity is reserved for the army, never the selected unit. Switching from
   // infantry to an engineer or commander must not move the map's lower edge.
-  const columns=innerWidth>=1600?8:6,rows=Math.max(1,Math.ceil(capacity/columns));
+  const columns=orderColumns,rows=Math.max(1,Math.ceil(capacity/columns));
   for(const [name,value] of [['--experimental-columns',columns],['--experimental-rows',rows]])if(screen.style.getPropertyValue(name)!==String(value))screen.style.setProperty(name,String(value));
   setText($('experimentalRosterOpen'),`Units · ${own.filter(u=>u.hp>0).length}`);$('experimentalRosterOpen').disabled=playing||busy;
   setText($('experimentalRound'),`Round ${state.round}/${state.scenario.rounds}`);
@@ -81,6 +82,6 @@
  window.ww2ExperimentalDesktop={get active(){return !!screen;},openContaining(n){const d=n?.closest('.experimental-sheet');if(d){open(d.id);return true;}return false;}};
  for(const event of ['ww2:render','ww2:playback','ww2:layout','ww2:dad-mode','ww2:busy'])document.addEventListener(event,sync);
  document.addEventListener('ww2:before-layout',unmount);
- window.addEventListener('resize',()=>{if(screen)sync();});
+ window.addEventListener('resize',()=>{orderColumns=innerWidth>=1600?8:6;if(screen)sync();});
  new MutationObserver(()=>{if($('game').hidden)unmount();}).observe($('game'),{attributes:true,attributeFilter:['hidden']});
 })();

@@ -83,6 +83,10 @@
  const node=(tag,id,text)=>{const n=document.createElement(tag);if(id)n.id=id;if(text)n.textContent=text;return n;};
  $('selection').after(node('p','unitPurpose','Select a unit to see its name and role'));
  let dock=null,screen=null,anchors=[],sheets=[],lastSimple=null,oldNext=null,noticeKey=null,wasPlaying=false,dadOrdersAnchor=null;
+ // Reading innerWidth after changing a large battlefield forces synchronous
+ // layout in Chromium/WebKit. The grid breakpoint changes only on resize.
+ let orderColumns=innerWidth<360?2:3,capacityState=null,orderCapacity=0;
+ window.addEventListener('resize',()=>{orderColumns=innerWidth<360?2:3;});
  function restoreDadOrders(){if(dadOrdersAnchor){dadOrdersAnchor.replaceWith($('orders'));dadOrdersAnchor=null;}$('dadOrders')?.close();}
  function move(n,to){const anchor=document.createComment('mobile orders anchor');n.before(anchor);anchors.push([n,anchor]);to.append(n);}
  function openSheet(id){if(playbackSession){playbackSession.paused=true;clearTimeout(playbackTimer);$('pausePlayback').textContent='Resume';}for(const sheet of sheets)if(sheet.id!==id)sheet.close();const sheet=$(id);if(sheet&&!sheet.open)sheet.showModal();}
@@ -146,7 +150,7 @@
  function sync(){
   document.body.classList.toggle('simple-play',prefs.simple);
   document.body.classList.toggle('experimental-play',prefs.layout==='map-first');
-  document.body.dataset.experience=prefs.experience;
+  if(document.body.dataset.experience!==prefs.experience)document.body.dataset.experience=prefs.experience;
   if(lastSimple===null){$('battleOptions').open=!!dock||!prefs.simple;lastSimple=prefs.simple;}
   for(const select of document.querySelectorAll('[data-experience-select]'))select.value=prefs.experience;
   $('battleLayout').value=prefs.layout;
@@ -184,12 +188,13 @@
   $('simpleOutcome').hidden=!prefs.simple||!state.last_combat||!!playbackSession;
   styleActions();
   if(dock){
-   const columns=innerWidth<360?2:3,buttons=[...$('orders').querySelectorAll('button')].filter(b=>!b.hidden&&!b.closest('[hidden]'));
+   const columns=orderColumns,buttons=[...$('orders').querySelectorAll('button')].filter(b=>!b.hidden&&!b.closest('[hidden]'));
    const ready=buttons.filter(b=>!b.disabled&&b.getAttribute('aria-disabled')!=='true').length;
    $('dadOrdersOpen').disabled=!!playbackSession||!buttons.length;$('dadOrdersOpen').textContent=buttons.length?`Orders · ${ready} ready / ${buttons.length}`:'Select a unit for orders';
    // Reserve the army's largest role, even before selection. Revealing orders
    // never changes the map's height or pushes it away from a player's finger.
-   const capacity=window.unitOrderCapabilities?Math.max(0,...state.units.filter(u=>u.side===state.side).map(u=>unitOrderCapabilities(u).length)):0;
+   if(capacityState!==state){capacityState=state;orderCapacity=window.unitOrderCapabilities?Math.max(0,...state.units.filter(u=>u.side===state.side).map(u=>unitOrderCapabilities(u).length)):0;}
+   const capacity=orderCapacity;
    const rows=String(Math.max(columns===2?4:3,Math.ceil(Math.max(buttons.length,capacity)/columns)));
    if(screen.style.getPropertyValue('--order-rows')!==rows)screen.style.setProperty('--order-rows',rows);
    if(state.last_combat?.revision===state.revision&&!smokeMode&&!barrageMode&&!combatMode&&!target&&!state.units.find(u=>u.id===selected)?.immobilized&&!$('hint').classList.contains('building-warning')&&!$('hint').textContent.startsWith('Tap a marked'))$('hint').textContent=state.last_combat.result;
