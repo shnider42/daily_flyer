@@ -1,4 +1,4 @@
-const {tap}=require('./ww2-ui-helpers.cjs');
+const {tap,chooseExperience}=require('./ww2-ui-helpers.cjs');
 const {chromium}=require(process.env.WW2_PLAYWRIGHT||'playwright');
 const assert=require('node:assert/strict'),fs=require('node:fs'),os=require('node:os'),path=require('node:path'),cp=require('node:child_process');
 const temp=fs.mkdtempSync(path.join(os.tmpdir(),'ww2-learning-')),base='http://127.0.0.1:8100';
@@ -9,9 +9,10 @@ let browser;
  const mod=process.env.WW2_PACKAGED_CHROMIUM?require('@sparticuz/chromium'):null,pack=mod?.default||mod;
  browser=await chromium.launch({headless:true,...(process.env.CHROMIUM_EXECUTABLE_PATH?{executablePath:process.env.CHROMIUM_EXECUTABLE_PATH,args:['--no-sandbox','--disable-dev-shm-usage','--disable-gpu','--disable-software-rasterizer']}:pack?{executablePath:await pack.executablePath(),args:pack.args.filter(a=>a!=='--single-process')}:{args:['--no-sandbox']})});
  const errors=[],p=await browser.newPage({viewport:{width:390,height:844}});p.on('pageerror',e=>errors.push(e.message));p.on('dialog',d=>d.accept());p.setDefaultTimeout(10000);
+ await p.addInitScript(()=>{if(!localStorage.getItem('ww2-play-preferences'))localStorage.setItem('ww2-play-preferences',JSON.stringify({simple:true,mode:'on'}));});
  await p.goto(base);await tap(p,p.locator('#createSolo'));await tap(p,p.locator('#startSolo'));await p.waitForFunction(()=>state&&!busy);
  const original=await p.evaluate(()=>({code:session.code,revision:state.revision,token:session.token}));
- assert.equal(await p.locator('#simpleToggle').getAttribute('aria-pressed'),'true');
+ assert.equal(await p.locator('#simpleToggle').inputValue(),'simple');
  assert.equal(await p.locator('#terrainToggle').textContent(),'Terrain: detailed');
  assert.equal(await p.locator('#unitStyleToggle').textContent(),'Units: illustrated');
  assert.equal(await p.locator('#tutorialCoach').isVisible(),false,'Learning is opt-in');
@@ -30,7 +31,7 @@ let browser;
  await tap(p,p.locator('#guideToggle'));assert.match(await p.locator('#lessonResult').textContent(),/You tried/);await tap(p,p.locator('#lessonNext'));
  assert.match(await p.locator('#lessonTitle').textContent(),/Plan your AP/);await tap(p,p.locator('#mobileGuideClose'));
  assert.equal(await p.locator('#mobileOrderBody').isVisible(),true);
- const before=await p.evaluate(()=>JSON.stringify(state));await tap(p,p.locator('#simpleToggle'));await tap(p,p.locator('#simpleToggle'));
+ const before=await p.evaluate(()=>JSON.stringify(state));await chooseExperience(p,'expert');await chooseExperience(p,'simple');
  assert.equal(await p.evaluate(()=>JSON.stringify(state)),before);
  const terrainBefore=await p.evaluate(()=>({state:JSON.stringify(state),left:$('mapWrap').scrollLeft,top:$('mapWrap').scrollTop}));
  assert.equal(await p.locator('#map .terrain-art').count(),63);
@@ -44,7 +45,7 @@ let browser;
  assert.equal(await p.locator('#map .terrain-art').count(),63);
  assert.deepEqual(await p.locator('#map .strength').allTextContents(),originalStrength);
  assert.equal(await p.evaluate(()=>JSON.stringify(state)),terrainBefore.state);
- await p.reload();await tap(p,p.locator('.saved-session').first());await p.waitForFunction(()=>state&&!busy);assert.equal(await p.locator('#simpleToggle').getAttribute('aria-pressed'),'true');await tap(p,p.locator('#guideToggle'));assert.equal(await p.locator('#tutorialCoach').isVisible(),true);await tap(p,p.locator('#mobileGuideClose'));
+ await p.reload();await tap(p,p.locator('.saved-session').first());await p.waitForFunction(()=>state&&!busy);assert.equal(await p.locator('#simpleToggle').inputValue(),'simple');await tap(p,p.locator('#guideToggle'));assert.equal(await p.locator('#tutorialCoach').isVisible(),true);await tap(p,p.locator('#mobileGuideClose'));
  assert.equal(await p.locator('#unitStyleToggle').textContent(),'Units: classic');
  await tap(p,p.locator('#unitStyleToggle'));assert.equal(await p.locator('#map .unit-art').count(),10);
  await tap(p,p.locator('#roster button').nth(2));await tap(p,p.locator('#dig'));await p.waitForFunction(()=>!busy&&state.revision===2);
@@ -89,7 +90,10 @@ let browser;
   assert.ok(await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1));
   if(width<1100){
    const bounds=await p.evaluate(()=>{const m=$('mapWrap').getBoundingClientRect(),d=$('mobileOrderDock').getBoundingClientRect(),o=$('orders');return {page:document.documentElement.scrollHeight,height:innerHeight,map:m.height,separate:m.bottom<=d.top+1||m.right<=d.left+1,within:d.bottom<=innerHeight+1&&d.right<=innerWidth+1,orders:o.scrollHeight<=o.clientHeight+1&&o.scrollWidth<=o.clientWidth+1};});
-   assert.ok(bounds.page<=bounds.height+1,JSON.stringify(bounds));assert.ok(bounds.map>=150);assert.ok(bounds.separate&&bounds.within&&bounds.orders,JSON.stringify(bounds));
+   // Legacy Panels reserves all four action rows plus the shared two-row header.
+   // At 320×568 that leaves 138px of map; never steal space from tap targets.
+   assert.ok(bounds.page<=bounds.height+1,JSON.stringify(bounds));assert.ok(bounds.map>=(width===320?138:150));assert.ok(bounds.separate&&bounds.within&&bounds.orders,JSON.stringify(bounds));
+   const bottoms=await p.locator('#orders button:visible').evaluateAll(ns=>ns.map(n=>n.getBoundingClientRect().bottom));assert.ok(bottoms.every(bottom=>bottom<=bounds.height+1),'Every visible order stays inside the screen');
    await p.screenshot({path:path.join(temp,`screen-${width}.png`)});
   }
  }
@@ -114,6 +118,6 @@ let browser;
  await p.setViewportSize({width:1280,height:900});await p.screenshot({path:path.join(temp,'desktop.png'),fullPage:true});
  const old=await (await fetch(base+'/api/match/'+original.code,{headers:{Authorization:'Bearer '+original.token}})).json();assert.equal(old.revision,original.revision);
  const privatePage=await browser.newPage({viewport:{width:390,height:844}});await privatePage.addInitScript(()=>{Storage.prototype.setItem=()=>{throw Error('Storage disabled');};Storage.prototype.getItem=()=>{throw Error('Storage disabled');};});
- await privatePage.goto(base);await tap(privatePage,privatePage.locator('#learnStart'));await privatePage.locator('#tutorialCoach').waitFor({state:'visible'});await tap(privatePage,privatePage.locator('#simpleToggle'));
+ await privatePage.goto(base);await tap(privatePage,privatePage.locator('#learnStart'));await privatePage.locator('#tutorialCoach').waitFor({state:'visible'});await chooseExperience(privatePage,'expert');
  assert.deepEqual(errors,[]);console.log('Learning/mobile/simple UI passed. Screenshots: '+temp);
 })().catch(e=>{console.error(e);process.exitCode=1;}).finally(async()=>{await browser?.close();server.kill('SIGTERM');});

@@ -15,6 +15,7 @@ let browser;
    const body=cp.execFileSync('git',['show',`f66243e56e54e035aadf7192687ba8665be20f52:ww2_tactics/static/${file}`],{encoding:'utf8'});
    await p.route(`**/assets/${file}`,route=>route.fulfill({contentType:'application/javascript',body}));
   }
+  if(!old)await p.addInitScript(()=>{if(!localStorage.getItem('ww2-play-preferences'))localStorage.setItem('ww2-play-preferences',JSON.stringify({version:2,experience:'simple',layout:'panels'}));});
   await p.goto(base);return p;
  }
  async function start(p,scenario){await p.locator('#scenarioSelect').selectOption(scenario);await p.locator('#createSolo').click();await p.locator('#startSolo').click();await p.waitForFunction(()=>state&&!busy&&!lobbyMode);}
@@ -29,8 +30,8 @@ let browser;
   });
   if(!old){
    const retained=await p.evaluate(()=>{const tile=$('map').querySelector('.hex'),art=$('map').querySelector('.terrain-art'),unit=$('map').querySelector('.unit-art');chooseUnit(state.units.find(u=>u.side===state.side&&u.kind==='leader'));return tile.isConnected&&art.isConnected&&unit.isConnected;});assert.ok(retained,'Selection retains terrain and unit artwork');
-   await tap(p,p.locator('#simpleToggle'));
-   await p.locator('#mobileBattleMenuClose').click();
+   await p.locator('#battleViewOpen').click();await p.locator('#simpleToggle').selectOption('expert');
+   await p.locator('#battleViewSettingsClose').click();
    for(const [width,height] of [[390,844],[320,568],[844,390],[852,320]]){
     await p.setViewportSize({width,height});await p.waitForTimeout(80);
     const layout=await p.evaluate(()=>[...$('orders').querySelectorAll('button')].filter(b=>b.getClientRects().length&&!b.hidden).map(b=>({name:b.textContent,clip:b.scrollHeight>b.clientHeight+1||b.scrollWidth>b.clientWidth+1,bottom:b.getBoundingClientRect().bottom})));
@@ -54,7 +55,7 @@ let browser;
  const desktop=await browser.newPage({viewport:{width:1440,height:1000}});await desktop.goto(base);await start(desktop,'village');
  await desktop.locator('#map .unit.us').first().click();await desktop.locator('#dig').hover();
  await desktop.locator('#battleTooltip').waitFor({state:'visible'});assert.match(await desktop.locator('#battleTooltip').textContent(),/Extra cover/);
- await desktop.locator('#simpleToggle').click();await desktop.locator('#dig').hover();assert.match(await desktop.locator('#battleTooltip').textContent(),/Enemy hit roll \+1/);
+ await desktop.locator('#battleViewOpen').click();await desktop.locator('#simpleToggle').selectOption('expert');await desktop.locator('#battleViewSettingsClose').click();await desktop.locator('#dig').hover();assert.match(await desktop.locator('#battleTooltip').textContent(),/Enemy hit roll \+1/);
  await desktop.screenshot({path:path.join(temp,'desktop-action-help.png')});
  await desktop.locator('#map .unit.us').first().hover();assert.match(await desktop.locator('#battleTooltip').textContent(),/strength/);
  await desktop.locator('#map > .hex.woods').first().hover();assert.match(await desktop.locator('#battleTooltip').textContent(),/2 AP/);assert.match(await desktop.locator('#battleTooltip').textContent(),/Cover adds \+1/);

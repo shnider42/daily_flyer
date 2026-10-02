@@ -1,0 +1,34 @@
+/* Information depth and layout are independent. Never hide orders, availability
+   reasons, turn/mission, friendly-fire warnings or last-known-contact labels. */
+.experience-control{min-width:0}
+.experience-control label,.operation-filters label{display:block;font-size:13px;font-weight:700;line-height:20px;color:#294333}
+.experience-control select,.operation-filters select{width:100%;min-height:44px;margin:4px 0 0;padding:8px 30px 8px 10px;font:inherit;font-size:16px;line-height:22px;border:1px solid #8b9b80;border-radius:4px;background:#fbfaf3;color:#1f3729}
+.experience-control select:focus-visible,.operation-filters select:focus-visible{outline:3px solid #95642a;outline-offset:2px}
+.experience-control p{font-size:12px;line-height:18px;margin:5px 0;color:#43523d}
+.home-experience{margin:14px 0;padding-top:12px;border-top:1px solid #9ba689}
+.home-experience>label{margin:0}.home-experience select{margin-bottom:3px}
+#battleViewSettings #experienceControl{grid-column:1/-1}
+#battleViewSettings #simpleToggle{background:#fbfaf3;color:#1f3729;border-color:#8b9b80}
+#battleViewSettings #layoutControl+button{align-self:end}
+#battleViewSettings #playTools #dadModeToggle{min-height:44px}
+.operation-filters{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:8px;margin:10px 0 8px}
+.operation-filter-status{font-size:12px;line-height:18px;color:#495941;margin:4px 0}
+.operation-selection-info{font-size:14px;line-height:21px;color:#294333;margin:6px 0 12px}
+.home-setup .operation-filters label{font-size:12px;letter-spacing:0;text-transform:none;margin:0}
+.home-setup .operation-filters select{font-size:14px;letter-spacing:0;font-weight:500}
+.home-setup #scenarioSelect{margin-bottom:0}
+body:not([data-experience=expert]) .mechanics-expert{display:none!important}
+/* Moderate adds useful odds, without six dice faces and modifier arithmetic. */
+body[data-experience=moderate] #odds:not([hidden]){display:block!important}
+body[data-experience=simple] :is(#mobileUnitDetails,#experimentalUnitDetails,#dadUnitDetails) #odds{display:none!important}
+body:not([data-experience=expert]) #experimentalBattle :is(#combat,#computerReview,.journal){display:none!important}
+/* Detail sheets remain deliberate inspection, not clutter on the battlefield. */
+body[data-experience=moderate] :is(#mobileUnitDetails,#experimentalUnitDetails,#dadUnitDetails) #unitMechanics:not([hidden]){display:block!important}
+.dad-mode .experience-control label,.dad-mode .experience-control p,.dad-mode .operation-selection-info{font-size:16px;line-height:23px}
+.dad-mode .experience-control select,.dad-mode .operation-filters select{font-size:18px;min-height:48px}
+/* Panel reports scroll in the command column; they cannot resize the map.
+   The connection status shares the title row and keeps its space in Simple. */
+.desktop-mode #game .desktop-briefing .status-line{display:flex!important}
+.desktop-mode.simple-play .desktop-briefing .status-line{visibility:hidden}
+.desktop-mode .desktop-orders>.terrain-legend{margin-top:12px}
+@media(max-width:359px){.operation-filters{grid-template-columns:1fr}.home-experience{margin:10px 0}}

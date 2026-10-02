@@ -20,7 +20,7 @@
  function button(id,label,dialog){const b=el('button',id,label);b.type='button';b.setAttribute('aria-haspopup','dialog');b.setAttribute('aria-controls',dialog);b.onclick=()=>open(dialog);return b;}
  function mount(){
   document.body.classList.add('experimental-desktop');ww2Desktop.refreshPreferences();
-  screen=el('section','experimentalDesktopScreen');screen.setAttribute('aria-label','Experimental desktop battle');$('game').append(screen);
+  screen=el('section','experimentalDesktopScreen');screen.setAttribute('aria-label','Map-first desktop battle');$('game').append(screen);
   const top=el('header','experimentalDesktopTop'),turn=el('div','experimentalTurn');move('#turnBanner',turn);turn.append(el('span','experimentalRound'));
   top.append(button('experimentalRosterOpen','Units','experimentalRoster'),turn);move('.mission',top);
   top.append(button('experimentalBattleOpen','Battle','experimentalBattle'));screen.append(top);
@@ -50,7 +50,7 @@
   ww2Desktop.refreshPreferences();
  }
  function sync(){
-  const eligible=window.ww2Desktop?.active&&ww2ViewMode.mode==='experimental'&&state?.ruleset==='dsl'&&!$('game').hidden&&!lobbyMode;
+  const eligible=window.ww2Desktop?.active&&ww2Experience.layout==='map-first'&&state?.ruleset==='dsl'&&!$('game').hidden&&!lobbyMode;
   if(!eligible){unmount();return;}
   if(!screen)mount();
   const playing=!!playbackSession,own=state.units.filter(u=>u.side===state.side),unit=own.find(u=>u.id===selected&&u.hp>0),dad=!!window.ww2Dad?.enabled;

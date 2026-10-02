@@ -2,8 +2,13 @@
 'use strict';
 (()=>{
  const key='ww2-play-preferences';
- let prefs={simple:true,mode:'on'};
- try{const saved=JSON.parse(localStorage.getItem(key));if(saved&&typeof saved.simple==='boolean'){const mode=['on','off','experimental'].includes(saved.mode)?saved.mode:saved.simple?'on':'off';prefs={simple:mode!=='off',mode};}}catch{}
+ const levels=['simple','moderate','expert'],layouts=['map-first','panels'];
+ let prefs={version:2,experience:'simple',layout:'map-first',simple:true};
+ try{const saved=JSON.parse(localStorage.getItem(key));
+  if(saved?.version===2){prefs.experience=levels.includes(saved.experience)?saved.experience:'simple';prefs.layout=layouts.includes(saved.layout)?saved.layout:'map-first';}
+  else if(saved&&(typeof saved.simple==='boolean'||['on','off','experimental'].includes(saved.mode))){const mode=['on','off','experimental'].includes(saved.mode)?saved.mode:saved.simple?'on':'off';prefs.experience=mode==='off'?'expert':'simple';prefs.layout=mode==='experimental'?'map-first':'panels';}
+ }catch{}
+ prefs.simple=prefs.experience!=='expert';
  const save=()=>{try{localStorage.setItem(key,JSON.stringify(prefs));}catch{}};
  // Distinct silhouettes and plain-language effects supplement color, including on touch screens.
  const actionDesign={
@@ -140,15 +145,18 @@
  }
  function sync(){
   document.body.classList.toggle('simple-play',prefs.simple);
-  document.body.classList.toggle('experimental-play',prefs.mode==='experimental');
-  if(lastSimple!==prefs.simple){$('battleOptions').open=!!dock||!prefs.simple;lastSimple=prefs.simple;}
-  $('simpleToggle').textContent=`Simple view: ${prefs.mode}`;$('simpleToggle').setAttribute('aria-pressed',String(prefs.simple));
+  document.body.classList.toggle('experimental-play',prefs.layout==='map-first');
+  document.body.dataset.experience=prefs.experience;
+  if(lastSimple===null){$('battleOptions').open=!!dock||!prefs.simple;lastSimple=prefs.simple;}
+  for(const select of document.querySelectorAll('[data-experience-select]'))select.value=prefs.experience;
+  $('battleLayout').value=prefs.layout;
+  for(const note of document.querySelectorAll('[data-experience-note]'))note.textContent={simple:'Short explanations. Unit details stay one tap away.',moderate:'Short orders, with attack odds and more status detail.',expert:'Exact modifiers, dice results and combat reports.'}[prefs.experience];
   if(!state||$('game').hidden){unmount();return;}
   // Desktop restores its anchors before mobile is allowed to move the same controls.
   if(!matchMedia('(min-width:1100px)').matches&&window.ww2Desktop?.active)return;
   const mobile=!matchMedia('(min-width:1100px)').matches&&state.ruleset==='dsl';
   if(mobile){mount();dock.hidden=!!playbackSession;dock.inert=!!playbackSession;document.body.classList.toggle('mobile-replaying',!!playbackSession);
-   const dad=!!window.ww2Dad?.enabled,sheetOrders=dad||prefs.mode==='experimental';$('dadOrdersOpen').hidden=!sheetOrders;
+   const dad=!!window.ww2Dad?.enabled,sheetOrders=dad||prefs.layout==='map-first';$('dadOrdersOpen').hidden=!sheetOrders;
    if(sheetOrders&&!dadOrdersAnchor){dadOrdersAnchor=document.createComment('Dad orders anchor');$('orders').before(dadOrdersAnchor);$('dadOrders').append($('orders'));}
    if(!sheetOrders)restoreDadOrders();
    const unit=state.units.find(u=>u.id===selected&&u.hp>0);
@@ -195,9 +203,16 @@
    wasPlaying=!!playbackSession;
   }
  }
- window.ww2ViewMode={get mode(){return prefs.mode;},set(mode){if(!['on','off','experimental'].includes(mode))return;prefs.mode=mode;prefs.simple=mode!=='off';save();if(state)render();else sync();}};
- $('simpleToggle').setAttribute('aria-description','Cycles through on, off and experimental. Experimental gives the map most of the screen, with desktop orders in a bottom command bar.');
- $('simpleToggle').onclick=()=>{prefs.mode=({on:'off',off:'experimental',experimental:'on'})[prefs.mode];prefs.simple=prefs.mode!=='off';save();if(playbackSession){sync();drawPlayback();}else render();};
+ function applyPreferences(){
+  prefs.simple=prefs.experience!=='expert';save();
+  if(playbackSession){sync();drawPlayback();}else if(state&&!$('game').hidden)render();else sync();
+  document.dispatchEvent(new Event('ww2:experience'));
+ }
+ window.ww2Experience={get level(){return prefs.experience;},get layout(){return prefs.layout;},set(level){if(!levels.includes(level))return;prefs.experience=level;applyPreferences();},setLayout(layout){if(!layouts.includes(layout))return;prefs.layout=layout;applyPreferences();}};
+ // Compatibility for existing integrations; no old mode labels in the UI.
+ window.ww2ViewMode={get mode(){return prefs.layout==='map-first'?'experimental':prefs.simple?'on':'off';},set(mode){if(!['on','off','experimental'].includes(mode))return;prefs.experience=mode==='off'?'expert':'simple';prefs.layout=mode==='experimental'?'map-first':'panels';applyPreferences();}};
+ for(const select of document.querySelectorAll('[data-experience-select]'))select.onchange=()=>ww2Experience.set(select.value);
+ $('battleLayout').onchange=()=>ww2Experience.setLayout($('battleLayout').value);
  document.addEventListener('ww2:before-layout',unmount);
  document.addEventListener('ww2:render',sync);
  document.addEventListener('ww2:playback',sync);

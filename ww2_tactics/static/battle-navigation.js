@@ -9,7 +9,7 @@
  const view=node('button','battleViewOpen','View');view.type='button';view.setAttribute('aria-haspopup','dialog');view.setAttribute('aria-controls','battleViewSettings');view.setAttribute('aria-expanded','false');
  home.textContent='Home';home.setAttribute('aria-label','Home — saved battles and multiplayer lobby');home.title='Home — your battle stays saved';
  home.dataset.help='Return to your saved battles and the multiplayer lobby. This does not resign or end your turn.';
- view.title='Display settings and help';view.dataset.help='Change Simple view, Dad mode, terrain and unit pictures, or open the learning guide.';
+ view.title='Display settings and help';view.dataset.help='Change Experience, battle layout, Dad mode, terrain and unit pictures, or open the learning guide.';
  nav.append(home,view);header.prepend(nav);
  const dialog=node('dialog','battleViewSettings');dialog.setAttribute('aria-labelledby','battleViewTitle');
  const heading=node('div');heading.className='battle-view-heading';
@@ -17,8 +17,10 @@
  heading.append(node('h2','battleViewTitle','View & help'),close);dialog.append(heading);
  const tools=$('playTools');dialog.append(tools);document.body.append(dialog);
  function group(title,ids){const section=node('section');section.className='battle-view-group';section.append(node('h3',null,title));for(const id of ids)if($(id))section.append($(id));tools.append(section);return section;}
- const layout=group('Display',['simpleToggle','dadModeToggle']);
- const note=node('p',null,'Simple view keeps descriptions short. Full detail shows the numbers. Experimental gives more space to the map.');layout.append(note);
+ const experience=group('Information',['experienceControl']);
+ experience.append(node('p',null,'Display detail only — same rules, difficulty and available orders.'));
+ const layout=group('Display',['layoutControl','dadModeToggle']);
+ layout.append(node('p',null,'Map-first gives the battlefield more room. Panels keeps orders and reports alongside it.'));
  group('Map & units',['terrainToggle','unitStyleToggle']);
  const guides=group('Map guides',['rangeGuideToggle','intelligenceView','sectorNavigator']);
  const help=group('Help',['guideToggle']);

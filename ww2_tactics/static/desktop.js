@@ -7,7 +7,7 @@ document.addEventListener('DOMContentLoaded',()=>{
  let mounts=[], originals=[], active=false, battle=null, zoom=1, scale=1, drag=null, suppressClick=false, resizeFrame, measured='',orderUnit=null;
  const el=(tag,cls,text)=>{const node=document.createElement(tag);node.className=cls;if(text)node.textContent=text;return node;};
  function compactLayout(){
-  const on=active&&(compact.matches||window.ww2ViewMode?.mode==='experimental');document.body.classList.toggle('compact-desktop',on);
+  const on=active&&(compact.matches||window.ww2Experience?.layout==='map-first');document.body.classList.toggle('compact-desktop',on);
  }
  function move(node,destination){
   if(!node)return;
@@ -80,13 +80,13 @@ document.addEventListener('DOMContentLoaded',()=>{
   document.dispatchEvent(new Event('ww2:before-layout'));
   if(active)return;active=true;document.body.classList.add('desktop-mode');
   const tag=el('span','desktop-header-tag','WESTERN FRONT / TACTICAL OPERATIONS');document.querySelector('header .brand').after(tag);mounts.push(tag);
-  group(game,'desktop-briefing',['.game-title','.status-line','#rulesetBadge','#turnBanner']);compactLayout();
+  group(game,'desktop-briefing',['.game-title','.status-line','#turnBanner']);compactLayout();
   const layout=el('div','desktop-layout');game.append(layout);mounts.push(layout);
   const force=group(layout,'desktop-forces',['#platoonFilters','#roster'],'Task force');
   const summary=el('p','desktop-force-summary');summary.id='desktopForceSummary';force.querySelector('h2').after(summary);
   const note=el('p','desktop-playback-note','The computer’s orders are playing on the map. Pause or step through them in the right panel.');note.id='desktopPlaybackNote';note.hidden=true;force.append(note);
   force.append(el('p','desktop-force-tip','Choose a platoon to highlight its units. Select a counter or a unit here to issue orders.'));
-  const field=group(layout,'desktop-battlefield',['.mission','#missionHint','.map-tools','#mapWrap','.team-legend','.terrain-legend']);
+  const field=group(layout,'desktop-battlefield',['.mission','.map-tools','#mapWrap','.team-legend']);
   const mapHead=el('div','desktop-map-heading');mapHead.append(el('h2','','Battlefield'));const size=el('span','');size.id='desktopMapSize';mapHead.append(size);field.prepend(mapHead);
   const camera=el('div','desktop-camera');mounts.push(camera);
   for(const [id,label,title,fn] of [['desktopZoomOut','−','Zoom out',()=>changeZoom(zoom-.25)],['desktopZoomIn','+','Zoom in',()=>changeZoom(zoom+.25)],['desktopFit','Fit map','Show the whole battlefield',()=>changeZoom(1)],['desktopExpand','Widen map','Widen map',()=>{
@@ -102,10 +102,10 @@ document.addEventListener('DOMContentLoaded',()=>{
   field.querySelector('.map-tools').append(camera);
   wrap.tabIndex=0;wrap.setAttribute('aria-label','Battlefield viewport. Scroll to zoom, drag to pan; plus and minus to zoom; zero fits the map.');
   const commands=el('section','desktop-command-column');layout.append(commands);mounts.push(commands);
-  const orders=group(commands,'desktop-orders',['#waiting','#incoming','#signalNotice','#airliftReport','#supportStatus','#playbackPanel','#orders','#combat','#simpleOutcome','#battleReport','#rematchProposal','#replayTurn','#computerReview','.journal'],'Unit orders');
+  const orders=group(commands,'desktop-orders',['#waiting','#incoming','#signalNotice','#airliftReport','#supportStatus','#playbackPanel','#orders','#combat','#simpleOutcome','#battleReport','#rematchProposal','#replayTurn','#computerReview','.journal','#rulesetBadge','#missionHint','.terrain-legend','#seriesScore'],'Unit orders');
   orders.querySelector('h2').id='desktopOrderTitle';
   const dock=group(commands,'desktop-action-dock',['#nextUnit','#end']);dock.id='desktopActionDock';
-  group(game,'desktop-footer',['#battleOptions','#seriesScore']);
+  group(game,'desktop-footer',['#battleOptions']);
   sync();
   document.dispatchEvent(new Event('ww2:layout'));
  }

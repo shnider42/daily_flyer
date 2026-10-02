@@ -24,7 +24,7 @@ const camera=p=>p.locator('#mapWrap').evaluate(n=>({rect:n.getBoundingClientRect
   assert.equal(await p.evaluate(()=>selected),plane.id);
   assert.ok(await p.locator('#map .hex.move').count()>10);
   assert.match(await p.locator('#roleBrief').textContent(),/Intercept aircraft/);
-  assert.ok(await p.locator('#rearm').isVisible());assert.equal(await p.locator('#dig').isVisible(),false);
+  assert.equal(await p.locator('#rearm').evaluate(n=>n.hidden),false);assert.equal(await p.locator('#dig').evaluate(n=>n.hidden),true);
   assert.deepEqual(await camera(p),before,'Shared-hex picker and selection cannot shift the map');
   for(const mode of ['on','off','experimental']){
    await p.evaluate(m=>ww2ViewMode.set(m),mode);

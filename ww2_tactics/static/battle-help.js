@@ -44,7 +44,7 @@ window.orderHelp=(id,u,legal,simple)=>{
  const tip=document.createElement('div');tip.id='battleTooltip';tip.setAttribute('role','tooltip');tip.hidden=true;document.body.append(tip);
  const historyHelp=document.createElement('p');historyHelp.id='historyHelp';$('battleOptions').append(historyHelp);
  let anchor=null,point=null;
- const simple=()=>document.body.classList.contains('simple-play');
+ const simple=()=>window.ww2Experience?.level==='simple';
  function hide(){tip.hidden=true;if(anchor)anchor.removeAttribute('aria-describedby');anchor=null;}
  function place(){if(tip.hidden||!anchor)return;const r=anchor.getBoundingClientRect(),x=point?.x??r.left+r.width/2,y=point?.y??r.bottom;
   const w=tip.offsetWidth,h=tip.offsetHeight;tip.style.left=Math.max(8,Math.min(innerWidth-w-8,x+12))+'px';tip.style.top=Math.max(8,y+18+h>innerHeight?y-h-14:y+18)+'px';}

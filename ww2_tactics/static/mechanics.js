@@ -23,10 +23,11 @@ function rollFormula(modifiers,threshold){
 function chanceRow(label,threshold,modifiers,effect){
  const row=uiNode('div','chance-row');
  const count=Math.max(0,Math.min(6,7-threshold));
- row.append(uiNode('strong','',`${label} · ${threshold}+ · ${Math.round(count/6*100)}%`));
+ const heading=uiNode('strong','',`${label} · ${Math.round(count/6*100)}%`);heading.append(uiNode('span','mechanics-expert',` · needs ${threshold}+`));row.append(heading);
  const faces=uiNode('div','dice-options');faces.setAttribute('aria-label',`${count} of 6 die faces succeed`);
  for(let v=1;v<=6;v++)faces.append(dieFace(v,v>=threshold?'winning-face':'losing-face'));
- row.append(faces,uiNode('p','mechanics-caption',`${count}/6 faces succeed · green faces hit`),uiNode('p','mechanics-caption',rollFormula(modifiers,threshold)),uiNode('p','mechanics-caption',effect));
+ faces.classList.add('mechanics-expert');
+ row.append(faces,uiNode('p','mechanics-caption mechanics-expert',`${count}/6 faces succeed · green faces hit`),uiNode('p','mechanics-caption mechanics-expert',rollFormula(modifiers,threshold)),uiNode('p','mechanics-caption',effect));
  return row;
 }
 function renderOdds(shot,assault,grenade,picking){

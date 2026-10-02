@@ -35,7 +35,7 @@ async function camera(p){return p.locator('#mapWrap').evaluate(n=>({rect:n.getBo
    }
   }
   // Keep View mounted and operable while changing layout or rotating a phone.
-  await p.locator('#battleViewOpen').click();await p.locator('#simpleToggle').click();await p.locator('#dadModeToggle').click();
+  await p.locator('#battleViewOpen').click();await p.locator('#simpleToggle').selectOption('expert');await p.locator('#battleLayout').selectOption('panels');await p.locator('#dadModeToggle').click();
   await p.setViewportSize(touch?{width:320,height:568}:{width:1280,height:720});await settle(p);
   assert.ok(await p.locator('#battleViewSettings').evaluate(d=>d.open));
   assert.equal(await p.locator('#battleNavigation').count(),1);assert.equal(await p.locator('#playTools').count(),1);

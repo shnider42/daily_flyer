@@ -16,3 +16,7 @@ exports.tap=async(page,locator)=>{
  if(routes[target]&&!await page.locator('#'+target).evaluate(e=>e.open))await page.locator('#'+routes[target]).click();
  await locator.click();
 };
+exports.chooseExperience=async(page,level)=>{
+ await exports.tap(page,page.locator('#battleViewOpen'));
+ await page.locator('#simpleToggle').selectOption(level);
+};

@@ -6,7 +6,6 @@
 #signalNotice{padding:8px 10px;background:#ede2be;color:#493919;border-left:3px solid #80632c;font-size:12px;line-height:1.4}
 .hex.mountain{fill:#8a9181}.hex.ridge{fill:#b9b096}.hex.desert{fill:#dbc594}.hex.dune{fill:#cfb17b}.hex.wadi{fill:#ad9b77}.hex.oasis{fill:#9dae78}
 .hex:is(.mountain,.ridge,.desert,.dune,.wadi,.oasis).move{fill:#b4d294;stroke:#387a38;stroke-width:2.5}
-.experimental-play #simpleToggle{border-color:#807047!important;background:#f1e6c4!important;color:#493c1c!important}
 @media(max-width:1099px){
  body.experimental-play.mobile-battle #mobileBattleScreen{grid-template-rows:72px minmax(0,1fr) 40px 82px;grid-template-areas:'top' 'map' 'nav' 'orders';grid-template-columns:minmax(0,1fr);gap:0}
  body.experimental-play.mobile-battle #mobileBattleTop{background:#f4f1e8ed;z-index:4;gap:0 2px;height:72px;grid-template-columns:44px minmax(0,1fr) auto auto;grid-template-rows:44px 28px}

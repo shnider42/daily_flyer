@@ -101,8 +101,8 @@ const summary=p=>p.locator('#orders [data-order-id]:visible').evaluateAll(ns=>ns
    const buttons=await p.locator('#orders [data-order-id]:visible').evaluateAll(ns=>ns.map(n=>n.getBoundingClientRect().bottom));assert.ok(buttons.every(bottom=>bottom<=845));
   }
   await p.evaluate(()=>chooseUnit(state.units.find(u=>u.id==='us-A-2')));await p.screenshot({path:path.join(temp,'mobile-'+width+'.png')});
-  await tap(p,p.locator('#simpleToggle'));await p.evaluate(()=>document.querySelectorAll('dialog[open]').forEach(d=>d.close()));
-  assert.match(await p.locator('#artillery').textContent(),/Ready R3/);await tap(p,p.locator('#simpleToggle'));await p.evaluate(()=>document.querySelectorAll('dialog[open]').forEach(d=>d.close()));
+  await p.locator('#battleViewOpen').click();await p.locator('#simpleToggle').selectOption('expert');await p.keyboard.press('Escape');
+  assert.match(await p.locator('#artillery').textContent(),/Ready R3/);await p.locator('#battleViewOpen').click();await p.locator('#simpleToggle').selectOption('simple');await p.keyboard.press('Escape');
  }
  assert.equal(posts.length,0);assert.deepEqual(errors,[]);console.log('Capabilities on 16 maps, fog invariance, unavailable click/keyboard guards, desktop zoom/selection/widen, phone stability and contrast passed.',temp);
 })().catch(e=>{console.error(e);process.exitCode=1;}).finally(async()=>{await browser?.close();server.kill();});

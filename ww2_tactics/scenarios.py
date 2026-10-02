@@ -127,4 +127,8 @@ def battlefield(state):
 
 
 def catalog():
-    return [get_scenario(key) for key in SCENARIOS]
+    from .scenario_browser import describe
+    boards = [get_scenario(key) for key in SCENARIOS]
+    for position, board in enumerate(boards):
+        board['browse'] = describe(board, position)
+    return boards

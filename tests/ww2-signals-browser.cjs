@@ -13,7 +13,7 @@ let browser;const errors=[];
  for(const name of ['apennine','desert_signal','amba_dawn']){
   await p.evaluate(async name=>{remember(await api('/api/match',{scenario:name,ruleset:'dsl',opponent:'computer'}));await refresh();},name);
   await p.waitForFunction(()=>state?.signals_version&&!busy&&!polling&&document.querySelector('#mobileBattleScreen'));
-  assert.match(await p.locator('#simpleToggle').textContent(),/experimental/);
+  assert.equal(await p.locator('#battleLayout').inputValue(),'map-first');
   const checks=await p.evaluate(()=>{
    const errors=[],tile=$('map').querySelector('.hex');
    for(const platoon of ['A','B','HQ']){
@@ -60,9 +60,8 @@ let browser;const errors=[];
   await p.screenshot({path:path.join(temp,name+'.png')});
  }
  await p.reload();assert.equal(await p.evaluate(()=>ww2ViewMode.mode),'experimental');await p.locator('#sessionList .saved-session').first().click();await p.waitForFunction(()=>state&&!busy&&!polling);
- await tap(p,p.locator('#simpleToggle'));assert.equal(await p.evaluate(()=>ww2ViewMode.mode),'on');
- await tap(p,p.locator('#simpleToggle'));assert.equal(await p.evaluate(()=>ww2ViewMode.mode),'off');
- await tap(p,p.locator('#simpleToggle'));assert.equal(await p.evaluate(()=>ww2ViewMode.mode),'experimental');
+ await p.locator('#battleViewOpen').click();
+ for(const level of ['simple','moderate','expert']){await p.locator('#simpleToggle').selectOption(level);assert.equal(await p.evaluate(()=>ww2Experience.level),level);assert.equal(await p.locator('#battleLayout').inputValue(),'map-first');}
  await p.evaluate(()=>document.querySelectorAll('dialog[open]').forEach(d=>d.close()));
  await p.setViewportSize({width:1440,height:1000});await p.waitForFunction(()=>ww2Desktop.active&&!ww2Mobile.active);
  assert.ok(await p.locator('#orders').isVisible());

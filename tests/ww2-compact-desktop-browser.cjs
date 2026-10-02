@@ -51,7 +51,7 @@ async function prefs(p,id){
  await p.setViewportSize({width:1440,height:1000});await settle(p);
  assert.equal(await p.locator('#battleViewSettings').isVisible(),false);assert.equal(await p.locator('#battleViewOpen').isVisible(),true);
  for(const id of ['playTools','orders','end','battleMission'])assert.equal(await p.locator('#'+id).count(),1);
- await p.setViewportSize({width:1280,height:720});await settle(p);await p.locator('#battleViewOpen').click();await p.locator('#simpleToggle').click();await p.keyboard.press('Escape');
+ await p.setViewportSize({width:1280,height:720});await settle(p);await p.locator('#battleViewOpen').click();await p.locator('#simpleToggle').selectOption('expert');await p.keyboard.press('Escape');
  await p.setViewportSize({width:390,height:844});await settle(p);assert.equal(await p.locator('#battleViewSettings').count(),1);assert.equal(await p.locator('#playTools').count(),1);
  assert.equal(await p.evaluate(()=>state.revision),revision,'Layout controls never submit game orders');
  for(const [w,h] of [[390,844],[1024,768]]){
