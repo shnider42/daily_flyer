@@ -1,0 +1,28 @@
+name: DSL isolated profiling source
+on:
+  push:
+    branches: [agent/dsl-move-pipeline-20261002]
+    paths: [.github/workflows/dsl-profile-source.yml]
+permissions:
+  contents: read
+jobs:
+  source:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Package DSL source and dependencies
+        run: |
+          mkdir -p /tmp/dsl-profile/wheels
+          git archive --format=tar HEAD ww2_web.py ww2_tactics tests requirements-ww2.txt | gzip > /tmp/dsl-profile/source.tar.gz
+          python -m pip download -r requirements-ww2.txt --dest /tmp/dsl-profile/wheels
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dsl-offline-source
+          path: /tmp/dsl-profile
+          retention-days: 3
