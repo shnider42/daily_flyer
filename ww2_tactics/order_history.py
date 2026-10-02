@@ -47,6 +47,33 @@ def status(state, side):
 
 
 def perform(state, side, action):
+    """Keep the immutable last-turn movie out of per-order engine/journal copies.
+
+    A turn's replay is not gameplay state and cannot change between takebacks.
+    Old saves may have repeated it in every snapshot; normalize those entries
+    without mutating the caller. The complete replay remains at the state root.
+    """
+    if action.get('kind') == 'resign':
+        # Resignation intentionally discards even incomplete/locked journals.
+        return resign(state, side)
+    had_replay = 'computer_playback' in state
+    replay = state.get('computer_playback')
+    current = {key: value for key, value in state.items() if key != 'computer_playback'}
+    if KEY in current:
+        history = dict(current[KEY])
+        for stack in ('past', 'future'):
+            history[stack] = [dict(item, snapshot={key: value for key, value in item['snapshot'].items()
+                                                 if key != 'computer_playback'})
+                              for item in history.get(stack, [])]
+        current[KEY] = history
+    result = _perform(current, side, action)
+    # End turn may have generated a NEW movie. Never overwrite it with the old.
+    if had_replay and 'computer_playback' not in result:
+        result['computer_playback'] = replay
+    return result
+
+
+def _perform(state, side, action):
     if action.get('kind') == 'resign':
         return resign(state, side)
     # Journal entries are immutable snapshots. Copy the stacks, not every prior

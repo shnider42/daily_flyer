@@ -3,7 +3,8 @@
 (()=>{
  const air=u=>['fighter','bomber'].includes(u.kind);
  const node=(tag,text)=>{const n=document.createElement(tag);if(text)n.textContent=text;return n;};
- let layer='both',battle=null,pickerRevision=null;
+ let layer='both',battle=null,pickerRevision=null,positionFrame=null;
+ function schedulePosition(){if(positionFrame===null)positionFrame=requestAnimationFrame(()=>{positionFrame=null;position();});}
  window.fubarLayer=()=>layer;
  const bar=node('nav');bar.id='fubarLayers';bar.hidden=true;bar.setAttribute('aria-label','Battlefield layers');
  const buttons=new Map();
@@ -23,9 +24,9 @@
   bar.hidden=r.bottom<44||r.top>innerHeight||!!playbackSession;
   bar.style.left=`${Math.max(6,r.left+8)}px`;bar.style.top=`${Math.max(6,r.top+8)}px`;
  }
- new ResizeObserver(position).observe($('mapWrap'));
- new MutationObserver(position).observe($('game'),{attributes:true,attributeFilter:['hidden']});
- window.addEventListener('resize',position);window.addEventListener('scroll',position,{passive:true});
+ new ResizeObserver(schedulePosition).observe($('mapWrap'));
+ new MutationObserver(schedulePosition).observe($('game'),{attributes:true,attributeFilter:['hidden']});
+ window.addEventListener('resize',schedulePosition);window.addEventListener('scroll',schedulePosition,{passive:true});
  function paint(svg,snapshot){
   const units=snapshot.units.filter(u=>u.hp>0&&!u.reserve&&!u.carrier_id),counts=new Map();
   for(const u of units)counts.set(u.pos.join(','),(counts.get(u.pos.join(','))||0)+1);
@@ -62,7 +63,7 @@
    $('roleBrief').textContent=unitRoleSummary(unit)+(unit.kind==='flak'?' Anti-aircraft bursts reach 4 hexes; Overwatch can intercept a flight.':'');
    if(air(unit)&&!target&&!combatMode&&!smokeMode&&!barrageMode)$('hint').textContent=`AIR · fly up to ${unit.flight} hexes for 1 AP. Surface units do not block flight. ${unit.kind==='bomber'?`${unit.bombs} bomb loads; select a visible surface target.`:'Select a visible aircraft to attack.'}`;
   }
-  const snapshot=window.signalSnapshot?.(state)||state;paint(svg,snapshot);position();
+  const snapshot=window.signalSnapshot?.(state)||state;paint(svg,snapshot);schedulePosition();
  };
  function picking(){return smokeMode||barrageMode||combatMode||window.airbornePicking?.(state.legal[selected])||window.operationsPicking?.(state.legal[selected])||window.fieldworksPicking?.(state.legal[selected])||window.signalsPicking?.(state.legal[selected])||$('map').classList.contains('transport-picking')||$('map').querySelector('.landing-zone,.recon-choice');}
  function openStack(u){
@@ -90,7 +91,7 @@
   if(!state?.joint_ops_version)return;const u=state.units.find(u=>u.id===(target||selected));
   if(u&&layer!=='both'&&air(u)!==(layer==='air')){layer='both';render();}
  });
- document.addEventListener('ww2:render',position);document.addEventListener('ww2:layout',position);
+ document.addEventListener('ww2:render',schedulePosition);document.addEventListener('ww2:layout',schedulePosition);
  document.addEventListener('ww2:playback',()=>{if(state?.joint_ops_version&&playbackSession){paint($('playbackMap'),playbackSession.frames[playbackSession.index][playbackSession.phase]);position();}});
  const manual=node('section');manual.id='fubarManual';manual.append(node('h3','Fubar · joint operations playtest'),node('p','A deliberately fictional coalition battle containing all 31 current unit types. The 36×32 map links an ocean flank, landing coast, bridged river and inland town. The mission panel explains the three scoring zones. Existing battles keep their original rules.'),node('p','Both / Surface / Air changes only the view. At most one aircraft and one surface unit may share a hex; same-layer stacking is forbidden. Aircraft fly above ground cover and smoke; radar does not reveal ground troops. Bombing and artillery affect the surface only. Tap a shared hex to choose a counter by its full name.'),node('p','Movable fighters and bombers are separate from the carrier’s abstract search / strike sorties. Airfields service movable aircraft; carrier sorties retain their existing per-turn limits and cruiser escort penalty. Fixed AA, Flak and fighter overwatch react along actual flight paths. Aircraft cannot capture objectives. This is a balance sandbox, not a historical order of battle.'));
  $('rules').append(manual);
