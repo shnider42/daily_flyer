@@ -3,7 +3,10 @@ on:
   push:
     branches: [agent/dsl-move-pipeline-20261002]
 permissions:
-  contents: read
+  contents: write
+defaults:
+  run:
+    shell: bash
 concurrency:
   group: dsl-move-pipeline-validation
   cancel-in-progress: true
@@ -13,24 +16,56 @@ jobs:
     timeout-minutes: 15
     steps:
       - uses: actions/checkout@v4
-        with:
-          persist-credentials: false
       - uses: actions/setup-python@v5
         with:
           python-version: '3.11'
-      - name: Install DSL dependencies
-        run: python -m pip install -r requirements-ww2.txt
-      - name: DSL Python regression suite
-        run: python -m unittest discover -s tests -p 'test_ww2*.py'
-      - name: Package source for isolated local profiling
-        if: always()
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Install isolated test dependencies
         run: |
-          mkdir -p /tmp/dsl-validation/wheels
-          git archive --format=tar HEAD ww2_web.py ww2_tactics tests requirements-ww2.txt | gzip > /tmp/dsl-validation/source.tar.gz
-          python -m pip download -r requirements-ww2.txt --dest /tmp/dsl-validation/wheels
+          python -m pip install -r requirements-ww2.txt
+          npm install --no-save playwright
+          npx playwright install --with-deps chromium
+          echo "CHROMIUM_EXECUTABLE_PATH=$(node -e 'console.log(require("playwright").chromium.executablePath())')" >> "$GITHUB_ENV"
+          mkdir -p /tmp/dsl-validation
+      - name: Measure unchanged rollback browser baseline
+        run: |
+          node tests/ww2-move-pipeline-benchmark.cjs "$PWD" | tee /tmp/dsl-validation/baseline-browser.log
+          cp browser-results.json /tmp/dsl-validation/baseline-browser.json
+      - name: Apply reviewed runtime changes on validation branch only
+        run: |
+          python _dsl-review/apply_pipeline.py
+          git diff --check
+          git diff --stat
+      - name: DSL Python regression suite
+        run: python -m unittest discover -s tests -p 'test_ww2*.py' -v 2>&1 | tee /tmp/dsl-validation/python-tests.log
+      - name: Request adapter and actual browser regression suites
+        run: |
+          node tests/ww2-replay-transport.cjs | tee /tmp/dsl-validation/replay-adapter.log
+          node tests/ww2-retained-map-browser.cjs | tee /tmp/dsl-validation/retained-map.log
+          node tests/ww2-fubar-browser.cjs | tee /tmp/dsl-validation/fubar.log
+          node tests/ww2-map-performance-browser.cjs | tee /tmp/dsl-validation/map-performance.log
+          node tests/ww2-experience-browser.cjs | tee /tmp/dsl-validation/experience.log
+          node tests/ww2-playback-browser.cjs | tee /tmp/dsl-validation/playback.log
+      - name: Measure patched browser behavior
+        run: |
+          node tests/ww2-move-pipeline-benchmark.cjs "$PWD" | tee /tmp/dsl-validation/patched-browser.log
+          cp browser-results.json /tmp/dsl-validation/patched-browser.json
+      - name: Save tested runtime files to isolated branch without touching production
+        run: |
+          git fetch origin agent/dsl-move-pipeline-20261002
+          test "$(git rev-parse HEAD)" = "$(git rev-parse FETCH_HEAD)"
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add ww2_web.py ww2_tactics/order_history.py ww2_tactics/static/game.js ww2_tactics/static/combined.js ww2_tactics/static/fubar.js ww2_tactics/static/unit-art.js
+          git commit -m 'Validate replay transport and retained battlefield rendering [skip ci]'
+          git push origin HEAD:refs/heads/agent/dsl-move-pipeline-20261002
+          git rev-parse HEAD > /tmp/dsl-validation/tested-commit.txt
+          git diff cde494de68d9a6aadb9196cb0ad2934281f008a5 -- ww2_web.py ww2_tactics tests > /tmp/dsl-validation/tested.patch
       - uses: actions/upload-artifact@v4
         if: always()
         with:
-          name: dsl-validation-source
+          name: dsl-pipeline-validation
           path: /tmp/dsl-validation
           retention-days: 3
