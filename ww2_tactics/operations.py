@@ -38,7 +38,8 @@ def end_turn(state):
 def tower(state, unit):
     from .engine import terrain
     from .visibility import active
-    return enabled(state) and active(unit) and terrain(*unit['pos'], state) == 'tower'
+    from .domains import surface
+    return enabled(state) and active(unit) and surface(state,unit) and terrain(*unit['pos'], state) == 'tower'
 
 
 def sight_range(state, unit, concealed=False):
@@ -75,7 +76,7 @@ def range_guide(state, unit):
 
 def aim_hexes(state, unit):
     from .engine import distance, line_clear
-    from . import weapons
+    from . import weapons, domains
     p = weapons.profile(unit)
     if not p.get('area_fire') or (p['id']=='bomb' and not unit.get('bombs')): return []
     normal = min(unit['range'], sight_range(state,unit))
@@ -85,7 +86,7 @@ def aim_hexes(state, unit):
     return [dict(pos=pos, threshold=6 if distance(unit['pos'],pos)>normal else 5,
                  fringe=distance(unit['pos'],pos)>normal)
             for pos in cells(state,unit['pos'],reach)
-            if pos != unit['pos'] and (p['id']=='bomb' or line_clear(unit['pos'],pos,state.get('smoke',[]),state))]
+            if (pos != unit['pos'] or domains.joint(state) and p['id']=='bomb') and (p['id']=='bomb' or line_clear(unit['pos'],pos,state.get('smoke',[]),state))]
 
 
 def snipe_preview(state, unit, target):
@@ -121,9 +122,9 @@ def orders(state, unit):
 def target_threshold(state, unit, target):
     """Area fire never bypasses a unit's normal cover/armor hit threshold."""
     from .engine import fire_threshold, distance
-    from . import weapons, buildings
-    if state.get('air_version'): return 3
-    if state.get('naval_version'):
+    from . import weapons, buildings, domains
+    if state.get('air_version') or domains.joint(state) and unit['kind']=='bomber': return 3
+    if state.get('naval_version') or domains.joint(state) and unit['kind'] in domains.SHIPS:
         base=4+int(distance(unit['pos'],target['pos'])>5)+int(target['kind']=='destroyer')+buildings.cover(state,target['pos'],objective=False)
         return weapons.preview(unit,target,base)['threshold']
     return fire_threshold(state,unit,target)

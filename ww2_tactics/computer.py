@@ -7,7 +7,7 @@ from .engine import apply, options, distance, terrain, line_clear
 from .scenarios import battlefield
 from .rulesets import dsl, turn_limit
 from .visibility import fog, view, visible_ids, active, sight_reader
-from . import naval, air, weapons, buildings, operations, fieldworks, linked_front, signals, airborne
+from . import naval, air, weapons, buildings, operations, fieldworks, linked_front, signals, airborne, domains, fubar
 
 
 def objective_costs(state, goal=None, unit=None):
@@ -61,7 +61,10 @@ def choose_order(state, costs, visited, front_costs=None):
     for unit in units.values():
         if unit['side'] != side:
             continue
-        goal = linked_front.goal(state, unit)
+        if domains.joint(state) and unit['kind'] in domains.AIR_UNITS | domains.SHIPS:
+            choices.extend(fubar.domain_choices(state,unit,options(state,unit),list(units.values()),visited))
+            continue
+        goal = fubar.ground_goal(state,unit) if domains.joint(state) else linked_front.goal(state, unit)
         unit_costs = next((objective_maps[p['id']] for p in board.get('linked_objectives', []) if p['pos'] == goal), costs)
         if signals.enabled(state) and unit['kind']!='at_gun':
             key=(tuple(goal),unit['kind'] if unit.get('armor') else 'mountain' if unit.get('mountain_movement') else 'foot',unit.get('move_ap'),bool(unit.get('afloat')))

@@ -8,7 +8,7 @@ from .support import role_options, role_action, resolve_barrages
 from .combat_display import record_combat
 from .rulesets import profile, dsl, base_ap, bank_limit, turn_limit, road
 from .effects import record_effect
-from . import combined, naval, transport, campaigns, air, weapons, buildings, operations, fieldworks, linked_front, signals, airborne
+from . import combined, naval, transport, campaigns, air, weapons, buildings, operations, fieldworks, linked_front, signals, airborne, domains, fubar
 from .visibility import fog, active, visible_ids, unit_visible_ids, sees_hex, update_intel, record_reports
 
 WIDTH, HEIGHT = 7, 9
@@ -119,6 +119,7 @@ def initial(scenario='village', ruleset='classic'):
     if board.get('campaign'):
         state['factions']=board['factions'].copy()
         state['log']=[f"{board['name']} · {state['factions']['us']} move first. Hold {board['objective_name']} for two consecutive turns; defenders win after round {board['rounds']}."]
+    fubar.initialize(state)
     if board.get('combined_arms') or board.get('campaign'):
         state.update(dsl_expansion=1,fog_of_war=True)
         update_intel(state)
@@ -200,6 +201,9 @@ def react(state, mover, roll):
 
 
 def options(state, unit):
+    if domains.joint(state):
+        if unit['kind'] in domains.AIR_UNITS:return air.options(state,unit)
+        if unit['kind'] in domains.SHIPS:return naval.options(state,unit)
     if state.get('naval_version'):
         return naval.options(state,unit)
     if state.get('air_version'):
@@ -216,7 +220,7 @@ def options(state, unit):
     if not state["ready"] or state["winner"] or unit["hp"] <= 0 or unit["side"] != state["turn"]:
         return dict(moves=moves, targets=targets, rally=False, **extras)
     seen=unit_visible_ids(state,unit)
-    occupied = [u["pos"] for u in state["units"] if active(u) and u['id'] in seen]
+    occupied = [u["pos"] for u in state["units"] if active(u) and u['id'] in seen and domains.blocks(state,unit,u)]
     if unit.get('carrier_id'):
         return dict(moves=[], targets=[], rally=False, **extras)
     extras.update(transport.options(state, unit))
@@ -264,6 +268,11 @@ def options(state, unit):
     if unit.get('afloat'):
         extras={k:(v if k=='load' else [] if isinstance(v,list) else None if k=='range_guide' else False) for k,v in extras.items()}
         targets=[]
+    if domains.joint(state) and unit['kind']=='flak' and not unit['pinned'] and unit['ap']>=2:
+        for target in state['units']:
+            if active(target) and target['side']!=unit['side'] and domains.is_air(target) and target['id'] in seen and distance(unit['pos'],target['pos'])<=unit.get('aa_radius',4):
+                shot=air.shot(unit,target)
+                targets.append(dict(weapons.preview(unit,target,shot['threshold'],shot['modifiers'],weapon='flak',state=state),air=True))
     return dict(moves=moves, targets=targets, rally=unit["pinned"] and unit["ap"] >= 1, **extras)
 
 
@@ -293,7 +302,9 @@ def apply(state, side, action, roll=None):
         reactions.extend(airborne.end_turn(state,side))
         state['smoke'] = [dict(s, ttl=s['ttl']-1) for s in state.get('smoke', []) if s['ttl'] > 1]
         state['recon'] = [dict(r, ttl=r['ttl']-1) for r in state.get('recon', []) if r['ttl'] > 1]
-        if state.get('linked_front_version'):
+        if domains.joint(state):
+            fubar.end_turn(state,side)
+        elif state.get('linked_front_version'):
             linked_front.end_turn(state, side)
         elif side == "us":
             held = any(u["side"] == "us" and active(u) and u["pos"] == board['objective'] for u in state["units"])
@@ -320,6 +331,8 @@ def apply(state, side, action, roll=None):
                 else:
                     u["ap"] = 2
                 u['overwatch'] = False
+                if domains.joint(state):
+                    u.update(air_used=False,recon_used=False,torpedo_used=False,repair_used=False,rearm_used=False)
         if not state["winner"]: reactions.extend(linked_front.arrive(state, react, roll_die))
         message = f"{names[side]} ended their turn."
     else:
@@ -331,7 +344,12 @@ def apply(state, side, action, roll=None):
         airborne.before_order(unit,kind)
         if dsl(state) and kind != 'move':
             unit['road_pending'] = False
-        if kind in airborne.ORDERS:
+        if domains.joint(state) and unit['kind'] in domains.AIR_UNITS:
+            message=air.unit_order(state,unit,action,legal,roll_die,before_sight)
+        elif domains.joint(state) and unit['kind'] in domains.SHIPS:
+            message=naval.unit_order(state,unit,action,legal,roll_die)
+            if kind=='move':reactions=react(state,unit,roll_die)
+        elif kind in airborne.ORDERS:
             message,reactions=airborne.action(state,unit,action,legal,roll_die,react)
         elif kind in signals.ORDERS:
             message=signals.action(state,unit,action,legal,roll_die)
@@ -344,7 +362,7 @@ def apply(state, side, action, roll=None):
         elif kind == 'unload' and action.get('pos') in [m['pos'] for m in legal['unload']]:
             if not buildings.enterable(state, action['pos']):
                 raise ValueError('That building has collapsed. Choose another hex.')
-            if any(active(u) and u['pos'] == action['pos'] for u in state['units']):
+            if any(active(u) and domains.blocks(state,unit,u) and u['pos'] == action['pos'] for u in state['units']):
                 raise ValueError('That disembark hex is occupied. Choose another hex.')
             troop = transport.passengers(state, unit)[0]
             troop.pop('carrier_id', None)
@@ -358,6 +376,8 @@ def apply(state, side, action, roll=None):
         elif kind in {'grenade', 'suppress', 'inspire', 'barrage', 'command'}:
             message = role_action(state, unit, action, legal, roll_die, distance, names)
         elif kind == 'drop' and action.get('pos') in legal['drops']:
+            if domains.joint(state) and any(active(u) and domains.blocks(state,unit,u) and u['pos']==action['pos'] for u in state['units']):
+                raise ValueError('Landing blocked by a contact. Choose another approach.')
             unit.update(pos=list(action['pos']),reserve=False,ap=unit['ap']-2)
             message=f"{names[side]} paratroopers landed at {column(unit['pos'][0])}{unit['pos'][1]+1}."
             record_effect(state,'smoke',[unit['pos']])
@@ -374,7 +394,7 @@ def apply(state, side, action, roll=None):
                     unit.update(road_used=True, road_pending=False)
                 else:
                     unit['road_pending'] = both_road and not unit.get('no_road_bonus') and not unit.get('afloat') and (unit['kind']=='halftrack' or not unit.get('road_used', False))
-            if any(active(u) and u['id']!=unit['id'] and u['pos']==move['pos'] for u in state['units']):
+            if any(active(u) and u['id']!=unit['id'] and domains.blocks(state,unit,u) and u['pos']==move['pos'] for u in state['units']):
                 raise ValueError('Movement blocked by a contact. Scout or choose another approach.')
             unit["pos"] = move["pos"]
             unit["ap"] -= move["cost"]
@@ -397,7 +417,7 @@ def apply(state, side, action, roll=None):
             hit = die >= shot["threshold"]
             impacts = []
             if weapons.enabled(state):
-                result, impacts = weapons.resolve(state, unit, target, die, shot['threshold'])
+                result, impacts = weapons.resolve(state, unit, target, die, shot['threshold'],shot.get('weapon'))
                 if weapons.profile(unit)['penetration']: record_effect(state, 'explosion', [target['pos']])
             elif combined.enabled(state):
                 result=combined.resolve_fire(state,unit,target,die,shot['threshold'])

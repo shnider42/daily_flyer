@@ -6,8 +6,8 @@ const server=cp.spawn('python',['-m','gunicorn','ww2_web:app','--bind','127.0.0.
 let browser;
 (async()=>{
  for(let i=0;i<60;i++){try{if((await fetch(base+'/healthz')).ok)break;}catch{}await new Promise(r=>setTimeout(r,100));}
- const mod=require('@sparticuz/chromium'),pack=mod.default||mod;
- browser=await chromium.launch({headless:true,executablePath:await pack.executablePath(),args:pack.args.filter(a=>a!=='--single-process')});
+ const binary=process.env.CHROMIUM_EXECUTABLE_PATH,mod=binary?null:require('@sparticuz/chromium'),pack=mod&&(mod.default||mod);
+ browser=await chromium.launch({headless:true,executablePath:binary||await pack.executablePath(),args:binary?['--no-sandbox','--disable-dev-shm-usage']:pack.args.filter(a=>a!=='--single-process')});
  const p=await browser.newPage({viewport:{width:390,height:844}}),errors=[];
  p.on('pageerror',e=>errors.push(e.message));p.on('dialog',d=>d.accept());p.setDefaultTimeout(20000);
  await p.goto(base);await p.selectOption('#scenarioSelect','midway');await tap(p,p.locator('#createSolo'));await tap(p,p.locator('#startSolo'));await p.waitForFunction(()=>state&&!busy&&state.naval_version);

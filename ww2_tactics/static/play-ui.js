@@ -64,7 +64,8 @@
    const copy=node('span');copy.className='action-copy';
    const unit=state?.units.find(u=>u.id===selected),legal=state?.legal[selected];
    const shortNames={command:'Give actions',inspire:'Rally allies',recon:'Air search',repair:'Repair hull',airdrop:'Land troops',barrage:'Mortars',grenade:'Grenade',fire:'Fire at unit',assault:'Close assault',load:'Load troops',unload:'Unload',overwatch:'Overwatch',dig:'Dig in'};
-   if(state?.air_version){shortNames.overwatch=unit?.kind==='aa_gun'?'AA cover':'Intercept';shortNames.fire=unit?.kind==='bomber'?'Bomb':'Fire';shortNames.rearm='Service';}
+   if(state?.air_version||state?.joint_ops_version&&['fighter','bomber','aa_gun'].includes(unit?.kind)){shortNames.overwatch=unit?.kind==='aa_gun'?'AA cover':'Intercept';shortNames.fire=unit?.kind==='bomber'?'Bomb':'Fire';shortNames.rearm='Service';}
+   if(state?.joint_ops_version)shortNames.airstrike='Carrier strike';
    const heading=node('span',null,cancel?title:shortNames[id]||title);heading.className='action-name';
    const description=window.orderHelp?.(id,unit,legal,prefs.simple)||purpose;
    const effect=node('span',null,cancel?'Return to orders':description);effect.className='action-purpose';copy.append(heading,effect);

@@ -11,11 +11,11 @@
   if(!u||u.side!==s.side||u.hp<=0||s.ruleset!=='dsl')return [];
   const ids=[],add=(...names)=>ids.push(...names),kind=u.kind,v=s.rules_version||1;
   if(u.range>0&&u.weapon!=='none')add('fire');
-  if(s.air_version){
+  if(s.air_version||s.joint_ops_version&&['fighter','bomber','aa_gun','radar','airfield'].includes(kind)){
    if(['fighter','aa_gun'].includes(kind))add('overwatch');
    if(['fighter','bomber'].includes(kind))add('rearm');
    if(s.combat_version&&u.protection==='infantry')add('rally');
-  }else if(s.naval_version){
+  }else if(s.naval_version||s.joint_ops_version&&['carrier','battleship','cruiser','destroyer'].includes(kind)){
    if(['destroyer','amphibious'].includes(kind))add('smoke');
    if(kind==='amphibious'){if(s.combat_version)add('rally');}
    else add('repair');

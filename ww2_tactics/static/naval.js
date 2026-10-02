@@ -45,11 +45,14 @@
   $('waiting').querySelector('p').textContent=`Send this invitation to the other player. You command the ${names.us}; they command the ${names.de}.`;
   if(!state.ready)$('turnBanner').textContent=`Waiting for the ${names.de}…`;
   $('seriesScore').textContent=`Victories · ${names.us} ${state.victories?.us||0} / ${names.de} ${state.victories?.de||0}`;
-  if(!state.naval_version){reconUnit=null;return;}
+  const jointShip=!!state.joint_ops_version&&['carrier','battleship','cruiser','destroyer'].includes(unit?.kind);
+  if(!state.naval_version&&!jointShip){reconUnit=null;return;}
+  if(state.naval_version){
   $('rulesetBadge').textContent='DSL · Midway · US vs Japan · Fog of war';
   $('supportStatus').hidden=true;
   $('missionHint').textContent=state.winner?`${names[state.winner]} win the naval operation.`:`Sink both enemy carriers OR earn 6 control points. Sea zone: +1/turn.${state.scenario.island_objectives?.length?' Land a section on each ⚑ outpost: +1/turn.':''}`;
   window.drawFog(svg,state);zone(svg,state);
+  }
   if(selected!==reconUnit||smokeMode)reconUnit=null;
   if(unit&&!smokeMode&&!barrageMode&&!reconUnit&&state.turn===state.side){
    for(const move of legal?.moves||[]){const [x,y]=center(...move.pos);svg.append(element('text',{x,y:y+5,class:'move-beacon'},`↗ ${move.cost}`));}

@@ -9,7 +9,7 @@ from .rulesets import base_ap, bank_limit
 from .visibility import active, visible_ids, update_intel, record_reports
 from .combat_display import record_combat
 from .effects import record_effect
-from . import weapons, operations
+from . import weapons, operations, domains
 
 SHIPS={'battleship','carrier','cruiser','destroyer'}
 FACTIONS={'us':'Americans','de':'Japanese'}
@@ -73,16 +73,18 @@ def options(state, unit):
     if weapons.enabled(state) and unit.get('pinned'):
         result['rally'] = unit['ap'] >= 1
         return result
-    board=state['battlefield'];seen=visible_ids(state,unit['side'])
+    from .visibility import unit_visible_ids
+    board=state['battlefield'];seen=unit_visible_ids(state,unit) if domains.joint(state) else visible_ids(state,unit['side'])
     living=[u for u in state['units'] if active(u)]
-    occupied={tuple(u['pos']) for u in living if u['id'] in seen}
+    occupied={tuple(u['pos']) for u in living if u['id'] in seen and domains.blocks(state,unit,u)}
     if unit['ap']>=1:
         for y in range(max(0,unit['pos'][1]-1),min(board['height'],unit['pos'][1]+2)):
             for x in range(max(0,unit['pos'][0]-1),min(board['width'],unit['pos'][0]+2)):
                 tile=terrain(x,y,state)
                 cost=2 if unit['kind']=='amphibious' and tile in {'woods','building','tower'} else 1
                 if distance(unit['pos'],[x,y])==1 and passable(unit,tile) and buildings.enterable(state,[x,y],unit['side']) and unit['ap']>=cost and (x,y) not in occupied and not (weapons.enabled(state) and unit.get('immobilized')):
-                    result['moves'].append(dict(pos=[x,y],cost=cost,threats=0))
+                    from .engine import preview_threats
+                    result['moves'].append(dict(pos=[x,y],cost=cost,threats=preview_threats(state,unit,[x,y],seen) if domains.joint(state) else 0))
         if unit.get('smoke') and not any(s['pos']==unit['pos'] for s in state['smoke']):
             result['smoke']=[list(unit['pos'])]
         if unit['kind']=='carrier' and not unit['recon_used']:
@@ -103,9 +105,11 @@ def options(state, unit):
             else:
                 result['targets'].append(dict(id=target['id'],threshold=4+sum(mods.values()),modifiers=mods,
                                               damage=max(1,unit['gun_damage']-target['armor']),naval=True))
-        if unit['kind']=='destroyer' and target['kind'] in SHIPS and unit['torpedoes']>0 and not unit['torpedo_used'] and gap<=unit['torpedo_range'] and clear:
+        from .engine import line_cells
+        water_route=not domains.joint(state) or all(navigable(terrain(x,y,state)) for x,y in line_cells(tuple(unit['pos']),tuple(target['pos'])))
+        if unit['kind']=='destroyer' and target['kind'] in SHIPS and unit['torpedoes']>0 and not unit['torpedo_used'] and gap<=unit['torpedo_range'] and clear and water_route:
             result['torpedoes'].append(dict(id=target['id'],threshold=4,damage=unit['torpedo_damage']))
-        if unit['kind']=='carrier' and not unit['air_used'] and gap<=unit['strike_range']:
+        if unit['kind']=='carrier' and not unit['air_used'] and gap<=unit['strike_range'] and (not domains.joint(state) or weapons.damage(unit,target,'airstrike')):
             # Only observed escorts affect the preview; nearby water contacts are normally spotted together.
             escort=any(u['kind']=='cruiser' and u['side']==target['side'] and u['id'] in seen and distance(u['pos'],target['pos'])<=2 for u in living)
             result['airstrikes'].append(dict(id=target['id'],threshold=(3 if unit['side']=='us' else 4)+int(escort),
@@ -115,6 +119,57 @@ def options(state, unit):
             result[key] = [dict(s, **{k:v for k,v in weapons.preview(unit, next(t for t in living if t['id']==s['id']), s['threshold'], weapon=weapon, state=state).items()})
                            for s in result[key]]
     return result
+
+
+def unit_order(state, unit, action, legal, roll, before=None):
+    """Resolve one validated order in-place; the caller owns turns and victory."""
+    kind=action.get('kind');side=unit['side'];names=state.get('factions', {})
+    if kind in {'load_ammo', 'repair_tracks', 'bombard', 'artillery', 'field_recon'} | operations.ORDER_KINDS:
+        message = weapons.action(state, unit, action, legal, roll)
+    elif kind == 'rally' and legal['rally']:
+        unit['pinned']=False;unit['ap']-=1;message='Infantry rallied · 1 AP.'
+    elif kind=='move' and any(m['pos']==action.get('pos') for m in legal['moves']):
+        from .buildings import enterable
+        if not enterable(state, action['pos']):
+            raise ValueError('That building has collapsed. Choose another route.')
+        if domains.joint(state) and any(active(u) and domains.blocks(state,unit,u) and u['pos']==action['pos'] for u in state['units']):
+            raise ValueError('Movement blocked by a contact. Scout or choose another approach.')
+        cost=next(m['cost'] for m in legal['moves'] if m['pos']==action['pos'])
+        unit['pos']=list(action['pos']);unit['ap']-=cost
+        message=f"{names.get(side, FACTIONS[side])} {unit['kind']} moved to {column(unit['pos'][0])}{unit['pos'][1]+1}."
+    elif kind=='recon' and action.get('pos') in legal['recon']:
+        unit['ap']-=1;unit['recon_used']=True
+        from .signals import alert
+        alert(state,side,action['pos'],'recon')
+        state['recon'].append(dict(side=side,pos=list(action['pos']),radius=3,ttl=2))
+        message='Scout aircraft reported contacts within 3 hexes of the search point. Reports expire after the enemy turn.'
+    elif kind=='repair' and legal['repair']:
+        amount=min(unit['repair_amount'],unit['max_hp']-unit['hp'])
+        unit['hp']+=amount;unit['ap']-=2;unit['repairs']-=1;unit['repair_used']=True
+        message=f"{names.get(side, FACTIONS[side])} {unit['kind']} damage control restored {amount} hull."
+    elif kind=='smoke' and action.get('pos') in legal['smoke']:
+        unit['ap']-=1;unit['smoke']-=1;state['smoke'].append(dict(pos=list(unit['pos']),ttl=2))
+        record_effect(state,'smoke',[unit['pos']]);message='Unit laid a smoke screen. It blocks surface sight, guns and torpedoes.'
+    elif kind in {'fire','airstrike','torpedo'}:
+        key={'fire':'targets','airstrike':'airstrikes','torpedo':'torpedoes'}[kind]
+        shot=next((s for s in legal[key] if s['id']==action.get('target')),None)
+        if shot is None:raise ValueError('No legal naval attack: check sight, range, AP and weapon readiness.')
+        target=next(u for u in state['units'] if u['id']==shot['id']);die=roll();unit['ap']-=2
+        if kind=='airstrike':unit['air_used']=True
+        if kind=='torpedo':unit['torpedo_used']=True;unit['torpedoes']-=1
+        impacts = []
+        if weapons.enabled(state):
+            result, impacts = weapons.resolve(state, unit, target, die, shot['threshold'], shot['weapon'])
+        else:
+            if die>=shot['threshold']:target['hp']=max(0,target['hp']-shot['damage'])
+            result='sunk' if not target['hp'] else f"hit for {shot['damage']} hull" if die>=shot['threshold'] else 'missed'
+        message=f"{names.get(side, FACTIONS[side])} {unit['kind']} {kind}: rolled {die}, needed {shot['threshold']}+. Target {result}."
+        state['last_combat']=dict(kind={'fire':'Naval guns','airstrike':'Air strike','torpedo':'Torpedoes'}[kind],
+             roll=die,threshold=shot['threshold'],result=result,attacker=unit['id'],target=target['id'],impacts=impacts,revision=state['revision']+1)
+        record_combat(state,shot.get('modifiers'),shot.get('effect_text',f"{shot['damage']} hull on a hit. Ships do not suffer infantry pins.")+(' Cruiser AA cover adds +1.' if shot.get('aa') else ''))
+        record_effect(state,'explosion',[target['pos']])
+    else:raise ValueError('That naval order is unavailable.')
+    return message
 
 
 def apply(state,side,action,roll=None):
@@ -145,49 +200,7 @@ def apply(state,side,action,roll=None):
         unit=next((u for u in state['units'] if u['id']==action.get('unit') and u['side']==side and active(u)),None)
         if unit is None:raise ValueError('Choose one of your surviving units.')
         legal=options(state,unit)
-        if kind in {'load_ammo', 'repair_tracks', 'bombard', 'artillery', 'field_recon'} | operations.ORDER_KINDS:
-            message = weapons.action(state, unit, action, legal, roll)
-        elif kind == 'rally' and legal['rally']:
-            unit['pinned']=False;unit['ap']-=1;message='Infantry rallied · 1 AP.'
-        elif kind=='move' and any(m['pos']==action.get('pos') for m in legal['moves']):
-            from .buildings import enterable
-            if not enterable(state, action['pos']):
-                raise ValueError('That building has collapsed. Choose another route.')
-            cost=next(m['cost'] for m in legal['moves'] if m['pos']==action['pos'])
-            unit['pos']=list(action['pos']);unit['ap']-=cost
-            message=f"{FACTIONS[side]} {unit['kind']} moved to {column(unit['pos'][0])}{unit['pos'][1]+1}."
-        elif kind=='recon' and action.get('pos') in legal['recon']:
-            unit['ap']-=1;unit['recon_used']=True
-            from .signals import alert
-            alert(state,side,action['pos'],'recon')
-            state['recon'].append(dict(side=side,pos=list(action['pos']),radius=3,ttl=2))
-            message='Scout aircraft reported contacts within 3 hexes of the search point. Reports expire after the enemy turn.'
-        elif kind=='repair' and legal['repair']:
-            amount=min(unit['repair_amount'],unit['max_hp']-unit['hp'])
-            unit['hp']+=amount;unit['ap']-=2;unit['repairs']-=1;unit['repair_used']=True
-            message=f"{FACTIONS[side]} {unit['kind']} damage control restored {amount} hull."
-        elif kind=='smoke' and action.get('pos') in legal['smoke']:
-            unit['ap']-=1;unit['smoke']-=1;state['smoke'].append(dict(pos=list(unit['pos']),ttl=2))
-            record_effect(state,'smoke',[unit['pos']]);message='Unit laid a smoke screen. It blocks surface sight, guns and torpedoes.'
-        elif kind in {'fire','airstrike','torpedo'}:
-            key={'fire':'targets','airstrike':'airstrikes','torpedo':'torpedoes'}[kind]
-            shot=next((s for s in legal[key] if s['id']==action.get('target')),None)
-            if shot is None:raise ValueError('No legal naval attack: check sight, range, AP and weapon readiness.')
-            target=next(u for u in state['units'] if u['id']==shot['id']);die=roll();unit['ap']-=2
-            if kind=='airstrike':unit['air_used']=True
-            if kind=='torpedo':unit['torpedo_used']=True;unit['torpedoes']-=1
-            impacts = []
-            if weapons.enabled(state):
-                result, impacts = weapons.resolve(state, unit, target, die, shot['threshold'], shot['weapon'])
-            else:
-                if die>=shot['threshold']:target['hp']=max(0,target['hp']-shot['damage'])
-                result='sunk' if not target['hp'] else f"hit for {shot['damage']} hull" if die>=shot['threshold'] else 'missed'
-            message=f"{FACTIONS[side]} {unit['kind']} {kind}: rolled {die}, needed {shot['threshold']}+. Target {result}."
-            state['last_combat']=dict(kind={'fire':'Naval guns','airstrike':'Air strike','torpedo':'Torpedoes'}[kind],
-                 roll=die,threshold=shot['threshold'],result=result,attacker=unit['id'],target=target['id'],impacts=impacts,revision=state['revision']+1)
-            record_combat(state,shot.get('modifiers'),shot.get('effect_text',f"{shot['damage']} hull on a hit. Ships do not suffer infantry pins.")+(' Cruiser AA cover adds +1.' if shot.get('aa') else ''))
-            record_effect(state,'explosion',[target['pos']])
-        else:raise ValueError('That naval order is unavailable.')
+        message=unit_order(state,unit,action,legal,roll,before)
     for team in ('us','de'):
         if not any(active(u) and u['side']==team and u['kind']=='carrier' for u in state['units']):
             state['winner']='de' if team=='us' else 'us'

@@ -3,7 +3,7 @@ import copy
 from contextlib import contextmanager
 from contextvars import ContextVar
 from functools import wraps
-from . import fieldworks
+from . import fieldworks, domains
 
 
 _sight_work = ContextVar('sight_work', default=None)
@@ -53,6 +53,13 @@ def unit_sees_hex(state, scout, pos, concealed=False):
     from . import operations
     if not active(scout):return False
     gap=distance(scout['pos'],pos)
+    if domains.joint(state):
+        if concealed=='air':
+            # Radar and aircraft look through terrain, not through the ground fog.
+            return gap<=scout.get('sight',6)
+        if scout['kind']=='radar':return gap<=1
+        if domains.is_air(scout):
+            return gap<=(2 if concealed else 4) and not any(s['pos']==pos for s in state.get('smoke',[]))
     if gap<=1:return True
     cache=sight_cache(state)
     key=('scout',scout['id'])
@@ -114,7 +121,7 @@ def _visible_ids(state, side):
         return {u['id'] for u in state['units'] if u['side']==side or not u.get('carrier_id')}
     return {u['id'] for u in state['units'] if u['side']==side or
             (active(u) and sees_hex(state, side, u['pos'],
-             'camouflaged' if u.get('camouflaged') and not u.get('exposed_turns') else not u.get('armor') and not u.get('exposed_turns') and terrain(*u['pos'],state) in fieldworks.CONCEALMENT))}
+             'air' if domains.joint(state) and domains.is_air(u) else 'camouflaged' if u.get('camouflaged') and not u.get('exposed_turns') else not u.get('armor') and not u.get('exposed_turns') and terrain(*u['pos'],state) in fieldworks.CONCEALMENT))}
 
 
 def unit_visible_ids(state, unit):
@@ -139,7 +146,7 @@ def update_intel(state):
                 from .air import sees_hex as air_sight, AIRCRAFT
                 clear=air_sight(state,side,contact['pos'],contact['kind'] not in AIRCRAFT)
             else:
-                clear=sees_hex(state, side, contact['pos'], contact['kind'] not in {'tank','amphibious','halftrack','landing_craft'} and terrain(*contact['pos'],state) in fieldworks.CONCEALMENT)
+                clear=sees_hex(state, side, contact['pos'], 'air' if domains.joint(state) and domains.is_air(contact) else contact['kind'] not in {'tank','amphibious','halftrack','landing_craft'} and terrain(*contact['pos'],state) in fieldworks.CONCEALMENT)
             if clear:
                 del memory[uid]
         for unit in state['units']:
@@ -177,9 +184,14 @@ def view(state, side, terrain_visibility=True):
         result.update(sea_score=copy.deepcopy(state['sea_score']),recon=copy.deepcopy([r for r in state.get('recon',[]) if r['side']==side]))
     if state.get('air_version'):
         result['raid_destroyed']=copy.deepcopy(state.get('raid_destroyed',[]))
+    if domains.joint(state):
+        from .fubar import controls
+        result.update(joint_score=copy.deepcopy(state['joint_score']),joint_control=controls(state))
     if terrain_visibility:
         board=state['battlefield']
         result['visible_hexes']=[[x,y] for y in range(board['height']) for x in range(board['width']) if sees_hex(state,side,[x,y])]
+        if domains.joint(state):
+            result['visible_air_hexes']=[[x,y] for y in range(board['height']) for x in range(board['width']) if sees_hex(state,side,[x,y],'air')]
     return result
 
 
@@ -226,6 +238,9 @@ def record_reports(state, before, action, message):
 def public_state(state, side):
     if not fog(state):
         result=copy.deepcopy(state)
+        if domains.joint(state):
+            from .fubar import controls
+            result['joint_control']=controls(state)
         if state.get('fieldworks_version'):
             result['scenarioBaseMap']=copy.deepcopy(state['battlefield']['map'])
             result['map']=fieldworks.map_for(state, side)

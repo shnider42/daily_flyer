@@ -8,7 +8,7 @@ import secrets
 from .visibility import active, update_intel, record_reports
 from .combat_display import record_combat
 from .effects import record_effect
-from . import weapons, operations
+from . import weapons, operations, domains
 
 AIRCRAFT = {'fighter','bomber'}
 
@@ -51,6 +51,9 @@ def sees_hex(state,side,pos,ground=False):
 
 
 def visible_ids(state,side):
+    if domains.joint(state):
+        from .visibility import visible_ids as joint_ids
+        return joint_ids(state,side)
     return {u['id'] for u in state['units'] if u['side']==side or
             (active(u) and (not state.get('fog_of_war') or sees_hex(state,side,u['pos'],u['kind'] not in AIRCRAFT)))}
 
@@ -72,8 +75,15 @@ def watchers(state,mover,pos):
     from .engine import distance
     if mover['kind'] not in AIRCRAFT:return []
     return [u for u in state['units'] if active(u) and u['side']!=mover['side'] and u['overwatch'] and not u.get('pinned')
-            and u['kind'] in {'fighter','aa_gun'} and distance(u['pos'],pos)<=u['range']
-            and sees_hex(state,u['side'],pos)]
+            and (u['kind'] in {'fighter','aa_gun'} or domains.joint(state) and u['kind']=='flak')
+            and distance(u['pos'],pos)<= (u.get('aa_radius',u['range']) if u['kind']=='flak' else u['range'])
+            and (joint_air_sight(state,u,pos) if domains.joint(state) else sees_hex(state,u['side'],pos))]
+
+
+def joint_air_sight(state,unit,pos):
+    from .visibility import sees_hex
+    from . import signals
+    return signals.group_sees(state,unit['side'],signals.group(unit),pos,'air') if signals.enabled(state) else sees_hex(state,unit['side'],pos,'air')
 
 
 def shot(unit,target,reaction=False):
@@ -95,9 +105,10 @@ def options(state,unit):
     if weapons.enabled(state) and unit.get('pinned'):
         result['rally'] = unit['ap'] >= 1
         return result
-    seen=visible_ids(state,unit['side']);board=state['battlefield']
+    from .visibility import unit_visible_ids
+    seen=unit_visible_ids(state,unit) if domains.joint(state) else visible_ids(state,unit['side']);board=state['battlefield']
     living=[u for u in state['units'] if active(u)]
-    occupied={tuple(u['pos']) for u in living if u['id'] in seen}
+    occupied={tuple(u['pos']) for u in living if u['id'] in seen and domains.blocks(state,unit,u)}
     planes={tuple(u['pos']) for u in living if u['id'] in seen and u['kind'] in AIRCRAFT and u['id']!=unit['id']}
     if unit['kind'] in AIRCRAFT and unit['ap']>=1:
         reach=unit['flight']
@@ -106,7 +117,10 @@ def options(state,unit):
                 if not 0<distance(unit['pos'],[x,y])<=reach or (x,y) in occupied:continue
                 path=flight_path(unit['pos'],[x,y])
                 if any(tuple(p) in planes or not (0<=p[0]<board['width'] and 0<=p[1]<board['height']) for p in path):continue
-                threats={w['id'] for p in path for w in watchers(state,unit,p) if w['id'] in seen}
+                # Do not disclose an observed enemy's secret overwatch state.
+                threats={w['id'] for p in path for w in (living if domains.joint(state) else watchers(state,unit,p))
+                         if w['id'] in seen and (not domains.joint(state) or w['side']!=unit['side'] and
+                         w['kind'] in {'fighter','aa_gun','flak'} and distance(w['pos'],p)<=w.get('aa_radius',w['range']))}
                 result['moves'].append(dict(pos=[x,y],cost=1,threats=len(threats),path=path))
     if unit['ap']<2:return result
     result['overwatch']=unit['kind'] in {'fighter','aa_gun'} and not unit['overwatch']
@@ -117,26 +131,75 @@ def options(state,unit):
         if ((unit['kind'] in {'fighter','aa_gun'} and target['kind'] in AIRCRAFT) or
             (unit['kind']=='bomber' and unit['bombs']>0 and target['kind'] not in AIRCRAFT)):
             s = shot(unit,target)
-            result['targets'].append(dict(weapons.preview(unit, target, s['threshold'], s['modifiers'], state=state), air=True) if weapons.enabled(state) else s)
+            if not weapons.enabled(state) or weapons.damage(unit,target):
+                result['targets'].append(dict(weapons.preview(unit, target, s['threshold'], s['modifiers'], state=state), air=True) if weapons.enabled(state) else s)
     return result
 
 
 def resolve_shot(state,unit,target,roll,reaction=False):
     s=shot(unit,target,reaction);die=roll()
+    weapon='flak' if domains.joint(state) and unit['kind']=='flak' else None
     impacts = []
     if weapons.enabled(state):
-        s = weapons.preview(unit, target, s['threshold'], s['modifiers'], state=state)
-        result, impacts = weapons.resolve(state, unit, target, die, s['threshold'])
+        s = weapons.preview(unit, target, s['threshold'], s['modifiers'], weapon=weapon, state=state)
+        result, impacts = weapons.resolve(state, unit, target, die, s['threshold'],weapon)
     else:
         if die>=s['threshold']:target['hp']=max(0,target['hp']-s['damage'])
         if target['hp']<=0:target['overwatch']=False
         result='destroyed' if not target['hp'] else f"hit for {s['damage']}" if die>=s['threshold'] else 'missed'
-    label='AA interception' if reaction and unit['kind']=='aa_gun' else 'Fighter interception' if reaction else 'Bombing run' if unit['kind']=='bomber' else 'Air combat'
+    label='AA interception' if reaction and unit['kind'] in {'aa_gun','flak'} else 'Fighter interception' if reaction else 'Bombing run' if unit['kind']=='bomber' else 'Air combat'
     state['last_combat']=dict(kind=label,roll=die,threshold=s['threshold'],result=result,
         attacker=unit['id'],target=target['id'],impacts=impacts,revision=state['revision']+1)
     record_combat(state,s['modifiers'],s.get('effect_text',f"{s['damage']} damage on a hit. Aircraft do not suffer infantry pins."))
     record_effect(state,'explosion',[list(target['pos'])])
     return f'{label}: rolled {die}, needed {s["threshold"]}+. Target {result}.'
+
+
+def unit_order(state, unit, action, legal, roll, before=None):
+    """Resolve one validated order in-place; the caller owns turns and victory."""
+    kind=action.get('kind');side=unit['side'];names=state.get('factions', {})
+    before=before if before is not None else {}
+    if kind in {'load_ammo', 'repair_tracks', 'bombard', 'artillery', 'field_recon'} | operations.ORDER_KINDS:
+        message = weapons.action(state, unit, action, legal, roll)
+    elif kind == 'rally' and legal['rally']:
+        unit['pinned']=False;unit['ap']-=1;message='Gun crew rallied · 1 AP.'
+    elif kind=='move':
+        move=next((m for m in legal['moves'] if m['pos']==action.get('pos')),None)
+        if not move:raise ValueError('Choose a highlighted flight destination.')
+        unit['ap']-=1;unit['overwatch']=False;intercepted=False
+        for pos in move['path']:
+            # Hidden contacts may interrupt a leg, but never create stacked
+            # counters or disclose hidden occupancy in legal-move previews.
+            blocking=any(active(u) and u['id']!=unit['id'] and u['pos']==pos and
+                         (u['kind'] in AIRCRAFT or not domains.joint(state) and pos==move['pos']) for u in state['units'])
+            if blocking:break
+            unit['pos']=list(pos)
+            # A flight can pass through sight and leave it in the same leg.
+            # Retain only sightings actually made at each intervening cell.
+            for team in before:before[team].update(visible_ids(state,team))
+            update_intel(state)
+            for shooter in watchers(state,unit,pos):
+                if not active(unit):break
+                shooter['overwatch']=False;intercepted=True
+                resolve_shot(state,shooter,unit,roll,True)
+            if not active(unit):break
+        message=f'{names[side]} aircraft completed its flight leg.'
+        if unit['pos']!=move['pos']:message='Flight interrupted by a contact or interception; 1 AP spent.'
+        if intercepted:message+=' Incoming interception fire; see combat report.'
+    elif kind=='fire' and any(s['id']==action.get('target') for s in legal['targets']):
+        target=next(u for u in state['units'] if u['id']==action['target'])
+        unit['ap']-=2;unit['overwatch']=False
+        if unit['kind']=='bomber':unit['bombs']-=1
+        message=resolve_shot(state,unit,target,roll)
+    elif kind=='overwatch' and legal['overwatch']:
+        unit['ap']-=2;unit['overwatch']=True
+        message='Interception set. One reaction along an enemy flight path, until this unit’s next turn.'
+    elif kind=='rearm' and legal['rearm']:
+        unit['ap']-=2;unit['rearm_used']=True;unit['hp']=min(unit['max_hp'],unit['hp']+1)
+        if unit['kind']=='bomber':unit['bombs']=2
+        message='Friendly airfield service: repair 1 strength and reload bomber ordnance. Once per turn.'
+    else:raise ValueError('That air order is unavailable. Check aircraft role, sight, AP and range.')
+    return message
 
 
 def apply(state,side,action,roll=None):
@@ -163,46 +226,7 @@ def apply(state,side,action,roll=None):
         unit=next((u for u in state['units'] if u['side']==side and u['id']==action.get('unit') and active(u)),None)
         if unit is None:raise ValueError('Choose one of your surviving aircraft or AA guns.')
         legal=options(state,unit)
-        if kind in {'load_ammo', 'repair_tracks', 'bombard', 'artillery', 'field_recon'} | operations.ORDER_KINDS:
-            message = weapons.action(state, unit, action, legal, roll)
-        elif kind == 'rally' and legal['rally']:
-            unit['pinned']=False;unit['ap']-=1;message='Gun crew rallied · 1 AP.'
-        elif kind=='move':
-            move=next((m for m in legal['moves'] if m['pos']==action.get('pos')),None)
-            if not move:raise ValueError('Choose a highlighted flight destination.')
-            unit['ap']-=1;unit['overwatch']=False;intercepted=False
-            for pos in move['path']:
-                # Hidden contacts may interrupt a leg, but never create stacked
-                # counters or disclose hidden occupancy in legal-move previews.
-                blocking=any(active(u) and u['id']!=unit['id'] and u['pos']==pos and
-                             (u['kind'] in AIRCRAFT or pos==move['pos']) for u in state['units'])
-                if blocking:break
-                unit['pos']=list(pos)
-                # A flight can pass through sight and leave it in the same leg.
-                # Retain only sightings actually made at each intervening cell.
-                for team in before:before[team].update(visible_ids(state,team))
-                update_intel(state)
-                for shooter in watchers(state,unit,pos):
-                    if not active(unit):break
-                    shooter['overwatch']=False;intercepted=True
-                    resolve_shot(state,shooter,unit,roll,True)
-                if not active(unit):break
-            message=f'{names[side]} aircraft completed its flight leg.'
-            if unit['pos']!=move['pos']:message='Flight interrupted by a contact or interception; 1 AP spent.'
-            if intercepted:message+=' Incoming interception fire; see combat report.'
-        elif kind=='fire' and any(s['id']==action.get('target') for s in legal['targets']):
-            target=next(u for u in state['units'] if u['id']==action['target'])
-            unit['ap']-=2;unit['overwatch']=False
-            if unit['kind']=='bomber':unit['bombs']-=1
-            message=resolve_shot(state,unit,target,roll)
-        elif kind=='overwatch' and legal['overwatch']:
-            unit['ap']-=2;unit['overwatch']=True
-            message='Interception set. One reaction along an enemy flight path, until this unit’s next turn.'
-        elif kind=='rearm' and legal['rearm']:
-            unit['ap']-=2;unit['rearm_used']=True;unit['hp']=min(unit['max_hp'],unit['hp']+1)
-            if unit['kind']=='bomber':unit['bombs']=2
-            message='Friendly airfield service: repair 1 strength and reload bomber ordnance. Once per turn.'
-        else:raise ValueError('That air order is unavailable. Check aircraft role, sight, AP and range.')
+        message=unit_order(state,unit,action,legal,roll,before)
     fields=[u for u in state['units'] if u['side']=='us' and u['kind']=='airfield']
     bombers=[u for u in state['units'] if u['side']=='de' and u['kind']=='bomber']
     state['raid_destroyed']=[list(u['pos']) for u in fields if not active(u)]

@@ -1,5 +1,6 @@
 """Optional platoon intelligence and specialist orders, with immutable radio reports."""
 import copy
+from . import domains
 from .visibility import active, sight_cache, sight_reader, unit_sees_hex
 
 VERSION=1
@@ -41,6 +42,7 @@ def group_sees(state,side,platoon,pos,concealed=False):
 def concealed(state,u):
     from .engine import terrain
     from .fieldworks import CONCEALMENT
+    if domains.joint(state) and domains.is_air(u):return 'air'
     if u.get('camouflaged') and not u.get('exposed_turns'):return 'camouflaged'
     return not u.get('armor') and not u.get('exposed_turns') and (u.get('camouflaged') or terrain(*u['pos'],state) in CONCEALMENT)
 
@@ -66,7 +68,7 @@ def observe_intel(state):
         for platoon in {group(u) for u in state['units'] if u['side']==side}:
             memory=state.setdefault('platoon_intel',{}).setdefault(side,{}).setdefault(platoon,{})
             for uid,c in list(memory.items()):
-                if group_sees(state,side,platoon,c['pos'],terrain(*c['pos'],state) in CONCEALMENT):del memory[uid]
+                if group_sees(state,side,platoon,c['pos'],'air' if domains.joint(state) and domains.is_air(c) else terrain(*c['pos'],state) in CONCEALMENT):del memory[uid]
             seen=group_ids(state,side,platoon)
             for u in state['units']:
                 if u['side']!=side and u['id'] in seen and active(u):memory[u['id']]=contact(state,u)
@@ -86,9 +88,11 @@ def public_views(state,side):
             if report['id'] not in contacts or report['last_seen_round']>=contacts[report['id']]['last_seen_round']:contacts[report['id']]=report
         # Looking at an old report's hex clears its marker without looking up
         # the target's secret current location or revealing its survival.
-        remembered=[copy.deepcopy(c) for uid,c in contacts.items() if uid not in seen and not group_sees(state,side,platoon,c['pos'],True)]
+        remembered=[copy.deepcopy(c) for uid,c in contacts.items() if uid not in seen and not group_sees(state,side,platoon,c['pos'],'air' if domains.joint(state) and domains.is_air(c) else True)]
         result[platoon]=dict(enemy_ids=[u['id'] for u in state['units'] if u['side']!=side and u['id'] in seen],contacts=remembered,
             visible_hexes=[[x,y] for y in range(board['height']) for x in range(board['width']) if group_sees(state,side,platoon,[x,y])])
+        if domains.joint(state):
+            result[platoon]['visible_air_hexes']=[[x,y] for y in range(board['height']) for x in range(board['width']) if group_sees(state,side,platoon,[x,y],'air')]
     return result
 
 

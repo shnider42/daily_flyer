@@ -4,6 +4,17 @@
  const node=(tag,id,text)=>{const n=document.createElement(tag);if(id)n.id=id;if(text)n.textContent=text;return n;};
  function mission(s){
   const attacker=s.factions?.us||'Americans',defender=s.factions?.de||'Germans',rounds=s.scenario.rounds;
+  if(s.joint_ops_version){
+   const score=s.joint_score||{us:0,de:0};
+   return {goal:'Reach 10 control points. Ships take the sea lane; infantry take the two land flags.',
+    compact:`Win: 10 points · Allies ${score.us} / Axis ${score.de}`,progress:`Allies ${score.us}/10 · Axis ${score.de}/10 · Round ${s.round}/${rounds}`,
+    rules:['At the end of your turn, each uncontested objective you occupy earns 1 point. Warships occupy the sea zone within one hex; infantry must stand on a land flag. Aircraft, armor, fixed guns, passengers and reserves cannot capture land flags.',
+     `First to 10 points wins. At the end of round ${rounds}, higher score wins; Axis wins an exact tie. Eliminating every enemy also wins. Losing a carrier, bomber or airfield alone does not end Fubar.`,
+     'One surface unit and one aircraft can share a hex. Use Both / Surface / Air above the map; tap a stacked counter to choose which unit you mean. These controls change only your view, never fog of war.',
+     'Radar spots the air layer, not distant ground. Aircraft spot surface units within 4 hexes, or 2 in concealment. Fighters and AA attack aircraft; bombers attack the surface. Smoke hides surface targets, not aircraft.',
+     'Carrier search and strike are abstract support sorties, separate from the movable fighter and bomber units. Airfields service aircraft. Cruiser escorts protect against carrier sorties; fixed AA, Flak and fighter overwatch intercept movable planes.',
+     s.scenario.reinforcement_brief],focus:s.scenario.objective};
+  }
   if(s.air_version){
    const lost=s.raid_destroyed?.length||0,defending=s.side==='us';
    return {goal:defending?`Keep at least one RAF station through round ${rounds}, or destroy every enemy bomber.`:`Destroy both RAF sector stations before round ${rounds} ends.`,
@@ -70,7 +81,8 @@
   const m=mission(state);if(state.scenario.doctrine){m.rules=[...m.rules,'Your force: '+state.scenario.doctrine[state.side],state.scenario.historical_note,'Communications: each platoon spots locally. Radio reports allow distant mortar aiming, but never unlock direct fire on an unseen unit.'];}goal.textContent=m.goal;progress.textContent=m.progress;
   list.replaceChildren(...m.rules.map(t=>node('li',null,t)));
   flags.hidden=!state.linked_front_version;flags.textContent=(state.scenario.linked_objectives||[]).map(p=>`${p.name}: ${state.objective_control?.[p.id]?sideLabel(state.objective_control[p.id]):'Ungarrisoned'}`).join(' · ');
-  sectors.replaceChildren(...(state.scenario.sectors||[]).map(s=>{const b=node('button',null,s.name);b.type='button';b.onclick=()=>{dialog.close();focusMapUnit({pos:s.pos});};return b;}));
+  sectors.replaceChildren(...(state.scenario.joint_objectives||state.scenario.sectors||[]).map(s=>{const b=node('button',null,s.name);b.type='button';b.onclick=()=>{dialog.close();focusMapUnit({pos:s.pos});};return b;}));
+  if(state.joint_ops_version){flags.hidden=false;flags.textContent=(state.joint_control||[]).map(p=>`${p.name}: ${p.contested?'Contested':p.owner?sideLabel(p.owner):'Unoccupied'}`).join(' · ');}
   result.hidden=!state.winner;result.textContent=state.winner?`${state.factions?.[state.winner]||names[state.winner]} won.${state.resigned_by?' The opponent resigned.':''}`:'';
   find.textContent=state.air_version?'Find a sector station':'Find ★ on the map';
  }

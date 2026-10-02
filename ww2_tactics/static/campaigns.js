@@ -2,6 +2,7 @@
 'use strict';
 (()=>{
  const operations=[['iron_lantern','Operation Iron Lantern · 30×34 · airborne sandbox'],['apennine','Apennine Relay · 26×28 · Italy'],['desert_signal','Desert Signal · 32×26 · North Africa'],['amba_dawn','Amba Dawn · 26×30 · Ethiopia'],['tidal_gate','Operation Tidal Gate · 36×44 · combined-arms operation'],['stalingrad','Stalingrad · 18×20 · street fighting'],['britain','Battle of Britain · 22×18 · air playtest'],['omaha','Omaha Beach · 18×20 · landing craft'],['carentan','Carentan · 18×22 · airborne causeways'],['market_garden','Market Garden · 22×28 · river corridor']];
+ operations.unshift(['fubar','Fubar · 36×32 · all-unit joint operations']);
  for(const id of ['scenarioSelect','soloScenario','rematchScenario']){
   for(const [value,label] of operations){const option=document.createElement('option');option.value=value;option.textContent=label+' · DSL';$(id).append(option);}
   $(id).addEventListener('change',()=>{if(operations.some(([value])=>value===$(id).value))$(id==='scenarioSelect'?'rulesetSelect':id==='soloScenario'?'soloRuleset':'rematchRuleset').value='dsl';});
@@ -24,13 +25,16 @@
    if(unit.kind==='engineer')$('roleBrief').textContent=`ENGINEERS · ${unit.smoke} smoke and ${unit.grenades} frag grenades remaining. Use smoke to cross streets and grenades to attack infantry in cover.`;
    if(unit.kind==='mg')$('roleBrief').textContent=`MG · Suppress on ${unit.suppression}+ for 2 AP, no damage. Range ${unit.side==='de'?6:4} hexes.`;
   }
-  if(!air)return;
+  const jointAir=!!state.joint_ops_version&&['fighter','bomber','aa_gun','radar','airfield'].includes(unit?.kind);
+  if(!air&&!jointAir)return;
+  if(air){
   window.drawFog(svg,state);
   $('rulesetBadge').textContent='DSL · Battle of Britain · Air playtest v1';$('supportStatus').hidden=true;
   $('objectiveName').textContent='RAF SECTOR STATIONS';$('objective').textContent=`Stations lost: ${state.raid_destroyed?.length||0} / 2`;
   $('missionHint').textContent=state.winner?`${names[state.winner]} win the air battle.`:state.side==='us'?'Protect at least one station through round 18, or shoot down every bomber.':'Destroy both RAF sector stations before round 18 ends. Escort your bombers.';
   $('manualAP').textContent='Aircraft: fighters fly up to 3 hexes per AP; bombers 2. All attacks cost 2 AP. No terrain cover, altitude or fuel. Full air-playtest rules below.';
   document.querySelector('.terrain-legend').textContent='Bright hex: flight destination · Orange: known interception along route · Terrain does not block flight';
+  }
   service.hidden=!legal?.rearm;service.disabled=busy;service.textContent='Service · 2 AP';
   if(unit){
    const flying=['fighter','bomber'].includes(unit.kind);
@@ -40,16 +44,16 @@
    const meters=$('unitMechanics').querySelector('.unit-meters');$('unitMechanics').replaceChildren();if(meters)$('unitMechanics').append(meters);
    $('unitMechanics').append(uiNode('p','mechanics-caption',`Base ${unit.base_ap} AP · bank ${unit.base_ap?1:0} · range ${unit.range}. ${flying?'Terrain does not add cover or block flight.':'Fixed installation; cannot move.'}${unit.kind==='bomber'?` Bomb loads ${unit.bombs}/2.`:''}${unit.overwatch?' Interception ready.':''}`));
   }
-  if(!svg.querySelector('.station-mark'))for(const [i,pos] of state.scenario.airfields.us.entries()){
+  if(air&&!svg.querySelector('.station-mark'))for(const [i,pos] of state.scenario.airfields.us.entries()){
    const [x,y]=center(...pos),lost=(state.raid_destroyed||[]).some(p=>p[0]===pos[0]&&p[1]===pos[1]);
    svg.append(element('text',{x,y:y+43,class:'station-mark','text-anchor':'middle'},`STATION ${i+1}${lost?' · LOST':''}`));
   }
  };
  function previewPath(e){
-  if(!state?.air_version)return;const svg=$('map');svg.querySelector('.flight-trail')?.remove();
+  if(!state?.air_version&&!state?.joint_ops_version)return;const svg=$('map');svg.querySelector('.flight-trail')?.remove();
   const hex=e.target.closest('.hex.move'),u=state.units.find(u=>u.id===selected);if(!hex||!u)return;
   const move=state.legal[selected]?.moves.find(m=>m.pos[0]===+hex.dataset.x&&m.pos[1]===+hex.dataset.y);if(!move)return;
-  svg.append(element('polyline',{points:[u.pos,...move.path].map(p=>center(...p).join(',')).join(' '),class:'flight-trail','aria-hidden':'true'}));
+  if(move.path)svg.append(element('polyline',{points:[u.pos,...move.path].map(p=>center(...p).join(',')).join(' '),class:'flight-trail','aria-hidden':'true'}));
  }
  $('map').addEventListener('pointerover',e=>{if(e.pointerType==='mouse')previewPath(e);});$('map').addEventListener('focusin',previewPath);
  $('map').addEventListener('pointerleave',()=>$('map').querySelector('.flight-trail')?.remove());

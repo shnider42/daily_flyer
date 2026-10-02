@@ -1,5 +1,5 @@
 """One-unit half-track transport; passengers stay in saves, not on the battlefield."""
-from . import combined, buildings, fieldworks
+from . import combined, buildings, fieldworks, domains
 from .visibility import active, visible_ids
 
 
@@ -22,7 +22,7 @@ def options(state, carrier):
     elif aboard[0]['ap'] >= 1:
         troop = aboard[0]
         seen = visible_ids(state, carrier['side'])
-        occupied = [u['pos'] for u in state['units'] if active(u) and u['id'] in seen]
+        occupied = [u['pos'] for u in state['units'] if active(u) and u['id'] in seen and domains.blocks(state,troop,u)]
         board = state['battlefield']
         result['unload'] = [dict(pos=[x, y], cost=1,
                                  threats=preview_threats(state, troop, [x, y], seen))
@@ -50,7 +50,7 @@ def bail_out(state, carrier):
             shore=[[x,y] for y in range(board['height']) for x in range(board['width'])
                    if distance(carrier['pos'],[x,y])==1 and fieldworks.movement(troop, terrain(x,y,state))[0]
                    and buildings.enterable(state, [x,y])
-                   and not any(active(u) and u['id']!=troop['id'] and u['pos']==[x,y] for u in state['units'])]
+                   and not any(active(u) and u['id']!=troop['id'] and domains.blocks(state,troop,u) and u['pos']==[x,y] for u in state['units'])]
             if shore:pos=shore[0]
             else:loss=troop['hp']  # No impossible infantry survivors stranded at sea.
         troop.update(pos=pos, hp=max(0, troop['hp']-loss), pinned=True,

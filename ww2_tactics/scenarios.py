@@ -111,6 +111,8 @@ from .theaters import scenarios as theater_scenarios
 SCENARIOS.update(theater_scenarios(build))
 from .iron_lantern import scenario as lantern_scenario
 SCENARIOS['iron_lantern']=lantern_scenario(build)
+from .fubar import scenario as fubar_scenario
+SCENARIOS['fubar']=fubar_scenario(build)
 
 
 def get_scenario(key='village'):

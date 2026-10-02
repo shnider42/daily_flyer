@@ -29,15 +29,19 @@
  function points(x,y){const [cx,cy]=center(x,y);return Array.from({length:6},(_,i)=>{const a=(60*i-30)*Math.PI/180;return `${cx+30*Math.cos(a)},${cy+30*Math.sin(a)}`;}).join(' ');}
  window.drawFog=(svg,snapshot)=>{
   if(state.fog_of_war){const own=snapshot.units.filter(u=>u.side===state.side&&u.hp>0).length,enemy=snapshot.units.filter(u=>u.side!==state.side&&u.hp>0).length;$('armyCount').textContent=`Your forces ${own} · Enemy spotted ${enemy} · Last seen ${snapshot.contacts?.length||0}`;}
-  if(svg._fogSnapshot===snapshot&&svg.querySelector('.fog-layer'))return;
+  const sky=!!state.joint_ops_version&&window.fubarLayer?.()==='air';
+  if(svg._fogSnapshot===snapshot&&svg._fogSky===sky&&svg.querySelector('.fog-layer'))return;
+  svg._fogSky=sky;
   svg._fogSnapshot=snapshot;
   svg.querySelectorAll('.fog-layer,.contact-marker,.passenger-marker').forEach(n=>n.remove());
   if(!state.fog_of_war)return;
-  const seen=new Set((snapshot.visible_hexes||[]).map(p=>p.join(','))),layer=element('g',{class:'fog-layer','aria-hidden':'true'});
+  const seen=new Set(((sky?snapshot.visible_air_hexes:snapshot.visible_hexes)||[]).map(p=>p.join(','))),layer=element('g',{class:'fog-layer','aria-hidden':'true'});
   state.map.forEach((row,y)=>row.forEach((_,x)=>{if(!seen.has(`${x},${y}`))layer.append(element('polygon',{points:points(x,y)}));}));
   svg.insertBefore(layer,svg.querySelector('.unit'));
   for(const contact of snapshot.contacts||[]){
    const [cx,cy]=center(...contact.pos),g=element('g',{class:'contact-marker'});
+   g.dataset.kind=contact.kind;
+   if(state.joint_ops_version){const layer=window.fubarLayer?.(),air=['fighter','bomber'].includes(contact.kind);g.classList.toggle('joint-hidden',layer==='air'&&!air||layer==='surface'&&air);}
    g.append(element('title',{},`${contact.source==='radio'?'Radio report':'Last seen'} ${kinds[contact.kind]} · round ${contact.last_seen_round} · ${sideLabel(contact.last_seen_turn)} turn. Current location unknown.`),element('rect',{x:cx-19,y:cy-16,width:38,height:32,rx:3}),element('text',{x:cx,y:cy-2,'text-anchor':'middle'},`${unitCodes[contact.kind]} ?`),element('text',{x:cx,y:cy+10,'text-anchor':'middle',class:'contact-age'},`${contact.source==='radio'?'RAD · ':''}R${contact.last_seen_round}`));svg.append(g);
   }
   for(const troop of snapshot.units.filter(u=>u.side===state.side&&u.hp>0&&u.carrier_id)){

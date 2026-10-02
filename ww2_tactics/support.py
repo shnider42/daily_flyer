@@ -4,7 +4,7 @@ from .combat_display import record_combat
 from .rulesets import dsl, command_key, turn_limit
 from .effects import record_effect
 from .visibility import active, unit_visible_ids
-from . import combined, weapons, buildings
+from . import combined, weapons, buildings, domains
 
 
 def role_options(state, unit, distance, line_clear, terrain, board):
@@ -23,6 +23,7 @@ def role_options(state, unit, distance, line_clear, terrain, board):
     key = command_key(unit)
     if dsl(state) and unit['kind'] in {'leader','commander'} and key not in state.get('command_used', []):
         result['command'] = [u['id'] for u in living if u['side'] == unit['side']
+                             and (not domains.joint(state) or u['kind'] not in domains.AIR_UNITS | domains.SHIPS)
                              and (commander or u.get('platoon') == unit.get('platoon')) and u['kind'] not in {'leader','commander'}
                              and not u['pinned'] and u.get('ap_received', 2) < turn_limit(u)
                              and 0 < distance(unit['pos'], u['pos']) <= radius]

@@ -21,7 +21,7 @@ Object.assign(unitCodes,{carrier:'CV',battleship:'BB',cruiser:'CA',destroyer:'DD
 Object.assign(kinds,{fighter:'Fighter',bomber:'Bomber',aa_gun:'Anti-aircraft gun',radar:'Radar station',airfield:'Airfield',landing_craft:'Landing craft'});
 Object.assign(unitCodes,{fighter:'FTR',bomber:'BMR',aa_gun:'AA',radar:'RAD',airfield:'AF',landing_craft:'LC'});
 function sideLabel(side){return state?.factions?.[side]||names[side];}
-function strengthLabel(u){return state?.naval_version?`${u.hp}/${u.max_hp} · ${u.ap}`:'●'.repeat(u.hp)+' · '+u.ap;}
+function strengthLabel(u){return state?.naval_version||u.protection==='ship'?`${u.hp}/${u.max_hp} · ${u.ap}`:'●'.repeat(u.hp)+' · '+u.ap;}
 function notify(text){$('message').textContent=text;$('message').hidden=false;clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('message').hidden=true,6500);}
 async function api(path, body){
  const response=await fetch(path,{method:body===undefined?'GET':'POST',headers:{'Content-Type':'application/json',...(session?{Authorization:`Bearer ${session.token}`}:{})},...(body===undefined?{}:{body:JSON.stringify(body)})});
@@ -80,7 +80,7 @@ function unitRoleSummary(u){
  if(state?.combat_version&&u.kind==='tank')return `${u.immobilized?'IMMOBILIZED · gun operational · ':''}${u.ammo==='he'?'High explosive loaded · infantry blast':'Armor piercing loaded · hunt armor'}`;
  if(state?.combat_version&&u.kind==='battleship')return 'Heavy guns · bombard unseen hexes beyond sight';
  if(u.kind==='landing_craft')return 'Carry one infantry unit to shore · water movement only';
- if(state?.air_version)return {fighter:'Intercept aircraft · 3 hexes per flight action',bomber:'Bomb ground sites · 2 hexes per flight action · 2 bomb loads',aa_gun:'Anti-aircraft overwatch · range 5 · fixed position',radar:'Spot aircraft within 10 hexes · no ground spotting or attacks',airfield:'Rearm and repair aircraft in adjacent hexes'}[u.kind];
+ if(state?.air_version||state?.joint_ops_version&&['fighter','bomber','aa_gun','radar','airfield'].includes(u.kind))return {fighter:'Intercept aircraft · 3 hexes per flight action',bomber:'Bomb surface targets · 2 hexes per flight action · 2 bomb loads',aa_gun:'Anti-aircraft overwatch · range 5 · fixed position',radar:'Spot aircraft within 10 hexes · no distant ground spotting or attacks',airfield:'Rearm and repair aircraft in adjacent hexes'}[u.kind];
  if(u.kind==='halftrack'){const troop=state.units.find(t=>t.hp>0&&t.carrier_id===u.id);return troop?`Carrying ${unitName(troop)} · roads: 2 hexes/AP`:'Transport 1 infantry unit · roads: 2 hexes/AP';}
  const roles={squad:'Capture and hold ground with rifle infantry',leader:state?.ruleset==='dsl'?'Rally platoon members and grant extra actions':'Rally troops and call mortar support',mg:'Suppress enemy infantry with sustained fire',commander:'Rally and support nearby troops',scout:'Spot concealed enemies ahead of your squads',engineer:'Use smoke and grenades to clear cover',at_team:'Hunt armored vehicles with anti-tank weapons',tank:'Armored direct fire against troops and vehicles',at_gun:'Long-range anti-tank fire; cannot move',halftrack:'Mobile armored support; suppress infantry',amphibious:state?.naval_version?'Cross water and land troops at island outposts':'Move your troops across water and open land',paratrooper:u.reserve?'Airborne reserve; choose a landing zone':'Airborne infantry; capture and hold ground',carrier:'Scout with aircraft and launch air strikes',battleship:'Armored warship with heavy long-range guns',cruiser:'Escort ships with guns and aircraft defense',destroyer:'Fast warship with torpedoes and smoke'};
  return roles[u.kind]||'Select a highlighted move or available action';
@@ -303,6 +303,7 @@ function render(){
  if(window.renderFieldworks)window.renderFieldworks(unit,legal,svg);
  if(window.renderSignals)window.renderSignals(unit,legal,svg);
  if(window.renderAirborne)window.renderAirborne(unit,legal,svg);
+ if(window.renderFubar)window.renderFubar(unit,legal,svg);
  if(window.renderOrderCapabilities)window.renderOrderCapabilities(unit);
  const buildingWarning=unit&&unit.hp>0&&!unit.reserve&&!unit.carrier_id&&buildingCondition(state,unit.pos)==='damaged'&&!picking&&!target;
  $('hint').classList.toggle('building-warning',!!buildingWarning);

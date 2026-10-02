@@ -1,0 +1,21 @@
+#fubarLayers{position:fixed;z-index:35;display:flex;gap:2px;padding:3px;background:#122c32ed;border:1px solid #9ac2c8;border-radius:9px;box-shadow:0 2px 9px #0005;max-width:calc(100vw - 24px)}
+#fubarLayers[hidden]{display:none}
+#fubarLayers button{min-height:36px;min-width:54px;padding:5px 10px;color:#e9f6f8;background:transparent;border:1px solid transparent;border-radius:6px;font-size:13px;font-weight:750;touch-action:manipulation}
+#fubarLayers button[aria-pressed=true]{color:#102b33;background:#d7f4fa;border-color:#eaffff}
+#fubarLayers button:hover,#fubarLayers button:focus-visible{outline:2px solid #ffd77c;outline-offset:1px}
+.joint-hidden{display:none!important;pointer-events:none!important}
+.joint-air>rect{stroke:#a9ecff!important;stroke-width:2.5!important;stroke-dasharray:4 2}
+.joint-air-badge{font-size:8px;font-weight:900;fill:#e1faff;stroke:#153a48;stroke-width:3;paint-order:stroke;pointer-events:none}
+.joint-objective{pointer-events:none}
+.joint-objective-ring{fill:none;stroke:#ffe19a;stroke-width:3;stroke-dasharray:8 4;paint-order:stroke}
+.joint-objective-ring.us{stroke:#a4e4ff}.joint-objective-ring.de{stroke:#ffbdaf}
+.joint-objective text{font-size:10px;font-weight:850;fill:#fff4d4;stroke:#102c34;stroke-width:3;paint-order:stroke}
+#fubarStack{max-width:430px;width:calc(100vw - 28px);padding:18px;color:#142d30;background:#f5f2e8;border:2px solid #526963;border-radius:12px}
+#fubarStack::backdrop{background:#0b171b99}
+#fubarStack h2{font-size:18px;margin:18px 0 12px}
+.fubar-stack-options{display:grid;gap:10px}
+.fubar-stack-options button{display:flex;align-items:center;gap:12px;text-align:left;min-height:72px;width:100%;padding:10px;color:#142d30;background:#fffdf6;border:1px solid #758b84;border-radius:8px}
+.fubar-stack-options button>span{display:grid;gap:5px}.fubar-stack-options strong{font-size:17px}.fubar-stack-options small{font-size:13px;color:#304d51}
+.fubar-stack-options .dad-unit-portrait,.fubar-stack-options .unit-portrait{width:56px;height:56px;flex:0 0 56px}
+#fubarLayerMove{background:#d6ead7;border-color:#487a56;font-weight:750}
+@media(pointer:coarse){#fubarLayers button{min-height:44px;min-width:58px}}

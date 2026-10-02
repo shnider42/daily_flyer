@@ -58,6 +58,9 @@ def omaha_roster():
 
 
 def setup(board):
+    if board['campaign']=='fubar':
+        from .fubar import roster
+        return roster()
     if board['campaign']=='iron_lantern':
         from .iron_lantern import roster
         return roster()

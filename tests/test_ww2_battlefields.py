@@ -23,7 +23,9 @@ class BattlefieldsTests(unittest.TestCase):
             state = initial(key,'dsl' if SCENARIOS[key].get('dsl_only') else 'classic')
             board = state['battlefield']
             if state.get('air_version'):continue  # Air missions target stations, not ground capture.
+            from ww2_tactics import domains
             for unit in state['units']:
+                if domains.joint(state) and unit['kind'] in domains.AIR_UNITS:continue  # Fixed stations / air layer tested in Fubar suite.
                 if unit['kind']=='landing_craft' or unit.get('carrier_id') or unit.get('reserve'):continue  # Landing/unload paths tested separately.
                 seen = {tuple(unit['pos'])}
                 queue = deque(seen)
@@ -32,12 +34,14 @@ class BattlefieldsTests(unittest.TestCase):
                     for y in range(max(0,pos[1]-1),min(board['height'],pos[1]+2)):
                         for x in range(max(0,pos[0]-1),min(board['width'],pos[0]+2)):
                             dest = (x, y)
-                            passable=terrain(x,y,state) in {'water','objective'} if state.get('naval_version') else terrain(x,y,state)!='water'
+                            ship=state.get('naval_version') or domains.joint(state) and unit['kind'] in domains.SHIPS
+                            passable=terrain(x,y,state) in {'water','objective'} if ship else terrain(x,y,state)!='water'
                             if unit['kind']=='amphibious':passable=True  # Their own craft traverses sea approaches.
                             if dest not in seen and passable and distance(pos, dest) == 1:
                                 seen.add(dest)
                                 queue.append(dest)
-                self.assertIn(tuple(board['objective']), seen, (key, unit['id']))
+                goal=next(p['pos'] for p in board['joint_objectives'] if p['domain']=='sea') if domains.joint(state) and unit['kind'] in domains.SHIPS else board['objective']
+                self.assertIn(tuple(goal), seen, (key, unit['id']))
 
     def test_river_is_impassable_and_bridge_is_walkable(self):
         state = initial('stonebridge')
@@ -64,7 +68,7 @@ class BattlefieldsTests(unittest.TestCase):
 
     def test_scenario_objectives_use_their_actual_hex(self):
         for key in SCENARIOS:
-            if SCENARIOS[key].get('naval') or SCENARIOS[key].get('air') or SCENARIOS[key].get('linked_objectives'):continue  # Separate victory rules.
+            if SCENARIOS[key].get('naval') or SCENARIOS[key].get('air') or SCENARIOS[key].get('linked_objectives') or SCENARIOS[key].get('joint_ops'):continue  # Separate victory rules.
             state = initial(key,'dsl' if SCENARIOS[key].get('dsl_only') else 'classic')
             state['ready'] = True
             state['units'][0]['pos'] = list(state['battlefield']['objective'])

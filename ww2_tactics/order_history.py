@@ -84,7 +84,7 @@ def perform(state, side, action):
     # undo cannot hide a unit that the other browser has already discovered.
     reveals = fog(state) and any(visible_ids(result, team) - visible_ids(state, team)
                                 for team in ('us', 'de'))
-    if state.get('air_version') and not reveals:
+    if (state.get('air_version') or state.get('joint_ops_version')) and not reveals:
         # Flight legs may reveal a contact briefly, then leave sight before the
         # destination. Remembered information must not be erased by takebacks.
         reveals = any(contact.get('pos') != state.get('intel',{}).get(team,{}).get(uid,{}).get('pos')

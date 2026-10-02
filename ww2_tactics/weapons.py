@@ -228,7 +228,7 @@ def action(state, unit, order, legal, roll):
         unit.update(overwatch=False, road_pending=False)
         impacts = []
         if die == 6:
-            primary = next((t for t in state['units'] if active(t) and t['pos'] == pos), None)
+            primary = next((t for t in state['units'] if active(t) and protection(t)!='aircraft' and t['pos'] == pos), None)
             if primary:
                 _, impacts = resolve(state, unit, primary, die, 6)
                 # Even an immune primary does not shield nearby infantry from fragments.
@@ -250,7 +250,7 @@ def resolve_artillery(state, strike, roll):
     attacker = next(u for u in state['units'] if u['id'] == strike['attacker'])
     die = roll(); impacts = []; pos = strike['pos']
     if die >= 4:
-        primary = next((u for u in state['units'] if active(u) and u['pos'] == pos), None)
+        primary = next((u for u in state['units'] if active(u) and protection(u)!='aircraft' and u['pos'] == pos), None)
         if primary:
             _, impacts = resolve(state, attacker, primary, die, 4, 'artillery')
             if not impacts:

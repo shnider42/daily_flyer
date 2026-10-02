@@ -8,7 +8,7 @@ let browser;const errors=[];
  for(let i=0;i<60;i++){try{if((await fetch(base+'/healthz')).ok)break;}catch{}await new Promise(r=>setTimeout(r,100));}
  browser=await chromium.launch({headless:true,executablePath:process.env.CHROMIUM_EXECUTABLE_PATH||'/tmp/qb-preview-chromium',args:['--no-sandbox','--disable-dev-shm-usage']});
  const p=await browser.newPage({viewport:{width:390,height:844},isMobile:true,hasTouch:true});p.on('pageerror',e=>errors.push(e.message));p.on('dialog',d=>d.accept());p.setDefaultTimeout(15000);
- await p.goto(base);await p.waitForFunction(()=>scenarios.length===16);
+ await p.goto(base);await p.waitForFunction(()=>scenarios.length===17);
  await p.evaluate(()=>ww2ViewMode.set('experimental'));
  for(const name of ['apennine','desert_signal','amba_dawn']){
   await p.evaluate(async name=>{remember(await api('/api/match',{scenario:name,ruleset:'dsl',opponent:'computer'}));await refresh();},name);

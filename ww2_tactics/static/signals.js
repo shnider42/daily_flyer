@@ -21,6 +21,7 @@
   if(!v)return s;if(cachedState===s&&cachedGroup===group)return cachedView;
   const ids=new Set(v.enemy_ids),hexes=new Set(v.visible_hexes.map(p=>p.join(',')));
   cachedState=s;cachedGroup=group;cachedView={...s,units:s.units.filter(u=>u.side===s.side||ids.has(u.id)),contacts:v.contacts,visible_hexes:v.visible_hexes,smoke:(s.smoke||[]).filter(c=>hexes.has(c.pos.join(',')))};
+  if(s.joint_ops_version)cachedView.visible_air_hexes=v.visible_air_hexes;
   return cachedView;
  };
  window.signalRole=u=>u.carrier_id?null:u.weapon==='at_rifle'?'Anti-tank rifle · light vehicles and infantry only · cannot penetrate heavy tank armor':u.display_name==='Italian L3 tankette'?'Light tankette · machine guns · infantry support; no anti-tank gun':state?.signals_version?({radioman:'Wireless · 1 AP to relay reports from this platoon · Observe for +2 sight',commando:'Raider · 3 AP · camouflage, grenades and one anti-armor charge',mountain:'Mountain-trained · 1 AP on mountains, ridges and wadis · Observe',partisan:'Patriot fighters · 3 AP · mountain mobility and camouflage; short rifle range',askari:'Colonial infantry · mountain mobility · rifles and grenades',mortar:`Mortar crew · ${u.shells||0} shells · range 2–8 · delayed fire; overwatch uses short-range rifles`,commander:'HQ · 2 AP to share platoon reports; artillery and recon depend on this force'}[u.kind]||null):null;
