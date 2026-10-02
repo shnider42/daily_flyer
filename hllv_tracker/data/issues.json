@@ -1,10 +1,10 @@
 {
-  "generated_at": "2026-10-01",
+  "generated_at": "2026-10-02",
   "latest_change": {
-    "date": "2026-10-01",
-    "label": "Community Feedback #6 · after Hotfix 1.5.2",
-    "url": "https://www.hellletloose.com/blog/community-update-6",
-    "summary": "Post-hotfix monitoring reviewed. Future patch targets remain separate from released fixes."
+    "date": "2026-10-02",
+    "label": "October 2 review · Patch 1.6 timing",
+    "url": "https://steamcommunity.com/gid/103582791475269461/announcements/detail/676259427855107286",
+    "summary": "Patch 1.6 is expected next week, per today's publisher post. Added fresh player reports; no new released fix was verified."
   },
   "method": "Public evidence only. Official acknowledgement, reproduction, a shipped change, and post-fix verification are recorded separately.",
   "issues": [
@@ -906,11 +906,11 @@
       "kind": "support-level report cluster",
       "status_key": "reported",
       "status_label": "Reports escalated",
-      "bottom_line": "Players on several hardware combinations report a short freeze during close combat. Support forwarded the reports; no cause is confirmed.",
+      "bottom_line": "An October 1 player report describes combat freezes continuing. Root cause and a released fix remain unconfirmed.",
       "official_short": "Support acknowledged",
       "fix_short": "None confirmed",
       "cause_short": "Unknown",
-      "last_updated": "2026-08-27",
+      "last_updated": "2026-10-01",
       "scope": [
         "PC",
         "close combat",
@@ -927,7 +927,8 @@
       "unknown": [
         "The trigger—firing, being hit, asset loading, effects, or another event—is not established.",
         "Developer reproduction is not public.",
-        "No reliable workaround or shipped fix is documented."
+        "No reliable workaround or shipped fix is documented.",
+        "The new report does not establish a common cause with earlier stutter reports."
       ],
       "timeline": [
         {
@@ -949,6 +950,11 @@
           "date": "2026-08-27",
           "event": "Additional report",
           "detail": "The thread continues to receive reports from other hardware configurations."
+        },
+        {
+          "date": "2026-10-01",
+          "event": "Player report",
+          "detail": "A player describes freezes of up to three seconds during suppression or close-range kills. Their particle-effect explanation is unverified."
         }
       ],
       "sources": [
@@ -959,6 +965,14 @@
           "title": "Game freezes when getting shot",
           "url": "https://steamcommunity.com/app/3079210/discussions/1/663863457493431808/",
           "claim": "Multi-hardware report cluster forwarded for investigation"
+        },
+        {
+          "type": "player report",
+          "publisher": "Steam community",
+          "date": "2026-10-01",
+          "title": "suppression causes game to freeze",
+          "url": "https://steamcommunity.com/app/3079210/discussions/1/590691034935221629/",
+          "claim": "Player-described symptoms; no confirmed cause."
         }
       ]
     },
@@ -2171,11 +2185,11 @@
       "kind": "officially investigated progression defect",
       "status_key": "investigating",
       "status_label": "Under investigation",
-      "bottom_line": "Tutorial progress and role lockouts remain under investigation. A save-data fix was planned for 1.5, but the reviewed final changelog does not explicitly confirm it.",
+      "bottom_line": "An October 1 player still reports lost tutorial completion. No complete fix is verified.",
       "official_short": "Acknowledged",
       "fix_short": "Release unconfirmed",
       "cause_short": "Unknown",
-      "last_updated": "2026-09-29",
+      "last_updated": "2026-10-01",
       "scope": [
         "Tutorials",
         "role access",
@@ -2192,7 +2206,8 @@
       "unknown": [
         "No complete resolution is confirmed.",
         "The reviewed 1.5 changelog does not explicitly close the planned save-data fix.",
-        "Reproduction conditions remain uncertain."
+        "Reproduction conditions remain uncertain.",
+        "The reporter's explanation involving game shutdown is a hypothesis."
       ],
       "timeline": [
         {
@@ -2219,6 +2234,11 @@
           "date": "2026-09-29",
           "event": "Hotfix 1.5.2",
           "detail": "Separate save-loss evidence reviewed; this tutorial case remains open."
+        },
+        {
+          "date": "2026-10-01",
+          "event": "Player report",
+          "detail": "A player reports losing tutorial completion despite playing a match afterward and exiting normally."
         }
       ],
       "sources": [
@@ -2261,6 +2281,14 @@
           "title": "Hotfix 1.5.2",
           "url": "https://www.hellletloose.com/blog/hllv-hotfix-1-5-2",
           "claim": "PS5 save data; tutorial linkage unconfirmed"
+        },
+        {
+          "type": "player report",
+          "publisher": "Steam community",
+          "date": "2026-10-01",
+          "title": "Impossible to save tutorial progress",
+          "url": "https://steamcommunity.com/app/3079210/discussions/1/590691034935260366/",
+          "claim": "Continued completion-loss report; not reproduced by this tracker."
         }
       ]
     },
@@ -2875,11 +2903,11 @@
       "kind": "spawn and deployment issue family",
       "status_key": "monitoring",
       "status_label": "Fixes released · monitoring",
-      "bottom_line": "1.5.2 replication fixes show encouraging early results; monitoring continues.",
+      "bottom_line": "1.5.2 replication fixes remain under monitoring. An October 2 player reports missing Tunnel destinations; a shared cause is unproven.",
       "official_short": "Acknowledged",
       "fix_short": "Hotfix 1.5.2 + earlier fixes",
       "cause_short": "Replication; not every case",
-      "last_updated": "2026-10-01",
+      "last_updated": "2026-10-02",
       "featured": true,
       "scope": [
         "spawn menu",
@@ -2888,7 +2916,8 @@
         "Commander abilities",
         "HQ spawns",
         "Mortars",
-        "deployable objects"
+        "deployable objects",
+        "Tunnel destinations"
       ],
       "symptom": "Available Garrisons or Outposts can disappear from the deployment screen, preventing players from spawning; Commander abilities may also become unavailable.",
       "official_position": "The replication evidence does not establish that every historical spawn or Commander-ability failure shares one cause.",
@@ -2903,7 +2932,8 @@
       "unknown": [
         "These fixes do not prove Commander ability failures are resolved.",
         "Independent post-update verification is not recorded.",
-        "The extent of the replication fix across older reports remains unverified."
+        "The extent of the replication fix across older reports remains unverified.",
+        "The October 2 Tunnel report does not by itself establish a regression or failure of the 1.5.2 fixes."
       ],
       "timeline": [
         {
@@ -2935,6 +2965,11 @@
           "date": "2026-10-01",
           "event": "Community Feedback #6",
           "detail": "Full resolution is not confirmed."
+        },
+        {
+          "date": "2026-10-02",
+          "event": "Player report",
+          "detail": "A player reports missing Tunnel icons and unavailable Garrison-to-Tunnel destinations, with screenshot links."
         }
       ],
       "sources": [
@@ -2985,6 +3020,14 @@
           "title": "Community Feedback #6",
           "url": "https://www.hellletloose.com/blog/community-update-6",
           "claim": "Spawn and deployable follow-up"
+        },
+        {
+          "type": "player report",
+          "publisher": "Steam community",
+          "date": "2026-10-02",
+          "title": "Tunnel icons not appearing resulting in unable to use tunnels",
+          "url": "https://steamcommunity.com/app/3079210/discussions/1/590691034935303773/",
+          "claim": "Player report; relationship to replication fixes unproven."
         }
       ]
     },
@@ -3497,7 +3540,7 @@
       "official_short": "Developer acknowledged",
       "fix_short": "Patch 1.6 planned",
       "cause_short": "Not public",
-      "last_updated": "2026-10-01",
+      "last_updated": "2026-10-02",
       "scope": [
         "Server Browser"
       ],
@@ -3505,7 +3548,8 @@
       "official_position": "The announced fix has not been verified as released.",
       "workaround": null,
       "known": [
-        "The linked official evidence documents this issue."
+        "The linked official evidence documents this issue.",
+        "October 2 announcement: Patch 1.6 expected the following week."
       ],
       "unknown": [
         "The filter correction does not establish resolution of missing search results (HLLV-059)."
@@ -3520,6 +3564,11 @@
           "date": "2026-10-01",
           "event": "Community Feedback #6",
           "detail": "The future patch target was reaffirmed."
+        },
+        {
+          "date": "2026-10-02",
+          "event": "Patch 1.6 timing announcement",
+          "detail": "The publisher expects 1.6 next week. This is scheduling evidence, not confirmation of this fix shipping."
         }
       ],
       "sources": [
@@ -3538,6 +3587,14 @@
           "title": "Community Feedback #6",
           "url": "https://www.hellletloose.com/blog/community-update-6",
           "claim": "Server Browser filters"
+        },
+        {
+          "type": "official update",
+          "publisher": "Hell Let Loose / Steam",
+          "date": "2026-10-02",
+          "title": "Update 1.5 & Patch 1.6 | Dev Update VLOG | Command Post",
+          "url": "https://steamcommunity.com/gid/103582791475269461/announcements/detail/676259427855107286",
+          "claim": "Patch timing only; issue-specific scope comes from earlier sources."
         }
       ]
     },
@@ -3552,7 +3609,7 @@
       "official_short": "Developer acknowledged",
       "fix_short": "No complete fix confirmed",
       "cause_short": "Search-result limit",
-      "last_updated": "2026-10-01",
+      "last_updated": "2026-10-02",
       "scope": [
         "Server Browser",
         "community servers"
@@ -3562,7 +3619,8 @@
       "workaround": "Use narrower filters and favourite regular servers.",
       "known": [
         "The linked official evidence documents this issue.",
-        "Higher-population ordering is planned for 1.6."
+        "Higher-population ordering is planned for 1.6.",
+        "October 2 announcement: Patch 1.6 expected the following week."
       ],
       "unknown": [
         "Exact affected configurations and independent verification are not recorded."
@@ -3577,6 +3635,11 @@
           "date": "2026-10-01",
           "event": "Community Feedback #6",
           "detail": "Ordering changes remain distinct from search coverage."
+        },
+        {
+          "date": "2026-10-02",
+          "event": "Patch 1.6 timing announcement",
+          "detail": "The publisher expects 1.6 next week. This is scheduling evidence, not confirmation of this fix shipping."
         }
       ],
       "sources": [
@@ -3595,6 +3658,14 @@
           "title": "Community Feedback #6",
           "url": "https://www.hellletloose.com/blog/community-update-6",
           "claim": "Server Browser ordering"
+        },
+        {
+          "type": "official update",
+          "publisher": "Hell Let Loose / Steam",
+          "date": "2026-10-02",
+          "title": "Update 1.5 & Patch 1.6 | Dev Update VLOG | Command Post",
+          "url": "https://steamcommunity.com/gid/103582791475269461/announcements/detail/676259427855107286",
+          "claim": "Patch timing only; issue-specific scope comes from earlier sources."
         }
       ]
     },
@@ -3607,9 +3678,9 @@
       "status_label": "Fix planned · not released",
       "bottom_line": "Frame Generation may need reapplying after restart; a 1.6 candidate awaits QA.",
       "official_short": "Developer acknowledged",
-      "fix_short": "Patch 1.6 target; QA pending",
+      "fix_short": "1.6 target; QA/release unconfirmed",
       "cause_short": "Not public",
-      "last_updated": "2026-09-25",
+      "last_updated": "2026-10-02",
       "scope": [
         "PC",
         "NVIDIA"
@@ -3618,7 +3689,8 @@
       "official_position": "The announced fix has not been verified as released.",
       "workaround": "Reapply the selected Frame Generation setting.",
       "known": [
-        "The linked official evidence documents this issue."
+        "The linked official evidence documents this issue.",
+        "October 2 announcement: Patch 1.6 expected the following week."
       ],
       "unknown": [
         "Exact affected configurations and independent verification are not recorded."
@@ -3628,6 +3700,11 @@
           "date": "2026-09-25",
           "event": "Community Feedback #5",
           "detail": "Publisher documents this issue and its stated status."
+        },
+        {
+          "date": "2026-10-02",
+          "event": "Patch 1.6 timing announcement",
+          "detail": "The publisher expects 1.6 next week. This is scheduling evidence, not confirmation of this fix shipping."
         }
       ],
       "sources": [
@@ -3638,6 +3715,14 @@
           "title": "Community Feedback #5",
           "url": "https://www.hellletloose.com/blog/community-update-5",
           "claim": "Documents the issue and stated status"
+        },
+        {
+          "type": "official update",
+          "publisher": "Hell Let Loose / Steam",
+          "date": "2026-10-02",
+          "title": "Update 1.5 & Patch 1.6 | Dev Update VLOG | Command Post",
+          "url": "https://steamcommunity.com/gid/103582791475269461/announcements/detail/676259427855107286",
+          "claim": "Patch timing only; issue-specific scope comes from earlier sources."
         }
       ]
     },
@@ -3652,7 +3737,7 @@
       "official_short": "Developer acknowledged",
       "fix_short": "Patch 1.7 target",
       "cause_short": "Not public",
-      "last_updated": "2026-10-01",
+      "last_updated": "2026-10-02",
       "scope": [
         "Voice Chat"
       ],
@@ -3663,13 +3748,19 @@
         "The linked official evidence documents this issue."
       ],
       "unknown": [
-        "Release timing is provisional; this is separate from silent muting (HLLV-029)."
+        "Release timing is provisional; this is separate from silent muting (HLLV-029).",
+        "No new developer confirmation of a shipped volume fix was found in the reviewed thread."
       ],
       "timeline": [
         {
           "date": "2026-10-01",
           "event": "Community Feedback #6",
           "detail": "Publisher documents this issue and its stated status."
+        },
+        {
+          "date": "2026-10-02",
+          "event": "Player report",
+          "detail": "October 1–2 replies report that file verification did not resolve the volume problem. Earlier support advice is not a confirmed fix."
         }
       ],
       "sources": [
@@ -3680,6 +3771,14 @@
           "title": "Community Feedback #6",
           "url": "https://www.hellletloose.com/blog/community-update-6",
           "claim": "Documents the issue and stated status"
+        },
+        {
+          "type": "player report",
+          "publisher": "Steam community",
+          "date": "2026-10-02",
+          "title": "VOIP Volume Sliders",
+          "url": "https://steamcommunity.com/app/3079210/discussions/1/562542339336314254/",
+          "claim": "Continuing player complaints; no new developer release confirmation."
         }
       ]
     },
@@ -3736,7 +3835,7 @@
       "official_short": "Developer acknowledged",
       "fix_short": "Patch 1.6 planned",
       "cause_short": "Not public",
-      "last_updated": "2026-10-01",
+      "last_updated": "2026-10-02",
       "scope": [
         "Vote Kick"
       ],
@@ -3744,7 +3843,8 @@
       "official_position": "The announced fix has not been verified as released.",
       "workaround": null,
       "known": [
-        "The linked official evidence documents this issue."
+        "The linked official evidence documents this issue.",
+        "October 2 announcement: Patch 1.6 expected the following week."
       ],
       "unknown": [
         "The announcement inconsistently describes the old timeout; only its new target is recorded."
@@ -3754,6 +3854,11 @@
           "date": "2026-10-01",
           "event": "Community Feedback #6",
           "detail": "Publisher documents this issue and its stated status."
+        },
+        {
+          "date": "2026-10-02",
+          "event": "Patch 1.6 timing announcement",
+          "detail": "The publisher expects 1.6 next week. This is scheduling evidence, not confirmation of this fix shipping."
         }
       ],
       "sources": [
@@ -3764,6 +3869,14 @@
           "title": "Community Feedback #6",
           "url": "https://www.hellletloose.com/blog/community-update-6",
           "claim": "Documents the issue and stated status"
+        },
+        {
+          "type": "official update",
+          "publisher": "Hell Let Loose / Steam",
+          "date": "2026-10-02",
+          "title": "Update 1.5 & Patch 1.6 | Dev Update VLOG | Command Post",
+          "url": "https://steamcommunity.com/gid/103582791475269461/announcements/detail/676259427855107286",
+          "claim": "Patch timing only; issue-specific scope comes from earlier sources."
         }
       ]
     },
@@ -3808,6 +3921,94 @@
           "claim": "Documents the issue and stated status"
         }
       ]
+    },
+    {
+      "id": "HLLV-065",
+      "title": "Vehicle engine interaction can get stuck",
+      "category": "vehicles",
+      "kind": "player-reported issue",
+      "status_key": "reported",
+      "status_label": "Player report · unverified",
+      "bottom_line": "A player reports engine interactions stalling after an interrupted attempt; no fix is confirmed.",
+      "official_short": "No reply in reviewed thread",
+      "fix_short": "None confirmed",
+      "cause_short": "Unknown",
+      "last_updated": "2026-10-02",
+      "scope": [
+        "boats",
+        "tanks",
+        "vehicle engines"
+      ],
+      "symptom": "Starting or stopping an engine reportedly fails after cancelling an interaction beyond its halfway point.",
+      "official_position": "No developer acknowledgement or reproduction was found in the reviewed thread.",
+      "workaround": "The reporter suggests having another player interact; effectiveness is unverified.",
+      "known": [
+        "A dated public report describes this symptom."
+      ],
+      "unknown": [
+        "Reproduction, affected builds and platforms are unverified.",
+        "This is separate from engines left running and blocking spawns (HLLV-062)."
+      ],
+      "timeline": [
+        {
+          "date": "2026-10-02",
+          "event": "Player report",
+          "detail": "A player describes an interruption sequence and links a recording."
+        }
+      ],
+      "sources": [
+        {
+          "type": "player report",
+          "publisher": "Steam community",
+          "date": "2026-10-02",
+          "title": "boat engine interaction stuttering",
+          "url": "https://steamcommunity.com/app/3079210/discussions/1/590691034935315590/",
+          "claim": "Player-supplied sequence and suggested workaround; not independently reproduced."
+        }
+      ]
+    },
+    {
+      "id": "HLLV-066",
+      "title": "Spawns inside inaccessible structures",
+      "category": "gameplay",
+      "kind": "player-reported issue",
+      "status_key": "reported",
+      "status_label": "Player report · unverified",
+      "bottom_line": "A player reports becoming trapped after spawning inside closed structures; no fix is confirmed.",
+      "official_short": "No reply in reviewed thread",
+      "fix_short": "None confirmed",
+      "cause_short": "Unknown",
+      "last_updated": "2026-10-02",
+      "scope": [
+        "spawn placement"
+      ],
+      "symptom": "Reported locations include closed buildings, containers, spaces under piers and towers.",
+      "official_position": "No developer acknowledgement or reproduction was found in the reviewed thread.",
+      "workaround": null,
+      "known": [
+        "A dated public report describes this symptom."
+      ],
+      "unknown": [
+        "Affected maps, builds and reproduction conditions remain unverified.",
+        "No shared cause with other spawn failures or the original Hell Let Loose is established."
+      ],
+      "timeline": [
+        {
+          "date": "2026-10-02",
+          "event": "Player report",
+          "detail": "A player posts examples and screenshot links; the tracker has not reproduced them."
+        }
+      ],
+      "sources": [
+        {
+          "type": "player report",
+          "publisher": "Steam community",
+          "date": "2026-10-02",
+          "title": "STILL spawning in locked areas",
+          "url": "https://steamcommunity.com/app/3079210/discussions/1/590691034935311372/",
+          "claim": "Player-described trapped spawns; no confirmed cause."
+        }
+      ]
     }
   ],
   "incidents": [
@@ -3820,5 +4021,5 @@
       "note": "Operational incidents remain separate from game issues until evidence establishes a relationship."
     }
   ],
-  "review_notes": "Reviewed the official September 25 Community Feedback #5, September 29 Hotfix 1.5.2 and October 1 Community Feedback #6 posts, using their full publisher text on Steam. Targets for 1.6, 1.7 and 2.0 are not release confirmations. Old reports retain their evidence dates unless new evidence applies. Similar symptoms do not establish a shared cause; SoulSniper incidents remain separate. No independent gameplay verification was performed. Prior review: Reviewed official releases through the September 22 live announcement. The website dates Hotfix 1.5.1 September 21; Steam announces it live September 22. Update 1.5 notes preceded its September 16 release. Older unresolved reports retain their evidence dates; absence from newer notes is not confirmation of persistence or resolution."
+  "review_notes": "October 2 review: checked the official blog, current Steam announcements and six Steam support threads. Added the publisher's Patch 1.6 timing and dated player reports. A recent forum reply is not a new patch, reproduced defect, confirmed root cause or proof that a previous fix failed. The linked VLOG announcement text was reviewed; the video itself was not used as evidence. Original issue dates and history are retained. Reviewed the official September 25 Community Feedback #5, September 29 Hotfix 1.5.2 and October 1 Community Feedback #6 posts, using their full publisher text on Steam. Targets for 1.6, 1.7 and 2.0 are not release confirmations. Old reports retain their evidence dates unless new evidence applies. Similar symptoms do not establish a shared cause; SoulSniper incidents remain separate. No independent gameplay verification was performed. Prior review: Reviewed official releases through the September 22 live announcement. The website dates Hotfix 1.5.1 September 21; Steam announces it live September 22. Update 1.5 notes preceded its September 16 release. Older unresolved reports retain their evidence dates; absence from newer notes is not confirmation of persistence or resolution."
 }
