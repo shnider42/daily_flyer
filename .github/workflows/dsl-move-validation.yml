@@ -1,0 +1,36 @@
+name: DSL move-pipeline validation
+on:
+  push:
+    branches: [agent/dsl-move-pipeline-20261002]
+permissions:
+  contents: read
+concurrency:
+  group: dsl-move-pipeline-validation
+  cancel-in-progress: true
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - name: Install DSL dependencies
+        run: python -m pip install -r requirements-ww2.txt
+      - name: DSL Python regression suite
+        run: python -m unittest discover -s tests -p 'test_ww2*.py'
+      - name: Package source for isolated local profiling
+        if: always()
+        run: |
+          mkdir -p /tmp/dsl-validation/wheels
+          git archive --format=tar HEAD ww2_web.py ww2_tactics tests requirements-ww2.txt | gzip > /tmp/dsl-validation/source.tar.gz
+          python -m pip download -r requirements-ww2.txt --dest /tmp/dsl-validation/wheels
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: dsl-validation-source
+          path: /tmp/dsl-validation
+          retention-days: 3
