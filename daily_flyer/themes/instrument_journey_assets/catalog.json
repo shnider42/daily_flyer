@@ -1,0 +1,1092 @@
+{
+  "version": 1,
+  "checked": "2026-10-02",
+  "sources": {
+    "fender_service": {
+      "title": "Fender service drawings & parts lists",
+      "url": "https://support.fender.com/hc/en-us/articles/43339315080859-Fender-Guitar-Service-Manuals",
+      "kind": "Factory",
+      "scope": "For the Mexican Player SSS, select “Fender Player Stratocaster 014450 Service Manual”. This is an index; its PDF was not fetched here.",
+      "checked": "2026-10-02",
+      "status": "Page retrieved"
+    },
+    "fender_setup": {
+      "title": "Fender: Stratocaster setup guide",
+      "url": "https://support.fender.com/hc/en-us/articles/42584764005019-How-do-I-set-up-my-Stratocaster-guitar-properly",
+      "kind": "Factory",
+      "scope": "General Strat setup order and measuring methods. Not a prescription for every radius, pickup or modified guitar.",
+      "checked": "2026-10-02",
+      "status": "Page retrieved"
+    },
+    "player_reference": {
+      "title": "Player Stratocaster: model reference",
+      "url": "https://www.chicagomusicexchange.com/products/fender-player-stratocaster-tidepool-411787",
+      "kind": "Inspected reference",
+      "scope": "Original Player SSS, Mexico, 0144502513. Not Player II or HSS. Dealer reference, not an owner inspection.",
+      "checked": "2026-10-02",
+      "status": "Search-indexed; live retrieval not confirmed"
+    },
+    "american": {
+      "title": "American Professional II SSS • specs & downloads",
+      "url": "https://cz.fender.com/products/american-professional-ii-stratocaster",
+      "kind": "Factory",
+      "scope": "See Downloads for the American Professional II Stratocaster Service Manual. SSS neck-add circuit, not the HSS coil-split circuit.",
+      "checked": "2026-10-02",
+      "status": "Page retrieved"
+    },
+    "gibson": {
+      "title": "Gibson help center",
+      "url": "https://www.gibson.com/pages/gibson-help-center",
+      "kind": "Factory",
+      "scope": "Care, serial-number help and support. Not a surviving original-1959 service manual.",
+      "checked": "2026-10-02",
+      "status": "Search-indexed; live retrieval not confirmed"
+    },
+    "burst_reference": {
+      "title": "An inspected 1959 Burst • #9 0435",
+      "url": "https://themusicemporium.com/products/gibson-les-paul-standard-burst-1959",
+      "kind": "Inspected reference",
+      "scope": "One documented vintage example from The Music Emporium. Its readings, replacement parts and provenance do not describe your guitar.",
+      "checked": "2026-10-02",
+      "status": "Page retrieved"
+    },
+    "throbak": {
+      "title": "ThroBak: 1950s Les Paul wiring",
+      "url": "https://www.throbak.com/50s-wiring-2-conductor.html",
+      "kind": "Specialist",
+      "scope": "Pickup-maker’s two-conductor 1950s-style circuit reference. Not proof of an original harness and not a factory-issued 1959 manual.",
+      "checked": "2026-10-02",
+      "status": "Page retrieved"
+    },
+    "fralin": {
+      "title": "Fralin: pickup wiring library",
+      "url": "https://www.fralinpickups.com/resources/wiring-diagrams/",
+      "kind": "Specialist",
+      "scope": "Compare pickup count, conductor colors and switching before using a drawing. A generic Strat diagram is not an Am Pro II schematic.",
+      "checked": "2026-10-02",
+      "status": "Search-indexed; live retrieval not confirmed"
+    },
+    "godin": {
+      "title": "Godin Multiac Nylon Encore • SKU 035045",
+      "url": "https://godinguitars.com/product/multiac-nylon-encore-natural-sg/",
+      "kind": "Factory",
+      "scope": "Nylon Encore with blendable dual-source electronics. Not Multiac SA / ACS / Grand Concert. Verify electronics revision by serial.",
+      "checked": "2026-10-02",
+      "status": "Page retrieved"
+    },
+    "godin_resources": {
+      "title": "Godin resources & manuals",
+      "url": "https://godinguitars.com/resources/",
+      "kind": "Factory",
+      "scope": "Manufacturer resource hub. An exact Encore wiring/service PDF was not verified; ask Godin with serial and preamp photographs.",
+      "checked": "2026-10-02",
+      "status": "Page retrieved"
+    },
+    "godin_faq": {
+      "title": "Godin instrument support & FAQ",
+      "url": "https://godinguitars.com/frequently-asked-questions/",
+      "kind": "Factory",
+      "scope": "Use the FAQ linked by the product page for string, setup and model-identification questions.",
+      "checked": "2026-10-02",
+      "status": "Page retrieved"
+    },
+    "squier": {
+      "title": "Squier Sonic Stratocaster HT H • Black",
+      "url": "https://www.fender.com/products/squier-sonic-stratocaster-ht-h",
+      "kind": "Factory",
+      "scope": "0373301506 reference: one humbucker, hardtail, volume and tone; no pickup selector. Not the SSS Sonic Strat.",
+      "checked": "2026-10-02",
+      "status": "Page retrieved"
+    },
+    "strat_talk": {
+      "title": "Strat-Talk community",
+      "url": "https://www.strat-talk.com/",
+      "kind": "Community",
+      "scope": "Owner discussion, not factory guidance. Bring exact year/model, bridge and pickup details.",
+      "checked": "2026-10-02",
+      "status": "Live access could not be verified"
+    },
+    "squier_talk": {
+      "title": "Squier-Talk community",
+      "url": "https://www.squier-talk.com/",
+      "kind": "Community",
+      "scope": "Budget setup and parts-fit discussion. Ask for actual measurements, not “all Strat parts fit”.",
+      "checked": "2026-10-02",
+      "status": "Live access could not be verified"
+    },
+    "lespaul_forum": {
+      "title": "Les Paul Forum • technical discussion",
+      "url": "https://www.lespaulforum.com/index.php",
+      "kind": "Community",
+      "scope": "Use Les Paul Tech Area; vintage authentication requires a qualified in-person specialist.",
+      "checked": "2026-10-02",
+      "status": "Page retrieved"
+    },
+    "agf": {
+      "title": "Acoustic Guitar Forum",
+      "url": "https://www.acousticguitarforum.com/",
+      "kind": "Community",
+      "scope": "Amplified-nylon and acoustic discussion. Specify Encore and the electronics revision.",
+      "checked": "2026-10-02",
+      "status": "Automated retrieval blocked (403)"
+    },
+    "player_pdf": {
+      "title": "Player SSS 014450 • factory service PDF",
+      "url": "https://d10ogj20egabj.cloudfront.net/Fender%2BPlayer%2BStratocaster%2B014450XXXX%2BSM%2BREV%2BA%2B11-28-17.pdf",
+      "kind": "Factory",
+      "scope": "Exact document linked by Fender’s service index: revision A, 2017-11-28, 014450XXXX. PDF contents could not be retrieved here; confirm title/revision on opening. Use the index if this CDN link fails.",
+      "checked": "2026-10-02",
+      "status": "Factory-listed PDF; automated fetch blocked (403)"
+    },
+    "reddit_strat": {
+      "title": "r/Stratocaster • owner community",
+      "url": "https://www.reddit.com/r/Stratocaster/",
+      "kind": "Community",
+      "scope": "Peer discussion and owner experience. Do not adopt a setup number or wiring change without verifying the model and diagnosis.",
+      "checked": "2026-10-02",
+      "status": "Page retrieved"
+    },
+    "reddit_luthier": {
+      "title": "r/Luthier • repair & building discussion",
+      "url": "https://www.reddit.com/r/Luthier/",
+      "kind": "Community",
+      "scope": "Discussion of diagnosis, building and repair. Community answers are not factory instructions or an in-person assessment.",
+      "checked": "2026-10-02",
+      "status": "Page retrieved"
+    }
+  },
+  "instruments": [
+    {
+      "id": "player-mexico",
+      "name": "Player Stratocaster",
+      "short": "Mexican Strat",
+      "brand": "Fender",
+      "identity": "Original Player • SSS • 014450 family",
+      "kind": "sss",
+      "finish": "Tidepool / maple",
+      "accent": "#67bfc4",
+      "tagline": "The working Strat. Learn every part.",
+      "story": "A useful place to learn a floating bridge and a three-pickup circuit without confusing “made in Mexico” with one universal specification. This reference is the original Player SSS. Confirm the actual instrument before borrowing a drawing or buying a part.",
+      "specs": [
+        [
+          "Origin",
+          "Mexico"
+        ],
+        [
+          "Scale",
+          "25.5 in"
+        ],
+        [
+          "Pickups",
+          "3 × Player Alnico 5 single coils"
+        ],
+        [
+          "Bridge",
+          "2-point tremolo"
+        ],
+        [
+          "Controls",
+          "5-way • volume • 2 tones"
+        ],
+        [
+          "Reference",
+          "9.5 in radius • 22 frets"
+        ]
+      ],
+      "sources": [
+        "fender_service",
+        "player_pdf",
+        "fender_setup",
+        "player_reference",
+        "fralin",
+        "strat_talk",
+        "reddit_luthier",
+        "reddit_strat"
+      ],
+      "photo": "https://www.chicagomusicexchange.com/cdn/shop/products/fender-electric-guitars-solid-body-fender-player-stratocaster-tidepool-2021-u3483769802-28617449767047.jpg?v=1645669385",
+      "photo_credit": "Chicago Music Exchange • representative 2021 Player, not your instrument",
+      "photo_source": "https://www.chicagomusicexchange.com/products/fender-player-stratocaster-tidepool-2021-1329795",
+      "identity_checks": [
+        "Check rear headstock model/origin and serial; record them without posting a full serial publicly.",
+        "Count three single-coil pickups and two bridge pivots. HSS and older Standard models need different references.",
+        "Photograph existing wiring before any work; a used guitar may no longer have its factory harness."
+      ],
+      "nodes": [
+        {
+          "id": "strings",
+          "title": "Strings & tuning",
+          "part": "head",
+          "what": "Separate string slip, nut binding and bridge movement before blaming the tuners.",
+          "symptoms": [
+            "Goes flat after bends",
+            "A ping while tuning"
+          ],
+          "checks": [
+            "Tune to your usual tuning and note which strings move.",
+            "Check neat wraps and a seated string end without removing hardware.",
+            "Bend, retune and record the result; compare ordinary playing with tremolo use."
+          ],
+          "stop": "A damaged nut, cracked headstock or a stuck adjustment needs a technician; do not file slots as a first diagnostic step.",
+          "sources": [
+            "fender_setup"
+          ],
+          "tools": "Tuner • spare matching strings • soft cloth"
+        },
+        {
+          "id": "neck",
+          "title": "Neck & frets",
+          "part": "neck",
+          "what": "Relief, saddle height and fret condition answer different questions. A truss rod is not a universal buzz control.",
+          "symptoms": [
+            "Buzz in one region",
+            "Notes choke on bends"
+          ],
+          "checks": [
+            "Map the affected strings and frets at normal playing force.",
+            "Measure and record relief before changing anything.",
+            "Compare the measured setup with the applicable Fender guide; inspect for isolated fret problems."
+          ],
+          "stop": "Stop at resistance, a damaged nut or uncertain tool fit. Do not prescribe a quarter-turn without a measurement.",
+          "sources": [
+            "fender_setup"
+          ],
+          "tools": "Tuner • good light • a written baseline"
+        },
+        {
+          "id": "bridge",
+          "title": "Tremolo & saddles",
+          "part": "bridge",
+          "what": "This two-pivot bridge balances string pull against rear springs. A gauge or tuning change can move that balance.",
+          "symptoms": [
+            "Bridge tilts after restringing",
+            "One bend detunes other strings"
+          ],
+          "checks": [
+            "Photograph the resting bridge angle.",
+            "Confirm gauge/tuning matches your previous setup.",
+            "Record whether it is intentionally floating or decked before asking for an adjustment."
+          ],
+          "stop": "Do not turn loaded pivot posts, add random springs or copy six-screw instructions onto this two-point bridge.",
+          "sources": [
+            "player_reference",
+            "fender_setup"
+          ],
+          "tools": "Tuner • good light • a written baseline"
+        },
+        {
+          "id": "electronics",
+          "title": "Pickups & controls",
+          "part": "pickups",
+          "what": "Five selector positions route three passive single coils. The workshop map explains selection; the factory drawing shows the connections.",
+          "symptoms": [
+            "One position is silent",
+            "Unexpected hum or weak output"
+          ],
+          "checks": [
+            "Use a known-good cable into a clean, low-volume amp.",
+            "Compare all five positions with volume and tones up.",
+            "Note whether noise changes when you move away from power supplies; document the actual pickup/harness before rewiring."
+          ],
+          "stop": "Unplug for wiring work. Never bypass amplifier safety grounding or treat a shock as normal pickup noise.",
+          "sources": [
+            "player_pdf",
+            "fender_service",
+            "fralin"
+          ],
+          "tools": "Tuner • good light • a written baseline"
+        },
+        {
+          "id": "output",
+          "title": "Output jack & cable",
+          "part": "jack",
+          "what": "A bad cable and an intermittent jack can look identical until isolated.",
+          "symptoms": [
+            "Crackle when moving cable",
+            "Signal cuts out everywhere"
+          ],
+          "checks": [
+            "Swap only the cable, then repeat the same movement gently.",
+            "Try the guitar directly, bypassing pedals.",
+            "Record whether the plug or the plate appears loose."
+          ],
+          "stop": "Do not spin the jack nut freely: the internal wires may twist. A tech can hold the jack body and inspect the solder joints.",
+          "sources": [
+            "fender_service"
+          ],
+          "tools": "Tuner • good light • a written baseline"
+        },
+        {
+          "id": "fit",
+          "title": "Parts fit & care",
+          "part": "body",
+          "what": "Model-family identification is the first step in any upgrade. Similar-looking pickguards and bridge parts need not match.",
+          "symptoms": [
+            "Planning a pickup swap",
+            "Replacement part almost fits"
+          ],
+          "checks": [
+            "Write the 014450 family and installed modifications in the passport.",
+            "Compare mounting holes, string spacing and pot/knob fit before ordering.",
+            "Keep removed parts and photograph the original arrangement."
+          ],
+          "stop": "No drilling, routing or forced screw fit to make an unverified part work.",
+          "sources": [
+            "fender_service",
+            "player_reference"
+          ],
+          "tools": "Tuner • good light • a written baseline"
+        }
+      ]
+    },
+    {
+      "id": "american-pro-ii",
+      "name": "American Professional II Stratocaster",
+      "short": "American Strat",
+      "brand": "Fender",
+      "identity": "American Professional II • SSS • 011390 family",
+      "kind": "sss-plus",
+      "finish": "3-color sunburst reference",
+      "accent": "#d7a85e",
+      "tagline": "Familiar shape. A different circuit.",
+      "story": "The American profile gets its own electrical map, not a more expensive version of the Mexican page. The SSS American Professional II adds the neck pickup with a push-push tone control. A modified example or an HSS version may behave differently.",
+      "specs": [
+        [
+          "Origin",
+          "USA"
+        ],
+        [
+          "Scale",
+          "25.5 in"
+        ],
+        [
+          "Pickups",
+          "3 × V-Mod II single coils"
+        ],
+        [
+          "Bridge",
+          "2-point tremolo"
+        ],
+        [
+          "Extra voice",
+          "Push-push neck addition"
+        ],
+        [
+          "Reference",
+          "Deep C • 22 frets"
+        ]
+      ],
+      "sources": [
+        "american",
+        "fender_setup",
+        "fender_service",
+        "fralin",
+        "strat_talk",
+        "reddit_luthier",
+        "reddit_strat"
+      ],
+      "photo": "https://cz.fender.com/cdn/shop/files/0113900700_fen_ins_frt_1_rr.png?v=1742168919&width=1445",
+      "photo_credit": "Fender • representative American Professional II SSS",
+      "photo_source": "https://cz.fender.com/products/american-professional-ii-stratocaster",
+      "identity_checks": [
+        "Verify American Professional II, not American Professional I, Ultra or American Vintage.",
+        "Confirm SSS pickups and a push-push second tone control. The HSS version uses a different switching feature.",
+        "Record serial, installed pickups and any replacement harness before using the Downloads drawing."
+      ],
+      "nodes": [
+        {
+          "id": "strings",
+          "title": "Strings & tuning",
+          "part": "head",
+          "what": "Establish whether the problem follows a new string set, a tuning change or tremolo use.",
+          "symptoms": [
+            "Tuning drifts after a string change",
+            "Tremolo does not return"
+          ],
+          "checks": [
+            "Record string gauge and tuning.",
+            "Tune, play a short repeatable phrase and record which strings move.",
+            "Compare the result with the tremolo untouched, then with gentle use."
+          ],
+          "stop": "Do not swap tuners or force the arm to diagnose a nut or balance problem.",
+          "sources": [
+            "fender_setup",
+            "american"
+          ],
+          "tools": "Tuner • good light • a written baseline"
+        },
+        {
+          "id": "neck",
+          "title": "Deep-C neck & setup",
+          "part": "neck",
+          "what": "Comfort and measurements are separate: the named neck shape does not determine the correct relief or action for your playing.",
+          "symptoms": [
+            "Frets rattle",
+            "Bends choke high up"
+          ],
+          "checks": [
+            "Record the troublesome frets and your tuning.",
+            "Measure relief and action separately, using the measurement locations in Fender’s guide.",
+            "Bring the measurements and a recording to a tech before requesting fretwork."
+          ],
+          "stop": "A persistent isolated high fret or an unresponsive truss rod is not solved by repeated tightening.",
+          "sources": [
+            "fender_setup",
+            "american"
+          ],
+          "tools": "Tuner • good light • a written baseline"
+        },
+        {
+          "id": "bridge",
+          "title": "Two-point tremolo",
+          "part": "bridge",
+          "what": "Keep the reference bridge hardware and the current owner’s settings distinct.",
+          "symptoms": [
+            "New strings change bridge angle",
+            "Arm feels loose"
+          ],
+          "checks": [
+            "Check the resting angle and spring arrangement visually.",
+            "Confirm the exact bridge/arm version in the factory service download.",
+            "Record floating/decked preference before changing gauge or setup."
+          ],
+          "stop": "Do not apply older threaded-arm instructions to an unfamiliar arm socket, or adjust loaded pivots blindly.",
+          "sources": [
+            "american",
+            "fender_setup"
+          ],
+          "tools": "Tuner • good light • a written baseline"
+        },
+        {
+          "id": "electronics",
+          "title": "V-Mod II & neck-add switch",
+          "part": "pickups",
+          "what": "The SSS push-push control adds the neck pickup in positions 1 and 2; it is not a humbucker coil split.",
+          "symptoms": [
+            "Extra switch seems inactive",
+            "Unexpected pickup combination"
+          ],
+          "checks": [
+            "With clean low-volume amplification, compare position 1 with the push-push off and on.",
+            "Repeat in position 2; use the interactive map below to follow the selected pickups.",
+            "If operation differs, document your harness and compare the SSS factory service drawing, not a generic Strat diagram."
+          ],
+          "stop": "Switch failure, a replaced pot or soldering work requires the exact drawing and competent bench work.",
+          "sources": [
+            "american",
+            "fralin"
+          ],
+          "tools": "Tuner • good light • a written baseline"
+        },
+        {
+          "id": "output",
+          "title": "Signal chain & output",
+          "part": "jack",
+          "what": "First isolate guitar, cable, pedals and amplifier so a symptom has a location.",
+          "symptoms": [
+            "No output",
+            "Crackle in every selection"
+          ],
+          "checks": [
+            "Use a known-good cable direct to the amp.",
+            "Compare normal and neck-add selections without changing the amp settings.",
+            "Record whether moving the plug alone recreates the fault."
+          ],
+          "stop": "Never open amplifier electronics. Stop using equipment that produces shocks or burning smells.",
+          "sources": [
+            "american"
+          ],
+          "tools": "Tuner • good light • a written baseline"
+        },
+        {
+          "id": "fit",
+          "title": "Compatibility & preservation",
+          "part": "body",
+          "what": "American manufacture is not a guarantee that every US Strat component fits.",
+          "symptoms": [
+            "Ordering a pickguard",
+            "Considering a harness swap"
+          ],
+          "checks": [
+            "Match the service model number and compare screw pattern.",
+            "Keep the push-push feature in the requirements for a replacement harness.",
+            "Save the original parts and annotate any changed function in the journey."
+          ],
+          "stop": "Do not remove a function accidentally or route the body to compensate for a wrong part.",
+          "sources": [
+            "american",
+            "fender_service"
+          ],
+          "tools": "Tuner • good light • a written baseline"
+        }
+      ]
+    },
+    {
+      "id": "les-paul-1959",
+      "name": "1959 Les Paul Standard",
+      "short": "1959 Les Paul",
+      "brand": "Gibson",
+      "identity": "Original-vintage reference • not a modern reissue",
+      "kind": "hh",
+      "finish": "Aged sunburst reference",
+      "accent": "#da8f57",
+      "tagline": "Document first. Preserve what matters.",
+      "story": "An original 1959 instrument calls for a conservation-first workbench. This is not a claim that you own an authenticated Burst. Originality, repairs and individual measurements remain unknown until inspected. The linked #9 0435 is one documented example, not a template for every surviving guitar.",
+      "specs": [
+        [
+          "Reference year",
+          "1959 original"
+        ],
+        [
+          "Pickups",
+          "2 × PAF-type humbuckers"
+        ],
+        [
+          "Controls",
+          "2 volumes • 2 tones • 3-way"
+        ],
+        [
+          "Bridge",
+          "ABR-1 / stopbar reference"
+        ],
+        [
+          "Construction",
+          "Maple cap / mahogany"
+        ],
+        [
+          "Status",
+          "Provenance unconfirmed"
+        ]
+      ],
+      "sources": [
+        "burst_reference",
+        "gibson",
+        "throbak",
+        "fralin",
+        "lespaul_forum",
+        "reddit_luthier"
+      ],
+      "photo": "https://themusicemporium.com/cdn/shop/files/1959_LES_PAUL_STD_WEB-26_fdd235e7-fe68-4b9d-b55f-1c6852e36b69.jpg?v=1708104329&width=1200",
+      "photo_credit": "The Music Emporium • inspected 1959 example #9 0435; not your instrument",
+      "photo_source": "https://themusicemporium.com/products/gibson-les-paul-standard-burst-1959",
+      "identity_checks": [
+        "Record provenance and repair documents; serial alone does not authenticate a vintage guitar.",
+        "Have a vintage specialist distinguish original 1959, Historic reissue and modified instruments.",
+        "Do not assume PAF readings, pot values, harness layout or bridge orientation from one pictured example."
+      ],
+      "nodes": [
+        {
+          "id": "strings",
+          "title": "Strings & headstock",
+          "part": "head",
+          "what": "Observation and a repeatable tuning test come before touching delicate or historic hardware.",
+          "symptoms": [
+            "Tuning ping",
+            "Unstable G string"
+          ],
+          "checks": [
+            "Record the current string set and tuning.",
+            "Photograph the headstock and tuner hardware without removing anything.",
+            "Give the tech a short recording of the tuning behavior and note any known repairs."
+          ],
+          "stop": "Visible cracks, moving tuner hardware or an uncertain repair history mean stop and seek an in-person assessment.",
+          "sources": [
+            "gibson",
+            "burst_reference"
+          ],
+          "tools": "Tuner • good light • a written baseline"
+        },
+        {
+          "id": "neck",
+          "title": "Frets & structural condition",
+          "part": "neck",
+          "what": "Fret wear, past refrets and neck repairs are part of an individual instrument’s history.",
+          "symptoms": [
+            "Dead note or choke",
+            "Visible fret wear"
+          ],
+          "checks": [
+            "Map the exact string and fret that misbehaves.",
+            "Record action and relief without adjusting them.",
+            "Compare with documented prior setup and repair records, not a modern reissue’s specification sheet."
+          ],
+          "stop": "No fret filing, nut cutting, neck removal or blind truss-rod turns on an unassessed vintage guitar.",
+          "sources": [
+            "burst_reference",
+            "gibson"
+          ],
+          "tools": "Tuner • good light • a written baseline"
+        },
+        {
+          "id": "bridge",
+          "title": "ABR-1 & stopbar",
+          "part": "bridge",
+          "what": "Bridge orientation, saddle wear and past replacement parts must be documented before a setup change.",
+          "symptoms": [
+            "Rattle at bridge",
+            "Intonation cannot be reached"
+          ],
+          "checks": [
+            "Record an open note and the gently fretted 12th-fret note after tuning.",
+            "Photograph saddle orientation and stopbar height.",
+            "Ask a vintage specialist to inspect possible wear or replacement hardware."
+          ],
+          "stop": "Do not flip saddles, file slots, bend posts or force a seized screw as a first response.",
+          "sources": [
+            "burst_reference",
+            "gibson"
+          ],
+          "tools": "Tuner • good light • a written baseline"
+        },
+        {
+          "id": "electronics",
+          "title": "PAFs & 1950s topology",
+          "part": "pickups",
+          "what": "The learning map shows two pickup branches and the selector. A 50s-style tone branch attaches at the volume output; that is a circuit concept, not proof of authenticity.",
+          "symptoms": [
+            "Tone changes when rolling volume",
+            "A selector position drops out"
+          ],
+          "checks": [
+            "At low volume, compare neck, both and bridge with both volume knobs up.",
+            "Record each control’s behavior without opening the pickup or disturbing solder.",
+            "Use ThroBak’s two-conductor drawing only as a specialist reference for an inspected harness."
+          ],
+          "stop": "Do not desolder original joints, remove covers or pot pickups to test a theory. A vintage-qualified repairer should assess first.",
+          "sources": [
+            "throbak",
+            "burst_reference"
+          ],
+          "tools": "Tuner • good light • a written baseline"
+        },
+        {
+          "id": "output",
+          "title": "Jack plate & selector",
+          "part": "jack",
+          "what": "Fragile plastic and aged joints deserve support rather than force.",
+          "symptoms": [
+            "Intermittent output",
+            "Cracked plate"
+          ],
+          "checks": [
+            "Substitute a known-good cable with the amp low.",
+            "Observe whether the jack plate moves or has cracks.",
+            "Document the position and symptom; preserve any original parts removed by a professional."
+          ],
+          "stop": "Do not tighten against cracked plastic or twist the jack and its wires.",
+          "sources": [
+            "burst_reference",
+            "gibson"
+          ],
+          "tools": "Tuner • good light • a written baseline"
+        },
+        {
+          "id": "fit",
+          "title": "Finish & provenance",
+          "part": "body",
+          "what": "The journey is an evidence log: dates, condition, repairs, removed parts and who did the work.",
+          "symptoms": [
+            "Finish checking",
+            "Considering restoration"
+          ],
+          "checks": [
+            "Photograph condition under ordinary light before cleaning.",
+            "Use a clean soft dry cloth for a conservative surface wipe; obtain finish-specific advice for anything more.",
+            "Keep appraisal/provenance documents privately; share redacted details in forums."
+          ],
+          "stop": "No solvent experiments, refinishing, drilling or “upgrades” before discussing preservation with a vintage specialist.",
+          "sources": [
+            "gibson",
+            "burst_reference"
+          ],
+          "tools": "Tuner • good light • a written baseline"
+        }
+      ]
+    },
+    {
+      "id": "multiac-encore",
+      "name": "Multiac Nylon Encore",
+      "short": "Electric nylon",
+      "brand": "Godin",
+      "identity": "Natural SG • SKU 035045 • dual-source",
+      "kind": "nylon",
+      "finish": "Natural cedar / semi-gloss",
+      "accent": "#bfa474",
+      "tagline": "Nylon feel. A stage-ready signal path.",
+      "story": "The nylon workbench is deliberately different: string anchoring, a saddle transducer, body sensing, blend and powered electronics. It must not inherit Strat pickup-height instructions or a magnetic-pickup solder diagram. Confirm the electronics revision on your actual Encore.",
+      "specs": [
+        [
+          "Strings",
+          "Nylon only"
+        ],
+        [
+          "Scale",
+          "25.5 in"
+        ],
+        [
+          "Top",
+          "Solid cedar"
+        ],
+        [
+          "Electronics",
+          "Blendable dual source"
+        ],
+        [
+          "Controls",
+          "Volume • EQ • blend"
+        ],
+        [
+          "Reference",
+          "Encore, not SA"
+        ]
+      ],
+      "sources": [
+        "godin",
+        "godin_resources",
+        "godin_faq",
+        "agf",
+        "reddit_luthier"
+      ],
+      "photo": "https://godinguitars.com/wp-content/uploads/2019/01/035045_thumbnail.jpg",
+      "photo_credit": "Godin Guitars • representative Multiac Nylon Encore Natural SG",
+      "photo_source": "https://godinguitars.com/product/multiac-nylon-encore-natural-sg/",
+      "identity_checks": [
+        "Read the model label and distinguish Encore from SA, ACS and Grand Concert.",
+        "Identify the preamp revision with Godin using serial and control-panel photos.",
+        "Confirm the specified nylon string set/tension and the correct battery information before replacing either."
+      ],
+      "nodes": [
+        {
+          "id": "strings",
+          "title": "Nylon strings & tie block",
+          "part": "head",
+          "what": "New nylon strings and a slipping tie end require a different diagnosis from steel-string electric hardware.",
+          "symptoms": [
+            "Strings keep settling",
+            "A tie end slips"
+          ],
+          "checks": [
+            "Record the nylon set and tension category.",
+            "Inspect tie ends and roller windings visually, keeping the cedar top protected.",
+            "Use the maker’s restringing guidance or have a technician demonstrate the anchoring method before your first change."
+          ],
+          "stop": "Never install a steel electric/acoustic set. Stop at a lifting bridge, damaged tie block or top crack.",
+          "sources": [
+            "godin",
+            "godin_faq"
+          ],
+          "tools": "Tuner • good light • a written baseline"
+        },
+        {
+          "id": "neck",
+          "title": "Neck & nylon action",
+          "part": "neck",
+          "what": "Do not apply an electric Strat action target to a nylon instrument without considering its construction and playing style.",
+          "symptoms": [
+            "Buzz after environment change",
+            "Action feels high"
+          ],
+          "checks": [
+            "Record tuning, string type and where buzzing occurs.",
+            "Measure before changing anything and note recent temperature/humidity changes.",
+            "Ask Godin or a nylon-experienced tech for the correct setup baseline for the exact model."
+          ],
+          "stop": "Do not sand the saddle or turn a truss rod based on a measurement meant for another instrument.",
+          "sources": [
+            "godin",
+            "godin_resources"
+          ],
+          "tools": "Tuner • good light • a written baseline"
+        },
+        {
+          "id": "bridge",
+          "title": "Saddle & transducer contact",
+          "part": "bridge",
+          "what": "The undersaddle source makes saddle seating part of the signal system as well as the string support.",
+          "symptoms": [
+            "One string quieter amplified",
+            "Unplugged balance sounds normal"
+          ],
+          "checks": [
+            "Compare each string unplugged, then amplified at the same setting.",
+            "Record which source/blend setting exposes the imbalance.",
+            "Check whether the symptom began after a string or saddle change."
+          ],
+          "stop": "Do not shim, sand or lift the saddle or disturb transducer leads to experiment; request the correct service procedure.",
+          "sources": [
+            "godin",
+            "godin_resources"
+          ],
+          "tools": "Tuner • good light • a written baseline"
+        },
+        {
+          "id": "electronics",
+          "title": "Blend, EQ & preamp",
+          "part": "pickups",
+          "what": "This reference blends an undersaddle source with body sensing. It is not two magnetic pickups or a 13-pin synth map.",
+          "symptoms": [
+            "Thin amplified sound",
+            "Distortion or feedback"
+          ],
+          "checks": [
+            "Start at low system volume with EQ near its neutral positions.",
+            "Compare the two ends of the blend control and record the result.",
+            "Check the specified power source, then compare direct amplification before adding pedals or processing."
+          ],
+          "stop": "No passive-Strat rewiring, phantom-power assumptions or battery substitutions without the correct revision documentation.",
+          "sources": [
+            "godin",
+            "godin_resources"
+          ],
+          "tools": "Tuner • good light • a written baseline"
+        },
+        {
+          "id": "output",
+          "title": "Power & output",
+          "part": "jack",
+          "what": "A weak power source and an intermittent cable can both cause amplified problems.",
+          "symptoms": [
+            "No amplified sound",
+            "Output fades or distorts"
+          ],
+          "checks": [
+            "Test with a known-good cable and receiving input.",
+            "Check the battery type/polarity specified on your actual instrument or its manual.",
+            "Record whether a correct fresh battery resolves the symptom; ask Godin for the correct schematic if it does not."
+          ],
+          "stop": "Do not short contacts, probe a live preamp casually or substitute an unverified power adapter.",
+          "sources": [
+            "godin_resources",
+            "godin"
+          ],
+          "tools": "Tuner • good light • a written baseline"
+        },
+        {
+          "id": "fit",
+          "title": "Cedar top & stage care",
+          "part": "body",
+          "what": "Protect the instrument mechanically while tracing feedback and handling issues.",
+          "symptoms": [
+            "Feedback at stage volume",
+            "New mark around bridge"
+          ],
+          "checks": [
+            "Reduce level and change position relative to the speaker before altering the guitar.",
+            "Record the blend/EQ settings and sound-system arrangement.",
+            "Store safely away from sudden heat or moisture changes; log changes rather than guessing a cause."
+          ],
+          "stop": "Top cracks, lifting seams or moving bridge hardware need a qualified repairer.",
+          "sources": [
+            "godin",
+            "godin_resources"
+          ],
+          "tools": "Tuner • good light • a written baseline"
+        }
+      ]
+    },
+    {
+      "id": "sonic-ht-h",
+      "name": "Sonic Stratocaster HT H",
+      "short": "Budget guitar",
+      "brand": "Squier",
+      "identity": "Sonic • hardtail • single humbucker • 0373301506",
+      "kind": "h",
+      "finish": "Black / laurel",
+      "accent": "#9ba7b1",
+      "tagline": "Fewer parts. More confidence.",
+      "story": "A low-cost guitar deserves the same care, not a thinner page. The hardtail and single humbucker make this a clear starting point for learning a signal path and keeping useful setup records. Measure a proposed upgrade before spending more than the problem warrants.",
+      "specs": [
+        [
+          "Tier",
+          "Budget reference • no live price"
+        ],
+        [
+          "Scale",
+          "25.5 in"
+        ],
+        [
+          "Pickup",
+          "1 × ceramic humbucker"
+        ],
+        [
+          "Bridge",
+          "6-saddle hardtail"
+        ],
+        [
+          "Controls",
+          "Volume + tone • no selector"
+        ],
+        [
+          "Reference",
+          "21 frets • 9.5 in radius"
+        ]
+      ],
+      "sources": [
+        "squier",
+        "fender_setup",
+        "fralin",
+        "squier_talk",
+        "reddit_luthier",
+        "reddit_strat"
+      ],
+      "photo": "https://www.fender.com/cdn/shop/files/0373301506_sqr_ins_frt_1_rr.png?v=1741975788&width=1445",
+      "photo_credit": "Fender / Squier • Sonic Stratocaster HT H in Black",
+      "photo_source": "https://www.fender.com/products/squier-sonic-stratocaster-ht-h",
+      "identity_checks": [
+        "Verify HT H on the product/model reference, not the three-single-coil Sonic Strat.",
+        "There should be one bridge humbucker, a fixed bridge and two knobs; no selector is expected.",
+        "Document any replaced pickup and actual pot/switch hardware before using a generic wiring diagram."
+      ],
+      "nodes": [
+        {
+          "id": "strings",
+          "title": "First string change",
+          "part": "head",
+          "what": "A dependable baseline helps separate old strings from setup and hardware problems.",
+          "symptoms": [
+            "Old or corroded strings",
+            "Tuning slips"
+          ],
+          "checks": [
+            "Write down the installed gauge or mark it unknown.",
+            "Use a compatible steel electric set and record the change.",
+            "Tune, play and retune, checking that string ends and wraps are seated."
+          ],
+          "stop": "Do not overtighten tuner screws or switch to a radically different gauge without planning a setup check.",
+          "sources": [
+            "squier",
+            "fender_setup"
+          ],
+          "tools": "Tuner • good light • a written baseline"
+        },
+        {
+          "id": "neck",
+          "title": "Playability before upgrades",
+          "part": "neck",
+          "what": "A useful setup diagnosis starts with the actual frets and strings, not the price on the headstock.",
+          "symptoms": [
+            "Sharp-feeling fret ends",
+            "Buzz or difficult action"
+          ],
+          "checks": [
+            "Note affected strings/frets and photograph visible problems.",
+            "Record relief and action without assuming the factory shipping setup is still present.",
+            "Ask for a setup/fret assessment before buying pickups to fix a mechanical issue."
+          ],
+          "stop": "Sharp fret ends, nut filing and fret leveling are technician tasks for a first-time owner.",
+          "sources": [
+            "squier",
+            "fender_setup"
+          ],
+          "tools": "Tuner • good light • a written baseline"
+        },
+        {
+          "id": "bridge",
+          "title": "Hardtail & intonation",
+          "part": "bridge",
+          "what": "A fixed bridge removes tremolo-spring balancing from this model’s checklist.",
+          "symptoms": [
+            "Chords sound out of tune up-neck",
+            "Saddle rattle"
+          ],
+          "checks": [
+            "Tune the open string, then compare a gently fretted 12th-fret note.",
+            "Write sharp/flat per string before considering saddle movement.",
+            "Check correct tool fit against the exact factory specification; change only a measured adjustment and retune."
+          ],
+          "stop": "Do not strip a small saddle screw, force a seized part or search for a nonexistent tremolo cavity.",
+          "sources": [
+            "squier",
+            "fender_setup"
+          ],
+          "tools": "Tuner • good light • a written baseline"
+        },
+        {
+          "id": "electronics",
+          "title": "One humbucker, two controls",
+          "part": "pickups",
+          "what": "There is no pickup-selector fault to diagnose on a stock HT H. Trace pickup to volume/tone to jack.",
+          "symptoms": [
+            "No sound",
+            "Tone knob seems ineffective"
+          ],
+          "checks": [
+            "Use a clean amp, known-good cable and both controls up.",
+            "Compare volume and tone separately while playing the same phrase.",
+            "Record modifications; a generic one-humbucker drawing is a reference, not verified factory lug placement."
+          ],
+          "stop": "Disconnect before internal work. Do not invent a coil-split option just because the pickup is a humbucker.",
+          "sources": [
+            "squier",
+            "fralin"
+          ],
+          "tools": "Tuner • good light • a written baseline"
+        },
+        {
+          "id": "output",
+          "title": "Cable, jack & loose hardware",
+          "part": "jack",
+          "what": "The least expensive external check comes before a replacement pickup.",
+          "symptoms": [
+            "Intermittent crackle",
+            "All sound disappears"
+          ],
+          "checks": [
+            "Try a known-good cable direct to the amplifier.",
+            "Gently compare plug movement with ordinary playing.",
+            "Inspect whether the jack plate or nut moves; log the result."
+          ],
+          "stop": "Do not turn the complete jack inside the body or bypass electrical safety grounding.",
+          "sources": [
+            "squier"
+          ],
+          "tools": "Tuner • good light • a written baseline"
+        },
+        {
+          "id": "fit",
+          "title": "Upgrade budget & fit",
+          "part": "body",
+          "what": "Keep a parts plan tied to an observed problem, with cost and fit written down first.",
+          "symptoms": [
+            "New bridge almost fits",
+            "Planning several upgrades"
+          ],
+          "checks": [
+            "Record the issue, the proposed part and the expected benefit.",
+            "Measure string spacing, mounting pattern and cavity clearance before ordering.",
+            "Compare the total installed cost with a professional setup and keep the original parts."
+          ],
+          "stop": "No forced screws, drilling or routing based on the assumption that every Strat-shaped part is interchangeable.",
+          "sources": [
+            "squier",
+            "squier_talk"
+          ],
+          "tools": "Tuner • good light • a written baseline"
+        }
+      ]
+    }
+  ],
+  "disclaimer": "Reference profiles, not verified inspections of your instruments. Local notes stay in this browser; exports are your backup. No account sync, live source monitoring or automated repair diagnosis.",
+  "bench_note": "Start unplugged for inspection. For amplified checks, use safe equipment at low volume. Never open an amplifier or defeat its safety grounding. Stop at cracks, a lifting bridge, electrical shocks, uncertain wiring or resistance to adjustment.",
+  "steps": [
+    {
+      "title": "Identify",
+      "text": "Confirm model, modifications and the exact document before touching a screw."
+    },
+    {
+      "title": "Listen",
+      "text": "Reproduce one symptom at a time with a known-good signal chain."
+    },
+    {
+      "title": "Measure",
+      "text": "Write a baseline, tuning and string set. Separate a measurement from a target."
+    },
+    {
+      "title": "Act conservatively",
+      "text": "Make only an appropriate, understood adjustment; ask a technician when the evidence is unclear."
+    },
+    {
+      "title": "Check & record",
+      "text": "Repeat the same test, compare the result and save what actually happened."
+    }
+  ]
+}
