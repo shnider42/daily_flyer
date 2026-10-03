@@ -174,10 +174,10 @@ def controls(state):
 
 def public_fields(state, side):
     if not enabled(state):return {}
-    if state['front_mode']=='armored_control':return dict(front_control=controls(state))
+    if state['front_mode']=='armored_control':return dict(front_control=controls(state), front_score=copy.deepcopy(state['front_score']))
     # Only the total is public mission intelligence. Enemy names and strengths
     # on evacuated manifests are not revealed by the mission score.
-    return dict(evacuated_manifest=copy.deepcopy(state.get('evacuated_manifest',[])) if side=='us' else [])
+    return dict(evacuated_count=state['evacuated_count'], evacuated_manifest=copy.deepcopy(state.get('evacuated_manifest',[])) if side=='us' else [])
 
 
 def options(state, u):

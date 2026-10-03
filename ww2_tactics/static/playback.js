@@ -58,7 +58,7 @@ function drawPlayback(){
  document.getElementById('playbackStep').textContent=`Action ${p.index+1} / ${p.frames.length} · ${p.phase==='before'?'Before':'Result'}`;
  document.getElementById('playbackDescription').textContent=description;
  document.getElementById('round').textContent=`${snapshot.round} / ${state.scenario?.rounds||8}`;
- document.getElementById('objective').textContent=state.air_version?`Stations lost: ${snapshot.raid_destroyed?.length||0} / 2`:`Hold: ${snapshot.hold} / 2`;
+ document.getElementById('objective').textContent=state.front_mode==='armored_control'?`Soviets ${snapshot.front_score?.us||0}/10 · Germans ${snapshot.front_score?.de||0}/10`:state.front_mode==='evacuation'?`Rescued ${snapshot.evacuated_count||0}/6`:state.air_version?`Stations lost: ${snapshot.raid_destroyed?.length||0} / 2`:`Hold: ${snapshot.hold} / 2`;
  document.getElementById('armyCount').textContent=['us','de'].map(side=>`${names[side]} ${snapshot.units.filter(u=>u.side===side&&u.hp>0).length}/${snapshot.units.filter(u=>u.side===side).length}`).join(' · ');
  document.getElementById('pausePlayback').textContent=p.paused?'Resume':'Pause';
  const result=document.getElementById('playbackResult');result.replaceChildren();
@@ -77,16 +77,20 @@ function drawPlayback(){
    if(u.overwatch!==old.overwatch)details.push(u.overwatch?'watching':'overwatch ended');
    if(u.carrier_id!==old.carrier_id)details.push(u.carrier_id?'boarded transport':'left transport');
    if(u.bombs!==old.bombs)details.push(`bomb loads ${old.bombs} → ${u.bombs}`);
+   for(const [key,label] of [['shells','mortar shells'],['supply_packs','supply packs'],['repair_kits','repair kits']])if(u[key]!==old[key])details.push(`${label} ${old[key]||0} → ${u[key]||0}`);
+   if(!!u.observing!==!!old.observing)details.push(u.observing?'observation active: +2 sight':'observation ended');
    if(details.length)changes.push(`${sideLabel(u.side)} ${unitName(u)} · ${loc(u.pos)}: ${details.join(', ')}`);
   }
   if(frame.after.hold!==frame.before.hold)changes.push(`Objective hold: ${frame.before.hold} → ${frame.after.hold} / 2`);
-  if(frame.after.winner)changes.push(`${names[frame.after.winner]} win.`);
+  if(frame.after.evacuated_count!==undefined&&frame.after.evacuated_count!==frame.before.evacuated_count)changes.push(`Rescued units: ${frame.before.evacuated_count||0} → ${frame.after.evacuated_count} / 6`);
+  if(frame.after.front_score&&JSON.stringify(frame.after.front_score)!==JSON.stringify(frame.before.front_score))changes.push(`Flag score: Soviets ${frame.after.front_score.us}/10 · Germans ${frame.after.front_score.de}/10`);
+  if(frame.after.winner)changes.push(`${sideLabel(frame.after.winner)} win.`);
   if(!frame.combat.length)result.append(uiNode('p','mechanics-caption',changes.join(' · ')||'Order complete.'));
   else if(changes.length){const more=uiNode('details');more.append(uiNode('summary','','Unit changes'),uiNode('p','mechanics-caption',changes.join(' · ')));result.append(more);}
  }
  const svg=document.getElementById('map').cloneNode(true);svg.id='playbackMap';svg.hidden=false;svg.removeAttribute('hidden');svg.setAttribute('aria-label',`Turn playback: ${description}`);
  svg.classList.remove('transport-picking','support-picking');
- svg.querySelectorAll('.range-guide,.support-choice,.engineering-choice,.signal-choice,.beacon-mark,.linked-marker').forEach(e=>e.remove());
+ svg.querySelectorAll('.range-guide,.support-choice,.engineering-choice,.signal-choice,.beacon-mark,.linked-marker,.front-objectives').forEach(e=>e.remove());
  svg.querySelectorAll('.unit,.smoke-cloud,.barrage-zone,.incoming-mark,.aim-line,.battle-effect,.fog-layer,.contact-marker,.landing-zone,.transport-choice,.recon-choice,.sea-control,.move-beacon,.island-marker,.flight-trail,.station-mark').forEach(e=>e.remove());
  svg.querySelectorAll('[tabindex]').forEach(e=>{e.removeAttribute('tabindex');e.removeAttribute('role');e.removeAttribute('aria-label');});
  svg.querySelectorAll('.hex').forEach(e=>e.classList.remove('move','threatened','smoke-choice','barrage-choice','combat-choice','combat-search','airdrop-aim','selected'));

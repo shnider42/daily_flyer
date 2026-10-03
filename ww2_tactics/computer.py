@@ -234,8 +234,10 @@ def play_turn(state, roll=None):
     def snapshot(value):
         if fog(value):
             return view(value,'us' if value['ai_side']=='de' else 'de')
-        return copy.deepcopy({key: value.get(key) for key in
+        result=copy.deepcopy({key: value.get(key) for key in
                               ('units', 'smoke', 'barrages', 'round', 'turn', 'hold', 'winner', 'buildings', 'fieldworks', 'objective_control')})
+        result.update(new_fronts.public_fields(value, 'us' if value['ai_side']=='de' else 'de'))
+        return result
     previous_snapshot = snapshot(state)
     def perform(action):
         nonlocal state, previous_snapshot

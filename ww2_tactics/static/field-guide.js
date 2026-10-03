@@ -102,13 +102,13 @@
   syncExperience();
  }
  const terrainLabels={kharkov:'KHARKOV · ARMORED FLAGS',relay_crossing:'RELAY CROSSING · GROUND LAB',dunkirk:'DUNKIRK · RESCUE ROUTES'};
- function paintMission(svg){
-  const id=state.scenario.id,key=state.code+':'+state.battle_number+':'+id+':'+JSON.stringify(state.front_control||[]);
+ function paintMission(svg,snapshot=state){
+  const id=state.scenario.id,key=state.code+':'+state.battle_number+':'+id+':'+JSON.stringify(snapshot.front_control||[]);
   let layer=svg.querySelector('.front-objectives');
   if(!terrainLabels[id]){layer?.remove();return;}
   if(svg._frontKey!==key||!layer){
    layer?.remove();layer=element('g',{class:'front-objectives','aria-hidden':'true'});svg._frontKey=key;
-   const points=state.front_mode==='armored_control'?state.front_control:state.front_mode==='evacuation'?[...state.scenario.embarkation_points.map(pos=>({pos,name:'BOARD'})),...[3,9,15].map(x=>({pos:[x,0],name:'RESCUE EXIT'}))]:[{pos:state.scenario.objective,name:'RELAY'}];
+   const points=state.front_mode==='armored_control'?snapshot.front_control:state.front_mode==='evacuation'?[...state.scenario.embarkation_points.map(pos=>({pos,name:'BOARD'})),...[3,9,15].map(x=>({pos:[x,0],name:'RESCUE EXIT'}))]:[{pos:state.scenario.objective,name:'RELAY'}];
    for(const p of points||[]){const [x,y]=center(...p.pos),g=element('g');g.append(element('circle',{cx:x,cy:y,r:25,class:`front-marker ${p.owner||'neutral'}`}));g.append(element('text',{x,y:y+34,'text-anchor':'middle',class:'front-marker-label'},p.points?`${p.name} +${p.points}`:p.name));layer.append(g);}
    const first=svg.querySelector('.unit');if(first)svg.insertBefore(layer,first);else svg.append(layer);
   }
@@ -134,6 +134,7 @@
   }
  };
  for(const event of ['ww2:render','ww2:layout','ww2:experience'])document.addEventListener(event,placeHelp);
+ document.addEventListener('ww2:playback',()=>{const svg=$('playbackMap');if(svg&&playbackSession)paintMission(svg,playbackSession.frames[playbackSession.index][playbackSession.phase]);});
  document.addEventListener('DOMContentLoaded',syncExperience);
  new MutationObserver(placeHelp).observe($('game'),{attributes:true,attributeFilter:['hidden']});
  syncExperience();

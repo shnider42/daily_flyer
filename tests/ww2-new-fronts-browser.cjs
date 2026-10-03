@@ -3,7 +3,9 @@ const {chromium}=require('playwright'),assert=require('node:assert/strict'),cp=r
 const {tap}=require('./ww2-ui-helpers.cjs');
 const tmp=fs.mkdtempSync('/tmp/ww2-new-fronts-'),db=path.join(tmp,'game.sqlite'),base='http://127.0.0.1:8147';
 const server=cp.spawn('python',['-m','gunicorn','ww2_web:app','--bind','127.0.0.1:8147','--workers','1','--threads','4'],{env:{...process.env,WW2_DB_PATH:db},stdio:'ignore'});
-let browser;const errors=[],badAssets=[];
+let browser;const errors=[],badAssets=[];let stage='startup';
+const step=async(p,label)=>{stage=label;console.log(label,await p.evaluate(()=>({scenario:state?.scenario?.id,code:state?.code,busy,polling,lobbyMode,gameHidden:$('game').hidden,lobbyHidden:$('lobby').hidden,homeDisabled:$('homeBattles').disabled,leaveDisabled:$('leave').disabled})));};
+async function home(p){await p.waitForFunction(()=>!busy&&!polling);await step(p,'before Home');await p.locator('#homeBattles').click();await p.waitForFunction(()=>lobbyMode&&$('game').hidden&&!$('lobby').hidden);await p.locator('#scenarioSelect').waitFor({state:'visible'});await step(p,'after Home');}
 const camera=p=>p.locator('#mapWrap').evaluate(n=>({top:n.getBoundingClientRect().top,height:n.getBoundingClientRect().height,left:n.scrollLeft,scrollTop:n.scrollTop}));
 (async()=>{
  for(let i=0;i<80;i++){try{if((await fetch(base+'/healthz')).ok)break;}catch{}await new Promise(r=>setTimeout(r,100));}
@@ -14,13 +16,16 @@ const camera=p=>p.locator('#mapWrap').evaluate(n=>({top:n.getBoundingClientRect(
   let posts=0;p.on('request',r=>{if(r.method()==='POST')posts++;});
   await p.goto(base);await p.waitForFunction(()=>scenarios.length>=20);
   for(const scenario of ['kharkov','relay_crossing','dunkirk']){
-   if(await p.locator('#game').isVisible())await p.locator('#homeBattles').click();
+   await step(p,`${touch?'phone':'desktop'}: begin ${scenario}`);
+   if(await p.evaluate(()=>!!state&&!lobbyMode))await home(p);
    await p.locator('#scenarioSelect').selectOption(scenario);await p.locator('#createSolo').click();await p.locator('#startSolo').click();
    await p.waitForFunction(id=>state?.scenario.id===id&&!busy&&!polling,scenario);
+   await step(p,`${scenario}: battle started`);
    const radio=await p.evaluate(()=>state.units.find(u=>u.side===state.side&&u.kind==='radioman'));
    await p.evaluate(id=>{chooseUnit(state.units.find(u=>u.id===id));focusMapUnit(state.units.find(u=>u.id===id));},radio.id);
    await p.waitForTimeout(150);
    for(const level of ['simple','moderate','expert']){
+    await step(p,`${scenario}: ${level} help`);
     const snapshot=await p.evaluate(()=>JSON.stringify({units:state.units,legal:state.legal,round:state.round,revision:state.revision})),layout=await p.evaluate(()=>ww2Experience.layout);
     await p.evaluate(level=>ww2Experience.set(level),level);await p.waitForTimeout(60);
     assert.equal(await p.evaluate(()=>ww2Experience.layout),layout);
@@ -42,6 +47,7 @@ const camera=p=>p.locator('#mapWrap').evaluate(n=>({top:n.getBoundingClientRect(
     await p.locator('#experienceControl .experience-compare summary').click();
     await p.locator('#battleViewSettingsClose').click();
    }
+   await step(p,`${scenario}: Observe`);
    const ap=await p.evaluate(id=>state.units.find(u=>u.id===id).ap,radio.id);
    await tap(p,p.locator('#observe'));
    await p.waitForFunction(id=>!busy&&state.units.find(u=>u.id===id).observing,radio.id);
@@ -71,7 +77,7 @@ const camera=p=>p.locator('#mapWrap').evaluate(n=>({top:n.getBoundingClientRect(
    await p.evaluate(()=>{ww2Experience.set('simple');});
    if(touch){const width=await p.evaluate(()=>Math.max(document.documentElement.scrollWidth,document.body.scrollWidth));assert.ok(width<=392,'No page horizontal overflow: '+width);}
    await p.screenshot({path:path.join(tmp,`${touch?'phone':'desktop'}-${scenario}.png`),fullPage:false});
-   const code=await p.evaluate(()=>state.code);await p.locator('#homeBattles').click();await p.locator('#sessionList .saved-session').first().click();
+   const code=await p.evaluate(()=>state.code);await home(p);await p.locator('#sessionList .saved-session').first().click();
    await p.waitForFunction(code=>state?.code===code&&!busy&&!$('game').hidden,code);
    assert.equal(await p.evaluate(()=>state.scenario.id),scenario);
   }
@@ -82,4 +88,4 @@ const camera=p=>p.locator('#mapWrap').evaluate(n=>({top:n.getBoundingClientRect(
  assert.deepEqual(errors,[]);assert.deepEqual(badAssets,[]);
  console.log('Three theaters and shared Experience: real Observe, supply, rescue, mobile help, mission progress, no-inspection POST, unchanged rules, resume and narrow layout passed.',tmp);
  if(process.env.DSL_SCREENSHOTS)fs.cpSync(tmp,process.env.DSL_SCREENSHOTS,{recursive:true});
-})().catch(async e=>{console.error(e);process.exitCode=1;if(process.env.DSL_SCREENSHOTS){fs.mkdirSync(process.env.DSL_SCREENSHOTS,{recursive:true});const pages=browser?.contexts().flatMap(c=>c.pages())||[];for(let i=0;i<pages.length;i++)await pages[i].screenshot({path:path.join(process.env.DSL_SCREENSHOTS,`failure-${i}.png`)}).catch(()=>{});}}).finally(async()=>{await browser?.close();server.kill();});
+})().catch(async e=>{console.error('FAILED STAGE',stage,e);for(const page of browser?.contexts().flatMap(c=>c.pages())||[])await step(page,'failure-state').catch(()=>{});process.exitCode=1;if(process.env.DSL_SCREENSHOTS){fs.mkdirSync(process.env.DSL_SCREENSHOTS,{recursive:true});const pages=browser?.contexts().flatMap(c=>c.pages())||[];for(let i=0;i<pages.length;i++)await pages[i].screenshot({path:path.join(process.env.DSL_SCREENSHOTS,`failure-${i}.png`)}).catch(()=>{});}}).finally(async()=>{await browser?.close();server.kill();});

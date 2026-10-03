@@ -217,6 +217,30 @@ class NewFrontsTests(unittest.TestCase):
         self.assertEqual(max(new_fronts.boat_choices(s,b,options(s,b)),key=lambda p:p[0])[1]['kind'],'evacuate')
 
 
+    def test_computer_replay_records_rescue_counts_without_enemy_manifest(self):
+        for use_fog in (False,True):
+            s,b,uid=self.loaded_boat();s.update(ai_side='us',fog_of_war=use_fog);b['pos']=[3,0]
+            actions=iter([dict(kind='evacuate',unit=b['id']),dict(kind='end')])
+            with patch('ww2_tactics.computer.choose_order',side_effect=lambda *args:next(actions)):
+                s=play_turn(s,roll=lambda:6)
+            frame=s['computer_playback']['frames'][0]
+            self.assertEqual(frame['before']['evacuated_count'],0)
+            self.assertEqual(frame['after']['evacuated_count'],1)
+            self.assertEqual(frame['after']['evacuated_manifest'],[])
+            self.assertNotIn(uid,json.dumps(frame['after']['evacuated_manifest']))
+
+    def test_computer_replay_records_exact_flag_score_and_control(self):
+        for use_fog in (False,True):
+            s=initial('kharkov','dsl');s.update(ready=True,ai_side='de',turn='de',fog_of_war=use_fog)
+            tank=own(s,'tank','de');tank['pos']=[11,10]
+            with patch('ww2_tactics.computer.choose_order',return_value=dict(kind='end')):
+                s=play_turn(s,roll=lambda:6)
+            frame=s['computer_playback']['frames'][0]
+            self.assertEqual(frame['before']['front_score']['de'],0)
+            self.assertEqual(frame['after']['front_score']['de'],2)
+            self.assertEqual(next(p for p in frame['after']['front_control'] if p['id']=='rail')['owner'],'de')
+
+
 class NewFrontAPITests(unittest.TestCase):
     def test_new_saves_restore_and_other_seat_cannot_order(self):
         with tempfile.TemporaryDirectory() as tmp:
