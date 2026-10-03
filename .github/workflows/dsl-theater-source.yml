@@ -1,0 +1,18 @@
+name: DSL theater source
+on:
+  push:
+    branches: [agent/dsl-three-theaters-20261003]
+    paths: [.github/workflows/dsl-theater-source.yml]
+permissions:
+  contents: read
+jobs:
+  source:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - run: git archive HEAD ww2_tactics ww2_web.py tests requirements-ww2.txt docs > /tmp/dsl-current.tar
+      - uses: actions/upload-artifact@v4
+        with:
+          name: dsl-current-source
+          path: /tmp/dsl-current.tar
+          retention-days: 3
