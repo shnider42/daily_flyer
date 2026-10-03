@@ -4,6 +4,13 @@ window.orderHelp=(id,u,legal,simple)=>{
  const strike=legal?.airstrikes?.find(s=>s.id===target),torpedo=legal?.torpedoes?.find(s=>s.id===target);
  const ap=u?.weapon_overrides?.ap||{},he=u?.weapon_overrides?.he||{};
  const descriptions={
+  resupply:['Deliver shells or repair kits',`2 AP + 1 pack / adjacent ally / ${u?.supply_packs||0} packs left`],
+  evacuate:['Rescue the passenger','Top sea edge / 1 boat AP / marked infantry aboard'],
+  radioUpdate:['Share old sightings, not live tracking',`${u?.kind==='radioman'?1:2} AP / dated reports / once per round`],
+  observe:[u?.observing?'Observing: +2 sight active':'Look farther: +2 sight',`${legal?.observation?.sight??'Current'} sight / weapon range ${u?.range??'unchanged'} / 1 AP`],
+  mortarFire:[`Delayed blast · ${u?.shells||0} shells left`,`2 AP + 1 shell / range 2–${u?.mortar_range||8} / once per round`],
+  conceal:['Hide in cover, not invisibility','2 AP / concealment −1 hex / moving or firing ends it'],
+  demolition:['Charge adjacent armor','2 AP + 1 charge / 4+ hit / 2 damage'],
   callAirborne:['Risk a reserve drop anywhere','3 AP / 1 lift per round / natural 1 loses squad'],
   markLZ:['Reduce drop scatter','2 AP / one beacon / aims within 2 hexes'],
   breach:['Open a vehicle route','Adjacent bocage / 2 AP / opens sight'],

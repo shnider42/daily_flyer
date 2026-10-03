@@ -187,6 +187,9 @@ def view(state, side, terrain_visibility=True):
     if domains.joint(state):
         from .fubar import controls
         result.update(joint_score=copy.deepcopy(state['joint_score']),joint_control=controls(state))
+    if state.get('front_version'):
+        from .new_fronts import public_fields
+        result.update(public_fields(state, side))
     if terrain_visibility:
         board=state['battlefield']
         result['visible_hexes']=[[x,y] for y in range(board['height']) for x in range(board['width']) if sees_hex(state,side,[x,y])]
@@ -245,6 +248,9 @@ def public_state(state, side):
             result['scenarioBaseMap']=copy.deepcopy(state['battlefield']['map'])
             result['map']=fieldworks.map_for(state, side)
             result['battlefield']['map']=result['map']
+        if state.get('front_version'):
+            from .new_fronts import public_fields
+            result.update(public_fields(state, side))
         result.pop('fieldworks_intel',None)
         result.pop('platoon_intel',None)
         result.pop('radio_reports',None)

@@ -4,6 +4,23 @@
  const node=(tag,id,text)=>{const n=document.createElement(tag);if(id)n.id=id;if(text)n.textContent=text;return n;};
  function mission(s){
   const attacker=s.factions?.us||'Americans',defender=s.factions?.de||'Germans',rounds=s.scenario.rounds;
+  if(s.front_mode==='armored_control'){
+   const score=s.front_score||{us:0,de:0};
+   return {goal:'Capture three flags with armor or fighting infantry. First to 10 points.',compact:`Win: 10 points · Soviets ${score.us} / Germans ${score.de}`,progress:`Soviets ${score.us}/10 · Germans ${score.de}/10 · Round ${s.round}/${rounds}`,
+    rules:['Occupy Fuel yard for 1, Rail junction for 2, Repair works for 1 point at each own turn end. Tanks and fighting infantry can capture; supply, radio, mortars, fixed guns, reserves and passengers cannot.',
+     `First to 10 wins. At the end of round ${rounds}, higher score wins; Germans win an exact tie. Eliminating every enemy also wins.`,
+     'Flag ownership is public mission information, not a scan of nearby hidden units. Facility names are landmarks: they do not give free repairs, ammunition or fuel.',
+     'Supplies are finite: 3 packs per supply squad; 2 AP and one pack restore up to 2 mortar shells or 1 engineer repair kit to an adjacent ally. Each recipient once per round. No AP, health or firing cooldown is restored.',s.scenario.reinforcement_brief],focus:s.scenario.objective};
+  }
+  if(s.front_mode==='evacuation'){
+   const count=s.evacuated_count||0,ally=s.side==='us';
+   return {goal:ally?`Evacuate 6 of 8 marked infantry units before round ${rounds} ends.`:`Prevent six Allied evacuations through round ${rounds}.`,compact:`Rescued ${count}/6 · deadline R${rounds}`,progress:`${count}/6 rescued · Round ${s.round}/${rounds}`,
+    rules:['Only infantry marked RESCUE counts. French rearguards, the Matilda and supply squad buy time; they do not count toward six.',
+     'Select a boat and Load adjacent marked infantry (1 infantry AP). Sail to any water hex on the top edge. Evacuate costs 1 boat AP, saves one whole unit and empties the boat. Return for another trip.',
+     `Six rescued units wins immediately. If fewer than six can still be rescued, every rescue boat is destroyed, or round ${rounds} ends first, Germany wins. Resign and army elimination still end the battle.`,
+     'Beach lanes and the East mole are embarkation routes. Boats stay on water and carry one unit. There are three boats, with no automatic replacements.',
+     'Evacuation commits earlier undo orders. The rescue count is public, but enemy manifests and individual survivors’ strength remain private.'],focus:[9,3]};
+  }
   if(s.joint_ops_version){
    const score=s.joint_score||{us:0,de:0};
    return {goal:'Reach 10 control points. Ships take the sea lane; infantry take the two land flags.',
@@ -55,11 +72,12 @@
     `${defender} win if the attackers have not won when the defenders end round ${rounds}.`,
     `Either side also wins by eliminating every enemy unit. Resigning awards the battle to the opponent. Fog hides enemy strength, so no hidden unit counts are used in this briefing.`],focus:s.scenario.objective};
  }
+ function displayed(){return playbackSession&&state?.front_mode?{...state,...playbackSession.frames[playbackSession.index][playbackSession.phase]}:state;}
  function phase(s){
+  if(playbackSession)return {id:'replay',title:'WATCHING THE REPLAY',text:'Pause, step through or finish the replay before issuing orders.'};
   if(s.winner)return {id:'finished',title:s.winner===s.side?'VICTORY':'DEFEAT',text:s.resigned_by?`${s.factions?.[s.resigned_by]||names[s.resigned_by]} resigned. This battle has ended.`:'This battle has ended. Open the mission for the result.'};
   if(!s.ready)return {id:'waiting',title:'WAITING FOR A PLAYER',text:'Share the invitation. Orders unlock when your opponent joins.'};
-  if(playbackSession)return {id:'replay',title:'WATCHING THE REPLAY',text:'Pause, step through or finish the replay before issuing orders.'};
-  if(busy)return {id:'sending',title:'RESOLVING ORDERS',text:s.ai_side?'Your order and the computer’s response are being resolved.':'Waiting for the server to confirm the order.'};
+  if(busy)return {id:'sending',title:'RESOLVING ORDERS',text:s.ai_side?'The server is confirming the order. The computer takes its full turn only after End turn.':'Waiting for the server to confirm the order.'};
   if(s.turn!==s.side)return {id:'opponent',title:'OPPONENT’S TURN',text:'You can inspect the battlefield. Your orders unlock when their turn ends.'};
   if(s.order_history?.redo_required)return {id:'redo',title:'YOUR TURN · REDO FIRST',text:'Restore the revealed dice result with Redo before giving a new order.'};
   return {id:'yours',title:'YOUR TURN',text:'Choose a unit, issue orders, then press End turn when ready.'};
@@ -78,17 +96,18 @@
  function open(){if(!state||$('game').hidden)return;fill();for(const d of document.querySelectorAll('dialog[open]'))if(d!==dialog)d.close();if(!dialog.open)dialog.showModal();}
  button.onclick=open;
  function fill(){
-  const m=mission(state);if(state.scenario.doctrine){m.rules=[...m.rules,'Your force: '+state.scenario.doctrine[state.side],state.scenario.historical_note,'Communications: each platoon spots locally. Radio reports allow distant mortar aiming, but never unlock direct fire on an unseen unit.'];}goal.textContent=m.goal;progress.textContent=m.progress;
+  const shown=displayed(),m=mission(shown);if(state.scenario.doctrine){m.rules=[...m.rules,'Your force: '+state.scenario.doctrine[state.side],state.scenario.historical_note,'Communications: each platoon spots locally. Radio reports allow distant mortar aiming, but never unlock direct fire on an unseen unit.'];}goal.textContent=m.goal;progress.textContent=m.progress;
   list.replaceChildren(...m.rules.map(t=>node('li',null,t)));
   flags.hidden=!state.linked_front_version;flags.textContent=(state.scenario.linked_objectives||[]).map(p=>`${p.name}: ${state.objective_control?.[p.id]?sideLabel(state.objective_control[p.id]):'Ungarrisoned'}`).join(' · ');
   sectors.replaceChildren(...(state.scenario.joint_objectives||state.scenario.sectors||[]).map(s=>{const b=node('button',null,s.name);b.type='button';b.onclick=()=>{dialog.close();focusMapUnit({pos:s.pos});};return b;}));
   if(state.joint_ops_version){flags.hidden=false;flags.textContent=(state.joint_control||[]).map(p=>`${p.name}: ${p.contested?'Contested':p.owner?sideLabel(p.owner):'Unoccupied'}`).join(' · ');}
-  result.hidden=!state.winner;result.textContent=state.winner?`${state.factions?.[state.winner]||names[state.winner]} won.${state.resigned_by?' The opponent resigned.':''}`:'';
+  if(shown.front_control){flags.hidden=false;flags.textContent=shown.front_control.map(p=>`${p.name} +${p.points}: ${p.owner?sideLabel(p.owner):'Unoccupied'}`).join(' · ');}
+  result.hidden=!shown.winner;result.textContent=shown.winner?`${state.factions?.[shown.winner]||names[shown.winner]} won.${shown.resigned_by?' The opponent resigned.':''}`:'';
   find.textContent=state.air_version?'Find a sector station':'Find ★ on the map';
  }
  function sync(){
   if(!state||$('game').hidden||lobbyMode){dialog.close();clearTimeout(timer);announcement='';lastPaint='';return;}
-  const m=mission(state),p=phase(state),mobile=$('mobileBattleTop');
+  const shown=displayed(),m=mission(shown),p=phase(state),mobile=$('mobileBattleTop');
   const compact=!!mobile||state.ruleset==='dsl'&&window.ww2Desktop?.active&&window.ww2ViewMode?.mode==='experimental';
   const paintKey=[state.code,state.battle_number,state.side,state.round,state.match_name,p.id,p.title,p.text,m.goal,m.compact,m.progress,compact].join('|');
   // Unit selection cannot change this public briefing. Avoid rebuilding the
@@ -101,7 +120,7 @@
   button.setAttribute('aria-label',`${m.goal} ${m.progress}. Open win conditions.`);
   $('game').dataset.phase=p.id;if(mobile)mobile.dataset.phase=p.id;
   const banner=$('turnBanner');banner.dataset.phase=p.id;banner.replaceChildren(node('strong',null,p.title),node('span',null,p.text));
-  if(mobile){const status=$('mobileBattleStatus'),short={opponent:'THEIR TURN',waiting:'WAITING',replay:'REPLAY',sending:'RESOLVING',redo:'REDO FIRST'};status.replaceChildren(node('strong',null,short[p.id]||p.title),node('span',null,`${sideLabel(state.side)} · Round ${state.round}/${state.scenario.rounds}`));status.removeAttribute('role');status.setAttribute('aria-label',p.title+'. '+p.text);status.title=p.text;}
+  if(mobile){const status=$('mobileBattleStatus'),short={opponent:'THEIR TURN',waiting:'WAITING',replay:'REPLAY',sending:'RESOLVING',redo:'REDO FIRST'};status.replaceChildren(node('strong',null,short[p.id]||p.title),node('span',null,`${sideLabel(state.side)} · Round ${shown.round}/${state.scenario.rounds}`));status.removeAttribute('role');status.setAttribute('aria-label',p.title+'. '+p.text);status.title=p.text;}
   $('end').textContent=p.id==='opponent'?'Opponent’s turn':p.id==='waiting'?'Waiting for player':p.id==='finished'?'Battle finished':p.id==='redo'?'Redo first':'End turn →';
   document.title=`${p.title} · ${state.match_name||state.scenario.name} · DSL`;
   const key=[state.code,state.battle_number,state.round,p.id].join(':');

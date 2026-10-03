@@ -68,7 +68,7 @@ class BattlefieldsTests(unittest.TestCase):
 
     def test_scenario_objectives_use_their_actual_hex(self):
         for key in SCENARIOS:
-            if SCENARIOS[key].get('naval') or SCENARIOS[key].get('air') or SCENARIOS[key].get('linked_objectives') or SCENARIOS[key].get('joint_ops'):continue  # Separate victory rules.
+            if SCENARIOS[key].get('naval') or SCENARIOS[key].get('air') or SCENARIOS[key].get('linked_objectives') or SCENARIOS[key].get('joint_ops') or SCENARIOS[key].get('front_mode'):continue  # Separate victory rules.
             state = initial(key,'dsl' if SCENARIOS[key].get('dsl_only') else 'classic')
             state['ready'] = True
             state['units'][0]['pos'] = list(state['battlefield']['objective'])

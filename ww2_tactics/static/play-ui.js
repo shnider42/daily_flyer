@@ -12,6 +12,8 @@
  const save=()=>{try{localStorage.setItem(key,JSON.stringify(prefs));}catch{}};
  // Distinct silhouettes and plain-language effects supplement color, including on touch screens.
  const actionDesign={
+  resupply:['green','Deliver finite mortar shells or repair kits','M4 6h16v15H4ZM4 6l8-4 8 4M12 2v19M4 12h16'],
+  evacuate:['teal','Rescue one marked infantry passenger','M3 15h18l-4 6H7ZM12 15V3M7 8l5-5 5 5'],
   callAirborne:['teal','Call one finite reserve squad to any hex','M3 10a9 9 0 0 1 18 0H3ZM3 10l9 9 9-9M12 10v9M9 19h6v3H9Z'],
   markLZ:['amber','Reduce nearby drop scatter','M12 2v20M4 20h16M12 3q9 1 9 9M12 7q5 1 5 5'],
   radioUpdate:['teal','Share dated contact reports','M6 20V8h12v12H6ZM10 8V2M9 12h6M9 16h2M15 16h1M15 3q7 2 6 8'],
@@ -72,7 +74,7 @@
    if(state?.air_version||state?.joint_ops_version&&['fighter','bomber','aa_gun'].includes(unit?.kind)){shortNames.overwatch=unit?.kind==='aa_gun'?'AA cover':'Intercept';shortNames.fire=unit?.kind==='bomber'?'Bomb':'Fire';shortNames.rearm='Service';}
    if(state?.joint_ops_version)shortNames.airstrike='Carrier strike';
    const heading=node('span',null,cancel?title:shortNames[id]||title);heading.className='action-name';
-   const description=window.orderHelp?.(id,unit,legal,prefs.simple)||purpose;
+   const description=window.orderHelp?.(id,unit,legal,prefs.experience==='simple')||purpose;
    const effect=node('span',null,cancel?'Return to orders':description);effect.className='action-purpose';copy.append(heading,effect);
    if(b.dataset.orderReason){const reason=node('span',null,b.dataset.orderReason);reason.className='action-reason';copy.append(reason);}
    b.replaceChildren(icon,copy);

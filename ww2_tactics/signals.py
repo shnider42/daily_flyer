@@ -115,6 +115,9 @@ def options(state,u):
     from .operations import cells
     from .fieldworks import CONCEALMENT
     result=dict(radio_update=False,observe=False,conceal=False,mortar_fire=[],demolition=[])
+    if enabled(state) and u['kind'] in {'scout','radioman','mountain','pathfinder'}:
+        from .operations import sight_range
+        result['observation'] = dict(active=bool(u.get('observing')), sight=sight_range(state,u), weapon_range=u['range'])
     if not enabled(state) or not state['ready'] or state['winner'] or not active(u) or u['pinned'] or u['side']!=state['turn']:return result
     if u['kind'] in {'commander','radioman'}:
         result['radio_update']=u['ap']>=radio_cost(state,u) and u.get('radio_round')!=state['round'] and bool(radio_contacts(state,u))

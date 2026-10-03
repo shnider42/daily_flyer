@@ -1,0 +1,32 @@
+/* Readable inspection works by tap, keyboard or mouse; never by hover alone. */
+.experience-control .experience-mark{font-size:13px;line-height:20px;font-weight:800;letter-spacing:.03em;margin:5px 0;padding:7px 10px;border-left:5px solid #446e58;background:#eef1e8;color:#223a2c}
+.experience-mark[data-depth=moderate]{border-left-color:#a07230!important}
+.experience-mark[data-depth=expert]{border-left-color:#645f86!important}
+.experience-compare{grid-column:1/-1;margin-top:8px;padding:0;border:0;background:transparent}
+.experience-compare>summary{min-height:44px;display:flex;align-items:center;font-size:14px;line-height:20px;font-weight:700;cursor:pointer;text-transform:none;letter-spacing:0}
+.experience-compare>summary:before{content:'＋';margin-right:8px}.experience-compare[open]>summary:before{content:'−'}
+.experience-levels{display:grid;grid-template-columns:1fr;gap:8px}
+.experience-levels button{display:block;white-space:normal;text-align:left;padding:12px;background:#fbfaf3;color:#21372a;border:1px solid #a3ac96;border-radius:4px;min-height:72px;width:100%;font-size:14px;line-height:21px;text-transform:none;letter-spacing:0}
+.experience-levels button strong,.experience-levels button span{display:block}
+.experience-levels button[aria-pressed=true]{border:2px solid #355941;background:#e4ecd9}
+#orderGuideOpen{flex:0 0 44px;width:44px;height:44px;min-height:44px;padding:0;font-size:21px;line-height:24px;font-weight:800;border:1px solid #78907b;color:#163b2c;background:#f2eedc;border-radius:8px;margin:0}
+#mobileOrderHead #orderGuideOpen{order:4;align-self:center;flex-shrink:0}
+#orderGuide,#supplyDialog{box-sizing:border-box;width:min(94vw,720px);max-width:calc(100vw - 16px);max-height:85dvh;overflow:auto;padding:18px;background:#faf8ed;color:#21372a;border:2px solid #55735c;border-radius:10px}
+#orderGuide h2,#supplyDialog h2{font-size:22px;line-height:28px;padding-top:8px;margin:8px 0}
+#orderGuide p,#supplyDialog p{font-size:15px;line-height:23px;margin:9px 0;white-space:normal}
+#orderGuideClose,#supplyClose{min-height:44px;font-size:16px;padding:10px 16px}
+#orderGuideDepth{border-left:4px solid #58795c;padding:8px;background:#e9eee1}
+#orderGuideStatus{font-weight:700}.guide-safety{padding:10px;border:1px solid #b99d67;background:#f4ead1}
+.guide-order{padding:12px 0;border-top:1px solid #a5b198}
+.guide-order h3{font-size:17px;line-height:24px;margin:4px 0}
+.guide-ready,.guide-unavailable{font-size:13px!important;font-weight:700}.guide-unavailable{color:#70552c}
+#supplyRecipients{display:grid;gap:10px}#supplyRecipients button{padding:14px;font-size:16px;min-height:48px}
+.front-objectives{pointer-events:none}.front-marker{fill:none;stroke:#806435;stroke-width:3;stroke-dasharray:6 3}.front-marker.us{stroke:#315b40}.front-marker.de{stroke:#984b37}
+.front-marker-label{font-size:9px;font-weight:800;fill:#fdfbe9;paint-order:stroke;stroke:#27342d;stroke-width:2.5px;stroke-linejoin:round}
+.unit-guide-tag{pointer-events:none;font-size:8px;font-weight:800;fill:#fff5b3;paint-order:stroke;stroke:#243629;stroke-width:2px}
+#map .observing-unit>rect{stroke:#65bdcf;stroke-width:3}
+body[data-operation=kharkov] #mapWrap{border-color:#8a6b40}body[data-operation=dunkirk] #mapWrap{border-color:#477e92}
+body[data-operation=relay_crossing] #mapWrap{border-color:#506e42}
+.dad-mode #orderGuide :is(p,button),.dad-mode #supplyDialog :is(p,button){font-size:18px;line-height:27px}
+@media(min-width:1100px){#orderGuideOpen{float:right;margin:0 0 4px 6px}.experience-levels{grid-template-columns:1fr}}
+@media(max-width:359px){#mobileOrderHead{column-gap:3px!important}#orderGuideOpen{flex-basis:44px}}
