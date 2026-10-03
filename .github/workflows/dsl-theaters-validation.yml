@@ -1,0 +1,73 @@
+name: DSL three-theater validation
+on:
+  push:
+    branches: [agent/dsl-three-theaters-20261003]
+    paths: [.github/workflows/dsl-theaters-validation.yml]
+permissions:
+  contents: write
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    env:
+      DSL_SCREENSHOTS: /tmp/dsl-theaters/screenshots
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - name: Apply exact reviewed patch on isolated branch
+        run: |
+          mkdir -p /tmp/dsl-theaters
+          python - <<'PY'
+          import base64, hashlib, zlib
+          from pathlib import Path
+          encoded = ''.join(Path(f'_dsl-review/theaters.part{i}').read_text().strip() for i in range(1, 5))
+          data = zlib.decompress(base64.b64decode(encoded, validate=True))
+          assert hashlib.sha256(data).hexdigest() == '47fa2efd787fb0c8fc8de53662366e6a4b4997bad3dfa2952ebe1b93d8709b0c'
+          Path('/tmp/theaters.patch').write_bytes(data)
+          PY
+          git apply --index /tmp/theaters.patch
+          git diff --cached --check
+          git diff --cached --stat | tee /tmp/dsl-theaters/change-summary.txt
+      - name: Install isolated test dependencies
+        run: |
+          python -m pip install -r requirements-ww2.txt
+          npm install --no-save playwright
+          npx playwright install --with-deps chromium
+          echo "CHROMIUM_EXECUTABLE_PATH=$(node -e 'console.log(require("playwright").chromium.executablePath())')" >> "$GITHUB_ENV"
+      - name: All DSL Python regressions
+        run: python -m unittest discover -s tests -p 'test_ww2*.py' -v 2>&1 | tee /tmp/dsl-theaters/python.log
+      - name: New-map and existing browser regressions
+        run: |
+          failed=0
+          for suite in ww2-new-fronts-browser ww2-fubar-browser ww2-experience-browser ww2-retained-map-browser ww2-map-performance-browser ww2-playback-browser ww2-replay-transport; do
+            if node "tests/$suite.cjs" 2>&1 | tee "/tmp/dsl-theaters/$suite.log"; then
+              echo "$suite PASS"
+            else
+              echo "$suite FAIL"
+              failed=1
+            fi
+          done
+          exit "$failed"
+      - name: Commit tested runtime to isolated branch only
+        run: |
+          git diff --cached --check
+          git diff --cached --name-only > /tmp/dsl-theaters/tested-paths.txt
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'Validate Kharkov, Relay Crossing, Dunkirk and shared mobile field guide [skip ci]'
+          git rev-parse HEAD > /tmp/dsl-theaters/tested-commit.txt
+          git ls-tree -r HEAD > /tmp/dsl-theaters/tested-tree.txt
+          git push origin HEAD:refs/heads/agent/dsl-three-theaters-20261003
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: dsl-theaters-validation
+          path: /tmp/dsl-theaters
+          retention-days: 3
