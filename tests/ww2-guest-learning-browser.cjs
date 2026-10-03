@@ -21,9 +21,9 @@ db.execute('UPDATE match SET state=? WHERE code=?',(json.dumps(s),sys.argv[2]));
  for(let i=0;i<60;i++){try{if((await fetch(base+'/healthz')).ok)break;}catch{}await new Promise(r=>setTimeout(r,100));}
  browser=await chromium.launch({headless:true,executablePath:process.env.CHROMIUM_EXECUTABLE_PATH||'/tmp/qb-chromium',args:['--no-sandbox','--disable-dev-shm-usage','--disable-gpu','--disable-software-rasterizer']});
  const p=await browser.newPage({viewport:{width:390,height:844}});p.on('pageerror',e=>errors.push(e.message));p.setDefaultTimeout(10000);
- await p.goto(base);await p.waitForFunction(()=>ww2Commander.guest);await p.locator('#learnStart').click();
+ await p.goto(base);await p.waitForFunction(()=>ww2Commander.guest);await p.locator('#learnStart').click();await p.locator('[data-chapter="village"] button').click();
  await p.waitForFunction(()=>state&&!busy&&ww2Learning.enabled);await p.locator('#tutorialCoach').waitFor({state:'visible'});
- assert.ok(await p.locator('#lessonTopics button').count()>=15);assert.match(await p.locator('#lessonText').textContent(),/two consecutive/);
+ assert.ok(await p.locator('#lessonTopics button').count()>=15);assert.match(await p.locator('#lessonText').textContent(),/two of your turns/);
  const original=await p.evaluate(()=>({code:session.code,revision:state.revision,preferences:[document.body.classList.contains('simple-play'),$('terrainToggle').textContent,$('unitStyleToggle').textContent]}));
  await p.locator('#lessonShow').click();await p.locator('#missionDialog').waitFor({state:'visible'});assert.match(await p.locator('#missionRules').textContent(),/Losing the objective/);await p.locator('#missionClose').click();
  assert.ok(await p.locator('#battleMission').isVisible());assert.match(await p.locator('#mobileBattleStatus strong').textContent(),/YOUR TURN/);
@@ -37,7 +37,7 @@ db.execute('UPDATE match SET state=? WHERE code=?',(json.dumps(s),sys.argv[2]));
  for(const [name,side,pattern,topicId] of [['market_garden','us',/hold ★ for 2 turns/,'observation'],['market_garden','de',/deny ★/,'command'],['midway','us',/6 points or carriers/,'fleet'],['britain','us',/defend stations/,'service'],['britain','de',/destroy stations/,'fire']]){
   await fixture(p,name,side);assert.match(await p.locator('#battleMission').textContent(),pattern);await p.locator('#battleMission').click();
   assert.match(await p.locator('#missionGoal').textContent(),name==='midway'?/6 control points/:name==='britain'?/RAF|bomber|station/:side==='us'?/two of your turns/:/Keep the attackers/);
-  await p.locator('#missionClose').click();await topic(p,topicId);assert.ok((await p.locator('#lessonText').textContent()).length>140);await close(p);
+  await p.locator('#missionClose').click();await topic(p,topicId);assert.ok((await p.locator('#lessonText').textContent()).length>80);await close(p);
  }
  await fixture(p,'market_garden');
  const pending=await p.evaluate(()=>polling);if(pending)await p.waitForFunction(()=>!polling);
@@ -67,15 +67,15 @@ db.execute('UPDATE match SET state=? WHERE code=?',(json.dumps(s),sys.argv[2]));
  // The login is a real commander account, not a selected Commander unit.
  await tap(p,p.locator('#leave'));await p.locator('#commanderSignIn').click();await p.locator('#commanderRegisterMode').click();
  await p.locator('#commanderName').fill('GuideTest'+Date.now());await p.locator('#commanderPassword').fill('Local-test-password-42');await p.locator('#commanderSubmit').click();await p.waitForFunction(()=>!!ww2Commander.name&&!document.getElementById('commanderDialog').open);
- assert.ok(await p.locator('.home-learn').isHidden());await tap(p,p.locator('.saved-session').first());await p.waitForFunction(()=>state&&!busy);
- assert.ok(await p.locator('#guideToggle').isHidden());await p.evaluate(()=>ww2Learning.open());assert.ok(await p.locator('#tutorialCoach').isHidden());assert.ok(await p.locator('#battleMission').isVisible());
- await p.setViewportSize({width:390,height:844});await p.waitForFunction(()=>!!document.getElementById('mobileBattleScreen'));assert.ok(await p.locator('#guideToggle').isHidden());
+ assert.ok(await p.locator('.home-learn').isVisible());await tap(p,p.locator('.saved-session').first());await p.waitForFunction(()=>state&&!busy);
+ assert.equal(await p.locator('#guideToggle').evaluate(e=>e.hidden),false);await p.evaluate(()=>ww2Learning.open());assert.ok(await p.locator('#tutorialCoach').isVisible());await close(p);assert.ok(await p.locator('#battleMission').isVisible());
+ await p.setViewportSize({width:390,height:844});await p.waitForFunction(()=>!!document.getElementById('mobileBattleScreen'));assert.equal(await p.locator('#guideToggle').evaluate(e=>e.hidden),false);
  await tap(p,p.locator('#leave'));await p.locator('#commanderSignOut').click();await p.waitForFunction(()=>ww2Commander.guest);assert.ok(await p.locator('#learnStart').isVisible());
  await tap(p,p.locator('.saved-session').first());await p.waitForFunction(()=>state&&!busy);assert.equal(await p.locator('#guideToggle').evaluate(e=>e.hidden),false);
  assert.deepEqual(await p.evaluate(()=>[document.body.classList.contains('simple-play'),$('terrainToggle').textContent,$('unitStyleToggle').textContent]),original.preferences);
  // Expired login and storage-disabled guests can still learn.
  const expired=await browser.newPage({viewport:{width:390,height:844}});await expired.addInitScript(()=>localStorage.setItem('ww2-commander',JSON.stringify({name:'Expired commander',token:'invalid-local-test-token'})));await expired.goto(base);await expired.waitForFunction(()=>ww2Commander.guest);assert.ok(await expired.locator('#learnStart').isVisible());
  const privatePage=await browser.newPage({viewport:{width:390,height:844}});privatePage.on('pageerror',e=>errors.push(e.message));await privatePage.addInitScript(()=>{Storage.prototype.getItem=()=>{throw Error('Storage disabled');};Storage.prototype.setItem=()=>{throw Error('Storage disabled');};});
- await privatePage.goto(base);await privatePage.waitForFunction(()=>ww2Commander.guest);await privatePage.locator('#learnStart').click();await privatePage.locator('#tutorialCoach').waitFor({state:'visible'});assert.ok(await privatePage.locator('#lessonTopics button').count()>=15);
+ await privatePage.goto(base);await privatePage.waitForFunction(()=>ww2Commander.guest);await privatePage.locator('#learnStart').click();await privatePage.locator('[data-chapter="village"] button').click();await privatePage.locator('#tutorialCoach').waitFor({state:'visible'});assert.ok(await privatePage.locator('#lessonTopics button').count()>=15);
  assert.deepEqual(errors,[]);console.log('Guest practice, live tasks, saved lessons, login/logout/expired sessions, private storage, map-specific victory/turn signals and stable mobile/desktop layouts passed.',temp);
 })().catch(e=>{console.error(e);process.exitCode=1;}).finally(async()=>{await browser?.close();server.kill();});

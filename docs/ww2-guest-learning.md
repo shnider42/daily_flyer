@@ -1,8 +1,11 @@
 # Guest learning and battle briefing
 
-Learning is optional and available only without a current commander login. A Commander unit on the map has no bearing on this check. `lobby.js` exposes the settled guest state and sends `ww2:commander` when identity changes; the home practice button, in-battle entry points and open guide all respond. A stored login remains excluded while it is being checked. An expired login becomes a guest after the server rejects it.
-
-Guided practice creates a separate solo Village Crossing battle. It never replaces another battle. The guide also works inside every DSL scenario, including Midway and Battle of Britain. Simple view, terrain and unit illustration preferences remain independent.
+The current learning flow is [WWII Journey and Field coach](ww2-journey.md).
+Learning remains optional and is available to both guests and signed-in commanders.
+The previous guest-only gate has been removed. The home entry opens fourteen
+practice chapters; each creates or resumes its own separate solo battle.
+The Field coach also works in every DSL scenario. Experience changes the actual
+instruction depth; layout, terrain and unit illustration preferences remain independent.
 
 ## Lessons
 
@@ -10,7 +13,7 @@ The course covers victory, turns, unit selection, movement, AP and banking, unav
 
 Each lesson has an explanation and a concrete task. Show me closes the guide and highlights the relevant control; it never issues an order. Selection, movement, attacks, rally and ending a turn can record a practiced task using the existing public action history. Reading ahead or skipping a task is allowed. Nothing awards AP, changes dice or alters visibility.
 
-Progress is stored per browser, match code and battle number under `ww2-learning-v2`, for up to 16 battles. Closing the guide preserves progress; Pause guide hides it until reopened. A topic index allows direct review. Storage failures fall back to the current page’s memory. Signing in hides the guide immediately without changing the battle.
+Progress is stored per browser, match code and battle number under `ww2-learning-v2`, for up to 16 battles. Closing the guide preserves progress; Pause guide hides it until reopened. A topic index allows direct review. Storage failures fall back to the current page’s memory. Signing in preserves the coach and never changes the battle.
 
 ## Win and turn signals: everyone
 

@@ -141,7 +141,7 @@
   const settings=sheet('mobileBattleMenu','Battle & reports');
   for(const selector of ['.game-title','.status-line','#turnBanner','.mission','#missionHint','#waiting','#incoming','#signalNotice','#airliftReport','#battleReport','#rematchProposal','#battleOptions','#replayTurn','#supportStatus','.team-legend','.terrain-legend','#combat','#computerReview','.journal','#seriesScore'])move(document.querySelector(selector),settings);
   $('battleOptions').open=true;
-  const guideSheet=sheet('mobileGuide','Learn as you play');move($('tutorialCoach'),guideSheet);
+  const guideSheet=sheet('mobileGuide','Field coach');move($('tutorialCoach'),guideSheet);
   move($('playbackPanel'),screen);
   requestAnimationFrame(()=>{if(dock)focusMobile(state?.units.find(u=>u.id===selected)||state?.units.find(u=>u.side===state.side&&u.hp>0&&!u.reserve&&!u.carrier_id));});
  }
@@ -152,7 +152,7 @@
   if(lastSimple===null){$('battleOptions').open=!!dock||!prefs.simple;lastSimple=prefs.simple;}
   for(const select of document.querySelectorAll('[data-experience-select]'))select.value=prefs.experience;
   $('battleLayout').value=prefs.layout;
-  for(const note of document.querySelectorAll('[data-experience-note]'))note.textContent={simple:'Short explanations. Unit details stay one tap away.',moderate:'Short orders, with attack odds and more status detail.',expert:'Exact modifiers, dice results and combat reports.'}[prefs.experience];
+  for(const note of document.querySelectorAll('[data-experience-note]'))note.textContent={simple:'Basic instructions, one decision at a time. All orders stay available.',moderate:'DSL tactics explained as you go, with attack odds and status detail.',expert:'Exact rules, modifiers and interactions for experienced players.'}[prefs.experience];
   if(!state||$('game').hidden){unmount();return;}
   // Desktop restores its anchors before mobile is allowed to move the same controls.
   if(!matchMedia('(min-width:1100px)').matches&&window.ww2Desktop?.active)return;
@@ -200,7 +200,7 @@
   if(dock){
    const key=`${session.code}:${state.battle_number||1}`;
    const notice=`${key}:${state.winner||''}:${JSON.stringify(state.rematch||null)}:${state.ready}`;
-   if(notice!==noticeKey){noticeKey=notice;if(state.winner||state.rematch||!state.ready&&state.deployment?.phase!=='planning')openSheet('mobileBattleMenu');}
+   if(notice!==noticeKey){noticeKey=notice;if(state.rematch||!state.ready&&state.deployment?.phase!=='planning')openSheet('mobileBattleMenu');}
    if(playbackSession&&!wasPlaying)for(const s of sheets)s.close();
    wasPlaying=!!playbackSession;
   }

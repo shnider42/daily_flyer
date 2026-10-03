@@ -79,7 +79,7 @@ async function refresh(){
  catch(e){$('connection').textContent='○ Reconnecting';if(!state)notify(e.message);}finally{polling=false;}
 }
 async function run(task){if(busy||playbackSession)return;const oldPlayback=playbackKey(state),oldCode=session?.code,oldState=state;busy=true;document.dispatchEvent(new Event('ww2:busy'));document.querySelectorAll('button').forEach(b=>b.disabled=true);try{await task();}catch(e){notify(e.message);}finally{busy=false;document.querySelectorAll('button').forEach(b=>b.disabled=false);if(state)render();if(!state||state===oldState)await refresh();if(session?.code===oldCode&&playbackKey(state)&&oldPlayback!==playbackKey(state))startPlayback();}}
-async function act(body){await run(async()=>{state=await api(`/api/match/${session.code}`,{...body,revision:state.revision});target=null;smokeMode=false;barrageMode=false;});}
+async function act(body){await run(async()=>{state=await api(`/api/match/${session.code}`,{...body,revision:state.revision});target=null;smokeMode=false;barrageMode=false;document.dispatchEvent(new CustomEvent('ww2:order',{detail:{kind:body.kind,code:session.code,battle:state.battle_number||1}}));});}
 function element(tag,attrs={},text){const e=document.createElementNS('http://www.w3.org/2000/svg',tag);Object.entries(attrs).forEach(([k,v])=>e.setAttribute(k,v));if(text!==undefined)e.textContent=text;return e;}
 function center(x,y){return [27+x*52+(y%2)*26,30+y*49];}
 function unitTypeName(u){if(u.display_name)return u.display_name;return state?.naval_version&&u.kind==='amphibious'?'Landing section':kinds[u.kind];}
@@ -310,7 +310,7 @@ function render(){
  $('roster').replaceChildren(...state.units.filter(u=>u.side===state.side&&(platoonFilter==='all'||u.platoon===platoonFilter)).map((u,i)=>{const b=document.createElement('button');b.dataset.platoon=u.platoon||'none';b.className=`roster-unit${u.id===selected?' active':''}`;b.disabled=u.hp<=0||busy;b.textContent=`${u.kind==='leader'?'LT':u.kind==='mg'?'MG':'SQ'} ${u.platoon?u.platoon+u.number:i+1} · ${u.hp<=0?'Lost':u.pinned?'Pinned':u.overwatch?'Watching':u.ap+' AP'}`;b.setAttribute('aria-label',`${unitName(u)}${u.platoon?'':' '+(i+1)}, ${u.hp<=0?'eliminated':u.hp+' strength, '+u.ap+' actions'}`);b.onclick=()=>{smokeMode=false;barrageMode=false;combatMode=null;chooseUnit(u);};return b;}));
  $('nextUnit').disabled=busy||!state.units.some(u=>u.side===state.side&&u.hp>0&&(platoonFilter==='all'||u.platoon===platoonFilter));
  $('battleReport').hidden=!state.winner;
- if(state.winner){$('reportTitle').textContent=state.resigned_by?`${names[state.resigned_by]} resigned. ${names[state.winner]} win.`:`${names[state.winner]} take the field.`;$('reportBody').textContent=['us','de'].map(s=>{const alive=state.units.filter(u=>u.side===s&&u.hp>0);return `${names[s]}: ${alive.length} surviving units, ${alive.reduce((n,u)=>n+u.hp,0)} strength`;}).join(' · ');}
+ if(state.winner){$('reportTitle').textContent=`${state.winner===state.side?'Victory':'Defeat'} · ${sideLabel(state.winner)} win.`;const alive=state.units.filter(u=>u.side===state.side&&u.hp>0);$('reportBody').textContent=`${state.battle_result?.reason||'The battle has ended.'} Your force: ${alive.length} surviving units, ${alive.reduce((n,u)=>n+u.hp,0)} strength.`;}
  $('seriesScore').textContent=`Army victories this session · ${names.us} ${state.victories?.us||0} / ${names.de} ${state.victories?.de||0}`;
  $('resignButton').hidden=!state.ready||!!state.winner;$('resignButton').disabled=busy;
  $('rematchButton').hidden=!state.ready;$('rematchButton').disabled=busy||!!state.rematch;
@@ -365,7 +365,7 @@ $('acceptRematch').onclick=()=>rematchRequest({operation:'accept'});
 $('declineRematch').onclick=()=>rematchRequest({operation:'decline'});
 function openSolo(){ $('soloRuleset').value=$('rulesetSelect').value;const chosen=lobbyMode?$('scenarioSelect').value:(state?.scenario?.id||$('scenarioSelect').value);window.ww2OperationBrowser?.prepare('soloScenario',chosen);$('soloScenario').value=chosen;$('soloReplace').textContent=session?'This starts a separate solo battle. Your current battle stays available under Battles / load code.':'Choose a battlefield and start playing immediately.';$('soloDialog').showModal(); }
 $('createSolo').onclick=openSolo;$('soloButton').onclick=openSolo;$('closeSolo').onclick=()=>$('soloDialog').close();
-$('startSolo').onclick=()=>{const body={opponent:'computer',scenario:$('soloScenario').value,ruleset:$('soloRuleset').value};$('soloDialog').close();run(async()=>{remember(await api('/api/match',body));});};
+$('startSolo').onclick=()=>{const body={opponent:'computer',side:$('soloSide').value,scenario:$('soloScenario').value,ruleset:$('soloRuleset').value};$('soloDialog').close();run(async()=>{remember(await api('/api/match',body));});};
 api('/api/scenarios').then(data=>{scenarios=data.scenarios;scenarioPreview();}).catch(()=>{notify('Map preview unavailable. You can still choose a battlefield and try to create a match.');});
 const invited=new URLSearchParams(location.search).get('join');
 if(invited){$('code').value=invited.toUpperCase();$('entryStatus').textContent=`Invitation to battle ${invited.toUpperCase()}. Press Join below to join or resume your seat. Other battles stay separate.`;$('joinForm').classList.add('invited-battle');}

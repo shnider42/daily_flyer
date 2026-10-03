@@ -1,9 +1,8 @@
-/* Guest-only, optional coaching. Lessons never issue game orders or change rules. */
+/* Optional coaching for guests and signed-in commanders. Lessons never issue game orders or change rules. */
 'use strict';
 (()=>{
  const storage='ww2-learning-v2';let saved={},topicSignature='';
  try{const value=JSON.parse(localStorage.getItem(storage));if(value&&typeof value==='object'&&!Array.isArray(value))for(const [k,g] of Object.entries(value)){if(g&&typeof g.lesson==='string'&&Array.isArray(g.done)&&Array.isArray(g.read)&&Number.isInteger(g.since)&&typeof g.enabled==='boolean')saved[k]=g;}}catch{}
- const guest=()=>window.ww2Commander?.guest===true;
  const key=()=>`${session?.code}:${state?.battle_number||1}`;
  const current=()=>saved[key()];
  const persist=()=>{try{localStorage.setItem(storage,JSON.stringify(saved));}catch{}};
@@ -52,37 +51,43 @@
   add(book,'end','Finish the whole turn deliberately',`Your units can act in any order while they have AP. End turn passes control to the opponent and banks eligible unused AP. ${s.ai_side?'The computer then acts. Its replay can be paused, stepped through or skipped; wait for YOUR TURN before issuing more orders.':'In multiplayer, the opponent’s turn label remains visible until the server confirms it is your turn again.'}`,'When ready, end your turn once. Watch for the turn indicator to return before continuing.','#end',['end']);
   add(book,'save','Keep this battle when you leave',s.ai_side?'The browser keeps a shortcut to this solo battle. In private browsing or on another device, generate a SAVE code from Battle options before leaving. A SAVE code restores a separate solo battle from that saved moment.':'A browser shortcut is tied to this browser. A MOVE code reconnects this live seat from another device. A commander login can link multiplayer seats across browsers; named battles also appear in the lobby. Save your access before closing a private browser.','Open Battle & settings to find your game code, save options and display preferences.','#battleOptions');
   add(book,'finish','Play toward the objective','You now know how to read the turn, mission, map and order buttons. Keep asking: what helps me win this scenario, which unit can do it, and will it have enough AP afterward? Return to any topic whenever you need it.','Continue the battle. Finishing the guide does not end the turn or change any unit.','#mapWrap');
-  return book;
+  return window.ww2LearningContent?ww2LearningContent.adapt(book,s):book;
  }
- const dialog=document.createElement('dialog');dialog.id='learningDialog';dialog.setAttribute('aria-label','Learn as you play');
+ const dialog=document.createElement('dialog');dialog.id='learningDialog';dialog.setAttribute('aria-label','Field coach');
  const close=document.createElement('button');close.id='learningDialogClose';close.textContent='Back to battle';close.onclick=()=>dialog.close();dialog.append(close,$('tutorialCoach'));document.body.append(dialog);
  function clearFocus(){document.querySelectorAll('.lesson-focus').forEach(n=>n.classList.remove('lesson-focus'));}
  function closeGuides(){dialog.close();$('mobileGuide')?.close();clearFocus();}
- function allowed(){return guest()&&state?.ruleset==='dsl'&&!$('game').hidden&&!lobbyMode;}
+ function allowed(){return state?.ruleset==='dsl'&&!$('game').hidden&&!lobbyMode;}
  function start(){
   if(!allowed())return;
-  const old=current();if(!old||!Array.isArray(old.done)||!Array.isArray(old.read))saved[key()]={lesson:'mission',done:[],read:[],since:state.revision,enabled:true};else old.enabled=true;
+  const old=current();if(!old||!Array.isArray(old.done)||!Array.isArray(old.read))saved[key()]={lesson:state.deployment?.phase==='planning'?'preparation':'mission',done:[],read:[],since:state.revision,enabled:true};else old.enabled=true;
   const keys=Object.keys(saved);while(keys.length>16){const oldest=keys.shift();if(oldest!==key())delete saved[oldest];}
   persist();
  }
  function paint(book,g){
   let index=book.findIndex(l=>l.id===g.lesson);if(index<0){index=0;g.lesson=book[0].id;}
   const lesson=book[index];
-  $('lessonCount').textContent=`LEARN AS YOU PLAY · ${index+1} / ${book.length} · ${g.done.length} practiced`;
+  $('lessonCount').textContent=`FIELD COACH · ${ww2Experience.level.toUpperCase()} · ${index+1} / ${book.length} · ${g.done.filter(id=>book.some(l=>l.id===id)).length} practiced`;
+  $('lessonLevelNote').textContent={simple:'One idea at a time. Open the detail below whenever you want more.',moderate:'DSL decisions explained as you go. Exact rules are available below.',expert:'Rule interactions, action costs and tactical constraints.'}[ww2Experience.level];
+  $('lessonContext').textContent=`${state.scenario.name} · ${sideLabel(state.side)} · ${lesson.group||'Field coach'}`;
+  $('lessonMore').hidden=!lesson.detail;$('lessonMoreText').textContent=lesson.detail||'';
   $('lessonTitle').textContent=lesson.title;$('lessonText').textContent=lesson.text;$('lessonTask').textContent='Try this: '+lesson.task;
   $('lessonResult').textContent=g.done.includes(lesson.id)?'✓ You tried this in your battle.':lesson.orders.length&&state.turn!==state.side?'You can read ahead while you wait for your turn.':'Read at your own pace. You can skip a task and return later.';
   $('lessonBack').disabled=index===0;$('lessonNext').textContent=index===book.length-1?'Finish guide':'Next lesson →';
   $('lessonShow').textContent=lesson.selector==='@mission'?'Show win conditions':lesson.selector==='#end'?'Show End turn':lesson.selector==='#orders'?'Show unit orders':'Show me';
-  const signature=[key(),g.lesson,g.done.join(','),g.read.join(','),book.map(l=>l.id).join(',')].join('|');
+  const signature=[key(),ww2Experience.level,g.lesson,g.done.join(','),g.read.join(','),book.map(l=>l.id).join(',')].join('|');
   if(signature!==topicSignature){topicSignature=signature;$('lessonTopics').replaceChildren(...book.map((l,i)=>{
    const b=document.createElement('button');b.type='button';b.dataset.topic=l.id;b.dataset.complete=String(g.done.includes(l.id));b.textContent=`${g.done.includes(l.id)?'✓ ':g.read.includes(l.id)?'· ':''}${i+1}. ${l.title}`;
-   if(g.lesson===l.id)b.setAttribute('aria-current','step');b.onclick=()=>{g.lesson=l.id;clearFocus();persist();paint(lessons(),g);$('lessonContents').open=false;};return b;
-  }));}
+   if(g.lesson===l.id)b.setAttribute('aria-current','step');b.onclick=()=>{g.lesson=l.id;$('lessonMore').open=false;clearFocus();persist();paint(lessons(),g);$('lessonContents').open=false;};return b;
+  }));filterTopics();}
  }
+ function filterTopics(){const q=$('lessonSearch').value.toLowerCase().trim();for(const b of $('lessonTopics').querySelectorAll('button'))b.hidden=!!q&&!b.textContent.toLowerCase().includes(q);}
+ $('lessonSearch').oninput=filterTopics;
  function sync(){
-  const eligible=allowed(),g=current(),active=eligible&&g?.enabled,book=active?lessons():[];
-  document.querySelector('.home-learn').hidden=!guest();$('guideToggle').hidden=!eligible;
-  $('guideToggle').textContent=g?.enabled?'Resume learning guide':'Learn as you play';$('guideToggle').setAttribute('aria-pressed',String(!!active));
+  const eligible=allowed(),g=current(),active=eligible&&g?.enabled;
+  const book=active?lessons():[];
+  document.querySelector('.home-learn').hidden=false;$('guideToggle').hidden=!eligible;
+  $('guideToggle').textContent=g?.enabled?'Resume Field coach':'Field coach';$('guideToggle').setAttribute('aria-pressed',String(!!active));
   $('tutorialCoach').hidden=!active;
   if(!active){closeGuides();return;}
   const l=book.find(l=>l.id===g.lesson);
@@ -104,13 +109,15 @@
   if(!allowed()||!current()?.enabled)return;const g=current(),book=lessons(),i=Math.max(0,book.findIndex(l=>l.id===g.lesson));
   if(!g.read.includes(g.lesson))g.read.push(g.lesson);clearFocus();
   if(i===book.length-1){g.enabled=false;persist();sync();notify('Guide finished. Your battle continues; reopen any topic when you need it.');return;}
-  g.lesson=book[i+1].id;persist();paint(book,g);
+  $('lessonMore').open=false;g.lesson=book[i+1].id;persist();paint(book,g);
  };
  $('lessonBack').onclick=()=>{if(!allowed()||!current()?.enabled)return;const g=current(),book=lessons(),i=book.findIndex(l=>l.id===g.lesson);g.lesson=book[Math.max(0,i-1)].id;persist();paint(book,g);clearFocus();};
  $('lessonExit').onclick=()=>{if(current()){current().enabled=false;persist();}sync();};
  $('lessonShow').onclick=()=>{
   if(!allowed()||!current()?.enabled)return;const g=current(),l=lessons().find(l=>l.id===g.lesson);if(!l)return;closeGuides();
   if(l.selector==='@mission'){if(!g.done.includes(l.id)){g.done.push(l.id);persist();}ww2Briefing.open();return;}
+  if(l.id==='results'&&!state.winner){notify('The result appears when this battle ends. Keep playing toward the mission.');return;}
+  if(l.roles?.length){const u=state.units.find(u=>u.side===state.side&&u.hp>0&&!u.reserve&&!u.carrier_id&&l.roles.includes(u.kind));if(u)chooseUnit(u);}
   let selector=l.selector;if(window.ww2Mobile?.active&&selector==='#turnBanner')selector='#mobileBattleTop';
   const target=document.querySelector(selector);if(!target)return;target.classList.add('lesson-focus');
   const sheet=target.closest('.mobile-battle-sheet');if(sheet)ww2Mobile.openSheet(sheet.id);
@@ -120,12 +127,9 @@
   // Highlighting the map must not scroll it, move a unit, or spend an order.
   if(!window.ww2Mobile?.active&&selector!=='#mapWrap')target.scrollIntoView({block:'nearest',behavior:'auto'});
  };
- $('learnStart').onclick=async()=>{if(!guest())return;await run(async()=>{
-  remember(await api('/api/match',{ruleset:'dsl',opponent:'computer',scenario:'village'}));
-  state=await apiWithSession(session);render();start();
- });open();};
+ document.addEventListener('ww2:order',event=>{const g=current();if(!allowed()||!g?.enabled||event.detail.code!==session.code||event.detail.battle!==(state.battle_number||1))return;const l=lessons().find(l=>l.id===g.lesson);if(l?.orders.includes(event.detail.kind)&&!g.done.includes(l.id)){g.done.push(l.id);persist();}});
  window.ww2Learning={open,lessons,get enabled(){return allowed()&&!!current()?.enabled;}};
- for(const event of ['ww2:render','ww2:selection','ww2:playback','ww2:commander'])document.addEventListener(event,sync);
+ for(const event of ['ww2:render','ww2:selection','ww2:playback','ww2:commander','ww2:experience'])document.addEventListener(event,sync);
  // Reparenting preserves progress without leaving an empty modal over the map.
  document.addEventListener('ww2:before-layout',closeGuides);
  matchMedia('(min-width:1100px)').addEventListener('change',sync);

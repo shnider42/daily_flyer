@@ -63,11 +63,11 @@
    const yours=g.your_side,local=savedSessions.some(s=>s.code===g.code),yourTurn=yours&&g.ready&&!g.winner&&g.phase!=='planning'&&g.turn===yours;
    const row=text('article','',`public-game${yourTurn?' your-turn':''}`);row.dataset.code=g.code;
    const details=document.createElement('div');details.append(text('h3',g.name));
-   details.append(text('p',`${g.host_name||'Original commander'} vs ${g.full?(g.guest_name||'Original commander'):'Open seat'}`));
+   details.append(text('p',`${g.open_side==='us'?'Open seat':g.host_name||'Original commander'} (${g.allies||'Americans'}) vs ${g.open_side==='de'?'Open seat':g.guest_name||'Original commander'} (${g.opponent})`));
    const phase=g.winner?'Finished':g.phase==='planning'?'Pre-battle setup':!g.ready?'Waiting for opponent':yourTurn?'Your turn':yours?'Opponent’s turn':`${g.turn==='us'?g.allies||'Americans':g.opponent} to move`;
    details.append(text('p',`${phase} · Round ${g.round}${yours?` · You: ${yours==='us'?g.allies||'Americans':g.opponent}`:''}`,'game-phase'));
    details.append(text('p',`${g.scenario||'Village Crossing'} · ${(g.ruleset||'classic').toUpperCase()} · ${g.code}`));
-   const button=text('button',yours||local?'Resume game':!g.full?`Join as ${g.opponent}`:player?'Both seats taken':'Sign in to resume');button.type='button';button.disabled=!!(g.full&&player&&!yours&&!local);
+   const button=text('button',yours||local?'Resume game':!g.full?`Join as ${g.open_side==='us'?g.allies||'Americans':g.opponent}`:player?'Both seats taken':'Sign in to resume');button.type='button';button.disabled=!!(g.full&&player&&!yours&&!local);
    button.onclick=async()=>{button.disabled=true;try{if(g.full&&!player&&!local){loginDialog(()=>load());}else await enter(g);}catch(e){notify(e.message);if(e.status===401){player=null;storePlayer();identity();loginDialog(()=>enter(g));}}finally{button.disabled=false;await load();}};
    row.append(details,button);return row;
   }));
@@ -88,7 +88,7 @@
  new MutationObserver(()=>{if(!$('lobby').hidden){lastList='';load();}}).observe($('lobby'),{attributes:true,attributeFilter:['hidden']});
  setInterval(()=>{if(!document.hidden)load();},15000);document.addEventListener('visibilitychange',()=>{if(!document.hidden)load();});
  function nameDialog(code){
-  renameCode=code||null;$('namedGameTitle').textContent=code?'Rename this game.':'Name your game.';$('namedGameSubmit').textContent=code?'Save game name':'Create multiplayer game';
+  renameCode=code||null;$('multiplayerTeams').hidden=!!code;$('namedGameTitle').textContent=code?'Rename this game.':'Name your game.';$('namedGameSubmit').textContent=code?'Save game name':'Create multiplayer game';
   $('multiplayerName').value=code?state.match_name:`${player.name} · ${scenarios.find(s=>s.id===$('scenarioSelect').value)?.name||'New battle'}`;
   $('namedGameError').textContent='';$('namedGameDialog').showModal();
  }
@@ -99,7 +99,7 @@
   try{
    if(renameCode){await requestLobby(`/api/match/${renameCode}/name`,{name:$('multiplayerName').value},session);$('namedGameDialog').close();await refresh();}
    else{
-    const data=await requestLobby('/api/match',{name:$('multiplayerName').value,scenario:$('scenarioSelect').value,ruleset:$('rulesetSelect').value});data.commander=player.name;
+    const data=await requestLobby('/api/match',{...window.ww2BattleSetup.multiplayer(),name:$('multiplayerName').value,scenario:$('scenarioSelect').value,ruleset:$('rulesetSelect').value});data.commander=player.name;
     $('namedGameDialog').close();await run(async()=>remember(data));
    }
    lastList='';

@@ -1,0 +1,16 @@
+#soloSide,#teamAssignment,#multiplayerSide{width:100%}
+#multiplayerTeams{margin:16px 0;border-top:1px solid #9b9d8c;padding-top:14px}
+#multiplayerTeams p,#soloArmyHelp{font-size:14px;line-height:1.5}
+#battleResultDialog{max-width:560px;border-top:8px solid #6d8c52}
+#battleResultDialog[data-result=defeat]{border-top-color:#9a664e}
+#battleResultTitle{font-size:clamp(36px,8vw,64px);margin:8px 0;text-transform:uppercase;letter-spacing:2px}
+#battleResultArmies{font-size:18px;font-weight:700}#battleResultReason{font-size:16px;line-height:1.5}
+.result-actions{display:flex;flex-wrap:wrap;gap:8px;margin-top:20px}.result-actions button{min-height:44px}
+#journeyDialog{max-width:780px}#journeyChapters{list-style:none;padding:0;display:grid;gap:0}
+.journey-chapter{display:grid;grid-template-columns:38px minmax(0,1fr) auto;gap:12px;align-items:center;border-top:1px solid #aeb69f;padding:16px 0}
+.journey-number{font-size:22px;font-weight:800;color:#526544}.journey-chapter h3{margin:0;font-size:17px}.journey-chapter p{font-size:14px;line-height:1.45;margin:5px 0}.journey-chapter small{display:block;color:#526544}
+.journey-chapter button{min-height:44px}.journey-settings{display:grid;grid-template-columns:1fr 1fr;gap:12px}.journey-settings label{display:block}.journey-settings select{width:100%}
+#journeyNote,#lessonLevelNote{font-size:13px;line-height:1.5;color:#475c43}#lessonContext{font-size:13px;padding:8px 0;border-bottom:1px solid #b8beab}
+#lessonMore{margin:14px 0}#lessonMoreText{line-height:1.6}#lessonSearch{width:100%;margin:8px 0}#lessonTopics h3{grid-column:1/-1;font-size:13px;text-transform:uppercase;margin:12px 0 2px}
+#lessonTopics button[hidden]{display:none}#lessonCount{line-height:1.5}
+@media(max-width:520px){.journey-chapter{grid-template-columns:30px minmax(0,1fr);gap:10px}.journey-chapter button{grid-column:2;justify-self:start}.journey-settings{grid-template-columns:1fr}#journeyDialog{padding:18px}#lessonTopics{grid-template-columns:1fr}}

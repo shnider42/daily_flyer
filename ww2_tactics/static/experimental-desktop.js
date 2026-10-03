@@ -75,7 +75,7 @@
   const alerts=['incoming','signalNotice','airliftReport','simpleOutcome'].map(id=>$(id)).filter(n=>!n.hidden&&n.textContent.trim());
   const alert=alerts.map(n=>n.textContent.trim()).join(' · '),notice=$('experimentalNotice');notice.hidden=!alert||playing;setText(notice,alert.length>150?alert.slice(0,147)+'…':alert);notice.setAttribute('aria-label',alert+'. Open battle reports.');
   const change=[state.code,state.battle_number,state.ready,state.winner,JSON.stringify(state.rematch)].join('|');
-  if(!playing&&change!==noticeKey){noticeKey=change;if(!state.ready&&state.deployment?.phase!=='planning'||state.winner||state.rematch)open('experimentalBattle');}
+  if(!playing&&change!==noticeKey){noticeKey=change;if(!state.ready&&state.deployment?.phase!=='planning'||state.rematch)open('experimentalBattle');}
   if(playing)for(const d of dialogs)d.close();
  }
  window.ww2ExperimentalDesktop={get active(){return !!screen;},openContaining(n){const d=n?.closest('.experimental-sheet');if(d){open(d.id);return true;}return false;}};

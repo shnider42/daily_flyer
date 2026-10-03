@@ -19,6 +19,7 @@ from ww2_tactics.visibility import public_state
 from ww2_tactics.order_history import perform, status as history_status, KEY as HISTORY_KEY
 from ww2_tactics.lobby import install_lobby
 from ww2_tactics.admin import install_admin
+from ww2_tactics.battle_setup import assignment, seats, carry_creator, result_summary
 
 
 def create_app(db_path=None):
@@ -59,7 +60,7 @@ def create_app(db_path=None):
         alias = db.execute('SELECT owner_hash FROM player_access WHERE key_hash=?', (hashed,)).fetchone()
         if alias:
             hashed = alias['owner_hash']
-        if secrets.compare_digest(hashed, row["host"]):
+        if row['host'] and secrets.compare_digest(hashed, row["host"]):
             return "us"
         if row["guest"] and secrets.compare_digest(hashed, row["guest"]):
             return "de"
@@ -80,6 +81,7 @@ def create_app(db_path=None):
         board = battlefield(state)
         state.update(code=row["code"], side=side,
                      map=board['map'], scenario={k: v for k, v in board.items() if k != 'map'})
+        state['battle_result'] = result_summary(state)
         if not state.get('ai_side'):
             # A large state write can hold SQLite's exclusive lock until commit.
             # Read response metadata on that same connection, never a second one.
@@ -161,13 +163,18 @@ def create_app(db_path=None):
         mode = body.get('opponent', 'human')
         if mode not in ('human', 'computer'):
             raise ValueError('Choose a human or computer opponent.')
+        allocation = assignment(body)
         state = initial(scenario, body.get('ruleset', 'classic'))
+        state['team_assignment'] = allocation
+        if 'side' in body or 'team_assignment' in body:
+            state['created_side'] = allocation['creator_side']
         if mode == 'computer':
-            state.update(ai_side='de', ready=True)
-            from ww2_tactics.deployment import prepare_computer
-            state=prepare_computer(state)
-            opponent=state.get('factions',{}).get('de','Germans')
-            own=state.get('factions',{}).get('us','Americans')
+            side = allocation['creator_side']
+            state.update(ai_side='de' if side == 'us' else 'us', ready=True)
+            state=play_turn(state)
+            labels = state.get('factions', {'us': 'Americans', 'de': 'Germans'})
+            opponent=labels[state['ai_side']]
+            own=labels[side]
             state['log'].append(f'Solo battle: you command the {own}; the computer commands the {opponent}.')
         return state
 
@@ -185,7 +192,8 @@ def create_app(db_path=None):
         with connect() as db:
             db.execute("BEGIN IMMEDIATE")
             player = commander(db, required=bool(name or request.headers.get('X-Commander-Token')))
-            db.execute("INSERT INTO match (code,host,guest,state) VALUES (?,?,?,?)", (code, digest(token), None, json.dumps(state)))
+            host, guest = seats(state, digest(token), digest(secrets.token_urlsafe(32)))
+            db.execute("INSERT INTO match (code,host,guest,state) VALUES (?,?,?,?)", (code, host, guest, json.dumps(state)))
             if not state.get('ai_side'):
                 bind_commander(db, digest(token), player)
                 if name:
@@ -207,15 +215,16 @@ def create_app(db_path=None):
             if existing:
                 db.execute('INSERT INTO player_access VALUES (?,?)', (digest(token), row['host' if existing == 'us' else 'guest']))
                 return jsonify(code=row['code'], token=token)
-            if row["guest"]:
+            if row["host"] and row["guest"]:
                 return jsonify(error="Both seats are taken. Sign in as your commander to resume. Older seats need their saved browser or a MOVE code once, then can be linked to a commander."), 409
-            if identify(db, row) == "us":
-                return jsonify(error="You already own the host seat. Open the invitation on the other device."), 409
+            if identify(db, row):
+                return jsonify(error="You already own a seat in this game. Open the invitation on the other device."), 409
             state = json.loads(row["state"])
             state["ready"] = True
             state["revision"] += 1
-            state["log"].append("Opponent joined. The battle begins.")
-            db.execute("UPDATE match SET guest=?, state=? WHERE code=?", (digest(token), json.dumps(state), row["code"]))
+            state["log"].append("Opponent joined. Both commanders are connected.")
+            column = 'host' if not row['host'] else 'guest'
+            db.execute(f"UPDATE match SET {column}=?, state=? WHERE code=?", (digest(token), json.dumps(state), row["code"]))
             bind_commander(db, digest(token), player)
         return jsonify(code=code.upper(), token=token), 200
 
@@ -261,13 +270,14 @@ def create_app(db_path=None):
             db.execute("BEGIN IMMEDIATE")
             row = db.execute("SELECT * FROM match WHERE code=?", (code.upper(),)).fetchone()
             side = identify(db, row) if row else None
-            if not side or (side != 'us' and not state.get('ai_side') and not json.loads(row['state']).get('ai_side')):
-                return jsonify(error="Only the American host can start a new match."), 403
+            if not side or (side != json.loads(row['state']).get('created_side', 'us') and not state.get('ai_side') and not json.loads(row['state']).get('ai_side')):
+                return jsonify(error="Only the creator can replace this multiplayer invitation."), 403
             # New code revokes both old seats; no accidental reuse of an old invitation.
             new_code, token = secrets.token_hex(5).upper(), secrets.token_urlsafe(32)
             old_owner = row['host' if side == 'us' else 'guest']
             linked = db.execute('SELECT commander_id FROM commander_seats WHERE owner_hash=?', (old_owner,)).fetchone()
-            db.execute("UPDATE match SET code=?,host=?,guest=NULL,state=? WHERE code=?", (new_code, digest(token), json.dumps(state), row["code"]))
+            host, guest = seats(state, digest(token), digest(secrets.token_urlsafe(32)))
+            db.execute("UPDATE match SET code=?,host=?,guest=?,state=? WHERE code=?", (new_code, host, guest, json.dumps(state), row["code"]))
             if linked:
                 db.execute('INSERT INTO commander_seats VALUES (?,?)', (digest(token), linked['commander_id']))
         return jsonify(code=new_code, token=token)
@@ -304,6 +314,7 @@ def create_app(db_path=None):
                 state['rematch'] = dict(by=side, scenario=scenario['id'], name=scenario['name'], swap=body['swap'], ruleset=rules['id'])
                 if state.get('ai_side'):
                     next_state = initial(scenario['id'], rules['id'])
+                    carry_creator(state, next_state, body['swap'])
                     next_state.update(ready=True, revision=state['revision'],
                                       ai_side=('us' if state['ai_side'] == 'de' else 'de') if body['swap'] else state['ai_side'],
                                       battle_number=state.get('battle_number', 1)+1,
@@ -323,6 +334,7 @@ def create_app(db_path=None):
                 if not proposal or proposal['by'] == side:
                     return jsonify(error='Only the other commander can accept the proposal.'), 400
                 next_state = initial(proposal['scenario'], proposal.get('ruleset', state.get('ruleset', 'classic')))
+                carry_creator(state, next_state, proposal['swap'])
                 next_state.update(ready=True, revision=state['revision'],
                                   battle_number=state.get('battle_number', 1)+1,
                                   victories=state.get('victories', {'us': int(state['winner'] == 'us'), 'de': int(state['winner'] == 'de')}))

@@ -758,11 +758,12 @@ values, not a claim of established faction balance or historical simulation.
   detailed stats and logs, while retaining legal actions, AP, strength/pin markers, round,
   turn, objective, danger warnings and plain-language combat outcomes. Battle options and
   save codes remain available in an expandable section. It never changes the rules or rolls.
-- **Start guided practice** creates a separate Village Crossing solo DSL battle in Simple
-  view, preserving existing matches. **Learn as you play** opens eight short lessons in
-  the current DSL battle without resetting it. Selection and movement lessons advance on
-  actual play; other tips have explicit Back/Next/Show me/Exit controls. No scripted orders
-  are issued. Players can skip any lesson, even when no enemy is in range.
+- **WWII Journey** offers fourteen independent practice chapters, either army and
+  resumable progress. **Field coach** is available to guests and signed-in commanders
+  in every DSL battle. Simple, Moderate and Expert use different explanations;
+  searchable topics cover current rules and GUI controls. Show me can highlight a
+  control or select a friendly specialist, but never issues game orders. See
+  [Journey, army choice and results](ww2-journey.md).
 - Preferences and current lesson are remembered locally when storage is available. Private
   browsing without storage still works for the current page; UI preferences are not part of
   SAVE codes. Existing save/reconnect mechanics and Classic game rules are unchanged.

@@ -1,7 +1,8 @@
 # Experience and operation discovery
 
-This is the first small UX pass. Experience changes information detail, not the
-ruleset, computer difficulty, available orders, fog of war or battle state.
+Experience changes display and coaching detail, not the ruleset, computer
+difficulty, available orders, fog of war or battle state. See
+[WWII Journey and Field coach](ww2-journey.md) for the expanded learning flow.
 
 | Experience | Presentation |
 | --- | --- |
@@ -11,8 +12,8 @@ ruleset, computer difficulty, available orders, fog of war or battle state.
 
 Home and the persistent **View → Experience** control share one browser
 preference. Turn, mission, AP, unavailable-order reasons and danger warnings stay
-available at every level. Guest learning remains opt-in; commander sign-ins do
-not gain automatic lessons. Dad mode, terrain detail and illustrated units keep
+available at every level. Field coach remains opt-in for guests and signed-in commanders. Journey
+chapters intentionally open it at the selected Experience. Dad mode, terrain detail and illustrated units keep
 their existing independent settings.
 
 ## Layout and migration
@@ -81,7 +82,7 @@ until someone supplies their learning focus and categories.
 
 Suggested order after this UX playtest: profile large-map selection; try one
 deployment sandbox; build the editor and shared validator; then add generation.
-Tutorial improvements can follow the same learning order used by the browser.
+WWII Journey now provides a fourteen-operation path; Field coach adapts its explanations to the chosen Experience.
 
 ## Verification
 
