@@ -169,6 +169,15 @@
     picture.addEventListener('load',()=>fallback.setAttribute('display','none'));
     picture.addEventListener('error',()=>viewport.remove());drawing.append(fallback,viewport);
    }
+   const specialistViews={radioman:'32 8 372 406',mortar:'438 25 365 387',supply:'821 88 426 325',commando:'32 418 387 389',mountain:'440 415 394 390',partisan:'876 423 377 381',askari:'25 808 387 423',pathfinder:'447 807 358 421',flak:'805 805 448 428'};
+   if(specialistViews[u.kind]){
+    const fallback=el('g',{class:'raster-fallback'});while(drawing.firstChild)fallback.append(drawing.firstChild);
+    const [, ,w,h]=specialistViews[u.kind].split(' ').map(Number),width=29*w/h;
+    const viewport=el('svg',{x:-width/2,y:-23,width,height:29,viewBox:specialistViews[u.kind],class:'atlas-viewport specialist-atlas',preserveAspectRatio:'xMidYMid meet',overflow:'hidden'});
+    const picture=el('image',{href:'/assets/unit-images/specialists-atlas-v1.webp',width:1254,height:1254});viewport.append(picture);
+    picture.addEventListener('load',()=>fallback.setAttribute('display','none'));
+    picture.addEventListener('error',()=>viewport.remove());drawing.append(fallback,viewport);
+   }
    const raster=rasterName(u);
    if(raster){
     // Keep the deterministic symbol as an immediate fallback until the bitmap loads.

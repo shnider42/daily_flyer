@@ -58,6 +58,8 @@ class BattlefieldsTests(unittest.TestCase):
         for key in SCENARIOS:
             state = initial(key,'dsl' if SCENARIOS[key].get('dsl_only') else 'classic')
             state['ready'] = True
+            if state.get('deployment_version'):
+                state=apply(apply(state,'us',{'kind':'deploy_lock'}),'de',{'kind':'deploy_lock'})
             limit = state['battlefield']['rounds']
             expected='us' if state.get('air_version') else 'de'
             for turn in range(limit):
@@ -71,6 +73,8 @@ class BattlefieldsTests(unittest.TestCase):
             if SCENARIOS[key].get('naval') or SCENARIOS[key].get('air') or SCENARIOS[key].get('linked_objectives') or SCENARIOS[key].get('joint_ops') or SCENARIOS[key].get('front_mode'):continue  # Separate victory rules.
             state = initial(key,'dsl' if SCENARIOS[key].get('dsl_only') else 'classic')
             state['ready'] = True
+            if state.get('deployment_version'):
+                state=apply(apply(state,'us',{'kind':'deploy_lock'}),'de',{'kind':'deploy_lock'})
             state['units'][0]['pos'] = list(state['battlefield']['objective'])
             for side in ['us', 'de', 'us']:
                 state = apply(state, side, {'kind': 'end'})

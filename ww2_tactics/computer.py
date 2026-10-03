@@ -223,6 +223,10 @@ def choose_order(state, costs, visited, front_costs=None):
 
 
 def play_turn(state, roll=None):
+    from . import deployment
+    if deployment.active(state):
+        state=deployment.prepare_computer(state,roll)
+        if deployment.active(state): return state
     if not state.get('ai_side') or state['turn'] != state['ai_side'] or state['winner']:
         return state
     costs = objective_costs(state)

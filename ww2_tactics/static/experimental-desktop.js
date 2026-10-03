@@ -62,7 +62,7 @@
   const columns=innerWidth>=1600?8:6,rows=Math.max(1,Math.ceil(capacity/columns));
   for(const [name,value] of [['--experimental-columns',columns],['--experimental-rows',rows]])if(screen.style.getPropertyValue(name)!==String(value))screen.style.setProperty(name,String(value));
   setText($('experimentalRosterOpen'),`Units · ${own.filter(u=>u.hp>0).length}`);$('experimentalRosterOpen').disabled=playing||busy;
-  setText($('experimentalRound'),`Round ${state.round}/${state.scenario.rounds}`);
+  setText($('experimentalRound'),state.deployment?.phase==='planning'?'Before round 1':`Round ${state.round}/${state.scenario.rounds}`);
   const phase=ww2Briefing.phase(state);$('experimentalTurn').dataset.phase=phase.id;
   const inspect=$('experimentalUnitOpen'),key=[unit?.id,unit?.kind,unit?.display_name,unit?.hp,unit?.ap,unit?.pinned,unit?.immobilized,unit?.ammo,unit?.reserve,unit?.carrier_id,target,dad].join('|');
   if(key!==portraitKey){
@@ -75,7 +75,7 @@
   const alerts=['incoming','signalNotice','airliftReport','simpleOutcome'].map(id=>$(id)).filter(n=>!n.hidden&&n.textContent.trim());
   const alert=alerts.map(n=>n.textContent.trim()).join(' · '),notice=$('experimentalNotice');notice.hidden=!alert||playing;setText(notice,alert.length>150?alert.slice(0,147)+'…':alert);notice.setAttribute('aria-label',alert+'. Open battle reports.');
   const change=[state.code,state.battle_number,state.ready,state.winner,JSON.stringify(state.rematch)].join('|');
-  if(!playing&&change!==noticeKey){noticeKey=change;if(!state.ready||state.winner||state.rematch)open('experimentalBattle');}
+  if(!playing&&change!==noticeKey){noticeKey=change;if(!state.ready&&state.deployment?.phase!=='planning'||state.winner||state.rematch)open('experimentalBattle');}
   if(playing)for(const d of dialogs)d.close();
  }
  window.ww2ExperimentalDesktop={get active(){return !!screen;},openContaining(n){const d=n?.closest('.experimental-sheet');if(d){open(d.id);return true;}return false;}};

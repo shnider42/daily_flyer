@@ -1,5 +1,13 @@
 # DSL — WWII tactical game
 
+## Pre-battle landing setup
+
+Shingle Cove and Operation Breakwater introduce private placement, German
+bunkers and blind American naval fire before round 1. Both sides lock their
+plans; existing battles keep their original start. Find them under **Pre-battle**
+in the map categories. Nine specialist roles also have new illustrated counters.
+Read [the preparation rules and playtest limits](ww2-prebattle.md).
+
 ## Operation Tidal Gate
 
 A 36×44 combined-arms operation with 64 units, 14 roles, two landings, airborne

@@ -130,6 +130,8 @@ def unit_visible_ids(state, unit):
 
 
 def update_intel(state):
+    from .deployment import active as preparing
+    if preparing(state): return
     from .engine import terrain
     from .buildings import observe
     observe(state)
@@ -239,6 +241,8 @@ def record_reports(state, before, action, message):
 
 @sight_reader
 def public_state(state, side):
+    from . import deployment
+    if deployment.active(state): return deployment.public_planning(state,side)
     if not fog(state):
         result=copy.deepcopy(state)
         if domains.joint(state):
@@ -262,7 +266,7 @@ def public_state(state, side):
                 if u['side']!=side:
                     for key in ('aa_round','beacon_active','beacon_charges'):u.pop(key,None)
         result['signal_alerts']=copy.deepcopy(state.get('signal_alerts',{}).get(side,[]))
-        return result
+        return deployment.redact(result)
     result=copy.deepcopy(state)
     result.update(view(state,side))
     if state.get('fieldworks_version'):
@@ -289,4 +293,4 @@ def public_state(state, side):
     else:result.pop('radio_reports',None)
     result.pop('platoon_intel',None)
     result.pop('airlift_reports',None);result.pop('airlift_rounds',None)
-    return result
+    return deployment.redact(result)

@@ -60,11 +60,11 @@
  function display(games){
   const signature=JSON.stringify([games,savedSessions.map(s=>s.code),player?.name]);if(signature===lastList)return;lastList=signature;
   $('publicGames').replaceChildren(...games.map(g=>{
-   const yours=g.your_side,local=savedSessions.some(s=>s.code===g.code),yourTurn=yours&&g.ready&&!g.winner&&g.turn===yours;
+   const yours=g.your_side,local=savedSessions.some(s=>s.code===g.code),yourTurn=yours&&g.ready&&!g.winner&&g.phase!=='planning'&&g.turn===yours;
    const row=text('article','',`public-game${yourTurn?' your-turn':''}`);row.dataset.code=g.code;
    const details=document.createElement('div');details.append(text('h3',g.name));
    details.append(text('p',`${g.host_name||'Original commander'} vs ${g.full?(g.guest_name||'Original commander'):'Open seat'}`));
-   const phase=g.winner?'Finished':!g.ready?'Waiting for opponent':yourTurn?'Your turn':yours?'Opponent’s turn':`${g.turn==='us'?g.allies||'Americans':g.opponent} to move`;
+   const phase=g.winner?'Finished':g.phase==='planning'?'Pre-battle setup':!g.ready?'Waiting for opponent':yourTurn?'Your turn':yours?'Opponent’s turn':`${g.turn==='us'?g.allies||'Americans':g.opponent} to move`;
    details.append(text('p',`${phase} · Round ${g.round}${yours?` · You: ${yours==='us'?g.allies||'Americans':g.opponent}`:''}`,'game-phase'));
    details.append(text('p',`${g.scenario||'Village Crossing'} · ${(g.ruleset||'classic').toUpperCase()} · ${g.code}`));
    const button=text('button',yours||local?'Resume game':!g.full?`Join as ${g.opponent}`:player?'Both seats taken':'Sign in to resume');button.type='button';button.disabled=!!(g.full&&player&&!yours&&!local);

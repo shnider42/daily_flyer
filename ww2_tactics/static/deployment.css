@@ -1,0 +1,50 @@
+#deploymentPanel{padding:12px;background:#f2ecd9;color:#21382c;border-top:3px solid #697c51;border-radius:5px;min-width:0;overflow:auto}
+#deploymentPanel[hidden]{display:none!important}
+#deploymentHead,#deploymentTabs,#deploymentActions{display:flex;align-items:center;gap:8px;justify-content:space-between}
+#deploymentHead{margin-bottom:8px}
+#deploymentTitle{font-size:17px}
+#deploymentPanel button,#deploymentPanel select{min-height:44px;font-size:13px;padding:7px 10px}
+#deploymentHead button{background:transparent;padding:4px;font-size:11px;flex:none}
+#deploymentTabs button{flex:1;border-radius:3px;background:transparent}
+#deploymentTabs [aria-pressed=true]{background:#243e30;color:#fff5d9}
+#deploymentPanel label{display:block;font-size:11px;margin:7px 0 2px}
+#deploymentUnit{width:100%;max-width:100%;margin:0}
+#deploymentInstruction{font-size:12px;line-height:17px;min-height:34px;margin:7px 0}
+#deploymentStatus{font-size:11px;margin:4px 0 8px;color:#405943}
+#deploymentActions button{flex:1}
+#deploymentDialog{width:min(580px,calc(100% - 24px));max-height:calc(100dvh - 28px);overflow:auto;padding:18px}
+#deploymentDialog p{font-size:14px;line-height:1.6}
+#deploymentDialog button{min-height:44px}
+.deployment-choice{fill:#7dcaa5;fill-opacity:.17;stroke:#174e43;stroke-width:2;stroke-dasharray:5 3;cursor:pointer}
+.deployment-choice.defense{fill:#e4be7a;stroke:#967026}
+.deployment-choice.planning-fire{fill:#e9c181;fill-opacity:.13;stroke:#ae702a;stroke-width:1.2}
+.deployment-choice.planned{fill:#d99a3b;fill-opacity:.45;stroke-width:3;stroke-dasharray:none}
+.deployment-choice:focus,.deployment-choice:hover{fill-opacity:.5;stroke-width:3;outline:none}
+.deployment-marker{pointer-events:none}
+.deployment-marker circle{fill:#233c31;fill-opacity:.8;stroke:#fff1ba;stroke-width:2}
+.deployment-marker.fire circle{fill:#754c21}
+.deployment-marker text{fill:#fff7dd;font-size:17px;font-weight:900}
+.prebattle-planning #map .fog-layer{opacity:.35}
+.prebattle-planning :is(#orders,#mobileOrderDock,#experimentalCommandBar,#desktopActionDock,#orderHistory){display:none!important}
+.prebattle-planning.desktop-mode:not(.experimental-desktop) .desktop-command-column{display:flex;flex-direction:column}
+.prebattle-planning.desktop-mode:not(.experimental-desktop) .desktop-orders{display:none}
+.prebattle-planning.desktop-mode:not(.experimental-desktop) #deploymentPanel{flex:1}
+.prebattle-planning.experimental-desktop #experimentalDesktopScreen{grid-template-rows:58px minmax(0,1fr) 220px}
+.prebattle-planning.experimental-desktop #deploymentPanel{grid-row:3;display:grid;grid-template-columns:minmax(260px,1fr) minmax(280px,1fr);gap:0 24px;padding:10px 20px;border-radius:0}
+.prebattle-planning.experimental-desktop #deploymentHead{grid-column:1/-1}
+.prebattle-planning.experimental-desktop #deploymentTabs{grid-column:1;grid-row:2}
+.prebattle-planning.experimental-desktop #deploymentPanel label{grid-column:1;grid-row:3}
+.prebattle-planning.experimental-desktop #deploymentUnit{grid-column:1;grid-row:4}
+.prebattle-planning.experimental-desktop #deploymentInstruction{grid-column:2;grid-row:2/4}
+.prebattle-planning.experimental-desktop #deploymentStatus{grid-column:2;grid-row:4}
+.prebattle-planning.experimental-desktop #deploymentActions{grid-column:2;grid-row:5}
+.prebattle-planning.mobile-battle #mobileBattleScreen{grid-template-rows:90px minmax(0,1fr) 44px 268px!important}
+.prebattle-planning.mobile-battle #deploymentPanel{grid-area:orders;padding:5px 4px;border-radius:0}
+.prebattle-planning.mobile-battle #deploymentTitle{font-size:15px}
+.prebattle-planning.mobile-battle #deploymentHead{margin-bottom:2px;height:34px}
+.prebattle-planning.mobile-battle #deploymentHead button{min-height:34px}
+.prebattle-planning.mobile-battle #deploymentInstruction{margin:5px 0;min-height:34px}
+@media(max-height:520px) and (min-width:650px) and (max-width:1099px){
+ .prebattle-planning.mobile-battle #mobileBattleScreen{grid-template-rows:44px minmax(0,1fr) 44px!important}
+ .prebattle-planning.mobile-battle #deploymentPanel{height:100%;overflow:auto}
+}

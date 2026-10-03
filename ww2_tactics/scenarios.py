@@ -115,6 +115,8 @@ from .fubar import scenario as fubar_scenario
 SCENARIOS['fubar']=fubar_scenario(build)
 from .new_fronts import scenarios as new_front_scenarios
 SCENARIOS.update(new_front_scenarios(build))
+from .deployment import scenarios as deployment_scenarios
+SCENARIOS.update(deployment_scenarios(build))
 
 
 def get_scenario(key='village'):

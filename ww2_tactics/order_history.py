@@ -6,7 +6,7 @@ from .engine import apply
 from .computer import play_turn
 from .visibility import fog, visible_ids
 from .buildings import revealed
-from . import fieldworks, signals
+from . import fieldworks, signals, deployment
 
 KEY = '_order_history'
 LIMIT = 20
@@ -32,6 +32,8 @@ def resign(state, side):
 
 
 def status(state, side):
+    if deployment.active(state):
+        return dict(can_undo=False,can_redo=False,redo_required=False,undo_label='',redo_label='',reason='Reposition freely before locking. Locked plans and naval dice cannot be undone.')
     history = state.get(KEY, {})
     own = history.get('side') == side and state['turn'] == side
     ready = own and state['ready'] and not state.get('rematch')
@@ -76,6 +78,12 @@ def perform(state, side, action):
 def _perform(state, side, action):
     if action.get('kind') == 'resign':
         return resign(state, side)
+    if deployment.active(state):
+        result=apply(state,side,action)
+        result=deployment.prepare_computer(result)
+        if not deployment.active(result): result=play_turn(result)
+        result[KEY]=dict(side=result['turn'],past=[],future=[],reason='Preparation committed. Naval dice cannot be rerolled.')
+        return result
     # Journal entries are immutable snapshots. Copy the stacks, not every prior
     # battlefield on every order; apply() already copies the current battlefield.
     raw = state.get(KEY, {})

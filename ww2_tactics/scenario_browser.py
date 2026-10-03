@@ -8,11 +8,13 @@ CATEGORIES = {
     'infantry': 'Infantry', 'combined': 'Combined arms', 'naval': 'Naval',
     'air': 'Aircraft', 'airborne': 'Airborne', 'amphibious': 'Landings',
     'attack-defend': 'Attack / defend', 'control': 'Area control',
-    'playtest': 'Playtest', 'evacuation':'Evacuation', 'armor':'Armor',
+    'playtest': 'Playtest', 'evacuation':'Evacuation', 'armor':'Armor', 'prebattle':'Pre-battle',
 }
 
 # key: learning position, additional categories, one short learning focus
 GUIDE = {
+    'shingle_cove': (20, ['combined','amphibious','prebattle'], 'Learn private deployment, bunkers and blind naval preparation.'),
+    'breakwater': (21, ['combined','amphibious','prebattle'], 'Plan a larger landing across several coastal approaches.'),
     'relay_crossing': (4, ['combined'], 'Small-map lab: scouts, radios, mortars, supply and armor.'),
     'kharkov': (18, ['combined','armor','control'], 'Tank-led flags, heavy armor and a scheduled counterstroke.'),
     'dunkirk': (19, ['combined','amphibious','evacuation'], 'Load boats and save infantry while the rearguard holds.'),

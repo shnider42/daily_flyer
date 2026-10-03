@@ -8,7 +8,7 @@ from .support import role_options, role_action, resolve_barrages
 from .combat_display import record_combat
 from .rulesets import profile, dsl, base_ap, bank_limit, turn_limit, road
 from .effects import record_effect
-from . import combined, naval, transport, campaigns, air, weapons, buildings, operations, fieldworks, linked_front, signals, airborne, domains, fubar, logistics, new_fronts
+from . import combined, naval, transport, campaigns, air, weapons, buildings, operations, fieldworks, linked_front, signals, airborne, domains, fubar, logistics, new_fronts, deployment
 from .visibility import fog, active, visible_ids, unit_visible_ids, sees_hex, update_intel, record_reports
 
 WIDTH, HEIGHT = 7, 9
@@ -123,7 +123,7 @@ def initial(scenario='village', ruleset='classic'):
     if board.get('combined_arms') or board.get('campaign'):
         state.update(dsl_expansion=1,fog_of_war=True)
         update_intel(state)
-    return logistics.initialize(new_fronts.initialize(airborne.initialize(signals.initialize(linked_front.initialize(weapons.initialize(state))))))
+    return deployment.initialize(logistics.initialize(new_fronts.initialize(airborne.initialize(signals.initialize(linked_front.initialize(weapons.initialize(state)))))))
 
 
 def fire_modifiers(state, unit, target):
@@ -201,6 +201,8 @@ def react(state, mover, roll):
 
 
 def options(state, unit):
+    if deployment.active(state):
+        return dict(moves=[],targets=[],smoke=[],barrage=[],assaults=[],grenades=[],suppress=[],inspire=[],command=[],rally=False)
     if domains.joint(state):
         if unit['kind'] in domains.AIR_UNITS:return air.options(state,unit)
         if unit['kind'] in domains.SHIPS:return naval.options(state,unit)
@@ -279,6 +281,8 @@ def options(state, unit):
 
 
 def apply(state, side, action, roll=None):
+    if deployment.active(state):
+        return deployment.apply(state,side,action,roll)
     if not state["ready"]:
         raise ValueError("Waiting for the second player.")
     if state["winner"]:

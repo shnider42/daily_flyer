@@ -76,6 +76,7 @@
  function phase(s){
   if(playbackSession)return {id:'replay',title:'WATCHING THE REPLAY',text:'Pause, step through or finish the replay before issuing orders.'};
   if(s.winner)return {id:'finished',title:s.winner===s.side?'VICTORY':'DEFEAT',text:s.resigned_by?`${s.factions?.[s.resigned_by]||names[s.resigned_by]} resigned. This battle has ended.`:'This battle has ended. Open the mission for the result.'};
+  if(s.deployment?.phase==='planning')return {id:'prebattle',title:s.deployment.locked[s.side]?'PLAN LOCKED':'PRE-BATTLE',text:s.deployment.locked[s.side]?'Waiting for the other plan. Enemy preparations remain private.':'Arrange your force and support plan, then review and lock. No AP is spent.'};
   if(!s.ready)return {id:'waiting',title:'WAITING FOR A PLAYER',text:'Share the invitation. Orders unlock when your opponent joins.'};
   if(busy)return {id:'sending',title:'RESOLVING ORDERS',text:s.ai_side?'The server is confirming the order. The computer takes its full turn only after End turn.':'Waiting for the server to confirm the order.'};
   if(s.turn!==s.side)return {id:'opponent',title:'OPPONENT’S TURN',text:'You can inspect the battlefield. Your orders unlock when their turn ends.'};
@@ -97,6 +98,8 @@
  button.onclick=open;
  function fill(){
   const shown=displayed(),m=mission(shown);if(state.scenario.doctrine){m.rules=[...m.rules,'Your force: '+state.scenario.doctrine[state.side],state.scenario.historical_note,'Communications: each platoon spots locally. Radio reports allow distant mortar aiming, but never unlock direct fire on an unseen unit.'];}goal.textContent=m.goal;progress.textContent=m.progress;
+  if(state.deployment_version)m.rules.push('This operation starts with private pre-battle deployment. Both armies lock their plans before naval fire and round 1. See How it works in the preparation panel.');
+  for(const shot of state.prebattle_impacts||[])m.rules.push(`Opening naval fire: aimed at ${hexColumn(shot.aim[0])}${shot.aim[1]+1}, d6 ${shot.roll}, landed at ${hexColumn(shot.impact[0])}${shot.impact[1]+1} and neighboring hexes. Enemy casualties unconfirmed.`);
   list.replaceChildren(...m.rules.map(t=>node('li',null,t)));
   flags.hidden=!state.linked_front_version;flags.textContent=(state.scenario.linked_objectives||[]).map(p=>`${p.name}: ${state.objective_control?.[p.id]?sideLabel(state.objective_control[p.id]):'Ungarrisoned'}`).join(' · ');
   sectors.replaceChildren(...(state.scenario.joint_objectives||state.scenario.sectors||[]).map(s=>{const b=node('button',null,s.name);b.type='button';b.onclick=()=>{dialog.close();focusMapUnit({pos:s.pos});};return b;}));
@@ -120,7 +123,7 @@
   button.setAttribute('aria-label',`${m.goal} ${m.progress}. Open win conditions.`);
   $('game').dataset.phase=p.id;if(mobile)mobile.dataset.phase=p.id;
   const banner=$('turnBanner');banner.dataset.phase=p.id;banner.replaceChildren(node('strong',null,p.title),node('span',null,p.text));
-  if(mobile){const status=$('mobileBattleStatus'),short={opponent:'THEIR TURN',waiting:'WAITING',replay:'REPLAY',sending:'RESOLVING',redo:'REDO FIRST'};status.replaceChildren(node('strong',null,short[p.id]||p.title),node('span',null,`${sideLabel(state.side)} · Round ${shown.round}/${state.scenario.rounds}`));status.removeAttribute('role');status.setAttribute('aria-label',p.title+'. '+p.text);status.title=p.text;}
+  if(mobile){const status=$('mobileBattleStatus'),short={opponent:'THEIR TURN',waiting:'WAITING',replay:'REPLAY',sending:'RESOLVING',redo:'REDO FIRST'};status.replaceChildren(node('strong',null,short[p.id]||p.title),node('span',null,`${sideLabel(state.side)} · ${state.deployment?.phase==='planning'?'Before round 1':`Round ${shown.round}/${state.scenario.rounds}`}`));status.removeAttribute('role');status.setAttribute('aria-label',p.title+'. '+p.text);status.title=p.text;}
   $('end').textContent=p.id==='opponent'?'Opponent’s turn':p.id==='waiting'?'Waiting for player':p.id==='finished'?'Battle finished':p.id==='redo'?'Redo first':'End turn →';
   document.title=`${p.title} · ${state.match_name||state.scenario.name} · DSL`;
   const key=[state.code,state.battle_number,state.round,p.id].join(':');

@@ -200,7 +200,7 @@
   if(dock){
    const key=`${session.code}:${state.battle_number||1}`;
    const notice=`${key}:${state.winner||''}:${JSON.stringify(state.rematch||null)}:${state.ready}`;
-   if(notice!==noticeKey){noticeKey=notice;if(state.winner||state.rematch||!state.ready)openSheet('mobileBattleMenu');}
+   if(notice!==noticeKey){noticeKey=notice;if(state.winner||state.rematch||!state.ready&&state.deployment?.phase!=='planning')openSheet('mobileBattleMenu');}
    if(playbackSession&&!wasPlaying)for(const s of sheets)s.close();
    wasPlaying=!!playbackSession;
   }

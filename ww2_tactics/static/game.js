@@ -152,7 +152,7 @@ async function rematchRequest(body){await run(async()=>{state=await api(`/api/ma
 function render(){
  if(!state||lobbyMode)return;const restoreMap=holdMobileMap();$('lobby').hidden=true;$('game').hidden=false;
  Object.assign(names,state.factions||{us:'Americans',de:'Germans'});
- const myTurn=state.ready&&!state.winner&&state.turn===state.side&&!state.order_history?.redo_required;
+ const myTurn=state.deployment?.phase!=='planning'&&state.ready&&!state.winner&&state.turn===state.side&&!state.order_history?.redo_required;
  const board=state.scenario||{id:'village',name:'Village Crossing',objective_name:'Village square',rounds:8};
  const large=!!board.platoons;
  const dsl=state.ruleset==='dsl';
@@ -173,7 +173,7 @@ function render(){
  $('turnBanner').dataset.side=state.winner||state.turn;
  $('soloButton').hidden=!!state.ai_side;
  $('saveButton').hidden=!state.ai_side;
- const phase=state.winner?'Finished':!state.ready?'Waiting for opponent':state.turn===state.side?'Your turn':'Opponent’s turn';
+ const phase=state.winner?'Finished':state.deployment?.phase==='planning'?'Pre-battle setup':!state.ready?'Waiting for opponent':state.turn===state.side?'Your turn':'Opponent’s turn';
  const label=`${state.match_name||state.scenario.name} · ${state.ai_side?'Solo':'Two player'} · ${names[state.side]} · Round ${state.round} · ${phase}`;
  if(session.label!==label){session.label=label;savedSessions=savedSessions.map(s=>s.code===session.code?session:s);persistSessions();}
  $('computerReview').hidden=!state.computer_orders?.length;

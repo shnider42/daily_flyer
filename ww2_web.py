@@ -164,6 +164,8 @@ def create_app(db_path=None):
         state = initial(scenario, body.get('ruleset', 'classic'))
         if mode == 'computer':
             state.update(ai_side='de', ready=True)
+            from ww2_tactics.deployment import prepare_computer
+            state=prepare_computer(state)
             opponent=state.get('factions',{}).get('de','Germans')
             own=state.get('factions',{}).get('us','Americans')
             state['log'].append(f'Solo battle: you command the {own}; the computer commands the {opponent}.')

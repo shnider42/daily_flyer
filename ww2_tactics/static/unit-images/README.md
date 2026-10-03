@@ -1,5 +1,11 @@
 # Unit silhouettes, v1
 
+`specialists-atlas-v1.webp` adds nine illustrated roles for the pre-battle
+release. It is an original 1254×1254 transparent atlas generated with the built-in
+image tool. [Rules, provenance and the full prompt](../../../docs/ww2-prebattle.md#presentation-and-artwork)
+document the radio, mortar, supply, commando, mountain, resistance, colonial,
+pathfinder and flak illustrations and their shared-role limitations.
+
 The support/airborne update adds `sniper-v1.webp`, an original transparent 384×384
 illustration generated with the built-in image tool. Its full prompt and
 provenance are in [the update notes](../../../docs/ww2-support-and-airborne.md#sniper-artwork-provenance).

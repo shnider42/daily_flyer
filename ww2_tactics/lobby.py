@@ -155,6 +155,7 @@ def install_lobby(app, connect, digest, identify):
                     json_extract(m.state,'$.turn') AS turn,
                     json_extract(m.state,'$.winner') AS winner,
                     json_extract(m.state,'$.ready') AS ready,
+                    json_extract(m.state,'$.deployment.phase') AS phase,
                     coalesce(json_extract(m.state,'$.factions.de'),'Germans') AS opponent,
                     coalesce(json_extract(m.state,'$.factions.us'),'Americans') AS allies,
                     h.name AS host_name,g.name AS guest_name,

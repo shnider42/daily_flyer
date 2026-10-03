@@ -16,15 +16,15 @@ const snapshot=p=>p.evaluate(()=>{const w=$('mapWrap');return {state:JSON.string
  }
  for(const touch of [true,false]){
   const p=await browser.newPage({viewport:touch?{width:390,height:844}:{width:1280,height:720},isMobile:touch,hasTouch:touch});p.setDefaultTimeout(15000);p.on('pageerror',e=>errors.push(e.message));
-  await p.goto(base);await p.waitForFunction(()=>scenarios.length===20&&window.ww2OperationBrowser);
+  await p.goto(base);await p.waitForFunction(()=>scenarios.length===22&&window.ww2OperationBrowser);
   assert.deepEqual(await p.evaluate(()=>({level:ww2Experience.level,layout:ww2Experience.layout})),{level:'simple',layout:'map-first'});
-  assert.equal(await p.locator('#homeExperience').inputValue(),'simple');assert.equal(await p.locator('#scenarioSelect option').count(),20);
+  assert.equal(await p.locator('#homeExperience').inputValue(),'simple');assert.equal(await p.locator('#scenarioSelect option').count(),22);
   await p.locator('#scenarioSelectCategory').selectOption('naval');assert.equal(await p.locator('#scenarioSelect').inputValue(),'village');
   assert.deepEqual(await p.locator('#scenarioSelect > option').evaluateAll(ns=>ns.map(n=>n.value)),['midway','fubar']);
   assert.match(await p.locator('#scenarioSelectResults').textContent(),/current choice kept/);
   await p.locator('#scenarioSelect').selectOption('fubar');await p.locator('#scenarioSelectCategory').selectOption('all');
-  await p.locator('#scenarioSelectSort').selectOption('newest');assert.equal(await p.locator('#scenarioSelect option').first().getAttribute('value'),'dunkirk');
-  for(const level of ['moderate','expert','simple']){await p.locator('#homeExperience').selectOption(level);assert.equal(await p.locator('#scenarioSelect').inputValue(),'fubar');assert.equal(await p.locator('#scenarioSelect option').count(),20);}
+  await p.locator('#scenarioSelectSort').selectOption('newest');assert.equal(await p.locator('#scenarioSelect option').first().getAttribute('value'),'breakwater');
+  for(const level of ['moderate','expert','simple']){await p.locator('#homeExperience').selectOption(level);assert.equal(await p.locator('#scenarioSelect').inputValue(),'fubar');assert.equal(await p.locator('#scenarioSelect option').count(),22);}
   await p.locator('#scenarioSelectSort').selectOption('smallest');assert.equal(await p.locator('#scenarioSelect option').first().getAttribute('value'),'village');
   await p.locator('#scenarioSelect').selectOption('village');await p.screenshot({path:path.join(temp,`${touch?'phone':'desktop'}-home.png`),fullPage:true});
   await p.locator('#createSolo').click();await p.locator('#soloScenarioCategory').selectOption('air');await p.locator('#soloScenario').selectOption('britain');await p.locator('#closeSolo').click();
