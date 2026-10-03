@@ -8,11 +8,14 @@ CATEGORIES = {
     'infantry': 'Infantry', 'combined': 'Combined arms', 'naval': 'Naval',
     'air': 'Aircraft', 'airborne': 'Airborne', 'amphibious': 'Landings',
     'attack-defend': 'Attack / defend', 'control': 'Area control',
-    'playtest': 'Playtest',
+    'playtest': 'Playtest', 'evacuation':'Evacuation', 'armor':'Armor',
 }
 
 # key: learning position, additional categories, one short learning focus
 GUIDE = {
+    'relay_crossing': (4, ['combined'], 'Small-map lab: scouts, radios, mortars, supply and armor.'),
+    'kharkov': (18, ['combined','armor','control'], 'Tank-led flags, heavy armor and a scheduled counterstroke.'),
+    'dunkirk': (19, ['combined','amphibious','evacuation'], 'Load boats and save infantry while the rearguard holds.'),
     'village': (1, ['infantry'], 'Start here: movement, cover and actions.'),
     'orchard': (2, ['infantry'], 'Use cover to cross exposed ground.'),
     'stonebridge': (3, ['infantry'], 'Fight for a narrow crossing.'),
@@ -35,9 +38,10 @@ GUIDE = {
 
 def describe(board, release_order):
     rank, tags, focus = GUIDE.get(board['id'], (1000, [], 'Explore this operation.'))
+    if board['id']!='relay_crossing' and 4<=rank<1000:rank+=1
     tags = list(tags)
-    mission = 'control' if board.get('naval') or board.get('joint_ops') else 'attack-defend'
-    tags.append(mission)
+    mission = 'control' if board.get('naval') or board.get('joint_ops') or board.get('front_mode')=='armored_control' else 'evacuation' if board.get('front_mode')=='evacuation' else 'attack-defend'
+    if mission not in tags:tags.append(mission)
     for flag, tag in [('air', 'air'), ('naval', 'naval'), ('combined_arms', 'combined'), ('playtest', 'playtest')]:
         if board.get(flag) and tag not in tags:
             tags.append(tag)

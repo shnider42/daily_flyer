@@ -4,8 +4,8 @@
 (()=>{
  const infantry=new Set(['squad','mg','leader','commander','scout','engineer','at_team','paratrooper','sniper','radioman','commando','mountain','partisan','askari','mortar','pathfinder']);
  const vehicles=new Set(['tank','halftrack','amphibious','landing_craft']);
- const labels={callAirborne:'Call airborne',markLZ:'Mark LZ',radioUpdate:'Radio update',observe:'Observe',conceal:'Camouflage',mortarFire:'Mortar fire',demolition:'Demolition',breach:'Breach hedge',clearWreck:'Clear rubble',bridgeGap:'Build bridge',fire:'Fire at unit',areaFire:'Aim at hex',snipe:'Snipe',assault:'Close assault',grenade:'Grenade',suppress:'Suppress',overwatch:'Overwatch',dig:'Dig in',smoke:'Smoke',rally:'Rally self',inspire:'Rally allies',command:'Give actions',barrage:'Call mortars',artillery:'Call artillery',fieldRecon:'Recon plane',loadAP:'Load anti-tank',loadHE:'Load explosive',repairTracks:'Fix own tracks',repairTank:'Repair tank',bombard:'Blind bombard',recon:'Air search',airstrike:'Air strike',torpedo:'Torpedoes',repair:'Repair hull',airdrop:'Land troops',load:'Load troops',unload:'Unload troops',rearm:'Airfield service'};
- const costs={callAirborne:3,markLZ:2,observe:1,smoke:1,rally:1,inspire:1,loadAP:1,loadHE:1,recon:1,load:1,unload:1,snipe:3,bridgeGap:3};
+ const labels={callAirborne:'Call airborne',markLZ:'Mark LZ',resupply:'Resupply',evacuate:'Evacuate',radioUpdate:'Share sightings',observe:'Observe',conceal:'Camouflage',mortarFire:'Mortar fire',demolition:'Demolition',breach:'Breach hedge',clearWreck:'Clear rubble',bridgeGap:'Build bridge',fire:'Fire at unit',areaFire:'Aim at hex',snipe:'Snipe',assault:'Close assault',grenade:'Grenade',suppress:'Suppress',overwatch:'Overwatch',dig:'Dig in',smoke:'Smoke',rally:'Rally self',inspire:'Rally allies',command:'Give actions',barrage:'Call mortars',artillery:'Call artillery',fieldRecon:'Recon plane',loadAP:'Load anti-tank',loadHE:'Load explosive',repairTracks:'Fix own tracks',repairTank:'Repair tank',bombard:'Blind bombard',recon:'Air search',airstrike:'Air strike',torpedo:'Torpedoes',repair:'Repair hull',airdrop:'Land troops',load:'Load troops',unload:'Unload troops',rearm:'Airfield service'};
+ const costs={evacuate:1,resupply:2,callAirborne:3,markLZ:2,observe:1,smoke:1,rally:1,inspire:1,loadAP:1,loadHE:1,recon:1,load:1,unload:1,snipe:3,bridgeGap:3};
  const cost=id=>id==='radioUpdate'?(state?.units.find(u=>u.id===selected)?.kind==='radioman'?1:2):costs[id]??2;
  function capabilities(u,s=state){
   if(!u||u.side!==s.side||u.hp<=0||s.ruleset!=='dsl')return [];
@@ -57,6 +57,8 @@
   }
   if(s.fieldworks_version&&kind==='engineer')add('breach','clearWreck','bridgeGap');
   if(s.signals_version){if(['commander','radioman'].includes(kind))add('radioUpdate');if(['scout','radioman','mountain','pathfinder'].includes(kind))add('observe');if(u.stealth)add('conceal');if(u.mortar_range)add('mortarFire');if('demolition_charges' in u)add('demolition');}
+  if(s.logistics_version&&kind==='supply')add('resupply');
+  if(s.front_mode==='evacuation'&&kind==='landing_craft'&&u.side==='us')add('evacuate');
   if(s.airborne_version){if(u.airlift_commander)add('callAirborne');if('beacon_charges' in u)add('markLZ');}
   return [...new Set(ids)];
  }
@@ -77,6 +79,9 @@
   if(u.reserve&&u.arrival_round)return 'Arrives R'+u.arrival_round+' · entry must be clear';
   if(u.reserve&&id!=='airdrop')return 'Land troops first';
   if(u.pinned&&id!=='rally')return 'Rally this unit first';
+  if(id==='resupply'&&!u.supply_packs)return 'No supply packs left';
+  if(id==='evacuate'&&!state.units.some(v=>v.carrier_id===u.id&&v.hp>0&&v.evacuee))return 'Load marked infantry first';
+  if(id==='evacuate'&&!state.scenario.evacuation_exits?.some(p=>p[0]===u.pos[0]&&p[1]===u.pos[1]))return 'Sail to the top sea edge';
   if(id==='radioUpdate'&&u.radio_round===state.round)return 'Already sent this round';
   if(id==='observe'&&u.observing)return 'Already observing';
   if(id==='conceal'&&u.camouflaged)return 'Already camouflaged';
@@ -97,9 +102,10 @@
   if(u.kind==='bomber'&&['fire','areaFire'].includes(id)&&!u.bombs)return 'Reload at airfield';
   if(!['load','unload'].includes(id)&&u.ap<cost(id))return `Needs ${cost(id)} AP`;
   if(['fire','grenade','assault','suppress','airstrike','torpedo'].includes(id))return target?'No legal attack on target':'Select a visible enemy';
+  if(id==='resupply')return 'Needs adjacent mortar or engineer below capacity';
   if(id==='radioUpdate')return 'No recent reports to share';
   if(id==='conceal')return 'Needs cover terrain';
-  if(id==='mortarFire')return 'Needs spotted or reported hex at range 2–8';
+  if(id==='mortarFire')return `Needs spotted or reported hex at range 2–${u.mortar_range||8}`;
   if(id==='demolition')return 'Needs adjacent spotted armor';
   if(id==='bridgeGap')return u.bridge_kits?'Needs a one-hex gap with firm banks':'No bridge kits left';
   if(id==='breach')return 'Needs adjacent bocage';

@@ -2,7 +2,7 @@
    The same controls serve Home, Solo and Rematch. Catalog is authoritative. */
 'use strict';
 document.addEventListener('DOMContentLoaded',()=>{
- const categories=[['all','All maps'],['infantry','Infantry'],['combined','Combined arms'],['naval','Naval'],['air','Aircraft'],['airborne','Airborne'],['amphibious','Landings'],['attack-defend','Attack / defend'],['control','Area control'],['playtest','Playtest']];
+ const categories=[['all','All maps'],['infantry','Infantry'],['combined','Combined arms'],['armor','Armor'],['evacuation','Evacuation'],['naval','Naval'],['air','Aircraft'],['airborne','Airborne'],['amphibious','Landings'],['attack-defend','Attack / defend'],['control','Area control'],['playtest','Playtest']];
  const sorting=[['learning','Learning order'],['newest','Newest added'],['smallest','Smallest first'],['name','Name A–Z']];
  const browsers=new Map(),el=(tag,cls,text)=>{const n=document.createElement(tag);if(cls)n.className=cls;if(text)n.textContent=text;return n;};
  function choices(id,label,options){const wrap=el('label',null,label),select=el('select');select.id=id;for(const [value,text] of options)select.add(new Option(text,value));wrap.htmlFor=id;wrap.append(select);return [wrap,select];}

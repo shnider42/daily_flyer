@@ -8,7 +8,7 @@ from .support import role_options, role_action, resolve_barrages
 from .combat_display import record_combat
 from .rulesets import profile, dsl, base_ap, bank_limit, turn_limit, road
 from .effects import record_effect
-from . import combined, naval, transport, campaigns, air, weapons, buildings, operations, fieldworks, linked_front, signals, airborne, domains, fubar
+from . import combined, naval, transport, campaigns, air, weapons, buildings, operations, fieldworks, linked_front, signals, airborne, domains, fubar, logistics, new_fronts
 from .visibility import fog, active, visible_ids, unit_visible_ids, sees_hex, update_intel, record_reports
 
 WIDTH, HEIGHT = 7, 9
@@ -123,7 +123,7 @@ def initial(scenario='village', ruleset='classic'):
     if board.get('combined_arms') or board.get('campaign'):
         state.update(dsl_expansion=1,fog_of_war=True)
         update_intel(state)
-    return airborne.initialize(signals.initialize(linked_front.initialize(weapons.initialize(state))))
+    return logistics.initialize(new_fronts.initialize(airborne.initialize(signals.initialize(linked_front.initialize(weapons.initialize(state))))))
 
 
 def fire_modifiers(state, unit, target):
@@ -217,6 +217,8 @@ def options(state, unit):
     extras.update(fieldworks.options(state, unit))
     extras.update(signals.options(state,unit))
     extras.update(airborne.options(state,unit))
+    if state.get("logistics_version"):extras.update(logistics.options(state,unit))
+    if new_fronts.enabled(state):extras.update(new_fronts.options(state,unit))
     if not state["ready"] or state["winner"] or unit["hp"] <= 0 or unit["side"] != state["turn"]:
         return dict(moves=moves, targets=targets, rally=False, **extras)
     seen=unit_visible_ids(state,unit)
@@ -302,7 +304,9 @@ def apply(state, side, action, roll=None):
         reactions.extend(airborne.end_turn(state,side))
         state['smoke'] = [dict(s, ttl=s['ttl']-1) for s in state.get('smoke', []) if s['ttl'] > 1]
         state['recon'] = [dict(r, ttl=r['ttl']-1) for r in state.get('recon', []) if r['ttl'] > 1]
-        if domains.joint(state):
+        if new_fronts.enabled(state):
+            new_fronts.end_turn(state,side)
+        elif domains.joint(state):
             fubar.end_turn(state,side)
         elif state.get('linked_front_version'):
             linked_front.end_turn(state, side)
@@ -351,6 +355,10 @@ def apply(state, side, action, roll=None):
             if kind=='move':reactions=react(state,unit,roll_die)
         elif kind in airborne.ORDERS:
             message,reactions=airborne.action(state,unit,action,legal,roll_die,react)
+        elif kind in logistics.ORDERS:
+            message=logistics.action(state,unit,action,legal)
+        elif kind in new_fronts.ORDERS:
+            message=new_fronts.action(state,unit,action,legal)
         elif kind in signals.ORDERS:
             message=signals.action(state,unit,action,legal,roll_die)
         elif kind == 'load' and action.get('target') in legal['load']:
@@ -488,6 +496,7 @@ def apply(state, side, action, roll=None):
     for team in ("us", "de"):
         if not any(u["hp"] > 0 and u["side"] == team for u in state["units"]):
             state["winner"] = "de" if team == "us" else "us"
+    new_fronts.check_result(state)
     # Losing any required link immediately breaks consecutive occupation.
     linked_front.refresh(state)
     if not state.get('linked_front_version') and not any(u["side"] == "us" and active(u) and u["pos"] == board['objective'] for u in state["units"]):

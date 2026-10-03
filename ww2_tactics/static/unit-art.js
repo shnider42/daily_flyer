@@ -33,8 +33,8 @@
    const drawing=el('g',{class:`unit-portrait portrait-${u.kind}`});art.append(drawing);
    const add=(tag,attrs,parent=drawing)=>{const n=el(tag,attrs);parent.append(n);return n;};
    const path=(d,cls,parent=drawing)=>add('path',{d,class:cls},parent);
-   if(['radioman','commando','mountain','partisan','askari','mortar','pathfinder','flak'].includes(u.kind)||u.kind==='squad'&&u.faction&&!['us','de','su'].includes(u.faction)){
-    const symbols={pathfinder:'M-2 3V-12M-7 3H3M-8-10q6-6 12 0M-12-14q10-9 20 0',flak:'M-14 3H14M0 3V-5M-5-5L8-18l4 4L-1-1M-8-3l4-5',radioman:'M-11 2V-10H9V2ZM-6-10V-19M-6-6H4M-6-2H-3M9-16q9 2 7 11',commando:'M-9 3L7-16 12-18 11-12-5 5M-8-2l7 6',mountain:'M-16 3L-4-17 3-3 9-12 18 3ZM-7-11l3 4 3-4',partisan:'M-16 3L-6-13 3 3M2 4l13-18M8-12l7 7',askari:'M-13 3L12-16M-10 4l-5-5M7-12l6 6',mortar:'M-15 4H15M-8 2L7-17l6 4L-2 4M-3-4l12 8'};
+   if(['supply','radioman','commando','mountain','partisan','askari','mortar','pathfinder','flak'].includes(u.kind)||u.kind==='squad'&&u.faction&&!['us','de','su'].includes(u.faction)){
+    const symbols={supply:'M-13-13H13V4H-13ZM-13-13L0-19l13 6M0-19V4M-13-5h26',pathfinder:'M-2 3V-12M-7 3H3M-8-10q6-6 12 0M-12-14q10-9 20 0',flak:'M-14 3H14M0 3V-5M-5-5L8-18l4 4L-1-1M-8-3l4-5',radioman:'M-11 2V-10H9V2ZM-6-10V-19M-6-6H4M-6-2H-3M9-16q9 2 7 11',commando:'M-9 3L7-16 12-18 11-12-5 5M-8-2l7 6',mountain:'M-16 3L-4-17 3-3 9-12 18 3ZM-7-11l3 4 3-4',partisan:'M-16 3L-6-13 3 3M2 4l13-18M8-12l7 7',askari:'M-13 3L12-16M-10 4l-5-5M7-12l6 6',mortar:'M-15 4H15M-8 2L7-17l6 4L-2 4M-3-4l12 8'};
     path(symbols[u.kind]||'M-14 3L12-15M-9 5l-6-6M6-11l7 7','specialist-line');
    }else if(['carrier','battleship','cruiser','destroyer'].includes(u.kind)){
     drawing.classList.add('naval-silhouette');

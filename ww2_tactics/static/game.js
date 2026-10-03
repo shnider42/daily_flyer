@@ -140,7 +140,7 @@ function chooseUnit(u){if(busy||playbackSession)return;if(combatMode){window.pic
 function placeBarrage(pos){const effect=state.combat_version?'Infantry there takes 1 damage, pins and loses dug-in cover, including yours. Armor, vehicles and ships are unaffected.':'ALL units there will be pinned and lose dug-in cover, including yours. No strength damage.';if(state.legal[selected]?.barrage?.some(p=>p[0]===pos[0]&&p[1]===pos[1])&&confirm(`Call your army's only mortar barrage at ${hexColumn(pos[0])}${pos[1]+1}? The marked hex and its neighbors will be hit at the end of your opponent's turn. ${effect}`))act({kind:'barrage',unit:selected,pos});}
 function placeSmoke(pos){if(state.legal[selected]?.smoke?.some(p=>p[0]===pos[0]&&p[1]===pos[1]))act({kind:'smoke',unit:selected,pos});}
 function chance(threshold){return Math.max(0,Math.min(100,Math.round((7-threshold)/6*100)));}
-function moveUnit(move){if(!move.threats||confirm(state.signals_version?'This hex crosses a spotted enemy firing lane. It does not reveal whether they are on overwatch; hidden threats remain possible. Move?':`${move.threats} enemy unit${move.threats===1?' is':'s are'} watching ${state.air_version?'this flight path':'this hex'}. Move and risk reaction fire?`))act({kind:'move',unit:selected,pos:move.pos});}
+function moveUnit(move){if(!move.threats||confirm(state.signals_version?'Possible firing lane: a currently spotted enemy could reach this hex. We do NOT know whether it is on overwatch. Unmarked hexes may still hide threats. Move?':`${move.threats} enemy unit${move.threats===1?' is':'s are'} watching ${state.air_version?'this flight path':'this hex'}. Move and risk reaction fire?`))act({kind:'move',unit:selected,pos:move.pos});}
 function scenarioPreview(){
  const board=scenarios.find(s=>s.id===$('scenarioSelect').value);if(!board)return;
  $('scenarioBrief').textContent=board.brief;
@@ -327,6 +327,7 @@ function render(){
  if(window.renderSignals)window.renderSignals(unit,legal,svg);
  if(window.renderAirborne)window.renderAirborne(unit,legal,svg);
  if(window.renderFubar)window.renderFubar(unit,legal,svg);
+ if(window.renderNewFronts)window.renderNewFronts(unit,legal,svg);
  if(window.renderOrderCapabilities)window.renderOrderCapabilities(unit);
  const buildingWarning=unit&&unit.hp>0&&!unit.reserve&&!unit.carrier_id&&buildingCondition(state,unit.pos)==='damaged'&&!picking&&!target;
  $('hint').classList.toggle('building-warning',!!buildingWarning);

@@ -47,7 +47,7 @@ function stopPlayback(){
 function drawPlayback(){
  const p=playbackSession,frame=p.frames[p.index],snapshot=frame[p.phase],action=frame.action;
  const actor=frame.before.units.find(u=>u.id===action.unit),targetUnit=frame.before.units.find(u=>u.id===action.target);
- const labels={move:'moves',fire:'fires',grenade:'throws a frag',assault:'assaults',suppress:'suppresses',inspire:'rallies nearby troops',command:'orders On your feet',rally:'rallies',dig:'digs in',smoke:'throws smoke',overwatch:'takes overwatch',barrage:'calls mortars',end:'ends the turn'};
+ const labels={resupply:'delivers supplies',evacuate:'evacuates infantry',move:'moves',fire:'fires',grenade:'throws a frag',assault:'assaults',suppress:'suppresses',inspire:'rallies nearby troops',command:'orders On your feet',rally:'rallies',dig:'digs in',smoke:'throws smoke',overwatch:'takes overwatch',barrage:'calls mortars',end:'ends the turn'};
  labels.load='boards infantry';labels.unload='unloads infantry';labels.rearm='services aircraft';
  Object.assign(labels,{load_ammo:'changes ammunition',repair_tracks:'repairs tracks',bombard:'bombards an area',artillery:'calls artillery',field_recon:'launches recon'});
  Object.assign(labels,{airborne_drop:'calls airborne reserves',mark_lz:'marks a landing zone',radio_update:'broadcasts radio reports',observe:'observes',conceal:'camouflages',mortar_fire:'calls mortar fire',demolition:'places a demolition charge'});

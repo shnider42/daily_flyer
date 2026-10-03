@@ -44,7 +44,8 @@ class FubarTests(unittest.TestCase):
 
     def test_every_existing_kind_and_valid_deployment(self):
         s=self.battle();kinds={u['kind'] for u in s['units']}
-        expected={u['kind'] for key in SCENARIOS if key!='fubar' for u in initial(key,'dsl')['units']}
+        # Fubar v1 retains the original 31-kind roster; new logistics maps opt in separately.
+        expected={u['kind'] for key in SCENARIOS if key!='fubar' and not SCENARIOS[key].get('logistics') for u in initial(key,'dsl')['units']}
         self.assertEqual(kinds,expected);self.assertEqual(len(kinds),31)
         self.assertEqual(len({u['id'] for u in s['units']}),66)
         self.assertEqual(len({(tuple(u['pos']),domains.is_air(u)) for u in s['units'] if active(u)}),sum(active(u) for u in s['units']))

@@ -7,7 +7,7 @@ from .engine import apply, options, distance, terrain, line_clear
 from .scenarios import battlefield
 from .rulesets import dsl, turn_limit
 from .visibility import fog, view, visible_ids, active, sight_reader
-from . import naval, air, weapons, buildings, operations, fieldworks, linked_front, signals, airborne, domains, fubar
+from . import naval, air, weapons, buildings, operations, fieldworks, linked_front, signals, airborne, domains, fubar, new_fronts, logistics
 
 
 def objective_costs(state, goal=None, unit=None):
@@ -64,13 +64,20 @@ def choose_order(state, costs, visited, front_costs=None):
         if domains.joint(state) and unit['kind'] in domains.AIR_UNITS | domains.SHIPS:
             choices.extend(fubar.domain_choices(state,unit,options(state,unit),list(units.values()),visited))
             continue
-        goal = fubar.ground_goal(state,unit) if domains.joint(state) else linked_front.goal(state, unit)
+        if new_fronts.enabled(state) and state['front_mode']=='evacuation' and unit['kind']=='landing_craft':
+            choices.extend(new_fronts.boat_choices(state, unit, options(state, unit)))
+            continue
+        goal = new_fronts.goal(state, unit, fubar.ground_goal(state,unit) if domains.joint(state) else linked_front.goal(state, unit))
+        if state.get('logistics_version') and unit['kind']=='supply' and unit.get('supply_packs'):
+            needs=[v for v in state['units'] if v['side']==side and active(v) and logistics.delivery(v)]
+            if needs:goal=min(needs,key=lambda v:distance(unit['pos'],v['pos']))['pos']
         unit_costs = next((objective_maps[p['id']] for p in board.get('linked_objectives', []) if p['pos'] == goal), costs)
         if signals.enabled(state) and unit['kind']!='at_gun':
             key=(tuple(goal),unit['kind'] if unit.get('armor') else 'mountain' if unit.get('mountain_movement') else 'foot',unit.get('move_ap'),bool(unit.get('afloat')))
             if key not in mobility:mobility[key]=objective_costs(state,goal,unit)
             unit_costs=mobility[key]
         legal = options(state, unit)
+        for supply in legal.get('resupply', []):add(15, unit, 'resupply', target=supply['id'])
         if legal.get('airborne_drop'):
             candidates=[[x,y] for y in range(board['height']) for x in range(board['width']) if known_ground[y][x] in {'field','road','objective','beach'}
                         and not any(t['pos']==[x,y] for t in units.values())]
@@ -197,6 +204,7 @@ def choose_order(state, costs, visited, front_costs=None):
                 score += 16
             if exposed:
                 score -= 10
+            if new_fronts.enabled(state) and state['front_mode']=='evacuation' and unit.get('evacuee') and gain>0:score+=8
             add(score, unit, 'move', pos=pos)
         near = unit_costs.get(tuple(unit['pos']), 100) <= 2
         if legal['overwatch']:
