@@ -4,6 +4,7 @@ Seat ownership is attached to the existing owner hash, so MOVE aliases and army
 swaps continue to work. The directory never returns battlefield or seat secrets.
 """
 import re
+import json
 import secrets
 import sqlite3
 import time
@@ -13,7 +14,7 @@ from werkzeug.security import check_password_hash, generate_password_hash
 from werkzeug.exceptions import BadRequest, Conflict, Forbidden, TooManyRequests, Unauthorized
 
 
-def install_lobby(app, connect, digest, identify):
+def install_lobby(app, connect, digest, identify, membership=None):
     with connect() as db:
         db.executescript('''
             CREATE TABLE IF NOT EXISTS commanders (
@@ -76,6 +77,10 @@ def install_lobby(app, connect, digest, identify):
     def owns(db, row, player):
         if not player:
             return None
+        from .cooperative import linked_member
+        seat = linked_member(db, row, player)
+        if seat:
+            return json.loads(row['state'])['coop']['players'][seat['player_id']]['side']
         owners = {r['owner_hash'] for r in db.execute('SELECT owner_hash FROM commander_seats WHERE commander_id=?', (player['id'],))}
         return 'us' if row['host'] in owners else 'de' if row['guest'] in owners else None
 
@@ -149,6 +154,7 @@ def install_lobby(app, connect, digest, identify):
             # Only summary fields cross this boundary. Fog, legal moves, logs, and
             # credentials never enter the lobby response.
             rows = db.execute('''SELECT m.code,n.name,n.updated,
+                    json_extract(m.state,'$.coop') AS coop_data, cp.player_id AS coop_player,
                     json_extract(m.state,'$.battlefield.name') AS scenario,
                     json_extract(m.state,'$.ruleset') AS ruleset,
                     json_extract(m.state,'$.round') AS round,
@@ -167,15 +173,27 @@ def install_lobby(app, connect, digest, identify):
                 LEFT JOIN commanders h ON h.id=hs.commander_id
                 LEFT JOIN commander_seats gs ON gs.owner_hash=m.guest
                 LEFT JOIN commanders g ON g.id=gs.commander_id
+                LEFT JOIN (SELECT p.code,p.player_id FROM cooperative_players p JOIN commander_seats cs
+                    ON cs.owner_hash=p.owner_hash WHERE cs.commander_id=?) cp ON cp.code=m.code
                 WHERE json_extract(m.state,'$.ai_side') IS NULL
                   AND (? OR json_extract(m.state,'$.winner') IS NULL)
-                  AND (?=0 OR hs.commander_id=? OR gs.commander_id=?)
+                  AND (?=0 OR hs.commander_id=? OR gs.commander_id=? OR cp.player_id IS NOT NULL)
                   AND instr(lower(n.name || ' ' || coalesce(h.name,'') || ' ' || coalesce(g.name,'') || ' ' || m.code),?)>0
-                ORDER BY (hs.commander_id=? OR gs.commander_id=?) DESC,n.updated DESC,m.slot DESC
+                ORDER BY (hs.commander_id=? OR gs.commander_id=? OR cp.player_id IS NOT NULL) DESC,n.updated DESC,m.slot DESC
                 LIMIT 51 OFFSET ?''',
-                (player_id, player_id, request.args.get('finished') == '1', request.args.get('mine') == '1',
+                (player_id, player_id, player_id, request.args.get('finished') == '1', request.args.get('mine') == '1',
                  player_id, player_id, query, player_id, player_id, offset)).fetchall()
-        return jsonify(games=[dict(row) for row in rows[:50]], has_more=len(rows)>50)
+        games = []
+        for row in rows[:50]:
+            game = dict(row); raw = game.pop('coop_data'); pid = game.pop('coop_player')
+            if raw:
+                c = json.loads(raw)
+                available = sum(not g['command'] and g['owner'] is None for g in c['groups'].values())
+                game.update(cooperative=True, full=c['phase'] != 'lobby' or not available,
+                    open_side=None, your_side=c['players'][pid]['side'] if pid else None,
+                    players=len(c['players']), open_groups=available, phase=c['phase'] if c['phase']=='lobby' else game['phase'])
+            games.append(game)
+        return jsonify(games=games, has_more=len(rows)>50)
 
     @app.post('/api/match/<code>/resume')
     def resume(code):
@@ -187,7 +205,9 @@ def install_lobby(app, connect, digest, identify):
             if not side:
                 raise Forbidden('This game is not linked to your commander. Use its saved browser or a MOVE code, then link that seat.')
             token = secrets.token_urlsafe(32)
-            db.execute('INSERT INTO player_access VALUES (?,?)', (digest(token), row['host' if side == 'us' else 'guest']))
+            from .cooperative import linked_member
+            seat = linked_member(db, row, player)
+            db.execute('INSERT INTO player_access VALUES (?,?)', (digest(token), seat['owner_hash'] if seat else row['host' if side == 'us' else 'guest']))
         return jsonify(code=row['code'], token=token)
 
     @app.post('/api/match/<code>/link')
@@ -200,9 +220,14 @@ def install_lobby(app, connect, digest, identify):
             if not side:
                 raise Forbidden('Open this game using its saved browser or a MOVE code before linking it.')
             existing = owns(db, row, player)
+            seat = membership(db, row) if membership else None
+            from .cooperative import linked_member
+            other = linked_member(db, row, player)
+            if seat and other and seat['player_id'] != other['player_id']:
+                raise Conflict('Your commander already owns another group in this battle.')
             if existing and existing != side:
                 raise Conflict('Your commander already owns the other side of this game.')
-            bind(db, row['host' if side == 'us' else 'guest'], player)
+            bind(db, seat['owner_hash'] if seat else row['host' if side == 'us' else 'guest'], player)
         return jsonify(ok=True)
 
     @app.post('/api/match/<code>/name')
@@ -214,6 +239,9 @@ def install_lobby(app, connect, digest, identify):
             row = db.execute('SELECT * FROM match WHERE code=?', (code.upper(),)).fetchone()
             if not row or not identify(db, row):
                 raise Forbidden('Only a player in this game can rename it.')
+            state = json.loads(row['state'])
+            if state.get('coop') and membership(db, row)['player_id'] != state['coop']['host']:
+                raise Forbidden('Only the cooperative host can rename this game.')
             db.execute('UPDATE lobby_names SET name=?,updated=? WHERE code=?', (name, time.time(), row['code']))
             db.execute("UPDATE match SET state=json_set(state,'$.revision',json_extract(state,'$.revision')+1) WHERE code=?", (row['code'],))
         return jsonify(name=name)

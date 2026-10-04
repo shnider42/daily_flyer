@@ -15,9 +15,9 @@
  const close=el('button','deploymentClose','Back to map'),heading=el('h2','deploymentDialogTitle','Plan before the first shot'),body=el('div','deploymentExplanation'),confirm=el('button','deploymentConfirm','Lock my plan');confirm.className='primary';
  close.onclick=()=>dialog.close();dialog.append(close,heading,body,confirm);document.body.append(dialog);
  let mode='units',key='',lastOverlay='',wasActive=false;
- const preparing=()=>state?.deployment?.phase==='planning'&&!state.winner;
+ const preparing=()=>state?.coop?.phase!=='lobby'&&state?.deployment?.phase==='planning'&&!state.winner;
  const coord=p=>`${hexColumn(p[0])}${p[1]+1}`;
- function available(){return preparing()&&!state.deployment.locked[state.side]&&!busy&&!state.rematch;}
+ function available(){return preparing()&&!state.deployment.locked[state.side]&&!state.coop?.done&&!busy&&!state.rematch;}
  function explain(review=false){
   if(!preparing())return;
   const d=state.deployment,de=state.side==='de';
@@ -78,15 +78,17 @@
   title.textContent=locked?'Plan locked':de?'Prepare your defenses':'Prepare your landing';
   plan.textContent=de?`Bunkers ${d.bunkers.length}/${d.bunker_budget}`:`Naval fire ${d.fire.length}/${d.fire_budget}`;
   units.setAttribute('aria-pressed',String(mode==='units'));plan.setAttribute('aria-pressed',String(mode==='plan'));
-  const own=state.units.filter(u=>!u.carrier_id&&u.side===state.side);
+  const own=state.units.filter(u=>!u.carrier_id&&u.side===state.side&&controlsUnit(u));
+  if(state.coop){reset.hidden=true;plan.hidden=!state.coop.captain;if(!state.coop.captain)mode='units';if(selected&&!own.some(u=>u.id===selected))selected=null;}else{reset.hidden=false;plan.hidden=false;}
   // Selecting a passenger in the regular roster selects its transport here.
   const current=state.units.find(u=>u.id===selected);if(current?.carrier_id)selected=current.carrier_id;
   const options=own.map(u=>{const passenger=state.units.find(t=>t.carrier_id===u.id);return {id:u.id,label:`${unitName(u)} · ${coord(u.pos)}${passenger?' · '+unitTypeName(passenger)+' aboard':''}`};});
   const optionKey=JSON.stringify(options);if(pick.dataset.options!==optionKey){pick.replaceChildren(new Option('Choose unit / boat…',''),...options.map(o=>new Option(o.label,o.id)));pick.dataset.options=optionKey;}
-  pick.value=selected||'';pick.disabled=busy||locked;pick.hidden=pickLabel.hidden=mode!=='units';
+  pick.value=selected||'';pick.disabled=busy||locked||!!state.coop?.done;pick.hidden=pickLabel.hidden=mode!=='units';
   instruction.textContent=locked?'Your plan is final. You can review it while the other commander finishes.':mode==='units'?(selected?'Tap a highlighted hex to reposition. No AP cost.':'Choose a unit, then tap a highlighted hex.'):de?'Tap open ground to add a bunker; tap it again to remove. Keep one hex between bunkers.':'Tap inland hexes to aim; tap a number to remove. Keep two hexes between aim points. Enemy positions are unknown.';
   status.textContent=!state.ready?'You can prepare now. Invite the other commander from Battle.':locked?'Waiting for the other plan.':`${d.locked[other]?'Opponent ready':'Opponent preparing'} · Your plan is private`;
-  lock.textContent=locked?'Plan locked':'Review & lock';lock.disabled=reset.disabled=!available();
+  lock.textContent=state.coop?(state.coop.done?'Waiting for team':'Finish my preparation'):locked?'Plan locked':'Review & lock';
+  if(state.coop)status.textContent=state.coop.done?'Your placements are final. Waiting for teammates to finish.':'Place your own units. Your army captain sets bunkers / naval fire. Everyone finishes before the army plan locks.';lock.disabled=reset.disabled=!available();
   $('end').disabled=true;
   draw();
  }

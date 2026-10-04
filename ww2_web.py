@@ -20,6 +20,7 @@ from ww2_tactics.order_history import perform, status as history_status, KEY as 
 from ww2_tactics.lobby import install_lobby
 from ww2_tactics.admin import install_admin
 from ww2_tactics.battle_setup import assignment, seats, carry_creator, result_summary
+from ww2_tactics import cooperative
 
 
 def create_app(db_path=None):
@@ -51,31 +52,48 @@ def create_app(db_path=None):
         db.execute('CREATE TABLE IF NOT EXISTS player_access (key_hash TEXT PRIMARY KEY, owner_hash TEXT)')
         db.execute('CREATE TABLE IF NOT EXISTS transfers (key_hash TEXT PRIMARY KEY, code TEXT, owner_hash TEXT, expires REAL)')
         db.execute('CREATE TABLE IF NOT EXISTS saves (key_hash TEXT PRIMARY KEY, state TEXT, side TEXT, created REAL)')
+        cooperative.install(db)
 
     def digest(token):
         return hashlib.sha256(token.encode()).hexdigest()
 
-    def identify(db, row):
+    def owner_key(db):
         hashed = digest(request.headers.get("Authorization", "").removeprefix("Bearer "))
         alias = db.execute('SELECT owner_hash FROM player_access WHERE key_hash=?', (hashed,)).fetchone()
         if alias:
             hashed = alias['owner_hash']
+        return hashed
+
+    def membership(db, row):
+        return cooperative.member(db, row, owner_key(db)) if row else None
+
+    def identify(db, row):
+        hashed = owner_key(db)
+        member = cooperative.member(db, row, hashed)
+        if member:
+            return json.loads(row['state'])['coop']['players'][member['player_id']]['side']
         if row['host'] and secrets.compare_digest(hashed, row["host"]):
             return "us"
         if row["guest"] and secrets.compare_digest(hashed, row["guest"]):
             return "de"
         return None
 
-    commander, bind_commander, battle_name, match_title, commander_side = install_lobby(app, connect, digest, identify)
+    commander, bind_commander, battle_name, match_title, commander_side = install_lobby(app, connect, digest, identify, membership)
     install_admin(app, connect, commander, battle_name, path)
 
     def public(db, row, side):
         state = json.loads(row["state"])
-        state['order_history'] = history_status(state, side)
+        member = membership(db, row) if state.get('coop') else None
+        pid = member['player_id'] if member else None
+        state['order_history'] = (dict(can_undo=False, can_redo=False, redo_required=False,
+            undo_label='', redo_label='', reason='Shared battle orders are committed immediately.')
+            if pid else history_status(state, side))
         state.pop(HISTORY_KEY, None)
         # Replay frames are already fog-filtered when the computer creates them.
         # Keep their immutable payload outside the deep-copied live projection.
-        replay = state.get('computer_playback')
+        replay = state.pop('_coop_replays', {}).get(side) if pid else state.get('computer_playback')
+        if pid and replay:
+            state['computer_playback'] = replay
         if isinstance(replay, dict):
             state['computer_playback'] = {'id': replay.get('id')} if replay else {}
         board = battlefield(state)
@@ -88,11 +106,17 @@ def create_app(db_path=None):
             state['match_name'] = match_title(db, row['code'])
         from ww2_tactics.visibility import sight_calculations
         with sight_calculations(state):
-            state["legal"] = {u["id"]: options(state, u) for u in state["units"] if u["side"] == side}
+            state["legal"] = {u["id"]: (cooperative.filter_legal(state, pid, u, options(state, u))
+                if pid else options(state, u)) for u in state["units"] if u["side"] == side}
             if state['order_history']['redo_required']:
                 state['legal'] = {uid: {key: [] if isinstance(value, list) else False
                                        for key, value in legal.items()} for uid, legal in state['legal'].items()}
+            if pid:
+                safe_coop = cooperative.public(state, pid)
+                state.pop('coop')
             result = public_state(state,side)
+            if pid:
+                result['coop'] = safe_coop
             if isinstance(replay, dict):
                 replay_key = f"{row['code']}:{side}:{state.get('battle_number') or 1}:{replay.get('id')}"
                 # Opt-in acknowledgement, never a cache shared between players.
@@ -161,8 +185,8 @@ def create_app(db_path=None):
     def new_battle(scenario):
         body = request.get_json(silent=True) or {}
         mode = body.get('opponent', 'human')
-        if mode not in ('human', 'computer'):
-            raise ValueError('Choose a human or computer opponent.')
+        if mode not in ('human', 'computer', 'cooperative'):
+            raise ValueError('Choose a human, computer, or cooperative battle.')
         allocation = assignment(body)
         state = initial(scenario, body.get('ruleset', 'classic'))
         state['team_assignment'] = allocation
@@ -192,8 +216,16 @@ def create_app(db_path=None):
         with connect() as db:
             db.execute("BEGIN IMMEDIATE")
             player = commander(db, required=bool(name or request.headers.get('X-Commander-Token')))
+            if body.get('opponent') == 'cooperative':
+                pid = secrets.token_hex(8)
+                try:
+                    state = cooperative.initialize(state, body, pid, player['name'] if player else body.get('player_name', 'Host'))
+                except ValueError as error:
+                    return jsonify(error=str(error)), 400
             host, guest = seats(state, digest(token), digest(secrets.token_urlsafe(32)))
             db.execute("INSERT INTO match (code,host,guest,state) VALUES (?,?,?,?)", (code, host, guest, json.dumps(state)))
+            if state.get('coop'):
+                db.execute('INSERT INTO cooperative_players VALUES (?,?,?)', (code, pid, digest(token)))
             if not state.get('ai_side'):
                 bind_commander(db, digest(token), player)
                 if name:
@@ -208,6 +240,30 @@ def create_app(db_path=None):
             row = db.execute("SELECT * FROM match WHERE code=?", (code.upper(),)).fetchone()
             if row is None:
                 return jsonify(error="Match not found. Check the invitation code."), 404
+            state = json.loads(row['state'])
+            if state.get('coop'):
+                player = commander(db, required=bool(request.headers.get('X-Commander-Token')))
+                existing = membership(db, row) or cooperative.linked_member(db, row, player)
+                if existing:
+                    db.execute('INSERT INTO player_access VALUES (?,?)', (digest(token), existing['owner_hash']))
+                    return jsonify(code=row['code'], token=token)
+                if state['coop']['phase'] != 'lobby':
+                    return jsonify(error='This battle has started. Command assignments are locked; existing players can resume.'), 409
+                body = request.get_json(silent=True) or {}
+                if not isinstance(body, dict):
+                    return jsonify(error='Choose an army and command group.'), 400
+                pid = secrets.token_hex(8)
+                try:
+                    name = cooperative.player_name(player['name'] if player else body.get('player_name', 'Player'))
+                    state['coop']['players'][pid] = dict(id=pid, name=name, side=body.get('side'), group=None)
+                    cooperative.claim(state, pid, body.get('side'), body.get('group'))
+                except ValueError as error:
+                    return jsonify(error=str(error)), 400
+                state['revision'] += 1
+                db.execute('INSERT INTO cooperative_players VALUES (?,?,?)', (row['code'], pid, digest(token)))
+                bind_commander(db, digest(token), player)
+                db.execute('UPDATE match SET state=? WHERE code=?', (json.dumps(state), row['code']))
+                return jsonify(code=row['code'], token=token)
             if json.loads(row['state']).get('ai_side'):
                 return jsonify(error='This is a solo battle. The computer seat cannot be joined.'), 409
             player = commander(db, required=bool(request.headers.get('X-Commander-Token')))
@@ -252,11 +308,46 @@ def create_app(db_path=None):
                 if type(body.get("revision")) is not int or body["revision"] != state["revision"]:
                     return jsonify(error="The match changed. Refreshing the battlefield; try again."), 409
                 try:
-                    state = perform(state, side, body)
+                    member = membership(db, row) if state.get('coop') else None
+                    state = cooperative.order(state, member['player_id'], body) if member else perform(state, side, body)
                 except ValueError as error:
                     return jsonify(error=str(error)), 400
                 db.execute("UPDATE match SET state=? WHERE code=?", (json.dumps(state), row["code"]))
                 row = db.execute("SELECT * FROM match WHERE code=?", (row["code"],)).fetchone()
+            return jsonify(public(db, row, side))
+
+    @app.route('/api/match/<code>/cooperative', methods=['GET', 'POST'])
+    def cooperative_lobby(code):
+        with connect() as db:
+            if request.method == 'POST':
+                db.execute('BEGIN IMMEDIATE')
+            row = db.execute('SELECT * FROM match WHERE code=?', (code.upper(),)).fetchone()
+            if not row or not json.loads(row['state']).get('coop'):
+                return jsonify(error='Cooperative battle not found.'), 404
+            state = json.loads(row['state']); member = membership(db, row)
+            if request.method == 'GET':
+                # Public recruitment board contains initial group counts only.
+                c = state['coop']
+                return jsonify(code=row['code'], name=match_title(db, row['code']), phase=c['phase'],
+                    scenario=state['battlefield']['name'], control_size=c['control_size'],
+                    factions=state.get('factions', {'us':'Americans', 'de':'Germans'}),
+                    players=list(c['players'].values()), host=c['host'],
+                    your_player=(member or cooperative.linked_member(db, row, commander(db)) or {}).get('player_id'),
+                    groups=[{k:v for k,v in g.items() if k != 'units'} | {'count':len(g['units'])} for g in c['groups'].values()])
+            if not member:
+                return jsonify(error='Player key required.'), 403
+            body = request.get_json(silent=True)
+            if not isinstance(body, dict):
+                return jsonify(error='Expected cooperative settings.'), 400
+            if type(body.get('revision')) is not int or body['revision'] != state['revision']:
+                return jsonify(error='The lobby or battle changed. Refresh and try again.'), 409
+            try:
+                state = cooperative.setup_action(state, member['player_id'], body)
+            except ValueError as error:
+                return jsonify(error=str(error)), 400
+            db.execute('UPDATE match SET state=? WHERE code=?', (json.dumps(state), row['code']))
+            row = db.execute('SELECT * FROM match WHERE code=?', (row['code'],)).fetchone()
+            side = state['coop']['players'][member['player_id']]['side']
             return jsonify(public(db, row, side))
 
     @app.post("/api/match/<code>/reset")
@@ -269,6 +360,8 @@ def create_app(db_path=None):
         with connect() as db:
             db.execute("BEGIN IMMEDIATE")
             row = db.execute("SELECT * FROM match WHERE code=?", (code.upper(),)).fetchone()
+            if row and (json.loads(row['state']).get('coop') or (request.get_json(silent=True) or {}).get('opponent') == 'cooperative'):
+                return jsonify(error='Create a separate cooperative lobby from Home. Existing shared battles are preserved.'), 400
             side = identify(db, row) if row else None
             if not side or (side != json.loads(row['state']).get('created_side', 'us') and not state.get('ai_side') and not json.loads(row['state']).get('ai_side')):
                 return jsonify(error="Only the creator can replace this multiplayer invitation."), 403
@@ -294,6 +387,8 @@ def create_app(db_path=None):
             if not side:
                 return jsonify(error='Player key required.'), 403
             state = json.loads(row['state'])
+            if state.get('coop'):
+                return jsonify(error='Create a new cooperative lobby from Home for the next operation.'), 400
             if not state['ready']:
                 return jsonify(error='Both commanders must join first.'), 400
             if type(body.get('revision')) is not int or body['revision'] != state['revision']:
@@ -375,7 +470,8 @@ def create_app(db_path=None):
             if not side:
                 return jsonify(error='Player key required.'), 403
             value = secret_code('MOVE')
-            owner = row['host' if side == 'us' else 'guest']
+            member = membership(db, row)
+            owner = member['owner_hash'] if member else row['host' if side == 'us' else 'guest']
             db.execute('DELETE FROM transfers WHERE expires < ?', (time.time(),))
             db.execute('INSERT INTO transfers VALUES (?,?,?,?)',
                        (code_hash(value), row['code'], owner, time.time()+900))
@@ -388,7 +484,7 @@ def create_app(db_path=None):
             db.execute('BEGIN IMMEDIATE')
             ticket = db.execute('SELECT * FROM transfers WHERE key_hash=?', (key,)).fetchone()
             row = db.execute('SELECT * FROM match WHERE code=?', (ticket['code'],)).fetchone() if ticket else None
-            if not ticket or ticket['expires'] < time.time() or not row or ticket['owner_hash'] not in (row['host'], row['guest']):
+            if not ticket or ticket['expires'] < time.time() or not row or (ticket['owner_hash'] not in (row['host'], row['guest']) and not cooperative.member(db, row, ticket['owner_hash'])):
                 return jsonify(error='Transfer code is invalid, expired, or already used. Generate another on your original device.'), 400
             token = secrets.token_urlsafe(32)
             db.execute('INSERT INTO player_access VALUES (?,?)', (digest(token), ticket['owner_hash']))

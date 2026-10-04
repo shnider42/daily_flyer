@@ -20,6 +20,7 @@ Object.assign(kinds,{carrier:'Aircraft carrier',battleship:'Battleship',cruiser:
 Object.assign(unitCodes,{carrier:'CV',battleship:'BB',cruiser:'CA',destroyer:'DD'});
 Object.assign(kinds,{fighter:'Fighter',bomber:'Bomber',aa_gun:'Anti-aircraft gun',radar:'Radar station',airfield:'Airfield',landing_craft:'Landing craft'});
 Object.assign(unitCodes,{fighter:'FTR',bomber:'BMR',aa_gun:'AA',radar:'RAD',airfield:'AF',landing_craft:'LC'});
+function controlsUnit(u){return !state?.coop||state.coop.controlled.includes(u.id);}
 function sideLabel(side){return state?.factions?.[side]||names[side];}
 function strengthLabel(u){return state?.naval_version||u.protection==='ship'?`${u.hp}/${u.max_hp} · ${u.ap}`:'●'.repeat(u.hp)+' · '+u.ap;}
 function notify(text){$('message').textContent=text;$('message').hidden=false;clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('message').hidden=true,6500);}
@@ -152,7 +153,7 @@ async function rematchRequest(body){await run(async()=>{state=await api(`/api/ma
 function render(){
  if(!state||lobbyMode)return;const restoreMap=holdMobileMap();$('lobby').hidden=true;$('game').hidden=false;
  Object.assign(names,state.factions||{us:'Americans',de:'Germans'});
- const myTurn=state.deployment?.phase!=='planning'&&state.ready&&!state.winner&&state.turn===state.side&&!state.order_history?.redo_required;
+ const myTurn=!state.coop?.done&&state.deployment?.phase!=='planning'&&state.ready&&!state.winner&&state.turn===state.side&&!state.order_history?.redo_required;
  const board=state.scenario||{id:'village',name:'Village Crossing',objective_name:'Village square',rounds:8};
  const large=!!board.platoons;
  const dsl=state.ruleset==='dsl';
@@ -162,10 +163,10 @@ function render(){
  $('manualOrders').textContent=dsl?'Tap your unit, then a highlighted hex to move or an enemy to preview an attack. Gold dashed road hexes cost 0 AP. End turn banks unused AP up to each unit’s limit.':'Tap your unit. Green hexes are legal moves. Tap an enemy in range to preview a shot, then confirm Fire. End turn when ready; unused actions are lost.';
  const battleKey=`${state.code}:${state.battle_number||1}`;
  const newBattle=renderedBattle!==battleKey;
- if(newBattle){platoonFilter=large?'A':'all';$('mapWrap').classList.toggle('enlarged',large);selected=null;target=null;smokeMode=false;barrageMode=false;renderedBattle=battleKey;$('mapWrap').scrollTo?.(0,0);}
+ if(newBattle){platoonFilter=state.coop?(state.units.find(u=>controlsUnit(u))?.platoon||'all'):large?'A':'all';$('mapWrap').classList.toggle('enlarged',large);selected=null;target=null;smokeMode=false;barrageMode=false;renderedBattle=battleKey;$('mapWrap').scrollTo?.(0,0);}
  $('mapWrap').classList.toggle('large-map',large);$('zoom').textContent=large?($('mapWrap').classList.contains('enlarged')?'Overview':'Detail'):($('mapWrap').classList.contains('enlarged')?'Fit map −':'Enlarge map +');$('zoom').setAttribute('aria-pressed',String($('mapWrap').classList.contains('enlarged')));
  $('battleTitle').textContent=state.match_name||board.name;if(!window.ww2Briefing)document.title=`${state.match_name||board.name} · WWII Tactics`;
- $('battleNumber').textContent=`${state.ai_side?'SOLO · COMPUTER':board.name+' · TWO PLAYER'} · ${state.code} · BATTLE ${state.battle_number||1}`;
+ $('battleNumber').textContent=`${state.coop?'CO-OP & TEAMS':state.ai_side?'SOLO · COMPUTER':board.name+' · TWO PLAYER'} · ${state.code} · BATTLE ${state.battle_number||1}`;
  $('homeBattles').hidden=false;
  $('objectiveName').textContent=`★ ${board.objective_name.toUpperCase()}`;
  $('round').textContent=`${state.round} / ${board.rounds}`;$('side').textContent=`You command the ${names[state.side]}`;
@@ -174,7 +175,7 @@ function render(){
  $('soloButton').hidden=!!state.ai_side;
  $('saveButton').hidden=!state.ai_side;
  const phase=state.winner?'Finished':state.deployment?.phase==='planning'?'Pre-battle setup':!state.ready?'Waiting for opponent':state.turn===state.side?'Your turn':'Opponent’s turn';
- const label=`${state.match_name||state.scenario.name} · ${state.ai_side?'Solo':'Two player'} · ${names[state.side]} · Round ${state.round} · ${phase}`;
+ const label=`${state.match_name||state.scenario.name} · ${state.coop?'Co-op & teams':state.ai_side?'Solo':'Two player'} · ${names[state.side]} · Round ${state.round} · ${phase}`;
  if(session.label!==label){session.label=label;savedSessions=savedSessions.map(s=>s.code===session.code?session:s);persistSessions();}
  $('computerReview').hidden=!state.computer_orders?.length;
  $('computerOrders').replaceChildren(...(state.computer_orders||[]).map(text=>{const li=document.createElement('li');li.textContent=text;return li;}));
@@ -304,16 +305,16 @@ function render(){
  $('dig').hidden=!myTurn||!legal?.dig;$('dig').disabled=busy;
  $('overwatch').hidden=!myTurn||!legal?.overwatch;$('overwatch').disabled=busy;
  $('smoke').hidden=!myTurn||!legal?.smoke?.length;$('smoke').disabled=busy;$('smoke').textContent=smokeMode?'Cancel smoke':'Smoke · 1 action';
- $('rally').hidden=!myTurn||!legal?.rally;$('rally').disabled=busy;$('end').disabled=!myTurn||busy;$('reset').hidden=state.side!=='us';
+ $('rally').hidden=!myTurn||!legal?.rally;$('rally').disabled=busy;$('end').disabled=!myTurn||busy;$('reset').hidden=!!state.coop||state.side!=='us';
  if(state.ai_side)$('reset').hidden=false;
  $('latest').textContent=state.log.at(-1);$('log').replaceChildren(...state.log.slice().reverse().map(text=>{const li=document.createElement('li');li.textContent=text;return li;}));
  $('roster').replaceChildren(...state.units.filter(u=>u.side===state.side&&(platoonFilter==='all'||u.platoon===platoonFilter)).map((u,i)=>{const b=document.createElement('button');b.dataset.platoon=u.platoon||'none';b.className=`roster-unit${u.id===selected?' active':''}`;b.disabled=u.hp<=0||busy;b.textContent=`${u.kind==='leader'?'LT':u.kind==='mg'?'MG':'SQ'} ${u.platoon?u.platoon+u.number:i+1} · ${u.hp<=0?'Lost':u.pinned?'Pinned':u.overwatch?'Watching':u.ap+' AP'}`;b.setAttribute('aria-label',`${unitName(u)}${u.platoon?'':' '+(i+1)}, ${u.hp<=0?'eliminated':u.hp+' strength, '+u.ap+' actions'}`);b.onclick=()=>{smokeMode=false;barrageMode=false;combatMode=null;chooseUnit(u);};return b;}));
- $('nextUnit').disabled=busy||!state.units.some(u=>u.side===state.side&&u.hp>0&&(platoonFilter==='all'||u.platoon===platoonFilter));
+ $('nextUnit').disabled=busy||!state.units.some(u=>u.side===state.side&&controlsUnit(u)&&u.hp>0&&(platoonFilter==='all'||u.platoon===platoonFilter));
  $('battleReport').hidden=!state.winner;
  if(state.winner){$('reportTitle').textContent=`${state.winner===state.side?'Victory':'Defeat'} · ${sideLabel(state.winner)} win.`;const alive=state.units.filter(u=>u.side===state.side&&u.hp>0);$('reportBody').textContent=`${state.battle_result?.reason||'The battle has ended.'} Your force: ${alive.length} surviving units, ${alive.reduce((n,u)=>n+u.hp,0)} strength.`;}
  $('seriesScore').textContent=`Army victories this session · ${names.us} ${state.victories?.us||0} / ${names.de} ${state.victories?.de||0}`;
- $('resignButton').hidden=!state.ready||!!state.winner;$('resignButton').disabled=busy;
- $('rematchButton').hidden=!state.ready;$('rematchButton').disabled=busy||!!state.rematch;
+ $('resignButton').hidden=!state.ready||!!state.winner||!!state.coop&&!state.coop.captain;$('resignButton').disabled=busy;
+ $('rematchButton').hidden=!!state.coop||!state.ready;$('rematchButton').disabled=busy||!!state.rematch;
  $('rematchProposal').hidden=!state.rematch;
  if(state.rematch){const p=state.rematch,mine=p.by===state.side;$('proposalText').textContent=`${mine?'You proposed':names[p.by]+' propose'} ${p.name} · ${p.ruleset==='dsl'?'DSL v1':'Classic'}${p.swap?' with armies swapped':' with the same armies'}. ${mine?'Waiting for the other commander.':'Accept to replace the current battle.'}`;$('acceptRematch').hidden=mine;$('acceptRematch').disabled=busy;$('declineRematch').disabled=busy;$('declineRematch').textContent=mine?'Cancel proposal':'Decline';}
  renderPlatoons(board);$('findUnit').hidden=!selected||!(large||$('mapWrap').classList.contains('enlarged'));if(newBattle&&large)focusMapUnit(state.units.find(u=>u.side===state.side&&u.platoon==='A'&&u.kind===(state.naval_version?'carrier':'leader')));
@@ -346,9 +347,9 @@ $('suppress').onclick=()=>act({kind:'suppress',unit:selected,target});
 $('inspire').onclick=()=>act({kind:'inspire',unit:selected});
 $('barrage').onclick=()=>{smokeMode=false;barrageMode=!barrageMode;target=null;render();};
 $('overwatch').onclick=()=>act({kind:'overwatch',unit:selected});
-$('nextUnit').onclick=()=>{const alive=state.units.filter(u=>u.side===state.side&&u.hp>0&&(platoonFilter==='all'||u.platoon===platoonFilter));const ready=alive.filter(u=>u.ap>0||state.legal[u.id]?.moves.some(m=>m.road_bonus));const units=ready.length?ready:alive;smokeMode=false;barrageMode=false;combatMode=null;chooseUnit(units[(units.findIndex(u=>u.id===selected)+1)%units.length]);};
-$('zoom').onclick=()=>{const enlarged=$('mapWrap').classList.toggle('enlarged');$('zoom').setAttribute('aria-pressed',String(enlarged));$('zoom').textContent=state.scenario?.platoons?(enlarged?'Overview':'Detail'):(enlarged?'Fit map −':'Enlarge map +');if(playbackSession){drawPlayback();return;}if(enlarged)focusMapUnit(state.units.find(u=>u.id===selected)||state.units.find(u=>u.side===state.side&&u.hp>0&&(platoonFilter==='all'||u.platoon===platoonFilter)));};
-$('end').onclick=()=>{const count=state.units.filter(u=>u.side===state.side&&u.hp>0&&u.ap>0).length;const exposed=state.units.filter(u=>u.side===state.side&&u.hp>0&&state.barrages?.some(b=>b.ttl===1&&b.area.some(p=>p[0]===u.pos[0]&&p[1]===u.pos[1]))).length;if(confirm(`End your turn? ${count} unit${count===1?' has':'s have'} unused actions.${state.ruleset==='dsl'?' Unused AP carries over up to 1 per unit, or 2 per LT; excess is lost.':''}${exposed?` WARNING: ${exposed} of your units will be caught in the incoming barrage.`:''}`))act({kind:'end'});};
+$('nextUnit').onclick=()=>{const alive=state.units.filter(u=>u.side===state.side&&controlsUnit(u)&&u.hp>0&&(platoonFilter==='all'||u.platoon===platoonFilter));const ready=alive.filter(u=>u.ap>0||state.legal[u.id]?.moves.some(m=>m.road_bonus));const units=ready.length?ready:alive;smokeMode=false;barrageMode=false;combatMode=null;chooseUnit(units[(units.findIndex(u=>u.id===selected)+1)%units.length]);};
+$('zoom').onclick=()=>{const enlarged=$('mapWrap').classList.toggle('enlarged');$('zoom').setAttribute('aria-pressed',String(enlarged));$('zoom').textContent=state.scenario?.platoons?(enlarged?'Overview':'Detail'):(enlarged?'Fit map −':'Enlarge map +');if(playbackSession){drawPlayback();return;}if(enlarged)focusMapUnit(state.units.find(u=>u.id===selected)||state.units.find(u=>u.side===state.side&&controlsUnit(u)&&u.hp>0&&(platoonFilter==='all'||u.platoon===platoonFilter)));};
+$('end').onclick=()=>{if(state.coop){if(confirm('Finish your orders? Your teammates can keep playing. When everyone is done, computer groups act and the army’s turn ends. Unused AP banks under the normal rules.'))act({kind:'end'});return;}const count=state.units.filter(u=>u.side===state.side&&u.hp>0&&u.ap>0).length;const exposed=state.units.filter(u=>u.side===state.side&&u.hp>0&&state.barrages?.some(b=>b.ttl===1&&b.area.some(p=>p[0]===u.pos[0]&&p[1]===u.pos[1]))).length;if(confirm(`End your turn? ${count} unit${count===1?' has':'s have'} unused actions.${state.ruleset==='dsl'?' Unused AP carries over up to 1 per unit, or 2 per LT; excess is lost.':''}${exposed?` WARNING: ${exposed} of your units will be caught in the incoming barrage.`:''}`))act({kind:'end'});};
 $('reset').onclick=()=>{if(confirm('Replace this match? Progress and the old invitation will be lost. Your opponent will need the new invitation.'))run(async()=>{const old=session.code;const next=await api(`/api/match/${old}/reset`,{ruleset:state.ruleset||'classic'});savedSessions=savedSessions.filter(s=>s.code!==old);remember(next);});};
 $('refresh').onclick=refresh;
 $('findUnit').onclick=()=>focusMapUnit(state.units.find(u=>u.id===selected));

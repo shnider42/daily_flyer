@@ -231,6 +231,20 @@
   book.splice(s.deployment?.phase==='planning'?3:1,0,...extra.slice(0,2));
   const finish=book.find(l=>l.id==='finish');book=book.filter(l=>l.id!=='finish');book.push(...extra.slice(2));if(finish)book.push(finish);
   if(s.scenario.id!=='iron_lantern'&&!s.joint_ops_version)book=book.filter(l=>l.id!=='heavy');
+  if(s.coop){
+   const texts=[
+    'You share an army with other players and computer groups. Units marked Your command follow your orders. You can inspect the others. Choose Finish my orders when you are done; your friends can keep playing until they finish too. Then your computer allies act and the other army takes its turn.',
+    'Your assigned group and any host-controlled commander are your command. Teammates share the army turn, but each submits their own orders and finishes independently. AI groups act after the army’s players finish. Shared orders are committed immediately. Open Team orders to see who is waiting or hand a departing player’s command to the computer.',
+    'Authorization is per player and assigned group, with revision checks for concurrent orders. Army resolution waits for all living human commands to finish, then executes unclaimed AI groups under their locked Easy/Standard policy. Army AP banking, delayed effects and scoring resolve once. Takebacks are unavailable across shared orders; fog-filtered replays are generated independently for each army.'
+   ];
+   book.unshift(make('cooperative','Share the command',texts,'Open Team orders and identify your command and teammates.','#coopQuick',[]));
+   for(const l of book){
+    if(l.id==='turn'){l.texts=texts;l.task='Finish your own orders only when ready; teammates keep their turns.';}
+    if(l.id==='undo'){l.texts=Array(3).fill('Orders in a shared battle are committed immediately. Undo and redo are unavailable because an order may affect a teammate’s next action. Inspect the target and cost before confirming.');l.task='Review an order before committing it.';}
+    if(l.id==='preparation-lock'){l.texts=Array(3).fill('Place only units under your command, then choose Finish my preparation. Each teammate must finish before your army locks. The army captain chooses shared bunkers or naval fire. The other army’s plan stays private. Army-wide resets are unavailable in shared battles.');}
+   }
+   if(!s.coop.captain)book=book.filter(l=>l.id!=='preparation-support');
+  }
   const level=window.ww2Experience?.level||'simple',index={simple:0,moderate:1,expert:2}[level];
   const orderNames={radioUpdate:'radio_update',callAirborne:'airborne_drop',breach:'breach',clear_wreck:'clear_wreck',bridge_gap:'bridge_gap'};
   return book.map(lesson=>{

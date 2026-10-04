@@ -76,10 +76,15 @@
  function phase(s){
   if(playbackSession)return {id:'replay',title:'WATCHING THE REPLAY',text:'Pause, step through or finish the replay before issuing orders.'};
   if(s.winner)return {id:'finished',title:s.winner===s.side?'VICTORY':'DEFEAT',text:s.resigned_by?`${s.factions?.[s.resigned_by]||names[s.resigned_by]} resigned. This battle has ended.`:'This battle has ended. Open the mission for the result.'};
-  if(s.deployment?.phase==='planning')return {id:'prebattle',title:s.deployment.locked[s.side]?'PLAN LOCKED':'PRE-BATTLE',text:s.deployment.locked[s.side]?'Waiting for the other plan. Enemy preparations remain private.':'Arrange your force and support plan, then review and lock. No AP is spent.'};
+  if(s.coop?.phase==='lobby')return {id:'waiting',title:'HOST SETTING UP',text:'Choose a command group. The host starts after everyone has joined.'};
+  if(s.deployment?.phase==='planning')return {id:'prebattle',title:s.coop?.done?'WAITING FOR TEAM':s.deployment.locked[s.side]?'PLAN LOCKED':'PRE-BATTLE',text:s.coop?(s.coop.done?'Your placements are final. The plan locks after every teammate finishes.':'Place your own units, then Finish my preparation. The army captain sets shared support.'):s.deployment.locked[s.side]?'Waiting for the other plan. Enemy preparations remain private.':'Arrange your force and support plan, then review and lock. No AP is spent.'};
   if(!s.ready)return {id:'waiting',title:'WAITING FOR A PLAYER',text:'Share the invitation. Orders unlock when your opponent joins.'};
   if(busy)return {id:'sending',title:'RESOLVING ORDERS',text:s.ai_side?'The server is confirming the order. The computer takes its full turn only after End turn.':'Waiting for the server to confirm the order.'};
+  if(s.coop?.needs_advance)return {id:'computer',title:s.coop.resolving?'COMPUTERS GIVING ORDERS':'COMPUTER GROUPS READY',text:s.coop.resolving?'Computer groups act in short batches. If the player continuing them disconnects, open Team orders and Advance computer turn to take over.':'Open Team orders and Advance computer turn to continue after human commands are lost.'};
   if(s.turn!==s.side)return {id:'opponent',title:'OPPONENT’S TURN',text:'You can inspect the battlefield. Your orders unlock when their turn ends.'};
+  if(s.coop?.done)return {id:'teamwait',title:'WAITING FOR TEAM',text:'Your orders are finished. Waiting for '+s.coop.waiting_for.map(id=>s.coop.players.find(p=>p.id===id)?.name||'a teammate').join(', ')+'.'};
+  if(s.coop&&!s.coop.controlled.length)return {id:'watching',title:'WATCHING YOUR ARMY',text:'Your command is computer controlled. You can inspect the battlefield and watch replays.'};
+  if(s.coop)return {id:'yours',title:'YOUR COMMAND',text:'Give orders to your assigned units, then Finish my orders. Computer allies act when everyone on your army is done.'};
   if(s.order_history?.redo_required)return {id:'redo',title:'YOUR TURN · REDO FIRST',text:'Restore the revealed dice result with Redo before giving a new order.'};
   return {id:'yours',title:'YOUR TURN',text:'Choose a unit, issue orders, then press End turn when ready.'};
  }
@@ -123,7 +128,7 @@
   button.setAttribute('aria-label',`${m.goal} ${m.progress}. Open win conditions.`);
   $('game').dataset.phase=p.id;if(mobile)mobile.dataset.phase=p.id;
   const banner=$('turnBanner');banner.dataset.phase=p.id;banner.replaceChildren(node('strong',null,p.title),node('span',null,p.text));
-  if(mobile){const status=$('mobileBattleStatus'),short={opponent:'THEIR TURN',waiting:'WAITING',replay:'REPLAY',sending:'RESOLVING',redo:'REDO FIRST'};status.replaceChildren(node('strong',null,short[p.id]||p.title),node('span',null,`${sideLabel(state.side)} · ${state.deployment?.phase==='planning'?'Before round 1':`Round ${shown.round}/${state.scenario.rounds}`}`));status.removeAttribute('role');status.setAttribute('aria-label',p.title+'. '+p.text);status.title=p.text;}
+  if(mobile){const status=$('mobileBattleStatus'),short={opponent:'THEIR TURN',waiting:'WAITING',teamwait:'TEAM WAIT',computer:'AI READY',watching:'WATCHING',replay:'REPLAY',sending:'RESOLVING',redo:'REDO FIRST'};status.replaceChildren(node('strong',null,short[p.id]||p.title),node('span',null,`${sideLabel(state.side)} · ${state.deployment?.phase==='planning'?'Before round 1':`Round ${shown.round}/${state.scenario.rounds}`}`));status.removeAttribute('role');status.setAttribute('aria-label',p.title+'. '+p.text);status.title=p.text;}
   $('end').textContent=p.id==='opponent'?'Opponent’s turn':p.id==='waiting'?'Waiting for player':p.id==='finished'?'Battle finished':p.id==='redo'?'Redo first':'End turn →';
   document.title=`${p.title} · ${state.match_name||state.scenario.name} · DSL`;
   const key=[state.code,state.battle_number,state.round,p.id].join(':');

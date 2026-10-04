@@ -92,7 +92,7 @@
   if(!active){closeGuides();return;}
   const l=book.find(l=>l.id===g.lesson);
   if(l&&!g.done.includes(l.id)){
-   const performed=l.id==='select'?!!selected:(state.action_history||[]).some(h=>h.side===state.side&&h.revision>g.since&&l.orders.includes(h.action.kind));
+   const performed=l.id==='select'?!!selected:(state.action_history||[]).some(h=>h.side===state.side&&(!state.coop||h.player===state.coop.me)&&h.revision>g.since&&l.orders.includes(h.action.kind));
    if(performed){g.done.push(l.id);persist();}
   }
   if(playbackSession){closeGuides();return;}
@@ -117,7 +117,7 @@
   if(!allowed()||!current()?.enabled)return;const g=current(),l=lessons().find(l=>l.id===g.lesson);if(!l)return;closeGuides();
   if(l.selector==='@mission'){if(!g.done.includes(l.id)){g.done.push(l.id);persist();}ww2Briefing.open();return;}
   if(l.id==='results'&&!state.winner){notify('The result appears when this battle ends. Keep playing toward the mission.');return;}
-  if(l.roles?.length){const u=state.units.find(u=>u.side===state.side&&u.hp>0&&!u.reserve&&!u.carrier_id&&l.roles.includes(u.kind));if(u)chooseUnit(u);}
+  if(l.roles?.length){const u=state.units.find(u=>u.side===state.side&&controlsUnit(u)&&u.hp>0&&!u.reserve&&!u.carrier_id&&l.roles.includes(u.kind));if(u)chooseUnit(u);}
   let selector=l.selector;if(window.ww2Mobile?.active&&selector==='#turnBanner')selector='#mobileBattleTop';
   const target=document.querySelector(selector);if(!target)return;target.classList.add('lesson-focus');
   const sheet=target.closest('.mobile-battle-sheet');if(sheet)ww2Mobile.openSheet(sheet.id);

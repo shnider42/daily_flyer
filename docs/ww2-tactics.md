@@ -444,11 +444,17 @@ without repeating its turn. **Plan next battle** starts immediately in solo mode
 you swap armies; the computer takes the opening American turn when you choose the Germans.
 **New invitation** returns to two-player mode. Computer seats cannot be claimed by joining.
 
+Co-op and mixed-team battles have a separate **Co-op & teams** entry on Home.
+Players claim squads or platoons, the host starts the battle, and unclaimed groups
+use configurable Easy or Standard computer control. See [cooperative play](ww2-cooperative.md)
+for ownership, shared turns, reconnects and preparation.
+
 This is a local heuristic practice opponent, not a hosted language model. It uses legal
 engine actions, normal server dice and the same open information as the human. It routes
 around rivers toward the objective, holds it, prioritizes attacks/rallies, and considers
 suppression, overwatch, grenades, smoke and mortar support. It is an early tactical opponent,
-not a claim of expert play. No difficulty selector, external API, keys or new dependencies.
+not a claim of expert play. Standalone solo still uses its existing difficulty.
+There is no external AI API, key requirement or new production dependency.
 Turns are bounded and committed with the player's action in the existing SQLite transaction;
 revision checks reject duplicate requests. Render configuration stays the same.
 

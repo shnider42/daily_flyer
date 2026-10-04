@@ -51,6 +51,12 @@
    try{const next=await apiWithSession(local);remember(local);state=next;render();return;}
    catch(e){if(!player)throw e;}
   }
+  if(!game.your_side){
+   let details;try{details=await requestLobby(`/api/match/${code}/cooperative`);}catch(error){if(error.status!==404)throw error;}
+   if(details&&!details.your_player)return ensure(()=>window.ww2Cooperative.join(details,async body=>{
+    const data=await requestLobby(`/api/match/${code}/join`,body,local);data.commander=player.name;await run(async()=>remember(data));
+   }));
+  }
   await ensure(()=>run(async()=>{
    // Joining is idempotent for a linked commander: the server resumes their
    // existing side even when both seats are occupied or armies have swapped.
@@ -63,11 +69,12 @@
    const yours=g.your_side,local=savedSessions.some(s=>s.code===g.code),yourTurn=yours&&g.ready&&!g.winner&&g.phase!=='planning'&&g.turn===yours;
    const row=text('article','',`public-game${yourTurn?' your-turn':''}`);row.dataset.code=g.code;
    const details=document.createElement('div');details.append(text('h3',g.name));
-   details.append(text('p',`${g.open_side==='us'?'Open seat':g.host_name||'Original commander'} (${g.allies||'Americans'}) vs ${g.open_side==='de'?'Open seat':g.guest_name||'Original commander'} (${g.opponent})`));
-   const phase=g.winner?'Finished':g.phase==='planning'?'Pre-battle setup':!g.ready?'Waiting for opponent':yourTurn?'Your turn':yours?'Opponent’s turn':`${g.turn==='us'?g.allies||'Americans':g.opponent} to move`;
+   if(g.cooperative)details.append(text('p',`${g.players} players · ${g.phase==='lobby'?g.open_groups+' groups available':'Commands locked'} · Players + computer groups`));
+   else details.append(text('p',`${g.open_side==='us'?'Open seat':g.host_name||'Original commander'} (${g.allies||'Americans'}) vs ${g.open_side==='de'?'Open seat':g.guest_name||'Original commander'} (${g.opponent})`));
+   const phase=g.winner?'Finished':g.phase==='planning'?'Pre-battle setup':!g.ready?(g.cooperative?'Host setting up':'Waiting for opponent'):yourTurn?'Your turn':yours?'Opponent’s turn':`${g.turn==='us'?g.allies||'Americans':g.opponent} to move`;
    details.append(text('p',`${phase} · Round ${g.round}${yours?` · You: ${yours==='us'?g.allies||'Americans':g.opponent}`:''}`,'game-phase'));
    details.append(text('p',`${g.scenario||'Village Crossing'} · ${(g.ruleset||'classic').toUpperCase()} · ${g.code}`));
-   const button=text('button',yours||local?'Resume game':!g.full?`Join as ${g.open_side==='us'?g.allies||'Americans':g.opponent}`:player?'Both seats taken':'Sign in to resume');button.type='button';button.disabled=!!(g.full&&player&&!yours&&!local);
+   const button=text('button',yours||local?'Resume game':!g.full?(g.cooperative?'Choose army & group':`Join as ${g.open_side==='us'?g.allies||'Americans':g.opponent}`):player?(g.cooperative?'Battle started':'Both seats taken'):'Sign in to resume');button.type='button';button.disabled=!!(g.full&&player&&!yours&&!local);
    button.onclick=async()=>{button.disabled=true;try{if(g.full&&!player&&!local){loginDialog(()=>load());}else await enter(g);}catch(e){notify(e.message);if(e.status===401){player=null;storePlayer();identity();loginDialog(()=>enter(g));}}finally{button.disabled=false;await load();}};
    row.append(details,button);return row;
   }));
@@ -87,13 +94,15 @@
  $('lobbyRefresh').onclick=()=>{lastList='';load();};$('lobbyPrevious').onclick=()=>{offset=Math.max(0,offset-50);load();};$('lobbyNext').onclick=()=>{offset+=50;load();};
  new MutationObserver(()=>{if(!$('lobby').hidden){lastList='';load();}}).observe($('lobby'),{attributes:true,attributeFilter:['hidden']});
  setInterval(()=>{if(!document.hidden)load();},15000);document.addEventListener('visibilitychange',()=>{if(!document.hidden)load();});
- function nameDialog(code){
+ function nameDialog(code,coop=false){
+  $('multiplayerModeSettings').hidden=!!code;$('multiplayerMode').value=coop?'cooperative':'human';window.ww2BattleSetup?.sync();
   renameCode=code||null;$('multiplayerTeams').hidden=!!code;$('namedGameTitle').textContent=code?'Rename this game.':'Name your game.';$('namedGameSubmit').textContent=code?'Save game name':'Create multiplayer game';
   $('multiplayerName').value=code?state.match_name:`${player.name} · ${scenarios.find(s=>s.id===$('scenarioSelect').value)?.name||'New battle'}`;
   $('namedGameError').textContent='';$('namedGameDialog').showModal();
  }
  $('closeNamedGame').onclick=()=>$('namedGameDialog').close();
  $('create').onclick=()=>ensure(()=>nameDialog());
+ $('createCoop').onclick=()=>ensure(()=>nameDialog(null,true));
  $('namedGameForm').onsubmit=async e=>{
   e.preventDefault();$('namedGameSubmit').disabled=true;$('namedGameError').textContent='';
   try{
@@ -123,5 +132,5 @@
  };
  const renameButton=text('button','Rename game','quiet');renameButton.id='renameMultiplayer';renameButton.onclick=()=>{for(const d of document.querySelectorAll('dialog[open]'))d.close();nameDialog(session.code);};
  document.querySelector('#battleOptions .match-tools').prepend(linkButton,renameButton);
- document.addEventListener('ww2:render',()=>{linkButton.hidden=renameButton.hidden=!!state?.ai_side;});
+ document.addEventListener('ww2:render',()=>{linkButton.hidden=!!state?.ai_side;renameButton.hidden=!!state?.ai_side||!!state?.coop&&!state.coop.is_host;});
 })();

@@ -1,0 +1,35 @@
+#coopRoom{max-width:980px;margin:24px auto;padding:24px;color:var(--ink,#172722);background:#f2eedf;border:1px solid #afa991;border-radius:8px}
+#coopRoom[hidden]{display:none}
+.home-screen #createCoop{grid-column:1/-1;min-height:46px;margin:0;border:1px solid #6f8269;border-radius:2px;padding:12px 14px;display:flex;align-items:center;justify-content:space-between;font:650 15px/1.3 "Helvetica Neue",Arial,sans-serif;background:#e3d9bd;color:#24412d}
+.home-screen #createCoop:hover{background:#d4dccb}
+#coopRoom h1{font-size:clamp(1.7rem,4vw,2.5rem);margin:16px 0 8px}
+#coopRoom p{line-height:1.55;max-width:78ch}
+.coop-heading{display:flex;align-items:center;gap:20px}
+.coop-invite{display:grid;grid-template-columns:auto minmax(0,1fr) auto;gap:10px;align-items:center;margin:22px 0}
+.coop-choice{padding:18px 0;border-top:1px solid #bcb7a4;border-bottom:1px solid #bcb7a4}
+.coop-choice h2{margin-top:0}
+#coopRoom select,#coopRoom input,#coopJoinDialog select,#coopTeamsDialog button{max-width:100%;min-height:44px;font:inherit}
+#coopRoom label,#coopJoinDialog label{display:block;font-weight:650;margin:12px 0 6px}
+.coop-choice select{width:100%;margin-bottom:8px}
+#coopClaim{margin-top:8px}
+#coopHostSettings{padding:14px 0}
+#coopHostSettings p{font-size:.92rem}
+#coopAssignments{display:grid;grid-template-columns:1fr 1fr;gap:26px;margin:10px 0 22px}
+.coop-army{min-width:0;border-top:3px solid #4a6755;padding-top:8px}
+.coop-army:nth-child(2){border-color:#8b5945}
+.coop-army h2{font-size:1.15rem}
+.coop-army summary,#coopTeamsDialog summary{cursor:pointer;padding:12px 0;font-weight:650}
+.coop-computer{padding:8px 0;border-top:1px solid #cbc6b5}
+.coop-computer select{width:100%}
+.coop-start{border-top:1px solid #bcb7a4;padding-top:12px}
+#coopStart{min-height:48px;min-width:180px}
+#coopJoinDialog,#coopTeamsDialog{width:min(640px,calc(100vw - 28px));box-sizing:border-box;max-height:88dvh;overflow-y:auto}
+#coopJoinDialog select{width:100%;margin-bottom:14px}
+#coopJoinError{color:#922b21}
+.coop-player{border-top:1px solid #bcb7a4;padding:10px 0}
+.coop-player button{font-size:.9rem}
+#coopTeamsDialog>button{margin:8px 8px 8px 0}
+.roster-unit[data-coop-owned="true"]{border-left:4px solid #8a652a}
+#map .unit[data-coop-owned="true"]>rect{stroke:#e5b745;stroke-width:3}
+.roster-unit[data-coop-owned="false"] .roster-unit-state{opacity:.85}
+@media(max-width:640px){#coopRoom{margin:12px 8px;padding:16px}#coopAssignments{grid-template-columns:1fr;gap:14px}.coop-invite{grid-template-columns:minmax(0,1fr) auto}.coop-invite label{grid-column:1/-1}#coopStart{width:100%}#coopRoom button,#coopJoinDialog button{min-height:44px}#coopQuick{font-size:.8rem;padding:8px}}

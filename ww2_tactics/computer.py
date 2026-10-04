@@ -1,7 +1,9 @@
 """Local, bounded tactical opponent. Uses public information and legal engine orders."""
 from .coordinates import column
+from . import computer_policy
 import heapq
 import copy
+import time
 
 from .engine import apply, options, distance, terrain, line_clear
 from .scenarios import battlefield
@@ -59,7 +61,7 @@ def choose_order(state, costs, visited, front_costs=None):
     objective_maps = front_costs if front_costs is not None else {p['id']: objective_costs(state, p['pos']) for p in board.get('linked_objectives', [])}
     mobility=objective_maps.setdefault('_mobility',{}) if signals.enabled(state) else {}
     for unit in units.values():
-        if unit['side'] != side:
+        if unit['side'] != side or not computer_policy.eligible(state, unit):
             continue
         if domains.joint(state) and unit['kind'] in domains.AIR_UNITS | domains.SHIPS:
             choices.extend(fubar.domain_choices(state,unit,options(state,unit),list(units.values()),visited))
@@ -216,63 +218,75 @@ def choose_order(state, costs, visited, front_costs=None):
             # A second smoke screen cannot be placed on an already smoked hex.
             pos=unit['pos'] if unit['pos'] in legal['smoke'] else min(legal['smoke'],key=lambda p:distance(p,landing_goal or goal))
             add(5, unit, 'smoke', pos=list(pos))
-    if not choices:
-        return dict(kind='end')
-    score, action = max(choices, key=lambda item: item[0])
-    return action if score > (1.5 if dsl(state) else 0) else dict(kind='end')
+    return computer_policy.choose(state, choices, 1.5 if dsl(state) else 0)
 
 
-def play_turn(state, roll=None):
+def play_turn(state, roll=None, observers=None, max_orders=None):
     from . import deployment
     if deployment.active(state):
         state=deployment.prepare_computer(state,roll)
         if deployment.active(state): return state
     if not state.get('ai_side') or state['turn'] != state['ai_side'] or state['winner']:
         return state
+    # Movies are immutable presentation data, never copy them into each order.
+    old_movies = {k: state[k] for k in ('computer_playback', '_coop_replays') if k in state}
+    state = {k: v for k, v in state.items() if k not in old_movies}
+    viewers = observers or ('us' if state['ai_side'] == 'de' else 'de',)
     costs = objective_costs(state)
     front_costs = {p['id']: objective_costs(state, p['pos']) for p in battlefield(state).get('linked_objectives', [])}
     terrain_memory = (dict(buildings.known(state, state['ai_side'])), dict(fieldworks.known(state, state['ai_side'])))
     visited = {u['id']: {tuple(u['pos'])} for u in state['units']}
+    progress = state.get('coop', {}).get('ai_progress', {}) if max_orders else {}
+    same_turn = progress.get('turn') == state['turn'] and progress.get('round') == state['round']
+    if same_turn:
+        visited = {uid: {tuple(pos) for pos in positions} for uid, positions in progress['visited'].items()}
     orders = []
-    frames = []
-    def snapshot(value):
+    frames = {viewer: [] for viewer in viewers}
+    def snapshot(value, viewer):
         if fog(value):
-            return view(value,'us' if value['ai_side']=='de' else 'de')
+            return view(value, viewer)
         result=copy.deepcopy({key: value.get(key) for key in
                               ('units', 'smoke', 'barrages', 'round', 'turn', 'hold', 'winner', 'buildings', 'fieldworks', 'objective_control')})
-        result.update(new_fronts.public_fields(value, 'us' if value['ai_side']=='de' else 'de'))
+        result.update(new_fronts.public_fields(value, viewer))
         return result
-    previous_snapshot = snapshot(state)
+    previous_snapshot = {viewer: snapshot(state, viewer) for viewer in viewers}
     def perform(action):
         nonlocal state, previous_snapshot
-        before = previous_snapshot
+        before_all = previous_snapshot
         sequence = state.get('combat_sequence', 0)
         effect_sequence = state.get('effect_sequence', 0)
         state = apply(state, state['ai_side'], action, roll=roll)
-        after=snapshot(state)
-        previous_snapshot=after
-        safe_action=copy.deepcopy(action)
-        effects=[e for e in state.get('effects', []) if e['sequence'] > effect_sequence]
-        combat=[e for e in state.get('combat_history', []) if e.get('sequence', 0) > sequence]
-        if fog(state):
-            seen={u['id'] for u in before['units']+after['units']}
-            for key in ('unit','target'):
-                if safe_action.get(key) not in seen: safe_action.pop(key,None)
-            tiles=before['visible_hexes']+after['visible_hexes']
-            if safe_action.get('pos') not in tiles: safe_action.pop('pos',None)
-            if action['kind'] in {'recon','field_recon','airborne_drop'}:safe_action.pop('pos',None)
-            if action['kind'] in {'move','drop'} and action.get('unit') not in {u['id'] for u in after['units']}:
-                safe_action.pop('pos',None)
-            effects=[e for e in effects if all(p in tiles for p in e['positions'])]
-            human='us' if state['ai_side']=='de' else 'de'
-            combat=[e for e in state.get('reports',{}).get(human,{}).get('combat',[]) if e.get('sequence',0)>sequence]
-            if 'unit' not in safe_action and action['kind']!='end':
-                if before==after and not combat: return
-                safe_action={'kind':'contact'}
-        frames.append(dict(action=safe_action,before=before,after=after,effects=copy.deepcopy(effects),combat=copy.deepcopy(combat)))
+        previous_snapshot = {viewer: snapshot(state, viewer) for viewer in viewers}
+        for viewer in viewers:
+            before, after = before_all[viewer], previous_snapshot[viewer]
+            safe_action = copy.deepcopy(action)
+            effects = [e for e in state.get('effects', []) if e['sequence'] > effect_sequence]
+            combat = [e for e in state.get('combat_history', []) if e.get('sequence', 0) > sequence]
+            if fog(state):
+                seen = {u['id'] for u in before['units'] + after['units']}
+                for key in ('unit', 'target'):
+                    if safe_action.get(key) not in seen:
+                        safe_action.pop(key, None)
+                tiles = before['visible_hexes'] + after['visible_hexes']
+                if safe_action.get('pos') not in tiles:
+                    safe_action.pop('pos', None)
+                if action['kind'] in {'recon', 'field_recon', 'airborne_drop'}:
+                    safe_action.pop('pos', None)
+                if action['kind'] in {'move', 'drop'} and action.get('unit') not in {u['id'] for u in after['units']}:
+                    safe_action.pop('pos', None)
+                effects = [e for e in effects if all(p in tiles for p in e['positions'])]
+                combat = [e for e in state.get('reports', {}).get(viewer, {}).get('combat', []) if e.get('sequence', 0) > sequence]
+                if 'unit' not in safe_action and action['kind'] != 'end':
+                    if before == after and not combat:
+                        continue
+                    safe_action = {'kind': 'contact'}
+            frames[viewer].append(dict(action=safe_action, before=before, after=after,
+                                       effects=copy.deepcopy(effects), combat=copy.deepcopy(combat)))
     # Scale the guard to the army's AP budget, including the larger scenario.
     budget = max(24, sum((turn_limit(u)+(turn_limit(u) if u['kind']=='halftrack' else 1) if dsl(state) else 2) for u in state['units'] if u['side']==state['ai_side'] and u['hp']>0)+1)
-    for _ in range(budget):
+    remaining = progress['remaining'] if same_turn else budget
+    started = time.monotonic()
+    for step in range(remaining):
         memory = (dict(buildings.known(state, state['ai_side'])), dict(fieldworks.known(state, state['ai_side'])))
         if memory != terrain_memory:
             costs = objective_costs(state)
@@ -280,6 +294,7 @@ def play_turn(state, roll=None):
             terrain_memory = memory
         action = choose_order(state, costs, visited, front_costs)
         perform(action)
+        remaining -= 1
         actor = next((u for u in state['units'] if u['id'] == action.get('unit')), None)
         target = next((u for u in state['units'] if u['id'] == action.get('target')), None)
         orders.extend(['Turn ended.'] if action['kind'] == 'end' else
@@ -287,11 +302,26 @@ def play_turn(state, roll=None):
                        (f" → {column(action['pos'][0])}{action['pos'][1]+1}" if 'pos' in action else
                         f" → {'friendly' if target['side']==actor['side'] else 'enemy'} {target['kind']}" if target else '')])
         for unit in state['units']:
-            visited[unit['id']].add(tuple(unit['pos']))
+            visited.setdefault(unit['id'], set()).add(tuple(unit['pos']))
         if state['winner'] or state['turn'] != state['ai_side']:
+            break
+        if max_orders and remaining and (step + 1 >= max_orders or time.monotonic() - started >= 1.5):
             break
     else:
         perform(dict(kind='end'))
-    state['computer_orders'] = orders
-    state['computer_playback'] = dict(id=state['revision'], frames=frames)
+    if max_orders:
+        state['coop'] = dict(state['coop'])
+        if state['winner'] or state['turn'] != state['ai_side']:
+            state['coop'].pop('ai_progress', None)
+        else:
+            state['coop']['ai_progress'] = dict(turn=state['turn'], round=state['round'], remaining=remaining,
+                visited={uid: sorted(positions) for uid, positions in visited.items()})
+    state.update(old_movies)
+    if observers:
+        state['_coop_replays'] = {viewer: dict(id=state['revision'], frames=frames[viewer]) for viewer in viewers}
+        state.pop('computer_playback', None)
+        state['computer_orders'] = ['Computer groups completed their orders. Replay shows only your army’s view.']
+    else:
+        state['computer_orders'] = orders
+        state['computer_playback'] = dict(id=state['revision'], frames=frames[viewers[0]])
     return state

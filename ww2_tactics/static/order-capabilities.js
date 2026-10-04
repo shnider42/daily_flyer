@@ -66,7 +66,9 @@
   if(busy)return 'Order in progress';
   if(playbackSession)return 'Replay in progress';
   if(state.winner)return 'Battle finished';
-  if(!state.ready)return 'Waiting for opponent';
+  if(state.coop&&!controlsUnit(u))return state.coop.controllers[u.id]?'Another player controls this unit':'Computer controls this unit';
+  if(state.coop?.done)return 'Your orders are finished';
+  if(!state.ready)return state.coop?'Waiting for host to start':'Waiting for opponent';
   if(state.turn!==state.side)return 'Opponent’s turn';
   if(state.order_history?.redo_required)return 'Redo rolled order first';
   if(u.airlift_reserve)return 'Awaiting commander airlift';

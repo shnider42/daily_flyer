@@ -14,6 +14,7 @@
   $('battleResultArmies').textContent=`${sideLabel(state.winner)} won ${state.scenario.name} · Round ${state.battle_result?.round||Math.min(state.round,state.scenario.rounds)}.`;
   $('battleResultReason').textContent=state.resigned_by?(state.resigned_by===state.side?'You resigned this battle.':'Your opponent resigned this battle.'):(state.battle_result?.reason||'The battle has ended. Review the mission and final battlefield.');
   $('battleResultProgress').textContent=ww2Briefing.mission({...state,round:Math.min(state.round,state.scenario.rounds)}).progress;
+  $('resultRematch').hidden=!!state.coop;
   $('resultRematch').textContent=state.ai_side?'Play again':'Propose next battle';$('resultRematch').disabled=!!state.rematch||busy;
   $('resultJourney').hidden=!window.ww2Journey?.isCurrent();
  }

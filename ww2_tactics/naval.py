@@ -219,12 +219,13 @@ def apply(state,side,action,roll=None):
 
 
 def choose_order(state,costs,visited):
+    from . import computer_policy
     from .engine import distance
     seen=visible_ids(state,state['turn']);units={u['id']:u for u in state['units'] if active(u) and u['id'] in seen}
     choices=[];goal=state['battlefield']['objective']
     def add(score,u,kind,**data):choices.append((score,dict(kind=kind,unit=u['id'],**data)))
     for u in units.values():
-        if u['side']!=state['turn']:continue
+        if u['side']!=state['turn'] or not computer_policy.eligible(state,u):continue
         legal=options(state,u)
         choices.extend(weapons.ai_orders(state, u, legal, units.values()))
         if legal['rally']: add(10, u, 'rally')
@@ -256,5 +257,4 @@ def choose_order(state,costs,visited):
             add(score,u,'move',pos=pos)
         if legal['smoke'] and u['hp']<=2 and any(v['side']!=u['side'] and distance(v['pos'],u['pos'])<=6 for v in units.values()):
             add(6,u,'smoke',pos=list(u['pos']))
-    if not choices:return dict(kind='end')
-    score,action=max(choices,key=lambda p:p[0]);return action if score>1.5 else dict(kind='end')
+    return computer_policy.choose(state, choices, 1.5)

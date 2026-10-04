@@ -105,7 +105,7 @@
  }
  function cycleUnit(direction){
   if(busy||playbackSession)return;
-  const alive=state.units.filter(u=>u.side===state.side&&u.hp>0);
+  const alive=state.units.filter(u=>u.side===state.side&&controlsUnit(u)&&u.hp>0);
   const ready=alive.filter(u=>Object.values(state.legal[u.id]||{}).some(v=>Array.isArray(v)?v.length:v===true));
   const pool=ready.length?ready:alive;if(!pool.length)return;
   const index=pool.findIndex(u=>u.id===selected),unit=pool[(index<0?(direction>0?0:pool.length-1):(index+direction+pool.length)%pool.length)];

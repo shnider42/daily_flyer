@@ -1,6 +1,6 @@
 'use strict';
 let playbackSession=null, playbackTimer=null;
-function playbackKey(value){return value?.computer_playback?.frames?.length?`${value.code}:${value.battle_number||1}:${value.computer_playback.id}`:null;}
+function playbackKey(value){return !value?.coop?.resolving&&value?.computer_playback?.frames?.length?`${value.code}:${value.battle_number||1}:${value.computer_playback.id}`:null;}
 function syncPlayback(){
  const button=document.getElementById('replayTurn');
  button.hidden=!playbackKey(state);button.disabled=busy||!!playbackSession;
