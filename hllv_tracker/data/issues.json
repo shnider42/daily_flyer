@@ -1,10 +1,10 @@
 {
-  "generated_at": "2026-10-02",
+  "generated_at": "2026-10-05",
   "latest_change": {
-    "date": "2026-10-02",
-    "label": "October 2 review · Patch 1.6 timing",
-    "url": "https://steamcommunity.com/gid/103582791475269461/announcements/detail/676259427855107286",
-    "summary": "Patch 1.6 is expected next week, per today's publisher post. Added fresh player reports; no new released fix was verified."
+    "date": "2026-10-05",
+    "label": "October 5 review · 1.6 still upcoming",
+    "url": "https://www.hellletloose.com/blog/community-update-6",
+    "summary": "Latest verified release: Hotfix 1.5.2. Patch 1.6 is expected in the week of October 5; no release confirmation was found. Server, voice and visual-quality evidence reviewed."
   },
   "method": "Public evidence only. Official acknowledgement, reproduction, a shipped change, and post-fix verification are recorded separately.",
   "issues": [
@@ -237,18 +237,20 @@
       "kind": "issue family",
       "status_key": "monitoring",
       "status_label": "Improvements released · monitoring",
-      "bottom_line": "Developers report fewer crashes after 1.5.2; longer monitoring continues.",
+      "bottom_line": "Hotfix 1.5.2 shipped additional crash fixes. October 1 developer data showed an early reduction; longer monitoring continues across platforms.",
       "official_short": "Multiple causes",
       "fix_short": "Hotfix 1.5.2 + earlier fixes",
       "cause_short": "Blood/decal load + others",
       "last_updated": "2026-10-01",
       "scope": [
         "PC",
+        "PS5",
+        "Xbox",
         "client stability",
-        "all hardware"
+        "multiple hardware configurations"
       ],
       "symptom": "Clients can crash for several distinct reasons, including a documented failure associated with large quantities of blood and decal effects.",
-      "official_position": "The latest improvement is not a declaration that every crash cause is resolved.",
+      "official_position": "The October 1 update reports substantially fewer crashes in an initial monitoring period, with no immediately obvious AMD-specific pattern in that limited data. The developers explicitly continue investigating remaining causes; this is not proof that every crash is fixed.",
       "workaround": "PC: finish shader caching before continuing; reset Video Settings after updating.",
       "known": [
         "Several individual stability problems have been identified.",
@@ -382,7 +384,8 @@
           "url": "https://www.hellletloose.com/blog/community-update-6",
           "claim": "Stability monitoring"
         }
-      ]
+      ],
+      "last_reviewed": "2026-10-05"
     },
     {
       "id": "HLLV-004",
@@ -531,7 +534,7 @@
       "kind": "visual-quality issue",
       "status_key": "partial",
       "status_label": "Improvements ongoing",
-      "bottom_line": "Console clarity work continues; further improvements are expected from Update 2.0 onward.",
+      "bottom_line": "Console resolution and draw-distance improvements are being tested for Update 2.0 and beyond; no complete visual-quality fix is confirmed.",
       "official_short": "Acknowledged",
       "fix_short": "Partial fixes; more planned",
       "cause_short": "Optimization limits",
@@ -542,8 +545,8 @@
         "graphics"
       ],
       "symptom": "Console players report foliage shimmer, reduced clarity, image noise, and inconsistent sharpness.",
-      "official_position": "A target is not a released fix; complete resolution remains unverified.",
-      "workaround": "Avoid forcing HDR: the game outputs SDR.",
+      "official_position": "The October 1 update distinguishes ongoing foliage fixes from console resolution and LOD-distance testing. Further console improvements are expected with Update 2.0 and beyond, subject to performance tradeoffs; these are not released fixes.",
+      "workaround": "The game outputs SDR. Do not force HDR for SDR games; on PS5, the developer recommends HDR On When Supported. This addresses presentation settings, not foliage or draw-distance defects.",
       "known": [
         "The issue is officially acknowledged.",
         "Patch 1.2 reduced some shimmer but could lower resolution more often in some circumstances.",
@@ -614,7 +617,8 @@
           "url": "https://www.hellletloose.com/blog/community-update-6",
           "claim": "Console visuals and HDR guidance"
         }
-      ]
+      ],
+      "last_reviewed": "2026-10-05"
     },
     {
       "id": "HLLV-007",
@@ -713,20 +717,20 @@
       "title": "Server crashes and disconnects",
       "category": "stability",
       "kind": "server issue family",
-      "status_key": "investigating",
-      "status_label": "Under investigation",
-      "bottom_line": "Server stability improved after Patch 1.2, but later crash reports cannot all be assigned to one cause.",
+      "status_key": "partial",
+      "status_label": "Specific fixes released; wider causes open",
+      "bottom_line": "Hotfix 1.5.2 addressed a long-session replication problem. Early operator feedback is encouraging, but this does not explain or resolve every server crash or disconnect.",
       "official_short": "Acknowledged family",
-      "fix_short": "Ongoing",
+      "fix_short": "1.5.2 + earlier specific fixes",
       "cause_short": "Multiple / unknown",
-      "last_updated": "2026-08-27",
+      "last_updated": "2026-10-01",
       "scope": [
         "community servers",
         "match servers",
         "all platforms"
       ],
       "symptom": "Players can lose connection to the host or be returned to the menu during a match; some community servers may restart or disappear.",
-      "official_position": "Server crashes were included among major stability concerns. A specific NVA Tunnel crash was reproduced and fixed, and developers later reported improved overall server stability, but public evidence does not establish one cause for every disconnect or outage.",
+      "official_position": "September 29 fixes targeted Iris replication degradation during longer server sessions. On October 1, developers reported encouraging early feedback from several community-server owners, while declining to call the replication issue completely resolved. Disconnects, process crashes, hosting incidents and administrative restarts still require separate evidence.",
       "workaround": null,
       "known": [
         "Team17 Support said the team was working on server-crash reports.",
@@ -758,6 +762,16 @@
           "date": "2026-08-27",
           "event": "Community Update #2",
           "detail": "Developers report improved server stability while continuing to review reports."
+        },
+        {
+          "date": "2026-09-29",
+          "event": "Hotfix 1.5.2",
+          "detail": "Specific Iris replication fixes shipped for long-session server degradation; unrelated crash and disconnect causes remain separate."
+        },
+        {
+          "date": "2026-10-01",
+          "event": "Community Feedback #6",
+          "detail": "Early community-server feedback is encouraging, but developers continue monitoring and do not declare complete resolution."
         }
       ],
       "sources": [
@@ -784,8 +798,25 @@
           "title": "Patch 1.2",
           "url": "https://www.hellletloose.com/blog/hllv-patch-1-2",
           "claim": "Specific tunnel-related server crash fixed"
+        },
+        {
+          "type": "patch notes",
+          "publisher": "Hell Let Loose",
+          "date": "2026-09-29",
+          "title": "Hotfix 1.5.2",
+          "url": "https://www.hellletloose.com/blog/hllv-hotfix-1-5-2",
+          "claim": "Specific Iris replication fixes shipped for long-session server degradation; unrelated crash and disconnect causes remain separate."
+        },
+        {
+          "type": "official update",
+          "publisher": "Hell Let Loose",
+          "date": "2026-10-01",
+          "title": "Community Feedback #6",
+          "url": "https://www.hellletloose.com/blog/community-update-6",
+          "claim": "Early community-server feedback is encouraging, but developers continue monitoring and do not declare complete resolution."
         }
-      ]
+      ],
+      "last_reviewed": "2026-10-05"
     },
     {
       "id": "HLLV-009",
@@ -1910,7 +1941,7 @@
       "kind": "officially acknowledged VOIP issue family",
       "status_key": "partial",
       "status_label": "Specific safeguards released",
-      "bottom_line": "1.5.2 adds silent-muting safeguards; broader VOIP failures remain open.",
+      "bottom_line": "Hotfix 1.5.2 added safeguards against silent muting. Broader voice-channel failures remain open, with monitoring continuing in the October 1 update.",
       "official_short": "Developer acknowledged",
       "fix_short": "Hotfix 1.5.2 safeguards",
       "cause_short": "Unknown",
@@ -1924,7 +1955,7 @@
         "Command Chat"
       ],
       "symptom": "A player may be unable to hear or transmit on every in-match voice channel, with no visible reconnect control available in the audio settings.",
-      "official_position": "The original all-channel report is not proven to share the cause addressed by the new safeguards.",
+      "official_position": "The new safeguards target identified silent-muting edge cases. They do not establish that every historical failure to transmit or receive across all channels had that cause. Excessive voice volume is a separate open issue, HLLV-061.",
       "workaround": null,
       "known": [
         "The report covers all major in-match voice channels.",
@@ -1996,7 +2027,8 @@
           "url": "https://www.hellletloose.com/blog/community-update-6",
           "claim": "VOIP follow-up"
         }
-      ]
+      ],
+      "last_reviewed": "2026-10-05"
     },
     {
       "id": "HLLV-030",
@@ -2352,7 +2384,8 @@
           "url": "https://www.hellletloose.com/blog/community-update-6",
           "claim": "Aim Assist"
         }
-      ]
+      ],
+      "last_reviewed": "2026-10-05"
     },
     {
       "id": "HLLV-035",
@@ -2920,7 +2953,7 @@
         "Tunnel destinations"
       ],
       "symptom": "Available Garrisons or Outposts can disappear from the deployment screen, preventing players from spawning; Commander abilities may also become unavailable.",
-      "official_position": "The replication evidence does not establish that every historical spawn or Commander-ability failure shares one cause.",
+      "official_position": "Hotfix 1.5.2 changed Iris replication for long-running servers. On October 1, contacted operators had not yet reported the same degradation returning, but the developers explicitly withheld full closure and continued tracking Mortar and deployable visibility failures. The October 2 Tunnel report remains a player observation, not proof of a shared cause or regression.",
       "workaround": "Server owners: regular restarts were recommended before 1.5.2; this is mitigation, not proof of cause.",
       "known": [
         "The issue family is officially acknowledged.",
@@ -3029,7 +3062,8 @@
           "url": "https://steamcommunity.com/app/3079210/discussions/1/590691034935303773/",
           "claim": "Player report; relationship to replication fixes unproven."
         }
-      ]
+      ],
+      "last_reviewed": "2026-10-05"
     },
     {
       "id": "HLLV-047",
@@ -3396,7 +3430,8 @@
           "url": "https://www.hellletloose.com/blog/hllv-hotfix-1-5-2",
           "claim": "Documents the issue and stated status"
         }
-      ]
+      ],
+      "last_reviewed": "2026-10-05"
     },
     {
       "id": "HLLV-055",
@@ -3438,7 +3473,8 @@
           "url": "https://www.hellletloose.com/blog/hllv-hotfix-1-5-2",
           "claim": "Documents the issue and stated status"
         }
-      ]
+      ],
+      "last_reviewed": "2026-10-05"
     },
     {
       "id": "HLLV-056",
@@ -3482,7 +3518,8 @@
           "url": "https://www.hellletloose.com/blog/hllv-hotfix-1-5-2",
           "claim": "Documents the issue and stated status"
         }
-      ]
+      ],
+      "last_reviewed": "2026-10-05"
     },
     {
       "id": "HLLV-057",
@@ -3491,7 +3528,7 @@
       "kind": "rendering issue family",
       "status_key": "partial",
       "status_label": "Partially addressed",
-      "bottom_line": "Cover can disappear before players; distance-detail fixes continue.",
+      "bottom_line": "The nearby flat-tree defect was fixed in 1.5.2, but blurry foliage, pop-in and cover disappearing before players remain under review for 1.6 and later updates.",
       "official_short": "Developer acknowledged",
       "fix_short": "More work planned",
       "cause_short": "Not public",
@@ -3503,7 +3540,7 @@
         "foliage"
       ],
       "symptom": "Blurry foliage and disappearing cover",
-      "official_position": "A limited correction does not close the broader issue.",
+      "official_position": "The October 1 update describes ongoing reviews of detail-transition and culling distances, including incorrectly configured individual assets. The specific 2D-tree correction in HLLV-056 is released; wider visual-quality improvements are still being developed.",
       "workaround": null,
       "known": [
         "The linked official evidence documents this issue."
@@ -3527,7 +3564,8 @@
           "url": "https://www.hellletloose.com/blog/community-update-6",
           "claim": "Documents the issue and stated status"
         }
-      ]
+      ],
+      "last_reviewed": "2026-10-05"
     },
     {
       "id": "HLLV-058",
@@ -3536,7 +3574,7 @@
       "kind": "browser defect",
       "status_key": "testing",
       "status_label": "Fix planned · not released",
-      "bottom_line": "Filter fixes target 1.6; release remains unverified.",
+      "bottom_line": "Persistent-filter fixes are planned for Patch 1.6. The October 2 announcement targets the week of October 5; release has not been verified.",
       "official_short": "Developer acknowledged",
       "fix_short": "Patch 1.6 planned",
       "cause_short": "Not public",
@@ -3545,7 +3583,7 @@
         "Server Browser"
       ],
       "symptom": "Server Browser filters fail to persist",
-      "official_position": "The announced fix has not been verified as released.",
+      "official_position": "The October 1 developer update says the filter correction is implemented for the forthcoming 1.6 patch. That wording is not a public release confirmation. The October 2 post supplies timing only.",
       "workaround": null,
       "known": [
         "The linked official evidence documents this issue.",
@@ -3596,7 +3634,8 @@
           "url": "https://steamcommunity.com/gid/103582791475269461/announcements/detail/676259427855107286",
           "claim": "Patch timing only; issue-specific scope comes from earlier sources."
         }
-      ]
+      ],
+      "last_reviewed": "2026-10-05"
     },
     {
       "id": "HLLV-059",
@@ -3605,7 +3644,7 @@
       "kind": "search limitation",
       "status_key": "investigating",
       "status_label": "Under investigation",
-      "bottom_line": "Searches can return only 200 sessions; broader retrieval improvements remain under investigation.",
+      "bottom_line": "A search can return at most 200 sessions. Higher-population ordering is planned for 1.6, but that is not a confirmed fix for missing servers.",
       "official_short": "Developer acknowledged",
       "fix_short": "No complete fix confirmed",
       "cause_short": "Search-result limit",
@@ -3615,7 +3654,7 @@
         "community servers"
       ],
       "symptom": "Servers missing from browser results",
-      "official_position": "Acknowledgement does not establish a released correction.",
+      "official_position": "The September 25 update identifies the per-search session limit and investigation into combining targeted searches. October 1 separately announces higher-population ordering for Patch 1.6. Neither announcement confirms that all servers will become discoverable.",
       "workaround": "Use narrower filters and favourite regular servers.",
       "known": [
         "The linked official evidence documents this issue.",
@@ -3667,7 +3706,8 @@
           "url": "https://steamcommunity.com/gid/103582791475269461/announcements/detail/676259427855107286",
           "claim": "Patch timing only; issue-specific scope comes from earlier sources."
         }
-      ]
+      ],
+      "last_reviewed": "2026-10-05"
     },
     {
       "id": "HLLV-060",
@@ -3676,7 +3716,7 @@
       "kind": "settings activation defect",
       "status_key": "testing",
       "status_label": "Fix planned · not released",
-      "bottom_line": "Frame Generation may need reapplying after restart; a 1.6 candidate awaits QA.",
+      "bottom_line": "Frame Generation may need reapplying after a restart. A candidate fix targets 1.6; final verification and release remain unconfirmed.",
       "official_short": "Developer acknowledged",
       "fix_short": "1.6 target; QA/release unconfirmed",
       "cause_short": "Not public",
@@ -3686,7 +3726,7 @@
         "NVIDIA"
       ],
       "symptom": "DLSS Frame Generation needs reapplying",
-      "official_position": "The announced fix has not been verified as released.",
+      "official_position": "September 25 evidence describes a candidate awaiting final QA. The October 2 VLOG announcement places Patch 1.6 in the week of October 5, but does not independently confirm this particular fix shipped.",
       "workaround": "Reapply the selected Frame Generation setting.",
       "known": [
         "The linked official evidence documents this issue.",
@@ -3724,7 +3764,8 @@
           "url": "https://steamcommunity.com/gid/103582791475269461/announcements/detail/676259427855107286",
           "claim": "Patch timing only; issue-specific scope comes from earlier sources."
         }
-      ]
+      ],
+      "last_reviewed": "2026-10-05"
     },
     {
       "id": "HLLV-061",
@@ -3742,7 +3783,7 @@
         "Voice Chat"
       ],
       "symptom": "Voice volume stays excessively loud",
-      "official_position": "Acknowledgement does not establish a released correction.",
+      "official_position": "On October 1 the developers targeted Patch 1.7 for the voice-volume correction, with an earlier release possible. No released correction was verified in this review. The October 1-2 player replies are separate evidence that file verification did not help those reporters.",
       "workaround": null,
       "known": [
         "The linked official evidence documents this issue."
@@ -3780,7 +3821,8 @@
           "url": "https://steamcommunity.com/app/3079210/discussions/1/562542339336314254/",
           "claim": "Continuing player complaints; no new developer release confirmation."
         }
-      ]
+      ],
+      "last_reviewed": "2026-10-05"
     },
     {
       "id": "HLLV-062",
@@ -3789,7 +3831,7 @@
       "kind": "spawn usability issue",
       "status_key": "investigating",
       "status_label": "Under investigation",
-      "bottom_line": "Automatic engine shutdown is being considered.",
+      "bottom_line": "A boat with its engine running cannot be used as a spawn point. Automatic shutdown is being considered; no release date is confirmed.",
       "official_short": "Developer acknowledged",
       "fix_short": "No release confirmed",
       "cause_short": "Not public",
@@ -3798,8 +3840,8 @@
         "transport boats"
       ],
       "symptom": "Running boat engines prevent spawning",
-      "official_position": "Acknowledgement does not establish a released correction.",
-      "workaround": null,
+      "official_position": "The October 1 update identifies abandoned running engines as a spawn-usability problem. Shutdown on exit or after an idle period are proposals being tested, not shipped features and not evidence of a replication failure.",
+      "workaround": "Switch the transport boat engine off before leaving it so it can be used as a spawn point. This does not resolve unrelated ghost-boat or replication failures.",
       "known": [
         "The linked official evidence documents this issue."
       ],
@@ -3822,7 +3864,8 @@
           "url": "https://www.hellletloose.com/blog/community-update-6",
           "claim": "Documents the issue and stated status"
         }
-      ]
+      ],
+      "last_reviewed": "2026-10-05"
     },
     {
       "id": "HLLV-063",
@@ -3831,7 +3874,7 @@
       "kind": "moderation usability issue",
       "status_key": "testing",
       "status_label": "Fix planned · not released",
-      "bottom_line": "1.6 plans visible notifications and a 30-second voting window.",
+      "bottom_line": "Patch 1.6 is planned to show Vote Kick notifications by default and give players 30 seconds to respond. These changes are not yet verified as released.",
       "official_short": "Developer acknowledged",
       "fix_short": "Patch 1.6 planned",
       "cause_short": "Not public",
@@ -3840,7 +3883,7 @@
         "Vote Kick"
       ],
       "symptom": "Vote Kick visibility and response time",
-      "official_position": "The announced fix has not been verified as released.",
+      "official_position": "The October 1 update announces the notification and 30-second response changes for 1.6. Its two descriptions of the previous timeout disagree, so only the new target is recorded. October 2 scheduling is not a release confirmation.",
       "workaround": null,
       "known": [
         "The linked official evidence documents this issue.",
@@ -3878,7 +3921,8 @@
           "url": "https://steamcommunity.com/gid/103582791475269461/announcements/detail/676259427855107286",
           "claim": "Patch timing only; issue-specific scope comes from earlier sources."
         }
-      ]
+      ],
+      "last_reviewed": "2026-10-05"
     },
     {
       "id": "HLLV-064",
@@ -3920,7 +3964,8 @@
           "url": "https://www.hellletloose.com/blog/community-update-6",
           "claim": "Documents the issue and stated status"
         }
-      ]
+      ],
+      "last_reviewed": "2026-10-05"
     },
     {
       "id": "HLLV-065",
@@ -4021,5 +4066,11 @@
       "note": "Operational incidents remain separate from game issues until evidence establishes a relationship."
     }
   ],
-  "review_notes": "October 2 review: checked the official blog, current Steam announcements and six Steam support threads. Added the publisher's Patch 1.6 timing and dated player reports. A recent forum reply is not a new patch, reproduced defect, confirmed root cause or proof that a previous fix failed. The linked VLOG announcement text was reviewed; the video itself was not used as evidence. Original issue dates and history are retained. Reviewed the official September 25 Community Feedback #5, September 29 Hotfix 1.5.2 and October 1 Community Feedback #6 posts, using their full publisher text on Steam. Targets for 1.6, 1.7 and 2.0 are not release confirmations. Old reports retain their evidence dates unless new evidence applies. Similar symptoms do not establish a shared cause; SoulSniper incidents remain separate. No independent gameplay verification was performed. Prior review: Reviewed official releases through the September 22 live announcement. The website dates Hotfix 1.5.1 September 21; Steam announces it live September 22. Update 1.5 notes preceded its September 16 release. Older unresolved reports retain their evidence dates; absence from newer notes is not confirmation of persistence or resolution."
+  "review_notes": "October 5 review: rechecked the official Steam announcements through the October 2 VLOG notice, September 29 Hotfix 1.5.2 and October 1 Community Feedback #6. Clarified stale server-family wording, current mitigations and planned-versus-released changes. No new gameplay fix or independent gameplay verification was established. Individual evidence dates and prior player reports remain unchanged unless newer evidence was added. This pass did not revalidate every historical player report. A review date is not proof an old bug persists. Equivalent source permalinks are changed only when their publisher title and accessibility are verified. Prior review: October 2 review: checked the official blog, current Steam announcements and six Steam support threads. Added the publisher's Patch 1.6 timing and dated player reports. A recent forum reply is not a new patch, reproduced defect, confirmed root cause or proof that a previous fix failed. The linked VLOG announcement text was reviewed; the video itself was not used as evidence. Original issue dates and history are retained. Reviewed the official September 25 Community Feedback #5, September 29 Hotfix 1.5.2 and October 1 Community Feedback #6 posts, using their full publisher text on Steam. Targets for 1.6, 1.7 and 2.0 are not release confirmations. Old reports retain their evidence dates unless new evidence applies. Similar symptoms do not establish a shared cause; SoulSniper incidents remain separate. No independent gameplay verification was performed. Prior review: Reviewed official releases through the September 22 live announcement. The website dates Hotfix 1.5.1 September 21; Steam announces it live September 22. Update 1.5 notes preceded its September 16 release. Older unresolved reports retain their evidence dates; absence from newer notes is not confirmation of persistence or resolution.",
+  "source_link_review": {
+    "date": "2026-10-05",
+    "repaired_references": 0,
+    "verified_equivalents": {},
+    "warnings": []
+  }
 }
