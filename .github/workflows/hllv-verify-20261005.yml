@@ -4,54 +4,121 @@ on:
     branches: [feature/hllv-bug-evidence-tracker]
     paths: [.github/workflows/hllv-verify-20261005.yml]
 permissions:
-  contents: read
+  contents: write
+concurrency:
+  group: hllv-reviewed-data-update
+  cancel-in-progress: false
 jobs:
   verify:
+    if: github.repository == 'shnider42/daily_flyer'
     runs-on: ubuntu-latest
-    timeout-minutes: 8
+    timeout-minutes: 10
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
-          persist-credentials: false
-      - name: Verify production data and audit public sources
+          fetch-depth: 8
+      - name: Apply only the verified source-link corrections
         run: |
           python3 - <<'PY'
-          import concurrent.futures, html, json, re, urllib.request
+          import copy, html, json, re, subprocess, urllib.request
           from pathlib import Path
-          def get(url):
-              req = urllib.request.Request(url, headers={'User-Agent':'Mozilla/5.0 HLLV-Link-Check','Accept-Language':'en'})
-              with urllib.request.urlopen(req, timeout=15) as r:
-                  return r.status, r.url, r.read(4000000).decode('utf-8', errors='replace')
+          from urllib.parse import urlsplit
+          path=Path('hllv_tracker/data/issues.json')
+          raw=path.read_bytes()
+          baseline=subprocess.check_output(['git','show','2984cc3db8eb19962858fb580d8821db0b084df1:hllv_tracker/data/issues.json'])
+          if raw != baseline:
+              print('One-time source correction skipped: reviewed snapshot has already changed.')
+              raise SystemExit(0)
+          data=json.loads(raw)
+          before=copy.deepcopy(data)
+          def verify(url, expected):
+              req=urllib.request.Request(url,headers={'User-Agent':'Mozilla/5.0 HLLV-Link-Check','Accept-Language':'en'})
+              with urllib.request.urlopen(req,timeout=20) as r:
+                  assert r.status==200
+                  final=r.url
+                  body=r.read(4000000).decode('utf-8',errors='replace')
+              title=re.search(r'<title[^>]*>(.*?)</title>',body,re.S|re.I)
+              assert title
+              title=html.unescape(re.sub('<[^>]+>',' ',title.group(1))).strip()
+              assert expected.casefold() in title.casefold(), title
+              assert urlsplit(final).hostname in {'www.hellletloose.com','steamcommunity.com','store.steampowered.com'}
+              return final,title
+          corrected,title=verify('https://www.hellletloose.com/blog/community-update-4','Community Feedback #4')
+          replacements={'https://www.hellletloose.com/blog/community-feedback-4':corrected}
+          verified={corrected:{'status':200,'title':title}}
+          warnings=[]
+          try:
+              target,title=verify('https://steamcommunity.com/gid/103582791475269461/announcements/detail/684139458559214482','Hotfix 1.5.1')
+              replacements['https://steamcommunity.com/app/3079210/allnews']=target
+              verified[target]={'status':200,'title':title}
+          except Exception as e:
+              warnings.append('Hotfix 1.5.1 permalink not changed: '+str(e))
+          repaired=[]
+          for issue in data['issues']:
+              for source in issue['sources']:
+                  old=source['url']
+                  if old not in replacements: continue
+                  if old.endswith('/allnews') and '1.5.1' not in source['title']: continue
+                  source['original_url']=old
+                  source['url']=replacements[old]
+                  source['link_checked_at']='2026-10-05'
+                  repaired.append({'issue':issue['id'],'from':old,'to':source['url']})
+          assert repaired
+          assert all(s['url']!='https://www.hellletloose.com/blog/community-feedback-4' for i in data['issues'] for s in i['sources'])
+          for old,new in zip(before['issues'],data['issues']):
+              for key,value in old.items():
+                  if key!='sources': assert new[key]==value
+              for a,b in zip(old['sources'],new['sources']):
+                  for key,value in a.items():
+                      if key!='url': assert b[key]==value
+          assert before['incidents']==data['incidents']
+          data['source_link_review']={
+              'date':'2026-10-05','repaired_references':len(repaired),
+              'repaired_unique_urls':len({r['from'] for r in repaired}),
+              'verified_destinations':verified,
+              'warnings':warnings+['The developer AMA Reddit URL returned HTTP 403 to the automated checker. This does not establish that the source was deleted; its evidence is retained.'],
+              'repairs':repaired,
+              'method':'Verified source titles and HTTP responses. The earlier Steam API discovery did not produce replacements because official announcements were returned through external CDN redirects; no guessed URL was published.'}
+          data['review_notes']='Source-link audit, October 5: corrected the verified Community Feedback #4 URL wherever reused. Replaced the generic Hotfix 1.5.1 feed link only if the exact announcement title and destination were verified. Other issue content and historical claims are unchanged. '+data['review_notes']
+          path.write_text(json.dumps(data,ensure_ascii=False,indent=2)+'\n',encoding='utf-8')
+          print('SOURCE_REPAIR',json.dumps(data['source_link_review'],indent=2))
+          PY
+      - name: Publish the reviewed source corrections
+        run: |
+          set -euo pipefail
+          git diff --check
+          if ! git diff --quiet -- hllv_tracker/data/issues.json; then
+            git config user.name 'github-actions[bot]'
+            git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+            git add -- hllv_tracker/data/issues.json
+            git commit -m 'Fix Feedback 4 source links and pin the Hotfix 1.5.1 announcement'
+            git push origin HEAD:refs/heads/feature/hllv-bug-evidence-tracker
+          fi
+          echo "Verified data commit: $(git rev-parse HEAD)"
+      - name: Confirm Render serves the exact corrected dataset
+        run: |
+          python3 - <<'PY'
+          import json,time,urllib.request
+          from pathlib import Path
           expected=json.loads(Path('hllv_tracker/data/issues.json').read_text())
-          status,url,body=get('https://hllv-bug-track.onrender.com/data/issues.json?review=20261005-2984cc3')
-          actual=json.loads(body)
-          assert actual==expected, 'Live JSON differs from the committed snapshot'
-          print('PRODUCTION_DATA_MATCH', status, actual['generated_at'], len(actual['issues']))
-          sources={s['url']:s for i in expected['issues'] for s in i['sources']}
-          def audit(pair):
-              url,s=pair
+          last='No response yet'
+          for attempt in range(18):
               try:
-                  status,final,body=get(url)
-                  m=re.search(r'<title[^>]*>(.*?)</title>',body,re.S|re.I)
-                  title=html.unescape(re.sub('<[^>]+>',' ',m.group(1))).strip() if m else ''
-                  links=re.findall(r'https?[^\s"<>]+(?:announcements/detail|news/app/3079210/view)[^\s"<>]+',html.unescape(body))
-                  return {'url':url,'status':status,'final':final,'title':title,'candidate_links':links[:5]}
-              except Exception as e:
-                  return {'url':url,'error':str(e)}
-          with concurrent.futures.ThreadPoolExecutor(max_workers=6) as pool:
-              print('SOURCE_AUDIT',json.dumps(list(pool.map(audit,sources.items())),indent=2))
-          for suffix in ['', '&feeds=steam_community_announcements']:
-              try:
-                  _,_,body=get('https://api.steampowered.com/ISteamNews/GetNewsForApp/v0002/?appid=3079210&count=100&maxlength=100'+suffix)
-                  news=json.loads(body)['appnews']['newsitems']
-                  print('STEAM_INDEX',suffix,len(news),json.dumps([{k:n.get(k) for k in ['title','url','feedname','is_external_url','date']} for n in news],indent=2))
-              except Exception as e: print('STEAM_INDEX_ERROR',str(e))
+                  url='https://hllv-bug-track.onrender.com/data/issues.json?review=20261005-links-'+str(attempt)
+                  with urllib.request.urlopen(url,timeout=15) as r: actual=json.load(r)
+                  if actual==expected:
+                      print('PRODUCTION_DATA_MATCH',actual['generated_at'],len(actual['issues']),'issues;',actual['source_link_review']['repaired_references'],'source references repaired')
+                      break
+                  last='Deployment has not yet served this snapshot'
+              except Exception as e: last=str(e)
+              time.sleep(5)
+          else: raise RuntimeError(last)
           PY
       - name: Install isolated browser test dependencies
         run: |
-          python3 -m pip install --disable-pip-version-check playwright==1.55.0
-          python3 -m playwright install --with-deps chromium
-      - name: Verify landing, search, issue view and Sources in a real browser
+          python3 -m pip install --quiet --disable-pip-version-check playwright==1.55.0
+          python3 -m playwright install --with-deps chromium > /tmp/hllv-browser-install.log 2>&1 || { tail -50 /tmp/hllv-browser-install.log; exit 1; }
+      - name: Verify real browser navigation and a repaired source destination
         run: |
           python3 - <<'PY'
           import json
@@ -63,29 +130,27 @@ jobs:
               page.on('pageerror',lambda error:errors.append(str(error)))
               page.goto('https://hllv-bug-track.onrender.com/',wait_until='networkidle')
               page.wait_for_selector('#featuredIssues button',timeout=20000)
-              assert 'Oct 5' in page.inner_text('body') or 'October 5' in page.inner_text('body') or '2026-10-05' in page.inner_text('body')
+              assert 'October 5' in page.inner_text('body')
               page.click('#browseIssues')
               page.wait_for_selector('#homeList button')
-              search=page.locator('input:visible').first
-              search.fill('Server Browser filters')
+              page.locator('input:visible').first.fill('Persistent Recon markers')
               page.wait_for_timeout(300)
-              rows=page.locator('#homeList button')
-              assert rows.count()>=1
-              rows.first.click()
-              assert '1.6' in page.locator('#dossier').inner_text()
-              tabs=page.locator('#dossier button').all_text_contents()
-              print('ISSUE_TABS',tabs)
-              sources=page.get_by_role('button',name='Sources',exact=True)
-              if sources.count(): sources.click()
-              else: page.locator('.tab').filter(has_text='Sources').click()
-              links=page.locator('#dossier a[href^="http"]').evaluate_all('(nodes)=>nodes.map(a=>({text:a.textContent,href:a.href}))')
-              assert links, 'Sources view has no usable anchors'
-              assert all(link['href'].startswith('https://') for link in links)
-              print('BROWSER_SOURCE_LINKS',json.dumps(links))
+              page.locator('#homeList button').first.click()
+              page.get_by_role('button',name='Sources',exact=True).click()
+              links=page.locator('#dossier a[href^="http"]').evaluate_all('(nodes)=>nodes.map(a=>a.href)')
+              corrected='https://www.hellletloose.com/blog/community-update-4'
+              assert corrected in links
+              assert not any('community-feedback-4' in url for url in links)
+              with page.expect_popup() as popup:
+                  page.locator('#dossier a[href="'+corrected+'"]').click()
+              source=popup.value
+              source.wait_for_load_state('domcontentloaded')
+              assert 'Community Feedback #4' in source.title()
+              assert '404' not in source.title()
+              source.close()
               page.set_viewport_size({'width':390,'height':844})
-              assert page.locator('#dossier').is_visible()
-              assert page.evaluate('document.documentElement.scrollWidth <= window.innerWidth + 2'), 'Horizontal mobile overflow'
-              assert not errors, errors
-              print('BROWSER_PASS landing, October 5 date, issue list, search, detail, Sources anchors, mobile overflow, no JavaScript errors')
+              assert page.evaluate('document.documentElement.scrollWidth <= window.innerWidth + 2')
+              assert not errors,errors
+              print('BROWSER_PASS: October 5 landing; issue search; detail; Sources; repaired link clicked and expected publisher page loaded; mobile overflow; no JavaScript errors')
               browser.close()
           PY
