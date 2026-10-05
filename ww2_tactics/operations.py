@@ -4,6 +4,7 @@ No map-name branches: a saved match opts in, units supply capabilities, and the
 terrain supplies height. Legal previews never consult hidden occupancy.
 """
 from .coordinates import column
+from . import domains
 VERSION = 1
 ORDER_KINDS = {'area_fire', 'repair_tank', 'snipe'}
 
@@ -121,7 +122,7 @@ def orders(state, unit):
         result['area_fire'] = [m['pos'] for m in result['area_fire_details']]
         if unit.get('repair_kits'):
             result['repair_tank'] = [u['id'] for u in state['units'] if active(u) and u['side']==unit['side']
-                and u['kind']=='tank' and distance(unit['pos'],u['pos'])==1 and u.get('repair_round')!=state['round']
+                and u['kind']=='tank' and domains.support_reach(state,distance(unit['pos'],u['pos'])) and u.get('repair_round')!=state['round']
                 and (u['hp']<u.get('max_hp',u['hp']) or u.get('immobilized'))]
     if unit.get('snipe_range') and unit['ap']>=3:
         seen = unit_visible_ids(state,unit)
@@ -177,7 +178,9 @@ def action(state, unit, order, legal, roll):
             pos=list(shot['pos']);die=roll();p=weapons.profile(unit);impacts=[]
             unit.update(ap=unit['ap']-2,overwatch=False,road_pending=False)
             if p['id']=='bomb':unit['bombs']-=1
-            if die>=shot['threshold']:
+            if die>=shot['threshold'] and domains.ground_stacking(state):
+                impacts=weapons.resolve_shared_hex(state,unit,pos,die,shot['threshold'],direct_checks=True)
+            elif die>=shot['threshold']:
                 primary=next((u for u in state['units'] if active(u) and u['pos']==pos and weapons.protection(u)!='aircraft'),None)
                 needed=max(shot['threshold'],target_threshold(state,unit,primary)) if primary else 7
                 if p.get('structural'):impacts+=buildings.hit(state,pos)

@@ -1,4 +1,5 @@
 """Finite, adjacent supply transfers. Opt-in for newly authored operations only."""
+from . import domains
 from .visibility import active
 
 VERSION = 1
@@ -35,7 +36,7 @@ def options(state, unit):
     for friend in state['units']:
         if (friend['side'] == unit['side'] and active(friend) and not friend.get('afloat')
                 and friend.get('resupplied_round') != state['round']
-                and distance(unit['pos'], friend['pos']) == 1):
+                and domains.support_reach(state,distance(unit['pos'], friend['pos']))):
             item = delivery(friend)
             if item:
                 resource, amount = item

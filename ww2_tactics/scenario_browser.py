@@ -13,8 +13,8 @@ CATEGORIES = {
 
 # key: learning position, additional categories, one short learning focus
 GUIDE = {
-    'vire_crossroads': (22, ['combined','armor','control'], 'Three full platoons per side; learn recon-directed fire on a medium map.'),
-    'belfry_valley': (23, ['combined','control'], 'Use churches, recon, mortars and snipers to contest observation lanes.'),
+    'vire_crossroads': (22, ['combined','armor','control'], 'Lower density: two platoons, 17 units per side; one ground unit per hex.'),
+    'belfry_valley': (23, ['combined','control'], 'Shared hexes: two friendly units per hex; three platoons, recon, mortars and snipers.'),
     'shingle_cove': (20, ['combined','amphibious','prebattle'], 'Learn private deployment, bunkers and blind naval preparation.'),
     'breakwater': (21, ['combined','amphibious','prebattle'], 'Plan a larger landing across several coastal approaches.'),
     'relay_crossing': (4, ['combined'], 'Small-map lab: scouts, radios, mortars, supply and armor.'),

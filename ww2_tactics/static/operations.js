@@ -88,8 +88,14 @@
     const tile=element('polygon',{points:points(...t.pos),class:'support-choice'+(repair?' repair-choice':' snipe-choice'),role:'button',tabindex:0,'aria-label':label});
     tile.append(element('title',{},label));activate(tile,()=>{
      if(busy||playbackSession||!mode)return;
-     const message=repair?`Repair ${unitName(t)} for 2 engineer AP and one kit? Restore 1 strength (up to maximum) and fix tracks.`:`Snipe ${unitName(t)} for 3 AP? Needs ${shot.threshold}+, deals 1 damage and pins. Your team will be exposed through the enemy turn.`;
-     if(!confirm(message))return;const kind=mode.kind;mode=null;act({kind,unit:selected,target:t.id});
+     const execute=chosen=>{
+      if(!mode||busy||playbackSession)return;
+      const choice=choices.find(s=>s.id===chosen.id);
+      const message=repair?`Repair ${unitName(chosen)} for 2 engineer AP and one kit? Restore 1 strength (up to maximum) and fix tracks.`:`Snipe ${unitName(chosen)} for 3 AP? Needs ${choice.threshold}+, deals 1 damage and pins. Your team will be exposed through the enemy turn.`;
+      if(!confirm(message))return;const kind=mode.kind;mode=null;act({kind,unit:selected,target:chosen.id});
+     };
+     const shared=state.ground_stack_version?state.units.filter(v=>v.pos[0]===t.pos[0]&&v.pos[1]===t.pos[1]&&choices.some(s=>s.id===v.id)):[];
+     if(shared.length>1)window.chooseGroundTarget(t.pos,shared,execute);else execute(t);
     });svg.append(tile);
    }
   }

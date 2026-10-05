@@ -7,6 +7,11 @@ indirect mortars, snipers and church observation posts. These two playtest maps
 support the existing co-op platoon assignments and computer difficulties.
 Existing matches keep their saved rules. Read [the rules and validation](ww2-fire-direction.md).
 
+The density playtest now gives Vire two platoons (17 units per army) and Belfry
+two friendly ground units per hex (three platoons, 22 units per army). Shared
+hexes retain separate AP and co-op ownership, with explicit unit/target choosers.
+Only new matches use these revisions.
+
 ## Pre-battle landing setup
 
 Shingle Cove and Operation Breakwater introduce private placement, German

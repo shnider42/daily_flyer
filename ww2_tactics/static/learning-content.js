@@ -172,6 +172,11 @@
    'Platoon controls organize your force and highlight its members; they do not activate an entire group. On communications maps, platoons observe locally and share dated contacts by radio.',
    'Group filters affect selection only. LT command/rally eligibility remains local to the platoon. Signals-enabled direct fire uses group sightings; HQ reports do not turn distant contacts into live direct-fire targets.'
   ],'Choose a platoon and inspect its Lieutenant and one squad.','#platoonFilters'));
+  if(s.ground_stack_version)extra.push(make('shared-hexes','Two friendly units can share a hex',[
+   'Select your unit, then tap a nearby friendly unit and choose Move here. Up to two units can share. Tap that hex again to choose which one you mean. Explosions can hurt both, so spread out when danger approaches.',
+   'Belfry Valley allows two friendly units per hex, with at most one vehicle or fixed gun. Each pays its own AP and keeps its player assignment. Direct fire selects one target; mortar blasts and other explosive effects can hit both.',
+   'Capacity is two friendly ground units, at most one non-infantry unit. AP, ownership and platoon sight remain per unit. Hex fire checks both occupants; cover/armor still apply, structures take one damage step per shell, and flags score once. Assault advances require clearing all defenders.'
+  ],'Select a unit, then a neighboring friendly counter. Inspect the Move here option and shared-hex chooser.','#mapWrap',['move']));
   if(s.signals_version&&has('scout','radioman','mountain','pathfinder'))extra.push(make('observe','Observe: see farther from this position',[
    'Observe helps a scouting unit see two hexes farther. It costs 1 action point. It does not make the weapon shoot farther, and the benefit ends when the unit moves or attacks.',
    'Observe costs 1 AP and adds 2 sight from the current hex. It ends on movement, attack or the next friendly turn. Use it before crossing uncertain ground or deciding where to send support.',

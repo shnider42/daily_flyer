@@ -32,21 +32,21 @@ class FireDirectionTests(unittest.TestCase):
         s = apply(s, 'us', dict(kind='observe', unit='us-A-1'))
         return apply(s, 'us', dict(kind='spot_fire', unit='us-A-1', pos=pos or [8,5]))
 
-    def test_only_new_maps_enable_rules_and_have_valid_three_platoons(self):
+    def test_only_new_maps_enable_rules_and_have_valid_platoons(self):
         for name in SCENARIOS:
             s = initial(name, 'dsl')
             self.assertEqual(fire_control.enabled(s), name in IDS)
-        for name, size, count in [('vire_crossroads',(16,17),50),('belfry_valley',(18,22),44)]:
+        for name, size, count in [('vire_crossroads',(16,17),34),('belfry_valley',(18,22),44)]:
             s = initial(name, 'dsl'); b=s['battlefield']
             self.assertEqual((b['width'],b['height']),size)
             self.assertEqual(len(s['units']),count)
             self.assertEqual(len({tuple(u['pos']) for u in s['units']}),count)
             for side in ('us','de'):
-                self.assertEqual({u['platoon'] for u in s['units'] if u['side']==side and u['kind']!='commander'}, {'A','B','C'})
+                self.assertEqual({u['platoon'] for u in s['units'] if u['side']==side and u['kind']!='commander'}, ({'A','B'} if name=='vire_crossroads' else {'A','B','C'}))
                 self.assertTrue(any(u['kind']=='sniper' and u['side']==side for u in s['units']))
             self.assertTrue(all(0<=u['pos'][0]<b['width'] and 0<=u['pos'][1]<b['height'] for u in s['units']))
             cooperative.initialize(s,dict(control_size='platoons'), 'host','Host')
-            self.assertEqual(sum(not g['command'] for g in s['coop']['groups'].values()),6)
+            self.assertEqual(sum(not g['command'] for g in s['coop']['groups'].values()),4 if name=='vire_crossroads' else 6)
             self.assertTrue(any(u['kind']=='commander' and u['id'] in cooperative.controlled(s,'host') for u in s['units']))
 
     def test_observe_alone_does_not_change_odds_and_mark_costs_one_more_ap(self):

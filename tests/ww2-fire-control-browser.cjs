@@ -40,7 +40,7 @@ db.execute('UPDATE match SET state=? WHERE code=?',(json.dumps(s),code));db.comm
  assert.match(await ally.locator('#coopYourCommand').textContent(),/Americans.*British.*Platoon B/);
  await host.locator('#coopStart').click();await settle(host);await refresh(ally);
  assert.equal(await host.evaluate(()=>state.side),'us');assert.equal(await ally.evaluate(()=>state.side),'us');
- assert.equal(await host.evaluate(()=>state.coop.groups.filter(g=>!g.command&&!g.owner).length),4);
+ assert.equal(await host.evaluate(()=>state.coop.groups.filter(g=>!g.command&&!g.owner).length),2);
  assert.match(await host.locator('#objectiveName').textContent(),/VIRE CROSSROADS/);
  assert.match(await host.locator('#missionHint').textContent(),/River junction/);
  await host.screenshot({path:path.join(tmp,'vire-desktop.png'),fullPage:true});

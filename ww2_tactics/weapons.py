@@ -157,6 +157,32 @@ def splash(state, pos, *, exclude=None, radius=1):
     return impacts
 
 
+def resolve_shared_hex(state, unit, pos, die, threshold, weapon=None, direct_checks=False):
+    """A hex shot checks each occupant; damage/cover never depend on list order.
+
+    One shell damages the structure once. Each surviving primary occupant uses
+    its own protection; fragments hit adjacent infantry once, including allies.
+    Call only for versioned ground stacking so existing saves keep their rules.
+    """
+    from .engine import distance
+    p = profile(unit, weapon)
+    primaries = [u for u in state['units'] if active(u) and protection(u)!='aircraft' and u['pos']==pos]
+    needed = {u['id']:max(threshold,operations.target_threshold(state,unit,u)) if direct_checks else threshold for u in primaries}
+    impacts = buildings.hit(state,pos) if p.get('structural') else []
+    for target in primaries:
+        amount = damage(unit,target,weapon)
+        if not active(target) or not amount or die < needed[target['id']]:
+            continue
+        if p.get('critical_infantry') and die==6 and protection(target)=='infantry':amount=target['hp']
+        result=impact(state,target,amount,immobilize=p.get('penetrating') and die>=5)
+        impacts.append(impact_record(target,result))
+    if p.get('splash'):
+        for target in state['units']:
+            if active(target) and target['id'] not in needed and protection(target)=='infantry' and distance(pos,target['pos'])<=1:
+                impacts.append(impact_record(target,impact(state,target,1)))
+    return impacts
+
+
 def resolve(state, unit, target, die, threshold, weapon=None):
     """Return the primary result and separate impacts for per-viewer redaction."""
     p = profile(unit, weapon); amount = damage(unit, target, weapon)
@@ -249,7 +275,10 @@ def resolve_artillery(state, strike, roll):
     from .combat_display import record_combat
     attacker = next(u for u in state['units'] if u['id'] == strike['attacker'])
     die = roll(); impacts = []; pos = strike['pos']
-    if die >= 4:
+    from .domains import ground_stacking
+    if die >= 4 and ground_stacking(state):
+        impacts = resolve_shared_hex(state,attacker,pos,die,4,'artillery')
+    elif die >= 4:
         primary = next((u for u in state['units'] if active(u) and protection(u)!='aircraft' and u['pos'] == pos), None)
         if primary:
             _, impacts = resolve(state, attacker, primary, die, 4, 'artillery')

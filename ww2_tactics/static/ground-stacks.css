@@ -1,0 +1,12 @@
+#groundStack{width:min(560px,calc(100vw - 24px));max-height:85dvh;overflow:auto;border:2px solid #516348;border-radius:8px;padding:18px;background:#f3f0e3;color:#17382d;box-sizing:border-box}
+#groundStack::backdrop{background:#0a211bbd}
+#groundStack h2{font-size:1.25rem;margin:16px 0 8px}
+#groundStack p{line-height:1.45}
+#groundStack button{min-height:48px;cursor:pointer;font:inherit;white-space:normal}
+.ground-stack-options{display:grid;gap:10px}
+.ground-stack-options button{display:flex;align-items:center;gap:12px;padding:12px;border:1px solid #87937a;background:#fffdf2;color:#17382d;text-align:left}
+.ground-stack-options strong,.ground-stack-options small{display:block}
+.ground-stack-options small{margin-top:6px;line-height:1.5}
+.ground-stack-options img,.ground-stack-options svg{width:56px;height:56px;object-fit:contain;flex:none}
+#groundStackMove{border:2px solid #345e42;background:#dcebd6}
+.ground-stack-count{font-size:15px;font-weight:900;fill:#fff5c4;stroke:#183c30;stroke-width:4;paint-order:stroke;pointer-events:none}

@@ -121,6 +121,7 @@ def initial(scenario='village', ruleset='classic'):
         state['factions']=board['factions'].copy()
         state['log']=[f"{board['name']} · {state['factions']['us']} move first. Hold {board['objective_name']} for two consecutive turns; defenders win after round {board['rounds']}."]
     fubar.initialize(state)
+    domains.initialize(state)
     if board.get('combined_arms') or board.get('campaign'):
         state.update(dsl_expansion=1,fog_of_war=True)
         update_intel(state)
@@ -227,14 +228,14 @@ def options(state, unit):
     if not state["ready"] or state["winner"] or unit["hp"] <= 0 or unit["side"] != state["turn"]:
         return dict(moves=moves, targets=targets, rally=False, **extras)
     seen=unit_visible_ids(state,unit)
-    occupied = [u["pos"] for u in state["units"] if active(u) and u['id'] in seen and domains.blocks(state,unit,u)]
+    occupied=domains.blocked_hexes(state,unit,seen)
     if unit.get('carrier_id'):
         return dict(moves=[], targets=[], rally=False, **extras)
     extras.update(transport.options(state, unit))
     if unit.get('reserve'):
         if unit['ap']>=2 and not unit.get('arrival_round') and not unit.get('airlift_reserve'):
             extras['drops']=[[x,y] for y in range(2,board['height']-2) for x in range(board['width'])
-                             if terrain(x,y,state) in {'field','road'} and [x,y] not in occupied
+                             if terrain(x,y,state) in {'field','road'} and (x,y) not in occupied
                              and sees_hex(state,unit['side'],[x,y])]
         return dict(moves=[],targets=[],rally=False,**extras)
     if not unit["pinned"]:
@@ -246,7 +247,7 @@ def options(state, unit):
                 if free_road: cost = 0
                 if weapons.enabled(state) and unit.get('immobilized'): passable=False
                 if not buildings.enterable(state, [x, y], unit['side']): passable=False
-                if passable and distance(unit["pos"], [x, y]) == 1 and [x, y] not in occupied and unit["ap"] >= cost:
+                if passable and distance(unit["pos"], [x, y]) == 1 and (x,y) not in occupied and unit["ap"] >= cost:
                     moves.append(dict(pos=[x, y], cost=cost, threats=preview_threats(state,unit,[x,y],seen), **({'road_bonus': True} if free_road else {})))
         if unit["ap"] >= 2:
             for target in state["units"]:
@@ -379,9 +380,9 @@ def apply(state, side, action, roll=None):
         elif kind == 'unload' and action.get('pos') in [m['pos'] for m in legal['unload']]:
             if not buildings.enterable(state, action['pos']):
                 raise ValueError('That building has collapsed. Choose another hex.')
-            if any(active(u) and domains.blocks(state,unit,u) and u['pos'] == action['pos'] for u in state['units']):
-                raise ValueError('That disembark hex is occupied. Choose another hex.')
             troop = transport.passengers(state, unit)[0]
+            if domains.blocked(state,troop,action['pos']):
+                raise ValueError('That disembark hex is occupied. Choose another hex.')
             troop.pop('carrier_id', None)
             troop.update(pos=list(action['pos']), ap=troop['ap']-1, road_pending=False)
             message = f"{names[side]} {troop['kind']} disembarked; infantry spent 1 AP."
@@ -393,7 +394,7 @@ def apply(state, side, action, roll=None):
         elif kind in {'grenade', 'suppress', 'inspire', 'barrage', 'command'}:
             message = role_action(state, unit, action, legal, roll_die, distance, names)
         elif kind == 'drop' and action.get('pos') in legal['drops']:
-            if domains.joint(state) and any(active(u) and domains.blocks(state,unit,u) and u['pos']==action['pos'] for u in state['units']):
+            if (domains.joint(state) or domains.ground_stacking(state)) and domains.blocked(state,unit,action['pos']):
                 raise ValueError('Landing blocked by a contact. Choose another approach.')
             unit.update(pos=list(action['pos']),reserve=False,ap=unit['ap']-2)
             message=f"{names[side]} paratroopers landed at {column(unit['pos'][0])}{unit['pos'][1]+1}."
@@ -411,7 +412,7 @@ def apply(state, side, action, roll=None):
                     unit.update(road_used=True, road_pending=False)
                 else:
                     unit['road_pending'] = both_road and not unit.get('no_road_bonus') and not unit.get('afloat') and (unit['kind']=='halftrack' or not unit.get('road_used', False))
-            if any(active(u) and u['id']!=unit['id'] and domains.blocks(state,unit,u) and u['pos']==move['pos'] for u in state['units']):
+            if domains.blocked(state,unit,move['pos']):
                 raise ValueError('Movement blocked by a contact. Scout or choose another approach.')
             unit["pos"] = move["pos"]
             unit["ap"] -= move["cost"]
@@ -476,7 +477,10 @@ def apply(state, side, action, roll=None):
                 target['overwatch'] = False
                 result = 'eliminated; attacker advanced' if target['hp'] <= 0 else 'hit for 2 and pinned'
                 if target['hp'] <= 0:
-                    unit['pos'] = list(target['pos'])
+                    if not domains.ground_stacking(state) or not domains.blocked(state,unit,target['pos']):
+                        unit['pos'] = list(target['pos'])
+                    else:
+                        result = 'eliminated; another defender prevents advance'
             else:
                 unit['hp'] -= 1
                 unit['pinned'] = True
@@ -485,8 +489,8 @@ def apply(state, side, action, roll=None):
             state['last_combat'] = dict(kind='Assault', roll=die, threshold=assault['threshold'], result=result,
                                         attacker=unit['id'], target=target['id'], revision=state['revision']+1)
             record_combat(state, {'pinned_target': -1 if assault['threshold'] == 3 else 0},
-                          'Success: 2 damage and pin; advance on elimination. Failure: attacker loses 1 strength and is pinned.')
-            if target['hp'] <= 0 and unit['hp'] > 0:
+                          ('Success: 2 damage and pin; advance only after clearing the hex. Failure: attacker loses 1 strength and is pinned.' if domains.ground_stacking(state) else 'Success: 2 damage and pin; advance on elimination. Failure: attacker loses 1 strength and is pinned.'))
+            if target['hp'] <= 0 and unit['hp'] > 0 and (not domains.ground_stacking(state) or unit['pos']==target['pos']):
                 reactions = react(state, unit, roll_die)
         elif kind == "rally" and legal["rally"]:
             unit["pinned"] = False

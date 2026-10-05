@@ -24,6 +24,7 @@
    const shot=state.legal[selected].area_fire_details.find(s=>s.pos[0]===pos[0]&&s.pos[1]===pos[1]),u=state.units.find(u=>u.id===selected);
    help.area_fire=shot.indirect?`Order indirect mortar fire for 2 AP and one shell? Needs ${shot.threshold}+ to land${shot.guided?' with recon direction':''} after the enemy turn. Buildings and woods do not block the mortar arc. All infantry in this hex and its neighbors can be hit, including yours. Armor resists fragments; structures use a separate 5+ roll. Misses still spend the shell.`:`Fire ${u.ammo?.toUpperCase()||'explosive'} at this hex for 2 AP? Needs ${shot.threshold}+ to land${shot.guided?' with recon direction':''}${shot.fringe?' at the outer fringe':''}. Unit cover and armor still apply. Heavy rounds damage buildings; damaged buildings collapse and kill everyone inside. Splash may hit friendly troops. Hidden results stay unknown.`;
   }
+  if(state.ground_stack_version&&['area_fire','artillery'].includes(kind))help[kind]+=' Shared hex: each occupant is checked separately. Each structure takes at most one damage step from this round.';
   if(!confirm(`${hex} · ${help[kind]}`))return;
   combatMode=null;act({kind,unit:selected,pos});
  };

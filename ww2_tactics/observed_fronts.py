@@ -7,14 +7,12 @@ IDS = ('vire_crossroads', 'belfry_valley')
 def roster(name):
     forces = []
     if name == 'vire_crossroads':
-        height, starts = 17, (1, 6, 11)
+        height, starts = 17, (2, 10)
         formations = {
             'us': [('leader','scout','tank','tank','squad','engineer','supply','at_team'),
-                   ('leader','scout','tank','squad','squad','mortar','radioman','sniper'),
-                   ('leader','scout','commando','mortar','engineer','squad','amphibious','supply')],
+                   ('leader','scout','tank','commando','amphibious','mortar','radioman','sniper')],
             'de': [('leader','scout','tank','at_gun','mg','engineer','squad','supply'),
-                   ('leader','scout','tank','mg','mortar','radioman','squad','sniper'),
-                   ('leader','scout','halftrack','squad','mg','mortar','engineer','supply')]}
+                   ('leader','scout','tank','halftrack','mortar','radioman','squad','sniper')]}
     elif name == 'belfry_valley':
         height, starts = 22, (2, 7, 13)
         formations = {
@@ -71,13 +69,13 @@ def scenarios(build):
     for x in (2,7,12): g[8][x] = '+'
     g[6][5] = '^'; g[10][10] = '^'; g[8][7] = '*'
     b = build('vire_crossroads', 'Vire Crossroads', 'River junction', 20,
-        'Medium battlefield, full combined-arms forces: three platoons and a commander per side. American mobility and British precision armor face heavier German gun lines, suppression and a half-track. Recon directs its own platoon; seize three crossings.', [''.join(row) for row in g])
-    b.update(summary='16×17 · 25 units per side · asymmetric combined arms',
+        'Lower-density playtest: two platoons and a commander per side, 17 units each. American mobility and British precision armor face heavier German gun lines, suppression and a half-track. Recon directs its own platoon; spread out to seize three crossings. One ground unit per hex.', [''.join(row) for row in g])
+    b.update(summary='16×17 · 17 units per side · two platoons · one unit per hex',
         factions={'us':'Americans & British','de':'Germans'},
         doctrine={'us':'Two fast Shermans and a British Firefly, raiders and an amphibious flank. Scout before trading shots; each platoon has its own recon.',
-                  'de':'Two tougher Panzers, a fixed AT gun, more machine guns and a half-track. Hold lanes with recon support; infantry must protect the guns.'},
+                  'de':'Two tougher Panzers, a fixed AT gun, machine-gun support and a half-track. Hold lanes with recon support; infantry must protect the guns.'},
         control_points=[dict(id='west',name='West crossing',pos=[2,8],points=1),dict(id='center',name='River junction',pos=[7,8],points=2),dict(id='east',name='East crossing',pos=[12,8],points=1)],
-        platoons=[dict(id='A',name='Platoon A · armor',center=2),dict(id='B',name='Platoon B · fire support',center=7),dict(id='C',name='Platoon C · maneuver',center=12)])
+        platoons=[dict(id='A',name='Platoon A · armor',center=3),dict(id='B',name='Platoon B · fire support & maneuver',center=11)])
     result[b['id']] = b
 
     g = [['.' for _ in range(18)] for _ in range(22)]
@@ -98,8 +96,8 @@ def scenarios(build):
     for x,y in ((4,14),(13,7)): g[y][x] = '^'
     g[10][8] = '*'
     b = build('belfry_valley', 'Belfry Valley', 'Market square', 24,
-        'Observation laboratory: churches and clock towers overlook offset villages, a stream and three scoring positions. Recon marks firing solutions; mortars lob delayed rounds over blocked lanes; scarce snipers hunt exposed observers. Height improves sight, not immunity.', [''.join(row) for row in g])
-    b.update(summary='18×22 · 22 units per side · recon, mortars and snipers',
+        'Shared-hex playtest: three platoons and a commander per side, 22 units each. Up to two friendly ground units may share a hex, with at most one vehicle or fixed gun. Churches and clock towers overlook offset villages. Recon directs mortars and armor; snipers hunt observers. Explosives make crowded hexes risky.', [''.join(row) for row in g])
+    b.update(summary='18×22 · 22 units per side · three platoons · two per hex', ground_stacking=True,
         factions={'us':'British & Commonwealth','de':'Germans'},
         doctrine={'us':'Faster mortar crews and mobile raiders; shorter mortar and sniper reach. Change position between fire missions and use smoke to cut enemy observation.',
                   'de':'Mortars reach nine hexes; snipers reach seven but need banked AP for aimed shots. Longer reach comes with slower support teams.'},

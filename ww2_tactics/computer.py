@@ -193,6 +193,8 @@ def choose_order(state, costs, visited, front_costs=None):
                 # Survive before pursuing objectives. Move toward any dry bank.
                 dry=[[x,y] for y in range(board['height']) for x in range(board['width']) if known_ground[y][x]!='water' and fieldworks.movement(unit,known_ground[y][x])[0] and buildings.enterable(state,[x,y],side)]
                 if dry:score=25-min(distance(pos,p) for p in dry)*3+(10 if known_ground[pos[1]][pos[0]]!='water' else 0)
+            if domains.ground_stacking(state) and any(v['side']==side and v['id']!=unit['id'] and v['pos']==pos for v in units.values()):
+                score -= 1.5  # Prefer space unless sharing helps movement or an objective.
             score += .6 * buildings.cover(state,pos,side=side)
             if unit['kind'] in {'scout','sniper'} and terrain(*pos,state) in {'tower','church'}:score+=2
             if unit.get('repair_kits') and any(friend['side']==side and friend['kind']=='tank'

@@ -18,11 +18,11 @@ def options(state, carrier):
             result['load'] = [u['id'] for u in state['units'] if active(u)
                               and u['side'] == carrier['side'] and u['kind'] in combined.INFANTRY
                               and not u['pinned'] and u['ap'] >= 1 and not u.get('transport_used')
-                              and distance(u['pos'], carrier['pos']) == 1]
+                              and domains.support_reach(state,distance(u['pos'], carrier['pos']))]
     elif aboard[0]['ap'] >= 1:
         troop = aboard[0]
         seen = visible_ids(state, carrier['side'])
-        occupied = [u['pos'] for u in state['units'] if active(u) and u['id'] in seen and domains.blocks(state,troop,u)]
+        occupied=domains.blocked_hexes(state,troop,seen)
         board = state['battlefield']
         result['unload'] = [dict(pos=[x, y], cost=1,
                                  threats=preview_threats(state, troop, [x, y], seen))
@@ -30,7 +30,7 @@ def options(state, carrier):
                             for x in range(max(0, carrier['pos'][0]-1), min(board['width'], carrier['pos'][0]+2))
                             if distance(carrier['pos'], [x, y]) == 1 and fieldworks.movement(troop, terrain(x, y, state))[0]
                             and buildings.enterable(state, [x, y], carrier['side'])
-                            and [x, y] not in occupied]
+                            and (x,y) not in occupied]
     return result
 
 
@@ -50,7 +50,7 @@ def bail_out(state, carrier):
             shore=[[x,y] for y in range(board['height']) for x in range(board['width'])
                    if distance(carrier['pos'],[x,y])==1 and fieldworks.movement(troop, terrain(x,y,state))[0]
                    and buildings.enterable(state, [x,y])
-                   and not any(active(u) and u['id']!=troop['id'] and domains.blocks(state,troop,u) and u['pos']==[x,y] for u in state['units'])]
+                   and not domains.blocked(state,troop,[x,y])]
             if shore:pos=shore[0]
             else:loss=troop['hp']  # No impossible infantry survivors stranded at sea.
         troop.update(pos=pos, hp=max(0, troop['hp']-loss), pinned=True,
