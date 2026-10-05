@@ -58,6 +58,9 @@ def omaha_roster():
 
 
 def setup(board):
+    if board['campaign'] in {'vire_crossroads', 'belfry_valley'}:
+        from .observed_fronts import roster as observed_roster
+        return observed_roster(board['campaign'])
     if board.get('prebattle'):
         from .deployment import roster as deployment_roster
         return deployment_roster(board['id'])

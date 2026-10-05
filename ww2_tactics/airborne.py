@@ -50,7 +50,7 @@ def landing_space(state,pos):
     from .engine import terrain
     from .buildings import enterable
     from .domains import surface
-    return inside(state,pos) and terrain(*pos,state) not in {'mountain','tower','bunker'} and enterable(state,pos) and not any(active(u) and surface(state,u) and u['pos']==pos for u in state['units'])
+    return inside(state,pos) and terrain(*pos,state) not in {'mountain','tower', 'church','bunker'} and enterable(state,pos) and not any(active(u) and surface(state,u) and u['pos']==pos for u in state['units'])
 
 
 def action(state,commander,order,legal,roll,react):

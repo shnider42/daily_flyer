@@ -133,6 +133,18 @@ def resolve_barrages(state, names, roll=None):
             continue
         affected = [u for u in state['units'] if active(u) and u['pos'] in strike['area']]
         if weapons.enabled(state):
+            accuracy_roll = None
+            if strike.get('weapon') == 'observed_mortar':
+                import secrets
+                accuracy_roll = (roll or (lambda: secrets.randbelow(6)+1))()
+                if accuracy_roll < strike['threshold']:
+                    result = 'Mortar fire fell wide; no damage'
+                    messages.append(result + '.')
+                    state['last_combat'] = dict(kind='Indirect mortar fire', attacker=strike.get('attacker'),
+                        aim=list(strike['pos']), roll=accuracy_roll, threshold=strike['threshold'],
+                        result=result, impacts=[], revision=state['revision']+1)
+                    record_combat(state, note='Delayed indirect fire. 5+ normally; 4+ when directed by observing recon in the same platoon. One shell spent even on a miss.')
+                    continue
             structure_roll = None
             impacts = []
             if buildings.enabled(state) and any(state['battlefield']['map'][p[1]][p[0]] in buildings.TILES for p in strike['area']):
@@ -148,9 +160,12 @@ def resolve_barrages(state, names, roll=None):
             messages.append(result + '.')
             state['last_combat'] = dict(kind='Mortar barrage', attacker=strike.get('attacker'), impacts=impacts,
                                        result=result, revision=state['revision']+1)
+            if accuracy_roll is not None:
+                state['last_combat'].update(kind='Indirect mortar fire', aim=list(strike['pos']),
+                    roll=accuracy_roll, threshold=strike['threshold'])
             if structure_roll is not None:
                 state['last_combat'].update(structure_roll=structure_roll, structure_threshold=5)
-            record_combat(state, note='Infantry in the area automatically takes 1 damage, is pinned and loses dug-in cover, including friendlies. Fragments cannot damage armor. '
+            record_combat(state, note=('Accuracy roll succeeded. ' if accuracy_roll is not None else '')+'Infantry in the area automatically takes 1 damage, is pinned and loses dug-in cover, including friendlies. Fragments cannot damage armor. '
                           + ('Separate structural roll: 5+ damages buildings in the area; damaged buildings collapse and eliminate all ground occupants.' if structure_roll is not None else 'No roll.'))
             continue
         for u in affected:

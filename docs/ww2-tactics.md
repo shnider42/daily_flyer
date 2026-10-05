@@ -1,5 +1,12 @@
 # DSL — WWII tactical game
 
+## Recon fire direction
+
+Vire Crossroads and Belfry Valley add same-platoon recon spotting, aimed
+indirect mortars, snipers and church observation posts. These two playtest maps
+support the existing co-op platoon assignments and computer difficulties.
+Existing matches keep their saved rules. Read [the rules and validation](ww2-fire-direction.md).
+
 ## Pre-battle landing setup
 
 Shingle Cove and Operation Breakwater introduce private placement, German

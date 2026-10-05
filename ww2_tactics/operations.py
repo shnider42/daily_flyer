@@ -18,6 +18,8 @@ def initialize(state):
     for unit in state['units']:
         if unit['kind'] == 'engineer': unit.setdefault('repair_kits', 3)
         if unit['kind'] == 'commander': unit.setdefault('cooldowns', {})
+    from .fire_control import initialize as initialize_fire_control
+    initialize_fire_control(state)
     return state
 
 
@@ -33,13 +35,14 @@ def end_turn(state):
     if enabled(state):
         for u in state['units']:
             if u.get('exposed_turns'): u['exposed_turns'] -= 1
+            if u['side'] == state['turn']: u.pop('fire_mark', None)
 
 
 def tower(state, unit):
     from .engine import terrain
     from .visibility import active
     from .domains import surface
-    return enabled(state) and active(unit) and surface(state,unit) and terrain(*unit['pos'], state) == 'tower'
+    return enabled(state) and active(unit) and surface(state,unit) and terrain(*unit['pos'], state) in {'tower','church'}
 
 
 def sight_range(state, unit, concealed=False):
@@ -77,13 +80,23 @@ def range_guide(state, unit):
 def aim_hexes(state, unit):
     from .engine import distance, line_clear
     from . import weapons, domains
+    from . import fire_control
+    if fire_control.enabled(state) and unit.get('mortar_range'):
+        return fire_control.mortar_hexes(state, unit)
     p = weapons.profile(unit)
     if not p.get('area_fire') or (p['id']=='bomb' and not unit.get('bombs')): return []
     normal = min(unit['range'], sight_range(state,unit))
     # Bombers already fly over terrain: use their current short bombing range,
     # with no speculative extra hex that would evade AA by doubling bomb reach.
     reach = normal + (0 if p['id']=='bomb' else 1)
-    return [dict(pos=pos, threshold=6 if distance(unit['pos'],pos)>normal else 5,
+    if not fire_control.enabled(state):
+        return [dict(pos=pos, threshold=6 if distance(unit['pos'],pos)>normal else 5,
+                     fringe=distance(unit['pos'],pos)>normal)
+                for pos in cells(state,unit['pos'],reach)
+                if (pos != unit['pos'] or domains.joint(state) and p['id']=='bomb') and (p['id']=='bomb' or line_clear(unit['pos'],pos,state.get('smoke',[]),state))]
+    return [dict(pos=pos, threshold=(6 if distance(unit['pos'],pos)>normal else 5) -
+                 int(unit['kind'] in fire_control.GUNS and bool(fire_control.spotter(state,unit,pos))),
+                 guided=unit['kind'] in fire_control.GUNS and bool(fire_control.spotter(state,unit,pos)),
                  fringe=distance(unit['pos'],pos)>normal)
             for pos in cells(state,unit['pos'],reach)
             if (pos != unit['pos'] or domains.joint(state) and p['id']=='bomb') and (p['id']=='bomb' or line_clear(unit['pos'],pos,state.get('smoke',[]),state))]
@@ -156,6 +169,9 @@ def action(state, unit, order, legal, roll):
             record_combat(state,shot['modifiers'],shot['effect_text'])
             return f"Sniper rolled {die}, needed {shot['threshold']}+. Target {result}. Team exposed through the enemy turn."
     if kind=='area_fire':
+        from . import fire_control
+        if fire_control.enabled(state) and unit.get('mortar_range'):
+            return fire_control.mortar_action(state, unit, order, legal)
         shot=next((s for s in legal['area_fire_details'] if s['pos']==order.get('pos')),None)
         if shot:
             pos=list(shot['pos']);die=roll();p=weapons.profile(unit);impacts=[]
@@ -174,7 +190,8 @@ def action(state, unit, order, legal, roll):
             result='Round landed on the aimed hex; unobserved effects unknown' if die>=shot['threshold'] else 'Area fire missed; no damage'
             state['last_combat']=dict(kind='Area fire',attacker=unit['id'],aim=pos,roll=die,threshold=shot['threshold'],
                 result=result,impacts=impacts,revision=state['revision']+1)
-            record_combat(state,note='2 AP. 5+ lands; speculative fringe needs 6. Direct unit cover/armor thresholds still apply. Heavy rounds damage the aimed structure. Friendly fire and loaded-ammunition effects apply; hidden results stay unknown.')
+            accuracy = f"2 AP. {shot['threshold']}+ lands"+(' with recon direction. ' if shot.get('guided') else '. ') if fire_control.enabled(state) else '2 AP. 5+ lands; speculative fringe needs 6. '
+            record_combat(state,note=accuracy+'Direct unit cover/armor thresholds still apply. Heavy rounds damage the aimed structure. Friendly fire and loaded-ammunition effects apply; hidden results stay unknown.')
             record_effect(state,'explosion',[pos])
             return f"Area fire at {column(pos[0])}{pos[1]+1}: rolled {die}, needed {shot['threshold']}+. {result}."
     raise ValueError('That support or precision order is unavailable. Check AP, range, supplies and cooldown.')

@@ -167,6 +167,9 @@ def action(state,u,order,legal,roll):
         u.update(ap=u['ap']-2,camouflaged=True,overwatch=False)
         return 'Camouflaged in cover. Revealed by close scouts or aerial search; moving or attacking breaks concealment.'
     if kind=='mortar_fire':
+        from . import fire_control
+        if fire_control.enabled(state):
+            return fire_control.mortar_action(state, u, order, legal)
         pos=order.get('pos')
         if pos not in legal['mortar_fire']:raise ValueError('Mortars need 2 AP, shells and a spotted or radio-reported hex at range 2–8.')
         u.update(ap=u['ap']-2,shells=u['shells']-1,mortar_round=state['round'],overwatch=False)
@@ -187,7 +190,7 @@ def action(state,u,order,legal,roll):
 
 def before_order(u,kind):
     if kind in {'move','fire','assault','grenade','area_fire','demolition','mortar_fire','snipe','suppress','load','unload'}:
-        u.pop('observing',None);u.pop('camouflaged',None)
+        u.pop('observing',None);u.pop('camouflaged',None);u.pop('fire_mark',None)
 
 
 def start_turn(state,side):

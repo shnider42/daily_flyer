@@ -210,7 +210,7 @@ function render(){
  const mapKey=sameState?svg._mapKey:battleKey+JSON.stringify([state.map,state.buildings]);
  const reuse=svg._mapKey===mapKey;
  if(!reuse){svg.replaceChildren();svg._tiles=[];svg._counters=new Map();svg._mapKey=mapKey;}
- else svg.querySelectorAll('.aim-line,.landing-zone,.transport-choice,.recon-choice,.move-beacon,.range-guide,.support-choice,.engineering-choice,.signal-choice').forEach(n=>n.remove());
+ else svg.querySelectorAll('.aim-line,.landing-zone,.transport-choice,.recon-choice,.move-beacon,.range-guide,.support-choice,.engineering-choice,.signal-choice,.fire-direction-marker,.fire-direction-label').forEach(n=>n.remove());
  if(!sameUnits){
   svg.querySelectorAll('.smoke-cloud,.barrage-zone,.incoming-mark,.station-mark').forEach(n=>n.remove());
   const visible=new Set(display.units.filter(u=>u.hp>0&&!u.reserve&&!u.carrier_id).map(u=>u.id));

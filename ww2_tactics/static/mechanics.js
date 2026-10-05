@@ -1,11 +1,11 @@
 'use strict';
-function buildingCondition(value,pos){return value?.building_version&&['building','tower','bunker'].includes(value.map?.[pos[1]]?.[pos[0]])?(value.buildings?.[pos.join(',')]||'intact'):null;}
+function buildingCondition(value,pos){return value?.building_version&&['building','tower','church','bunker'].includes(value.map?.[pos[1]]?.[pos[0]])?(value.buildings?.[pos.join(',')]||'intact'):null;}
 function buildingHelp(condition,simple=false){
  return {intact:simple?'Solid building · good cover.':'Intact building · 2 AP entry · +1 cover. A heavy explosive hit damages it.',
  damaged:simple?'Damaged building · explosive hits can collapse it.':'Damaged building · 2 AP entry · +0 terrain cover. A structural hit collapses it and eliminates all ground occupants, including friendlies.',
  destroyed:simple?'Collapsed building · cannot enter.':'Destroyed building · impassable to ground units. Still blocks sight and retains building concealment.'}[condition]||'';
 }
-const modifierNames={precision:'Aimed shot',cover:'Terrain cover',distance:'Long range',leader:'Nearby leader',machine_gun:'Machine gun',dug_in:'Dug in',reaction:'Reaction shot',pinned_target:'Pinned defender'};
+const modifierNames={recon_support:'Recon fire direction',extended_range:'Beyond gun range',precision:'Aimed shot',cover:'Terrain cover',distance:'Long range',leader:'Nearby leader',machine_gun:'Machine gun',dug_in:'Dug in',reaction:'Reaction shot',pinned_target:'Pinned defender'};
 function uiNode(tag,cls,text){const node=document.createElement(tag);if(cls)node.className=cls;if(text!==undefined)node.textContent=text;return node;}
 function dieFace(value,cls=''){
  const die=uiNode('span',`die-face ${cls}`);die.setAttribute('role','img');die.setAttribute('aria-label',`Die ${value}`);
@@ -51,9 +51,9 @@ function renderUnitMechanics(state,unit){
  panel.append(meters);
  if(state.ruleset==='dsl')panel.append(uiNode('p','mechanics-caption',`Base ${base} AP · carried ${unit.carried_ap||0} · received ${unit.ap_received}/${base+bank} this turn. ${unit.side===state.turn?'End now to bank '+Math.min(unit.ap,bank):'Banked: '+(unit.banked_ap||0)} AP. Spending actions does not reset the received limit.`));
  const details=uiNode('details','unit-explanation');details.append(uiNode('summary','','Terrain & status explained'));
- const type=state.map[unit.pos[1]][unit.pos[0]],condition=buildingCondition(state,unit.pos),cover=['woods','building','tower',...(state.naval_version?[]:['objective'])].includes(type)&&condition!=='damaged';
+ const type=state.map[unit.pos[1]][unit.pos[0]],condition=buildingCondition(state,unit.pos),cover=['woods','building','tower','church',...(state.naval_version?[]:['objective'])].includes(type)&&condition!=='damaged';
  const terrainCopy=window.fieldworksTerrainHelp?.(type,unit,null,condition,unit.pos)?.[1];
- const items=[terrainCopy|| (condition?buildingHelp(condition):`${type[0].toUpperCase()+type.slice(1)}: ${cover?'incoming fire needs +1 on the die':'no terrain cover bonus'}. Entering this terrain costs ${['woods','building','tower'].includes(type)?2:1} action(s).`),
+ const items=[terrainCopy|| (condition?buildingHelp(condition):`${type[0].toUpperCase()+type.slice(1)}: ${cover?'incoming fire needs +1 on the die':'no terrain cover bonus'}. Entering this terrain costs ${['woods','building','tower','church'].includes(type)?2:1} action(s).`),
   `Range ${unit.range} hexes. Intervening woods, buildings and smoke block direct fire. Strength is remaining health; zero removes the unit.`,
   state.ruleset==='dsl'?`DSL: ${base} base AP plus up to ${bank} banked AP. A paid road-to-road move earns one free connected road hex, once per turn. Firing costs 2 AP.`:`Actions refresh to 2 at the start of this army’s turn. Moving on open ground costs 1; firing costs 2.`];
  if(unit.pinned)items.push('PINNED: cannot move or attack. Rally costs 1 action. Pins remain until rallied; pinned units can still hold the objective.');

@@ -1,6 +1,7 @@
 """Local, bounded tactical opponent. Uses public information and legal engine orders."""
 from .coordinates import column
 from . import computer_policy
+from . import fire_control
 import heapq
 import copy
 import time
@@ -23,7 +24,7 @@ def objective_costs(state, goal=None, unit=None):
         cost, pos = heapq.heappop(queue)
         if cost != costs[pos]:
             continue
-        step = 2 if terrain(*pos, state) in {'woods', 'building', 'tower', 'bocage', 'bunker', 'marsh', 'rubble', 'mountain', 'ridge', 'wadi', 'oasis', 'dune'} else 1
+        step = 2 if terrain(*pos, state) in {'woods', 'building', 'tower', 'church', 'bocage', 'bunker', 'marsh', 'rubble', 'mountain', 'ridge', 'wadi', 'oasis', 'dune'} else 1
         if unit:
             passable,step=fieldworks.movement(unit,terrain(*pos,state))
             if not passable:continue
@@ -79,6 +80,7 @@ def choose_order(state, costs, visited, front_costs=None):
             if key not in mobility:mobility[key]=objective_costs(state,goal,unit)
             unit_costs=mobility[key]
         legal = options(state, unit)
+        choices.extend(fire_control.ai_choices(state, unit, legal, units.values()))
         for supply in legal.get('resupply', []):add(15, unit, 'resupply', target=supply['id'])
         if legal.get('airborne_drop'):
             candidates=[[x,y] for y in range(board['height']) for x in range(board['width']) if known_ground[y][x] in {'field','road','objective','beach'}
@@ -87,7 +89,7 @@ def choose_order(state, costs, visited, front_costs=None):
                 # Static geography, own beacons and spotted guns only. Unknown
                 # Flak cannot influence destination selection or risk estimates.
                 nearby=fieldworks.neighbors(state,pos)
-                hazard=sum(known_ground[p[1]][p[0]] in {'water','woods','building','tower','bunker'} for p in nearby)
+                hazard=sum(known_ground[p[1]][p[0]] in {'water','woods','building','tower', 'church','bunker'} for p in nearby)
                 known_flak=any(t['side']!=side and t.get('aa_radius') and not t['pinned'] and distance(t['pos'],pos)<=t['aa_radius'] for t in units.values())
                 return -distance(pos,goal)-hazard*.7-8*known_flak+2*airborne.beacon_near(state,side,pos)
             if candidates:add(9,unit,'airborne_drop',pos=max(candidates,key=drop_score))
@@ -192,7 +194,7 @@ def choose_order(state, costs, visited, front_costs=None):
                 dry=[[x,y] for y in range(board['height']) for x in range(board['width']) if known_ground[y][x]!='water' and fieldworks.movement(unit,known_ground[y][x])[0] and buildings.enterable(state,[x,y],side)]
                 if dry:score=25-min(distance(pos,p) for p in dry)*3+(10 if known_ground[pos[1]][pos[0]]!='water' else 0)
             score += .6 * buildings.cover(state,pos,side=side)
-            if unit['kind'] in {'scout','sniper'} and terrain(*pos,state)=='tower':score+=2
+            if unit['kind'] in {'scout','sniper'} and terrain(*pos,state) in {'tower','church'}:score+=2
             if unit.get('repair_kits') and any(friend['side']==side and friend['kind']=='tank'
                     and friend['hp']<friend.get('max_hp',friend['hp']) and distance(pos,friend['pos'])==1 for friend in units.values()):score+=4
             if buildings.condition(state,pos,side)=='damaged':
@@ -271,6 +273,8 @@ def play_turn(state, roll=None, observers=None, max_orders=None):
                 if safe_action.get('pos') not in tiles:
                     safe_action.pop('pos', None)
                 if action['kind'] in {'recon', 'field_recon', 'airborne_drop'}:
+                    safe_action.pop('pos', None)
+                if action['kind'] == 'spot_fire' and viewer != state['ai_side']:
                     safe_action.pop('pos', None)
                 if action['kind'] in {'move', 'drop'} and action.get('unit') not in {u['id'] for u in after['units']}:
                     safe_action.pop('pos', None)

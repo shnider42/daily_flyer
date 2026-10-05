@@ -13,7 +13,7 @@
  }
  try{showRanges=localStorage.getItem('ww2-range-guide')!=='off';}catch{}
  const controls={};
- for(const [id,kind,label] of [['repairTank','repair_tank','Repair tank'],['snipe','snipe','Snipe']]){
+ for(const [id,kind,label] of [['repairTank','repair_tank','Repair tank'],['snipe','snipe','Snipe'],['spotFire','spot_fire','Spot for fire']]){
   const b=uiNode('button');b.id=id;b.hidden=true;controls[kind]=b;$('nextUnit').before(b);
   b.onclick=()=>{const cancel=mode?.kind===kind;document.dispatchEvent(new Event('ww2:cancel-targeting'));smokeMode=false;barrageMode=false;combatMode=null;target=null;mode=cancel?null:{kind,unit:selected,revision:state.revision};render();};
  }
@@ -28,14 +28,22 @@
  const manual=uiNode('section');manual.id='operationsManual';
  manual.innerHTML='<h3>Support & observation · new DSL battles</h3><p><strong>Commander cooldown:</strong> artillery and recon have independent cooldowns. Used in round 1, the same ability is ready again in round 3. Two charges of each per battle still apply. Switching abilities does not reset either timer.</p><p><strong>Engineer repair · 2 AP:</strong> three repair kits per team. Choose an adjacent friendly tank to restore 1 strength and repair its tracks. One repair per tank per round; no overhealing or reviving wrecks. The engineer pays, not the tank. Normal tank track repair remains available without healing.</p><p><strong>Aim at hex · 2 AP:</strong> tanks, AT weapons, naval guns and bombers can aim at empty hexes too. Needs 5+ to land; one hex past direct sight/weapon range needs 6. Terrain and smoke still block surface gunfire. Bombers keep their original one-hex bombing radius and consume a load. Normal unit cover/armor thresholds also apply. Loaded ammunition determines damage and splash; a structural hit damages the aimed building. Collapsing a damaged structure kills all ground occupants, including friendlies. Blind shots never reveal hidden casualties.</p><p><strong>Towers:</strong> 2 AP entry, infantry only. Intact towers give +1 cover; damaged towers lose that cover and may collapse. Recon and sniper teams observe up to 12 hexes from a tower (6 into concealment); other occupants see 8. Observation can look over one intervening wood/building, but not a second, another tower or smoke. Occupants can also be spotted from up to 12 hexes: height works both ways. Guns still need an unobstructed firing lane.</p><p><strong>Sniper team:</strong> 2 strength, two personnel, ordinary rifle range 4, sight 8. US-side teams: 3 base AP, aimed range 6; Germans: 2 base AP, aimed range 7, so bank an AP or receive command support. Both bank 1. Snipe costs 3 AP, hits exposed infantry on 3+ (cover and dug-in each add 1), deals 1 damage and pins. No armor damage, no automatic pin on a miss. Towers add 2 to aimed range, not ordinary rifle range. Any sniper shot exposes its team through the following enemy turn.</p><p><strong>Map guide:</strong> blue dots show observation-only hexes; red bars show rifle lanes for recon or aimed lanes for snipers. Neither guarantees a concealed target is visible or AP is available. Bright filled hexes still mean movement. Turn guides off in Battle options. Saved battles keep their original rules; start a new battle to use this update.</p>';
  $('buildingManual').after(manual);
+ const direction=uiNode('section');direction.id='fireDirectionManual';direction.hidden=true;
+ direction.innerHTML='<h3>Platoon fire direction · Vire Crossroads &amp; Belfry Valley</h3><p><strong>Observe → Spot for fire:</strong> a recon team first spends 1 AP on Observe, then 1 AP to mark a hex it can currently see. One mark per recon team per turn. Tanks and fixed AT guns in that same platoon need one lower die result against the marked hex: 5+ becomes 4+. They may fire one hex beyond normal gun range, but that extra hex cancels the accuracy bonus. Guns still need their own clear firing lane and a currently spotted enemy for Fire at unit. Marks never stack or follow an enemy.</p><p><strong>Mortar Aim at hex:</strong> 2 AP and one shell, once per round. Aim at range 2 to the crew’s listed mortar range using local platoon sight or a dated radio report. Terrain may block the mortar’s own sight. The marked area lands after the enemy turn on 5+, or 4+ with recon direction. A hit deals 1 damage, pin and loss of dug-in cover to all infantry in the area, including friendlies. Armor resists fragments; structures use a separate 5+ damage roll. Misses still spend the shell. Fire already ordered keeps its aiming solution if the observer subsequently moves.</p><p><strong>Counterplay:</strong> moving, attacking, pinning, loading or losing the recon team removes its live benefit. Smoke or a blocked view cuts observation; all marks expire at the end of the army turn. Churches work like clock towers: infantry-only entry for 2 AP, +1 cover while intact, longer observation and sniper range, easier detection, and collapse risk under explosive fire. Your existing battles retain their original rules.</p>';
+ manual.after(direction);
  window.renderOperations=(u,legal,svg)=>{
+  direction.hidden=!state.fire_control_version;
   manual.hidden=!state.tactics_version;
   toggle.hidden=!state.tactics_version;
   svg.classList.remove('support-picking');
   for(const b of Object.values(controls))b.hidden=true;
+  if(state.fire_control_version)for(const scout of state.units){
+   const mark=scout.fire_mark;if(scout.side!==state.side||state.turn!==state.side||!mark||mark.active===false||mark.round!==state.round||!scout.observing||scout.pinned||scout.hp<=0||scout.carrier_id)continue;
+   const [x,y]=center(...mark.pos);svg.append(element('polygon',{points:points(...mark.pos),class:'fire-direction-marker'}),element('text',{x,y:y+15,'text-anchor':'middle',class:'fire-direction-label'},`SPOT ${scout.platoon||'HQ'}`));
+  }
   if(!state.tactics_version||!u){mode=null;return;}
   window.operationsPicking(legal);
-  for(const [kind,label,cost,on] of [['repair_tank','Repair tank',2,u.kind==='engineer'&&!u.carrier_id],['snipe','Snipe',3,u.kind==='sniper'&&!u.carrier_id]]){
+  for(const [kind,label,cost,on] of [['repair_tank','Repair tank',2,u.kind==='engineer'&&!u.carrier_id],['snipe','Snipe',3,u.kind==='sniper'&&!u.carrier_id],['spot_fire','Spot for fire',1,state.fire_control_version&&['scout','pathfinder'].includes(u.kind)&&!u.carrier_id]]){
    const b=controls[kind];b.hidden=!on;b.disabled=busy||!legal?.[kind]?.length;b.textContent=mode?.kind===kind?'Cancel '+label.toLowerCase():`${label} · ${cost} AP`;
   }
   if(u.kind==='engineer'&&!u.carrier_id){
@@ -46,6 +54,10 @@
   if(guide){
    const range=guide.snipe_range||guide.fire_range;
    $('roleBrief').textContent=`${u.kind==='sniper'?'SNIPER':'RECON'} · Sight ${guide.sight_range}${guide.tower?' from tower · exposed high ground':''} · rifle ${guide.fire_range}${guide.snipe_range?` · snipe ${range} for 3 AP`:''}. Observation is not firing range.${u.exposed_turns?' FIRING POSITION EXPOSED.':''}`;
+   if(state.fire_control_version&&['scout','pathfinder'].includes(u.kind)){
+    $('roleBrief').textContent+=` FIRE DIRECTION · Observe, then Spot for fire. Supports tanks / AT guns and mortar teams in Platoon ${u.platoon||'HQ'}.`;
+    $('unitMechanics').append(uiNode('p','mechanics-caption',u.fire_mark&&u.observing?`${u.fire_mark.active===false?'Direction interrupted':'Marked'} at ${hexColumn(u.fire_mark.pos[0])}${u.fire_mark.pos[1]+1} for Platoon ${u.platoon||'HQ'}. Live support requires an unpinned observer and a clear view.`:'Observe: 1 AP. Spot for fire: 1 AP, once per turn. A marked hex improves same-platoon gun and mortar accuracy; marks never stack.'));
+   }
    if(!target&&!combatMode&&!smokeMode&&!barrageMode&&!mode&&!state.order_history?.redo_required){
     $('hint').textContent=`Sight ${guide.sight_range} · ${guide.snipe_range?'Snipe':'Rifle'} ${range} · ${showRanges?'Blue dots: sight only / red bars: shot':'Range guide off'}${u.kind==='sniper'&&u.ap<3?' · bank AP to snipe':''}`;
    }
@@ -59,6 +71,14 @@
   }
   if(mode){
    svg.classList.add('support-picking');svg.querySelectorAll('.move-beacon').forEach(n=>n.remove());
+   if(mode.kind==='spot_fire'){
+    $('hint').textContent=`Tap a visible hex · 1 AP · directs Platoon ${u.platoon||'HQ'} fire until the army turn ends.`;
+    for(const pos of legal.spot_fire){
+     const label=`Spot for fire at ${hexColumn(pos[0])}${pos[1]+1}`,tile=element('polygon',{points:points(...pos),class:'support-choice spot-choice',role:'button',tabindex:0,'aria-label':label});
+     activate(tile,()=>{if(!mode||busy||playbackSession)return;if(!confirm(`${label} for Platoon ${u.platoon||'HQ'}? Costs 1 AP. Same-platoon guns and mortars benefit while this recon team keeps observing.`))return;mode=null;act({kind:'spot_fire',unit:selected,pos});});svg.append(tile);
+    }
+    return;
+   }
    const repair=mode.kind==='repair_tank';
    $('hint').textContent=repair?'Tap a marked friendly tank · +1 strength & repaired tracks · 2 AP + 1 kit.':'Tap a marked enemy infantry unit · aimed shot · 3 AP · exposes your team.';
    const choices=repair?legal.repair_tank.map(id=>({id})):legal.snipe;

@@ -38,7 +38,7 @@ def map_for(state, side):
 def movement(unit, tile):
     """Shared entry rules used by movement, unloading and pathfinding."""
     if unit['kind'] in {'at_gun','flak'}: return False, 1
-    if unit.get('afloat'):return tile not in {'mountain','tower','bunker'},1
+    if unit.get('afloat'):return tile not in {'mountain','tower', 'church','bunker'},1
     if unit.get('move_ap'):
         basic=dict(unit);basic.pop('move_ap')
         passable,cost=movement(basic,tile)
@@ -50,7 +50,7 @@ def movement(unit, tile):
     if tile=='oasis': return unit['kind'] not in {'tank','halftrack','amphibious'}, 2
     if tile == 'water': return unit['kind'] == 'amphibious', 1
     if tile == 'marsh': return unit['kind'] not in {'tank', 'halftrack'}, 1 if unit['kind'] == 'amphibious' else 2
-    if tile in {'woods', 'building', 'tower', 'bocage', 'bunker'}:
+    if tile in {'woods', 'building', 'tower', 'church', 'bocage', 'bunker'}:
         return unit['kind'] not in {'tank', 'halftrack', 'amphibious'}, 2
     return True, 2 if tile == 'rubble' else 1
 

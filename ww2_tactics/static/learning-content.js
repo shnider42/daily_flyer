@@ -177,7 +177,17 @@
    'Observe costs 1 AP and adds 2 sight from the current hex. It ends on movement, attack or the next friendly turn. Use it before crossing uncertain ground or deciding where to send support.',
    'Observe adds +2 sight for eligible scout, wireless, mountain and Pathfinder units. It clears overwatch and expires on movement, attack or next friendly turn. It neither extends weapon range nor defeats every LOS blocker.'
   ],'Select an eligible scout or radio unit and inspect Observe.','#observe',['observe']));
-  if(s.signals_version&&own.some(u=>u.mortar_range))extra.push(make('mortar','Mortars need reports, shells and time',[
+  if(s.fire_control_version&&has('scout','pathfinder'))extra.push(make('fire-direction','Observe, then direct your platoon’s fire',[
+   'Your recon team can help its platoon shoot. Use Observe, then Spot for fire on a hex it can see. Each costs 1 action point. Friendly tanks and mortars in that platoon become more accurate at that hex while recon keeps watching.',
+   'Observe costs 1 AP; Spot for fire costs another 1 AP, once per turn. Same-platoon tanks and AT guns need one lower roll at the marked hex. They may reach one extra hex, but lose that accuracy bonus there. Tanks still need a clear firing lane. Mortars improve from 5+ to 4+.',
+   'One fixed hex per observer per army turn, no stacking or target tracking. Eligible recon must remain active, unpinned, observing, in the same platoon and able to see the aim hex. Gun range +1 is offset by +1 to the threshold; normal range gains -1. Smoke, movement, attack, pin, transport or loss interrupts live direction. Queued mortar fire retains its committed 4+/5+ solution.'
+  ],'Choose your platoon’s recon: Observe → Spot for fire, then inspect a tank shot or mortar aim.','#spotFire',['observe','spot_fire']));
+  if(s.fire_control_version&&own.some(u=>u.mortar_range))extra.push(make('mortar','Aim mortar fire over obstacles',[
+   'Select a mortar and use Aim at hex. Your platoon must see that ground or have a radio report. The mortar can shoot over buildings. It uses a shell and arrives after the enemy turn. Recon makes it more likely to land; your own infantry can be hit too.',
+   'Aim at hex costs 2 AP and one shell, once per round. Minimum range 2; maximum appears on the unit. Use local platoon observation or a received report. The radius-1 blast needs 5+ when it lands after the enemy turn, or 4+ with same-platoon recon direction.',
+   'Indirect fire ignores the mortar-to-aim LOS, not range, ammunition, observation or platoon ownership. 5+ base accuracy / 4+ guided, committed at order time. At enemy turn end a hit deals 1 damage, pin and loss of entrenchment to infantry in radius 1; armor resists fragments. Buildings use a separate 5+ structural roll. A miss still spends ammunition; friendly fire applies.'
+  ],'Select your mortar, inspect its range and shells, then compare an ordinary aim hex with a recon-marked hex.','#areaFire',['area_fire','mortar_fire']));
+  if(!s.fire_control_version&&s.signals_version&&own.some(u=>u.mortar_range))extra.push(make('mortar','Mortars need reports, shells and time',[
    'A mortar attacks an area after a delay. It needs a spotted or reported target and uses a shell. The marked blast can hurt your own infantry too. A mortar with no shells cannot keep firing.',
    'Mortar fire costs 2 AP and one shell, once per round, at range 2–8. Aim at ground spotted by its platoon or named in a radio report. The blast lands after the enemy turn, allowing time to move.',
    'Indirect mortar fire requires 2 AP, finite shells, range 2–8, and group LOS or a current report at the aim hex. One shot per crew per round. The radius-1 marked area resolves after the enemy turn and threatens either side’s infantry; reports do not confirm hidden casualties.'
@@ -187,11 +197,16 @@
    'Resupply costs the supply squad 2 AP and one of its finite packs. An adjacent mortar receives up to 2 shells, or an engineer 1 repair kit, without exceeding capacity. Each recipient once per round.',
    'Finite logistics: 3 packs per supply squad; 2 AP/pack delivers up to 2 shells or 1 engineer kit to an adjacent eligible recipient. Each recipient once per round. Delivery restores neither HP/AP nor the mortar firing cooldown.'
   ],'Inspect a supply squad’s packs and Resupply; move beside a depleted recipient when useful.','#resupply',['resupply']));
-  if(s.front_mode==='armored_control')extra.push(make('armor-control','Score with fighting units at the flags',[
+  if(s.front_mode==='armored_control'&&!s.fire_control_version)extra.push(make('armor-control','Score with fighting units at the flags',[
    'Kharkov has three flags. Tanks and fighting infantry earn points by holding them when their turn ends. Support units do not count. First to 10 points wins.',
    'Fuel yard and Repair works are worth 1 point; Rail junction 2. Score at your own turn end with tanks or fighting infantry. A flag’s name does not grant free fuel, repairs or ammunition.',
    'Kharkov uses weighted end-turn control: 1/2/1 points, target 10. Logistics, radio, mortars, fixed guns, reserves and passengers cannot capture. At the deadline higher score wins, Germany wins ties; army elimination also resolves victory.'
   ],'Open the mission and compare the three flag values.','@mission'));
+  if(s.fire_control_version)extra.push(make('armor-control','Three flags; first to ten',[
+   'Hold flags with tanks or fighting infantry to earn points when your army finishes its turn. The middle flag is worth two; the outer flags one each. Reach ten points to win. Mortars, supply crews and snipers cannot capture flags.',
+   'Three flags score 1 / 2 / 1 at your army’s turn end. Tanks, rifle squads, LTs, commanders, engineers, recon, MGs and AT teams can capture; other support units cannot. First to 10 points wins. In co-op, finishing your personal orders does not score until the whole army finishes.',
+   'Weighted turn-end control, target 10. Only deployed capture-eligible units score; passengers, reserves, mortar/supply/radio teams, fixed guns, snipers and raiders cannot capture. Higher score wins at the deadline; Germany wins an exact tie. Army elimination also resolves victory.'
+  ],'Open the mission and inspect each flag before committing your support teams.','@mission'));
   if(s.front_mode==='evacuation')extra.push(make('evacuation','Dunkirk: protect the rescue route',s.side==='us'?[
    'Rescue six marked infantry units. Load one into a boat, sail to the top edge of the sea and choose Evacuate. Your other troops protect the escape route.',
    'Only the eight RESCUE-marked units count. Loading costs 1 passenger AP; Evacuate costs 1 boat AP at top-edge water. Three boats shuttle one unit each. Rescue six before the deadline.',
@@ -255,7 +270,7 @@
    if(lesson.id==='save')text=s.ai_side?text:text.replace('To keep solo progress on another device, generate a SAVE code in Battle options.','To return on another device, use a MOVE code or link this seat to your commander.');
    const detail=variants?variants[2]+(lesson.detail?' '+lesson.detail:''):base;
    const group=lesson.id.startsWith('preparation')?'Pre-battle':core.has(lesson.id)?'Command essentials':'This operation';
-   const roles={observe:['scout','radioman','mountain','pathfinder'],mortar:['mortar'],supply:['supply'],armor:['tank','engineer'],engineering:['engineer'],command:['leader','commander'],radio:['radioman','commander'],airlift:['commander'],fleet:['carrier','destroyer','battleship'],service:['bomber'],observation:['scout','sniper']};
+   const roles={'fire-direction':['scout','pathfinder'],observe:['scout','radioman','mountain','pathfinder'],mortar:['mortar'],supply:['supply'],armor:['tank','engineer'],engineering:['engineer'],command:['leader','commander'],radio:['radioman','commander'],airlift:['commander'],fleet:['carrier','destroyer','battleship'],service:['bomber'],observation:['scout','sniper']};
    const defendingDrop=s.side==='de'&&['airlift','arrival'].includes(lesson.id);
    const titles={turn:'Turn resolution & commitment',select:'Read a unit’s state',ap:'AP economy & banking',mission:'Mission scoring & deadline',dice:'Thresholds, modifiers and committed dice'};
    return {...lesson,roles:defendingDrop?[]:roles[lesson.id]||[],task:defendingDrop?'Review how Allied reserves arrive. Use visible Flak, protected approaches and reaction fire to contest the landing.':lesson.task,selector:defendingDrop?'#mapWrap':lesson.selector,title:index===2&&titles[lesson.id]?titles[lesson.id]:lesson.title,text:lesson.id==='mission'?ww2Briefing.mission(s).goal+' '+text:text,detail:detail!==text?detail:'',group,orders:lesson.orders.map(id=>orderNames[id]||id)};

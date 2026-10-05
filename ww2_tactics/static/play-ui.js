@@ -18,6 +18,7 @@
   markLZ:['amber','Reduce nearby drop scatter','M12 2v20M4 20h16M12 3q9 1 9 9M12 7q5 1 5 5'],
   radioUpdate:['teal','Share dated contact reports','M6 20V8h12v12H6ZM10 8V2M9 12h6M9 16h2M15 16h1M15 3q7 2 6 8'],
   observe:['blue','Extend sight, not weapon range','M3 19V8h6v11H3ZM15 19V8h6v11h-6ZM9 12h6M6 8V5M18 8V5'],
+  spotFire:['amber','Direct same-platoon gun and mortar fire','M12 2v5M12 17v5M2 12h5M17 12h5M5 12a7 7 0 1 0 14 0 7 7 0 1 0-14 0M10 12l2 2 4-5'],
   conceal:['earth','Hide in cover until moving or firing','M3 18l7-13 4 6 4-4 3 11H3ZM9 18v-5M15 18v-4'],
   mortarFire:['indigo','Delayed fire on spotted or reported ground','M5 20h14M8 18l8-13 3 2-8 13M16 3l4 2M4 9h3'],
   demolition:['orange','Limited anti-armor charge, adjacent only','M5 9h14v12H5ZM8 9V5h8v4M12 9v12M16 4q-1-4 4-3'],

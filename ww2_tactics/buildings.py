@@ -7,7 +7,7 @@ import secrets
 
 VERSION = 1
 STATES = ('intact', 'damaged', 'destroyed')
-TILES = {'building', 'tower', 'bunker'}
+TILES = {'building', 'tower', 'church', 'bunker'}
 
 
 def enabled(state):
@@ -29,7 +29,7 @@ def initialize(state, rng=None):
     state['building_version'] = VERSION
     tiles = positions(state)
     occupied = {key(u['pos']) for u in state['units'] if u['hp'] > 0}
-    protected = {key(p) for p in tiles if key(p) in occupied or state['battlefield']['map'][p[1]][p[0]]=='tower'}
+    protected = {key(p) for p in tiles if key(p) in occupied or state['battlefield']['map'][p[1]][p[0]] in {'tower','church'}}
     eligible = [p for p in tiles if key(p) not in protected]
     conditions = ['intact'] * len(eligible)
     distribution = state['battlefield'].get('building_conditions', {})
@@ -68,7 +68,7 @@ def cover(state, pos, *, objective=True, side=None):
     from .engine import terrain
     tile = terrain(*pos, state)
     if tile == 'bunker': return 1 if condition(state, pos, side) == 'damaged' else 2
-    return int(tile in ({'woods', 'building', 'tower', 'bocage', 'rubble', 'mountain', 'ridge', 'wadi', 'oasis', 'objective'} if objective else {'woods', 'building', 'tower', 'bocage', 'rubble', 'mountain', 'ridge', 'wadi', 'oasis'})
+    return int(tile in ({'woods', 'building', 'tower', 'church', 'bocage', 'rubble', 'mountain', 'ridge', 'wadi', 'oasis', 'objective'} if objective else {'woods', 'building', 'tower', 'church', 'bocage', 'rubble', 'mountain', 'ridge', 'wadi', 'oasis'})
                and condition(state, pos, side) != 'damaged')
 
 

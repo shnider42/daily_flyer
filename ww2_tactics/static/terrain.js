@@ -25,7 +25,7 @@
   const stamp=(tile,symbol,cx,cy)=>tile.after(shape('use',{class:'terrain-art'+(symbol.classes?' '+symbol.classes:''),href:`#${symbol.id}`,x:cx,y:cy,'aria-hidden':'true'}));
   [...svg.querySelectorAll(':scope > .hex')].forEach((tile,i)=>{
    const x=i%grid[0].length,y=Math.floor(i/grid[0].length),type=grid[y]?.[x];if(!type)return;
-   const structure=['building','tower','bunker'].includes(type),condition=structure&&conditions?(conditions[`${x},${y}`]||'intact'):null;
+   const structure=['building','tower','church','bunker'].includes(type),condition=structure&&conditions?(conditions[`${x},${y}`]||'intact'):null;
    for(const name of ['intact','damaged','destroyed'])tile.classList.toggle('building-'+name,condition===name);
    if(condition)tile.dataset.buildingState=condition;else delete tile.dataset.buildingState;
    if(!detailed&&!(structure&&condition)&&type!=='tower')return;
@@ -92,6 +92,20 @@
     path('M-19 14l6-8 6 6 6-4 9 8 7-5 6 7z','#635d51',1.4,'#b2a48d');
     path('M-9 17l4-4 4 5M5 5l3 4 5-1M-3-7l5 2-3 6','#5d5549',2);
     path('M14-17l8 8M22-17l-8 8','#f3eee0',5);path('M14-17l8 8M22-17l-8 8','#783f31',2.5);
+   }else if(type==='church'){
+    outer.classList.add('structure-art','church-art','structure-'+(condition||'intact'));
+    if(detailed)add('ellipse',{cx:3,cy:17,rx:24,ry:8,fill:'#4d4e4855'});
+    path('M-21 17V-1l12-9 18 9v18z','#5c5b50',1.4,detailed?'#ddd1b3':'#f2e6bb');
+    path('M-24-1l15-13L13-1 8 3-9-8-19 3z','#5b5146',1.3,'#98694f');
+    path('M7 17V-17h13v34z','#50594f',1.5,'#d5c9a6');
+    path('M4-17l10-12 9 12z','#4a554e',1.2,'#677d71');
+    path('M-1 6v9M-4 9h6','#414b43',1.8);
+    path('M10-10q4-7 7 0v5h-7zM-14 17V8q4-6 8 0v9','#46564e',1.2,'#61766c');
+    add('circle',{cx:-8,cy:0,r:3,fill:'#bba668',stroke:'#665b47','stroke-width':1});
+    if(condition==='damaged'){
+     path('M9-16l5 7-4 7 6 6-4 11','#5a4937',2.6);
+     path('M-22 4l8 13h-16z','#694627',1.3,'#ffc66b');
+    }
    }else if(type==='tower'){
     outer.classList.add('structure-art','tower-art','structure-'+(condition||'intact'));
     if(detailed)add('ellipse',{cx:5,cy:18,rx:21,ry:7,fill:'#4d4e4855'});

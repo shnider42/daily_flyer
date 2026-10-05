@@ -101,7 +101,7 @@
   if(dialog.open)fillGuide();
   syncExperience();
  }
- const terrainLabels={kharkov:'KHARKOV · ARMORED FLAGS',relay_crossing:'RELAY CROSSING · GROUND LAB',dunkirk:'DUNKIRK · RESCUE ROUTES'};
+ const terrainLabels={kharkov:'KHARKOV · ARMORED FLAGS',relay_crossing:'RELAY CROSSING · GROUND LAB',dunkirk:'DUNKIRK · RESCUE ROUTES',vire_crossroads:'VIRE CROSSROADS · THREE FLAGS',belfry_valley:'BELFRY VALLEY · THREE FLAGS'};
  function paintMission(svg,snapshot=state){
   const id=state.scenario.id,key=state.code+':'+state.battle_number+':'+id+':'+JSON.stringify(snapshot.front_control||[]);
   let layer=svg.querySelector('.front-objectives');
@@ -126,8 +126,9 @@
   }
   if(u?.kind==='supply')$('roleBrief').textContent=`Supply squad · ${u.supply_packs} finite packs · adjacent mortars or engineers · 2 AP per delivery`;
   if(state.front_mode==='armored_control'){
-   $('objectiveName').textContent='KHARKOV · THREE FLAGS';$('objective').textContent=`Soviets ${state.front_score.us}/10 · Germans ${state.front_score.de}/10`;
-   $('missionHint').textContent='Tanks and fighting infantry capture. Fuel 1 · Rail 2 · Works 1 per own turn end. First to 10.';
+   const target=state.scenario.score_target||10;
+   $('objectiveName').textContent=state.scenario.name.toUpperCase()+' · THREE FLAGS';$('objective').textContent=`${state.factions.us} ${state.front_score.us}/${target} · ${state.factions.de} ${state.front_score.de}/${target}`;
+   $('missionHint').textContent=`Tanks and fighting infantry capture. ${state.scenario.control_points.map(p=>p.name+' '+p.points).join(' · ')} per own turn end. First to ${target}.`;
   }else if(state.front_mode==='evacuation'){
    $('objectiveName').textContent='DUNKIRK · EVACUATION';$('objective').textContent=`Rescued ${state.evacuated_count}/6 · deadline R${state.scenario.rounds}`;
    $('missionHint').textContent='Marked infantry → Load boat → top sea edge → Evacuate. Keep boats alive; rearguards buy time.';

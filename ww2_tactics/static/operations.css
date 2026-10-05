@@ -1,5 +1,9 @@
 /* Low specificity lets movement, targeting and structural state colors win. */
 :where(.hex.tower){fill:#c7bf9b}
+:where(.hex.church){fill:#d4c7a4}
+.fire-direction-marker{pointer-events:none;fill:none;stroke:#ffd76b;stroke-width:3;stroke-dasharray:4 3}
+.fire-direction-label{pointer-events:none;fill:#fff1aa;font-size:10px;font-weight:800;paint-order:stroke;stroke:#243d35;stroke-width:3}
+.support-choice.spot-choice{fill:#d9ac2622;stroke:#ffda76;stroke-dasharray:3 3}
 .range-guide{pointer-events:none;filter:drop-shadow(0 1px 1px #071c24)}
 .range-guide path{fill:none;stroke-linecap:round;stroke-linejoin:round}
 .range-sight{stroke:#8de9ff;stroke-width:4.5}

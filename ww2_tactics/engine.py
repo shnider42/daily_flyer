@@ -10,6 +10,7 @@ from .rulesets import profile, dsl, base_ap, bank_limit, turn_limit, road
 from .effects import record_effect
 from . import combined, naval, transport, campaigns, air, weapons, buildings, operations, fieldworks, linked_front, signals, airborne, domains, fubar, logistics, new_fronts, deployment
 from .visibility import fog, active, visible_ids, unit_visible_ids, sees_hex, update_intel, record_reports
+from . import fire_control
 
 WIDTH, HEIGHT = 7, 9
 OBJECTIVE = [3, 4]
@@ -69,7 +70,7 @@ def line_clear(a, b, smoke=(), state=None, high_ground=False):
             return False
         tile=terrain(x,y,state)
         coastal_block=state and state.get('naval_version') and not naval.navigable(tile) and (naval.navigable(terrain(*a,state)) or naval.navigable(terrain(*b,state)))
-        if coastal_block or tile in {'tower','bunker','mountain','ridge'} or any(s['pos'] == [x, y] for s in smoke):
+        if coastal_block or tile in {'tower','church','bunker','mountain','ridge'} or any(s['pos'] == [x, y] for s in smoke):
             return False
         if tile in {'building','woods','bocage','oasis'}:
             low_obstacles+=1
@@ -136,6 +137,7 @@ def fire_modifiers(state, unit, target):
     if combined.enabled(state):
         mods.update(faction=-unit.get('accuracy_bonus',int(unit['side']=='us' and unit['kind'] not in {'tank','at_gun','at_team','amphibious'})),
                     armor=int(target.get('armor',0)>0 and not (target['kind']=='halftrack' and unit['kind'] in {'tank','at_gun'})),anti_tank=-int(unit['kind']=='at_gun' and target.get('armor',0)>0))
+    mods.update(fire_control.modifiers(state, unit, target['pos']))
     return mods
 
 
@@ -218,6 +220,7 @@ def options(state, unit):
     extras.update(weapons.orders(state, unit))
     extras.update(fieldworks.options(state, unit))
     extras.update(signals.options(state,unit))
+    if fire_control.enabled(state): extras.update(fire_control.options(state, unit))
     extras.update(airborne.options(state,unit))
     if state.get("logistics_version"):extras.update(logistics.options(state,unit))
     if new_fronts.enabled(state):extras.update(new_fronts.options(state,unit))
@@ -247,7 +250,7 @@ def options(state, unit):
                     moves.append(dict(pos=[x, y], cost=cost, threats=preview_threats(state,unit,[x,y],seen), **({'road_bonus': True} if free_road else {})))
         if unit["ap"] >= 2:
             for target in state["units"]:
-                if target["side"] != unit["side"] and active(target) and target['id'] in seen and distance(unit["pos"], target["pos"]) <= unit["range"] and line_clear(unit["pos"], target["pos"], state.get('smoke', []), state):
+                if target["side"] != unit["side"] and active(target) and target['id'] in seen and distance(unit["pos"], target["pos"]) <= fire_control.direct_range(state, unit, target['pos']) and line_clear(unit["pos"], target["pos"], state.get('smoke', []), state):
                     if weapons.enabled(state):
                         if not weapons.damage(unit, target): continue
                         targets.append(weapons.preview(unit, target, fire_threshold(state, unit, target), fire_modifiers(state, unit, target), state=state))
@@ -363,6 +366,8 @@ def apply(state, side, action, roll=None):
             message=logistics.action(state,unit,action,legal)
         elif kind in new_fronts.ORDERS:
             message=new_fronts.action(state,unit,action,legal)
+        elif kind == 'spot_fire':
+            message=fire_control.mark(state,unit,action,legal)
         elif kind in signals.ORDERS:
             message=signals.action(state,unit,action,legal,roll_die)
         elif kind == 'load' and action.get('target') in legal['load']:

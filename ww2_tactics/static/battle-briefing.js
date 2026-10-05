@@ -5,10 +5,10 @@
  function mission(s){
   const attacker=s.factions?.us||'Americans',defender=s.factions?.de||'Germans',rounds=s.scenario.rounds;
   if(s.front_mode==='armored_control'){
-   const score=s.front_score||{us:0,de:0};
-   return {goal:'Capture three flags with armor or fighting infantry. First to 10 points.',compact:`Win: 10 points · Soviets ${score.us} / Germans ${score.de}`,progress:`Soviets ${score.us}/10 · Germans ${score.de}/10 · Round ${s.round}/${rounds}`,
-    rules:['Occupy Fuel yard for 1, Rail junction for 2, Repair works for 1 point at each own turn end. Tanks and fighting infantry can capture; supply, radio, mortars, fixed guns, reserves and passengers cannot.',
-     `First to 10 wins. At the end of round ${rounds}, higher score wins; Germans win an exact tie. Eliminating every enemy also wins.`,
+   const score=s.front_score||{us:0,de:0},target=s.scenario.score_target||10,points=(s.scenario.control_points||[]).map(p=>`${p.name} for ${p.points}`).join(', ');
+   return {goal:`Capture three flags with armor or fighting infantry. First to ${target} points.`,compact:`Win: ${target} points · ${attacker} ${score.us} / ${defender} ${score.de}`,progress:`${attacker} ${score.us}/${target} · ${defender} ${score.de}/${target} · Round ${s.round}/${rounds}`,
+    rules:[`Occupy ${points} points at each own turn end. Tanks and fighting infantry can capture; supply, radio, mortars, fixed guns, reserves and passengers cannot.`,
+     `First to ${target} wins. At the end of round ${rounds}, higher score wins; ${defender} win an exact tie. Eliminating every enemy also wins.`,
      'Flag ownership is public mission information, not a scan of nearby hidden units. Facility names are landmarks: they do not give free repairs, ammunition or fuel.',
      'Supplies are finite: 3 packs per supply squad; 2 AP and one pack restore up to 2 mortar shells or 1 engineer repair kit to an adjacent ally. Each recipient once per round. No AP, health or firing cooldown is restored.',s.scenario.reinforcement_brief],focus:s.scenario.objective};
   }

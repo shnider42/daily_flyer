@@ -7,7 +7,7 @@ const errors=[],pages=[];let browser;
 async function settle(p){await p.waitForFunction(()=>state&&!busy&&!polling);}
 async function skip(p){if(await p.evaluate(()=>!!playbackSession))await p.locator('#skipPlayback').click();await settle(p);}
 async function refresh(p){await p.evaluate(()=>refresh());await settle(p);await skip(p);}
-async function page(width){const p=await browser.newPage({viewport:{width,height:900},hasTouch:width<1000,isMobile:width<1000});pages.push(p);p.setDefaultTimeout(15000);p.on('pageerror',e=>errors.push(e.message));p.on('dialog',d=>d.accept());await p.goto(base);await p.waitForFunction(()=>scenarios.length===22&&ww2Commander.ready);return p;}
+async function page(width){const p=await browser.newPage({viewport:{width,height:900},hasTouch:width<1000,isMobile:width<1000});pages.push(p);p.setDefaultTimeout(15000);p.on('pageerror',e=>errors.push(e.message));p.on('dialog',d=>d.accept());await p.goto(base);await p.waitForFunction(()=>scenarios.length===24&&ww2Commander.ready);return p;}
 async function register(p,name){await p.locator('#commanderSignIn').click();await p.locator('#commanderRegisterMode').click();await p.locator('#commanderName').fill(name);await p.locator('#commanderPassword').fill('local-browser-pass-123');await p.locator('#commanderSubmit').click();await p.waitForFunction(()=>ww2Commander.name&&!$('commanderDialog').open);}
 async function join(p,code,side){
  await p.locator('#lobbyRefresh').click();const row=p.locator(`.public-game[data-code="${code}"]`);await row.waitFor();assert.equal(await row.locator('button').textContent(),'Choose army & group');await row.locator('button').click();

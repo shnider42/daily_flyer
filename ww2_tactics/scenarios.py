@@ -2,7 +2,7 @@
 import copy
 
 TILES = {'.': 'field', '=': 'road', 'T': 'woods', 'B': 'building',
-         '*': 'objective', '~': 'water', '+': 'bridge', '^': 'tower',
+         '*': 'objective', '~': 'water', '+': 'bridge', '^': 'tower', 'C': 'church',
          's': 'beach', 'm': 'marsh', 'h': 'bocage', 'k': 'bunker', 'c': 'causeway', 'M':'mountain', 'r':'ridge', 'd':'desert', 'n':'dune', 'w':'wadi', 'o':'oasis'}
 
 
@@ -117,6 +117,8 @@ from .new_fronts import scenarios as new_front_scenarios
 SCENARIOS.update(new_front_scenarios(build))
 from .deployment import scenarios as deployment_scenarios
 SCENARIOS.update(deployment_scenarios(build))
+from .observed_fronts import scenarios as observed_scenarios
+SCENARIOS.update(observed_scenarios(build))
 
 
 def get_scenario(key='village'):

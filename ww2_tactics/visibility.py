@@ -68,7 +68,7 @@ def unit_sees_hex(state, scout, pos, concealed=False):
         profile=(operations.tower(state,scout),operations.sight_range(state,scout),operations.sight_range(state,scout,True))
         if cache is not None:cache[key]=profile
     high,normal,hidden=profile
-    landmark=operations.enabled(state) and terrain(*pos,state)=='tower'
+    landmark=operations.enabled(state) and terrain(*pos,state) in {'tower','church'}
     reach=hidden if concealed and not landmark else normal
     if concealed=='camouflaged' and not landmark:reach=max(1,reach-1)
     if landmark:reach=max(reach,12)  # Elevated silhouettes work both ways.
@@ -171,7 +171,12 @@ def view(state, side, terrain_visibility=True):
         for u in result['units']:
             if u['side']!=side:
                 u['overwatch']=False
-                for key in ('radio_round','mortar_round','camouflaged','observing','aa_round','beacon_active','beacon_charges'):u.pop(key,None)
+                for key in ('radio_round','mortar_round','camouflaged','observing','aa_round','beacon_active','beacon_charges','fire_mark','spot_round'):u.pop(key,None)
+    if state.get('fire_control_version'):
+        from .fire_control import spotter
+        for u in result['units']:
+            if u['side']==side and u.get('fire_mark'):
+                u['fire_mark']['active'] = bool(spotter(state, u, u['fire_mark']['pos']))
     result['signal_alerts']=[copy.deepcopy(a) for a in state.get('signal_alerts',{}).get(side,[]) if state['round']<a['expires_round']]
     if state.get('airborne_version'):
         from .airborne import public_fields
@@ -266,6 +271,13 @@ def public_state(state, side):
                 if u['side']!=side:
                     for key in ('aa_round','beacon_active','beacon_charges'):u.pop(key,None)
         result['signal_alerts']=copy.deepcopy(state.get('signal_alerts',{}).get(side,[]))
+        if state.get('fire_control_version'):
+            from .fire_control import spotter
+            for u in result['units']:
+                if u['side']!=side:
+                    u.pop('fire_mark',None);u.pop('spot_round',None)
+                elif u.get('fire_mark'):
+                    u['fire_mark']['active']=bool(spotter(state,u,u['fire_mark']['pos']))
         return deployment.redact(result)
     result=copy.deepcopy(state)
     result.update(view(state,side))

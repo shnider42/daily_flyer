@@ -81,7 +81,7 @@ def options(state, unit):
         for y in range(max(0,unit['pos'][1]-1),min(board['height'],unit['pos'][1]+2)):
             for x in range(max(0,unit['pos'][0]-1),min(board['width'],unit['pos'][0]+2)):
                 tile=terrain(x,y,state)
-                cost=2 if unit['kind']=='amphibious' and tile in {'woods','building','tower'} else 1
+                cost=2 if unit['kind']=='amphibious' and tile in {'woods','building','tower','church'} else 1
                 if distance(unit['pos'],[x,y])==1 and passable(unit,tile) and buildings.enterable(state,[x,y],unit['side']) and unit['ap']>=cost and (x,y) not in occupied and not (weapons.enabled(state) and unit.get('immobilized')):
                     from .engine import preview_threats
                     result['moves'].append(dict(pos=[x,y],cost=cost,threats=preview_threats(state,unit,[x,y],seen) if domains.joint(state) else 0))
