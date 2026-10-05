@@ -1,0 +1,91 @@
+name: Verify HLLV October 5 deployment
+on:
+  push:
+    branches: [feature/hllv-bug-evidence-tracker]
+    paths: [.github/workflows/hllv-verify-20261005.yml]
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 8
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - name: Verify production data and audit public sources
+        run: |
+          python3 - <<'PY'
+          import concurrent.futures, html, json, re, urllib.request
+          from pathlib import Path
+          def get(url):
+              req = urllib.request.Request(url, headers={'User-Agent':'Mozilla/5.0 HLLV-Link-Check','Accept-Language':'en'})
+              with urllib.request.urlopen(req, timeout=15) as r:
+                  return r.status, r.url, r.read(4000000).decode('utf-8', errors='replace')
+          expected=json.loads(Path('hllv_tracker/data/issues.json').read_text())
+          status,url,body=get('https://hllv-bug-track.onrender.com/data/issues.json?review=20261005-2984cc3')
+          actual=json.loads(body)
+          assert actual==expected, 'Live JSON differs from the committed snapshot'
+          print('PRODUCTION_DATA_MATCH', status, actual['generated_at'], len(actual['issues']))
+          sources={s['url']:s for i in expected['issues'] for s in i['sources']}
+          def audit(pair):
+              url,s=pair
+              try:
+                  status,final,body=get(url)
+                  m=re.search(r'<title[^>]*>(.*?)</title>',body,re.S|re.I)
+                  title=html.unescape(re.sub('<[^>]+>',' ',m.group(1))).strip() if m else ''
+                  links=re.findall(r'https?[^\s"<>]+(?:announcements/detail|news/app/3079210/view)[^\s"<>]+',html.unescape(body))
+                  return {'url':url,'status':status,'final':final,'title':title,'candidate_links':links[:5]}
+              except Exception as e:
+                  return {'url':url,'error':str(e)}
+          with concurrent.futures.ThreadPoolExecutor(max_workers=6) as pool:
+              print('SOURCE_AUDIT',json.dumps(list(pool.map(audit,sources.items())),indent=2))
+          for suffix in ['', '&feeds=steam_community_announcements']:
+              try:
+                  _,_,body=get('https://api.steampowered.com/ISteamNews/GetNewsForApp/v0002/?appid=3079210&count=100&maxlength=100'+suffix)
+                  news=json.loads(body)['appnews']['newsitems']
+                  print('STEAM_INDEX',suffix,len(news),json.dumps([{k:n.get(k) for k in ['title','url','feedname','is_external_url','date']} for n in news],indent=2))
+              except Exception as e: print('STEAM_INDEX_ERROR',str(e))
+          PY
+      - name: Install isolated browser test dependencies
+        run: |
+          python3 -m pip install --disable-pip-version-check playwright==1.55.0
+          python3 -m playwright install --with-deps chromium
+      - name: Verify landing, search, issue view and Sources in a real browser
+        run: |
+          python3 - <<'PY'
+          import json
+          from playwright.sync_api import sync_playwright
+          with sync_playwright() as p:
+              browser=p.chromium.launch()
+              page=browser.new_page()
+              errors=[]
+              page.on('pageerror',lambda error:errors.append(str(error)))
+              page.goto('https://hllv-bug-track.onrender.com/',wait_until='networkidle')
+              page.wait_for_selector('#featuredIssues button',timeout=20000)
+              assert 'Oct 5' in page.inner_text('body') or 'October 5' in page.inner_text('body') or '2026-10-05' in page.inner_text('body')
+              page.click('#browseIssues')
+              page.wait_for_selector('#homeList button')
+              search=page.locator('input:visible').first
+              search.fill('Server Browser filters')
+              page.wait_for_timeout(300)
+              rows=page.locator('#homeList button')
+              assert rows.count()>=1
+              rows.first.click()
+              assert '1.6' in page.locator('#dossier').inner_text()
+              tabs=page.locator('#dossier button').all_text_contents()
+              print('ISSUE_TABS',tabs)
+              sources=page.get_by_role('button',name='Sources',exact=True)
+              if sources.count(): sources.click()
+              else: page.locator('.tab').filter(has_text='Sources').click()
+              links=page.locator('#dossier a[href^="http"]').evaluate_all('(nodes)=>nodes.map(a=>({text:a.textContent,href:a.href}))')
+              assert links, 'Sources view has no usable anchors'
+              assert all(link['href'].startswith('https://') for link in links)
+              print('BROWSER_SOURCE_LINKS',json.dumps(links))
+              page.set_viewport_size({'width':390,'height':844})
+              assert page.locator('#dossier').is_visible()
+              assert page.evaluate('document.documentElement.scrollWidth <= window.innerWidth + 2'), 'Horizontal mobile overflow'
+              assert not errors, errors
+              print('BROWSER_PASS landing, October 5 date, issue list, search, detail, Sources anchors, mobile overflow, no JavaScript errors')
+              browser.close()
+          PY
