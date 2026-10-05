@@ -119,8 +119,10 @@
           "publisher": "Hell Let Loose",
           "date": "2026-09-10",
           "title": "Community Feedback #4",
-          "url": "https://www.hellletloose.com/blog/community-feedback-4",
-          "claim": "Reports decreased after the fix; monitoring continues."
+          "url": "https://www.hellletloose.com/blog/community-update-4",
+          "claim": "Reports decreased after the fix; monitoring continues.",
+          "original_url": "https://www.hellletloose.com/blog/community-feedback-4",
+          "link_checked_at": "2026-10-05"
         }
       ]
     },
@@ -365,8 +367,10 @@
           "publisher": "Hell Let Loose",
           "date": "2026-09-10",
           "title": "Community Feedback #4",
-          "url": "https://www.hellletloose.com/blog/community-feedback-4",
-          "claim": "AMD investigation continues; FSR 4.1 target moved to 1.6."
+          "url": "https://www.hellletloose.com/blog/community-update-4",
+          "claim": "AMD investigation continues; FSR 4.1 target moved to 1.6.",
+          "original_url": "https://www.hellletloose.com/blog/community-feedback-4",
+          "link_checked_at": "2026-10-05"
         },
         {
           "type": "patch notes",
@@ -467,8 +471,10 @@
           "publisher": "Hell Let Loose",
           "date": "2026-09-10",
           "title": "Community Feedback #4",
-          "url": "https://www.hellletloose.com/blog/community-feedback-4",
-          "claim": "Environmental penetration improvements in development."
+          "url": "https://www.hellletloose.com/blog/community-update-4",
+          "claim": "Environmental penetration improvements in development.",
+          "original_url": "https://www.hellletloose.com/blog/community-feedback-4",
+          "link_checked_at": "2026-10-05"
         },
         {
           "type": "official update",
@@ -606,8 +612,10 @@
           "publisher": "Hell Let Loose",
           "date": "2026-09-22",
           "title": "Hotfix 1.5.1 — live announcement",
-          "url": "https://steamcommunity.com/app/3079210/allnews",
-          "claim": "ADS transition improvements released across platforms."
+          "url": "https://steamcommunity.com/games/3079210/announcements/detail/684139458559214482",
+          "claim": "ADS transition improvements released across platforms.",
+          "original_url": "https://steamcommunity.com/app/3079210/allnews",
+          "link_checked_at": "2026-10-05"
         },
         {
           "type": "official update",
@@ -1929,8 +1937,10 @@
           "publisher": "Hell Let Loose",
           "date": "2026-09-10",
           "title": "Community Feedback #4",
-          "url": "https://www.hellletloose.com/blog/community-feedback-4",
-          "claim": "Released reverb and voice fixes remain under monitoring."
+          "url": "https://www.hellletloose.com/blog/community-update-4",
+          "claim": "Released reverb and voice fixes remain under monitoring.",
+          "original_url": "https://www.hellletloose.com/blog/community-feedback-4",
+          "link_checked_at": "2026-10-05"
         }
       ]
     },
@@ -2295,8 +2305,10 @@
           "publisher": "Hell Let Loose",
           "date": "2026-09-10",
           "title": "Community Feedback #4",
-          "url": "https://www.hellletloose.com/blog/community-feedback-4",
-          "claim": "Save-data fix targeted; wider tutorial investigation remains open."
+          "url": "https://www.hellletloose.com/blog/community-update-4",
+          "claim": "Save-data fix targeted; wider tutorial investigation remains open.",
+          "original_url": "https://www.hellletloose.com/blog/community-feedback-4",
+          "link_checked_at": "2026-10-05"
         },
         {
           "type": "official update",
@@ -3027,8 +3039,10 @@
           "publisher": "Hell Let Loose",
           "date": "2026-09-10",
           "title": "Community Feedback #4",
-          "url": "https://www.hellletloose.com/blog/community-feedback-4",
-          "claim": "Controller focus is distinguished from difficult-to-reproduce Garrison and Outpost failures."
+          "url": "https://www.hellletloose.com/blog/community-update-4",
+          "claim": "Controller focus is distinguished from difficult-to-reproduce Garrison and Outpost failures.",
+          "original_url": "https://www.hellletloose.com/blog/community-feedback-4",
+          "link_checked_at": "2026-10-05"
         },
         {
           "type": "official update",
@@ -3202,8 +3216,10 @@
           "publisher": "Hell Let Loose",
           "date": "2026-09-22",
           "title": "Hotfix 1.5.1 — live announcement",
-          "url": "https://steamcommunity.com/app/3079210/allnews",
-          "claim": "Mounted-gun movement smoothing added; further work planned."
+          "url": "https://steamcommunity.com/games/3079210/announcements/detail/684139458559214482",
+          "claim": "Mounted-gun movement smoothing added; further work planned.",
+          "original_url": "https://steamcommunity.com/app/3079210/allnews",
+          "link_checked_at": "2026-10-05"
         },
         {
           "type": "official update",
@@ -3254,8 +3270,10 @@
           "publisher": "Hell Let Loose",
           "date": "2026-09-22",
           "title": "Hotfix 1.5.1 — live announcement",
-          "url": "https://steamcommunity.com/app/3079210/allnews",
-          "claim": "1.5.1 restores vibration and haptics across platforms."
+          "url": "https://steamcommunity.com/games/3079210/announcements/detail/684139458559214482",
+          "claim": "1.5.1 restores vibration and haptics across platforms.",
+          "original_url": "https://steamcommunity.com/app/3079210/allnews",
+          "link_checked_at": "2026-10-05"
         }
       ]
     },
@@ -4066,11 +4084,71 @@
       "note": "Operational incidents remain separate from game issues until evidence establishes a relationship."
     }
   ],
-  "review_notes": "October 5 review: rechecked the official Steam announcements through the October 2 VLOG notice, September 29 Hotfix 1.5.2 and October 1 Community Feedback #6. Clarified stale server-family wording, current mitigations and planned-versus-released changes. No new gameplay fix or independent gameplay verification was established. Individual evidence dates and prior player reports remain unchanged unless newer evidence was added. This pass did not revalidate every historical player report. A review date is not proof an old bug persists. Equivalent source permalinks are changed only when their publisher title and accessibility are verified. Prior review: October 2 review: checked the official blog, current Steam announcements and six Steam support threads. Added the publisher's Patch 1.6 timing and dated player reports. A recent forum reply is not a new patch, reproduced defect, confirmed root cause or proof that a previous fix failed. The linked VLOG announcement text was reviewed; the video itself was not used as evidence. Original issue dates and history are retained. Reviewed the official September 25 Community Feedback #5, September 29 Hotfix 1.5.2 and October 1 Community Feedback #6 posts, using their full publisher text on Steam. Targets for 1.6, 1.7 and 2.0 are not release confirmations. Old reports retain their evidence dates unless new evidence applies. Similar symptoms do not establish a shared cause; SoulSniper incidents remain separate. No independent gameplay verification was performed. Prior review: Reviewed official releases through the September 22 live announcement. The website dates Hotfix 1.5.1 September 21; Steam announces it live September 22. Update 1.5 notes preceded its September 16 release. Older unresolved reports retain their evidence dates; absence from newer notes is not confirmation of persistence or resolution.",
+  "review_notes": "Source-link audit, October 5: corrected the verified Community Feedback #4 URL wherever reused. Replaced the generic Hotfix 1.5.1 feed link only if the exact announcement title and destination were verified. Other issue content and historical claims are unchanged. October 5 review: rechecked the official Steam announcements through the October 2 VLOG notice, September 29 Hotfix 1.5.2 and October 1 Community Feedback #6. Clarified stale server-family wording, current mitigations and planned-versus-released changes. No new gameplay fix or independent gameplay verification was established. Individual evidence dates and prior player reports remain unchanged unless newer evidence was added. This pass did not revalidate every historical player report. A review date is not proof an old bug persists. Equivalent source permalinks are changed only when their publisher title and accessibility are verified. Prior review: October 2 review: checked the official blog, current Steam announcements and six Steam support threads. Added the publisher's Patch 1.6 timing and dated player reports. A recent forum reply is not a new patch, reproduced defect, confirmed root cause or proof that a previous fix failed. The linked VLOG announcement text was reviewed; the video itself was not used as evidence. Original issue dates and history are retained. Reviewed the official September 25 Community Feedback #5, September 29 Hotfix 1.5.2 and October 1 Community Feedback #6 posts, using their full publisher text on Steam. Targets for 1.6, 1.7 and 2.0 are not release confirmations. Old reports retain their evidence dates unless new evidence applies. Similar symptoms do not establish a shared cause; SoulSniper incidents remain separate. No independent gameplay verification was performed. Prior review: Reviewed official releases through the September 22 live announcement. The website dates Hotfix 1.5.1 September 21; Steam announces it live September 22. Update 1.5 notes preceded its September 16 release. Older unresolved reports retain their evidence dates; absence from newer notes is not confirmation of persistence or resolution.",
   "source_link_review": {
     "date": "2026-10-05",
-    "repaired_references": 0,
-    "verified_equivalents": {},
-    "warnings": []
+    "repaired_references": 9,
+    "repaired_unique_urls": 2,
+    "verified_destinations": {
+      "https://www.hellletloose.com/blog/community-update-4": {
+        "status": 200,
+        "title": "Blog - Community Feedback #4 | Command Post | Hell Let Loose: Vietnam | Hell Let Loose"
+      },
+      "https://steamcommunity.com/games/3079210/announcements/detail/684139458559214482": {
+        "status": 200,
+        "title": "Steam :: Hell Let Loose: Vietnam :: Hotfix 1.5.1 | Live Now"
+      }
+    },
+    "warnings": [
+      "The developer AMA Reddit URL returned HTTP 403 to the automated checker. This does not establish that the source was deleted; its evidence is retained."
+    ],
+    "repairs": [
+      {
+        "issue": "HLLV-001",
+        "from": "https://www.hellletloose.com/blog/community-feedback-4",
+        "to": "https://www.hellletloose.com/blog/community-update-4"
+      },
+      {
+        "issue": "HLLV-003",
+        "from": "https://www.hellletloose.com/blog/community-feedback-4",
+        "to": "https://www.hellletloose.com/blog/community-update-4"
+      },
+      {
+        "issue": "HLLV-004",
+        "from": "https://www.hellletloose.com/blog/community-feedback-4",
+        "to": "https://www.hellletloose.com/blog/community-update-4"
+      },
+      {
+        "issue": "HLLV-006",
+        "from": "https://steamcommunity.com/app/3079210/allnews",
+        "to": "https://steamcommunity.com/games/3079210/announcements/detail/684139458559214482"
+      },
+      {
+        "issue": "HLLV-028",
+        "from": "https://www.hellletloose.com/blog/community-feedback-4",
+        "to": "https://www.hellletloose.com/blog/community-update-4"
+      },
+      {
+        "issue": "HLLV-033",
+        "from": "https://www.hellletloose.com/blog/community-feedback-4",
+        "to": "https://www.hellletloose.com/blog/community-update-4"
+      },
+      {
+        "issue": "HLLV-046",
+        "from": "https://www.hellletloose.com/blog/community-feedback-4",
+        "to": "https://www.hellletloose.com/blog/community-update-4"
+      },
+      {
+        "issue": "HLLV-049",
+        "from": "https://steamcommunity.com/app/3079210/allnews",
+        "to": "https://steamcommunity.com/games/3079210/announcements/detail/684139458559214482"
+      },
+      {
+        "issue": "HLLV-050",
+        "from": "https://steamcommunity.com/app/3079210/allnews",
+        "to": "https://steamcommunity.com/games/3079210/announcements/detail/684139458559214482"
+      }
+    ],
+    "method": "Verified source titles and HTTP responses. The earlier Steam API discovery did not produce replacements because official announcements were returned through external CDN redirects; no guessed URL was published."
   }
 }
