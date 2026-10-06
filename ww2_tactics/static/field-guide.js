@@ -103,7 +103,7 @@
  }
  const terrainLabels={kharkov:'KHARKOV · ARMORED FLAGS',relay_crossing:'RELAY CROSSING · GROUND LAB',dunkirk:'DUNKIRK · RESCUE ROUTES',vire_crossroads:'VIRE CROSSROADS · THREE FLAGS',belfry_valley:'BELFRY VALLEY · THREE FLAGS'};
  function paintMission(svg,snapshot=state){
-  const id=state.scenario.id,key=state.code+':'+state.battle_number+':'+id+':'+JSON.stringify(snapshot.front_control||[]);
+  const id=operationSource(state.scenario),key=state.code+':'+state.battle_number+':'+id+':'+JSON.stringify(snapshot.front_control||[]);
   let layer=svg.querySelector('.front-objectives');
   if(!terrainLabels[id]){layer?.remove();return;}
   if(svg._frontKey!==key||!layer){
@@ -116,7 +116,7 @@
  window.renderNewFronts=(u,legal,svg)=>{
   resupply.hidden=!legal?.resupply?.length;resupply.disabled=busy||state.turn!==state.side;resupply.textContent='Resupply · 2 AP';
   evacuate.hidden=!legal?.evacuate;evacuate.disabled=busy||state.turn!==state.side;evacuate.textContent='Evacuate · 1 AP';
-  if(document.body.dataset.operation!==state.scenario.id)document.body.dataset.operation=state.scenario.id;
+  if(document.body.dataset.operation!==operationSource(state.scenario))document.body.dataset.operation=operationSource(state.scenario);
   paintMission(svg);
   for(const v of (window.signalSnapshot?.(state)||state).units){
    const g=svg._counters?.get(v.id);if(!g)continue;

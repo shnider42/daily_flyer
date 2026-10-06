@@ -168,7 +168,8 @@ def create_app(db_path=None):
 
     @app.get('/api/scenarios')
     def scenarios():
-        return jsonify(scenarios=catalog())
+        from ww2_tactics.editions import EDITIONS
+        return jsonify(scenarios=catalog(), current_scenarios=catalog('current'), editions=EDITIONS)
 
     @app.get('/api/rulesets')
     def rulesets():
@@ -329,7 +330,7 @@ def create_app(db_path=None):
                 # Public recruitment board contains initial group counts only.
                 c = state['coop']
                 return jsonify(code=row['code'], name=match_title(db, row['code']), phase=c['phase'],
-                    scenario=state['battlefield']['name'], control_size=c['control_size'],
+                    scenario=state['battlefield']['name'], edition=state.get('edition','legacy'), control_size=c['control_size'],
                     factions=state.get('factions', {'us':'Americans', 'de':'Germans'}),
                     players=list(c['players'].values()), host=c['host'],
                     your_player=(member or cooperative.linked_member(db, row, commander(db)) or {}).get('player_id'),

@@ -38,7 +38,8 @@
    else{g.removeAttribute('aria-hidden');if(svg.id==='map')g.setAttribute('tabindex','0');}
    if(stacked)g.setAttribute('transform',flying?'translate(-9 -11)':'translate(6 7)');else g.removeAttribute('transform');
    let badge=g.querySelector('.joint-air-badge');
-   if(flying&&!badge){const [x,y]=center(...u.pos);badge=element('text',{x:x+17,y:y-18,'text-anchor':'middle',class:'joint-air-badge','aria-hidden':'true'},'AIR');g.append(badge);}
+   if(flying&&stacked&&state.ground_stack_version){badge?.remove();}
+   else if(flying&&!badge){const [x,y]=center(...u.pos);badge=element('text',{x:x+17,y:y-18,'text-anchor':'middle',class:'joint-air-badge','aria-hidden':'true'},'AIR');g.append(badge);}
    if(svg.id==='map')g.setAttribute('aria-label',`${sideLabel(u.side)} ${unitName(u)}. ${flying?'Air':'Surface'} layer. ${u.hp} strength, ${u.ap} AP.${stacked?' Shared hex: choose a unit.':''}`);
   }
   for(const g of svg.querySelectorAll('.contact-marker'))g.classList.toggle('joint-hidden',layer==='air'&&!air({kind:g.dataset.kind})||layer==='surface'&&air({kind:g.dataset.kind}));
@@ -82,7 +83,7 @@
  }
  function stackEvent(e){
   if(e.type==='keydown'&&!['Enter',' '].includes(e.key))return;
-  if(!state?.joint_ops_version||busy||playbackSession||picking())return;
+  if(!state?.joint_ops_version||state.ground_stack_version||busy||playbackSession||picking())return;
   const counter=e.target.closest('.unit'),u=counter&&visible().find(v=>v.id===counter.dataset.unitId);
   if(u&&openStack(u)){e.preventDefault();e.stopImmediatePropagation();}
  }

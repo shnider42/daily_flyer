@@ -1,0 +1,138 @@
+{
+  "amba_dawn:dsl": {
+    "coop": "65a255d07921915c9e21f381de75ea0e6aef10d85f12225fe0619c4b686e9f28",
+    "new": "ae0cab49561356e25aaa3a5cb5f60f2fcdba0b8c54eefdef847b3a8795aaf730",
+    "round": "5ba9ef6aef2133a792d31c7590bca61bdede0b94bd0003e06ca5a821ef316a09"
+  },
+  "apennine:dsl": {
+    "coop": "954fbe4a85cc84f001ba58ea53198aedabbaeca3f6fc8ad633d59d6de16157d8",
+    "new": "696ccb49d56c3c4fbbcf3701d7cf11a76b48d4d9cc7f2d4e02a5426030e656be",
+    "round": "b20a7d133f2f2f640d79050b676f9ff533776e136c2fd1d0033d00187be6687f"
+  },
+  "belfry_valley:dsl": {
+    "coop": "c6379632e6d46533bf988ef247b83d06e6eae312ecf7857f2a33dc39ba41c70b",
+    "new": "fec7a81446b17d8eeffc83e112ff11b9ef82e578046e4bc18706e1f8a30b3837",
+    "round": "f903ff8fe5282de55f585062852668fe548a1fe26beae38134b8fab3fbfbe830"
+  },
+  "breakwater:dsl": {
+    "coop": "b7fe7bc920052ba88b6eff9ed1ac25ab16b7417d5cb8368f051d620f52677315",
+    "new": "c2f954a703a32cfb1a471770215cbc287c968cb5fae11016875c36efa3451ac8",
+    "round": "a5a7228ff42c26d71dce00b2df9f8a23c336ee66203436d604dccf29dd5b2dac"
+  },
+  "britain:dsl": {
+    "coop": "2e403a4a4f7de227c75b31fbdbfea21244fe2f683ffad082a1844226c25ff3e7",
+    "new": "2af6ad3659d008b2f088ffcb216fc073c86957e2e8bec297e32ab695452b6881",
+    "round": "e9ca70ba4fd85f8e4889ff2c71e538b1a7a455c0dd0dca8adbc236668c807379"
+  },
+  "carentan:dsl": {
+    "coop": "b1b3c0f104b8c61e134ac09031c9b44d99616e43bb33195ee87d7dfb513fdfa4",
+    "new": "d5984990e68f32a2d81a18eb632f7b8d31e30444a4d54b33326101f26dc896c5",
+    "round": "e48a2d542934c24abb6033b9bfd6fa3ee9573edc40c8716ed750049f01ea3782"
+  },
+  "desert_signal:dsl": {
+    "coop": "7022673e9b9870030aa28db2d4eee804343884a7ccd590ba08d90422f13ba7f3",
+    "new": "418a0377bd2f860f9214af769ac98d72128945c4938a7389057ef3182f048e1e",
+    "round": "1d850be0e61aa19892787311ee336aa33cbb8d69b319d430faf11f6c7c18676b"
+  },
+  "dunkirk:dsl": {
+    "coop": "1f29b3066ad87164f4c1ae39ad662cc2ff444c2b7fec40fab2ce2873d3f22252",
+    "new": "f7718a975f17d1ee946d42fa5f4d90de1d344130be5d9a4c891a8fe296084655",
+    "round": "54493f0a6fed04cf979b93b43e510e53334f99c078be575c05f1afc0b7397b3c"
+  },
+  "frontier:dsl": {
+    "coop": "8155f8ef40890da60c3dbafe525fbcb1b7c8b16fc9d3da63fa967b527efc4a5f",
+    "new": "8e54a2cc5078e496d95b6cf06457104d6e1d2c796646e887971de95caf7edba5",
+    "round": "29351bc09b98cb869c62dd1141a94be5ad1a24ac537742d2637768e459f52eb2"
+  },
+  "fubar:dsl": {
+    "coop": "d95fe8a133a7a5465a74e64e9c73ae086f272c4b6001ca44f39ab463d91f222d",
+    "new": "40be332617a53406fe1dbfadebc5835188140c75e696942db753a45e65efd71a",
+    "round": "5aedff6a1f3793be544829eef075964ed69dbf0c6d308216d1ac905f165ab9a3"
+  },
+  "iron_lantern:dsl": {
+    "coop": "f50db599bf2214574fd1af8af2eec8d6895465b2f76dcdae6e536b065f5e42a7",
+    "new": "b1a7d7c8e7021a4bdb331d9fbd605b7239e353c1ec5551fed5079db37a3ea606",
+    "round": "c404aa4119fb738447048f99f2cc8ed13cde816cbfe5436c5325effad812abb8"
+  },
+  "kharkov:dsl": {
+    "coop": "3e17dcba6da1831147b5d69e1455432a5fee5b81de18d192975b67f6e89903c1",
+    "new": "f08966c3f6488b5ef3da29492c6dc695e4c89cef5ea63d68484810d89b8bb8fa",
+    "round": "a45c7abad07a16e1284eea1131d5e7b07defd54b1aa5f6ff830afe48f7efdd8e"
+  },
+  "market_garden:dsl": {
+    "coop": "fdb321374f24b260654775760f8710df5d54f45e8bd7cb0a650e7b9f8a3b8a98",
+    "new": "0dd92334c8ff094c292cd26730ca12beb06d85bde1cf7bf9f1504cb2be262575",
+    "round": "3b681f002428104ae18d85f25ff17c3aac8060df2020436e106cb04fb5b4348e"
+  },
+  "midway:dsl": {
+    "coop": "623ac5eb7f475926e64c16a86836b4daf3cb15b5d2fcb189b688b875633482a6",
+    "new": "3a423f49299d71dc6c848147e61d357c2084bc4b1fdccff80e22c0a3bbfa1479",
+    "round": "be5808a2f4764109d5cd77f51e936b636cbb46f5faff221b1e866c82cc27f9bb"
+  },
+  "omaha:dsl": {
+    "coop": "41186acfee18f471ff59060ec74b3c492dd565bc7122bbf95f7187e1896d7bb1",
+    "new": "4cb3928637b516dd67f28e013b0f6ef1bd05aad8bf5d7120c315ed0663f944d0",
+    "round": "12d9893fb191352f9bbe3ac0de7b0ce299e926e58a197806dcf4d8a57c735acb"
+  },
+  "orchard:classic": {
+    "new": "12466b92096a0db6ce23c15ac7da62bb59382f40e06c4ebe25de58208d156480",
+    "round": "6d0519b0c631963bafd28aa1f062d7d23863150948d5a01a76962bc16d0d8dff"
+  },
+  "orchard:dsl": {
+    "coop": "c0b91f541e1b0d275cbdcfa916c749edde4203dd4227094dd51af2333bbd788c",
+    "new": "37618373fbdf01b386d18145e0776eff2d828394c55dc18f929453c665e41b10",
+    "round": "45b7f2f047c30bee7594b684c19b1b74e21fed724451b31f1b28677760821c10"
+  },
+  "relay_crossing:dsl": {
+    "coop": "0b99a7b3752c47df24d6575b07137a6528cc91fef37a330ca17d0b7c2b82f16d",
+    "new": "45ffc93fc33dee360055d151ffb973d518b158c7dfef878db4ef008b1665d8f1",
+    "round": "47defba23da2f51490dc123fec0b45fedfe27a3a3f883f103c49ddde790733a1"
+  },
+  "riverfront:classic": {
+    "new": "7bf5c95381eb493ae07e461e89d98b739db5b68381841f6c25c4c124b83146c2",
+    "round": "3408930d54268e8f18524afbc9ccf27674637b0da5812d49d2ac174029a31841"
+  },
+  "riverfront:dsl": {
+    "coop": "3740daeeb33b4eac98d3a0ab5f0e383028b0d7e488dc47d7b4871e735d41a561",
+    "new": "f3e5f2948d10cb8bc93e7b91a1320e7c5d85939de7249271068e3daca91a1de0",
+    "round": "181fa16293110ac5fd5ada498522a90b0a31bb1e7e00f8971c6a7a7b136151e4"
+  },
+  "shingle_cove:dsl": {
+    "coop": "2c278b0ad948003c64c7b819e920584e85b07a7ec22f795a417d810c4edb0b25",
+    "new": "06b4352d828b8a238f9e403ddbe994728007b10d1e6551b7643863fc11dc14ee",
+    "round": "15bbd9b4b8e7d3dd6a99b9a970c68e870c9b06cc7a70cea232e8027c24ce20f8"
+  },
+  "stalingrad:dsl": {
+    "coop": "35115cb49e7e54e51cfa249aac7ac7c32551a21902c81e0b0f7542c8eb99710d",
+    "new": "497de7f4245ead564327d147bfb0d3ea811f6ddd425f78b6341031d9888b4791",
+    "round": "2ac2d837c0ec0b02bf20ea71807459e0761a5878d87a1906c10280cbe879e435"
+  },
+  "stonebridge:classic": {
+    "new": "f8e94fdce5f5dd08c3c8edac28462aa737d06f88bc5175848841e6028aac8dc2",
+    "round": "c0c50ed5318b39f1cd6be9c4adb751e3579e94d61c64159501d0847e1b9123ac"
+  },
+  "stonebridge:dsl": {
+    "coop": "27c5c67f64ee14ddc996b141302350c16415417e3d0b9b84a59d7ddd69347505",
+    "new": "8e25334d9077b336452703909645e8a03ead536613ec88b7fc1f87b8f30745d4",
+    "round": "091e893ae935a31d292f9cd01557b28ce3446b5ac12ed7d9053dcb8ed13440e9"
+  },
+  "tidal_gate:dsl": {
+    "coop": "3a9f32550fa633d985c8787da7f5dfa014618443462c809b6b0860a4d6827b9d",
+    "new": "1ad94ce095c3b87f876c9508cef3a7a88bdfedad70ed7f573481f14f4413c6cc",
+    "round": "6a07336207428f2fa38824e6fdbc6fdb0368da3a84598ef44ef765435688a04f"
+  },
+  "village:classic": {
+    "new": "d193f237be27b4e6f4e60175318a809218e600ff7cee0f88b52d944050fde095",
+    "round": "c6b4e1b8c9cc79f36a6913adfeb2635673324d90819d72fa9b47d11902b6c1c1"
+  },
+  "village:dsl": {
+    "coop": "dc74cbf9739b5129ea2ed97f8f20ea21d18ba255c3057129761f729cbf541109",
+    "new": "481e8e003de228566a32343efd87090bcb472e3cfe76d421cdc1f87fb31ea38f",
+    "round": "8d23e27cf63c3c6c8fe65f9218525d7a1ec1dd42067a6cd7c6dafe1bb1c34ccf"
+  },
+  "vire_crossroads:dsl": {
+    "coop": "0548fd188440a9a0e7a1c6079e15b521635c6c14d321ad9c9914c3662e67d206",
+    "new": "2767ebb6f7d5151794bed7012a767bbc5c2653b5f8e69c233279eb5db5999193",
+    "round": "c178c803bd338d754bc507342d6504f3719d2f08048acda9f355891a47852c41"
+  }
+}

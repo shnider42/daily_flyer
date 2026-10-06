@@ -122,6 +122,11 @@ SCENARIOS.update(observed_scenarios(build))
 
 
 def get_scenario(key='village'):
+    from .editions import PREFIX, scenario
+    if isinstance(key, str) and key.startswith(PREFIX):
+        source = key[len(PREFIX):]
+        if source in SCENARIOS:
+            return scenario(SCENARIOS[source])
     if not isinstance(key, str) or key not in SCENARIOS:
         raise ValueError('Choose a battlefield from the scenario list.')
     return copy.deepcopy(SCENARIOS[key])
@@ -132,9 +137,12 @@ def battlefield(state):
     return state.get('battlefield') or SCENARIOS['village']
 
 
-def catalog():
+def catalog(edition='legacy'):
     from .scenario_browser import describe
-    boards = [get_scenario(key) for key in SCENARIOS]
+    from .editions import PREFIX
+    if edition not in {'legacy', 'current'}:
+        raise ValueError('Choose Current or Legacy.')
+    boards = [get_scenario((PREFIX if edition == 'current' else '')+key) for key in SCENARIOS]
     for position, board in enumerate(boards):
         board['browse'] = describe(board, position)
     return boards

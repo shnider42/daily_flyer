@@ -156,6 +156,7 @@ def install_lobby(app, connect, digest, identify, membership=None):
             rows = db.execute('''SELECT m.code,n.name,n.updated,
                     json_extract(m.state,'$.coop') AS coop_data, cp.player_id AS coop_player,
                     json_extract(m.state,'$.battlefield.name') AS scenario,
+                    coalesce(json_extract(m.state,'$.edition'),'legacy') AS edition,
                     json_extract(m.state,'$.ruleset') AS ruleset,
                     json_extract(m.state,'$.round') AS round,
                     json_extract(m.state,'$.turn') AS turn,

@@ -27,7 +27,7 @@
     compact:`Win: 10 points · Allies ${score.us} / Axis ${score.de}`,progress:`Allies ${score.us}/10 · Axis ${score.de}/10 · Round ${s.round}/${rounds}`,
     rules:['At the end of your turn, each uncontested objective you occupy earns 1 point. Warships occupy the sea zone within one hex; infantry must stand on a land flag. Aircraft, armor, fixed guns, passengers and reserves cannot capture land flags.',
      `First to 10 points wins. At the end of round ${rounds}, higher score wins; Axis wins an exact tie. Eliminating every enemy also wins. Losing a carrier, bomber or airfield alone does not end Fubar.`,
-     'One surface unit and one aircraft can share a hex. Use Both / Surface / Air above the map; tap a stacked counter to choose which unit you mean. These controls change only your view, never fog of war.',
+     s.ground_stack_version?'Up to two friendly ground units and one aircraft can share a land hex, with at most one vehicle or fixed gun. Ships and boats stay separate. Use Both / Surface / Air; each occupant keeps its own AP and owner.':'One surface unit and one aircraft can share a hex. Use Both / Surface / Air above the map; tap a stacked counter to choose which unit you mean. These controls change only your view, never fog of war.',
      'Radar spots the air layer, not distant ground. Aircraft spot surface units within 4 hexes, or 2 in concealment. Fighters and AA attack aircraft; bombers attack the surface. Smoke hides surface targets, not aircraft.',
      'Carrier search and strike are abstract support sorties, separate from the movable fighter and bomber units. Airfields service aircraft. Cruiser escorts protect against carrier sorties; fixed AA, Flak and fighter overwatch intercept movable planes.',
      s.scenario.reinforcement_brief],focus:s.scenario.objective};
@@ -103,6 +103,7 @@
  button.onclick=open;
  function fill(){
   const shown=displayed(),m=mission(shown);if(state.scenario.doctrine){m.rules=[...m.rules,'Your force: '+state.scenario.doctrine[state.side],state.scenario.historical_note,'Communications: each platoon spots locally. Radio reports allow distant mortar aiming, but never unlock direct fire on an unseen unit.'];}goal.textContent=m.goal;progress.textContent=m.progress;
+  if(state.edition==='current')m.rules.push('Current DSL uses the same role, terrain and equipment rules across operations. Original forces, mission, supplies, reserves and faction differences remain. Two friendly ground units can share, at most one vehicle/fixed gun; aircraft use a separate slot. Ships and boats remain separate.',...(state.rule_manifest?.exceptions||[]));
   if(state.deployment_version)m.rules.push('This operation starts with private pre-battle deployment. Both armies lock their plans before naval fire and round 1. See How it works in the preparation panel.');
   for(const shot of state.prebattle_impacts||[])m.rules.push(`Opening naval fire: aimed at ${hexColumn(shot.aim[0])}${shot.aim[1]+1}, d6 ${shot.roll}, landed at ${hexColumn(shot.impact[0])}${shot.impact[1]+1} and neighboring hexes. Enemy casualties unconfirmed.`);
   list.replaceChildren(...m.rules.map(t=>node('li',null,t)));

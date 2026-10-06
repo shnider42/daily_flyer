@@ -17,9 +17,9 @@ document.addEventListener('DOMContentLoaded',()=>{
   syncMotion();
  }
  function syncPreview(){
-  const board=scenarios.find(s=>s.id===document.getElementById('scenarioSelect').value);
+  const board=operationById(document.getElementById('scenarioSelect').value);
   if(!board)return;
-  document.getElementById('homeTheater').textContent=board.theater||(board.id==='midway'?'PACIFIC':'WESTERN EUROPE');
+  document.getElementById('homeTheater').textContent=board.theater||(operationSource(board)==='midway'?'PACIFIC':'WESTERN EUROPE');
   document.getElementById('homeMapSize').textContent=`${board.width} × ${board.height} HEXES`;
   $('operationTitle').textContent=board.name;
   $('operationSummary').textContent=board.summary||(board.naval?'Fleet combat · island landings':board.combined_arms?'Combined arms · fog of war':board.platoons?'Three platoons · a wider battlefield':'Infantry · close-quarters tactics');
@@ -28,7 +28,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   $('playtestNote').hidden=!board.playtest;
   $('playtestNote').textContent=board.historical_note||'Experimental aircraft rules. No altitude, fuel or facing yet. This is a fictional tactical layout, not a historical simulation.';
   document.querySelector('.home-map-footer span:last-child').textContent=board.joint_ops?'★ THREE CONTROL ZONES':board.linked_objectives?'★ TOWN + EITHER EXIT':board.air?'RAF STATION DEFENSE':'★ OBJECTIVE';
-  document.querySelector('.home-operation').dataset.theater=board.id;
+  document.querySelector('.home-operation').dataset.theater=operationSource(board);
  }
  if(new URLSearchParams(location.search).get('join'))document.getElementById('joinOptions').open=true;
  new MutationObserver(syncHome).observe(lobby,{attributes:true,attributeFilter:['hidden']});

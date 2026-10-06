@@ -41,8 +41,12 @@ GUIDE = {
 
 
 def describe(board, release_order):
-    rank, tags, focus = GUIDE.get(board['id'], (1000, [], 'Explore this operation.'))
-    if board['id']!='relay_crossing' and 4<=rank<1000:rank+=1
+    source = board.get('source_id', board['id'])
+    rank, tags, focus = GUIDE.get(source, (1000, [], 'Explore this operation.'))
+    if source!='relay_crossing' and 4<=rank<1000:rank+=1
+    if board.get('edition') == 'current':
+        focus = ('Lower density: two platoons, 17 units per side; shared ground hexes.' if source == 'vire_crossroads' else focus)
+        focus += ' Current DSL: two friendly ground units per hex; separate air layer.'
     tags = list(tags)
     mission = 'control' if board.get('naval') or board.get('joint_ops') or board.get('front_mode')=='armored_control' else 'evacuation' if board.get('front_mode')=='evacuation' else 'attack-defend'
     if mission not in tags:tags.append(mission)

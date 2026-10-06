@@ -52,7 +52,7 @@
   const occupied=new Set(state.units.filter(t=>!t.carrier_id&&t.id!==selected).map(t=>t.pos.join(',')));
   const chosen=de?d.bunkers:d.fire;
   if(available())for(const pos of positions){
-   if(mode==='units'&&(!u||u.carrier_id||occupied.has(pos.join(','))))continue;
+   if(mode==='units'&&(!u||u.carrier_id||(d.placements?!d.placements[u.id]?.some(p=>p[0]===pos[0]&&p[1]===pos[1]):occupied.has(pos.join(',')))))continue;
    const [x,y]=pos,tile=svg._tiles?.[y*state.map[0].length+x];if(!tile)continue;
    const marked=mode==='plan'&&chosen.some(p=>p[0]===x&&p[1]===y);
    const label=mode==='units'?`Deploy ${unitTypeName(u)} to ${coord(pos)}`:`${marked?'Remove':de?'Place bunker':'Aim naval fire'} at ${coord(pos)}`;

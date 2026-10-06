@@ -63,7 +63,7 @@ def setup(board):
         return observed_roster(board['campaign'])
     if board.get('prebattle'):
         from .deployment import roster as deployment_roster
-        return deployment_roster(board['id'])
+        return deployment_roster(board.get('source_id', board['id']))
     if board['campaign'] in {'kharkov','relay_crossing','dunkirk'}:
         from .new_fronts import roster as front_roster
         return front_roster(board['campaign'])

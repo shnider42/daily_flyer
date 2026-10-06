@@ -171,7 +171,7 @@
    const snapshot=playbackSession?.frames[playbackSession.index]?.[playbackSession.phase];
    paint(document.getElementById('playbackMap'),document.getElementById('playbackMap')?._grid||state.map,snapshot?.buildings);
   }
-  if(typeof scenarios!=='undefined')paint(document.getElementById('scenarioPreview'),scenarios.find(s=>s.id===document.getElementById('scenarioSelect').value)?.map);
+  if(typeof operationById!=='undefined')paint(document.getElementById('scenarioPreview'),operationById(document.getElementById('scenarioSelect').value)?.map);
  }
  const button=document.createElement('button');button.id='terrainToggle';button.type='button';button.title='Switch between basic and detailed terrain';
  document.getElementById('playTools').append(button);

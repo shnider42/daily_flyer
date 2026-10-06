@@ -222,6 +222,9 @@ def choose_order(state, costs, visited, front_costs=None):
             # A second smoke screen cannot be placed on an already smoked hex.
             pos=unit['pos'] if unit['pos'] in legal['smoke'] else min(legal['smoke'],key=lambda p:distance(p,landing_goal or goal))
             add(5, unit, 'smoke', pos=list(pos))
+    if state.get('edition') == 'current':
+        choices = [(score, action) for score, action in choices if action['kind'] not in {'move','drop','unload'}
+                   or tuple(action['pos']) not in visited.get(action['unit'], set())]
     return computer_policy.choose(state, choices, 1.5 if dsl(state) else 0)
 
 
@@ -259,7 +262,21 @@ def play_turn(state, roll=None, observers=None, max_orders=None):
         before_all = previous_snapshot
         sequence = state.get('combat_sequence', 0)
         effect_sequence = state.get('effect_sequence', 0)
-        state = apply(state, state['ai_side'], action, roll=roll)
+        try:
+            state = apply(state, state['ai_side'], action, roll=roll)
+        except ValueError as error:
+            # Current fog can hide a hex's final occupant even when that hex
+            # is observed. Match the human rejected-order response: no AP or
+            # dice were spent; remember the failed destination for this turn
+            # and choose another legal order, without inspecting the contact.
+            contact_errors = {'Movement blocked by a contact. Scout or choose another approach.',
+                              'Landing blocked by a contact. Choose another approach.',
+                              'That disembark hex is occupied. Choose another hex.'}
+            if (state.get('edition') != 'current' or action['kind'] not in {'move','drop','unload'}
+                    or str(error) not in contact_errors):
+                raise
+            visited.setdefault(action['unit'], set()).add(tuple(action['pos']))
+            return False
         previous_snapshot = {viewer: snapshot(state, viewer) for viewer in viewers}
         for viewer in viewers:
             before, after = before_all[viewer], previous_snapshot[viewer]
@@ -299,8 +316,12 @@ def play_turn(state, roll=None, observers=None, max_orders=None):
             front_costs = {p['id']: objective_costs(state, p['pos']) for p in battlefield(state).get('linked_objectives', [])}
             terrain_memory = memory
         action = choose_order(state, costs, visited, front_costs)
-        perform(action)
+        accepted = perform(action)
         remaining -= 1
+        if accepted is False:
+            if max_orders and remaining and (step + 1 >= max_orders or time.monotonic() - started >= 1.5):
+                break
+            continue
         actor = next((u for u in state['units'] if u['id'] == action.get('unit')), None)
         target = next((u for u in state['units'] if u['id'] == action.get('target')), None)
         orders.extend(['Turn ended.'] if action['kind'] == 'end' else

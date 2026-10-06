@@ -111,12 +111,17 @@ def fire_zone(state):
 def fields(state, side):
     """One shared placement zone per army, not a copy for every unit."""
     p = state['deployment']; rules = state['battlefield']['deployment_rules']
-    return dict(phase=p['phase'], locked=copy.deepcopy(p['locked']),
+    result = dict(phase=p['phase'], locked=copy.deepcopy(p['locked']),
         zone=zone(state,side), bunker_zone=bunker_zone(state) if side=='de' else [],
         fire_zone=fire_zone(state) if side=='us' else [],
         bunkers=copy.deepcopy(p['bunkers']) if side=='de' else [],
         fire=copy.deepcopy(p['fire']) if side=='us' else [],
         bunker_budget=rules['bunkers'], fire_budget=rules['missions'])
+    if state.get('ground_stack_version'):
+        from . import domains
+        result['placements'] = {u['id']: [pos for pos in result['zone'] if not domains.blocked(state,u,pos)]
+                                for u in state['units'] if u['side']==side and not u.get('carrier_id') and u['hp']>0}
+    return result
 
 
 def public_planning(state, side):
@@ -162,7 +167,9 @@ def apply(state, side, order, roll=None):
         if not u or u.get('carrier_id') or u['hp']<=0: raise ValueError('Select your own unit; passengers move with their boat.')
         pos=order.get('pos');validate_pos(pos)
         if pos not in zone(result,side): raise ValueError('Place units inside your highlighted deployment zone.')
-        if any(t['id']!=u['id'] and not t.get('carrier_id') and t['pos']==pos for t in result['units']):
+        from . import domains
+        if (domains.blocked(result,u,pos) if domains.ground_stacking(result) else
+                any(t['id']!=u['id'] and not t.get('carrier_id') and t['pos']==pos for t in result['units'])):
             raise ValueError('That deployment hex is occupied. Choose another.')
         u['pos']=list(pos);follow(result,u)
     elif kind in {'deploy_bunker','deploy_fire'}:
@@ -179,7 +186,7 @@ def apply(state, side, order, roll=None):
                 raise ValueError('Leave at least one hex between bunkers, or two between naval aim points.')
             positions.append(list(pos))
     elif kind=='deploy_reset':
-        defaults={u['id']:u for u in roster(result['battlefield']['id'])}
+        defaults={u['id']:u for u in roster(result['battlefield'].get('source_id', result['battlefield']['id']))}
         for u in result['units']:
             if u['side']==side: u['pos']=list(defaults[u['id']]['pos'])
         p['bunkers' if side=='de' else 'fire']=[]

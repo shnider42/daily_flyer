@@ -41,7 +41,8 @@ def arrive(state, react, roll):
     for u in state['units']:
         if u['side'] != state['turn'] or not u.get('reserve') or not u.get('arrival_round') or u['arrival_round'] > state['round'] or u['hp'] <= 0:
             continue
-        if any(active(other) and other['pos'] == u['pos'] for other in state['units']): continue
+        from . import domains
+        if domains.blocked(state,u,u['pos']): continue
         u.update(reserve=False, ap=u['base_ap'], ap_received=u['base_ap'], carried_ap=0, banked_ap=0)
         messages.append(f"{state.get('factions', {}).get(u['side'], u['side'])} reserves arrived.")
         messages.extend(react(state, u, roll))

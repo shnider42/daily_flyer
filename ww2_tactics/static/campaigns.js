@@ -16,7 +16,7 @@
  const service=document.createElement('button');service.id='rearm';service.hidden=true;service.textContent='Service · 2 AP';$('nextUnit').before(service);service.onclick=()=>act({kind:'rearm',unit:selected});
  const roles={fighter:'FIGHTER · Fly up to 3 hexes per AP. Attack aircraft only, range 3. Intercept reserves one reaction along an enemy flight path.',bomber:'BOMBER · Fly up to 2 hexes per AP. Bomb ground targets within 1 hex: 2 AP, one bomb load. Return beside a friendly airfield to reload.',aa_gun:'ANTI-AIRCRAFT GUN · Fixed position, range 5, 2 damage. AA cover reserves one reaction along an enemy flight path.',radar:'RADAR · Automatically spots aircraft within 10 hexes. No actions or weapons. Does not reveal distant ground installations.',airfield:'AIRFIELD · Adjacent friendly aircraft may spend 2 AP to repair 1 strength and reload, once per turn. RAF sector stations are the bombing objectives.'};
  window.renderCampaign=(unit,legal,svg)=>{
-  const air=!!state.air_version,city=state.scenario.id==='stalingrad',beach=state.scenario.id==='omaha';
+  const air=!!state.air_version,city=operationSource(state.scenario)==='stalingrad',beach=operationSource(state.scenario)==='omaha';
   document.body.classList.toggle('air-battle',air);document.body.classList.toggle('city-battle',city);document.body.classList.toggle('beach-battle',beach);
   service.hidden=true;svg.querySelectorAll('.flight-trail').forEach(n=>n.remove());
   if((air||beach)&&unit&&!smokeMode&&!barrageMode&&state.turn===state.side)for(const m of legal?.moves||[]){const [x,y]=center(...m.pos);svg.append(element('text',{x,y:y+5,class:'move-beacon'},`↗ ${m.cost}`));}

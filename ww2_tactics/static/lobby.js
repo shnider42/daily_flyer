@@ -73,7 +73,7 @@
    else details.append(text('p',`${g.open_side==='us'?'Open seat':g.host_name||'Original commander'} (${g.allies||'Americans'}) vs ${g.open_side==='de'?'Open seat':g.guest_name||'Original commander'} (${g.opponent})`));
    const phase=g.winner?'Finished':g.phase==='planning'?'Pre-battle setup':!g.ready?(g.cooperative?'Host setting up':'Waiting for opponent'):yourTurn?'Your turn':yours?'Opponent’s turn':`${g.turn==='us'?g.allies||'Americans':g.opponent} to move`;
    details.append(text('p',`${phase} · Round ${g.round}${yours?` · You: ${yours==='us'?g.allies||'Americans':g.opponent}`:''}`,'game-phase'));
-   details.append(text('p',`${g.scenario||'Village Crossing'} · ${(g.ruleset||'classic').toUpperCase()} · ${g.code}`));
+   details.append(text('p',`${g.scenario||'Village Crossing'} · ${g.ruleset==='dsl'?(g.edition==='current'?'Current DSL':'Legacy DSL'):(g.ruleset||'classic').toUpperCase()} · ${g.code}`));
    const button=text('button',yours||local?'Resume game':!g.full?(g.cooperative?'Choose army & group':`Join as ${g.open_side==='us'?g.allies||'Americans':g.opponent}`):player?(g.cooperative?'Battle started':'Both seats taken'):'Sign in to resume');button.type='button';button.disabled=!!(g.full&&player&&!yours&&!local);
    button.onclick=async()=>{button.disabled=true;try{if(g.full&&!player&&!local){loginDialog(()=>load());}else await enter(g);}catch(e){notify(e.message);if(e.status===401){player=null;storePlayer();identity();loginDialog(()=>enter(g));}}finally{button.disabled=false;await load();}};
    row.append(details,button);return row;
@@ -97,7 +97,7 @@
  function nameDialog(code,coop=false){
   $('multiplayerModeSettings').hidden=!!code;$('multiplayerMode').value=coop?'cooperative':'human';window.ww2BattleSetup?.sync();
   renameCode=code||null;$('multiplayerTeams').hidden=!!code;$('namedGameTitle').textContent=code?'Rename this game.':'Name your game.';$('namedGameSubmit').textContent=code?'Save game name':'Create multiplayer game';
-  $('multiplayerName').value=code?state.match_name:`${player.name} · ${scenarios.find(s=>s.id===$('scenarioSelect').value)?.name||'New battle'}`;
+  $('multiplayerName').value=code?state.match_name:`${player.name} · ${operationById($('scenarioSelect').value)?.name||'New battle'}`;
   $('namedGameError').textContent='';$('namedGameDialog').showModal();
  }
  $('closeNamedGame').onclick=()=>$('namedGameDialog').close();

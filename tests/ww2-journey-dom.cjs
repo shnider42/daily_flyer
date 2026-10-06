@@ -50,7 +50,7 @@ async function main(){
  await select('journeySide','de');w.document.querySelector('[data-chapter="shingle_cove"] button').click();await delay();assert.deepEqual(errors,[]);assert.equal(e('state.side'),'de');assert.equal(e('state.deployment.phase'),'planning');assert.match($('lessonTitle').textContent,/Before round 1/);
  await coachTopic('preparation-support');$('lessonShow').click();await e("act({kind:'deploy_bunker',pos:state.deployment.bunker_zone[0]})");await coachTopic('preparation-support');assert.match($('lessonResult').textContent,/You tried/);
  // Build lessons from actual fog-filtered API responses for every map and army.
- const scenarios=e('scenarios.map(s=>s.id)'),expected={relay_crossing:['radio','observe','mortar','supply'],kharkov:['armor-control','supply','armor'],dunkirk:['evacuation','transport'],iron_lantern:['airlift','flak','arrival'],tidal_gate:['engineering','linked'],midway:['fleet'],britain:['service'],fubar:['layers','joint-air','joint-sea'],shingle_cove:['preparation','preparation-support','preparation-lock'],breakwater:['preparation','preparation-support','preparation-lock']};
+ const scenarios=e('operationCatalog().map(s=>s.id)'),expected={relay_crossing:['radio','observe','mortar','supply'],kharkov:['armor-control','supply','armor'],dunkirk:['evacuation','transport'],iron_lantern:['airlift','flak','arrival'],tidal_gate:['engineering','linked'],midway:['fleet'],britain:['service'],fubar:['layers','joint-air','joint-sea'],shingle_cove:['preparation','preparation-support','preparation-lock'],breakwater:['preparation','preparation-support','preparation-lock']};
  for(const scenario of scenarios){
   const seat=await request('/api/match',{method:'POST',headers:{'Content-Type':'application/json'},body:JSON.stringify({scenario,ruleset:'dsl'})}).json();
   const guest=await request(`/api/match/${seat.code}/join`,{method:'POST'}).json();
@@ -60,7 +60,8 @@ async function main(){
     w.ww2Experience.set(level);const book=w.ww2Learning.lessons(state);
     assert.equal(new Set(book.map(l=>l.id)).size,book.length,scenario);
     for(const l of book){assert.ok(l.text.length>50,`${scenario} ${level} ${l.id}`);if(l.selector!=='@mission')assert.ok(w.document.querySelector(l.selector),`Missing selector ${l.selector}`);}
-    if(state.side==='us')for(const id of expected[scenario]||[])assert.ok(book.some(l=>l.id===id),`${scenario} ${id}`);
+    if(state.side==='us')for(const id of expected[state.scenario.source_id||scenario]||[])assert.ok(book.some(l=>l.id===id),`${scenario} ${id}`);
+    if(state.edition==='current')for(const id of ['current-edition','shared-hexes'])assert.ok(book.some(l=>l.id===id),`${scenario} ${id}`);
     if(scenario==='village')assert.ok(!book.some(l=>['mortar','supply','airlift','fleet','service','preparation'].includes(l.id)));
    }
   }
@@ -85,6 +86,6 @@ async function main(){
   await request(`/api/match/${code}`,{method:'POST',headers:{Authorization:`Bearer ${joined.token}`,'Content-Type':'application/json'},body:JSON.stringify({kind:'resign',revision:opponent.revision})}).json();
   await e('refresh()');await delay();await delay();assert.equal($('battleResultTitle').textContent,'Victory');assert.equal($('battleResultDialog').open,true);await click('resultHome');
  }
- assert.deepEqual(errors,[]);console.log('DOM/API checks passed: complete script boot, actual creation/results/Journey/resume/placement, all Experiences, 24 maps × 2 armies × 3 levels, selector targets and replay result gating. No visual-layout claims.',tmp);
+ assert.deepEqual(errors,[]);console.log('DOM/API checks passed: complete script boot, actual creation/results/Journey/resume/placement, all Experiences, 48 edition/maps × 2 armies × 3 levels, selector targets and replay result gating. No visual-layout claims.',tmp);
 }
 main().catch(err=>{console.error(err);console.error(errors);console.error(e("({winner:state?.winner,busy,polling,lobbyMode,hidden:$('game').hidden,playing:!!playbackSession,seen:[...Object.keys(sessionStorage)],resultTitle:$('battleResultTitle').textContent,message:$('message').textContent,dialogs:[...document.querySelectorAll('dialog[open]')].map(d=>d.id),resignDisabled:$('resignButton').disabled})"));process.exitCode=1;}).finally(()=>dom?.window.close());

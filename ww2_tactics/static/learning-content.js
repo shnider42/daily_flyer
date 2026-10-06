@@ -174,7 +174,7 @@
   ],'Choose a platoon and inspect its Lieutenant and one squad.','#platoonFilters'));
   if(s.ground_stack_version)extra.push(make('shared-hexes','Two friendly units can share a hex',[
    'Select your unit, then tap a nearby friendly unit and choose Move here. Up to two units can share. Tap that hex again to choose which one you mean. Explosions can hurt both, so spread out when danger approaches.',
-   'Belfry Valley allows two friendly units per hex, with at most one vehicle or fixed gun. Each pays its own AP and keeps its player assignment. Direct fire selects one target; mortar blasts and other explosive effects can hit both.',
+   'This operation allows two friendly ground units per hex, with at most one vehicle or fixed gun. Aircraft have a separate slot; boats and ships remain separate. Each pays its own AP and keeps its player assignment. Direct fire selects one target; mortar blasts and other explosive effects can hit both.',
    'Capacity is two friendly ground units, at most one non-infantry unit. AP, ownership and platoon sight remain per unit. Hex fire checks both occupants; cover/armor still apply, structures take one damage step per shell, and flags score once. Assault advances require clearing all defenders.'
   ],'Select a unit, then a neighboring friendly counter. Inspect the Move here option and shared-hex chooser.','#mapWrap',['move']));
   if(s.signals_version&&has('scout','radioman','mountain','pathfinder'))extra.push(make('observe','Observe: see farther from this position',[
@@ -229,7 +229,7 @@
   if(s.deployment_version){
    const preparation=[make('preparation','Before round 1: arrange your force',[
     'This battle starts with planning. Select one of your units and tap a highlighted starting hex to place it. Planning is free. The enemy’s plan stays hidden.',
-    'Both armies plan independently before AP turns begin. Move your fixed roster within its legal deployment zone. You cannot add units, stack them or place them in the enemy zone. Loaded passengers move with their boat.',
+    s.ground_stack_version?'Both armies plan privately before AP turns begin. Move the fixed roster within your legal deployment zone. Two friendly ground units can share within the usual capacity; boats remain separate and passengers move with their boat.':'Both armies plan independently before AP turns begin. Move your fixed roster within its legal deployment zone. You cannot add units, stack them or place them in the enemy zone. Loaded passengers move with their boat.',
     'Preparation precedes turn authority: both seats may deploy, even before the opponent joins. The server validates ownership, zone, terrain and occupancy. Enemy unit positions, bunkers and fire plans remain private until resolution.'
    ],'Move one unit within its highlighted setup zone.','#deploymentPanel',['deploy_unit']),
    make('preparation-support',s.side==='de'?'Build the defensive position':'Plan blind naval fire',s.side==='de'?[
@@ -250,7 +250,27 @@
   }
   book.splice(s.deployment?.phase==='planning'?3:1,0,...extra.slice(0,2));
   const finish=book.find(l=>l.id==='finish');book=book.filter(l=>l.id!=='finish');book.push(...extra.slice(2));if(finish)book.push(finish);
-  if(s.scenario.id!=='iron_lantern'&&!s.joint_ops_version)book=book.filter(l=>l.id!=='heavy');
+  if(operationSource(s.scenario)!=='iron_lantern'&&!s.joint_ops_version&&!(s.edition==='current'&&own.some(u=>u.armor>=3)))book=book.filter(l=>l.id!=='heavy');
+  if(s.edition==='current')book.unshift(make('current-edition','Current DSL: familiar missions, shared rules',[
+   'You are playing the Current version of this operation. Your units each keep their own actions. Two friendly ground units can share a hex, and a plane can fly above them. The mission tells you how this map is won.',
+   'Current uses common rules for units, terrain and equipment across maps. Platoons spot locally; dated radio reports help indirect mortar aiming. Recon must Observe before Spot for fire. Each map keeps its original force, asymmetry and mission, and fleet or air missions keep their specialized systems.',
+   'Two friendly ground counters may occupy a land hex, at most one vehicle or fixed gun, with one independent aircraft above. Each retains its AP, controller and platoon sight. Recon guidance changes accuracy, never penetration; indirect mortars consume finite shells. Check the mission and actual unit cards for faction equipment, reserves, scoring and exceptions. An ongoing match keeps the rules it started with.'
+  ],'Open the mission and identify your objectives and force roles.','@mission'));
+  if(s.edition==='current')for(const lesson of book){
+   if(lesson.id==='layers')lesson.texts=[
+    'Aircraft can fly above ground units. Up to two friendly ground units and one aircraft can share a land hex. Both, Surface and Air change the view; tap the hex to choose an occupant.',
+    'Ground capacity is two friendly units, at most one vehicle or fixed gun; aircraft have an independent slot. Ships and boats stay separate. Each unit retains its own actions, platoon sight and controller.',
+    'Surface and air occupancy are independent. One aircraft per air hex; two friendly ground occupants with at most one vehicle or fixed gun. Ships and boats retain separate spaces and weapon target restrictions. Changing the view never changes what your platoon sees or which player controls a counter.'];
+   const variants=lesson.texts||copy[lesson.id];
+   if(variants&&lesson.id==='transport')lesson.texts=variants.map(t=>t.replace('empty, legal landing space','legal landing space with a free ground slot'));
+   if(variants&&['linked','reinforcements'].includes(lesson.id))lesson.texts=variants.map(t=>t.replace('legal empty entry','legal entry with remaining ground capacity'));
+   if(variants&&lesson.id==='airlift')lesson.texts=variants.map(t=>t.replace('Occupied/obstructed landings','Full or obstructed landings'));
+   if(lesson.id==='heavy')lesson.texts=[
+    'Heavy tanks survive some weapons that hurt lighter vehicles. Check the selected tank’s card, then use a weapon that can penetrate it. Smoke, flanking and nearby engineers may help.',
+    'Read this operation’s actual armor, AP, movement cost, gun range and ammunition. Heavy armor often trades mobility for protection. A gun’s penetration and loaded ammunition decide which targets it can damage.',
+    'Unit profiles retain their authored faction and equipment asymmetry. Compare penetration, protection, movement AP, road restrictions, range, gun damage and engineer charges on the actual cards. Recon guidance modifies hit accuracy; it never makes an incapable weapon penetrate heavy armor.'];
+  }
+  if(s.edition==='current')book=book.filter(l=>l.id==='radio'?has('commander','radioman'):l.id==='specialists'?has('mountain','commando','partisan','askari','mortar','engineer','pathfinder'):true);
   if(s.coop){
    const texts=[
     'You share an army with other players and computer groups. Units marked Your command follow your orders. You can inspect the others. Choose Finish my orders when you are done; your friends can keep playing until they finish too. Then your computer allies act and the other army takes its turn.',

@@ -61,6 +61,11 @@ def initialize(state, body, pid, name):
     # Preloaded passengers always belong with their transport, including maps
     # whose passenger platoon differs from the boat's platoon.
     def key(u):
+        if state.get('edition') == 'current' and (u['kind']=='commander' or
+                any(t.get('carrier_id')==u['id'] and t['kind']=='commander' for t in units)):
+            # A preloaded commander and their boat stay together under the
+            # host, rather than placing the commander in a teammate's group.
+            return u['side'] + ':command'
         if u.get('carrier_id'):
             return key(next(v for v in units if v['id'] == u['carrier_id']))
         if u['kind'] == 'commander' or u.get('airlift_reserve'):

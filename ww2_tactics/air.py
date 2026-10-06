@@ -108,7 +108,7 @@ def options(state,unit):
     from .visibility import unit_visible_ids
     seen=unit_visible_ids(state,unit) if domains.joint(state) else visible_ids(state,unit['side']);board=state['battlefield']
     living=[u for u in state['units'] if active(u)]
-    occupied={tuple(u['pos']) for u in living if u['id'] in seen and domains.blocks(state,unit,u)}
+    occupied=domains.blocked_hexes(state,unit,seen)
     planes={tuple(u['pos']) for u in living if u['id'] in seen and u['kind'] in AIRCRAFT and u['id']!=unit['id']}
     if unit['kind'] in AIRCRAFT and unit['ap']>=1:
         reach=unit['flight']
@@ -171,7 +171,7 @@ def unit_order(state, unit, action, legal, roll, before=None):
             # Hidden contacts may interrupt a leg, but never create stacked
             # counters or disclose hidden occupancy in legal-move previews.
             blocking=any(active(u) and u['id']!=unit['id'] and u['pos']==pos and
-                         (u['kind'] in AIRCRAFT or not domains.joint(state) and pos==move['pos']) for u in state['units'])
+                         (u['kind'] in AIRCRAFT or not domains.layered(state) and pos==move['pos']) for u in state['units'])
             if blocking:break
             unit['pos']=list(pos)
             # A flight can pass through sight and leave it in the same leg.

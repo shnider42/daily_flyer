@@ -26,7 +26,8 @@ def role_options(state, unit, distance, line_clear, terrain, board):
                              and (not domains.joint(state) or u['kind'] not in domains.AIR_UNITS | domains.SHIPS)
                              and (commander or u.get('platoon') == unit.get('platoon')) and u['kind'] not in {'leader','commander'}
                              and not u['pinned'] and u.get('ap_received', 2) < turn_limit(u)
-                             and 0 < distance(unit['pos'], u['pos']) <= radius]
+                             and u['id'] != unit['id'] and
+                             (0 if state.get('edition')=='current' else 1) <= distance(unit['pos'], u['pos']) <= radius]
     elif unit['kind'] == 'leader' and unit.get('platoon') and key not in state.get('command_used', []):
         result['command'] = [u['id'] for u in living if u['side'] == unit['side']
                              and u.get('platoon') == unit['platoon'] and u['kind'] != 'leader'

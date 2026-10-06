@@ -12,13 +12,17 @@ def is_air(unit):
     return unit['kind'] in AIRCRAFT
 
 
+def layered(state):
+    return joint(state) or state.get('layered_occupancy_version') == 1
+
+
 def blocks(state, mover, other):
     """Callers still check activity/position/visibility, never hidden previews."""
-    return not joint(state) or is_air(mover) == is_air(other)
+    return not layered(state) or is_air(mover) == is_air(other)
 
 
 def surface(state, unit):
-    return not joint(state) or not is_air(unit)
+    return not layered(state) or not is_air(unit)
 
 
 def ground_stacking(state):
@@ -46,9 +50,23 @@ def blocked(state, mover, pos, seen=None):
 
 def capacity_full(state, mover, occupants):
     if not ground_stacking(state):return bool(occupants)
+    if state.get('layered_occupancy_version') == 1:
+        # Aircraft and vessels retain one slot in their own domain. Amphibious
+        # infantry share ashore; at sea their integral boats need separation.
+        if is_air(mover) or mover['kind'] in SHIPS | {'landing_craft'}:
+            return bool(occupants)
+        if any(u['kind'] in SHIPS | {'landing_craft'} for u in occupants):
+            return True
+        if occupants and mover['kind'] == 'amphibious':
+            from .engine import terrain
+            if terrain(*occupants[0]['pos'], state) == 'water':
+                return True
     from .combined import INFANTRY
+    def light(unit):
+        return unit['kind'] in INFANTRY or (state.get('layered_occupancy_version') == 1
+            and unit['kind'] == 'amphibious' and not unit.get('armor'))
     return (any(u['side'] != mover['side'] for u in occupants) or len(occupants) >= 2
-            or mover['kind'] not in INFANTRY and any(u['kind'] not in INFANTRY for u in occupants))
+            or not light(mover) and any(not light(u) for u in occupants))
 
 
 def blocked_hexes(state, mover, seen):

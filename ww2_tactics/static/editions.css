@@ -1,0 +1,5 @@
+.operation-edition {display:grid;gap:8px;margin:12px 0 16px;padding:14px;border:1px solid #a3946a;border-radius:8px;background:rgba(204,190,139,.1)}
+.operation-edition label {font-weight:700}
+.operation-edition p {margin:0;font-size:.9rem;line-height:1.45}
+.edition-battle-note {margin:4px 0;color:var(--muted,#b4b9b4);font-size:.8rem}
+.edition-chip {font-size:.75rem;padding:3px 7px;border:1px solid currentColor;border-radius:4px}

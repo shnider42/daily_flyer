@@ -143,7 +143,7 @@ function placeSmoke(pos){if(state.legal[selected]?.smoke?.some(p=>p[0]===pos[0]&
 function chance(threshold){return Math.max(0,Math.min(100,Math.round((7-threshold)/6*100)));}
 function moveUnit(move){if(!move.threats||confirm(state.signals_version?'Possible firing lane: a currently spotted enemy could reach this hex. We do NOT know whether it is on overwatch. Unmarked hexes may still hide threats. Move?':`${move.threats} enemy unit${move.threats===1?' is':'s are'} watching ${state.air_version?'this flight path':'this hex'}. Move and risk reaction fire?`))act({kind:'move',unit:selected,pos:move.pos});}
 function scenarioPreview(){
- const board=scenarios.find(s=>s.id===$('scenarioSelect').value);if(!board)return;
+ const board=operationById($('scenarioSelect').value);if(!board)return;
  $('scenarioBrief').textContent=board.brief;
  const svg=$('scenarioPreview');svg.replaceChildren();svg.setAttribute('viewBox',`0 0 ${board.width*52+36} ${board.height*49+29}`);svg.setAttribute('aria-label',`${board.name}, ${board.width} by ${board.height} hex battlefield`);
  board.map.forEach((row,y)=>row.forEach((type,x)=>{const [cx,cy]=center(x,y);const points=Array.from({length:6},(_,i)=>{const a=(60*i-30)*Math.PI/180;return `${cx+30*Math.cos(a)},${cy+30*Math.sin(a)}`;}).join(' ');svg.append(element('polygon',{points,class:`hex ${type}`}));if(type==='objective')svg.append(element('text',{x:cx,y:cy+8,'text-anchor':'middle',class:'objective-icon'},'★'));}));
@@ -175,7 +175,7 @@ function render(){
  $('soloButton').hidden=!!state.ai_side;
  $('saveButton').hidden=!state.ai_side;
  const phase=state.winner?'Finished':state.deployment?.phase==='planning'?'Pre-battle setup':!state.ready?'Waiting for opponent':state.turn===state.side?'Your turn':'Opponent’s turn';
- const label=`${state.match_name||state.scenario.name} · ${state.coop?'Co-op & teams':state.ai_side?'Solo':'Two player'} · ${names[state.side]} · Round ${state.round} · ${phase}`;
+ const label=`${state.match_name||state.scenario.name}${state.ruleset==='dsl'?' · '+battleEdition()+' DSL':''} · ${state.coop?'Co-op & teams':state.ai_side?'Solo':'Two player'} · ${names[state.side]} · Round ${state.round} · ${phase}`;
  if(session.label!==label){session.label=label;savedSessions=savedSessions.map(s=>s.code===session.code?session:s);persistSessions();}
  $('computerReview').hidden=!state.computer_orders?.length;
  $('computerOrders').replaceChildren(...(state.computer_orders||[]).map(text=>{const li=document.createElement('li');li.textContent=text;return li;}));
@@ -367,7 +367,7 @@ $('declineRematch').onclick=()=>rematchRequest({operation:'decline'});
 function openSolo(){ $('soloRuleset').value=$('rulesetSelect').value;const chosen=lobbyMode?$('scenarioSelect').value:(state?.scenario?.id||$('scenarioSelect').value);window.ww2OperationBrowser?.prepare('soloScenario',chosen);$('soloScenario').value=chosen;$('soloReplace').textContent=session?'This starts a separate solo battle. Your current battle stays available under Battles / load code.':'Choose a battlefield and start playing immediately.';$('soloDialog').showModal(); }
 $('createSolo').onclick=openSolo;$('soloButton').onclick=openSolo;$('closeSolo').onclick=()=>$('soloDialog').close();
 $('startSolo').onclick=()=>{const body={opponent:'computer',side:$('soloSide').value,scenario:$('soloScenario').value,ruleset:$('soloRuleset').value};$('soloDialog').close();run(async()=>{remember(await api('/api/match',body));});};
-api('/api/scenarios').then(data=>{scenarios=data.scenarios;scenarioPreview();}).catch(()=>{notify('Map preview unavailable. You can still choose a battlefield and try to create a match.');});
+api('/api/scenarios').then(data=>{scenarios=data.scenarios;currentScenarios=data.current_scenarios||[];scenarioPreview();}).catch(()=>{notify('Map preview unavailable. You can still choose a battlefield and try to create a match.');});
 const invited=new URLSearchParams(location.search).get('join');
 if(invited){$('code').value=invited.toUpperCase();$('entryStatus').textContent=`Invitation to battle ${invited.toUpperCase()}. Press Join below to join or resume your seat. Other battles stay separate.`;$('joinForm').classList.add('invited-battle');}
 session=null;

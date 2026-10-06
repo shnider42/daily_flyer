@@ -10,7 +10,7 @@ from .rulesets import profile, dsl, base_ap, bank_limit, turn_limit, road
 from .effects import record_effect
 from . import combined, naval, transport, campaigns, air, weapons, buildings, operations, fieldworks, linked_front, signals, airborne, domains, fubar, logistics, new_fronts, deployment
 from .visibility import fog, active, visible_ids, unit_visible_ids, sees_hex, update_intel, record_reports
-from . import fire_control
+from . import fire_control, editions
 
 WIDTH, HEIGHT = 7, 9
 OBJECTIVE = [3, 4]
@@ -84,14 +84,15 @@ def initial(scenario='village', ruleset='classic'):
     if board.get('dsl_only') and ruleset != 'dsl':
         raise ValueError(f"{board['name']} requires the DSL ruleset.")
     if board.get('naval'):
-        return weapons.initialize(naval.initial(board,rules))
+        return weapons.initialize(editions.initialize(naval.initial(board,rules)))
     if board.get('air'):
-        return weapons.initialize(air.initial(board,rules))
+        return weapons.initialize(editions.initialize(air.initial(board,rules)))
     units = []
+    formation_platoons = board.get('roster_platoons', board.get('platoons'))
     for side, row in [("us", board['height']-1), ("de", 0)]:
         formation = []
-        if board.get('platoons'):
-            for platoon in board['platoons']:
+        if formation_platoons:
+            for platoon in formation_platoons:
                 for number, (kind, offset) in enumerate([('squad',-2),('leader',-1),('mg',0),('squad',1),('squad',2)],1):
                     formation.append((kind, platoon['center']+offset, platoon['id'], number))
             row = board['height']-2 if side == 'us' else 1
@@ -120,8 +121,11 @@ def initial(scenario='village', ruleset='classic'):
     if board.get('campaign'):
         state['factions']=board['factions'].copy()
         state['log']=[f"{board['name']} · {state['factions']['us']} move first. Hold {board['objective_name']} for two consecutive turns; defenders win after round {board['rounds']}."]
+    editions.initialize(state)
     fubar.initialize(state)
     domains.initialize(state)
+    if editions.current(state):
+        update_intel(state)
     if board.get('combined_arms') or board.get('campaign'):
         state.update(dsl_expansion=1,fog_of_war=True)
         update_intel(state)
@@ -236,7 +240,8 @@ def options(state, unit):
         if unit['ap']>=2 and not unit.get('arrival_round') and not unit.get('airlift_reserve'):
             extras['drops']=[[x,y] for y in range(2,board['height']-2) for x in range(board['width'])
                              if terrain(x,y,state) in {'field','road'} and (x,y) not in occupied
-                             and sees_hex(state,unit['side'],[x,y])]
+                             and (signals.group_sees(state,unit['side'],signals.group(unit),[x,y])
+                                  if editions.current(state) and signals.enabled(state) else sees_hex(state,unit['side'],[x,y]))]
         return dict(moves=[],targets=[],rally=False,**extras)
     if not unit["pinned"]:
         for y in range(max(0,unit['pos'][1]-1),min(board['height'],unit['pos'][1]+2)):

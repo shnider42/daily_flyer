@@ -1,5 +1,13 @@
 # DSL — WWII tactical game
 
+## Legacy and Current
+
+The DSL map selectors offer **Legacy** (all original maps and rules) and
+**Current** (24 separate counterparts with shared ground rules and explicit
+naval/air exceptions). Existing battles keep their saved edition, force and
+co-op assignments. See [Legacy and Current DSL](ww2-editions.md) for the common
+policy, per-map backports and compatibility checks.
+
 ## Recon fire direction
 
 Vire Crossroads and Belfry Valley add same-platoon recon spotting, aimed

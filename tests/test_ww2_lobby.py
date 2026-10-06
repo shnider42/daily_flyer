@@ -75,8 +75,9 @@ class LobbyTests(unittest.TestCase):
         self.assertEqual({g['code'] for g in games}, {named['code'], old['code']})
         self.assertTrue(all(g['your_side'] is None for g in games))
         self.assertIn(old['code'][-4:], next(g['name'] for g in games if g['code']==old['code']))
-        allowed = {'code','name','updated','scenario','ruleset','round','turn','winner','ready','phase','opponent','allies','host_name','guest_name','full','open_side','your_side'}
+        allowed = {'code','name','updated','scenario','edition','ruleset','round','turn','winner','ready','phase','opponent','allies','host_name','guest_name','full','open_side','your_side'}
         self.assertTrue(all(set(g)==allowed for g in games))
+        self.assertTrue(all(g['edition']=='legacy' for g in games))
         self.assertEqual(self.games(chris, '?mine=1')[0]['code'], named['code'])
         self.assertEqual(self.games(query='?q=chris')[0]['code'], named['code'])
         self.assertEqual(self.client.get('/api/match/'+named['code']).status_code, 403)

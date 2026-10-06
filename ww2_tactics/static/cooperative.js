@@ -73,7 +73,7 @@
   const c=state.coop,p=me();
   if(difficultyKey!==state.code+':'+c.default_difficulty){difficultyKey=state.code+':'+c.default_difficulty;$('coopAllDifficulty').value=c.default_difficulty;}
   $('coopRoomTitle').textContent=state.match_name||'Command room';
-  $('coopRoomMap').textContent=`${state.scenario.name} · ${c.control_size==='platoons'?'Platoon control':'Squad / unit control'} · ${state.code}`;
+  $('coopRoomMap').textContent=`${state.scenario.name} · ${battleEdition()} DSL · ${c.control_size==='platoons'?'Platoon control':'Squad / unit control'} · ${state.code}`;
   $('coopInvite').value=invitation();
   const key=`${state.code}:${c.me}:${p.group}:${p.side}`;
   if(commandKey!==key){
@@ -142,7 +142,7 @@
   if(!groups.length)$('coopJoinGroup').append(new Option('No groups available',''));
  }
  function join(details,submit){
-  currentJoin={details,submit};$('coopJoinInfo').textContent=`${details.name} · ${details.scenario}`;$('coopJoinError').textContent=details.phase==='lobby'?'':'This battle has started. Only existing players can resume.';
+  currentJoin={details,submit};$('coopJoinInfo').textContent=`${details.name} · ${details.scenario} · ${details.edition==='current'?'Current':'Legacy'} DSL`;$('coopJoinError').textContent=details.phase==='lobby'?'':'This battle has started. Only existing players can resume.';
   $('coopJoinSide').replaceChildren(...['us','de'].map(side=>new Option(details.factions[side],side)));
   const host=details.players.find(p=>p.id===details.host);$('coopJoinSide').value=host?.side||'us';joinChoices();
   for(const d of document.querySelectorAll('dialog[open]'))d.close();joinDialog.showModal();

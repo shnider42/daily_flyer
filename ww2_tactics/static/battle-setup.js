@@ -2,7 +2,7 @@
 'use strict';
 (()=>{
  const assignmentNote=document.createElement('p');assignmentNote.id='armyAssignment';$('battleOptions').append(assignmentNote);
- const labels=id=>scenarios.find(s=>s.id===$(id).value)?.factions||{us:'Americans',de:$(id).value==='midway'?'Japanese':'Germans'};
+ const labels=id=>operationById($(id).value)?.factions||{us:'Americans',de:operationSource(operationById($(id).value))==='midway'?'Japanese':'Germans'};
  function fill(select,armies){const value=select.value||'us';select.replaceChildren(...['us','de'].map(id=>new Option(armies[id],id)));select.value=value;}
  function sync(){
   const solo=labels('soloScenario'),multi=labels('scenarioSelect');

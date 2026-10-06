@@ -46,11 +46,13 @@ def beacon_near(state,side,pos):
     return any(u['side']==side and active(u) and not u['pinned'] and u.get('beacon_active') and distance(u['pos'],pos)<=2 for u in state['units'])
 
 
-def landing_space(state,pos):
+def landing_space(state,pos,troop=None):
     from .engine import terrain
     from .buildings import enterable
-    from .domains import surface
-    return inside(state,pos) and terrain(*pos,state) not in {'mountain','tower', 'church','bunker'} and enterable(state,pos) and not any(active(u) and surface(state,u) and u['pos']==pos for u in state['units'])
+    from . import domains
+    free = (not domains.blocked(state,troop,pos) if troop and domains.ground_stacking(state) else
+            not any(active(u) and domains.surface(state,u) and u['pos']==pos for u in state['units']))
+    return inside(state,pos) and terrain(*pos,state) not in {'mountain','tower', 'church','bunker'} and enterable(state,pos) and free
 
 
 def action(state,commander,order,legal,roll,react):
@@ -77,9 +79,9 @@ def action(state,commander,order,legal,roll,react):
         pos=step(aim,direction,scatter);report.update(scatter=scatter,direction=direction if scatter else None)
         if not inside(state,pos):
             pos=None;reason='Scattered outside the battlefield; squad lost without establishing sight.'
-        elif not landing_space(state,pos):
+        elif not landing_space(state,pos,troop):
             adjacent=[step(pos,(direction+i-1)%6+1) for i in range(6)]
-            pos=next((p for p in adjacent if landing_space(state,p)),None)
+            pos=next((p for p in adjacent if landing_space(state,p,troop)),None)
             report['diverted']=True
             if pos is None:reason='No safe landing space; squad lost without establishing sight.'
         # Always roll approach risk after a non-1 landing roll: hidden gun count

@@ -28,7 +28,7 @@ def options(state, carrier):
                                  threats=preview_threats(state, troop, [x, y], seen))
                             for y in range(max(0, carrier['pos'][1]-1), min(board['height'], carrier['pos'][1]+2))
                             for x in range(max(0, carrier['pos'][0]-1), min(board['width'], carrier['pos'][0]+2))
-                            if distance(carrier['pos'], [x, y]) == 1 and fieldworks.movement(troop, terrain(x, y, state))[0]
+                            if (distance(carrier['pos'], [x, y]) == 1 or state.get('edition')=='current' and [x,y]==carrier['pos']) and fieldworks.movement(troop, terrain(x, y, state))[0]
                             and buildings.enterable(state, [x, y], carrier['side'])
                             and (x,y) not in occupied]
     return result

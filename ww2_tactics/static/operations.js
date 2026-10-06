@@ -33,6 +33,7 @@
  manual.after(direction);
  window.renderOperations=(u,legal,svg)=>{
   direction.hidden=!state.fire_control_version;
+  direction.querySelector('h3').textContent=state.edition==='current'?'Current DSL · platoon fire direction':'Platoon fire direction · Vire Crossroads & Belfry Valley';
   manual.hidden=!state.tactics_version;
   toggle.hidden=!state.tactics_version;
   svg.classList.remove('support-picking');

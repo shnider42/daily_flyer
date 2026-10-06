@@ -31,7 +31,7 @@ const camera=p=>p.locator('#mapWrap').evaluate(n=>({rect:n.getBoundingClientRect
    await p.waitForFunction(()=>!document.querySelector('#fubarLayers').hidden);
    await p.evaluate(id=>focusMapUnit(state.units.find(u=>u.id===id)),plane.id);
    const rect=await p.locator('#fubarLayers').boundingBox();assert.ok(rect.x>=0&&rect.y>=0&&rect.x+rect.width<=(touch?390:1280));
-   assert.deepEqual(await p.locator('#battleNavigation button').allTextContents(),['Home','View']);
+   assert.deepEqual(await p.locator('#battleNavigation button').allTextContents(),['Home','View','Team orders']);
    const cam=await camera(p),rev=await p.evaluate(()=>state.revision);
    for(const layer of ['air','surface','both']){
     await p.locator(`#fubarLayers [data-layer="${layer}"]`).click();

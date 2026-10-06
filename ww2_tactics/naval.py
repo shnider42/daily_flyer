@@ -76,7 +76,7 @@ def options(state, unit):
     from .visibility import unit_visible_ids
     board=state['battlefield'];seen=unit_visible_ids(state,unit) if domains.joint(state) else visible_ids(state,unit['side'])
     living=[u for u in state['units'] if active(u)]
-    occupied={tuple(u['pos']) for u in living if u['id'] in seen and domains.blocks(state,unit,u)}
+    occupied=domains.blocked_hexes(state,unit,seen)
     if unit['ap']>=1:
         for y in range(max(0,unit['pos'][1]-1),min(board['height'],unit['pos'][1]+2)):
             for x in range(max(0,unit['pos'][0]-1),min(board['width'],unit['pos'][0]+2)):
@@ -132,7 +132,7 @@ def unit_order(state, unit, action, legal, roll, before=None):
         from .buildings import enterable
         if not enterable(state, action['pos']):
             raise ValueError('That building has collapsed. Choose another route.')
-        if domains.joint(state) and any(active(u) and domains.blocks(state,unit,u) and u['pos']==action['pos'] for u in state['units']):
+        if domains.layered(state) and domains.blocked(state,unit,action['pos']):
             raise ValueError('Movement blocked by a contact. Scout or choose another approach.')
         cost=next(m['cost'] for m in legal['moves'] if m['pos']==action['pos'])
         unit['pos']=list(action['pos']);unit['ap']-=cost
