@@ -20,7 +20,8 @@ def main():
     report=json.loads(Path('hllv_tracker/reviews/2026-10-07.json').read_text())
     assert report['refined_claims']==21
     assert report['source_references']==sum(len(i['sources']) for i in data['issues'])
-    assert data['page_updated_at']==report['page_updated_at']
+    # Later UI publications retain the original evidence review time.
+    assert data['page_updated_at']>=report['page_updated_at']
     issues={i['id']:i for i in data['issues']}
     for id_ in ['HLLV-058','HLLV-063']: assert issues[id_]['status_key']=='shipped'
     for id_ in ['HLLV-033','HLLV-059','HLLV-060','HLLV-061','HLLV-062','HLLV-064','HLLV-065','HLLV-066']:
