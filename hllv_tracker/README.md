@@ -2,7 +2,7 @@
 
 A public evidence ledger for Hell Let Loose: Vietnam issues and community-server incidents.
 
-The current tracker contains 66 issue dossiers, 136 issue-linked source records and 33 distinct source URLs (reviewed 2026-10-05). It separates support reports, official acknowledgement, reproduction, released changes, post-fix monitoring, and root-cause certainty.
+The current tracker contains 75 issue dossiers, 157 issue-linked source records and 34 distinct source URLs (reviewed 2026-10-07). It separates support reports, official acknowledgement, reproduction, released changes, post-fix monitoring, and root-cause certainty.
 
 ## Core rule
 
@@ -39,3 +39,7 @@ Then open `/hllv_tracker/`.
 The existing Render static site is `hllv-bug-track`, service `srv-dac8c36k1f9s73dfq2cg`, in the approved My Workspace. It auto-deploys `feature/hllv-bug-evidence-tracker` from `hllv_tracker` with no build step. Do not create another service or change sibling Daily Flyer deployments.
 
 The site reads the committed `data/issues.json`; a reload or deployment does not research new reports. The October 5 maintenance workflow is a guarded one-time migration, not a schedule or an unattended evidence classifier. Original issue dates, player observations and uncertainty are retained. `generated_at` identifies the snapshot review; `last_updated` identifies the most recent recorded issue evidence.
+
+## Page-wide Last updated
+
+The global header reads the saved UTC `page_updated_at` from `data/issues.json` and displays it in America/New_York time with its timezone. It changes only when the published tracker is deliberately updated, never on a visitor reload. `generated_at` remains the evidence-review date; issue and source dates retain their separate meanings. Missing/invalid timestamps display a date-only fallback or Not available, never the current time. The October 7 refresh is a one-time reviewed update, not a scheduler.

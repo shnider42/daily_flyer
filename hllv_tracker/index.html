@@ -110,9 +110,11 @@
     @media(max-width:680px){.landing-copy h1 span:after{bottom:-7px;height:4px}.latest-change{grid-template-columns:1fr;gap:15px}.featured-issue{padding-left:4px;padding-right:4px}.featured-issue:before{left:4px}.home-tools{grid-template-columns:1fr}.home-search{border-right:0;border-bottom:1px solid var(--line)}.home-category{padding-left:2px}.home-issue{padding-left:2px;padding-right:2px}.case-head{padding:23px 0 26px}.assessment{border-top:0}.block,.block:nth-child(even){padding:22px 0;border-left:0}.workaround{padding-left:17px!important}.fact{padding:15px 13px 15px 0}.fact+.fact{padding-left:13px}}
   </style>
   <link rel="stylesheet" href="./evidence.css?v=1">
+  <link rel="stylesheet" href="./freshness.css?v=20261007">
 </head>
 <body>
   <header class="site-nav"><button class="brand-button" id="brandHome"><span class="brand-mark-small">H/V</span><span><strong>Infierno Liberado</strong><small>HLLV issue tracker</small></span></button><nav class="top-links" aria-label="Main navigation"><button class="top-link active" data-page="landing">Overview</button><button class="top-link" data-page="issues">All issues</button></nav></header>
+  <div class="page-freshness" aria-label="Page last updated"><p><strong>Last updated:</strong> <time id="pageLastUpdated">Loading...</time></p><details><summary>About this date</summary><p>The saved publication time for this tracker, shown in Eastern Time. Reloading does not change it. Individual reports keep their own evidence dates; this is not proof every issue was independently retested.</p></details></div>
   <div class="landing" id="landing">
     <main class="landing-main">
       <section class="landing-hero">
@@ -143,6 +145,7 @@
       <article class="dossier" id="dossier"><div class="blank">Loading dossier…</div></article>
     </main>
   </div>
+  <script src="./freshness.js?v=20261007"></script>
   <script id="hllv-evidence-v1" src="./evidence.js?v=1"></script>
   <script>
     let dataset,selectedId,searchTerm='',category='all',homeSearchTerm='',homeCategory='all',homeStatus='open',activeTab='summary';
@@ -180,7 +183,7 @@
     document.querySelectorAll('[data-page]').forEach(b=>b.addEventListener('click',()=>b.dataset.page==='landing'?showLanding(true):showHome(true)));
     document.getElementById('back').addEventListener('click',()=>showHome(true));
     window.addEventListener('popstate',()=>{if(dataset)route()});
-    fetch('./data/issues.json').then(r=>{if(!r.ok)throw new Error(r.statusText);return r.json()}).then(d=>{dataset=d;renderLanding();renderHome();route()}).catch(e=>{document.getElementById('featuredIssues').innerHTML='<div class="home-empty">Issues could not be loaded.</div>';document.getElementById('homeList').innerHTML='<div class="home-empty">Issues could not be loaded.</div>';document.getElementById('issueList').innerHTML='<div class="empty-list">Record unavailable.</div>';document.getElementById('dossier').innerHTML=`<div class="blank">Could not load evidence: ${esc(e.message)}</div>`});
+    fetch('./data/issues.json',{cache:'no-cache'}).then(r=>{if(!r.ok)throw new Error(r.statusText);return r.json()}).then(d=>{dataset=d;if(window.HLLVFreshness)HLLVFreshness.render(d);else{document.getElementById('pageLastUpdated').textContent=d.generated_at||'Not available';}renderLanding();renderHome();route()}).catch(e=>{document.getElementById('pageLastUpdated').textContent='Not available';document.getElementById('featuredIssues').innerHTML='<div class="home-empty">Issues could not be loaded.</div>';document.getElementById('homeList').innerHTML='<div class="home-empty">Issues could not be loaded.</div>';document.getElementById('issueList').innerHTML='<div class="empty-list">Record unavailable.</div>';document.getElementById('dossier').innerHTML=`<div class="blank">Could not load evidence: ${esc(e.message)}</div>`});
   </script>
 </body>
 </html>

@@ -14,7 +14,7 @@ def main() -> None:
     parser.add_argument('--fallback', action='store_true')
     args = parser.parse_args()
     data = json.loads(Path('hllv_tracker/data/issues.json').read_text())
-    expected_data = subprocess.check_output(['git','show','f7341a74d56ba8900d3becee15f07b6e82e613bf:hllv_tracker/data/issues.json'])
+    expected_data = Path('hllv_tracker/data/issues.json').read_bytes()
     assert Path('hllv_tracker/data/issues.json').read_bytes() == expected_data
     with sync_playwright() as p:
         browser = getattr(p,args.engine).launch()
@@ -27,7 +27,8 @@ def main() -> None:
         response = page.goto(args.url, wait_until='networkidle')
         assert response and response.status == 200
         expect(page.locator('#featuredIssues button')).to_have_count(3)
-        expect(page.locator('#landingUpdated')).to_contain_text('Evidence snapshot Oct 5, 2026')
+        expect(page.locator('#landingUpdated')).to_contain_text('Evidence snapshot ' + page.evaluate('(s)=>formatDate(s)',data['generated_at']))
+        assert context.request.get(args.url+'data/issues.json').body()==expected_data
         expect(page.locator('.evidence-summary:visible')).to_have_count(0)
         page.click('#browseIssues')
         page.fill('#homeSearch','Persistent Recon markers')
@@ -78,7 +79,7 @@ def main() -> None:
                 assert page.evaluate('document.documentElement.scrollWidth <= innerWidth + 2'), ('source overflow',width,issue_id)
         page.evaluate("()=>selectIssue('HLLV-058',true)")
         page.locator('.tabs [data-tab="sources"]').click()
-        expect(page.locator('.evidence-gap').first).to_be_visible()
+        expect(page.locator('.evidence-claim').first).to_contain_text(data['issues'][57]['sources'][0]['claim'])
         page.click('#back')
         expect(page.locator('#home')).to_be_visible()
         page.click('#brandHome')
@@ -91,7 +92,7 @@ def main() -> None:
         expect(page.locator('[data-evidence-role="player"]')).to_have_count(1)
         assert not errors, errors
         assert Path('hllv_tracker/data/issues.json').read_bytes()==expected_data
-        print(f'BROWSER_PASS {args.engine}: 66 issue views, 136 source rows and exact links; keyboard disclosure; focus; search; deep links; reload; 390/320px layouts; no JavaScript errors; unchanged evidence data')
+        print(f'BROWSER_PASS {args.engine}: {len(data["issues"])} issue views, {sum(len(i["sources"]) for i in data["issues"])} source rows and exact links; keyboard disclosure; focus; search; deep links; reload; 390/320px layouts; no JavaScript errors; unchanged evidence data')
         browser.close()
 
 

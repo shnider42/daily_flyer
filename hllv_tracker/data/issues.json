@@ -1,10 +1,10 @@
 {
-  "generated_at": "2026-10-05",
+  "generated_at": "2026-10-07",
   "latest_change": {
-    "date": "2026-10-05",
-    "label": "October 5 review · 1.6 still upcoming",
-    "url": "https://www.hellletloose.com/blog/community-update-6",
-    "summary": "Latest verified release: Hotfix 1.5.2. Patch 1.6 is expected in the week of October 5; no release confirmation was found. Server, voice and visual-quality evidence reviewed."
+    "date": "2026-10-07",
+    "label": "October 7 review · Patch 1.6 released",
+    "url": "https://www.hellletloose.com/blog/hllv-patch-1-6",
+    "summary": "Patch 1.6 is live. Browser filters and Vote Kick changes are now release-documented. Added scoped fixes; voice volume, tutorial completion and Frame Generation closure remain unconfirmed."
   },
   "method": "Public evidence only. Official acknowledgement, reproduction, a shipped change, and post-fix verification are recorded separately.",
   "issues": [
@@ -80,7 +80,12 @@
           "date": "2026-08-27",
           "title": "Community Update #2",
           "url": "https://www.hellletloose.com/blog/community-update-2",
-          "claim": "Acknowledged; improvements prepared; further investigation ongoing"
+          "claim": "Acknowledged; improvements prepared; further investigation ongoing",
+          "link_check": {
+            "date": "2026-10-07",
+            "http_status": 200
+          },
+          "link_checked_at": "2026-10-07"
         },
         {
           "type": "patch notes",
@@ -88,7 +93,12 @@
           "date": "2026-08-28",
           "title": "Patch 1.3",
           "url": "https://www.hellletloose.com/blog/hllv-patch-1-3",
-          "claim": "Patch containing the planned improvements shipped"
+          "claim": "Patch containing the planned improvements shipped",
+          "link_check": {
+            "date": "2026-10-07",
+            "http_status": 200
+          },
+          "link_checked_at": "2026-10-07"
         },
         {
           "type": "developer AMA",
@@ -96,7 +106,11 @@
           "date": "2026-08-28",
           "title": "Developer AMA #1",
           "url": "https://www.reddit.com/r/HellLetLooseVietnam/comments/1vxeovn/developer_ama_1_hell_let_loose_vietnam_reddit/",
-          "claim": "Possible server-side degradation discussed; monitoring continues"
+          "claim": "Possible server-side degradation discussed; monitoring continues",
+          "link_check": {
+            "date": "2026-10-07",
+            "http_status": 403
+          }
         },
         {
           "type": "patch notes",
@@ -104,7 +118,12 @@
           "date": "2026-09-02",
           "title": "Patch 1.4",
           "url": "https://www.hellletloose.com/blog/hllv-patch-1-4",
-          "claim": "Fix for one identified persistent-marker cause shipped"
+          "claim": "Fix for one identified persistent-marker cause shipped",
+          "link_check": {
+            "date": "2026-10-07",
+            "http_status": 200
+          },
+          "link_checked_at": "2026-10-07"
         },
         {
           "type": "official update",
@@ -112,7 +131,12 @@
           "date": "2026-09-03",
           "title": "Community Feedback #3",
           "url": "https://www.hellletloose.com/blog/community-update-3",
-          "claim": "Post-fix monitoring continues"
+          "claim": "Post-fix monitoring continues",
+          "link_check": {
+            "date": "2026-10-07",
+            "http_status": 200
+          },
+          "link_checked_at": "2026-10-07"
         },
         {
           "type": "official update",
@@ -122,7 +146,11 @@
           "url": "https://www.hellletloose.com/blog/community-update-4",
           "claim": "Reports decreased after the fix; monitoring continues.",
           "original_url": "https://www.hellletloose.com/blog/community-feedback-4",
-          "link_checked_at": "2026-10-05"
+          "link_checked_at": "2026-10-07",
+          "link_check": {
+            "date": "2026-10-07",
+            "http_status": 200
+          }
         }
       ]
     },
@@ -196,7 +224,12 @@
           "date": "2026-08-20",
           "title": "Community Update #1",
           "url": "https://www.hellletloose.com/blog/community-update-1",
-          "claim": "VOIP issue publicly elevated and under investigation"
+          "claim": "VOIP issue publicly elevated and under investigation",
+          "link_check": {
+            "date": "2026-10-07",
+            "http_status": 200
+          },
+          "link_checked_at": "2026-10-07"
         },
         {
           "type": "official update",
@@ -204,7 +237,12 @@
           "date": "2026-08-27",
           "title": "Community Update #2",
           "url": "https://www.hellletloose.com/blog/community-update-2",
-          "claim": "Candidate fix identified and undergoing larger-scale testing"
+          "claim": "Candidate fix identified and undergoing larger-scale testing",
+          "link_check": {
+            "date": "2026-10-07",
+            "http_status": 200
+          },
+          "link_checked_at": "2026-10-07"
         },
         {
           "type": "patch notes",
@@ -212,7 +250,12 @@
           "date": "2026-09-02",
           "title": "Patch 1.4",
           "url": "https://www.hellletloose.com/blog/hllv-patch-1-4",
-          "claim": "Main robotic Proximity Chat fix shipped"
+          "claim": "Main robotic Proximity Chat fix shipped",
+          "link_check": {
+            "date": "2026-10-07",
+            "http_status": 200
+          },
+          "link_checked_at": "2026-10-07"
         },
         {
           "type": "official update",
@@ -220,7 +263,12 @@
           "date": "2026-09-03",
           "title": "Community Feedback #3",
           "url": "https://www.hellletloose.com/blog/community-update-3",
-          "claim": "Main issue fixed; interruption-related edge cases remain"
+          "claim": "Main issue fixed; interruption-related edge cases remain",
+          "link_check": {
+            "date": "2026-10-07",
+            "http_status": 200
+          },
+          "link_checked_at": "2026-10-07"
         },
         {
           "type": "patch notes",
@@ -228,7 +276,12 @@
           "date": "2026-09-08",
           "title": "Hotfix 1.4.2",
           "url": "https://www.hellletloose.com/blog/hllv-hotfix-1-4-2",
-          "claim": "Interruption-related repetition fixed."
+          "claim": "Interruption-related repetition fixed.",
+          "link_check": {
+            "date": "2026-10-07",
+            "http_status": 200
+          },
+          "link_checked_at": "2026-10-07"
         }
       ]
     },
@@ -239,11 +292,11 @@
       "kind": "issue family",
       "status_key": "monitoring",
       "status_label": "Improvements released · monitoring",
-      "bottom_line": "Hotfix 1.5.2 shipped additional crash fixes. October 1 developer data showed an early reduction; longer monitoring continues across platforms.",
+      "bottom_line": "Patch 1.6 adds VFX work and a tank-driver rotation crash correction; overall crash resolution is not independently verified.",
       "official_short": "Multiple causes",
-      "fix_short": "Hotfix 1.5.2 + earlier fixes",
+      "fix_short": "Patch 1.6 + earlier fixes",
       "cause_short": "Blood/decal load + others",
-      "last_updated": "2026-10-01",
+      "last_updated": "2026-10-07",
       "scope": [
         "PC",
         "PS5",
@@ -252,19 +305,21 @@
         "multiple hardware configurations"
       ],
       "symptom": "Clients can crash for several distinct reasons, including a documented failure associated with large quantities of blood and decal effects.",
-      "official_position": "The October 1 update reports substantially fewer crashes in an initial monitoring period, with no immediately obvious AMD-specific pattern in that limited data. The developers explicitly continue investigating remaining causes; this is not proof that every crash is fixed.",
+      "official_position": "The new release also reduces memory retained when restarting tutorials. These client-side changes do not establish a common cause for every crash or server outage.",
       "workaround": "PC: finish shader caching before continuing; reset Video Settings after updating.",
       "known": [
         "Several individual stability problems have been identified.",
         "One crash cause is associated with large quantities of blood and decal effects.",
         "Patch 1.4 considerably reduced crashes from that cause in internal testing.",
         "Team17 says that documented cause was not AMD-specific.",
-        "1.5.2 adds memory-corruption and flare fixes, reduces VRAM use, and introduces FSR 4.1 for RX 7000+."
+        "1.5.2 adds memory-corruption and flare fixes, reduces VRAM use, and introduces FSR 4.1 for RX 7000+.",
+        "October 7 release-note review: Records a tank-driver rotation crash correction, tutorial memory cleanup and broader VFX stability work."
       ],
       "unknown": [
         "Remaining crash causes are not fully enumerated.",
         "A fix for one crash does not establish the cause of another report.",
-        "Independent post-hotfix verification is not recorded."
+        "Independent post-hotfix verification is not recorded.",
+        "Independent gameplay verification of the Patch 1.6 outcome is not recorded."
       ],
       "timeline": [
         {
@@ -311,6 +366,11 @@
           "date": "2026-10-01",
           "event": "Community Feedback #6",
           "detail": "Early results remain provisional."
+        },
+        {
+          "date": "2026-10-07",
+          "event": "Patch 1.6 released / evidence review",
+          "detail": "Records a tank-driver rotation crash correction, tutorial memory cleanup and broader VFX stability work."
         }
       ],
       "sources": [
@@ -320,7 +380,12 @@
           "date": "2026-08-20",
           "title": "Community Update #1",
           "url": "https://www.hellletloose.com/blog/community-update-1",
-          "claim": "AMD-associated stability problems acknowledged"
+          "claim": "AMD-associated stability problems acknowledged",
+          "link_check": {
+            "date": "2026-10-07",
+            "http_status": 200
+          },
+          "link_checked_at": "2026-10-07"
         },
         {
           "type": "official update",
@@ -328,7 +393,12 @@
           "date": "2026-08-27",
           "title": "Community Update #2",
           "url": "https://www.hellletloose.com/blog/community-update-2",
-          "claim": "Multiple causes, direct AMD collaboration, and gore-disabled mitigation documented"
+          "claim": "Multiple causes, direct AMD collaboration, and gore-disabled mitigation documented",
+          "link_check": {
+            "date": "2026-10-07",
+            "http_status": 200
+          },
+          "link_checked_at": "2026-10-07"
         },
         {
           "type": "patch notes",
@@ -336,7 +406,12 @@
           "date": "2026-08-28",
           "title": "Patch 1.3",
           "url": "https://www.hellletloose.com/blog/hllv-patch-1-3",
-          "claim": "Additional client and server stability work shipped"
+          "claim": "Additional client and server stability work shipped",
+          "link_check": {
+            "date": "2026-10-07",
+            "http_status": 200
+          },
+          "link_checked_at": "2026-10-07"
         },
         {
           "type": "patch notes",
@@ -344,7 +419,12 @@
           "date": "2026-09-02",
           "title": "Patch 1.4",
           "url": "https://www.hellletloose.com/blog/hllv-patch-1-4",
-          "claim": "Blood-and-decal-associated crash fix shipped"
+          "claim": "Blood-and-decal-associated crash fix shipped",
+          "link_check": {
+            "date": "2026-10-07",
+            "http_status": 200
+          },
+          "link_checked_at": "2026-10-07"
         },
         {
           "type": "official update",
@@ -352,7 +432,12 @@
           "date": "2026-09-03",
           "title": "Community Feedback #3",
           "url": "https://www.hellletloose.com/blog/community-update-3",
-          "claim": "Considerable crash reduction; documented cause not AMD-specific"
+          "claim": "Considerable crash reduction; documented cause not AMD-specific",
+          "link_check": {
+            "date": "2026-10-07",
+            "http_status": 200
+          },
+          "link_checked_at": "2026-10-07"
         },
         {
           "type": "patch notes",
@@ -360,7 +445,12 @@
           "date": "2026-09-08",
           "title": "Hotfix 1.4.2",
           "url": "https://www.hellletloose.com/blog/hllv-hotfix-1-4-2",
-          "claim": "Three additional stability fixes released."
+          "claim": "Three additional stability fixes released.",
+          "link_check": {
+            "date": "2026-10-07",
+            "http_status": 200
+          },
+          "link_checked_at": "2026-10-07"
         },
         {
           "type": "official update",
@@ -370,7 +460,11 @@
           "url": "https://www.hellletloose.com/blog/community-update-4",
           "claim": "AMD investigation continues; FSR 4.1 target moved to 1.6.",
           "original_url": "https://www.hellletloose.com/blog/community-feedback-4",
-          "link_checked_at": "2026-10-05"
+          "link_checked_at": "2026-10-07",
+          "link_check": {
+            "date": "2026-10-07",
+            "http_status": 200
+          }
         },
         {
           "type": "patch notes",
@@ -378,7 +472,23 @@
           "date": "2026-09-29",
           "title": "Hotfix 1.5.2",
           "url": "https://www.hellletloose.com/blog/hllv-hotfix-1-5-2",
-          "claim": "Stability, memory and PC guidance"
+          "claim": "Documents memory-corruption and flare-related crash fixes, reduced memory/VRAM use, and PC shader-caching guidance.",
+          "claim_history": [
+            {
+              "recorded_claim": "Stability, memory and PC guidance",
+              "superseded_on": "2026-10-07",
+              "reason": "Re-read the publisher text and replace topic-only shorthand with a precise claim."
+            }
+          ],
+          "source_locator": "Stability; Memory Usage Reduction",
+          "source_reviewed_at": "2026-10-07",
+          "source_reviewed_via": "https://steamcommunity.com/app/3079210/allnews/",
+          "source_published_at": "2026-09-29",
+          "link_check": {
+            "date": "2026-10-07",
+            "http_status": 200
+          },
+          "link_checked_at": "2026-10-07"
         },
         {
           "type": "official update",
@@ -386,10 +496,43 @@
           "date": "2026-10-01",
           "title": "Community Feedback #6",
           "url": "https://www.hellletloose.com/blog/community-update-6",
-          "claim": "Stability monitoring"
+          "claim": "Reports an early crash reduction with continued longer-term monitoring; supplies no independent crash-rate measurement.",
+          "claim_history": [
+            {
+              "recorded_claim": "Stability monitoring",
+              "superseded_on": "2026-10-07",
+              "reason": "Re-read the publisher text and replace topic-only shorthand with a precise claim."
+            }
+          ],
+          "source_locator": "Stability & AMD",
+          "source_reviewed_at": "2026-10-07",
+          "source_reviewed_via": "https://steamcommunity.com/app/3079210/allnews/",
+          "source_published_at": "2026-10-01",
+          "link_check": {
+            "date": "2026-10-07",
+            "http_status": 200
+          },
+          "link_checked_at": "2026-10-07"
+        },
+        {
+          "type": "patch notes",
+          "publisher": "Hell Let Loose / Team17",
+          "date": "2026-10-07",
+          "title": "Patch 1.6 | Live Now",
+          "url": "https://www.hellletloose.com/blog/hllv-patch-1-6",
+          "claim": "Records a tank-driver rotation crash correction, tutorial memory cleanup and broader VFX stability work.",
+          "source_locator": "Stability & Performance; VFX & Stability",
+          "source_published_at": "2026-10-07",
+          "source_reviewed_at": "2026-10-07",
+          "source_reviewed_via": "https://steamcommunity.com/app/3079210/allnews/",
+          "link_checked_at": "2026-10-07",
+          "link_check": {
+            "date": "2026-10-07",
+            "http_status": 200
+          }
         }
       ],
-      "last_reviewed": "2026-10-05"
+      "last_reviewed": "2026-10-07"
     },
     {
       "id": "HLLV-004",
@@ -397,12 +540,12 @@
       "category": "map-collision",
       "kind": "report cluster",
       "status_key": "partial",
-      "status_label": "Partial linkage",
-      "bottom_line": "Developers now acknowledge inconsistent penetration through buildings, bamboo and cover. Asset work continues; exact links to older reports remain unproven.",
+      "status_label": "Some map fixes released",
+      "bottom_line": "Patch 1.6 includes further map collision corrections, without identifying closure of every earlier fence or furniture report.",
       "official_short": "Official family acknowledged",
-      "fix_short": "Some fixes shipped",
+      "fix_short": "Map fixes through 1.6",
       "cause_short": "Asset-specific",
-      "last_updated": "2026-09-16",
+      "last_updated": "2026-10-07",
       "scope": [
         "PC",
         "PS5",
@@ -410,17 +553,19 @@
         "map assets"
       ],
       "symptom": "Bullets can be blocked by invisible collision between visible gaps in fences, chairs, tables, and other props.",
-      "official_position": "Community Feedback #4 confirms ongoing environmental penetration work. Update 1.5 also improves specific collision cases, including the NVA truck wreck. These do not close every fence or furniture report.",
+      "official_position": "The aggregate map changelog is not an asset-by-asset link to the original collision reports.",
       "workaround": null,
       "known": [
         "A specific fence-and-furniture report was received by Team17 Support.",
         "Support requested exact map and location information for investigation.",
-        "Patch 1.3 documents a broad set of map fixes that includes extended collision."
+        "Patch 1.3 documents a broad set of map fixes that includes extended collision.",
+        "October 7 release-note review: Records additional collision and misplaced-asset fixes; exact linkage to the older prop reports is not stated."
       ],
       "unknown": [
         "A support response is not proof that developers reproduced the exact report.",
         "It is not known which individual assets were included in the Patch 1.3 collision fixes.",
-        "Different props or maps may represent separate defects."
+        "Different props or maps may represent separate defects.",
+        "Independent gameplay verification of the Patch 1.6 outcome is not recorded."
       ],
       "timeline": [
         {
@@ -447,6 +592,11 @@
           "date": "2026-09-16",
           "event": "Update 1.5 (released September 16)",
           "detail": "Specific collision improvements include the NVA truck wreck; exact linkage to older prop reports is unverified."
+        },
+        {
+          "date": "2026-10-07",
+          "event": "Patch 1.6 released / evidence review",
+          "detail": "Records additional collision and misplaced-asset fixes; exact linkage to the older prop reports is not stated."
         }
       ],
       "sources": [
@@ -456,7 +606,12 @@
           "date": "2026-08-14",
           "title": "Cannot shoot between fence boards or furniture",
           "url": "https://steamcommunity.com/app/3079210/discussions/1/631219091886213685/",
-          "claim": "Specific report received; location details requested"
+          "claim": "Specific report received; location details requested",
+          "link_check": {
+            "date": "2026-10-07",
+            "http_status": 200
+          },
+          "link_checked_at": "2026-10-07"
         },
         {
           "type": "patch notes",
@@ -464,7 +619,12 @@
           "date": "2026-08-28",
           "title": "Patch 1.3",
           "url": "https://www.hellletloose.com/blog/hllv-patch-1-3",
-          "claim": "Extended collision included in a broad map-fix family"
+          "claim": "Extended collision included in a broad map-fix family",
+          "link_check": {
+            "date": "2026-10-07",
+            "http_status": 200
+          },
+          "link_checked_at": "2026-10-07"
         },
         {
           "type": "official update",
@@ -474,7 +634,11 @@
           "url": "https://www.hellletloose.com/blog/community-update-4",
           "claim": "Environmental penetration improvements in development.",
           "original_url": "https://www.hellletloose.com/blog/community-feedback-4",
-          "link_checked_at": "2026-10-05"
+          "link_checked_at": "2026-10-07",
+          "link_check": {
+            "date": "2026-10-07",
+            "http_status": 200
+          }
         },
         {
           "type": "official update",
@@ -482,9 +646,32 @@
           "date": "2026-09-16",
           "title": "Update 1.5 (released September 16)",
           "url": "https://www.hellletloose.com/blog/hllv-update-1-5",
-          "claim": "Specific collision improvements include the NVA truck wreck; exact linkage to older prop reports is unverified."
+          "claim": "Specific collision improvements include the NVA truck wreck; exact linkage to older prop reports is unverified.",
+          "link_check": {
+            "date": "2026-10-07",
+            "http_status": 200
+          },
+          "link_checked_at": "2026-10-07"
+        },
+        {
+          "type": "patch notes",
+          "publisher": "Hell Let Loose / Team17",
+          "date": "2026-10-07",
+          "title": "Patch 1.6 | Live Now",
+          "url": "https://www.hellletloose.com/blog/hllv-patch-1-6",
+          "claim": "Records additional collision and misplaced-asset fixes; exact linkage to the older prop reports is not stated.",
+          "source_locator": "Maps & Environments",
+          "source_published_at": "2026-10-07",
+          "source_reviewed_at": "2026-10-07",
+          "source_reviewed_via": "https://steamcommunity.com/app/3079210/allnews/",
+          "link_checked_at": "2026-10-07",
+          "link_check": {
+            "date": "2026-10-07",
+            "http_status": 200
+          }
         }
-      ]
+      ],
+      "last_reviewed": "2026-10-07"
     },
     {
       "id": "HLLV-005",
@@ -529,7 +716,12 @@
           "date": "2026-08-28",
           "title": "Patch 1.3",
           "url": "https://www.hellletloose.com/blog/hllv-patch-1-3",
-          "claim": "Community-server VIP reset fix shipped"
+          "claim": "Community-server VIP reset fix shipped",
+          "link_check": {
+            "date": "2026-10-07",
+            "http_status": 200
+          },
+          "link_checked_at": "2026-10-07"
         }
       ]
     },
@@ -597,7 +789,12 @@
           "date": "2026-08-27",
           "title": "Community Update #2",
           "url": "https://www.hellletloose.com/blog/community-update-2",
-          "claim": "Console fidelity acknowledged as a long-term improvement area"
+          "claim": "Console fidelity acknowledged as a long-term improvement area",
+          "link_check": {
+            "date": "2026-10-07",
+            "http_status": 200
+          },
+          "link_checked_at": "2026-10-07"
         },
         {
           "type": "patch notes",
@@ -605,7 +802,12 @@
           "date": "2026-08-28",
           "title": "Patch 1.3",
           "url": "https://www.hellletloose.com/blog/hllv-patch-1-3",
-          "claim": "Additional console image-quality changes shipped"
+          "claim": "Additional console image-quality changes shipped",
+          "link_check": {
+            "date": "2026-10-07",
+            "http_status": 200
+          },
+          "link_checked_at": "2026-10-07"
         },
         {
           "type": "patch notes",
@@ -615,7 +817,11 @@
           "url": "https://steamcommunity.com/games/3079210/announcements/detail/684139458559214482",
           "claim": "ADS transition improvements released across platforms.",
           "original_url": "https://steamcommunity.com/app/3079210/allnews",
-          "link_checked_at": "2026-10-05"
+          "link_checked_at": "2026-10-07",
+          "link_check": {
+            "date": "2026-10-07",
+            "http_status": 200
+          }
         },
         {
           "type": "official update",
@@ -623,7 +829,23 @@
           "date": "2026-10-01",
           "title": "Community Feedback #6",
           "url": "https://www.hellletloose.com/blog/community-update-6",
-          "claim": "Console visuals and HDR guidance"
+          "claim": "Describes console resolution/detail-distance testing for Update 2.0 and later, and advises against forcing HDR on the SDR output.",
+          "claim_history": [
+            {
+              "recorded_claim": "Console visuals and HDR guidance",
+              "superseded_on": "2026-10-07",
+              "reason": "Re-read the publisher text and replace topic-only shorthand with a precise claim."
+            }
+          ],
+          "source_locator": "Foliage, LODs & Visual Quality",
+          "source_reviewed_at": "2026-10-07",
+          "source_reviewed_via": "https://steamcommunity.com/app/3079210/allnews/",
+          "source_published_at": "2026-10-01",
+          "link_check": {
+            "date": "2026-10-07",
+            "http_status": 200
+          },
+          "link_checked_at": "2026-10-07"
         }
       ],
       "last_reviewed": "2026-10-05"
@@ -634,29 +856,31 @@
       "category": "controls",
       "kind": "control issue family",
       "status_key": "partial",
-      "status_label": "Multiple fixes shipped",
-      "bottom_line": "Update 1.5 adds mouse-wheel binding and prevents duplicate action assignments. Complete resolution of the broader binding family is unverified.",
+      "status_label": "Specific control fixes released",
+      "bottom_line": "Patch 1.6 corrects helicopter mouse-button collective inputs and inversion handling. Broader binding persistence and keyboard-input conflicts are not declared resolved.",
       "official_short": "Acknowledged",
-      "fix_short": "Further fixes in 1.5",
+      "fix_short": "Control fixes through 1.6",
       "cause_short": "Not public",
-      "last_updated": "2026-09-16",
+      "last_updated": "2026-10-07",
       "scope": [
         "PC",
         "console",
         "helicopter controls"
       ],
       "symptom": "Custom bindings may fail to save, reset after leaving the menu, or produce conflicting assignments.",
-      "official_position": "Team17 Support confirmed similar reports and escalated a helicopter-control example. Developers later said approximately a dozen keybinding and controller fixes were included in Patch 1.3, while warning that some edge cases might remain. Update 1.5 adds mouse-wheel binding and prevents duplicate action assignments; broader persistence issues are not declared fully resolved.",
+      "official_position": "Keep the simultaneous keyboard pitch/collective report HLLV-032 separate from the released mouse-binding correction.",
       "workaround": null,
       "known": [
         "Team17 Support received multiple similar reports.",
         "The broader issue family is acknowledged in an official community update.",
-        "Approximately a dozen control-related fixes were prepared for Patch 1.3."
+        "Approximately a dozen control-related fixes were prepared for Patch 1.3.",
+        "October 7 release-note review: Documents helicopter mouse collective binding and inversion corrections, not blanket closure of keybinding problems."
       ],
       "unknown": [
         "The remaining affected bindings are not listed as one complete set.",
         "A specific player's post-patch report cannot be assumed to have the same cause as the pre-patch cases.",
-        "The underlying persistence or conflict mechanism has not been published."
+        "The underlying persistence or conflict mechanism has not been published.",
+        "Independent gameplay verification of the Patch 1.6 outcome is not recorded."
       ],
       "timeline": [
         {
@@ -683,6 +907,11 @@
           "date": "2026-09-16",
           "event": "Update 1.5 (released September 16)",
           "detail": "Mouse-wheel binding and duplicate-assignment fixes released."
+        },
+        {
+          "date": "2026-10-07",
+          "event": "Patch 1.6 released / evidence review",
+          "detail": "Documents helicopter mouse collective binding and inversion corrections, not blanket closure of keybinding problems."
         }
       ],
       "sources": [
@@ -692,7 +921,12 @@
           "date": "2026-08-20",
           "title": "Key binding failure for pilot control",
           "url": "https://steamcommunity.com/app/3079210/discussions/1/590687230526328326/",
-          "claim": "Similar reports received and escalated"
+          "claim": "Similar reports received and escalated",
+          "link_check": {
+            "date": "2026-10-07",
+            "http_status": 200
+          },
+          "link_checked_at": "2026-10-07"
         },
         {
           "type": "official update",
@@ -700,7 +934,12 @@
           "date": "2026-08-27",
           "title": "Community Update #2",
           "url": "https://www.hellletloose.com/blog/community-update-2",
-          "claim": "Multiple fixes prepared; complete resolution not guaranteed"
+          "claim": "Multiple fixes prepared; complete resolution not guaranteed",
+          "link_check": {
+            "date": "2026-10-07",
+            "http_status": 200
+          },
+          "link_checked_at": "2026-10-07"
         },
         {
           "type": "patch notes",
@@ -708,7 +947,12 @@
           "date": "2026-08-28",
           "title": "Patch 1.3",
           "url": "https://www.hellletloose.com/blog/hllv-patch-1-3",
-          "claim": "Control fixes shipped"
+          "claim": "Control fixes shipped",
+          "link_check": {
+            "date": "2026-10-07",
+            "http_status": 200
+          },
+          "link_checked_at": "2026-10-07"
         },
         {
           "type": "patch notes",
@@ -716,9 +960,32 @@
           "date": "2026-09-16",
           "title": "Update 1.5 (released September 16)",
           "url": "https://www.hellletloose.com/blog/hllv-update-1-5",
-          "claim": "Mouse-wheel binding and duplicate-assignment fixes released."
+          "claim": "Mouse-wheel binding and duplicate-assignment fixes released.",
+          "link_check": {
+            "date": "2026-10-07",
+            "http_status": 200
+          },
+          "link_checked_at": "2026-10-07"
+        },
+        {
+          "type": "patch notes",
+          "publisher": "Hell Let Loose / Team17",
+          "date": "2026-10-07",
+          "title": "Patch 1.6 | Live Now",
+          "url": "https://www.hellletloose.com/blog/hllv-patch-1-6",
+          "claim": "Documents helicopter mouse collective binding and inversion corrections, not blanket closure of keybinding problems.",
+          "source_locator": "Vehicles",
+          "source_published_at": "2026-10-07",
+          "source_reviewed_at": "2026-10-07",
+          "source_reviewed_via": "https://steamcommunity.com/app/3079210/allnews/",
+          "link_checked_at": "2026-10-07",
+          "link_check": {
+            "date": "2026-10-07",
+            "http_status": 200
+          }
         }
-      ]
+      ],
+      "last_reviewed": "2026-10-07"
     },
     {
       "id": "HLLV-008",
@@ -789,7 +1056,12 @@
           "date": "2026-08-18",
           "title": "Server side crashes",
           "url": "https://steamcommunity.com/app/3079210/discussions/1/631219394426598831/",
-          "claim": "Report received; Team17 says work is ongoing"
+          "claim": "Report received; Team17 says work is ongoing",
+          "link_check": {
+            "date": "2026-10-07",
+            "http_status": 200
+          },
+          "link_checked_at": "2026-10-07"
         },
         {
           "type": "official update",
@@ -797,7 +1069,12 @@
           "date": "2026-08-20",
           "title": "Community Update #1",
           "url": "https://www.hellletloose.com/blog/community-update-1",
-          "claim": "Server stability elevated; specific tunnel crash described"
+          "claim": "Server stability elevated; specific tunnel crash described",
+          "link_check": {
+            "date": "2026-10-07",
+            "http_status": 200
+          },
+          "link_checked_at": "2026-10-07"
         },
         {
           "type": "patch notes",
@@ -805,7 +1082,12 @@
           "date": "2026-08-21",
           "title": "Patch 1.2",
           "url": "https://www.hellletloose.com/blog/hllv-patch-1-2",
-          "claim": "Specific tunnel-related server crash fixed"
+          "claim": "Specific tunnel-related server crash fixed",
+          "link_check": {
+            "date": "2026-10-07",
+            "http_status": 200
+          },
+          "link_checked_at": "2026-10-07"
         },
         {
           "type": "patch notes",
@@ -813,7 +1095,12 @@
           "date": "2026-09-29",
           "title": "Hotfix 1.5.2",
           "url": "https://www.hellletloose.com/blog/hllv-hotfix-1-5-2",
-          "claim": "Specific Iris replication fixes shipped for long-session server degradation; unrelated crash and disconnect causes remain separate."
+          "claim": "Specific Iris replication fixes shipped for long-session server degradation; unrelated crash and disconnect causes remain separate.",
+          "link_check": {
+            "date": "2026-10-07",
+            "http_status": 200
+          },
+          "link_checked_at": "2026-10-07"
         },
         {
           "type": "official update",
@@ -821,7 +1108,12 @@
           "date": "2026-10-01",
           "title": "Community Feedback #6",
           "url": "https://www.hellletloose.com/blog/community-update-6",
-          "claim": "Early community-server feedback is encouraging, but developers continue monitoring and do not declare complete resolution."
+          "claim": "Early community-server feedback is encouraging, but developers continue monitoring and do not declare complete resolution.",
+          "link_check": {
+            "date": "2026-10-07",
+            "http_status": 200
+          },
+          "link_checked_at": "2026-10-07"
         }
       ],
       "last_reviewed": "2026-10-05"
@@ -873,7 +1165,12 @@
           "date": "2026-08-20",
           "title": "Community Update #1",
           "url": "https://www.hellletloose.com/blog/community-update-1",
-          "claim": "Crash reproduced and fix QA-confirmed"
+          "claim": "Crash reproduced and fix QA-confirmed",
+          "link_check": {
+            "date": "2026-10-07",
+            "http_status": 200
+          },
+          "link_checked_at": "2026-10-07"
         },
         {
           "type": "patch notes",
@@ -881,7 +1178,12 @@
           "date": "2026-08-21",
           "title": "Patch 1.2",
           "url": "https://www.hellletloose.com/blog/hllv-patch-1-2",
-          "claim": "Tunnel-related server crash fix shipped"
+          "claim": "Tunnel-related server crash fix shipped",
+          "link_check": {
+            "date": "2026-10-07",
+            "http_status": 200
+          },
+          "link_checked_at": "2026-10-07"
         }
       ]
     },
@@ -934,7 +1236,12 @@
           "date": "2026-08-14",
           "title": "White flash / flicker",
           "url": "https://steamcommunity.com/app/3079210/discussions/1/631219091886191710/",
-          "claim": "Multiple reports received and escalated; troubleshooting suggested"
+          "claim": "Multiple reports received and escalated; troubleshooting suggested",
+          "link_check": {
+            "date": "2026-10-07",
+            "http_status": 200
+          },
+          "link_checked_at": "2026-10-07"
         }
       ]
     },
@@ -1003,7 +1310,12 @@
           "date": "2026-08-27",
           "title": "Game freezes when getting shot",
           "url": "https://steamcommunity.com/app/3079210/discussions/1/663863457493431808/",
-          "claim": "Multi-hardware report cluster forwarded for investigation"
+          "claim": "Multi-hardware report cluster forwarded for investigation",
+          "link_check": {
+            "date": "2026-10-07",
+            "http_status": 200
+          },
+          "link_checked_at": "2026-10-07"
         },
         {
           "type": "player report",
@@ -1011,7 +1323,12 @@
           "date": "2026-10-01",
           "title": "suppression causes game to freeze",
           "url": "https://steamcommunity.com/app/3079210/discussions/1/590691034935221629/",
-          "claim": "Player-described symptoms; no confirmed cause."
+          "claim": "Player-described symptoms; no confirmed cause.",
+          "link_check": {
+            "date": "2026-10-07",
+            "http_status": 200
+          },
+          "link_checked_at": "2026-10-07"
         }
       ]
     },
@@ -1056,7 +1373,12 @@
           "date": "2026-08-28",
           "title": "Patch 1.3",
           "url": "https://www.hellletloose.com/blog/hllv-patch-1-3",
-          "claim": "Map Shuffle fix shipped"
+          "claim": "Map Shuffle fix shipped",
+          "link_check": {
+            "date": "2026-10-07",
+            "http_status": 200
+          },
+          "link_checked_at": "2026-10-07"
         }
       ]
     },
@@ -1100,7 +1422,12 @@
           "date": "2026-08-28",
           "title": "Patch 1.3",
           "url": "https://www.hellletloose.com/blog/hllv-patch-1-3",
-          "claim": "Unintended tank-gearing behavior fixed"
+          "claim": "Unintended tank-gearing behavior fixed",
+          "link_check": {
+            "date": "2026-10-07",
+            "http_status": 200
+          },
+          "link_checked_at": "2026-10-07"
         }
       ]
     },
@@ -1151,7 +1478,12 @@
           "date": "2026-08-12",
           "title": "Known Issues, Launch Time & More",
           "url": "https://www.hellletloose.com/blog/5-before-launch",
-          "claim": "Co-pilot control-loss scenario officially listed"
+          "claim": "Co-pilot control-loss scenario officially listed",
+          "link_check": {
+            "date": "2026-10-07",
+            "http_status": 200
+          },
+          "link_checked_at": "2026-10-07"
         },
         {
           "type": "patch notes",
@@ -1159,7 +1491,12 @@
           "date": "2026-08-28",
           "title": "Patch 1.3",
           "url": "https://www.hellletloose.com/blog/hllv-patch-1-3",
-          "claim": "Co-pilot control-loss fix shipped"
+          "claim": "Co-pilot control-loss fix shipped",
+          "link_check": {
+            "date": "2026-10-07",
+            "http_status": 200
+          },
+          "link_checked_at": "2026-10-07"
         }
       ]
     },
@@ -1204,7 +1541,12 @@
           "date": "2026-08-28",
           "title": "Patch 1.3",
           "url": "https://www.hellletloose.com/blog/hllv-patch-1-3",
-          "claim": "M183-to-Mortar interaction fixed"
+          "claim": "M183-to-Mortar interaction fixed",
+          "link_check": {
+            "date": "2026-10-07",
+            "http_status": 200
+          },
+          "link_checked_at": "2026-10-07"
         }
       ]
     },
@@ -1250,7 +1592,12 @@
           "date": "2026-08-28",
           "title": "Patch 1.3",
           "url": "https://www.hellletloose.com/blog/hllv-patch-1-3",
-          "claim": "Distance-visibility defect fixed"
+          "claim": "Distance-visibility defect fixed",
+          "link_check": {
+            "date": "2026-10-07",
+            "http_status": 200
+          },
+          "link_checked_at": "2026-10-07"
         }
       ]
     },
@@ -1301,7 +1648,12 @@
           "date": "2026-08-28",
           "title": "Patch 1.3",
           "url": "https://www.hellletloose.com/blog/hllv-patch-1-3",
-          "claim": "Regression acknowledged; Patch 1.4 fix planned"
+          "claim": "Regression acknowledged; Patch 1.4 fix planned",
+          "link_check": {
+            "date": "2026-10-07",
+            "http_status": 200
+          },
+          "link_checked_at": "2026-10-07"
         },
         {
           "type": "patch notes",
@@ -1309,7 +1661,12 @@
           "date": "2026-09-02",
           "title": "Patch 1.4",
           "url": "https://www.hellletloose.com/blog/hllv-patch-1-4",
-          "claim": "Independent aiming and vehicle inversion controls restored"
+          "claim": "Independent aiming and vehicle inversion controls restored",
+          "link_check": {
+            "date": "2026-10-07",
+            "http_status": 200
+          },
+          "link_checked_at": "2026-10-07"
         }
       ]
     },
@@ -1365,7 +1722,12 @@
           "date": "2026-08-21",
           "title": "Patch 1.2",
           "url": "https://www.hellletloose.com/blog/hllv-patch-1-2",
-          "claim": "Issue targeted for Patch 1.3"
+          "claim": "Issue targeted for Patch 1.3",
+          "link_check": {
+            "date": "2026-10-07",
+            "http_status": 200
+          },
+          "link_checked_at": "2026-10-07"
         },
         {
           "type": "patch notes",
@@ -1373,7 +1735,12 @@
           "date": "2026-08-28",
           "title": "Patch 1.3",
           "url": "https://www.hellletloose.com/blog/hllv-patch-1-3",
-          "claim": "KIA scoreboard access restored"
+          "claim": "KIA scoreboard access restored",
+          "link_check": {
+            "date": "2026-10-07",
+            "http_status": 200
+          },
+          "link_checked_at": "2026-10-07"
         },
         {
           "type": "patch notes",
@@ -1381,7 +1748,12 @@
           "date": "2026-09-16",
           "title": "Update 1.5 (released September 16)",
           "url": "https://www.hellletloose.com/blog/hllv-update-1-5",
-          "claim": "Scoreboard and Statistics access from KIA screen documented."
+          "claim": "Scoreboard and Statistics access from KIA screen documented.",
+          "link_check": {
+            "date": "2026-10-07",
+            "http_status": 200
+          },
+          "link_checked_at": "2026-10-07"
         }
       ]
     },
@@ -1432,7 +1804,12 @@
           "date": "2026-08-21",
           "title": "Patch 1.2",
           "url": "https://www.hellletloose.com/blog/hllv-patch-1-2",
-          "claim": "Username edge case targeted"
+          "claim": "Username edge case targeted",
+          "link_check": {
+            "date": "2026-10-07",
+            "http_status": 200
+          },
+          "link_checked_at": "2026-10-07"
         },
         {
           "type": "patch notes",
@@ -1440,7 +1817,12 @@
           "date": "2026-08-28",
           "title": "Patch 1.3",
           "url": "https://www.hellletloose.com/blog/hllv-patch-1-3",
-          "claim": "Tutorial and Practice Range access fixed"
+          "claim": "Tutorial and Practice Range access fixed",
+          "link_check": {
+            "date": "2026-10-07",
+            "http_status": 200
+          },
+          "link_checked_at": "2026-10-07"
         }
       ]
     },
@@ -1491,7 +1873,12 @@
           "date": "2026-08-21",
           "title": "Patch 1.2",
           "url": "https://www.hellletloose.com/blog/hllv-patch-1-2",
-          "claim": "KIA VOIP interruption targeted"
+          "claim": "KIA VOIP interruption targeted",
+          "link_check": {
+            "date": "2026-10-07",
+            "http_status": 200
+          },
+          "link_checked_at": "2026-10-07"
         },
         {
           "type": "patch notes",
@@ -1499,7 +1886,12 @@
           "date": "2026-08-28",
           "title": "Patch 1.3",
           "url": "https://www.hellletloose.com/blog/hllv-patch-1-3",
-          "claim": "Transition-specific VOIP fix shipped"
+          "claim": "Transition-specific VOIP fix shipped",
+          "link_check": {
+            "date": "2026-10-07",
+            "http_status": 200
+          },
+          "link_checked_at": "2026-10-07"
         }
       ]
     },
@@ -1545,7 +1937,12 @@
           "date": "2026-08-28",
           "title": "Patch 1.3",
           "url": "https://www.hellletloose.com/blog/hllv-patch-1-3",
-          "claim": "PS5 Proximity Chat loss after a kick fixed"
+          "claim": "PS5 Proximity Chat loss after a kick fixed",
+          "link_check": {
+            "date": "2026-10-07",
+            "http_status": 200
+          },
+          "link_checked_at": "2026-10-07"
         }
       ]
     },
@@ -1591,7 +1988,12 @@
           "date": "2026-08-28",
           "title": "Patch 1.3",
           "url": "https://www.hellletloose.com/blog/hllv-patch-1-3",
-          "claim": "Neutral-sector Tunnel destruction fixed"
+          "claim": "Neutral-sector Tunnel destruction fixed",
+          "link_check": {
+            "date": "2026-10-07",
+            "http_status": 200
+          },
+          "link_checked_at": "2026-10-07"
         }
       ]
     },
@@ -1637,7 +2039,12 @@
           "date": "2026-08-28",
           "title": "Patch 1.3",
           "url": "https://www.hellletloose.com/blog/hllv-patch-1-3",
-          "claim": "Bayonet charge water soft lock fixed"
+          "claim": "Bayonet charge water soft lock fixed",
+          "link_check": {
+            "date": "2026-10-07",
+            "http_status": 200
+          },
+          "link_checked_at": "2026-10-07"
         }
       ]
     },
@@ -1683,7 +2090,12 @@
           "date": "2026-08-28",
           "title": "Patch 1.3",
           "url": "https://www.hellletloose.com/blog/hllv-patch-1-3",
-          "claim": "Tunnel-travel soft lock fixed"
+          "claim": "Tunnel-travel soft lock fixed",
+          "link_check": {
+            "date": "2026-10-07",
+            "http_status": 200
+          },
+          "link_checked_at": "2026-10-07"
         }
       ]
     },
@@ -1734,7 +2146,12 @@
           "date": "2026-08-21",
           "title": "Patch 1.2",
           "url": "https://www.hellletloose.com/blog/hllv-patch-1-2",
-          "claim": "Sensitivity defect targeted"
+          "claim": "Sensitivity defect targeted",
+          "link_check": {
+            "date": "2026-10-07",
+            "http_status": 200
+          },
+          "link_checked_at": "2026-10-07"
         },
         {
           "type": "patch notes",
@@ -1742,7 +2159,12 @@
           "date": "2026-08-28",
           "title": "Patch 1.3",
           "url": "https://www.hellletloose.com/blog/hllv-patch-1-3",
-          "claim": "Zoom sensitivity scaling fixed"
+          "claim": "Zoom sensitivity scaling fixed",
+          "link_check": {
+            "date": "2026-10-07",
+            "http_status": 200
+          },
+          "link_checked_at": "2026-10-07"
         }
       ]
     },
@@ -1788,7 +2210,12 @@
           "date": "2026-08-28",
           "title": "Patch 1.3",
           "url": "https://www.hellletloose.com/blog/hllv-patch-1-3",
-          "claim": "Incorrect 0 ms ping reports fixed"
+          "claim": "Incorrect 0 ms ping reports fixed",
+          "link_check": {
+            "date": "2026-10-07",
+            "http_status": 200
+          },
+          "link_checked_at": "2026-10-07"
         }
       ]
     },
@@ -1840,7 +2267,12 @@
           "date": "2026-08-21",
           "title": "Patch 1.2",
           "url": "https://www.hellletloose.com/blog/hllv-patch-1-2",
-          "claim": "Issue explicitly targeted for Patch 1.3"
+          "claim": "Issue explicitly targeted for Patch 1.3",
+          "link_check": {
+            "date": "2026-10-07",
+            "http_status": 200
+          },
+          "link_checked_at": "2026-10-07"
         },
         {
           "type": "patch notes",
@@ -1848,7 +2280,12 @@
           "date": "2026-08-28",
           "title": "Patch 1.3",
           "url": "https://www.hellletloose.com/blog/hllv-patch-1-3",
-          "claim": "Final changelog reviewed; no explicit closure found"
+          "claim": "Final changelog reviewed; no explicit closure found",
+          "link_check": {
+            "date": "2026-10-07",
+            "http_status": 200
+          },
+          "link_checked_at": "2026-10-07"
         }
       ]
     },
@@ -1914,7 +2351,12 @@
           "date": "2026-09-03",
           "title": "Fix the Audio PLEASEEEEEEEE",
           "url": "https://steamcommunity.com/app/3079210/discussions/1/583932755647329810/",
-          "claim": "Multi-player report cluster documented and forwarded"
+          "claim": "Multi-player report cluster documented and forwarded",
+          "link_check": {
+            "date": "2026-10-07",
+            "http_status": 200
+          },
+          "link_checked_at": "2026-10-07"
         },
         {
           "type": "official update",
@@ -1922,7 +2364,12 @@
           "date": "2026-09-03",
           "title": "Community Feedback #3",
           "url": "https://www.hellletloose.com/blog/community-update-3",
-          "claim": "Multiple developers reproduced the combat-audio issue; investigation active"
+          "claim": "Multiple developers reproduced the combat-audio issue; investigation active",
+          "link_check": {
+            "date": "2026-10-07",
+            "http_status": 200
+          },
+          "link_checked_at": "2026-10-07"
         },
         {
           "type": "patch notes",
@@ -1930,7 +2377,12 @@
           "date": "2026-09-08",
           "title": "Hotfix 1.4.2",
           "url": "https://www.hellletloose.com/blog/hllv-hotfix-1-4-2",
-          "claim": "Spatial-audio reverb fix released."
+          "claim": "Spatial-audio reverb fix released.",
+          "link_check": {
+            "date": "2026-10-07",
+            "http_status": 200
+          },
+          "link_checked_at": "2026-10-07"
         },
         {
           "type": "official update",
@@ -1940,7 +2392,11 @@
           "url": "https://www.hellletloose.com/blog/community-update-4",
           "claim": "Released reverb and voice fixes remain under monitoring.",
           "original_url": "https://www.hellletloose.com/blog/community-feedback-4",
-          "link_checked_at": "2026-10-05"
+          "link_checked_at": "2026-10-07",
+          "link_check": {
+            "date": "2026-10-07",
+            "http_status": 200
+          }
         }
       ]
     },
@@ -2011,7 +2467,12 @@
           "date": "2026-08-22",
           "title": "Voice chat not working after update",
           "url": "https://steamcommunity.com/app/3079210/discussions/1/590687230526492958/",
-          "claim": "Similar reports received and forwarded"
+          "claim": "Similar reports received and forwarded",
+          "link_check": {
+            "date": "2026-10-07",
+            "http_status": 200
+          },
+          "link_checked_at": "2026-10-07"
         },
         {
           "type": "official update",
@@ -2019,7 +2480,23 @@
           "date": "2026-09-25",
           "title": "Community Feedback #5",
           "url": "https://www.hellletloose.com/blog/community-update-5",
-          "claim": "VOIP reliability"
+          "claim": "Acknowledges channel failures and dropouts; further changes with Epic still require larger-scale testing.",
+          "claim_history": [
+            {
+              "recorded_claim": "VOIP reliability",
+              "superseded_on": "2026-10-07",
+              "reason": "Re-read the publisher text and replace topic-only shorthand with a precise claim."
+            }
+          ],
+          "source_locator": "VOIP Reliability",
+          "source_reviewed_at": "2026-10-07",
+          "source_reviewed_via": "https://steamcommunity.com/app/3079210/allnews/",
+          "source_published_at": "2026-09-25",
+          "link_check": {
+            "date": "2026-10-07",
+            "http_status": 200
+          },
+          "link_checked_at": "2026-10-07"
         },
         {
           "type": "patch notes",
@@ -2027,7 +2504,23 @@
           "date": "2026-09-29",
           "title": "Hotfix 1.5.2",
           "url": "https://www.hellletloose.com/blog/hllv-hotfix-1-5-2",
-          "claim": "Silent muting"
+          "claim": "Documents additional safeguards against silent-muting edge cases, with post-release monitoring continuing.",
+          "claim_history": [
+            {
+              "recorded_claim": "Silent muting",
+              "superseded_on": "2026-10-07",
+              "reason": "Re-read the publisher text and replace topic-only shorthand with a precise claim."
+            }
+          ],
+          "source_locator": "VOIP Muting",
+          "source_reviewed_at": "2026-10-07",
+          "source_reviewed_via": "https://steamcommunity.com/app/3079210/allnews/",
+          "source_published_at": "2026-09-29",
+          "link_check": {
+            "date": "2026-10-07",
+            "http_status": 200
+          },
+          "link_checked_at": "2026-10-07"
         },
         {
           "type": "official update",
@@ -2035,7 +2528,23 @@
           "date": "2026-10-01",
           "title": "Community Feedback #6",
           "url": "https://www.hellletloose.com/blog/community-update-6",
-          "claim": "VOIP follow-up"
+          "claim": "Continues monitoring silent-muting safeguards while treating excessive volume and output routing as separate work.",
+          "claim_history": [
+            {
+              "recorded_claim": "VOIP follow-up",
+              "superseded_on": "2026-10-07",
+              "reason": "Re-read the publisher text and replace topic-only shorthand with a precise claim."
+            }
+          ],
+          "source_locator": "VOIP, Voice Volume & Audio Routing",
+          "source_reviewed_at": "2026-10-07",
+          "source_reviewed_via": "https://steamcommunity.com/app/3079210/allnews/",
+          "source_published_at": "2026-10-01",
+          "link_check": {
+            "date": "2026-10-07",
+            "http_status": 200
+          },
+          "link_checked_at": "2026-10-07"
         }
       ],
       "last_reviewed": "2026-10-05"
@@ -2094,7 +2603,12 @@
           "date": "2026-08-29",
           "title": "Ghost boats appearing that can't be spawned into or killed",
           "url": "https://steamcommunity.com/app/3079210/discussions/1/583932755647170244/",
-          "claim": "Multi-map reports received; support says investigation is active"
+          "claim": "Multi-map reports received; support says investigation is active",
+          "link_check": {
+            "date": "2026-10-07",
+            "http_status": 200
+          },
+          "link_checked_at": "2026-10-07"
         },
         {
           "type": "patch notes",
@@ -2102,7 +2616,12 @@
           "date": "2026-09-16",
           "title": "Update 1.5 (released September 16)",
           "url": "https://www.hellletloose.com/blog/hllv-update-1-5",
-          "claim": "Post-destruction boat visibility corrected."
+          "claim": "Post-destruction boat visibility corrected.",
+          "link_check": {
+            "date": "2026-10-07",
+            "http_status": 200
+          },
+          "link_checked_at": "2026-10-07"
         }
       ]
     },
@@ -2155,7 +2674,12 @@
           "date": "2026-08-21",
           "title": "Patch 1.2",
           "url": "https://www.hellletloose.com/blog/hllv-patch-1-2",
-          "claim": "Separate tap-fire issue fixed"
+          "claim": "Separate tap-fire issue fixed",
+          "link_check": {
+            "date": "2026-10-07",
+            "http_status": 200
+          },
+          "link_checked_at": "2026-10-07"
         },
         {
           "type": "support thread",
@@ -2163,7 +2687,12 @@
           "date": "2026-08-30",
           "title": "Reload of Boat Guns Bugged",
           "url": "https://steamcommunity.com/app/3079210/discussions/1/583932755647245596/",
-          "claim": "Similar reload reports received and forwarded"
+          "claim": "Similar reload reports received and forwarded",
+          "link_check": {
+            "date": "2026-10-07",
+            "http_status": 200
+          },
+          "link_checked_at": "2026-10-07"
         }
       ]
     },
@@ -2216,7 +2745,12 @@
           "date": "2026-08-30",
           "title": "Issue with Keyboard inputs on Helicopters",
           "url": "https://steamcommunity.com/app/3079210/discussions/1/583932755647220221/",
-          "claim": "Similar reports received and escalated"
+          "claim": "Similar reports received and escalated",
+          "link_check": {
+            "date": "2026-10-07",
+            "http_status": 200
+          },
+          "link_checked_at": "2026-10-07"
         }
       ]
     },
@@ -2226,30 +2760,32 @@
       "category": "gameplay",
       "kind": "officially investigated progression defect",
       "status_key": "investigating",
-      "status_label": "Under investigation",
-      "bottom_line": "An October 1 player still reports lost tutorial completion. No complete fix is verified.",
+      "status_label": "Completion-loss fix unconfirmed",
+      "bottom_line": "Patch 1.6 includes tutorial memory and hint fixes, but its notes do not confirm a fix for lost tutorial completion.",
       "official_short": "Acknowledged",
-      "fix_short": "Release unconfirmed",
+      "fix_short": "Completion-save fix unconfirmed",
       "cause_short": "Unknown",
-      "last_updated": "2026-10-01",
+      "last_updated": "2026-10-07",
       "scope": [
         "Tutorials",
         "role access",
         "online progression"
       ],
       "symptom": "A completed tutorial can later appear incomplete, forcing another completion before Squad Leader or Commander becomes available.",
-      "official_position": "The earlier tutorial fix remains unconfirmed. Separate PS5 save-loss safeguards are tracked as HLLV-055; a shared cause is unproven.",
+      "official_position": "Absence of a completion-save entry is not proof the problem persists. The older player observations retain their original dates.",
       "workaround": "Completing the required tutorial again may temporarily restore role access; this does not address the lost completion state.",
       "known": [
         "The issue is explicitly acknowledged in an official community update.",
         "It can affect access to Squad Leader and Commander.",
-        "Team17 Support said on August 29 that reports were still being received."
+        "Team17 Support said on August 29 that reports were still being received.",
+        "October 7 release-note review: The released tutorial changes concern hints, practice-range behavior and memory cleanup; completion-save resolution is not identified."
       ],
       "unknown": [
         "No complete resolution is confirmed.",
         "The reviewed 1.5 changelog does not explicitly close the planned save-data fix.",
         "Reproduction conditions remain uncertain.",
-        "The reporter's explanation involving game shutdown is a hypothesis."
+        "The reporter's explanation involving game shutdown is a hypothesis.",
+        "Independent gameplay verification of the Patch 1.6 outcome is not recorded."
       ],
       "timeline": [
         {
@@ -2281,6 +2817,11 @@
           "date": "2026-10-01",
           "event": "Player report",
           "detail": "A player reports losing tutorial completion despite playing a match afterward and exiting normally."
+        },
+        {
+          "date": "2026-10-07",
+          "event": "Patch 1.6 released / evidence review",
+          "detail": "The released tutorial changes concern hints, practice-range behavior and memory cleanup; completion-save resolution is not identified."
         }
       ],
       "sources": [
@@ -2290,7 +2831,12 @@
           "date": "2026-08-20",
           "title": "Community Update #1",
           "url": "https://www.hellletloose.com/blog/community-update-1",
-          "claim": "Progress loss acknowledged; reproduction difficult; investigation ongoing"
+          "claim": "Progress loss acknowledged; reproduction difficult; investigation ongoing",
+          "link_check": {
+            "date": "2026-10-07",
+            "http_status": 200
+          },
+          "link_checked_at": "2026-10-07"
         },
         {
           "type": "support thread",
@@ -2298,7 +2844,12 @@
           "date": "2026-08-29",
           "title": "tutorial bugs",
           "url": "https://steamcommunity.com/app/3079210/discussions/1/583932755647178248/",
-          "claim": "Support says completion-loss reports continue"
+          "claim": "Support says completion-loss reports continue",
+          "link_check": {
+            "date": "2026-10-07",
+            "http_status": 200
+          },
+          "link_checked_at": "2026-10-07"
         },
         {
           "type": "official update",
@@ -2308,7 +2859,11 @@
           "url": "https://www.hellletloose.com/blog/community-update-4",
           "claim": "Save-data fix targeted; wider tutorial investigation remains open.",
           "original_url": "https://www.hellletloose.com/blog/community-feedback-4",
-          "link_checked_at": "2026-10-05"
+          "link_checked_at": "2026-10-07",
+          "link_check": {
+            "date": "2026-10-07",
+            "http_status": 200
+          }
         },
         {
           "type": "official update",
@@ -2316,7 +2871,12 @@
           "date": "2026-09-16",
           "title": "Update 1.5 (released September 16)",
           "url": "https://www.hellletloose.com/blog/hllv-update-1-5",
-          "claim": "Review of the final changelog did not find explicit confirmation of the previously targeted tutorial save-data fix."
+          "claim": "Review of the final changelog did not find explicit confirmation of the previously targeted tutorial save-data fix.",
+          "link_check": {
+            "date": "2026-10-07",
+            "http_status": 200
+          },
+          "link_checked_at": "2026-10-07"
         },
         {
           "type": "patch notes",
@@ -2324,7 +2884,12 @@
           "date": "2026-09-29",
           "title": "Hotfix 1.5.2",
           "url": "https://www.hellletloose.com/blog/hllv-hotfix-1-5-2",
-          "claim": "PS5 save data; tutorial linkage unconfirmed"
+          "claim": "PS5 save data; tutorial linkage unconfirmed",
+          "link_check": {
+            "date": "2026-10-07",
+            "http_status": 200
+          },
+          "link_checked_at": "2026-10-07"
         },
         {
           "type": "player report",
@@ -2332,9 +2897,32 @@
           "date": "2026-10-01",
           "title": "Impossible to save tutorial progress",
           "url": "https://steamcommunity.com/app/3079210/discussions/1/590691034935260366/",
-          "claim": "Continued completion-loss report; not reproduced by this tracker."
+          "claim": "Continued completion-loss report; not reproduced by this tracker.",
+          "link_check": {
+            "date": "2026-10-07",
+            "http_status": 200
+          },
+          "link_checked_at": "2026-10-07"
+        },
+        {
+          "type": "patch notes",
+          "publisher": "Hell Let Loose / Team17",
+          "date": "2026-10-07",
+          "title": "Patch 1.6 | Live Now",
+          "url": "https://www.hellletloose.com/blog/hllv-patch-1-6",
+          "claim": "The released tutorial changes concern hints, practice-range behavior and memory cleanup; completion-save resolution is not identified.",
+          "source_locator": "Tutorials & Practice Range; Stability & Performance",
+          "source_published_at": "2026-10-07",
+          "source_reviewed_at": "2026-10-07",
+          "source_reviewed_via": "https://steamcommunity.com/app/3079210/allnews/",
+          "link_checked_at": "2026-10-07",
+          "link_check": {
+            "date": "2026-10-07",
+            "http_status": 200
+          }
         }
-      ]
+      ],
+      "last_reviewed": "2026-10-07"
     },
     {
       "id": "HLLV-034",
@@ -2386,7 +2974,12 @@
           "date": "2026-08-20",
           "title": "Community Update #1",
           "url": "https://www.hellletloose.com/blog/community-update-1",
-          "claim": "Foliage interaction acknowledged and under investigation"
+          "claim": "Foliage interaction acknowledged and under investigation",
+          "link_check": {
+            "date": "2026-10-07",
+            "http_status": 200
+          },
+          "link_checked_at": "2026-10-07"
         },
         {
           "type": "official update",
@@ -2394,7 +2987,23 @@
           "date": "2026-10-01",
           "title": "Community Feedback #6",
           "url": "https://www.hellletloose.com/blog/community-update-6",
-          "claim": "Aim Assist"
+          "claim": "Targets further Aim Assist changes for Update 2.0, subject to development and testing; not a release confirmation.",
+          "claim_history": [
+            {
+              "recorded_claim": "Aim Assist",
+              "superseded_on": "2026-10-07",
+              "reason": "Re-read the publisher text and replace topic-only shorthand with a precise claim."
+            }
+          ],
+          "source_locator": "Aim Assist",
+          "source_reviewed_at": "2026-10-07",
+          "source_reviewed_via": "https://steamcommunity.com/app/3079210/allnews/",
+          "source_published_at": "2026-10-01",
+          "link_check": {
+            "date": "2026-10-07",
+            "http_status": 200
+          },
+          "link_checked_at": "2026-10-07"
         }
       ],
       "last_reviewed": "2026-10-05"
@@ -2448,7 +3057,12 @@
           "date": "2026-08-21",
           "title": "Patch 1.2",
           "url": "https://www.hellletloose.com/blog/hllv-patch-1-2",
-          "claim": "Initial consistency improvement; edge cases remain"
+          "claim": "Initial consistency improvement; edge cases remain",
+          "link_check": {
+            "date": "2026-10-07",
+            "http_status": 200
+          },
+          "link_checked_at": "2026-10-07"
         },
         {
           "type": "patch notes",
@@ -2456,7 +3070,12 @@
           "date": "2026-08-28",
           "title": "Patch 1.3",
           "url": "https://www.hellletloose.com/blog/hllv-patch-1-3",
-          "claim": "Further knife-hit improvements shipped"
+          "claim": "Further knife-hit improvements shipped",
+          "link_check": {
+            "date": "2026-10-07",
+            "http_status": 200
+          },
+          "link_checked_at": "2026-10-07"
         }
       ]
     },
@@ -2503,7 +3122,12 @@
           "date": "2026-08-21",
           "title": "Patch 1.2",
           "url": "https://www.hellletloose.com/blog/hllv-patch-1-2",
-          "claim": "M and Esc map-closing defect fixed"
+          "claim": "M and Esc map-closing defect fixed",
+          "link_check": {
+            "date": "2026-10-07",
+            "http_status": 200
+          },
+          "link_checked_at": "2026-10-07"
         }
       ]
     },
@@ -2549,7 +3173,12 @@
           "date": "2026-08-21",
           "title": "Patch 1.2",
           "url": "https://www.hellletloose.com/blog/hllv-patch-1-2",
-          "claim": "Xbox vehicle freeze fixed"
+          "claim": "Xbox vehicle freeze fixed",
+          "link_check": {
+            "date": "2026-10-07",
+            "http_status": 200
+          },
+          "link_checked_at": "2026-10-07"
         }
       ]
     },
@@ -2595,7 +3224,12 @@
           "date": "2026-08-21",
           "title": "Patch 1.2",
           "url": "https://www.hellletloose.com/blog/hllv-patch-1-2",
-          "claim": "Party voice failures and controls fixed"
+          "claim": "Party voice failures and controls fixed",
+          "link_check": {
+            "date": "2026-10-07",
+            "http_status": 200
+          },
+          "link_checked_at": "2026-10-07"
         }
       ]
     },
@@ -2641,7 +3275,12 @@
           "date": "2026-08-21",
           "title": "Patch 1.2",
           "url": "https://www.hellletloose.com/blog/hllv-patch-1-2",
-          "claim": "Transport Helicopter left gunner seat fixed"
+          "claim": "Transport Helicopter left gunner seat fixed",
+          "link_check": {
+            "date": "2026-10-07",
+            "http_status": 200
+          },
+          "link_checked_at": "2026-10-07"
         }
       ]
     },
@@ -2689,7 +3328,12 @@
           "date": "2026-08-21",
           "title": "Patch 1.2",
           "url": "https://www.hellletloose.com/blog/hllv-patch-1-2",
-          "claim": "No-weapon deployment cases fixed"
+          "claim": "No-weapon deployment cases fixed",
+          "link_check": {
+            "date": "2026-10-07",
+            "http_status": 200
+          },
+          "link_checked_at": "2026-10-07"
         }
       ]
     },
@@ -2735,7 +3379,12 @@
           "date": "2026-08-21",
           "title": "Patch 1.2",
           "url": "https://www.hellletloose.com/blog/hllv-patch-1-2",
-          "claim": "VIP active and queue slot interaction fixed"
+          "claim": "VIP active and queue slot interaction fixed",
+          "link_check": {
+            "date": "2026-10-07",
+            "http_status": 200
+          },
+          "link_checked_at": "2026-10-07"
         }
       ]
     },
@@ -2781,7 +3430,12 @@
           "date": "2026-08-21",
           "title": "Patch 1.2",
           "url": "https://www.hellletloose.com/blog/hllv-patch-1-2",
-          "claim": "Admin Camera enemy-icon persistence fixed"
+          "claim": "Admin Camera enemy-icon persistence fixed",
+          "link_check": {
+            "date": "2026-10-07",
+            "http_status": 200
+          },
+          "link_checked_at": "2026-10-07"
         }
       ]
     },
@@ -2827,7 +3481,12 @@
           "date": "2026-08-21",
           "title": "Patch 1.2",
           "url": "https://www.hellletloose.com/blog/hllv-patch-1-2",
-          "claim": "Underwater helicopter behavior fixed"
+          "claim": "Underwater helicopter behavior fixed",
+          "link_check": {
+            "date": "2026-10-07",
+            "http_status": 200
+          },
+          "link_checked_at": "2026-10-07"
         }
       ]
     },
@@ -2879,7 +3538,12 @@
           "date": "2026-08-20",
           "title": "Community Update #1",
           "url": "https://www.hellletloose.com/blog/community-update-1",
-          "claim": "Community steps reproduced; known methods fixed"
+          "claim": "Community steps reproduced; known methods fixed",
+          "link_check": {
+            "date": "2026-10-07",
+            "http_status": 200
+          },
+          "link_checked_at": "2026-10-07"
         },
         {
           "type": "patch notes",
@@ -2887,7 +3551,12 @@
           "date": "2026-08-21",
           "title": "Patch 1.2",
           "url": "https://www.hellletloose.com/blog/hllv-patch-1-2",
-          "claim": "Above-ground swimming issue fixed"
+          "claim": "Above-ground swimming issue fixed",
+          "link_check": {
+            "date": "2026-10-07",
+            "http_status": 200
+          },
+          "link_checked_at": "2026-10-07"
         }
       ]
     },
@@ -2937,7 +3606,12 @@
           "date": "2026-09-03",
           "title": "Community Feedback #3",
           "url": "https://www.hellletloose.com/blog/community-update-3",
-          "claim": "EOS overlay cause identified; Shift+F3 workaround; SDK update in progress"
+          "claim": "EOS overlay cause identified; Shift+F3 workaround; SDK update in progress",
+          "link_check": {
+            "date": "2026-10-07",
+            "http_status": 200
+          },
+          "link_checked_at": "2026-10-07"
         }
       ]
     },
@@ -3024,7 +3698,12 @@
           "date": "2026-09-03",
           "title": "Community Feedback #3",
           "url": "https://www.hellletloose.com/blog/community-update-3",
-          "claim": "Spawn/deployment failures acknowledged; similar older issue reopened"
+          "claim": "Spawn/deployment failures acknowledged; similar older issue reopened",
+          "link_check": {
+            "date": "2026-10-07",
+            "http_status": 200
+          },
+          "link_checked_at": "2026-10-07"
         },
         {
           "type": "patch notes",
@@ -3032,7 +3711,12 @@
           "date": "2026-09-16",
           "title": "Update 1.5 (released September 16)",
           "url": "https://www.hellletloose.com/blog/hllv-update-1-5",
-          "claim": "Controller focus correction and boat-deployment safeguard released."
+          "claim": "Controller focus correction and boat-deployment safeguard released.",
+          "link_check": {
+            "date": "2026-10-07",
+            "http_status": 200
+          },
+          "link_checked_at": "2026-10-07"
         },
         {
           "type": "official update",
@@ -3042,7 +3726,11 @@
           "url": "https://www.hellletloose.com/blog/community-update-4",
           "claim": "Controller focus is distinguished from difficult-to-reproduce Garrison and Outpost failures.",
           "original_url": "https://www.hellletloose.com/blog/community-feedback-4",
-          "link_checked_at": "2026-10-05"
+          "link_checked_at": "2026-10-07",
+          "link_check": {
+            "date": "2026-10-07",
+            "http_status": 200
+          }
         },
         {
           "type": "official update",
@@ -3050,7 +3738,12 @@
           "date": "2026-09-25",
           "title": "Community Feedback #5",
           "url": "https://www.hellletloose.com/blog/community-update-5",
-          "claim": "Match-end cleanup and restart advice"
+          "claim": "Match-end cleanup and restart advice",
+          "link_check": {
+            "date": "2026-10-07",
+            "http_status": 200
+          },
+          "link_checked_at": "2026-10-07"
         },
         {
           "type": "patch notes",
@@ -3058,7 +3751,23 @@
           "date": "2026-09-29",
           "title": "Hotfix 1.5.2",
           "url": "https://www.hellletloose.com/blog/hllv-hotfix-1-5-2",
-          "claim": "Server degradation"
+          "claim": "Records Iris fixes for degradation over long server sessions affecting spawns and other replicated objects; monitoring continues.",
+          "claim_history": [
+            {
+              "recorded_claim": "Server degradation",
+              "superseded_on": "2026-10-07",
+              "reason": "Re-read the publisher text and replace topic-only shorthand with a precise claim."
+            }
+          ],
+          "source_locator": "Spawns & Server Reliability",
+          "source_reviewed_at": "2026-10-07",
+          "source_reviewed_via": "https://steamcommunity.com/app/3079210/allnews/",
+          "source_published_at": "2026-09-29",
+          "link_check": {
+            "date": "2026-10-07",
+            "http_status": 200
+          },
+          "link_checked_at": "2026-10-07"
         },
         {
           "type": "official update",
@@ -3066,7 +3775,12 @@
           "date": "2026-10-01",
           "title": "Community Feedback #6",
           "url": "https://www.hellletloose.com/blog/community-update-6",
-          "claim": "Spawn and deployable follow-up"
+          "claim": "Spawn and deployable follow-up",
+          "link_check": {
+            "date": "2026-10-07",
+            "http_status": 200
+          },
+          "link_checked_at": "2026-10-07"
         },
         {
           "type": "player report",
@@ -3074,7 +3788,12 @@
           "date": "2026-10-02",
           "title": "Tunnel icons not appearing resulting in unable to use tunnels",
           "url": "https://steamcommunity.com/app/3079210/discussions/1/590691034935303773/",
-          "claim": "Player report; relationship to replication fixes unproven."
+          "claim": "Player report; relationship to replication fixes unproven.",
+          "link_check": {
+            "date": "2026-10-07",
+            "http_status": 200
+          },
+          "link_checked_at": "2026-10-07"
         }
       ],
       "last_reviewed": "2026-10-05"
@@ -3122,7 +3841,12 @@
           "date": "2026-09-02",
           "title": "Patch 1.4",
           "url": "https://www.hellletloose.com/blog/hllv-patch-1-4",
-          "claim": "Additional safeguards against Level 1 resets shipped"
+          "claim": "Additional safeguards against Level 1 resets shipped",
+          "link_check": {
+            "date": "2026-10-07",
+            "http_status": 200
+          },
+          "link_checked_at": "2026-10-07"
         }
       ]
     },
@@ -3169,7 +3893,12 @@
           "date": "2026-09-02",
           "title": "Patch 1.4",
           "url": "https://www.hellletloose.com/blog/hllv-patch-1-4",
-          "claim": "Incorrect party free-slot warning fixed"
+          "claim": "Incorrect party free-slot warning fixed",
+          "link_check": {
+            "date": "2026-10-07",
+            "http_status": 200
+          },
+          "link_checked_at": "2026-10-07"
         }
       ]
     },
@@ -3219,7 +3948,11 @@
           "url": "https://steamcommunity.com/games/3079210/announcements/detail/684139458559214482",
           "claim": "Mounted-gun movement smoothing added; further work planned.",
           "original_url": "https://steamcommunity.com/app/3079210/allnews",
-          "link_checked_at": "2026-10-05"
+          "link_checked_at": "2026-10-07",
+          "link_check": {
+            "date": "2026-10-07",
+            "http_status": 200
+          }
         },
         {
           "type": "official update",
@@ -3227,7 +3960,12 @@
           "date": "2026-09-08",
           "title": "Hotfix 1.4.2",
           "url": "https://www.hellletloose.com/blog/hllv-hotfix-1-4-2",
-          "claim": "Camera-related stutter on mounted guns and tank gunner views addressed."
+          "claim": "Camera-related stutter on mounted guns and tank gunner views addressed.",
+          "link_check": {
+            "date": "2026-10-07",
+            "http_status": 200
+          },
+          "link_checked_at": "2026-10-07"
         }
       ]
     },
@@ -3273,7 +4011,11 @@
           "url": "https://steamcommunity.com/games/3079210/announcements/detail/684139458559214482",
           "claim": "1.5.1 restores vibration and haptics across platforms.",
           "original_url": "https://steamcommunity.com/app/3079210/allnews",
-          "link_checked_at": "2026-10-05"
+          "link_checked_at": "2026-10-07",
+          "link_check": {
+            "date": "2026-10-07",
+            "http_status": 200
+          }
         }
       ]
     },
@@ -3317,7 +4059,12 @@
           "date": "2026-09-16",
           "title": "Update 1.5 (released September 16)",
           "url": "https://www.hellletloose.com/blog/hllv-update-1-5",
-          "claim": "1.5 prevents rotor blades destroying structures."
+          "claim": "1.5 prevents rotor blades destroying structures.",
+          "link_check": {
+            "date": "2026-10-07",
+            "http_status": 200
+          },
+          "link_checked_at": "2026-10-07"
         }
       ]
     },
@@ -3360,7 +4107,12 @@
           "date": "2026-09-08",
           "title": "Hotfix 1.4.2",
           "url": "https://www.hellletloose.com/blog/hllv-hotfix-1-4-2",
-          "claim": "1.4.2 closes unrestricted links to pre-placed Garrisons."
+          "claim": "1.4.2 closes unrestricted links to pre-placed Garrisons.",
+          "link_check": {
+            "date": "2026-10-07",
+            "http_status": 200
+          },
+          "link_checked_at": "2026-10-07"
         }
       ]
     },
@@ -3403,7 +4155,12 @@
           "date": "2026-09-08",
           "title": "Hotfix 1.4.2",
           "url": "https://www.hellletloose.com/blog/hllv-hotfix-1-4-2",
-          "claim": "1.4.2 restores the DLSS reconstruction option."
+          "claim": "1.4.2 restores the DLSS reconstruction option.",
+          "link_check": {
+            "date": "2026-10-07",
+            "http_status": 200
+          },
+          "link_checked_at": "2026-10-07"
         }
       ]
     },
@@ -3446,7 +4203,23 @@
           "date": "2026-09-29",
           "title": "Hotfix 1.5.2",
           "url": "https://www.hellletloose.com/blog/hllv-hotfix-1-5-2",
-          "claim": "Documents the issue and stated status"
+          "claim": "Documents retained game settings across EOS sign-out and subsequent sign-in.",
+          "claim_history": [
+            {
+              "recorded_claim": "Documents the issue and stated status",
+              "superseded_on": "2026-10-07",
+              "reason": "Re-read the publisher text and replace topic-only shorthand with a precise claim."
+            }
+          ],
+          "source_locator": "EOS Settings",
+          "source_reviewed_at": "2026-10-07",
+          "source_reviewed_via": "https://steamcommunity.com/app/3079210/allnews/",
+          "source_published_at": "2026-09-29",
+          "link_check": {
+            "date": "2026-10-07",
+            "http_status": 200
+          },
+          "link_checked_at": "2026-10-07"
         }
       ],
       "last_reviewed": "2026-10-05"
@@ -3489,7 +4262,23 @@
           "date": "2026-09-29",
           "title": "Hotfix 1.5.2",
           "url": "https://www.hellletloose.com/blog/hllv-hotfix-1-5-2",
-          "claim": "Documents the issue and stated status"
+          "claim": "Adds safeguards against a rare PS5 save-loss issue; does not establish closure of all tutorial or progression losses.",
+          "claim_history": [
+            {
+              "recorded_claim": "Documents the issue and stated status",
+              "superseded_on": "2026-10-07",
+              "reason": "Re-read the publisher text and replace topic-only shorthand with a precise claim."
+            }
+          ],
+          "source_locator": "PS5 Save Data",
+          "source_reviewed_at": "2026-10-07",
+          "source_reviewed_via": "https://steamcommunity.com/app/3079210/allnews/",
+          "source_published_at": "2026-09-29",
+          "link_check": {
+            "date": "2026-10-07",
+            "http_status": 200
+          },
+          "link_checked_at": "2026-10-07"
         }
       ],
       "last_reviewed": "2026-10-05"
@@ -3534,7 +4323,23 @@
           "date": "2026-09-29",
           "title": "Hotfix 1.5.2",
           "url": "https://www.hellletloose.com/blog/hllv-hotfix-1-5-2",
-          "claim": "Documents the issue and stated status"
+          "claim": "Corrects trees using distant flat models near players, restoring intended transitions to their 3D models.",
+          "claim_history": [
+            {
+              "recorded_claim": "Documents the issue and stated status",
+              "superseded_on": "2026-10-07",
+              "reason": "Re-read the publisher text and replace topic-only shorthand with a precise claim."
+            }
+          ],
+          "source_locator": "Impostor Trees",
+          "source_reviewed_at": "2026-10-07",
+          "source_reviewed_via": "https://steamcommunity.com/app/3079210/allnews/",
+          "source_published_at": "2026-09-29",
+          "link_check": {
+            "date": "2026-10-07",
+            "http_status": 200
+          },
+          "link_checked_at": "2026-10-07"
         }
       ],
       "last_reviewed": "2026-10-05"
@@ -3545,12 +4350,12 @@
       "category": "graphics",
       "kind": "rendering issue family",
       "status_key": "partial",
-      "status_label": "Partially addressed",
-      "bottom_line": "The nearby flat-tree defect was fixed in 1.5.2, but blurry foliage, pop-in and cover disappearing before players remain under review for 1.6 and later updates.",
+      "status_label": "Visual improvements released",
+      "bottom_line": "Patch 1.6 reduces texture pop-in after leaving the Tactical Map and includes further culling fixes. Broad foliage and disappearing-cover resolution remains unverified.",
       "official_short": "Developer acknowledged",
-      "fix_short": "More work planned",
+      "fix_short": "Visual fixes through 1.6",
       "cause_short": "Not public",
-      "last_updated": "2026-10-01",
+      "last_updated": "2026-10-07",
       "scope": [
         "PC",
         "PS5",
@@ -3558,19 +4363,26 @@
         "foliage"
       ],
       "symptom": "Blurry foliage and disappearing cover",
-      "official_position": "The October 1 update describes ongoing reviews of detail-transition and culling distances, including incorrectly configured individual assets. The specific 2D-tree correction in HLLV-056 is released; wider visual-quality improvements are still being developed.",
+      "official_position": "The new map-level changes do not establish that every distant-cover or console-clarity complaint is resolved.",
       "workaround": null,
       "known": [
-        "The linked official evidence documents this issue."
+        "The linked official evidence documents this issue.",
+        "October 7 release-note review: Lists reduced post-map texture streaming pop-in and further culling/graphics corrections; no blanket foliage resolution is stated."
       ],
       "unknown": [
-        "HLLV-056 covers one released correction; the wider rendering issue remains open."
+        "HLLV-056 covers one released correction; the wider rendering issue remains open.",
+        "Independent gameplay verification of the Patch 1.6 outcome is not recorded."
       ],
       "timeline": [
         {
           "date": "2026-10-01",
           "event": "Community Feedback #6",
           "detail": "Publisher documents this issue and its stated status."
+        },
+        {
+          "date": "2026-10-07",
+          "event": "Patch 1.6 released / evidence review",
+          "detail": "Lists reduced post-map texture streaming pop-in and further culling/graphics corrections; no blanket foliage resolution is stated."
         }
       ],
       "sources": [
@@ -3580,35 +4392,70 @@
           "date": "2026-10-01",
           "title": "Community Feedback #6",
           "url": "https://www.hellletloose.com/blog/community-update-6",
-          "claim": "Documents the issue and stated status"
+          "claim": "Acknowledges blurry foliage, pop-in and cover disappearing before players; detail/culling work continues beyond individual fixes.",
+          "claim_history": [
+            {
+              "recorded_claim": "Documents the issue and stated status",
+              "superseded_on": "2026-10-07",
+              "reason": "Re-read the publisher text and replace topic-only shorthand with a precise claim."
+            }
+          ],
+          "source_locator": "Foliage, LODs & Visual Quality",
+          "source_reviewed_at": "2026-10-07",
+          "source_reviewed_via": "https://steamcommunity.com/app/3079210/allnews/",
+          "source_published_at": "2026-10-01",
+          "link_check": {
+            "date": "2026-10-07",
+            "http_status": 200
+          },
+          "link_checked_at": "2026-10-07"
+        },
+        {
+          "type": "patch notes",
+          "publisher": "Hell Let Loose / Team17",
+          "date": "2026-10-07",
+          "title": "Patch 1.6 | Live Now",
+          "url": "https://www.hellletloose.com/blog/hllv-patch-1-6",
+          "claim": "Lists reduced post-map texture streaming pop-in and further culling/graphics corrections; no blanket foliage resolution is stated.",
+          "source_locator": "Tactical Map; Maps & Environments",
+          "source_published_at": "2026-10-07",
+          "source_reviewed_at": "2026-10-07",
+          "source_reviewed_via": "https://steamcommunity.com/app/3079210/allnews/",
+          "link_checked_at": "2026-10-07",
+          "link_check": {
+            "date": "2026-10-07",
+            "http_status": 200
+          }
         }
       ],
-      "last_reviewed": "2026-10-05"
+      "last_reviewed": "2026-10-07"
     },
     {
       "id": "HLLV-058",
       "title": "Server Browser filters fail to persist",
       "category": "community-server",
       "kind": "browser defect",
-      "status_key": "testing",
-      "status_label": "Fix planned · not released",
-      "bottom_line": "Persistent-filter fixes are planned for Patch 1.6. The October 2 announcement targets the week of October 5; release has not been verified.",
-      "official_short": "Developer acknowledged",
-      "fix_short": "Patch 1.6 planned",
+      "status_key": "shipped",
+      "status_label": "Fix released in 1.6",
+      "bottom_line": "Patch 1.6 now records browser filters persisting after a game restart. Independent outcome testing is not recorded.",
+      "official_short": "Release documented",
+      "fix_short": "Patch 1.6",
       "cause_short": "Not public",
-      "last_updated": "2026-10-02",
+      "last_updated": "2026-10-07",
       "scope": [
         "Server Browser"
       ],
       "symptom": "Server Browser filters fail to persist",
-      "official_position": "The October 1 developer update says the filter correction is implemented for the forthcoming 1.6 patch. That wording is not a public release confirmation. The October 2 post supplies timing only.",
+      "official_position": "This changes the prior announced target to a publisher-reported release. It does not close the broader missing-server search issue.",
       "workaround": null,
       "known": [
         "The linked official evidence documents this issue.",
-        "October 2 announcement: Patch 1.6 expected the following week."
+        "October 2 announcement: Patch 1.6 expected the following week.",
+        "October 7 release-note review: Confirms the released correction for Enlist filters resetting after restarting the game."
       ],
       "unknown": [
-        "The filter correction does not establish resolution of missing search results (HLLV-059)."
+        "The filter correction does not establish resolution of missing search results (HLLV-059).",
+        "Independent gameplay verification of the Patch 1.6 outcome is not recorded."
       ],
       "timeline": [
         {
@@ -3625,6 +4472,11 @@
           "date": "2026-10-02",
           "event": "Patch 1.6 timing announcement",
           "detail": "The publisher expects 1.6 next week. This is scheduling evidence, not confirmation of this fix shipping."
+        },
+        {
+          "date": "2026-10-07",
+          "event": "Patch 1.6 released / evidence review",
+          "detail": "Confirms the released correction for Enlist filters resetting after restarting the game."
         }
       ],
       "sources": [
@@ -3634,7 +4486,23 @@
           "date": "2026-09-25",
           "title": "Community Feedback #5",
           "url": "https://www.hellletloose.com/blog/community-update-5",
-          "claim": "Documents the issue and stated status"
+          "claim": "Announces filter-persistence and auto-refresh corrections for the then-future Patch 1.6.",
+          "claim_history": [
+            {
+              "recorded_claim": "Documents the issue and stated status",
+              "superseded_on": "2026-10-07",
+              "reason": "Re-read the publisher text and replace topic-only shorthand with a precise claim."
+            }
+          ],
+          "source_locator": "Server Browser & Server Visibility",
+          "source_reviewed_at": "2026-10-07",
+          "source_reviewed_via": "https://steamcommunity.com/app/3079210/allnews/",
+          "source_published_at": "2026-09-25",
+          "link_check": {
+            "date": "2026-10-07",
+            "http_status": 200
+          },
+          "link_checked_at": "2026-10-07"
         },
         {
           "type": "official update",
@@ -3642,7 +4510,23 @@
           "date": "2026-10-01",
           "title": "Community Feedback #6",
           "url": "https://www.hellletloose.com/blog/community-update-6",
-          "claim": "Server Browser filters"
+          "claim": "Reaffirms persistent-filter corrections for the then-forthcoming Patch 1.6; this older post is planning evidence.",
+          "claim_history": [
+            {
+              "recorded_claim": "Server Browser filters",
+              "superseded_on": "2026-10-07",
+              "reason": "Re-read the publisher text and replace topic-only shorthand with a precise claim."
+            }
+          ],
+          "source_locator": "Server Browser Improvements",
+          "source_reviewed_at": "2026-10-07",
+          "source_reviewed_via": "https://steamcommunity.com/app/3079210/allnews/",
+          "source_published_at": "2026-10-01",
+          "link_check": {
+            "date": "2026-10-07",
+            "http_status": 200
+          },
+          "link_checked_at": "2026-10-07"
         },
         {
           "type": "official update",
@@ -3650,37 +4534,61 @@
           "date": "2026-10-02",
           "title": "Update 1.5 & Patch 1.6 | Dev Update VLOG | Command Post",
           "url": "https://steamcommunity.com/gid/103582791475269461/announcements/detail/676259427855107286",
-          "claim": "Patch timing only; issue-specific scope comes from earlier sources."
+          "claim": "Patch timing only; issue-specific scope comes from earlier sources.",
+          "link_check": {
+            "date": "2026-10-07",
+            "http_status": 200
+          },
+          "link_checked_at": "2026-10-07"
+        },
+        {
+          "type": "patch notes",
+          "publisher": "Hell Let Loose / Team17",
+          "date": "2026-10-07",
+          "title": "Patch 1.6 | Live Now",
+          "url": "https://www.hellletloose.com/blog/hllv-patch-1-6",
+          "claim": "Confirms the released correction for Enlist filters resetting after restarting the game.",
+          "source_locator": "Enlist & Social",
+          "source_published_at": "2026-10-07",
+          "source_reviewed_at": "2026-10-07",
+          "source_reviewed_via": "https://steamcommunity.com/app/3079210/allnews/",
+          "link_checked_at": "2026-10-07",
+          "link_check": {
+            "date": "2026-10-07",
+            "http_status": 200
+          }
         }
       ],
-      "last_reviewed": "2026-10-05"
+      "last_reviewed": "2026-10-07"
     },
     {
       "id": "HLLV-059",
       "title": "Servers missing from browser results",
       "category": "community-server",
       "kind": "search limitation",
-      "status_key": "investigating",
-      "status_label": "Under investigation",
-      "bottom_line": "A search can return at most 200 sessions. Higher-population ordering is planned for 1.6, but that is not a confirmed fix for missing servers.",
+      "status_key": "partial",
+      "status_label": "Browser improvements released",
+      "bottom_line": "Patch 1.6 prioritizes fuller servers and corrects a console sort-filter failure. The previously documented 200-session search limitation is not confirmed resolved.",
       "official_short": "Developer acknowledged",
-      "fix_short": "No complete fix confirmed",
+      "fix_short": "Partial fixes in 1.6",
       "cause_short": "Search-result limit",
-      "last_updated": "2026-10-02",
+      "last_updated": "2026-10-07",
       "scope": [
         "Server Browser",
         "community servers"
       ],
       "symptom": "Servers missing from browser results",
-      "official_position": "The September 25 update identifies the per-search session limit and investigation into combining targeted searches. October 1 separately announces higher-population ordering for Patch 1.6. Neither announcement confirms that all servers will become discoverable.",
+      "official_position": "Server ordering and a particular false-empty result are distinct from complete server discovery. Favourite persistence is separately tracked as HLLV-069.",
       "workaround": "Use narrower filters and favourite regular servers.",
       "known": [
         "The linked official evidence documents this issue.",
         "Higher-population ordering is planned for 1.6.",
-        "October 2 announcement: Patch 1.6 expected the following week."
+        "October 2 announcement: Patch 1.6 expected the following week.",
+        "October 7 release-note review: Records fuller-server ordering and a console sort-filter correction; does not confirm removal of the per-search session limit."
       ],
       "unknown": [
-        "Exact affected configurations and independent verification are not recorded."
+        "Exact affected configurations and independent verification are not recorded.",
+        "Independent gameplay verification of the Patch 1.6 outcome is not recorded."
       ],
       "timeline": [
         {
@@ -3697,6 +4605,11 @@
           "date": "2026-10-02",
           "event": "Patch 1.6 timing announcement",
           "detail": "The publisher expects 1.6 next week. This is scheduling evidence, not confirmation of this fix shipping."
+        },
+        {
+          "date": "2026-10-07",
+          "event": "Patch 1.6 released / evidence review",
+          "detail": "Records fuller-server ordering and a console sort-filter correction; does not confirm removal of the per-search session limit."
         }
       ],
       "sources": [
@@ -3706,7 +4619,23 @@
           "date": "2026-09-25",
           "title": "Community Feedback #5",
           "url": "https://www.hellletloose.com/blog/community-update-5",
-          "claim": "Documents the issue and stated status"
+          "claim": "Explains the 200-session search limit and investigation of combined targeted searches; recommends narrower filters.",
+          "claim_history": [
+            {
+              "recorded_claim": "Documents the issue and stated status",
+              "superseded_on": "2026-10-07",
+              "reason": "Re-read the publisher text and replace topic-only shorthand with a precise claim."
+            }
+          ],
+          "source_locator": "Server Browser & Server Visibility",
+          "source_reviewed_at": "2026-10-07",
+          "source_reviewed_via": "https://steamcommunity.com/app/3079210/allnews/",
+          "source_published_at": "2026-09-25",
+          "link_check": {
+            "date": "2026-10-07",
+            "http_status": 200
+          },
+          "link_checked_at": "2026-10-07"
         },
         {
           "type": "official update",
@@ -3714,7 +4643,23 @@
           "date": "2026-10-01",
           "title": "Community Feedback #6",
           "url": "https://www.hellletloose.com/blog/community-update-6",
-          "claim": "Server Browser ordering"
+          "claim": "Announces fuller-server ordering for Patch 1.6, separately from complete search coverage.",
+          "claim_history": [
+            {
+              "recorded_claim": "Server Browser ordering",
+              "superseded_on": "2026-10-07",
+              "reason": "Re-read the publisher text and replace topic-only shorthand with a precise claim."
+            }
+          ],
+          "source_locator": "Server Browser Improvements",
+          "source_reviewed_at": "2026-10-07",
+          "source_reviewed_via": "https://steamcommunity.com/app/3079210/allnews/",
+          "source_published_at": "2026-10-01",
+          "link_check": {
+            "date": "2026-10-07",
+            "http_status": 200
+          },
+          "link_checked_at": "2026-10-07"
         },
         {
           "type": "official update",
@@ -3722,36 +4667,60 @@
           "date": "2026-10-02",
           "title": "Update 1.5 & Patch 1.6 | Dev Update VLOG | Command Post",
           "url": "https://steamcommunity.com/gid/103582791475269461/announcements/detail/676259427855107286",
-          "claim": "Patch timing only; issue-specific scope comes from earlier sources."
+          "claim": "Patch timing only; issue-specific scope comes from earlier sources.",
+          "link_check": {
+            "date": "2026-10-07",
+            "http_status": 200
+          },
+          "link_checked_at": "2026-10-07"
+        },
+        {
+          "type": "patch notes",
+          "publisher": "Hell Let Loose / Team17",
+          "date": "2026-10-07",
+          "title": "Patch 1.6 | Live Now",
+          "url": "https://www.hellletloose.com/blog/hllv-patch-1-6",
+          "claim": "Records fuller-server ordering and a console sort-filter correction; does not confirm removal of the per-search session limit.",
+          "source_locator": "Enlist & Social",
+          "source_published_at": "2026-10-07",
+          "source_reviewed_at": "2026-10-07",
+          "source_reviewed_via": "https://steamcommunity.com/app/3079210/allnews/",
+          "link_checked_at": "2026-10-07",
+          "link_check": {
+            "date": "2026-10-07",
+            "http_status": 200
+          }
         }
       ],
-      "last_reviewed": "2026-10-05"
+      "last_reviewed": "2026-10-07"
     },
     {
       "id": "HLLV-060",
       "title": "DLSS Frame Generation needs reapplying",
       "category": "graphics",
       "kind": "settings activation defect",
-      "status_key": "testing",
-      "status_label": "Fix planned · not released",
-      "bottom_line": "Frame Generation may need reapplying after a restart. A candidate fix targets 1.6; final verification and release remain unconfirmed.",
-      "official_short": "Developer acknowledged",
-      "fix_short": "1.6 target; QA/release unconfirmed",
+      "status_key": "investigating",
+      "status_label": "Release status unconfirmed",
+      "bottom_line": "Patch 1.6 is live, but its published notes do not confirm the previously targeted Frame Generation activation fix.",
+      "official_short": "Earlier target; release unclear",
+      "fix_short": "Earlier 1.6 target unconfirmed",
       "cause_short": "Not public",
-      "last_updated": "2026-10-02",
+      "last_updated": "2026-10-07",
       "scope": [
         "PC",
         "NVIDIA"
       ],
       "symptom": "DLSS Frame Generation needs reapplying",
-      "official_position": "September 25 evidence describes a candidate awaiting final QA. The October 2 VLOG announcement places Patch 1.6 in the week of October 5, but does not independently confirm this particular fix shipped.",
+      "official_position": "The September 25 candidate remains historical planning evidence. No outcome is inferred from its omission in the final notes.",
       "workaround": "Reapply the selected Frame Generation setting.",
       "known": [
         "The linked official evidence documents this issue.",
-        "October 2 announcement: Patch 1.6 expected the following week."
+        "October 2 announcement: Patch 1.6 expected the following week.",
+        "October 7 release-note review: The reviewed final changelog does not explicitly confirm the earlier DLSS Frame Generation reapplication target."
       ],
       "unknown": [
-        "Exact affected configurations and independent verification are not recorded."
+        "Exact affected configurations and independent verification are not recorded.",
+        "Independent gameplay verification of the Patch 1.6 outcome is not recorded."
       ],
       "timeline": [
         {
@@ -3763,6 +4732,11 @@
           "date": "2026-10-02",
           "event": "Patch 1.6 timing announcement",
           "detail": "The publisher expects 1.6 next week. This is scheduling evidence, not confirmation of this fix shipping."
+        },
+        {
+          "date": "2026-10-07",
+          "event": "Patch 1.6 released / evidence review",
+          "detail": "The reviewed final changelog does not explicitly confirm the earlier DLSS Frame Generation reapplication target."
         }
       ],
       "sources": [
@@ -3772,7 +4746,23 @@
           "date": "2026-09-25",
           "title": "Community Feedback #5",
           "url": "https://www.hellletloose.com/blog/community-update-5",
-          "claim": "Documents the issue and stated status"
+          "claim": "Describes a candidate for activation after restart, targeted for 1.6 but still awaiting final QA at publication.",
+          "claim_history": [
+            {
+              "recorded_claim": "Documents the issue and stated status",
+              "superseded_on": "2026-10-07",
+              "reason": "Re-read the publisher text and replace topic-only shorthand with a precise claim."
+            }
+          ],
+          "source_locator": "DLSS Frame Generation",
+          "source_reviewed_at": "2026-10-07",
+          "source_reviewed_via": "https://steamcommunity.com/app/3079210/allnews/",
+          "source_published_at": "2026-09-25",
+          "link_check": {
+            "date": "2026-10-07",
+            "http_status": 200
+          },
+          "link_checked_at": "2026-10-07"
         },
         {
           "type": "official update",
@@ -3780,10 +4770,32 @@
           "date": "2026-10-02",
           "title": "Update 1.5 & Patch 1.6 | Dev Update VLOG | Command Post",
           "url": "https://steamcommunity.com/gid/103582791475269461/announcements/detail/676259427855107286",
-          "claim": "Patch timing only; issue-specific scope comes from earlier sources."
+          "claim": "Patch timing only; issue-specific scope comes from earlier sources.",
+          "link_check": {
+            "date": "2026-10-07",
+            "http_status": 200
+          },
+          "link_checked_at": "2026-10-07"
+        },
+        {
+          "type": "patch notes",
+          "publisher": "Hell Let Loose / Team17",
+          "date": "2026-10-07",
+          "title": "Patch 1.6 | Live Now",
+          "url": "https://www.hellletloose.com/blog/hllv-patch-1-6",
+          "claim": "The reviewed final changelog does not explicitly confirm the earlier DLSS Frame Generation reapplication target.",
+          "source_locator": "Full Patch 1.6 Changelog",
+          "source_published_at": "2026-10-07",
+          "source_reviewed_at": "2026-10-07",
+          "source_reviewed_via": "https://steamcommunity.com/app/3079210/allnews/",
+          "link_checked_at": "2026-10-07",
+          "link_check": {
+            "date": "2026-10-07",
+            "http_status": 200
+          }
         }
       ],
-      "last_reviewed": "2026-10-05"
+      "last_reviewed": "2026-10-07"
     },
     {
       "id": "HLLV-061",
@@ -3791,24 +4803,26 @@
       "category": "voip",
       "kind": "volume-control defect",
       "status_key": "investigating",
-      "status_label": "Under investigation",
-      "bottom_line": "Volume-control correction targets 1.7, possibly sooner.",
+      "status_label": "Volume fix still unconfirmed",
+      "bottom_line": "Patch 1.6 reworks battlefield audio, but does not document a voice-volume slider fix. The last explicit target remains Patch 1.7, possibly sooner.",
       "official_short": "Developer acknowledged",
-      "fix_short": "Patch 1.7 target",
+      "fix_short": "1.7 target; release unconfirmed",
       "cause_short": "Not public",
-      "last_updated": "2026-10-02",
+      "last_updated": "2026-10-07",
       "scope": [
         "Voice Chat"
       ],
       "symptom": "Voice volume stays excessively loud",
-      "official_position": "On October 1 the developers targeted Patch 1.7 for the voice-volume correction, with an earlier release possible. No released correction was verified in this review. The October 1-2 player replies are separate evidence that file verification did not help those reporters.",
+      "official_position": "Weapon sound changes are not evidence that excessively loud player voices have been corrected.",
       "workaround": null,
       "known": [
-        "The linked official evidence documents this issue."
+        "The linked official evidence documents this issue.",
+        "October 7 release-note review: The audio overhaul covers weapons, spawns and ambience; a voice-volume slider correction is not stated."
       ],
       "unknown": [
         "Release timing is provisional; this is separate from silent muting (HLLV-029).",
-        "No new developer confirmation of a shipped volume fix was found in the reviewed thread."
+        "No new developer confirmation of a shipped volume fix was found in the reviewed thread.",
+        "Independent gameplay verification of the Patch 1.6 outcome is not recorded."
       ],
       "timeline": [
         {
@@ -3820,6 +4834,11 @@
           "date": "2026-10-02",
           "event": "Player report",
           "detail": "October 1–2 replies report that file verification did not resolve the volume problem. Earlier support advice is not a confirmed fix."
+        },
+        {
+          "date": "2026-10-07",
+          "event": "Patch 1.6 released / evidence review",
+          "detail": "The audio overhaul covers weapons, spawns and ambience; a voice-volume slider correction is not stated."
         }
       ],
       "sources": [
@@ -3829,7 +4848,23 @@
           "date": "2026-10-01",
           "title": "Community Feedback #6",
           "url": "https://www.hellletloose.com/blog/community-update-6",
-          "claim": "Documents the issue and stated status"
+          "claim": "Acknowledges excessive player-voice volume despite reduced settings; targets 1.7, possibly earlier.",
+          "claim_history": [
+            {
+              "recorded_claim": "Documents the issue and stated status",
+              "superseded_on": "2026-10-07",
+              "reason": "Re-read the publisher text and replace topic-only shorthand with a precise claim."
+            }
+          ],
+          "source_locator": "VOIP, Voice Volume & Audio Routing",
+          "source_reviewed_at": "2026-10-07",
+          "source_reviewed_via": "https://steamcommunity.com/app/3079210/allnews/",
+          "source_published_at": "2026-10-01",
+          "link_check": {
+            "date": "2026-10-07",
+            "http_status": 200
+          },
+          "link_checked_at": "2026-10-07"
         },
         {
           "type": "player report",
@@ -3837,10 +4872,32 @@
           "date": "2026-10-02",
           "title": "VOIP Volume Sliders",
           "url": "https://steamcommunity.com/app/3079210/discussions/1/562542339336314254/",
-          "claim": "Continuing player complaints; no new developer release confirmation."
+          "claim": "Continuing player complaints; no new developer release confirmation.",
+          "link_check": {
+            "date": "2026-10-07",
+            "http_status": 200
+          },
+          "link_checked_at": "2026-10-07"
+        },
+        {
+          "type": "patch notes",
+          "publisher": "Hell Let Loose / Team17",
+          "date": "2026-10-07",
+          "title": "Patch 1.6 | Live Now",
+          "url": "https://www.hellletloose.com/blog/hllv-patch-1-6",
+          "claim": "The audio overhaul covers weapons, spawns and ambience; a voice-volume slider correction is not stated.",
+          "source_locator": "Audio Update; Full Patch 1.6 Changelog",
+          "source_published_at": "2026-10-07",
+          "source_reviewed_at": "2026-10-07",
+          "source_reviewed_via": "https://steamcommunity.com/app/3079210/allnews/",
+          "link_checked_at": "2026-10-07",
+          "link_check": {
+            "date": "2026-10-07",
+            "http_status": 200
+          }
         }
       ],
-      "last_reviewed": "2026-10-05"
+      "last_reviewed": "2026-10-07"
     },
     {
       "id": "HLLV-062",
@@ -3848,29 +4905,36 @@
       "category": "vehicles",
       "kind": "spawn usability issue",
       "status_key": "investigating",
-      "status_label": "Under investigation",
-      "bottom_line": "A boat with its engine running cannot be used as a spawn point. Automatic shutdown is being considered; no release date is confirmed.",
+      "status_label": "Automatic shutdown unconfirmed",
+      "bottom_line": "Patch 1.6 fixes idle-boat destruction when spawning is enabled, but does not announce automatic engine shutdown for abandoned boats.",
       "official_short": "Developer acknowledged",
-      "fix_short": "No release confirmed",
+      "fix_short": "Automatic shutdown not confirmed",
       "cause_short": "Not public",
-      "last_updated": "2026-10-01",
+      "last_updated": "2026-10-07",
       "scope": [
         "transport boats"
       ],
       "symptom": "Running boat engines prevent spawning",
-      "official_position": "The October 1 update identifies abandoned running engines as a spawn-usability problem. Shutdown on exit or after an idle period are proposals being tested, not shipped features and not evidence of a replication failure.",
+      "official_position": "The idle-destruction fix is HLLV-068. It does not establish a change to the engine-running spawn restriction discussed on October 1.",
       "workaround": "Switch the transport boat engine off before leaving it so it can be used as a spawn point. This does not resolve unrelated ghost-boat or replication failures.",
       "known": [
-        "The linked official evidence documents this issue."
+        "The linked official evidence documents this issue.",
+        "October 7 release-note review: Records an idle-boat destruction fix, not the proposed automatic engine shutdown."
       ],
       "unknown": [
-        "This is a usability problem, not evidence of a replication failure."
+        "This is a usability problem, not evidence of a replication failure.",
+        "Independent gameplay verification of the Patch 1.6 outcome is not recorded."
       ],
       "timeline": [
         {
           "date": "2026-10-01",
           "event": "Community Feedback #6",
           "detail": "Publisher documents this issue and its stated status."
+        },
+        {
+          "date": "2026-10-07",
+          "event": "Patch 1.6 released / evidence review",
+          "detail": "Records an idle-boat destruction fix, not the proposed automatic engine shutdown."
         }
       ],
       "sources": [
@@ -3880,35 +4944,70 @@
           "date": "2026-10-01",
           "title": "Community Feedback #6",
           "url": "https://www.hellletloose.com/blog/community-update-6",
-          "claim": "Documents the issue and stated status"
+          "claim": "Discusses automatic shutdown on exit or after idling as proposals to address abandoned running engines blocking spawns.",
+          "claim_history": [
+            {
+              "recorded_claim": "Documents the issue and stated status",
+              "superseded_on": "2026-10-07",
+              "reason": "Re-read the publisher text and replace topic-only shorthand with a precise claim."
+            }
+          ],
+          "source_locator": "Boats & Spawn Protection",
+          "source_reviewed_at": "2026-10-07",
+          "source_reviewed_via": "https://steamcommunity.com/app/3079210/allnews/",
+          "source_published_at": "2026-10-01",
+          "link_check": {
+            "date": "2026-10-07",
+            "http_status": 200
+          },
+          "link_checked_at": "2026-10-07"
+        },
+        {
+          "type": "patch notes",
+          "publisher": "Hell Let Loose / Team17",
+          "date": "2026-10-07",
+          "title": "Patch 1.6 | Live Now",
+          "url": "https://www.hellletloose.com/blog/hllv-patch-1-6",
+          "claim": "Records an idle-boat destruction fix, not the proposed automatic engine shutdown.",
+          "source_locator": "Vehicles",
+          "source_published_at": "2026-10-07",
+          "source_reviewed_at": "2026-10-07",
+          "source_reviewed_via": "https://steamcommunity.com/app/3079210/allnews/",
+          "link_checked_at": "2026-10-07",
+          "link_check": {
+            "date": "2026-10-07",
+            "http_status": 200
+          }
         }
       ],
-      "last_reviewed": "2026-10-05"
+      "last_reviewed": "2026-10-07"
     },
     {
       "id": "HLLV-063",
       "title": "Vote Kick visibility and response time",
       "category": "community-server",
       "kind": "moderation usability issue",
-      "status_key": "testing",
-      "status_label": "Fix planned · not released",
-      "bottom_line": "Patch 1.6 is planned to show Vote Kick notifications by default and give players 30 seconds to respond. These changes are not yet verified as released.",
-      "official_short": "Developer acknowledged",
-      "fix_short": "Patch 1.6 planned",
+      "status_key": "shipped",
+      "status_label": "Changes released in 1.6",
+      "bottom_line": "Patch 1.6 makes Vote Kick notifications visible by default and sets a 30-second response window.",
+      "official_short": "Release documented",
+      "fix_short": "Patch 1.6",
       "cause_short": "Not public",
-      "last_updated": "2026-10-02",
+      "last_updated": "2026-10-07",
       "scope": [
         "Vote Kick"
       ],
       "symptom": "Vote Kick visibility and response time",
-      "official_position": "The October 1 update announces the notification and 30-second response changes for 1.6. Its two descriptions of the previous timeout disagree, so only the new target is recorded. October 2 scheduling is not a release confirmation.",
+      "official_position": "The final notes specify the previous window as 15 seconds. This resolves the earlier announcement wording discrepancy for this release record, not all moderation problems.",
       "workaround": null,
       "known": [
         "The linked official evidence documents this issue.",
-        "October 2 announcement: Patch 1.6 expected the following week."
+        "October 2 announcement: Patch 1.6 expected the following week.",
+        "October 7 release-note review: Confirms default-visible Vote Kick notifications and a response-window increase from 15 to 30 seconds."
       ],
       "unknown": [
-        "The announcement inconsistently describes the old timeout; only its new target is recorded."
+        "The announcement inconsistently describes the old timeout; only its new target is recorded.",
+        "Independent gameplay verification of the Patch 1.6 outcome is not recorded."
       ],
       "timeline": [
         {
@@ -3920,6 +5019,11 @@
           "date": "2026-10-02",
           "event": "Patch 1.6 timing announcement",
           "detail": "The publisher expects 1.6 next week. This is scheduling evidence, not confirmation of this fix shipping."
+        },
+        {
+          "date": "2026-10-07",
+          "event": "Patch 1.6 released / evidence review",
+          "detail": "Confirms default-visible Vote Kick notifications and a response-window increase from 15 to 30 seconds."
         }
       ],
       "sources": [
@@ -3929,7 +5033,23 @@
           "date": "2026-10-01",
           "title": "Community Feedback #6",
           "url": "https://www.hellletloose.com/blog/community-update-6",
-          "claim": "Documents the issue and stated status"
+          "claim": "Announces visible notifications and a 30-second vote window for 1.6; its two descriptions of the previous duration disagree.",
+          "claim_history": [
+            {
+              "recorded_claim": "Documents the issue and stated status",
+              "superseded_on": "2026-10-07",
+              "reason": "Re-read the publisher text and replace topic-only shorthand with a precise claim."
+            }
+          ],
+          "source_locator": "Vote Kick & Moderation; Next Up",
+          "source_reviewed_at": "2026-10-07",
+          "source_reviewed_via": "https://steamcommunity.com/app/3079210/allnews/",
+          "source_published_at": "2026-10-01",
+          "link_check": {
+            "date": "2026-10-07",
+            "http_status": 200
+          },
+          "link_checked_at": "2026-10-07"
         },
         {
           "type": "official update",
@@ -3937,10 +5057,32 @@
           "date": "2026-10-02",
           "title": "Update 1.5 & Patch 1.6 | Dev Update VLOG | Command Post",
           "url": "https://steamcommunity.com/gid/103582791475269461/announcements/detail/676259427855107286",
-          "claim": "Patch timing only; issue-specific scope comes from earlier sources."
+          "claim": "Patch timing only; issue-specific scope comes from earlier sources.",
+          "link_check": {
+            "date": "2026-10-07",
+            "http_status": 200
+          },
+          "link_checked_at": "2026-10-07"
+        },
+        {
+          "type": "patch notes",
+          "publisher": "Hell Let Loose / Team17",
+          "date": "2026-10-07",
+          "title": "Patch 1.6 | Live Now",
+          "url": "https://www.hellletloose.com/blog/hllv-patch-1-6",
+          "claim": "Confirms default-visible Vote Kick notifications and a response-window increase from 15 to 30 seconds.",
+          "source_locator": "UI, HUD & Settings",
+          "source_published_at": "2026-10-07",
+          "source_reviewed_at": "2026-10-07",
+          "source_reviewed_via": "https://steamcommunity.com/app/3079210/allnews/",
+          "link_checked_at": "2026-10-07",
+          "link_check": {
+            "date": "2026-10-07",
+            "http_status": 200
+          }
         }
       ],
-      "last_reviewed": "2026-10-05"
+      "last_reviewed": "2026-10-07"
     },
     {
       "id": "HLLV-064",
@@ -3948,29 +5090,36 @@
       "category": "gameplay",
       "kind": "weapon usability issue",
       "status_key": "investigating",
-      "status_label": "Under investigation",
-      "bottom_line": "Deployment, elevation and forced aiming remain under review.",
+      "status_label": "Broader usability work open",
+      "bottom_line": "Patch 1.6 corrects sensitivity for vehicle-mounted guns. It does not confirm resolution of infantry MG placement, elevation or forced-aiming complaints.",
       "official_short": "Developer acknowledged",
-      "fix_short": "No release target confirmed",
+      "fix_short": "Broad MG usability fix unconfirmed",
       "cause_short": "Not public",
-      "last_updated": "2026-10-01",
+      "last_updated": "2026-10-07",
       "scope": [
         "mounted machine guns"
       ],
       "symptom": "Mounted MG deployment and aiming difficulties",
-      "official_position": "Acknowledgement does not establish a released correction.",
+      "official_position": "The released sensitivity issue is recorded separately as HLLV-067.",
       "workaround": null,
       "known": [
-        "The linked official evidence documents this issue."
+        "The linked official evidence documents this issue.",
+        "October 7 release-note review: Documents a vehicle-mounted gun sensitivity correction; broader infantry MG deployment/elevation complaints are not closed."
       ],
       "unknown": [
-        "Earlier movement-smoothing fixes (HLLV-049) do not establish resolution of these interaction complaints."
+        "Earlier movement-smoothing fixes (HLLV-049) do not establish resolution of these interaction complaints.",
+        "Independent gameplay verification of the Patch 1.6 outcome is not recorded."
       ],
       "timeline": [
         {
           "date": "2026-10-01",
           "event": "Community Feedback #6",
           "detail": "Publisher documents this issue and its stated status."
+        },
+        {
+          "date": "2026-10-07",
+          "event": "Patch 1.6 released / evidence review",
+          "detail": "Documents a vehicle-mounted gun sensitivity correction; broader infantry MG deployment/elevation complaints are not closed."
         }
       ],
       "sources": [
@@ -3980,10 +5129,43 @@
           "date": "2026-10-01",
           "title": "Community Feedback #6",
           "url": "https://www.hellletloose.com/blog/community-update-6",
-          "claim": "Documents the issue and stated status"
+          "claim": "Acknowledges deployment, elevation and forced-aiming usability complaints; promises future work without a release target.",
+          "claim_history": [
+            {
+              "recorded_claim": "Documents the issue and stated status",
+              "superseded_on": "2026-10-07",
+              "reason": "Re-read the publisher text and replace topic-only shorthand with a precise claim."
+            }
+          ],
+          "source_locator": "Quality-of-Life Feedback / Mounted Machine Guns",
+          "source_reviewed_at": "2026-10-07",
+          "source_reviewed_via": "https://steamcommunity.com/app/3079210/allnews/",
+          "source_published_at": "2026-10-01",
+          "link_check": {
+            "date": "2026-10-07",
+            "http_status": 200
+          },
+          "link_checked_at": "2026-10-07"
+        },
+        {
+          "type": "patch notes",
+          "publisher": "Hell Let Loose / Team17",
+          "date": "2026-10-07",
+          "title": "Patch 1.6 | Live Now",
+          "url": "https://www.hellletloose.com/blog/hllv-patch-1-6",
+          "claim": "Documents a vehicle-mounted gun sensitivity correction; broader infantry MG deployment/elevation complaints are not closed.",
+          "source_locator": "Gameplay",
+          "source_published_at": "2026-10-07",
+          "source_reviewed_at": "2026-10-07",
+          "source_reviewed_via": "https://steamcommunity.com/app/3079210/allnews/",
+          "link_checked_at": "2026-10-07",
+          "link_check": {
+            "date": "2026-10-07",
+            "http_status": 200
+          }
         }
       ],
-      "last_reviewed": "2026-10-05"
+      "last_reviewed": "2026-10-07"
     },
     {
       "id": "HLLV-065",
@@ -4026,7 +5208,12 @@
           "date": "2026-10-02",
           "title": "boat engine interaction stuttering",
           "url": "https://steamcommunity.com/app/3079210/discussions/1/590691034935315590/",
-          "claim": "Player-supplied sequence and suggested workaround; not independently reproduced."
+          "claim": "Player-supplied sequence and suggested workaround; not independently reproduced.",
+          "link_check": {
+            "date": "2026-10-07",
+            "http_status": 200
+          },
+          "link_checked_at": "2026-10-07"
         }
       ]
     },
@@ -4069,7 +5256,499 @@
           "date": "2026-10-02",
           "title": "STILL spawning in locked areas",
           "url": "https://steamcommunity.com/app/3079210/discussions/1/590691034935311372/",
-          "claim": "Player-described trapped spawns; no confirmed cause."
+          "claim": "Player-described trapped spawns; no confirmed cause.",
+          "link_check": {
+            "date": "2026-10-07",
+            "http_status": 200
+          },
+          "link_checked_at": "2026-10-07"
+        }
+      ]
+    },
+    {
+      "id": "HLLV-067",
+      "title": "Mounted vehicle guns used the wrong aiming sensitivity",
+      "category": "controls",
+      "kind": "publisher-documented defect",
+      "status_key": "shipped",
+      "status_label": "Fix released in 1.6",
+      "bottom_line": "Patch 1.6: Mounted-gun aiming now uses ADS sensitivity. Independent outcome testing is not recorded.",
+      "official_short": "Release documented",
+      "fix_short": "Patch 1.6",
+      "cause_short": "Not public",
+      "last_updated": "2026-10-07",
+      "last_reviewed": "2026-10-07",
+      "scope": [
+        "Helicopters",
+        "boats",
+        "AA guns"
+      ],
+      "symptom": "Helicopter, boat and AA mounted-gun aiming could use look sensitivity instead of the ADS setting.",
+      "official_position": "The publisher lists this correction in the released changelog. This records the announced change, not independent reproduction or proof of universal resolution.",
+      "workaround": null,
+      "known": [
+        "Mounted-gun aiming now uses ADS sensitivity."
+      ],
+      "unknown": [
+        "Independent post-release verification is not recorded.",
+        "The internal technical cause is not established by this changelog."
+      ],
+      "timeline": [
+        {
+          "date": "2026-10-07",
+          "event": "Patch 1.6 released",
+          "detail": "Mounted-gun aiming now uses ADS sensitivity."
+        }
+      ],
+      "sources": [
+        {
+          "type": "patch notes",
+          "publisher": "Hell Let Loose / Team17",
+          "date": "2026-10-07",
+          "title": "Patch 1.6 | Live Now",
+          "url": "https://www.hellletloose.com/blog/hllv-patch-1-6",
+          "claim": "Mounted-gun aiming now uses ADS sensitivity.",
+          "source_locator": "Gameplay",
+          "source_published_at": "2026-10-07",
+          "source_reviewed_at": "2026-10-07",
+          "source_reviewed_via": "https://steamcommunity.com/app/3079210/allnews/",
+          "link_checked_at": "2026-10-07",
+          "link_check": {
+            "date": "2026-10-07",
+            "http_status": 200
+          }
+        }
+      ]
+    },
+    {
+      "id": "HLLV-068",
+      "title": "Idle boats self-destructed with spawning enabled",
+      "category": "vehicles",
+      "kind": "publisher-documented defect",
+      "status_key": "shipped",
+      "status_label": "Fix released in 1.6",
+      "bottom_line": "Patch 1.6: Prevents idle-boat destruction while its spawn point is enabled. Independent outcome testing is not recorded.",
+      "official_short": "Release documented",
+      "fix_short": "Patch 1.6",
+      "cause_short": "Not public",
+      "last_updated": "2026-10-07",
+      "last_reviewed": "2026-10-07",
+      "scope": [
+        "Boats",
+        "enabled spawn points"
+      ],
+      "symptom": "An idle boat could be destroyed after ten minutes even when its spawn point was enabled.",
+      "official_position": "The publisher lists this correction in the released changelog. This records the announced change, not independent reproduction or proof of universal resolution.",
+      "workaround": null,
+      "known": [
+        "Prevents idle-boat destruction while its spawn point is enabled."
+      ],
+      "unknown": [
+        "Independent post-release verification is not recorded.",
+        "The internal technical cause is not established by this changelog."
+      ],
+      "timeline": [
+        {
+          "date": "2026-10-07",
+          "event": "Patch 1.6 released",
+          "detail": "Prevents idle-boat destruction while its spawn point is enabled."
+        }
+      ],
+      "sources": [
+        {
+          "type": "patch notes",
+          "publisher": "Hell Let Loose / Team17",
+          "date": "2026-10-07",
+          "title": "Patch 1.6 | Live Now",
+          "url": "https://www.hellletloose.com/blog/hllv-patch-1-6",
+          "claim": "Prevents idle-boat destruction while its spawn point is enabled.",
+          "source_locator": "Vehicles",
+          "source_published_at": "2026-10-07",
+          "source_reviewed_at": "2026-10-07",
+          "source_reviewed_via": "https://steamcommunity.com/app/3079210/allnews/",
+          "link_checked_at": "2026-10-07",
+          "link_check": {
+            "date": "2026-10-07",
+            "http_status": 200
+          }
+        }
+      ]
+    },
+    {
+      "id": "HLLV-069",
+      "title": "Favourite servers failed to save or targeted the wrong server",
+      "category": "community-server",
+      "kind": "publisher-documented defect",
+      "status_key": "shipped",
+      "status_label": "Fix released in 1.6",
+      "bottom_line": "Patch 1.6: Corrects favourite persistence and server targeting. Independent outcome testing is not recorded.",
+      "official_short": "Release documented",
+      "fix_short": "Patch 1.6",
+      "cause_short": "Not public",
+      "last_updated": "2026-10-07",
+      "last_reviewed": "2026-10-07",
+      "scope": [
+        "Server Browser",
+        "favourites"
+      ],
+      "symptom": "Saved favourites could fail to persist or select an unintended server.",
+      "official_position": "The publisher lists this correction in the released changelog. This records the announced change, not independent reproduction or proof of universal resolution.",
+      "workaround": null,
+      "known": [
+        "Corrects favourite persistence and server targeting."
+      ],
+      "unknown": [
+        "Independent post-release verification is not recorded.",
+        "The internal technical cause is not established by this changelog."
+      ],
+      "timeline": [
+        {
+          "date": "2026-10-07",
+          "event": "Patch 1.6 released",
+          "detail": "Corrects favourite persistence and server targeting."
+        }
+      ],
+      "sources": [
+        {
+          "type": "patch notes",
+          "publisher": "Hell Let Loose / Team17",
+          "date": "2026-10-07",
+          "title": "Patch 1.6 | Live Now",
+          "url": "https://www.hellletloose.com/blog/hllv-patch-1-6",
+          "claim": "Corrects favourite persistence and server targeting.",
+          "source_locator": "Enlist & Social",
+          "source_published_at": "2026-10-07",
+          "source_reviewed_at": "2026-10-07",
+          "source_reviewed_via": "https://steamcommunity.com/app/3079210/allnews/",
+          "link_checked_at": "2026-10-07",
+          "link_check": {
+            "date": "2026-10-07",
+            "http_status": 200
+          }
+        }
+      ]
+    },
+    {
+      "id": "HLLV-070",
+      "title": "Admin Camera view, input and HUD transitions",
+      "category": "controls",
+      "kind": "documented spectator issue family",
+      "status_key": "shipped",
+      "status_label": "Fix released in 1.6",
+      "bottom_line": "Patch 1.6: Lists camera-position, keybinding and HUD-restoration corrections for the documented spectator cases. Independent outcome testing is not recorded.",
+      "official_short": "Release documented",
+      "fix_short": "Patch 1.6",
+      "cause_short": "Not public",
+      "last_updated": "2026-10-07",
+      "last_reviewed": "2026-10-07",
+      "scope": [
+        "Admin Camera",
+        "spectator tools"
+      ],
+      "symptom": "Spectator views could use incorrect positions, conflicting inputs or fail to restore the HUD.",
+      "official_position": "The publisher lists this correction in the released changelog. This records the announced change, not independent reproduction or proof of universal resolution.",
+      "workaround": null,
+      "known": [
+        "Lists camera-position, keybinding and HUD-restoration corrections for the documented spectator cases."
+      ],
+      "unknown": [
+        "Independent post-release verification is not recorded.",
+        "The internal technical cause is not established by this changelog."
+      ],
+      "timeline": [
+        {
+          "date": "2026-10-07",
+          "event": "Patch 1.6 released",
+          "detail": "Lists camera-position, keybinding and HUD-restoration corrections for the documented spectator cases."
+        }
+      ],
+      "sources": [
+        {
+          "type": "patch notes",
+          "publisher": "Hell Let Loose / Team17",
+          "date": "2026-10-07",
+          "title": "Patch 1.6 | Live Now",
+          "url": "https://www.hellletloose.com/blog/hllv-patch-1-6",
+          "claim": "Lists camera-position, keybinding and HUD-restoration corrections for the documented spectator cases.",
+          "source_locator": "Admin Camera",
+          "source_published_at": "2026-10-07",
+          "source_reviewed_at": "2026-10-07",
+          "source_reviewed_via": "https://steamcommunity.com/app/3079210/allnews/",
+          "link_checked_at": "2026-10-07",
+          "link_check": {
+            "date": "2026-10-07",
+            "http_status": 200
+          }
+        }
+      ]
+    },
+    {
+      "id": "HLLV-071",
+      "title": "Some artillery strikes failed to hit",
+      "category": "gameplay",
+      "kind": "publisher-documented defect",
+      "status_key": "shipped",
+      "status_label": "Fix released in 1.6",
+      "bottom_line": "Patch 1.6: Records a correction for some artillery strikes failing to hit. Independent outcome testing is not recorded.",
+      "official_short": "Release documented",
+      "fix_short": "Patch 1.6",
+      "cause_short": "Not public",
+      "last_updated": "2026-10-07",
+      "last_reviewed": "2026-10-07",
+      "scope": [
+        "Commander artillery"
+      ],
+      "symptom": "Certain artillery strikes could fail to hit their intended area.",
+      "official_position": "The publisher lists this correction in the released changelog. This records the announced change, not independent reproduction or proof of universal resolution.",
+      "workaround": null,
+      "known": [
+        "Records a correction for some artillery strikes failing to hit."
+      ],
+      "unknown": [
+        "Independent post-release verification is not recorded.",
+        "The internal technical cause is not established by this changelog."
+      ],
+      "timeline": [
+        {
+          "date": "2026-10-07",
+          "event": "Patch 1.6 released",
+          "detail": "Records a correction for some artillery strikes failing to hit."
+        }
+      ],
+      "sources": [
+        {
+          "type": "patch notes",
+          "publisher": "Hell Let Loose / Team17",
+          "date": "2026-10-07",
+          "title": "Patch 1.6 | Live Now",
+          "url": "https://www.hellletloose.com/blog/hllv-patch-1-6",
+          "claim": "Records a correction for some artillery strikes failing to hit.",
+          "source_locator": "Tactical Map",
+          "source_published_at": "2026-10-07",
+          "source_reviewed_at": "2026-10-07",
+          "source_reviewed_via": "https://steamcommunity.com/app/3079210/allnews/",
+          "link_checked_at": "2026-10-07",
+          "link_check": {
+            "date": "2026-10-07",
+            "http_status": 200
+          }
+        }
+      ]
+    },
+    {
+      "id": "HLLV-072",
+      "title": "Demolition charges failed to activate on buildables",
+      "category": "gameplay",
+      "kind": "publisher-documented defect",
+      "status_key": "shipped",
+      "status_label": "Fix released in 1.6",
+      "bottom_line": "Patch 1.6: Corrects charge activation on constructable items. Independent outcome testing is not recorded.",
+      "official_short": "Release documented",
+      "fix_short": "Patch 1.6",
+      "cause_short": "Not public",
+      "last_updated": "2026-10-07",
+      "last_reviewed": "2026-10-07",
+      "scope": [
+        "M183",
+        "NVA Satchel",
+        "constructables"
+      ],
+      "symptom": "The US demolition charge or NVA satchel could fail to activate on a constructable item.",
+      "official_position": "The publisher lists this correction in the released changelog. This records the announced change, not independent reproduction or proof of universal resolution.",
+      "workaround": null,
+      "known": [
+        "Corrects charge activation on constructable items."
+      ],
+      "unknown": [
+        "Independent post-release verification is not recorded.",
+        "The internal technical cause is not established by this changelog."
+      ],
+      "timeline": [
+        {
+          "date": "2026-10-07",
+          "event": "Patch 1.6 released",
+          "detail": "Corrects charge activation on constructable items."
+        }
+      ],
+      "sources": [
+        {
+          "type": "patch notes",
+          "publisher": "Hell Let Loose / Team17",
+          "date": "2026-10-07",
+          "title": "Patch 1.6 | Live Now",
+          "url": "https://www.hellletloose.com/blog/hllv-patch-1-6",
+          "claim": "Corrects charge activation on constructable items.",
+          "source_locator": "Weapons & Equipment",
+          "source_published_at": "2026-10-07",
+          "source_reviewed_at": "2026-10-07",
+          "source_reviewed_via": "https://steamcommunity.com/app/3079210/allnews/",
+          "link_checked_at": "2026-10-07",
+          "link_check": {
+            "date": "2026-10-07",
+            "http_status": 200
+          }
+        }
+      ]
+    },
+    {
+      "id": "HLLV-073",
+      "title": "Helicopter guns could not be topped up before empty",
+      "category": "vehicles",
+      "kind": "publisher-documented defect",
+      "status_key": "shipped",
+      "status_label": "Fix released in 1.6",
+      "bottom_line": "Patch 1.6: Allows helicopter-gun resupply before ammunition is completely depleted. Independent outcome testing is not recorded.",
+      "official_short": "Release documented",
+      "fix_short": "Patch 1.6",
+      "cause_short": "Not public",
+      "last_updated": "2026-10-07",
+      "last_reviewed": "2026-10-07",
+      "scope": [
+        "Helicopter guns",
+        "resupply"
+      ],
+      "symptom": "Helicopter guns could refuse resupply until fully depleted.",
+      "official_position": "The publisher lists this correction in the released changelog. This records the announced change, not independent reproduction or proof of universal resolution.",
+      "workaround": null,
+      "known": [
+        "Allows helicopter-gun resupply before ammunition is completely depleted."
+      ],
+      "unknown": [
+        "Independent post-release verification is not recorded.",
+        "The internal technical cause is not established by this changelog."
+      ],
+      "timeline": [
+        {
+          "date": "2026-10-07",
+          "event": "Patch 1.6 released",
+          "detail": "Allows helicopter-gun resupply before ammunition is completely depleted."
+        }
+      ],
+      "sources": [
+        {
+          "type": "patch notes",
+          "publisher": "Hell Let Loose / Team17",
+          "date": "2026-10-07",
+          "title": "Patch 1.6 | Live Now",
+          "url": "https://www.hellletloose.com/blog/hllv-patch-1-6",
+          "claim": "Allows helicopter-gun resupply before ammunition is completely depleted.",
+          "source_locator": "Vehicles",
+          "source_published_at": "2026-10-07",
+          "source_reviewed_at": "2026-10-07",
+          "source_reviewed_via": "https://steamcommunity.com/app/3079210/allnews/",
+          "link_checked_at": "2026-10-07",
+          "link_check": {
+            "date": "2026-10-07",
+            "http_status": 200
+          }
+        }
+      ]
+    },
+    {
+      "id": "HLLV-074",
+      "title": "Party queue members were counted again when checking space",
+      "category": "community-server",
+      "kind": "publisher-documented defect",
+      "status_key": "shipped",
+      "status_label": "Fix released in 1.6",
+      "bottom_line": "Patch 1.6: Excludes already-queued party members from the new join-space calculation. Independent outcome testing is not recorded.",
+      "official_short": "Release documented",
+      "fix_short": "Patch 1.6",
+      "cause_short": "Not public",
+      "last_updated": "2026-10-07",
+      "last_reviewed": "2026-10-07",
+      "scope": [
+        "Parties",
+        "server queues"
+      ],
+      "symptom": "Joining with a party could count members already queued during the remaining-space check.",
+      "official_position": "The publisher lists this correction in the released changelog. This records the announced change, not independent reproduction or proof of universal resolution.",
+      "workaround": null,
+      "known": [
+        "Excludes already-queued party members from the new join-space calculation."
+      ],
+      "unknown": [
+        "Independent post-release verification is not recorded.",
+        "The internal technical cause is not established by this changelog."
+      ],
+      "timeline": [
+        {
+          "date": "2026-10-07",
+          "event": "Patch 1.6 released",
+          "detail": "Excludes already-queued party members from the new join-space calculation."
+        }
+      ],
+      "sources": [
+        {
+          "type": "patch notes",
+          "publisher": "Hell Let Loose / Team17",
+          "date": "2026-10-07",
+          "title": "Patch 1.6 | Live Now",
+          "url": "https://www.hellletloose.com/blog/hllv-patch-1-6",
+          "claim": "Excludes already-queued party members from the new join-space calculation.",
+          "source_locator": "Enlist & Social",
+          "source_published_at": "2026-10-07",
+          "source_reviewed_at": "2026-10-07",
+          "source_reviewed_via": "https://steamcommunity.com/app/3079210/allnews/",
+          "link_checked_at": "2026-10-07",
+          "link_check": {
+            "date": "2026-10-07",
+            "http_status": 200
+          }
+        }
+      ]
+    },
+    {
+      "id": "HLLV-075",
+      "title": "Commander order timers lingered after effects began",
+      "category": "controls",
+      "kind": "publisher-documented defect",
+      "status_key": "shipped",
+      "status_label": "Fix released in 1.6",
+      "bottom_line": "Patch 1.6: Times each order overlay to finish as its effect begins. Independent outcome testing is not recorded.",
+      "official_short": "Release documented",
+      "fix_short": "Patch 1.6",
+      "cause_short": "Not public",
+      "last_updated": "2026-10-07",
+      "last_reviewed": "2026-10-07",
+      "scope": [
+        "Commander orders",
+        "Tactical Map"
+      ],
+      "symptom": "Order overlays could outlast the start of an ability and clutter the Tactical Map.",
+      "official_position": "The publisher lists this correction in the released changelog. This records the announced change, not independent reproduction or proof of universal resolution.",
+      "workaround": null,
+      "known": [
+        "Times each order overlay to finish as its effect begins."
+      ],
+      "unknown": [
+        "Independent post-release verification is not recorded.",
+        "The internal technical cause is not established by this changelog."
+      ],
+      "timeline": [
+        {
+          "date": "2026-10-07",
+          "event": "Patch 1.6 released",
+          "detail": "Times each order overlay to finish as its effect begins."
+        }
+      ],
+      "sources": [
+        {
+          "type": "patch notes",
+          "publisher": "Hell Let Loose / Team17",
+          "date": "2026-10-07",
+          "title": "Patch 1.6 | Live Now",
+          "url": "https://www.hellletloose.com/blog/hllv-patch-1-6",
+          "claim": "Times each order overlay to finish as its effect begins.",
+          "source_locator": "Commanders Orders",
+          "source_published_at": "2026-10-07",
+          "source_reviewed_at": "2026-10-07",
+          "source_reviewed_via": "https://steamcommunity.com/app/3079210/allnews/",
+          "link_checked_at": "2026-10-07",
+          "link_check": {
+            "date": "2026-10-07",
+            "http_status": 200
+          }
         }
       ]
     }
@@ -4084,7 +5763,7 @@
       "note": "Operational incidents remain separate from game issues until evidence establishes a relationship."
     }
   ],
-  "review_notes": "Source-link audit, October 5: corrected the verified Community Feedback #4 URL wherever reused. Replaced the generic Hotfix 1.5.1 feed link only if the exact announcement title and destination were verified. Other issue content and historical claims are unchanged. October 5 review: rechecked the official Steam announcements through the October 2 VLOG notice, September 29 Hotfix 1.5.2 and October 1 Community Feedback #6. Clarified stale server-family wording, current mitigations and planned-versus-released changes. No new gameplay fix or independent gameplay verification was established. Individual evidence dates and prior player reports remain unchanged unless newer evidence was added. This pass did not revalidate every historical player report. A review date is not proof an old bug persists. Equivalent source permalinks are changed only when their publisher title and accessibility are verified. Prior review: October 2 review: checked the official blog, current Steam announcements and six Steam support threads. Added the publisher's Patch 1.6 timing and dated player reports. A recent forum reply is not a new patch, reproduced defect, confirmed root cause or proof that a previous fix failed. The linked VLOG announcement text was reviewed; the video itself was not used as evidence. Original issue dates and history are retained. Reviewed the official September 25 Community Feedback #5, September 29 Hotfix 1.5.2 and October 1 Community Feedback #6 posts, using their full publisher text on Steam. Targets for 1.6, 1.7 and 2.0 are not release confirmations. Old reports retain their evidence dates unless new evidence applies. Similar symptoms do not establish a shared cause; SoulSniper incidents remain separate. No independent gameplay verification was performed. Prior review: Reviewed official releases through the September 22 live announcement. The website dates Hotfix 1.5.1 September 21; Steam announces it live September 22. Update 1.5 notes preceded its September 16 release. Older unresolved reports retain their evidence dates; absence from newer notes is not confirmation of persistence or resolution.",
+  "review_notes": "October 7: reviewed the published Patch 1.6 changelog and earlier publisher text for 21 precise citation clarifications. Promoted only explicitly released changes; preserved unresolved wider families and all old reports. No independent gameplay testing. Recent player-thread bodies were inaccessible in the research reader, so no new player confirmation is claimed. Previous notes: Source-link audit, October 5: corrected the verified Community Feedback #4 URL wherever reused. Replaced the generic Hotfix 1.5.1 feed link only if the exact announcement title and destination were verified. Other issue content and historical claims are unchanged. October 5 review: rechecked the official Steam announcements through the October 2 VLOG notice, September 29 Hotfix 1.5.2 and October 1 Community Feedback #6. Clarified stale server-family wording, current mitigations and planned-versus-released changes. No new gameplay fix or independent gameplay verification was established. Individual evidence dates and prior player reports remain unchanged unless newer evidence was added. This pass did not revalidate every historical player report. A review date is not proof an old bug persists. Equivalent source permalinks are changed only when their publisher title and accessibility are verified. Prior review: October 2 review: checked the official blog, current Steam announcements and six Steam support threads. Added the publisher's Patch 1.6 timing and dated player reports. A recent forum reply is not a new patch, reproduced defect, confirmed root cause or proof that a previous fix failed. The linked VLOG announcement text was reviewed; the video itself was not used as evidence. Original issue dates and history are retained. Reviewed the official September 25 Community Feedback #5, September 29 Hotfix 1.5.2 and October 1 Community Feedback #6 posts, using their full publisher text on Steam. Targets for 1.6, 1.7 and 2.0 are not release confirmations. Old reports retain their evidence dates unless new evidence applies. Similar symptoms do not establish a shared cause; SoulSniper incidents remain separate. No independent gameplay verification was performed. Prior review: Reviewed official releases through the September 22 live announcement. The website dates Hotfix 1.5.1 September 21; Steam announces it live September 22. Update 1.5 notes preceded its September 16 release. Older unresolved reports retain their evidence dates; absence from newer notes is not confirmation of persistence or resolution.",
   "source_link_review": {
     "date": "2026-10-05",
     "repaired_references": 9,
@@ -4150,5 +5829,287 @@
       }
     ],
     "method": "Verified source titles and HTTP responses. The earlier Steam API discovery did not produce replacements because official announcements were returned through external CDN redirects; no guessed URL was published."
+  },
+  "page_updated_at": "2026-10-07T13:07:56Z",
+  "review_release": "2026-10-07-patch-1.6",
+  "review_history": [
+    {
+      "date": "2026-10-07",
+      "scope": "Patch 1.6 publisher changelog; re-read Community Feedback #5/#6 and Hotfix 1.5.2 for 21 source-claim clarifications.",
+      "source_url": "https://www.hellletloose.com/blog/hllv-patch-1-6",
+      "new_issues": [
+        "HLLV-067",
+        "HLLV-068",
+        "HLLV-069",
+        "HLLV-070",
+        "HLLV-071",
+        "HLLV-072",
+        "HLLV-073",
+        "HLLV-074",
+        "HLLV-075"
+      ],
+      "updated_issues": [
+        "HLLV-003",
+        "HLLV-004",
+        "HLLV-007",
+        "HLLV-033",
+        "HLLV-057",
+        "HLLV-058",
+        "HLLV-059",
+        "HLLV-060",
+        "HLLV-061",
+        "HLLV-062",
+        "HLLV-063",
+        "HLLV-064"
+      ],
+      "independent_gameplay_testing": false,
+      "limitations": [
+        "Recent player threads could not be fully re-read in the research tool; their old reports and dates are retained without claiming new confirmation.",
+        "No absence from the patch notes is treated as proof of persistence.",
+        "No full audit of every older official source was performed."
+      ]
+    }
+  ],
+  "source_access_review": {
+    "date": "2026-10-07",
+    "results": {
+      "https://steamcommunity.com/app/3079210/discussions/1/562542339336314254/": {
+        "checked_at": "2026-10-07",
+        "http_status": 200,
+        "final_url": "https://steamcommunity.com/app/3079210/discussions/1/562542339336314254/",
+        "title": "VOIP Volume Sliders :: Hell Let Loose: Vietnam Report a Problem",
+        "scope": "URL accessibility only; not claim validation"
+      },
+      "https://steamcommunity.com/app/3079210/discussions/1/583932755647170244/": {
+        "checked_at": "2026-10-07",
+        "http_status": 200,
+        "final_url": "https://steamcommunity.com/app/3079210/discussions/1/583932755647170244/",
+        "title": "\"Ghost boats\" appearing that cant be spawned into or killed :: Hell Let Loose: Vietnam Report a Problem",
+        "scope": "URL accessibility only; not claim validation"
+      },
+      "https://steamcommunity.com/app/3079210/discussions/1/583932755647178248/": {
+        "checked_at": "2026-10-07",
+        "http_status": 200,
+        "final_url": "https://steamcommunity.com/app/3079210/discussions/1/583932755647178248/",
+        "title": "tutorial bugs :: Hell Let Loose: Vietnam Report a Problem",
+        "scope": "URL accessibility only; not claim validation"
+      },
+      "https://steamcommunity.com/app/3079210/discussions/1/583932755647220221/": {
+        "checked_at": "2026-10-07",
+        "http_status": 200,
+        "final_url": "https://steamcommunity.com/app/3079210/discussions/1/583932755647220221/",
+        "title": "Issue with Keyboard inputs on Helicopters :: Hell Let Loose: Vietnam Report a Problem",
+        "scope": "URL accessibility only; not claim validation"
+      },
+      "https://steamcommunity.com/app/3079210/discussions/1/583932755647245596/": {
+        "checked_at": "2026-10-07",
+        "http_status": 200,
+        "final_url": "https://steamcommunity.com/app/3079210/discussions/1/583932755647245596/",
+        "title": "Reload of Boat Guns Bugged :: Hell Let Loose: Vietnam Report a Problem",
+        "scope": "URL accessibility only; not claim validation"
+      },
+      "https://steamcommunity.com/app/3079210/discussions/1/583932755647329810/": {
+        "checked_at": "2026-10-07",
+        "http_status": 200,
+        "final_url": "https://steamcommunity.com/app/3079210/discussions/1/583932755647329810/",
+        "title": "Fix the Audio PLEASEEEEEEEE :: Hell Let Loose: Vietnam Report a Problem",
+        "scope": "URL accessibility only; not claim validation"
+      },
+      "https://steamcommunity.com/app/3079210/discussions/1/590687230526328326/": {
+        "checked_at": "2026-10-07",
+        "http_status": 200,
+        "final_url": "https://steamcommunity.com/app/3079210/discussions/1/590687230526328326/",
+        "title": "Key binding failure for pilot control :: Hell Let Loose: Vietnam Report a Problem",
+        "scope": "URL accessibility only; not claim validation"
+      },
+      "https://steamcommunity.com/app/3079210/discussions/1/590687230526492958/": {
+        "checked_at": "2026-10-07",
+        "http_status": 200,
+        "final_url": "https://steamcommunity.com/app/3079210/discussions/1/590687230526492958/",
+        "title": "Voice chat not working after update :: Hell Let Loose: Vietnam Report a Problem",
+        "scope": "URL accessibility only; not claim validation"
+      },
+      "https://steamcommunity.com/app/3079210/discussions/1/590691034935221629/": {
+        "checked_at": "2026-10-07",
+        "http_status": 200,
+        "final_url": "https://steamcommunity.com/app/3079210/discussions/1/590691034935221629/",
+        "title": "suppression causes game to freeze :: Hell Let Loose: Vietnam Report a Problem",
+        "scope": "URL accessibility only; not claim validation"
+      },
+      "https://steamcommunity.com/app/3079210/discussions/1/590691034935260366/": {
+        "checked_at": "2026-10-07",
+        "http_status": 200,
+        "final_url": "https://steamcommunity.com/app/3079210/discussions/1/590691034935260366/",
+        "title": "Impossible to save tutorial progress :: Hell Let Loose: Vietnam Report a Problem",
+        "scope": "URL accessibility only; not claim validation"
+      },
+      "https://steamcommunity.com/app/3079210/discussions/1/590691034935303773/": {
+        "checked_at": "2026-10-07",
+        "http_status": 200,
+        "final_url": "https://steamcommunity.com/app/3079210/discussions/1/590691034935303773/",
+        "title": "Tunnel icons not appearing resulting in unable to use tunnels :: Hell Let Loose: Vietnam Report a Problem",
+        "scope": "URL accessibility only; not claim validation"
+      },
+      "https://steamcommunity.com/app/3079210/discussions/1/590691034935311372/": {
+        "checked_at": "2026-10-07",
+        "http_status": 200,
+        "final_url": "https://steamcommunity.com/app/3079210/discussions/1/590691034935311372/",
+        "title": "STILL spawning in locked areas :: Hell Let Loose: Vietnam Report a Problem",
+        "scope": "URL accessibility only; not claim validation"
+      },
+      "https://steamcommunity.com/app/3079210/discussions/1/590691034935315590/": {
+        "checked_at": "2026-10-07",
+        "http_status": 200,
+        "final_url": "https://steamcommunity.com/app/3079210/discussions/1/590691034935315590/",
+        "title": "boat engine interaction stuttering :: Hell Let Loose: Vietnam Report a Problem",
+        "scope": "URL accessibility only; not claim validation"
+      },
+      "https://steamcommunity.com/app/3079210/discussions/1/631219091886191710/": {
+        "checked_at": "2026-10-07",
+        "http_status": 200,
+        "final_url": "https://steamcommunity.com/app/3079210/discussions/1/631219091886191710/",
+        "title": "White flash/Flicker :: Hell Let Loose: Vietnam Report a Problem",
+        "scope": "URL accessibility only; not claim validation"
+      },
+      "https://steamcommunity.com/app/3079210/discussions/1/631219091886213685/": {
+        "checked_at": "2026-10-07",
+        "http_status": 200,
+        "final_url": "https://steamcommunity.com/app/3079210/discussions/1/631219091886213685/",
+        "title": "Cannot shoot between fence boards or between chair or table legs :: Hell Let Loose: Vietnam Report a Problem",
+        "scope": "URL accessibility only; not claim validation"
+      },
+      "https://steamcommunity.com/app/3079210/discussions/1/631219394426598831/": {
+        "checked_at": "2026-10-07",
+        "http_status": 200,
+        "final_url": "https://steamcommunity.com/app/3079210/discussions/1/631219394426598831/",
+        "title": "Server side crashes :: Hell Let Loose: Vietnam Report a Problem",
+        "scope": "URL accessibility only; not claim validation"
+      },
+      "https://steamcommunity.com/app/3079210/discussions/1/663863457493431808/": {
+        "checked_at": "2026-10-07",
+        "http_status": 200,
+        "final_url": "https://steamcommunity.com/app/3079210/discussions/1/663863457493431808/",
+        "title": "game freezes when getting shot :: Hell Let Loose: Vietnam Report a Problem",
+        "scope": "URL accessibility only; not claim validation"
+      },
+      "https://steamcommunity.com/games/3079210/announcements/detail/684139458559214482": {
+        "checked_at": "2026-10-07",
+        "http_status": 200,
+        "final_url": "https://steamcommunity.com/games/3079210/announcements/detail/684139458559214482",
+        "title": "Steam :: Hell Let Loose: Vietnam :: Hotfix 1.5.1 | Live Now",
+        "scope": "URL accessibility only; not claim validation"
+      },
+      "https://steamcommunity.com/gid/103582791475269461/announcements/detail/676259427855107286": {
+        "checked_at": "2026-10-07",
+        "http_status": 200,
+        "final_url": "https://steamcommunity.com/games/3079210/announcements/detail/676259427855107286",
+        "title": "Steam :: Hell Let Loose: Vietnam :: Update 1.5 &amp; Patch 1.6 | Dev Update VLOG | Command Post",
+        "scope": "URL accessibility only; not claim validation"
+      },
+      "https://www.hellletloose.com/blog/5-before-launch": {
+        "checked_at": "2026-10-07",
+        "http_status": 200,
+        "final_url": "https://www.hellletloose.com/blog/5-before-launch",
+        "title": "Blog - Known Issues, Launch Time & More | Hell Let Loose: Vietnam | Hell Let Loose",
+        "scope": "URL accessibility only; not claim validation"
+      },
+      "https://www.hellletloose.com/blog/community-update-1": {
+        "checked_at": "2026-10-07",
+        "http_status": 200,
+        "final_url": "https://www.hellletloose.com/blog/community-update-1",
+        "title": "Blog - Community Update #1 | Command Post | Hell Let Loose: Vietnam | Hell Let Loose",
+        "scope": "URL accessibility only; not claim validation"
+      },
+      "https://www.hellletloose.com/blog/community-update-2": {
+        "checked_at": "2026-10-07",
+        "http_status": 200,
+        "final_url": "https://www.hellletloose.com/blog/community-update-2",
+        "title": "Blog - Community Update #2 | Command Post | Hell Let Loose: Vietnam | Hell Let Loose",
+        "scope": "URL accessibility only; not claim validation"
+      },
+      "https://www.hellletloose.com/blog/community-update-3": {
+        "checked_at": "2026-10-07",
+        "http_status": 200,
+        "final_url": "https://www.hellletloose.com/blog/community-update-3",
+        "title": "Blog - Community Feedback #3 | Command Post | Hell Let Loose: Vietnam | Hell Let Loose",
+        "scope": "URL accessibility only; not claim validation"
+      },
+      "https://www.hellletloose.com/blog/community-update-4": {
+        "checked_at": "2026-10-07",
+        "http_status": 200,
+        "final_url": "https://www.hellletloose.com/blog/community-update-4",
+        "title": "Blog - Community Feedback #4 | Command Post | Hell Let Loose: Vietnam | Hell Let Loose",
+        "scope": "URL accessibility only; not claim validation"
+      },
+      "https://www.hellletloose.com/blog/community-update-5": {
+        "checked_at": "2026-10-07",
+        "http_status": 200,
+        "final_url": "https://www.hellletloose.com/blog/community-update-5",
+        "title": "Blog - Community Feedback #5 | Command Post | Hell Let Loose",
+        "scope": "URL accessibility only; not claim validation"
+      },
+      "https://www.hellletloose.com/blog/community-update-6": {
+        "checked_at": "2026-10-07",
+        "http_status": 200,
+        "final_url": "https://www.hellletloose.com/blog/community-update-6",
+        "title": "Blog - Community Feedback #6 | Command Post | Hell Let Loose",
+        "scope": "URL accessibility only; not claim validation"
+      },
+      "https://www.hellletloose.com/blog/hllv-hotfix-1-4-2": {
+        "checked_at": "2026-10-07",
+        "http_status": 200,
+        "final_url": "https://www.hellletloose.com/blog/hllv-hotfix-1-4-2",
+        "title": "Blog - Hotfix 1.4.2 | Live Now | Hell Let Loose: Vietnam | Hell Let Loose",
+        "scope": "URL accessibility only; not claim validation"
+      },
+      "https://www.hellletloose.com/blog/hllv-hotfix-1-5-2": {
+        "checked_at": "2026-10-07",
+        "http_status": 200,
+        "final_url": "https://www.hellletloose.com/blog/hllv-hotfix-1-5-2",
+        "title": "Blog - Hotfix 1.5.2 | Hell Let Loose: Vietnam | Hell Let Loose",
+        "scope": "URL accessibility only; not claim validation"
+      },
+      "https://www.hellletloose.com/blog/hllv-patch-1-2": {
+        "checked_at": "2026-10-07",
+        "http_status": 200,
+        "final_url": "https://www.hellletloose.com/blog/hllv-patch-1-2",
+        "title": "Blog - Patch 1.2 | Full Changelog | Hell Let Loose: Vietnam | Hell Let Loose",
+        "scope": "URL accessibility only; not claim validation"
+      },
+      "https://www.hellletloose.com/blog/hllv-patch-1-3": {
+        "checked_at": "2026-10-07",
+        "http_status": 200,
+        "final_url": "https://www.hellletloose.com/blog/hllv-patch-1-3",
+        "title": "Blog - Patch 1.3 | Full Changelog | Hell Let Loose: Vietnam | Hell Let Loose",
+        "scope": "URL accessibility only; not claim validation"
+      },
+      "https://www.hellletloose.com/blog/hllv-patch-1-4": {
+        "checked_at": "2026-10-07",
+        "http_status": 200,
+        "final_url": "https://www.hellletloose.com/blog/hllv-patch-1-4",
+        "title": "Blog - Patch 1.4 | Full Changelog | Hell Let Loose: Vietnam | Hell Let Loose",
+        "scope": "URL accessibility only; not claim validation"
+      },
+      "https://www.hellletloose.com/blog/hllv-patch-1-6": {
+        "checked_at": "2026-10-07",
+        "http_status": 200,
+        "final_url": "https://www.hellletloose.com/blog/hllv-patch-1-6",
+        "title": "Blog - Patch 1.6 | Hell Let Loose: Vietnam | Hell Let Loose",
+        "scope": "URL accessibility only; not claim validation"
+      },
+      "https://www.hellletloose.com/blog/hllv-update-1-5": {
+        "checked_at": "2026-10-07",
+        "http_status": 200,
+        "final_url": "https://www.hellletloose.com/blog/hllv-update-1-5",
+        "title": "Blog - Update 1.5 | Full Changelog | Hell Let Loose: Vietnam | Hell Let Loose",
+        "scope": "URL accessibility only; not claim validation"
+      },
+      "https://www.reddit.com/r/HellLetLooseVietnam/comments/1vxeovn/developer_ama_1_hell_let_loose_vietnam_reddit/": {
+        "checked_at": "2026-10-07",
+        "http_status": 403,
+        "scope": "Automated request failed; not proof of deletion"
+      }
+    },
+    "note": "This is an accessibility check, separate from source review and independent outcome verification."
   }
 }
