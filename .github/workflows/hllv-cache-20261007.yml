@@ -22,8 +22,18 @@ jobs:
         run: |
           python3 -m py_compile .github/hllv-cache-20261007/*.py
           python3 .github/hllv-cache-20261007/apply.py
+          # The runner has contents permission, not workflow-administration permission.
+          # Keep historical workflow definitions untouched by the runtime commit.
+          git restore -- .github/workflows/hllv-evidence-context.yml .github/workflows/hllv-refresh-20261007.yml
+          python3 - <<'PY'
+          from pathlib import Path
+          p=Path('hllv_tracker/README.md')
+          text=p.read_text()
+          text=text.replace('Run `.github/hllv-evidence/publish_assets.py` after deliberate data or evidence-module changes; both authoring workflows include this step.', 'Run `.github/hllv-evidence/publish_assets.py` after deliberate data or evidence-module changes, and publish the resulting HTML, manifest and immutable files together. The older dated migration workflows are not a general-purpose refresh pipeline; do not assume a data-only commit updates the snapshot referenced by the page.')
+          p.write_text(text,encoding='utf-8')
+          PY
           python3 -m py_compile .github/hllv-evidence/*.py .github/hllv-refresh-20261007/*.py
-          git diff --exit-code -- hllv_tracker/data/issues.json
+          git diff --exit-code -- hllv_tracker/data/issues.json .github/workflows
           git diff --check
           node --test .github/hllv-evidence/test_evidence.cjs
       - name: Install browser tests
@@ -44,8 +54,8 @@ jobs:
       - name: Publish only tested tracker consistency changes
         run: |
           set -euo pipefail
-          git diff --exit-code -- hllv_tracker/data/issues.json
-          git add -- hllv_tracker/index.html hllv_tracker/README.md hllv_tracker/assets hllv_tracker/data/issues.*.json hllv_tracker/deployment-manifest.json .github/hllv-evidence/publish_assets.py .github/hllv-evidence/test_browser.py .github/hllv-refresh-20261007/test_refresh.py .github/workflows/hllv-evidence-context.yml .github/workflows/hllv-refresh-20261007.yml
+          git diff --exit-code -- hllv_tracker/data/issues.json .github/workflows
+          git add -- hllv_tracker/index.html hllv_tracker/README.md hllv_tracker/assets hllv_tracker/data/issues.*.json hllv_tracker/deployment-manifest.json .github/hllv-evidence/publish_assets.py .github/hllv-evidence/test_browser.py .github/hllv-refresh-20261007/test_refresh.py
           if ! git diff --cached --quiet; then
             git config user.name 'github-actions[bot]'
             git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
@@ -62,7 +72,7 @@ jobs:
           paths=['','index.html']+manifest['files']
           expected={p:Path('hllv_tracker',p.split('?')[0] or 'index.html').read_bytes() for p in paths}
           last='Not checked'
-          for attempt in range(36):
+          for attempt in range(72):
               try:
                   for path in paths:
                       with urllib.request.urlopen('https://hllv-bug-track.onrender.com/'+path,timeout=15) as r: actual=r.read()
