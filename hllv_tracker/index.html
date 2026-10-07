@@ -146,8 +146,9 @@
     </main>
   </div>
   <script src="./freshness.js?v=20261007"></script>
-  <script id="hllv-evidence-v1" src="./evidence.js?v=1"></script>
+  <script id="hllv-evidence-v1" src="./assets/evidence-f81896b2b5901f3b.js"></script>
   <script>
+    const TRACKER_DATA_URL = "./data/issues.cf9d8d8c3bec8448.json";
     let dataset,selectedId,searchTerm='',category='all',homeSearchTerm='',homeCategory='all',homeStatus='open',activeTab='summary';
     const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
     const human=s=>String(s??'').replaceAll('-',' ').replace(/\b\w/g,c=>c.toUpperCase());
@@ -183,7 +184,7 @@
     document.querySelectorAll('[data-page]').forEach(b=>b.addEventListener('click',()=>b.dataset.page==='landing'?showLanding(true):showHome(true)));
     document.getElementById('back').addEventListener('click',()=>showHome(true));
     window.addEventListener('popstate',()=>{if(dataset)route()});
-    fetch('./data/issues.json',{cache:'no-cache'}).then(r=>{if(!r.ok)throw new Error(r.statusText);return r.json()}).then(d=>{dataset=d;if(window.HLLVFreshness)HLLVFreshness.render(d);else{document.getElementById('pageLastUpdated').textContent=d.generated_at||'Not available';}renderLanding();renderHome();route()}).catch(e=>{document.getElementById('pageLastUpdated').textContent='Not available';document.getElementById('featuredIssues').innerHTML='<div class="home-empty">Issues could not be loaded.</div>';document.getElementById('homeList').innerHTML='<div class="home-empty">Issues could not be loaded.</div>';document.getElementById('issueList').innerHTML='<div class="empty-list">Record unavailable.</div>';document.getElementById('dossier').innerHTML=`<div class="blank">Could not load evidence: ${esc(e.message)}</div>`});
+    fetch(TRACKER_DATA_URL,{cache:'no-cache'}).then(r=>{if(!r.ok)throw new Error(r.statusText);return r.json()}).then(d=>{dataset=d;if(window.HLLVFreshness)HLLVFreshness.render(d);else{document.getElementById('pageLastUpdated').textContent=d.generated_at||'Not available';}renderLanding();renderHome();route()}).catch(e=>{document.getElementById('pageLastUpdated').textContent='Not available';document.getElementById('featuredIssues').innerHTML='<div class="home-empty">Issues could not be loaded.</div>';document.getElementById('homeList').innerHTML='<div class="home-empty">Issues could not be loaded.</div>';document.getElementById('issueList').innerHTML='<div class="empty-list">Record unavailable.</div>';document.getElementById('dossier').innerHTML=`<div class="blank">Could not load evidence: ${esc(e.message)}</div>`});
   </script>
 </body>
 </html>

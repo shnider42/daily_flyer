@@ -1,5 +1,6 @@
 """Browser smoke tests for the installed static site; no gameplay claims."""
 from __future__ import annotations
+from urllib.parse import urljoin
 import argparse
 import json
 import subprocess
@@ -23,12 +24,12 @@ def main() -> None:
         errors = []
         page.on('pageerror', lambda e: errors.append(str(e)))
         if args.fallback:
-            page.route('**/evidence.js*', lambda route: route.abort())
+            page.route('**/evidence*.js*', lambda route: route.abort())
         response = page.goto(args.url, wait_until='networkidle')
         assert response and response.status == 200
         expect(page.locator('#featuredIssues button')).to_have_count(3)
         expect(page.locator('#landingUpdated')).to_contain_text('Evidence snapshot ' + page.evaluate('(s)=>formatDate(s)',data['generated_at']))
-        assert context.request.get(args.url+'data/issues.json').body()==expected_data
+        assert context.request.get(urljoin(args.url,page.evaluate('TRACKER_DATA_URL'))).body()==expected_data
         expect(page.locator('.evidence-summary:visible')).to_have_count(0)
         page.click('#browseIssues')
         page.fill('#homeSearch','Persistent Recon markers')

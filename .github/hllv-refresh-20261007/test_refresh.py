@@ -1,4 +1,5 @@
 """Publication/date regressions and end-to-end checks; not gameplay verification."""
+from urllib.parse import urljoin
 import argparse
 import hashlib
 import json
@@ -65,7 +66,7 @@ def main():
         # Simulate a visitor with a different future clock; the saved date must not move.
         page.add_init_script("const OriginalDate=Date;class FutureDate extends OriginalDate{constructor(...a){super(...(a.length?a:['2027-03-01T12:00:00Z']));}static now(){return new OriginalDate('2027-03-01T12:00:00Z').getTime();}}window.Date=FutureDate;")
         page.reload(wait_until='networkidle'); expect(stamp).to_have_text(expected)
-        assert context.request.get(args.url+'data/issues.json').body()==raw
+        assert context.request.get(urljoin(args.url,page.evaluate('TRACKER_DATA_URL'))).body()==raw
         assert not errors,errors
         # Missing fields and bad dates are visible, not replaced by today's clock.
         for payload,label in [({},'Not available'),({'generated_at':'2026-10-07'},'time not recorded')]:
@@ -74,7 +75,7 @@ def main():
         page.evaluate('(d)=>HLLVFreshness.render(d)',data)
         expect(stamp).to_have_text(expected)
         failure=context.new_page()
-        failure.route('**/data/issues.json',lambda route:route.fulfill(status=503,body='unavailable'))
+        failure.route('**/data/issues*.json',lambda route:route.fulfill(status=503,body='unavailable'))
         failure.goto(args.url,wait_until='networkidle')
         expect(failure.locator('#pageLastUpdated')).to_have_text('Not available')
         browser.close()
