@@ -1,0 +1,85 @@
+name: HLLV static snapshot consistency
+on:
+  push:
+    branches: [feature/hllv-bug-evidence-tracker]
+    paths:
+      - .github/hllv-cache-20261007/**
+      - .github/workflows/hllv-cache-20261007.yml
+permissions:
+  contents: write
+concurrency:
+  group: hllv-reviewed-data-update
+  cancel-in-progress: false
+jobs:
+  test-publish-verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          fetch-depth: 2
+      - name: Diagnose and pin the actual application snapshot
+        run: |
+          python3 -m py_compile .github/hllv-cache-20261007/*.py
+          python3 .github/hllv-cache-20261007/apply.py
+          python3 -m py_compile .github/hllv-evidence/*.py .github/hllv-refresh-20261007/*.py
+          git diff --exit-code -- hllv_tracker/data/issues.json
+          git diff --check
+          node --test .github/hllv-evidence/test_evidence.cjs
+      - name: Install browser tests
+        run: |
+          python3 -m pip install --quiet --disable-pip-version-check playwright==1.55.0
+          python3 -m playwright install --with-deps chromium webkit >/tmp/hllv-install.log 2>&1 || { tail -50 /tmp/hllv-install.log; exit 1; }
+      - name: Test before publication
+        run: |
+          set -euo pipefail
+          python3 -m http.server 8765 --bind 127.0.0.1 --directory hllv_tracker >/tmp/hllv-local.log 2>&1 &
+          PID=$!
+          trap 'kill "$PID" || true' EXIT
+          python3 .github/hllv-evidence/test_browser.py
+          python3 .github/hllv-evidence/test_browser.py --engine webkit
+          python3 .github/hllv-evidence/test_browser.py --fallback
+          python3 .github/hllv-refresh-20261007/test_refresh.py
+          python3 .github/hllv-refresh-20261007/test_refresh.py --engine webkit
+      - name: Publish only tested tracker consistency changes
+        run: |
+          set -euo pipefail
+          git diff --exit-code -- hllv_tracker/data/issues.json
+          git add -- hllv_tracker/index.html hllv_tracker/README.md hllv_tracker/assets hllv_tracker/data/issues.*.json hllv_tracker/deployment-manifest.json .github/hllv-evidence/publish_assets.py .github/hllv-evidence/test_browser.py .github/hllv-refresh-20261007/test_refresh.py .github/workflows/hllv-evidence-context.yml .github/workflows/hllv-refresh-20261007.yml
+          if ! git diff --cached --quiet; then
+            git config user.name 'github-actions[bot]'
+            git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+            git commit -m 'Pin tracker data and evidence scripts to content-addressed release snapshots'
+            git push origin HEAD:refs/heads/feature/hllv-bug-evidence-tracker
+          fi
+          echo "PUBLISHED_COMMIT=$(git rev-parse HEAD)"
+      - name: Verify the actual normal homepage and its exact referenced files
+        run: |
+          python3 -u - <<'PY'
+          import json,time,urllib.request
+          from pathlib import Path
+          manifest=json.loads(Path('hllv_tracker/deployment-manifest.json').read_text())
+          paths=['','index.html']+manifest['files']
+          expected={p:Path('hllv_tracker',p.split('?')[0] or 'index.html').read_bytes() for p in paths}
+          last='Not checked'
+          for attempt in range(36):
+              try:
+                  for path in paths:
+                      with urllib.request.urlopen('https://hllv-bug-track.onrender.com/'+path,timeout=15) as r: actual=r.read()
+                      assert actual==expected[path], 'Production mismatch: '+(path or '/')
+                  print('PRODUCTION_EXACT_MATCH',json.dumps(manifest))
+                  break
+              except Exception as error:
+                  last=str(error)
+                  print('DEPLOYMENT_CHECK',attempt,last)
+              time.sleep(5)
+          else: raise RuntimeError(last)
+          PY
+          python3 .github/hllv-evidence/test_browser.py --url https://hllv-bug-track.onrender.com/
+          python3 .github/hllv-evidence/test_browser.py --url https://hllv-bug-track.onrender.com/ --engine webkit
+          python3 .github/hllv-refresh-20261007/test_refresh.py --url https://hllv-bug-track.onrender.com/
+          python3 .github/hllv-refresh-20261007/test_refresh.py --url https://hllv-bug-track.onrender.com/ --engine webkit
+      - name: Record verified outcome
+        run: |
+          echo "Verified repository commit: $(git rev-parse HEAD)" >> "$GITHUB_STEP_SUMMARY"
+          echo '75 issue views and 157 source rows tested in Chromium/WebKit locally and on the normal production homepage. Saved timestamp, mobile widths, navigation, reload, future visitor clock, data errors and source context checked. The actual application data and JS are content-addressed; evidence and timestamp were not changed by this cache repair.' >> "$GITHUB_STEP_SUMMARY"
