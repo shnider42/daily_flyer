@@ -4,6 +4,8 @@ from playwright.sync_api import sync_playwright,expect
 p=argparse.ArgumentParser();p.add_argument('--url',default='http://127.0.0.1:8765/');p.add_argument('--engine',default='chromium');args=p.parse_args()
 with sync_playwright() as pw:
  browser=getattr(pw,args.engine).launch();page=browser.new_page(viewport={'width':1280,'height':900},reduced_motion='reduce')
+ # Explicit disconnected fixture; hosted connection has its own tests.
+ page.route('**/suggestions-config.json',lambda r:r.fulfill(json={'enabled':False}))
  errors=[];external=[]
  page.on('pageerror',lambda e:errors.append(str(e)))
  page.on('request',lambda r:external.append(r.url) if 'supabase.co' in r.url or 'jsdelivr.net' in r.url else None)
