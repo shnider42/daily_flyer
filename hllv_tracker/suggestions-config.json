@@ -5,5 +5,5 @@
   "participant_contact": "",
   "retention_notice": "",
   "policy_version": "pilot-2026-10-08",
-  "connection_mode": "read_only"
+  "connection_mode": "operator_only"
 }

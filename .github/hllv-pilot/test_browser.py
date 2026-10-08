@@ -37,7 +37,7 @@ with sync_playwright() as pw:
  page.on('pageerror',lambda e:fixture_errors.append(str(e)))
  cfg={'enabled':True,'supabase_url':'https://qa-fixture.supabase.co','publishable_key':'sb_publishable_qa_fixture_only','participant_contact':'fixture@example.org','retention_notice':'QA fixture privacy notice for isolated browser testing.','policy_version':'pilot-2026-10-08'}
  page.route('**/suggestions-config.json',lambda r:r.fulfill(json=cfg))
- sdk="""export function createClient(){let hasSession=true;return {auth:{getSession:async()=>({data:{session:hasSession?{}:null}}),onAuthStateChange:()=>{},signOut:async()=>{hasSession=false;return{}},signInWithOtp:async()=>({}),verifyOtp:async()=>({})},rpc:async(name,args)=>{const r=await fetch('/__qa_rpc__',{method:'POST',body:JSON.stringify({name,args})});return {data:await r.json(),error:null}}}}"""
+ sdk="""export function createClient(){let hasSession=true;return {auth:{getSession:async()=>({data:{session:hasSession?{}:null}}),getUser:async()=>({data:{user:hasSession?{email:'fixture@example.org'}:null},error:null}),onAuthStateChange:()=>{},signOut:async()=>{hasSession=false;return{}},signInWithOtp:async()=>({}),verifyOtp:async()=>({})},rpc:async(name,args)=>{const r=await fetch('/__qa_rpc__',{method:'POST',body:JSON.stringify({name,args})});return {data:await r.json(),error:null}}}}"""
  page.route('https://cdn.jsdelivr.net/**',lambda r:r.fulfill(content_type='application/javascript',headers={'Access-Control-Allow-Origin':'*'},body=sdk))
  mine=[]
  def qa(route):

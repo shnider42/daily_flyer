@@ -1,6 +1,7 @@
 <!doctype html>
 <html lang="en">
 <head>
+  <meta name="referrer" content="no-referrer">
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
   <meta name="description" content="A public evidence ledger for Hell Let Loose: Vietnam issues and community-server incidents.">
@@ -219,9 +220,10 @@
   </div>
   <script src="./freshness.js?v=20261007"></script>
   <script id="hllv-evidence-v1" src="./assets/evidence-f81896b2b5901f3b.js"></script>
-  <script id="suggestions-module" src="./assets/suggestions-db15e07ccaffb2cf.js"></script>
+  <script id="suggestions-module" src="./assets/suggestions-fa8ed710fb3a9e0d.js"></script>
   <script>
-    const TRACKER_DATA_URL = "./data/issues.421686570d426366.json";
+    const AUTH_RETURN_TO_SUGGESTIONS = Boolean(window.HLLVSuggestions?.isAuthCallback(location.hash));
+    const TRACKER_DATA_URL = "./data/issues.7ce4b05a1314c7a8.json";
     let dataset,selectedId,searchTerm='',category='all',homeSearchTerm='',homeCategory='all',homeStatus='open',activeTab='summary';
     const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
     const human=s=>String(s??'').replaceAll('-',' ').replace(/\b\w/g,c=>c.toUpperCase());
@@ -240,7 +242,7 @@
     function showDossier(){document.getElementById('landing').classList.add('hidden');document.getElementById('home').classList.add('hidden');document.getElementById('app').classList.remove('hidden');setTop('issues');renderList();renderDossier()}
     function selectIssue(id,push){selectedId=id;activeTab='summary';if(push)history.pushState(null,'',`#${id}`);else history.replaceState(null,'',`#${id}`);showDossier();if(window.innerWidth<681)document.getElementById('dossier').scrollIntoView({behavior:'smooth'})}
     function showSuggestions(push=false){if(push)history.pushState(null,'','#suggestions');['landing','home','app'].forEach(id=>document.getElementById(id).classList.add('hidden'));setTop('suggestions');document.title='Suggestion Box · Infierno Liberado';window.scrollTo({top:0,behavior:'instant'});if(window.HLLVSuggestions)HLLVSuggestions.show(dataset?.issues||[]);else document.getElementById('sgStatus').textContent='Suggestion Box could not load. No submissions are being collected.';}
-    function route(){if(location.hash==='#suggestions'){showSuggestions(false);return;}const hash=location.hash.slice(1),valid=dataset.issues.some(i=>i.id===hash);if(valid){selectedId=hash;activeTab='summary';showDossier()}else if(hash==='issues')showHome(false);else if(hash==='patch-notes'){showLanding(false);requestAnimationFrame(()=>document.getElementById('patch-notes').scrollIntoView({behavior:'instant'}))}else showLanding(false)}
+    function route(){if(location.hash==='#suggestions'||(AUTH_RETURN_TO_SUGGESTIONS&&window.HLLVSuggestions?.isAuthCallback(location.hash))){showSuggestions(false);return;}const hash=location.hash.slice(1),valid=dataset.issues.some(i=>i.id===hash);if(valid){selectedId=hash;activeTab='summary';showDossier()}else if(hash==='issues')showHome(false);else if(hash==='patch-notes'){showLanding(false);requestAnimationFrame(()=>document.getElementById('patch-notes').scrollIntoView({behavior:'instant'}))}else showLanding(false)}
     function list(items,cls){return `<ul class="fact-list ${cls}">${items.map(x=>`<li>${esc(x)}</li>`).join('')}</ul>`}
     function summary(i){return `<section class="summary-lede"><span class="summary-label">Bottom line</span><p class="bottom-line">${esc(i.bottom_line)}</p></section><div class="facts"><div class="fact"><span class="fact-label">Official status</span><span class="fact-value">${esc(i.official_short)}</span></div><div class="fact"><span class="fact-label">Fix status</span><span class="fact-value">${esc(i.fix_short)}</span></div><div class="fact"><span class="fact-label">Known cause</span><span class="fact-value">${esc(i.cause_short)}</span></div><div class="fact"><span class="fact-label">Latest evidence</span><span class="fact-value">${esc(formatDate(i.last_updated))}</span></div></div>${window.HLLVEvidence?HLLVEvidence.renderSummary(i):''}` }
     function assessment(i){return `<div class="assessment"><section class="block full"><h2>Reported behavior</h2><p>${esc(i.symptom)}</p></section><section class="block full"><h2>Official position</h2><p>${esc(i.official_position)}</p></section><section class="block"><h2>Established</h2>${list(i.known,'known')}</section><section class="block"><h2>Still unknown</h2>${list(i.unknown,'unknown')}</section><section class="block full workaround"><h2>Workaround</h2><p class="${i.workaround?'':'none'}">${esc(i.workaround||'None recorded.')}</p></section></div>`}
@@ -261,7 +263,7 @@
     document.querySelectorAll('[data-patch-issue]').forEach(a=>a.addEventListener('click',e=>{if(dataset){e.preventDefault();selectIssue(a.dataset.patchIssue,true)}}));
     window.addEventListener('popstate',()=>{if(dataset)route()});
     document.addEventListener('click',event=>{const a=event.target.closest('[data-suggestion-issue]');if(a&&dataset?.issues.some(i=>i.id===a.dataset.suggestionIssue)){event.preventDefault();selectIssue(a.dataset.suggestionIssue,true);}});
-    if(location.hash==='#suggestions')showSuggestions(false);
+    if(location.hash==='#suggestions'||AUTH_RETURN_TO_SUGGESTIONS)showSuggestions(false);
     fetch(TRACKER_DATA_URL,{cache:'no-cache'}).then(r=>{if(!r.ok)throw new Error(r.statusText);return r.json()}).then(d=>{dataset=d;if(window.HLLVFreshness)HLLVFreshness.render(d);else{document.getElementById('pageLastUpdated').textContent=d.generated_at||'Not available';}renderLanding();renderHome();route()}).catch(e=>{document.getElementById('pageLastUpdated').textContent='Not available';document.getElementById('featuredIssues').innerHTML='<div class="home-empty">Issues could not be loaded.</div>';document.getElementById('homeList').innerHTML='<div class="home-empty">Issues could not be loaded.</div>';document.getElementById('issueList').innerHTML='<div class="empty-list">Record unavailable.</div>';document.getElementById('dossier').innerHTML=`<div class="blank">Could not load evidence: ${esc(e.message)}</div>`});
   </script>
 </body>
