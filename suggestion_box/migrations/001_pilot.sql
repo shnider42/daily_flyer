@@ -194,7 +194,7 @@ BEGIN
  PERFORM hllv_private.rate_check(u);SELECT role INTO r FROM hllv_private.members WHERE user_id=u;
  SELECT * INTO s FROM hllv_private.submissions WHERE id=suggestion FOR UPDATE;
  IF NOT FOUND OR (s.owner_id<>u AND r<>'moderator') THEN RAISE EXCEPTION 'Submission unavailable.' USING ERRCODE='42501'; END IF;
- IF s.version<>expected_version THEN RAISE EXCEPTION 'This version changed. Reload before editing.'; END IF;
+ IF s.version IS DISTINCT FROM expected_version THEN RAISE EXCEPTION 'This version changed. Reload before editing.'; END IF;
  IF s.state IN ('withdrawn','duplicate','declined') THEN RAISE EXCEPTION 'This submission is closed.'; END IF;
  UPDATE hllv_private.submissions SET title=btrim(payload->>'title'),problem=btrim(payload->>'problem'),
  desired_outcome=btrim(payload->>'desired_outcome'),related_issue=nullif(payload->>'related_issue',''),
@@ -245,7 +245,7 @@ BEGIN
  PERFORM hllv_private.rate_check(u);
  IF decision NOT IN ('needs_information','shortlisted','declined','duplicate','pending') OR length(note)>1000 THEN RAISE EXCEPTION 'Invalid moderation decision.'; END IF;
  SELECT * INTO s FROM hllv_private.submissions WHERE id=suggestion FOR UPDATE;
- IF NOT FOUND OR s.state='withdrawn' OR s.version<>expected_version THEN RAISE EXCEPTION 'Submission unavailable or version changed.'; END IF;
+ IF NOT FOUND OR s.state='withdrawn' OR s.version IS DISTINCT FROM expected_version THEN RAISE EXCEPTION 'Submission unavailable or version changed.'; END IF;
  IF decision='shortlisted' THEN
  IF s.owner_accepted_version<>s.version THEN RAISE EXCEPTION 'The submitter must accept the revised wording first.'; END IF;
  IF (SELECT count(*) FROM hllv_private.submissions WHERE state='shortlisted' AND id<>suggestion)>=5 THEN RAISE EXCEPTION 'Review at most five suggestions per pilot batch.'; END IF;
@@ -261,9 +261,9 @@ LANGUAGE plpgsql SECURITY DEFINER SET search_path='' AS $$
 DECLARE u uuid:=hllv_private.actor('reviewer');s hllv_private.submissions;m hllv_private.members;
 BEGIN
  PERFORM hllv_private.rate_check(u);SELECT * INTO m FROM hllv_private.members WHERE user_id=u;
- IF hllv_private.ready_review() IS NOT TRUE OR m.authorized_until<=now() OR length(btrim(coalesce(m.authorization_reference,'')))<8 OR length(btrim(coalesce(m.public_label,'')))<3 THEN RAISE EXCEPTION 'Reviewer authorization is not configured or has expired.' USING ERRCODE='42501'; END IF;
+ IF hllv_private.ready_review() IS NOT TRUE OR m.authorized_until IS NULL OR m.authorized_until<=now() OR length(btrim(coalesce(m.authorization_reference,'')))<8 OR length(btrim(coalesce(m.public_label,'')))<3 THEN RAISE EXCEPTION 'Reviewer authorization is not configured or has expired.' USING ERRCODE='42501'; END IF;
  SELECT * INTO s FROM hllv_private.submissions WHERE id=suggestion FOR UPDATE;
- IF NOT FOUND OR s.state NOT IN ('shortlisted','published') OR s.version<>expected_version OR s.owner_accepted_version<>s.version THEN RAISE EXCEPTION 'The accepted, shortlisted version is required.'; END IF;
+ IF NOT FOUND OR s.state NOT IN ('shortlisted','published') OR s.version IS DISTINCT FROM expected_version OR s.owner_accepted_version<>s.version THEN RAISE EXCEPTION 'The accepted, shortlisted version is required.'; END IF;
  IF s.owner_id=u THEN RAISE EXCEPTION 'Self-review is not permitted.' USING ERRCODE='42501'; END IF;
  INSERT INTO hllv_private.reviews(suggestion_id,version,reviewer_id,decision,public_label,implementation,public_response,private_reference)
  VALUES(suggestion,s.version,u,decision,m.public_label,implementation,coalesce(public_response,''),private_reference);
@@ -302,9 +302,9 @@ LANGUAGE plpgsql SECURITY DEFINER SET search_path='' AS $$
 DECLARE u uuid:=hllv_private.actor('participant');cfg hllv_private.settings;b hllv_private.board;
 BEGIN
  PERFORM hllv_private.rate_check(u);SELECT * INTO cfg FROM hllv_private.settings WHERE id;
- IF cfg.phase<>'voting' OR cfg.voting_until<=clock_timestamp() OR hllv_private.ready_review() IS NOT TRUE THEN RAISE EXCEPTION 'Pilot voting is closed.'; END IF;
+ IF cfg.phase<>'voting' OR cfg.voting_until IS NULL OR cfg.voting_until<=clock_timestamp() OR hllv_private.ready_review() IS NOT TRUE THEN RAISE EXCEPTION 'Pilot voting is closed.'; END IF;
  SELECT * INTO b FROM hllv_private.board WHERE id=suggestion AND visible FOR UPDATE;
- IF NOT FOUND OR b.version<>expected_version OR NOT EXISTS(SELECT 1 FROM hllv_private.submissions WHERE id=b.id AND state='published' AND version=b.version) THEN RAISE EXCEPTION 'This published version is unavailable.'; END IF;
+ IF NOT FOUND OR b.version IS DISTINCT FROM expected_version OR NOT EXISTS(SELECT 1 FROM hllv_private.submissions WHERE id=b.id AND state='published' AND version=b.version) THEN RAISE EXCEPTION 'This published version is unavailable.'; END IF;
  IF NOT EXISTS(SELECT 1 FROM hllv_private.reviews r JOIN hllv_private.members m ON m.user_id=r.reviewer_id WHERE r.id=b.review_id AND m.active AND m.authorized_until>now()) THEN RAISE EXCEPTION 'This entry is awaiting review.'; END IF;
  IF support THEN INSERT INTO hllv_private.votes(suggestion_id,version,voter_id) VALUES(suggestion,b.version,u) ON CONFLICT DO NOTHING;
  ELSE DELETE FROM hllv_private.votes WHERE suggestion_id=vote.suggestion AND version=b.version AND voter_id=u; END IF;

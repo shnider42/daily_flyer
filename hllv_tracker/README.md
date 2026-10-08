@@ -47,3 +47,7 @@ The global header reads the saved UTC `page_updated_at` from `data/issues.json` 
 ## Consistent static snapshots
 
 The editable source remains `data/issues.json`. Published pages fetch a content-addressed `data/issues.<hash>.json`, and load a content-addressed evidence module. This prevents the new page from accidentally combining with an older cached data file or script. The deployment manifest records the actual application URLs. Tests exercise those exact URLs from the ordinary homepage, without test-only random cache-busting. Run `.github/hllv-evidence/publish_assets.py` after deliberate data or evidence-module changes, and publish the resulting HTML, manifest and immutable files together. The older dated migration workflows are not a general-purpose refresh pipeline; do not assume a data-only commit updates the snapshot referenced by the page. Old immutable snapshots are retained so already-open pages remain functional.
+
+## Suggestion Box pilot
+
+The third navigation section is a closed-by-default invitation-only pilot. UI assets are content-addressed. Its separate Supabase schema, permissions, tests and activation checklist live in `suggestion_box/`; no private submissions or reviewer correspondence belong in this repository. Production sign-in, submissions and voting stay disabled until the external connection, reviewer authorization and privacy settings are configured. Run `.github/hllv-pilot/install.py` after deliberate pilot UI edits. The existing game evidence is not refreshed by this feature.
