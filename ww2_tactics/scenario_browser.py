@@ -13,6 +13,7 @@ CATEGORIES = {
 
 # key: learning position, additional categories, one short learning focus
 GUIDE = {
+    'worlds_collide': (24, ['combined','armor','naval','air','airborne','amphibious','control'], 'Five platoons per coalition, every unit class and terrain, six control zones.'),
     'vire_crossroads': (22, ['combined','armor','control'], 'Lower density: two platoons, 17 units per side; one ground unit per hex.'),
     'belfry_valley': (23, ['combined','control'], 'Shared hexes: two friendly units per hex; three platoons, recon, mortars and snipers.'),
     'shingle_cove': (20, ['combined','amphibious','prebattle'], 'Learn private deployment, bunkers and blind naval preparation.'),

@@ -47,7 +47,7 @@ def difficulty(value):
 
 
 def initialize(state, body, pid, name):
-    size = body.get('control_size', 'units')
+    size = body.get('control_size', state['battlefield'].get('default_control_size','units'))
     if size not in ('units', 'platoons'):
         raise ValueError('Choose squad / unit control or platoon control.')
     level = difficulty(body.get('difficulty', 'standard'))

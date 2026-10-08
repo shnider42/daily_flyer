@@ -95,6 +95,8 @@
  new MutationObserver(()=>{if(!$('lobby').hidden){lastList='';load();}}).observe($('lobby'),{attributes:true,attributeFilter:['hidden']});
  setInterval(()=>{if(!document.hidden)load();},15000);document.addEventListener('visibilitychange',()=>{if(!document.hidden)load();});
  function nameDialog(code,coop=false){
+  const control=operationById($('scenarioSelect').value)?.default_control_size;
+  if(!code&&coop&&control)$('coopControlSize').value=control;
   $('multiplayerModeSettings').hidden=!!code;$('multiplayerMode').value=coop?'cooperative':'human';window.ww2BattleSetup?.sync();
   renameCode=code||null;$('multiplayerTeams').hidden=!!code;$('namedGameTitle').textContent=code?'Rename this game.':'Name your game.';$('namedGameSubmit').textContent=code?'Save game name':'Create multiplayer game';
   $('multiplayerName').value=code?state.match_name:`${player.name} · ${operationById($('scenarioSelect').value)?.name||'New battle'}`;

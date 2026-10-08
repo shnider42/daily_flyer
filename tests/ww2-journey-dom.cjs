@@ -86,6 +86,6 @@ async function main(){
   await request(`/api/match/${code}`,{method:'POST',headers:{Authorization:`Bearer ${joined.token}`,'Content-Type':'application/json'},body:JSON.stringify({kind:'resign',revision:opponent.revision})}).json();
   await e('refresh()');await delay();await delay();assert.equal($('battleResultTitle').textContent,'Victory');assert.equal($('battleResultDialog').open,true);await click('resultHome');
  }
- assert.deepEqual(errors,[]);console.log('DOM/API checks passed: complete script boot, actual creation/results/Journey/resume/placement, all Experiences, 48 edition/maps × 2 armies × 3 levels, selector targets and replay result gating. No visual-layout claims.',tmp);
+ assert.deepEqual(errors,[]);console.log(`DOM/API checks passed: complete script boot, actual creation/results/Journey/resume/placement, all Experiences, ${scenarios.length} edition/maps × 2 armies × 3 levels, selector targets and replay result gating. No visual-layout claims.`,tmp);
 }
 main().catch(err=>{console.error(err);console.error(errors);console.error(e("({winner:state?.winner,busy,polling,lobbyMode,hidden:$('game').hidden,playing:!!playbackSession,seen:[...Object.keys(sessionStorage)],resultTitle:$('battleResultTitle').textContent,message:$('message').textContent,dialogs:[...document.querySelectorAll('dialog[open]')].map(d=>d.id),resignDisabled:$('resignButton').disabled})"));process.exitCode=1;}).finally(()=>dom?.window.close());

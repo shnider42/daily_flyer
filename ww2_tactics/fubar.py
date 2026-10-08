@@ -106,7 +106,7 @@ def scenario(build):
 def initialize(state):
     if not state['battlefield'].get('joint_ops'):return state
     state.update(joint_ops_version=1,joint_score={'us':0,'de':0},recon=[])
-    state['log']=['Fubar · '+state['battlefield']['brief']]
+    state['log']=[state['battlefield']['name']+' · '+state['battlefield']['brief']]
     for u in state['units']:
         if u['kind']=='flak':u.setdefault('weapon_overrides',{})['flak']={'damage':1,'label':'20 mm anti-aircraft burst'}
         if u['kind']=='aa_gun':u['aa_radius']=u['range']
@@ -128,7 +128,7 @@ def controls(state):
 
 def end_turn(state, side):
     state['joint_score'][side]+=sum(p['owner']==side for p in controls(state))
-    if state['joint_score'][side]>=10:state['winner']=side
+    if state['joint_score'][side]>=state['battlefield'].get('joint_score_target',10):state['winner']=side
     if side=='de':
         if state['round']>=state['battlefield']['rounds'] and not state['winner']:
             state['winner']=max(('us','de'),key=lambda s:(state['joint_score'][s],s=='de'))
@@ -157,7 +157,8 @@ def domain_choices(state, unit, legal, observed, visited):
     if legal.get('rearm'):add(25 if unit['kind']=='bomber' and not unit['bombs'] else 9,'rearm')
     if legal.get('repair'):add(8+min(unit['repair_amount'],unit['max_hp']-unit['hp'])*2,'repair')
     if legal.get('recon') and not any(r['side']==side for r in state.get('recon',[])):
-        add(7,'recon',pos=min(legal['recon'],key=lambda p:distance(p,[12,16])))
+        focus=state['battlefield'].get('joint_recon_focus',[12,16])
+        add(7,'recon',pos=min(legal['recon'],key=lambda p:distance(p,focus)))
     if legal.get('overwatch'):add(5 if enemies else 1,'overwatch')
     if domains.is_air(unit):
         targets=[u['pos'] for u in enemies if (domains.is_air(u) if unit['kind']=='fighter' else weapons.damage(unit,u))]
@@ -171,7 +172,9 @@ def domain_choices(state, unit, legal, observed, visited):
             add(2+gain*3-move.get('threats',0)*2-(10 if distance(unit['pos'],goal)<=1 else 0),'move',pos=move['pos'])
     elif unit['kind'] in domains.SHIPS:
         # Fubar's open ocean flank has no islands blocking the approach.
-        goal=next(p['pos'] for p in state['battlefield']['joint_objectives'] if p['domain']=='sea')
+        points=[p for p in controls(state) if p['domain']=='sea']
+        available=[p for p in points if p['owner']!=side or distance(unit['pos'],p['pos'])<=p['radius']]
+        goal=min(available or points,key=lambda p:distance(unit['pos'],p['pos']))['pos']
         for move in legal['moves']:
             if tuple(move['pos']) in visited.get(unit['id'],set()):continue
             gap=distance(unit['pos'],goal);dest=distance(move['pos'],goal)

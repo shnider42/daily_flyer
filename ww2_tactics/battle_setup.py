@@ -65,7 +65,8 @@ def result_summary(state):
         reason = 'The opposing army was eliminated.'
     elif state.get('front_mode') == 'armored_control' or state.get('joint_ops_version'):
         score = state.get('front_score') or state['joint_score']
-        reason = ('Ten control points secured the battle.' if score[winner] >= 10 else
+        target = state['battlefield'].get('joint_score_target', state['battlefield'].get('score_target',10))
+        reason = (('Ten control points secured the battle.' if target == 10 else f'{target} control points secured the battle.') if score[winner] >= target else
                   'The round limit was reached. Higher control score wins; the Axis wins an exact tie.')
     else:
         reason = ('The required objectives were held through two consecutive Allied turn endings.' if winner == 'us' else

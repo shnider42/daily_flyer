@@ -56,10 +56,11 @@
   const key=state.code+':'+state.battle_number;if(battle!==key){battle=key;layer='both';picker.close();}
   if(picker.open&&pickerRevision!==state.revision)picker.close();
   for(const [id,b] of buttons){b.setAttribute('aria-pressed',String(id===layer));b.disabled=busy||!!playbackSession;}
-  $('rulesetBadge').textContent='DSL · Fubar · Joint operations playtest';
-  $('objectiveName').textContent='FUBAR · THREE OBJECTIVES';$('objective').textContent=`Allies ${state.joint_score.us}/10 · Axis ${state.joint_score.de}/10`;
-  $('missionHint').textContent='Ships take the sea lane; infantry take land flags. Each held flag: +1 at your turn end. First to 10 wins.';
-  $('manualAP').textContent='Fubar: one aircraft and one surface unit may share a hex. Aircraft ignore terrain but check interception along every flight leg. Unit cards show AP and weapon roles. End turn refreshes the entire coalition together.';
+  const board=state.scenario,goal=board.joint_score_target||10,zones=board.joint_objectives.length,expanded=!!board.joint_score_target;
+  $('rulesetBadge').textContent=`DSL · ${board.name} · Joint operations playtest`;
+  $('objectiveName').textContent=expanded?`${board.name.toUpperCase()} · ${zones} CONTROL ZONES`:'FUBAR · THREE OBJECTIVES';$('objective').textContent=`Allies ${state.joint_score.us}/${goal} · Axis ${state.joint_score.de}/${goal}`;
+  $('missionHint').textContent=expanded?`Ships take sea lanes; infantry take land flags. Each held zone: +1 at your turn end. First to ${goal} wins.`:'Ships take the sea lane; infantry take land flags. Each held flag: +1 at your turn end. First to 10 wins.';
+  $('manualAP').textContent=(expanded?'Two friendly ground units and one aircraft may share a land hex; at most one vehicle, fixed gun or installation. Ships and boats keep separate spaces. ':'Fubar: one aircraft and one surface unit may share a hex. ')+'Aircraft ignore terrain but check interception along every flight leg. Unit cards show AP and weapon roles. End turn refreshes the entire coalition together.';
   if(unit&&['fighter','bomber','aa_gun','radar','airfield','carrier','battleship','cruiser','destroyer','flak'].includes(unit.kind)){
    $('roleBrief').textContent=unitRoleSummary(unit)+(unit.kind==='flak'?' Anti-aircraft bursts reach 4 hexes; Overwatch can intercept a flight.':'');
    if(air(unit)&&!target&&!combatMode&&!smokeMode&&!barrageMode)$('hint').textContent=`AIR · fly up to ${unit.flight} hexes for 1 AP. Surface units do not block flight. ${unit.kind==='bomber'?`${unit.bombs} bomb loads; select a visible surface target.`:'Select a visible aircraft to attack.'}`;
@@ -96,4 +97,9 @@
  document.addEventListener('ww2:playback',()=>{if(state?.joint_ops_version&&playbackSession){paint($('playbackMap'),playbackSession.frames[playbackSession.index][playbackSession.phase]);position();}});
  const manual=node('section');manual.id='fubarManual';manual.append(node('h3','Fubar · joint operations playtest'),node('p','A deliberately fictional coalition battle containing the original 31 unit types. The 36×32 map links an ocean flank, landing coast, bridged river and inland town. The mission panel explains the three scoring zones. Existing battles keep their original rules.'),node('p','Both / Surface / Air changes only the view. At most one aircraft and one surface unit may share a hex; same-layer stacking is forbidden. Aircraft fly above ground cover and smoke; radar does not reveal ground troops. Bombing and artillery affect the surface only. Tap a shared hex to choose a counter by its full name.'),node('p','Movable fighters and bombers are separate from the carrier’s abstract search / strike sorties. Airfields service movable aircraft; carrier sorties retain their existing per-turn limits and cruiser escort penalty. Fixed AA, Flak and fighter overwatch react along actual flight paths. Aircraft cannot capture objectives. This is a balance sandbox, not a historical order of battle.'));
  $('rules').append(manual);
+ document.addEventListener('ww2:render',()=>{
+  if(!state?.joint_ops_version||!state.scenario.joint_score_target)return;
+  manual.querySelector('h3').textContent=state.scenario.name+' · joint operations';
+  manual.querySelector('p').textContent='A 64×56 fictional American/British versus German/Japanese coalition operation. Five selectable platoons per army cover infantry, armor, mountain specialists, fleets and the air wing. All 32 existing unit classes and 21 terrain types are present. Six zones score toward 40 points; the mission panel names their capture rules. The commander owns four finite Allied airborne reserves.';
+ });
 })();

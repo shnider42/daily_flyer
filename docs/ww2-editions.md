@@ -5,7 +5,9 @@ The Home, Solo and Rematch operation selectors have two separate DSL catalogs.
 missions and opt-in rules. It remains the initial selection so the existing
 creation workflow stays familiar. **Current** offers a counterpart of every map
 under `current:<original-id>`, using the common ground policy below. Current is
-still DSL, not a third ruleset. Classic and the planned ASL profile are unchanged.
+still DSL, not a third ruleset. New Current-only maps follow those 24 counterparts;
+Worlds Collide is the first, bringing the Current catalog to 25. Its unprefixed
+ID is intentionally unavailable. Classic and the planned ASL profile are unchanged.
 
 An ongoing battle never changes edition. Its board, units, resources, rules and
 co-op ownership stay in its saved state. A rematch changes edition only when the
@@ -76,7 +78,8 @@ establishes rule consistency and compatibility, not equal win rates or fun.
 
 ## Verification
 
-- The full 433-test Python rule/API suite, including `test_ww2_editions.py`.
+- The full 446-test Python rule/API suite, including `test_ww2_editions.py`
+  and the 13 Worlds Collide integration tests.
 - Twenty edition tests cover both catalogs, all rosters and authored stats,
   original terrain/mission parameters, every map at both co-op command sizes,
   bounded computer orders, recon/mortar backports, air/sea exceptions,
@@ -86,7 +89,7 @@ establishes rule consistency and compatibility, not equal win rates or fun.
   overhaul. They compare initialization, a complete army round and shared lobby
   start for all 24 Legacy maps, plus the four playable Classic maps. Random
   building conditions use a fixed seed only in this test.
-- The Journey DOM/API harness covers 48 edition/maps × two armies × three
+- The Journey DOM/API harness covers all 49 edition/maps × two armies × three
   Experience levels, with actual server snapshots and role-appropriate topics.
 - `tests/ww2-editions-browser.cjs` uses real Chromium desktop/phone controls for
   catalog switching, Current co-op, recon fire direction, separate player

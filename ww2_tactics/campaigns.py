@@ -58,6 +58,9 @@ def omaha_roster():
 
 
 def setup(board):
+    if board['campaign'] == 'worlds_collide':
+        from .worlds_collide import roster as worlds_roster
+        return worlds_roster()
     if board['campaign'] in {'vire_crossroads', 'belfry_valley'}:
         from .observed_fronts import roster as observed_roster
         return observed_roster(board['campaign'])

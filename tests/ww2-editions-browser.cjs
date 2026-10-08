@@ -9,7 +9,7 @@ async function refresh(p){await p.evaluate(()=>refresh());await settle(p);}
 async function page(width,name){
  const p=await browser.newPage({viewport:{width,height:900},hasTouch:width<1000,isMobile:width<1000});pages.push(p);p.setDefaultTimeout(18000);
  p.on('pageerror',e=>errors.push(e.message));p.on('dialog',d=>d.accept());await p.goto(base);
- await p.waitForFunction(()=>scenarios.length===24&&currentScenarios.length===24&&ww2Commander.ready);
+ await p.waitForFunction(()=>scenarios.length===24&&currentScenarios.length===25&&ww2Commander.ready);
  await p.locator('#commanderSignIn').click();await p.locator('#commanderRegisterMode').click();await p.locator('#commanderName').fill(name);await p.locator('#commanderPassword').fill('local-editions-test-123');await p.locator('#commanderSubmit').click();await p.waitForFunction(()=>ww2Commander.name&&!$('commanderDialog').open);return p;
 }
 async function edition(p,map,value='current'){
@@ -58,7 +58,7 @@ async function screenshot(p,name){assert.ok(await p.evaluate(()=>document.docume
  browser=await chromium.launch({headless:true,executablePath:process.env.CHROMIUM_EXECUTABLE_PATH,args:['--no-sandbox','--disable-dev-shm-usage','--disable-gpu','--no-zygote']});
  const host=await page(1440,'EditionHost'),ally=await page(390,'EditionAlly');
  assert.equal(await host.locator('#scenarioSelectEdition').inputValue(),'legacy');
- await edition(host,'kharkov');assert.equal(await host.locator('#rulesetSelect').inputValue(),'dsl');assert.equal(await host.locator('#scenarioSelect option').count(),24);
+ await edition(host,'kharkov');assert.equal(await host.locator('#rulesetSelect').inputValue(),'dsl');assert.equal(await host.locator('#scenarioSelect option').count(),25);
  assert.match(await host.locator('#scenarioSelectEditionNote').textContent(),/two friendly ground units/);await screenshot(host,'current-catalog-desktop');
  await create(host,'kharkov');const code=await host.evaluate(()=>session.code);
  assert.match(await host.locator('#coopRoomMap').textContent(),/Current DSL/);await join(ally,code,'us:B');

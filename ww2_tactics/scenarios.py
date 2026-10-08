@@ -120,6 +120,11 @@ SCENARIOS.update(deployment_scenarios(build))
 from .observed_fronts import scenarios as observed_scenarios
 SCENARIOS.update(observed_scenarios(build))
 
+# New Current operations have no Legacy counterpart. Keep the original catalog
+# and its saved IDs frozen rather than automatically creating a Legacy edition.
+from .worlds_collide import scenario as worlds_scenario
+CURRENT_SCENARIOS = {'worlds_collide': worlds_scenario(build)}
+
 
 def get_scenario(key='village'):
     from .editions import PREFIX, scenario
@@ -127,6 +132,8 @@ def get_scenario(key='village'):
         source = key[len(PREFIX):]
         if source in SCENARIOS:
             return scenario(SCENARIOS[source])
+        if source in CURRENT_SCENARIOS:
+            return scenario(CURRENT_SCENARIOS[source])
     if not isinstance(key, str) or key not in SCENARIOS:
         raise ValueError('Choose a battlefield from the scenario list.')
     return copy.deepcopy(SCENARIOS[key])
@@ -143,6 +150,8 @@ def catalog(edition='legacy'):
     if edition not in {'legacy', 'current'}:
         raise ValueError('Choose Current or Legacy.')
     boards = [get_scenario((PREFIX if edition == 'current' else '')+key) for key in SCENARIOS]
+    if edition == 'current':
+        boards += [get_scenario(PREFIX+key) for key in CURRENT_SCENARIOS]
     for position, board in enumerate(boards):
         board['browse'] = describe(board, position)
     return boards

@@ -51,8 +51,8 @@ class EditionRulesTests(unittest.TestCase):
     def test_catalogs_are_separate_and_source_maps_remain_unchanged(self):
         original = copy.deepcopy(SCENARIOS)
         legacy, current = catalog(), catalog('current')
-        self.assertEqual(len(legacy),24);self.assertEqual(len(current),24)
-        self.assertEqual([b['source_id'] for b in current],list(SCENARIOS))
+        self.assertEqual(len(legacy),24);self.assertEqual(len(current),25)
+        self.assertEqual([b['source_id'] for b in current[:24]],list(SCENARIOS))
         for old,new in zip(legacy,current):
             self.assertEqual(new['id'],'current:'+old['id'])
             for key in ('map','width','height','rounds','objective','control_points','linked_objectives','joint_objectives','doctrine','factions','deployment_rules'):
@@ -265,7 +265,7 @@ class EditionAPITests(unittest.TestCase):
 
     def test_catalog_old_clients_and_new_current_ids_both_work(self):
         data=self.client.get('/api/scenarios').json
-        self.assertEqual(len(data['scenarios']),24);self.assertEqual(len(data['current_scenarios']),24)
+        self.assertEqual(len(data['scenarios']),24);self.assertEqual(len(data['current_scenarios']),25)
         old=self.get(self.create('kharkov'));new=self.get(self.create('current:kharkov'))
         self.assertNotIn('edition',old);self.assertNotIn('fire_control_version',old)
         self.assertEqual(new['edition'],'current');self.assertEqual(new['scenario']['source_id'],'kharkov')

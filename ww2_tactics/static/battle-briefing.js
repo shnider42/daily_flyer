@@ -22,11 +22,11 @@
      'Evacuation commits earlier undo orders. The rescue count is public, but enemy manifests and individual survivors’ strength remain private.'],focus:[9,3]};
   }
   if(s.joint_ops_version){
-   const score=s.joint_score||{us:0,de:0};
-   return {goal:'Reach 10 control points. Ships take the sea lane; infantry take the two land flags.',
-    compact:`Win: 10 points · Allies ${score.us} / Axis ${score.de}`,progress:`Allies ${score.us}/10 · Axis ${score.de}/10 · Round ${s.round}/${rounds}`,
+   const score=s.joint_score||{us:0,de:0},target=s.scenario.joint_score_target||10,zones=s.scenario.joint_objectives||[],expanded=!!s.scenario.joint_score_target;
+   return {goal:expanded?`Reach ${target} control points. Ships take ${zones.filter(p=>p.domain==='sea').length} sea lanes; infantry take ${zones.filter(p=>p.domain==='land').length} land flags.`:'Reach 10 control points. Ships take the sea lane; infantry take the two land flags.',
+    compact:`Win: ${target} points · Allies ${score.us} / Axis ${score.de}`,progress:`Allies ${score.us}/${target} · Axis ${score.de}/${target} · Round ${s.round}/${rounds}`,
     rules:['At the end of your turn, each uncontested objective you occupy earns 1 point. Warships occupy the sea zone within one hex; infantry must stand on a land flag. Aircraft, armor, fixed guns, passengers and reserves cannot capture land flags.',
-     `First to 10 points wins. At the end of round ${rounds}, higher score wins; Axis wins an exact tie. Eliminating every enemy also wins. Losing a carrier, bomber or airfield alone does not end Fubar.`,
+     `First to ${target} points wins. At the end of round ${rounds}, higher score wins; Axis wins an exact tie. Eliminating every enemy also wins. Losing a carrier, bomber or airfield alone does not end ${s.scenario.name}.`,
      s.ground_stack_version?'Up to two friendly ground units and one aircraft can share a land hex, with at most one vehicle or fixed gun. Ships and boats stay separate. Use Both / Surface / Air; each occupant keeps its own AP and owner.':'One surface unit and one aircraft can share a hex. Use Both / Surface / Air above the map; tap a stacked counter to choose which unit you mean. These controls change only your view, never fog of war.',
      'Radar spots the air layer, not distant ground. Aircraft spot surface units within 4 hexes, or 2 in concealment. Fighters and AA attack aircraft; bombers attack the surface. Smoke hides surface targets, not aircraft.',
      'Carrier search and strike are abstract support sorties, separate from the movable fighter and bomber units. Airfields service aircraft. Cruiser escorts protect against carrier sorties; fixed AA, Flak and fighter overwatch intercept movable planes.',

@@ -34,7 +34,8 @@ def group_sees(state,side,platoon,pos,concealed=False):
         scouts=[u for u in state['units'] if u['side']==side and group(u)==platoon and active(u)]
         if cache is not None:cache[scouts_key]=scouts
     # A purchased aerial search is already an army-level intelligence operation.
-    result=any(r['side']==side and distance(r['pos'],pos)<=r['radius'] for r in state.get('recon',[])) or any(unit_sees_hex(state,u,pos,concealed) for u in scouts)
+    from .visibility import nearby_scouts
+    result=any(r['side']==side and distance(r['pos'],pos)<=r['radius'] for r in state.get('recon',[])) or any(unit_sees_hex(state,u,pos,concealed) for u in nearby_scouts(state,scouts,scouts_key,pos,concealed))
     if cache is not None:cache[key]=result
     return result
 

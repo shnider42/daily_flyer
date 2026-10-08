@@ -35,6 +35,22 @@ def sight_reader(fn):
     return read
 
 
+def indexed_sight(state):
+    return (state.get('edition') == 'current'
+            and state.get('battlefield', {}).get('sight_index_version') == 1)
+
+
+def large_sight_reader(fn):
+    """Reuse exact observer profiles for one large-map intelligence read."""
+    @wraps(fn)
+    def read(state, *args, **kwargs):
+        if not indexed_sight(state):
+            return fn(state, *args, **kwargs)
+        with sight_calculations(state):
+            return fn(state, *args, **kwargs)
+    return read
+
+
 def sight_cache(state):
     current = _sight_work.get()
     return current[1] if current is not None and current[0] is state else None
@@ -46,6 +62,43 @@ def fog(state):
 
 def active(unit):
     return unit['hp'] > 0 and not unit.get('reserve') and not unit.get('carrier_id')
+
+
+def nearby_scouts(state, scouts, key, pos, concealed=False):
+    """Current large-map broad phase; exact sight still runs on every candidate.
+
+    This index belongs to one unchanged read scope, never a save or revision
+    cache. Outside that scope, and for every original map, retain the old scan.
+    Landmarks can extend sight to twelve, so they always use the complete scan.
+    """
+    cache = sight_cache(state)
+    if cache is None or not indexed_sight(state):
+        return scouts
+    from .engine import distance, terrain
+    from . import operations
+    if concealed != 'air' and operations.enabled(state) and terrain(*pos,state) in {'tower','church'}:
+        return scouts
+    index_key = ('nearby_scouts', key, concealed == 'air')
+    index = cache.get(index_key)
+    if index is None:
+        # Sparse order/intelligence reads are cheaper with the original scan.
+        # Only dense map projections justify building the spatial index.
+        count_key = ('nearby_queries',index_key)
+        cache[count_key] = cache.get(count_key,0) + 1
+        if cache[count_key] < 128:
+            return scouts
+        index = {}
+        board = state['battlefield']
+        for scout in scouts:
+            reach = (scout.get('sight',6) if concealed == 'air' else
+                     max(4, operations.sight_range(state,scout), operations.sight_range(state,scout,True)))
+            x,y = scout['pos']
+            for row in range(max(0,y-reach),min(board['height'],y+reach+1)):
+                for col in range(max(0,x-reach),min(board['width'],x+reach+1)):
+                    if distance(scout['pos'],[col,row]) <= reach:
+                        index.setdefault((col,row),[]).append(scout)
+        cache[index_key] = index
+    return index.get(tuple(pos), ())
 
 
 def unit_sees_hex(state, scout, pos, concealed=False):
@@ -97,12 +150,13 @@ def _sees_hex(state, side, pos, concealed=False):
     if scouts is None:
         scouts=[u for u in state['units'] if u['side']==side and active(u)]
         if cache is not None:cache[key]=scouts
-    for scout in scouts:
+    for scout in nearby_scouts(state,scouts,key,pos,concealed):
         if unit_sees_hex(state,scout,pos,concealed):
             return True
     return False
 
 
+@large_sight_reader
 def visible_ids(state, side):
     cache=sight_cache(state)
     key=('ids',side)
@@ -129,6 +183,7 @@ def unit_visible_ids(state, unit):
     return signals.group_ids(state,unit['side'],signals.group(unit)) if signals.enabled(state) else visible_ids(state,unit['side'])
 
 
+@large_sight_reader
 def update_intel(state):
     from .deployment import active as preparing
     if preparing(state): return
