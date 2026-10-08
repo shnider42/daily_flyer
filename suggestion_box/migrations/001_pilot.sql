@@ -101,7 +101,10 @@ LANGUAGE plpgsql SECURITY DEFINER SET search_path='' AS $$
 DECLARE u uuid:=auth.uid();r text;
 BEGIN
  SELECT m.role INTO r FROM hllv_private.members m JOIN auth.users a ON a.id=m.user_id
- WHERE m.user_id=u AND m.active AND a.email_confirmed_at IS NOT NULL;
+ WHERE m.user_id=u AND m.active AND a.email_confirmed_at IS NOT NULL
+ AND (m.role<>'reviewer' OR (m.authorized_until>now()
+ AND length(btrim(coalesce(m.authorization_reference,'')))>=8
+ AND length(btrim(coalesce(m.public_label,'')))>=3));
  IF r IS NULL OR (required_role IS NOT NULL AND r<>required_role) THEN
  RAISE EXCEPTION 'An active, verified pilot invitation with the required role is needed.' USING ERRCODE='42501'; END IF;
  RETURN u;
