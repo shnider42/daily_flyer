@@ -22,14 +22,21 @@ with sync_playwright() as pw:
  page.get_by_role('button',name='Overview',exact=True).click();page.locator('#patchNotesJump').click();expect(page.locator('#patch-notes')).to_be_visible()
  page.locator('.patch-entry summary').first.click();expect(page.locator('.patch-entry').first).to_have_attribute('open','')
  assert not external,external
- page.route('**/suggestions-*.js',lambda route:route.abort());page.goto(args.url+'#suggestions',wait_until='networkidle');expect(page.locator('#sgStatus')).to_contain_text('could not load')
+ # A hash-only navigation reuses the loaded module; load a new document to
+ # genuinely exercise the failed-asset path rather than weaken the assertion.
+ page.goto('about:blank')
+ page.route('**/suggestions-*.js',lambda route:route.abort())
+ page.goto(args.url+'#suggestions',wait_until='networkidle')
+ assert page.evaluate('typeof HLLVSuggestions')=='undefined'
+ expect(page.locator('#sgStatus')).to_contain_text('could not load')
  page.get_by_role('button',name='All issues',exact=True).click();expect(page.locator('#home')).to_be_visible();assert not errors,errors;page.close()
- # Explicit test fixture, never a production auth bypass or a real email request.
- page=browser.new_page();calls=[]
+ # Explicit test fixture, never a production auth bypass or real email request.
+ page=browser.new_page();calls=[];fixture_errors=[]
+ page.on('pageerror',lambda e:fixture_errors.append(str(e)))
  cfg={'enabled':True,'supabase_url':'https://qa-fixture.supabase.co','publishable_key':'sb_publishable_qa_fixture_only','participant_contact':'fixture@example.org','retention_notice':'QA fixture privacy notice for isolated browser testing.','policy_version':'pilot-2026-10-08'}
  page.route('**/suggestions-config.json',lambda r:r.fulfill(json=cfg))
  sdk="""export function createClient(){let hasSession=true;return {auth:{getSession:async()=>({data:{session:hasSession?{}:null}}),onAuthStateChange:()=>{},signOut:async()=>{hasSession=false;return{}},signInWithOtp:async()=>({}),verifyOtp:async()=>({})},rpc:async(name,args)=>{const r=await fetch('/__qa_rpc__',{method:'POST',body:JSON.stringify({name,args})});return {data:await r.json(),error:null}}}}"""
- page.route('https://cdn.jsdelivr.net/**',lambda r:r.fulfill(content_type='application/javascript',body=sdk))
+ page.route('https://cdn.jsdelivr.net/**',lambda r:r.fulfill(content_type='application/javascript',headers={'Access-Control-Allow-Origin':'*'},body=sdk))
  mine=[]
  def qa(route):
   body=json.loads(route.request.post_data);calls.append(body);name=body['name']
@@ -43,5 +50,6 @@ with sync_playwright() as pw:
  page.route('**/__qa_rpc__',qa);page.goto(args.url+'#suggestions',wait_until='networkidle');expect(page.locator('#sgAccount')).to_contain_text('participant')
  page.get_by_role('button',name='Submit a suggestion',exact=True).click();page.fill('#sgTitle','QA private suggestion');page.fill('#sgProblem','This synthetic private wording must not be sent to any real service.');page.fill('#sgOutcome','Make the QA controls more understandable.');page.locator('[name="consent"]').check();page.get_by_role('button',name='Submit privately',exact=True).click()
  expect(page.locator('#sgContent')).to_contain_text('QA private suggestion');assert any(c['name']=='hllv_submit' for c in calls)
- page.get_by_role('button',name='Sign out',exact=True).click();expect(page.locator('#sgContent')).not_to_contain_text('QA private suggestion');page.close();browser.close()
- print('PILOT_BROWSER_PASS',args.engine,'closed shell, 3 routes, disabled forms, no auth requests while closed, mobile, timestamp, patch archive, missing-module fallback, synthetic participant flow and sign-out clearing')
+ page.get_by_role('button',name='Sign out',exact=True).click();expect(page.locator('#sgContent')).not_to_contain_text('QA private suggestion');assert not fixture_errors,fixture_errors
+ page.close();browser.close()
+ print('PILOT_BROWSER_PASS',args.engine,'closed shell, 3 routes, disabled forms, no auth requests while closed, mobile, timestamp, patch archive, true missing-module fallback, synthetic participant flow and sign-out clearing')
