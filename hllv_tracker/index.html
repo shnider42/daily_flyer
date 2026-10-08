@@ -143,9 +143,11 @@
 @media print{.patch-jump{display:none}.patch-entry>summary::after{content:''}.patch-entry>.patch-body{display:block!important}.patch-archive{break-before:page}}
   </style>
   <link id="suggestions-style" rel="stylesheet" href="./assets/suggestions-9ca057e0823a6271.css">
+  <link id="hllv-account-style" rel="stylesheet" href="./assets/account-b618de21e03759db.css">
 </head>
 <body>
   <header class="site-nav"><button class="brand-button" id="brandHome"><span class="brand-mark-small">H/V</span><span><strong>Infierno Liberado</strong><small>HLLV patches &amp; bugs</small></span></button><nav class="top-links" aria-label="Main navigation"><button class="top-link active" data-page="landing">Overview</button><button class="top-link" data-page="issues">All issues</button><button class="top-link" data-page="suggestions">Suggestion Box</button></nav></header>
+  <div id="hllvAccountBar" class="account-bar" aria-label="Account"><span>Checking sign-in…</span></div>
   <div class="page-freshness" aria-label="Page last updated"><p><strong>Last updated:</strong> <time id="pageLastUpdated">Loading...</time></p><details><summary>About this date</summary><p>The saved publication time for this tracker, shown in Eastern Time. Reloading does not change it. Individual reports keep their own evidence dates; this is not proof every issue was independently retested.</p></details></div>
   <div class="landing" id="landing">
     <main class="landing-main">
@@ -193,7 +195,7 @@
   <div id="sgAccount" class="sg-account"></div>
   <div id="sgContent"><h2>Bulletin Board</h2><p>No suggestions have been published. Only entries cleared through the required process will appear here.</p></div>
   <details class="sg-process"><summary>How this pilot works</summary><div><p><strong>Private submission → moderation → verified reviewer clearance → publication → community voting.</strong></p><p>Up to 20 invited participants, two submissions each, 15 submissions total, and a shortlist of at most five. A published batch gets a seven-day voting window.</p><p>One removable upvote per invited account, per published version. Community support is not bug severity, a developer roadmap, or proof that a defect exists. Votes only rank suggestions that were cleared for publication.</p><p>No response is not approval. New wording requires new clearance; a moderator rewrite also needs the submitter’s acceptance. Withdrawing removes the entry from the public board. Duplicate entries are linked privately; votes are not silently combined.</p></div></details>
-  <details class="sg-process" id="suggestionPrivacy"><summary>Privacy and participation</summary><div><p>During the pilot, your sign-in email is handled by the authentication provider. It is not displayed on the board or included in the reviewer shortlist. Your private submission is visible to you and authorized moderators; the assigned reviewer receives shortlisted text without account identifiers.</p><p>Published entries show only approved wording, the agreed review attribution, review date, optional public response, related issue link, and aggregate votes. Private correspondence and voter identities are never published.</p><p>Do not submit personal information, credentials, harassment, private correspondence, or exploit instructions. This is not an urgent support or security-reporting channel. Keep private feedback anonymous within the text.</p><p>You can withdraw a submission from My submissions. Withdrawal hides it from this site; it cannot retract copies already made by others. A retention/deletion procedure and a participant contact address must be configured before invitations are issued.</p><p>Signing out clears this page’s private views. This pilot uses a tab-scoped sign-in session, not public browser storage for your submissions.</p></div></details>
+  <details class="sg-process" id="suggestionPrivacy"><summary>Privacy and participation</summary><div><p>During the pilot, your sign-in email is handled by the authentication provider. It is not displayed on the board or included in the reviewer shortlist. Your private submission is visible to you and authorized moderators; the assigned reviewer receives shortlisted text without account identifiers.</p><p>Published entries show only approved wording, the agreed review attribution, review date, optional public response, related issue link, and aggregate votes. Private correspondence and voter identities are never published.</p><p>Do not submit personal information, credentials, harassment, private correspondence, or exploit instructions. This is not an urgent support or security-reporting channel. Keep private feedback anonymous within the text.</p><p>You can withdraw a submission from My submissions. Withdrawal hides it from this site; it cannot retract copies already made by others. A retention/deletion procedure and a participant contact address must be configured before invitations are issued.</p><p>Signing out clears this page’s private views. Keep me signed in is optional. Open tabs can share a session; other browsers and devices require their own login. Your submissions are not stored in browser storage.</p></div></details>
   <noscript><p>JavaScript is needed for Suggestion Box navigation and sign-in. Intake is closed during setup; nothing entered here can be submitted. The existing patch summaries remain readable.</p></noscript>
  </main>
 </section>
@@ -221,10 +223,12 @@
   <script src="./freshness.js?v=20261007"></script>
   <script id="hllv-evidence-v1" src="./assets/evidence-f81896b2b5901f3b.js"></script>
   <script id="practice-module" src="./assets/practice-722af958d913e154.js"></script>
-  <script id="suggestions-module" src="./assets/suggestions-2e8a33c04dd479ab.js"></script>
+  <script id="hllv-session-module" src="./assets/session-ec783e94cc17deac.js"></script>
+  <script id="hllv-password-module" src="./assets/password-fe489258acbb5bdf.js"></script>
+  <script id="suggestions-module" src="./assets/suggestions-bfe43e1541952140.js"></script>
   <script>
     const AUTH_RETURN_TO_SUGGESTIONS = Boolean(window.HLLVSuggestions?.isAuthCallback(location.hash));
-    const TRACKER_DATA_URL = "./data/issues.c9121d87691ab618.json";
+    const TRACKER_DATA_URL = "./data/issues.0431f591566bd171.json";
     let dataset,selectedId,searchTerm='',category='all',homeSearchTerm='',homeCategory='all',homeStatus='open',activeTab='summary';
     const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
     const human=s=>String(s??'').replaceAll('-',' ').replace(/\b\w/g,c=>c.toUpperCase());
@@ -264,6 +268,9 @@
     document.querySelectorAll('[data-patch-issue]').forEach(a=>a.addEventListener('click',e=>{if(dataset){e.preventDefault();selectIssue(a.dataset.patchIssue,true)}}));
     window.addEventListener('popstate',()=>{if(dataset)route()});
     document.addEventListener('click',event=>{const a=event.target.closest('[data-suggestion-issue]');if(a&&dataset?.issues.some(i=>i.id===a.dataset.suggestionIssue)){event.preventDefault();selectIssue(a.dataset.suggestionIssue,true);}});
+    document.addEventListener('hllv-account-open',event=>{window.HLLVSuggestions?.requestAccount(event.detail);showSuggestions(true);});
+    document.addEventListener('hllv-account-signout',()=>window.HLLVSuggestions?.signOut());
+    if(!AUTH_RETURN_TO_SUGGESTIONS&&location.hash!=='#suggestions')window.HLLVSuggestions?.show([]);
     if(location.hash==='#suggestions'||AUTH_RETURN_TO_SUGGESTIONS)showSuggestions(false);
     fetch(TRACKER_DATA_URL,{cache:'no-cache'}).then(r=>{if(!r.ok)throw new Error(r.statusText);return r.json()}).then(d=>{dataset=d;if(window.HLLVFreshness)HLLVFreshness.render(d);else{document.getElementById('pageLastUpdated').textContent=d.generated_at||'Not available';}renderLanding();renderHome();route()}).catch(e=>{document.getElementById('pageLastUpdated').textContent='Not available';document.getElementById('featuredIssues').innerHTML='<div class="home-empty">Issues could not be loaded.</div>';document.getElementById('homeList').innerHTML='<div class="home-empty">Issues could not be loaded.</div>';document.getElementById('issueList').innerHTML='<div class="empty-list">Record unavailable.</div>';document.getElementById('dossier').innerHTML=`<div class="blank">Could not load evidence: ${esc(e.message)}</div>`});
   </script>

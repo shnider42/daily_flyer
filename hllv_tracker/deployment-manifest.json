@@ -1,16 +1,19 @@
 {
-  "data_url": "data/issues.c9121d87691ab618.json",
-  "data_sha256": "c9121d87691ab618234f4530f54461387d4596701f1fecad9ecd8788b28811a1",
+  "data_url": "data/issues.0431f591566bd171.json",
+  "data_sha256": "0431f591566bd1715fb6f0aa621f4fd9b9a74cf260332f63bba530c6c1ef93f0",
   "evidence_js_url": "assets/evidence-f81896b2b5901f3b.js",
   "files": [
-    "data/issues.c9121d87691ab618.json",
+    "data/issues.0431f591566bd171.json",
     "assets/evidence-f81896b2b5901f3b.js",
     "evidence.css?v=1",
     "freshness.js?v=20261007",
     "freshness.css?v=20261007",
-    "assets/suggestions-2e8a33c04dd479ab.js",
+    "assets/suggestions-bfe43e1541952140.js",
     "assets/suggestions-9ca057e0823a6271.css",
     "suggestions-config.json",
+    "assets/session-ec783e94cc17deac.js",
+    "assets/password-fe489258acbb5bdf.js",
+    "assets/account-b618de21e03759db.css",
     "assets/practice-722af958d913e154.js"
   ],
   "note": "These are the actual production URLs embedded in the page, not random test cache-busters. data/issues.json remains the editable source file."
