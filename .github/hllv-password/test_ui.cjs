@@ -1,0 +1,24 @@
+const {test}=require('node:test');const assert=require('node:assert/strict');
+const {create,KEY}=require('./session.js');const ui=require('./password.js');
+const fs=require('node:fs');const crypto=require('node:crypto');
+function area(){const map=new Map();return {getItem:k=>map.get(k)??null,setItem:(k,v)=>map.set(k,String(v)),removeItem:k=>map.delete(k)};}
+function origin(){const local=area(),channels=new Set();return ()=>{
+ class BC{constructor(name){this.name=name;channels.add(this);}postMessage(data){for(const peer of channels)if(peer!==this&&peer.name===this.name)queueMicrotask(()=>peer.onmessage?.({data:structuredClone(data)}));}close(){channels.delete(this);}}
+ return {localStorage:local,sessionStorage:area(),crypto,BroadcastChannel:BC,setTimeout,addEventListener(){},removeEventListener(){}};
+};}
+const token=JSON.stringify({access_token:'SYNTHETIC-NOT-A-TOKEN',refresh_token:'SYNTHETIC',user:{id:'fixture-user'}});
+test('legacy tab session preserved, never automatically remembered',async()=>{const env=origin()();env.sessionStorage.setItem(KEY,token);const s=create(env);assert.equal(await s.storage.getItem(KEY),token);assert.equal(s.remembered(),false);assert.equal(env.localStorage.getItem(KEY),null);s.destroy();});
+test('temporary login is shared with another open same-origin tab',async()=>{const newTab=origin(),a=create(newTab()),b=create(newTab());await a.storage.setItem(KEY,token);assert.equal(await b.storage.getItem(KEY),token);a.destroy();b.destroy();});
+test('a newly opened tab can request an existing temporary session',async()=>{const newTab=origin(),a=create(newTab());await a.storage.setItem(KEY,token);const b=create(newTab());assert.equal(await b.storage.getItem(KEY),token);a.destroy();b.destroy();});
+test('temporary session ends when all tabs are discarded',async()=>{const newTab=origin(),a=create(newTab());await a.storage.setItem(KEY,token);a.destroy();const b=create(newTab());assert.equal(await b.storage.getItem(KEY),null);b.destroy();});
+test('remembered session survives reopening and still is not a password',async()=>{const newTab=origin(),a=create(newTab());await a.setRemember(true);await a.storage.setItem(KEY,token);a.destroy();const b=create(newTab());assert.equal(await b.storage.getItem(KEY),token);assert.equal(b.remembered(),true);b.destroy();});
+test('turning remembering off removes persistent credentials',async()=>{const env=origin()(),a=create(env);await a.setRemember(true);await a.storage.setItem(KEY,token);await a.setRemember(false);assert.equal(env.localStorage.getItem(KEY),null);assert.equal(await a.storage.getItem(KEY),token);a.destroy();});
+test('signout clears every active tab and dormant copies cannot restore it',async()=>{const newTab=origin(),e=newTab(),a=create(newTab()),b=create(e);await a.storage.setItem(KEY,token);assert.equal(await b.storage.getItem(KEY),token);b.destroy();await a.storage.removeItem(KEY);const reopened=create(e);assert.equal(await reopened.storage.getItem(KEY),null);a.destroy();reopened.destroy();});
+test('a different browser or device starts signed out',async()=>{const a=create(origin()()),b=create(origin()());await a.setRemember(true);await a.storage.setItem(KEY,token);assert.equal(await b.storage.getItem(KEY),null);a.destroy();b.destroy();});
+test('refresh updates temporary peer copies',async()=>{const newTab=origin(),a=create(newTab()),b=create(newTab());await a.storage.setItem(KEY,token);await b.storage.getItem(KEY);const updated=token.replace('SYNTHETIC-NOT-A-TOKEN','REFRESHED-FIXTURE');await a.storage.setItem(KEY,updated);await new Promise(r=>setImmediate(r));assert.equal(await b.storage.getItem(KEY),updated);a.destroy();b.destroy();});
+test('blocked storage does not silently claim persistence',()=>{const e=origin()();e.localStorage.setItem=()=>{throw new Error('blocked')};assert.throws(()=>create(e));});
+test('missing BroadcastChannel has explicit fallback',async()=>{const e=origin()();delete e.BroadcastChannel;const a=create(e);assert.equal(a.shareAvailable(),false);assert.equal(await a.storage.getItem(KEY),null);a.destroy();});
+test('untrusted error details are never echoed',()=>{for(const operation of ['password-save','password-login','verify','email'])assert.ok(!ui.errorText({message:'PRIVATE_INTERNAL_SECRET'},operation).includes('PRIVATE_INTERNAL_SECRET'));});
+test('email quota is distinguished from password login',()=>assert.match(ui.errorText({code:'over_email_send_rate_limit'},'email'),/Email sending.*Password sign-in/));
+test('account labels escape text',()=>assert.equal(ui.esc('<script>"'), '&lt;script&gt;&quot;'));
+test('module uses managed user APIs and does not create accounts or use admin keys',()=>{const js=fs.readFileSync(__dirname+'/password.js','utf8');assert.ok(js.includes('signInWithPassword'));assert.ok(js.includes('updateUser(attributes)'));assert.ok(js.includes('shouldCreateUser:false'));assert.ok(!/auth\.admin|auth\.signUp|service_role|sb_secret_/.test(js));});
