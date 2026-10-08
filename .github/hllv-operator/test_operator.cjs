@@ -1,0 +1,7 @@
+'use strict';
+const test=require('node:test'),assert=require('node:assert/strict');
+const api=require('../hllv-pilot/suggestions.js');
+const base={enabled:false,connection_mode:'operator_only',supabase_url:'https://test-project.supabase.co',publishable_key:'sb_publishable_fixture_key_only',policy_version:'pilot-2026-10-08'};
+test('operator configuration is explicit and does not enable the participant pilot',()=>{assert.equal(api.validOperatorConfig(base),true);assert.equal(api.validConfig(base),false);assert.equal(api.validReadOnlyConfig(base),false);for(const patch of [{enabled:true},{connection_mode:'read_only'},{connection_mode:'unknown'},{publishable_key:'sb_secret_do_not_use'},{supabase_url:'https://supabase.co.attacker.invalid'},{policy_version:'wrong'}])assert.equal(api.validOperatorConfig({...base,...patch}),false);});
+test('operator adapter permits only four read endpoints',()=>{for(const name of ['hllv_pilot_status','hllv_board','hllv_profile','hllv_queue'])assert.equal(api.operatorRead(name),true);for(const name of ['hllv_submit','hllv_edit','hllv_review','hllv_publish_batch','hllv_vote','hllv_moderate','hllv_my_submissions','execute_sql',''])assert.equal(api.operatorRead(name),false);});
+test('auth return detection leaves ordinary routes alone',()=>{for(const h of ['#access_token=fixture&refresh_token=fixture','#error=access_denied','#error_code=otp_expired'])assert.equal(api.isAuthCallback(h),true);for(const h of ['#HLLV-007','#suggestions','#issues','#patch-notes',''])assert.equal(api.isAuthCallback(h),false);});
