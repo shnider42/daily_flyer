@@ -20,6 +20,7 @@
   function refreshPolicy(){const next=policy();if(next.epoch!==current.epoch||tab.getItem(meta)!==next.epoch){tab.removeItem(KEY);tab.setItem(meta,next.epoch);}current=next;return next;}
   function read(){const p=refreshPolicy();return (p.remember?local:tab).getItem(KEY);}
   function put(value){const p=refreshPolicy();if(p.remember){local.setItem(KEY,value);tab.removeItem(KEY);}else{tab.setItem(KEY,value);tab.setItem(meta,p.epoch);local.removeItem(KEY);}}
+  let lastValue=read();
   function notice(before,after){if(user(before)!==user(after)||Boolean(before)!==Boolean(after))listener();}
   if(channel)channel.onmessage=e=>{
    const m=e.data;if(!m||typeof m!=='object')return;
@@ -28,15 +29,15 @@
    }
    if(m.type==='response'){
     if(m.epoch!==policy().epoch||!pending.has(m.request)||typeof m.value!=='string')return;
-    const resolve=pending.get(m.request);pending.delete(m.request);if(!read())put(m.value);resolve(read());return;
+    const resolve=pending.get(m.request);pending.delete(m.request);if(!read())put(m.value);lastValue=read();resolve(lastValue);return;
    }
    if(m.type==='sync'){
     if(m.epoch!==policy().epoch||typeof m.value!=='string')return;
-    const before=read();put(m.value);notice(before,m.value);return;
+    const before=lastValue;put(m.value);lastValue=m.value;notice(before,m.value);return;
    }
-   if(m.type==='logout'){refreshPolicy();tab.removeItem(KEY);listener();}
+   if(m.type==='logout'){refreshPolicy();tab.removeItem(KEY);lastValue=null;listener();}
   };
-  const storageListener=e=>{if(e.key===POLICY){const prior=current.epoch;refreshPolicy();if(prior!==current.epoch)listener();}};
+  const storageListener=e=>{if(e.key===POLICY){const prior=current.epoch;refreshPolicy();if(prior!==current.epoch){lastValue=null;listener();}}};
   env.addEventListener?.('storage',storageListener);
   return {
    key:KEY,
@@ -45,22 +46,22 @@
    onChange:fn=>{listener=fn;},
    async setRemember(remember){
     const value=read();current={...policy(),remember:Boolean(remember)};local.setItem(POLICY,JSON.stringify(current));
-    if(value){put(value);send({type:'sync',epoch:current.epoch,value});}
+    if(value){put(value);lastValue=value;send({type:'sync',epoch:current.epoch,value});}
    },
    storage:{
     async getItem(key){
      if(key!==KEY)return tab.getItem(key);
-     const value=read();if(value||!channel||closed)return value;
+     const value=read();lastValue=value;if(value||!channel||closed)return value;
      const request=id();return new Promise(resolve=>{pending.set(request,resolve);send({type:'request',request,epoch:current.epoch});env.setTimeout(()=>{if(pending.has(request)){pending.delete(request);resolve(read());}},200);});
     },
     async setItem(key,value){
      if(key!==KEY){tab.setItem(key,value);return;}
      if(policy().epoch!==current.epoch)throw new Error('Session changed. Sign in again.');
-     put(value);send({type:'sync',epoch:current.epoch,value});
+     put(value);lastValue=value;send({type:'sync',epoch:current.epoch,value});
     },
     async removeItem(key){
      if(key!==KEY){tab.removeItem(key);return;}
-     current={epoch:id(),remember:policy().remember};local.removeItem(KEY);tab.removeItem(KEY);tab.setItem(meta,current.epoch);local.setItem(POLICY,JSON.stringify(current));send({type:'logout',epoch:current.epoch});
+     current={epoch:id(),remember:policy().remember};lastValue=null;local.removeItem(KEY);tab.removeItem(KEY);tab.setItem(meta,current.epoch);local.setItem(POLICY,JSON.stringify(current));send({type:'logout',epoch:current.epoch});
     }
    },
    destroy(){closed=true;channel?.close();env.removeEventListener?.('storage',storageListener);for(const resolve of pending.values())resolve(null);pending.clear();}
