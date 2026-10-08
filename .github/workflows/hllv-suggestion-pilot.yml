@@ -23,7 +23,7 @@ jobs:
           POSTGRES_PASSWORD: pilot_fixture_only
           POSTGRES_DB: pilot_test
         ports: ['5432:5432']
-        options: --health-cmd pg_isready --health-interval 5s --health-timeout 5s --health-retries 10
+        options: --health-cmd "pg_isready -U postgres -d pilot_test" --health-interval 5s --health-timeout 5s --health-retries 10
     env:
       PILOT_TEST_DATABASE_URL: postgresql://postgres:pilot_fixture_only@localhost:5432/pilot_test
     steps:
@@ -39,6 +39,7 @@ jobs:
           python3 .github/hllv-pilot/harden_schema.py
           python3 -m py_compile .github/hllv-pilot/*.py suggestion_box/tests/*.py
           python3 suggestion_box/tests/test_database.py
+          python3 .github/hllv-pilot/check_boundaries.py
       - name: Prepare closed static integration without refreshing game evidence
         run: |
           python3 .github/hllv-pilot/install.py
@@ -65,7 +66,7 @@ jobs:
           if ! git diff --cached --quiet; then
             git config user.name 'github-actions[bot]'
             git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
-            git commit -m 'Publish closed Suggestion Box pilot with tested private review and voting workflow'
+            git commit -m 'Publish tested Suggestion Box pilot integration and authorization guards'
             git push origin HEAD:refs/heads/feature/hllv-bug-evidence-tracker
           fi
           echo "PUBLISHED_COMMIT=$(git rev-parse HEAD)"
@@ -100,4 +101,4 @@ jobs:
       - name: Record precise release boundary
         run: |
           echo "Verified commit: $(git rev-parse HEAD)" >> "$GITHUB_STEP_SUMMARY"
-          echo 'Suggestion Box UI published in closed setup mode. Managed auth/database code is included but NOT provisioned on Supabase. No real invitations, accounts, votes, submissions or reviewer approvals created. Database permissions tested on ephemeral PostgreSQL with synthetic Auth fixtures; browser tests include synthetic connected mode, not real email delivery. Existing issue evidence and patch archive preserved.' >> "$GITHUB_STEP_SUMMARY"
+          echo 'Suggestion Box UI published in closed setup mode. Managed auth/database code is included but NOT provisioned on Supabase. No real invitations, accounts, votes, submissions or reviewer approvals created. Database permissions tested on ephemeral PostgreSQL with synthetic Auth fixtures, plus expiry/null boundary checks; browser tests include synthetic connected mode, not real email delivery. Existing issue evidence and patch archive preserved.' >> "$GITHUB_STEP_SUMMARY"
