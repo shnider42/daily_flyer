@@ -1,0 +1,15 @@
+# Moderator inbox
+
+Open Suggestion Box > Review desk > Submitted suggestions. This is the real submission inbox, not the Bulletin Board and not Private practice. The adjacent Private practice view retains the separate saved rehearsal. The moderator login, password/session modules, reviewer permissions, Auth settings and evidence dataset are not changed by this release.
+
+The inbox shows All, New, Needs clarification, Shortlisted, Closed, and Published counts, text/issue-ID search and oldest/newest ordering. Open an entry to see its problem, desired outcome, related issue, received/updated time, wording version, submitter acceptance, latest note, reviewer response and safe decision history. Actual board visibility is separate from a stored published state. Withdrawn entries are excluded.
+
+A configured moderator with a current Auth session can read the inbox in setup. Decisions are available through the new endpoint only during intake/review, never during setup, voting or closed. Decisions are clarification, shortlist, not selected, duplicate, or return to New. A note is mandatory. This stores feedback for My submissions; it does not send email. There is no developer-clearance or publication button. Existing reviewer and publication requirements remain independent. Existing legacy pilot functions remain unchanged; the new inbox uses the phase- and concurrency-checked endpoint.
+
+Saving requires the exact observed wording version AND last-updated timestamp, so another moderator's decision cannot be overwritten unknowingly through this endpoint. After confirmation the receipt states the saved status and server timestamp. A failed/lost response leaves the note in place, blocks blind repeat saves, and offers Check current status. Polling only announces changed data; it never reorders entries or overwrites a note automatically. Sign-out/navigation invalidates pending UI responses. No private queue data or credentials are stored in Git or browser storage by this module.
+
+This deployment does not open the community pilot. At implementation, the database held zero real submissions and one separate practice entry. The empty state explains this rather than pretending that practice is a real submission. All test users, submissions and reviewer decisions are synthetic; hosted database fixtures run in a rolled-back transaction. No email is sent by automated tests. This is not a full independent security audit or a completed Team17 review pilot.
+
+Schema source: .github/hllv-inbox/schema.sql; hosted migration name: hllv_moderator_inbox. The workflow generates a replay migration with the pinned CLI, but never pushes a hosted database from CI. Apply the base pilot migrations before the replay migration in a fresh isolated database. Do not reapply an already recorded hosted migration.
+
+Rollback: restore tracker release ddd1226e9a9d87e58095c36dc2ae20ee3d18d92b for UI only. New inbox functions are additive; do not remove saved user data. To suspend new inbox access, revoke authenticated execution on its two public wrappers and private implementations. This does not change old pilot functions.

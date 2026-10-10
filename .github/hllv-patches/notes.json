@@ -1,0 +1,118 @@
+[
+  {
+    "id": "patch-1-6", "title": "Patch 1.6", "date": "2026-10-07", "date_label": "Released", "scope": "All platforms",
+    "headline": "A new audio mix, free basic defenses, and a more useful server browser.",
+    "highlights": [
+      "Combat audio, distant gunfire and spawn sounds were reworked. Units can now field two Medics; Rifleman slots drop from three to two.",
+      "Level 1 Engineer defenses no longer cost supplies; upgrades still do. Barricades, bunkers and wire have revised designs and placement limits.",
+      "Server filters and favourites receive fixes, fuller servers are prioritised, and visible-by-default Vote Kick notifications get a 30-second response window.",
+      "Further helicopter controls, spectator camera, artillery, effects-related stability and map corrections are included."
+    ],
+    "caution": "The notes do not explicitly close the voice-volume slider, Frame Generation reapplication or tutorial-completion saving issues. Those remain separate tracker records.",
+    "source_url": "https://www.hellletloose.com/blog/hllv-patch-1-6",
+    "source_title": "Patch 1.6 | Hell Let Loose: Vietnam",
+    "related_issues": ["HLLV-058", "HLLV-063", "HLLV-061"],
+    "review_basis": "Official Patch 1.6 publisher text reviewed on Steam, with the matching official website post; selected highlights only."
+  },
+  {
+    "id": "hotfix-1-5-2", "title": "Hotfix 1.5.2", "date": "2026-09-29", "date_label": "Released", "scope": "All platforms; FSR support is hardware-specific",
+    "headline": "Server reliability, voice safeguards, lower memory use and AMD FSR 4.1.",
+    "highlights": [
+      "Replication changes target degradation during long server sessions; voice changes reduce cases of players becoming silently muted.",
+      "Additional crash fixes and reduced memory use are joined by FSR 4.1 support for the AMD hardware specified in the notes.",
+      "Settings are retained through EOS sign-out/sign-in; PS5 save-data safeguards and a correction for nearby trees using flat distant models are included."
+    ],
+    "caution": "Safeguards and improvements are not blanket closure of every crash, spawn, voice or save problem. The publisher advises PC players to let shader caching finish after updating.",
+    "source_url": "https://www.hellletloose.com/blog/hllv-hotfix-1-5-2",
+    "source_title": "Hotfix 1.5.2 | Hell Let Loose: Vietnam",
+    "related_issues": ["HLLV-046", "HLLV-029", "HLLV-056"],
+    "review_basis": "Official Hotfix 1.5.2 publisher text reviewed on Steam and the tracker’s cited release evidence."
+  },
+  {
+    "id": "hotfix-1-5-1", "title": "Hotfix 1.5.1", "date": "2026-09-22", "date_label": "Live announcement", "scope": "All platforms",
+    "headline": "A steadier view when aiming and restored M14/SKS controller feedback.",
+    "highlights": [
+      "Aiming transitions were adjusted to reduce distracting changes in shadows and object detail when entering aim-down-sights.",
+      "Vibration and haptics were restored for the M14 and SKS; mounted-gun movement received further smoothing.",
+      "The boat nameplate now uses the correct icon."
+    ],
+    "caution": "Mounted-weapon smoothing does not resolve every deployment or aiming complaint; the notes themselves leave further work open.",
+    "date_note": "Steam announces the release on September 22; the website post is dated September 21. This archive uses the live-announcement date.",
+    "source_url": "https://steamcommunity.com/games/3079210/announcements/detail/684139458559214482",
+    "source_title": "Hotfix 1.5.1 | Live Now",
+    "related_issues": ["HLLV-049", "HLLV-050", "HLLV-006"],
+    "review_basis": "Official Hotfix 1.5.1 live-announcement text reviewed on Steam."
+  },
+  {
+    "id": "update-1-5", "title": "Update 1.5", "date": "2026-09-16", "date_label": "Released", "scope": "All platforms",
+    "headline": "The licensed Huey, M14 and SKS arrive alongside weapon balancing and fixes.",
+    "highlights": [
+      "The Bell UH-1 Iroquois Huey, its radio feature, and the M14 and Type 56 SKS expand the available content.",
+      "The first launch-weapon balancing pass accompanies changes to helicopter play, Commander Orders, spawning and the Tactical Map.",
+      "Specific fixes include duplicate input assignments, mouse-wheel binding, destroyed-boat visibility and helicopter rotors damaging structures."
+    ],
+    "caution": "The destroyed-boat visibility correction is narrower than every ghost-boat report. This release is not recorded as proof that tutorial completion saving is fully fixed.",
+    "date_note": "The full notes were published before launch; the official live announcement establishes September 16 as the release date.",
+    "source_url": "https://www.hellletloose.com/blog/hllv-update-1-5",
+    "source_title": "Update 1.5 | Full Changelog | Hell Let Loose: Vietnam",
+    "related_issues": ["HLLV-007", "HLLV-030", "HLLV-051"],
+    "review_basis": "Official Update 1.5 changelog and September 16 live-announcement text reviewed on Steam, alongside existing linked issue evidence."
+  },
+  {
+    "id": "hotfix-1-4-2", "title": "Hotfix 1.4.2", "date": "2026-09-08", "date_label": "Released", "scope": "Cross-platform fixes; some PC-specific changes",
+    "headline": "Targeted audio, voice, crash and mounted-gun corrections.",
+    "highlights": [
+      "PC spatial-audio reverb and repeated voice sounds when closing radio communications or opening menus receive specific fixes.",
+      "Several crash paths and camera-related stutter on mounted weapons are addressed.",
+      "Tunnel links to pre-placed Garrisons regain distance restrictions, and Windows Store players regain the DLSS reconstruction option."
+    ],
+    "caution": "These are specific corrections, not proof that every audio failure, GPU crash or mounted-weapon complaint is resolved.",
+    "source_url": "https://www.hellletloose.com/blog/hllv-hotfix-1-4-2",
+    "source_title": "Hotfix 1.4.2 | Live Now | Hell Let Loose: Vietnam",
+    "related_issues": ["HLLV-028", "HLLV-049", "HLLV-053"],
+    "review_basis": "Official Hotfix 1.4.2 text reviewed on Steam and previously recorded issue-linked release evidence."
+  },
+  {
+    "id": "patch-1-4", "title": "Patch 1.4", "date": "2026-09-02", "date_label": "Website notes dated", "scope": "PC and consoles; graphics features depend on hardware",
+    "headline": "Robotic proximity voice, persistent recon markers and progression safeguards.",
+    "highlights": [
+      "The main robotic Proximity Chat defect and one identified cause of persistent Recon Plane and Flare markers receive changes.",
+      "Additional protection targets unexpected Career Level resets, alongside fixes for a blood/effects-related crash path.",
+      "Aiming inversion is separated from vehicle controls, and an incorrect non-VIP party slot warning is corrected."
+    ],
+    "caution": "The recon change addresses one cause, and progression changes are safeguards. Neither establishes universal resolution.",
+    "date_note": "The official website dates these notes September 2; Steam lists its live post September 3. The date above identifies the website record, not a proven simultaneous rollout time.",
+    "source_url": "https://www.hellletloose.com/blog/hllv-patch-1-4",
+    "source_title": "Patch 1.4 | Full Changelog | Hell Let Loose: Vietnam",
+    "related_issues": ["HLLV-001", "HLLV-002", "HLLV-047"],
+    "review_basis": "Selected highlights from the tracker’s previously reviewed, issue-linked Patch 1.4 evidence. This pass checks the official destination but is not a fresh full-source audit."
+  },
+  {
+    "id": "patch-1-3", "title": "Patch 1.3", "date": "2026-08-28", "date_label": "Released", "scope": "PC and consoles; community-server changes included",
+    "headline": "More reliable server administration, vehicle controls and combat interactions.",
+    "highlights": [
+      "VIP lists are retained through server resets, Map Shuffle is corrected, and inaccurate zero-ping browser readings receive a fix.",
+      "Tank drivers can change gears without holding the throttle, and helicopter co-pilots retain control after the pilot dies.",
+      "Fixes cover several tunnel/water soft locks and KIA-screen voice interruptions, with further knife-hit, controls and map improvements."
+    ],
+    "caution": "A targeted fix for wiped server settings was not explicitly confirmed in the final notes. It remains separate from the released VIP-list fix.",
+    "source_url": "https://www.hellletloose.com/blog/hllv-patch-1-3",
+    "source_title": "Patch 1.3 | Full Changelog | Hell Let Loose: Vietnam",
+    "related_issues": ["HLLV-005", "HLLV-013", "HLLV-027"],
+    "review_basis": "Selected highlights from the tracker’s previously reviewed, issue-linked Patch 1.3 evidence. This pass checks the official destination but is not a fresh full-source audit."
+  },
+  {
+    "id": "patch-1-2", "title": "Patch 1.2", "date": "2026-08-21", "date_label": "Released", "scope": "PC, PlayStation 5 and Xbox Series X|S",
+    "headline": "Launch-era server, voice, movement and vehicle problems receive fixes.",
+    "highlights": [
+      "A reproduced server crash involving tunnel changes during travel is fixed; this is a specific cause rather than all server disconnects.",
+      "Party Voice Chat and voice controls, deployment without a weapon, and an unusable helicopter gunner seat receive corrections.",
+      "Changes also address above-ground swimming, underwater helicopter operation, a brief Xbox driving freeze, and VIP slot accounting."
+    ],
+    "caution": "This is historical release evidence. Similar symptoms reported on later builds still need their own investigation.",
+    "source_url": "https://www.hellletloose.com/blog/hllv-patch-1-2",
+    "source_title": "Patch 1.2 | Full Changelog | Hell Let Loose: Vietnam",
+    "related_issues": ["HLLV-009", "HLLV-038", "HLLV-040"],
+    "review_basis": "Selected highlights from the tracker’s previously reviewed, issue-linked Patch 1.2 evidence. This pass checks the official destination but is not a fresh full-source audit."
+  }
+]

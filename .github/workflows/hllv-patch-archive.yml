@@ -1,0 +1,68 @@
+name: HLLV patch summary archive
+on:
+  push:
+    branches: [feature/hllv-bug-evidence-tracker]
+    paths:
+      - .github/hllv-patches/**
+      - .github/workflows/hllv-patch-archive.yml
+permissions:
+  contents: write
+concurrency:
+  group: hllv-reviewed-data-update
+  cancel-in-progress: false
+jobs:
+  test-publish-verify:
+    if: github.repository == 'shnider42/daily_flyer'
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          fetch-depth: 2
+      - name: Build the reviewed archive and matching snapshot
+        run: |
+          python3 -m py_compile .github/hllv-patches/*.py
+          python3 .github/hllv-patches/build.py --verify-links
+          python3 .github/hllv-patches/test_archive.py --unit
+          git diff --check
+          node --test .github/hllv-evidence/test_evidence.cjs
+      - name: Install isolated test browsers
+        run: |
+          python3 -m pip install --quiet --disable-pip-version-check playwright==1.55.0
+          python3 -m playwright install --with-deps chromium webkit >/tmp/hllv-browser-install.log 2>&1 || { tail -50 /tmp/hllv-browser-install.log; exit 1; }
+      - name: Test locally before publishing
+        run: |
+          set -euo pipefail
+          python3 -m http.server 8765 --bind 127.0.0.1 --directory hllv_tracker >/tmp/hllv-local.log 2>&1 &
+          PID=$!
+          trap 'kill "$PID" || true' EXIT
+          python3 .github/hllv-evidence/test_browser.py
+          python3 .github/hllv-evidence/test_browser.py --engine webkit
+          python3 .github/hllv-evidence/test_browser.py --fallback
+          python3 .github/hllv-refresh-20261007/test_refresh.py
+          python3 .github/hllv-refresh-20261007/test_refresh.py --engine webkit
+          python3 .github/hllv-patches/test_archive.py
+          python3 .github/hllv-patches/test_archive.py --engine webkit
+      - name: Publish only the tested tracker files
+        run: |
+          set -euo pipefail
+          git diff --check
+          git add -- hllv_tracker/index.html hllv_tracker/data/issues.json hllv_tracker/data/issues.*.json hllv_tracker/deployment-manifest.json hllv_tracker/PATCH_NOTES.md hllv_tracker/reviews/2026-10-07-patch-archive.json .github/hllv-refresh-20261007/test_refresh.py
+          if ! git diff --cached --quiet; then
+            git config user.name 'github-actions[bot]'
+            git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+            git commit -m 'Add expandable official patch summaries to Overview without changing bug evidence'
+            git push origin HEAD:refs/heads/feature/hllv-bug-evidence-tracker
+          fi
+          echo "PUBLISHED_COMMIT=$(git rev-parse HEAD)"
+      - name: Verify the public page and actual referenced snapshot
+        run: |
+          python3 -u .github/hllv-patches/verify_live.py
+          python3 .github/hllv-evidence/test_browser.py --url https://hllv-bug-track.onrender.com/
+          python3 .github/hllv-evidence/test_browser.py --url https://hllv-bug-track.onrender.com/ --engine webkit
+          python3 .github/hllv-patches/test_archive.py --url https://hllv-bug-track.onrender.com/
+          python3 .github/hllv-patches/test_archive.py --url https://hllv-bug-track.onrender.com/ --engine webkit
+      - name: Record completed verification
+        run: |
+          echo "Verified repository commit: $(git rev-parse HEAD)" >> "$GITHUB_STEP_SUMMARY"
+          echo 'Eight expandable patch summaries with official links added to Overview. All 75 bug records and 157 bug references remain unchanged. Twenty source logic tests plus data, timestamp, full issue/source browser and archive tests passed. Chromium/WebKit checked locally and on the normal public homepage; no gameplay verification is claimed.' >> "$GITHUB_STEP_SUMMARY"

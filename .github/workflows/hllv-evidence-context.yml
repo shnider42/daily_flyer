@@ -1,0 +1,88 @@
+name: HLLV source context presentation
+on:
+  push:
+    branches: [feature/hllv-bug-evidence-tracker]
+    paths:
+      - .github/hllv-evidence/**
+      - .github/workflows/hllv-evidence-context.yml
+permissions:
+  contents: write
+concurrency:
+  group: hllv-reviewed-data-update
+  cancel-in-progress: false
+jobs:
+  install-test-publish:
+    if: github.repository == 'shnider42/daily_flyer'
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          fetch-depth: 0
+      - name: Install guarded presentation; leave the evidence dataset untouched
+        run: |
+          python3 -m py_compile .github/hllv-evidence/*.py
+          python3 .github/hllv-evidence/install.py
+          git diff --exit-code -- hllv_tracker/data/issues.json
+          git diff --check
+          node --check hllv_tracker/evidence.js
+          node --test .github/hllv-evidence/test_evidence.cjs
+      - name: Install isolated browser tests
+        run: |
+          python3 -m pip install --quiet --disable-pip-version-check playwright==1.55.0
+          python3 -m playwright install --with-deps chromium webkit > /tmp/hllv-browser-install.log 2>&1 || { tail -60 /tmp/hllv-browser-install.log; exit 1; }
+      - name: Test before publishing any frontend change
+        run: |
+          set -euo pipefail
+          python3 -m http.server 8765 --bind 127.0.0.1 --directory hllv_tracker >/tmp/hllv-local.log 2>&1 &
+          PID=$!
+          trap 'kill "$PID" || true' EXIT
+          python3 .github/hllv-evidence/test_browser.py
+          python3 .github/hllv-evidence/test_browser.py --engine webkit
+          python3 .github/hllv-evidence/test_browser.py --fallback
+      - name: Publish only the tested presentation files
+        run: |
+          set -euo pipefail
+          git diff --exit-code -- hllv_tracker/data/issues.json
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git add -- hllv_tracker/index.html hllv_tracker/evidence.js hllv_tracker/evidence.css hllv_tracker/EVIDENCE.md
+          if ! git diff --cached --quiet; then
+            git commit -m 'Show scoped source strength, claim limits and verification gaps in HLLV tracker'
+            git push origin HEAD:refs/heads/feature/hllv-bug-evidence-tracker
+          fi
+          echo "PUBLISHED_COMMIT=$(git rev-parse HEAD)"
+      - name: Verify canonical homepage, deployed assets and unchanged evidence
+        run: |
+          python3 -u - <<'PY'
+          import hashlib,json,time,urllib.request
+          from pathlib import Path
+          # Checking only /index.html?version missed an old response at bare /.
+          paths=['','index.html','evidence.js','evidence.css','data/issues.json','evidence.js?v=1','evidence.css?v=1']
+          expected={path:Path('hllv_tracker',path.split('?')[0] or 'index.html').read_bytes() for path in paths}
+          last='No deployment response'
+          for attempt in range(36):
+              try:
+                  for path in paths:
+                      url='https://hllv-bug-track.onrender.com/'+path
+                      # Deliberately use normal GETs here; do not hide stale homepage
+                      # behavior behind a random query or an altered browser route.
+                      with urllib.request.urlopen(url,timeout=15) as response:
+                          actual=response.read()
+                          headers={key:response.headers.get(key) for key in ['Age','Cache-Control','CF-Cache-Status','ETag','Last-Modified']}
+                      if actual!=expected[path]:
+                          print('DEPLOYMENT_NOT_CONSISTENT',json.dumps({'path':path or '/', 'attempt':attempt,'headers':headers,'actual_sha256':hashlib.sha256(actual).hexdigest(),'expected_sha256':hashlib.sha256(expected[path]).hexdigest()}))
+                          raise AssertionError('Production mismatch: '+(path or '/'))
+                  print('PRODUCTION_BYTES_MATCH: bare homepage, HTML, JS, CSS, versioned assets and unchanged evidence JSON')
+                  break
+              except Exception as error: last=str(error)
+              time.sleep(5)
+          else: raise RuntimeError(last)
+          PY
+          python3 .github/hllv-evidence/test_browser.py --url https://hllv-bug-track.onrender.com/
+          python3 .github/hllv-evidence/test_browser.py --url https://hllv-bug-track.onrender.com/ --engine webkit
+      - name: Record verification summary
+        run: |
+          echo '## HLLV source context presentation' >> "$GITHUB_STEP_SUMMARY"
+          echo "Verified repository commit: $(git rev-parse HEAD)" >> "$GITHUB_STEP_SUMMARY"
+          echo 'Data and game statuses unchanged. 20 Node tests; every one of 66 issue views and 136 source rows exercised in Chromium and WebKit before publication and on production. Canonical bare homepage and deployed assets match, without cache-busting the browser. Keyboard disclosure, source links, narrow layouts and missing-module fallback checked.' >> "$GITHUB_STEP_SUMMARY"
