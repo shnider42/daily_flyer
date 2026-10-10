@@ -1,20 +1,22 @@
 {
-  "data_url": "data/issues.56a15660a27033ca.json",
-  "data_sha256": "56a15660a27033ca846f657bf693a88f5a64b3629c0a421ef64b2f19374104af",
+  "data_url": "data/issues.84f18e2b0d5ac03c.json",
+  "data_sha256": "84f18e2b0d5ac03c87702fbbaf318ee624c1d38ea360598e6d075ae9f9b6841d",
   "evidence_js_url": "assets/evidence-f81896b2b5901f3b.js",
   "files": [
-    "data/issues.56a15660a27033ca.json",
+    "data/issues.84f18e2b0d5ac03c.json",
     "assets/evidence-f81896b2b5901f3b.js",
     "evidence.css?v=1",
     "freshness.js?v=20261007",
     "freshness.css?v=20261007",
-    "assets/suggestions-bfe43e1541952140.js",
+    "assets/suggestions-9b8a06058059bd9b.js",
     "assets/suggestions-9ca057e0823a6271.css",
     "suggestions-config.json",
+    "assets/account-b618de21e03759db.css",
+    "assets/inbox-83a1ea6dec83f847.css",
+    "assets/practice-722af958d913e154.js",
     "assets/session-64d9247ad7eb980a.js",
     "assets/password-fe489258acbb5bdf.js",
-    "assets/account-b618de21e03759db.css",
-    "assets/practice-722af958d913e154.js"
+    "assets/inbox-2b62db76ea0c9f3c.js"
   ],
   "note": "These are the actual production URLs embedded in the page, not random test cache-busters. data/issues.json remains the editable source file."
 }

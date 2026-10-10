@@ -144,6 +144,7 @@
   </style>
   <link id="suggestions-style" rel="stylesheet" href="./assets/suggestions-9ca057e0823a6271.css">
   <link id="hllv-account-style" rel="stylesheet" href="./assets/account-b618de21e03759db.css">
+  <link id="hllv-inbox-style" rel="stylesheet" href="./assets/inbox-83a1ea6dec83f847.css">
 </head>
 <body>
   <header class="site-nav"><button class="brand-button" id="brandHome"><span class="brand-mark-small">H/V</span><span><strong>Infierno Liberado</strong><small>HLLV patches &amp; bugs</small></span></button><nav class="top-links" aria-label="Main navigation"><button class="top-link active" data-page="landing">Overview</button><button class="top-link" data-page="issues">All issues</button><button class="top-link" data-page="suggestions">Suggestion Box</button></nav></header>
@@ -225,10 +226,11 @@
   <script id="practice-module" src="./assets/practice-722af958d913e154.js"></script>
   <script id="hllv-session-module" src="./assets/session-64d9247ad7eb980a.js"></script>
   <script id="hllv-password-module" src="./assets/password-fe489258acbb5bdf.js"></script>
-  <script id="suggestions-module" src="./assets/suggestions-bfe43e1541952140.js"></script>
+  <script id="hllv-inbox-module" src="./assets/inbox-2b62db76ea0c9f3c.js"></script>
+  <script id="suggestions-module" src="./assets/suggestions-9b8a06058059bd9b.js"></script>
   <script>
     const AUTH_RETURN_TO_SUGGESTIONS = Boolean(window.HLLVSuggestions?.isAuthCallback(location.hash));
-    const TRACKER_DATA_URL = "./data/issues.56a15660a27033ca.json";
+    const TRACKER_DATA_URL = "./data/issues.84f18e2b0d5ac03c.json";
     let dataset,selectedId,searchTerm='',category='all',homeSearchTerm='',homeCategory='all',homeStatus='open',activeTab='summary';
     const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
     const human=s=>String(s??'').replaceAll('-',' ').replace(/\b\w/g,c=>c.toUpperCase());

@@ -66,6 +66,7 @@ with sync_playwright() as pw:
             elif op in ['email-login','reset-email']:data={};error={'status':429,'code':'over_email_send_rate_limit'} if email_error else None
             elif op=='hllv_profile':data={'role':role}
             elif op=='hllv_pilot_status':data={'phase':'setup','intake_open':False,'voting_open':False}
+            elif op=='hllv_moderator_inbox':data={'phase':'setup','can_moderate':False,'checked_at':'2026-10-09T00:00:00Z','rows':[]}
             elif op in ['hllv_queue','hllv_board']:data=[]
             else:raise AssertionError('Unexpected operation: '+op)
             route.fulfill(json={'data':data,'error':error})
