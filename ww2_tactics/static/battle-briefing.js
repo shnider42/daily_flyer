@@ -72,7 +72,7 @@
     `${defender} win if the attackers have not won when the defenders end round ${rounds}.`,
     `Either side also wins by eliminating every enemy unit. Resigning awards the battle to the opponent. Fog hides enemy strength, so no hidden unit counts are used in this briefing.`],focus:s.scenario.objective};
  }
- function displayed(){return playbackSession&&state?.front_mode?{...state,...playbackSession.frames[playbackSession.index][playbackSession.phase]}:state;}
+ function displayed(){return playbackSession&&state?.front_mode?{...state,...playbackSession.frames[playbackSession.index]?.[playbackSession.phase]}:state;}
  function phase(s){
   if(playbackSession)return {id:'replay',title:'WATCHING THE REPLAY',text:'Pause, step through or finish the replay before issuing orders.'};
   if(s.winner)return {id:'finished',title:s.winner===s.side?'VICTORY':'DEFEAT',text:s.resigned_by?`${s.factions?.[s.resigned_by]||names[s.resigned_by]} resigned. This battle has ended.`:'This battle has ended. Open the mission for the result.'};
@@ -80,6 +80,7 @@
   if(s.deployment?.phase==='planning')return {id:'prebattle',title:s.coop?.done?'WAITING FOR TEAM':s.deployment.locked[s.side]?'PLAN LOCKED':'PRE-BATTLE',text:s.coop?(s.coop.done?'Your placements are final. The plan locks after every teammate finishes.':'Place your own units, then Finish my preparation. The army captain sets shared support.'):s.deployment.locked[s.side]?'Waiting for the other plan. Enemy preparations remain private.':'Arrange your force and support plan, then review and lock. No AP is spent.'};
   if(!s.ready)return {id:'waiting',title:'WAITING FOR A PLAYER',text:'Share the invitation. Orders unlock when your opponent joins.'};
   if(busy)return {id:'sending',title:'RESOLVING ORDERS',text:s.ai_side?'The server is confirming the order. The computer takes its full turn only after End turn.':'Waiting for the server to confirm the order.'};
+  if(s.computer_work?.pending)return {id:'computer',title:s.computer_work.status==='paused'?'COMPUTER PAUSED':'COMPUTERS GIVING ORDERS',text:s.computer_work.status==='paused'?'The last completed orders are saved. Use Retry computer orders in Battle options to continue.':'Orders continue on the server, even if you leave or close this tab. Large replays are available afterward without delaying your next turn.'};
   if(s.coop?.needs_advance)return {id:'computer',title:s.coop.resolving?'COMPUTERS GIVING ORDERS':'COMPUTER GROUPS READY',text:s.coop.resolving?'Computer groups act in short batches. If the player continuing them disconnects, open Team orders and Advance computer turn to take over.':'Open Team orders and Advance computer turn to continue after human commands are lost.'};
   if(s.turn!==s.side)return {id:'opponent',title:'OPPONENT’S TURN',text:'You can inspect the battlefield. Your orders unlock when their turn ends.'};
   if(s.coop?.done)return {id:'teamwait',title:'WAITING FOR TEAM',text:'Your orders are finished. Waiting for '+s.coop.waiting_for.map(id=>s.coop.players.find(p=>p.id===id)?.name||'a teammate').join(', ')+'.'};

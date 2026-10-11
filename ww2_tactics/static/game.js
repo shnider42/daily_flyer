@@ -28,18 +28,52 @@ function replayIdentity(value){
  const movie=value?.computer_playback;
  return movie&&movie.id!==undefined&&value.code&&value.side?`${value.code}:${value.side}:${value.battle_number||1}:${movie.id}`:null;
 }
+function applyStateChanges(source,operations){
+ let result={...source};delete result._transport;
+ for(const [kind,path,...values] of operations){
+  if(!path.length){result=structuredClone(values[0]);continue;}
+  let node=result;
+  for(const key of path.slice(0,-1)){node[key]=Array.isArray(node[key])?[...node[key]]:{...node[key]};node=node[key];}
+  const key=path[path.length-1];
+  if(kind==='del'){delete node[key];continue;}
+  if(kind==='hexes'){
+   const positions=new Map(node[key].map(p=>[p.join(','),p]));
+   for(const p of values[1])positions.delete(p.join(','));for(const p of values[0])positions.set(p.join(','),p);
+   node[key]=[...positions.values()].sort((a,b)=>a[1]-b[1]||a[0]-b[0]);
+  }else if(kind==='units'){
+   const units=new Map(node[key].filter(u=>!values[1].includes(u.id)).map(u=>[u.id,u]));
+   for(const u of values[0])units.set(u.id,u);node[key]=values[2].map(id=>units.get(id));
+  }else node[key]=values[0];
+ }
+ return result;
+}
+function receivedState(data,source){
+ if(!data.delta)return data;
+ if(!source||data.code!==source.code||data.base!==source._transport?.hash)throw new Error('State update needs a fresh snapshot.');
+ const result=applyStateChanges(source,data.changes);result._transport=data._transport;
+ if(result.revision!==data.revision)throw new Error('State update revision mismatch.');
+ return result;
+}
+function syncComputerWork(){
+ let button=$('retryComputer');
+ if(!button){button=document.createElement('button');button.id='retryComputer';button.textContent='Retry computer orders';button.onclick=()=>run(async()=>{state=await api(`/api/match/${session.code}/computer`,{revision:state.revision});});document.querySelector('#battleOptions .match-tools')?.append(button);}
+ button.hidden=state?.computer_work?.status!=='paused';button.disabled=busy||!!playbackSession;
+}
 async function api(path, body){
  // Retain the exact request's public movie, not a global cache or later state.
  const source=state,auth=session?{Authorization:`Bearer ${session.token}`}:{},movie=source?.computer_playback;
  const known=path.split('?')[0]===`/api/match/${source?.code}`&&session?.code===source?.code&&Array.isArray(movie?.frames)?replayIdentity(source):null;
- const response=await fetch(path,{method:body===undefined?'GET':'POST',headers:{'Content-Type':'application/json',...auth,...(known?{'X-WW2-Replay':known}:{})},...(body===undefined?{}:{body:JSON.stringify(body)})});
+ const same=source?.code===session?.code&&path.startsWith(`/api/match/${source?.code}`),baseline=same?source?._transport?.hash:null;
+ if(body!==undefined&&/^\/api\/match\/[^/]+(?:\/cooperative)?$/.test(path)&&!body.command_id)body={...body,command_id:globalThis.crypto?.randomUUID?.()||`${Date.now()}-${Math.random().toString(36).slice(2)}`};
+ const response=await fetch(path,{method:body===undefined?'GET':'POST',headers:{'Content-Type':'application/json','X-WW2-Protocol':'2',...auth,...(baseline?{'X-WW2-State':baseline}:{}),...(known?{'X-WW2-Replay':known}:{})},...(body===undefined?{}:{body:JSON.stringify(body)})});
  let data=await response.json();if(!response.ok)throw new Error((data.error||'The server could not complete that action.')+(data.request_id?` Reference: ${data.request_id}`:''));
+ if(data.delta){try{data=receivedState(data,source);}catch(_){const fresh=await fetch(`/api/match/${source?.code||session.code}`,{headers:{...auth,'X-WW2-Protocol':'2'}});data=await fresh.json();if(!fresh.ok||data.delta)throw new Error('Could not refresh the battlefield. Do not repeat the last order.');}}
  if(data.computer_playback?.unchanged){
   if(known&&known===replayIdentity(data))data.computer_playback=movie;
   else{
    // A lost/unknown movie can only trigger a full READ. Never replay a POST,
    // which might already have moved, rolled dice or ended the turn.
-   const fresh=await fetch(path.split('?')[0],{headers:auth});
+   const fresh=await fetch(path.split('?')[0],{headers:{...auth,'X-WW2-Protocol':'2'}});
    data=await fresh.json();if(!fresh.ok||data.computer_playback?.unchanged)throw new Error('Could not refresh the replay. Refresh the battlefield; do not repeat the last order.');
   }
  }
@@ -70,17 +104,26 @@ function renderSessions(){
  }));
 }
 async function apiWithSession(saved){
- const response=await fetch(`/api/match/${saved.code}`,{headers:{Authorization:`Bearer ${saved.token}`}});
+ const response=await fetch(`/api/match/${saved.code}`,{headers:{Authorization:`Bearer ${saved.token}`,'X-WW2-Protocol':'2'}});
  const data=await response.json();if(!response.ok)throw new Error((data.error||'Battle unavailable.')+(data.request_id?` Reference: ${data.request_id}`:''));return data;
 }
 function invitation(){return `${location.origin}/?join=${session.code}`;}
 async function refresh(){
  if(!session||busy||polling||lobbyMode||playbackSession)return;polling=true;const requestedCode=session.code;
- try{const since=state?.code===requestedCode?`?since=${state.revision}`:'';const next=await api(`/api/match/${requestedCode}${since}`);if(session?.code!==requestedCode)return;$('connection').textContent='● Connected';if(!next.unchanged&&(!state||next.revision>state.revision||next.code!==state.code)){const oldKey=playbackKey(state),hadState=!!state;state=next;render();if(hadState&&playbackKey(state)&&oldKey!==playbackKey(state))startPlayback();}}
+ try{const since=state?.code===requestedCode?`?since=${state.revision}`:'';const next=await api(`/api/match/${requestedCode}${since}`);if(session?.code!==requestedCode)return;$('connection').textContent='● Connected';if(next.unchanged&&next.computer_work&&JSON.stringify(next.computer_work)!==JSON.stringify(state?.computer_work)){state={...state,computer_work:next.computer_work};delete state._transport;render();}if(!next.unchanged&&(!state||next.revision>state.revision||next.code!==state.code)){const oldKey=playbackKey(state),hadState=!!state;state=next;render();if(hadState&&shouldAutoPlayback(state)&&oldKey!==playbackKey(state))startPlayback();}}
  catch(e){$('connection').textContent='○ Reconnecting';if(!state)notify(e.message);}finally{polling=false;}
 }
-async function run(task){if(busy||playbackSession)return;const oldPlayback=playbackKey(state),oldCode=session?.code,oldState=state;busy=true;document.dispatchEvent(new Event('ww2:busy'));document.querySelectorAll('button').forEach(b=>b.disabled=true);try{await task();}catch(e){notify(e.message);}finally{busy=false;document.querySelectorAll('button').forEach(b=>b.disabled=false);if(state)render();if(!state||state===oldState)await refresh();if(session?.code===oldCode&&playbackKey(state)&&oldPlayback!==playbackKey(state))startPlayback();}}
-async function act(body){await run(async()=>{state=await api(`/api/match/${session.code}`,{...body,revision:state.revision});target=null;smokeMode=false;barrageMode=false;document.dispatchEvent(new CustomEvent('ww2:order',{detail:{kind:body.kind,code:session.code,battle:state.battle_number||1}}));});}
+async function run(task){if(busy||playbackSession)return;const oldPlayback=playbackKey(state),oldCode=session?.code,oldState=state;busy=true;document.dispatchEvent(new Event('ww2:busy'));document.querySelectorAll('button').forEach(b=>b.disabled=true);try{await task();}catch(e){notify(e.message);}finally{busy=false;document.querySelectorAll('button').forEach(b=>b.disabled=false);if(state)render();if(!state||state===oldState)await refresh();if(oldState&&session?.code===oldCode&&shouldAutoPlayback(state)&&oldPlayback!==playbackKey(state))startPlayback();}}
+async function act(body){
+ if(busy||playbackSession)return;
+ let pending=null;
+ if(body.kind==='move'){
+  const unit=state.units.find(u=>u.id===body.unit);
+  if(unit){const [x1,y1]=center(...unit.pos),[x2,y2]=center(...body.pos);pending=element('g',{'aria-label':'Move submitted; awaiting authoritative result',class:'pending-order'});pending.append(element('line',{x1,y1,x2,y2,class:'aim-line clear'}),element('circle',{cx:x2,cy:y2,r:18,fill:'none',stroke:'#b65216','stroke-width':3,'stroke-dasharray':'5 3'}));$('map').append(pending);}
+ }
+ try{await run(async()=>{state=await api(`/api/match/${session.code}`,{...body,revision:state.revision});target=null;smokeMode=false;barrageMode=false;document.dispatchEvent(new CustomEvent('ww2:order',{detail:{kind:body.kind,code:session.code,battle:state.battle_number||1}}));});}
+ finally{pending?.remove();}
+}
 function element(tag,attrs={},text){const e=document.createElementNS('http://www.w3.org/2000/svg',tag);Object.entries(attrs).forEach(([k,v])=>e.setAttribute(k,v));if(text!==undefined)e.textContent=text;return e;}
 function center(x,y){return [27+x*52+(y%2)*26,30+y*49];}
 function unitTypeName(u){if(u.display_name)return u.display_name;return state?.naval_version&&u.kind==='amphibious'?'Landing section':kinds[u.kind];}
@@ -318,7 +361,7 @@ function render(){
  $('rematchProposal').hidden=!state.rematch;
  if(state.rematch){const p=state.rematch,mine=p.by===state.side;$('proposalText').textContent=`${mine?'You proposed':names[p.by]+' propose'} ${p.name} · ${p.ruleset==='dsl'?'DSL v1':'Classic'}${p.swap?' with armies swapped':' with the same armies'}. ${mine?'Waiting for the other commander.':'Accept to replace the current battle.'}`;$('acceptRematch').hidden=mine;$('acceptRematch').disabled=busy;$('declineRematch').disabled=busy;$('declineRematch').textContent=mine?'Cancel proposal':'Decline';}
  renderPlatoons(board);$('findUnit').hidden=!selected||!(large||$('mapWrap').classList.contains('enlarged'));if(newBattle&&large)focusMapUnit(state.units.find(u=>u.side===state.side&&u.platoon==='A'&&u.kind===(state.naval_version?'carrier':'leader')));
- syncPlayback();renderBattleEffects(state,svg);
+ syncPlayback();syncComputerWork();renderBattleEffects(state,svg);
  if(window.renderCombined)window.renderCombined(unit,legal,svg);
  if(window.renderNaval)window.renderNaval(unit,legal,svg);
  if(window.renderCampaign)window.renderCampaign(unit,legal,svg);

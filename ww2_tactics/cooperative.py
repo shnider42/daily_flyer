@@ -185,12 +185,12 @@ def public(state, pid):
                 aboard=any(u['id'] in own and u.get('carrier_id') for u in state['units']),
                 waiting_for=pending(state, side), captain=c['captains'].get(side) == pid,
                 needs_advance=needs_advance, resolving=c.get('resolving', False),
-                auto_advance=bool(needs_advance and c.get('driver') == pid and humans_alive(state)),
+                auto_advance=bool(not state.get('background_ai') and needs_advance and c.get('driver') == pid and humans_alive(state)),
                 controllers={u['id']: (group_for(state, u['id']) or {}).get('owner')
                              for u in state['units'] if u['side'] == side})
 
 
-def setup_action(state, pid, body):
+def setup_action(state, pid, body, defer_computer=False):
     c = state['coop']; operation = body.get('operation')
     if operation == 'claim':
         claim(state, pid, body.get('side'), body.get('group'))
@@ -221,7 +221,7 @@ def setup_action(state, pid, body):
                     state = deployment.prepare_computer(dict(state, ai_side=side))
                     state.pop('ai_side', None)
         else:
-            state = advance(state)
+            state = defer(state) if defer_computer else advance(state)
     elif operation == 'handoff':
         target = body.get('player', pid)
         if not isinstance(target, str) or target not in c['players'] or (pid != target and pid != c['host']):
@@ -239,9 +239,9 @@ def setup_action(state, pid, body):
         if c['phase'] == 'battle':
             c['driver'] = pid
             if deployment.active(state):
-                state = finish_preparation(state)
+                state = finish_preparation(state, defer_computer=defer_computer)
             else:
-                state = advance(state)
+                state = defer(state) if defer_computer else advance(state)
     elif operation == 'transport':
         if c['phase'] != 'battle' or state.get('winner') or type(body.get('allow')) is not bool or not controlled(state, pid):
             raise ValueError('Only an active player can authorize allied transport for their own troops.')
@@ -256,14 +256,17 @@ def setup_action(state, pid, body):
         if c['phase'] != 'battle' or deployment.active(state) or pending(state, state['turn']):
             raise ValueError('Players still have orders to finish.')
         c['driver'] = pid
-        state = advance(state)
+        state = defer(state) if defer_computer else advance(state)
+        if defer_computer and not humans_alive(state):
+            # Preserve explicit spectator stepping without running AI in HTTP.
+            state['_spectator_ai_batch'] = True
     else:
         raise ValueError('Unknown cooperative lobby action.')
     state['revision'] += 1
     return state
 
 
-def finish_preparation(state):
+def finish_preparation(state, defer_computer=False):
     from .engine import apply
     for side in ('us', 'de'):
         if not deployment.active(state) or state['deployment']['locked'][side]:
@@ -276,11 +279,11 @@ def finish_preparation(state):
                 state = apply(state, side, dict(kind='deploy_lock'))
     if not deployment.active(state):
         state['coop']['done'] = []
-        state = advance(state)
+        state = defer(state) if defer_computer else advance(state)
     return state
 
 
-def order(state, pid, action):
+def order(state, pid, action, defer_computer=False):
     from .engine import apply
     from .order_history import resign
     c = state['coop']; p = c['players'][pid]; side = p['side']; kind = action.get('kind')
@@ -301,7 +304,7 @@ def order(state, pid, action):
     if deployment.active(state):
         if kind == 'deploy_lock':
             c['done'].append(pid); c['driver'] = pid; state['revision'] += 1
-            return finish_preparation(state)
+            return finish_preparation(state, defer_computer=defer_computer)
         if kind in ('deploy_bunker', 'deploy_fire'):
             if c['captains'].get(side) != pid:
                 raise ValueError('Your army captain sets the shared bunkers and naval fire.')
@@ -311,7 +314,7 @@ def order(state, pid, action):
         raise ValueError('Wait for your army’s turn.')
     elif kind == 'end':
         c['done'].append(pid); c['driver'] = pid; state['revision'] += 1
-        return advance(state)
+        return defer(state) if defer_computer else advance(state)
     if kind not in ('deploy_bunker', 'deploy_fire') and action.get('unit') not in controlled(state, pid):
         raise ValueError('That unit belongs to another player or the computer.')
     if not transport_allowed(state, action, pid):
@@ -330,7 +333,13 @@ def order(state, pid, action):
     return result
 
 
-def advance(state):
+def defer(state):
+    state['coop']['resolving'] = bool(not state.get('winner') and not deployment.active(state)
+                                   and not pending(state, state['turn']) and humans_alive(state))
+    return state
+
+
+def advance(state, max_orders=None, roll=None, planning=None, previous_views=None):
     """Small maps: at most two turns. Large maps: short resumable AI batches."""
     from .computer import play_turn
     large = len(state['units']) > 40
@@ -341,16 +350,18 @@ def advance(state):
         if state.get('winner') or deployment.active(state) or pending(state, state['turn']):
             break
         before_side = state['turn']
-        state = play_turn(dict(state, ai_side=before_side), observers=('us', 'de'), max_orders=6 if large else None)
+        state = play_turn(dict(state, ai_side=before_side), observers=('us', 'de'),
+                          max_orders=max_orders or (6 if large else None), roll=roll, planning=planning, previous_views=previous_views)
+        previous_views = None
         state.pop('ai_side', None)
         for side in movies:
             movies[side].extend(state['_coop_replays'][side]['frames'])
         if state['turn'] != before_side:
             state['coop']['done'] = []
         changed = True
-        if large:
+        if large or max_orders:
             break
     if changed:
         state['_coop_replays'] = {side: dict(id=state['revision'], frames=frames) for side, frames in movies.items()}
-    state['coop']['resolving'] = bool(large and not state.get('winner') and not pending(state, state['turn']) and humans_alive(state))
+    state['coop']['resolving'] = bool((large or max_orders) and not state.get('winner') and not pending(state, state['turn']) and humans_alive(state))
     return state

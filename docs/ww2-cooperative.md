@@ -58,14 +58,16 @@ that army's captain. Captains coordinate shared preparation and can concede thei
 whole army. Ordinary participants can hand off their group but cannot resign the
 whole army. If a captain hands off, the next active teammate takes that role.
 
-Each army receives its own fog-filtered computer replay. Small maps resolve at
-most two army turns per request. Large maps use short computer-order batches;
-the browser that last finished orders continues them automatically, preserving
-the turn budget and movement history. The complete replay becomes available
-when human orders resume. If that browser disconnects, another participant can
-use **Advance computer turn** in Team orders to continue. If all human-controlled
-units have been lost, that button advances the remaining AI battle in bounded
-manual steps. GET/reconnect/poll requests never advance turns or reroll dice.
+Each army receives its own fog-filtered computer replay. A durable server queue
+resolves at most two computer orders per checkpoint, preserving the turn budget
+and movement history. No participant's browser drives progression: closing a
+tab or watching replay does not stop the computers. Restart recovery resumes
+the last committed checkpoint without rerolling recorded results. The complete
+replay becomes available when human orders resume; large recordings are opt-in
+and load at most 12 events per page. Failed jobs pause visibly and offer an
+explicit retry. If all human-controlled units have been lost, **Advance computer
+turn** requests one bounded spectator step from the queue. GET/reconnect/poll
+requests never advance turns or reroll dice.
 
 ## Transports and preparation
 

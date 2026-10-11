@@ -48,7 +48,7 @@ def status(state, side):
                 history.get('reason', 'Undo is available after an order, during your turn.'))
 
 
-def perform(state, side, action):
+def perform(state, side, action, defer_computer=False):
     """Keep the immutable last-turn movie out of per-order engine/journal copies.
 
     A turn's replay is not gameplay state and cannot change between takebacks.
@@ -68,20 +68,20 @@ def perform(state, side, action):
                                                  if key != 'computer_playback'})
                               for item in history.get(stack, [])]
         current[KEY] = history
-    result = _perform(current, side, action)
+    result = _perform(current, side, action, defer_computer=defer_computer)
     # End turn may have generated a NEW movie. Never overwrite it with the old.
     if had_replay and 'computer_playback' not in result:
         result['computer_playback'] = replay
     return result
 
 
-def _perform(state, side, action):
+def _perform(state, side, action, defer_computer=False):
     if action.get('kind') == 'resign':
         return resign(state, side)
     if deployment.active(state):
         result=apply(state,side,action)
         result=deployment.prepare_computer(result)
-        if not deployment.active(result): result=play_turn(result)
+        if not deployment.active(result) and not defer_computer: result=play_turn(result)
         result[KEY]=dict(side=result['turn'],past=[],future=[],reason='Preparation committed. Naval dice cannot be rerolled.')
         return result
     # Journal entries are immutable snapshots. Copy the stacks, not every prior
@@ -112,7 +112,7 @@ def _perform(state, side, action):
         return value
     result = apply(state, side, action, roll=roll)
     if kind == 'end':
-        result = play_turn(result)
+        if not defer_computer: result = play_turn(result)
         result[KEY] = dict(side=result['turn'], past=[], future=[], reason='A turn ended. Earlier orders are committed.')
         return result
     # Scouting information is irreversible, even in solo. Test both armies so an

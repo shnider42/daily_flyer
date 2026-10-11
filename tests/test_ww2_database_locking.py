@@ -1,4 +1,4 @@
-"""A move must not open a second connection while its state write holds a lock."""
+"""Gameplay commits must be short, independent of presentation delivery."""
 import concurrent.futures
 import json
 import os
@@ -53,7 +53,7 @@ class DatabaseLockingTests(unittest.TestCase):
         db.execute('PRAGMA cache_spill=ON')
         return db
 
-    def test_large_write_reads_name_on_its_own_connection_and_preserves_undo(self):
+    def test_large_history_projection_releases_writer_and_preserves_undo(self):
         before = self.seed_history()
         blocked_readers = []
 
@@ -62,11 +62,10 @@ class DatabaseLockingTests(unittest.TestCase):
             def trace(sql):
                 if not sql.startswith('SELECT name FROM lobby_names'):
                     return
-                # Prove the regression is exercised: another connection cannot
-                # read now, but the request's own connection must still succeed.
+                # Projection runs after commit, so another player may write.
                 other = self.real_connect(self.path, timeout=.01)
                 try:
-                    other.execute('SELECT name FROM lobby_names').fetchone()
+                    other.execute('BEGIN IMMEDIATE')
                     blocked_readers.append(False)
                 except sqlite3.OperationalError as error:
                     blocked_readers.append(error.sqlite_errorcode == sqlite3.SQLITE_BUSY)
@@ -78,8 +77,8 @@ class DatabaseLockingTests(unittest.TestCase):
         with patch('ww2_web.sqlite3.connect', side_effect=connect) as connections:
             response = self.client.post(self.url, headers=self.headers(self.host), json={'kind':'undo','revision':before['revision']})
         self.assertEqual(response.status_code, 200, response.get_json())
-        self.assertEqual(connections.call_count, 1)
-        self.assertEqual(blocked_readers, [True])
+        self.assertGreaterEqual(connections.call_count, 3)
+        self.assertEqual(blocked_readers, [False])
         undone = response.get_json()
         self.assertTrue(undone['match_name'])
         self.assertNotIn('_order_history', undone)
@@ -116,7 +115,7 @@ class DatabaseLockingTests(unittest.TestCase):
             result = self.client.post(self.url, headers=self.headers(seat), json={'kind':'end','revision':current['revision']})
             self.assertEqual(result.status_code, 200, result.get_json())
         self.assertGreater(moves, 500)
-        self.assertGreater(largest, 2000000)
+        self.assertLess(largest, 200000)
         self.assertEqual(self.raw()['round'], 6)
 
     def test_external_lock_returns_retryable_error_without_changing_or_replaying_order(self):
@@ -146,17 +145,25 @@ class DatabaseLockingTests(unittest.TestCase):
             self.assertEqual(sorted(pool.map(end, range(2))), [200,409])
         self.assertEqual(self.raw()['revision'], before['revision']+1)
 
-    def test_response_failure_rolls_back_write_without_automatic_retry(self):
-        before = self.raw()
+    def test_response_failure_keeps_commit_and_same_identity_reconciles(self):
         for sqlite_code, expected in ((sqlite3.SQLITE_BUSY, 503), (sqlite3.SQLITE_ERROR, 500)):
             with self.subTest(sqlite_code=sqlite_code):
+                before = self.raw()
+                seat = self.host if before['turn'] == 'us' else self.guest
+                body = dict(kind='end', revision=before['revision'], command_id='lost-ack-'+str(sqlite_code))
                 error = sqlite3.OperationalError('Injected database failure')
                 error.sqlite_errorcode = sqlite_code
                 with patch('ww2_web.public_state', side_effect=error), patch('ww2_web.perform', wraps=perform) as orders, self.assertLogs(self.app.logger):
-                    result = self.client.post(self.url, headers=self.headers(self.host), json={'kind':'end','revision':before['revision']})
+                    result = self.client.post(self.url, headers=self.headers(seat), json=body)
                 self.assertEqual(result.status_code, expected)
                 self.assertEqual(orders.call_count, 1)
-                self.assertEqual(self.raw(), before)
+                accepted = self.raw()
+                self.assertEqual(accepted['revision'], before['revision']+1)
+                with patch('ww2_web.perform', wraps=perform) as orders:
+                    retry = self.client.post(self.url, headers=self.headers(seat), json=body)
+                self.assertEqual(retry.status_code, 200)
+                self.assertEqual(orders.call_count, 0)
+                self.assertEqual(self.raw(), accepted)
 
 
 if __name__ == '__main__':

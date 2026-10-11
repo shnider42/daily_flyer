@@ -62,7 +62,7 @@ def choose_order(state, costs, visited, front_costs=None):
     objective_maps = front_costs if front_costs is not None else {p['id']: objective_costs(state, p['pos']) for p in board.get('linked_objectives', [])}
     mobility=objective_maps.setdefault('_mobility',{}) if signals.enabled(state) else {}
     for unit in units.values():
-        if unit['side'] != side or not computer_policy.eligible(state, unit):
+        if unit['side'] != side or (unit['ap'] <= 0 and not unit.get('road_pending')) or not computer_policy.eligible(state, unit):
             continue
         if domains.joint(state) and unit['kind'] in domains.AIR_UNITS | domains.SHIPS:
             choices.extend(fubar.domain_choices(state,unit,options(state,unit),list(units.values()),visited))
@@ -83,15 +83,17 @@ def choose_order(state, costs, visited, front_costs=None):
         choices.extend(fire_control.ai_choices(state, unit, legal, units.values()))
         for supply in legal.get('resupply', []):add(15, unit, 'resupply', target=supply['id'])
         if legal.get('airborne_drop'):
+            occupied = {tuple(t['pos']) for t in units.values()}
             candidates=[[x,y] for y in range(board['height']) for x in range(board['width']) if known_ground[y][x] in {'field','road','objective','beach'}
-                        and not any(t['pos']==[x,y] for t in units.values())]
+                        and (x,y) not in occupied]
+            known_flak = [t for t in units.values() if t['side']!=side and t.get('aa_radius') and not t['pinned']]
             def drop_score(pos):
                 # Static geography, own beacons and spotted guns only. Unknown
                 # Flak cannot influence destination selection or risk estimates.
                 nearby=fieldworks.neighbors(state,pos)
                 hazard=sum(known_ground[p[1]][p[0]] in {'water','woods','building','tower', 'church','bunker'} for p in nearby)
-                known_flak=any(t['side']!=side and t.get('aa_radius') and not t['pinned'] and distance(t['pos'],pos)<=t['aa_radius'] for t in units.values())
-                return -distance(pos,goal)-hazard*.7-8*known_flak+2*airborne.beacon_near(state,side,pos)
+                flak_hazard=any(distance(t['pos'],pos)<=t['aa_radius'] for t in known_flak)
+                return -distance(pos,goal)-hazard*.7-8*flak_hazard+2*airborne.beacon_near(state,side,pos)
             if candidates:add(9,unit,'airborne_drop',pos=max(candidates,key=drop_score))
         if legal.get('mark_lz'):add(6 if distance(unit['pos'],goal)<=8 else .1,unit,'mark_lz')
         if legal.get('radio_update'):add(5,unit,'radio_update')
@@ -228,7 +230,7 @@ def choose_order(state, costs, visited, front_costs=None):
     return computer_policy.choose(state, choices, 1.5 if dsl(state) else 0)
 
 
-def play_turn(state, roll=None, observers=None, max_orders=None):
+def play_turn(state, roll=None, observers=None, max_orders=None, planning=None, previous_views=None):
     from . import deployment
     if deployment.active(state):
         state=deployment.prepare_computer(state,roll)
@@ -239,11 +241,18 @@ def play_turn(state, roll=None, observers=None, max_orders=None):
     old_movies = {k: state[k] for k in ('computer_playback', '_coop_replays') if k in state}
     state = {k: v for k, v in state.items() if k not in old_movies}
     viewers = observers or ('us' if state['ai_side'] == 'de' else 'de',)
-    costs = objective_costs(state)
-    front_costs = {p['id']: objective_costs(state, p['pos']) for p in battlefield(state).get('linked_objectives', [])}
     terrain_memory = (dict(buildings.known(state, state['ai_side'])), dict(fieldworks.known(state, state['ai_side'])))
+    signature = (battlefield(state)['id'], state['turn'], state['round'], terrain_memory)
+    if planning is not None and planning.get('signature') == signature:
+        costs, front_costs = planning['costs'], planning['front_costs']
+    else:
+        costs = objective_costs(state)
+        front_costs = {p['id']: objective_costs(state, p['pos']) for p in battlefield(state).get('linked_objectives', [])}
+        if planning is not None:
+            planning.update(signature=copy.deepcopy(signature), costs=costs, front_costs=front_costs)
     visited = {u['id']: {tuple(u['pos'])} for u in state['units']}
-    progress = state.get('coop', {}).get('ai_progress', {}) if max_orders else {}
+    progress = (state.get('coop', {}).get('ai_progress', {}) if state.get('coop')
+                else state.get('_ai_progress', {})) if max_orders else {}
     same_turn = progress.get('turn') == state['turn'] and progress.get('round') == state['round']
     if same_turn:
         visited = {uid: {tuple(pos) for pos in positions} for uid, positions in progress['visited'].items()}
@@ -256,7 +265,8 @@ def play_turn(state, roll=None, observers=None, max_orders=None):
                               ('units', 'smoke', 'barrages', 'round', 'turn', 'hold', 'winner', 'buildings', 'fieldworks', 'objective_control')})
         result.update(new_fronts.public_fields(value, viewer))
         return result
-    previous_snapshot = {viewer: snapshot(state, viewer) for viewer in viewers}
+    previous_snapshot = {viewer: previous_views[viewer] if previous_views and viewer in previous_views else snapshot(state, viewer)
+                         for viewer in viewers}
     def perform(action):
         nonlocal state, previous_snapshot
         before_all = previous_snapshot
@@ -315,6 +325,9 @@ def play_turn(state, roll=None, observers=None, max_orders=None):
             costs = objective_costs(state)
             front_costs = {p['id']: objective_costs(state, p['pos']) for p in battlefield(state).get('linked_objectives', [])}
             terrain_memory = memory
+            if planning is not None:
+                planning.update(signature=copy.deepcopy((battlefield(state)['id'], state['turn'], state['round'], memory)),
+                                costs=costs, front_costs=front_costs)
         action = choose_order(state, costs, visited, front_costs)
         accepted = perform(action)
         remaining -= 1
@@ -337,11 +350,15 @@ def play_turn(state, roll=None, observers=None, max_orders=None):
     else:
         perform(dict(kind='end'))
     if max_orders:
-        state['coop'] = dict(state['coop'])
-        if state['winner'] or state['turn'] != state['ai_side']:
-            state['coop'].pop('ai_progress', None)
+        if state.get('coop'):
+            state['coop'] = dict(state['coop'])
+            progress_owner, progress_key = state['coop'], 'ai_progress'
         else:
-            state['coop']['ai_progress'] = dict(turn=state['turn'], round=state['round'], remaining=remaining,
+            progress_owner, progress_key = state, '_ai_progress'
+        if state['winner'] or state['turn'] != state['ai_side']:
+            progress_owner.pop(progress_key, None)
+        else:
+            progress_owner[progress_key] = dict(turn=state['turn'], round=state['round'], remaining=remaining,
                 visited={uid: sorted(positions) for uid, positions in visited.items()})
     state.update(old_movies)
     if observers:

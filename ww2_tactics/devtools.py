@@ -42,19 +42,35 @@ def import_snapshot(source, destination):
         create_app(str(destination))
         code = secrets.token_hex(5).upper()
         owners = {side: hashlib.sha256(secrets.token_bytes(32)).hexdigest() for side in ('us', 'de')}
+        local_players = {}
+        if state.get('coop'):
+            for pid, player in state['coop']['players'].items():
+                if player.get('side') not in owners:
+                    raise ValueError('Diagnostic shared battle has an invalid army.')
+                local_players[pid] = hashlib.sha256(secrets.token_bytes(32)).hexdigest()
+            for side in owners:
+                first = next((pid for pid,p in state['coop']['players'].items() if p['side']==side),None)
+                if first: owners[side] = local_players[first]
         tickets = {}
         with sqlite3.connect(destination) as db:
+            from .pipeline import import_artifacts
             db.execute('INSERT INTO match(code,host,guest,state) VALUES (?,?,?,?)',
                        (code, owners['us'], owners['de'] if state['ready'] else None, json.dumps(state)))
+            import_artifacts(db, code, payload.get('artifacts'))
+            for pid, owner in local_players.items():
+                db.execute('INSERT INTO cooperative_players VALUES (?,?,?)', (code,pid,owner))
             db.execute('UPDATE lobby_names SET name=? WHERE code=?', ('LOCAL REPRO · '+code, code))
-            for side in ('us', 'de'):
+            identities = ({player['side']+':'+pid: (player['side'],local_players[pid])
+                           for pid,player in state['coop']['players'].items()} if local_players else
+                          {side:(side,owner) for side,owner in owners.items()})
+            for label, (side, owner) in identities.items():
                 if (side == 'de' and not state['ready']) or state.get('ai_side') == side:
                     continue
                 raw = secrets.token_hex(16).upper()
                 ticket = 'MOVE-'+'-'.join(raw[i:i+4] for i in range(0, len(raw), 4))
                 digest = hashlib.sha256(ticket.replace('-', '').encode()).hexdigest()
-                db.execute('INSERT INTO transfers VALUES (?,?,?,?)', (digest, code, owners[side], time.time()+900))
-                tickets[side] = ticket
+                db.execute('INSERT INTO transfers VALUES (?,?,?,?)', (digest, code, owner, time.time()+900))
+                tickets[label] = ticket
         return dict(code=code, db=str(destination), tickets=tickets, source_version=payload.get('version'))
     finally:
         if previous is None:
@@ -69,7 +85,7 @@ def run_tests(report_path):
     # Importing ww2_web creates its module-level Flask app. Isolate even that
     # initialization from a configured production path during build-time tests.
     with tempfile.TemporaryDirectory(prefix='dsl-regressions-') as folder:
-        with patch.dict(os.environ, WW2_DB_PATH=str(Path(folder) / 'bootstrap.sqlite3')):
+        with patch.dict(os.environ, WW2_DB_PATH=str(Path(folder) / 'bootstrap.sqlite3'), WW2_BACKGROUND_AI='0'):
             suite = unittest.defaultTestLoader.discover(str(ROOT / 'tests'), pattern='test_ww2*.py')
             result = unittest.TextTestRunner(verbosity=1).run(suite)
     report = dict(format='dsl-tests-v1', **version, finished_at=time.time(),

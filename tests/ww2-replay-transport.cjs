@@ -7,7 +7,7 @@ assert.ok(start>=0&&end>start);
 const movie={id:7,frames:[{action:{kind:'contact'},before:{units:[]},after:{units:[]}}]};
 const base=()=>({code:'BATTLE',side:'us',battle_number:1,revision:3,computer_playback:structuredClone(movie)});
 function client(reply){
- const calls=[],context=vm.createContext({state:base(),session:{code:'BATTLE',token:'original'},fetch:async(url,options={})=>{calls.push({url,options});return reply(calls.length,url,options,context);}});
+ const calls=[],context=vm.createContext({structuredClone,state:base(),session:{code:'BATTLE',token:'original'},fetch:async(url,options={})=>{calls.push({url,options});return reply(calls.length,url,options,context);}});
  vm.runInContext(code.slice(start,end),context);
  return {context,calls,api:(url,body)=>context.api(url,body)};
 }
@@ -37,5 +37,19 @@ const response=(value,ok=true)=>({ok,json:async()=>structuredClone(value)});
  c=client(()=>response(base()));await c.api('/api/match/BATTLE/save',{revision:3});assert.equal(c.calls[0].options.headers['X-WW2-Replay'],undefined);
  c=client(()=>response({...base(),computer_playback:{id:99,unchanged:true}}));
  await assert.rejects(c.api('/api/match/BATTLE',{kind:'end'}),/Could not refresh the replay/);assert.equal(c.calls.length,2);
+ c=client(()=>response({delta:true,code:'BATTLE',revision:4,base:'known',changes:[['set',['revision'],4],['units',['units'],[{id:'one',ap:1}],[],['one']],['hexes',['visible_hexes'],[[2,0]],[[0,0]]]],_transport:{version:2,hash:'next'}}));
+ c.context.state={...base(),units:[{id:'one',ap:2}],visible_hexes:[[0,0],[1,0]],_transport:{version:2,hash:'known'}};
+ const original=JSON.stringify(c.context.state);
+ result=await c.api('/api/match/BATTLE',{kind:'dig',revision:3});
+ assert.equal(result.revision,4);assert.equal(result.units[0].ap,1);assert.equal(JSON.stringify(result.visible_hexes),'[[1,0],[2,0]]');
+ assert.equal(JSON.stringify(c.context.state),original,'Applying changes must not mutate the captured public snapshot');
+ assert.equal(c.calls[0].options.headers['X-WW2-State'],'known');assert.equal(c.calls[0].options.headers['X-WW2-Protocol'],'2');
+ assert.ok(JSON.parse(c.calls[0].options.body).command_id.length>=8);
+ c=client(n=>response(n===1?{delta:true,code:'BATTLE',revision:4,base:'missing',changes:[]}: {...base(),revision:4,_transport:{hash:'fresh',version:2}}));
+ result=await c.api('/api/match/BATTLE',{kind:'end',revision:3,command_id:'keep-original-command'});
+ assert.equal(result.revision,4);assert.equal(c.calls.length,2);assert.equal(c.calls[1].options.method,undefined);
+ assert.equal(c.calls[1].options.headers.Authorization,'Bearer original');assert.equal(JSON.parse(c.calls[0].options.body).command_id,'keep-original-command');
+ c=client((n,url,options,ctx)=>{ctx.state={...base(),code:'OTHER',revision:100};ctx.session={code:'OTHER',token:'later'};return response({delta:true,code:'BATTLE',revision:4,base:'captured',changes:[['set',['revision'],4]],_transport:{version:2,hash:'next'}});});
+ c.context.state._transport={version:2,hash:'captured'};result=await c.api('/api/match/BATTLE');assert.equal(result.code,'BATTLE');assert.equal(result.revision,4);
  console.log('Replay adapter: acknowledged/full/next movie, captured-request isolation, reconnect, GET-only recovery and no POST retries passed.');
 })().catch(e=>{console.error(e);process.exitCode=1;});

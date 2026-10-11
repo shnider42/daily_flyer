@@ -174,6 +174,34 @@ class AdminTests(unittest.TestCase):
             with self.assertRaises(ValueError):
                 import_snapshot(exported, self.path.parent/'active.sqlite3')
 
+    def test_shared_battle_remove_restore_preserves_team_credentials_and_control(self):
+        self.claim()
+        game=self.client.post('/api/match',headers=self.headers,
+            json=dict(opponent='cooperative',ruleset='dsl',name='Shared recovery')).json
+        before=self.state(game)
+        group=next(g for g in before['coop']['groups'] if g['side']=='us' and not g['owner'] and not g['command'])
+        ally=self.client.post('/api/match/'+game['code']+'/join',json=dict(side='us',group=group['id'],player_name='Ally')).json
+        before=self.state(game);ally_before=self.state(ally)
+        self.assertEqual(self.modify(game,'remove',revision=before['revision'],confirm=game['code']).status_code,200)
+        self.assertEqual(self.modify(game,'restore',revision=before['revision'],confirm=game['code']).status_code,200)
+        for seat,original in ((game,before),(ally,ally_before)):
+            recovered=self.state(seat)
+            self.assertEqual(recovered['coop']['me'],original['coop']['me'])
+            self.assertEqual(recovered['coop']['controlled'],original['coop']['controlled'])
+            self.assertNotIn('_coop_replays',recovered)
+        exported=self.client.get('/api/admin/matches/'+game['code']+'/export',headers=self.headers).json
+        snapshot=self.path.parent/'shared-snapshot.json';snapshot.write_text(json.dumps(exported))
+        local=import_snapshot(snapshot,self.path.parent/'shared-local.sqlite')
+        local_client=create_app(local['db']).test_client()
+        self.assertEqual(len(local['tickets']),2)
+        recovered_players={}
+        for ticket in local['tickets'].values():
+            seat=local_client.post('/api/transfer',json=dict(code=ticket)).json
+            result=local_client.get('/api/match/'+seat['code'],headers={'Authorization':'Bearer '+seat['token']}).json
+            recovered_players[result['coop']['me']]=result['coop']['controlled']
+        self.assertEqual(recovered_players,{before['coop']['me']:before['coop']['controlled'],
+                                            ally_before['coop']['me']:ally_before['coop']['controlled']})
+
     def test_failures_have_correlated_redacted_persistent_diagnostics(self):
         self.claim()
         game = self.game()

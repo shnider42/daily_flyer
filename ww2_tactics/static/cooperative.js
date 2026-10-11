@@ -34,11 +34,8 @@
    if(!state?.coop?.auto_advance||lobbyMode||busy||polling||playbackSession||`${session?.code}:${state.revision}`!==key)return;
    autoAttempt=key;
    await run(async()=>{
-    const response=await fetch(`/api/match/${session.code}/cooperative`,{method:'POST',headers:{'Content-Type':'application/json',Authorization:`Bearer ${session.token}`},body:JSON.stringify({operation:'advance',revision:state.revision})});
-    const data=await response.json();
-    if(response.status===409){state=await apiWithSession(session);return;}
-    if(!response.ok)throw new Error(data.error||'Computer orders paused. Use Team orders to continue.');
-    state=data;
+    try{state=await api(`/api/match/${session.code}/cooperative`,{operation:'advance',revision:state.revision});}
+    catch(error){autoAttempt='';throw error;}
    });
    continueComputers();
   },180);

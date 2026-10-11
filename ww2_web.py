@@ -20,12 +20,16 @@ from ww2_tactics.order_history import perform, status as history_status, KEY as 
 from ww2_tactics.lobby import install_lobby
 from ww2_tactics.admin import install_admin
 from ww2_tactics.battle_setup import assignment, seats, carry_creator, result_summary
-from ww2_tactics import cooperative
+from ww2_tactics import cooperative, pipeline, jobs
 
 
-def create_app(db_path=None):
+def create_app(db_path=None, *, background_ai=None, start_worker=True):
     app = Flask(__name__)
     app.config["MAX_CONTENT_LENGTH"] = 4096
+    # Explicit-path test/CLI apps resolve synchronously unless requested;
+    # the deployed entry point owns a durable queue independent of browsers.
+    app.config['WW2_BACKGROUND_AI'] = (db_path is None and os.environ.get('WW2_BACKGROUND_AI', '1') == '1'
+                                       if background_ai is None else background_ai)
     path = Path(db_path or os.environ.get("WW2_DB_PATH", "instance/ww2.sqlite3"))
     path.parent.mkdir(parents=True, exist_ok=True)
     @contextmanager
@@ -53,6 +57,11 @@ def create_app(db_path=None):
         db.execute('CREATE TABLE IF NOT EXISTS transfers (key_hash TEXT PRIMARY KEY, code TEXT, owner_hash TEXT, expires REAL)')
         db.execute('CREATE TABLE IF NOT EXISTS saves (key_hash TEXT PRIMARY KEY, state TEXT, side TEXT, created REAL)')
         cooperative.install(db)
+    with connect() as db:
+        pipeline.install(db)
+        jobs.install(db)
+    queue = jobs.Queue(connect, app.logger)
+    app.extensions['ww2_computer_queue'] = queue
 
     def digest(token):
         return hashlib.sha256(token.encode()).hexdigest()
@@ -71,18 +80,44 @@ def create_app(db_path=None):
         hashed = owner_key(db)
         member = cooperative.member(db, row, hashed)
         if member:
-            return json.loads(row['state'])['coop']['players'][member['player_id']]['side']
-        if row['host'] and secrets.compare_digest(hashed, row["host"]):
-            return "us"
-        if row["guest"] and secrets.compare_digest(hashed, row["guest"]):
-            return "de"
-        return None
+            return db.execute('SELECT json_extract(state,?) FROM match WHERE code=?',
+                              ('$.coop.players."' + member['player_id'] + '".side', row['code'])).fetchone()[0]
+        side = ('us' if row['host'] and secrets.compare_digest(hashed, row['host']) else
+                'de' if row['guest'] and secrets.compare_digest(hashed, row['guest']) else None)
+        # A missing shared-battle membership must never fall back to whole-army
+        # solo authority, or expose the other army's private cooperative state.
+        if side and db.execute("SELECT json_type(state,'$.coop') FROM match WHERE code=?", (row['code'],)).fetchone()[0] == 'object':
+            return None
+        return side
 
     commander, bind_commander, battle_name, match_title, commander_side = install_lobby(app, connect, digest, identify, membership)
     install_admin(app, connect, commander, battle_name, path)
 
+    @app.before_request
+    def normalize_live_match():
+        code = (request.view_args or {}).get('code')
+        if not code or not request.path.startswith('/api/match/'):
+            return
+        with connect() as db:
+            # Unauthorized probes must not trigger an expensive one-time upgrade.
+            row = db.execute('SELECT code,host,guest FROM match WHERE code=?', (code.upper(),)).fetchone()
+            if not row or not identify(db, row):
+                return
+            version = db.execute("SELECT json_extract(state,'$.pipeline_version') FROM match WHERE code=?", (row['code'],)).fetchone()[0]
+            if version != 2:
+                db.execute('BEGIN IMMEDIATE')
+                pipeline.migrate(db, code.upper())
+                if app.config['WW2_BACKGROUND_AI']:
+                    state = json.loads(db.execute('SELECT state FROM match WHERE code=?', (code.upper(),)).fetchone()[0])
+                    queue.request(db, code.upper(), state, resume=bool(state.get('coop', {}).get('resolving')))
+
     def public(db, row, side):
         state = json.loads(row["state"])
+        state.pop('_ai_progress', None)
+        if app.config['WW2_BACKGROUND_AI']:
+            state['background_ai'] = True
+            state['computer_work'] = jobs.status(db, row['code'], state)
+        state.pop('_spectator_ai_batch', None)
         member = membership(db, row) if state.get('coop') else None
         pid = member['player_id'] if member else None
         state['order_history'] = (dict(can_undo=False, can_redo=False, redo_required=False,
@@ -101,13 +136,15 @@ def create_app(db_path=None):
                      map=board['map'], scenario={k: v for k, v in board.items() if k != 'map'})
         state['battle_result'] = result_summary(state)
         if not state.get('ai_side'):
-            # A large state write can hold SQLite's exclusive lock until commit.
-            # Read response metadata on that same connection, never a second one.
+            # Presentation metadata is read after the gameplay commit.
             state['match_name'] = match_title(db, row['code'])
         from ww2_tactics.visibility import sight_calculations
         with sight_calculations(state):
-            state["legal"] = {u["id"]: (cooperative.filter_legal(state, pid, u, options(state, u))
-                if pid else options(state, u)) for u in state["units"] if u["side"] == side}
+            own = cooperative.controlled(state, pid) if pid else None
+            state["legal"] = {u["id"]: (cooperative.blank_legal() if pid and
+                (u['id'] not in own or pid in state['coop']['done'] or state['coop']['phase'] != 'battle')
+                else cooperative.filter_legal(state, pid, u, options(state, u)) if pid else options(state, u))
+                for u in state["units"] if u["side"] == side}
             if state['order_history']['redo_required']:
                 state['legal'] = {uid: {key: [] if isinstance(value, list) else False
                                        for key, value in legal.items()} for uid, legal in state['legal'].items()}
@@ -120,11 +157,30 @@ def create_app(db_path=None):
             if isinstance(replay, dict):
                 replay_key = f"{row['code']}:{side}:{state.get('battle_number') or 1}:{replay.get('id')}"
                 # Opt-in acknowledgement, never a cache shared between players.
-                # Old clients and fresh/reconnected browsers still receive it all.
+                # Older clients receive only bounded compatibility payloads.
                 known = request.headers.get('X-WW2-Replay')
-                result['computer_playback'] = ({'id': replay.get('id'), 'unchanged': True}
-                    if known == replay_key and isinstance(replay.get('frames'), list) else replay)
+                result['computer_playback'] = (replay if request.headers.get('X-WW2-Protocol') == '2' else
+                    {'id': replay.get('id'), 'unchanged': True} if known == replay_key else
+                    pipeline.original_movie(db, row['code'], replay))
             return result
+
+    def public_response(row, side):
+        # The accepted state is already committed. Build presentation data
+        # without holding the gameplay write lock; a lost ACK is retry-safe.
+        with connect() as db:
+            result = public(db, row, side)
+            if request.headers.get('X-WW2-Protocol') == '2':
+                result = pipeline.transport(db, row['code'], owner_key(db), result, request.headers.get('X-WW2-State'))
+        return jsonify(result)
+
+    def save_state(db, code, state, previous=None, *, reset_job=False):
+        state['pipeline_version'] = 2
+        if app.config['WW2_BACKGROUND_AI']:
+            state['background_ai'] = True
+        pipeline.persist(db, code, state, previous=previous)
+        if app.config['WW2_BACKGROUND_AI']:
+            queue.request(db, code, state, reset=reset_job,
+                          resume=bool((previous or {}).get('coop', {}).get('resolving')))
 
     @app.after_request
     def headers(response):
@@ -196,11 +252,14 @@ def create_app(db_path=None):
         if mode == 'computer':
             side = allocation['creator_side']
             state.update(ai_side='de' if side == 'us' else 'us', ready=True)
-            state=play_turn(state)
+            if not app.config['WW2_BACKGROUND_AI']:
+                state=play_turn(state)
             labels = state.get('factions', {'us': 'Americans', 'de': 'Germans'})
             opponent=labels[state['ai_side']]
             own=labels[side]
             state['log'].append(f'Solo battle: you command the {own}; the computer commands the {opponent}.')
+        state['pipeline_version'] = 2
+        if app.config['WW2_BACKGROUND_AI']: state['background_ai'] = True
         return state
 
     @app.post("/api/match")
@@ -225,6 +284,7 @@ def create_app(db_path=None):
                     return jsonify(error=str(error)), 400
             host, guest = seats(state, digest(token), digest(secrets.token_urlsafe(32)))
             db.execute("INSERT INTO match (code,host,guest,state) VALUES (?,?,?,?)", (code, host, guest, json.dumps(state)))
+            save_state(db, code, state)
             if state.get('coop'):
                 db.execute('INSERT INTO cooperative_players VALUES (?,?,?)', (code, pid, digest(token)))
             if not state.get('ai_side'):
@@ -263,7 +323,7 @@ def create_app(db_path=None):
                 state['revision'] += 1
                 db.execute('INSERT INTO cooperative_players VALUES (?,?,?)', (row['code'], pid, digest(token)))
                 bind_commander(db, digest(token), player)
-                db.execute('UPDATE match SET state=? WHERE code=?', (json.dumps(state), row['code']))
+                save_state(db, row['code'], state)
                 return jsonify(code=row['code'], token=token)
             if json.loads(row['state']).get('ai_side'):
                 return jsonify(error='This is a solo battle. The computer seat cannot be joined.'), 409
@@ -281,15 +341,14 @@ def create_app(db_path=None):
             state["revision"] += 1
             state["log"].append("Opponent joined. Both commanders are connected.")
             column = 'host' if not row['host'] else 'guest'
-            db.execute(f"UPDATE match SET {column}=?, state=? WHERE code=?", (digest(token), json.dumps(state), row["code"]))
+            db.execute(f"UPDATE match SET {column}=? WHERE code=?", (digest(token), row["code"]))
+            save_state(db, row['code'], state)
             bind_commander(db, digest(token), player)
         return jsonify(code=code.upper(), token=token), 200
 
     @app.route("/api/match/<code>", methods=["GET", "POST"])
     def match(code):
         with connect() as db:
-            if request.method == "POST":
-                db.execute("BEGIN IMMEDIATE")
             row = db.execute("SELECT * FROM match WHERE code=?", (code.upper(),)).fetchone()
             if row is None:
                 return jsonify(error="This match no longer exists."), 404
@@ -297,25 +356,81 @@ def create_app(db_path=None):
             if not side:
                 return jsonify(error="Player key required. Rejoin using your original browser."), 403
             since = request.args.get('since', type=int)
-            if request.method == "GET" and since is not None and since == json.loads(row['state'])['revision']:
+            if request.method == "GET" and since is not None and since == db.execute(
+                    "SELECT json_extract(state,'$.revision') FROM match WHERE code=?", (row['code'],)).fetchone()[0]:
                 # Authenticate first; unchanged polls need no legal-order or fog
                 # calculation, and do not contend with orders for worker time.
-                return jsonify(code=row['code'], unchanged=True)
+                result = dict(code=row['code'], unchanged=True)
+                if app.config['WW2_BACKGROUND_AI']:
+                    job = db.execute('SELECT status FROM ww2_ai_jobs WHERE code=?', (row['code'],)).fetchone()
+                    if job:
+                        result['computer_work'] = dict(pending=job[0] != 'done', status=jobs.public_status(job[0]))
+                return jsonify(result)
             if request.method == "POST":
                 body = request.get_json(silent=True)
                 if not isinstance(body, dict):
                     return jsonify(error="Expected an action object."), 400
-                state = json.loads(row["state"])
-                if type(body.get("revision")) is not int or body["revision"] != state["revision"]:
-                    return jsonify(error="The match changed. Refreshing the battlefield; try again."), 409
+                owner = owner_key(db)
                 try:
-                    member = membership(db, row) if state.get('coop') else None
-                    state = cooperative.order(state, member['player_id'], body) if member else perform(state, side, body)
+                    duplicate, receipt_digest = pipeline.receipt(db, row['code'], owner, body)
                 except ValueError as error:
                     return jsonify(error=str(error)), 400
-                db.execute("UPDATE match SET state=? WHERE code=?", (json.dumps(state), row["code"]))
-                row = db.execute("SELECT * FROM match WHERE code=?", (row["code"],)).fetchone()
-            return jsonify(public(db, row, side))
+                state = json.loads(row["state"])
+                if not duplicate and (type(body.get("revision")) is not int or body["revision"] != state["revision"]):
+                    return jsonify(error="The match changed. Refreshing the battlefield; try again."), 409
+                member = membership(db, row) if state.get('coop') else None
+                pipeline.hydrate_takeback(db, row['code'], state, body.get('kind'))
+        if request.method == 'POST' and not duplicate:
+            previous = state
+            try:
+                state = (cooperative.order(state, member['player_id'], body, defer_computer=app.config['WW2_BACKGROUND_AI'])
+                         if member else perform(state, side, body, defer_computer=app.config['WW2_BACKGROUND_AI']))
+            except ValueError as error:
+                return jsonify(error=str(error)), 400
+            with connect() as db:
+                db.execute('BEGIN IMMEDIATE')
+                latest = db.execute('SELECT * FROM match WHERE code=?', (row['code'],)).fetchone()
+                # Two retries/racing clients may have computed simultaneously.
+                accepted, _ = pipeline.receipt(db, row['code'], owner, body)
+                if accepted:
+                    row = latest
+                elif not latest or json.loads(latest['state'])['revision'] != body['revision']:
+                    return jsonify(error='The match changed. Refreshing the battlefield; try again.'), 409
+                else:
+                    save_state(db, row['code'], state, previous)
+                    pipeline.remember_receipt(db, row['code'], owner, body, receipt_digest, state['revision'])
+                    row = db.execute('SELECT * FROM match WHERE code=?', (row['code'],)).fetchone()
+        return public_response(row, side)
+
+    @app.get('/api/match/<code>/replay/<stream>')
+    def replay_page(code, stream):
+        with connect() as db:
+            row = db.execute('SELECT * FROM match WHERE code=?', (code.upper(),)).fetchone()
+            side = identify(db, row) if row else None
+            if not side:
+                return jsonify(error='Player key required.'), 403
+            movie = db.execute('SELECT side,count,identity FROM ww2_replays WHERE code=? AND stream=?', (row['code'], stream)).fetchone()
+            if not movie or movie['side'] != side:
+                return jsonify(error='Replay unavailable for this army.'), 404
+            start = request.args.get('start', default=0, type=int)
+            if start < 0:
+                return jsonify(error='Invalid replay position.'), 400
+            result = pipeline.read_page(db, row['code'], dict(stream=stream,count=movie['count']), start)
+        return jsonify(result)
+
+    @app.post('/api/match/<code>/computer')
+    def retry_computer(code):
+        with connect() as db:
+            row = db.execute('SELECT * FROM match WHERE code=?', (code.upper(),)).fetchone()
+            side = identify(db, row) if row else None
+            if not side:
+                return jsonify(error='Player key required.'), 403
+            state = json.loads(row['state'])
+            if not jobs.needed(state):
+                return jsonify(error='No computer orders are pending.'), 400
+            db.execute('BEGIN IMMEDIATE')
+            queue.request(db, row['code'], state, reset=True)
+        return public_response(row, side)
 
     @app.route('/api/match/<code>/cooperative', methods=['GET', 'POST'])
     def cooperative_lobby(code):
@@ -340,16 +455,23 @@ def create_app(db_path=None):
             body = request.get_json(silent=True)
             if not isinstance(body, dict):
                 return jsonify(error='Expected cooperative settings.'), 400
-            if type(body.get('revision')) is not int or body['revision'] != state['revision']:
-                return jsonify(error='The lobby or battle changed. Refresh and try again.'), 409
+            owner = owner_key(db)
             try:
-                state = cooperative.setup_action(state, member['player_id'], body)
+                duplicate, receipt_digest = pipeline.receipt(db, row['code'], owner, body)
             except ValueError as error:
                 return jsonify(error=str(error)), 400
-            db.execute('UPDATE match SET state=? WHERE code=?', (json.dumps(state), row['code']))
+            if not duplicate and (type(body.get('revision')) is not int or body['revision'] != state['revision']):
+                return jsonify(error='The lobby or battle changed. Refresh and try again.'), 409
+            if not duplicate:
+                try:
+                    state = cooperative.setup_action(state, member['player_id'], body, defer_computer=app.config['WW2_BACKGROUND_AI'])
+                except ValueError as error:
+                    return jsonify(error=str(error)), 400
+                save_state(db, row['code'], state, reset_job=body.get('operation') == 'advance')
+                pipeline.remember_receipt(db, row['code'], owner, body, receipt_digest, state['revision'])
             row = db.execute('SELECT * FROM match WHERE code=?', (row['code'],)).fetchone()
             side = state['coop']['players'][member['player_id']]['side']
-            return jsonify(public(db, row, side))
+        return public_response(row, side)
 
     @app.post("/api/match/<code>/reset")
     def reset(code):
@@ -372,6 +494,8 @@ def create_app(db_path=None):
             linked = db.execute('SELECT commander_id FROM commander_seats WHERE owner_hash=?', (old_owner,)).fetchone()
             host, guest = seats(state, digest(token), digest(secrets.token_urlsafe(32)))
             db.execute("UPDATE match SET code=?,host=?,guest=?,state=? WHERE code=?", (new_code, host, guest, json.dumps(state), row["code"]))
+            save_state(db, new_code, state)
+            pipeline.purge_artifacts(db, row['code'])
             if linked:
                 db.execute('INSERT INTO commander_seats VALUES (?,?)', (digest(token), linked['commander_id']))
         return jsonify(code=new_code, token=token)
@@ -420,7 +544,7 @@ def create_app(db_path=None):
                         db.execute('UPDATE match SET host=?,guest=? WHERE code=?',
                                    (row['guest'] or digest(secrets.token_urlsafe(32)), row['host'], row['code']))
                         side = 'de' if side == 'us' else 'us'
-                    state = play_turn(next_state)
+                    state = next_state if app.config['WW2_BACKGROUND_AI'] else play_turn(next_state)
             elif operation == 'decline':
                 if not state.get('rematch'):
                     return jsonify(error='There is no pending proposal.'), 400
@@ -441,9 +565,9 @@ def create_app(db_path=None):
             else:
                 return jsonify(error='Invalid rematch operation.'), 400
             state['revision'] += 1
-            db.execute('UPDATE match SET state=? WHERE code=?', (json.dumps(state), row['code']))
+            save_state(db, row['code'], state)
             updated = db.execute('SELECT * FROM match WHERE code=?', (row['code'],)).fetchone()
-            return jsonify(public(db, updated, side))
+        return public_response(updated, side)
 
     def secret_code(prefix):
         raw = secrets.token_hex(16).upper()
@@ -508,6 +632,7 @@ def create_app(db_path=None):
                 return jsonify(error='The battle changed. Reconnect, then generate your save code again.'), 409
             value = secret_code('SAVE')
             db.execute('INSERT INTO saves VALUES (?,?,?,?)', (code_hash(value), row['state'], side, time.time()))
+            pipeline.copy_artifacts(db, row['code'], 'save:' + code_hash(value))
         return jsonify(save_code=value, round=state['round'], revision=state['revision'])
 
     @app.post('/api/restore')
@@ -524,8 +649,15 @@ def create_app(db_path=None):
             # Copy the exact checkpoint. Never resolve a turn or reroll during restore.
             db.execute('INSERT INTO match (code,host,guest,state) VALUES (?,?,?,?)',
                        (code, host, guest, saved['state']))
+            pipeline.copy_artifacts(db, 'save:' + key, code)
+            if app.config['WW2_BACKGROUND_AI']:
+                pipeline.migrate(db, code)
+                compact = db.execute('SELECT state FROM match WHERE code=?', (code,)).fetchone()[0]
+                queue.request(db, code, json.loads(compact), resume=True)
         return jsonify(code=code, token=token), 201
 
+    if app.config['WW2_BACKGROUND_AI'] and start_worker:
+        queue.start()
     return app
 
 

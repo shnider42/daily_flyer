@@ -119,6 +119,8 @@ def install_admin(app, connect, commander, battle_name, db_path):
             CREATE TABLE IF NOT EXISTS admin_trash (
                 code TEXT PRIMARY KEY, name TEXT NOT NULL, host TEXT NOT NULL, guest TEXT,
                 state TEXT NOT NULL, removed REAL NOT NULL);
+            CREATE TABLE IF NOT EXISTS admin_cooperative_seats (
+                code TEXT, player_id TEXT, owner_hash TEXT, PRIMARY KEY(code,player_id));
         ''')
 
     @app.before_request
@@ -265,6 +267,10 @@ def install_admin(app, connect, commander, battle_name, db_path):
             row = db.execute(f'SELECT * FROM {table} WHERE code=?', (code,)).fetchone()
             if not row:
                 raise NotFound('Match not found. Refresh the list.')
+            if table == 'match':
+                from .pipeline import migrate
+                migrate(db, code)
+                row = db.execute('SELECT * FROM match WHERE code=?', (code,)).fetchone()
             state = json.loads(row['state'])
             if type(body.get('revision')) is not int or body['revision'] != state['revision']:
                 raise Conflict('This match changed. Refresh and review it before trying again.')
@@ -275,18 +281,28 @@ def install_admin(app, connect, commander, battle_name, db_path):
                 name = db.execute('SELECT name FROM lobby_names WHERE code=?', (code,)).fetchone()['name']
                 db.execute('INSERT INTO admin_trash VALUES (?,?,?,?,?,?)',
                            (code, name, row['host'], row['guest'], row['state'], time.time()))
+                db.execute('INSERT INTO admin_cooperative_seats SELECT * FROM cooperative_players WHERE code=?', (code,))
                 db.execute('DELETE FROM match WHERE code=?', (code,))
                 db.execute('DELETE FROM transfers WHERE code=?', (code,))
             elif action == 'restore':
                 if db.execute('SELECT 1 FROM match WHERE code=?', (code,)).fetchone():
                     raise Conflict('That code is already in use; nothing was changed.')
+                if state.get('coop') and not db.execute('SELECT 1 FROM admin_cooperative_seats WHERE code=?', (code,)).fetchone():
+                    raise Conflict('This older shared-battle checkpoint has no team credentials. Export it for local recovery.')
                 state['revision'] += 1
                 db.execute('INSERT INTO match(code,host,guest,state) VALUES (?,?,?,?)',
                            (code, row['host'], row['guest'], json.dumps(state)))
                 db.execute('UPDATE lobby_names SET name=? WHERE code=?', (row['name'], code))
                 db.execute('DELETE FROM admin_trash WHERE code=?', (code,))
+                db.execute('INSERT INTO cooperative_players SELECT * FROM admin_cooperative_seats WHERE code=?', (code,))
+                db.execute('DELETE FROM admin_cooperative_seats WHERE code=?', (code,))
+                if app.config.get('WW2_BACKGROUND_AI'):
+                    app.extensions['ww2_computer_queue'].request(db, code, state, resume=True)
             elif action == 'purge':
                 db.execute('DELETE FROM admin_trash WHERE code=?', (code,))
+                db.execute('DELETE FROM admin_cooperative_seats WHERE code=?', (code,))
+                from .pipeline import purge_artifacts
+                purge_artifacts(db, code)
                 for owner_hash in (row['host'], row['guest']):
                     if not owner_hash:
                         continue
@@ -314,14 +330,19 @@ def install_admin(app, connect, commander, battle_name, db_path):
             player = require_admin(db)
             code = code.upper()
             row = db.execute('SELECT state FROM match WHERE code=?', (code,)).fetchone()
+            if row:
+                from .pipeline import migrate
+                migrate(db, code)
+                row = db.execute('SELECT state FROM match WHERE code=?', (code,)).fetchone()
             if not row:
                 row = db.execute('SELECT state FROM admin_trash WHERE code=?', (code,)).fetchone()
             if not row:
                 raise NotFound('Match not found.')
             # State contains battlefield/history only. Never export seat hashes,
             # accounts, sessions, passwords, MOVE/SAVE secrets or database files.
+            from .pipeline import export_artifacts
             payload = dict(format='dsl-diagnostic-v1', exported_at=time.time(), version=version,
-                           original_code=code, state=json.loads(row['state']))
+                           original_code=code, state=json.loads(row['state']), artifacts=export_artifacts(db, code))
             audit(db, player, 'export', code)
         response = jsonify(payload)
         response.headers['Content-Disposition'] = f'attachment; filename="dsl-{code}.json"'

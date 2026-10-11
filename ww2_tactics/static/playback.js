@@ -1,13 +1,17 @@
 'use strict';
 let playbackSession=null, playbackTimer=null;
-function playbackKey(value){return !value?.coop?.resolving&&value?.computer_playback?.frames?.length?`${value.code}:${value.battle_number||1}:${value.computer_playback.id}`:null;}
+function playbackCount(value){return value?.computer_playback?.count??value?.computer_playback?.frames?.length??0;}
+function playbackKey(value){return !value?.computer_work?.pending&&!value?.coop?.resolving&&playbackCount(value)?`${value.code}:${value.battle_number||1}:${value.computer_playback.id}`:null;}
+function shouldAutoPlayback(value){return !!playbackKey(value)&&playbackCount(value)<=20;}
 function syncPlayback(){
  const button=document.getElementById('replayTurn');
  button.hidden=!playbackKey(state);button.disabled=busy||!!playbackSession;
 }
 function startPlayback(){
  if(busy||playbackSession||!playbackKey(state))return;
- playbackSession={frames:state.computer_playback.frames,index:0,phase:'before',paused:false,focus:document.activeElement,scroll:{left:document.getElementById('mapWrap').scrollLeft,top:document.getElementById('mapWrap').scrollTop}};
+ playbackSession={frames:state.computer_playback.frames||new Array(playbackCount(state)),movie:state.computer_playback,
+  code:session.code,token:session.token,index:0,phase:'before',paused:false,loadedStart:0,loading:null,
+  focus:document.activeElement,scroll:{left:document.getElementById('mapWrap').scrollLeft,top:document.getElementById('mapWrap').scrollTop}};
  document.getElementById('playbackPanel').hidden=false;
  document.getElementById('map').setAttribute('hidden','');
  document.getElementById('missionHint').hidden=true;
@@ -23,10 +27,10 @@ function startPlayback(){
 }
 function schedulePlayback(){
  clearTimeout(playbackTimer);
- if(playbackSession&&!playbackSession.paused)playbackTimer=setTimeout(advancePlayback,playbackSession.phase==='before'?650:1500);
+ if(playbackSession&&!playbackSession.paused&&!playbackSession.loading)playbackTimer=setTimeout(advancePlayback,playbackSession.phase==='before'?250:650);
 }
 function advancePlayback(){
- if(!playbackSession)return;
+ if(!playbackSession||playbackSession.loading)return;
  if(playbackSession.phase==='before')playbackSession.phase='after';
  else{playbackSession.index++;playbackSession.phase='before';}
  if(playbackSession.index>=playbackSession.frames.length){stopPlayback();return;}
@@ -44,7 +48,22 @@ function stopPlayback(){
  if(focus?.isConnected&&!focus.disabled)focus.focus({preventScroll:true});
  refresh();
 }
+function loadPlaybackPage(p){
+ if(p.loading)return;
+ document.getElementById('playbackStep').textContent=`Loading action ${p.index+1} / ${p.frames.length}…`;
+ p.loading=(async()=>{
+  const response=await fetch(`/api/match/${p.code}/replay/${p.movie.stream}?start=${p.index}`,{headers:{Authorization:`Bearer ${p.token}`}});
+  const page=await response.json();if(!response.ok||!page.checkpoint||!page.events.length)throw new Error(page.error||'Replay page unavailable.');
+  if(playbackSession!==p)return;
+  for(let i=p.loadedStart;i<p.loadedStart+12;i++)delete p.frames[i];
+  let snapshot=page.checkpoint;
+  page.events.forEach((event,index)=>{const before=applyStateChanges(snapshot,event.before_patch),after=applyStateChanges(before,event.after_patch);const frame={...event,before,after};delete frame.before_patch;delete frame.after_patch;p.frames[page.start+index]=frame;snapshot=after;});
+  p.loadedStart=page.start;
+ })().then(()=>{p.loading=null;if(playbackSession===p){drawPlayback();schedulePlayback();}}).catch(error=>{p.loading=null;if(playbackSession===p){stopPlayback();notify(`${error.message} The live battle is unchanged.`);}});
+}
 function drawPlayback(){
+ if(!playbackSession)return;
+ if(!playbackSession.frames[playbackSession.index]){loadPlaybackPage(playbackSession);return;}
  const p=playbackSession,frame=p.frames[p.index],snapshot=frame[p.phase],action=frame.action;
  const actor=frame.before.units.find(u=>u.id===action.unit),targetUnit=frame.before.units.find(u=>u.id===action.target);
  const labels={resupply:'delivers supplies',evacuate:'evacuates infantry',move:'moves',fire:'fires',grenade:'throws a frag',assault:'assaults',suppress:'suppresses',inspire:'rallies nearby troops',command:'orders On your feet',rally:'rallies',dig:'digs in',smoke:'throws smoke',overwatch:'takes overwatch',barrage:'calls mortars',end:'ends the turn'};

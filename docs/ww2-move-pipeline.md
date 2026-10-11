@@ -1,5 +1,85 @@
 # DSL move pipeline: replay payloads and retained rendering
 
+## Current scale pipeline (October 2026)
+
+The historical measurements below document the earlier replay-acknowledgement
+patch. The current pipeline supersedes its synchronous AI, full-state delivery,
+and rollback-on-response-failure contracts. It does not change gameplay rules
+or the frozen Legacy scenario catalog.
+
+- A browser sends one compact command with its revision and command identity.
+  It can select, navigate and show a submitted-move marker locally. The server
+  still validates movement, AP, ownership, fog-dependent legality and reactions,
+  rolls dice, and commits the authoritative result. The browser never decides
+  hidden contacts, damage or combat results.
+- Calculation and public projection run outside the gameplay write transaction.
+  The short commit rechecks the revision. Racing orders cannot overwrite each
+  other. A lost response does not undo an accepted command: an explicit retry
+  with the same identity reconciles it without applying or rolling again.
+  The browser never automatically repeats a POST.
+- Protocol 2 sends changes against an authenticated, owner-scoped public-view
+  hash. Unknown hashes, reconnects and missing baselines get a fresh snapshot.
+  Unchanged polls authenticate and inspect small SQL metadata without decoding
+  the game, recalculating legality or computing visibility. Client hashes are
+  not authorization. Visibility/legality caches never cross changed game states.
+- Compressed replay events/checkpoints and turn-local undo snapshots live in
+  separate SQLite tables. The current state contains only bounded references.
+  A replay page has at most 12 events. The browser retains one page, supports
+  pause/step/skip, and does not auto-start recordings over 20 actions. Older
+  clients get bounded compatibility movies, not arbitrarily large expansions.
+- A durable SQLite AI queue advances at most two orders per checkpoint,
+  independently of human tabs, GUI rendering, replay, or polling. Leases and
+  revision checks guard commits; deterministic per-checkpoint dice seeds make
+  interrupted, uncommitted work reproducible. Committed outcomes are never
+  rerun. Expired leases resume after restart. Three failed attempts pause the
+  job visibly, with an explicit retry control. Jobs yield between batches.
+- The last committed, army-filtered replay after-view can be reused as the
+  identical revision's before-view for the next batch. Revision and army must
+  both match. Every newly accepted order still computes fresh after-visibility;
+  this is not a changed-state visibility cache or a new sight algorithm.
+- Static objective/mobility plans are reused only for the same army, round,
+  scenario and known terrain. Discovering changed terrain invalidates them.
+  Spent units are not rescored as actors unless a free road-bonus leg remains;
+  they still remain valid recipients of support.
+- Existing replay-heavy states are upgraded one frame/checkpoint at a time.
+  SAVE/restore and administrator diagnostic export/local import include the
+  separated gameplay records, without account credentials or job seeds.
+
+Deployment keeps the existing one-worker/four-thread Gunicorn service and
+SQLite disk. The queue is an in-service worker thread, not a separate paid
+Render background service: CPU is still shared with HTTP. This removes browser
+dependence and unbounded allocations; it does not promise instantaneous AI on
+the 0.5-CPU plan or guaranteed future uptime. Refresh the browser and resume
+the existing match after deployment; no game reset is needed.
+
+Validation: `python -m unittest discover -s tests -p 'test_ww2*.py'`,
+`node tests/ww2-replay-transport.cjs`,
+`node tests/ww2-pipeline-v2-browser.cjs`,
+`node tests/ww2-worlds-collide-browser.cjs`, and
+`WW2_BACKGROUND_AI=0 python tests/ww2-scale-benchmark.py --rounds 2`.
+The soak uses a disposable database and a 512-MB address-space ceiling, with
+two player views throughout full Worlds Collide AI cycles. Its memory and
+timings describe this local process, not production hardware.
+
+Local evidence: the two-round 152-unit/3,584-hex soak peaked at 63.1 MB RSS.
+Its largest ordinary response was 222,251 bytes, first move 24,235 bytes, and
+largest replay page 141,482 bytes. Full computer cycles with two public reads
+after every checkpoint took 249.53 and 243.20 seconds; p95 public response time
+was 0.453 seconds. A subsequent one-round run including exact-revision replay
+before-view reuse peaked at 61.7 MB, completed 135 checkpoints in 227.59 seconds,
+and had 0.454-second p95 public responses. These runs also include local client
+reconstruction and concurrent regression work, so they are stress observations,
+not isolated AI speed comparisons. Full-army CPU time remains substantial.
+
+Recovery: preserve the database and diagnostic checkpoint before changing code.
+Do not deploy pre-pipeline code against migrated states: it cannot resolve the
+external replay/journal references. `WW2_BACKGROUND_AI=0` on this version stops
+background processing while retaining the new artifact readers and storage.
+Pending jobs remain durable for subsequent re-enablement. Do not point diagnostic
+import at the live database; it exclusively creates a new local database.
+
+## Historical replay acknowledgement patch
+
 ## Scope and authority
 
 Baseline: rollback commit `cde494de68d9a6aadb9196cb0ad2934281f008a5`, whose tracked files match `484731be8f1ed12157c6c58239de01c30b5fe7ed`.
