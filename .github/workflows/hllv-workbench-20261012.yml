@@ -1,4 +1,5 @@
 name: HLLV interface workbench inputs
+# Source snapshot for the approved Type emphasis and temporary moderator work.
 on:
   push:
     branches: [feature/hllv-bug-evidence-tracker]
