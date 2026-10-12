@@ -1,5 +1,6 @@
 """Dedicated Render entry point, sharing Daily Flyer's Flask/Gunicorn stack."""
 import hashlib
+import faulthandler
 import json
 import os
 from pathlib import Path
@@ -220,6 +221,9 @@ def create_app(db_path=None, *, background_ai=None, start_worker=True):
     def health():
         with connect() as db:
             db.execute("SELECT 1 FROM match LIMIT 1")
+        if app.config.pop('WW2_STARTUP_TRACE', False):
+            faulthandler.cancel_dump_traceback_later()
+            app.logger.warning('DSL startup complete: HTTP and database health check passed.')
         return jsonify(ok=True)
 
     @app.get('/api/scenarios')
@@ -661,4 +665,11 @@ def create_app(db_path=None, *, background_ai=None, start_worker=True):
     return app
 
 
+# A stalled worker can keep Gunicorn's heartbeat alive without serving health
+# checks. Capture thread stacks (no request data or locals) during that startup
+# window, so a Render timeout supplies evidence instead of fifteen silent minutes.
+_startup_trace = bool(os.environ.get('RENDER'))
+if _startup_trace:
+    faulthandler.dump_traceback_later(45, repeat=True)
 app = create_app()
+app.config['WW2_STARTUP_TRACE'] = _startup_trace
