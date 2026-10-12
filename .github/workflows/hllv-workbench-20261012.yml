@@ -1,5 +1,5 @@
 name: HLLV interface workbench inputs
-# Read-only source snapshot and public Auth settings for member onboarding.
+# Read-only source snapshot for private submission threads and public moderator notes.
 on:
   push:
     branches: [feature/hllv-bug-evidence-tracker]
