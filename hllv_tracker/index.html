@@ -151,6 +151,7 @@
 <link id="hllv-theme" rel="stylesheet" href="./assets/theme-c19460e3803aa203.css">
 <link id="type-emphasis-style" rel="stylesheet" href="./assets/type-emphasis-5406a00364d88a0e.css">
 <link id="hllv-registration-style" rel="stylesheet" href="./assets/registration-bedd085405cf176f.css">
+<link id="hllv-thread-style" rel="stylesheet" href="./assets/submission-thread-fb2c3da71f542e6c.css">
 </head>
 <body>
   <header class="site-nav"><button class="brand-button" id="brandHome"><span class="brand-mark-small">H/V</span><span><strong>Infierno Liberado</strong><small>HLLV patches &amp; bugs</small></span></button><button type="button" id="themeToggle" class="theme-toggle">Light mode</button><nav class="top-links" aria-label="Main navigation"><button class="top-link active" data-page="landing">Overview</button><button class="top-link" data-page="issues">All issues</button><button class="top-link" data-page="suggestions">Suggestion Box</button></nav></header>
@@ -202,7 +203,8 @@
   <p id="sgStatus" class="sg-status" role="status" aria-live="polite"></p>
   <div id="sgAccount" class="sg-account" hidden></div>
   <div id="sgContent"><p>Loading the Bulletin Board…</p></div>
-  <footer class="cb-footer"><details><summary>How the board works</summary><p>Send a suggestion privately. A site moderator can approve and publish it, request clarification, or decline it. Approved suggestions are readable by everyone. Verified, signed-in site accounts can add or remove one support vote per published wording version.</p><p>Moderator approval means suitable for this board—not developer review, a promise to implement, or confirmation that a bug exists. Voting expresses community interest, not bug severity. Revised wording returns to private review and does not inherit votes from the old wording.</p></details><details id="communityPrivacy"><summary>Privacy and participation</summary><p>Use sample or game-related text only. Do not include personal information, passwords, private correspondence, harassment or security-exploit instructions. This is not an urgent-support channel.</p><p>Your sign-in email is handled by Supabase Auth and is not displayed on this board. Pending suggestions and moderator replies are visible only to their author and authorized site moderators. Approved wording and aggregate vote totals become public. Voter identities and private moderator replies are not published.</p><p>Use My suggestions to revise or withdraw an entry. Withdrawal removes public visibility, not copies others may have made. Text and decision history are retained in the project database until the operator removes them; backups and infrastructure logs have separate retention. Use your moderator reply thread for clarification; email notifications are not sent.</p><p>Create a Member account using your email and a unique site password, then verify your email before submitting or voting. Members can see only their own private submissions and moderator replies. Only the site owner appoints moderators. A submission or vote does not create an account by itself. Private practice stays separate and can never be published.</p></details></footer>
+  <footer class="cb-footer"><details><summary>How the board works</summary><p>Send a suggestion privately. A site moderator can approve and publish it, request clarification, or decline it. Approved suggestions are readable by everyone. Verified, signed-in site accounts can add or remove one support vote per published wording version.</p><p>Moderator approval means suitable for this board—not developer review, a promise to implement, or confirmation that a bug exists. Voting expresses community interest, not bug severity. Revised wording returns to private review and does not inherit votes from the old wording.</p></details><p class="cb-small">Private replies stay between the submitter and site moderators, even after approval. Only comments deliberately posted as public appear on the Bulletin Board. Conversations retain saved replies, decisions, and wording revisions; no email notifications are sent.</p>
+<details id="communityPrivacy"><summary>Privacy and participation</summary><p>Use sample or game-related text only. Do not include personal information, passwords, private correspondence, harassment or security-exploit instructions. This is not an urgent-support channel.</p><p>Your sign-in email is handled by Supabase Auth and is not displayed on this board. Pending suggestions and moderator replies are visible only to their author and authorized site moderators. Approved wording and aggregate vote totals become public. Voter identities and private moderator replies are not published.</p><p>Use My suggestions to revise or withdraw an entry. Withdrawal removes public visibility, not copies others may have made. Text and decision history are retained in the project database until the operator removes them; backups and infrastructure logs have separate retention. Use your moderator reply thread for clarification; email notifications are not sent.</p><p>Create a Member account using your email and a unique site password, then verify your email before submitting or voting. Members can see only their own private submissions and moderator replies. Only the site owner appoints moderators. A submission or vote does not create an account by itself. Private practice stays separate and can never be published.</p></details></footer>
   <noscript><p>JavaScript is needed to load the community board and sign in. The existing patch archive remains readable.</p></noscript>
  </main>
 </section>
@@ -236,7 +238,8 @@
   <script id="hllv-password-module" src="./assets/password-ba27a28cf3d3c643.js"></script>
   <script id="hllv-inbox-module" src="./assets/inbox-2b62db76ea0c9f3c.js"></script>
   <script id="hllv-form-types" src="./assets/form-types-777e6ec4da34227c.js"></script>
-  <script id="suggestions-module" src="./assets/community-4339bf5d01c9b6a2.js"></script>
+  <script id="hllv-thread-module" src="./assets/submission-thread-ee22415f8aaeea2c.js"></script>
+  <script id="suggestions-module" src="./assets/community-d9f2806c3b09f705.js"></script>
   <script>
     document.addEventListener('hllv-date-order',e=>{
       if(e.detail==='browse'&&dataset)renderHome();
@@ -246,7 +249,7 @@
     document.addEventListener('hllv-date-order',e=>{if(e.detail==='practice-history'){const items=[...document.querySelectorAll('#privatePractice [data-event-date]')];HLLVDates.sorted(items.map(node=>({node,date:node.dataset.eventDate})),'date',HLLVDates.direction('practice-history')).forEach(x=>x.node.parentNode.appendChild(x.node));}});
     document.getElementById('patchDateOrder').innerHTML=HLLVDates.control('patches','Release date order');
     const AUTH_RETURN_TO_SUGGESTIONS = Boolean(window.HLLVSuggestions?.isAuthCallback(location.hash));
-    const TRACKER_DATA_URL = "./data/issues.5b70640e918fc23c.json";
+    const TRACKER_DATA_URL = "./data/issues.94a78cd6af16498e.json";
     let dataset,selectedId,searchTerm='',category='all',homeSearchTerm='',homeCategory='all',homeStatus='open',activeTab='summary';
     const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
     const human=s=>String(s??'').replaceAll('-',' ').replace(/\b\w/g,c=>c.toUpperCase());

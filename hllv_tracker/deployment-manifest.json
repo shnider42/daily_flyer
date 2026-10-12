@@ -1,9 +1,9 @@
 {
-  "data_url": "data/issues.5b70640e918fc23c.json",
-  "data_sha256": "5b70640e918fc23c6bdcbcffd31830c228f10c833711d384ab74e603b2769cc6",
+  "data_url": "data/issues.94a78cd6af16498e.json",
+  "data_sha256": "94a78cd6af16498e054efceb7896049e48e07138dc44279c36c07f0606d02522",
   "evidence_js_url": "assets/evidence-f81896b2b5901f3b.js",
   "files": [
-    "data/issues.5b70640e918fc23c.json",
+    "data/issues.94a78cd6af16498e.json",
     "assets/evidence-f81896b2b5901f3b.js",
     "evidence.css?v=1",
     "freshness.js?v=20261007",
@@ -17,6 +17,7 @@
     "assets/theme-c19460e3803aa203.css",
     "assets/type-emphasis-5406a00364d88a0e.css",
     "assets/registration-bedd085405cf176f.css",
+    "assets/submission-thread-fb2c3da71f542e6c.css",
     "assets/official-feed-d33685a22f24cbe2.js",
     "assets/practice-6b6ee9a21123ec86.js",
     "assets/session-64d9247ad7eb980a.js",
@@ -24,7 +25,8 @@
     "assets/password-ba27a28cf3d3c643.js",
     "assets/inbox-2b62db76ea0c9f3c.js",
     "assets/form-types-777e6ec4da34227c.js",
-    "assets/community-4339bf5d01c9b6a2.js"
+    "assets/submission-thread-ee22415f8aaeea2c.js",
+    "assets/community-d9f2806c3b09f705.js"
   ],
   "note": "These are the actual production URLs embedded in the page, not random test cache-busters. data/issues.json remains the editable source file."
 }
