@@ -22,7 +22,7 @@ jobs:
   collect-publish-verify:
     if: github.repository == 'shnider42/daily_flyer'
     runs-on: ubuntu-latest
-    timeout-minutes: 12
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
@@ -89,11 +89,13 @@ jobs:
           from pathlib import Path
           expected=Path('hllv_tracker/official-feed.json').read_bytes()
           last='Not checked'
-          for attempt in range(48):
+          # The observed shared CDN cache is 300 seconds. Allow deployment plus
+          # cache expiry; never declare a random cache-busting URL to be live.
+          for attempt in range(96):
               try:
                   with urllib.request.urlopen('https://hllv-bug-track.onrender.com/official-feed.json',timeout=20) as response:
                       actual=response.read(8000001)
-                  assert actual==expected,'Waiting for the source collection to deploy'
+                  assert actual==expected,'Waiting for the source collection to deploy or shared cache to expire'
                   print('NIGHTLY_PRODUCTION_EXACT_MATCH')
                   break
               except Exception as error:
