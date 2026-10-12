@@ -151,7 +151,7 @@
 <link id="hllv-theme" rel="stylesheet" href="./assets/theme-c19460e3803aa203.css">
 <link id="type-emphasis-style" rel="stylesheet" href="./assets/type-emphasis-5406a00364d88a0e.css">
 <link id="hllv-registration-style" rel="stylesheet" href="./assets/registration-bedd085405cf176f.css">
-<link id="hllv-thread-style" rel="stylesheet" href="./assets/submission-thread-fb2c3da71f542e6c.css">
+<link id="hllv-thread-style" rel="stylesheet" href="./assets/submission-thread-307f06c6566b251b.css">
 </head>
 <body>
   <header class="site-nav"><button class="brand-button" id="brandHome"><span class="brand-mark-small">H/V</span><span><strong>Infierno Liberado</strong><small>HLLV patches &amp; bugs</small></span></button><button type="button" id="themeToggle" class="theme-toggle">Light mode</button><nav class="top-links" aria-label="Main navigation"><button class="top-link active" data-page="landing">Overview</button><button class="top-link" data-page="issues">All issues</button><button class="top-link" data-page="suggestions">Suggestion Box</button></nav></header>
@@ -238,8 +238,8 @@
   <script id="hllv-password-module" src="./assets/password-ba27a28cf3d3c643.js"></script>
   <script id="hllv-inbox-module" src="./assets/inbox-2b62db76ea0c9f3c.js"></script>
   <script id="hllv-form-types" src="./assets/form-types-777e6ec4da34227c.js"></script>
-  <script id="hllv-thread-module" src="./assets/submission-thread-ee22415f8aaeea2c.js"></script>
-  <script id="suggestions-module" src="./assets/community-d9f2806c3b09f705.js"></script>
+  <script id="hllv-thread-module" src="./assets/submission-thread-aef8d3439e715791.js"></script>
+  <script id="suggestions-module" src="./assets/community-9968024fdcdfaa9d.js"></script>
   <script>
     document.addEventListener('hllv-date-order',e=>{
       if(e.detail==='browse'&&dataset)renderHome();
@@ -249,7 +249,7 @@
     document.addEventListener('hllv-date-order',e=>{if(e.detail==='practice-history'){const items=[...document.querySelectorAll('#privatePractice [data-event-date]')];HLLVDates.sorted(items.map(node=>({node,date:node.dataset.eventDate})),'date',HLLVDates.direction('practice-history')).forEach(x=>x.node.parentNode.appendChild(x.node));}});
     document.getElementById('patchDateOrder').innerHTML=HLLVDates.control('patches','Release date order');
     const AUTH_RETURN_TO_SUGGESTIONS = Boolean(window.HLLVSuggestions?.isAuthCallback(location.hash));
-    const TRACKER_DATA_URL = "./data/issues.94a78cd6af16498e.json";
+    const TRACKER_DATA_URL = "./data/issues.514afecd6d03abe0.json";
     let dataset,selectedId,searchTerm='',category='all',homeSearchTerm='',homeCategory='all',homeStatus='open',activeTab='summary';
     const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
     const human=s=>String(s??'').replaceAll('-',' ').replace(/\b\w/g,c=>c.toUpperCase());

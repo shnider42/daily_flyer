@@ -16,3 +16,5 @@
 .submission-thread textarea:focus-visible,.thread-toolbar select:focus-visible{outline:2px solid var(--red);outline-offset:2px}
 #threadFeedback:empty{display:none}.thread-event{text-transform:none;overflow-wrap:anywhere}.thread-message footer{margin-top:.6rem}
 @media(max-width:600px){.thread-heading .sg-button{width:100%}.thread-message{padding:.8rem}.thread-toolbar{align-items:flex-start}.thread-public-summary{padding:.75rem}.thread-message header{flex-direction:column}}
+
+.submission-thread textarea::placeholder{color:var(--muted);opacity:1}

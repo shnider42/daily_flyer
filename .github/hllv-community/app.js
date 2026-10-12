@@ -132,7 +132,7 @@
    rpc:(action,payload)=>call(action,payload,'hllv_submission_thread'),isCurrent:()=>threadEpoch===epoch&&selected===s,
    onDirty:hasDraft=>{dirty=hasDraft||!!el('cbModNote')?.value.trim();},onBusy:value=>{busy=value;},
    onRecord:row=>{Object.assign(s,row);const badge=el('sgContent').querySelector('.cb-detail>.cb-tag');if(badge){badge.textContent=states[s.state]||s.state;badge.classList.toggle('approved',s.state==='published');}}});
-  const threadDraft=()=>{if(threadController?.hasDraft()){el('cbDecisionFeedback').textContent='Send or clear your conversation draft before making another change.';return true;}return false;};
+  const threadDraft=()=>{if(threadController?.isStale()){el('cbDecisionFeedback').textContent='The wording changed. Return to the list and reopen this submission before making a decision.';return true;}if(threadController?.hasDraft()){el('cbDecisionFeedback').textContent='Send or clear your conversation draft before making another change.';return true;}return false;};
   el('cbBack').onclick=()=>{if(safeLeave()){dirty=false;selected=null;paint();}};
   async function change(action,payload){if(busy||uncertain||threadDraft())return;const t=epoch;busy=true;el('sgContent').querySelectorAll('button').forEach(b=>b.disabled=true);el('cbDecisionFeedback').textContent='Saving…';
    try{const result=await call(action,{id:s.id,version:s.version,updated_at:s.updated_at,...payload});if(!connected(t))return;dirty=false;receipt=result;view='receipt';showReceipt();}

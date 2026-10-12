@@ -16,9 +16,9 @@ checks='''
  expect(page.locator('#threadReply')).to_have_value('');page.locator('#threadOrder').select_option('oldest');expect(page.locator('#threadEntries .thread-message').first).to_contain_text('PRIVATE-QUESTION')
  mp.locator('#threadRefresh').click();expect(mp.locator('#threadEntries')).to_contain_text('PRIVATE-LOST-RESPONSE')
  for theme in ['dark','light']:
-  mp.evaluate("document.documentElement.dataset.theme='"+theme+"'");mp.set_viewport_size({'width':390,'height':844});assert mp.evaluate('document.documentElement.scrollWidth<=innerWidth+2')
+  mp.evaluate("value=>{if(document.documentElement.dataset.theme!==value)document.getElementById('themeToggle').click();}",theme);mp.set_viewport_size({'width':390,'height':844});assert mp.evaluate('document.documentElement.scrollWidth<=innerWidth+2')
   mp.locator('#submissionThread').screenshot(path='artifacts/conversation-'+theme+'-'+a.engine+'.png')
-  pub.evaluate("document.documentElement.dataset.theme='"+theme+"'");pub.set_viewport_size({'width':390,'height':844});assert pub.evaluate('document.documentElement.scrollWidth<=innerWidth+2');entry.screenshot(path='artifacts/public-comment-'+theme+'-'+a.engine+'.png')
+  pub.evaluate("value=>{if(document.documentElement.dataset.theme!==value)document.getElementById('themeToggle').click();}",theme);pub.set_viewport_size({'width':390,'height':844});assert pub.evaluate('document.documentElement.scrollWidth<=innerWidth+2');entry.screenshot(path='artifacts/public-comment-'+theme+'-'+a.engine+'.png')
  mp.once('dialog',lambda d:d.accept());mp.locator('[data-hide-comment]').first.click();expect(mp.locator('#threadEntries')).to_contain_text('Hidden public comment')
  pub.reload(wait_until='networkidle');assert 'Public explanation' not in pub.inner_text('body')
  mp.locator('[data-cb-view="board"]').click();mp.locator('[data-board-thread="'+sid+'"]').click();expect(mp.locator('#threadEntries')).to_contain_text('PRIVATE-QUESTION')
@@ -27,6 +27,11 @@ checks='''
  previous=[c['payload']['payload'] for c in calls if c['op']=='hllv_submission_thread' and c['payload']['action']=='reply'][-1]
  old=next(e for e in threads[sid] if e['author_label']=='Member (submitter)');threads[sid].append({**old,'id':str(uuid.uuid4()),'request_id':previous['request_id'],'body':previous['body'],'created_at':stamp()});count=len(threads[sid])
  page.locator('#threadSend').click();expect(page.locator('#threadFeedback')).to_contain_text('Private reply saved');assert len(threads[sid])==count
+ login(mp,memail);mp.locator('[data-cb-view="board"]').click();mp.locator('[data-board-thread="'+sid+'"]').click();expect(mp.locator('#threadChecked')).to_contain_text('Checked')
+ store[sid].update(version=2,title='Changed wording awaiting a fresh review',state='pending',updated_at=stamp(),supporters=set())
+ mp.locator('#threadRefresh').click();expect(mp.locator('#threadFeedback')).to_contain_text('wording changed');mp.once('dialog',lambda d:d.accept());mp.locator('#cbApprove').click();expect(mp.locator('#cbDecisionFeedback')).to_contain_text('wording changed');assert store[sid]['state']=='pending'
+ mp.locator('#cbBack').click();mp.locator('[data-open="'+sid+'"]').click();expect(mp.locator('.cb-detail h2')).to_contain_text('Changed wording');expect(mp.locator('#threadChecked')).to_contain_text('Checked');mp.once('dialog',lambda d:d.accept());mp.locator('#cbApprove').click();expect(mp.locator('.cb-receipt')).to_contain_text('Approved and published');assert store[sid]['version']==2
+ print('WORDING_REFRESH_GUARD_PASS',a.engine,'Thread refresh never silently authorizes a newer unseen wording version')
  assert not errs+merrs+perrs,errs+merrs+perrs
  print('THREAD_BROWSER_PASS',a.engine,'private back-and-forth, preserved decision replies, public explicit consent, no private publication, safe markup, lost-response and delayed-response deduplication, date order, mobile dark/light, public hide and signout')
 '''
