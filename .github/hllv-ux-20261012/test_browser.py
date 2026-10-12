@@ -12,7 +12,7 @@ checks='''
  dates=tp.locator('.evidence-source .evidence-byline time').evaluate_all('(nodes)=>nodes.map(n=>n.dateTime)');assert dates==sorted(dates,reverse=True),dates
  tp.select_option('[data-date-order="sources"]','oldest');dates=tp.locator('.evidence-source .evidence-byline time').evaluate_all('(nodes)=>nodes.map(n=>n.dateTime)');assert dates==sorted(dates)
  new,uid,nmail,ncalls,nerr,nflags=context(identity='type-author');np=new.new_page();login(np,nmail);form(np)
- expect(np.locator('#cbProblemLabel')).to_have_text('What could be better or added?')
+ expect(np.locator('#cbProblemLabel')).to_have_text('What inspired this idea?')
  order=np.locator('#cbSubmitForm input:not([type="checkbox"]),#cbSubmitForm select,#cbSubmitForm textarea').evaluate_all('(nodes)=>nodes.map(n=>n.id)');assert order[:5]==['cbTitle','cbKind','cbIssue','cbProblem','cbOutcome'],order
  old=np.locator('#cbProblem').input_value();np.select_option('#cbKind','problem_report');expect(np.locator('#cbOutcomeLabel')).to_have_text('What did you expect to happen?');assert np.locator('#cbProblem').input_value()==old;assert not np.locator('#cbIssue').evaluate('(x)=>x.required')
  np.select_option('#cbKind','bug_priority');assert np.locator('#cbIssue').evaluate('(x)=>x.required');expect(np.locator('#cbTypeHelp')).to_contain_text('existing issue')
