@@ -665,11 +665,7 @@ def create_app(db_path=None, *, background_ai=None, start_worker=True):
     return app
 
 
-# A stalled worker can keep Gunicorn's heartbeat alive without serving health
-# checks. Capture thread stacks (no request data or locals) during that startup
-# window, so a Render timeout supplies evidence instead of fifteen silent minutes.
-_startup_trace = bool(os.environ.get('RENDER'))
-if _startup_trace:
-    faulthandler.dump_traceback_later(45, repeat=True)
-app = create_app()
-app.config['WW2_STARTUP_TRACE'] = _startup_trace
+# Gunicorn can preload this module in its parent process. Starting a thread here
+# would fork an active SQLite client and inherit locks without its owning thread.
+# gunicorn.conf.py starts the durable queue only after the web worker is ready.
+app = create_app(start_worker=False)

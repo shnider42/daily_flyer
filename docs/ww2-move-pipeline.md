@@ -52,6 +52,22 @@ dependence and unbounded allocations; it does not promise instantaneous AI on
 the 0.5-CPU plan or guaranteed future uptime. Refresh the browser and resume
 the existing match after deployment; no game reset is needed.
 
+### Startup recovery (October 12)
+
+Render's failed starts loaded the WSGI application in the Gunicorn master.
+The startup trace showed `dsl-computer` running alongside `gunicorn/arbiter.py`,
+before the web worker fork. Module import must therefore never start this
+thread. The exported `ww2_web:app` now creates only the app/database schema;
+`gunicorn.conf.py` starts the queue in `post_worker_init` and stops it at worker
+exit. This works with and without `--preload`. Keep this configuration in the
+service working directory when using the documented Gunicorn command.
+
+The readiness watchdog also belongs to the worker and stops after a successful
+HTTP/database health check. Startup regression tests launch real four-thread
+Gunicorn processes in both modes, check concurrent HTTP health requests, verify
+that only the worker owns the queue, and recover a pending AI turn with no browser.
+Run `python -m unittest discover -s tests -p 'test_ww2_server_startup.py'`.
+
 Validation: `python -m unittest discover -s tests -p 'test_ww2*.py'`,
 `node tests/ww2-replay-transport.cjs`,
 `node tests/ww2-pipeline-v2-browser.cjs`,
