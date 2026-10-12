@@ -54,7 +54,7 @@ with sync_playwright() as pw:
             ctx.route(BASE+'**',lambda r:r.fulfill(body=shell().replace('https://cdn.jsdelivr.net/fixture.mjs','/__fixture_sdk.mjs'),content_type='text/html'))
             ctx.route('**/__fixture_sdk.mjs',lambda r:r.fulfill(body=SDK,content_type='application/javascript'))
             for route,filename,mime in [('**/__session.js','session.js','application/javascript'),('**/__password.js','password.js','application/javascript'),('**/__account.css','account.css','text/css')]:
-                ctx.route(route,lambda r,f=filename,t=mime:r.fulfill(body=(SRC/f).read_text(),content_type=t))
+                ctx.route(route,lambda r,request,f=filename,t=mime:r.fulfill(body=(SRC/f).read_text(),content_type=t))
         def respond(route):
             body=json.loads(route.request.post_data);op=body['operation'];payload=body.get('payload') or {};calls.append(body)
             user={'id':'fixture-user','email':EMAIL};session={'user':user,'access_token':'SYNTHETIC-NOT-A-REAL-TOKEN','refresh_token':'SYNTHETIC'}

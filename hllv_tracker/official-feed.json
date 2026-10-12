@@ -1,0 +1,935 @@
+{
+  "schema_version": 1,
+  "items": [
+    {
+      "id": "1846018067933766",
+      "title": "Community Feedback #7 | Command Post",
+      "url": "https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/1846018067933766",
+      "published_at": "2026-10-09T15:37:43Z",
+      "category": "Developer / community announcement",
+      "excerpt": "Welcome back to the Command Post. It’s been another busy week for Hell Let Loose: Vietnam. Patch 1.6",
+      "content_sha256": "1198ac1a60afcf31405651f1d191774605bda3a0ecc7ca0e27e256481fd38672",
+      "candidate_issue_ids": [
+        "HLLV-003",
+        "HLLV-006",
+        "HLLV-045",
+        "HLLV-057",
+        "HLLV-063"
+      ],
+      "review_state": "automatically_collected",
+      "first_seen_at": "2026-10-12T16:32:27Z",
+      "last_changed_at": "2026-10-12T16:32:27Z"
+    },
+    {
+      "id": "1846018067925606",
+      "title": "Patch 1.6 | Hell Let Loose: Vietnam",
+      "url": "https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/1846018067925606",
+      "published_at": "2026-10-07T10:01:03Z",
+      "category": "Patch / update announcement",
+      "excerpt": "Patch 1.6 | Live Now Patch 1.6 is now live, bringing a major audio overhaul, Unit composition",
+      "content_sha256": "78f03b3e7e6bc6c69e088e108ef353eeac05d3788193f052093d0199f91cbd5c",
+      "candidate_issue_ids": [
+        "HLLV-003",
+        "HLLV-009",
+        "HLLV-017",
+        "HLLV-038",
+        "HLLV-039",
+        "HLLV-040",
+        "HLLV-042",
+        "HLLV-048",
+        "HLLV-052",
+        "HLLV-067",
+        "HLLV-068",
+        "HLLV-070",
+        "HLLV-074"
+      ],
+      "review_state": "automatically_collected",
+      "first_seen_at": "2026-10-12T16:32:27Z",
+      "last_changed_at": "2026-10-12T16:32:27Z"
+    },
+    {
+      "id": "1845383656387240",
+      "title": "Update 1.5 & Patch 1.6 | Dev Update VLOG | Command Post",
+      "url": "https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/1845383656387240",
+      "published_at": "2026-10-02T17:47:33Z",
+      "category": "Patch / update announcement",
+      "excerpt": "🎥 What’s in the latest Hell Let Loose: Vietnam updates? Update 1.5",
+      "content_sha256": "8308f924252dfc1362b9746a800beff9241c73d0fdf4a122eb58dc6d0509db1a",
+      "candidate_issue_ids": [],
+      "review_state": "automatically_collected",
+      "first_seen_at": "2026-10-12T16:32:27Z",
+      "last_changed_at": "2026-10-12T16:32:27Z"
+    },
+    {
+      "id": "1845383656381776",
+      "title": "Community Feedback #6 | Command Post",
+      "url": "https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/1845383656381776",
+      "published_at": "2026-10-01T15:12:24Z",
+      "category": "Developer / community announcement",
+      "excerpt": "Welcome back to the Command Post. It’s been another busy week for Hell Let Loose: Vietnam, with Hotfix",
+      "content_sha256": "15b2da22c6d9e7eed823ce0764640a7797e63f8ad90c5f05816e24c8c3fcf83a",
+      "candidate_issue_ids": [
+        "HLLV-003",
+        "HLLV-058",
+        "HLLV-061",
+        "HLLV-062",
+        "HLLV-063",
+        "HLLV-067",
+        "HLLV-068"
+      ],
+      "review_state": "automatically_collected",
+      "first_seen_at": "2026-10-12T16:32:27Z",
+      "last_changed_at": "2026-10-12T16:32:27Z"
+    },
+    {
+      "id": "1844751498233749",
+      "title": "Hotfix 1.5.2 | Live Now",
+      "url": "https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/1844751498233749",
+      "published_at": "2026-09-29T10:00:57Z",
+      "category": "Patch / update announcement",
+      "excerpt": "Hotfix 1.5.2 is now live on all platforms. This week’s hotfix introduces the much-requested AMD FSR 4.1 support,",
+      "content_sha256": "646ed2345e48c261e7217496476cce411f68c4e7bafd1f5c7caf1a561785c9f6",
+      "candidate_issue_ids": [
+        "HLLV-056"
+      ],
+      "review_state": "automatically_collected",
+      "first_seen_at": "2026-10-12T16:32:27Z",
+      "last_changed_at": "2026-10-12T16:32:27Z"
+    },
+    {
+      "id": "1844751498225016",
+      "title": "Community Feedback #5 | Command Post",
+      "url": "https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/1844751498225016",
+      "published_at": "2026-09-25T15:40:28Z",
+      "category": "Developer / community announcement",
+      "excerpt": "Welcome back to the Command Post. Since our last Community Feedback update, Update 1.5 has arrived , bringing",
+      "content_sha256": "090d0eb9c1f98a98c1a1701058543bfce0097fcdd4fe297a9b1748f8e698289c",
+      "candidate_issue_ids": [
+        "HLLV-002",
+        "HLLV-003",
+        "HLLV-006",
+        "HLLV-029",
+        "HLLV-060",
+        "HLLV-069"
+      ],
+      "review_state": "automatically_collected",
+      "first_seen_at": "2026-10-12T16:32:27Z",
+      "last_changed_at": "2026-10-12T16:32:27Z"
+    },
+    {
+      "id": "1844115010504560",
+      "title": "Hotfix 1.5.1 | Live Now",
+      "url": "https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/1844115010504560",
+      "published_at": "2026-09-22T15:27:20Z",
+      "category": "Patch / update announcement",
+      "excerpt": "Hotfix 1.5.1 is now live on all platforms. This patch includes improvements to ADS transitions, controller feedback, mounted",
+      "content_sha256": "e9de06105f270e47e1949ddb2c672b572e3b5002f2253f30f550226b0b6ca777",
+      "candidate_issue_ids": [],
+      "review_state": "automatically_collected",
+      "first_seen_at": "2026-10-12T16:32:27Z",
+      "last_changed_at": "2026-10-12T16:32:27Z"
+    },
+    {
+      "id": "1844115010488884",
+      "title": "Update 1.5 Now Live | Teaser Trailer",
+      "url": "https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/1844115010488884",
+      "published_at": "2026-09-16T11:50:35Z",
+      "category": "Patch / update announcement",
+      "excerpt": "The battlefield is getting some serious new firepower. 🔫 M14 🔫 Type 56 SKS 🚁 Officially licensed",
+      "content_sha256": "6194e9502cde17a7d35b15d54ae0a6556dbfc7df07c81cb31199ac4071d63c9c",
+      "candidate_issue_ids": [],
+      "review_state": "automatically_collected",
+      "first_seen_at": "2026-10-12T16:32:27Z",
+      "last_changed_at": "2026-10-12T16:32:27Z"
+    },
+    {
+      "id": "1843481262704861",
+      "title": "Update 1.5 | Full Changelog",
+      "url": "https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/1843481262704861",
+      "published_at": "2026-09-15T15:09:13Z",
+      "category": "Patch / update announcement",
+      "excerpt": "Update 1.5 | Launching 16 September Update 1.5 is almost here, bringing our first major content drop since",
+      "content_sha256": "d032a6f610d68cc121c6e6cce595b2ea8d6e8a1164a9b13a6ff9cd0cb985bba4",
+      "candidate_issue_ids": [
+        "HLLV-031",
+        "HLLV-040",
+        "HLLV-051",
+        "HLLV-067"
+      ],
+      "review_state": "automatically_collected",
+      "first_seen_at": "2026-10-12T16:32:27Z",
+      "last_changed_at": "2026-10-12T16:32:27Z"
+    },
+    {
+      "id": "1843481262692715",
+      "title": "Community Feedback #4 | Command Post",
+      "url": "https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/1843481262692715",
+      "published_at": "2026-09-10T16:10:38Z",
+      "category": "Developer / community announcement",
+      "excerpt": "Welcome back to the Command Post. Over the past week, we’ve continued reviewing your reports and feedback from",
+      "content_sha256": "c0dd6f501f039d96b09ebf24c5d522d6798b87491a7ead1cae39a143f7ad575d",
+      "candidate_issue_ids": [
+        "HLLV-001",
+        "HLLV-002",
+        "HLLV-003",
+        "HLLV-006",
+        "HLLV-040",
+        "HLLV-045"
+      ],
+      "review_state": "automatically_collected",
+      "first_seen_at": "2026-10-12T16:32:27Z",
+      "last_changed_at": "2026-10-12T16:32:27Z"
+    },
+    {
+      "id": "1842846814455199",
+      "title": "Hotfix 1.4.2 | Live Now | Hell Let Loose: Vietnam",
+      "url": "https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/1842846814455199",
+      "published_at": "2026-09-08T10:02:22Z",
+      "category": "Patch / update announcement",
+      "excerpt": "Hotfix 1.4.2 Live Now Hotfix 1.4.2 is now live, addressing a range of stability",
+      "content_sha256": "e1b909fee28b134083e84cd6d5cec6028f568847c7bb56d89ed1d59ca5a7605d",
+      "candidate_issue_ids": [],
+      "review_state": "automatically_collected",
+      "first_seen_at": "2026-10-12T16:32:27Z",
+      "last_changed_at": "2026-10-12T16:32:27Z"
+    },
+    {
+      "id": "1842846814445938",
+      "title": "AMD Hotfix Now Live",
+      "url": "https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/1842846814445938",
+      "published_at": "2026-09-04T10:02:15Z",
+      "category": "Patch / update announcement",
+      "excerpt": "Hello everyone, Today, we've released a hotfix to address stability issues affecting some players using AMD GPUs. We",
+      "content_sha256": "c047f482df483ddba931537b34674409df229c897f3abb50966333439bdd8b00",
+      "candidate_issue_ids": [],
+      "review_state": "automatically_collected",
+      "first_seen_at": "2026-10-12T16:32:27Z",
+      "last_changed_at": "2026-10-12T16:32:27Z"
+    },
+    {
+      "id": "1842846814444043",
+      "title": "Community Feedback #3 | Command Post",
+      "url": "https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/1842846814444043",
+      "published_at": "2026-09-03T17:00:41Z",
+      "category": "Developer / community announcement",
+      "excerpt": "Welcome back to the Command Post. Over the last few weeks, we’ve been using these Community Updates to",
+      "content_sha256": "b5f2e540b933013e692902f1b091fae6e9f5e0f6f7d9692a94dcffecd8dd2cc6",
+      "candidate_issue_ids": [
+        "HLLV-001",
+        "HLLV-002",
+        "HLLV-003",
+        "HLLV-045",
+        "HLLV-058"
+      ],
+      "review_state": "automatically_collected",
+      "first_seen_at": "2026-10-12T16:32:27Z",
+      "last_changed_at": "2026-10-12T16:32:27Z"
+    },
+    {
+      "id": "1842846814442810",
+      "title": "Patch 1.4 | Full Changelog",
+      "url": "https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/1842846814442810",
+      "published_at": "2026-09-03T10:00:22Z",
+      "category": "Patch / update announcement",
+      "excerpt": "Patch 1.4 Live Now Patch 1.4 is now live for Hell Let Loose: Vietnam, bringing around 200 fixes",
+      "content_sha256": "7506c3a8489515c4c0641b931404187cb3078d5634d5533c850bf42014d4bf87",
+      "candidate_issue_ids": [
+        "HLLV-001",
+        "HLLV-002",
+        "HLLV-005",
+        "HLLV-017",
+        "HLLV-020",
+        "HLLV-038",
+        "HLLV-039",
+        "HLLV-040",
+        "HLLV-042",
+        "HLLV-047",
+        "HLLV-048",
+        "HLLV-052",
+        "HLLV-067",
+        "HLLV-070",
+        "HLLV-073"
+      ],
+      "review_state": "automatically_collected",
+      "first_seen_at": "2026-10-12T16:32:27Z",
+      "last_changed_at": "2026-10-12T16:32:27Z"
+    },
+    {
+      "id": "1842212951303228",
+      "title": "Developer AMA #1 Livestream | Hell Let Loose: Vietnam",
+      "url": "https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/1842212951303228",
+      "published_at": "2026-08-28T13:27:07Z",
+      "category": "Developer / community announcement",
+      "excerpt": "Our first Hell Let Loose: Vietnam Developer AMA is wrapped up! A huge thank you",
+      "content_sha256": "8bce8301f53fc98131b71afef838665cf306b5ab0bba50b2fd8a19dab6470dec",
+      "candidate_issue_ids": [],
+      "review_state": "automatically_collected",
+      "first_seen_at": "2026-10-12T16:32:27Z",
+      "last_changed_at": "2026-10-12T16:32:27Z"
+    },
+    {
+      "id": "1842212951302673",
+      "title": "Patch 1.3 | Full Changelog",
+      "url": "https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/1842212951302673",
+      "published_at": "2026-08-28T10:04:31Z",
+      "category": "Patch / update announcement",
+      "excerpt": "Patch 1.3 Live Now Patch 1.3 is now live for Hell Let Loose: Vietnam, bringing another round of",
+      "content_sha256": "a61cd86fe3877a514dcaaef88bc30cc6264e60be85cd3bb0dc67af8fdae10124",
+      "candidate_issue_ids": [
+        "HLLV-006",
+        "HLLV-013",
+        "HLLV-017",
+        "HLLV-020",
+        "HLLV-023",
+        "HLLV-024",
+        "HLLV-025",
+        "HLLV-038",
+        "HLLV-039"
+      ],
+      "review_state": "automatically_collected",
+      "first_seen_at": "2026-10-12T16:32:27Z",
+      "last_changed_at": "2026-10-12T16:32:27Z"
+    },
+    {
+      "id": "1842212951300657",
+      "title": "Community Update #2 | Command Post",
+      "url": "https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/1842212951300657",
+      "published_at": "2026-08-27T16:25:02Z",
+      "category": "Developer / community announcement",
+      "excerpt": "Since our first Community Feedback update last Thursday, Patch 1.2 has been deployed with more than 500 fixes",
+      "content_sha256": "9bb0c32aea71c70e9b2069e20d3af2e411b7ce8b5b337987f66368be21dfddbc",
+      "candidate_issue_ids": [
+        "HLLV-001",
+        "HLLV-002",
+        "HLLV-003",
+        "HLLV-006",
+        "HLLV-038"
+      ],
+      "review_state": "automatically_collected",
+      "first_seen_at": "2026-10-12T16:32:27Z",
+      "last_changed_at": "2026-10-12T16:32:27Z"
+    },
+    {
+      "id": "1841579228676605",
+      "title": "Developer AMA #1 | Hell Let Loose: Vietnam Reddit",
+      "url": "https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/1841579228676605",
+      "published_at": "2026-08-24T20:38:01Z",
+      "category": "Developer / community announcement",
+      "excerpt": "Hell Let Loose: Vietnam Dev AMA #1 We’re opening up our first developer AMA on",
+      "content_sha256": "0e49531ffb23e01b5df7fa2921f5c4e98c4fb9e6a108bd4770061ac50c8bf952",
+      "candidate_issue_ids": [],
+      "review_state": "automatically_collected",
+      "first_seen_at": "2026-10-12T16:32:27Z",
+      "last_changed_at": "2026-10-12T16:32:27Z"
+    },
+    {
+      "id": "1841579228669057",
+      "title": "2026 Roadmap | Hell Let Loose: Vietnam",
+      "url": "https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/1841579228669057",
+      "published_at": "2026-08-21T14:59:45Z",
+      "category": "Developer / community announcement",
+      "excerpt": "Introducing the Hell Let Loose: Vietnam Roadmap We’re excited to reveal our first-ever roadmap for Hell Let",
+      "content_sha256": "770a2721488ba9f4e7e2913f3f1f21734358c81ff44ef67e33f2c2cde42ab87f",
+      "candidate_issue_ids": [],
+      "review_state": "automatically_collected",
+      "first_seen_at": "2026-10-12T16:32:27Z",
+      "last_changed_at": "2026-10-12T16:32:27Z"
+    },
+    {
+      "id": "1841579228668226",
+      "title": "Patch 1.2 Live Now | Full Changelog",
+      "url": "https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/1841579228668226",
+      "published_at": "2026-08-21T10:17:47Z",
+      "category": "Patch / update announcement",
+      "excerpt": "Patch 1.2 is Live Now Thank you to everyone who has joined us for the first week",
+      "content_sha256": "dc62e3a06d005068c857f196d82524a48df258102536664b66347e0640e200fc",
+      "candidate_issue_ids": [
+        "HLLV-001",
+        "HLLV-005",
+        "HLLV-009",
+        "HLLV-018",
+        "HLLV-023",
+        "HLLV-024",
+        "HLLV-025",
+        "HLLV-027",
+        "HLLV-031",
+        "HLLV-037",
+        "HLLV-038",
+        "HLLV-039",
+        "HLLV-040",
+        "HLLV-041",
+        "HLLV-042",
+        "HLLV-043",
+        "HLLV-044",
+        "HLLV-045",
+        "HLLV-067",
+        "HLLV-070"
+      ],
+      "review_state": "automatically_collected",
+      "first_seen_at": "2026-10-12T16:32:27Z",
+      "last_changed_at": "2026-10-12T16:32:27Z"
+    },
+    {
+      "id": "1841579228666208",
+      "title": "Community Update #1 | Command Post",
+      "url": "https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/1841579228666208",
+      "published_at": "2026-08-20T16:41:42Z",
+      "category": "Developer / community announcement",
+      "excerpt": "Since the launch of Hell Let Loose: Vietnam, we’ve been closely following your feedback across Discord, Reddit, Steam,",
+      "content_sha256": "ae8b84e8f09a466389da56ae49ef67576a4993eb7a6e50523f9c276800faeb18",
+      "candidate_issue_ids": [
+        "HLLV-002",
+        "HLLV-003",
+        "HLLV-006",
+        "HLLV-020",
+        "HLLV-034"
+      ],
+      "review_state": "automatically_collected",
+      "first_seen_at": "2026-10-12T16:32:27Z",
+      "last_changed_at": "2026-10-12T16:32:27Z"
+    },
+    {
+      "id": "1840944183789551",
+      "title": "Coming Next: Roadmap & Patch 1.2",
+      "url": "https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/1840944183789551",
+      "published_at": "2026-08-18T18:00:04Z",
+      "category": "Patch / update announcement",
+      "excerpt": "Coming next to Hell Let Loose: Vietnam Following the launch of Hell Let Loose: Vietnam last week, the",
+      "content_sha256": "b70d3747e6f0b4e2bbab1a639fa74bd2a3a5a993f8af7505f58da5d65e086457",
+      "candidate_issue_ids": [
+        "HLLV-006",
+        "HLLV-009"
+      ],
+      "review_state": "automatically_collected",
+      "first_seen_at": "2026-10-12T16:32:27Z",
+      "last_changed_at": "2026-10-12T16:32:27Z"
+    },
+    {
+      "id": "1840944183783686",
+      "title": "Hotfix 1 | Live Now",
+      "url": "https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/1840944183783686",
+      "published_at": "2026-08-16T10:21:05Z",
+      "category": "Patch / update announcement",
+      "excerpt": "16 August: Hotfix 1 is live now Our first Hotfix for Hell Let Loose: Vietnam is live now",
+      "content_sha256": "e48034dad9618a2b4dd1563e9ae325665a31a6cc69519f025e4d2b47d997460f",
+      "candidate_issue_ids": [
+        "HLLV-003"
+      ],
+      "review_state": "automatically_collected",
+      "first_seen_at": "2026-10-12T16:32:27Z",
+      "last_changed_at": "2026-10-12T16:32:27Z"
+    },
+    {
+      "id": "1840944183780404",
+      "title": "Dev Comms Thread & Launch Updates | Hell Let Loose: Vietnam",
+      "url": "https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/1840944183780404",
+      "published_at": "2026-08-14T17:38:16Z",
+      "category": "Developer / community announcement",
+      "excerpt": "Dev Comms Thread & Launch Updates This thread will be updated regularly with",
+      "content_sha256": "2a6814340f2097e2bff7556fb4066d1160f1e2d27e938fd34b72da1762da8363",
+      "candidate_issue_ids": [
+        "HLLV-001",
+        "HLLV-002",
+        "HLLV-003",
+        "HLLV-006",
+        "HLLV-009",
+        "HLLV-020"
+      ],
+      "review_state": "automatically_collected",
+      "first_seen_at": "2026-10-12T16:32:27Z",
+      "last_changed_at": "2026-10-12T16:32:27Z"
+    },
+    {
+      "id": "1840944183778026",
+      "title": "Important Launch Info | Hell Let Loose: Vietnam",
+      "url": "https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/1840944183778026",
+      "published_at": "2026-08-13T22:18:09Z",
+      "category": "Developer / community announcement",
+      "excerpt": "Thank You & Important Launch Info Thank you to everyone who has joined us for the",
+      "content_sha256": "b3de488a5d234cb1c2095affb792b6b37cd5947f46ec5ef3fa63921b68f37f01",
+      "candidate_issue_ids": [
+        "HLLV-003"
+      ],
+      "review_state": "automatically_collected",
+      "first_seen_at": "2026-10-12T16:32:27Z",
+      "last_changed_at": "2026-10-12T16:32:27Z"
+    },
+    {
+      "id": "1840944183777212",
+      "title": "Out Now | Hell Let Loose: Vietnam",
+      "url": "https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/1840944183777212",
+      "published_at": "2026-08-13T16:00:30Z",
+      "category": "Developer / community announcement",
+      "excerpt": "Welcome to Hell Let Loose: Vietnam Hell Let Loose: Vietnam is officially live now across PC, PlayStation",
+      "content_sha256": "b854106493cb0a605d6e976d5f94fecd0eee2a700741dd248db9241e72662fd4",
+      "candidate_issue_ids": [],
+      "review_state": "automatically_collected",
+      "first_seen_at": "2026-10-12T16:32:27Z",
+      "last_changed_at": "2026-10-12T16:32:27Z"
+    },
+    {
+      "id": "1840944183776642",
+      "title": "Game Modes | Hell Let Loose: Vietnam",
+      "url": "https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/1840944183776642",
+      "published_at": "2026-08-13T12:45:47Z",
+      "category": "Developer / community announcement",
+      "excerpt": "What Game Modes are in Hell Let Loose: Vietnam? Hell Let Loose: Vietnam launches today, which means",
+      "content_sha256": "123bec3cffa4dc758715a20e5a5e2ab7cf7e18e3a71c61775ae636266099f222",
+      "candidate_issue_ids": [],
+      "review_state": "automatically_collected",
+      "first_seen_at": "2026-10-12T16:32:27Z",
+      "last_changed_at": "2026-10-12T16:32:27Z"
+    },
+    {
+      "id": "1840944183774749",
+      "title": "Launch Maps | Hell Let Loose: Vietnam",
+      "url": "https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/1840944183774749",
+      "published_at": "2026-08-12T18:25:30Z",
+      "category": "Developer / community announcement",
+      "excerpt": "Welcome to Vietnam With Hell Let Loose: Vietnam launching tomorrow, it’s almost time to experience the battlefields",
+      "content_sha256": "b896d0f337b946ddca2d9126baa2e9dfa5bf6b381824e657c8ce535abe62f2cc",
+      "candidate_issue_ids": [
+        "HLLV-071"
+      ],
+      "review_state": "automatically_collected",
+      "first_seen_at": "2026-10-12T16:32:27Z",
+      "last_changed_at": "2026-10-12T16:32:27Z"
+    },
+    {
+      "id": "1840944183774746",
+      "title": "Top 5 Things To Know Before Launch | 24 Hours Till Launch",
+      "url": "https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/1840944183774746",
+      "published_at": "2026-08-12T18:24:56Z",
+      "category": "Developer / community announcement",
+      "excerpt": "The Top 5 Things To Know Before Launch The wait is almost",
+      "content_sha256": "70df79dc837c62e7b058914b94d018d06cbcb269bd26ed014bdcf177ab1a3f37",
+      "candidate_issue_ids": [
+        "HLLV-002",
+        "HLLV-003",
+        "HLLV-020",
+        "HLLV-021",
+        "HLLV-040",
+        "HLLV-045"
+      ],
+      "review_state": "automatically_collected",
+      "first_seen_at": "2026-10-12T16:32:27Z",
+      "last_changed_at": "2026-10-12T16:32:27Z"
+    },
+    {
+      "id": "1839676055888771",
+      "title": "Dev Q&A #2 | Development Process & The Future",
+      "url": "https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/1839676055888771",
+      "published_at": "2026-07-31T16:27:08Z",
+      "category": "Developer / community announcement",
+      "excerpt": "Hell Let Loose: Vietnam Developer Q&A: Development Process & The Future Welcome to the Command",
+      "content_sha256": "23e29db34e203b52849953ce3c25ff710ef13a50556acb51a6b9a93e5a0a9b54",
+      "candidate_issue_ids": [
+        "HLLV-009",
+        "HLLV-075"
+      ],
+      "review_state": "automatically_collected",
+      "first_seen_at": "2026-10-12T16:32:27Z",
+      "last_changed_at": "2026-10-12T16:32:27Z"
+    },
+    {
+      "id": "1839676055886437",
+      "title": "Road To Launch Update | Crossplay Playtest Review",
+      "url": "https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/1839676055886437",
+      "published_at": "2026-07-30T21:22:38Z",
+      "category": "Developer / community announcement",
+      "excerpt": "The Road to Launch Post-Playtest First of all, a huge thank you to the hundreds of",
+      "content_sha256": "52cdc0e3e25af8383c4ce8f9b30e3b53b288eaec3171e45b18f0d00b81c673b2",
+      "candidate_issue_ids": [
+        "HLLV-002",
+        "HLLV-003",
+        "HLLV-021"
+      ],
+      "review_state": "automatically_collected",
+      "first_seen_at": "2026-10-12T16:32:27Z",
+      "last_changed_at": "2026-10-12T16:32:27Z"
+    },
+    {
+      "id": "1839041357029502",
+      "title": "Crossplay Playtest | Known Issues, Feedback & Info",
+      "url": "https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/1839041357029502",
+      "published_at": "2026-07-24T13:01:02Z",
+      "category": "Developer / community announcement",
+      "excerpt": "Before playing please be sure to read the below Known Issues and how to give Feedback",
+      "content_sha256": "8842d5a1a9c09d2e8571000ec36ce88fea55b2b5d81bd54f40021652b1a3e031",
+      "candidate_issue_ids": [
+        "HLLV-003",
+        "HLLV-006",
+        "HLLV-038"
+      ],
+      "review_state": "automatically_collected",
+      "first_seen_at": "2026-10-12T16:32:27Z",
+      "last_changed_at": "2026-10-12T16:32:27Z"
+    },
+    {
+      "id": "1839041357027560",
+      "title": "Dev Q&A #1 | Performance, Gameplay & Maps",
+      "url": "https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/1839041357027560",
+      "published_at": "2026-07-23T18:55:57Z",
+      "category": "Developer / community announcement",
+      "excerpt": "The Command Post | Hell Let Loose: Vietnam Developer Q&A Part #1: Performance, Gameplay & Maps",
+      "content_sha256": "e3bed013b18d7f64de398796d230a089617bd06ae09fe1efe5919b983de6ac63",
+      "candidate_issue_ids": [
+        "HLLV-006",
+        "HLLV-011",
+        "HLLV-040",
+        "HLLV-046"
+      ],
+      "review_state": "automatically_collected",
+      "first_seen_at": "2026-10-12T16:32:27Z",
+      "last_changed_at": "2026-10-12T16:32:27Z"
+    },
+    {
+      "id": "1838407329266192",
+      "title": "July Crossplay Playtest | Hell Let Loose: Vietnam",
+      "url": "https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/1838407329266192",
+      "published_at": "2026-07-20T17:31:02Z",
+      "category": "Developer / community announcement",
+      "excerpt": "Crossplay Playtest This Weekend We are excited to announce that our next Hell Let Loose: Vietnam",
+      "content_sha256": "d79549923be497c2822cd019764f7bd1c7aea539c01ca6bc25f4d13ec691b566",
+      "candidate_issue_ids": [],
+      "review_state": "automatically_collected",
+      "first_seen_at": "2026-10-12T16:32:27Z",
+      "last_changed_at": "2026-10-12T16:32:27Z"
+    },
+    {
+      "id": "1836506165565873",
+      "title": "Performance Blog | Command Post #2 | Hell Let Loose: Vietnam",
+      "url": "https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/1836506165565873",
+      "published_at": "2026-07-01T16:09:31Z",
+      "category": "Developer / community announcement",
+      "excerpt": "The Command Post: Performance Update Blog Welcome to our latest Command Post, where",
+      "content_sha256": "8dca778436f047124f31e07b46e1bb1fe0c0dc338a1f009bce7afb2a605f6d8f",
+      "candidate_issue_ids": [
+        "HLLV-006"
+      ],
+      "review_state": "automatically_collected",
+      "first_seen_at": "2026-10-12T16:32:27Z",
+      "last_changed_at": "2026-10-12T16:32:27Z"
+    },
+    {
+      "id": "1835236783560893",
+      "title": "June Community Update | Hell Let Loose: Vietnam",
+      "url": "https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/1835236783560893",
+      "published_at": "2026-06-11T15:58:13Z",
+      "category": "Developer / community announcement",
+      "excerpt": "Firstly, we'd like to kick things off by saying how much we appreciate all of the",
+      "content_sha256": "a36a888ac8c6b9755c7ee4a1d1eee9cc4afbf0d6abbb201f5c5a5ccc142872b5",
+      "candidate_issue_ids": [],
+      "review_state": "automatically_collected",
+      "first_seen_at": "2026-10-12T16:32:27Z",
+      "last_changed_at": "2026-10-12T16:32:27Z"
+    },
+    {
+      "id": "1833968530901045",
+      "title": "Hell Let Loose: Vietnam | Release Date Update",
+      "url": "https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/1833968530901045",
+      "published_at": "2026-06-02T16:43:20Z",
+      "category": "Developer / community announcement",
+      "excerpt": "\"We would like to start by saying thank you to the more than 350k players who",
+      "content_sha256": "4a8ce3bd41fefda2fce5ec8dc798037cb3a27a087adfb1b2a47e756e79e13c6a",
+      "candidate_issue_ids": [],
+      "review_state": "automatically_collected",
+      "first_seen_at": "2026-10-12T16:32:27Z",
+      "last_changed_at": "2026-10-12T16:32:27Z"
+    },
+    {
+      "id": "1833968530890635",
+      "title": "Hell Let Loose: Vietnam | Open Beta Info | This Weekend",
+      "url": "https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/1833968530890635",
+      "published_at": "2026-05-29T10:40:30Z",
+      "category": "Developer / community announcement",
+      "excerpt": "Good morning all. The Open Beta is LIVE NOW ! Thank you all",
+      "content_sha256": "746f0f780d14b7fb6c34a4628ec8ba7af63bda5faef6a5ed02d848aa077945e3",
+      "candidate_issue_ids": [],
+      "review_state": "automatically_collected",
+      "first_seen_at": "2026-10-12T16:32:27Z",
+      "last_changed_at": "2026-10-12T16:32:27Z"
+    },
+    {
+      "id": "1833968530888087",
+      "title": "Hell Let Loose: Vietnam | Gameplay Roles Showcase",
+      "url": "https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/1833968530888087",
+      "published_at": "2026-05-28T13:01:48Z",
+      "category": "Developer / community announcement",
+      "excerpt": "Watch the War Correspondents Showcase Hell Let Loose: Vietnam Gameplay Roles The Hell Let Loose: Vietnam",
+      "content_sha256": "a7d42d393e9584cc1c9445a7dd8c7159c83f238cb9458501b6fd2217ddfdee3f",
+      "candidate_issue_ids": [],
+      "review_state": "automatically_collected",
+      "first_seen_at": "2026-10-12T16:32:27Z",
+      "last_changed_at": "2026-10-12T16:32:27Z"
+    },
+    {
+      "id": "1832700592789619",
+      "title": "Hell Let Loose: Vietnam | Release Date Announcement",
+      "url": "https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/1832700592789619",
+      "published_at": "2026-05-14T16:00:04Z",
+      "category": "Developer / community announcement",
+      "excerpt": "Team17 and Expression Games are excited to officially confirm that Hell Let Loose: Vietnam will launch",
+      "content_sha256": "9e267eef93a0831dbfee3cfd3729feadb10597a2e73ff7688190a00826e3271b",
+      "candidate_issue_ids": [],
+      "review_state": "automatically_collected",
+      "first_seen_at": "2026-10-12T16:32:27Z",
+      "last_changed_at": "2026-10-12T16:32:27Z"
+    }
+  ],
+  "last_success_at": "2026-10-12T16:32:27Z",
+  "link_checks": {
+    "https://steamcommunity.com/app/3079210/discussions/1/562542339336314254/": {
+      "checked_at": "2026-10-12T16:32:27Z",
+      "scope": "accessibility_only",
+      "http_status": 200,
+      "final_url": "https://steamcommunity.com/app/3079210/discussions/1/562542339336314254/",
+      "title": "VOIP Volume Sliders :: Hell Let Loose: Vietnam Report a Problem"
+    },
+    "https://steamcommunity.com/app/3079210/discussions/1/583932755647170244/": {
+      "checked_at": "2026-10-12T16:32:27Z",
+      "scope": "accessibility_only",
+      "http_status": 200,
+      "final_url": "https://steamcommunity.com/app/3079210/discussions/1/583932755647170244/",
+      "title": "\"Ghost boats\" appearing that cant be spawned into or killed :: Hell Let Loose: Vietnam Report a Problem"
+    },
+    "https://steamcommunity.com/app/3079210/discussions/1/583932755647178248/": {
+      "checked_at": "2026-10-12T16:32:27Z",
+      "scope": "accessibility_only",
+      "http_status": 200,
+      "final_url": "https://steamcommunity.com/app/3079210/discussions/1/583932755647178248/",
+      "title": "tutorial bugs :: Hell Let Loose: Vietnam Report a Problem"
+    },
+    "https://steamcommunity.com/app/3079210/discussions/1/583932755647220221/": {
+      "checked_at": "2026-10-12T16:32:27Z",
+      "scope": "accessibility_only",
+      "http_status": 200,
+      "final_url": "https://steamcommunity.com/app/3079210/discussions/1/583932755647220221/",
+      "title": "Issue with Keyboard inputs on Helicopters :: Hell Let Loose: Vietnam Report a Problem"
+    },
+    "https://steamcommunity.com/app/3079210/discussions/1/583932755647245596/": {
+      "checked_at": "2026-10-12T16:32:27Z",
+      "scope": "accessibility_only",
+      "http_status": 200,
+      "final_url": "https://steamcommunity.com/app/3079210/discussions/1/583932755647245596/",
+      "title": "Reload of Boat Guns Bugged :: Hell Let Loose: Vietnam Report a Problem"
+    },
+    "https://steamcommunity.com/app/3079210/discussions/1/583932755647329810/": {
+      "checked_at": "2026-10-12T16:32:27Z",
+      "scope": "accessibility_only",
+      "http_status": 200,
+      "final_url": "https://steamcommunity.com/app/3079210/discussions/1/583932755647329810/",
+      "title": "Fix the Audio PLEASEEEEEEEE :: Hell Let Loose: Vietnam Report a Problem"
+    },
+    "https://steamcommunity.com/app/3079210/discussions/1/590687230526328326/": {
+      "checked_at": "2026-10-12T16:32:27Z",
+      "scope": "accessibility_only",
+      "http_status": 200,
+      "final_url": "https://steamcommunity.com/app/3079210/discussions/1/590687230526328326/",
+      "title": "Key binding failure for pilot control :: Hell Let Loose: Vietnam Report a Problem"
+    },
+    "https://steamcommunity.com/app/3079210/discussions/1/590687230526492958/": {
+      "checked_at": "2026-10-12T16:32:27Z",
+      "scope": "accessibility_only",
+      "http_status": 200,
+      "final_url": "https://steamcommunity.com/app/3079210/discussions/1/590687230526492958/",
+      "title": "Voice chat not working after update :: Hell Let Loose: Vietnam Report a Problem"
+    },
+    "https://steamcommunity.com/app/3079210/discussions/1/590691034935221629/": {
+      "checked_at": "2026-10-12T16:32:27Z",
+      "scope": "accessibility_only",
+      "http_status": 200,
+      "final_url": "https://steamcommunity.com/app/3079210/discussions/1/590691034935221629/",
+      "title": "suppression causes game to freeze :: Hell Let Loose: Vietnam Report a Problem"
+    },
+    "https://steamcommunity.com/app/3079210/discussions/1/590691034935260366/": {
+      "checked_at": "2026-10-12T16:32:27Z",
+      "scope": "accessibility_only",
+      "http_status": 200,
+      "final_url": "https://steamcommunity.com/app/3079210/discussions/1/590691034935260366/",
+      "title": "Impossible to save tutorial progress :: Hell Let Loose: Vietnam Report a Problem"
+    },
+    "https://steamcommunity.com/app/3079210/discussions/1/590691034935303773/": {
+      "checked_at": "2026-10-12T16:32:27Z",
+      "scope": "accessibility_only",
+      "http_status": 200,
+      "final_url": "https://steamcommunity.com/app/3079210/discussions/1/590691034935303773/",
+      "title": "Tunnel icons not appearing resulting in unable to use tunnels :: Hell Let Loose: Vietnam Report a Problem"
+    },
+    "https://steamcommunity.com/app/3079210/discussions/1/590691034935311372/": {
+      "checked_at": "2026-10-12T16:32:27Z",
+      "scope": "accessibility_only",
+      "http_status": 200,
+      "final_url": "https://steamcommunity.com/app/3079210/discussions/1/590691034935311372/",
+      "title": "STILL spawning in locked areas :: Hell Let Loose: Vietnam Report a Problem"
+    },
+    "https://steamcommunity.com/app/3079210/discussions/1/590691034935315590/": {
+      "checked_at": "2026-10-12T16:32:27Z",
+      "scope": "accessibility_only",
+      "http_status": 200,
+      "final_url": "https://steamcommunity.com/app/3079210/discussions/1/590691034935315590/",
+      "title": "boat engine interaction stuttering :: Hell Let Loose: Vietnam Report a Problem"
+    },
+    "https://steamcommunity.com/app/3079210/discussions/1/631219091886191710/": {
+      "checked_at": "2026-10-12T16:32:27Z",
+      "scope": "accessibility_only",
+      "http_status": 200,
+      "final_url": "https://steamcommunity.com/app/3079210/discussions/1/631219091886191710/",
+      "title": "White flash/Flicker :: Hell Let Loose: Vietnam Report a Problem"
+    },
+    "https://steamcommunity.com/app/3079210/discussions/1/631219091886213685/": {
+      "checked_at": "2026-10-12T16:32:27Z",
+      "scope": "accessibility_only",
+      "http_status": 200,
+      "final_url": "https://steamcommunity.com/app/3079210/discussions/1/631219091886213685/",
+      "title": "Cannot shoot between fence boards or between chair or table legs :: Hell Let Loose: Vietnam Report a Problem"
+    },
+    "https://steamcommunity.com/app/3079210/discussions/1/631219394426598831/": {
+      "checked_at": "2026-10-12T16:32:27Z",
+      "scope": "accessibility_only",
+      "http_status": 200,
+      "final_url": "https://steamcommunity.com/app/3079210/discussions/1/631219394426598831/",
+      "title": "Server side crashes :: Hell Let Loose: Vietnam Report a Problem"
+    },
+    "https://steamcommunity.com/app/3079210/discussions/1/663863457493431808/": {
+      "checked_at": "2026-10-12T16:32:27Z",
+      "scope": "accessibility_only",
+      "http_status": 200,
+      "final_url": "https://steamcommunity.com/app/3079210/discussions/1/663863457493431808/",
+      "title": "game freezes when getting shot :: Hell Let Loose: Vietnam Report a Problem"
+    },
+    "https://steamcommunity.com/games/3079210/announcements/detail/684139458559214482": {
+      "checked_at": "2026-10-12T16:32:27Z",
+      "scope": "accessibility_only",
+      "http_status": 200,
+      "final_url": "https://steamcommunity.com/games/3079210/announcements/detail/684139458559214482",
+      "title": "Steam :: Hell Let Loose: Vietnam :: Hotfix 1.5.1 | Live Now"
+    },
+    "https://steamcommunity.com/gid/103582791475269461/announcements/detail/676259427855107286": {
+      "checked_at": "2026-10-12T16:32:27Z",
+      "scope": "accessibility_only",
+      "http_status": 200,
+      "final_url": "https://steamcommunity.com/games/3079210/announcements/detail/676259427855107286",
+      "title": "Steam :: Hell Let Loose: Vietnam :: Update 1.5 & Patch 1.6 | Dev Update VLOG | Command Post"
+    },
+    "https://www.hellletloose.com/blog/5-before-launch": {
+      "checked_at": "2026-10-12T16:32:27Z",
+      "scope": "accessibility_only",
+      "http_status": 200,
+      "final_url": "https://www.hellletloose.com/blog/5-before-launch",
+      "title": "Blog - Known Issues, Launch Time & More | Hell Let Loose: Vietnam | Hell Let Loose"
+    },
+    "https://www.hellletloose.com/blog/community-update-1": {
+      "checked_at": "2026-10-12T16:32:27Z",
+      "scope": "accessibility_only",
+      "http_status": 200,
+      "final_url": "https://www.hellletloose.com/blog/community-update-1",
+      "title": "Blog - Community Update #1 | Command Post | Hell Let Loose: Vietnam | Hell Let Loose"
+    },
+    "https://www.hellletloose.com/blog/community-update-2": {
+      "checked_at": "2026-10-12T16:32:27Z",
+      "scope": "accessibility_only",
+      "http_status": 200,
+      "final_url": "https://www.hellletloose.com/blog/community-update-2",
+      "title": "Blog - Community Update #2 | Command Post | Hell Let Loose: Vietnam | Hell Let Loose"
+    },
+    "https://www.hellletloose.com/blog/community-update-3": {
+      "checked_at": "2026-10-12T16:32:27Z",
+      "scope": "accessibility_only",
+      "http_status": 200,
+      "final_url": "https://www.hellletloose.com/blog/community-update-3",
+      "title": "Blog - Community Feedback #3 | Command Post | Hell Let Loose: Vietnam | Hell Let Loose"
+    },
+    "https://www.hellletloose.com/blog/community-update-4": {
+      "checked_at": "2026-10-12T16:32:27Z",
+      "scope": "accessibility_only",
+      "http_status": 200,
+      "final_url": "https://www.hellletloose.com/blog/community-update-4",
+      "title": "Blog - Community Feedback #4 | Command Post | Hell Let Loose: Vietnam | Hell Let Loose"
+    },
+    "https://www.hellletloose.com/blog/community-update-5": {
+      "checked_at": "2026-10-12T16:32:27Z",
+      "scope": "accessibility_only",
+      "http_status": 200,
+      "final_url": "https://www.hellletloose.com/blog/community-update-5",
+      "title": "Blog - Community Feedback #5 | Command Post | Hell Let Loose"
+    },
+    "https://www.hellletloose.com/blog/community-update-6": {
+      "checked_at": "2026-10-12T16:32:27Z",
+      "scope": "accessibility_only",
+      "http_status": 200,
+      "final_url": "https://www.hellletloose.com/blog/community-update-6",
+      "title": "Blog - Community Feedback #6 | Command Post | Hell Let Loose"
+    },
+    "https://www.hellletloose.com/blog/community-update-7": {
+      "checked_at": "2026-10-12T16:32:27Z",
+      "scope": "accessibility_only",
+      "http_status": 200,
+      "final_url": "https://www.hellletloose.com/blog/community-update-7",
+      "title": "Blog - Community Feedback #7 | Command Post | Hell Let Loose"
+    },
+    "https://www.hellletloose.com/blog/hllv-hotfix-1-4-2": {
+      "checked_at": "2026-10-12T16:32:27Z",
+      "scope": "accessibility_only",
+      "http_status": 200,
+      "final_url": "https://www.hellletloose.com/blog/hllv-hotfix-1-4-2",
+      "title": "Blog - Hotfix 1.4.2 | Live Now | Hell Let Loose: Vietnam | Hell Let Loose"
+    },
+    "https://www.hellletloose.com/blog/hllv-hotfix-1-5-2": {
+      "checked_at": "2026-10-12T16:32:27Z",
+      "scope": "accessibility_only",
+      "http_status": 200,
+      "final_url": "https://www.hellletloose.com/blog/hllv-hotfix-1-5-2",
+      "title": "Blog - Hotfix 1.5.2 | Hell Let Loose: Vietnam | Hell Let Loose"
+    },
+    "https://www.hellletloose.com/blog/hllv-patch-1-2": {
+      "checked_at": "2026-10-12T16:32:27Z",
+      "scope": "accessibility_only",
+      "http_status": 200,
+      "final_url": "https://www.hellletloose.com/blog/hllv-patch-1-2",
+      "title": "Blog - Patch 1.2 | Full Changelog | Hell Let Loose: Vietnam | Hell Let Loose"
+    },
+    "https://www.hellletloose.com/blog/hllv-patch-1-3": {
+      "checked_at": "2026-10-12T16:32:27Z",
+      "scope": "accessibility_only",
+      "http_status": 200,
+      "final_url": "https://www.hellletloose.com/blog/hllv-patch-1-3",
+      "title": "Blog - Patch 1.3 | Full Changelog | Hell Let Loose: Vietnam | Hell Let Loose"
+    },
+    "https://www.hellletloose.com/blog/hllv-patch-1-4": {
+      "checked_at": "2026-10-12T16:32:27Z",
+      "scope": "accessibility_only",
+      "http_status": 200,
+      "final_url": "https://www.hellletloose.com/blog/hllv-patch-1-4",
+      "title": "Blog - Patch 1.4 | Full Changelog | Hell Let Loose: Vietnam | Hell Let Loose"
+    },
+    "https://www.hellletloose.com/blog/hllv-patch-1-6": {
+      "checked_at": "2026-10-12T16:32:27Z",
+      "scope": "accessibility_only",
+      "http_status": 200,
+      "final_url": "https://www.hellletloose.com/blog/hllv-patch-1-6",
+      "title": "Blog - Patch 1.6 | Hell Let Loose: Vietnam | Hell Let Loose"
+    },
+    "https://www.hellletloose.com/blog/hllv-update-1-5": {
+      "checked_at": "2026-10-12T16:32:27Z",
+      "scope": "accessibility_only",
+      "http_status": 200,
+      "final_url": "https://www.hellletloose.com/blog/hllv-update-1-5",
+      "title": "Blog - Update 1.5 | Full Changelog | Hell Let Loose: Vietnam | Hell Let Loose"
+    },
+    "https://www.reddit.com/r/HellLetLooseVietnam/comments/1vxeovn/developer_ama_1_hell_let_loose_vietnam_reddit/": {
+      "checked_at": "2026-10-12T16:32:27Z",
+      "scope": "accessibility_only",
+      "http_status": 403,
+      "error": "HTTP 403"
+    }
+  },
+  "last_attempt_at": "2026-10-12T16:32:27Z",
+  "schedule": "Nightly around 03:23 America/New_York",
+  "source": "Steam official publisher announcements for app 3079210",
+  "state": "ok",
+  "warnings": [
+    "Some link checks failed. This does not establish deletion or invalidate older evidence."
+  ],
+  "unreachable_links": 1
+}

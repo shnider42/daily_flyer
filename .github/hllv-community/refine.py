@@ -8,6 +8,8 @@ def replace_once(source,old,new):
 
 def main():
     p=Path('.github/hllv-community/app.js');s=p.read_text()
+    if 'HLLVSubmissionTypes.bind' in s:
+        print('Submission types v2 includes these refinements.');return
     s=replace_once(s," const date=v=>", " function sameWording(row,payload){return !!row&&!!payload&&['title','problem','desired_outcome','kind','related_issue'].every(k=>String(row[k]||'').trim()===String(payload[k]||'').trim());}\n const date=v=>")
     s=replace_once(s,"el('cbCancel').onclick=()=>{if(safeLeave())", "el('cbCancel').onclick=()=>{if(busy)return;if(safeLeave())")
     s=replace_once(s,"formRequest=s?.request_id||crypto.randomUUID();selected=s;uncertain=false;dirty=false;", "formRequest=s?.request_id||crypto.randomUUID();selected=s;uncertain=false;dirty=false;let attempted=null;\n  const lockForm=value=>el('cbSubmitForm')?.querySelectorAll('input,textarea,select').forEach(field=>field.disabled=value);")

@@ -50,6 +50,7 @@ with sync_playwright() as pw:
       sid=str(uuid.uuid4());time=stamp();s={**{k:arg[k] for k in ['title','problem','desired_outcome','kind','related_issue']},'id':sid,'owner':uid,'request_id':arg['request_id'],'state':'pending','version':1,'created_at':time,'updated_at':time,'approved_at':None,'approval_mode':'community','approval_label':None,'developer_review':'Not recorded','submitter_note':'','history':[{'action':'community_submitted_private','version':1,'at':time}],'supporters':set()};store[sid]=s;data=project(s,uid,True)
      if flags['lose_save']:flags['lose_save']=False;route.abort();return
     elif act in ['edit','withdraw','moderate','vote']:
+     if act=='edit' and flags.get('fail_edit'):flags['fail_edit']=False;route.abort();return
      s=store[arg['id']]
      if act=='vote':
       assert s['state']=='published';s['supporters'].add(uid) if arg['support'] else s['supporters'].discard(uid)
@@ -62,6 +63,7 @@ with sync_playwright() as pw:
       assert role=='moderator';s['state']=arg['decision'];s['submitter_note']=arg.get('note','')
       if s['state']=='published':s.update(approved_at=stamp(),approval_label='Moderator approved')
      s['updated_at']=stamp();data=project(s,uid,act!='vote')
+     if act=='edit' and flags.get('lose_edit'):flags['lose_edit']=False;route.abort();return
     else:raise AssertionError('Unexpected action '+act)
    else:raise AssertionError('Unexpected API operation '+op)
    route.fulfill(json={'data':data,'error':error})
@@ -83,6 +85,10 @@ with sync_playwright() as pw:
  pub.reload(wait_until='networkidle');expect(pub.locator('[data-board-id]')).to_have_count(1);assert 'PRIVATE-REPLY-NOT-FOR-THE-BOARD' not in pub.inner_text('body');pub.locator('[data-vote]').click();expect(pub.locator('#sgPasswordLogin')).to_be_visible()
  page.locator('[data-cb-view="board"]').click();page.locator('[data-vote]').click();expect(page.locator('[data-vote]')).to_have_attribute('aria-pressed','true');expect(page.locator('[data-vote] strong')).to_have_text('1');page.locator('[data-vote]').click();expect(page.locator('[data-vote] strong')).to_have_text('0')
  page.locator('[data-cb-view="mine"]').click();page.locator('.cb-entry').click();page.locator('#cbEdit').click();page.fill('#cbTitle','Revised <img src=x onerror=alert(1)> controls');page.locator('#cbConsent').check();send(page);expect(page.locator('.cb-receipt img')).to_have_count(0);pub.reload(wait_until='networkidle');expect(pub.locator('[data-board-id]')).to_have_count(0)
+ # Failed revision check must preserve the draft and explicitly identify the older saved version.
+ page.locator('#cbReceiptMine').click();page.locator('.cb-entry').first.click();page.locator('#cbEdit').click();page.fill('#cbOutcome','This revision did not reach the server on its first attempt.');page.locator('#cbConsent').check();flags['fail_edit']=True;page.locator('#cbSend').click();expect(page.locator('#cbCheckSave')).to_be_visible();page.locator('#cbCheckSave').click();expect(page.locator('#cbFormFeedback')).to_contain_text('this revision is not confirmed');assert page.locator('#cbOutcome').input_value()=='This revision did not reach the server on its first attempt.';expect(page.locator('#cbSend')).to_be_enabled();send(page)
+ # A genuinely saved revision with a dropped response is recovered only by matching its wording/version.
+ page.locator('#cbReceiptMine').click();page.locator('.cb-entry').first.click();page.locator('#cbEdit').click();page.fill('#cbOutcome','This revision was saved but its confirmation response was lost.');page.locator('#cbConsent').check();flags['lose_edit']=True;page.locator('#cbSend').click();expect(page.locator('#cbCheckSave')).to_be_visible();page.locator('#cbCheckSave').click();expect(page.locator('.cb-receipt')).to_contain_text('Your suggestion is saved')
  page.locator('#cbReceiptBoard').click();flags['lose_save']=True;form(page,'Lost response should still be recoverable');page.locator('#cbSend').click();expect(page.locator('#cbCheckSave')).to_be_visible();assert page.locator('#cbTitle').input_value()=='Lost response should still be recoverable';count=len(store);page.locator('#cbCheckSave').click();expect(page.locator('.cb-receipt')).to_contain_text('Your suggestion is saved');assert len(store)==count
  page.locator('#cbReceiptBoard').click();flags['fail_save']=True;form(page,'Failure must preserve this unsaved text');page.locator('#cbSend').click();expect(page.locator('#cbCheckSave')).to_be_visible();page.locator('#cbCheckSave').click();expect(page.locator('#cbSend')).to_be_enabled();assert page.locator('#cbTitle').input_value()=='Failure must preserve this unsaved text';page.once('dialog',lambda d:d.accept());page.locator('#cbCancel').click()
  # Reapprove after revision; the public presentation is visibly site-moderated, not developer-reviewed.
