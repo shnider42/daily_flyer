@@ -58,13 +58,13 @@ jobs:
       - name: Confirm hosted quota migration
         if: steps.release.outputs.publish == 'true'
         run: python3 .github/hllv-moderator-quota/verify_public.py
-      - name: Generate replay migration without hosted credentials
+      - name: Record migration using the verified hosted version
         if: steps.release.outputs.publish == 'true'
         run: |
           npx --yes supabase@2.120.0 migration new --help
           python3 - <<'PY'
           from pathlib import Path
-          import subprocess
+          import subprocess,json,re
           root=Path('suggestion_box');files=list(root.glob('supabase/migrations/*_hllv_moderator_submission_quota.sql'))
           if not files:
               subprocess.run(['npx','--yes','supabase@2.120.0','migration','new','hllv_moderator_submission_quota'],cwd=root,check=True)
@@ -73,6 +73,13 @@ jobs:
           source=Path('.github/hllv-moderator-quota/schema.sql').read_bytes()
           if files[0].stat().st_size:assert files[0].read_bytes()==source
           else:files[0].write_bytes(source)
+          version=json.loads(Path('.github/hllv-moderator-quota/release.json').read_text())['migration_version']
+          assert re.fullmatch(r'[0-9]{14}',version)
+          destination=root/'supabase/migrations'/(version+'_hllv_moderator_submission_quota.sql')
+          if files[0]!=destination:
+              assert not destination.exists()
+              files[0].rename(destination)
+          print('Migration filename aligned with the previously verified hosted history:',destination.name)
           PY
       - name: Publish tested quota copy
         if: steps.release.outputs.publish == 'true'
