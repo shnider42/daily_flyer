@@ -1,5 +1,5 @@
 {
-  "page_updated_at": "2026-10-12T20:41:32Z",
+  "page_updated_at": "2026-10-12T20:50:11Z",
   "self_service_registration_ui": true,
   "requires_email_verification": true,
   "visible_participant_name": "Member",
@@ -9,5 +9,6 @@
   "session_module_unchanged": true,
   "reviewed_evidence_and_nightly_unchanged": true,
   "auth_settings_changed": false,
-  "external_email_delivery_verified": false
+  "external_email_delivery_verified": false,
+  "registration_input_contrast_checked": true
 }
