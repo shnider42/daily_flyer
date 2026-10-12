@@ -123,7 +123,7 @@ BEGIN
  IF req IS NULL OR length(body_text) NOT BETWEEN 1 AND 2000 THEN RAISE EXCEPTION 'Write a reply of 1 to 2000 characters.' USING ERRCODE='22023'; END IF;
  SELECT * INTO msg FROM hllv_private.submission_messages WHERE author_id=u AND request_id=req;
  IF FOUND THEN
-  IF msg.suggestion_id<>sid OR msg.body<>body_text OR msg.visibility<>CASE WHEN action='public_comment' THEN 'public' ELSE 'private' END THEN RAISE EXCEPTION 'This request belongs to a different reply.' USING ERRCODE='22023'; END IF;
+  IF msg.suggestion_id<>sid OR msg.body<>body_text OR msg.visibility<>(CASE WHEN action='public_comment' THEN 'public' ELSE 'private' END) THEN RAISE EXCEPTION 'This request belongs to a different reply.' USING ERRCODE='22023'; END IF;
   RETURN jsonb_build_object('message_id',msg.id,'saved_at',msg.created_at,'visibility',msg.visibility,'submission',hllv_private.community_record(sid,true));
  END IF;
  IF s.state='withdrawn' THEN RAISE EXCEPTION 'This submission was withdrawn. Its conversation is read-only.' USING ERRCODE='42501'; END IF;
