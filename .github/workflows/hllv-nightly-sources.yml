@@ -1,0 +1,123 @@
+name: HLLV nightly source collection
+
+# GitHub schedules must live on the default branch. The application stays on
+# feature/hllv-bug-evidence-tracker; this file does not merge or deploy master.
+on:
+  schedule:
+    - cron: '23 3 * * *'
+      timezone: America/New_York
+  workflow_dispatch:
+  push:
+    branches: [master]
+    paths: [.github/workflows/hllv-nightly-sources.yml]
+
+permissions:
+  contents: write
+
+concurrency:
+  group: hllv-reviewed-data-update
+  cancel-in-progress: false
+
+jobs:
+  collect-publish-verify:
+    if: github.repository == 'shnider42/daily_flyer'
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          ref: feature/hllv-bug-evidence-tracker
+          fetch-depth: 1
+
+      - name: Confirm this checkout matches the deployed tracker before changing data
+        run: |
+          python3 - <<'PY'
+          import json, urllib.request
+          from pathlib import Path
+          from urllib.parse import urlsplit
+          root=Path('hllv_tracker')
+          markup=(root/'index.html').read_text()
+          assert 'id="officialSourceUpdates"' in markup, 'Publish the source display first'
+          manifest=json.loads((root/'deployment-manifest.json').read_text())
+          paths=['','index.html','deployment-manifest.json']+manifest['files']
+          for path in dict.fromkeys(paths):
+              assert not urlsplit(path).scheme and not path.startswith('/') and '..' not in Path(path.split('?')[0]).parts
+              with urllib.request.urlopen('https://hllv-bug-track.onrender.com/'+path,timeout=20) as response:
+                  actual=response.read(8000001)
+              assert len(actual)<=8000000
+              expected=(root/(path.split('?')[0] or 'index.html')).read_bytes()
+              assert actual==expected, 'Live tracker differs at '+(path or '/')+'; finish the intended deployment before collection'
+          print('DEPLOYED_TRACKER_BOUNDARY_MATCH')
+          PY
+
+      - name: Test and collect public publisher announcements and source-link health
+        run: |
+          python3 -m py_compile .github/hllv-ux-20261012/nightly.py
+          python3 .github/hllv-ux-20261012/test_feed.py
+          python3 .github/hllv-ux-20261012/nightly.py
+          python3 - <<'PY'
+          import json, subprocess
+          from pathlib import Path
+          feed=json.loads(Path('hllv_tracker/official-feed.json').read_text())
+          assert feed['schema_version']==1 and isinstance(feed['items'],list)
+          assert feed['state'] in ('ok','feed_unavailable')
+          assert len(feed['items'])<=60
+          changed=subprocess.check_output(['git','diff','--name-only'],text=True).splitlines()
+          assert set(changed)<= {'hllv_tracker/official-feed.json'}, changed
+          print('REVIEWED_EVIDENCE_AND_APPLICATION_UNCHANGED')
+          PY
+
+      - name: Publish only the source collection file to the tracker branch
+        run: |
+          set -euo pipefail
+          git diff --check
+          git add -- hllv_tracker/official-feed.json
+          if ! git diff --cached --quiet; then
+            test "$(git diff --cached --name-only)" = 'hllv_tracker/official-feed.json'
+            git config user.name 'github-actions[bot]'
+            git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+            git commit -m 'Refresh automatically collected HLLV official announcements and link checks'
+            # Never force-push or overwrite a concurrent change.
+            git push origin HEAD:refs/heads/feature/hllv-bug-evidence-tracker
+          fi
+          echo "SOURCE_COMMIT=$(git rev-parse HEAD)"
+
+      - name: Verify the ordinary public feed URL serves the committed collection
+        run: |
+          python3 -u - <<'PY'
+          import json,time,urllib.request
+          from pathlib import Path
+          expected=Path('hllv_tracker/official-feed.json').read_bytes()
+          last='Not checked'
+          for attempt in range(48):
+              try:
+                  with urllib.request.urlopen('https://hllv-bug-track.onrender.com/official-feed.json',timeout=20) as response:
+                      actual=response.read(8000001)
+                  assert actual==expected,'Waiting for the source collection to deploy'
+                  print('NIGHTLY_PRODUCTION_EXACT_MATCH')
+                  break
+              except Exception as error:
+                  last=str(error)
+                  if attempt%6==0:print(last)
+              time.sleep(5)
+          else:raise RuntimeError(last)
+          feed=json.loads(expected)
+          print(json.dumps({'state':feed['state'],'last_success_at':feed['last_success_at'],'announcements':len(feed['items']),'failed_link_checks':feed.get('unreachable_links',0),'reviewed_bug_statuses_changed':False}))
+          PY
+
+      - name: Record scope and surface a failed upstream collection
+        if: always()
+        run: |
+          python3 - <<'PY'
+          import json,os
+          from pathlib import Path
+          path=Path('hllv_tracker/official-feed.json')
+          if not path.exists():raise SystemExit('No collection file exists; inspect the earlier failed step')
+          feed=json.loads(path.read_text())
+          with open(os.environ['GITHUB_STEP_SUMMARY'],'a') as summary:
+              summary.write('## HLLV nightly source collection\n\n')
+              summary.write('Scheduled nightly around 03:23 America/New_York. GitHub schedules are best-effort. Manual Run workflow is also available.\n\n')
+              summary.write('Collection state: '+str(feed.get('state'))+'; last successful source collection: '+str(feed.get('last_success_at'))+'.\n\n')
+              summary.write('Only official-feed.json can be published by this job. Official announcements and source accessibility are updated; reviewed bug statuses, curated patch summaries, accounts, moderation, votes and user submissions are not changed. A failed upstream feed retains the previous good collection and displays a warning.\n')
+          if feed.get('state')!='ok':raise SystemExit('The upstream official feed was unavailable; previous successful posts were retained. Review this failed run before claiming fresh coverage.')
+          PY
