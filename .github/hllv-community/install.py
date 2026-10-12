@@ -5,6 +5,7 @@ from datetime import datetime,timezone
 ROOT=Path('hllv_tracker');SRC=Path(__file__).parent
 
 def main():
+    subprocess.run(['python3',str(SRC/'refine.py')],check=True)
     page=ROOT/'index.html';old=page.read_text();data_path=ROOT/'data/issues.json';before=json.loads(data_path.read_text())
     protected={p:(ROOT/p).read_bytes() for p in ['evidence.js','suggestions-config.json']}
     auth_tags={tag:re.search(r'<script id="'+tag+r'"[^>]*src="([^"]+)"',old).group(1) for tag in ['hllv-session-module','hllv-password-module']}
