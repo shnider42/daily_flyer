@@ -234,7 +234,7 @@
   <script id="hllv-password-module" src="./assets/password-fe489258acbb5bdf.js"></script>
   <script id="hllv-inbox-module" src="./assets/inbox-2b62db76ea0c9f3c.js"></script>
   <script id="hllv-form-types" src="./assets/form-types-777e6ec4da34227c.js"></script>
-  <script id="suggestions-module" src="./assets/community-6ed40f5807662376.js"></script>
+  <script id="suggestions-module" src="./assets/community-21cf12c0fed1ccbb.js"></script>
   <script>
     document.addEventListener('hllv-date-order',e=>{
       if(e.detail==='browse'&&dataset)renderHome();
@@ -244,7 +244,7 @@
     document.addEventListener('hllv-date-order',e=>{if(e.detail==='practice-history'){const items=[...document.querySelectorAll('#privatePractice [data-event-date]')];HLLVDates.sorted(items.map(node=>({node,date:node.dataset.eventDate})),'date',HLLVDates.direction('practice-history')).forEach(x=>x.node.parentNode.appendChild(x.node));}});
     document.getElementById('patchDateOrder').innerHTML=HLLVDates.control('patches','Release date order');
     const AUTH_RETURN_TO_SUGGESTIONS = Boolean(window.HLLVSuggestions?.isAuthCallback(location.hash));
-    const TRACKER_DATA_URL = "./data/issues.1f1e78073e6adcbe.json";
+    const TRACKER_DATA_URL = "./data/issues.f5024cd268ff1046.json";
     let dataset,selectedId,searchTerm='',category='all',homeSearchTerm='',homeCategory='all',homeStatus='open',activeTab='summary';
     const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
     const human=s=>String(s??'').replaceAll('-',' ').replace(/\b\w/g,c=>c.toUpperCase());
