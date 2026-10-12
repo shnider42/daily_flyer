@@ -1,8 +1,9 @@
-/* Account forms use the existing, verified Supabase user. No registration/admin API. */
+/* Account forms use Supabase Auth. Member signup is separate; no administrator API. */
 (function(root,factory){const api=factory();if(typeof module==='object'&&module.exports)module.exports=api;else root.HLLVPassword=api;})(typeof globalThis!=='undefined'?globalThis:this,function(){
  'use strict';
  const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
  let recovery=false,active=null,nextMail=0;
+ const roleName=r=>r==='participant'?'Member':r;
  const knownRole=r=>['participant','moderator','reviewer'].includes(r);
  function errorText(error,operation){
   const code=error?.code;
@@ -15,6 +16,7 @@
    if(code==='invalid_credentials')return 'The current password was not accepted.';
    return 'The password update could not be confirmed. Your account and moderator permissions have not been replaced. Try signing in with the new password before requesting a reset.';
   }
+  if(operation==='password-login'&&code==='email_not_confirmed')return 'Verify your email before signing in. Use Create account → Need a verification email? to request a fresh confirmation.';
   if(operation==='password-login')return 'Sign-in was not confirmed. Check your email and password, or use the email-link option if you have not set a site password yet.';
   if(operation==='verify')return 'The code was not accepted. Use the newest unused code for the email address shown.';
   return 'The email request could not be confirmed. Check the inbox before requesting another message.';
@@ -25,18 +27,22 @@
   if(checking){host.innerHTML='<span role="status">Checking sign-in…</span>';return;}
   if(!available){host.innerHTML='<span>Sign-in unavailable. The patch archive and bug tracker remain readable.</span>';return;}
   const signed=profile&&knownRole(profile.role);
-  host.innerHTML=signed?`<span><strong>Signed in</strong> · ${esc(email)} · ${esc(profile.role)}</span><div class="account-bar-actions">${['moderator','reviewer'].includes(profile.role)?'<button type="button" data-account="review">Review desk</button>':''}<button type="button" data-account="password">Account &amp; password</button><button type="button" id="globalSignOut">Sign out</button></div>`:'<span>Not signed in</span><button type="button" data-account="sign-in">Sign in</button>';
+  host.innerHTML=signed?`<span><strong>Signed in</strong> · ${esc(email)} · ${esc(roleName(profile.role))}</span><div class="account-bar-actions">${['moderator','reviewer'].includes(profile.role)?'<button type="button" data-account="review">Review desk</button>':''}<button type="button" data-account="password">Account &amp; password</button><button type="button" id="globalSignOut">Sign out</button></div>`:'<span>Not signed in</span><div class="account-bar-actions"><button type="button" data-account="sign-in">Sign in</button>'+((typeof window!=="undefined"&&window.HLLVRegistration)?'<button type="button" data-account="create-account">Create account</button>':'')+'</div>';
   host.querySelectorAll('[data-account]').forEach(b=>b.onclick=()=>notifyOpen(b.dataset.account));
   const out=host.querySelector('#globalSignOut');if(out)out.onclick=()=>document.dispatchEvent(new Event('hllv-account-signout'));
  }
  function open(target='sign-in'){
   if(!active)return;
   const host=active;
+  if(target==='create-account'&&window.HLLVRegistration?.open())return;
+  const register=host.querySelector('#sgCreateAccount');if(register)register.hidden=true;
+  const signin=host.querySelector('#sgSignIn');if(signin)signin.hidden=false;
   const panel=host.querySelector(target==='password'?'#sgSecurity':'#sgSignIn');
   if(panel){panel.open=true;panel.scrollIntoView({block:'start',behavior:'instant'});panel.querySelector('input:not([type="hidden"])')?.focus({preventScroll:true});}
  }
  function markRecovery(value){recovery=Boolean(value);}
  function mount({container,client,profile,email='',persistence,onIdentity,signOut,isCurrent=()=>true}){
+  if(typeof window!=='undefined')window.HLLVRegistration?.clear();
   active=container;const find=id=>container.querySelector('#'+id);const live=()=>container.isConnected&&isCurrent();let busy=false;
   const message=(value,bad=false)=>{if(!live())return;const box=find('authFeedback');if(box){box.textContent=value;box.dataset.error=String(bad);box.setAttribute('tabindex','-1');box.focus({preventScroll:true});}};
   const policyNote=persistence.shareAvailable()?'Unchecked: available across open tabs in this browser. Checked: also keep the session after reopening this browser.':'This browser cannot share temporary sessions across tabs. Choose Keep me signed in for persistent access.';
@@ -44,7 +50,7 @@
   const feedback='<p id="authFeedback" class="auth-feedback" role="status" aria-live="polite"></p>';
   status({profile,email});
   if(profile){
-   container.innerHTML=`<p><strong>Signed in as an invited ${esc(profile.role)}</strong> · ${esc(email)}</p>${feedback}<details id="sgSecurity" ${recovery?'open':''}><summary>${recovery?'Choose your new password':'Set or change your site password'}</summary><p>This password is for Infierno Liberado, not your email mailbox, GitHub, or Supabase dashboard. Your existing account and permissions stay the same.</p><form class="sg-form" id="sgSetPassword"><input type="text" name="username" autocomplete="username" value="${esc(email)}" hidden><label for="sgCurrentPassword">Current site password (leave blank when setting your first password or using a recovery link)</label><input id="sgCurrentPassword" type="password" name="current_password" autocomplete="current-password"><label for="sgNewPassword">New site password · at least 12 characters</label><input id="sgNewPassword" type="password" name="new_password" autocomplete="new-password" minlength="12" required><label for="sgConfirmPassword">Confirm new password</label><input id="sgConfirmPassword" type="password" name="confirmation" autocomplete="new-password" minlength="12" required>${remember}<div class="sg-actions"><button class="sg-button" type="submit">Save password</button></div></form></details><div class="sg-actions"><button class="sg-button secondary" id="sgSignOut" type="button">Sign out</button></div>`;
+   container.innerHTML=`<p><strong>${profile.role==='participant'?'Signed in as a Member':'Signed in as an invited '+esc(profile.role)}</strong> · ${esc(email)}</p>${feedback}<details id="sgSecurity" ${recovery?'open':''}><summary>${recovery?'Choose your new password':'Set or change your site password'}</summary><p>This password is for Infierno Liberado, not your email mailbox, GitHub, or Supabase dashboard. Your existing account and permissions stay the same.</p><form class="sg-form" id="sgSetPassword"><input type="text" name="username" autocomplete="username" value="${esc(email)}" hidden><label for="sgCurrentPassword">Current site password (leave blank when setting your first password or using a recovery link)</label><input id="sgCurrentPassword" type="password" name="current_password" autocomplete="current-password"><label for="sgNewPassword">New site password · at least 12 characters</label><input id="sgNewPassword" type="password" name="new_password" autocomplete="new-password" minlength="12" required><label for="sgConfirmPassword">Confirm new password</label><input id="sgConfirmPassword" type="password" name="confirmation" autocomplete="new-password" minlength="12" required>${remember}<div class="sg-actions"><button class="sg-button" type="submit">Save password</button></div></form></details><div class="sg-actions"><button class="sg-button secondary" id="sgSignOut" type="button">Sign out</button></div>`;
    find('sgSignOut').onclick=signOut;
    find('sgSetPassword').onsubmit=async e=>{
     e.preventDefault();if(busy)return;
@@ -66,7 +72,11 @@
    };
    return;
   }
-  container.innerHTML=`${feedback}<details id="sgSignIn" open><summary>Sign in</summary><p>Invited accounts only. Use your email and your Infierno Liberado password.</p><form class="sg-form" id="sgPasswordLogin"><label for="sgLoginEmail">Email</label><input id="sgLoginEmail" name="email" type="email" autocomplete="username" maxlength="254" required><label for="sgLoginPassword">Site password</label><input id="sgLoginPassword" name="password" type="password" autocomplete="current-password" required>${remember}<div class="sg-actions"><button class="sg-button" type="submit">Sign in with password</button></div></form><details id="sgPasswordHelp"><summary>First password, forgotten password, or email sign-in</summary><p>Already signed in elsewhere? Set a password there under Account &amp; password. Otherwise, request one email below. Do not use your mailbox password.</p><form class="sg-form" id="sgEmailForm"><label for="sgEmail">Invited email address</label><input id="sgEmail" name="email" type="email" autocomplete="email" maxlength="254" required><div class="sg-actions"><button class="sg-button secondary" type="submit">Email me a sign-in link or code</button><button class="sg-button secondary" type="button" id="sgResetPassword">Send password reset email</button></div></form><form class="sg-form" id="sgCodeForm"><label for="sgCode">Verification code (only when the email includes one)</label><input id="sgCode" name="code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6,10}" maxlength="10" required><button class="sg-button secondary" type="submit">Verify code</button></form><p class="sg-muted">A link-only email has no numeric code. Open its newest Sign in link instead. Never share links, codes, or passwords in chat. Reset emails may also be rate-limited.</p></details></details>`;
+  container.innerHTML=`${feedback}<details id="sgSignIn" open><summary>Sign in</summary><p>Use your verified email and your Infierno Liberado password.</p><form class="sg-form" id="sgPasswordLogin"><label for="sgLoginEmail">Email</label><input id="sgLoginEmail" name="email" type="email" autocomplete="username" maxlength="254" required><label for="sgLoginPassword">Site password</label><input id="sgLoginPassword" name="password" type="password" autocomplete="current-password" required>${remember}<div class="sg-actions"><button class="sg-button" type="submit">Sign in with password</button></div></form><details id="sgPasswordHelp"><summary>First password, forgotten password, or email sign-in</summary><p>Already signed in elsewhere? Set a password there under Account &amp; password. Otherwise, request one email below. Do not use your mailbox password.</p><form class="sg-form" id="sgEmailForm"><label for="sgEmail">Your account email address</label><input id="sgEmail" name="email" type="email" autocomplete="email" maxlength="254" required><div class="sg-actions"><button class="sg-button secondary" type="submit">Email me a sign-in link or code</button><button class="sg-button secondary" type="button" id="sgResetPassword">Send password reset email</button></div></form><form class="sg-form" id="sgCodeForm"><label for="sgCode">Verification code (only when the email includes one)</label><input id="sgCode" name="code" inputmode="numeric" autocomplete="one-time-code" pattern="[0-9]{6,10}" maxlength="10" required><button class="sg-button secondary" type="submit">Verify code</button></form><p class="sg-muted">A link-only email has no numeric code. Open its newest Sign in link instead. Never share links, codes, or passwords in chat. Reset emails may also be rate-limited.</p></details></details>`;
+  if(window.HLLVRegistration?.enabled()){
+   const button=document.createElement('button');button.type='button';button.className='sg-button secondary';button.id='sgGoCreateAccount';button.textContent='New here? Create account';button.onclick=()=>open('create-account');find('sgSignIn').appendChild(button);
+   HLLVRegistration.mount({container,client,isCurrent});
+  }
   let requestEmail='',codeType='email';
   const run=async(button,operation,fn)=>{
    if(busy||!live())return;busy=true;button.disabled=true;

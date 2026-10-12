@@ -7,6 +7,7 @@
   "policy_version": "community-v1",
   "connection_mode": "community",
   "community_enabled": true,
-  "account_registration": "invite_only",
-  "approval_mode": "site_moderator"
+  "account_registration": "self_service",
+  "approval_mode": "site_moderator",
+  "email_verification_required": true
 }

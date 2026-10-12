@@ -75,7 +75,7 @@
   if(!client)return;
   if(view==='receipt'&&receipt){showReceipt();return;}
   if(view==='submit'){
-   if(!profile){html('<div class="cb-signin-prompt"><h2 id="cbFocus" tabindex="-1">One sign-in, then your suggestion.</h2><p>Submissions stay private until a moderator approves them. Use an existing site account; pilot accounts are currently invited.</p><button id="cbLogin" class="sg-button">Sign in to submit</button></div>');el('cbLogin').onclick=signInForAction;return;}
+   if(!profile){html('<div class="cb-signin-prompt"><h2 id="cbFocus" tabindex="-1">One sign-in, then your suggestion.</h2><p>Create a Member account and verify your email, or sign in. Submissions stay private until moderator approval.</p><div class="sg-actions"><button id="cbLogin" class="sg-button">Sign in to submit</button><button id="cbCreateAccount" class="sg-button secondary">Create account</button></div></div>');el('cbLogin').onclick=signInForAction;el('cbCreateAccount').onclick=()=>{authVisible=true;requested='create-account';auth();};return;}
    form(null);return;
   }
   if(view==='practice'){
@@ -144,7 +144,8 @@
   window.addEventListener('beforeunload',e=>{if(dirty){e.preventDefault();e.returnValue='';}});
   try{const response=await fetch('./suggestions-config.json',{cache:'no-store'});const cfg=await response.json();if(!response.ok||!validConfig(cfg))throw new Error('Community configuration unavailable');
    if(!window.HLLVSession||!window.HLLVPassword)throw new Error('Account module unavailable');
-   const callback=isAuthCallback(location.hash),recover=new URLSearchParams(location.hash.replace(/^#/, '')).get('type')==='recovery';
+   window.HLLVRegistration?.configure(cfg);
+   const callback=isAuthCallback(location.hash),signupReturn=new URLSearchParams(location.hash.replace(/^#/, '')).get('type')==='signup',recover=new URLSearchParams(location.hash.replace(/^#/, '')).get('type')==='recovery';
    persistence=HLLVSession.create();HLLVPassword.markRecovery(recover);if(recover){authVisible=true;requested='password';}
    const sdk=await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.105.0/+esm');
    client=sdk.createClient(cfg.supabase_url,cfg.publishable_key,{auth:{persistSession:true,storage:persistence.storage,storageKey:persistence.key,detectSessionInUrl:true,flowType:'implicit',autoRefreshToken:true}});
@@ -158,7 +159,8 @@
      if(Array.isArray(result?.rows)&&signature(result.rows)!==signature(rows))notice('The board has changed. Select Refresh to see new suggestions and votes.');
     }catch(_){/* A failed background read must not erase the displayed board. */}
    },60000);
-   await loadIdentity();if(callback)history.replaceState(null,'',location.pathname+location.search+'#suggestions');
+   await loadIdentity();if(callback&&signupReturn){if(profile)notice('Email verified. You are signed in. Choose Submit a suggestion or support an entry on the Bulletin Board.');else{authVisible=true;requested='create-account';auth();notice('Email verification could not be confirmed in this tab. Try signing in, or request a fresh verification email.',true);}}
+   if(callback)history.replaceState(null,'',location.pathname+location.search+'#suggestions');
   }catch(_){window.HLLVPassword?.status({available:false});html('<div class="cb-empty"><h2>Suggestion Box could not connect.</h2><p>Refresh to try again. The bug tracker and patch archive are unchanged.</p></div>');}
   finally{initializing=false;if(isAuthCallback(location.hash))history.replaceState(null,'',location.pathname+location.search+'#suggestions');}
  }
