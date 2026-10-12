@@ -15,7 +15,7 @@
   return '<article class="thread-message '+(e.visibility==='public'?'thread-public':'')+'" data-message-id="'+esc(e.id)+'"><header><strong>'+esc(e.author_label)+(e.is_mine?' · you':'')+'</strong><span>'+ (e.visibility==='public'?(e.hidden?'Hidden public comment':'Public moderator comment'):'Private reply')+'</span></header><p class="thread-body">'+esc(e.body)+'</p><footer><time>'+esc(date(e.at))+'</time> · wording v'+Number(e.version)+(e.imported?' · Earlier saved reply; original send time unavailable':'')+'</footer>'+(canModerate&&e.visibility==='public'&&!e.hidden?'<button type="button" class="cb-text-button" data-hide-comment="'+esc(e.id)+'">Hide from public board</button>':'')+'</article>';
  }
  function mount({container,submission,moderator,rpc,isCurrent=()=>true,onDirty=()=>{},onBusy=()=>{},onRecord=()=>{}}){
-  let disposed=false,busy=false,loading=false,seq=0,page=0,order='newest',attempt=null,uncertain=false;
+  let disposed=false,busy=false,loading=false,seq=0,page=0,order='newest',attempt=null,retryAttempt=null,uncertain=false;
   const live=()=>!disposed&&container.isConnected&&isCurrent();
   const find=id=>container.querySelector('#'+id);
   const draft=()=>!!(find('threadReply')?.value.trim()||find('threadPublicBody')?.value.trim());
@@ -40,15 +40,15 @@
   async function send(action){
    if(busy||loading||uncertain||!live())return;const pub=action==='public_comment',input=find(pub?'threadPublicBody':'threadReply');const body=input.value.trim();if(!body)return;
    if(pub&&!confirm('Post this moderator comment for everyone to read? No private replies will be published.'))return;
-   attempt={action,body,version:submission.version,request_id:crypto.randomUUID(),...(pub?{public_consent:true}:{})};
+   attempt={action,body,version:submission.version,request_id:retryAttempt?.action===action&&retryAttempt.body===body?retryAttempt.request_id:crypto.randomUUID(),...(pub?{public_consent:true}:{})};
    lock(true);say(pub?'Posting public comment…':'Saving private reply…');
-   try{const r=await call(action,attempt);if(!live())return;update(r.submission);input.value='';if(pub)find('threadPublicConsent').checked=false;mark();say((pub?'Public moderator comment posted.':'Private reply saved. Nothing was published.')+' Saved '+date(r.saved_at));attempt=null;page=0;}
+   try{const r=await call(action,attempt);if(!live())return;update(r.submission);input.value='';if(pub)find('threadPublicConsent').checked=false;mark();say((pub?'Public moderator comment posted.':'Private reply saved. Nothing was published.')+' Saved '+date(r.saved_at));attempt=null;retryAttempt=null;page=0;}
    catch(e){if(live()){if(['42501','40001','22023'].includes(e?.code)){say((e.code==='40001'?'The submission changed. Refresh the conversation before sending.':'Reply was not accepted. Check your access and the submission status.')+' Your draft is still here.',true);attempt=null;}else{uncertain=true;find('threadCheck').hidden=false;say('The save could not be confirmed. Your draft is still here. Check whether it saved before trying again.',true);}}}
    finally{if(live()){lock(false);if(uncertain){find('threadSend').disabled=true;if(moderator)find('threadPublicSend').disabled=true;input.disabled=true;}else await load();}}
   }
   find('threadReplyForm').onsubmit=e=>{e.preventDefault();send('reply');};find('threadReply').oninput=mark;
   if(moderator){find('threadPublicForm').onsubmit=e=>{e.preventDefault();send('public_comment');};find('threadPublicBody').oninput=mark;}
-  find('threadCheck').onclick=async()=>{if(busy||!attempt)return;lock(true);try{const r=await call('check',{request_id:attempt.request_id});if(!live())return;if(r){update(r.submission);find(attempt.action==='public_comment'?'threadPublicBody':'threadReply').value='';if(moderator)find('threadPublicConsent').checked=false;mark();say((r.visibility==='public'?'Public comment':'Private reply')+' was saved at '+date(r.saved_at)+'. No duplicate was sent.');}else say('No saved reply was found for that request. Your draft is preserved; you may send it again.');uncertain=false;attempt=null;find('threadCheck').hidden=true;}catch(_){say('The saved reply could not be checked. Keep this tab open; your draft is still here.',true);}finally{if(live()){lock(false);if(uncertain){find('threadSend').disabled=true;if(moderator)find('threadPublicSend').disabled=true;}else await load();}}};
+  find('threadCheck').onclick=async()=>{if(busy||!attempt)return;lock(true);try{const r=await call('check',{request_id:attempt.request_id});if(!live())return;if(r){retryAttempt=null;update(r.submission);find(attempt.action==='public_comment'?'threadPublicBody':'threadReply').value='';if(moderator)find('threadPublicConsent').checked=false;mark();say((r.visibility==='public'?'Public comment':'Private reply')+' was saved at '+date(r.saved_at)+'. No duplicate was sent.');}else{retryAttempt=attempt;say('No saved reply was found yet. Sending this unchanged draft will safely retry the same request.');}uncertain=false;attempt=null;find('threadCheck').hidden=true;}catch(_){say('The saved reply could not be checked. Keep this tab open; your draft is still here.',true);}finally{if(live()){lock(false);if(uncertain){find('threadSend').disabled=true;if(moderator)find('threadPublicSend').disabled=true;}else await load();}}};
   find('threadRefresh').onclick=()=>load();find('threadOrder').onchange=e=>{order=e.target.value;page=0;load();};
   applyAccess();load();
   return {hasDraft:draft,dispose(){disposed=true;seq++;},refresh:load};

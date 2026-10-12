@@ -23,8 +23,12 @@ checks='''
  pub.reload(wait_until='networkidle');assert 'Public explanation' not in pub.inner_text('body')
  mp.locator('[data-cb-view="board"]').click();mp.locator('[data-board-thread="'+sid+'"]').click();expect(mp.locator('#threadEntries')).to_contain_text('PRIVATE-QUESTION')
  mp.fill('#threadReply','Unsaved private text');mp.locator('#globalSignOut').click();expect(mp.locator('#hllvAccountBar')).to_contain_text('Not signed in');assert 'PRIVATE-QUESTION' not in mp.inner_text('body');assert mp.locator('#threadReply').count()==0
+ flags['fail_reply']=True;page.fill('#threadReply','PRIVATE-RETRY-SAME-REQUEST');page.locator('#threadSend').click();expect(page.locator('#threadCheck')).to_be_visible();page.locator('#threadCheck').click();expect(page.locator('#threadFeedback')).to_contain_text('safely retry the same request')
+ previous=[c['payload']['payload'] for c in calls if c['op']=='hllv_submission_thread' and c['payload']['action']=='reply'][-1]
+ old=next(e for e in threads[sid] if e['author_label']=='Member (submitter)');threads[sid].append({**old,'id':str(uuid.uuid4()),'request_id':previous['request_id'],'body':previous['body'],'created_at':stamp()});count=len(threads[sid])
+ page.locator('#threadSend').click();expect(page.locator('#threadFeedback')).to_contain_text('Private reply saved');assert len(threads[sid])==count
  assert not errs+merrs+perrs,errs+merrs+perrs
- print('THREAD_BROWSER_PASS',a.engine,'private back-and-forth, preserved decision replies, public explicit consent, no private publication, safe markup, lost-response recovery, date order, mobile dark/light, public hide and signout')
+ print('THREAD_BROWSER_PASS',a.engine,'private back-and-forth, preserved decision replies, public explicit consent, no private publication, safe markup, lost-response and delayed-response deduplication, date order, mobile dark/light, public hide and signout')
 '''
 s=s.replace(' browser.close()',checks+'\n browser.close()')
 exec(compile(s,'<thread-browser-fixture>','exec'))
