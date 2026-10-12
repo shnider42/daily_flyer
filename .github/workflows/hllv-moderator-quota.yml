@@ -1,0 +1,112 @@
+name: HLLV moderator submission quota
+on:
+  push:
+    branches: [feature/hllv-bug-evidence-tracker]
+    paths: [.github/hllv-moderator-quota/**, .github/workflows/hllv-moderator-quota.yml]
+permissions:
+  contents: write
+concurrency:
+  group: hllv-reviewed-data-update
+  cancel-in-progress: false
+jobs:
+  test-publish-verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: community_fixture_only
+          POSTGRES_DB: community_test
+        ports: ['5432:5432']
+        options: --health-cmd "pg_isready -U postgres -d community_test" --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      COMMUNITY_TEST_DATABASE_URL: postgresql://postgres:community_fixture_only@localhost:5432/community_test
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          fetch-depth: 1
+      - name: Prepare role-aware quota copy
+        id: release
+        run: |
+          python3 -m py_compile .github/hllv-moderator-quota/*.py
+          python3 .github/hllv-moderator-quota/install.py
+          node --check .github/hllv-community/app.js
+          python3 - <<'PY' >> "$GITHUB_OUTPUT"
+          import json
+          from pathlib import Path
+          print('publish='+str(json.loads(Path('.github/hllv-moderator-quota/release.json').read_text())['publish']).lower())
+          PY
+          git diff --check
+      - name: Install isolated test dependencies
+        run: |
+          python3 -m pip install --quiet 'psycopg[binary]==3.2.10' playwright==1.55.0
+          python3 -m playwright install --with-deps chromium webkit >/tmp/quota-browsers.log 2>&1 || { tail -40 /tmp/quota-browsers.log; exit 1; }
+      - name: Test server quotas authentication and votes
+        run: python3 .github/hllv-moderator-quota/test_database.py
+      - name: Test integrated browser flows and quota messages
+        run: |
+          set -euo pipefail
+          python3 -m http.server 8765 --bind 127.0.0.1 --directory hllv_tracker >/tmp/quota-http.log 2>&1 &
+          PID=$!
+          trap 'kill "$PID" || true' EXIT
+          python3 .github/hllv-moderator-quota/test_browser.py
+          python3 .github/hllv-moderator-quota/test_browser.py --engine webkit
+          python3 .github/hllv-ux-20261012/test_browser.py
+          python3 .github/hllv-ux-20261012/test_browser.py --engine webkit
+          node .github/hllv-evidence/test_evidence.cjs
+      - name: Confirm hosted quota migration
+        if: steps.release.outputs.publish == 'true'
+        run: python3 .github/hllv-moderator-quota/verify_public.py
+      - name: Generate replay migration without hosted credentials
+        if: steps.release.outputs.publish == 'true'
+        run: |
+          npx --yes supabase@2.120.0 migration new --help
+          python3 - <<'PY'
+          from pathlib import Path
+          import subprocess
+          root=Path('suggestion_box');files=list(root.glob('supabase/migrations/*_hllv_moderator_submission_quota.sql'))
+          if not files:
+              subprocess.run(['npx','--yes','supabase@2.120.0','migration','new','hllv_moderator_submission_quota'],cwd=root,check=True)
+              files=list(root.glob('supabase/migrations/*_hllv_moderator_submission_quota.sql'))
+          assert len(files)==1
+          source=Path('.github/hllv-moderator-quota/schema.sql').read_bytes()
+          if files[0].stat().st_size:assert files[0].read_bytes()==source
+          else:files[0].write_bytes(source)
+          PY
+      - name: Publish tested quota copy
+        if: steps.release.outputs.publish == 'true'
+        run: |
+          set -euo pipefail
+          git add -- .github/hllv-community/app.js hllv_tracker/index.html hllv_tracker/assets hllv_tracker/data/issues.json hllv_tracker/data/issues.*.json hllv_tracker/deployment-manifest.json hllv_tracker/reviews/moderator-submission-quota.json suggestion_box/supabase/migrations/*_hllv_moderator_submission_quota.sql
+          git diff --cached --check
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'Exempt verified moderators from daily submission quota and show account-specific limits'
+          git push origin HEAD:refs/heads/feature/hllv-bug-evidence-tracker
+          echo "Published $(git rev-parse HEAD)" >> "$GITHUB_STEP_SUMMARY"
+      - name: Verify ordinary production URLs and browser flows
+        if: steps.release.outputs.publish == 'true'
+        run: |
+          python3 -u - <<'PY'
+          import json,time,urllib.request
+          from pathlib import Path
+          root=Path('hllv_tracker');paths=['','index.html']+json.loads((root/'deployment-manifest.json').read_text())['files'];last='Not checked'
+          for attempt in range(120):
+              try:
+                  for path in paths:
+                      with urllib.request.urlopen('https://hllv-bug-track.onrender.com/'+path,timeout=15) as r:actual=r.read()
+                      assert actual==(root/(path.split('?')[0] or 'index.html')).read_bytes(),'Mismatch: '+(path or '/')
+                  print('PRODUCTION_EXACT_MATCH');break
+              except Exception as e:
+                  last=str(e)
+                  if attempt%12==0:print(last)
+              time.sleep(5)
+          else:raise RuntimeError(last)
+          PY
+          python3 .github/hllv-moderator-quota/test_browser.py --url https://hllv-bug-track.onrender.com/
+          python3 .github/hllv-moderator-quota/test_browser.py --url https://hllv-bug-track.onrender.com/ --engine webkit
+          python3 .github/hllv-moderator-quota/verify_public.py
+      - name: Record verification scope
+        run: |
+          echo 'Isolated PostgreSQL quota and authorization tests; synthetic browser accounts; no live suggestions, votes, role assignments or credentials created by CI. Only the daily submission quota differs by verified role.' >> "$GITHUB_STEP_SUMMARY"
