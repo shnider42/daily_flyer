@@ -5,40 +5,58 @@ on:
     paths: [.github/workflows/hllv-public-release-diagnostic.yml]
 permissions:
   contents: read
+concurrency:
+  group: hllv-reviewed-data-update
+  cancel-in-progress: false
 jobs:
   inspect:
     runs-on: ubuntu-latest
-    timeout-minutes: 3
+    timeout-minutes: 15
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           persist-credentials: false
-      - name: Compare public page fingerprints and source endpoints only
+      - name: Verify ordinary production URLs and every referenced file
         run: |
-          python3 - <<'PY'
-          import hashlib,json,re,urllib.request,urllib.error,difflib
+          python3 -u - <<'PY'
+          import hashlib,json,time,urllib.request
           from pathlib import Path
           root=Path('hllv_tracker')
-          for path in ['','index.html','deployment-manifest.json','official-feed.json']:
-              expected=(root/(path or 'index.html')).read_bytes()
+          manifest=json.loads((root/'deployment-manifest.json').read_text())
+          paths=list(dict.fromkeys(['','index.html','deployment-manifest.json','official-feed.json']+manifest['files']))
+          last='Not checked'
+          for attempt in range(96):
               try:
-                  with urllib.request.urlopen('https://hllv-bug-track.onrender.com/'+path,timeout=20) as response:
-                      actual=response.read(8000001)
-                      headers={k:v for k,v in response.headers.items() if k.lower() in ['etag','last-modified','age','cache-control','content-type','cf-cache-status','x-render-origin-server','date','server']}
-                  result={'path':path or '/','expected_sha256':hashlib.sha256(expected).hexdigest(),'actual_sha256':hashlib.sha256(actual).hexdigest(),'exact_match':actual==expected,'bytes':len(actual),'headers':headers}
-                  if path in ['', 'index.html']:
-                      text=actual.decode('utf-8','replace')
-                      result['title']=re.findall(r'<title>(.*?)</title>',text)
-                      result['theme']=re.findall(r'<html[^>]*>',text)
-                      result['has_source_display']='id="officialSourceUpdates"' in text
-                      result['data_urls']=re.findall(r'const TRACKER_DATA_URL = ([^;]+)',text)
-                      result['script_urls']=re.findall(r'<script[^>]*src="([^"]+)"',text)
-                      result['first_differences']=list(difflib.unified_diff(expected.decode().splitlines(),text.splitlines(),n=1))[:16]
-                  else:
-                      value=json.loads(actual)
-                      result['public_metadata']={k:value[k] for k in ['data_url','data_sha256','last_success_at','last_attempt_at','state','schema_version'] if k in value}
-                  print(json.dumps(result))
+                  for path in paths:
+                      with urllib.request.urlopen('https://hllv-bug-track.onrender.com/'+path,timeout=20) as response:
+                          actual=response.read(8000001)
+                      expected=(root/(path.split('?')[0] or 'index.html')).read_bytes()
+                      assert actual==expected,'Mismatch at '+(path or '/')
+                  print('PRODUCTION_EXACT_MATCH: normal homepage, manifest, source collection and all referenced assets')
+                  print('PAGE_SHA256='+hashlib.sha256((root/'index.html').read_bytes()).hexdigest())
+                  break
               except Exception as error:
-                  print(json.dumps({'path':path or '/','error':str(error)}))
-          print('READ_ONLY: no authentication, accounts, settings, private records or deployment writes')
+                  last=str(error)
+                  if attempt%6==0:print(last)
+              time.sleep(5)
+          else:raise RuntimeError(last)
           PY
+      - name: Install isolated browser verification tools
+        run: |
+          python3 -m pip install --quiet --disable-pip-version-check playwright==1.55.0
+          python3 -m playwright install --with-deps chromium webkit >/tmp/hllv-live-browsers.log 2>&1 || { tail -30 /tmp/hllv-live-browsers.log; exit 1; }
+      - name: Exercise real deployed page with synthetic account responses
+        run: |
+          python3 .github/hllv-ux-20261012/test_browser.py --url https://hllv-bug-track.onrender.com/
+          python3 .github/hllv-ux-20261012/test_browser.py --url https://hllv-bug-track.onrender.com/ --engine webkit
+          python3 .github/hllv-community/test_public.py
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: verified-live-dark-form-previews
+          path: artifacts/
+          retention-days: 3
+      - name: Record verification boundary
+        run: |
+          echo 'Normal live homepage and exact referenced assets verified after shared-cache expiry. Chromium and WebKit: type-guided reports, title/type/related ordering, draft preservation, dark default, saved light preference, date ordering, public board and synthetic moderator journeys passed.' >> "$GITHUB_STEP_SUMMARY"
+          echo 'This is verification only: no app publication, real credentials, emails, user suggestions, votes or moderation writes. Public anonymous-only boundary checks use the real database; signed-in browser fixtures are synthetic.' >> "$GITHUB_STEP_SUMMARY"
