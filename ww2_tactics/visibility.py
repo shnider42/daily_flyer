@@ -105,6 +105,9 @@ def unit_sees_hex(state, scout, pos, concealed=False):
     from .engine import distance, line_clear, terrain
     from . import operations
     if not active(scout):return False
+    if state.get('battlefield',{}).get('night_ops_version'):
+        from .nightfall import unit_sees
+        return unit_sees(state,scout,pos,concealed)
     gap=distance(scout['pos'],pos)
     if domains.joint(state):
         if concealed=='air':
@@ -222,7 +225,7 @@ def view(state, side, terrain_visibility=True):
                   barrages=copy.deepcopy([{k:v for k,v in b.items() if k != 'attacker'} for b in state.get('barrages', [])]),
                   recon=copy.deepcopy([r for r in state.get('recon', []) if r['side']==side]),
                   round=state['round'], turn=state['turn'], hold=state['hold'], winner=state['winner'])
-    if state.get('signals_version') or state.get('battlefield', {}).get('fleet_battle_version'):
+    if state.get('signals_version') or state.get('battlefield', {}).get('fleet_battle_version') or state.get('battlefield',{}).get('night_ops_version'):
         for u in result['units']:
             if u['side']!=side:
                 u['overwatch']=False
@@ -249,6 +252,9 @@ def view(state, side, terrain_visibility=True):
     if domains.joint(state):
         from .fubar import controls
         result.update(joint_score=copy.deepcopy(state['joint_score']),joint_control=controls(state))
+    if state.get('battlefield',{}).get('night_ops_version'):
+        from .nightfall import public_fields
+        result.update(public_fields(state))
     if state.get('front_version'):
         from .new_fronts import public_fields
         result.update(public_fields(state, side))
@@ -305,6 +311,9 @@ def public_state(state, side):
     if deployment.active(state): return deployment.public_planning(state,side)
     if not fog(state):
         result=copy.deepcopy(state)
+        if state.get('battlefield',{}).get('night_ops_version'):
+            from .nightfall import public_fields
+            result.update(public_fields(state))
         if domains.joint(state):
             from .fubar import controls
             result['joint_control']=controls(state)

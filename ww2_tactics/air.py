@@ -8,9 +8,9 @@ import secrets
 from .visibility import active, update_intel, record_reports
 from .combat_display import record_combat
 from .effects import record_effect
-from . import weapons, operations, domains, crosswind
+from . import weapons, operations, domains, crosswind, nightfall
 
-AIRCRAFT = {'fighter','bomber'}
+AIRCRAFT = domains.AIRCRAFT
 
 
 def initial(board, rules):
@@ -108,6 +108,7 @@ def options(state,unit):
     if not state['ready'] or state['winner'] or not active(unit) or unit['side']!=state['turn']:
         return result
     result.update(weapons.orders(state, unit))
+    result.update(nightfall.options(state,unit))
     if weapons.enabled(state) and unit.get('pinned'):
         result['rally'] = unit['ap'] >= 1
         return result
@@ -131,13 +132,16 @@ def options(state,unit):
                 result['moves'].append(dict(pos=[x,y],cost=1,threats=len(threats),path=path))
     if unit['ap']<2:return result
     result['overwatch']=unit['kind'] in {'fighter','aa_gun'} and not unit['overwatch']
-    if unit['kind'] in AIRCRAFT and not unit['rearm_used'] and (unit['hp']<unit['max_hp'] or (unit['kind']=='bomber' and unit['bombs']<unit.get('max_bombs',2))):
-        result['rearm']=bool(crosswind.service_carrier(state,unit)) if crosswind.enabled(state) else any(u['side']==unit['side'] and u['kind']=='airfield' and distance(u['pos'],unit['pos'])<=1 for u in living)
+    if unit['kind'] in AIRCRAFT and not unit['rearm_used'] and (unit['hp']<unit['max_hp'] or (unit['kind']=='bomber' and unit['bombs']<unit.get('max_bombs',2)) or nightfall.enabled(state) and unit.get('flares',0)<unit.get('max_flares',0)):
+        result['rearm']=(bool(nightfall.service_field(state,unit)) if nightfall.enabled(state) else
+            bool(crosswind.service_carrier(state,unit)) if crosswind.enabled(state) else any(u['side']==unit['side'] and u['kind']=='airfield' and distance(u['pos'],unit['pos'])<=1 for u in living))
     for target in living:
         if target['side']==unit['side'] or target['id'] not in seen or distance(unit['pos'],target['pos'])>unit['range']:continue
         if ((unit['kind'] in {'fighter','aa_gun'} and target['kind'] in AIRCRAFT) or
             (unit['kind']=='bomber' and unit['bombs']>0 and target['kind'] not in AIRCRAFT)):
             s = shot(unit,target)
+            s['modifiers'].update(nightfall.modifiers(state,unit,target))
+            s['threshold']=min(6,s['threshold']+sum(nightfall.modifiers(state,unit,target).values()))
             if not weapons.enabled(state) or weapons.damage(unit,target):
                 result['targets'].append(dict(weapons.preview(unit, target, s['threshold'], s['modifiers'], state=state), air=True) if weapons.enabled(state) else s)
     return result
@@ -145,6 +149,9 @@ def options(state,unit):
 
 def resolve_shot(state,unit,target,roll,reaction=False):
     s=shot(unit,target,reaction);die=roll()
+    s['modifiers'].update(nightfall.modifiers(state,unit,target))
+    s['threshold']=min(6,s['threshold']+sum(nightfall.modifiers(state,unit,target).values()))
+    if nightfall.enabled(state):unit['night_flash']=True
     ship_aa=crosswind.enabled(state) and bool(unit.get('ship_aa_range'))
     weapon='flak' if ship_aa or domains.joint(state) and unit['kind']=='flak' else None
     impacts = []
@@ -205,7 +212,11 @@ def unit_order(state, unit, action, legal, roll, before=None):
     elif kind=='rearm' and legal['rearm']:
         unit['ap']-=2;unit['rearm_used']=True;unit['hp']=min(unit['max_hp'],unit['hp']+1)
         if unit['kind']=='bomber':unit['bombs']=unit.get('max_bombs',2)
-        if crosswind.enabled(state):
+        if nightfall.enabled(state):
+            field=nightfall.service_field(state,unit);field['air_stores']-=1
+            if unit.get('max_flares'):unit['flares']=unit['max_flares']
+            message=f"Platoon airfield service: +1 strength, ordnance replenished. {field['air_stores']} finite stores remain."
+        elif crosswind.enabled(state):
             carrier=crosswind.service_carrier(state,unit)
             carrier['air_stores']-=1
             message=f"Platoon carrier service: repair 1 strength and reload ordnance. {carrier['air_stores']} service stores remain."

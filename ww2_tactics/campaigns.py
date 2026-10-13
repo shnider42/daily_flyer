@@ -58,6 +58,9 @@ def omaha_roster():
 
 
 def setup(board):
+    if board['campaign'] == 'nightfall_beacon':
+        from .nightfall import roster as night_roster
+        return night_roster()
     if board['campaign'] == 'crosswind_strait':
         from .crosswind import roster as crosswind_roster
         return crosswind_roster()

@@ -10,7 +10,7 @@ from .rulesets import profile, dsl, base_ap, bank_limit, turn_limit, road
 from .effects import record_effect
 from . import combined, naval, transport, campaigns, air, weapons, buildings, operations, fieldworks, linked_front, signals, airborne, domains, fubar, logistics, new_fronts, deployment
 from .visibility import fog, active, visible_ids, unit_visible_ids, sees_hex, update_intel, record_reports
-from . import fire_control, editions
+from . import fire_control, editions, nightfall
 
 WIDTH, HEIGHT = 7, 9
 OBJECTIVE = [3, 4]
@@ -123,6 +123,7 @@ def initial(scenario='village', ruleset='classic'):
         state['log']=[f"{board['name']} · {state['factions']['us']} move first. Hold {board['objective_name']} for two consecutive turns; defenders win after round {board['rounds']}."]
     editions.initialize(state)
     fubar.initialize(state)
+    nightfall.initialize(state)
     domains.initialize(state)
     if editions.current(state):
         update_intel(state)
@@ -143,6 +144,7 @@ def fire_modifiers(state, unit, target):
         mods.update(faction=-unit.get('accuracy_bonus',int(unit['side']=='us' and unit['kind'] not in {'tank','at_gun','at_team','amphibious'})),
                     armor=int(target.get('armor',0)>0 and not (target['kind']=='halftrack' and unit['kind'] in {'tank','at_gun'})),anti_tank=-int(unit['kind']=='at_gun' and target.get('armor',0)>0))
     mods.update(fire_control.modifiers(state, unit, target['pos']))
+    mods.update(nightfall.modifiers(state,unit,target))
     return mods
 
 
@@ -238,7 +240,7 @@ def options(state, unit):
         return dict(moves=[], targets=[], rally=False, **extras)
     extras.update(transport.options(state, unit))
     if unit.get('reserve'):
-        if unit['ap']>=2 and not unit.get('arrival_round') and not unit.get('airlift_reserve'):
+        if unit['ap']>=2 and not unit.get('arrival_round') and not unit.get('airlift_reserve') and not unit.get('drop_transport'):
             extras['drops']=[[x,y] for y in range(2,board['height']-2) for x in range(board['width'])
                              if terrain(x,y,state) in {'field','road'} and (x,y) not in occupied
                              and (signals.group_sees(state,unit['side'],signals.group(unit),[x,y])
@@ -318,7 +320,9 @@ def apply(state, side, action, roll=None):
         reactions.extend(airborne.end_turn(state,side))
         state['smoke'] = [dict(s, ttl=s['ttl']-1) for s in state.get('smoke', []) if s['ttl'] > 1]
         state['recon'] = [dict(r, ttl=r['ttl']-1) for r in state.get('recon', []) if r['ttl'] > 1]
-        if new_fronts.enabled(state):
+        if nightfall.enabled(state):
+            nightfall.end_turn(state,side)
+        elif new_fronts.enabled(state):
             new_fronts.end_turn(state,side)
         elif domains.joint(state):
             fubar.end_turn(state,side)
@@ -334,6 +338,7 @@ def apply(state, side, action, roll=None):
         else:
             state["round"] += 1
         state["turn"] = "de" if side == "us" else "us"
+        nightfall.start_turn(state,state['turn'])
         signals.start_turn(state,state['turn'])
         state['command_used'] = [key for key in state.get('command_used', []) if not key.startswith(state['turn']+':')]
         for u in state["units"]:
@@ -360,9 +365,14 @@ def apply(state, side, action, roll=None):
         legal = options(state, unit)
         signals.before_order(unit,kind)
         airborne.before_order(unit,kind)
+        nightfall.before_order(state,unit,kind)
         if dsl(state) and kind != 'move':
             unit['road_pending'] = False
-        if domains.joint(state) and unit['kind'] in domains.AIR_UNITS:
+        if nightfall.enabled(state) and kind=='airborne_drop':
+            message,reactions=airborne.action(state,unit,action,legal,roll_die,react)
+        elif nightfall.enabled(state) and kind in {'spotlight','flare'}:
+            message=nightfall.action(state,unit,action,legal)
+        elif domains.joint(state) and unit['kind'] in domains.AIR_UNITS:
             message=air.unit_order(state,unit,action,legal,roll_die,before_sight)
         elif domains.joint(state) and unit['kind'] in domains.SHIPS:
             message=naval.unit_order(state,unit,action,legal,roll_die)
@@ -512,8 +522,10 @@ def apply(state, side, action, roll=None):
     for carrier in state['units']:
         if carrier['hp']<=0 and carrier['kind']=='landing_craft':transport.bail_out(state,carrier)
     airborne.after_order(state)
+    if nightfall.enabled(state) and kind in {'fire','area_fire'} and unit['kind'] not in domains.AIR_UNITS:unit['night_flash']=True
+    nightfall.after_order(state)
     for team in ("us", "de"):
-        if not any(u["hp"] > 0 and u["side"] == team for u in state["units"]):
+        if not nightfall.enabled(state) and not any(u["hp"] > 0 and u["side"] == team for u in state["units"]):
             state["winner"] = "de" if team == "us" else "us"
     new_fronts.check_result(state)
     # Losing any required link immediately breaks consecutive occupation.

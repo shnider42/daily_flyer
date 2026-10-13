@@ -6,15 +6,17 @@
  const vehicles=new Set(['tank','halftrack','amphibious','landing_craft']);
  const labels={callAirborne:'Call airborne',markLZ:'Mark LZ',resupply:'Resupply',evacuate:'Evacuate',radioUpdate:'Share sightings',observe:'Observe',conceal:'Camouflage',mortarFire:'Mortar fire',demolition:'Demolition',breach:'Breach hedge',clearWreck:'Clear rubble',bridgeGap:'Build bridge',fire:'Fire at unit',areaFire:'Aim at hex',snipe:'Snipe',assault:'Close assault',grenade:'Grenade',suppress:'Suppress',overwatch:'Overwatch',dig:'Dig in',smoke:'Smoke',rally:'Rally self',inspire:'Rally allies',command:'Give actions',barrage:'Call mortars',artillery:'Call artillery',fieldRecon:'Recon plane',loadAP:'Load anti-tank',loadHE:'Load explosive',repairTracks:'Fix own tracks',repairTank:'Repair tank',bombard:'Blind bombard',recon:'Air search',airstrike:'Air strike',torpedo:'Torpedoes',repair:'Repair hull',airdrop:'Land troops',load:'Load troops',unload:'Unload troops',rearm:'Airfield service'};
  labels.spotFire='Spot for fire';
+ Object.assign(labels,{spotlightAim:'Aim spotlight',pathfinderFlare:'Drop flare',nightDrop:'Drop paratroopers'});
  const costs={spotFire:1,evacuate:1,resupply:2,callAirborne:3,markLZ:2,observe:1,smoke:1,rally:1,inspire:1,loadAP:1,loadHE:1,recon:1,load:1,unload:1,snipe:3,bridgeGap:3};
+ Object.assign(costs,{spotlightAim:1,pathfinderFlare:2,nightDrop:3});
  const cost=id=>id==='radioUpdate'?(state?.units.find(u=>u.id===selected)?.kind==='radioman'?1:2):costs[id]??2;
  function capabilities(u,s=state){
   if(!u||u.side!==s.side||u.hp<=0||s.ruleset!=='dsl')return [];
   const ids=[],add=(...names)=>ids.push(...names),kind=u.kind,v=s.rules_version||1;
   if(u.range>0&&u.weapon!=='none')add('fire');
-  if(s.air_version||s.joint_ops_version&&['fighter','bomber','aa_gun','radar','airfield'].includes(kind)){
+  if(s.air_version||s.joint_ops_version&&['fighter','bomber','transport_aircraft','aa_gun','radar','airfield','spotlight'].includes(kind)){
    if(['fighter','aa_gun'].includes(kind))add('overwatch');
-   if(['fighter','bomber'].includes(kind))add('rearm');
+   if(['fighter','bomber','transport_aircraft'].includes(kind))add('rearm');
    if(s.combat_version&&u.protection==='infantry')add('rally');
   }else if(s.naval_version||s.joint_ops_version&&['carrier','battleship','cruiser','destroyer'].includes(kind)){
    if(['destroyer','amphibious'].includes(kind))add('smoke');
@@ -40,7 +42,7 @@
     }
    }
    if(s.dsl_expansion){
-    if(kind==='paratrooper'&&!u.airlift_reserve)add('airdrop');
+    if(kind==='paratrooper'&&!u.airlift_reserve&&!u.drop_transport)add('airdrop');
     if(['halftrack','landing_craft'].includes(kind))add('load','unload');
    }
   }
@@ -52,7 +54,7 @@
    if(u.artillery_range)add('artillery');
    if(u.field_recon_range)add('fieldRecon');
    if(s.tactics_version){
-    if(['ap','he','at_shell','rocket','naval_shell','bomb'].includes(u.ammo||u.weapon))add('areaFire');
+    if(['ap','he','at_shell','rocket','naval_shell','bomb'].includes(u.ammo||u.weapon)&&!s.scenario.night_ops_version)add('areaFire');
     if(kind==='engineer')add('repairTank');
     if(u.snipe_range)add('snipe');
    }
@@ -63,6 +65,7 @@
   if(s.logistics_version&&kind==='supply')add('resupply');
   if(s.front_mode==='evacuation'&&kind==='landing_craft'&&u.side==='us')add('evacuate');
   if(s.airborne_version){if(u.airlift_commander)add('callAirborne');if('beacon_charges' in u)add('markLZ');}
+  if(s.scenario.night_ops_version){if(kind==='spotlight')add('spotlightAim');if(u.max_flares)add('pathfinderFlare');if(kind==='transport_aircraft')add('nightDrop');}
   return [...new Set(ids)];
  }
  function reason(id,u){
@@ -83,6 +86,9 @@
   if(u.carrier_id)return 'Aboard transport';
   if(u.reserve&&u.arrival_round)return 'Arrives R'+u.arrival_round+' · entry must be clear';
   if(u.reserve&&id!=='airdrop')return 'Land troops first';
+  if(id==='nightDrop'&&u.drop_round===state.round)return 'Already dropped this round';
+  if(id==='nightDrop'&&!state.units.some(t=>t.drop_transport===u.id&&t.hp>0&&t.reserve))return 'No airborne squads aboard';
+  if(id==='pathfinderFlare'&&!u.flares)return 'No flares left';
   if(u.pinned&&id!=='rally')return 'Rally this unit first';
   if(id==='resupply'&&!u.supply_packs)return 'No supply packs left';
   if(id==='evacuate'&&!state.units.some(v=>v.carrier_id===u.id&&v.hp>0&&v.evacuee))return 'Load marked infantry first';
@@ -122,7 +128,7 @@
   if(id==='snipe')return 'Needs a visible firing lane';
   if(id==='repairTank')return 'Needs adjacent damaged tank';
   if(id==='repair')return 'Hull at full strength';
-  if(id==='rearm')return u.hp===u.max_hp&&(u.kind!=='bomber'||u.bombs>=(u.max_bombs||2))?'Fully serviced':state.scenario.fleet_battle_version?'Needs own platoon carrier within 1 hex with stores':'Needs friendly airfield';
+  if(id==='rearm')return u.hp===u.max_hp&&(u.kind!=='bomber'||u.bombs>=(u.max_bombs||2))&&(!u.max_flares||u.flares>=u.max_flares)?'Fully serviced':state.scenario.night_ops_version?'Needs own platoon service field within 1 hex with stores':state.scenario.fleet_battle_version?'Needs own platoon carrier within 1 hex with stores':'Needs friendly airfield';
   if(id==='inspire')return 'No nearby allies pinned';
   if(id==='command')return state.command_used?.includes(u.side+':'+(u.kind==='commander'?'HQ-orders':u.platoon||''))?'Command used this turn':'Needs eligible nearby troops';
   if(id==='load')return state.units.some(p=>p.carrier_id===u.id&&p.hp>0)?'Transport occupied':'Needs ready adjacent infantry';

@@ -52,6 +52,12 @@
  };
  evacuate.onclick=()=>{const uid=selected;if(confirm('Evacuate the marked passenger? This rescue is permanent and commits earlier takebacks. The empty boat can return.'))act({kind:'evacuate',unit:uid});};
  function detailedHelp(id,u,legal){
+  if(state.scenario.night_ops_version){
+   if(id==='nightDrop')return state.scenario.reinforcement_brief;
+   if(id==='spotlightAim')return '1 AP to aim a narrow air corridor within 8 hexes. Illuminated aircraft can be attacked by nearby fighters and Flak with their normal accuracy. This reveals the emitting Spotlight; unlit ground remains hidden. The beam expires at the next German turn.';
+   if(id==='pathfinderFlare')return 'Spend 2 AP and one flare to light radius 2 within 5 hexes. Both armies see that patch through the opposing turn. Friendly drop scatter decreases by 1; a natural 1 still loses the squad. Illumination also removes German darkness penalties and extends Flak approach risk.';
+   if(id==='rearm')return 'Within 1 hex of your own platoon’s surviving field, spend 2 aircraft AP and one of its six finite stores: restore 1 strength, refill that bomber’s listed bomb capacity and Pathfinder flares. Once per aircraft per turn.';
+  }
   if(state.scenario.fleet_battle_version){
    if(id==='rearm')return 'Spend 2 aircraft AP within one hex of your own platoon’s surviving carrier to restore 1 strength and reload ordnance. Once per aircraft per turn. One of the carrier’s six finite stores is consumed; a teammate’s carrier cannot supply your platoon.';
    if(id==='overwatch'&&u.ship_aa_range)return `Spend 2 AP to intercept one enemy aircraft along its flight path within ${u.ship_aa_range} hexes. Moving or firing this ship cancels readiness. Does not react against ships. Enemy interception orders are private.`;

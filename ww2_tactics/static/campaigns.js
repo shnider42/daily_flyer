@@ -25,7 +25,7 @@
    if(unit.kind==='engineer')$('roleBrief').textContent=`ENGINEERS · ${unit.smoke} smoke and ${unit.grenades} frag grenades remaining. Use smoke to cross streets and grenades to attack infantry in cover.`;
    if(unit.kind==='mg')$('roleBrief').textContent=`MG · Suppress on ${unit.suppression}+ for 2 AP, no damage. Range ${unit.side==='de'?6:4} hexes.`;
   }
-  const jointAir=!!state.joint_ops_version&&['fighter','bomber','aa_gun','radar','airfield'].includes(unit?.kind);
+  const jointAir=!!state.joint_ops_version&&['fighter','bomber','transport_aircraft','aa_gun','radar','airfield','spotlight'].includes(unit?.kind);
   if(!air&&!jointAir)return;
   if(air){
   window.drawFog(svg,state);

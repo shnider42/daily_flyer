@@ -66,9 +66,9 @@ def initialize(state, body, pid, name):
             # A preloaded commander and their boat stay together under the
             # host, rather than placing the commander in a teammate's group.
             return u['side'] + ':command'
-        if u.get('carrier_id'):
-            return key(next(v for v in units if v['id'] == u['carrier_id']))
-        if u['kind'] == 'commander' or u.get('airlift_reserve'):
+        if u.get('carrier_id') or u.get('drop_transport'):
+            return key(next(v for v in units if v['id'] == (u.get('carrier_id') or u.get('drop_transport'))))
+        if u['kind'] == 'commander' or u.get('airlift_reserve') and not u.get('drop_transport'):
             return u['side'] + ':command'
         return u['side'] + ':' + u['platoon'] if size == 'platoons' and u.get('platoon') else unit_keys[u['id']]
     for u in units:

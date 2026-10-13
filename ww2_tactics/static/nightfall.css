@@ -1,0 +1,16 @@
+.night-battle #mapWrap{background:#111d32}
+.night-battle .hex{filter:brightness(.65) saturate(.65)}
+.night-battle .terrain-art{filter:brightness(.65) saturate(.65)}
+.night-battle .hex.move{filter:brightness(1)}
+.night-battle .fog{fill:#061124;fill-opacity:.75}
+.night-battle .hex-label{fill:#e0e7ef;text-shadow:0 1px 2px #000}
+.night-battle .night-light{pointer-events:none}
+.searchlight-beam{fill:#e5f4ff;fill-opacity:.18;stroke:#e5f4ff;stroke-opacity:.6;stroke-width:2}
+.searchlight-focus{fill:#e5f4ff;fill-opacity:.1;stroke:#b9dfff;stroke-width:2;stroke-dasharray:5 4}
+.night-flare{fill:#ffdd88;fill-opacity:.15;stroke:#ffe2a1;stroke-width:3;stroke-dasharray:7 5}
+.night-label{fill:#f5e9bb;font-size:12px;font-weight:800;paint-order:stroke;stroke:#111d32;stroke-width:3}
+.night-target{fill:none;stroke:#ffba85;stroke-width:3;stroke-dasharray:6 4}
+.night-station{fill:none;stroke:#a2efdc;stroke-width:3}
+.night-choice{fill:#bbe9ff;fill-opacity:.2;stroke:#dff5ff;stroke-width:3;cursor:pointer}
+.night-choice:hover,.night-choice:focus{fill-opacity:.55;outline:none;stroke:#ffe2a1}
+.night-battle .joint-air-badge{fill:#e4f6ff;paint-order:stroke;stroke:#111d32;stroke-width:2}

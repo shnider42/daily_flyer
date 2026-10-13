@@ -1,7 +1,7 @@
 /* Joint-domain presentation. Only public snapshots reach the layer picker. */
 'use strict';
 (()=>{
- const air=u=>['fighter','bomber'].includes(u.kind);
+ const air=u=>['fighter','bomber','transport_aircraft'].includes(u.kind);
  const node=(tag,text)=>{const n=document.createElement(tag);if(text)n.textContent=text;return n;};
  let layer='both',battle=null,pickerRevision=null,positionFrame=null;
  function schedulePosition(){if(positionFrame===null)positionFrame=requestAnimationFrame(()=>{positionFrame=null;position();});}

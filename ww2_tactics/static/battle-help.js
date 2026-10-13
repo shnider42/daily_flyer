@@ -49,6 +49,12 @@ window.orderHelp=(id,u,legal,simple)=>{
   descriptions.rearm=['Service at own carrier',`+1 strength${u?.kind==='bomber'?` / loads → ${u.max_bombs}`:''} / 1 finite store`];
   if(u?.naval_strike)descriptions.fire=[u.variant==='torpedo_bomber'?'Torpedo spotted ship':'Dive-bomb spotted ship',`${shot?.threshold||u.attack_threshold}+ / ${shot?.damage||(u.variant==='torpedo_bomber'?4:3)} hull / 1 load`];
  }
+ if(state?.scenario?.night_ops_version){
+  descriptions.spotlightAim=['Reveal an air corridor','1 AP / aim range 8 / emitter becomes visible'];
+  descriptions.pathfinderFlare=['Light both armies’ view','2 AP / radius 2 / guides drops and helps enemy AA'];
+  descriptions.nightDrop=['Drop near this Dakota','3 AP / aim within 1 hex / one finite squad / scatter die'];
+  descriptions.rearm=['Use own platoon field',`+1 strength / full ordnance / one finite store`];
+ }
  if(state?.joint_ops_version)descriptions.airstrike[0]='Carrier sortie · surface target';
  if(simple&&id==='suppress'&&!state?.dsl_expansion&&!state?.combat_version)return 'Pin enemy';
  return descriptions[id]?.[simple?0:1]||'';

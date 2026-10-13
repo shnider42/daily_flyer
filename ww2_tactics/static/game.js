@@ -20,6 +20,8 @@ Object.assign(kinds,{carrier:'Aircraft carrier',battleship:'Battleship',cruiser:
 Object.assign(unitCodes,{carrier:'CV',battleship:'BB',cruiser:'CA',destroyer:'DD'});
 Object.assign(kinds,{fighter:'Fighter',bomber:'Bomber',aa_gun:'Anti-aircraft gun',radar:'Radar station',airfield:'Airfield',landing_craft:'Landing craft'});
 Object.assign(unitCodes,{fighter:'FTR',bomber:'BMR',aa_gun:'AA',radar:'RAD',airfield:'AF',landing_craft:'LC'});
+Object.assign(kinds,{transport_aircraft:'Troop transport',spotlight:'Spotlight'});
+Object.assign(unitCodes,{transport_aircraft:'TRP',spotlight:'SL'});
 function controlsUnit(u){return !state?.coop||state.coop.controlled.includes(u.id);}
 function sideLabel(side){return state?.factions?.[side]||names[side];}
 function strengthLabel(u){return state?.naval_version||u.protection==='ship'?`${u.hp}/${u.max_hp} · ${u.ap}`:'●'.repeat(u.hp)+' · '+u.ap;}
@@ -129,6 +131,7 @@ function center(x,y){return [27+x*52+(y%2)*26,30+y*49];}
 function unitTypeName(u){if(u.display_name)return u.display_name;return state?.naval_version&&u.kind==='amphibious'?'Landing section':kinds[u.kind];}
 function unitName(u){return unitTypeName(u)+(u.platoon?` ${u.platoon}${u.number}`:'');}
 function unitRoleSummary(u){
+ if(state?.scenario?.night_ops_version)return window.nightRole?.(u)||'Night raid · read the mission and current legal orders';
  if(state?.scenario?.fleet_battle_version){
   if(u.kind==='carrier')return `Search for enemy ships · ${u.air_stores} aircraft-service stores · services this platoon’s aircraft within 1 hex`;
   if(u.variant==='aa_escort')return 'AA escort · interception range 3 · 2 damage · lighter surface guns';
@@ -250,7 +253,7 @@ function render(){
  if(!myTurn||!legal?.barrage?.length)barrageMode=false;
  if(combatMode&&(combatMode.unit!==selected||combatMode.revision!==state.revision||!myTurn||smokeMode||barrageMode||!legal?.[combatMode.kind]?.length))combatMode=null;
  const airliftPicking=!!window.airbornePicking?.(legal);
- const picking=airliftPicking||smokeMode||barrageMode||!!combatMode||!!window.operationsPicking?.(legal)||!!window.fieldworksPicking?.(legal)||!!window.signalsPicking?.(legal);
+ const picking=airliftPicking||smokeMode||barrageMode||!!combatMode||!!window.operationsPicking?.(legal)||!!window.fieldworksPicking?.(legal)||!!window.signalsPicking?.(legal)||!!window.nightPicking?.(legal);
  $('supportStatus').hidden=(state.rules_version||1)<4;
  $('supportStatus').textContent=`Off-map mortar calls · ${names.us} ${state.support?.us||0} / ${names.de} ${state.support?.de||0}`;
  $('incoming').hidden=!state.barrages?.length;
@@ -380,6 +383,7 @@ function render(){
  if(window.renderAirborne)window.renderAirborne(unit,legal,svg);
  if(window.renderFubar)window.renderFubar(unit,legal,svg);
  if(window.renderNewFronts)window.renderNewFronts(unit,legal,svg);
+ if(window.renderNight)window.renderNight(unit,legal,svg);
  if(window.renderOrderCapabilities)window.renderOrderCapabilities(unit);
  const buildingWarning=unit&&unit.hp>0&&!unit.reserve&&!unit.carrier_id&&buildingCondition(state,unit.pos)==='damaged'&&!picking&&!target;
  $('hint').classList.toggle('building-warning',!!buildingWarning);

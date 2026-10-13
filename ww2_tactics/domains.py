@@ -1,6 +1,6 @@
 """Version-gated occupancy rules for joint air / surface operations."""
-AIRCRAFT = frozenset({'fighter', 'bomber'})
-AIR_UNITS = AIRCRAFT | {'aa_gun', 'radar', 'airfield'}
+AIRCRAFT = frozenset({'fighter', 'bomber', 'transport_aircraft'})
+AIR_UNITS = AIRCRAFT | {'aa_gun', 'radar', 'airfield', 'spotlight'}
 SHIPS = frozenset({'carrier', 'battleship', 'cruiser', 'destroyer'})
 
 

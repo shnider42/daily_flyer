@@ -24,7 +24,7 @@ def scenario(board):
     result = copy.deepcopy(board)
     result.update(id=PREFIX+board['id'], source_id=board['id'], edition='current',
                   edition_version=VERSION, dsl_only=True, ground_stacking=True)
-    ground = not (board.get('naval') or board.get('air') or board.get('fleet_battle_version'))
+    ground = not (board.get('naval') or board.get('air') or board.get('fleet_battle_version') or board.get('night_ops_version'))
     if ground:
         result.update(signals=True, fire_control=True, logistics=True)
         # The original compact infantry maps become one explicit platoon. Do
@@ -33,6 +33,7 @@ def scenario(board):
             result['roster_platoons'] = None
             result['platoons'] = [dict(id='A', name='Infantry platoon', center=board['width']//2)]
     rules = ['weapons', 'structures', 'layered_occupancy', 'ground_stacking']
+    if board.get('night_ops_version'):rules += ['night_sight','searchlights','flares','transport_airlifts','finite_service']
     if ground:
         rules += ['fog', 'platoon_intelligence', 'fire_direction', 'indirect_mortars',
                   'engineering', 'finite_supply']

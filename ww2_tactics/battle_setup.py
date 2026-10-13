@@ -53,6 +53,8 @@ def result_summary(state):
             reason = 'The opposing army was eliminated.'
         else:
             reason = 'The evacuation deadline passed before six units were rescued.'
+    elif board.get('night_ops_version'):
+        reason=('Both radar sites were neutralized and paratroopers secured the signals station.' if winner=='us' else 'The night raid failed: no viable airborne force remained or the defense held through the deadline.')
     elif state.get('air_version'):
         reason = ('Both RAF sector stations were destroyed.' if winner == 'de' else
                   'Every enemy bomber was destroyed.' if not any(u['hp'] > 0 and u['side'] == 'de' and u['kind'] == 'bomber' for u in state['units']) else

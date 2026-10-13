@@ -57,7 +57,7 @@ def landing_space(state,pos,troop=None):
 
 def action(state,commander,order,legal,roll,react):
     from .engine import terrain, distance
-    from . import signals
+    from . import signals, nightfall
     kind=order['kind']
     if not legal.get(kind):raise ValueError('Order unavailable: check role, AP, reserves and the once-per-round airlift limit.')
     if kind=='mark_lz':
@@ -66,10 +66,14 @@ def action(state,commander,order,legal,roll,react):
         return 'Pathfinder beacon active: aims within 2 hexes scatter one hex less. Moving or attacking ends it; pinning disables it. Natural 1 and Flak remain dangerous.',[]
     aim=order.get('pos')
     if not inside(state,aim):raise ValueError('Choose a hex inside this battlefield.')
-    troop=reserves(state,commander['side'])[0]
+    night=nightfall.enabled(state)
+    if night and (commander['kind']!='transport_aircraft' or distance(commander['pos'],aim)>1):
+        raise ValueError('Fly the Dakota within one hex of the intended drop zone first.')
+    troop=(nightfall.drop_reserves(state,commander) if night else reserves(state,commander['side']))[0]
     commander.update(ap=commander['ap']-3,overwatch=False)
-    state['airlift_rounds'][commander['side']]=state['round']
-    die=roll();guided=beacon_near(state,commander['side'],aim)
+    if night:commander['drop_round']=state['round']
+    else:state['airlift_rounds'][commander['side']]=state['round']
+    die=roll();guided=beacon_near(state,commander['side'],aim) or night and nightfall.guided(state,commander['side'],aim)
     report=dict(round=state['round'],revision=state['revision']+1,unit=troop['id'],aim=list(aim),roll=die,guided=guided,landed=False)
     signals.alert(state,commander['side'],aim,'airlift')
     reason='Transport lost before landing; no sight established.'
@@ -89,7 +93,8 @@ def action(state,commander,order,legal,roll,react):
         interception=roll()
         if pos is not None:
             guns=[u for u in state['units'] if u['side']!=commander['side'] and active(u) and not u['pinned'] and u.get('aa_radius')
-                  and u.get('aa_round')!=state['round'] and distance(u['pos'],pos)<=u['aa_radius']]
+                  and u.get('aa_round')!=state['round'] and distance(u['pos'],pos)<=
+                  (min(2,u['aa_radius']) if night and not nightfall.illuminated(state,pos) else u['aa_radius'])]
             if guns:
                 gun=min(guns,key=lambda u:(distance(u['pos'],pos),u['id']));gun['aa_round']=state['round']
                 if interception<=2:pos=None;reason='Transport lost on approach; squad lost without establishing sight. Gun locations remain unknown.'

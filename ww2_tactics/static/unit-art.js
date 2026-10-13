@@ -143,6 +143,18 @@
     for(const [x,y] of [[-6,-12],[-2,-11],[2,-11],[6,-12],[10,-13]]){
      path(`M${x} ${y+1}q-3-4-4-2q1 3 4 2M${x} ${y+1}q3-4 4-2q-1 3-4 2`,'rank-leaf');
     }
+   }else if(['lancaster','halifax','mosquito_pathfinder','mosquito_fighter','bf110'].includes(u.variant)){
+    path(['lancaster','halifax'].includes(u.variant)?'M-2-21H2V-11L19-5V0L2-5V1L9 5H-9L-2 1V-5L-19 0V-5L-2-11Z':'M-2-20H2V-10L17-6V-1L2-5V1L7 4H-7L-2 1V-5L-17-1V-6L-2-10Z','vehicle-body');
+    for(const x of (['lancaster','halifax'].includes(u.variant)?[-12,-6,6,12]:[-9,9]))path(`M${x-1}-10h2v7h-2ZM${x-3}-10h6`,'specialist-line');
+    if(u.variant==='mosquito_pathfinder')path('M9-21v7M6-18h6','tool-steel');
+    if(u.variant==='bf110')path('M-2-20l-5-5M2-20l5-5M-5-23h10','specialist-line');
+   }else if(u.kind==='spotlight'){
+    path('M-14 4H14M-7 4l5-12M7 4L2-8','specialist-line');
+    path('M-10-12L2-18 10-5-2 1Z','vehicle-body');
+    path('M5-16l12-8M10-9l14-3','specialist-line');
+   }else if(u.kind==='transport_aircraft'){
+    path('M-3-20H3V-10L18-5V-1L3-6V1L9 4H-9L-3 1V-6L-18-1V-5L-3-10Z','vehicle-body');
+    path('M-11-10V-2M11-10V-2','specialist-line');
    }else if(u.naval_strike){
     path(u.variant==='dive_bomber'?'M-2-18H2V-9L17-4V0L2-4V2L7 5H-7L-2 2V-4L-17 0V-4L-2-9Z':'M-2-20H2V-10L18-7V-3L2-6V1L8 4H-8L-2 1V-6L-18-3V-7L-2-10Z','vehicle-body');
     if(u.variant==='torpedo_bomber')path('M-1-10H1V2H-1Z','tool-steel');
@@ -173,7 +185,7 @@
     path('M-8-7H-3L-1-8H1','mg-engraving insignia-detail');
    }
    const atlasViews={fighter:u.side==='us'?'0 0 535 500':'530 0 500 500',bomber:'1030 0 506 500',aa_gun:'0 500 575 524',radar:'570 500 460 524',landing_craft:'1025 500 511 524'};
-   if(atlasViews[u.kind]&&!u.naval_strike){
+   if(atlasViews[u.kind]&&!u.naval_strike&&!['lancaster','halifax','mosquito_pathfinder','mosquito_fighter','bf110'].includes(u.variant)){
     const fallback=el('g',{class:'raster-fallback'});while(drawing.firstChild)fallback.append(drawing.firstChild);
     const viewport=el('svg',{x:-20,y:-17,width:40,height:24,viewBox:atlasViews[u.kind],class:'atlas-viewport',preserveAspectRatio:'xMidYMid meet'});
     const picture=el('image',{href:'/assets/unit-images/air-atlas-v1.webp',width:1536,height:1024});viewport.append(picture);

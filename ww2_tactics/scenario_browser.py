@@ -13,6 +13,7 @@ CATEGORIES = {
 
 # key: learning position, additional categories, one short learning focus
 GUIDE = {
+    'nightfall_beacon': (14, ['air','airborne','attack-defend'], 'Night bombing and airborne raid: short sight, aimed Spotlights, flares and Dakota drops.'),
     'crosswind_strait': (12, ['naval','air','control'], 'Medium 2v2: two mixed air/naval platoons per side; carrier service and shipboard AA.'),
     'worlds_collide': (24, ['combined','armor','naval','air','airborne','amphibious','control'], 'Five platoons per coalition, every unit class and terrain, six control zones.'),
     'vire_crossroads': (22, ['combined','armor','control'], 'Lower density: two platoons, 17 units per side; one ground unit per hex.'),
@@ -50,7 +51,7 @@ def describe(board, release_order):
         focus = ('Lower density: two platoons, 17 units per side; shared ground hexes.' if source == 'vire_crossroads' else focus)
         focus += ' Current DSL: two friendly ground units per hex; separate air layer.'
     tags = list(tags)
-    mission = 'control' if board.get('naval') or board.get('joint_ops') or board.get('front_mode')=='armored_control' else 'evacuation' if board.get('front_mode')=='evacuation' else 'attack-defend'
+    mission = 'attack-defend' if board.get('night_ops_version') else 'control' if board.get('naval') or board.get('joint_ops') or board.get('front_mode')=='armored_control' else 'evacuation' if board.get('front_mode')=='evacuation' else 'attack-defend'
     if mission not in tags:tags.append(mission)
     for flag, tag in [('air', 'air'), ('naval', 'naval'), ('combined_arms', 'combined'), ('playtest', 'playtest')]:
         if board.get(flag) and tag not in tags:

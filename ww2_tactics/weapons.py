@@ -37,7 +37,7 @@ for _weapon in ('ap', 'he', 'at_shell', 'rocket', 'naval_shell', 'airstrike', 'b
 DEFAULT_WEAPONS = dict(tank='ap', at_gun='at_shell', at_team='rocket', mg='machine_gun',
     halftrack='machine_gun', battleship='naval_shell', cruiser='naval_shell',
     destroyer='naval_shell', carrier='naval_shell', fighter='air_gun', aa_gun='flak',
-    bomber='bomb', radar='none', airfield='none', landing_craft='none')
+    bomber='bomb', radar='none', airfield='none', landing_craft='none', transport_aircraft='none', spotlight='none')
 SHIPS = {'battleship', 'cruiser', 'destroyer', 'carrier'}
 
 
@@ -50,8 +50,8 @@ def protection(unit):
         return unit['protection']
     kind = unit['kind']
     if kind in SHIPS: return 'ship'
-    if kind in {'fighter', 'bomber'}: return 'aircraft'
-    if kind in {'radar', 'airfield'}: return 'installation'
+    if kind in {'fighter', 'bomber', 'transport_aircraft'}: return 'aircraft'
+    if kind in {'radar', 'airfield', 'spotlight'}: return 'installation'
     if kind == 'tank' or unit.get('armor', 0) >= 2: return 'heavy_armor'
     if unit.get('armor'): return 'light_armor'
     if kind == 'landing_craft': return 'vehicle'

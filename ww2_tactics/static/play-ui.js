@@ -12,6 +12,9 @@
  const save=()=>{try{localStorage.setItem(key,JSON.stringify(prefs));}catch{}};
  // Distinct silhouettes and plain-language effects supplement color, including on touch screens.
  const actionDesign={
+  spotlightAim:['blue','Reveal a narrow air corridor; expose this emitter','M4 18h16M10 18V9h4v9M8 9l4-5 4 5M15 4l7-3v13l-7-5'],
+  pathfinderFlare:['amber','Illuminate both armies and guide airborne drops','M12 3v5M12 16v5M3 12h5M16 12h5M8 8l8 8M8 16l8-8'],
+  nightDrop:['teal','Release one finite squad near this Dakota','M3 10a9 9 0 0 1 18 0H3ZM3 10l9 9 9-9M12 10v9M9 19h6v3H9Z'],
   resupply:['green','Deliver finite mortar shells or repair kits','M4 6h16v15H4ZM4 6l8-4 8 4M12 2v19M4 12h16'],
   evacuate:['teal','Rescue one marked infantry passenger','M3 15h18l-4 6H7ZM12 15V3M7 8l5-5 5 5'],
   callAirborne:['teal','Call one finite reserve squad to any hex','M3 10a9 9 0 0 1 18 0H3ZM3 10l9 9 9-9M12 10v9M9 19h6v3H9Z'],
@@ -78,6 +81,10 @@
     if(id==='overwatch'&&unit?.ship_aa_range)shortNames.overwatch='AA interception';
     shortNames.rearm='Carrier service';
     if(unit?.naval_strike)shortNames.fire=unit.variant==='torpedo_bomber'?'Aerial torpedo':'Dive bomb';
+   }
+   if(state?.scenario?.night_ops_version){
+    shortNames.rearm='Field service';shortNames.overwatch=unit?.kind==='aa_gun'?'Flak interception':'Intercept';
+    if(unit?.kind==='bomber')shortNames.fire='Bomb target';
    }
    const heading=node('span',null,cancel?title:shortNames[id]||title);heading.className='action-name';
    const description=window.orderHelp?.(id,unit,legal,prefs.experience==='simple')||purpose;

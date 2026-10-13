@@ -9,7 +9,7 @@
  picker.append(back,title,help,list);document.body.append(picker);
  let revision=null,battle=null;
  const active=u=>u.hp>0&&!u.reserve&&!u.carrier_id;
- const air=u=>['fighter','bomber'].includes(u.kind);
+ const air=u=>['fighter','bomber','transport_aircraft'].includes(u.kind);
  const snapshot=()=>window.signalSnapshot?.(state)||state;
  const same=(a,b)=>a[0]===b[0]&&a[1]===b[1];
  function owner(u){
@@ -30,7 +30,7 @@
   list.replaceChildren(...units.map(u=>entry(u,choose)));picker.showModal();
  }
  window.chooseGroundTarget=(pos,units,choose)=>open(pos,units,'choose target',choose);
- function picking(){const legal=state.legal?.[selected];return smokeMode||barrageMode||combatMode||window.airbornePicking?.(legal)||window.operationsPicking?.(legal)||window.fieldworksPicking?.(legal)||window.signalsPicking?.(legal)||$('map').classList.contains('transport-picking');}
+ function picking(){const legal=state.legal?.[selected];return smokeMode||barrageMode||combatMode||window.airbornePicking?.(legal)||window.operationsPicking?.(legal)||window.fieldworksPicking?.(legal)||window.signalsPicking?.(legal)||window.nightPicking?.(legal)||$('map').classList.contains('transport-picking');}
  function intercept(event){
   if(event.type==='keydown'&&!['Enter',' '].includes(event.key))return;
   if(!state?.ground_stack_version||busy||playbackSession||picking())return;
@@ -63,7 +63,7 @@
   if(picker.open&&(!on||busy||playbackSession||revision!==state.revision||battle!==state.code+':'+state.battle_number))picker.close();
   if(!on)return;
   manual.querySelector('h3').textContent=state.edition==='current'?'Current DSL · shared ground hexes':'Belfry Valley · two units per hex';
-  $('manualAP').textContent=(state.edition==='current'?'Current DSL':'Belfry Valley')+': up to two friendly ground units per hex, at most one vehicle/fixed gun. Each keeps its own AP and owner. Aircraft use a separate slot; ships and boats stay separate. Select a friendly counter, then Move here to share; click a shared hex to choose a unit. Explosives can hit both.';
+  if(!state.scenario.night_ops_version)$('manualAP').textContent=(state.edition==='current'?'Current DSL':'Belfry Valley')+': up to two friendly ground units per hex, at most one vehicle/fixed gun. Each keeps its own AP and owner. Aircraft use a separate slot; ships and boats stay separate. Select a friendly counter, then Move here to share; click a shared hex to choose a unit. Explosives can hit both.';
   paint($('map'),snapshot());
  });
  document.addEventListener('ww2:playback',()=>{if(state?.ground_stack_version&&playbackSession)paint($('playbackMap'),playbackSession.frames[playbackSession.index][playbackSession.phase]);});

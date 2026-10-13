@@ -21,6 +21,17 @@
      'Beach lanes and the East mole are embarkation routes. Boats stay on water and carry one unit. There are three boats, with no automatic replacements.',
      'Evacuation commits earlier undo orders. The rescue count is public, but enemy manifests and individual survivors’ strength remain private.'],focus:[9,3]};
   }
+  if(s.scenario.night_ops_version){
+   const n=s.night_status||{radars_destroyed:0,hold:0};
+   return {goal:s.side==='us'?'Bomb both radar sites, then secure the signals station with landed paratroopers.':'Protect the radar sites and prevent paratroopers securing the signals station.',
+    compact:`Radar ${n.radars_destroyed}/2 · Station ${n.hold}/2 turns`,progress:`Radar sites destroyed ${n.radars_destroyed}/2 · Airborne hold ${n.hold}/2 · Round ${s.round}/${rounds}`,
+    rules:['Allies must destroy both radar sites and hold the signals station with an unpinned landed paratrooper, with no German infantry within 1 hex, for two consecutive Allied turn endings. Bombing alone and aircraft above the station do not win. Germans win if no viable airborne squad remains or round 24 ends first. Objective progress is public.',
+     'Aircraft normally see only 2 air hexes and 1–2 surface hexes. Mosquito escorts see 4 air hexes; Bf 110s see 5; surviving German radar sites see 6. Ground garrisons and landed airborne troops see 3, less into concealment. Radar does not reveal distant ground units.',
+     'Spotlights cost 1 AP to aim a narrow air corridor up to 8 hexes. The illuminated air is visible to both armies; the active emitter reveals itself. Beams expire at the next German turn. They do not reveal unlit ground troops.',
+     'Mosquito Pathfinders have two flares. For 2 AP, illuminate radius 2 within 5 hexes through the opposing turn. Both armies see the area; friendly drops scatter one hex less. Darkness adds +1 to aircraft attack thresholds and +2 to Flak; illumination removes that penalty. Gun flashes reveal their firing position until they move or their next turn.',
+     s.scenario.reinforcement_brief,
+     'Each side has two platoons. Dakotas and their airborne squads stay under the same owner, including in unit-control co-op. Bombers and fighters can return within 1 hex of their platoon’s field for 2 AP service: +1 strength and full ordnance, consuming one of its six stores. There are no replacement units.'],focus:s.scenario.objective};
+  }
   if(s.scenario.fleet_battle_version){
    const score=s.joint_score||{us:0,de:0};
    return {goal:'Reach 12 control points by holding the three sea lanes with ships.',
