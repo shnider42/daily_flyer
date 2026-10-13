@@ -58,6 +58,9 @@ def omaha_roster():
 
 
 def setup(board):
+    if board['campaign'] == 'crosswind_strait':
+        from .crosswind import roster as crosswind_roster
+        return crosswind_roster()
     if board['campaign'] == 'worlds_collide':
         from .worlds_collide import roster as worlds_roster
         return worlds_roster()

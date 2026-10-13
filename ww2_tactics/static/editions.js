@@ -11,8 +11,9 @@ document.addEventListener('DOMContentLoaded',()=>{
  document.addEventListener('ww2:render',()=>{
   const dsl=state?.ruleset==='dsl';note.hidden=!dsl;
   note.textContent=dsl?`${battleEdition()} DSL${state.edition==='current'?' · shared rules v'+state.edition_version:' · original scenario rules'}`:'';
-  if(dsl)$('rulesetBadge').textContent=`DSL · ${battleEdition()}`;
+  if(dsl&&!state?.scenario?.fleet_battle_version)$('rulesetBadge').textContent=`DSL · ${battleEdition()}`;
   for(const [manual,original] of manuals){
+   if(state?.scenario?.fleet_battle_version&&manual.id==='fubarManual')continue;
    const html=state?.edition==='current'?original
     .replace('cannot finish on another unit or pass through another aircraft','cannot finish on another aircraft or pass through another aircraft; ground units have separate occupancy')
     .replace('At most one aircraft and one surface unit may share a hex; same-layer stacking is forbidden.','Up to two friendly ground units and one aircraft may share a land hex, with at most one vehicle or fixed gun. Ships and boats retain separate spaces.')

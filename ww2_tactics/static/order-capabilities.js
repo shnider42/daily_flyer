@@ -20,8 +20,9 @@
    if(['destroyer','amphibious'].includes(kind))add('smoke');
    if(kind==='amphibious'){if(s.combat_version)add('rally');}
    else add('repair');
-   if(kind==='carrier')add('recon','airstrike');
-   if(kind==='destroyer')add('torpedo');
+   if(kind==='carrier'){add('recon');if(u.abstract_strikes!==false)add('airstrike');}
+   if(kind==='destroyer'||u.torpedo_launcher)add('torpedo');
+   if(s.scenario?.fleet_battle_version&&u.ship_aa_range)add('overwatch');
   }else{
    if(v>=2){
     if(!vehicles.has(kind))add('dig');
@@ -107,7 +108,7 @@
   const support={artillery:'artillery',fieldRecon:'field_recon'}[id];
   if(support&&u.cooldowns?.[support]>state.round)return 'Ready R'+u.cooldowns[support];
   if(({recon:u.recon_used,airstrike:u.air_used,torpedo:u.torpedo_used,repair:u.repair_used,rearm:u.rearm_used})[id])return 'Used this turn';
-  if(u.kind==='bomber'&&['fire','areaFire'].includes(id)&&!u.bombs)return 'Reload at airfield';
+  if(u.kind==='bomber'&&['fire','areaFire'].includes(id)&&!u.bombs)return state.scenario.fleet_battle_version?'Reload at own platoon carrier':'Reload at airfield';
   if(!['load','unload'].includes(id)&&u.ap<cost(id))return `Needs ${cost(id)} AP`;
   if(['fire','grenade','assault','suppress','airstrike','torpedo'].includes(id))return target?'No legal attack on target':'Select a visible enemy';
   if(id==='resupply')return 'Needs adjacent mortar or engineer below capacity';
@@ -121,7 +122,7 @@
   if(id==='snipe')return 'Needs a visible firing lane';
   if(id==='repairTank')return 'Needs adjacent damaged tank';
   if(id==='repair')return 'Hull at full strength';
-  if(id==='rearm')return u.hp===u.max_hp&&(u.kind!=='bomber'||u.bombs>=2)?'Fully serviced':'Needs friendly airfield';
+  if(id==='rearm')return u.hp===u.max_hp&&(u.kind!=='bomber'||u.bombs>=(u.max_bombs||2))?'Fully serviced':state.scenario.fleet_battle_version?'Needs own platoon carrier within 1 hex with stores':'Needs friendly airfield';
   if(id==='inspire')return 'No nearby allies pinned';
   if(id==='command')return state.command_used?.includes(u.side+':'+(u.kind==='commander'?'HQ-orders':u.platoon||''))?'Command used this turn':'Needs eligible nearby troops';
   if(id==='load')return state.units.some(p=>p.carrier_id===u.id&&p.hp>0)?'Transport occupied':'Needs ready adjacent infantry';
@@ -151,7 +152,8 @@
    b.disabled=busy||!!playbackSession;
    b.dataset.orderReason=why;b.dataset.orderId=id;
    b.setAttribute('aria-disabled',String(!!why));b.classList.toggle('order-unavailable',!!why);
-   b.textContent=cancel?'Cancel '+labels[id].toLowerCase():`${labels[id]} · ${cost(id)} AP`;
+   const label=state.scenario.fleet_battle_version&&id==='rearm'?'Carrier service':state.scenario.fleet_battle_version&&id==='overwatch'&&u.ship_aa_range?'AA interception':labels[id];
+   b.textContent=cancel?'Cancel '+label.toLowerCase():`${label} · ${cost(id)} AP`;
   }
  };
  // aria-disabled keeps explanations keyboard-accessible. Block mouse, touch and

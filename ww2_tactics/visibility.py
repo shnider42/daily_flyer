@@ -222,7 +222,7 @@ def view(state, side, terrain_visibility=True):
                   barrages=copy.deepcopy([{k:v for k,v in b.items() if k != 'attacker'} for b in state.get('barrages', [])]),
                   recon=copy.deepcopy([r for r in state.get('recon', []) if r['side']==side]),
                   round=state['round'], turn=state['turn'], hold=state['hold'], winner=state['winner'])
-    if state.get('signals_version'):
+    if state.get('signals_version') or state.get('battlefield', {}).get('fleet_battle_version'):
         for u in result['units']:
             if u['side']!=side:
                 u['overwatch']=False

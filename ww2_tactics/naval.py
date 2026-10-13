@@ -9,7 +9,7 @@ from .rulesets import base_ap, bank_limit
 from .visibility import active, visible_ids, update_intel, record_reports
 from .combat_display import record_combat
 from .effects import record_effect
-from . import weapons, operations, domains
+from . import weapons, operations, domains, crosswind
 
 SHIPS={'battleship','carrier','cruiser','destroyer'}
 FACTIONS={'us':'Americans','de':'Japanese'}
@@ -92,11 +92,18 @@ def options(state, unit):
                              if distance(unit['pos'],[x,y])<=unit['recon_range'] and navigable(terrain(x,y,state))]
     if unit['ap']<2:
         return result
+    if crosswind.enabled(state):result['overwatch']=bool(unit.get('ship_aa_range') and not unit['overwatch'])
     result['repair']=unit['hp']<unit.get('max_hp',unit['hp']) and unit.get('repairs',0)>0 and not unit.get('repair_used')
     for target in living:
         if target['side']==unit['side'] or target['id'] not in seen:
             continue
         gap=distance(unit['pos'],target['pos'])
+        if crosswind.enabled(state) and domains.is_air(target):
+            if gap<=unit.get('ship_aa_range',0):
+                from .air import shot
+                aa=shot(unit,target)
+                result['targets'].append(dict(weapons.preview(unit,target,aa['threshold'],aa['modifiers'],weapon='flak',state=state),naval=True))
+            continue
         clear=line_clear(unit['pos'],target['pos'],state['smoke'],state)
         if gap<=unit['range'] and clear:
             mods=dict(distance=int(gap>5),evasion=int(target['kind']=='destroyer'),cover=buildings.cover(state,target['pos'],objective=False))
@@ -107,9 +114,9 @@ def options(state, unit):
                                               damage=max(1,unit['gun_damage']-target['armor']),naval=True))
         from .engine import line_cells
         water_route=not domains.joint(state) or all(navigable(terrain(x,y,state)) for x,y in line_cells(tuple(unit['pos']),tuple(target['pos'])))
-        if unit['kind']=='destroyer' and target['kind'] in SHIPS and unit['torpedoes']>0 and not unit['torpedo_used'] and gap<=unit['torpedo_range'] and clear and water_route:
+        if (unit['kind']=='destroyer' or crosswind.enabled(state) and unit.get('torpedo_launcher')) and target['kind'] in SHIPS and unit['torpedoes']>0 and not unit['torpedo_used'] and gap<=unit['torpedo_range'] and clear and water_route:
             result['torpedoes'].append(dict(id=target['id'],threshold=4,damage=unit['torpedo_damage']))
-        if unit['kind']=='carrier' and not unit['air_used'] and gap<=unit['strike_range'] and (not domains.joint(state) or weapons.damage(unit,target,'airstrike')):
+        if unit['kind']=='carrier' and unit.get('abstract_strikes',True) and not unit['air_used'] and gap<=unit['strike_range'] and (not domains.joint(state) or weapons.damage(unit,target,'airstrike')):
             # Only observed escorts affect the preview; nearby water contacts are normally spotted together.
             escort=any(u['kind']=='cruiser' and u['side']==target['side'] and u['id'] in seen and distance(u['pos'],target['pos'])<=2 for u in living)
             result['airstrikes'].append(dict(id=target['id'],threshold=(3 if unit['side']=='us' else 4)+int(escort),
@@ -136,6 +143,7 @@ def unit_order(state, unit, action, legal, roll, before=None):
             raise ValueError('Movement blocked by a contact. Scout or choose another approach.')
         cost=next(m['cost'] for m in legal['moves'] if m['pos']==action['pos'])
         unit['pos']=list(action['pos']);unit['ap']-=cost
+        if crosswind.enabled(state):unit['overwatch']=False
         message=f"{names.get(side, FACTIONS[side])} {unit['kind']} moved to {column(unit['pos'][0])}{unit['pos'][1]+1}."
     elif kind=='recon' and action.get('pos') in legal['recon']:
         unit['ap']-=1;unit['recon_used']=True
@@ -150,11 +158,15 @@ def unit_order(state, unit, action, legal, roll, before=None):
     elif kind=='smoke' and action.get('pos') in legal['smoke']:
         unit['ap']-=1;unit['smoke']-=1;state['smoke'].append(dict(pos=list(unit['pos']),ttl=2))
         record_effect(state,'smoke',[unit['pos']]);message='Unit laid a smoke screen. It blocks surface sight, guns and torpedoes.'
+    elif kind=='overwatch' and legal.get('overwatch'):
+        unit['ap']-=2;unit['overwatch']=True
+        message=f"Shipboard AA set: one interception within {unit['ship_aa_range']} hexes, until this ship’s next turn."
     elif kind in {'fire','airstrike','torpedo'}:
         key={'fire':'targets','airstrike':'airstrikes','torpedo':'torpedoes'}[kind]
         shot=next((s for s in legal[key] if s['id']==action.get('target')),None)
         if shot is None:raise ValueError('No legal naval attack: check sight, range, AP and weapon readiness.')
         target=next(u for u in state['units'] if u['id']==shot['id']);die=roll();unit['ap']-=2
+        if crosswind.enabled(state):unit['overwatch']=False
         if kind=='airstrike':unit['air_used']=True
         if kind=='torpedo':unit['torpedo_used']=True;unit['torpedoes']-=1
         impacts = []
@@ -164,7 +176,7 @@ def unit_order(state, unit, action, legal, roll, before=None):
             if die>=shot['threshold']:target['hp']=max(0,target['hp']-shot['damage'])
             result='sunk' if not target['hp'] else f"hit for {shot['damage']} hull" if die>=shot['threshold'] else 'missed'
         message=f"{names.get(side, FACTIONS[side])} {unit['kind']} {kind}: rolled {die}, needed {shot['threshold']}+. Target {result}."
-        state['last_combat']=dict(kind={'fire':'Naval guns','airstrike':'Air strike','torpedo':'Torpedoes'}[kind],
+        state['last_combat']=dict(kind='Shipboard AA' if shot.get('weapon')=='flak' else {'fire':'Naval guns','airstrike':'Air strike','torpedo':'Torpedoes'}[kind],
              roll=die,threshold=shot['threshold'],result=result,attacker=unit['id'],target=target['id'],impacts=impacts,revision=state['revision']+1)
         record_combat(state,shot.get('modifiers'),shot.get('effect_text',f"{shot['damage']} hull on a hit. Ships do not suffer infantry pins.")+(' Cruiser AA cover adds +1.' if shot.get('aa') else ''))
         record_effect(state,'explosion',[target['pos']])

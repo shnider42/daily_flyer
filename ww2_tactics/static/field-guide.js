@@ -52,6 +52,10 @@
  };
  evacuate.onclick=()=>{const uid=selected;if(confirm('Evacuate the marked passenger? This rescue is permanent and commits earlier takebacks. The empty boat can return.'))act({kind:'evacuate',unit:uid});};
  function detailedHelp(id,u,legal){
+  if(state.scenario.fleet_battle_version){
+   if(id==='rearm')return 'Spend 2 aircraft AP within one hex of your own platoon’s surviving carrier to restore 1 strength and reload ordnance. Once per aircraft per turn. One of the carrier’s six finite stores is consumed; a teammate’s carrier cannot supply your platoon.';
+   if(id==='overwatch'&&u.ship_aa_range)return `Spend 2 AP to intercept one enemy aircraft along its flight path within ${u.ship_aa_range} hexes. Moving or firing this ship cancels readiness. Does not react against ships. Enemy interception orders are private.`;
+  }
   const extra={
    observe:`Spend 1 AP to add 2 hexes to this unit’s sight, not its weapon range. ${legal?.observation?`Current nominal sight: ${legal.observation.sight}; weapon range: ${legal.observation.weapon_range}. `:''}Terrain, smoke and enemy concealment still matter. ${u.observing?'ACTIVE now. ':''}Moving, attacking, boarding or the next friendly turn ends observation. Pinned units must rally first.`,
    radioUpdate:`Share sightings (formerly “Radio update”) sends dated contact reports. ${u.kind==='radioman'?'This radio team spends 1 AP and shares only its own platoon’s reports.':'This commander spends 2 AP and shares recent reports from all friendly platoons.'} Once per round. Reports last through the following round; they do not follow the enemy. A reported hex can be aimed at by a mortar, but it does not become a live direct-fire target. The enemy hears only a broad sector alert. No recent contacts means nothing to share.`,
@@ -66,6 +70,11 @@
  }
  function unitStatus(u,legal){
   const parts=[`${u.hp}/${u.max_hp||u.hp} strength`,`${u.ap} AP`];
+  if(state.scenario.fleet_battle_version){
+   if(u.kind==='bomber')parts.push(`${u.bombs}/${u.max_bombs} ordnance loads`);
+   if(u.kind==='carrier')parts.push(`${u.air_stores}/6 carrier-service stores`);
+   if(u.torpedoes)parts.push(`${u.torpedoes} torpedo salvos`);
+  }
   if(u.observing)parts.push(`OBSERVING +2 sight${legal?.observation?' · sight '+legal.observation.sight:''} · weapon range unchanged`);
   if(u.mortar_range)parts.push(`${u.shells||0}${u.max_shells?'/'+u.max_shells:''} mortar shells`);
   if(u.kind==='supply')parts.push(`${u.supply_packs||0}/3 supply packs`);

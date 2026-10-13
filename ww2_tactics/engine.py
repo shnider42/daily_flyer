@@ -162,6 +162,7 @@ def watchers(state, target, pos):
     destination = dict(target, pos=pos, entrenched=False)
     return [u for u in state['units'] if u['side'] != target['side'] and active(u)
             and u.get('overwatch') and not u['pinned']
+            and not (state.get('battlefield', {}).get('fleet_battle_version') and u.get('ship_aa_range'))
             and distance(u['pos'], pos) <= u['range']
             and line_clear(u['pos'], pos, state.get('smoke', []), state)
             and (not fog(state) or (signals.group_sees(state,u['side'],signals.group(u),pos,signals.concealed(state,destination)) if signals.enabled(state)

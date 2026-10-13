@@ -251,13 +251,18 @@
   book.splice(s.deployment?.phase==='planning'?3:1,0,...extra.slice(0,2));
   const finish=book.find(l=>l.id==='finish');book=book.filter(l=>l.id!=='finish');book.push(...extra.slice(2));if(finish)book.push(finish);
   if(operationSource(s.scenario)!=='iron_lantern'&&!s.joint_ops_version&&!(s.edition==='current'&&own.some(u=>u.armor>=3)))book=book.filter(l=>l.id!=='heavy');
-  if(s.edition==='current')book.unshift(make('current-edition','Current DSL: familiar missions, shared rules',[
+  if(s.scenario.fleet_battle_version)book.unshift(make('current-edition','Current DSL: a mixed air and naval force',[
+   'Crosswind Strait gives each army two mixed platoons. Every platoon has four ships and three aircraft. Ships score sea-lane points; aircraft support them. One ship and one aircraft can share a hex.',
+   'Both platoons contain a carrier, specialist cruiser, two destroyers, two fighters and a naval strike bomber. Carrier service uses finite stores and belongs to that platoon. The mission names all three sea lanes and the 12-point goal.',
+   'Separate air and surface occupancy keeps one ship and one aircraft per hex. This operation adds shipboard interception, four asymmetric equipment profiles and finite platoon-owned carrier service. No ground troops, road bonuses, infantry pinning or airfields apply. The saved mission and unit cards define scoring and capacities.'
+  ],'Open the mission and identify your own mixed platoon.','@mission'));
+  if(s.edition==='current'&&!s.scenario.fleet_battle_version)book.unshift(make('current-edition','Current DSL: familiar missions, shared rules',[
    'You are playing the Current version of this operation. Your units each keep their own actions. Two friendly ground units can share a hex, and a plane can fly above them. The mission tells you how this map is won.',
    'Current uses common rules for units, terrain and equipment across maps. Platoons spot locally; dated radio reports help indirect mortar aiming. Recon must Observe before Spot for fire. Each map keeps its original force, asymmetry and mission, and fleet or air missions keep their specialized systems.',
    'Two friendly ground counters may occupy a land hex, at most one vehicle or fixed gun, with one independent aircraft above. Each retains its AP, controller and platoon sight. Recon guidance changes accuracy, never penetration; indirect mortars consume finite shells. Check the mission and actual unit cards for faction equipment, reserves, scoring and exceptions. An ongoing match keeps the rules it started with.'
   ],'Open the mission and identify your objectives and force roles.','@mission'));
   if(s.edition==='current')for(const lesson of book){
-   if(lesson.id==='layers')lesson.texts=[
+   if(lesson.id==='layers'&&!s.scenario.fleet_battle_version)lesson.texts=[
     'Aircraft can fly above ground units. Up to two friendly ground units and one aircraft can share a land hex. Both, Surface and Air change the view; tap the hex to choose an occupant.',
     'Ground capacity is two friendly units, at most one vehicle or fixed gun; aircraft have an independent slot. Ships and boats stay separate. Each unit retains its own actions, platoon sight and controller.',
     'Surface and air occupancy are independent. One aircraft per air hex; two friendly ground occupants with at most one vehicle or fixed gun. Ships and boats retain separate spaces and weapon target restrictions. Changing the view never changes what your platoon sees or which player controls a counter.'];

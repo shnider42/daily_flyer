@@ -21,6 +21,17 @@
      'Beach lanes and the East mole are embarkation routes. Boats stay on water and carry one unit. There are three boats, with no automatic replacements.',
      'Evacuation commits earlier undo orders. The rescue count is public, but enemy manifests and individual survivors’ strength remain private.'],focus:[9,3]};
   }
+  if(s.scenario.fleet_battle_version){
+   const score=s.joint_score||{us:0,de:0};
+   return {goal:'Reach 12 control points by holding the three sea lanes with ships.',
+    compact:`Win: 12 points · Allies ${score.us} / Axis ${score.de}`,progress:`Allies ${score.us}/12 · Axis ${score.de}/12 · Round ${s.round}/${rounds}`,
+    rules:['Two mixed platoons per side, seven units each: carrier, two destroyers, specialist cruiser, two fighters and a naval strike bomber. Co-op platoon control supports four players; unclaimed platoons use computers.',
+     'Each sea lane earns 1 point at your army’s turn end when a ship is within 1 hex and no enemy ship contests it. Aircraft do not capture or contest. First to 12 wins; after round 18 higher score wins, with Axis winning an exact tie. Eliminating the whole opposing force also wins.',
+     'One ship and one aircraft may share a sea hex. Islands block ships, surface guns and torpedoes; aircraft fly over them. Both / Surface / Air changes your view only.',
+     'Set AA interception for 2 AP: one reaction along an enemy flight path. The Allied AA escort reaches 3 hexes for 2 damage; other ships reach 1 for 1 damage. Fighters also intercept. Enemy interception orders remain private.',
+     'Allied dive bombers: two loads, range 1, 3+ hit, 3 hull damage. Axis torpedo bombers: one load, range 2, 4+ hit (5+ against destroyers), 4 hull damage. Axis torpedo cruisers have three range-5 salvos dealing 4 hull damage on 4+.',
+     s.scenario.reinforcement_brief],focus:s.scenario.objective};
+  }
   if(s.joint_ops_version){
    const score=s.joint_score||{us:0,de:0},target=s.scenario.joint_score_target||10,zones=s.scenario.joint_objectives||[],expanded=!!s.scenario.joint_score_target;
    return {goal:expanded?`Reach ${target} control points. Ships take ${zones.filter(p=>p.domain==='sea').length} sea lanes; infantry take ${zones.filter(p=>p.domain==='land').length} land flags.`:'Reach 10 control points. Ships take the sea lane; infantry take the two land flags.',

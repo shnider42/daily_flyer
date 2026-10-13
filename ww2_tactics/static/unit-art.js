@@ -57,6 +57,13 @@
       path(`M${x}-8h${x<0?-6:6}`,'ship-barrel');
      }
      if(u.kind==='destroyer')path('M-12-6H-6M-10-8H-5','ship-barrel');
+     if(u.variant==='aa_escort'){
+      for(const x of [-12,-7,10])path(`M${x}-6l-3-5M${x}-6l3-5`,'ship-barrel');
+      path('M-15-15q15-8 30 0','specialist-line');
+     }
+     if(u.variant==='torpedo_cruiser'){
+      path('M-13-7h8M-13-10h8M-13-13h8','ship-barrel');
+     }
     }
     for(const x of [-10,-6,7,11])add('circle',{cx:x,cy:-2,r:.65,class:'ship-porthole'});
    }else if(u.kind==='amphibious'&&state?.naval_version&&!['water','objective'].includes(state.map[u.pos[1]][u.pos[0]])){
@@ -136,6 +143,10 @@
     for(const [x,y] of [[-6,-12],[-2,-11],[2,-11],[6,-12],[10,-13]]){
      path(`M${x} ${y+1}q-3-4-4-2q1 3 4 2M${x} ${y+1}q3-4 4-2q-1 3-4 2`,'rank-leaf');
     }
+   }else if(u.naval_strike){
+    path(u.variant==='dive_bomber'?'M-2-18H2V-9L17-4V0L2-4V2L7 5H-7L-2 2V-4L-17 0V-4L-2-9Z':'M-2-20H2V-10L18-7V-3L2-6V1L8 4H-8L-2 1V-6L-18-3V-7L-2-10Z','vehicle-body');
+    if(u.variant==='torpedo_bomber')path('M-1-10H1V2H-1Z','tool-steel');
+    else path('M8-17L13-12M13-12h-5M13-12v-5','specialist-line');
    }else if(['fighter','bomber','aa_gun','radar','airfield','landing_craft'].includes(u.kind)){
     drawing.append(el('text',{x:0,y:-3,class:'air-fallback'},unitCodes[u.kind]));
    }else if(u.side==='us'){
@@ -162,7 +173,7 @@
     path('M-8-7H-3L-1-8H1','mg-engraving insignia-detail');
    }
    const atlasViews={fighter:u.side==='us'?'0 0 535 500':'530 0 500 500',bomber:'1030 0 506 500',aa_gun:'0 500 575 524',radar:'570 500 460 524',landing_craft:'1025 500 511 524'};
-   if(atlasViews[u.kind]){
+   if(atlasViews[u.kind]&&!u.naval_strike){
     const fallback=el('g',{class:'raster-fallback'});while(drawing.firstChild)fallback.append(drawing.firstChild);
     const viewport=el('svg',{x:-20,y:-17,width:40,height:24,viewBox:atlasViews[u.kind],class:'atlas-viewport',preserveAspectRatio:'xMidYMid meet'});
     const picture=el('image',{href:'/assets/unit-images/air-atlas-v1.webp',width:1536,height:1024});viewport.append(picture);

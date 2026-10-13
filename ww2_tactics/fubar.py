@@ -145,7 +145,7 @@ def ground_goal(state, unit):
 def domain_choices(state, unit, legal, observed, visited):
     """Bounded air / fleet AI using only observed units and public objectives."""
     from .engine import distance
-    from . import weapons
+    from . import weapons, crosswind
     side=unit['side'];choices=list(weapons.ai_orders(state,unit,legal,observed))
     enemies=[u for u in observed if u['side']!=side and u['hp']>0 and not u.get('reserve') and not u.get('carrier_id')]
     def add(score,kind,**data):choices.append((score,dict(kind=kind,unit=unit['id'],**data)))
@@ -163,7 +163,9 @@ def domain_choices(state, unit, legal, observed, visited):
     if domains.is_air(unit):
         targets=[u['pos'] for u in enemies if (domains.is_air(u) if unit['kind']=='fighter' else weapons.damage(unit,u))]
         if unit['kind']=='bomber' and not unit['bombs']:
-            targets=[u['pos'] for u in observed if u['side']==side and u['kind']=='airfield' and u['hp']>0]
+            targets=[u['pos'] for u in observed if u['side']==side and u['hp']>0 and
+                     (u['kind']=='carrier' and u['platoon']==unit['platoon'] and u.get('air_stores',0)>0
+                      if crosswind.enabled(state) else u['kind']=='airfield')]
         goals=targets or [p['pos'] for p in state['battlefield']['joint_objectives']]
         goal=min(goals,key=lambda p:distance(unit['pos'],p))
         for move in legal['moves']:
@@ -171,6 +173,9 @@ def domain_choices(state, unit, legal, observed, visited):
             gain=distance(unit['pos'],goal)-distance(move['pos'],goal)
             add(2+gain*3-move.get('threats',0)*2-(10 if distance(unit['pos'],goal)<=1 else 0),'move',pos=move['pos'])
     elif unit['kind'] in domains.SHIPS:
+        if crosswind.enabled(state):
+            choices.extend(crosswind.ship_choices(state,unit,legal,visited))
+            return choices
         # Fubar's open ocean flank has no islands blocking the approach.
         points=[p for p in controls(state) if p['domain']=='sea']
         available=[p for p in points if p['owner']!=side or distance(unit['pos'],p['pos'])<=p['radius']]

@@ -123,7 +123,9 @@ SCENARIOS.update(observed_scenarios(build))
 # New Current operations have no Legacy counterpart. Keep the original catalog
 # and its saved IDs frozen rather than automatically creating a Legacy edition.
 from .worlds_collide import scenario as worlds_scenario
-CURRENT_SCENARIOS = {'worlds_collide': worlds_scenario(build)}
+from .crosswind import scenario as crosswind_scenario
+CURRENT_SCENARIOS = {'worlds_collide': worlds_scenario(build),
+                     'crosswind_strait': crosswind_scenario(build)}
 
 
 def get_scenario(key='village'):

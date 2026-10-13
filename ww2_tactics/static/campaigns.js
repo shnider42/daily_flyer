@@ -42,7 +42,7 @@
    $('selection').textContent=`${unitName(unit)} · ${unit.hp}/${unit.max_hp} strength · ${unit.ap} AP${unit.kind==='bomber'?` · ${unit.bombs} bombs`:''}`;
    if(!target)$('hint').textContent=flying?`Tap a bright destination · up to ${unit.flight} hexes for 1 AP. ${unit.kind==='bomber'?`${unit.bombs} bomb loads remaining.`:'Select an enemy aircraft to attack.'}`:unit.kind==='aa_gun'?'Select an enemy aircraft to fire, or set AA cover.':roles[unit.kind];
    const meters=$('unitMechanics').querySelector('.unit-meters');$('unitMechanics').replaceChildren();if(meters)$('unitMechanics').append(meters);
-   $('unitMechanics').append(uiNode('p','mechanics-caption',`Base ${unit.base_ap} AP · bank ${unit.base_ap?1:0} · range ${unit.range}. ${flying?'Terrain does not add cover or block flight.':'Fixed installation; cannot move.'}${unit.kind==='bomber'?` Bomb loads ${unit.bombs}/2.`:''}${unit.overwatch?' Interception ready.':''}`));
+   $('unitMechanics').append(uiNode('p','mechanics-caption',`Base ${unit.base_ap} AP · bank ${unit.base_ap?1:0} · range ${unit.range}. ${flying?'Terrain does not add cover or block flight.':'Fixed installation; cannot move.'}${unit.kind==='bomber'?` Ordnance loads ${unit.bombs}/${unit.max_bombs||2}.`:''}${unit.overwatch?' Interception ready.':''}`));
   }
   if(air&&!svg.querySelector('.station-mark'))for(const [i,pos] of state.scenario.airfields.us.entries()){
    const [x,y]=center(...pos),lost=(state.raid_destroyed||[]).some(p=>p[0]===pos[0]&&p[1]===pos[1]);

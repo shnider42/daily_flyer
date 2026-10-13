@@ -71,6 +71,7 @@
    const landing=unit.kind==='amphibious',ashore=landing&&!['water','objective'].includes(state.map[unit.pos[1]][unit.pos[0]]),health=landing?'Strength':'Hull';
    roles.amphibious='LANDING SECTION · Move directly from sea to beach to disembark; move back to water to re-embark. Open ground costs 1 AP; jungle/outposts cost 2. Range 2; 1 damage. Hold a flagged outpost to score +1 each turn. One smoke screen.';
    $('roleBrief').textContent=roles[unit.kind];
+   if(state.scenario.fleet_battle_version)$('roleBrief').textContent=unitRoleSummary(unit);
    $('selection').textContent=`${unitName(unit)}${landing?(ashore?' · Ashore':' · Embarked'):''} · ${health} ${unit.hp}/${unit.max_hp} · ${unit.ap} AP`;
    $('hint').textContent=target?'Choose an available naval attack. Search or close the range if no attack appears.':`Hull ${unit.hp}/${unit.max_hp} · guns ${unit.range} hexes · select an enemy to attack.`;
    if(smokeMode)$('hint').textContent='Tap your unit’s hex to lay smoke · 1 AP.';
@@ -78,7 +79,7 @@
    const meters=$('unitMechanics').querySelector('.unit-meters');$('unitMechanics').replaceChildren();if(meters){meters.querySelector('strong').textContent=`${health} ${unit.hp}/${unit.max_hp}`;$('unitMechanics').append(meters);}
    $('unitMechanics').append(uiNode('p','mechanics-caption',`Base ${unit.base_ap} AP · bank 1 · received ${unit.ap_received}/${unit.base_ap+1}. Damage control: ${unit.repairs} uses left, +${unit.repair_amount} hull for 2 AP. Ships never suffer infantry pins.`));
    if(landing)$('unitMechanics').lastElementChild.textContent=`Base 3 AP · bank 1. One smoke screen; no repair or pinning. Beach: 1 AP. Jungle/outpost: 2 AP. Embark and disembark by moving between land and water.`;
-   if(unit.kind==='carrier')$('unitMechanics').append(uiNode('p','mechanics-caption',`Search ${unit.recon_used?'used':'ready'} · air strike ${unit.air_used?'used':'ready'}. Both reset next turn. Escort with a cruiser for AA protection.`));
+   if(unit.kind==='carrier')$('unitMechanics').append(uiNode('p','mechanics-caption',state.scenario.fleet_battle_version?`${unit.air_stores}/6 aircraft-service stores · own platoon’s aircraft within 1 hex · no abstract attack sorties`:`Search ${unit.recon_used?'used':'ready'} · air strike ${unit.air_used?'used':'ready'}. Both reset next turn. Escort with a cruiser for AA protection.`));
   }
   const troops=state.units.filter(u=>u.side===state.side&&(platoonFilter==='all'||u.platoon===platoonFilter));
   [...$('roster').children].forEach((b,i)=>{const u=troops[i];b.textContent=`${unitCodes[u.kind]} ${u.platoon}${u.number} · ${u.hp>0?`${u.hp}/${u.max_hp} ${u.kind==='amphibious'?'troops':'hull'} · ${u.ap} AP`:'Lost'}`;});

@@ -13,6 +13,7 @@ CATEGORIES = {
 
 # key: learning position, additional categories, one short learning focus
 GUIDE = {
+    'crosswind_strait': (12, ['naval','air','control'], 'Medium 2v2: two mixed air/naval platoons per side; carrier service and shipboard AA.'),
     'worlds_collide': (24, ['combined','armor','naval','air','airborne','amphibious','control'], 'Five platoons per coalition, every unit class and terrain, six control zones.'),
     'vire_crossroads': (22, ['combined','armor','control'], 'Lower density: two platoons, 17 units per side; one ground unit per hex.'),
     'belfry_valley': (23, ['combined','control'], 'Shared hexes: two friendly units per hex; three platoons, recon, mortars and snipers.'),
@@ -45,7 +46,7 @@ def describe(board, release_order):
     source = board.get('source_id', board['id'])
     rank, tags, focus = GUIDE.get(source, (1000, [], 'Explore this operation.'))
     if source!='relay_crossing' and 4<=rank<1000:rank+=1
-    if board.get('edition') == 'current':
+    if board.get('edition') == 'current' and not board.get('fleet_battle_version'):
         focus = ('Lower density: two platoons, 17 units per side; shared ground hexes.' if source == 'vire_crossroads' else focus)
         focus += ' Current DSL: two friendly ground units per hex; separate air layer.'
     tags = list(tags)

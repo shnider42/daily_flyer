@@ -61,6 +61,11 @@
   $('objectiveName').textContent=expanded?`${board.name.toUpperCase()} · ${zones} CONTROL ZONES`:'FUBAR · THREE OBJECTIVES';$('objective').textContent=`Allies ${state.joint_score.us}/${goal} · Axis ${state.joint_score.de}/${goal}`;
   $('missionHint').textContent=expanded?`Ships take sea lanes; infantry take land flags. Each held zone: +1 at your turn end. First to ${goal} wins.`:'Ships take the sea lane; infantry take land flags. Each held flag: +1 at your turn end. First to 10 wins.';
   $('manualAP').textContent=(expanded?'Two friendly ground units and one aircraft may share a land hex; at most one vehicle, fixed gun or installation. Ships and boats keep separate spaces. ':'Fubar: one aircraft and one surface unit may share a hex. ')+'Aircraft ignore terrain but check interception along every flight leg. Unit cards show AP and weapon roles. End turn refreshes the entire coalition together.';
+  if(board.fleet_battle_version){
+   $('rulesetBadge').textContent='DSL · Crosswind Strait · 2v2 air & naval';
+   $('missionHint').textContent='Ships hold three sea lanes within 1 hex. Each uncontested lane: +1 at your turn end. First to 12 wins; aircraft provide support.';
+   $('manualAP').textContent='Two mixed air/naval platoons per side. Ships move one water hex per AP; aircraft fly above islands. One ship and one aircraft may share a hex. Finish my orders waits for your teammate. Set AA interception to protect the fleet; carrier service has finite stores.';
+  }
   if(unit&&['fighter','bomber','aa_gun','radar','airfield','carrier','battleship','cruiser','destroyer','flak'].includes(unit.kind)){
    $('roleBrief').textContent=unitRoleSummary(unit)+(unit.kind==='flak'?' Anti-aircraft bursts reach 4 hexes; Overwatch can intercept a flight.':'');
    if(air(unit)&&!target&&!combatMode&&!smokeMode&&!barrageMode)$('hint').textContent=`AIR · fly up to ${unit.flight} hexes for 1 AP. Surface units do not block flight. ${unit.kind==='bomber'?`${unit.bombs} bomb loads; select a visible surface target.`:'Select a visible aircraft to attack.'}`;
@@ -99,6 +104,14 @@
  $('rules').append(manual);
  document.addEventListener('ww2:render',()=>{
   if(!state?.joint_ops_version||!state.scenario.joint_score_target)return;
+  if(state.scenario.fleet_battle_version){
+   manual.querySelector('h3').textContent='Crosswind Strait · 2v2 air & naval';
+   const paragraphs=manual.querySelectorAll('p');
+   paragraphs[0].textContent='24×20 hexes, 28 total units. Each army has two mixed platoons: carrier, specialist cruiser, two destroyers, two fighters and one naval strike bomber. Choose Current → Crosswind Strait → Co-op & teams for up to four platoon commanders.';
+   paragraphs[1].textContent='Use Both / Surface / Air to choose a layer. Ships capture the three sea lanes within one hex; aircraft cannot capture or contest them. Each uncontested lane scores +1 at your turn end. First to 12 wins; after round 18 higher score wins, Axis wins a tie. Islands block surface routes and fire.';
+   paragraphs[2].textContent=state.scenario.reinforcement_brief+' Set shipboard AA or fighter interception for 2 AP to react once along an enemy flight path. Allied AA escorts have a 3-hex, 2-damage battery; other ships have 1-hex, 1-damage AA.';
+   return;
+  }
   manual.querySelector('h3').textContent=state.scenario.name+' · joint operations';
   manual.querySelector('p').textContent='A 64×56 fictional American/British versus German/Japanese coalition operation. Five selectable platoons per army cover infantry, armor, mountain specialists, fleets and the air wing. All 32 existing unit classes and 21 terrain types are present. Six zones score toward 40 points; the mission panel names their capture rules. The commander owns four finite Allied airborne reserves.';
  });

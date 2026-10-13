@@ -129,6 +129,14 @@ function center(x,y){return [27+x*52+(y%2)*26,30+y*49];}
 function unitTypeName(u){if(u.display_name)return u.display_name;return state?.naval_version&&u.kind==='amphibious'?'Landing section':kinds[u.kind];}
 function unitName(u){return unitTypeName(u)+(u.platoon?` ${u.platoon}${u.number}`:'');}
 function unitRoleSummary(u){
+ if(state?.scenario?.fleet_battle_version){
+  if(u.kind==='carrier')return `Search for enemy ships · ${u.air_stores} aircraft-service stores · services this platoon’s aircraft within 1 hex`;
+  if(u.variant==='aa_escort')return 'AA escort · interception range 3 · 2 damage · lighter surface guns';
+  if(u.variant==='torpedo_cruiser')return `Torpedo cruiser · ${u.torpedoes} salvos · range 5 · 4 hull damage · light AA`;
+  if(u.kind==='bomber')return `${u.variant==='dive_bomber'?'Dive attack · range 1 · 3+ · 3 hull damage':'Aerial torpedo · range 2 · 4+ (5+ vs destroyers) · 4 hull damage'} · ${u.bombs}/${u.max_bombs} loads · service at own platoon carrier`;
+  if(u.kind==='fighter')return `Protect the fleet · ${u.flight} hexes per flight action · intercept enemy aircraft`;
+  if(u.kind==='destroyer')return `Fast surface screen · ${u.torpedoes} torpedo salvos · range ${u.torpedo_range} · 1-hex AA`;
+ }
  if(window.airborneRole?.(u))return window.airborneRole(u);
  if(window.signalRole?.(u))return window.signalRole(u);
  if(u.carrier_id)return 'Aboard transport · select it to unload';

@@ -8,7 +8,7 @@ import secrets
 from .visibility import active, update_intel, record_reports
 from .combat_display import record_combat
 from .effects import record_effect
-from . import weapons, operations, domains
+from . import weapons, operations, domains, crosswind
 
 AIRCRAFT = {'fighter','bomber'}
 
@@ -75,8 +75,10 @@ def watchers(state,mover,pos):
     from .engine import distance
     if mover['kind'] not in AIRCRAFT:return []
     return [u for u in state['units'] if active(u) and u['side']!=mover['side'] and u['overwatch'] and not u.get('pinned')
-            and (u['kind'] in {'fighter','aa_gun'} or domains.joint(state) and u['kind']=='flak')
-            and distance(u['pos'],pos)<= (u.get('aa_radius',u['range']) if u['kind']=='flak' else u['range'])
+            and (u['kind'] in {'fighter','aa_gun'} or domains.joint(state) and u['kind']=='flak'
+                 or crosswind.enabled(state) and u.get('ship_aa_range'))
+            and distance(u['pos'],pos)<= (u['ship_aa_range'] if crosswind.enabled(state) and u.get('ship_aa_range')
+                else u.get('aa_radius',u['range']) if u['kind']=='flak' else u['range'])
             and (joint_air_sight(state,u,pos) if domains.joint(state) else sees_hex(state,u['side'],pos))]
 
 
@@ -88,6 +90,10 @@ def joint_air_sight(state,unit,pos):
 
 def shot(unit,target,reaction=False):
     if unit['kind']=='bomber':
+        if unit.get('naval_strike'):
+            evasion=int(unit.get('variant')=='torpedo_bomber' and target['kind']=='destroyer')
+            return dict(id=target['id'],threshold=unit['attack_threshold']+evasion,
+                        damage=weapons.damage(unit,target),air=True,modifiers=dict(evasion=evasion))
         return dict(id=target['id'],threshold=3,damage=2,air=True,modifiers={'bombing':-1})
     threshold=4+int(target['kind']=='fighter')+int(reaction and unit['kind']=='fighter')
     return dict(id=target['id'],threshold=min(6,threshold),damage=2 if unit['kind']=='aa_gun' else 1,air=True,
@@ -120,12 +126,13 @@ def options(state,unit):
                 # Do not disclose an observed enemy's secret overwatch state.
                 threats={w['id'] for p in path for w in (living if domains.joint(state) else watchers(state,unit,p))
                          if w['id'] in seen and (not domains.joint(state) or w['side']!=unit['side'] and
-                         w['kind'] in {'fighter','aa_gun','flak'} and distance(w['pos'],p)<=w.get('aa_radius',w['range']))}
+                         (w['kind'] in {'fighter','aa_gun','flak'} or crosswind.enabled(state) and w.get('ship_aa_range'))
+                         and distance(w['pos'],p)<=(w['ship_aa_range'] if crosswind.enabled(state) and w.get('ship_aa_range') else w.get('aa_radius',w['range'])))}
                 result['moves'].append(dict(pos=[x,y],cost=1,threats=len(threats),path=path))
     if unit['ap']<2:return result
     result['overwatch']=unit['kind'] in {'fighter','aa_gun'} and not unit['overwatch']
-    if unit['kind'] in AIRCRAFT and not unit['rearm_used'] and (unit['hp']<unit['max_hp'] or (unit['kind']=='bomber' and unit['bombs']<2)):
-        result['rearm']=any(u['side']==unit['side'] and u['kind']=='airfield' and distance(u['pos'],unit['pos'])<=1 for u in living)
+    if unit['kind'] in AIRCRAFT and not unit['rearm_used'] and (unit['hp']<unit['max_hp'] or (unit['kind']=='bomber' and unit['bombs']<unit.get('max_bombs',2))):
+        result['rearm']=bool(crosswind.service_carrier(state,unit)) if crosswind.enabled(state) else any(u['side']==unit['side'] and u['kind']=='airfield' and distance(u['pos'],unit['pos'])<=1 for u in living)
     for target in living:
         if target['side']==unit['side'] or target['id'] not in seen or distance(unit['pos'],target['pos'])>unit['range']:continue
         if ((unit['kind'] in {'fighter','aa_gun'} and target['kind'] in AIRCRAFT) or
@@ -138,7 +145,8 @@ def options(state,unit):
 
 def resolve_shot(state,unit,target,roll,reaction=False):
     s=shot(unit,target,reaction);die=roll()
-    weapon='flak' if domains.joint(state) and unit['kind']=='flak' else None
+    ship_aa=crosswind.enabled(state) and bool(unit.get('ship_aa_range'))
+    weapon='flak' if ship_aa or domains.joint(state) and unit['kind']=='flak' else None
     impacts = []
     if weapons.enabled(state):
         s = weapons.preview(unit, target, s['threshold'], s['modifiers'], weapon=weapon, state=state)
@@ -147,7 +155,7 @@ def resolve_shot(state,unit,target,roll,reaction=False):
         if die>=s['threshold']:target['hp']=max(0,target['hp']-s['damage'])
         if target['hp']<=0:target['overwatch']=False
         result='destroyed' if not target['hp'] else f"hit for {s['damage']}" if die>=s['threshold'] else 'missed'
-    label='AA interception' if reaction and unit['kind'] in {'aa_gun','flak'} else 'Fighter interception' if reaction else 'Bombing run' if unit['kind']=='bomber' else 'Air combat'
+    label='AA interception' if reaction and (ship_aa or unit['kind'] in {'aa_gun','flak'}) else 'Fighter interception' if reaction else unit.get('attack_label','Bombing run') if unit['kind']=='bomber' else 'Air combat'
     state['last_combat']=dict(kind=label,roll=die,threshold=s['threshold'],result=result,
         attacker=unit['id'],target=target['id'],impacts=impacts,revision=state['revision']+1)
     record_combat(state,s['modifiers'],s.get('effect_text',f"{s['damage']} damage on a hit. Aircraft do not suffer infantry pins."))
@@ -196,8 +204,12 @@ def unit_order(state, unit, action, legal, roll, before=None):
         message='Interception set. One reaction along an enemy flight path, until this unit’s next turn.'
     elif kind=='rearm' and legal['rearm']:
         unit['ap']-=2;unit['rearm_used']=True;unit['hp']=min(unit['max_hp'],unit['hp']+1)
-        if unit['kind']=='bomber':unit['bombs']=2
-        message='Friendly airfield service: repair 1 strength and reload bomber ordnance. Once per turn.'
+        if unit['kind']=='bomber':unit['bombs']=unit.get('max_bombs',2)
+        if crosswind.enabled(state):
+            carrier=crosswind.service_carrier(state,unit)
+            carrier['air_stores']-=1
+            message=f"Platoon carrier service: repair 1 strength and reload ordnance. {carrier['air_stores']} service stores remain."
+        else:message='Friendly airfield service: repair 1 strength and reload bomber ordnance. Once per turn.'
     else:raise ValueError('That air order is unavailable. Check aircraft role, sight, AP and range.')
     return message
 

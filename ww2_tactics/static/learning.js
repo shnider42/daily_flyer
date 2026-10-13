@@ -51,6 +51,24 @@
   add(book,'end','Finish the whole turn deliberately',`Your units can act in any order while they have AP. End turn passes control to the opponent and banks eligible unused AP. ${s.ai_side?'The computer then acts. Its replay can be paused, stepped through or skipped; wait for YOUR TURN before issuing more orders.':'In multiplayer, the opponent’s turn label remains visible until the server confirms it is your turn again.'}`,'When ready, end your turn once. Watch for the turn indicator to return before continuing.','#end',['end']);
   add(book,'save','Keep this battle when you leave',s.ai_side?'The browser keeps a shortcut to this solo battle. In private browsing or on another device, generate a SAVE code from Battle options before leaving. A SAVE code restores a separate solo battle from that saved moment.':'A browser shortcut is tied to this browser. A MOVE code reconnects this live seat from another device. A commander login can link multiplayer seats across browsers; named battles also appear in the lobby. Save your access before closing a private browser.','Open Battle & settings to find your game code, save options and display preferences.','#battleOptions');
   add(book,'finish','Play toward the objective','You now know how to read the turn, mission, map and order buttons. Keep asking: what helps me win this scenario, which unit can do it, and will it have enough AP afterward? Return to any topic whenever you need it.','Continue the battle. Finishing the guide does not end the turn or change any unit.','#mapWrap');
+  if(s.scenario.fleet_battle_version){
+   for(let i=book.length-1;i>=0;i--)if(['cover','rally'].includes(book[i].id))book.splice(i,1);
+   const fleetCopy={
+    layers:'One ship and one aircraft may share an ocean hex. Both shows both layers, Surface shows ships, and Air shows aircraft. These controls never reveal hidden enemies or spend AP.',
+    move:'Ships move one adjacent water hex for 1 AP. Islands block their route. Fighters fly up to 3 hexes and strike bombers up to 2 for 1 AP, crossing above islands and ships. Every hex of the flight path checks interception.',
+    ap:'Each ship and aircraft has its own AP. Attacks, interception and aircraft service cost 2 AP. Units bank at most 1 unused AP for their next turn. No officers, road bonuses or ground movement costs apply here.',
+    fire:'Surface guns and ship torpedoes attack spotted ships through clear surface lanes. Fighters attack aircraft. AA escorts can fire at aircraft or set interception. Dive and torpedo bombers attack ships only and spend one finite ordnance load.',
+    fog:'Solid enemy counters are currently seen; dashed contacts show a last-known position. Aircraft spot surface targets within 4 hexes. Islands and smoke block surface sight; carrier searches reveal a temporary area. A warning marks a spotted weapon’s possible reach, never secret interception readiness.',
+    watch:'Pay 2 AP to set one AA or fighter interception along an enemy flight path. Allied AA escorts reach 3 hexes for 2 damage; other ships reach 1 for 1 damage. Ship interception ignores surface movement and is cancelled if that ship moves or fires.',
+    tools:'Destroyers carry two finite smoke screens. Each costs 1 AP and is laid on the destroyer’s hex. Smoke blocks surface sight, guns and ship torpedoes; it does not hide aircraft from interception.'
+   };
+   for(const lesson of book)if(fleetCopy[lesson.id]){lesson.text=fleetCopy[lesson.id];lesson.texts=Array(3).fill(lesson.text);lesson.detail='';}
+   book.find(l=>l.id==='layers').title='A shared ocean, two layers';
+   book.find(l=>l.id==='tools').title='Smoke screens protect surface routes';
+   book.find(l=>l.id==='watch').title='Protect ships with AA interception';
+   add(book,'fleet-service','Return to your platoon’s carrier','Carrier service costs 2 aircraft AP, once per aircraft per turn, within one hex of your own platoon’s surviving carrier. It repairs 1 strength and reloads ordnance. Each carrier has six finite stores; you cannot use your teammate’s stores. Losing a carrier alone does not end the battle.','Select a bomber and plan its return route before spending the last load.','#orders',['rearm']);
+   add(book,'fleet-profiles','Use the two new roles on each side','Allies add an AA escort cruiser and a dive bomber with two loads, range 1, 3+ hit and 3 hull damage. Axis adds a three-salvo, range-5 torpedo cruiser and a torpedo bomber with one load, range 2, 4+ hit and 4 hull damage (5+ against destroyers). Each platoon combines four ships and three aircraft.','Read your cruiser and bomber cards. Use fighters to protect the bombers while ships take sea lanes.','#orders');
+  }
   return window.ww2LearningContent?ww2LearningContent.adapt(book,s):book;
  }
  const dialog=document.createElement('dialog');dialog.id='learningDialog';dialog.setAttribute('aria-label','Field coach');
