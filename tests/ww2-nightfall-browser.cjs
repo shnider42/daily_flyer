@@ -9,7 +9,7 @@ from ww2_web import create_app
 create_app(os.environ['WW2_DB_PATH'],background_ai=False).run(host='127.0.0.1',port=8186,threaded=True)
 `],{env:{...process.env,WW2_DB_PATH:db},stdio:['ignore','ignore','pipe']});
 const pages=[],errors=[],badAssets=[];let browser;
-async function settle(p){await p.waitForFunction(()=>state&&!busy&&!polling);}
+async function settle(p){await p.waitForFunction(()=>state&&!busy&&!polling);if(await p.evaluate(()=>!!playbackSession)){await p.locator('#skipPlayback').click();await p.waitForFunction(()=>!playbackSession&&!busy&&!polling);}}
 async function refreshPage(p){await p.evaluate(()=>refresh());await settle(p);}
 async function openPage(width,name){
  const p=await browser.newPage({viewport:{width,height:900},isMobile:width<1000,hasTouch:width<1000});pages.push(p);p.setDefaultTimeout(22000);p.on('pageerror',e=>errors.push(e.message));p.on('dialog',d=>d.accept());p.on('response',r=>{if(r.url().includes('/assets/')&&r.status()>=400)badAssets.push(r.url());});
