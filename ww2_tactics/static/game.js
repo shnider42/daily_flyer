@@ -121,10 +121,11 @@ async function act(body){
  let pending=null;
  if(body.kind==='move'){
   const unit=state.units.find(u=>u.id===body.unit);
+  if(unit)window.ww2Motion?.submitted($('map'),unit,state.legal?.[unit.id]?.moves?.find(m=>m.pos[0]===body.pos[0]&&m.pos[1]===body.pos[1]));
   if(unit){const [x1,y1]=center(...unit.pos),[x2,y2]=center(...body.pos);pending=element('g',{'aria-label':'Move submitted; awaiting authoritative result',class:'pending-order'});pending.append(element('line',{x1,y1,x2,y2,class:'aim-line clear'}),element('circle',{cx:x2,cy:y2,r:18,fill:'none',stroke:'#b65216','stroke-width':3,'stroke-dasharray':'5 3'}));$('map').append(pending);}
  }
  try{await run(async()=>{state=await api(`/api/match/${session.code}`,{...body,revision:state.revision});target=null;smokeMode=false;barrageMode=false;document.dispatchEvent(new CustomEvent('ww2:order',{detail:{kind:body.kind,code:session.code,battle:state.battle_number||1}}));});}
- finally{pending?.remove();}
+ finally{pending?.remove();window.ww2Motion?.clearSubmitted($('map'));}
 }
 function element(tag,attrs={},text){const e=document.createElementNS('http://www.w3.org/2000/svg',tag);Object.entries(attrs).forEach(([k,v])=>e.setAttribute(k,v));if(text!==undefined)e.textContent=text;return e;}
 function center(x,y){return [27+x*52+(y%2)*26,30+y*49];}
@@ -206,6 +207,7 @@ function scenarioPreview(){
 async function rematchRequest(body){await run(async()=>{state=await api(`/api/match/${session.code}/rematch`,{...body,revision:state.revision});render();});}
 function render(){
  if(!state||lobbyMode)return;const restoreMap=holdMobileMap();$('lobby').hidden=true;$('game').hidden=false;
+ window.ww2Motion?.capture($('map'));
  Object.assign(names,state.factions||{us:'Americans',de:'Germans'});
  const myTurn=!state.coop?.done&&state.deployment?.phase!=='planning'&&state.ready&&!state.winner&&state.turn===state.side&&!state.order_history?.redo_required;
  const board=state.scenario||{id:'village',name:'Village Crossing',objective_name:'Village square',rounds:8};
@@ -321,12 +323,12 @@ function render(){
  for(const u of display.units.filter(u=>u.hp>0&&!u.reserve&&!u.carrier_id)){
   const existing=svg._counters.get(u.id),unitKey=JSON.stringify(u);
   if(reuse&&existing?._unitKey===unitKey){const g=existing;for(const [name,on] of [['selected',selected===u.id],['target',target===u.id]])if(g.classList.contains(name)!==on)g.classList.toggle(name,on);if(g._platoonFilter!==platoonFilter){g.querySelector('.platoon-halo')?.remove();if(u.side===state.side&&u.platoon===platoonFilter){const [x,y]=center(...u.pos);g.prepend(element('path',{d:`M${x-24} ${y-20}h48v41h-48z`,class:'platoon-halo'}));}g._platoonFilter=platoonFilter;}continue;}
-  existing?.remove();
+  const hadFocus=document.activeElement===existing;existing?.remove();
   const [cx,cy]=center(...u.pos),g=element('g',{class:`unit ${u.side} platoon-${u.platoon||'none'}${selected===u.id?' selected':''}${target===u.id?' target':''}`,role:'button',tabindex:0,'aria-label':`${names[u.side]} ${unitName(u)}, ${u.hp} strength, ${u.ap} actions${u.pinned?', pinned':''}`});
   g.dataset.unitId=u.id;
-  svg._counters.set(u.id,g);g._platoonFilter=platoonFilter;g._unitKey=unitKey;
+  svg._counters.set(u.id,g);g._platoonFilter=platoonFilter;g._unitKey=unitKey;g._unitPos=u.pos.slice();
   // Transparent hit area is larger than the counter for comfortable phone taps.
-  g.append(element('circle',{cx,cy,r:23,fill:'transparent'}));
+  g.append(element('circle',{cx,cy,r:23,fill:'transparent',class:'unit-hit-target'}));
   if(u.side===state.side&&u.platoon===platoonFilter)g.append(element('path',{d:`M${cx-24} ${cy-20}h48v41h-48z`,class:'platoon-halo'}));
   g.append(element('rect',{x:cx-20,y:cy-16,width:40,height:33,rx:u.side==='us'?9:1}));
   g.append(element('text',{x:cx,y:cy-3,'text-anchor':'middle',class:'unit-name'},unitCodes[u.kind]||'SQ'));
@@ -337,6 +339,7 @@ function render(){
   if(u.entrenched)g.append(element('path',{d:`M${cx-22} ${cy+19}h44`,class:'dug-marker'}));
   if(u.overwatch)g.append(element('text',{x:cx-17,y:cy-13,'text-anchor':'middle',class:'watch-marker'},'◎'));
   activate(g,()=>{if(window.airbornePicking?.(state.legal[selected]))window.pickAirborneHex(u.pos);else chooseUnit(u);});svg.append(g);
+  if(hadFocus)g.focus({preventScroll:true});
  }
  $('selection').textContent=unit?`${unitName(unit)} · ${unit.hp} strength · ${unit.ap} actions${unit.pinned?' · PINNED':''}`:'Tap one of your units to see its orders.';
  $('hint').textContent=state.winner?'Start a new match for another battle.':!myTurn?'You can inspect units while you wait.':smokeMode?'Tap a blue-outlined hex to throw smoke, or tap Cancel smoke.':shot?`Fire at ${kinds[enemy.kind]}: ${shot.threshold}+ to hit (${chance(shot.threshold)}%).`:assault?'Enemy adjacent: a close assault is available.':enemy?'No clear shot: check range, sight lines, smoke, or actions.':unit?.pinned?'Rally to remove the pin. It costs 1 action.':unit?`${state.map[unit.pos[1]][unit.pos[0]]}${unit.entrenched?' · dug in':''} · range ${unit.range} · ${unit.smoke||0} smoke grenades`:'Counters show strength dots and remaining actions.';

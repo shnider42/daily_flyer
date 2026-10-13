@@ -173,7 +173,7 @@
    if(u.overwatch){const eye=el('g',{class:'counter-overwatch',transform:'translate(-16 -15)'});art.append(eye);eye.append(el('circle',{r:5.5,class:'status-disc'}),el('path',{d:'M-4 0Q0-5 4 0Q0 5-4 0Z',class:'status-eye'}),el('circle',{r:1.3,class:'eye-pupil'}));}
    if(u.pinned){const pin=el('g',{class:'counter-pin',transform:'translate(17 -14)'});art.append(pin);pin.append(el('path',{d:'M-5-5H5V3L0 7-5 3Z',class:'pin-flag'}),el('path',{d:'M0-2V1M0 3v.2',class:'pin-alert'}));}
    art.append(el('path',{d:'M-23-10V-19H-13M13-19H23V-10M23 10V20H13M-13 20H-23V10',class:'selection-brackets'}),el('path',{d:'M17-19h6v6Z',class:'selection-corner'}));
-   const name=counter.querySelector('.unit-name');if(name)counter.insertBefore(art,name);else counter.append(art);
+   const name=counter.querySelector('.unit-name');if(name)name.before(art);else counter.append(art);
   }
   if(!force&&svg._artViewWidth!==svg.viewBox.baseVal.width){svg._artViewWidth=svg.viewBox.baseVal.width;requestAnimationFrame(()=>{if(svg.isConnected)size(svg);});}
  }

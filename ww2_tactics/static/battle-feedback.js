@@ -56,6 +56,7 @@
  }
  function paint(result){
   const visible=!!result&&result.key!==dismissed&&!$('game').hidden;
+  if(document.body.classList.contains('battle-result-visible')!==visible)ww2ResultFeedback.layoutUntil=performance.now()+240;
   panel.hidden=!visible;document.body.classList.toggle('battle-result-visible',visible);
   fitMobileResult(visible);
   if(!visible)return;
@@ -66,18 +67,30 @@
  }
  function fitMobileResult(visible){
   const screen=$('mobileBattleScreen');if(!screen)return;
-  // The mobile surface has several portrait, landscape and Dad layouts.
-  // Start with that layout's existing rows, then reserve a result row without
-  // changing its navigation, command capacity or responsive breakpoints.
-  screen.style.removeProperty('grid-template-areas');screen.style.removeProperty('grid-template-rows');
-  panel.hidden=true;
-  if(!visible)return;
-  const css=getComputedStyle(screen),areas=[...css.gridTemplateAreas.matchAll(/"([^"]+)"/g)].map(match=>match[1]),rows=css.gridTemplateRows.split(' ');
-  if(areas.length<3){panel.hidden=false;return;}
-  const columns=areas[0].trim().split(/\s+/).length,rightOrders=areas[1].includes('orders'),index=rightOrders?1:2,height=innerHeight<680?88:104;
-  const original=rows.slice(0,areas.length);original[1]='minmax(0,1fr)';
-  areas.splice(index,0,rightOrders?'map result':Array(columns).fill('result').join(' '));original.splice(index,0,`${height}px`);
-  screen.style.gridTemplateAreas=areas.map(area=>`"${area}"`).join(' ');screen.style.gridTemplateRows=original.join(' ');panel.hidden=false;
+  const modes=['dad-mode','experimental-play','mobile-replaying','prebattle-planning','battle-navigation-active'].map(name=>document.body.classList.contains(name));
+  if(document.body.classList.contains('prebattle-planning')){
+   // Deployment has its own !important tracks and cannot produce combat rolls.
+   screen.style.removeProperty('grid-template-areas');screen.style.removeProperty('grid-template-rows');screen._resultLayout=null;panel.hidden=true;return;
+  }
+  const orderRows=screen.style.getPropertyValue('--order-rows')||getComputedStyle(screen).getPropertyValue('--order-rows');
+  const layout=[innerWidth,innerHeight,orderRows,...modes].join(':');
+  if(screen._resultLayout!==layout){
+   // Read the underlying responsive layout only when it changes. Clearing the
+   // grid on every render interrupts an in-progress result-row transition.
+   screen.style.transition='none';panel.hidden=true;
+   screen.style.removeProperty('grid-template-areas');screen.style.removeProperty('grid-template-rows');
+   const css=getComputedStyle(screen),areas=[...css.gridTemplateAreas.matchAll(/"([^"]+)"/g)].map(match=>match[1]),rows=css.gridTemplateRows.split(' ');
+   if(areas.length<3){screen.style.removeProperty('transition');panel.hidden=!visible;return;}
+   const columns=areas[0].trim().split(/\s+/).length,rightOrders=areas[1].includes('orders'),index=rightOrders?1:2;
+   const original=rows.slice(0,areas.length);original[1]='minmax(0,1fr)';
+   // Keep the same track count when a report opens, closes, or is replaced.
+   areas.splice(index,0,rightOrders?'map result':Array(columns).fill('result').join(' '));original.splice(index,0,'var(--battle-result-height,0px)');
+   screen.style.gridTemplateAreas=areas.map(area=>`"${area}"`).join(' ');screen.style.gridTemplateRows=original.join(' ');
+   screen.style.setProperty('--battle-result-height',visible?`${innerHeight<680?88:104}px`:'0px');screen._resultLayout=layout;
+   // Responsive-layout changes settle immediately, before normal transitions.
+   getComputedStyle(screen).gridTemplateRows;screen.style.removeProperty('transition');
+  }else screen.style.setProperty('--battle-result-height',visible?`${innerHeight<680?88:104}px`:'0px');
+  panel.hidden=!visible;
  }
  function sync(){
   if(!state||$('game').hidden){paint(null);return;}

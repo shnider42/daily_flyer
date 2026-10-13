@@ -4,7 +4,7 @@ document.addEventListener('DOMContentLoaded',()=>{
  const desktop=matchMedia('(min-width: 1100px)'), game=document.getElementById('game'), lobby=document.getElementById('lobby');
  const wrap=document.getElementById('mapWrap');
  const compact=matchMedia('(max-width:1399px), (max-height:800px)');
- let mounts=[], originals=[], active=false, battle=null, zoom=1, scale=1, drag=null, suppressClick=false, resizeFrame, measured='',orderUnit=null;
+ let mounts=[], originals=[], active=false, battle=null, zoom=1, scale=1, drag=null, suppressClick=false, resizeFrame, measured='',measuredWindow='',orderUnit=null;
  const el=(tag,cls,text)=>{const node=document.createElement(tag);node.className=cls;if(text)node.textContent=text;return node;};
  function compactLayout(){
   const on=active&&(compact.matches||window.ww2Experience?.layout==='map-first');document.body.classList.toggle('compact-desktop',on);
@@ -18,6 +18,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   parent.append(section);mounts.push(section);for(const node of nodes)move(typeof node==='string'?document.querySelector(node):node,section);return section;
  }
  function activeSvg(){return document.getElementById('playbackMap')||document.getElementById('map');}
+ function resultResize(){return !!window.ww2ExperimentalDesktop?.active&&performance.now()<(window.ww2ResultFeedback?.layoutUntil||0);}
  function measure(){
   if(!active||game.hidden)return;
   const svg=activeSvg(),box=svg.viewBox.baseVal;if(!box.width||!wrap.clientWidth)return;
@@ -25,11 +26,16 @@ document.addEventListener('DOMContentLoaded',()=>{
   document.getElementById('desktopZoomOut').disabled=zoom<=1;
   document.getElementById('desktopZoomIn').disabled=zoom>=3.5;
   const key=[box.width,box.height,wrap.clientWidth,wrap.clientHeight,zoom].join(':');
-  if(key===measured)return;measured=key;
+  if(key===measured)return;
+  const prior=measured.split(':').map(Number),viewport=[innerWidth,innerHeight].join(':');
+  const preservePixels=resultResize()&&measuredWindow===viewport&&prior[0]===box.width&&prior[1]===box.height&&prior[2]===wrap.clientWidth&&prior[4]===zoom;
   const previous=scale;
   const centerX=(wrap.scrollLeft+wrap.clientWidth/2)/previous,centerY=(wrap.scrollTop+wrap.clientHeight/2)/previous;
   const fit=Math.min((wrap.clientWidth-32)/box.width,(wrap.clientHeight-32)/box.height);
-  scale=Math.max(.1,fit)*zoom;
+  if(preservePixels){zoom=previous/Math.max(.1,fit);scale=previous;}else scale=Math.max(.1,fit)*zoom;
+  measured=[box.width,box.height,wrap.clientWidth,wrap.clientHeight,zoom].join(':');measuredWindow=viewport;
+  document.getElementById('desktopZoomValue').textContent=`${Math.round(zoom*100)}%`;
+  document.getElementById('desktopZoomOut').disabled=zoom<=1;document.getElementById('desktopZoomIn').disabled=zoom>=3.5;
   wrap.style.setProperty('--desktop-map-width',`${box.width*scale}px`);
   wrap.scrollLeft=centerX*scale-wrap.clientWidth/2;wrap.scrollTop=centerY*scale-wrap.clientHeight/2;
  }
@@ -124,16 +130,18 @@ document.addEventListener('DOMContentLoaded',()=>{
  compact.addEventListener('change',compactLayout);
  document.addEventListener('ww2:render',sync);
  document.addEventListener('ww2:playback',()=>{if(active){document.getElementById('desktopOrderTitle').textContent='Opponent’s turn';document.getElementById('desktopPlaybackNote').hidden=false;document.getElementById('desktopActionDock').hidden=true;measure();}});
- let lastWidth=0,lastHeight=0;
+ let lastWidth=0,lastHeight=0,lastWindow=[innerWidth,innerHeight].join(':');
  new ResizeObserver(()=>{
   if(wrap.clientWidth===lastWidth&&wrap.clientHeight===lastHeight)return;
+  const resultChange=resultResize()&&wrap.clientWidth===lastWidth&&lastWindow===[innerWidth,innerHeight].join(':');
+  lastWindow=[innerWidth,innerHeight].join(':');
   lastWidth=wrap.clientWidth;lastHeight=wrap.clientHeight;cancelAnimationFrame(resizeFrame);
   resizeFrame=requestAnimationFrame(()=>{
    if(!active||game.hidden)return;
    const box=activeSvg().viewBox.baseVal,fit=Math.min((wrap.clientWidth-32)/box.width,(wrap.clientHeight-32)/box.height);
-   if(zoom>1&&fit>0)zoom=Math.min(3.5,Math.max(1,Math.round(scale/fit*4)/4));
+   if(!resultChange&&zoom>1&&fit>0)zoom=Math.min(3.5,Math.max(1,Math.round(scale/fit*4)/4));
    measure();
-   if(window.ww2ExperimentalDesktop?.active&&selected&&!playbackSession)focus(state.units.find(u=>u.id===selected),activeSvg(),true);
+   if(!resultChange&&window.ww2ExperimentalDesktop?.active&&selected&&!playbackSession)focus(state.units.find(u=>u.id===selected),activeSvg(),true);
   });
  }).observe(wrap);
  wrap.addEventListener('wheel',event=>{

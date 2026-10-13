@@ -107,7 +107,11 @@ function drawPlayback(){
   if(!frame.combat.length)result.append(uiNode('p','mechanics-caption',changes.join(' · ')||'Order complete.'));
   else if(changes.length){const more=uiNode('details');more.append(uiNode('summary','','Unit changes'),uiNode('p','mechanics-caption',changes.join(' · ')));result.append(more);}
  }
+ const previousMap=document.getElementById('playbackMap');window.ww2Motion?.capture(previousMap);
  const svg=document.getElementById('map').cloneNode(true);svg.id='playbackMap';svg.hidden=false;svg.removeAttribute('hidden');svg.setAttribute('aria-label',`Turn playback: ${description}`);
+ svg._motionBefore=previousMap?._motionBefore;
+ svg._motionForward=previousMap?._playbackIndex===p.index&&previousMap?._playbackPhase==='before'&&p.phase==='after';
+ svg._playbackIndex=p.index;svg._playbackPhase=p.phase;
  svg.classList.remove('transport-picking','support-picking');
  svg.querySelectorAll('.range-guide,.support-choice,.engineering-choice,.signal-choice,.beacon-mark,.linked-marker,.front-objectives').forEach(e=>e.remove());
  svg.querySelectorAll('.unit,.smoke-cloud,.barrage-zone,.incoming-mark,.aim-line,.battle-effect,.fog-layer,.contact-marker,.landing-zone,.transport-choice,.recon-choice,.sea-control,.move-beacon,.island-marker,.flight-trail,.station-mark').forEach(e=>e.remove());
@@ -127,6 +131,7 @@ function drawPlayback(){
  for(const u of snapshot.units.filter(u=>u.hp>0&&!u.reserve&&!u.carrier_id)){
   const [cx,cy]=center(...u.pos),g=element('g',{class:`unit ${u.side} platoon-${u.platoon||'none'}${u.id===action.unit?' selected':''}${u.id===action.target?' target':''}`});
   g.dataset.unitId=u.id;
+  g._unitPos=u.pos.slice();
   g.append(element('rect',{x:cx-20,y:cy-16,width:40,height:33,rx:u.side==='us'?9:1}));
   g.append(element('text',{x:cx,y:cy-3,'text-anchor':'middle',class:'unit-name'},unitCodes[u.kind]||'SQ'));
   g.append(element('text',{x:cx,y:cy+10,'text-anchor':'middle',class:'strength',textLength:Math.min(34,11+7*u.hp),lengthAdjust:'spacingAndGlyphs'},strengthLabel(u)));
@@ -137,7 +142,17 @@ function drawPlayback(){
   if(u.overwatch)g.append(element('text',{x:cx-17,y:cy-13,class:'watch-marker'},'◎'));
   svg.append(g);
  }
- document.getElementById('playbackMap')?.remove();document.getElementById('mapWrap').append(svg);renderPlaybackEffects(state,frame,svg,p);document.dispatchEvent(new Event('ww2:playback'));if(window.drawFog)window.drawFog(svg,snapshot);if(state.scenario?.platoons&&actor)focusMapUnit(snapshot.units.find(u=>u.id===actor.id)||actor,svg);
+ document.getElementById('playbackMap')?.remove();document.getElementById('mapWrap').append(svg);renderPlaybackEffects(state,frame,svg,p);document.dispatchEvent(new Event('ww2:playback'));if(window.drawFog)window.drawFog(svg,snapshot);
+ // Keep the camera fixed while the result animates. Reveal a new actor only
+ // when beginning its action, instead of re-centering before and after it.
+ if(state.scenario?.platoons&&actor&&p._focusedFrame!==p.index){
+  p._focusedFrame=p.index;
+  if(window.ww2Desktop?.active)window.ww2Desktop.ensureVisible(actor);
+  else{
+   const [x,y]=center(...actor.pos),matrix=svg.getScreenCTM(),view=$('mapWrap').getBoundingClientRect(),point=matrix&&new DOMPoint(x,y).matrixTransform(matrix);
+   if(point&&(point.x<view.left+30||point.x>view.right-30||point.y<view.top+30||point.y>view.bottom-30))focusMapUnit(actor,svg);
+  }
+ }
 }
 document.addEventListener('DOMContentLoaded',()=>{
  document.getElementById('replayTurn').onclick=startPlayback;

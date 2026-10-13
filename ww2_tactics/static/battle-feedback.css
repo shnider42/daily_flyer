@@ -7,10 +7,12 @@
 .battle-result-announcement{position:absolute;width:1px;height:1px;overflow:hidden;clip-path:inset(50%)}
 .desktop-command-column>#battleFeedback{margin-top:6px}.desktop-command-column>#battleFeedback .battle-result-title{font-size:15px;line-height:18px}.desktop-command-column>#battleFeedback .battle-result-detail{font-size:12px;line-height:16px}
 .mobile-battle #battleFeedback{grid-area:result;height:100%;margin:0;padding:7px 6px;gap:6px;grid-template-columns:49px minmax(0,1fr) 32px;border-radius:0;border-right:0;border-top:0;overflow:auto;overscroll-behavior:contain}
+.mobile-battle #mobileBattleScreen{transition:grid-template-rows 180ms ease-out}
 .mobile-battle #battleFeedback .battle-result-title{font-size:15px;line-height:18px}.mobile-battle #battleFeedback .battle-result-detail{font-size:12px;line-height:16px}.mobile-battle #battleFeedback .battle-result-cargo{font-size:11px;line-height:14px}.mobile-battle #battleFeedback .battle-result-dismiss{min-width:32px}
-.experimental-desktop #experimentalDesktopScreen{grid-template-rows:58px minmax(0,1fr) 0px max(var(--experimental-min-bar),calc(var(--experimental-rows)*var(--experimental-row) + 20px))}
+.experimental-desktop #experimentalDesktopScreen{grid-template-rows:58px minmax(0,1fr) 0px max(var(--experimental-min-bar),calc(var(--experimental-rows)*var(--experimental-row) + 20px));transition:grid-template-rows 180ms ease-out}
 .experimental-desktop.battle-result-visible #experimentalDesktopScreen{grid-template-rows:58px minmax(0,1fr) 92px max(var(--experimental-min-bar),calc(var(--experimental-rows)*var(--experimental-row) + 20px))}
 .experimental-desktop #battleFeedback{grid-column:1;grid-row:3;height:100%;margin:0;border-radius:0;padding:8px 12px;border-top:1px solid #b3ad93;border-bottom:1px solid #b3ad93;grid-template-columns:54px minmax(0,1fr) 44px}
 .experimental-desktop #experimentalCommandBar,.experimental-desktop #experimentalDesktopScreen>#playbackPanel{grid-row:4}
 .battle-result-visible #experimentalNotice{display:none}
 @media(max-height:680px) and (max-width:649px){.mobile-battle #battleFeedback .battle-result-label{font-size:9px;line-height:11px}.mobile-battle #battleFeedback .battle-result-title{font-size:14px;line-height:16px}.mobile-battle #battleFeedback .battle-result-detail{font-size:11px;line-height:14px}.mobile-battle #battleFeedback .battle-result-cargo{font-size:10px;line-height:12px}}
+@media(prefers-reduced-motion:reduce){.mobile-battle #mobileBattleScreen,.experimental-desktop #experimentalDesktopScreen{transition:none}}

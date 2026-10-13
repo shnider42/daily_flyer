@@ -1,0 +1,7 @@
+.unit-motion{transform-box:view-box;transform-origin:0 0;pointer-events:none}
+.illustrated-units .unit-motion>:is(.unit-name,.pin,.dug-marker,.watch-marker){display:none}
+.illustrated-units .unit-motion>rect{fill:var(--platoon-color,var(--us-team,#1264b1));stroke:#eee7cb;stroke-width:1.5}
+.illustrated-units .unit.de>.unit-motion>rect{fill:var(--platoon-color,var(--de-team,#b53c25))}
+.illustrated-units .unit.us>.unit-motion>rect{rx:9px}.illustrated-units .unit.de>.unit-motion>rect{rx:1px}
+.illustrated-units .unit:is(.selected,:focus-visible)>.unit-motion>rect{stroke:#ffe440;stroke-width:2.5}
+.illustrated-units .unit.target>.unit-motion>rect{stroke:#ffebda;stroke-width:3;stroke-dasharray:4 2}
