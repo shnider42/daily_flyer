@@ -10,15 +10,21 @@ so a successful move jumped to its destination. Replay also recentered the camer
 between the before/result views of an order. A newly displayed combat report
 instantly resized the phone/map-first playing surface.
 
-The prepared change interpolates a counter's visual wrapper for 170–260 ms after
-the server confirms movement. Its input target and rule state stay at the confirmed
+The movement renderer interpolates a counter's visual wrapper for approximately
+300–650 ms after the server confirms movement. Its input target and rule state stay at the confirmed
 hex. It never waits for the animation before accepting the next order, and does
 not move a unit optimistically while the request is still pending.
 
-Artwork, strength/AP and status marks move together. A second render preserves
+Artwork, strength/AP and status marks move together in a small independent SVG
+image. Its outer element animates as a compositor layer, keeping the large
+terrain/fog drawing out of each movement frame. Motion starts on the next frame
+after the battlefield finishes its synchronous layout. A second render preserves
 the current visual position instead of restarting at the origin. A later order
-can interrupt the motion and continue from that position. Own aircraft can follow
-the confirmed legal flight legs, and shared-hex offsets compose with movement.
+can interrupt the motion and continue from that position. Own aircraft follow
+the confirmed legal flight legs, with time allocated by
+travel distance. One-hex moves take about 300 ms; longer flights take about
+500–650 ms. A symmetric easing curve makes more of the trip visibly readable.
+Shared-hex offsets compose with movement.
 Keyboard focus is preserved when a selected counter is replaced.
 
 Newly spotted units, arrivals from reserve/transport, hidden routes and discontinuous
@@ -27,15 +33,19 @@ entire interpolated corridor in both snapshots. Reduced-motion preference makes
 movement immediate. Replay animates the forward before/result change only and
 keeps the camera steady across those phases.
 
-The result strip now opens and closes over 180 ms using consistent grid tracks.
+The result strip now opens and closes over 400 ms using consistent grid tracks.
 It returns its space to the map when dismissed, reserves no empty result slot,
 and never covers the hexes. The responsive base layout is cached during ordinary
-renders so repeated updates do not restart the transition. Reduced motion keeps
+renders so repeated updates do not restart the transition. Opening/closing
+starts after the current layout finishes; map-scale preservation covers the
+whole transition. Reduced motion keeps
 the panel resize immediate. Phone, landscape, Dad, map-first and replay layouts
 retain their own navigation and order capacities.
 
 Desktop holds its chosen pixel scale and scroll position during a result-panel
-height transition. It no longer refits zoom and recenters the selected unit on
+height transition, including the appearance of a scrollbar. The map viewport
+contains its layout/painting work, so a resize does not repeatedly invalidate
+the full page. It no longer refits zoom and recenters the selected unit on
 each resize frame. Explicit zoom, Find and window resizing keep their existing
 behavior.
 
@@ -71,15 +81,22 @@ References: [SVG overview](https://developer.mozilla.org/en-US/docs/Web/SVG),
 
 ## Validation
 
-Focused browser checks cover actual HTTP orders/AP/revisions, frame continuity,
+Focused browser checks cover actual HTTP orders/AP/revisions, real desktop clicks
+and phone taps under normal polling, readable route pacing, frame continuity,
 redraws, interrupted movement, shared-hex offsets, fog privacy, reduced motion,
 mobile/desktop cameras, replay and result-row interpolation. Existing artwork,
 retained-map, playback and result-feedback browser checks pass. No backend or dice
 rules are modified.
 
-Five browser harnesses pass: `ww2-motion-regression-browser.cjs`,
+Six browser harnesses pass: `ww2-motion-regression-browser.cjs`,
 `ww2-unit-art-browser.cjs`, `ww2-retained-map-browser.cjs`,
-`ww2-playback-browser.cjs` and `ww2-result-feedback-browser.cjs`.
+`ww2-playback-browser.cjs`, `ww2-result-feedback-browser.cjs` and
+`ww2-motion-input-browser.cjs`. Both motion harnesses pass in Chromium
+and WebKit (Safari’s engine). The input harness passes 24 real
+click/tap combinations across the two engines across Basic/Detailed art, desktop/phone layouts,
+Village Crossing, Nightfall Veil and Crosswind Strait. It leaves normal
+polling active and confirms orders become available before the visual
+movement ends.
 
 The older large-map performance test's assertion that every move keeps the exact
 viewport height also fails on unchanged `8b9b1c2` when reaction fire opens a report.

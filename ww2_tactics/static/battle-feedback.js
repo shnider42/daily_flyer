@@ -9,7 +9,7 @@
  const die=uiNode('div','battle-result-die'),copy=uiNode('div','battle-result-copy'),label=uiNode('p','battle-result-label'),title=uiNode('strong','battle-result-title'),detail=uiNode('p','battle-result-detail'),cargo=uiNode('p','battle-result-cargo');
  const close=uiNode('button','battle-result-dismiss','×');close.type='button';close.setAttribute('aria-label','Dismiss battle result');close.title='Dismiss this result; it remains in Battle reports';
  panel.append(die,copy,close,announced);copy.append(label,title,detail,cargo);$('game').append(panel);
- let battle=null,current=null,dismissed=null,announcedKey=null,frame=null;
+ let battle=null,current=null,dismissed=null,announcedKey=null,frame=null,visibilityFrame=null,wantedVisibility=null;
  const hex=pos=>`${hexColumn(pos[0])}${pos[1]+1}`;
  function cargoText(snapshot,report){
   const troop=snapshot.units?.find(u=>u.id===report.unit),transport=troop?.drop_transport;
@@ -54,11 +54,26 @@
   if(column){if(panel.parentElement!==column)column.prepend(panel);return;}
   if(panel.parentElement!==$('game'))$('mapWrap').after(panel);
  }
+ function applyVisibility(visible){
+  panel.hidden=!visible;document.body.classList.toggle('battle-result-visible',visible);fitMobileResult(visible);
+ }
+ function show(visible){
+  const changed=document.body.classList.contains('battle-result-visible')!==visible;
+  if(matchMedia('(prefers-reduced-motion: reduce)').matches||!changed){
+   cancelAnimationFrame(visibilityFrame);wantedVisibility=null;applyVisibility(visible);
+   if(changed)ww2ResultFeedback.layoutUntil=performance.now()+500;
+   return;
+  }
+  if(wantedVisibility===visible)return;
+  cancelAnimationFrame(visibilityFrame);wantedVisibility=visible;ww2ResultFeedback.layoutUntil=Infinity;
+  // Let the battlefield finish its synchronous layout before starting the
+  // result-row transition, so its travel time remains visible in Safari too.
+  visibilityFrame=requestAnimationFrame(()=>{
+   const next=wantedVisibility&&!$('game').hidden;wantedVisibility=null;applyVisibility(next);ww2ResultFeedback.layoutUntil=performance.now()+500;
+  });
+ }
  function paint(result){
-  const visible=!!result&&result.key!==dismissed&&!$('game').hidden;
-  if(document.body.classList.contains('battle-result-visible')!==visible)ww2ResultFeedback.layoutUntil=performance.now()+240;
-  panel.hidden=!visible;document.body.classList.toggle('battle-result-visible',visible);
-  fitMobileResult(visible);
+  const visible=!!result&&result.key!==dismissed&&!$('game').hidden;if(!visible)panel.hidden=true;show(visible);
   if(!visible)return;
   panel.dataset.tone=result.tone;label.textContent=result.label;title.textContent=result.title;detail.textContent=result.detail;cargo.textContent=result.cargo;cargo.hidden=!result.cargo;
   die.replaceChildren();die.hidden=result.roll===undefined;

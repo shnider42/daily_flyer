@@ -4,7 +4,7 @@ document.addEventListener('DOMContentLoaded',()=>{
  const desktop=matchMedia('(min-width: 1100px)'), game=document.getElementById('game'), lobby=document.getElementById('lobby');
  const wrap=document.getElementById('mapWrap');
  const compact=matchMedia('(max-width:1399px), (max-height:800px)');
- let mounts=[], originals=[], active=false, battle=null, zoom=1, scale=1, drag=null, suppressClick=false, resizeFrame, measured='',measuredWindow='',orderUnit=null;
+ let mounts=[], originals=[], active=false, battle=null, zoom=1, scale=1, drag=null, suppressClick=false, resizeFrame, measured='',measuredWindow='',measuredFieldWidth=0,orderUnit=null;
  const el=(tag,cls,text)=>{const node=document.createElement(tag);node.className=cls;if(text)node.textContent=text;return node;};
  function compactLayout(){
   const on=active&&(compact.matches||window.ww2Experience?.layout==='map-first');document.body.classList.toggle('compact-desktop',on);
@@ -28,12 +28,12 @@ document.addEventListener('DOMContentLoaded',()=>{
   const key=[box.width,box.height,wrap.clientWidth,wrap.clientHeight,zoom].join(':');
   if(key===measured)return;
   const prior=measured.split(':').map(Number),viewport=[innerWidth,innerHeight].join(':');
-  const preservePixels=resultResize()&&measuredWindow===viewport&&prior[0]===box.width&&prior[1]===box.height&&prior[2]===wrap.clientWidth&&prior[4]===zoom;
+  const preservePixels=resultResize()&&measuredWindow===viewport&&prior[0]===box.width&&prior[1]===box.height&&measuredFieldWidth===wrap.offsetWidth&&prior[4]===zoom;
   const previous=scale;
   const centerX=(wrap.scrollLeft+wrap.clientWidth/2)/previous,centerY=(wrap.scrollTop+wrap.clientHeight/2)/previous;
   const fit=Math.min((wrap.clientWidth-32)/box.width,(wrap.clientHeight-32)/box.height);
   if(preservePixels){zoom=previous/Math.max(.1,fit);scale=previous;}else scale=Math.max(.1,fit)*zoom;
-  measured=[box.width,box.height,wrap.clientWidth,wrap.clientHeight,zoom].join(':');measuredWindow=viewport;
+  measured=[box.width,box.height,wrap.clientWidth,wrap.clientHeight,zoom].join(':');measuredWindow=viewport;measuredFieldWidth=wrap.offsetWidth;
   document.getElementById('desktopZoomValue').textContent=`${Math.round(zoom*100)}%`;
   document.getElementById('desktopZoomOut').disabled=zoom<=1;document.getElementById('desktopZoomIn').disabled=zoom>=3.5;
   wrap.style.setProperty('--desktop-map-width',`${box.width*scale}px`);
@@ -130,12 +130,14 @@ document.addEventListener('DOMContentLoaded',()=>{
  compact.addEventListener('change',compactLayout);
  document.addEventListener('ww2:render',sync);
  document.addEventListener('ww2:playback',()=>{if(active){document.getElementById('desktopOrderTitle').textContent='Opponent’s turn';document.getElementById('desktopPlaybackNote').hidden=false;document.getElementById('desktopActionDock').hidden=true;measure();}});
- let lastWidth=0,lastHeight=0,lastWindow=[innerWidth,innerHeight].join(':');
+ let lastWidth=0,lastHeight=0,lastFieldWidth=0,lastWindow=[innerWidth,innerHeight].join(':');
  new ResizeObserver(()=>{
   if(wrap.clientWidth===lastWidth&&wrap.clientHeight===lastHeight)return;
-  const resultChange=resultResize()&&wrap.clientWidth===lastWidth&&lastWindow===[innerWidth,innerHeight].join(':');
+  // A scrollbar may change clientWidth while the field's outer width stays
+  // fixed. It must not turn a result-row resize into a zoom/refocus request.
+  const resultChange=resultResize()&&wrap.offsetWidth===lastFieldWidth&&lastWindow===[innerWidth,innerHeight].join(':');
   lastWindow=[innerWidth,innerHeight].join(':');
-  lastWidth=wrap.clientWidth;lastHeight=wrap.clientHeight;cancelAnimationFrame(resizeFrame);
+  lastWidth=wrap.clientWidth;lastHeight=wrap.clientHeight;lastFieldWidth=wrap.offsetWidth;cancelAnimationFrame(resizeFrame);
   resizeFrame=requestAnimationFrame(()=>{
    if(!active||game.hidden)return;
    const box=activeSvg().viewBox.baseVal,fit=Math.min((wrap.clientWidth-32)/box.width,(wrap.clientHeight-32)/box.height);

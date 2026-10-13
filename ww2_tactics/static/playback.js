@@ -37,6 +37,7 @@ function advancePlayback(){
  drawPlayback();schedulePlayback();
 }
 function stopPlayback(){
+ window.ww2Motion?.clear(document.getElementById('playbackMap'));
  clearTimeout(playbackTimer);const focus=playbackSession?.focus,scroll=playbackSession?.scroll;playbackSession=null;
  document.getElementById('playbackPanel').hidden=true;
  document.getElementById('playbackMap')?.remove();document.getElementById('map').removeAttribute('hidden');
@@ -108,6 +109,7 @@ function drawPlayback(){
   else if(changes.length){const more=uiNode('details');more.append(uiNode('summary','','Unit changes'),uiNode('p','mechanics-caption',changes.join(' · ')));result.append(more);}
  }
  const previousMap=document.getElementById('playbackMap');window.ww2Motion?.capture(previousMap);
+ window.ww2Motion?.clear(previousMap);
  const svg=document.getElementById('map').cloneNode(true);svg.id='playbackMap';svg.hidden=false;svg.removeAttribute('hidden');svg.setAttribute('aria-label',`Turn playback: ${description}`);
  svg._motionBefore=previousMap?._motionBefore;
  svg._motionForward=previousMap?._playbackIndex===p.index&&previousMap?._playbackPhase==='before'&&p.phase==='after';
