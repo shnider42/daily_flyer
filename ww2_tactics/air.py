@@ -7,7 +7,7 @@ import copy
 import secrets
 from .visibility import active, update_intel, record_reports
 from .combat_display import record_combat
-from .effects import record_effect
+from .effects import record_shot_effect
 from . import weapons, operations, domains, crosswind, nightfall
 
 AIRCRAFT = domains.AIRCRAFT
@@ -162,11 +162,12 @@ def resolve_shot(state,unit,target,roll,reaction=False):
         if die>=s['threshold']:target['hp']=max(0,target['hp']-s['damage'])
         if target['hp']<=0:target['overwatch']=False
         result='destroyed' if not target['hp'] else f"hit for {s['damage']}" if die>=s['threshold'] else 'missed'
-    label='AA interception' if reaction and (ship_aa or unit['kind'] in {'aa_gun','flak'}) else 'Fighter interception' if reaction else unit.get('attack_label','Bombing run') if unit['kind']=='bomber' else 'Air combat'
+    anti_air=ship_aa or unit['kind'] in {'aa_gun','flak'}
+    label=('AA interception' if reaction else 'Anti-aircraft fire') if anti_air else 'Fighter interception' if reaction else unit.get('attack_label','Bombing run') if unit['kind']=='bomber' else 'Air combat'
     state['last_combat']=dict(kind=label,roll=die,threshold=s['threshold'],result=result,
         attacker=unit['id'],target=target['id'],impacts=impacts,revision=state['revision']+1)
     record_combat(state,s['modifiers'],s.get('effect_text',f"{s['damage']} damage on a hit. Aircraft do not suffer infantry pins."))
-    record_effect(state,'explosion',[list(target['pos'])])
+    record_shot_effect(state,unit,target,die>=s['threshold'])
     return f'{label}: rolled {die}, needed {s["threshold"]}+. Target {result}.'
 
 

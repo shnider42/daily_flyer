@@ -13,7 +13,7 @@ async function settle(p){await p.waitForFunction(()=>state&&!busy&&!polling);if(
 async function refreshPage(p){await p.evaluate(()=>refresh());await settle(p);}
 async function openPage(width,name){
  const p=await browser.newPage({viewport:{width,height:900},isMobile:width<1000,hasTouch:width<1000});pages.push(p);p.setDefaultTimeout(22000);p.on('pageerror',e=>errors.push(e.message));p.on('dialog',d=>d.accept());p.on('response',r=>{if(r.url().includes('/assets/')&&r.status()>=400)badAssets.push(r.url());});
- await p.goto(base);await p.waitForFunction(()=>currentScenarios.length===27&&ww2Commander.ready);
+ await p.goto(base);await p.waitForFunction(()=>currentScenarios.length===28&&ww2Commander.ready);
  await p.locator('#scenarioSelectEdition').selectOption('current');await p.locator('#scenarioSelect').selectOption('current:nightfall_beacon');assert.match(await p.locator('#operationTitle').textContent(),/Nightfall Beacon/);
  await p.locator('#commanderSignIn').click();await p.locator('#commanderRegisterMode').click();await p.locator('#commanderName').fill(name);await p.locator('#commanderPassword').fill('local-nightfall-test-123');await p.locator('#commanderSubmit').click();await p.waitForFunction(()=>ww2Commander.name&&!$('commanderDialog').open);return p;
 }

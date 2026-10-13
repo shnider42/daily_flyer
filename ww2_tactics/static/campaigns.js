@@ -51,9 +51,9 @@
  };
  function previewPath(e){
   if(!state?.air_version&&!state?.joint_ops_version)return;const svg=$('map');svg.querySelector('.flight-trail')?.remove();
-  const hex=e.target.closest('.hex.move'),u=state.units.find(u=>u.id===selected);if(!hex||!u)return;
+  const hex=e.target.closest('.hex.move'),u=state.units.find(u=>u.id===selected);if(!hex||!u||!['fighter','bomber','transport_aircraft'].includes(u.kind))return;
   const move=state.legal[selected]?.moves.find(m=>m.pos[0]===+hex.dataset.x&&m.pos[1]===+hex.dataset.y);if(!move)return;
-  if(move.path)svg.append(element('polyline',{points:[u.pos,...move.path].map(p=>center(...p).join(',')).join(' '),class:'flight-trail','aria-hidden':'true'}));
+  if(move.path)svg.append(element('polyline',{points:[u.pos,...move.path].map(p=>center(...p).join(',')).join(' '),class:'flight-trail',fill:'none','aria-hidden':'true'}));
  }
  $('map').addEventListener('pointerover',e=>{if(e.pointerType==='mouse')previewPath(e);});$('map').addEventListener('focusin',previewPath);
  $('map').addEventListener('pointerleave',()=>$('map').querySelector('.flight-trail')?.remove());

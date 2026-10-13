@@ -74,11 +74,11 @@ async function page(touch=true){const p=await browser.newPage({viewport:touch?{w
  await b.evaluate(()=>refresh());await settled(b);
  await b.locator('#deploymentUnits').click();const gun=await b.evaluate(()=>state.units.find(u=>u.kind==='at_gun'));
  await b.locator('#deploymentUnit').selectOption(gun.id);await b.evaluate(()=>focusMapUnit({pos:[0,1]}));await b.locator('.deployment-choice[data-x="0"][data-y="1"]').click();await settled(b);
- // The real radio portrait uses the generated atlas, including close-up UI.
+ // The radio portrait uses the same recognition art as every other unit.
  const radio=await b.evaluate(()=>state.units.find(u=>u.kind==='radioman'));
  await b.locator('#deploymentUnit').selectOption(radio.id);
- await b.waitForFunction(id=>document.querySelector(`[data-unit-id="${id}"] .specialist-atlas image`)?.href.baseVal.includes('specialists-atlas-v1'),radio.id);
- await b.waitForFunction(id=>document.querySelector(`[data-unit-id="${id}"] .portrait-radioman > .raster-fallback`)?.getAttribute('display')==='none',radio.id);
+ assert.equal(await b.locator(`[data-unit-id="${radio.id}"] .portrait-radioman`).count(),1);
+ assert.ok(await b.locator(`[data-unit-id="${radio.id}"] .art-solid`).count()>0);
  await b.screenshot({path:path.join(tmp,'german-defense.png')});
  await lock(b);await a.evaluate(()=>refresh());await settled(a);assert.equal(await a.evaluate(()=>state.deployment.phase),'battle');
  // Artwork plate reuses the production portrait renderer for all nine roles.

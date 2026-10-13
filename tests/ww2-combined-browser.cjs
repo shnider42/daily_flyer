@@ -35,8 +35,8 @@ let browser;
    if(width<1100){assert.ok(Math.abs(geometry[0]-geometry[1])<=1);assert.equal(await p.locator('.selected-unit-name').textContent(),label);assert.ok(await p.locator('.selected-unit-name').evaluate(e=>e.scrollWidth<=e.clientWidth));}
    assert.equal(await p.locator('#roster .active .roster-unit-name').textContent(),label);
    assert.match(await p.locator('#unitPurpose').textContent(),role);assert.equal(await p.locator('#unitPurpose').isVisible(),width>=1100);
-   await p.waitForFunction(()=>document.querySelector('#map .unit.selected .unit-bitmap')?.classList.contains('bitmap-ready'));
-   assert.match(await p.locator('#map .unit.selected .unit-bitmap').getAttribute('href'),new RegExp(kind+'-v1.webp'));
+   assert.equal(await p.locator('#map .unit.selected .portrait-'+kind).count(),1);
+   assert.ok(await p.locator('#map .unit.selected .art-solid').count()>0);
   }
   await p.screenshot({path:path.join(temp,`combined-${width}.png`),fullPage:true});
   assert.ok(await p.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),JSON.stringify(await p.evaluate(()=>({width:innerWidth,scroll:document.documentElement.scrollWidth,wide:[...document.querySelectorAll('body *')].filter(e=>e.getBoundingClientRect().right>innerWidth+1&&getComputedStyle(e).position!=='absolute').slice(0,15).map(e=>[e.tagName,e.id,e.className?.baseVal||e.className,e.getBoundingClientRect().width])}))));

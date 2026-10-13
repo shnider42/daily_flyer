@@ -103,3 +103,8 @@ main{padding-top:8px}
  .desktop-mode #game .desktop-layout,.desktop-mode.simple-play #game .desktop-layout{height:calc(100svh - 210px)}
  .desktop-panel-title,.desktop-map-heading h2{font-size:20px}
 }
+@media(min-width:1100px) and (hover:hover){
+ .desktop-mode #map .hex.move:hover{stroke:#f5c868;stroke-width:4;filter:brightness(1.12);cursor:pointer}
+ .desktop-mode.simple-play #orders #selection{font-size:15px;line-height:20px;margin-bottom:3px}
+ .desktop-mode.simple-play #orders #hint{font-size:12px;line-height:17px;margin-bottom:8px}
+}

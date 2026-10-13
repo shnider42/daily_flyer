@@ -14,6 +14,7 @@ CATEGORIES = {
 # key: learning position, additional categories, one short learning focus
 GUIDE = {
     'nightfall_beacon': (14, ['air','airborne','attack-defend'], 'Night bombing and airborne raid: short sight, aimed Spotlights, flares and Dakota drops.'),
+    'nightfall_veil': (15, ['air','airborne','attack-defend'], 'Concealed night raid: search two sectors for radar sites amid constrained randomized defenses.'),
     'crosswind_strait': (12, ['naval','air','control'], 'Medium 2v2: two mixed air/naval platoons per side; carrier service and shipboard AA.'),
     'worlds_collide': (24, ['combined','armor','naval','air','airborne','amphibious','control'], 'Five platoons per coalition, every unit class and terrain, six control zones.'),
     'vire_crossroads': (22, ['combined','armor','control'], 'Lower density: two platoons, 17 units per side; one ground unit per hex.'),

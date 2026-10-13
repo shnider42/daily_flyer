@@ -9,7 +9,7 @@ async function refresh(p){await p.evaluate(()=>refresh());await settle(p);}
 async function page(width,name){
  const p=await browser.newPage({viewport:{width,height:900},hasTouch:width<1000,isMobile:width<1000});pages.push(p);p.setDefaultTimeout(18000);
  p.on('pageerror',e=>errors.push(e.message));p.on('dialog',d=>d.accept());await p.goto(base);
- await p.waitForFunction(()=>scenarios.length===24&&currentScenarios.length===27&&ww2Commander.ready);
+ await p.waitForFunction(()=>scenarios.length===24&&currentScenarios.length===28&&ww2Commander.ready);
  await p.locator('#commanderSignIn').click();await p.locator('#commanderRegisterMode').click();await p.locator('#commanderName').fill(name);await p.locator('#commanderPassword').fill('local-editions-test-123');await p.locator('#commanderSubmit').click();await p.waitForFunction(()=>ww2Commander.name&&!$('commanderDialog').open);return p;
 }
 async function edition(p,map,value='current'){

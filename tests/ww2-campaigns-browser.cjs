@@ -30,18 +30,18 @@ let browser;const errors=[],badAssets=[];
   assert.ok(Math.abs(await p.locator('#mapWrap').evaluate(n=>n.getBoundingClientRect().top)-top)<2);
   await p.screenshot({path:path.join(temp,`${name}-battle-mobile.png`)});
   if(name==='britain'){
-   assert.equal(await p.locator('#map .unit.us .portrait-fighter .atlas-viewport').count(),4);
+   assert.equal(await p.locator('#map .unit.us .portrait-fighter').count(),4);
    assert.match(await p.locator('#roleBrief').textContent(),/3 hexes per AP/);
    const revision=await p.evaluate(()=>state.revision);
    await tap(p,p.locator('#map .hex.move').first());await p.waitForFunction(rev=>!busy&&state.revision>rev,revision);
    assert.equal(await p.evaluate(id=>state.units.find(u=>u.id===id).ap,id),3);
    await tap(p,p.locator('#dadModeToggle'));await p.locator('#battleViewSettingsClose').click();
    await p.evaluate(id=>focusMapUnit(state.units.find(u=>u.id===id)),id);await tap(p,p.locator(`#map .unit[data-unit-id="${id}"]`));
-   assert.ok(await p.locator('#mobileOrderToggle .dad-unit-portrait .atlas-viewport').count()>0);
+   assert.ok(await p.locator('#mobileOrderToggle .dad-unit-portrait .unit-portrait').count()>0);
    await p.screenshot({path:path.join(temp,'britain-dad-mobile.png')});
    await tap(p,p.locator('#dadModeToggle'));await p.locator('#battleViewSettingsClose').click();
   }
-  if(name==='omaha')assert.equal(await p.locator('#map .portrait-landing_craft .atlas-viewport').count(),4);
+  if(name==='omaha')assert.equal(await p.locator('#map .portrait-landing_craft').count(),4);
   await tap(p,p.locator('#homeBattles'));await p.waitForFunction(()=>lobbyMode);
  }
  const desktop=await browser.newPage({viewport:{width:1440,height:1000}});desktop.on('pageerror',e=>errors.push(e.message));

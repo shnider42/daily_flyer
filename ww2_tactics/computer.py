@@ -294,6 +294,8 @@ def play_turn(state, roll=None, observers=None, max_orders=None, planning=None, 
             before, after = before_all[viewer], previous_snapshot[viewer]
             safe_action = copy.deepcopy(action)
             effects = [e for e in state.get('effects', []) if e['sequence'] > effect_sequence]
+            from .effects import visible_effects
+            effects = visible_effects(state, viewer, effects, (before, after))
             combat = [e for e in state.get('combat_history', []) if e.get('sequence', 0) > sequence]
             if fog(state):
                 seen = {u['id'] for u in before['units'] + after['units']}
@@ -309,7 +311,6 @@ def play_turn(state, roll=None, observers=None, max_orders=None, planning=None, 
                     safe_action.pop('pos', None)
                 if action['kind'] in {'move', 'drop'} and action.get('unit') not in {u['id'] for u in after['units']}:
                     safe_action.pop('pos', None)
-                effects = [e for e in effects if all(p in tiles for p in e['positions'])]
                 combat = [e for e in state.get('reports', {}).get(viewer, {}).get('combat', []) if e.get('sequence', 0) > sequence]
                 if 'unit' not in safe_action and action['kind'] != 'end':
                     if before == after and not combat:

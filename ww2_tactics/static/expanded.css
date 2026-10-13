@@ -174,6 +174,29 @@ textarea { box-sizing:border-box; display:block; width:100%; max-width:100%; pad
 @keyframes smoke-bloom { from { transform:scale(.35); opacity:.65; } to { transform:scale(1.4) translateY(-5px); opacity:0; } }
 @keyframes blast-flash { from { opacity:.85; } to { opacity:0; } }
 @keyframes blast-ring { from { transform:scale(.3); opacity:.9; } to { transform:scale(1.35); opacity:0; } }
+.effect-falling-bomb{animation:bomb-fall .65s ease-in forwards}
+.effect-bomb-body{fill:#303a3b;stroke:#fff2bd;stroke-width:1.6;stroke-linejoin:round}
+.effect-bomb-impact{opacity:0;animation:impact-arrive .01s .55s forwards}
+.effect-bomb-impact .effect-flash,.effect-bomb-impact .effect-spark{animation-delay:.55s;animation-fill-mode:both}
+.effect-bomb-impact .effect-ring{animation-delay:.55s;animation-fill-mode:both}
+.effect-dust{fill:#c4bca1;opacity:0;animation:impact-dust 1.1s .55s ease-out forwards;transform-box:fill-box;transform-origin:center}
+.effect-miss-ring{fill:none;stroke:#d4d0bb;stroke-width:2;stroke-dasharray:3 5;opacity:0;animation:blast-ring 1s .55s ease-out forwards}
+.effect-air-tracer{fill:none;stroke:#ffe098;stroke-width:2.5;stroke-linecap:round;stroke-dasharray:.08 .92;stroke-dashoffset:1;animation:air-tracer .45s linear both}
+.effect-fighter-tracer{stroke:#fff4c8;stroke-width:1.7}
+.effect-muzzle-flash{fill:#ffdf81;stroke:#fff8d9;stroke-width:1.5;animation:blast-flash .35s ease-out forwards}
+.effect-flak-puff{fill:#475563;stroke:#cfbc94;stroke-width:1.5;opacity:0;transform-box:fill-box;transform-origin:center;animation:flak-burst 1.05s ease-out forwards}
+.effect-flak-flash{fill:none;stroke:#fff0ba;stroke-width:2;opacity:0;animation:flak-flash .28s linear forwards}
+.effect-light-battery .effect-flak-puff{fill:#8a8779;stroke:#e7d8b7;stroke-width:1;}
+.effect-air-impact{opacity:0;animation:impact-arrive .01s .5s forwards}
+.effect-air-impact .effect-flash,.effect-air-impact .effect-spark,.effect-air-impact .effect-ring{animation-delay:.5s;animation-fill-mode:both}
+.effect-air-miss{fill:none;stroke:#d6d7ca;stroke-width:1.5;stroke-dasharray:2 5;opacity:0;animation:blast-ring .8s .5s ease-out forwards}
+@keyframes bomb-fall{0%{transform:translate(var(--launch-x),var(--launch-y));opacity:1}85%{transform:translate(0,0);opacity:1}100%{transform:translate(0,4px);opacity:0}}
+@keyframes impact-arrive{to{opacity:1}}
+@keyframes impact-dust{0%{transform:scale(.5);opacity:.75}100%{transform:scale(1.5) translateY(-6px);opacity:0}}
+@keyframes air-tracer{0%{stroke-dashoffset:1;opacity:0}10%{opacity:1}90%{opacity:1}100%{stroke-dashoffset:0;opacity:0}}
+@keyframes flak-burst{0%{transform:scale(.2);opacity:0}15%{opacity:.9}100%{transform:scale(1.5);opacity:0}}
+@keyframes flak-flash{0%,100%{opacity:0}25%,65%{opacity:1}}
 @media(prefers-reduced-motion:reduce) { .battle-effect * { animation:none; opacity:.45; } }
+@media(prefers-reduced-motion:reduce){.battle-effect .effect-falling-bomb,.battle-effect .effect-air-tracer,.battle-effect .effect-muzzle-flash{display:none}.battle-effect .effect-bomb-impact,.battle-effect .effect-air-impact{opacity:1}.battle-effect .effect-flak-puff{opacity:.7}}
 
 .hex.road-bonus.threatened { fill:#ffbf74; stroke:#a24a13; }

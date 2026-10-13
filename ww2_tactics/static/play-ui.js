@@ -197,6 +197,15 @@
    if($('hint').textContent.startsWith('Fire at '))$('hint').textContent='Target in sight. Choose an available attack.';
   }
   $('simpleOutcome').hidden=!prefs.simple||!state.last_combat||!!playbackSession;
+  // Keep the normal desktop click path short once a movable unit is chosen.
+  // Status warnings and targeting instructions always take precedence.
+  if(window.ww2Desktop?.active&&prefs.experience==='simple'&&!playbackSession&&state.turn===state.side&&!state.winner&&state.ready&&state.deployment?.phase!=='planning'&&!target&&!smokeMode&&!barrageMode&&!combatMode&&!window.nightPicking?.(state.legal?.[selected])&&!window.airbornePicking?.(state.legal?.[selected])&&!window.operationsPicking?.(state.legal?.[selected])&&!window.fieldworksPicking?.(state.legal?.[selected])&&!window.signalsPicking?.(state.legal?.[selected])&&!$('hint').classList.contains('building-warning')){
+   const unit=state.units.find(u=>u.id===selected),moves=state.legal?.[selected]?.moves;
+   if(unit&&!unit.pinned&&!unit.immobilized&&!unit.reserve&&!unit.carrier_id&&moves?.length){
+    const air=['fighter','bomber','transport_aircraft'].includes(unit.kind),costs=[...new Set(moves.map(m=>m.cost))].sort((a,b)=>a-b),cost=costs.length===1?`${costs[0]} AP`:`${costs[0]}–${costs.at(-1)} AP`;
+    $('hint').textContent=`Click an outlined hex to ${air?'fly':'move'} · ${air&&unit.flight?`${unit.flight} hexes / 1 AP`:cost}${unit.road_pending?' · free road step ready':''}. Click an enemy to target.`;
+   }
+  }
   styleActions();
   if(dock){
    const columns=innerWidth<360?2:3,buttons=[...$('orders').querySelectorAll('button')].filter(b=>!b.hidden&&!b.closest('[hidden]'));

@@ -1,63 +1,24 @@
 #playTools #unitStyleToggle{width:116px;flex:none;white-space:nowrap;font-size:10px;padding-inline:6px}
-.unit-art{pointer-events:none}
-.unit-art .unit-bitmap{pointer-events:none;image-rendering:auto}
-.unit-art .parachute-canopy{fill:#e6d9ac;stroke:#263b31;stroke-width:.8}
-.unit-art .parachute-rib{fill:none;stroke:#9a9d74;stroke-width:.7}
-.unit-art .parachute-cord{fill:none;stroke:#e9e5d0;stroke-width:.75}
-.unit-art .parachute-pack{fill:#abbd8d;stroke:#1c3429;stroke-width:.7}
-.unit-art .tool-handle{fill:none;stroke:#cba16a;stroke-width:2;stroke-linecap:round}
-.unit-art .tool-steel{fill:#cbd7cf;stroke:#1d3630;stroke-width:.7}
-.unit-art .ship-hull{fill:#c5d8db;stroke:#102f3d;stroke-width:.9}
-.unit-art .ship-deck{fill:#9bac9e;stroke:#e3e8d4;stroke-width:.5}
-.unit-art .ship-superstructure{fill:#728f99;stroke:#203e48;stroke-width:.6}
-.unit-art .ship-turret{fill:#879da0;stroke:#203e48;stroke-width:.5}
-.unit-art .ship-marking{fill:none;stroke:#f1ecd1;stroke-width:.65;stroke-linecap:round}
-.unit-art .ship-wake{fill:none;stroke:#9fe0e6;stroke-width:.65;stroke-linecap:round}
+.unit-art{pointer-events:none;--art-ink:#f3edce;--art-mid:#c8ccb9;--art-dark:#162e35}
 .illustrated-units .unit>:is(.unit-name,.pin,.dug-marker,.watch-marker){display:none}
-.illustrated-units .unit>rect{fill:var(--platoon-color,var(--us-team));stroke:#eee7cb;stroke-width:1.5}
-.illustrated-units .unit.de>rect{fill:var(--platoon-color,var(--de-team))}
+.illustrated-units .unit>rect{fill:var(--platoon-color,var(--us-team,#1264b1));stroke:#eee7cb;stroke-width:1.5}
+.illustrated-units .unit.de>rect{fill:var(--platoon-color,var(--de-team,#b53c25))}
 .illustrated-units .unit.us>rect{rx:9px}.illustrated-units .unit.de>rect{rx:1px}
-.unit-art .portrait-panel{fill:#152e35;fill-opacity:.78;stroke:#e5dbb4;stroke-width:.35;stroke-opacity:.3}
-.unit-art .unit-portrait{--uniform:#d5d1a4;--helmet:#a7b58b}
-.unit.de .unit-portrait{--uniform:#c5cfbc;--helmet:#9cb0a5}
-.unit-art .portrait-coat{fill:var(--uniform);stroke:#edf0d2;stroke-width:.3;stroke-linejoin:round}
-.unit-art .portrait-face{fill:#d4bc95;stroke:none}
-.unit-art .portrait-helmet{fill:var(--helmet);stroke:#dae3c8;stroke-width:.5;stroke-linejoin:round}
-.unit-art .portrait-rifle{fill:none;stroke:#e5deca;stroke-width:1;stroke-linecap:round}
-.unit-art .portrait-stock{fill:none;stroke:#ac8d61;stroke-width:1.8;stroke-linecap:round}
-.unit-art .portrait-pack{fill:#8b9670;stroke:#d8d5ac;stroke-width:.35}
-.unit-art .portrait-arm{fill:none;stroke:var(--uniform);stroke-width:1.6;stroke-linecap:round;stroke-linejoin:round}
-.unit-art .portrait-optics{fill:#29393a;stroke:#c7d4c7;stroke-width:.6}
-.unit-art .portrait-lens{fill:none;stroke:#cce8e5;stroke-width:1}
-.unit-art .portrait-gun{fill:#c1d0cb;stroke:#d7e0d8;stroke-width:1;stroke-linejoin:round;stroke-linecap:round}
-.unit-art .portrait-detail{fill:none;stroke:#707b62;stroke-width:.6;stroke-linecap:round}
-.unit-art .rear-rifleman{opacity:.7}
-.unit-art .mg-metal{fill:#d0d9d3;stroke:#101c1d;stroke-width:.65;stroke-linejoin:round}
-.unit-art .mg-grip{fill:#99aaa0;stroke:#101c1d;stroke-width:.65;stroke-linejoin:round}
-.unit-art .mg-mount{fill:none;stroke:#bac8bf;stroke-width:1.35;stroke-linecap:round;stroke-linejoin:round}
-.unit-art .mg-feet,.unit-art .mg-sight{fill:none;stroke:#dae1d8;stroke-width:1;stroke-linecap:round}
-.unit-art .mg-vent{fill:#263c3d;stroke:none}
-.unit-art .mg-engraving{fill:none;stroke:#f3f2df;stroke-width:.45;stroke-linejoin:round}
-.unit-art .mg-trigger{fill:none;stroke:#aebeb4;stroke-width:.7}
-.unit-art .rank-gold{fill:#f4c515;stroke:#111814;stroke-width:1.1;stroke-linejoin:round}
-.unit-art .rank-gold-highlight{fill:none;stroke:#ffe783;stroke-width:.6;stroke-linejoin:round}
-.unit-art .rank-roundel{fill:#466f17;stroke:#111814;stroke-width:1.1}
-.unit-art .rank-diamond{fill:#a7b1ad;stroke:#111814;stroke-width:1.1}
-.unit-art .rank-silver-light{fill:#f6f7f1;stroke:none}
-.unit-art .rank-silver-mid{fill:#c3cbc8;stroke:none}
-.unit-art .rank-silver-dark{fill:#87918b;stroke:none}
-.unit-art .rank-silver-shadow{fill:#424e49;stroke:none}
-.unit-art .rank-rivet{fill:#d4ddd6;stroke:#66716b;stroke-width:.4}
-.unit-art .rank-silver-bar{fill:#cbd0cb;stroke:#131a18;stroke-width:1.1;stroke-linejoin:miter}
-.unit-art .rank-green-patch{fill:#111a0d;stroke:#050904;stroke-width:1.2}
-.unit-art .rank-green-stripe{fill:none;stroke:#83aa32;stroke-width:2;stroke-linecap:butt}
-.unit-art .rank-branch{fill:none;stroke:#b0ca65;stroke-width:.7}
-.unit-art .rank-leaf{fill:#90ad46;stroke:none}
-.compact-unit-art .insignia-detail{display:none}
-.unit .unit-art .counter-army{font-size:5px;font-weight:850;fill:#fff9e3;stroke:none}
-.unit-art .is-pinned,.unit-art.is-pinned .unit-portrait{opacity:.6}
+.unit-art .portrait-panel{fill:var(--art-dark);fill-opacity:.88;stroke:#e5dbb4;stroke-width:.4;stroke-opacity:.35}
+.unit-art :is(.art-solid,.art-secondary,.art-role-mark){fill:var(--art-ink);stroke:var(--art-dark);stroke-width:.65;stroke-linejoin:round}
+.unit-art .art-secondary-figure{opacity:.72}
+.unit-art .art-line{fill:none;stroke:var(--art-ink);stroke-width:2.2;stroke-linecap:round;stroke-linejoin:round}
+.unit-art .art-cutout{fill:var(--art-dark);stroke:none}
+.unit-art .art-cutline{fill:none;stroke:var(--art-dark);stroke-width:1.5;stroke-linecap:round}
+.unit-art .art-role-disc{fill:var(--art-dark);stroke:var(--art-ink);stroke-width:1.2}
+.unit-art .art-detail{display:none;fill:none;stroke:var(--art-dark);stroke-width:.85;stroke-linecap:round;stroke-linejoin:round}
+.unit-art-detailed .art-detail{display:block}
+.unit-art-detailed .art-secondary{fill:var(--art-mid)}
+.unit-art-basic :is(.art-solid,.art-secondary,.art-role-mark){stroke:none}
+.unit-art-basic .art-line{stroke-width:2.5}
+.compact-unit-art .unit-art .art-detail{display:none}
+.unit-art.is-pinned .unit-portrait{opacity:.55}
 .unit-art .sandbag{fill:#c1ac78;stroke:#514e38;stroke-width:.8}
-.unit-art .sandbag-seam{fill:none;stroke:#eee0b2;stroke-width:.7}
 .unit-art .status-disc{fill:#263e3b;stroke:#f4df96;stroke-width:1}
 .unit-art .status-eye{fill:none;stroke:#ffe9a0;stroke-width:1}
 .unit-art .eye-pupil{fill:#ffe9a0}
@@ -68,5 +29,3 @@
 .illustrated-units .unit:is(.selected,:focus-visible) .selection-brackets{display:block;fill:none;stroke:#ffe440;stroke-width:2;filter:drop-shadow(0 0 .6px #22372a)}
 .illustrated-units .unit:is(.selected,:focus-visible) .selection-corner{display:block;fill:#ffe440;stroke:#344439;stroke-width:.5}
 .illustrated-units .unit.target>rect{stroke:#ffebda;stroke-width:3;stroke-dasharray:4 2}
-.compact-unit-art .unit-art :is(.portrait-detail,.sandbag-seam){display:none}
-.compact-unit-art .unit-art .portrait-coat{stroke:none}

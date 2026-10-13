@@ -14,3 +14,4 @@
 .night-choice{fill:#bbe9ff;fill-opacity:.2;stroke:#dff5ff;stroke-width:3;cursor:pointer}
 .night-choice:hover,.night-choice:focus{fill-opacity:.55;outline:none;stroke:#ffe2a1}
 .night-battle .joint-air-badge{fill:#e4f6ff;paint-order:stroke;stroke:#111d32;stroke-width:2}
+.night-search-sector{fill:#e3bd5020;stroke:#f0c969;stroke-width:2;stroke-dasharray:12 9;pointer-events:none}.night-possible-site{fill:none;stroke:#f0c969;stroke-width:2;stroke-dasharray:3 3;pointer-events:none}

@@ -49,7 +49,7 @@
   if(mode)$('hint').textContent='Choose any hex for the drop. Bright outlines are aim points, not promises of safety. 3 AP · finite reserve · no undo.';
   const r=state.airlift_report;
   if(r){report.hidden=false;report.textContent=`Airlift · R${r.round} · rolled ${r.roll}${r.scatter?' · scatter '+r.scatter:''}${r.guided?' · beacon assisted':''}${r.diverted?' · landing diverted':''}${r.pos?' · '+hexColumn(r.pos[0])+(r.pos[1]+1):''}. ${r.result}${r.survived===false?' Squad destroyed on landing.':''}`;
-   const key=state.code+':'+state.battle_number+':'+r.revision;if(lastReport!==key){lastReport=key;notify(report.textContent);}
+   const key=state.code+':'+state.battle_number+':'+r.revision;if(lastReport!==key){lastReport=key;if(!window.ww2ResultFeedback?.enabled)notify(report.textContent);}
   }
   svg.querySelectorAll('.beacon-mark').forEach(n=>n.remove());
   for(const p of state.units.filter(v=>v.side===state.side&&v.hp>0&&!v.reserve&&!v.carrier_id&&v.beacon_active)){

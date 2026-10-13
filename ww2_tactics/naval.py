@@ -8,7 +8,7 @@ import secrets
 from .rulesets import base_ap, bank_limit
 from .visibility import active, visible_ids, update_intel, record_reports
 from .combat_display import record_combat
-from .effects import record_effect
+from .effects import record_effect, record_shot_effect
 from . import weapons, operations, domains, crosswind
 
 SHIPS={'battleship','carrier','cruiser','destroyer'}
@@ -179,7 +179,11 @@ def unit_order(state, unit, action, legal, roll, before=None):
         state['last_combat']=dict(kind='Shipboard AA' if shot.get('weapon')=='flak' else {'fire':'Naval guns','airstrike':'Air strike','torpedo':'Torpedoes'}[kind],
              roll=die,threshold=shot['threshold'],result=result,attacker=unit['id'],target=target['id'],impacts=impacts,revision=state['revision']+1)
         record_combat(state,shot.get('modifiers'),shot.get('effect_text',f"{shot['damage']} hull on a hit. Ships do not suffer infantry pins.")+(' Cruiser AA cover adds +1.' if shot.get('aa') else ''))
-        record_effect(state,'explosion',[target['pos']])
+        if shot.get('weapon')=='flak':
+            record_shot_effect(state,unit,target,die>=shot['threshold'],kind='anti_air')
+        elif kind=='airstrike':
+            record_effect(state,'bombing',[target['pos']],layer='ground',hit=die>=shot['threshold'])
+        else:record_effect(state,'explosion',[target['pos']])
     else:raise ValueError('That naval order is unavailable.')
     return message
 

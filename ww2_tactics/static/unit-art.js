@@ -1,259 +1,198 @@
-/* Optional decorative counters. Existing SVG groups still own input and game identity. */
+/* One recognition-art family in both detail settings. Counters still own input. */
 'use strict';
 (()=>{
- let illustrated=true;
- try{illustrated=localStorage.getItem('ww2-unit-style')!=='classic';}catch{}
+ let detailed=true;
+ try{detailed=!['basic','classic'].includes(localStorage.getItem('ww2-unit-style'));}catch{}
  const ns='http://www.w3.org/2000/svg',observed=new Set();
- const rasterKinds=new Set(['carrier','battleship','cruiser','destroyer','paratrooper','scout','engineer','halftrack','at_gun','at_team','sniper']);
- function rasterName(u){
-  if(u.variant||u.faction&&!['us','de','su'].includes(u.faction))return null;
-  if(u.kind==='airfield')return 'airfield';
-  if(u.faction==='su'&&u.kind==='squad')return 'landing-infantry';
-  if(rasterKinds.has(u.kind))return u.kind;
-  if(u.kind==='tank')return `tank-${u.side}`;
-  if(u.kind==='amphibious')return ['water','objective'].includes(state.map[u.pos[1]][u.pos[0]])?'landing-craft':'landing-infantry';
-  return null;
- }
+ const ships=new Set(['carrier','battleship','cruiser','destroyer']);
+ const planes=new Set(['fighter','bomber','transport_aircraft']);
  function el(tag,attrs,text){const n=document.createElementNS(ns,tag);for(const [k,v] of Object.entries(attrs))n.setAttribute(k,v);if(text)n.textContent=text;return n;}
  function size(svg){const width=svg.viewBox.baseVal.width;svg.classList.toggle('compact-unit-art',!!width&&svg.getBoundingClientRect().width/width*40<40);}
  const observer=new ResizeObserver(entries=>entries.forEach(e=>size(e.target)));
+ function drawUnit(drawing,u){
+  const add=(tag,attrs,parent=drawing)=>{const n=el(tag,attrs);parent.append(n);return n;};
+  const path=(d,cls='art-solid',parent=drawing)=>add('path',{d,class:cls},parent);
+  const circle=(x,y,r,cls='art-solid',parent=drawing)=>add('circle',{cx:x,cy:y,r,class:cls},parent);
+  const detail=(d,parent=drawing)=>path(d,'art-detail',parent);
+  const line=(d,parent=drawing)=>path(d,'art-line',parent);
+  if(planes.has(u.kind)){
+   const four=['lancaster','halifax'].includes(u.variant),twin=four||u.kind!=='fighter'||['mosquito_fighter','bf110'].includes(u.variant);
+   const wide=u.kind==='bomber'||u.kind==='transport_aircraft';
+   path(u.kind==='transport_aircraft'?'M-2.5-14Q0-17 2.5-14L3-5 20 .3V4L3 .1 2.5 9 8 12V14L0 12-8 14V12L-2.5 9-3 .1-20 4V.3L-3-5Z':wide?'M-1.8-14Q0-17 1.8-14L2.2-5 20 .3V4L2.4 .1 2 9 8 12V14L0 12-8 14V12L-2 9-2.4 .1-20 4V.3L-2.2-5Z':'M-1.4-14Q0-17 1.4-14L1.8-5 17 1V4L2 .3 1.5 10 6 12V14L0 12-6 14V12L-1.5 10-2 .3-17 4V1L-1.8-5Z');
+   const engines=four?[-12,-6,6,12]:twin?[-8,8]:[0];
+   for(const x of engines){path(`M${x-1.3}-5h2.6v9h-2.6Z`);line(`M${x-3}-5h6`);detail(`M${x-.5}-3v5`);}
+   path('M-1-12H1V-7H-1Z','art-cutout');
+   detail('M0-5V11M-14 1l10-2M4-1l10 2M-5 12h10');
+   if(u.variant==='halifax')path('M-6 11v4h2v-4ZM4 11v4h2v-4Z');
+   if(u.variant==='bf110'){line('M-2-13l-4-4M2-13l4-4M-5-15h10');}
+   if(u.variant==='mosquito_pathfinder'){circle(14,-9,3,'art-role-disc');line('M14-13v8M10-9h8');}
+   if(u.kind==='transport_aircraft'){path('M-1.2 3h2.4v4h-2.4Z','art-cutout');detail('M-1 0h2M-1 8h2');}
+   if(u.variant==='torpedo_bomber'){path('M-1-1h2v10l-1 2-1-2Z','art-secondary');}
+   if(u.variant==='dive_bomber'){line('M12-11l6 6M18-5v-5M18-5h-5');}
+   return;
+  }
+  if(ships.has(u.kind)){
+   path('M-21 7H21L16 13H-16Z');
+   path('M-16 9H16','art-cutline');
+   if(u.kind==='carrier'){
+    path('M-21 3H21V7H-21Z');path('M6-5H11V3H3V0H6Z');line('M9-10v5M6-8h6');
+    path('M-15-1h10v2h-10ZM-11-4h2v7h-2Z','art-secondary');
+    detail('M-19 5H1M-3 4V6M1 4V6M5 4V6M13 4V6');
+   }else{
+    path(u.kind==='battleship'?'M-6 7V0H-3V-8H3V-3H7V7Z':'M-5 7V-1H2V2H6V7Z');
+    line('M-1-12v10M-4-9h6');
+    for(const x of (u.kind==='cruiser'?[-9,5,10]:u.kind==='destroyer'?[-7,6]:[-9,9]))path(`M${x-1.5} 0h3v7h-3Z`,'art-secondary');
+    for(const x of (u.kind==='battleship'?[-15,-9,14]:[-14,14])){
+     path(`M${x-2} 4h4v3h-4Z`);line(`M${x} 4h${x<0?-6:6}`);
+     if(u.kind==='battleship')detail(`M${x} 2h${x<0?-6:6}`);
+    }
+    if(u.variant==='aa_escort')for(const x of [-13,12])line(`M${x} 3l-4-6M${x} 3l4-6`);
+    if(u.variant==='torpedo_cruiser')path('M-11 1h8v2h-8ZM-11-2h8v2h-8Z','art-secondary');
+    detail('M-3-5h3M-3-2h3M-3 1h3M-17 10h3M-10 10h3M3 10h3M10 10h3');
+   }
+   return;
+  }
+  if(u.kind==='tank'||u.kind==='halftrack'){
+   const heavy=['tiger','kv1','matilda'].includes(u.variant);
+   path(u.kind==='halftrack'?'M-17 6H1Q5 6 5 10Q5 14 1 14H-17Q-21 14-21 10Q-21 6-17 6Z':'M-15 6H15Q21 6 21 10Q21 14 15 14H-15Q-21 14-21 10Q-21 6-15 6Z');
+   path(u.kind==='halftrack'?'M-18-3H2L8 1H14L18 7H-18Z':heavy?'M-17 0H16V7H-17ZM-9-9H6V0H-9Z':'M-14 1H12L17 7H-18ZM-7-7H4L8 1H-10Z','art-secondary');
+   line(u.kind==='halftrack'?'M0-5h9':heavy?'M-2-5H21':'M2-4H21');
+   if(u.kind==='halftrack')circle(15,10,4);
+   const wheels=u.kind==='halftrack'?[-15,-9,-3]:[-15,-9,-3,3,9,15];
+   for(const x of wheels)circle(x,10,2,'art-cutout');
+   detail(u.kind==='halftrack'?'M-15-1H0M8 2h5M-15 7v6M-8 7v6':'M-12 3H10M-6-5H2M-16 7v6M-8 7v6M0 7v6M8 7v6M16 7v6');
+   return;
+  }
+  if(u.kind==='landing_craft'||u.kind==='amphibious'){
+   const afloat=u.kind==='landing_craft'||!state?.naval_version||['water','objective'].includes(state.map?.[u.pos[1]]?.[u.pos[0]]);
+   if(afloat){
+    path('M-20 3H20V12H-15Z');path('M-19-5H-12V3H-19ZM15-7H20V3H15Z','art-secondary');
+    path('M-11-1H13V4H-11Z','art-cutout');for(const x of [-8,0,8]){circle(x,-1,2);path(`M${x-2} 1h4v3h-4Z`);}
+    detail('M-16 8H15M17-4v13M-16-3h2');
+   }else{
+    for(const [x,s] of [[-11,.72],[0,1],[11,.72]]){const person=add('g',{transform:`translate(${x} 1) scale(${s})`});infantry(person,'squad');}
+   }
+   return;
+  }
+  if(['aa_gun','at_gun','flak'].includes(u.kind)){
+   const aa=u.kind!=='at_gun',light=u.kind==='flak'||u.variant==='light_flak';
+   path('M-4 2H4V9H-4Z');line('M0 8l-14 6M0 8l14 6');
+   for(const x of [-8,8])circle(x,9,3.5);
+   if(aa){
+    path(light?'M-5 0L10-15 13-12-2 3Z':'M-7-3L7-17 13-11-1 3Z','art-secondary');
+    line(light?'M1-6l11-11':'M3-7l12-13');
+    if(light)line('M4-3l11-11');
+    detail('M-4 0l4-4M1-5l5-5M-8 8v3M8 8v3');
+   }else{
+    path('M-6-6H5L8 4H-8Z','art-secondary');line('M1-4H21');detail('M-5-4H2M-5-1H4M-8 8v3M8 8v3');
+   }
+   return;
+  }
+  if(u.kind==='radar'){
+   path('M-4 1H4V12H-4Z');line('M0 5l-10 9M0 5l10 9');
+   path('M-14-15Q-11 1 7-1L-14-15Z','art-secondary');line('M-3-8L5-16M-3-8L10-7');
+   detail('M-10-12Q-7-3 3-3M-12-10l9 9M-7-10l7 8M-2 5H2M-2 9H2');return;
+  }
+  if(u.kind==='spotlight'){
+   line('M0 5l-12 9M0 5l12 9M0 5V-1');
+   path('M-11-8L0-14 9 1-2 7Z');path('M0-14L9 1l4-3-9-15Z','art-secondary');
+   line('M11-11l7-7M15-4l8-3');detail('M-7-5l6-4M-5-1l6-4M0 9v4');return;
+  }
+  if(u.kind==='airfield'){
+   path('M-19-10H-3V13H-19ZM3-4H20V13H3Z');path('M5-4L12-11 20-4Z','art-secondary');
+   path('M-13-8H-9V11H-13Z','art-cutout');path('M7 1H16V13H7Z','art-cutout');
+   line('M-11-7v3M-11 0v3M-11 7v3');detail('M6-2h11M17 0v10');return;
+  }
+  if(u.kind==='supply'){
+   path('M-16-7H16V13H-16Z');path('M-16-7L0-15 16-7Z','art-secondary');
+   path('M-2-7H2V13H-2Z','art-cutout');detail('M-12-3H-6M6-3H12M-12 8H-6M6 8H12');return;
+  }
+  if(u.kind==='paratrooper'){
+   path('M-17-4Q-16-18 0-18Q16-18 17-4Q11-7 6-4Q0-7-6-4Q-11-7-17-4Z');
+   line('M-15-4L-2 7M15-4L2 7M-6-4L-1 7M6-4L1 7');
+   circle(0,7,2);path('M-3 9H3L4 13H-4Z');line('M-2 12l-3 4M2 12l3 4');
+   detail('M0-17Q-9-15-6-5M0-17Q9-15 6-5M0-17V-6');return;
+  }
+  if(u.kind==='mg'){
+   line('M0 5l-12 9M0 5l10 9M0 5V1');
+   path('M-18-5H-1V-2H-18ZM-1-7H10V0H-1ZM10-5H17V-2H10Z');
+   path('M4 0H8L9 4H6Z','art-secondary');
+   for(const x of [-14,-10,-6])path(`M${x}-4h2v1h-2Z`,'art-cutout');
+   detail('M1-5H7M-17-7v2M8-9v2M1-1v3h3');return;
+  }
+  if(u.kind==='mortar'){
+   line('M-17 14H17M-3 8l8 6M3 0l10 14');
+   path('M-9 10L2-13 7-10-4 12Z');path('M-12 10H1V14H-12Z','art-secondary');
+   detail('M-7 9L3-10M4-10l2 1M-7 13H-3');return;
+  }
+  if(u.kind==='squad'){
+   const rear=add('g',{transform:'translate(-8 -1) scale(.8)',class:'art-secondary-figure'});infantry(rear,'squad');
+   const front=add('g',{transform:'translate(5 1)'});infantry(front,'squad');return;
+  }
+  infantry(drawing,u.kind);
+  if(u.kind==='leader')path('M-16-11h3v8h-3ZM-11-11h3v8h-3Z','art-role-mark');
+  if(u.kind==='commander')path('M-13-16l2 5 5 .5-4 3 1 5-4-3-4 3 1-5-4-3 5-.5Z','art-role-mark');
+  if(u.kind==='pathfinder'){line('M14-15V-3M9-9h10');circle(14,-9,2,'art-role-mark');}
+  function infantry(parent,kind){
+   const p=(d,cls='art-solid')=>path(d,cls,parent),l=d=>line(d,parent),dt=d=>detail(d,parent);
+   p('M-7-7Q-10-12-5-14Q0-15 3-10L3-7Z','art-solid landing-helmet');circle(-2,-7,3,'art-secondary',parent);
+   p('M-6-4L0-4 4 6-1 8-4 4-7 9-12 8-8 2Z');
+   p('M-11 7L-6 8-7 14H-14V11H-11ZM0 6L4 6 8 13H3Z');
+   l('M-5-2L1 1 8-2');
+   if(kind==='scout'){p('M5-7h10v4H5Z');circle(7,-5,1,'art-cutout',parent);circle(13,-5,1,'art-cutout',parent);l('M-4-1L4-5');}
+   else if(kind==='engineer'){l('M1 9L12-13');p('M10-13l4-3 5 4-5 5Z','art-secondary');}
+   else if(kind==='at_team'){p('M-3-6H19V-2H-3Z');p('M14-7h4v6h-4Z','art-secondary');}
+   else if(kind==='radioman'){p('M-12-5h6v10h-6Z','art-secondary');l('M-10-5V-17');dt('M-11-2h3M-11 1h3');}
+   else if(kind==='commando'){l('M4 4L14-9');p('M12-9l5-4-1 6Z','art-secondary');}
+   else if(kind==='mountain'){l('M3 13L14-14M9-12h10');p('M10-12l4-2 5 2Z','art-secondary');}
+   else{l(kind==='sniper'?'M-2-1L20-5':'M-1 0L17-3');p('M3-1L11-2 11 0 3 1Z','art-secondary');if(kind==='sniper')p('M5-5h7v2H5Z');}
+   if(kind==='partisan')p('M-8-10L1-15 5-9Z','art-secondary');
+   if(kind==='askari')p('M-5-15H1V-10H-5Z','art-secondary');
+   dt('M-4-2L-6 4M-8 9l-1 3M1 8l3 3M-5-11h5');
+  }
+ }
  function decorate(svg,units,force=false){
   if(!svg)return;
+  if(force)svg._artUnits=units;
   if(!force&&!observed.has(svg)){observer.observe(svg);observed.add(svg);}
   const byId=new Map(units.map(u=>[u.id,u]));
   for(const counter of svg.querySelectorAll('.unit')){
-   const show=force||illustrated;
-   if(counter._illustrated===show)continue;
-   counter._illustrated=show;
+   const u=byId.get(counter.dataset.unitId);if(!u)continue;
+   const style=detailed?'detailed':'basic';
+   if(counter._unitArtStyle===style)continue;
+   counter._unitArtStyle=style;
    counter.querySelector('.unit-art')?.remove();counter.querySelector('.unit-art-title')?.remove();
-   const u=byId.get(counter.dataset.unitId);if(!show||!u)continue;
-   const [cx,cy]=center(...u.pos),art=el('g',{class:`unit-art${u.pinned?' is-pinned':''}`,transform:`translate(${cx} ${cy})`,'aria-hidden':'true'});
+   const [cx,cy]=center(...u.pos),art=el('g',{class:`unit-art unit-art-${style}${u.pinned?' is-pinned':''}`,transform:`translate(${cx} ${cy})`,'aria-hidden':'true','data-art-kind':u.kind});
    const title=el('title',{class:'unit-art-title'},`${sideLabel(u.side)} ${unitName(u)} · ${u.hp} strength · ${u.ap} AP${u.pinned?' · pinned':''}${u.entrenched?' · dug in':''}${u.overwatch?' · overwatch':''}`);counter.prepend(title);
-   art.append(el('path',{class:'portrait-panel',d:'M-17-14H16Q18-14 18-12V3H-18V-12Q-18-14-17-14Z'}));
-   const drawing=el('g',{class:`unit-portrait portrait-${u.kind}`});art.append(drawing);
-   const add=(tag,attrs,parent=drawing)=>{const n=el(tag,attrs);parent.append(n);return n;};
-   const path=(d,cls,parent=drawing)=>add('path',{d,class:cls},parent);
-   if(['supply','radioman','commando','mountain','partisan','askari','mortar','pathfinder','flak'].includes(u.kind)||u.kind==='squad'&&u.faction&&!['us','de','su'].includes(u.faction)){
-    const symbols={supply:'M-13-13H13V4H-13ZM-13-13L0-19l13 6M0-19V4M-13-5h26',pathfinder:'M-2 3V-12M-7 3H3M-8-10q6-6 12 0M-12-14q10-9 20 0',flak:'M-14 3H14M0 3V-5M-5-5L8-18l4 4L-1-1M-8-3l4-5',radioman:'M-11 2V-10H9V2ZM-6-10V-19M-6-6H4M-6-2H-3M9-16q9 2 7 11',commando:'M-9 3L7-16 12-18 11-12-5 5M-8-2l7 6',mountain:'M-16 3L-4-17 3-3 9-12 18 3ZM-7-11l3 4 3-4',partisan:'M-16 3L-6-13 3 3M2 4l13-18M8-12l7 7',askari:'M-13 3L12-16M-10 4l-5-5M7-12l6 6',mortar:'M-15 4H15M-8 2L7-17l6 4L-2 4M-3-4l12 8'};
-    path(symbols[u.kind]||'M-14 3L12-15M-9 5l-6-6M6-11l7 7','specialist-line');
-   }else if(['carrier','battleship','cruiser','destroyer'].includes(u.kind)){
-    drawing.classList.add('naval-silhouette');
-    path('M-18 2Q-8 0 0 2T18 2','ship-wake');
-    path(u.kind==='destroyer'?'M-16-4H17L12 0H-12Z':'M-17-5H18L12 1H-13Z','ship-hull');
-    path('M-12 0H12','ship-keel');
-    if(u.kind==='carrier'){
-     path('M-18-7H18V-4H-18Z','ship-deck');
-     path('M3-12H9V-7H1V-9H3Z','ship-superstructure');
-     path('M5-15V-12M3-14H8','ship-mast');
-     path('M-13-10H-5M-9-13V-8M-11-9H-7','ship-aircraft');
-     path('M-16-6H0','ship-marking');
-    }else{
-     path(u.kind==='battleship'?'M-5-5V-9H-3V-13H2V-10H5V-5Z':'M-4-5V-10H1V-8H4V-5Z','ship-superstructure');
-     path('M-1-15V-10M-4-13H2','ship-mast');
-     path('M4-9H6V-5H4Z','ship-funnel');
-     if(u.kind!=='destroyer')path('M7-9H9V-5H7Z','ship-funnel');
-     for(const x of (u.kind==='battleship'?[-12,10]:[10])){
-      path(`M${x-2}-5V-8H${x+2}V-5Z`,'ship-turret');
-      path(`M${x}-8h${x<0?-6:6}`,'ship-barrel');
-     }
-     if(u.kind==='destroyer')path('M-12-6H-6M-10-8H-5','ship-barrel');
-     if(u.variant==='aa_escort'){
-      for(const x of [-12,-7,10])path(`M${x}-6l-3-5M${x}-6l3-5`,'ship-barrel');
-      path('M-15-15q15-8 30 0','specialist-line');
-     }
-     if(u.variant==='torpedo_cruiser'){
-      path('M-13-7h8M-13-10h8M-13-13h8','ship-barrel');
-     }
-    }
-    for(const x of [-10,-6,7,11])add('circle',{cx:x,cy:-2,r:.65,class:'ship-porthole'});
-   }else if(u.kind==='amphibious'&&state?.naval_version&&!['water','objective'].includes(state.map[u.pos[1]][u.pos[0]])){
-    for(const x of [-9,0,9]){
-     add('circle',{cx:x,cy:-9,r:2.8,class:'landing-helmet'});
-     path(`M${x-3}-5H${x+3}L${x+4}2H${x-4}Z`,'landing-uniform');
-     path(`M${x+2}-5L${x+5}-10`,'ship-barrel');
-    }
-   }else if(u.kind==='commander'){
-    path('M2-14L5-8 12-8 7-3 9 3 2-1-5 3-3-3-8-8-1-8Z','commander-star');
-   }else if(u.kind==='tank'&&u.variant){
-    drawing.classList.add('portrait-'+u.variant);
-    path('M-14-3H14Q18-3 18 0Q18 3 14 3H-14Q-18 3-18 0Q-18-3-14-3Z','vehicle-track');
-    path(u.variant==='tiger'?'M-16-7H15V-2H-16Z M-8-14H6V-7H-8Z':'M-13-6H11L15-2H-16Z M-5-12H4L8-6H-7Z','vehicle-body');
-    path(u.variant==='tiger'?'M-8-11H-21':'M5-10H22','specialist-line');
-    for(const x of [-13,-7,-1,5,12])add('circle',{cx:x,cy:0,r:1.4,class:'rank-silver-mid'});
-   }else if(u.kind==='tank'){
-    path('M-13-3H14Q17-3 17 0Q17 3 14 3H-13Q-16 3-16 0Q-16-3-13-3Z','vehicle-track');
-    path('M-12-6H12L15-2H-15Z M-5-11H5L8-6H-7Z','vehicle-body');
-    path(u.side==='us'?'M5-9H17':'M-5-9H-17','specialist-line');
-    for(const x of [-10,-4,2,8,13])add('circle',{cx:x,cy:0,r:1.1,class:'rank-silver-mid'});
-   }else if(u.kind==='at_gun'){
-    path('M-5-10H4L6-2H-7Z','vehicle-body');
-    path('M1-8H17M-3-2L-13 3M-3-2L5 3','specialist-line');
-    for(const x of [-6,5])add('circle',{cx:x,cy:0,r:3,class:'vehicle-track'});
-   }else if(u.kind==='halftrack'){
-    drawing.classList.add('insignia-halftrack');
-    path('M-13-2H2Q5-2 5 1Q5 3 2 3H-13Q-16 3-16 1Q-16-2-13-2Z','vehicle-track');
-    path('M-14-9H3L7-6H13L16-1H-14Z M-3-12H2V-9H-3Z','vehicle-body');
-    path('M0-11H10','specialist-line');
-    add('circle',{cx:12,cy:1,r:3,class:'vehicle-track'});
-    for(const x of [-11,-6,-1])add('circle',{cx:x,cy:1,r:1,class:'rank-silver-mid'});
-   }else if(u.kind==='amphibious'){
-    path('M-15-7H15L11 0H-10Z M-6-11H5L8-7H-6Z','vehicle-body');
-    path('M-15 3q4-3 8 0t8 0t8 0M4-10H13','specialist-line');
-   }else if(u.kind==='paratrooper'){
-    path('M-12-5Q-11-14 1-14Q13-14 14-5Q10-7 7-5Q3-7 1-5Q-3-7-6-5Q-9-7-12-5Z','parachute-canopy');
-    path('M1-14Q-5-12-6-5M1-14Q7-12 7-5M1-13V-6','parachute-rib');
-    path('M-11-5L-1 2M-6-5L0 2M7-5L2 2M13-5L3 2','parachute-cord');
-    path('M-1 0H3V4H-1Z','parachute-pack');
-   }else if(u.kind==='scout'){
-    path('M-7-9H-2L0-2H-10Z M5-9H10L13-2H3Z','vehicle-body');
-    path('M-2-6H5','specialist-line');
-    for(const x of [-5,8])add('circle',{cx:x,cy:-1,r:3.6,class:'vehicle-track'});
-   }else if(u.kind==='engineer'){
-    path('M-7-12L7 1M8-11L-6 2','tool-handle');
-    path('M4-2L9-5 13 0Q11 5 7 3Z M3-12Q8-16 13-9L8-11Z','tool-steel');
-    path('M-10-13L-7-15-4-12-7-9Z','tool-steel');
-   }else if(u.kind==='at_team'){
-    path('M-12-9H13V-5H-12Z M-6-5V-1H-3V-5Z','vehicle-body');
-    path('M-14-10V-4M14-10V-4M2-3L-1 2M2-3L6 2','specialist-line');
-   }else if(u.kind==='squad'&&u.side==='us'){
-    drawing.classList.add('insignia-us-infantry');
-    path('M-9-2L2-13 13-2V2L2-8-9 2Z','rank-gold');
-    path('M-8-2L2-12 12-2','rank-gold-highlight insignia-detail');
-   }else if(u.kind==='squad'){
-    drawing.classList.add('insignia-de-infantry');
-    add('circle',{cx:2,cy:-6,r:8,class:'rank-roundel'});
-    path('M2-12L8-6 2 0-4-6Z','rank-diamond');
-    path('M2-11L7-6H2Z','rank-silver-light');
-    path('M2-11L-3-6H2Z','rank-silver-mid');
-    path('M-3-6L2-1V-6Z','rank-silver-dark');
-    path('M2-6H7L2-1Z','rank-silver-shadow');
-    add('circle',{cx:2,cy:-6,r:1,class:'rank-rivet'});
-   }else if(u.kind==='leader'&&u.side==='us'){
-    drawing.classList.add('insignia-us-leader');
-    for(const x of [-6,4]){
-     path(`M${x}-13h6V2h-6Z`,'rank-silver-bar');
-     path(`M${x+1}-12h4v2l-4 2Z`,'rank-silver-light');
-     path(`M${x+1} 1V-8l1-1V0h3v1Z`,'rank-silver-dark');
-    }
-   }else if(u.kind==='leader'){
-    drawing.classList.add('insignia-de-leader');
-    path('M-10-14H14V2H-10Z','rank-green-patch');
-    for(const y of [-7,-3.5,0])path(`M-8 ${y}H12`,'rank-green-stripe');
-    path('M-7-11Q2-9 11-12','rank-branch');
-    for(const [x,y] of [[-6,-12],[-2,-11],[2,-11],[6,-12],[10,-13]]){
-     path(`M${x} ${y+1}q-3-4-4-2q1 3 4 2M${x} ${y+1}q3-4 4-2q-1 3-4 2`,'rank-leaf');
-    }
-   }else if(['lancaster','halifax','mosquito_pathfinder','mosquito_fighter','bf110'].includes(u.variant)){
-    path(['lancaster','halifax'].includes(u.variant)?'M-2-21H2V-11L19-5V0L2-5V1L9 5H-9L-2 1V-5L-19 0V-5L-2-11Z':'M-2-20H2V-10L17-6V-1L2-5V1L7 4H-7L-2 1V-5L-17-1V-6L-2-10Z','vehicle-body');
-    for(const x of (['lancaster','halifax'].includes(u.variant)?[-12,-6,6,12]:[-9,9]))path(`M${x-1}-10h2v7h-2ZM${x-3}-10h6`,'specialist-line');
-    if(u.variant==='mosquito_pathfinder')path('M9-21v7M6-18h6','tool-steel');
-    if(u.variant==='bf110')path('M-2-20l-5-5M2-20l5-5M-5-23h10','specialist-line');
-   }else if(u.kind==='spotlight'){
-    path('M-14 4H14M-7 4l5-12M7 4L2-8','specialist-line');
-    path('M-10-12L2-18 10-5-2 1Z','vehicle-body');
-    path('M5-16l12-8M10-9l14-3','specialist-line');
-   }else if(u.kind==='transport_aircraft'){
-    path('M-3-20H3V-10L18-5V-1L3-6V1L9 4H-9L-3 1V-6L-18-1V-5L-3-10Z','vehicle-body');
-    path('M-11-10V-2M11-10V-2','specialist-line');
-   }else if(u.naval_strike){
-    path(u.variant==='dive_bomber'?'M-2-18H2V-9L17-4V0L2-4V2L7 5H-7L-2 2V-4L-17 0V-4L-2-9Z':'M-2-20H2V-10L18-7V-3L2-6V1L8 4H-8L-2 1V-6L-18-3V-7L-2-10Z','vehicle-body');
-    if(u.variant==='torpedo_bomber')path('M-1-10H1V2H-1Z','tool-steel');
-    else path('M8-17L13-12M13-12h-5M13-12v-5','specialist-line');
-   }else if(['fighter','bomber','aa_gun','radar','airfield','landing_craft'].includes(u.kind)){
-    drawing.append(el('text',{x:0,y:-3,class:'air-fallback'},unitCodes[u.kind]));
-   }else if(u.side==='us'){
-    drawing.classList.add('insignia-us-mg');
-    // Broad receiver, left-facing ventilated barrel and a three-legged mount.
-    path('M1-5V-2M1-2L-6 2M1-2L8 1M1-2L15 3','mg-mount');
-    path('M-7 2H-4M7 1H9M14 3H16','mg-feet');
-    path('M-16-8H-1V-5H-16Z M-1-10H11V-4H-1Z M11-8H14V-6H11Z','mg-metal');
-    path('M12-6H14L15-3H13Z','mg-grip');
-    path('M0-11H1V-10M8-11H10V-10','mg-sight');
-    for(const x of [-12,-9,-6,-3])add('circle',{cx:x,cy:-6.5,r:.65,class:'mg-vent'});
-    path('M1-9H10M-15-7.8H-2M2-7H5V-6H2','mg-engraving insignia-detail');
-   }else{
-    drawing.classList.add('insignia-de-mg');
-    // Shoulder stock, long barrel jacket and forward bipod distinguish the German MG.
-    path('M10-5L8 2M10-5L13 2','mg-mount');
-    path('M7 2H9M12 2H14','mg-feet');
-    path('M-16-10L-12-8H-9V-5H-12L-16-3Z','mg-grip');
-    path('M-9-8H-4L-2-9H2V-8H13L14-7H16V-5H14L13-4H2V-5H-9Z','mg-metal');
-    path('M-5-5H-2L-3-1H-5Z','mg-grip');
-    path('M-2-5V-3H0V-5','mg-trigger insignia-detail');
-    path('M11-10V-8M-7-9H-5','mg-sight');
-    for(const x of [3.5,6,8.5,11])add('rect',{x,y:-6.8,width:1.4,height:1.1,rx:.4,class:'mg-vent'});
-    path('M-8-7H-3L-1-8H1','mg-engraving insignia-detail');
-   }
-   const atlasViews={fighter:u.side==='us'?'0 0 535 500':'530 0 500 500',bomber:'1030 0 506 500',aa_gun:'0 500 575 524',radar:'570 500 460 524',landing_craft:'1025 500 511 524'};
-   if(atlasViews[u.kind]&&!u.naval_strike&&!['lancaster','halifax','mosquito_pathfinder','mosquito_fighter','bf110'].includes(u.variant)){
-    const fallback=el('g',{class:'raster-fallback'});while(drawing.firstChild)fallback.append(drawing.firstChild);
-    const viewport=el('svg',{x:-20,y:-17,width:40,height:24,viewBox:atlasViews[u.kind],class:'atlas-viewport',preserveAspectRatio:'xMidYMid meet'});
-    const picture=el('image',{href:'/assets/unit-images/air-atlas-v1.webp',width:1536,height:1024});viewport.append(picture);
-    picture.addEventListener('load',()=>fallback.setAttribute('display','none'));
-    picture.addEventListener('error',()=>viewport.remove());drawing.append(fallback,viewport);
-   }
-   const specialistViews={radioman:'32 8 372 406',mortar:'438 25 365 387',supply:'821 88 426 325',commando:'32 418 387 389',mountain:'440 415 394 390',partisan:'876 423 377 381',askari:'25 808 387 423',pathfinder:'447 807 358 421',flak:'805 805 448 428'};
-   if(specialistViews[u.kind]){
-    const fallback=el('g',{class:'raster-fallback'});while(drawing.firstChild)fallback.append(drawing.firstChild);
-    const [, ,w,h]=specialistViews[u.kind].split(' ').map(Number),width=29*w/h;
-    const viewport=el('svg',{x:-width/2,y:-23,width,height:29,viewBox:specialistViews[u.kind],class:'atlas-viewport specialist-atlas',preserveAspectRatio:'xMidYMid meet',overflow:'hidden'});
-    const picture=el('image',{href:'/assets/unit-images/specialists-atlas-v1.webp',width:1254,height:1254});viewport.append(picture);
-    picture.addEventListener('load',()=>fallback.setAttribute('display','none'));
-    picture.addEventListener('error',()=>viewport.remove());drawing.append(fallback,viewport);
-   }
-   const raster=rasterName(u);
-   if(raster){
-    // Keep the deterministic symbol as an immediate fallback until the bitmap loads.
-    const fallback=el('g',{class:'raster-fallback'});
-    while(drawing.firstChild)fallback.append(drawing.firstChild);
-    const picture=el('image',{class:'unit-bitmap',x:-20,y:-16,width:40,height:21,preserveAspectRatio:'xMidYMid meet',href:`/assets/unit-images/${raster}-v1.webp`});
-    if(u.kind==='sniper'){picture.classList.add('sniper-bitmap');picture.setAttribute('y','-22');picture.setAttribute('height','30');}
-    picture.addEventListener('load',()=>{fallback.setAttribute('display','none');picture.classList.add('bitmap-ready');});
-    picture.addEventListener('error',()=>{fallback.removeAttribute('display');picture.remove();});
-    drawing.append(fallback,picture);
-   }
+   art.append(el('path',{class:'portrait-panel',d:'M-17-15H17Q19-15 19-13V5H-19V-13Q-19-15-17-15Z'}));
+   const drawing=el('g',{class:`unit-portrait portrait-${u.kind}${u.variant?' portrait-'+u.variant:''}${ships.has(u.kind)?' naval-silhouette':''}${u.kind==='halftrack'?' insignia-halftrack':''}`,transform:'translate(0 -6) scale(.8)'});art.append(drawing);drawUnit(drawing,u);
    if(u.entrenched){
     const bags=el('g',{class:'counter-sandbags'});art.append(bags);
-    for(let x=-19;x<19;x+=9)path(`M${x} 16q-2 0-2 3t2 3h6q2 0 2-3t-2-3Z`,'sandbag',bags);
-    path('M-15 18h2M-6 20h2M3 18h2M12 20h2','sandbag-seam',bags);
+    for(let x=-19;x<19;x+=9)bags.append(el('path',{d:`M${x} 15q-2 0-2 3t2 3h6q2 0 2-3t-2-3Z`,class:'sandbag'}));
    }
-   if(u.overwatch){
-    const eye=el('g',{class:'counter-overwatch',transform:'translate(-16 -15)'});art.append(eye);
-    add('circle',{r:5.5,class:'status-disc'},eye);path('M-4 0Q0-5 4 0Q0 5-4 0Z','status-eye',eye);add('circle',{r:1.3,class:'eye-pupil'},eye);
-   }
-   if(u.pinned){
-    const pin=el('g',{class:'counter-pin',transform:'translate(17 -14)'});art.append(pin);
-    path('M-5-5H5V3L0 7-5 3Z','pin-flag',pin);path('M0-2V1M0 3v.2','pin-alert',pin);
-   }
-   path('M-23-10V-19H-13M13-19H23V-10M23 10V20H13M-13 20H-23V10','selection-brackets',art);
-   path('M17-19h6v6Z','selection-corner',art);
-   // Art covers only the old name area. Strength/AP, platoon and hit targets stay intact.
+   if(u.overwatch){const eye=el('g',{class:'counter-overwatch',transform:'translate(-16 -15)'});art.append(eye);eye.append(el('circle',{r:5.5,class:'status-disc'}),el('path',{d:'M-4 0Q0-5 4 0Q0 5-4 0Z',class:'status-eye'}),el('circle',{r:1.3,class:'eye-pupil'}));}
+   if(u.pinned){const pin=el('g',{class:'counter-pin',transform:'translate(17 -14)'});art.append(pin);pin.append(el('path',{d:'M-5-5H5V3L0 7-5 3Z',class:'pin-flag'}),el('path',{d:'M0-2V1M0 3v.2',class:'pin-alert'}));}
+   art.append(el('path',{d:'M-23-10V-19H-13M13-19H23V-10M23 10V20H13M-13 20H-23V10',class:'selection-brackets'}),el('path',{d:'M17-19h6v6Z',class:'selection-corner'}));
    const name=counter.querySelector('.unit-name');if(name)counter.insertBefore(art,name);else counter.append(art);
   }
-  // ResizeObserver handles physical size changes. A new map can change only
-  // the viewBox; measure that once after the rest of the render has finished.
-  if(!force&&svg._artViewWidth!==svg.viewBox.baseVal.width){
-   svg._artViewWidth=svg.viewBox.baseVal.width;
-   requestAnimationFrame(()=>{if(svg.isConnected)size(svg);});
-  }
+  if(!force&&svg._artViewWidth!==svg.viewBox.baseVal.width){svg._artViewWidth=svg.viewBox.baseVal.width;requestAnimationFrame(()=>{if(svg.isConnected)size(svg);});}
  }
  function sync(){
-  document.body.classList.toggle('illustrated-units',illustrated);
-  button.textContent=illustrated?'Units: illustrated':'Units: classic';button.setAttribute('aria-pressed',String(illustrated));
+  document.body.classList.add('illustrated-units');document.body.classList.toggle('detailed-unit-art',detailed);
+  button.textContent=detailed?'Units: detailed':'Units: basic';button.setAttribute('aria-pressed',String(detailed));
   for(const svg of observed)if(!svg.isConnected){observer.unobserve(svg);observed.delete(svg);}
   if(!state)return;
   decorate(document.getElementById('map'),state.units);
+  for(const svg of document.querySelectorAll('.dad-unit-portrait'))if(svg._artUnits)decorate(svg,svg._artUnits,true);
   const replay=typeof playbackSession!=='undefined'&&playbackSession;
   if(replay)decorate(document.getElementById('playbackMap'),replay.frames[replay.index][replay.phase].units);
  }
- // Reuse the real artwork for accessible close-ups, including off-map reserves.
+ // Close-ups use the same artwork and preference as the map, including reserves.
  window.makeUnitPortrait=u=>{
   const [x,y]=center(...u.pos),svg=el('svg',{class:'dad-unit-portrait illustrated-units',viewBox:`${x-26} ${y-25} 52 50`,'aria-hidden':'true',focusable:'false'});
-  const counter=el('g',{class:`unit ${u.side}`,'data-unit-id':u.id});
-  counter.append(el('rect',{x:x-22,y:y-19,width:44,height:40,rx:3}));svg.append(counter);decorate(svg,[u],true);return svg;
+  const counter=el('g',{class:`unit ${u.side}`,'data-unit-id':u.id});counter.append(el('rect',{x:x-22,y:y-19,width:44,height:40,rx:3}));svg.append(counter);decorate(svg,[u],true);return svg;
  };
- const button=document.createElement('button');button.id='unitStyleToggle';button.type='button';button.title='Switch unit counters independently of terrain';
- document.getElementById('playTools').append(button);
- button.onclick=()=>{illustrated=!illustrated;try{localStorage.setItem('ww2-unit-style',illustrated?'illustrated':'classic');}catch{}sync();};
+ const button=document.createElement('button');button.id='unitStyleToggle';button.type='button';button.title='Switch all unit icons between basic silhouettes and detailed recognition art';document.getElementById('playTools').append(button);
+ button.onclick=()=>{detailed=!detailed;try{localStorage.setItem('ww2-unit-style',detailed?'detailed':'basic');}catch{}sync();document.dispatchEvent(new Event('ww2:unit-style'));};
  document.addEventListener('ww2:render',sync);document.addEventListener('ww2:playback',sync);sync();
 })();

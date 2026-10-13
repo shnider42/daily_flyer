@@ -308,9 +308,12 @@ def record_reports(state, before, action, message):
 @sight_reader
 def public_state(state, side):
     from . import deployment
+    from .nightveil import redact as redact_night
+    from .effects import visible_effects
     if deployment.active(state): return deployment.public_planning(state,side)
     if not fog(state):
         result=copy.deepcopy(state)
+        result['effects']=visible_effects(state,side,result.get('effects',[]))
         if state.get('battlefield',{}).get('night_ops_version'):
             from .nightfall import public_fields
             result.update(public_fields(state))
@@ -342,7 +345,7 @@ def public_state(state, side):
                     u.pop('fire_mark',None);u.pop('spot_round',None)
                 elif u.get('fire_mark'):
                     u['fire_mark']['active']=bool(spotter(state,u,u['fire_mark']['pos']))
-        return deployment.redact(result)
+        return deployment.redact(redact_night(result))
     result=copy.deepcopy(state)
     result.update(view(state,side))
     if state.get('fieldworks_version'):
@@ -355,7 +358,7 @@ def public_state(state, side):
     result['combat_history']=copy.deepcopy(report.get('combat',[]))
     result['last_combat']=result['combat_history'][-1] if result['combat_history'] else None
     result['action_history']=[a for a in result.get('action_history',[]) if a['side']==side]
-    result['effects']=[e for e in result.get('effects',[]) if all(sees_hex(state,side,p) for p in e['positions'])]
+    result['effects']=visible_effects(state,side,result.get('effects',[]))
     result['computer_orders']=['Only observed enemy actions appear in the replay.'] if result.get('computer_playback') else []
     result.pop('intel',None)
     result.pop('reports',None)
@@ -369,4 +372,4 @@ def public_state(state, side):
     else:result.pop('radio_reports',None)
     result.pop('platoon_intel',None)
     result.pop('airlift_reports',None);result.pop('airlift_rounds',None)
-    return deployment.redact(result)
+    return deployment.redact(redact_night(result))

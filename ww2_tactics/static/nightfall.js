@@ -32,9 +32,9 @@
   for(const [id] of designs)$(id).hidden=true;
   if(!on){mode=null;return;}
   const progress=state.night_status||{radars_destroyed:0,hold:0};
-  $('rulesetBadge').textContent='Current DSL · Nightfall Beacon · Night raid';
-  $('objectiveName').textContent='NIGHTFALL BEACON';$('objective').textContent=`Radar ${progress.radars_destroyed}/2 · Station ${progress.hold}/2 turns`;
-  $('missionHint').textContent='Bomb both radar sites. Land paratroopers to hold the signals station for two Allied turn endings. Darkness, Spotlights and flares control sight.';
+  $('rulesetBadge').textContent=`Current DSL · ${state.scenario.name} · Night raid`;
+  $('objectiveName').textContent=state.scenario.name.toUpperCase();$('objective').textContent=`Radar ${progress.radars_destroyed}/2 · Station ${progress.hold}/2 turns`;
+  $('missionHint').textContent=(state.scenario.night_randomized_version?'Search the two marked sectors to find the concealed radar sites, then bomb both. ':'Bomb both radar sites. ')+'Land paratroopers to hold the signals station for two Allied turn endings. Darkness, Spotlights and flares control sight.';
   $('supportStatus').hidden=true;$('rangeGuideToggle').hidden=true;
   $('manualAP').textContent=sightBrief;
   $('callAirborne').hidden=true;
@@ -60,14 +60,15 @@
    g.append(element('polygon',{points:`${x},${y} ${a+dx},${b+dy} ${a-dx},${b-dy}`,class:'searchlight-beam'}),element('circle',{cx:a,cy:b,r:48,class:'searchlight-focus'}));svg.append(g);
   }
   for(const f of snapshot.night_flares||[]){const [x,y]=center(...f.pos);const g=element('g',{class:'night-light','aria-hidden':'true'});g.append(element('circle',{cx:x,cy:y,r:102,class:'night-flare'}),element('text',{x,y:y-106,class:'night-label','text-anchor':'middle'},'FLARE · BOTH ARMIES'));svg.append(g);}
-  for(const p of state.scenario.night_targets){const [x,y]=center(...p.pos);const g=element('g',{class:'night-light','aria-hidden':'true'});g.append(element('circle',{cx:x,cy:y,r:32,class:'night-target'}),element('text',{x,y:y+44,class:'night-label','text-anchor':'middle'},'RADAR TARGET'));svg.append(g);}
+  for(const p of state.scenario.night_targets||[]){const [x,y]=center(...p.pos);const g=element('g',{class:'night-light','aria-hidden':'true'});g.append(element('circle',{cx:x,cy:y,r:32,class:'night-target'}),element('text',{x,y:y+44,class:'night-label','text-anchor':'middle'},'RADAR TARGET'));svg.append(g);}
+  for(const sector of state.scenario.night_search_sectors||[]){const [x,y]=center(...sector.pos);const g=element('g',{class:'night-light','aria-hidden':'true'});g.append(element('circle',{cx:x,cy:y,r:152,class:'night-search-sector'}),element('text',{x,y:y-160,class:'night-label','text-anchor':'middle'},`${sector.id==='A'?'WEST':'EAST'} · SEARCH SECTOR`));for(const pos of sector.sites){const [cx,cy]=center(...pos);g.append(element('circle',{cx,cy,r:12,class:'night-possible-site'}));}svg.append(g);}
   const [x,y]=center(...state.scenario.objective);const objective=element('g',{class:'night-light','aria-hidden':'true'});objective.append(element('circle',{cx:x,cy:y,r:35,class:'night-station'}),element('text',{x,y:y+47,class:'night-label','text-anchor':'middle'},'AIRBORNE OBJECTIVE'));svg.append(objective);
  }
  document.addEventListener('ww2:playback',()=>{if(state?.scenario.night_ops_version&&playbackSession)paintLights($('playbackMap'),playbackSession.frames[playbackSession.index][playbackSession.phase]);});
  document.addEventListener('ww2:render',()=>{
   if(!state?.scenario.night_ops_version)return;
   $('manualAP').textContent=sightBrief;
-  const manual=$('fubarManual');manual.querySelector('h3').textContent='Nightfall Beacon · nighttime air and airborne raid';
+  const manual=$('fubarManual');manual.querySelector('h3').textContent=`${state.scenario.name} · nighttime air and airborne raid`;
   const paragraphs=manual.querySelectorAll('p');paragraphs[0].textContent=state.scenario.brief;
   paragraphs[1].textContent=state.scenario.doctrine[state.side];paragraphs[2].textContent=state.scenario.reinforcement_brief;
  });

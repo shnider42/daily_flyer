@@ -114,6 +114,8 @@ def scenario(build):
 def initialize(state):
     if enabled(state):
         state.update(night_hold=0,night_flares=[])
+        from .nightveil import initialize as initialize_veil
+        initialize_veil(state)
         state['log']=[state['battlefield']['name']+' · '+state['battlefield']['brief']]
     return state
 
@@ -219,6 +221,8 @@ def before_order(state,u,kind):
 def after_order(state):
     from .visibility import active
     if not enabled(state):return
+    from .nightveil import record_search
+    record_search(state)
     for u in state['units']:
         if u['kind']=='transport_aircraft' and not active(u):
             for troop in drop_reserves(state,u):troop.update(hp=0,ap=0,banked_ap=0)
@@ -271,7 +275,9 @@ def choices(state,u,legal,observed,visited):
         return [(12,dict(kind='spotlight',unit=u['id'],pos=aim))] if aim and not u.get('beam') else []
     result=fubar.domain_choices(state,u,legal,observed,visited)
     if u.get('flares') and legal.get('flare'):
-        goals=[p['pos'] for p in state['battlefield']['night_targets']]+[state['battlefield']['objective']]
+        from . import nightveil
+        goals=(nightveil.search_goals(state,observed) if nightveil.enabled(state) and u['side']=='us' else
+               [p['pos'] for p in state['battlefield']['night_targets']])+[state['battlefield']['objective']]
         point=min(goals,key=lambda p:distance(u['pos'],p))
         aim=min(legal['flare'],key=lambda p:distance(p,point))
         if distance(aim,point)<=1 and not illuminated(state,point):result.append((15,dict(kind='flare',unit=u['id'],pos=aim)))
@@ -284,7 +290,9 @@ def choices(state,u,legal,observed,visited):
             if not drop_reserves(state,u):return result
         else:
             targets=[v['pos'] for v in observed if v['side']!=u['side'] and v.get('mission_radar') and active(v)]
-            remaining=[p['pos'] for p in state['battlefield']['night_targets'] if not any(v.get('mission_radar') and v['hp']<=0 and v['pos']==p['pos'] for v in state['units'])]
+            from . import nightveil
+            remaining=(nightveil.search_goals(state,observed) if nightveil.enabled(state) and u['side']=='us' else
+                [p['pos'] for p in state['battlefield']['night_targets'] if not any(v.get('mission_radar') and v['hp']<=0 and v['pos']==p['pos'] for v in state['units'])])
             goal=min(targets or remaining or [state['battlefield']['objective']],key=lambda p:distance(u['pos'],p))
             if not u['bombs']:
                 field=next((v for v in observed if v['side']==u['side'] and v['kind']=='airfield' and v['platoon']==u['platoon'] and v.get('air_stores',0)>0 and active(v)),None)

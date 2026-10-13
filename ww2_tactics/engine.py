@@ -7,7 +7,7 @@ from .scenarios import battlefield, get_scenario
 from .support import role_options, role_action, resolve_barrages
 from .combat_display import record_combat
 from .rulesets import profile, dsl, base_ap, bank_limit, turn_limit, road
-from .effects import record_effect
+from .effects import record_effect, record_shot_effect
 from . import combined, naval, transport, campaigns, air, weapons, buildings, operations, fieldworks, linked_front, signals, airborne, domains, fubar, logistics, new_fronts, deployment
 from .visibility import fog, active, visible_ids, unit_visible_ids, sees_hex, update_intel, record_reports
 from . import fire_control, editions, nightfall
@@ -452,7 +452,9 @@ def apply(state, side, action, roll=None):
             impacts = []
             if weapons.enabled(state):
                 result, impacts = weapons.resolve(state, unit, target, die, shot['threshold'],shot.get('weapon'))
-                if weapons.profile(unit)['penetration']: record_effect(state, 'explosion', [target['pos']])
+                if unit['kind']=='flak' and shot.get('air'):
+                    record_shot_effect(state,unit,target,hit)
+                elif weapons.profile(unit)['penetration']: record_effect(state, 'explosion', [target['pos']])
             elif combined.enabled(state):
                 result=combined.resolve_fire(state,unit,target,die,shot['threshold'])
                 if unit['kind'] in {'tank','at_gun','at_team'}: record_effect(state,'explosion',[target['pos']])
@@ -463,7 +465,7 @@ def apply(state, side, action, roll=None):
             if not combined.enabled(state) and not weapons.enabled(state):
                 result = "eliminated" if target["hp"] <= 0 else "hit and pinned" if hit else "missed"
             message = f"{names[side]} {unit['kind']} fired: rolled {die}, needed {shot['threshold']}+. Target {result}."
-            state['last_combat'] = dict(kind='Fire', roll=die, threshold=shot['threshold'], result=result,
+            state['last_combat'] = dict(kind='Anti-aircraft fire' if unit['kind']=='flak' and shot.get('air') else 'Fire', roll=die, threshold=shot['threshold'], result=result,
                                         attacker=unit['id'], target=target['id'], impacts=impacts, revision=state['revision']+1)
             record_combat(state, shot['modifiers'], shot.get('effect_text'))
         elif kind == 'dig' and legal['dig']:
