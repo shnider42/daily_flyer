@@ -1,0 +1,16 @@
+.midway-air-group,.midway-recovery{margin-top:12px;padding:12px;border:1px solid #667b68;border-radius:8px;background:#172822;color:#e3eadf;min-width:0}
+.midway-air-group h4,.midway-recovery h4{margin:0 0 8px;font-size:14px;color:#e4ce98}
+.midway-air-group p,.midway-recovery p{font-size:12px;line-height:1.5;margin:6px 0;overflow-wrap:anywhere}
+.midway-flight{padding:10px 0;border-top:1px solid #435548;display:grid;gap:4px;min-width:0}
+.midway-flight strong{font-size:13px;overflow-wrap:anywhere}
+.midway-flight small{font-size:12px;color:#c3cdbf;overflow-wrap:anywhere}
+.midway-flight-actions{display:flex;flex-wrap:wrap;gap:6px;margin-top:4px}
+.midway-flight-actions button,.midway-recovery button{font-size:12px;min-height:44px;white-space:normal;max-width:100%;flex:1 1 130px}
+.midway-deck-badge{font-size:10px;font-weight:700;fill:#ffe7ad;stroke:#15251e;stroke-width:3px;paint-order:stroke;pointer-events:none}
+.midway-launch-choice{fill:#87b9c960;stroke:#c5f0fc;stroke-width:3;cursor:pointer}
+.midway-launch-choice:focus,.midway-launch-choice:hover{fill:#b0e3edaa;stroke:#fff}
+@media(max-width:600px){.midway-air-group,.midway-recovery{padding:10px}.midway-flight-actions button{flex-basis:120px}}
+.simple-play #carrierGroupOpen{display:inline-block!important}
+#carrierAirGroupDialog{width:min(520px,calc(100vw - 28px));max-height:85svh;overflow:auto;padding:16px;box-sizing:border-box}
+#carrierAirGroupDialog h2{font-size:20px;margin:14px 0 10px}
+#carrierAirGroupClose{min-height:44px}

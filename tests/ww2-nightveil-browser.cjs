@@ -11,7 +11,7 @@ async function settle(p){await p.waitForFunction(()=>state&&!busy&&!polling);if(
 async function refreshPage(p){await p.evaluate(()=>refresh());await settle(p);}
 async function openPage(width,name){
  const p=await browser.newPage({viewport:{width,height:900},isMobile:width<1000,hasTouch:width<1000});pages.push(p);p.setDefaultTimeout(22000);p.on('pageerror',e=>errors.push(e.message));p.on('dialog',d=>d.accept());p.on('response',r=>{if(r.url().includes('/assets/')&&r.status()>=400)badAssets.push(r.url());});
- await p.goto(base);await p.waitForFunction(()=>currentScenarios.length===28&&ww2Commander.ready);
+ await p.goto(base);await p.waitForFunction(()=>currentScenarios.length===29&&ww2Commander.ready);
  assert.equal(await p.locator('#scenarioSelect option[value="current:nightfall_veil"]').count(),0);
  await p.locator('#scenarioSelectEdition').selectOption('current');await p.locator('#scenarioSelect').selectOption('current:nightfall_veil');assert.match(await p.locator('#operationTitle').textContent(),/Nightfall Veil/);
  await p.locator('#commanderSignIn').click();await p.locator('#commanderRegisterMode').click();await p.locator('#commanderName').fill(name);await p.locator('#commanderPassword').fill('local-nightveil-test-123');await p.locator('#commanderSubmit').click();await p.waitForFunction(()=>ww2Commander.name&&!$('commanderDialog').open);return p;
@@ -47,7 +47,7 @@ async function checkSearch(p){
  for(let i=0;i<100;i++){try{if((await fetch(base+'/healthz')).ok)break;}catch{}await new Promise(r=>setTimeout(r,100));}
  browser=await chromium.launch({headless:true,executablePath:process.env.CHROMIUM_EXECUTABLE_PATH,args:['--no-sandbox','--disable-dev-shm-usage']});
  const host=await openPage(1440,'VeilHost'),german=await openPage(390,'VeilDefense');
- const catalog=await (await host.request.get(base+'/api/scenarios')).json();assert.equal(catalog.current_scenarios.length,28);assert.ok(!catalog.scenarios.some(b=>b.id.includes('nightfall_veil')));const board=catalog.current_scenarios.find(b=>b.id==='current:nightfall_veil');assert.deepEqual(board.night_targets,[]);
+ const catalog=await (await host.request.get(base+'/api/scenarios')).json();assert.equal(catalog.current_scenarios.length,29);assert.ok(!catalog.scenarios.some(b=>b.id.includes('nightfall_veil')));const board=catalog.current_scenarios.find(b=>b.id==='current:nightfall_veil');assert.deepEqual(board.night_targets,[]);
  await snap(host,'nightveil-catalog-desktop');await host.locator('#create').click();await host.locator('#namedGameSubmit').click();await settle(host);const code=await host.evaluate(()=>session.code);
  await german.locator('#lobbyRefresh').click();await german.locator(`.public-game[data-code="${code}"] button`).click();await settle(german);await refreshPage(host);await returnToMap(host);await returnToMap(german);
  await checkSearch(host);await checkSearch(german);assert.equal(await host.locator('#map .unit.de').count(),0);assert.equal(await host.evaluate(()=>state.units.filter(u=>u.side==='de').length),0);

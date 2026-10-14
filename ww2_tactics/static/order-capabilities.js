@@ -16,13 +16,13 @@
   if(u.range>0&&u.weapon!=='none')add('fire');
   if(s.air_version||s.joint_ops_version&&['fighter','bomber','transport_aircraft','aa_gun','radar','airfield','spotlight'].includes(kind)){
    if(['fighter','aa_gun'].includes(kind))add('overwatch');
-   if(['fighter','bomber','transport_aircraft'].includes(kind))add('rearm');
+   if(['fighter','bomber','transport_aircraft'].includes(kind)&&!s.midway_ops_version)add('rearm');
    if(s.combat_version&&u.protection==='infantry')add('rally');
   }else if(s.naval_version||s.joint_ops_version&&['carrier','battleship','cruiser','destroyer'].includes(kind)){
    if(['destroyer','amphibious'].includes(kind))add('smoke');
    if(kind==='amphibious'){if(s.combat_version)add('rally');}
    else add('repair');
-   if(kind==='carrier'){add('recon');if(u.abstract_strikes!==false)add('airstrike');}
+   if(kind==='carrier'){if(!s.midway_ops_version)add('recon');if(u.abstract_strikes!==false)add('airstrike');}
    if(kind==='destroyer'||u.torpedo_launcher)add('torpedo');
    if(s.scenario?.fleet_battle_version&&u.ship_aa_range)add('overwatch');
   }else{
@@ -54,7 +54,7 @@
    if(u.artillery_range)add('artillery');
    if(u.field_recon_range)add('fieldRecon');
    if(s.tactics_version){
-    if(['ap','he','at_shell','rocket','naval_shell','bomb'].includes(u.ammo||u.weapon)&&!s.scenario.night_ops_version)add('areaFire');
+    if(['ap','he','at_shell','rocket','naval_shell','bomb'].includes(u.ammo||u.weapon)&&!s.scenario.night_ops_version&&!(s.midway_ops_version&&u.kind==='bomber'))add('areaFire');
     if(kind==='engineer')add('repairTank');
     if(u.snipe_range)add('snipe');
    }
@@ -83,7 +83,7 @@
   if(id==='markLZ'&&!u.beacon_charges)return 'No beacons left';
   if(id==='callAirborne'&&state.airlift_round===state.round)return 'Airlift used this round';
   if(id==='callAirborne'&&!state.units.some(v=>v.side===u.side&&v.hp>0&&v.airlift_reserve&&v.reserve))return 'No airborne reserves left';
-  if(u.carrier_id)return 'Aboard transport';
+  if(u.carrier_id)return state.midway_ops_version?'Aboard carrier · launch via air group':'Aboard transport';
   if(u.reserve&&u.arrival_round)return 'Arrives R'+u.arrival_round+' · entry must be clear';
   if(u.reserve&&id!=='airdrop')return 'Land troops first';
   if(id==='nightDrop'&&u.drop_round===state.round)return 'Already dropped this round';
@@ -114,7 +114,7 @@
   const support={artillery:'artillery',fieldRecon:'field_recon'}[id];
   if(support&&u.cooldowns?.[support]>state.round)return 'Ready R'+u.cooldowns[support];
   if(({recon:u.recon_used,airstrike:u.air_used,torpedo:u.torpedo_used,repair:u.repair_used,rearm:u.rearm_used})[id])return 'Used this turn';
-  if(u.kind==='bomber'&&['fire','areaFire'].includes(id)&&!u.bombs)return state.scenario.fleet_battle_version?'Reload at own platoon carrier':'Reload at airfield';
+  if(u.kind==='bomber'&&['fire','areaFire'].includes(id)&&!u.bombs)return state.midway_ops_version?'Land aboard carrier to reload':state.scenario.fleet_battle_version?'Reload at own platoon carrier':'Reload at airfield';
   if(!['load','unload'].includes(id)&&u.ap<cost(id))return `Needs ${cost(id)} AP`;
   if(['fire','grenade','assault','suppress','airstrike','torpedo'].includes(id))return target?'No legal attack on target':'Select a visible enemy';
   if(id==='resupply')return 'Needs adjacent mortar or engineer below capacity';

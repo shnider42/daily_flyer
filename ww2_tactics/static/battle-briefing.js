@@ -32,6 +32,16 @@
      s.scenario.reinforcement_brief,
      'Each side has two platoons. Dakotas and their airborne squads stay under the same owner, including in unit-control co-op. Bombers and fighters can return within 1 hex of their platoon’s field for 2 AP service: +1 strength and full ordnance, consuming one of its six stores. There are no replacement units.'],focus:s.scenario.objective};
   }
+  if(s.midway_ops_version){
+   const score=s.joint_score||{us:0,de:0};
+   return {goal:'Sink every enemy carrier OR reach 12 sea-control points.',
+    compact:`Win: carriers or 12 points · US ${score.us} / Japan ${score.de}`,progress:`US ${score.us}/12 · Japan ${score.de}/12 · Round ${s.round}/${rounds}`,
+    rules:[s.scenario.historical_note,
+     'Fixed deployments, normal daytime visibility and last-known contacts. No nighttime darkness, searchlights or shuffled enemy locations. Ships—not aircraft—hold the three sea lanes within 1 hex for +1 each at turn end. First to 12 wins; after round 24, higher score wins (Japan wins an exact tie). Sinking all enemy carriers wins immediately.',
+     'US: three 8-hull carriers, four flights each (Wildcat, two Dauntless, Devastator). Japan: four 6-hull carriers, three flights each (Zero, Val, Kate). Each side has twelve finite aircraft counters; destroyed flights are not replaced.',
+     s.scenario.doctrine.us,s.scenario.doctrine.de,s.scenario.reinforcement_brief,
+     'Aircraft aboard cannot spot, fire, intercept or capture. Select a carrier’s air group to launch or service; select an airborne flight to land. Ship AA and fighters intercept actual takeoff, flight and recovery approaches. Enemy deck activity and service stores remain private.'],focus:s.scenario.objective};
+  }
   if(s.scenario.fleet_battle_version){
    const score=s.joint_score||{us:0,de:0};
    return {goal:'Reach 12 control points by holding the three sea lanes with ships.',

@@ -34,6 +34,7 @@ def scenario(board):
             result['platoons'] = [dict(id='A', name='Infantry platoon', center=board['width']//2)]
     rules = ['weapons', 'structures', 'layered_occupancy', 'ground_stacking']
     if board.get('night_ops_version'):rules += ['night_sight','searchlights','flares','transport_airlifts','finite_service']
+    if board.get('carrier_ops_version'):rules += ['daytime_sight','finite_air_groups','carrier_decks','finite_service']
     if ground:
         rules += ['fog', 'platoon_intelligence', 'fire_direction', 'indirect_mortars',
                   'engineering', 'finite_supply']

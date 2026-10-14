@@ -51,7 +51,7 @@
    if(state.joint_ops_version){const layer=window.fubarLayer?.(),air=['fighter','bomber'].includes(contact.kind);g.classList.toggle('joint-hidden',layer==='air'&&!air||layer==='surface'&&air);}
    g.append(element('title',{},`${contact.source==='radio'?'Radio report':'Last seen'} ${kinds[contact.kind]} · round ${contact.last_seen_round} · ${sideLabel(contact.last_seen_turn)} turn. Current location unknown.`),element('rect',{x:cx-19,y:cy-16,width:38,height:32,rx:3}),element('text',{x:cx,y:cy-2,'text-anchor':'middle'},`${unitCodes[contact.kind]} ?`),element('text',{x:cx,y:cy+10,'text-anchor':'middle',class:'contact-age'},`${contact.source==='radio'?'RAD · ':''}R${contact.last_seen_round}`));svg.append(g);
   }
-  for(const troop of snapshot.units.filter(u=>u.side===state.side&&u.hp>0&&u.carrier_id)){
+  for(const troop of snapshot.units.filter(u=>u.side===state.side&&u.hp>0&&u.carrier_id&&!(state.midway_ops_version&&['fighter','bomber'].includes(u.kind)))){
    const counter=svg.querySelector(`.unit[data-unit-id="${troop.carrier_id}"]`);if(!counter)continue;
    const [cx,cy]=center(...troop.pos),badge=element('g',{class:'passenger-marker','aria-hidden':'true'});
    badge.append(element('title',{},`${unitName(troop)} aboard`),element('rect',{x:cx-25,y:cy-23,width:16,height:13,rx:3}),element('text',{x:cx-17,y:cy-13,'text-anchor':'middle'},'1'));counter.append(badge);

@@ -126,10 +126,12 @@ from .worlds_collide import scenario as worlds_scenario
 from .crosswind import scenario as crosswind_scenario
 from .nightfall import scenario as nightfall_scenario
 from .nightveil import scenario as veil_scenario
+from .midway2 import scenario as midway2_scenario
 CURRENT_SCENARIOS = {'worlds_collide': worlds_scenario(build),
                      'crosswind_strait': crosswind_scenario(build),
                      'nightfall_beacon': nightfall_scenario(build),
-                     'nightfall_veil': veil_scenario(build)}
+                     'nightfall_veil': veil_scenario(build),
+                     'midway_2': midway2_scenario(build)}
 
 
 def get_scenario(key='village'):

@@ -13,6 +13,7 @@ CATEGORIES = {
 
 # key: learning position, additional categories, one short learning focus
 GUIDE = {
+    'midway_2': (13, ['naval','air','control'], 'Daytime carrier battle: finite air groups, launch/recovery cycles, repair and reloading aboard.'),
     'nightfall_beacon': (14, ['air','airborne','attack-defend'], 'Night bombing and airborne raid: short sight, aimed Spotlights, flares and Dakota drops.'),
     'nightfall_veil': (15, ['air','airborne','attack-defend'], 'Concealed night raid: search two sectors for radar sites amid constrained randomized defenses.'),
     'crosswind_strait': (12, ['naval','air','control'], 'Medium 2v2: two mixed air/naval platoons per side; carrier service and shipboard AA.'),

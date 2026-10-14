@@ -11,7 +11,7 @@ from .scenarios import battlefield
 from .rulesets import dsl, turn_limit
 from .visibility import fog, view, visible_ids, active, sight_reader
 from . import naval, air, weapons, buildings, operations, fieldworks, linked_front, signals, airborne, domains, fubar, new_fronts, logistics
-from . import nightfall
+from . import nightfall, midway2
 
 
 def objective_costs(state, goal=None, unit=None):
@@ -66,7 +66,7 @@ def choose_order(state, costs, visited, front_costs=None):
         if unit['side'] != side or (unit['ap'] <= 0 and not unit.get('road_pending')) or not computer_policy.eligible(state, unit):
             continue
         if domains.joint(state) and unit['kind'] in domains.AIR_UNITS | domains.SHIPS:
-            policy=nightfall.choices if nightfall.enabled(state) else fubar.domain_choices
+            policy=midway2.choices if midway2.enabled(state) else nightfall.choices if nightfall.enabled(state) else fubar.domain_choices
             choices.extend(policy(state,unit,options(state,unit),list(units.values()),visited))
             continue
         if new_fronts.enabled(state) and state['front_mode']=='evacuation' and unit['kind']=='landing_craft':

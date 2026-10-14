@@ -58,6 +58,9 @@ def omaha_roster():
 
 
 def setup(board):
+    if board['campaign'] == 'midway_2':
+        from .midway2 import roster as carrier_roster
+        return carrier_roster()
     if board['campaign'] in {'nightfall_beacon', 'nightfall_veil'}:
         from .nightfall import roster as night_roster
         return night_roster()

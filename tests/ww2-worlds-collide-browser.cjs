@@ -8,7 +8,7 @@ async function settle(p){await p.waitForFunction(()=>state&&!busy&&!polling);}
 async function register(width,name){
  const p=await browser.newPage({viewport:{width,height:900},isMobile:width<1000,hasTouch:width<1000});pages.push(p);p.setDefaultTimeout(45000);
  p.on('pageerror',e=>errors.push(e.message));p.on('dialog',d=>d.accept());p.on('response',r=>{if(r.url().includes('/assets/')&&r.status()>=400)badAssets.push(r.url());});
- await p.goto(base);await p.waitForFunction(()=>scenarios.length===24&&currentScenarios.length===28&&ww2Commander.ready);
+ await p.goto(base);await p.waitForFunction(()=>scenarios.length===24&&currentScenarios.length===29&&ww2Commander.ready);
  assert.equal(await p.locator('#scenarioSelect option[value="current:worlds_collide"]').count(),0);
  await p.locator('#scenarioSelectEdition').selectOption('current');await p.locator('#scenarioSelect').selectOption('current:worlds_collide');
  assert.match(await p.locator('#operationTitle').textContent(),/Worlds Collide/);assert.match(await p.locator('#operationFactions').textContent(),/Americans.*British.*Germans.*Japanese/);

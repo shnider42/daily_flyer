@@ -78,7 +78,7 @@
   const parts=[`${u.hp}/${u.max_hp||u.hp} strength`,`${u.ap} AP`];
   if(state.scenario.fleet_battle_version){
    if(u.kind==='bomber')parts.push(`${u.bombs}/${u.max_bombs} ordnance loads`);
-   if(u.kind==='carrier')parts.push(`${u.air_stores}/6 carrier-service stores`);
+   if(u.kind==='carrier')parts.push(`${u.air_stores}/${u.max_air_stores||6} carrier-service stores`);
    if(u.torpedoes)parts.push(`${u.torpedoes} torpedo salvos`);
   }
   if(u.observing)parts.push(`OBSERVING +2 sight${legal?.observation?' · sight '+legal.observation.sight:''} · weapon range unchanged`);
