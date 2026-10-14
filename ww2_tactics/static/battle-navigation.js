@@ -20,7 +20,7 @@
  const experience=group('Information',['experienceControl']);
  experience.append(node('p',null,'Display and coaching detail — same rules, difficulty and available orders.'));
  const layout=group('Display',['layoutControl','dadModeToggle']);
- layout.append(node('p',null,'Map-first gives the battlefield more room. Panels keeps orders and reports alongside it.'));
+ layout.append(node('p',null,'Map-first gives the battlefield more room. Command center keeps your roster, map, orders and reports side by side on desktop.'));
  group('Map & units',['terrainToggle','unitStyleToggle']);
  const guides=group('Map guides',['rangeGuideToggle','intelligenceView','sectorNavigator']);
  const help=group('Help',['guideToggle']);

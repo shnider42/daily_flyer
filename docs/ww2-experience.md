@@ -18,20 +18,26 @@ their existing independent settings.
 
 ## Layout and migration
 
-The former Experimental layout is now **Map-first**. **Panels** retains the
-older layout. Experience changes do not switch layouts or move navigation.
+The former Experimental layout is now **Map-first**. **Command center** (formerly
+Panels) keeps roster, map, orders and reports together. Active desktop battles
+use the full browser width with small edge gutters. On roomy displays, roster
+and order columns grow within readable limits; the battlefield takes the rest.
+The lobby retains its reading width, and compact laptop/mobile layouts keep
+their existing dimensions. Experience changes do not switch layouts or move navigation.
 New browsers start with Simple + Map-first. Existing preferences migrate:
 
 | Old preference | Experience | Layout |
 | --- | --- | --- |
-| Simple on | Simple | Panels |
-| Simple off | Expert | Panels |
+| Simple on | Simple | Command center |
+| Simple off | Expert | Command center |
 | Experimental | Simple | Map-first |
 
 Version 2 of `ww2-play-preferences` stores both choices. Unavailable storage
 falls back to in-memory preferences. The legacy `ww2ViewMode` API remains an
 adapter for existing integrations; its old labels are not presented to players.
-Panels puts secondary rules/terrain/mission reports in the scrolling command
+The saved layout value remains `panels`, so existing choices still open Command
+center without a preference migration. Command center puts secondary rules,
+terrain and mission reports in the scrolling command
 column so changing detail does not resize the battlefield. Changing Experience
 also preserves the player's manually opened or closed Battle options section.
 

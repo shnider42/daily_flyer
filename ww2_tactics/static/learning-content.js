@@ -154,7 +154,7 @@
    make('orientation','Find your way around the battlefield',[
     'Home returns to your saved battles. View opens display settings and help. The mission strip explains the goal. Tap a unit to see its actions. Zoom or pan the map to find the rest of your army.',
     'Use Home for saved games, View for Experience and Field coach, and Battle options for replay, codes and rematches. Unit arrows and Find locate troops; Overview fits the map. On a phone, pinch the map to zoom.',
-    'Home preserves the live battle. View groups Experience, layout and display controls. Map-first and Panels share the same authoritative state. Pan, pinch, Overview, Find and layer/sector controls spend no AP.'
+    'Home preserves the live battle. View groups Experience, layout and display controls. Map-first and Command center share the same authoritative state. Pan, pinch, Overview, Find and layer/sector controls spend no AP.'
    ],'Find Home, View and the mission strip before giving an order.','#mapWrap'),
    make('experience','Choose how much explanation you want',[
     'Simple explains one idea at a time. You still have every unit and action. View → Experience lets you change the amount of detail whenever you want.',
