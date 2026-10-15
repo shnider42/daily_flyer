@@ -86,7 +86,11 @@
      const row=node('div');row.className='midway-flight';row.dataset.flightId=p.id;
      const onBoard=p.carrier_id===unit.id&&p.hp>0,location=state.units.find(c=>c.id===p.carrier_id);
      const status=p.hp<=0?'LOST':onBoard?(p.deck_cooldown?'ABOARD · ready next turn':'ABOARD · ready'):p.carrier_id?`Diverted to ${location?.display_name||'carrier'}`:'AIRBORNE';
-     row.append(node('strong',unitName(p)),node('small',`${status} · ${p.hp}/${p.max_hp} strength${p.kind==='bomber'?` · ${p.bombs}/${p.max_bombs} load`:''}`));
+     const heading=node('div');heading.className='midway-flight-heading';
+     const portrait=window.makeUnitPortrait?.(p);if(portrait)heading.append(portrait);
+     const summary=node('div');summary.className='midway-flight-summary';
+     summary.append(node('strong',unitName(p)),node('small',`${status} · ${p.hp}/${p.max_hp} strength${p.kind==='bomber'?` · ${p.bombs}/${p.max_bombs} load`:''}`));
+     heading.append(summary);row.append(heading);row.classList.toggle('midway-flight-lost',p.hp<=0);
      const actions=node('div');actions.className='midway-flight-actions';
      if(onBoard){
       const launch=legal?.launch?.find(c=>c.id===p.id),service=legal?.deck_service?.includes(p.id);

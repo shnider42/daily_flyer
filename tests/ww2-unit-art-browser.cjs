@@ -1,4 +1,4 @@
-/* Production recognition artwork: every role, both detail settings and close-ups. */
+/* Production artwork: every role, illustrated Detailed / symbol Basic and close-ups. */
 const {chromium}=require('playwright'),assert=require('node:assert/strict'),cp=require('node:child_process'),fs=require('node:fs'),path=require('node:path');
 const tmp=fs.mkdtempSync('/tmp/ww2-unit-art-'),base='http://127.0.0.1:8192';
 const server=cp.spawn('python',['-c',`import os
@@ -24,7 +24,8 @@ let browser;const errors=[];
  for(const setting of ['detailed','basic']){
   if((await p.locator('#unitStyleToggle').textContent())!==`Units: ${setting}`)await p.evaluate(()=>$('unitStyleToggle').click());
   assert.equal(await p.locator(`#artPlate .unit-art-${setting}`).count(),art.entries);
-  assert.equal(await p.locator('#artPlate image').count(),0,'All roles share the SVG family');
+  assert.equal(await p.locator('#artPlate image').count(),setting==='detailed'?art.entries:0,'Detailed uses painted miniatures; Basic makes no image requests');
+  if(setting==='detailed')await p.waitForFunction(()=>[...document.querySelectorAll('#artPlate .unit-portrait')].every(n=>n.classList.contains('illustration-ready')));
   const shapes=await p.locator('#artPlate .unit-portrait').evaluateAll(ns=>ns.map(n=>({shapes:n.querySelectorAll('path,circle').length,text:n.querySelectorAll('text').length,ink:getComputedStyle(n.querySelector('.art-solid')).fill,details:[...n.querySelectorAll('.art-detail')].every(n=>getComputedStyle(n).display===(document.querySelector('.unit-art').classList.contains('unit-art-detailed')?'block':'none'))})));
   assert.ok(shapes.every(n=>n.shapes>=3&&n.text===0&&n.ink==='rgb(243, 237, 206)'&&n.details),JSON.stringify(shapes));
   const artPage=await browser.newPage({viewport:{width:1440,height:1100}}),markup=await p.locator('#artPlate').evaluate(n=>n.outerHTML);
@@ -39,5 +40,5 @@ let browser;const errors=[];
  await p.evaluate(()=>$('unitStyleToggle').click());assert.equal(await p.locator('#map .unit-art-detailed').count(),await p.locator('#map .unit').count());
  await p.setViewportSize({width:390,height:844});await p.evaluate(()=>chooseUnit(state.units.find(u=>u.side===state.side)));assert.equal(await p.locator('#map .unit-art-detailed').count(),await p.locator('#map .unit').count());
  await p.screenshot({path:path.join(tmp,'phone-unit-icons.png')});assert.deepEqual(errors,[]);
- console.log(`PASS: ${art.kinds.length} roles and ${art.entries-art.kinds.length} variants share basic/detailed SVG art; settings update map and close-ups, persist, preserve state and work on phone. Screenshots: ${tmp}`);
+ console.log(`PASS: ${art.kinds.length} roles and ${art.entries-art.kinds.length} variants use illustrated Detailed and symbol Basic art; settings update map and close-ups, persist, preserve state and work on phone. Screenshots: ${tmp}`);
 })().catch(e=>{console.error(e);process.exitCode=1;}).finally(async()=>{await browser?.close();server.kill();});

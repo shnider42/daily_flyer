@@ -105,6 +105,13 @@ async function main(){
    await fixture(v,'current:midway_2');e("chooseUnit(state.units.find(u=>u.side===state.side&&u.kind==='carrier'))");
    assert.match($('objectiveName').textContent,/MIDWAY 2.0/);assert.match($('missionHint').textContent,/Sink all enemy carriers/);
    await click(v,$('carrierGroupOpen'));assert.match($('carrierAirGroupContent').textContent,/4\/4 aboard/);assert.match($('carrierAirGroupContent').textContent,/8\/8 service stores/);
+   assert.equal(w.document.querySelectorAll('#carrierAirGroup .midway-flight-heading .dad-unit-portrait').length,4);
+   const portraits=[...w.document.querySelectorAll('#carrierAirGroup .unit-illustration')].map(n=>n.dataset.portrait);
+   assert.ok(portraits.includes('wildcat'));assert.ok(portraits.includes('dive_bomber'));
+   const battleBeforeArt=e('JSON.stringify(state)');
+   $('unitStyleToggle').click();assert.equal(w.document.querySelectorAll('#carrierAirGroup image').length,0);
+   $('unitStyleToggle').click();assert.equal(w.document.querySelectorAll('#carrierAirGroup image').length,4);
+   assert.equal(e('JSON.stringify(state)'),battleBeforeArt,'Carrier manifest artwork must not change deck orders or battle state');
   }finally{v.dom.window.close();}
  }
  console.log('DOM/API backports passed at desktop/phone widths: finite field stocks, ship AA, recover/service/relaunch, old-save UI and unchanged Midway 2.0. No visual-layout claims.');

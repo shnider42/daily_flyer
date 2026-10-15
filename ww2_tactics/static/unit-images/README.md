@@ -1,5 +1,10 @@
 # Unit silhouettes, v1
 
+Detailed mode's new painted miniatures are documented in
+[Detailed artwork v2](../../../docs/ww2-detailed-art-v2.md), including provenance,
+prompt set, role/variant mappings, fallbacks and verification. The v1 assets
+below are preserved unchanged. Basic mode still uses its existing SVG symbols.
+
 `specialists-atlas-v1.webp` adds nine illustrated roles for the pre-battle
 release. It is an original 1254×1254 transparent atlas generated with the built-in
 image tool. [Rules, provenance and the full prompt](../../../docs/ww2-prebattle.md#presentation-and-artwork)

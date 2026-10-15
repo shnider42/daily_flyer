@@ -1,14 +1,38 @@
-/* One recognition-art family in both detail settings. Counters still own input. */
+/* Basic recognition symbols and Detailed painted miniatures. Counters own input. */
 'use strict';
 (()=>{
  let detailed=true;
  try{detailed=!['basic','classic'].includes(localStorage.getItem('ww2-unit-style'));}catch{}
  const ns='http://www.w3.org/2000/svg',observed=new Set();
+ let illustrationId=0;
  const ships=new Set(['carrier','battleship','cruiser','destroyer']);
  const planes=new Set(['fighter','bomber','transport_aircraft']);
  function el(tag,attrs,text){const n=document.createElementNS(ns,tag);for(const [k,v] of Object.entries(attrs))n.setAttribute(k,v);if(text)n.textContent=text;return n;}
  function size(svg){const width=svg.viewBox.baseVal.width;svg.classList.toggle('compact-unit-art',!!width&&svg.getBoundingClientRect().width/width*40<40);}
  const observer=new ResizeObserver(entries=>entries.forEach(e=>size(e.target)));
+ function illustrate(drawing,u,art){
+  const library=window.ww2UnitIllustrations,portrait=library?.resolve(u,state);
+  if(!portrait)return;
+  const atlas=library.atlases[portrait.atlas];
+  const fallback=el('g',{class:'unit-art-fallback'});
+  while(drawing.firstChild)fallback.append(drawing.firstChild);
+  const viewport=el('svg',{x:-24,y:-17,width:48,height:29,viewBox:portrait.box.join(' '),class:'unit-illustration',overflow:'hidden',preserveAspectRatio:'xMidYMid meet','data-portrait':portrait.key});
+  const picture=el('image',{href:`/assets/unit-images/${atlas.file}`,width:atlas.width,height:atlas.height});
+  // A viewBox with "meet" can expose adjacent atlas cells in its letterbox.
+  // Clip the source window itself as well as the outer SVG viewport.
+  const id=`unit-illustration-${++illustrationId}`,defs=el('defs',{}),clip=el('clipPath',{id,clipPathUnits:'userSpaceOnUse'});
+  const [x,y,width,height]=portrait.box;
+  clip.append(portrait.clip?el('path',{d:portrait.clip}):el('rect',{x,y,width,height}));defs.append(clip);viewport.append(defs);picture.setAttribute('clip-path',`url(#${id})`);
+  picture.addEventListener('load',()=>drawing.classList.add('illustration-ready'),{once:true});
+  picture.addEventListener('error',()=>{drawing.classList.remove('illustration-ready');viewport.remove();},{once:true});
+  viewport.append(picture);drawing.append(fallback,viewport);
+  if(portrait.badge){
+   const badge=el('g',{class:`illustration-role role-${portrait.badge}`,transform:'translate(16 -13)'});
+   badge.append(el('circle',{r:4.5,class:'role-disc'}));
+   const marks={leader:'M-2-2V2M1-2V2',commander:'M0-3 .9-1 3-1 1.3.5 2 3 0 1.5-2 3-1.3.5-3-1-.9-1Z',pathfinder:'M0-3V3M-3 0H3',aa:'M-2 2L2-2M2 2L-2-2',torpedo:'M-3 0H3M1-2L3 0 1 2'};
+   badge.append(el('path',{d:marks[portrait.badge],class:'role-symbol'}));art.append(badge);
+  }
+ }
  function drawUnit(drawing,u){
   const add=(tag,attrs,parent=drawing)=>{const n=el(tag,attrs);parent.append(n);return n;};
   const path=(d,cls='art-solid',parent=drawing)=>add('path',{d,class:cls},parent);
@@ -166,6 +190,7 @@
    const title=el('title',{class:'unit-art-title'},`${sideLabel(u.side)} ${unitName(u)} · ${u.hp} strength · ${u.ap} AP${u.pinned?' · pinned':''}${u.entrenched?' · dug in':''}${u.overwatch?' · overwatch':''}`);counter.prepend(title);
    art.append(el('path',{class:'portrait-panel',d:'M-17-15H17Q19-15 19-13V5H-19V-13Q-19-15-17-15Z'}));
    const drawing=el('g',{class:`unit-portrait portrait-${u.kind}${u.variant?' portrait-'+u.variant:''}${ships.has(u.kind)?' naval-silhouette':''}${u.kind==='halftrack'?' insignia-halftrack':''}`,transform:'translate(0 -6) scale(.8)'});art.append(drawing);drawUnit(drawing,u);
+   if(detailed)illustrate(drawing,u,art);
    if(u.entrenched){
     const bags=el('g',{class:'counter-sandbags'});art.append(bags);
     for(let x=-19;x<19;x+=9)bags.append(el('path',{d:`M${x} 15q-2 0-2 3t2 3h6q2 0 2-3t-2-3Z`,class:'sandbag'}));
@@ -192,7 +217,7 @@
   const [x,y]=center(...u.pos),svg=el('svg',{class:'dad-unit-portrait illustrated-units',viewBox:`${x-26} ${y-25} 52 50`,'aria-hidden':'true',focusable:'false'});
   const counter=el('g',{class:`unit ${u.side}`,'data-unit-id':u.id});counter.append(el('rect',{x:x-22,y:y-19,width:44,height:40,rx:3}));svg.append(counter);decorate(svg,[u],true);return svg;
  };
- const button=document.createElement('button');button.id='unitStyleToggle';button.type='button';button.title='Switch all unit icons between basic silhouettes and detailed recognition art';document.getElementById('playTools').append(button);
+ const button=document.createElement('button');button.id='unitStyleToggle';button.type='button';button.title='Switch all unit icons between basic silhouettes and detailed painted miniatures';document.getElementById('playTools').append(button);
  button.onclick=()=>{detailed=!detailed;try{localStorage.setItem('ww2-unit-style',detailed?'detailed':'basic');}catch{}sync();document.dispatchEvent(new Event('ww2:unit-style'));};
  document.addEventListener('ww2:render',sync);document.addEventListener('ww2:playback',sync);sync();
 })();

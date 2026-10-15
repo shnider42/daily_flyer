@@ -14,6 +14,13 @@
 .unit-art .art-detail{display:none;fill:none;stroke:var(--art-dark);stroke-width:.85;stroke-linecap:round;stroke-linejoin:round}
 .unit-art-detailed .art-detail{display:block}
 .unit-art-detailed .art-secondary{fill:var(--art-mid)}
+.unit-art-detailed .portrait-panel{fill:#172a2c;fill-opacity:.96;stroke:#e5dbb4;stroke-opacity:.3}
+.unit-illustration{opacity:0;pointer-events:none}
+.illustration-ready>.unit-illustration{opacity:1}
+.illustration-ready>.unit-art-fallback{display:none}
+.illustration-role .role-disc{fill:#142b31;stroke:#eadbb5;stroke-width:.6}
+.illustration-role .role-symbol{fill:none;stroke:#f5e7c3;stroke-width:1.1;stroke-linecap:round;stroke-linejoin:round}
+.illustration-role.role-commander .role-symbol{fill:#f5e7c3;stroke-width:.35}
 .unit-art-basic :is(.art-solid,.art-secondary,.art-role-mark){stroke:none}
 .unit-art-basic .art-line{stroke-width:2.5}
 .compact-unit-art .unit-art .art-detail{display:none}
