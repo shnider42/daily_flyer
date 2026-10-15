@@ -1,0 +1,116 @@
+name: HLLV staff response coverage
+on:
+  push:
+    branches: [feature/hllv-bug-evidence-tracker]
+    paths: [.github/hllv-source-responses/**, .github/workflows/hllv-source-responses.yml]
+permissions:
+  contents: write
+concurrency:
+  group: hllv-reviewed-data-update
+  cancel-in-progress: false
+jobs:
+  test-collect-publish-verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 22
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          fetch-depth: 1
+      - name: Integrate response collector and coverage presentation
+        id: scope
+        run: |
+          python3 .github/hllv-source-responses/install.py
+          python3 .github/hllv-source-responses/test_collector.py
+          python3 .github/hllv-ux-20261012/test_feed.py
+          node --check .github/hllv-source-responses/responses.js
+          node --check .github/hllv-ux-20261012/feed.js
+          git diff --check
+          python3 - <<'PY' >> "$GITHUB_OUTPUT"
+          import json
+          from pathlib import Path
+          print('publish='+str(json.loads(Path('.github/hllv-source-responses/release.json').read_text())['publish']).lower())
+          PY
+      - name: Collect existing public threads and record exact coverage
+        run: |
+          python3 .github/hllv-source-responses/collector.py
+          mkdir -p artifacts
+          python3 - <<'PY'
+          import json
+          from pathlib import Path
+          r=json.loads(Path('hllv_tracker/official-feed.json').read_text())['response_monitor']
+          Path('artifacts/response-coverage.json').write_text(json.dumps(r,indent=2)+'\n')
+          print(json.dumps({k:v for k,v in r.items() if k!='threads'}))
+          for t in r['threads']:
+              print(t['url'],t['state'],t['failure_kind'],t['pages_checked'],t['pages_expected'],len(t['replies']))
+              for a in t['identities_pending']: print('IDENTITY_REVIEW',json.dumps(a))
+          PY
+      - name: Install isolated browser dependencies
+        run: |
+          python3 -m pip install --quiet playwright==1.55.0
+          python3 -m playwright install --with-deps chromium webkit >/tmp/responses-browsers.log 2>&1 || { tail -40 /tmp/responses-browsers.log; exit 1; }
+      - name: Verify coverage display and unchanged member moderator journeys
+        run: |
+          set -euo pipefail
+          python3 -m http.server 8765 --bind 127.0.0.1 --directory hllv_tracker >/tmp/responses-http.log 2>&1 &
+          PID=$!
+          trap 'kill "$PID" || true' EXIT
+          for engine in chromium webkit; do
+            python3 .github/hllv-source-responses/test_browser.py --engine "$engine"
+            python3 .github/hllv-submission-threads/test_browser.py --engine "$engine"
+            python3 .github/hllv-member-registration/test_browser.py --engine "$engine"
+          done
+          node .github/hllv-evidence/test_evidence.cjs
+      - name: Publish only tested monitor source and static site files
+        if: steps.scope.outputs.publish == 'true'
+        run: |
+          set -euo pipefail
+          git add -- .github/hllv-ux-20261012/nightly.py .github/hllv-ux-20261012/feed.js hllv_tracker/index.html hllv_tracker/assets/source-responses-* hllv_tracker/assets/official-feed-* hllv_tracker/data/issues.json hllv_tracker/data/issues.*.json hllv_tracker/deployment-manifest.json hllv_tracker/reviews/source-responses.json hllv_tracker/official-feed.json
+          git diff --cached --check
+          git config user.name 'github-actions[bot]'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          if ! git diff --cached --quiet; then
+            git commit -m 'Add verified staff reply monitoring and explicit discussion coverage'
+            git push origin HEAD:refs/heads/feature/hllv-bug-evidence-tracker
+          fi
+          echo "Published $(git rev-parse HEAD)" >> "$GITHUB_STEP_SUMMARY"
+      - name: Verify ordinary live URLs and deployed coverage behavior
+        if: steps.scope.outputs.publish == 'true'
+        run: |
+          python3 -u - <<'PY'
+          import json,time,urllib.request
+          from pathlib import Path
+          root=Path('hllv_tracker');paths=['','index.html','deployment-manifest.json','official-feed.json']+json.loads((root/'deployment-manifest.json').read_text())['files'];last='Not checked'
+          for attempt in range(108):
+              try:
+                  for path in dict.fromkeys(paths):
+                      with urllib.request.urlopen('https://hllv-bug-track.onrender.com/'+path,timeout=15) as r:actual=r.read(8000001)
+                      assert actual==(root/(path.split('?')[0] or 'index.html')).read_bytes(),'Mismatch: '+(path or '/')
+                  print('PRODUCTION_RESPONSE_COVERAGE_EXACT_MATCH');break
+              except Exception as e:
+                  last=str(e)
+                  if attempt%12==0:print(last)
+              time.sleep(5)
+          else:raise RuntimeError(last)
+          PY
+          python3 .github/hllv-source-responses/test_browser.py --url https://hllv-bug-track.onrender.com/
+          python3 .github/hllv-source-responses/test_browser.py --url https://hllv-bug-track.onrender.com/ --engine webkit
+      - name: Record coverage independently of Actions success
+        if: always()
+        run: |
+          python3 - <<'PY'
+          import json,os
+          from pathlib import Path
+          p=Path('artifacts/response-coverage.json')
+          if p.exists():
+              r=json.loads(p.read_text())
+              with open(os.environ['GITHUB_STEP_SUMMARY'],'a') as f:
+                  f.write('\nExisting Steam threads only. No bug-status, account, moderation or private-data changes.\n\n')
+                  f.write(json.dumps({k:v for k,v in r.items() if k!='threads'},indent=2))
+              if r['state']!='complete':print('::warning::Discussion coverage is not complete; inspect the per-thread report. A successful pipeline is not an all-clear.')
+          PY
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: staff-response-coverage
+          path: artifacts/
+          retention-days: 3
