@@ -24,3 +24,5 @@ body.home-screen dialog .eyebrow{color:var(--muted)}
 @media(prefers-reduced-motion:reduce){.home-heading:before,.home-map-panel:after{animation:none!important}}
 /* Secondary text on the pale operation panel still needs a dark foreground. */
 .home-screen :is(#operationFactions,#learnHelp){color:#4f604f}
+/* Let the desktop home use the browser width, keeping its existing edge padding. */
+@media(min-width:1100px){.home-screen>header,.home-screen main{max-width:none}}
