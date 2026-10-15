@@ -23,7 +23,17 @@ def main():
     if coverage['state'] not in ('complete','no_monitored_threads'):
         out['warnings'].append('Discussion reply coverage is incomplete; inspect response_monitor for per-thread results. Announcement freshness does not establish discussion coverage.')
 '''
-        nightly.write_text(n.replace(needle,addition+needle,1))
+        n=n.replace(needle,addition+needle,1)
+    if 'hllv_response_content_review' not in n:
+        needle="    coverage=out['response_monitor']"
+        assert n.count(needle)==1
+        addition='''    quality_path=Path(__file__).parent.parent/'hllv-source-responses/content_review.py'
+    quality_spec=importlib.util.spec_from_file_location('hllv_response_content_review',quality_path)
+    quality=importlib.util.module_from_spec(quality_spec);quality_spec.loader.exec_module(quality)
+    quality.apply(out['response_monitor'])
+'''
+        n=n.replace(needle,addition+needle,1)
+    nightly.write_text(n)
     feed=Path('.github/hllv-ux-20261012/feed.js');js=feed.read_text()
     if 'HLLVResponses' not in js:
         js=js.replace(" function draw(){", " function draw(){\n  window.HLLVResponses?.render(feed?.response_monitor);")
@@ -47,6 +57,6 @@ def main():
     m.write_text(json.dumps(manifest,indent=2)+'\n')
     for p,raw in protected.items():assert p.read_bytes()==raw
     assert {k:v for k,v in ledger.items() if k!='page_updated_at'}=={k:v for k,v in json.loads(before).items() if k!='page_updated_at'}
-    (R/'reviews/source-responses.json').write_text(json.dumps({'page_updated_at':ledger['page_updated_at'],'scope':'existing reviewed Steam source threads only','reply_detection':True,'coverage_reporting':True,'new_thread_discovery':False,'affiliate_channel_collection':False,'reviewed_bug_status_changes':False,'supabase_changes':False,'auth_and_community_assets_unchanged':True},indent=2)+'\n')
+    (R/'reviews/source-responses.json').write_text(json.dumps({'page_updated_at':ledger['page_updated_at'],'scope':'existing reviewed Steam source threads only','reply_detection':True,'coverage_reporting':True,'explicit_content_review_holds':True,'new_thread_discovery':False,'affiliate_channel_collection':False,'reviewed_bug_status_changes':False,'supabase_changes':False,'auth_and_community_assets_unchanged':True},indent=2)+'\n')
     print('RESPONSE_MONITOR_INTEGRATED')
 if __name__=='__main__':main()

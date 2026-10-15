@@ -21,6 +21,7 @@ jobs:
         run: |
           python3 .github/hllv-source-responses/install.py
           python3 .github/hllv-source-responses/test_collector.py
+          python3 .github/hllv-source-responses/test_content_review.py
           python3 .github/hllv-ux-20261012/test_feed.py
           node --check .github/hllv-source-responses/responses.js
           node --check .github/hllv-ux-20261012/feed.js
@@ -33,6 +34,7 @@ jobs:
       - name: Collect existing public threads and record exact coverage
         run: |
           python3 .github/hllv-source-responses/collector.py
+          python3 .github/hllv-source-responses/content_review.py
           mkdir -p artifacts
           python3 - <<'PY'
           import json
@@ -107,6 +109,7 @@ jobs:
                   f.write('\nExisting Steam threads only. No bug-status, account, moderation or private-data changes.\n\n')
                   f.write(json.dumps({k:v for k,v in r.items() if k!='threads'},indent=2))
               if r['state']!='complete':print('::warning::Discussion coverage is not complete; inspect the per-thread report. A successful pipeline is not an all-clear.')
+              if r.get('content_reviews_pending'):print('::warning::A source response has a withheld preview pending editorial context review. Author verification is not content approval.')
           PY
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()

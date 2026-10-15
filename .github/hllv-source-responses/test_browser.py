@@ -20,6 +20,8 @@ with sync_playwright() as pw:
  updated=copy.deepcopy(monitor);updated['threads'][0]['replies']+=[{**r,'id':'101','response_url':url+'#c101','published_at':'2026-10-14T15:00:00Z','change_kind':'edited','last_changed_at':at,'excerpt':'Changed synthetic response.'}]
  page.evaluate('(d)=>HLLVResponses.render(d)',updated);expect(host.locator('.response-entry')).to_have_count(1);host.locator('.response-entry>summary').first.click();expect(host).to_contain_text('Change detected')
  page.select_option('#responseFilter','all');page.select_option('#responseOrder','oldest');expect(host.locator('.response-entry time').first).to_have_attribute('datetime','2026-08-29T15:00:00Z')
+ held=copy.deepcopy(updated);held['content_reviews_pending']=1;held['threads'][0]['replies'][0].update(excerpt='WITHHELD-UNRELATED-TEXT',content_review={'state':'needs_review','reason':'Original context needs review'})
+ page.evaluate('(d)=>HLLVResponses.render(d)',held);expect(host).to_contain_text('1 responses flagged for content review');expect(host).not_to_contain_text('WITHHELD-UNRELATED-TEXT');host.locator('.response-entry>summary').first.click();expect(host).to_contain_text('Preview withheld pending content review')
  for theme in ['dark','light']:
   page.evaluate('(t)=>{if(document.documentElement.dataset.theme!==t)document.getElementById("themeToggle").click()}',theme)
   for width in [320,390,768,1280]:
@@ -27,5 +29,5 @@ with sync_playwright() as pw:
   page.set_viewport_size({'width':390,'height':844});Path('artifacts').mkdir(exist_ok=True);host.screenshot(path='artifacts/staff-responses-'+theme+'-'+a.engine+'.png')
  updated['last_attempt_at']='2026-01-01T00:00:00Z';updated['state']='complete';page.evaluate('(d)=>HLLVResponses.render(d)',updated);expect(host).to_contain_text('overdue');expect(host.locator('.response-coverage')).to_have_attribute('data-complete','false')
  page.evaluate('HLLVResponses.unavailable()');expect(host).to_contain_text('could not be loaded');assert not posts,posts;assert not errors,errors
- print('RESPONSE_BROWSER_PASS',a.engine,'partial/stale/unavailable coverage, baseline vs changes, ordering, direct response links, safe text and mobile dark/light; no Auth or private-data requests')
+ print('RESPONSE_BROWSER_PASS',a.engine,'partial/stale/unavailable coverage, baseline vs changes, explicit content holds, ordering, direct response links, safe text and mobile dark/light; no Auth or private-data requests')
  b.close()
