@@ -109,6 +109,10 @@ def main():
     spec=importlib.util.spec_from_file_location('hllv_source_responses',module_path)
     response_module=importlib.util.module_from_spec(spec);spec.loader.exec_module(response_module)
     out['response_monitor']=response_module.collect(data['issues'],previous.get('response_monitor',{}),now)
+    quality_path=Path(__file__).parent.parent/'hllv-source-responses/content_review.py'
+    quality_spec=importlib.util.spec_from_file_location('hllv_response_content_review',quality_path)
+    quality=importlib.util.module_from_spec(quality_spec);quality_spec.loader.exec_module(quality)
+    quality.apply(out['response_monitor'])
     coverage=out['response_monitor']
     print('RESPONSE_COVERAGE',json.dumps({k:v for k,v in coverage.items() if k!='threads'}))
     if coverage['state'] not in ('complete','no_monitored_threads'):
