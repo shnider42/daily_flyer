@@ -21,6 +21,26 @@
       "review_due_at": "2027-01-13T00:00:00Z",
       "evidence_url": "https://steamcommunity.com/app/3079210/discussions/1/631219091886213685/#c631219091886258244",
       "basis": "Exact profile ID and Steam developer class/badge on original response. Support account identity is distinct from any claim about development progress."
+    },
+    {
+      "steam_id": "76561199006108050",
+      "label": "Team17_Assist",
+      "category": "Team17 Support",
+      "active": true,
+      "verified_at": "2026-10-15T14:04:00Z",
+      "review_due_at": "2027-01-13T00:00:00Z",
+      "evidence_url": "https://steamcommunity.com/app/3079210/discussions/1/631219091886191710/",
+      "basis": "Original developer-badged response signed Team17 Support in the White flash/Flicker thread; exact public profile ID and current developer marker independently matched by the first live scan."
+    },
+    {
+      "steam_id": "76561199418459134",
+      "label": "Team17_Helper",
+      "category": "Team17 Support",
+      "active": true,
+      "verified_at": "2026-10-15T14:04:00Z",
+      "review_due_at": "2027-01-13T00:00:00Z",
+      "evidence_url": "https://steamcommunity.com/app/3079210/discussions/1/631219091886191710/",
+      "basis": "Original developer-badged response signed Team17 Support in the White flash/Flicker thread; exact public profile ID and current developer marker independently matched by the first live scan."
     }
   ]
 }
