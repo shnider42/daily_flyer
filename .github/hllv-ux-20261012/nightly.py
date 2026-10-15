@@ -103,6 +103,16 @@ def main():
     out['link_checks']={**previous.get('link_checks',{}),**checks}
     out['unreachable_links']=sum(c['http_status']!=200 for c in checks.values())
     if out['unreachable_links']:out['warnings'].append('Some link checks failed. This does not establish deletion or invalidate older evidence.')
+    # Reply-level monitoring is independent of announcement collection.
+    import importlib.util
+    module_path=Path(__file__).parent.parent/'hllv-source-responses/collector.py'
+    spec=importlib.util.spec_from_file_location('hllv_source_responses',module_path)
+    response_module=importlib.util.module_from_spec(spec);spec.loader.exec_module(response_module)
+    out['response_monitor']=response_module.collect(data['issues'],previous.get('response_monitor',{}),now)
+    coverage=out['response_monitor']
+    print('RESPONSE_COVERAGE',json.dumps({k:v for k,v in coverage.items() if k!='threads'}))
+    if coverage['state'] not in ('complete','no_monitored_threads'):
+        out['warnings'].append('Discussion reply coverage is incomplete; inspect response_monitor for per-thread results. Announcement freshness does not establish discussion coverage.')
     tmp=OUTPUT.with_suffix('.tmp');tmp.write_text(json.dumps(out,ensure_ascii=False,indent=2)+'\n');tmp.replace(OUTPUT)
     assert ledger.read_bytes()==before,'A collector must not mutate reviewed bug evidence'
     print('SOURCE_COLLECTION',json.dumps({'state':out['state'],'posts':len(out['items']),'links_checked':len(checks),'unreachable_links':out['unreachable_links'],'last_success_at':out['last_success_at'],'reviewed_issue_records_unchanged':True}))

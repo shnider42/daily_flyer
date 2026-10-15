@@ -1,0 +1,11 @@
+{
+  "page_updated_at": "2026-10-15T14:09:30Z",
+  "scope": "existing reviewed Steam source threads only",
+  "reply_detection": true,
+  "coverage_reporting": true,
+  "new_thread_discovery": false,
+  "affiliate_channel_collection": false,
+  "reviewed_bug_status_changes": false,
+  "supabase_changes": false,
+  "auth_and_community_assets_unchanged": true
+}
