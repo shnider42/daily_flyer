@@ -10,7 +10,7 @@ from .rulesets import profile, dsl, base_ap, bank_limit, turn_limit, road
 from .effects import record_effect, record_shot_effect
 from . import combined, naval, transport, campaigns, air, weapons, buildings, operations, fieldworks, linked_front, signals, airborne, domains, fubar, logistics, new_fronts, deployment
 from .visibility import fog, active, visible_ids, unit_visible_ids, sees_hex, update_intel, record_reports
-from . import fire_control, editions, nightfall, midway2, air_support, carrier_decks
+from . import fire_control, editions, nightfall, midway2, air_support, carrier_decks, britain2
 
 WIDTH, HEIGHT = 7, 9
 OBJECTIVE = [3, 4]
@@ -86,7 +86,8 @@ def initial(scenario='village', ruleset='classic'):
     if board.get('naval'):
         return weapons.initialize(editions.initialize(naval.initial(board,rules)))
     if board.get('air'):
-        return weapons.initialize(editions.initialize(air.initial(board,rules)))
+        make_air = britain2.initial if board.get('britain_ops_version') == britain2.VERSION else air.initial
+        return weapons.initialize(editions.initialize(make_air(board,rules)))
     units = []
     formation_platoons = board.get('roster_platoons', board.get('platoons'))
     for side, row in [("us", board['height']-1), ("de", 0)]:
@@ -236,7 +237,7 @@ def options(state, unit):
     if state.get('naval_version'):
         return naval.options(state,unit)
     if state.get('air_version'):
-        return air.options(state,unit)
+        return britain2.options(state,unit) if britain2.enabled(state) else air.options(state,unit)
     moves, targets = [], []
     board = battlefield(state)
     extras = dict(smoke=[], dig=False, assaults=[], overwatch=False,
@@ -321,7 +322,7 @@ def apply(state, side, action, roll=None):
     if state.get('naval_version'):
         return naval.apply(state,side,action,roll)
     if state.get('air_version'):
-        return air.apply(state,side,action,roll)
+        return britain2.apply(state,side,action,roll) if britain2.enabled(state) else air.apply(state,side,action,roll)
     names=state.get('factions',NAMES)
     state = copy.deepcopy(state)
     before_sight={team:visible_ids(state,team) for team in ('us','de')} if fog(state) else {}

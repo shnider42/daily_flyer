@@ -61,6 +61,8 @@ def initialize(state, body, pid, name):
     # Preloaded passengers always belong with their transport, including maps
     # whose passenger platoon differs from the boat's platoon.
     def key(u):
+        if state.get('britain_ops_version') == 1 and u.get('home_field'):
+            return key(next(v for v in units if v['id'] == u['home_field']))
         if state.get('carrier_decks_version') == 1 and u.get('home_carrier'):
             # Crosswind's flights start airborne, but must retain the same
             # controller as their carrier even with individual-unit commands.

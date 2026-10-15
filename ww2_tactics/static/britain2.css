@@ -1,0 +1,13 @@
+#britainAirfieldDialog{width:min(560px,calc(100vw - 28px));max-height:85svh;overflow:auto;padding:16px;box-sizing:border-box}
+#britainAirfieldDialog h2{font-size:21px;margin:16px 0 10px}
+#britainAirfieldContent p{font-size:13px;line-height:1.5;overflow-wrap:anywhere}
+.britain-flight{border-top:1px solid #a7b39f;padding:12px 0;min-width:0}
+.britain-flight strong,.britain-flight small{display:block;overflow-wrap:anywhere}
+.britain-flight small{margin:5px 0;font-size:12px;line-height:1.5}
+.britain-flight-actions{display:flex;flex-wrap:wrap;gap:6px}
+.britain-flight-actions button{flex:1 1 150px}
+#britainAirfieldDialog button{min-height:44px;max-width:100%;white-space:normal;font-size:13px}
+.britain-launch-choice{fill:#87b9c960;stroke:#c5f0fc;stroke-width:3;cursor:pointer}
+.britain-launch-choice:focus{outline:none;stroke:#ffe66b;stroke-width:4}
+.simple-play #airfieldGroupOpen:not([hidden]){display:inline-block!important}
+#britainFuelWarning{margin:8px 0;padding:8px 10px;background:#fff1d5;color:#6e310f;border-left:4px solid #b66b1e;font-size:13px;font-weight:700;line-height:1.4}

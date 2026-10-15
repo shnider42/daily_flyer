@@ -132,6 +132,7 @@ function center(x,y){return [27+x*52+(y%2)*26,30+y*49];}
 function unitTypeName(u){if(u.display_name)return u.display_name;return state?.naval_version&&u.kind==='amphibious'?'Landing section':kinds[u.kind];}
 function unitName(u){return unitTypeName(u)+(u.platoon?` ${u.platoon}${u.number}`:'');}
 function unitRoleSummary(u){
+ if(state?.britain_ops_version)return window.britainRole?.(u)||'Daytime air operations · finite flights and fuel';
  if(state?.midway_ops_version)return window.midwayRole?.(u)||'Daytime carrier battle · finite aircraft';
  if(state?.scenario?.night_ops_version)return window.nightRole?.(u)||'Night raid · read the mission and current legal orders';
  if(state?.scenario?.fleet_battle_version){
@@ -171,6 +172,7 @@ function renderUnitClarity(unit){
   const title=document.createElement('strong');title.className='roster-unit-name';title.textContent=unitTypeName(u);
   const meta=document.createElement('span');meta.className='roster-unit-state';
   meta.textContent=`${u.platoon?u.platoon+u.number:i+1} · ${u.hp<=0?'Lost':u.carrier_id?`Aboard · ${u.ap} AP`:u.reserve?'Airborne reserve':u.immobilized?`Tracks damaged · ${u.ap} AP`:u.pinned?`Pinned · ${u.ap} AP`:u.overwatch?`Watching · ${u.ap} AP`:`${u.ap} AP`}`;
+  if(state.britain_ops_version&&['fighter','bomber'].includes(u.kind))meta.textContent=u.hp<=0?'Lost':`${u.carrier_id?'On ground':'Airborne'} · Fuel ${u.fuel}/${u.max_fuel} · ${u.ap} AP`;
   button.replaceChildren(title,meta);button.dataset.unitId=u.id;
   button.title=`${unitName(u)} — ${unitRoleSummary(u)}`;button.setAttribute('aria-label',`${unitName(u)}. ${meta.textContent}. ${unitRoleSummary(u)}`);
  });
@@ -201,7 +203,7 @@ function chooseUnit(u){if(busy||playbackSession)return;if(combatMode){window.pic
 function placeBarrage(pos){const effect=state.combat_version?'Infantry there takes 1 damage, pins and loses dug-in cover, including yours. Armor, vehicles and ships are unaffected.':'ALL units there will be pinned and lose dug-in cover, including yours. No strength damage.';if(state.legal[selected]?.barrage?.some(p=>p[0]===pos[0]&&p[1]===pos[1])&&confirm(`Call your army's only mortar barrage at ${hexColumn(pos[0])}${pos[1]+1}? The marked hex and its neighbors will be hit at the end of your opponent's turn. ${effect}`))act({kind:'barrage',unit:selected,pos});}
 function placeSmoke(pos){if(state.legal[selected]?.smoke?.some(p=>p[0]===pos[0]&&p[1]===pos[1]))act({kind:'smoke',unit:selected,pos});}
 function chance(threshold){return Math.max(0,Math.min(100,Math.round((7-threshold)/6*100)));}
-function moveUnit(move){if(!move.threats||confirm(state.signals_version?'Possible firing lane: a currently spotted enemy could reach this hex. We do NOT know whether it is on overwatch. Unmarked hexes may still hide threats. Move?':`${move.threats} enemy unit${move.threats===1?' is':'s are'} watching ${state.air_version?'this flight path':'this hex'}. Move and risk reaction fire?`))act({kind:'move',unit:selected,pos:move.pos});}
+function moveUnit(move){if(!move.threats||confirm(state.signals_version||state.britain_ops_version?'Possible firing lane: a currently spotted enemy could reach this hex. We do NOT know whether it is on overwatch. Unmarked hexes may still hide threats. Move?':`${move.threats} enemy unit${move.threats===1?' is':'s are'} watching ${state.air_version?'this flight path':'this hex'}. Move and risk reaction fire?`))act({kind:'move',unit:selected,pos:move.pos});}
 function scenarioPreview(){
  const board=operationById($('scenarioSelect').value);if(!board)return;
  $('scenarioBrief').textContent=board.brief;
@@ -300,7 +302,7 @@ function render(){
   const tileClass=`hex ${type}${airliftPicking?' airdrop-aim':''}${condition?' building-'+condition:''}${move&&!picking?' move':''}${move?.threats&&!picking?' threatened':''}${move?.road_bonus&&!picking?' road-bonus':''}${smokeHere?' smoke-choice':''}${barrageHere?' barrage-choice':''}`;
   if(tile.getAttribute('class')!==tileClass)tile.setAttribute('class',tileClass);
   if(!reuse){tile.dataset.x=x;tile.dataset.y=y;if(condition)tile.dataset.buildingState=condition;}
-  const label=airliftPicking?`Call airborne at ${hexColumn(x)}${y+1}, ${type}; safety unknown`:combatHere?`${combatMode.kind.replaceAll('_',' ')} at ${hexColumn(x)}${y+1}`:barrageHere?`Mortar at ${hexColumn(x)}${y+1}`:smokeHere?`Smoke at ${hexColumn(x)}${y+1}`:move&&!picking?`Move to ${hexColumn(x)}${y+1}, ${type}, ${move.cost} action${move.cost!==1?'s':''}${move.road_bonus?', road bonus':''}${move.threats?(state.signals_version?', spotted enemy firing lane; overwatch unknown':', exposed to overwatch'):''}`:null;
+  const label=airliftPicking?`Call airborne at ${hexColumn(x)}${y+1}, ${type}; safety unknown`:combatHere?`${combatMode.kind.replaceAll('_',' ')} at ${hexColumn(x)}${y+1}`:barrageHere?`Mortar at ${hexColumn(x)}${y+1}`:smokeHere?`Smoke at ${hexColumn(x)}${y+1}`:move&&!picking?`Move to ${hexColumn(x)}${y+1}, ${type}, ${move.cost} action${move.cost!==1?'s':''}${move.road_bonus?', road bonus':''}${move.threats?(state.signals_version||state.britain_ops_version?', spotted enemy firing lane; overwatch unknown':', exposed to overwatch'):''}`:null;
   if(tile.getAttribute('aria-label')!==label){
    for(const attr of ['tabindex','role','aria-label'])tile.removeAttribute(attr);
    if(label){tile.setAttribute('tabindex','0');tile.setAttribute('role','button');tile.setAttribute('aria-label',label);}
@@ -393,6 +395,7 @@ function render(){
  if(window.renderNewFronts)window.renderNewFronts(unit,legal,svg);
  if(window.renderNight)window.renderNight(unit,legal,svg);
  if(window.renderMidway)window.renderMidway(unit,legal,svg);
+ if(window.renderBritain)window.renderBritain(unit,legal,svg);
  if(window.renderOrderCapabilities)window.renderOrderCapabilities(unit);
  const buildingWarning=unit&&unit.hp>0&&!unit.reserve&&!unit.carrier_id&&buildingCondition(state,unit.pos)==='damaged'&&!picking&&!target;
  $('hint').classList.toggle('building-warning',!!buildingWarning);

@@ -236,6 +236,12 @@ def view(state, side, terrain_visibility=True):
         for u in result['units']:
             if u['side'] != side:
                 u.pop('air_stores',None)
+    if state.get('britain_ops_version') == 1:
+        for u in result['units']:
+            if u['side'] != side:
+                u['overwatch'] = False
+                for key in ('fuel','home_field','runway_used','air_stores','service_used','sortie_cooldown'):
+                    u.pop(key, None)
     if state.get('fire_control_version'):
         from .fire_control import spotter
         for u in result['units']:
@@ -255,6 +261,8 @@ def view(state, side, terrain_visibility=True):
         result.update(sea_score=copy.deepcopy(state['sea_score']),recon=copy.deepcopy([r for r in state.get('recon',[]) if r['side']==side]))
     if state.get('air_version'):
         result['raid_destroyed']=copy.deepcopy(state.get('raid_destroyed',[]))
+    if state.get('britain_ops_version') == 1:
+        result.update(raid_score=state['raid_score'], raid_sites_lost=copy.deepcopy(state['raid_sites_lost']))
     if domains.joint(state):
         from .fubar import controls
         result.update(joint_score=copy.deepcopy(state['joint_score']),joint_control=controls(state))
@@ -353,6 +361,8 @@ def public_state(state, side):
                     u['fire_mark']['active']=bool(spotter(state,u,u['fire_mark']['pos']))
         return deployment.redact(redact_night(result))
     result=copy.deepcopy(state)
+    if state.get('britain_ops_version') == 1:
+        result.pop('raid_damage', None)
     result.update(view(state,side))
     if state.get('fieldworks_version'):
         result['scenarioBaseMap']=copy.deepcopy(state['battlefield']['map'])

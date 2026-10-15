@@ -4,6 +4,11 @@
  const node=(tag,id,text)=>{const n=document.createElement(tag);if(id)n.id=id;if(text)n.textContent=text;return n;};
  function mission(s){
   const attacker=s.factions?.us||'Americans',defender=s.factions?.de||'Germans',rounds=s.scenario.rounds;
+  if(s.britain_ops_version){
+   return {goal:s.side==='us'?`Keep raid damage below 9 through round ${rounds}, or destroy every bomber.`:'Inflict 9 new damage on RAF stations/radar, or destroy both RAF sector stations.',
+    compact:`Raid damage ${s.raid_score||0}/9 · defend until R${rounds}`,progress:`Raid damage ${s.raid_score||0}/9 · Stations lost ${s.raid_destroyed?.length||0}/2 · Round ${s.round}/${rounds}`,
+    rules:[s.scenario.brief,'Each newly inflicted point of damage to an RAF station or radar site scores once. Repairs restore capability but do not erase scored damage; bombing repaired damage again cannot score twice. Target locations and total raid damage are public. Enemy fuel, runway use and ground manifests are private.',s.scenario.doctrine.us,s.scenario.doctrine.de,s.scenario.reinforcement_brief,s.scenario.historical_note],focus:s.scenario.airfields.us[0]};
+  }
   if(s.front_mode==='armored_control'){
    const score=s.front_score||{us:0,de:0},target=s.scenario.score_target||10,points=(s.scenario.control_points||[]).map(p=>`${p.name} for ${p.points}`).join(', ');
    return {goal:`Capture three flags with armor or fighting infantry. First to ${target} points.`,compact:`Win: ${target} points · ${attacker} ${score.us} / ${defender} ${score.de}`,progress:`${attacker} ${score.us}/${target} · ${defender} ${score.de}/${target} · Round ${s.round}/${rounds}`,

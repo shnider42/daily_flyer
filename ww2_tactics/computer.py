@@ -11,7 +11,7 @@ from .scenarios import battlefield
 from .rulesets import dsl, turn_limit
 from .visibility import fog, view, visible_ids, active, sight_reader
 from . import naval, air, weapons, buildings, operations, fieldworks, linked_front, signals, airborne, domains, fubar, new_fronts, logistics
-from . import nightfall, midway2, carrier_decks
+from . import nightfall, midway2, carrier_decks, britain2
 
 
 def objective_costs(state, goal=None, unit=None):
@@ -47,7 +47,7 @@ def choose_order(state, costs, visited, front_costs=None):
     if state.get('naval_version'):
         return naval.choose_order(state,costs,visited)
     if state.get('air_version'):
-        return air.choose_order(state,costs,visited)
+        return britain2.choose_order(state,costs,visited) if britain2.enabled(state) else air.choose_order(state,costs,visited)
     side = state['turn']
     board = battlefield(state)
     seen=visible_ids(state,side)

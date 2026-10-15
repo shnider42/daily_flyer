@@ -80,6 +80,10 @@
  }
  function unitStatus(u,legal){
   const parts=[`${u.hp}/${u.max_hp||u.hp} strength`,`${u.ap} AP`];
+  if(state.britain_ops_version){
+   if(u.max_fuel)parts.push(`${u.fuel}/${u.max_fuel} fuel`,u.carrier_id?'On ground':'Airborne');
+   if(u.kind==='airfield')parts.push(`${u.air_stores}/${u.max_air_stores} service stores`,`${Math.max(0,(u.hp*2<=u.max_hp?1:3)-u.runway_used)} runway cycles left`);
+  }
   if(state.air_support_version===1&&u.kind==='airfield')parts.push(u.air_stores===undefined?'Enemy stores private':`${u.air_stores}/${u.max_air_stores} finite service uses`);
   if(state.scenario.fleet_battle_version){
    if(u.kind==='bomber')parts.push(`${u.bombs}/${u.max_bombs} ordnance loads`);

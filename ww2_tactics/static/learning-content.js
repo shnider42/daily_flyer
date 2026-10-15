@@ -275,6 +275,21 @@
     'Read this operation’s actual armor, AP, movement cost, gun range and ammunition. Heavy armor often trades mobility for protection. A gun’s penetration and loaded ammunition decide which targets it can damage.',
     'Unit profiles retain their authored faction and equipment asymmetry. Compare penetration, protection, movement AP, road restrictions, range, gun damage and engineer charges on the actual cards. Recon guidance modifies hit accuracy; it never makes an incapable weapon penetrate heavy armor.'];
   }
+  if(s.britain_ops_version){
+   const operationCopy={
+    select:'Select an airfield on the map, then Airfield operations. Its finite flights start on the ground and appear in the manifest and Your units. Selecting a grounded flight opens its home field; airborne flights have Land / airfield recovery.',
+    ap:'RAF fighters and German bombers have 4 AP; German escorts have 3. Aircraft attacks and interception cost 2 AP. Launch costs 1 field AP + 1 flight AP + 1 fuel. Land costs 1 flight AP; service 1 field AP + 1 store. Each uses a shared runway cycle. Active units bank at most 1 AP; grounded aircraft do not bank.',
+    move:'One flight leg costs 1 AP + 1 fuel. Spitfires and Bf 109s fly up to 4 hexes; Hurricanes, Do 17s and Ju 88s up to 3; He 111s up to 2. Every intervening hex can trigger interception. Terrain does not obstruct flight. Keep 1 AP to land.',
+    fire:'Fighters and AA attack aircraft; bombers attack spotted surface targets within 1 hex. Hurricane base rolls: 3+ versus bombers, 5+ versus fighters. Spitfire and Bf 109: 4+ against either. RAF fighter hits deal 1 damage; Bf 109E-3 hits deal 2. Bombers need 3+: He 111/Do 17 deal 2, Ju 88 deals 3. Each attack costs 2 AP; bombing also spends one load.',
+    watch:'Pay 2 AP for one reaction to an enemy takeoff, flight path or landing. Fighter reactions add +1 to the threshold. Bf 109E-3 guns deal 2 damage. A fighter within 2 hexes of a bomber adds +1 to incoming fighter hit thresholds (no stacking; AA unaffected). RAF radar guidance subtracts 1 when a live radar tracks the target and the firing fighter is within 8 hexes of a live RAF station. AA reaches 3 hexes, deals 2 damage, and needs 4+ versus bombers or 5+ versus fighters.',
+    fog:'Daytime radar sees aircraft within 7 hexes, but not distant ground installations. Aircraft see surface targets within 4 hexes. The two RAF station and two radar locations are public landmarks; scout them to acquire current targets. Enemy fuel, runway use, readiness and grounded aircraft stay private.',
+    service:s.scenario.reinforcement_brief,
+    end:'Before ending, check airborne fuel and returning flights. Every airborne own-turn ending burns 1 fuel; reaching zero loses that flight. Runway use and turnaround cooldown reset only at the next friendly turn. Germany needs 9 raid damage; Britain holds below it through round 18 or destroys every bomber.'
+   };
+   for(const lesson of book)if(operationCopy[lesson.id]){lesson.text=operationCopy[lesson.id];lesson.texts=Array(3).fill(lesson.text);lesson.detail='';}
+   book.push(make('britain-fuel','Plan the return trip',Array(3).fill('Fuel is finite: Spitfire/Hurricane 12, Bf 109 10, bombers 18. Takeoff, each flight leg and each airborne own-turn ending consume 1. Land within one hex for 1 AP and one runway cycle; landing itself does not burn fuel. Refuel with a service store on the ground. Do not finish an airborne turn with 1 fuel.'),'Select a flight and check fuel before spending its last AP.','#airfieldGroupOpen',['scramble','land','field_service']));
+   book.push(make('britain-network','Keep the defense network operating',Array(3).fill('Radar extends sight and helps guide RAF fighter fire. Airfields launch, recover and service finite flights. Half-strength fields have only one runway cycle instead of three. Repair a damaged field for 2 AP, one cycle and one store; the 2 strength restored can recover runway capacity. Raid points already scored remain, and cannot be earned twice.'),'As RAF, protect and repair the stations. As Germany, consider radar attacks to weaken interception.','#airfieldGroupOpen',['station_repair']));
+  }
   if(s.carrier_decks_version===1){
    book=book.filter(l=>l.id!=='fleet-service');
    for(const lesson of book){
@@ -313,7 +328,7 @@
    const variants=lesson.texts||copy[lesson.id];
    const base=lesson.text||lesson.detail||'';
    let text=variants?variants[index]:base;
-   if(['move','fire','watch'].includes(lesson.id)&&(s.air_version||s.naval_version))text=index===2?base+' '+variants[2]:text+' '+(s.air_version?'Aircraft have their own flight and attack rules. Fighters fly up to 3 hexes per AP; bombers up to 2.':'Ships stay on water; landing troops can go ashore. Carriers, guns and torpedoes use different attack rules.');
+   if(['move','fire','watch'].includes(lesson.id)&&!s.britain_ops_version&&(s.air_version||s.naval_version))text=index===2?base+' '+variants[2]:text+' '+(s.air_version?'Aircraft have their own flight and attack rules. Fighters fly up to 3 hexes per AP; bombers up to 2.':'Ships stay on water; landing troops can go ashore. Carriers, guns and torpedoes use different attack rules.');
    if(lesson.id==='save')text=s.ai_side?text:text.replace('To keep solo progress on another device, generate a SAVE code in Battle options.','To return on another device, use a MOVE code or link this seat to your commander.');
    const detail=variants?variants[2]+(lesson.detail?' '+lesson.detail:''):base;
    const group=lesson.id.startsWith('preparation')?'Pre-battle':core.has(lesson.id)?'Command essentials':'This operation';

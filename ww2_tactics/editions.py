@@ -38,6 +38,7 @@ def scenario(board):
     rules = ['weapons', 'structures', 'layered_occupancy', 'ground_stacking']
     if board.get('night_ops_version'):rules += ['night_sight','searchlights','flares','transport_airlifts','finite_service']
     if board.get('carrier_ops_version'):rules += ['daytime_sight','finite_air_groups','carrier_decks','finite_service']
+    if board.get('britain_ops_version'):rules += ['daytime_sight','finite_air_groups','airfield_turnaround','finite_service','sortie_fuel','radar_guidance','close_escort','raid_damage']
     if result.get('air_support'):
         rules += ['finite_service']
         if result['air_support']['ship_aa_range']:rules += ['shipboard_interception']
@@ -47,7 +48,8 @@ def scenario(board):
                   'engineering', 'finite_supply']
     result['current_rules'] = dict(version=VERSION, systems=rules,
         ground_limit=2, heavy_ground_limit=1, air_limit=1, vessel_limit=1,
-        exceptions=(['Fleet sight, naval orders and sea victory remain fleet rules.'] if board.get('naval') else
+        exceptions=(['Finite airfield operations, radar guidance, escort protection and raid-damage victory.'] if board.get('britain_ops_version') else
+                    ['Fleet sight, naval orders and sea victory remain fleet rules.'] if board.get('naval') else
                     ['Aircraft sight, interception and station victory remain air rules.'] if board.get('air') else []))
     result['summary'] = (board.get('summary') or 'Original infantry force and mission')
     result['summary'] = result['summary'].replace('one unit per hex', 'two ground units per hex')

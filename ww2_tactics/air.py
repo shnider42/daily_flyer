@@ -8,7 +8,7 @@ import secrets
 from .visibility import active, update_intel, record_reports
 from .combat_display import record_combat
 from .effects import record_shot_effect
-from . import weapons, operations, domains, crosswind, nightfall, air_support
+from . import weapons, operations, domains, crosswind, nightfall, air_support, britain2
 
 AIRCRAFT = domains.AIRCRAFT
 
@@ -89,6 +89,8 @@ def joint_air_sight(state,unit,pos):
 
 
 def shot(unit,target,reaction=False):
+    if unit.get('britain_role'):
+        return britain2.shot(unit,target,reaction)
     if unit['kind']=='bomber':
         if unit.get('naval_strike'):
             evasion=int(unit.get('variant')=='torpedo_bomber' and target['kind']=='destroyer')
@@ -125,8 +127,9 @@ def options(state,unit):
                 path=flight_path(unit['pos'],[x,y])
                 if any(tuple(p) in planes or not (0<=p[0]<board['width'] and 0<=p[1]<board['height']) for p in path):continue
                 # Do not disclose an observed enemy's secret overwatch state.
-                threats={w['id'] for p in path for w in (living if domains.joint(state) else watchers(state,unit,p))
-                         if w['id'] in seen and (not domains.joint(state) or w['side']!=unit['side'] and
+                public_threats=domains.joint(state) or britain2.enabled(state)
+                threats={w['id'] for p in path for w in (living if public_threats else watchers(state,unit,p))
+                         if w['id'] in seen and (not public_threats or w['side']!=unit['side'] and
                          (w['kind'] in {'fighter','aa_gun','flak'} or air_support.ship_aa(state,w))
                          and distance(w['pos'],p)<=(w['ship_aa_range'] if air_support.ship_aa(state,w) else w.get('aa_radius',w['range'])))}
                 result['moves'].append(dict(pos=[x,y],cost=1,threats=len(threats),path=path))
@@ -141,8 +144,9 @@ def options(state,unit):
         if ((unit['kind'] in {'fighter','aa_gun'} and target['kind'] in AIRCRAFT) or
             (unit['kind']=='bomber' and unit['bombs']>0 and target['kind'] not in AIRCRAFT)):
             s = shot(unit,target)
-            s['modifiers'].update(nightfall.modifiers(state,unit,target))
-            s['threshold']=min(6,s['threshold']+sum(nightfall.modifiers(state,unit,target).values()))
+            mods = dict(nightfall.modifiers(state,unit,target), **britain2.modifiers(state,unit,target))
+            s['modifiers'].update(mods)
+            s['threshold']=min(6,s['threshold']+sum(mods.values()))
             if not weapons.enabled(state) or weapons.damage(unit,target):
                 result['targets'].append(dict(weapons.preview(unit, target, s['threshold'], s['modifiers'], state=state), air=True) if weapons.enabled(state) else s)
     return result
@@ -150,8 +154,9 @@ def options(state,unit):
 
 def resolve_shot(state,unit,target,roll,reaction=False):
     s=shot(unit,target,reaction);die=roll()
-    s['modifiers'].update(nightfall.modifiers(state,unit,target))
-    s['threshold']=min(6,s['threshold']+sum(nightfall.modifiers(state,unit,target).values()))
+    mods = dict(nightfall.modifiers(state,unit,target), **britain2.modifiers(state,unit,target))
+    s['modifiers'].update(mods)
+    s['threshold']=min(6,s['threshold']+sum(mods.values()))
     if nightfall.enabled(state):unit['night_flash']=True
     ship_aa=air_support.ship_aa(state,unit)
     weapon='flak' if ship_aa or domains.joint(state) and unit['kind']=='flak' else None

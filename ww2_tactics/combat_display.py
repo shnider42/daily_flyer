@@ -19,6 +19,8 @@ def record_combat(state, modifiers=None, note=None):
             role = {'squad': 'rifle squad', 'leader': 'leader', 'mg': 'MG'}.get(unit['kind'],unit['kind'].replace('_',' '))
             if unit.get('platoon'):
                 role += f" {unit['platoon']}{unit['number']}"
+            if state.get('britain_ops_version') and unit.get('display_name'):
+                role = unit['display_name']
             faction=state.get('factions',{}).get(unit['side'],unit['side'].upper())
             event[key+'_label'] = f"{faction} {role} · {column(unit['pos'][0])}{unit['pos'][1]+1}"
     state['combat_sequence'] = state.get('combat_sequence', 0)+1

@@ -69,6 +69,7 @@ function drawPlayback(){
  const actor=frame.before.units.find(u=>u.id===action.unit),targetUnit=frame.before.units.find(u=>u.id===action.target);
  const labels={resupply:'delivers supplies',evacuate:'evacuates infantry',move:'moves',fire:'fires',grenade:'throws a frag',assault:'assaults',suppress:'suppresses',inspire:'rallies nearby troops',command:'orders On your feet',rally:'rallies',dig:'digs in',smoke:'throws smoke',overwatch:'takes overwatch',barrage:'calls mortars',end:'ends the turn'};
  labels.load='boards infantry';labels.unload='unloads infantry';labels.rearm='services aircraft';
+ Object.assign(labels,{scramble:'launches a flight',land:'lands at an airfield',field_service:'repairs, refuels and reloads a flight',station_repair:'repairs the station'});
  Object.assign(labels,{load_ammo:'changes ammunition',repair_tracks:'repairs tracks',bombard:'bombards an area',artillery:'calls artillery',field_recon:'launches recon'});
  Object.assign(labels,{airborne_drop:'calls airborne reserves',mark_lz:'marks a landing zone',radio_update:'broadcasts radio reports',observe:'observes',conceal:'camouflages',mortar_fire:'calls mortar fire',demolition:'places a demolition charge'});
  Object.assign(labels,{breach:'breaches a hedge',clear_wreck:'clears collapsed rubble',bridge_gap:'builds a bridge'});
@@ -79,6 +80,7 @@ function drawPlayback(){
  document.getElementById('playbackDescription').textContent=description;
  document.getElementById('round').textContent=`${snapshot.round} / ${state.scenario?.rounds||8}`;
  document.getElementById('objective').textContent=state.front_mode==='armored_control'?`Soviets ${snapshot.front_score?.us||0}/10 · Germans ${snapshot.front_score?.de||0}/10`:state.front_mode==='evacuation'?`Rescued ${snapshot.evacuated_count||0}/6`:state.air_version?`Stations lost: ${snapshot.raid_destroyed?.length||0} / 2`:`Hold: ${snapshot.hold} / 2`;
+ if(state.britain_ops_version)document.getElementById('objective').textContent=`Raid damage ${snapshot.raid_score||0}/14 · Stations lost ${snapshot.raid_destroyed?.length||0}/2`;
  document.getElementById('armyCount').textContent=['us','de'].map(side=>`${names[side]} ${snapshot.units.filter(u=>u.side===side&&u.hp>0).length}/${snapshot.units.filter(u=>u.side===side).length}`).join(' · ');
  document.getElementById('pausePlayback').textContent=p.paused?'Resume':'Pause';
  const result=document.getElementById('playbackResult');result.replaceChildren();

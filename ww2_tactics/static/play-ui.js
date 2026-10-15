@@ -179,6 +179,7 @@
    const title=node('strong',null,unit?unitTypeName(unit):'Select a unit');title.className='selected-unit-name';
    const meta=node('span',null,unit?`${unit.platoon?unit.platoon+unit.number+' · ':''}${unit.hp}${unit.max_hp?'/'+unit.max_hp:''} ${state.naval_version?'HP':'strength'} · ${unit.ap} AP${unit.carrier_id?' · ABOARD':unit.reserve?(unit.arrival_round?' · ARRIVES R'+unit.arrival_round:' · RESERVE'):unit.immobilized?' · TRACKS DISABLED':unit.pinned?' · PINNED':''}${unit.ammo?' · '+unit.ammo.toUpperCase()+' loaded':''}`:'Tap the map or open Your units');meta.className='selected-unit-meta';
    $('mobileOrderToggle').replaceChildren(title,meta);
+   if(state.britain_ops_version&&unit&&['fighter','bomber'].includes(unit.kind))meta.textContent=`${unit.hp}/${unit.max_hp} strength · ${unit.ap} AP · Fuel ${unit.fuel}/${unit.max_fuel}${unit.carrier_id?' · ON GROUND':''}`;
    if(dad){const inspected=state.units.find(u=>u.id===target&&u.hp>0)||unit;if(inspected){const portrait=window.makeUnitPortrait?.(inspected);if(portrait)$('mobileOrderToggle').prepend(portrait);if(inspected!==unit){title.textContent=`Target: ${unitTypeName(inspected)}`;meta.textContent=`${sideLabel(inspected.side)} · ${inspected.hp} ${state.naval_version?'HP':'strength'} · your unit: ${unit?unitTypeName(unit):'none'}`;}}}
    $('unitDetailTitle').textContent=unit?unitName(unit):'Unit details & odds';
    $('mobileOrderToggle').setAttribute('aria-label',`${!dad&&unit?unitName(unit)+'. ':''}${$('mobileOrderToggle').textContent}. ${dad?'Open enlarged unit picture and details':'Open unit details and odds'}`);
@@ -204,7 +205,7 @@
    const unit=state.units.find(u=>u.id===selected),moves=state.legal?.[selected]?.moves;
    if(unit&&!unit.pinned&&!unit.immobilized&&!unit.reserve&&!unit.carrier_id&&moves?.length){
     const air=['fighter','bomber','transport_aircraft'].includes(unit.kind),costs=[...new Set(moves.map(m=>m.cost))].sort((a,b)=>a-b),cost=costs.length===1?`${costs[0]} AP`:`${costs[0]}–${costs.at(-1)} AP`;
-    $('hint').textContent=`Click an outlined hex to ${air?'fly':'move'} · ${air&&unit.flight?`${unit.flight} hexes / 1 AP`:cost}${unit.road_pending?' · free road step ready':''}. Click an enemy to target.`;
+    $('hint').textContent=`Click an outlined hex to ${air?'fly':'move'} · ${air&&unit.flight?`${unit.flight} hexes / 1 AP${state.britain_ops_version?' + 1 fuel':''}`:cost}${unit.road_pending?' · free road step ready':''}. Click an enemy to target.`;
    }
   }
   styleActions();
