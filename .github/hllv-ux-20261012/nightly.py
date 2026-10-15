@@ -84,6 +84,13 @@ def check(url,at):
     except Exception:out.update(http_status=None,error='Source could not be checked')
     return url,out
 
+def collect_responses(issues,previous,now):
+    import importlib.util
+    module_path=Path(__file__).parent.parent/'hllv-source-discovery/enrich.py'
+    spec=importlib.util.spec_from_file_location('hllv_source_responses',module_path)
+    response_module=importlib.util.module_from_spec(spec);spec.loader.exec_module(response_module)
+    return response_module.collect(issues,previous,now)
+
 def main():
     ledger=ROOT/'data/issues.json';before=ledger.read_bytes();data=json.loads(before);now=datetime.now(timezone.utc);at=now.replace(microsecond=0).isoformat().replace('+00:00','Z')
     previous=json.loads(OUTPUT.read_text()) if OUTPUT.exists() else {'schema_version':1,'items':[],'last_success_at':None,'link_checks':{}}
@@ -105,18 +112,19 @@ def main():
     if out['unreachable_links']:out['warnings'].append('Some link checks failed. This does not establish deletion or invalidate older evidence.')
     # Reply-level monitoring is independent of announcement collection.
     import importlib.util
-    module_path=Path(__file__).parent.parent/'hllv-source-responses/collector.py'
-    spec=importlib.util.spec_from_file_location('hllv_source_responses',module_path)
-    response_module=importlib.util.module_from_spec(spec);spec.loader.exec_module(response_module)
-    out['response_monitor']=response_module.collect(data['issues'],previous.get('response_monitor',{}),now)
+    out['response_monitor']=collect_responses(data['issues'],previous.get('response_monitor',{}),now)
     quality_path=Path(__file__).parent.parent/'hllv-source-responses/content_review.py'
     quality_spec=importlib.util.spec_from_file_location('hllv_response_content_review',quality_path)
     quality=importlib.util.module_from_spec(quality_spec);quality_spec.loader.exec_module(quality)
     quality.apply(out['response_monitor'])
     coverage=out['response_monitor']
-    print('RESPONSE_COVERAGE',json.dumps({k:v for k,v in coverage.items() if k!='threads'}))
+    print('RESPONSE_COVERAGE',json.dumps({k:v for k,v in coverage.items() if k not in ('threads','discovery','affiliate_monitor')}))
     if coverage['state'] not in ('complete','no_monitored_threads'):
         out['warnings'].append('Discussion reply coverage is incomplete; inspect response_monitor for per-thread results. Announcement freshness does not establish discussion coverage.')
+    # Bounded discovery is separate from existing-source coverage.
+    discovery=coverage.get('discovery',{})
+    if discovery.get('state') not in ('window_checked',):
+        out['warnings'].append('Discovery is partial or has a backlog; this does not invalidate the separate existing-source check.')
     tmp=OUTPUT.with_suffix('.tmp');tmp.write_text(json.dumps(out,ensure_ascii=False,indent=2)+'\n');tmp.replace(OUTPUT)
     assert ledger.read_bytes()==before,'A collector must not mutate reviewed bug evidence'
     print('SOURCE_COLLECTION',json.dumps({'state':out['state'],'posts':len(out['items']),'links_checked':len(checks),'unreachable_links':out['unreachable_links'],'last_success_at':out['last_success_at'],'reviewed_issue_records_unchanged':True}))

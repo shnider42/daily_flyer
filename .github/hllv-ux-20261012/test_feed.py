@@ -25,6 +25,6 @@ class FeedTests(unittest.TestCase):
    root=Path(folder);(root/'data').mkdir();raw=b'{"issues":[]}';(root/'data/issues.json').write_bytes(raw)
    old={'schema_version':1,'items':[{'id':'12345','title':'Previous announcement','published_at':'2026-10-07T12:00:00Z'}],'last_success_at':'2026-10-07T13:00:00Z','link_checks':{}}
    (root/'official-feed.json').write_text(json.dumps(old))
-   with patch.object(n,'ROOT',root),patch.object(n,'OUTPUT',root/'official-feed.json'),patch.object(n,'fetch',side_effect=RuntimeError('offline')):n.main()
+   with patch.object(n,'ROOT',root),patch.object(n,'OUTPUT',root/'official-feed.json'),patch.object(n,'fetch',side_effect=RuntimeError('offline')), patch.object(n,'collect_responses',return_value={'schema_version':1,'state':'unavailable','threads':[]}):n.main()
    saved=json.loads((root/'official-feed.json').read_text());self.assertEqual(saved['last_success_at'],old['last_success_at']);self.assertEqual(saved['items'],old['items']);self.assertEqual(saved['state'],'feed_unavailable');self.assertEqual((root/'data/issues.json').read_bytes(),raw)
 if __name__=='__main__':unittest.main(verbosity=2)

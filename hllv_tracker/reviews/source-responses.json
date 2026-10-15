@@ -1,12 +1,13 @@
 {
-  "page_updated_at": "2026-10-15T14:19:58Z",
-  "scope": "existing reviewed Steam source threads only",
+  "page_updated_at": "2026-10-15T15:18:09Z",
+  "scope": "existing reviewed Steam threads and bounded forum discovery",
   "reply_detection": true,
   "coverage_reporting": true,
   "explicit_content_review_holds": true,
-  "new_thread_discovery": false,
+  "new_thread_discovery": true,
   "affiliate_channel_collection": false,
   "reviewed_bug_status_changes": false,
   "supabase_changes": false,
-  "auth_and_community_assets_unchanged": true
+  "auth_and_community_assets_unchanged": true,
+  "affiliate_directory_checks": true
 }

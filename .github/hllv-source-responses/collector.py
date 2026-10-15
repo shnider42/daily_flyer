@@ -136,19 +136,35 @@ def parse_page(raw,url,now,registry,page=1):
     title=doc.first(lambda n:n.attrs.get('id')=='forum_op_topic_'+topic)
     return {'total':total,'pagesize':size,'start':start,'pages':max(1,math.ceil(total/size)),'comments':seen,'replies':replies,'identities_pending':list(unknown.values()),'title':clean(title.text())[:250] if title else 'Tracked discussion'}
 
+def collection_url(url):
+    """Allow only the two HLLV forum indices in addition to existing thread URLs."""
+    u=urlsplit(url)
+    if re.fullmatch(r'/app/3079210/discussions/[01]/',u.path):
+        if u.scheme!='https' or u.hostname!='steamcommunity.com' or u.username or u.password or u.port not in(None,443) or u.fragment:
+            raise CoverageError('unsafe_destination')
+        from urllib.parse import parse_qsl
+        pairs=parse_qsl(u.query,keep_blank_values=True)
+        if len({k for k,v in pairs})!=len(pairs):raise CoverageError('unsafe_query')
+        for k,v in pairs:
+            if k=='l' and v=='english':continue
+            if k=='fp' and v.isdigit() and 1<=int(v)<=10:continue
+            raise CoverageError('unsafe_query')
+        return HOST+u.path
+    return thread_url(url)
+
 class Client:
     """Anonymous public GETs only. Respect robots and stop on access restrictions."""
     def __init__(self):
         self.started=time.monotonic();self.requests=0;self.last=0.;self.blocked=None;self.delay=1.;self.rules=None
         class Redirect(HTTPRedirectHandler):
             def redirect_request(_,req,fp,code,msg,headers,newurl):
-                if newurl!=HOST+'/robots.txt' and thread_url(newurl)!=thread_url(req.full_url):raise CoverageError('unexpected_redirect')
+                if newurl!=HOST+'/robots.txt' and collection_url(newurl)!=collection_url(req.full_url):raise CoverageError('unexpected_redirect')
                 return super().redirect_request(req,fp,code,msg,headers,newurl)
         self.opener=build_opener(Redirect())
     def get(self,url):
         if self.blocked:raise CoverageError('deferred_'+self.blocked)
         if url!=HOST+'/robots.txt':
-            thread_url(url)
+            collection_url(url)
             if self.rules is None:
                 robots=self.get(HOST+'/robots.txt').decode('utf-8','replace');self.rules=RobotFileParser();self.rules.parse(robots.splitlines());self.delay=max(1.,float(self.rules.crawl_delay(AGENT) or 1))
             if not self.rules.can_fetch(AGENT,url):raise CoverageError('robots_restricted')
@@ -157,7 +173,7 @@ class Client:
             time.sleep(max(0,self.delay-(time.monotonic()-self.last)));self.last=time.monotonic();self.requests+=1
             try:
                 with self.opener.open(Request(url,headers={'User-Agent':AGENT,'Accept-Language':'en','Accept':'text/html,text/plain'}),timeout=15) as r:
-                    if url!=HOST+'/robots.txt' and thread_url(r.url)!=thread_url(url):raise CoverageError('wrong_destination')
+                    if url!=HOST+'/robots.txt' and collection_url(r.url)!=collection_url(url):raise CoverageError('wrong_destination')
                     raw=r.read(4000001)
                     if len(raw)>4000000:raise CoverageError('response_too_large')
                     return raw
@@ -205,11 +221,12 @@ def merge_replies(old,new,at,baseline):
         elif preview:r.pop('excerpt',None)
     return values,changes
 
-def collect(issues,previous,now,fetcher=None,registry=None):
+def collect(issues,previous,now,fetcher=None,registry=None,selected_targets=None):
     at=stamp(now);registry=registry if registry is not None else json.loads(REGISTRY.read_text())['accounts']
     reg={a['steam_id']:a for a in registry};fetcher=fetcher or Client().get
     old={x['url']:x for x in previous.get('threads',[])};out=[]
-    for target in targets(issues):
+    for target in (targets(issues) if selected_targets is None else selected_targets):
+        thread_url(target["url"])
         url=target['url'];past=old.get(url,{});seen=set();found=[];unknown={};pages_ok=0;expected=None;comments_expected=None;failure=None;title=past.get('title','Tracked discussion')
         try:
             first=None
@@ -225,7 +242,7 @@ def collect(issues,previous,now,fetcher=None,registry=None):
         except CoverageError as e:failure=e.kind
         except Exception:failure='parser_error'
         state='complete' if failure is None else 'partial' if pages_ok else 'unavailable'
-        replies,changes=merge_replies(past.get('replies',[]),found,at,past.get('baseline_at'))
+        replies,changes=merge_replies(past.get('replies',[]),found,at,past.get('baseline_at') or previous.get('monitoring_started_at'))
         for r in replies:r['observed_this_run']=r['id'] in {x['id'] for x in found}
         if failure:
             for a in past.get('identities_pending',[]):unknown.setdefault(a['steam_id'],a)

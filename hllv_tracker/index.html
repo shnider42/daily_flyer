@@ -230,7 +230,7 @@
       <article class="dossier" id="dossier"><div class="blank">Loading dossier…</div></article>
     </main>
   </div>
-  <script id="hllv-source-responses" src="./assets/source-responses-3502e038ed03c77d.js" defer></script>
+  <script id="hllv-source-responses" src="./assets/source-responses-cdb29d5e3bbdf5dc.js" defer></script>
   <script id="hllv-source-feed" src="./assets/official-feed-580659fe093c7de9.js" defer></script>
   <script src="./freshness.js?v=20261007"></script>
   <script id="hllv-evidence-v1" src="./assets/evidence-f81896b2b5901f3b.js"></script>
@@ -251,7 +251,7 @@
     document.addEventListener('hllv-date-order',e=>{if(e.detail==='practice-history'){const items=[...document.querySelectorAll('#privatePractice [data-event-date]')];HLLVDates.sorted(items.map(node=>({node,date:node.dataset.eventDate})),'date',HLLVDates.direction('practice-history')).forEach(x=>x.node.parentNode.appendChild(x.node));}});
     document.getElementById('patchDateOrder').innerHTML=HLLVDates.control('patches','Release date order');
     const AUTH_RETURN_TO_SUGGESTIONS = Boolean(window.HLLVSuggestions?.isAuthCallback(location.hash));
-    const TRACKER_DATA_URL = "./data/issues.21a7d3459ac749a3.json";
+    const TRACKER_DATA_URL = "./data/issues.88bc1fe947d996cc.json";
     let dataset,selectedId,searchTerm='',category='all',homeSearchTerm='',homeCategory='all',homeStatus='open',activeTab='summary';
     const esc=s=>String(s??'').replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#039;'}[m]));
     const human=s=>String(s??'').replaceAll('-',' ').replace(/\b\w/g,c=>c.toUpperCase());
