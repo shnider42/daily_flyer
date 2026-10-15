@@ -13,7 +13,7 @@ jobs:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
         with:
           persist-credentials: false
-      - name: Inspect public markup without signing in or writing to Steam
+      - name: Inspect public discovery pages without accounts or credentials
         run: |
           python3 - <<'PY'
           import json,subprocess,time,zipfile
@@ -21,11 +21,12 @@ jobs:
           from urllib.request import Request,build_opener,HTTPRedirectHandler
           from urllib.parse import urlsplit
           from urllib.robotparser import RobotFileParser
-          folder=Path('response-inspection');folder.mkdir()
+          folder=Path('discovery-inspection');folder.mkdir()
+          hosts={'steamcommunity.com','www.hellletloose.com'}
           class Redirect(HTTPRedirectHandler):
               def redirect_request(self,req,fp,code,msg,headers,url):
                   u=urlsplit(url)
-                  if u.scheme!='https' or u.hostname!='steamcommunity.com' or u.username or u.password:raise ValueError('Unexpected redirect')
+                  if u.scheme!='https' or u.hostname not in hosts or u.username or u.password or u.port not in (None,443):raise ValueError('Unexpected redirect')
                   return super().redirect_request(req,fp,code,msg,headers,url)
           opener=build_opener(Redirect());agent='HLLV-Source-Monitor/1.0 (+https://hllv-bug-track.onrender.com/)'
           def fetch(url):
@@ -33,13 +34,15 @@ jobs:
                   raw=r.read(4000001)
                   if len(raw)>4000000:raise ValueError('Response too large')
                   return raw
-          robot_url='https://steamcommunity.com/robots.txt';robot=fetch(robot_url).decode();(folder/'robots.txt').write_text(robot)
-          rules=RobotFileParser();rules.parse(robot.splitlines())
-          urls=['https://steamcommunity.com/app/3079210/discussions/1/583932755647170244/','https://steamcommunity.com/app/3079210/discussions/1/631219091886213685/']
-          results=[]
+          urls=['https://steamcommunity.com/app/3079210/discussions/1/','https://steamcommunity.com/app/3079210/discussions/1/?fp=2','https://steamcommunity.com/app/3079210/discussions/0/','https://www.hellletloose.com/community']
+          robots={};results=[]
           for n,url in enumerate(urls):
-              if not rules.can_fetch(agent,url):results.append({'url':url,'state':'robots_restricted'});continue
+              host=urlsplit(url).hostname
               try:
+                  if host not in robots:
+                      raw=fetch('https://'+host+'/robots.txt').decode();(folder/(host+'-robots.txt')).write_text(raw)
+                      rule=RobotFileParser();rule.parse(raw.splitlines());robots[host]=rule
+                  if not robots[host].can_fetch(agent,url):results.append({'url':url,'state':'robots_restricted'});continue
                   raw=fetch(url);(folder/(str(n)+'.html')).write_bytes(raw);results.append({'url':url,'state':'fetched','bytes':len(raw)})
               except Exception as e:results.append({'url':url,'state':type(e).__name__})
               time.sleep(2)
