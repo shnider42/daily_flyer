@@ -16,15 +16,15 @@
   if(u.range>0&&u.weapon!=='none')add('fire');
   if(s.air_version||s.joint_ops_version&&['fighter','bomber','transport_aircraft','aa_gun','radar','airfield','spotlight'].includes(kind)){
    if(['fighter','aa_gun'].includes(kind))add('overwatch');
-   if(['fighter','bomber','transport_aircraft'].includes(kind)&&!s.midway_ops_version)add('rearm');
+   if(['fighter','bomber','transport_aircraft'].includes(kind)&&!s.midway_ops_version&&s.carrier_decks_version!==1)add('rearm');
    if(s.combat_version&&u.protection==='infantry')add('rally');
   }else if(s.naval_version||s.joint_ops_version&&['carrier','battleship','cruiser','destroyer'].includes(kind)){
    if(['destroyer','amphibious'].includes(kind))add('smoke');
    if(kind==='amphibious'){if(s.combat_version)add('rally');}
    else add('repair');
-   if(kind==='carrier'){if(!s.midway_ops_version)add('recon');if(u.abstract_strikes!==false)add('airstrike');}
+   if(kind==='carrier'){if(!s.midway_ops_version&&s.carrier_decks_version!==1)add('recon');if(u.abstract_strikes!==false)add('airstrike');}
    if(kind==='destroyer'||u.torpedo_launcher)add('torpedo');
-   if(s.scenario?.fleet_battle_version&&u.ship_aa_range)add('overwatch');
+   if((s.scenario?.fleet_battle_version||s.air_support_version===1)&&u.ship_aa_range)add('overwatch');
   }else{
    if(v>=2){
     if(!vehicles.has(kind))add('dig');
@@ -128,7 +128,7 @@
   if(id==='snipe')return 'Needs a visible firing lane';
   if(id==='repairTank')return 'Needs adjacent damaged tank';
   if(id==='repair')return 'Hull at full strength';
-  if(id==='rearm')return u.hp===u.max_hp&&(u.kind!=='bomber'||u.bombs>=(u.max_bombs||2))&&(!u.max_flares||u.flares>=u.max_flares)?'Fully serviced':state.scenario.night_ops_version?'Needs own platoon service field within 1 hex with stores':state.scenario.fleet_battle_version?'Needs own platoon carrier within 1 hex with stores':'Needs friendly airfield';
+  if(id==='rearm')return u.hp===u.max_hp&&(u.kind!=='bomber'||u.bombs>=(u.max_bombs||2))&&(!u.max_flares||u.flares>=u.max_flares)?'Fully serviced':state.scenario.night_ops_version?'Needs own platoon service field within 1 hex with stores':state.scenario.fleet_battle_version?'Needs own platoon carrier within 1 hex with stores':state.air_support_version===1?'Needs own platoon or friendly HQ airfield within 1 hex with stores':'Needs friendly airfield';
   if(id==='inspire')return 'No nearby allies pinned';
   if(id==='command')return state.command_used?.includes(u.side+':'+(u.kind==='commander'?'HQ-orders':u.platoon||''))?'Command used this turn':'Needs eligible nearby troops';
   if(id==='load')return state.units.some(p=>p.carrier_id===u.id&&p.hp>0)?'Transport occupied':'Needs ready adjacent infantry';
@@ -158,7 +158,7 @@
    b.disabled=busy||!!playbackSession;
    b.dataset.orderReason=why;b.dataset.orderId=id;
    b.setAttribute('aria-disabled',String(!!why));b.classList.toggle('order-unavailable',!!why);
-   const label=state.scenario.fleet_battle_version&&id==='rearm'?'Carrier service':state.scenario.fleet_battle_version&&id==='overwatch'&&u.ship_aa_range?'AA interception':labels[id];
+   const label=state.scenario.fleet_battle_version&&id==='rearm'?'Carrier service':(state.scenario.fleet_battle_version||state.air_support_version===1)&&id==='overwatch'&&u.ship_aa_range?'AA interception':labels[id];
    b.textContent=cancel?'Cancel '+label.toLowerCase():`${label} · ${cost(id)} AP`;
   }
  };

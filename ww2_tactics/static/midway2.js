@@ -39,13 +39,15 @@
  window.renderMidway=(unit,legal,svg)=>{
   svg.querySelectorAll('.midway-launch-choice,.midway-deck-badge').forEach(n=>n.remove());
   open.hidden=true;content.replaceChildren();
-  if(!state.midway_ops_version){launching=null;dialog.close();return;}
+  const backport=state.carrier_decks_version===1;
+  if(!state.midway_ops_version&&!backport){launching=null;dialog.close();return;}
   $('viewTransport').hidden=true; // Aircraft use the carrier panel, not half-track controls.
   if(unit&&unit.hp>0&&(unit.kind==='carrier'||air(unit))){
    open.hidden=false;open.disabled=busy||!!playbackSession;
    open.textContent=unit.kind==='carrier'?`Air group · ${aboard(unit).length}/${unit.air_capacity} aboard`:unit.carrier_id?'Open carrier air group':'Land / carrier recovery';
    title.textContent=unit.kind==='carrier'?unit.display_name+' · air group':'Carrier recovery';
   }else dialog.close();
+  if(!backport){
   const score=state.joint_score;
   $('rulesetBadge').textContent='DSL · Midway 2.0 · daytime carrier battle';
   $('objectiveName').textContent='MIDWAY 2.0 · CARRIERS & SEA CONTROL';
@@ -55,9 +57,10 @@
   $('supportStatus').hidden=true;
   const manual=$('fubarManual'),paragraphs=manual?.querySelectorAll('p');
   if(manual){manual.querySelector('h3').textContent='Midway 2.0 · finite carrier air groups';paragraphs[0].textContent=state.scenario.historical_note;paragraphs[1].textContent=state.scenario.brief;paragraphs[2].textContent=state.scenario.reinforcement_brief;}
+  }
   if(launching&&(launching.unit!==selected||launching.revision!==state.revision||blocked()))launching=null;
   if(unit){
-   $('roleBrief').textContent=midwayRole(unit);
+   $('roleBrief').textContent=backport?(unit.kind==='carrier'?`${unit.display_name} · ${unit.air_capacity} aircraft berths · ${unit.air_stores??'private'} service stores · ${limit(unit)} deck cycles/turn`:air(unit)&&unit.carrier_id?'ABOARD · open the carrier air group to launch or service':unitRoleSummary(unit)):midwayRole(unit);
    if(air(unit)&&unit.carrier_id){
     const cv=state.units.find(u=>u.id===unit.carrier_id);
     $('selection').textContent=`${unitName(unit)} · Aboard ${cv?.display_name||'carrier'} · ${unit.hp}/${unit.max_hp} strength`;
@@ -72,6 +75,9 @@
    if(unit.kind==='carrier'){
     const panel=node('section');panel.id='carrierAirGroup';panel.className='midway-air-group';panel.setAttribute('aria-label',unit.display_name+' air group');
     panel.append(node('h4',unit.display_name+' · air group'));
+    const privateDeck=backport&&unit.side!==state.side;
+    if(privateDeck)panel.append(node('p','Enemy deck readiness, service stores and aircraft manifest are private.'));
+    else{
     const available=Math.max(0,limit(unit)-unit.deck_used);
     panel.append(node('p',`${aboard(unit).length}/${unit.air_capacity} aboard · ${available}/${limit(unit)} deck cycles remaining · ${unit.air_stores}/${unit.max_air_stores} service stores${limit(unit)===1?' · HALF-HULL: reduced deck throughput':''}`));
     panel.append(node('p','Launch: 1 carrier AP + 1 flight AP. Land: 1 flight AP. Service: 1 carrier AP + 1 store. Each uses one deck cycle; land/service means ready next turn.'));
@@ -80,7 +86,7 @@
      const row=node('div');row.className='midway-flight';row.dataset.flightId=p.id;
      const onBoard=p.carrier_id===unit.id&&p.hp>0,location=state.units.find(c=>c.id===p.carrier_id);
      const status=p.hp<=0?'LOST':onBoard?(p.deck_cooldown?'ABOARD · ready next turn':'ABOARD · ready'):p.carrier_id?`Diverted to ${location?.display_name||'carrier'}`:'AIRBORNE';
-     row.append(node('strong',unitName(p)),node('small',`${status} · ${p.hp}/${p.max_hp} strength${p.kind==='bomber'?` · ${p.bombs}/1 load`:''}`));
+     row.append(node('strong',unitName(p)),node('small',`${status} · ${p.hp}/${p.max_hp} strength${p.kind==='bomber'?` · ${p.bombs}/${p.max_bombs} load`:''}`));
      const actions=node('div');actions.className='midway-flight-actions';
      if(onBoard){
       const launch=legal?.launch?.find(c=>c.id===p.id),service=legal?.deck_service?.includes(p.id);
@@ -90,6 +96,7 @@
       if(!launch)row.append(node('small',launchReason));
      }else if(p.hp>0)actions.append(button('Select aircraft','selectPlane',p.id,()=>{dialog.close();chooseUnit(p);},busy||!!playbackSession));
      row.append(actions);panel.append(row);
+    }
     }
     content.append(panel);
     $('hint').textContent='Choose a flight in the air group to launch or service. Return aircraft to the deck to reload; no replacements.';

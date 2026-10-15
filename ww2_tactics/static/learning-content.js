@@ -275,6 +275,23 @@
     'Read this operation’s actual armor, AP, movement cost, gun range and ammunition. Heavy armor often trades mobility for protection. A gun’s penetration and loaded ammunition decide which targets it can damage.',
     'Unit profiles retain their authored faction and equipment asymmetry. Compare penetration, protection, movement AP, road restrictions, range, gun damage and engineer charges on the actual cards. Recon guidance modifies hit accuracy; it never makes an incapable weapon penetrate heavy armor.'];
   }
+  if(s.carrier_decks_version===1){
+   book=book.filter(l=>l.id!=='fleet-service');
+   for(const lesson of book){
+    if(lesson.id==='ap')lesson.texts=Array(3).fill('Each ship and aircraft has its own AP. Attacks and interception cost 2 AP. Launch costs 1 carrier AP + 1 aircraft AP; recover costs 1 aircraft AP; service aboard costs 1 carrier AP + 1 store. Each deck order also consumes one shared deck cycle. Recovery/service means ready next turn. Units bank at most 1 unused AP.');
+    if(lesson.id==='fog')lesson.texts=(lesson.texts||Array(3).fill(lesson.text)).map(t=>t.replace('carrier searches reveal a temporary area','airborne flights provide reconnaissance'));
+   }
+   book.push(make('carrier-turnaround','Land, service, then relaunch',[
+    'Your three existing flights start airborne. Land on your own carrier to repair and reload; they cannot launch again until your next turn. Lost aircraft are not replaced.',
+    'Each carrier has three berths, six stores and two deck cycles per own turn, reduced to one at half hull. Launch, land and service each use a cycle. There are no abstract search sorties; scout with actual aircraft.',
+    'Launch costs 1 carrier AP + 1 aircraft AP; recover within 1 hex for 1 aircraft AP; service aboard costs 1 carrier AP + 1 store, restoring 1 strength and full ordnance. Recovery/service imposes next-turn readiness. Only your own command group may use the carrier. Sinking it destroys aircraft aboard, not airborne flights. Crosswind sea-lane scoring is unchanged.'
+   ],'Open a carrier’s Air group, or select a plane and inspect Land / carrier recovery.','#carrierGroupOpen',['launch','recover','deck_service']));
+  }
+  if(s.air_support_version===1)book.push(make('finite-air-support','Protect your aircraft supplies',[
+   'Airfields now have limited supplies: six service uses each. Check the field’s remaining stores before sending a plane back for repairs or bombs.',
+   'Service costs 2 aircraft AP and one field store, once per aircraft per turn. Within 1 hex of your own platoon’s surviving field or a friendly HQ field, restore 1 strength and reload bombs. Stores do not regenerate.',
+   'Each airfield starts with six stores. Empty, destroyed or another platoon’s fields cannot supply you; HQ fields serve their army. Aircraft, HP, AP, ordnance capacity and victory conditions are unchanged.'+(s.scenario.air_support.ship_aa_range?' Warships also gain range-1, damage-1 AA: 2 AP for direct fire or one flight-path interception. Moving or firing cancels readiness; surface movement never triggers it. Carrier search and abstract strikes are unchanged.':'')
+  ],'Select one of your airfields and check its finite service uses.','#orders',['rearm']));
   if(s.edition==='current')book=book.filter(l=>l.id==='radio'?has('commander','radioman'):l.id==='specialists'?has('mountain','commando','partisan','askari','mortar','engineer','pathfinder'):true);
   if(s.coop){
    const texts=[

@@ -5,9 +5,10 @@ The Home, Solo and Rematch operation selectors have two separate DSL catalogs.
 missions and opt-in rules. It remains the initial selection so the existing
 creation workflow stays familiar. **Current** offers a counterpart of every map
 under `current:<original-id>`, using the common ground policy below. Current is
-still DSL, not a third ruleset. New Current-only maps follow those 24 counterparts;
-Worlds Collide is the first, bringing the Current catalog to 25. Its unprefixed
-ID is intentionally unavailable. Classic and the planned ASL profile are unchanged.
+still DSL, not a third ruleset. Five Current-only maps follow those 24 counterparts:
+Worlds Collide, Crosswind Strait, Nightfall Beacon, Nightfall Veil and Midway 2.0,
+bringing the Current catalog to 29. Their unprefixed IDs are intentionally
+unavailable. Classic and the planned ASL profile are unchanged.
 
 An ongoing battle never changes edition. Its board, units, resources, rules and
 co-op ownership stay in its saved state. A rematch changes edition only when the
@@ -75,6 +76,34 @@ The force sizes, unit statistics, ammunition, terrain, objectives and clocks are
 preserved. Shared occupancy and newer observation/fire rules can change balance;
 human playtests should guide Current force and mission tuning. Passing tests
 establishes rule consistency and compatibility, not equal win rates or fun.
+
+## Midway-derived gameplay backports
+
+Midway 2.0 is the reference, not a target of this change. Its map, force,
+deck mechanics and victory conditions remain unchanged. New matches opt in
+through separately saved capability versions; `edition_version` remains 1 so
+older Current battles continue using the rules they started with.
+
+| New Current match | Applicable backport | Preserved balance boundaries |
+| --- | --- | --- |
+| Crosswind Strait | Midway 2.0's launch/recovery/service resolver, two deck cycles per own turn (one at half hull), next-turn readiness after recovery/service, carrier berths and finite stores. | Existing 28 counters and airborne opening; three flights/berths and six stores per carrier; service repairs 1 strength. Bomber loads, AA asymmetry, 12-point sea lanes and round-18 deadline remain. No abstract search sorties; actual planes scout. Carrier loss alone still does not win. |
+| Battle of Britain | Six finite service uses per airfield; once per aircraft per turn, 2 aircraft AP, +1 strength and full bombs. | Existing aircraft, AP asymmetry, radar, AA and station-defense mission. HQ fields serve their own army. |
+| Fubar, Worlds Collide | Six finite service uses per field; own platoon or friendly HQ field within one hex. Light ship AA: range 1, damage 1, direct fire or one flight-path interception for 2 AP. | No additional units or reassigned air wings. Ground forces, objectives, carrier abstract search/strike sorties and faction equipment are preserved. Ship movement/fire cancels AA readiness; surface movement cannot trigger it. |
+| All other Current maps | Existing shared systems apply where the roster supports them. | No aircraft or carrier rules forced onto infantry operations. Original Midway retains its abstract naval-air mission. Night mechanics stay confined to Nightfall. |
+
+Field stocks never regenerate and cannot be supplied by ground supply squads.
+Enemy stocks and ship interception readiness stay private. Crosswind's new
+`carrier_decks_version=1` reuses `midway2.action` without importing its
+carrier-elimination victory. Existing Crosswind saves without the marker retain
+adjacent airborne service and abstract searches. `air_support_version=1` gates
+the other three maps; old saves do not acquire stocks or new AA on load.
+
+Tests in `test_ww2_gameplay_backports.py` cover finite service, owned resources,
+AI orders, flight-path AA, deck turnaround, carrier loss, co-op and exact
+new/old SAVE restoration. `ww2-gameplay-backports-dom.cjs` runs the actual
+controls against a disposable Flask database at desktop and phone widths;
+this is DOM/API validation, not visual-layout testing. Legacy fingerprints
+and the existing Midway 2.0 tests remain regression requirements.
 
 ## Verification
 

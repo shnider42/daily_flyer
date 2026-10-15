@@ -72,7 +72,10 @@ class EditionRulesTests(unittest.TestCase):
             self.assertEqual(len(old['units']),len(new['units']),key)
             for before,after in zip(old['units'],new['units']):
                 for attr,value in before.items():self.assertEqual(after[attr],value,(key,before['id'],attr))
-                self.assertLessEqual(set(after)-set(before),ignored|({'platoon','number'} if key in {'village','orchard','stonebridge'} else set()))
+                additions=set()
+                if key in {'britain','fubar'} and before['kind']=='airfield':additions={'air_stores','max_air_stores'}
+                if key=='fubar' and before['kind'] in domains.SHIPS:additions={'ship_aa_range','weapon_overrides'}
+                self.assertLessEqual(set(after)-set(before),ignored|additions|({'platoon','number'} if key in {'village','orchard','stonebridge'} else set()))
             ground = key not in {'midway','britain'}
             for flag in ('signals_version','fire_control_version','logistics_version'):
                 self.assertEqual(bool(new.get(flag)),ground,(key,flag))

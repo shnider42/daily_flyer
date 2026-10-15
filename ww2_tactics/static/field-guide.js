@@ -52,6 +52,10 @@
  };
  evacuate.onclick=()=>{const uid=selected;if(confirm('Evacuate the marked passenger? This rescue is permanent and commits earlier takebacks. The empty boat can return.'))act({kind:'evacuate',unit:uid});};
  function detailedHelp(id,u,legal){
+  if(state.air_support_version===1){
+   if(id==='rearm')return 'Within 1 hex of your own platoon’s surviving field or a friendly HQ field, spend 2 aircraft AP and one finite service store to restore 1 strength and reload bombs. Once per aircraft per turn. Each field starts with six uses; stores do not regenerate. Destroyed, empty or another platoon’s fields cannot service you.';
+   if(id==='overwatch'&&u.ship_aa_range)return 'Spend 2 AP for one interception along an enemy flight path: range 1, damage 1. Moving or firing cancels readiness. Does not react to surface movement. Enemy interception readiness is private.';
+  }
   if(state.scenario.night_ops_version){
    if(id==='nightDrop')return state.scenario.reinforcement_brief;
    if(id==='spotlightAim')return '1 AP to aim a narrow air corridor within 8 hexes. Illuminated aircraft can be attacked by nearby fighters and Flak with their normal accuracy. This reveals the emitting Spotlight; unlit ground remains hidden. The beam expires at the next German turn.';
@@ -76,6 +80,7 @@
  }
  function unitStatus(u,legal){
   const parts=[`${u.hp}/${u.max_hp||u.hp} strength`,`${u.ap} AP`];
+  if(state.air_support_version===1&&u.kind==='airfield')parts.push(u.air_stores===undefined?'Enemy stores private':`${u.air_stores}/${u.max_air_stores} finite service uses`);
   if(state.scenario.fleet_battle_version){
    if(u.kind==='bomber')parts.push(`${u.bombs}/${u.max_bombs} ordnance loads`);
    if(u.kind==='carrier')parts.push(`${u.air_stores}/${u.max_air_stores||6} carrier-service stores`);

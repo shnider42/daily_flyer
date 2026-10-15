@@ -77,6 +77,7 @@
    const shortNames={command:'Give actions',inspire:'Rally allies',recon:'Air search',repair:'Repair hull',airdrop:'Land troops',barrage:'Mortars',grenade:'Grenade',fire:'Fire at unit',assault:'Close assault',load:'Load troops',unload:'Unload',overwatch:'Overwatch',dig:'Dig in'};
    if(state?.air_version||state?.joint_ops_version&&['fighter','bomber','aa_gun'].includes(unit?.kind)){shortNames.overwatch=unit?.kind==='aa_gun'?'AA cover':'Intercept';shortNames.fire=unit?.kind==='bomber'?'Bomb':'Fire';shortNames.rearm='Service';}
    if(state?.joint_ops_version)shortNames.airstrike='Carrier strike';
+   if(state?.air_support_version===1&&unit?.ship_aa_range)shortNames.overwatch='AA interception';
    if(state?.scenario?.fleet_battle_version){
     if(id==='overwatch'&&unit?.ship_aa_range)shortNames.overwatch='AA interception';
     shortNames.rearm='Carrier service';

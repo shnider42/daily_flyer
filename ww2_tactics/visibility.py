@@ -230,8 +230,12 @@ def view(state, side, terrain_visibility=True):
             if u['side']!=side:
                 u['overwatch']=False
                 for key in ('radio_round','mortar_round','camouflaged','observing','aa_round','beacon_active','beacon_charges','fire_mark','spot_round'):u.pop(key,None)
-                if state.get('midway_ops_version'):
+                if state.get('midway_ops_version') or state.get('carrier_decks_version') == 1:
                     for key in ('deck_used','deck_cooldown','service_used','air_stores','home_carrier'):u.pop(key,None)
+    if state.get('air_support_version') == 1:
+        for u in result['units']:
+            if u['side'] != side:
+                u.pop('air_stores',None)
     if state.get('fire_control_version'):
         from .fire_control import spotter
         for u in result['units']:

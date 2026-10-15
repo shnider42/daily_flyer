@@ -10,7 +10,7 @@ from .rulesets import profile, dsl, base_ap, bank_limit, turn_limit, road
 from .effects import record_effect, record_shot_effect
 from . import combined, naval, transport, campaigns, air, weapons, buildings, operations, fieldworks, linked_front, signals, airborne, domains, fubar, logistics, new_fronts, deployment
 from .visibility import fog, active, visible_ids, unit_visible_ids, sees_hex, update_intel, record_reports
-from . import fire_control, editions, nightfall, midway2
+from . import fire_control, editions, nightfall, midway2, air_support, carrier_decks
 
 WIDTH, HEIGHT = 7, 9
 OBJECTIVE = [3, 4]
@@ -165,7 +165,7 @@ def watchers(state, target, pos):
     destination = dict(target, pos=pos, entrenched=False)
     return [u for u in state['units'] if u['side'] != target['side'] and active(u)
             and u.get('overwatch') and not u['pinned']
-            and not (state.get('battlefield', {}).get('fleet_battle_version') and u.get('ship_aa_range'))
+            and not air_support.ship_aa(state,u)
             and distance(u['pos'], pos) <= u['range']
             and line_clear(u['pos'], pos, state.get('smoke', []), state)
             and (not fog(state) or (signals.group_sees(state,u['side'],signals.group(u),pos,signals.concealed(state,destination)) if signals.enabled(state)
@@ -220,12 +220,18 @@ def options(state, unit):
             if midway2.enabled(state):
                 result['rearm'] = False  # Service requires actual recovery aboard.
                 result.update(midway2.options(state,unit))
+            elif carrier_decks.enabled(state):
+                result['rearm'] = False
+                result.update(carrier_decks.options(state,unit))
             return result
         if unit['kind'] in domains.SHIPS:
             result = naval.options(state,unit)
             if midway2.enabled(state):
                 result['recon'] = []  # All reconnaissance uses the finite flights.
                 result.update(midway2.options(state,unit))
+            elif carrier_decks.enabled(state):
+                result['recon'] = []
+                result.update(carrier_decks.options(state,unit))
             return result
     if state.get('naval_version'):
         return naval.options(state,unit)
@@ -368,6 +374,7 @@ def apply(state, side, action, roll=None):
                 if domains.joint(state):
                     u.update(air_used=False,recon_used=False,torpedo_used=False,repair_used=False,rearm_used=False)
         midway2.start_turn(state,state['turn'])
+        carrier_decks.start_turn(state,state['turn'])
         if not state["winner"]: reactions.extend(linked_front.arrive(state, react, roll_die))
         message = f"{names[side]} ended their turn."
     else:
@@ -382,6 +389,8 @@ def apply(state, side, action, roll=None):
             unit['road_pending'] = False
         if midway2.enabled(state) and kind in midway2.ORDERS:
             message=midway2.action(state,unit,action,legal,roll_die,before_sight)
+        elif carrier_decks.enabled(state) and kind in carrier_decks.ORDERS:
+            message=carrier_decks.action(state,unit,action,legal,roll_die,before_sight)
         elif nightfall.enabled(state) and kind=='airborne_drop':
             message,reactions=airborne.action(state,unit,action,legal,roll_die,react)
         elif nightfall.enabled(state) and kind in {'spotlight','flare'}:
@@ -539,6 +548,7 @@ def apply(state, side, action, roll=None):
         if carrier['hp']<=0 and carrier['kind']=='landing_craft':transport.bail_out(state,carrier)
     airborne.after_order(state)
     midway2.after_order(state)
+    carrier_decks.after_order(state)
     if nightfall.enabled(state) and kind in {'fire','area_fire'} and unit['kind'] not in domains.AIR_UNITS:unit['night_flash']=True
     nightfall.after_order(state)
     for team in ("us", "de"):

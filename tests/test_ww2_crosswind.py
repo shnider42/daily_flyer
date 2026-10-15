@@ -97,9 +97,10 @@ class CrosswindRulesTests(unittest.TestCase):
         self.assertEqual(next(u for u in out['units'] if u['id']==ship['id'])['hp'],ship['hp'])
         self.assertTrue(next(u for u in out['units'] if u['id']==escort['id'])['overwatch'])
 
-    def test_carrier_service_uses_finite_owned_stores_and_saved_capacity(self):
+    def test_existing_battle_carrier_service_keeps_its_saved_rules(self):
         for side in ('us','de'):
             state=self.battle();state['turn']=side
+            state.pop('carrier_decks_version');state['battlefield'].pop('carrier_decks_version')
             bomber=self.unit(state,side,'bomber');carrier=self.unit(state,side,'carrier')
             bomber.update(pos=carrier['pos'].copy(),hp=2,bombs=0,ap=4)
             self.assertTrue(options(state,bomber)['rearm'])

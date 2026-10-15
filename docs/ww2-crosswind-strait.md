@@ -32,12 +32,25 @@ Enemy interception readiness is private. Aircraft and ships occupy separate
 layers, with one counter per layer per hex. Islands block surface movement,
 guns and ship torpedoes; aircraft can fly above them.
 
-Aircraft use **Carrier service** for 2 aircraft AP, once per aircraft per turn,
-within one hex of their own platoon's surviving carrier. Each use repairs one
-strength and reloads bomber ordnance to that profile's capacity. Each carrier
-has six finite service stores. They never regenerate; a teammate's carrier
-stores cannot be spent. No airfields, replacement units or off-map attack
-sorties are present. Carriers retain their limited search order.
+New matches use Midway 2.0-derived **carrier deck orders**. The existing three
+flights per platoon still start airborne; no units are added. Recover within
+one hex of the platoon's carrier for 1 aircraft AP. Service aboard costs 1
+carrier AP and one finite store, restores 1 strength and reloads that bomber's
+full capacity. Relaunch costs 1 carrier AP plus 1 aircraft AP. Each order uses
+one deck cycle: two per own turn, reduced to one at half hull or below.
+Recovered/serviced flights cannot relaunch until their next turn.
+With individual-unit command, each carrier and its three flights stay under
+one controller; platoon command remains unchanged.
+
+Each carrier has three berths and six service stores. No regeneration,
+replacement aircraft, teammate-carrier access or abstract search/attack
+sorties; scout with actual aircraft. Sinking a carrier destroys only flights
+still aboard, not airborne aircraft. The **Air group** panel shows deck cycles,
+stores, lost/airborne/aboard flights and launch/service controls. Select an
+airborne plane to open **Land / carrier recovery**.
+
+Existing saves without `carrier_decks_version=1` keep their original rules:
+airborne service for 2 aircraft AP within one hex, and carrier searches.
 
 Each sea lane earns one point at an army's turn end if a ship is within one hex
 and no enemy ship contests it. Multiple friendly ships score only once.

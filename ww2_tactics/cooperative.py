@@ -61,6 +61,10 @@ def initialize(state, body, pid, name):
     # Preloaded passengers always belong with their transport, including maps
     # whose passenger platoon differs from the boat's platoon.
     def key(u):
+        if state.get('carrier_decks_version') == 1 and u.get('home_carrier'):
+            # Crosswind's flights start airborne, but must retain the same
+            # controller as their carrier even with individual-unit commands.
+            return key(next(v for v in units if v['id'] == u['home_carrier']))
         if state.get('edition') == 'current' and (u['kind']=='commander' or
                 any(t.get('carrier_id')==u['id'] and t['kind']=='commander' for t in units)):
             # A preloaded commander and their boat stay together under the

@@ -9,7 +9,7 @@ from .rulesets import base_ap, bank_limit
 from .visibility import active, visible_ids, update_intel, record_reports
 from .combat_display import record_combat
 from .effects import record_effect, record_shot_effect
-from . import weapons, operations, domains, crosswind
+from . import weapons, operations, domains, crosswind, air_support
 
 SHIPS={'battleship','carrier','cruiser','destroyer'}
 FACTIONS={'us':'Americans','de':'Japanese'}
@@ -92,13 +92,13 @@ def options(state, unit):
                              if distance(unit['pos'],[x,y])<=unit['recon_range'] and navigable(terrain(x,y,state))]
     if unit['ap']<2:
         return result
-    if crosswind.enabled(state):result['overwatch']=bool(unit.get('ship_aa_range') and not unit['overwatch'])
+    if air_support.ship_aa(state,unit):result['overwatch']=not unit['overwatch']
     result['repair']=unit['hp']<unit.get('max_hp',unit['hp']) and unit.get('repairs',0)>0 and not unit.get('repair_used')
     for target in living:
         if target['side']==unit['side'] or target['id'] not in seen:
             continue
         gap=distance(unit['pos'],target['pos'])
-        if crosswind.enabled(state) and domains.is_air(target):
+        if (crosswind.enabled(state) or air_support.enabled(state)) and domains.is_air(target):
             if gap<=unit.get('ship_aa_range',0):
                 from .air import shot
                 aa=shot(unit,target)
@@ -143,7 +143,7 @@ def unit_order(state, unit, action, legal, roll, before=None):
             raise ValueError('Movement blocked by a contact. Scout or choose another approach.')
         cost=next(m['cost'] for m in legal['moves'] if m['pos']==action['pos'])
         unit['pos']=list(action['pos']);unit['ap']-=cost
-        if crosswind.enabled(state):unit['overwatch']=False
+        if crosswind.enabled(state) or air_support.ship_aa(state,unit):unit['overwatch']=False
         message=f"{names.get(side, FACTIONS[side])} {unit['kind']} moved to {column(unit['pos'][0])}{unit['pos'][1]+1}."
     elif kind=='recon' and action.get('pos') in legal['recon']:
         unit['ap']-=1;unit['recon_used']=True
@@ -166,7 +166,7 @@ def unit_order(state, unit, action, legal, roll, before=None):
         shot=next((s for s in legal[key] if s['id']==action.get('target')),None)
         if shot is None:raise ValueError('No legal naval attack: check sight, range, AP and weapon readiness.')
         target=next(u for u in state['units'] if u['id']==shot['id']);die=roll();unit['ap']-=2
-        if crosswind.enabled(state):unit['overwatch']=False
+        if crosswind.enabled(state) or air_support.ship_aa(state,unit):unit['overwatch']=False
         if kind=='airstrike':unit['air_used']=True
         if kind=='torpedo':unit['torpedo_used']=True;unit['torpedoes']-=1
         impacts = []

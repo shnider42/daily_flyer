@@ -44,6 +44,10 @@ window.orderHelp=(id,u,legal,simple)=>{
  };
  if(state?.air_version||state?.joint_ops_version&&['fighter','bomber','aa_gun'].includes(u?.kind)){descriptions.overwatch=['Cover flight paths',`1 reaction / ${u?.kind==='aa_gun'?'normal hit roll':'hit roll +1'}`];if(u?.kind==='bomber')descriptions.fire=['Bomb surface target',`${shot?.threshold||3}+ / ${shot?.damage||2} damage / 1 load`];}
  if(state?.joint_ops_version&&u?.kind==='flak')descriptions.overwatch=['Guard ground and air','1 reaction / air range 4 / ground range '+u.range];
+ if(state?.air_support_version===1){
+  descriptions.rearm=['Use a supplied friendly field','+1 strength / full bombs / 1 finite store'];
+  if(u?.ship_aa_range)descriptions.overwatch=['Guard flight paths',`1 reaction / range ${u.ship_aa_range} / 1 damage / aircraft only`];
+ }
  if(state?.scenario?.fleet_battle_version){
   if(u?.ship_aa_range)descriptions.overwatch=['Guard flight paths',`1 reaction / range ${u.ship_aa_range} / aircraft only`];
   descriptions.rearm=['Service at own carrier',`+1 strength${u?.kind==='bomber'?` / loads → ${u.max_bombs}`:''} / 1 finite store`];

@@ -145,7 +145,7 @@ def ground_goal(state, unit):
 def domain_choices(state, unit, legal, observed, visited):
     """Bounded air / fleet AI using only observed units and public objectives."""
     from .engine import distance
-    from . import weapons, crosswind
+    from . import weapons, crosswind, air_support
     side=unit['side'];choices=list(weapons.ai_orders(state,unit,legal,observed))
     enemies=[u for u in observed if u['side']!=side and u['hp']>0 and not u.get('reserve') and not u.get('carrier_id')]
     def add(score,kind,**data):choices.append((score,dict(kind=kind,unit=unit['id'],**data)))
@@ -163,9 +163,10 @@ def domain_choices(state, unit, legal, observed, visited):
     if domains.is_air(unit):
         targets=[u['pos'] for u in enemies if (domains.is_air(u) if unit['kind']=='fighter' else weapons.damage(unit,u))]
         if unit['kind']=='bomber' and not unit['bombs']:
-            targets=[u['pos'] for u in observed if u['side']==side and u['hp']>0 and
+            targets=([u['pos'] for u in air_support.service_fields(state,unit)] if air_support.enabled(state) else
+                     [u['pos'] for u in observed if u['side']==side and u['hp']>0 and
                      (u['kind']=='carrier' and u['platoon']==unit['platoon'] and u.get('air_stores',0)>0
-                      if crosswind.enabled(state) else u['kind']=='airfield')]
+                      if crosswind.enabled(state) else u['kind']=='airfield')])
         goals=targets or [p['pos'] for p in state['battlefield']['joint_objectives']]
         goal=min(goals,key=lambda p:distance(unit['pos'],p))
         for move in legal['moves']:

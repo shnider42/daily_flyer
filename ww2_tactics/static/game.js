@@ -135,6 +135,10 @@ function unitRoleSummary(u){
  if(state?.midway_ops_version)return window.midwayRole?.(u)||'Daytime carrier battle · finite aircraft';
  if(state?.scenario?.night_ops_version)return window.nightRole?.(u)||'Night raid · read the mission and current legal orders';
  if(state?.scenario?.fleet_battle_version){
+  if(state.carrier_decks_version===1){
+   if(u.kind==='carrier')return `${u.air_capacity} finite aircraft berths · ${u.air_stores??'private'} service stores · recover aboard to service · deck cycles limit launch, recovery and servicing`;
+   if(u.kind==='bomber')return `${u.variant==='dive_bomber'?'Dive attack · range 1 · 3+ · 3 hull damage':'Aerial torpedo · range 2 · 4+ (5+ vs destroyers) · 4 hull damage'} · ${u.bombs}/${u.max_bombs} loads · land aboard own carrier to service`;
+  }
   if(u.kind==='carrier')return `Search for enemy ships · ${u.air_stores} aircraft-service stores · services this platoon’s aircraft within 1 hex`;
   if(u.variant==='aa_escort')return 'AA escort · interception range 3 · 2 damage · lighter surface guns';
   if(u.variant==='torpedo_cruiser')return `Torpedo cruiser · ${u.torpedoes} salvos · range 5 · 4 hull damage · light AA`;
