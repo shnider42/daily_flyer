@@ -35,8 +35,10 @@ const url=process.env.HLLV_TEST_URL||'http://127.0.0.1:8765/';
  for(const width of [390,1280]){
   await page.setViewportSize({width,height:width===390?844:900});
   await page.screenshot({path:`artifacts/homepage-qa/${engine}-${width}-dark.png`,fullPage:true});
+  await page.screenshot({path:`artifacts/homepage-qa/${engine}-${width}-dark-opening.png`});
   await page.locator('#themeToggle').click();await noOverflow();
   await page.screenshot({path:`artifacts/homepage-qa/${engine}-${width}-light.png`,fullPage:true});
+  await page.screenshot({path:`artifacts/homepage-qa/${engine}-${width}-light-opening.png`});
   await page.reload({waitUntil:'networkidle'});await expect(page.locator('html')).toHaveAttribute('data-theme','light');
   await page.locator('#themeToggle').click();
  }
