@@ -41,5 +41,5 @@ jobs:
         if: always()
         with:
           name: hllv-feature-browser-previews
-          path: ../feature-qa/
+          path: artifacts/feature-qa/
           retention-days: 3

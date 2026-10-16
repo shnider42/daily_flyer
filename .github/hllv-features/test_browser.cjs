@@ -56,7 +56,7 @@ const sdk = 'export function createClient(){return {auth:{onAuthStateChange:()=>
   await expect(page.locator('#homeList [data-home-id]')).toHaveCount(1);
   await page.locator('#homeList [data-home-id]').click();
   await expect(page.locator('#dossier h1')).toContainText('Spawn choices');
-  await page.locator('[data-tab="sources"]').click();
+  await page.locator('.tabs [data-tab="sources"]').click();
   await expect(page.locator('#sources .evidence-source').first()).toBeVisible();
   // Verify actual reviewed links from an announcement, with no network-derived statuses.
   await page.locator('[data-page="landing"]').click();
@@ -80,7 +80,7 @@ const sdk = 'export function createClient(){return {auth:{onAuthStateChange:()=>
   await expect(page.locator('#featureReview')).toContainText('<img src=x');
   await page.unroute('**/official-feed.json');
   // Responsive routes, direct links and both persisted themes.
-  fs.mkdirSync('../feature-qa',{recursive:true});
+  fs.mkdirSync('artifacts/feature-qa',{recursive:true});
   for(const width of [375,390,1280]){
     await page.setViewportSize({width,height:900});
     for(const hash of ['#features','#feature/HLLV-F001','#feature/HLLV-F008']){
@@ -90,15 +90,15 @@ const sdk = 'export function createClient(){return {auth:{onAuthStateChange:()=>
   }
   await page.setViewportSize({width:390,height:844});
   await page.goto(url+'#features',{waitUntil:'networkidle'});
-  await page.screenshot({path:'../feature-qa/mobile-dark.png',fullPage:true});
+  await page.screenshot({path:'artifacts/feature-qa/mobile-dark.png',fullPage:true});
   await page.locator('#themeToggle').click();await noOverflow();
-  await page.screenshot({path:'../feature-qa/mobile-light.png',fullPage:true});
+  await page.screenshot({path:'artifacts/feature-qa/mobile-light.png',fullPage:true});
   await page.setViewportSize({width:1280,height:1000});
   await page.goto(url+'#feature/HLLV-F008',{waitUntil:'networkidle'});
-  await page.screenshot({path:'../feature-qa/boat-history.png',fullPage:true});
+  await page.screenshot({path:'artifacts/feature-qa/boat-history.png',fullPage:true});
   await page.locator('#themeToggle').click();
   await page.goto(url+'#features',{waitUntil:'networkidle'});
-  await page.screenshot({path:'../feature-qa/desktop-dark.png',fullPage:true});
+  await page.screenshot({path:'artifacts/feature-qa/desktop-dark.png',fullPage:true});
   // Data failure and retry stay local to this section.
   let fail=true;
   await page.route('**/data/features.*.json',r=>fail?r.fulfill({status:503,body:'Unavailable'}):r.continue());
