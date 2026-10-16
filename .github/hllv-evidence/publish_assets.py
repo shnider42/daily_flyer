@@ -33,6 +33,13 @@ def main():
     assert "fetch('./data/issues.json'" not in markup
     page.write_text(markup,encoding='utf-8')
     manifest={'data_url':data_name,'data_sha256':hashlib.sha256(data).hexdigest(),'evidence_js_url':js_name,'files':[data_name,js_name,'evidence.css?v=1','freshness.js?v=20261007','freshness.css?v=20261007'],'note':'These are the actual production URLs embedded in the page, not random test cache-busters. data/issues.json remains the editable source file.'}
+    # Keep all integrated modules and immutable feature data in later releases.
+    linked=[u[2:] for u in re.findall(r'(?:src|href|data-source)="(\./[^"]+)"',markup) if (ROOT/u[2:].split('?')[0]).is_file()]
+    manifest['files']=list(dict.fromkeys(manifest['files']+['suggestions-config.json']+linked))
+    feature=re.search(r'<script id="hllv-features"[^>]*data-source="\./([^"]+)"',markup)
+    if feature:
+        manifest['feature_data_url']=feature[1]
+        manifest['feature_assets']=[u for u in linked if u.startswith(('data/features.','assets/features-'))]
     (ROOT/'deployment-manifest.json').write_text(json.dumps(manifest,indent=2)+'\n')
     assert (ROOT/'data/issues.json').read_bytes()==data
     print('CONTENT_ADDRESSED_PUBLISH',json.dumps(manifest))

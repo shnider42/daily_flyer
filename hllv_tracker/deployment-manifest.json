@@ -1,9 +1,9 @@
 {
-  "data_url": "data/issues.88bc1fe947d996cc.json",
-  "data_sha256": "88bc1fe947d996cc46c027820a05ae79b3b40b56e31910dda7bd0c8b3e29b75c",
+  "data_url": "data/issues.8078b020497a9012.json",
+  "data_sha256": "8078b020497a90121d499b6394e7b908760831e221e771a86f949c9dc64ee36f",
   "evidence_js_url": "assets/evidence-f81896b2b5901f3b.js",
   "files": [
-    "data/issues.88bc1fe947d996cc.json",
+    "data/issues.8078b020497a9012.json",
     "assets/evidence-f81896b2b5901f3b.js",
     "evidence.css?v=1",
     "freshness.js?v=20261007",
@@ -20,7 +20,6 @@
     "assets/submission-thread-307f06c6566b251b.css",
     "assets/source-responses-84abf7fafeb49b62.css",
     "assets/source-responses-cdb29d5e3bbdf5dc.js",
-    "assets/official-feed-580659fe093c7de9.js",
     "assets/practice-6b6ee9a21123ec86.js",
     "assets/session-64d9247ad7eb980a.js",
     "assets/registration-b582f8cae5a3eb35.js",
@@ -28,7 +27,17 @@
     "assets/inbox-2b62db76ea0c9f3c.js",
     "assets/form-types-777e6ec4da34227c.js",
     "assets/submission-thread-aef8d3439e715791.js",
-    "assets/community-9968024fdcdfaa9d.js"
+    "assets/community-9968024fdcdfaa9d.js",
+    "data/features.904c4e51cc9b7122.json",
+    "assets/features-f39f964ab9a853cc.js",
+    "assets/features-8b376ecbcf45078a.css",
+    "assets/official-feed-1bee5be0574ef8be.js"
   ],
-  "note": "These are the actual production URLs embedded in the page, not random test cache-busters. data/issues.json remains the editable source file."
+  "note": "These are the actual production URLs embedded in the page, not random test cache-busters. data/issues.json remains the editable source file.",
+  "feature_data_url": "data/features.904c4e51cc9b7122.json",
+  "feature_assets": [
+    "data/features.904c4e51cc9b7122.json",
+    "assets/features-f39f964ab9a853cc.js",
+    "assets/features-8b376ecbcf45078a.css"
+  ]
 }

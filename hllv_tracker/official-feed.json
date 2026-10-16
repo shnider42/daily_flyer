@@ -17,7 +17,19 @@
       ],
       "review_state": "automatically_collected",
       "first_seen_at": "2026-10-16T12:33:17Z",
-      "last_changed_at": "2026-10-16T12:33:17Z"
+      "last_changed_at": "2026-10-16T12:33:17Z",
+      "candidate_feature_ids": [
+        "HLLV-F001",
+        "HLLV-F002",
+        "HLLV-F003",
+        "HLLV-F004",
+        "HLLV-F005",
+        "HLLV-F006",
+        "HLLV-F007",
+        "HLLV-F009",
+        "HLLV-F010",
+        "HLLV-F013"
+      ]
     },
     {
       "id": "1846018067933766",
@@ -36,7 +48,20 @@
       ],
       "review_state": "automatically_collected",
       "first_seen_at": "2026-10-12T16:32:27Z",
-      "last_changed_at": "2026-10-12T16:32:27Z"
+      "last_changed_at": "2026-10-12T16:32:27Z",
+      "candidate_feature_ids": [
+        "HLLV-F001",
+        "HLLV-F002",
+        "HLLV-F003",
+        "HLLV-F004",
+        "HLLV-F005",
+        "HLLV-F006",
+        "HLLV-F008",
+        "HLLV-F010",
+        "HLLV-F011",
+        "HLLV-F012",
+        "HLLV-F013"
+      ]
     },
     {
       "id": "1846018067925606",
@@ -63,7 +88,16 @@
       ],
       "review_state": "automatically_collected",
       "first_seen_at": "2026-10-12T16:32:27Z",
-      "last_changed_at": "2026-10-12T16:32:27Z"
+      "last_changed_at": "2026-10-12T16:32:27Z",
+      "candidate_feature_ids": [
+        "HLLV-F001",
+        "HLLV-F002",
+        "HLLV-F003",
+        "HLLV-F006",
+        "HLLV-F007",
+        "HLLV-F008",
+        "HLLV-F012"
+      ]
     },
     {
       "id": "1845383656387240",
@@ -76,7 +110,8 @@
       "candidate_issue_ids": [],
       "review_state": "automatically_collected",
       "first_seen_at": "2026-10-12T16:32:27Z",
-      "last_changed_at": "2026-10-12T16:32:27Z"
+      "last_changed_at": "2026-10-12T16:32:27Z",
+      "candidate_feature_ids": []
     },
     {
       "id": "1845383656381776",
@@ -97,7 +132,13 @@
       ],
       "review_state": "automatically_collected",
       "first_seen_at": "2026-10-12T16:32:27Z",
-      "last_changed_at": "2026-10-12T16:32:27Z"
+      "last_changed_at": "2026-10-12T16:32:27Z",
+      "candidate_feature_ids": [
+        "HLLV-F006",
+        "HLLV-F008",
+        "HLLV-F012",
+        "HLLV-F014"
+      ]
     },
     {
       "id": "1844751498233749",
@@ -112,7 +153,8 @@
       ],
       "review_state": "automatically_collected",
       "first_seen_at": "2026-10-12T16:32:27Z",
-      "last_changed_at": "2026-10-12T16:32:27Z"
+      "last_changed_at": "2026-10-12T16:32:27Z",
+      "candidate_feature_ids": []
     },
     {
       "id": "1844751498225016",
@@ -132,7 +174,12 @@
       ],
       "review_state": "automatically_collected",
       "first_seen_at": "2026-10-12T16:32:27Z",
-      "last_changed_at": "2026-10-12T16:32:27Z"
+      "last_changed_at": "2026-10-12T16:32:27Z",
+      "candidate_feature_ids": [
+        "HLLV-F004",
+        "HLLV-F006",
+        "HLLV-F010"
+      ]
     },
     {
       "id": "1844115010504560",
@@ -145,7 +192,10 @@
       "candidate_issue_ids": [],
       "review_state": "automatically_collected",
       "first_seen_at": "2026-10-12T16:32:27Z",
-      "last_changed_at": "2026-10-12T16:32:27Z"
+      "last_changed_at": "2026-10-12T16:32:27Z",
+      "candidate_feature_ids": [
+        "HLLV-F008"
+      ]
     },
     {
       "id": "1844115010488884",
@@ -158,7 +208,8 @@
       "candidate_issue_ids": [],
       "review_state": "automatically_collected",
       "first_seen_at": "2026-10-12T16:32:27Z",
-      "last_changed_at": "2026-10-12T16:32:27Z"
+      "last_changed_at": "2026-10-12T16:32:27Z",
+      "candidate_feature_ids": []
     },
     {
       "id": "1843481262704861",
@@ -176,7 +227,15 @@
       ],
       "review_state": "automatically_collected",
       "first_seen_at": "2026-10-12T16:32:27Z",
-      "last_changed_at": "2026-10-12T16:32:27Z"
+      "last_changed_at": "2026-10-12T16:32:27Z",
+      "candidate_feature_ids": [
+        "HLLV-F001",
+        "HLLV-F002",
+        "HLLV-F003",
+        "HLLV-F004",
+        "HLLV-F008",
+        "HLLV-F013"
+      ]
     },
     {
       "id": "1843481262692715",
@@ -196,7 +255,14 @@
       ],
       "review_state": "automatically_collected",
       "first_seen_at": "2026-10-12T16:32:27Z",
-      "last_changed_at": "2026-10-12T16:32:27Z"
+      "last_changed_at": "2026-10-12T16:32:27Z",
+      "candidate_feature_ids": [
+        "HLLV-F003",
+        "HLLV-F004",
+        "HLLV-F005",
+        "HLLV-F006",
+        "HLLV-F010"
+      ]
     },
     {
       "id": "1842846814455199",
@@ -209,7 +275,10 @@
       "candidate_issue_ids": [],
       "review_state": "automatically_collected",
       "first_seen_at": "2026-10-12T16:32:27Z",
-      "last_changed_at": "2026-10-12T16:32:27Z"
+      "last_changed_at": "2026-10-12T16:32:27Z",
+      "candidate_feature_ids": [
+        "HLLV-F004"
+      ]
     },
     {
       "id": "1842846814445938",
@@ -222,7 +291,8 @@
       "candidate_issue_ids": [],
       "review_state": "automatically_collected",
       "first_seen_at": "2026-10-12T16:32:27Z",
-      "last_changed_at": "2026-10-12T16:32:27Z"
+      "last_changed_at": "2026-10-12T16:32:27Z",
+      "candidate_feature_ids": []
     },
     {
       "id": "1842846814444043",
@@ -241,7 +311,11 @@
       ],
       "review_state": "automatically_collected",
       "first_seen_at": "2026-10-12T16:32:27Z",
-      "last_changed_at": "2026-10-12T16:32:27Z"
+      "last_changed_at": "2026-10-12T16:32:27Z",
+      "candidate_feature_ids": [
+        "HLLV-F005",
+        "HLLV-F006"
+      ]
     },
     {
       "id": "1842846814442810",
@@ -270,7 +344,13 @@
       ],
       "review_state": "automatically_collected",
       "first_seen_at": "2026-10-12T16:32:27Z",
-      "last_changed_at": "2026-10-12T16:32:27Z"
+      "last_changed_at": "2026-10-12T16:32:27Z",
+      "candidate_feature_ids": [
+        "HLLV-F002",
+        "HLLV-F005",
+        "HLLV-F008",
+        "HLLV-F014"
+      ]
     },
     {
       "id": "1842212951303228",
@@ -283,7 +363,8 @@
       "candidate_issue_ids": [],
       "review_state": "automatically_collected",
       "first_seen_at": "2026-10-12T16:32:27Z",
-      "last_changed_at": "2026-10-12T16:32:27Z"
+      "last_changed_at": "2026-10-12T16:32:27Z",
+      "candidate_feature_ids": []
     },
     {
       "id": "1842212951302673",
@@ -306,7 +387,11 @@
       ],
       "review_state": "automatically_collected",
       "first_seen_at": "2026-10-12T16:32:27Z",
-      "last_changed_at": "2026-10-12T16:32:27Z"
+      "last_changed_at": "2026-10-12T16:32:27Z",
+      "candidate_feature_ids": [
+        "HLLV-F002",
+        "HLLV-F004"
+      ]
     },
     {
       "id": "1842212951300657",
@@ -325,7 +410,13 @@
       ],
       "review_state": "automatically_collected",
       "first_seen_at": "2026-10-12T16:32:27Z",
-      "last_changed_at": "2026-10-12T16:32:27Z"
+      "last_changed_at": "2026-10-12T16:32:27Z",
+      "candidate_feature_ids": [
+        "HLLV-F005",
+        "HLLV-F006",
+        "HLLV-F010",
+        "HLLV-F013"
+      ]
     },
     {
       "id": "1841579228676605",
@@ -338,7 +429,8 @@
       "candidate_issue_ids": [],
       "review_state": "automatically_collected",
       "first_seen_at": "2026-10-12T16:32:27Z",
-      "last_changed_at": "2026-10-12T16:32:27Z"
+      "last_changed_at": "2026-10-12T16:32:27Z",
+      "candidate_feature_ids": []
     },
     {
       "id": "1841579228669057",
@@ -351,7 +443,12 @@
       "candidate_issue_ids": [],
       "review_state": "automatically_collected",
       "first_seen_at": "2026-10-12T16:32:27Z",
-      "last_changed_at": "2026-10-12T16:32:27Z"
+      "last_changed_at": "2026-10-12T16:32:27Z",
+      "candidate_feature_ids": [
+        "HLLV-F004",
+        "HLLV-F009",
+        "HLLV-F013"
+      ]
     },
     {
       "id": "1841579228668226",
@@ -385,7 +482,14 @@
       ],
       "review_state": "automatically_collected",
       "first_seen_at": "2026-10-12T16:32:27Z",
-      "last_changed_at": "2026-10-12T16:32:27Z"
+      "last_changed_at": "2026-10-12T16:32:27Z",
+      "candidate_feature_ids": [
+        "HLLV-F001",
+        "HLLV-F002",
+        "HLLV-F003",
+        "HLLV-F008",
+        "HLLV-F012"
+      ]
     },
     {
       "id": "1841579228666208",
@@ -404,7 +508,11 @@
       ],
       "review_state": "automatically_collected",
       "first_seen_at": "2026-10-12T16:32:27Z",
-      "last_changed_at": "2026-10-12T16:32:27Z"
+      "last_changed_at": "2026-10-12T16:32:27Z",
+      "candidate_feature_ids": [
+        "HLLV-F002",
+        "HLLV-F010"
+      ]
     },
     {
       "id": "1840944183789551",
@@ -420,7 +528,10 @@
       ],
       "review_state": "automatically_collected",
       "first_seen_at": "2026-10-12T16:32:27Z",
-      "last_changed_at": "2026-10-12T16:32:27Z"
+      "last_changed_at": "2026-10-12T16:32:27Z",
+      "candidate_feature_ids": [
+        "HLLV-F002"
+      ]
     },
     {
       "id": "1840944183783686",
@@ -435,7 +546,10 @@
       ],
       "review_state": "automatically_collected",
       "first_seen_at": "2026-10-12T16:32:27Z",
-      "last_changed_at": "2026-10-12T16:32:27Z"
+      "last_changed_at": "2026-10-12T16:32:27Z",
+      "candidate_feature_ids": [
+        "HLLV-F006"
+      ]
     },
     {
       "id": "1840944183780404",
@@ -455,7 +569,12 @@
       ],
       "review_state": "automatically_collected",
       "first_seen_at": "2026-10-12T16:32:27Z",
-      "last_changed_at": "2026-10-12T16:32:27Z"
+      "last_changed_at": "2026-10-12T16:32:27Z",
+      "candidate_feature_ids": [
+        "HLLV-F002",
+        "HLLV-F006",
+        "HLLV-F007"
+      ]
     },
     {
       "id": "1840944183778026",
@@ -470,7 +589,10 @@
       ],
       "review_state": "automatically_collected",
       "first_seen_at": "2026-10-12T16:32:27Z",
-      "last_changed_at": "2026-10-12T16:32:27Z"
+      "last_changed_at": "2026-10-12T16:32:27Z",
+      "candidate_feature_ids": [
+        "HLLV-F006"
+      ]
     },
     {
       "id": "1840944183777212",
@@ -483,7 +605,8 @@
       "candidate_issue_ids": [],
       "review_state": "automatically_collected",
       "first_seen_at": "2026-10-12T16:32:27Z",
-      "last_changed_at": "2026-10-12T16:32:27Z"
+      "last_changed_at": "2026-10-12T16:32:27Z",
+      "candidate_feature_ids": []
     },
     {
       "id": "1840944183776642",
@@ -496,7 +619,8 @@
       "candidate_issue_ids": [],
       "review_state": "automatically_collected",
       "first_seen_at": "2026-10-12T16:32:27Z",
-      "last_changed_at": "2026-10-12T16:32:27Z"
+      "last_changed_at": "2026-10-12T16:32:27Z",
+      "candidate_feature_ids": []
     },
     {
       "id": "1840944183774749",
@@ -511,7 +635,10 @@
       ],
       "review_state": "automatically_collected",
       "first_seen_at": "2026-10-12T16:32:27Z",
-      "last_changed_at": "2026-10-12T16:32:27Z"
+      "last_changed_at": "2026-10-12T16:32:27Z",
+      "candidate_feature_ids": [
+        "HLLV-F008"
+      ]
     },
     {
       "id": "1840944183774746",
@@ -531,7 +658,12 @@
       ],
       "review_state": "automatically_collected",
       "first_seen_at": "2026-10-12T16:32:27Z",
-      "last_changed_at": "2026-10-12T16:32:27Z"
+      "last_changed_at": "2026-10-12T16:32:27Z",
+      "candidate_feature_ids": [
+        "HLLV-F002",
+        "HLLV-F004",
+        "HLLV-F008"
+      ]
     },
     {
       "id": "1839676055888771",
@@ -547,7 +679,11 @@
       ],
       "review_state": "automatically_collected",
       "first_seen_at": "2026-10-12T16:32:27Z",
-      "last_changed_at": "2026-10-12T16:32:27Z"
+      "last_changed_at": "2026-10-12T16:32:27Z",
+      "candidate_feature_ids": [
+        "HLLV-F004",
+        "HLLV-F013"
+      ]
     },
     {
       "id": "1839676055886437",
@@ -564,7 +700,8 @@
       ],
       "review_state": "automatically_collected",
       "first_seen_at": "2026-10-12T16:32:27Z",
-      "last_changed_at": "2026-10-12T16:32:27Z"
+      "last_changed_at": "2026-10-12T16:32:27Z",
+      "candidate_feature_ids": []
     },
     {
       "id": "1839041357029502",
@@ -581,7 +718,10 @@
       ],
       "review_state": "automatically_collected",
       "first_seen_at": "2026-10-12T16:32:27Z",
-      "last_changed_at": "2026-10-12T16:32:27Z"
+      "last_changed_at": "2026-10-12T16:32:27Z",
+      "candidate_feature_ids": [
+        "HLLV-F004"
+      ]
     },
     {
       "id": "1839041357027560",
@@ -599,7 +739,8 @@
       ],
       "review_state": "automatically_collected",
       "first_seen_at": "2026-10-12T16:32:27Z",
-      "last_changed_at": "2026-10-12T16:32:27Z"
+      "last_changed_at": "2026-10-12T16:32:27Z",
+      "candidate_feature_ids": []
     },
     {
       "id": "1838407329266192",
@@ -612,7 +753,8 @@
       "candidate_issue_ids": [],
       "review_state": "automatically_collected",
       "first_seen_at": "2026-10-12T16:32:27Z",
-      "last_changed_at": "2026-10-12T16:32:27Z"
+      "last_changed_at": "2026-10-12T16:32:27Z",
+      "candidate_feature_ids": []
     },
     {
       "id": "1836506165565873",
@@ -627,7 +769,8 @@
       ],
       "review_state": "automatically_collected",
       "first_seen_at": "2026-10-12T16:32:27Z",
-      "last_changed_at": "2026-10-12T16:32:27Z"
+      "last_changed_at": "2026-10-12T16:32:27Z",
+      "candidate_feature_ids": []
     },
     {
       "id": "1835236783560893",
@@ -640,7 +783,8 @@
       "candidate_issue_ids": [],
       "review_state": "automatically_collected",
       "first_seen_at": "2026-10-12T16:32:27Z",
-      "last_changed_at": "2026-10-12T16:32:27Z"
+      "last_changed_at": "2026-10-12T16:32:27Z",
+      "candidate_feature_ids": []
     },
     {
       "id": "1833968530901045",
@@ -653,7 +797,8 @@
       "candidate_issue_ids": [],
       "review_state": "automatically_collected",
       "first_seen_at": "2026-10-12T16:32:27Z",
-      "last_changed_at": "2026-10-12T16:32:27Z"
+      "last_changed_at": "2026-10-12T16:32:27Z",
+      "candidate_feature_ids": []
     },
     {
       "id": "1833968530890635",
@@ -666,7 +811,8 @@
       "candidate_issue_ids": [],
       "review_state": "automatically_collected",
       "first_seen_at": "2026-10-12T16:32:27Z",
-      "last_changed_at": "2026-10-12T16:32:27Z"
+      "last_changed_at": "2026-10-12T16:32:27Z",
+      "candidate_feature_ids": []
     },
     {
       "id": "1833968530888087",
@@ -679,7 +825,8 @@
       "candidate_issue_ids": [],
       "review_state": "automatically_collected",
       "first_seen_at": "2026-10-12T16:32:27Z",
-      "last_changed_at": "2026-10-12T16:32:27Z"
+      "last_changed_at": "2026-10-12T16:32:27Z",
+      "candidate_feature_ids": []
     },
     {
       "id": "1832700592789619",
@@ -692,7 +839,10 @@
       "candidate_issue_ids": [],
       "review_state": "automatically_collected",
       "first_seen_at": "2026-10-12T16:32:27Z",
-      "last_changed_at": "2026-10-12T16:32:27Z"
+      "last_changed_at": "2026-10-12T16:32:27Z",
+      "candidate_feature_ids": [
+        "HLLV-F008"
+      ]
     }
   ],
   "last_success_at": "2026-10-16T12:33:17Z",

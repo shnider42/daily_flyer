@@ -1,0 +1,45 @@
+name: HLLV feature and functionality tracking
+on:
+  push:
+    branches: [feature/hllv-bug-evidence-tracker, 'work/infierno-features-*']
+    paths:
+      - .github/hllv-features/**
+      - .github/hllv-ux-20261012/nightly.py
+      - .github/hllv-ux-20261012/feed.js
+      - hllv_tracker/data/features*.json
+      - .github/workflows/hllv-features.yml
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - name: Validate editorial records and collection boundaries
+        run: |
+          python3 .github/hllv-features/test_features.py
+          python3 .github/hllv-ux-20261012/test_feed.py
+          node .github/hllv-evidence/test_evidence.cjs
+          node --check .github/hllv-features/app.js
+          node --check .github/hllv-ux-20261012/feed.js
+          python3 .github/hllv-features/publish.py
+          git diff --exit-code -- hllv_tracker/index.html hllv_tracker/deployment-manifest.json
+      - name: Install isolated browser test dependencies
+        run: |
+          npm install --no-save --package-lock=false @playwright/test@1.55.0
+          npx playwright install --with-deps chromium webkit
+      - name: Exercise mobile and desktop routes in Chromium and WebKit
+        run: |
+          set -euo pipefail
+          python3 -m http.server 8765 --bind 127.0.0.1 --directory hllv_tracker >/tmp/features-http.log 2>&1 &
+          PID=$!
+          trap 'kill "$PID" || true' EXIT
+          HLLV_BROWSER_ENGINE=chromium node .github/hllv-features/test_browser.cjs
+          HLLV_BROWSER_ENGINE=webkit node .github/hllv-features/test_browser.cjs
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: hllv-feature-browser-previews
+          path: ../feature-qa/
+          retention-days: 3

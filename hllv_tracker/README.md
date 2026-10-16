@@ -1,6 +1,20 @@
-# HLLV Evidence Tracker
+# Infierno Liberado
 
-A public evidence ledger for Hell Let Loose: Vietnam issues and community-server incidents.
+A public evidence ledger for Hell Let Loose: Vietnam bugs, features, changing functionality and moderated community ideas.
+
+## Features & changes
+
+The `#features` section tracks current behavior separately from a feature's latest
+development direction, with individual source dates, history, planned release targets
+and related bug records. `#feature/HLLV-F008` is an example of a plan revised after
+community feedback. The first feature review covers 14 selected topics from Community
+Feedback 6–8 and Patch 1.6, reviewed October 16, 2026.
+
+`data/features.json` is the editable ledger; the live page reads a content-addressed
+snapshot. `.github/hllv-features/README.md` documents review and publishing. Automatic
+announcement matches flag possible updates for review; they never change status.
+Existing Suggestion Box approval and account permissions remain separate. These
+feature records are curated through the repository, not a new moderator dashboard.
 
 The current tracker contains 75 issue dossiers, 157 issue-linked source records and 34 distinct source URLs (reviewed 2026-10-07). It separates support reports, official acknowledgement, reproduction, released changes, post-fix monitoring, and root-cause certainty.
 

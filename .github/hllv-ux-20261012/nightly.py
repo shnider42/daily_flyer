@@ -51,7 +51,12 @@ def plain(text):
     parser=Plain();parser.feed(text)
     return re.sub(r'\s+',' ',html.unescape(''.join(parser.parts))).strip()
 
-def normalize(raw,now,issues):
+def match_features(text,features):
+    # Routing hints only: no automatic editorial status or publication decisions.
+    folded=text.casefold()
+    return [f['id'] for f in features if any(re.search(r'(?<!\w)'+re.escape(t.casefold())+r'(?!\w)',folded) for t in f.get('monitor_terms',[]))]
+
+def normalize(raw,now,issues,features=()):
     obj=json.loads(raw)
     if obj.get('appnews',{}).get('appid')!=3079210:raise ValueError('Wrong app ID')
     news=obj['appnews'].get('newsitems')
@@ -70,8 +75,9 @@ def normalize(raw,now,issues):
         for issue in issues:
             tokens=set(re.findall(r'[a-z]{4,}',issue['title'].lower()))-stop
             if len(tokens&words)>=max(2,min(4,len(tokens))):matches.append(issue['id'])
+        feature_matches=match_features(title+' '+body,features)
         limit=max(0,24-len(title.split()))
-        items.append({'id':gid,'title':title,'url':url,'published_at':datetime.fromtimestamp(timestamp,timezone.utc).isoformat().replace('+00:00','Z'),'category':'Patch / update announcement' if re.search(r'\b(patch|hotfix|update \d)',title,re.I) else 'Developer / community announcement','excerpt':' '.join(body.split()[:min(18,limit)]),'content_sha256':hashlib.sha256((title+'\n'+body).encode()).hexdigest(),'candidate_issue_ids':matches,'review_state':'automatically_collected'})
+        items.append({'id':gid,'title':title,'url':url,'published_at':datetime.fromtimestamp(timestamp,timezone.utc).isoformat().replace('+00:00','Z'),'category':'Patch / update announcement' if re.search(r'\b(patch|hotfix|update \d)',title,re.I) else 'Developer / community announcement','excerpt':' '.join(body.split()[:min(18,limit)]),'content_sha256':hashlib.sha256((title+'\n'+body).encode()).hexdigest(),'candidate_issue_ids':matches,'candidate_feature_ids':feature_matches,'review_state':'automatically_collected'})
     if not items:raise ValueError('No official announcements returned')
     return sorted(items,key=lambda p:p['published_at'],reverse=True)[:40]
 
@@ -93,10 +99,12 @@ def collect_responses(issues,previous,now):
 
 def main():
     ledger=ROOT/'data/issues.json';before=ledger.read_bytes();data=json.loads(before);now=datetime.now(timezone.utc);at=now.replace(microsecond=0).isoformat().replace('+00:00','Z')
+    feature_path=ROOT/'data/features.json';feature_before=feature_path.read_bytes() if feature_path.exists() else None
+    features=json.loads(feature_before)['features'] if feature_before else []
     previous=json.loads(OUTPUT.read_text()) if OUTPUT.exists() else {'schema_version':1,'items':[],'last_success_at':None,'link_checks':{}}
     out={**previous,'last_attempt_at':at,'schedule':'Nightly around 03:23 America/New_York','source':'Steam official publisher announcements for app 3079210','state':'ok','warnings':[]}
     try:
-        _,_,raw=fetch(API,8_000_000);items=normalize(raw,now,data['issues'])
+        _,_,raw=fetch(API,8_000_000);items=normalize(raw,now,data['issues'],features)
         old={x['id']:x for x in previous['items']}
         for item in items:
             past=old.get(item['id'],{});item['first_seen_at']=past.get('first_seen_at',at);item['last_changed_at']=past.get('last_changed_at',at) if past.get('content_sha256')==item['content_sha256'] else at
@@ -126,6 +134,7 @@ def main():
     if discovery.get('state') not in ('window_checked',):
         out['warnings'].append('Discovery is partial or has a backlog; this does not invalidate the separate existing-source check.')
     tmp=OUTPUT.with_suffix('.tmp');tmp.write_text(json.dumps(out,ensure_ascii=False,indent=2)+'\n');tmp.replace(OUTPUT)
+    if feature_before is not None:assert feature_path.read_bytes()==feature_before,'A collector must not mutate reviewed feature evidence'
     assert ledger.read_bytes()==before,'A collector must not mutate reviewed bug evidence'
     print('SOURCE_COLLECTION',json.dumps({'state':out['state'],'posts':len(out['items']),'links_checked':len(checks),'unreachable_links':out['unreachable_links'],'last_success_at':out['last_success_at'],'reviewed_issue_records_unchanged':True}))
     Path('/tmp/hllv-source-result').write_text(out['state'])
