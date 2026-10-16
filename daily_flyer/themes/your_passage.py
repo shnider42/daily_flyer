@@ -115,5 +115,11 @@ def build_theme_page(date_str: str | None = None, seed: int | None = None) -> Pa
         metadata={"theme_name": "your_passage", "date_key": today.isoformat(),
                   "extra_css": (ASSETS / "style.css").read_text(encoding="utf-8"),
                   "extra_js": (ASSETS / "script.js").read_text(encoding="utf-8"),
-                  "extra_head_html": '<meta name="description" content="Career coaching and practical daily exercises for high school and college students. Find your next step with Tim Holtsnider and Your Passage."><meta name="theme-color" content="#f0fbfd"><meta name="color-scheme" content="light">'},
+                  "extra_head_html": (
+                      '<meta name="description" content="Career coaching and practical daily exercises for high school and college students. Find your next step with Tim Holtsnider and Your Passage.">'
+                      '<meta name="theme-color" id="yp-theme-color" content="#f4f6f4">'
+                      '<meta name="color-scheme" content="light dark">'
+                      '<script id="yp-appearance-init">'
+                      + (ASSETS / "appearance.js").read_text(encoding="utf-8")
+                      + '</script>')},
     )

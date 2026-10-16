@@ -35,6 +35,7 @@ Deployment settings verified against Render's official Flask, Python-version, an
 
 - A complete responsive coaching homepage with student, parent, and school starting points.
 - A field-guide layout with an illustrated route, a four-choice starting point, and a mobile navigation menu.
+- Softer day surfaces and a blue-charcoal night appearance. The top-bar Day / Night switch remembers an override; Device returns to the operating system's preference.
 - Existing Tim booking destination: https://calendly.com/tim-mypassages.
 - Four student passages reused from `topic_signal_daily.DAILY_PASSAGES`, selected deterministically by DFE date or seed.
 - Read / Try / Reflect with keyboard-operable tabs and progress. Progress means the visitor completed the prompts, not that a real-world action was verified.
@@ -61,7 +62,20 @@ Exact brand values extracted from the live stylesheet at https://tim-today.onren
 | Pale yellow | `#FFF2A6` |
 | Coral | `#FF9D7B` |
 
-The theme uses these colors plus white, with translucent navy borders and shadows. Navy text on mint buttons and dark text on colored sections preserve legibility. The route illustration and browser theme color use the same tokens.
+These remain the brand accents. Broad aqua and yellow backgrounds have been softened into quiet neutral surfaces; the night appearance uses the same accents sparingly. Semantic color tokens cover the entire page, including the route illustration, forms, selected actions, notebook, photo frame, and closing section.
+
+| Appearance | Page | Practice surface | Heading text | Secondary text |
+| --- | --- | --- | --- | --- |
+| Day | `#F4F6F4` | `#FAFBF8` | `#082B66` | `#586779` |
+| Night | `#121E29` | `#1B2B38` | `#E5EAE7` | `#A8B7C0` |
+
+## Appearance behavior
+
+- First visits follow `prefers-color-scheme`, including device changes while the page is open. The CSS also follows that preference when JavaScript is disabled.
+- The Day / Night switch explicitly saves `day` or `night` under `your-passage:appearance`. Device removes only that override. The notes' `your-passage:v1:` keys remain separate.
+- A small theme-owned head script applies the preference before the page body is parsed, avoiding a bright initial flash. Browser theme color and native form controls follow the selected appearance.
+- The controls remain available in focus view and sync appearance changes across tabs. If browser storage is blocked, switching still works for the current visit and displays “This visit only.”
+- Printing uses a white next-step card with dark text in either appearance. The portrait itself is unchanged.
 
 ## DFE integration
 
@@ -95,13 +109,15 @@ All new copy and adapted practice material need Tim's editorial approval before 
 3. Decide whether local-only notes are sufficient. Accounts, cross-device progress, student records, lead capture, email subscriptions and admin publishing are not implemented.
 4. Use a dedicated DFE deployment with `DEFAULT_THEME=your_passage` and verify booking, accessibility and responsive behavior in real browsers. Keep this concept on its separate branch and service.
 
-Verification for this pass includes six Python integration tests and ten DOM interaction tests covering actual Flask responses and DFE export, date/seed behavior, HTML structure, legacy notes, focus/menu controls, rehearsal feedback, takeaways, save/download/print, scoped deletion, blocked storage, and keyboard tabs. A supported browser-control plugin was unavailable, so there is no claim of desktop/mobile visual QA.
+Verification includes six Python integration tests, ten practice interaction tests, and eight appearance tests. These cover actual Flask responses and DFE export, date/seed behavior, HTML structure, legacy notes, focus/menu controls, rehearsal feedback, takeaways, save/download/print, scoped deletion, blocked storage, keyboard tabs, pre-body appearance, device changes, saved overrides, reset, and cross-tab appearance updates. A supported browser-control plugin was unavailable, so there is no claim of desktop/mobile visual QA.
 
 Run the focused checks:
 
 ```sh
 python -m unittest discover -s tests -p test_your_passage.py -v
 node --check daily_flyer/themes/your_passage_assets/script.js
+node --check daily_flyer/themes/your_passage_assets/appearance.js
 # With jsdom available as a test-only Node dependency:
 node tests/test_your_passage_interactions.cjs /absolute/path/Your-Passage-preview.html
+node tests/test_your_passage_appearance.cjs /absolute/path/Your-Passage-preview.html
 ```
