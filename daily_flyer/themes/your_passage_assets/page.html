@@ -1,40 +1,48 @@
 <div id="yp">
   <a class="yp-skip" href="#starting-point">Skip to content</a>
-  <div class="yp-topline">A little guidance. A clearer direction. <a href="#practice">Try your daily passage <span aria-hidden="true">↗</span></a></div>
+  <div class="yp-topline"><span>A FIELD GUIDE TO WHAT’S NEXT</span><span>Small steps. In your own direction.</span></div>
   <nav class="yp-nav yp-width" aria-label="Main navigation">
     <a class="yp-brand" href="#yp" aria-label="Your Passage home"><svg viewBox="0 0 42 44" aria-hidden="true"><path d="M4 39V20C4-2 38-2 38 20v19M13 39V21c0-11 16-11 16 0v18M21 39V25" fill="none" stroke="currentColor" stroke-width="2.6"/></svg><span>Your Passage<span class="yp-brand-small">WITH TIM HOLTSNIDER</span></span></a>
-    <div class="yp-navlinks"><a href="#approach">The approach</a><a href="#schools">For schools</a><a href="#tim">Meet Tim</a></div>
-    <a class="yp-button yp-button-small" href="https://calendly.com/tim-mypassages" target="_blank" rel="noopener noreferrer">Let’s talk <span aria-hidden="true">↗</span></a>
+    <button class="yp-menu-toggle" id="yp-menu-toggle" type="button" aria-expanded="false" aria-controls="yp-navigation">Menu <span aria-hidden="true">☰</span></button>
+    <div class="yp-navlinks" id="yp-navigation"><a href="#practice">Daily practice</a><a href="#approach">Coaching</a><a href="#tim">Meet Tim</a><a href="#notebook" data-open-notebook>My notebook <span class="yp-notebook-count" data-notebook-count>0</span></a></div>
+    <a class="yp-button yp-button-small yp-nav-book" href="https://calendly.com/tim-mypassages" target="_blank" rel="noopener noreferrer">Let’s talk <span aria-hidden="true">↗</span></a>
+    <button type="button" class="yp-textlink" id="yp-exit-focus" hidden>← Back to the site</button>
   </nav>
 
   <header class="yp-hero yp-width" id="starting-point">
     <div class="yp-hero-copy">
-      <p class="yp-kicker"><span class="yp-line"></span> YOUR NEXT CHAPTER STARTS HERE</p>
-      <h1>You don’t need<br>the whole plan.<br><em>Just your next step.</em></h1>
-      <p class="yp-intro">Coaching for the space between school and what comes next. Build real-world skills, find your voice, and move forward with a little more confidence.</p>
-      <div class="yp-actions"><a class="yp-button" href="#practice">Find my next step <span aria-hidden="true">↗</span></a><a class="yp-textlink" href="#approach">Explore coaching <span aria-hidden="true">→</span></a></div>
-      <p class="yp-small yp-hero-note">For high school & college students. Room for every starting point.</p>
+      <p class="yp-kicker"><span class="yp-line"></span> COACHING FOR WHAT COMES NEXT</p>
+      <h1>Your next chapter.<br><em>Your kind<br>of path.</em></h1>
+      <p class="yp-hero-annotation">You don’t need the whole plan to begin.</p>
+      <p class="yp-intro">For the space between school and the working world. Find your voice, practice real-life skills, and figure out a next step that feels like yours.</p>
+      <div class="yp-actions"><a class="yp-button" href="#choose">Find my starting point <span aria-hidden="true">↗</span></a><a class="yp-textlink" href="#approach">Explore coaching <span aria-hidden="true">→</span></a></div>
+      <p class="yp-small yp-hero-note">For high school & college students <span aria-hidden="true">/</span> No perfect plan required</p>
     </div>
-    <div class="yp-journey" aria-label="An illustrated winding path from where you are to your next step" role="img">
-      <div class="yp-journey-top"><span>A FIELD GUIDE TO WHAT’S NEXT</span><span aria-hidden="true">01 / ∞</span></div>
-      <svg class="yp-landscape" viewBox="0 0 480 490" aria-hidden="true">
-        <defs><clipPath id="yp-window"><path d="M45 470V215a195 195 0 0 1 390 0v255Z"/></clipPath></defs>
-        <g clip-path="url(#yp-window)">
-          <path d="M45 470V215a195 195 0 0 1 390 0v255Z" fill="#dce5dc"/>
-          <circle cx="321" cy="130" r="47" fill="#e8b873"/>
-          <path d="M0 290Q130 180 300 265T500 185V490H0Z" fill="#a6b6a4"/>
-          <path d="M0 375Q110 250 268 322T500 260V490H0Z" fill="#6e9387"/>
-          <path d="M0 445Q150 330 293 400T500 365V490H0Z" fill="#315e59"/>
-          <path d="M197 490C326 409 104 357 218 304S362 244 280 217" fill="none" stroke="#f7f0dc" stroke-width="24"/>
-          <path d="M197 490C326 409 104 357 218 304S362 244 280 217" fill="none" stroke="#c8ad82" stroke-width="1.5" stroke-dasharray="4 6"/>
-          <circle cx="230" cy="430" r="9" fill="#163e43" stroke="#f7f0dc" stroke-width="4"/>
-          <circle cx="218" cy="304" r="7" fill="#b16b44" stroke="#f7f0dc" stroke-width="4"/>
-        </g>
-        <path d="M45 470V215a195 195 0 0 1 390 0v255" fill="none" stroke="#214e51" stroke-opacity=".3"/>
-        <path d="M280 217v-42l28 10-28 11" fill="#f2d3a3" stroke="#214e51" stroke-width="2"/>
+    <div class="yp-wayfinder" id="choose">
+      <svg class="yp-wayfinder-map" viewBox="0 0 520 620" aria-hidden="true">
+        <defs><pattern id="yp-map-grid" width="26" height="26" patternUnits="userSpaceOnUse"><path d="M26 0H0V26" fill="none" stroke="var(--yp-ink)" stroke-opacity=".12" stroke-width="1"/></pattern></defs>
+        <rect width="520" height="620" fill="url(#yp-map-grid)"/>
+        <g fill="none" stroke="var(--yp-ink)" stroke-opacity=".26" stroke-width="1.2"><path d="M-90 130C210-10 150 290 400 80S630 200 680 170"/><path d="M-90 146C210 6 150 306 400 96S630 216 680 186"/><path d="M-90 162C210 22 150 322 400 112S630 232 680 202"/><path d="M-90 178C210 38 150 338 400 128S630 248 680 218"/><path d="M-50 510C150 350 290 730 520 430S640 410 680 500"/><path d="M-50 526C150 366 290 746 520 446S640 426 680 516"/><path d="M-50 542C150 382 290 762 520 462S640 442 680 532"/></g>
+        <path class="yp-drawn-route" d="M62 580C155 500 27 399 99 328S437 190 453 55" fill="none" stroke="var(--yp-teal)" stroke-width="2" stroke-dasharray="5 7"/>
+        <circle cx="62" cy="580" r="7" fill="var(--yp-coral)"/><circle cx="453" cy="55" r="9" fill="none" stroke="var(--yp-teal)" stroke-width="2"/>
+        <g transform="translate(440 520)" fill="none" stroke="var(--yp-ink)" stroke-width="1"><circle r="24"/><path d="M0-36V36M-36 0H36M0-22l7 22-7-5-7 5Z" fill="var(--yp-ink)"/></g>
       </svg>
-      <span class="yp-map-label yp-map-label-now">You are here <span aria-hidden="true">↘</span></span><span class="yp-map-label yp-map-label-next">One small step.</span>
-      <div class="yp-journey-bottom"><span>You set the pace.</span><span>We’ll help you find the way.</span></div>
+      <span class="yp-map-caption" aria-hidden="true">BEGIN ANYWHERE</span>
+      <div class="yp-route-note">
+        <div class="yp-note-top"><span class="yp-kicker">01 / YOUR STARTING POINT</span><span class="yp-note-star" aria-hidden="true">✳</span></div>
+        <h2>What feels<br><em>closest today?</em></h2>
+        <p class="yp-route-hint">Pick what’s on your mind. We’ll start there.</p>
+        <div class="yp-route-options" role="group" aria-label="Choose what you would like help with">
+          <button type="button" data-route="0" aria-pressed="false"><span class="yp-route-radio" aria-hidden="true"></span><span>I don’t know what’s next.</span><span aria-hidden="true">↗</span></button>
+          <button type="button" data-route="1" aria-pressed="false"><span class="yp-route-radio" aria-hidden="true"></span><span>I’m starting my first job.</span><span aria-hidden="true">↗</span></button>
+          <button type="button" data-route="2" aria-pressed="false"><span class="yp-route-radio" aria-hidden="true"></span><span>I’m choosing between paths.</span><span aria-hidden="true">↗</span></button>
+          <button type="button" data-route="3" aria-pressed="false"><span class="yp-route-radio" aria-hidden="true"></span><span>Talking about myself is hard.</span><span aria-hidden="true">↗</span></button>
+        </div>
+        <div class="yp-route-result" aria-live="polite"><span class="yp-kicker" id="yp-route-label">A PLACE TO BEGIN</span><p id="yp-route-benefit">Choose a starting point for a short practice you can use today.</p></div>
+        <button type="button" class="yp-button" id="yp-start-practice">Start my passage <span aria-hidden="true">→</span></button>
+        <p class="yp-route-footnote">About 5 minutes. No account needed.</p>
+      </div>
+      <span class="yp-map-handwriting" aria-hidden="true">your pace, your direction ↗</span>
     </div>
   </header>
 
@@ -52,13 +60,14 @@
 
   <section class="yp-practice-band" id="practice" aria-labelledby="yp-practice-heading">
     <div class="yp-width">
-      <div class="yp-section-heading"><div><p class="yp-kicker">YOUR DAILY PASSAGE</p><h2 id="yp-practice-heading">A little clarity.<br><em>A little practice.</em></h2></div><div class="yp-section-aside"><p>A few minutes to turn “what now?”<br>into something you can actually do.</p><p class="yp-edition">__YP_DATE__ <span aria-hidden="true">·</span> ~5 MINUTES</p></div></div>
+      <div class="yp-section-heading"><div><p class="yp-kicker">02 / TAKE A SMALL STEP</p><h2 id="yp-practice-heading">A few minutes.<br><em>Something to take with you.</em></h2></div><div class="yp-section-aside"><p class="yp-edition">__YP_DATE__ <span aria-hidden="true">/</span> YOUR DAILY PASSAGE</p><button type="button" class="yp-textlink" id="yp-focus-toggle" aria-pressed="false">Enter focus view <span aria-hidden="true">↗</span></button></div></div>
+      <details class="yp-notebook" id="notebook"><summary><span>My notebook <span class="yp-notebook-count" data-notebook-count>0</span></span><span>Return to a saved passage <span aria-hidden="true">+</span></span></summary><div id="yp-notebook-list"></div><p class="yp-small">Saved on this browser only. Saving a passage again updates its notes.</p></details>
       <div class="yp-workbook">
         <aside class="yp-workbook-index">
-          <p class="yp-kicker">TODAY’S FOCUS</p><h3 id="yp-focus-title">__YP_TITLE__</h3><p class="yp-small" id="yp-skill">__YP_SKILL__</p>
+          <div class="yp-workbook-stamp" aria-hidden="true">FIELD<br>NOTES<span>YOUR PASSAGE</span></div><p class="yp-kicker" id="yp-selection-label">TODAY’S FOCUS</p><h3 id="yp-focus-title">__YP_TITLE__</h3><p class="yp-small" id="yp-skill">__YP_SKILL__</p>
           <div class="yp-progress"><span id="yp-progress-text">0 of 3 steps complete</span><progress id="yp-progress" value="0" max="3" aria-label="Practice completion">0 of 3</progress></div>
           <label for="yp-topic">Or explore another passage</label><select id="yp-topic" aria-label="Choose a practice topic"></select>
-          <p class="yp-small yp-library-note">A daily selection from a rotating practice library.</p>
+          <p class="yp-small yp-library-note">A daily starting point from four practice topics. Choose what fits you.</p>
         </aside>
         <div class="yp-workbook-page">
           <div class="yp-tabs" role="tablist" aria-label="Practice steps">
@@ -67,29 +76,31 @@
             <button id="yp-tab-reflect" role="tab" type="button" aria-controls="yp-panel-reflect" aria-selected="false" tabindex="-1" data-step="reflect"><span>03</span> Reflect <i aria-hidden="true"></i></button>
           </div>
           <div id="yp-panel-read" role="tabpanel" tabindex="0" aria-labelledby="yp-tab-read" class="yp-panel">
-            <p class="yp-kicker">A DIFFERENT WAY TO LOOK AT IT</p><h3>Your next step is<br>an experiment.</h3><p id="yp-read-copy">__YP_READ__</p>
-            <div class="yp-margin-note"><span aria-hidden="true">↳</span> You’re gathering information. You’re allowed to change direction.</div>
+            <p class="yp-kicker">01 / A DIFFERENT WAY TO LOOK AT IT</p><h3 id="yp-read-heading">__YP_HEADING__</h3><p id="yp-read-copy">__YP_READ__</p>
+            <div class="yp-margin-note"><span aria-hidden="true">↳</span><span id="yp-margin-copy">__YP_MARGIN__</span></div>
+            <details class="yp-rehearsal" id="yp-rehearsal"><summary>Try a real-life moment <span aria-hidden="true">+</span></summary><p id="yp-scenario"></p><p class="yp-small">What would you be likely to say?</p><div id="yp-response-options" role="group" aria-label="Practice a response"></div><p id="yp-response-feedback" role="status" hidden></p></details>
             <button type="button" class="yp-button" data-complete="read">Got it. Let’s try something <span aria-hidden="true">→</span></button>
           </div>
           <div id="yp-panel-try" role="tabpanel" tabindex="0" aria-labelledby="yp-tab-try" class="yp-panel" hidden>
-            <p class="yp-kicker">TAKE IT INTO THE REAL WORLD</p><h3>Pick one small action.</h3><p>Choose one of these to try. You don’t need to do them all today.</p><ol id="yp-action-list">__YP_STEPS__</ol>
+            <p class="yp-kicker">02 / TAKE IT INTO THE REAL WORLD</p><h3>Make it small. Make it yours.</h3><p>Choose a starting action, then put it in your own words.</p><ol id="yp-action-list">__YP_STEPS__</ol>
             <label for="yp-plan">My next step will be…</label><textarea id="yp-plan" rows="2" maxlength="4000" placeholder="One specific thing I can try today."></textarea>
-            <button type="button" class="yp-button" data-complete="try">I have my next step <span aria-hidden="true">→</span></button>
+            <label for="yp-when">When could you try it? <span class="yp-optional">Optional</span></label><input id="yp-when" type="text" maxlength="160" placeholder="Tomorrow after class, or sometime this week…" autocomplete="off"><button type="button" class="yp-button" data-complete="try">I have my next step <span aria-hidden="true">→</span></button>
           </div>
           <div id="yp-panel-reflect" role="tabpanel" tabindex="0" aria-labelledby="yp-tab-reflect" class="yp-panel" hidden>
-            <p class="yp-kicker">MAKE A LITTLE ROOM TO THINK</p><h3>What’s clearer now?</h3><label for="yp-reflection" id="yp-reflection-prompt">__YP_REFLECTION__</label><textarea id="yp-reflection" rows="4" maxlength="8000" placeholder="A sentence is enough. You can also reflect without writing anything down."></textarea>
-            <button type="button" class="yp-button" data-complete="reflect">Finish this passage <span aria-hidden="true">✓</span></button><p id="yp-finish-message" class="yp-finish-message" role="status"></p>
+            <p class="yp-kicker">03 / MAKE A LITTLE ROOM TO THINK</p><h3>What’s clearer now?</h3><label for="yp-reflection" id="yp-reflection-prompt">__YP_REFLECTION__</label><textarea id="yp-reflection" rows="4" maxlength="8000" placeholder="A sentence is enough. You can also reflect without writing anything down."></textarea>
+            <button type="button" class="yp-button" data-complete="reflect">Make my next-step card <span aria-hidden="true">✓</span></button><p id="yp-finish-message" class="yp-finish-message" role="status"></p>
           </div>
+          <article class="yp-takeaway" id="yp-takeaway" hidden tabindex="-1" aria-labelledby="yp-takeaway-heading"><div class="yp-takeaway-header"><span class="yp-kicker">YOUR PASSAGE / TAKE THIS WITH YOU</span><span class="yp-takeaway-mark" aria-hidden="true">↗</span></div><h3 id="yp-takeaway-heading">My next small step.</h3><p class="yp-takeaway-topic" id="yp-takeaway-topic"></p><p class="yp-takeaway-plan" id="yp-takeaway-plan"></p><div class="yp-takeaway-when"><span>WHEN</span><p id="yp-takeaway-when"></p></div><div class="yp-takeaway-reflection" id="yp-takeaway-reflection-wrap" hidden><span>WHAT I’M TAKING AWAY</span><p id="yp-takeaway-reflection"></p></div><p class="yp-takeaway-reminder">A starting point. You can come back and change it.</p><div class="yp-takeaway-actions"><button type="button" class="yp-textlink" id="yp-print">Print my card <span aria-hidden="true">↗</span></button><button type="button" class="yp-textlink" id="yp-edit-plan">Edit my next step <span aria-hidden="true">→</span></button></div></article>
           <div class="yp-notebook-controls"><div><button type="button" class="yp-textlink" id="yp-save">Save on this browser</button><button type="button" class="yp-textlink" id="yp-download">Download my notes <span aria-hidden="true">↓</span></button><button type="button" class="yp-textlink" id="yp-clear">Clear this passage</button></div><p class="yp-small">Your notes aren’t sent to Tim. Saving keeps them on this browser; clear them when using a shared device.</p><p id="yp-storage-status" class="yp-small" role="status" aria-live="polite"></p></div>
         </div>
       </div>
       <noscript><p class="yp-noscript">The reading above works without JavaScript. Interactive practice and local notes need JavaScript. You can still explore coaching and book a conversation below.</p></noscript>
-      <p class="yp-editorial-note">Practice content is adapted from the existing DFE Passages library. This concept’s copy and exercises are pending Tim’s review.</p>
+      <p class="yp-editorial-note">You set the pace. Explore another topic, keep a note, or leave with just one idea.</p>
     </div>
   </section>
 
   <section class="yp-approach yp-width" id="approach" aria-labelledby="yp-approach-heading">
-    <div class="yp-section-heading"><div><p class="yp-kicker">SUPPORT THAT MEETS YOU WHERE YOU ARE</p><h2 id="yp-approach-heading">Skills for life.<br><em>Space to figure it out.</em></h2></div><p class="yp-section-aside">Some things are easier with a guide.<br>Passages connects practical preparation<br>with real conversation.</p></div>
+    <div class="yp-section-heading"><div><p class="yp-kicker">03 / A PERSON IN YOUR CORNER</p><h2 id="yp-approach-heading">Some things are easier<br><em>when you talk them through.</em></h2></div><p class="yp-section-aside">The exercises are a place to start. Coaching gives you space to explore your questions with someone who listens.</p></div>
     <div class="yp-services">
       <article><span class="yp-service-number">01 / FIND YOUR DIRECTION</span><h3>One-to-one<br>coaching.</h3><p>Work through your goals, prepare for interviews, and practice talking about what you bring. Guidance built around your starting point.</p><a class="yp-textlink" href="https://calendly.com/tim-mypassages" target="_blank" rel="noopener noreferrer">Talk about your goals <span aria-hidden="true">↗</span></a></article>
       <article><span class="yp-service-number">02 / LEARN BY DOING</span><h3>Real skills.<br>Real conversations.</h3><p>Mock interviews, group discussions, and hands-on practice. Build the communication and confidence to take part, ask questions, and keep learning.</p><a class="yp-textlink" href="#practice">Try the daily practice <span aria-hidden="true">→</span></a></article>
@@ -100,8 +111,8 @@
   <section class="yp-parent-band" id="parents" aria-labelledby="yp-parent-heading"><div class="yp-width yp-parent-inner"><p class="yp-kicker">FOR PARENTS & MENTORS</p><div><h2 id="yp-parent-heading">Support without<br><em>taking the wheel.</em></h2><p>Open a conversation with curiosity: “Would ideas help, or would you rather I just listen?” Then agree on one next step together.</p><details><summary>A better question to ask today <span aria-hidden="true">+</span></summary><p id="yp-parent-prompt">“What kind of help would feel useful right now instead of stressful?”</p><p id="yp-parent-note">Help them name what they are curious about before asking for a finished plan.</p></details></div><a class="yp-textlink" href="https://calendly.com/tim-mypassages" target="_blank" rel="noopener noreferrer">Talk with Tim <span aria-hidden="true">↗</span></a></div></section>
 
   <section class="yp-tim yp-width" id="tim" aria-labelledby="yp-tim-heading">
-    <div class="yp-tim-art"><p class="yp-kicker">PERSPECTIVE, EARNED.</p><span class="yp-big-number">40<span>+</span></span><p>years of experience.<br>One person in your corner.</p><div class="yp-tim-stats"><span><b>6</b> countries</span><span><b>4</b> continents</span></div></div>
-    <div><p class="yp-kicker">MEET YOUR GUIDE</p><h2 id="yp-tim-heading">Tim Holtsnider.<br><em>Here for what’s next.</em></h2><p>Tim brings more than 40 years of experience across six countries and four continents to a very personal kind of work: helping young people find their voice.</p><p>Through coaching, mentorship, and practical conversation, he helps students develop the confidence and communication skills to navigate the working world.</p><a class="yp-textlink" href="https://calendly.com/tim-mypassages" target="_blank" rel="noopener noreferrer">Meet Tim in a conversation <span aria-hidden="true">↗</span></a></div>
+    <figure class="yp-tim-photo"><div class="yp-portrait-frame"><img src="__YP_PORTRAIT__" alt="Tim Holtsnider, Passages coach and mentor" width="840" height="1200" loading="lazy" decoding="async"></div><figcaption><span>Tim Holtsnider</span><span>Coach & mentor</span></figcaption><div class="yp-photo-facts"><span><b>40+</b> years of experience</span><span><b>6</b> countries</span><span><b>4</b> continents</span></div></figure>
+    <div><p class="yp-kicker">MEET THE PERSON BEHIND PASSAGES</p><h2 id="yp-tim-heading">Tim Holtsnider.<br><em>Here for what’s next.</em></h2><p>Tim brings more than 40 years of experience across six countries and four continents to a very personal kind of work: helping young people find their voice.</p><p>Through coaching, mentorship, and practical conversation, he helps students develop the confidence and communication skills to navigate the working world.</p><a class="yp-textlink" href="https://calendly.com/tim-mypassages" target="_blank" rel="noopener noreferrer">Meet Tim in a conversation <span aria-hidden="true">↗</span></a></div>
   </section>
 
   <section class="yp-faq yp-width" aria-labelledby="yp-faq-heading"><div><p class="yp-kicker">A FEW THINGS YOU MAY BE WONDERING</p><h2 id="yp-faq-heading">Good questions.</h2></div><div>
@@ -112,6 +123,6 @@
   </div></section>
 
   <section class="yp-close"><div class="yp-width"><p class="yp-kicker">YOU DON’T HAVE TO FIGURE IT OUT ALONE</p><h2>Your future is yours.<br><em>Let’s find a way forward.</em></h2><a class="yp-button yp-button-light" href="https://calendly.com/tim-mypassages" target="_blank" rel="noopener noreferrer">Let’s start a conversation <span aria-hidden="true">↗</span></a><a class="yp-close-secondary" href="#practice">Or start with one small step today →</a></div></section>
-  <div class="yp-footer yp-width"><a class="yp-footer-wordmark" href="#yp">Your Passage</a><span>Skills. Confidence. Your next chapter.</span><span>© __YP_YEAR__ · A Passages concept · Powered by DFE</span></div>
+  <div class="yp-footer yp-width"><a class="yp-footer-wordmark" href="#yp">Your Passage</a><span>Skills. Confidence. Your next chapter.</span><span>© __YP_YEAR__ · Design preview · Copy & exercises pending Tim’s review</span></div>
   <script id="yp-data" type="application/json">__YP_DATA__</script>
 </div>

@@ -39,7 +39,11 @@ class YourPassageTests(unittest.TestCase):
         soup = BeautifulSoup(html, "html.parser")
         ids = [node["id"] for node in soup.select("[id]")]
         self.assertEqual(len(ids), len(set(ids)))
-        self.assertFalse(soup.select("script[src], link[rel=stylesheet], img[src]"))
+        self.assertFalse(soup.select("script[src], link[rel=stylesheet]"))
+        images = soup.select("img[src]")
+        self.assertEqual(len(images), 1)
+        self.assertTrue(images[0]["src"].startswith("data:image/webp;base64,"))
+        self.assertIn("Tim Holtsnider", images[0]["alt"])
         self.assertNotIn("__YP_", html)
         for link in soup.select('a[href^="#"]'):
             self.assertIn(link["href"][1:], ids)
