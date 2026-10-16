@@ -1,0 +1,40 @@
+name: HLLV community homepage UX
+on:
+  push:
+    branches: [feature/hllv-bug-evidence-tracker, 'work/infierno-homepage-*']
+    paths:
+      - .github/hllv-homepage/**
+      - .github/workflows/hllv-homepage.yml
+      - hllv_tracker/index.html
+permissions:
+  contents: read
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+      - name: Check published assets
+        run: |
+          python3 .github/hllv-homepage/publish.py
+          git diff --exit-code -- hllv_tracker/index.html hllv_tracker/deployment-manifest.json
+          node --check .github/hllv-features/app.js
+      - name: Install browser dependencies
+        run: |
+          npm install --no-save --package-lock=false @playwright/test@1.55.0
+          npx playwright install --with-deps chromium webkit
+      - name: Verify landing, accounts and existing tracker routes
+        run: |
+          set -euo pipefail
+          python3 -m http.server 8765 --bind 127.0.0.1 --directory hllv_tracker >/tmp/homepage-http.log 2>&1 &
+          PID=$!
+          trap 'kill "$PID" || true' EXIT
+          HLLV_BROWSER_ENGINE=chromium node .github/hllv-homepage/test_browser.cjs
+          HLLV_BROWSER_ENGINE=webkit node .github/hllv-homepage/test_browser.cjs
+          HLLV_BROWSER_ENGINE=chromium node .github/hllv-features/test_browser.cjs
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: hllv-homepage-previews
+          path: artifacts/homepage-qa/
+          retention-days: 3

@@ -19,6 +19,7 @@
     "assets/registration-bedd085405cf176f.css",
     "assets/submission-thread-307f06c6566b251b.css",
     "assets/source-responses-84abf7fafeb49b62.css",
+    "assets/homepage-634a38a091a64e63.css",
     "assets/source-responses-cdb29d5e3bbdf5dc.js",
     "assets/practice-6b6ee9a21123ec86.js",
     "assets/session-64d9247ad7eb980a.js",
@@ -29,7 +30,7 @@
     "assets/submission-thread-aef8d3439e715791.js",
     "assets/community-9968024fdcdfaa9d.js",
     "data/features.904c4e51cc9b7122.json",
-    "assets/features-f39f964ab9a853cc.js",
+    "assets/features-fa4dc57350baf221.js",
     "assets/features-8b376ecbcf45078a.css",
     "assets/official-feed-1bee5be0574ef8be.js"
   ],
@@ -37,7 +38,7 @@
   "feature_data_url": "data/features.904c4e51cc9b7122.json",
   "feature_assets": [
     "data/features.904c4e51cc9b7122.json",
-    "assets/features-f39f964ab9a853cc.js",
+    "assets/features-fa4dc57350baf221.js",
     "assets/features-8b376ecbcf45078a.css"
   ]
 }
