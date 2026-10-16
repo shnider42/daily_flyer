@@ -70,6 +70,7 @@ const sdk = 'export function createClient(){return {auth:{onAuthStateChange:()=>
   changed.items.unshift({id:'123456',title:'<img src=x onerror=alert(1)> New controller notes',url:'https://www.hellletloose.com/blog/example',published_at:new Date().toISOString(),candidate_feature_ids:['HLLV-F003'],content_sha256:'e'.repeat(64)});
   await page.route('**/official-feed.json',r=>r.fulfill({json:changed}));
   await page.goto(url+'#feature/HLLV-F001',{waitUntil:'networkidle'});
+  await page.reload({waitUntil:'networkidle'});
   await expect(page.locator('#featureReview')).toContainText('awaiting feature review');
   await page.locator('#featureReview summary').click();
   await expect(page.locator('#featureReview')).toContainText('Source text changed since review');
@@ -103,6 +104,7 @@ const sdk = 'export function createClient(){return {auth:{onAuthStateChange:()=>
   let fail=true;
   await page.route('**/data/features.*.json',r=>fail?r.fulfill({status:503,body:'Unavailable'}):r.continue());
   await page.goto(url+'#features',{waitUntil:'networkidle'});
+  await page.reload({waitUntil:'networkidle'});
   await expect(page.locator('#featuresPage')).toContainText('Feature records could not load');
   fail=false;await page.locator('#featureRetry').click();
   await expect(page.locator('#featureResults .ft-row')).toHaveCount(ledger.features.length);
