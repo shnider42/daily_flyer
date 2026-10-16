@@ -2,6 +2,24 @@
   "schema_version": 1,
   "items": [
     {
+      "id": "1846651706678313",
+      "title": "Community Feedback #8 | Command Post",
+      "url": "https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/1846651706678313",
+      "published_at": "2026-10-15T16:00:50Z",
+      "category": "Developer / community announcement",
+      "excerpt": "Welcome back to the Command Post. With Patch 1.7 arriving next week, this week’s Community Update is a",
+      "content_sha256": "ccd0ac3d412f80f292b497075765de37e09f59ba53156bbce041c6008c05238d",
+      "candidate_issue_ids": [
+        "HLLV-003",
+        "HLLV-006",
+        "HLLV-038",
+        "HLLV-057"
+      ],
+      "review_state": "automatically_collected",
+      "first_seen_at": "2026-10-16T12:33:17Z",
+      "last_changed_at": "2026-10-16T12:33:17Z"
+    },
+    {
       "id": "1846018067933766",
       "title": "Community Feedback #7 | Command Post",
       "url": "https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/1846018067933766",
@@ -677,259 +695,260 @@
       "last_changed_at": "2026-10-12T16:32:27Z"
     }
   ],
-  "last_success_at": "2026-10-15T12:43:39Z",
+  "last_success_at": "2026-10-16T12:33:17Z",
   "link_checks": {
     "https://steamcommunity.com/app/3079210/discussions/1/562542339336314254/": {
-      "checked_at": "2026-10-15T12:43:39Z",
+      "checked_at": "2026-10-16T12:33:17Z",
       "scope": "accessibility_only",
       "http_status": 200,
       "final_url": "https://steamcommunity.com/app/3079210/discussions/1/562542339336314254/",
       "title": "VOIP Volume Sliders :: Hell Let Loose: Vietnam Report a Problem"
     },
     "https://steamcommunity.com/app/3079210/discussions/1/583932755647170244/": {
-      "checked_at": "2026-10-15T12:43:39Z",
+      "checked_at": "2026-10-16T12:33:17Z",
       "scope": "accessibility_only",
       "http_status": 200,
       "final_url": "https://steamcommunity.com/app/3079210/discussions/1/583932755647170244/",
       "title": "\"Ghost boats\" appearing that cant be spawned into or killed :: Hell Let Loose: Vietnam Report a Problem"
     },
     "https://steamcommunity.com/app/3079210/discussions/1/583932755647178248/": {
-      "checked_at": "2026-10-15T12:43:39Z",
+      "checked_at": "2026-10-16T12:33:17Z",
       "scope": "accessibility_only",
       "http_status": 200,
       "final_url": "https://steamcommunity.com/app/3079210/discussions/1/583932755647178248/",
       "title": "tutorial bugs :: Hell Let Loose: Vietnam Report a Problem"
     },
     "https://steamcommunity.com/app/3079210/discussions/1/583932755647220221/": {
-      "checked_at": "2026-10-15T12:43:39Z",
+      "checked_at": "2026-10-16T12:33:17Z",
       "scope": "accessibility_only",
       "http_status": 200,
       "final_url": "https://steamcommunity.com/app/3079210/discussions/1/583932755647220221/",
       "title": "Issue with Keyboard inputs on Helicopters :: Hell Let Loose: Vietnam Report a Problem"
     },
     "https://steamcommunity.com/app/3079210/discussions/1/583932755647245596/": {
-      "checked_at": "2026-10-15T12:43:39Z",
+      "checked_at": "2026-10-16T12:33:17Z",
       "scope": "accessibility_only",
       "http_status": 200,
       "final_url": "https://steamcommunity.com/app/3079210/discussions/1/583932755647245596/",
       "title": "Reload of Boat Guns Bugged :: Hell Let Loose: Vietnam Report a Problem"
     },
     "https://steamcommunity.com/app/3079210/discussions/1/583932755647329810/": {
-      "checked_at": "2026-10-15T12:43:39Z",
+      "checked_at": "2026-10-16T12:33:17Z",
       "scope": "accessibility_only",
       "http_status": 200,
       "final_url": "https://steamcommunity.com/app/3079210/discussions/1/583932755647329810/",
       "title": "Fix the Audio PLEASEEEEEEEE :: Hell Let Loose: Vietnam Report a Problem"
     },
     "https://steamcommunity.com/app/3079210/discussions/1/590687230526328326/": {
-      "checked_at": "2026-10-15T12:43:39Z",
+      "checked_at": "2026-10-16T12:33:17Z",
       "scope": "accessibility_only",
       "http_status": 200,
       "final_url": "https://steamcommunity.com/app/3079210/discussions/1/590687230526328326/",
       "title": "Key binding failure for pilot control :: Hell Let Loose: Vietnam Report a Problem"
     },
     "https://steamcommunity.com/app/3079210/discussions/1/590687230526492958/": {
-      "checked_at": "2026-10-15T12:43:39Z",
+      "checked_at": "2026-10-16T12:33:17Z",
       "scope": "accessibility_only",
       "http_status": 200,
       "final_url": "https://steamcommunity.com/app/3079210/discussions/1/590687230526492958/",
       "title": "Voice chat not working after update :: Hell Let Loose: Vietnam Report a Problem"
     },
     "https://steamcommunity.com/app/3079210/discussions/1/590691034935221629/": {
-      "checked_at": "2026-10-15T12:43:39Z",
+      "checked_at": "2026-10-16T12:33:17Z",
       "scope": "accessibility_only",
       "http_status": 200,
       "final_url": "https://steamcommunity.com/app/3079210/discussions/1/590691034935221629/",
       "title": "suppression causes game to freeze :: Hell Let Loose: Vietnam Report a Problem"
     },
     "https://steamcommunity.com/app/3079210/discussions/1/590691034935260366/": {
-      "checked_at": "2026-10-15T12:43:39Z",
+      "checked_at": "2026-10-16T12:33:17Z",
       "scope": "accessibility_only",
       "http_status": 200,
       "final_url": "https://steamcommunity.com/app/3079210/discussions/1/590691034935260366/",
       "title": "Impossible to save tutorial progress :: Hell Let Loose: Vietnam Report a Problem"
     },
     "https://steamcommunity.com/app/3079210/discussions/1/590691034935303773/": {
-      "checked_at": "2026-10-15T12:43:39Z",
+      "checked_at": "2026-10-16T12:33:17Z",
       "scope": "accessibility_only",
       "http_status": 200,
       "final_url": "https://steamcommunity.com/app/3079210/discussions/1/590691034935303773/",
       "title": "Tunnel icons not appearing resulting in unable to use tunnels :: Hell Let Loose: Vietnam Report a Problem"
     },
     "https://steamcommunity.com/app/3079210/discussions/1/590691034935311372/": {
-      "checked_at": "2026-10-15T12:43:39Z",
+      "checked_at": "2026-10-16T12:33:17Z",
       "scope": "accessibility_only",
       "http_status": 200,
       "final_url": "https://steamcommunity.com/app/3079210/discussions/1/590691034935311372/",
       "title": "STILL spawning in locked areas :: Hell Let Loose: Vietnam Report a Problem"
     },
     "https://steamcommunity.com/app/3079210/discussions/1/590691034935315590/": {
-      "checked_at": "2026-10-15T12:43:39Z",
+      "checked_at": "2026-10-16T12:33:17Z",
       "scope": "accessibility_only",
       "http_status": 200,
       "final_url": "https://steamcommunity.com/app/3079210/discussions/1/590691034935315590/",
       "title": "boat engine interaction stuttering :: Hell Let Loose: Vietnam Report a Problem"
     },
     "https://steamcommunity.com/app/3079210/discussions/1/631219091886191710/": {
-      "checked_at": "2026-10-15T12:43:39Z",
+      "checked_at": "2026-10-16T12:33:17Z",
       "scope": "accessibility_only",
       "http_status": 200,
       "final_url": "https://steamcommunity.com/app/3079210/discussions/1/631219091886191710/",
       "title": "White flash/Flicker :: Hell Let Loose: Vietnam Report a Problem"
     },
     "https://steamcommunity.com/app/3079210/discussions/1/631219091886213685/": {
-      "checked_at": "2026-10-15T12:43:39Z",
+      "checked_at": "2026-10-16T12:33:17Z",
       "scope": "accessibility_only",
       "http_status": 200,
       "final_url": "https://steamcommunity.com/app/3079210/discussions/1/631219091886213685/",
       "title": "Cannot shoot between fence boards or between chair or table legs :: Hell Let Loose: Vietnam Report a Problem"
     },
     "https://steamcommunity.com/app/3079210/discussions/1/631219394426598831/": {
-      "checked_at": "2026-10-15T12:43:39Z",
+      "checked_at": "2026-10-16T12:33:17Z",
       "scope": "accessibility_only",
       "http_status": 200,
       "final_url": "https://steamcommunity.com/app/3079210/discussions/1/631219394426598831/",
       "title": "Server side crashes :: Hell Let Loose: Vietnam Report a Problem"
     },
     "https://steamcommunity.com/app/3079210/discussions/1/663863457493431808/": {
-      "checked_at": "2026-10-15T12:43:39Z",
+      "checked_at": "2026-10-16T12:33:17Z",
       "scope": "accessibility_only",
       "http_status": 200,
       "final_url": "https://steamcommunity.com/app/3079210/discussions/1/663863457493431808/",
       "title": "game freezes when getting shot :: Hell Let Loose: Vietnam Report a Problem"
     },
     "https://steamcommunity.com/games/3079210/announcements/detail/684139458559214482": {
-      "checked_at": "2026-10-15T12:43:39Z",
+      "checked_at": "2026-10-16T12:33:17Z",
       "scope": "accessibility_only",
       "http_status": 200,
       "final_url": "https://steamcommunity.com/games/3079210/announcements/detail/684139458559214482",
       "title": "Steam :: Hell Let Loose: Vietnam :: Hotfix 1.5.1 | Live Now"
     },
     "https://steamcommunity.com/gid/103582791475269461/announcements/detail/676259427855107286": {
-      "checked_at": "2026-10-15T12:43:39Z",
+      "checked_at": "2026-10-16T12:33:17Z",
       "scope": "accessibility_only",
       "http_status": 200,
       "final_url": "https://steamcommunity.com/games/3079210/announcements/detail/676259427855107286",
       "title": "Steam :: Hell Let Loose: Vietnam :: Update 1.5 & Patch 1.6 | Dev Update VLOG | Command Post"
     },
     "https://www.hellletloose.com/blog/5-before-launch": {
-      "checked_at": "2026-10-15T12:43:39Z",
+      "checked_at": "2026-10-16T12:33:17Z",
       "scope": "accessibility_only",
       "http_status": 200,
       "final_url": "https://www.hellletloose.com/blog/5-before-launch",
       "title": "Blog - Known Issues, Launch Time & More | Hell Let Loose: Vietnam | Hell Let Loose"
     },
     "https://www.hellletloose.com/blog/community-update-1": {
-      "checked_at": "2026-10-15T12:43:39Z",
+      "checked_at": "2026-10-16T12:33:17Z",
       "scope": "accessibility_only",
       "http_status": 200,
       "final_url": "https://www.hellletloose.com/blog/community-update-1",
       "title": "Blog - Community Update #1 | Command Post | Hell Let Loose: Vietnam | Hell Let Loose"
     },
     "https://www.hellletloose.com/blog/community-update-2": {
-      "checked_at": "2026-10-15T12:43:39Z",
+      "checked_at": "2026-10-16T12:33:17Z",
       "scope": "accessibility_only",
       "http_status": 200,
       "final_url": "https://www.hellletloose.com/blog/community-update-2",
       "title": "Blog - Community Update #2 | Command Post | Hell Let Loose: Vietnam | Hell Let Loose"
     },
     "https://www.hellletloose.com/blog/community-update-3": {
-      "checked_at": "2026-10-15T12:43:39Z",
+      "checked_at": "2026-10-16T12:33:17Z",
       "scope": "accessibility_only",
       "http_status": 200,
       "final_url": "https://www.hellletloose.com/blog/community-update-3",
       "title": "Blog - Community Feedback #3 | Command Post | Hell Let Loose: Vietnam | Hell Let Loose"
     },
     "https://www.hellletloose.com/blog/community-update-4": {
-      "checked_at": "2026-10-15T12:43:39Z",
+      "checked_at": "2026-10-16T12:33:17Z",
       "scope": "accessibility_only",
       "http_status": 200,
       "final_url": "https://www.hellletloose.com/blog/community-update-4",
       "title": "Blog - Community Feedback #4 | Command Post | Hell Let Loose: Vietnam | Hell Let Loose"
     },
     "https://www.hellletloose.com/blog/community-update-5": {
-      "checked_at": "2026-10-15T12:43:39Z",
+      "checked_at": "2026-10-16T12:33:17Z",
       "scope": "accessibility_only",
       "http_status": 200,
       "final_url": "https://www.hellletloose.com/blog/community-update-5",
       "title": "Blog - Community Feedback #5 | Command Post | Hell Let Loose"
     },
     "https://www.hellletloose.com/blog/community-update-6": {
-      "checked_at": "2026-10-15T12:43:39Z",
+      "checked_at": "2026-10-16T12:33:17Z",
       "scope": "accessibility_only",
       "http_status": 200,
       "final_url": "https://www.hellletloose.com/blog/community-update-6",
       "title": "Blog - Community Feedback #6 | Command Post | Hell Let Loose"
     },
     "https://www.hellletloose.com/blog/community-update-7": {
-      "checked_at": "2026-10-15T12:43:39Z",
+      "checked_at": "2026-10-16T12:33:17Z",
       "scope": "accessibility_only",
       "http_status": 200,
       "final_url": "https://www.hellletloose.com/blog/community-update-7",
       "title": "Blog - Community Feedback #7 | Command Post | Hell Let Loose"
     },
     "https://www.hellletloose.com/blog/hllv-hotfix-1-4-2": {
-      "checked_at": "2026-10-15T12:43:39Z",
+      "checked_at": "2026-10-16T12:33:17Z",
       "scope": "accessibility_only",
       "http_status": 200,
       "final_url": "https://www.hellletloose.com/blog/hllv-hotfix-1-4-2",
       "title": "Blog - Hotfix 1.4.2 | Live Now | Hell Let Loose: Vietnam | Hell Let Loose"
     },
     "https://www.hellletloose.com/blog/hllv-hotfix-1-5-2": {
-      "checked_at": "2026-10-15T12:43:39Z",
+      "checked_at": "2026-10-16T12:33:17Z",
       "scope": "accessibility_only",
       "http_status": 200,
       "final_url": "https://www.hellletloose.com/blog/hllv-hotfix-1-5-2",
       "title": "Blog - Hotfix 1.5.2 | Hell Let Loose: Vietnam | Hell Let Loose"
     },
     "https://www.hellletloose.com/blog/hllv-patch-1-2": {
-      "checked_at": "2026-10-15T12:43:39Z",
+      "checked_at": "2026-10-16T12:33:17Z",
       "scope": "accessibility_only",
       "http_status": 200,
       "final_url": "https://www.hellletloose.com/blog/hllv-patch-1-2",
       "title": "Blog - Patch 1.2 | Full Changelog | Hell Let Loose: Vietnam | Hell Let Loose"
     },
     "https://www.hellletloose.com/blog/hllv-patch-1-3": {
-      "checked_at": "2026-10-15T12:43:39Z",
+      "checked_at": "2026-10-16T12:33:17Z",
       "scope": "accessibility_only",
       "http_status": 200,
       "final_url": "https://www.hellletloose.com/blog/hllv-patch-1-3",
       "title": "Blog - Patch 1.3 | Full Changelog | Hell Let Loose: Vietnam | Hell Let Loose"
     },
     "https://www.hellletloose.com/blog/hllv-patch-1-4": {
-      "checked_at": "2026-10-15T12:43:39Z",
+      "checked_at": "2026-10-16T12:33:17Z",
       "scope": "accessibility_only",
       "http_status": 200,
       "final_url": "https://www.hellletloose.com/blog/hllv-patch-1-4",
       "title": "Blog - Patch 1.4 | Full Changelog | Hell Let Loose: Vietnam | Hell Let Loose"
     },
     "https://www.hellletloose.com/blog/hllv-patch-1-6": {
-      "checked_at": "2026-10-15T12:43:39Z",
+      "checked_at": "2026-10-16T12:33:17Z",
       "scope": "accessibility_only",
       "http_status": 200,
       "final_url": "https://www.hellletloose.com/blog/hllv-patch-1-6",
       "title": "Blog - Patch 1.6 | Hell Let Loose: Vietnam | Hell Let Loose"
     },
     "https://www.hellletloose.com/blog/hllv-update-1-5": {
-      "checked_at": "2026-10-15T12:43:39Z",
+      "checked_at": "2026-10-16T12:33:17Z",
       "scope": "accessibility_only",
       "http_status": 200,
       "final_url": "https://www.hellletloose.com/blog/hllv-update-1-5",
       "title": "Blog - Update 1.5 | Full Changelog | Hell Let Loose: Vietnam | Hell Let Loose"
     },
     "https://www.reddit.com/r/HellLetLooseVietnam/comments/1vxeovn/developer_ama_1_hell_let_loose_vietnam_reddit/": {
-      "checked_at": "2026-10-15T12:43:39Z",
+      "checked_at": "2026-10-16T12:33:17Z",
       "scope": "accessibility_only",
       "http_status": 403,
       "error": "HTTP 403"
     }
   },
-  "last_attempt_at": "2026-10-15T12:43:39Z",
+  "last_attempt_at": "2026-10-16T12:33:17Z",
   "schedule": "Nightly around 03:23 America/New_York",
   "source": "Steam official publisher announcements for app 3079210",
   "state": "ok",
   "warnings": [
-    "Some link checks failed. This does not establish deletion or invalidate older evidence."
+    "Some link checks failed. This does not establish deletion or invalidate older evidence.",
+    "Discovery is partial or has a backlog; this does not invalidate the separate existing-source check."
   ],
   "unreachable_links": 1,
   "response_monitor": {
@@ -938,8 +957,8 @@
     "discovery_enabled": true,
     "affiliate_channels_enabled": false,
     "state": "complete",
-    "last_attempt_at": "2026-10-15T15:18:14Z",
-    "last_complete_at": "2026-10-15T15:18:14Z",
+    "last_attempt_at": "2026-10-16T12:33:17Z",
+    "last_complete_at": "2026-10-16T12:33:17Z",
     "threads_total": 17,
     "threads_complete": 17,
     "verified_responses_retained": 42,
@@ -959,8 +978,8 @@
         "pages_expected": 1,
         "comments_seen": 9,
         "comments_expected": 9,
-        "last_attempt_at": "2026-10-15T15:18:14Z",
-        "last_complete_at": "2026-10-15T15:18:14Z",
+        "last_attempt_at": "2026-10-16T12:33:17Z",
+        "last_complete_at": "2026-10-16T12:33:17Z",
         "baseline_at": "2026-10-15T14:09:31Z",
         "replies": [
           {
@@ -973,9 +992,9 @@
             "published_at": "2026-10-07T16:50:10Z",
             "source_edited_at": "2026-10-07T16:56:30Z",
             "content_sha256": "e3796b377fa6245e440dbe2805fadd29353abb27c282cf373dfe87295e22cdc5",
-            "authority_checked_at": "2026-10-15T15:18:14Z",
+            "authority_checked_at": "2026-10-16T12:33:17Z",
             "first_seen_at": "2026-10-15T14:09:31Z",
-            "last_seen_at": "2026-10-15T15:18:14Z",
+            "last_seen_at": "2026-10-16T12:33:17Z",
             "last_changed_at": "2026-10-15T14:09:31Z",
             "change_kind": "baseline",
             "previous_hashes": [],
@@ -996,9 +1015,9 @@
             "published_at": "2026-09-23T08:24:09Z",
             "source_edited_at": null,
             "content_sha256": "2edcc7a7097b9be029957dac12273103a86766a96be50efeb6b896b99d57418d",
-            "authority_checked_at": "2026-10-15T15:18:14Z",
+            "authority_checked_at": "2026-10-16T12:33:17Z",
             "first_seen_at": "2026-10-15T14:09:31Z",
-            "last_seen_at": "2026-10-15T15:18:14Z",
+            "last_seen_at": "2026-10-16T12:33:17Z",
             "last_changed_at": "2026-10-15T14:09:31Z",
             "change_kind": "baseline",
             "previous_hashes": [],
@@ -1014,9 +1033,9 @@
             "published_at": "2026-09-18T15:07:40Z",
             "source_edited_at": null,
             "content_sha256": "4259afbdcaa21529afd5c30b7cc1352c98c134cb72bb9fa885602bffb47a09ca",
-            "authority_checked_at": "2026-10-15T15:18:14Z",
+            "authority_checked_at": "2026-10-16T12:33:17Z",
             "first_seen_at": "2026-10-15T14:09:31Z",
-            "last_seen_at": "2026-10-15T15:18:14Z",
+            "last_seen_at": "2026-10-16T12:33:17Z",
             "last_changed_at": "2026-10-15T14:09:31Z",
             "change_kind": "baseline",
             "previous_hashes": [],
@@ -1038,8 +1057,8 @@
         "pages_expected": 1,
         "comments_seen": 6,
         "comments_expected": 6,
-        "last_attempt_at": "2026-10-15T15:18:14Z",
-        "last_complete_at": "2026-10-15T15:18:14Z",
+        "last_attempt_at": "2026-10-16T12:33:17Z",
+        "last_complete_at": "2026-10-16T12:33:17Z",
         "baseline_at": "2026-10-15T14:09:31Z",
         "replies": [
           {
@@ -1052,9 +1071,9 @@
             "published_at": "2026-08-29T20:20:07Z",
             "source_edited_at": null,
             "content_sha256": "5e53a36328d676a4c073b68a99918b65c22af71d4a1de0033e00c9502f491bc3",
-            "authority_checked_at": "2026-10-15T15:18:14Z",
+            "authority_checked_at": "2026-10-16T12:33:17Z",
             "first_seen_at": "2026-10-15T14:09:31Z",
-            "last_seen_at": "2026-10-15T15:18:14Z",
+            "last_seen_at": "2026-10-16T12:33:17Z",
             "last_changed_at": "2026-10-15T14:09:31Z",
             "change_kind": "baseline",
             "previous_hashes": [],
@@ -1071,9 +1090,9 @@
             "published_at": "2026-08-29T16:57:12Z",
             "source_edited_at": null,
             "content_sha256": "b4a76d424173bf70509dbc5b61344e719b7f82a4cfc6a2b5910c53da650661d5",
-            "authority_checked_at": "2026-10-15T15:18:14Z",
+            "authority_checked_at": "2026-10-16T12:33:17Z",
             "first_seen_at": "2026-10-15T14:09:31Z",
-            "last_seen_at": "2026-10-15T15:18:14Z",
+            "last_seen_at": "2026-10-16T12:33:17Z",
             "last_changed_at": "2026-10-15T14:09:31Z",
             "change_kind": "baseline",
             "previous_hashes": [],
@@ -1089,9 +1108,9 @@
             "published_at": "2026-08-29T15:29:26Z",
             "source_edited_at": null,
             "content_sha256": "fc244fed625e3e7e3dd260b4ac4ab5501e0cdf99b046e247c76477bead819257",
-            "authority_checked_at": "2026-10-15T15:18:14Z",
+            "authority_checked_at": "2026-10-16T12:33:17Z",
             "first_seen_at": "2026-10-15T14:09:31Z",
-            "last_seen_at": "2026-10-15T15:18:14Z",
+            "last_seen_at": "2026-10-16T12:33:17Z",
             "last_changed_at": "2026-10-15T14:09:31Z",
             "change_kind": "baseline",
             "previous_hashes": [],
@@ -1113,8 +1132,8 @@
         "pages_expected": 1,
         "comments_seen": 1,
         "comments_expected": 1,
-        "last_attempt_at": "2026-10-15T15:18:14Z",
-        "last_complete_at": "2026-10-15T15:18:14Z",
+        "last_attempt_at": "2026-10-16T12:33:17Z",
+        "last_complete_at": "2026-10-16T12:33:17Z",
         "baseline_at": "2026-10-15T14:09:31Z",
         "replies": [
           {
@@ -1127,9 +1146,9 @@
             "published_at": "2026-08-29T19:55:47Z",
             "source_edited_at": null,
             "content_sha256": "d3b6193653fcdc6f2b84c96bf5980df841644b55937edfc847c486f1b46cabd9",
-            "authority_checked_at": "2026-10-15T15:18:14Z",
+            "authority_checked_at": "2026-10-16T12:33:17Z",
             "first_seen_at": "2026-10-15T14:09:31Z",
-            "last_seen_at": "2026-10-15T15:18:14Z",
+            "last_seen_at": "2026-10-16T12:33:17Z",
             "last_changed_at": "2026-10-15T14:09:31Z",
             "change_kind": "baseline",
             "previous_hashes": [],
@@ -1152,8 +1171,8 @@
         "pages_expected": 1,
         "comments_seen": 3,
         "comments_expected": 3,
-        "last_attempt_at": "2026-10-15T15:18:14Z",
-        "last_complete_at": "2026-10-15T15:18:14Z",
+        "last_attempt_at": "2026-10-16T12:33:17Z",
+        "last_complete_at": "2026-10-16T12:33:17Z",
         "baseline_at": "2026-10-15T14:09:31Z",
         "replies": [
           {
@@ -1166,9 +1185,9 @@
             "published_at": "2026-08-30T16:10:39Z",
             "source_edited_at": null,
             "content_sha256": "51977cdb83887ee3e5223d92ec6279f91215f1c20ac18a11a99061b7ceb694c8",
-            "authority_checked_at": "2026-10-15T15:18:14Z",
+            "authority_checked_at": "2026-10-16T12:33:17Z",
             "first_seen_at": "2026-10-15T14:09:31Z",
-            "last_seen_at": "2026-10-15T15:18:14Z",
+            "last_seen_at": "2026-10-16T12:33:17Z",
             "last_changed_at": "2026-10-15T14:09:31Z",
             "change_kind": "baseline",
             "previous_hashes": [],
@@ -1185,9 +1204,9 @@
             "published_at": "2026-08-30T15:18:53Z",
             "source_edited_at": null,
             "content_sha256": "ca6cf851ef0201e1ca14a6729517d11a164b397c07cb7579f4b6f031c094f01a",
-            "authority_checked_at": "2026-10-15T15:18:14Z",
+            "authority_checked_at": "2026-10-16T12:33:17Z",
             "first_seen_at": "2026-10-15T14:09:31Z",
-            "last_seen_at": "2026-10-15T15:18:14Z",
+            "last_seen_at": "2026-10-16T12:33:17Z",
             "last_changed_at": "2026-10-15T14:09:31Z",
             "change_kind": "baseline",
             "previous_hashes": [],
@@ -1209,8 +1228,8 @@
         "pages_expected": 1,
         "comments_seen": 1,
         "comments_expected": 1,
-        "last_attempt_at": "2026-10-15T15:18:14Z",
-        "last_complete_at": "2026-10-15T15:18:14Z",
+        "last_attempt_at": "2026-10-16T12:33:17Z",
+        "last_complete_at": "2026-10-16T12:33:17Z",
         "baseline_at": "2026-10-15T14:09:31Z",
         "replies": [
           {
@@ -1223,9 +1242,9 @@
             "published_at": "2026-08-30T16:34:48Z",
             "source_edited_at": null,
             "content_sha256": "33982c69c7b824a7d5ba2248355ec2a37784ce8cdd3b785b267eceab85a1a99c",
-            "authority_checked_at": "2026-10-15T15:18:14Z",
+            "authority_checked_at": "2026-10-16T12:33:17Z",
             "first_seen_at": "2026-10-15T14:09:31Z",
-            "last_seen_at": "2026-10-15T15:18:14Z",
+            "last_seen_at": "2026-10-16T12:33:17Z",
             "last_changed_at": "2026-10-15T14:09:31Z",
             "change_kind": "baseline",
             "previous_hashes": [],
@@ -1248,8 +1267,8 @@
         "pages_expected": 2,
         "comments_seen": 17,
         "comments_expected": 17,
-        "last_attempt_at": "2026-10-15T15:18:14Z",
-        "last_complete_at": "2026-10-15T15:18:14Z",
+        "last_attempt_at": "2026-10-16T12:33:17Z",
+        "last_complete_at": "2026-10-16T12:33:17Z",
         "baseline_at": "2026-10-15T14:09:31Z",
         "replies": [
           {
@@ -1262,9 +1281,9 @@
             "published_at": "2026-09-08T08:16:40Z",
             "source_edited_at": null,
             "content_sha256": "f5c2ede692270e494770bfce26d9524ec391549fc2679fa80a1ecaadca7a9969",
-            "authority_checked_at": "2026-10-15T15:18:14Z",
+            "authority_checked_at": "2026-10-16T12:33:17Z",
             "first_seen_at": "2026-10-15T14:09:31Z",
-            "last_seen_at": "2026-10-15T15:18:14Z",
+            "last_seen_at": "2026-10-16T12:33:17Z",
             "last_changed_at": "2026-10-15T14:09:31Z",
             "change_kind": "baseline",
             "previous_hashes": [],
@@ -1281,9 +1300,9 @@
             "published_at": "2026-09-05T14:38:12Z",
             "source_edited_at": null,
             "content_sha256": "3e822854c092119248438d1e8cbba03bb363dc9df860832d617c2974d90e9b03",
-            "authority_checked_at": "2026-10-15T15:18:14Z",
+            "authority_checked_at": "2026-10-16T12:33:17Z",
             "first_seen_at": "2026-10-15T14:09:31Z",
-            "last_seen_at": "2026-10-15T15:18:14Z",
+            "last_seen_at": "2026-10-16T12:33:17Z",
             "last_changed_at": "2026-10-15T14:09:31Z",
             "change_kind": "baseline",
             "previous_hashes": [],
@@ -1299,9 +1318,9 @@
             "published_at": "2026-09-04T07:47:25Z",
             "source_edited_at": null,
             "content_sha256": "3acab8d1d4e51da21836b4168749cb1236acf3cbba1874d7218d782615733045",
-            "authority_checked_at": "2026-10-15T15:18:14Z",
+            "authority_checked_at": "2026-10-16T12:33:17Z",
             "first_seen_at": "2026-10-15T14:09:31Z",
-            "last_seen_at": "2026-10-15T15:18:14Z",
+            "last_seen_at": "2026-10-16T12:33:17Z",
             "last_changed_at": "2026-10-15T14:09:31Z",
             "change_kind": "baseline",
             "previous_hashes": [],
@@ -1317,9 +1336,9 @@
             "published_at": "2026-09-02T12:52:00Z",
             "source_edited_at": null,
             "content_sha256": "dbb5e8514cada007ff2ac3fb9062fef4f475f3be23e288e786481faef063b74e",
-            "authority_checked_at": "2026-10-15T15:18:14Z",
+            "authority_checked_at": "2026-10-16T12:33:17Z",
             "first_seen_at": "2026-10-15T14:09:31Z",
-            "last_seen_at": "2026-10-15T15:18:14Z",
+            "last_seen_at": "2026-10-16T12:33:17Z",
             "last_changed_at": "2026-10-15T14:09:31Z",
             "change_kind": "baseline",
             "previous_hashes": [],
@@ -1335,9 +1354,9 @@
             "published_at": "2026-09-02T08:15:15Z",
             "source_edited_at": "2026-09-02T08:16:28Z",
             "content_sha256": "4e67e9a723079a1f039651346875bcde7d3a330037db674d9475eb3f6ff291ca",
-            "authority_checked_at": "2026-10-15T15:18:14Z",
+            "authority_checked_at": "2026-10-16T12:33:17Z",
             "first_seen_at": "2026-10-15T14:09:31Z",
-            "last_seen_at": "2026-10-15T15:18:14Z",
+            "last_seen_at": "2026-10-16T12:33:17Z",
             "last_changed_at": "2026-10-15T14:09:31Z",
             "change_kind": "baseline",
             "previous_hashes": [],
@@ -1353,9 +1372,9 @@
             "published_at": "2026-09-01T09:39:37Z",
             "source_edited_at": null,
             "content_sha256": "32cf6b034b5cb5e00d0665c9b3690289ca61d7b3294b0ebc73406aed5424643b",
-            "authority_checked_at": "2026-10-15T15:18:14Z",
+            "authority_checked_at": "2026-10-16T12:33:17Z",
             "first_seen_at": "2026-10-15T14:09:31Z",
-            "last_seen_at": "2026-10-15T15:18:14Z",
+            "last_seen_at": "2026-10-16T12:33:17Z",
             "last_changed_at": "2026-10-15T14:09:31Z",
             "change_kind": "baseline",
             "previous_hashes": [],
@@ -1371,9 +1390,9 @@
             "published_at": "2026-08-31T14:47:00Z",
             "source_edited_at": null,
             "content_sha256": "96158b05fbb0f6e40dfd1e122cd45386bde925d0e6b9b0df0e4dcc189e77ad5b",
-            "authority_checked_at": "2026-10-15T15:18:14Z",
+            "authority_checked_at": "2026-10-16T12:33:17Z",
             "first_seen_at": "2026-10-15T14:09:31Z",
-            "last_seen_at": "2026-10-15T15:18:14Z",
+            "last_seen_at": "2026-10-16T12:33:17Z",
             "last_changed_at": "2026-10-15T14:09:31Z",
             "change_kind": "baseline",
             "previous_hashes": [],
@@ -1395,8 +1414,8 @@
         "pages_expected": 1,
         "comments_seen": 1,
         "comments_expected": 1,
-        "last_attempt_at": "2026-10-15T15:18:14Z",
-        "last_complete_at": "2026-10-15T15:18:14Z",
+        "last_attempt_at": "2026-10-16T12:33:17Z",
+        "last_complete_at": "2026-10-16T12:33:17Z",
         "baseline_at": "2026-10-15T14:09:31Z",
         "replies": [
           {
@@ -1409,9 +1428,9 @@
             "published_at": "2026-08-20T07:56:09Z",
             "source_edited_at": null,
             "content_sha256": "8834dd681e2367dccadb31ed75c14d6b272254f178f1a350960712d97ecd3590",
-            "authority_checked_at": "2026-10-15T15:18:14Z",
+            "authority_checked_at": "2026-10-16T12:33:17Z",
             "first_seen_at": "2026-10-15T14:09:31Z",
-            "last_seen_at": "2026-10-15T15:18:14Z",
+            "last_seen_at": "2026-10-16T12:33:17Z",
             "last_changed_at": "2026-10-15T14:09:31Z",
             "change_kind": "baseline",
             "previous_hashes": [],
@@ -1434,8 +1453,8 @@
         "pages_expected": 1,
         "comments_seen": 2,
         "comments_expected": 2,
-        "last_attempt_at": "2026-10-15T15:18:14Z",
-        "last_complete_at": "2026-10-15T15:18:14Z",
+        "last_attempt_at": "2026-10-16T12:33:17Z",
+        "last_complete_at": "2026-10-16T12:33:17Z",
         "baseline_at": "2026-10-15T14:09:31Z",
         "replies": [
           {
@@ -1448,9 +1467,9 @@
             "published_at": "2026-08-22T13:49:04Z",
             "source_edited_at": null,
             "content_sha256": "dd9e0fbce7229b0974c3ab5ea1279e2ada54e248b30f5da8164a8e2f9af2fb03",
-            "authority_checked_at": "2026-10-15T15:18:14Z",
+            "authority_checked_at": "2026-10-16T12:33:17Z",
             "first_seen_at": "2026-10-15T14:09:31Z",
-            "last_seen_at": "2026-10-15T15:18:14Z",
+            "last_seen_at": "2026-10-16T12:33:17Z",
             "last_changed_at": "2026-10-15T14:09:31Z",
             "change_kind": "baseline",
             "previous_hashes": [],
@@ -1473,8 +1492,8 @@
         "pages_expected": 1,
         "comments_seen": 1,
         "comments_expected": 1,
-        "last_attempt_at": "2026-10-15T15:18:14Z",
-        "last_complete_at": "2026-10-15T15:18:14Z",
+        "last_attempt_at": "2026-10-16T12:33:17Z",
+        "last_complete_at": "2026-10-16T12:33:17Z",
         "baseline_at": "2026-10-15T14:09:31Z",
         "replies": [
           {
@@ -1487,9 +1506,9 @@
             "published_at": "2026-10-05T10:03:08Z",
             "source_edited_at": null,
             "content_sha256": "482515938af207f94efb2360c57d423f22e91c5f261b00a2b13d164c7333fadd",
-            "authority_checked_at": "2026-10-15T15:18:14Z",
+            "authority_checked_at": "2026-10-16T12:33:17Z",
             "first_seen_at": "2026-10-15T14:09:31Z",
-            "last_seen_at": "2026-10-15T15:18:14Z",
+            "last_seen_at": "2026-10-16T12:33:17Z",
             "last_changed_at": "2026-10-15T14:09:31Z",
             "change_kind": "baseline",
             "previous_hashes": [],
@@ -1512,8 +1531,8 @@
         "pages_expected": 1,
         "comments_seen": 2,
         "comments_expected": 2,
-        "last_attempt_at": "2026-10-15T15:18:14Z",
-        "last_complete_at": "2026-10-15T15:18:14Z",
+        "last_attempt_at": "2026-10-16T12:33:17Z",
+        "last_complete_at": "2026-10-16T12:33:17Z",
         "baseline_at": "2026-10-15T14:09:31Z",
         "replies": [
           {
@@ -1526,9 +1545,9 @@
             "published_at": "2026-10-05T09:56:48Z",
             "source_edited_at": null,
             "content_sha256": "1ea26b5c456d12bd59b7c83e3a68bd33a23ac31b7a6098774b697c8587d15b83",
-            "authority_checked_at": "2026-10-15T15:18:14Z",
+            "authority_checked_at": "2026-10-16T12:33:17Z",
             "first_seen_at": "2026-10-15T14:09:31Z",
-            "last_seen_at": "2026-10-15T15:18:14Z",
+            "last_seen_at": "2026-10-16T12:33:17Z",
             "last_changed_at": "2026-10-15T14:09:31Z",
             "change_kind": "baseline",
             "previous_hashes": [],
@@ -1551,8 +1570,8 @@
         "pages_expected": 1,
         "comments_seen": 1,
         "comments_expected": 1,
-        "last_attempt_at": "2026-10-15T15:18:14Z",
-        "last_complete_at": "2026-10-15T15:18:14Z",
+        "last_attempt_at": "2026-10-16T12:33:17Z",
+        "last_complete_at": "2026-10-16T12:33:17Z",
         "baseline_at": "2026-10-15T14:09:31Z",
         "replies": [
           {
@@ -1565,9 +1584,9 @@
             "published_at": "2026-10-05T10:51:04Z",
             "source_edited_at": null,
             "content_sha256": "69a5591248112e750efc4cbe5589111ef5109b4e3bb66028ab61464927551568",
-            "authority_checked_at": "2026-10-15T15:18:14Z",
+            "authority_checked_at": "2026-10-16T12:33:17Z",
             "first_seen_at": "2026-10-15T14:09:31Z",
-            "last_seen_at": "2026-10-15T15:18:14Z",
+            "last_seen_at": "2026-10-16T12:33:17Z",
             "last_changed_at": "2026-10-15T14:09:31Z",
             "change_kind": "baseline",
             "previous_hashes": [],
@@ -1590,8 +1609,8 @@
         "pages_expected": 1,
         "comments_seen": 4,
         "comments_expected": 4,
-        "last_attempt_at": "2026-10-15T15:18:14Z",
-        "last_complete_at": "2026-10-15T15:18:14Z",
+        "last_attempt_at": "2026-10-16T12:33:17Z",
+        "last_complete_at": "2026-10-16T12:33:17Z",
         "baseline_at": "2026-10-15T14:09:31Z",
         "replies": [
           {
@@ -1604,9 +1623,9 @@
             "published_at": "2026-10-07T16:22:06Z",
             "source_edited_at": null,
             "content_sha256": "e9f63bbc9531bd067a4dd6d12043110a4feeac1563f95fb1c1b494a535560fcc",
-            "authority_checked_at": "2026-10-15T15:18:14Z",
+            "authority_checked_at": "2026-10-16T12:33:17Z",
             "first_seen_at": "2026-10-15T14:09:31Z",
-            "last_seen_at": "2026-10-15T15:18:14Z",
+            "last_seen_at": "2026-10-16T12:33:17Z",
             "last_changed_at": "2026-10-15T14:09:31Z",
             "change_kind": "baseline",
             "previous_hashes": [],
@@ -1623,9 +1642,9 @@
             "published_at": "2026-10-05T10:15:42Z",
             "source_edited_at": null,
             "content_sha256": "e1cbd69e357a0d98068e3dd3ace21b15cdbaba3f5c48036be787142ff1e3d626",
-            "authority_checked_at": "2026-10-15T15:18:14Z",
+            "authority_checked_at": "2026-10-16T12:33:17Z",
             "first_seen_at": "2026-10-15T14:09:31Z",
-            "last_seen_at": "2026-10-15T15:18:14Z",
+            "last_seen_at": "2026-10-16T12:33:17Z",
             "last_changed_at": "2026-10-15T14:09:31Z",
             "change_kind": "baseline",
             "previous_hashes": [],
@@ -1647,8 +1666,8 @@
         "pages_expected": 1,
         "comments_seen": 3,
         "comments_expected": 3,
-        "last_attempt_at": "2026-10-15T15:18:14Z",
-        "last_complete_at": "2026-10-15T15:18:14Z",
+        "last_attempt_at": "2026-10-16T12:33:17Z",
+        "last_complete_at": "2026-10-16T12:33:17Z",
         "baseline_at": "2026-10-15T14:09:31Z",
         "replies": [
           {
@@ -1661,9 +1680,9 @@
             "published_at": "2026-10-06T08:20:07Z",
             "source_edited_at": null,
             "content_sha256": "2c569ee9d24522f5fdcb4585a89985b09ee68290702970851ec1fd866cbb2af8",
-            "authority_checked_at": "2026-10-15T15:18:14Z",
+            "authority_checked_at": "2026-10-16T12:33:17Z",
             "first_seen_at": "2026-10-15T14:09:31Z",
-            "last_seen_at": "2026-10-15T15:18:14Z",
+            "last_seen_at": "2026-10-16T12:33:17Z",
             "last_changed_at": "2026-10-15T14:09:31Z",
             "change_kind": "baseline",
             "previous_hashes": [],
@@ -1680,9 +1699,9 @@
             "published_at": "2026-10-05T10:42:09Z",
             "source_edited_at": null,
             "content_sha256": "27b066d26a83a9dea0c2da259be18b920441a2ad7d69209113bf5c88a08da821",
-            "authority_checked_at": "2026-10-15T15:18:14Z",
+            "authority_checked_at": "2026-10-16T12:33:17Z",
             "first_seen_at": "2026-10-15T14:09:31Z",
-            "last_seen_at": "2026-10-15T15:18:14Z",
+            "last_seen_at": "2026-10-16T12:33:17Z",
             "last_changed_at": "2026-10-15T14:09:31Z",
             "change_kind": "baseline",
             "previous_hashes": [],
@@ -1704,8 +1723,8 @@
         "pages_expected": 3,
         "comments_seen": 37,
         "comments_expected": 37,
-        "last_attempt_at": "2026-10-15T15:18:14Z",
-        "last_complete_at": "2026-10-15T15:18:14Z",
+        "last_attempt_at": "2026-10-16T12:33:17Z",
+        "last_complete_at": "2026-10-16T12:33:17Z",
         "baseline_at": "2026-10-15T14:09:31Z",
         "replies": [
           {
@@ -1718,9 +1737,9 @@
             "published_at": "2026-08-31T14:14:23Z",
             "source_edited_at": null,
             "content_sha256": "368b1c73297458ebd6a3f315746d79d3c8e5c913a41ed9524e26d5a4f45bdf40",
-            "authority_checked_at": "2026-10-15T15:18:14Z",
+            "authority_checked_at": "2026-10-16T12:33:17Z",
             "first_seen_at": "2026-10-15T14:09:31Z",
-            "last_seen_at": "2026-10-15T15:18:14Z",
+            "last_seen_at": "2026-10-16T12:33:17Z",
             "last_changed_at": "2026-10-15T14:09:31Z",
             "change_kind": "baseline",
             "previous_hashes": [],
@@ -1737,9 +1756,9 @@
             "published_at": "2026-08-21T12:48:14Z",
             "source_edited_at": null,
             "content_sha256": "c847f3b05fae231dbbc42c7f9b4bf4c9369556dc418abe8680cd50be94dda8c9",
-            "authority_checked_at": "2026-10-15T15:18:14Z",
+            "authority_checked_at": "2026-10-16T12:33:17Z",
             "first_seen_at": "2026-10-15T14:09:31Z",
-            "last_seen_at": "2026-10-15T15:18:14Z",
+            "last_seen_at": "2026-10-16T12:33:17Z",
             "last_changed_at": "2026-10-15T14:09:31Z",
             "change_kind": "baseline",
             "previous_hashes": [],
@@ -1755,9 +1774,9 @@
             "published_at": "2026-08-17T11:11:47Z",
             "source_edited_at": null,
             "content_sha256": "dff9207d77e2aefc9392107ae985349c0fcb21b5d7d7eda586a83f65a6f070be",
-            "authority_checked_at": "2026-10-15T15:18:14Z",
+            "authority_checked_at": "2026-10-16T12:33:17Z",
             "first_seen_at": "2026-10-15T14:09:31Z",
-            "last_seen_at": "2026-10-15T15:18:14Z",
+            "last_seen_at": "2026-10-16T12:33:17Z",
             "last_changed_at": "2026-10-15T14:09:31Z",
             "change_kind": "baseline",
             "previous_hashes": [],
@@ -1773,9 +1792,9 @@
             "published_at": "2026-08-15T19:21:28Z",
             "source_edited_at": null,
             "content_sha256": "36cde1c5b4975ae062f7b4e0db01eaae88cdbdbb6dd49830b5bc3a6b202c89d5",
-            "authority_checked_at": "2026-10-15T15:18:14Z",
+            "authority_checked_at": "2026-10-16T12:33:17Z",
             "first_seen_at": "2026-10-15T14:09:31Z",
-            "last_seen_at": "2026-10-15T15:18:14Z",
+            "last_seen_at": "2026-10-16T12:33:17Z",
             "last_changed_at": "2026-10-15T14:09:31Z",
             "change_kind": "baseline",
             "previous_hashes": [],
@@ -1791,9 +1810,9 @@
             "published_at": "2026-08-14T20:46:29Z",
             "source_edited_at": null,
             "content_sha256": "60b8624fb07111999f48c015b4159b30cf7abcfe43bb405dd7b86f3f7cfdbf8d",
-            "authority_checked_at": "2026-10-15T15:18:14Z",
+            "authority_checked_at": "2026-10-16T12:33:17Z",
             "first_seen_at": "2026-10-15T14:09:31Z",
-            "last_seen_at": "2026-10-15T15:18:14Z",
+            "last_seen_at": "2026-10-16T12:33:17Z",
             "last_changed_at": "2026-10-15T14:09:31Z",
             "change_kind": "baseline",
             "previous_hashes": [],
@@ -1809,9 +1828,9 @@
             "published_at": "2026-08-14T10:26:50Z",
             "source_edited_at": "2026-08-14T10:27:03Z",
             "content_sha256": "31021d0c1a34d1556923c2f1528e7caa4ca88ed917716ceb1096f5120c038005",
-            "authority_checked_at": "2026-10-15T15:18:14Z",
+            "authority_checked_at": "2026-10-16T12:33:17Z",
             "first_seen_at": "2026-10-15T14:09:31Z",
-            "last_seen_at": "2026-10-15T15:18:14Z",
+            "last_seen_at": "2026-10-16T12:33:17Z",
             "last_changed_at": "2026-10-15T14:09:31Z",
             "change_kind": "baseline",
             "previous_hashes": [],
@@ -1833,8 +1852,8 @@
         "pages_expected": 1,
         "comments_seen": 1,
         "comments_expected": 1,
-        "last_attempt_at": "2026-10-15T15:18:14Z",
-        "last_complete_at": "2026-10-15T15:18:14Z",
+        "last_attempt_at": "2026-10-16T12:33:17Z",
+        "last_complete_at": "2026-10-16T12:33:17Z",
         "baseline_at": "2026-10-15T14:09:31Z",
         "replies": [
           {
@@ -1847,9 +1866,9 @@
             "published_at": "2026-08-15T16:12:57Z",
             "source_edited_at": null,
             "content_sha256": "2fd21ec84bc9c1c14f50fd4caeb1c530ada1415131d092f4241cc172910cbe13",
-            "authority_checked_at": "2026-10-15T15:18:14Z",
+            "authority_checked_at": "2026-10-16T12:33:17Z",
             "first_seen_at": "2026-10-15T14:09:31Z",
-            "last_seen_at": "2026-10-15T15:18:14Z",
+            "last_seen_at": "2026-10-16T12:33:17Z",
             "last_changed_at": "2026-10-15T14:09:31Z",
             "change_kind": "baseline",
             "previous_hashes": [],
@@ -1872,8 +1891,8 @@
         "pages_expected": 1,
         "comments_seen": 1,
         "comments_expected": 1,
-        "last_attempt_at": "2026-10-15T15:18:14Z",
-        "last_complete_at": "2026-10-15T15:18:14Z",
+        "last_attempt_at": "2026-10-16T12:33:17Z",
+        "last_complete_at": "2026-10-16T12:33:17Z",
         "baseline_at": "2026-10-15T14:09:31Z",
         "replies": [
           {
@@ -1886,9 +1905,9 @@
             "published_at": "2026-08-18T08:35:12Z",
             "source_edited_at": null,
             "content_sha256": "febf8c4cbe1692e019a034e27e823580e374158e3d57ff607959fc7d0a9811dd",
-            "authority_checked_at": "2026-10-15T15:18:14Z",
+            "authority_checked_at": "2026-10-16T12:33:17Z",
             "first_seen_at": "2026-10-15T14:09:31Z",
-            "last_seen_at": "2026-10-15T15:18:14Z",
+            "last_seen_at": "2026-10-16T12:33:17Z",
             "last_changed_at": "2026-10-15T14:09:31Z",
             "change_kind": "baseline",
             "previous_hashes": [],
@@ -1911,8 +1930,8 @@
         "pages_expected": 2,
         "comments_seen": 17,
         "comments_expected": 17,
-        "last_attempt_at": "2026-10-15T15:18:14Z",
-        "last_complete_at": "2026-10-15T15:18:14Z",
+        "last_attempt_at": "2026-10-16T12:33:17Z",
+        "last_complete_at": "2026-10-16T12:33:17Z",
         "baseline_at": "2026-10-15T14:09:31Z",
         "replies": [
           {
@@ -1925,9 +1944,9 @@
             "published_at": "2026-08-31T13:23:20Z",
             "source_edited_at": null,
             "content_sha256": "f9c3fbc035d8c8ab87fd66fe222bea15a809b20eeeec3c9631235859b30761ff",
-            "authority_checked_at": "2026-10-15T15:18:14Z",
+            "authority_checked_at": "2026-10-16T12:33:17Z",
             "first_seen_at": "2026-10-15T14:09:31Z",
-            "last_seen_at": "2026-10-15T15:18:14Z",
+            "last_seen_at": "2026-10-16T12:33:17Z",
             "last_changed_at": "2026-10-15T14:09:31Z",
             "change_kind": "baseline",
             "previous_hashes": [],
@@ -1944,9 +1963,9 @@
             "published_at": "2026-08-27T07:52:58Z",
             "source_edited_at": null,
             "content_sha256": "579da52a5d7b48ca6614c18f6fb441f741579f31a1d57433e0651c0eb6b22476",
-            "authority_checked_at": "2026-10-15T15:18:14Z",
+            "authority_checked_at": "2026-10-16T12:33:17Z",
             "first_seen_at": "2026-10-15T14:09:31Z",
-            "last_seen_at": "2026-10-15T15:18:14Z",
+            "last_seen_at": "2026-10-16T12:33:17Z",
             "last_changed_at": "2026-10-15T14:09:31Z",
             "change_kind": "baseline",
             "previous_hashes": [],
@@ -1962,9 +1981,9 @@
             "published_at": "2026-08-24T08:30:37Z",
             "source_edited_at": null,
             "content_sha256": "e887eaaee169a1c9179b6bcbc287f084de7bc7c550ad69ea0b7ae0ced0cf6562",
-            "authority_checked_at": "2026-10-15T15:18:14Z",
+            "authority_checked_at": "2026-10-16T12:33:17Z",
             "first_seen_at": "2026-10-15T14:09:31Z",
-            "last_seen_at": "2026-10-15T15:18:14Z",
+            "last_seen_at": "2026-10-16T12:33:17Z",
             "last_changed_at": "2026-10-15T14:09:31Z",
             "change_kind": "baseline",
             "previous_hashes": [],
@@ -1980,9 +1999,9 @@
             "published_at": "2026-08-18T13:13:37Z",
             "source_edited_at": null,
             "content_sha256": "9e5015a42161f931adaffd56bd1df5b0afa3ee8e403ecce6f0ef57b48bf2e477",
-            "authority_checked_at": "2026-10-15T15:18:14Z",
+            "authority_checked_at": "2026-10-16T12:33:17Z",
             "first_seen_at": "2026-10-15T14:09:31Z",
-            "last_seen_at": "2026-10-15T15:18:14Z",
+            "last_seen_at": "2026-10-16T12:33:17Z",
             "last_changed_at": "2026-10-15T14:09:31Z",
             "change_kind": "baseline",
             "previous_hashes": [],
@@ -1998,9 +2017,9 @@
             "published_at": "2026-08-18T09:15:33Z",
             "source_edited_at": null,
             "content_sha256": "eed7fb680d2eed7cdd1d54f4ca1741eb5f02507c9ce5aa30cf0359c5bf821590",
-            "authority_checked_at": "2026-10-15T15:18:14Z",
+            "authority_checked_at": "2026-10-16T12:33:17Z",
             "first_seen_at": "2026-10-15T14:09:31Z",
-            "last_seen_at": "2026-10-15T15:18:14Z",
+            "last_seen_at": "2026-10-16T12:33:17Z",
             "last_changed_at": "2026-10-15T14:09:31Z",
             "change_kind": "baseline",
             "previous_hashes": [],
@@ -2016,9 +2035,9 @@
             "published_at": "2026-08-15T19:05:24Z",
             "source_edited_at": null,
             "content_sha256": "c7379cf1f93c0edbaaa5aca96ef9848c2ebf7f33f02535e81af6e4f379b4e332",
-            "authority_checked_at": "2026-10-15T15:18:14Z",
+            "authority_checked_at": "2026-10-16T12:33:17Z",
             "first_seen_at": "2026-10-15T14:09:31Z",
-            "last_seen_at": "2026-10-15T15:18:14Z",
+            "last_seen_at": "2026-10-16T12:33:17Z",
             "last_changed_at": "2026-10-15T14:09:31Z",
             "change_kind": "baseline",
             "previous_hashes": [],
@@ -2034,9 +2053,9 @@
             "published_at": "2026-06-02T07:44:29Z",
             "source_edited_at": null,
             "content_sha256": "639be9c47e8f597c3833beedd402526b333b957e2e8a8fa1c8afa8fac0a85605",
-            "authority_checked_at": "2026-10-15T15:18:14Z",
+            "authority_checked_at": "2026-10-16T12:33:17Z",
             "first_seen_at": "2026-10-15T14:09:31Z",
-            "last_seen_at": "2026-10-15T15:18:14Z",
+            "last_seen_at": "2026-10-16T12:33:17Z",
             "last_changed_at": "2026-10-15T14:09:31Z",
             "change_kind": "baseline",
             "previous_hashes": [],
@@ -2052,9 +2071,9 @@
             "published_at": "2026-06-01T08:24:55Z",
             "source_edited_at": null,
             "content_sha256": "d4aaedb5fa6ae527ee0400627a472b5ed1aa666ff1b1f15269b672764e7e00bb",
-            "authority_checked_at": "2026-10-15T15:18:14Z",
+            "authority_checked_at": "2026-10-16T12:33:17Z",
             "first_seen_at": "2026-10-15T14:09:31Z",
-            "last_seen_at": "2026-10-15T15:18:14Z",
+            "last_seen_at": "2026-10-16T12:33:17Z",
             "last_changed_at": "2026-10-15T14:09:31Z",
             "change_kind": "baseline",
             "previous_hashes": [],
@@ -2072,7 +2091,7 @@
       "scope": "First two recently active listing pages per forum, plus rotating retained discoveries. Not all Steam discussions; staff replies only, not opening posts.",
       "state": "partial",
       "monitoring_started_at": "2026-10-15T15:18:14Z",
-      "last_attempt_at": "2026-10-15T15:18:14Z",
+      "last_attempt_at": "2026-10-16T12:33:17Z",
       "last_window_complete_at": null,
       "pages_per_forum": 2,
       "thread_limit_per_pass": 24,
@@ -2086,7 +2105,7 @@
           "pages_planned": 2,
           "total_forum_topics": 294,
           "failure_kind": null,
-          "last_attempt_at": "2026-10-15T15:18:14Z"
+          "last_attempt_at": "2026-10-16T12:33:17Z"
         },
         {
           "forum": "0",
@@ -2095,23 +2114,23 @@
           "state": "window_checked",
           "pages_checked": 2,
           "pages_planned": 2,
-          "total_forum_topics": 274,
+          "total_forum_topics": 275,
           "failure_kind": null,
-          "last_attempt_at": "2026-10-15T15:18:14Z"
+          "last_attempt_at": "2026-10-16T12:33:17Z"
         }
       ],
       "listed_distinct_threads": 60,
-      "new_candidates_this_run": 57,
-      "candidate_count": 57,
-      "eligible_candidates": 48,
-      "zero_reply_leads_not_scanned": 9,
+      "new_candidates_this_run": 2,
+      "candidate_count": 59,
+      "eligible_candidates": 49,
+      "zero_reply_leads_not_scanned": 10,
       "threads_attempted_this_run": 24,
       "threads_complete_this_run": 24,
-      "awaiting_first_complete_scan": 24,
-      "not_fully_scanned_this_run": 24,
+      "awaiting_first_complete_scan": 1,
+      "not_fully_scanned_this_run": 25,
       "unqualified_leads_expired_or_capped": 0,
-      "staff_response_threads_retained": 2,
-      "staff_responses_retained": 7,
+      "staff_response_threads_retained": 22,
+      "staff_responses_retained": 44,
       "identities_pending": 0,
       "new_replies_this_run": 0,
       "edited_replies_this_run": 0,
@@ -2120,11 +2139,11 @@
           "url": "https://steamcommunity.com/app/3079210/discussions/0/562542268619209935/",
           "title": "Not returning until Aim Assist is addressed",
           "forum": "0",
-          "listed_reply_count": 49,
-          "listed_last_activity_at": "2026-10-13T18:28:19Z",
+          "listed_reply_count": 48,
+          "listed_last_activity_at": "2026-10-13T00:50:07Z",
           "pinned": false,
           "first_discovered_at": "2026-10-15T15:18:14Z",
-          "last_seen_in_listing_at": "2026-10-15T15:18:14Z",
+          "last_seen_in_listing_at": "2026-10-16T12:33:17Z",
           "last_attempt_at": "2026-10-15T15:18:14Z",
           "last_complete_at": "2026-10-15T15:18:14Z"
         },
@@ -2132,11 +2151,11 @@
           "url": "https://steamcommunity.com/app/3079210/discussions/0/562542268619217340/",
           "title": "Thankgod For Wardogs",
           "forum": "0",
-          "listed_reply_count": 22,
-          "listed_last_activity_at": "2026-10-13T18:37:28Z",
+          "listed_reply_count": 20,
+          "listed_last_activity_at": "2026-10-13T16:41:41Z",
           "pinned": false,
           "first_discovered_at": "2026-10-15T15:18:14Z",
-          "last_seen_in_listing_at": "2026-10-15T15:18:14Z",
+          "last_seen_in_listing_at": "2026-10-16T12:33:17Z",
           "last_attempt_at": "2026-10-15T15:18:14Z",
           "last_complete_at": "2026-10-15T15:18:14Z"
         },
@@ -2144,11 +2163,11 @@
           "url": "https://steamcommunity.com/app/3079210/discussions/0/562542339336393457/",
           "title": "1300 players on steam a saturday morning lmao",
           "forum": "0",
-          "listed_reply_count": 55,
-          "listed_last_activity_at": "2026-10-15T10:56:03Z",
+          "listed_reply_count": 56,
+          "listed_last_activity_at": "2026-10-16T07:25:22Z",
           "pinned": false,
           "first_discovered_at": "2026-10-15T15:18:14Z",
-          "last_seen_in_listing_at": "2026-10-15T15:18:14Z",
+          "last_seen_in_listing_at": "2026-10-16T12:33:17Z",
           "last_attempt_at": "2026-10-15T15:18:14Z",
           "last_complete_at": "2026-10-15T15:18:14Z"
         },
@@ -2156,11 +2175,13 @@
           "url": "https://steamcommunity.com/app/3079210/discussions/0/570426104667493382/",
           "title": "FIX YOUR ♥♥♥♥♥♥♥ TUTORIALS!",
           "forum": "0",
-          "listed_reply_count": 0,
-          "listed_last_activity_at": "2026-10-14T14:00:13Z",
+          "listed_reply_count": 2,
+          "listed_last_activity_at": "2026-10-15T22:41:15Z",
           "pinned": false,
           "first_discovered_at": "2026-10-15T15:18:14Z",
-          "last_seen_in_listing_at": "2026-10-15T15:18:14Z"
+          "last_seen_in_listing_at": "2026-10-16T12:33:17Z",
+          "last_attempt_at": "2026-10-16T12:33:17Z",
+          "last_complete_at": "2026-10-16T12:33:17Z"
         },
         {
           "url": "https://steamcommunity.com/app/3079210/discussions/0/570426104667507245/",
@@ -2170,7 +2191,7 @@
           "listed_last_activity_at": "2026-10-14T17:01:34Z",
           "pinned": false,
           "first_discovered_at": "2026-10-15T15:18:14Z",
-          "last_seen_in_listing_at": "2026-10-15T15:18:14Z"
+          "last_seen_in_listing_at": "2026-10-16T12:33:17Z"
         },
         {
           "url": "https://steamcommunity.com/app/3079210/discussions/0/570426104667533911/",
@@ -2180,7 +2201,7 @@
           "listed_last_activity_at": "2026-10-15T00:39:34Z",
           "pinned": false,
           "first_discovered_at": "2026-10-15T15:18:14Z",
-          "last_seen_in_listing_at": "2026-10-15T15:18:14Z",
+          "last_seen_in_listing_at": "2026-10-16T12:33:17Z",
           "last_attempt_at": "2026-10-15T15:18:14Z",
           "last_complete_at": "2026-10-15T15:18:14Z"
         },
@@ -2192,9 +2213,29 @@
           "listed_last_activity_at": "2026-10-15T03:21:09Z",
           "pinned": false,
           "first_discovered_at": "2026-10-15T15:18:14Z",
-          "last_seen_in_listing_at": "2026-10-15T15:18:14Z",
+          "last_seen_in_listing_at": "2026-10-16T12:33:17Z",
           "last_attempt_at": "2026-10-15T15:18:14Z",
           "last_complete_at": "2026-10-15T15:18:14Z"
+        },
+        {
+          "url": "https://steamcommunity.com/app/3079210/discussions/0/570426104667593901/",
+          "title": "[Change] Add Language\\Country Quick Filter",
+          "forum": "0",
+          "listed_reply_count": 0,
+          "listed_last_activity_at": "2026-10-15T15:30:40Z",
+          "pinned": false,
+          "first_discovered_at": "2026-10-16T12:33:17Z",
+          "last_seen_in_listing_at": "2026-10-16T12:33:17Z"
+        },
+        {
+          "url": "https://steamcommunity.com/app/3079210/discussions/0/570426104667681048/",
+          "title": "544 in game right now",
+          "forum": "0",
+          "listed_reply_count": 0,
+          "listed_last_activity_at": "2026-10-16T11:57:59Z",
+          "pinned": false,
+          "first_discovered_at": "2026-10-16T12:33:17Z",
+          "last_seen_in_listing_at": "2026-10-16T12:33:17Z"
         },
         {
           "url": "https://steamcommunity.com/app/3079210/discussions/0/583933098654206655/",
@@ -2204,7 +2245,7 @@
           "listed_last_activity_at": "2026-10-13T20:46:53Z",
           "pinned": false,
           "first_discovered_at": "2026-10-15T15:18:14Z",
-          "last_seen_in_listing_at": "2026-10-15T15:18:14Z",
+          "last_seen_in_listing_at": "2026-10-16T12:33:17Z",
           "last_attempt_at": "2026-10-15T15:18:14Z",
           "last_complete_at": "2026-10-15T15:18:14Z"
         },
@@ -2216,7 +2257,7 @@
           "listed_last_activity_at": "2026-10-13T21:13:17Z",
           "pinned": false,
           "first_discovered_at": "2026-10-15T15:18:14Z",
-          "last_seen_in_listing_at": "2026-10-15T15:18:14Z",
+          "last_seen_in_listing_at": "2026-10-16T12:33:17Z",
           "last_attempt_at": "2026-10-15T15:18:14Z",
           "last_complete_at": "2026-10-15T15:18:14Z"
         },
@@ -2228,17 +2269,19 @@
           "listed_last_activity_at": "2026-10-12T06:33:46Z",
           "pinned": false,
           "first_discovered_at": "2026-10-15T15:18:14Z",
-          "last_seen_in_listing_at": "2026-10-15T15:18:14Z"
+          "last_seen_in_listing_at": "2026-10-16T12:33:17Z",
+          "last_attempt_at": "2026-10-16T12:33:17Z",
+          "last_complete_at": "2026-10-16T12:33:17Z"
         },
         {
           "url": "https://steamcommunity.com/app/3079210/discussions/0/590691400522146096/",
           "title": "What is causing the US to constantly lose?",
           "forum": "0",
-          "listed_reply_count": 30,
-          "listed_last_activity_at": "2026-10-15T08:12:08Z",
+          "listed_reply_count": 22,
+          "listed_last_activity_at": "2026-10-16T07:35:01Z",
           "pinned": false,
           "first_discovered_at": "2026-10-15T15:18:14Z",
-          "last_seen_in_listing_at": "2026-10-15T15:18:14Z",
+          "last_seen_in_listing_at": "2026-10-16T12:33:17Z",
           "last_attempt_at": "2026-10-15T15:18:14Z",
           "last_complete_at": "2026-10-15T15:18:14Z"
         },
@@ -2250,7 +2293,7 @@
           "listed_last_activity_at": "2026-10-13T21:02:23Z",
           "pinned": false,
           "first_discovered_at": "2026-10-15T15:18:14Z",
-          "last_seen_in_listing_at": "2026-10-15T15:18:14Z",
+          "last_seen_in_listing_at": "2026-10-16T12:33:17Z",
           "last_attempt_at": "2026-10-15T15:18:14Z",
           "last_complete_at": "2026-10-15T15:18:14Z"
         },
@@ -2262,7 +2305,9 @@
           "listed_last_activity_at": "2026-10-12T03:29:16Z",
           "pinned": false,
           "first_discovered_at": "2026-10-15T15:18:14Z",
-          "last_seen_in_listing_at": "2026-10-15T15:18:14Z"
+          "last_seen_in_listing_at": "2026-10-15T15:18:14Z",
+          "last_attempt_at": "2026-10-16T12:33:17Z",
+          "last_complete_at": "2026-10-16T12:33:17Z"
         },
         {
           "url": "https://steamcommunity.com/app/3079210/discussions/0/590691669351029149/",
@@ -2272,7 +2317,7 @@
           "listed_last_activity_at": "2026-10-13T00:52:48Z",
           "pinned": false,
           "first_discovered_at": "2026-10-15T15:18:14Z",
-          "last_seen_in_listing_at": "2026-10-15T15:18:14Z",
+          "last_seen_in_listing_at": "2026-10-16T12:33:17Z",
           "last_attempt_at": "2026-10-15T15:18:14Z",
           "last_complete_at": "2026-10-15T15:18:14Z"
         },
@@ -2284,17 +2329,19 @@
           "listed_last_activity_at": "2026-10-11T23:00:39Z",
           "pinned": false,
           "first_discovered_at": "2026-10-15T15:18:14Z",
-          "last_seen_in_listing_at": "2026-10-15T15:18:14Z"
+          "last_seen_in_listing_at": "2026-10-15T15:18:14Z",
+          "last_attempt_at": "2026-10-16T12:33:17Z",
+          "last_complete_at": "2026-10-16T12:33:17Z"
         },
         {
           "url": "https://steamcommunity.com/app/3079210/discussions/0/590691913363993087/",
           "title": "Why is this becoming less popular than the original?",
           "forum": "0",
-          "listed_reply_count": 14,
+          "listed_reply_count": 12,
           "listed_last_activity_at": "2026-10-13T00:51:31Z",
           "pinned": false,
           "first_discovered_at": "2026-10-15T15:18:14Z",
-          "last_seen_in_listing_at": "2026-10-15T15:18:14Z",
+          "last_seen_in_listing_at": "2026-10-16T12:33:17Z",
           "last_attempt_at": "2026-10-15T15:18:14Z",
           "last_complete_at": "2026-10-15T15:18:14Z"
         },
@@ -2302,11 +2349,11 @@
           "url": "https://steamcommunity.com/app/3079210/discussions/0/590691913364108551/",
           "title": "DEVS the VOIP for CMDR needs redesigned",
           "forum": "0",
-          "listed_reply_count": 12,
-          "listed_last_activity_at": "2026-10-14T11:27:12Z",
+          "listed_reply_count": 13,
+          "listed_last_activity_at": "2026-10-15T20:41:48Z",
           "pinned": false,
           "first_discovered_at": "2026-10-15T15:18:14Z",
-          "last_seen_in_listing_at": "2026-10-15T15:18:14Z",
+          "last_seen_in_listing_at": "2026-10-16T12:33:17Z",
           "last_attempt_at": "2026-10-15T15:18:14Z",
           "last_complete_at": "2026-10-15T15:18:14Z"
         },
@@ -2318,7 +2365,7 @@
           "listed_last_activity_at": "2026-10-15T03:16:09Z",
           "pinned": false,
           "first_discovered_at": "2026-10-15T15:18:14Z",
-          "last_seen_in_listing_at": "2026-10-15T15:18:14Z",
+          "last_seen_in_listing_at": "2026-10-16T12:33:17Z",
           "last_attempt_at": "2026-10-15T15:18:14Z",
           "last_complete_at": "2026-10-15T15:18:14Z"
         },
@@ -2330,7 +2377,7 @@
           "listed_last_activity_at": "2026-10-13T01:16:58Z",
           "pinned": false,
           "first_discovered_at": "2026-10-15T15:18:14Z",
-          "last_seen_in_listing_at": "2026-10-15T15:18:14Z",
+          "last_seen_in_listing_at": "2026-10-16T12:33:17Z",
           "last_attempt_at": "2026-10-15T15:18:14Z",
           "last_complete_at": "2026-10-15T15:18:14Z"
         },
@@ -2342,17 +2389,17 @@
           "listed_last_activity_at": "2026-10-13T03:06:56Z",
           "pinned": false,
           "first_discovered_at": "2026-10-15T15:18:14Z",
-          "last_seen_in_listing_at": "2026-10-15T15:18:14Z"
+          "last_seen_in_listing_at": "2026-10-16T12:33:17Z"
         },
         {
           "url": "https://steamcommunity.com/app/3079210/discussions/0/590692129307764714/",
           "title": "sO a gOoD gAmE!",
           "forum": "0",
-          "listed_reply_count": 12,
+          "listed_reply_count": 9,
           "listed_last_activity_at": "2026-10-15T04:11:17Z",
           "pinned": false,
           "first_discovered_at": "2026-10-15T15:18:14Z",
-          "last_seen_in_listing_at": "2026-10-15T15:18:14Z",
+          "last_seen_in_listing_at": "2026-10-16T12:33:17Z",
           "last_attempt_at": "2026-10-15T15:18:14Z",
           "last_complete_at": "2026-10-15T15:18:14Z"
         },
@@ -2364,7 +2411,7 @@
           "listed_last_activity_at": "2026-10-13T18:53:14Z",
           "pinned": false,
           "first_discovered_at": "2026-10-15T15:18:14Z",
-          "last_seen_in_listing_at": "2026-10-15T15:18:14Z"
+          "last_seen_in_listing_at": "2026-10-16T12:33:17Z"
         },
         {
           "url": "https://steamcommunity.com/app/3079210/discussions/0/591816835949709043/",
@@ -2374,7 +2421,7 @@
           "listed_last_activity_at": "2026-10-14T06:30:22Z",
           "pinned": false,
           "first_discovered_at": "2026-10-15T15:18:14Z",
-          "last_seen_in_listing_at": "2026-10-15T15:18:14Z",
+          "last_seen_in_listing_at": "2026-10-16T12:33:17Z",
           "last_attempt_at": "2026-10-15T15:18:14Z",
           "last_complete_at": "2026-10-15T15:18:14Z"
         },
@@ -2386,7 +2433,7 @@
           "listed_last_activity_at": "2026-08-13T23:06:02Z",
           "pinned": true,
           "first_discovered_at": "2026-10-15T15:18:14Z",
-          "last_seen_in_listing_at": "2026-10-15T15:18:14Z"
+          "last_seen_in_listing_at": "2026-10-16T12:33:17Z"
         },
         {
           "url": "https://steamcommunity.com/app/3079210/discussions/0/631219091886205687/",
@@ -2396,7 +2443,7 @@
           "listed_last_activity_at": "2026-10-15T14:22:09Z",
           "pinned": false,
           "first_discovered_at": "2026-10-15T15:18:14Z",
-          "last_seen_in_listing_at": "2026-10-15T15:18:14Z",
+          "last_seen_in_listing_at": "2026-10-16T12:33:17Z",
           "last_attempt_at": "2026-10-15T15:18:14Z",
           "last_complete_at": "2026-10-15T15:18:14Z"
         },
@@ -2408,7 +2455,7 @@
           "listed_last_activity_at": "2026-10-13T20:49:52Z",
           "pinned": false,
           "first_discovered_at": "2026-10-15T15:18:14Z",
-          "last_seen_in_listing_at": "2026-10-15T15:18:14Z",
+          "last_seen_in_listing_at": "2026-10-16T12:33:17Z",
           "last_attempt_at": "2026-10-15T15:18:14Z",
           "last_complete_at": "2026-10-15T15:18:14Z"
         },
@@ -2416,11 +2463,11 @@
           "url": "https://steamcommunity.com/app/3079210/discussions/0/631219394426468673/",
           "title": "VOIP not working means: devs not playing their own game.-",
           "forum": "0",
-          "listed_reply_count": 24,
-          "listed_last_activity_at": "2026-10-13T20:55:03Z",
+          "listed_reply_count": 25,
+          "listed_last_activity_at": "2026-10-15T15:54:39Z",
           "pinned": false,
           "first_discovered_at": "2026-10-15T15:18:14Z",
-          "last_seen_in_listing_at": "2026-10-15T15:18:14Z",
+          "last_seen_in_listing_at": "2026-10-16T12:33:17Z",
           "last_attempt_at": "2026-10-15T15:18:14Z",
           "last_complete_at": "2026-10-15T15:18:14Z"
         },
@@ -2432,7 +2479,7 @@
           "listed_last_activity_at": "2026-10-13T20:50:54Z",
           "pinned": false,
           "first_discovered_at": "2026-10-15T15:18:14Z",
-          "last_seen_in_listing_at": "2026-10-15T15:18:14Z",
+          "last_seen_in_listing_at": "2026-10-16T12:33:17Z",
           "last_attempt_at": "2026-10-15T15:18:14Z",
           "last_complete_at": "2026-10-15T15:18:14Z"
         },
@@ -2440,11 +2487,11 @@
           "url": "https://steamcommunity.com/app/3079210/discussions/0/663863457493497853/",
           "title": "Is this a little much?",
           "forum": "0",
-          "listed_reply_count": 22,
-          "listed_last_activity_at": "2026-10-15T14:58:01Z",
+          "listed_reply_count": 25,
+          "listed_last_activity_at": "2026-10-16T07:04:08Z",
           "pinned": false,
           "first_discovered_at": "2026-10-15T15:18:14Z",
-          "last_seen_in_listing_at": "2026-10-15T15:18:14Z",
+          "last_seen_in_listing_at": "2026-10-16T12:33:17Z",
           "last_attempt_at": "2026-10-15T15:18:14Z",
           "last_complete_at": "2026-10-15T15:18:14Z"
         },
@@ -2456,7 +2503,7 @@
           "listed_last_activity_at": "2026-10-14T07:20:02Z",
           "pinned": false,
           "first_discovered_at": "2026-10-15T15:18:14Z",
-          "last_seen_in_listing_at": "2026-10-15T15:18:14Z",
+          "last_seen_in_listing_at": "2026-10-16T12:33:17Z",
           "last_attempt_at": "2026-10-15T15:18:14Z",
           "last_complete_at": "2026-10-15T15:18:14Z"
         },
@@ -2468,7 +2515,9 @@
           "listed_last_activity_at": "2026-10-10T22:27:45Z",
           "pinned": false,
           "first_discovered_at": "2026-10-15T15:18:14Z",
-          "last_seen_in_listing_at": "2026-10-15T15:18:14Z"
+          "last_seen_in_listing_at": "2026-10-16T12:33:17Z",
+          "last_attempt_at": "2026-10-16T12:33:17Z",
+          "last_complete_at": "2026-10-16T12:33:17Z"
         },
         {
           "url": "https://steamcommunity.com/app/3079210/discussions/1/570426104667474361/",
@@ -2478,7 +2527,7 @@
           "listed_last_activity_at": "2026-10-14T15:16:50Z",
           "pinned": false,
           "first_discovered_at": "2026-10-15T15:18:14Z",
-          "last_seen_in_listing_at": "2026-10-15T15:18:14Z",
+          "last_seen_in_listing_at": "2026-10-16T12:33:17Z",
           "last_attempt_at": "2026-10-15T15:18:14Z",
           "last_complete_at": "2026-10-15T15:18:14Z"
         },
@@ -2490,7 +2539,7 @@
           "listed_last_activity_at": "2026-10-15T01:32:35Z",
           "pinned": false,
           "first_discovered_at": "2026-10-15T15:18:14Z",
-          "last_seen_in_listing_at": "2026-10-15T15:18:14Z"
+          "last_seen_in_listing_at": "2026-10-16T12:33:17Z"
         },
         {
           "url": "https://steamcommunity.com/app/3079210/discussions/1/570426104667569900/",
@@ -2500,7 +2549,7 @@
           "listed_last_activity_at": "2026-10-15T10:05:42Z",
           "pinned": false,
           "first_discovered_at": "2026-10-15T15:18:14Z",
-          "last_seen_in_listing_at": "2026-10-15T15:18:14Z"
+          "last_seen_in_listing_at": "2026-10-16T12:33:17Z"
         },
         {
           "url": "https://steamcommunity.com/app/3079210/discussions/1/583933098654289260/",
@@ -2510,7 +2559,9 @@
           "listed_last_activity_at": "2026-10-07T07:29:43Z",
           "pinned": false,
           "first_discovered_at": "2026-10-15T15:18:14Z",
-          "last_seen_in_listing_at": "2026-10-15T15:18:14Z"
+          "last_seen_in_listing_at": "2026-10-16T12:33:17Z",
+          "last_attempt_at": "2026-10-16T12:33:17Z",
+          "last_complete_at": "2026-10-16T12:33:17Z"
         },
         {
           "url": "https://steamcommunity.com/app/3079210/discussions/1/590691034935093998/",
@@ -2520,7 +2571,9 @@
           "listed_last_activity_at": "2026-10-09T13:41:19Z",
           "pinned": false,
           "first_discovered_at": "2026-10-15T15:18:14Z",
-          "last_seen_in_listing_at": "2026-10-15T15:18:14Z"
+          "last_seen_in_listing_at": "2026-10-16T12:33:17Z",
+          "last_attempt_at": "2026-10-16T12:33:17Z",
+          "last_complete_at": "2026-10-16T12:33:17Z"
         },
         {
           "url": "https://steamcommunity.com/app/3079210/discussions/1/590691304693880018/",
@@ -2530,7 +2583,9 @@
           "listed_last_activity_at": "2026-10-09T17:36:06Z",
           "pinned": false,
           "first_discovered_at": "2026-10-15T15:18:14Z",
-          "last_seen_in_listing_at": "2026-10-15T15:18:14Z"
+          "last_seen_in_listing_at": "2026-10-16T12:33:17Z",
+          "last_attempt_at": "2026-10-16T12:33:17Z",
+          "last_complete_at": "2026-10-16T12:33:17Z"
         },
         {
           "url": "https://steamcommunity.com/app/3079210/discussions/1/590691400522294166/",
@@ -2540,7 +2595,7 @@
           "listed_last_activity_at": "2026-10-06T07:55:59Z",
           "pinned": false,
           "first_discovered_at": "2026-10-15T15:18:14Z",
-          "last_seen_in_listing_at": "2026-10-15T15:18:14Z"
+          "last_seen_in_listing_at": "2026-10-16T12:33:17Z"
         },
         {
           "url": "https://steamcommunity.com/app/3079210/discussions/1/590691400522301692/",
@@ -2550,7 +2605,9 @@
           "listed_last_activity_at": "2026-10-09T07:31:50Z",
           "pinned": false,
           "first_discovered_at": "2026-10-15T15:18:14Z",
-          "last_seen_in_listing_at": "2026-10-15T15:18:14Z"
+          "last_seen_in_listing_at": "2026-10-16T12:33:17Z",
+          "last_attempt_at": "2026-10-16T12:33:17Z",
+          "last_complete_at": "2026-10-16T12:33:17Z"
         },
         {
           "url": "https://steamcommunity.com/app/3079210/discussions/1/590691400522327719/",
@@ -2560,7 +2617,9 @@
           "listed_last_activity_at": "2026-10-06T08:10:32Z",
           "pinned": false,
           "first_discovered_at": "2026-10-15T15:18:14Z",
-          "last_seen_in_listing_at": "2026-10-15T15:18:14Z"
+          "last_seen_in_listing_at": "2026-10-16T12:33:17Z",
+          "last_attempt_at": "2026-10-16T12:33:17Z",
+          "last_complete_at": "2026-10-16T12:33:17Z"
         },
         {
           "url": "https://steamcommunity.com/app/3079210/discussions/1/590691669350862712/",
@@ -2570,7 +2629,9 @@
           "listed_last_activity_at": "2026-10-08T10:32:35Z",
           "pinned": false,
           "first_discovered_at": "2026-10-15T15:18:14Z",
-          "last_seen_in_listing_at": "2026-10-15T15:18:14Z"
+          "last_seen_in_listing_at": "2026-10-16T12:33:17Z",
+          "last_attempt_at": "2026-10-16T12:33:17Z",
+          "last_complete_at": "2026-10-16T12:33:17Z"
         },
         {
           "url": "https://steamcommunity.com/app/3079210/discussions/1/590691669350965264/",
@@ -2580,7 +2641,9 @@
           "listed_last_activity_at": "2026-10-08T17:51:29Z",
           "pinned": false,
           "first_discovered_at": "2026-10-15T15:18:14Z",
-          "last_seen_in_listing_at": "2026-10-15T15:18:14Z"
+          "last_seen_in_listing_at": "2026-10-16T12:33:17Z",
+          "last_attempt_at": "2026-10-16T12:33:17Z",
+          "last_complete_at": "2026-10-16T12:33:17Z"
         },
         {
           "url": "https://steamcommunity.com/app/3079210/discussions/1/590691669350999190/",
@@ -2590,7 +2653,9 @@
           "listed_last_activity_at": "2026-10-09T07:42:47Z",
           "pinned": false,
           "first_discovered_at": "2026-10-15T15:18:14Z",
-          "last_seen_in_listing_at": "2026-10-15T15:18:14Z"
+          "last_seen_in_listing_at": "2026-10-16T12:33:17Z",
+          "last_attempt_at": "2026-10-16T12:33:17Z",
+          "last_complete_at": "2026-10-16T12:33:17Z"
         },
         {
           "url": "https://steamcommunity.com/app/3079210/discussions/1/590691669351029443/",
@@ -2600,7 +2665,7 @@
           "listed_last_activity_at": "2026-10-09T07:30:32Z",
           "pinned": false,
           "first_discovered_at": "2026-10-15T15:18:14Z",
-          "last_seen_in_listing_at": "2026-10-15T15:18:14Z"
+          "last_seen_in_listing_at": "2026-10-16T12:33:17Z"
         },
         {
           "url": "https://steamcommunity.com/app/3079210/discussions/1/590691913363910117/",
@@ -2610,7 +2675,9 @@
           "listed_last_activity_at": "2026-10-10T11:41:00Z",
           "pinned": false,
           "first_discovered_at": "2026-10-15T15:18:14Z",
-          "last_seen_in_listing_at": "2026-10-15T15:18:14Z"
+          "last_seen_in_listing_at": "2026-10-16T12:33:17Z",
+          "last_attempt_at": "2026-10-16T12:33:17Z",
+          "last_complete_at": "2026-10-16T12:33:17Z"
         },
         {
           "url": "https://steamcommunity.com/app/3079210/discussions/1/590691913363920015/",
@@ -2620,7 +2687,9 @@
           "listed_last_activity_at": "2026-10-10T09:05:11Z",
           "pinned": false,
           "first_discovered_at": "2026-10-15T15:18:14Z",
-          "last_seen_in_listing_at": "2026-10-15T15:18:14Z"
+          "last_seen_in_listing_at": "2026-10-16T12:33:17Z",
+          "last_attempt_at": "2026-10-16T12:33:17Z",
+          "last_complete_at": "2026-10-16T12:33:17Z"
         },
         {
           "url": "https://steamcommunity.com/app/3079210/discussions/1/590691913363920364/",
@@ -2630,7 +2699,9 @@
           "listed_last_activity_at": "2026-10-10T09:21:25Z",
           "pinned": false,
           "first_discovered_at": "2026-10-15T15:18:14Z",
-          "last_seen_in_listing_at": "2026-10-15T15:18:14Z"
+          "last_seen_in_listing_at": "2026-10-16T12:33:17Z",
+          "last_attempt_at": "2026-10-16T12:33:17Z",
+          "last_complete_at": "2026-10-16T12:33:17Z"
         },
         {
           "url": "https://steamcommunity.com/app/3079210/discussions/1/590691913364033969/",
@@ -2640,7 +2711,9 @@
           "listed_last_activity_at": "2026-10-11T08:14:46Z",
           "pinned": false,
           "first_discovered_at": "2026-10-15T15:18:14Z",
-          "last_seen_in_listing_at": "2026-10-15T15:18:14Z"
+          "last_seen_in_listing_at": "2026-10-16T12:33:17Z",
+          "last_attempt_at": "2026-10-16T12:33:17Z",
+          "last_complete_at": "2026-10-16T12:33:17Z"
         },
         {
           "url": "https://steamcommunity.com/app/3079210/discussions/1/590691913364082100/",
@@ -2650,7 +2723,9 @@
           "listed_last_activity_at": "2026-10-12T05:57:07Z",
           "pinned": false,
           "first_discovered_at": "2026-10-15T15:18:14Z",
-          "last_seen_in_listing_at": "2026-10-15T15:18:14Z"
+          "last_seen_in_listing_at": "2026-10-16T12:33:17Z",
+          "last_attempt_at": "2026-10-16T12:33:17Z",
+          "last_complete_at": "2026-10-16T12:33:17Z"
         },
         {
           "url": "https://steamcommunity.com/app/3079210/discussions/1/590691913364082327/",
@@ -2660,7 +2735,9 @@
           "listed_last_activity_at": "2026-10-11T17:53:18Z",
           "pinned": false,
           "first_discovered_at": "2026-10-15T15:18:14Z",
-          "last_seen_in_listing_at": "2026-10-15T15:18:14Z"
+          "last_seen_in_listing_at": "2026-10-16T12:33:17Z",
+          "last_attempt_at": "2026-10-16T12:33:17Z",
+          "last_complete_at": "2026-10-16T12:33:17Z"
         },
         {
           "url": "https://steamcommunity.com/app/3079210/discussions/1/590691913364102885/",
@@ -2670,7 +2747,9 @@
           "listed_last_activity_at": "2026-10-11T17:59:20Z",
           "pinned": false,
           "first_discovered_at": "2026-10-15T15:18:14Z",
-          "last_seen_in_listing_at": "2026-10-15T15:18:14Z"
+          "last_seen_in_listing_at": "2026-10-16T12:33:17Z",
+          "last_attempt_at": "2026-10-16T12:33:17Z",
+          "last_complete_at": "2026-10-16T12:33:17Z"
         },
         {
           "url": "https://steamcommunity.com/app/3079210/discussions/1/590691913364123471/",
@@ -2680,7 +2759,9 @@
           "listed_last_activity_at": "2026-10-12T08:15:03Z",
           "pinned": false,
           "first_discovered_at": "2026-10-15T15:18:14Z",
-          "last_seen_in_listing_at": "2026-10-15T15:18:14Z"
+          "last_seen_in_listing_at": "2026-10-16T12:33:17Z",
+          "last_attempt_at": "2026-10-16T12:33:17Z",
+          "last_complete_at": "2026-10-16T12:33:17Z"
         },
         {
           "url": "https://steamcommunity.com/app/3079210/discussions/1/590692129307668829/",
@@ -2690,7 +2771,9 @@
           "listed_last_activity_at": "2026-10-12T13:38:15Z",
           "pinned": false,
           "first_discovered_at": "2026-10-15T15:18:14Z",
-          "last_seen_in_listing_at": "2026-10-15T15:18:14Z"
+          "last_seen_in_listing_at": "2026-10-16T12:33:17Z",
+          "last_attempt_at": "2026-10-16T12:33:17Z",
+          "last_complete_at": "2026-10-16T12:33:17Z"
         },
         {
           "url": "https://steamcommunity.com/app/3079210/discussions/1/591816302688109179/",
@@ -2700,7 +2783,7 @@
           "listed_last_activity_at": "2026-10-13T17:53:58Z",
           "pinned": false,
           "first_discovered_at": "2026-10-15T15:18:14Z",
-          "last_seen_in_listing_at": "2026-10-15T15:18:14Z",
+          "last_seen_in_listing_at": "2026-10-16T12:33:17Z",
           "last_attempt_at": "2026-10-15T15:18:14Z",
           "last_complete_at": "2026-10-15T15:18:14Z"
         },
@@ -2712,7 +2795,9 @@
           "listed_last_activity_at": "2026-10-07T07:22:01Z",
           "pinned": false,
           "first_discovered_at": "2026-10-15T15:18:14Z",
-          "last_seen_in_listing_at": "2026-10-15T15:18:14Z"
+          "last_seen_in_listing_at": "2026-10-16T12:33:17Z",
+          "last_attempt_at": "2026-10-16T12:33:17Z",
+          "last_complete_at": "2026-10-16T12:33:17Z"
         },
         {
           "url": "https://steamcommunity.com/app/3079210/discussions/1/631219091886176583/",
@@ -2722,7 +2807,9 @@
           "listed_last_activity_at": "2026-10-08T22:02:31Z",
           "pinned": false,
           "first_discovered_at": "2026-10-15T15:18:14Z",
-          "last_seen_in_listing_at": "2026-10-15T15:18:14Z"
+          "last_seen_in_listing_at": "2026-10-16T12:33:17Z",
+          "last_attempt_at": "2026-10-16T12:33:17Z",
+          "last_complete_at": "2026-10-16T12:33:17Z"
         },
         {
           "url": "https://steamcommunity.com/app/3079210/discussions/1/796716131999142934/",
@@ -2732,7 +2819,7 @@
           "listed_last_activity_at": "2026-04-23T15:26:28Z",
           "pinned": true,
           "first_discovered_at": "2026-10-15T15:18:14Z",
-          "last_seen_in_listing_at": "2026-10-15T15:18:14Z"
+          "last_seen_in_listing_at": "2026-10-16T12:33:17Z"
         }
       ],
       "threads": [
@@ -2753,7 +2840,7 @@
           "replies": [],
           "identities_pending": [],
           "changes_this_run": [],
-          "observed_this_run": true,
+          "observed_this_run": false,
           "first_discovered_at": "2026-10-15T15:18:14Z",
           "last_seen_in_listing_at": "2026-10-15T15:18:14Z"
         },
@@ -2774,7 +2861,7 @@
           "replies": [],
           "identities_pending": [],
           "changes_this_run": [],
-          "observed_this_run": true,
+          "observed_this_run": false,
           "first_discovered_at": "2026-10-15T15:18:14Z",
           "last_seen_in_listing_at": "2026-10-15T15:18:14Z"
         },
@@ -2795,9 +2882,30 @@
           "replies": [],
           "identities_pending": [],
           "changes_this_run": [],
-          "observed_this_run": true,
+          "observed_this_run": false,
           "first_discovered_at": "2026-10-15T15:18:14Z",
           "last_seen_in_listing_at": "2026-10-15T15:18:14Z"
+        },
+        {
+          "url": "https://steamcommunity.com/app/3079210/discussions/0/570426104667493382/",
+          "tracked_issue_ids": [],
+          "source_origin": "discovered",
+          "title": "FIX YOUR ♥♥♥♥♥♥♥ TUTORIALS!",
+          "state": "complete",
+          "failure_kind": null,
+          "pages_checked": 1,
+          "pages_expected": 1,
+          "comments_seen": 2,
+          "comments_expected": 2,
+          "last_attempt_at": "2026-10-16T12:33:17Z",
+          "last_complete_at": "2026-10-16T12:33:17Z",
+          "baseline_at": "2026-10-16T12:33:17Z",
+          "replies": [],
+          "identities_pending": [],
+          "changes_this_run": [],
+          "observed_this_run": true,
+          "first_discovered_at": "2026-10-15T15:18:14Z",
+          "last_seen_in_listing_at": "2026-10-16T12:33:17Z"
         },
         {
           "url": "https://steamcommunity.com/app/3079210/discussions/0/570426104667533911/",
@@ -2816,7 +2924,7 @@
           "replies": [],
           "identities_pending": [],
           "changes_this_run": [],
-          "observed_this_run": true,
+          "observed_this_run": false,
           "first_discovered_at": "2026-10-15T15:18:14Z",
           "last_seen_in_listing_at": "2026-10-15T15:18:14Z"
         },
@@ -2837,7 +2945,7 @@
           "replies": [],
           "identities_pending": [],
           "changes_this_run": [],
-          "observed_this_run": true,
+          "observed_this_run": false,
           "first_discovered_at": "2026-10-15T15:18:14Z",
           "last_seen_in_listing_at": "2026-10-15T15:18:14Z"
         },
@@ -2858,7 +2966,7 @@
           "replies": [],
           "identities_pending": [],
           "changes_this_run": [],
-          "observed_this_run": true,
+          "observed_this_run": false,
           "first_discovered_at": "2026-10-15T15:18:14Z",
           "last_seen_in_listing_at": "2026-10-15T15:18:14Z"
         },
@@ -2879,9 +2987,30 @@
           "replies": [],
           "identities_pending": [],
           "changes_this_run": [],
-          "observed_this_run": true,
+          "observed_this_run": false,
           "first_discovered_at": "2026-10-15T15:18:14Z",
           "last_seen_in_listing_at": "2026-10-15T15:18:14Z"
+        },
+        {
+          "url": "https://steamcommunity.com/app/3079210/discussions/0/590691304693894668/",
+          "tracked_issue_ids": [],
+          "source_origin": "discovered",
+          "title": "Please Refund - You can’t undo the launch, but you can still",
+          "state": "complete",
+          "failure_kind": null,
+          "pages_checked": 2,
+          "pages_expected": 2,
+          "comments_seen": 19,
+          "comments_expected": 19,
+          "last_attempt_at": "2026-10-16T12:33:17Z",
+          "last_complete_at": "2026-10-16T12:33:17Z",
+          "baseline_at": "2026-10-16T12:33:17Z",
+          "replies": [],
+          "identities_pending": [],
+          "changes_this_run": [],
+          "observed_this_run": true,
+          "first_discovered_at": "2026-10-15T15:18:14Z",
+          "last_seen_in_listing_at": "2026-10-16T12:33:17Z"
         },
         {
           "url": "https://steamcommunity.com/app/3079210/discussions/0/590691400522146096/",
@@ -2900,7 +3029,7 @@
           "replies": [],
           "identities_pending": [],
           "changes_this_run": [],
-          "observed_this_run": true,
+          "observed_this_run": false,
           "first_discovered_at": "2026-10-15T15:18:14Z",
           "last_seen_in_listing_at": "2026-10-15T15:18:14Z"
         },
@@ -2918,6 +3047,27 @@
           "last_attempt_at": "2026-10-15T15:18:14Z",
           "last_complete_at": "2026-10-15T15:18:14Z",
           "baseline_at": "2026-10-15T15:18:14Z",
+          "replies": [],
+          "identities_pending": [],
+          "changes_this_run": [],
+          "observed_this_run": false,
+          "first_discovered_at": "2026-10-15T15:18:14Z",
+          "last_seen_in_listing_at": "2026-10-15T15:18:14Z"
+        },
+        {
+          "url": "https://steamcommunity.com/app/3079210/discussions/0/590691669351004864/",
+          "tracked_issue_ids": [],
+          "source_origin": "discovered",
+          "title": "M16 SFX are TERRIBLE",
+          "state": "complete",
+          "failure_kind": null,
+          "pages_checked": 1,
+          "pages_expected": 1,
+          "comments_seen": 4,
+          "comments_expected": 4,
+          "last_attempt_at": "2026-10-16T12:33:17Z",
+          "last_complete_at": "2026-10-16T12:33:17Z",
+          "baseline_at": "2026-10-16T12:33:17Z",
           "replies": [],
           "identities_pending": [],
           "changes_this_run": [],
@@ -2939,6 +3089,27 @@
           "last_attempt_at": "2026-10-15T15:18:14Z",
           "last_complete_at": "2026-10-15T15:18:14Z",
           "baseline_at": "2026-10-15T15:18:14Z",
+          "replies": [],
+          "identities_pending": [],
+          "changes_this_run": [],
+          "observed_this_run": false,
+          "first_discovered_at": "2026-10-15T15:18:14Z",
+          "last_seen_in_listing_at": "2026-10-15T15:18:14Z"
+        },
+        {
+          "url": "https://steamcommunity.com/app/3079210/discussions/0/590691669351052705/",
+          "tracked_issue_ids": [],
+          "source_origin": "discovered",
+          "title": "800 in game",
+          "state": "complete",
+          "failure_kind": null,
+          "pages_checked": 2,
+          "pages_expected": 2,
+          "comments_seen": 16,
+          "comments_expected": 16,
+          "last_attempt_at": "2026-10-16T12:33:17Z",
+          "last_complete_at": "2026-10-16T12:33:17Z",
+          "baseline_at": "2026-10-16T12:33:17Z",
           "replies": [],
           "identities_pending": [],
           "changes_this_run": [],
@@ -2963,7 +3134,7 @@
           "replies": [],
           "identities_pending": [],
           "changes_this_run": [],
-          "observed_this_run": true,
+          "observed_this_run": false,
           "first_discovered_at": "2026-10-15T15:18:14Z",
           "last_seen_in_listing_at": "2026-10-15T15:18:14Z"
         },
@@ -2984,7 +3155,7 @@
           "replies": [],
           "identities_pending": [],
           "changes_this_run": [],
-          "observed_this_run": true,
+          "observed_this_run": false,
           "first_discovered_at": "2026-10-15T15:18:14Z",
           "last_seen_in_listing_at": "2026-10-15T15:18:14Z"
         },
@@ -3005,7 +3176,7 @@
           "replies": [],
           "identities_pending": [],
           "changes_this_run": [],
-          "observed_this_run": true,
+          "observed_this_run": false,
           "first_discovered_at": "2026-10-15T15:18:14Z",
           "last_seen_in_listing_at": "2026-10-15T15:18:14Z"
         },
@@ -3026,7 +3197,7 @@
           "replies": [],
           "identities_pending": [],
           "changes_this_run": [],
-          "observed_this_run": true,
+          "observed_this_run": false,
           "first_discovered_at": "2026-10-15T15:18:14Z",
           "last_seen_in_listing_at": "2026-10-15T15:18:14Z"
         },
@@ -3047,7 +3218,7 @@
           "replies": [],
           "identities_pending": [],
           "changes_this_run": [],
-          "observed_this_run": true,
+          "observed_this_run": false,
           "first_discovered_at": "2026-10-15T15:18:14Z",
           "last_seen_in_listing_at": "2026-10-15T15:18:14Z"
         },
@@ -3068,7 +3239,7 @@
           "replies": [],
           "identities_pending": [],
           "changes_this_run": [],
-          "observed_this_run": true,
+          "observed_this_run": false,
           "first_discovered_at": "2026-10-15T15:18:14Z",
           "last_seen_in_listing_at": "2026-10-15T15:18:14Z"
         },
@@ -3089,7 +3260,7 @@
           "replies": [],
           "identities_pending": [],
           "changes_this_run": [],
-          "observed_this_run": true,
+          "observed_this_run": false,
           "first_discovered_at": "2026-10-15T15:18:14Z",
           "last_seen_in_listing_at": "2026-10-15T15:18:14Z"
         },
@@ -3110,7 +3281,7 @@
           "replies": [],
           "identities_pending": [],
           "changes_this_run": [],
-          "observed_this_run": true,
+          "observed_this_run": false,
           "first_discovered_at": "2026-10-15T15:18:14Z",
           "last_seen_in_listing_at": "2026-10-15T15:18:14Z"
         },
@@ -3131,7 +3302,7 @@
           "replies": [],
           "identities_pending": [],
           "changes_this_run": [],
-          "observed_this_run": true,
+          "observed_this_run": false,
           "first_discovered_at": "2026-10-15T15:18:14Z",
           "last_seen_in_listing_at": "2026-10-15T15:18:14Z"
         },
@@ -3152,7 +3323,7 @@
           "replies": [],
           "identities_pending": [],
           "changes_this_run": [],
-          "observed_this_run": true,
+          "observed_this_run": false,
           "first_discovered_at": "2026-10-15T15:18:14Z",
           "last_seen_in_listing_at": "2026-10-15T15:18:14Z"
         },
@@ -3173,7 +3344,7 @@
           "replies": [],
           "identities_pending": [],
           "changes_this_run": [],
-          "observed_this_run": true,
+          "observed_this_run": false,
           "first_discovered_at": "2026-10-15T15:18:14Z",
           "last_seen_in_listing_at": "2026-10-15T15:18:14Z"
         },
@@ -3194,9 +3365,79 @@
           "replies": [],
           "identities_pending": [],
           "changes_this_run": [],
-          "observed_this_run": true,
+          "observed_this_run": false,
           "first_discovered_at": "2026-10-15T15:18:14Z",
           "last_seen_in_listing_at": "2026-10-15T15:18:14Z"
+        },
+        {
+          "url": "https://steamcommunity.com/app/3079210/discussions/1/562542339336181519/",
+          "tracked_issue_ids": [],
+          "source_origin": "discovered",
+          "title": "Tutorial progress not saving",
+          "state": "complete",
+          "failure_kind": null,
+          "pages_checked": 1,
+          "pages_expected": 1,
+          "comments_seen": 6,
+          "comments_expected": 6,
+          "last_attempt_at": "2026-10-16T12:33:17Z",
+          "last_complete_at": "2026-10-16T12:33:17Z",
+          "baseline_at": "2026-10-16T12:33:17Z",
+          "replies": [
+            {
+              "id": "590691400522267069",
+              "response_url": "https://steamcommunity.com/app/3079210/discussions/1/562542339336181519/?ctp=1#c590691400522267069",
+              "steam_id": "76561199006108050",
+              "profile_url": "https://steamcommunity.com/profiles/76561199006108050",
+              "author_label": "Team17_Assist",
+              "source_category": "Team17 Support",
+              "published_at": "2026-10-05T09:59:11Z",
+              "source_edited_at": null,
+              "content_sha256": "f026a42cbdeb6130f60d646b96ddff522651ee60e8a2a800b623dbf6d7679f92",
+              "authority_checked_at": "2026-10-16T12:33:17Z",
+              "first_seen_at": "2026-10-16T12:33:17Z",
+              "last_seen_at": "2026-10-16T12:33:17Z",
+              "last_changed_at": "2026-10-16T12:33:17Z",
+              "change_kind": "historical_discovery",
+              "previous_hashes": [],
+              "excerpt": "Hi all, Thank you for your responses. We can confirm the team is still investigating this issue, we've",
+              "observed_this_run": true
+            },
+            {
+              "id": "562542339336233246",
+              "response_url": "https://steamcommunity.com/app/3079210/discussions/1/562542339336181519/?ctp=1#c562542339336233246",
+              "steam_id": "76561199006108050",
+              "profile_url": "https://steamcommunity.com/profiles/76561199006108050",
+              "author_label": "Team17_Assist",
+              "source_category": "Team17 Support",
+              "published_at": "2026-09-17T07:58:35Z",
+              "source_edited_at": null,
+              "content_sha256": "8421b5b9ccb0b6392130572aa59b61d082f00de9ac5a9e6e4fcddbe08f0cce31",
+              "authority_checked_at": "2026-10-16T12:33:17Z",
+              "first_seen_at": "2026-10-16T12:33:17Z",
+              "last_seen_at": "2026-10-16T12:33:17Z",
+              "last_changed_at": "2026-10-16T12:33:17Z",
+              "change_kind": "historical_discovery",
+              "previous_hashes": [],
+              "observed_this_run": true
+            }
+          ],
+          "identities_pending": [],
+          "changes_this_run": [
+            {
+              "id": "562542339336233246",
+              "kind": "historical_discovery",
+              "detected_at": "2026-10-16T12:33:17Z"
+            },
+            {
+              "id": "590691400522267069",
+              "kind": "historical_discovery",
+              "detected_at": "2026-10-16T12:33:17Z"
+            }
+          ],
+          "observed_this_run": true,
+          "first_discovered_at": "2026-10-15T15:18:14Z",
+          "last_seen_in_listing_at": "2026-10-16T12:33:17Z"
         },
         {
           "url": "https://steamcommunity.com/app/3079210/discussions/1/570426104667474361/",
@@ -3230,14 +3471,974 @@
               "change_kind": "baseline",
               "previous_hashes": [],
               "excerpt": "Hi there KRT™sulu , Thank you for reaching out to us regarding the river flickering when opening the",
-              "observed_this_run": true
+              "observed_this_run": false
             }
           ],
           "identities_pending": [],
           "changes_this_run": [],
-          "observed_this_run": true,
+          "observed_this_run": false,
           "first_discovered_at": "2026-10-15T15:18:14Z",
           "last_seen_in_listing_at": "2026-10-15T15:18:14Z"
+        },
+        {
+          "url": "https://steamcommunity.com/app/3079210/discussions/1/583933098654289260/",
+          "tracked_issue_ids": [],
+          "source_origin": "discovered",
+          "title": "Voice chat isn't working; it doesn't even let me communicate with my",
+          "state": "complete",
+          "failure_kind": null,
+          "pages_checked": 1,
+          "pages_expected": 1,
+          "comments_seen": 4,
+          "comments_expected": 4,
+          "last_attempt_at": "2026-10-16T12:33:17Z",
+          "last_complete_at": "2026-10-16T12:33:17Z",
+          "baseline_at": "2026-10-16T12:33:17Z",
+          "replies": [
+            {
+              "id": "590691669350842074",
+              "response_url": "https://steamcommunity.com/app/3079210/discussions/1/583933098654289260/?ctp=1#c590691669350842074",
+              "steam_id": "76561199006108050",
+              "profile_url": "https://steamcommunity.com/profiles/76561199006108050",
+              "author_label": "Team17_Assist",
+              "source_category": "Team17 Support",
+              "published_at": "2026-10-07T07:29:43Z",
+              "source_edited_at": null,
+              "content_sha256": "241477104a3642fbe0e329776a72afde6630f810e8c18d5c08dc6178254ee00b",
+              "authority_checked_at": "2026-10-16T12:33:17Z",
+              "first_seen_at": "2026-10-16T12:33:17Z",
+              "last_seen_at": "2026-10-16T12:33:17Z",
+              "last_changed_at": "2026-10-16T12:33:17Z",
+              "change_kind": "historical_discovery",
+              "previous_hashes": [],
+              "excerpt": "Hi both, Thank you for sharing your responses. We have passed on",
+              "observed_this_run": true
+            },
+            {
+              "id": "583933098654313063",
+              "response_url": "https://steamcommunity.com/app/3079210/discussions/1/583933098654289260/?ctp=1#c583933098654313063",
+              "steam_id": "76561199006108050",
+              "profile_url": "https://steamcommunity.com/profiles/76561199006108050",
+              "author_label": "Team17_Assist",
+              "source_category": "Team17 Support",
+              "published_at": "2026-09-03T08:07:02Z",
+              "source_edited_at": null,
+              "content_sha256": "4af94b7e74f91eef92d59053ed64b864eb221c98fc8acf17947e56ef270bde21",
+              "authority_checked_at": "2026-10-16T12:33:17Z",
+              "first_seen_at": "2026-10-16T12:33:17Z",
+              "last_seen_at": "2026-10-16T12:33:17Z",
+              "last_changed_at": "2026-10-16T12:33:17Z",
+              "change_kind": "historical_discovery",
+              "previous_hashes": [],
+              "observed_this_run": true
+            }
+          ],
+          "identities_pending": [],
+          "changes_this_run": [
+            {
+              "id": "583933098654313063",
+              "kind": "historical_discovery",
+              "detected_at": "2026-10-16T12:33:17Z"
+            },
+            {
+              "id": "590691669350842074",
+              "kind": "historical_discovery",
+              "detected_at": "2026-10-16T12:33:17Z"
+            }
+          ],
+          "observed_this_run": true,
+          "first_discovered_at": "2026-10-15T15:18:14Z",
+          "last_seen_in_listing_at": "2026-10-16T12:33:17Z"
+        },
+        {
+          "url": "https://steamcommunity.com/app/3079210/discussions/1/590691034935093998/",
+          "tracked_issue_ids": [],
+          "source_origin": "discovered",
+          "title": "VOIP: Reducing the sound via the sliders has almost no impact",
+          "state": "complete",
+          "failure_kind": null,
+          "pages_checked": 1,
+          "pages_expected": 1,
+          "comments_seen": 4,
+          "comments_expected": 4,
+          "last_attempt_at": "2026-10-16T12:33:17Z",
+          "last_complete_at": "2026-10-16T12:33:17Z",
+          "baseline_at": "2026-10-16T12:33:17Z",
+          "replies": [
+            {
+              "id": "590691669351052539",
+              "response_url": "https://steamcommunity.com/app/3079210/discussions/1/590691034935093998/?ctp=1#c590691669351052539",
+              "steam_id": "76561199006108050",
+              "profile_url": "https://steamcommunity.com/profiles/76561199006108050",
+              "author_label": "Team17_Assist",
+              "source_category": "Team17 Support",
+              "published_at": "2026-10-09T13:41:19Z",
+              "source_edited_at": null,
+              "content_sha256": "0b86722d8f6af81e5efb618e48903e024e239e48f410ceb0a52739bb477b6437",
+              "authority_checked_at": "2026-10-16T12:33:17Z",
+              "first_seen_at": "2026-10-16T12:33:17Z",
+              "last_seen_at": "2026-10-16T12:33:17Z",
+              "last_changed_at": "2026-10-16T12:33:17Z",
+              "change_kind": "historical_discovery",
+              "previous_hashes": [],
+              "excerpt": "Hey Grunkle Vlad, We're sorry to hear you're experiencing this issue as well.",
+              "observed_this_run": true
+            },
+            {
+              "id": "590691400522269132",
+              "response_url": "https://steamcommunity.com/app/3079210/discussions/1/590691034935093998/?ctp=1#c590691400522269132",
+              "steam_id": "76561199006108050",
+              "profile_url": "https://steamcommunity.com/profiles/76561199006108050",
+              "author_label": "Team17_Assist",
+              "source_category": "Team17 Support",
+              "published_at": "2026-10-05T10:38:02Z",
+              "source_edited_at": null,
+              "content_sha256": "2c656b962fa21b6fec107977ed14ea3bffbd0aa20eb2ffe9e9642dbbcd8915e4",
+              "authority_checked_at": "2026-10-16T12:33:17Z",
+              "first_seen_at": "2026-10-16T12:33:17Z",
+              "last_seen_at": "2026-10-16T12:33:17Z",
+              "last_changed_at": "2026-10-16T12:33:17Z",
+              "change_kind": "historical_discovery",
+              "previous_hashes": [],
+              "observed_this_run": true
+            }
+          ],
+          "identities_pending": [],
+          "changes_this_run": [
+            {
+              "id": "590691400522269132",
+              "kind": "historical_discovery",
+              "detected_at": "2026-10-16T12:33:17Z"
+            },
+            {
+              "id": "590691669351052539",
+              "kind": "historical_discovery",
+              "detected_at": "2026-10-16T12:33:17Z"
+            }
+          ],
+          "observed_this_run": true,
+          "first_discovered_at": "2026-10-15T15:18:14Z",
+          "last_seen_in_listing_at": "2026-10-16T12:33:17Z"
+        },
+        {
+          "url": "https://steamcommunity.com/app/3079210/discussions/1/590691304693880018/",
+          "tracked_issue_ids": [],
+          "source_origin": "discovered",
+          "title": "Texture streaming issue: Low-res/muddy bush textures on certain maps",
+          "state": "complete",
+          "failure_kind": null,
+          "pages_checked": 1,
+          "pages_expected": 1,
+          "comments_seen": 9,
+          "comments_expected": 9,
+          "last_attempt_at": "2026-10-16T12:33:17Z",
+          "last_complete_at": "2026-10-16T12:33:17Z",
+          "baseline_at": "2026-10-16T12:33:17Z",
+          "replies": [
+            {
+              "id": "590691669351029564",
+              "response_url": "https://steamcommunity.com/app/3079210/discussions/1/590691304693880018/?ctp=1#c590691669351029564",
+              "steam_id": "76561199006108050",
+              "profile_url": "https://steamcommunity.com/profiles/76561199006108050",
+              "author_label": "Team17_Assist",
+              "source_category": "Team17 Support",
+              "published_at": "2026-10-09T07:32:17Z",
+              "source_edited_at": null,
+              "content_sha256": "445d8aae8d233f215aca254681658a165997d296dd9ec149d159d2c4278d4bd3",
+              "authority_checked_at": "2026-10-16T12:33:17Z",
+              "first_seen_at": "2026-10-16T12:33:17Z",
+              "last_seen_at": "2026-10-16T12:33:17Z",
+              "last_changed_at": "2026-10-16T12:33:17Z",
+              "change_kind": "historical_discovery",
+              "previous_hashes": [],
+              "excerpt": "Hey both, Thank you for sharing the information and screenshots. We can confirm that we",
+              "observed_this_run": true
+            },
+            {
+              "id": "590691669350879398",
+              "response_url": "https://steamcommunity.com/app/3079210/discussions/1/590691304693880018/?ctp=1#c590691669350879398",
+              "steam_id": "76561199418459134",
+              "profile_url": "https://steamcommunity.com/profiles/76561199418459134",
+              "author_label": "Team17_Helper",
+              "source_category": "Team17 Support",
+              "published_at": "2026-10-07T16:43:07Z",
+              "source_edited_at": null,
+              "content_sha256": "11506a0bd4f7f19215f8a4dccb391c9d6e46558db951247ee16f6d6525b42dfa",
+              "authority_checked_at": "2026-10-16T12:33:17Z",
+              "first_seen_at": "2026-10-16T12:33:17Z",
+              "last_seen_at": "2026-10-16T12:33:17Z",
+              "last_changed_at": "2026-10-16T12:33:17Z",
+              "change_kind": "historical_discovery",
+              "previous_hashes": [],
+              "observed_this_run": true
+            },
+            {
+              "id": "590691669350842231",
+              "response_url": "https://steamcommunity.com/app/3079210/discussions/1/590691304693880018/?ctp=1#c590691669350842231",
+              "steam_id": "76561199006108050",
+              "profile_url": "https://steamcommunity.com/profiles/76561199006108050",
+              "author_label": "Team17_Assist",
+              "source_category": "Team17 Support",
+              "published_at": "2026-10-07T07:32:46Z",
+              "source_edited_at": null,
+              "content_sha256": "38cd47c46e21ff920228ee93db86d66dd3fd55027390c36579d1edf27d3886b4",
+              "authority_checked_at": "2026-10-16T12:33:17Z",
+              "first_seen_at": "2026-10-16T12:33:17Z",
+              "last_seen_at": "2026-10-16T12:33:17Z",
+              "last_changed_at": "2026-10-16T12:33:17Z",
+              "change_kind": "historical_discovery",
+              "previous_hashes": [],
+              "observed_this_run": true
+            },
+            {
+              "id": "590691400522267510",
+              "response_url": "https://steamcommunity.com/app/3079210/discussions/1/590691304693880018/?ctp=1#c590691400522267510",
+              "steam_id": "76561199006108050",
+              "profile_url": "https://steamcommunity.com/profiles/76561199006108050",
+              "author_label": "Team17_Assist",
+              "source_category": "Team17 Support",
+              "published_at": "2026-10-05T10:07:07Z",
+              "source_edited_at": null,
+              "content_sha256": "1cb76a6898039610c0771990ba807f2483ba0862fffceb0b3e3e5e020297e92c",
+              "authority_checked_at": "2026-10-16T12:33:17Z",
+              "first_seen_at": "2026-10-16T12:33:17Z",
+              "last_seen_at": "2026-10-16T12:33:17Z",
+              "last_changed_at": "2026-10-16T12:33:17Z",
+              "change_kind": "historical_discovery",
+              "previous_hashes": [],
+              "observed_this_run": true
+            }
+          ],
+          "identities_pending": [],
+          "changes_this_run": [
+            {
+              "id": "590691400522267510",
+              "kind": "historical_discovery",
+              "detected_at": "2026-10-16T12:33:17Z"
+            },
+            {
+              "id": "590691669350842231",
+              "kind": "historical_discovery",
+              "detected_at": "2026-10-16T12:33:17Z"
+            },
+            {
+              "id": "590691669350879398",
+              "kind": "historical_discovery",
+              "detected_at": "2026-10-16T12:33:17Z"
+            },
+            {
+              "id": "590691669351029564",
+              "kind": "historical_discovery",
+              "detected_at": "2026-10-16T12:33:17Z"
+            }
+          ],
+          "observed_this_run": true,
+          "first_discovered_at": "2026-10-15T15:18:14Z",
+          "last_seen_in_listing_at": "2026-10-16T12:33:17Z"
+        },
+        {
+          "url": "https://steamcommunity.com/app/3079210/discussions/1/590691400522301692/",
+          "tracked_issue_ids": [],
+          "source_origin": "discovered",
+          "title": "m72 sights",
+          "state": "complete",
+          "failure_kind": null,
+          "pages_checked": 1,
+          "pages_expected": 1,
+          "comments_seen": 3,
+          "comments_expected": 3,
+          "last_attempt_at": "2026-10-16T12:33:17Z",
+          "last_complete_at": "2026-10-16T12:33:17Z",
+          "baseline_at": "2026-10-16T12:33:17Z",
+          "replies": [
+            {
+              "id": "590691669351029530",
+              "response_url": "https://steamcommunity.com/app/3079210/discussions/1/590691400522301692/?ctp=1#c590691669351029530",
+              "steam_id": "76561199006108050",
+              "profile_url": "https://steamcommunity.com/profiles/76561199006108050",
+              "author_label": "Team17_Assist",
+              "source_category": "Team17 Support",
+              "published_at": "2026-10-09T07:31:50Z",
+              "source_edited_at": null,
+              "content_sha256": "6693d6f30ee214d368aa1afb0ba27511cc4715169b8b14caab59b4ec8a293def",
+              "authority_checked_at": "2026-10-16T12:33:17Z",
+              "first_seen_at": "2026-10-16T12:33:17Z",
+              "last_seen_at": "2026-10-16T12:33:17Z",
+              "last_changed_at": "2026-10-16T12:33:17Z",
+              "change_kind": "historical_discovery",
+              "previous_hashes": [],
+              "excerpt": "Hey KRT™sulu, Thanks so much for sharing the screenshots with us! We have passed the issue on to",
+              "observed_this_run": true
+            },
+            {
+              "id": "590691400522347783",
+              "response_url": "https://steamcommunity.com/app/3079210/discussions/1/590691400522301692/?ctp=1#c590691400522347783",
+              "steam_id": "76561199006108050",
+              "profile_url": "https://steamcommunity.com/profiles/76561199006108050",
+              "author_label": "Team17_Assist",
+              "source_category": "Team17 Support",
+              "published_at": "2026-10-06T07:58:10Z",
+              "source_edited_at": null,
+              "content_sha256": "520168628a8c68045a367ff53453a68b7aec1f1216bc175d6dc9da9f0335c483",
+              "authority_checked_at": "2026-10-16T12:33:17Z",
+              "first_seen_at": "2026-10-16T12:33:17Z",
+              "last_seen_at": "2026-10-16T12:33:17Z",
+              "last_changed_at": "2026-10-16T12:33:17Z",
+              "change_kind": "historical_discovery",
+              "previous_hashes": [],
+              "observed_this_run": true
+            }
+          ],
+          "identities_pending": [],
+          "changes_this_run": [
+            {
+              "id": "590691400522347783",
+              "kind": "historical_discovery",
+              "detected_at": "2026-10-16T12:33:17Z"
+            },
+            {
+              "id": "590691669351029530",
+              "kind": "historical_discovery",
+              "detected_at": "2026-10-16T12:33:17Z"
+            }
+          ],
+          "observed_this_run": true,
+          "first_discovered_at": "2026-10-15T15:18:14Z",
+          "last_seen_in_listing_at": "2026-10-16T12:33:17Z"
+        },
+        {
+          "url": "https://steamcommunity.com/app/3079210/discussions/1/590691400522327719/",
+          "tracked_issue_ids": [],
+          "source_origin": "discovered",
+          "title": "Issues",
+          "state": "complete",
+          "failure_kind": null,
+          "pages_checked": 1,
+          "pages_expected": 1,
+          "comments_seen": 1,
+          "comments_expected": 1,
+          "last_attempt_at": "2026-10-16T12:33:17Z",
+          "last_complete_at": "2026-10-16T12:33:17Z",
+          "baseline_at": "2026-10-16T12:33:17Z",
+          "replies": [
+            {
+              "id": "590691400522348392",
+              "response_url": "https://steamcommunity.com/app/3079210/discussions/1/590691400522327719/?ctp=1#c590691400522348392",
+              "steam_id": "76561199006108050",
+              "profile_url": "https://steamcommunity.com/profiles/76561199006108050",
+              "author_label": "Team17_Assist",
+              "source_category": "Team17 Support",
+              "published_at": "2026-10-06T08:10:32Z",
+              "source_edited_at": null,
+              "content_sha256": "95b9a0573cace2ac6e5c230f99fcf8f9872210b10242f7da42ef22d30186127d",
+              "authority_checked_at": "2026-10-16T12:33:17Z",
+              "first_seen_at": "2026-10-16T12:33:17Z",
+              "last_seen_at": "2026-10-16T12:33:17Z",
+              "last_changed_at": "2026-10-16T12:33:17Z",
+              "change_kind": "historical_discovery",
+              "previous_hashes": [],
+              "excerpt": "Hi Murphy, We're sorry to hear you're experiencing this issue with rebinding keys. We have shared the issue",
+              "observed_this_run": true
+            }
+          ],
+          "identities_pending": [],
+          "changes_this_run": [
+            {
+              "id": "590691400522348392",
+              "kind": "historical_discovery",
+              "detected_at": "2026-10-16T12:33:17Z"
+            }
+          ],
+          "observed_this_run": true,
+          "first_discovered_at": "2026-10-15T15:18:14Z",
+          "last_seen_in_listing_at": "2026-10-16T12:33:17Z"
+        },
+        {
+          "url": "https://steamcommunity.com/app/3079210/discussions/1/590691669350862712/",
+          "tracked_issue_ids": [],
+          "source_origin": "discovered",
+          "title": "Failed to load user's save data.Please try again",
+          "state": "complete",
+          "failure_kind": null,
+          "pages_checked": 1,
+          "pages_expected": 1,
+          "comments_seen": 2,
+          "comments_expected": 2,
+          "last_attempt_at": "2026-10-16T12:33:17Z",
+          "last_complete_at": "2026-10-16T12:33:17Z",
+          "baseline_at": "2026-10-16T12:33:17Z",
+          "replies": [
+            {
+              "id": "590691669350878072",
+              "response_url": "https://steamcommunity.com/app/3079210/discussions/1/590691669350862712/?ctp=1#c590691669350878072",
+              "steam_id": "76561199418459134",
+              "profile_url": "https://steamcommunity.com/profiles/76561199418459134",
+              "author_label": "Team17_Helper",
+              "source_category": "Team17 Support",
+              "published_at": "2026-10-07T16:26:10Z",
+              "source_edited_at": null,
+              "content_sha256": "96de68b5488a2a055830c2ac7b9204d4d489b7f42685755d74e54a827df9b74b",
+              "authority_checked_at": "2026-10-16T12:33:17Z",
+              "first_seen_at": "2026-10-16T12:33:17Z",
+              "last_seen_at": "2026-10-16T12:33:17Z",
+              "last_changed_at": "2026-10-16T12:33:17Z",
+              "change_kind": "historical_discovery",
+              "previous_hashes": [],
+              "excerpt": "Hello T-pin2, Thank you so much for reaching out to us about the issue you’re experiencing",
+              "observed_this_run": true
+            }
+          ],
+          "identities_pending": [],
+          "changes_this_run": [
+            {
+              "id": "590691669350878072",
+              "kind": "historical_discovery",
+              "detected_at": "2026-10-16T12:33:17Z"
+            }
+          ],
+          "observed_this_run": true,
+          "first_discovered_at": "2026-10-15T15:18:14Z",
+          "last_seen_in_listing_at": "2026-10-16T12:33:17Z"
+        },
+        {
+          "url": "https://steamcommunity.com/app/3079210/discussions/1/590691669350965264/",
+          "tracked_issue_ids": [],
+          "source_origin": "discovered",
+          "title": "Patch defects as of 11am EST 10/8",
+          "state": "complete",
+          "failure_kind": null,
+          "pages_checked": 1,
+          "pages_expected": 1,
+          "comments_seen": 1,
+          "comments_expected": 1,
+          "last_attempt_at": "2026-10-16T12:33:17Z",
+          "last_complete_at": "2026-10-16T12:33:17Z",
+          "baseline_at": "2026-10-16T12:33:17Z",
+          "replies": [
+            {
+              "id": "590691669350977576",
+              "response_url": "https://steamcommunity.com/app/3079210/discussions/1/590691669350965264/?ctp=1#c590691669350977576",
+              "steam_id": "76561199418165143",
+              "profile_url": "https://steamcommunity.com/profiles/76561199418165143",
+              "author_label": "Team17_Service",
+              "source_category": "Team17 Support",
+              "published_at": "2026-10-08T17:51:29Z",
+              "source_edited_at": null,
+              "content_sha256": "419ddbf40927c7bea2ab57fed5c03092e20af547b20d791a92aa401b4b6641e2",
+              "authority_checked_at": "2026-10-16T12:33:17Z",
+              "first_seen_at": "2026-10-16T12:33:17Z",
+              "last_seen_at": "2026-10-16T12:33:17Z",
+              "last_changed_at": "2026-10-16T12:33:17Z",
+              "change_kind": "historical_discovery",
+              "previous_hashes": [],
+              "excerpt": "Hello there rusty , Thank you for reaching out to us about the issues you have found",
+              "observed_this_run": true
+            }
+          ],
+          "identities_pending": [],
+          "changes_this_run": [
+            {
+              "id": "590691669350977576",
+              "kind": "historical_discovery",
+              "detected_at": "2026-10-16T12:33:17Z"
+            }
+          ],
+          "observed_this_run": true,
+          "first_discovered_at": "2026-10-15T15:18:14Z",
+          "last_seen_in_listing_at": "2026-10-16T12:33:17Z"
+        },
+        {
+          "url": "https://steamcommunity.com/app/3079210/discussions/1/590691669350999190/",
+          "tracked_issue_ids": [],
+          "source_origin": "discovered",
+          "title": "destroying garrison with flames or explosives grants no points",
+          "state": "complete",
+          "failure_kind": null,
+          "pages_checked": 1,
+          "pages_expected": 1,
+          "comments_seen": 1,
+          "comments_expected": 1,
+          "last_attempt_at": "2026-10-16T12:33:17Z",
+          "last_complete_at": "2026-10-16T12:33:17Z",
+          "baseline_at": "2026-10-16T12:33:17Z",
+          "replies": [
+            {
+              "id": "590691669351030273",
+              "response_url": "https://steamcommunity.com/app/3079210/discussions/1/590691669350999190/?ctp=1#c590691669351030273",
+              "steam_id": "76561199006108050",
+              "profile_url": "https://steamcommunity.com/profiles/76561199006108050",
+              "author_label": "Team17_Assist",
+              "source_category": "Team17 Support",
+              "published_at": "2026-10-09T07:42:47Z",
+              "source_edited_at": null,
+              "content_sha256": "90dc13b9cfb8f7b6662c00083884a08a0b7a76f027833268246fea4b2bd2800f",
+              "authority_checked_at": "2026-10-16T12:33:17Z",
+              "first_seen_at": "2026-10-16T12:33:17Z",
+              "last_seen_at": "2026-10-16T12:33:17Z",
+              "last_changed_at": "2026-10-16T12:33:17Z",
+              "change_kind": "historical_discovery",
+              "previous_hashes": [],
+              "excerpt": "Hey KRT™sulu, We're sorry to hear you're experiencing this issue when destroying the garrison with",
+              "observed_this_run": true
+            }
+          ],
+          "identities_pending": [],
+          "changes_this_run": [
+            {
+              "id": "590691669351030273",
+              "kind": "historical_discovery",
+              "detected_at": "2026-10-16T12:33:17Z"
+            }
+          ],
+          "observed_this_run": true,
+          "first_discovered_at": "2026-10-15T15:18:14Z",
+          "last_seen_in_listing_at": "2026-10-16T12:33:17Z"
+        },
+        {
+          "url": "https://steamcommunity.com/app/3079210/discussions/1/590691913363910117/",
+          "tracked_issue_ids": [],
+          "source_origin": "discovered",
+          "title": "DLSS option missing after patch 1.6",
+          "state": "complete",
+          "failure_kind": null,
+          "pages_checked": 1,
+          "pages_expected": 1,
+          "comments_seen": 2,
+          "comments_expected": 2,
+          "last_attempt_at": "2026-10-16T12:33:17Z",
+          "last_complete_at": "2026-10-16T12:33:17Z",
+          "baseline_at": "2026-10-16T12:33:17Z",
+          "replies": [
+            {
+              "id": "590691913363951023",
+              "response_url": "https://steamcommunity.com/app/3079210/discussions/1/590691913363910117/?ctp=1#c590691913363951023",
+              "steam_id": "76561199006108050",
+              "profile_url": "https://steamcommunity.com/profiles/76561199006108050",
+              "author_label": "Team17_Assist",
+              "source_category": "Team17 Support",
+              "published_at": "2026-10-10T09:02:32Z",
+              "source_edited_at": null,
+              "content_sha256": "be72a6a5dfba8eab1e21327da04dd10cd876fb4b6935bca710c7ec5fac5d6835",
+              "authority_checked_at": "2026-10-16T12:33:17Z",
+              "first_seen_at": "2026-10-16T12:33:17Z",
+              "last_seen_at": "2026-10-16T12:33:17Z",
+              "last_changed_at": "2026-10-16T12:33:17Z",
+              "change_kind": "historical_discovery",
+              "previous_hashes": [],
+              "excerpt": "Hey Keisk, We're sorry to hear you're experiencing this issue. We've checked and DLSS comes up without any",
+              "observed_this_run": true
+            }
+          ],
+          "identities_pending": [],
+          "changes_this_run": [
+            {
+              "id": "590691913363951023",
+              "kind": "historical_discovery",
+              "detected_at": "2026-10-16T12:33:17Z"
+            }
+          ],
+          "observed_this_run": true,
+          "first_discovered_at": "2026-10-15T15:18:14Z",
+          "last_seen_in_listing_at": "2026-10-16T12:33:17Z"
+        },
+        {
+          "url": "https://steamcommunity.com/app/3079210/discussions/1/590691913363920015/",
+          "tracked_issue_ids": [],
+          "source_origin": "discovered",
+          "title": "FIX THE GD FKING KEY BINDINGS!!!!!!!!!!!!!!!!!!!!!!!!!!",
+          "state": "complete",
+          "failure_kind": null,
+          "pages_checked": 1,
+          "pages_expected": 1,
+          "comments_seen": 1,
+          "comments_expected": 1,
+          "last_attempt_at": "2026-10-16T12:33:17Z",
+          "last_complete_at": "2026-10-16T12:33:17Z",
+          "baseline_at": "2026-10-16T12:33:17Z",
+          "replies": [
+            {
+              "id": "590691913363951171",
+              "response_url": "https://steamcommunity.com/app/3079210/discussions/1/590691913363920015/?ctp=1#c590691913363951171",
+              "steam_id": "76561199006108050",
+              "profile_url": "https://steamcommunity.com/profiles/76561199006108050",
+              "author_label": "Team17_Assist",
+              "source_category": "Team17 Support",
+              "published_at": "2026-10-10T09:05:11Z",
+              "source_edited_at": null,
+              "content_sha256": "ba4f41ad808675d615d55cfe7618b40c88dd5d2d24c4a8bda12d887d0cfa2ad2",
+              "authority_checked_at": "2026-10-16T12:33:17Z",
+              "first_seen_at": "2026-10-16T12:33:17Z",
+              "last_seen_at": "2026-10-16T12:33:17Z",
+              "last_changed_at": "2026-10-16T12:33:17Z",
+              "change_kind": "historical_discovery",
+              "previous_hashes": [],
+              "excerpt": "Hi Murphy, We're sorry to hear you're experiencing this issue with your keybinds - we have replied to",
+              "observed_this_run": true
+            }
+          ],
+          "identities_pending": [],
+          "changes_this_run": [
+            {
+              "id": "590691913363951171",
+              "kind": "historical_discovery",
+              "detected_at": "2026-10-16T12:33:17Z"
+            }
+          ],
+          "observed_this_run": true,
+          "first_discovered_at": "2026-10-15T15:18:14Z",
+          "last_seen_in_listing_at": "2026-10-16T12:33:17Z"
+        },
+        {
+          "url": "https://steamcommunity.com/app/3079210/discussions/1/590691913363920364/",
+          "tracked_issue_ids": [],
+          "source_origin": "discovered",
+          "title": "Weapon \"Prep\" animations dont match the actual \"Prep\" time",
+          "state": "complete",
+          "failure_kind": null,
+          "pages_checked": 1,
+          "pages_expected": 1,
+          "comments_seen": 1,
+          "comments_expected": 1,
+          "last_attempt_at": "2026-10-16T12:33:17Z",
+          "last_complete_at": "2026-10-16T12:33:17Z",
+          "baseline_at": "2026-10-16T12:33:17Z",
+          "replies": [
+            {
+              "id": "590691913363952096",
+              "response_url": "https://steamcommunity.com/app/3079210/discussions/1/590691913363920364/?ctp=1#c590691913363952096",
+              "steam_id": "76561199006108050",
+              "profile_url": "https://steamcommunity.com/profiles/76561199006108050",
+              "author_label": "Team17_Assist",
+              "source_category": "Team17 Support",
+              "published_at": "2026-10-10T09:21:25Z",
+              "source_edited_at": null,
+              "content_sha256": "5eeb5083e1bf2b082a0ff7e5989d773b233fd8cb83be538d6bf3480baa890d76",
+              "authority_checked_at": "2026-10-16T12:33:17Z",
+              "first_seen_at": "2026-10-16T12:33:17Z",
+              "last_seen_at": "2026-10-16T12:33:17Z",
+              "last_changed_at": "2026-10-16T12:33:17Z",
+              "change_kind": "historical_discovery",
+              "previous_hashes": [],
+              "excerpt": "Hey [BR1] 》Billynair, We're sorry to hear you're experiencing this issue with the animations! We",
+              "observed_this_run": true
+            }
+          ],
+          "identities_pending": [],
+          "changes_this_run": [
+            {
+              "id": "590691913363952096",
+              "kind": "historical_discovery",
+              "detected_at": "2026-10-16T12:33:17Z"
+            }
+          ],
+          "observed_this_run": true,
+          "first_discovered_at": "2026-10-15T15:18:14Z",
+          "last_seen_in_listing_at": "2026-10-16T12:33:17Z"
+        },
+        {
+          "url": "https://steamcommunity.com/app/3079210/discussions/1/590691913364033969/",
+          "tracked_issue_ids": [],
+          "source_origin": "discovered",
+          "title": "HOW MANY TIMES DO I HAVE TO PLAY THE ♥♥♥♥♥♥♥ TUTORIAL!!!!!!!!!!!!!!!!!!!!!",
+          "state": "complete",
+          "failure_kind": null,
+          "pages_checked": 1,
+          "pages_expected": 1,
+          "comments_seen": 1,
+          "comments_expected": 1,
+          "last_attempt_at": "2026-10-16T12:33:17Z",
+          "last_complete_at": "2026-10-16T12:33:17Z",
+          "baseline_at": "2026-10-16T12:33:17Z",
+          "replies": [
+            {
+              "id": "590691913364060219",
+              "response_url": "https://steamcommunity.com/app/3079210/discussions/1/590691913364033969/?ctp=1#c590691913364060219",
+              "steam_id": "76561199006108050",
+              "profile_url": "https://steamcommunity.com/profiles/76561199006108050",
+              "author_label": "Team17_Assist",
+              "source_category": "Team17 Support",
+              "published_at": "2026-10-11T08:14:46Z",
+              "source_edited_at": null,
+              "content_sha256": "21a07584431db5785b6153832e79f70979c42c54d9e7d37068c12917379fa75c",
+              "authority_checked_at": "2026-10-16T12:33:17Z",
+              "first_seen_at": "2026-10-16T12:33:17Z",
+              "last_seen_at": "2026-10-16T12:33:17Z",
+              "last_changed_at": "2026-10-16T12:33:17Z",
+              "change_kind": "historical_discovery",
+              "previous_hashes": [],
+              "excerpt": "Hi yagithemightyb3ar, We're sorry to hear you're experiencing this issue with the tutorials.",
+              "observed_this_run": true
+            }
+          ],
+          "identities_pending": [],
+          "changes_this_run": [
+            {
+              "id": "590691913364060219",
+              "kind": "historical_discovery",
+              "detected_at": "2026-10-16T12:33:17Z"
+            }
+          ],
+          "observed_this_run": true,
+          "first_discovered_at": "2026-10-15T15:18:14Z",
+          "last_seen_in_listing_at": "2026-10-16T12:33:17Z"
+        },
+        {
+          "url": "https://steamcommunity.com/app/3079210/discussions/1/590691913364082100/",
+          "tracked_issue_ids": [],
+          "source_origin": "discovered",
+          "title": "Tutorial Bug",
+          "state": "complete",
+          "failure_kind": null,
+          "pages_checked": 1,
+          "pages_expected": 1,
+          "comments_seen": 2,
+          "comments_expected": 2,
+          "last_attempt_at": "2026-10-16T12:33:17Z",
+          "last_complete_at": "2026-10-16T12:33:17Z",
+          "baseline_at": "2026-10-16T12:33:17Z",
+          "replies": [
+            {
+              "id": "590691913364082220",
+              "response_url": "https://steamcommunity.com/app/3079210/discussions/1/590691913364082100/?ctp=1#c590691913364082220",
+              "steam_id": "76561198363837070",
+              "profile_url": "https://steamcommunity.com/profiles/76561198363837070",
+              "author_label": "Team17_Help",
+              "source_category": "Team17 Support",
+              "published_at": "2026-10-11T13:45:43Z",
+              "source_edited_at": null,
+              "content_sha256": "26b8c46aa20055ce27fae78fbb4015eaf48decf7eeb418e44767d0fe1ec64c80",
+              "authority_checked_at": "2026-10-16T12:33:17Z",
+              "first_seen_at": "2026-10-16T12:33:17Z",
+              "last_seen_at": "2026-10-16T12:33:17Z",
+              "last_changed_at": "2026-10-16T12:33:17Z",
+              "change_kind": "historical_discovery",
+              "previous_hashes": [],
+              "excerpt": "Hello skipom , Thank you for reaching out. We understand how frustrating it is to be repeatedly sent",
+              "observed_this_run": true
+            }
+          ],
+          "identities_pending": [],
+          "changes_this_run": [
+            {
+              "id": "590691913364082220",
+              "kind": "historical_discovery",
+              "detected_at": "2026-10-16T12:33:17Z"
+            }
+          ],
+          "observed_this_run": true,
+          "first_discovered_at": "2026-10-15T15:18:14Z",
+          "last_seen_in_listing_at": "2026-10-16T12:33:17Z"
+        },
+        {
+          "url": "https://steamcommunity.com/app/3079210/discussions/1/590691913364082327/",
+          "tracked_issue_ids": [],
+          "source_origin": "discovered",
+          "title": "foliage looks TERRIBLE.",
+          "state": "complete",
+          "failure_kind": null,
+          "pages_checked": 1,
+          "pages_expected": 1,
+          "comments_seen": 3,
+          "comments_expected": 3,
+          "last_attempt_at": "2026-10-16T12:33:17Z",
+          "last_complete_at": "2026-10-16T12:33:17Z",
+          "baseline_at": "2026-10-16T12:33:17Z",
+          "replies": [
+            {
+              "id": "590691913364102698",
+              "response_url": "https://steamcommunity.com/app/3079210/discussions/1/590691913364082327/?ctp=1#c590691913364102698",
+              "steam_id": "76561198363837070",
+              "profile_url": "https://steamcommunity.com/profiles/76561198363837070",
+              "author_label": "Team17_Help",
+              "source_category": "Team17 Support",
+              "published_at": "2026-10-11T17:53:18Z",
+              "source_edited_at": null,
+              "content_sha256": "fd4299a28afa06134207e54591e4661fb07a7262a0305cd7a0373a0b4b51ea1a",
+              "authority_checked_at": "2026-10-16T12:33:17Z",
+              "first_seen_at": "2026-10-16T12:33:17Z",
+              "last_seen_at": "2026-10-16T12:33:17Z",
+              "last_changed_at": "2026-10-16T12:33:17Z",
+              "change_kind": "historical_discovery",
+              "previous_hashes": [],
+              "excerpt": "Hello again Remy , Thanks for reaching back and sharing your DxDiag file. After reviewing your DxDiag file,",
+              "observed_this_run": true
+            },
+            {
+              "id": "590691913364082427",
+              "response_url": "https://steamcommunity.com/app/3079210/discussions/1/590691913364082327/?ctp=1#c590691913364082427",
+              "steam_id": "76561198363837070",
+              "profile_url": "https://steamcommunity.com/profiles/76561198363837070",
+              "author_label": "Team17_Help",
+              "source_category": "Team17 Support",
+              "published_at": "2026-10-11T13:48:44Z",
+              "source_edited_at": null,
+              "content_sha256": "97f8fea851fb54b063585d51da364e2d4b4696cd0f20ac4ad974bbe5e94bf74d",
+              "authority_checked_at": "2026-10-16T12:33:17Z",
+              "first_seen_at": "2026-10-16T12:33:17Z",
+              "last_seen_at": "2026-10-16T12:33:17Z",
+              "last_changed_at": "2026-10-16T12:33:17Z",
+              "change_kind": "historical_discovery",
+              "previous_hashes": [],
+              "observed_this_run": true
+            }
+          ],
+          "identities_pending": [],
+          "changes_this_run": [
+            {
+              "id": "590691913364082427",
+              "kind": "historical_discovery",
+              "detected_at": "2026-10-16T12:33:17Z"
+            },
+            {
+              "id": "590691913364102698",
+              "kind": "historical_discovery",
+              "detected_at": "2026-10-16T12:33:17Z"
+            }
+          ],
+          "observed_this_run": true,
+          "first_discovered_at": "2026-10-15T15:18:14Z",
+          "last_seen_in_listing_at": "2026-10-16T12:33:17Z"
+        },
+        {
+          "url": "https://steamcommunity.com/app/3079210/discussions/1/590691913364102885/",
+          "tracked_issue_ids": [],
+          "source_origin": "discovered",
+          "title": "Error window appear",
+          "state": "complete",
+          "failure_kind": null,
+          "pages_checked": 1,
+          "pages_expected": 1,
+          "comments_seen": 1,
+          "comments_expected": 1,
+          "last_attempt_at": "2026-10-16T12:33:17Z",
+          "last_complete_at": "2026-10-16T12:33:17Z",
+          "baseline_at": "2026-10-16T12:33:17Z",
+          "replies": [
+            {
+              "id": "590691913364103178",
+              "response_url": "https://steamcommunity.com/app/3079210/discussions/1/590691913364102885/?ctp=1#c590691913364103178",
+              "steam_id": "76561198363837070",
+              "profile_url": "https://steamcommunity.com/profiles/76561198363837070",
+              "author_label": "Team17_Help",
+              "source_category": "Team17 Support",
+              "published_at": "2026-10-11T17:59:20Z",
+              "source_edited_at": null,
+              "content_sha256": "ed133a08195b2fbb17bf680fe05ef4d34919a17a664c39e12918a084e1873dea",
+              "authority_checked_at": "2026-10-16T12:33:17Z",
+              "first_seen_at": "2026-10-16T12:33:17Z",
+              "last_seen_at": "2026-10-16T12:33:17Z",
+              "last_changed_at": "2026-10-16T12:33:17Z",
+              "change_kind": "historical_discovery",
+              "previous_hashes": [],
+              "excerpt": "Hello YOMMATOOTH , We understand how frustrating it is to have error windows repeatedly appear on launch and",
+              "observed_this_run": true
+            }
+          ],
+          "identities_pending": [],
+          "changes_this_run": [
+            {
+              "id": "590691913364103178",
+              "kind": "historical_discovery",
+              "detected_at": "2026-10-16T12:33:17Z"
+            }
+          ],
+          "observed_this_run": true,
+          "first_discovered_at": "2026-10-15T15:18:14Z",
+          "last_seen_in_listing_at": "2026-10-16T12:33:17Z"
+        },
+        {
+          "url": "https://steamcommunity.com/app/3079210/discussions/1/590691913364123471/",
+          "tracked_issue_ids": [],
+          "source_origin": "discovered",
+          "title": "Sound Problems since the last update",
+          "state": "complete",
+          "failure_kind": null,
+          "pages_checked": 1,
+          "pages_expected": 1,
+          "comments_seen": 1,
+          "comments_expected": 1,
+          "last_attempt_at": "2026-10-16T12:33:17Z",
+          "last_complete_at": "2026-10-16T12:33:17Z",
+          "baseline_at": "2026-10-16T12:33:17Z",
+          "replies": [
+            {
+              "id": "590692129307648713",
+              "response_url": "https://steamcommunity.com/app/3079210/discussions/1/590691913364123471/?ctp=1#c590692129307648713",
+              "steam_id": "76561199006108050",
+              "profile_url": "https://steamcommunity.com/profiles/76561199006108050",
+              "author_label": "Team17_Assist",
+              "source_category": "Team17 Support",
+              "published_at": "2026-10-12T08:15:03Z",
+              "source_edited_at": null,
+              "content_sha256": "b2ff12e2ad53b6601974bd811c0964b9793e3cb466a0f5228241848748eb7cb0",
+              "authority_checked_at": "2026-10-16T12:33:17Z",
+              "first_seen_at": "2026-10-16T12:33:17Z",
+              "last_seen_at": "2026-10-16T12:33:17Z",
+              "last_changed_at": "2026-10-16T12:33:17Z",
+              "change_kind": "historical_discovery",
+              "previous_hashes": [],
+              "excerpt": "Hi Lux, We're sorry to hear you're experiencing these issues with audio and an error. Could you please",
+              "observed_this_run": true
+            }
+          ],
+          "identities_pending": [],
+          "changes_this_run": [
+            {
+              "id": "590692129307648713",
+              "kind": "historical_discovery",
+              "detected_at": "2026-10-16T12:33:17Z"
+            }
+          ],
+          "observed_this_run": true,
+          "first_discovered_at": "2026-10-15T15:18:14Z",
+          "last_seen_in_listing_at": "2026-10-16T12:33:17Z"
+        },
+        {
+          "url": "https://steamcommunity.com/app/3079210/discussions/1/590692129307668829/",
+          "tracked_issue_ids": [],
+          "source_origin": "discovered",
+          "title": "fps changes",
+          "state": "complete",
+          "failure_kind": null,
+          "pages_checked": 1,
+          "pages_expected": 1,
+          "comments_seen": 3,
+          "comments_expected": 3,
+          "last_attempt_at": "2026-10-16T12:33:17Z",
+          "last_complete_at": "2026-10-16T12:33:17Z",
+          "baseline_at": "2026-10-16T12:33:17Z",
+          "replies": [
+            {
+              "id": "590692129307669452",
+              "response_url": "https://steamcommunity.com/app/3079210/discussions/1/590692129307668829/?ctp=1#c590692129307669452",
+              "steam_id": "76561198363837070",
+              "profile_url": "https://steamcommunity.com/profiles/76561198363837070",
+              "author_label": "Team17_Help",
+              "source_category": "Team17 Support",
+              "published_at": "2026-10-12T13:38:15Z",
+              "source_edited_at": null,
+              "content_sha256": "4ab683d44ca96469d46d6c92c1ed64b569f3e4b9617e96c5edae353b6f6cc4ea",
+              "authority_checked_at": "2026-10-16T12:33:17Z",
+              "first_seen_at": "2026-10-16T12:33:17Z",
+              "last_seen_at": "2026-10-16T12:33:17Z",
+              "last_changed_at": "2026-10-16T12:33:17Z",
+              "change_kind": "historical_discovery",
+              "previous_hashes": [],
+              "excerpt": "Hello everyone, Thanks for reaching out. We understand how frustrating it is to see your FPS fluctuate dramatically",
+              "observed_this_run": true
+            }
+          ],
+          "identities_pending": [],
+          "changes_this_run": [
+            {
+              "id": "590692129307669452",
+              "kind": "historical_discovery",
+              "detected_at": "2026-10-16T12:33:17Z"
+            }
+          ],
+          "observed_this_run": true,
+          "first_discovered_at": "2026-10-15T15:18:14Z",
+          "last_seen_in_listing_at": "2026-10-16T12:33:17Z"
         },
         {
           "url": "https://steamcommunity.com/app/3079210/discussions/1/591816302688109179/",
@@ -3271,7 +4472,7 @@
               "change_kind": "baseline",
               "previous_hashes": [],
               "excerpt": "Hey sadist4000, Thanks for your response and for your patience throughout this process. Quick question—are both the game",
-              "observed_this_run": true
+              "observed_this_run": false
             },
             {
               "id": "590692129307696418",
@@ -3289,7 +4490,7 @@
               "last_changed_at": "2026-10-15T15:18:14Z",
               "change_kind": "baseline",
               "previous_hashes": [],
-              "observed_this_run": true
+              "observed_this_run": false
             },
             {
               "id": "590691913364102159",
@@ -3307,7 +4508,7 @@
               "last_changed_at": "2026-10-15T15:18:14Z",
               "change_kind": "baseline",
               "previous_hashes": [],
-              "observed_this_run": true
+              "observed_this_run": false
             },
             {
               "id": "590691913364081885",
@@ -3325,7 +4526,7 @@
               "last_changed_at": "2026-10-15T15:18:14Z",
               "change_kind": "baseline",
               "previous_hashes": [],
-              "observed_this_run": true
+              "observed_this_run": false
             },
             {
               "id": "591816596100514985",
@@ -3343,7 +4544,7 @@
               "last_changed_at": "2026-10-15T15:18:14Z",
               "change_kind": "baseline",
               "previous_hashes": [],
-              "observed_this_run": true
+              "observed_this_run": false
             },
             {
               "id": "591816302688109705",
@@ -3361,14 +4562,315 @@
               "last_changed_at": "2026-10-15T15:18:14Z",
               "change_kind": "baseline",
               "previous_hashes": [],
-              "observed_this_run": true
+              "observed_this_run": false
             }
           ],
           "identities_pending": [],
           "changes_this_run": [],
-          "observed_this_run": true,
+          "observed_this_run": false,
           "first_discovered_at": "2026-10-15T15:18:14Z",
           "last_seen_in_listing_at": "2026-10-15T15:18:14Z"
+        },
+        {
+          "url": "https://steamcommunity.com/app/3079210/discussions/1/631219091886093496/",
+          "tracked_issue_ids": [],
+          "source_origin": "discovered",
+          "title": "\"failed to load user data please try again\"",
+          "state": "complete",
+          "failure_kind": null,
+          "pages_checked": 2,
+          "pages_expected": 2,
+          "comments_seen": 20,
+          "comments_expected": 20,
+          "last_attempt_at": "2026-10-16T12:33:17Z",
+          "last_complete_at": "2026-10-16T12:33:17Z",
+          "baseline_at": "2026-10-16T12:33:17Z",
+          "replies": [
+            {
+              "id": "590691669350841712",
+              "response_url": "https://steamcommunity.com/app/3079210/discussions/1/631219091886093496/?ctp=2#c590691669350841712",
+              "steam_id": "76561199006108050",
+              "profile_url": "https://steamcommunity.com/profiles/76561199006108050",
+              "author_label": "Team17_Assist",
+              "source_category": "Team17 Support",
+              "published_at": "2026-10-07T07:22:01Z",
+              "source_edited_at": null,
+              "content_sha256": "4c78f303f31554e03e978c3c9f04abcab76d371bf7f6c910aa54d17895c8b5ff",
+              "authority_checked_at": "2026-10-16T12:33:17Z",
+              "first_seen_at": "2026-10-16T12:33:17Z",
+              "last_seen_at": "2026-10-16T12:33:17Z",
+              "last_changed_at": "2026-10-16T12:33:17Z",
+              "change_kind": "historical_discovery",
+              "previous_hashes": [],
+              "excerpt": "Hey Tall_guy, Thanks for getting in touch! Just to confirm, you do not lose that progress,",
+              "observed_this_run": true
+            },
+            {
+              "id": "583933098654218471",
+              "response_url": "https://steamcommunity.com/app/3079210/discussions/1/631219091886093496/?ctp=2#c583933098654218471",
+              "steam_id": "76561199006108050",
+              "profile_url": "https://steamcommunity.com/profiles/76561199006108050",
+              "author_label": "Team17_Assist",
+              "source_category": "Team17 Support",
+              "published_at": "2026-09-02T08:35:53Z",
+              "source_edited_at": null,
+              "content_sha256": "895c3fec3068ccf65898b09de7c35a6dcb5d342914826928ea5bacc00de2f644",
+              "authority_checked_at": "2026-10-16T12:33:17Z",
+              "first_seen_at": "2026-10-16T12:33:17Z",
+              "last_seen_at": "2026-10-16T12:33:17Z",
+              "last_changed_at": "2026-10-16T12:33:17Z",
+              "change_kind": "historical_discovery",
+              "previous_hashes": [],
+              "observed_this_run": true
+            },
+            {
+              "id": "631219091886186802",
+              "response_url": "https://steamcommunity.com/app/3079210/discussions/1/631219091886093496/?ctp=1#c631219091886186802",
+              "steam_id": "76561198363837070",
+              "profile_url": "https://steamcommunity.com/profiles/76561198363837070",
+              "author_label": "Team17_Help",
+              "source_category": "Team17 Support",
+              "published_at": "2026-08-14T18:30:12Z",
+              "source_edited_at": null,
+              "content_sha256": "43ed8503dcfffc8e83176237a9d40c53313a381a2e1726d5fbce6b5e7a8b2830",
+              "authority_checked_at": "2026-10-16T12:33:17Z",
+              "first_seen_at": "2026-10-16T12:33:17Z",
+              "last_seen_at": "2026-10-16T12:33:17Z",
+              "last_changed_at": "2026-10-16T12:33:17Z",
+              "change_kind": "historical_discovery",
+              "previous_hashes": [],
+              "observed_this_run": true
+            },
+            {
+              "id": "631219091886168680",
+              "response_url": "https://steamcommunity.com/app/3079210/discussions/1/631219091886093496/?ctp=1#c631219091886168680",
+              "steam_id": "76561199006108050",
+              "profile_url": "https://steamcommunity.com/profiles/76561199006108050",
+              "author_label": "Team17_Assist",
+              "source_category": "Team17 Support",
+              "published_at": "2026-08-14T14:26:07Z",
+              "source_edited_at": null,
+              "content_sha256": "1dd3323d7151b9fc30268702ee5df675769d913c756e664b75546aa748ec315a",
+              "authority_checked_at": "2026-10-16T12:33:17Z",
+              "first_seen_at": "2026-10-16T12:33:17Z",
+              "last_seen_at": "2026-10-16T12:33:17Z",
+              "last_changed_at": "2026-10-16T12:33:17Z",
+              "change_kind": "historical_discovery",
+              "previous_hashes": [],
+              "observed_this_run": true
+            },
+            {
+              "id": "631219091886161387",
+              "response_url": "https://steamcommunity.com/app/3079210/discussions/1/631219091886093496/?ctp=1#c631219091886161387",
+              "steam_id": "76561199006108050",
+              "profile_url": "https://steamcommunity.com/profiles/76561199006108050",
+              "author_label": "Team17_Assist",
+              "source_category": "Team17 Support",
+              "published_at": "2026-08-14T12:33:15Z",
+              "source_edited_at": null,
+              "content_sha256": "75d082a70f5c2c07d3eb580e4dacacf3ace54a36fb41ac60d08fe800ead22fc1",
+              "authority_checked_at": "2026-10-16T12:33:17Z",
+              "first_seen_at": "2026-10-16T12:33:17Z",
+              "last_seen_at": "2026-10-16T12:33:17Z",
+              "last_changed_at": "2026-10-16T12:33:17Z",
+              "change_kind": "historical_discovery",
+              "previous_hashes": [],
+              "observed_this_run": true
+            },
+            {
+              "id": "631219091886153196",
+              "response_url": "https://steamcommunity.com/app/3079210/discussions/1/631219091886093496/?ctp=1#c631219091886153196",
+              "steam_id": "76561199006108050",
+              "profile_url": "https://steamcommunity.com/profiles/76561199006108050",
+              "author_label": "Team17_Assist",
+              "source_category": "Team17 Support",
+              "published_at": "2026-08-14T09:58:45Z",
+              "source_edited_at": null,
+              "content_sha256": "de0e774c386002b39a2671f52c42a89040cee242d2dc907db1fa61f9cbb2381b",
+              "authority_checked_at": "2026-10-16T12:33:17Z",
+              "first_seen_at": "2026-10-16T12:33:17Z",
+              "last_seen_at": "2026-10-16T12:33:17Z",
+              "last_changed_at": "2026-10-16T12:33:17Z",
+              "change_kind": "historical_discovery",
+              "previous_hashes": [],
+              "observed_this_run": true
+            },
+            {
+              "id": "631219091886104525",
+              "response_url": "https://steamcommunity.com/app/3079210/discussions/1/631219091886093496/?ctp=1#c631219091886104525",
+              "steam_id": "76561198363837070",
+              "profile_url": "https://steamcommunity.com/profiles/76561198363837070",
+              "author_label": "Team17_Help",
+              "source_category": "Team17 Support",
+              "published_at": "2026-08-13T18:38:19Z",
+              "source_edited_at": null,
+              "content_sha256": "6d8326c950fc6fd7157f10d78961d7ad640c39ad87532035b61a40aa613f267f",
+              "authority_checked_at": "2026-10-16T12:33:17Z",
+              "first_seen_at": "2026-10-16T12:33:17Z",
+              "last_seen_at": "2026-10-16T12:33:17Z",
+              "last_changed_at": "2026-10-16T12:33:17Z",
+              "change_kind": "historical_discovery",
+              "previous_hashes": [],
+              "observed_this_run": true
+            },
+            {
+              "id": "631219091886094782",
+              "response_url": "https://steamcommunity.com/app/3079210/discussions/1/631219091886093496/?ctp=1#c631219091886094782",
+              "steam_id": "76561199418165143",
+              "profile_url": "https://steamcommunity.com/profiles/76561199418165143",
+              "author_label": "Team17_Service",
+              "source_category": "Team17 Support",
+              "published_at": "2026-08-13T16:38:59Z",
+              "source_edited_at": null,
+              "content_sha256": "b0f0670e191406ba6bc83dae99a362f056f6ed4321b66c81834454a6e3a2960d",
+              "authority_checked_at": "2026-10-16T12:33:17Z",
+              "first_seen_at": "2026-10-16T12:33:17Z",
+              "last_seen_at": "2026-10-16T12:33:17Z",
+              "last_changed_at": "2026-10-16T12:33:17Z",
+              "change_kind": "historical_discovery",
+              "previous_hashes": [],
+              "observed_this_run": true
+            }
+          ],
+          "identities_pending": [],
+          "changes_this_run": [
+            {
+              "id": "631219091886094782",
+              "kind": "historical_discovery",
+              "detected_at": "2026-10-16T12:33:17Z"
+            },
+            {
+              "id": "631219091886104525",
+              "kind": "historical_discovery",
+              "detected_at": "2026-10-16T12:33:17Z"
+            },
+            {
+              "id": "631219091886153196",
+              "kind": "historical_discovery",
+              "detected_at": "2026-10-16T12:33:17Z"
+            },
+            {
+              "id": "631219091886161387",
+              "kind": "historical_discovery",
+              "detected_at": "2026-10-16T12:33:17Z"
+            },
+            {
+              "id": "631219091886168680",
+              "kind": "historical_discovery",
+              "detected_at": "2026-10-16T12:33:17Z"
+            },
+            {
+              "id": "631219091886186802",
+              "kind": "historical_discovery",
+              "detected_at": "2026-10-16T12:33:17Z"
+            },
+            {
+              "id": "583933098654218471",
+              "kind": "historical_discovery",
+              "detected_at": "2026-10-16T12:33:17Z"
+            },
+            {
+              "id": "590691669350841712",
+              "kind": "historical_discovery",
+              "detected_at": "2026-10-16T12:33:17Z"
+            }
+          ],
+          "observed_this_run": true,
+          "first_discovered_at": "2026-10-15T15:18:14Z",
+          "last_seen_in_listing_at": "2026-10-16T12:33:17Z"
+        },
+        {
+          "url": "https://steamcommunity.com/app/3079210/discussions/1/631219091886176583/",
+          "tracked_issue_ids": [],
+          "source_origin": "discovered",
+          "title": "Failed to request directory",
+          "state": "complete",
+          "failure_kind": null,
+          "pages_checked": 1,
+          "pages_expected": 1,
+          "comments_seen": 8,
+          "comments_expected": 8,
+          "last_attempt_at": "2026-10-16T12:33:17Z",
+          "last_complete_at": "2026-10-16T12:33:17Z",
+          "baseline_at": "2026-10-16T12:33:17Z",
+          "replies": [
+            {
+              "id": "631219394426463380",
+              "response_url": "https://steamcommunity.com/app/3079210/discussions/1/631219091886176583/?ctp=1#c631219394426463380",
+              "steam_id": "76561198363837070",
+              "profile_url": "https://steamcommunity.com/profiles/76561198363837070",
+              "author_label": "Team17_Help",
+              "source_category": "Team17 Support",
+              "published_at": "2026-08-16T14:53:28Z",
+              "source_edited_at": null,
+              "content_sha256": "634c6d48d4e1855e0ddc25f70120a321bc69c405d21455ddb03986cb4bf62efe",
+              "authority_checked_at": "2026-10-16T12:33:17Z",
+              "first_seen_at": "2026-10-16T12:33:17Z",
+              "last_seen_at": "2026-10-16T12:33:17Z",
+              "last_changed_at": "2026-10-16T12:33:17Z",
+              "change_kind": "historical_discovery",
+              "previous_hashes": [],
+              "excerpt": "Hello A Linux Cat In A Top Hat , Thanks for your response and for sharing more details",
+              "observed_this_run": true
+            },
+            {
+              "id": "631219091886251395",
+              "response_url": "https://steamcommunity.com/app/3079210/discussions/1/631219091886176583/?ctp=1#c631219091886251395",
+              "steam_id": "76561199418165143",
+              "profile_url": "https://steamcommunity.com/profiles/76561199418165143",
+              "author_label": "Team17_Service",
+              "source_category": "Team17 Support",
+              "published_at": "2026-08-15T14:27:54Z",
+              "source_edited_at": null,
+              "content_sha256": "9324c2c02858121abd3cfcdd049c32e7147d041c6329353830ff64e1032ddd98",
+              "authority_checked_at": "2026-10-16T12:33:17Z",
+              "first_seen_at": "2026-10-16T12:33:17Z",
+              "last_seen_at": "2026-10-16T12:33:17Z",
+              "last_changed_at": "2026-10-16T12:33:17Z",
+              "change_kind": "historical_discovery",
+              "previous_hashes": [],
+              "observed_this_run": true
+            },
+            {
+              "id": "631219091886192080",
+              "response_url": "https://steamcommunity.com/app/3079210/discussions/1/631219091886176583/?ctp=1#c631219091886192080",
+              "steam_id": "76561199418459134",
+              "profile_url": "https://steamcommunity.com/profiles/76561199418459134",
+              "author_label": "Team17_Helper",
+              "source_category": "Team17 Support",
+              "published_at": "2026-08-14T19:40:53Z",
+              "source_edited_at": null,
+              "content_sha256": "7b3dd805704f8282d8bccbf7f9af409955cd33b4db45a7f671825eab3e8a80ce",
+              "authority_checked_at": "2026-10-16T12:33:17Z",
+              "first_seen_at": "2026-10-16T12:33:17Z",
+              "last_seen_at": "2026-10-16T12:33:17Z",
+              "last_changed_at": "2026-10-16T12:33:17Z",
+              "change_kind": "historical_discovery",
+              "previous_hashes": [],
+              "observed_this_run": true
+            }
+          ],
+          "identities_pending": [],
+          "changes_this_run": [
+            {
+              "id": "631219091886192080",
+              "kind": "historical_discovery",
+              "detected_at": "2026-10-16T12:33:17Z"
+            },
+            {
+              "id": "631219091886251395",
+              "kind": "historical_discovery",
+              "detected_at": "2026-10-16T12:33:17Z"
+            },
+            {
+              "id": "631219394426463380",
+              "kind": "historical_discovery",
+              "detected_at": "2026-10-16T12:33:17Z"
+            }
+          ],
+          "observed_this_run": true,
+          "first_discovered_at": "2026-10-15T15:18:14Z",
+          "last_seen_in_listing_at": "2026-10-16T12:33:17Z"
         }
       ],
       "reviewed_issue_records_changed": false,
@@ -3378,7 +4880,7 @@
       "schema_version": 1,
       "state": "not_connected",
       "directory_url": "https://www.hellletloose.com/community",
-      "last_attempt_at": "2026-10-15T15:18:14Z",
+      "last_attempt_at": "2026-10-16T12:33:17Z",
       "directory_verified_count": 2,
       "content_collection_enabled": false,
       "channels": [
@@ -3388,8 +4890,8 @@
           "directory_label": "SoulSniper",
           "directory_url": "https://www.hellletloose.com/community",
           "directory_status": "listed",
-          "directory_checked_at": "2026-10-15T15:18:14Z",
-          "last_directory_verified_at": "2026-10-15T15:18:14Z",
+          "directory_checked_at": "2026-10-16T12:33:17Z",
+          "last_directory_verified_at": "2026-10-16T12:33:17Z",
           "content_status": "not_connected",
           "content_collection_enabled": false,
           "failure_kind": null,
@@ -3401,8 +4903,8 @@
           "directory_label": "Gebatron",
           "directory_url": "https://www.hellletloose.com/community",
           "directory_status": "listed",
-          "directory_checked_at": "2026-10-15T15:18:14Z",
-          "last_directory_verified_at": "2026-10-15T15:18:14Z",
+          "directory_checked_at": "2026-10-16T12:33:17Z",
+          "last_directory_verified_at": "2026-10-16T12:33:17Z",
           "content_status": "not_connected",
           "content_collection_enabled": false,
           "failure_kind": null,
