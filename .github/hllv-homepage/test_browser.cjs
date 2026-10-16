@@ -16,7 +16,10 @@ const url=process.env.HLLV_TEST_URL||'http://127.0.0.1:8765/';
  const noOverflow=async()=>assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),'Horizontal overflow');
  await page.goto(url,{waitUntil:'networkidle'});
  await expect(page.locator('#featureHighlights .ft-row')).toHaveCount(3);
- await expect(page.getByRole('heading',{name:'Hell Let Loose: Vietnam',exact:true})).toBeVisible();
+ await page.evaluate(()=>document.fonts.ready);
+ assert(await page.evaluate(()=>document.fonts.check('900 80px "Barlow Condensed"')),'Homepage title font must load');
+ await expect(page.getByRole('heading',{name:'Infierno Liberado',exact:true})).toBeVisible();
+ await expect(page.locator('.landing-companion')).toHaveText('A Hell Let Loose: Vietnam community companion.');
  await expect(page.locator('.landing-support')).toContainText('community bug tracker, suggestion box, and content tracker');
  await expect(page.locator('.community-paths>a')).toHaveCount(3);
  await expect(page.locator('#hllvAccountBar')).toBeHidden();
@@ -34,6 +37,7 @@ const url=process.env.HLLV_TEST_URL||'http://127.0.0.1:8765/';
  }
  for(const width of [390,1280]){
   await page.setViewportSize({width,height:width===390?844:900});
+  await page.evaluate(()=>document.fonts.ready);
   await expect.poll(()=>page.locator('.landing-scene img').evaluate(img=>img.complete&&img.naturalWidth>0)).toBe(true);
   await expect.poll(()=>page.locator('.landing-scene img').evaluate(img=>img.currentSrc)).toContain(width===390?'river-valley-mobile-':'river-valley-10064');
   await page.screenshot({path:`artifacts/homepage-qa/${engine}-${width}-dark.png`,fullPage:true});
