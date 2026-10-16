@@ -34,6 +34,8 @@ const url=process.env.HLLV_TEST_URL||'http://127.0.0.1:8765/';
  }
  for(const width of [390,1280]){
   await page.setViewportSize({width,height:width===390?844:900});
+  await expect.poll(()=>page.locator('.landing-scene img').evaluate(img=>img.complete&&img.naturalWidth>0)).toBe(true);
+  await expect.poll(()=>page.locator('.landing-scene img').evaluate(img=>img.currentSrc)).toContain(width===390?'river-valley-mobile-':'river-valley-10064');
   await page.screenshot({path:`artifacts/homepage-qa/${engine}-${width}-dark.png`,fullPage:true});
   await page.screenshot({path:`artifacts/homepage-qa/${engine}-${width}-dark-opening.png`});
   await page.locator('#themeToggle').click();await noOverflow();
