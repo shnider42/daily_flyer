@@ -16,7 +16,7 @@ const url=process.env.HLLV_TEST_URL||'http://127.0.0.1:8765/';
  const noOverflow=async()=>assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),'Horizontal overflow');
  await page.goto(url,{waitUntil:'networkidle'});
  await expect(page.locator('#featureHighlights .ft-row')).toHaveCount(3);
- await expect(page.locator('#gameTitle')).toHaveText('Hell Let LooseVietnam');
+ await expect(page.getByRole('heading',{name:'Hell Let Loose: Vietnam',exact:true})).toBeVisible();
  await expect(page.locator('.landing-support')).toContainText('community bug tracker, suggestion box, and content tracker');
  await expect(page.locator('.community-paths>a')).toHaveCount(3);
  await expect(page.locator('#hllvAccountBar')).toBeHidden();
