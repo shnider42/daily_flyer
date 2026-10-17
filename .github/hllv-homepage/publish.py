@@ -16,6 +16,7 @@ if 'id="hllv-homepage-style"' in markup:
 else:
     markup = markup.replace('</head>', tag+'\n</head>')
 page.write_text(markup)
+runpy.run_path('.github/hllv-visual-system/publish.py', run_name='__main__')
 runpy.run_path('.github/hllv-evidence/publish_assets.py', run_name='__main__')
 # Native picture sources are deployed dependencies too, not only img src URLs.
 manifest_path = root/'deployment-manifest.json'
