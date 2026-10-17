@@ -36,6 +36,7 @@ html[data-theme="dark"] {
   font: 700 .69rem/1.5 var(--ui-title-font); letter-spacing: .1em;
   text-transform: uppercase; color: var(--section-accent);
 }
+html[data-theme="light"] #featuresPage .section-kicker { color: #7b5119; }
 #home .home-total { display: block; white-space: nowrap; padding-bottom: 3px; font-size: .78rem; color: var(--muted); }
 #home .home-tools, #featuresPage .ft-tools {
   display: grid; gap: 18px; padding: 20px; margin: 0 0 22px;
@@ -196,6 +197,7 @@ html[data-theme="dark"] {
   #home .home-tools { grid-template-columns: 1fr 1fr; gap: 12px; padding: 16px; }
   #home .home-tools label:first-child { grid-column: 1/-1; }
   #home .home-tools label:last-child { grid-column: 1/-1; }
+  #home .home-tools :is(input,select), #featuresPage .ft-tools :is(input,select) { font-size: 1rem; }
   #home .home-issue, #featuresPage .ft-row { grid-template-columns: minmax(0,1fr); gap: 14px; padding: 22px 2px; }
   #home .home-issue-state, #featuresPage .ft-row-state { flex-direction: row; flex-wrap: wrap; gap: 8px 12px; align-items: center; justify-content: flex-start; }
   #featuresPage .ft-row-state .ft-status-label { flex-basis: 100%; }

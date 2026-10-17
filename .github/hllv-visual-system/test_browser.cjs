@@ -118,13 +118,15 @@ const sdk = `export function createClient(){return {
   await page.locator('#homeCategory').selectOption(issue.category);
   await page.locator('[data-date-order="browse"]').selectOption('oldest');
   await page.locator('#homeSearch').fill(issue.id);
-  await expect(page.locator('#homeList [data-home-id]')).toHaveCount(1);
-  await expect(page.locator('#homeList .record-title')).toHaveText(issue.title);
-  await expect(page.locator('#homeList .record-summary')).toHaveText(issue.bottom_line);
-  await expect(page.locator('#homeList .record-meta')).toContainText(issue.id);
+  // Search also covers cross-references; an issue ID need not yield one result.
+  const bugRow=page.locator(`#homeList [data-home-id="${issue.id}"]`);
+  await expect(bugRow).toHaveCount(1);
+  await expect(bugRow.locator('.record-title')).toHaveText(issue.title);
+  await expect(bugRow.locator('.record-summary')).toHaveText(issue.bottom_line);
+  await expect(bugRow.locator('.record-meta')).toContainText(issue.id);
+  const matchingBugIds=await page.locator('#homeList [data-home-id]').evaluateAll(rows=>rows.map(row=>row.dataset.homeId));
   await page.locator('#homeSearch').focus();await page.keyboard.press('Tab');
   await visibleFocus(page.locator('#homeCategory'));
-  const bugRow=page.locator('#homeList [data-home-id]');
   await bugRow.focus();await page.keyboard.press('Enter');
   await expect(page.locator('#dossier h1')).toHaveText(issue.title);
   await expect(page.locator('#dossier .summary-workaround')).toContainText(issue.workaround);
@@ -137,15 +139,17 @@ const sdk = `export function createClient(){return {
   await expect(page.locator('#homeCategory')).toHaveValue(issue.category);
   await expect(page.locator('[data-date-order="browse"]')).toHaveValue('oldest');
   await expect(page.locator('[data-home-status="all"]')).toHaveAttribute('aria-pressed','true');
-  await expect(page.locator('#homeList [data-home-id]')).toHaveCount(1);
+  await expect(bugRow).toHaveCount(1);
+  assert.deepEqual(await page.locator('#homeList [data-home-id]').evaluateAll(rows=>rows.map(row=>row.dataset.homeId)),matchingBugIds,'Returning preserves the filtered results and their order');
 
   // Content: the direction badge remains separate from the live baseline.
   await page.locator('[data-page="features"]').click();
   await page.locator('#featureSearch').fill(feature.id);
-  await expect(page.locator('#featureResults .ft-row')).toHaveCount(1);
-  await expect(page.locator('#featureResults .record-title')).toHaveText(feature.title);
+  const featureRow=page.locator(`#featureResults .ft-row[href="#feature/${feature.id}"]`);
+  await expect(featureRow).toHaveCount(1);
+  await expect(featureRow.locator('.record-title')).toHaveText(feature.title);
   await expect(page.locator('#featureCount')).toHaveAttribute('role','status');
-  await page.locator('#featureResults .ft-row').click();
+  await featureRow.click();
   await expect(page.locator('.ft-current')).toContainText(feature.current.summary);
   await expect(page.locator('.ft-direction')).toContainText(feature.change);
   await expect(page.locator('.ft-history li')).toHaveCount(feature.history.length);
