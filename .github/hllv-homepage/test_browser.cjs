@@ -22,11 +22,15 @@ const url=process.env.HLLV_TEST_URL||'http://127.0.0.1:8765/';
  await expect(page.locator('.landing-companion')).toHaveText('A Hell Let Loose: Vietnam community companion.');
  await expect(page.locator('.landing-support')).toContainText('community bug tracker, suggestion box, and content tracker');
  await expect(page.locator('.community-paths>a')).toHaveCount(3);
+ assert.deepEqual(await page.locator('.top-links [data-page]').evaluateAll(links=>links.map(link=>link.dataset.page)),['issues','features','suggestions']);
+ await expect(page.locator('.top-links [data-page="landing"]')).toHaveCount(0);
+ await expect(page.locator('#brandHome')).toHaveAttribute('aria-current','page');
  await expect(page.locator('#hllvAccountBar')).toBeHidden();
  await expect(page.locator('#staffResponses')).toBeHidden();
  fs.mkdirSync('artifacts/homepage-qa',{recursive:true});
- for(const width of [320,375,390,768,1280]){
-  await page.setViewportSize({width,height:900});await noOverflow();
+ const viewports=[{width:320,height:740},{width:390,height:844},{width:768,height:1024},{width:1280,height:720},{width:1920,height:1080},{width:2560,height:1440}];
+ for(const {width,height} of viewports){
+  await page.setViewportSize({width,height});await noOverflow();
   for(const link of await page.locator('.community-path').all()){
    const bounds=await link.boundingBox();assert(bounds.width>=44&&bounds.height>=44,'Main routes must be touch friendly');
   }
@@ -35,15 +39,16 @@ const url=process.env.HLLV_TEST_URL||'http://127.0.0.1:8765/';
   await page.keyboard.press('Escape');await expect(page.locator('#hllvAccountBar')).toBeHidden();
   await expect(page.locator('#accountMenu>summary')).toBeFocused();
  }
- for(const width of [390,1280]){
-  await page.setViewportSize({width,height:width===390?844:900});
+ for(const {width,height} of viewports){
+  await page.setViewportSize({width,height});
   await page.evaluate(()=>document.fonts.ready);
-  await expect.poll(()=>page.locator('.landing-scene img').evaluate(img=>img.complete&&img.naturalWidth>0)).toBe(true);
-  await expect.poll(()=>page.locator('.landing-scene img').evaluate(img=>img.currentSrc)).toContain(width===390?'river-valley-mobile-':'river-valley-10064');
-  await page.screenshot({path:`artifacts/homepage-qa/${engine}-${width}-dark.png`,fullPage:true});
+  await expect.poll(()=>page.locator('.site-scene img').evaluate(img=>img.complete&&img.naturalWidth>0)).toBe(true);
+  await expect.poll(()=>page.locator('.site-scene img').evaluate(img=>img.currentSrc)).toContain(width<=600?'river-valley-mobile-':'river-valley-10064');
+  await page.evaluate(()=>window.scrollTo({top:0,behavior:'instant'}));
+  if(width===390||width===1280)await page.screenshot({path:`artifacts/homepage-qa/${engine}-${width}-dark.png`,fullPage:true});
   await page.screenshot({path:`artifacts/homepage-qa/${engine}-${width}-dark-opening.png`});
   await page.locator('#themeToggle').click();await noOverflow();
-  await page.screenshot({path:`artifacts/homepage-qa/${engine}-${width}-light.png`,fullPage:true});
+  if(width===390||width===1280)await page.screenshot({path:`artifacts/homepage-qa/${engine}-${width}-light.png`,fullPage:true});
   await page.screenshot({path:`artifacts/homepage-qa/${engine}-${width}-light-opening.png`});
   await page.reload({waitUntil:'networkidle'});await expect(page.locator('html')).toHaveAttribute('data-theme','light');
   await page.locator('#themeToggle').click();

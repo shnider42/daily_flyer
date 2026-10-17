@@ -59,7 +59,7 @@ const sdk = 'export function createClient(){return {auth:{onAuthStateChange:()=>
   await page.locator('.tabs [data-tab="sources"]').click();
   await expect(page.locator('#sources .evidence-source').first()).toBeVisible();
   // Verify actual reviewed links from an announcement, with no network-derived statuses.
-  await page.locator('[data-page="landing"]').click();
+  await page.locator('#brandHome').click();
   await page.locator('#officialSourceList .feed-entry').first().locator('summary').click();
   await expect(page.locator('#officialSourceList .feed-entry').first().locator('.ft-feed-links')).toContainText('Reviewed feature connections');
   await page.locator('#officialSourceList .feed-entry').first().locator('a[href="#feature/HLLV-F001"]').click();
