@@ -7,7 +7,7 @@ ROOT = Path('hllv_tracker')
 HERE = Path(__file__).parent
 
 def main():
-    raw = b'\n'.join((HERE/name).read_bytes() for name in ['shared.css', 'suggestions.css'])
+    raw = b'\n'.join((HERE/name).read_bytes() for name in ['shared.css', 'suggestions.css', 'interactions.css'])
     url = './assets/visual-system-' + hashlib.sha256(raw).hexdigest()[:16] + '.css'
     (ROOT/url[2:]).write_bytes(raw)
     page = ROOT/'index.html'

@@ -5,6 +5,7 @@ The navigation, hero identity, imagery, data, and backend contracts remain in pl
 
 - `shared.css`: shared scale, surfaces, controls, browse rows, bug/content details, homepage sections.
 - `suggestions.css`: scoped public, member, moderator, and conversation presentation.
+- `interactions.css`: missing hover cues, disclosure focus, touch link cues and pressed feedback; no geometry changes on interaction.
 - `publish.py`: concatenates the styles into a content-addressed asset and installs favicon links.
 - `build_favicon.cjs`: optional asset authoring; the SVG/ICO/PNG are checked in and need no production build.
 - `test_browser.cjs`: Chromium/WebKit, both themes, 320/390/768/1280px, keyboard, filters,
@@ -42,3 +43,18 @@ scroll snapping is introduced. QA captures opening screenshots in both themes
 and Chromium/WebKit. Synthetic suggestion fixtures never write to production.
 
 Production starting point: `edab7a7d63bc50ead82ac90ddddb8acf270140de`.
+
+## Interaction consistency — October 17, 2026
+
+Starting production commit: `9f2f8176319312678b096c8d4757f9132e7a8b52`.
+Existing effective row fills, destination hover states, link underlines, button
+shapes and keyboard focus remain. Scoped rules repair missing states and CSS
+specificity conflicts. Whole public suggestion articles receive no click cue;
+their individual vote, disclosure and link controls do. Native disabled controls
+stay unavailable. Touch record titles have an enduring underline and enabled
+actions have a small pressed-state change. No hover rule changes size, spacing,
+font weight, transform or position.
+
+`test_interactions.cjs` compares control and text geometry before/after hover,
+checks keyboard focus, disabled/selected states and touch affordances, and uses
+read-only local fixtures. It runs in the existing browser CI in both engines.
