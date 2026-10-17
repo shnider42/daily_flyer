@@ -14,6 +14,10 @@ html[data-theme="dark"] {
 #home, #app { --section-accent: var(--red); }
 #featuresPage { --section-accent: var(--amber); }
 #suggestionBox { --section-accent: var(--olive); }
+/* Programmatic heading focus announces navigation without resembling a form field. */
+:is(#home, #app, #featuresPage, #suggestionBox) h1[tabindex="-1"]:focus { outline: none; }
+:is(#home, #featuresPage, #suggestionBox) :is(input,textarea)::placeholder { color: var(--muted); opacity: 1; }
+#suggestionBox .cb-tools :is(input,select) { font-weight: 400; }
 #home .home-main, #featuresPage .ft-main, #suggestionBox .suggestion-main {
   width: 100%; max-width: 1120px; margin: 0 auto; padding: 48px 32px 80px;
 }
