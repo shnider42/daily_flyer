@@ -87,6 +87,10 @@
     const visibleHeight = Math.max(1, innerHeight - top);
     const amount = Math.max(0, Math.min(100, (visibleHeight - (rect.top - top)) / Math.max(1, rect.height) * 100));
     progress.value = amount;
+    const marker = Number(currentPassage().dataset.passage);
+    const marginalia = host.querySelector(".was-margin-quote");
+    const observations = marker >= 16 ? "The Fool, who understands nothing…" : marker >= 14 ? "LOOK AWAY." : marker >= 9 ? "Too quiet—but only for a second." : marker >= 7 ? "The sun stared at the earth." : "Good morning class, take your seats.";
+    if (marginalia.textContent !== observations) marginalia.textContent = observations;
     if (save && rect.top < top + 80 && rect.bottom > top) {
       const place = Number(currentPassage().dataset.passage);
       if (place !== lastSaved && put(keys.place, place)) lastSaved = place;
@@ -99,6 +103,95 @@
   window.addEventListener("scroll", queueUpdate, {passive:true});
   window.addEventListener("resize", () => { headerHeight(); update(false); }, {passive:true});
   window.addEventListener("pagehide", () => update(true));
+  const cover = host.querySelector(".was-cover");
+  const look = host.querySelector(".was-look");
+  const motion = host.querySelector("#was-motion");
+  const reducedMotion = window.matchMedia ? window.matchMedia("(prefers-reduced-motion: reduce)") : {matches: true};
+  let gazeFrame = 0;
+  let gaze = {x:0, y:0};
+  const resetGaze = () => {
+    if (gazeFrame) cancelAnimationFrame(gazeFrame);
+    gazeFrame = 0;
+    cover.style.setProperty("--was-gaze-x", "0px");
+    cover.style.setProperty("--was-gaze-y", "0px");
+    cover.style.setProperty("--was-orbit-angle", "0deg");
+  };
+  let motionPreference = get("was:motion:v1") !== "off";
+  const syncMotion = () => {
+    const enabled = !reducedMotion.matches && motionPreference;
+    root.dataset.wasMotion = enabled ? "on" : "off";
+    motion.checked = enabled;
+    motion.disabled = reducedMotion.matches;
+    if (!enabled) resetGaze();
+  };
+  syncMotion();
+  motion.addEventListener("change", () => {
+    const enabled = motion.checked && !reducedMotion.matches;
+    // Apply in memory even when saving preferences is unavailable.
+    motionPreference = enabled;
+    root.dataset.wasMotion = enabled ? "on" : "off";
+    put("was:motion:v1", root.dataset.wasMotion);
+    if (!enabled) resetGaze();
+    announcement.textContent = enabled ? "Cover motion on." : "Cover motion off.";
+  });
+  if (reducedMotion.addEventListener) reducedMotion.addEventListener("change", syncMotion);
+  look.addEventListener("click", () => {
+    const awake = look.getAttribute("aria-pressed") !== "true";
+    root.dataset.wasAwake = String(awake);
+    look.setAttribute("aria-pressed", String(awake));
+    look.querySelector(".was-look-label").textContent = awake ? "Look away" : "Look closer";
+    announcement.textContent = awake ? "The eclipse opens to reveal a watchful sun." : "The eclipse returns.";
+    if (!awake) resetGaze();
+  });
+  cover.addEventListener("pointermove", event => {
+    if (root.dataset.wasMotion !== "on" || root.dataset.wasAwake !== "true" || event.pointerType !== "mouse" || document.hidden) return;
+    const bounds = cover.getBoundingClientRect();
+    gaze = {x: Math.max(-1,Math.min(1,(event.clientX-bounds.left)/Math.max(bounds.width,1)*2-1)), y: Math.max(-1,Math.min(1,(event.clientY-bounds.top)/Math.max(bounds.height,1)*2-1))};
+    if (!gazeFrame) gazeFrame = requestAnimationFrame(() => {
+      cover.style.setProperty("--was-gaze-x", (gaze.x*9).toFixed(2)+"px");
+      cover.style.setProperty("--was-gaze-y", (gaze.y*7).toFixed(2)+"px");
+      cover.style.setProperty("--was-orbit-angle", (gaze.x*3).toFixed(2)+"deg");
+      gazeFrame = 0;
+    });
+  }, {passive:true});
+  cover.addEventListener("pointerleave", resetGaze);
+  document.addEventListener("visibilitychange", () => { if (document.hidden) resetGaze(); });
+
+  const quotes = JSON.parse(host.querySelector("#was-keepsakes").textContent);
+  const quoteButtons = [...host.querySelectorAll("[data-quote]")];
+  const quoteText = host.querySelector(".was-kept-quote");
+  const copyStatus = host.querySelector(".was-copy-status");
+  let quoteIndex = Number(get("was:quote:v1"));
+  let copyGeneration = 0;
+  const chooseQuote = index => {
+    quoteIndex = Number.isInteger(index) && index >= 0 && index < quotes.length ? index : 0;
+    quoteText.textContent = quotes[quoteIndex].text;
+    quoteButtons.forEach((button,i) => button.setAttribute("aria-pressed", String(i === quoteIndex)));
+    copyStatus.textContent = "";
+    copyGeneration += 1;
+  };
+  chooseQuote(quoteIndex);
+  quoteButtons.forEach(button => button.addEventListener("click", () => {
+    chooseQuote(Number(button.dataset.quote));
+    put("was:quote:v1", quoteIndex);
+  }));
+  host.querySelector(".was-copy-quote").addEventListener("click", async () => {
+    const generation = ++copyGeneration;
+    const line = quoteText.textContent;
+    try {
+      if (!navigator.clipboard || !navigator.clipboard.writeText) throw new Error("Clipboard unavailable");
+      await navigator.clipboard.writeText(line + "\n— When Ants Stare · Looking");
+      if (generation === copyGeneration) copyStatus.textContent = "Copied. A little piece of the story to take with you.";
+    } catch (_) {
+      if (generation !== copyGeneration) return;
+      const selection = window.getSelection();
+      if (selection) {
+        const range = document.createRange(); range.selectNodeContents(quoteText);
+        selection.removeAllRanges(); selection.addRange(range);
+        copyStatus.textContent = "The line is selected. Use your browser’s Copy command to keep it.";
+      } else copyStatus.textContent = "Select the line above and use Copy to keep it.";
+    }
+  });
   root.classList.add("was-js");
   update(false);
 })();

@@ -25,5 +25,19 @@
     "“We humans,” he began to write, “have a sense of wonder to advance, for better or worse; we have time and time again played the part of the Fool, who understands nothing, yet without fail, works to understand.”",
     "He finished his work on the whiteboard, full of different times in history and inventions.",
     "“I’m just curious, when does something in the eyes of common people and those ahead of us or before us start to question the wisdom gained? Or are we so far gone to notice anymore?”"
+  ],
+  "keepsakes": [
+    {
+      "label": "The sun",
+      "text": "In a blink of an eye, the sun stared at the earth."
+    },
+    {
+      "label": "The memory",
+      "text": "Yesterday or… was it a month ago?"
+    },
+    {
+      "label": "The Fool",
+      "text": "the Fool, who understands nothing, yet without fail, works to understand."
+    }
   ]
 }

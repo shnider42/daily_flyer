@@ -17,7 +17,7 @@ DEFAULT_THEME=when_ants_stare flask --app web run
 
 A working existing DFE server can use `/?theme=when_ants_stare`.
 The generated HTML is standalone, with inline illustration, CSS, and JavaScript.
-Fonts are local system fonts. The excerpt remains fully readable without JavaScript.
+Instrument Serif display and Source Serif 4 reading fonts are embedded in the export. Their SIL Open Font License notices ship alongside the WOFF2 files. No external font requests are needed. The excerpt remains fully readable without JavaScript.
 
 ## Separate Render Web Service
 
@@ -44,7 +44,10 @@ Never publish the repository root; it contains unrelated source and data.
 - Continuous chapter excerpt: no fabricated further chapters, author identity, reviews, or publication date.
 - Warm night and soft paper appearances, three type sizes, reading settings, optional margin-free focus.
 - Appearance, type size, and the current paragraph are saved only in this browser when localStorage is available.
-- No cursor-following, flashing, audio, continuous animation, or moving hover targets.
+- Optional cover interaction opens the eclipse to a watchful sun. Fine-pointer movement shifts the iris by at most 9px horizontally and 7px vertically; touch and keyboard users use the same Look closer button. There is no flashing, audio, continuous animation, or moving hover target.
+- Cover motion can be disabled and respects system reduced motion.
+- Margin excerpts change with reading progress; chapter text remains continuously visible.
+- Three lines from the supplied excerpt can be selected and copied. Clipboard failures fall back to selecting the line. The selection is saved locally.
 - Responsive cover and text layout, keyboard focus indicators, skip link, native settings controls, reduced-motion and print styles.
 - `noindex,nofollow` is included for the preview. This is a crawler request, not access control.
 - Chapter source is `daily_flyer/themes/when_ants_stare_assets/chapter.json`.

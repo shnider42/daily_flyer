@@ -3,6 +3,8 @@ from __future__ import annotations
 
 import json
 import math
+import base64
+from functools import lru_cache
 from html import escape
 from pathlib import Path
 
@@ -18,6 +20,17 @@ THEME_CONFIG = {
 }
 
 
+@lru_cache(maxsize=1)
+def _font_css() -> str:
+    """Bundle licensed fonts so exports and live themes need no font service."""
+    faces = []
+    for source, family in (("instrument-serif", "WAS Display"), ("source-serif-4", "WAS Text")):
+        for style in ("normal", "italic"):
+            data = base64.b64encode((ASSETS / "fonts" / f"{source}-{style}.woff2").read_bytes()).decode("ascii")
+            faces.append(f'@font-face{{font-family:"{family}";font-style:{style};font-weight:400;font-display:swap;src:url(data:font/woff2;base64,{data}) format("woff2");}}')
+    return "\n".join(faces)
+
+
 def build_theme_page(date_str: str | None = None, seed: int | None = None) -> PageContext:
     today = resolve_date(date_str)
     chapter = json.loads((ASSETS / "chapter.json").read_text(encoding="utf-8"))
@@ -30,6 +43,7 @@ def build_theme_page(date_str: str | None = None, seed: int | None = None) -> Pa
         ),
         "__WAS_MINUTES__": str(max(1, math.ceil(words / 220))),
         "__WAS_NOTE__": escape(chapter["editorial_note"]),
+        "__WAS_QUOTES__": json.dumps(chapter["keepsakes"], ensure_ascii=False).replace("<", "\\u003c"),
     }
     markup = (ASSETS / "page.html").read_text(encoding="utf-8")
     for key, value in replacements.items():
@@ -45,7 +59,7 @@ def build_theme_page(date_str: str | None = None, seed: int | None = None) -> Pa
         metadata={
             "theme_name": "when_ants_stare",
             "date_key": today.isoformat(),
-            "extra_css": (ASSETS / "style.css").read_text(encoding="utf-8"),
+            "extra_css": _font_css() + (ASSETS / "style.css").read_text(encoding="utf-8"),
             "extra_js": (ASSETS / "script.js").read_text(encoding="utf-8"),
             "extra_head_html": (
                 '<meta name="description" content="For a moment, the sun looked back. Read the opening of When Ants Stare: What Stares Back, a novel in progress.">'
