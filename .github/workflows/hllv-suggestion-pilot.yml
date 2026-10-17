@@ -1,0 +1,104 @@
+name: HLLV private suggestion pilot
+on:
+  push:
+    branches: [feature/hllv-bug-evidence-tracker]
+    paths:
+      - .github/hllv-pilot/**
+      - suggestion_box/**
+      - .github/workflows/hllv-suggestion-pilot.yml
+permissions:
+  contents: write
+concurrency:
+  group: hllv-reviewed-data-update
+  cancel-in-progress: false
+jobs:
+  test-publish-verify:
+    if: github.repository == 'shnider42/daily_flyer'
+    runs-on: ubuntu-latest
+    timeout-minutes: 20
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_PASSWORD: pilot_fixture_only
+          POSTGRES_DB: pilot_test
+        ports: ['5432:5432']
+        options: --health-cmd "pg_isready -U postgres -d pilot_test" --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      PILOT_TEST_DATABASE_URL: postgresql://postgres:pilot_fixture_only@localhost:5432/pilot_test
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          fetch-depth: 2
+      - name: Install test dependencies only in the isolated runner
+        run: |
+          python3 -m pip install --quiet --disable-pip-version-check 'psycopg[binary]==3.2.10' playwright==1.55.0
+          python3 -m playwright install --with-deps chromium webkit > /tmp/pilot-browsers.log 2>&1 || { tail -40 /tmp/pilot-browsers.log; exit 1; }
+      - name: Validate actual database permissions and pilot transitions
+        run: |
+          python3 .github/hllv-pilot/harden_schema.py
+          python3 -m py_compile .github/hllv-pilot/*.py suggestion_box/tests/*.py
+          python3 suggestion_box/tests/test_database.py
+          python3 .github/hllv-pilot/check_boundaries.py
+      - name: Prepare closed static integration without refreshing game evidence
+        run: |
+          python3 .github/hllv-pilot/install.py
+          node --check .github/hllv-pilot/suggestions.js
+          node --test .github/hllv-pilot/test_ui.cjs
+          node --test .github/hllv-evidence/test_evidence.cjs
+          git diff --check
+      - name: Test locally before publication
+        run: |
+          set -euo pipefail
+          python3 -m http.server 8765 --bind 127.0.0.1 --directory hllv_tracker >/tmp/pilot-local.log 2>&1 &
+          PID=$!
+          trap 'kill "$PID" || true' EXIT
+          python3 .github/hllv-pilot/test_browser.py
+          python3 .github/hllv-pilot/test_browser.py --engine webkit
+          python3 .github/hllv-evidence/test_browser.py
+          python3 .github/hllv-evidence/test_browser.py --engine webkit
+          python3 .github/hllv-evidence/test_browser.py --fallback
+      - name: Publish only the tested pilot integration
+        run: |
+          set -euo pipefail
+          git diff --check
+          git add -- hllv_tracker/index.html hllv_tracker/README.md hllv_tracker/data/issues.json hllv_tracker/data/issues.*.json hllv_tracker/assets hllv_tracker/deployment-manifest.json hllv_tracker/suggestions-config.json suggestion_box/migrations/001_pilot.sql suggestion_box/migrations/002_issue_catalog.sql
+          if ! git diff --cached --quiet; then
+            git config user.name 'github-actions[bot]'
+            git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+            git commit -m 'Publish tested Suggestion Box pilot integration and authorization guards'
+            git push origin HEAD:refs/heads/feature/hllv-bug-evidence-tracker
+          fi
+          echo "PUBLISHED_COMMIT=$(git rev-parse HEAD)"
+      - name: Verify normal production homepage and referenced files
+        run: |
+          python3 -u - <<'PY'
+          import json,time,urllib.request
+          from pathlib import Path
+          root=Path('hllv_tracker')
+          manifest=json.loads((root/'deployment-manifest.json').read_text())
+          paths=['','index.html']+manifest['files']
+          expected={p:(root/(p.split('?')[0] or 'index.html')).read_bytes() for p in paths}
+          last='Not checked'
+          for attempt in range(90):
+              try:
+                  for path in paths:
+                      with urllib.request.urlopen('https://hllv-bug-track.onrender.com/'+path,timeout=15) as r: actual=r.read()
+                      assert actual==expected[path], 'Production mismatch: '+(path or '/')
+                  print('PRODUCTION_EXACT_MATCH: ordinary homepage and all referenced tracker/pilot assets')
+                  break
+              except Exception as error:
+                  last=str(error)
+                  print('DEPLOYMENT_CHECK',attempt,last)
+              time.sleep(5)
+          else: raise RuntimeError(last)
+          assert not json.loads((root/'suggestions-config.json').read_text())['enabled'], 'Pilot must remain closed until connection and reviewer setup'
+          PY
+          python3 .github/hllv-pilot/test_browser.py --url https://hllv-bug-track.onrender.com/
+          python3 .github/hllv-pilot/test_browser.py --url https://hllv-bug-track.onrender.com/ --engine webkit
+          python3 .github/hllv-evidence/test_browser.py --url https://hllv-bug-track.onrender.com/
+          python3 .github/hllv-evidence/test_browser.py --url https://hllv-bug-track.onrender.com/ --engine webkit
+      - name: Record precise release boundary
+        run: |
+          echo "Verified commit: $(git rev-parse HEAD)" >> "$GITHUB_STEP_SUMMARY"
+          echo 'Suggestion Box UI published in closed setup mode. Managed auth/database code is included but NOT provisioned on Supabase. No real invitations, accounts, votes, submissions or reviewer approvals created. Database permissions tested on ephemeral PostgreSQL with synthetic Auth fixtures, plus expiry/null boundary checks; browser tests include synthetic connected mode, not real email delivery. Existing issue evidence and patch archive preserved.' >> "$GITHUB_STEP_SUMMARY"

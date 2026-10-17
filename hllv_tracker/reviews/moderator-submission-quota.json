@@ -1,0 +1,9 @@
+{
+  "page_updated_at": "2026-10-12T19:12:42Z",
+  "moderator_daily_limit": null,
+  "other_accounts_limit_per_24_hours": 3,
+  "all_community_submission_types": true,
+  "one_vote_per_account_per_wording_unchanged": true,
+  "authentication_and_request_throttle_unchanged": true,
+  "nightly_and_reviewed_evidence_unchanged": true
+}
