@@ -41,8 +41,9 @@ def follow(state, carrier):
 
 def bail_out(state, carrier):
     """Destroyed carrier frees its hex. Survivors cannot immediately fight or reboard."""
-    from . import midway2, carrier_decks
-    if (midway2.enabled(state) or carrier_decks.enabled(state)) and carrier['kind'] == 'carrier':
+    from . import midway2, carrier_decks, britain2
+    if ((midway2.enabled(state) or carrier_decks.enabled(state)) and carrier['kind'] == 'carrier') \
+            or (britain2.enabled(state) and carrier['kind'] == 'airfield'):
         for plane in passengers(state, carrier):
             plane.update(hp=0, ap=0, banked_ap=0, overwatch=False)
         return

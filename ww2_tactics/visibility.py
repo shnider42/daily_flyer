@@ -3,7 +3,7 @@ import copy
 from contextlib import contextmanager
 from contextvars import ContextVar
 from functools import wraps
-from . import fieldworks, domains
+from . import fieldworks, domains, weather, debrief
 
 
 _sight_work = ContextVar('sight_work', default=None)
@@ -112,10 +112,10 @@ def unit_sees_hex(state, scout, pos, concealed=False):
     if domains.joint(state):
         if concealed=='air':
             # Radar and aircraft look through terrain, not through the ground fog.
-            return gap<=scout.get('sight',6)
+            return gap<=weather.sight(state,scout,scout.get('sight',6))
         if scout['kind']=='radar':return gap<=1
         if domains.is_air(scout):
-            return gap<=(2 if concealed else 4) and not any(s['pos']==pos for s in state.get('smoke',[]))
+            return gap<=weather.sight(state,scout,2 if concealed else 4) and not any(s['pos']==pos for s in state.get('smoke',[]))
     if gap<=1:return True
     cache=sight_cache(state)
     key=('scout',scout['id'])
@@ -126,6 +126,7 @@ def unit_sees_hex(state, scout, pos, concealed=False):
     high,normal,hidden=profile
     landmark=operations.enabled(state) and terrain(*pos,state) in {'tower','church'}
     reach=hidden if concealed and not landmark else normal
+    reach=weather.sight(state,scout,reach)
     if concealed=='camouflaged' and not landmark:reach=max(1,reach-1)
     if landmark:reach=max(reach,12)  # Elevated silhouettes work both ways.
     return gap<=reach and line_clear(scout['pos'],pos,state.get('smoke',[]),state,high_ground=high or landmark)
@@ -225,6 +226,7 @@ def view(state, side, terrain_visibility=True):
                   barrages=copy.deepcopy([{k:v for k,v in b.items() if k != 'attacker'} for b in state.get('barrages', [])]),
                   recon=copy.deepcopy([r for r in state.get('recon', []) if r['side']==side]),
                   round=state['round'], turn=state['turn'], hold=state['hold'], winner=state['winner'])
+    weather.redact(result,state,side)
     if state.get('signals_version') or state.get('battlefield', {}).get('fleet_battle_version') or state.get('battlefield',{}).get('night_ops_version'):
         for u in result['units']:
             if u['side']!=side:
@@ -321,6 +323,12 @@ def record_reports(state, before, action, message):
 
 @sight_reader
 def public_state(state, side):
+    result = _public_state(state,side)
+    result.pop('_order_history',None)
+    return debrief.redact(weather.redact(result,state,side),state,side)
+
+
+def _public_state(state, side):
     from . import deployment
     from .nightveil import redact as redact_night
     from .effects import visible_effects

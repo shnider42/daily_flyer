@@ -22,6 +22,7 @@
  function readyReason(cv,p,service=false){
   if(!controlsUnit(cv))return 'This carrier belongs to another commander';
   if(blocked())return state.turn!==state.side?'Opponent’s turn':'Orders unavailable right now';
+  if(!service&&state.weather?.current.launch_limit!==null&&state.weather?.current.launch_limit!==undefined&&(cv.weather_launches||0)>=state.weather.current.launch_limit)return 'Rain: launch limit reached this turn';
   if(cv.deck_used>=limit(cv))return 'All deck cycles used this turn';
   if(cv.ap<1)return 'Carrier needs 1 AP';
   if(service)return !cv.air_stores?'No service stores left':p.service_used?'Serviced this turn':'Fully repaired and loaded';

@@ -80,7 +80,7 @@ function drawPlayback(){
  document.getElementById('playbackDescription').textContent=description;
  document.getElementById('round').textContent=`${snapshot.round} / ${state.scenario?.rounds||8}`;
  document.getElementById('objective').textContent=state.front_mode==='armored_control'?`Soviets ${snapshot.front_score?.us||0}/10 · Germans ${snapshot.front_score?.de||0}/10`:state.front_mode==='evacuation'?`Rescued ${snapshot.evacuated_count||0}/6`:state.air_version?`Stations lost: ${snapshot.raid_destroyed?.length||0} / 2`:`Hold: ${snapshot.hold} / 2`;
- if(state.britain_ops_version)document.getElementById('objective').textContent=`Raid damage ${snapshot.raid_score||0}/14 · Stations lost ${snapshot.raid_destroyed?.length||0}/2`;
+ if(state.britain_ops_version)document.getElementById('objective').textContent=`Raid damage ${snapshot.raid_score||0}/9 · Stations lost ${snapshot.raid_destroyed?.length||0}/2`;
  document.getElementById('armyCount').textContent=['us','de'].map(side=>`${names[side]} ${snapshot.units.filter(u=>u.side===side&&u.hp>0).length}/${snapshot.units.filter(u=>u.side===side).length}`).join(' · ');
  document.getElementById('pausePlayback').textContent=p.paused?'Resume':'Pause';
  const result=document.getElementById('playbackResult');result.replaceChildren();

@@ -8,7 +8,7 @@ import secrets
 from .visibility import active, update_intel, record_reports
 from .combat_display import record_combat
 from .effects import record_shot_effect
-from . import weapons, operations, domains, crosswind, nightfall, air_support, britain2
+from . import weapons, operations, domains, crosswind, nightfall, air_support, britain2, weather
 
 AIRCRAFT = domains.AIRCRAFT
 
@@ -46,6 +46,7 @@ def sees_hex(state,side,pos,ground=False):
     for u in state['units']:
         if u['side']!=side or not active(u):continue
         reach=(4 if u['kind'] in AIRCRAFT else 0 if u['kind']=='radar' else 2) if ground else u['sight']
+        reach=weather.sight(state,u,reach)
         if distance(u['pos'],pos)<=reach:return True
     return False
 
@@ -120,7 +121,7 @@ def options(state,unit):
     occupied=domains.blocked_hexes(state,unit,seen)
     planes={tuple(u['pos']) for u in living if u['id'] in seen and u['kind'] in AIRCRAFT and u['id']!=unit['id']}
     if unit['kind'] in AIRCRAFT and unit['ap']>=1:
-        reach=unit['flight']
+        reach=weather.flight(state,unit)
         for y in range(max(0,unit['pos'][1]-reach),min(board['height'],unit['pos'][1]+reach+1)):
             for x in range(max(0,unit['pos'][0]-reach),min(board['width'],unit['pos'][0]+reach+1)):
                 if not 0<distance(unit['pos'],[x,y])<=reach or (x,y) in occupied:continue
@@ -144,7 +145,7 @@ def options(state,unit):
         if ((unit['kind'] in {'fighter','aa_gun'} and target['kind'] in AIRCRAFT) or
             (unit['kind']=='bomber' and unit['bombs']>0 and target['kind'] not in AIRCRAFT)):
             s = shot(unit,target)
-            mods = dict(nightfall.modifiers(state,unit,target), **britain2.modifiers(state,unit,target))
+            mods = dict(nightfall.modifiers(state,unit,target), **britain2.modifiers(state,unit,target), **weather.modifiers(state,unit))
             s['modifiers'].update(mods)
             s['threshold']=min(6,s['threshold']+sum(mods.values()))
             if not weapons.enabled(state) or weapons.damage(unit,target):
@@ -154,7 +155,7 @@ def options(state,unit):
 
 def resolve_shot(state,unit,target,roll,reaction=False):
     s=shot(unit,target,reaction);die=roll()
-    mods = dict(nightfall.modifiers(state,unit,target), **britain2.modifiers(state,unit,target))
+    mods = dict(nightfall.modifiers(state,unit,target), **britain2.modifiers(state,unit,target), **weather.modifiers(state,unit))
     s['modifiers'].update(mods)
     s['threshold']=min(6,s['threshold']+sum(mods.values()))
     if nightfall.enabled(state):unit['night_flash']=True

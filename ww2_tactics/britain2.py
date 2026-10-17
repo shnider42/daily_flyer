@@ -6,7 +6,7 @@ raid points are deliberately scaled game abstractions, not a dated order of batt
 import copy
 import math
 import secrets
-from . import domains
+from . import domains, weather
 from .visibility import active
 
 ID = 'britain_2'
@@ -223,7 +223,7 @@ def options(state, unit):
             for p in grounded(state, unit):
                 if not same_command(state, p, unit):
                     continue
-                if p['ap'] >= 1 and p['fuel'] >= 2 and not p['sortie_cooldown'] and destinations:
+                if p['ap'] >= 1 and p['fuel'] >= 2 and not p['sortie_cooldown'] and destinations and weather.can_launch(state,unit):
                     result['scramble'].append(dict(id=p['id'], destinations=copy.deepcopy(destinations)))
                 if unit['air_stores'] and needs_service(p) and not p['service_used']:
                     result['field_service'].append(p['id'])
@@ -396,7 +396,8 @@ def choose_order(state, costs, visited):
             + (6 if f['runway_used'] >= runway_limit(f) or len(grounded(state,f)) >= f['air_capacity'] else 0)
             - (2 if f['id'] == u.get('home_field') else 0)) if fields else None
         returning = domains.is_air(u) and (u['hp'] == 1 or u['kind'] == 'bomber' and not u['bombs'] or
-            home and u['fuel'] <= math.ceil(max(0, distance(u['pos'], home['pos'])-1)/u['flight'])+4)
+            home and u['fuel'] <= math.ceil(max(0, distance(u['pos'], home['pos'])-1)/min(
+                weather.flight(state,u,r) for r in range(state['round'],state['round']+3)))+4)
         if returning and legal['land']:
             add(80, 'land', target=legal['land'][0])
             continue

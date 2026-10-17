@@ -39,6 +39,8 @@ def scenario(board):
     if board.get('night_ops_version'):rules += ['night_sight','searchlights','flares','transport_airlifts','finite_service']
     if board.get('carrier_ops_version'):rules += ['daytime_sight','finite_air_groups','carrier_decks','finite_service']
     if board.get('britain_ops_version'):rules += ['daytime_sight','finite_air_groups','airfield_turnaround','finite_service','sortie_fuel','radar_guidance','close_escort','raid_damage']
+    if board.get('carrier_ops_version') or board.get('britain_ops_version'):
+        rules += ['forecast_weather']
     if result.get('air_support'):
         rules += ['finite_service']
         if result['air_support']['ship_aa_range']:rules += ['shipboard_interception']

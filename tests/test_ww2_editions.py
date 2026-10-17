@@ -38,6 +38,10 @@ def legacy_fingerprints():
                 cooperative.initialize(shared,dict(control_size='platoons'),'host','Host')
                 shared = cooperative.setup_action(shared,'host',dict(operation='start'))
                 phases['coop'] = shared
+            # Private post-battle accounting is observational metadata. Keep
+            # the original gameplay fingerprints, including every rules field.
+            for value in phases.values():
+                value.pop('_battle_record',None)
             results[key+':'+rules] = {phase:hashlib.sha256(json.dumps(value,sort_keys=True,separators=(',',':')).encode()).hexdigest()
                                       for phase,value in phases.items()}
     return results

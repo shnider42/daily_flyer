@@ -322,6 +322,17 @@
    }
    if(!s.coop.captain)book=book.filter(l=>l.id!=='preparation-support');
   }
+  if(s.weather){
+   for(const l of book)if(['move','fire','fog','service'].includes(l.id)){
+    const note=' Weather applies on top of these normal conditions: '+s.weather.current.description;
+    l.texts=(l.texts||copy[l.id]||Array(3).fill(l.text||l.detail||'')).map(t=>t+note);
+   }
+   book.push(make('forecast-weather','Plan around the forecast',[
+    'Check the weather panel before launching. Both armies share the same weather. The next two rounds are confirmed, so you can plan the return trip.',
+    'Haze and rain reduce visual spotting by 2 hexes; radar keeps its range. Rain reduces flight legs by 1 hex, adds +1 to bombing thresholds and allows only one launch per base/carrier per own turn. Landing and service remain available under normal rules.',
+    'Weather changes only at full-round boundaries. The first two rounds are clear; rain lasts at most two rounds, followed by a clear interval. Forecasts persist through reloads and takebacks. Weather uses a separate random schedule, never the combat dice. Rain adds no fuel charge, but shorter legs can require more fuel for the trip.'
+   ],'Read the next two rounds before committing your air group.','#weatherBrief',[]));
+  }
   const level=window.ww2Experience?.level||'simple',index={simple:0,moderate:1,expert:2}[level];
   const orderNames={radioUpdate:'radio_update',callAirborne:'airborne_drop',breach:'breach',clear_wreck:'clear_wreck',bridge_gap:'bridge_gap'};
   return book.map(lesson=>{

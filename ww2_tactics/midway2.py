@@ -4,7 +4,7 @@ Counters represent flights, not literal historical aircraft counts. Deck cycles
 are a balance abstraction, shared by launches, recoveries and servicing.
 """
 import copy
-from . import domains
+from . import domains, weather
 
 ID = 'midway_2'
 VERSION = 1
@@ -177,7 +177,7 @@ def options(state, unit):
         if unit['ap'] >= 1:
             for plane in aboard(state, unit):
                 if not same_command(state, plane, unit): continue
-                if plane['ap'] >= 1 and not plane.get('deck_cooldown') and destinations:
+                if plane['ap'] >= 1 and not plane.get('deck_cooldown') and destinations and weather.can_launch(state,unit):
                     result['launch'].append(dict(id=plane['id'], destinations=copy.deepcopy(destinations)))
                 if unit['air_stores'] and needs_service(plane) and not plane.get('service_used'):
                     result['deck_service'].append(plane['id'])

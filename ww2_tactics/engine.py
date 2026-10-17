@@ -10,7 +10,7 @@ from .rulesets import profile, dsl, base_ap, bank_limit, turn_limit, road
 from .effects import record_effect, record_shot_effect
 from . import combined, naval, transport, campaigns, air, weapons, buildings, operations, fieldworks, linked_front, signals, airborne, domains, fubar, logistics, new_fronts, deployment
 from .visibility import fog, active, visible_ids, unit_visible_ids, sees_hex, update_intel, record_reports
-from . import fire_control, editions, nightfall, midway2, air_support, carrier_decks, britain2
+from . import fire_control, editions, nightfall, midway2, air_support, carrier_decks, britain2, weather, debrief
 
 WIDTH, HEIGHT = 7, 9
 OBJECTIVE = [3, 4]
@@ -79,6 +79,10 @@ def line_clear(a, b, smoke=(), state=None, high_ground=False):
 
 
 def initial(scenario='village', ruleset='classic'):
+    return debrief.initialize(weather.initialize(_initial(scenario, ruleset)))
+
+
+def _initial(scenario='village', ruleset='classic'):
     rules = profile(ruleset)
     board = get_scenario(scenario)
     if board.get('dsl_only') and ruleset != 'dsl':
@@ -311,6 +315,13 @@ def options(state, unit):
 
 
 def apply(state, side, action, roll=None):
+    result = _apply(state, side, action, roll)
+    weather.after_order(state, result, action)
+    debrief.record(state, result, side, action)
+    return result
+
+
+def _apply(state, side, action, roll=None):
     if deployment.active(state):
         return deployment.apply(state,side,action,roll)
     if not state["ready"]:

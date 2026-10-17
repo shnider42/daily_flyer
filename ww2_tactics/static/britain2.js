@@ -28,6 +28,7 @@
  function reason(f,p){
   if(!controlsUnit(f))return 'Another commander controls this airfield';
   if(blocked())return state.turn!==state.side?'Opponent’s turn':'Orders unavailable';
+  if(state.weather?.current.launch_limit!==null&&state.weather?.current.launch_limit!==undefined&&(f.weather_launches||0)>=state.weather.current.launch_limit)return 'Rain: launch limit reached this turn';
   if(f.runway_used>=limit(f))return 'No runway cycles left this turn';
   if(f.ap<1)return 'Airfield needs 1 AP';
   if(p.sortie_cooldown)return 'Ready next own turn';

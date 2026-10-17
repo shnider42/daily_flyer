@@ -265,6 +265,8 @@ def play_turn(state, roll=None, observers=None, max_orders=None, planning=None, 
             return view(value, viewer)
         result=copy.deepcopy({key: value.get(key) for key in
                               ('units', 'smoke', 'barrages', 'round', 'turn', 'hold', 'winner', 'buildings', 'fieldworks', 'objective_control')})
+        from . import weather
+        weather.redact(result,value,viewer)
         result.update(new_fronts.public_fields(value, viewer))
         return result
     previous_snapshot = {viewer: previous_views[viewer] if previous_views and viewer in previous_views else snapshot(state, viewer)

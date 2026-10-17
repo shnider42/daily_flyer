@@ -6,7 +6,7 @@ from .engine import apply
 from .computer import play_turn
 from .visibility import fog, visible_ids
 from .buildings import revealed
-from . import fieldworks, signals, deployment
+from . import fieldworks, signals, deployment, debrief
 
 KEY = '_order_history'
 LIMIT = 20
@@ -28,6 +28,7 @@ def resign(state, side):
         report = result.setdefault('reports', {}).setdefault(team, {'log': [], 'combat': []})
         report['log'].append(message)
     result[KEY] = dict(side=side, past=[], future=[], reason='The battle ended by resignation.')
+    debrief.record(state, result, side, {'kind':'resign'})
     return result
 
 

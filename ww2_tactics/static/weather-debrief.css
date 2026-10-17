@@ -1,0 +1,23 @@
+.weather-brief{margin:10px 0;padding:10px 12px;border:1px solid #8b987c;border-left:4px solid #52705b;border-radius:4px;background:#e8ebde;color:#25372a;font-size:13px;line-height:1.45}
+.weather-brief p{margin:4px 0;overflow-wrap:anywhere}
+.weather-brief>p:first-child{font-weight:700}
+.weather-brief details{margin-top:5px}
+.weather-brief summary{cursor:pointer;min-height:28px}
+.weather-launch-note{font-weight:700}
+.weather-status{display:block;font-size:10px;line-height:12px;font-weight:700}
+.desktop-battlefield .weather-brief{flex:none;margin:4px 0 8px}
+#debriefDialog{width:min(760px,calc(100vw - 24px));max-height:88svh;overflow:auto;padding:20px;box-sizing:border-box}
+#debriefDialog button,#openDebrief,#resultDebrief{min-height:44px;white-space:normal}
+#debriefDialog h2{font-size:23px;overflow-wrap:anywhere}
+#debriefDialog h3{font-size:17px;margin:22px 0 10px}
+#debriefContent{font-size:14px;line-height:1.5}
+#debriefContent p,#debriefContent li{overflow-wrap:anywhere}
+.debrief-metrics{display:grid;grid-template-columns:minmax(0,1fr) auto;gap:6px 16px;margin:12px 0}
+.debrief-metrics dt{border-bottom:1px solid #a7b39f;padding:5px 0;overflow-wrap:anywhere}
+.debrief-metrics dd{margin:0;border-bottom:1px solid #a7b39f;padding:5px 0;text-align:right;font-variant-numeric:tabular-nums;font-weight:700}
+.debrief-table-wrap{max-width:100%;overflow-x:auto}
+.debrief-table-wrap table{width:100%;border-collapse:collapse;font-size:13px}
+.debrief-table-wrap th,.debrief-table-wrap td{padding:7px 9px;text-align:left;border-bottom:1px solid #a7b39f}
+html[data-theme=dark] .weather-brief{background:var(--ui-surface);color:var(--ui-text);border-color:var(--ui-line);border-left-color:var(--ui-accent)}
+html[data-theme=dark] :is(.debrief-metrics dt,.debrief-metrics dd,.debrief-table-wrap th,.debrief-table-wrap td){border-color:var(--ui-line)}
+@media(max-width:749px){#debriefDialog{padding:14px}.weather-brief{font-size:12px}.weather-brief summary{min-height:36px}}
