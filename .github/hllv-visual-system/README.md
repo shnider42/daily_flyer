@@ -21,7 +21,8 @@ Starting production commit: `e60bff5a0cab0dc7a189ee20e1724f8b23dac4bb` (October 
 It includes the latest automatic official-feed refresh at the start of this change.
 Revert the visual-system commit to preserve any subsequent data refresh commits.
 Do not reset the production branch over newer content or account changes.
-# Wide-screen and first-view refinement — October 17, 2026
+
+## Wide-screen and first-view refinement — October 17, 2026
 
 The shared shell now uses a 1920px maximum with fluid gutters. At 1600px and above,
 bug, content, and public suggestion records form two readable columns. Homepage
@@ -33,7 +34,7 @@ routes. The logo is the Home action, with a visible Home caption and current-pag
 state; the two trackers precede a separated Suggestion box action.
 
 First-view checks use real viewport heights: 320×740, 390×844, 768×1024, 1280×720,
-1920×1080, and 2560×1440. They verify identity, primary controls, and first-result
+1440×900, 1920×1080, and 2560×1440. They verify identity, primary controls, and first-result
 title/status are visible without scrolling. The complete first desktop record
 and all three home destinations on the 390px phone must also fit. Longer lists
 and detail evidence remain naturally scrollable; no fixed-height cropping or

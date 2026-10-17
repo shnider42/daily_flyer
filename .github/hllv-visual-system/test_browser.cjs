@@ -54,7 +54,7 @@ const sdk = `export function createClient(){return {
   fs.mkdirSync(output,{recursive:true});
   const browser = await ({chromium,webkit}[engine]).launch({headless:true});
   const context = await browser.newContext({viewport:{width:1280,height:900},reducedMotion:'reduce'});
-  const errors=[], writes=[], blockedRequests=[], calls=[], checked=[], openingMeasurements=[];
+  const errors=[], writes=[], blockedRequests=[], calls=[], checked=[], openingMeasurements=[], layoutErrors=[];
   await context.exposeBinding('__recordVisualRpc',(_,call)=>calls.push(call));
   await context.addInitScript(rows=>{globalThis.__visualRows=rows;},suggestionRows);
   await context.route('**/*',route=>{
@@ -79,6 +79,10 @@ const sdk = `export function createClient(){return {
   const noOverflow=async(label)=>{
     const dimensions=await page.evaluate(()=>({width:innerWidth,scroll:document.documentElement.scrollWidth}));
     assert(dimensions.scroll<=dimensions.width+1,`${label}: horizontal overflow ${JSON.stringify(dimensions)}`);
+  };
+  // Geometry failures remain failures, but do not suppress later viewport evidence.
+  const collectLayout=async(check)=>{
+    try{await check();}catch(error){layoutErrors.push(String(error.message||error));}
   };
   const setTheme=async(theme)=>{
     if(await page.locator('html').getAttribute('data-theme')!==theme)await page.locator('#themeToggle').click();
@@ -110,19 +114,21 @@ const sdk = `export function createClient(){return {
       };
       return {canvas:rect(canvas),heading:rect(heading),purpose:rect(purpose),controls:controls.map(selector=>({selector,...rect(selector)})),record:rect(record),title:rect(title),status:status?rect(status):null,scrollY};
     },scenario);
-    const label=`${engine}/${scenario.name}/${width}x${height}`;
-    openingMeasurements.push({route:scenario.name,width,height,theme,...result});
-    fs.writeFileSync(`${output}/${engine}-opening-measurements.json`,JSON.stringify(openingMeasurements,null,2)+'\n');
-    assert.equal(result.scrollY,0,`${label}: assess the initial viewport, without scrolling`);
+    const label=`${engine}/${scenario.name}/${width}x${height}/${theme}`, failures=[];
+    const check=(condition,message)=>{if(!condition)failures.push(message);};
+    check(result.scrollY===0,`${label}: assess the initial viewport, without scrolling`);
     for(const [name,box] of [['heading',result.heading],['purpose',result.purpose],...result.controls.map(box=>[box.selector,box]),['first record title',result.title],...(scenario.status?[['first record status',result.status]]:[])]){
-      assert(box&&box.visible,`${label}: ${name} must exist and be visible`);
-      assert(box.top>=-1&&box.bottom<=height+1,`${label}: ${name} must fit the opening viewport; bounds ${JSON.stringify(box)}`);
+      check(box&&box.visible,`${label}: ${name} must exist and be visible`);
+      check(box&&box.top>=-1&&box.bottom<=height+1,`${label}: ${name} must fit the opening viewport; bounds ${JSON.stringify(box)}`);
     }
-    assert(result.canvas&&result.canvas.width>0,`${label}: main canvas must be measurable`);
-    if(width>=1920)assert(result.canvas.width>=width*.65,`${label}: main canvas ${result.canvas.width}px must use at least 65% of the available width`);
-    if(width>=1280&&scenario.name!=='suggestions-synthetic')assert(result.record.bottom<=height+1,`${label}: the first complete record must fit the desktop opening; bottom ${result.record.bottom}`);
-    if(width===390&&scenario.name==='home')assert(result.record.bottom<=height+1,`${label}: all three homepage paths must fit the phone opening; bottom ${result.record.bottom}`);
-    return {...result,canvasFraction:result.canvas.width/width,firstRecordFullyVisible:result.record.top>=0&&result.record.bottom<=height};
+    check(result.canvas&&result.canvas.width>0,`${label}: main canvas must be measurable`);
+    if(width>=1920)check(result.canvas?.width>=width*.65,`${label}: main canvas ${result.canvas?.width}px must use at least 65% of the available width`);
+    if(width>=1280&&scenario.name!=='suggestions-synthetic')check(result.record?.bottom<=height+1,`${label}: the first complete record must fit the desktop opening; bottom ${result.record?.bottom}`);
+    if(width===390&&scenario.name==='home')check(result.record?.bottom<=height+1,`${label}: all three homepage paths must fit the phone opening; bottom ${result.record?.bottom}`);
+    layoutErrors.push(...failures);
+    openingMeasurements.push({route:scenario.name,width,height,theme,...result,failures});
+    fs.writeFileSync(`${output}/${engine}-opening-measurements.json`,JSON.stringify(openingMeasurements,null,2)+'\n');
+    return {...result,canvasFraction:result.canvas?.width/width,firstRecordFullyVisible:!!result.record&&result.record.top>=0&&result.record.bottom<=height,failures};
   };
 
   await page.goto(baseURL,{waitUntil:'networkidle'});
@@ -152,7 +158,7 @@ const sdk = `export function createClient(){return {
     {name:'suggestions-empty',hash:'#suggestions',ready:'.cb-empty',nav:'suggestions',empty:true},
     {name:'suggestions-sign-in',hash:'#suggestions',ready:'#cbLogin',nav:'suggestions',submit:true},
   ];
-  const viewports=[{width:320,height:740},{width:390,height:844},{width:768,height:1024},{width:1280,height:720},{width:1920,height:1080},{width:2560,height:1440}];
+  const viewports=[{width:320,height:740},{width:390,height:844},{width:768,height:1024},{width:1280,height:720},{width:1440,height:900},{width:1920,height:1080},{width:2560,height:1440}];
   for(const {width,height} of viewports)for(const theme of ['dark','light'])for(const scenario of scenarios){
     await page.setViewportSize({width,height});
     await loadRoute(scenario.hash);
@@ -170,18 +176,26 @@ const sdk = `export function createClient(){return {
     await expect(page.locator(scenario.nav==='landing'?'#brandHome':`[data-page="${scenario.nav}"]`)).toHaveAttribute('aria-current','page');
     await assertNavigation(scenario.nav==='landing');
     await expect(page.locator('.site-nav')).toBeVisible();
-    await noOverflow(`${engine}/${scenario.name}/${width}x${height}/${theme}`);
+    const caseLabel=`${engine}/${scenario.name}/${width}x${height}/${theme}`;
+    await collectLayout(()=>noOverflow(caseLabel));
     await page.evaluate(async()=>{await document.fonts.ready;window.scrollTo({top:0,behavior:'instant'});await new Promise(requestAnimationFrame);});
     await expect(page.locator('.site-scene')).toBeVisible();
     await expect.poll(()=>page.locator('.site-scene img').evaluate(img=>img.complete&&img.naturalWidth>0)).toBe(true);
     const backdrop=await page.locator('.site-scene').boundingBox();
-    assert(backdrop&&backdrop.width>=width-1&&backdrop.height>0,`${scenario.name}: shared backdrop must cover the page width`);
+    await collectLayout(()=>assert(backdrop&&backdrop.width>=width-1&&backdrop.height>0,`${caseLabel}: shared backdrop must cover the page width`));
+    const navigationBounds=await page.locator('.top-links [data-page]').evaluateAll(links=>links.map(link=>{const rect=link.getBoundingClientRect();return {page:link.dataset.page,left:rect.left,right:rect.right,width:rect.width,height:rect.height};}));
+    for(const box of navigationBounds)await collectLayout(()=>assert(box.width>=44&&box.height>=44&&box.left>=-1&&box.right<=width+1,`${caseLabel}: navigation ${box.page} must fit horizontally and provide a 44px touch target; ${JSON.stringify(box)}`));
+    if(scenario.name==='bug-detail'){
+      const tabs=await page.locator('#dossier .tabs [data-tab]').evaluateAll(items=>items.map(item=>{const rect=item.getBoundingClientRect();return {tab:item.dataset.tab,left:rect.left,right:rect.right,width:rect.width,height:rect.height};}));
+      for(const box of tabs)await collectLayout(()=>assert(box.left>=-1&&box.right<=width+1&&box.width>0,`${caseLabel}: dossier tab ${box.tab} must fit horizontally without hidden overflow; ${JSON.stringify(box)}`));
+    }
     await page.screenshot({path:`${output}/${engine}-${width}x${height}-${theme}-${scenario.name}-opening.png`});
     if(width===390||width===1280){
       await page.screenshot({path:`${output}/${engine}-${width}-${theme}-${scenario.name}.png`,fullPage:true});
     }
     const opening=await openingMetrics(scenario,width,height,theme);
     checked.push({route:scenario.name,width,height,theme,opening});
+    fs.writeFileSync(`${output}/${engine}-layout-results.json`,JSON.stringify({checked,layoutErrors},null,2)+'\n');
   }
   await page.reload({waitUntil:'networkidle'});
   await expect(page.locator('html')).toHaveAttribute('data-theme','light');
@@ -264,7 +278,8 @@ const sdk = `export function createClient(){return {
   assert.deepEqual(blockedRequests,[],'No unexpected external API or asset requests');
   assert(calls.length>0,'The suggestion fixture must actually be exercised');
   assert(calls.every(call=>call.name==='hllv_community'&&['status','board'].includes(call.action)),'Only public read RPCs are permitted');
-  fs.writeFileSync(`${output}/${engine}-report.json`,JSON.stringify({engine,checked,readOnlyRpcCalls:calls.length,networkWrites:0,errors:[],suggestionScreenshots:'Synthetic public fixture; no real submissions or votes.',scope:'Visual and public-navigation regression checks. Existing community tests cover authenticated private submission and moderation workflows.'},null,2)+'\n');
+  fs.writeFileSync(`${output}/${engine}-report.json`,JSON.stringify({engine,checked,readOnlyRpcCalls:calls.length,networkWrites:0,errors:[],layoutErrors,suggestionScreenshots:'Synthetic public fixture; no real submissions or votes.',scope:'Visual and public-navigation regression checks. Existing community tests cover authenticated private submission and moderation workflows.'},null,2)+'\n');
+  assert.deepEqual(layoutErrors,[],'Layout failures collected across the complete viewport matrix');
   console.log(`VISUAL_SYSTEM_BROWSER_PASS ${engine}: ${checked.length} route/viewport/theme checks, bug and feature reading order, retained filters, keyboard focus, public suggestion and signed-out states, favicon assets; no writes.`);
   await browser.close();
 })().catch(error=>{console.error(error);process.exit(1);});

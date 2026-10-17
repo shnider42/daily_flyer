@@ -24,6 +24,7 @@ body { position: relative; isolation: isolate; }
   padding-inline: max(var(--page-gutter), calc((100vw - var(--page-width)) / 2 + var(--page-gutter)));
 }
 .brand-button { min-height: 44px; text-align: left; }
+.brand-button small { white-space: nowrap; }
 .brand-button:hover strong { text-decoration: underline; text-underline-offset: 4px; }
 .brand-home-hint { color: #f0eee4; font-weight: 700; }
 .brand-button[aria-current="page"] .brand-home-hint { color: #ffb09a; }
@@ -273,10 +274,10 @@ html[data-theme="light"] #featuresPage .section-kicker { color: #7b5119; }
 @media(min-width:1400px) {
   #landing .landing-main { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1fr); gap: 0 40px; }
   #landing .landing-main > * { grid-column: 1/-1; min-width: 0; }
-  #landing #featureHighlights { grid-column: 1; margin-bottom: 32px; padding: 24px; }
+  #landing #featureHighlights { grid-column: 1; align-self: start; margin-bottom: 32px; padding: 24px; }
   #landing .landing-current { grid-column: 2; padding: 24px 0 32px; }
   #landing .featured-list { display: block; }
-  #landing .featured-issue { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px 16px; padding: 18px 0; }
+  #landing .featured-issue, #landing .featured-issue:first-child, #landing .featured-issue:last-child { display: grid; grid-template-columns: minmax(0, 1fr) auto; gap: 6px 16px; padding: 18px 0; }
   #landing .featured-issue h3, #landing .featured-meta, #landing .featured-summary { grid-column: 1; margin: 0; }
   #landing .featured-issue .home-state { grid-column: 2; grid-row: 1/4; align-self: center; margin: 0; max-width: 170px; }
   #landing .featured-issue h3 { order: initial; }
@@ -306,7 +307,7 @@ html[data-theme="light"] #featuresPage .section-kicker { color: #7b5119; }
   .site-nav { grid-template-columns: minmax(0,1fr) auto; min-height: 0; padding: 10px 24px 0; gap: 0 12px; }
   .top-links { min-height: 48px; height: auto; margin-top: 4px; justify-content: flex-start; gap: 4px; }
   .top-link { min-height: 48px; }
-  .top-link-community { min-height: 40px; height: 40px; }
+  .top-link-community { min-height: 44px; height: 44px; }
 }
 @media(max-width:760px) {
   :root { --page-gutter: 20px; }
@@ -318,7 +319,7 @@ html[data-theme="light"] #featuresPage .section-kicker { color: #7b5119; }
   #home .home-tools label:first-child { grid-area: search; }
   #home .home-tools label:last-child { grid-area: category; }
   #home .date-order { display: grid; gap: 6px; font-size: .78rem; font-weight: 700; color: var(--ink); }
-  #home .date-order select { width: 100%; min-width: 0; height: 46px; padding-inline: 9px; font-size: 1rem; }
+  #home .date-order select { width: 100%; min-width: 0; height: 46px; padding-inline: 6px; font-size: 1rem; font-weight: 400; }
   #home .status-tabs { gap: 3px; justify-content: space-between; overflow: visible; }
   #home .status-filter { padding: 10px 8px; font-size: .76rem; }
   #home .status-filter span { margin-left: 3px; }
@@ -341,7 +342,8 @@ html[data-theme="light"] #featuresPage .section-kicker { color: #7b5119; }
   #app .dossier { padding: 8px var(--page-gutter) 48px; }
   #app .case-head { gap: 10px; padding-bottom: 16px; }
   #app .case-head h1 { margin: 8px 0 12px; font-size: clamp(1.65rem,6.5vw,2.2rem); }
-  #app .tabs { margin-top: 16px; }
+  #app .tabs { display: grid; grid-template-columns: repeat(4,minmax(0,1fr)); gap: 4px; margin-top: 16px; overflow: visible; }
+  #app .tab { min-width: 0; padding: 8px 4px; font-size: .74rem; white-space: normal; }
   #app .panel { padding-top: 16px; }
   #app .summary-lede { padding: 16px; }
   #app .bottom-line { margin-top: 6px; line-height: 1.55; }
@@ -353,8 +355,9 @@ html[data-theme="light"] #featuresPage .section-kicker { color: #7b5119; }
   .brand-button strong { font-size: .9rem; }
   .brand-button small { font-size: .58rem; }
   .top-links { display: grid; grid-template-columns: 1fr 1.1fr 1.18fr; gap: 0; }
-  .top-link { padding: 8px 5px; font-size: .72rem; }
-  .top-link-community { margin-left: 12px; padding-inline: 4px; }
+  /* Retire legacy mobile navigation !important values in the account stylesheet. */
+  .top-link { padding: 8px 5px!important; font-size: .72rem!important; }
+  .top-link-community { margin-left: 12px; padding: 4px!important; }
   .top-link-community::before { left: -8px; }
   #landing .landing-main { padding: 24px var(--page-gutter) 36px; }
   #landing .landing-hero { padding-bottom: 18px; }
@@ -373,7 +376,7 @@ html[data-theme="light"] #featuresPage .section-kicker { color: #7b5119; }
   :root { --page-gutter: 16px; }
   .brand-mark-small { display: none; }
   .nav-tools { gap: 10px; }
-  .site-nav { padding-inline: 12px; }
+  .site-nav { padding-inline: 12px!important; }
   #home .status-filter { font-size: .71rem; padding-inline: 6px; }
   #home .status-filter span { font-size: .68rem; }
   #home .home-tools label, #home .date-order { font-size: .73rem; }
