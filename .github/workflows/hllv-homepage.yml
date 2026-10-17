@@ -4,6 +4,8 @@ on:
     branches: [feature/hllv-bug-evidence-tracker, 'work/infierno-homepage-*']
     paths:
       - .github/hllv-homepage/**
+      - .github/hllv-visual-system/**
+      - .github/hllv-features/**
       - .github/workflows/hllv-homepage.yml
       - hllv_tracker/index.html
 permissions:
@@ -32,9 +34,11 @@ jobs:
           HLLV_BROWSER_ENGINE=chromium node .github/hllv-homepage/test_browser.cjs
           HLLV_BROWSER_ENGINE=webkit node .github/hllv-homepage/test_browser.cjs
           HLLV_BROWSER_ENGINE=chromium node .github/hllv-features/test_browser.cjs
+          HLLV_BROWSER_ENGINE=chromium node .github/hllv-visual-system/test_browser.cjs
+          HLLV_BROWSER_ENGINE=webkit node .github/hllv-visual-system/test_browser.cjs
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()
         with:
           name: hllv-homepage-previews
-          path: artifacts/homepage-qa/
+          path: artifacts/
           retention-days: 3

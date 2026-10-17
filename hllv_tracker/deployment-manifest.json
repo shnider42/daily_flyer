@@ -21,6 +21,10 @@
     "assets/source-responses-84abf7fafeb49b62.css",
     "assets/barlow-condensed-900-latin-aa01966de3f608a7.woff2",
     "assets/homepage-a724773e0887aa61.css",
+    "assets/visual-system-ddf51339ae73076c.css",
+    "assets/infierno-favicon.ico",
+    "assets/infierno-favicon.svg",
+    "assets/infierno-apple-touch-icon.png",
     "assets/river-valley-10064d0556445fad.webp",
     "assets/source-responses-cdb29d5e3bbdf5dc.js",
     "assets/practice-6b6ee9a21123ec86.js",
@@ -33,7 +37,7 @@
     "assets/community-9968024fdcdfaa9d.js",
     "assets/river-valley-mobile-2019c320c527506a.webp",
     "data/features.904c4e51cc9b7122.json",
-    "assets/features-fa4dc57350baf221.js",
+    "assets/features-a7b2fc411110e11e.js",
     "assets/features-8b376ecbcf45078a.css",
     "assets/official-feed-1bee5be0574ef8be.js"
   ],
@@ -41,7 +45,7 @@
   "feature_data_url": "data/features.904c4e51cc9b7122.json",
   "feature_assets": [
     "data/features.904c4e51cc9b7122.json",
-    "assets/features-fa4dc57350baf221.js",
+    "assets/features-a7b2fc411110e11e.js",
     "assets/features-8b376ecbcf45078a.css"
   ]
 }
