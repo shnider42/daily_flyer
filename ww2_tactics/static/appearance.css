@@ -1,0 +1,232 @@
+/* Site appearance only. SVG terrain, unit art, ownership and targeting colors
+   deliberately keep their tactical palette in both modes. Load after UI CSS. */
+:root {
+  --ui-bg: #171e1b;
+  --ui-surface: #202a24;
+  --ui-raised: #2a352c;
+  --ui-input: #131c17;
+  --ui-text: #ece8da;
+  --ui-muted: #b7bfaf;
+  --ui-line: #52604f;
+  --ui-accent: #d7bc7c;
+  --ui-green: #b6d09d;
+  --ui-red: #efb0a0;
+}
+.appearance-toggle {
+  min-height: 44px;
+  padding: 7px 10px;
+  font-size: 12px;
+  white-space: nowrap;
+  flex-shrink: 0;
+}
+body > header .appearance-toggle { margin-left: auto; }
+#battleViewSettings .appearance-toggle { width: 100%; text-align: left; }
+@media (max-width: 749px) {
+  .home-screen > header { gap: 6px; }
+  .home-screen > header .brand span { display: none; }
+  .home-screen > header .appearance-toggle { font-size: 11px; padding: 7px; }
+}
+
+/* Existing home/dialog palettes are local, so reset their tokens explicitly. */
+html[data-theme=dark],
+html[data-theme=dark] body,
+html[data-theme=dark] dialog {
+  color-scheme: dark;
+  --ink: var(--ui-text);
+  --paper: var(--ui-bg);
+  --muted: var(--ui-muted);
+  --line: var(--ui-line);
+  --green: var(--ui-green);
+  --red: #9c493b;
+  --danger: var(--ui-red);
+}
+html[data-theme=light] { color-scheme: light; }
+html[data-theme=dark] body { background: var(--ui-bg); color: var(--ui-text); }
+html[data-theme=dark] body > header { background: var(--ui-bg); border-color: var(--ui-line); }
+html[data-theme=dark] :is(a, .brand, .home-shortcuts a) { color: var(--ui-accent); }
+html[data-theme=dark] :is(h1, h2, h3, label, summary) { color: inherit; }
+html[data-theme=dark] :is(button, input, select, textarea, summary, a):focus-visible {
+  outline: 3px solid var(--ui-accent);
+  outline-offset: 3px;
+}
+html[data-theme=dark] :is(input, select, textarea),
+html[data-theme=dark] :is(#lobby, dialog, #battleViewSettings) :is(input, select, textarea),
+html[data-theme=dark] #battleViewSettings #simpleToggle {
+  background: var(--ui-input);
+  color: var(--ui-text);
+  border-color: #75846b;
+}
+html[data-theme=dark] :is(input, textarea)::placeholder { color: #a9b3a1; opacity: 1; }
+html[data-theme=dark] :is(input[type=checkbox], input[type=radio]) { accent-color: var(--ui-accent); }
+html[data-theme=dark] select option { background: var(--ui-input); color: var(--ui-text); }
+html[data-theme=dark] button,
+html[data-theme=dark] #battleViewSettings #playTools button {
+  background: var(--ui-raised);
+  color: var(--ui-text);
+  border-color: #75846b;
+}
+html[data-theme=dark] button.quiet { background: transparent; color: var(--ui-muted); }
+html[data-theme=dark] :is(button.primary, .solo-button, #createSolo, #commanderSignIn, #dadOrdersOpen, #battleViewSettingsClose),
+html[data-theme=dark] #experimentalNavigation #end {
+  background: #37553c;
+  color: #fff6dd;
+  border-color: #8fa779;
+}
+html[data-theme=dark] :is(button.danger, #submitAction.danger) {
+  background: #793b32;
+  color: #fff0e8;
+  border-color: #cf907d;
+}
+html[data-theme=dark] button[aria-pressed=true],
+html[data-theme=dark] #battleViewSettings #playTools button[aria-pressed=true] {
+  background: #374b36;
+  color: #f6edd2;
+  border-color: #acc18d;
+}
+html[data-theme=dark] button:disabled { opacity: .6; }
+@media (hover: hover) {
+  html[data-theme=dark] button:not(:disabled):hover {
+    box-shadow: inset 0 0 0 1px var(--ui-accent);
+  }
+}
+
+/* Native dialogs and layout-owned sheets share the same quiet field palette. */
+html[data-theme=dark] dialog,
+html[data-theme=dark] :is(#commanderDialog, #namedGameDialog, #battleViewSettings,
+  #orderGuide, #supplyDialog, #groundStack, #fubarStack, .experimental-sheet) {
+  background: var(--ui-surface);
+  color: var(--ui-text);
+  border-color: #75846b;
+  box-shadow: 0 18px 70px #0008;
+}
+html[data-theme=dark] dialog::backdrop { background: #080f0cd9; }
+html[data-theme=dark] :is(.battle-view-heading, .mobile-sheet-heading, .experimental-sheet-heading) {
+  background: var(--ui-surface);
+  color: var(--ui-text);
+  border-color: var(--ui-line);
+}
+html[data-theme=dark] :is(#commanderDialog, #namedGameDialog) :is(h2, p, label) { color: inherit; }
+html[data-theme=dark] :is(#commanderError, #namedGameError, #coopJoinError, #actionError, #message.error) { color: var(--ui-red); }
+
+/* Home: retain the command-table artwork, typography and operation map. */
+html[data-theme=dark] .home-operation { background: var(--ui-surface); color: var(--ui-text); border-color: var(--ui-line); }
+html[data-theme=dark] .home-map-panel { background-color: #2e3d30; border-color: var(--ui-line); }
+html[data-theme=dark] :is(.home-map-caption, .home-map-footer) { color: #d3d1ae; border-color: #7b886a; }
+html[data-theme=dark] .home-map-panel::before {
+  background: repeating-linear-gradient(0deg, transparent 0 59px, #ced3a70a 59px 60px),
+    repeating-linear-gradient(90deg, transparent 0 59px, #ced3a70a 59px 60px);
+}
+html[data-theme=dark] #scenarioPreview { border-radius: 4px; }
+html[data-theme=dark] :is(.home-experience, .operation-briefing, .operation-edition) { border-color: var(--ui-line); }
+html[data-theme=dark] .operation-edition { background: #d7bc7c09; }
+html[data-theme=dark] .home-screen :is(#operationTitle, #create, #createCoop, #learnStart) { color: var(--ui-text); }
+html[data-theme=dark] .home-screen :is(#operationSummary, #operationFactions, #learnHelp,
+  #scenarioBrief, #playtestNote, .operation-selection-info, .operation-filter-status,
+  .experience-control p, .operation-briefing summary, .operation-filters label) { color: var(--ui-muted); }
+html[data-theme=dark] .home-screen :is(#create, #createCoop) { background: var(--ui-raised); border-color: #75846b; }
+html[data-theme=dark] .home-screen .new-operations button { background: transparent; color: var(--ui-green); border-color: #7c936d; }
+html[data-theme=dark] .new-operations :is(small, span) { color: var(--ui-accent); }
+html[data-theme=dark] :is(.experience-mark, #orderGuideDepth, .experience-levels button) { background: var(--ui-raised); color: var(--ui-text); border-color: var(--ui-line); }
+html[data-theme=dark] :is(.experience-mark, #orderGuideDepth, .experience-levels button)[aria-pressed=true] { background: #374b36; border-color: #acc18d; }
+html[data-theme=dark] .home-screen :is(.public-game > button, .home-return button) { background: #374b36; color: #f6edd2; border: 1px solid #8fa779; }
+html[data-theme=dark] :is(#coopRoom, .rematch-proposal, #waiting) { background: var(--ui-surface); color: var(--ui-text); border-color: var(--ui-line); }
+
+/* Battle chrome: map surfaces and SVG descendants keep their original colors. */
+html[data-theme=dark] :is(#mobileBattleScreen, #experimentalDesktopScreen) { background: var(--ui-bg); color: var(--ui-text); }
+html[data-theme=dark] :is(#mobileBattleTop, #experimentalDesktopTop, #experimentalCommandBar,
+  #mobileOrderDock, #mobileOrderBody, #mobileOrderHead, #mobileUnitNav,
+  .desktop-orders > .desktop-panel-title, .desktop-orders #orders #selection) {
+  background: var(--ui-bg);
+  color: var(--ui-text);
+  border-color: var(--ui-line);
+}
+html[data-theme=dark] #mobileOrderDock { box-shadow: none; }
+html[data-theme=dark] :is(#mobileBattleTop, #experimentalDesktopTop) #battleNavigation button,
+html[data-theme=dark] #battleNavigation button,
+html[data-theme=dark] #mobileBattleTop #mobileMenuOpen,
+html[data-theme=dark] :is(#mobileBattleTop, #experimentalDesktopTop) > button,
+html[data-theme=dark] #mobileBattleTop #orderHistory button {
+  background: var(--ui-raised);
+  color: var(--ui-text);
+  border-color: #75846b;
+}
+html[data-theme=dark] #battleNavigation button[aria-expanded=true] { background: #374b36; color: #f6edd2; border-color: #acc18d; }
+html[data-theme=dark] #fubarLayers button[aria-pressed=true] { background: #315565; color: #dcf4f8; border-color: #a5d5df; }
+html[data-theme=dark] :is(#experimentalUnitOpen, #mobileOrderToggle, #mobileUnitNav button) { color: var(--ui-text); background: transparent; }
+html[data-theme=dark] :is(#experimentalUnit, #experimentalNavigation, .desktop-forces,
+  .desktop-command-column, .desktop-action-dock, .desktop-footer, #orders,
+  .journal, .match-tools, #battleOptions, .britain-flight) { border-color: var(--ui-line); }
+html[data-theme=dark] #experimentalField .map-tools { background: #202a24f2; border-color: #75846b; }
+html[data-theme=dark] :is(.desktop-camera button, .desktop-action-dock #nextUnit,
+  .desktop-orders #nextUnit, .desktop-orders #replayTurn, #findUnit, #orderGuideOpen,
+  #orderHistory button, .ground-stack-options button, .fubar-stack-options button) {
+  background: var(--ui-raised); color: var(--ui-text); border-color: #75846b;
+}
+html[data-theme=dark] .desktop-camera button[aria-pressed=true] { background: #594c2e !important; color: #fff0c8 !important; }
+html[data-theme=dark] .roster-unit:not(.active) { background: var(--ui-surface); color: var(--ui-text); border-top-color: var(--ui-line); border-right-color: var(--ui-line); }
+/* Active roster/platoon colors remain tied to their army's ownership palette. */
+html[data-theme=dark] :is(.roster-unit.active, #platoonFilters button[data-platoon]:not([data-platoon=all])) { color: #fff9e8; }
+html[data-theme=dark] :is(.mission-hint, .map-tools, .terrain-legend, .series-score,
+  .desktop-force-summary, .desktop-force-tip, .desktop-playback-note,
+  .desktop-map-heading span, .desktop-camera-hint, .desktop-zoom-value, .desktop-pan-hint,
+  #armyCount, #hint, #unitPurpose, #experimentalUnitOpen small, #experimentalUnit #hint,
+  .weapon-summary, .combat-impact, .mechanics-caption, .ruleset-badge, #rulesetBadge,
+  #supportStatus, #historyHelp, .action-reason, .journey-number, .journey-chapter small,
+  #journeyNote, #lessonLevelNote, .experience-control label, .experience-control p,
+  #battleViewSettings p, #battleViewSettings h3, .operation-filters label,
+  .battle-result-label, .battle-result-cargo, .fubar-stack-options small, #deploymentStatus) {
+  color: var(--ui-muted);
+}
+html[data-theme=dark] :is(#battleMission, #mobileBattleTop #battleMission, #missionProgress,
+  #missionFlags, #lessonTask, #simpleOutcome, #airliftReport, .role-brief,
+  .odds, .combat, .computer-review, #playbackPanel, .weapon-manual, #dslManual,
+  #tutorialCoach, #deploymentPanel) {
+  background: var(--ui-surface); color: var(--ui-text); border-color: var(--ui-line);
+}
+html[data-theme=dark] #lessonTopics button { background: var(--ui-raised); color: var(--ui-text); }
+html[data-theme=dark] #lessonTopics button[aria-current=step] { background: #37553c; color: #fff6dd; }
+html[data-theme=dark] #lessonResult { color: var(--ui-green); }
+html[data-theme=dark] .playback-controls { background: var(--ui-bg); }
+html[data-theme=dark] .playback-controls button { background: var(--ui-raised); }
+html[data-theme=dark] :is(.incoming, #signalNotice, #experimentalNotice, #britainFuelWarning,
+  .guide-safety, .guide-unavailable, #actionWarning) {
+  background: #3a3020; color: #f1d6a2; border-color: #b49557;
+}
+html[data-theme=dark] #message { background: #352e20; color: #f6e0b7; border: 1px solid #b49557; }
+html[data-theme=dark] .die-face { background: var(--ui-input); color: var(--ui-text); border-color: #8a9b7b; }
+html[data-theme=dark] #battleFeedback .die-face { background: var(--ui-input); border-color: var(--result-color); }
+html[data-theme=dark] :is(.winning-face, .result-hit) { color: #c2e4a7; }
+html[data-theme=dark] .winning-face { background: #2b4029; border-color: #8eb776; }
+html[data-theme=dark] :is(.miss-face, .result-miss) { color: var(--ui-red); }
+html[data-theme=dark] .miss-face { background: #422d27; border-color: #cf907d; }
+html[data-theme=dark] .losing-face { color: #b8bfaf; background: #2b312b; border-color: #75846b; }
+html[data-theme=dark] #battleFeedback { --result-color: #e0c486; background: #302d21; color: var(--ui-text); border-color: #968356; }
+html[data-theme=dark] #battleFeedback:is([data-tone=lost], [data-tone=miss]) { --result-color: #efb0a0; background: #392721; border-color: #ad7b68; }
+html[data-theme=dark] #battleFeedback[data-tone=hit] { --result-color: #b6d09d; background: #293526; border-color: #8a9b7b; }
+html[data-theme=dark] #battleFeedback .battle-result-dismiss { color: var(--ui-muted); }
+
+/* Preserve the visual families and availability reasons of tactical orders. */
+html[data-theme=dark] #orders .tactical-action { --action-ink: #c1ced4; --action-bg: #2a3439; }
+html[data-theme=dark] #orders .tactical-action[data-tone=earth] { --action-ink: #d8c6a0; --action-bg: #393225; }
+html[data-theme=dark] #orders .tactical-action[data-tone=slate] { --action-ink: #bacddc; --action-bg: #29343d; }
+html[data-theme=dark] #orders .tactical-action[data-tone=amber] { --action-ink: #edcf87; --action-bg: #3d3320; }
+html[data-theme=dark] #orders .tactical-action[data-tone=red] { --action-ink: #f0b0a7; --action-bg: #402925; }
+html[data-theme=dark] #orders .tactical-action[data-tone=rust] { --action-ink: #eab49a; --action-bg: #3c2e25; }
+html[data-theme=dark] #orders .tactical-action[data-tone=orange] { --action-ink: #f0c193; --action-bg: #3f3021; }
+html[data-theme=dark] #orders .tactical-action[data-tone=violet] { --action-ink: #d5bce6; --action-bg: #362d3e; }
+html[data-theme=dark] #orders .tactical-action[data-tone=green] { --action-ink: #bed8a6; --action-bg: #293a29; }
+html[data-theme=dark] #orders .tactical-action[data-tone=teal] { --action-ink: #a7d4c8; --action-bg: #253a33; }
+html[data-theme=dark] #orders .tactical-action[data-tone=indigo] { --action-ink: #c5c6e8; --action-bg: #30313f; }
+html[data-theme=dark] #orders .tactical-action[data-tone=blue] { --action-ink: #b2d4ea; --action-bg: #273744; }
+html[data-theme=dark] #orders .tactical-action { background: var(--action-bg); color: var(--action-ink); border-color: var(--action-ink); }
+html[data-theme=dark] #orders .tactical-action.order-unavailable {
+  background: #242c25; color: #b7bfaf; border-color: #65715e; border-left-color: #8e9b83; opacity: 1;
+}
+html[data-theme=dark] #orders .order-unavailable :is(.action-name, .action-purpose, .action-cost, .action-reason, .action-icon) { color: #b7bfaf !important; }
+
+/* The separate operations console follows the same preference. */
+html[data-theme=dark] :is(.panel, .metric, pre, .badge) { background: var(--ui-surface); color: var(--ui-text); border-color: var(--ui-line); }
+html[data-theme=dark] :is(.eyebrow, dt, .muted) { color: var(--ui-muted); }
+html[data-theme=dark] #game .game-title #battleNumber { color: var(--ui-muted); }
+html[data-theme=dark] #game #side { color: #b6d5f0; }
+html[data-theme=dark] #game[data-side=de] #side { color: var(--ui-red); }

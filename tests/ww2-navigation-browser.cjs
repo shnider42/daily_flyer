@@ -21,8 +21,8 @@ async function camera(p){return p.locator('#mapWrap').evaluate(n=>({rect:n.getBo
     const nav=await p.locator('#battleNavigation').boundingBox();first??=nav;
     assert.ok(nav.x<35&&nav.y<15,JSON.stringify({width,height,mode,nav}));
     assert.ok(Math.abs(nav.x-first.x)<20&&Math.abs(nav.y-first.y)<8,'Navigation remains in the same corner');
-    assert.deepEqual(await p.locator('#battleNavigation button').allTextContents(),['Home','View']);
-    const visible=await p.locator('#battleNavigation button').evaluateAll(ns=>ns.map(n=>({id:n.id,height:n.getBoundingClientRect().height,width:n.getBoundingClientRect().width,clipped:n.scrollWidth>n.clientWidth+1})));
+    assert.deepEqual(await p.locator('#battleNavigation button:visible').allTextContents(),['Home','View']);
+    const visible=await p.locator('#battleNavigation button:visible').evaluateAll(ns=>ns.map(n=>({id:n.id,height:n.getBoundingClientRect().height,width:n.getBoundingClientRect().width,clipped:n.scrollWidth>n.clientWidth+1})));
     assert.ok(visible.every(n=>n.height>=44&&n.width>=44&&!n.clipped),JSON.stringify(visible));
     const map=await camera(p);await p.locator('#battleViewOpen').click();assert.deepEqual(await camera(p),map,'Opening View cannot move or pan the map');
     assert.equal(await p.locator('#battleViewOpen').getAttribute('aria-expanded'),'true');
