@@ -1,0 +1,57 @@
+{
+  "date": "2026-10-16",
+  "review_release": "2026-10-16-bug-evidence-review",
+  "base_commit": "e5eccc0af6f8fddd38edd5cb30394bbec8d8ac51",
+  "page_updated_at": "2026-10-17T01:00:30Z",
+  "updated_issues": [
+    "HLLV-003",
+    "HLLV-006",
+    "HLLV-007",
+    "HLLV-029",
+    "HLLV-033",
+    "HLLV-046",
+    "HLLV-047",
+    "HLLV-057",
+    "HLLV-058",
+    "HLLV-059",
+    "HLLV-060",
+    "HLLV-061",
+    "HLLV-065",
+    "HLLV-066"
+  ],
+  "new_issues": [
+    "HLLV-076",
+    "HLLV-077",
+    "HLLV-078",
+    "HLLV-079",
+    "HLLV-080",
+    "HLLV-081",
+    "HLLV-082",
+    "HLLV-083"
+  ],
+  "issue_count": 83,
+  "source_references": 196,
+  "distinct_source_urls": 56,
+  "latest_verified_release": {
+    "title": "Patch 1.6",
+    "date": "2026-10-07"
+  },
+  "independent_gameplay_testing": false,
+  "limitations": [
+    "No independent gameplay testing.",
+    "Thirty-six discussion reply scans attempted; 34 completed and two were temporarily unavailable. Completeness is transport/parser coverage, not validation of every statement.",
+    "Only selected relevant claims were editorially incorporated. Other dossiers retain their prior evidence dates.",
+    "The latest official publisher announcement reviewed is October 15; the latest selected player reply is October 16.",
+    "Existing unrelated-text editorial hold remains unchanged and is not used as bug evidence.",
+    "Original Hell Let Loose is distinct from Vietnam; one custom-binding thread still has an unresolved game/build ambiguity.",
+    "No update to visual assets, functional scripts, feature records, account data or Suggestion Box moderation."
+  ],
+  "thread_checks": {
+    "attempted": 36,
+    "complete": 34,
+    "unavailable": [
+      "https://steamcommunity.com/app/3079210/discussions/1/590691913364082100/",
+      "https://steamcommunity.com/app/3079210/discussions/1/590691913364082327/"
+    ]
+  }
+}

@@ -1,10 +1,10 @@
 {
-  "generated_at": "2026-10-11",
+  "generated_at": "2026-10-16",
   "latest_change": {
-    "date": "2026-10-09",
-    "label": "Community Feedback #7 · October 9",
-    "url": "https://www.hellletloose.com/blog/community-update-7",
-    "summary": "Reviewed October 11: remaining spawn failures, graphics plans and a Huey M60 sensitivity exception. Patch 1.6 remains the latest verified release; 1.7 changes are not marked shipped."
+    "date": "2026-10-16",
+    "label": "October 16 bug evidence review",
+    "url": "https://www.hellletloose.com/blog/community-update-8",
+    "summary": "14 existing dossiers refreshed and 8 distinct issues added from developer and Support evidence. Includes an October 16 player follow-up. Plans, reports and player workarounds remain separate from released fixes."
   },
   "method": "Public evidence only. Official acknowledgement, reproduction, a shipped change, and post-fix verification are recorded separately.",
   "issues": [
@@ -292,11 +292,11 @@
       "kind": "issue family",
       "status_key": "monitoring",
       "status_label": "Improvements released · monitoring",
-      "bottom_line": "The October 9 update reports fewer crashes after 1.6. Remaining crashes are still monitored; universal resolution is not established.",
+      "bottom_line": "October 15: fewer crashes reported internally; remaining cases stay open, with further stability work planned for 1.7.",
       "official_short": "Improvement reported",
-      "fix_short": "1.6 + monitoring",
+      "fix_short": "Earlier improvements; 1.7 planned",
       "cause_short": "Blood/decal load + others",
-      "last_updated": "2026-10-09",
+      "last_updated": "2026-10-15",
       "scope": [
         "PC",
         "PS5",
@@ -305,7 +305,7 @@
         "multiple hardware configurations"
       ],
       "symptom": "Clients can crash for several distinct reasons, including a documented failure associated with large quantities of blood and decal effects.",
-      "official_position": "Community Feedback #7 reports improvement in internal crash observations following 1.5.2 and 1.6. Remaining AMD reports are still being investigated. The publisher also mentions a possible driver contribution across games; this is not a diagnosis for any particular player or a reason to assign all crashes to AMD.",
+      "official_position": "The publisher reports improvement, not universal resolution. A separate October 13 Support exchange continues troubleshooting tank-fire crashes; neither a shared hardware cause nor a reliable workaround is established.",
       "workaround": "PC: finish shader caching before continuing; reset Video Settings after updating.",
       "known": [
         "Several individual stability problems have been identified.",
@@ -377,6 +377,18 @@
           "date": "2026-10-09",
           "event": "Community Feedback #7",
           "detail": "The October 9 publisher update reports fewer crashes after 1.6, while investigation of remaining AMD crash/driver reports continues. It provides no independent crash-rate measurement."
+        },
+        {
+          "date": "2026-10-15",
+          "event": "Community Feedback #8 | Command Post",
+          "detail": "Added in the October 16 editorial review. The Sources entry records the scoped claim and direct reference.",
+          "source_url": "https://www.hellletloose.com/blog/community-update-8"
+        },
+        {
+          "date": "2026-10-13",
+          "event": "AMD crashes unacceptable.",
+          "detail": "Added in the October 16 editorial review. The Sources entry records the scoped claim and direct reference.",
+          "source_url": "https://steamcommunity.com/app/3079210/discussions/1/591816302688109179/?ctp=2#c590692129307778259"
         }
       ],
       "sources": [
@@ -553,9 +565,38 @@
             "http_status": 200
           },
           "link_checked_at": "2026-10-11"
+        },
+        {
+          "type": "official update",
+          "publisher": "Hell Let Loose / Team17",
+          "title": "Community Feedback #8 | Command Post",
+          "url": "https://www.hellletloose.com/blog/community-update-8",
+          "date": "2026-10-15",
+          "source_published_at": "2026-10-15T16:00:50Z",
+          "source_reviewed_at": "2026-10-16",
+          "source_reviewed_via": "https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/1846651706678313",
+          "announcement_id": "1846651706678313",
+          "content_sha256": "ccd0ac3d412f80f292b497075765de37e09f59ba53156bbce041c6008c05238d",
+          "claim": "Residual crashes remain monitored.",
+          "source_locator": "Stability"
+        },
+        {
+          "type": "support thread",
+          "publisher": "Team17 Support",
+          "title": "AMD crashes unacceptable.",
+          "url": "https://steamcommunity.com/app/3079210/discussions/1/591816302688109179/?ctp=2#c590692129307778259",
+          "date": "2026-10-13",
+          "source_published_at": "2026-10-13T15:34:10Z",
+          "source_reviewed_at": "2026-10-16",
+          "source_locator": "Reply 590692129307778259",
+          "content_sha256": "eb997c221cf40eee3262c5701fbfdcb01d8d86f0b0c2cadb9435d9101b38f297",
+          "source_author_id": "76561199418459134",
+          "authority_checked_at": "2026-10-17T00:56:47Z",
+          "source_category": "Team17 Support",
+          "claim": "Support continues diagnostics after reports of crashes or severe FPS drops around tank-fire smoke; no released fix is identified."
         }
       ],
-      "last_reviewed": "2026-10-11",
+      "last_reviewed": "2026-10-16",
       "editorial_history": [
         {
           "date": "2026-10-11",
@@ -565,6 +606,15 @@
             "official_position": "The new release also reduces memory retained when restarting tutorials. These client-side changes do not establish a common cause for every crash or server outage.",
             "official_short": "Multiple causes",
             "fix_short": "Patch 1.6 + earlier fixes"
+          }
+        },
+        {
+          "date": "2026-10-16",
+          "reason": "Reviewed public evidence; previous assessment retained below.",
+          "previous": {
+            "bottom_line": "The October 9 update reports fewer crashes after 1.6. Remaining crashes are still monitored; universal resolution is not established.",
+            "official_position": "Community Feedback #7 reports improvement in internal crash observations following 1.5.2 and 1.6. Remaining AMD reports are still being investigated. The publisher also mentions a possible driver contribution across games; this is not a diagnosis for any particular player or a reason to assign all crashes to AMD.",
+            "fix_short": "1.6 + monitoring"
           }
         }
       ]
@@ -767,18 +817,18 @@
       "kind": "visual-quality issue",
       "status_key": "partial",
       "status_label": "Improvements ongoing",
-      "bottom_line": "Further console image-quality work now targets Patch 1.7, including PS5 Pro PSSR, PS5/PS5 Pro VRR and a higher minimum dynamic resolution. These are plans, not released fixes.",
+      "bottom_line": "October 15: console visual work remains planned for 1.7 and 2.0, not released.",
       "official_short": "1.7 plan announced",
-      "fix_short": "1.7 targeted; not shipped",
+      "fix_short": "1.7 / 2.0 plans",
       "cause_short": "Optimization limits",
-      "last_updated": "2026-10-09",
+      "last_updated": "2026-10-15",
       "scope": [
         "PS5",
         "Xbox",
         "graphics"
       ],
       "symptom": "Console players report foliage shimmer, reduced clarity, image noise, and inconsistent sharpness.",
-      "official_position": "The latest console visual plan is described in Community Feedback #7. PSSR is planned for PS5 Pro, VRR for PS5 and PS5 Pro, and a higher minimum dynamic resolution for console platforms. The publisher explicitly makes these changes subject to final testing; earlier 2.0-and-beyond plans remain historical context rather than the only current target.",
+      "official_position": "The October 9 platform-specific plan remains in the evidence history; the October 15 follow-up does not establish release or expand PSSR support to base PS5.",
       "workaround": "The game outputs SDR. Do not force HDR for SDR games; on PS5, the developer recommends HDR On When Supported. This addresses presentation settings, not foliage or draw-distance defects.",
       "known": [
         "The issue is officially acknowledged.",
@@ -821,6 +871,12 @@
           "date": "2026-10-09",
           "event": "Community Feedback #7",
           "detail": "The October 9 update targets further visual work for 1.7, including PSSR on PS5 Pro, VRR on PS5/PS5 Pro and a higher dynamic-resolution floor on consoles. Final testing remains pending."
+        },
+        {
+          "date": "2026-10-15",
+          "event": "Community Feedback #8 | Command Post",
+          "detail": "Added in the October 16 editorial review. The Sources entry records the scoped claim and direct reference.",
+          "source_url": "https://www.hellletloose.com/blog/community-update-8"
         }
       ],
       "sources": [
@@ -904,9 +960,23 @@
             "http_status": 200
           },
           "link_checked_at": "2026-10-11"
+        },
+        {
+          "type": "plan",
+          "publisher": "Hell Let Loose / Team17",
+          "title": "Community Feedback #8 | Command Post",
+          "url": "https://www.hellletloose.com/blog/community-update-8",
+          "date": "2026-10-15",
+          "source_published_at": "2026-10-15T16:00:50Z",
+          "source_reviewed_at": "2026-10-16",
+          "source_reviewed_via": "https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/1846651706678313",
+          "announcement_id": "1846651706678313",
+          "content_sha256": "ccd0ac3d412f80f292b497075765de37e09f59ba53156bbce041c6008c05238d",
+          "claim": "Further console improvements planned.",
+          "source_locator": "Foliage, LODs & Visual Quality"
         }
       ],
-      "last_reviewed": "2026-10-11",
+      "last_reviewed": "2026-10-16",
       "editorial_history": [
         {
           "date": "2026-10-11",
@@ -916,6 +986,15 @@
             "official_position": "The October 1 update distinguishes ongoing foliage fixes from console resolution and LOD-distance testing. Further console improvements are expected with Update 2.0 and beyond, subject to performance tradeoffs; these are not released fixes.",
             "official_short": "Acknowledged",
             "fix_short": "Partial fixes; more planned"
+          }
+        },
+        {
+          "date": "2026-10-16",
+          "reason": "Reviewed public evidence; previous assessment retained below.",
+          "previous": {
+            "bottom_line": "Further console image-quality work now targets Patch 1.7, including PS5 Pro PSSR, PS5/PS5 Pro VRR and a higher minimum dynamic resolution. These are plans, not released fixes.",
+            "official_position": "The latest console visual plan is described in Community Feedback #7. PSSR is planned for PS5 Pro, VRR for PS5 and PS5 Pro, and a higher minimum dynamic resolution for console platforms. The publisher explicitly makes these changes subject to final testing; earlier 2.0-and-beyond plans remain historical context rather than the only current target.",
+            "fix_short": "1.7 targeted; not shipped"
           }
         }
       ]
@@ -927,18 +1006,18 @@
       "kind": "control issue family",
       "status_key": "partial",
       "status_label": "Specific control fixes released",
-      "bottom_line": "Specific helicopter binding fixes shipped in 1.6. The October 9 update still requests exact custom-input examples, including Tactical Map bindings.",
+      "bottom_line": "Further keyboard fixes target 2.0. An October 16 player still reports conflicting mouse assignments; exact game/build scope needs confirmation.",
       "official_short": "Acknowledged",
-      "fix_short": "Control fixes through 1.6",
+      "fix_short": "Specific fixes live; more planned",
       "cause_short": "Not public",
-      "last_updated": "2026-10-09",
+      "last_updated": "2026-10-16",
       "scope": [
         "PC",
         "console",
         "helicopter controls"
       ],
       "symptom": "Custom bindings may fail to save, reset after leaving the menu, or produce conflicting assignments.",
-      "official_position": "Community Feedback #7 continues the custom-control investigation and asks for the precise assignment, input combination, expected action and observed behavior. This does not establish that all reset/conflict reports share a cause or that the separate keyboard pitch/collective report is resolved.",
+      "official_position": "Support previously requested clarification because the player also posted on the original Hell Let Loose forum. The later report describes left-click toggle ADS and right-click fire interfering; it does not independently settle the game/build ambiguity.",
       "workaround": null,
       "known": [
         "Team17 Support received multiple similar reports.",
@@ -988,6 +1067,24 @@
           "date": "2026-10-09",
           "event": "Community Feedback #7",
           "detail": "The October 9 developer post requests exact custom Tactical Map, mouse and keyboard binding examples; ongoing improvements are not a blanket fix for every configuration."
+        },
+        {
+          "date": "2026-10-15",
+          "event": "Community Feedback #8 | Command Post",
+          "detail": "Added in the October 16 editorial review. The Sources entry records the scoped claim and direct reference.",
+          "source_url": "https://www.hellletloose.com/blog/community-update-8"
+        },
+        {
+          "date": "2026-10-10",
+          "event": "FIX THE GD FKING KEY BINDINGS!!!!!!!!!!!!!!!!!!!!!!!!!!",
+          "detail": "Added in the October 16 editorial review. The Sources entry records the scoped claim and direct reference.",
+          "source_url": "https://steamcommunity.com/app/3079210/discussions/1/590691913363920015/?ctp=1#c590691913363951171"
+        },
+        {
+          "date": "2026-10-16",
+          "event": "FIX THE GD FKING KEY BINDINGS!!!!!!!!!!!!!!!!!!!!!!!!!!",
+          "detail": "Added in the October 16 editorial review. The Sources entry records the scoped claim and direct reference.",
+          "source_url": "https://steamcommunity.com/app/3079210/discussions/1/590691913363920015/?ctp=1#c570426339809609829"
         }
       ],
       "sources": [
@@ -1076,9 +1173,50 @@
             "http_status": 200
           },
           "link_checked_at": "2026-10-11"
+        },
+        {
+          "type": "plan",
+          "publisher": "Hell Let Loose / Team17",
+          "title": "Community Feedback #8 | Command Post",
+          "url": "https://www.hellletloose.com/blog/community-update-8",
+          "date": "2026-10-15",
+          "source_published_at": "2026-10-15T16:00:50Z",
+          "source_reviewed_at": "2026-10-16",
+          "source_reviewed_via": "https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/1846651706678313",
+          "announcement_id": "1846651706678313",
+          "content_sha256": "ccd0ac3d412f80f292b497075765de37e09f59ba53156bbce041c6008c05238d",
+          "claim": "Keyboard rebinding work targets 2.0.",
+          "source_locator": "Controller Customisation"
+        },
+        {
+          "type": "support thread",
+          "publisher": "Team17 Support",
+          "title": "FIX THE GD FKING KEY BINDINGS!!!!!!!!!!!!!!!!!!!!!!!!!!",
+          "url": "https://steamcommunity.com/app/3079210/discussions/1/590691913363920015/?ctp=1#c590691913363951171",
+          "date": "2026-10-10",
+          "source_published_at": "2026-10-10T09:05:11Z",
+          "source_reviewed_at": "2026-10-16",
+          "source_locator": "Reply 590691913363951171",
+          "content_sha256": "ba4f41ad808675d615d55cfe7618b40c88dd5d2d24c4a8bda12d887d0cfa2ad2",
+          "source_author_id": "76561199006108050",
+          "authority_checked_at": "2026-10-17T00:56:47Z",
+          "source_category": "Team17 Support",
+          "claim": "Support escalated the right-mouse issue while asking which Hell Let Loose game and exact bindings were affected."
+        },
+        {
+          "type": "player report",
+          "publisher": "Steam community",
+          "title": "FIX THE GD FKING KEY BINDINGS!!!!!!!!!!!!!!!!!!!!!!!!!!",
+          "url": "https://steamcommunity.com/app/3079210/discussions/1/590691913363920015/?ctp=1#c570426339809609829",
+          "date": "2026-10-16",
+          "source_published_at": "2026-10-16T22:42:42Z",
+          "source_reviewed_at": "2026-10-16",
+          "source_locator": "Reply 570426339809609829",
+          "content_sha256": "ebf92d54139d25cef4cae3ea05b5d8775e2dcbbc998e4da5937e940eb4de6dc2",
+          "claim": "Player describes right-click fire also toggling ADS with a left-handed custom configuration; game/build ambiguity remains."
         }
       ],
-      "last_reviewed": "2026-10-11",
+      "last_reviewed": "2026-10-16",
       "editorial_history": [
         {
           "date": "2026-10-11",
@@ -1086,6 +1224,15 @@
           "previous": {
             "bottom_line": "Patch 1.6 corrects helicopter mouse-button collective inputs and inversion handling. Broader binding persistence and keyboard-input conflicts are not declared resolved.",
             "official_position": "Keep the simultaneous keyboard pitch/collective report HLLV-032 separate from the released mouse-binding correction."
+          }
+        },
+        {
+          "date": "2026-10-16",
+          "reason": "Reviewed public evidence; previous assessment retained below.",
+          "previous": {
+            "bottom_line": "Specific helicopter binding fixes shipped in 1.6. The October 9 update still requests exact custom-input examples, including Tactical Map bindings.",
+            "official_position": "Community Feedback #7 continues the custom-control investigation and asks for the precise assignment, input combination, expected action and observed behavior. This does not establish that all reset/conflict reports share a cause or that the separate keyboard pitch/collective report is resolved.",
+            "fix_short": "Control fixes through 1.6"
           }
         }
       ]
@@ -2543,11 +2690,11 @@
       "kind": "officially acknowledged VOIP issue family",
       "status_key": "partial",
       "status_label": "Specific safeguards released",
-      "bottom_line": "Hotfix 1.5.2 added safeguards against silent muting. Broader voice-channel failures remain open, with monitoring continuing in the October 1 update.",
+      "bottom_line": "Support escalated further voice-chat failures on October 7. Earlier silent-muting safeguards do not establish complete VOIP recovery.",
       "official_short": "Developer acknowledged",
       "fix_short": "Hotfix 1.5.2 safeguards",
       "cause_short": "Unknown",
-      "last_updated": "2026-10-01",
+      "last_updated": "2026-10-07",
       "scope": [
         "PC",
         "PS5",
@@ -2557,7 +2704,7 @@
         "Command Chat"
       ],
       "symptom": "A player may be unable to hear or transmit on every in-match voice channel, with no visible reconnect control available in the audio settings.",
-      "official_position": "The new safeguards target identified silent-muting edge cases. They do not establish that every historical failure to transmit or receive across all channels had that cause. Excessive voice volume is a separate open issue, HLLV-061.",
+      "official_position": "A newly reviewed Support reply acknowledges additional reports and recommends its troubleshooting article. It does not identify a confirmed cause, reproduce the failure, or announce a fix.",
       "workaround": null,
       "known": [
         "The report covers all major in-match voice channels.",
@@ -2594,6 +2741,12 @@
           "date": "2026-10-01",
           "event": "Community Feedback #6",
           "detail": "Monitoring continues."
+        },
+        {
+          "date": "2026-10-07",
+          "event": "Voice chat isn't working; it doesn't even let me communicate with my teammates, and they can't communicate with me either.",
+          "detail": "Added in the October 16 editorial review. The Sources entry records the scoped claim and direct reference.",
+          "source_url": "https://steamcommunity.com/app/3079210/discussions/1/583933098654289260/?ctp=1#c590691669350842074"
         }
       ],
       "sources": [
@@ -2681,9 +2834,34 @@
             "http_status": 200
           },
           "link_checked_at": "2026-10-11"
+        },
+        {
+          "type": "support thread",
+          "publisher": "Team17 Support",
+          "title": "Voice chat isn't working; it doesn't even let me communicate with my teammates, and they can't communicate with me either.",
+          "url": "https://steamcommunity.com/app/3079210/discussions/1/583933098654289260/?ctp=1#c590691669350842074",
+          "date": "2026-10-07",
+          "source_published_at": "2026-10-07T07:29:43Z",
+          "source_reviewed_at": "2026-10-16",
+          "source_locator": "Reply 590691669350842074",
+          "content_sha256": "241477104a3642fbe0e329776a72afde6630f810e8c18d5c08dc6178254ee00b",
+          "source_author_id": "76561199006108050",
+          "authority_checked_at": "2026-10-17T00:55:27Z",
+          "source_category": "Team17 Support",
+          "claim": "Support forwarded additional unable-to-hear/transmit reports to the team; troubleshooting advice is not a release confirmation."
         }
       ],
-      "last_reviewed": "2026-10-05"
+      "last_reviewed": "2026-10-16",
+      "editorial_history": [
+        {
+          "date": "2026-10-16",
+          "reason": "Reviewed public evidence; previous assessment retained below.",
+          "previous": {
+            "bottom_line": "Hotfix 1.5.2 added safeguards against silent muting. Broader voice-channel failures remain open, with monitoring continuing in the October 1 update.",
+            "official_position": "The new safeguards target identified silent-muting edge cases. They do not establish that every historical failure to transmit or receive across all channels had that cause. Excessive voice volume is a separate open issue, HLLV-061."
+          }
+        }
+      ]
     },
     {
       "id": "HLLV-030",
@@ -2897,18 +3075,18 @@
       "kind": "officially investigated progression defect",
       "status_key": "investigating",
       "status_label": "Completion-loss fix unconfirmed",
-      "bottom_line": "Patch 1.6 includes tutorial memory and hint fixes, but its notes do not confirm a fix for lost tutorial completion.",
+      "bottom_line": "October 11 Support follow-up confirms continuing tutorial/reset reports were escalated. A completion-saving fix is still unconfirmed.",
       "official_short": "Acknowledged",
       "fix_short": "Completion-save fix unconfirmed",
       "cause_short": "Unknown",
-      "last_updated": "2026-10-07",
+      "last_updated": "2026-10-11",
       "scope": [
         "Tutorials",
         "role access",
         "online progression"
       ],
       "symptom": "A completed tutorial can later appear incomplete, forcing another completion before Squad Leader or Commander becomes available.",
-      "official_position": "Absence of a completion-save entry is not proof the problem persists. The older player observations retain their original dates.",
+      "official_position": "The new thread describes repeated first-run/tutorial prompts. Support says it received similar reports and escalated them. This does not prove every first-run reset and lost role-unlock record has the same cause.",
       "workaround": "Completing the required tutorial again may temporarily restore role access; this does not address the lost completion state.",
       "known": [
         "The issue is explicitly acknowledged in an official community update.",
@@ -2958,6 +3136,12 @@
           "date": "2026-10-07",
           "event": "Patch 1.6 released / evidence review",
           "detail": "The released tutorial changes concern hints, practice-range behavior and memory cleanup; completion-save resolution is not identified."
+        },
+        {
+          "date": "2026-10-11",
+          "event": "HOW MANY TIMES DO I HAVE TO PLAY THE ♥♥♥♥♥♥♥ TUTORIAL!!!!!!!!!!!!!!!!!!!!!",
+          "detail": "Added in the October 16 editorial review. The Sources entry records the scoped claim and direct reference.",
+          "source_url": "https://steamcommunity.com/app/3079210/discussions/1/590691913364033969/?ctp=1#c590691913364060219"
         }
       ],
       "sources": [
@@ -3056,9 +3240,34 @@
             "date": "2026-10-11",
             "http_status": 200
           }
+        },
+        {
+          "type": "support thread",
+          "publisher": "Team17 Support",
+          "title": "HOW MANY TIMES DO I HAVE TO PLAY THE ♥♥♥♥♥♥♥ TUTORIAL!!!!!!!!!!!!!!!!!!!!!",
+          "url": "https://steamcommunity.com/app/3079210/discussions/1/590691913364033969/?ctp=1#c590691913364060219",
+          "date": "2026-10-11",
+          "source_published_at": "2026-10-11T08:14:46Z",
+          "source_reviewed_at": "2026-10-16",
+          "source_locator": "Reply 590691913364060219",
+          "content_sha256": "21a07584431db5785b6153832e79f70979c42c54d9e7d37068c12917379fa75c",
+          "source_author_id": "76561199006108050",
+          "authority_checked_at": "2026-10-17T00:56:47Z",
+          "source_category": "Team17 Support",
+          "claim": "Support acknowledges similar tutorial/reset reports and escalates the case; no fix or internal reproduction is stated."
         }
       ],
-      "last_reviewed": "2026-10-07"
+      "last_reviewed": "2026-10-16",
+      "editorial_history": [
+        {
+          "date": "2026-10-16",
+          "reason": "Reviewed public evidence; previous assessment retained below.",
+          "previous": {
+            "bottom_line": "Patch 1.6 includes tutorial memory and hint fixes, but its notes do not confirm a fix for lost tutorial completion.",
+            "official_position": "Absence of a completion-save entry is not proof the problem persists. The older player observations retain their original dates."
+          }
+        }
+      ]
     },
     {
       "id": "HLLV-034",
@@ -3758,11 +3967,11 @@
       "kind": "spawn and deployment issue family",
       "status_key": "partial",
       "status_label": "Improvements live; remaining cases investigated",
-      "bottom_line": "Developers still acknowledge missing or unusable spawns after long server sessions. Mortar/deployable construction failures may be a separate issue; neither family is fully closed.",
-      "official_short": "Remaining cases acknowledged",
-      "fix_short": "1.5.2 improved; not closed",
+      "bottom_line": "Still unresolved: developers now report reproducing some remaining replication failures internally.",
+      "official_short": "Some cases reproduced internally",
+      "fix_short": "No complete fix confirmed",
       "cause_short": "Residual causes unconfirmed",
-      "last_updated": "2026-10-09",
+      "last_updated": "2026-10-15",
       "featured": true,
       "scope": [
         "spawn menu",
@@ -3775,7 +3984,7 @@
         "Tunnel destinations"
       ],
       "symptom": "Available Garrisons or Outposts can disappear from the deployment screen, preventing players from spawning; Commander abilities may also become unavailable.",
-      "official_position": "Community Feedback #7 says the Iris changes reduced reports but did not fully resolve disappearing or nonfunctional spawn points. The team requests server uptime when available. It separately describes missing deployable blueprints despite Tactical Map indicators, notes reproduction difficulty, and is investigating whether those failures are distinct from wider replication. The earlier player Tunnel report is not automatically assigned either cause.",
+      "official_position": "October 15: a dedicated developer is investigating. Reproduction is partial; no general cause or fix is confirmed. Mortar construction is separately tracked in HLLV-077.",
       "workaround": "Server owners: regular restarts were recommended before 1.5.2; this is mitigation, not proof of cause.",
       "known": [
         "The issue family is officially acknowledged.",
@@ -3832,6 +4041,12 @@
           "date": "2026-10-09",
           "event": "Community Feedback #7",
           "detail": "The October 9 post explicitly leaves residual long-session spawn failures open. Mortar/deployable construction failures are also being investigated, with a shared cause and consistent reproduction unconfirmed."
+        },
+        {
+          "date": "2026-10-15",
+          "event": "Community Feedback #8 | Command Post",
+          "detail": "Added in the October 16 editorial review. The Sources entry records the scoped claim and direct reference.",
+          "source_url": "https://www.hellletloose.com/blog/community-update-8"
         }
       ],
       "sources": [
@@ -3954,9 +4169,23 @@
             "http_status": 200
           },
           "link_checked_at": "2026-10-11"
+        },
+        {
+          "type": "official update",
+          "publisher": "Hell Let Loose / Team17",
+          "title": "Community Feedback #8 | Command Post",
+          "url": "https://www.hellletloose.com/blog/community-update-8",
+          "date": "2026-10-15",
+          "source_published_at": "2026-10-15T16:00:50Z",
+          "source_reviewed_at": "2026-10-16",
+          "source_reviewed_via": "https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/1846651706678313",
+          "announcement_id": "1846651706678313",
+          "content_sha256": "ccd0ac3d412f80f292b497075765de37e09f59ba53156bbce041c6008c05238d",
+          "claim": "Some residual cases reproduced; investigation continues.",
+          "source_locator": "Spawn Points & Server Replication"
         }
       ],
-      "last_reviewed": "2026-10-11",
+      "last_reviewed": "2026-10-16",
       "editorial_history": [
         {
           "date": "2026-10-11",
@@ -3970,6 +4199,16 @@
             "fix_short": "Hotfix 1.5.2 + earlier fixes",
             "cause_short": "Replication; not every case"
           }
+        },
+        {
+          "date": "2026-10-16",
+          "reason": "Reviewed public evidence; previous assessment retained below.",
+          "previous": {
+            "bottom_line": "Developers still acknowledge missing or unusable spawns after long server sessions. Mortar/deployable construction failures may be a separate issue; neither family is fully closed.",
+            "official_position": "Community Feedback #7 says the Iris changes reduced reports but did not fully resolve disappearing or nonfunctional spawn points. The team requests server uptime when available. It separately describes missing deployable blueprints despite Tactical Map indicators, notes reproduction difficulty, and is investigating whether those failures are distinct from wider replication. The earlier player Tunnel report is not automatically assigned either cause.",
+            "official_short": "Remaining cases acknowledged",
+            "fix_short": "1.5.2 improved; not closed"
+          }
         }
       ]
     },
@@ -3980,19 +4219,19 @@
       "kind": "progression data issue",
       "status_key": "monitoring",
       "status_label": "Safeguards shipped · monitoring",
-      "bottom_line": "Patch 1.4 added further safeguards against unexpected Career Level resets to Level 1. The change is live, but the underlying progression problem has not been declared fully resolved.",
+      "bottom_line": "A separate October 7 Support explanation distinguishes Epic-linked profiles from lost progression. It does not prove every Level 1 reset is resolved.",
       "official_short": "Acknowledged",
       "fix_short": "1.4 safeguards",
       "cause_short": "Not public",
-      "last_updated": "2026-09-02",
+      "last_updated": "2026-10-07",
       "scope": [
         "career level",
         "progression",
         "all platforms"
       ],
       "symptom": "A player's displayed or recorded Career Level can unexpectedly return to Level 1.",
-      "official_position": "Patch 1.4 adds more safeguards intended to prevent unexpected Level 1 resets. The changelog does not describe the change as a complete root-cause fix.",
-      "workaround": null,
+      "official_position": "Support says linking Epic after playing without it can select a second profile, with earlier progress on the original profile. This is a scoped account-state explanation, not a diagnosis for all career resets.",
+      "workaround": "If the apparent loss followed an Epic sign-in change, ask Support to verify which profile holds the progress. Do not assume unrelated resets are the same case.",
       "known": [
         "Unexpected Level 1 resets are officially acknowledged.",
         "Additional safeguards shipped in Patch 1.4."
@@ -4007,6 +4246,12 @@
           "date": "2026-09-02",
           "event": "Patch 1.4",
           "detail": "Additional safeguards against unexpected Career Level resets ship."
+        },
+        {
+          "date": "2026-10-07",
+          "event": "\"failed to load user data please try again\"",
+          "detail": "Added in the October 16 editorial review. The Sources entry records the scoped claim and direct reference.",
+          "source_url": "https://steamcommunity.com/app/3079210/discussions/1/631219091886093496/?ctp=2#c590691669350841712"
         }
       ],
       "sources": [
@@ -4022,8 +4267,35 @@
             "http_status": 200
           },
           "link_checked_at": "2026-10-11"
+        },
+        {
+          "type": "support thread",
+          "publisher": "Team17 Support",
+          "title": "\"failed to load user data please try again\"",
+          "url": "https://steamcommunity.com/app/3079210/discussions/1/631219091886093496/?ctp=2#c590691669350841712",
+          "date": "2026-10-07",
+          "source_published_at": "2026-10-07T07:22:01Z",
+          "source_reviewed_at": "2026-10-16",
+          "source_locator": "Reply 590691669350841712",
+          "content_sha256": "4c78f303f31554e03e978c3c9f04abcab76d371bf7f6c910aa54d17895c8b5ff",
+          "source_author_id": "76561199006108050",
+          "authority_checked_at": "2026-10-17T00:56:47Z",
+          "source_category": "Team17 Support",
+          "claim": "Support distinguishes a second Epic-linked profile from erased progress; it does not establish that all reset reports share this explanation."
         }
-      ]
+      ],
+      "editorial_history": [
+        {
+          "date": "2026-10-16",
+          "reason": "Reviewed public evidence; previous assessment retained below.",
+          "previous": {
+            "bottom_line": "Patch 1.4 added further safeguards against unexpected Career Level resets to Level 1. The change is live, but the underlying progression problem has not been declared fully resolved.",
+            "official_position": "Patch 1.4 adds more safeguards intended to prevent unexpected Level 1 resets. The changelog does not describe the change as a complete root-cause fix.",
+            "workaround": null
+          }
+        }
+      ],
+      "last_reviewed": "2026-10-16"
     },
     {
       "id": "HLLV-048",
@@ -4526,11 +4798,11 @@
       "kind": "rendering issue family",
       "status_key": "partial",
       "status_label": "Visual improvements released",
-      "bottom_line": "Foliage blur, pop-in and disappearing cover remain open. More asset-transition work targets 1.7; earlier individual fixes do not close the wider issue.",
+      "bottom_line": "Foliage and disappearing-cover problems remain open; 1.7 and 2.0 improvements are still future work.",
       "official_short": "Developer acknowledged",
-      "fix_short": "Earlier fixes + 1.7 target",
+      "fix_short": "Earlier changes; 1.7 / 2.0 planned",
       "cause_short": "Not public",
-      "last_updated": "2026-10-09",
+      "last_updated": "2026-10-15",
       "scope": [
         "PC",
         "PS5",
@@ -4538,7 +4810,7 @@
         "foliage"
       ],
       "symptom": "Blurry foliage and disappearing cover",
-      "official_position": "The October 9 update describes further HLOD bounds and foliage/tree transition adjustments plus targeted asset corrections for 1.7. The publisher explicitly limits expectations: another improvement is intended, not elimination of every instance. The released 1.5.2 tree-model correction and 1.6 map/texture changes remain narrower historical fixes.",
+      "official_position": "October 15 plans do not close the issue. A separate texture-report thread contains October 9 Support acknowledgment, not engineering reproduction or proof that disabling DLSS fixes blurry foliage.",
       "workaround": null,
       "known": [
         "The linked official evidence documents this issue.",
@@ -4564,6 +4836,18 @@
           "date": "2026-10-09",
           "event": "Community Feedback #7",
           "detail": "Further HLOD-bounds, foliage/tree screen-size transitions and individual asset work target Patch 1.7. The publisher does not promise to eliminate all pop-in or disappearing cover."
+        },
+        {
+          "date": "2026-10-15",
+          "event": "Community Feedback #8 | Command Post",
+          "detail": "Added in the October 16 editorial review. The Sources entry records the scoped claim and direct reference.",
+          "source_url": "https://www.hellletloose.com/blog/community-update-8"
+        },
+        {
+          "date": "2026-10-09",
+          "event": "Texture streaming issue: Low-res/muddy bush textures on certain maps",
+          "detail": "Added in the October 16 editorial review. The Sources entry records the scoped claim and direct reference.",
+          "source_url": "https://steamcommunity.com/app/3079210/discussions/1/590691304693880018/?ctp=1#c590691669351029564"
         }
       ],
       "sources": [
@@ -4624,9 +4908,38 @@
             "http_status": 200
           },
           "link_checked_at": "2026-10-11"
+        },
+        {
+          "type": "plan",
+          "publisher": "Hell Let Loose / Team17",
+          "title": "Community Feedback #8 | Command Post",
+          "url": "https://www.hellletloose.com/blog/community-update-8",
+          "date": "2026-10-15",
+          "source_published_at": "2026-10-15T16:00:50Z",
+          "source_reviewed_at": "2026-10-16",
+          "source_reviewed_via": "https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/1846651706678313",
+          "announcement_id": "1846651706678313",
+          "content_sha256": "ccd0ac3d412f80f292b497075765de37e09f59ba53156bbce041c6008c05238d",
+          "claim": "Further foliage and LOD work planned.",
+          "source_locator": "Foliage, LODs & Visual Quality"
+        },
+        {
+          "type": "support thread",
+          "publisher": "Team17 Support",
+          "title": "Texture streaming issue: Low-res/muddy bush textures on certain maps",
+          "url": "https://steamcommunity.com/app/3079210/discussions/1/590691304693880018/?ctp=1#c590691669351029564",
+          "date": "2026-10-09",
+          "source_published_at": "2026-10-09T07:32:17Z",
+          "source_reviewed_at": "2026-10-16",
+          "source_locator": "Reply 590691669351029564",
+          "content_sha256": "445d8aae8d233f215aca254681658a165997d296dd9ec149d159d2c4278d4bd3",
+          "source_author_id": "76561199006108050",
+          "authority_checked_at": "2026-10-17T00:55:27Z",
+          "source_category": "Team17 Support",
+          "claim": "Support added screenshots and configuration information to its texture/lighting report; no shipped correction is identified."
         }
       ],
-      "last_reviewed": "2026-10-11",
+      "last_reviewed": "2026-10-16",
       "editorial_history": [
         {
           "date": "2026-10-11",
@@ -4635,6 +4948,15 @@
             "bottom_line": "Patch 1.6 reduces texture pop-in after leaving the Tactical Map and includes further culling fixes. Broad foliage and disappearing-cover resolution remains unverified.",
             "official_position": "The new map-level changes do not establish that every distant-cover or console-clarity complaint is resolved.",
             "fix_short": "Visual fixes through 1.6"
+          }
+        },
+        {
+          "date": "2026-10-16",
+          "reason": "Reviewed public evidence; previous assessment retained below.",
+          "previous": {
+            "bottom_line": "Foliage blur, pop-in and disappearing cover remain open. More asset-transition work targets 1.7; earlier individual fixes do not close the wider issue.",
+            "official_position": "The October 9 update describes further HLOD bounds and foliage/tree transition adjustments plus targeted asset corrections for 1.7. The publisher explicitly limits expectations: another improvement is intended, not elimination of every instance. The released 1.5.2 tree-model correction and 1.6 map/texture changes remain narrower historical fixes.",
+            "fix_short": "Earlier fixes + 1.7 target"
           }
         }
       ]
@@ -4646,11 +4968,11 @@
       "kind": "browser defect",
       "status_key": "shipped",
       "status_label": "Fix released in 1.6",
-      "bottom_line": "Patch 1.6 now records browser filters persisting after a game restart. Independent outcome testing is not recorded.",
-      "official_short": "Release documented",
+      "bottom_line": "The publisher reaffirmed on October 15 that filters persist. Independent outcome testing remains unrecorded.",
+      "official_short": "Publisher follow-up confirms behavior",
       "fix_short": "Patch 1.6",
       "cause_short": "Not public",
-      "last_updated": "2026-10-07",
+      "last_updated": "2026-10-15",
       "scope": [
         "Server Browser"
       ],
@@ -4686,6 +5008,12 @@
           "date": "2026-10-07",
           "event": "Patch 1.6 released / evidence review",
           "detail": "Confirms the released correction for Enlist filters resetting after restarting the game."
+        },
+        {
+          "date": "2026-10-15",
+          "event": "Community Feedback #8 | Command Post",
+          "detail": "Added in the October 16 editorial review. The Sources entry records the scoped claim and direct reference.",
+          "source_url": "https://www.hellletloose.com/blog/community-update-8"
         }
       ],
       "sources": [
@@ -4766,9 +5094,33 @@
             "date": "2026-10-11",
             "http_status": 200
           }
+        },
+        {
+          "type": "official update",
+          "publisher": "Hell Let Loose / Team17",
+          "title": "Community Feedback #8 | Command Post",
+          "url": "https://www.hellletloose.com/blog/community-update-8",
+          "date": "2026-10-15",
+          "source_published_at": "2026-10-15T16:00:50Z",
+          "source_reviewed_at": "2026-10-16",
+          "source_reviewed_via": "https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/1846651706678313",
+          "announcement_id": "1846651706678313",
+          "content_sha256": "ccd0ac3d412f80f292b497075765de37e09f59ba53156bbce041c6008c05238d",
+          "claim": "Publisher says filters persist.",
+          "source_locator": "Server Browser & Favourites"
         }
       ],
-      "last_reviewed": "2026-10-07"
+      "last_reviewed": "2026-10-16",
+      "editorial_history": [
+        {
+          "date": "2026-10-16",
+          "reason": "Reviewed public evidence; previous assessment retained below.",
+          "previous": {
+            "bottom_line": "Patch 1.6 now records browser filters persisting after a game restart. Independent outcome testing is not recorded.",
+            "official_short": "Release documented"
+          }
+        }
+      ]
     },
     {
       "id": "HLLV-059",
@@ -4777,17 +5129,17 @@
       "kind": "search limitation",
       "status_key": "partial",
       "status_label": "Browser improvements released",
-      "bottom_line": "Patch 1.6 prioritizes fuller servers and corrects a console sort-filter failure. The previously documented 200-session search limitation is not confirmed resolved.",
+      "bottom_line": "Fuller-server ordering is reaffirmed; complete server discovery and removal of the earlier search limit remain unconfirmed.",
       "official_short": "Developer acknowledged",
       "fix_short": "Partial fixes in 1.6",
       "cause_short": "Search-result limit",
-      "last_updated": "2026-10-07",
+      "last_updated": "2026-10-15",
       "scope": [
         "Server Browser",
         "community servers"
       ],
       "symptom": "Servers missing from browser results",
-      "official_position": "Server ordering and a particular false-empty result are distinct from complete server discovery. Favourite persistence is separately tracked as HLLV-069.",
+      "official_position": "The October 15 browser follow-up is not evidence that every server is discoverable. A proposed Favourites-cap increase is a separate feature request, not a fix for search coverage.",
       "workaround": "Use narrower filters and favourite regular servers.",
       "known": [
         "The linked official evidence documents this issue.",
@@ -4819,6 +5171,12 @@
           "date": "2026-10-07",
           "event": "Patch 1.6 released / evidence review",
           "detail": "Records fuller-server ordering and a console sort-filter correction; does not confirm removal of the per-search session limit."
+        },
+        {
+          "date": "2026-10-15",
+          "event": "Community Feedback #8 | Command Post",
+          "detail": "Added in the October 16 editorial review. The Sources entry records the scoped claim and direct reference.",
+          "source_url": "https://www.hellletloose.com/blog/community-update-8"
         }
       ],
       "sources": [
@@ -4899,9 +5257,33 @@
             "date": "2026-10-11",
             "http_status": 200
           }
+        },
+        {
+          "type": "official update",
+          "publisher": "Hell Let Loose / Team17",
+          "title": "Community Feedback #8 | Command Post",
+          "url": "https://www.hellletloose.com/blog/community-update-8",
+          "date": "2026-10-15",
+          "source_published_at": "2026-10-15T16:00:50Z",
+          "source_reviewed_at": "2026-10-16",
+          "source_reviewed_via": "https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/1846651706678313",
+          "announcement_id": "1846651706678313",
+          "content_sha256": "ccd0ac3d412f80f292b497075765de37e09f59ba53156bbce041c6008c05238d",
+          "claim": "Publisher reaffirms fuller-server ordering.",
+          "source_locator": "Server Browser & Favourites"
         }
       ],
-      "last_reviewed": "2026-10-07"
+      "last_reviewed": "2026-10-16",
+      "editorial_history": [
+        {
+          "date": "2026-10-16",
+          "reason": "Reviewed public evidence; previous assessment retained below.",
+          "previous": {
+            "bottom_line": "Patch 1.6 prioritizes fuller servers and corrects a console sort-filter failure. The previously documented 200-session search limitation is not confirmed resolved.",
+            "official_position": "Server ordering and a particular false-empty result are distinct from complete server discovery. Favourite persistence is separately tracked as HLLV-069."
+          }
+        }
+      ]
     },
     {
       "id": "HLLV-060",
@@ -4910,17 +5292,17 @@
       "kind": "settings activation defect",
       "status_key": "investigating",
       "status_label": "Release status unconfirmed",
-      "bottom_line": "A related missing-DLSS-options startup fix is under validation. The October 9 update still does not establish a released fix for Frame Generation needing reapplication.",
+      "bottom_line": "No released Frame Generation reapplication fix is verified. An October 12 player mentions re-enabling DLSS, without identifying Frame Generation specifically.",
       "official_short": "Related candidate under validation",
       "fix_short": "No released closure verified",
       "cause_short": "Not established for all reports",
-      "last_updated": "2026-10-09",
+      "last_updated": "2026-10-12",
       "scope": [
         "PC",
         "NVIDIA"
       ],
       "symptom": "DLSS Frame Generation needs reapplying",
-      "official_position": "Community Feedback #7 identifies a startup-timing issue that can hide DLSS quality choices while DLSS remains active, and reports an internally implemented candidate under validation. It asks for GPU model and available VRAM to distinguish other initialization cases. This context is not proof that missing quality choices, insufficient-memory cases and the earlier Frame Generation reapplication symptom all have one cause or one fix.",
+      "official_position": "The startup-options candidate remains separate from Frame Generation reapplication. HLLV-076 now records missing DLSS choices and a narrowly scoped hybrid-laptop workaround; neither closes this dossier.",
       "workaround": "Reapply the selected Frame Generation setting.",
       "known": [
         "The linked official evidence documents this issue.",
@@ -4953,6 +5335,12 @@
           "date": "2026-10-09",
           "event": "Community Feedback #7",
           "detail": "A candidate for DLSS quality options missing during startup is under validation. The post discusses that related symptom alongside Frame Generation reports, but does not confirm a released fix for the older reapplication complaint."
+        },
+        {
+          "date": "2026-10-12",
+          "event": "fps changes",
+          "detail": "Added in the October 16 editorial review. The Sources entry records the scoped claim and direct reference.",
+          "source_url": "https://steamcommunity.com/app/3079210/discussions/1/590692129307668829/?ctp=1#c590692129307643129"
         }
       ],
       "sources": [
@@ -5026,9 +5414,21 @@
             "http_status": 200
           },
           "link_checked_at": "2026-10-11"
+        },
+        {
+          "type": "player report",
+          "publisher": "Steam community",
+          "title": "fps changes",
+          "url": "https://steamcommunity.com/app/3079210/discussions/1/590692129307668829/?ctp=1#c590692129307643129",
+          "date": "2026-10-12",
+          "source_published_at": "2026-10-12T06:36:32Z",
+          "source_reviewed_at": "2026-10-16",
+          "source_locator": "Reply 590692129307643129",
+          "content_sha256": "927756088942d8907d2e269a22d2251b753123ab6057c498ee6385ccdbc4c303",
+          "claim": "Player says DLSS still needs re-enabling in a performance thread; this is not a verified Frame Generation reproduction."
         }
       ],
-      "last_reviewed": "2026-10-11",
+      "last_reviewed": "2026-10-16",
       "editorial_history": [
         {
           "date": "2026-10-11",
@@ -5040,6 +5440,14 @@
             "fix_short": "Earlier 1.6 target unconfirmed",
             "cause_short": "Not public"
           }
+        },
+        {
+          "date": "2026-10-16",
+          "reason": "Reviewed public evidence; previous assessment retained below.",
+          "previous": {
+            "bottom_line": "A related missing-DLSS-options startup fix is under validation. The October 9 update still does not establish a released fix for Frame Generation needing reapplication.",
+            "official_position": "Community Feedback #7 identifies a startup-timing issue that can hide DLSS quality choices while DLSS remains active, and reports an internally implemented candidate under validation. It asks for GPU model and available VRAM to distinguish other initialization cases. This context is not proof that missing quality choices, insufficient-memory cases and the earlier Frame Generation reapplication symptom all have one cause or one fix."
+          }
         }
       ]
     },
@@ -5050,16 +5458,16 @@
       "kind": "volume-control defect",
       "status_key": "investigating",
       "status_label": "Volume fix still unconfirmed",
-      "bottom_line": "Patch 1.6 reworks battlefield audio, but does not document a voice-volume slider fix. The last explicit target remains Patch 1.7, possibly sooner.",
+      "bottom_line": "An October 9 Support reply adds another volume-slider report. The earlier 1.7 target remains unverified as a release.",
       "official_short": "Developer acknowledged",
       "fix_short": "1.7 target; release unconfirmed",
       "cause_short": "Not public",
-      "last_updated": "2026-10-07",
+      "last_updated": "2026-10-09",
       "scope": [
         "Voice Chat"
       ],
       "symptom": "Voice volume stays excessively loud",
-      "official_position": "Weapon sound changes are not evidence that excessively loud player voices have been corrected.",
+      "official_position": "This new citation is from a separate volume thread. The unrelated-text reply already held for editorial review is not used as evidence, and its hold remains intact.",
       "workaround": null,
       "known": [
         "The linked official evidence documents this issue.",
@@ -5085,6 +5493,12 @@
           "date": "2026-10-07",
           "event": "Patch 1.6 released / evidence review",
           "detail": "The audio overhaul covers weapons, spawns and ambience; a voice-volume slider correction is not stated."
+        },
+        {
+          "date": "2026-10-09",
+          "event": "VOIP: Reducing the sound via the sliders has almost no impact",
+          "detail": "Added in the October 16 editorial review. The Sources entry records the scoped claim and direct reference.",
+          "source_url": "https://steamcommunity.com/app/3079210/discussions/1/590691034935093998/?ctp=1#c590691669351052539"
         }
       ],
       "sources": [
@@ -5141,9 +5555,34 @@
             "date": "2026-10-11",
             "http_status": 200
           }
+        },
+        {
+          "type": "support thread",
+          "publisher": "Team17 Support",
+          "title": "VOIP: Reducing the sound via the sliders has almost no impact",
+          "url": "https://steamcommunity.com/app/3079210/discussions/1/590691034935093998/?ctp=1#c590691669351052539",
+          "date": "2026-10-09",
+          "source_published_at": "2026-10-09T13:41:19Z",
+          "source_reviewed_at": "2026-10-16",
+          "source_locator": "Reply 590691669351052539",
+          "content_sha256": "0b86722d8f6af81e5efb618e48903e024e239e48f410ceb0a52739bb477b6437",
+          "source_author_id": "76561199006108050",
+          "authority_checked_at": "2026-10-17T00:55:27Z",
+          "source_category": "Team17 Support",
+          "claim": "Support adds another excessive-VOIP-volume report to its existing case; no fix is confirmed."
         }
       ],
-      "last_reviewed": "2026-10-07"
+      "last_reviewed": "2026-10-16",
+      "editorial_history": [
+        {
+          "date": "2026-10-16",
+          "reason": "Reviewed public evidence; previous assessment retained below.",
+          "previous": {
+            "bottom_line": "Patch 1.6 reworks battlefield audio, but does not document a voice-volume slider fix. The last explicit target remains Patch 1.7, possibly sooner.",
+            "official_position": "Weapon sound changes are not evidence that excessively loud player voices have been corrected."
+          }
+        }
+      ]
     },
     {
       "id": "HLLV-062",
@@ -5486,20 +5925,20 @@
       "title": "Vehicle engine interaction can get stuck",
       "category": "vehicles",
       "kind": "player-reported issue",
-      "status_key": "reported",
-      "status_label": "Player report · unverified",
-      "bottom_line": "A player reports engine interactions stalling after an interrupted attempt; no fix is confirmed.",
-      "official_short": "No reply in reviewed thread",
+      "status_key": "investigating",
+      "status_label": "Video escalated by Support",
+      "bottom_line": "Support received the replacement video and escalated the vehicle-interaction issue on October 6. No reliable fix is confirmed.",
+      "official_short": "Support escalation recorded",
       "fix_short": "None confirmed",
       "cause_short": "Unknown",
-      "last_updated": "2026-10-02",
+      "last_updated": "2026-10-06",
       "scope": [
         "boats",
         "tanks",
         "vehicle engines"
       ],
       "symptom": "Starting or stopping an engine reportedly fails after cancelling an interaction beyond its halfway point.",
-      "official_position": "No developer acknowledgement or reproduction was found in the reviewed thread.",
+      "official_position": "The player describes uninterrupted input failing to finish an engine interaction. Support passed the video to its team. This is not developer reproduction, and player theories about network conditions remain unverified.",
       "workaround": "The reporter suggests having another player interact; effectiveness is unverified.",
       "known": [
         "A dated public report describes this symptom."
@@ -5513,6 +5952,12 @@
           "date": "2026-10-02",
           "event": "Player report",
           "detail": "A player describes an interruption sequence and links a recording."
+        },
+        {
+          "date": "2026-10-06",
+          "event": "boat engine interaction stuttering",
+          "detail": "Added in the October 16 editorial review. The Sources entry records the scoped claim and direct reference.",
+          "source_url": "https://steamcommunity.com/app/3079210/discussions/1/590691034935315590/?ctp=1#c590691400522348898"
         }
       ],
       "sources": [
@@ -5528,8 +5973,37 @@
             "http_status": 200
           },
           "link_checked_at": "2026-10-11"
+        },
+        {
+          "type": "support thread",
+          "publisher": "Team17 Support",
+          "title": "boat engine interaction stuttering",
+          "url": "https://steamcommunity.com/app/3079210/discussions/1/590691034935315590/?ctp=1#c590691400522348898",
+          "date": "2026-10-06",
+          "source_published_at": "2026-10-06T08:20:07Z",
+          "source_reviewed_at": "2026-10-16",
+          "source_locator": "Reply 590691400522348898",
+          "content_sha256": "2c569ee9d24522f5fdcb4585a89985b09ee68290702970851ec1fd866cbb2af8",
+          "source_author_id": "76561199006108050",
+          "authority_checked_at": "2026-10-17T00:55:27Z",
+          "source_category": "Team17 Support",
+          "claim": "Support confirms receipt of the video and escalation of the incomplete boat-engine interaction."
         }
-      ]
+      ],
+      "editorial_history": [
+        {
+          "date": "2026-10-16",
+          "reason": "Reviewed public evidence; previous assessment retained below.",
+          "previous": {
+            "status_key": "reported",
+            "status_label": "Player report · unverified",
+            "bottom_line": "A player reports engine interactions stalling after an interrupted attempt; no fix is confirmed.",
+            "official_short": "No reply in reviewed thread",
+            "official_position": "No developer acknowledgement or reproduction was found in the reviewed thread."
+          }
+        }
+      ],
+      "last_reviewed": "2026-10-16"
     },
     {
       "id": "HLLV-066",
@@ -5537,17 +6011,17 @@
       "category": "gameplay",
       "kind": "player-reported issue",
       "status_key": "reported",
-      "status_label": "Player report · unverified",
-      "bottom_line": "A player reports becoming trapped after spawning inside closed structures; no fix is confirmed.",
-      "official_short": "No reply in reviewed thread",
+      "status_label": "Player report; Support requests details",
+      "bottom_line": "Support has replied about trapped spawns and requested affected maps. Developer reproduction, a shared cause, and a fix remain unconfirmed.",
+      "official_short": "Support requested map details",
       "fix_short": "None confirmed",
       "cause_short": "Unknown",
-      "last_updated": "2026-10-02",
+      "last_updated": "2026-10-07",
       "scope": [
         "spawn placement"
       ],
       "symptom": "Reported locations include closed buildings, containers, spaces under piers and towers.",
-      "official_position": "No developer acknowledgement or reproduction was found in the reviewed thread.",
+      "official_position": "The October 7 reply asks which maps are affected. An earlier Support suggestion about nearby spawn placement is not a confirmed explanation for every reported building or pier case.",
       "workaround": null,
       "known": [
         "A dated public report describes this symptom."
@@ -5561,6 +6035,12 @@
           "date": "2026-10-02",
           "event": "Player report",
           "detail": "A player posts examples and screenshot links; the tracker has not reproduced them."
+        },
+        {
+          "date": "2026-10-07",
+          "event": "STILL spawning in locked areas",
+          "detail": "Added in the October 16 editorial review. The Sources entry records the scoped claim and direct reference.",
+          "source_url": "https://steamcommunity.com/app/3079210/discussions/1/590691034935311372/?ctp=1#c590691669350877769"
         }
       ],
       "sources": [
@@ -5576,8 +6056,36 @@
             "http_status": 200
           },
           "link_checked_at": "2026-10-11"
+        },
+        {
+          "type": "support thread",
+          "publisher": "Team17 Support",
+          "title": "STILL spawning in locked areas",
+          "url": "https://steamcommunity.com/app/3079210/discussions/1/590691034935311372/?ctp=1#c590691669350877769",
+          "date": "2026-10-07",
+          "source_published_at": "2026-10-07T16:22:06Z",
+          "source_reviewed_at": "2026-10-16",
+          "source_locator": "Reply 590691669350877769",
+          "content_sha256": "e9f63bbc9531bd067a4dd6d12043110a4feeac1563f95fb1c1b494a535560fcc",
+          "source_author_id": "76561199418459134",
+          "authority_checked_at": "2026-10-17T00:55:27Z",
+          "source_category": "Team17 Support",
+          "claim": "Support requests specific maps for the trapped-spawn report; it does not announce reproduction or a fix."
         }
-      ]
+      ],
+      "editorial_history": [
+        {
+          "date": "2026-10-16",
+          "reason": "Reviewed public evidence; previous assessment retained below.",
+          "previous": {
+            "status_label": "Player report · unverified",
+            "bottom_line": "A player reports becoming trapped after spawning inside closed structures; no fix is confirmed.",
+            "official_short": "No reply in reviewed thread",
+            "official_position": "No developer acknowledgement or reproduction was found in the reviewed thread."
+          }
+        }
+      ],
+      "last_reviewed": "2026-10-16"
     },
     {
       "id": "HLLV-067",
@@ -6104,6 +6612,503 @@
           }
         }
       ]
+    },
+    {
+      "id": "HLLV-076",
+      "title": "DLSS options missing at startup",
+      "category": "graphics",
+      "kind": "multiple initialization/configuration cases",
+      "status_key": "investigating",
+      "status_label": "Candidate under validation; scoped workaround",
+      "bottom_line": "A game-startup candidate remains unverified as released. A separate hybrid-laptop report recovered DLSS using Windows per-app GPU selection.",
+      "official_short": "Candidate acknowledged; Support troubleshooting",
+      "fix_short": "No general release confirmed",
+      "cause_short": "Not established for all reports",
+      "last_updated": "2026-10-10",
+      "last_reviewed": "2026-10-16",
+      "scope": [
+        "PC",
+        "NVIDIA",
+        "hybrid laptops"
+      ],
+      "symptom": "DLSS choices may be missing; absent quality settings and an entirely missing upscaler can represent different cases.",
+      "official_position": "The October 9 publisher update describes a startup-timing candidate under validation.",
+      "workaround": "Hybrid laptops only: check the GPU selected for the game under Windows Settings > System > Display > Graphics. One player reports success. Do not disable the integrated display adapter as a routine fix.",
+      "known": [
+        "The October 9 publisher update describes a startup-timing candidate under validation.",
+        "One October 10 player reports recovery after selecting the NVIDIA GPU for the game executable in Windows."
+      ],
+      "unknown": [
+        "The player workaround does not verify the publisher candidate.",
+        "This is distinct from HLLV-060; no common cause or universal workaround is established.",
+        "No independent gameplay verification was performed for this review."
+      ],
+      "timeline": [
+        {
+          "date": "2026-10-09",
+          "event": "Community Feedback #7 | Command Post",
+          "detail": "A startup-timing candidate for absent DLSS quality choices is under validation.",
+          "source_url": "https://www.hellletloose.com/blog/community-update-7"
+        },
+        {
+          "date": "2026-10-10",
+          "event": "DLSS option missing after patch 1.6",
+          "detail": "A hybrid-laptop player reports that Windows per-app NVIDIA GPU selection restored DLSS.",
+          "source_url": "https://steamcommunity.com/app/3079210/discussions/1/590691913363910117/?ctp=1#c590691913363960853"
+        }
+      ],
+      "sources": [
+        {
+          "type": "official update",
+          "publisher": "Hell Let Loose / Team17",
+          "title": "Community Feedback #7 | Command Post",
+          "url": "https://www.hellletloose.com/blog/community-update-7",
+          "date": "2026-10-09",
+          "source_published_at": "2026-10-09T15:37:43Z",
+          "source_reviewed_at": "2026-10-16",
+          "source_reviewed_via": "https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/1846018067933766",
+          "announcement_id": "1846018067933766",
+          "content_sha256": "1198ac1a60afcf31405651f1d191774605bda3a0ecc7ca0e27e256481fd38672",
+          "claim": "A startup-timing candidate for absent DLSS quality choices is under validation.",
+          "source_locator": "DLSS & Frame Generation"
+        },
+        {
+          "type": "player report",
+          "publisher": "Steam community",
+          "title": "DLSS option missing after patch 1.6",
+          "url": "https://steamcommunity.com/app/3079210/discussions/1/590691913363910117/?ctp=1#c590691913363960853",
+          "date": "2026-10-10",
+          "source_published_at": "2026-10-10T11:41:00Z",
+          "source_reviewed_at": "2026-10-16",
+          "source_locator": "Reply 590691913363960853",
+          "content_sha256": "ac6b5218e714bdb8032613913ded6fd1285aa754eb5fd97e360d2131cffd81de",
+          "claim": "A hybrid-laptop player reports that Windows per-app NVIDIA GPU selection restored DLSS."
+        }
+      ]
+    },
+    {
+      "id": "HLLV-077",
+      "title": "Mortar and deployable blueprints fail to appear",
+      "category": "gameplay",
+      "kind": "construction defect",
+      "status_key": "investigating",
+      "status_label": "Investigation; cause not established",
+      "bottom_line": "Some deployables are reported on the Tactical Map without a usable construction blueprint. No released fix is verified.",
+      "official_short": "Publisher investigating",
+      "fix_short": "None confirmed",
+      "cause_short": "Not established for all reports",
+      "last_updated": "2026-10-09",
+      "last_reviewed": "2026-10-16",
+      "scope": [
+        "Mortars",
+        "deployables",
+        "construction"
+      ],
+      "symptom": "Placement cannot be completed when the blueprint is absent despite a map indicator.",
+      "official_position": "The October 9 update acknowledges construction failures and reproduction difficulty.",
+      "workaround": null,
+      "known": [
+        "The October 9 update acknowledges construction failures and reproduction difficulty."
+      ],
+      "unknown": [
+        "A shared cause with HLLV-046 is unproven. Its October 15 partial-reproduction statement must not automatically transfer here.",
+        "No independent gameplay verification was performed for this review."
+      ],
+      "timeline": [
+        {
+          "date": "2026-10-09",
+          "event": "Community Feedback #7 | Command Post",
+          "detail": "Missing deployable blueprints are being investigated separately from wider replication.",
+          "source_url": "https://www.hellletloose.com/blog/community-update-7"
+        }
+      ],
+      "sources": [
+        {
+          "type": "official update",
+          "publisher": "Hell Let Loose / Team17",
+          "title": "Community Feedback #7 | Command Post",
+          "url": "https://www.hellletloose.com/blog/community-update-7",
+          "date": "2026-10-09",
+          "source_published_at": "2026-10-09T15:37:43Z",
+          "source_reviewed_at": "2026-10-16",
+          "source_reviewed_via": "https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/1846018067933766",
+          "announcement_id": "1846018067933766",
+          "content_sha256": "1198ac1a60afcf31405651f1d191774605bda3a0ecc7ca0e27e256481fd38672",
+          "claim": "Missing deployable blueprints are being investigated separately from wider replication.",
+          "source_locator": "Mortars & Deployable Issues"
+        }
+      ]
+    },
+    {
+      "id": "HLLV-078",
+      "title": "River flickers when opening the Tactical Map",
+      "category": "graphics",
+      "kind": "support-escalated visual report",
+      "status_key": "investigating",
+      "status_label": "Support escalation; fix unconfirmed",
+      "bottom_line": "Support escalated a river-flicker report on October 14. No developer reproduction or release is confirmed.",
+      "official_short": "Support escalation recorded",
+      "fix_short": "None confirmed",
+      "cause_short": "Not established for all reports",
+      "last_updated": "2026-10-14",
+      "last_reviewed": "2026-10-16",
+      "scope": [
+        "Tactical Map",
+        "river rendering"
+      ],
+      "symptom": "The report concerns river flickering while the map is opened.",
+      "official_position": "Support explicitly identifies the river/map symptom and forwards it for investigation.",
+      "workaround": null,
+      "known": [
+        "Support explicitly identifies the river/map symptom and forwards it for investigation."
+      ],
+      "unknown": [
+        "Affected maps, platforms and trigger conditions are not established.",
+        "A relationship to older white-flash reports or HLLV-057 is not established.",
+        "No independent gameplay verification was performed for this review."
+      ],
+      "timeline": [
+        {
+          "date": "2026-10-14",
+          "event": "map visual bug post 1.6",
+          "detail": "Support escalates river flickering when opening the map.",
+          "source_url": "https://steamcommunity.com/app/3079210/discussions/1/570426104667474361/?ctp=1#c570426104667499540"
+        }
+      ],
+      "sources": [
+        {
+          "type": "support thread",
+          "publisher": "Team17 Support",
+          "title": "map visual bug post 1.6",
+          "url": "https://steamcommunity.com/app/3079210/discussions/1/570426104667474361/?ctp=1#c570426104667499540",
+          "date": "2026-10-14",
+          "source_published_at": "2026-10-14T15:16:50Z",
+          "source_reviewed_at": "2026-10-16",
+          "source_locator": "Reply 570426104667499540",
+          "content_sha256": "121185956f5d038e0ac3737324e6bbea80cf3f74f86afebf161525c74adb9e1d",
+          "source_author_id": "76561199418165143",
+          "authority_checked_at": "2026-10-17T00:55:27Z",
+          "source_category": "Team17 Support",
+          "claim": "Support escalates river flickering when opening the map."
+        }
+      ]
+    },
+    {
+      "id": "HLLV-079",
+      "title": "M72 sight markings are difficult to distinguish",
+      "category": "gameplay",
+      "kind": "weapon sight readability report",
+      "status_key": "investigating",
+      "status_label": "Screenshots escalated by Support",
+      "bottom_line": "A player supplied M72 sight screenshots; Support escalated them October 9. No correction is confirmed.",
+      "official_short": "Support escalation recorded",
+      "fix_short": "None confirmed",
+      "cause_short": "Not established for all reports",
+      "last_updated": "2026-10-09",
+      "last_reviewed": "2026-10-16",
+      "scope": [
+        "M72",
+        "aiming",
+        "sight readability"
+      ],
+      "symptom": "Reported low contrast makes range markings and targets difficult to distinguish through the sight.",
+      "official_position": "Support received the screenshots and passed the issue to the team.",
+      "workaround": null,
+      "known": [
+        "Support received the screenshots and passed the issue to the team."
+      ],
+      "unknown": [
+        "Prevalence, platform scope and acceptance as a confirmed defect remain unknown.",
+        "The supplied screenshots are source evidence, not independent gameplay testing.",
+        "No independent gameplay verification was performed for this review."
+      ],
+      "timeline": [
+        {
+          "date": "2026-10-09",
+          "event": "m72 sights",
+          "detail": "Support escalates screenshots about M72 sight visibility.",
+          "source_url": "https://steamcommunity.com/app/3079210/discussions/1/590691400522301692/?ctp=1#c590691669351029530"
+        }
+      ],
+      "sources": [
+        {
+          "type": "support thread",
+          "publisher": "Team17 Support",
+          "title": "m72 sights",
+          "url": "https://steamcommunity.com/app/3079210/discussions/1/590691400522301692/?ctp=1#c590691669351029530",
+          "date": "2026-10-09",
+          "source_published_at": "2026-10-09T07:31:50Z",
+          "source_reviewed_at": "2026-10-16",
+          "source_locator": "Reply 590691669351029530",
+          "content_sha256": "6693d6f30ee214d368aa1afb0ba27511cc4715169b8b14caab59b4ec8a293def",
+          "source_author_id": "76561199006108050",
+          "authority_checked_at": "2026-10-17T00:56:47Z",
+          "source_category": "Team17 Support",
+          "claim": "Support escalates screenshots about M72 sight visibility."
+        }
+      ]
+    },
+    {
+      "id": "HLLV-080",
+      "title": "Weapon preparation finishes visually before readiness",
+      "category": "gameplay",
+      "kind": "weapon readiness timing report",
+      "status_key": "investigating",
+      "status_label": "Support escalation; fix unconfirmed",
+      "bottom_line": "A player reports that switching weapons after the preparation animation can still reset preparation. Support escalated the report October 10.",
+      "official_short": "Support escalation recorded",
+      "fix_short": "None confirmed",
+      "cause_short": "Not established for all reports",
+      "last_updated": "2026-10-10",
+      "last_reviewed": "2026-10-16",
+      "scope": [
+        "M72",
+        "T53N4",
+        "M203",
+        "weapon switching"
+      ],
+      "symptom": "The report distinguishes the end of the animation/audio from the later usable state; switching too soon may require preparing again.",
+      "official_position": "Support acknowledges the animation report and escalates it.",
+      "workaround": null,
+      "known": [
+        "Support acknowledges the animation report and escalates it."
+      ],
+      "unknown": [
+        "Exact delays, all affected weapons and internal reproduction are unverified.",
+        "No independent gameplay verification was performed for this review."
+      ],
+      "timeline": [
+        {
+          "date": "2026-10-10",
+          "event": "Weapon \"Prep\" animations dont match the actual \"Prep\" time",
+          "detail": "Support escalates the weapon preparation-animation report; no fix is stated.",
+          "source_url": "https://steamcommunity.com/app/3079210/discussions/1/590691913363920364/?ctp=1#c590691913363952096"
+        }
+      ],
+      "sources": [
+        {
+          "type": "support thread",
+          "publisher": "Team17 Support",
+          "title": "Weapon \"Prep\" animations dont match the actual \"Prep\" time",
+          "url": "https://steamcommunity.com/app/3079210/discussions/1/590691913363920364/?ctp=1#c590691913363952096",
+          "date": "2026-10-10",
+          "source_published_at": "2026-10-10T09:21:25Z",
+          "source_reviewed_at": "2026-10-16",
+          "source_locator": "Reply 590691913363952096",
+          "content_sha256": "5eeb5083e1bf2b082a0ff7e5989d773b233fd8cb83be538d6bf3480baa890d76",
+          "source_author_id": "76561199006108050",
+          "authority_checked_at": "2026-10-17T00:56:47Z",
+          "source_category": "Team17 Support",
+          "claim": "Support escalates the weapon preparation-animation report; no fix is stated."
+        }
+      ]
+    },
+    {
+      "id": "HLLV-081",
+      "title": "Garrison destruction may award no points",
+      "category": "gameplay",
+      "kind": "scoring report",
+      "status_key": "investigating",
+      "status_label": "Support escalation; scoring rule unverified",
+      "bottom_line": "Missing points after destructive attacks are reported. Support escalated the flame-related case October 9; no scoring correction is confirmed.",
+      "official_short": "Support escalation recorded",
+      "fix_short": "None confirmed",
+      "cause_short": "Not established for all reports",
+      "last_updated": "2026-10-09",
+      "last_reviewed": "2026-10-16",
+      "scope": [
+        "Garrisons",
+        "flamethrowers",
+        "explosives",
+        "scoring"
+      ],
+      "symptom": "The thread alleges that flames or explosives can destroy a Garrison without awarding points.",
+      "official_position": "Support specifically acknowledges and forwards the flame-related report.",
+      "workaround": null,
+      "known": [
+        "Support specifically acknowledges and forwards the flame-related report."
+      ],
+      "unknown": [
+        "Explosive cases, expected scoring rules and reproduction are not independently established.",
+        "The player calls this a returning bug; a regression is not verified.",
+        "No independent gameplay verification was performed for this review."
+      ],
+      "timeline": [
+        {
+          "date": "2026-10-09",
+          "event": "destroying garrison with flames or explosives grants no points",
+          "detail": "Support escalates missing Garrison-destruction points involving flames.",
+          "source_url": "https://steamcommunity.com/app/3079210/discussions/1/590691669350999190/?ctp=1#c590691669351030273"
+        }
+      ],
+      "sources": [
+        {
+          "type": "support thread",
+          "publisher": "Team17 Support",
+          "title": "destroying garrison with flames or explosives grants no points",
+          "url": "https://steamcommunity.com/app/3079210/discussions/1/590691669350999190/?ctp=1#c590691669351030273",
+          "date": "2026-10-09",
+          "source_published_at": "2026-10-09T07:42:47Z",
+          "source_reviewed_at": "2026-10-16",
+          "source_locator": "Reply 590691669351030273",
+          "content_sha256": "90dc13b9cfb8f7b6662c00083884a08a0b7a76f027833268246fea4b2bd2800f",
+          "source_author_id": "76561199006108050",
+          "authority_checked_at": "2026-10-17T00:56:47Z",
+          "source_category": "Team17 Support",
+          "claim": "Support escalates missing Garrison-destruction points involving flames."
+        }
+      ]
+    },
+    {
+      "id": "HLLV-082",
+      "title": "Save-data load error blocks online entry",
+      "category": "stability",
+      "kind": "online profile loading report",
+      "status_key": "reported",
+      "status_label": "Player workaround; general fix unconfirmed",
+      "bottom_line": "A player reports recovering from a save-data loading loop after correcting Windows time. Other causes and general resolution remain unverified.",
+      "official_short": "Support troubleshooting recorded",
+      "fix_short": "One player-reported workaround",
+      "cause_short": "Not established for all reports",
+      "last_updated": "2026-10-08",
+      "last_reviewed": "2026-10-16",
+      "scope": [
+        "PC",
+        "online sign-in",
+        "save-data loading"
+      ],
+      "symptom": "Online entry repeatedly fails with a save-data loading message.",
+      "official_position": "Support recommended checking Windows time/time-zone settings.",
+      "workaround": "Check that Windows date, time and time zone are correct, then retry. This helped one reporting player; no files need to be deleted for this check.",
+      "known": [
+        "Support recommended checking Windows time/time-zone settings.",
+        "The reporting player says correcting the time allowed entry the following day."
+      ],
+      "unknown": [
+        "This does not establish data loss or a universal clock-related cause.",
+        "HLLV-047 profile switching and this entry failure must not be treated as identical.",
+        "No independent gameplay verification was performed for this review."
+      ],
+      "timeline": [
+        {
+          "date": "2026-10-07",
+          "event": "Failed to load user's save data.Please try again",
+          "detail": "Support recommends checking Windows time and time-zone settings for the load error.",
+          "source_url": "https://steamcommunity.com/app/3079210/discussions/1/590691669350862712/?ctp=1#c590691669350878072"
+        },
+        {
+          "date": "2026-10-08",
+          "event": "Failed to load user's save data.Please try again",
+          "detail": "The reporting player says correcting system time restored access.",
+          "source_url": "https://steamcommunity.com/app/3079210/discussions/1/590691669350862712/?ctp=1#c590691669350947030"
+        }
+      ],
+      "sources": [
+        {
+          "type": "support thread",
+          "publisher": "Team17 Support",
+          "title": "Failed to load user's save data.Please try again",
+          "url": "https://steamcommunity.com/app/3079210/discussions/1/590691669350862712/?ctp=1#c590691669350878072",
+          "date": "2026-10-07",
+          "source_published_at": "2026-10-07T16:26:10Z",
+          "source_reviewed_at": "2026-10-16",
+          "source_locator": "Reply 590691669350878072",
+          "content_sha256": "96de68b5488a2a055830c2ac7b9204d4d489b7f42685755d74e54a827df9b74b",
+          "source_author_id": "76561199418459134",
+          "authority_checked_at": "2026-10-17T00:56:47Z",
+          "source_category": "Team17 Support",
+          "claim": "Support recommends checking Windows time and time-zone settings for the load error."
+        },
+        {
+          "type": "player report",
+          "publisher": "Steam community",
+          "title": "Failed to load user's save data.Please try again",
+          "url": "https://steamcommunity.com/app/3079210/discussions/1/590691669350862712/?ctp=1#c590691669350947030",
+          "date": "2026-10-08",
+          "source_published_at": "2026-10-08T10:32:35Z",
+          "source_reviewed_at": "2026-10-16",
+          "source_locator": "Reply 590691669350947030",
+          "content_sha256": "b9cedb648ce4559c7932ab3d75cf23e0fcf820441c74e4219a7062fcacc5c5c3",
+          "claim": "The reporting player says correcting system time restored access."
+        }
+      ]
+    },
+    {
+      "id": "HLLV-083",
+      "title": "Startup DLL error accompanies missing game sounds",
+      "category": "audio",
+      "kind": "startup and audio reports",
+      "status_key": "reported",
+      "status_label": "Support diagnostics; cause unconfirmed",
+      "bottom_line": "Two October reports pair startup error 0xc0e90002 with missing sounds. Support requests diagnostics; no fix is confirmed.",
+      "official_short": "Support requested diagnostics",
+      "fix_short": "None confirmed",
+      "cause_short": "Not established for all reports",
+      "last_updated": "2026-10-12",
+      "last_reviewed": "2026-10-16",
+      "scope": [
+        "PC",
+        "startup",
+        "footsteps",
+        "vehicle audio"
+      ],
+      "symptom": "One report names fmod_haptics.dll and missing footsteps/hit sounds; another describes missing engines and footsteps with the same error code.",
+      "official_position": "Support recommends file verification in one thread and requests screenshots or DxDiag information in the other.",
+      "workaround": "Support suggests verifying game files. Success is not established; if it persists, send diagnostics through the official support channel rather than posting private system details here.",
+      "known": [
+        "Support recommends file verification in one thread and requests screenshots or DxDiag information in the other."
+      ],
+      "unknown": [
+        "A shared cause between these two reports is not proven.",
+        "This is not evidence that the earlier echoed/muffled-sound fix failed.",
+        "No independent gameplay verification was performed for this review."
+      ],
+      "timeline": [
+        {
+          "date": "2026-10-11",
+          "event": "Error window appear",
+          "detail": "Support suggests file verification and diagnostics for startup errors with missing audio.",
+          "source_url": "https://steamcommunity.com/app/3079210/discussions/1/590691913364102885/?ctp=1#c590691913364103178"
+        },
+        {
+          "date": "2026-10-12",
+          "event": "Sound Problems since the last update",
+          "detail": "Support requests an error screenshot and diagnostics for missing engine/footstep audio.",
+          "source_url": "https://steamcommunity.com/app/3079210/discussions/1/590691913364123471/?ctp=1#c590692129307648713"
+        }
+      ],
+      "sources": [
+        {
+          "type": "support thread",
+          "publisher": "Team17 Support",
+          "title": "Error window appear",
+          "url": "https://steamcommunity.com/app/3079210/discussions/1/590691913364102885/?ctp=1#c590691913364103178",
+          "date": "2026-10-11",
+          "source_published_at": "2026-10-11T17:59:20Z",
+          "source_reviewed_at": "2026-10-16",
+          "source_locator": "Reply 590691913364103178",
+          "content_sha256": "ed133a08195b2fbb17bf680fe05ef4d34919a17a664c39e12918a084e1873dea",
+          "source_author_id": "76561198363837070",
+          "authority_checked_at": "2026-10-17T00:56:47Z",
+          "source_category": "Team17 Support",
+          "claim": "Support suggests file verification and diagnostics for startup errors with missing audio."
+        },
+        {
+          "type": "support thread",
+          "publisher": "Team17 Support",
+          "title": "Sound Problems since the last update",
+          "url": "https://steamcommunity.com/app/3079210/discussions/1/590691913364123471/?ctp=1#c590692129307648713",
+          "date": "2026-10-12",
+          "source_published_at": "2026-10-12T08:15:03Z",
+          "source_reviewed_at": "2026-10-16",
+          "source_locator": "Reply 590692129307648713",
+          "content_sha256": "b2ff12e2ad53b6601974bd811c0964b9793e3cb466a0f5228241848748eb7cb0",
+          "source_author_id": "76561199006108050",
+          "authority_checked_at": "2026-10-17T00:56:47Z",
+          "source_category": "Team17 Support",
+          "claim": "Support requests an error screenshot and diagnostics for missing engine/footstep audio."
+        }
+      ]
     }
   ],
   "incidents": [
@@ -6116,7 +7121,7 @@
       "note": "Operational incidents remain separate from game issues until evidence establishes a relationship."
     }
   ],
-  "review_notes": "October 11: reviewed the October 9 Community Feedback #7 publisher text on Steam and compared its Huey sensitivity target with the 1.6 release notes. Newest claims remain plans, publisher observations or ongoing investigations as appropriate. Ten existing dossiers updated; no new issue IDs or independent gameplay checks. Recent player report dates remain unchanged. Previous review: October 7: reviewed the published Patch 1.6 changelog and earlier publisher text for 21 precise citation clarifications. Promoted only explicitly released changes; preserved unresolved wider families and all old reports. No independent gameplay testing. Recent player-thread bodies were inaccessible in the research reader, so no new player confirmation is claimed. Previous notes: Source-link audit, October 5: corrected the verified Community Feedback #4 URL wherever reused. Replaced the generic Hotfix 1.5.1 feed link only if the exact announcement title and destination were verified. Other issue content and historical claims are unchanged. October 5 review: rechecked the official Steam announcements through the October 2 VLOG notice, September 29 Hotfix 1.5.2 and October 1 Community Feedback #6. Clarified stale server-family wording, current mitigations and planned-versus-released changes. No new gameplay fix or independent gameplay verification was established. Individual evidence dates and prior player reports remain unchanged unless newer evidence was added. This pass did not revalidate every historical player report. A review date is not proof an old bug persists. Equivalent source permalinks are changed only when their publisher title and accessibility are verified. Prior review: October 2 review: checked the official blog, current Steam announcements and six Steam support threads. Added the publisher's Patch 1.6 timing and dated player reports. A recent forum reply is not a new patch, reproduced defect, confirmed root cause or proof that a previous fix failed. The linked VLOG announcement text was reviewed; the video itself was not used as evidence. Original issue dates and history are retained. Reviewed the official September 25 Community Feedback #5, September 29 Hotfix 1.5.2 and October 1 Community Feedback #6 posts, using their full publisher text on Steam. Targets for 1.6, 1.7 and 2.0 are not release confirmations. Old reports retain their evidence dates unless new evidence applies. Similar symptoms do not establish a shared cause; SoulSniper incidents remain separate. No independent gameplay verification was performed. Prior review: Reviewed official releases through the September 22 live announcement. The website dates Hotfix 1.5.1 September 21; Steam announces it live September 22. Update 1.5 notes preceded its September 16 release. Older unresolved reports retain their evidence dates; absence from newer notes is not confirmation of persistence or resolution.",
+  "review_notes": "October 16: 14 existing dossiers refreshed; 8 separately scoped issues added. Read review_history for coverage and limits. Older evidence dates and the existing held reply remain unchanged. Previous review: October 11: reviewed the October 9 Community Feedback #7 publisher text on Steam and compared its Huey sensitivity target with the 1.6 release notes. Newest claims remain plans, publisher observations or ongoing investigations as appropriate. Ten existing dossiers updated; no new issue IDs or independent gameplay checks. Recent player report dates remain unchanged. Previous review: October 7: reviewed the published Patch 1.6 changelog and earlier publisher text for 21 precise citation clarifications. Promoted only explicitly released changes; preserved unresolved wider families and all old reports. No independent gameplay testing. Recent player-thread bodies were inaccessible in the research reader, so no new player confirmation is claimed. Previous notes: Source-link audit, October 5: corrected the verified Community Feedback #4 URL wherever reused. Replaced the generic Hotfix 1.5.1 feed link only if the exact announcement title and destination were verified. Other issue content and historical claims are unchanged. October 5 review: rechecked the official Steam announcements through the October 2 VLOG notice, September 29 Hotfix 1.5.2 and October 1 Community Feedback #6. Clarified stale server-family wording, current mitigations and planned-versus-released changes. No new gameplay fix or independent gameplay verification was established. Individual evidence dates and prior player reports remain unchanged unless newer evidence was added. This pass did not revalidate every historical player report. A review date is not proof an old bug persists. Equivalent source permalinks are changed only when their publisher title and accessibility are verified. Prior review: October 2 review: checked the official blog, current Steam announcements and six Steam support threads. Added the publisher's Patch 1.6 timing and dated player reports. A recent forum reply is not a new patch, reproduced defect, confirmed root cause or proof that a previous fix failed. The linked VLOG announcement text was reviewed; the video itself was not used as evidence. Original issue dates and history are retained. Reviewed the official September 25 Community Feedback #5, September 29 Hotfix 1.5.2 and October 1 Community Feedback #6 posts, using their full publisher text on Steam. Targets for 1.6, 1.7 and 2.0 are not release confirmations. Old reports retain their evidence dates unless new evidence applies. Similar symptoms do not establish a shared cause; SoulSniper incidents remain separate. No independent gameplay verification was performed. Prior review: Reviewed official releases through the September 22 live announcement. The website dates Hotfix 1.5.1 September 21; Steam announces it live September 22. Update 1.5 notes preceded its September 16 release. Older unresolved reports retain their evidence dates; absence from newer notes is not confirmation of persistence or resolution.",
   "source_link_review": {
     "date": "2026-10-05",
     "repaired_references": 9,
@@ -6183,8 +7188,8 @@
     ],
     "method": "Verified source titles and HTTP responses. The earlier Steam API discovery did not produce replacements because official announcements were returned through external CDN redirects; no guessed URL was published."
   },
-  "page_updated_at": "2026-10-16T14:24:16Z",
-  "review_release": "2026-10-11-community-feedback-7",
+  "page_updated_at": "2026-10-17T01:00:30Z",
+  "review_release": "2026-10-16-bug-evidence-review",
   "review_history": [
     {
       "date": "2026-10-07",
@@ -6252,6 +7257,63 @@
       "latest_verified_release": {
         "title": "Patch 1.6",
         "date": "2026-10-07"
+      }
+    },
+    {
+      "date": "2026-10-16",
+      "review_release": "2026-10-16-bug-evidence-review",
+      "base_commit": "e5eccc0af6f8fddd38edd5cb30394bbec8d8ac51",
+      "page_updated_at": "2026-10-17T01:00:30Z",
+      "updated_issues": [
+        "HLLV-003",
+        "HLLV-006",
+        "HLLV-007",
+        "HLLV-029",
+        "HLLV-033",
+        "HLLV-046",
+        "HLLV-047",
+        "HLLV-057",
+        "HLLV-058",
+        "HLLV-059",
+        "HLLV-060",
+        "HLLV-061",
+        "HLLV-065",
+        "HLLV-066"
+      ],
+      "new_issues": [
+        "HLLV-076",
+        "HLLV-077",
+        "HLLV-078",
+        "HLLV-079",
+        "HLLV-080",
+        "HLLV-081",
+        "HLLV-082",
+        "HLLV-083"
+      ],
+      "issue_count": 83,
+      "source_references": 196,
+      "distinct_source_urls": 56,
+      "latest_verified_release": {
+        "title": "Patch 1.6",
+        "date": "2026-10-07"
+      },
+      "independent_gameplay_testing": false,
+      "limitations": [
+        "No independent gameplay testing.",
+        "Thirty-six discussion reply scans attempted; 34 completed and two were temporarily unavailable. Completeness is transport/parser coverage, not validation of every statement.",
+        "Only selected relevant claims were editorially incorporated. Other dossiers retain their prior evidence dates.",
+        "The latest official publisher announcement reviewed is October 15; the latest selected player reply is October 16.",
+        "Existing unrelated-text editorial hold remains unchanged and is not used as bug evidence.",
+        "Original Hell Let Loose is distinct from Vietnam; one custom-binding thread still has an unresolved game/build ambiguity.",
+        "No update to visual assets, functional scripts, feature records, account data or Suggestion Box moderation."
+      ],
+      "thread_checks": {
+        "attempted": 36,
+        "complete": 34,
+        "unavailable": [
+          "https://steamcommunity.com/app/3079210/discussions/1/590691913364082100/",
+          "https://steamcommunity.com/app/3079210/discussions/1/590691913364082327/"
+        ]
       }
     }
   ],
@@ -6721,6 +7783,21 @@
         "Controller customization and saved role-loadout requests are being discussed without a confirmed delivery window."
       ],
       "caution": "Patch 1.6 is the latest verified release. These developer-discussed requests are not submissions to this site, developer-approved Bulletin Board entries, or implementation promises."
+    },
+    {
+      "id": "community-feedback-8",
+      "title": "Community Feedback #8",
+      "date": "2026-10-15",
+      "reviewed_at": "2026-10-16",
+      "type": "official update",
+      "source_url": "https://www.hellletloose.com/blog/community-update-8",
+      "source_reviewed_via": "https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/1846651706678313",
+      "headline": "Developer follow-up, not a released patch.",
+      "highlights": [
+        "Remaining replication failures are still under investigation.",
+        "The bug ledger now incorporates the selected October 15 statements and subsequent community evidence."
+      ],
+      "caution": "Patch 1.7 remains upcoming. See individual dossiers for source dates and claim boundaries."
     }
   ],
   "patch_notes_review_scope": "Post-release caveats for 1.6 and 1.5.2 updated; older entries retain their individual review dates.",

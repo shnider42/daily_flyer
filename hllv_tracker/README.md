@@ -16,7 +16,7 @@ announcement matches flag possible updates for review; they never change status.
 Existing Suggestion Box approval and account permissions remain separate. These
 feature records are curated through the repository, not a new moderator dashboard.
 
-The current tracker contains 75 issue dossiers, 157 issue-linked source records and 34 distinct source URLs (reviewed 2026-10-07). It separates support reports, official acknowledgement, reproduction, released changes, post-fix monitoring, and root-cause certainty.
+The current tracker contains 83 issue dossiers. The October 16, 2026 bug-only review refreshed 14 existing dossiers and added 8 separately scoped issues, using Community Feedback #8 and selected public Steam replies through October 16. Other dossiers retain their original evidence dates. Exact source counts and coverage limits are recorded in `reviews/2026-10-16-bug-evidence-review.json`. It separates support reports, official acknowledgement, reproduction, released changes, post-fix monitoring, and root-cause certainty.
 
 ## Core rule
 
