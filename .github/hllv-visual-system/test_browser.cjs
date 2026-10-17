@@ -54,7 +54,7 @@ const sdk = `export function createClient(){return {
   fs.mkdirSync(output,{recursive:true});
   const browser = await ({chromium,webkit}[engine]).launch({headless:true});
   const context = await browser.newContext({viewport:{width:1280,height:900},reducedMotion:'reduce'});
-  const errors=[], writes=[], blockedRequests=[], calls=[], checked=[];
+  const errors=[], writes=[], blockedRequests=[], calls=[], checked=[], openingMeasurements=[];
   await context.exposeBinding('__recordVisualRpc',(_,call)=>calls.push(call));
   await context.addInitScript(rows=>{globalThis.__visualRows=rows;},suggestionRows);
   await context.route('**/*',route=>{
@@ -91,11 +91,45 @@ const sdk = `export function createClient(){return {
       return el.matches(':focus-visible') && ((css.outlineStyle!=='none'&&parseFloat(css.outlineWidth)>0)||css.boxShadow!=='none');
     }),'Keyboard focus must have a visible outline or shadow');
   };
+  const assertNavigation=async(landing)=>{
+    assert.deepEqual(await page.locator('.top-links [data-page]').evaluateAll(links=>links.map(link=>link.dataset.page)),['issues','features','suggestions'],'Navigation follows the three community sections');
+    await expect(page.locator('.top-links [data-page="landing"]')).toHaveCount(0);
+    await expect(page.locator('.top-links').getByRole('button',{name:'Home',exact:true})).toHaveCount(0);
+    await expect(page.locator('.top-links').getByRole('link',{name:'Home',exact:true})).toHaveCount(0);
+    await expect(page.locator('.site-nav [aria-current="page"]')).toHaveCount(1);
+    if(landing)await expect(page.locator('#brandHome')).toHaveAttribute('aria-current','page');
+    else await expect(page.locator('#brandHome')).not.toHaveAttribute('aria-current','page');
+  };
+  const openingMetrics=async(scenario,width,height,theme)=>{
+    if(!scenario.canvas)return null;
+    const result=await page.evaluate(({canvas,heading,purpose,controls,record,title,status})=>{
+      const rect=selector=>{
+        const el=document.querySelector(selector);if(!el)return null;
+        const box=el.getBoundingClientRect(),css=getComputedStyle(el);
+        return {top:box.top,bottom:box.bottom,left:box.left,right:box.right,width:box.width,height:box.height,visible:css.display!=='none'&&css.visibility!=='hidden'&&box.width>0&&box.height>0};
+      };
+      return {canvas:rect(canvas),heading:rect(heading),purpose:rect(purpose),controls:controls.map(selector=>({selector,...rect(selector)})),record:rect(record),title:rect(title),status:status?rect(status):null,scrollY};
+    },scenario);
+    const label=`${engine}/${scenario.name}/${width}x${height}`;
+    openingMeasurements.push({route:scenario.name,width,height,theme,...result});
+    fs.writeFileSync(`${output}/${engine}-opening-measurements.json`,JSON.stringify(openingMeasurements,null,2)+'\n');
+    assert.equal(result.scrollY,0,`${label}: assess the initial viewport, without scrolling`);
+    for(const [name,box] of [['heading',result.heading],['purpose',result.purpose],...result.controls.map(box=>[box.selector,box]),['first record title',result.title],...(scenario.status?[['first record status',result.status]]:[])]){
+      assert(box&&box.visible,`${label}: ${name} must exist and be visible`);
+      assert(box.top>=-1&&box.bottom<=height+1,`${label}: ${name} must fit the opening viewport; bounds ${JSON.stringify(box)}`);
+    }
+    assert(result.canvas&&result.canvas.width>0,`${label}: main canvas must be measurable`);
+    if(width>=1920)assert(result.canvas.width>=width*.65,`${label}: main canvas ${result.canvas.width}px must use at least 65% of the available width`);
+    if(width>=1280&&scenario.name!=='suggestions-synthetic')assert(result.record.bottom<=height+1,`${label}: the first complete record must fit the desktop opening; bottom ${result.record.bottom}`);
+    if(width===390&&scenario.name==='home')assert(result.record.bottom<=height+1,`${label}: all three homepage paths must fit the phone opening; bottom ${result.record.bottom}`);
+    return {...result,canvasFraction:result.canvas.width/width,firstRecordFullyVisible:result.record.top>=0&&result.record.bottom<=height};
+  };
 
   await page.goto(baseURL,{waitUntil:'networkidle'});
   await expect(page.locator('#featureHighlights .ft-row')).toHaveCount(3);
   await expect(page.getByRole('heading',{name:'Infierno Liberado',exact:true})).toBeVisible();
   await expect(page.locator('.community-paths>a')).toHaveCount(3);
+  await assertNavigation(true);
   // Verify the tab icon and device icon are real, served assets, not merely dead links.
   for(const [selector,kind] of [['#hllv-favicon','svg'],['#hllv-favicon-fallback','ico'],['link[rel="apple-touch-icon"]','png']]){
     const link=page.locator(selector);await expect(link).toHaveCount(1);
@@ -109,17 +143,18 @@ const sdk = `export function createClient(){return {
   }
 
   const scenarios=[
-    {name:'home',hash:'',ready:'#landing h1',nav:'landing'},
-    {name:'bugs',hash:'#issues',ready:'#homeList .record-title',nav:'issues'},
+    {name:'home',hash:'',ready:'#landing h1',nav:'landing',canvas:'#landing .landing-main',heading:'#gameTitle',purpose:'#landing .landing-companion',controls:[],record:'.community-paths',title:'.community-path h2'},
+    {name:'bugs',hash:'#issues',ready:'#homeList .record-title',nav:'issues',canvas:'#home .home-main',heading:'#home h1',purpose:'#home .home-title p',controls:['#homeSearch','#homeCategory','#home .status-tabs','[data-date-order="browse"]'],record:'#homeList [data-home-id]',title:'#homeList .record-title',status:'#homeList [data-home-id] .home-state'},
     {name:'bug-detail',hash:'#HLLV-046',ready:'#dossier .summary-workaround',nav:'issues'},
-    {name:'content',hash:'#features',ready:'#featureResults .record-title',nav:'features'},
+    {name:'content',hash:'#features',ready:'#featureResults .record-title',nav:'features',canvas:'#featuresPage .ft-main',heading:'#featuresPage h1',purpose:'#featuresPage .ft-heading>p',controls:['#featureSearch','#featureStatus','#featureCategory','#featureOrder'],record:'#featureResults .ft-row',title:'#featureResults .record-title',status:'#featureResults .ft-row .ft-status'},
     {name:'content-detail',hash:'#feature/HLLV-F008',ready:'.ft-current',nav:'features'},
-    {name:'suggestions-synthetic',hash:'#suggestions',ready:'[data-board-id]',nav:'suggestions'},
+    {name:'suggestions-synthetic',hash:'#suggestions',ready:'[data-board-id]',nav:'suggestions',canvas:'#suggestionBox .suggestion-main',heading:'#suggestionHeading',purpose:'#suggestionBox .cb-hero p',controls:['#communitySubmit','#cbSearch','#cbOrder','#cbSearchForm button[type="submit"]'],record:'[data-board-id]',title:'.cb-row h3',status:'.cb-row .cb-type'},
     {name:'suggestions-empty',hash:'#suggestions',ready:'.cb-empty',nav:'suggestions',empty:true},
     {name:'suggestions-sign-in',hash:'#suggestions',ready:'#cbLogin',nav:'suggestions',submit:true},
   ];
-  for(const width of [320,390,768,1280])for(const theme of ['dark','light'])for(const scenario of scenarios){
-    await page.setViewportSize({width,height:width<768?844:900});
+  const viewports=[{width:320,height:740},{width:390,height:844},{width:768,height:1024},{width:1280,height:720},{width:1920,height:1080},{width:2560,height:1440}];
+  for(const {width,height} of viewports)for(const theme of ['dark','light'])for(const scenario of scenarios){
+    await page.setViewportSize({width,height});
     await loadRoute(scenario.hash);
     await setTheme(theme);
     if(scenario.empty){
@@ -132,15 +167,21 @@ const sdk = `export function createClient(){return {
       await page.locator('#communitySubmit').click();
     }
     await expect(page.locator(scenario.ready).first()).toBeVisible();
-    await expect(page.locator(`[data-page="${scenario.nav}"]`)).toHaveAttribute('aria-current','page');
+    await expect(page.locator(scenario.nav==='landing'?'#brandHome':`[data-page="${scenario.nav}"]`)).toHaveAttribute('aria-current','page');
+    await assertNavigation(scenario.nav==='landing');
     await expect(page.locator('.site-nav')).toBeVisible();
-    await noOverflow(`${engine}/${scenario.name}/${width}/${theme}`);
+    await noOverflow(`${engine}/${scenario.name}/${width}x${height}/${theme}`);
+    await page.evaluate(async()=>{await document.fonts.ready;window.scrollTo({top:0,behavior:'instant'});await new Promise(requestAnimationFrame);});
+    await expect(page.locator('.site-scene')).toBeVisible();
+    await expect.poll(()=>page.locator('.site-scene img').evaluate(img=>img.complete&&img.naturalWidth>0)).toBe(true);
+    const backdrop=await page.locator('.site-scene').boundingBox();
+    assert(backdrop&&backdrop.width>=width-1&&backdrop.height>0,`${scenario.name}: shared backdrop must cover the page width`);
+    await page.screenshot({path:`${output}/${engine}-${width}x${height}-${theme}-${scenario.name}-opening.png`});
     if(width===390||width===1280){
-      await page.evaluate(()=>document.fonts.ready);
-      if(scenario.name==='home')await expect.poll(()=>page.locator('.landing-scene img').evaluate(img=>img.complete&&img.naturalWidth>0)).toBe(true);
       await page.screenshot({path:`${output}/${engine}-${width}-${theme}-${scenario.name}.png`,fullPage:true});
     }
-    checked.push({route:scenario.name,width,theme});
+    const opening=await openingMetrics(scenario,width,height,theme);
+    checked.push({route:scenario.name,width,height,theme,opening});
   }
   await page.reload({waitUntil:'networkidle'});
   await expect(page.locator('html')).toHaveAttribute('data-theme','light');

@@ -2,20 +2,19 @@
    Scope stays inside the suggestion page; state, content and permissions remain
    owned by the existing community and thread modules. */
 #suggestionBox {
-  background: var(--paper);
   color: var(--ink);
 }
 #suggestionBox .cb-hero {
-  gap: 24px;
+  gap: 18px;
 }
 #suggestionBox .cb-hero h1 span { color: var(--red); }
 #suggestionBox .cb-eyebrow {
-  margin-bottom: 10px;
+  margin-bottom: 4px;
 }
-#suggestionBox .cb-hero-action { padding-top: 3px; gap: 9px; }
-#suggestionBox .cb-primary { min-height: 46px; padding: 12px 19px; font-size: .9rem; }
+#suggestionBox .cb-hero-action { padding-top: 0; gap: 6px; }
+#suggestionBox .cb-primary { min-height: 44px; padding: 10px 18px; font-size: .9rem; }
 #suggestionBox .cb-hero-action > span { font-size: .75rem; }
-#suggestionBox .cb-authority { font-size: .77rem; line-height: 1.6; margin: 12px 0 22px; }
+#suggestionBox .cb-authority { font-size: .75rem; line-height: 1.5; margin: 8px 0 12px; }
 #suggestionBox .cb-tabs { gap: 8px; flex-wrap: wrap; border: 0; }
 #suggestionBox .cb-tabs button {
   min-height: 44px;
@@ -32,26 +31,36 @@
   border-color: var(--ui-border, var(--line));
   box-shadow: inset 0 -2px var(--section-accent, var(--olive));
 }
-#suggestionBox #sgContent { padding-top: 28px; }
+#suggestionBox #sgContent { padding-top: 14px; }
 #suggestionBox h2 {
   font: 750 clamp(1.4rem, 2.5vw, 1.85rem)/1.2 var(--ui-title-font, system-ui, sans-serif);
   letter-spacing: -.025em;
   margin: 0 0 12px;
 }
 #suggestionBox .cb-small { font-size: .8rem; line-height: 1.6; }
-#suggestionBox .cb-section-head { align-items: center; }
-#suggestionBox .cb-section-head h2 { margin-bottom: 4px; }
-#suggestionBox .cb-section-head .cb-eyebrow { margin-bottom: 6px; }
+#suggestionBox .cb-section-head { align-items: center; gap: 12px; }
+#suggestionBox .cb-section-head > div {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: 4px 12px;
+  min-width: 0;
+}
+#suggestionBox .cb-section-head h2 { font-size: 1.15rem; margin: 0; }
+#suggestionBox .cb-section-head .cb-eyebrow { margin: 0; }
+#suggestionBox .cb-section-head + .cb-small { margin: 2px 0 10px; }
 #suggestionBox .cb-text-button { min-height: 44px; padding: 10px 2px; }
 #suggestionBox .cb-tools {
-  padding: 16px;
-  margin: 20px 0 24px;
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(170px, 220px) auto;
+  padding: 12px;
+  margin: 10px 0 16px;
   gap: 12px;
   background: var(--ui-surface, var(--paper-2));
   border: 1px solid var(--ui-border, var(--line));
   border-radius: var(--ui-radius, 6px);
 }
-#suggestionBox .cb-tools label { font-size: .75rem; gap: 7px; }
+#suggestionBox .cb-tools label { font-size: .75rem; gap: 5px; min-width: 0; }
 #suggestionBox .cb-tools input,
 #suggestionBox .cb-tools select,
 #suggestionBox .thread-toolbar select {
@@ -60,7 +69,9 @@
   border-radius: 4px;
   background: var(--paper);
   color: var(--ink);
-  font-size: .9rem;
+  width: 100%;
+  min-width: 0;
+  font-size: 1rem;
   padding: 10px 12px;
 }
 #suggestionBox .sg-button {
@@ -77,7 +88,7 @@
 #suggestionBox .cb-row {
   grid-template-columns: 58px minmax(0, 1fr);
   gap: 20px;
-  padding: 24px 16px;
+  padding: 20px 16px;
   border-bottom-color: var(--ui-border, var(--line));
 }
 #suggestionBox .cb-row-copy { min-width: 0; }
@@ -228,20 +239,60 @@
 #suggestionBox .cb-footer summary { min-height: 44px; color: var(--ink); font-size: .82rem; }
 #suggestionBox .cb-footer p { line-height: 1.7; }
 
+/* Independent public suggestions can share a wide row without forcing prose
+   across the entire screen. Private entries and conversations stay linear. */
+@media (min-width: 1600px) {
+  #suggestionBox .cb-list:has(> .cb-row) {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: 32px;
+  }
+  #suggestionBox .cb-row { align-content: start; padding: 24px 12px; }
+}
+
 @media (max-width: 720px) {
-  #suggestionBox .cb-hero { gap: 20px; }
-  #suggestionBox .cb-hero-action { padding-top: 0; }
-  #suggestionBox .cb-primary { font-size: .9rem; }
+  #suggestionBox .cb-hero { gap: 12px; }
+  #suggestionBox .cb-hero > div:first-child > .cb-eyebrow { display: none; }
+  #suggestionBox .cb-hero-action {
+    display: grid;
+    grid-template-columns: minmax(0, 1.45fr) minmax(0, 1fr);
+    align-items: center;
+    gap: 12px;
+    max-width: none;
+  }
+  #suggestionBox .cb-primary { padding: 10px 12px; font-size: .86rem; }
+  #suggestionBox .cb-hero-action > span { font-size: .72rem; line-height: 1.5; text-align: left; }
+  #suggestionBox .cb-authority { font-size: .73rem; margin: 6px 0 10px; }
   #suggestionBox .cb-tabs button { padding: 10px 11px; font-size: .79rem; }
-  #suggestionBox .cb-tools { padding: 12px; gap: 10px; }
+  #suggestionBox #sgContent { padding-top: 10px; }
+  #suggestionBox .cb-section-head { gap: 8px; }
+  #suggestionBox .cb-section-head > div { gap: 3px 8px; }
+  #suggestionBox .cb-section-head h2 { font-size: 1.03rem; }
+  #suggestionBox .cb-section-head .cb-eyebrow { font-size: .65rem; letter-spacing: .04em; }
+  #suggestionBox .cb-tools {
+    grid-template-columns: minmax(0, 1fr) auto;
+    padding: 10px;
+    gap: 8px;
+    margin: 8px 0 12px;
+  }
+  #suggestionBox .cb-tools .cb-search-label { grid-column: 1; grid-row: 1; }
+  #suggestionBox .cb-tools > label:not(.cb-search-label) {
+    grid-column: 1 / -1;
+    grid-row: 2;
+    display: grid;
+    grid-template-columns: 64px minmax(0, 1fr);
+    align-items: center;
+    gap: 8px;
+    line-height: 1.4;
+  }
   #suggestionBox .cb-tools input,
   #suggestionBox .cb-tools select { font-size: 1rem; }
-  #suggestionBox .cb-tools > .sg-button { min-width: 90px; }
-  #suggestionBox .cb-row { grid-template-columns: 48px minmax(0, 1fr); gap: 14px; padding: 22px 0; }
+  #suggestionBox .cb-tools > .sg-button { grid-column: 2; grid-row: 1; align-self: end; min-width: 76px; }
+  #suggestionBox .cb-row { grid-template-columns: 54px minmax(0, 1fr); gap: 12px; padding: 16px 0; }
   #suggestionBox .cb-row h3 { font-size: 1.07rem; }
   #suggestionBox .cb-row p { font-size: .9rem; }
   #suggestionBox .cb-vote { min-height: 72px; }
-  #suggestionBox .cb-vote > span:last-child { font-size: .55rem; }
+  #suggestionBox .cb-vote > span:last-child { font-size: .6rem; }
   #suggestionBox .cb-type { font-size: .66rem; }
   #suggestionBox .cb-entry { padding: 21px 4px; }
   #suggestionBox .cb-entry strong { font-size: 1.07rem; }
