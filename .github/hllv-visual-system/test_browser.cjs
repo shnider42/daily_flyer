@@ -108,6 +108,46 @@ const sdk = `export function createClient(){return {
     if(kind==='png')assert.equal(bytes.subarray(0,8).toString('hex'),'89504e470d0a1a0a');
   }
 
+  const scenarios=[
+    {name:'home',hash:'',ready:'#landing h1',nav:'landing'},
+    {name:'bugs',hash:'#issues',ready:'#homeList .record-title',nav:'issues'},
+    {name:'bug-detail',hash:'#HLLV-046',ready:'#dossier .summary-workaround',nav:'issues'},
+    {name:'content',hash:'#features',ready:'#featureResults .record-title',nav:'features'},
+    {name:'content-detail',hash:'#feature/HLLV-F008',ready:'.ft-current',nav:'features'},
+    {name:'suggestions-synthetic',hash:'#suggestions',ready:'[data-board-id]',nav:'suggestions'},
+    {name:'suggestions-empty',hash:'#suggestions',ready:'.cb-empty',nav:'suggestions',empty:true},
+    {name:'suggestions-sign-in',hash:'#suggestions',ready:'#cbLogin',nav:'suggestions',submit:true},
+  ];
+  for(const width of [320,390,768,1280])for(const theme of ['dark','light'])for(const scenario of scenarios){
+    await page.setViewportSize({width,height:width<768?844:900});
+    await loadRoute(scenario.hash);
+    await setTheme(theme);
+    if(scenario.empty){
+      await expect(page.locator('#cbRefresh')).toBeVisible();
+      await page.evaluate(()=>{globalThis.__visualRows=[];});await page.locator('#cbRefresh').click();
+      await expect(page.locator('.cb-empty')).toContainText('The next idea could be yours');
+    }
+    if(scenario.submit){
+      await expect(page.locator('[data-board-id]')).toHaveCount(suggestionRows.length);
+      await page.locator('#communitySubmit').click();
+    }
+    await expect(page.locator(scenario.ready).first()).toBeVisible();
+    await expect(page.locator(`[data-page="${scenario.nav}"]`)).toHaveAttribute('aria-current','page');
+    await expect(page.locator('.site-nav')).toBeVisible();
+    await noOverflow(`${engine}/${scenario.name}/${width}/${theme}`);
+    if(width===390||width===1280){
+      await page.evaluate(()=>document.fonts.ready);
+      if(scenario.name==='home')await expect.poll(()=>page.locator('.landing-scene img').evaluate(img=>img.complete&&img.naturalWidth>0)).toBe(true);
+      await page.screenshot({path:`${output}/${engine}-${width}-${theme}-${scenario.name}.png`,fullPage:true});
+    }
+    checked.push({route:scenario.name,width,theme});
+  }
+  await page.reload({waitUntil:'networkidle'});
+  await expect(page.locator('html')).toHaveAttribute('data-theme','light');
+
+  // Start the interaction checks from a fresh document after responsive capture.
+  await page.goto(baseURL,{waitUntil:'networkidle'});
+
   // Bug list: filtering, explicit status, keyboard entry, evidence and returning context.
   await page.locator('[data-page="issues"]').click();
   await expect(page.locator('#home')).toBeVisible();
@@ -154,7 +194,7 @@ const sdk = `export function createClient(){return {
   await expect(page.locator('.ft-direction')).toContainText(feature.change);
   await expect(page.locator('.ft-history li')).toHaveCount(feature.history.length);
   await page.locator('.ft-back').click();
-  await expect(page.locator('#featureSearch')).toHaveValue(feature.id);
+  await expect(page.locator('#featureSearch')).toHaveValue(feature.id.toLowerCase());
   await page.locator('#featureSearch').fill('no-feature-matches-this-fixture');
   await expect(page.locator('#featureResults')).toContainText('No matching features');
 
@@ -178,42 +218,6 @@ const sdk = `export function createClient(){return {
   await expect(page.locator('#hllvAccountBar')).toBeHidden();
   await expect(page.locator('#accountMenu>summary')).toBeFocused();
 
-  const scenarios=[
-    {name:'home',hash:'',ready:'#landing h1',nav:'landing'},
-    {name:'bugs',hash:'#issues',ready:'#homeList .record-title',nav:'issues'},
-    {name:'bug-detail',hash:'#HLLV-046',ready:'#dossier .summary-workaround',nav:'issues'},
-    {name:'content',hash:'#features',ready:'#featureResults .record-title',nav:'features'},
-    {name:'content-detail',hash:'#feature/HLLV-F008',ready:'.ft-current',nav:'features'},
-    {name:'suggestions-synthetic',hash:'#suggestions',ready:'[data-board-id]',nav:'suggestions'},
-    {name:'suggestions-empty',hash:'#suggestions',ready:'.cb-empty',nav:'suggestions',empty:true},
-    {name:'suggestions-sign-in',hash:'#suggestions',ready:'#cbLogin',nav:'suggestions',submit:true},
-  ];
-  for(const width of [320,390,768,1280])for(const theme of ['dark','light'])for(const scenario of scenarios){
-    await page.setViewportSize({width,height:width<768?844:900});
-    await loadRoute(scenario.hash);
-    await setTheme(theme);
-    if(scenario.empty){
-      await expect(page.locator('#cbRefresh')).toBeVisible();
-      await page.evaluate(()=>{globalThis.__visualRows=[];});await page.locator('#cbRefresh').click();
-      await expect(page.locator('.cb-empty')).toContainText('The next idea could be yours');
-    }
-    if(scenario.submit){
-      await expect(page.locator('[data-board-id]')).toHaveCount(suggestionRows.length);
-      await page.locator('#communitySubmit').click();
-    }
-    await expect(page.locator(scenario.ready).first()).toBeVisible();
-    await expect(page.locator(`[data-page="${scenario.nav}"]`)).toHaveAttribute('aria-current','page');
-    await expect(page.locator('.site-nav')).toBeVisible();
-    await noOverflow(`${engine}/${scenario.name}/${width}/${theme}`);
-    if(width===390||width===1280){
-      await page.evaluate(()=>document.fonts.ready);
-      if(scenario.name==='home')await expect.poll(()=>page.locator('.landing-scene img').evaluate(img=>img.complete&&img.naturalWidth>0)).toBe(true);
-      await page.screenshot({path:`${output}/${engine}-${width}-${theme}-${scenario.name}.png`,fullPage:true});
-    }
-    checked.push({route:scenario.name,width,theme});
-  }
-  await page.reload({waitUntil:'networkidle'});
-  await expect(page.locator('html')).toHaveAttribute('data-theme','light');
   assert.deepEqual(errors,[],'No browser runtime errors');
   assert.deepEqual(writes,[],'No network writes are permitted');
   assert.deepEqual(blockedRequests,[],'No unexpected external API or asset requests');
