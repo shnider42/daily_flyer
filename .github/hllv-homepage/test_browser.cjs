@@ -57,7 +57,7 @@ const url=process.env.HLLV_TEST_URL||'http://127.0.0.1:8765/';
  await page.locator('#brandHome').click();await page.locator('#browseIssues').click();
  await page.locator('#homeSearch').fill('Startup DLL');await page.locator('#homeList [data-home-id]').click();
  await expect(page.locator('#dossier')).toContainText('0xc0e90002');
- await page.locator('#dossier [data-tab="sources"]').click();
+ await page.locator('#dossier .tabs [data-tab="sources"]').click();
  await expect(page.locator('#sources .evidence-source')).toHaveCount(2);
  await expect(page.locator('#dossier')).toContainText('Support acknowledgment');await noOverflow();
  await page.locator('#brandHome').click();await expect(page.locator('#landing')).toBeVisible();
