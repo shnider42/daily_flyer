@@ -1,0 +1,836 @@
+{
+  "title": "The Peter Asher connection",
+  "checkedDate": "2026-10-18",
+  "sources": [
+    {
+      "id": "grammy-asher",
+      "title": "Peter Asher: GRAMMY Hall of Fame Inspirations",
+      "url": "https://www.grammy.com/news/grammy-hall-of-fame-inspirations-peter-asher/",
+      "publisher": "Recording Academy",
+      "kind": "first-person interview",
+      "verified": "2026-10-18"
+    },
+    {
+      "id": "grammy-board",
+      "title": "Behind the Board: Peter Asher",
+      "url": "https://www.grammy.com/news/behind-board-producer-peter-asher-james-taylor-cher-linda-ronstadt-more/",
+      "publisher": "Recording Academy",
+      "kind": "first-person interview",
+      "verified": "2026-10-18"
+    },
+    {
+      "id": "rhino-world",
+      "title": "Peter and Gordon: A World Without Love",
+      "url": "https://www.rhino.com/article/once-upon-a-time-in-the-top-spot-peter-and-gordon-a-world-without-love",
+      "publisher": "Rhino / Warner Music",
+      "kind": "label editorial",
+      "verified": "2026-10-18"
+    },
+    {
+      "id": "fresh-air",
+      "title": "Peter Asher on Everywhere Man",
+      "url": "https://freshairarchive.org/segments/everywhere-man-traces-trajectory-under-radar-music-producer-peter-asher",
+      "publisher": "Fresh Air / WHYY",
+      "kind": "first-person interview",
+      "verified": "2026-10-18"
+    },
+    {
+      "id": "jt-debut",
+      "title": "James Taylor: debut album discography",
+      "url": "https://www.jamestaylor.com/discography/james-taylor",
+      "publisher": "James Taylor official",
+      "kind": "artist discography",
+      "verified": "2026-10-18"
+    },
+    {
+      "id": "jt-sweet",
+      "title": "Sweet Baby James: official discography",
+      "url": "https://www.jamestaylor.com/discography/sweet-baby-james",
+      "publisher": "James Taylor official",
+      "kind": "artist discography",
+      "verified": "2026-10-18"
+    },
+    {
+      "id": "linda-about",
+      "title": "Linda Ronstadt: About",
+      "url": "https://lindaronstadt.com/pages/about",
+      "publisher": "Linda Ronstadt official",
+      "kind": "artist biography with first-person quotations",
+      "verified": "2026-10-18"
+    },
+    {
+      "id": "rhino-linda",
+      "title": "Linda Ronstadt",
+      "url": "https://www.rhino.com/article/linda-ronstadt",
+      "publisher": "Rhino / Warner Music",
+      "kind": "label editorial",
+      "verified": "2026-10-18"
+    },
+    {
+      "id": "rhino-hasten",
+      "title": "Hasten Down the Wind",
+      "url": "https://www.rhino.com/aod/hasten-down-the-wind-linda-ronstadt",
+      "publisher": "Rhino / Warner Music",
+      "kind": "label album feature",
+      "verified": "2026-10-18"
+    },
+    {
+      "id": "carole-friend",
+      "title": "James Taylor: You’ve Got a Friend",
+      "url": "https://www.caroleking.com/gallery/video/james-taylor-youve-got-friend",
+      "publisher": "Carole King official",
+      "kind": "artist song history",
+      "verified": "2026-10-18"
+    },
+    {
+      "id": "jt-mud",
+      "title": "Mud Slide Slim and the Blue Horizon: official discography",
+      "url": "https://www.jamestaylor.com/discography/mud-slide-slim-and-the-blue-horizon",
+      "publisher": "James Taylor official",
+      "kind": "artist discography",
+      "verified": "2026-10-18"
+    },
+    {
+      "id": "everlys-history",
+      "title": "The Everly Brothers: official history",
+      "url": "https://everlybrothers.com/pages/history",
+      "publisher": "The Everly Brothers official",
+      "kind": "artist history",
+      "verified": "2026-10-18"
+    },
+    {
+      "id": "linda-fresh-air",
+      "title": "Linda Ronstadt describes Simple Dreams",
+      "url": "https://freshairarchive.org/segments/memoir-linda-ronstadt-describes-her-simple-dreams",
+      "publisher": "Fresh Air / WHYY",
+      "kind": "first-person interview",
+      "verified": "2026-10-18"
+    }
+  ],
+  "nodes": [
+    {
+      "id": "peter-asher",
+      "label": "Peter Asher",
+      "type": "person",
+      "subtitle": "Singer · producer · connector",
+      "description": "From Peter & Gordon to the studio: follow Asher through songs, artists and records.",
+      "sourceIds": [
+        "grammy-board"
+      ],
+      "x": 470,
+      "y": 305
+    },
+    {
+      "id": "peter-gordon",
+      "label": "Peter & Gordon",
+      "type": "group",
+      "subtitle": "British harmony duo",
+      "description": "Peter Asher and Gordon Waller turned a McCartney song into a 1964 hit.",
+      "sourceIds": [
+        "rhino-world"
+      ],
+      "year": 1964,
+      "x": 215,
+      "y": 125
+    },
+    {
+      "id": "gordon-waller",
+      "label": "Gordon Waller",
+      "type": "person",
+      "subtitle": "The other voice",
+      "description": "Asher’s singing partner in Peter & Gordon.",
+      "sourceIds": [
+        "rhino-world"
+      ],
+      "x": 65,
+      "y": 80
+    },
+    {
+      "id": "paul-mccartney",
+      "label": "Paul McCartney",
+      "type": "person",
+      "subtitle": "Songwriter · guest musician",
+      "description": "A songwriting connection with Peter & Gordon later crossed into Taylor’s Apple sessions.",
+      "sourceIds": [
+        "rhino-world",
+        "grammy-asher"
+      ],
+      "x": 425,
+      "y": 70
+    },
+    {
+      "id": "apple-records",
+      "label": "Apple Records",
+      "type": "group",
+      "subtitle": "The label connection",
+      "description": "Asher became head of A&R in 1968 and signed James Taylor. A&R means artists and repertoire.",
+      "sourceIds": [
+        "fresh-air"
+      ],
+      "year": 1968,
+      "x": 650,
+      "y": 70
+    },
+    {
+      "id": "james-taylor",
+      "label": "James Taylor",
+      "type": "person",
+      "subtitle": "Songwriter · singer · guitarist",
+      "description": "Asher signed Taylor to Apple and produced his debut before their move into American recording.",
+      "sourceIds": [
+        "jt-debut",
+        "fresh-air"
+      ],
+      "x": 875,
+      "y": 235
+    },
+    {
+      "id": "linda-ronstadt",
+      "label": "Linda Ronstadt",
+      "type": "person",
+      "subtitle": "A voice for great songs",
+      "description": "Ronstadt and Asher built records around songs from across generations and genres.",
+      "sourceIds": [
+        "rhino-linda"
+      ],
+      "x": 140,
+      "y": 535
+    },
+    {
+      "id": "carole-king",
+      "label": "Carole King",
+      "type": "person",
+      "subtitle": "Songwriter · pianist",
+      "description": "The pianist on Sweet Baby James and writer of You’ve Got a Friend.",
+      "sourceIds": [
+        "fresh-air",
+        "carole-friend"
+      ],
+      "x": 885,
+      "y": 470
+    },
+    {
+      "id": "everly-brothers",
+      "label": "The Everly Brothers",
+      "type": "group",
+      "subtitle": "A harmony influence",
+      "description": "Asher identified their singing as an inspiration for Peter & Gordon.",
+      "sourceIds": [
+        "grammy-asher"
+      ],
+      "x": 65,
+      "y": 330
+    },
+    {
+      "id": "karla-bonoff",
+      "label": "Karla Bonoff",
+      "type": "person",
+      "subtitle": "A new songwriting voice",
+      "description": "Her songs were part of Ronstadt’s Hasten Down the Wind.",
+      "sourceIds": [
+        "rhino-hasten"
+      ],
+      "x": 365,
+      "y": 575
+    },
+    {
+      "id": "warren-zevon",
+      "label": "Warren Zevon",
+      "type": "person",
+      "subtitle": "The title-song writer",
+      "description": "Wrote Hasten Down the Wind, recorded by Ronstadt for her 1976 album.",
+      "sourceIds": [
+        "rhino-hasten"
+      ],
+      "x": 565,
+      "y": 575
+    },
+    {
+      "id": "world-without-love",
+      "label": "A World Without Love",
+      "type": "song",
+      "subtitle": "Peter & Gordon · 1964",
+      "description": "Written by Paul McCartney and formally credited to Lennon–McCartney.",
+      "sourceIds": [
+        "rhino-world"
+      ],
+      "year": 1964,
+      "x": 250,
+      "y": 285
+    },
+    {
+      "id": "youve-got-a-friend",
+      "label": "You’ve Got a Friend",
+      "type": "song",
+      "subtitle": "James Taylor · 1971",
+      "description": "King’s song, Taylor’s recording, Asher’s production.",
+      "sourceIds": [
+        "grammy-asher",
+        "carole-friend"
+      ],
+      "year": 1971,
+      "x": 710,
+      "y": 560
+    },
+    {
+      "id": "james-taylor-1968",
+      "label": "James Taylor",
+      "type": "album",
+      "subtitle": "James Taylor · Apple Records",
+      "description": "The December 1968 debut, produced by Peter Asher. Listen for Carolina in My Mind.",
+      "sourceIds": [
+        "jt-debut",
+        "grammy-asher"
+      ],
+      "year": 1968,
+      "x": 705,
+      "y": 220,
+      "artist": "James Taylor"
+    },
+    {
+      "id": "sweet-baby-james",
+      "label": "Sweet Baby James",
+      "type": "album",
+      "subtitle": "James Taylor · Warner Bros.",
+      "description": "Released in February 1970. Asher produced; King played piano. Fire and Rain is a useful listening entry.",
+      "sourceIds": [
+        "jt-sweet",
+        "fresh-air"
+      ],
+      "year": 1970,
+      "x": 735,
+      "y": 385,
+      "artist": "James Taylor"
+    },
+    {
+      "id": "heart-like-a-wheel",
+      "label": "Heart Like a Wheel",
+      "type": "album",
+      "subtitle": "Linda Ronstadt · Capitol",
+      "description": "The 1974 breakthrough pairs Ronstadt’s song choices with Asher’s production.",
+      "sourceIds": [
+        "linda-about",
+        "fresh-air"
+      ],
+      "year": 1974,
+      "x": 270,
+      "y": 430,
+      "artist": "Linda Ronstadt"
+    },
+    {
+      "id": "hasten-down-the-wind",
+      "label": "Hasten Down the Wind",
+      "type": "album",
+      "subtitle": "Linda Ronstadt · Asylum",
+      "description": "The 1976 Asher production joins familiar songs to writers including Bonoff and Zevon.",
+      "sourceIds": [
+        "rhino-hasten"
+      ],
+      "year": 1976,
+      "x": 490,
+      "y": 455,
+      "artist": "Linda Ronstadt"
+    }
+  ],
+  "edges": [
+    {
+      "id": "asher-duo",
+      "source": "peter-asher",
+      "target": "peter-gordon",
+      "role": "performance",
+      "label": "One half of the duo",
+      "year": 1964,
+      "description": "Asher sang in Peter & Gordon with Gordon Waller.",
+      "sourceIds": [
+        "rhino-world"
+      ],
+      "graphLabel": "sang with"
+    },
+    {
+      "id": "waller-duo",
+      "source": "gordon-waller",
+      "target": "peter-gordon",
+      "role": "performance",
+      "label": "One half of the duo",
+      "year": 1964,
+      "description": "Waller was Asher’s partner in the duo.",
+      "sourceIds": [
+        "rhino-world"
+      ],
+      "graphLabel": "sang with"
+    },
+    {
+      "id": "paul-world",
+      "source": "paul-mccartney",
+      "target": "world-without-love",
+      "role": "songwriting",
+      "label": "Wrote the song",
+      "year": 1964,
+      "description": "McCartney wrote it; its official writing credit is Lennon–McCartney.",
+      "sourceIds": [
+        "rhino-world"
+      ],
+      "graphLabel": "wrote"
+    },
+    {
+      "id": "duo-world",
+      "source": "peter-gordon",
+      "target": "world-without-love",
+      "role": "performance",
+      "label": "Recorded the hit",
+      "year": 1964,
+      "description": "Peter & Gordon recorded A World Without Love.",
+      "sourceIds": [
+        "rhino-world"
+      ],
+      "graphLabel": "recorded"
+    },
+    {
+      "id": "asher-apple",
+      "source": "peter-asher",
+      "target": "apple-records",
+      "role": "career",
+      "label": "Head of A&R",
+      "year": 1968,
+      "description": "His label role included finding artists and choosing repertoire.",
+      "sourceIds": [
+        "fresh-air"
+      ],
+      "graphLabel": "head of A&R"
+    },
+    {
+      "id": "apple-james",
+      "source": "apple-records",
+      "target": "james-taylor",
+      "role": "career",
+      "label": "Signed to the label",
+      "year": 1968,
+      "description": "Asher brought Taylor to Apple.",
+      "sourceIds": [
+        "fresh-air"
+      ],
+      "graphLabel": "signed"
+    },
+    {
+      "id": "apple-debut",
+      "source": "apple-records",
+      "target": "james-taylor-1968",
+      "role": "career",
+      "label": "Released the debut",
+      "year": 1968,
+      "description": "Taylor’s first album appeared on Apple.",
+      "sourceIds": [
+        "grammy-asher"
+      ],
+      "graphLabel": "released"
+    },
+    {
+      "id": "asher-debut",
+      "source": "peter-asher",
+      "target": "james-taylor-1968",
+      "role": "production",
+      "label": "Produced the album",
+      "year": 1968,
+      "description": "Asher produced Taylor’s self-titled debut.",
+      "sourceIds": [
+        "jt-debut"
+      ],
+      "graphLabel": "producer"
+    },
+    {
+      "id": "james-debut",
+      "source": "james-taylor",
+      "target": "james-taylor-1968",
+      "role": "performance",
+      "label": "Recorded the album",
+      "year": 1968,
+      "description": "The December 1968 debut includes Carolina in My Mind.",
+      "sourceIds": [
+        "jt-debut"
+      ],
+      "graphLabel": "artist"
+    },
+    {
+      "id": "paul-debut",
+      "source": "paul-mccartney",
+      "target": "james-taylor-1968",
+      "role": "performance",
+      "label": "Played on Carolina in My Mind",
+      "year": 1968,
+      "description": "Asher recalls McCartney playing on this track. This credit is specific to that recording, not every album track.",
+      "sourceIds": [
+        "grammy-asher"
+      ],
+      "graphLabel": "guest on Carolina"
+    },
+    {
+      "id": "asher-sweet",
+      "source": "peter-asher",
+      "target": "sweet-baby-james",
+      "role": "production",
+      "label": "Produced the album",
+      "year": 1970,
+      "description": "Asher produced Taylor’s second album.",
+      "sourceIds": [
+        "fresh-air"
+      ],
+      "graphLabel": "producer"
+    },
+    {
+      "id": "james-sweet",
+      "source": "james-taylor",
+      "target": "sweet-baby-james",
+      "role": "performance",
+      "label": "Recorded the album",
+      "year": 1970,
+      "description": "Released in February 1970; includes Fire and Rain.",
+      "sourceIds": [
+        "jt-sweet"
+      ],
+      "graphLabel": "artist"
+    },
+    {
+      "id": "king-sweet",
+      "source": "carole-king",
+      "target": "sweet-baby-james",
+      "role": "performance",
+      "label": "Played piano",
+      "year": 1970,
+      "description": "Asher invited King to play piano on the record.",
+      "sourceIds": [
+        "fresh-air"
+      ],
+      "graphLabel": "piano"
+    },
+    {
+      "id": "king-friend",
+      "source": "carole-king",
+      "target": "youve-got-a-friend",
+      "role": "songwriting",
+      "label": "Wrote the song",
+      "year": 1971,
+      "description": "King wrote the song Taylor released as a single in June 1971.",
+      "sourceIds": [
+        "carole-friend"
+      ],
+      "graphLabel": "wrote"
+    },
+    {
+      "id": "james-friend",
+      "source": "james-taylor",
+      "target": "youve-got-a-friend",
+      "role": "performance",
+      "label": "Recorded the song",
+      "year": 1971,
+      "description": "Taylor’s version also appears on Mud Slide Slim and the Blue Horizon.",
+      "sourceIds": [
+        "carole-friend",
+        "jt-mud"
+      ],
+      "graphLabel": "recorded"
+    },
+    {
+      "id": "asher-friend",
+      "source": "peter-asher",
+      "target": "youve-got-a-friend",
+      "role": "production",
+      "label": "Produced the recording",
+      "year": 1971,
+      "description": "Asher describes making Taylor’s recording in his GRAMMY interview.",
+      "sourceIds": [
+        "grammy-asher"
+      ],
+      "graphLabel": "producer"
+    },
+    {
+      "id": "asher-heart",
+      "source": "peter-asher",
+      "target": "heart-like-a-wheel",
+      "role": "production",
+      "label": "Produced the album",
+      "year": 1974,
+      "description": "Asher produced Ronstadt’s Heart Like a Wheel.",
+      "sourceIds": [
+        "fresh-air"
+      ],
+      "graphLabel": "producer"
+    },
+    {
+      "id": "linda-heart",
+      "source": "linda-ronstadt",
+      "target": "heart-like-a-wheel",
+      "role": "performance",
+      "label": "Recorded the album",
+      "year": 1974,
+      "description": "Ronstadt’s 1974 album became her first Billboard No. 1 album.",
+      "sourceIds": [
+        "linda-about"
+      ],
+      "graphLabel": "artist"
+    },
+    {
+      "id": "asher-hasten",
+      "source": "peter-asher",
+      "target": "hasten-down-the-wind",
+      "role": "production",
+      "label": "Produced the album",
+      "year": 1976,
+      "description": "Rhino explicitly credits Asher as producer.",
+      "sourceIds": [
+        "rhino-hasten"
+      ],
+      "graphLabel": "producer"
+    },
+    {
+      "id": "linda-hasten",
+      "source": "linda-ronstadt",
+      "target": "hasten-down-the-wind",
+      "role": "performance",
+      "label": "Recorded the album",
+      "year": 1976,
+      "description": "Ronstadt’s third consecutive million-selling album.",
+      "sourceIds": [
+        "rhino-hasten"
+      ],
+      "graphLabel": "artist"
+    },
+    {
+      "id": "bonoff-hasten",
+      "source": "karla-bonoff",
+      "target": "hasten-down-the-wind",
+      "role": "songwriting",
+      "label": "Songs on the album",
+      "year": 1976,
+      "description": "Bonoff is among the writers represented on the record.",
+      "sourceIds": [
+        "rhino-hasten"
+      ],
+      "graphLabel": "songwriter"
+    },
+    {
+      "id": "zevon-hasten",
+      "source": "warren-zevon",
+      "target": "hasten-down-the-wind",
+      "role": "songwriting",
+      "label": "Wrote the title track",
+      "year": 1976,
+      "description": "Zevon wrote the song Hasten Down the Wind.",
+      "sourceIds": [
+        "rhino-hasten"
+      ],
+      "graphLabel": "title-song writer"
+    },
+    {
+      "id": "everlys-duo",
+      "source": "everly-brothers",
+      "target": "peter-gordon",
+      "role": "career",
+      "label": "Inspired their harmonies",
+      "year": 1964,
+      "description": "A stated influence, not a shared recording credit. Asher says the Everlys inspired the duo to sing together.",
+      "sourceIds": [
+        "grammy-asher"
+      ],
+      "graphLabel": "harmony influence"
+    },
+    {
+      "id": "everlys-linda",
+      "source": "everly-brothers",
+      "target": "linda-ronstadt",
+      "role": "career",
+      "label": "Recorded their hit",
+      "year": 1974,
+      "description": "Ronstadt recorded When Will I Be Loved on Heart Like a Wheel. Phil Everly wrote the song; this is a repertoire link, not a shared recording credit.",
+      "sourceIds": [
+        "everlys-history",
+        "linda-fresh-air"
+      ],
+      "graphLabel": "repertoire link"
+    }
+  ],
+  "trails": [
+    {
+      "id": "britain-to-america",
+      "title": "From the hit single to the control room",
+      "kicker": "Start here · Peter Asher",
+      "description": "Follow one career across a pop duo, a record label and a singer-songwriter breakthrough.",
+      "steps": [
+        {
+          "nodeIds": [
+            "peter-asher",
+            "peter-gordon",
+            "world-without-love",
+            "paul-mccartney"
+          ],
+          "edgeIds": [
+            "asher-duo",
+            "duo-world",
+            "paul-world"
+          ],
+          "title": "A familiar name on another sleeve",
+          "text": "Start with Peter & Gordon’s A World Without Love. Follow the writing credit back to McCartney."
+        },
+        {
+          "nodeIds": [
+            "peter-asher",
+            "apple-records",
+            "james-taylor",
+            "james-taylor-1968"
+          ],
+          "edgeIds": [
+            "asher-apple",
+            "apple-james",
+            "asher-debut"
+          ],
+          "title": "The job changes",
+          "text": "In 1968 Asher became Apple’s head of A&R. Taylor’s debut puts his name behind the record as producer."
+        },
+        {
+          "nodeIds": [
+            "peter-asher",
+            "sweet-baby-james",
+            "james-taylor"
+          ],
+          "edgeIds": [
+            "asher-sweet",
+            "james-sweet"
+          ],
+          "title": "Another room, another sound",
+          "text": "Move to Sweet Baby James. Compare the arrangements with the debut; listen to where the guitar and voice sit."
+        }
+      ]
+    },
+    {
+      "id": "song-crosses",
+      "title": "One song, three different jobs",
+      "kicker": "Writing · singing · producing",
+      "description": "See why every line needs a role.",
+      "steps": [
+        {
+          "nodeIds": [
+            "carole-king",
+            "youve-got-a-friend"
+          ],
+          "edgeIds": [
+            "king-friend"
+          ],
+          "title": "The writer",
+          "text": "King wrote You’ve Got a Friend. Start here to follow the song itself."
+        },
+        {
+          "nodeIds": [
+            "james-taylor",
+            "youve-got-a-friend"
+          ],
+          "edgeIds": [
+            "james-friend"
+          ],
+          "title": "The interpretation",
+          "text": "Taylor recorded it. Compare his phrasing with King’s own version."
+        },
+        {
+          "nodeIds": [
+            "peter-asher",
+            "youve-got-a-friend"
+          ],
+          "edgeIds": [
+            "asher-friend"
+          ],
+          "title": "Behind the recording",
+          "text": "Asher produced Taylor’s version. The production line describes a separate job from the writing line."
+        }
+      ]
+    },
+    {
+      "id": "linda-repertoire",
+      "title": "A singer’s record can be a songwriter map",
+      "kicker": "Linda Ronstadt · 1974 to 1976",
+      "description": "Look through the voice on the cover to the writers inside.",
+      "steps": [
+        {
+          "nodeIds": [
+            "linda-ronstadt",
+            "heart-like-a-wheel",
+            "peter-asher"
+          ],
+          "edgeIds": [
+            "linda-heart",
+            "asher-heart"
+          ],
+          "title": "Choose the record",
+          "text": "Open Heart Like a Wheel, then trace the producer connection to Asher."
+        },
+        {
+          "nodeIds": [
+            "linda-ronstadt",
+            "hasten-down-the-wind",
+            "peter-asher"
+          ],
+          "edgeIds": [
+            "linda-hasten",
+            "asher-hasten"
+          ],
+          "title": "Follow the partnership",
+          "text": "Their collaboration continues on Hasten Down the Wind, released two years later."
+        },
+        {
+          "nodeIds": [
+            "hasten-down-the-wind",
+            "karla-bonoff",
+            "warren-zevon"
+          ],
+          "edgeIds": [
+            "bonoff-hasten",
+            "zevon-hasten"
+          ],
+          "title": "Read past the cover",
+          "text": "Now follow Bonoff and Zevon. Listen to how one voice brings different writers into the same album."
+        }
+      ]
+    },
+    {
+      "id": "harmony-inheritance",
+      "title": "A harmony thread crosses the Atlantic",
+      "kicker": "Influence · repertoire",
+      "description": "Two kinds of connection can sound alike while meaning different things.",
+      "steps": [
+        {
+          "nodeIds": [
+            "everly-brothers",
+            "peter-gordon"
+          ],
+          "edgeIds": [
+            "everlys-duo"
+          ],
+          "title": "An influence you can listen for",
+          "text": "Asher named the Everly Brothers as an inspiration. Compare the pairs’ close harmonies."
+        },
+        {
+          "nodeIds": [
+            "everly-brothers",
+            "linda-ronstadt",
+            "heart-like-a-wheel"
+          ],
+          "edgeIds": [
+            "everlys-linda",
+            "linda-heart"
+          ],
+          "title": "The song travels too",
+          "text": "Ronstadt later recorded When Will I Be Loved. Follow a repertoire connection to Heart Like a Wheel."
+        }
+      ]
+    }
+  ],
+  "editorialNotes": [
+    "Four album tiles are intended as typographic sleeves rather than unlicensed cover images.",
+    "Performance means an actual recording or group membership. Production, songwriting, career and influence must remain distinguishable in the interface.",
+    "The McCartney debut credit deliberately says played: the primary GRAMMY interview supports participation but does not name the instrument. Do not upgrade this edge to bass without a separate credit source.",
+    "The Everlys-to-duo edge is documented influence, not a recording credit; label it clearly.",
+    "Heart Like a Wheel is credited solely to Anna McGarrigle in many catalogues; Linda’s official biography calls it a McGarrigle sisters song. No writer edge for this title is added here because of that inconsistency.",
+    "Node and edge years refer to the displayed record or career event, not full lifespan or complete collaboration range.",
+    "Editorial listening prompts are suggestions, not historical claims about similarity.",
+    "everlys-linda is deliberately career/repertoire, not songwriting by the duo: the official Everly Brothers history identifies Phil Everly as the writer."
+  ],
+  "focus": "peter-asher",
+  "description": "A hit-making singer, a record-label scout, a producer. Follow the people, songs and sessions around Peter Asher. Every line has a role; every story opens its source."
+}
