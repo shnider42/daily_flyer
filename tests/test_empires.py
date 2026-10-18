@@ -118,6 +118,28 @@ class EmpiresRules(unittest.TestCase):
         self.assertNotIn('Secret enemy research',str(public))
         self.assertTrue(all(u['side']=='river' for u in public['units']))
 
+    def test_land_help_matches_city_income_and_never_reads_hidden_changes(self):
+        self.flat()
+        c=self.s['cities'][0];p=self.s['players']['river'];p['techs']=['agriculture','engineering']
+        e.tile(self.s,[2,6]).update(resource='grain',improvement='farm')
+        e.tile(self.s,[3,5]).update(terrain='hill',resource='iron',improvement='mine')
+        c['population']=2;e.update_intel(self.s)
+        public=e.public(self.s,'river');own=next(v for v in public['cities'] if v['id']==c['id'])
+        worked=[public['land_yields'][e.key(v)] for v in own['yields']['worked']]
+        self.assertEqual(own['yields']['food'],2+sum(v['food'] for v in worked)+1-c['population'])
+        self.assertEqual(own['yields']['production'],2+sum(v['production'] for v in worked))
+        self.assertEqual(public['land_yields']['2,6'],dict(food=6,production=0,gold=0))
+        self.assertEqual(public['land_yields']['3,5'],dict(food=0,production=6,gold=0))
+        scout=self.unit('scout');scout['pos']=[10,5];e.update_intel(self.s)
+        remembered=copy.deepcopy(self.s['intel']['river']['tiles']['10,5'])
+        scout['pos']=[2,5];e.update_intel(self.s)
+        e.tile(self.s,[10,5]).update(improvement='farm',resource='grain')
+        public=e.public(self.s,'river')
+        self.assertNotIn('10,5',public['visible'])
+        self.assertEqual(public['land_yields']['10,5'],e.land_yields(remembered,p['techs']))
+        self.assertEqual(set(public['land_yields']),set(self.s['intel']['river']['tiles']))
+        before=copy.deepcopy(self.s);e.public(self.s,'river');self.assertEqual(self.s,before)
+
     def test_trade_is_mutual_and_ends_at_war(self):
         self.s['diplomacy']['met']=True
         before=e.economy(self.s,'river')['gold']

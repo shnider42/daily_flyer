@@ -1,0 +1,44 @@
+/* Learn without taking the map away. Inspect is an explicit no-order mode. */
+.emp-learning-intro{margin:24px 0 0;padding:20px;border-left:3px solid var(--emp-gold);background:var(--emp-panel);max-width:800px}
+.emp-learning-intro h2{font-size:25px}.emp-learning-intro p{line-height:1.65;max-width:68ch}
+#empMapTools{display:flex;gap:6px;align-items:stretch;margin:6px 0;min-width:0}
+#empires #empMapTools>button{flex:1;min-width:0;padding:6px;font-size:12px;min-height:44px}
+#empLearnOpen{text-align:left;border-color:var(--emp-gold)!important;background:var(--emp-raised)!important}
+#empLearnLabel{display:block;color:var(--emp-gold);font-size:11px;line-height:16px}
+#empLearnNext{display:block;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;font-size:11px;line-height:16px;font-weight:400}
+#empires #empInspectToggle[aria-pressed=true]{background:var(--emp-gold);color:var(--emp-bg);border-color:var(--emp-gold)}
+.emp-land-icon{display:inline-block;vertical-align:middle;flex:none;fill:none;stroke:currentColor;stroke-width:1.5;stroke-linecap:round;stroke-linejoin:round;pointer-events:none}
+#empMap .emp-map-resource{color:#142d2b;filter:drop-shadow(0 0 1px #fff3cf)}
+#empMap .emp-map-yield{color:#152e2a;filter:drop-shadow(0 0 1px #fff7da)}
+#empMap .emp-yield-number{font:bold 9px system-ui,sans-serif;fill:#102c27;paint-order:stroke;stroke:#f4eed3;stroke-width:2px;pointer-events:none}
+#empMap .emp-worked-mark{color:#153e39;fill:#f4edce;stroke-width:1.4}
+#empMap.emp-inspecting .emp-tile{cursor:help}
+#empLesson h3{font:27px/1.25 Georgia,serif;margin:8px 0 16px;color:var(--emp-gold)}
+#empLesson p,#empHexContent p{font-size:14px;line-height:1.65;margin:12px 0}
+#empLesson>.emp-primary{width:100%;margin:14px 0 8px;white-space:normal}
+#empLesson .emp-lesson-review{display:block;width:100%;background:transparent;font-size:12px;margin:6px 0 16px}
+#empLesson .emp-kicker{font-size:10px;color:var(--emp-muted)}
+#empLesson .emp-lesson-feedback{padding:12px;border-left:3px solid var(--emp-gold);background:var(--emp-raised)}
+#empLesson ol{font-size:13px;line-height:1.8;padding-left:22px}
+.emp-learning-settings{display:flex;gap:8px;justify-content:space-between;border-top:1px solid var(--emp-line);padding-top:16px;margin-top:16px}
+#empires .emp-learning-settings button{font-size:12px;background:transparent}
+#empLearnSheet .emp-small{font-size:11px;line-height:1.6;color:var(--emp-muted)}
+#empHexContent h3{font:21px/1.3 Georgia,serif;color:var(--emp-gold);margin:22px 0 10px}
+#empHexContent>button{margin:4px 5px 4px 0;white-space:normal}
+#empHexContent .emp-warning{padding:10px;border-left:3px solid var(--emp-gold);background:var(--emp-raised)}
+.emp-hex-yields{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:8px;margin:14px 0}
+.emp-hex-yields>div{display:flex;align-items:center;gap:8px;min-width:0;background:var(--emp-raised);padding:10px 7px;border-radius:4px}
+.emp-hex-yields .emp-land-icon{width:21px;height:21px;color:var(--emp-gold)}
+.emp-hex-yields strong{display:block;font-size:22px;line-height:1.2}.emp-hex-yields small{display:block;font-size:10px;margin-top:3px;color:var(--emp-muted)}
+.emp-hex-working{border-left:3px solid var(--emp-gold);padding-left:12px}
+.emp-map-symbols{margin-top:20px;padding-top:12px;border-top:1px solid var(--emp-line)}
+.emp-map-symbols p{display:flex;gap:10px;align-items:center}
+.emp-map-symbols .emp-land-icon{color:var(--emp-gold)}
+#empManualTutorial{margin:0 8px 14px 0}
+/* One additional 44px map toolbar; it contains teaching and inspection together. */
+#empMobileScreen{grid-template-rows:48px 50px 48px minmax(0,1fr) 44px auto;grid-template-areas:'top' 'resources' 'tools' 'map' 'nav' 'orders'}
+.empires-mobile #empMapTools{grid-area:tools;margin:2px 0;gap:4px}
+.empires-mobile #empires #empMapTools>button{font-size:11px}
+@media(max-height:520px) and (min-width:480px) and (max-width:1099px){
+ #empMobileScreen{grid-template-rows:44px 44px minmax(0,1fr) 44px;grid-template-areas:'top resources' 'tools orders' 'map orders' 'nav orders'}
+}

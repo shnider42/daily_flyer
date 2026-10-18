@@ -73,6 +73,20 @@ are checked with a read rather than resubmitted, and discovery completion
 prompts the player to choose the next technology. The phone Menu also shows
 the active technology and its progress.
 
+### Default Simple learning and useful hexes
+
+Simple now opens a beginner introduction and keeps a **Learn** prompt on the
+map until the player explicitly chooses **Ignore tutorial**. That choice keeps
+Simple selected and is remembered on this browser; **Menu → Resume tutorial**
+restores it. The guide teaches the actual first-turn loop and follows confirmed
+orders, with review alternatives when practice is unavailable.
+
+**Inspect hex** explains potential yields, actual citizen use, resources,
+improvements, movement and restrictions without issuing an order. The **yields**
+map lens, on by default in Simple, shows useful numbers and worked-land markers.
+See [learning behavior and validation](empires-learning.md) and the
+[principles to carry into DSL](learning-experience-principles.md).
+
 ### Experience throughout the interface
 
 Empires uses `ww2Experience`, the same browser preference controller and saved
@@ -90,7 +104,7 @@ stay synchronized. Experience does not change opponent difficulty or rules.
 | Diplomacy | Plain-language contact, agreements and war consequences | Adds economic/timing explanation | Precise acceptance and war conditions |
 | Combat | Plain risk description, hit percentage, damage and AP cost | Numerical odds and cover explanation | Die threshold and expanded probability calculation |
 | Chronicle | Plain combat outcomes; inspectable dice details | Adds hit chances | Original full combat messages |
-| Help | A first-turn walkthrough | Planning and tactical advice | Exact reference expanded by default |
+| Help | Default guided lessons and persistent next-decision prompts, with explicit opt-out | Planning and tactical advice; tutorial available from Menu | Exact reference expanded by default; tutorial available from Menu |
 
 Full rules remain inspectable at every level. Costs, warnings, contact/fog
 status, unavailable-order explanations and every order remain available.
@@ -154,6 +168,7 @@ node tests/empires-dom.cjs
 node tests/empires-experience-dom.cjs
 node tests/empires-research-dom.cjs
 node tests/empires-art-dom.cjs
+node tests/empires-learning-dom.cjs
 node tests/ww2-ground-roles-dom.cjs
 ```
 

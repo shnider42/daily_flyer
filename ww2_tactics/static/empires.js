@@ -6,7 +6,7 @@
  const se=(tag,attrs={},text)=>{const n=document.createElementNS('http://www.w3.org/2000/svg',tag);for(const [k,v] of Object.entries(attrs))n.setAttribute(k,v);if(text!==undefined)n.textContent=text;return n;};
  const hexCenter=(x,y)=>center(x,y); // The same projection used by DSL and its motion renderer.
  const same=(a,b)=>a?.[0]===b?.[0]&&a?.[1]===b?.[1],posKey=p=>p.join(','),coord=p=>`${hexColumn(p[0])}${p[1]+1}`;
- const art=window.empiresArt;
+ const art=window.empiresArt,learning=window.empiresLearning;
  const labels={found:'Found city · 2 AP',farm:'Farm · 2 AP',mine:'Mine · 2 AP',road:'Road · 2 AP',rally:'Rally · 1 AP',rest:'Rest · remaining AP',fortify:'Fortify · 2 AP'};
  const experience=()=>window.ww2Experience?.level||'simple';
  const depth=(simple,moderate,expert=moderate)=>({simple,moderate,expert})[experience()];
@@ -53,6 +53,9 @@
  }
  let game=null,seat=null,saves=[],chosen=null,target=null,inspected=null,tab='orders',working=false,polling=false,active=false,detail=innerWidth<700,confirmAction=null,requestGeneration=0;
  let rememberedMode='dsl',noticeTimer,pendingResearch=null,uncertainResearch=null;
+ let inspectMode=false,mapLens=null,welcomeScheduled=false;
+ try{const v=localStorage.getItem('empires-map-lens');if(['land','yields'].includes(v))mapLens=v;}catch{}
+ const landLens=()=>mapLens||(experience()==='simple'?'yields':'land');
  try{saves=JSON.parse(localStorage.getItem('empires-sessions')||'[]');if(!Array.isArray(saves))saves=[];saves=saves.filter(s=>s&&typeof s.code==='string');rememberedMode=localStorage.getItem('dfe-game-mode')||'dsl';}catch{}
  function auth(){try{return JSON.parse(localStorage.getItem('ww2-commander')||'null');}catch{return null;}}
  function notice(text,persist=false){
@@ -85,7 +88,7 @@
   const brand=document.querySelector('header .brand');brand.firstChild.textContent=active?'EMPIRES ':'DSL ';brand.querySelector('span').textContent=active?'THE RIVERLANDS':'TACTICAL COMMAND';
   try{localStorage.setItem('dfe-game-mode',value);}catch{}
   if(active)loadCampaigns();else window.ww2Motion?.clear(svg);
-  syncSwitch();syncPalette();if(active)syncArt();
+  syncSwitch();syncPalette();if(active)syncArt();renderLearning();
  }
  function syncSwitch(){byId('gameModeSwitch').hidden=active?!byId('empPlay').hidden:!byId('game').hidden;syncMobile();}
  byId('modeDSL').onclick=()=>mode('dsl');byId('modeEmpires').onclick=()=>mode('empires');
@@ -121,7 +124,7 @@
  byId('empMode').onchange=()=>{const hidden=byId('empMode').value!=='solo';byId('empDifficulty').hidden=hidden;byId('empDifficultyLabel').hidden=hidden;};
  async function enter(data,newSeat){
   requestGeneration++;saveSeat(newSeat);game=data;chosen=game.cities.find(c=>c.side===game.side)?.id;target=inspected=null;tab='orders';
-  byId('empResearchNotice').textContent='';uncertainResearch=null;
+  byId('empResearchNotice').textContent='';uncertainResearch=null;inspectMode=false;
   byId('empHome').hidden=true;byId('empPlay').hidden=false;byId('empMapWrap').classList.toggle('emp-detail',detail);syncSwitch();render();
   requestAnimationFrame(focusSelection);window.scrollTo(0,0);
  }
@@ -156,7 +159,7 @@
  document.addEventListener('visibilitychange',()=>{if(!document.hidden)refresh();});
  async function order(command){
   if(!myTurn()||(command.kind==='research'&&game.player.research===command.tech))return;
-  working=true;requestGeneration++;const before=game.revision,previousResearch=game.player.research;
+  working=true;requestGeneration++;const previousGame=game,before=game.revision,previousResearch=game.player.research;
   if(command.kind==='research'){
    pendingResearch=command.tech;uncertainResearch=null;byId('empResearchNotice').textContent=`Saving research choice: ${game.technologies[command.tech]?.name||command.tech}…`;
   }
@@ -172,6 +175,7 @@
   try{
    const data=await request(`/api/empires/games/${game.code}`,body);game=data;target=null;
    saveSeat({...seat,round:game.round,winner:game.winner,mode:game.mode});
+   learning.record(command,previousGame,game);
    if(command.kind==='research')researchConfirmation(command.tech);
    if(command.kind==='end'&&previousResearch&&game.player.techs.includes(previousResearch)){
     const tech=game.technologies[previousResearch],message=`${tech.name} discovered. ${tech.benefit}. ${game.player.techs.length===Object.keys(game.technologies).length?'All discoveries are complete.':'Choose your next research.'}`;
@@ -183,6 +187,7 @@
    if(command.kind==='research')byId('empResearchNotice').textContent='Research choice not confirmed yet. Checking the saved campaign…';
    try{
     game=await request(`/api/empires/games/${game.code}`);
+    learning.record(command,previousGame,game);
     if(command.kind==='research')reconcileResearch(command.tech);
    }catch{
     const message='Connection lost. Your last order may have saved. Use Refresh before trying another order.';
@@ -236,6 +241,7 @@
  byId('empCopyInvite').onclick=async()=>{try{await navigator.clipboard.writeText(game.code);notice('Campaign code copied.');}catch{byId('empInviteCode').select();notice('Select and copy the campaign code.');}};
  for(const b of root.querySelectorAll('[data-emp-tab]'))b.onclick=()=>{tab=b.dataset.empTab;renderPanel();};
  function select(id){
+  inspectMode=false;
   const u=game.units.find(u=>u.id===id),c=game.cities.find(c=>c.id===id);
   if(u?.side!==game.side&&!c?.side){target=id;}else if((u||c)?.side!==game.side){target=id;}else{chosen=id;target=null;}
   inspected=(u||c)?.pos||null;tab='orders';renderMap();renderPanel();renderRoster();renderMobile();
@@ -243,12 +249,13 @@
  }
  function chooseHex(pos){
   if(working)return;
+  if(inspectMode){showHex(pos);return;}
   const move=game.legal[chosen]?.moves.find(m=>same(m.pos,pos));
   if(move&&myTurn()){order({kind:'move',unit:chosen,pos});return;}
   const c=game.cities.find(c=>same(c.pos,pos)),units=game.units.filter(u=>same(u.pos,pos));
   if(units.length){const own=units.find(u=>u.side===game.side);select((own||units[0]).id);return;}
   if(c){select(c.id);return;}
-  inspected=pos;target=null;tab='orders';renderMap();renderPanel();renderMobile();
+  showHex(pos);
  }
  function activate(n,action){n.addEventListener('click',e=>{e.stopPropagation();action();});n.addEventListener('keydown',e=>{if(['Enter',' '].includes(e.key)){e.preventDefault();action();}});}
  function motionValue(){return {...game,fog_of_war:true,visible_hexes:game.visible.map(p=>p.split(',').map(Number))};}
@@ -265,15 +272,24 @@
   for(let y=0;y<game.height;y++)for(let x=0;x<game.width;x++){
    const k=`${x},${y}`,t=game.map[y][x],n=svg._tiles.get(k),m=moves.get(k),current=seen.has(k);
    n.p.setAttribute('class',`emp-tile ${t?.terrain||'unknown'}${t&&!current?' remembered':''}${m?' can-move':''}${same(inspected,[x,y])?' chosen':''}`);
-   n.p.setAttribute('aria-label',`${coord([x,y])}: ${t?.terrain||'unexplored'}${t&&!current?', last seen':''}${m?`, move for ${m.cost} AP`:''}`);
-   const signature=JSON.stringify([t,current,m?.cost]);if(signature===n.signature)continue;n.signature=signature;n.decor.replaceChildren();if(!t)continue;
+   const worked=current?game.cities.find(c=>c.side===game.side&&c.yields.worked.some(p=>same(p,[x,y]))):null,value=game.land_yields?.[k];
+   n.p.setAttribute('aria-label',`${coord([x,y])}: ${t?.terrain||'unexplored'}${t&&!current?', last seen':''}${m?`, move for ${m.cost} AP`:''}${value?`, potential food ${value.food}, production ${value.production}, gold ${value.gold}`:''}${worked?', worked by '+worked.name:''}${inspectMode?', tap to inspect':''}`);
+   const signature=JSON.stringify([t,current,m?.cost,landLens(),value,worked?.id]);if(signature===n.signature)continue;n.signature=signature;n.decor.replaceChildren();if(!t)continue;
    const {cx,cy}=n;
    if(t.terrain==='woods')for(const dx of [-10,3,13])n.decor.append(se('path',{d:`M${cx+dx} ${cy-12}l-6 14h12Z M${cx+dx} ${cy+2}v6`,class:'emp-terrain-mark'}));
    if(t.terrain==='hill'||t.terrain==='mountain')n.decor.append(se('path',{d:`M${cx-17} ${cy+8}l12 -20 10 18 M${cx-1} ${cy+7}l11 -24 12 24`,class:'emp-terrain-mark'}));
    if(t.terrain==='water')n.decor.append(se('path',{d:`M${cx-16} ${cy}q8 -5 16 0t16 0 M${cx-10} ${cy+8}q8 -5 16 0`,class:'emp-terrain-mark'}));
    if(t.terrain==='bridge')n.decor.append(se('path',{d:`M${cx-18} ${cy-7}h36m-36 14h36`,class:'emp-terrain-mark'}));
-   const mark=t.improvement==='farm'?'▤':t.improvement==='mine'?'◆':t.resource==='grain'?'♧':t.resource==='iron'?'◆':t.resource==='ruins'?'⌂':'';
-   if(mark)n.decor.append(se('text',{x:cx+11,y:cy-12,'text-anchor':'middle',class:'emp-resource'},mark));
+   for(const [i,kind]of [t.resource,t.improvement].filter(Boolean).entries()){
+    const icon=learning.icon(kind);icon.setAttribute('x',cx+9-i*17);icon.setAttribute('y',cy-20);icon.setAttribute('width',13);icon.setAttribute('height',13);icon.classList.add('emp-map-resource');n.decor.append(icon);
+   }
+   if(landLens()==='yields'&&value&&!game.cities.some(c=>same(c.pos,[x,y]))){
+    const yields=Object.entries(value).filter(([,v])=>v>0);
+    for(const [i,[kind,amount]]of yields.entries()){
+     const left=cx-yields.length*9+i*18,icon=learning.icon(kind);icon.setAttribute('x',left);icon.setAttribute('y',cy+5);icon.setAttribute('width',10);icon.setAttribute('height',10);icon.classList.add('emp-map-yield');n.decor.append(icon,se('text',{x:left+11,y:cy+14,class:'emp-yield-number'},String(amount)));
+    }
+    if(worked){const icon=learning.icon('worker');icon.setAttribute('x',cx-22);icon.setAttribute('y',cy-20);icon.setAttribute('width',11);icon.setAttribute('height',11);icon.classList.add('emp-worked-mark');n.decor.append(icon);}
+   }
    n.decor.append(se('text',{x:cx,y:cy+23,'text-anchor':'middle',class:m?'emp-move-cost':'emp-coordinate'},m?`${m.cost} AP`:coord([x,y])));
    n.decor.setAttribute('opacity',current?1:.5);
   }
@@ -286,7 +302,7 @@
   for(const c of game.cities){
    const [cx,cy]=hexCenter(...c.pos),g=se('g',{class:`emp-city ${c.side}${c.visible?'':' stale'}${chosen===c.id?' selected':''}`,role:'button',tabindex:0,'aria-label':`${c.name}, ${c.side===game.side?'your city':c.visible?'rival city':'last reported city'}, population ${c.population}${c.capital?', capital':''}`});
    const drawing=art.counter(c,{stats:false});drawing.setAttribute('transform',`translate(${cx} ${cy})`);
-   g.append(se('circle',{cx,cy,r:25,fill:'transparent'}),drawing,se('text',{x:cx,y:cy+33,'text-anchor':'middle'},`${c.capital?'★ ':''}${c.name}`));activate(g,()=>select(c.id));svg._cities.append(g);
+   g.append(se('circle',{cx,cy,r:25,fill:'transparent'}),drawing,se('text',{x:cx,y:cy+33,'text-anchor':'middle'},`${c.capital?'★ ':''}${c.name}`));activate(g,()=>inspectMode?showHex(c.pos):select(c.id));svg._cities.append(g);
   }
   // Keep the same counter nodes so a second selection does not cancel motion.
   const existing=new Map([...svg._units.children].map(n=>[n.dataset.unitId,n]));
@@ -295,7 +311,7 @@
    let g=existing.get(u.id);existing.delete(u.id);
    const signature=JSON.stringify([u,chosen===u.id,offset,art.style]);
    if(g?._key===signature)continue;
-   if(!g){g=se('g');g.dataset.unitId=u.id;svg._units.append(g);activate(g,()=>select(u.id));}
+   if(!g){g=se('g');g.dataset.unitId=u.id;svg._units.append(g);activate(g,()=>inspectMode?showHex(game.units.find(v=>v.id===u.id).pos):select(u.id));}
    g._key=signature;g._unitPos=u.pos.slice();g.setAttribute('class',`unit ${u.side}${chosen===u.id?' selected':''}`);g.setAttribute('role','button');g.setAttribute('tabindex','0');g.setAttribute('transform',`translate(${offset},0)`);
    g.setAttribute('aria-label',`${game.unit_types[u.kind].name}, ${u.side===game.side?'yours':game.factions[u.side].name}, ${u.hp} strength${u.ap!==undefined?`, ${u.ap} AP`:''}${u.shaken?', shaken':''}${u.fortified?', fortified':''}`);
    const drawing=art.counter(u);drawing.setAttribute('transform',`translate(${cx} ${cy}) scale(${stack.length>1?.85:1})`);
@@ -424,7 +440,7 @@
    const text=journalText(v.text),row=el('li',`${experience()==='expert'?'R':'Round '}${v.round} · ${text}`);
    if(text!==v.text)row.append(ruleDetail('journal-'+i,'Dice details',v.text));return row;
   }));
-  renderMap();renderRoster();renderPanel();renderMobile();byId('empZoom').textContent=detail?'Fit map':'Detail ＋';byId('empZoom').setAttribute('aria-pressed',String(detail));
+  renderMap();renderRoster();renderPanel();renderMobile();renderLearning();if(byId('empHexSheet').open)renderHex();byId('empZoom').textContent=detail?'Fit map':'Zoom in';byId('empZoom').setAttribute('aria-pressed',String(detail));
  }
  function journalText(text){
   if(experience()==='expert')return text;
@@ -438,14 +454,14 @@
   wrap.scrollTo({left:Math.max(0,x*scale-wrap.clientWidth/2),top:Math.max(0,y*scale-wrap.clientHeight/2),behavior:'instant'});
  }
  byId('empFind').onclick=focusSelection;
- byId('empZoom').onclick=()=>{detail=!detail;window.ww2Motion?.clear(svg);byId('empMapWrap').classList.toggle('emp-detail',detail);byId('empZoom').textContent=detail?'Fit map':'Detail ＋';byId('empZoom').setAttribute('aria-pressed',String(detail));focusSelection();};
+ byId('empZoom').onclick=()=>{detail=!detail;window.ww2Motion?.clear(svg);byId('empMapWrap').classList.toggle('emp-detail',detail);byId('empZoom').textContent=detail?'Fit map':'Zoom in';byId('empZoom').setAttribute('aria-pressed',String(detail));focusSelection();};
  // DSL's phone pattern: one viewport, persistent map/orders, secondary sheets.
  // Move the existing controls, preserving handlers and a single source of state.
  let mobile=false;
- const mobileNodes=['empMapWrap','empResources','empTurn','empZoom','empFind','empEnd','empSidebar','empRoster','empInvitation','empResult','empChronicle','empAccountTools','empManualOpen','empReload','empExperienceControl','empArtToggle'];
+ const mobileNodes=['empMapWrap','empResources','empTurn','empZoom','empFind','empEnd','empSidebar','empRoster','empInvitation','empResult','empChronicle','empAccountTools','empManualOpen','empReload','empExperienceControl','empArtToggle','empMapTools'];
  const anchors=new Map(mobileNodes.map(id=>{const anchor=document.createComment(id+' home');byId(id).before(anchor);return [id,anchor];}));
- const sheets=['empOrdersSheet','empRosterSheet','empMenu'];
- const sheetButtons={empOrdersSheet:'empOrdersOpen',empRosterSheet:'empRosterOpen',empMenu:'empMenuOpen'};
+ const sheets=['empOrdersSheet','empRosterSheet','empMenu','empLearnSheet','empHexSheet'];
+ const sheetButtons={empOrdersSheet:'empOrdersOpen',empRosterSheet:'empRosterOpen',empMenu:'empMenuOpen',empLearnSheet:'empLearnOpen',empHexSheet:'empInspectToggle'};
  function closeMobileSheets(){for(const id of sheets)if(byId(id).open)byId(id).close();}
  function openSheet(id){
   if(!mobile)return;closeMobileSheets();byId(id).showModal();byId(sheetButtons[id]).setAttribute('aria-expanded','true');
@@ -474,7 +490,7 @@
   if(next===mobile)return;
   closeMobileSheets();mobile=next;document.body.classList.toggle('empires-mobile',mobile);byId('empMobileScreen').hidden=!mobile;
   if(mobile){
-   byId('empMobileScreen').append(byId('empResources'),byId('empMapWrap'));
+   byId('empMobileScreen').append(byId('empResources'),byId('empMapWrap'),byId('empMapTools'));
    byId('empMobileStatus').append(byId('empTurn'));
    byId('empUnitNav').append(byId('empZoom'),byId('empFind'));byId('empFind').textContent='Center';
    byId('empOrderHead').append(byId('empEnd'));byId('empOrdersSheet').append(byId('empSidebar'));
@@ -519,7 +535,133 @@
   if(unit&&!target)for(const k of unitOptions(unit))quick.append(unitAction(unit,k));
   else quick.append(button(target?'Review target':'Production',()=>openPanel('orders'),!city&&!target));
   if(quick.children.length<3)quick.append(button('Research',()=>openPanel('research')));
+  if(inspectMode)byId('empMobileHint').textContent='Inspect mode: tap any hex to learn about it. No move or AP spent. Turn Inspect off to move.';
+  syncMapTools();
  }
+ function syncMapTools(){
+  byId('empMapHint').textContent=inspectMode?'Inspect mode · tap a hex; no order is issued':depth('Select a unit, then a highlighted hex','Move labels show AP cost; dim tiles are last reports','Coordinates · move AP · dim = last seen');
+  byId('empInspectToggle').textContent=inspectMode?'Inspect: on':'Inspect hex';byId('empInspectToggle').setAttribute('aria-pressed',String(inspectMode));
+  byId('empMapView').textContent=`Map: ${landLens()}`;byId('empMapView').setAttribute('aria-pressed',String(landLens()==='yields'));
+  byId('empMapView').title='Yields show potential food, production and gold. Inspect a hex for plain-language explanations.';
+  svg.classList.toggle('emp-inspecting',inspectMode);
+ }
+ function showHex(pos){
+  if(!game)return;inspected=pos.slice();target=null;closeMobileSheets();renderMap();renderHex();byId('empHexSheet').showModal();
+  byId('empInspectToggle').setAttribute('aria-expanded','true');
+  if(game.map[pos[1]]?.[pos[0]])learning.mark(game,'land','You inspected land. Potential yield becomes income only when a citizen works that hex.');
+  renderLearning();
+ }
+ function movementReason(unit,pos,t,current){
+  if(!current)return 'This is outside your current sight. Explore closer before moving here; unseen activity is unknown.';
+  if(!unit||unit.side!==game.side)return 'Select one of your units to see its legal moves. Units move; cities stay in place.';
+  if(same(unit.pos,pos))return `${game.unit_types[unit.kind].name} is already here. Its orders act from this hex.`;
+  if(game.winner)return 'This campaign is finished.';
+  if(!game.ready||game.turn!==game.side)return 'Movement is available on your turn, after your opponent has joined.';
+  if(unit.shaken)return 'This unit is shaken. Rally before moving or attacking.';
+  if(t.terrain==='mountain')return 'Mountains are impassable to every unit.';
+  if(unit.kind==='galley'&&t.terrain!=='water')return 'A Galley travels on water, not land or bridges.';
+  if(unit.kind!=='galley'&&t.terrain==='water')return 'This is a land unit. Only a Galley can enter water; use a bridge to cross on land.';
+  if(learning.distance(unit.pos,pos)>1)return 'Move one neighboring hex at a time. Choose a highlighted neighbor first.';
+  if(game.cities.some(c=>c.side!==game.side&&same(c.pos,pos)))return 'A rival city blocks movement. At war, Spearmen can attack and capture it after its garrison is defeated.';
+  const occupants=game.units.filter(u=>same(u.pos,pos));
+  if(occupants.some(u=>u.side!==game.side))return 'A visible rival unit occupies this hex. Moving onto it is not an attack; attacks require war and a legal target.';
+  if(occupants.length>=2)return 'This hex already holds two units. Make room before moving here.';
+  const road=t.road&&game.map[unit.pos[1]]?.[unit.pos[0]]?.road,cost=road?(unit.road_bonus?0:1):['woods','hill'].includes(t.terrain)&&!(unit.kind==='scout'&&t.terrain==='woods')?2:1;
+  if(unit.ap<cost)return `This step needs ${cost} AP; the unit has ${unit.ap}. End a turn to refresh AP.`;
+  return 'This move is not in the current legal orders. Refresh if the campaign has changed.';
+ }
+ function yieldRow(values,city=false){
+  const row=el('div',undefined,'emp-hex-yields');
+  for(const key of ['food','production','gold']){
+   const cell=el('div'),copy=el('span'),name=city&&key==='food'?'Food surplus':key[0].toUpperCase()+key.slice(1);
+   copy.append(el('strong',String(values[key])),el('small',name));cell.append(learning.icon(key),copy);row.append(cell);
+  }
+  return row;
+ }
+ function renderHex(){
+  if(!game||!inspected)return;
+  const pos=inspected,t=game.map[pos[1]]?.[pos[0]],current=game.visible.includes(posKey(pos)),panel=byId('empHexContent');panel.replaceChildren();
+  byId('empHexTitle').textContent=`${coord(pos)} · ${t?learning.terrain[t.terrain]?.[0]||t.terrain:'Unexplored'}`;
+  if(!t){panel.append(el('p','You have not seen this land yet. Its terrain, resources and occupants are unknown.'),el('p','Move a Scout toward the edge of visible land. You can only enter currently visible neighboring hexes.'));return;}
+  panel.append(el('p',current?'Currently visible · inspection spends no AP.':'Last-seen land · these are remembered features, not a live report. Current occupants and changes are unknown.',current?'emp-small':'emp-warning'));
+  panel.append(el('p',learning.terrain[t.terrain][1]));
+  const city=game.cities.find(c=>same(c.pos,pos)),ownCity=city?.side===game.side,value=game.land_yields?.[posKey(pos)];
+  if(city){
+   panel.append(el('h3',`${city.name}${city.visible===false?' · last reported':''}`));
+   if(ownCity){panel.append(yieldRow(city.yields,true),el('p',`City totals per turn, including worked land and buildings. Food is after population consumption. This city also produces ${city.yields.knowledge} knowledge. The center provides base income; it is not another citizen-worked tile.`));}
+   else panel.append(el('p','This rival city’s economy and production choices are private. Its visible or last-reported public details can be inspected.'));
+   panel.append(button(ownCity?'Open city production':'Inspect city',()=>{closeMobileSheets();select(city.id);if(!mobile)openPanel('orders');}));
+  }else if(value){
+   panel.append(el('h3',current?'Potential yield when worked':'Potential from remembered land'),yieldRow(value),el('p','Food grows population. Production builds projects. Gold pays upkeep or rushes production. These values are per turn, using your discoveries. A unit standing here does not collect them.'));
+   const worked=current?game.cities.find(c=>c.side===game.side&&c.yields.worked.some(p=>same(p,pos))):null;
+   const nearby=game.cities.filter(c=>c.side===game.side&&learning.distance(c.pos,pos)<=2);
+   panel.append(el('p',worked?`Worked by ${worked.name} now. This yield is included in that city’s output and collected at your turn end.`:!current?'We cannot treat remembered land as a current activity report.':nearby.length?`Not currently worked. Within range of ${nearby.map(c=>c.name).join(', ')}. Each citizen automatically works one nearby hex; only the nearest city can use it. More population or a better improvement can change the choice.`:'Outside the working range of your cities. A city must be within two hexes to use this land. Settlers can found a city, subject to spacing and terrain rules.','emp-hex-working'));
+  }
+  const features=[];
+  if(t.resource==='grain')features.push('Grain adds +1 food; it is already included in the potential shown.');
+  if(t.resource==='iron')features.push('Iron adds +1 production; it is already included in the potential shown.');
+  if(t.resource==='ruins')features.push('Ruins give +8 gold and +1 development point once when a unit enters. This is a one-time exploration reward, not a recurring city yield.');
+  if(t.improvement==='farm')features.push(`Farm: +${game.player.techs.includes('agriculture')?3:2} food when worked, included above.`);
+  if(t.improvement==='mine')features.push(`Mine: +${game.player.techs.includes('engineering')?3:2} production when worked, included above.`);
+  if(t.road)features.push('Road: a road-to-road step costs 1 AP and can unlock one free road step that turn. Roads add no food, production or gold.');
+  if(features.length){panel.append(el('h3','What is on this hex'));for(const text of features)panel.append(el('p',text));}
+  panel.append(el('h3','Movement and defense'));
+  panel.append(el('p',t.terrain==='mountain'?'Mountains cannot be entered and block sight through them.':t.terrain==='water'?'Only galleys enter water; a normal water step costs 1 AP. Water gives no terrain cover.':`${['woods','hill'].includes(t.terrain)?'Normally 2 AP to enter; '+(t.terrain==='woods'?'Scouts pay only 1 AP. ':'')+'This terrain adds defensive cover.':'Normally 1 AP to enter. This terrain gives no defensive cover.'}${t.terrain==='woods'?' Woods block sight through the hex.':''}${t.road?' Road-to-road bonuses can reduce that cost.':''}`));
+  const unit=game.units.find(u=>u.id===chosen&&u.side===game.side),move=game.legal[chosen]?.moves.find(m=>same(m.pos,pos));
+  if(move&&myTurn())panel.append(button(`Move ${game.unit_types[unit.kind].name} here · ${move.cost} AP`,()=>{const destination=pos.slice();closeMobileSheets();inspectMode=false;order({kind:'move',unit:unit.id,pos:destination});},false,'emp-primary'));
+  else panel.append(el('p',movementReason(unit,pos,t,current),'emp-unavailable'));
+  if(current){
+   const units=game.units.filter(u=>same(u.pos,pos));
+   if(units.length){panel.append(el('h3','Units here'));for(const u of units)panel.append(button(`${u.side===game.side?'Select':'Inspect'} ${game.unit_types[u.kind].name}`,()=>{closeMobileSheets();select(u.id);if(u.side===game.side)openPanel('orders');}));}
+   if(unit?.kind==='builder'&&same(unit.pos,pos)){
+    panel.append(el('h3','Builder orders on this hex'));
+    for(const kind of ['farm','mine','road']){panel.append(unitAction(unit,kind));const reason=actionReason(unit,kind);panel.append(el('p',reason||actionHelp[kind][0],reason?'emp-unavailable':''));}
+   }else panel.append(el('p',t.terrain==='grass'?'Builders standing on eligible grass can build a Farm. It costs 2 AP and one charge.':t.terrain==='hill'?'Builders standing on eligible hills can build a Mine. It costs 2 AP and one charge.':'Builders can make roads on eligible grass, woods or hills. Improvements need nearby friendly cities and cannot be made in city centers or rival territory.'));
+  }
+  const legend=el('details',undefined,'emp-map-symbols');legend.append(el('summary','Map symbol key'));
+  for(const [kind,text]of [['food','Food: grows cities'],['production','Production: builds projects'],['gold','Gold: upkeep and rushing'],['worker','Citizen: your city works this hex now'],['grain','Grain resource: +1 food'],['iron','Iron resource: +1 production'],['ruins','Ruins: one-time exploration reward'],['farm','Farm improvement'],['mine','Mine improvement']]){const row=el('p');row.append(learning.icon(kind),document.createTextNode(text));legend.append(row);}panel.append(legend);
+ }
+ function openLearning(resume=false){
+  if(resume)learning.resume();learning.welcome();closeMobileSheets();byId('empManual').close();renderLearning();byId('empLearnSheet').showModal();byId('empLearnOpen').setAttribute('aria-expanded','true');
+ }
+ function lessonAction(lesson){
+  if(working)return;
+  if(lesson.id==='goal'&&game)learning.mark(game,'goal');
+  if(lesson.review&&game)learning.mark(game,lesson.id,`You reviewed your ${lesson.id==='city'?'city project':'active research'}. It advances at End turn.`);
+  closeMobileSheets();
+  if(lesson.action==='setup'){byId('empSetup').scrollIntoView({block:'start'});byId('empFaction').focus();}
+  if(lesson.action==='inspect'){inspectMode=true;mapLens='yields';renderMap();renderMobile();}
+  if(['unit','builder','city'].includes(lesson.action)&&lesson.entity){select(lesson.entity);focusSelection();if(lesson.action!=='unit')openPanel('orders');}
+  if(lesson.action==='research')openPanel('research');
+  if(lesson.action==='end')byId('empEnd').click();
+  if(lesson.action==='chronicle'){if(mobile)openSheet('empMenu');byId('empChronicle').open=true;byId('empChronicle').scrollIntoView({block:'nearest'});}
+  renderLearning();
+ }
+ function renderLearning(){
+  const guided=experience()==='simple'&&!learning.ignored,lesson=learning.lesson(game);
+  byId('empHomeLearning').hidden=!guided;byId('empLearnOpen').hidden=!guided;
+  byId('empLearningMenu').textContent=learning.ignored?'Resume tutorial':'Guided tutorial';
+  byId('empLearnLabel').textContent=lesson.complete?'Next decision':`Learn${game?' · '+learning.done(game).length+'/'+learning.steps.length:''}`;
+  byId('empLearnNext').textContent=lesson.title;
+  const panel=byId('empLesson');panel.replaceChildren(el('p',game&&!lesson.complete?`Guided first turns · ${learning.done(game).length} of ${learning.steps.length} lessons reviewed or practiced`:'A beginner’s guide to Empires','emp-kicker'),el('h3',lesson.title));
+  if(game&&learning.feedback(game))panel.append(el('p',learning.feedback(game),'emp-lesson-feedback'));
+  for(const fact of lesson.facts)panel.append(el('p',fact));
+  if(game&&(!game.ready||game.turn!==game.side)&&!game.winner)panel.append(el('p','You can inspect and learn now. Orders wait until your turn and your opponent has joined.','emp-warning'));
+  panel.append(button(lesson.label,()=>lessonAction(lesson),working||lesson.action==='end'&&!myTurn(),'emp-primary'));
+  if(game&&lesson.id&&learning.steps.includes(lesson.id)&&lesson.id!=='goal')panel.append(button('I’ve read this · next lesson',()=>{learning.mark(game,lesson.id,`Reviewed: ${lesson.title}. You can practice this later.`);renderLearning();},false,'emp-lesson-review'));
+  if(game){const checklist=el('details');checklist.append(el('summary','Your learning path'));const list=el('ol'),titles=['Your civilization and goal','Read the land','Explore with a scout','City production','Improve land','Civilization research','End turn and see results'];for(const [i,id]of learning.steps.entries())list.append(el('li',`${learning.done(game).includes(id)?'✓ ':''}${titles[i]}`));checklist.append(list);panel.append(checklist);}
+  byId('empRestartTutorial').hidden=!game;
+  if(!guided&&byId('empLearnSheet').open&&learning.ignored)byId('empLearnSheet').close();
+  if(active&&game&&guided&&!learning.welcomed&&!welcomeScheduled){
+   welcomeScheduled=true;requestAnimationFrame(()=>{welcomeScheduled=false;if(active&&game&&experience()==='simple'&&!learning.ignored&&!learning.welcomed)openLearning();});
+  }
+ }
+ byId('empInspectToggle').onclick=()=>{inspectMode=!inspectMode;renderMap();renderMobile();};
+ byId('empMapView').onclick=()=>{mapLens=landLens()==='yields'?'land':'yields';try{localStorage.setItem('empires-map-lens',mapLens);}catch{}renderMap();syncMapTools();};
+ byId('empLearnOpen').onclick=()=>openLearning();byId('empHomeLearn').onclick=()=>openLearning();
+ byId('empLearningMenu').onclick=()=>openLearning(true);byId('empManualTutorial').onclick=()=>openLearning(true);
+ byId('empIgnoreTutorial').onclick=()=>{learning.ignore();byId('empLearnSheet').close();renderLearning();};
+ byId('empRestartTutorial').onclick=()=>{learning.restart(game);renderLearning();};
  window.addEventListener('resize',()=>{const before=mobile;syncMobile();if(before!==mobile&&game)requestAnimationFrame(focusSelection);});
  // A pan must never also issue the click-to-move order at its release point.
  let mapPointer=null,mapDragged=false;
@@ -558,7 +700,7 @@
   const note=depth('Short instructions and one decision at a time. Full rules are available when you want them.','Useful numbers, timing and tactical explanations beside your decisions.','Exact unit statistics, map coordinates, formulas and die thresholds.');
   for(const n of document.querySelectorAll('[data-emp-experience-note]'))n.textContent=note;
   const positions=['empMapWrap','empOrdersSheet','empRosterSheet','empMenu','empManual','empRoster'].map(id=>[byId(id),byId(id).scrollLeft,byId(id).scrollTop]);
-  renderGuide();if(game&&active)render();
+  renderGuide();if(game&&active)render();renderLearning();
   for(const [n,left,top] of positions){n.scrollLeft=left;n.scrollTop=top;}
  }
  document.addEventListener('ww2:experience',syncExperience);

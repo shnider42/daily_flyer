@@ -243,6 +243,18 @@ def available_projects(s, c):
             (k != 'galley' or any(tile(s, p)['terrain'] == 'water' for p in around(c['pos'])))}
 
 
+def land_yields(t, techs=()):
+    """Potential income from one worked tile; also used for remembered-map help."""
+    food, production, gold = TERRAIN_YIELDS[t['terrain']]
+    food += int(t['resource'] == 'grain')
+    production += int(t['resource'] == 'iron')
+    if t['improvement'] == 'farm':
+        food += 2 + int('agriculture' in techs)
+    if t['improvement'] == 'mine':
+        production += 2 + int('engineering' in techs)
+    return dict(food=food, production=production, gold=gold)
+
+
 def city_yields(s, c):
     techs = s['players'][c['side']]['techs']
     values = []
@@ -255,14 +267,8 @@ def city_yields(s, c):
             nearest = min(s['cities'], key=lambda v: (distance(v['pos'], p), v['id']))
             if nearest['id'] != c['id']:
                 continue
-            t = tile(s, p)
-            food, production, gold = TERRAIN_YIELDS[t['terrain']]
-            food += int(t['resource'] == 'grain')
-            production += int(t['resource'] == 'iron')
-            if t['improvement'] == 'farm':
-                food += 2 + int('agriculture' in techs)
-            if t['improvement'] == 'mine':
-                production += 2 + int('engineering' in techs)
+            value = land_yields(tile(s, p), techs)
+            food, production, gold = value['food'], value['production'], value['gold']
             values.append((food+production+gold, food, production, gold, p))
     worked = sorted(values, key=lambda v: (-v[0], -v[1], v[-1]))[:c['population']]
     return dict(food=2 + sum(v[1] for v in worked) + 2*('granary' in c['buildings']) + (c['side'] == 'river') - c['population'],
@@ -515,6 +521,7 @@ def public(s, side):
     return dict(version=s['version'], revision=s['revision'], round=s['round'], last_round=LAST_ROUND,
                 turn=s['turn'], side=side, mode=s['mode'], difficulty=s['difficulty'], width=WIDTH, height=HEIGHT,
                 map=[[copy.deepcopy(memory['tiles'].get(key((x,y)))) for x in range(WIDTH)] for y in range(HEIGHT)],
+                land_yields={k: land_yields(t, s['players'][side]['techs']) for k, t in memory['tiles'].items()},
                 visible=list(seen), units=units, cities=cities, player=copy.deepcopy(s['players'][side]),
                 economy=economy(s, side), score=score(s, side), scores={v: score(s,v) for v in SIDES} if s['winner'] else None,
                 diplomacy=copy.deepcopy(s['diplomacy']), winner=s['winner'], result=s['result'],

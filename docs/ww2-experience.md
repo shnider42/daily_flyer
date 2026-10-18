@@ -4,6 +4,13 @@ Experience changes display and coaching detail, not the ruleset, computer
 difficulty, available orders, fog of war or battle state. See
 [WWII Journey and Field coach](ww2-journey.md) for the expanded learning flow.
 
+The subsequent Empires iPhone playtest established
+[shared learning principles for future DSL changes](learning-experience-principles.md):
+Simple must teach real decisions, default guidance needs an explicit opt-out,
+and safe hex inspection must explain what the map means. Empires now implements
+that first guided loop. DSL's existing Field coach behavior described below is
+unchanged by the Empires update.
+
 | Experience | Presentation |
 | --- | --- |
 | Simple | Short action explanations, outcomes and map names; inspect a unit for its role and status. |
