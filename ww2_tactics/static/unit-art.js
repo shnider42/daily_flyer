@@ -262,6 +262,12 @@
   const counter=el('g',{class:`unit ${u.side}`,'data-unit-id':u.id});counter.append(el('rect',{x:x-22,y:y-19,width:44,height:40,rx:3}));svg.append(counter);decorate(svg,[u],true);return svg;
  };
  const button=document.createElement('button');button.id='unitStyleToggle';button.type='button';button.title='Switch all unit icons between basic silhouettes and detailed painted miniatures';document.getElementById('playTools').append(button);
- button.onclick=()=>{detailed=!detailed;try{localStorage.setItem('ww2-unit-style',detailed?'detailed':'basic');}catch{}sync();document.dispatchEvent(new Event('ww2:unit-style'));};
+ function setStyle(value){
+  if(!['basic','detailed'].includes(value))return;
+  detailed=value==='detailed';try{localStorage.setItem('ww2-unit-style',value);}catch{}
+  sync();document.dispatchEvent(new Event('ww2:unit-style'));
+ }
+ window.ww2UnitStyle={get value(){return detailed?'detailed':'basic';},set:setStyle};
+ button.onclick=()=>setStyle(detailed?'basic':'detailed');
  document.addEventListener('ww2:render',sync);document.addEventListener('ww2:playback',sync);sync();
 })();

@@ -51,6 +51,14 @@ The Empires phone shell is independent of DSL's layout manager because their
 unit, city and turn states differ. Hex geometry and movement animation remain
 shared. This does not claim parity with every DSL display option or gesture.
 
+### Recognizable unit artwork
+
+Empires shares DSL's saved Basic / Detailed artwork preference. On a phone,
+change it in **Menu → Units**. Painted ancient-world miniatures and fallback
+silhouettes cover all six units plus cities, consistently across the map,
+roster and Orders. How to play includes a unit recognition guide. See
+[artwork notes and verification](empires-icons.md).
+
 ### Research feedback
 
 Research is civilization-wide and uses no unit AP. The Research panel shows
@@ -145,6 +153,7 @@ python -m unittest discover -s tests -p 'test_ww2_dsl.py' -q
 node tests/empires-dom.cjs
 node tests/empires-experience-dom.cjs
 node tests/empires-research-dom.cjs
+node tests/empires-art-dom.cjs
 node tests/ww2-ground-roles-dom.cjs
 ```
 

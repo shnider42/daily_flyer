@@ -82,20 +82,46 @@ body.empires-active :is(#empires,#empManual) :is(input,select){border-color:var(
 #empMap .emp-coordinate{font:8px system-ui,sans-serif;fill:#253a2c;opacity:.7;pointer-events:none}
 #empMap .emp-move-cost{font:bold 12px system-ui,sans-serif;fill:#fff7d1;paint-order:stroke;stroke:#304332;stroke-width:3;pointer-events:none}
 #empMap .emp-resource{font:12px system-ui,sans-serif;fill:#263d31;pointer-events:none}
-#empMap .emp-city rect{fill:#e5d6af;stroke:#304e49;stroke-width:2}
-#empMap .emp-city.river rect{stroke:#1b526c}
-#empMap .emp-city.highland rect{stroke:#913e36}
 #empMap .emp-city text{font:bold 11px system-ui,sans-serif;fill:#fff4da;paint-order:stroke;stroke:#273c30;stroke-width:3;stroke-linejoin:round;pointer-events:none}
 #empMap .emp-city{cursor:pointer}
-#empMap .emp-city:focus-visible rect{stroke:#fff4c4;stroke-width:4}
 #empMap .emp-city.stale{opacity:.6}
-#empires .unit rect,#empires .unit-motion-overlay .unit rect{fill:#235774;stroke:#f5e3b8;stroke-width:1.5;rx:4px;filter:none}
-#empires .unit.highland rect{fill:#884c40;rx:1px}
-#empires .unit.selected rect{stroke:#fff290;stroke-width:3}
-#empires .unit text{fill:#fff5dc;font:10px system-ui,sans-serif;pointer-events:none}
-#empires .unit .emp-strength{font-size:8px}
-#empires .unit .emp-unit-symbol{font:bold 17px Georgia,serif}
-#empires .emp-shaken{fill:#ffc570!important}
+.emp-counter,.emp-unit-art,.emp-portrait{pointer-events:none}
+.emp-counter-frame{fill:#235774;stroke:#f5e3b8;stroke-width:1.3;stroke-linejoin:round}
+.emp-counter.highland .emp-counter-frame{fill:#884c40}
+.emp-portrait-panel{fill:#152534;stroke:#eadfc0;stroke-width:.35;stroke-opacity:.6}
+.emp-stat-strip{fill:#10202d}
+#empires .emp-counter .emp-counter-stats,#empManual .emp-counter .emp-counter-stats{fill:#fff3d7;stroke:none;font:700 6px system-ui,sans-serif;letter-spacing:0;pointer-events:none}
+.emp-art-solid{fill:#f5e7c5;stroke:#152534;stroke-width:.7;stroke-linejoin:round}
+.emp-art-line{fill:none;stroke:#f5e7c5;stroke-width:2.3;stroke-linecap:round;stroke-linejoin:round}
+.emp-art-cutline{fill:none;stroke:#152534;stroke-width:1.3}
+.emp-art-dark{fill:#152534}
+.emp-art-image{opacity:0;pointer-events:none}
+.emp-art-ready>.emp-art-image{opacity:1}
+.emp-art-ready>.emp-art-fallback{display:none}
+.emp-fortified-mark,.emp-capital-mark{fill:#ffe4a2;stroke:#182a36;stroke-width:.7}
+.emp-shaken-flag{fill:#ffd176;stroke:#162a37;stroke-width:1}
+.emp-shaken-mark{fill:none;stroke:#172732;stroke-width:2;stroke-linecap:round}
+.emp-selection-brackets{display:none;fill:none;stroke:#fff290;stroke-width:2;stroke-linecap:square}
+#empires :is(.unit,.emp-city):is(.selected,:focus-visible) .emp-selection-brackets{display:block}
+#empires :is(.unit,.emp-city):is(.selected,:focus-visible) .emp-counter-frame{stroke:#fff290;stroke-width:2.2}
+.emp-portrait{display:block;width:48px;height:auto;flex:none;overflow:visible}
+.emp-selection-heading{display:flex;align-items:center;gap:12px;margin-bottom:12px}
+.emp-selection-heading>.emp-portrait{width:76px}
+.emp-selection-heading>div{min-width:0}
+.emp-selection-heading h3{margin:0 0 7px;overflow-wrap:anywhere}
+#empPanel .emp-selection-heading p{margin:0;line-height:1.5}
+#empires #empRoster button{display:grid;grid-template-columns:42px minmax(0,1fr);align-items:center;gap:8px;min-width:155px;max-width:250px;padding:8px}
+#empRoster .emp-portrait{width:42px}
+.emp-roster-copy{min-width:0;overflow-wrap:anywhere}
+#empires #empOrdersOpen{display:flex;align-items:center;gap:5px}
+#empSelectedPortrait:empty{display:none}
+#empSelectedPortrait .emp-portrait{width:34px}
+.emp-selected-copy{display:block;min-width:0;flex:1}
+#empUnitGuide{border-top:1px solid var(--emp-line);margin-top:20px;padding-top:12px}
+#empUnitGuideList{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:12px}
+.emp-unit-guide-item{display:flex;align-items:center;gap:8px;min-width:0}
+.emp-unit-guide-item p{font-size:12px;line-height:1.5;margin:4px 0}
+@media(max-width:420px){#empUnitGuideList{grid-template-columns:1fr}#empires #empRoster button{grid-template-columns:34px minmax(0,1fr);gap:6px}#empRoster .emp-portrait{width:34px}}
 #empMap .emp-order-pending{fill:none;stroke:#ffe6a1;stroke-width:3;stroke-dasharray:4 3;pointer-events:none}
 .emp-legend{display:flex;flex-wrap:wrap;gap:8px 18px;color:var(--emp-muted);font-size:10px;padding:10px 0}
 #empRoster{display:flex;gap:6px;overflow-x:auto;padding:4px 0 10px}
