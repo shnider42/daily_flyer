@@ -3,6 +3,22 @@
   const root = document.getElementById('vinyl-app');
   if (!root) return;
   const $ = (selector) => root.querySelector(selector);
+  const appearance = $('#vinyl-appearance');
+  function reflectAppearance() {
+    const light = document.documentElement.dataset.vinylAppearance === 'light';
+    appearance.setAttribute('aria-pressed', String(light));
+    appearance.textContent = light ? 'Lights down' : 'Lights up';
+    appearance.setAttribute('aria-label', light ? 'Switch to dark appearance' : 'Switch to light appearance');
+  }
+  reflectAppearance();
+  appearance.addEventListener('click', () => {
+    document.documentElement.dataset.vinylAppearance = document.documentElement.dataset.vinylAppearance === 'light' ? 'dark' : 'light';
+    try { localStorage.setItem('sleeve-notes-appearance', document.documentElement.dataset.vinylAppearance); } catch { /* Appearance still works without storage. */ }
+    reflectAppearance();
+  });
+  $('.sleeve-masthead a[href="#vinyl-collector"]').addEventListener('click', () => {
+    $('#vinyl-collector').open = true;
+  });
   const storageKey = 'daily-flyer-vinyl-collection-v1';
   const esc = (value) => String(value ?? '').replace(/[&<>"']/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const safeUrl = (value) => { try { const url = new URL(value); return ['http:', 'https:'].includes(url.protocol) ? url.href : ''; } catch { return ''; } };
@@ -11,6 +27,7 @@
   let quickMatches = [];
   let quickChosen = [];
   let quickAlbums = [];
+  let publicExplorer = null;
   try { records = validateCollection(JSON.parse(localStorage.getItem(storageKey) || '[]')); }
   catch { records = []; }
 
@@ -37,18 +54,22 @@
       record.catalog && `Cat. ${record.catalog}`, record.barcode && `Barcode ${record.barcode}`].filter(Boolean).map(esc).join(' · ') || 'Edition details not listed';
   }
   function link(url, label) { const href = safeUrl(url); return href ? `<a href="${esc(href)}" target="_blank" rel="noopener noreferrer">${esc(label)}</a>` : ''; }
-  async function getJson(url) {
-    const response = await fetch(url, {headers:{'Accept':'application/json'}});
-    const data = await response.json().catch(() => ({}));
-    if (!response.ok) throw new Error(data.error || (response.status === 400 ? 'Check the artist, title or release ID.' : 'The catalog is unavailable right now.'));
-    return data;
+  async function catalogRequest(url, options={}) {
+    const controller = new AbortController();
+    const timeout = setTimeout(() => controller.abort(), 80_000);
+    try {
+      const response = await fetch(url, {...options, signal:controller.signal});
+      const data = await response.json().catch(() => ({}));
+      if (!response.ok) throw new Error(data.error || (response.status === 400 ? 'Check the artist, title or release ID.' : 'The catalog is unavailable right now. Try again shortly, or explore the featured connections above.'));
+      return data;
+    } catch (error) {
+      if (error.name === 'AbortError') throw new Error('The catalog is taking too long. Try again shortly, or explore the featured connections above.');
+      throw error;
+    } finally { clearTimeout(timeout); }
   }
-
-  async function postJson(url, payload) {
-    const response = await fetch(url, {method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify(payload)});
-    const data = await response.json().catch(() => ({}));
-    if (!response.ok) throw new Error(data.error || 'Could not read those records right now.');
-    return data;
+  function getJson(url) { return catalogRequest(url, {headers:{'Accept':'application/json'}}); }
+  function postJson(url, payload) {
+    return catalogRequest(url, {method:'POST',headers:{'Content-Type':'application/json','Accept':'application/json'},body:JSON.stringify(payload)});
   }
   function quickStatus(message, error=false) { const el=$('#vinyl-quick-status');el.textContent=message;el.classList.toggle('error',error); }
   function albumYear(album) { return album.first_year || album.date?.slice(0,4) || ''; }
@@ -63,9 +84,12 @@
   }
   $('#vinyl-quick-form').addEventListener('submit',async event=>{
     event.preventDefault();const form=event.currentTarget,button=form.querySelector('button[type=submit]');
+    if (button.disabled) return;
     const titles=[form.elements.first.value.trim(),form.elements.second.value.trim()].filter(Boolean);
     if (!titles.length) return;
-    button.disabled=true;quickStatus('Finding the records and their artists…');
+    button.disabled=true;form.setAttribute('aria-busy','true');
+    $('.vinyl-examples').querySelectorAll('button').forEach(el=>{el.disabled=true;});
+    quickStatus('Finding the records and their artists…');
     $('#vinyl-quick-picks').hidden=true;$('#vinyl-quick-story').hidden=true;
     try {
       quickMatches=[];quickChosen=[];
@@ -75,7 +99,7 @@
       }
       renderPicks();quickStatus(quickChosen.every(Boolean) ? 'Check the album and artist, then open the story.' : 'One title needs a better match. Try a shorter album name.');
     } catch(error) {quickStatus(error.message,true);}
-    finally {button.disabled=false;}
+    finally {button.disabled=false;form.setAttribute('aria-busy','false');$('.vinyl-examples').querySelectorAll('button').forEach(el=>{el.disabled=false;});}
   });
   $('.vinyl-examples').addEventListener('click',event=>{
     const button=event.target.closest('[data-example]');if (!button) return;
@@ -87,13 +111,15 @@
     if (option) {quickChosen[Number(option.dataset.quickSlot)]=option.dataset.quickId;renderPicks();return;}
     if (!event.target.closest('#vinyl-tell-story')) return;
     const button=$('#vinyl-tell-story');button.disabled=true;quickStatus('Reading the record credits. This can take a few seconds…');
+    $('#vinyl-quick-picks').setAttribute('aria-busy','true');
     try {
       const result=await postJson('/api/vinyl/explore',{album_ids:quickChosen});
       quickAlbums=result.albums;renderPublicStory(result);
       $('#vinyl-quick-story').hidden=false;
       quickStatus(result.albums.length === 2 ? `${result.connections.length} documented musician link${result.connections.length===1?'':'s'} found. Explore the story below.` : `Found ${result.albums[0].credits.length} credited roles and ${result.other_albums.length} documented links to other records.`);
       $('#vinyl-quick-story').scrollIntoView({behavior:window.matchMedia('(prefers-reduced-motion: reduce)').matches?'auto':'smooth',block:'start'});
-    } catch(error) {quickStatus(error.message,true);button.disabled=false;}
+    } catch(error) {quickStatus(error.message,true);}
+    finally {button.disabled=false;$('#vinyl-quick-picks').setAttribute('aria-busy','false');}
   });
 
   function albumPanel(album,index) {
@@ -125,6 +151,8 @@
     </article>`;
   }
   function renderPublicStory(result) {
+    publicExplorer?.destroy();
+    publicExplorer = null;
     const {albums,connections,other_albums:other}=result, two=albums.length===2;
     const lead=two ? `<strong>${connections.length} documented people in common.</strong> ${connections.length ? `They appear in the credits for both “${esc(albums[0].title)}” and “${esc(albums[1].title)}”.` : 'The catalog does not yet document a shared musical credit on these selected editions. The sleeve maps below show what is listed.'}` :
       `<strong>One record, plenty of doors to open.</strong> Follow the guest musicians, producers and song credits on “${esc(albums[0].title)}”, then see where else some of them appear.`;
@@ -142,7 +170,9 @@
     $('#vinyl-quick-story').innerHTML=`<header class="vinyl-story-open"><span class="vinyl-story-label">${two?'TWO RECORDS · ONE CREDIT MAP':'ONE RECORD · MANY THREADS'}</span>
       <h2>${two ? `${esc(albums[0].title)} <span>&</span> ${esc(albums[1].title)}` : esc(albums[0].title)}</h2><p>${lead}</p>
       <p class="vinyl-release-meta">These stories use named credits on a representative cataloged edition, sometimes supplemented by a second edition of the same album. Some musicians and pressings are missing from the catalog; an absent link is not proof that none exists.</p></header>
+      <section class="vinyl-catalog-map" id="vinyl-catalog-map" aria-label="Album credit connections"></section>
       ${overlap}${outside}<div class="vinyl-public-albums">${albums.map(albumPanel).join('')}</div>`;
+    publicExplorer = window.VinylExplorer?.renderCatalog($('#vinyl-catalog-map'), result) || null;
   }
   $('#vinyl-quick-story').addEventListener('click',event=>{
     const save=event.target.closest('[data-save-album]');
@@ -157,7 +187,7 @@
     }
     const quiz=event.target.closest('[data-quiz-person]');if (!quiz) return;
     const article=quiz.closest('.vinyl-public-link'),name=quiz.dataset.quizPerson;
-    article.querySelector('h4').innerHTML='Who played on both? <span class="vinyl-quiz-answer" hidden>'+esc(name)+'</span>';
+    article.querySelector('h4').innerHTML='Whose name connects these records? <span class="vinyl-quiz-answer" hidden>'+esc(name)+'</span>';
     const p=article.querySelector('p');p.hidden=true;
     quiz.outerHTML='<button type="button" class="quiet vinyl-public-reveal">Reveal answer ↗</button>';
   });

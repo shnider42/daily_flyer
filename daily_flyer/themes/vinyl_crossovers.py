@@ -1,33 +1,45 @@
-"""A public album-story path plus an edition-aware collector shelf."""
+"""An interactive music journal plus an edition-aware collector shelf."""
 from __future__ import annotations
 
 from daily_flyer.models import CardItem, PageContext
 from daily_flyer.utils import resolve_date
 
 THEME_CONFIG = {
-    "page_title": "The Sleeve Notes | Daily Flyer",
+    "page_title": "The Sleeve Notes — Follow the people behind the records",
     "header_title": "The Sleeve Notes",
-    "header_subtitle": "One album is enough to start a story. Two reveal the people in common.",
-    "footer_text": "A Daily Flyer companion. Credits link to the selected MusicBrainz edition; your own sleeve notes stay yours.",
-    "hero_kicker": "Daily Flyer · Vinyl companion",
-    "hero_summary_pill": "People · Pressings · Stories",
+    "header_subtitle": "Follow the people behind the records.",
+    "footer_text": "The Sleeve Notes · Built with Daily Flyer. Featured connections cite their sources. Catalog credits come from MusicBrainz; your shelf stays in your browser.",
+    "hero_kicker": "A music connection journal",
+    "hero_summary_pill": "The Peter Asher issue",
 }
 
 WORKBENCH = """
 <div class="vinyl-app" id="vinyl-app">
+  <a class="sleeve-skip" href="#vinyl-explorer">Skip to the connections</a>
+  <header class="sleeve-masthead">
+    <a class="sleeve-brand" href="#vinyl-app"><span class="sleeve-brand-mark" aria-hidden="true"></span>The Sleeve Notes<span class="sleeve-brand-caption">A music connection journal</span></a>
+    <nav aria-label="Sleeve Notes sections"><a href="#vinyl-explorer">The connections</a><a href="#vinyl-quick">Your records</a><a href="#vinyl-collector">Your shelf</a></nav>
+    <button id="vinyl-appearance" class="sleeve-appearance" type="button" aria-pressed="false">Lights up</button>
+  </header>
   <div class="vinyl-intro">
-    <div><span class="vinyl-overline">THE MUSIC BEHIND THE MUSIC</span>
-      <h2>Put a record on the table.</h2>
-      <p>Type an album name. Add a second if you want to find the people who played on both. No collection or catalog number needed.</p>
-    </div><div class="vinyl-record" aria-hidden="true"><span></span></div>
+    <div class="sleeve-intro-copy"><span class="sleeve-edition">NO. 01 &nbsp; / &nbsp; THE PETER ASHER ISSUE</span>
+      <h1>Different records.<br><em>Same extraordinary people.</em></h1>
+      <p>A familiar voice. An unexpected producer. One name on two favorite sleeves. Follow the people who make music connect.</p>
+    </div>
+    <div class="sleeve-intro-art" aria-hidden="true"><div class="vinyl-record"><span>THE<br>SLEEVE<br>NOTES</span></div><span class="sleeve-art-caption">TURN A NAME INTO A STORY ↗</span></div>
   </div>
-  <section class="vinyl-quick" aria-label="Explore one or two albums">
+  <section id="vinyl-explorer" aria-labelledby="explorer-title">
+    <div id="vinyl-explorer-content" aria-busy="true"><p class="vinyl-empty">Opening the listening room…</p></div>
+    <noscript><p>Peter Asher went from Peter &amp; Gordon to producing James Taylor and Linda Ronstadt. <a href="https://www.grammy.com/news/grammy-hall-of-fame-inspirations-peter-asher/">Read his story at GRAMMY.com</a>. Enable JavaScript to explore the map and your record collection.</p></noscript>
+  </section>
+  <section id="vinyl-quick" class="vinyl-quick" aria-label="Explore one or two albums">
+    <div class="sleeve-section-heading"><span class="vinyl-overline">SIDE B · YOUR OWN RABBIT HOLE</span><h2>Start with a record you love.</h2><p>Look inside one album, or compare two for people in common. Confirm the artist, then follow the credits.</p></div>
     <form id="vinyl-quick-form" class="vinyl-quick-form">
       <label>First album<input name="first" required maxlength="120" placeholder="e.g. Rumours" autocomplete="off"></label>
       <label>Second album <span>(optional)</span><input name="second" maxlength="120" placeholder="e.g. Tusk" autocomplete="off"></label>
       <button type="submit">Find their story →</button>
     </form>
-    <div class="vinyl-examples">Try a record: <button type="button" data-example="Pet Sounds">Pet Sounds</button><button type="button" data-example="Rumours">Rumours</button><button type="button" data-example="Let's Dance">Let's Dance</button></div>
+    <div class="vinyl-examples">Try a record: <button type="button" data-example="Sweet Baby James">Sweet Baby James</button><button type="button" data-example="Heart Like a Wheel">Heart Like a Wheel</button><button type="button" data-example="Pet Sounds">Pet Sounds</button><button type="button" data-example="Rumours">Rumours</button></div>
     <div id="vinyl-quick-status" class="vinyl-status" role="status" aria-live="polite">Just the title is fine. We'll show the artist before telling the story.</div>
     <div id="vinyl-quick-picks" hidden></div>
     <section id="vinyl-quick-story" aria-label="The album story" hidden></section>
@@ -81,7 +93,7 @@ def build_theme_page(date_str: str | None = None, seed: int | None = None) -> Pa
         metadata={
             "hero_kicker": THEME_CONFIG["hero_kicker"],
             "hero_summary_pill": THEME_CONFIG["hero_summary_pill"],
-            "extra_head_html": '<link rel="stylesheet" href="/daily_flyer/themes/vinyl_crossovers.css"><script defer src="/daily_flyer/themes/vinyl_crossovers.js"></script>',
+            "extra_head_html": '<script>try{document.documentElement.dataset.vinylAppearance=localStorage.getItem("sleeve-notes-appearance")||"dark"}catch(e){}</script><link rel="stylesheet" href="/daily_flyer/themes/vinyl_crossovers.css"><script defer src="/daily_flyer/themes/vinyl_explorer.js"></script><script defer src="/daily_flyer/themes/vinyl_crossovers.js"></script>',
             "theme_name": "vinyl_crossovers",
         },
     )

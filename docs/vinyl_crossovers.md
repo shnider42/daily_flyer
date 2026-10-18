@@ -1,13 +1,44 @@
 # The Sleeve Notes
 
-The Sleeve Notes is an isolated Daily Flyer theme for public album stories and a personal vinyl collection. Run
+The Sleeve Notes is an isolated Daily Flyer music journal: a populated relationship
+map, public album stories, and a personal vinyl collection. It stays on
+`feat/vinyl-crossovers` with `DEFAULT_THEME=vinyl_crossovers`. Run
 `gunicorn --workers 1 --timeout 90 web:app` and visit `/?theme=vinyl_crossovers`. For a separate Render
 service, set `DEFAULT_THEME=vinyl_crossovers` and start with
 `gunicorn --workers 1 --timeout 90 --bind 0.0.0.0:$PORT web:app`.
 Story discovery makes several spaced catalog requests, so the longer worker
 timeout helps during slow external responses. Existing theme routes are unchanged.
 
-The front door accepts just one or two album names. MusicBrainz release-group
+## The listening room
+
+The first issue follows Peter Asher through 17 people, groups, songs and albums,
+24 documented relationships and four guided trails. The same-origin
+`daily_flyer/themes/vinyl_spotlight.json` includes source URLs for each fact;
+it requires no catalog request or API key to open. This is curated history,
+not an automatically refreshed catalog or a complete account of anyone's career.
+The initial source review was October 18, 2026 (UTC).
+
+`vinyl_explorer.js` renders an SVG map with selectable nodes and relationships,
+role filters, name search, zoom, pan, focus/all controls, a complete text list,
+and a timeline. A path finder shows the shortest route through the sourced
+relationships and preserves the role of each hop. A path never implies that
+everyone on it met or recorded together. Guided trails explain small parts of
+the map step by step. Four typographic record sleeves open their album's notes;
+Spotify and YouTube links open external searches, not an embedded audio player.
+
+The map distinguishes production, performance, songwriting and career links.
+An influence or repertoire link is identified as such in its sleeve notes;
+it cannot become a recording credit. Paul McCartney's participation is specific
+to “Carolina in My Mind,” and the Everly Brothers repertoire link names
+Phil Everly as the writer of “When Will I Be Loved.”
+
+The dark listening-room appearance has an optional light appearance via
+“Lights up.” Its preference uses the separate `sleeve-notes-appearance` browser
+storage key; it does not modify the collection storage schema or key.
+
+## Your records and shelf
+
+The album lookup accepts one or two album names. MusicBrainz release-group
 search offers distinct album/EP matches with artist and first release year,
 so ambiguous names are easy to correct. Opening the story chooses a nearby
 vinyl edition and reads album-level musical relationships, recording personnel,
@@ -15,7 +46,11 @@ and work-level writer credits. A sparse edition can use credits from one more
 edition of the same album; each extra credit retains its own edition source.
 The story offers a documented two-album personnel comparison, or trails from
 one album's guests to other records dated 1960–1989 when they are cataloged.
-It includes a complete expandable map of named people and tracks. A missing
+The result has an interactive map using the same controls and a complete
+expandable list of named people and tracks. The focused map starts with up to
+24 connections; “All connections” shows every credit returned by the adapter.
+Catalog sources stay attached to each role, including credits supplemented from
+another edition. A missing
 catalog relationship is never presented as evidence that two albums have no
 real-world link.
 
