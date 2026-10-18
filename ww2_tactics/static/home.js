@@ -13,7 +13,7 @@ document.addEventListener('DOMContentLoaded',()=>{
  document.addEventListener('visibilitychange',syncMotion);reduced.addEventListener('change',syncMotion);
  function syncHome(){
   document.body.classList.toggle('home-screen',!lobby.hidden);
-  if(!lobby.hidden)document.title='DSL · Tactical Command';
+  if(!lobby.hidden&&!document.body.classList.contains('empires-active'))document.title='DSL · Tactical Command';
   syncMotion();
  }
  function syncPreview(){

@@ -1,5 +1,6 @@
 """Pure rules; every move is validated again on the server."""
 from .coordinates import column
+from hex_geometry import cube, distance, line_cells
 import copy
 import secrets
 from functools import lru_cache
@@ -29,36 +30,6 @@ def terrain(x, y, state=None):
         return "woods"
     return "road" if x == 3 or y == 4 else "field"
 
-
-def cube(pos):
-    x, y = pos
-    q = x - (y - (y & 1)) // 2
-    return (q, -q-y, y)
-
-
-def distance(a, b):
-    ax, ay = a; bx, by = b
-    dq = ax - (ay - (ay & 1)) // 2 - bx + (by - (by & 1)) // 2
-    dy = ay - by
-    return max(abs(dq), abs(dy), abs(dq+dy))
-
-
-@lru_cache(maxsize=16384)
-def line_cells(a, b):
-    """Immutable geometry only; blockers are checked against live state below."""
-    n = distance(a, b)
-    ac, bc = cube(a), cube(b)
-    cells = []
-    for i in range(1, n):
-        # Consistent tiny nudge resolves lines exactly on hex edges.
-        p = [ac[j] + (bc[j]-ac[j])*i/n + (1e-6 if j < 2 else -2e-6) for j in range(3)]
-        r = [round(v) for v in p]
-        k = max(range(3), key=lambda j: abs(r[j]-p[j]))
-        r[k] = -sum(r[j] for j in range(3) if j != k)
-        y = r[2]
-        x = r[0] + (y-(y & 1))//2
-        cells.append((x,y))
-    return tuple(cells)
 
 
 def line_clear(a, b, smoke=(), state=None, high_ground=False):

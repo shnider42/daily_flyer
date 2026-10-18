@@ -63,7 +63,7 @@
   for(const child of [...g.children])if(child!==visual&&!child.classList.contains('unit-hit-target')&&child.tagName.toLowerCase()!=='title')visual.append(child);
   return visual;
  }
- function sight(value){return {fog:!!state?.fog_of_war,ground:new Set((value.visible_hexes||[]).map(p=>p.join(','))),air:new Set((value.visible_air_hexes||value.visible_hexes||[]).map(p=>p.join(',')))};}
+ function sight(value,context){return {fog:!!context?.fog_of_war,ground:new Set((value.visible_hexes||[]).map(p=>p.join(','))),air:new Set((value.visible_air_hexes||value.visible_hexes||[]).map(p=>p.join(',')))};}
  function hexLine(start,end){
   const cube=p=>{const x=p[0]-(p[1]-(p[1]&1))/2;return [x,-x-p[1],p[1]];},a=cube(start),b=cube(end),steps=Math.max(...a.map((v,i)=>Math.abs(v-b[i]))),line=[];
   for(let i=0;i<=steps;i++){
@@ -72,11 +72,11 @@
   }
   return line;
  }
- function visibleMove(u,from,to,previous,current){
+ function visibleMove(u,from,to,previous,current,value){
   // Cave transit has no surface route, including for its own commander.
-  const caves=state.scenario?.cave_entrances;
+  const caves=value.scenario?.cave_entrances;
   if(caves?.some(p=>same(p.pos,from))&&caves.some(p=>same(p.pos,to)))return false;
-  if(u.side===state.side||!current.fog)return true;
+  if(u.side===value.side||!current.fog)return true;
   if(!previous)return false;
   const field=air(u)?'air':'ground';
   // Seeing both endpoints does not disclose a route across unobserved hexes.
@@ -84,7 +84,8 @@
  }
  function finish(svg,value,options={}){
   if(!svg||!value)return;
-  const key=options.key||`${state.code}:${state.battle_number||1}`,before=svg._motionBefore,currentSight=sight(value),now=performance.now(),reduceNow=matchMedia('(prefers-reduced-motion: reduce)').matches;
+  const context=options.context||state||value;
+  const key=options.key||`${context.code}:${context.battle_number||1}`,before=svg._motionBefore,currentSight=sight(value,context),now=performance.now(),reduceNow=matchMedia('(prefers-reduced-motion: reduce)').matches;
   if(before?.key!==key)clearOverlay(svg);
   const continuous=options.allowAnimation!==false&&before?.key===key&&(options.playback||value.revision===before.revision+1);
   const units=new Map(value.units.filter(active).map(u=>[u.id,u]));
@@ -96,7 +97,7 @@
    const visual=wrapper(g),old=before?.key===key&&before.units.get(u.id),changed=old&&!same(old.pos,u.pos),continuing=old?.until>now&&!changed;
    if(old?.visual&&old.visual!==visual)stop(old.visual);
    g._unitPos=u.pos.slice();
-   if(reduceNow||document.hidden||g.classList.contains('joint-hidden')||!old||(!continuing&&(!changed||!continuous||!visibleMove(u,old.pos,u.pos,before.sight,currentSight)))){stop(visual);continue;}
+   if(reduceNow||document.hidden||g.classList.contains('joint-hidden')||!old||(!continuing&&(!changed||!continuous||!visibleMove(u,old.pos,u.pos,before.sight,currentSight,context)))){stop(visual);continue;}
    if(continuing&&old.node===g&&old.visual===visual&&old.outer===g.getAttribute('transform')){visual._motionGhost?.parentElement?.setAttribute('class',g.getAttribute('class'));continue;}
    const [oldX,oldY]=center(...old.pos),[x,y]=center(...u.pos),inverse=outerMatrix(g).inverse();
    const start=inverse.multiply(old.matrix).translate(oldX-x,oldY-y),order=svg._motionSubmitted,route=[];

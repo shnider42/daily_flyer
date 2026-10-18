@@ -93,6 +93,8 @@ def create_app(db_path=None, *, background_ai=None, start_worker=True):
 
     commander, bind_commander, battle_name, match_title, commander_side = install_lobby(app, connect, digest, identify, membership)
     install_admin(app, connect, commander, battle_name, path)
+    from empires.web import install as install_empires
+    install_empires(app, connect, commander)
 
     @app.before_request
     def normalize_live_match():

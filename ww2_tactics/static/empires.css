@@ -1,0 +1,123 @@
+/* Empires owns its surface; terrain stays readable in both site appearances. */
+#gameModeSwitch{display:flex;gap:4px;max-width:1440px;margin:12px auto 0;padding:0 24px}
+#gameModeSwitch button{flex:0 1 240px;text-align:left;border-radius:2px;background:transparent;font-size:15px;min-height:50px}
+#gameModeSwitch button span{display:block;font-size:11px;font-weight:400;opacity:.8;margin-top:2px}
+#gameModeSwitch button[aria-pressed=true]{box-shadow:inset 0 -3px 0 var(--ui-accent,#94703b)}
+body.empires-active>main{display:none!important}
+body.empires-active{background:var(--emp-bg)!important;color:var(--emp-text)!important}
+body.empires-active>header{display:flex!important;max-width:1440px;width:auto;position:static;padding:12px 24px}
+body.empires-active>header #rulesButton,body.empires-active>header #homeBattles{display:none!important}
+body.empires-active>header .brand{color:var(--emp-gold)}
+body{--emp-bg:#171e1b;--emp-panel:#212c26;--emp-text:#eee9dc;--emp-muted:#bcc6ba;--emp-line:#526452;--emp-gold:#dfc28b;--emp-raised:#2a3a31}
+html[data-theme=light] body{--emp-bg:#eeeadd;--emp-panel:#f9f5ea;--emp-text:#26382d;--emp-muted:#50614e;--emp-line:#9ca890;--emp-gold:#725422;--emp-raised:#dfe5d6}
+#empires{max-width:1440px;margin:auto;padding:20px 24px 50px;font-size:14px;color:var(--emp-text)}
+#empires *,#empManual *,#empConfirm *{box-sizing:border-box}
+#empires h1,#empires h2,#empires h3{color:var(--emp-text);font-family:Georgia,serif;font-weight:400;letter-spacing:0}
+#empires h2{font-size:28px;line-height:1.2;margin:6px 0 25px}
+#empires h3{font-size:22px;margin:0 0 10px}
+#empires p{line-height:1.65}
+#empires .emp-kicker{font:600 11px/1.5 system-ui,sans-serif;letter-spacing:2px;color:var(--emp-gold);margin:0 0 12px}
+#empires button,#empManual button,#empConfirm button{min-height:44px;background:var(--emp-raised);color:var(--emp-text);border:1px solid var(--emp-line);border-radius:3px;padding:9px 13px;font-size:13px;line-height:1.3;transition:background-color .12s,border-color .12s;transform:none!important}
+#empires button:disabled{opacity:.5;cursor:default}
+#empires button[aria-pressed=true]{border-color:var(--emp-gold);background:var(--emp-raised);box-shadow:inset 0 -2px 0 var(--emp-gold)}
+#empires .emp-primary{background:#d8bc84;color:#18261d;border-color:#e7cd98;font-weight:700}
+#empires input,#empires select{display:block;width:100%;min-height:46px;margin:6px 0 18px;padding:10px;border:1px solid var(--emp-line);border-radius:3px;background:var(--emp-bg);color:var(--emp-text);font:inherit}
+#empires label{font-size:13px;color:var(--emp-muted);margin:16px 0 4px}
+#empires .emp-small{font-size:12px;color:var(--emp-muted);line-height:1.7}
+#empires .emp-inline,#empConfirm .emp-inline{display:flex;gap:8px;flex-wrap:wrap;align-items:center}
+#empires .emp-inline input{flex:1;min-width:140px;margin:0}
+#empires a{color:var(--emp-gold)}
+.emp-hero{display:grid;grid-template-columns:1fr 1fr;align-items:center;gap:35px;padding:36px 0 45px;border-bottom:1px solid var(--emp-line);min-height:360px}
+#empires .emp-hero h1{font-size:clamp(64px,8vw,112px);letter-spacing:-4px;margin:4px 0 24px;line-height:1}
+#empires .emp-intro{font:26px/1.3 Georgia,serif;margin:0 0 16px;color:var(--emp-text)}
+.emp-description{max-width:430px;color:var(--emp-muted)}
+.emp-start-link{display:inline-block;margin-top:12px;padding:10px 0;font-weight:600;text-underline-offset:6px}
+.emp-hero-map{position:relative;max-width:580px;background:var(--emp-panel);border:1px solid var(--emp-line);padding:15px 15px 10px;transform:rotate(-2deg)}
+.emp-hero-map svg{display:block;width:100%;height:auto}
+.emp-hero-map span{display:block;text-align:right;font-size:10px;letter-spacing:2px;color:var(--emp-muted);padding-top:8px}
+.emp-home-grid{display:grid;grid-template-columns:1fr 1fr;gap:70px;padding:40px 0}
+.emp-home-grid>section{min-width:0}
+#empCreate{width:100%;margin-top:8px}
+.emp-principles{display:grid;grid-template-columns:repeat(3,1fr);gap:30px;border-top:1px solid var(--emp-line);padding:20px 0;color:var(--emp-muted);font-size:13px}
+.emp-principles strong{display:block;color:var(--emp-text);margin-bottom:5px}
+#empCampaigns{margin-top:20px;display:grid;gap:8px}
+#empCampaigns button{display:flex;justify-content:space-between;gap:12px;text-align:left;width:100%;align-items:center}
+#empCampaigns button span{font-size:12px;color:var(--emp-muted)}
+.emp-campaign-heading{display:flex;align-items:center;justify-content:space-between;gap:15px;flex-wrap:wrap}
+#empires .emp-campaign-heading h1{font-size:34px;letter-spacing:-1px;margin:3px 0 20px}
+.emp-resources{display:flex;gap:24px;flex-wrap:wrap;padding:15px 0;border-block:1px solid var(--emp-line)}
+.emp-resources>div{display:grid;gap:4px}
+.emp-resources small{color:var(--emp-muted);font-size:10px;letter-spacing:1px;text-transform:uppercase}
+.emp-resources strong{font-size:18px;font-variant-numeric:tabular-nums}
+.emp-resources span{font-size:11px;font-weight:400;color:var(--emp-muted)}
+.emp-turn{padding:12px 0;color:var(--emp-gold);font-size:13px}
+#empInvitation,#empResult{background:var(--emp-panel);border-left:3px solid var(--emp-gold);padding:15px 20px;margin-bottom:15px}
+#empResult{font:22px/1.5 Georgia,serif}
+.emp-layout{display:grid;grid-template-columns:minmax(0,1fr) 310px;gap:24px;align-items:start}
+.emp-board-column{min-width:0}
+.emp-map-toolbar{display:flex;justify-content:space-between;gap:10px;align-items:center;font-size:10px;letter-spacing:1px;padding:0 0 9px;flex-wrap:wrap}
+.emp-map-toolbar button{font-size:12px!important;padding:7px 10px!important}
+#empMapWrap{position:relative;overflow:auto;background:#1a2725;border:1px solid var(--emp-line);border-radius:3px;contain:layout paint;touch-action:pan-x pan-y;max-height:73svh;overscroll-behavior:contain}
+#empMap{display:block;width:100%;height:auto;max-width:none;min-width:0;transform:translateZ(0)}
+#empMapWrap.emp-detail #empMap{width:1100px;min-width:1100px}
+#empMap .emp-tile{stroke:#5b7961;stroke-width:.8;fill:#9aaf7a}
+#empMap .emp-tile.grass{fill:#afba85}
+#empMap .emp-tile.woods{fill:#718f68}
+#empMap .emp-tile.hill{fill:#baad85}
+#empMap .emp-tile.mountain{fill:#8f948b}
+#empMap .emp-tile.water{fill:#5a8a91;stroke:#67969b}
+#empMap .emp-tile.bridge{fill:#d5c49b}
+#empMap .emp-tile.unknown{fill:#273833;stroke:#344940}
+#empMap .emp-tile.remembered{filter:brightness(.62) saturate(.65)}
+#empMap .emp-tile.can-move{stroke:#f5e4a3;stroke-width:2.5;stroke-dasharray:5 3;cursor:pointer}
+#empMap .emp-tile.chosen{stroke:#fff2bd;stroke-width:3.5}
+#empMap .emp-tile:focus-visible{stroke:#fff9d0;stroke-width:4;outline:none}
+#empMap .emp-terrain-mark{stroke:#405a43;fill:none;stroke-width:1.3;pointer-events:none;opacity:.72}
+#empMap .emp-road{stroke:#efe0b6;stroke-width:5;stroke-linecap:round;pointer-events:none;opacity:.8}
+#empMap .emp-coordinate{font:8px system-ui,sans-serif;fill:#253a2c;opacity:.7;pointer-events:none}
+#empMap .emp-move-cost{font:bold 12px system-ui,sans-serif;fill:#fff7d1;paint-order:stroke;stroke:#304332;stroke-width:3;pointer-events:none}
+#empMap .emp-resource{font:12px system-ui,sans-serif;fill:#263d31;pointer-events:none}
+#empMap .emp-city rect{fill:#e5d6af;stroke:#304e49;stroke-width:2}
+#empMap .emp-city.river rect{stroke:#1b526c}
+#empMap .emp-city.highland rect{stroke:#913e36}
+#empMap .emp-city text{font:bold 11px system-ui,sans-serif;fill:#fff4da;paint-order:stroke;stroke:#273c30;stroke-width:3;stroke-linejoin:round;pointer-events:none}
+#empMap .emp-city{cursor:pointer}
+#empMap .emp-city:focus-visible rect{stroke:#fff4c4;stroke-width:4}
+#empMap .emp-city.stale{opacity:.6}
+#empires .unit rect,#empires .unit-motion-overlay .unit rect{fill:#235774;stroke:#f5e3b8;stroke-width:1.5;rx:4px;filter:none}
+#empires .unit.highland rect{fill:#884c40;rx:1px}
+#empires .unit.selected rect{stroke:#fff290;stroke-width:3}
+#empires .unit text{fill:#fff5dc;font:10px system-ui,sans-serif;pointer-events:none}
+#empires .unit .emp-strength{font-size:8px}
+#empires .unit .emp-unit-symbol{font:bold 17px Georgia,serif}
+#empires .emp-shaken{fill:#ffc570!important}
+#empMap .emp-order-pending{fill:none;stroke:#ffe6a1;stroke-width:3;stroke-dasharray:4 3;pointer-events:none}
+.emp-legend{display:flex;flex-wrap:wrap;gap:8px 18px;color:var(--emp-muted);font-size:10px;padding:10px 0}
+#empRoster{display:flex;gap:6px;overflow-x:auto;padding:4px 0 10px}
+#empRoster button{flex:0 0 auto;min-width:90px;text-align:left;font-size:12px}
+#empRoster small{display:block;color:var(--emp-muted);font-size:10px;margin-top:4px}
+.emp-sidebar{min-width:0;background:var(--emp-panel);border-top:3px solid var(--emp-gold);padding:14px}
+.emp-tabs{display:flex;gap:4px;margin-bottom:20px}
+#empires .emp-tabs button{flex:1;min-width:0;font-size:12px;padding:8px 6px}
+#empPanel{min-height:230px}
+#empPanel p{color:var(--emp-muted);font-size:13px;margin:8px 0 14px}
+.emp-actions{display:flex;gap:7px;flex-wrap:wrap;margin:15px 0}
+.emp-stats{display:flex;gap:12px;flex-wrap:wrap;font-size:12px;margin-bottom:12px;color:var(--emp-gold)}
+#empires .emp-tech{display:block;width:100%;text-align:left;margin:6px 0;padding:10px}
+#empires .emp-tech small{display:block;font-weight:400;color:var(--emp-muted);line-height:1.5;margin-top:3px}
+#empEnd{width:100%;margin-top:20px}
+.emp-journal{border-top:1px solid var(--emp-line);margin-top:20px;padding-top:12px}
+#empLatest{display:block;font-size:12px;line-height:1.5;font-weight:400;color:var(--emp-muted);margin:8px 0}
+#empJournal{font-size:12px;line-height:1.6;padding-left:20px;max-height:300px;overflow:auto}
+#empJournal li{margin:6px 0}
+#empMessage{position:sticky;bottom:12px;background:var(--emp-panel);border-left:3px solid var(--emp-gold);padding:12px 16px;box-shadow:0 6px 22px #0004;z-index:10;max-width:700px;margin:14px auto 0;white-space:pre-wrap}
+#empMessage:empty{display:none}
+#empManual,#empConfirm{background:var(--emp-panel);color:var(--emp-text);border:1px solid var(--emp-line);border-radius:5px;max-width:620px;width:calc(100% - 24px);max-height:85svh;padding:25px;line-height:1.7}
+#empManual::backdrop,#empConfirm::backdrop{background:#08110dbb}
+#empManual h2,#empConfirm h2{font:28px/1.3 Georgia,serif}
+#empManual h3{font:21px Georgia,serif;color:var(--emp-gold)}
+#empManual p{font-size:14px}
+@media(hover:hover){#empires button:not(:disabled):hover,#gameModeSwitch button:hover{border-color:var(--emp-gold);box-shadow:inset 0 0 0 1px var(--emp-gold);transform:none!important}#empires a:hover{text-decoration-thickness:2px}}
+@media(min-width:1700px){#empires,#gameModeSwitch,body.empires-active>header{max-width:1640px}.emp-layout{grid-template-columns:minmax(0,1fr) 340px}}
+@media(max-width:900px){.emp-layout{grid-template-columns:1fr}.emp-sidebar{padding:16px}.emp-home-grid{gap:30px}#empPanel{min-height:0}.emp-tabs{max-width:420px}.emp-hero{gap:20px}.emp-principles{gap:18px}#empMapWrap{max-height:58svh}}
+@media(max-width:600px){#empires{padding:10px 14px 30px}#gameModeSwitch{padding:0 14px}#gameModeSwitch button{flex:1}.emp-hero{grid-template-columns:1fr;padding:25px 0;gap:25px;min-height:0}.emp-hero-map{display:none}#empires .emp-hero h1{font-size:72px}.emp-home-grid{grid-template-columns:1fr;padding:30px 0}.emp-home-grid>section+section{border-top:1px solid var(--emp-line);padding-top:25px}.emp-principles{grid-template-columns:1fr;gap:5px}.emp-resources{gap:12px 22px}.emp-resources strong{font-size:16px}.emp-campaign-heading .emp-inline{margin-bottom:12px}#empires .emp-campaign-heading h1{font-size:29px;margin-bottom:8px}#empMapWrap.emp-detail #empMap{width:860px;min-width:860px}#empires input,#empires select{font-size:16px}body.empires-active>header{padding:10px 14px}#empMessage{bottom:8px;font-size:13px}}
