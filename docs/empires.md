@@ -51,6 +51,20 @@ The Empires phone shell is independent of DSL's layout manager because their
 unit, city and turn states differ. Hex geometry and movement animation remain
 shared. This does not claim parity with every DSL display option or gesture.
 
+### Research feedback
+
+Research is civilization-wide and uses no unit AP. The Research panel shows
+the saved active technology, stored knowledge, a progress bar, income and an
+estimate based on current income in every Experience setting. Knowledge is
+added and discoveries resolve only when that civilization ends its turn;
+having enough knowledge already still means completion at the next turn end.
+The active card cannot be submitted again. A different choice shows a pending
+state, then a persistent confirmation only after the server acknowledges it.
+On phones the sheet returns to that confirmation after saving. Uncertain saves
+are checked with a read rather than resubmitted, and discovery completion
+prompts the player to choose the next technology. The phone Menu also shows
+the active technology and its progress.
+
 ### Experience throughout the interface
 
 Empires uses `ww2Experience`, the same browser preference controller and saved
@@ -130,6 +144,7 @@ python -m unittest discover -s tests -p 'test_ww2.py' -q
 python -m unittest discover -s tests -p 'test_ww2_dsl.py' -q
 node tests/empires-dom.cjs
 node tests/empires-experience-dom.cjs
+node tests/empires-research-dom.cjs
 node tests/ww2-ground-roles-dom.cjs
 ```
 
@@ -144,6 +159,9 @@ unchanged legal actions/state, zero submitted orders on preference changes,
 combat targets and warnings, retained camera/sheets and reload/DSL continuity.
 Combat presentation uses explicit local fixtures; those checks do not claim
 additional server combat validation.
+Research checks cover pending/saved/failed and recovered requests, no repeated
+active selection or unit AP cost, real turn-end progress, saved resume and
+completion, plus essential progress/timing across all three Experiences.
 They do not validate rendered browser layout. Real phone/desktop playtesting,
 Safari motion inspection and military balance remain important follow-up work.
 

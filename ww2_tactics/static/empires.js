@@ -52,7 +52,7 @@
   return depth('Your turn. Explore, build, then End turn.','Your turn. Cities and research resolve at turn end.','Your turn · production, growth and research resolve on End turn.');
  }
  let game=null,seat=null,saves=[],chosen=null,target=null,inspected=null,tab='orders',working=false,polling=false,active=false,detail=innerWidth<700,confirmAction=null,requestGeneration=0;
- let rememberedMode='dsl',noticeTimer;
+ let rememberedMode='dsl',noticeTimer,pendingResearch=null,uncertainResearch=null;
  try{saves=JSON.parse(localStorage.getItem('empires-sessions')||'[]');if(!Array.isArray(saves))saves=[];saves=saves.filter(s=>s&&typeof s.code==='string');rememberedMode=localStorage.getItem('dfe-game-mode')||'dsl';}catch{}
  function auth(){try{return JSON.parse(localStorage.getItem('ww2-commander')||'null');}catch{return null;}}
  function notice(text,persist=false){
@@ -121,6 +121,7 @@
  byId('empMode').onchange=()=>{const hidden=byId('empMode').value!=='solo';byId('empDifficulty').hidden=hidden;byId('empDifficultyLabel').hidden=hidden;};
  async function enter(data,newSeat){
   requestGeneration++;saveSeat(newSeat);game=data;chosen=game.cities.find(c=>c.side===game.side)?.id;target=inspected=null;tab='orders';
+  byId('empResearchNotice').textContent='';uncertainResearch=null;
   byId('empHome').hidden=true;byId('empPlay').hidden=false;byId('empMapWrap').classList.toggle('emp-detail',detail);syncSwitch();render();
   requestAnimationFrame(focusSelection);window.scrollTo(0,0);
  }
@@ -140,14 +141,25 @@
  };
  async function refresh(){
   if(!game||working||polling||!active)return;polling=true;const generation=requestGeneration,code=game.code;
-  try{const data=await request(`/api/empires/games/${code}`);if(generation===requestGeneration&&game?.code===code&&(data.revision!==game.revision||data.ready!==game.ready)){game=data;render();}}
+  try{
+   const data=await request(`/api/empires/games/${code}`);
+   if(generation===requestGeneration&&game?.code===code){
+    const changed=data.revision!==game.revision||data.ready!==game.ready;game=data;
+    if(uncertainResearch){reconcileResearch(uncertainResearch);uncertainResearch=null;}
+    if(changed)render();
+   }
+  }
   catch(e){notice(e.message);}finally{polling=false;}
  }
  byId('empReload').onclick=refresh;
  setInterval(()=>{if(active&&game?.mode==='human'&&!document.hidden&&!working)refresh();},2500);
  document.addEventListener('visibilitychange',()=>{if(!document.hidden)refresh();});
  async function order(command){
-  if(!myTurn())return;working=true;requestGeneration++;const before=game.revision;
+  if(!myTurn()||(command.kind==='research'&&game.player.research===command.tech))return;
+  working=true;requestGeneration++;const before=game.revision,previousResearch=game.player.research;
+  if(command.kind==='research'){
+   pendingResearch=command.tech;uncertainResearch=null;byId('empResearchNotice').textContent=`Saving research choice: ${game.technologies[command.tech]?.name||command.tech}…`;
+  }
   const id=globalThis.crypto?.randomUUID?.()||`${Date.now()}-${Math.random().toString(36).slice(2)}`;
   const body={...command,revision:before,command_id:id};
   let marker;
@@ -160,11 +172,55 @@
   try{
    const data=await request(`/api/empires/games/${game.code}`,body);game=data;target=null;
    saveSeat({...seat,round:game.round,winner:game.winner,mode:game.mode});
+   if(command.kind==='research')researchConfirmation(command.tech);
+   if(command.kind==='end'&&previousResearch&&game.player.techs.includes(previousResearch)){
+    const tech=game.technologies[previousResearch],message=`${tech.name} discovered. ${tech.benefit}. ${game.player.techs.length===Object.keys(game.technologies).length?'All discoveries are complete.':'Choose your next research.'}`;
+    byId('empResearchNotice').textContent=message;notice(message);
+   }else if(command.kind==='end')byId('empResearchNotice').textContent='';
   }catch(e){
    // Recover with a read, never a blind retry of an uncertain attack/end turn.
-   notice(e.message+' Refreshing the saved campaign.',true);
-   try{game=await request(`/api/empires/games/${game.code}`);}catch{notice('Connection lost. Your last order may have saved. Use Refresh before trying another order.',true);}
-  }finally{marker?.remove();working=false;render();window.ww2Motion?.clearSubmitted(svg);}
+   if(command.kind!=='research')notice(e.message+' Refreshing the saved campaign.',true);
+   if(command.kind==='research')byId('empResearchNotice').textContent='Research choice not confirmed yet. Checking the saved campaign…';
+   try{
+    game=await request(`/api/empires/games/${game.code}`);
+    if(command.kind==='research')reconcileResearch(command.tech);
+   }catch{
+    const message='Connection lost. Your last order may have saved. Use Refresh before trying another order.';
+    if(command.kind==='research'){uncertainResearch=command.tech;byId('empResearchNotice').textContent=message;}else notice(message,true);
+   }
+  }finally{
+   marker?.remove();working=false;pendingResearch=null;render();window.ww2Motion?.clearSubmitted(svg);
+   if(command.kind==='research'&&tab==='research'&&byId('empOrdersSheet').open)byId('empOrdersSheet').scrollTo({top:0,behavior:'instant'});
+  }
+ }
+ function researchConfirmation(tech){
+  if(game.player.research!==tech)return;
+  byId('empResearchNotice').textContent=`Research saved: ${game.technologies[tech].name}. Progress advances when you End turn. No unit AP was spent.`;
+ }
+ function reconcileResearch(tech){
+  if(game.player.research===tech)researchConfirmation(tech);
+  else byId('empResearchNotice').textContent=game.player.techs.includes(tech)?`${game.technologies[tech].name} has already been discovered.`:`Research did not change. ${game.player.research?game.technologies[game.player.research].name+' is still selected.':'Choose a technology to begin.'}`;
+ }
+ function researchTiming(tech){
+  const remaining=Math.max(0,tech.cost-game.player.knowledge),income=game.economy.knowledge;
+  if(game.winner)return 'Campaign complete; research will not advance further.';
+  if(remaining>0&&income<=0)return 'No knowledge income yet; increase it to make progress.';
+  const turns=Math.max(1,Math.ceil(remaining/Math.max(1,income)));
+  return turns===1?'Completes when you next End turn, at current income.':`About ${turns} of your turns remaining at current income.`;
+ }
+ function currentResearch(){
+  const box=el('section',undefined,'emp-current-research'),tech=game.technologies[game.player.research];box.id='empCurrentResearch';
+  box.setAttribute('aria-labelledby','empCurrentResearchTitle');
+  box.append(el('p','CIVILIZATION RESEARCH','emp-kicker'));
+  const title=el('h3',tech?`Current research: ${tech.name}`:game.player.techs.length===Object.keys(game.technologies).length?'All discoveries complete':'Choose your next research');title.id='empCurrentResearchTitle';box.append(title);
+  if(tech){
+   box.append(el('p',`${game.player.knowledge} / ${tech.cost} knowledge · +${game.economy.knowledge} each turn`,'emp-research-progress-text'));
+   const bar=el('progress');bar.max=tech.cost;bar.value=Math.min(game.player.knowledge,tech.cost);bar.setAttribute('aria-label',`${tech.name}: ${game.player.knowledge} of ${tech.cost} knowledge stored`);box.append(bar);
+   box.append(el('p',researchTiming(tech),'emp-research-timing'),el('p',tech.benefit));
+  }else box.append(el('p',`${game.player.knowledge} knowledge stored. ${game.player.techs.length===Object.keys(game.technologies).length?'Your discoveries are listed below.':'Choose an available technology below; stored knowledge carries over.'}`));
+  box.append(el('p',depth('Research belongs to your whole civilization. It uses knowledge, not a unit’s AP. It advances when you End turn, not while you wait.','One civilization-wide technology at a time. Knowledge is added at your turn end; unit AP is unaffected.','At your turn end: add knowledge income, then complete the selected technology if its cost is met. Excess knowledge carries over; no unit AP cost.')));
+  if(tech&&!game.winner)box.append(el('p','You can switch to another available discovery below. Your stored knowledge is kept.','emp-small'));
+  return box;
  }
  byId('empEnd').onclick=()=>{
   if(!myTurn())return;
@@ -268,15 +324,20 @@
  }
  function renderPanel(){
   if(!game)return;const panel=byId('empPanel');panel.replaceChildren();for(const b of root.querySelectorAll('[data-emp-tab]'))b.setAttribute('aria-pressed',String(b.dataset.empTab===tab));
+  byId('empResearchNotice').hidden=tab!=='research';
   if(!myTurn())panel.append(el('p',turnSummary(),'emp-warning'));
   if(tab==='research'){
-   panel.append(el('h3',depth('Choose what to discover','A new understanding','Research & prerequisites')),el('p',depth(`Knowledge unlocks discoveries. You have ${game.player.knowledge} and gain ${game.economy.knowledge} each turn. Choose a benefit below.`,`${game.player.knowledge} knowledge stored · +${game.economy.knowledge} each turn. Knowledge carries over when you change research.`,`Stored ${game.player.knowledge} knowledge; income +${game.economy.knowledge}/turn. One selected technology can complete per turn; excess knowledge carries over.`)));
+   panel.append(currentResearch(),el('h3',depth('Discoveries','Discoveries & timing','Discoveries & prerequisites')));
    for(const [k,t] of Object.entries(game.technologies)){
     const done=game.player.techs.includes(k),available=t.requires.every(r=>game.player.techs.includes(r)),selected=game.player.research===k;
-    const b=button(`${done?'✓ ':selected?'→ ':''}${t.name} · ${t.cost} knowledge`,()=>order({kind:'research',tech:k}),!myTurn()||done||!available,'emp-tech');b.setAttribute('aria-pressed',String(selected));b.dataset.empTech=k;
-    const missing=Math.max(0,t.cost-game.player.knowledge),timing=missing?`${Math.ceil(missing/Math.max(1,game.economy.knowledge))} turns at current income`:'Can finish at turn end';
-    b.append(el('small',t.benefit+(done?' · Discovered':!available?` · Requires ${t.requires.map(r=>game.technologies[r].name).join(', ')}`:selected?' · Researching':'')));
-    if(!done&&available&&experience()!=='simple')b.append(el('small',timing));
+    const b=button(`${done?'✓ ':''}${t.name} · ${t.cost} knowledge`,()=>order({kind:'research',tech:k}),!myTurn()||done||!available||selected,'emp-tech');b.setAttribute('aria-pressed',String(selected));b.dataset.empTech=k;
+    b.dataset.researchState=pendingResearch===k?'pending':selected?'active':done?'complete':available?'available':'locked';
+    if(selected)b.setAttribute('aria-current','true');
+    const missing=Math.max(0,t.cost-game.player.knowledge);
+    b.append(el('span',pendingResearch===k?'Saving choice…':selected?'✓ Active research':done?'Discovered':available?game.player.research?'Switch research':'Start research':'Requires discovery','emp-research-badge'));
+    b.append(el('small',t.benefit+(available?'':` · Requires ${t.requires.map(r=>game.technologies[r].name).join(', ')}`)));
+    if(selected)b.append(el('small',`${game.player.knowledge} / ${t.cost} knowledge · progress at End turn`));
+    if(!done&&available&&(selected||experience()!=='simple'))b.append(el('small',researchTiming(t)));
     if(experience()==='expert')b.append(el('small',`Prerequisites: ${t.requires.map(r=>game.technologies[r].name).join(', ')||'none'}. ${done?'Completed.':missing+' knowledge remaining.'}`));
     panel.append(b);
    }
@@ -440,6 +501,8 @@
    `${game.factions[game.side].name} · Round ${game.round} of ${game.last_round}. Gold ${game.player.gold} (${signed(game.economy.gold)}/turn). Knowledge ${game.player.knowledge} (+${game.economy.knowledge}/turn). Upkeep ${game.economy.upkeep} gold/turn.`,
    `R${game.round}/${game.last_round} · Gold ${game.player.gold}; net ${signed(game.economy.gold)}/turn after ${game.economy.upkeep} upkeep. Knowledge ${game.player.knowledge}; +${game.economy.knowledge}/turn. Score ${game.score} = 4/city + population + 3/technology + ruins.`
   )+` ${game.player.research?'Research: '+game.technologies[game.player.research].name+'.':'Choose your next research.'}${game.economy.shortage?' Upkeep shortfall: '+game.economy.shortage+' production.':''}`;
+  const research=game.technologies[game.player.research];
+  byId('empResearchOpen').replaceChildren('Research',el('small',research?`${research.name} · ${game.player.knowledge}/${research.cost} knowledge`:game.player.techs.length===Object.keys(game.technologies).length?'All discoveries complete':'Choose your next discovery'));
   byId('empMenuOpen').textContent=game.winner?'Result':!game.ready?'Invite':`Menu · ${levelName()}`;
   byId('empMenuOpen').setAttribute('aria-label',`Campaign menu and Experience: ${levelName()}${!game.ready?' · invitation code':game.winner?' · result':''}`);
   byId('empSelectedName').textContent=(unit?game.unit_types[unit.kind].name:city?.name||'Select a unit or city')+' · Orders';

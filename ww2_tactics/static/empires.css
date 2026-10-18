@@ -110,6 +110,21 @@ body.empires-active :is(#empires,#empManual) :is(input,select){border-color:var(
 .emp-stats{display:flex;gap:12px;flex-wrap:wrap;font-size:12px;margin-bottom:12px;color:var(--emp-gold)}
 #empires .emp-tech{display:block;width:100%;text-align:left;margin:6px 0;padding:10px}
 #empires .emp-tech small{display:block;font-weight:400;color:var(--emp-muted);line-height:1.5;margin-top:3px}
+#empires .emp-tech[data-research-state=active],#empires .emp-tech[data-research-state=pending]{opacity:1;border-color:var(--emp-gold);box-shadow:inset 3px 0 var(--emp-gold)}
+#empires .emp-tech[data-research-state=pending]{border-style:dashed}
+.emp-research-badge{display:block;width:fit-content;max-width:100%;margin:7px 0 5px;padding:3px 7px;border:1px solid var(--emp-line);border-radius:4px;font-size:12px;line-height:1.5}
+.emp-tech[data-research-state=active] .emp-research-badge,.emp-tech[data-research-state=pending] .emp-research-badge{color:var(--emp-gold);border-color:var(--emp-gold)}
+.emp-current-research{padding:14px;margin-bottom:22px;border:1px solid var(--emp-gold);border-radius:5px;background:var(--emp-raised)}
+.emp-current-research h3{margin:6px 0 12px;font-size:21px;line-height:1.35;overflow-wrap:anywhere}
+#empPanel .emp-current-research .emp-kicker{margin:0;font-size:10px;color:var(--emp-gold)}
+#empPanel .emp-research-progress-text,#empPanel .emp-research-timing{color:var(--emp-text);font-weight:600}
+.emp-current-research progress{display:block;width:100%;height:12px;appearance:none;-webkit-appearance:none;border:1px solid var(--emp-line);border-radius:8px;overflow:hidden;background:var(--emp-panel);accent-color:var(--emp-gold)}
+.emp-current-research progress::-webkit-progress-bar{background:var(--emp-panel)}
+.emp-current-research progress::-webkit-progress-value{background:var(--emp-gold)}
+.emp-current-research progress::-moz-progress-bar{background:var(--emp-gold)}
+#empResearchNotice{margin:0 0 16px;padding:12px;border-left:4px solid var(--emp-gold);background:var(--emp-raised);color:var(--emp-text);font-size:14px;line-height:1.6}
+#empResearchNotice:empty{display:none}
+#empResearchOpen small{display:block;margin-top:4px;font-weight:400;color:var(--emp-muted)}
 #empEnd{width:100%;margin-top:20px}
 .emp-journal{border-top:1px solid var(--emp-line);margin-top:20px;padding-top:12px}
 #empLatest{display:block;font-size:12px;line-height:1.5;font-weight:400;color:var(--emp-muted);margin:8px 0}
