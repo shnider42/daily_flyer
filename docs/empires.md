@@ -51,6 +51,33 @@ The Empires phone shell is independent of DSL's layout manager because their
 unit, city and turn states differ. Hex geometry and movement animation remain
 shared. This does not claim parity with every DSL display option or gesture.
 
+### Experience throughout the interface
+
+Empires uses `ww2Experience`, the same browser preference controller and saved
+choice as DSL. New browsers default to Simple; existing choices are respected.
+Change it on the Empires home screen, in **Menu → Experience** on a phone, in
+the campaign's desktop Experience control, or in How to play. All selectors
+stay synchronized. Experience does not change opponent difficulty or rules.
+
+| Surface | Simple | Moderate | Expert |
+| --- | --- | --- | --- |
+| Map and dock | Clean map without coordinate labels; short next-step instructions | Coordinates, AP/banking guidance | Coordinates, range, AP and exact city stores |
+| Units and roster | Essential HP/AP, roles and plain action explanations | Position and quantified action effects | Maximum HP, expanded sight/upkeep/range and movement rules |
+| Cities | What food/production do and estimated project timing | Stored food, growth target, production progress | Growth arithmetic and expanded production rules |
+| Research | Benefits, costs and unavailable prerequisite messages | Adds estimated completion timing | Adds full prerequisites and expanded carryover rules |
+| Diplomacy | Plain-language contact, agreements and war consequences | Adds economic/timing explanation | Precise acceptance and war conditions |
+| Combat | Plain risk description, hit percentage, damage and AP cost | Numerical odds and cover explanation | Die threshold and expanded probability calculation |
+| Chronicle | Plain combat outcomes; inspectable dice details | Adds hit chances | Original full combat messages |
+| Help | A first-turn walkthrough | Planning and tactical advice | Exact reference expanded by default |
+
+Full rules remain inspectable at every level. Costs, warnings, contact/fog
+status, unavailable-order explanations and every order remain available.
+Changing Experience sends no game request and preserves selection, targeting,
+open sheets, chronicle expansion, camera position and map detail/fit setting.
+Phone hint height stays fixed so changing information depth does not resize
+the map. Manually expanded/collapsed rule sections retain the player's choice.
+Controls remain touch-sized at all levels; Expert does not force desktop layout.
+
 ## Deliberately shared
 
 `hex_geometry.py` contains the exact former DSL odd-row cube conversion,
@@ -102,6 +129,7 @@ python -m unittest discover -s tests -p 'test_empires.py' -v
 python -m unittest discover -s tests -p 'test_ww2.py' -q
 python -m unittest discover -s tests -p 'test_ww2_dsl.py' -q
 node tests/empires-dom.cjs
+node tests/empires-experience-dom.cjs
 node tests/ww2-ground-roles-dom.cjs
 ```
 
@@ -111,6 +139,11 @@ AI turns, saved resume, human invitations, theme changes and returning to DSL.
 They also cover phone control placement, quick orders, sheets, camera/selection
 preservation, city access, pan-versus-tap handling and resize restoration through
 320px portrait, small/large phone landscape and desktop viewport settings.
+Experience checks cover the shared saved preference, all campaign panels,
+unchanged legal actions/state, zero submitted orders on preference changes,
+combat targets and warnings, retained camera/sheets and reload/DSL continuity.
+Combat presentation uses explicit local fixtures; those checks do not claim
+additional server combat validation.
 They do not validate rendered browser layout. Real phone/desktop playtesting,
 Safari motion inspection and military balance remain important follow-up work.
 

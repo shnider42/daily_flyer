@@ -6,9 +6,10 @@ function request(route,options={}){
  return {ok:r.status>=200&&r.status<300,status:r.status,json:async()=>r.data};
 }
 const delay=()=>new Promise(r=>setTimeout(r,30));
-async function make(width){
+async function make(width,initialStorage={}){
  const dom=new JSDOM(fs.readFileSync(path.join(root,'ww2_tactics/static/index.html'),'utf8'),{url:'http://dsl.test/',runScripts:'outside-only',pretendToBeVisual:true});
  const w=dom.window,ctx=dom.getInternalVMContext();w.innerWidth=width;w.innerHeight=844;w.scrollTo=()=>{};w.setInterval=()=>0;
+ for(const [key,value] of Object.entries(initialStorage))w.localStorage.setItem(key,value);
  w.matchMedia=query=>{const min=query.match(/min-width:\s*(\d+)/),max=query.match(/max-width:\s*(\d+)/);return {matches:query.includes('prefers-reduced-motion')||!!(min||max)&&(!min||width>=+min[1])&&(!max||width<=+max[1]),media:query,addEventListener(){},removeEventListener(){}};};
  w.DOMMatrix=class{constructor(){Object.assign(this,{a:1,b:0,c:0,d:1,e:0,f:0});}multiply(){return this;}inverse(){return this;}scale(){return this;}translate(){return this;}};
  w.DOMPoint=class{constructor(x,y){this.x=x;this.y=y;}matrixTransform(){return this;}};

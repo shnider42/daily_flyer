@@ -14,7 +14,7 @@ html[data-theme=light] body{--emp-bg:#edf0f4;--emp-panel:#f8f7f2;--emp-text:#243
 body.empires-active #gameModeSwitch button{color:var(--emp-text);border-color:var(--emp-line)}
 body.empires-active #gameModeSwitch button[aria-pressed=true]{background:var(--emp-panel);box-shadow:inset 0 -3px 0 var(--emp-gold)}
 body.empires-active select option{background:var(--emp-bg);color:var(--emp-text)}
-body.empires-active #empires :is(input,select){border-color:var(--emp-line)}
+body.empires-active :is(#empires,#empManual) :is(input,select){border-color:var(--emp-line)}
 #empires{max-width:1440px;margin:auto;padding:20px 24px 50px;font-size:14px;color:var(--emp-text)}
 #empires *,#empManual *,#empConfirm *{box-sizing:border-box}
 #empires h1,#empires h2,#empires h3{color:var(--emp-text);font-family:Georgia,serif;font-weight:400;letter-spacing:0}
@@ -122,6 +122,24 @@ body.empires-active #empires :is(input,select){border-color:var(--emp-line)}
 #empManual h2,#empConfirm h2{font:28px/1.3 Georgia,serif}
 #empManual h3{font:21px Georgia,serif;color:var(--emp-gold)}
 #empManual p{font-size:14px}
+#empires .emp-experience,#empManual .emp-experience{padding:14px 0;border-block:1px solid var(--emp-line);margin:16px 0;max-width:620px}
+#empires .emp-experience label,#empManual .emp-experience label{display:block;margin:0 0 5px;color:var(--emp-text);font-size:14px;font-weight:700}
+#empires .emp-experience select,#empManual .emp-experience select{display:block;width:100%;min-height:46px;margin:0;padding:9px 12px;border:1px solid var(--emp-line);border-radius:3px;background:var(--emp-bg);color:var(--emp-text);font:16px/1.4 system-ui,sans-serif}
+#empires .emp-experience p,#empManual .emp-experience p{font-size:12px;line-height:1.5;margin:7px 0 0;color:var(--emp-muted)}
+#empMenu .emp-experience{margin:0 0 14px;padding-top:0;border-top:0}
+#empires .emp-rule-detail,#empManual .emp-rule-detail{padding:10px 0;border-top:1px solid var(--emp-line);margin-top:16px}
+#empires .emp-rule-detail summary,#empManual .emp-rule-detail summary{min-height:44px;display:flex;gap:8px;align-items:center;padding:8px;color:var(--emp-gold);font-size:13px;cursor:pointer;list-style:none}
+#empires .emp-rule-detail summary::before,#empManual .emp-rule-detail summary::before{content:'＋';font-size:16px;flex:none}
+#empires .emp-rule-detail[open]>summary::before,#empManual .emp-rule-detail[open]>summary::before{content:'−'}
+.emp-rule-detail summary::-webkit-details-marker{display:none}
+#empires .emp-rule-detail p{font-size:12px;line-height:1.6}
+#empires .emp-action-help p{font-size:12px;margin:8px 0;line-height:1.5}
+#empires .emp-unavailable{border-left:2px solid var(--emp-line);padding-left:8px}
+#empires .emp-warning{border-left:3px solid var(--emp-gold);padding:8px;background:var(--emp-raised)}
+#empires[data-experience=simple] #empMap .emp-coordinate{display:none}
+#empires[data-experience=simple] #empPanel>p,#empires[data-experience=simple] .emp-action-help p{font-size:14px;line-height:1.65}
+#empires[data-experience=expert] #empMap .emp-coordinate{opacity:.9}
+#empires #empMobileTop #empMenuOpen{font-size:11px;max-width:120px;white-space:nowrap}
 @media(hover:hover){#empires button:not(:disabled):hover,#gameModeSwitch button:hover{border-color:var(--emp-gold);box-shadow:inset 0 0 0 1px var(--emp-gold);transform:none!important}#empires a:hover{text-decoration-thickness:2px}}
 @media(min-width:1700px){#empires,#gameModeSwitch,body.empires-active>header{max-width:1640px}.emp-layout{grid-template-columns:minmax(0,1fr) 340px}}
 @media(max-width:900px){.emp-layout{grid-template-columns:1fr}.emp-sidebar{padding:16px}.emp-home-grid{gap:30px}#empPanel{min-height:0}.emp-tabs{max-width:420px}.emp-hero{gap:20px}.emp-principles{gap:18px}#empMapWrap{max-height:58svh}}
@@ -156,7 +174,7 @@ body.empires-mobile #empires{padding:0;max-width:none}
 #empSelectedName{display:block;font-size:12px;line-height:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 #empSelectedMeta{display:block;font-size:10px;line-height:14px;color:var(--emp-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 .empires-mobile #empEnd{width:auto;flex:none;margin:0;font-size:12px;padding:8px 10px}
-#empires #empMobileHint{margin:4px 2px;font-size:11px;line-height:15px;max-height:30px;overflow:hidden;color:var(--emp-muted)}
+#empires #empMobileHint{margin:4px 2px;font-size:11px;line-height:15px;min-height:30px;max-height:30px;overflow:hidden;color:var(--emp-muted)}
 #empQuickOrders{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px}
 #empires #empQuickOrders button{min-height:44px;padding:4px;font-size:11px;line-height:15px}
 #empires .emp-sheet{box-sizing:border-box;background:var(--emp-panel);color:var(--emp-text);border:1px solid var(--emp-line);border-radius:10px 10px 0 0;width:100%;max-width:620px;max-height:calc(100dvh - env(safe-area-inset-top) - 20px);margin:auto auto 0;padding:12px 14px max(16px,env(safe-area-inset-bottom));overscroll-behavior:contain;overflow:auto;box-shadow:0 -8px 40px #0005}

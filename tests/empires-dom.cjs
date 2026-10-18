@@ -70,7 +70,7 @@ async function main(){
     assert.equal($('empRosterSheet').open,false);assert.equal($('empOrdersSheet').open,true);assert.equal(w.empiresUI.selection,city.id);
     assert.ok($('empProject'));await click(v,w.document.querySelector('[data-emp-close="empOrdersSheet"]'));
     await click(v,$('empMenuOpen'));await click(v,$('empResearchOpen'));
-    assert.equal($('empMenu').open,false);assert.equal($('empOrdersSheet').open,true);assert.match($('empPanel').textContent,/knowledge stored/);
+    assert.equal($('empMenu').open,false);assert.equal($('empOrdersSheet').open,true);assert.equal($('empPanel').querySelectorAll('[data-emp-tech]').length,8);
     await click(v,w.document.querySelector('[data-emp-close="empOrdersSheet"]'));
     await click(v,$('empMenuOpen'));await click(v,$('empAppearance'));
     assert.equal(w.document.documentElement.dataset.theme,'light');
