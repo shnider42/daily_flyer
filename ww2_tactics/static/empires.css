@@ -4,12 +4,17 @@
 #gameModeSwitch button span{display:block;font-size:11px;font-weight:400;opacity:.8;margin-top:2px}
 #gameModeSwitch button[aria-pressed=true]{box-shadow:inset 0 -3px 0 var(--ui-accent,#94703b)}
 body.empires-active>main{display:none!important}
-body.empires-active{background:var(--emp-bg)!important;color:var(--emp-text)!important}
-body.empires-active>header{display:flex!important;max-width:1440px;width:auto;position:static;padding:12px 24px}
+body.empires-active{background:var(--emp-bg)!important;color:var(--emp-text)!important;--ui-bg:var(--emp-bg);--ui-surface:var(--emp-panel);--ui-raised:var(--emp-raised);--ui-input:var(--emp-bg);--ui-text:var(--emp-text);--ui-muted:var(--emp-muted);--ui-line:var(--emp-line);--ui-accent:var(--emp-gold)}
+body.empires-active>header{display:flex!important;max-width:1440px;width:auto;position:static;padding:12px 24px;background:var(--emp-bg);border-color:var(--emp-line)}
 body.empires-active>header #rulesButton,body.empires-active>header #homeBattles{display:none!important}
 body.empires-active>header .brand{color:var(--emp-gold)}
-body{--emp-bg:#171e1b;--emp-panel:#212c26;--emp-text:#eee9dc;--emp-muted:#bcc6ba;--emp-line:#526452;--emp-gold:#dfc28b;--emp-raised:#2a3a31}
-html[data-theme=light] body{--emp-bg:#eeeadd;--emp-panel:#f9f5ea;--emp-text:#26382d;--emp-muted:#50614e;--emp-line:#9ca890;--emp-gold:#725422;--emp-raised:#dfe5d6}
+body.empires-active>header .brand span{color:var(--emp-muted)}
+body{--emp-bg:#131c2b;--emp-panel:#1c2a3d;--emp-text:#f0e9dc;--emp-muted:#b9c7da;--emp-line:#526783;--emp-gold:#e0bb7e;--emp-raised:#293c55}
+html[data-theme=light] body{--emp-bg:#edf0f4;--emp-panel:#f8f7f2;--emp-text:#24354c;--emp-muted:#4f6178;--emp-line:#8a9bb2;--emp-gold:#805b28;--emp-raised:#dce4ef}
+body.empires-active #gameModeSwitch button{color:var(--emp-text);border-color:var(--emp-line)}
+body.empires-active #gameModeSwitch button[aria-pressed=true]{background:var(--emp-panel);box-shadow:inset 0 -3px 0 var(--emp-gold)}
+body.empires-active select option{background:var(--emp-bg);color:var(--emp-text)}
+body.empires-active #empires :is(input,select){border-color:var(--emp-line)}
 #empires{max-width:1440px;margin:auto;padding:20px 24px 50px;font-size:14px;color:var(--emp-text)}
 #empires *,#empManual *,#empConfirm *{box-sizing:border-box}
 #empires h1,#empires h2,#empires h3{color:var(--emp-text);font-family:Georgia,serif;font-weight:400;letter-spacing:0}
@@ -20,7 +25,7 @@ html[data-theme=light] body{--emp-bg:#eeeadd;--emp-panel:#f9f5ea;--emp-text:#263
 #empires button,#empManual button,#empConfirm button{min-height:44px;background:var(--emp-raised);color:var(--emp-text);border:1px solid var(--emp-line);border-radius:3px;padding:9px 13px;font-size:13px;line-height:1.3;transition:background-color .12s,border-color .12s;transform:none!important}
 #empires button:disabled{opacity:.5;cursor:default}
 #empires button[aria-pressed=true]{border-color:var(--emp-gold);background:var(--emp-raised);box-shadow:inset 0 -2px 0 var(--emp-gold)}
-#empires .emp-primary{background:#d8bc84;color:#18261d;border-color:#e7cd98;font-weight:700}
+#empires .emp-primary{background:#e0bb7e;color:#172438;border-color:#ecd2a6;font-weight:700}
 #empires input,#empires select{display:block;width:100%;min-height:46px;margin:6px 0 18px;padding:10px;border:1px solid var(--emp-line);border-radius:3px;background:var(--emp-bg);color:var(--emp-text);font:inherit}
 #empires label{font-size:13px;color:var(--emp-muted);margin:16px 0 4px}
 #empires .emp-small{font-size:12px;color:var(--emp-muted);line-height:1.7}
@@ -57,7 +62,7 @@ html[data-theme=light] body{--emp-bg:#eeeadd;--emp-panel:#f9f5ea;--emp-text:#263
 .emp-board-column{min-width:0}
 .emp-map-toolbar{display:flex;justify-content:space-between;gap:10px;align-items:center;font-size:10px;letter-spacing:1px;padding:0 0 9px;flex-wrap:wrap}
 .emp-map-toolbar button{font-size:12px!important;padding:7px 10px!important}
-#empMapWrap{position:relative;overflow:auto;background:#1a2725;border:1px solid var(--emp-line);border-radius:3px;contain:layout paint;touch-action:pan-x pan-y;max-height:73svh;overscroll-behavior:contain}
+#empMapWrap{position:relative;overflow:auto;background:#152133;border:1px solid var(--emp-line);border-radius:3px;contain:layout paint;touch-action:pan-x pan-y pinch-zoom;max-height:73svh;overscroll-behavior:contain}
 #empMap{display:block;width:100%;height:auto;max-width:none;min-width:0;transform:translateZ(0)}
 #empMapWrap.emp-detail #empMap{width:1100px;min-width:1100px}
 #empMap .emp-tile{stroke:#5b7961;stroke-width:.8;fill:#9aaf7a}
@@ -67,7 +72,7 @@ html[data-theme=light] body{--emp-bg:#eeeadd;--emp-panel:#f9f5ea;--emp-text:#263
 #empMap .emp-tile.mountain{fill:#8f948b}
 #empMap .emp-tile.water{fill:#5a8a91;stroke:#67969b}
 #empMap .emp-tile.bridge{fill:#d5c49b}
-#empMap .emp-tile.unknown{fill:#273833;stroke:#344940}
+#empMap .emp-tile.unknown{fill:#24354b;stroke:#364d67}
 #empMap .emp-tile.remembered{filter:brightness(.62) saturate(.65)}
 #empMap .emp-tile.can-move{stroke:#f5e4a3;stroke-width:2.5;stroke-dasharray:5 3;cursor:pointer}
 #empMap .emp-tile.chosen{stroke:#fff2bd;stroke-width:3.5}
@@ -113,7 +118,7 @@ html[data-theme=light] body{--emp-bg:#eeeadd;--emp-panel:#f9f5ea;--emp-text:#263
 #empMessage{position:sticky;bottom:12px;background:var(--emp-panel);border-left:3px solid var(--emp-gold);padding:12px 16px;box-shadow:0 6px 22px #0004;z-index:10;max-width:700px;margin:14px auto 0;white-space:pre-wrap}
 #empMessage:empty{display:none}
 #empManual,#empConfirm{background:var(--emp-panel);color:var(--emp-text);border:1px solid var(--emp-line);border-radius:5px;max-width:620px;width:calc(100% - 24px);max-height:85svh;padding:25px;line-height:1.7}
-#empManual::backdrop,#empConfirm::backdrop{background:#08110dbb}
+#empManual::backdrop,#empConfirm::backdrop{background:#070f1cbb}
 #empManual h2,#empConfirm h2{font:28px/1.3 Georgia,serif}
 #empManual h3{font:21px Georgia,serif;color:var(--emp-gold)}
 #empManual p{font-size:14px}
@@ -121,3 +126,59 @@ html[data-theme=light] body{--emp-bg:#eeeadd;--emp-panel:#f9f5ea;--emp-text:#263
 @media(min-width:1700px){#empires,#gameModeSwitch,body.empires-active>header{max-width:1640px}.emp-layout{grid-template-columns:minmax(0,1fr) 340px}}
 @media(max-width:900px){.emp-layout{grid-template-columns:1fr}.emp-sidebar{padding:16px}.emp-home-grid{gap:30px}#empPanel{min-height:0}.emp-tabs{max-width:420px}.emp-hero{gap:20px}.emp-principles{gap:18px}#empMapWrap{max-height:58svh}}
 @media(max-width:600px){#empires{padding:10px 14px 30px}#gameModeSwitch{padding:0 14px}#gameModeSwitch button{flex:1}.emp-hero{grid-template-columns:1fr;padding:25px 0;gap:25px;min-height:0}.emp-hero-map{display:none}#empires .emp-hero h1{font-size:72px}.emp-home-grid{grid-template-columns:1fr;padding:30px 0}.emp-home-grid>section+section{border-top:1px solid var(--emp-line);padding-top:25px}.emp-principles{grid-template-columns:1fr;gap:5px}.emp-resources{gap:12px 22px}.emp-resources strong{font-size:16px}.emp-campaign-heading .emp-inline{margin-bottom:12px}#empires .emp-campaign-heading h1{font-size:29px;margin-bottom:8px}#empMapWrap.emp-detail #empMap{width:860px;min-width:860px}#empires input,#empires select{font-size:16px}body.empires-active>header{padding:10px 14px}#empMessage{bottom:8px;font-size:13px}}
+
+/* Map-first phone/tablet layout, matching DSL's fixed viewport and order dock. */
+body.empires-mobile{overflow:hidden;overscroll-behavior:none}
+body.empires-mobile>header{display:none!important}
+body.empires-mobile #empires{padding:0;max-width:none}
+.empires-mobile #empPlay>:not(#empMobileScreen){display:none!important}
+#empMobileScreen{position:fixed;inset:0;height:100vh;height:100dvh;display:grid;grid-template-columns:minmax(0,1fr);grid-template-rows:48px 50px minmax(0,1fr) 44px auto;grid-template-areas:'top' 'resources' 'map' 'nav' 'orders';padding:env(safe-area-inset-top) max(6px,env(safe-area-inset-right)) env(safe-area-inset-bottom) max(6px,env(safe-area-inset-left));overflow:hidden;background:var(--emp-bg)}
+#empMobileTop{grid-area:top;display:flex;gap:5px;align-items:center;min-width:0}
+#empMobileStatus{min-width:0;flex:1}
+#empMobileTitle{display:block;font-size:12px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.empires-mobile #empTurn{padding:0;font-size:10px;line-height:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#empires #empMobileTop button{padding:5px 8px;font-size:12px;flex:none;background:transparent;border-color:transparent}
+.empires-mobile #empResources{grid-area:resources;display:grid;grid-template-columns:repeat(4,minmax(0,1fr));gap:6px;padding:6px 3px;align-items:center;min-width:0}
+.empires-mobile #empResources>div{gap:1px;min-width:0}
+.empires-mobile #empResources small{font-size:8px;letter-spacing:.6px}
+.empires-mobile #empResources strong{font-size:15px;line-height:18px}
+.empires-mobile #empResources span{display:none}
+.empires-mobile #empMapWrap{grid-area:map;width:100%;height:100%;min-height:0;max-height:none!important;overflow-anchor:none;margin-top:3px;border-radius:3px}
+.empires-mobile #empMapWrap:not(.emp-detail) #empMap{width:100%;height:100%;min-width:0}
+.empires-mobile #empMapWrap.emp-detail #empMap{width:860px;min-width:860px;height:auto}
+#empUnitNav{grid-area:nav;display:flex;align-items:center;gap:2px;min-width:0}
+#empires #empUnitNav button{font-size:11px;padding:5px;white-space:nowrap;min-width:44px;background:transparent;border-color:transparent}
+#empires #empUnitNav #empPrevious,#empires #empUnitNav #empNext{font-size:25px;padding:0;width:44px;flex:none}
+#empires #empRosterOpen{flex:1;text-align:left;min-width:0;overflow:hidden;text-overflow:ellipsis}
+#empOrderDock{grid-area:orders;min-width:0;padding:4px 0 6px;border-top:1px solid var(--emp-line);background:var(--emp-bg)}
+#empOrderHead{display:flex;gap:6px;align-items:center;min-height:46px}
+#empires #empOrdersOpen{flex:1;min-width:0;text-align:left;padding:4px 7px;background:var(--emp-panel)}
+#empSelectedName{display:block;font-size:12px;line-height:16px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#empSelectedMeta{display:block;font-size:10px;line-height:14px;color:var(--emp-muted);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+.empires-mobile #empEnd{width:auto;flex:none;margin:0;font-size:12px;padding:8px 10px}
+#empires #empMobileHint{margin:4px 2px;font-size:11px;line-height:15px;max-height:30px;overflow:hidden;color:var(--emp-muted)}
+#empQuickOrders{display:grid;grid-template-columns:repeat(3,minmax(0,1fr));gap:4px}
+#empires #empQuickOrders button{min-height:44px;padding:4px;font-size:11px;line-height:15px}
+#empires .emp-sheet{box-sizing:border-box;background:var(--emp-panel);color:var(--emp-text);border:1px solid var(--emp-line);border-radius:10px 10px 0 0;width:100%;max-width:620px;max-height:calc(100dvh - env(safe-area-inset-top) - 20px);margin:auto auto 0;padding:12px 14px max(16px,env(safe-area-inset-bottom));overscroll-behavior:contain;overflow:auto;box-shadow:0 -8px 40px #0005}
+#empires .emp-sheet::backdrop{background:#070f1cbf}
+#empires .emp-sheet-heading{position:sticky;top:-12px;z-index:1;display:flex;gap:8px;align-items:center;justify-content:space-between;background:var(--emp-panel);padding:6px 0 12px;margin-bottom:10px;border-bottom:1px solid var(--emp-line)}
+#empires .emp-sheet-heading h2{font-size:22px;margin:0}
+#empires .emp-sheet-heading button{font-size:12px;flex:none}
+#empOrdersSheet .emp-sidebar{padding:0;border:0}
+#empOrdersSheet .emp-tabs{max-width:none;padding-bottom:8px;margin-bottom:12px;background:var(--emp-panel)}
+#empOrdersSheet #empPanel{min-height:0}
+#empRosterSheet #empRoster{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));overflow:visible;padding:0}
+#empRosterSheet #empRoster button{min-width:0}
+.emp-menu-actions{display:flex;gap:6px;flex-wrap:wrap;margin:12px 0}
+#empMenu #empAppearance{width:100%;text-align:left}
+#empMenu #empAccountTools{margin-top:18px}
+#empires .emp-sheet-notice{padding:10px;border-left:3px solid var(--emp-gold);background:var(--emp-bg);font-size:13px}
+.empires-mobile #empMessage{position:fixed;top:calc(env(safe-area-inset-top) + 52px);bottom:auto;left:12px;right:12px;margin:0 auto;font-size:12px;pointer-events:none}
+@media(max-width:359px){#empMobileTitle{font-size:11px}#empires #empUnitNav button{padding:4px 2px;font-size:10px}#empQuickOrders{grid-template-columns:repeat(2,minmax(0,1fr))}}
+@media(max-height:520px) and (min-width:480px) and (max-width:1099px){
+ #empMobileScreen{grid-template-columns:minmax(0,1fr) min(300px,45vw);grid-template-rows:44px 44px minmax(0,1fr) 44px;grid-template-areas:'top resources' 'map orders' 'map orders' 'nav orders';column-gap:8px}
+ #empOrderDock{overflow:auto;border-top:0;padding-top:10px}
+ #empQuickOrders{grid-template-columns:repeat(2,minmax(0,1fr))}
+ #empOrderHead{flex-wrap:wrap}
+ #empMobileHint{margin-block:10px!important}
+}

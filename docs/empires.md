@@ -26,6 +26,31 @@ Two heuristic AIs completed four seeded development games with scores 64–64,
 balance or the quality of decisions. Later development can plateau once cities
 and research reach their caps; human pacing and victory scoring need playtests.
 
+## Display and phone controls
+
+Empires has a midnight-blue and brass night palette, with a slate/parchment
+daylight alternative. The shared appearance preference remains the same across
+both games; selecting Empires changes its palette and browser theme color.
+
+Below 1100px, campaigns use DSL's map-first interaction pattern: a fixed dynamic
+viewport, safe-area padding, compact resources, previous/next units with AP,
+centering/fit controls, selected-unit status, quick orders and End turn. Landscape
+phones place orders beside the map. Research, diplomacy, city production, the
+roster and campaign menu use native modal sheets with a Back to map control.
+Selecting an own unit leaves the map usable for movement; selecting a city or
+rival opens its details. The roster includes cities, including those under units.
+
+These are the existing map and controls moved between layout anchors, not a
+second campaign state. Sheet navigation does not change the camera or send an
+order; resizing restores the same controls. Quick orders and the full Orders
+panel use one action-button builder and the server's legal actions. An already
+fortified unit cannot waste AP repeating Fortify through either UI. A pointer
+drag is suppressed as a map click, preventing an accidental move on release.
+
+The Empires phone shell is independent of DSL's layout manager because their
+unit, city and turn states differ. Hex geometry and movement animation remain
+shared. This does not claim parity with every DSL display option or gesture.
+
 ## Deliberately shared
 
 `hex_geometry.py` contains the exact former DSL odd-row cube conversion,
@@ -83,6 +108,9 @@ node tests/ww2-ground-roles-dom.cjs
 DOM checks require `jsdom`. They exercise the full application document against
 real Flask test-client requests, including unchanged URL, move/AP, research,
 AI turns, saved resume, human invitations, theme changes and returning to DSL.
+They also cover phone control placement, quick orders, sheets, camera/selection
+preservation, city access, pan-versus-tap handling and resize restoration through
+320px portrait, small/large phone landscape and desktop viewport settings.
 They do not validate rendered browser layout. Real phone/desktop playtesting,
 Safari motion inspection and military balance remain important follow-up work.
 

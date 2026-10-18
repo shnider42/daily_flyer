@@ -12,7 +12,13 @@
  let rememberedMode='dsl',noticeTimer;
  try{saves=JSON.parse(localStorage.getItem('empires-sessions')||'[]');if(!Array.isArray(saves))saves=[];saves=saves.filter(s=>s&&typeof s.code==='string');rememberedMode=localStorage.getItem('dfe-game-mode')||'dsl';}catch{}
  function auth(){try{return JSON.parse(localStorage.getItem('ww2-commander')||'null');}catch{return null;}}
- function notice(text,persist=false){clearTimeout(noticeTimer);byId('empMessage').textContent=text;if(!persist)noticeTimer=setTimeout(()=>byId('empMessage').textContent='',8000);}
+ function notice(text,persist=false){
+  clearTimeout(noticeTimer);byId('empMessage').textContent=text;
+  root.querySelectorAll('.emp-sheet-notice').forEach(n=>n.remove());
+  const sheet=root.querySelector('.emp-sheet[open]');
+  if(sheet){const n=el('p',text,'emp-sheet-notice');n.setAttribute('role','status');sheet.querySelector('.emp-sheet-heading').after(n);}
+  if(!persist)noticeTimer=setTimeout(()=>{byId('empMessage').textContent='';root.querySelectorAll('.emp-sheet-notice').forEach(n=>n.remove());},8000);
+ }
  function saveSeat(value){
   const old=saves.find(s=>s.code===value.code)||{};seat={...old,...value};saves=[seat,...saves.filter(s=>s.code!==seat.code)].slice(0,50);
   try{localStorage.setItem('empires-sessions',JSON.stringify(saves));}catch{notice('Browser storage is unavailable. Link this campaign to a commander before closing the tab.',true);}
@@ -23,10 +29,10 @@
  }
  const myTurn=()=>game&&game.ready&&!game.winner&&game.turn===game.side&&!working;
  function button(text,fn,disabled=false,cls){const b=el('button',text,cls);b.type='button';b.disabled=disabled;b.addEventListener('click',fn);return b;}
- function confirm(title,text,action){confirmAction=action;byId('empConfirmTitle').textContent=title;byId('empConfirmText').textContent=text;byId('empConfirm').showModal();}
+ function confirm(title,text,action){closeMobileSheets();confirmAction=action;byId('empConfirmTitle').textContent=title;byId('empConfirmText').textContent=text;byId('empConfirm').showModal();}
  byId('empConfirmCancel').onclick=()=>byId('empConfirm').close();
  byId('empConfirmYes').onclick=()=>{const action=confirmAction;confirmAction=null;byId('empConfirm').close();action?.();};
- byId('empManualOpen').onclick=()=>byId('empManual').showModal();byId('empManualClose').onclick=()=>byId('empManual').close();
+ byId('empManualOpen').onclick=()=>{closeMobileSheets();byId('empManual').showModal();};byId('empManualClose').onclick=()=>byId('empManual').close();
  function mode(value){
   if(working)return;
   if(value==='empires'&&!byId('game').hidden)return;
@@ -36,9 +42,9 @@
   const brand=document.querySelector('header .brand');brand.firstChild.textContent=active?'EMPIRES ':'DSL ';brand.querySelector('span').textContent=active?'THE RIVERLANDS':'TACTICAL COMMAND';
   try{localStorage.setItem('dfe-game-mode',value);}catch{}
   if(active)loadCampaigns();else window.ww2Motion?.clear(svg);
-  syncSwitch();
+  syncSwitch();syncPalette();
  }
- function syncSwitch(){byId('gameModeSwitch').hidden=active?!byId('empPlay').hidden:!byId('game').hidden;}
+ function syncSwitch(){byId('gameModeSwitch').hidden=active?!byId('empPlay').hidden:!byId('game').hidden;syncMobile();}
  byId('modeDSL').onclick=()=>mode('dsl');byId('modeEmpires').onclick=()=>mode('empires');
  new MutationObserver(syncSwitch).observe(byId('game'),{attributes:true,attributeFilter:['hidden']});
  byId('empBack').onclick=()=>{
@@ -107,7 +113,7 @@
    if(u)window.ww2Motion?.submitted(svg,u,move);
    const [cx,cy]=hexCenter(...command.pos);marker=se('circle',{cx,cy,r:24,class:'emp-order-pending'});svg.append(marker);
   }
-  byId('empTurn').textContent=command.kind==='end'?'Resolving the turn…':'Order sent…';renderPanel();byId('empEnd').disabled=true;
+  byId('empTurn').textContent=command.kind==='end'?'Resolving the turn…':'Order sent…';renderPanel();renderMobile();byId('empEnd').disabled=true;
   try{
    const data=await request(`/api/empires/games/${game.code}`,body);game=data;target=null;
    saveSeat({...seat,round:game.round,winner:game.winner,mode:game.mode});
@@ -125,7 +131,7 @@
  };
  byId('empConcede').onclick=()=>confirm('Concede this campaign?','The other civilization wins. Your completed chronicle stays saved.',()=>order({kind:'resign'}));
  byId('empLink').onclick=async()=>{
-  if(!auth()){byId('commanderSignIn').click();notice('After signing in, choose Link to commander again.');return;}
+  if(!auth()){closeMobileSheets();byId('commanderSignIn').click();notice('After signing in, choose Link to commander again.');return;}
   try{await request(`/api/empires/games/${game.code}/link`,{});saveSeat({...seat,commander:auth().name});notice('Campaign linked. Sign in as this commander to resume on another device.');}catch(e){notice(e.message);}
  };
  byId('empCopyInvite').onclick=async()=>{try{await navigator.clipboard.writeText(game.code);notice('Campaign code copied.');}catch{byId('empInviteCode').select();notice('Select and copy the campaign code.');}};
@@ -133,7 +139,8 @@
  function select(id){
   const u=game.units.find(u=>u.id===id),c=game.cities.find(c=>c.id===id);
   if(u?.side!==game.side&&!c?.side){target=id;}else if((u||c)?.side!==game.side){target=id;}else{chosen=id;target=null;}
-  inspected=(u||c)?.pos||null;tab='orders';renderMap();renderPanel();renderRoster();
+  inspected=(u||c)?.pos||null;tab='orders';renderMap();renderPanel();renderRoster();renderMobile();
+  if(mobile&&(c||target))openPanel('orders');
  }
  function chooseHex(pos){
   if(working)return;
@@ -142,7 +149,7 @@
   const c=game.cities.find(c=>same(c.pos,pos)),units=game.units.filter(u=>same(u.pos,pos));
   if(units.length){const own=units.find(u=>u.side===game.side);select((own||units[0]).id);return;}
   if(c){select(c.id);return;}
-  inspected=pos;target=null;tab='orders';renderMap();renderPanel();
+  inspected=pos;target=null;tab='orders';renderMap();renderPanel();renderMobile();
  }
  function activate(n,action){n.addEventListener('click',e=>{e.stopPropagation();action();});n.addEventListener('keydown',e=>{if(['Enter',' '].includes(e.key)){e.preventDefault();action();}});}
  function motionValue(){return {...game,fog_of_war:true,visible_hexes:game.visible.map(p=>p.split(',').map(Number))};}
@@ -200,9 +207,20 @@
  }
  function renderRoster(){
   const roster=byId('empRoster');roster.replaceChildren();
-  for(const u of game.units.filter(u=>u.side===game.side)){
-   const b=button(`${symbols[u.kind]} ${game.unit_types[u.kind].name}`,()=>{select(u.id);focusSelection();});b.setAttribute('aria-pressed',String(chosen===u.id));b.append(el('small',`${u.hp} HP · ${u.ap} AP${u.shaken?' · shaken':''}`));roster.append(b);
+  for(const c of game.cities.filter(c=>c.side===game.side)){
+   const b=button(`♜ ${c.name}`,()=>{closeMobileSheets();select(c.id);focusSelection();});b.setAttribute('aria-pressed',String(chosen===c.id));b.append(el('small',`Population ${c.population} · ${c.project?c.projects[c.project]?.name||c.project:'Choose production'}`));roster.append(b);
   }
+  for(const u of game.units.filter(u=>u.side===game.side)){
+   const b=button(`${symbols[u.kind]} ${game.unit_types[u.kind].name}`,()=>{closeMobileSheets();select(u.id);focusSelection();});b.setAttribute('aria-pressed',String(chosen===u.id));b.append(el('small',`${u.hp} HP · ${u.ap} AP${u.shaken?' · shaken':''}`));roster.append(b);
+  }
+ }
+ function unitOptions(unit){
+  const options=unit.kind==='settler'?['found']:unit.kind==='builder'?['farm','mine','road']:['fortify'];
+  if(unit.shaken)options.unshift('rally');if(unit.hp<game.unit_types[unit.kind].hp)options.push('rest');return options;
+ }
+ function unitAction(unit,kind){
+  const fortified=kind==='fortify'&&unit.fortified;
+  return button(fortified?'Fortified':labels[kind],()=>order({kind,unit:unit.id}),fortified||!myTurn()||!game.legal[unit.id]?.actions.includes(kind));
  }
  function renderPanel(){
   if(!game)return;const panel=byId('empPanel');panel.replaceChildren();for(const b of root.querySelectorAll('[data-emp-tab]'))b.setAttribute('aria-pressed',String(b.dataset.empTab===tab));
@@ -245,12 +263,10 @@
    panel.append(el('p','Tap another city on the map to manage it.'));return;
   }
   if(unit?.side===game.side){
-   const stats=game.unit_types[unit.kind],legal=game.legal[unit.id];panel.append(el('h3',stats.name),el('div',`${unit.hp}/${stats.hp} strength · ${unit.ap} AP · ${coord(unit.pos)}`,'emp-stats'),el('p',stats.role));
+   const stats=game.unit_types[unit.kind];panel.append(el('h3',stats.name),el('div',`${unit.hp}/${stats.hp} strength · ${unit.ap} AP · ${coord(unit.pos)}`,'emp-stats'),el('p',stats.role));
    panel.append(el('p',unit.shaken?'Shaken: rally before moving or attacking.':unit.road_bonus?'Your next adjacent road hex is free. Another action forfeits it.':'Tap a highlighted neighboring hex to move. Labels show the AP cost.'));
    if(unit.charges!==undefined)panel.append(el('p',`${unit.charges} building charges remaining. Improvements need a friendly city within two hexes.`));
-   const options=unit.kind==='settler'?['found']:unit.kind==='builder'?['farm','mine','road']:['fortify'];
-   if(unit.shaken)options.unshift('rally');if(unit.hp<stats.hp)options.push('rest');
-   const actions=el('div',undefined,'emp-actions');for(const k of options)actions.append(button(labels[k],()=>order({kind:k,unit:unit.id}),!myTurn()||!legal?.actions.includes(k)));panel.append(actions);
+   const actions=el('div',undefined,'emp-actions');for(const k of unitOptions(unit))actions.append(unitAction(unit,k));panel.append(actions);
    if(unit.kind==='settler')panel.append(el('p','Cities must be at least 4 hexes apart. Founding consumes the settlers. Maximum: 4 cities.'));
    if(stats.reach)panel.append(el('p',`Attack range ${stats.reach} · cost 2 AP. Tap a visible enemy to inspect the shot before confirming.`));
   }else panel.append(el('h3','Your next decision'),el('p','Select a city to build, or a unit to explore. The Research and Diplomacy tabs shape your civilization beyond the battlefield.'));
@@ -269,7 +285,7 @@
   byId('empResult').hidden=!game.winner;byId('empResult').textContent=game.winner?`${game.winner==='draw'?'A shared legacy':game.winner===game.side?'Victory':'Defeat'} · ${game.result} ${game.scores?Object.entries(game.scores).map(([k,v])=>`${game.factions[k].name}: ${v}`).join(' · '):''}`:'';
   byId('empEnd').disabled=!myTurn();byId('empConcede').disabled=!myTurn();byId('empLink').disabled=working;
   byId('empLatest').textContent=game.journal.at(-1)?.text||'';byId('empJournal').replaceChildren(...game.journal.slice().reverse().map(v=>el('li',`R${v.round} · ${v.text}`)));
-  renderMap();renderRoster();renderPanel();byId('empZoom').textContent=detail?'Fit map':'Detail ＋';byId('empZoom').setAttribute('aria-pressed',String(detail));
+  renderMap();renderRoster();renderPanel();renderMobile();byId('empZoom').textContent=detail?'Fit map':'Detail ＋';byId('empZoom').setAttribute('aria-pressed',String(detail));
  }
  function focusSelection(){
   if(!game)return;const item=game.units.find(u=>u.id===chosen)||game.cities.find(c=>c.id===chosen)||game.cities.find(c=>c.side===game.side);if(!item)return;
@@ -278,6 +294,86 @@
  }
  byId('empFind').onclick=focusSelection;
  byId('empZoom').onclick=()=>{detail=!detail;window.ww2Motion?.clear(svg);byId('empMapWrap').classList.toggle('emp-detail',detail);byId('empZoom').textContent=detail?'Fit map':'Detail ＋';byId('empZoom').setAttribute('aria-pressed',String(detail));focusSelection();};
+ // DSL's phone pattern: one viewport, persistent map/orders, secondary sheets.
+ // Move the existing controls, preserving handlers and a single source of state.
+ let mobile=false;
+ const mobileNodes=['empMapWrap','empResources','empTurn','empZoom','empFind','empEnd','empSidebar','empRoster','empInvitation','empResult','empChronicle','empAccountTools','empManualOpen','empReload'];
+ const anchors=new Map(mobileNodes.map(id=>{const anchor=document.createComment(id+' home');byId(id).before(anchor);return [id,anchor];}));
+ const sheets=['empOrdersSheet','empRosterSheet','empMenu'];
+ const sheetButtons={empOrdersSheet:'empOrdersOpen',empRosterSheet:'empRosterOpen',empMenu:'empMenuOpen'};
+ function closeMobileSheets(){for(const id of sheets)if(byId(id).open)byId(id).close();}
+ function openSheet(id){
+  if(!mobile)return;closeMobileSheets();byId(id).showModal();byId(sheetButtons[id]).setAttribute('aria-expanded','true');
+ }
+ function openPanel(value){tab=value;renderPanel();openSheet('empOrdersSheet');}
+ for(const id of sheets){
+  const dialog=byId(id);dialog.addEventListener('close',()=>{const opener=byId(sheetButtons[id]);opener.setAttribute('aria-expanded','false');if(mobile)opener.focus({preventScroll:true});});
+  dialog.querySelector('[data-emp-close]').onclick=()=>dialog.close();
+ }
+ byId('empOrdersOpen').onclick=()=>openPanel('orders');
+ byId('empResearchOpen').onclick=()=>openPanel('research');
+ byId('empDiplomacyOpen').onclick=()=>openPanel('diplomacy');
+ byId('empRosterOpen').onclick=()=>openSheet('empRosterSheet');
+ byId('empMenuOpen').onclick=()=>openSheet('empMenu');
+ byId('empMobileHome').onclick=()=>byId('empBack').click();
+ byId('empAppearance').onclick=()=>byId('appearanceToggle').click();
+ function syncPalette(){
+  const dark=document.documentElement.dataset.theme!=='light';
+  byId('empAppearance').textContent=dark?'Night colors · switch to daylight':'Daylight colors · switch to night';
+  byId('empAppearance').setAttribute('aria-pressed',String(dark));
+  document.querySelector('meta[name="theme-color"]')?.setAttribute('content',active?(dark?'#131c2b':'#edf0f4'):(dark?'#171e1b':'#f4f1e8'));
+ }
+ new MutationObserver(syncPalette).observe(document.documentElement,{attributes:true,attributeFilter:['data-theme']});
+ function syncMobile(){
+  const next=active&&!!game&&!byId('empPlay').hidden&&innerWidth<1100;
+  if(next===mobile)return;
+  closeMobileSheets();mobile=next;document.body.classList.toggle('empires-mobile',mobile);byId('empMobileScreen').hidden=!mobile;
+  if(mobile){
+   byId('empMobileScreen').append(byId('empResources'),byId('empMapWrap'));
+   byId('empMobileStatus').append(byId('empTurn'));
+   byId('empUnitNav').append(byId('empZoom'),byId('empFind'));byId('empFind').textContent='Center';
+   byId('empOrderHead').append(byId('empEnd'));byId('empOrdersSheet').append(byId('empSidebar'));
+   byId('empRosterSheet').append(byId('empRoster'));
+   byId('empMenu').append(byId('empInvitation'),byId('empResult'),byId('empChronicle'),byId('empAccountTools'));
+   byId('empMenuTools').append(byId('empManualOpen'),byId('empReload'));
+  }else{
+   for(const [id,anchor] of anchors)anchor.after(byId(id));byId('empFind').textContent='Find selection';
+  }
+  renderMobile();
+ }
+ function cycleUnit(step){
+  if(!game||working)return;
+  const own=game.units.filter(u=>u.side===game.side),ready=own.filter(u=>u.ap>0),pool=ready.length?ready:own;if(!pool.length)return;
+  const index=pool.findIndex(u=>u.id===chosen),next=index<0?(step>0?0:pool.length-1):(index+step+pool.length)%pool.length;
+  select(pool[next].id);focusSelection();
+ }
+ byId('empPrevious').onclick=()=>cycleUnit(-1);byId('empNext').onclick=()=>cycleUnit(1);
+ function renderMobile(){
+  if(!game)return;
+  const unit=game.units.find(u=>u.id===chosen&&u.side===game.side),city=game.cities.find(c=>c.id===chosen&&c.side===game.side);
+  const ready=game.units.filter(u=>u.side===game.side&&u.ap>0).length;
+  byId('empMobileTitle').textContent=`Empires · ${game.factions[game.side].name}`;
+  byId('empEconomySummary').textContent=`${game.factions[game.side].name} · Round ${game.round} of ${game.last_round}. Gold ${game.player.gold} (${game.economy.gold>=0?'+':''}${game.economy.gold}/turn). Knowledge ${game.player.knowledge} (+${game.economy.knowledge}/turn). ${game.player.research?'Research: '+game.technologies[game.player.research].name+'.':'Choose your next research.'}${game.economy.shortage?' Upkeep shortfall: '+game.economy.shortage+' production.':''}`;
+  byId('empMenuOpen').textContent=game.winner?'Result':!game.ready?'Invite':'Menu';
+  byId('empSelectedName').textContent=(unit?game.unit_types[unit.kind].name:city?.name||'Select a unit or city')+' · Orders';
+  byId('empSelectedMeta').textContent=unit?`${unit.hp} HP · ${unit.ap} AP · ${coord(unit.pos)}${unit.shaken?' · shaken':''}`:city?`Population ${city.population} · ${city.project?city.projects[city.project]?.name||city.project:'Choose production'}`:'Tap the map to select';
+  byId('empRosterOpen').textContent=`Units & cities · ${ready} ready`;
+  byId('empPrevious').disabled=byId('empNext').disabled=working||!game.units.some(u=>u.side===game.side);
+  for(const id of ['empPrevious','empNext'])byId(id).setAttribute('aria-label',`${id==='empNext'?'Next':'Previous'} ${ready?'unit with AP':'unit'}`);
+  byId('empMobileHint').textContent=working?'Saving order…':game.winner?byId('empResult').textContent:!game.ready?'Open Invite to share your campaign code.':!myTurn()?'Waiting for the other civilization.':target?'Open Orders to review your target.':unit?.shaken?'Rally before moving or attacking.':unit?.road_bonus?'Your next road hex is free.':unit?`Tap a highlighted hex to move · ${unit.ap} AP left`:city?'Choose production in Orders; cities build at turn end.':'Select a unit to explore, or a city to build.';
+  const quick=byId('empQuickOrders');quick.replaceChildren();
+  if(unit&&!target)for(const k of unitOptions(unit))quick.append(unitAction(unit,k));
+  else quick.append(button(target?'Review target':'Production',()=>openPanel('orders'),!city&&!target));
+  if(quick.children.length<3)quick.append(button('Research',()=>openPanel('research')));
+ }
+ window.addEventListener('resize',()=>{const before=mobile;syncMobile();if(before!==mobile&&game)requestAnimationFrame(focusSelection);});
+ // A pan must never also issue the click-to-move order at its release point.
+ let mapPointer=null,mapDragged=false;
+ byId('empMapWrap').addEventListener('pointerdown',e=>{mapDragged=!!mapPointer;mapPointer={x:e.clientX,y:e.clientY,id:e.pointerId};},{passive:true});
+ byId('empMapWrap').addEventListener('pointermove',e=>{if(mapPointer&&Math.hypot(e.clientX-mapPointer.x,e.clientY-mapPointer.y)>10)mapDragged=true;},{passive:true});
+ byId('empMapWrap').addEventListener('pointerup',()=>{mapPointer=null;},{passive:true});
+ byId('empMapWrap').addEventListener('pointercancel',()=>{mapPointer=null;mapDragged=true;},{passive:true});
+ byId('empMapWrap').addEventListener('click',e=>{if(mapDragged&&e.detail){e.preventDefault();e.stopImmediatePropagation();}},{capture:true});
  // A small illustrated atlas is generated from the same offset grid, not a screenshot.
  const atlas=byId('empAtlas');
  for(let y=0;y<7;y++)for(let x=0;x<9;x++){
