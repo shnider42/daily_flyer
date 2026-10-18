@@ -1,0 +1,6 @@
+.unit-badge-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(160px,1fr));gap:10px;margin-block:12px}
+.unit-badge-key{display:flex;align-items:center;gap:8px;font-size:13px}
+.unit-badge-key svg{flex:none;width:24px;height:24px}
+.unit-badge-legend{margin-block:16px}
+.role-loadout{font-weight:700}
+#rules.specialist-manual>:not(.manual-head,h2,#groundRolesManual,#unitBadgeLegend,#buildingManual){display:none}

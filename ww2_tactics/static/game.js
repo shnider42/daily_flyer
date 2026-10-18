@@ -132,6 +132,7 @@ function center(x,y){return [27+x*52+(y%2)*26,30+y*49];}
 function unitTypeName(u){if(u.display_name)return u.display_name;return state?.naval_version&&u.kind==='amphibious'?'Landing section':kinds[u.kind];}
 function unitName(u){return unitTypeName(u)+(u.platoon?` ${u.platoon}${u.number}`:'');}
 function unitRoleSummary(u){
+ if(state?.ground_roles_version===1&&u.role_label)return window.groundRoleSummary?.(u)||u.role_label;
  if(state?.britain_ops_version)return window.britainRole?.(u)||'Daytime air operations · finite flights and fuel';
  if(state?.midway_ops_version)return window.midwayRole?.(u)||'Daytime carrier battle · finite aircraft';
  if(state?.scenario?.night_ops_version)return window.nightRole?.(u)||'Night raid · read the mission and current legal orders';
@@ -397,6 +398,7 @@ function render(){
  if(window.renderMidway)window.renderMidway(unit,legal,svg);
  if(window.renderBritain)window.renderBritain(unit,legal,svg);
  if(window.renderSmallFronts)window.renderSmallFronts(unit,legal,svg);
+ if(window.renderGroundRoles)window.renderGroundRoles(unit,legal);
  if(window.renderOrderCapabilities)window.renderOrderCapabilities(unit);
  const buildingWarning=unit&&unit.hp>0&&!unit.reserve&&!unit.carrier_id&&buildingCondition(state,unit.pos)==='damaged'&&!picking&&!target;
  $('hint').classList.toggle('building-warning',!!buildingWarning);

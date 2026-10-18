@@ -10,7 +10,7 @@ from .rulesets import profile, dsl, base_ap, bank_limit, turn_limit, road
 from .effects import record_effect, record_shot_effect
 from . import combined, naval, transport, campaigns, air, weapons, buildings, operations, fieldworks, linked_front, signals, airborne, domains, fubar, logistics, new_fronts, deployment
 from .visibility import fog, active, visible_ids, unit_visible_ids, sees_hex, update_intel, record_reports
-from . import fire_control, editions, nightfall, midway2, air_support, carrier_decks, britain2, weather, debrief, small_fronts
+from . import fire_control, editions, nightfall, midway2, air_support, carrier_decks, britain2, weather, debrief, small_fronts, ground_roles
 
 WIDTH, HEIGHT = 7, 9
 OBJECTIVE = [3, 4]
@@ -79,7 +79,7 @@ def line_clear(a, b, smoke=(), state=None, high_ground=False):
 
 
 def initial(scenario='village', ruleset='classic'):
-    return debrief.initialize(weather.initialize(small_fronts.initialize(_initial(scenario, ruleset))))
+    return debrief.initialize(weather.initialize(ground_roles.initialize(small_fronts.initialize(_initial(scenario, ruleset)))))
 
 
 def _initial(scenario='village', ruleset='classic'):
@@ -170,6 +170,7 @@ def watchers(state, target, pos):
     destination = dict(target, pos=pos, entrenched=False)
     return [u for u in state['units'] if u['side'] != target['side'] and active(u)
             and u.get('overwatch') and not u['pinned']
+            and ground_roles.allowed(state,u,'overwatch')
             and not air_support.ship_aa(state,u)
             and distance(u['pos'], pos) <= u['range']
             and line_clear(u['pos'], pos, state.get('smoke', []), state)
@@ -181,7 +182,7 @@ def watchers(state, target, pos):
 def preview_threats(state,unit,pos,seen):
     if not signals.enabled(state):return sum(w['id'] in seen for w in watchers(state,unit,pos))
     return sum(active(u) and u['side']!=unit['side'] and u['id'] in seen and u['range']>0
-               and distance(u['pos'],pos)<=u['range'] and line_clear(u['pos'],pos,state.get('smoke',[]),state)
+               and ground_roles.threatens(state,u,pos) and line_clear(u['pos'],pos,state.get('smoke',[]),state)
                and weapons.damage(u,unit)>0 for u in state['units'])
 
 
@@ -217,6 +218,10 @@ def react(state, mover, roll):
 
 
 def options(state, unit):
+    return ground_roles.filter_options(state,unit,_options(state,unit))
+
+
+def _options(state, unit):
     if deployment.active(state):
         return dict(moves=[],targets=[],smoke=[],barrage=[],assaults=[],grenades=[],suppress=[],inspire=[],command=[],rally=False)
     if domains.joint(state):
@@ -345,6 +350,7 @@ def _apply(state, side, action, roll=None):
     message = ""
     reactions = []
     if kind == "end":
+        recovery=ground_roles.end_turn(state,side)
         operations.end_turn(state)
         reactions = resolve_barrages(state, names, roll_die) if state.get('rules_version', 1) >= 4 else []
         reactions.extend(airborne.end_turn(state,side))
@@ -388,13 +394,16 @@ def _apply(state, side, action, roll=None):
                     u.update(air_used=False,recon_used=False,torpedo_used=False,repair_used=False,rearm_used=False)
         midway2.start_turn(state,state['turn'])
         carrier_decks.start_turn(state,state['turn'])
+        ground_roles.start_turn(state,state['turn'])
         if not state["winner"]: reactions.extend(linked_front.arrive(state, react, roll_die))
-        message = f"{names[side]} ended their turn."
+        message = f"{names[side]} ended their turn."+(' '+ ' '.join(recovery) if recovery else '')
     else:
         unit = next((u for u in state["units"] if u["id"] == action.get("unit") and u["hp"] > 0 and u["side"] == side), None)
         if unit is None:
             raise ValueError("Choose one of your surviving units.")
         legal = options(state, unit)
+        if not ground_roles.allowed(state,unit,kind):
+            raise ValueError('This unit’s role does not have that order.')
         signals.before_order(unit,kind)
         airborne.before_order(unit,kind)
         nightfall.before_order(state,unit,kind)

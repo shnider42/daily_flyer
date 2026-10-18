@@ -7,6 +7,47 @@
  let illustrationId=0;
  const ships=new Set(['carrier','battleship','cruiser','destroyer']);
  const planes=new Set(['fighter','bomber','transport_aircraft']);
+ // Shared game-role insignia, not faction-specific historical rank charts.
+ const badges={
+  squad:['Rifle infantry','M-4-1 0 2 4-1'],
+  leader:['Lieutenant','M0-4V4'],
+  captain:['Captain','M-2-4V4M2-4V4'],
+  commander:['Major / company command','M0-5 1.5-2 4-3 3 0 5 1 1 3 0 5-1 3-5 1-3 0-4-3-1.5-2Z'],
+  mg:['Machine-gun team','M-5-2H5M-4 1H4M0 1V4M0 2-3 5M0 2 3 5'],
+  scout:['Reconnaissance','M-4-4H-2V-1M2-4H4V-1M-1 1H1M-5-1H-1V4H-5ZM1-1H5V4H1Z'],
+  engineer:['Engineers','M-4-4 4 4M-4 4 4-4M-5-1-2-4M2 4 4 2'],
+  mortar:['Mortar team','M-4 4 1-4 3-3-2 5M-5 5H5M1 0 5 5'],
+  at_team:['Anti-tank team','M-5 0H5M1-4 5 0 1 4'],
+  sniper:['Sniper','M-5 0H5M0-5V5M-3-3H3V3H-3Z'],
+  radioman:['Radio team','M-2-1H2V5H-2ZM0-1V-5M-4-4-2-2M4-4 2-2'],
+  paratrooper:['Paratroopers','M-5 0Q0-9 5 0ZM-4 0 0 5 4 0M0 0V5'],
+  pathfinder:['Pathfinder','M0-5V5M-5 0H5M-3-3 3 3M3-3-3 3'],
+  commando:['Commando','M-3 5 3-5 3 0-1 5M-4 1 1 4'],
+  mountain:['Mountain infantry','M-5 4 0-5 5 4ZM-2-1 0 0 2-1'],
+  partisan:['Partisans','M-3 5V-5M-3-4H4L1-1 4 2H-3'],
+  askari:['Colonial infantry','M-4-2H4V3H-4ZM-2-4H2V-2'],
+  supply:['Supply team','M-4-4H4V4H-4ZM0-4V4M-4 0H4'],
+  tank:['Tank','M-4-2H4Q7 0 4 3H-4Q-7 0-4-2ZM-1-4H2V-2M2-4H5'],
+  halftrack:['Half-track','M-5-3H2V2H-5ZM2-1H5V2H2M-4 4H0M4 3V4'],
+  amphibious:['Amphibious infantry','M-4-3 0 0 4-3M-5 3Q-2 0 0 3T5 3'],
+  at_gun:['Anti-tank gun','M-5-2H5M-1-2V3M-4 4H-2M2 4H4'],
+  aa_gun:['Anti-aircraft gun','M-4 4 4-4M0 4-4-4M-5 5H5'],
+  radar:['Radar','M0 1 4-4M-4-3Q-4 3 2 3M-2 3V5M-4 5H1'],
+  airfield:['Airfield','M-4-5V5M4-5V5M0-4V-2M0 0V1M0 3V4'],
+  spotlight:['Searchlight','M-4 0 0-4 3-1-1 3ZM3-4 5-5M4-2 6-2M-1 3-3 5M-1 3 1 5']
+ };
+ badges.flak=badges.aa_gun;
+ const badgeKey=u=>u.kind==='leader'&&u.rank==='captain'?'captain':u.kind;
+ window.unitBadgeLabel=u=>badges[badgeKey(u)]?.[0]||'';
+ function roleBadge(u){
+  const key=badgeKey(u),data=badges[key];if(!data)return null;
+  const g=el('g',{class:'unit-role-badge badge-'+key,'data-badge-role':key});
+  g.append(el('rect',{x:-7,y:-7,width:14,height:14,rx:2}),el('path',{d:data[1]}));return g;
+ }
+ window.makeUnitRoleBadge=u=>{
+  const badge=roleBadge(u);if(!badge)return null;
+  const svg=el('svg',{viewBox:'-8 -8 16 16',width:24,height:24,'aria-hidden':'true',focusable:'false'});svg.append(badge);return svg;
+ };
  function el(tag,attrs,text){const n=document.createElementNS(ns,tag);for(const [k,v] of Object.entries(attrs))n.setAttribute(k,v);if(text)n.textContent=text;return n;}
  function size(svg){const width=svg.viewBox.baseVal.width;svg.classList.toggle('compact-unit-art',!!width&&svg.getBoundingClientRect().width/width*40<40);}
  const observer=new ResizeObserver(entries=>entries.forEach(e=>size(e.target)));
@@ -26,7 +67,7 @@
   picture.addEventListener('load',()=>drawing.classList.add('illustration-ready'),{once:true});
   picture.addEventListener('error',()=>{drawing.classList.remove('illustration-ready');viewport.remove();},{once:true});
   viewport.append(picture);drawing.append(fallback,viewport);
-  if(portrait.badge){
+  if(portrait.badge&&!badges[badgeKey(u)]){
    const badge=el('g',{class:`illustration-role role-${portrait.badge}`,transform:'translate(16 -13)'});
    badge.append(el('circle',{r:4.5,class:'role-disc'}));
    const marks={leader:'M-2-2V2M1-2V2',commander:'M0-3 .9-1 3-1 1.3.5 2 3 0 1.5-2 3-1.3.5-3-1-.9-1Z',pathfinder:'M0-3V3M-3 0H3',aa:'M-2 2L2-2M2 2L-2-2',torpedo:'M-3 0H3M1-2L3 0 1 2'};
@@ -183,21 +224,24 @@
   for(const counter of svg.querySelectorAll('.unit')){
    const u=byId.get(counter.dataset.unitId);if(!u)continue;
    const style=detailed?'detailed':'basic';
-   if(counter._unitArtStyle===style)continue;
-   counter._unitArtStyle=style;
+   const signature=[style,u.kind,u.rank||'',u.pinned,u.entrenched,u.overwatch].join(':');
+   if(counter._unitArtStyle===signature)continue;
+   counter._unitArtStyle=signature;
    counter.querySelector('.unit-art')?.remove();counter.querySelector('.unit-art-title')?.remove();
    const [cx,cy]=center(...u.pos),art=el('g',{class:`unit-art unit-art-${style}${u.pinned?' is-pinned':''}`,transform:`translate(${cx} ${cy})`,'aria-hidden':'true','data-art-kind':u.kind});
-   const title=el('title',{class:'unit-art-title'},`${sideLabel(u.side)} ${unitName(u)} · ${u.hp} strength · ${u.ap} AP${u.pinned?' · pinned':''}${u.entrenched?' · dug in':''}${u.overwatch?' · overwatch':''}`);counter.prepend(title);
+   const badge=roleBadge(u),role=window.unitBadgeLabel(u);
+   const title=el('title',{class:'unit-art-title'},`${sideLabel(u.side)} ${unitName(u)}${role?' · '+role:''} · ${u.hp} strength · ${u.ap} AP${u.pinned?' · pinned':''}${u.entrenched?' · dug in':''}${u.overwatch?' · overwatch':''}`);counter.prepend(title);
    art.append(el('path',{class:'portrait-panel',d:'M-17-15H17Q19-15 19-13V5H-19V-13Q-19-15-17-15Z'}));
    const drawing=el('g',{class:`unit-portrait portrait-${u.kind}${u.variant?' portrait-'+u.variant:''}${ships.has(u.kind)?' naval-silhouette':''}${u.kind==='halftrack'?' insignia-halftrack':''}`,transform:'translate(0 -6) scale(.8)'});art.append(drawing);drawUnit(drawing,u);
    if(detailed)illustrate(drawing,u,art);
+   if(badge){badge.setAttribute('transform','translate(17 -14)');art.append(badge);}
    if(u.entrenched){
     const bags=el('g',{class:'counter-sandbags'});art.append(bags);
     for(let x=-19;x<19;x+=9)bags.append(el('path',{d:`M${x} 15q-2 0-2 3t2 3h6q2 0 2-3t-2-3Z`,class:'sandbag'}));
    }
    if(u.overwatch){const eye=el('g',{class:'counter-overwatch',transform:'translate(-16 -15)'});art.append(eye);eye.append(el('circle',{r:5.5,class:'status-disc'}),el('path',{d:'M-4 0Q0-5 4 0Q0 5-4 0Z',class:'status-eye'}),el('circle',{r:1.3,class:'eye-pupil'}));}
-   if(u.pinned){const pin=el('g',{class:'counter-pin',transform:'translate(17 -14)'});art.append(pin);pin.append(el('path',{d:'M-5-5H5V3L0 7-5 3Z',class:'pin-flag'}),el('path',{d:'M0-2V1M0 3v.2',class:'pin-alert'}));}
-   art.append(el('path',{d:'M-23-10V-19H-13M13-19H23V-10M23 10V20H13M-13 20H-23V10',class:'selection-brackets'}),el('path',{d:'M17-19h6v6Z',class:'selection-corner'}));
+   if(u.pinned){const pin=el('g',{class:'counter-pin',transform:badge?'translate(17 4)':'translate(17 -14)'});art.append(pin);pin.append(el('path',{d:'M-5-5H5V3L0 7-5 3Z',class:'pin-flag'}),el('path',{d:'M0-2V1M0 3v.2',class:'pin-alert'}));}
+   art.append(el('path',{d:'M-23-10V-19H-13M13-19H23V-10M23 10V20H13M-13 20H-23V10',class:'selection-brackets'}),el('path',{d:badge?'M-23 14v6h6Z':'M17-19h6v6Z',class:'selection-corner'}));
    const name=counter.querySelector('.unit-name');if(name)name.before(art);else counter.append(art);
   }
   if(!force&&svg._artViewWidth!==svg.viewBox.baseVal.width){svg._artViewWidth=svg.viewBox.baseVal.width;requestAnimationFrame(()=>{if(svg.isConnected)size(svg);});}

@@ -4,6 +4,7 @@ const root=path.resolve(__dirname,'..'),assets=path.join(root,'ww2_tactics/stati
 const kinds=['squad','leader','mg','commander','scout','engineer','at_team','tank','at_gun','amphibious','paratrooper','halftrack','sniper','carrier','battleship','cruiser','destroyer','fighter','bomber','aa_gun','radar','airfield','landing_craft','transport_aircraft','spotlight','supply','radioman','commando','mountain','partisan','askari','mortar','pathfinder','flak'];
 const variants=[['tank','tiger'],['tank','firefly'],['tank','kv1'],['tank','matilda'],['bomber','lancaster'],['bomber','halifax'],['bomber','mosquito_pathfinder'],['fighter','mosquito_fighter'],['fighter','bf110'],['transport_aircraft','dakota'],['aa_gun','heavy_flak'],['aa_gun','light_flak'],['bomber','dive_bomber'],['bomber','torpedo_bomber'],['cruiser','aa_escort'],['cruiser','torpedo_cruiser']];
 const entries=kinds.map(kind=>({kind})).concat(variants.map(([kind,variant])=>({kind,variant})),[{kind:'squad',faction:'de'},{kind:'carrier',faction:'jp'},{kind:'fighter',faction:'jp'},{kind:'fighter',faction:'gb'},{kind:'fighter',faction:'de'}]).map((u,i)=>({id:'art-'+i,side:'us',pos:[0,0],hp:3,ap:2,...u}));
+entries.push({...entries[1],id:'captain',rank:'captain'});
 const markup='<div id="playTools"></div><svg id="map" viewBox="0 0 60 50"></svg><svg id="playbackMap" viewBox="0 0 60 50"></svg><main id="artPlate"></main>';
 function boot(width,preference){
  const dom=new JSDOM(markup,{url:'http://dsl.test',runScripts:'outside-only',pretendToBeVisual:true}),w=dom.window;
@@ -24,6 +25,12 @@ for(const width of [2560,390]){
  for(const u of w.state.units)d.getElementById('artPlate').append(w.makeUnitPortrait(u));
  d.dispatchEvent(new w.Event('ww2:render'));
  assert.equal(d.querySelectorAll('#artPlate .unit-illustration').length,entries.length);
+ for(const [i,u] of entries.entries()){
+  const portrait=d.getElementById('artPlate').children[i],ground=!['carrier','battleship','cruiser','destroyer','fighter','bomber','transport_aircraft','landing_craft'].includes(u.kind);
+  assert.equal(!!portrait.querySelector('.unit-role-badge'),ground,u.kind);
+  if(ground){assert.ok(w.unitBadgeLabel(u));assert.equal(portrait.querySelector('.illustration-role'),null,'Ground badges replace the older tiny overlay');}
+ }
+ assert.ok(d.querySelector('.badge-captain'));assert.ok(d.querySelector('.badge-leader'));assert.ok(d.querySelector('.badge-commander'));
  for(const image of d.querySelectorAll('image')){
   const p=path.join(assets,image.getAttribute('href').replace('/assets/',''));assert.ok(fs.existsSync(p),p);
   assert.ok(image.parentElement.querySelector('image'));assert.ok(image.getAttribute('clip-path'),'Every atlas window needs source clipping, including letterbox space');assert.ok(!image.closest('.unit-portrait').classList.contains('illustration-ready'));
@@ -47,9 +54,11 @@ for(const width of [2560,390]){
  const reserve=w.makeUnitPortrait({...entries[0],reserve:true,carrier_id:'cv'});d.body.append(reserve);assert.ok(reserve.querySelector('image'));
  d.getElementById('unitStyleToggle').click();assert.equal(d.querySelectorAll('image').length,0);assert.equal(w.localStorage.getItem('ww2-unit-style'),'basic');
  assert.equal(d.querySelectorAll('#artPlate .unit-art-basic').length,entries.length);
+ assert.ok(counter.querySelector('.unit-role-badge'),'Role identity remains visible in Basic mode');
  d.getElementById('unitStyleToggle').click();assert.equal(d.querySelectorAll('#artPlate image').length,entries.length);assert.equal(w.localStorage.getItem('ww2-unit-style'),'detailed');
  assert.equal(JSON.stringify(w.state),before,'Artwork and preference changes must not alter battle state');
  const pinned=w.makeUnitPortrait({...entries[0],pinned:true,entrenched:true,overwatch:true});assert.ok(pinned.querySelector('.is-pinned .counter-pin'));assert.ok(pinned.querySelector('.counter-sandbags'));assert.ok(pinned.querySelector('.counter-overwatch'));
+ assert.notEqual(pinned.querySelector('.counter-pin').getAttribute('transform'),pinned.querySelector('.unit-role-badge').getAttribute('transform'),'Pin and role must occupy different corners');
  dom.window.close();
 }
 for(const preference of ['basic','classic','detailed']){const {dom,w}=boot(390,preference);const portrait=w.makeUnitPortrait(entries[0]);assert.equal(!!portrait.querySelector('image'),preference==='detailed');dom.window.close();}
@@ -59,7 +68,7 @@ if(process.argv.includes('--render')){
  // librsvg's embedded-image loader lacks WebP on some hosts; losslessly decode
  // to PNG only for this offline SVG proof. Production continues to use WebP.
  const defs=Object.entries(lib.atlases).map(([key,a])=>`<image id="atlas-${key}" width="${a.width}" height="${a.height}" href="data:image/png;base64,${require('node:child_process').execFileSync('convert',[path.join(assets,'unit-images',a.file),'png:-'],{maxBuffer:20*1024*1024}).toString('base64')}"/>`).join('');
- const all=process.argv.includes('--all'),chosen=all?entries:[entries[0],entries[4],entries[5],entries[6],entries[12],entries[7],entries[34],entries[11],entries[13],entries[14],entries[17],entries[46]];
+ const all=process.argv.includes('--all'),chosen=process.argv.includes('--roles')?[entries[0],entries.at(-1),entries[3],entries[2],entries[4],entries[5],entries[31],{...entries[2],pinned:true,overwatch:true}]:all?entries:[entries[0],entries[4],entries[5],entries[6],entries[12],entries[7],entries[34],entries[11],entries[13],entries[14],entries[17],entries[46]];
  const cols=all?5:4,cardWidth=238,cardHeight=192,rows=Math.ceil(chosen.length/cols),width=cols*cardWidth+40,height=rows*cardHeight+110;
  const groups=chosen.map((u,i)=>{
   const svg=w.makeUnitPortrait(u),counter=svg.querySelector('.unit');

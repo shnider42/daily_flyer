@@ -71,7 +71,8 @@
    if(s.scenario.aid_posts)add('fieldAid');
    if(s.scenario.cave_entrances){if(u.side==='de')add('caveMove');else if(kind==='engineer')add('sealCave');}
   }
-  return [...new Set(ids)];
+  const unique=[...new Set(ids)];
+  return s.ground_roles_version===1?unique.filter(id=>u.role_orders?.includes(id.replace(/[A-Z]/g,c=>'_'+c.toLowerCase()))):unique;
  }
  function reason(id,u){
   if(busy)return 'Order in progress';
@@ -94,7 +95,7 @@
   if(id==='nightDrop'&&u.drop_round===state.round)return 'Already dropped this round';
   if(id==='nightDrop'&&!state.units.some(t=>t.drop_transport===u.id&&t.hp>0&&t.reserve))return 'No airborne squads aboard';
   if(id==='pathfinderFlare'&&!u.flares)return 'No flares left';
-  if(u.pinned&&id!=='rally')return 'Rally this unit first';
+  if(u.pinned&&id!=='rally')return state.ground_roles_version===1&&!u.role_orders?.includes('rally')?'Needs officer rally or a full own turn pinned':'Rally this unit first';
   if(id==='resupply'&&!u.supply_packs)return 'No supply packs left';
   if(id==='evacuate'&&!state.units.some(v=>v.carrier_id===u.id&&v.hp>0&&v.evacuee))return 'Load marked infantry first';
   if(id==='evacuate'&&!state.scenario.evacuation_exits?.some(p=>p[0]===u.pos[0]&&p[1]===u.pos[1]))return 'Sail to the top sea edge';
@@ -148,6 +149,10 @@
   // Classic retains its original, target-specific command controls.
   if(state.ruleset!=='dsl')return;
   const ids=capabilities(u),command=$('commandOrders');
+  if(state.ground_roles_version===1){
+   for(const id of Object.keys(labels))if(!ids.includes(id)){const b=$(id);if(b)b.hidden=true;}
+   if(!ids.includes('command'))command.hidden=true;
+  }
   if(ids.includes('command')&&!command.querySelector('button')){
    const b=document.createElement('button');b.hidden=true;command.append(b);
    b.onclick=()=>act({kind:'command',unit:selected});

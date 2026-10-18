@@ -13,8 +13,11 @@ let dom,w,ctx;
 async function setup(){
  dom=new JSDOM(html,{url:'http://dsl.test/',runScripts:'outside-only',pretendToBeVisual:true});w=dom.window;ctx=dom.getInternalVMContext();
  w.innerWidth=1280;w.innerHeight=900;w.scrollTo=()=>{};
- w.matchMedia=query=>({matches:query.includes('min-width:1100')||query.includes('min-width: 1100'),media:query,addEventListener(){},removeEventListener(){}});
+ w.matchMedia=query=>({matches:query.includes('prefers-reduced-motion')||query.includes('min-width:1100')||query.includes('min-width: 1100'),media:query,addEventListener(){},removeEventListener(){}});
  w.ResizeObserver=class{observe(){}unobserve(){}disconnect(){}};w.CSS={supports:()=>true,escape:s=>s};w.confirm=()=>true;
+ w.DOMMatrix=class{constructor(){Object.assign(this,{a:1,b:0,c:0,d:1,e:0,f:0});}multiply(){return this;}inverse(){return this;}scale(){return this;}translate(){return this;}};
+ w.DOMPoint=class{constructor(x,y){this.x=x;this.y=y;}matrixTransform(){return this;}};
+ Object.defineProperty(w.SVGElement.prototype,'transform',{get(){return {baseVal:{numberOfItems:0}};}});
  w.fetch=async(url,opts)=>request(new URL(url,w.location.href).pathname+new URL(url,w.location.href).search,opts);
  w.HTMLElement.prototype.scrollIntoView=function(){};w.HTMLElement.prototype.scrollTo=function(){};
  w.SVGElement.prototype.getBBox=function(){return {x:0,y:0,width:600,height:800};};
@@ -35,7 +38,7 @@ async function main(){
  assert.equal(e('scenarios.length'),24);
  await click('createSolo');await select('soloScenario','britain');assert.deepEqual([...$('soloSide').options].map(o=>o.text),['RAF','Luftwaffe']);
  await select('soloScenario','village');await select('soloSide','de');await click('startSolo');
- assert.equal(e('state.side'),'de');assert.equal(e('state.turn'),'de');assert.ok(e('state.computer_playback.frames.length')>0);e('window.firstSeat={...session}');
+ assert.equal(e('state.side'),'de');assert.equal(e('state.turn'),'de');assert.ok(e('playbackCount(state)')>0);e('window.firstSeat={...session}');
  await click('resignButton');assert.equal($('battleResultDialog').open,true);assert.equal($('battleResultTitle').textContent,'Defeat');await click('resultReview');e('render()');await delay();assert.equal($('battleResultDialog').open,false);
  await click('showBattleResult');assert.equal($('battleResultDialog').open,true);await click('resultHome');
  await select('homeExperience','moderate');await click('learnStart');assert.equal($('journeyDialog').open,true);assert.equal($('journeyExperience').value,'moderate');assert.equal(w.document.querySelectorAll('.journey-chapter').length,14);
@@ -61,7 +64,7 @@ async function main(){
     assert.equal(new Set(book.map(l=>l.id)).size,book.length,scenario);
     for(const l of book){assert.ok(l.text.length>50,`${scenario} ${level} ${l.id}`);if(l.selector!=='@mission')assert.ok(w.document.querySelector(l.selector),`Missing selector ${l.selector}`);}
     if(state.side==='us')for(const id of expected[state.scenario.source_id||scenario]||[])assert.ok(book.some(l=>l.id===id),`${scenario} ${id}`);
-    if(state.edition==='current')for(const id of ['current-edition','shared-hexes'])assert.ok(book.some(l=>l.id===id),`${scenario} ${id}`);
+    if(state.edition==='current')for(const id of [state.scenario.night_ops_version?'night-sight':'current-edition','shared-hexes'])assert.ok(book.some(l=>l.id===id),`${scenario} ${id}`);
     if(scenario==='village')assert.ok(!book.some(l=>['mortar','supply','airlift','fleet','service','preparation'].includes(l.id)));
    }
   }

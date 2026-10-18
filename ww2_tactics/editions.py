@@ -38,6 +38,7 @@ def scenario(board):
     rules = ['weapons', 'structures', 'layered_occupancy', 'ground_stacking']
     if board.get('aid_posts'):rules += ['field_aid']
     if board.get('cave_entrances'):rules += ['cave_routes']
+    if board.get('ground_roles_version'):rules += ['specialist_infantry','officer_recovery']
     if board.get('night_ops_version'):rules += ['night_sight','searchlights','flares','transport_airlifts','finite_service']
     if board.get('carrier_ops_version'):rules += ['daytime_sight','finite_air_groups','carrier_decks','finite_service']
     if board.get('britain_ops_version'):rules += ['daytime_sight','finite_air_groups','airfield_turnaround','finite_service','sortie_fuel','radar_guidance','close_escort','raid_damage']

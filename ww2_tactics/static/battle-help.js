@@ -1,5 +1,6 @@
 'use strict';
 window.orderHelp=(id,u,legal,simple)=>{
+ const roleHelp=window.groundRoleHelp?.(id,u);if(roleHelp)return roleHelp;
  const shot=legal?.targets?.find(s=>s.id===target),frag=legal?.grenades?.find(s=>s.id===target),assault=legal?.assaults?.find(s=>s.id===target);
  const strike=legal?.airstrikes?.find(s=>s.id===target),torpedo=legal?.torpedoes?.find(s=>s.id===target);
  const ap=u?.weapon_overrides?.ap||{},he=u?.weapon_overrides?.he||{};

@@ -11,7 +11,7 @@
  const open=node('button','Carrier air group');open.id='carrierGroupOpen';open.hidden=true;$('nextUnit').before(open);
  open.setAttribute('aria-haspopup','dialog');open.setAttribute('aria-controls','carrierAirGroupDialog');
  open.dataset.help='Open the finite aircraft manifest to launch, land or service. These use shared carrier deck cycles.';
- open.onclick=()=>{const u=state.units.find(u=>u.id===selected),cv=u?.carrier_id&&state.units.find(c=>c.id===u.carrier_id);if(cv)chooseUnit(cv);for(const d of document.querySelectorAll('dialog[open]'))if(d!==dialog)d.close();if(!dialog.open)dialog.showModal();};
+ open.onclick=()=>{const u=state.units.find(u=>u.id===selected);if(!(state.midway_ops_version||state.carrier_decks_version===1)||!u||u.hp<=0||!(u.kind==='carrier'||air(u)))return;const cv=u.carrier_id&&state.units.find(c=>c.id===u.carrier_id);if(cv)chooseUnit(cv);for(const d of document.querySelectorAll('dialog[open]'))if(d!==dialog)d.close();if(!dialog.open)dialog.showModal();};
  const limit=cv=>cv.hp*2<=cv.max_hp?1:2;
  const aboard=cv=>state.units.filter(u=>u.hp>0&&u.carrier_id===cv.id);
  function blocked(){return busy||!!playbackSession||!state.ready||!!state.winner||state.turn!==state.side||!!state.coop?.done||!!state.order_history?.redo_required;}

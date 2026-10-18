@@ -3,7 +3,7 @@ import copy
 from contextlib import contextmanager
 from contextvars import ContextVar
 from functools import wraps
-from . import fieldworks, domains, weather, debrief, small_fronts
+from . import fieldworks, domains, weather, debrief, small_fronts, ground_roles
 
 
 _sight_work = ContextVar('sight_work', default=None)
@@ -228,6 +228,7 @@ def view(state, side, terrain_visibility=True):
                   round=state['round'], turn=state['turn'], hold=state['hold'], winner=state['winner'])
     weather.redact(result,state,side)
     small_fronts.redact(result,state,side)
+    ground_roles.redact(result,state,side)
     if state.get('signals_version') or state.get('battlefield', {}).get('fleet_battle_version') or state.get('battlefield',{}).get('night_ops_version'):
         for u in result['units']:
             if u['side']!=side:
@@ -325,6 +326,7 @@ def record_reports(state, before, action, message):
 @sight_reader
 def public_state(state, side):
     result = _public_state(state,side)
+    ground_roles.redact(result,state,side)
     result.pop('_order_history',None)
     return debrief.redact(weather.redact(small_fronts.redact(result,state,side),state,side),state,side)
 

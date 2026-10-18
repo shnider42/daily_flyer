@@ -1,5 +1,9 @@
 #playTools #unitStyleToggle{width:116px;flex:none;white-space:nowrap;font-size:10px;padding-inline:6px}
 .unit-art{pointer-events:none;--art-ink:#f3edce;--art-mid:#c8ccb9;--art-dark:#162e35}
+.unit-role-badge{pointer-events:none}
+.unit-role-badge>rect{fill:#14272c;stroke:#fff0c8;stroke-width:1}
+.unit-role-badge>path{fill:none;stroke:#fff0c8;stroke-width:1.8;stroke-linecap:round;stroke-linejoin:round}
+.unit-role-badge.badge-commander>path{fill:#fff0c8;stroke-width:.6}
 .illustrated-units .unit>:is(.unit-name,.pin,.dug-marker,.watch-marker){display:none}
 .illustrated-units .unit>rect{fill:var(--platoon-color,var(--us-team,#1264b1));stroke:#eee7cb;stroke-width:1.5}
 .illustrated-units .unit.de>rect{fill:var(--platoon-color,var(--de-team,#b53c25))}

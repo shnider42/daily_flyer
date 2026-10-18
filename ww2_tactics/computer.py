@@ -11,7 +11,7 @@ from .scenarios import battlefield
 from .rulesets import dsl, turn_limit
 from .visibility import fog, view, visible_ids, active, sight_reader
 from . import naval, air, weapons, buildings, operations, fieldworks, linked_front, signals, airborne, domains, fubar, new_fronts, logistics, small_fronts
-from . import nightfall, midway2, carrier_decks, britain2
+from . import nightfall, midway2, carrier_decks, britain2, ground_roles
 
 
 def objective_costs(state, goal=None, unit=None):
@@ -74,6 +74,7 @@ def choose_order(state, costs, visited, front_costs=None):
             continue
         goal = new_fronts.goal(state, unit, fubar.ground_goal(state,unit) if domains.joint(state) else linked_front.goal(state, unit))
         goal = small_fronts.goal(state,unit,goal)
+        goal = ground_roles.goal(state,unit,goal)
         if state.get('logistics_version') and unit['kind']=='supply' and unit.get('supply_packs'):
             needs=[v for v in state['units'] if v['side']==side and active(v) and logistics.delivery(v)]
             if needs:goal=min(needs,key=lambda v:distance(unit['pos'],v['pos']))['pos']
@@ -270,6 +271,7 @@ def play_turn(state, roll=None, observers=None, max_orders=None, planning=None, 
         from . import weather
         weather.redact(result,value,viewer)
         small_fronts.redact(result,value,viewer)
+        ground_roles.redact(result,value,viewer)
         result.update(new_fronts.public_fields(value, viewer))
         return result
     previous_snapshot = {viewer: previous_views[viewer] if previous_views and viewer in previous_views else snapshot(state, viewer)

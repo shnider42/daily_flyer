@@ -54,9 +54,9 @@ function renderUnitMechanics(state,unit){
  const type=state.map[unit.pos[1]][unit.pos[0]],condition=buildingCondition(state,unit.pos),cover=['woods','building','tower','church',...(state.naval_version?[]:['objective'])].includes(type)&&condition!=='damaged';
  const terrainCopy=window.fieldworksTerrainHelp?.(type,unit,null,condition,unit.pos)?.[1];
  const items=[terrainCopy|| (condition?buildingHelp(condition):`${type[0].toUpperCase()+type.slice(1)}: ${cover?'incoming fire needs +1 on the die':'no terrain cover bonus'}. Entering this terrain costs ${['woods','building','tower','church'].includes(type)?2:1} action(s).`),
-  `Range ${unit.range} hexes. Intervening woods, buildings and smoke block direct fire. Strength is remaining health; zero removes the unit.`,
+  state.ground_roles_version===1?window.groundRoleSummary(unit):`Range ${unit.range} hexes. Intervening woods, buildings and smoke block direct fire. Strength is remaining health; zero removes the unit.`,
   state.ruleset==='dsl'?`DSL: ${base} base AP plus up to ${bank} banked AP. A paid road-to-road move earns one free connected road hex, once per turn. Firing costs 2 AP.`:`Actions refresh to 2 at the start of this army’s turn. Moving on open ground costs 1; firing costs 2.`];
- if(unit.pinned)items.push('PINNED: cannot move or attack. Rally costs 1 action. Pins remain until rallied; pinned units can still hold the objective.');
+ if(unit.pinned)items.push(state.ground_roles_version===1?window.groundRoleRecovery(unit):'PINNED: cannot move or attack. Rally costs 1 action. Pins remain until rallied; pinned units can still hold the objective.');
  if(unit.immobilized)items.push('IMMOBILIZED: cannot move, but can still fire or take overwatch. Repair tracks costs 2 AP and restores movement without restoring strength.');
  if(unit.entrenched)items.push('DUG IN: incoming fire needs another +1. Moving or assaulting removes this protection.');
  if(unit.overwatch)items.push('OVERWATCH: one automatic reaction shot, with +1 to the normal hit threshold. Expires at your next turn or when pinned.');

@@ -16,7 +16,7 @@
 .midway-launch-choice{fill:#87b9c960;stroke:#c5f0fc;stroke-width:3;cursor:pointer}
 .midway-launch-choice:focus,.midway-launch-choice:hover{fill:#b0e3edaa;stroke:#fff}
 @media(max-width:600px){.midway-air-group,.midway-recovery{padding:10px}.midway-flight-actions button{flex-basis:120px}}
-.simple-play #carrierGroupOpen{display:inline-block!important}
+.simple-play #carrierGroupOpen:not([hidden]){display:inline-block!important}
 #carrierAirGroupDialog{width:min(520px,calc(100vw - 28px));max-height:85svh;overflow:auto;padding:16px;box-sizing:border-box}
 #carrierAirGroupDialog h2{font-size:20px;margin:14px 0 10px}
 #carrierAirGroupClose{min-height:44px}

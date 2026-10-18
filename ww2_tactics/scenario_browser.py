@@ -13,6 +13,8 @@ CATEGORIES = {
 
 # key: learning position, additional categories, one short learning focus
 GUIDE = {
+    'village_2': (2, ['infantry','playtest'], 'Compact 2.0: distinct loadouts, officer recovery and suppression-only MG 42 teams.'),
+    'stonebridge_2': (3, ['infantry','playtest'], 'Two specialist platoons: scouts direct mortars, engineers open river crossings, officers rally teams.'),
     'foy': (4, ['infantry','attack-defend','playtest'], 'Compact winter village: withdraw wounded infantry to finite aid posts.'),
     'peleliu': (5, ['infantry','attack-defend','playtest'], 'Compact island assault: cave relocation versus engineer sealing charges.'),
     'britain_2': (14, ['air','attack-defend'], 'Defend the radar network or escort finite raids: fuel, runway cycles, recovery and servicing.'),

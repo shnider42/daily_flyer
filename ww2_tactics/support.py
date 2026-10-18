@@ -79,6 +79,7 @@ def role_action(state, unit, action, legal, roll, distance, names):
         for u in state['units']:
             if u['id'] in legal['inspire']:
                 u['pinned'] = False
+                if state.get('ground_roles_version'):u['role_pinned_start']=False
         unit['ap'] -= 1
         return f"{names[side]} leader rallied {len(legal['inspire'])} nearby unit(s). Their actions are preserved."
     if kind == 'suppress' and action.get('target') in legal['suppress']:
@@ -90,7 +91,7 @@ def role_action(state, unit, action, legal, roll, distance, names):
         state['last_combat'] = dict(kind='Suppressive fire', result='target pinned; no strength lost' if success else 'suppression failed',
                                     attacker=unit['id'], target=target['id'], revision=state['revision']+1)
         if die is not None: state['last_combat'].update(roll=die,threshold=combined.suppression_threshold(unit))
-        record_combat(state, note='DSL combined arms: German suppression 3+, US 5+; no damage.' if die is not None else 'Automatic effect: a legal suppression order does not roll a die.')
+        record_combat(state, note=(f'Suppression {combined.suppression_threshold(unit)}+; no strength damage.' if state.get('ground_roles_version') else 'DSL combined arms: German suppression 3+, US 5+; no damage.') if die is not None else 'Automatic effect: a legal suppression order does not roll a die.')
         return f"{names[side]} {unit['kind']} suppressive fire: {'target pinned, overwatch cancelled' if success else 'failed'}; no damage."
     if kind == 'grenade':
         shot = next((s for s in legal['grenades'] if s['id'] == action.get('target')), None)
