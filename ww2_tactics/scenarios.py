@@ -134,6 +134,8 @@ CURRENT_SCENARIOS = {'worlds_collide': worlds_scenario(build),
                      'nightfall_veil': veil_scenario(build),
                      'midway_2': midway2_scenario(build),
                      'britain_2': britain2_scenario(build)}
+from .small_fronts import scenarios as small_scenarios
+CURRENT_SCENARIOS.update(small_scenarios(build))
 
 
 def get_scenario(key='village'):

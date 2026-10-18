@@ -27,8 +27,9 @@
   content.append(node('h3','Force and operations'));
   const operations=node('dl',undefined,'debrief-metrics');
   for(const [label,value] of [['Units when recording began',s.starting_units],['Combat losses',losses.combat],['Fuel exhaustion losses',losses.fuel],['Lost aboard destroyed bases / transports',losses.aboard],['Other losses',losses.other],['Aircraft lost (all causes)',s.aircraft_lost],['Launches',s.launches],['Successful landings',s.landings],['Aircraft services',s.services],['Strength restored',s.strength_restored],['Attack rolls meeting the threshold',`${s.successful_rolls} / ${s.attack_rolls}`]])metric(operations,label,value);
+  for(const [key,label] of [['field_aid','Field aid treatments'],['cave_move','Cave relocations'],['seal_cave','Cave entrances sealed']])if(s[key])metric(operations,label,s[key]);
   content.append(operations,node('p','Counts refer to unit counters, not individual soldiers or aircraft. Successful attack rolls do not necessarily mean a unit was destroyed.'));
-  const labels={air_stores:'Service stores',supply_packs:'Supply packs',shells:'Mortar shells',repair_kits:'Repair kits',bombs:'Bomb loads',torpedoes:'Torpedoes',fuel:'Fuel'};
+  const labels={air_stores:'Service stores',supply_packs:'Supply packs',shells:'Mortar shells',repair_kits:'Repair kits',bombs:'Bomb loads',torpedoes:'Torpedoes',fuel:'Fuel',medical_supplies:'Medical supplies',demolition_charges:'Demolition charges'};
   const used=Object.entries(s.resources).filter(([,n])=>n>0);
   content.append(node('h3','Resources consumed'),used.length?table(['Resource','Used'],used.map(([k,n])=>[labels[k]||k,n])):node('p','No tracked consumables were spent during the recorded period.'));
   const progress=report.progress||[];

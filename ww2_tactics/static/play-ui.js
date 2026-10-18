@@ -12,6 +12,9 @@
  const save=()=>{try{localStorage.setItem(key,JSON.stringify(prefs));}catch{}};
  // Distinct silhouettes and plain-language effects supplement color, including on touch screens.
  const actionDesign={
+  fieldAid:['green','Restore 1 strength with finite medical supplies','M9 3h6v6h6v6h-6v6H9v-6H3V9h6Z'],
+  caveMove:['earth','Relocate between caves; ends remaining actions','M2 20L9 4h6l7 16H2ZM8 20v-7a4 4 0 0 1 8 0v7M10 15h4'],
+  sealCave:['orange','Permanently close a cave route with one charge','M2 20L9 4h6l7 16H2ZM7 10l10 10M17 10L7 20'],
   spotlightAim:['blue','Reveal a narrow air corridor; expose this emitter','M4 18h16M10 18V9h4v9M8 9l4-5 4 5M15 4l7-3v13l-7-5'],
   pathfinderFlare:['amber','Illuminate both armies and guide airborne drops','M12 3v5M12 16v5M3 12h5M16 12h5M8 8l8 8M8 16l8-8'],
   nightDrop:['teal','Release one finite squad near this Dakota','M3 10a9 9 0 0 1 18 0H3ZM3 10l9 9 9-9M12 10v9M9 19h6v3H9Z'],
@@ -201,7 +204,7 @@
   $('simpleOutcome').hidden=!prefs.simple||!state.last_combat||!!playbackSession;
   // Keep the normal desktop click path short once a movable unit is chosen.
   // Status warnings and targeting instructions always take precedence.
-  if(window.ww2Desktop?.active&&prefs.experience==='simple'&&!playbackSession&&state.turn===state.side&&!state.winner&&state.ready&&state.deployment?.phase!=='planning'&&!target&&!smokeMode&&!barrageMode&&!combatMode&&!window.nightPicking?.(state.legal?.[selected])&&!window.airbornePicking?.(state.legal?.[selected])&&!window.operationsPicking?.(state.legal?.[selected])&&!window.fieldworksPicking?.(state.legal?.[selected])&&!window.signalsPicking?.(state.legal?.[selected])&&!$('hint').classList.contains('building-warning')){
+  if(window.ww2Desktop?.active&&prefs.experience==='simple'&&!playbackSession&&state.turn===state.side&&!state.winner&&state.ready&&state.deployment?.phase!=='planning'&&!target&&!smokeMode&&!barrageMode&&!combatMode&&!window.nightPicking?.(state.legal?.[selected])&&!window.airbornePicking?.(state.legal?.[selected])&&!window.operationsPicking?.(state.legal?.[selected])&&!window.fieldworksPicking?.(state.legal?.[selected])&&!window.signalsPicking?.(state.legal?.[selected])&&!window.smallFrontPicking?.(state.legal?.[selected])&&!$('hint').classList.contains('building-warning')){
    const unit=state.units.find(u=>u.id===selected),moves=state.legal?.[selected]?.moves;
    if(unit&&!unit.pinned&&!unit.immobilized&&!unit.reserve&&!unit.carrier_id&&moves?.length){
     const air=['fighter','bomber','transport_aircraft'].includes(unit.kind),costs=[...new Set(moves.map(m=>m.cost))].sort((a,b)=>a-b),cost=costs.length===1?`${costs[0]} AP`:`${costs[0]}–${costs.at(-1)} AP`;

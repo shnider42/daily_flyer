@@ -262,7 +262,7 @@ function render(){
  if(!myTurn||!legal?.barrage?.length)barrageMode=false;
  if(combatMode&&(combatMode.unit!==selected||combatMode.revision!==state.revision||!myTurn||smokeMode||barrageMode||!legal?.[combatMode.kind]?.length))combatMode=null;
  const airliftPicking=!!window.airbornePicking?.(legal);
- const picking=airliftPicking||smokeMode||barrageMode||!!combatMode||!!window.operationsPicking?.(legal)||!!window.fieldworksPicking?.(legal)||!!window.signalsPicking?.(legal)||!!window.nightPicking?.(legal);
+ const picking=airliftPicking||smokeMode||barrageMode||!!combatMode||!!window.operationsPicking?.(legal)||!!window.fieldworksPicking?.(legal)||!!window.signalsPicking?.(legal)||!!window.nightPicking?.(legal)||!!window.smallFrontPicking?.(legal);
  $('supportStatus').hidden=(state.rules_version||1)<4;
  $('supportStatus').textContent=`Off-map mortar calls · ${names.us} ${state.support?.us||0} / ${names.de} ${state.support?.de||0}`;
  $('incoming').hidden=!state.barrages?.length;
@@ -396,6 +396,7 @@ function render(){
  if(window.renderNight)window.renderNight(unit,legal,svg);
  if(window.renderMidway)window.renderMidway(unit,legal,svg);
  if(window.renderBritain)window.renderBritain(unit,legal,svg);
+ if(window.renderSmallFronts)window.renderSmallFronts(unit,legal,svg);
  if(window.renderOrderCapabilities)window.renderOrderCapabilities(unit);
  const buildingWarning=unit&&unit.hp>0&&!unit.reserve&&!unit.carrier_id&&buildingCondition(state,unit.pos)==='damaged'&&!picking&&!target;
  $('hint').classList.toggle('building-warning',!!buildingWarning);

@@ -110,4 +110,5 @@ c=sqlite3.connect(sys.argv[1]);s=json.loads(c.execute('SELECT state FROM match W
  }
  console.log('PASS: Weather/debrief DOM + real API at 1440/390, both layouts, light/dark, all Experiences, both maps, launch caps, finished battle/reload, legacy maps and older records. No browser visual claims.');
 }
-main().catch(error=>{console.error(error);console.error(errors);process.exitCode=1;}).finally(()=>fs.rmSync(tmp,{recursive:true,force:true}));
+module.exports={make,fixture,click,delay,request,db,root,cleanup:()=>fs.rmSync(tmp,{recursive:true,force:true})};
+if(require.main===module)main().catch(error=>{console.error(error);console.error(errors);process.exitCode=1;}).finally(()=>fs.rmSync(tmp,{recursive:true,force:true}));

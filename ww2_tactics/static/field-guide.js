@@ -52,6 +52,9 @@
  };
  evacuate.onclick=()=>{const uid=selected;if(confirm('Evacuate the marked passenger? This rescue is permanent and commits earlier takebacks. The empty boat can return.'))act({kind:'evacuate',unit:uid});};
  function detailedHelp(id,u,legal){
+  if(id==='fieldAid')return '2 AP and one shared medical supply restore 1 strength to this wounded, unpinned unit within 1 hex of its own aid post. Once per unit per round. No revival, ammunition refill or pin removal. An enemy on the post or a collapsed aid building blocks treatment.';
+  if(id==='caveMove')return 'Japanese infantry only: stand on an open entrance, spend 2 AP and relocate to another open entrance. All remaining actions end. Normal exit capacity and reaction fire apply; digging in, overwatch, observation and camouflage end. An unseen enemy can block arrival.';
+  if(id==='sealCave')return 'American engineers only: within 1 hex of an enemy-free entrance, spend 2 AP and one demolition charge to close that cave route permanently. No damage to units and no obstruction to normal walking. Closures are public; charges are shared with anti-armor demolition.';
   if(state.air_support_version===1){
    if(id==='rearm')return 'Within 1 hex of your own platoon’s surviving field or a friendly HQ field, spend 2 aircraft AP and one finite service store to restore 1 strength and reload bombs. Once per aircraft per turn. Each field starts with six uses; stores do not regenerate. Destroyed, empty or another platoon’s fields cannot service you.';
    if(id==='overwatch'&&u.ship_aa_range)return 'Spend 2 AP for one interception along an enemy flight path: range 1, damage 1. Moving or firing cancels readiness. Does not react to surface movement. Enemy interception readiness is private.';

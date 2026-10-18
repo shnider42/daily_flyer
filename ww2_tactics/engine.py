@@ -10,7 +10,7 @@ from .rulesets import profile, dsl, base_ap, bank_limit, turn_limit, road
 from .effects import record_effect, record_shot_effect
 from . import combined, naval, transport, campaigns, air, weapons, buildings, operations, fieldworks, linked_front, signals, airborne, domains, fubar, logistics, new_fronts, deployment
 from .visibility import fog, active, visible_ids, unit_visible_ids, sees_hex, update_intel, record_reports
-from . import fire_control, editions, nightfall, midway2, air_support, carrier_decks, britain2, weather, debrief
+from . import fire_control, editions, nightfall, midway2, air_support, carrier_decks, britain2, weather, debrief, small_fronts
 
 WIDTH, HEIGHT = 7, 9
 OBJECTIVE = [3, 4]
@@ -79,7 +79,7 @@ def line_clear(a, b, smoke=(), state=None, high_ground=False):
 
 
 def initial(scenario='village', ruleset='classic'):
-    return debrief.initialize(weather.initialize(_initial(scenario, ruleset)))
+    return debrief.initialize(weather.initialize(small_fronts.initialize(_initial(scenario, ruleset))))
 
 
 def _initial(scenario='village', ruleset='classic'):
@@ -254,6 +254,7 @@ def options(state, unit):
     extras.update(airborne.options(state,unit))
     if state.get("logistics_version"):extras.update(logistics.options(state,unit))
     if new_fronts.enabled(state):extras.update(new_fronts.options(state,unit))
+    if small_fronts.enabled(state):extras.update(small_fronts.options(state,unit))
     if not state["ready"] or state["winner"] or unit["hp"] <= 0 or unit["side"] != state["turn"]:
         return dict(moves=moves, targets=targets, rally=False, **extras)
     seen=unit_visible_ids(state,unit)
@@ -418,6 +419,8 @@ def _apply(state, side, action, roll=None):
             message=logistics.action(state,unit,action,legal)
         elif kind in new_fronts.ORDERS:
             message=new_fronts.action(state,unit,action,legal)
+        elif kind in small_fronts.ORDERS:
+            message,reactions=small_fronts.action(state,unit,action,legal,roll_die,react)
         elif kind == 'spot_fire':
             message=fire_control.mark(state,unit,action,legal)
         elif kind in signals.ORDERS:

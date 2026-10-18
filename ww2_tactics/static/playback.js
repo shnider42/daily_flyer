@@ -70,6 +70,7 @@ function drawPlayback(){
  const labels={resupply:'delivers supplies',evacuate:'evacuates infantry',move:'moves',fire:'fires',grenade:'throws a frag',assault:'assaults',suppress:'suppresses',inspire:'rallies nearby troops',command:'orders On your feet',rally:'rallies',dig:'digs in',smoke:'throws smoke',overwatch:'takes overwatch',barrage:'calls mortars',end:'ends the turn'};
  labels.load='boards infantry';labels.unload='unloads infantry';labels.rearm='services aircraft';
  Object.assign(labels,{scramble:'launches a flight',land:'lands at an airfield',field_service:'repairs, refuels and reloads a flight',station_repair:'repairs the station'});
+ Object.assign(labels,{field_aid:'receives field aid',cave_move:'relocates through the caves',seal_cave:'seals a cave entrance'});
  Object.assign(labels,{load_ammo:'changes ammunition',repair_tracks:'repairs tracks',bombard:'bombards an area',artillery:'calls artillery',field_recon:'launches recon'});
  Object.assign(labels,{airborne_drop:'calls airborne reserves',mark_lz:'marks a landing zone',radio_update:'broadcasts radio reports',observe:'observes',conceal:'camouflages',mortar_fire:'calls mortar fire',demolition:'places a demolition charge'});
  Object.assign(labels,{breach:'breaches a hedge',clear_wreck:'clears collapsed rubble',bridge_gap:'builds a bridge'});

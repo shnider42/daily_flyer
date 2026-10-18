@@ -58,6 +58,9 @@ def omaha_roster():
 
 
 def setup(board):
+    if board['campaign'] in {'foy','peleliu'}:
+        from .small_fronts import roster as small_roster
+        return small_roster(board['campaign'])
     if board['campaign'] == 'midway_2':
         from .midway2 import roster as carrier_roster
         return carrier_roster()

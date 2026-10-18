@@ -73,6 +73,9 @@
   return line;
  }
  function visibleMove(u,from,to,previous,current){
+  // Cave transit has no surface route, including for its own commander.
+  const caves=state.scenario?.cave_entrances;
+  if(caves?.some(p=>same(p.pos,from))&&caves.some(p=>same(p.pos,to)))return false;
   if(u.side===state.side||!current.fog)return true;
   if(!previous)return false;
   const field=air(u)?'air':'ground';

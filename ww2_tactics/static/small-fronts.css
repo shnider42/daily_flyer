@@ -1,0 +1,6 @@
+.small-front-status{padding:.55rem .7rem;border-inline-start:3px solid #7ca997;background:var(--surface-raised,#24322c);color:var(--text,#e4e9e5);font-size:.85rem;line-height:1.45;overflow-wrap:anywhere}
+.small-front-marker{pointer-events:none}.small-front-marker circle{fill:none;stroke:#dfc580;stroke-width:3;stroke-dasharray:5 3}.small-front-marker text{font:700 9px system-ui;fill:#fff4cc;paint-order:stroke;stroke:#26312b;stroke-width:3px;stroke-linejoin:round}.small-front-marker.aid circle{stroke:#b0e3cc}.small-front-marker.aid.de circle{stroke:#e6b8a5}.small-front-marker.sealed circle{stroke:#b3ada4;stroke-dasharray:2 5}.small-front-marker.sealed text{fill:#d0cbc2}
+.small-front-choice{fill:#c8ad6340;stroke:#ffe4a0;stroke-width:4;cursor:pointer}.small-front-choice:hover,.small-front-choice:focus{fill:#d9c07880;stroke:#fff5d7;outline:none}
+svg[data-small-front="foy"] .hex.field:not(.move):not(.threatened){fill:#bfc9c3}svg[data-small-front="foy"] .hex.woods:not(.move):not(.threatened){fill:#7f9588}
+:root[data-theme="light"] .small-front-status{background:#eef2ea;color:#263a30}
+@media(max-width:600px){.small-front-status{font-size:.8rem}.small-front-choice{stroke-width:5}}

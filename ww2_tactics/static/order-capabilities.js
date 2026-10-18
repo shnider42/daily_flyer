@@ -6,6 +6,7 @@
  const vehicles=new Set(['tank','halftrack','amphibious','landing_craft']);
  const labels={callAirborne:'Call airborne',markLZ:'Mark LZ',resupply:'Resupply',evacuate:'Evacuate',radioUpdate:'Share sightings',observe:'Observe',conceal:'Camouflage',mortarFire:'Mortar fire',demolition:'Demolition',breach:'Breach hedge',clearWreck:'Clear rubble',bridgeGap:'Build bridge',fire:'Fire at unit',areaFire:'Aim at hex',snipe:'Snipe',assault:'Close assault',grenade:'Grenade',suppress:'Suppress',overwatch:'Overwatch',dig:'Dig in',smoke:'Smoke',rally:'Rally self',inspire:'Rally allies',command:'Give actions',barrage:'Call mortars',artillery:'Call artillery',fieldRecon:'Recon plane',loadAP:'Load anti-tank',loadHE:'Load explosive',repairTracks:'Fix own tracks',repairTank:'Repair tank',bombard:'Blind bombard',recon:'Air search',airstrike:'Air strike',torpedo:'Torpedoes',repair:'Repair hull',airdrop:'Land troops',load:'Load troops',unload:'Unload troops',rearm:'Airfield service'};
  labels.spotFire='Spot for fire';
+ Object.assign(labels,{fieldAid:'Field aid',caveMove:'Cave route',sealCave:'Seal cave'});
  Object.assign(labels,{spotlightAim:'Aim spotlight',pathfinderFlare:'Drop flare',nightDrop:'Drop paratroopers'});
  const costs={spotFire:1,evacuate:1,resupply:2,callAirborne:3,markLZ:2,observe:1,smoke:1,rally:1,inspire:1,loadAP:1,loadHE:1,recon:1,load:1,unload:1,snipe:3,bridgeGap:3};
  Object.assign(costs,{spotlightAim:1,pathfinderFlare:2,nightDrop:3});
@@ -66,6 +67,10 @@
   if(s.front_mode==='evacuation'&&kind==='landing_craft'&&u.side==='us')add('evacuate');
   if(s.airborne_version){if(u.airlift_commander)add('callAirborne');if('beacon_charges' in u)add('markLZ');}
   if(s.scenario.night_ops_version){if(kind==='spotlight')add('spotlightAim');if(u.max_flares)add('pathfinderFlare');if(kind==='transport_aircraft')add('nightDrop');}
+  if(s.small_fronts_version===1&&infantry.has(kind)){
+   if(s.scenario.aid_posts)add('fieldAid');
+   if(s.scenario.cave_entrances){if(u.side==='de')add('caveMove');else if(kind==='engineer')add('sealCave');}
+  }
   return [...new Set(ids)];
  }
  function reason(id,u){
@@ -116,6 +121,7 @@
   if(({recon:u.recon_used,airstrike:u.air_used,torpedo:u.torpedo_used,repair:u.repair_used,rearm:u.rearm_used})[id])return 'Used this turn';
   if(u.kind==='bomber'&&['fire','areaFire'].includes(id)&&!u.bombs)return state.midway_ops_version?'Land aboard carrier to reload':state.scenario.fleet_battle_version?'Reload at own platoon carrier':'Reload at airfield';
   if(!['load','unload'].includes(id)&&u.ap<cost(id))return `Needs ${cost(id)} AP`;
+  const smallReason=window.smallFrontReason?.(id,u);if(smallReason)return smallReason;
   if(['fire','grenade','assault','suppress','airstrike','torpedo'].includes(id))return target?'No legal attack on target':'Select a visible enemy';
   if(id==='resupply')return 'Needs adjacent mortar or engineer below capacity';
   if(id==='radioUpdate')return 'No recent reports to share';

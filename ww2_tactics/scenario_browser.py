@@ -13,6 +13,8 @@ CATEGORIES = {
 
 # key: learning position, additional categories, one short learning focus
 GUIDE = {
+    'foy': (4, ['infantry','attack-defend','playtest'], 'Compact winter village: withdraw wounded infantry to finite aid posts.'),
+    'peleliu': (5, ['infantry','attack-defend','playtest'], 'Compact island assault: cave relocation versus engineer sealing charges.'),
     'britain_2': (14, ['air','attack-defend'], 'Defend the radar network or escort finite raids: fuel, runway cycles, recovery and servicing.'),
     'midway_2': (13, ['naval','air','control'], 'Daytime carrier battle: finite air groups, launch/recovery cycles, repair and reloading aboard.'),
     'nightfall_beacon': (14, ['air','airborne','attack-defend'], 'Night bombing and airborne raid: short sight, aimed Spotlights, flares and Dakota drops.'),

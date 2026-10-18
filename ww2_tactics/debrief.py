@@ -79,6 +79,10 @@ def record(before, after, side, action):
     stats['landings'] += int(kind in {'land','recover'} and any(
         u['id'] == action.get('unit') and u['hp'] > 0 and u.get('carrier_id') for u in after['units']))
     stats['services'] += int(kind in {'field_service','deck_service','rearm'})
+    if kind in {'field_aid','cave_move','seal_cave'}:
+        stats[kind]=stats.get(kind,0)+1
+    if kind=='field_aid':
+        stats['resources']['medical_supplies']=stats['resources'].get('medical_supplies',0)+1
     old_units = {u['id']:u for u in before['units']}
     new_units = {u['id']:u for u in after['units']}
     sequence = before.get('combat_sequence',0)
@@ -109,6 +113,8 @@ def record(before, after, side, action):
         owner['strength_restored'] += max(0, unit['hp']-old['hp'])
         for resource in RESOURCES:
             owner['resources'][resource] += max(0, old.get(resource,0)-unit.get(resource,0))
+        spent=max(0,old.get('demolition_charges',0)-unit.get('demolition_charges',0))
+        if spent:owner['resources']['demolition_charges']=owner['resources'].get('demolition_charges',0)+spent
         if old['hp'] > 0 and unit['hp'] <= 0:
             parent = new_units.get(old.get('carrier_id'))
             fuel = (kind == 'end' and before.get('britain_ops_version') and unit['side'] == side

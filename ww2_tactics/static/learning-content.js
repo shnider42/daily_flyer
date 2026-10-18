@@ -322,6 +322,8 @@
    }
    if(!s.coop.captain)book=book.filter(l=>l.id!=='preparation-support');
   }
+  if(s.small_fronts_version===1&&s.scenario.aid_posts)book.push(make('field-aid','Bring wounded infantry back',Array(3).fill('Unpinned infantry within 1 hex of their own aid post can spend 2 AP and one shared medical supply to restore 1 strength, once per unit per round. Americans have four supplies; Germans three. Treatment cannot revive destroyed units, remove pinning or refill ammunition. An enemy on the post or a collapsed aid building blocks treatment.'),'Find your aid post, then inspect Field aid on a wounded unit.','#fieldAid',['field_aid']));
+  if(s.small_fronts_version===1&&s.scenario.cave_entrances)book.push(make('cave-network','Control the cave routes',Array(3).fill('Japanese infantry on an open cave entrance can spend 2 AP to relocate to another entrance. This ends remaining actions, clears concealment and digging in, and can trigger normal reaction fire at the exit. American engineers can seal an enemy-free entrance within 1 hex for 2 AP and one demolition charge. Closures are public and permanent; troops and hidden cave movements stay private.'),'Locate the three entrances. Plan an exit or an engineer approach.','#mapWrap',['cave_move','seal_cave']));
   if(s.weather){
    for(const l of book)if(['move','fire','fog','service'].includes(l.id)){
     const note=' Weather applies on top of these normal conditions: '+s.weather.current.description;

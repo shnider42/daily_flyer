@@ -10,7 +10,7 @@ from .engine import apply, options, distance, terrain, line_clear
 from .scenarios import battlefield
 from .rulesets import dsl, turn_limit
 from .visibility import fog, view, visible_ids, active, sight_reader
-from . import naval, air, weapons, buildings, operations, fieldworks, linked_front, signals, airborne, domains, fubar, new_fronts, logistics
+from . import naval, air, weapons, buildings, operations, fieldworks, linked_front, signals, airborne, domains, fubar, new_fronts, logistics, small_fronts
 from . import nightfall, midway2, carrier_decks, britain2
 
 
@@ -73,6 +73,7 @@ def choose_order(state, costs, visited, front_costs=None):
             choices.extend(new_fronts.boat_choices(state, unit, options(state, unit)))
             continue
         goal = new_fronts.goal(state, unit, fubar.ground_goal(state,unit) if domains.joint(state) else linked_front.goal(state, unit))
+        goal = small_fronts.goal(state,unit,goal)
         if state.get('logistics_version') and unit['kind']=='supply' and unit.get('supply_packs'):
             needs=[v for v in state['units'] if v['side']==side and active(v) and logistics.delivery(v)]
             if needs:goal=min(needs,key=lambda v:distance(unit['pos'],v['pos']))['pos']
@@ -82,6 +83,7 @@ def choose_order(state, costs, visited, front_costs=None):
             if key not in mobility:mobility[key]=objective_costs(state,goal,unit)
             unit_costs=mobility[key]
         legal = options(state, unit)
+        choices.extend(small_fronts.choices(state,unit,legal,goal,visited))
         choices.extend(fire_control.ai_choices(state, unit, legal, units.values()))
         for supply in legal.get('resupply', []):add(15, unit, 'resupply', target=supply['id'])
         if legal.get('airborne_drop'):
@@ -267,6 +269,7 @@ def play_turn(state, roll=None, observers=None, max_orders=None, planning=None, 
                               ('units', 'smoke', 'barrages', 'round', 'turn', 'hold', 'winner', 'buildings', 'fieldworks', 'objective_control')})
         from . import weather
         weather.redact(result,value,viewer)
+        small_fronts.redact(result,value,viewer)
         result.update(new_fronts.public_fields(value, viewer))
         return result
     previous_snapshot = {viewer: previous_views[viewer] if previous_views and viewer in previous_views else snapshot(state, viewer)
@@ -285,8 +288,9 @@ def play_turn(state, roll=None, observers=None, max_orders=None, planning=None, 
             # and choose another legal order, without inspecting the contact.
             contact_errors = {'Movement blocked by a contact. Scout or choose another approach.',
                               'Landing blocked by a contact. Choose another approach.',
-                              'That disembark hex is occupied. Choose another hex.'}
-            if (state.get('edition') != 'current' or action['kind'] not in {'move','drop','unload'}
+                              'That disembark hex is occupied. Choose another hex.',
+                              'The cave exit is blocked by contact. Choose another exit.'}
+            if (state.get('edition') != 'current' or action['kind'] not in {'move','drop','unload','cave_move'}
                     or str(error) not in contact_errors):
                 raise
             visited.setdefault(action['unit'], set()).add(tuple(action['pos']))
@@ -311,7 +315,7 @@ def play_turn(state, roll=None, observers=None, max_orders=None, planning=None, 
                     safe_action.pop('pos', None)
                 if action['kind'] == 'spot_fire' and viewer != state['ai_side']:
                     safe_action.pop('pos', None)
-                if action['kind'] in {'move', 'drop'} and action.get('unit') not in {u['id'] for u in after['units']}:
+                if action['kind'] in {'move', 'drop', 'cave_move'} and action.get('unit') not in {u['id'] for u in after['units']}:
                     safe_action.pop('pos', None)
                 combat = [e for e in state.get('reports', {}).get(viewer, {}).get('combat', []) if e.get('sequence', 0) > sequence]
                 if 'unit' not in safe_action and action['kind'] != 'end':

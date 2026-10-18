@@ -133,7 +133,8 @@ def _perform(state, side, action, defer_computer=False):
                  'repair_tracks':'Repair tracks', 'bombard':'Area bombardment', 'artillery':'Call artillery',
                  'field_recon':'Recon plane', 'repair_tank':'Engineer repair',
                  'snipe':'Aimed sniper shot', 'area_fire':'Fire at hex', 'scramble':'Launch flight',
-                 'land':'Land flight', 'field_service':'Service flight', 'station_repair':'Repair station'}.get(kind, str(kind).capitalize())
+                 'land':'Land flight', 'field_service':'Service flight', 'station_repair':'Repair station',
+                 'field_aid':'Field aid', 'cave_move':'Cave relocation', 'seal_cave':'Seal cave'}.get(kind, str(kind).capitalize())
         history.setdefault('past', []).append(dict(snapshot=state, label=label, rolled=bool(dice)))
         history['past'] = history['past'][-LIMIT:]
         history.update(future=[], reason='Undo recent orders this turn. Resolved dice must be redone before changing orders.')
