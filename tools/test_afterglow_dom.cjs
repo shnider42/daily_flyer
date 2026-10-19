@@ -15,17 +15,17 @@ const value=(name,value)=>{$(`[name="${name}"]`).value=value;};
 const closeDialogForTest=()=>click('[data-action="close"]');
 const submit=()=>$('#ag-show-form').dispatchEvent(new w.Event('submit',{bubbles:true,cancelable:true}));
 (async()=>{
- assert.equal(d.querySelectorAll('.ag-event').length,20);
- assert.equal(d.querySelectorAll('.ag-coverage li').length,9);
- for(const [id,count] of Object.entries({'fkj':3,'griz':3,'muse':2,'the-wonder-years':1,'four-year-strong':2,'august-burns-red':3})){
+ assert.equal(d.querySelectorAll('.ag-event').length,27);
+ assert.equal(d.querySelectorAll('.ag-coverage li').length,10);
+ for(const [id,count] of Object.entries({'fkj':3,'griz':3,'muse':2,'the-wonder-years':1,'four-year-strong':2,'august-burns-red':3,'born-without-bones':7})){
   $('#ag-artist').value=id;$('#ag-artist').dispatchEvent(new w.Event('change',{bubbles:true}));
   assert.equal(d.querySelectorAll('.ag-event').length,count,id);assert.ok($('#ag-results').textContent.includes('Partial coverage'));
   assert.equal(d.querySelectorAll('.ag-listing-source a').length,count);
  }
  $('#ag-artist').value='all';$('#ag-artist').dispatchEvent(new w.Event('change',{bubbles:true}));
- assert.equal(d.querySelectorAll('.ag-orbit-link').length,3);w.location.hash='artists';await wait();assert.equal(d.querySelectorAll('.ag-artist').length,9);for(const id of ['above-beyond','ilan-bluestone','oliver-smith'])click(`[data-action="follow"][data-id="${id}"]`);assert.equal(read().followed.length,3);
+ assert.equal(d.querySelectorAll('.ag-orbit-link').length,3);w.location.hash='artists';await wait();assert.equal(d.querySelectorAll('.ag-artist').length,10);for(const id of ['above-beyond','ilan-bluestone','oliver-smith'])click(`[data-action="follow"][data-id="${id}"]`);assert.equal(read().followed.length,3);
  click('[data-action="follow"][data-id="ilan-bluestone"]');assert.equal(read().followed.length,2);
- w.location.hash='discover';await wait();$('#ag-region').value='northeast';$('#ag-region').dispatchEvent(new w.Event('change',{bubbles:true}));assert.equal(d.querySelectorAll('.ag-event').length,6);assert.ok($('#ag-results').textContent.includes('SILO'));assert.ok($('#ag-results').textContent.includes('Boston'));
+ w.location.hash='discover';await wait();$('#ag-region').value='northeast';$('#ag-region').dispatchEvent(new w.Event('change',{bubbles:true}));assert.equal(d.querySelectorAll('.ag-event').length,7);assert.ok($('#ag-results').textContent.includes('SILO'));assert.ok($('#ag-results').textContent.includes('Boston'));
  click('[data-action="save-show"][data-id="oliver-brooklyn-20261205"]');assert.equal(read().entries.length,1);assert.equal(read().entries[0].status,'interested');
  w.location.hash='plans';await wait();click('[data-action="edit-show"]');value('notes','Trip plans');value('venue','My updated venue');submit();await wait();assert.equal(read().entries[0].notes,'Trip plans');assert.ok($('#ag-content').textContent.includes('My updated venue'));
  click('[data-action="edit-show"]');assert.equal($('[name="venue"]').value,'My updated venue');value('status','attended');submit();assert.ok(!$('#ag-form-error').hidden);assert.equal(read().entries[0].status,'interested');
@@ -59,7 +59,28 @@ const submit=()=>$('#ag-show-form').dispatchEvent(new w.Event('submit',{bubbles:
   const input=timed.window.document.querySelector('#ag-artist');input.value='the-wonder-years';input.dispatchEvent(new timed.window.Event('change',{bubbles:true}));assert.equal(timed.window.document.querySelectorAll('.ag-event').length,count);timed.window.close();
  }
  const reload=new JSDOM(html,{url:'https://afterglow.test/#memories',runScripts:'dangerously',virtualConsole:vc,beforeParse(win){win.localStorage.setItem('dfe.afterglow.v1',JSON.stringify(backup));win.scrollTo=()=>{};}});assert.equal(reload.window.document.querySelectorAll('.ag-memory').length,1);reload.window.close();
+ // A direct band URL works on first load and preserves the existing journal format.
+ const profileReload=new JSDOM(html,{url:'https://afterglow.test/#artist/born-without-bones',runScripts:'dangerously',virtualConsole:vc,beforeParse(win){win.localStorage.setItem('dfe.afterglow.v1',JSON.stringify(backup));}});
+ assert.equal(profileReload.window.document.querySelector('.ag-profile h1').textContent,'Born Without Bones');
+ assert.equal(profileReload.window.document.querySelectorAll('.ag-releases li').length,8);profileReload.window.close();
+ w.location.hash='artist/born-without-bones';await wait();
+ assert.equal($('.ag-tabs [aria-current="page"]').getAttribute('href'),'#artists');
+ assert.equal(d.querySelectorAll('.ag-members li').length,4);assert.ok($('.ag-members').textContent.includes('Ryan McKenna'));
+ assert.equal(d.querySelectorAll('.ag-profile .ag-event').length,7);
+ assert.equal(d.querySelectorAll('.ag-listen a').length,4);
+ click('[data-action="follow"][data-id="born-without-bones"]');assert.ok(read().followed.includes('born-without-bones'));assert.equal(w.location.hash,'#artist/born-without-bones');
+ for(const part of ['early','late'])click(`[data-action="save-show"][data-id="bwb-los-angeles-${part}-20261106"]`);
+ const laPlans=read().entries.filter(r=>r.id.startsWith('bwb-los-angeles-'));assert.equal(laPlans.length,2);assert.notEqual(laPlans[0].event.source,laPlans[1].event.source);
+ assert.ok($('.ag-profile-journal').textContent.includes('2 saved plans'));
+ click('[data-action="artist-add-show"]');assert.equal($('[name="artist"]').value,'born-without-bones');assert.equal($('[name="status"]').value,'interested');closeDialogForTest();
+ click('[data-action="artist-memory"]');assert.equal($('[name="lineup"]').value,'Born Without Bones');assert.equal($('[name="artist"]').value,'born-without-bones');assert.equal($('[name="status"]').value,'attended');
+ value('date','2025-01-02');value('city','Boston, MA');value('moment','The whole room singing');submit();await wait();assert.equal(w.location.hash,'#memories');
+ assert.ok(read().entries.some(r=>r.status==='attended'&&r.event.artists.includes('born-without-bones')));
+ w.location.hash='artist/born-without-bones';await wait();assert.ok($('.ag-profile-journal').textContent.includes('1 night remembered'));
+ click('[data-action="artist-shows"][data-id="born-without-bones"]');await wait();assert.equal($('#ag-artist').value,'born-without-bones');assert.equal(d.querySelectorAll('.ag-event').length,7);
+ w.location.hash='artists';await wait();assert.ok($('.ag-profile-link[href="#artist/born-without-bones"]'));
+ w.location.hash='artist/unknown';await wait();assert.ok($('#ag-shows-title'));
  assert.deepEqual(errors,[]);
- console.log('PASS: discovery, follow, filters, save/edit, date validation, XSS escaping, custom artist, memory timeline, storage failure, delete confirmation, backup export/import/cancel, source coverage for all nine artists, multi-day calendar boundaries, range validation and backup roundtrip, persisted reload.');
+ console.log('PASS: discovery, follow, filters, save/edit, date validation, XSS escaping, custom artist, memory timeline, storage failure, delete confirmation, backup export/import/cancel, source coverage for all ten artists, multi-day calendar boundaries, range validation and backup roundtrip, persisted reload, artist deep links, band notebook, separate early/late plans and pre-linked band memories.');
  dom.window.close();
 })().catch(e=>{console.error(e);process.exitCode=1;dom.window.close()});

@@ -166,6 +166,192 @@
         "source": "https://www.ticketmaster.com/august-burns-red-tickets/artist/1115308",
         "note": "Selected shows supporting Underoath; other tour stops may be missing."
       }
+    },
+    {
+      "id": "born-without-bones",
+      "name": "Born Without Bones",
+      "initials": "BWB",
+      "color": "ochre",
+      "tag": "Massachusetts roots",
+      "description": "Milford, Massachusetts. Alternative rock with DIY roots, four full-length records and a story worth following from the first listen to the next show.",
+      "url": "https://www.bornwithoutbones.com/",
+      "tour": "https://www.bornwithoutbones.com/tour",
+      "connection": "",
+      "coverage": {
+        "status": "partial",
+        "checked": "2026-10-19",
+        "sourceName": "Official artist tour page",
+        "source": "https://www.bornwithoutbones.com/tour",
+        "note": "Seven selected November listings, including separate early and late Los Angeles performances and support for I Am the Avalanche in Rhode Island. Other dates may be missing."
+      },
+      "profile": {
+        "checked": "2026-10-19",
+        "origin": "Milford, Massachusetts",
+        "formed": "2010",
+        "genres": [
+          "Alternative rock",
+          "Indie rock",
+          "Emo"
+        ],
+        "intro": "A Massachusetts band with DIY roots, big guitar hooks and a songwriter’s eye for detail. Born Without Bones began as Scott Ayotte’s solo project in 2010 and grew into a touring band spanning four full-length albums.",
+        "members": [
+          {
+            "name": "Scott Ayotte",
+            "role": "Vocals · guitar"
+          },
+          {
+            "name": "Jonathan Brucato",
+            "role": "Guitar"
+          },
+          {
+            "name": "Sam Checkoway",
+            "role": "Drums"
+          },
+          {
+            "name": "Ryan McKenna",
+            "role": "Bass"
+          }
+        ],
+        "membersNote": "Lineup listed in 2026 venue and ticketing bios. Older album credits reflect earlier lineups.",
+        "history": [
+          {
+            "year": "2010",
+            "text": "Scott Ayotte starts the project and releases the debut, Say Hello."
+          },
+          {
+            "year": "2013",
+            "text": "Baby is self-released; the band begins touring more extensively."
+          },
+          {
+            "year": "2017",
+            "text": "Young At The Bend arrives through the band’s Devil You Know Records imprint."
+          },
+          {
+            "year": "2021",
+            "text": "The band signs to Pure Noise Records and revisits earlier songs on Pictures of the Sun."
+          },
+          {
+            "year": "2022–23",
+            "text": "Dancer becomes album four, followed by a 23-date US tour celebrating ten years of Baby."
+          }
+        ],
+        "listening": [
+          {
+            "title": "Stone",
+            "subtitle": "A first track · Baby, 2013",
+            "url": "https://bornwithoutbones.bandcamp.com/track/stone"
+          },
+          {
+            "title": "Baby",
+            "subtitle": "Stay for the closing track · Baby, 2013",
+            "url": "https://bornwithoutbones.bandcamp.com/track/baby"
+          },
+          {
+            "title": "Dancer",
+            "subtitle": "Move forward to album four · 2022",
+            "url": "https://bornwithoutbones.bandcamp.com/album/dancer"
+          },
+          {
+            "title": "Pictures of the Sun",
+            "subtitle": "Hear older songs reimagined · 2021",
+            "url": "https://bornwithoutbones.bandcamp.com/album/pictures-of-the-sun"
+          }
+        ],
+        "releases": [
+          {
+            "title": "Dancer",
+            "date": "2022-11-04",
+            "type": "Studio album",
+            "url": "https://bornwithoutbones.bandcamp.com/album/dancer",
+            "note": "The fourth full-length. Includes “Dancer,” “Don’t Speak” and “XO Skeleton.”"
+          },
+          {
+            "title": "NYE",
+            "date": "2021-12-28",
+            "type": "Covers EP",
+            "url": "https://bornwithoutbones.bandcamp.com/album/nye",
+            "note": "Three New Year songs originally by Motion City Soundtrack, The Zombies and Death Cab for Cutie."
+          },
+          {
+            "title": "Pictures of the Sun",
+            "date": "2021-08-27",
+            "type": "EP",
+            "url": "https://bornwithoutbones.bandcamp.com/album/pictures-of-the-sun",
+            "note": "Re-recorded versions of earlier songs, including “Baby” and “Falling Asleep.”"
+          },
+          {
+            "title": "Young At The Bend",
+            "date": "2017-05-12",
+            "type": "Studio album",
+            "url": "https://bornwithoutbones.bandcamp.com/album/young-at-the-bend",
+            "note": "The third album. Recorded and mixed by Clinton Lisboa at Soundbox Recording; mastered by Carl Saff."
+          },
+          {
+            "title": "You (Baby Sessions)",
+            "date": "2016-12-27",
+            "type": "Single",
+            "url": "https://bornwithoutbones.bandcamp.com/track/you-baby-sessions",
+            "note": "A standalone track from the Baby sessions."
+          },
+          {
+            "title": "Baby",
+            "date": "2013-07-16",
+            "type": "Studio album",
+            "url": "https://bornwithoutbones.bandcamp.com/album/baby",
+            "note": "Recorded at Magpie Cage in Baltimore. Engineered by J. Robbins and mastered by Dan Coutant."
+          },
+          {
+            "title": "Say Hello",
+            "date": "2010-11-16",
+            "type": "Studio album",
+            "url": "https://bornwithoutbones.bandcamp.com/album/say-hello-2",
+            "note": "The debut full-length."
+          },
+          {
+            "title": "Say Hello (DEMO)",
+            "date": "2010-01-01",
+            "type": "Demo",
+            "url": "https://bornwithoutbones.bandcamp.com/album/say-hello-demo",
+            "note": "The early demo release, listed separately from the full-length."
+          }
+        ],
+        "links": [
+          {
+            "label": "Official website & merch",
+            "url": "https://www.bornwithoutbones.com/"
+          },
+          {
+            "label": "Official tour page",
+            "url": "https://www.bornwithoutbones.com/tour"
+          },
+          {
+            "label": "Music on Bandcamp",
+            "url": "https://bornwithoutbones.bandcamp.com/"
+          },
+          {
+            "label": "Pure Noise artist page",
+            "url": "https://www.purenoise.net/artists/born-without-bones/"
+          }
+        ],
+        "sources": [
+          {
+            "label": "Hotel Congress · current members & history",
+            "url": "https://hotelcongress.com/event/born-without-bones/"
+          },
+          {
+            "label": "Pure Noise · band background",
+            "url": "https://www.purenoise.net/artists/born-without-bones/"
+          },
+          {
+            "label": "Artist Bandcamp · releases, dates & credits",
+            "url": "https://bornwithoutbones.bandcamp.com/"
+          },
+          {
+            "label": "Ticketmaster · separate Los Angeles performances",
+            "url": "https://www.ticketmaster.com/born-without-bones-tickets/artist/1535932"
+          }
+        ]
+      }
     }
   ],
   "events": [
@@ -509,6 +695,125 @@
       "source": "https://www.ticketmaster.com/august-burns-red-tickets/artist/1115308",
       "sourceName": "Ticketmaster",
       "note": "August Burns Red is a supporting act on this listing. Confirm the current lineup and times at the source.",
+      "availability": "Check source",
+      "checked": "2026-10-19"
+    },
+    {
+      "id": "bwb-tucson-20261105",
+      "title": "Born Without Bones",
+      "date": "2026-11-05",
+      "city": "Tucson, AZ",
+      "venue": "Club Congress",
+      "artists": [
+        "born-without-bones"
+      ],
+      "lineup": "Born Without Bones · Practically People · Kaity",
+      "region": "us",
+      "source": "https://hotelcongress.com/event/born-without-bones/",
+      "sourceName": "Hotel Congress",
+      "note": "Venue lists doors at 7 PM, show at 7:30 PM local time; ages 16+. Confirm current entry details before booking.",
+      "availability": "Check source",
+      "checked": "2026-10-19"
+    },
+    {
+      "id": "bwb-los-angeles-early-20261106",
+      "title": "Born Without Bones · early show",
+      "date": "2026-11-06",
+      "city": "Los Angeles, CA",
+      "venue": "The Moroccan Lounge",
+      "artists": [
+        "born-without-bones"
+      ],
+      "lineup": "Born Without Bones",
+      "region": "us",
+      "source": "https://www.ticketmaster.com/born-without-bones-los-angeles-california-11-06-2026/event/090064C1E14EE3D6",
+      "sourceName": "Ticketmaster",
+      "note": "Listed at 6:30 PM local time. This is a separate ticketed performance from the 9:30 PM listing. Confirm doors, age restrictions and ticket details at the source.",
+      "availability": "Check source",
+      "checked": "2026-10-19"
+    },
+    {
+      "id": "bwb-los-angeles-late-20261106",
+      "title": "Born Without Bones · late show",
+      "date": "2026-11-06",
+      "city": "Los Angeles, CA",
+      "venue": "The Moroccan Lounge",
+      "artists": [
+        "born-without-bones"
+      ],
+      "lineup": "Born Without Bones",
+      "region": "us",
+      "source": "https://www.ticketmaster.com/born-without-bones-los-angeles-california-11-06-2026/event/090064C88DF74F48",
+      "sourceName": "Ticketmaster",
+      "note": "Listed at 9:30 PM local time. This is a separate ticketed performance from the 6:30 PM listing. Confirm doors, age restrictions and ticket details at the source.",
+      "availability": "Check source",
+      "checked": "2026-10-19"
+    },
+    {
+      "id": "bwb-san-diego-20261107",
+      "title": "Born Without Bones",
+      "date": "2026-11-07",
+      "city": "San Diego, CA",
+      "venue": "Casbah",
+      "artists": [
+        "born-without-bones"
+      ],
+      "lineup": "Born Without Bones",
+      "region": "us",
+      "source": "https://www.ticketmaster.com/born-without-bones-tickets/artist/1535932",
+      "sourceName": "Ticketmaster",
+      "note": "Ticketmaster lists 8:30 PM local time and ages 21+. Check the current event details for doors and ticket availability.",
+      "availability": "Check source",
+      "checked": "2026-10-19"
+    },
+    {
+      "id": "bwb-las-vegas-20261108",
+      "title": "Born Without Bones",
+      "date": "2026-11-08",
+      "city": "Las Vegas, NV",
+      "venue": "Swan Dive",
+      "artists": [
+        "born-without-bones"
+      ],
+      "lineup": "Born Without Bones · support TBA",
+      "region": "us",
+      "source": "https://swandivelasvegas.com/event/born-without-bones/swan-dive/las-vegas-nevada/",
+      "sourceName": "Swan Dive Las Vegas",
+      "note": "The venue lists 7 PM and ages 21+. This is Swan Dive in Las Vegas at 1412 S. Main Street. Support was TBA at review; confirm doors and show time with the venue.",
+      "availability": "Check source",
+      "checked": "2026-10-19"
+    },
+    {
+      "id": "bwb-mesa-20261109",
+      "title": "Born Without Bones",
+      "date": "2026-11-09",
+      "city": "Mesa, AZ",
+      "venue": "The Rosetta Room",
+      "artists": [
+        "born-without-bones"
+      ],
+      "lineup": "Born Without Bones · Practically People · Sympathy Card",
+      "region": "us",
+      "source": "https://www.eventim.us/event/tickets/695830",
+      "sourceName": "Eventim / The Rosetta Room",
+      "note": "Listing shows doors at 6 PM, show at 7 PM local time; all ages. Confirm the current lineup and admission details at the source.",
+      "availability": "Check source",
+      "checked": "2026-10-19"
+    },
+    {
+      "id": "bwb-ocean-mist-20261128",
+      "title": "I Am the Avalanche with Born Without Bones",
+      "date": "2026-11-28",
+      "city": "South Kingstown / Wakefield, RI",
+      "venue": "Ocean Mist",
+      "artists": [
+        "born-without-bones"
+      ],
+      "lineup": "I Am the Avalanche · Born Without Bones · Classic Traffic",
+      "region": "northeast",
+      "source": "https://www.eventbrite.com/e/i-am-the-avalanche-w-special-guest-born-without-bones-classic-traffic-tickets-2001257361641",
+      "sourceName": "Ocean Mist on Eventbrite",
+      "note": "Born Without Bones is a supporting act. The organizer listing shows doors at 7 PM, event at 8 PM local time; ages 21+. Reviewed from the indexed organizer listing and corroborated by the dated Bandsintown listing. Confirm all details before booking.",
       "availability": "Check source",
       "checked": "2026-10-19"
     }

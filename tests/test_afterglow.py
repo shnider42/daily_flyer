@@ -30,7 +30,7 @@ class AfterglowTests(unittest.TestCase):
     def test_source_catalog_integrity(self):
         data = json.loads(Path('daily_flyer/themes/afterglow_assets/catalog.json').read_text())
         artists = {a['id'] for a in data['artists']}
-        self.assertEqual(len(artists), 9)
+        self.assertEqual(len(artists), 10)
         self.assertEqual(data['dataMode'], 'reviewed-snapshot')
         self.assertTrue(all(any(a in e['artists'] for e in data['events']) for a in artists))
         for artist in data['artists']:
@@ -44,6 +44,14 @@ class AfterglowTests(unittest.TestCase):
                 self.assertGreaterEqual(date.fromisoformat(event['endDate']), date.fromisoformat(event['date']))
             self.assertTrue(set(event['artists']) <= artists)
             self.assertTrue(event['source'].startswith('https://'))
+        band = next(a for a in data['artists'] if a['id']=='born-without-bones')
+        self.assertEqual(len(band['profile']['releases']), 8)
+        for release in band['profile']['releases']:
+            date.fromisoformat(release['date'])
+            self.assertTrue(release['url'].startswith('https://bornwithoutbones.bandcamp.com/'))
+        la = [e for e in data['events'] if 'bwb-los-angeles-' in e['id']]
+        self.assertEqual(len(la), 2)
+        self.assertEqual(len({e['source'] for e in la}), 2)
         sold = next(e for e in data['events'] if e['id']=='abgt700-2-20261029')
         self.assertEqual(sold['availability'], 'Sold out at review')
 
