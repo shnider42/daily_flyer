@@ -6,17 +6,19 @@ A separate DFE theme for artist following, show planning and personal memories. 
 
 - Repository: `https://github.com/shnider42/daily_flyer`
 - Branch: `feat/afterglow-live-music`
-- Render service: new Python web service, proposed name `dfe-afterglow`
+- Render service: `dfe-afterglow` (Python web service)
 - Root directory: repository root (leave blank)
 - Build: `pip install -r requirements.txt`
 - Start: `gunicorn web:app --bind 0.0.0.0:$PORT --workers 1 --threads 4 --timeout 120`
 - Environment: `DEFAULT_THEME=afterglow`, `PYTHON_VERSION=3.11.11`
-- Proposed compute: Free for the initial trial; no database or paid service provisioned.
+- Compute: Free; no database or paid service provisioned.
 - Auto-deploy: Yes, on the new branch only.
-- Region: resolve from the confirmed Render workspace before creation.
+- Region: Virginia, matching the other DFE services.
 - Default TCP health check is sufficient; no new health endpoint is added.
 
-The Render account is connected. No workspace was selected. The returned workspace is **My Workspace**. Creation is pending user confirmation of that workspace, as required by Render access guidance. Do not create a duplicate service on resume; check the confirmed workspace first.
+Live service: https://dfe-afterglow.onrender.com
+
+The user confirmed **My Workspace** and the Free plan on October 19, 2026. The service was created with auto-deploy on commit. Initial application commit: `234982357ba4807f56dc02ff02f61fee73a58cfd`; Render reported it live on October 19, 2026. Dashboard: https://dashboard.render.com/web/srv-dbb85r3rjlhs73cqbrg0. Reuse this service for future theme updates.
 
 Local run: `DEFAULT_THEME=afterglow flask --app web run`.
 Explicit theme URL: `/?theme=afterglow`.
@@ -52,4 +54,4 @@ Run `python -m unittest discover -s tests -p test_afterglow.py`.
 Run `node --check daily_flyer/themes/afterglow_assets/app.js`.
 Generate a page through DFE, then run `NODE_PATH=<jsdom node_modules> node tools/test_afterglow_dom.cjs <rendered.html>`.
 
-Functional DOM checks use jsdom. Real browser rendering, iPhone layout and live Render verification remain outstanding until supported preview/deployment access is available. The HTML preview is generated from the same DFE rendering pipeline, not a separate mock implementation.
+Functional DOM checks use jsdom. Render reports the initial deploy live and runtime logs show successful HTTP responses. Real browser rendering and iPhone layout remain unverified. The HTML preview is generated from the same DFE rendering pipeline, not a separate mock implementation.
