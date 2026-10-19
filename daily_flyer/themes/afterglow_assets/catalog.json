@@ -352,6 +352,492 @@
           }
         ]
       }
+    },
+    {
+      "id": "ben-howard",
+      "name": "Ben Howard",
+      "initials": "BH",
+      "color": "tidal",
+      "tag": "Guitar, space & atmosphere",
+      "description": "An English singer-songwriter whose catalog moves from acoustic songs to expansive, textured arrangements.",
+      "url": "https://www.benhowardmusic.co.uk/",
+      "tour": "https://www.benhowardmusic.co.uk/live/",
+      "connection": "",
+      "coverage": {
+        "status": "partial",
+        "checked": "2026-10-19",
+        "sourceName": "Official live page / Ticketmaster review",
+        "source": "https://www.benhowardmusic.co.uk/live/",
+        "note": "No upcoming date was verified in this review. The official live page exposed no dated listings and Ticketmaster returned no upcoming concerts. This does not establish that no shows exist; check the official page for announcements."
+      },
+      "profile": {
+        "kind": "solo",
+        "origin": "England",
+        "printLines": [
+          "Ben",
+          "Howard."
+        ],
+        "genres": [
+          "Singer-songwriter",
+          "Folk",
+          "Alternative"
+        ],
+        "intro": "Ben Howard pairs intricate guitar playing with intimate songwriting and increasingly experimental arrangements. Explore the five studio albums from Every Kingdom to Is It?, then keep your own record of the songs and shows that stay with you.",
+        "members": [
+          {
+            "name": "Ben Howard",
+            "role": "Vocals · guitar · songwriting"
+          }
+        ],
+        "membersNote": "Solo artist profile. Recording collaborators and live personnel vary by project.",
+        "membersSource": "https://www.ticketmaster.com/ben-howard-tickets/artist/1475431",
+        "history": [
+          {
+            "year": "2011",
+            "text": "Every Kingdom introduces the debut album, including “Old Pine,” “Only Love” and “Keep Your Head Up.”"
+          },
+          {
+            "year": "2012–14",
+            "text": "The Burgh Island EP is followed by the second album, I Forget Where We Were."
+          },
+          {
+            "year": "2018–21",
+            "text": "Noonday Dream and Collections from the Whiteout continue the studio catalog."
+          },
+          {
+            "year": "2023",
+            "text": "Is It?, produced by Bullion, becomes the fifth studio album."
+          }
+        ],
+        "releaseSummary": "Five studio albums and The Burgh Island EP. Years follow the official music catalog; links open the artist’s listening pages.",
+        "releases": [
+          {
+            "title": "Is It?",
+            "year": "2023",
+            "type": "Studio album",
+            "url": "https://benhoward.lnk.to/IsItWE",
+            "note": "The fifth studio album, produced by Bullion. Includes “Days of Lantana” and “Walking Backwards.”"
+          },
+          {
+            "title": "Collections from the Whiteout",
+            "year": "2021",
+            "type": "Studio album",
+            "url": "https://benhoward.lnk.to/CFTWWE",
+            "note": "Includes “Follies Fixture” and “What A Day.”"
+          },
+          {
+            "title": "Noonday Dream",
+            "year": "2018",
+            "type": "Studio album",
+            "url": "https://benhoward.lnk.to/NoondayDreamWE",
+            "note": "Includes “Nica Libres at Dusk” and “A Boat to an Island on the Wall.”"
+          },
+          {
+            "title": "I Forget Where We Were",
+            "year": "2014",
+            "type": "Studio album",
+            "url": "https://benhoward.lnk.to/ifwwwWE",
+            "note": "The second album; includes “Conrad” and “End of the Affair.”"
+          },
+          {
+            "title": "The Burgh Island EP",
+            "year": "2012",
+            "type": "EP",
+            "url": "https://benhoward.lnk.to/BurghIslandWE",
+            "note": "Four tracks, including “Oats in the Water” and the title track featuring Monica Heldal."
+          },
+          {
+            "title": "Every Kingdom",
+            "year": "2011",
+            "type": "Studio album",
+            "url": "https://benhoward.lnk.to/EveryKingdomWE",
+            "note": "The debut album, with “Old Pine,” “Only Love” and “Keep Your Head Up.”"
+          }
+        ],
+        "listening": [
+          {
+            "title": "Every Kingdom",
+            "subtitle": "Start at the debut · 2011",
+            "url": "https://benhoward.lnk.to/EveryKingdomWE"
+          },
+          {
+            "title": "The Burgh Island EP",
+            "subtitle": "A four-song detour · 2012",
+            "url": "https://benhoward.lnk.to/BurghIslandWE"
+          },
+          {
+            "title": "I Forget Where We Were",
+            "subtitle": "Follow the second chapter · 2014",
+            "url": "https://benhoward.lnk.to/ifwwwWE"
+          },
+          {
+            "title": "Is It?",
+            "subtitle": "Jump to album five · 2023",
+            "url": "https://benhoward.lnk.to/IsItWE"
+          }
+        ],
+        "links": [
+          {
+            "label": "Official website",
+            "url": "https://www.benhowardmusic.co.uk/"
+          },
+          {
+            "label": "Official live page",
+            "url": "https://www.benhowardmusic.co.uk/live/"
+          },
+          {
+            "label": "Official music catalog",
+            "url": "https://www.benhowardmusic.co.uk/music/"
+          },
+          {
+            "label": "Official store",
+            "url": "https://store.benhowardmusic.co.uk/"
+          }
+        ],
+        "sources": [
+          {
+            "label": "Official biography · Is It? and collaborators",
+            "url": "https://www.benhowardmusic.co.uk/bio/"
+          },
+          {
+            "label": "Official music catalog · releases & years",
+            "url": "https://www.benhowardmusic.co.uk/music/"
+          },
+          {
+            "label": "Ticketmaster · show coverage check",
+            "url": "https://www.ticketmaster.com/ben-howard-tickets/artist/1475431"
+          }
+        ],
+        "checked": "2026-10-19"
+      }
+    },
+    {
+      "id": "mt-joy",
+      "name": "Mt. Joy",
+      "initials": "MtJ",
+      "color": "meadow",
+      "tag": "The road & the room",
+      "description": "Philadelphia roots, a Los Angeles beginning, and an indie-rock catalog built for shared nights out.",
+      "url": "https://www.mtjoyband.com/",
+      "tour": "https://www.mtjoyband.com/tour",
+      "connection": "",
+      "coverage": {
+        "status": "partial",
+        "checked": "2026-10-19",
+        "sourceName": "Ticketmaster / official festival listings",
+        "source": "https://www.ticketmaster.com/mt-joy-tickets/artist/2328939",
+        "note": "Four selected upcoming listings: Waco, Out of the Blue, High Water and the Gorge. Festival dates may cover several days; individual set times are not established. Merchandise and parking add-ons are excluded."
+      },
+      "profile": {
+        "kind": "band",
+        "origin": "Philadelphia roots · Los Angeles formation",
+        "printLines": [
+          "Mt.",
+          "Joy."
+        ],
+        "genres": [
+          "Indie rock",
+          "Folk rock"
+        ],
+        "intro": "High-school friends Matt Quinn and Sam Cooper reconnected in Los Angeles and built Mt. Joy around their shared musical ambitions. The name nods to a mountain in Valley Forge National Park near Cooper’s childhood home. Their recordings now span four studio albums and a growing live catalog.",
+        "members": [
+          {
+            "name": "Matt Quinn",
+            "role": "Vocals · guitar"
+          },
+          {
+            "name": "Sam Cooper",
+            "role": "Guitar"
+          },
+          {
+            "name": "Jackie Miclau",
+            "role": "Keys · piano"
+          },
+          {
+            "name": "Sotiris Eliopoulos",
+            "role": "Drums"
+          },
+          {
+            "name": "Michael Byrnes",
+            "role": "Bass"
+          }
+        ],
+        "membersNote": "Members and roles follow the band bio supplied on Ticketmaster.",
+        "membersSource": "https://www.ticketmaster.com/mt-joy-tickets/artist/2328939",
+        "history": [
+          {
+            "year": "2016",
+            "text": "The band forms, reconnecting Quinn and Cooper in Los Angeles."
+          },
+          {
+            "year": "2018",
+            "text": "The self-titled debut arrives, followed by Rearrange Us in 2020."
+          },
+          {
+            "year": "2022–25",
+            "text": "Orange Blood is followed by the fourth studio album, Hope We Have Fun."
+          },
+          {
+            "year": "2026",
+            "text": "The Garden Mann collects performances from the 2025 tour, including Boston’s TD Garden."
+          }
+        ],
+        "releaseSummary": "Four studio albums and a 2026 live collection. This is a selected release guide; explore the official catalog for more live recordings.",
+        "releases": [
+          {
+            "title": "The Garden Mann — Live in 2025",
+            "year": "2026",
+            "type": "Live album",
+            "url": "https://store.mtjoyband.com/products/mt-joy-the-garden-mann-green-thumb-kelly-green-white-marbling-vinyl-3lp",
+            "note": "Live recordings from TD Garden, The Mann, Red Rocks and other stops on the 2025 tour."
+          },
+          {
+            "title": "Hope We Have Fun",
+            "year": "2025",
+            "type": "Studio album",
+            "url": "https://store.mtjoyband.com/products/hope-we-have-fun-vinyl",
+            "note": "The fourth studio album; includes “Highway Queen” and “She Wants to Go Dancing.”"
+          },
+          {
+            "title": "Orange Blood",
+            "year": "2022",
+            "type": "Studio album",
+            "url": "https://store.mtjoyband.com/products/lp3-orange-blood-orange-variation",
+            "note": "The third studio album."
+          },
+          {
+            "title": "Rearrange Us",
+            "year": "2020",
+            "type": "Studio album",
+            "url": "https://mtjoyband.bandcamp.com/album/rearrange-us",
+            "note": "The second studio album."
+          },
+          {
+            "title": "Mt. Joy",
+            "year": "2018",
+            "type": "Studio album",
+            "url": "https://mtjoyband.bandcamp.com/album/mt-joy",
+            "note": "The self-titled debut."
+          }
+        ],
+        "listening": [
+          {
+            "title": "Silver Lining",
+            "subtitle": "Start with a song from the debut",
+            "url": "https://mtjoyband.bandcamp.com/track/silver-lining"
+          },
+          {
+            "title": "Astrovan",
+            "subtitle": "Return to an early single",
+            "url": "https://mtjoyband.bandcamp.com/track/astrovan"
+          },
+          {
+            "title": "Rearrange Us",
+            "subtitle": "Spend time with album two",
+            "url": "https://mtjoyband.bandcamp.com/album/rearrange-us"
+          },
+          {
+            "title": "The Garden Mann",
+            "subtitle": "Hear the band in the room · official release",
+            "url": "https://store.mtjoyband.com/products/mt-joy-the-garden-mann-green-thumb-kelly-green-white-marbling-vinyl-3lp"
+          }
+        ],
+        "links": [
+          {
+            "label": "Official website & music",
+            "url": "https://www.mtjoyband.com/"
+          },
+          {
+            "label": "Official tour",
+            "url": "https://www.mtjoyband.com/tour"
+          },
+          {
+            "label": "Bandcamp",
+            "url": "https://mtjoyband.bandcamp.com/"
+          },
+          {
+            "label": "Official store",
+            "url": "https://store.mtjoyband.com/"
+          }
+        ],
+        "sources": [
+          {
+            "label": "Ticketmaster · members, history & shows",
+            "url": "https://www.ticketmaster.com/mt-joy-tickets/artist/2328939"
+          },
+          {
+            "label": "Artist Bandcamp · origins",
+            "url": "https://mtjoyband.bandcamp.com/"
+          },
+          {
+            "label": "Official catalog · album years",
+            "url": "https://www.mtjoyband.com/"
+          },
+          {
+            "label": "Official store · The Garden Mann",
+            "url": "https://store.mtjoyband.com/products/mt-joy-the-garden-mann-green-thumb-kelly-green-white-marbling-vinyl-3lp"
+          }
+        ],
+        "checked": "2026-10-19"
+      }
+    },
+    {
+      "id": "zach-bryan",
+      "name": "Zach Bryan",
+      "initials": "ZB",
+      "color": "clay",
+      "tag": "Stories from Oklahoma",
+      "description": "An Oologah, Oklahoma songwriter with a catalog that runs from DeAnn to With Heaven on Top.",
+      "url": "https://zachbryan.com/",
+      "tour": "https://zachbryan.com/",
+      "connection": "",
+      "coverage": {
+        "status": "partial",
+        "checked": "2026-10-19",
+        "sourceName": "Zach Bryan official tour announcement",
+        "source": "https://zachbryan.com/",
+        "note": "Seven selected 2027 stadium dates, including both MetLife nights, Philadelphia and Buffalo. The official site showed presale registration at review; that is not a claim that tickets are available. More dates are listed at the source."
+      },
+      "profile": {
+        "kind": "solo",
+        "origin": "Oologah, Oklahoma",
+        "printLines": [
+          "Zach",
+          "Bryan."
+        ],
+        "genres": [
+          "Singer-songwriter",
+          "Country",
+          "Folk"
+        ],
+        "intro": "Zach Bryan is a singer-songwriter from Oologah, Oklahoma. He began sharing music while serving in the Navy, with DeAnn marking his 2019 album debut. His songs grew from those early recordings into a catalog and touring life that now reach stadiums.",
+        "members": [
+          {
+            "name": "Zach Bryan",
+            "role": "Vocals · guitar · songwriting"
+          }
+        ],
+        "membersNote": "Solo artist profile; supporting performers and touring personnel depend on the date.",
+        "membersSource": "https://zachbryan.com/about-zach",
+        "history": [
+          {
+            "year": "2019",
+            "text": "DeAnn introduces the debut album."
+          },
+          {
+            "year": "2020–22",
+            "text": "Elisabeth is followed by the expansive American Heartbreak."
+          },
+          {
+            "year": "2023–24",
+            "text": "The self-titled album and The Great American Bar Scene follow."
+          },
+          {
+            "year": "2026",
+            "text": "With Heaven on Top arrives in January; a 2027 stadium tour is announced in October."
+          }
+        ],
+        "releaseSummary": "Six studio albums from 2019 through January 2026. A selected catalog guide, with official streaming links; singles, live albums and later announcements are not exhaustively listed.",
+        "releases": [
+          {
+            "title": "With Heaven on Top",
+            "year": "2026",
+            "type": "Studio album",
+            "url": "https://music.apple.com/us/album/with-heaven-on-top/1867328456",
+            "note": "A 25-track release written, recorded and produced by Bryan in Tulsa. Released January 9, 2026."
+          },
+          {
+            "title": "The Great American Bar Scene",
+            "year": "2024",
+            "type": "Studio album",
+            "url": "https://music.apple.com/us/album/the-great-american-bar-scene/1819829616",
+            "note": "The fifth studio album; includes “28” and “Pink Skies.”"
+          },
+          {
+            "title": "Zach Bryan",
+            "year": "2023",
+            "type": "Studio album",
+            "url": "https://music.apple.com/us/album/zach-bryan/1703216858",
+            "note": "The self-titled album, featuring “I Remember Everything” with Kacey Musgraves."
+          },
+          {
+            "title": "American Heartbreak",
+            "year": "2022",
+            "type": "Studio album",
+            "url": "https://music.apple.com/us/album/american-heartbreak/1620257596",
+            "note": "The major-label debut and third studio album."
+          },
+          {
+            "title": "Elisabeth",
+            "year": "2020",
+            "type": "Studio album",
+            "url": "https://music.apple.com/us/album/elisabeth/1542103677",
+            "note": "The second album; includes “Revival.”"
+          },
+          {
+            "title": "DeAnn",
+            "year": "2019",
+            "type": "Studio album",
+            "url": "https://music.apple.com/us/album/deann/1543705082",
+            "note": "The debut album, released while Bryan was serving in the Navy."
+          }
+        ],
+        "listening": [
+          {
+            "title": "DeAnn",
+            "subtitle": "Start at the first album · 2019",
+            "url": "https://music.apple.com/us/album/deann/1543705082"
+          },
+          {
+            "title": "I Remember Everything",
+            "subtitle": "With Kacey Musgraves · 2023",
+            "url": "https://music.apple.com/us/album/i-remember-everything-feat-kacey-musgraves/1744516140?i=1744516438"
+          },
+          {
+            "title": "28",
+            "subtitle": "From The Great American Bar Scene · 2024",
+            "url": "https://music.apple.com/us/album/28/1819829616?i=1819829902"
+          },
+          {
+            "title": "With Heaven on Top",
+            "subtitle": "Explore the January 2026 album",
+            "url": "https://music.apple.com/us/album/with-heaven-on-top/1867328456"
+          }
+        ],
+        "links": [
+          {
+            "label": "Official website & tour",
+            "url": "https://zachbryan.com/"
+          },
+          {
+            "label": "Official store",
+            "url": "https://store.zachbryan.com/"
+          },
+          {
+            "label": "Music on Apple Music",
+            "url": "https://music.apple.com/us/artist/zach-bryan/1436413980"
+          }
+        ],
+        "sources": [
+          {
+            "label": "Official biography · Oklahoma roots & Navy service",
+            "url": "https://zachbryan.com/about-zach"
+          },
+          {
+            "label": "Official site · announced 2027 shows",
+            "url": "https://zachbryan.com/"
+          },
+          {
+            "label": "Warner Records · With Heaven on Top",
+            "url": "https://press.warnerrecords.com/sites/g/files/g2000014901/files/2026-01/ZACH%20BRYAN%20-%20WHOT%20-%20%20pr%20FINAL.pdf"
+          },
+          {
+            "label": "Apple Music · releases and credits",
+            "url": "https://music.apple.com/us/artist/zach-bryan/1436413980"
+          }
+        ],
+        "checked": "2026-10-19"
+      }
     }
   ],
   "events": [
@@ -814,6 +1300,194 @@
       "source": "https://www.eventbrite.com/e/i-am-the-avalanche-w-special-guest-born-without-bones-classic-traffic-tickets-2001257361641",
       "sourceName": "Ocean Mist on Eventbrite",
       "note": "Born Without Bones is a supporting act. The organizer listing shows doors at 7 PM, event at 8 PM local time; ages 21+. Reviewed from the indexed organizer listing and corroborated by the dated Bandsintown listing. Confirm all details before booking.",
+      "availability": "Check source",
+      "checked": "2026-10-19"
+    },
+    {
+      "id": "mt-joy-waco-20261022",
+      "artists": [
+        "mt-joy"
+      ],
+      "title": "Mt. Joy",
+      "date": "2026-10-22",
+      "city": "Waco, TX",
+      "venue": "Foster Pavilion",
+      "region": "us",
+      "source": "https://www.ticketmaster.com/event/Z7r9jZ1AAZeAs",
+      "sourceName": "Ticketmaster",
+      "note": "Listed at 7:30 PM local time. Check doors, age restrictions and current ticket availability at the source.",
+      "lineup": "Mt. Joy",
+      "availability": "Check source",
+      "checked": "2026-10-19"
+    },
+    {
+      "id": "mt-joy-out-of-blue-20270107",
+      "artists": [
+        "mt-joy"
+      ],
+      "title": "Noah Kahan’s Out of the Blue",
+      "date": "2027-01-07",
+      "city": "Riviera Cancún, Mexico",
+      "venue": "Moon Palace Cancún",
+      "region": "mexico",
+      "source": "https://www.outofthebluefestival.com/",
+      "sourceName": "Out of the Blue official festival",
+      "note": "January 7–10 are the festival dates, not a confirmed Mt. Joy performance date or set time. The organizer requires a festival package; individual concert tickets are not offered. Confirm details before booking.",
+      "lineup": "Mt. Joy · Noah Kahan · festival lineup at source",
+      "availability": "Check source",
+      "checked": "2026-10-19",
+      "endDate": "2027-01-10"
+    },
+    {
+      "id": "mt-joy-high-water-20270418",
+      "artists": [
+        "mt-joy"
+      ],
+      "title": "High Water · Sunday",
+      "date": "2027-04-18",
+      "city": "North Charleston, SC",
+      "venue": "Riverfront Park",
+      "region": "us",
+      "source": "https://www.ticketmaster.com/mt-joy-tickets/artist/2328939",
+      "sourceName": "Ticketmaster",
+      "note": "Listed on the Sunday festival lineup. The 1 PM event listing is not a confirmed Mt. Joy set time. Confirm day admission and the schedule with the organizer.",
+      "lineup": "Mt. Joy · Rainbow Kitten Surprise · The Head and the Heart · festival lineup at source",
+      "availability": "Check source",
+      "checked": "2026-10-19"
+    },
+    {
+      "id": "mt-joy-gorge-20270828",
+      "artists": [
+        "mt-joy"
+      ],
+      "title": "Mt. Joy & Rainbow Kitten Surprise",
+      "date": "2027-08-28",
+      "city": "George, WA",
+      "venue": "Gorge Amphitheatre",
+      "region": "us",
+      "source": "https://www.ticketmaster.com/mt-joy-rainbow-kitten-surprise-george-washington-08-28-2027/event/0F00654FBE8192ED",
+      "sourceName": "Ticketmaster",
+      "note": "Listed at 5:30 PM local time. Concert admission is distinct from the separately listed poster, parking and rental add-ons. Confirm sale timing and current availability.",
+      "lineup": "Mt. Joy · Rainbow Kitten Surprise · flipturn · Leif Vollebekk",
+      "availability": "Check source",
+      "checked": "2026-10-19"
+    },
+    {
+      "id": "zach-bryan-minneapolis-20270428",
+      "artists": [
+        "zach-bryan"
+      ],
+      "title": "Zach Bryan · U.S. Bank Stadium",
+      "date": "2027-04-28",
+      "city": "Minneapolis, MN",
+      "venue": "U.S. Bank Stadium",
+      "region": "us",
+      "source": "https://zachbryan.com/",
+      "sourceName": "Zach Bryan official site",
+      "note": "An announced stop on the 2027 Young Manhood and Other Donatable Organs Tour. The official site linked to presale registration at review. Confirm the supporting lineup, times and ticket sale details at the source.",
+      "lineup": "Zach Bryan",
+      "availability": "Check source",
+      "checked": "2026-10-19"
+    },
+    {
+      "id": "zach-bryan-green-bay-20270504",
+      "artists": [
+        "zach-bryan"
+      ],
+      "title": "Zach Bryan · Lambeau Field",
+      "date": "2027-05-04",
+      "city": "Green Bay, WI",
+      "venue": "Lambeau Field",
+      "region": "us",
+      "source": "https://zachbryan.com/",
+      "sourceName": "Zach Bryan official site",
+      "note": "An announced stop on the 2027 Young Manhood and Other Donatable Organs Tour. The official site linked to presale registration at review. Confirm the supporting lineup, times and ticket sale details at the source.",
+      "lineup": "Zach Bryan",
+      "availability": "Check source",
+      "checked": "2026-10-19"
+    },
+    {
+      "id": "zach-bryan-metlife-friday-20270514",
+      "artists": [
+        "zach-bryan"
+      ],
+      "title": "Zach Bryan · MetLife Stadium",
+      "date": "2027-05-14",
+      "city": "East Rutherford, NJ",
+      "venue": "MetLife Stadium",
+      "region": "northeast",
+      "source": "https://zachbryan.com/",
+      "sourceName": "Zach Bryan official site",
+      "note": "An announced stop on the 2027 Young Manhood and Other Donatable Organs Tour. The official site linked to presale registration at review. Confirm the supporting lineup, times and ticket sale details at the source.",
+      "lineup": "Zach Bryan",
+      "availability": "Check source",
+      "checked": "2026-10-19"
+    },
+    {
+      "id": "zach-bryan-metlife-saturday-20270515",
+      "artists": [
+        "zach-bryan"
+      ],
+      "title": "Zach Bryan · MetLife Stadium",
+      "date": "2027-05-15",
+      "city": "East Rutherford, NJ",
+      "venue": "MetLife Stadium",
+      "region": "northeast",
+      "source": "https://zachbryan.com/",
+      "sourceName": "Zach Bryan official site",
+      "note": "An announced stop on the 2027 Young Manhood and Other Donatable Organs Tour. The official site linked to presale registration at review. Confirm the supporting lineup, times and ticket sale details at the source.",
+      "lineup": "Zach Bryan",
+      "availability": "Check source",
+      "checked": "2026-10-19"
+    },
+    {
+      "id": "zach-bryan-baltimore-20270518",
+      "artists": [
+        "zach-bryan"
+      ],
+      "title": "Zach Bryan · M&T Bank Stadium",
+      "date": "2027-05-18",
+      "city": "Baltimore, MD",
+      "venue": "M&T Bank Stadium",
+      "region": "us",
+      "source": "https://zachbryan.com/",
+      "sourceName": "Zach Bryan official site",
+      "note": "An announced stop on the 2027 Young Manhood and Other Donatable Organs Tour. The official site linked to presale registration at review. Confirm the supporting lineup, times and ticket sale details at the source.",
+      "lineup": "Zach Bryan",
+      "availability": "Check source",
+      "checked": "2026-10-19"
+    },
+    {
+      "id": "zach-bryan-philadelphia-20270525",
+      "artists": [
+        "zach-bryan"
+      ],
+      "title": "Zach Bryan · Lincoln Financial Field",
+      "date": "2027-05-25",
+      "city": "Philadelphia, PA",
+      "venue": "Lincoln Financial Field",
+      "region": "northeast",
+      "source": "https://zachbryan.com/",
+      "sourceName": "Zach Bryan official site",
+      "note": "An announced stop on the 2027 Young Manhood and Other Donatable Organs Tour. The official site linked to presale registration at review. Confirm the supporting lineup, times and ticket sale details at the source.",
+      "lineup": "Zach Bryan",
+      "availability": "Check source",
+      "checked": "2026-10-19"
+    },
+    {
+      "id": "zach-bryan-buffalo-20270602",
+      "artists": [
+        "zach-bryan"
+      ],
+      "title": "Zach Bryan · Highmark Stadium",
+      "date": "2027-06-02",
+      "city": "Buffalo / Orchard Park, NY",
+      "venue": "Highmark Stadium",
+      "region": "northeast",
+      "source": "https://zachbryan.com/",
+      "sourceName": "Zach Bryan official site",
+      "note": "An announced stop on the 2027 Young Manhood and Other Donatable Organs Tour. The official site linked to presale registration at review. Confirm the supporting lineup, times and ticket sale details at the source.",
+      "lineup": "Zach Bryan",
       "availability": "Check source",
       "checked": "2026-10-19"
     }

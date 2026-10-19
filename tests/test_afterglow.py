@@ -30,9 +30,21 @@ class AfterglowTests(unittest.TestCase):
     def test_source_catalog_integrity(self):
         data = json.loads(Path('daily_flyer/themes/afterglow_assets/catalog.json').read_text())
         artists = {a['id'] for a in data['artists']}
-        self.assertEqual(len(artists), 10)
+        self.assertEqual(len(artists), 13)
         self.assertEqual(data['dataMode'], 'reviewed-snapshot')
-        self.assertTrue(all(any(a in e['artists'] for e in data['events']) for a in artists))
+        # Verified coverage can be empty; do not manufacture a show to satisfy a count.
+        counts = {a: sum(a in e['artists'] for e in data['events']) for a in artists}
+        self.assertEqual(counts['ben-howard'], 0)
+        self.assertEqual(counts['mt-joy'], 4)
+        self.assertEqual(counts['zach-bryan'], 7)
+        for artist in data['artists']:
+            for release in artist.get('profile', {}).get('releases', []):
+                if 'date' in release:
+                    date.fromisoformat(release['date'])
+                else:
+                    self.assertRegex(release['year'], r'^\d{4}$')
+                self.assertTrue(release['url'].startswith('https://'))
+
         for artist in data['artists']:
             self.assertEqual(artist['coverage']['status'], 'partial')
             date.fromisoformat(artist['coverage']['checked'])

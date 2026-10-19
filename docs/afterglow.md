@@ -1,6 +1,6 @@
 # Afterglow — a live-music journey
 
-A separate DFE theme for artist following, show planning and personal memories. Features Above & Beyond, ilan Bluestone, Oliver Smith, FKJ, GRiZ, Muse, The Wonder Years, Four Year Strong, August Burns Red and Born Without Bones. Built on `agent/garage-recovery` commit `94709698c8e614c1f53a94d4a47cef07c9441e14` in branch `feat/afterglow-live-music`.
+A separate DFE theme for artist following, show planning and personal memories. Features Above & Beyond, ilan Bluestone, Oliver Smith, FKJ, GRiZ, Muse, The Wonder Years, Four Year Strong, August Burns Red, Born Without Bones, Ben Howard, Mt. Joy and Zach Bryan. Built on `agent/garage-recovery` commit `94709698c8e614c1f53a94d4a47cef07c9441e14` in branch `feat/afterglow-live-music`.
 
 ## Run and deploy
 
@@ -26,7 +26,7 @@ Explicit theme URL: `/?theme=afterglow`.
 ## What is implemented
 
 - Responsive dark editorial layout; touch-sized controls, focus states and a short first-use guide.
-- Ten artist cards with official source/tour links, individual visual accents, follow/unfollow and custom artist entry. The Anjunabeats connection diagram is limited to the original three connected artists.
+- Thirteen artist cards with official source/tour links, individual visual accents, follow/unfollow and custom artist entry. The Anjunabeats connection diagram is limited to the original three connected artists.
 - Curated show discovery by city/text, region and followed/specific artist.
 - Interested / Going / I was there states; saved show snapshots; editable venue, city and lineup.
 - Memory timeline, personal rating, companions, standout track/moment and notes.
@@ -60,6 +60,18 @@ Seven November 2026 listings bring the catalog to **27 events across ten artists
 Profile sources: the band's Bandcamp release pages, official website, Pure Noise artist bio and the current Hotel Congress event bio. Show sources: Hotel Congress, Ticketmaster, Swan Dive Las Vegas, Eventim and Ocean Mist's Eventbrite organizer listing. Descriptions are brief original summaries. This is partial, manually reviewed coverage as of October 19, 2026; no background collection is added.
 
 The notebook shows the user's saved plans and attended nights for this band. Its Add show / Remember a night actions pre-fill and link Born Without Bones. It uses the existing follow state and browser-local journal schema without a migration. Unknown artist deep links safely fall back to discovery.
+
+## Ben Howard, Mt. Joy and Zach Bryan
+
+Added on October 19, 2026 using the same artist notebook and journal workflow. The catalog now contains **13 artists and 38 selected events**. Each new profile has an individual color, biography, history, four listening starting points, release links, official sources, following and pre-linked show/memory forms. Ben Howard and Zach Bryan use solo-artist wording. The profile poster now takes the artist name and origin from data; release summaries and year-only metadata no longer assume the Born Without Bones catalog. The collection includes six Ben Howard releases, five selected Mt. Joy releases and six Zach Bryan studio albums. These are selected guides rather than exhaustive discographies.
+
+- **Ben Howard:** no future show verified. The official live page exposed no dated listings and Ticketmaster returned no upcoming concerts. September listings are past events and were not imported into discovery. This does not establish that no future show exists. He can still be followed and linked to memories or manually added shows.
+- **Mt. Joy:** Waco (October 22, 2026), Out of the Blue (January 7–10, 2027), High Water Sunday (April 18, 2027), and the Gorge with Rainbow Kitten Surprise (August 28, 2027). Poster purchases, parking, chair rentals and other Ticketmaster add-ons are not counted as concerts. Out of the Blue uses the festival range, not an invented band performance date; the festival requires a package. Both “Mt. Joy” and “Mount Joy” work in show search; adding “Mount Joy” cannot create a duplicate custom artist.
+- **Zach Bryan:** seven selected official 2027 stadium announcements: Minneapolis, Green Bay, both MetLife nights, Baltimore, Philadelphia and Buffalo/Orchard Park. Each has its own date and ID. The official page linked to presale registration at review, so availability is left as “Check source.”
+
+Sources are Ben Howard's official music/live/bio pages and Ticketmaster; Mt. Joy's official site/store, Bandcamp, Ticketmaster and Out of the Blue organizer; and Zach Bryan's official site, Warner Records press release and licensed Apple Music catalog. No unattended collection or API dependency was added. Journal storage and prior event IDs are preserved.
+
+Verification covers artist identity, solo/band wording, empty verified coverage, following, linked memories, alias matching, distinct concerts and festival calendar end dates, together with the existing journal regression checks. Visual browser QA was unavailable in the managed environment; no browser layout verification is claimed.
 
 ## DFE reuse and scope
 

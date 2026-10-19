@@ -15,17 +15,17 @@ const value=(name,value)=>{$(`[name="${name}"]`).value=value;};
 const closeDialogForTest=()=>click('[data-action="close"]');
 const submit=()=>$('#ag-show-form').dispatchEvent(new w.Event('submit',{bubbles:true,cancelable:true}));
 (async()=>{
- assert.equal(d.querySelectorAll('.ag-event').length,27);
- assert.equal(d.querySelectorAll('.ag-coverage li').length,10);
- for(const [id,count] of Object.entries({'fkj':3,'griz':3,'muse':2,'the-wonder-years':1,'four-year-strong':2,'august-burns-red':3,'born-without-bones':7})){
+ assert.equal(d.querySelectorAll('.ag-event').length,38);
+ assert.equal(d.querySelectorAll('.ag-coverage li').length,13);
+ for(const [id,count] of Object.entries({'fkj':3,'griz':3,'muse':2,'the-wonder-years':1,'four-year-strong':2,'august-burns-red':3,'born-without-bones':7,'ben-howard':0,'mt-joy':4,'zach-bryan':7})){
   $('#ag-artist').value=id;$('#ag-artist').dispatchEvent(new w.Event('change',{bubbles:true}));
   assert.equal(d.querySelectorAll('.ag-event').length,count,id);assert.ok($('#ag-results').textContent.includes('Partial coverage'));
   assert.equal(d.querySelectorAll('.ag-listing-source a').length,count);
  }
  $('#ag-artist').value='all';$('#ag-artist').dispatchEvent(new w.Event('change',{bubbles:true}));
- assert.equal(d.querySelectorAll('.ag-orbit-link').length,3);w.location.hash='artists';await wait();assert.equal(d.querySelectorAll('.ag-artist').length,10);for(const id of ['above-beyond','ilan-bluestone','oliver-smith'])click(`[data-action="follow"][data-id="${id}"]`);assert.equal(read().followed.length,3);
+ assert.equal(d.querySelectorAll('.ag-orbit-link').length,3);w.location.hash='artists';await wait();assert.equal(d.querySelectorAll('.ag-artist').length,13);for(const id of ['above-beyond','ilan-bluestone','oliver-smith'])click(`[data-action="follow"][data-id="${id}"]`);assert.equal(read().followed.length,3);
  click('[data-action="follow"][data-id="ilan-bluestone"]');assert.equal(read().followed.length,2);
- w.location.hash='discover';await wait();$('#ag-region').value='northeast';$('#ag-region').dispatchEvent(new w.Event('change',{bubbles:true}));assert.equal(d.querySelectorAll('.ag-event').length,7);assert.ok($('#ag-results').textContent.includes('SILO'));assert.ok($('#ag-results').textContent.includes('Boston'));
+ w.location.hash='discover';await wait();$('#ag-region').value='northeast';$('#ag-region').dispatchEvent(new w.Event('change',{bubbles:true}));assert.equal(d.querySelectorAll('.ag-event').length,11);assert.ok($('#ag-results').textContent.includes('SILO'));assert.ok($('#ag-results').textContent.includes('Boston'));
  click('[data-action="save-show"][data-id="oliver-brooklyn-20261205"]');assert.equal(read().entries.length,1);assert.equal(read().entries[0].status,'interested');
  w.location.hash='plans';await wait();click('[data-action="edit-show"]');value('notes','Trip plans');value('venue','My updated venue');submit();await wait();assert.equal(read().entries[0].notes,'Trip plans');assert.ok($('#ag-content').textContent.includes('My updated venue'));
  click('[data-action="edit-show"]');assert.equal($('[name="venue"]').value,'My updated venue');value('status','attended');submit();assert.ok(!$('#ag-form-error').hidden);assert.equal(read().entries[0].status,'interested');
@@ -44,7 +44,7 @@ const submit=()=>$('#ag-show-form').dispatchEvent(new w.Event('submit',{bubbles:
  await importFile(JSON.stringify({...backup,entries:[]}));click('[data-action="close"]');assert.equal(read().entries.length,1);
  await importFile(JSON.stringify({...backup,entries:[]}));click('[data-action="confirm-import"]');assert.equal(read().entries.length,0);
  await importFile(JSON.stringify(backup));click('[data-action="confirm-import"]');assert.equal(read().entries.length,1);
- w.location.hash='discover';await wait();$('#ag-region').value='all';$('#ag-region').dispatchEvent(new w.Event('change',{bubbles:true}));click('[data-action="details"]');click('[data-action="calendar"]');const ics=await downloads.at(-1).text();assert.ok(ics.includes('DTSTART;VALUE=DATE:20261024'));assert.ok(ics.includes('DTEND;VALUE=DATE:20261025'));assert.ok(ics.endsWith('END:VCALENDAR\r\n'));
+ w.location.hash='discover';await wait();$('#ag-region').value='all';$('#ag-region').dispatchEvent(new w.Event('change',{bubbles:true}));click('[data-action="details"][data-id="warehouse-birmingham-20261024"]');click('[data-action="calendar"]');const ics=await downloads.at(-1).text();assert.ok(ics.includes('DTSTART;VALUE=DATE:20261024'));assert.ok(ics.includes('DTEND;VALUE=DATE:20261025'));assert.ok(ics.endsWith('END:VCALENDAR\r\n'));
  closeDialogForTest();
  $('#ag-artist').value='the-wonder-years';$('#ag-artist').dispatchEvent(new w.Event('change',{bubbles:true}));
  assert.ok($('#ag-results').textContent.includes('Jan 26, 2027'));
@@ -80,7 +80,25 @@ const submit=()=>$('#ag-show-form').dispatchEvent(new w.Event('submit',{bubbles:
  click('[data-action="artist-shows"][data-id="born-without-bones"]');await wait();assert.equal($('#ag-artist').value,'born-without-bones');assert.equal(d.querySelectorAll('.ag-event').length,7);
  w.location.hash='artists';await wait();assert.ok($('.ag-profile-link[href="#artist/born-without-bones"]'));
  w.location.hash='artist/unknown';await wait();assert.ok($('#ag-shows-title'));
+ // New profiles use their own identity and solo/band wording.
+ for(const [id,name,releases,shows,solo] of [['ben-howard','Ben Howard',6,0,true],['mt-joy','Mt. Joy',5,4,false],['zach-bryan','Zach Bryan',6,7,true]]){
+  w.location.hash='artist/'+id;await wait();
+  assert.equal($('.ag-profile h1').textContent,name);
+  assert.equal(d.querySelectorAll('.ag-releases li').length,releases);
+  assert.equal(d.querySelectorAll('.ag-profile .ag-event').length,shows);
+  assert.equal($('#ag-members-title').textContent,solo?'The artist.':'In the band.');
+  assert.ok(!$('.ag-profile-print').textContent.includes('Milford'));
+  assert.ok(!$('.ag-profile').textContent.includes('Invalid Date'));
+  click(`[data-action="follow"][data-id="${id}"]`);assert.ok(read().followed.includes(id));
+  click('[data-action="artist-memory"]');assert.equal($('[name="artist"]').value,id);assert.equal($('[name="lineup"]').value,name);closeDialogForTest();
+ }
+ w.location.hash='artist/ben-howard';await wait();assert.ok($('.ag-profile').textContent.includes('No upcoming date was verified'));
+ w.location.hash='discover';await wait();$('#ag-artist').value='all';$('#ag-artist').dispatchEvent(new w.Event('change',{bubbles:true}));
+ $('#ag-search').value='Mount Joy';$('#ag-search').dispatchEvent(new w.Event('input',{bubbles:true}));assert.equal(d.querySelectorAll('.ag-event').length,4);
+ click('[data-action="details"][data-id="mt-joy-out-of-blue-20270107"]');assert.ok($('#ag-dialog-content').textContent.includes('not a confirmed Mt. Joy performance date'));
+ click('[data-action="calendar"]');const blueIcs=await downloads.at(-1).text();assert.ok(blueIcs.includes('DTSTART;VALUE=DATE:20270107'));assert.ok(blueIcs.includes('DTEND;VALUE=DATE:20270111'));closeDialogForTest();
+ w.location.hash='artists';await wait();click('[data-action="add-artist"]');value('name','Mount Joy');$('#ag-artist-form').dispatchEvent(new w.Event('submit',{bubbles:true,cancelable:true}));assert.ok($('#ag-form-error').textContent.includes('already'));closeDialogForTest();
  assert.deepEqual(errors,[]);
- console.log('PASS: discovery, follow, filters, save/edit, date validation, XSS escaping, custom artist, memory timeline, storage failure, delete confirmation, backup export/import/cancel, source coverage for all ten artists, multi-day calendar boundaries, range validation and backup roundtrip, persisted reload, artist deep links, band notebook, separate early/late plans and pre-linked band memories.');
+ console.log('PASS: discovery, follow, filters, save/edit, date validation, XSS escaping, custom artist, memory timeline, storage failure, delete confirmation, backup export/import/cancel, source coverage for all thirteen artists, multi-day calendar boundaries, range validation and backup roundtrip, persisted reload, artist deep links, band notebook, separate early/late plans and pre-linked artist memories, solo profiles, unknown tour coverage, Mount Joy search alias and festival calendar boundaries.');
  dom.window.close();
 })().catch(e=>{console.error(e);process.exitCode=1;dom.window.close()});
