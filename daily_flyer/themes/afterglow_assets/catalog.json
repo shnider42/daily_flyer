@@ -11,7 +11,14 @@
       "description": "Jono, Tony and Paavo. The trio behind Group Therapy and the Anjuna labels.",
       "url": "https://anjunabeats.com/artists/57287-above-beyond",
       "tour": "https://anjunabeats.com/artists/57287-above-beyond",
-      "connection": "Founders of Anjunabeats"
+      "connection": "Founders of Anjunabeats",
+      "coverage": {
+        "status": "partial",
+        "checked": "2026-10-19",
+        "sourceName": "Official artist / promoter",
+        "source": "https://anjunabeats.com/artists/57287-above-beyond",
+        "note": "Selected starter shows; additional dates may be missing."
+      }
     },
     {
       "id": "ilan-bluestone",
@@ -22,7 +29,14 @@
       "description": "Start with his official music and tour pages, then build your own history of the nights you see him.",
       "url": "https://www.ilanbluestone.com/",
       "tour": "https://www.ilanbluestone.com/tour",
-      "connection": "Anjunabeats artist"
+      "connection": "Anjunabeats artist",
+      "coverage": {
+        "status": "partial",
+        "checked": "2026-10-19",
+        "sourceName": "Official artist / promoter",
+        "source": "https://www.ilanbluestone.com/tour",
+        "note": "Selected starter shows; additional dates may be missing."
+      }
     },
     {
       "id": "oliver-smith",
@@ -33,7 +47,14 @@
       "description": "Anjunabeats’ first signing. Follow the music, find a show, and keep the moments that stay with you.",
       "url": "https://anjunabeats.com/us/artists/57283-oliver-smith",
       "tour": "https://oliversmithmusic.com/",
-      "connection": "First signing to Anjunabeats"
+      "connection": "First signing to Anjunabeats",
+      "coverage": {
+        "status": "partial",
+        "checked": "2026-10-19",
+        "sourceName": "Official artist / promoter",
+        "source": "https://oliversmithmusic.com/",
+        "note": "Selected starter shows; additional dates may be missing."
+      }
     },
     {
       "id": "fkj",
@@ -44,7 +65,14 @@
       "description": "A multi-instrumentalist and producer. Follow the live shows, then keep your own record of the moments that draw you back.",
       "url": "https://frenchkiwijuice.com/",
       "tour": "https://frenchkiwijuice.com/tour",
-      "connection": ""
+      "connection": "",
+      "coverage": {
+        "status": "partial",
+        "checked": "2026-10-19",
+        "sourceName": "Ticketmaster",
+        "source": "https://www.ticketmaster.com/fkj-tickets/artist/2110704",
+        "note": "Selected Northeast dates; the full tour includes other cities."
+      }
     },
     {
       "id": "griz",
@@ -55,7 +83,14 @@
       "description": "Keep your GRiZ festival plans and favourite nights together, from the first announcement to the moment you want to remember.",
       "url": "https://www.mynameisgriz.com/",
       "tour": "https://www.mynameisgriz.com/seated-tour",
-      "connection": ""
+      "connection": "",
+      "coverage": {
+        "status": "partial",
+        "checked": "2026-10-19",
+        "sourceName": "AXS",
+        "source": "https://www.axs.com/artists/119265/griz-tickets/staticDetails",
+        "note": "Selected AXS listings; other festivals and dates may be missing."
+      }
     },
     {
       "id": "muse",
@@ -66,7 +101,14 @@
       "description": "Track the next Muse show and the ones you have already lived: the set, the people, and the song that stayed with you.",
       "url": "https://www.muse.mu/",
       "tour": "https://www.muse.mu/tour",
-      "connection": ""
+      "connection": "",
+      "coverage": {
+        "status": "partial",
+        "checked": "2026-10-19",
+        "sourceName": "The O2",
+        "source": "https://www.theo2.co.uk/events/detail/muse-2026",
+        "note": "Two London nights; this is not the full tour."
+      }
     },
     {
       "id": "the-wonder-years",
@@ -78,7 +120,14 @@
       "url": "https://thewonderyearsband.com/",
       "tour": "https://thewonderyearsband.com/",
       "tourLabel": "Official site",
-      "connection": ""
+      "connection": "",
+      "coverage": {
+        "status": "partial",
+        "checked": "2026-10-19",
+        "sourceName": "Emo’s Not Dead",
+        "source": "https://emosnotdead.com/pages/emos-not-dead-cruise",
+        "note": "One cruise appearance. Event dates are known; the band’s set day is not confirmed here."
+      }
     },
     {
       "id": "four-year-strong",
@@ -90,7 +139,14 @@
       "url": "https://fouryearstrong.com/",
       "tour": "https://fouryearstrong.com/",
       "tourLabel": "Official site",
-      "connection": ""
+      "connection": "",
+      "coverage": {
+        "status": "partial",
+        "checked": "2026-10-19",
+        "sourceName": "Ticketmaster",
+        "source": "https://www.ticketmaster.com/four-year-strong-tickets/artist/1249900",
+        "note": "Two festival appearances; other shows may be missing."
+      }
     },
     {
       "id": "august-burns-red",
@@ -102,7 +158,14 @@
       "url": "https://augustburnsred.com/",
       "tour": "https://augustburnsred.com/",
       "tourLabel": "Official site",
-      "connection": ""
+      "connection": "",
+      "coverage": {
+        "status": "partial",
+        "checked": "2026-10-19",
+        "sourceName": "Ticketmaster",
+        "source": "https://www.ticketmaster.com/august-burns-red-tickets/artist/1115308",
+        "note": "Selected shows supporting Underoath; other tour stops may be missing."
+      }
     }
   ],
   "events": [
@@ -209,6 +272,246 @@
       "note": "Listed on the official artist page. Confirm age restrictions, times and tickets with the venue.",
       "availability": "Check source",
       "checked": "2026-10-19"
+    },
+    {
+      "id": "fkj-boston-20270601",
+      "title": "FKJ · Tyber Tour",
+      "date": "2027-06-01",
+      "city": "Boston, MA",
+      "venue": "MGM Music Hall at Fenway",
+      "artists": [
+        "fkj"
+      ],
+      "lineup": "FKJ",
+      "region": "northeast",
+      "source": "https://www.ticketmaster.com/fkj-tickets/artist/2110704",
+      "sourceName": "Ticketmaster",
+      "note": "Selected public listing reviewed for this preview. Confirm current details with the source.",
+      "availability": "Check source",
+      "checked": "2026-10-19"
+    },
+    {
+      "id": "fkj-philadelphia-20270603",
+      "title": "FKJ · Tyber Tour",
+      "date": "2027-06-03",
+      "city": "Philadelphia, PA",
+      "venue": "The Fillmore Philadelphia",
+      "artists": [
+        "fkj"
+      ],
+      "lineup": "FKJ",
+      "region": "northeast",
+      "source": "https://www.ticketmaster.com/fkj-tickets/artist/2110704",
+      "sourceName": "Ticketmaster",
+      "note": "Selected public listing reviewed for this preview. Confirm current details with the source.",
+      "availability": "Check source",
+      "checked": "2026-10-19"
+    },
+    {
+      "id": "fkj-brooklyn-20270604",
+      "title": "FKJ · Tyber Tour",
+      "date": "2027-06-04",
+      "city": "Brooklyn, NY",
+      "venue": "Brooklyn Paramount",
+      "artists": [
+        "fkj"
+      ],
+      "lineup": "FKJ",
+      "region": "northeast",
+      "source": "https://www.ticketmaster.com/fkj-tickets/artist/2110704",
+      "sourceName": "Ticketmaster",
+      "note": "Selected public listing reviewed for this preview. Confirm current details with the source.",
+      "availability": "Check source",
+      "checked": "2026-10-19"
+    },
+    {
+      "id": "griz-haunted-20261031",
+      "title": "Haunted Fest Cincinnati · GRiZ",
+      "date": "2026-10-31",
+      "city": "Newport, KY",
+      "venue": "MegaCorp Pavilion",
+      "artists": [
+        "griz"
+      ],
+      "lineup": "GRiZ · AVELLO · Steller · Star Seed",
+      "region": "us",
+      "source": "https://www.axs.com/artists/119265/griz-tickets/staticDetails",
+      "sourceName": "AXS",
+      "note": "The source lists GRiZ on October 31. This entry is for that single day, not the two-day ticket package.",
+      "availability": "Check source",
+      "checked": "2026-10-19"
+    },
+    {
+      "id": "grizmas-20261218",
+      "title": "GRiZMAS 2026",
+      "date": "2026-12-18",
+      "city": "Detroit, MI",
+      "venue": "Masonic Temple Theatre",
+      "artists": [
+        "griz"
+      ],
+      "lineup": "GRiZ · Sippy · Noetika",
+      "region": "us",
+      "source": "https://www.axs.com/artists/119265/griz-tickets/staticDetails",
+      "sourceName": "AXS",
+      "note": "Selected public listing reviewed for this preview. Confirm current details with the source.",
+      "availability": "Check source",
+      "checked": "2026-10-19"
+    },
+    {
+      "id": "grizmas-20261219",
+      "title": "GRiZMAS 2026",
+      "date": "2026-12-19",
+      "city": "Detroit, MI",
+      "venue": "Masonic Temple Theatre",
+      "artists": [
+        "griz"
+      ],
+      "lineup": "GRiZ · Ravenscoon · JiLLI",
+      "region": "us",
+      "source": "https://www.axs.com/artists/119265/griz-tickets/staticDetails",
+      "sourceName": "AXS",
+      "note": "Selected public listing reviewed for this preview. Confirm current details with the source.",
+      "availability": "Check source",
+      "checked": "2026-10-19"
+    },
+    {
+      "id": "muse-o2-20261115",
+      "title": "Muse · The Wow! Signal Tour",
+      "date": "2026-11-15",
+      "city": "London, UK",
+      "venue": "The O2",
+      "artists": [
+        "muse"
+      ],
+      "lineup": "Muse · Dead Poet Society",
+      "region": "uk",
+      "source": "https://www.theo2.co.uk/events/detail/muse-2026",
+      "sourceName": "The O2",
+      "note": "Each date is a separate concert. Confirm doors and ticket availability with The O2.",
+      "availability": "Check source",
+      "checked": "2026-10-19"
+    },
+    {
+      "id": "muse-o2-20261116",
+      "title": "Muse · The Wow! Signal Tour",
+      "date": "2026-11-16",
+      "city": "London, UK",
+      "venue": "The O2",
+      "artists": [
+        "muse"
+      ],
+      "lineup": "Muse · Dead Poet Society",
+      "region": "uk",
+      "source": "https://www.theo2.co.uk/events/detail/muse-2026",
+      "sourceName": "The O2",
+      "note": "Each date is a separate concert. Confirm doors and ticket availability with The O2.",
+      "availability": "Check source",
+      "checked": "2026-10-19"
+    },
+    {
+      "id": "wonder-years-end-cruise-20270122",
+      "title": "Emo’s Not Dead Cruise 2027",
+      "date": "2027-01-22",
+      "city": "Miami, FL → Great Stirrup Cay, Bahamas",
+      "venue": "Norwegian Joy",
+      "artists": [
+        "the-wonder-years"
+      ],
+      "lineup": "The Wonder Years · festival lineup at source",
+      "region": "us",
+      "source": "https://emosnotdead.com/pages/emos-not-dead-cruise",
+      "sourceName": "Emo’s Not Dead",
+      "note": "January 22–26 are the sailing dates, not a confirmed set date for The Wonder Years. The organizer lists the band in the lineup. Calendar export covers the whole cruise.",
+      "availability": "Check source",
+      "checked": "2026-10-19",
+      "endDate": "2027-01-26"
+    },
+    {
+      "id": "fys-slam-dunk-north-20270529",
+      "title": "Slam Dunk Festival · North",
+      "date": "2027-05-29",
+      "city": "Leeds, UK",
+      "venue": "Temple Newsam",
+      "artists": [
+        "four-year-strong"
+      ],
+      "lineup": "Four Year Strong · festival lineup at source",
+      "region": "uk",
+      "source": "https://www.ticketmaster.com/four-year-strong-tickets/artist/1249900",
+      "sourceName": "Ticketmaster",
+      "note": "Four Year Strong is listed in the festival lineup. Performance time is not verified.",
+      "availability": "Check source",
+      "checked": "2026-10-19"
+    },
+    {
+      "id": "fys-slam-dunk-south-20270530",
+      "title": "Slam Dunk Festival · South",
+      "date": "2027-05-30",
+      "city": "Hatfield, UK",
+      "venue": "Hatfield Park",
+      "artists": [
+        "four-year-strong"
+      ],
+      "lineup": "Four Year Strong · festival lineup at source",
+      "region": "uk",
+      "source": "https://www.ticketmaster.com/four-year-strong-tickets/artist/1249900",
+      "sourceName": "Ticketmaster",
+      "note": "Four Year Strong is listed in the festival lineup. Performance time is not verified.",
+      "availability": "Check source",
+      "checked": "2026-10-19"
+    },
+    {
+      "id": "abr-underoath-boston-20261129",
+      "title": "Underoath · Define the Great Line",
+      "date": "2026-11-29",
+      "city": "Boston, MA",
+      "venue": "MGM Music Hall at Fenway",
+      "artists": [
+        "august-burns-red"
+      ],
+      "lineup": "Underoath · August Burns Red · Atreyu · Emery",
+      "region": "northeast",
+      "source": "https://www.ticketmaster.com/august-burns-red-tickets/artist/1115308",
+      "sourceName": "Ticketmaster",
+      "note": "August Burns Red is a supporting act on this listing. Confirm the current lineup and times at the source.",
+      "availability": "Check source",
+      "checked": "2026-10-19"
+    },
+    {
+      "id": "abr-underoath-philadelphia-20261201",
+      "title": "Underoath · Define the Great Line",
+      "date": "2026-12-01",
+      "city": "Philadelphia, PA",
+      "venue": "The Fillmore Philadelphia",
+      "artists": [
+        "august-burns-red"
+      ],
+      "lineup": "Underoath · August Burns Red · Atreyu · Emery",
+      "region": "northeast",
+      "source": "https://www.ticketmaster.com/august-burns-red-tickets/artist/1115308",
+      "sourceName": "Ticketmaster",
+      "note": "August Burns Red is a supporting act on this listing. Confirm the current lineup and times at the source.",
+      "availability": "Check source",
+      "checked": "2026-10-19"
+    },
+    {
+      "id": "abr-underoath-cincinnati-20261204",
+      "title": "Underoath · Define the Great Line",
+      "date": "2026-12-04",
+      "city": "Cincinnati, OH",
+      "venue": "The Andrew J Brady Music Center",
+      "artists": [
+        "august-burns-red"
+      ],
+      "lineup": "Underoath · August Burns Red · Atreyu · Emery",
+      "region": "us",
+      "source": "https://www.ticketmaster.com/august-burns-red-tickets/artist/1115308",
+      "sourceName": "Ticketmaster",
+      "note": "August Burns Red is a supporting act on this listing. Confirm the current lineup and times at the source.",
+      "availability": "Check source",
+      "checked": "2026-10-19"
     }
-  ]
+  ],
+  "dataMode": "reviewed-snapshot"
 }

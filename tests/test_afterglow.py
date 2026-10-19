@@ -31,10 +31,17 @@ class AfterglowTests(unittest.TestCase):
         data = json.loads(Path('daily_flyer/themes/afterglow_assets/catalog.json').read_text())
         artists = {a['id'] for a in data['artists']}
         self.assertEqual(len(artists), 9)
+        self.assertEqual(data['dataMode'], 'reviewed-snapshot')
+        self.assertTrue(all(any(a in e['artists'] for e in data['events']) for a in artists))
+        for artist in data['artists']:
+            self.assertEqual(artist['coverage']['status'], 'partial')
+            date.fromisoformat(artist['coverage']['checked'])
         self.assertEqual(len({e['id'] for e in data['events']}), len(data['events']))
         for event in data['events']:
             date.fromisoformat(event['date'])
             date.fromisoformat(event['checked'])
+            if event.get('endDate'):
+                self.assertGreaterEqual(date.fromisoformat(event['endDate']), date.fromisoformat(event['date']))
             self.assertTrue(set(event['artists']) <= artists)
             self.assertTrue(event['source'].startswith('https://'))
         sold = next(e for e in data['events'] if e['id']=='abgt700-2-20261029')
