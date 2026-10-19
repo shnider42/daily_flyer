@@ -30,7 +30,7 @@ class AfterglowTests(unittest.TestCase):
     def test_source_catalog_integrity(self):
         data = json.loads(Path('daily_flyer/themes/afterglow_assets/catalog.json').read_text())
         artists = {a['id'] for a in data['artists']}
-        self.assertEqual(len(artists), 3)
+        self.assertEqual(len(artists), 9)
         self.assertEqual(len({e['id'] for e in data['events']}), len(data['events']))
         for event in data['events']:
             date.fromisoformat(event['date'])

@@ -15,7 +15,7 @@ const value=(name,value)=>{$(`[name="${name}"]`).value=value;};
 const submit=()=>$('#ag-show-form').dispatchEvent(new w.Event('submit',{bubbles:true,cancelable:true}));
 (async()=>{
  assert.equal(d.querySelectorAll('.ag-event').length,6);
- click('[data-action="starter-follow"]');await wait();assert.equal(read().followed.length,3);assert.equal(d.querySelectorAll('.ag-artist').length,3);
+ assert.equal(d.querySelectorAll('.ag-orbit-link').length,3);w.location.hash='artists';await wait();assert.equal(d.querySelectorAll('.ag-artist').length,9);for(const id of ['above-beyond','ilan-bluestone','oliver-smith'])click(`[data-action="follow"][data-id="${id}"]`);assert.equal(read().followed.length,3);
  click('[data-action="follow"][data-id="ilan-bluestone"]');assert.equal(read().followed.length,2);
  w.location.hash='discover';await wait();$('#ag-region').value='northeast';$('#ag-region').dispatchEvent(new w.Event('change',{bubbles:true}));assert.equal(d.querySelectorAll('.ag-event').length,1);assert.ok($('#ag-results').textContent.includes('SILO'));
  click('[data-action="save-show"]');assert.equal(read().entries.length,1);assert.equal(read().entries[0].status,'interested');

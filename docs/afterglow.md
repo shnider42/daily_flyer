@@ -1,6 +1,6 @@
 # Afterglow — a live-music journey
 
-A separate DFE theme for artist following, show planning and personal memories. Starts with Above & Beyond, ilan Bluestone and Oliver Smith. Built on `agent/garage-recovery` commit `94709698c8e614c1f53a94d4a47cef07c9441e14` in branch `feat/afterglow-live-music`.
+A separate DFE theme for artist following, show planning and personal memories. Features Above & Beyond, ilan Bluestone, Oliver Smith, FKJ, GRiZ, Muse, The Wonder Years, Four Year Strong and August Burns Red. Built on `agent/garage-recovery` commit `94709698c8e614c1f53a94d4a47cef07c9441e14` in branch `feat/afterglow-live-music`.
 
 ## Run and deploy
 
@@ -26,7 +26,7 @@ Explicit theme URL: `/?theme=afterglow`.
 ## What is implemented
 
 - Responsive dark editorial layout; touch-sized controls, focus states and a short first-use guide.
-- Three starter artist profiles with official source/tour links, follow/unfollow and custom artist entry.
+- Nine artist profiles with official source/tour links, individual visual accents, follow/unfollow and custom artist entry. The Anjunabeats connection diagram is limited to the original three connected artists.
 - Curated show discovery by city/text, region and followed/specific artist.
 - Interested / Going / I was there states; saved show snapshots; editable venue, city and lineup.
 - Memory timeline, personal rating, companions, standout track/moment and notes.
@@ -37,6 +37,8 @@ Explicit theme URL: `/?theme=afterglow`.
 - Form and imported strings are escaped. External links allow HTTP/HTTPS only.
 
 ## Data and limits
+
+The six additional artist profiles were added on October 19, 2026, with verified official website/tour links. These additions do not claim new verified show dates; filtered empty states link directly to the selected artist’s official site. Existing follows, journals and backups retain their original identifiers.
 
 The six starter listings were reviewed on **October 19, 2026** using official artist and promoter pages. Each record has a source URL, checked date and caveat. ABGT700.2 is marked sold out at review. Past dates leave discovery automatically based on the visitor's local calendar date; a plan never becomes an attended night automatically.
 
