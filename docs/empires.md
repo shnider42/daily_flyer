@@ -59,6 +59,11 @@ silhouettes cover all six units plus cities, consistently across the map,
 roster and Orders. How to play includes a unit recognition guide. See
 [artwork notes and verification](empires-icons.md).
 
+The hex landscape now uses illustrated trees, hills, mountains, water and
+timber bridges, with connected shorelines and visible farms and mines. Terrain
+art stays consistent across Experiences, while yields and legal-move outlines
+sit above it. See [terrain artwork and verification](empires-terrain.md).
+
 ### Research feedback
 
 Research is civilization-wide and uses no unit AP. The Research panel shows
@@ -169,6 +174,7 @@ node tests/empires-experience-dom.cjs
 node tests/empires-research-dom.cjs
 node tests/empires-art-dom.cjs
 node tests/empires-learning-dom.cjs
+node tests/empires-terrain-dom.cjs
 node tests/ww2-ground-roles-dom.cjs
 ```
 

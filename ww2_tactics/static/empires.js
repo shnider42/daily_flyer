@@ -6,7 +6,7 @@
  const se=(tag,attrs={},text)=>{const n=document.createElementNS('http://www.w3.org/2000/svg',tag);for(const [k,v] of Object.entries(attrs))n.setAttribute(k,v);if(text!==undefined)n.textContent=text;return n;};
  const hexCenter=(x,y)=>center(x,y); // The same projection used by DSL and its motion renderer.
  const same=(a,b)=>a?.[0]===b?.[0]&&a?.[1]===b?.[1],posKey=p=>p.join(','),coord=p=>`${hexColumn(p[0])}${p[1]+1}`;
- const art=window.empiresArt,learning=window.empiresLearning;
+ const art=window.empiresArt,learning=window.empiresLearning,terrain=window.empiresTerrain;
  const labels={found:'Found city · 2 AP',farm:'Farm · 2 AP',mine:'Mine · 2 AP',road:'Road · 2 AP',rally:'Rally · 1 AP',rest:'Rest · remaining AP',fortify:'Fortify · 2 AP'};
  const experience=()=>window.ww2Experience?.level||'simple';
  const depth=(simple,moderate,expert=moderate)=>({simple,moderate,expert})[experience()];
@@ -263,41 +263,40 @@
   if(!game)return;window.ww2Motion?.capture(svg);
   const seen=new Set(game.visible),moves=new Map((game.legal[chosen]?.moves||[]).map(m=>[posKey(m.pos),m]));
   if(svg.dataset.campaign!==game.code){
-   window.ww2Motion?.clear(svg);svg.replaceChildren();svg.dataset.campaign=game.code;svg._terrain=se('g');svg._roads=se('g');svg._cities=se('g');svg._units=se('g');svg.append(svg._terrain,svg._roads,svg._cities,svg._units);svg._tiles=new Map();
+   window.ww2Motion?.clear(svg);svg.replaceChildren();svg.dataset.campaign=game.code;terrain.install(svg);svg._terrain=se('g');svg._roads=se('g',{class:'emp-land-roads'});svg._outlines=se('g',{class:'emp-land-outlines'});svg._labels=se('g',{class:'emp-land-labels'});svg._cities=se('g');svg._units=se('g');svg.append(svg._terrain,svg._roads,svg._outlines,svg._labels,svg._cities,svg._units);svg._tiles=new Map();
    for(let y=0;y<game.height;y++)for(let x=0;x<game.width;x++){
-    const [cx,cy]=hexCenter(x,y),g=se('g'),p=se('polygon',{points:[[0,-32],[26,-16],[26,16],[0,32],[-26,16],[-26,-16]].map(([a,b])=>`${cx+a},${cy+b}`).join(' '),tabindex:0,role:'button'}),decor=se('g');
-    g.append(p,decor);svg._terrain.append(g);activate(p,()=>chooseHex([x,y]));svg._tiles.set(`${x},${y}`,{g,p,decor,cx,cy});
+    const [cx,cy]=hexCenter(x,y),g=se('g'),shape=terrain.points.map(([a,b])=>`${cx+a},${cy+b}`).join(' '),p=se('polygon',{points:shape,tabindex:0,role:'button'}),land=se('g',{transform:`translate(${cx} ${cy})`,'aria-hidden':'true'}),outline=se('polygon',{points:shape,'aria-hidden':'true'}),decor=se('g',{'aria-hidden':'true'});
+    g.append(p,land);svg._terrain.append(g);svg._outlines.append(outline);svg._labels.append(decor);activate(p,()=>chooseHex([x,y]));
+    p.addEventListener('focus',()=>outline.classList.add('key-focus'));p.addEventListener('blur',()=>outline.classList.remove('key-focus'));svg._tiles.set(`${x},${y}`,{g,p,land,outline,decor,cx,cy});
    }
   }
   for(let y=0;y<game.height;y++)for(let x=0;x<game.width;x++){
    const k=`${x},${y}`,t=game.map[y][x],n=svg._tiles.get(k),m=moves.get(k),current=seen.has(k);
    n.p.setAttribute('class',`emp-tile ${t?.terrain||'unknown'}${t&&!current?' remembered':''}${m?' can-move':''}${same(inspected,[x,y])?' chosen':''}`);
+   n.outline.setAttribute('class',n.p.getAttribute('class').replace('emp-tile','emp-land-outline')+(document.activeElement===n.p?' key-focus':''));
+   n.land.setAttribute('class',`emp-landscape${t&&!current?' remembered':''}`);
+   const landscape=terrain.descriptor(game.map,x,y);
+   if(n.landKey!==landscape?.key){terrain.draw(n.land,landscape);n.landKey=landscape?.key;}
    const worked=current?game.cities.find(c=>c.side===game.side&&c.yields.worked.some(p=>same(p,[x,y]))):null,value=game.land_yields?.[k];
    n.p.setAttribute('aria-label',`${coord([x,y])}: ${t?.terrain||'unexplored'}${t&&!current?', last seen':''}${m?`, move for ${m.cost} AP`:''}${value?`, potential food ${value.food}, production ${value.production}, gold ${value.gold}`:''}${worked?', worked by '+worked.name:''}${inspectMode?', tap to inspect':''}`);
    const signature=JSON.stringify([t,current,m?.cost,landLens(),value,worked?.id]);if(signature===n.signature)continue;n.signature=signature;n.decor.replaceChildren();if(!t)continue;
    const {cx,cy}=n;
-   if(t.terrain==='woods')for(const dx of [-10,3,13])n.decor.append(se('path',{d:`M${cx+dx} ${cy-12}l-6 14h12Z M${cx+dx} ${cy+2}v6`,class:'emp-terrain-mark'}));
-   if(t.terrain==='hill'||t.terrain==='mountain')n.decor.append(se('path',{d:`M${cx-17} ${cy+8}l12 -20 10 18 M${cx-1} ${cy+7}l11 -24 12 24`,class:'emp-terrain-mark'}));
-   if(t.terrain==='water')n.decor.append(se('path',{d:`M${cx-16} ${cy}q8 -5 16 0t16 0 M${cx-10} ${cy+8}q8 -5 16 0`,class:'emp-terrain-mark'}));
-   if(t.terrain==='bridge')n.decor.append(se('path',{d:`M${cx-18} ${cy-7}h36m-36 14h36`,class:'emp-terrain-mark'}));
    for(const [i,kind]of [t.resource,t.improvement].filter(Boolean).entries()){
+    n.decor.append(se('circle',{cx:cx+15.5-i*17,cy:cy-13.5,r:8,class:'emp-resource-disc'}));
     const icon=learning.icon(kind);icon.setAttribute('x',cx+9-i*17);icon.setAttribute('y',cy-20);icon.setAttribute('width',13);icon.setAttribute('height',13);icon.classList.add('emp-map-resource');n.decor.append(icon);
    }
    if(landLens()==='yields'&&value&&!game.cities.some(c=>same(c.pos,[x,y]))){
     const yields=Object.entries(value).filter(([,v])=>v>0);
+    if(yields.length)n.decor.append(se('rect',{x:cx-yields.length*9-3,y:cy,width:yields.length*18+5,height:12,rx:5,class:'emp-yield-plaque'}));
     for(const [i,[kind,amount]]of yields.entries()){
-     const left=cx-yields.length*9+i*18,icon=learning.icon(kind);icon.setAttribute('x',left);icon.setAttribute('y',cy+5);icon.setAttribute('width',10);icon.setAttribute('height',10);icon.classList.add('emp-map-yield');n.decor.append(icon,se('text',{x:left+11,y:cy+14,class:'emp-yield-number'},String(amount)));
+     const left=cx-yields.length*9+i*18,icon=learning.icon(kind);icon.setAttribute('x',left);icon.setAttribute('y',cy+1);icon.setAttribute('width',10);icon.setAttribute('height',10);icon.classList.add('emp-map-yield');n.decor.append(icon,se('text',{x:left+11,y:cy+10,class:'emp-yield-number'},String(amount)));
     }
-    if(worked){const icon=learning.icon('worker');icon.setAttribute('x',cx-22);icon.setAttribute('y',cy-20);icon.setAttribute('width',11);icon.setAttribute('height',11);icon.classList.add('emp-worked-mark');n.decor.append(icon);}
+    if(worked){n.decor.append(se('circle',{cx:cx-16.5,cy:cy-14.5,r:7.5,class:'emp-resource-disc'}));const icon=learning.icon('worker');icon.setAttribute('x',cx-22);icon.setAttribute('y',cy-20);icon.setAttribute('width',11);icon.setAttribute('height',11);icon.classList.add('emp-worked-mark');n.decor.append(icon);}
    }
-   n.decor.append(se('text',{x:cx,y:cy+23,'text-anchor':'middle',class:m?'emp-move-cost':'emp-coordinate'},m?`${m.cost} AP`:coord([x,y])));
+   n.decor.append(se('text',{x:cx,y:cy+(m?26:23),'text-anchor':'middle',class:m?'emp-move-cost':'emp-coordinate'},m?`${m.cost} AP`:coord([x,y])));
    n.decor.setAttribute('opacity',current?1:.5);
   }
-  svg._roads.replaceChildren();
-  for(let y=0;y<game.height;y++)for(let x=0;x<game.width;x++)if(game.map[y][x]?.road){
-   const [cx,cy]=hexCenter(x,y);svg._roads.append(se('circle',{cx,cy,r:3,fill:'#ead7aa'}));
-   for(const [nx,ny] of [[x+1,y],[x+(y%2),y+1],[x-1+(y%2),y+1]])if(game.map[ny]?.[nx]?.road){const [xx,yy]=hexCenter(nx,ny);svg._roads.append(se('line',{x1:cx,y1:cy,x2:xx,y2:yy,class:'emp-road'}));}
-  }
+  terrain.roads(svg._roads,game,hexCenter);
   svg._cities.replaceChildren();
   for(const c of game.cities){
    const [cx,cy]=hexCenter(...c.pos),g=se('g',{class:`emp-city ${c.side}${c.visible?'':' stale'}${chosen===c.id?' selected':''}`,role:'button',tabindex:0,'aria-label':`${c.name}, ${c.side===game.side?'your city':c.visible?'rival city':'last reported city'}, population ${c.population}${c.capital?', capital':''}`});

@@ -1,0 +1,20 @@
+/* Terrain is independent of Experience and unit art. Information stays above it. */
+#empMap{background:#1e3042}
+#empMap .emp-tile{stroke:none;fill:#8da471}
+#empMap .emp-tile.unknown{fill:#233449}
+#empMap .emp-tile.remembered{filter:none;fill:#344b42}
+#empMap .emp-landscape,#empMap .emp-land-outlines,#empMap .emp-land-labels,#empMap .emp-land-roads{pointer-events:none}
+#empMap .emp-landscape.remembered{opacity:.36}
+#empMap .emp-land-outline{fill:none;stroke:#203f3a;stroke-width:.65;stroke-opacity:.42;stroke-linejoin:round}
+#empMap .emp-land-outline.unknown{stroke:#61758c;stroke-opacity:.2}
+#empMap .emp-land-outline.remembered{stroke-opacity:.2}
+#empMap .emp-land-outline.can-move{stroke:#ffdf91;stroke-width:2.1;stroke-opacity:1;stroke-dasharray:4 3;fill:#fff2c5;fill-opacity:.06}
+#empMap .emp-land-outline.chosen,#empMap .emp-land-outline.key-focus{stroke:#fff3bc;stroke-width:2.8;stroke-opacity:1;stroke-dasharray:none;fill:#fff2c5;fill-opacity:.07}
+#empMap .emp-land-labels .emp-coordinate{fill:#152e2b;paint-order:stroke;stroke:#c5cda7;stroke-width:1.5;opacity:.8}
+#empMap .emp-yield-plaque{fill:#173932;fill-opacity:.88;stroke:#c8c997;stroke-opacity:.6;stroke-width:.5}
+#empMap .emp-map-yield{color:#f4e8bd;filter:none}
+#empMap .emp-yield-number{fill:#fff2ca;stroke:none;font-size:9px}
+#empMap .emp-resource-disc{fill:#f2ddb0;fill-opacity:.92;stroke:#495f48;stroke-width:.7}
+#empMap .emp-map-resource{color:#29493d;filter:none}
+#empMap .emp-worked-mark{color:#264d3e;fill:none;stroke-width:1.6}
+#empMap .emp-move-cost{fill:#fff6cb;stroke:#243d37;stroke-width:3.5}
