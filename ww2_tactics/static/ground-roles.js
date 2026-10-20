@@ -42,8 +42,16 @@
  window.renderGroundRoles=(u,legal)=>{
   const enabled=state.ground_roles_version===1;manual.hidden=!enabled;$('rules').classList.toggle('specialist-manual',enabled);
   const keys=new Map();for(const unit of state.units){const label=window.unitBadgeLabel(unit);if(label&&!keys.has(label))keys.set(label,unit);}
-  const key=[...keys.keys()].join('|');if(key!==legendKey){legendKey=key;grid.replaceChildren();for(const [label,unit] of keys){const item=uiNode('span','unit-badge-key');item.append(window.makeUnitRoleBadge(unit),uiNode('span','',label));grid.append(item);}}
+  const current=state.ruleset==='dsl'&&state.edition==='current';
+  legend.classList.toggle('illustrated-insignia-legend',current);
+  const key=[current,window.ww2UnitStyle?.value,...keys.keys()].join('|');if(key!==legendKey){legendKey=key;grid.replaceChildren();for(const [label,unit] of keys){const item=uiNode('span','unit-badge-key');item.append(window.makeUnitRoleBadge(unit),uiNode('span','',label));grid.append(item);}}
   legend.hidden=!keys.size;
+  $('unitMechanics').querySelector('.unit-insignia-detail')?.remove();
+  if(current&&u&&window.unitBadgeLabel(u)){
+   const detail=uiNode('div','unit-insignia-detail'),label=uiNode('div');
+   label.append(uiNode('span','insignia-caption','Unit insignia'),uiNode('strong','',window.unitBadgeLabel(u)));
+   detail.append(window.makeUnitRoleBadge(u),label);$('unitMechanics').prepend(detail);
+  }
   if(!enabled||!u)return;
   $('roleBrief').textContent=window.groundRoleSummary(u);
   if(u.kind==='commander'&&!target&&!u.pinned)$('hint').textContent=`Company command · rally and give actions within ${u.command_radius} hexes across friendly platoons.`;
@@ -55,4 +63,10 @@
   if(u.side===state.side&&u.pinned&&!has(u,'rally'))$('hint').textContent='PINNED · '+(u.role_pinned_start?'Officer rally to act now, or recover when this army turn ends.':'Use an officer’s rally, or spend the next full own turn pinned to recover.');
   else if(u.role_profile==='suppression_mg'&&target&&!smokeMode&&!combatMode&&!barrageMode)$('hint').textContent=legal?.suppress?.includes(target)?'Suppress · 2 AP · 3+ to pin · zero strength damage.':'MG 42 needs an unpinned infantry target at range 2–6, platoon sight, a clear lane and 2 AP.';
  };
+ document.addEventListener('ww2:unit-style',()=>{
+  if(!state)return;
+  legendKey='';
+  // Refresh the legend and detail using the normal selected-unit render path.
+  render();
+ });
 })();

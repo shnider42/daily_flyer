@@ -37,16 +37,56 @@
   spotlight:['Searchlight','M-4 0 0-4 3-1-1 3ZM3-4 5-5M4-2 6-2M-1 3-3 5M-1 3 1 5']
  };
  badges.flak=badges.aa_gun;
- const badgeKey=u=>u.kind==='leader'&&u.rank==='captain'?'captain':u.kind;
- window.unitBadgeLabel=u=>badges[badgeKey(u)]?.[0]||'';
+ // The illustrated insignia belong only to Current DSL. Legacy keeps its
+ // existing badge set and dimensions, including its air/naval presentation.
+ const currentInsignia=()=>state?.ruleset==='dsl'&&state.edition==='current';
+ const currentBadges={
+  flak:['Light Flak gun',badges.aa_gun[1]],
+  mg42:['Machine-gun team · MG 42',badges.mg[1]],
+  carrier:['Aircraft carrier','M-6 0H6L4 4H-4ZM1-3H4V0'],
+  battleship:['Battleship','M-6 1H6L4 4H-4ZM-3-1H3V1M0-5V-1M-5-2H-2M2-2H5'],
+  cruiser:['Cruiser','M-6 1H6L4 4H-4ZM-3-2V1M1-3V1M-4-3H-2M0-4H2'],
+  destroyer:['Destroyer','M-6 1H6L3 4H-4ZM0-4V1M-2-2H3'],
+  fighter:['Fighter aircraft','M0-6V6M-6 0 0-2 6 0M-3 4H3'],
+  bomber:['Bomber aircraft','M0-6V6M-6-1H6M-3-4V2M3-4V2M-3 4H3'],
+  transport_aircraft:['Transport aircraft','M0-6V6M-6-1H6M-4-3V2M4-3V2M-3 4H3'],
+  landing_craft:['Landing craft','M-5-4H5V4H-5ZM-3-4V1H3V-4M-3 1-5 4M3 1 5 4']
+ };
+ const insigniaOrder=['squad','leader','captain','commander','mg','scout',
+  'engineer','mortar','at_team','sniper','radioman','paratrooper',
+  'pathfinder','commando','mountain','partisan','askari','supply',
+  'tank','halftrack','amphibious','at_gun','aa_gun','radar',
+  'airfield','spotlight','flak','carrier','battleship','cruiser',
+  'destroyer','fighter','bomber','transport_aircraft','landing_craft','mg42'];
+ // Source windows exclude the atlas dividers. The last two rows are different
+ // heights in the original painted sheet; do not assume a square source grid.
+ const insigniaRows=[0,209,418,627,835,1026,1254];
+ const badgeKey=u=>u.kind==='leader'&&u.rank==='captain'?'captain':
+  currentInsignia()&&u.kind==='mg'&&u.role_profile==='suppression_mg'?'mg42':u.kind;
+ const badgeData=key=>(currentInsignia()?currentBadges[key]:null)||badges[key];
+ window.unitBadgeLabel=u=>badgeData(badgeKey(u))?.[0]||'';
  function roleBadge(u){
-  const key=badgeKey(u),data=badges[key];if(!data)return null;
+  const key=badgeKey(u),data=badgeData(key);if(!data)return null;
   const g=el('g',{class:'unit-role-badge badge-'+key,'data-badge-role':key});
-  g.append(el('rect',{x:-7,y:-7,width:14,height:14,rx:2}),el('path',{d:data[1]}));return g;
+  g.append(el('rect',{x:-7,y:-7,width:14,height:14,rx:2}),el('path',{d:data[1]}));
+  const index=insigniaOrder.indexOf(key);
+  if(currentInsignia()&&detailed&&index>=0){
+   const row=Math.floor(index/6),x=index%6*209+3,y=insigniaRows[row]+3,
+    width=203,height=insigniaRows[row+1]-insigniaRows[row]-6;
+   const id=`unit-insignia-${++illustrationId}`,defs=el('defs',{}),clip=el('clipPath',{id,clipPathUnits:'userSpaceOnUse'});
+   clip.append(el('rect',{x,y,width,height,rx:15}));defs.append(clip);
+   const viewport=el('svg',{class:'unit-insignia-image',x:-7.5,y:-7.5,width:15,height:15,
+    viewBox:[x,y,width,height].join(' '),preserveAspectRatio:'none',overflow:'hidden'});
+   const picture=el('image',{href:'/assets/unit-images/role-insignia-v1.webp',width:1254,height:1254,'clip-path':`url(#${id})`});
+   picture.addEventListener('load',()=>g.classList.add('insignia-ready'),{once:true});
+   picture.addEventListener('error',()=>{g.classList.remove('insignia-ready');viewport.remove();},{once:true});
+   viewport.append(defs,picture);g.append(viewport,el('rect',{class:'insignia-rim',x:-8,y:-8,width:16,height:16,rx:1.8}));
+  }
+  return g;
  }
  window.makeUnitRoleBadge=u=>{
   const badge=roleBadge(u);if(!badge)return null;
-  const svg=el('svg',{viewBox:'-8 -8 16 16',width:24,height:24,'aria-hidden':'true',focusable:'false'});svg.append(badge);return svg;
+  const svg=el('svg',{viewBox:currentInsignia()&&detailed?'-9 -9 18 18':'-8 -8 16 16',width:24,height:24,'aria-hidden':'true',focusable:'false'});svg.append(badge);return svg;
  };
  function el(tag,attrs,text){const n=document.createElementNS(ns,tag);for(const [k,v] of Object.entries(attrs))n.setAttribute(k,v);if(text)n.textContent=text;return n;}
  function size(svg){const width=svg.viewBox.baseVal.width;svg.classList.toggle('compact-unit-art',!!width&&svg.getBoundingClientRect().width/width*40<40);}
@@ -67,7 +107,7 @@
   picture.addEventListener('load',()=>drawing.classList.add('illustration-ready'),{once:true});
   picture.addEventListener('error',()=>{drawing.classList.remove('illustration-ready');viewport.remove();},{once:true});
   viewport.append(picture);drawing.append(fallback,viewport);
-  if(portrait.badge&&!badges[badgeKey(u)]){
+  if(portrait.badge&&!badgeData(badgeKey(u))){
    const badge=el('g',{class:`illustration-role role-${portrait.badge}`,transform:'translate(16 -13)'});
    badge.append(el('circle',{r:4.5,class:'role-disc'}));
    const marks={leader:'M-2-2V2M1-2V2',commander:'M0-3 .9-1 3-1 1.3.5 2 3 0 1.5-2 3-1.3.5-3-1-.9-1Z',pathfinder:'M0-3V3M-3 0H3',aa:'M-2 2L2-2M2 2L-2-2',torpedo:'M-3 0H3M1-2L3 0 1 2'};
@@ -224,7 +264,7 @@
   for(const counter of svg.querySelectorAll('.unit')){
    const u=byId.get(counter.dataset.unitId);if(!u)continue;
    const style=detailed?'detailed':'basic';
-   const signature=[style,u.kind,u.rank||'',u.pinned,u.entrenched,u.overwatch].join(':');
+   const signature=[style,currentInsignia(),u.kind,u.variant||'',u.rank||'',u.role_profile||'',u.pinned,u.entrenched,u.overwatch].join(':');
    if(counter._unitArtStyle===signature)continue;
    counter._unitArtStyle=signature;
    counter.querySelector('.unit-art')?.remove();counter.querySelector('.unit-art-title')?.remove();

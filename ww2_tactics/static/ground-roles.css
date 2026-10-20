@@ -2,5 +2,11 @@
 .unit-badge-key{display:flex;align-items:center;gap:8px;font-size:13px}
 .unit-badge-key svg{flex:none;width:24px;height:24px}
 .unit-badge-legend{margin-block:16px}
+.illustrated-insignia-legend .unit-badge-key>svg{width:38px;height:38px}
+.unit-insignia-detail{display:flex;align-items:center;gap:10px;margin:0 0 10px;padding:0 0 10px;border-bottom:1px solid currentColor}
+.unit-insignia-detail>svg{width:46px;height:46px;flex:none}
+.unit-insignia-detail>div{display:grid;gap:3px;min-width:0}
+.unit-insignia-detail strong{font-size:13px;line-height:1.3}
+.insignia-caption{font-size:10px;letter-spacing:.08em;text-transform:uppercase;opacity:.75}
 .role-loadout{font-weight:700}
 #rules.specialist-manual>:not(.manual-head,h2,#groundRolesManual,#unitBadgeLegend,#buildingManual){display:none}
