@@ -1,5 +1,7 @@
 /* Interaction contract: preserve working controls, fill missing feedback, and
    change paint only. Hover never changes layout, type weight, or position. */
+:root { --ui-hover-surface: #dce1d6; --ui-hover-border: #68775f; }
+html[data-theme="dark"] { --ui-hover-surface: #303e43; --ui-hover-border: #a9bda4; }
 :where(a[href], button:enabled, summary, select:enabled, input[type="checkbox"]:enabled,
   input[type="radio"]:enabled, label:has(input:is([type="checkbox"],[type="radio"]):enabled)) {
   cursor: pointer;
@@ -14,26 +16,45 @@
 .response-entry > summary::after { content: "+"; position: absolute; right: 4px; top: 0; color: var(--red); font-size: 1.2rem; }
 .response-entry[open] > summary::after { content: "−"; }
 
-/* The original hover fills on tracker rows, destination links, patch summaries,
-   private entries, text actions and the brand remain in their existing styles. */
+/* A clearer surface and a fixed accent edge identify whole-row actions.
+   Inset paint does not change their dimensions or move their contents. */
 @media (hover: hover) and (pointer: fine) {
-  #landing .featured-issue:hover { background: var(--ui-surface); }
+  #home .home-issue:enabled:hover,
+  #featuresPage .ft-row[href]:hover,
+  #landing :is(.featured-issue:enabled, .ft-row[href]):hover,
+  #suggestionBox :is(.cb-entry, .mi-row):enabled:hover {
+    background: var(--ui-hover-surface);
+    box-shadow: inset 3px 0 var(--section-accent, var(--red));
+  }
+  #landing .community-path[href]:hover {
+    background: var(--ui-hover-surface);
+    box-shadow: inset 0 0 0 1px var(--path-color);
+  }
+  #home .home-issue:hover .record-title,
+  #featuresPage .ft-row:hover .record-title,
+  #landing .featured-issue:hover h3,
+  #landing .ft-row:hover .record-title {
+    text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: .2em;
+  }
   #landing .featured-issue { transition: background-color .15s ease; }
 
   #home .status-filter:enabled:hover,
   #app .tab:enabled:hover,
   #suggestionBox .cb-tabs button:enabled:hover {
-    color: var(--ink); border-color: var(--muted);
+    color: var(--ink); border-color: var(--ui-hover-border);
   }
   #home .status-filter:not(.active):enabled:hover,
   #app .tab:not(.active):enabled:hover,
   #suggestionBox .cb-tabs button:not([aria-pressed="true"]):enabled:hover {
-    background: var(--ui-surface);
+    background: var(--ui-hover-surface);
   }
+  .site-nav .top-link:enabled:hover { background-color: #414e43; color: #fff; }
+  .site-nav .theme-toggle:enabled:hover,
+  .site-nav .account-menu > summary:hover { background-color: #303e43; }
   .site-nav .theme-toggle:enabled:hover,
   .site-nav .account-menu > summary:hover,
   .site-nav .top-link.active:enabled:hover {
-    text-decoration: underline; text-underline-offset: .25em;
+    text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: .25em;
   }
   #app .back:enabled:hover,
   #app .evidence-source a[href]:hover,
@@ -44,20 +65,20 @@
     text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: .2em;
   }
   /* Low specificity lets already-working summary treatments take precedence. */
-  :where(details:not(.account-menu)) > summary:hover { background-color: var(--ui-surface); }
+  :where(details:not(.account-menu)) > summary:hover { background-color: var(--ui-hover-surface); }
 
   #suggestionBox .sg-button.secondary:enabled:hover {
-    background: var(--ui-surface-raised); border-color: var(--muted);
+    background: var(--ui-hover-surface); border-color: var(--ui-hover-border);
   }
   #suggestionBox .cb-vote:enabled:hover { border-color: var(--ink); }
-  #suggestionBox .cb-vote:not([aria-pressed="true"]):enabled:hover { background: var(--ui-surface-raised); }
+  #suggestionBox .cb-vote:not([aria-pressed="true"]):enabled:hover { background: var(--ui-hover-surface); }
   #suggestionBox .sg-button:not(.secondary):enabled:hover {
-    background: color-mix(in srgb, var(--ink) 88%, #000);
+    background: color-mix(in srgb, var(--ink) 75%, #000);
   }
   #suggestionBox .sg-button.cb-primary:enabled:hover {
-    background: color-mix(in srgb, var(--red) 88%, #000);
+    background: color-mix(in srgb, var(--red) 75%, #000);
   }
-  html[data-theme="dark"] #suggestionBox .sg-button:not(.secondary):enabled:hover { background: var(--button-hover); }
+  html[data-theme="dark"] #suggestionBox .sg-button:not(.secondary):enabled:hover { background: #8e3523; }
   html[data-theme="dark"] .site-nav .account-bar button:enabled:hover { border-color: var(--ink); }
 
   #home .home-tools :is(input,select):enabled:hover,
@@ -65,7 +86,7 @@
   #featuresPage :is(input,select):enabled:hover,
   #suggestionBox :is(input:not([type="checkbox"]):not([type="radio"]),textarea,select):enabled:hover,
   .response-tools select:enabled:hover {
-    border-color: var(--muted);
+    border-color: var(--ui-hover-border);
   }
   #suggestionBox .cb-form #cbKind:enabled:hover { border-color: var(--ink); }
 }

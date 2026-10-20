@@ -58,3 +58,11 @@ font weight, transform or position.
 `test_interactions.cjs` compares control and text geometry before/after hover,
 checks keyboard focus, disabled/selected states and touch affordances, and uses
 read-only local fixtures. It runs in the existing browser CI in both engines.
+
+## Stronger feedback — October 20, 2026
+
+Hover now uses a more distinct surface, a fixed inset accent on actionable rows,
+and a stronger underline on their titles. Navigation, secondary buttons and
+filters have clearer fills and boundaries. All feedback remains paint-only;
+touch cues and selected/disabled states retain their existing behavior. The
+interaction suite also captures default/hover pairs for visual comparison.

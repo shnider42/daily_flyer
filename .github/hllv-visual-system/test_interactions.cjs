@@ -78,10 +78,15 @@ const sdk=`export function createClient(){return {auth:{onAuthStateChange:()=>({
   async function hoverAndFocus(page,selector){
     const target=page.locator(selector).first();await expect(target).toBeVisible();
     await target.scrollIntoViewIfNeeded();await page.mouse.move(0,0);await target.evaluate(el=>el.blur());await settle(target);
-    const before=await snapshot(target);await target.hover();
+    const capture=['#homeList [data-home-id="HLLV-046"]','#communitySubmit'].includes(selector);
+    const imageName=`${output}/${engine}-${await page.locator('html').getAttribute('data-theme')}-${selector.includes('homeList')?'bug-row':'submit'}`;
+    const before=await snapshot(target);
+    if(capture)await page.screenshot({path:imageName+'-default.png'});
+    await target.hover();
     const samples=[];
     for(let frame=0;frame<4;frame++){await page.evaluate(()=>new Promise(requestAnimationFrame));samples.push(await snapshot(target));}
     await settle(target);const hovered=await snapshot(target);
+    if(capture)await page.screenshot({path:imageName+'-hover.png'});
     for(const state of [...samples,hovered])stable(before,state,selector+' hover');
     assert(hasCue(before,hovered),selector+': hover needs a visible color, surface, border, underline or outline cue');
     assert.equal(hovered.disclosureOpen,before.disclosureOpen,selector+': hover must not toggle a disclosure');

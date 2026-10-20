@@ -1,10 +1,10 @@
 {
-  "generated_at": "2026-10-16",
+  "generated_at": "2026-10-20",
   "latest_change": {
-    "date": "2026-10-16",
-    "label": "October 16 bug evidence review",
-    "url": "https://www.hellletloose.com/blog/community-update-8",
-    "summary": "14 existing dossiers refreshed and 8 distinct issues added from developer and Support evidence. Includes an October 16 player follow-up. Plans, reports and player workarounds remain separate from released fixes."
+    "date": "2026-10-20",
+    "label": "October 20 evidence review",
+    "url": "https://steamcommunity.com/app/3079210/discussions/1/570426104667569900/?ctp=1#c570426530135644652",
+    "summary": "One limited settings report added, two earlier Support replies incorporated, and two publisher-tracked feature requests added. No new release is confirmed."
   },
   "method": "Public evidence only. Official acknowledgement, reproduction, a shipped change, and post-fix verification are recorded separately.",
   "issues": [
@@ -3086,13 +3086,14 @@
         "online progression"
       ],
       "symptom": "A completed tutorial can later appear incomplete, forcing another completion before Squad Leader or Commander becomes available.",
-      "official_position": "The new thread describes repeated first-run/tutorial prompts. Support says it received similar reports and escalated them. This does not prove every first-run reset and lost role-unlock record has the same cause.",
+      "official_position": "Two October 11 Support threads describe repeated tutorial prompts. Support acknowledges similar reports and escalation. These replies do not establish internal reproduction or a shared cause with every lost role unlock.",
       "workaround": "Completing the required tutorial again may temporarily restore role access; this does not address the lost completion state.",
       "known": [
         "The issue is explicitly acknowledged in an official community update.",
         "It can affect access to Squad Leader and Commander.",
         "Team17 Support said on August 29 that reports were still being received.",
-        "October 7 release-note review: The released tutorial changes concern hints, practice-range behavior and memory cleanup; completion-save resolution is not identified."
+        "October 7 release-note review: The released tutorial changes concern hints, practice-range behavior and memory cleanup; completion-save resolution is not identified.",
+        "A second October 11 Support acknowledgement was reviewed on October 20; this is historical evidence, not a new October 20 incident."
       ],
       "unknown": [
         "No complete resolution is confirmed.",
@@ -3142,6 +3143,12 @@
           "event": "HOW MANY TIMES DO I HAVE TO PLAY THE ♥♥♥♥♥♥♥ TUTORIAL!!!!!!!!!!!!!!!!!!!!!",
           "detail": "Added in the October 16 editorial review. The Sources entry records the scoped claim and direct reference.",
           "source_url": "https://steamcommunity.com/app/3079210/discussions/1/590691913364033969/?ctp=1#c590691913364060219"
+        },
+        {
+          "date": "2026-10-11",
+          "event": "Tutorial Bug — Support follow-up",
+          "detail": "Support acknowledges recurring tutorial prompts after completion and forwards the issue for investigation; no reproduction or fix is stated.",
+          "source_url": "https://steamcommunity.com/app/3079210/discussions/1/590691913364082100/?ctp=1#c590691913364082220"
         }
       ],
       "sources": [
@@ -3255,9 +3262,24 @@
           "authority_checked_at": "2026-10-17T00:56:47Z",
           "source_category": "Team17 Support",
           "claim": "Support acknowledges similar tutorial/reset reports and escalates the case; no fix or internal reproduction is stated."
+        },
+        {
+          "type": "support thread",
+          "publisher": "Team17 Support",
+          "title": "Tutorial Bug — Support follow-up",
+          "url": "https://steamcommunity.com/app/3079210/discussions/1/590691913364082100/?ctp=1#c590691913364082220",
+          "date": "2026-10-11",
+          "source_published_at": "2026-10-11T13:45:43Z",
+          "source_reviewed_at": "2026-10-20",
+          "source_locator": "Reply 590691913364082220",
+          "content_sha256": "26b8c46aa20055ce27fae78fbb4015eaf48decf7eeb418e44767d0fe1ec64c80",
+          "source_author_id": "76561198363837070",
+          "authority_checked_at": "2026-10-20T12:52:37Z",
+          "source_category": "Team17 Support",
+          "claim": "Support acknowledges recurring tutorial prompts after completion and forwards the issue for investigation; no reproduction or fix is stated."
         }
       ],
-      "last_reviewed": "2026-10-16",
+      "last_reviewed": "2026-10-20",
       "editorial_history": [
         {
           "date": "2026-10-16",
@@ -3265,6 +3287,19 @@
           "previous": {
             "bottom_line": "Patch 1.6 includes tutorial memory and hint fixes, but its notes do not confirm a fix for lost tutorial completion.",
             "official_position": "Absence of a completion-save entry is not proof the problem persists. The older player observations retain their original dates."
+          }
+        },
+        {
+          "date": "2026-10-20",
+          "reason": "Reviewed previously unavailable official Support replies.",
+          "previous": {
+            "official_position": "The new thread describes repeated first-run/tutorial prompts. Support says it received similar reports and escalated them. This does not prove every first-run reset and lost role-unlock record has the same cause.",
+            "known": [
+              "The issue is explicitly acknowledged in an official community update.",
+              "It can affect access to Squad Leader and Commander.",
+              "Team17 Support said on August 29 that reports were still being received.",
+              "October 7 release-note review: The released tutorial changes concern hints, practice-range behavior and memory cleanup; completion-save resolution is not identified."
+            ]
           }
         }
       ]
@@ -4810,7 +4845,7 @@
         "foliage"
       ],
       "symptom": "Blurry foliage and disappearing cover",
-      "official_position": "October 15 plans do not close the issue. A separate texture-report thread contains October 9 Support acknowledgment, not engineering reproduction or proof that disabling DLSS fixes blurry foliage.",
+      "official_position": "October 15 development plans remain unreleased in the reviewed sources. In a separate October 11 PC thread, Support requested diagnostics and suggested updating one player’s NVIDIA driver. No successful outcome or general rendering fix was established.",
       "workaround": null,
       "known": [
         "The linked official evidence documents this issue.",
@@ -4819,7 +4854,8 @@
       ],
       "unknown": [
         "HLLV-056 covers one released correction; the wider rendering issue remains open.",
-        "Independent gameplay verification of the Patch 1.6 outcome is not recorded."
+        "Independent gameplay verification of the Patch 1.6 outcome is not recorded.",
+        "A driver suggestion for one PC is not proof that drivers explain the wider foliage issue."
       ],
       "timeline": [
         {
@@ -4838,16 +4874,22 @@
           "detail": "Further HLOD-bounds, foliage/tree screen-size transitions and individual asset work target Patch 1.7. The publisher does not promise to eliminate all pop-in or disappearing cover."
         },
         {
-          "date": "2026-10-15",
-          "event": "Community Feedback #8 | Command Post",
-          "detail": "Added in the October 16 editorial review. The Sources entry records the scoped claim and direct reference.",
-          "source_url": "https://www.hellletloose.com/blog/community-update-8"
-        },
-        {
           "date": "2026-10-09",
           "event": "Texture streaming issue: Low-res/muddy bush textures on certain maps",
           "detail": "Added in the October 16 editorial review. The Sources entry records the scoped claim and direct reference.",
           "source_url": "https://steamcommunity.com/app/3079210/discussions/1/590691304693880018/?ctp=1#c590691669351029564"
+        },
+        {
+          "date": "2026-10-11",
+          "event": "Foliage quality — PC diagnostic follow-up",
+          "detail": "After requesting diagnostics for low-quality foliage, Support recommends a driver update to one NVIDIA user. The reply does not establish recovery or a general rendering fix.",
+          "source_url": "https://steamcommunity.com/app/3079210/discussions/1/590691913364082327/?ctp=1#c590691913364102698"
+        },
+        {
+          "date": "2026-10-15",
+          "event": "Community Feedback #8 | Command Post",
+          "detail": "Added in the October 16 editorial review. The Sources entry records the scoped claim and direct reference.",
+          "source_url": "https://www.hellletloose.com/blog/community-update-8"
         }
       ],
       "sources": [
@@ -4937,9 +4979,24 @@
           "authority_checked_at": "2026-10-17T00:55:27Z",
           "source_category": "Team17 Support",
           "claim": "Support added screenshots and configuration information to its texture/lighting report; no shipped correction is identified."
+        },
+        {
+          "type": "support thread",
+          "publisher": "Team17 Support",
+          "title": "Foliage quality — PC diagnostic follow-up",
+          "url": "https://steamcommunity.com/app/3079210/discussions/1/590691913364082327/?ctp=1#c590691913364102698",
+          "date": "2026-10-11",
+          "source_published_at": "2026-10-11T17:53:18Z",
+          "source_reviewed_at": "2026-10-20",
+          "source_locator": "Replies 590691913364082427 and 590691913364102698",
+          "content_sha256": "fd4299a28afa06134207e54591e4661fb07a7262a0305cd7a0373a0b4b51ea1a",
+          "source_author_id": "76561198363837070",
+          "authority_checked_at": "2026-10-20T12:52:37Z",
+          "source_category": "Team17 Support",
+          "claim": "After requesting diagnostics for low-quality foliage, Support recommends a driver update to one NVIDIA user. The reply does not establish recovery or a general rendering fix."
         }
       ],
-      "last_reviewed": "2026-10-16",
+      "last_reviewed": "2026-10-20",
       "editorial_history": [
         {
           "date": "2026-10-11",
@@ -4957,6 +5014,17 @@
             "bottom_line": "Foliage blur, pop-in and disappearing cover remain open. More asset-transition work targets 1.7; earlier individual fixes do not close the wider issue.",
             "official_position": "The October 9 update describes further HLOD bounds and foliage/tree transition adjustments plus targeted asset corrections for 1.7. The publisher explicitly limits expectations: another improvement is intended, not elimination of every instance. The released 1.5.2 tree-model correction and 1.6 map/texture changes remain narrower historical fixes.",
             "fix_short": "Earlier fixes + 1.7 target"
+          }
+        },
+        {
+          "date": "2026-10-20",
+          "reason": "Reviewed previously unavailable official Support replies.",
+          "previous": {
+            "official_position": "October 15 plans do not close the issue. A separate texture-report thread contains October 9 Support acknowledgment, not engineering reproduction or proof that disabling DLSS fixes blurry foliage.",
+            "unknown": [
+              "HLLV-056 covers one released correction; the wider rendering issue remains open.",
+              "Independent gameplay verification of the Patch 1.6 outcome is not recorded."
+            ]
           }
         }
       ]
@@ -7109,6 +7177,60 @@
           "claim": "Support requests an error screenshot and diagnostics for missing engine/footstep audio."
         }
       ]
+    },
+    {
+      "id": "HLLV-084",
+      "title": "Video settings reported not saving after restart",
+      "category": "settings",
+      "kind": "settings persistence report",
+      "status_key": "reported",
+      "status_label": "Mixed-thread Support acknowledgement",
+      "bottom_line": "An October 19 Support reply acknowledges a mixed report that includes video settings not saving. Specific reproduction and a fix remain unconfirmed.",
+      "official_short": "Support replied to mixed report",
+      "fix_short": "None confirmed for this report",
+      "cause_short": "Not established",
+      "last_updated": "2026-10-19",
+      "last_reviewed": "2026-10-20",
+      "scope": [
+        "Video settings",
+        "Restart persistence"
+      ],
+      "symptom": "The opening post reports video settings not persisting after a game restart, without identifying particular settings or a platform.",
+      "official_position": "Support acknowledges similar reports and escalation collectively; it does not itemize which complaints were verified.",
+      "workaround": null,
+      "known": [
+        "The same post also requests map and menu changes; the response is not a commitment to implement those requests."
+      ],
+      "unknown": [
+        "Which settings and platforms are affected.",
+        "Whether this is related to the released EOS sign-in correction in HLLV-054 or the Frame Generation report in HLLV-060.",
+        "Internal reproduction, cause, workaround and release date."
+      ],
+      "timeline": [
+        {
+          "date": "2026-10-19",
+          "event": "Support response to mixed report",
+          "detail": "Acknowledgement and escalation, with no item-by-item finding.",
+          "source_url": "https://steamcommunity.com/app/3079210/discussions/1/570426104667569900/?ctp=1#c570426530135644652"
+        }
+      ],
+      "sources": [
+        {
+          "type": "support thread",
+          "publisher": "Team17 Support",
+          "title": "Support response to a mixed quality-of-life report",
+          "url": "https://steamcommunity.com/app/3079210/discussions/1/570426104667569900/?ctp=1#c570426530135644652",
+          "date": "2026-10-19",
+          "source_published_at": "2026-10-19T13:32:53Z",
+          "source_reviewed_at": "2026-10-20",
+          "source_locator": "Opening post and reply 570426530135644652",
+          "content_sha256": "db3a4a66c8f2ea4bf537185b70d85369e770b94163c08c297e721cdcc8ff8d89",
+          "source_author_id": "76561199006108050",
+          "authority_checked_at": "2026-10-20T12:52:37Z",
+          "source_category": "Team17 Support",
+          "claim": "Support acknowledges and escalates a mixed report containing settings persistence and interface requests; it gives no itemized confirmation or release commitment."
+        }
+      ]
     }
   ],
   "incidents": [
@@ -7121,7 +7243,7 @@
       "note": "Operational incidents remain separate from game issues until evidence establishes a relationship."
     }
   ],
-  "review_notes": "October 16: 14 existing dossiers refreshed; 8 separately scoped issues added. Read review_history for coverage and limits. Older evidence dates and the existing held reply remain unchanged. Previous review: October 11: reviewed the October 9 Community Feedback #7 publisher text on Steam and compared its Huey sensitivity target with the 1.6 release notes. Newest claims remain plans, publisher observations or ongoing investigations as appropriate. Ten existing dossiers updated; no new issue IDs or independent gameplay checks. Recent player report dates remain unchanged. Previous review: October 7: reviewed the published Patch 1.6 changelog and earlier publisher text for 21 precise citation clarifications. Promoted only explicitly released changes; preserved unresolved wider families and all old reports. No independent gameplay testing. Recent player-thread bodies were inaccessible in the research reader, so no new player confirmation is claimed. Previous notes: Source-link audit, October 5: corrected the verified Community Feedback #4 URL wherever reused. Replaced the generic Hotfix 1.5.1 feed link only if the exact announcement title and destination were verified. Other issue content and historical claims are unchanged. October 5 review: rechecked the official Steam announcements through the October 2 VLOG notice, September 29 Hotfix 1.5.2 and October 1 Community Feedback #6. Clarified stale server-family wording, current mitigations and planned-versus-released changes. No new gameplay fix or independent gameplay verification was established. Individual evidence dates and prior player reports remain unchanged unless newer evidence was added. This pass did not revalidate every historical player report. A review date is not proof an old bug persists. Equivalent source permalinks are changed only when their publisher title and accessibility are verified. Prior review: October 2 review: checked the official blog, current Steam announcements and six Steam support threads. Added the publisher's Patch 1.6 timing and dated player reports. A recent forum reply is not a new patch, reproduced defect, confirmed root cause or proof that a previous fix failed. The linked VLOG announcement text was reviewed; the video itself was not used as evidence. Original issue dates and history are retained. Reviewed the official September 25 Community Feedback #5, September 29 Hotfix 1.5.2 and October 1 Community Feedback #6 posts, using their full publisher text on Steam. Targets for 1.6, 1.7 and 2.0 are not release confirmations. Old reports retain their evidence dates unless new evidence applies. Similar symptoms do not establish a shared cause; SoulSniper incidents remain separate. No independent gameplay verification was performed. Prior review: Reviewed official releases through the September 22 live announcement. The website dates Hotfix 1.5.1 September 21; Steam announces it live September 22. Update 1.5 notes preceded its September 16 release. Older unresolved reports retain their evidence dates; absence from newer notes is not confirmation of persistence or resolution.",
+  "review_notes": "October 20: reviewed official acknowledgements with their original dates; see review_history for claim limits. Previous review: October 16: 14 existing dossiers refreshed; 8 separately scoped issues added. Read review_history for coverage and limits. Older evidence dates and the existing held reply remain unchanged. Previous review: October 11: reviewed the October 9 Community Feedback #7 publisher text on Steam and compared its Huey sensitivity target with the 1.6 release notes. Newest claims remain plans, publisher observations or ongoing investigations as appropriate. Ten existing dossiers updated; no new issue IDs or independent gameplay checks. Recent player report dates remain unchanged. Previous review: October 7: reviewed the published Patch 1.6 changelog and earlier publisher text for 21 precise citation clarifications. Promoted only explicitly released changes; preserved unresolved wider families and all old reports. No independent gameplay testing. Recent player-thread bodies were inaccessible in the research reader, so no new player confirmation is claimed. Previous notes: Source-link audit, October 5: corrected the verified Community Feedback #4 URL wherever reused. Replaced the generic Hotfix 1.5.1 feed link only if the exact announcement title and destination were verified. Other issue content and historical claims are unchanged. October 5 review: rechecked the official Steam announcements through the October 2 VLOG notice, September 29 Hotfix 1.5.2 and October 1 Community Feedback #6. Clarified stale server-family wording, current mitigations and planned-versus-released changes. No new gameplay fix or independent gameplay verification was established. Individual evidence dates and prior player reports remain unchanged unless newer evidence was added. This pass did not revalidate every historical player report. A review date is not proof an old bug persists. Equivalent source permalinks are changed only when their publisher title and accessibility are verified. Prior review: October 2 review: checked the official blog, current Steam announcements and six Steam support threads. Added the publisher's Patch 1.6 timing and dated player reports. A recent forum reply is not a new patch, reproduced defect, confirmed root cause or proof that a previous fix failed. The linked VLOG announcement text was reviewed; the video itself was not used as evidence. Original issue dates and history are retained. Reviewed the official September 25 Community Feedback #5, September 29 Hotfix 1.5.2 and October 1 Community Feedback #6 posts, using their full publisher text on Steam. Targets for 1.6, 1.7 and 2.0 are not release confirmations. Old reports retain their evidence dates unless new evidence applies. Similar symptoms do not establish a shared cause; SoulSniper incidents remain separate. No independent gameplay verification was performed. Prior review: Reviewed official releases through the September 22 live announcement. The website dates Hotfix 1.5.1 September 21; Steam announces it live September 22. Update 1.5 notes preceded its September 16 release. Older unresolved reports retain their evidence dates; absence from newer notes is not confirmation of persistence or resolution.",
   "source_link_review": {
     "date": "2026-10-05",
     "repaired_references": 9,
@@ -7188,8 +7310,8 @@
     ],
     "method": "Verified source titles and HTTP responses. The earlier Steam API discovery did not produce replacements because official announcements were returned through external CDN redirects; no guessed URL was published."
   },
-  "page_updated_at": "2026-10-17T01:00:30Z",
-  "review_release": "2026-10-16-bug-evidence-review",
+  "page_updated_at": "2026-10-20T12:55:20Z",
+  "review_release": "2026-10-20-official-response-review",
   "review_history": [
     {
       "date": "2026-10-07",
@@ -7315,6 +7437,96 @@
           "https://steamcommunity.com/app/3079210/discussions/1/590691913364082327/"
         ]
       }
+    },
+    {
+      "date": "2026-10-20",
+      "review_release": "2026-10-20-official-response-review",
+      "base_commit": "b58d19d537fb3d2c7a6073982459f9ade3e63347",
+      "page_updated_at": "2026-10-20T12:55:20Z",
+      "updated_issues": [
+        "HLLV-033",
+        "HLLV-057"
+      ],
+      "new_issues": [
+        "HLLV-084"
+      ],
+      "new_features": [
+        "HLLV-F015",
+        "HLLV-F016"
+      ],
+      "issue_count": 84,
+      "feature_count": 16,
+      "latest_verified_release": {
+        "title": "Patch 1.6",
+        "date": "2026-10-07"
+      },
+      "latest_official_announcement": {
+        "title": "Community Feedback #8",
+        "date": "2026-10-15"
+      },
+      "latest_selected_staff_reply": "2026-10-19",
+      "independent_gameplay_testing": false,
+      "source_review": "Re-read current Steam announcement feed and Community Feedback #8; inspected six existing forum leads with exact staff IDs and current developer badges.",
+      "limitations": [
+        "No newer release announcement was returned by the publisher feed at review time.",
+        "Two October 11 replies are historical evidence recovered from previously unavailable threads.",
+        "The October 19 mixed-thread reply does not individually confirm its complaints or commit to its suggested features.",
+        "Three recent unacknowledged threads were excluded from new bug claims.",
+        "The existing unrelated-text editorial hold remains in place.",
+        "Daily tracked-thread coverage is complete at 33/33, but broader discovery remains partial; this review is not an all-forum audit."
+      ],
+      "excluded_without_official_reply": [
+        "570426339809731198",
+        "570426339809736161",
+        "570426339809651925"
+      ],
+      "source_refs": [
+        {
+          "type": "support thread",
+          "publisher": "Team17 Support",
+          "title": "Support response to a mixed quality-of-life report",
+          "url": "https://steamcommunity.com/app/3079210/discussions/1/570426104667569900/?ctp=1#c570426530135644652",
+          "date": "2026-10-19",
+          "source_published_at": "2026-10-19T13:32:53Z",
+          "source_reviewed_at": "2026-10-20",
+          "source_locator": "Opening post and reply 570426530135644652",
+          "content_sha256": "db3a4a66c8f2ea4bf537185b70d85369e770b94163c08c297e721cdcc8ff8d89",
+          "source_author_id": "76561199006108050",
+          "authority_checked_at": "2026-10-20T12:52:37Z",
+          "source_category": "Team17 Support",
+          "claim": "Support acknowledges and escalates a mixed report containing settings persistence and interface requests; it gives no itemized confirmation or release commitment."
+        },
+        {
+          "type": "support thread",
+          "publisher": "Team17 Support",
+          "title": "Tutorial Bug — Support follow-up",
+          "url": "https://steamcommunity.com/app/3079210/discussions/1/590691913364082100/?ctp=1#c590691913364082220",
+          "date": "2026-10-11",
+          "source_published_at": "2026-10-11T13:45:43Z",
+          "source_reviewed_at": "2026-10-20",
+          "source_locator": "Reply 590691913364082220",
+          "content_sha256": "26b8c46aa20055ce27fae78fbb4015eaf48decf7eeb418e44767d0fe1ec64c80",
+          "source_author_id": "76561198363837070",
+          "authority_checked_at": "2026-10-20T12:52:37Z",
+          "source_category": "Team17 Support",
+          "claim": "Support acknowledges recurring tutorial prompts after completion and forwards the issue for investigation; no reproduction or fix is stated."
+        },
+        {
+          "type": "support thread",
+          "publisher": "Team17 Support",
+          "title": "Foliage quality — PC diagnostic follow-up",
+          "url": "https://steamcommunity.com/app/3079210/discussions/1/590691913364082327/?ctp=1#c590691913364102698",
+          "date": "2026-10-11",
+          "source_published_at": "2026-10-11T17:53:18Z",
+          "source_reviewed_at": "2026-10-20",
+          "source_locator": "Replies 590691913364082427 and 590691913364102698",
+          "content_sha256": "fd4299a28afa06134207e54591e4661fb07a7262a0305cd7a0373a0b4b51ea1a",
+          "source_author_id": "76561198363837070",
+          "authority_checked_at": "2026-10-20T12:52:37Z",
+          "source_category": "Team17 Support",
+          "claim": "After requesting diagnostics for low-quality foliage, Support recommends a driver update to one NVIDIA user. The reply does not establish recovery or a general rendering fix."
+        }
+      ]
     }
   ],
   "source_access_review": {

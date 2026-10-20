@@ -1,9 +1,9 @@
 {
-  "data_url": "data/issues.83479b0e450986b8.json",
-  "data_sha256": "83479b0e450986b884c3f99bbe296bbb25c44ddcc07d0388e239ad30fb05ff92",
+  "data_url": "data/issues.b6b6f7716c4bcfa6.json",
+  "data_sha256": "b6b6f7716c4bcfa62af3bf256c4c248ee649c3c0834b10bb4cf9b9402aa861b2",
   "evidence_js_url": "assets/evidence-f81896b2b5901f3b.js",
   "files": [
-    "data/issues.83479b0e450986b8.json",
+    "data/issues.b6b6f7716c4bcfa6.json",
     "assets/evidence-f81896b2b5901f3b.js",
     "evidence.css?v=1",
     "freshness.js?v=20261007",
@@ -21,7 +21,7 @@
     "assets/source-responses-84abf7fafeb49b62.css",
     "assets/barlow-condensed-900-latin-aa01966de3f608a7.woff2",
     "assets/homepage-3fabb84c5ed09223.css",
-    "assets/visual-system-9063b5906d37f75c.css",
+    "assets/visual-system-a8cf49a4ead11760.css",
     "assets/infierno-favicon.ico",
     "assets/infierno-favicon.svg",
     "assets/infierno-apple-touch-icon.png",
@@ -36,15 +36,15 @@
     "assets/submission-thread-aef8d3439e715791.js",
     "assets/community-9968024fdcdfaa9d.js",
     "assets/river-valley-mobile-2019c320c527506a.webp",
-    "data/features.904c4e51cc9b7122.json",
+    "data/features.5d45c7af2bcc3da7.json",
     "assets/features-a7b2fc411110e11e.js",
     "assets/features-8b376ecbcf45078a.css",
     "assets/official-feed-1bee5be0574ef8be.js"
   ],
   "note": "These are the actual production URLs embedded in the page, not random test cache-busters. data/issues.json remains the editable source file.",
-  "feature_data_url": "data/features.904c4e51cc9b7122.json",
+  "feature_data_url": "data/features.5d45c7af2bcc3da7.json",
   "feature_assets": [
-    "data/features.904c4e51cc9b7122.json",
+    "data/features.5d45c7af2bcc3da7.json",
     "assets/features-a7b2fc411110e11e.js",
     "assets/features-8b376ecbcf45078a.css"
   ]

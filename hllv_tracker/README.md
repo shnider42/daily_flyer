@@ -16,7 +16,9 @@ announcement matches flag possible updates for review; they never change status.
 Existing Suggestion Box approval and account permissions remain separate. These
 feature records are curated through the repository, not a new moderator dashboard.
 
-The current tracker contains 83 issue dossiers. The October 16, 2026 bug-only review refreshed 14 existing dossiers and added 8 separately scoped issues, using Community Feedback #8 and selected public Steam replies through October 16. Other dossiers retain their original evidence dates. Exact source counts and coverage limits are recorded in `reviews/2026-10-16-bug-evidence-review.json`. It separates support reports, official acknowledgement, reproduction, released changes, post-fix monitoring, and root-cause certainty.
+The current tracker contains 84 issue dossiers and 16 feature topics. The October 20 review adds a limited settings-persistence report from an October 19 Support response, incorporates two previously unavailable October 11 Support follow-ups, and adds Clan Tags and rank emblems as publisher-tracked requests. No new release or development commitment is inferred. Original evidence dates are retained; coverage and exclusions are recorded in `reviews/2026-10-20-official-response-review.json`.
+
+The October 16 bug review refreshed 14 dossiers and added 8 separately scoped issues. Its historical coverage is retained in `reviews/2026-10-16-bug-evidence-review.json`. The ledger distinguishes support reports, official acknowledgement, reproduction, released changes, post-fix monitoring, and root-cause certainty.
 
 ## Core rule
 

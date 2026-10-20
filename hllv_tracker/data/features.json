@@ -1,8 +1,8 @@
 {
   "schema_version": 1,
-  "reviewed_at": "2026-10-16",
+  "reviewed_at": "2026-10-20",
   "coverage_from": "2026-10-01",
-  "coverage_note": "Selected feature topics from Community Feedback 6–8 and Patch 1.6. This is not a complete game roadmap or an independent gameplay test.",
+  "coverage_note": "Selected topics from Community Feedback 6–8 and Patch 1.6. October 20 adds two publisher-tracked requests from the October 15 update; this is not a new announcement or a complete roadmap. Support replies do not establish feature commitments.",
   "sources": [
     {
       "id": "cf8",
@@ -14,8 +14,8 @@
       "reviewed_via": "https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/1846651706678313",
       "published_at": "2026-10-15T16:00:50Z",
       "content_sha256": "ccd0ac3d412f80f292b497075765de37e09f59ba53156bbce041c6008c05238d",
-      "reviewed_at": "2026-10-16",
-      "review_scope": "Selected feature and functionality statements; not a complete review of every claim in this announcement."
+      "reviewed_at": "2026-10-20",
+      "review_scope": "Selected functionality statements, including Clan Tags and rank emblems. Re-read October 20; the publisher text hash is unchanged. Tracked requests are not confirmed development."
     },
     {
       "id": "cf7",
@@ -534,6 +534,60 @@
         "text chat",
         "character limit",
         "scroll back"
+      ]
+    },
+    {
+      "id": "HLLV-F015",
+      "title": "Clan Tags",
+      "category": "Community tools",
+      "kind": "new_option",
+      "current": {
+        "availability": "not_confirmed_live",
+        "summary": "The reviewed statement does not establish availability.",
+        "source_ids": []
+      },
+      "status": "under_consideration",
+      "change": "Clan Tags are named among community requests the publisher is tracking; development is not confirmed.",
+      "target": "No confirmed release",
+      "latest_source_id": "cf8",
+      "history": [
+        {
+          "source_id": "cf8",
+          "status": "under_consideration",
+          "summary": "Publisher acknowledges the request without a delivery commitment."
+        }
+      ],
+      "related_issue_ids": [],
+      "related_suggestions": [],
+      "monitor_terms": [
+        "clan tags"
+      ]
+    },
+    {
+      "id": "HLLV-F016",
+      "title": "Rank emblems",
+      "category": "Community tools",
+      "kind": "new_option",
+      "current": {
+        "availability": "not_confirmed_live",
+        "summary": "The reviewed statement does not establish availability.",
+        "source_ids": []
+      },
+      "status": "under_consideration",
+      "change": "Rank emblems are named among community requests the publisher is tracking; development is not confirmed.",
+      "target": "No confirmed release",
+      "latest_source_id": "cf8",
+      "history": [
+        {
+          "source_id": "cf8",
+          "status": "under_consideration",
+          "summary": "Publisher acknowledges the request without a delivery commitment."
+        }
+      ],
+      "related_issue_ids": [],
+      "related_suggestions": [],
+      "monitor_terms": [
+        "rank emblems"
       ]
     }
   ]
