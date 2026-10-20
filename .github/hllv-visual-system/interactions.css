@@ -1,7 +1,7 @@
 /* Interaction contract: preserve working controls, fill missing feedback, and
    change paint only. Hover never changes layout, type weight, or position. */
-:root { --ui-hover-surface: #dce1d6; --ui-hover-border: #68775f; }
-html[data-theme="dark"] { --ui-hover-surface: #303e43; --ui-hover-border: #a9bda4; }
+:root { --ui-hover-surface: #dce1d6; --ui-hover-border: #68775f; --ui-hover-muted: #4f594b; }
+html[data-theme="dark"] { --ui-hover-surface: #303e43; --ui-hover-border: #a9bda4; --ui-hover-muted: #bcc7cb; }
 :where(a[href], button:enabled, summary, select:enabled, input[type="checkbox"]:enabled,
   input[type="radio"]:enabled, label:has(input:is([type="checkbox"],[type="radio"]):enabled)) {
   cursor: pointer;
@@ -23,10 +23,12 @@ html[data-theme="dark"] { --ui-hover-surface: #303e43; --ui-hover-border: #a9bda
   #featuresPage .ft-row[href]:hover,
   #landing :is(.featured-issue:enabled, .ft-row[href]):hover,
   #suggestionBox :is(.cb-entry, .mi-row):enabled:hover {
+    --muted: var(--ui-hover-muted);
     background: var(--ui-hover-surface);
     box-shadow: inset 3px 0 var(--section-accent, var(--red));
   }
   #landing .community-path[href]:hover {
+    --muted: var(--ui-hover-muted);
     background: var(--ui-hover-surface);
     box-shadow: inset 0 0 0 1px var(--path-color);
   }
@@ -65,7 +67,9 @@ html[data-theme="dark"] { --ui-hover-surface: #303e43; --ui-hover-border: #a9bda
     text-decoration: underline; text-decoration-thickness: 2px; text-underline-offset: .2em;
   }
   /* Low specificity lets already-working summary treatments take precedence. */
-  :where(details:not(.account-menu)) > summary:hover { background-color: var(--ui-hover-surface); }
+  :where(details:not(.account-menu)) > summary:hover {
+    --muted: var(--ui-hover-muted); background-color: var(--ui-hover-surface);
+  }
 
   #suggestionBox .sg-button.secondary:enabled:hover {
     background: var(--ui-hover-surface); border-color: var(--ui-hover-border);
