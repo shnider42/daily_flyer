@@ -16,7 +16,7 @@ from daily_flyer.utils import resolve_date
 
 ASSETS = Path(__file__).with_name("your_passage_assets")
 THEME_CONFIG = {
-    "page_title": "New Passage — Find your next step",
+    "page_title": "New Passage | Find your next step",
     "header_title": "New Passage",
     "header_subtitle": "Coaching, confidence, and a clearer next step for young adults.",
     "footer_text": "New Passage · Built with Daily Flyer Engine",

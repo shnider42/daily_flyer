@@ -29,7 +29,7 @@ function traverse(w, direction) {
     assert.deepEqual(visible(d), ['home']);
     assert.equal(d.getElementById('practice').hidden, true);
     assert.equal(d.querySelector('.yp-hero .yp-button').href, 'https://calendly.com/tim-mypassages');
-    assert.equal(d.getElementById('yp-navigation').querySelectorAll('a').length, 4);
+    assert.equal(d.querySelector('[data-nav-page="home"]').getAttribute('href'), '#starting-point');
     dom.window.close();
   });
   await test('Navigation changes view, URL, title, current link, and keyboard focus together', () => {
@@ -37,7 +37,7 @@ function traverse(w, direction) {
     click(d, '#approach');
     assert.deepEqual(visible(d), ['coaching']);
     assert.equal(w.location.hash, '#approach');
-    assert.equal(d.title, 'Coaching — New Passage');
+    assert.equal(d.title, 'Coaching | New Passage');
     assert.equal(d.activeElement.id, 'yp-approach-heading');
     assert.equal(d.querySelector('[aria-current="page"]').getAttribute('href'), '#approach');
     d.querySelector('[data-audience="parent"]').click();
@@ -88,6 +88,10 @@ function traverse(w, direction) {
     assert.equal(d.getElementById('yp').classList.contains('yp-focus'), false);
     assert.deepEqual(visible(d), ['home']);
     assert.equal(d.getElementById('yp-exit-focus').hidden, true);
+    // Home also returns a visitor to the top when the home view is already open.
+    d.documentElement.scrollTop = 500;
+    d.querySelector('[data-nav-page="home"]').click();
+    assert.equal(d.documentElement.scrollTop, 0);
     dom.window.close();
   });
   await test('Without JavaScript, coaching content and real booking links stay available', () => {

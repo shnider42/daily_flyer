@@ -16,10 +16,14 @@
   const pageTitle = document.title;
   const pageNames = {home: '', coaching: 'Coaching', tim: 'Meet Tim', start: 'Getting started', practice: 'Practice'};
   const audienceLabels = {student: 'Talk about your goals', parent: 'Talk about your student', school: 'Discuss a school program'};
-  function selectAudience(audience) {
+  function selectAudience(audience, animate = false) {
     if (!audienceLabels[audience]) return;
     root.querySelectorAll('[data-audience]').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.audience === audience)));
-    root.querySelectorAll('[data-audience-panel]').forEach(panel => { panel.hidden = panel.dataset.audiencePanel !== audience; });
+    root.querySelectorAll('[data-audience-panel]').forEach(panel => {
+      const incoming = panel.hidden && panel.dataset.audiencePanel === audience;
+      panel.hidden = panel.dataset.audiencePanel !== audience;
+      panel.classList.toggle('np-panel-enter', animate && incoming);
+    });
     $('yp-audience-link').textContent = `${audienceLabels[audience]} ↗`;
   }
   function showPage(hash, focus = true) {
@@ -30,6 +34,7 @@
     const name = page.dataset.page;
     if (name !== 'practice' && root.classList.contains('yp-focus')) setFocus(false);
     const changed = root.dataset.currentPage !== name;
+    if (changed) root.querySelectorAll('.np-panel-enter').forEach(panel => panel.classList.remove('np-panel-enter'));
     root.querySelectorAll('[data-page]').forEach(section => {
       section.hidden = section !== page;
       section.classList.toggle('np-active', section === page);
@@ -39,7 +44,7 @@
       if (link.dataset.navPage === name) link.setAttribute('aria-current', 'page');
       else link.removeAttribute('aria-current');
     });
-    document.title = pageNames[name] ? `${pageNames[name]} — New Passage` : pageTitle;
+    document.title = pageNames[name] ? `${pageNames[name]} | New Passage` : pageTitle;
     const audiencePanel = target?.closest('[data-audience-panel]');
     if (audiencePanel) selectAudience(audiencePanel.dataset.audiencePanel);
     if (name === 'practice' && target && $('yp-practice-explorer').contains(target)) {
@@ -54,7 +59,7 @@
     }
     closeMenu();
     if (!focus) return;
-    if (changed) { document.documentElement.scrollTop = 0; document.body.scrollTop = 0; }
+    if (changed || name === 'home') { document.documentElement.scrollTop = 0; document.body.scrollTop = 0; }
     const destination = name === 'practice' && target !== page
       ? (target?.tagName === 'DETAILS' ? target.querySelector('summary') : target)
       : page.querySelector('[data-page-heading]');
@@ -126,12 +131,14 @@
     updateTakeaway();
   }
   function activate(stage, focus = false) {
+    const changed = state.tab !== stage;
     state.tab = stage;
     stages.forEach(item => {
       const active = item === stage;
       $(`yp-tab-${item}`).setAttribute('aria-selected', String(active));
       $(`yp-tab-${item}`).tabIndex = active ? 0 : -1;
       $(`yp-panel-${item}`).hidden = !active;
+      $(`yp-panel-${item}`).classList.toggle('np-panel-enter', changed && active);
     });
     if (focus) $(`yp-panel-${stage}`).focus({preventScroll: true});
   }
@@ -277,7 +284,7 @@
     } catch (_) { message('This browser could not start a download. You can copy your notes or print your next-step card.'); }
   }
 
-  root.querySelectorAll('[data-audience]').forEach(button => button.addEventListener('click', () => selectAudience(button.dataset.audience)));
+  root.querySelectorAll('[data-audience]').forEach(button => button.addEventListener('click', () => selectAudience(button.dataset.audience, true)));
   data.exercises.forEach((item, index) => {
     const option = document.createElement('option'); option.value = String(index); option.textContent = item.short_title;
     $('yp-topic').append(option);
@@ -371,6 +378,10 @@
   };
   window.addEventListener('hashchange', followHistory);
   window.addEventListener('popstate', followHistory);
+  const navigation = root.querySelector('.yp-nav');
+  const updateNavigation = () => navigation.classList.toggle('is-scrolled', window.scrollY > 12);
+  window.addEventListener('scroll', updateNavigation, {passive: true});
+  updateNavigation();
   restore(); renderExercise(); renderNotebook();
   selectAudience('student');
   showPage(location.hash, false);

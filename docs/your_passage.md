@@ -1,4 +1,4 @@
-# New Passage — main website replacement concept
+# New Passage: main website replacement concept
 
 
 ## Project names and first homepage pass (2026-10-21)
@@ -11,7 +11,7 @@ The public working title is now New Passage. The theme module, route, CSS/DOM id
 
 The current pass makes lead conversion the primary task. The opening contains a short coaching pitch, Tim’s portrait, a booking action and an understated coaching link. Navigation opens separate Coaching, Meet Tim, Getting started and Practice views within the same loaded document. The opening no longer has a partially visible section below it. The desktop composition uses the available viewport with compact rules for shorter laptop windows; zoomed, narrow or unusually short windows can still scroll instead of clipping controls.
 
-Typography now uses the existing local sans-serif stack (Avenir Next / Segoe UI / sans-serif) for both headings and body text. It replaces the previous editorial serif treatment. Short entrance and path-drawing animations provide a visual introduction; navigation and audience changes have brief transitions. All motion respects `prefers-reduced-motion`. No font or animation library is downloaded.
+Typography now uses the existing local sans-serif stack (Avenir Next / Segoe UI / sans-serif) for both headings and body text. It replaces the previous editorial serif treatment. Each view uses one brief entrance transition. Audience choices and practice tabs use a short fade only when changed; child transitions are cleared when moving between views. There is no staggered text reveal or animated path drawing. All motion respects `prefers-reduced-motion`. No font or animation library is downloaded.
 
 Practice is a secondary navigation destination, not a step in the booking path. It remains publicly accessible, with no claim of accounts or client authentication. The same live inputs stay mounted when a visitor leaves practice, preserving unsaved drafts. Hash URLs, browser Back/Forward, keyboard focus, current-navigation markers and older audience/notebook/stage deep links work across views. Without JavaScript, the server-rendered sections and real booking links remain readable as one page. Explicit browser saves and appearance preferences keep their original keys.
 
@@ -20,6 +20,22 @@ New wording and the working name still require Tim’s review. The three first-c
 Local theme: `your_passage`, also accepted at the Flask boundary as `your-passage`.
 Base: `staging` commit `2a053196d33f6b50299b8c342cc2316960314e21`.
 Working branch: `feat/your-passage-site`. This branch is intended for a new, separate Render web service. The existing Your Passage service and its branch remain unchanged. No deployment, domain or Render changes are part of this branch push.
+
+## Preserved design directions (2026-10-21)
+
+The long scrolling page and the selectable views are separate design directions. Neither has been chosen as the final site architecture. Both have durable Git branches, and the existing Render branch remains the active review destination.
+
+| Direction | Branch | Preserved commit | Purpose |
+| --- | --- | --- | --- |
+| Scrolling page | `design/new-passage-scroll` | `21ddbfbf64813d9f307c940396db9d04841b2bbd` | Continue the full scrolling layout independently when requested. |
+| Selectable views, before this polish | `checkpoint/new-passage-views-before-polish` | `57b1acf56df874c85fc7b20ce1f09572735dce85` | Keep an exact checkpoint of the first view-based experiment. |
+| Current selectable views | `feat/your-passage-site` | Branch head | Active review version, tracked by the existing New Passage Render service. |
+
+Do not reset or force-push one direction over another. Start from the relevant branch when resuming work. Move shared fixes across deliberately; review layout changes separately. The checkpoint branch should remain at its recorded commit. These are engineering branches, not extra modes exposed to prospective clients, and no extra Render services were created.
+
+The current polish restores the former paper texture, adds aqua and warm lighting with a static contour motif, and adapts those colors to night mode. A full-width translucent navigation bar stays at the top while scrolling on desktop and mobile; its Home link remains available, and the mobile menu opens beneath the bar. Anchor offsets account for the bar, including mobile safe-area spacing. Browsers without background blur receive a solid readable fallback.
+
+Use ordinary punctuation in visible copy and tab titles. Do not use em dashes, en dashes or double hyphens as sentence separators. CSS custom properties and internal identifiers keep their required syntax. Keep hover targets stationary. Continue respecting reduced-motion settings.
 
 ## Separate Render service settings
 

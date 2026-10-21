@@ -39,6 +39,13 @@
   --yp-close-accent: var(--yp-mint);
   --yp-sans: 'Avenir Next', 'Segoe UI', sans-serif;
   --yp-serif: var(--yp-sans); /* Legacy practice selectors share the new type system. */
+  --yp-nav-height: 88px;
+  --yp-glass: rgba(244, 246, 244, .76);
+  --yp-glass-solid: #eef3ef;
+  --yp-glow-aqua: rgba(72, 181, 162, .26);
+  --yp-glow-warm: rgba(235, 191, 126, .22);
+  --yp-glow-blue: rgba(120, 182, 210, .15);
+  --yp-contour-opacity: .19;
 }
 :root[data-yp-appearance="night"] {
   color-scheme: dark;
@@ -68,6 +75,12 @@
   --yp-close-text: #e5eae7;
   --yp-close-muted: #a8b7c0;
   --yp-close-accent: var(--yp-aqua);
+  --yp-glass: rgba(18, 30, 41, .79);
+  --yp-glass-solid: #182a34;
+  --yp-glow-aqua: rgba(6, 139, 121, .27);
+  --yp-glow-warm: rgba(165, 119, 75, .15);
+  --yp-glow-blue: rgba(53, 103, 158, .24);
+  --yp-contour-opacity: .13;
 }
 @media (prefers-color-scheme: dark) {
   :root:not([data-yp-appearance]) {
@@ -98,18 +111,27 @@
     --yp-close-text: #e5eae7;
     --yp-close-muted: #a8b7c0;
     --yp-close-accent: var(--yp-aqua);
+    --yp-glass: rgba(18, 30, 41, .79);
+    --yp-glass-solid: #182a34;
+    --yp-glow-aqua: rgba(6, 139, 121, .27);
+    --yp-glow-warm: rgba(165, 119, 75, .15);
+    --yp-glow-blue: rgba(53, 103, 158, .24);
+    --yp-contour-opacity: .13;
   }
 }
 /* One complete opening; deeper content appears through ordinary hash links. */
-html { scroll-behavior: auto; scroll-padding-top: 24px; }
-body { background: var(--yp-paper); color: var(--yp-text); }
+html { scroll-behavior: auto; scroll-padding-top: calc(var(--yp-nav-height) + 16px); }
+body { background: var(--yp-paper); color: var(--yp-text); overflow-x: clip; }
 body::before, body::after, .site-bg, .hero-wrap, .page-shell > footer { display: none; }
 .page-shell > main { display: block; max-width: none; padding: 0; margin: 0; }
-.card--your_passage { min-height: 0; padding: 0; border: 0; border-radius: 0; background: none; box-shadow: none; backdrop-filter: none; overflow: visible; }
+.card--your_passage { min-height: 0; padding: 0; border: 0; border-radius: 0; background: none; box-shadow: none; -webkit-backdrop-filter: none; backdrop-filter: none; overflow: visible; }
 .card--your_passage:hover { transform: none; box-shadow: none; }
 .card--your_passage::before, .card--your_passage::after, .card--your_passage > .card-head { display: none; }
 .card--your_passage > .body { margin: 0; color: var(--yp-text); font-size: 16px; line-height: 1.6; }
-#yp { --ink: var(--yp-ink); --ink-soft: var(--yp-muted); min-height: 100vh; min-height: 100svh; display: flex; flex-direction: column; font-family: var(--yp-sans); }
+#yp { --ink: var(--yp-ink); --ink-soft: var(--yp-muted); min-height: 100vh; min-height: 100svh; display: flex; flex-direction: column; font-family: var(--yp-sans); position: relative; isolation: isolate; }
+/* Restore the earlier paper grain, with light and contours from the brand palette. */
+#yp::before { content: ''; position: fixed; inset: 0; z-index: -2; pointer-events: none; background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 160 160' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.8' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' opacity='.035' filter='url(%23n)'/%3E%3C/svg%3E"), radial-gradient(ellipse at 90% 28%, var(--yp-glow-aqua), transparent 64%), radial-gradient(ellipse at 5% 95%, var(--yp-glow-warm), transparent 55%), radial-gradient(ellipse at 55% 0%, var(--yp-glow-blue), transparent 65%); background-size: 160px 160px, cover, cover, cover; background-color: var(--yp-paper); }
+.np-landscape { position: fixed; inset: 0; width: 100%; height: 100%; z-index: -1; pointer-events: none; color: var(--yp-teal); opacity: var(--yp-contour-opacity); }
 #yp * { box-sizing: border-box; }
 #yp [hidden] { display: none !important; }
 #yp :is(h1,h2,h3,p,figure) { margin-top: 0; }
@@ -128,10 +150,15 @@ body::before, body::after, .site-bg, .hero-wrap, .page-shell > footer { display:
 #yp summary::-webkit-details-marker { display: none; }
 #yp details[open] > summary > span[aria-hidden=true] { transform: rotate(45deg); }
 .yp-width { width: min(1240px, calc(100% - 112px)); margin-left: auto; margin-right: auto; }
-.yp-nav { min-height: 88px; display: flex; align-items: center; gap: 28px; position: relative; z-index: 3; flex: 0 0 auto; }
+.yp-nav { min-height: var(--yp-nav-height); width: 100%; padding: 0 max(56px, calc((100% - 1240px) / 2)); display: flex; align-items: center; gap: 28px; position: sticky; top: 0; z-index: 30; flex: 0 0 auto; background: var(--yp-glass-solid); border-bottom: 1px solid var(--yp-line); transition: box-shadow .2s ease; }
+@supports ((backdrop-filter: blur(1px)) or (-webkit-backdrop-filter: blur(1px))) {
+  .yp-nav { background: var(--yp-glass); -webkit-backdrop-filter: blur(18px) saturate(1.2); backdrop-filter: blur(18px) saturate(1.2); }
+}
+.yp-nav.is-scrolled { box-shadow: 0 8px 25px var(--yp-shadow); }
 #yp .yp-brand { display: flex; align-items: center; gap: 12px; font-size: 24px; font-weight: 650; letter-spacing: -.8px; color: var(--yp-ink); white-space: nowrap; }
+#yp .yp-brand:hover { color: var(--yp-teal); }
 .yp-brand svg { width: 29px; height: 34px; color: var(--yp-teal); }
-.yp-navlinks { display: flex; gap: 28px; align-items: center; margin-left: auto; font-size: 13px; }
+.yp-navlinks { display: flex; gap: 24px; align-items: center; margin-left: auto; font-size: 13px; }
 .yp-navlinks a { padding: 11px 0; position: relative; color: var(--yp-muted) !important; }
 .yp-navlinks a::after { content: ''; position: absolute; bottom: 4px; left: 0; width: 100%; height: 2px; background: var(--yp-teal); transform: scaleX(0); transform-origin: left; transition: transform .2s ease; }
 .yp-navlinks a:hover::after, .yp-navlinks a[aria-current]::after { transform: scaleX(1); }
@@ -172,6 +199,7 @@ body::before, body::after, .site-bg, .hero-wrap, .page-shell > footer { display:
 .yp-audience-options { display: flex; gap: 8px; padding: 5px; background: var(--yp-band); border: 1px solid var(--yp-line); border-radius: 9px; }
 .yp-audience-options button { flex: 1; background: transparent; border: 1px solid transparent; border-radius: 6px; color: var(--yp-muted); min-height: 44px; font-size: 14px !important; }
 .yp-audience-options button[aria-pressed=true] { background: var(--yp-surface); border-color: var(--yp-line); color: var(--yp-ink); box-shadow: 0 2px 4px var(--yp-shadow); }
+.yp-audience-options button:hover { color: var(--yp-ink); border-color: var(--yp-control-line); }
 .np-audience-panel { padding: 26px 0 4px; min-height: 260px; }
 .np-audience-panel p, .np-tim-content > p { color: var(--yp-muted); font-size: 16px; line-height: 1.8; }
 .np-tags { display: flex; flex-wrap: wrap; gap: 8px; margin: 22px 0; }
@@ -188,10 +216,10 @@ body::before, body::after, .site-bg, .hero-wrap, .page-shell > footer { display:
 #yp .np-conversation-list h3 { font-size: 21px; letter-spacing: -.5px; margin-bottom: 9px; }
 .np-conversation-list p { font-size: 14px; color: var(--yp-muted); margin: 0 !important; }
 #yp .np-booking-note { margin-top: 12px; font-size: 11px; }
-.yp-skip { position: fixed; top: 8px; left: 8px; z-index: 20; background: var(--yp-surface); padding: 12px; transform: translateY(-180%); }
+.yp-skip { position: fixed; top: 8px; left: 8px; z-index: 40; background: var(--yp-surface); padding: 12px; transform: translateY(-180%); }
 .yp-skip:focus { transform: none; }
 /* Practice is a separate destination, using the existing notebook and storage. */
-.yp-practice-band { padding: 38px 0; background: var(--yp-band); flex: 1 0 auto; }
+.yp-practice-band { padding: 38px 0; flex: 1 0 auto; }
 .yp-section-heading { display: flex; justify-content: space-between; align-items: end; gap: 32px; margin-bottom: 28px; }
 #yp .yp-section-heading h2 { font-size: 36px; margin-bottom: 0; }
 .yp-section-aside { text-align: right; }
@@ -210,16 +238,11 @@ body::before, body::after, .site-bg, .hero-wrap, .page-shell > footer { display:
 .yp-notebook-count { display: inline-grid; place-items: center; min-width: 20px; height: 20px; margin-left: 5px; border: 1px solid var(--yp-line); border-radius: 50%; font-size: 10px; }
 .yp-focus .yp-navlinks, .yp-focus .yp-menu-toggle, .yp-focus .yp-wayfinder, .yp-focus .yp-section-heading, .yp-focus .np-practice-explorer > summary { display: none !important; }
 .yp-focus .yp-practice-band { padding-top: 0; }
-.np-active .np-enter { animation: np-arrive .6s cubic-bezier(.2,.65,.3,1) both; }
-.np-active .yp-hero-copy > :nth-child(2) { animation-delay: .06s; }
-.np-active .yp-hero-copy > :nth-child(3) { animation-delay: .12s; }
-.np-active .yp-hero-copy > :nth-child(4) { animation-delay: .18s; }
-.np-active .yp-hero-copy > :nth-child(5) { animation-delay: .22s; }
-.np-active .np-portrait { animation-delay: .1s; }
-.np-active .np-path path { stroke-dasharray: 1; animation: np-draw .9s ease-out both; }
-.np-active.np-detail, .np-active.yp-practice-band, .np-audience-panel:not([hidden]) { animation: np-arrive .35s ease both; }
-@keyframes np-arrive { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
-@keyframes np-draw { from { stroke-dashoffset: 1; } to { stroke-dashoffset: 0; } }
+/* Each view arrives as one unit. No staggered controls or perpetual decoration. */
+.np-active { animation: np-arrive .28s cubic-bezier(.2,.65,.3,1); }
+.np-panel-enter { animation: np-panel-in .2s ease-out; }
+@keyframes np-arrive { from { opacity: .35; transform: translateY(8px); } to { opacity: 1; transform: none; } }
+@keyframes np-panel-in { from { opacity: .35; } to { opacity: 1; } }
 .yp-sr-only { position: absolute; width: 1px; height: 1px; padding: 0; margin: -1px; overflow: hidden; clip-path: inset(50%); white-space: nowrap; border: 0; }
 .yp-appearance { display: flex; flex-wrap: wrap; align-items: center; justify-content: flex-end; gap: 4px 14px; margin-left: auto; letter-spacing: 0; }
 #yp .yp-appearance button { font-size: 12px; min-height: 44px; color: var(--yp-muted); background: transparent; padding: 4px 0; }
@@ -263,8 +286,6 @@ body::before, body::after, .site-bg, .hero-wrap, .page-shell > footer { display:
 .yp-tabs button[aria-selected=true] { color: var(--yp-ink); border-color: var(--yp-active-mark); font-weight: 600 !important; }
 .yp-tabs i { font-style: normal; font-size: 11px; }
 .yp-panel { padding: 31px 38px 29px; min-height: 330px; }
-.yp-panel:not([hidden]) { animation: yp-page-in .22s ease both; }
-@keyframes yp-page-in { from { opacity: .5; transform: translateY(5px); } to { opacity: 1; transform: none; } }
 #yp .yp-panel h3 { font-size: 36px; max-width: 560px; }
 .yp-panel > p:not(.yp-kicker):not(.yp-finish-message) { font-size: 15px; line-height: 1.9; max-width: 620px; }
 .yp-panel .yp-kicker { font-size: 10px; margin-bottom: 14px !important; }
@@ -312,7 +333,7 @@ body::before, body::after, .site-bg, .hero-wrap, .page-shell > footer { display:
 .yp-noscript { padding: 20px; border: 1px solid var(--yp-line); }
 /* Short laptop windows get a compact composition; zoom still allows scrolling. */
 @media (min-width: 901px) and (max-height: 740px) {
-  .yp-nav { min-height: 72px; }
+  :root { --yp-nav-height: 72px; }
   .yp-footer { min-height: 52px; padding: 4px 0; }
   .yp-hero { padding-top: 15px; padding-bottom: 22px; }
   #yp h1 { font-size: clamp(46px, 4.8vw, 64px); margin-bottom: 18px; }
@@ -327,6 +348,7 @@ body::before, body::after, .site-bg, .hero-wrap, .page-shell > footer { display:
 }
 @media (max-width: 1100px) {
   .yp-width { width: calc(100% - 64px); }
+  .yp-nav { padding-left: 32px; padding-right: 32px; }
   .yp-navlinks { gap: 22px; }
   .yp-hero { gap: 30px; }
   .yp-intro { font-size: 16px; }
@@ -335,10 +357,11 @@ body::before, body::after, .site-bg, .hero-wrap, .page-shell > footer { display:
   .yp-actions .yp-textlink { font-size: 13px; }
 }
 @media (max-width: 900px) {
+  :root { --yp-nav-height: 78px; }
   .yp-width { width: calc(100% - 48px); }
-  .yp-nav { min-height: 78px; }
+  .yp-nav { padding-left: 24px; padding-right: 24px; gap: 20px; }
   #yp .yp-brand { font-size: 22px; }
-  .yp-navlinks { gap: 18px; font-size: 12px; }
+  .yp-navlinks { gap: 14px; font-size: 12px; }
   #yp .np-practice-link { padding-left: 18px; }
   .yp-hero { gap: 24px; }
   #yp h1 { font-size: 44px; }
@@ -355,10 +378,13 @@ body::before, body::after, .site-bg, .hero-wrap, .page-shell > footer { display:
   .yp-takeaway, .yp-notebook-controls { margin-left: 26px; margin-right: 26px; }
 }
 @media (max-width: 700px) {
+  :root { --yp-nav-height: calc(78px + env(safe-area-inset-top, 0px)); }
   .yp-width { width: calc(100% - 40px); }
-  .yp-nav { flex-wrap: wrap; gap: 0 16px; padding: 17px 0; min-height: 74px; }
+  .yp-nav { flex-wrap: wrap; gap: 0 16px; padding: calc(12px + env(safe-area-inset-top, 0px)) 20px 12px; }
   #yp .yp-brand { font-size: 23px; }
-  .yp-navlinks { order: 3; flex-basis: 100%; justify-content: space-between; gap: 12px; padding-top: 14px; margin-top: 14px; border-top: 1px solid var(--yp-line); }
+  .yp-navlinks { order: 3; flex-basis: 100%; display: grid; grid-template-columns: repeat(2, minmax(0, 1fr)); gap: 4px 12px; padding-top: 14px; margin-top: 14px; border-top: 1px solid var(--yp-line); }
+  .yp-ready .yp-navlinks { position: absolute; top: 100%; left: 0; right: 0; margin: 0; padding: 10px 20px 18px; max-height: calc(100svh - var(--yp-nav-height)); overflow-y: auto; background: var(--yp-glass-solid); border-bottom: 1px solid var(--yp-line); box-shadow: 0 12px 22px var(--yp-shadow); }
+  .yp-navlinks a { min-height: 44px; }
   .yp-ready .yp-navlinks:not(.is-open) { display: none; }
   .yp-ready .yp-menu-toggle { display: inline-flex; gap: 9px; align-items: center; border: 0; background: transparent; color: var(--yp-ink); margin-left: auto; padding: 10px 0 10px 12px; font-size: 13px; min-height: 44px; }
   #yp .np-practice-link { border: 0; padding-left: 0; }
@@ -414,6 +440,7 @@ body::before, body::after, .site-bg, .hero-wrap, .page-shell > footer { display:
     --yp-note-accent: #617083;
   }
   body, #yp { background: white !important; }
+  #yp::before { display: none; }
   #yp > :not(.yp-practice-band), .yp-section-heading, .yp-notebook, .yp-workbook-index, .yp-tabs, .yp-panel, .yp-notebook-controls, .yp-editorial-note, .yp-takeaway-actions, .np-practice-explorer > summary, .yp-wayfinder, .np-saved-link { display: none !important; }
   .np-practice-explorer { border: 0; }
   .np-practice-content { padding: 0; }
