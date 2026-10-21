@@ -9,7 +9,11 @@
 
 The public working title is now New Passage. The theme module, route, CSS/DOM identifiers and browser-storage keys remain `your_passage` / `your-passage` for compatibility; keep `DEFAULT_THEME=your_passage` in Render. No branch, service, domain, database or original companion changes are needed.
 
-The homepage now introduces Tim and his coaching before optional exercises. The portrait appears in the opening, with direct booking and a link to coaching. Student/parent/school choices point to relevant service information. One-to-one coaching, group learning, Tim’s background and suggested first-conversation questions precede the practice notebook. The notebook opens by choice; focus view and note deep links open it automatically. Existing saved notes and appearance preferences remain compatible. Hover feedback changes color/underline without moving buttons.
+The current pass makes lead conversion the primary task. The opening contains a short coaching pitch, Tim’s portrait, a booking action and an understated coaching link. Navigation opens separate Coaching, Meet Tim, Getting started and Practice views within the same loaded document. The opening no longer has a partially visible section below it. The desktop composition uses the available viewport with compact rules for shorter laptop windows; zoomed, narrow or unusually short windows can still scroll instead of clipping controls.
+
+Typography now uses the existing local sans-serif stack (Avenir Next / Segoe UI / sans-serif) for both headings and body text. It replaces the previous editorial serif treatment. Short entrance and path-drawing animations provide a visual introduction; navigation and audience changes have brief transitions. All motion respects `prefers-reduced-motion`. No font or animation library is downloaded.
+
+Practice is a secondary navigation destination, not a step in the booking path. It remains publicly accessible, with no claim of accounts or client authentication. The same live inputs stay mounted when a visitor leaves practice, preserving unsaved drafts. Hash URLs, browser Back/Forward, keyboard focus, current-navigation markers and older audience/notebook/stage deep links work across views. Without JavaScript, the server-rendered sections and real booking links remain readable as one page. Explicit browser saves and appearance preferences keep their original keys.
 
 New wording and the working name still require Tim’s review. The three first-conversation prompts are suggestions for visitors, not a promised service process. No session duration, prices, qualifications, outcomes, or availability have been invented.
 
@@ -47,8 +51,8 @@ Deployment settings verified against Render's official Flask, Python-version, an
 ## What works
 
 - A complete responsive coaching homepage with student, parent, and school starting points.
-- A field-guide layout with an illustrated route, a four-choice starting point, and a mobile navigation menu.
-- Softer day surfaces and a blue-charcoal night appearance. The top-bar Day / Night switch remembers an override; Device returns to the operating system's preference.
+- A conversion-led opening, separate views, a four-topic practice chooser, and a mobile navigation menu.
+- Softer day surfaces and a blue-charcoal night appearance. The footer Day / Night switch remembers an override; Device returns to the operating system's preference.
 - Existing Tim booking destination: https://calendly.com/tim-mypassages.
 - Four student passages reused from `topic_signal_daily.DAILY_PASSAGES`, selected deterministically by DFE date or seed.
 - Read / Try / Reflect with keyboard-operable tabs and progress. Progress means the visitor completed the prompts, not that a real-world action was verified.
@@ -56,7 +60,7 @@ Deployment settings verified against Render's official Flask, Python-version, an
 - A reversible focus view and a notebook that reopens explicitly saved passages. Existing v1 browser notes remain compatible.
 - Drafts survive topic switching in page memory. Explicit Save persists that passage in localStorage; Download exports text; Clear removes the selected passage only after confirmation.
 - Tim's supplied portrait is optimized as a 840 × 1200 WebP (about 45 KB), framed with CSS, and embedded in the export. The original photo is not retouched.
-- HTML, CSS, JavaScript, portrait, and the path illustration are embedded in the DFE export. No external fonts, remote images, accounts, trackers, form submissions, or runtime network calls.
+- HTML, CSS, JavaScript, portrait, and the decorative path are embedded in the DFE export. No external fonts, remote images, accounts, trackers, form submissions, or runtime network calls.
 - Original Passages theme, shared renderer, routes, default theme, and other themes remain unchanged.
 
 ## Color palette
@@ -122,7 +126,7 @@ All new copy and adapted practice material need Tim's editorial approval before 
 3. Decide whether local-only notes are sufficient. Accounts, cross-device progress, student records, lead capture, email subscriptions and admin publishing are not implemented.
 4. Use a dedicated DFE deployment with `DEFAULT_THEME=your_passage` and verify booking, accessibility and responsive behavior in real browsers. Keep this concept on its separate branch and service.
 
-Verification includes six Python integration tests, ten practice interaction tests, and eight appearance tests. These cover actual Flask responses and DFE export, date/seed behavior, HTML structure, legacy notes, focus/menu controls, rehearsal feedback, takeaways, save/download/print, scoped deletion, blocked storage, keyboard tabs, pre-body appearance, device changes, saved overrides, reset, and cross-tab appearance updates. A supported browser-control plugin was unavailable, so there is no claim of desktop/mobile visual QA.
+Verification includes six Python integration tests, ten practice interaction tests, eight appearance tests, and seven view-navigation tests. These cover actual Flask responses and DFE export, date/seed behavior, HTML structure, legacy notes, focus/menu controls, rehearsal feedback, takeaways, save/download/print, scoped deletion, blocked storage, keyboard tabs, pre-body appearance, device changes, saved overrides, reset, and cross-tab appearance updates. The managed static preview is unavailable in this environment, so desktop/mobile pixel layout and animation appearance remain unverified in a real browser. Viewport fitting is implemented in CSS, not claimed as a measured browser result.
 
 Run the focused checks:
 
@@ -133,4 +137,5 @@ node --check daily_flyer/themes/your_passage_assets/appearance.js
 # With jsdom available as a test-only Node dependency:
 node tests/test_your_passage_interactions.cjs /absolute/path/Your-Passage-preview.html
 node tests/test_your_passage_appearance.cjs /absolute/path/Your-Passage-preview.html
+node tests/test_new_passage_navigation.cjs /absolute/path/Your-Passage-preview.html
 ```

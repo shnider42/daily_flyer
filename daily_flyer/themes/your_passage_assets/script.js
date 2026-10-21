@@ -13,11 +13,57 @@
   let clearArmed = false;
   let clearTimer;
   let focusReturn = null;
-  const freshAudience = {
-    student: {copy: 'Not sure what comes after school? Explore your interests, prepare for an interview, or practice explaining what you bring. You can start with questions.', link: 'Explore one-to-one coaching', href: '#individual'},
-    parent: {copy: 'Help them move forward without having to supply every answer. Start with a calmer conversation, a useful question, and room for them to choose.', link: 'Support without taking over', href: '#parents'},
-    school: {copy: 'Bring career readiness into the room. Explore coaching, group conversations, and practical skill-building shaped around your students and program.', link: 'Explore school partnerships', href: '#schools'}
-  };
+  const pageTitle = document.title;
+  const pageNames = {home: '', coaching: 'Coaching', tim: 'Meet Tim', start: 'Getting started', practice: 'Practice'};
+  const audienceLabels = {student: 'Talk about your goals', parent: 'Talk about your student', school: 'Discuss a school program'};
+  function selectAudience(audience) {
+    if (!audienceLabels[audience]) return;
+    root.querySelectorAll('[data-audience]').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.audience === audience)));
+    root.querySelectorAll('[data-audience-panel]').forEach(panel => { panel.hidden = panel.dataset.audiencePanel !== audience; });
+    $('yp-audience-link').textContent = `${audienceLabels[audience]} ↗`;
+  }
+  function showPage(hash, focus = true) {
+    let id;
+    try { id = decodeURIComponent(hash.replace(/^#/, '')); } catch (_) { id = ''; }
+    const target = $(id);
+    const page = target?.closest('[data-page]') || $('starting-point');
+    const name = page.dataset.page;
+    if (name !== 'practice' && root.classList.contains('yp-focus')) setFocus(false);
+    const changed = root.dataset.currentPage !== name;
+    root.querySelectorAll('[data-page]').forEach(section => {
+      section.hidden = section !== page;
+      section.classList.toggle('np-active', section === page);
+    });
+    root.dataset.currentPage = name;
+    root.querySelectorAll('[data-nav-page]').forEach(link => {
+      if (link.dataset.navPage === name) link.setAttribute('aria-current', 'page');
+      else link.removeAttribute('aria-current');
+    });
+    document.title = pageNames[name] ? `${pageNames[name]} — New Passage` : pageTitle;
+    const audiencePanel = target?.closest('[data-audience-panel]');
+    if (audiencePanel) selectAudience(audiencePanel.dataset.audiencePanel);
+    if (name === 'practice' && target && $('yp-practice-explorer').contains(target)) {
+      $('yp-practice-explorer').open = true;
+      let ancestor = target;
+      while (ancestor && ancestor !== page) {
+        if (ancestor.tagName === 'DETAILS') ancestor.open = true;
+        ancestor = ancestor.parentElement;
+      }
+      const stage = stages.find(item => target.closest(`#yp-panel-${item}`) || target.id === `yp-tab-${item}`);
+      if (stage) activate(stage);
+    }
+    closeMenu();
+    if (!focus) return;
+    if (changed) { document.documentElement.scrollTop = 0; document.body.scrollTop = 0; }
+    const destination = name === 'practice' && target !== page
+      ? (target?.tagName === 'DETAILS' ? target.querySelector('summary') : target)
+      : page.querySelector('[data-page-heading]');
+    if (destination) {
+      if (!destination.matches('a,button,input,textarea,select,summary,[tabindex]')) destination.tabIndex = -1;
+      destination.focus({preventScroll: changed});
+      if (name === 'practice' && target !== page) destination.scrollIntoView?.({block: 'start'});
+    }
+  }
   function freshState() {
     return {plan: '', when: '', reflection: '', done: [], tab: 'read', choice: null, response: null, savedAt: ''};
   }
@@ -96,6 +142,7 @@
   }
   function setFocus(enabled) {
     if (enabled && !root.classList.contains('yp-focus')) focusReturn = document.activeElement;
+    if (enabled && root.dataset.currentPage !== 'practice') showPage('#practice', false);
     if (enabled) $('yp-practice-explorer').open = true;
     root.classList.toggle('yp-focus', enabled);
     $('yp-exit-focus').hidden = !enabled;
@@ -230,15 +277,7 @@
     } catch (_) { message('This browser could not start a download. You can copy your notes or print your next-step card.'); }
   }
 
-  root.querySelectorAll('[data-audience]').forEach(button => {
-    button.addEventListener('click', () => {
-      const audience = freshAudience[button.dataset.audience];
-      root.querySelectorAll('[data-audience]').forEach(item => item.setAttribute('aria-pressed', String(item === button)));
-      $('yp-audience-copy').textContent = audience.copy;
-      $('yp-audience-link').textContent = `${audience.link} →`;
-      $('yp-audience-link').href = audience.href;
-    });
-  });
+  root.querySelectorAll('[data-audience]').forEach(button => button.addEventListener('click', () => selectAudience(button.dataset.audience)));
   data.exercises.forEach((item, index) => {
     const option = document.createElement('option'); option.value = String(index); option.textContent = item.short_title;
     $('yp-topic').append(option);
@@ -312,17 +351,29 @@
     draftCache.delete(key()); state = freshState(); renderExercise(); renderNotebook();
     message('This passage’s notes and saved progress have been cleared.');
   });
-  // Deep links to saved notes or a practice stage also open the outer disclosure.
-  function revealPracticeLink() {
-    const target = document.getElementById(location.hash.slice(1));
-    if (target && $('yp-practice-explorer').contains(target)) {
-      $('yp-practice-explorer').open = true;
-      if (target.id === 'notebook') target.open = true;
-    }
-  }
-  window.addEventListener('hashchange', revealPracticeLink);
-  revealPracticeLink();
+  // Keep ordinary URLs and browser history. Views share the same live draft DOM.
+  root.addEventListener('click', event => {
+    const link = event.target.closest('a[href^="#"]');
+    if (!link || event.defaultPrevented || event.button !== 0 || event.metaKey || event.ctrlKey || event.shiftKey || event.altKey) return;
+    event.preventDefault();
+    const hash = link.getAttribute('href');
+    capture();
+    if (location.hash !== hash) history.pushState(null, '', hash);
+    historyHash = location.hash;
+    showPage(hash);
+  });
+  let historyHash = location.hash;
+  const followHistory = () => {
+    // Traversing a fragment can dispatch both events; focus only once.
+    if (historyHash === location.hash) return;
+    historyHash = location.hash;
+    capture(); showPage(location.hash);
+  };
+  window.addEventListener('hashchange', followHistory);
+  window.addEventListener('popstate', followHistory);
   restore(); renderExercise(); renderNotebook();
+  selectAudience('student');
+  showPage(location.hash, false);
   // Hide the mobile nav only after its controls are fully wired.
   root.classList.add('yp-ready');
 })();
