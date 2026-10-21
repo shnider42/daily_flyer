@@ -5,6 +5,7 @@ const assert=require('node:assert/strict'),fs=require('node:fs');
 const engine=process.env.HLLV_BROWSER_ENGINE||'chromium';
 const base=process.env.HLLV_TEST_URL||'http://127.0.0.1:8765/';
 const output='artifacts/review-preview-qa';
+let failurePage;
 (async()=>{
   fs.mkdirSync(output,{recursive:true});
   const browser=await ({chromium,webkit}[engine]).launch();
@@ -15,7 +16,7 @@ const output='artifacts/review-preview-qa';
     if(req.method()!=='GET'||new URL(req.url()).origin!==new URL(base).origin)return route.abort();
     return route.continue();
   });
-  const page=await context.newPage();page.on('pageerror',e=>errors.push(String(e)));
+  const page=await context.newPage();failurePage=page;page.on('pageerror',e=>errors.push(String(e)));
   const button=name=>page.getByRole('button',{name,exact:true});
   await page.goto(new URL('review-preview.html',base).href,{waitUntil:'networkidle'});
   await expect(page.locator('#reviewProgress')).toContainText('6 awaiting review');
@@ -94,4 +95,8 @@ const output='artifacts/review-preview-qa';
   assert.deepEqual(errors,[]);
   fs.writeFileSync(`${output}/${engine}-report.json`,JSON.stringify({engine,passed:true,screenshots,networkWrites:0,externalRequests:0},null,2));
   await browser.close();console.log('REVIEW_PREVIEW_PASS',engine);
-})().catch(error=>{console.error(error);process.exitCode=1;});
+})().catch(async error=>{
+  console.error(error);
+  await failurePage?.screenshot({path:`${output}/${engine}-failure.png`,fullPage:true}).catch(()=>{});
+  process.exit(1);
+});
