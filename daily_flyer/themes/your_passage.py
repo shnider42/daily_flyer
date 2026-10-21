@@ -1,4 +1,4 @@
-"""Your Passage: a coaching homepage and daily practice, using the DFE contract.
+"""New Passage: a coaching homepage and daily practice, using the DFE contract.
 
 No accounts, submissions, external content fetches, or changes to other themes.
 The original Passages exercise library stays the source of daily content.
@@ -16,10 +16,10 @@ from daily_flyer.utils import resolve_date
 
 ASSETS = Path(__file__).with_name("your_passage_assets")
 THEME_CONFIG = {
-    "page_title": "Your Passage — Find your next step",
-    "header_title": "Your Passage",
+    "page_title": "New Passage — Find your next step",
+    "header_title": "New Passage",
     "header_subtitle": "Coaching, confidence, and a clearer next step for young adults.",
-    "footer_text": "Your Passage · Built with Daily Flyer Engine",
+    "footer_text": "New Passage · Built with Daily Flyer Engine",
 }
 
 # Editorial practice aids, intentionally separate from the reused DFE library.
@@ -110,13 +110,13 @@ def build_theme_page(date_str: str | None = None, seed: int | None = None) -> Pa
     return PageContext(
         page_title=THEME_CONFIG["page_title"], header_title=THEME_CONFIG["header_title"],
         header_subtitle=THEME_CONFIG["header_subtitle"], today_str=today.isoformat(),
-        cards=[CardItem(card_type="your_passage", eyebrow="Your Passage", title="Your next step", body=markup)],
+        cards=[CardItem(card_type="your_passage", eyebrow="New Passage", title="Your next step", body=markup)],
         footer_text=THEME_CONFIG["footer_text"],
         metadata={"theme_name": "your_passage", "date_key": today.isoformat(),
                   "extra_css": (ASSETS / "style.css").read_text(encoding="utf-8"),
                   "extra_js": (ASSETS / "script.js").read_text(encoding="utf-8"),
                   "extra_head_html": (
-                      '<meta name="description" content="Career coaching and practical daily exercises for high school and college students. Find your next step with Tim Holtsnider and Your Passage.">'
+                      '<meta name="description" content="Coaching and mentorship for high school and college students with Tim Holtsnider. Explore one-to-one coaching, group learning, and school partnerships.">'
                       '<meta name="theme-color" id="yp-theme-color" content="#f4f6f4">'
                       '<meta name="color-scheme" content="light dark">'
                       '<script id="yp-appearance-init">'

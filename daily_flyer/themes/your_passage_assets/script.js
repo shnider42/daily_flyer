@@ -1,4 +1,4 @@
-/* Your Passage: explicit browser-only saving, compatible with the original v1 notes. */
+/* New Passage: explicit browser-only saving, compatible with the original v1 notes. */
 (() => {
   'use strict';
   const root = document.getElementById('yp');
@@ -14,7 +14,7 @@
   let clearTimer;
   let focusReturn = null;
   const freshAudience = {
-    student: {copy: 'You don’t have to know what you want to be. Start by exploring what interests you, practicing a useful skill, and trying one thing.', link: 'Find a starting point', href: '#choose'},
+    student: {copy: 'Not sure what comes after school? Explore your interests, prepare for an interview, or practice explaining what you bring. You can start with questions.', link: 'Explore one-to-one coaching', href: '#individual'},
     parent: {copy: 'Help them move forward without having to supply every answer. Start with a calmer conversation, a useful question, and room for them to choose.', link: 'Support without taking over', href: '#parents'},
     school: {copy: 'Bring career readiness into the room. Explore coaching, group conversations, and practical skill-building shaped around your students and program.', link: 'Explore school partnerships', href: '#schools'}
   };
@@ -96,6 +96,7 @@
   }
   function setFocus(enabled) {
     if (enabled && !root.classList.contains('yp-focus')) focusReturn = document.activeElement;
+    if (enabled) $('yp-practice-explorer').open = true;
     root.classList.toggle('yp-focus', enabled);
     $('yp-exit-focus').hidden = !enabled;
     $('yp-focus-toggle').setAttribute('aria-pressed', String(enabled));
@@ -218,11 +219,11 @@
   function download() {
     resetClear(); capture();
     const item = data.exercises[selected];
-    const text = `YOUR PASSAGE\n${item.title}\n${data.date}\n\nMY NEXT STEP\n${state.plan || '(No written plan)'}\n\nWHEN\n${state.when || '(Not chosen yet)'}\n\nREFLECTION\n${item.reflection}\n${state.reflection || '(No written reflection)'}\n\nProgress: ${state.done.length} of 3 steps complete\n\nPersonal notes. Not sent to Tim or Your Passage.\n`;
+    const text = `NEW PASSAGE\n${item.title}\n${data.date}\n\nMY NEXT STEP\n${state.plan || '(No written plan)'}\n\nWHEN\n${state.when || '(Not chosen yet)'}\n\nREFLECTION\n${item.reflection}\n${state.reflection || '(No written reflection)'}\n\nProgress: ${state.done.length} of 3 steps complete\n\nPersonal notes. Not sent to Tim or New Passage.\n`;
     try {
       const url = URL.createObjectURL(new Blob([text], {type: 'text/plain;charset=utf-8'}));
       const link = document.createElement('a');
-      link.href = url; link.download = `your-passage-${item.id}-${data.date}.txt`;
+      link.href = url; link.download = `new-passage-${item.id}-${data.date}.txt`;
       document.body.append(link); link.click(); link.remove();
       setTimeout(() => URL.revokeObjectURL(url), 1000);
       message('Notes download requested. Check your browser’s downloads.');
@@ -260,6 +261,7 @@
     }
   });
   root.querySelectorAll('[data-open-notebook]').forEach(link => link.addEventListener('click', () => {
+    $('yp-practice-explorer').open = true;
     renderNotebook(); $('notebook').open = true; $('notebook').querySelector('summary').focus();
   }));
   stages.forEach((stage, index) => {
@@ -310,6 +312,16 @@
     draftCache.delete(key()); state = freshState(); renderExercise(); renderNotebook();
     message('This passage’s notes and saved progress have been cleared.');
   });
+  // Deep links to saved notes or a practice stage also open the outer disclosure.
+  function revealPracticeLink() {
+    const target = document.getElementById(location.hash.slice(1));
+    if (target && $('yp-practice-explorer').contains(target)) {
+      $('yp-practice-explorer').open = true;
+      if (target.id === 'notebook') target.open = true;
+    }
+  }
+  window.addEventListener('hashchange', revealPracticeLink);
+  revealPracticeLink();
   restore(); renderExercise(); renderNotebook();
   // Hide the mobile nav only after its controls are fully wired.
   root.classList.add('yp-ready');

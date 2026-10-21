@@ -1,4 +1,17 @@
-# Your Passage standalone site concept
+# New Passage — main website replacement concept
+
+
+## Project names and first homepage pass (2026-10-21)
+
+- **My Passages**: Tim’s existing business and https://mypassages.net.
+- **Your Passage**: the original daily companion at https://tim-today.onrender.com, tracking `staging`.
+- **New Passage**: the replacement candidate at https://mypassages.onrender.com, tracking `feat/your-passage-site`. “New Passages” refers to this same project.
+
+The public working title is now New Passage. The theme module, route, CSS/DOM identifiers and browser-storage keys remain `your_passage` / `your-passage` for compatibility; keep `DEFAULT_THEME=your_passage` in Render. No branch, service, domain, database or original companion changes are needed.
+
+The homepage now introduces Tim and his coaching before optional exercises. The portrait appears in the opening, with direct booking and a link to coaching. Student/parent/school choices point to relevant service information. One-to-one coaching, group learning, Tim’s background and suggested first-conversation questions precede the practice notebook. The notebook opens by choice; focus view and note deep links open it automatically. Existing saved notes and appearance preferences remain compatible. Hover feedback changes color/underline without moving buttons.
+
+New wording and the working name still require Tim’s review. The three first-conversation prompts are suggestions for visitors, not a promised service process. No session duration, prices, qualifications, outcomes, or availability have been invented.
 
 Local theme: `your_passage`, also accepted at the Flask boundary as `your-passage`.
 Base: `staging` commit `2a053196d33f6b50299b8c342cc2316960314e21`.

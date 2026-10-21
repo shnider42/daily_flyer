@@ -46,6 +46,7 @@ test('Focus view has an explicit exit and returns keyboard focus', () => {
   assert.equal($('yp').classList.contains('yp-focus'), true);
   assert.equal($('yp-exit-focus').hidden, false);
   assert.equal(d.activeElement.id, 'yp-tab-read');
+  assert.equal($('yp-practice-explorer').open, true);
   $('yp-exit-focus').click();
   assert.equal($('yp').classList.contains('yp-focus'), false);
   assert.equal(d.activeElement.id, 'yp-start-practice');
@@ -79,7 +80,7 @@ test('Action choices are editable; card keeps action, timing, and reflection as 
   assert.equal($('yp-takeaway-when').textContent, 'Monday at 9am');
   assert.equal(w.localStorage.length, 0);
   $('yp-print').click(); assert.equal(w.printCalled, true);
-  $('yp-download').click(); assert.match(w.lastDownload, /^your-passage-passage-2-/);
+  $('yp-download').click(); assert.match(w.lastDownload, /^new-passage-passage-2-/);
 });
 test('Explicit saves populate notebook and survive a reload', () => {
   $('yp-save').click();

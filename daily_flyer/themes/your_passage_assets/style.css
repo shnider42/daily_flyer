@@ -149,8 +149,8 @@ body::before, body::after, .site-bg, .hero-wrap, .page-shell > footer { display:
 .yp-navlinks a:hover { color: var(--yp-ink) !important; }
 .yp-notebook-count { display: inline-grid; place-items: center; min-width: 20px; height: 20px; margin-left: 5px; border: 1px solid var(--yp-line); border-radius: 50%; font-family: 'Segoe UI', sans-serif; font-size: 10px; font-weight: 500; }
 .yp-menu-toggle { display: none; }
-#yp .yp-button { border: 1px solid var(--yp-button-border); background: var(--yp-button-bg); color: var(--yp-button-text); display: inline-flex; justify-content: center; align-items: center; gap: 28px; border-radius: 2px; padding: 15px 22px; line-height: 1.45; font-size: 14px; font-weight: 500; transition: background .18s, transform .18s; text-decoration: none; min-height: 49px; }
-#yp .yp-button:hover { background: var(--yp-button-hover); transform: translateY(-1px); }
+#yp .yp-button { border: 1px solid var(--yp-button-border); background: var(--yp-button-bg); color: var(--yp-button-text); display: inline-flex; justify-content: center; align-items: center; gap: 28px; border-radius: 2px; padding: 15px 22px; line-height: 1.45; font-size: 14px; font-weight: 500; transition: background .18s, border-color .18s; text-decoration: none; min-height: 49px; }
+#yp .yp-button:hover { background: var(--yp-button-hover); }
 #yp .yp-button-small { padding: 12px 18px; font-size: 13px; min-height: 44px; }
 .yp-textlink { display: inline-flex; align-items: center; gap: 17px; font-size: 14px; font-weight: 600 !important; line-height: 1.5; padding: 9px 0; border: 0; border-bottom: 1px solid var(--yp-line); background: transparent; color: var(--yp-ink) !important; min-height: 40px; }
 .yp-textlink:hover { border-color: var(--yp-teal); }
@@ -496,6 +496,67 @@ body::before, body::after, .site-bg, .hero-wrap, .page-shell > footer { display:
   .yp-audience-options button { font-size: 11px !important; }
   .yp-tabs { gap: 20px; }
 }
+/* New Passage: a coaching homepage, with practice available by choice. */
+.yp-hero { grid-template-columns: 1.2fr .85fr; gap: 80px; padding-top: 46px; padding-bottom: 54px; }
+.yp-hero .np-hero-portrait { width: 100%; max-width: 410px; justify-self: end; }
+.np-hero-portrait .yp-portrait-frame img { aspect-ratio: 1 / 1.05; }
+.np-hero-portrait .yp-portrait-frame { transform: none; box-shadow: 10px 10px 0 var(--yp-portrait-offset); }
+.np-hero-portrait figcaption { margin-top: 25px; }
+.yp-hero .yp-intro { max-width: 520px; font-size: 17px; }
+.yp-navlinks a:hover { text-decoration: underline !important; text-underline-offset: 6px; text-decoration-color: var(--yp-teal) !important; }
+.yp-audience-options button:hover { color: var(--yp-ink); background: var(--yp-band); }
+.yp-tim { grid-template-columns: 1fr 1.15fr; gap: 85px; padding: 72px 0; }
+.np-tim-heading h2 { margin-bottom: 0 !important; }
+.np-getting-started { display: grid; grid-template-columns: 1fr 1.15fr; gap: 85px; padding: 58px 0 72px; border-top: 1px solid var(--yp-line); }
+.np-getting-started > div > p:not(.yp-kicker) { max-width: 460px; color: var(--yp-muted); }
+#yp .np-booking-note { font-size: 12px; margin: 15px 0 0; }
+.np-conversation-list { list-style: none; padding: 0; margin: 0; }
+.np-conversation-list li { display: grid; grid-template-columns: 36px 1fr; gap: 18px; padding: 23px 0; border-top: 1px solid var(--yp-line); }
+.np-conversation-list li:first-child { padding-top: 0; border-top: 0; }
+.np-conversation-list li > span { color: var(--yp-teal); font: italic 26px var(--yp-serif); }
+#yp .np-conversation-list h3 { font-size: 28px; margin-bottom: 10px; }
+.np-conversation-list p { margin-bottom: 0 !important; font-size: 15px; color: var(--yp-muted); }
+.np-practice-explorer { border-top: 1px solid var(--yp-control-line); border-bottom: 1px solid var(--yp-control-line); }
+.np-practice-explorer > summary { display: flex; justify-content: space-between; align-items: center; gap: 20px; padding: 20px 0; min-height: 64px; font-size: 17px; }
+.np-practice-explorer > summary:hover { color: var(--yp-teal); }
+.np-practice-explorer > summary > span:last-child { font-size: 28px; line-height: 1; }
+.np-practice-content { padding: 8px 0 30px; }
+.np-practice-content .yp-wayfinder { width: 100%; max-width: none; margin-bottom: 20px; padding: 30px; }
+.np-practice-content .yp-route-note { display: grid; grid-template-columns: 1fr 1.3fr; column-gap: 45px; transform: none; box-shadow: none; padding: 28px; }
+.np-practice-content .yp-route-options { grid-column: 2; grid-row: 1 / 5; }
+.np-practice-content .yp-route-result { grid-column: 1; min-height: 0; }
+.np-practice-content #yp-start-practice, .np-practice-content .yp-route-footnote { grid-column: 2; }
+.np-practice-content .yp-map-handwriting { display: none; }
+.np-saved-link { margin-bottom: 24px; }
+.yp-focus .np-practice-explorer { border: 0; }
+.yp-focus .np-practice-explorer > summary, .yp-focus .yp-wayfinder, .yp-focus .np-saved-link { display: none; }
+.yp-focus .np-practice-content { padding-top: 0; }
+@media (max-width: 1150px) {
+  .yp-hero { gap: 44px; }
+  .yp-tim, .np-getting-started { gap: 50px; }
+}
+@media (max-width: 760px) {
+  .yp-hero { grid-template-columns: 1fr; gap: 32px; padding: 28px 0 40px; }
+  #yp h1 { font-size: clamp(46px, 10.7vw, 68px); }
+  #yp h1 br:last-child { display: initial; }
+  .yp-hero .yp-intro { font-size: 16px; }
+  .yp-hero .np-hero-portrait { max-width: 390px; justify-self: center; }
+  .np-hero-portrait .yp-portrait-frame img { aspect-ratio: 1.15 / 1; object-position: 50% 20%; }
+  .yp-hero-note { max-width: none; }
+  .yp-navlinks { flex-wrap: wrap; justify-content: flex-start; gap: 4px 22px; }
+  .yp-audience-answer a { white-space: normal; }
+  .yp-tim, .np-getting-started { grid-template-columns: 1fr; gap: 28px; padding: 42px 0; }
+  .np-tim-heading h2 br { display: none; }
+  .np-tim-heading h2 br::after { content: ' '; }
+  .np-conversation-list li { gap: 12px; }
+  #yp .np-conversation-list h3 { font-size: 26px; }
+  .np-practice-explorer > summary { font-size: 15px; }
+  .np-practice-content .yp-wayfinder { padding: 24px 14px; }
+  .np-practice-content .yp-route-note { display: block; padding: 22px 18px; }
+  .np-practice-content .yp-route-options { margin-top: 20px; }
+  #yp .yp-route-note h2 { font-size: 36px; }
+  .np-practice-content .yp-route-result { margin-top: 20px; }
+}
 @media (prefers-reduced-motion: reduce) {
   html { scroll-behavior: auto; }
   #yp * { transition: none !important; animation: none !important; }
@@ -513,7 +574,9 @@ body::before, body::after, .site-bg, .hero-wrap, .page-shell > footer { display:
     --yp-note-accent: #617083;
   }
   body, #yp { background: white !important; }
-  #yp > :not(.yp-practice-band), .yp-section-heading, .yp-notebook, .yp-workbook-index, .yp-tabs, .yp-panel, .yp-notebook-controls, .yp-editorial-note, .yp-takeaway-actions { display: none !important; }
+  #yp > :not(.yp-practice-band), .yp-section-heading, .yp-notebook, .yp-workbook-index, .yp-tabs, .yp-panel, .yp-notebook-controls, .yp-editorial-note, .yp-takeaway-actions, .np-practice-explorer > summary, .yp-wayfinder, .np-saved-link { display: none !important; }
+  .np-practice-explorer { border: 0; }
+  .np-practice-content { padding: 0; }
   .yp-practice-band { padding: 0 !important; border: 0; background: white; min-height: 0 !important; }
   .yp-width { width: 100%; }
   .yp-workbook, .yp-focus .yp-workbook { display: block; border: 0; box-shadow: none; }

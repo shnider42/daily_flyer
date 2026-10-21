@@ -23,7 +23,7 @@ class YourPassageTests(unittest.TestCase):
         for name in ["your_passage", "your-passage"]:
             response = client.get(f"/?theme={name}&date=2026-10-16")
             self.assertEqual(response.status_code, 200)
-            self.assertIn(b"Your Passage", response.data)
+            self.assertIn(b"New Passage", response.data)
         for query in ["date=not-a-date", "seed=not-a-number"]:
             self.assertEqual(client.get("/?theme=your-passage&" + query).status_code, 400)
 
@@ -52,7 +52,7 @@ class YourPassageTests(unittest.TestCase):
 
     def test_render_requires_no_network_providers(self):
         with patch("requests.sessions.Session.request", side_effect=AssertionError("Unexpected network call")):
-            self.assertIn("Your Passage", self.render())
+            self.assertIn("New Passage", self.render())
 
     def test_content_cannot_break_out_of_data_or_text(self):
         entry = dict(your_passage.DAILY_PASSAGES[0])
