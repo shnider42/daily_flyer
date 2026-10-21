@@ -71,6 +71,12 @@ let failurePage;
   const screenshots=[];
   for(const theme of ['dark','light'])for(const viewport of [{width:320,height:740},{width:390,height:844},{width:1440,height:900},{width:2560,height:1440}]){
     await page.setViewportSize(viewport);
+    // Opening-layout checks must load at the target viewport. WebKit can retain
+    // an old document scroll extent after resizing a focused, previously used form.
+    const resized=await page.evaluate(()=>({viewport:innerWidth,scroll:document.documentElement.scrollWidth}));
+    if(resized.scroll>resized.viewport+1)console.log('RESIZE_SCROLL_EXTENT',engine,JSON.stringify(resized));
+    await page.reload({waitUntil:'networkidle'});
+    await expect(page.locator('#reviewDetail h2')).toBeVisible();
     if(await page.locator('html').getAttribute('data-theme')!==theme)await page.locator('#themeToggle').click();
     await page.evaluate(()=>scrollTo(0,0));
     const overflow=await page.evaluate(()=>({width:innerWidth,scroll:document.documentElement.scrollWidth,elements:[...document.querySelectorAll('body *')].filter(el=>el.getBoundingClientRect().right>innerWidth+1).map(el=>({tag:el.tagName,id:el.id,cls:el.className,right:el.getBoundingClientRect().right,display:getComputedStyle(el).display})).slice(0,20)}));
