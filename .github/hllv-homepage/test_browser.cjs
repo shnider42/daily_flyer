@@ -60,6 +60,9 @@ const url=process.env.HLLV_TEST_URL||'http://127.0.0.1:8765/';
  await expect(page.locator('#dossier h1')).toContainText('Spawn choices');
  await expect(page.locator('#dossier')).toContainText('Some cases reproduced internally');
  await page.locator('#brandHome').click();await page.locator('#browseIssues').click();
+ // Returning to the list restores the prior row's focus on the next frame.
+ // Wait for that navigation to finish before starting the next keyboard action.
+ await expect(page.locator('#homeList [data-home-id="HLLV-046"]')).toBeFocused();
  await page.locator('#homeSearch').fill('Startup DLL');await page.locator('#homeList [data-home-id="HLLV-083"]').click();
  await expect(page.locator('#dossier')).toContainText('0xc0e90002');
  await page.locator('#dossier .tabs [data-tab="sources"]').click();
