@@ -1,10 +1,10 @@
 {
-  "generated_at": "2026-10-20",
+  "generated_at": "2026-10-21",
   "latest_change": {
-    "date": "2026-10-20",
-    "label": "October 20 evidence review",
-    "url": "https://steamcommunity.com/app/3079210/discussions/1/570426104667569900/?ctp=1#c570426530135644652",
-    "summary": "One limited settings report added, two earlier Support replies incorporated, and two publisher-tracked feature requests added. No new release is confirmed."
+    "date": "2026-10-21",
+    "label": "Patch 1.7 reviewed",
+    "url": "https://steamcommunity.com/games/3079210/announcements/detail/675134795999609522",
+    "summary": "Voice-volume and boat-shutdown changes are released; targeted graphics and control fixes are recorded. The content tracker now includes new weapons, vehicle behavior and clearly separated future plans."
   },
   "method": "Public evidence only. Official acknowledgement, reproduction, a shipped change, and post-fix verification are recorded separately.",
   "issues": [
@@ -292,11 +292,11 @@
       "kind": "issue family",
       "status_key": "monitoring",
       "status_label": "Improvements released · monitoring",
-      "bottom_line": "October 15: fewer crashes reported internally; remaining cases stay open, with further stability work planned for 1.7.",
+      "bottom_line": "Patch 1.7 adds targeted stability/performance changes. Complete resolution of the previously reported crashes is not established.",
       "official_short": "Improvement reported",
-      "fix_short": "Earlier improvements; 1.7 planned",
+      "fix_short": "Targeted changes through 1.7",
       "cause_short": "Blood/decal load + others",
-      "last_updated": "2026-10-15",
+      "last_updated": "2026-10-21",
       "scope": [
         "PC",
         "PS5",
@@ -305,7 +305,7 @@
         "multiple hardware configurations"
       ],
       "symptom": "Clients can crash for several distinct reasons, including a documented failure associated with large quantities of blood and decal effects.",
-      "official_position": "The publisher reports improvement, not universal resolution. A separate October 13 Support exchange continues troubleshooting tank-fire crashes; neither a shared hardware cause nor a reliable workaround is established.",
+      "official_position": "The notes identify a Tank Driver rotation NaN error and shoreline rubberbanding. They do not identify either as the cause of every AMD, loading, deployment or tank-fire crash; the earlier monitoring history remains relevant.",
       "workaround": "PC: finish shader caching before continuing; reset Video Settings after updating.",
       "known": [
         "Several individual stability problems have been identified.",
@@ -389,6 +389,12 @@
           "event": "AMD crashes unacceptable.",
           "detail": "Added in the October 16 editorial review. The Sources entry records the scoped claim and direct reference.",
           "source_url": "https://steamcommunity.com/app/3079210/discussions/1/591816302688109179/?ctp=2#c590692129307778259"
+        },
+        {
+          "date": "2026-10-21",
+          "event": "Patch 1.7 release review",
+          "detail": "The release lists a Tank Driver rotation error correction and reduced shoreline rubberbanding, not closure of all client crashes.",
+          "source_url": "https://steamcommunity.com/games/3079210/announcements/detail/675134795999609522"
         }
       ],
       "sources": [
@@ -594,9 +600,23 @@
           "authority_checked_at": "2026-10-17T00:56:47Z",
           "source_category": "Team17 Support",
           "claim": "Support continues diagnostics after reports of crashes or severe FPS drops around tank-fire smoke; no released fix is identified."
+        },
+        {
+          "type": "patch notes",
+          "publisher": "Hell Let Loose / Team17",
+          "title": "Patch 1.7 | Full Changelog | Now Live!",
+          "url": "https://steamcommunity.com/games/3079210/announcements/detail/675134795999609522",
+          "date": "2026-10-21",
+          "source_published_at": "2026-10-21T10:00:57Z",
+          "source_reviewed_at": "2026-10-21",
+          "source_reviewed_via": "https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/1847286114028257",
+          "announcement_id": "1847286114028257",
+          "content_sha256": "e09490c9fbe88e5c27342a6f7201df5cecc4e262b4479e0eaccea3cc0e167b16",
+          "source_locator": "Stability & Performance",
+          "claim": "The release lists a Tank Driver rotation error correction and reduced shoreline rubberbanding, not closure of all client crashes."
         }
       ],
-      "last_reviewed": "2026-10-16",
+      "last_reviewed": "2026-10-21",
       "editorial_history": [
         {
           "date": "2026-10-11",
@@ -616,6 +636,15 @@
             "official_position": "Community Feedback #7 reports improvement in internal crash observations following 1.5.2 and 1.6. Remaining AMD reports are still being investigated. The publisher also mentions a possible driver contribution across games; this is not a diagnosis for any particular player or a reason to assign all crashes to AMD.",
             "fix_short": "1.6 + monitoring"
           }
+        },
+        {
+          "date": "2026-10-21",
+          "reason": "Patch 1.7 release review; previous assessment preserved.",
+          "previous": {
+            "bottom_line": "October 15: fewer crashes reported internally; remaining cases stay open, with further stability work planned for 1.7.",
+            "fix_short": "Earlier improvements; 1.7 planned",
+            "official_position": "The publisher reports improvement, not universal resolution. A separate October 13 Support exchange continues troubleshooting tank-fire crashes; neither a shared hardware cause nor a reliable workaround is established."
+          }
         }
       ]
     },
@@ -626,11 +655,11 @@
       "kind": "report cluster",
       "status_key": "partial",
       "status_label": "Some map fixes released",
-      "bottom_line": "Patch 1.6 includes further map collision corrections, without identifying closure of every earlier fence or furniture report.",
+      "bottom_line": "Patch 1.7 adds 13 collision/bullet-collision corrections across the map set. Closure of each older invisible-prop report is not documented.",
       "official_short": "Official family acknowledged",
-      "fix_short": "Map fixes through 1.6",
+      "fix_short": "Specific map corrections through 1.7",
       "cause_short": "Asset-specific",
-      "last_updated": "2026-10-07",
+      "last_updated": "2026-10-21",
       "scope": [
         "PC",
         "PS5",
@@ -682,6 +711,12 @@
           "date": "2026-10-07",
           "event": "Patch 1.6 released / evidence review",
           "detail": "Records additional collision and misplaced-asset fixes; exact linkage to the older prop reports is not stated."
+        },
+        {
+          "date": "2026-10-21",
+          "event": "Patch 1.7 release review",
+          "detail": "Publisher counts 13 collision/bullet-collision corrections among 26 map fixes across six maps; individual older reports are not mapped to them.",
+          "source_url": "https://steamcommunity.com/games/3079210/announcements/detail/675134795999609522"
         }
       ],
       "sources": [
@@ -754,9 +789,33 @@
             "date": "2026-10-11",
             "http_status": 200
           }
+        },
+        {
+          "type": "patch notes",
+          "publisher": "Hell Let Loose / Team17",
+          "title": "Patch 1.7 | Full Changelog | Now Live!",
+          "url": "https://steamcommunity.com/games/3079210/announcements/detail/675134795999609522",
+          "date": "2026-10-21",
+          "source_published_at": "2026-10-21T10:00:57Z",
+          "source_reviewed_at": "2026-10-21",
+          "source_reviewed_via": "https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/1847286114028257",
+          "announcement_id": "1847286114028257",
+          "content_sha256": "e09490c9fbe88e5c27342a6f7201df5cecc4e262b4479e0eaccea3cc0e167b16",
+          "source_locator": "Maps & Environments",
+          "claim": "Publisher counts 13 collision/bullet-collision corrections among 26 map fixes across six maps; individual older reports are not mapped to them."
         }
       ],
-      "last_reviewed": "2026-10-07"
+      "last_reviewed": "2026-10-21",
+      "editorial_history": [
+        {
+          "date": "2026-10-21",
+          "reason": "Patch 1.7 release review; previous assessment preserved.",
+          "previous": {
+            "bottom_line": "Patch 1.6 includes further map collision corrections, without identifying closure of every earlier fence or furniture report.",
+            "fix_short": "Map fixes through 1.6"
+          }
+        }
+      ]
     },
     {
       "id": "HLLV-005",
@@ -817,18 +876,18 @@
       "kind": "visual-quality issue",
       "status_key": "partial",
       "status_label": "Improvements ongoing",
-      "bottom_line": "October 15: console visual work remains planned for 1.7 and 2.0, not released.",
+      "bottom_line": "Patch 1.7 releases PSSR on PS5 Pro and VRR on PS5/PS5 Pro. Wider image-quality complaints remain only partially addressed.",
       "official_short": "1.7 plan announced",
-      "fix_short": "1.7 / 2.0 plans",
+      "fix_short": "PSSR Pro / PS5 VRR released",
       "cause_short": "Optimization limits",
-      "last_updated": "2026-10-15",
+      "last_updated": "2026-10-21",
       "scope": [
         "PS5",
         "Xbox",
         "graphics"
       ],
       "symptom": "Console players report foliage shimmer, reduced clarity, image noise, and inconsistent sharpness.",
-      "official_position": "The October 9 platform-specific plan remains in the evidence history; the October 15 follow-up does not establish release or expand PSSR support to base PS5.",
+      "official_position": "Do not extend PSSR to base PS5 or treat display-feature availability as universal visual recovery. QSSR for base PS5 is described as future integration when available; the previously announced wider 2.0 work is not released by these notes.",
       "workaround": "The game outputs SDR. Do not force HDR for SDR games; on PS5, the developer recommends HDR On When Supported. This addresses presentation settings, not foliage or draw-distance defects.",
       "known": [
         "The issue is officially acknowledged.",
@@ -877,6 +936,12 @@
           "event": "Community Feedback #8 | Command Post",
           "detail": "Added in the October 16 editorial review. The Sources entry records the scoped claim and direct reference.",
           "source_url": "https://www.hellletloose.com/blog/community-update-8"
+        },
+        {
+          "date": "2026-10-21",
+          "event": "Patch 1.7 release review",
+          "detail": "PSSR is released for PS5 Pro; VRR is released for PS5 and PS5 Pro with compatible displays. Base-PS5 QSSR is a future intention.",
+          "source_url": "https://steamcommunity.com/games/3079210/announcements/detail/675134795999609522"
         }
       ],
       "sources": [
@@ -974,9 +1039,23 @@
           "content_sha256": "ccd0ac3d412f80f292b497075765de37e09f59ba53156bbce041c6008c05238d",
           "claim": "Further console improvements planned.",
           "source_locator": "Foliage, LODs & Visual Quality"
+        },
+        {
+          "type": "patch notes",
+          "publisher": "Hell Let Loose / Team17",
+          "title": "Patch 1.7 | Full Changelog | Now Live!",
+          "url": "https://steamcommunity.com/games/3079210/announcements/detail/675134795999609522",
+          "date": "2026-10-21",
+          "source_published_at": "2026-10-21T10:00:57Z",
+          "source_reviewed_at": "2026-10-21",
+          "source_reviewed_via": "https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/1847286114028257",
+          "announcement_id": "1847286114028257",
+          "content_sha256": "e09490c9fbe88e5c27342a6f7201df5cecc4e262b4479e0eaccea3cc0e167b16",
+          "source_locator": "Visual & Performance Upgrades",
+          "claim": "PSSR is released for PS5 Pro; VRR is released for PS5 and PS5 Pro with compatible displays. Base-PS5 QSSR is a future intention."
         }
       ],
-      "last_reviewed": "2026-10-16",
+      "last_reviewed": "2026-10-21",
       "editorial_history": [
         {
           "date": "2026-10-11",
@@ -996,6 +1075,15 @@
             "official_position": "The latest console visual plan is described in Community Feedback #7. PSSR is planned for PS5 Pro, VRR for PS5 and PS5 Pro, and a higher minimum dynamic resolution for console platforms. The publisher explicitly makes these changes subject to final testing; earlier 2.0-and-beyond plans remain historical context rather than the only current target.",
             "fix_short": "1.7 targeted; not shipped"
           }
+        },
+        {
+          "date": "2026-10-21",
+          "reason": "Patch 1.7 release review; previous assessment preserved.",
+          "previous": {
+            "bottom_line": "October 15: console visual work remains planned for 1.7 and 2.0, not released.",
+            "fix_short": "1.7 / 2.0 plans",
+            "official_position": "The October 9 platform-specific plan remains in the evidence history; the October 15 follow-up does not establish release or expand PSSR support to base PS5."
+          }
         }
       ]
     },
@@ -1006,18 +1094,18 @@
       "kind": "control issue family",
       "status_key": "partial",
       "status_label": "Specific control fixes released",
-      "bottom_line": "Further keyboard fixes target 2.0. An October 16 player still reports conflicting mouse assignments; exact game/build scope needs confirmation.",
+      "bottom_line": "Patch 1.7 fixes a specific right-click ADS rebinding case and two input-label errors. General binding persistence and all conflicts are not confirmed fixed.",
       "official_short": "Acknowledged",
-      "fix_short": "Specific fixes live; more planned",
+      "fix_short": "Specific rebinding fixes through 1.7",
       "cause_short": "Not public",
-      "last_updated": "2026-10-16",
+      "last_updated": "2026-10-21",
       "scope": [
         "PC",
         "console",
         "helicopter controls"
       ],
       "symptom": "Custom bindings may fail to save, reset after leaving the menu, or produce conflicting assignments.",
-      "official_position": "Support previously requested clarification because the player also posted on the original Hell Let Loose forum. The later report describes left-click toggle ADS and right-click fire interfering; it does not independently settle the game/build ambiguity.",
+      "official_position": "The release describes the right-click/unbound-ADS equipment-switch case. It does not establish that every earlier mouse-conflict report had that cause, or close the wider keyboard work previously targeted for 2.0.",
       "workaround": null,
       "known": [
         "Team17 Support received multiple similar reports.",
@@ -1085,6 +1173,12 @@
           "event": "FIX THE GD FKING KEY BINDINGS!!!!!!!!!!!!!!!!!!!!!!!!!!",
           "detail": "Added in the October 16 editorial review. The Sources entry records the scoped claim and direct reference.",
           "source_url": "https://steamcommunity.com/app/3079210/discussions/1/590691913363920015/?ctp=1#c570426339809609829"
+        },
+        {
+          "date": "2026-10-21",
+          "event": "Patch 1.7 release review",
+          "detail": "Fixes right-click ADS persisting after unbinding during equipment changes, plus Recon Flare and Mic/Radio input-label mismatches.",
+          "source_url": "https://steamcommunity.com/games/3079210/announcements/detail/675134795999609522"
         }
       ],
       "sources": [
@@ -1214,9 +1308,23 @@
           "source_locator": "Reply 570426339809609829",
           "content_sha256": "ebf92d54139d25cef4cae3ea05b5d8775e2dcbbc998e4da5937e940eb4de6dc2",
           "claim": "Player describes right-click fire also toggling ADS with a left-handed custom configuration; game/build ambiguity remains."
+        },
+        {
+          "type": "patch notes",
+          "publisher": "Hell Let Loose / Team17",
+          "title": "Patch 1.7 | Full Changelog | Now Live!",
+          "url": "https://steamcommunity.com/games/3079210/announcements/detail/675134795999609522",
+          "date": "2026-10-21",
+          "source_published_at": "2026-10-21T10:00:57Z",
+          "source_reviewed_at": "2026-10-21",
+          "source_reviewed_via": "https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/1847286114028257",
+          "announcement_id": "1847286114028257",
+          "content_sha256": "e09490c9fbe88e5c27342a6f7201df5cecc4e262b4479e0eaccea3cc0e167b16",
+          "source_locator": "Controls & Settings",
+          "claim": "Fixes right-click ADS persisting after unbinding during equipment changes, plus Recon Flare and Mic/Radio input-label mismatches."
         }
       ],
-      "last_reviewed": "2026-10-16",
+      "last_reviewed": "2026-10-21",
       "editorial_history": [
         {
           "date": "2026-10-11",
@@ -1233,6 +1341,15 @@
             "bottom_line": "Specific helicopter binding fixes shipped in 1.6. The October 9 update still requests exact custom-input examples, including Tactical Map bindings.",
             "official_position": "Community Feedback #7 continues the custom-control investigation and asks for the precise assignment, input combination, expected action and observed behavior. This does not establish that all reset/conflict reports share a cause or that the separate keyboard pitch/collective report is resolved.",
             "fix_short": "Control fixes through 1.6"
+          }
+        },
+        {
+          "date": "2026-10-21",
+          "reason": "Patch 1.7 release review; previous assessment preserved.",
+          "previous": {
+            "bottom_line": "Further keyboard fixes target 2.0. An October 16 player still reports conflicting mouse assignments; exact game/build scope needs confirmation.",
+            "fix_short": "Specific fixes live; more planned",
+            "official_position": "Support previously requested clarification because the player also posted on the original Hell Let Loose forum. The later report describes left-click toggle ADS and right-click fire interfering; it does not independently settle the game/build ambiguity."
           }
         }
       ]
@@ -2946,18 +3063,18 @@
       "kind": "support-level vehicle report",
       "status_key": "reported",
       "status_label": "Reports escalated",
-      "bottom_line": "Team17 says it received similar reports that rearming at port reloads only one of the dual bow guns and forwarded the issue.",
+      "bottom_line": "Patch 1.7 permits boat-gun top-ups before empty. The separate report that only one dual bow gun reloads is not explicitly confirmed fixed.",
       "official_short": "Support acknowledged",
       "fix_short": "None confirmed",
       "cause_short": "Unknown",
-      "last_updated": "2026-08-30",
+      "last_updated": "2026-10-21",
       "scope": [
         "boats",
         "dual bow guns",
         "port rearm"
       ],
       "symptom": "Using the port rearm action on a boat can replenish only one of its two front machine guns.",
-      "official_position": "Team17 Support said similar reports had already been received and forwarded. This current reload report is distinct from the Patch 1.2 tap-fire defect unless evidence connects them.",
+      "official_position": "A broader resupply convenience change is released, but it is not an itemized correction for asymmetric dual-gun rearming. Keep the original Support report open.",
       "workaround": null,
       "known": [
         "Support reports more than one player has described the reload behavior.",
@@ -2979,6 +3096,12 @@
           "date": "2026-08-30",
           "event": "Support escalation",
           "detail": "Team17 says similar port-reload reports were received and forwarded."
+        },
+        {
+          "date": "2026-10-21",
+          "event": "Patch 1.7 release review",
+          "detail": "Boat MG positions and tank coaxial MGs can be resupplied before empty; equal rearming of both bow guns is not explicitly addressed.",
+          "source_url": "https://steamcommunity.com/games/3079210/announcements/detail/675134795999609522"
         }
       ],
       "sources": [
@@ -3007,8 +3130,33 @@
             "http_status": 200
           },
           "link_checked_at": "2026-10-11"
+        },
+        {
+          "type": "patch notes",
+          "publisher": "Hell Let Loose / Team17",
+          "title": "Patch 1.7 | Full Changelog | Now Live!",
+          "url": "https://steamcommunity.com/games/3079210/announcements/detail/675134795999609522",
+          "date": "2026-10-21",
+          "source_published_at": "2026-10-21T10:00:57Z",
+          "source_reviewed_at": "2026-10-21",
+          "source_reviewed_via": "https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/1847286114028257",
+          "announcement_id": "1847286114028257",
+          "content_sha256": "e09490c9fbe88e5c27342a6f7201df5cecc4e262b4479e0eaccea3cc0e167b16",
+          "source_locator": "Vehicles",
+          "claim": "Boat MG positions and tank coaxial MGs can be resupplied before empty; equal rearming of both bow guns is not explicitly addressed."
         }
-      ]
+      ],
+      "editorial_history": [
+        {
+          "date": "2026-10-21",
+          "reason": "Patch 1.7 release review; previous assessment preserved.",
+          "previous": {
+            "bottom_line": "Team17 says it received similar reports that rearming at port reloads only one of the dual bow guns and forwarded the issue.",
+            "official_position": "Team17 Support said similar reports had already been received and forwarded. This current reload report is distinct from the Patch 1.2 tap-fire defect unless evidence connects them."
+          }
+        }
+      ],
+      "last_reviewed": "2026-10-21"
     },
     {
       "id": "HLLV-032",
@@ -3075,18 +3223,18 @@
       "kind": "officially investigated progression defect",
       "status_key": "investigating",
       "status_label": "Completion-loss fix unconfirmed",
-      "bottom_line": "October 11 Support follow-up confirms continuing tutorial/reset reports were escalated. A completion-saving fix is still unconfirmed.",
+      "bottom_line": "Patch 1.7 clarifies tutorial completion labels. Saving lost completion progress is still not confirmed fixed.",
       "official_short": "Acknowledged",
       "fix_short": "Completion-save fix unconfirmed",
       "cause_short": "Unknown",
-      "last_updated": "2026-10-11",
+      "last_updated": "2026-10-21",
       "scope": [
         "Tutorials",
         "role access",
         "online progression"
       ],
       "symptom": "A completed tutorial can later appear incomplete, forcing another completion before Squad Leader or Commander becomes available.",
-      "official_position": "Two October 11 Support threads describe repeated tutorial prompts. Support acknowledges similar reports and escalation. These replies do not establish internal reproduction or a shared cause with every lost role unlock.",
+      "official_position": "UI labeling is distinct from persistent progress. The separately listed Mortar Tutorial reload correction does not establish recovery of completed tutorials or role unlocks.",
       "workaround": "Completing the required tutorial again may temporarily restore role access; this does not address the lost completion state.",
       "known": [
         "The issue is explicitly acknowledged in an official community update.",
@@ -3149,6 +3297,12 @@
           "event": "Tutorial Bug — Support follow-up",
           "detail": "Support acknowledges recurring tutorial prompts after completion and forwards the issue for investigation; no reproduction or fix is stated.",
           "source_url": "https://steamcommunity.com/app/3079210/discussions/1/590691913364082100/?ctp=1#c590691913364082220"
+        },
+        {
+          "date": "2026-10-21",
+          "event": "Patch 1.7 release review",
+          "detail": "Improves completion-status labels and fixes a Mortar Tutorial reload sequence; persistence of completed tutorials is not explicitly corrected.",
+          "source_url": "https://steamcommunity.com/games/3079210/announcements/detail/675134795999609522"
         }
       ],
       "sources": [
@@ -3277,9 +3431,23 @@
           "authority_checked_at": "2026-10-20T12:52:37Z",
           "source_category": "Team17 Support",
           "claim": "Support acknowledges recurring tutorial prompts after completion and forwards the issue for investigation; no reproduction or fix is stated."
+        },
+        {
+          "type": "patch notes",
+          "publisher": "Hell Let Loose / Team17",
+          "title": "Patch 1.7 | Full Changelog | Now Live!",
+          "url": "https://steamcommunity.com/games/3079210/announcements/detail/675134795999609522",
+          "date": "2026-10-21",
+          "source_published_at": "2026-10-21T10:00:57Z",
+          "source_reviewed_at": "2026-10-21",
+          "source_reviewed_via": "https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/1847286114028257",
+          "announcement_id": "1847286114028257",
+          "content_sha256": "e09490c9fbe88e5c27342a6f7201df5cecc4e262b4479e0eaccea3cc0e167b16",
+          "source_locator": "Other Important Changes / Tutorials; Tutorials & Practice Range",
+          "claim": "Improves completion-status labels and fixes a Mortar Tutorial reload sequence; persistence of completed tutorials is not explicitly corrected."
         }
       ],
-      "last_reviewed": "2026-10-20",
+      "last_reviewed": "2026-10-21",
       "editorial_history": [
         {
           "date": "2026-10-16",
@@ -3300,6 +3468,14 @@
               "Team17 Support said on August 29 that reports were still being received.",
               "October 7 release-note review: The released tutorial changes concern hints, practice-range behavior and memory cleanup; completion-save resolution is not identified."
             ]
+          }
+        },
+        {
+          "date": "2026-10-21",
+          "reason": "Patch 1.7 release review; previous assessment preserved.",
+          "previous": {
+            "bottom_line": "October 11 Support follow-up confirms continuing tutorial/reset reports were escalated. A completion-saving fix is still unconfirmed.",
+            "official_position": "Two October 11 Support threads describe repeated tutorial prompts. Support acknowledges similar reports and escalation. These replies do not establish internal reproduction or a shared cause with every lost role unlock."
           }
         }
       ]
@@ -4002,11 +4178,11 @@
       "kind": "spawn and deployment issue family",
       "status_key": "partial",
       "status_label": "Improvements live; remaining cases investigated",
-      "bottom_line": "Still unresolved: developers now report reproducing some remaining replication failures internally.",
+      "bottom_line": "Patch 1.7 fixes one Commander vehicle-order input case, not the wider missing-spawn replication problem. General closure remains unconfirmed.",
       "official_short": "Some cases reproduced internally",
       "fix_short": "No complete fix confirmed",
       "cause_short": "Residual causes unconfirmed",
-      "last_updated": "2026-10-15",
+      "last_updated": "2026-10-21",
       "featured": true,
       "scope": [
         "spawn menu",
@@ -4019,7 +4195,7 @@
         "Tunnel destinations"
       ],
       "symptom": "Available Garrisons or Outposts can disappear from the deployment screen, preventing players from spawning; Commander abilities may also become unavailable.",
-      "official_position": "October 15: a dedicated developer is investigating. Reproduction is partial; no general cause or fix is confirmed. Mortar construction is separately tracked in HLLV-077.",
+      "official_position": "Retain the October 15 partial internal reproduction and active investigation. The new vehicle-order case is separately scoped in HLLV-096 and must not close missing HQ, Garrison or Outpost reports.",
       "workaround": "Server owners: regular restarts were recommended before 1.5.2; this is mitigation, not proof of cause.",
       "known": [
         "The issue family is officially acknowledged.",
@@ -4082,6 +4258,12 @@
           "event": "Community Feedback #8 | Command Post",
           "detail": "Added in the October 16 editorial review. The Sources entry records the scoped claim and direct reference.",
           "source_url": "https://www.hellletloose.com/blog/community-update-8"
+        },
+        {
+          "date": "2026-10-21",
+          "event": "Patch 1.7 release review",
+          "detail": "Fixes Commander vehicle orders failing under simultaneous inputs; this is narrower than missing replicated spawn points and abilities.",
+          "source_url": "https://steamcommunity.com/games/3079210/announcements/detail/675134795999609522"
         }
       ],
       "sources": [
@@ -4218,9 +4400,23 @@
           "content_sha256": "ccd0ac3d412f80f292b497075765de37e09f59ba53156bbce041c6008c05238d",
           "claim": "Some residual cases reproduced; investigation continues.",
           "source_locator": "Spawn Points & Server Replication"
+        },
+        {
+          "type": "patch notes",
+          "publisher": "Hell Let Loose / Team17",
+          "title": "Patch 1.7 | Full Changelog | Now Live!",
+          "url": "https://steamcommunity.com/games/3079210/announcements/detail/675134795999609522",
+          "date": "2026-10-21",
+          "source_published_at": "2026-10-21T10:00:57Z",
+          "source_reviewed_at": "2026-10-21",
+          "source_reviewed_via": "https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/1847286114028257",
+          "announcement_id": "1847286114028257",
+          "content_sha256": "e09490c9fbe88e5c27342a6f7201df5cecc4e262b4479e0eaccea3cc0e167b16",
+          "source_locator": "Tactical Map & Tunnels",
+          "claim": "Fixes Commander vehicle orders failing under simultaneous inputs; this is narrower than missing replicated spawn points and abilities."
         }
       ],
-      "last_reviewed": "2026-10-16",
+      "last_reviewed": "2026-10-21",
       "editorial_history": [
         {
           "date": "2026-10-11",
@@ -4243,6 +4439,14 @@
             "official_position": "Community Feedback #7 says the Iris changes reduced reports but did not fully resolve disappearing or nonfunctional spawn points. The team requests server uptime when available. It separately describes missing deployable blueprints despite Tactical Map indicators, notes reproduction difficulty, and is investigating whether those failures are distinct from wider replication. The earlier player Tunnel report is not automatically assigned either cause.",
             "official_short": "Remaining cases acknowledged",
             "fix_short": "1.5.2 improved; not closed"
+          }
+        },
+        {
+          "date": "2026-10-21",
+          "reason": "Patch 1.7 release review; previous assessment preserved.",
+          "previous": {
+            "bottom_line": "Still unresolved: developers now report reproducing some remaining replication failures internally.",
+            "official_position": "October 15: a dedicated developer is investigating. Reproduction is partial; no general cause or fix is confirmed. Mortar construction is separately tracked in HLLV-077."
           }
         }
       ]
@@ -4833,11 +5037,11 @@
       "kind": "rendering issue family",
       "status_key": "partial",
       "status_label": "Visual improvements released",
-      "bottom_line": "Foliage and disappearing-cover problems remain open; 1.7 and 2.0 improvements are still future work.",
+      "bottom_line": "Patch 1.7 fixes specific long-range foliage and shadow cases and adds map LOD corrections. Broad blur, pop-in and disappearing-cover closure remains unverified.",
       "official_short": "Developer acknowledged",
-      "fix_short": "Earlier changes; 1.7 / 2.0 planned",
+      "fix_short": "Targeted foliage / LOD fixes in 1.7",
       "cause_short": "Not public",
-      "last_updated": "2026-10-15",
+      "last_updated": "2026-10-21",
       "scope": [
         "PC",
         "PS5",
@@ -4845,7 +5049,7 @@
         "foliage"
       ],
       "symptom": "Blurry foliage and disappearing cover",
-      "official_position": "October 15 development plans remain unreleased in the reviewed sources. In a separate October 11 PC thread, Support requested diagnostics and suggested updating one player’s NVIDIA driver. No successful outcome or general rendering fix was established.",
+      "official_position": "The beyond-200-metre foliage correction is a defined case, not proof that all shorter-range blur or cover-loss reports are fixed. Wider 2.0 visual plans and the earlier Support diagnostic history remain separate.",
       "workaround": null,
       "known": [
         "The linked official evidence documents this issue.",
@@ -4890,6 +5094,12 @@
           "event": "Community Feedback #8 | Command Post",
           "detail": "Added in the October 16 editorial review. The Sources entry records the scoped claim and direct reference.",
           "source_url": "https://www.hellletloose.com/blog/community-update-8"
+        },
+        {
+          "date": "2026-10-21",
+          "event": "Patch 1.7 release review",
+          "detail": "Fixes some foliage disappearing beyond 200 metres unless zoomed, a Low Quality post-ADS shadow issue, and eight map culling/LOD cases.",
+          "source_url": "https://steamcommunity.com/games/3079210/announcements/detail/675134795999609522"
         }
       ],
       "sources": [
@@ -4994,9 +5204,23 @@
           "authority_checked_at": "2026-10-20T12:52:37Z",
           "source_category": "Team17 Support",
           "claim": "After requesting diagnostics for low-quality foliage, Support recommends a driver update to one NVIDIA user. The reply does not establish recovery or a general rendering fix."
+        },
+        {
+          "type": "patch notes",
+          "publisher": "Hell Let Loose / Team17",
+          "title": "Patch 1.7 | Full Changelog | Now Live!",
+          "url": "https://steamcommunity.com/games/3079210/announcements/detail/675134795999609522",
+          "date": "2026-10-21",
+          "source_published_at": "2026-10-21T10:00:57Z",
+          "source_reviewed_at": "2026-10-21",
+          "source_reviewed_via": "https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/1847286114028257",
+          "announcement_id": "1847286114028257",
+          "content_sha256": "e09490c9fbe88e5c27342a6f7201df5cecc4e262b4479e0eaccea3cc0e167b16",
+          "source_locator": "Audio, Visuals & Animation; Maps & Environments",
+          "claim": "Fixes some foliage disappearing beyond 200 metres unless zoomed, a Low Quality post-ADS shadow issue, and eight map culling/LOD cases."
         }
       ],
-      "last_reviewed": "2026-10-20",
+      "last_reviewed": "2026-10-21",
       "editorial_history": [
         {
           "date": "2026-10-11",
@@ -5025,6 +5249,15 @@
               "HLLV-056 covers one released correction; the wider rendering issue remains open.",
               "Independent gameplay verification of the Patch 1.6 outcome is not recorded."
             ]
+          }
+        },
+        {
+          "date": "2026-10-21",
+          "reason": "Patch 1.7 release review; previous assessment preserved.",
+          "previous": {
+            "bottom_line": "Foliage and disappearing-cover problems remain open; 1.7 and 2.0 improvements are still future work.",
+            "fix_short": "Earlier changes; 1.7 / 2.0 planned",
+            "official_position": "October 15 development plans remain unreleased in the reviewed sources. In a separate October 11 PC thread, Support requested diagnostics and suggested updating one player’s NVIDIA driver. No successful outcome or general rendering fix was established."
           }
         }
       ]
@@ -5360,17 +5593,17 @@
       "kind": "settings activation defect",
       "status_key": "investigating",
       "status_label": "Release status unconfirmed",
-      "bottom_line": "No released Frame Generation reapplication fix is verified. An October 12 player mentions re-enabling DLSS, without identifying Frame Generation specifically.",
+      "bottom_line": "Patch 1.7 adds AMD FSR Frame Generation. A fix for NVIDIA DLSS Frame Generation needing reapplication remains unconfirmed.",
       "official_short": "Related candidate under validation",
       "fix_short": "No released closure verified",
       "cause_short": "Not established for all reports",
-      "last_updated": "2026-10-12",
+      "last_updated": "2026-10-21",
       "scope": [
         "PC",
         "NVIDIA"
       ],
       "symptom": "DLSS Frame Generation needs reapplying",
-      "official_position": "The startup-options candidate remains separate from Frame Generation reapplication. HLLV-076 now records missing DLSS choices and a narrowly scoped hybrid-laptop workaround; neither closes this dossier.",
+      "official_position": "AMD feature availability is not evidence about NVIDIA settings persistence. The new unsaved-options warning also does not establish a persistence fix.",
       "workaround": "Reapply the selected Frame Generation setting.",
       "known": [
         "The linked official evidence documents this issue.",
@@ -5409,6 +5642,12 @@
           "event": "fps changes",
           "detail": "Added in the October 16 editorial review. The Sources entry records the scoped claim and direct reference.",
           "source_url": "https://steamcommunity.com/app/3079210/discussions/1/590692129307668829/?ctp=1#c590692129307643129"
+        },
+        {
+          "date": "2026-10-21",
+          "event": "Patch 1.7 release review",
+          "detail": "Introduces AMD FSR Frame Generation; the release does not explicitly address NVIDIA DLSS Frame Generation needing reapplication.",
+          "source_url": "https://steamcommunity.com/games/3079210/announcements/detail/675134795999609522"
         }
       ],
       "sources": [
@@ -5494,9 +5733,23 @@
           "source_locator": "Reply 590692129307643129",
           "content_sha256": "927756088942d8907d2e269a22d2251b753123ab6057c498ee6385ccdbc4c303",
           "claim": "Player says DLSS still needs re-enabling in a performance thread; this is not a verified Frame Generation reproduction."
+        },
+        {
+          "type": "patch notes",
+          "publisher": "Hell Let Loose / Team17",
+          "title": "Patch 1.7 | Full Changelog | Now Live!",
+          "url": "https://steamcommunity.com/games/3079210/announcements/detail/675134795999609522",
+          "date": "2026-10-21",
+          "source_published_at": "2026-10-21T10:00:57Z",
+          "source_reviewed_at": "2026-10-21",
+          "source_reviewed_via": "https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/1847286114028257",
+          "announcement_id": "1847286114028257",
+          "content_sha256": "e09490c9fbe88e5c27342a6f7201df5cecc4e262b4479e0eaccea3cc0e167b16",
+          "source_locator": "AMD FSR Frame Generation; Controls & Settings",
+          "claim": "Introduces AMD FSR Frame Generation; the release does not explicitly address NVIDIA DLSS Frame Generation needing reapplication."
         }
       ],
-      "last_reviewed": "2026-10-16",
+      "last_reviewed": "2026-10-21",
       "editorial_history": [
         {
           "date": "2026-10-11",
@@ -5516,6 +5769,14 @@
             "bottom_line": "A related missing-DLSS-options startup fix is under validation. The October 9 update still does not establish a released fix for Frame Generation needing reapplication.",
             "official_position": "Community Feedback #7 identifies a startup-timing issue that can hide DLSS quality choices while DLSS remains active, and reports an internally implemented candidate under validation. It asks for GPU model and available VRAM to distinguish other initialization cases. This context is not proof that missing quality choices, insufficient-memory cases and the earlier Frame Generation reapplication symptom all have one cause or one fix."
           }
+        },
+        {
+          "date": "2026-10-21",
+          "reason": "Patch 1.7 release review; previous assessment preserved.",
+          "previous": {
+            "bottom_line": "No released Frame Generation reapplication fix is verified. An October 12 player mentions re-enabling DLSS, without identifying Frame Generation specifically.",
+            "official_position": "The startup-options candidate remains separate from Frame Generation reapplication. HLLV-076 now records missing DLSS choices and a narrowly scoped hybrid-laptop workaround; neither closes this dossier."
+          }
         }
       ]
     },
@@ -5524,27 +5785,26 @@
       "title": "Voice volume stays excessively loud",
       "category": "voip",
       "kind": "volume-control defect",
-      "status_key": "investigating",
-      "status_label": "Volume fix still unconfirmed",
-      "bottom_line": "An October 9 Support reply adds another volume-slider report. The earlier 1.7 target remains unverified as a release.",
-      "official_short": "Developer acknowledged",
-      "fix_short": "1.7 target; release unconfirmed",
+      "status_key": "shipped",
+      "status_label": "Slider fix released in 1.7",
+      "bottom_line": "Patch 1.7 explicitly fixes voice-volume slider scaling across audio channels. Independent post-patch outcome testing is not recorded.",
+      "official_short": "Release documented",
+      "fix_short": "Patch 1.7",
       "cause_short": "Not public",
-      "last_updated": "2026-10-09",
+      "last_updated": "2026-10-21",
       "scope": [
         "Voice Chat"
       ],
       "symptom": "Voice volume stays excessively loud",
-      "official_position": "This new citation is from a separate volume thread. The unrelated-text reply already held for editorial review is not used as evidence, and its hold remains intact.",
+      "official_position": "This is direct release evidence for the slider-scaling defect, not a fix for every VOIP outage. The unrelated Support reply under editorial hold remains excluded.",
       "workaround": null,
       "known": [
         "The linked official evidence documents this issue.",
         "October 7 release-note review: The audio overhaul covers weapons, spawns and ambience; a voice-volume slider correction is not stated."
       ],
       "unknown": [
-        "Release timing is provisional; this is separate from silent muting (HLLV-029).",
-        "No new developer confirmation of a shipped volume fix was found in the reviewed thread.",
-        "Independent gameplay verification of the Patch 1.6 outcome is not recorded."
+        "Independent post-1.7 outcome verification is not recorded.",
+        "This does not close channel-unavailability reports in HLLV-029."
       ],
       "timeline": [
         {
@@ -5567,6 +5827,12 @@
           "event": "VOIP: Reducing the sound via the sliders has almost no impact",
           "detail": "Added in the October 16 editorial review. The Sources entry records the scoped claim and direct reference.",
           "source_url": "https://steamcommunity.com/app/3079210/discussions/1/590691034935093998/?ctp=1#c590691669351052539"
+        },
+        {
+          "date": "2026-10-21",
+          "event": "Patch 1.7 release review",
+          "detail": "The release explicitly corrects Voice Volume slider scaling across Audio Settings channels.",
+          "source_url": "https://steamcommunity.com/games/3079210/announcements/detail/675134795999609522"
         }
       ],
       "sources": [
@@ -5638,9 +5904,23 @@
           "authority_checked_at": "2026-10-17T00:55:27Z",
           "source_category": "Team17 Support",
           "claim": "Support adds another excessive-VOIP-volume report to its existing case; no fix is confirmed."
+        },
+        {
+          "type": "patch notes",
+          "publisher": "Hell Let Loose / Team17",
+          "title": "Patch 1.7 | Full Changelog | Now Live!",
+          "url": "https://steamcommunity.com/games/3079210/announcements/detail/675134795999609522",
+          "date": "2026-10-21",
+          "source_published_at": "2026-10-21T10:00:57Z",
+          "source_reviewed_at": "2026-10-21",
+          "source_reviewed_via": "https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/1847286114028257",
+          "announcement_id": "1847286114028257",
+          "content_sha256": "e09490c9fbe88e5c27342a6f7201df5cecc4e262b4479e0eaccea3cc0e167b16",
+          "source_locator": "Controls & Settings",
+          "claim": "The release explicitly corrects Voice Volume slider scaling across Audio Settings channels."
         }
       ],
-      "last_reviewed": "2026-10-16",
+      "last_reviewed": "2026-10-21",
       "editorial_history": [
         {
           "date": "2026-10-16",
@@ -5648,6 +5928,23 @@
           "previous": {
             "bottom_line": "Patch 1.6 reworks battlefield audio, but does not document a voice-volume slider fix. The last explicit target remains Patch 1.7, possibly sooner.",
             "official_position": "Weapon sound changes are not evidence that excessively loud player voices have been corrected."
+          }
+        },
+        {
+          "date": "2026-10-21",
+          "reason": "Patch 1.7 release review; previous assessment preserved.",
+          "previous": {
+            "status_key": "investigating",
+            "status_label": "Volume fix still unconfirmed",
+            "bottom_line": "An October 9 Support reply adds another volume-slider report. The earlier 1.7 target remains unverified as a release.",
+            "official_short": "Developer acknowledged",
+            "fix_short": "1.7 target; release unconfirmed",
+            "official_position": "This new citation is from a separate volume thread. The unrelated-text reply already held for editorial review is not used as evidence, and its hold remains intact.",
+            "unknown": [
+              "Release timing is provisional; this is separate from silent muting (HLLV-029).",
+              "No new developer confirmation of a shipped volume fix was found in the reviewed thread.",
+              "Independent gameplay verification of the Patch 1.6 outcome is not recorded."
+            ]
           }
         }
       ]
@@ -5657,27 +5954,27 @@
       "title": "Running boat engines prevent spawning",
       "category": "vehicles",
       "kind": "spawn usability issue",
-      "status_key": "investigating",
-      "status_label": "Automatic shutdown unconfirmed",
-      "bottom_line": "The revised proposal turns the engine off when a driver exits manually, not when killed. It may arrive in 1.7 or later; no release is confirmed.",
-      "official_short": "Revised plan announced",
-      "fix_short": "1.7 or later; not shipped",
+      "status_key": "shipped",
+      "status_label": "Behavior change released in 1.7",
+      "bottom_line": "Patch 1.7 shuts the engine off on manual driver exit so the boat can become a spawn point. A killed driver deliberately leaves it running.",
+      "official_short": "Release documented",
+      "fix_short": "Patch 1.7",
       "cause_short": "Not public",
-      "last_updated": "2026-10-09",
+      "last_updated": "2026-10-21",
       "scope": [
         "transport boats"
       ],
       "symptom": "Running boat engines prevent spawning",
-      "official_position": "Community Feedback #7 changes the earlier unattended-boat proposal in response to counterplay concerns. Manual driver exit, rather than driver death, is now the proposed automatic engine-off trigger. Timing remains provisional: the team is investigating 1.7, otherwise a following update. The separate 1.6 idle-boat destruction fix is not this feature.",
-      "workaround": "Switch the transport boat engine off before leaving it so it can be used as a spawn point. This does not resolve unrelated ghost-boat or replication failures.",
+      "official_position": "The revised manual-exit rule has shipped. Driver-death counterplay is intentional; this does not fix unrelated ghost boats, replication failures or stuck engine interactions.",
+      "workaround": "On 1.7, manually leaving the Driver seat now shuts the engine off. If the driver was killed, the notes deliberately leave the engine running; switching it off is still required for spawning.",
       "known": [
         "The linked official evidence documents this issue.",
         "October 7 release-note review: Records an idle-boat destruction fix, not the proposed automatic engine shutdown.",
         "October 9 follow-up: The revised boat plan shuts the engine down when the driver manually exits, not when the driver is killed. Patch 1.7 is being considered; a later update remains possible."
       ],
       "unknown": [
-        "This is a usability problem, not evidence of a replication failure.",
-        "Independent gameplay verification of the Patch 1.6 outcome is not recorded."
+        "Independent post-1.7 outcome testing is not recorded.",
+        "Unrelated boat and server defects remain separate."
       ],
       "timeline": [
         {
@@ -5694,6 +5991,12 @@
           "date": "2026-10-09",
           "event": "Community Feedback #7",
           "detail": "The revised boat plan shuts the engine down when the driver manually exits, not when the driver is killed. Patch 1.7 is being considered; a later update remains possible."
+        },
+        {
+          "date": "2026-10-21",
+          "event": "Patch 1.7 release review",
+          "detail": "Manual departure from the Driver seat shuts the engine off; killing the seated driver deliberately leaves it running.",
+          "source_url": "https://steamcommunity.com/games/3079210/announcements/detail/675134795999609522"
         }
       ],
       "sources": [
@@ -5754,9 +6057,23 @@
             "http_status": 200
           },
           "link_checked_at": "2026-10-11"
+        },
+        {
+          "type": "patch notes",
+          "publisher": "Hell Let Loose / Team17",
+          "title": "Patch 1.7 | Full Changelog | Now Live!",
+          "url": "https://steamcommunity.com/games/3079210/announcements/detail/675134795999609522",
+          "date": "2026-10-21",
+          "source_published_at": "2026-10-21T10:00:57Z",
+          "source_reviewed_at": "2026-10-21",
+          "source_reviewed_via": "https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/1847286114028257",
+          "announcement_id": "1847286114028257",
+          "content_sha256": "e09490c9fbe88e5c27342a6f7201df5cecc4e262b4479e0eaccea3cc0e167b16",
+          "source_locator": "Boat Spawn Protection",
+          "claim": "Manual departure from the Driver seat shuts the engine off; killing the seated driver deliberately leaves it running."
         }
       ],
-      "last_reviewed": "2026-10-11",
+      "last_reviewed": "2026-10-21",
       "editorial_history": [
         {
           "date": "2026-10-11",
@@ -5766,6 +6083,23 @@
             "official_position": "The idle-destruction fix is HLLV-068. It does not establish a change to the engine-running spawn restriction discussed on October 1.",
             "official_short": "Developer acknowledged",
             "fix_short": "Automatic shutdown not confirmed"
+          }
+        },
+        {
+          "date": "2026-10-21",
+          "reason": "Patch 1.7 release review; previous assessment preserved.",
+          "previous": {
+            "status_key": "investigating",
+            "status_label": "Automatic shutdown unconfirmed",
+            "bottom_line": "The revised proposal turns the engine off when a driver exits manually, not when killed. It may arrive in 1.7 or later; no release is confirmed.",
+            "official_short": "Revised plan announced",
+            "fix_short": "1.7 or later; not shipped",
+            "official_position": "Community Feedback #7 changes the earlier unattended-boat proposal in response to counterplay concerns. Manual driver exit, rather than driver death, is now the proposed automatic engine-off trigger. Timing remains provisional: the team is investigating 1.7, otherwise a following update. The separate 1.6 idle-boat destruction fix is not this feature.",
+            "workaround": "Switch the transport boat engine off before leaving it so it can be used as a spawn point. This does not resolve unrelated ghost-boat or replication failures.",
+            "unknown": [
+              "This is a usability problem, not evidence of a replication failure.",
+              "Independent gameplay verification of the Patch 1.6 outcome is not recorded."
+            ]
           }
         }
       ]
@@ -6162,19 +6496,19 @@
       "kind": "publisher-documented defect",
       "status_key": "partial",
       "status_label": "1.6 correction listed; Huey exception still planned",
-      "bottom_line": "Patch 1.6 listed a mounted-gun ADS correction, but the newer post puts the Huey M60 fix in 1.7. Do not treat the whole sensitivity issue as resolved.",
+      "bottom_line": "The Huey M60 ADS fix had targeted 1.7, but the final notes do not explicitly confirm it. Earlier broad mounted-gun fixes remain separately recorded.",
       "official_short": "Huey exception acknowledged",
-      "fix_short": "1.6 listed; Huey target 1.7",
+      "fix_short": "Huey-specific release still unconfirmed",
       "cause_short": "Difference in scope unresolved",
-      "last_updated": "2026-10-09",
-      "last_reviewed": "2026-10-11",
+      "last_updated": "2026-10-21",
+      "last_reviewed": "2026-10-21",
       "scope": [
         "Helicopters",
         "boats",
         "AA guns"
       ],
       "symptom": "Helicopter, boat and AA mounted-gun aiming could use look sensitivity instead of the ADS setting.",
-      "official_position": "The 1.6 Gameplay notes broadly state that helicopter, boat and AA mounted guns now use ADS sensitivity. Community Feedback #7 subsequently describes the Huey M60 not using that setting, with a fix implemented internally for 1.7. Both records are retained. The publisher has not explained whether this is an incomplete earlier fix, a separate case, or a regression; the Huey case is not verified released.",
+      "official_position": "The 1.6 mounted-gun claim and later Huey-specific target remain unreconciled. Helicopter roll sensitivity is not gun aiming sensitivity; absence from these notes does not prove the fix failed or was cancelled.",
       "workaround": null,
       "known": [
         "Mounted-gun aiming now uses ADS sensitivity.",
@@ -6195,6 +6529,12 @@
           "date": "2026-10-09",
           "event": "Community Feedback #7",
           "detail": "Although 1.6 listed mounted-weapon ADS sensitivity as corrected, the October 9 update specifically says the Huey M60 sensitivity fix is internal and planned for 1.7. The discrepancy does not prove a newly introduced regression."
+        },
+        {
+          "date": "2026-10-21",
+          "event": "Patch 1.7 release review",
+          "detail": "Lists helicopter roll sensitivity and other control fixes, but no explicit Huey M60 ADS-sensitivity correction.",
+          "source_url": "https://steamcommunity.com/games/3079210/announcements/detail/675134795999609522"
         }
       ],
       "sources": [
@@ -6231,6 +6571,20 @@
             "http_status": 200
           },
           "link_checked_at": "2026-10-11"
+        },
+        {
+          "type": "patch notes",
+          "publisher": "Hell Let Loose / Team17",
+          "title": "Patch 1.7 | Full Changelog | Now Live!",
+          "url": "https://steamcommunity.com/games/3079210/announcements/detail/675134795999609522",
+          "date": "2026-10-21",
+          "source_published_at": "2026-10-21T10:00:57Z",
+          "source_reviewed_at": "2026-10-21",
+          "source_reviewed_via": "https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/1847286114028257",
+          "announcement_id": "1847286114028257",
+          "content_sha256": "e09490c9fbe88e5c27342a6f7201df5cecc4e262b4479e0eaccea3cc0e167b16",
+          "source_locator": "Vehicles; Controls & Settings (scope comparison)",
+          "claim": "Lists helicopter roll sensitivity and other control fixes, but no explicit Huey M60 ADS-sensitivity correction."
         }
       ],
       "editorial_history": [
@@ -6245,6 +6599,15 @@
             "official_short": "Release documented",
             "fix_short": "Patch 1.6",
             "cause_short": "Not public"
+          }
+        },
+        {
+          "date": "2026-10-21",
+          "reason": "Patch 1.7 release review; previous assessment preserved.",
+          "previous": {
+            "bottom_line": "Patch 1.6 listed a mounted-gun ADS correction, but the newer post puts the Huey M60 fix in 1.7. Do not treat the whole sensitivity issue as resolved.",
+            "fix_short": "1.6 listed; Huey target 1.7",
+            "official_position": "The 1.6 Gameplay notes broadly state that helicopter, boat and AA mounted guns now use ADS sensitivity. Community Feedback #7 subsequently describes the Huey M60 not using that setting, with a fix implemented internally for 1.7. Both records are retained. The publisher has not explained whether this is an incomplete earlier fix, a separate case, or a regression; the Huey case is not verified released."
           }
         }
       ]
@@ -6364,12 +6727,12 @@
       "kind": "documented spectator issue family",
       "status_key": "shipped",
       "status_label": "Fix released in 1.6",
-      "bottom_line": "Patch 1.6: Lists camera-position, keybinding and HUD-restoration corrections for the documented spectator cases. Independent outcome testing is not recorded.",
+      "bottom_line": "Patch 1.7 adds Admin Camera inversion and action-restriction corrections, following the documented 1.6 view/input/HUD fixes.",
       "official_short": "Release documented",
-      "fix_short": "Patch 1.6",
+      "fix_short": "Corrections through Patch 1.7",
       "cause_short": "Not public",
-      "last_updated": "2026-10-07",
-      "last_reviewed": "2026-10-07",
+      "last_updated": "2026-10-21",
+      "last_reviewed": "2026-10-21",
       "scope": [
         "Admin Camera",
         "spectator tools"
@@ -6389,6 +6752,12 @@
           "date": "2026-10-07",
           "event": "Patch 1.6 released",
           "detail": "Lists camera-position, keybinding and HUD-restoration corrections for the documented spectator cases."
+        },
+        {
+          "date": "2026-10-21",
+          "event": "Patch 1.7 release review",
+          "detail": "Applies inverted controls in Admin Camera and blocks Commander abilities and Tunnel connections while using it.",
+          "source_url": "https://steamcommunity.com/games/3079210/announcements/detail/675134795999609522"
         }
       ],
       "sources": [
@@ -6407,6 +6776,30 @@
           "link_check": {
             "date": "2026-10-11",
             "http_status": 200
+          }
+        },
+        {
+          "type": "patch notes",
+          "publisher": "Hell Let Loose / Team17",
+          "title": "Patch 1.7 | Full Changelog | Now Live!",
+          "url": "https://steamcommunity.com/games/3079210/announcements/detail/675134795999609522",
+          "date": "2026-10-21",
+          "source_published_at": "2026-10-21T10:00:57Z",
+          "source_reviewed_at": "2026-10-21",
+          "source_reviewed_via": "https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/1847286114028257",
+          "announcement_id": "1847286114028257",
+          "content_sha256": "e09490c9fbe88e5c27342a6f7201df5cecc4e262b4479e0eaccea3cc0e167b16",
+          "source_locator": "Admin Camera",
+          "claim": "Applies inverted controls in Admin Camera and blocks Commander abilities and Tunnel connections while using it."
+        }
+      ],
+      "editorial_history": [
+        {
+          "date": "2026-10-21",
+          "reason": "Patch 1.7 release review; previous assessment preserved.",
+          "previous": {
+            "bottom_line": "Patch 1.6: Lists camera-position, keybinding and HUD-restoration corrections for the documented spectator cases. Independent outcome testing is not recorded.",
+            "fix_short": "Patch 1.6"
           }
         }
       ]
@@ -6761,19 +7154,19 @@
       "kind": "construction defect",
       "status_key": "investigating",
       "status_label": "Investigation; cause not established",
-      "bottom_line": "Some deployables are reported on the Tactical Map without a usable construction blueprint. No released fix is verified.",
+      "bottom_line": "Patch 1.7 fixes a Mortar construction trap and adds dismantling feedback. Missing deployable blueprints are still not explicitly confirmed fixed.",
       "official_short": "Publisher investigating",
       "fix_short": "None confirmed",
       "cause_short": "Not established for all reports",
-      "last_updated": "2026-10-09",
-      "last_reviewed": "2026-10-16",
+      "last_updated": "2026-10-21",
+      "last_reviewed": "2026-10-21",
       "scope": [
         "Mortars",
         "deployables",
         "construction"
       ],
       "symptom": "Placement cannot be completed when the blueprint is absent despite a map indicator.",
-      "official_position": "The October 9 update acknowledges construction failures and reproduction difficulty.",
+      "official_position": "Construction with a visible blueprint and a blueprint that never appears are distinct symptoms. Keep the missing-blueprint investigation open.",
       "workaround": null,
       "known": [
         "The October 9 update acknowledges construction failures and reproduction difficulty."
@@ -6788,6 +7181,12 @@
           "event": "Community Feedback #7 | Command Post",
           "detail": "Missing deployable blueprints are being investigated separately from wider replication.",
           "source_url": "https://www.hellletloose.com/blog/community-update-7"
+        },
+        {
+          "date": "2026-10-21",
+          "event": "Patch 1.7 release review",
+          "detail": "Fixes trapping inside a Mortar Pit blueprint and adds dismantling feedback; it does not explicitly fix missing construction blueprints.",
+          "source_url": "https://steamcommunity.com/games/3079210/announcements/detail/675134795999609522"
         }
       ],
       "sources": [
@@ -6804,6 +7203,30 @@
           "content_sha256": "1198ac1a60afcf31405651f1d191774605bda3a0ecc7ca0e27e256481fd38672",
           "claim": "Missing deployable blueprints are being investigated separately from wider replication.",
           "source_locator": "Mortars & Deployable Issues"
+        },
+        {
+          "type": "patch notes",
+          "publisher": "Hell Let Loose / Team17",
+          "title": "Patch 1.7 | Full Changelog | Now Live!",
+          "url": "https://steamcommunity.com/games/3079210/announcements/detail/675134795999609522",
+          "date": "2026-10-21",
+          "source_published_at": "2026-10-21T10:00:57Z",
+          "source_reviewed_at": "2026-10-21",
+          "source_reviewed_via": "https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/1847286114028257",
+          "announcement_id": "1847286114028257",
+          "content_sha256": "e09490c9fbe88e5c27342a6f7201df5cecc4e262b4479e0eaccea3cc0e167b16",
+          "source_locator": "Gameplay; Audio, Visuals & Animation",
+          "claim": "Fixes trapping inside a Mortar Pit blueprint and adds dismantling feedback; it does not explicitly fix missing construction blueprints."
+        }
+      ],
+      "editorial_history": [
+        {
+          "date": "2026-10-21",
+          "reason": "Patch 1.7 release review; previous assessment preserved.",
+          "previous": {
+            "bottom_line": "Some deployables are reported on the Tactical Map without a usable construction blueprint. No released fix is verified.",
+            "official_position": "The October 9 update acknowledges construction failures and reproduction difficulty."
+          }
         }
       ]
     },
@@ -7185,18 +7608,18 @@
       "kind": "settings persistence report",
       "status_key": "reported",
       "status_label": "Mixed-thread Support acknowledgement",
-      "bottom_line": "An October 19 Support reply acknowledges a mixed report that includes video settings not saving. Specific reproduction and a fix remain unconfirmed.",
+      "bottom_line": "Patch 1.7 adds an unsaved-options warning. That does not establish a fix for video settings failing to persist after restart.",
       "official_short": "Support replied to mixed report",
       "fix_short": "None confirmed for this report",
       "cause_short": "Not established",
-      "last_updated": "2026-10-19",
-      "last_reviewed": "2026-10-20",
+      "last_updated": "2026-10-21",
+      "last_reviewed": "2026-10-21",
       "scope": [
         "Video settings",
         "Restart persistence"
       ],
       "symptom": "The opening post reports video settings not persisting after a game restart, without identifying particular settings or a platform.",
-      "official_position": "Support acknowledges similar reports and escalation collectively; it does not itemize which complaints were verified.",
+      "official_position": "The October 19 mixed Support response remains the acknowledgement basis. The new warning is a separate interface behavior, with no itemized persistence finding.",
       "workaround": null,
       "known": [
         "The same post also requests map and menu changes; the response is not a commitment to implement those requests."
@@ -7212,6 +7635,12 @@
           "event": "Support response to mixed report",
           "detail": "Acknowledgement and escalation, with no item-by-item finding.",
           "source_url": "https://steamcommunity.com/app/3079210/discussions/1/570426104667569900/?ctp=1#c570426530135644652"
+        },
+        {
+          "date": "2026-10-21",
+          "event": "Patch 1.7 release review",
+          "detail": "Adds a warning when leaving front-end Options with unsaved changes, not an explicit restart-persistence correction.",
+          "source_url": "https://steamcommunity.com/games/3079210/announcements/detail/675134795999609522"
         }
       ],
       "sources": [
@@ -7229,6 +7658,1017 @@
           "authority_checked_at": "2026-10-20T12:52:37Z",
           "source_category": "Team17 Support",
           "claim": "Support acknowledges and escalates a mixed report containing settings persistence and interface requests; it gives no itemized confirmation or release commitment."
+        },
+        {
+          "type": "patch notes",
+          "publisher": "Hell Let Loose / Team17",
+          "title": "Patch 1.7 | Full Changelog | Now Live!",
+          "url": "https://steamcommunity.com/games/3079210/announcements/detail/675134795999609522",
+          "date": "2026-10-21",
+          "source_published_at": "2026-10-21T10:00:57Z",
+          "source_reviewed_at": "2026-10-21",
+          "source_reviewed_via": "https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/1847286114028257",
+          "announcement_id": "1847286114028257",
+          "content_sha256": "e09490c9fbe88e5c27342a6f7201df5cecc4e262b4479e0eaccea3cc0e167b16",
+          "source_locator": "Controls & Settings",
+          "claim": "Adds a warning when leaving front-end Options with unsaved changes, not an explicit restart-persistence correction."
+        }
+      ],
+      "editorial_history": [
+        {
+          "date": "2026-10-21",
+          "reason": "Patch 1.7 release review; previous assessment preserved.",
+          "previous": {
+            "bottom_line": "An October 19 Support reply acknowledges a mixed report that includes video settings not saving. Specific reproduction and a fix remain unconfirmed.",
+            "official_position": "Support acknowledges similar reports and escalation collectively; it does not itemize which complaints were verified."
+          }
+        }
+      ]
+    },
+    {
+      "id": "HLLV-085",
+      "title": "Mortar Pit limit bypass through Gunner swaps",
+      "category": "gameplay",
+      "kind": "release-documented defect",
+      "status_key": "shipped",
+      "status_label": "Fix released in 1.7",
+      "bottom_line": "Patch 1.7 closes a unit-limit bypass involving changes of Gunner players.",
+      "official_short": "Release documented",
+      "fix_short": "Patch 1.7",
+      "cause_short": "Not established by release notes",
+      "last_updated": "2026-10-21",
+      "last_reviewed": "2026-10-21",
+      "scope": [
+        "Mortar Pit",
+        "unit limits"
+      ],
+      "symptom": "Mortar Pit limit bypass through Gunner swaps",
+      "official_position": "The publisher documents this scoped change in the released changelog; this is not independent gameplay verification.",
+      "workaround": null,
+      "known": [
+        "Patch 1.7 closes a unit-limit bypass involving changes of Gunner players."
+      ],
+      "unknown": [
+        "Independent post-1.7 outcome testing is not recorded.",
+        "A shared cause with similarly worded reports is not established."
+      ],
+      "timeline": [
+        {
+          "date": "2026-10-21",
+          "event": "Patch 1.7 released",
+          "detail": "Patch 1.7 closes a unit-limit bypass involving changes of Gunner players.",
+          "source_url": "https://steamcommunity.com/games/3079210/announcements/detail/675134795999609522"
+        }
+      ],
+      "sources": [
+        {
+          "type": "patch notes",
+          "publisher": "Hell Let Loose / Team17",
+          "title": "Patch 1.7 | Full Changelog | Now Live!",
+          "url": "https://steamcommunity.com/games/3079210/announcements/detail/675134795999609522",
+          "date": "2026-10-21",
+          "source_published_at": "2026-10-21T10:00:57Z",
+          "source_reviewed_at": "2026-10-21",
+          "source_reviewed_via": "https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/1847286114028257",
+          "announcement_id": "1847286114028257",
+          "content_sha256": "e09490c9fbe88e5c27342a6f7201df5cecc4e262b4479e0eaccea3cc0e167b16",
+          "source_locator": "Gameplay",
+          "claim": "Patch 1.7 closes a unit-limit bypass involving changes of Gunner players."
+        }
+      ]
+    },
+    {
+      "id": "HLLV-086",
+      "title": "Players trapped while building inside a Mortar blueprint",
+      "category": "gameplay",
+      "kind": "release-documented defect",
+      "status_key": "shipped",
+      "status_label": "Fix released in 1.7",
+      "bottom_line": "Patch 1.7 fixes becoming trapped when building a Mortar Pit while standing inside its blueprint.",
+      "official_short": "Release documented",
+      "fix_short": "Patch 1.7",
+      "cause_short": "Not established by release notes",
+      "last_updated": "2026-10-21",
+      "last_reviewed": "2026-10-21",
+      "scope": [
+        "Mortar Pit",
+        "construction"
+      ],
+      "symptom": "Players trapped while building inside a Mortar blueprint",
+      "official_position": "The publisher documents this scoped change in the released changelog; this is not independent gameplay verification.",
+      "workaround": null,
+      "known": [
+        "Patch 1.7 fixes becoming trapped when building a Mortar Pit while standing inside its blueprint."
+      ],
+      "unknown": [
+        "Independent post-1.7 outcome testing is not recorded.",
+        "A shared cause with similarly worded reports is not established."
+      ],
+      "timeline": [
+        {
+          "date": "2026-10-21",
+          "event": "Patch 1.7 released",
+          "detail": "Patch 1.7 fixes becoming trapped when building a Mortar Pit while standing inside its blueprint.",
+          "source_url": "https://steamcommunity.com/games/3079210/announcements/detail/675134795999609522"
+        }
+      ],
+      "sources": [
+        {
+          "type": "patch notes",
+          "publisher": "Hell Let Loose / Team17",
+          "title": "Patch 1.7 | Full Changelog | Now Live!",
+          "url": "https://steamcommunity.com/games/3079210/announcements/detail/675134795999609522",
+          "date": "2026-10-21",
+          "source_published_at": "2026-10-21T10:00:57Z",
+          "source_reviewed_at": "2026-10-21",
+          "source_reviewed_via": "https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/1847286114028257",
+          "announcement_id": "1847286114028257",
+          "content_sha256": "e09490c9fbe88e5c27342a6f7201df5cecc4e262b4479e0eaccea3cc0e167b16",
+          "source_locator": "Gameplay",
+          "claim": "Patch 1.7 fixes becoming trapped when building a Mortar Pit while standing inside its blueprint."
+        }
+      ]
+    },
+    {
+      "id": "HLLV-087",
+      "title": "Anti-Aircraft Gun exit blocked near structures",
+      "category": "gameplay",
+      "kind": "release-documented defect",
+      "status_key": "shipped",
+      "status_label": "Fix released in 1.7",
+      "bottom_line": "Patch 1.7 fixes being unable to leave an Anti-Aircraft Gun positioned too close to a structure.",
+      "official_short": "Release documented",
+      "fix_short": "Patch 1.7",
+      "cause_short": "Not established by release notes",
+      "last_updated": "2026-10-21",
+      "last_reviewed": "2026-10-21",
+      "scope": [
+        "Anti-Aircraft Gun",
+        "exit"
+      ],
+      "symptom": "Anti-Aircraft Gun exit blocked near structures",
+      "official_position": "The publisher documents this scoped change in the released changelog; this is not independent gameplay verification.",
+      "workaround": null,
+      "known": [
+        "Patch 1.7 fixes being unable to leave an Anti-Aircraft Gun positioned too close to a structure."
+      ],
+      "unknown": [
+        "Independent post-1.7 outcome testing is not recorded.",
+        "A shared cause with similarly worded reports is not established."
+      ],
+      "timeline": [
+        {
+          "date": "2026-10-21",
+          "event": "Patch 1.7 released",
+          "detail": "Patch 1.7 fixes being unable to leave an Anti-Aircraft Gun positioned too close to a structure.",
+          "source_url": "https://steamcommunity.com/games/3079210/announcements/detail/675134795999609522"
+        }
+      ],
+      "sources": [
+        {
+          "type": "patch notes",
+          "publisher": "Hell Let Loose / Team17",
+          "title": "Patch 1.7 | Full Changelog | Now Live!",
+          "url": "https://steamcommunity.com/games/3079210/announcements/detail/675134795999609522",
+          "date": "2026-10-21",
+          "source_published_at": "2026-10-21T10:00:57Z",
+          "source_reviewed_at": "2026-10-21",
+          "source_reviewed_via": "https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/1847286114028257",
+          "announcement_id": "1847286114028257",
+          "content_sha256": "e09490c9fbe88e5c27342a6f7201df5cecc4e262b4479e0eaccea3cc0e167b16",
+          "source_locator": "Gameplay",
+          "claim": "Patch 1.7 fixes being unable to leave an Anti-Aircraft Gun positioned too close to a structure."
+        }
+      ]
+    },
+    {
+      "id": "HLLV-088",
+      "title": "Accuracy statistics exceed 100 percent",
+      "category": "ui",
+      "kind": "release-documented defect",
+      "status_key": "shipped",
+      "status_label": "Fix released in 1.7",
+      "bottom_line": "Patch 1.7 corrects accuracy statistics exceeding 100 percent; it does not add expanded match statistics.",
+      "official_short": "Release documented",
+      "fix_short": "Patch 1.7",
+      "cause_short": "Not established by release notes",
+      "last_updated": "2026-10-21",
+      "last_reviewed": "2026-10-21",
+      "scope": [
+        "Accuracy statistics"
+      ],
+      "symptom": "Accuracy statistics exceed 100 percent",
+      "official_position": "The publisher documents this scoped change in the released changelog; this is not independent gameplay verification.",
+      "workaround": null,
+      "known": [
+        "Patch 1.7 corrects accuracy statistics exceeding 100 percent; it does not add expanded match statistics."
+      ],
+      "unknown": [
+        "Independent post-1.7 outcome testing is not recorded.",
+        "A shared cause with similarly worded reports is not established."
+      ],
+      "timeline": [
+        {
+          "date": "2026-10-21",
+          "event": "Patch 1.7 released",
+          "detail": "Patch 1.7 corrects accuracy statistics exceeding 100 percent; it does not add expanded match statistics.",
+          "source_url": "https://steamcommunity.com/games/3079210/announcements/detail/675134795999609522"
+        }
+      ],
+      "sources": [
+        {
+          "type": "patch notes",
+          "publisher": "Hell Let Loose / Team17",
+          "title": "Patch 1.7 | Full Changelog | Now Live!",
+          "url": "https://steamcommunity.com/games/3079210/announcements/detail/675134795999609522",
+          "date": "2026-10-21",
+          "source_published_at": "2026-10-21T10:00:57Z",
+          "source_reviewed_at": "2026-10-21",
+          "source_reviewed_via": "https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/1847286114028257",
+          "announcement_id": "1847286114028257",
+          "content_sha256": "e09490c9fbe88e5c27342a6f7201df5cecc4e262b4479e0eaccea3cc0e167b16",
+          "source_locator": "Gameplay",
+          "claim": "Patch 1.7 corrects accuracy statistics exceeding 100 percent; it does not add expanded match statistics."
+        }
+      ]
+    },
+    {
+      "id": "HLLV-089",
+      "title": "Practice Range rifle recoil recovery fails",
+      "category": "gameplay",
+      "kind": "release-documented defect",
+      "status_key": "shipped",
+      "status_label": "Fix released in 1.7",
+      "bottom_line": "Patch 1.7 fixes recoil recovery for semi-automatic and bolt-action rifles in the Practice Range.",
+      "official_short": "Release documented",
+      "fix_short": "Patch 1.7",
+      "cause_short": "Not established by release notes",
+      "last_updated": "2026-10-21",
+      "last_reviewed": "2026-10-21",
+      "scope": [
+        "Practice Range",
+        "rifles"
+      ],
+      "symptom": "Practice Range rifle recoil recovery fails",
+      "official_position": "The publisher documents this scoped change in the released changelog; this is not independent gameplay verification.",
+      "workaround": null,
+      "known": [
+        "Patch 1.7 fixes recoil recovery for semi-automatic and bolt-action rifles in the Practice Range."
+      ],
+      "unknown": [
+        "Independent post-1.7 outcome testing is not recorded.",
+        "A shared cause with similarly worded reports is not established."
+      ],
+      "timeline": [
+        {
+          "date": "2026-10-21",
+          "event": "Patch 1.7 released",
+          "detail": "Patch 1.7 fixes recoil recovery for semi-automatic and bolt-action rifles in the Practice Range.",
+          "source_url": "https://steamcommunity.com/games/3079210/announcements/detail/675134795999609522"
+        }
+      ],
+      "sources": [
+        {
+          "type": "patch notes",
+          "publisher": "Hell Let Loose / Team17",
+          "title": "Patch 1.7 | Full Changelog | Now Live!",
+          "url": "https://steamcommunity.com/games/3079210/announcements/detail/675134795999609522",
+          "date": "2026-10-21",
+          "source_published_at": "2026-10-21T10:00:57Z",
+          "source_reviewed_at": "2026-10-21",
+          "source_reviewed_via": "https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/1847286114028257",
+          "announcement_id": "1847286114028257",
+          "content_sha256": "e09490c9fbe88e5c27342a6f7201df5cecc4e262b4479e0eaccea3cc0e167b16",
+          "source_locator": "Gameplay",
+          "claim": "Patch 1.7 fixes recoil recovery for semi-automatic and bolt-action rifles in the Practice Range."
+        }
+      ]
+    },
+    {
+      "id": "HLLV-090",
+      "title": "Helicopter wreck damage continues without visible fire",
+      "category": "vehicles",
+      "kind": "release-documented defect",
+      "status_key": "shipped",
+      "status_label": "Fix released in 1.7",
+      "bottom_line": "Patch 1.7 fixes wreck fire effects disappearing while the wreck still damages players.",
+      "official_short": "Release documented",
+      "fix_short": "Patch 1.7",
+      "cause_short": "Not established by release notes",
+      "last_updated": "2026-10-21",
+      "last_reviewed": "2026-10-21",
+      "scope": [
+        "Helicopter wrecks",
+        "fire"
+      ],
+      "symptom": "Helicopter wreck damage continues without visible fire",
+      "official_position": "The publisher documents this scoped change in the released changelog; this is not independent gameplay verification.",
+      "workaround": null,
+      "known": [
+        "Patch 1.7 fixes wreck fire effects disappearing while the wreck still damages players."
+      ],
+      "unknown": [
+        "Independent post-1.7 outcome testing is not recorded.",
+        "A shared cause with similarly worded reports is not established."
+      ],
+      "timeline": [
+        {
+          "date": "2026-10-21",
+          "event": "Patch 1.7 released",
+          "detail": "Patch 1.7 fixes wreck fire effects disappearing while the wreck still damages players.",
+          "source_url": "https://steamcommunity.com/games/3079210/announcements/detail/675134795999609522"
+        }
+      ],
+      "sources": [
+        {
+          "type": "patch notes",
+          "publisher": "Hell Let Loose / Team17",
+          "title": "Patch 1.7 | Full Changelog | Now Live!",
+          "url": "https://steamcommunity.com/games/3079210/announcements/detail/675134795999609522",
+          "date": "2026-10-21",
+          "source_published_at": "2026-10-21T10:00:57Z",
+          "source_reviewed_at": "2026-10-21",
+          "source_reviewed_via": "https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/1847286114028257",
+          "announcement_id": "1847286114028257",
+          "content_sha256": "e09490c9fbe88e5c27342a6f7201df5cecc4e262b4479e0eaccea3cc0e167b16",
+          "source_locator": "Vehicles",
+          "claim": "Patch 1.7 fixes wreck fire effects disappearing while the wreck still damages players."
+        }
+      ]
+    },
+    {
+      "id": "HLLV-091",
+      "title": "Players swim through the underside of NVA boats",
+      "category": "vehicles",
+      "kind": "release-documented defect",
+      "status_key": "shipped",
+      "status_label": "Fix released in 1.7",
+      "bottom_line": "Patch 1.7 repairs missing underside collision on NVA boats.",
+      "official_short": "Release documented",
+      "fix_short": "Patch 1.7",
+      "cause_short": "Not established by release notes",
+      "last_updated": "2026-10-21",
+      "last_reviewed": "2026-10-21",
+      "scope": [
+        "NVA boats",
+        "collision"
+      ],
+      "symptom": "Players swim through the underside of NVA boats",
+      "official_position": "The publisher documents this scoped change in the released changelog; this is not independent gameplay verification.",
+      "workaround": null,
+      "known": [
+        "Patch 1.7 repairs missing underside collision on NVA boats."
+      ],
+      "unknown": [
+        "Independent post-1.7 outcome testing is not recorded.",
+        "A shared cause with similarly worded reports is not established."
+      ],
+      "timeline": [
+        {
+          "date": "2026-10-21",
+          "event": "Patch 1.7 released",
+          "detail": "Patch 1.7 repairs missing underside collision on NVA boats.",
+          "source_url": "https://steamcommunity.com/games/3079210/announcements/detail/675134795999609522"
+        }
+      ],
+      "sources": [
+        {
+          "type": "patch notes",
+          "publisher": "Hell Let Loose / Team17",
+          "title": "Patch 1.7 | Full Changelog | Now Live!",
+          "url": "https://steamcommunity.com/games/3079210/announcements/detail/675134795999609522",
+          "date": "2026-10-21",
+          "source_published_at": "2026-10-21T10:00:57Z",
+          "source_reviewed_at": "2026-10-21",
+          "source_reviewed_via": "https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/1847286114028257",
+          "announcement_id": "1847286114028257",
+          "content_sha256": "e09490c9fbe88e5c27342a6f7201df5cecc4e262b4479e0eaccea3cc0e167b16",
+          "source_locator": "Vehicles",
+          "claim": "Patch 1.7 repairs missing underside collision on NVA boats."
+        }
+      ]
+    },
+    {
+      "id": "HLLV-092",
+      "title": "Moving-boat exits trap, kill or throw players",
+      "category": "vehicles",
+      "kind": "release-documented defect",
+      "status_key": "shipped",
+      "status_label": "Fix released in 1.7",
+      "bottom_line": "Patch 1.7 lists corrections for moving-boat exits that trap players in the cabin, kill them or throw them unexpectedly.",
+      "official_short": "Release documented",
+      "fix_short": "Patch 1.7",
+      "cause_short": "Not established by release notes",
+      "last_updated": "2026-10-21",
+      "last_reviewed": "2026-10-21",
+      "scope": [
+        "Moving boats",
+        "disembarking"
+      ],
+      "symptom": "Moving-boat exits trap, kill or throw players",
+      "official_position": "The publisher documents this scoped change in the released changelog; this is not independent gameplay verification.",
+      "workaround": null,
+      "known": [
+        "Patch 1.7 lists corrections for moving-boat exits that trap players in the cabin, kill them or throw them unexpectedly."
+      ],
+      "unknown": [
+        "Independent post-1.7 outcome testing is not recorded.",
+        "A shared cause with similarly worded reports is not established."
+      ],
+      "timeline": [
+        {
+          "date": "2026-10-21",
+          "event": "Patch 1.7 released",
+          "detail": "Patch 1.7 lists corrections for moving-boat exits that trap players in the cabin, kill them or throw them unexpectedly.",
+          "source_url": "https://steamcommunity.com/games/3079210/announcements/detail/675134795999609522"
+        }
+      ],
+      "sources": [
+        {
+          "type": "patch notes",
+          "publisher": "Hell Let Loose / Team17",
+          "title": "Patch 1.7 | Full Changelog | Now Live!",
+          "url": "https://steamcommunity.com/games/3079210/announcements/detail/675134795999609522",
+          "date": "2026-10-21",
+          "source_published_at": "2026-10-21T10:00:57Z",
+          "source_reviewed_at": "2026-10-21",
+          "source_reviewed_via": "https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/1847286114028257",
+          "announcement_id": "1847286114028257",
+          "content_sha256": "e09490c9fbe88e5c27342a6f7201df5cecc4e262b4479e0eaccea3cc0e167b16",
+          "source_locator": "Vehicles",
+          "claim": "Patch 1.7 lists corrections for moving-boat exits that trap players in the cabin, kill them or throw them unexpectedly."
+        }
+      ]
+    },
+    {
+      "id": "HLLV-093",
+      "title": "Tank gunner seat changes silently switch ammunition to AP",
+      "category": "vehicles",
+      "kind": "release-documented defect",
+      "status_key": "shipped",
+      "status_label": "Fix released in 1.7",
+      "bottom_line": "Patch 1.7 fixes leaving or changing the Gunner seat switching ammunition to AP while the display still shows the previous shell.",
+      "official_short": "Release documented",
+      "fix_short": "Patch 1.7",
+      "cause_short": "Not established by release notes",
+      "last_updated": "2026-10-21",
+      "last_reviewed": "2026-10-21",
+      "scope": [
+        "Tank Gunner",
+        "ammunition"
+      ],
+      "symptom": "Tank gunner seat changes silently switch ammunition to AP",
+      "official_position": "The publisher documents this scoped change in the released changelog; this is not independent gameplay verification.",
+      "workaround": null,
+      "known": [
+        "Patch 1.7 fixes leaving or changing the Gunner seat switching ammunition to AP while the display still shows the previous shell."
+      ],
+      "unknown": [
+        "Independent post-1.7 outcome testing is not recorded.",
+        "A shared cause with similarly worded reports is not established."
+      ],
+      "timeline": [
+        {
+          "date": "2026-10-21",
+          "event": "Patch 1.7 released",
+          "detail": "Patch 1.7 fixes leaving or changing the Gunner seat switching ammunition to AP while the display still shows the previous shell.",
+          "source_url": "https://steamcommunity.com/games/3079210/announcements/detail/675134795999609522"
+        }
+      ],
+      "sources": [
+        {
+          "type": "patch notes",
+          "publisher": "Hell Let Loose / Team17",
+          "title": "Patch 1.7 | Full Changelog | Now Live!",
+          "url": "https://steamcommunity.com/games/3079210/announcements/detail/675134795999609522",
+          "date": "2026-10-21",
+          "source_published_at": "2026-10-21T10:00:57Z",
+          "source_reviewed_at": "2026-10-21",
+          "source_reviewed_via": "https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/1847286114028257",
+          "announcement_id": "1847286114028257",
+          "content_sha256": "e09490c9fbe88e5c27342a6f7201df5cecc4e262b4479e0eaccea3cc0e167b16",
+          "source_locator": "Vehicles",
+          "claim": "Patch 1.7 fixes leaving or changing the Gunner seat switching ammunition to AP while the display still shows the previous shell."
+        }
+      ]
+    },
+    {
+      "id": "HLLV-094",
+      "title": "Server queue shows an outdated map or mode",
+      "category": "servers",
+      "kind": "release-documented defect",
+      "status_key": "shipped",
+      "status_label": "Fix released in 1.7",
+      "bottom_line": "Patch 1.7 corrects queue information disagreeing with the Server Browser after a match changes.",
+      "official_short": "Release documented",
+      "fix_short": "Patch 1.7",
+      "cause_short": "Not established by release notes",
+      "last_updated": "2026-10-21",
+      "last_reviewed": "2026-10-21",
+      "scope": [
+        "Server queue",
+        "map and mode"
+      ],
+      "symptom": "Server queue shows an outdated map or mode",
+      "official_position": "The publisher documents this scoped change in the released changelog; this is not independent gameplay verification.",
+      "workaround": null,
+      "known": [
+        "Patch 1.7 corrects queue information disagreeing with the Server Browser after a match changes."
+      ],
+      "unknown": [
+        "Independent post-1.7 outcome testing is not recorded.",
+        "A shared cause with similarly worded reports is not established."
+      ],
+      "timeline": [
+        {
+          "date": "2026-10-21",
+          "event": "Patch 1.7 released",
+          "detail": "Patch 1.7 corrects queue information disagreeing with the Server Browser after a match changes.",
+          "source_url": "https://steamcommunity.com/games/3079210/announcements/detail/675134795999609522"
+        }
+      ],
+      "sources": [
+        {
+          "type": "patch notes",
+          "publisher": "Hell Let Loose / Team17",
+          "title": "Patch 1.7 | Full Changelog | Now Live!",
+          "url": "https://steamcommunity.com/games/3079210/announcements/detail/675134795999609522",
+          "date": "2026-10-21",
+          "source_published_at": "2026-10-21T10:00:57Z",
+          "source_reviewed_at": "2026-10-21",
+          "source_reviewed_via": "https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/1847286114028257",
+          "announcement_id": "1847286114028257",
+          "content_sha256": "e09490c9fbe88e5c27342a6f7201df5cecc4e262b4479e0eaccea3cc0e167b16",
+          "source_locator": "UI & HUD",
+          "claim": "Patch 1.7 corrects queue information disagreeing with the Server Browser after a match changes."
+        }
+      ]
+    },
+    {
+      "id": "HLLV-095",
+      "title": "Leave Unit becomes unresponsive after joining and leaving",
+      "category": "ui",
+      "kind": "release-documented defect",
+      "status_key": "shipped",
+      "status_label": "Fix released in 1.7",
+      "bottom_line": "Patch 1.7 fixes the Leave Unit button becoming unresponsive after a join/leave sequence.",
+      "official_short": "Release documented",
+      "fix_short": "Patch 1.7",
+      "cause_short": "Not established by release notes",
+      "last_updated": "2026-10-21",
+      "last_reviewed": "2026-10-21",
+      "scope": [
+        "Unit controls"
+      ],
+      "symptom": "Leave Unit becomes unresponsive after joining and leaving",
+      "official_position": "The publisher documents this scoped change in the released changelog; this is not independent gameplay verification.",
+      "workaround": null,
+      "known": [
+        "Patch 1.7 fixes the Leave Unit button becoming unresponsive after a join/leave sequence."
+      ],
+      "unknown": [
+        "Independent post-1.7 outcome testing is not recorded.",
+        "A shared cause with similarly worded reports is not established."
+      ],
+      "timeline": [
+        {
+          "date": "2026-10-21",
+          "event": "Patch 1.7 released",
+          "detail": "Patch 1.7 fixes the Leave Unit button becoming unresponsive after a join/leave sequence.",
+          "source_url": "https://steamcommunity.com/games/3079210/announcements/detail/675134795999609522"
+        }
+      ],
+      "sources": [
+        {
+          "type": "patch notes",
+          "publisher": "Hell Let Loose / Team17",
+          "title": "Patch 1.7 | Full Changelog | Now Live!",
+          "url": "https://steamcommunity.com/games/3079210/announcements/detail/675134795999609522",
+          "date": "2026-10-21",
+          "source_published_at": "2026-10-21T10:00:57Z",
+          "source_reviewed_at": "2026-10-21",
+          "source_reviewed_via": "https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/1847286114028257",
+          "announcement_id": "1847286114028257",
+          "content_sha256": "e09490c9fbe88e5c27342a6f7201df5cecc4e262b4479e0eaccea3cc0e167b16",
+          "source_locator": "UI & HUD",
+          "claim": "Patch 1.7 fixes the Leave Unit button becoming unresponsive after a join/leave sequence."
+        }
+      ]
+    },
+    {
+      "id": "HLLV-096",
+      "title": "Simultaneous inputs prevent Commander vehicle orders",
+      "category": "gameplay",
+      "kind": "release-documented defect",
+      "status_key": "shipped",
+      "status_label": "Fix released in 1.7",
+      "bottom_line": "Patch 1.7 fixes vehicle orders failing when multiple inputs are pressed together; this is not general spawn replication closure.",
+      "official_short": "Release documented",
+      "fix_short": "Patch 1.7",
+      "cause_short": "Not established by release notes",
+      "last_updated": "2026-10-21",
+      "last_reviewed": "2026-10-21",
+      "scope": [
+        "Commander",
+        "vehicle orders"
+      ],
+      "symptom": "Simultaneous inputs prevent Commander vehicle orders",
+      "official_position": "The publisher documents this scoped change in the released changelog; this is not independent gameplay verification.",
+      "workaround": null,
+      "known": [
+        "Patch 1.7 fixes vehicle orders failing when multiple inputs are pressed together; this is not general spawn replication closure."
+      ],
+      "unknown": [
+        "Independent post-1.7 outcome testing is not recorded.",
+        "A shared cause with similarly worded reports is not established."
+      ],
+      "timeline": [
+        {
+          "date": "2026-10-21",
+          "event": "Patch 1.7 released",
+          "detail": "Patch 1.7 fixes vehicle orders failing when multiple inputs are pressed together; this is not general spawn replication closure.",
+          "source_url": "https://steamcommunity.com/games/3079210/announcements/detail/675134795999609522"
+        }
+      ],
+      "sources": [
+        {
+          "type": "patch notes",
+          "publisher": "Hell Let Loose / Team17",
+          "title": "Patch 1.7 | Full Changelog | Now Live!",
+          "url": "https://steamcommunity.com/games/3079210/announcements/detail/675134795999609522",
+          "date": "2026-10-21",
+          "source_published_at": "2026-10-21T10:00:57Z",
+          "source_reviewed_at": "2026-10-21",
+          "source_reviewed_via": "https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/1847286114028257",
+          "announcement_id": "1847286114028257",
+          "content_sha256": "e09490c9fbe88e5c27342a6f7201df5cecc4e262b4479e0eaccea3cc0e167b16",
+          "source_locator": "Tactical Map & Tunnels",
+          "claim": "Patch 1.7 fixes vehicle orders failing when multiple inputs are pressed together; this is not general spawn replication closure."
+        }
+      ]
+    },
+    {
+      "id": "HLLV-097",
+      "title": "Commander strike aircraft appear offset from their target",
+      "category": "gameplay",
+      "kind": "release-documented defect",
+      "status_key": "shipped",
+      "status_label": "Fix released in 1.7",
+      "bottom_line": "Patch 1.7 corrects strike aircraft appearing offset from the intended ability position.",
+      "official_short": "Release documented",
+      "fix_short": "Patch 1.7",
+      "cause_short": "Not established by release notes",
+      "last_updated": "2026-10-21",
+      "last_reviewed": "2026-10-21",
+      "scope": [
+        "Commander",
+        "strike aircraft"
+      ],
+      "symptom": "Commander strike aircraft appear offset from their target",
+      "official_position": "The publisher documents this scoped change in the released changelog; this is not independent gameplay verification.",
+      "workaround": null,
+      "known": [
+        "Patch 1.7 corrects strike aircraft appearing offset from the intended ability position."
+      ],
+      "unknown": [
+        "Independent post-1.7 outcome testing is not recorded.",
+        "A shared cause with similarly worded reports is not established."
+      ],
+      "timeline": [
+        {
+          "date": "2026-10-21",
+          "event": "Patch 1.7 released",
+          "detail": "Patch 1.7 corrects strike aircraft appearing offset from the intended ability position.",
+          "source_url": "https://steamcommunity.com/games/3079210/announcements/detail/675134795999609522"
+        }
+      ],
+      "sources": [
+        {
+          "type": "patch notes",
+          "publisher": "Hell Let Loose / Team17",
+          "title": "Patch 1.7 | Full Changelog | Now Live!",
+          "url": "https://steamcommunity.com/games/3079210/announcements/detail/675134795999609522",
+          "date": "2026-10-21",
+          "source_published_at": "2026-10-21T10:00:57Z",
+          "source_reviewed_at": "2026-10-21",
+          "source_reviewed_via": "https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/1847286114028257",
+          "announcement_id": "1847286114028257",
+          "content_sha256": "e09490c9fbe88e5c27342a6f7201df5cecc4e262b4479e0eaccea3cc0e167b16",
+          "source_locator": "Tactical Map & Tunnels",
+          "claim": "Patch 1.7 corrects strike aircraft appearing offset from the intended ability position."
+        }
+      ]
+    },
+    {
+      "id": "HLLV-098",
+      "title": "Mortar Tutorial reload blocked after entering the Aimer seat",
+      "category": "gameplay",
+      "kind": "release-documented defect",
+      "status_key": "shipped",
+      "status_label": "Fix released in 1.7",
+      "bottom_line": "Patch 1.7 fixes tutorial reloading becoming unavailable after first using the Aimer position.",
+      "official_short": "Release documented",
+      "fix_short": "Patch 1.7",
+      "cause_short": "Not established by release notes",
+      "last_updated": "2026-10-21",
+      "last_reviewed": "2026-10-21",
+      "scope": [
+        "Mortar Tutorial",
+        "reload"
+      ],
+      "symptom": "Mortar Tutorial reload blocked after entering the Aimer seat",
+      "official_position": "The publisher documents this scoped change in the released changelog; this is not independent gameplay verification.",
+      "workaround": null,
+      "known": [
+        "Patch 1.7 fixes tutorial reloading becoming unavailable after first using the Aimer position."
+      ],
+      "unknown": [
+        "Independent post-1.7 outcome testing is not recorded.",
+        "A shared cause with similarly worded reports is not established."
+      ],
+      "timeline": [
+        {
+          "date": "2026-10-21",
+          "event": "Patch 1.7 released",
+          "detail": "Patch 1.7 fixes tutorial reloading becoming unavailable after first using the Aimer position.",
+          "source_url": "https://steamcommunity.com/games/3079210/announcements/detail/675134795999609522"
+        }
+      ],
+      "sources": [
+        {
+          "type": "patch notes",
+          "publisher": "Hell Let Loose / Team17",
+          "title": "Patch 1.7 | Full Changelog | Now Live!",
+          "url": "https://steamcommunity.com/games/3079210/announcements/detail/675134795999609522",
+          "date": "2026-10-21",
+          "source_published_at": "2026-10-21T10:00:57Z",
+          "source_reviewed_at": "2026-10-21",
+          "source_reviewed_via": "https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/1847286114028257",
+          "announcement_id": "1847286114028257",
+          "content_sha256": "e09490c9fbe88e5c27342a6f7201df5cecc4e262b4479e0eaccea3cc0e167b16",
+          "source_locator": "Tutorials & Practice Range",
+          "claim": "Patch 1.7 fixes tutorial reloading becoming unavailable after first using the Aimer position."
+        }
+      ]
+    },
+    {
+      "id": "HLLV-099",
+      "title": "Weapon firing effects play incorrectly around deployment",
+      "category": "audio",
+      "kind": "release-documented defect",
+      "status_key": "shipped",
+      "status_label": "Fix released in 1.7",
+      "bottom_line": "Patch 1.7 fixes incorrect firing sounds and visuals when deploying near players using semi-automatic fire.",
+      "official_short": "Release documented",
+      "fix_short": "Patch 1.7",
+      "cause_short": "Not established by release notes",
+      "last_updated": "2026-10-21",
+      "last_reviewed": "2026-10-21",
+      "scope": [
+        "Deployment",
+        "semi-automatic weapons"
+      ],
+      "symptom": "Weapon firing effects play incorrectly around deployment",
+      "official_position": "The publisher documents this scoped change in the released changelog; this is not independent gameplay verification.",
+      "workaround": null,
+      "known": [
+        "Patch 1.7 fixes incorrect firing sounds and visuals when deploying near players using semi-automatic fire."
+      ],
+      "unknown": [
+        "Independent post-1.7 outcome testing is not recorded.",
+        "A shared cause with similarly worded reports is not established."
+      ],
+      "timeline": [
+        {
+          "date": "2026-10-21",
+          "event": "Patch 1.7 released",
+          "detail": "Patch 1.7 fixes incorrect firing sounds and visuals when deploying near players using semi-automatic fire.",
+          "source_url": "https://steamcommunity.com/games/3079210/announcements/detail/675134795999609522"
+        }
+      ],
+      "sources": [
+        {
+          "type": "patch notes",
+          "publisher": "Hell Let Loose / Team17",
+          "title": "Patch 1.7 | Full Changelog | Now Live!",
+          "url": "https://steamcommunity.com/games/3079210/announcements/detail/675134795999609522",
+          "date": "2026-10-21",
+          "source_published_at": "2026-10-21T10:00:57Z",
+          "source_reviewed_at": "2026-10-21",
+          "source_reviewed_via": "https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/1847286114028257",
+          "announcement_id": "1847286114028257",
+          "content_sha256": "e09490c9fbe88e5c27342a6f7201df5cecc4e262b4479e0eaccea3cc0e167b16",
+          "source_locator": "Audio, Visuals & Animation",
+          "claim": "Patch 1.7 fixes incorrect firing sounds and visuals when deploying near players using semi-automatic fire."
+        }
+      ]
+    },
+    {
+      "id": "HLLV-100",
+      "title": "Low Quality shadows shift after leaving ADS",
+      "category": "graphics",
+      "kind": "release-documented defect",
+      "status_key": "shipped",
+      "status_label": "Fix released in 1.7",
+      "bottom_line": "Patch 1.7 fixes visibly moving shadows on Low Quality settings after leaving aim-down-sights.",
+      "official_short": "Release documented",
+      "fix_short": "Patch 1.7",
+      "cause_short": "Not established by release notes",
+      "last_updated": "2026-10-21",
+      "last_reviewed": "2026-10-21",
+      "scope": [
+        "Low Quality",
+        "shadows",
+        "ADS"
+      ],
+      "symptom": "Low Quality shadows shift after leaving ADS",
+      "official_position": "The publisher documents this scoped change in the released changelog; this is not independent gameplay verification.",
+      "workaround": null,
+      "known": [
+        "Patch 1.7 fixes visibly moving shadows on Low Quality settings after leaving aim-down-sights."
+      ],
+      "unknown": [
+        "Independent post-1.7 outcome testing is not recorded.",
+        "A shared cause with similarly worded reports is not established."
+      ],
+      "timeline": [
+        {
+          "date": "2026-10-21",
+          "event": "Patch 1.7 released",
+          "detail": "Patch 1.7 fixes visibly moving shadows on Low Quality settings after leaving aim-down-sights.",
+          "source_url": "https://steamcommunity.com/games/3079210/announcements/detail/675134795999609522"
+        }
+      ],
+      "sources": [
+        {
+          "type": "patch notes",
+          "publisher": "Hell Let Loose / Team17",
+          "title": "Patch 1.7 | Full Changelog | Now Live!",
+          "url": "https://steamcommunity.com/games/3079210/announcements/detail/675134795999609522",
+          "date": "2026-10-21",
+          "source_published_at": "2026-10-21T10:00:57Z",
+          "source_reviewed_at": "2026-10-21",
+          "source_reviewed_via": "https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/1847286114028257",
+          "announcement_id": "1847286114028257",
+          "content_sha256": "e09490c9fbe88e5c27342a6f7201df5cecc4e262b4479e0eaccea3cc0e167b16",
+          "source_locator": "Audio, Visuals & Animation",
+          "claim": "Patch 1.7 fixes visibly moving shadows on Low Quality settings after leaving aim-down-sights."
+        }
+      ]
+    },
+    {
+      "id": "HLLV-101",
+      "title": "Tank Driver rotation encounters a NaN error",
+      "category": "stability",
+      "kind": "release-documented defect",
+      "status_key": "shipped",
+      "status_label": "Fix released in 1.7",
+      "bottom_line": "Patch 1.7 corrects a Tank Driver seat-rotation NaN error. The notes do not identify it as the cause of all tank-related crashes.",
+      "official_short": "Release documented",
+      "fix_short": "Patch 1.7",
+      "cause_short": "Not established by release notes",
+      "last_updated": "2026-10-21",
+      "last_reviewed": "2026-10-21",
+      "scope": [
+        "Tank Driver",
+        "seat rotation"
+      ],
+      "symptom": "Tank Driver rotation encounters a NaN error",
+      "official_position": "The publisher documents this scoped change in the released changelog; this is not independent gameplay verification.",
+      "workaround": null,
+      "known": [
+        "Patch 1.7 corrects a Tank Driver seat-rotation NaN error. The notes do not identify it as the cause of all tank-related crashes."
+      ],
+      "unknown": [
+        "Independent post-1.7 outcome testing is not recorded.",
+        "A shared cause with similarly worded reports is not established."
+      ],
+      "timeline": [
+        {
+          "date": "2026-10-21",
+          "event": "Patch 1.7 released",
+          "detail": "Patch 1.7 corrects a Tank Driver seat-rotation NaN error. The notes do not identify it as the cause of all tank-related crashes.",
+          "source_url": "https://steamcommunity.com/games/3079210/announcements/detail/675134795999609522"
+        }
+      ],
+      "sources": [
+        {
+          "type": "patch notes",
+          "publisher": "Hell Let Loose / Team17",
+          "title": "Patch 1.7 | Full Changelog | Now Live!",
+          "url": "https://steamcommunity.com/games/3079210/announcements/detail/675134795999609522",
+          "date": "2026-10-21",
+          "source_published_at": "2026-10-21T10:00:57Z",
+          "source_reviewed_at": "2026-10-21",
+          "source_reviewed_via": "https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/1847286114028257",
+          "announcement_id": "1847286114028257",
+          "content_sha256": "e09490c9fbe88e5c27342a6f7201df5cecc4e262b4479e0eaccea3cc0e167b16",
+          "source_locator": "Stability & Performance",
+          "claim": "Patch 1.7 corrects a Tank Driver seat-rotation NaN error. The notes do not identify it as the cause of all tank-related crashes."
+        }
+      ]
+    },
+    {
+      "id": "HLLV-102",
+      "title": "Rubberbanding along shorelines",
+      "category": "stability",
+      "kind": "release-documented defect",
+      "status_key": "partial",
+      "status_label": "Reduction released in 1.7",
+      "bottom_line": "Patch 1.7 reduces rubberbanding while walking or running along water edges; the wording does not promise elimination.",
+      "official_short": "Release documented",
+      "fix_short": "Patch 1.7",
+      "cause_short": "Not established by release notes",
+      "last_updated": "2026-10-21",
+      "last_reviewed": "2026-10-21",
+      "scope": [
+        "Movement",
+        "shoreline"
+      ],
+      "symptom": "Rubberbanding along shorelines",
+      "official_position": "The publisher documents this scoped change in the released changelog; this is not independent gameplay verification.",
+      "workaround": null,
+      "known": [
+        "Patch 1.7 reduces rubberbanding while walking or running along water edges; the wording does not promise elimination."
+      ],
+      "unknown": [
+        "Independent post-1.7 outcome testing is not recorded.",
+        "A shared cause with similarly worded reports is not established."
+      ],
+      "timeline": [
+        {
+          "date": "2026-10-21",
+          "event": "Patch 1.7 released",
+          "detail": "Patch 1.7 reduces rubberbanding while walking or running along water edges; the wording does not promise elimination.",
+          "source_url": "https://steamcommunity.com/games/3079210/announcements/detail/675134795999609522"
+        }
+      ],
+      "sources": [
+        {
+          "type": "patch notes",
+          "publisher": "Hell Let Loose / Team17",
+          "title": "Patch 1.7 | Full Changelog | Now Live!",
+          "url": "https://steamcommunity.com/games/3079210/announcements/detail/675134795999609522",
+          "date": "2026-10-21",
+          "source_published_at": "2026-10-21T10:00:57Z",
+          "source_reviewed_at": "2026-10-21",
+          "source_reviewed_via": "https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/1847286114028257",
+          "announcement_id": "1847286114028257",
+          "content_sha256": "e09490c9fbe88e5c27342a6f7201df5cecc4e262b4479e0eaccea3cc0e167b16",
+          "source_locator": "Stability & Performance",
+          "claim": "Patch 1.7 reduces rubberbanding while walking or running along water edges; the wording does not promise elimination."
+        }
+      ]
+    },
+    {
+      "id": "HLLV-103",
+      "title": "Weapon reload haptics stop working",
+      "category": "controls",
+      "kind": "release-documented defect",
+      "status_key": "shipped",
+      "status_label": "Fix released in 1.7",
+      "bottom_line": "Patch 1.7 fixes reload haptics stopping. This is distinct from the earlier M14/SKS feedback correction.",
+      "official_short": "Release documented",
+      "fix_short": "Patch 1.7",
+      "cause_short": "Not established by release notes",
+      "last_updated": "2026-10-21",
+      "last_reviewed": "2026-10-21",
+      "scope": [
+        "Weapons",
+        "reload haptics"
+      ],
+      "symptom": "Weapon reload haptics stop working",
+      "official_position": "The publisher documents this scoped change in the released changelog; this is not independent gameplay verification.",
+      "workaround": null,
+      "known": [
+        "Patch 1.7 fixes reload haptics stopping. This is distinct from the earlier M14/SKS feedback correction."
+      ],
+      "unknown": [
+        "Independent post-1.7 outcome testing is not recorded.",
+        "A shared cause with similarly worded reports is not established."
+      ],
+      "timeline": [
+        {
+          "date": "2026-10-21",
+          "event": "Patch 1.7 released",
+          "detail": "Patch 1.7 fixes reload haptics stopping. This is distinct from the earlier M14/SKS feedback correction.",
+          "source_url": "https://steamcommunity.com/games/3079210/announcements/detail/675134795999609522"
+        }
+      ],
+      "sources": [
+        {
+          "type": "patch notes",
+          "publisher": "Hell Let Loose / Team17",
+          "title": "Patch 1.7 | Full Changelog | Now Live!",
+          "url": "https://steamcommunity.com/games/3079210/announcements/detail/675134795999609522",
+          "date": "2026-10-21",
+          "source_published_at": "2026-10-21T10:00:57Z",
+          "source_reviewed_at": "2026-10-21",
+          "source_reviewed_via": "https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/1847286114028257",
+          "announcement_id": "1847286114028257",
+          "content_sha256": "e09490c9fbe88e5c27342a6f7201df5cecc4e262b4479e0eaccea3cc0e167b16",
+          "source_locator": "Gameplay",
+          "claim": "Patch 1.7 fixes reload haptics stopping. This is distinct from the earlier M14/SKS feedback correction."
         }
       ]
     }
@@ -7243,7 +8683,7 @@
       "note": "Operational incidents remain separate from game issues until evidence establishes a relationship."
     }
   ],
-  "review_notes": "October 20: reviewed official acknowledgements with their original dates; see review_history for claim limits. Previous review: October 16: 14 existing dossiers refreshed; 8 separately scoped issues added. Read review_history for coverage and limits. Older evidence dates and the existing held reply remain unchanged. Previous review: October 11: reviewed the October 9 Community Feedback #7 publisher text on Steam and compared its Huey sensitivity target with the 1.6 release notes. Newest claims remain plans, publisher observations or ongoing investigations as appropriate. Ten existing dossiers updated; no new issue IDs or independent gameplay checks. Recent player report dates remain unchanged. Previous review: October 7: reviewed the published Patch 1.6 changelog and earlier publisher text for 21 precise citation clarifications. Promoted only explicitly released changes; preserved unresolved wider families and all old reports. No independent gameplay testing. Recent player-thread bodies were inaccessible in the research reader, so no new player confirmation is claimed. Previous notes: Source-link audit, October 5: corrected the verified Community Feedback #4 URL wherever reused. Replaced the generic Hotfix 1.5.1 feed link only if the exact announcement title and destination were verified. Other issue content and historical claims are unchanged. October 5 review: rechecked the official Steam announcements through the October 2 VLOG notice, September 29 Hotfix 1.5.2 and October 1 Community Feedback #6. Clarified stale server-family wording, current mitigations and planned-versus-released changes. No new gameplay fix or independent gameplay verification was established. Individual evidence dates and prior player reports remain unchanged unless newer evidence was added. This pass did not revalidate every historical player report. A review date is not proof an old bug persists. Equivalent source permalinks are changed only when their publisher title and accessibility are verified. Prior review: October 2 review: checked the official blog, current Steam announcements and six Steam support threads. Added the publisher's Patch 1.6 timing and dated player reports. A recent forum reply is not a new patch, reproduced defect, confirmed root cause or proof that a previous fix failed. The linked VLOG announcement text was reviewed; the video itself was not used as evidence. Original issue dates and history are retained. Reviewed the official September 25 Community Feedback #5, September 29 Hotfix 1.5.2 and October 1 Community Feedback #6 posts, using their full publisher text on Steam. Targets for 1.6, 1.7 and 2.0 are not release confirmations. Old reports retain their evidence dates unless new evidence applies. Similar symptoms do not establish a shared cause; SoulSniper incidents remain separate. No independent gameplay verification was performed. Prior review: Reviewed official releases through the September 22 live announcement. The website dates Hotfix 1.5.1 September 21; Steam announces it live September 22. Update 1.5 notes preceded its September 16 release. Older unresolved reports retain their evidence dates; absence from newer notes is not confirmation of persistence or resolution.",
+  "review_notes": "October 21: reviewed Patch 1.7 release evidence; historical assessments and source dates retained. October 20: reviewed official acknowledgements with their original dates; see review_history for claim limits. Previous review: October 16: 14 existing dossiers refreshed; 8 separately scoped issues added. Read review_history for coverage and limits. Older evidence dates and the existing held reply remain unchanged. Previous review: October 11: reviewed the October 9 Community Feedback #7 publisher text on Steam and compared its Huey sensitivity target with the 1.6 release notes. Newest claims remain plans, publisher observations or ongoing investigations as appropriate. Ten existing dossiers updated; no new issue IDs or independent gameplay checks. Recent player report dates remain unchanged. Previous review: October 7: reviewed the published Patch 1.6 changelog and earlier publisher text for 21 precise citation clarifications. Promoted only explicitly released changes; preserved unresolved wider families and all old reports. No independent gameplay testing. Recent player-thread bodies were inaccessible in the research reader, so no new player confirmation is claimed. Previous notes: Source-link audit, October 5: corrected the verified Community Feedback #4 URL wherever reused. Replaced the generic Hotfix 1.5.1 feed link only if the exact announcement title and destination were verified. Other issue content and historical claims are unchanged. October 5 review: rechecked the official Steam announcements through the October 2 VLOG notice, September 29 Hotfix 1.5.2 and October 1 Community Feedback #6. Clarified stale server-family wording, current mitigations and planned-versus-released changes. No new gameplay fix or independent gameplay verification was established. Individual evidence dates and prior player reports remain unchanged unless newer evidence was added. This pass did not revalidate every historical player report. A review date is not proof an old bug persists. Equivalent source permalinks are changed only when their publisher title and accessibility are verified. Prior review: October 2 review: checked the official blog, current Steam announcements and six Steam support threads. Added the publisher's Patch 1.6 timing and dated player reports. A recent forum reply is not a new patch, reproduced defect, confirmed root cause or proof that a previous fix failed. The linked VLOG announcement text was reviewed; the video itself was not used as evidence. Original issue dates and history are retained. Reviewed the official September 25 Community Feedback #5, September 29 Hotfix 1.5.2 and October 1 Community Feedback #6 posts, using their full publisher text on Steam. Targets for 1.6, 1.7 and 2.0 are not release confirmations. Old reports retain their evidence dates unless new evidence applies. Similar symptoms do not establish a shared cause; SoulSniper incidents remain separate. No independent gameplay verification was performed. Prior review: Reviewed official releases through the September 22 live announcement. The website dates Hotfix 1.5.1 September 21; Steam announces it live September 22. Update 1.5 notes preceded its September 16 release. Older unresolved reports retain their evidence dates; absence from newer notes is not confirmation of persistence or resolution.",
   "source_link_review": {
     "date": "2026-10-05",
     "repaired_references": 9,
@@ -7310,8 +8750,8 @@
     ],
     "method": "Verified source titles and HTTP responses. The earlier Steam API discovery did not produce replacements because official announcements were returned through external CDN redirects; no guessed URL was published."
   },
-  "page_updated_at": "2026-10-20T12:55:20Z",
-  "review_release": "2026-10-20-official-response-review",
+  "page_updated_at": "2026-10-21T17:59:33Z",
+  "review_release": "2026-10-21-patch-1-7-review",
   "review_history": [
     {
       "date": "2026-10-07",
@@ -7526,6 +8966,101 @@
           "source_category": "Team17 Support",
           "claim": "After requesting diagnostics for low-quality foliage, Support recommends a driver update to one NVIDIA user. The reply does not establish recovery or a general rendering fix."
         }
+      ]
+    },
+    {
+      "date": "2026-10-21",
+      "review_release": "2026-10-21-patch-1-7-review",
+      "base_commit": "0b0d84b467f774e3b51107bdf8ed8f948c782039",
+      "page_updated_at": "2026-10-21T17:59:33Z",
+      "issue_count": 103,
+      "feature_count": 33,
+      "updated_issues": [
+        "HLLV-003",
+        "HLLV-004",
+        "HLLV-006",
+        "HLLV-007",
+        "HLLV-031",
+        "HLLV-033",
+        "HLLV-046",
+        "HLLV-057",
+        "HLLV-060",
+        "HLLV-061",
+        "HLLV-062",
+        "HLLV-067",
+        "HLLV-070",
+        "HLLV-077",
+        "HLLV-084"
+      ],
+      "new_issues": [
+        "HLLV-085",
+        "HLLV-086",
+        "HLLV-087",
+        "HLLV-088",
+        "HLLV-089",
+        "HLLV-090",
+        "HLLV-091",
+        "HLLV-092",
+        "HLLV-093",
+        "HLLV-094",
+        "HLLV-095",
+        "HLLV-096",
+        "HLLV-097",
+        "HLLV-098",
+        "HLLV-099",
+        "HLLV-100",
+        "HLLV-101",
+        "HLLV-102",
+        "HLLV-103"
+      ],
+      "updated_features": [
+        "HLLV-F001",
+        "HLLV-F003",
+        "HLLV-F008",
+        "HLLV-F009",
+        "HLLV-F010"
+      ],
+      "new_features": [
+        "HLLV-F017",
+        "HLLV-F018",
+        "HLLV-F019",
+        "HLLV-F020",
+        "HLLV-F021",
+        "HLLV-F022",
+        "HLLV-F023",
+        "HLLV-F024",
+        "HLLV-F025",
+        "HLLV-F026",
+        "HLLV-F027",
+        "HLLV-F028",
+        "HLLV-F029",
+        "HLLV-F030",
+        "HLLV-F031",
+        "HLLV-F032",
+        "HLLV-F033"
+      ],
+      "source": {
+        "type": "patch notes",
+        "publisher": "Hell Let Loose / Team17",
+        "title": "Patch 1.7 | Full Changelog | Now Live!",
+        "url": "https://steamcommunity.com/games/3079210/announcements/detail/675134795999609522",
+        "date": "2026-10-21",
+        "source_published_at": "2026-10-21T10:00:57Z",
+        "source_reviewed_at": "2026-10-21",
+        "source_reviewed_via": "https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/1847286114028257",
+        "announcement_id": "1847286114028257",
+        "content_sha256": "e09490c9fbe88e5c27342a6f7201df5cecc4e262b4479e0eaccea3cc0e167b16"
+      },
+      "latest_verified_release": "Patch 1.7",
+      "independent_gameplay_testing": false,
+      "scope": "Full Patch 1.7 publisher text reviewed; selected bug dossiers and functionality topics updated. Smaller cosmetic/UI corrections remain available in the linked complete changelog.",
+      "limitations": [
+        "Patch notes establish announced release, not independent recovery for every report.",
+        "No blanket closure of spawn replication, tutorial persistence, DLSS persistence, missing blueprints, all crashes or all foliage reports.",
+        "Huey M60 ADS was targeted for 1.7 but is not explicitly confirmed by the final text.",
+        "Khe Sanh and ANZAC remain planned for Update 2.0; QSSR has no stated release date.",
+        "The existing automatic forum monitor remains partial (35 of 36 tracked threads complete at its last run); this patch review is not a fresh all-forum audit.",
+        "Unrelated Support-text editorial hold, private suggestions, moderation and account data are unchanged."
       ]
     }
   ],
@@ -7787,6 +9322,32 @@
   },
   "patch_notes": [
     {
+      "id": "patch-1-7",
+      "title": "Patch 1.7",
+      "date": "2026-10-21",
+      "date_label": "Live announcement",
+      "scope": "PC and consoles; PSSR, VRR and AMD frame generation have hardware/display requirements",
+      "headline": "New weapon options, useful vehicle changes, and targeted fixes.",
+      "highlights": [
+        "The M1A1 Thompson and optional M16A1 30-round magazines join the arsenal. Tanks can unload shells when changing ammunition.",
+        "Boats shut down on manual driver exit, retain driver-death counterplay, and receive handling/balance changes. Engineers get three Barbed Wire placements, capped at 50 per side.",
+        "PSSR reaches PS5 Pro, VRR reaches compatible PS5 displays, and supported AMD GPUs gain FSR Frame Generation. Controller Crouch/Melee swapping and punishment/AFK changes are live.",
+        "Specific fixes cover voice-volume scaling, right-click ADS, moving-boat exits, foliage at distance, and map collisions. Khe Sanh and ANZAC remain future Update 2.0 content."
+      ],
+      "caution": "A released change is not universal recovery. Missing-spawn replication, lost tutorial progress, DLSS reapplication and the Huey M60 ADS target are not explicitly closed. Driver death deliberately leaves boat engines running.",
+      "source_url": "https://steamcommunity.com/games/3079210/announcements/detail/675134795999609522",
+      "source_title": "Patch 1.7 | Full Changelog | Now Live!",
+      "related_issues": [
+        "HLLV-061",
+        "HLLV-062",
+        "HLLV-057"
+      ],
+      "review_basis": "Full official Steam publisher announcement reviewed, matched to announcement ID 1847286114028257 and its normalized content hash. Selected summary and scoped records; no independent gameplay testing.",
+      "reviewed_at": "2026-10-21",
+      "announcement_id": "1847286114028257",
+      "content_sha256": "e09490c9fbe88e5c27342a6f7201df5cecc4e262b4479e0eaccea3cc0e167b16"
+    },
+    {
       "id": "patch-1-6",
       "title": "Patch 1.6",
       "date": "2026-10-07",
@@ -7977,7 +9538,7 @@
       "reviewed_at": "2026-10-07"
     }
   ],
-  "patch_notes_reviewed_at": "2026-10-11",
+  "patch_notes_reviewed_at": "2026-10-21",
   "developer_updates": [
     {
       "id": "community-feedback-7",
@@ -7994,7 +9555,7 @@
         "The Huey M60 sensitivity fix targets 1.7. Boat auto-shutdown is now proposed for manual driver exit, not driver death.",
         "Controller customization and saved role-loadout requests are being discussed without a confirmed delivery window."
       ],
-      "caution": "Patch 1.6 is the latest verified release. These developer-discussed requests are not submissions to this site, developer-approved Bulletin Board entries, or implementation promises."
+      "caution": "At this October 9 update, Patch 1.6 was the latest verified release. These requests are not site submissions, developer-approved Bulletin Board entries or implementation promises. See the newer Patch 1.7 summary for released changes."
     },
     {
       "id": "community-feedback-8",
@@ -8009,10 +9570,10 @@
         "Remaining replication failures are still under investigation.",
         "The bug ledger now incorporates the selected October 15 statements and subsequent community evidence."
       ],
-      "caution": "Patch 1.7 remains upcoming. See individual dossiers for source dates and claim boundaries."
+      "caution": "Patch 1.7 was upcoming when this October 15 post was published; it released October 21. See the newer patch summary and individual dossiers for the current evidence."
     }
   ],
-  "patch_notes_review_scope": "Post-release caveats for 1.6 and 1.5.2 updated; older entries retain their individual review dates.",
+  "patch_notes_review_scope": "Added the reviewed Patch 1.7 release summary; older release summaries retain their original review dates and historical scope.",
   "source_access_history": [
     {
       "date": "2026-10-07",

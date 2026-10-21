@@ -6,6 +6,8 @@ Initial coverage: eight releases represented in the existing ledger, Patch 1.2 t
 
 ## Deliberate future updates
 
-Edit `patch_notes` inside `data/issues.json`, preserving source URLs, precise dates, release scope and caveats. Set `patch_notes_reviewed_at` only after reviewing the summaries and `page_updated_at` when deliberately publishing a page update. Do not bump bug-evidence dates for a UI-only edit. Run `.github/hllv-patches/build.py`, then the existing and archive tests. The builder invokes `publish_assets.py` so the rendered archive, page timestamp and content-addressed data are deployed together. Update the coverage assertion/caption when expanding beyond the initial eight releases. Never change old immutable snapshots.
+Current coverage is nine releases through Patch 1.7 (October 21). The guarded `.github/hllv-refresh-20261021/review.py` reuses the native-disclosure renderer while preserving the later date-order control, developer-update disclosure and existing layout. The original archive builder is a historical migration with eight-release/date assumptions; do not rerun its main entry point against the expanded archive without reconciling them.
+
+Edit `patch_notes` inside `data/issues.json`, preserving source URLs, precise dates, release scope and caveats. Set `patch_notes_reviewed_at` only after review and `page_updated_at` on deliberate publication. Preserve the static archive and date-order integration, then run the current review tests and `.github/hllv-homepage/publish.py` so the HTML, timestamp and content-addressed data agree. Do not bump bug-evidence dates for a UI-only edit or change old immutable snapshots.
 
 The GitHub workflow is an on-change test-and-publication job, not a recurring news scraper. The separate ChatGPT daily watch sends alerts only; it does not edit or deploy the site.

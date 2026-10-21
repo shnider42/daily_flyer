@@ -1,9 +1,22 @@
 {
   "schema_version": 1,
-  "reviewed_at": "2026-10-20",
+  "reviewed_at": "2026-10-21",
   "coverage_from": "2026-10-01",
-  "coverage_note": "Selected topics from Community Feedback 6–8 and Patch 1.6. October 20 adds two publisher-tracked requests from the October 15 update; this is not a new announcement or a complete roadmap. Support replies do not establish feature commitments.",
+  "coverage_note": "Selected functionality from Community Feedback 6–8 and Patches 1.6–1.7. October 21 distinguishes released changes from future 2.0 and QSSR plans; this is not a complete roadmap or independent gameplay verification.",
   "sources": [
+    {
+      "id": "patch17",
+      "announcement_id": "1847286114028257",
+      "title": "Patch 1.7 | Full Changelog | Now Live!",
+      "publisher": "Hell Let Loose / Team17",
+      "authority": "official_publisher",
+      "url": "https://steamcommunity.com/games/3079210/announcements/detail/675134795999609522",
+      "reviewed_via": "https://steamstore-a.akamaihd.net/news/externalpost/steam_community_announcements/1847286114028257",
+      "published_at": "2026-10-21T10:00:57Z",
+      "content_sha256": "e09490c9fbe88e5c27342a6f7201df5cecc4e262b4479e0eaccea3cc0e167b16",
+      "reviewed_at": "2026-10-21",
+      "review_scope": "Released functionality, hardware limits and separately stated future plans in the full Patch 1.7 announcement; no independent gameplay test."
+    },
     {
       "id": "cf8",
       "announcement_id": "1846651706678313",
@@ -65,15 +78,16 @@
       "kind": "balance_change",
       "current": {
         "availability": "live",
-        "summary": "Level 1 construction costs no Supplies; upgrades still do. Barbed Wire: two per Engineer, with no team cap in 1.6.",
+        "summary": "Level 1 construction remains free of Supplies; upgrades still cost Supplies. Barbed Wire is now three per Engineer, capped at 50 per side.",
         "source_ids": [
-          "patch16"
+          "patch16",
+          "patch17"
         ]
       },
-      "status": "planned",
-      "change": "Barbed Wire: three per Engineer and 50 per side are planned.",
-      "target": "Patch 1.7",
-      "latest_source_id": "cf8",
+      "status": "released",
+      "change": "The announced Barbed Wire increase is now released.",
+      "target": "Released in Patch 1.7",
+      "latest_source_id": "patch17",
       "history": [
         {
           "source_id": "patch16",
@@ -84,6 +98,11 @@
           "source_id": "cf8",
           "status": "planned",
           "summary": "Barbed Wire limits revised following feedback."
+        },
+        {
+          "source_id": "patch17",
+          "status": "released",
+          "summary": "The announced Barbed Wire increase is now released."
         }
       ],
       "related_issue_ids": [
@@ -94,6 +113,23 @@
         "barbed wire",
         "buildables",
         "engineer"
+      ],
+      "editorial_history": [
+        {
+          "date": "2026-10-21",
+          "previous": {
+            "current": {
+              "availability": "live",
+              "summary": "Level 1 construction costs no Supplies; upgrades still do. Barbed Wire: two per Engineer, with no team cap in 1.6.",
+              "source_ids": [
+                "patch16"
+              ]
+            },
+            "change": "Barbed Wire: three per Engineer and 50 per side are planned.",
+            "status": "planned",
+            "target": "Patch 1.7"
+          }
+        }
       ]
     },
     {
@@ -137,14 +173,16 @@
       "category": "Controls",
       "kind": "new_option",
       "current": {
-        "availability": "not_confirmed_live",
-        "summary": "This option is not confirmed live by the reviewed sources.",
-        "source_ids": []
+        "availability": "live",
+        "summary": "All controller layouts offer a Crouch / Melee input swap.",
+        "source_ids": [
+          "patch17"
+        ]
       },
-      "status": "planned",
-      "change": "A Crouch / Melee input swap is announced.",
-      "target": "Patch 1.7",
-      "latest_source_id": "cf8",
+      "status": "released",
+      "change": "The Crouch / Melee swap has shipped; it is not full controller remapping.",
+      "target": "Released in Patch 1.7",
+      "latest_source_id": "patch17",
       "history": [
         {
           "source_id": "cf7",
@@ -155,6 +193,11 @@
           "source_id": "cf8",
           "status": "planned",
           "summary": "A specific input swap now has a target release."
+        },
+        {
+          "source_id": "patch17",
+          "status": "released",
+          "summary": "The Crouch / Melee swap has shipped; it is not full controller remapping."
         }
       ],
       "related_issue_ids": [],
@@ -163,6 +206,21 @@
         "crouch",
         "melee",
         "controller customisation"
+      ],
+      "editorial_history": [
+        {
+          "date": "2026-10-21",
+          "previous": {
+            "current": {
+              "availability": "not_confirmed_live",
+              "summary": "This option is not confirmed live by the reviewed sources.",
+              "source_ids": []
+            },
+            "change": "A Crouch / Melee input swap is announced.",
+            "status": "planned",
+            "target": "Patch 1.7"
+          }
+        }
       ]
     },
     {
@@ -308,15 +366,15 @@
       "kind": "functionality_change",
       "current": {
         "availability": "live",
-        "summary": "An engine left running prevents transport-boat spawning.",
+        "summary": "Manual driver exit switches the engine off. Driver death in the seat leaves it running, which prevents transport-boat spawning until it is switched off.",
         "source_ids": [
-          "cf6"
+          "patch17"
         ]
       },
-      "status": "in_development",
-      "change": "The revised plan shuts the engine off on manual driver exit, preserving driver-kill counterplay.",
-      "target": "Patch 1.7 if feasible; otherwise a later update",
-      "latest_source_id": "cf7",
+      "status": "released",
+      "change": "The manual driver exit rule is released, preserving driver-kill counterplay.",
+      "target": "Released in Patch 1.7",
+      "latest_source_id": "patch17",
       "history": [
         {
           "source_id": "cf6",
@@ -327,6 +385,11 @@
           "source_id": "cf7",
           "status": "in_development",
           "summary": "Feedback narrowed the plan to manual exit rather than driver death."
+        },
+        {
+          "source_id": "patch17",
+          "status": "released",
+          "summary": "The manual driver exit rule is released, preserving driver-kill counterplay."
         }
       ],
       "related_issue_ids": [
@@ -338,6 +401,23 @@
         "boat",
         "transport boats",
         "engine shutdown"
+      ],
+      "editorial_history": [
+        {
+          "date": "2026-10-21",
+          "previous": {
+            "current": {
+              "availability": "live",
+              "summary": "An engine left running prevents transport-boat spawning.",
+              "source_ids": [
+                "cf6"
+              ]
+            },
+            "change": "The revised plan shuts the engine off on manual driver exit, preserving driver-kill counterplay.",
+            "status": "in_development",
+            "target": "Patch 1.7 if feasible; otherwise a later update"
+          }
+        }
       ]
     },
     {
@@ -351,14 +431,19 @@
         "source_ids": []
       },
       "status": "planned",
-      "change": "Khe Sanh is announced as the next new map.",
-      "target": "Update 2.0",
-      "latest_source_id": "cf8",
+      "change": "Khe Sanh is reaffirmed for Update 2.0, with the major update expected in November. No exact launch day is stated.",
+      "target": "Update 2.0 · November 2026 target",
+      "latest_source_id": "patch17",
       "history": [
         {
           "source_id": "cf8",
           "status": "planned",
           "summary": "New map confirmed for the upcoming major update."
+        },
+        {
+          "source_id": "patch17",
+          "status": "planned",
+          "summary": "Khe Sanh is reaffirmed for Update 2.0, with the major update expected in November. No exact launch day is stated."
         }
       ],
       "related_issue_ids": [],
@@ -366,6 +451,21 @@
       "monitor_terms": [
         "khe sanh",
         "map variety"
+      ],
+      "editorial_history": [
+        {
+          "date": "2026-10-21",
+          "previous": {
+            "current": {
+              "availability": "not_confirmed_live",
+              "summary": "A live release is not confirmed in the reviewed sources.",
+              "source_ids": []
+            },
+            "change": "Khe Sanh is announced as the next new map.",
+            "status": "planned",
+            "target": "Update 2.0"
+          }
+        }
       ]
     },
     {
@@ -374,14 +474,16 @@
       "category": "Graphics",
       "kind": "new_option",
       "current": {
-        "availability": "not_confirmed_live",
-        "summary": "The reviewed sources do not yet confirm release of these display options.",
-        "source_ids": []
+        "availability": "live",
+        "summary": "PSSR is available on PS5 Pro. VRR is available on PS5 and PS5 Pro with compatible displays.",
+        "source_ids": [
+          "patch17"
+        ]
       },
-      "status": "planned",
-      "change": "PSSR and VRR remain targeted for the next patch.",
-      "target": "Patch 1.7",
-      "latest_source_id": "cf8",
+      "status": "released",
+      "change": "The platform-specific display options are released. PSSR is not announced for base PS5.",
+      "target": "Released in Patch 1.7",
+      "latest_source_id": "patch17",
       "history": [
         {
           "source_id": "cf7",
@@ -392,6 +494,11 @@
           "source_id": "cf8",
           "status": "planned",
           "summary": "The upcoming-patch target is reiterated."
+        },
+        {
+          "source_id": "patch17",
+          "status": "released",
+          "summary": "The platform-specific display options are released. PSSR is not announced for base PS5."
         }
       ],
       "related_issue_ids": [
@@ -403,6 +510,21 @@
         "pssr",
         "vrr",
         "console visual"
+      ],
+      "editorial_history": [
+        {
+          "date": "2026-10-21",
+          "previous": {
+            "current": {
+              "availability": "not_confirmed_live",
+              "summary": "The reviewed sources do not yet confirm release of these display options.",
+              "source_ids": []
+            },
+            "change": "PSSR and VRR remain targeted for the next patch.",
+            "status": "planned",
+            "target": "Patch 1.7"
+          }
+        }
       ]
     },
     {
@@ -588,6 +710,526 @@
       "related_suggestions": [],
       "monitor_terms": [
         "rank emblems"
+      ]
+    },
+    {
+      "id": "HLLV-F017",
+      "title": "M1A1 Thompson",
+      "category": "Weapons",
+      "kind": "new_content",
+      "current": {
+        "availability": "live",
+        "summary": "US access: Commander, Tank Commander, Crewman, Mortar Observer, Sniper, Squad Leader, Medic, Specialist, Grenadier and Engineer.",
+        "source_ids": [
+          "patch17"
+        ]
+      },
+      "status": "released",
+      "change": "Adds a US submachine-gun option to the listed roles.",
+      "target": "Released in Patch 1.7",
+      "latest_source_id": "patch17",
+      "history": [
+        {
+          "source_id": "patch17",
+          "status": "released",
+          "summary": "Adds a US submachine-gun option to the listed roles."
+        }
+      ],
+      "related_issue_ids": [],
+      "related_suggestions": [],
+      "monitor_terms": [
+        "thompson",
+        "m1a1"
+      ]
+    },
+    {
+      "id": "HLLV-F018",
+      "title": "M16A1 30-round magazines",
+      "category": "Weapons",
+      "kind": "new_option",
+      "current": {
+        "availability": "live",
+        "summary": "Optional 30-round configuration: six magazines by default, up to ten via Barracks. The weapon gains one Weight; each magazine costs two Weight versus one for a 20-round magazine.",
+        "source_ids": [
+          "patch17"
+        ]
+      },
+      "status": "released",
+      "change": "Adds capacity with a loadout-weight trade-off; the 20-round option remains.",
+      "target": "Released in Patch 1.7",
+      "latest_source_id": "patch17",
+      "history": [
+        {
+          "source_id": "patch17",
+          "status": "released",
+          "summary": "Adds capacity with a loadout-weight trade-off; the 20-round option remains."
+        }
+      ],
+      "related_issue_ids": [],
+      "related_suggestions": [],
+      "monitor_terms": [
+        "m16a1",
+        "30-round"
+      ]
+    },
+    {
+      "id": "HLLV-F019",
+      "title": "Tank shell unloading",
+      "category": "Vehicles",
+      "kind": "functionality_change",
+      "current": {
+        "availability": "live",
+        "summary": "Selecting another shell type unloads the chambered round and automatically loads the chosen type.",
+        "source_ids": [
+          "patch17"
+        ]
+      },
+      "status": "released",
+      "change": "A tank crew no longer has to fire its loaded round just to switch shell types.",
+      "target": "Released in Patch 1.7",
+      "latest_source_id": "patch17",
+      "history": [
+        {
+          "source_id": "patch17",
+          "status": "released",
+          "summary": "A tank crew no longer has to fire its loaded round just to switch shell types."
+        }
+      ],
+      "related_issue_ids": [
+        "HLLV-093"
+      ],
+      "related_suggestions": [],
+      "monitor_terms": [
+        "shell unloading",
+        "chambered shell"
+      ]
+    },
+    {
+      "id": "HLLV-F020",
+      "title": "Boat handling, speed & Fuel balance",
+      "category": "Vehicles",
+      "kind": "balance_change",
+      "current": {
+        "availability": "live",
+        "summary": "Both factions gain handling and top-speed improvements. The US PBR has a larger speed/acceleration advantage; the supply-carrying NVA boat now costs 250 Fuel, up from 200.",
+        "source_ids": [
+          "patch17"
+        ]
+      },
+      "status": "released",
+      "change": "Boat handling and resource costs are rebalanced.",
+      "target": "Released in Patch 1.7",
+      "latest_source_id": "patch17",
+      "history": [
+        {
+          "source_id": "patch17",
+          "status": "released",
+          "summary": "Boat handling and resource costs are rebalanced."
+        }
+      ],
+      "related_issue_ids": [],
+      "related_suggestions": [],
+      "monitor_terms": [
+        "boat handling",
+        "pbr",
+        "250 fuel"
+      ]
+    },
+    {
+      "id": "HLLV-F021",
+      "title": "AMD FSR Frame Generation",
+      "category": "Graphics",
+      "kind": "new_option",
+      "current": {
+        "availability": "live",
+        "summary": "Available in Video Settings on supported AMD GPUs, specified as 5000 series and newer. The publisher recommends a base rate around 60 FPS or higher to limit added latency.",
+        "source_ids": [
+          "patch17"
+        ]
+      },
+      "status": "released",
+      "change": "Adds AMD frame generation; it is separate from NVIDIA DLSS persistence reports.",
+      "target": "Released in Patch 1.7",
+      "latest_source_id": "patch17",
+      "history": [
+        {
+          "source_id": "patch17",
+          "status": "released",
+          "summary": "Adds AMD frame generation; it is separate from NVIDIA DLSS persistence reports."
+        }
+      ],
+      "related_issue_ids": [
+        "HLLV-060"
+      ],
+      "related_suggestions": [],
+      "monitor_terms": [
+        "fsr frame generation",
+        "amd"
+      ]
+    },
+    {
+      "id": "HLLV-F022",
+      "title": "Redeploy punishment timer",
+      "category": "Gameplay",
+      "kind": "functionality_change",
+      "current": {
+        "availability": "live",
+        "summary": "Choosing Redeploy no longer adds a ten-second punishment; the normal deployment timer still applies.",
+        "source_ids": [
+          "patch17"
+        ]
+      },
+      "status": "released",
+      "change": "Removes the extra redeploy penalty, not all waiting time.",
+      "target": "Released in Patch 1.7",
+      "latest_source_id": "patch17",
+      "history": [
+        {
+          "source_id": "patch17",
+          "status": "released",
+          "summary": "Removes the extra redeploy penalty, not all waiting time."
+        }
+      ],
+      "related_issue_ids": [],
+      "related_suggestions": [],
+      "monitor_terms": [
+        "redeploy",
+        "punishment"
+      ]
+    },
+    {
+      "id": "HLLV-F023",
+      "title": "Commander ability team-kill punishment",
+      "category": "Gameplay",
+      "kind": "functionality_change",
+      "current": {
+        "availability": "live",
+        "summary": "Friendly deaths from Commander abilities such as Napalm, Artillery Strikes and Bombing Runs no longer add a team-kill punishment to the Commander.",
+        "source_ids": [
+          "patch17"
+        ]
+      },
+      "status": "released",
+      "change": "Personal weapons and other direct actions keep their normal punishment behavior.",
+      "target": "Released in Patch 1.7",
+      "latest_source_id": "patch17",
+      "history": [
+        {
+          "source_id": "patch17",
+          "status": "released",
+          "summary": "Personal weapons and other direct actions keep their normal punishment behavior."
+        }
+      ],
+      "related_issue_ids": [],
+      "related_suggestions": [],
+      "monitor_terms": [
+        "commander orders",
+        "team-kill"
+      ]
+    },
+    {
+      "id": "HLLV-F024",
+      "title": "Official Server AFK timer",
+      "category": "Servers",
+      "kind": "balance_change",
+      "current": {
+        "availability": "live",
+        "summary": "Official Servers now remove inactive players after ten minutes instead of thirty.",
+        "source_ids": [
+          "patch17"
+        ]
+      },
+      "status": "released",
+      "change": "The published change is scoped to Official Servers; no universal community-server setting is inferred.",
+      "target": "Released in Patch 1.7",
+      "latest_source_id": "patch17",
+      "history": [
+        {
+          "source_id": "patch17",
+          "status": "released",
+          "summary": "The published change is scoped to Official Servers; no universal community-server setting is inferred."
+        }
+      ],
+      "related_issue_ids": [],
+      "related_suggestions": [],
+      "monitor_terms": [
+        "afk",
+        "inactive"
+      ]
+    },
+    {
+      "id": "HLLV-F025",
+      "title": "Faster Barracks navigation & unsaved-options warning",
+      "category": "Interface",
+      "kind": "functionality_change",
+      "current": {
+        "availability": "live",
+        "summary": "Lengthy Barracks entry/exit camera transitions are removed. Leaving front-end Options with unsaved edits now prompts the player.",
+        "source_ids": [
+          "patch17"
+        ]
+      },
+      "status": "released",
+      "change": "Improves menu flow without establishing that every saved setting persists through restart.",
+      "target": "Released in Patch 1.7",
+      "latest_source_id": "patch17",
+      "history": [
+        {
+          "source_id": "patch17",
+          "status": "released",
+          "summary": "Improves menu flow without establishing that every saved setting persists through restart."
+        }
+      ],
+      "related_issue_ids": [
+        "HLLV-084"
+      ],
+      "related_suggestions": [],
+      "monitor_terms": [
+        "barracks",
+        "unsaved changes"
+      ]
+    },
+    {
+      "id": "HLLV-F026",
+      "title": "NATO phonetic Unit names",
+      "category": "Interface",
+      "kind": "functionality_change",
+      "current": {
+        "availability": "live",
+        "summary": "Units use NATO phonetic names, including Alfa, Bravo and Charlie.",
+        "source_ids": [
+          "patch17"
+        ]
+      },
+      "status": "released",
+      "change": "Updates Unit naming; this does not add Clan Tags or rank emblems.",
+      "target": "Released in Patch 1.7",
+      "latest_source_id": "patch17",
+      "history": [
+        {
+          "source_id": "patch17",
+          "status": "released",
+          "summary": "Updates Unit naming; this does not add Clan Tags or rank emblems."
+        }
+      ],
+      "related_issue_ids": [],
+      "related_suggestions": [],
+      "monitor_terms": [
+        "phonetic",
+        "unit names"
+      ]
+    },
+    {
+      "id": "HLLV-F027",
+      "title": "Vehicle impact kill threshold",
+      "category": "Gameplay",
+      "kind": "balance_change",
+      "current": {
+        "availability": "live",
+        "summary": "Vehicles must reach a higher speed before an impact kills infantry; the notes give no numerical threshold.",
+        "source_ids": [
+          "patch17"
+        ]
+      },
+      "status": "released",
+      "change": "Raises the threshold again to reduce slow-vehicle deaths.",
+      "target": "Released in Patch 1.7",
+      "latest_source_id": "patch17",
+      "history": [
+        {
+          "source_id": "patch17",
+          "status": "released",
+          "summary": "Raises the threshold again to reduce slow-vehicle deaths."
+        }
+      ],
+      "related_issue_ids": [],
+      "related_suggestions": [],
+      "monitor_terms": [
+        "vehicle impact",
+        "run over"
+      ]
+    },
+    {
+      "id": "HLLV-F028",
+      "title": "ANZAC Forces",
+      "category": "Factions",
+      "kind": "new_content",
+      "current": {
+        "availability": "not_confirmed_live",
+        "summary": "Not released in the reviewed announcement.",
+        "source_ids": []
+      },
+      "status": "planned",
+      "change": "Announced as an expansion of US & Allied Forces in Update 2.0; not released by Patch 1.7.",
+      "target": "Update 2.0 · November 2026 target",
+      "latest_source_id": "patch17",
+      "history": [
+        {
+          "source_id": "patch17",
+          "status": "planned",
+          "summary": "Announced as an expansion of US & Allied Forces in Update 2.0; not released by Patch 1.7."
+        }
+      ],
+      "related_issue_ids": [],
+      "related_suggestions": [],
+      "monitor_terms": [
+        "anzac",
+        "allied forces"
+      ]
+    },
+    {
+      "id": "HLLV-F029",
+      "title": "Base PS5 QSSR",
+      "category": "Graphics",
+      "kind": "new_option",
+      "current": {
+        "availability": "not_confirmed_live",
+        "summary": "Not released in the reviewed announcement.",
+        "source_ids": []
+      },
+      "status": "planned",
+      "change": "The publisher intends to integrate QSSR when available to implement. No release date or Update 2.0 commitment is stated.",
+      "target": "No confirmed release date",
+      "latest_source_id": "patch17",
+      "history": [
+        {
+          "source_id": "patch17",
+          "status": "planned",
+          "summary": "The publisher intends to integrate QSSR when available to implement. No release date or Update 2.0 commitment is stated."
+        }
+      ],
+      "related_issue_ids": [
+        "HLLV-006"
+      ],
+      "related_suggestions": [],
+      "monitor_terms": [
+        "qssr"
+      ]
+    },
+    {
+      "id": "HLLV-F030",
+      "title": "Tank coaxial & boat MG ammunition top-ups",
+      "category": "Vehicles",
+      "kind": "functionality_change",
+      "current": {
+        "availability": "live",
+        "summary": "Tank coaxial MGs and boat Machine Gunner positions can be resupplied before their ammunition is completely empty.",
+        "source_ids": [
+          "patch17"
+        ]
+      },
+      "status": "released",
+      "change": "Extends pre-empty resupply; equal refilling of both bow guns is not explicitly confirmed.",
+      "target": "Released in Patch 1.7",
+      "latest_source_id": "patch17",
+      "history": [
+        {
+          "source_id": "patch17",
+          "status": "released",
+          "summary": "Extends pre-empty resupply; equal refilling of both bow guns is not explicitly confirmed."
+        }
+      ],
+      "related_issue_ids": [
+        "HLLV-031"
+      ],
+      "related_suggestions": [],
+      "monitor_terms": [
+        "coaxial",
+        "resupplied"
+      ]
+    },
+    {
+      "id": "HLLV-F031",
+      "title": "Tutorial completion labels",
+      "category": "Interface",
+      "kind": "functionality_change",
+      "current": {
+        "availability": "live",
+        "summary": "Tutorial status more clearly identifies completed and incomplete tutorials.",
+        "source_ids": [
+          "patch17"
+        ]
+      },
+      "status": "released",
+      "change": "Clarifies the display; it does not establish a completion-saving fix.",
+      "target": "Released in Patch 1.7",
+      "latest_source_id": "patch17",
+      "history": [
+        {
+          "source_id": "patch17",
+          "status": "released",
+          "summary": "Clarifies the display; it does not establish a completion-saving fix."
+        }
+      ],
+      "related_issue_ids": [
+        "HLLV-033"
+      ],
+      "related_suggestions": [],
+      "monitor_terms": [
+        "tutorial status",
+        "tutorials"
+      ]
+    },
+    {
+      "id": "HLLV-F032",
+      "title": "Commander vehicle-limit & Encourage indicators",
+      "category": "Interface",
+      "kind": "functionality_change",
+      "current": {
+        "availability": "live",
+        "summary": "Commander vehicle Orders show the active vehicle limit; Encourage has an active-state indicator.",
+        "source_ids": [
+          "patch17"
+        ]
+      },
+      "status": "released",
+      "change": "Adds feedback about limits and current ability state.",
+      "target": "Released in Patch 1.7",
+      "latest_source_id": "patch17",
+      "history": [
+        {
+          "source_id": "patch17",
+          "status": "released",
+          "summary": "Adds feedback about limits and current ability state."
+        }
+      ],
+      "related_issue_ids": [
+        "HLLV-096"
+      ],
+      "related_suggestions": [],
+      "monitor_terms": [
+        "encourage",
+        "active vehicle limit"
+      ]
+    },
+    {
+      "id": "HLLV-F033",
+      "title": "Tunnel-collapse travel outcome",
+      "category": "Gameplay",
+      "kind": "functionality_change",
+      "current": {
+        "availability": "live",
+        "summary": "Players in transit are killed immediately if their Tunnel network collapses.",
+        "source_ids": [
+          "patch17"
+        ]
+      },
+      "status": "released",
+      "change": "Changes the outcome during a collapsing network, not general Tunnel replication or connectivity.",
+      "target": "Released in Patch 1.7",
+      "latest_source_id": "patch17",
+      "history": [
+        {
+          "source_id": "patch17",
+          "status": "released",
+          "summary": "Changes the outcome during a collapsing network, not general Tunnel replication or connectivity."
+        }
+      ],
+      "related_issue_ids": [],
+      "related_suggestions": [],
+      "monitor_terms": [
+        "tunnel network collapses",
+        "travelling"
       ]
     }
   ]

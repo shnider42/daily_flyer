@@ -21,11 +21,12 @@ const sdk = 'export function createClient(){return {auth:{onAuthStateChange:()=>
   await expect(page.locator('#featuresPage')).toBeVisible();
   await expect(page.locator('#landing')).toBeHidden();
   await page.locator('#featureSearch').fill('boat');
-  await expect(page.locator('#featureResults .ft-row')).toHaveCount(1);
-  await page.locator('#featureResults .ft-row').click();
+  await expect(page.locator('#featureResults .ft-row[href="#feature/HLLV-F008"]')).toBeVisible();
+  await page.locator('#featureResults .ft-row[href="#feature/HLLV-F008"]').click();
   await expect(page.locator('.ft-detail')).toContainText('manual driver exit');
-  await expect(page.locator('.ft-history li')).toHaveCount(2);
-  await expect(page.locator('.ft-history li').first()).toContainText('Oct 9, 2026');
+  await expect(page.locator('.ft-history li')).toHaveCount(3);
+  await expect(page.locator('.ft-history li').first()).toContainText('Oct 21, 2026');
+  await expect(page.locator('.ft-detail>.ft-heading .ft-status')).toHaveText('Released');
   await expect(page.locator('.ft-comparison')).toContainText('prevents transport-boat spawning');
   await page.locator('.ft-related>a[href="#HLLV-062"]').click();
   await expect(page.locator('#app')).toBeVisible();
@@ -74,7 +75,7 @@ const sdk = 'export function createClient(){return {auth:{onAuthStateChange:()=>
   await expect(page.locator('#featureReview')).toContainText('awaiting feature review');
   await page.locator('#featureReview summary').click();
   await expect(page.locator('#featureReview')).toContainText('Source text changed since review');
-  await expect(page.locator('.ft-detail>.ft-heading .ft-status')).toHaveText('Planned');
+  await expect(page.locator('.ft-detail>.ft-heading .ft-status')).toHaveText('Released');
   await page.goto(url+'#feature/HLLV-F003',{waitUntil:'networkidle'});
   await page.locator('#featureReview summary').click();
   await expect(page.locator('#featureReview img')).toHaveCount(0);

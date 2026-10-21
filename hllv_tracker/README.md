@@ -16,7 +16,9 @@ announcement matches flag possible updates for review; they never change status.
 Existing Suggestion Box approval and account permissions remain separate. These
 feature records are curated through the repository, not a new moderator dashboard.
 
-The current tracker contains 84 issue dossiers and 16 feature topics. The October 20 review adds a limited settings-persistence report from an October 19 Support response, incorporates two previously unavailable October 11 Support follow-ups, and adds Clan Tags and rank emblems as publisher-tracked requests. No new release or development commitment is inferred. Original evidence dates are retained; coverage and exclusions are recorded in `reviews/2026-10-20-official-response-review.json`.
+The current tracker contains 103 issue dossiers and 33 feature topics. The October 21 Patch 1.7 review updates 15 existing dossiers, adds 19 scoped release-documented defects, updates five feature topics and adds 17 functionality/content topics. Voice-volume scaling and manual-exit boat shutdown have release evidence; broader replication, persistence and rendering issues are not automatically closed. Khe Sanh and ANZAC remain future 2.0 content; base-PS5 QSSR has no stated release date. Coverage and limits are in `reviews/2026-10-21-patch-1-7-review.json`.
+
+The October 20 review added a qualified settings-persistence report, two older Support follow-ups, and Clan Tags/rank emblems as tracked requests. Original evidence dates and that review remain in `reviews/2026-10-20-official-response-review.json`.
 
 The October 16 bug review refreshed 14 dossiers and added 8 separately scoped issues. Its historical coverage is retained in `reviews/2026-10-16-bug-evidence-review.json`. The ledger distinguishes support reports, official acknowledgement, reproduction, released changes, post-fix monitoring, and root-cause certainty.
 

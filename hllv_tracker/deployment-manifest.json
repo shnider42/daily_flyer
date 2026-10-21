@@ -1,9 +1,9 @@
 {
-  "data_url": "data/issues.b6b6f7716c4bcfa6.json",
-  "data_sha256": "b6b6f7716c4bcfa62af3bf256c4c248ee649c3c0834b10bb4cf9b9402aa861b2",
+  "data_url": "data/issues.07cef8bb192176a6.json",
+  "data_sha256": "07cef8bb192176a66c9175573e3a7311f8035d20168062fac3e18373cebe0936",
   "evidence_js_url": "assets/evidence-f81896b2b5901f3b.js",
   "files": [
-    "data/issues.b6b6f7716c4bcfa6.json",
+    "data/issues.07cef8bb192176a6.json",
     "assets/evidence-f81896b2b5901f3b.js",
     "evidence.css?v=1",
     "freshness.js?v=20261007",
@@ -36,15 +36,15 @@
     "assets/submission-thread-aef8d3439e715791.js",
     "assets/community-9968024fdcdfaa9d.js",
     "assets/river-valley-mobile-2019c320c527506a.webp",
-    "data/features.5d45c7af2bcc3da7.json",
+    "data/features.7521c16b55f5699c.json",
     "assets/features-a7b2fc411110e11e.js",
     "assets/features-8b376ecbcf45078a.css",
     "assets/official-feed-1bee5be0574ef8be.js"
   ],
   "note": "These are the actual production URLs embedded in the page, not random test cache-busters. data/issues.json remains the editable source file.",
-  "feature_data_url": "data/features.5d45c7af2bcc3da7.json",
+  "feature_data_url": "data/features.7521c16b55f5699c.json",
   "feature_assets": [
-    "data/features.5d45c7af2bcc3da7.json",
+    "data/features.7521c16b55f5699c.json",
     "assets/features-a7b2fc411110e11e.js",
     "assets/features-8b376ecbcf45078a.css"
   ]
