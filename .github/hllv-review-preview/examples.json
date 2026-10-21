@@ -14,7 +14,7 @@
   },
   "items": [
     {
-      "id": "HLLV-061", "type": "bug", "title": "Voice volume stays excessively loud", "tag": "Explicit fix",
+      "id": "HLLV-061", "type": "bug", "title": "Voice volume stays excessively loud", "short_title": "Voice volume", "tag": "Explicit fix",
       "before": {"status": "investigating", "summary": "An October 9 Support reply adds another volume-slider report. The earlier 1.7 target remains unverified as a release."},
       "proposed": {"status": "shipped", "summary": "Patch 1.7 explicitly fixes voice-volume slider scaling across audio channels. Independent post-patch outcome testing is not recorded."},
       "evidence": "Voice-volume sliders now scale correctly across audio channels.",
@@ -23,7 +23,7 @@
       "caution": "This evidence does not resolve separate voice-channel outages."
     },
     {
-      "id": "HLLV-062", "type": "bug", "title": "Running boat engines prevent spawning", "tag": "Scoped behavior change",
+      "id": "HLLV-062", "type": "bug", "title": "Running boat engines prevent spawning", "short_title": "Boat engine shutdown", "tag": "Scoped behavior change",
       "before": {"status": "investigating", "summary": "The revised proposal turns the engine off when a driver exits manually, not when killed. It may arrive in 1.7 or later; no release is confirmed."},
       "proposed": {"status": "shipped", "summary": "Patch 1.7 shuts the engine off on manual driver exit so the boat can become a spawn point. A killed driver deliberately leaves it running."},
       "evidence": "Manually leaving the driver seat stops the engine; a driver killed in the seat leaves it running.",
@@ -32,7 +32,7 @@
       "caution": "Driver-death behavior is intentional. Other boat replication problems remain separate."
     },
     {
-      "id": "HLLV-102", "type": "bug", "title": "Rubberbanding along shorelines", "tag": "Partial improvement", "before": null,
+      "id": "HLLV-102", "type": "bug", "title": "Rubberbanding along shorelines", "short_title": "Shoreline rubberbanding", "tag": "Partial improvement", "before": null,
       "proposed": {"status": "partial", "summary": "Patch 1.7 reduces rubberbanding while walking or running along water edges; the wording does not promise elimination."},
       "evidence": "Rubberbanding is reduced when walking or running beside water.",
       "locator": "Find in notes: rubberbanding",
@@ -40,7 +40,7 @@
       "caution": "Reduced does not establish a complete fix."
     },
     {
-      "id": "HLLV-033", "type": "bug", "title": "Tutorial completion may not stay saved", "tag": "Keep status open",
+      "id": "HLLV-033", "type": "bug", "title": "Tutorial completion may not stay saved", "short_title": "Tutorial progress", "tag": "Keep status open",
       "before": {"status": "investigating", "summary": "October 11 Support follow-up confirms continuing tutorial/reset reports were escalated. A completion-saving fix is still unconfirmed."},
       "proposed": {"status": "investigating", "summary": "Patch 1.7 clarifies tutorial completion labels. Saving lost completion progress is still not confirmed fixed."},
       "evidence": "Tutorial completion labels are clearer.",
@@ -49,7 +49,7 @@
       "caution": "A clearer label does not establish that saved progress now persists."
     },
     {
-      "id": "HLLV-F017", "type": "feature", "title": "M1A1 Thompson", "tag": "New content", "before": null,
+      "id": "HLLV-F017", "type": "feature", "title": "M1A1 Thompson", "short_title": "M1A1 Thompson", "tag": "New content", "before": null,
       "proposed": {"status": "released", "summary": "Adds a US submachine-gun option to the listed roles."},
       "target": "Released in Patch 1.7",
       "evidence": "The Thompson is available to ten specified US roles.",
@@ -58,7 +58,7 @@
       "caution": "Availability is role-specific."
     },
     {
-      "id": "HLLV-F028", "type": "feature", "title": "ANZAC Forces", "tag": "Future content", "before": null,
+      "id": "HLLV-F028", "type": "feature", "title": "ANZAC Forces", "short_title": "ANZAC Forces", "tag": "Future content", "before": null,
       "proposed": {"status": "planned", "summary": "Announced as an expansion of US & Allied Forces in Update 2.0; not released by Patch 1.7."},
       "target": "Update 2.0 · November 2026 target",
       "evidence": "ANZAC Forces are planned for Update 2.0 in November.",

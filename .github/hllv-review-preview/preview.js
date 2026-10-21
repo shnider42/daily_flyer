@@ -49,7 +49,9 @@
       const record = records[item.id];
       return `<button type="button" class="rp-item" data-item="${escape(item.id)}" data-decision="${record.decision}" aria-current="${item.id === selected}"><span class="rp-item-id">${escape(item.id)} · ${item.type === 'bug' ? 'Bug' : 'Content'}</span><strong>${escape(item.title)}</strong><span class="rp-item-state">${decisions[record.decision]}</span></button>`;
     }).join('') || '<p class="rp-empty">No examples in this view.</p>';
-    $('reviewPicker').innerHTML = items.map((item,index) => `<option value="${escape(item.id)}" ${item.id === selected ? 'selected' : ''}>${index+1}. ${escape(item.title)} — ${decisions[records[item.id].decision]}</option>`).join('') || '<option>No matching examples</option>';
+    // Concise native options avoid WebKit's long-option scroll overflow on phones.
+    // The full title and current decision remain in the selected-change heading.
+    $('reviewPicker').innerHTML = items.map((item,index) => `<option value="${escape(item.id)}" aria-label="${escape(item.title)} — ${decisions[records[item.id].decision]}" ${item.id === selected ? 'selected' : ''}>${index+1}. ${escape(item.short_title || item.title)}</option>`).join('') || '<option>No matching examples</option>';
     $('reviewPicker').disabled = items.length === 0;
   }
   function historyMarkup(item, record) {
