@@ -22,6 +22,14 @@ The October 20 review added a qualified settings-persistence report, two older S
 
 The October 16 bug review refreshed 14 dossiers and added 8 separately scoped issues. Its historical coverage is retained in `reviews/2026-10-16-bug-evidence-review.json`. The ledger distinguishes support reports, official acknowledgement, reproduction, released changes, post-fix monitoring, and root-cause certainty.
 
+## Review workflow preview
+
+`/review-preview.html` replays six Patch 1.7 examples with before/after comparisons,
+source evidence, editable proposals, practice decisions, and retained local history.
+It is a browser-local demonstration; approval does not publish or change tracker
+records. `.github/hllv-review-preview/README.md` documents its scope and the remaining
+requirements for real moderator publication.
+
 ## Core rule
 
 **Unknown is a valid result.**

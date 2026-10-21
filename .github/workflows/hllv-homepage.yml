@@ -6,6 +6,7 @@ on:
       - .github/hllv-homepage/**
       - .github/hllv-visual-system/**
       - .github/hllv-features/**
+      - .github/hllv-review-preview/**
       - .github/workflows/hllv-homepage.yml
       - hllv_tracker/index.html
 permissions:
@@ -20,7 +21,9 @@ jobs:
         run: |
           python3 .github/hllv-homepage/publish.py
           git diff --exit-code -- hllv_tracker/index.html hllv_tracker/deployment-manifest.json
+          git diff --exit-code -- hllv_tracker/review-preview.html hllv_tracker/review-preview-manifest.json
           node --check .github/hllv-features/app.js
+          node --check .github/hllv-review-preview/preview.js
       - name: Install browser dependencies
         run: |
           npm install --no-save --package-lock=false @playwright/test@1.55.0
@@ -31,6 +34,8 @@ jobs:
           python3 -m http.server 8765 --bind 127.0.0.1 --directory hllv_tracker >/tmp/homepage-http.log 2>&1 &
           PID=$!
           trap 'kill "$PID" || true' EXIT
+          HLLV_BROWSER_ENGINE=chromium node .github/hllv-review-preview/test_browser.cjs
+          HLLV_BROWSER_ENGINE=webkit node .github/hllv-review-preview/test_browser.cjs
           HLLV_BROWSER_ENGINE=chromium node .github/hllv-homepage/test_browser.cjs
           HLLV_BROWSER_ENGINE=webkit node .github/hllv-homepage/test_browser.cjs
           HLLV_BROWSER_ENGINE=chromium node .github/hllv-features/test_browser.cjs

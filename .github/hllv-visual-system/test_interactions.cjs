@@ -78,8 +78,9 @@ const sdk=`export function createClient(){return {auth:{onAuthStateChange:()=>({
   async function hoverAndFocus(page,selector){
     const target=page.locator(selector).first();await expect(target).toBeVisible();
     await target.scrollIntoViewIfNeeded();await page.mouse.move(0,0);await target.evaluate(el=>el.blur());await settle(target);
-    const capture=['#homeList [data-home-id="HLLV-046"]','#communitySubmit'].includes(selector);
-    const imageName=`${output}/${engine}-${await page.locator('html').getAttribute('data-theme')}-${selector.includes('homeList')?'bug-row':'submit'}`;
+    const capture=['#homeList [data-home-id="HLLV-046"]','#communitySubmit','#featuredIssues .featured-issue','#featureHighlights .ft-row','.path-bugs'].includes(selector);
+    const captureLabel=selector.includes('homeList')?'bug-row':selector.includes('featuredIssues')?'featured-bug':selector.includes('featureHighlights')?'featured-content':selector==='.path-bugs'?'home-path':'submit';
+    const imageName=`${output}/${engine}-${await page.locator('html').getAttribute('data-theme')}-${captureLabel}`;
     const before=await snapshot(target);
     if(capture)await page.screenshot({path:imageName+'-default.png'});
     await target.hover();
@@ -104,7 +105,7 @@ const sdk=`export function createClient(){return {auth:{onAuthStateChange:()=>({
   }
   const desktop=await makePage();
   const routes=[
-    {name:'home',hash:'',targets:['#brandHome','.top-links [data-page="issues"]','.path-bugs','#featuredIssues .featured-issue','#patchNotesJump','#accountMenu>summary','#themeToggle','#officialSourceList .feed-entry>summary']},
+    {name:'home',hash:'',targets:['#brandHome','.top-links [data-page="issues"]','.path-bugs','#featuredIssues .featured-issue','#featureHighlights .ft-row','#patchNotesJump','#accountMenu>summary','#themeToggle','#officialSourceList .feed-entry>summary']},
     {name:'bugs',hash:'#issues',targets:['#homeList [data-home-id="HLLV-046"]','[data-home-status="shipped"]']},
     {name:'bug-detail',hash:'#HLLV-046',targets:['#back','#dossier .tabs [data-tab="sources"]']},
     {name:'sources',hash:'#HLLV-046',prepare:async page=>page.locator('#dossier .tabs [data-tab="sources"]').click(),targets:['#sources .evidence-source a[href]','#sources .evidence-limits>summary']},
