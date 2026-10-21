@@ -75,7 +75,7 @@ html[data-theme="dark"] .rp-button-primary {background:#b54e35;color:#fff;border
 .rp-before .rp-status {font-size:.9rem;font-weight:700;line-height:1.5;margin:0}
 .rp-before .rp-absent {color:var(--muted)}
 .rp-proposed label {display:block;font-size:.76rem;font-weight:650;margin-bottom:5px}
-.rp-proposed select {width:100%;font-size:.88rem;margin-bottom:12px}
+.rp-proposed select {width:100%;min-width:0;max-width:100%;font-size:.88rem;margin-bottom:12px}
 .rp-proposed textarea,.rp-note textarea {width:100%;resize:vertical;min-height:126px;padding:10px 12px;border:1px solid var(--line);border-radius:4px;background:var(--paper);color:var(--ink);font-size:.9rem;line-height:1.65}
 .rp-proposed :disabled {opacity:1;color:var(--muted);cursor:default}
 .rp-target {font-size:.76rem;color:var(--muted);margin:8px 0 0}
@@ -109,7 +109,8 @@ html[data-theme="dark"] .rp-button-primary {background:#b54e35;color:#fff;border
 @media(max-width:760px) {
   .rp-main{padding:22px 20px 40px}.rp-heading{align-items:start;margin-bottom:14px}.rp-heading p:last-child{font-size:.83rem}.rp-release{font-size:.85rem}.rp-release span{font-size:.67rem}
   .rp-notice{font-size:.77rem;padding:10px 12px}.rp-toolbar{flex-wrap:wrap;gap:8px;padding:12px 0;margin-bottom:16px}.rp-toolbar>div{flex-wrap:wrap;width:100%;gap:8px}.rp-toolbar label{display:none}.rp-toolbar select{flex:1}.rp-toolbar .rp-button{font-size:.76rem;padding-inline:10px}
-  .rp-workspace{display:block}.rp-queue{display:none}.rp-mobile-picker{display:grid;gap:6px;margin-bottom:18px}.rp-mobile-picker label{font-size:.75rem;color:var(--muted)}.rp-mobile-picker select{width:100%;min-width:0;font-size:1rem}
+  .rp-workspace{display:block}.rp-queue{display:none}.rp-mobile-picker{display:grid;grid-template-columns:minmax(0,1fr);gap:6px;margin-bottom:18px}.rp-mobile-picker label{font-size:.75rem;color:var(--muted)}.rp-mobile-picker select{width:100%;min-width:0;max-width:100%;font-size:1rem}
   .rp-case-head{gap:10px;margin-bottom:12px}.rp-case-head h2{font-size:1.35rem}.rp-decision{font-size:.67rem;white-space:normal;min-width:66px;max-width:90px}.rp-compare{grid-template-columns:1fr;gap:12px}.rp-before p{font-size:.86rem}.rp-before,.rp-proposed{padding:16px}.rp-proposed{padding-top:14px}.rp-compare h3{margin-bottom:10px}.rp-proposed textarea,.rp-proposed select,.rp-note textarea{font-size:1rem}.rp-evidence{grid-template-columns:1fr;gap:8px}.rp-actions .rp-button{flex:1 1 130px}.rp-actions .rp-button:last-child{margin-left:0}.rp-release{display:none}
 }
+@media(max-width:400px) {.review-preview .brand-mark-small{display:none}.rp-toolbar select{min-width:0;max-width:100%}}
 @media(prefers-reduced-motion:reduce) {html{scroll-behavior:auto}}
