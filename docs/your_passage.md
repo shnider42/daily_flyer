@@ -33,7 +33,7 @@ The long scrolling page and the selectable views are separate design directions.
 
 Do not reset or force-push one direction over another. Start from the relevant branch when resuming work. Move shared fixes across deliberately; review layout changes separately. The checkpoint branch should remain at its recorded commit. These are engineering branches, not extra modes exposed to prospective clients, and no extra Render services were created.
 
-The current polish restores the former paper texture, adds aqua and warm lighting with a static contour motif, and adapts those colors to night mode. A full-width translucent navigation bar stays at the top while scrolling on desktop and mobile; its Home link remains available, and the mobile menu opens beneath the bar. Anchor offsets account for the bar, including mobile safe-area spacing. Browsers without background blur receive a solid readable fallback.
+The current background uses the former paper texture with broad, muted aqua and warm lighting, adapted to night mode. The decorative contour lines and the line around the portrait were removed after review because the repeated curves felt generic. The photo has a soft tonal backing. A full-width translucent navigation bar stays at the top while scrolling on desktop and mobile; its Home link remains available, and the mobile menu opens beneath the bar. Anchor offsets account for the bar, including mobile safe-area spacing. Browsers without background blur receive a solid readable fallback.
 
 Use ordinary punctuation in visible copy and tab titles. Do not use em dashes, en dashes or double hyphens as sentence separators. CSS custom properties and internal identifiers keep their required syntax. Keep hover targets stationary. Continue respecting reduced-motion settings.
 
@@ -76,7 +76,7 @@ Deployment settings verified against Render's official Flask, Python-version, an
 - A reversible focus view and a notebook that reopens explicitly saved passages. Existing v1 browser notes remain compatible.
 - Drafts survive topic switching in page memory. Explicit Save persists that passage in localStorage; Download exports text; Clear removes the selected passage only after confirmation.
 - Tim's supplied portrait is optimized as a 840 × 1200 WebP (about 45 KB), framed with CSS, and embedded in the export. The original photo is not retouched.
-- HTML, CSS, JavaScript, portrait, and the decorative path are embedded in the DFE export. No external fonts, remote images, accounts, trackers, form submissions, or runtime network calls.
+- HTML, CSS, JavaScript, portrait, and the paper texture are embedded in the DFE export. No external fonts, remote images, accounts, trackers, form submissions, or runtime network calls.
 - Original Passages theme, shared renderer, routes, default theme, and other themes remain unchanged.
 
 ## Color palette
