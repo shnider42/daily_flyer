@@ -71,8 +71,7 @@ let failurePage;
   const screenshots=[];
   for(const theme of ['dark','light'])for(const viewport of [{width:320,height:740},{width:390,height:844},{width:1440,height:900},{width:2560,height:1440}]){
     await page.setViewportSize(viewport);
-    // Opening-layout checks must load at the target viewport. WebKit can retain
-    // an old document scroll extent after resizing a focused, previously used form.
+    // Opening-layout checks load at the target viewport, independently of prior focus.
     const resized=await page.evaluate(()=>({viewport:innerWidth,scroll:document.documentElement.scrollWidth}));
     if(resized.scroll>resized.viewport+1)console.log('RESIZE_SCROLL_EXTENT',engine,JSON.stringify(resized));
     await page.reload({waitUntil:'networkidle'});
@@ -80,6 +79,17 @@ let failurePage;
     if(await page.locator('html').getAttribute('data-theme')!==theme)await page.locator('#themeToggle').click();
     await page.evaluate(()=>scrollTo(0,0));
     const overflow=await page.evaluate(()=>({width:innerWidth,scroll:document.documentElement.scrollWidth,elements:[...document.querySelectorAll('body *')].filter(el=>el.getBoundingClientRect().right>innerWidth+1).map(el=>({tag:el.tagName,id:el.id,cls:el.className,right:el.getBoundingClientRect().right,display:getComputedStyle(el).display})).slice(0,20)}));
+    if(overflow.scroll>overflow.width+1)console.log('OVERFLOW_ISOLATION',JSON.stringify(await page.evaluate(async()=>{
+      const result=[];
+      for(const selector of ['.rp-skip','.site-nav','.site-backdrop','.rp-heading','.rp-notice','#previewMessage','.rp-toolbar','.rp-queue','.rp-mobile-picker','.rp-before','.rp-proposed','.rp-evidence','.rp-note','.rp-actions','.rp-audit','.rp-footer']){
+        const el=document.querySelector(selector),prior=el.getAttribute('style');
+        el.style.setProperty('display','none','important');await new Promise(requestAnimationFrame);
+        result.push({selector,without:document.documentElement.scrollWidth});
+        if(prior===null)el.removeAttribute('style');else el.setAttribute('style',prior);
+        await new Promise(requestAnimationFrame);
+      }
+      return result;
+    })));
     assert(overflow.scroll<=overflow.width+1,`${theme} ${viewport.width}: horizontal overflow ${JSON.stringify(overflow)}`);
     const title=await page.locator('#reviewDetail h2').boundingBox();
     assert(title.y+title.height<viewport.height,`${theme} ${viewport.width}: first example title below first view`);
