@@ -182,7 +182,7 @@
   document.title=`${p.title} · ${state.match_name||state.scenario.name} · DSL`;
   const key=[state.code,state.battle_number,state.round,p.id].join(':');
   if(p.id!=='sending'&&key!==announcement){announcement=key;clearTimeout(timer);timer=setTimeout(()=>{
-   if($('game').hidden)return;live.textContent=`${p.title}. Round ${state.round}. ${p.text}`;
+   if(!state||$('game').hidden)return;live.textContent=`${p.title}. Round ${state.round}. ${p.text}`;
    if(p.id==='yours'){const n=$('mobileBattleTop')||banner;n.classList.remove('turn-arrived');void n.offsetWidth;n.classList.add('turn-arrived');}
   },250);}
   if(dialog.open)fill();

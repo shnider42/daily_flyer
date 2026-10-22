@@ -110,7 +110,7 @@ async function main(){
    assert.ok(portraits.includes('wildcat'));assert.ok(portraits.includes('dive_bomber'));
    const battleBeforeArt=e('JSON.stringify(state)');
    $('unitStyleToggle').click();assert.equal(w.document.querySelectorAll('#carrierAirGroup image').length,0);
-   $('unitStyleToggle').click();assert.equal(w.document.querySelectorAll('#carrierAirGroup .unit-illustration image').length,4);
+   w.ww2UnitStyle.set('detailed');assert.equal(w.document.querySelectorAll('#carrierAirGroup .unit-illustration image').length,4);
    assert.equal(e('JSON.stringify(state)'),battleBeforeArt,'Carrier manifest artwork must not change deck orders or battle state');
   }finally{await delay();v.dom.window.close();}
  }

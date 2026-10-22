@@ -16,7 +16,7 @@
  const node=(tag,attrs={},text)=>{const n=document.createElementNS(ns,tag);for(const [k,v]of Object.entries(attrs))n.setAttribute(k,v);if(text!==undefined)n.textContent=text;return n;};
  const path=(d,cls)=>node('path',{d,class:cls});
  const kind=item=>item.kind||((item.buildings||[]).includes('walls')?'walled_city':'city');
- const style=()=>window.ww2UnitStyle?.value||'detailed';
+ const style=()=>window.ww2UnitStyle?.value==='basic'?'basic':'detailed';
  function silhouette(key){
   const g=node('g',{class:'emp-art-fallback'}),solid=d=>g.append(path(d,'emp-art-solid')),line=d=>g.append(path(d,'emp-art-line'));
   if(key==='scout'){

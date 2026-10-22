@@ -59,10 +59,21 @@ for(const width of [2560,390]){
  assert.equal(JSON.stringify(w.state),before,'Artwork and preference changes must not alter battle state');
  const pinned=w.makeUnitPortrait({...entries[0],pinned:true,entrenched:true,overwatch:true});assert.ok(pinned.querySelector('.is-pinned .counter-pin'));assert.ok(pinned.querySelector('.counter-sandbags'));assert.ok(pinned.querySelector('.counter-overwatch'));
  assert.notEqual(pinned.querySelector('.counter-pin').getAttribute('transform'),pinned.querySelector('.unit-role-badge').getAttribute('transform'),'Pin and role must occupy different corners');
+ // Current Icons shares the map/portrait/replay renderer without the miniatures.
+ w.state.ruleset='dsl';w.state.edition='current';const currentBefore=JSON.stringify(w.state);
+ w.ww2UnitStyle.set('icons');
+ assert.equal(d.querySelectorAll('#artPlate .unit-primary-insignia').length,entries.length);
+ assert.equal(d.querySelectorAll('#artPlate .unit-illustration,#artPlate .unit-portrait').length,0);
+ assert.equal(d.querySelectorAll('#playbackMap .unit-primary-insignia').length,1);
+ const status=w.makeUnitPortrait({...entries[0],pinned:true,entrenched:true,overwatch:true});
+ assert.ok(status.querySelector('.counter-pin'));assert.ok(status.querySelector('.counter-overwatch'));assert.ok(status.querySelector('.counter-sandbags'));
+ assert.equal(JSON.stringify(w.state),currentBefore);assert.equal(w.localStorage.getItem('ww2-unit-style'),'icons');
+ w.state.edition='legacy';d.dispatchEvent(new w.Event('ww2:render'));assert.equal(w.ww2UnitStyle.value,'detailed');
+ w.state.edition='current';d.dispatchEvent(new w.Event('ww2:render'));assert.equal(w.ww2UnitStyle.value,'icons');
  dom.window.close();
 }
 for(const preference of ['basic','classic','detailed']){const {dom,w}=boot(390,preference);const portrait=w.makeUnitPortrait(entries[0]);assert.equal(!!portrait.querySelector('image'),preference==='detailed');dom.window.close();}
-console.log(`PASS: ${kinds.length} roles, ${variants.length} variants, factions, reserves, replay, load/error fallbacks, input/status preservation and both persisted modes at desktop/phone widths. No game-state writes.`);
+console.log(`PASS: ${kinds.length} roles, ${variants.length} variants, factions, reserves, replay, load/error fallbacks, input/status preservation, Current Icons and existing styles at desktop/phone widths. No game-state writes.`);
 if(process.argv.includes('--render')){
  const {dom,w}=boot(1440),ns='http://www.w3.org/2000/svg',lib=w.ww2UnitIllustrations;
  // librsvg's embedded-image loader lacks WebP on some hosts; losslessly decode

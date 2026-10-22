@@ -1,8 +1,8 @@
-/* Basic recognition symbols and Detailed painted miniatures. Counters own input. */
+/* Basic silhouettes, Detailed miniatures and Current-only Icons. Counters own input. */
 'use strict';
 (()=>{
- let detailed=true;
- try{detailed=!['basic','classic'].includes(localStorage.getItem('ww2-unit-style'));}catch{}
+ let detailed=true,icons=false;
+ try{const saved=localStorage.getItem('ww2-unit-style');detailed=!['basic','classic'].includes(saved);icons=saved==='icons';}catch{}
  const ns='http://www.w3.org/2000/svg',observed=new Set();
  let illustrationId=0;
  const ships=new Set(['carrier','battleship','cruiser','destroyer']);
@@ -40,6 +40,7 @@
  // The illustrated insignia belong only to Current DSL. Legacy keeps its
  // existing badge set and dimensions, including its air/naval presentation.
  const currentInsignia=()=>state?.ruleset==='dsl'&&state.edition==='current';
+ const unitStyle=()=>icons&&currentInsignia()?'icons':detailed?'detailed':'basic';
  const currentBadges={
   flak:['Light Flak gun',badges.aa_gun[1]],
   mg42:['Machine-gun team · MG 42',badges.mg[1]],
@@ -64,13 +65,15 @@
  const badgeKey=u=>u.kind==='leader'&&u.rank==='captain'?'captain':
   currentInsignia()&&u.kind==='mg'&&u.role_profile==='suppression_mg'?'mg42':u.kind;
  const badgeData=key=>(currentInsignia()?currentBadges[key]:null)||badges[key];
- window.unitBadgeLabel=u=>badgeData(badgeKey(u))?.[0]||'';
+ window.unitBadgeLabel=u=>unitStyle()==='icons'&&u.kind==='squad'?'Private / rifle infantry':badgeData(badgeKey(u))?.[0]||'';
  function roleBadge(u){
   const key=badgeKey(u),data=badgeData(key);if(!data)return null;
   const g=el('g',{class:'unit-role-badge badge-'+key,'data-badge-role':key});
   g.append(el('rect',{x:-7,y:-7,width:14,height:14,rx:2}),el('path',{d:data[1]}));
   const index=insigniaOrder.indexOf(key);
-  if(currentInsignia()&&detailed&&index>=0){
+  // Icons promotes the existing private chevron; the painted infantry atlas
+  // cell depicts crossed rifles. Detailed and Basic retain their own artwork.
+  if(currentInsignia()&&detailed&&index>=0&&!(unitStyle()==='icons'&&key==='squad')){
    const row=Math.floor(index/6),x=index%6*209+3,y=insigniaRows[row]+3,
     width=203,height=insigniaRows[row+1]-insigniaRows[row]-6;
    const id=`unit-insignia-${++illustrationId}`,defs=el('defs',{}),clip=el('clipPath',{id,clipPathUnits:'userSpaceOnUse'});
@@ -263,7 +266,7 @@
   const byId=new Map(units.map(u=>[u.id,u]));
   for(const counter of svg.querySelectorAll('.unit')){
    const u=byId.get(counter.dataset.unitId);if(!u)continue;
-   const style=detailed?'detailed':'basic';
+   const style=unitStyle();
    const signature=[style,currentInsignia(),u.kind,u.variant||'',u.rank||'',u.role_profile||'',u.pinned,u.entrenched,u.overwatch].join(':');
    if(counter._unitArtStyle===signature)continue;
    counter._unitArtStyle=signature;
@@ -271,24 +274,33 @@
    const [cx,cy]=center(...u.pos),art=el('g',{class:`unit-art unit-art-${style}${u.pinned?' is-pinned':''}`,transform:`translate(${cx} ${cy})`,'aria-hidden':'true','data-art-kind':u.kind});
    const badge=roleBadge(u),role=window.unitBadgeLabel(u);
    const title=el('title',{class:'unit-art-title'},`${sideLabel(u.side)} ${unitName(u)}${role?' · '+role:''} · ${u.hp} strength · ${u.ap} AP${u.pinned?' · pinned':''}${u.entrenched?' · dug in':''}${u.overwatch?' · overwatch':''}`);counter.prepend(title);
-   art.append(el('path',{class:'portrait-panel',d:'M-17-15H17Q19-15 19-13V5H-19V-13Q-19-15-17-15Z'}));
-   const drawing=el('g',{class:`unit-portrait portrait-${u.kind}${u.variant?' portrait-'+u.variant:''}${ships.has(u.kind)?' naval-silhouette':''}${u.kind==='halftrack'?' insignia-halftrack':''}`,transform:'translate(0 -6) scale(.8)'});art.append(drawing);drawUnit(drawing,u);
-   if(detailed)illustrate(drawing,u,art);
-   if(badge){badge.setAttribute('transform','translate(17 -14)');art.append(badge);}
+   if(style==='icons'&&badge){
+    badge.classList.add('unit-primary-insignia');badge.setAttribute('transform','translate(0 -6) scale(1.6)');art.append(badge);
+   }else{
+    art.append(el('path',{class:'portrait-panel',d:'M-17-15H17Q19-15 19-13V5H-19V-13Q-19-15-17-15Z'}));
+    const drawing=el('g',{class:`unit-portrait portrait-${u.kind}${u.variant?' portrait-'+u.variant:''}${ships.has(u.kind)?' naval-silhouette':''}${u.kind==='halftrack'?' insignia-halftrack':''}`,transform:'translate(0 -6) scale(.8)'});art.append(drawing);drawUnit(drawing,u);
+    if(detailed)illustrate(drawing,u,art);
+    if(badge){badge.setAttribute('transform','translate(17 -14)');art.append(badge);}
+   }
    if(u.entrenched){
     const bags=el('g',{class:'counter-sandbags'});art.append(bags);
     for(let x=-19;x<19;x+=9)bags.append(el('path',{d:`M${x} 15q-2 0-2 3t2 3h6q2 0 2-3t-2-3Z`,class:'sandbag'}));
    }
    if(u.overwatch){const eye=el('g',{class:'counter-overwatch',transform:'translate(-16 -15)'});art.append(eye);eye.append(el('circle',{r:5.5,class:'status-disc'}),el('path',{d:'M-4 0Q0-5 4 0Q0 5-4 0Z',class:'status-eye'}),el('circle',{r:1.3,class:'eye-pupil'}));}
-   if(u.pinned){const pin=el('g',{class:'counter-pin',transform:badge?'translate(17 4)':'translate(17 -14)'});art.append(pin);pin.append(el('path',{d:'M-5-5H5V3L0 7-5 3Z',class:'pin-flag'}),el('path',{d:'M0-2V1M0 3v.2',class:'pin-alert'}));}
+   if(u.pinned){const pin=el('g',{class:'counter-pin',transform:badge&&style!=='icons'?'translate(17 4)':'translate(17 -14)'});art.append(pin);pin.append(el('path',{d:'M-5-5H5V3L0 7-5 3Z',class:'pin-flag'}),el('path',{d:'M0-2V1M0 3v.2',class:'pin-alert'}));}
    art.append(el('path',{d:'M-23-10V-19H-13M13-19H23V-10M23 10V20H13M-13 20H-23V10',class:'selection-brackets'}),el('path',{d:badge?'M-23 14v6h6Z':'M17-19h6v6Z',class:'selection-corner'}));
    const name=counter.querySelector('.unit-name');if(name)name.before(art);else counter.append(art);
   }
   if(!force&&svg._artViewWidth!==svg.viewBox.baseVal.width){svg._artViewWidth=svg.viewBox.baseVal.width;requestAnimationFrame(()=>{if(svg.isConnected)size(svg);});}
  }
  function sync(){
-  document.body.classList.add('illustrated-units');document.body.classList.toggle('detailed-unit-art',detailed);
-  button.textContent=detailed?'Units: detailed':'Units: basic';button.setAttribute('aria-pressed',String(detailed));
+  const style=unitStyle(),styles=currentInsignia()?['detailed','basic','icons']:['detailed','basic'],next=styles[(styles.indexOf(style)+1)%styles.length];
+  document.body.classList.add('illustrated-units');document.body.classList.toggle('detailed-unit-art',style==='detailed');
+  document.body.classList.toggle('icons-unit-art',style==='icons');
+  button.textContent='Units: '+style;
+  button.title=`Switch to ${next}. Styles: ${styles.join(', ')}.`+(currentInsignia()?' Icons uses only the unit insignia.':'');
+  button.setAttribute('aria-label',`Unit style: ${style}. Switch to ${next}.`);
+  button.removeAttribute('aria-pressed');
   for(const svg of observed)if(!svg.isConnected){observer.unobserve(svg);observed.delete(svg);}
   if(!state)return;
   decorate(document.getElementById('map'),state.units);
@@ -301,13 +313,13 @@
   const [x,y]=center(...u.pos),svg=el('svg',{class:'dad-unit-portrait illustrated-units',viewBox:`${x-26} ${y-25} 52 50`,'aria-hidden':'true',focusable:'false'});
   const counter=el('g',{class:`unit ${u.side}`,'data-unit-id':u.id});counter.append(el('rect',{x:x-22,y:y-19,width:44,height:40,rx:3}));svg.append(counter);decorate(svg,[u],true);return svg;
  };
- const button=document.createElement('button');button.id='unitStyleToggle';button.type='button';button.title='Switch all unit icons between basic silhouettes and detailed painted miniatures';document.getElementById('playTools').append(button);
+ const button=document.createElement('button');button.id='unitStyleToggle';button.type='button';document.getElementById('playTools').append(button);
  function setStyle(value){
-  if(!['basic','detailed'].includes(value))return;
-  detailed=value==='detailed';try{localStorage.setItem('ww2-unit-style',value);}catch{}
+  if(!['basic','detailed','icons'].includes(value))return;
+  detailed=value!=='basic';icons=value==='icons';try{localStorage.setItem('ww2-unit-style',value);}catch{}
   sync();document.dispatchEvent(new Event('ww2:unit-style'));
  }
- window.ww2UnitStyle={get value(){return detailed?'detailed':'basic';},set:setStyle};
- button.onclick=()=>setStyle(detailed?'basic':'detailed');
+ window.ww2UnitStyle={get value(){return unitStyle();},set:setStyle};
+ button.onclick=()=>{const styles=currentInsignia()?['detailed','basic','icons']:['detailed','basic'];setStyle(styles[(styles.indexOf(unitStyle())+1)%styles.length]);};
  document.addEventListener('ww2:render',sync);document.addEventListener('ww2:playback',sync);sync();
 })();

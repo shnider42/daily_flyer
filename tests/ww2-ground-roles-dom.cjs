@@ -54,6 +54,7 @@ async function main(){
     assert.equal($('groundRolesManual').hidden,false);assert.ok($('rules').classList.contains('specialist-manual'));
     assert.match($('unitBadgeLegend').textContent,/Captain.*Major.*Machine-gun|Captain.*Machine-gun/);
     $('unitStyleToggle').click();await delay();assert.ok(w.document.querySelector('#map .unit-art-basic .unit-role-badge'));
+    $('unitStyleToggle').click();await delay();assert.ok(w.document.querySelector('#map .unit-primary-insignia'));
     $('unitStyleToggle').click();await delay();assert.ok(w.document.querySelector('#map .unit-illustration'));
    }
    await fixture(v,'de','current:village_2');

@@ -6,6 +6,17 @@ The set covers 34 unit kinds plus captains and the suppression MG 42 role.
 Lieutenants use one silver bar, captains two, and company commanders a gold leaf.
 These are consistent game-role identifiers, not national historical rank charts.
 
+Current DSL also offers **Icons** beside Detailed and Basic. The display button
+cycles Detailed → Basic → Icons. Icons replaces the main miniature and its
+corner badge with one enlarged, centered insignia. The same choice applies to
+map counters, unit trays, close-ups, aircraft manifests, reserves and playback.
+Rifle infantry use the existing private chevron; captains use two bars and
+commanders the major's leaf. Other roles use their existing painted insignia.
+Team colors, counter shapes, strength/AP and status indicators remain visible;
+the statistics sit below the enlarged badge. The choice is saved locally.
+Legacy and Empires retain their two existing styles, displaying Detailed when
+the stored preference is Icons. No new artwork or rule changes are introduced.
+
 The map, selected-unit details, close-ups, reserves, replay and field-manual
 legend use the same renderer. A 46-pixel detail view and 38-pixel legend give the
 texture room to read; the small map badge prioritizes the symbol's silhouette.
@@ -35,7 +46,7 @@ installations/navy, and aircraft/landing craft/MG 42 in renderer order.
 
 `tests/ww2-insignia-browser.cjs` uses disposable local matches and Chromium to
 check all 36 source windows and real image loads, desktop/phone rendering,
-Basic/Detailed switching, blocked-image fallback, unchanged battle state and
-Legacy isolation. The existing unit-art and ground-role DOM suites cover
+Basic/Detailed/Icons switching, saved Icons preference, blocked-image fallback,
+unchanged battle state and Legacy/Empires isolation. The existing unit-art and ground-role DOM suites cover
 input/status behavior and actual specialist orders. Device playtesting remains
 useful for subjective readability at different map zoom levels.

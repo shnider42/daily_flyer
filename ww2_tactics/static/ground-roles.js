@@ -36,7 +36,7 @@
   'Fog and local spotting apply. Base sight is listed on each unit; woods and buildings conceal distant infantry and block intervening sight, as does smoke. Observe costs recon 1 AP for +2 sight until it moves, attacks or starts its next turn. A recon patrol with a mortar in its platoon can then Spot for fire for 1 AP, improving that mortar’s landing roll from 5+ to 4+. Mortars cost 2 AP and a shell, once per round; their radius-1 blast lands after the enemy turn. A hit deals 1 damage and pins all infantry in the blast, including friendlies. Buildings have a separate 5+ damage check. Takebacks preserve rolled results and cannot erase newly learned information.'));
  $('rules').querySelector('h2').after(manual);
  const legend=uiNode('details','unit-badge-legend');legend.id='unitBadgeLegend';legend.append(uiNode('summary','','Read the unit insignia'),uiNode('p','',
-  'The upper-right badge identifies the unit’s role while keeping its artwork. Officer bars and the major’s leaf identify command; other symbols identify equipment or duties. These shared gameplay symbols are consistent across armies. Team colors and counter shapes still identify the side.'));
+  'Detailed and Basic show a role badge beside the unit artwork. Icons enlarges that insignia into the whole unit image. Officer bars and the major’s leaf identify command; other symbols identify equipment or duties. These shared gameplay symbols are consistent across armies. Team colors and counter shapes still identify the side.'));
  const grid=uiNode('div','unit-badge-grid');legend.append(grid);manual.before(legend);
  let legendKey='';
  window.renderGroundRoles=(u,legal)=>{

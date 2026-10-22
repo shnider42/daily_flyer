@@ -33,6 +33,8 @@
 .unit-art-basic .art-line{stroke-width:2.5}
 .compact-unit-art .unit-art .art-detail{display:none}
 .unit-art.is-pinned .unit-portrait{opacity:.55}
+.unit-art.is-pinned .unit-primary-insignia{opacity:.65}
+.unit-art-icons~.strength{transform:translateY(5px)}
 .unit-art .sandbag{fill:#c1ac78;stroke:#514e38;stroke-width:.8}
 .unit-art .status-disc{fill:#263e3b;stroke:#f4df96;stroke-width:1}
 .unit-art .status-eye{fill:none;stroke:#ffe9a0;stroke-width:1}
