@@ -1,6 +1,18 @@
 # New Passage: main website replacement concept
 
 
+## Desktop sidebar experiment (2026-10-22)
+
+The active review version keeps selectable views and adds a fixed desktop navigation rail at 1024 CSS pixels and wider. Narrower windows retain the translucent sticky top bar and mobile menu. The rail can scroll independently in very short windows; the document never locks overflow to force a viewport fit.
+
+The landing screen uses a rectangular portrait, quieter typography, a short service description, direct booking, and a three-choice conversation preview. Choosing direction, interviews, or speaking up changes an illustrative question in place. These are proposed editorial examples, not quotations from Tim or an assessment. Selection is not saved, does not alter the practice notebook, and does not navigate away. Parents and schools can go directly to their corresponding coaching information. Practice remains a secondary destination.
+
+The wide composition is designed to keep the opening in the viewport, with compact rules below 820px height. On mobile it becomes a readable scrolling page with reachable Home navigation. Day/night appearance, note keys, unsaved practice drafts, legacy links, and the original Your Passage companion remain compatible. Existing view transitions and selection fades respect reduced motion; there is no timed carousel or decorative continuous animation.
+
+The previous top-bar version is preserved at `checkpoint/new-passage-before-sidebar`, commit `8fd87f6848712fe07029e05c1a3598386e01daca`. The scrolling and earlier selectable-view branches below remain independent. Continue active review on `feat/your-passage-site` with the existing Render settings.
+
+Validation: six Python integration checks, ten practice checks, eight appearance checks, and nine navigation checks pass. The two new navigation checks cover conversation choices without storage/practice side effects and direct parent/school entrances. The managed preview server runs, but browser access was blocked by the environment's URL policy. Desktop/mobile fit, hover appearance and animation timing remain visually unverified.
+
 ## Project names and first homepage pass (2026-10-21)
 
 - **My Passages**: Tim’s existing business and https://mypassages.net.
@@ -9,7 +21,7 @@
 
 The public working title is now New Passage. The theme module, route, CSS/DOM identifiers and browser-storage keys remain `your_passage` / `your-passage` for compatibility; keep `DEFAULT_THEME=your_passage` in Render. No branch, service, domain, database or original companion changes are needed.
 
-The current pass makes lead conversion the primary task. The opening contains a short coaching pitch, Tim’s portrait, a booking action and an understated coaching link. Navigation opens separate Coaching, Meet Tim, Getting started and Practice views within the same loaded document. The opening no longer has a partially visible section below it. The desktop composition uses the available viewport with compact rules for shorter laptop windows; zoomed, narrow or unusually short windows can still scroll instead of clipping controls.
+The current pass makes lead conversion the primary task. The opening contains a short coaching pitch, Tim’s portrait, a booking action, and an interactive conversation preview. Navigation opens separate Coaching, Meet Tim, Getting started and Practice views within the same loaded document. The opening no longer has a partially visible section below it. The desktop composition uses the available viewport with compact rules for shorter laptop windows; zoomed, narrow or unusually short windows can still scroll instead of clipping controls.
 
 Typography now uses the existing local sans-serif stack (Avenir Next / Segoe UI / sans-serif) for both headings and body text. It replaces the previous editorial serif treatment. Each view uses one brief entrance transition. Audience choices and practice tabs use a short fade only when changed; child transitions are cleared when moving between views. There is no staggered text reveal or animated path drawing. All motion respects `prefers-reduced-motion`. No font or animation library is downloaded.
 
@@ -33,7 +45,7 @@ The long scrolling page and the selectable views are separate design directions.
 
 Do not reset or force-push one direction over another. Start from the relevant branch when resuming work. Move shared fixes across deliberately; review layout changes separately. The checkpoint branch should remain at its recorded commit. These are engineering branches, not extra modes exposed to prospective clients, and no extra Render services were created.
 
-The current background uses the former paper texture with broad, muted aqua and warm lighting, adapted to night mode. The decorative contour lines and the line around the portrait were removed after review because the repeated curves felt generic. The photo has a soft tonal backing. A full-width translucent navigation bar stays at the top while scrolling on desktop and mobile; its Home link remains available, and the mobile menu opens beneath the bar. Anchor offsets account for the bar, including mobile safe-area spacing. Browsers without background blur receive a solid readable fallback.
+The current background uses the former paper texture with broad, muted aqua and warm lighting, adapted to night mode. The decorative contour lines and the line around the portrait were removed after review because the repeated curves felt generic. The photo has a soft tonal backing. Navigation stays reachable while scrolling: a translucent sidebar on desktop and a translucent top bar on narrower screens. The Home link remains available, and the mobile menu opens beneath the bar. Anchor offsets account for the bar, including mobile safe-area spacing. Browsers without background blur receive a solid readable fallback.
 
 Use ordinary punctuation in visible copy and tab titles. Do not use em dashes, en dashes or double hyphens as sentence separators. CSS custom properties and internal identifiers keep their required syntax. Keep hover targets stationary. Continue respecting reduced-motion settings.
 
@@ -142,7 +154,7 @@ All new copy and adapted practice material need Tim's editorial approval before 
 3. Decide whether local-only notes are sufficient. Accounts, cross-device progress, student records, lead capture, email subscriptions and admin publishing are not implemented.
 4. Use a dedicated DFE deployment with `DEFAULT_THEME=your_passage` and verify booking, accessibility and responsive behavior in real browsers. Keep this concept on its separate branch and service.
 
-Verification includes six Python integration tests, ten practice interaction tests, eight appearance tests, and seven view-navigation tests. These cover actual Flask responses and DFE export, date/seed behavior, HTML structure, legacy notes, focus/menu controls, rehearsal feedback, takeaways, save/download/print, scoped deletion, blocked storage, keyboard tabs, pre-body appearance, device changes, saved overrides, reset, and cross-tab appearance updates. The managed static preview is unavailable in this environment, so desktop/mobile pixel layout and animation appearance remain unverified in a real browser. Viewport fitting is implemented in CSS, not claimed as a measured browser result.
+Verification includes six Python integration tests, ten practice interaction tests, eight appearance tests, and nine view-navigation tests. These cover actual Flask responses and DFE export, date/seed behavior, HTML structure, legacy notes, focus/menu controls, rehearsal feedback, takeaways, save/download/print, scoped deletion, blocked storage, keyboard tabs, pre-body appearance, device changes, saved overrides, reset, and cross-tab appearance updates. The managed static preview server runs, but browser access is blocked by URL policy, so desktop/mobile pixel layout and animation appearance remain unverified in a real browser. Viewport fitting is implemented in CSS, not claimed as a measured browser result.
 
 Run the focused checks:
 

@@ -16,6 +16,24 @@
   const pageTitle = document.title;
   const pageNames = {home: '', coaching: 'Coaching', tim: 'Meet Tim', start: 'Getting started', practice: 'Practice'};
   const audienceLabels = {student: 'Talk about your goals', parent: 'Talk about your student', school: 'Discuss a school program'};
+  // Illustrative conversation prompts, kept separate from the practice notebook.
+  const conversations = {
+    direction: 'What are you curious about, even if it doesn’t sound like a career yet?',
+    interview: 'What is one thing you’ve done that you’d like an interviewer to understand?',
+    confidence: 'When have you had something to say, but struggled to find the words?'
+  };
+  root.querySelectorAll('[data-conversation]').forEach(button => button.addEventListener('click', () => {
+    if (button.getAttribute('aria-pressed') === 'true') return;
+    const question = conversations[button.dataset.conversation];
+    if (!question) return;
+    root.querySelectorAll('[data-conversation]').forEach(option => option.setAttribute('aria-pressed', String(option === button)));
+    $('np-example-question').textContent = question;
+    const response = $('np-conversation-response');
+    response.classList.remove('np-panel-enter');
+    // Restart the same short transition on a deliberate selection, never on a timer.
+    void response.offsetWidth;
+    response.classList.add('np-panel-enter');
+  }));
   function selectAudience(audience, animate = false) {
     if (!audienceLabels[audience]) return;
     root.querySelectorAll('[data-audience]').forEach(button => button.setAttribute('aria-pressed', String(button.dataset.audience === audience)));

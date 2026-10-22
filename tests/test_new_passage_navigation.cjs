@@ -46,6 +46,40 @@ function traverse(w, direction) {
     assert.match(d.getElementById('yp-audience-link').textContent, /student/);
     dom.window.close();
   });
+  await test('Home conversation choices stay on the landing screen without changing practice or saving data', () => {
+    const dom = make(); const w = dom.window; const d = w.document;
+    const topic = d.getElementById('yp-topic').value;
+    const question = d.getElementById('np-example-question');
+    const initial = question.textContent;
+    const interview = d.querySelector('[data-conversation="interview"]');
+    interview.focus(); interview.click();
+    assert.notEqual(question.textContent, initial);
+    assert.match(question.textContent, /interviewer/);
+    assert.deepEqual(visible(d), ['home']);
+    assert.equal(d.activeElement, interview);
+    assert.equal(w.location.hash, '');
+    assert.equal(d.querySelectorAll('[data-conversation][aria-pressed="true"]').length, 1);
+    assert.equal(d.getElementById('yp-topic').value, topic);
+    assert.equal(w.localStorage.length, 0);
+    click(d, '#tim'); click(d, '#starting-point');
+    assert.match(question.textContent, /interviewer/);
+    d.querySelector('[data-conversation="confidence"]').click();
+    assert.match(question.textContent, /find the words/);
+    d.querySelector('[data-conversation="direction"]').click();
+    assert.equal(question.textContent, initial);
+    dom.window.close();
+  });
+  await test('Parent and school entrances reach the selected service and booking without practice', () => {
+    const dom = make(); const d = dom.window.document;
+    for (const id of ['parents', 'schools']) {
+      d.querySelector(`.np-home-paths a[href="#${id}"]`).click();
+      assert.deepEqual(visible(d), ['coaching']);
+      assert.equal(d.getElementById(id).hidden, false);
+      assert.equal(d.getElementById('yp-audience-link').href, 'https://calendly.com/tim-mypassages');
+      click(d, '#starting-point');
+    }
+    dom.window.close();
+  });
   await test('Old audience, notebook, and practice-stage links open the correct content directly', () => {
     for (const [hash, page, id] of [['#parents','coaching','parents'], ['#schools','coaching','schools'], ['#groups','coaching','individual'], ['#notebook','practice','notebook'], ['#yp-panel-try','practice','yp-panel-try']]) {
       const dom = make(hash); const d = dom.window.document;

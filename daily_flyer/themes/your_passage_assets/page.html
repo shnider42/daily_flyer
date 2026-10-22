@@ -1,28 +1,45 @@
 <div id="yp">
   <a class="yp-skip" href="#starting-point">Skip to content</a>
   <nav class="yp-nav" aria-label="Main navigation">
-    <a class="yp-brand" href="#starting-point" aria-label="New Passage home"><svg viewBox="0 0 42 44" aria-hidden="true"><path d="M4 39V20C4-2 38-2 38 20v19M13 39V21c0-11 16-11 16 0v18M21 39V25" fill="none" stroke="currentColor" stroke-width="2.6"/></svg><span>New Passage</span></a>
+    <a class="yp-brand" href="#starting-point" aria-label="New Passage home"><svg viewBox="0 0 42 44" aria-hidden="true"><path d="M4 39V20C4-2 38-2 38 20v19M13 39V21c0-11 16-11 16 0v18M21 39V25" fill="none" stroke="currentColor" stroke-width="2.6"/></svg><span>New<span class="np-brand-break"> Passage</span></span></a>
     <button class="yp-menu-toggle" id="yp-menu-toggle" type="button" aria-expanded="false" aria-controls="yp-navigation">Menu <span aria-hidden="true">☰</span></button>
-    <div class="yp-navlinks" id="yp-navigation"><a href="#starting-point" data-nav-page="home">Home</a><a href="#approach" data-nav-page="coaching">Coaching</a><a href="#tim" data-nav-page="tim">Meet Tim</a><a href="#getting-started" data-nav-page="start">Getting started</a><a class="np-practice-link" href="#practice" data-nav-page="practice">Practice <span aria-hidden="true">↗</span></a></div>
+    <div class="yp-navlinks" id="yp-navigation"><a href="#starting-point" data-nav-page="home">Home</a><a href="#approach" data-nav-page="coaching">Coaching</a><a href="#tim" data-nav-page="tim">Meet Tim</a><a href="#getting-started" data-nav-page="start">Getting started</a><a class="np-practice-link" href="#practice" data-nav-page="practice">Practice</a></div>
+    <div class="np-nav-note"><p>Coaching with<br><strong>Tim Holtsnider</strong></p><a href="https://calendly.com/tim-mypassages" target="_blank" rel="noopener noreferrer">Let’s talk <span aria-hidden="true">↗</span></a><span>Students · Parents · Schools</span></div>
     <button type="button" class="yp-textlink" id="yp-exit-focus" hidden>← Exit focus</button>
   </nav>
 
   <header class="yp-hero yp-width np-page" id="starting-point" data-page="home" aria-labelledby="np-home-heading">
+    <div class="np-home-topline"><span>Life beyond the classroom</span><span>Coaching & mentorship</span></div>
     <div class="yp-hero-copy">
-      <p class="yp-kicker">COACHING FOR LIFE AFTER SCHOOL</p>
-      <h1 id="np-home-heading" tabindex="-1" data-page-heading>Your next step.<br><span>A little clearer.</span></h1>
-      <p class="yp-intro">Coaching with Tim Holtsnider to find direction, prepare for interviews, and step into working life.</p>
-      <div class="yp-actions"><a class="yp-button" href="https://calendly.com/tim-mypassages" target="_blank" rel="noopener noreferrer">Book a conversation <span aria-hidden="true">↗</span></a><a class="yp-textlink" href="#approach">Explore coaching <span aria-hidden="true">→</span></a></div>
-      <p class="np-audiences">For students, parents & schools</p>
+      <h1 id="np-home-heading" tabindex="-1" data-page-heading>School ends.<br><span>What comes next?</span></h1>
+      <p class="yp-intro">Career direction, interviews, and finding your voice. Coaching with Tim Holtsnider for life after school.</p>
+      <div class="yp-actions"><a class="yp-button" href="https://calendly.com/tim-mypassages" target="_blank" rel="noopener noreferrer">Book a conversation <span aria-hidden="true">↗</span></a><a class="yp-textlink" href="#getting-started">What happens first?</a></div>
     </div>
     <figure class="np-portrait">
-      <div class="np-portrait-stage">
+      <a class="np-portrait-stage" href="#tim" aria-label="Meet Tim Holtsnider">
         <div class="yp-portrait-frame"><img src="__YP_PORTRAIT__" alt="Tim Holtsnider, Passages coach and mentor" width="840" height="1200" fetchpriority="high" decoding="async"></div>
-        <span class="np-portrait-label">A person in your corner.</span>
-      </div>
-      <figcaption><div><strong>Tim Holtsnider</strong><span>Coach & mentor</span></div><a href="#tim" aria-label="Meet Tim Holtsnider">Meet Tim <span aria-hidden="true">→</span></a></figcaption>
-      <p class="np-credibility">40+ years of experience · 6 countries · 4 continents</p>
+        <span class="np-photo-link">Meet Tim <span aria-hidden="true">→</span></span>
+      </a>
+      <figcaption><div><strong>Tim Holtsnider</strong><span>Coach & mentor</span></div></figcaption>
+      <p class="np-credibility"><strong>40+ years</strong> of experience<br>Across 6 countries and 4 continents</p>
     </figure>
+    <section class="np-conversation" aria-labelledby="np-conversation-heading">
+      <div class="np-conversation-heading"><h2 id="np-conversation-heading">Sound familiar?</h2><span>Choose a starting point</span></div>
+      <div class="np-conversation-layout">
+        <div class="np-conversation-options" role="group" aria-label="Choose a conversation starting point">
+          <button type="button" data-conversation="direction" aria-pressed="true" aria-controls="np-conversation-response">What comes next?</button>
+          <button type="button" data-conversation="interview" aria-pressed="false" aria-controls="np-conversation-response">I have an interview.</button>
+          <button type="button" data-conversation="confidence" aria-pressed="false" aria-controls="np-conversation-response">How do I speak up?</button>
+        </div>
+        <div class="np-conversation-response" id="np-conversation-response" aria-live="polite" aria-atomic="true">
+          <p class="np-example-label">A QUESTION TO EXPLORE</p>
+          <p class="np-example-question" id="np-example-question">What are you curious about, even if it doesn’t sound like a career yet?</p>
+          <a class="yp-textlink" id="np-conversation-link" href="#individual">Explore coaching <span aria-hidden="true">→</span></a>
+        </div>
+      </div>
+      <noscript><p class="yp-small">Explore coaching for more ways to get started.</p></noscript>
+    </section>
+    <div class="np-home-paths"><span>Here for someone else?</span><a href="#parents">For parents <span aria-hidden="true">→</span></a><a href="#schools">For schools <span aria-hidden="true">→</span></a><a class="np-return-link" href="#practice">Back for practice? <span aria-hidden="true">→</span></a></div>
   </header>
 
   <section class="np-page np-detail yp-width" id="approach" data-page="coaching" aria-labelledby="yp-approach-heading">
