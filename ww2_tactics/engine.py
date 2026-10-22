@@ -12,6 +12,7 @@ from .effects import record_effect, record_shot_effect
 from . import combined, naval, transport, campaigns, air, weapons, buildings, operations, fieldworks, linked_front, signals, airborne, domains, fubar, logistics, new_fronts, deployment
 from .visibility import fog, active, visible_ids, unit_visible_ids, sees_hex, update_intel, record_reports
 from . import fire_control, editions, nightfall, midway2, air_support, carrier_decks, britain2, weather, debrief, small_fronts, ground_roles
+from . import the_war
 
 WIDTH, HEIGHT = 7, 9
 OBJECTIVE = [3, 4]
@@ -50,7 +51,7 @@ def line_clear(a, b, smoke=(), state=None, high_ground=False):
 
 
 def initial(scenario='village', ruleset='classic'):
-    return debrief.initialize(weather.initialize(ground_roles.initialize(small_fronts.initialize(_initial(scenario, ruleset)))))
+    return debrief.initialize(weather.initialize(the_war.initialize(ground_roles.initialize(small_fronts.initialize(_initial(scenario, ruleset))))))
 
 
 def _initial(scenario='village', ruleset='classic'):
@@ -189,7 +190,7 @@ def react(state, mover, roll):
 
 
 def options(state, unit):
-    return ground_roles.filter_options(state,unit,_options(state,unit))
+    return ground_roles.filter_options(state,unit,the_war.unit_options(state,unit,_options(state,unit)))
 
 
 def _options(state, unit):
@@ -327,7 +328,9 @@ def _apply(state, side, action, roll=None):
         reactions.extend(airborne.end_turn(state,side))
         state['smoke'] = [dict(s, ttl=s['ttl']-1) for s in state.get('smoke', []) if s['ttl'] > 1]
         state['recon'] = [dict(r, ttl=r['ttl']-1) for r in state.get('recon', []) if r['ttl'] > 1]
-        if nightfall.enabled(state):
+        if the_war.enabled(state):
+            the_war.end_turn(state,side)
+        elif nightfall.enabled(state):
             nightfall.end_turn(state,side)
         elif new_fronts.enabled(state):
             new_fronts.end_turn(state,side)
@@ -366,6 +369,7 @@ def _apply(state, side, action, roll=None):
         midway2.start_turn(state,state['turn'])
         carrier_decks.start_turn(state,state['turn'])
         ground_roles.start_turn(state,state['turn'])
+        the_war.start_turn(state,state['turn'])
         if not state["winner"]: reactions.extend(linked_front.arrive(state, react, roll_die))
         message = f"{names[side]} ended their turn."+(' '+ ' '.join(recovery) if recovery else '')
     else:
@@ -380,7 +384,11 @@ def _apply(state, side, action, roll=None):
         nightfall.before_order(state,unit,kind)
         if dsl(state) and kind != 'move':
             unit['road_pending'] = False
-        if midway2.enabled(state) and kind in midway2.ORDERS:
+        if the_war.enabled(state) and kind in britain2.ORDERS:
+            message=britain2.action(state,unit,action,legal,roll_die,before_sight)
+        elif the_war.enabled(state) and kind=='evacuate':
+            message=the_war.evacuate(state,unit,legal)
+        elif midway2.enabled(state) and kind in midway2.ORDERS:
             message=midway2.action(state,unit,action,legal,roll_die,before_sight)
         elif carrier_decks.enabled(state) and kind in carrier_decks.ORDERS:
             message=carrier_decks.action(state,unit,action,legal,roll_die,before_sight)
@@ -544,7 +552,8 @@ def _apply(state, side, action, roll=None):
     airborne.after_order(state)
     midway2.after_order(state)
     carrier_decks.after_order(state)
-    if nightfall.enabled(state) and kind in {'fire','area_fire'} and unit['kind'] not in domains.AIR_UNITS:unit['night_flash']=True
+    the_war.after_order(state,action)
+    if nightfall.enabled(state) and (not the_war.enabled(state) or the_war.dark(state)) and kind in {'fire','area_fire'} and unit['kind'] not in domains.AIR_UNITS:unit['night_flash']=True
     nightfall.after_order(state)
     for team in ("us", "de"):
         if not nightfall.enabled(state) and not any(u["hp"] > 0 and u["side"] == team for u in state["units"]):

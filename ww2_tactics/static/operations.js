@@ -47,7 +47,7 @@
   for(const [kind,label,cost,on] of [['repair_tank','Repair tank',2,u.kind==='engineer'&&!u.carrier_id],['snipe','Snipe',3,u.kind==='sniper'&&!u.carrier_id],['spot_fire','Spot for fire',1,state.fire_control_version&&['scout','pathfinder'].includes(u.kind)&&!u.carrier_id]]){
    const b=controls[kind];b.hidden=!on;b.disabled=busy||!legal?.[kind]?.length;b.textContent=mode?.kind===kind?'Cancel '+label.toLowerCase():`${label} · ${cost} AP`;
   }
-  if(u.kind==='engineer'&&!u.carrier_id&&state.ground_roles_version!==1){
+  if(u.kind==='engineer'&&!u.carrier_id&&(state.ground_roles_version!==1||!u.role_orders)){
    $('roleBrief').textContent+=` REPAIR · ${u.repair_kits||0} kits. Adjacent tank: +1 strength and fixed tracks for 2 AP, once per tank per round.`;
    $('unitMechanics').append(uiNode('p','mechanics-caption',`Tank repair kits: ${u.repair_kits||0}/3 · select Repair tank, then a marked friendly tank.`));
   }
@@ -55,7 +55,7 @@
   if(guide){
    const range=guide.snipe_range||guide.fire_range;
    $('roleBrief').textContent=`${u.kind==='sniper'?'SNIPER':'RECON'} · Sight ${guide.sight_range}${guide.tower?' from tower · exposed high ground':''} · rifle ${guide.fire_range}${guide.snipe_range?` · snipe ${range} for 3 AP`:''}. Observation is not firing range.${u.exposed_turns?' FIRING POSITION EXPOSED.':''}`;
-   if(state.fire_control_version&&['scout','pathfinder'].includes(u.kind)&&(state.ground_roles_version!==1||u.role_orders?.includes('spot_fire'))){
+   if(state.fire_control_version&&['scout','pathfinder'].includes(u.kind)&&(state.ground_roles_version!==1||!u.role_orders||u.role_orders.includes('spot_fire'))){
     $('roleBrief').textContent+=` FIRE DIRECTION · Observe, then Spot for fire. Supports tanks / AT guns and mortar teams in Platoon ${u.platoon||'HQ'}.`;
     $('unitMechanics').append(uiNode('p','mechanics-caption',u.fire_mark&&u.observing?`${u.fire_mark.active===false?'Direction interrupted':'Marked'} at ${hexColumn(u.fire_mark.pos[0])}${u.fire_mark.pos[1]+1} for Platoon ${u.platoon||'HQ'}. Live support requires an unpinned observer and a clear view.`:'Observe: 1 AP. Spot for fire: 1 AP, once per turn. A marked hex improves same-platoon gun and mortar accuracy; marks never stack.'));
    }

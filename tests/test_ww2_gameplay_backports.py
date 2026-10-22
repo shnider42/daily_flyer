@@ -32,8 +32,8 @@ class GameplayBackportTests(unittest.TestCase):
         from ww2_tactics.scenarios import catalog
         for board in catalog('current'):
             name=board['source_id']
-            self.assertEqual(bool(board.get('air_support')),name in air_support.MAPS,name)
-            self.assertEqual(bool(board.get('carrier_decks_version')),name=='crosswind_strait',name)
+            self.assertEqual(bool(board.get('air_support')),name in air_support.MAPS or name=='the_war_1',name)
+            self.assertEqual(bool(board.get('carrier_decks_version')),name in {'crosswind_strait','the_war_1'},name)
         for name in ('britain','fubar','midway'):
             s=initial(name,'dsl')
             self.assertNotIn('air_support_version',s);self.assertNotIn('carrier_decks_version',s)

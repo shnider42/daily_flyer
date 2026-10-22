@@ -18,7 +18,7 @@ def initialize(state):
 
 
 def reserves(state,side):
-    return [u for u in state['units'] if u['side']==side and u['kind']=='paratrooper' and u.get('airlift_reserve') and u.get('reserve') and u['hp']>0]
+    return [u for u in state['units'] if u['side']==side and u['kind']=='paratrooper' and u.get('airlift_reserve') and not u.get('drop_transport') and u.get('reserve') and u['hp']>0]
 
 
 def options(state,u):
@@ -67,11 +67,15 @@ def action(state,commander,order,legal,roll,react):
     aim=order.get('pos')
     if not inside(state,aim):raise ValueError('Choose a hex inside this battlefield.')
     night=nightfall.enabled(state)
-    if night and (commander['kind']!='transport_aircraft' or distance(commander['pos'],aim)>1):
+    if state['battlefield'].get('war_version'):
+        from .the_war import dark
+        night=dark(state)
+    transport=commander['kind']=='transport_aircraft'
+    if (transport and distance(commander['pos'],aim)>1) or (night and not transport and not state['battlefield'].get('war_version')):
         raise ValueError('Fly the Dakota within one hex of the intended drop zone first.')
-    troop=(nightfall.drop_reserves(state,commander) if night else reserves(state,commander['side']))[0]
+    troop=(nightfall.drop_reserves(state,commander) if transport else reserves(state,commander['side']))[0]
     commander.update(ap=commander['ap']-3,overwatch=False)
-    if night:commander['drop_round']=state['round']
+    if transport:commander['drop_round']=state['round']
     else:state['airlift_rounds'][commander['side']]=state['round']
     die=roll();guided=beacon_near(state,commander['side'],aim) or night and nightfall.guided(state,commander['side'],aim)
     report=dict(round=state['round'],revision=state['revision']+1,unit=troop['id'],aim=list(aim),roll=die,guided=guided,landed=False)

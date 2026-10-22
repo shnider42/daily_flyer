@@ -145,6 +145,17 @@ def illuminated(state,pos):
     return tuple(pos) in light_cells(state)
 
 
+def flash_cells(state):
+    """Public emitters, cached only within one unchanged visibility read."""
+    from .visibility import active,sight_cache
+    cache=sight_cache(state);key=('night_flash_cells',)
+    if cache is not None and key in cache:return cache[key]
+    cells={tuple(u['pos']) for u in state['units'] if active(u) and
+           (u.get('night_flash') or u['kind']=='spotlight' and u.get('beam'))}
+    if cache is not None:cache[key]=cells
+    return cells
+
+
 def unit_sees(state,unit,pos,concealed=False):
     from .engine import distance,line_clear
     from .visibility import active
@@ -152,8 +163,11 @@ def unit_sees(state,unit,pos,concealed=False):
     flying=concealed=='air'
     if not flying and any(s['pos']==pos for s in state.get('smoke',[])):return False
     if tuple(pos) in light_cells(state,not flying):return True
-    if any(active(u) and u['pos']==pos and (u.get('night_flash') or u['kind']=='spotlight' and u.get('beam')) for u in state['units']):return True
+    if tuple(pos) in flash_cells(state):return True
     reach=unit.get('night_air_sight',2) if flying else unit.get('night_ground_sight',2)
+    if state['battlefield'].get('war_version'):
+        from .weather import sight
+        reach=sight(state,unit,reach)
     if not flying and concealed:reach=min(reach,1)
     gap=distance(unit['pos'],pos)
     return gap<=reach and (flying or unit['kind'] in {'fighter','bomber','transport_aircraft'} or gap<=1 or line_clear(unit['pos'],pos,state.get('smoke',[]),state))
@@ -192,6 +206,9 @@ def action(state,u,order,legal):
 
 
 def modifiers(state,u,target):
+    if state['battlefield'].get('war_version'):
+        from .the_war import dark
+        if not dark(state):return {}
     if not enabled(state) or illuminated(state,target['pos']):return {}
     return {'darkness':2 if u['kind']=='aa_gun' else 1}
 
@@ -221,6 +238,7 @@ def before_order(state,u,kind):
 def after_order(state):
     from .visibility import active
     if not enabled(state):return
+    if state['battlefield'].get('war_version'):return
     from .nightveil import record_search
     record_search(state)
     for u in state['units']:
@@ -258,9 +276,11 @@ def end_turn(state,side):
 
 def public_fields(state):
     from .visibility import active
-    return dict(night_status=status(state),night_lights=[dict(pos=list(u['pos']),aim=list(u['beam']))
+    result=dict(night_lights=[dict(pos=list(u['pos']),aim=list(u['beam']))
         for u in state['units'] if active(u) and u['kind']=='spotlight' and u.get('beam')],
         night_flares=copy.deepcopy(state.get('night_flares',[])))
+    if not state['battlefield'].get('war_version'):result['night_status']=status(state)
+    return result
 
 
 def choices(state,u,legal,observed,visited):

@@ -1,0 +1,4 @@
+.war-status{padding:9px 12px;border:1px solid var(--line);border-left:4px solid #a17e39;background:var(--paper);font-size:13px;line-height:1.5;overflow-wrap:anywhere}
+.night-battle .war-status{border-left-color:#708cb1}
+#warManual p{line-height:1.55}
+.war-marker{pointer-events:none}

@@ -11,7 +11,7 @@ from .scenarios import battlefield
 from .rulesets import dsl, turn_limit
 from .visibility import fog, view, visible_ids, active, sight_reader
 from . import naval, air, weapons, buildings, operations, fieldworks, linked_front, signals, airborne, domains, fubar, new_fronts, logistics, small_fronts
-from . import nightfall, midway2, carrier_decks, britain2, ground_roles
+from . import nightfall, midway2, carrier_decks, britain2, ground_roles, the_war
 
 
 def objective_costs(state, goal=None, unit=None):
@@ -66,12 +66,17 @@ def choose_order(state, costs, visited, front_costs=None):
         if unit['side'] != side or (unit['ap'] <= 0 and not unit.get('road_pending')) or not computer_policy.eligible(state, unit):
             continue
         if domains.joint(state) and unit['kind'] in domains.AIR_UNITS | domains.SHIPS:
-            policy=midway2.choices if midway2.enabled(state) else carrier_decks.choices if carrier_decks.enabled(state) else nightfall.choices if nightfall.enabled(state) else fubar.domain_choices
+            policy=the_war.choices if the_war.enabled(state) else midway2.choices if midway2.enabled(state) else carrier_decks.choices if carrier_decks.enabled(state) else nightfall.choices if nightfall.enabled(state) else fubar.domain_choices
             choices.extend(policy(state,unit,options(state,unit),list(units.values()),visited))
             continue
         if new_fronts.enabled(state) and state['front_mode']=='evacuation' and unit['kind']=='landing_craft':
             choices.extend(new_fronts.boat_choices(state, unit, options(state, unit)))
             continue
+        if the_war.enabled(state) and unit['kind']=='landing_craft':
+            rescue=the_war.boat_choices(state,unit,options(state,unit),units.values(),visited)
+            if rescue is not None:
+                choices.extend(rescue)
+                continue
         goal = new_fronts.goal(state, unit, fubar.ground_goal(state,unit) if domains.joint(state) else linked_front.goal(state, unit))
         goal = small_fronts.goal(state,unit,goal)
         goal = ground_roles.goal(state,unit,goal)
@@ -84,6 +89,7 @@ def choose_order(state, costs, visited, front_costs=None):
             if key not in mobility:mobility[key]=objective_costs(state,goal,unit)
             unit_costs=mobility[key]
         legal = options(state, unit)
+        if the_war.enabled(state) and legal.get('evacuate'):add(100,unit,'evacuate')
         choices.extend(small_fronts.choices(state,unit,legal,goal,visited))
         choices.extend(fire_control.ai_choices(state, unit, legal, units.values()))
         for supply in legal.get('resupply', []):add(15, unit, 'resupply', target=supply['id'])
@@ -182,10 +188,12 @@ def choose_order(state, costs, visited, front_costs=None):
         holding = unit['pos'] == goal
         landing_goal=None
         if unit['kind']=='landing_craft':
+            if the_war.enabled(state) and any(v.get('carrier_id')==unit['id'] and v.get('evacuee') for v in units.values()):
+                landing_goal=min(board['war_evacuation_exits'][side],key=lambda p:distance(unit['pos'],p))
             shores=[[x,y] for y in range(board['height']) for x in range(board['width']) if terrain(x,y,state)=='water'
                     and any(distance([x,y],[nx,ny])==1 and terrain(nx,ny,state)!='water'
                             for nx,ny in ((x,y-1),(x,y+1),(x-1,y),(x+1,y)) if 0<=nx<board['width'] and 0<=ny<board['height'])]
-            if shores:landing_goal=min(shores,key=lambda p:distance(unit['pos'],p))
+            if shores and landing_goal is None:landing_goal=min(shores,key=lambda p:distance(unit['pos'],p))
         for move in legal['moves']:
             if unit['kind']=='landing_craft' and not any(v.get('carrier_id')==unit['id'] for v in units.values()):continue
             pos = move['pos']

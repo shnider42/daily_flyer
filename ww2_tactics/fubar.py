@@ -120,14 +120,15 @@ def controls(state):
     result=[]
     for point in state['battlefield']['joint_objectives']:
         sides={u['side'] for u in state['units'] if active(u) and not u.get('afloat')
-               and (u['kind'] in domains.SHIPS if point['domain']=='sea' else u['kind'] in INFANTRY)
+               and (u['kind'] in domains.SHIPS if point['domain']=='sea' else u['kind'] in INFANTRY
+                    or point.get('armor_capture') and u['kind']=='tank')
                and distance(u['pos'],point['pos'])<=point['radius']}
         result.append(dict(point,owner=next(iter(sides)) if len(sides)==1 else None,contested=len(sides)>1))
     return result
 
 
 def end_turn(state, side):
-    state['joint_score'][side]+=sum(p['owner']==side for p in controls(state))
+    state['joint_score'][side]+=sum(p.get('weight',1) for p in controls(state) if p['owner']==side)
     if state['joint_score'][side]>=state['battlefield'].get('joint_score_target',10):state['winner']=side
     if side=='de':
         if state['round']>=state['battlefield']['rounds'] and not state['winner']:

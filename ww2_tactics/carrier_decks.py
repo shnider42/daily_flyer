@@ -46,7 +46,8 @@ def initialize(state):
             continue
         flights = [u for u in state['units'] if domains.is_air(u)
                    and u['side'] == cv['side'] and u['platoon'] == cv['platoon']]
-        cv.update(air_capacity=len(flights), max_air_stores=cv['air_stores'], service_repair=1, deck_used=0)
+        repair=cv.get('service_repair',1) if state['battlefield'].get('war_version') else 1
+        cv.update(air_capacity=len(flights), max_air_stores=cv['air_stores'], service_repair=repair, deck_used=0)
         for plane in flights:
             plane.update(home_carrier=cv['id'], deck_cooldown=False, service_used=False)
             plane.setdefault('display_name', 'Fleet fighter' if plane['kind'] == 'fighter' else 'Naval strike bomber')

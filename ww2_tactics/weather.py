@@ -25,7 +25,7 @@ def enabled(state):
 
 
 def initialize(state, seed=None):
-    if state['battlefield']['id'] not in MAPS:
+    if state['battlefield']['id'] not in MAPS and not state['battlefield'].get('forecast_weather'):
         return state
     rng = random.Random(secrets.randbits(128) if seed is None else seed)
     plan = ['clear', 'clear']

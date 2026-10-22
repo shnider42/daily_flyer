@@ -55,7 +55,7 @@
    if(u.artillery_range)add('artillery');
    if(u.field_recon_range)add('fieldRecon');
    if(s.tactics_version){
-    if(['ap','he','at_shell','rocket','naval_shell','bomb'].includes(u.ammo||u.weapon)&&!s.scenario.night_ops_version&&!s.britain_ops_version&&!(s.midway_ops_version&&u.kind==='bomber'))add('areaFire');
+    if(['ap','he','at_shell','rocket','naval_shell','bomb'].includes(u.ammo||u.weapon)&&(!s.scenario.night_ops_version||s.war_version)&&!s.britain_ops_version&&!(s.midway_ops_version&&u.kind==='bomber'))add('areaFire');
     if(kind==='engineer')add('repairTank');
     if(u.snipe_range)add('snipe');
    }
@@ -64,7 +64,7 @@
   if(s.signals_version){if(['commander','radioman'].includes(kind))add('radioUpdate');if(['scout','radioman','mountain','pathfinder'].includes(kind))add('observe');if(u.stealth)add('conceal');if(u.mortar_range)add(s.fire_control_version?'areaFire':'mortarFire');if('demolition_charges' in u)add('demolition');}
   if(s.fire_control_version&&['scout','pathfinder'].includes(kind))add('spotFire');
   if(s.logistics_version&&kind==='supply')add('resupply');
-  if(s.front_mode==='evacuation'&&kind==='landing_craft'&&u.side==='us')add('evacuate');
+  if((s.front_mode==='evacuation'&&u.side==='us'||s.war_version)&&kind==='landing_craft')add('evacuate');
   if(s.airborne_version){if(u.airlift_commander)add('callAirborne');if('beacon_charges' in u)add('markLZ');}
   if(s.scenario.night_ops_version){if(kind==='spotlight')add('spotlightAim');if(u.max_flares)add('pathfinderFlare');if(kind==='transport_aircraft')add('nightDrop');}
   if(s.small_fronts_version===1&&infantry.has(kind)){
@@ -72,7 +72,7 @@
    if(s.scenario.cave_entrances){if(u.side==='de')add('caveMove');else if(kind==='engineer')add('sealCave');}
   }
   const unique=[...new Set(ids)];
-  return s.ground_roles_version===1?unique.filter(id=>u.role_orders?.includes(id.replace(/[A-Z]/g,c=>'_'+c.toLowerCase()))):unique;
+  return s.ground_roles_version===1&&u.role_orders?unique.filter(id=>u.role_orders.includes(id.replace(/[A-Z]/g,c=>'_'+c.toLowerCase()))):unique;
  }
  function reason(id,u){
   if(busy)return 'Order in progress';
@@ -95,10 +95,10 @@
   if(id==='nightDrop'&&u.drop_round===state.round)return 'Already dropped this round';
   if(id==='nightDrop'&&!state.units.some(t=>t.drop_transport===u.id&&t.hp>0&&t.reserve))return 'No airborne squads aboard';
   if(id==='pathfinderFlare'&&!u.flares)return 'No flares left';
-  if(u.pinned&&id!=='rally')return state.ground_roles_version===1&&!u.role_orders?.includes('rally')?'Needs officer rally or a full own turn pinned':'Rally this unit first';
+  if(u.pinned&&id!=='rally')return state.ground_roles_version===1&&u.role_orders&&!u.role_orders.includes('rally')?'Needs officer rally or a full own turn pinned':'Rally this unit first';
   if(id==='resupply'&&!u.supply_packs)return 'No supply packs left';
   if(id==='evacuate'&&!state.units.some(v=>v.carrier_id===u.id&&v.hp>0&&v.evacuee))return 'Load marked infantry first';
-  if(id==='evacuate'&&!state.scenario.evacuation_exits?.some(p=>p[0]===u.pos[0]&&p[1]===u.pos[1]))return 'Sail to the top sea edge';
+  if(id==='evacuate'&&!(state.scenario.war_evacuation_exits?.[u.side]||state.scenario.evacuation_exits)?.some(p=>p[0]===u.pos[0]&&p[1]===u.pos[1]))return state.war_version?'Sail to your rear evacuation buoy':'Sail to the top sea edge';
   if(id==='radioUpdate'&&u.radio_round===state.round)return 'Already sent this round';
   if(id==='observe'&&u.observing)return 'Already observing';
   if(id==='spotFire'&&!u.observing)return 'Use Observe first';

@@ -138,6 +138,8 @@ from .small_fronts import scenarios as small_scenarios
 CURRENT_SCENARIOS.update(small_scenarios(build))
 from .ground_roles import scenarios as role_scenarios
 CURRENT_SCENARIOS.update(role_scenarios(build))
+from .the_war import scenario as war_scenario
+CURRENT_SCENARIOS['the_war_1'] = war_scenario(build)
 
 
 def get_scenario(key='village'):

@@ -290,7 +290,7 @@
    book.push(make('britain-fuel','Plan the return trip',Array(3).fill('Fuel is finite: Spitfire/Hurricane 12, Bf 109 10, bombers 18. Takeoff, each flight leg and each airborne own-turn ending consume 1. Land within one hex for 1 AP and one runway cycle; landing itself does not burn fuel. Refuel with a service store on the ground. Do not finish an airborne turn with 1 fuel.'),'Select a flight and check fuel before spending its last AP.','#airfieldGroupOpen',['scramble','land','field_service']));
    book.push(make('britain-network','Keep the defense network operating',Array(3).fill('Radar extends sight and helps guide RAF fighter fire. Airfields launch, recover and service finite flights. Half-strength fields have only one runway cycle instead of three. Repair a damaged field for 2 AP, one cycle and one store; the 2 strength restored can recover runway capacity. Raid points already scored remain, and cannot be earned twice.'),'As RAF, protect and repair the stations. As Germany, consider radar attacks to weaken interception.','#airfieldGroupOpen',['station_repair']));
   }
-  if(s.carrier_decks_version===1){
+  if(s.carrier_decks_version===1&&!s.war_version){
    book=book.filter(l=>l.id!=='fleet-service');
    for(const lesson of book){
     if(lesson.id==='ap')lesson.texts=Array(3).fill('Each ship and aircraft has its own AP. Attacks and interception cost 2 AP. Launch costs 1 carrier AP + 1 aircraft AP; recover costs 1 aircraft AP; service aboard costs 1 carrier AP + 1 store. Each deck order also consumes one shared deck cycle. Recovery/service means ready next turn. Units bank at most 1 unused AP.');
@@ -302,7 +302,7 @@
     'Launch costs 1 carrier AP + 1 aircraft AP; recover within 1 hex for 1 aircraft AP; service aboard costs 1 carrier AP + 1 store, restoring 1 strength and full ordnance. Recovery/service imposes next-turn readiness. Only your own command group may use the carrier. Sinking it destroys aircraft aboard, not airborne flights. Crosswind sea-lane scoring is unchanged.'
    ],'Open a carrier’s Air group, or select a plane and inspect Land / carrier recovery.','#carrierGroupOpen',['launch','recover','deck_service']));
   }
-  if(s.air_support_version===1)book.push(make('finite-air-support','Protect your aircraft supplies',[
+  if(s.air_support_version===1&&!s.war_version)book.push(make('finite-air-support','Protect your aircraft supplies',[
    'Airfields now have limited supplies: six service uses each. Check the field’s remaining stores before sending a plane back for repairs or bombs.',
    'Service costs 2 aircraft AP and one field store, once per aircraft per turn. Within 1 hex of your own platoon’s surviving field or a friendly HQ field, restore 1 strength and reload bombs. Stores do not regenerate.',
    'Each airfield starts with six stores. Empty, destroyed or another platoon’s fields cannot supply you; HQ fields serve their army. Aircraft, HP, AP, ordnance capacity and victory conditions are unchanged.'+(s.scenario.air_support.ship_aa_range?' Warships also gain range-1, damage-1 AA: 2 AP for direct fire or one flight-path interception. Moving or firing cancels readiness; surface movement never triggers it. Carrier search and abstract strikes are unchanged.':'')
@@ -324,7 +324,7 @@
   }
   if(s.small_fronts_version===1&&s.scenario.aid_posts)book.push(make('field-aid','Bring wounded infantry back',Array(3).fill('Unpinned infantry within 1 hex of their own aid post can spend 2 AP and one shared medical supply to restore 1 strength, once per unit per round. Americans have four supplies; Germans three. Treatment cannot revive destroyed units, remove pinning or refill ammunition. An enemy on the post or a collapsed aid building blocks treatment.'),'Find your aid post, then inspect Field aid on a wounded unit.','#fieldAid',['field_aid']));
   if(s.small_fronts_version===1&&s.scenario.cave_entrances)book.push(make('cave-network','Control the cave routes',Array(3).fill('Japanese infantry on an open cave entrance can spend 2 AP to relocate to another entrance. This ends remaining actions, clears concealment and digging in, and can trigger normal reaction fire at the exit. American engineers can seal an enemy-free entrance within 1 hex for 2 AP and one demolition charge. Closures are public and permanent; troops and hidden cave movements stay private.'),'Locate the three entrances. Plan an exit or an engineer approach.','#mapWrap',['cave_move','seal_cave']));
-  if(s.ground_roles_version===1){
+  if(s.ground_roles_version===1&&!s.war_version){
    book=book.filter(l=>!['radio','specialists','engineering','armor','observation'].includes(l.id)&&!(l.id==='fire-direction'&&!own.some(u=>u.role_orders?.includes('spot_fire'))));
    const recovery='Officers and recon can self-rally for 1 AP. Other teams need an officer’s rally to act immediately, or recover after a full own turn spent pinned. Captains rally their own platoon within 1 hex; the major reaches any friendly platoon within 2. Rally allies costs 1 officer AP and preserves recipients’ AP.';
    for(const l of book){
@@ -336,6 +336,20 @@
     }
    }
    book.push(make('specialist-infantry','Read the badge, then the orders',Array(3).fill('The small upper-right insignia identifies each ground unit while preserving its artwork. Two bars mark a captain; the leaf marks company command. The chevron marks rifle infantry; equipment symbols distinguish MGs, engineers, recon and mortars. The field manual includes a legend. The selected unit shows its loadout and recovery rules.'),'Compare a rifle section, an engineer and an MG team. Their order lists should differ.','#orders',[]));
+  }
+  if(s.war_version){
+   book=book.filter(l=>!['carrier-backport','air-service-backport'].includes(l.id));
+   for(const l of book){
+    if(l.id==='rally')l.texts=Array(3).fill('Read this unit’s orders. Captains and recon can self-rally; rifle teams, mortar teams and MG teams need an officer or a full own turn pinned. Captains rally their platoon within 1 hex; the major reaches any platoon within 2. Other specialists retain their listed orders.');
+    if(l.id==='service')l.texts=Array(3).fill(s.scenario.reinforcement_brief);
+    if(l.id==='field-aid')l.texts=Array(3).fill('Each coalition has eight medical supplies. Unpinned infantry within 1 hex of its own aid post can spend 2 AP and a supply to restore 1 strength, once per unit per round. Stocks are shared across your army and remain private.');
+    if(l.id==='cave-network')l.texts=Array(3).fill('Axis infantry can relocate between three open galleries for 2 AP, ending all remaining actions. Allied engineers can seal an adjacent, enemy-free entrance with 2 AP and a demolition charge. Hidden exits can be blocked; normal reaction fire applies.');
+   }
+   book.unshift(make('war-fronts','Start with one front',Array(3).fill('Use the seven command-group buttons to break this campaign into manageable fronts. Start with a platoon near a flag. The city scores 2, other zones 1; city plus mountain crossing earns an extra point. Aircraft support captures. Armor may capture the desert flag. Open the mission for sector links and the 70-point objective.'),'Choose a command group and find its nearest objective.','@mission',[]));
+   book.push(make('war-cycle','Plan for dusk and the forecast',Array(3).fill('Four daylight rounds alternate with two night rounds. Darkness starts in round 5, then round 11. Searchlights and flares reveal targets to both armies; radar keeps its air detection role. Weather is forecast two rounds ahead and also affects night visibility. Read the phase strip before committing aircraft.'),'Check when the next lighting change occurs.','#warStatus',['spotlight','flare']));
+   book.push(make('war-air-bases','Launch, return, service',Array(3).fill(s.scenario.reinforcement_brief),'Select a carrier or airfield, open its manifest, and leave a cycle free for returning flights.','#orders',['launch','recover','deck_service','scramble','land','field_service']));
+   book.push(make('war-airbridge','Bring airborne troops into the fight',Array(3).fill('Each transport carries two finite squads and must fly within 1 hex of the drop aim, retaining 3 AP. A drop is limited to one per transport per round. Allied HQ also has two separate commander-called reserves. Flak, scatter, water hazards and 1-AP arrivals still apply. A Pathfinder beacon or friendly flare reduces scatter. Each army also has a glider reserve: select it to drop onto a legal hex observed by its platoon.'),'Compare a transport, a glider reserve and the Allied major’s drop orders.','#orders',['airborne_drop','mark_lz','drop']));
+   book.push(make('war-rescue','Bring shore teams home',Array(3).fill('Each side has two marked shore teams. Carry one aboard a landing craft to your rear rescue buoy, then Evacuate for 1 boat AP and 2 campaign points. The boat returns empty. You may instead land the team to fight; the rescue opportunity remains finite.'),'Find the RESCUE counters and your rear evacuation markers.','#mapWrap',['evacuate']));
   }
   if(s.weather){
    for(const l of book)if(['move','fire','fog','service'].includes(l.id)){

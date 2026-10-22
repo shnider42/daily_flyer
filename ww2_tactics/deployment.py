@@ -92,7 +92,10 @@ def clear_intel(state):
     state['reports'] = {'us':{'log':[],'combat':[]},'de':{'log':[],'combat':[]}}
 
 
-def zone(state, side):
+def zone(state, side, unit=None):
+    if state['battlefield'].get('war_version'):
+        from .the_war import deployment_zone
+        return deployment_zone(state,side,unit)
     b = state['battlefield']; lo,hi = b['deployment_rules']['landing_rows' if side=='us' else 'defense_rows']
     allowed={'water'} if side=='us' else {'field','road','woods','beach'}
     return [[x,y] for y in range(lo,hi+1) for x in range(b['width']) if b['map'][y][x] in allowed]
@@ -100,11 +103,15 @@ def zone(state, side):
 
 def bunker_zone(state):
     b = state['battlefield']
+    if b.get('war_version'):
+        return [[x,y] for y in (17,18,19) for x in (20,21,22,42,43,44,45,46) if b['map'][y][x] in {'field','beach'}]
     return [p for p in zone(state,'de') if b['map'][p[1]][p[0]] in {'field','beach'}]
 
 
 def fire_zone(state):
     b = state['battlefield']; lo,hi=b['deployment_rules']['fire_rows']
+    if b.get('war_version'):
+        return [[x,y] for y in range(17,23) for x in range(19,24) if b['map'][y][x]!='water']
     return [[x,y] for y in range(lo,hi+1) for x in range(b['width']) if b['map'][y][x]!='water']
 
 
@@ -119,8 +126,8 @@ def fields(state, side):
         bunker_budget=rules['bunkers'], fire_budget=rules['missions'])
     if state.get('ground_stack_version'):
         from . import domains
-        result['placements'] = {u['id']: [pos for pos in result['zone'] if not domains.blocked(state,u,pos)]
-                                for u in state['units'] if u['side']==side and not u.get('carrier_id') and u['hp']>0}
+        result['placements'] = {u['id']: [pos for pos in zone(state,side,u) if not domains.blocked(state,u,pos)]
+                                for u in state['units'] if u['side']==side and not u.get('carrier_id') and not u.get('reserve') and u['hp']>0}
     return result
 
 
@@ -164,14 +171,17 @@ def apply(state, side, order, roll=None):
     result = copy.deepcopy(state); p=result['deployment']; rules=result['battlefield']['deployment_rules']
     if kind=='deploy_unit':
         u=next((u for u in result['units'] if u['id']==order.get('unit') and u['side']==side),None)
-        if not u or u.get('carrier_id') or u['hp']<=0: raise ValueError('Select your own unit; passengers move with their boat.')
+        if not u or u.get('carrier_id') or u.get('reserve') or u['hp']<=0: raise ValueError('Select your own deployed unit; passengers move with their transport.')
         pos=order.get('pos');validate_pos(pos)
-        if pos not in zone(result,side): raise ValueError('Place units inside your highlighted deployment zone.')
+        if pos not in zone(result,side,u): raise ValueError('Place units inside your highlighted deployment zone.')
         from . import domains
         if (domains.blocked(result,u,pos) if domains.ground_stacking(result) else
                 any(t['id']!=u['id'] and not t.get('carrier_id') and t['pos']==pos for t in result['units'])):
             raise ValueError('That deployment hex is occupied. Choose another.')
         u['pos']=list(pos);follow(result,u)
+        if result['battlefield'].get('war_version'):
+            for p in result['units']:
+                if p.get('carrier_id')==u['id'] or p.get('drop_transport')==u['id']:p['pos']=list(pos)
     elif kind in {'deploy_bunker','deploy_fire'}:
         defense=kind=='deploy_bunker'
         if side!=('de' if defense else 'us'): raise ValueError('That preparation belongs to the other army.')
@@ -186,7 +196,10 @@ def apply(state, side, order, roll=None):
                 raise ValueError('Leave at least one hex between bunkers, or two between naval aim points.')
             positions.append(list(pos))
     elif kind=='deploy_reset':
-        defaults={u['id']:u for u in roster(result['battlefield'].get('source_id', result['battlefield']['id']))}
+        if result['battlefield'].get('war_version'):
+            from .the_war import roster as war_roster
+            defaults={u['id']:u for u in war_roster()}
+        else:defaults={u['id']:u for u in roster(result['battlefield'].get('source_id', result['battlefield']['id']))}
         for u in result['units']:
             if u['side']==side: u['pos']=list(defaults[u['id']]['pos'])
         p['bunkers' if side=='de' else 'fire']=[]
@@ -213,7 +226,8 @@ def begin(state, roll=None):
     for u in state['units']:
         if u['side']=='de':
             u['entrenched']=u['pos'] in p['bunkers']
-            u['overwatch']=u['kind'] in {'mg','at_gun'}
+            from .ground_roles import allowed
+            u['overwatch']=u['kind'] in {'mg','at_gun'} and allowed(state,u,'overwatch')
     clear_intel(state)
     reports=[]
     for aim in p['fire']:

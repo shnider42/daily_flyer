@@ -42,7 +42,7 @@ class SmallFrontTests(unittest.TestCase):
             self.assertTrue(all(tuple(u['pos']) in costs for u in s['units']))
             with self.assertRaises(ValueError):get_scenario(name)
         self.assertTrue(all(u['faction']=='jp' for u in self.battle('peleliu')['units'] if u['side']=='de'))
-        self.assertEqual(len(catalog('current')),34)
+        self.assertEqual(len(catalog('current')),35)
 
     def test_aid_cost_capacity_cooldown_and_immutable_input(self):
         s=self.battle();u=self.wounded(s);before=copy.deepcopy(s)

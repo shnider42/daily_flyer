@@ -38,6 +38,7 @@ def initialize(state):
         if unit['kind'] == 'airfield':
             unit.update(air_stores=config['airfield_stores'], max_air_stores=config['airfield_stores'])
         elif unit['kind'] in domains.SHIPS and config['ship_aa_range']:
+            if state['battlefield'].get('war_version') and unit.get('ship_aa_range'):continue
             unit['ship_aa_range'] = config['ship_aa_range']
             unit.setdefault('weapon_overrides', {})['flak'] = dict(damage=1, label='Light shipboard anti-aircraft fire')
     return state

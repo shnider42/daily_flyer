@@ -154,11 +154,12 @@ def options(state,unit):
 
 
 def resolve_shot(state,unit,target,roll,reaction=False):
+    from . import the_war
     s=shot(unit,target,reaction);die=roll()
     mods = dict(nightfall.modifiers(state,unit,target), **britain2.modifiers(state,unit,target), **weather.modifiers(state,unit))
     s['modifiers'].update(mods)
     s['threshold']=min(6,s['threshold']+sum(mods.values()))
-    if nightfall.enabled(state):unit['night_flash']=True
+    if nightfall.enabled(state) and (not the_war.enabled(state) or the_war.dark(state)):unit['night_flash']=True
     ship_aa=air_support.ship_aa(state,unit)
     weapon='flak' if ship_aa or domains.joint(state) and unit['kind']=='flak' else None
     impacts = []

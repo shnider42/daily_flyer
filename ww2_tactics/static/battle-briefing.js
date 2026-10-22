@@ -4,6 +4,16 @@
  const node=(tag,id,text)=>{const n=document.createElement(tag);if(id)n.id=id;if(text)n.textContent=text;return n;};
  function mission(s){
   const attacker=s.factions?.us||'Americans',defender=s.factions?.de||'Germans',rounds=s.scenario.rounds;
+  if(s.war_version){
+   const score=s.joint_score||{us:0,de:0};
+   return {goal:'Reach 70 campaign points across eight connected fronts.',compact:`Campaign · Allies ${score.us}/70 · Axis ${score.de}/70`,progress:`Allies ${score.us}/70 · Axis ${score.de}/70 · Round ${s.round}/${rounds}`,
+    rules:[s.scenario.brief,'Start with one command group: marines take the coast, city infantry secure Stonehaven, armor contests the desert, mountain troops open the passes, and the fleet contests the sea lanes. Air bridge troops threaten the eastern depot. Use platoon buttons or the sector links below to navigate.',
+     'Four daylight rounds alternate with two night rounds: R1–4 day, R5–6 night, then repeat. Night sight, public searchlights, flares and gun flashes work alongside the weather forecast. The hidden radar position varies within columns BW–BY of each rear sector; recon must identify it.',
+     'Rifle teams carry frags; recon carries smoke and directs fire. MG 42 teams suppress at 2–6 hexes with base sight 4, but have no direct attack or overwatch. Captains rally their platoon; the major reaches across groups. Teams without self-rally recover after a full own turn pinned.',
+     'Each army has eight medical supplies at its aid post. Axis infantry can use the three cave galleries; Allied engineers can seal them for 2 AP and a demolition charge. Engineers also repair armor, breach hedges, clear rubble and build one-hex bridges. Supply squads replenish mortar shells or repair kits.',
+     s.scenario.doctrine.us,s.scenario.doctrine.de,s.scenario.reinforcement_brief,
+     'Enemy fuel, manifests, medical stocks, base cycles and stores stay private. Airfield destruction scores once, and neither carrier nor bomber losses alone end the campaign. Public zone ownership and the campaign score remain visible.'],focus:s.scenario.objective};
+  }
   if(s.britain_ops_version){
    return {goal:s.side==='us'?`Keep raid damage below 9 through round ${rounds}, or destroy every bomber.`:'Inflict 9 new damage on RAF stations/radar, or destroy both RAF sector stations.',
     compact:`Raid damage ${s.raid_score||0}/9 · defend until R${rounds}`,progress:`Raid damage ${s.raid_score||0}/9 · Stations lost ${s.raid_destroyed?.length||0}/2 · Round ${s.round}/${rounds}`,

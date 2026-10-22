@@ -49,7 +49,7 @@ class GroundRoleTests(unittest.TestCase):
             self.assertIn('officer_recovery',s['rule_manifest']['systems'])
             with self.assertRaises(ValueError):get_scenario(name)
             with self.assertRaises(ValueError):initial('current:'+name,'classic')
-        self.assertEqual(len(catalog('current')),34)
+        self.assertEqual(len(catalog('current')),35)
         self.assertEqual(len(catalog()),24)
 
     def test_role_loadouts_and_server_rejects_unavailable_orders(self):

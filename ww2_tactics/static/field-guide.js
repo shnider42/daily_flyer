@@ -52,6 +52,11 @@
  };
  evacuate.onclick=()=>{const uid=selected;if(confirm('Evacuate the marked passenger? This rescue is permanent and commits earlier takebacks. The empty boat can return.'))act({kind:'evacuate',unit:uid});};
  function detailedHelp(id,u,legal){
+  if(state.war_version){
+   if(id==='evacuate')return 'Carry a marked shore team to your rear evacuation buoy. Spend 1 boat AP to rescue it for 2 campaign points; the boat can return. Two teams per army, no replacements.';
+   if(id==='caveMove')return 'Axis infantry on an open gallery can spend 2 AP to relocate to another entrance, ending remaining actions. Hidden occupants may block the exit and reaction fire applies.';
+   if(id==='spotlightAim')return 'Available at night. Spend 1 AP to illuminate an air corridor within 8 hexes for both armies. The emitter reveals itself. The beam ends at your next turn.';
+  }
   const roleHelp=window.groundRoleHelp?.(id,u);if(roleHelp)return roleHelp;
   if(id==='fieldAid')return '2 AP and one shared medical supply restore 1 strength to this wounded, unpinned unit within 1 hex of its own aid post. Once per unit per round. No revival, ammunition refill or pin removal. An enemy on the post or a collapsed aid building blocks treatment.';
   if(id==='caveMove')return 'Japanese infantry only: stand on an open entrance, spend 2 AP and relocate to another open entrance. All remaining actions end. Normal exit capacity and reaction fire apply; digging in, overwatch, observation and camouflage end. An unseen enemy can block arrival.';

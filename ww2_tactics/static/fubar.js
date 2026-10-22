@@ -47,7 +47,7 @@
   for(const p of snapshot.joint_control||[]){
    const [x,y]=center(...p.pos),g=element('g',{class:'joint-objective','aria-hidden':'true'});
    g.append(element('circle',{cx:x,cy:y,r:p.domain==='sea'?49:26,class:`joint-objective-ring ${p.owner||'neutral'}`}));
-   g.append(element('text',{x,y:y+42,'text-anchor':'middle'},`${p.domain==='sea'?'SEA':'LAND'} +1${p.contested?' · contested':''}`));
+   g.append(element('text',{x,y:y+42,'text-anchor':'middle'},`${p.domain==='sea'?'SEA':'LAND'} +${p.weight||1}${p.contested?' · contested':''}`));
    svg.append(g);
   }
  }

@@ -19,6 +19,8 @@ def objective(state):
     """Only counters already advertised as public mission progress."""
     from .scenarios import battlefield
     board = battlefield(state)
+    if board.get('war_version'):
+        return dict(label='Campaign points',values=copy.deepcopy(state['joint_score']),target=70)
     if state.get('britain_ops_version'):
         return dict(label='Raid damage', values={'de': state.get('raid_score', 0)}, target=9)
     if board.get('night_ops_version'):
@@ -117,7 +119,7 @@ def record(before, after, side, action):
         if spent:owner['resources']['demolition_charges']=owner['resources'].get('demolition_charges',0)+spent
         if old['hp'] > 0 and unit['hp'] <= 0:
             parent = new_units.get(old.get('carrier_id'))
-            fuel = (kind == 'end' and before.get('britain_ops_version') and unit['side'] == side
+            fuel = (kind == 'end' and (before.get('britain_ops_version') or before.get('war_version')) and unit['side'] == side
                     and unit['kind'] in AIR and not old.get('carrier_id') and old.get('fuel',2) <= 1)
             cause = ('aboard' if parent and parent['hp'] <= 0 else 'fuel' if fuel else
                      'combat' if uid in combat_targets or kind in {'fire','assault','grenade','bombard','area_fire','snipe','strike'} else 'other')
@@ -150,7 +152,7 @@ def summary(state, side):
     ledger = state.get(KEY)
     result = dict(version=VERSION, side=side, surviving_units=sum(u['hp']>0 for u in own),
                   surviving_strength=sum(max(0,u['hp']) for u in own),
-                  evacuated=state.get('evacuated_count',0) if side == 'us' else 0,
+                  evacuated=state.get('war_rescues',{}).get(side,0) if state.get('war_version') else state.get('evacuated_count',0) if side == 'us' else 0,
                   scope='Your army and public objective progress. Enemy private resources are not disclosed.')
     if not ledger:
         return dict(result, available=False, complete=False,

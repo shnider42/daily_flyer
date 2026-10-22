@@ -400,6 +400,7 @@ function render(){
  if(window.renderSmallFronts)window.renderSmallFronts(unit,legal,svg);
  if(window.renderGroundRoles)window.renderGroundRoles(unit,legal);
  if(window.renderOrderCapabilities)window.renderOrderCapabilities(unit);
+ if(window.renderWar)window.renderWar(unit,legal,svg);
  const buildingWarning=unit&&unit.hp>0&&!unit.reserve&&!unit.carrier_id&&buildingCondition(state,unit.pos)==='damaged'&&!picking&&!target;
  $('hint').classList.toggle('building-warning',!!buildingWarning);
  if(buildingWarning)$('hint').textContent='Damaged building · reduced cover. Explosive hits can collapse it and kill the occupants.';

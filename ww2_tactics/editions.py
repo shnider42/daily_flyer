@@ -27,7 +27,7 @@ def scenario(board):
                   edition_version=VERSION, dsl_only=True, ground_stacking=True)
     air_support.configure(result)
     carrier_decks.configure(result)
-    ground = not (board.get('naval') or board.get('air') or board.get('fleet_battle_version') or board.get('night_ops_version'))
+    ground = bool(board.get('war_version')) or not (board.get('naval') or board.get('air') or board.get('fleet_battle_version') or board.get('night_ops_version'))
     if ground:
         result.update(signals=True, fire_control=True, logistics=True)
         # The original compact infantry maps become one explicit platoon. Do
@@ -36,6 +36,10 @@ def scenario(board):
             result['roster_platoons'] = None
             result['platoons'] = [dict(id='A', name='Infantry platoon', center=board['width']//2)]
     rules = ['weapons', 'structures', 'layered_occupancy', 'ground_stacking']
+    if board.get('war_version'):
+        rules += ['day_night_cycle','forecast_weather','airfield_turnaround','sortie_fuel',
+                  'radar_guidance','close_escort','raid_damage','evacuation','scheduled_reserves',
+                  'private_deployment','linked_objectives']
     if board.get('aid_posts'):rules += ['field_aid']
     if board.get('cave_entrances'):rules += ['cave_routes']
     if board.get('ground_roles_version'):rules += ['specialist_infantry','officer_recovery']

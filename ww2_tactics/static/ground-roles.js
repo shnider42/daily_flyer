@@ -9,7 +9,7 @@
   return `${u.role_label} · ${reach} · base sight ${u.sight}`;
  };
  window.groundRoleHelp=(id,u)=>{
-  if(state?.ground_roles_version!==1||!u)return '';
+  if(state?.ground_roles_version!==1||!u?.role_orders)return '';
   const radius=u.command_radius||1,group=u.kind==='commander'?'any friendly platoon':'own platoon';
   return {
    suppress:`2 AP · range ${u.suppress_min}–${u.suppress_range} · ${u.suppression}+ to pin · no strength damage. Needs a clear firing lane and a target spotted by this platoon.`,
@@ -40,7 +40,7 @@
  const grid=uiNode('div','unit-badge-grid');legend.append(grid);manual.before(legend);
  let legendKey='';
  window.renderGroundRoles=(u,legal)=>{
-  const enabled=state.ground_roles_version===1;manual.hidden=!enabled;$('rules').classList.toggle('specialist-manual',enabled);
+  const enabled=state.ground_roles_version===1;manual.hidden=!enabled||!!state.war_version;$('rules').classList.toggle('specialist-manual',enabled&&!state.war_version);
   const keys=new Map();for(const unit of state.units){const label=window.unitBadgeLabel(unit);if(label&&!keys.has(label))keys.set(label,unit);}
   const current=state.ruleset==='dsl'&&state.edition==='current';
   legend.classList.toggle('illustrated-insignia-legend',current);
@@ -52,7 +52,7 @@
    label.append(uiNode('span','insignia-caption','Unit insignia'),uiNode('strong','',window.unitBadgeLabel(u)));
    detail.append(window.makeUnitRoleBadge(u),label);$('unitMechanics').prepend(detail);
   }
-  if(!enabled||!u)return;
+  if(!enabled||!u?.role_orders)return;
   $('roleBrief').textContent=window.groundRoleSummary(u);
   if(u.kind==='commander'&&!target&&!u.pinned)$('hint').textContent=`Company command · rally and give actions within ${u.command_radius} hexes across friendly platoons.`;
   if(u.role_profile==='suppression_mg')$('unitMechanics').querySelector('.weapon-summary').textContent='Suppression only · infantry';

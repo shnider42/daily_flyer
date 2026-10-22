@@ -53,6 +53,9 @@ def result_summary(state):
             reason = 'The opposing army was eliminated.'
         else:
             reason = 'The evacuation deadline passed before six units were rescued.'
+    elif board.get('war_version'):
+        reason=('70 campaign points secured the battle.' if state['joint_score'][winner]>=70 else
+                'The campaign deadline was reached. Higher score wins; Axis wins an exact tie.')
     elif board.get('night_ops_version'):
         reason=('Both radar sites were neutralized and paratroopers secured the signals station.' if winner=='us' else 'The night raid failed: no viable airborne force remained or the defense held through the deadline.')
     elif state.get('britain_ops_version'):

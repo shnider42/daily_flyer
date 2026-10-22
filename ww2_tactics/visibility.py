@@ -3,7 +3,7 @@ import copy
 from contextlib import contextmanager
 from contextvars import ContextVar
 from functools import wraps
-from . import fieldworks, domains, weather, debrief, small_fronts, ground_roles
+from . import fieldworks, domains, weather, debrief, small_fronts, ground_roles, the_war
 
 
 _sight_work = ContextVar('sight_work', default=None)
@@ -76,6 +76,10 @@ def nearby_scouts(state, scouts, key, pos, concealed=False):
         return scouts
     from .engine import distance, terrain
     from . import operations
+    if the_war.enabled(state) and the_war.dark(state):
+        from .nightfall import light_cells,flash_cells
+        if tuple(pos) in light_cells(state,concealed!='air') or tuple(pos) in flash_cells(state):
+            return scouts[:1]
     if concealed != 'air' and operations.enabled(state) and terrain(*pos,state) in {'tower','church'}:
         return scouts
     index_key = ('nearby_scouts', key, concealed == 'air')
@@ -105,7 +109,7 @@ def unit_sees_hex(state, scout, pos, concealed=False):
     from .engine import distance, line_clear, terrain
     from . import operations
     if not active(scout):return False
-    if state.get('battlefield',{}).get('night_ops_version'):
+    if state.get('battlefield',{}).get('night_ops_version') and (not the_war.enabled(state) or the_war.dark(state)):
         from .nightfall import unit_sees
         return unit_sees(state,scout,pos,concealed)
     gap=distance(scout['pos'],pos)
@@ -229,6 +233,7 @@ def view(state, side, terrain_visibility=True):
     weather.redact(result,state,side)
     small_fronts.redact(result,state,side)
     ground_roles.redact(result,state,side)
+    the_war.redact(result,state,side)
     if state.get('signals_version') or state.get('battlefield', {}).get('fleet_battle_version') or state.get('battlefield',{}).get('night_ops_version'):
         for u in result['units']:
             if u['side']!=side:
@@ -326,6 +331,7 @@ def record_reports(state, before, action, message):
 @sight_reader
 def public_state(state, side):
     result = _public_state(state,side)
+    the_war.redact(result,state,side)
     ground_roles.redact(result,state,side)
     result.pop('_order_history',None)
     return debrief.redact(weather.redact(small_fronts.redact(result,state,side),state,side),state,side)

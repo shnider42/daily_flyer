@@ -46,14 +46,14 @@
   markers(svg);
   if(!enabled){mode=null;return;}
   const stock=state.medical_supplies||0,open=(state.scenario.cave_entrances||[]).filter(caveOpen).length;
-  status.textContent=foy?`Aid posts · ${stock} medical supplies left for your army · restore 1 strength for 2 AP.`:`Cave network · ${open}/3 entrances open · ${state.side==='de'?'2 AP to relocate; ends this unit’s actions.':'Engineers seal entrances: 2 AP + 1 demolition charge.'}`;
+  status.textContent=(foy?`Aid posts · ${stock} medical supplies left for your army · restore 1 strength for 2 AP.`:'')+(state.war_version?' · ':'')+(!foy||state.war_version?`Cave network · ${open}/3 entrances open · ${state.side==='de'?'2 AP to relocate; ends this unit’s actions.':'Engineers seal entrances: 2 AP + 1 demolition charge.'}`:'');
   manual.replaceChildren(uiNode('h3','',foy?'Foy · Field aid':'Peleliu · Cave network'),uiNode('p','',foy?
    'Unpinned infantry within one hex of their own aid post can restore 1 strength for 2 AP and one shared medical supply, once per unit per round. The Americans start with four supplies, the Germans with three. Full-strength or destroyed units cannot be treated. Treatment does not refill ammunition or remove pinning. An enemy occupying the post or a collapsed aid building prevents treatment. Supplies never replenish.':
    'Japanese unpinned infantry on an open entrance can relocate to another open entrance for 2 AP; this ends all remaining actions and clears digging in, camouflage, observation and overwatch. Exit capacity uses normal stacking. An unseen enemy can block arrival, and normal reaction fire applies at the exit. American engineers within one hex can seal an enemy-free entrance for 2 AP and one demolition charge. Two engineers each carry one charge, also usable for their ordinary demolition order. Sealing does not harm units or block walking across the hex; the cave route closes permanently. Entrances and closures are public, but hidden troops and movements stay hidden.'));
   window.smallFrontPicking(legal);
   for(const [,kind,label] of defs){
    const b=buttons[kind],available=kind==='field_aid'?!!legal?.[kind]:!!legal?.[kind]?.length;
-   b.hidden=!u||u.side!==state.side||!(foy?kind==='field_aid':kind==='cave_move'?u.side==='de':kind==='seal_cave'&&u.side==='us'&&u.kind==='engineer');
+   b.hidden=!u||u.side!==state.side||!(kind==='field_aid'?foy:state.scenario.cave_entrances&&(kind==='cave_move'?u.side==='de':u.side==='us'&&u.kind==='engineer'));
    b.disabled=busy||!available;b.textContent=mode?.kind===kind?'Cancel '+label.toLowerCase():label+' · 2 AP';
   }
   if(u?.side===state.side)$('unitMechanics').append(uiNode('p','mechanics-caption',foy?`${stock} medical supplies shared by your army. Field aid restores strength, not ammunition.`:u.kind==='engineer'?`${u.demolition_charges||0} demolition charges. Sealing caves shares this supply with anti-armor demolition.`:'Cave routes cost 2 AP and end remaining actions. Use normal movement to reach an entrance.'));

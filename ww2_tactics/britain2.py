@@ -154,12 +154,12 @@ def same_command(state, plane, field):
 
 
 def needs_service(plane):
-    return plane['hp'] < plane['max_hp'] or plane['fuel'] < plane['max_fuel'] or plane['bombs'] < plane['max_bombs']
+    return plane['hp'] < plane['max_hp'] or plane['fuel'] < plane['max_fuel'] or plane['bombs'] < plane['max_bombs'] or plane.get('flares',0)<plane.get('max_flares',0)
 
 
 def guided(state, unit, target):
     from .engine import distance
-    return (enabled(state) and unit['side'] == 'us' and unit['kind'] == 'fighter'
+    return ((enabled(state) or state.get('war_version')==1) and unit['side'] == 'us' and unit['kind'] == 'fighter'
         and any(active(u) and u['side'] == 'us' and u['kind'] == 'radar'
                 and distance(u['pos'], target['pos']) <= u['sight'] for u in state['units'])
         and any(active(u) and u['side'] == 'us' and u['kind'] == 'airfield'
@@ -167,7 +167,7 @@ def guided(state, unit, target):
 
 
 def modifiers(state, unit, target):
-    if not enabled(state):
+    if not enabled(state) and state.get('war_version')!=1:
         return {}
     from .engine import distance
     mods = {'radar_guidance': -1} if guided(state, unit, target) else {}

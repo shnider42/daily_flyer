@@ -31,6 +31,10 @@
    'Locking is final. The other commander can finish independently; then normal fog and American round 1 begin. Existing smoke, movement, unloading, combat and victory rules apply. These two maps are balance playtests.',
    de?`Your bunkers: ${d.bunkers.map(coord).join(', ')||'none'} (${d.bunkers.length}/${d.bunker_budget}).`:`Your naval aim points: ${d.fire.map(coord).join(', ')||'none'} (${d.fire.length}/${d.fire_budget}).`,
   ];
+  if(state.war_version){
+   copy[1]='Each command group has its own assembly area. Ships and landing craft stay on water; ground troops and installations stay ashore. Passengers and grounded flights move with their transport or base. Reserves keep their scheduled entry. The defaults are ready to play; reposition only what you need.';
+   copy[4]='Locking is final. Both armies finish privately, then naval preparation resolves and Allied round 1 begins. MG 42 suppression teams have no overwatch. Win by the campaign score shown in the mission.';
+  }
   if(review)copy.push('Use the map and selector to review unit positions before locking. Unused bunker or fire allocations are forfeited.');
   body.replaceChildren(...copy.map(t=>el('p',null,t)));
   confirm.hidden=!review;confirm.disabled=!available();
@@ -78,7 +82,7 @@
   title.textContent=locked?'Plan locked':de?'Prepare your defenses':'Prepare your landing';
   plan.textContent=de?`Bunkers ${d.bunkers.length}/${d.bunker_budget}`:`Naval fire ${d.fire.length}/${d.fire_budget}`;
   units.setAttribute('aria-pressed',String(mode==='units'));plan.setAttribute('aria-pressed',String(mode==='plan'));
-  const own=state.units.filter(u=>!u.carrier_id&&u.side===state.side&&controlsUnit(u));
+  const own=state.units.filter(u=>!u.carrier_id&&!u.reserve&&u.side===state.side&&controlsUnit(u));
   if(state.coop){reset.hidden=true;plan.hidden=!state.coop.captain;if(!state.coop.captain)mode='units';if(selected&&!own.some(u=>u.id===selected))selected=null;}else{reset.hidden=false;plan.hidden=false;}
   // Selecting a passenger in the regular roster selects its transport here.
   const current=state.units.find(u=>u.id===selected);if(current?.carrier_id)selected=current.carrier_id;

@@ -58,6 +58,9 @@ def omaha_roster():
 
 
 def setup(board):
+    if board['campaign'] == 'the_war_1':
+        from .the_war import roster as war_roster
+        return war_roster()
     if board['campaign'] in {'village_2','stonebridge_2'}:
         from .ground_roles import roster as role_roster
         return role_roster(board['campaign'])

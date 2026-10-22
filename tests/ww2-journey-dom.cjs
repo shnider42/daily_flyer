@@ -64,7 +64,7 @@ async function main(){
     assert.equal(new Set(book.map(l=>l.id)).size,book.length,scenario);
     for(const l of book){assert.ok(l.text.length>50,`${scenario} ${level} ${l.id}`);if(l.selector!=='@mission')assert.ok(w.document.querySelector(l.selector),`Missing selector ${l.selector}`);}
     if(state.side==='us')for(const id of expected[state.scenario.source_id||scenario]||[])assert.ok(book.some(l=>l.id===id),`${scenario} ${id}`);
-    if(state.edition==='current')for(const id of [state.scenario.night_ops_version?'night-sight':'current-edition','shared-hexes'])assert.ok(book.some(l=>l.id===id),`${scenario} ${id}`);
+    if(state.edition==='current')for(const id of [state.war_version?'war-fronts':state.scenario.night_ops_version?'night-sight':'current-edition','shared-hexes'])assert.ok(book.some(l=>l.id===id),`${scenario} ${id}`);
     if(scenario==='village')assert.ok(!book.some(l=>['mortar','supply','airlift','fleet','service','preparation'].includes(l.id)));
    }
   }

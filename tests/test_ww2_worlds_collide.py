@@ -187,7 +187,7 @@ class WorldsCollideAPITests(unittest.TestCase):
         with tempfile.TemporaryDirectory() as tmp:
             client = create_app(tmp+'/games.sqlite').test_client()
             data = client.get('/api/scenarios').json
-            self.assertEqual(len(data['scenarios']),24); self.assertEqual(len(data['current_scenarios']),34)
+            self.assertEqual(len(data['scenarios']),24); self.assertEqual(len(data['current_scenarios']),35)
             result = client.post('/api/match',json=dict(scenario=MAP,ruleset='dsl',opponent='cooperative',control_size='platoons',side='us'))
             self.assertEqual(result.status_code,201,result.json)
             seat = result.json; headers={'Authorization':'Bearer '+seat['token']}; route='/api/match/'+seat['code']

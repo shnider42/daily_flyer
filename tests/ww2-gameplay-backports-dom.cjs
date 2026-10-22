@@ -110,9 +110,9 @@ async function main(){
    assert.ok(portraits.includes('wildcat'));assert.ok(portraits.includes('dive_bomber'));
    const battleBeforeArt=e('JSON.stringify(state)');
    $('unitStyleToggle').click();assert.equal(w.document.querySelectorAll('#carrierAirGroup image').length,0);
-   $('unitStyleToggle').click();assert.equal(w.document.querySelectorAll('#carrierAirGroup image').length,4);
+   $('unitStyleToggle').click();assert.equal(w.document.querySelectorAll('#carrierAirGroup .unit-illustration image').length,4);
    assert.equal(e('JSON.stringify(state)'),battleBeforeArt,'Carrier manifest artwork must not change deck orders or battle state');
-  }finally{v.dom.window.close();}
+  }finally{await delay();v.dom.window.close();}
  }
  console.log('DOM/API backports passed at desktop/phone widths: finite field stocks, ship AA, recover/service/relaunch, old-save UI and unchanged Midway 2.0. No visual-layout claims.');
 }

@@ -94,7 +94,7 @@ def enabled(state):return state.get('ground_roles_version')==VERSION
 
 
 def allowed(state,unit,kind):
-    return not enabled(state) or kind in unit.get('role_orders',())
+    return not enabled(state) or 'role_orders' not in unit or kind in unit['role_orders']
 
 
 def initialize(state):
@@ -105,7 +105,7 @@ def initialize(state):
 
 
 def filter_options(state,unit,legal):
-    if not enabled(state):return legal
+    if not enabled(state) or 'role_orders' not in unit:return legal
     from .engine import distance
     for kind,field in ORDER_FIELDS.items():
         if field in legal and not allowed(state,unit,kind):

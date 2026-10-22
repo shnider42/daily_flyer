@@ -1,7 +1,7 @@
 /* Finite carrier manifests and deck orders, driven only by public legal state. */
 'use strict';
 (()=>{
- const air=u=>['fighter','bomber'].includes(u.kind);
+ const air=u=>['fighter','bomber'].includes(u.kind)&&(!state?.war_version||u.carrier_capable);
  const node=(tag,text)=>{const n=document.createElement(tag);if(text!==undefined)n.textContent=text;return n;};
  let launching=null;
  const dialog=node('dialog');dialog.id='carrierAirGroupDialog';dialog.setAttribute('aria-labelledby','carrierAirGroupTitle');
@@ -42,7 +42,7 @@
   open.hidden=true;content.replaceChildren();
   const backport=state.carrier_decks_version===1;
   if(!state.midway_ops_version&&!backport){launching=null;dialog.close();return;}
-  $('viewTransport').hidden=true; // Aircraft use the carrier panel, not half-track controls.
+  if(!state.war_version||unit?.kind==='carrier'||unit&&air(unit))$('viewTransport').hidden=true;
   if(unit&&unit.hp>0&&(unit.kind==='carrier'||air(unit))){
    open.hidden=false;open.disabled=busy||!!playbackSession;
    open.textContent=unit.kind==='carrier'?`Air group · ${aboard(unit).length}/${unit.air_capacity} aboard`:unit.carrier_id?'Open carrier air group':'Land / carrier recovery';

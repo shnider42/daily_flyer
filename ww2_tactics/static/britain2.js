@@ -2,7 +2,7 @@
 'use strict';
 (()=>{
  const node=(tag,text)=>{const n=document.createElement(tag);if(text!==undefined)n.textContent=text;return n;};
- const air=u=>['fighter','bomber'].includes(u.kind),limit=f=>f.hp*2<=f.max_hp?1:3;
+ const air=u=>['fighter','bomber','transport_aircraft'].includes(u.kind),limit=f=>f.hp*2<=f.max_hp?1:3;
  const grounded=f=>state.units.filter(u=>u.hp>0&&u.carrier_id===f.id);
  let launching=null;
  const dialog=node('dialog');dialog.id='britainAirfieldDialog';dialog.setAttribute('aria-labelledby','britainAirfieldTitle');
@@ -14,7 +14,8 @@
  open.dataset.help='Launch finite flights, land, refuel, rearm and repair. Check runway cycles and service stores.';
  $('nextUnit').before(open);
  open.onclick=()=>{
-  const u=state.units.find(u=>u.id===selected),field=u?.carrier_id&&state.units.find(f=>f.id===u.carrier_id);
+  const u=state.units.find(u=>u.id===selected),field=u?.carrier_id&&state.units.find(f=>f.id===u.carrier_id&&f.kind==='airfield');
+  if(!(state.britain_ops_version||state.field_ops_version)||!u||u.hp<=0||!(u.kind==='airfield'||air(u)))return;
   if(field)chooseUnit(field);
   for(const d of document.querySelectorAll('dialog[open]'))if(d!==dialog)d.close();
   if(!dialog.open)dialog.showModal();
@@ -48,8 +49,10 @@
   svg.querySelectorAll('.britain-launch-choice').forEach(n=>n.remove());open.hidden=true;warning.hidden=true;content.replaceChildren();
   manual.hidden=!state.britain_ops_version;
   $('campaignManual').hidden=!!state.britain_ops_version;
-  if(!state.britain_ops_version){launching=null;dialog.close();return;}
-  $('viewTransport').hidden=true;$('rearm').hidden=true;
+  if(!state.britain_ops_version&&!state.field_ops_version){launching=null;dialog.close();return;}
+  const war=!!state.war_version;
+  if(!war||unit&&(air(unit)||unit.kind==='airfield')){$('viewTransport').hidden=true;$('rearm').hidden=true;}
+  if(!war){
   $('objectiveName').textContent='NO. 11 GROUP · AIR DEFENSE NETWORK';
   $('objective').textContent=`Raid damage ${state.raid_score}/9 · stations lost ${state.raid_destroyed.length}/2`;
   $('missionHint').textContent=state.side==='us'?'Keep raid damage below 9 through round 18, or destroy every bomber. Protect your stations and radar.':'Inflict 9 new damage on RAF stations/radar, or destroy both stations, before round 18 ends.';
@@ -59,24 +62,26 @@
    const name=i===0?'RAF KENLEY':'RAF BIGGIN HILL',pos=state.scenario.airfields.us[i];
    mark.textContent=name+(state.raid_destroyed.some(p=>p[0]===pos[0]&&p[1]===pos[1])?' · LOST':'');
   }
+  }
   if(launching&&(launching.unit!==selected||launching.revision!==state.revision||blocked()))launching=null;
-  if(unit?.hp>0&&(unit.kind==='airfield'||air(unit))){
+  if(unit?.hp>0&&(unit.kind==='airfield'||air(unit)&&(!unit.carrier_id||state.units.some(f=>f.id===unit.carrier_id&&f.kind==='airfield')))){
    open.hidden=false;open.disabled=busy||!!playbackSession;
    open.textContent=unit.kind==='airfield'?'Airfield · launch & service':unit.carrier_id?'Open home airfield':'Land / airfield recovery';
    title.textContent=unit.kind==='airfield'?unit.display_name:'Return to an airfield';
   }else dialog.close();
   if(unit){
-   $('roleBrief').textContent=britainRole(unit);
+   if(!war)$('roleBrief').textContent=britainRole(unit);
    if(air(unit)){
     const own=unit.side===state.side;
     $('selection').textContent=`${unitName(unit)} · ${unit.hp}/${unit.max_hp} strength · ${unit.ap} AP${own?` · Fuel ${unit.fuel}/${unit.max_fuel}`:''}${unit.carrier_id?' · On ground':''}`;
     if(!target)$('hint').textContent=unit.carrier_id?'Open the airfield to launch or service this flight.':`Fly up to ${unit.flight} hexes for 1 AP + 1 fuel. Save 1 AP to land within one hex of your field.`;
     const meters=$('unitMechanics').querySelector('.unit-meters');$('unitMechanics').replaceChildren();if(meters)$('unitMechanics').append(meters);
-    $('unitMechanics').append(node('p',britainRole(unit)),node('p','Each airborne own-turn ending burns 1 fuel. A flight reaching zero then is lost. Landing itself uses no fuel; service restores it.'));
+    if(!war)$('unitMechanics').append(node('p',britainRole(unit)));
+    $('unitMechanics').append(node('p','Each airborne own-turn ending burns 1 fuel. A flight reaching zero then is lost. Landing itself uses no fuel; service restores it.'));
     if(own&&!unit.carrier_id&&unit.fuel<=3){warning.hidden=false;warning.textContent=unit.fuel<=1?'FUEL CRITICAL · land before ending this turn or this flight will be lost.':`LOW FUEL · ${unit.fuel} left. Plan your return now; reserve 1 AP and a runway cycle for landing.`;}
     if(unit.carrier_id){
      const field=state.units.find(f=>f.id===unit.carrier_id);
-     if(field)content.append(button(`Open ${field.display_name}`,'britainField',field.id,()=>chooseUnit(field)));
+     if(field?.kind==='airfield')content.append(button(`Open ${field.display_name}`,'britainField',field.id,()=>chooseUnit(field)));
     }else{
      content.append(node('p','Land within one hex: 1 flight AP + one field runway cycle. Landing does not refuel or reload. Service after landing; take off next own turn.'));
      const fields=state.units.filter(f=>f.kind==='airfield'&&f.side===state.side&&f.hp>0);
@@ -88,8 +93,8 @@
     if(unit.side!==state.side){content.append(node('p','Enemy aircraft manifests, runway use and service stores are private.'));}
     else{
      const available=Math.max(0,limit(unit)-unit.runway_used);
-     content.append(node('p',`${grounded(unit).length}/6 on ground · ${available}/${limit(unit)} runway cycles · ${unit.air_stores}/${unit.max_air_stores} service stores${limit(unit)===1?' · DAMAGED RUNWAY':''}`));
-     content.append(node('p','Launch, land and service each use one cycle. Leave capacity for returning flights. Repairs restore capacity; scored raid damage remains.'));
+     content.append(node('p',`${grounded(unit).length}/${unit.air_capacity} on ground · ${available}/${limit(unit)} runway cycles · ${unit.air_stores}/${unit.max_air_stores} service stores${limit(unit)===1?' · DAMAGED RUNWAY':''}`));
+     content.append(node('p','Launch, land and service each use one cycle. Leave capacity for returning flights. Repairs restore runway capacity.'));
      content.append(button('Repair station · 2 AP + store','repairStation',unit.id,()=>act({kind:'station_repair',unit:unit.id}),blocked()||!legal?.station_repair,'Requires damage, 2 field AP, one store and one unused runway cycle.'));
      const flights=state.units.filter(p=>air(p)&&(p.home_field===unit.id||p.carrier_id===unit.id));
      for(const p of flights){
