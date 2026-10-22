@@ -1,0 +1,6 @@
+{
+  "supabase_url": "https://uwbhjgvpaetrhfvcpvsg.supabase.co",
+  "publishable_key": "sb_publishable_S_ZARhEa6AK4BJyG6_Lhmw_tsCUFOn5",
+  "storage_bucket": "new-passage-portfolio",
+  "sdk_url": "https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.105.0/+esm"
+}

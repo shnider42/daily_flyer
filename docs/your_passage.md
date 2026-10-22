@@ -1,6 +1,14 @@
 # New Passage: main website replacement concept
 
 
+## Services and portfolio pass (2026-10-22)
+
+Current lead: **What comes next?** The desktop sidebar is transparent. Services replace the dominant homepage portrait; Tim's photo now appears in Meet Tim. Services remain directly reachable in desktop navigation, mobile's sticky bar and focus view. The background adds broad warm and aqua light with paper texture, without contour lines or continuous animation.
+
+A public Experience view and private portfolio editor now use the existing Supabase project with separate permissions and published snapshots. Tim's account will be assigned later, as requested. No real editor is currently authorized and no accomplishments were fabricated. See [the portfolio implementation and handoff](new_passage_portfolio.md) for behavior, security, validation and the account setup steps.
+
+The pre-portfolio version is preserved on `checkpoint/new-passage-before-portfolio` at `8e4a233712930ee0a2494fb4df212cc7561baee1`. Earlier design directions remain intact.
+
 ## Desktop sidebar experiment (2026-10-22)
 
 The active review version keeps selectable views and adds a fixed desktop navigation rail at 1024 CSS pixels and wider. Narrower windows retain the translucent sticky top bar and mobile menu. The rail can scroll independently in very short windows; the document never locks overflow to force a viewport fit.
@@ -21,7 +29,7 @@ Validation: six Python integration checks, ten practice checks, eight appearance
 
 The public working title is now New Passage. The theme module, route, CSS/DOM identifiers and browser-storage keys remain `your_passage` / `your-passage` for compatibility; keep `DEFAULT_THEME=your_passage` in Render. No branch, service, domain, database or original companion changes are needed.
 
-The current pass makes lead conversion the primary task. The opening contains a short coaching pitch, Tim’s portrait, a booking action, and an interactive conversation preview. Navigation opens separate Coaching, Meet Tim, Getting started and Practice views within the same loaded document. The opening no longer has a partially visible section below it. The desktop composition uses the available viewport with compact rules for shorter laptop windows; zoomed, narrow or unusually short windows can still scroll instead of clipping controls.
+The current pass makes lead conversion the primary task. The opening contains a short coaching pitch, direct service choices, a booking action, and an interactive conversation preview. Navigation opens separate Coaching, Meet Tim, Getting started and Practice views within the same loaded document. The opening no longer has a partially visible section below it. The desktop composition uses the available viewport with compact rules for shorter laptop windows; zoomed, narrow or unusually short windows can still scroll instead of clipping controls.
 
 Typography now uses the existing local sans-serif stack (Avenir Next / Segoe UI / sans-serif) for both headings and body text. It replaces the previous editorial serif treatment. Each view uses one brief entrance transition. Audience choices and practice tabs use a short fade only when changed; child transitions are cleared when moving between views. There is no staggered text reveal or animated path drawing. All motion respects `prefers-reduced-motion`. No font or animation library is downloaded.
 
@@ -67,7 +75,7 @@ Create **New → Web Service** and connect `shnider42/daily_flyer`.
 | Environment variable | `DEFAULT_THEME=your_passage` |
 | Environment variable | `TZ=America/New_York` |
 
-Python 3.12 is selected by `.python-version`; Render resolves the latest available 3.12 patch. Do not add a conflicting `PYTHON_VERSION` environment variable. No database, persistent disk, secrets, or Supabase configuration are needed for this theme. Notes are saved only in visitors' browsers, by explicit choice.
+Python 3.12 is selected by `.python-version`; Render resolves the latest available 3.12 patch. Do not add a conflicting `PYTHON_VERSION` environment variable. No Render environment changes or persistent disk are needed for this pass. The separate Supabase portfolio configuration contains a publishable key only. Practice notes are still saved only in visitors' browsers, by explicit choice.
 
 Keep the automatically assigned `onrender.com` hostname for review. Do not edit the existing Your Passage service, its branch, or its custom domains.
 
@@ -88,7 +96,7 @@ Deployment settings verified against Render's official Flask, Python-version, an
 - A reversible focus view and a notebook that reopens explicitly saved passages. Existing v1 browser notes remain compatible.
 - Drafts survive topic switching in page memory. Explicit Save persists that passage in localStorage; Download exports text; Clear removes the selected passage only after confirmation.
 - Tim's supplied portrait is optimized as a 840 × 1200 WebP (about 45 KB), framed with CSS, and embedded in the export. The original photo is not retouched.
-- HTML, CSS, JavaScript, portrait, and the paper texture are embedded in the DFE export. No external fonts, remote images, accounts, trackers, form submissions, or runtime network calls.
+- HTML, CSS, theme JavaScript, portrait, and paper texture are embedded in the DFE export. Portfolio reads, private editor sign-in, and uploaded portfolio photos use Supabase; its pinned SDK loads on demand. The landing page and practice do not require those network calls.
 - Original Passages theme, shared renderer, routes, default theme, and other themes remain unchanged.
 
 ## Color palette
@@ -151,10 +159,10 @@ All new copy and adapted practice material need Tim's editorial approval before 
 
 1. Review the visual design with Tim, confirm the public brand name and approve the copy/exercises.
 2. Review the current intake form and privacy policy with the owner. This concept offers direct booking but deliberately does not replace the existing intake workflow with a pretend submission.
-3. Decide whether local-only notes are sufficient. Accounts, cross-device progress, student records, lead capture, email subscriptions and admin publishing are not implemented.
+3. Decide whether local-only notes are sufficient. Student accounts, cross-device practice progress, student records, lead capture and email subscriptions are not implemented. The separate portfolio editor supports private authoring and explicit publication.
 4. Use a dedicated DFE deployment with `DEFAULT_THEME=your_passage` and verify booking, accessibility and responsive behavior in real browsers. Keep this concept on its separate branch and service.
 
-Verification includes six Python integration tests, ten practice interaction tests, eight appearance tests, and nine view-navigation tests. These cover actual Flask responses and DFE export, date/seed behavior, HTML structure, legacy notes, focus/menu controls, rehearsal feedback, takeaways, save/download/print, scoped deletion, blocked storage, keyboard tabs, pre-body appearance, device changes, saved overrides, reset, and cross-tab appearance updates. The managed static preview server runs, but browser access is blocked by URL policy, so desktop/mobile pixel layout and animation appearance remain unverified in a real browser. Viewport fitting is implemented in CSS, not claimed as a measured browser result.
+Verification includes six Python integration tests, ten practice interaction tests, eight appearance tests, nine view-navigation tests, and six portfolio UI tests, plus hosted SQL authorization checks. These cover actual Flask responses and DFE export, date/seed behavior, HTML structure, legacy notes, focus/menu controls, rehearsal feedback, takeaways, save/download/print, scoped deletion, blocked storage, keyboard tabs, pre-body appearance, device changes, saved overrides, reset, and cross-tab appearance updates. The managed static preview server runs, but browser access is blocked by URL policy, so desktop/mobile pixel layout and animation appearance remain unverified in a real browser. Viewport fitting is implemented in CSS, not claimed as a measured browser result.
 
 Run the focused checks:
 

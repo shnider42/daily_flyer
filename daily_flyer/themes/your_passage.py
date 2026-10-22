@@ -89,7 +89,7 @@ def build_theme_page(date_str: str | None = None, seed: int | None = None) -> Pa
         for i, item in enumerate(library)
     ]
     payload = json.dumps({"exercises": exercises, "selected": selected,
-                          "date": today.isoformat()}, ensure_ascii=False).replace("<", "\\u003c")
+                          "date": today.isoformat(), "portfolio": json.loads((ASSETS / "portfolio-config.json").read_text())}, ensure_ascii=False).replace("<", "\\u003c")
     passage = exercises[selected]
     replacements = {
         "__YP_DATA__": payload,
@@ -114,7 +114,7 @@ def build_theme_page(date_str: str | None = None, seed: int | None = None) -> Pa
         footer_text=THEME_CONFIG["footer_text"],
         metadata={"theme_name": "your_passage", "date_key": today.isoformat(),
                   "extra_css": (ASSETS / "style.css").read_text(encoding="utf-8"),
-                  "extra_js": (ASSETS / "script.js").read_text(encoding="utf-8"),
+                  "extra_js": (ASSETS / "script.js").read_text(encoding="utf-8") + "\n" + (ASSETS / "portfolio.js").read_text(encoding="utf-8"),
                   "extra_head_html": (
                       '<meta name="description" content="Coaching and mentorship for high school and college students with Tim Holtsnider. Explore one-to-one coaching, group learning, and school partnerships.">'
                       '<meta name="theme-color" id="yp-theme-color" content="#f4f6f4">'

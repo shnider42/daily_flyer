@@ -14,7 +14,7 @@
   let clearTimer;
   let focusReturn = null;
   const pageTitle = document.title;
-  const pageNames = {home: '', coaching: 'Coaching', tim: 'Meet Tim', start: 'Getting started', practice: 'Practice'};
+  const pageNames = {home: '', coaching: 'Services', tim: 'Meet Tim', start: 'Getting started', practice: 'Practice', portfolio: 'Experience', editor: 'Portfolio editor'};
   const audienceLabels = {student: 'Talk about your goals', parent: 'Talk about your student', school: 'Discuss a school program'};
   // Illustrative conversation prompts, kept separate from the practice notebook.
   const conversations = {
@@ -76,6 +76,7 @@
       if (stage) activate(stage);
     }
     closeMenu();
+    root.dispatchEvent(new CustomEvent('np:viewchange', {detail: {page: name}}));
     if (!focus) return;
     if (changed || name === 'home') { document.documentElement.scrollTop = 0; document.body.scrollTop = 0; }
     const destination = name === 'practice' && target !== page

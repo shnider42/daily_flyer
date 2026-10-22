@@ -37,7 +37,7 @@ function traverse(w, direction) {
     click(d, '#approach');
     assert.deepEqual(visible(d), ['coaching']);
     assert.equal(w.location.hash, '#approach');
-    assert.equal(d.title, 'Coaching | New Passage');
+    assert.equal(d.title, 'Services | New Passage');
     assert.equal(d.activeElement.id, 'yp-approach-heading');
     assert.equal(d.querySelector('[aria-current="page"]').getAttribute('href'), '#approach');
     d.querySelector('[data-audience="parent"]').click();
@@ -130,7 +130,7 @@ function traverse(w, direction) {
   });
   await test('Without JavaScript, coaching content and real booking links stay available', () => {
     const dom = make('', false); const d = dom.window.document;
-    assert.equal(visible(d).length, 5);
+    assert.equal(visible(d).length, 7);
     assert.equal(d.querySelectorAll('[data-audience-panel][hidden]').length, 0);
     assert.ok(d.querySelectorAll('a[href="https://calendly.com/tim-mypassages"]').length >= 4);
     dom.window.close();
