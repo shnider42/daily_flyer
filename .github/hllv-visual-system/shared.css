@@ -383,3 +383,7 @@ html[data-theme="light"] #featuresPage .section-kicker { color: #7b5119; }
   #home .status-filter span { font-size: .68rem; }
   #home .home-tools label, #home .date-order { font-size: .73rem; }
 }
+@media(max-width:360px) {
+  .brand-button, .brand-button > span:last-child { min-width: 0; }
+  .brand-button small { white-space: normal; line-height: 1.3; }
+}

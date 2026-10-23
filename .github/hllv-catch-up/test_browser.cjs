@@ -72,6 +72,8 @@ let browser,page;
     if(await page.locator('html').getAttribute('data-theme')!==theme)await page.locator('#themeToggle').click();
     await page.evaluate(()=>document.fonts.ready);
     assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),`${engine}/${width}/${theme}: horizontal overflow`);
+    const brand=await page.locator('#brandHome small').boundingBox(),tools=await page.locator('.nav-tools').boundingBox();
+    assert(brand.x+brand.width<=tools.x,`${engine}/${width}/${theme}: brand subtitle overlaps header controls`);
     for(const selector of ['.cu-heading h1','#catchUpWhen','#catchUpRole','#catchUpShare','.cu-topic:first-child h2']){
       const b=await page.locator(selector).boundingBox();assert(b&&b.y>=0&&b.y+b.height<=height,`${engine}/${width}/${theme}: opening cut off ${selector}: ${JSON.stringify(b)}`);
     }
