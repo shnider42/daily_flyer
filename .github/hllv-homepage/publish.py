@@ -27,5 +27,6 @@ for source in picture_sources:
 manifest['files'] = list(dict.fromkeys(manifest['files'] + picture_sources))
 manifest_path.write_text(json.dumps(manifest, indent=2)+'\n')
 runpy.run_path('.github/hllv-features/publish.py', run_name='__main__')
+runpy.run_path('.github/hllv-catch-up/build.py', run_name='__main__')
 runpy.run_path('.github/hllv-review-preview/publish.py', run_name='__main__')
 print('HOMEPAGE_PUBLISHED', url)

@@ -36,6 +36,8 @@ body { position: relative; isolation: isolate; }
 }
 .top-link-community::before { content: ""; position: absolute; left: -16px; top: 6px; bottom: 6px; border-left: 1px solid #58635b; }
 .top-link-community:hover, .top-link-community.active { background: #414e43; border-color: #bbc8b4; }
+#landing .community-welcome #patchNotesJump { display:inline-flex; align-items:center; min-height:44px; margin-left:12px; color:var(--red); text-underline-offset:3px; }
+#landing .community-welcome #patchNotesJump:hover { text-decoration:underline; }
 #landing .landing-main { width: 100%; max-width: var(--page-width); padding: 36px var(--page-gutter) 40px; }
 /* Programmatic heading focus announces navigation without resembling a form field. */
 :is(#home, #app, #featuresPage, #suggestionBox) h1[tabindex="-1"]:focus { outline: none; }
@@ -354,7 +356,7 @@ html[data-theme="light"] #featuresPage .section-kicker { color: #7b5119; }
   .site-nav { padding-inline: 16px; gap: 0 8px; }
   .brand-button strong { font-size: .9rem; }
   .brand-button small { font-size: .58rem; }
-  .top-links { display: grid; grid-template-columns: 1fr 1.1fr 1.18fr; gap: 0; }
+  .top-links { display: grid; grid-template-columns: minmax(0,1fr) minmax(0,1.1fr) minmax(0,.75fr) minmax(0,1.18fr); gap: 0; }
   /* Retire legacy mobile navigation !important values in the account stylesheet. */
   .top-link { padding: 8px 5px!important; font-size: .72rem!important; }
   .top-link-community { margin-left: 12px; padding: 4px!important; }

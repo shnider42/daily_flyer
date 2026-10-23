@@ -8,6 +8,7 @@
  function draw(){
   window.HLLVResponses?.render(feed?.response_monitor);
   window.HLLVFeatures?.receiveFeed(feed);
+  window.HLLVCatchUp?.receiveFeed(feed);
   const status=document.getElementById('sourceSyncStatus'),list=document.getElementById('officialSourceList');if(!status||!list||!feed)return;
   const old=!feed.last_success_at||Date.now()-Date.parse(feed.last_success_at)>36*3600000;
   status.textContent=(old?'Source collection is overdue. ':'')+'Last successful collection: '+stamp(feed.last_success_at)+'. '+(feed.state!=='ok'?'Some sources could not be checked; previous material is retained. ':'')+'Collected automatically—not a fresh review of bug or feature statuses.';
@@ -26,7 +27,7 @@
   const id=location.hash.slice(1);const candidates=(feed.items||[]).filter(x=>(x.candidate_issue_ids||[]).includes(id));
   if(candidates.length&&!root.querySelector('.feed-candidates')){const box=document.createElement('aside');box.className='feed-candidates';box.innerHTML='<strong>Recent official posts that may be relevant</strong><p>Automatic wording matches, not reviewed evidence for this issue.</p>'+HLLVDates.sorted(candidates,'published_at').slice(0,3).filter(p=>safe(p.url)).map(p=>'<p><a href="'+esc(safe(p.url))+'" target="_blank" rel="noopener noreferrer">'+esc(p.title)+'</a> · '+esc(stamp(p.published_at))+'</p>').join('');root.appendChild(box);}
  }
- async function load(){try{const r=await fetch('./official-feed.json',{cache:'no-store'});if(!r.ok)throw Error('Feed unavailable');const d=await r.json();if(d.schema_version!==1||!Array.isArray(d.items))throw Error('Invalid feed');feed=d;draw();decorate();}catch(_){window.HLLVFeatures?.receiveFeed(null);window.HLLVResponses?.unavailable();const n=document.getElementById('sourceSyncStatus');if(n)n.textContent='Automatic source collection could not be loaded. The reviewed patch summaries remain available.';const h=document.getElementById('sourceHeaderStatus');if(h)h.textContent='Source check unavailable';}}
+ async function load(){try{const r=await fetch('./official-feed.json',{cache:'no-store'});if(!r.ok)throw Error('Feed unavailable');const d=await r.json();if(d.schema_version!==1||!Array.isArray(d.items))throw Error('Invalid feed');feed=d;draw();decorate();}catch(_){window.HLLVFeatures?.receiveFeed(null);window.HLLVCatchUp?.receiveFeed(null);window.HLLVResponses?.unavailable();const n=document.getElementById('sourceSyncStatus');if(n)n.textContent='Automatic source collection could not be loaded. The reviewed patch summaries remain available.';const h=document.getElementById('sourceHeaderStatus');if(h)h.textContent='Source check unavailable';}}
  document.addEventListener('hllv-features-ready',()=>{if(feed)draw();});
  document.addEventListener('hllv-date-order',e=>{if(e.detail==='announcements')draw();});
  document.addEventListener('DOMContentLoaded',()=>{load();const dossier=document.getElementById('dossier');if(dossier)new MutationObserver(decorate).observe(dossier,{childList:true,subtree:true});});

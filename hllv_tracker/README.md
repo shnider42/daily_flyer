@@ -76,4 +76,18 @@ The editable source remains `data/issues.json`. Published pages fetch a content-
 
 ## Suggestion Box pilot
 
-The third navigation section is a closed-by-default invitation-only pilot. UI assets are content-addressed. Its separate Supabase schema, permissions, tests and activation checklist live in `suggestion_box/`; no private submissions or reviewer correspondence belong in this repository. Production sign-in, submissions and voting stay disabled until the external connection, reviewer authorization and privacy settings are configured. Run `.github/hllv-pilot/install.py` after deliberate pilot UI edits. The existing game evidence is not refreshed by this feature.
+The original Suggestion Box pilot was closed by default and invitation-only. UI assets are content-addressed. Its separate Supabase schema, permissions, tests and activation checklist live in `suggestion_box/`; no private submissions or reviewer correspondence belong in this repository. The original pilot requires the external connection, reviewer authorization and privacy settings before activation. The current community UI is covered by the later community modules and workflows. The existing game evidence is not refreshed by this feature.
+
+## Catch Up gameplay guide
+
+`/#catch-up` is linked from the homepage introduction and the top navigation. It
+offers ten reviewed returning-player briefings with date and role filters, current
+rules, practical guidance, official sources and related bug records. It covers
+selected October 7–21, 2026 changes, reviewed October 23; it is not a complete
+tutorial. Filtered briefings and expanded topics are shareable through the URL.
+
+Source, review locks and maintenance instructions are in `.github/hllv-catch-up/`.
+Run `.github/hllv-homepage/publish.py` to publish the guide and shared assets
+together. Changes to a linked live rule or cited source require another guidance
+review. Automatic announcement collection can flag review needs but cannot publish
+new advice. The guide has no account or database writes.

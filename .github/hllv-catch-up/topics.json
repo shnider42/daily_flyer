@@ -1,0 +1,90 @@
+{
+  "schema_version": 1,
+  "reviewed_at": "2026-10-23",
+  "coverage_from": "2026-10-07",
+  "coverage_through": "2026-10-21",
+  "release": "Patch 1.7",
+  "topics": [
+    {
+      "id": "boat-spawning", "title": "Getting a boat ready to spawn", "area": "Boats & spawning", "roles": ["boats", "commander"],
+      "feature_ids": ["HLLV-F008"],
+      "takeaway": "Leaving the driver seat yourself shuts the engine off. A driver killed in the seat leaves it running.",
+      "guidance": "If a transport boat cannot be used to spawn, check its engine state. The new exit behavior removes that engine-related obstacle; it does not guarantee every spawn problem is solved.",
+      "caution": "Manual exit and driver death deliberately have different outcomes. Other missing-spawn problems remain separately tracked.",
+      "issue_ids": ["HLLV-046"],
+      "changes": [{"source_id": "patch17", "summary": "Manual driver exit now stops the engine automatically. Driver death keeps the engine running and can still deny spawning."}]
+    },
+    {
+      "id": "engineer-defenses", "title": "Build basic defenses without Supplies", "area": "Engineer", "roles": ["engineer"],
+      "feature_ids": ["HLLV-F001"],
+      "takeaway": "Level 1 defenses are free to construct. Save your Supply planning for upgrades.",
+      "guidance": "You can start basic construction before Supplies arrive. You now have three Barbed Wire placements, subject to the 50-per-side limit.",
+      "caution": "Free Level 1 construction does not make upgrades free or remove placement limits.", "issue_ids": [],
+      "changes": [{"source_id": "patch16", "summary": "Level 1 construction stopped consuming Supplies; higher-level upgrades still require them."}, {"source_id": "patch17", "summary": "Barbed Wire increased from two to three placements per Engineer, with a limit of 50 per side."}]
+    },
+    {
+      "id": "redeploy", "title": "Redeploy without the extra penalty", "area": "Every role", "roles": ["all"],
+      "feature_ids": ["HLLV-F022"],
+      "takeaway": "Choosing Redeploy no longer adds the extra ten-second punishment. The normal deployment wait remains.",
+      "guidance": "When planning a redeploy with your squad, account for the normal deployment timer rather than adding the former ten-second punishment.",
+      "caution": "This is a timer change, not instant spawning or a guarantee that a spawn point is available.", "issue_ids": [],
+      "changes": [{"source_id": "patch17", "summary": "Removed the additional ten-second punishment for choosing Redeploy."}]
+    },
+    {
+      "id": "tank-ammunition", "title": "Change shells without firing first", "area": "Tank crew", "roles": ["armour"],
+      "feature_ids": ["HLLV-F019"],
+      "takeaway": "Select another shell type to unload the chambered round and load the new ammunition.",
+      "guidance": "Use the ammunition selection control when you need a different shell. You no longer have to fire the loaded round just to change types.",
+      "caution": "The notes establish unloading and reloading, not an instant ammunition swap.", "issue_ids": ["HLLV-093"],
+      "changes": [{"source_id": "patch17", "summary": "Added shell unloading when changing ammunition types."}]
+    },
+    {
+      "id": "squad-roles", "title": "Recheck your squad’s role options", "area": "Infantry", "roles": ["infantry", "commander"],
+      "feature_ids": ["HLLV-F002"],
+      "takeaway": "Units now have two Medic slots and two Rifleman slots, replacing one and three respectively.",
+      "guidance": "Check the available roles when joining your unit. An occupied Medic slot no longer necessarily means that role is full.",
+      "caution": "Further Medic improvements are being discussed. Those proposals are not part of this released slot change.", "issue_ids": [],
+      "changes": [{"source_id": "patch16", "summary": "Added a second Medic slot and reduced Rifleman slots from three to two."}]
+    },
+    {
+      "id": "weapon-loadouts", "title": "Check the new US loadout options", "area": "Weapons & equipment", "roles": ["infantry", "engineer", "armour", "commander"],
+      "feature_ids": ["HLLV-F017", "HLLV-F018"],
+      "takeaway": "The Thompson joins selected US roles. M16A1 users can choose 30-round magazines with a Weight trade-off.",
+      "guidance": "Revisit your role’s loadout options. Compare magazine capacity with the Weight cost before changing your M16A1 setup; the 20-round option remains available.",
+      "caution": "More capacity is a choice, not proof of the strongest loadout. Thompson availability is limited to the roles listed below.", "issue_ids": [],
+      "changes": [{"source_id": "patch17", "summary": "Added the M1A1 Thompson to selected US roles and an optional 30-round M16A1 configuration."}]
+    },
+    {
+      "id": "boat-balance", "title": "Relearn boat handling and Fuel costs", "area": "Boats & resources", "roles": ["boats", "commander"],
+      "feature_ids": ["HLLV-F020"],
+      "takeaway": "Both boats handle differently. The US PBR has a larger speed advantage; the NVA boat now costs 250 Fuel.",
+      "guidance": "Allow for changed handling when returning to waterways. Commanders should budget 250 Fuel, rather than 200, for the NVA boat.",
+      "caution": "The notes describe relative improvements, not measured speed values or a guarantee of which boat wins an encounter.", "issue_ids": [],
+      "changes": [{"source_id": "patch17", "summary": "Improved both boats’ handling and top speed, increased the US PBR’s relative speed and acceleration advantage, and raised the NVA boat’s Fuel cost by 50."}]
+    },
+    {
+      "id": "vehicle-resupply", "title": "Top up vehicle MG ammunition early", "area": "Vehicle crews", "roles": ["armour", "boats"],
+      "feature_ids": ["HLLV-F030"],
+      "takeaway": "Tank coaxial MGs and boat Machine Gunner positions can be resupplied before they run completely dry.",
+      "guidance": "You no longer need to empty those guns before topping up at a resupply opportunity.",
+      "caution": "This change does not explicitly resolve the separately reported unequal resupply of the two boat bow guns.", "issue_ids": ["HLLV-031"],
+      "changes": [{"source_id": "patch17", "summary": "Allowed ammunition top-ups before empty for tank coaxial MGs and boat Machine Gunner positions."}]
+    },
+    {
+      "id": "controller-options", "title": "Choose your Crouch / Melee layout", "area": "Using a controller", "roles": ["all"],
+      "feature_ids": ["HLLV-F003"],
+      "takeaway": "A Crouch / Melee swap is available across controller layouts.",
+      "guidance": "Check the new controller option if your current Crouch and Melee inputs feel awkward. Keep the existing layout if it already suits you.",
+      "caution": "This specific swap is live. Full controller remapping and a Radio / Equipment swap are not established by this release.", "issue_ids": [],
+      "changes": [{"source_id": "patch17", "summary": "Released the Crouch / Melee input swap for controller layouts."}]
+    },
+    {
+      "id": "commander-punishment", "title": "Understand the Commander penalty change", "area": "Commander", "roles": ["commander"],
+      "feature_ids": ["HLLV-F023"],
+      "takeaway": "Friendly deaths from Commander abilities no longer add that team-kill punishment to the Commander.",
+      "guidance": "Keep coordinating strike areas with your team. A changed punishment rule does not remove the need to protect teammates.",
+      "caution": "Personal weapons and other direct actions retain their usual punishment behavior. This is not a blanket removal of friendly fire or penalties.", "issue_ids": [],
+      "changes": [{"source_id": "patch17", "summary": "Removed Commander team-kill punishment for friendly deaths caused by abilities such as Napalm, Artillery Strikes and Bombing Runs."}]
+    }
+  ]
+}

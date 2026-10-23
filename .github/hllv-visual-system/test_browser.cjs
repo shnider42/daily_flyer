@@ -96,7 +96,7 @@ const sdk = `export function createClient(){return {
     }),'Keyboard focus must have a visible outline or shadow');
   };
   const assertNavigation=async(landing)=>{
-    assert.deepEqual(await page.locator('.top-links [data-page]').evaluateAll(links=>links.map(link=>link.dataset.page)),['issues','features','suggestions'],'Navigation follows the three community sections');
+    assert.deepEqual(await page.locator('.top-links [data-page]').evaluateAll(links=>links.map(link=>link.dataset.page)),['issues','features','catch-up','suggestions'],'Navigation includes the returning-player guide');
     await expect(page.locator('.top-links [data-page="landing"]')).toHaveCount(0);
     await expect(page.locator('.top-links').getByRole('button',{name:'Home',exact:true})).toHaveCount(0);
     await expect(page.locator('.top-links').getByRole('link',{name:'Home',exact:true})).toHaveCount(0);

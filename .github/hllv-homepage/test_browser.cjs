@@ -22,7 +22,7 @@ const url=process.env.HLLV_TEST_URL||'http://127.0.0.1:8765/';
  await expect(page.locator('.landing-companion')).toHaveText('A Hell Let Loose: Vietnam community companion.');
  await expect(page.locator('.landing-support')).toContainText('community bug tracker, suggestion box, and content tracker');
  await expect(page.locator('.community-paths>a')).toHaveCount(3);
- assert.deepEqual(await page.locator('.top-links [data-page]').evaluateAll(links=>links.map(link=>link.dataset.page)),['issues','features','suggestions']);
+ assert.deepEqual(await page.locator('.top-links [data-page]').evaluateAll(links=>links.map(link=>link.dataset.page)),['issues','features','catch-up','suggestions']);
  await expect(page.locator('.top-links [data-page="landing"]')).toHaveCount(0);
  await expect(page.locator('#brandHome')).toHaveAttribute('aria-current','page');
  await expect(page.locator('#hllvAccountBar')).toBeHidden();

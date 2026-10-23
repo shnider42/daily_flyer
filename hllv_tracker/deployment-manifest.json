@@ -21,7 +21,7 @@
     "assets/source-responses-84abf7fafeb49b62.css",
     "assets/barlow-condensed-900-latin-aa01966de3f608a7.woff2",
     "assets/homepage-3fabb84c5ed09223.css",
-    "assets/visual-system-401b4536a8a0ee0a.css",
+    "assets/visual-system-a6f1d5f9d5893416.css",
     "assets/infierno-favicon.ico",
     "assets/infierno-favicon.svg",
     "assets/infierno-apple-touch-icon.png",
@@ -39,7 +39,10 @@
     "data/features.7521c16b55f5699c.json",
     "assets/features-a7b2fc411110e11e.js",
     "assets/features-8b376ecbcf45078a.css",
-    "assets/official-feed-1bee5be0574ef8be.js"
+    "assets/official-feed-97c176eeab312d3d.js",
+    "data/catch-up.73baa79feb1d9920.json",
+    "assets/catch-up-241c1184b3ba0dac.js",
+    "assets/catch-up-8c7c6bab290cc18d.css"
   ],
   "note": "These are the actual production URLs embedded in the page, not random test cache-busters. data/issues.json remains the editable source file.",
   "feature_data_url": "data/features.7521c16b55f5699c.json",
@@ -47,5 +50,10 @@
     "data/features.7521c16b55f5699c.json",
     "assets/features-a7b2fc411110e11e.js",
     "assets/features-8b376ecbcf45078a.css"
+  ],
+  "catch_up_assets": [
+    "data/catch-up.73baa79feb1d9920.json",
+    "assets/catch-up-241c1184b3ba0dac.js",
+    "assets/catch-up-8c7c6bab290cc18d.css"
   ]
 }
