@@ -19,7 +19,7 @@ jobs:
     timeout-minutes: 12
     env:
       # Match the npm version below; browser/system dependencies are already installed.
-      HLLV_BROWSER_IMAGE: mcr.microsoft.com/playwright:v1.55.0-noble
+      HLLV_BROWSER_IMAGE: mcr.microsoft.com/playwright:v1.55.0-noble@sha256:b27e719ecbfef153e13fd24e8341736733bf2658b229677eb21ff57ff5d7fb29
     steps:
       - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
       - name: Check published assets
@@ -42,7 +42,7 @@ jobs:
           PID=$!
           trap 'kill "$PID" || true' EXIT
           # Keep Python and the static server on the runner; use the official browser image.
-          docker run --rm --ipc=host --network=host \
+          docker run --rm -i --ipc=host --network=host \
             -v "$GITHUB_WORKSPACE:$GITHUB_WORKSPACE" -w "$GITHUB_WORKSPACE" \
             "$HLLV_BROWSER_IMAGE" bash -se <<'BROWSER_CHECKS'
           HLLV_BROWSER_ENGINE=chromium node .github/hllv-homepage/test_browser.cjs
@@ -57,9 +57,12 @@ jobs:
           HLLV_BROWSER_ENGINE=chromium node .github/hllv-visual-system/test_browser.cjs
           HLLV_BROWSER_ENGINE=webkit node .github/hllv-visual-system/test_browser.cjs
           BROWSER_CHECKS
+          test -s artifacts/visual-system-qa/chromium-report.json
+          test -s artifacts/visual-system-qa/webkit-report.json
       - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
         if: always()
         with:
           name: hllv-homepage-previews
           path: artifacts/
           retention-days: 3
+          if-no-files-found: error
