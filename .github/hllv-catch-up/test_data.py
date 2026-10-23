@@ -1,4 +1,4 @@
-"""Protect against publishing stale guidance or mistaking a proposal for live rules."""
+"""Protect factual comparisons, reviewed evidence, and the exclusion of advice."""
 import copy
 import json
 import runpy
@@ -33,6 +33,18 @@ class GuideEvidenceTests(unittest.TestCase):
         changed['features'][0]['current']['availability'] = 'not_confirmed_live'
         with self.assertRaisesRegex(AssertionError, 'unreleased content'):
             module['build'](features=changed)
+
+    def test_advice_field_cannot_return_to_the_factual_guide(self):
+        topics = json.loads(Path('.github/hllv-catch-up/topics.json').read_text())
+        topics['topics'][0]['guidance'] = 'Use this tactic'
+        with self.assertRaisesRegex(AssertionError, 'not tactical advice'):
+            module['build'](topics=topics)
+
+    def test_incomplete_before_after_is_rejected(self):
+        topics = json.loads(Path('.github/hllv-catch-up/topics.json').read_text())
+        topics['topics'][0]['changes'][0].pop('before')
+        with self.assertRaisesRegex(AssertionError, 'before and after'):
+            module['build'](topics=topics)
 
 if __name__ == '__main__':
     unittest.main()

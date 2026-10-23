@@ -373,6 +373,7 @@ html[data-theme="light"] #featuresPage .section-kicker { color: #7b5119; }
   #landing .community-path p { margin-top: 2px; }
   #landing .path-action { margin-top: 4px; }
   #landing .community-welcome { margin-top: 12px; }
+  #landing .community-welcome > span:first-child { white-space: normal; }
 }
 @media(max-width:400px) {
   :root { --page-gutter: 16px; }

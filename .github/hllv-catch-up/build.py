@@ -1,4 +1,4 @@
-"""Compile player guidance against deliberately reviewed live feature snapshots."""
+"""Compile factual catch-up summaries against reviewed live feature snapshots."""
 from pathlib import Path
 from datetime import date
 import hashlib
@@ -17,7 +17,7 @@ def build(topics=None, features=None, issues=None, lock=None):
     features = features or json.loads((ROOT/'data/features.json').read_text())
     issues = issues or json.loads((ROOT/'data/issues.json').read_text())
     lock = lock or json.loads((HERE/'review-lock.json').read_text())
-    assert topics['schema_version'] == 1
+    assert topics['schema_version'] == 2
     assert date.fromisoformat(topics['coverage_from']) <= date.fromisoformat(topics['coverage_through']) <= date.fromisoformat(topics['reviewed_at'])
     by_feature = {f['id']: f for f in features['features']}
     by_issue = {i['id']: i for i in issues['issues']}
@@ -28,7 +28,9 @@ def build(topics=None, features=None, issues=None, lock=None):
         assert re.fullmatch(r'[a-z0-9]+(?:-[a-z0-9]+)*', topic['id']) and topic['id'] not in ids
         ids.add(topic['id'])
         assert topic['roles'] and set(topic['roles']) <= ROLES
-        assert all(topic[k] for k in ['title', 'area', 'takeaway', 'guidance', 'caution', 'feature_ids', 'changes'])
+        assert 'guidance' not in topic, 'Catch Up contains factual changes, not tactical advice'
+        assert all(topic[k] for k in ['title', 'area', 'overview', 'takeaway', 'context', 'caution', 'feature_ids', 'changes'])
+        assert isinstance(topic['overview_order'], int) and topic['overview_order'] > 0
         item = dict(topic)
         item['baselines'] = []
         live_sources = set()
@@ -44,7 +46,7 @@ def build(topics=None, features=None, issues=None, lock=None):
             assert any(e['source_id'] == sid and e['status'] == 'released' for fid in topic['feature_ids'] for e in by_feature[fid]['history']), 'Changes require explicit release history'
             day = by_source[sid]['published_at'][:10]
             assert topics['coverage_from'] <= day <= topics['coverage_through']
-            assert change['summary']
+            assert all(isinstance(change.get(k), str) and change[k].strip() for k in ['summary', 'before', 'after']), 'Each comparison requires sourced before and after descriptions'
             item['changes'].append({**change, 'date': day})
         used_sources.update(live_sources | {c['source_id'] for c in topic['changes']})
         item['source_ids'] = sorted(live_sources | {c['source_id'] for c in topic['changes']})

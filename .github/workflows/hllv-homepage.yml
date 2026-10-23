@@ -38,14 +38,14 @@ jobs:
           python3 -m http.server 8765 --bind 127.0.0.1 --directory hllv_tracker >/tmp/homepage-http.log 2>&1 &
           PID=$!
           trap 'kill "$PID" || true' EXIT
+          HLLV_BROWSER_ENGINE=chromium node .github/hllv-homepage/test_browser.cjs
+          HLLV_BROWSER_ENGINE=webkit node .github/hllv-homepage/test_browser.cjs
           HLLV_BROWSER_ENGINE=chromium node .github/hllv-catch-up/test_browser.cjs
           HLLV_BROWSER_ENGINE=webkit node .github/hllv-catch-up/test_browser.cjs
           HLLV_BROWSER_ENGINE=chromium node .github/hllv-review-preview/test_browser.cjs
           HLLV_BROWSER_ENGINE=webkit node .github/hllv-review-preview/test_browser.cjs
           HLLV_BROWSER_ENGINE=chromium node .github/hllv-visual-system/test_interactions.cjs
           HLLV_BROWSER_ENGINE=webkit node .github/hllv-visual-system/test_interactions.cjs
-          HLLV_BROWSER_ENGINE=chromium node .github/hllv-homepage/test_browser.cjs
-          HLLV_BROWSER_ENGINE=webkit node .github/hllv-homepage/test_browser.cjs
           HLLV_BROWSER_ENGINE=chromium node .github/hllv-features/test_browser.cjs
           HLLV_BROWSER_ENGINE=chromium node .github/hllv-visual-system/test_browser.cjs
           HLLV_BROWSER_ENGINE=webkit node .github/hllv-visual-system/test_browser.cjs

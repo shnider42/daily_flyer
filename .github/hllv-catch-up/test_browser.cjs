@@ -52,12 +52,53 @@ let browser,page;
   await go('#catch-up?since=9999-12-31');await expect(page.locator('#catchUpMessage')).toContainText('not valid');
   await go('#catch-up?role=%3Cscript%3E&topic=missing');await expect(page.locator('#catchUpMessage')).toContainText('not in this edition');
   await go('#catch-up?role=infantry');await page.locator('#brandHome').click();await page.locator('[data-page="catch-up"]').click();await expect(page.locator('#catchUpRole')).toHaveValue('infantry');
+  // Familiarity changes presentation, while every reviewed topic and source remains available.
+  let expectedTopics;
+  for(const depth of ['overview','refresher','detailed']){
+    await go('#catch-up?depth='+depth);await expect(page.locator('#catchUpDepth')).toHaveValue(depth);
+    if(depth!=='detailed')await page.locator('#catchUpMore').click();
+    const ids=await page.locator('.cu-topic').evaluateAll(nodes=>nodes.map(n=>n.dataset.topic).sort());
+    if(expectedTopics)assert.deepEqual(ids,expectedTopics);else expectedTopics=ids;
+    await page.locator('[data-topic="engineer-defenses"]>summary').click();
+    const topic=page.locator('[data-topic="engineer-defenses"]');
+    if(depth==='overview'){
+      await expect(topic.locator('.cu-takeaway')).toContainText('Basic defenses');
+      await expect(topic.locator('.cu-changes')).toBeHidden();
+      await topic.locator('.cu-comparison-disclosure>summary').click();
+    }
+    await expect(topic.locator('.cu-before-after').first()).toBeVisible();
+    await expect(topic.locator('.cu-before-after').last()).toContainText('Two Barbed Wire');
+    await expect(topic.locator('.cu-before-after').last()).toContainText('Three per Engineer');
+    if(depth==='detailed')await expect(topic.locator('.cu-record-detail')).toHaveAttribute('open','');
+    else await expect(topic.locator('.cu-record-detail')).not.toHaveAttribute('open','');
+    if(depth!=='detailed')await topic.locator('.cu-record-detail>summary').click();
+    await expect(topic.locator('.cu-current')).toContainText('Level 1 construction remains free');
+    await expect(topic.locator('a[href="#feature/HLLV-F001"]')).toBeVisible();
+    await expect(page.locator('#catchUpPage')).not.toContainText('What that means for you');
+    await expect(page.locator('.cu-guidance')).toHaveCount(0);
+  }
+  await go('#catch-up?since=2026-10-15&role=engineer&topic=engineer-defenses&depth=overview');
+  await page.locator('#catchUpDepth').selectOption('detailed');
+  await expect(page.locator('#catchUpDate')).toHaveValue('2026-10-15');
+  await expect(page.locator('#catchUpRole')).toHaveValue('engineer');
+  await expect(page.locator('[data-topic="engineer-defenses"]')).toHaveAttribute('open','');
+  await expect(page.locator('[data-topic="engineer-defenses"] .cu-changes')).not.toContainText('Oct 7');
+  await expect(page).toHaveURL(/since=2026-10-15&role=engineer&topic=engineer-defenses&depth=detailed/);
+  await page.reload({waitUntil:'networkidle'});await expect(page.locator('#catchUpDepth')).toHaveValue('detailed');
+  await page.locator('[data-topic="engineer-defenses"] a[href="#feature/HLLV-F001"]').click();await page.goBack();
+  await expect(page.locator('#catchUpDepth')).toHaveValue('detailed');
+  await page.evaluate(()=>Object.defineProperty(navigator,'clipboard',{configurable:true,value:{writeText:async value=>{window.__copied=value;}}}));
+  await page.locator('#catchUpShare').click();await expect(page.locator('#catchUpMessage')).toContainText('familiarity');
+  assert.equal(new URL(await page.evaluate(()=>window.__copied)).hash, new URL(page.url()).hash);
+  await go('#catch-up?depth=unknown');await expect(page.locator('#catchUpDepth')).toHaveValue('refresher');await expect(page.locator('#catchUpMessage')).toContainText('reading level');
+  await go('#catch-up?since=2026-10-22&depth=overview');await page.locator('#catchUpReset').click();await expect(page.locator('#catchUpDepth')).toHaveValue('overview');
   await go();
   const before=await page.locator('[data-topic="boat-spawning"]>summary').boundingBox();
   await page.locator('[data-topic="boat-spawning"]>summary').hover();
   const after=await page.locator('[data-topic="boat-spawning"]>summary').boundingBox();assert.deepEqual(after,before,'Hover must not move the briefing');
   await page.locator('[data-topic="boat-spawning"]>summary').focus();await page.keyboard.press('Enter');
   await expect(page.locator('[data-topic="boat-spawning"]')).toHaveAttribute('open','');
+  await page.locator('[data-topic="boat-spawning"] .cu-record-detail>summary').click();
   await page.locator('[data-topic="boat-spawning"] a[href="#HLLV-046"]').click();await expect(page.locator('#dossier h1')).toContainText('Spawn choices');
   await page.goBack();await expect(page.locator('[data-topic="boat-spawning"]')).toHaveAttribute('open','');
   // Collected source changes flag the guide; they must never rewrite its advice.
@@ -67,30 +108,32 @@ let browser,page;
   await expect(page.locator('[data-cu-review="boat-spawning"]')).toBeVisible();
   assert.equal(await page.locator('.cu-takeaway').first().textContent(),takeaway);
   await page.evaluate(()=>window.HLLVCatchUp.receiveFeed(null));await expect(page.locator('#catchUpFreshness')).toContainText('could not be checked');
-  for(const {width,height} of [{width:320,height:740},{width:390,height:844},{width:768,height:1024},{width:1024,height:768},{width:1280,height:720},{width:1440,height:900},{width:2560,height:1440}])for(const theme of ['dark','light']){
-    await page.setViewportSize({width,height});await go();
+  for(const {width,height} of [{width:320,height:740},{width:390,height:844},{width:768,height:1024},{width:1024,height:768},{width:1280,height:720},{width:1440,height:900},{width:2560,height:1440}])for(const theme of ['dark','light'])for(const depth of ['overview','refresher','detailed']){
+    await page.setViewportSize({width,height});await go('#catch-up?depth='+depth);
     if(await page.locator('html').getAttribute('data-theme')!==theme)await page.locator('#themeToggle').click();
     await page.evaluate(()=>document.fonts.ready);
     assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),`${engine}/${width}/${theme}: horizontal overflow`);
     const brand=await page.locator('#brandHome small').boundingBox(),tools=await page.locator('.nav-tools').boundingBox();
     assert(brand.x+brand.width<=tools.x,`${engine}/${width}/${theme}: brand subtitle overlaps header controls`);
-    for(const selector of ['.cu-heading h1','#catchUpWhen','#catchUpRole','#catchUpShare','.cu-topic:first-child h2']){
+    for(const selector of ['.cu-heading h1','#catchUpWhen','#catchUpDepth','#catchUpRole','#catchUpShare','.cu-topic:first-child h2']){
       const b=await page.locator(selector).boundingBox();assert(b&&b.y>=0&&b.y+b.height<=height,`${engine}/${width}/${theme}: opening cut off ${selector}: ${JSON.stringify(b)}`);
     }
     for(const nav of await page.locator('.top-links [data-page]').all()){const b=await nav.boundingBox();assert(b.width>=44&&b.height>=44&&b.x>=0&&b.x+b.width<=width+1,'Nav fit and touch targets');}
-    await page.screenshot({path:`${output}/${engine}-${width}-${theme}-opening.png`});
+    await page.screenshot({path:`${output}/${engine}-${width}-${theme}-${depth}-opening.png`});
+    if(depth==='overview')await page.locator('#catchUpMore').click();
     await page.locator('[data-topic="engineer-defenses"]>summary').click();
     assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),'Expanded guide overflow');
-    if(width===390||width===1440)await page.screenshot({path:`${output}/${engine}-${width}-${theme}-expanded.png`,fullPage:true});
+    if(width===390||width===1440)await page.locator('[data-topic="engineer-defenses"]').screenshot({path:`${output}/${engine}-${width}-${theme}-${depth}-expanded.png`});
   }
   // Failed data loads recover via the visible retry action and preserve route filters.
   let fail=true;
   await page.route('**/data/catch-up.*.json',r=>fail?r.fulfill({status:503,body:'Unavailable'}):r.continue());
-  await page.goto(base+'#catch-up?role=boats',{waitUntil:'networkidle'});
+  await page.goto(base+'#catch-up?role=boats&depth=overview',{waitUntil:'networkidle'});
   // Fragment navigation retains the loaded module; reload to exercise the data request.
   await page.reload({waitUntil:'networkidle'});await expect(page.locator('#catchUpRetry')).toBeVisible();
   fail=false;await page.locator('#catchUpRetry').click();await expect(page.locator('#catchUpRole')).toHaveValue('boats');
+  await expect(page.locator('#catchUpDepth')).toHaveValue('overview');
   assert.deepEqual(errors,[]);assert.deepEqual(writes,[]);
-  console.log(`CATCH_UP_BROWSER_PASS ${engine}: date and role filters, scoped current rules, coverage limits, share and fallback, deep links and back, review flags, keyboard, retry, seven widths and both themes; no writes.`);
+  console.log(`CATCH_UP_BROWSER_PASS ${engine}: three familiarity levels preserve every topic; factual comparisons, date/role/depth links and back, share and fallback, coverage, review flags, keyboard, retry, seven widths and both themes; no writes.`);
   await browser.close();
 })().catch(async error=>{console.error(error);if(page)await page.screenshot({path:`${output}/${engine}-failure.png`,fullPage:true}).catch(()=>{});if(browser)await browser.close().catch(()=>{});process.exit(1);});

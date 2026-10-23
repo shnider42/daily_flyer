@@ -81,13 +81,15 @@ The original Suggestion Box pilot was closed by default and invitation-only. UI 
 ## Catch Up gameplay guide
 
 `/#catch-up` is linked from the homepage introduction and the top navigation. It
-offers ten reviewed returning-player briefings with date and role filters, current
-rules, practical guidance, official sources and related bug records. It covers
+offers ten reviewed returning-player briefings with independent date, familiarity
+and optional role controls. Three reading levels present factual comparisons,
+current rules, official sources and related bug records. Every level preserves
+access to all reviewed facts; Catch Up does not provide tactical advice. It covers
 selected October 7–21, 2026 changes, reviewed October 23; it is not a complete
 tutorial. Filtered briefings and expanded topics are shareable through the URL.
 
 Source, review locks and maintenance instructions are in `.github/hllv-catch-up/`.
 Run `.github/hllv-homepage/publish.py` to publish the guide and shared assets
-together. Changes to a linked live rule or cited source require another guidance
+together. Changes to a linked live rule or cited source require another factual
 review. Automatic announcement collection can flag review needs but cannot publish
-new advice. The guide has no account or database writes.
+new explanations. The guide has no account or database writes.
