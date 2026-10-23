@@ -84,7 +84,9 @@ let browser,page;
   // Failed data loads recover via the visible retry action and preserve route filters.
   let fail=true;
   await page.route('**/data/catch-up.*.json',r=>fail?r.fulfill({status:503,body:'Unavailable'}):r.continue());
-  await page.goto(base+'#catch-up?role=boats',{waitUntil:'networkidle'});await expect(page.locator('#catchUpRetry')).toBeVisible();
+  await page.goto(base+'#catch-up?role=boats',{waitUntil:'networkidle'});
+  // Fragment navigation retains the loaded module; reload to exercise the data request.
+  await page.reload({waitUntil:'networkidle'});await expect(page.locator('#catchUpRetry')).toBeVisible();
   fail=false;await page.locator('#catchUpRetry').click();await expect(page.locator('#catchUpRole')).toHaveValue('boats');
   assert.deepEqual(errors,[]);assert.deepEqual(writes,[]);
   console.log(`CATCH_UP_BROWSER_PASS ${engine}: date and role filters, scoped current rules, coverage limits, share and fallback, deep links and back, review flags, keyboard, retry, seven widths and both themes; no writes.`);
