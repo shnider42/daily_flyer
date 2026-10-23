@@ -37,7 +37,7 @@ body { position: relative; isolation: isolate; }
 .top-link-community::before { content: ""; position: absolute; left: -16px; top: 6px; bottom: 6px; border-left: 1px solid #58635b; }
 .top-link-community:hover, .top-link-community.active { background: #414e43; border-color: #bbc8b4; }
 #landing .community-welcome #patchNotesJump { display:inline-flex; align-items:center; min-height:44px; margin-left:12px; color:var(--red); text-underline-offset:3px; }
-#landing .community-welcome #patchNotesJump:hover { text-decoration:underline; }
+#landing .community-welcome #patchNotesJump:hover { color:var(--ink); text-decoration:underline; }
 #landing .landing-main { width: 100%; max-width: var(--page-width); padding: 36px var(--page-gutter) 40px; }
 /* Programmatic heading focus announces navigation without resembling a form field. */
 :is(#home, #app, #featuresPage, #suggestionBox) h1[tabindex="-1"]:focus { outline: none; }
