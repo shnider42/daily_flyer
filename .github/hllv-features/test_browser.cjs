@@ -1,0 +1,117 @@
+/* Real static assets; external account calls are simulated. No user data is written. */
+const { chromium, webkit, expect } = require(process.env.CODEX_PRIMARY_RUNTIME_NODE_MODULES ? process.env.CODEX_PRIMARY_RUNTIME_NODE_MODULES + '/playwright/test' : '@playwright/test');
+const fs = require('fs');
+const assert = require('node:assert/strict');
+const url = process.env.HLLV_TEST_URL || 'http://127.0.0.1:8765/';
+const ledger = JSON.parse(fs.readFileSync('hllv_tracker/data/features.json'));
+const originalFeed = JSON.parse(fs.readFileSync('hllv_tracker/official-feed.json'));
+const sdk = 'export function createClient(){return {auth:{onAuthStateChange:()=>({}),getSession:async()=>({data:{session:null}})},rpc:async()=>({data:{enabled:true,rows:[],total:0}})}}';
+(async()=>{
+  const browser = await (process.env.HLLV_BROWSER_ENGINE==='webkit'?webkit:chromium).launch({headless:true,...(process.env.HLLV_BROWSER_EXECUTABLE ? {executablePath:process.env.HLLV_BROWSER_EXECUTABLE} : {}),args:JSON.parse(process.env.HLLV_CHROMIUM_ARGS_JSON || '[]')});
+  const context = await browser.newContext({viewport:{width:1280,height:900},reducedMotion:'reduce'});
+  await context.route('https://cdn.jsdelivr.net/**', r=>r.fulfill({body:sdk,contentType:'application/javascript',headers:{'Access-Control-Allow-Origin':'*'}}));
+  await context.route('https://*.supabase.co/**', r=>r.abort());
+  const page = await context.newPage(), errors=[], writes=[];
+  page.on('pageerror',e=>errors.push(String(e)));page.on('request',r=>{if(r.method()!=='GET')writes.push(r.url());});
+  const noOverflow=async()=>assert(await page.evaluate(()=>document.documentElement.scrollWidth<=innerWidth+1),'Horizontal overflow');
+  await page.goto(url,{waitUntil:'networkidle'});
+  await expect(page.locator('#featureHighlights .ft-row')).toHaveCount(3);
+  await page.locator('[data-page="features"]').click();
+  await expect(page.locator('#featureResults .ft-row')).toHaveCount(ledger.features.length);
+  await expect(page.locator('#featuresPage')).toBeVisible();
+  await expect(page.locator('#landing')).toBeHidden();
+  await page.locator('#featureSearch').fill('boat');
+  await expect(page.locator('#featureResults .ft-row[href="#feature/HLLV-F008"]')).toBeVisible();
+  await page.locator('#featureResults .ft-row[href="#feature/HLLV-F008"]').click();
+  await expect(page.locator('.ft-detail')).toContainText('manual driver exit');
+  await expect(page.locator('.ft-history li')).toHaveCount(3);
+  await expect(page.locator('.ft-history li').first()).toContainText('Oct 21, 2026');
+  await expect(page.locator('.ft-detail>.ft-heading .ft-status')).toHaveText('Released');
+  await expect(page.locator('.ft-comparison')).toContainText('prevents transport-boat spawning');
+  await page.locator('.ft-related>a[href="#HLLV-062"]').click();
+  await expect(page.locator('#app')).toBeVisible();
+  await expect(page.locator('#featuresPage')).toBeHidden();
+  await expect(page.locator('.ft-issue-links')).toContainText('Transport boat');
+  await page.locator('.ft-issue-links a[href="#feature/HLLV-F008"]').click();
+  await expect(page.locator('.ft-detail')).toBeVisible();
+  await page.locator('.ft-back').click();
+  await expect(page.locator('#featureSearch')).toHaveValue('boat');
+  await page.locator('#featureSearch').fill('');
+  await page.locator('#featureStatus').selectOption('released');
+  await expect(page.locator('#featureResults .ft-row')).toHaveCount(ledger.features.filter(f=>f.status==='released').length);
+  await page.locator('#featureCategory').selectOption('Maps');
+  await expect(page.locator('#featureResults')).toContainText('No matching features');
+  await page.locator('#featureStatus').selectOption('planned');
+  await expect(page.locator('#featureResults')).toContainText('Khe Sanh');
+  await page.locator('#featureResults .ft-row').click();
+  await expect(page.locator('.ft-comparison')).toContainText('Release not confirmed');
+  await page.goBack();
+  await expect(page.locator('#featureResults')).toBeVisible();
+  await page.goForward();
+  await expect(page.locator('.ft-detail')).toContainText('Khe Sanh');
+  await page.locator('[data-page="suggestions"]').click();
+  await expect(page.locator('#suggestionBox')).toBeVisible();
+  await expect(page.locator('#suggestionBox')).toContainText('Private first. Public after moderator approval.');
+  await page.locator('[data-page="issues"]').click();
+  await page.locator('#homeSearch').fill('Spawn choices');
+  await expect(page.locator('#homeList [data-home-id]')).toHaveCount(1);
+  await page.locator('#homeList [data-home-id]').click();
+  await expect(page.locator('#dossier h1')).toContainText('Spawn choices');
+  await page.locator('.tabs [data-tab="sources"]').click();
+  await expect(page.locator('#sources .evidence-source').first()).toBeVisible();
+  // Verify actual reviewed links from an announcement, with no network-derived statuses.
+  await page.locator('#brandHome').click();
+  await page.locator('#officialSourceList .feed-entry').first().locator('summary').click();
+  await expect(page.locator('#officialSourceList .feed-entry').first().locator('.ft-feed-links')).toContainText('Reviewed feature connections');
+  await page.locator('#officialSourceList .feed-entry').first().locator('a[href="#feature/HLLV-F001"]').click();
+  await expect(page.locator('.ft-detail')).toContainText('Barbed Wire');
+  // New/edited evidence is a review flag, not a status change; malicious titles stay text.
+  const changed=structuredClone(originalFeed);changed.last_success_at=new Date().toISOString();
+  changed.items[0].content_sha256='f'.repeat(64);changed.items[0].candidate_feature_ids=[];
+  changed.items.unshift({id:'123456',title:'<img src=x onerror=alert(1)> New controller notes',url:'https://www.hellletloose.com/blog/example',published_at:new Date().toISOString(),candidate_feature_ids:['HLLV-F003'],content_sha256:'e'.repeat(64)});
+  await page.route('**/official-feed.json',r=>r.fulfill({json:changed}));
+  await page.goto(url+'#feature/HLLV-F001',{waitUntil:'networkidle'});
+  await page.reload({waitUntil:'networkidle'});
+  await expect(page.locator('#featureReview')).toContainText('awaiting feature review');
+  await page.locator('#featureReview summary').click();
+  await expect(page.locator('#featureReview')).toContainText('Source text changed since review');
+  await expect(page.locator('.ft-detail>.ft-heading .ft-status')).toHaveText('Released');
+  await page.goto(url+'#feature/HLLV-F003',{waitUntil:'networkidle'});
+  await page.locator('#featureReview summary').click();
+  await expect(page.locator('#featureReview img')).toHaveCount(0);
+  await expect(page.locator('#featureReview')).toContainText('<img src=x');
+  await page.unroute('**/official-feed.json');
+  // Responsive routes, direct links and both persisted themes.
+  fs.mkdirSync('artifacts/feature-qa',{recursive:true});
+  for(const width of [375,390,1280]){
+    await page.setViewportSize({width,height:900});
+    for(const hash of ['#features','#feature/HLLV-F001','#feature/HLLV-F008']){
+      await page.goto(url+hash,{waitUntil:'networkidle'});
+      await expect(page.locator('#featuresPage h1')).toBeVisible();await noOverflow();
+    }
+  }
+  await page.setViewportSize({width:390,height:844});
+  await page.goto(url+'#features',{waitUntil:'networkidle'});
+  await page.screenshot({path:'artifacts/feature-qa/mobile-dark.png',fullPage:true});
+  await page.locator('#themeToggle').click();await noOverflow();
+  await page.screenshot({path:'artifacts/feature-qa/mobile-light.png',fullPage:true});
+  await page.setViewportSize({width:1280,height:1000});
+  await page.goto(url+'#feature/HLLV-F008',{waitUntil:'networkidle'});
+  await page.screenshot({path:'artifacts/feature-qa/boat-history.png',fullPage:true});
+  await page.locator('#themeToggle').click();
+  await page.goto(url+'#features',{waitUntil:'networkidle'});
+  await page.screenshot({path:'artifacts/feature-qa/desktop-dark.png',fullPage:true});
+  // Data failure and retry stay local to this section.
+  let fail=true;
+  await page.route('**/data/features.*.json',r=>fail?r.fulfill({status:503,body:'Unavailable'}):r.continue());
+  await page.goto(url+'#features',{waitUntil:'networkidle'});
+  await page.reload({waitUntil:'networkidle'});
+  await expect(page.locator('#featuresPage')).toContainText('Feature records could not load');
+  fail=false;await page.locator('#featureRetry').click();
+  await expect(page.locator('#featureResults .ft-row')).toHaveCount(ledger.features.length);
+  await page.goto(url+'#feature/HLLV-F999',{waitUntil:'networkidle'});
+  await expect(page.locator('#featuresPage')).toContainText('Feature not found');
+  assert.deepEqual(errors,[]);assert.deepEqual(writes,[]);
+  console.log('FEATURE_BROWSER_PASS: navigation, baseline/direction, links, search, filters, history, mobile, themes, review flags, XSS escaping, retry, bugs and signed-out suggestions. No writes.');
+  await browser.close();
+})().catch(e=>{console.error(e);process.exit(1);});

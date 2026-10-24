@@ -1,0 +1,185 @@
+/* Invitation-only pilot UI. PostgreSQL owns permissions, capacity, review and votes.
+   PUBLIC publishable key only. No private ledger in Git. SDK loads only after setup. */
+(function(root,factory){const api=factory();if(typeof module==='object'&&module.exports)module.exports=api;else root.HLLVSuggestions=api;})(typeof globalThis!=='undefined'?globalThis:this,function(){
+ 'use strict';
+ const escape=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+ const text=v=>typeof v==='string'?v:'';
+ const stateLabel={pending:'Private · awaiting moderation',needs_information:'Private · needs clarification',shortlisted:'Private · shortlisted for review',declined:'Private · not selected',duplicate:'Private · linked as a duplicate',withdrawn:'Withdrawn',published:'Published on the Bulletin Board'};
+ const implementationLabel={no_commitment:'No implementation commitment recorded',under_consideration:'Under consideration',planned:'Planned, as stated by the reviewer',not_planned:'Not currently planned'};
+ function validConfig(c){return !!(c&&c.enabled===true&&!['read_only','operator_only'].includes(c.connection_mode)&&/^https:\/\/[a-z0-9-]+\.supabase\.co$/.test(c.supabase_url)&&/^sb_publishable_[A-Za-z0-9_-]{10,}$/.test(c.publishable_key)&&/^.+@.+\..+$/.test(c.participant_contact)&&text(c.retention_notice).length>=20&&c.policy_version==='pilot-2026-10-08');}
+
+ // Setup connection only: no Auth SDK, identity lookup, email form or write RPC.
+ function validReadOnlyConfig(c){return !!(c&&c.enabled===false&&c.connection_mode==='read_only'&&/^https:\/\/[a-z0-9-]+\.supabase\.co$/.test(c.supabase_url)&&/^sb_publishable_[A-Za-z0-9_-]{10,}$/.test(c.publishable_key));}
+ function readOnlyClient(c){
+  if(!validReadOnlyConfig(c))throw new Error('Invalid read-only connection.');
+  return {rpc:async name=>{
+   if(!['hllv_pilot_status','hllv_board'].includes(name))return {data:null,error:{message:'Sign-in and private actions are not enabled.'}};
+   const controller=new AbortController(),timer=setTimeout(()=>controller.abort(),10000);
+   try{
+    const response=await fetch(c.supabase_url+'/rest/v1/rpc/'+name,{method:'POST',credentials:'omit',cache:'no-store',headers:{apikey:c.publishable_key,'Content-Type':'application/json'},body:'{}',signal:controller.signal});
+    if(!response.ok)throw new Error('The Suggestion Box database could not be reached. Please retry.');
+    const data=await response.json();
+    if(name==='hllv_board'&&!Array.isArray(data))throw new Error('Unexpected board response.');
+    if(name==='hllv_pilot_status'&&(!data||typeof data.phase!=='string'||typeof data.intake_open!=='boolean'||typeof data.voting_open!=='boolean'))throw new Error('Unexpected pilot status.');
+    return {data,error:null};
+   }catch(_){return {data:null,error:{message:'The Suggestion Box database could not be reached. No submission or vote was sent.'}};}
+   finally{clearTimeout(timer);}
+  }};
+ }
+
+ function validOperatorConfig(c){return !!(c&&c.enabled===false&&c.connection_mode==='operator_only'&&/^https:\/\/[a-z0-9-]+\.supabase\.co$/.test(c.supabase_url)&&/^sb_publishable_[A-Za-z0-9_-]{10,}$/.test(c.publishable_key)&&c.policy_version==='pilot-2026-10-08');}
+ function operatorRead(name){return ['hllv_board','hllv_pilot_status','hllv_profile','hllv_queue'].includes(name);}
+ function isAuthCallback(hash){const p=new URLSearchParams(String(hash||'').replace(/^#/,''));return ['access_token','refresh_token','error','error_code','error_description'].some(k=>p.has(k));}
+ function related(id,issues){const found=(issues||[]).find(i=>i.id===id);return found?`<a href="#${escape(id)}" data-suggestion-issue="${escape(id)}">Related issue: ${escape(found.title)} →</a>`:'';}
+ function sorted(rows,sort){return [...rows].sort(sort==='newest'?(a,b)=>text(b.published_at).localeCompare(text(a.published_at))||a.id.localeCompare(b.id):(a,b)=>Number(b.votes)-Number(a.votes)||text(a.published_at).localeCompare(text(b.published_at))||a.id.localeCompare(b.id));}
+ function boardMarkup(rows,issues,canVote,sort='votes'){
+  if(!rows.length)return '<div class="sg-empty"><h3>No published suggestions yet.</h3><p>The Bulletin Board will contain only entries that have completed the required review and publication process. A private submission never appears here automatically.</p></div>';
+  return sorted(rows,sort).map(s=>`<article class="sg-row" data-board-id="${escape(s.id)}"><span class="sg-meta">${s.kind==='bug_priority'?'Existing bug · community priority':'Suggestion'} · ${Number(s.votes)||0} pilot supporters</span><h3>${escape(s.title)}</h3><p>${escape(s.problem)}</p><details><summary>Proposed improvement &amp; review</summary><p>${escape(s.desired_outcome)}</p><p><strong>Review:</strong> ${escape(s.review_label)} · ${escape(text(s.reviewed_at).slice(0,10))}</p><p><strong>Implementation:</strong> ${escape(implementationLabel[s.implementation]||'Not specified')}</p>${s.public_response?`<p>${escape(s.public_response)}</p>`:''}<p class="sg-muted">Cleared wording version ${Number(s.version)}. Review for publication is not a promise to implement.</p></details>${related(s.related_issue,issues)}<div class="sg-actions"><button class="sg-button secondary" data-vote="${escape(s.id)}" aria-pressed="${!!s.my_vote}" ${canVote?'':'disabled'}>${s.my_vote?'Remove my support':'Support this suggestion'}</button></div></article>`).join('');
+ }
+ let client=null,configuration=null,profile=null,pilot=null,view='board',initialized=false,issues=[],board=[],myRows=[],queue=[],epoch=0,loadSerial=0,sort='votes',requestEmail='',accountEmail='',initializing=false;
+ let persistence=null,pendingAccountTarget='',identityTimer=null,logoutInProgress=false;
+ const el=id=>document.getElementById(id);
+ const content=html=>{el('sgContent').innerHTML=html;};
+ function message(msg,error=false){el('sgStatus').textContent=msg;el('sgStatus').dataset.error=String(error);}
+ function closedView(){content(`<h2>${view==='submit'?'Submit a suggestion':view==='mine'?'My submissions':'Bulletin Board'}</h2><div class="sg-empty"><h3>The invitation-only pilot is being prepared.</h3><p>Sign-in and private storage are not connected yet. Submissions and voting are closed; this page does not collect suggestions or email addresses.</p><p>A named reviewer, an agreed publication process, and the participant privacy notice must also be configured before intake opens.</p></div><button class="sg-button secondary" type="button" disabled>${view==='submit'?'Submit privately — not open yet':'Pilot sign-in — not open yet'}</button>`);}
+ async function rpc(name,args={}){if(!client)throw new Error('The pilot is not connected.');if(validOperatorConfig(configuration)&&!operatorRead(name)&&!(['hllv_rehearsal','hllv_moderator_inbox','hllv_moderator_decision'].includes(name)&&profile?.role==='moderator'))throw new Error('Staff setup is read-only; participant actions and publication remain closed.');const {data,error}=await client.rpc(name,args);if(error)throw new Error(text(error.message)||'Request could not be completed.');return data;}
+ function account(){
+  const reviewButton=document.querySelector('[data-sg-view="review"]');reviewButton.hidden=!profile||!['moderator','reviewer'].includes(profile.role);
+  if(!client||!persistence){el('sgAccount').replaceChildren();window.HLLVPassword?.status({available:false});return;}
+  if(validReadOnlyConfig(configuration)){el('sgAccount').textContent='Read-only setup. Account sign-in is unavailable.';window.HLLVPassword?.status({available:false});return;}
+  const generation=epoch;
+  HLLVPassword.mount({container:el('sgAccount'),client,profile,email:accountEmail,persistence,onIdentity:loadIdentity,signOut,isCurrent:()=>generation===epoch});
+  if(pendingAccountTarget){const target=pendingAccountTarget;pendingAccountTarget='';HLLVPassword.open(target);}
+ }
+ function requestAccount(target='sign-in'){
+  pendingAccountTarget=target;
+  if(target==='review')view='review';
+ }
+ function refreshIdentitySoon(){
+  clearTimeout(identityTimer);identityTimer=setTimeout(()=>{if(!initializing&&!logoutInProgress)loadIdentity();},0);
+ }
+ async function forgetSession(){
+  let error=null;try{const result=await client.auth.signOut({scope:'local'});error=result?.error||null;}catch(e){error=e;}
+  await persistence.storage.removeItem(persistence.key);
+  return error;
+ }
+ async function signOut(){
+  if(!client||logoutInProgress)return;logoutInProgress=true;clearTimeout(identityTimer);
+  epoch++;loadSerial++;profile=null;accountEmail='';myRows=[];queue=[];board=[];view='board';
+  content('<p>Signing out…</p>');el('sgAccount').replaceChildren();window.HLLVPassword?.status();
+  let error;try{error=await forgetSession();}finally{logoutInProgress=false;}
+  account();await render();message(error?'Signed out of this browser. Server session revocation could not be confirmed; reconnect before using a shared device.':'Signed out of this browser. Private content has been cleared.',Boolean(error));
+ }
+ async function loadIdentity(){
+  const generation=++epoch;profile=null;accountEmail='';myRows=[];queue=[];content('<p>Checking pilot access…</p>');window.HLLVPassword?.status({checking:true});let notice='';
+  try{
+   const {data,error}=await client.auth.getSession();if(error)throw error;
+   if(data.session){
+    const checked=await client.auth.getUser();if(checked.error||!checked.data?.user)throw new Error('User verification failed');
+    const p=await rpc('hllv_profile');if(generation!==epoch)return;
+    if(!p||!['participant','moderator','reviewer'].includes(p.role)||(validOperatorConfig(configuration)&&!['moderator','reviewer'].includes(p.role)))throw new Error('Staff membership required');
+    profile=p;accountEmail=checked.data.user.email||'';if(validOperatorConfig(configuration))view='review';
+   }
+  }catch(_){
+   if(generation!==epoch)return;profile=null;accountEmail='';view='board';
+   notice='Sign-in could not be verified or this account has no active staff invitation. Private access remains closed. Your saved work is unchanged.';
+  }
+  if(generation!==epoch)return;
+  account();await render();if(notice)message(notice,true);
+ }
+ function mountModeratorInbox(generation,serial){
+  let deskSerial=0,controller=null;
+  content('<h2>Private review desk</h2><p class="sg-muted">Review real submissions here. Your private practice is kept separate.</p><nav class="desk-views" aria-label="Review desk views"><button type="button" class="sg-button secondary" id="deskReal" aria-pressed="true">Submitted suggestions</button><button type="button" class="sg-button secondary" id="deskPractice" aria-pressed="false">Private practice</button></nav><div id="moderatorWorkspace"></div>');
+  function choose(mode){
+   if(controller?.canLeave&&!controller.canLeave())return;
+   const ticket=++deskSerial;controller=null;
+   el('deskReal').setAttribute('aria-pressed',String(mode==='real'));el('deskPractice').setAttribute('aria-pressed',String(mode==='practice'));
+   const host=el('moderatorWorkspace');host.replaceChildren();
+   const isCurrent=()=>generation===epoch&&serial===loadSerial&&ticket===deskSerial&&view==='review'&&profile?.role==='moderator'&&!el('suggestionBox').classList.contains('hidden');
+   if(mode==='real'){
+    if(window.HLLVInbox)controller=HLLVInbox.mount({container:host,rpc,issues,isCurrent});
+    else host.textContent='The moderator inbox could not load. Refresh this page; no moderation action was sent.';
+   }else if(window.HLLVPractice){
+    const practice=document.createElement('div');practice.id='privatePractice';host.appendChild(practice);HLLVPractice.mount({container:practice,rpc,issues,isCurrent});
+   }else host.textContent='Private practice could not load. Your saved practice has not been changed.';
+  }
+  el('deskReal').onclick=()=>choose('real');el('deskPractice').onclick=()=>choose('practice');choose('real');
+ }
+ function mountPractice(generation,serial){
+  if(profile?.role!=='moderator'||!window.HLLVPractice)return;
+  const host=document.createElement('div');host.id='privatePractice';el('sgContent').appendChild(host);
+  HLLVPractice.mount({container:host,rpc,issues,isCurrent:()=>generation===epoch&&serial===loadSerial&&view==='review'&&profile?.role==='moderator'});
+ }
+ function fieldForm(s=null){
+  return `<form class="sg-form" id="sgSubmission"><label for="sgKind">Type</label><select name="kind" id="sgKind"><option value="suggestion">Improvement suggestion</option><option value="bug_priority" ${s?.kind==='bug_priority'?'selected':''}>Priority for an existing tracked bug</option></select><label for="sgTitle">Title — what should improve?</label><input name="title" id="sgTitle" minlength="8" maxlength="120" required value="${escape(s?.title||'')}"><label for="sgProblem">What happens now, and why does it matter?</label><textarea name="problem" id="sgProblem" minlength="20" maxlength="1500" required>${escape(s?.problem||'')}</textarea><label for="sgOutcome">What would a better experience look like?</label><textarea name="desired_outcome" id="sgOutcome" minlength="10" maxlength="1000" required>${escape(s?.desired_outcome||'')}</textarea><label for="sgRelated">Related tracked issue (required for bug priority)</label><select name="related_issue" id="sgRelated"><option value="">No related issue</option>${issues.map(i=>`<option value="${escape(i.id)}" ${s?.related_issue===i.id?'selected':''}>${escape(i.id)} — ${escape(i.title)}</option>`).join('')}</select><p class="sg-muted">Please avoid personal details. Text and an existing issue link only—no uploads or comments.</p>${s?'':`<label class="sg-check"><input name="consent" type="checkbox" required><span>I have read the privacy notice. I understand this stays private until reviewed and publication is not guaranteed.</span></label><p class="sg-muted">${escape(configuration.retention_notice)} Contact: ${escape(configuration.participant_contact)}</p>`}<div class="sg-actions"><button class="sg-button">${s?'Save revised wording — requires new review':'Submit privately'}</button>${s?'<button class="sg-button secondary" id="sgCancelEdit" type="button">Cancel</button>':''}</div></form>`;
+ }
+ function editForm(s){content('<h2>Revise suggestion</h2><p>Saving removes any public entry and resets its clearance. Votes do not transfer to the revised version.</p>'+fieldForm(s));bindSubmission(s);el('sgCancelEdit').onclick=()=>render();}
+ function bindSubmission(s=null){el('sgSubmission').onsubmit=async e=>{e.preventDefault();const form=e.target,button=e.submitter,payload=Object.fromEntries(new FormData(form));if(payload.kind==='bug_priority'&&!payload.related_issue){message('Choose the existing tracked issue for this priority request.',true);return;}payload.policy_version=configuration.policy_version;payload.consent=payload.consent==='on';button.disabled=true;const generation=epoch;try{if(s)await rpc('hllv_edit',{suggestion:s.id,expected_version:s.version,payload});else await rpc('hllv_submit',{payload});if(generation!==epoch)return;form.reset();view=profile.role==='moderator'?'review':'mine';await render();message(s?'Revision saved privately. Clearance must be repeated.':'Received privately. This has not been posted to the Bulletin Board.');}catch(err){if(generation===epoch)message(err.message,true);}finally{if(button.isConnected)button.disabled=false;}};}
+ async function guarded(button,fn){button.disabled=true;const generation=epoch;try{await fn();if(generation===epoch)await render();}catch(err){if(generation===epoch)message(err.message,true);}finally{if(button.isConnected)button.disabled=false;}}
+ async function render(){
+  const generation=epoch,serial=++loadSerial;
+  document.querySelectorAll('[data-sg-view]').forEach(b=>b.setAttribute('aria-pressed',String(b.dataset.sgView===view)));
+  if(!client){closedView();return;}
+  const target=view;content('<p role="status">Loading this view…</p>');
+  try{
+   pilot=await rpc('hllv_pilot_status');if(generation!==epoch||serial!==loadSerial)return;
+   message(pilot.phase==='setup'?'Database connected. Pilot setup: intake and voting are closed.':`Pilot phase: ${pilot.phase}. Review and publication are separate decisions.`);
+   if(view==='board'){
+    board=await rpc('hllv_board');if(generation!==epoch||serial!==loadSerial)return;
+    content(`<h2>Bulletin Board</h2><p class="sg-muted">Community interest among invited pilot users—not developer priority, severity, or a representative poll of all players.</p><div class="sg-board-tools"><label>Order <select id="sgSort"><option value="votes" ${sort==='votes'?'selected':''}>Most supported</option><option value="newest" ${sort==='newest'?'selected':''}>Newest</option></select></label><button class="sg-button secondary" id="sgRefresh">Refresh board</button></div><p id="sgNewVotes" class="sg-muted"></p><div id="sgBoardRows">${boardMarkup(board,issues,profile?.role==='participant'&&pilot.voting_open&&!validOperatorConfig(configuration),sort)}</div>${pilot.voting_until?`<p class="sg-muted">Voting closes ${escape(new Date(pilot.voting_until).toLocaleString('en-US',{timeZone:'America/New_York',timeZoneName:'short'}))}.</p>`:''}`);
+    el('sgSort').onchange=e=>{sort=e.target.value;render();};el('sgRefresh').onclick=()=>render();
+    document.querySelectorAll('[data-vote]').forEach(b=>b.onclick=()=>{const s=board.find(x=>x.id===b.dataset.vote);guarded(b,()=>rpc('hllv_vote',{suggestion:s.id,expected_version:s.version,support:!s.my_vote}));});return;
+   }
+   if(!profile&&validReadOnlyConfig(configuration)){content('<h2>'+ (view==='mine'?'My submissions':'Submit a suggestion') +'</h2><div class="sg-empty"><h3>Sign-in is not open yet.</h3><p>The private database is connected. Email sign-in, participant notices and authorized reviewer access still need to be configured and tested before anyone can submit.</p><p>No email addresses or suggestions are being collected by this page.</p></div><button class="sg-button secondary" type="button" disabled>Pilot sign-in — not open yet</button>');return;}
+   if(validOperatorConfig(configuration)&&view!=='board'&&view!=='review'){content('<h2>'+ (view==='mine'?'My submissions':'Submit a suggestion') +'</h2><div class="sg-empty"><h3>Participant intake is closed.</h3><p>Staff can sign in above to verify access to the Review desk. Community submissions and voting will open only after the remaining pilot requirements are completed.</p></div>');return;}
+   if(!profile){content('<h2>Invitation required</h2><p>Use the sign-in section above. Only invited, verified accounts can submit, view their private queue, or vote.</p>');return;}
+   if(view==='submit'){
+    if(profile.role!=='participant'||!pilot.intake_open){content('<h2>Submit a suggestion</h2><div class="sg-empty"><h3>Intake is closed.</h3><p>Invitations, reviewer authorization and the pilot intake phase must be enabled first. No suggestion can be submitted right now.</p></div>');return;}
+    content('<h2>Submit privately</h2><p>Up to two submissions per participant. Check All issues first to avoid duplicates.</p>'+fieldForm());bindSubmission();return;
+   }
+   if(view==='mine'){
+    myRows=await rpc('hllv_my_submissions');if(generation!==epoch||serial!==loadSerial)return;
+    content('<h2>My submissions</h2><p class="sg-muted">This view is private to your account. Publication is never automatic.</p>'+ (myRows.length?myRows.map(s=>`<article class="sg-row"><span class="sg-meta">${escape(stateLabel[s.state]||s.state)} · version ${Number(s.version)}</span><h3>${escape(s.title)}</h3><p>${escape(s.problem)}</p><p>${escape(s.desired_outcome)}</p>${s.submitter_note?`<p><strong>Moderator note:</strong> ${escape(s.submitter_note)}</p>`:''}<div class="sg-actions">${!['withdrawn','duplicate','declined'].includes(s.state)?`<button class="sg-button secondary" data-edit="${escape(s.id)}">Revise</button>${s.owner_accepted_version!==s.version?`<button class="sg-button" data-accept="${escape(s.id)}">Accept this wording</button>`:''}`:''}${s.state!=='withdrawn'?`<button class="sg-button secondary" data-withdraw="${escape(s.id)}">Withdraw</button>`:''}</div></article>`).join(''):'<div class="sg-empty"><h3>No submissions in this account.</h3></div>'));
+    document.querySelectorAll('[data-edit]').forEach(b=>b.onclick=()=>editForm(myRows.find(x=>x.id===b.dataset.edit)));
+    document.querySelectorAll('[data-accept]').forEach(b=>b.onclick=()=>{const s=myRows.find(x=>x.id===b.dataset.accept);guarded(b,()=>rpc('hllv_accept_version',{suggestion:s.id,expected_version:s.version}));});
+    document.querySelectorAll('[data-withdraw]').forEach(b=>b.onclick=()=>{if(window.confirm('Withdraw this suggestion and remove any public entry?'))guarded(b,()=>rpc('hllv_withdraw',{suggestion:b.dataset.withdraw}));});return;
+   }
+   if(view==='review'){
+    if(!['moderator','reviewer'].includes(profile.role))throw new Error('Reviewer access is required.');
+    if(profile.role==='moderator'){mountModeratorInbox(generation,serial);return;}
+    queue=await rpc('hllv_queue');if(generation!==epoch||serial!==loadSerial)return;
+    if(validOperatorConfig(configuration)){content('<h2>Private review desk</h2><p class="sg-muted">Staff access is working. Real submissions stay read-only during setup. Your private practice below is separate and can never publish.</p>'+ (queue.length?queue.map(s=>'<article class="sg-row"><h3>'+escape(s.title)+'</h3><p>'+escape(s.problem)+'</p><p>'+escape(s.desired_outcome)+'</p><p>'+escape(stateLabel[s.state]||s.state)+'</p></article>').join(''):'<div class="sg-empty"><h3>No submissions awaiting review.</h3><p>The community pilot has not opened yet. Your moderator role does not grant developer-review authority.</p></div>'));mountPractice(generation,serial);return;}
+    content('<h2>Private review desk</h2><p class="sg-muted">Moderation does not count as reviewer clearance. Every decision is recorded against the exact version.</p>'+ (profile.role==='moderator'?'<div class="sg-actions"><button class="sg-button secondary" id="sgExport">Prepare anonymized shortlist</button><button class="sg-button" id="sgPublish">Publish selected cleared entries</button></div><div id="sgPacket"></div>':'')+queue.map(s=>`<article class="sg-row"><span class="sg-meta">${escape(s.state)} · wording v${Number(s.version)} · ${s.owner_accepted_version===s.version?'accepted by submitter':'awaiting submitter acceptance'}</span><h3>${escape(s.title)}</h3><p>${escape(s.problem)}</p><p>${escape(s.desired_outcome)}</p>${related(s.related_issue,issues)}<p class="sg-muted">Review decision: ${escape(s.last_decision||'Not recorded')}</p>${profile.role==='moderator'?`<label class="sg-check"><input type="checkbox" data-publish-id="${escape(s.id)}" ${s.last_decision==='cleared'&&s.state==='shortlisted'?'':'disabled'}> Include in publication batch</label><form class="sg-form" data-moderate="${escape(s.id)}"><label>Moderation decision<select name="decision"><option value="needs_information">Needs clarification</option><option value="shortlisted">Shortlist for review</option><option value="declined">Not selected</option><option value="duplicate">Duplicate</option><option value="pending">Return to pending</option></select></label><label>Note to submitter<textarea name="note" maxlength="1000"></textarea></label><label>Duplicate target (only for duplicates)<select name="duplicate_of"><option value="">None</option>${queue.filter(t=>t.id!==s.id).map(t=>`<option value="${escape(t.id)}">${escape(t.title)}</option>`).join('')}</select></label><div class="sg-actions"><button class="sg-button secondary">Save moderation</button><button class="sg-button secondary" type="button" data-rewrite="${escape(s.id)}">Propose revised wording</button></div></form>`:`<form class="sg-form" data-review="${escape(s.id)}"><label>Publication review<select name="decision"><option value="hold">Hold — no publication</option><option value="clarify">Needs clarification</option><option value="cleared">Clear this exact wording for publication</option></select></label><label>Implementation position<select name="implementation">${Object.entries(implementationLabel).map(([k,v])=>`<option value="${k}">${escape(v)}</option>`).join('')}</select></label><label>Optional public response<textarea name="public_response" maxlength="1000"></textarea></label><label>Private review reference (not published)<input name="private_reference" minlength="8" maxlength="1000" required></label><label class="sg-check"><input type="checkbox" required><span>I am authorized for this review. I approve the selected public wording and response for this exact version; this is not engineering verification.</span></label><div class="sg-actions"><button class="sg-button">Record review — does not publish</button></div></form>`}</article>`).join(''));
+    document.querySelectorAll('[data-moderate]').forEach(f=>f.onsubmit=e=>{e.preventDefault();const s=queue.find(x=>x.id===f.dataset.moderate),v=Object.fromEntries(new FormData(f));guarded(e.submitter,()=>rpc('hllv_moderate',{suggestion:s.id,expected_version:s.version,decision:v.decision,note:v.note,duplicate_of:v.duplicate_of||null}));});
+    document.querySelectorAll('[data-rewrite]').forEach(b=>b.onclick=()=>editForm(queue.find(x=>x.id===b.dataset.rewrite)));
+    document.querySelectorAll('[data-review]').forEach(f=>f.onsubmit=e=>{e.preventDefault();const s=queue.find(x=>x.id===f.dataset.review),v=Object.fromEntries(new FormData(f));guarded(e.submitter,()=>rpc('hllv_review',{suggestion:s.id,expected_version:s.version,...v}));});
+    if(profile.role==='moderator'){
+     el('sgPublish').onclick=e=>{const selected=[...document.querySelectorAll('[data-publish-id]:checked')].map(x=>x.dataset.publishId);if(!selected.length){message('Select cleared entries first.',true);return;}if(window.confirm(`Publish ${selected.length} cleared entries and start a seven-day vote?`))guarded(e.currentTarget,()=>rpc('hllv_publish_batch',{suggestions:selected}));};
+     el('sgExport').onclick=()=>{const packet=queue.filter(s=>s.state==='shortlisted').slice(0,5).map((s,n)=>`${n+1}. ${s.title}\nWording version: ${s.version}\nProblem: ${s.problem}\nDesired outcome: ${s.desired_outcome}\nRelated issue: ${s.related_issue||'None'}\nDecision requested: clear for publication / clarify / hold. Not an implementation commitment.`).join('\n\n');el('sgPacket').innerHTML='<p class="sg-muted">Review this text for personal details before copying it to the agreed private channel. Account identifiers and private references are excluded.</p><pre class="sg-export"></pre>';el('sgPacket').querySelector('pre').textContent=packet||'No shortlisted entries.';};
+    }
+   }
+  }catch(err){if(generation===epoch&&serial===loadSerial&&target===view){content('<div class="sg-empty"><h3>This view could not be loaded.</h3><p>Nothing was published or submitted as a result of this error. Retry from the navigation above.</p></div>');message(err.message,true);}}
+ }
+ async function show(currentIssues=[]){issues=currentIssues;const root=el('suggestionBox');if(!root)return;if(initializing)return;
+  if(!initialized){initialized=true;initializing=true;document.querySelectorAll('[data-sg-view]').forEach(b=>b.onclick=()=>{view=b.dataset.sgView;render();});
+   try{const r=await fetch('./suggestions-config.json',{cache:'no-store'});if(!r.ok)throw new Error('Configuration unavailable');configuration=await r.json();if(validReadOnlyConfig(configuration)){client=readOnlyClient(configuration);account();await render();return;}if(!validConfig(configuration)&&!validOperatorConfig(configuration)){message('Pilot setup is not yet open. No submissions are being collected.');closedView();return;}
+    const callback=isAuthCallback(location.hash);
+    const sdk=await import('https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2.105.0/+esm');
+    if(!window.HLLVSession||!window.HLLVPassword)throw new Error('Account module unavailable');
+    persistence=HLLVSession.create();
+    HLLVPassword.markRecovery(new URLSearchParams(location.hash.replace(/^#/,'' )).get('type')==='recovery');
+    client=sdk.createClient(configuration.supabase_url,configuration.publishable_key,{auth:{persistSession:true,storage:persistence.storage,storageKey:persistence.key,detectSessionInUrl:true,flowType:'implicit',autoRefreshToken:true}});
+    persistence.onChange(refreshIdentitySoon);
+    client.auth.onAuthStateChange(event=>{
+     if(event==='PASSWORD_RECOVERY'){HLLVPassword.markRecovery(true);if(!initializing)refreshIdentitySoon();}
+     if(event==='SIGNED_OUT'){epoch++;loadSerial++;profile=null;accountEmail='';myRows=[];queue=[];board=[];view='board';content('<p>Signed out. Private content cleared.</p>');HLLVPassword.status();if(!logoutInProgress)refreshIdentitySoon();}
+    });
+    await loadIdentity();
+    if(callback)history.replaceState(null,'',location.pathname+location.search+'#suggestions');
+    setInterval(async()=>{if(view!=='board'||root.classList.contains('hidden')||document.hidden)return;const generation=epoch;try{const latest=await rpc('hllv_board');if(generation===epoch&&el('sgNewVotes')&&JSON.stringify(latest)!==JSON.stringify(board))el('sgNewVotes').textContent='The board has changed. Refresh to update rankings without moving the entry you are reading.';}catch(_){if(el('sgNewVotes'))el('sgNewVotes').textContent='Live vote refresh is unavailable; displayed counts may be older.';}},60000);
+   }catch(_){message('Pilot configuration or sign-in could not be loaded. Intake remains closed.',true);client=null;window.HLLVPassword?.status({available:false});closedView();}
+   finally{initializing=false;if(isAuthCallback(location.hash))history.replaceState(null,'',location.pathname+location.search+'#suggestions');}
+  }else {account();await render();}
+ }
+ return Object.freeze({show,requestAccount,signOut,validConfig,validOperatorConfig,operatorRead,isAuthCallback,validReadOnlyConfig,readOnlyClient,escape,related,sorted,boardMarkup});
+});

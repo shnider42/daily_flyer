@@ -1,0 +1,10 @@
+{
+  "schema_version": 1,
+  "directory_url": "https://www.hellletloose.com/community",
+  "category": "Team17-listed community affiliate, not a Team17 spokesperson",
+  "content_collection_enabled": false,
+  "channels": [
+    {"name": "SoulSniper", "channel_url": "https://www.youtube.com/@SoulSniperYT", "directory_label": "SoulSniper"},
+    {"name": "Gebatron", "channel_url": "https://www.youtube.com/@GebatronGaming", "directory_label": "Gebatron"}
+  ]
+}
