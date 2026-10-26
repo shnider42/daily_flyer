@@ -1027,429 +1027,429 @@
       ]
     }
   ],
-  "last_success_at": "2026-10-25T12:38:46Z",
+  "last_success_at": "2026-10-26T14:24:37Z",
   "link_checks": {
     "https://steamcommunity.com/app/3079210/discussions/1/562542339336314254/": {
-      "checked_at": "2026-10-25T12:38:46Z",
+      "checked_at": "2026-10-26T14:24:37Z",
       "scope": "accessibility_only",
       "http_status": 200,
       "final_url": "https://steamcommunity.com/app/3079210/discussions/1/562542339336314254/",
       "title": "VOIP Volume Sliders :: Hell Let Loose: Vietnam Report a Problem"
     },
     "https://steamcommunity.com/app/3079210/discussions/1/583932755647170244/": {
-      "checked_at": "2026-10-25T12:38:46Z",
+      "checked_at": "2026-10-26T14:24:37Z",
       "scope": "accessibility_only",
       "http_status": 200,
       "final_url": "https://steamcommunity.com/app/3079210/discussions/1/583932755647170244/",
       "title": "\"Ghost boats\" appearing that cant be spawned into or killed :: Hell Let Loose: Vietnam Report a Problem"
     },
     "https://steamcommunity.com/app/3079210/discussions/1/583932755647178248/": {
-      "checked_at": "2026-10-25T12:38:46Z",
+      "checked_at": "2026-10-26T14:24:37Z",
       "scope": "accessibility_only",
       "http_status": 200,
       "final_url": "https://steamcommunity.com/app/3079210/discussions/1/583932755647178248/",
       "title": "tutorial bugs :: Hell Let Loose: Vietnam Report a Problem"
     },
     "https://steamcommunity.com/app/3079210/discussions/1/583932755647220221/": {
-      "checked_at": "2026-10-25T12:38:46Z",
+      "checked_at": "2026-10-26T14:24:37Z",
       "scope": "accessibility_only",
       "http_status": 200,
       "final_url": "https://steamcommunity.com/app/3079210/discussions/1/583932755647220221/",
       "title": "Issue with Keyboard inputs on Helicopters :: Hell Let Loose: Vietnam Report a Problem"
     },
     "https://steamcommunity.com/app/3079210/discussions/1/583932755647245596/": {
-      "checked_at": "2026-10-25T12:38:46Z",
+      "checked_at": "2026-10-26T14:24:37Z",
       "scope": "accessibility_only",
       "http_status": 200,
       "final_url": "https://steamcommunity.com/app/3079210/discussions/1/583932755647245596/",
       "title": "Reload of Boat Guns Bugged :: Hell Let Loose: Vietnam Report a Problem"
     },
     "https://steamcommunity.com/app/3079210/discussions/1/583932755647329810/": {
-      "checked_at": "2026-10-25T12:38:46Z",
+      "checked_at": "2026-10-26T14:24:37Z",
       "scope": "accessibility_only",
       "http_status": 200,
       "final_url": "https://steamcommunity.com/app/3079210/discussions/1/583932755647329810/",
       "title": "Fix the Audio PLEASEEEEEEEE :: Hell Let Loose: Vietnam Report a Problem"
     },
     "https://steamcommunity.com/app/3079210/discussions/1/590687230526328326/": {
-      "checked_at": "2026-10-25T12:38:46Z",
+      "checked_at": "2026-10-26T14:24:37Z",
       "scope": "accessibility_only",
       "http_status": 200,
       "final_url": "https://steamcommunity.com/app/3079210/discussions/1/590687230526328326/",
       "title": "Key binding failure for pilot control :: Hell Let Loose: Vietnam Report a Problem"
     },
     "https://steamcommunity.com/app/3079210/discussions/1/590687230526492958/": {
-      "checked_at": "2026-10-25T12:38:46Z",
+      "checked_at": "2026-10-26T14:24:37Z",
       "scope": "accessibility_only",
       "http_status": 200,
       "final_url": "https://steamcommunity.com/app/3079210/discussions/1/590687230526492958/",
       "title": "Voice chat not working after update :: Hell Let Loose: Vietnam Report a Problem"
     },
     "https://steamcommunity.com/app/3079210/discussions/1/590691034935221629/": {
-      "checked_at": "2026-10-25T12:38:46Z",
+      "checked_at": "2026-10-26T14:24:37Z",
       "scope": "accessibility_only",
       "http_status": 200,
       "final_url": "https://steamcommunity.com/app/3079210/discussions/1/590691034935221629/",
       "title": "suppression causes game to freeze :: Hell Let Loose: Vietnam Report a Problem"
     },
     "https://steamcommunity.com/app/3079210/discussions/1/590691034935260366/": {
-      "checked_at": "2026-10-25T12:38:46Z",
+      "checked_at": "2026-10-26T14:24:37Z",
       "scope": "accessibility_only",
       "http_status": 200,
       "final_url": "https://steamcommunity.com/app/3079210/discussions/1/590691034935260366/",
       "title": "Impossible to save tutorial progress :: Hell Let Loose: Vietnam Report a Problem"
     },
     "https://steamcommunity.com/app/3079210/discussions/1/590691034935303773/": {
-      "checked_at": "2026-10-25T12:38:46Z",
+      "checked_at": "2026-10-26T14:24:37Z",
       "scope": "accessibility_only",
       "http_status": 200,
       "final_url": "https://steamcommunity.com/app/3079210/discussions/1/590691034935303773/",
       "title": "Tunnel icons not appearing resulting in unable to use tunnels :: Hell Let Loose: Vietnam Report a Problem"
     },
     "https://steamcommunity.com/app/3079210/discussions/1/590691034935311372/": {
-      "checked_at": "2026-10-25T12:38:46Z",
+      "checked_at": "2026-10-26T14:24:37Z",
       "scope": "accessibility_only",
       "http_status": 200,
       "final_url": "https://steamcommunity.com/app/3079210/discussions/1/590691034935311372/",
       "title": "STILL spawning in locked areas :: Hell Let Loose: Vietnam Report a Problem"
     },
     "https://steamcommunity.com/app/3079210/discussions/1/590691034935315590/": {
-      "checked_at": "2026-10-25T12:38:46Z",
+      "checked_at": "2026-10-26T14:24:37Z",
       "scope": "accessibility_only",
       "http_status": 200,
       "final_url": "https://steamcommunity.com/app/3079210/discussions/1/590691034935315590/",
       "title": "boat engine interaction stuttering :: Hell Let Loose: Vietnam Report a Problem"
     },
     "https://steamcommunity.com/app/3079210/discussions/1/631219091886191710/": {
-      "checked_at": "2026-10-25T12:38:46Z",
+      "checked_at": "2026-10-26T14:24:37Z",
       "scope": "accessibility_only",
       "http_status": 200,
       "final_url": "https://steamcommunity.com/app/3079210/discussions/1/631219091886191710/",
       "title": "White flash/Flicker :: Hell Let Loose: Vietnam Report a Problem"
     },
     "https://steamcommunity.com/app/3079210/discussions/1/631219091886213685/": {
-      "checked_at": "2026-10-25T12:38:46Z",
+      "checked_at": "2026-10-26T14:24:37Z",
       "scope": "accessibility_only",
       "http_status": 200,
       "final_url": "https://steamcommunity.com/app/3079210/discussions/1/631219091886213685/",
       "title": "Cannot shoot between fence boards or between chair or table legs :: Hell Let Loose: Vietnam Report a Problem"
     },
     "https://steamcommunity.com/app/3079210/discussions/1/631219394426598831/": {
-      "checked_at": "2026-10-25T12:38:46Z",
+      "checked_at": "2026-10-26T14:24:37Z",
       "scope": "accessibility_only",
       "http_status": 200,
       "final_url": "https://steamcommunity.com/app/3079210/discussions/1/631219394426598831/",
       "title": "Server side crashes :: Hell Let Loose: Vietnam Report a Problem"
     },
     "https://steamcommunity.com/app/3079210/discussions/1/663863457493431808/": {
-      "checked_at": "2026-10-25T12:38:46Z",
+      "checked_at": "2026-10-26T14:24:37Z",
       "scope": "accessibility_only",
       "http_status": 200,
       "final_url": "https://steamcommunity.com/app/3079210/discussions/1/663863457493431808/",
       "title": "game freezes when getting shot :: Hell Let Loose: Vietnam Report a Problem"
     },
     "https://steamcommunity.com/games/3079210/announcements/detail/684139458559214482": {
-      "checked_at": "2026-10-25T12:38:46Z",
+      "checked_at": "2026-10-26T14:24:37Z",
       "scope": "accessibility_only",
       "http_status": 200,
       "final_url": "https://steamcommunity.com/games/3079210/announcements/detail/684139458559214482",
       "title": "Steam :: Hell Let Loose: Vietnam :: Hotfix 1.5.1 | Live Now"
     },
     "https://steamcommunity.com/gid/103582791475269461/announcements/detail/676259427855107286": {
-      "checked_at": "2026-10-25T12:38:46Z",
+      "checked_at": "2026-10-26T14:24:37Z",
       "scope": "accessibility_only",
       "http_status": 200,
       "final_url": "https://steamcommunity.com/games/3079210/announcements/detail/676259427855107286",
       "title": "Steam :: Hell Let Loose: Vietnam :: Update 1.5 & Patch 1.6 | Dev Update VLOG | Command Post"
     },
     "https://www.hellletloose.com/blog/5-before-launch": {
-      "checked_at": "2026-10-25T12:38:46Z",
+      "checked_at": "2026-10-26T14:24:37Z",
       "scope": "accessibility_only",
       "http_status": 200,
       "final_url": "https://www.hellletloose.com/blog/5-before-launch",
       "title": "Blog - Known Issues, Launch Time & More | Hell Let Loose: Vietnam | Hell Let Loose"
     },
     "https://www.hellletloose.com/blog/community-update-1": {
-      "checked_at": "2026-10-25T12:38:46Z",
+      "checked_at": "2026-10-26T14:24:37Z",
       "scope": "accessibility_only",
       "http_status": 200,
       "final_url": "https://www.hellletloose.com/blog/community-update-1",
       "title": "Blog - Community Update #1 | Command Post | Hell Let Loose: Vietnam | Hell Let Loose"
     },
     "https://www.hellletloose.com/blog/community-update-2": {
-      "checked_at": "2026-10-25T12:38:46Z",
+      "checked_at": "2026-10-26T14:24:37Z",
       "scope": "accessibility_only",
       "http_status": 200,
       "final_url": "https://www.hellletloose.com/blog/community-update-2",
       "title": "Blog - Community Update #2 | Command Post | Hell Let Loose: Vietnam | Hell Let Loose"
     },
     "https://www.hellletloose.com/blog/community-update-3": {
-      "checked_at": "2026-10-25T12:38:46Z",
+      "checked_at": "2026-10-26T14:24:37Z",
       "scope": "accessibility_only",
       "http_status": 200,
       "final_url": "https://www.hellletloose.com/blog/community-update-3",
       "title": "Blog - Community Feedback #3 | Command Post | Hell Let Loose: Vietnam | Hell Let Loose"
     },
     "https://www.hellletloose.com/blog/community-update-4": {
-      "checked_at": "2026-10-25T12:38:46Z",
+      "checked_at": "2026-10-26T14:24:37Z",
       "scope": "accessibility_only",
       "http_status": 200,
       "final_url": "https://www.hellletloose.com/blog/community-update-4",
       "title": "Blog - Community Feedback #4 | Command Post | Hell Let Loose: Vietnam | Hell Let Loose"
     },
     "https://www.hellletloose.com/blog/community-update-5": {
-      "checked_at": "2026-10-25T12:38:46Z",
+      "checked_at": "2026-10-26T14:24:37Z",
       "scope": "accessibility_only",
       "http_status": 200,
       "final_url": "https://www.hellletloose.com/blog/community-update-5",
       "title": "Blog - Community Feedback #5 | Command Post | Hell Let Loose"
     },
     "https://www.hellletloose.com/blog/community-update-6": {
-      "checked_at": "2026-10-25T12:38:46Z",
+      "checked_at": "2026-10-26T14:24:37Z",
       "scope": "accessibility_only",
       "http_status": 200,
       "final_url": "https://www.hellletloose.com/blog/community-update-6",
       "title": "Blog - Community Feedback #6 | Command Post | Hell Let Loose"
     },
     "https://www.hellletloose.com/blog/community-update-7": {
-      "checked_at": "2026-10-25T12:38:46Z",
+      "checked_at": "2026-10-26T14:24:37Z",
       "scope": "accessibility_only",
       "http_status": 200,
       "final_url": "https://www.hellletloose.com/blog/community-update-7",
       "title": "Blog - Community Feedback #7 | Command Post | Hell Let Loose"
     },
     "https://www.hellletloose.com/blog/hllv-hotfix-1-4-2": {
-      "checked_at": "2026-10-25T12:38:46Z",
+      "checked_at": "2026-10-26T14:24:37Z",
       "scope": "accessibility_only",
       "http_status": 200,
       "final_url": "https://www.hellletloose.com/blog/hllv-hotfix-1-4-2",
       "title": "Blog - Hotfix 1.4.2 | Live Now | Hell Let Loose: Vietnam | Hell Let Loose"
     },
     "https://www.hellletloose.com/blog/hllv-hotfix-1-5-2": {
-      "checked_at": "2026-10-25T12:38:46Z",
+      "checked_at": "2026-10-26T14:24:37Z",
       "scope": "accessibility_only",
       "http_status": 200,
       "final_url": "https://www.hellletloose.com/blog/hllv-hotfix-1-5-2",
       "title": "Blog - Hotfix 1.5.2 | Hell Let Loose: Vietnam | Hell Let Loose"
     },
     "https://www.hellletloose.com/blog/hllv-patch-1-2": {
-      "checked_at": "2026-10-25T12:38:46Z",
+      "checked_at": "2026-10-26T14:24:37Z",
       "scope": "accessibility_only",
       "http_status": 200,
       "final_url": "https://www.hellletloose.com/blog/hllv-patch-1-2",
       "title": "Blog - Patch 1.2 | Full Changelog | Hell Let Loose: Vietnam | Hell Let Loose"
     },
     "https://www.hellletloose.com/blog/hllv-patch-1-3": {
-      "checked_at": "2026-10-25T12:38:46Z",
+      "checked_at": "2026-10-26T14:24:37Z",
       "scope": "accessibility_only",
       "http_status": 200,
       "final_url": "https://www.hellletloose.com/blog/hllv-patch-1-3",
       "title": "Blog - Patch 1.3 | Full Changelog | Hell Let Loose: Vietnam | Hell Let Loose"
     },
     "https://www.hellletloose.com/blog/hllv-patch-1-4": {
-      "checked_at": "2026-10-25T12:38:46Z",
+      "checked_at": "2026-10-26T14:24:37Z",
       "scope": "accessibility_only",
       "http_status": 200,
       "final_url": "https://www.hellletloose.com/blog/hllv-patch-1-4",
       "title": "Blog - Patch 1.4 | Full Changelog | Hell Let Loose: Vietnam | Hell Let Loose"
     },
     "https://www.hellletloose.com/blog/hllv-patch-1-6": {
-      "checked_at": "2026-10-25T12:38:46Z",
+      "checked_at": "2026-10-26T14:24:37Z",
       "scope": "accessibility_only",
       "http_status": 200,
       "final_url": "https://www.hellletloose.com/blog/hllv-patch-1-6",
       "title": "Blog - Patch 1.6 | Hell Let Loose: Vietnam | Hell Let Loose"
     },
     "https://www.hellletloose.com/blog/hllv-update-1-5": {
-      "checked_at": "2026-10-25T12:38:46Z",
+      "checked_at": "2026-10-26T14:24:37Z",
       "scope": "accessibility_only",
       "http_status": 200,
       "final_url": "https://www.hellletloose.com/blog/hllv-update-1-5",
       "title": "Blog - Update 1.5 | Full Changelog | Hell Let Loose: Vietnam | Hell Let Loose"
     },
     "https://www.reddit.com/r/HellLetLooseVietnam/comments/1vxeovn/developer_ama_1_hell_let_loose_vietnam_reddit/": {
-      "checked_at": "2026-10-25T12:38:46Z",
+      "checked_at": "2026-10-26T14:24:37Z",
       "scope": "accessibility_only",
       "http_status": 403,
       "error": "HTTP 403"
     },
     "https://steamcommunity.com/app/3079210/discussions/1/570426104667474361/?ctp=1#c570426104667499540": {
-      "checked_at": "2026-10-25T12:38:46Z",
+      "checked_at": "2026-10-26T14:24:37Z",
       "scope": "accessibility_only",
       "http_status": 200,
       "final_url": "https://steamcommunity.com/app/3079210/discussions/1/570426104667474361/?ctp=1#c570426104667499540",
       "title": "map visual bug post 1.6 :: Hell Let Loose: Vietnam Report a Problem"
     },
     "https://steamcommunity.com/app/3079210/discussions/1/583933098654289260/?ctp=1#c590691669350842074": {
-      "checked_at": "2026-10-25T12:38:46Z",
+      "checked_at": "2026-10-26T14:24:37Z",
       "scope": "accessibility_only",
       "http_status": 200,
       "final_url": "https://steamcommunity.com/app/3079210/discussions/1/583933098654289260/?ctp=1#c590691669350842074",
       "title": "Voice chat isn't working; it doesn't even let me communicate with my teammates, and they can't communicate with me either. :: Hell Let Loose: Vietnam Report a Problem"
     },
     "https://steamcommunity.com/app/3079210/discussions/1/590691034935093998/?ctp=1#c590691669351052539": {
-      "checked_at": "2026-10-25T12:38:46Z",
+      "checked_at": "2026-10-26T14:24:37Z",
       "scope": "accessibility_only",
       "http_status": 200,
       "final_url": "https://steamcommunity.com/app/3079210/discussions/1/590691034935093998/?ctp=1#c590691669351052539",
       "title": "VOIP: Reducing the sound via the sliders has almost no impact :: Hell Let Loose: Vietnam Report a Problem"
     },
     "https://steamcommunity.com/app/3079210/discussions/1/590691034935311372/?ctp=1#c590691669350877769": {
-      "checked_at": "2026-10-25T12:38:46Z",
+      "checked_at": "2026-10-26T14:24:37Z",
       "scope": "accessibility_only",
       "http_status": 200,
       "final_url": "https://steamcommunity.com/app/3079210/discussions/1/590691034935311372/?ctp=1#c590691669350877769",
       "title": "STILL spawning in locked areas :: Hell Let Loose: Vietnam Report a Problem"
     },
     "https://steamcommunity.com/app/3079210/discussions/1/590691034935315590/?ctp=1#c590691400522348898": {
-      "checked_at": "2026-10-25T12:38:46Z",
+      "checked_at": "2026-10-26T14:24:37Z",
       "scope": "accessibility_only",
       "http_status": 200,
       "final_url": "https://steamcommunity.com/app/3079210/discussions/1/590691034935315590/?ctp=1#c590691400522348898",
       "title": "boat engine interaction stuttering :: Hell Let Loose: Vietnam Report a Problem"
     },
     "https://steamcommunity.com/app/3079210/discussions/1/590691304693880018/?ctp=1#c590691669351029564": {
-      "checked_at": "2026-10-25T12:38:46Z",
+      "checked_at": "2026-10-26T14:24:37Z",
       "scope": "accessibility_only",
       "http_status": 200,
       "final_url": "https://steamcommunity.com/app/3079210/discussions/1/590691304693880018/?ctp=1#c590691669351029564",
       "title": "Texture streaming issue: Low-res/muddy bush textures on certain maps :: Hell Let Loose: Vietnam Report a Problem"
     },
     "https://steamcommunity.com/app/3079210/discussions/1/590691400522301692/?ctp=1#c590691669351029530": {
-      "checked_at": "2026-10-25T12:38:46Z",
+      "checked_at": "2026-10-26T14:24:37Z",
       "scope": "accessibility_only",
       "http_status": 200,
       "final_url": "https://steamcommunity.com/app/3079210/discussions/1/590691400522301692/?ctp=1#c590691669351029530",
       "title": "m72 sights :: Hell Let Loose: Vietnam Report a Problem"
     },
     "https://steamcommunity.com/app/3079210/discussions/1/590691669350862712/?ctp=1#c590691669350878072": {
-      "checked_at": "2026-10-25T12:38:46Z",
+      "checked_at": "2026-10-26T14:24:37Z",
       "scope": "accessibility_only",
       "http_status": 200,
       "final_url": "https://steamcommunity.com/app/3079210/discussions/1/590691669350862712/?ctp=1#c590691669350878072",
       "title": "Failed to load user's save data.Please try again :: Hell Let Loose: Vietnam Report a Problem"
     },
     "https://steamcommunity.com/app/3079210/discussions/1/590691669350862712/?ctp=1#c590691669350947030": {
-      "checked_at": "2026-10-25T12:38:46Z",
+      "checked_at": "2026-10-26T14:24:37Z",
       "scope": "accessibility_only",
       "http_status": 200,
       "final_url": "https://steamcommunity.com/app/3079210/discussions/1/590691669350862712/?ctp=1#c590691669350947030",
       "title": "Failed to load user's save data.Please try again :: Hell Let Loose: Vietnam Report a Problem"
     },
     "https://steamcommunity.com/app/3079210/discussions/1/590691669350999190/?ctp=1#c590691669351030273": {
-      "checked_at": "2026-10-25T12:38:46Z",
+      "checked_at": "2026-10-26T14:24:37Z",
       "scope": "accessibility_only",
       "http_status": 200,
       "final_url": "https://steamcommunity.com/app/3079210/discussions/1/590691669350999190/?ctp=1#c590691669351030273",
       "title": "destroying garrison with flames or explosives grants no points :: Hell Let Loose: Vietnam Report a Problem"
     },
     "https://steamcommunity.com/app/3079210/discussions/1/590691913363910117/?ctp=1#c590691913363960853": {
-      "checked_at": "2026-10-25T12:38:46Z",
+      "checked_at": "2026-10-26T14:24:37Z",
       "scope": "accessibility_only",
       "http_status": 200,
       "final_url": "https://steamcommunity.com/app/3079210/discussions/1/590691913363910117/?ctp=1#c590691913363960853",
       "title": "DLSS option missing after patch 1.6 :: Hell Let Loose: Vietnam Report a Problem"
     },
     "https://steamcommunity.com/app/3079210/discussions/1/590691913363920015/?ctp=1#c570426339809609829": {
-      "checked_at": "2026-10-25T12:38:46Z",
+      "checked_at": "2026-10-26T14:24:37Z",
       "scope": "accessibility_only",
       "http_status": 200,
       "final_url": "https://steamcommunity.com/app/3079210/discussions/1/",
       "title": "Hell Let Loose: Vietnam Report a Problem :: Steam Community"
     },
     "https://steamcommunity.com/app/3079210/discussions/1/590691913363920015/?ctp=1#c590691913363951171": {
-      "checked_at": "2026-10-25T12:38:46Z",
+      "checked_at": "2026-10-26T14:24:37Z",
       "scope": "accessibility_only",
       "http_status": 200,
       "final_url": "https://steamcommunity.com/app/3079210/discussions/1/",
       "title": "Hell Let Loose: Vietnam Report a Problem :: Steam Community"
     },
     "https://steamcommunity.com/app/3079210/discussions/1/590691913363920364/?ctp=1#c590691913363952096": {
-      "checked_at": "2026-10-25T12:38:46Z",
+      "checked_at": "2026-10-26T14:24:37Z",
       "scope": "accessibility_only",
       "http_status": 200,
       "final_url": "https://steamcommunity.com/app/3079210/discussions/1/590691913363920364/?ctp=1#c590691913363952096",
       "title": "Weapon \"Prep\" animations dont match the actual \"Prep\" time :: Hell Let Loose: Vietnam Report a Problem"
     },
     "https://steamcommunity.com/app/3079210/discussions/1/590691913364033969/?ctp=1#c590691913364060219": {
-      "checked_at": "2026-10-25T12:38:46Z",
+      "checked_at": "2026-10-26T14:24:37Z",
       "scope": "accessibility_only",
       "http_status": 200,
       "final_url": "https://steamcommunity.com/app/3079210/discussions/1/590691913364033969/?ctp=1#c590691913364060219",
       "title": "HOW MANY TIMES DO I HAVE TO PLAY THE ♥♥♥♥♥♥♥ TUTORIAL!!!!!!!!!!!!!!!!!!!!! :: Hell Let Loose: Vietnam Report a Problem"
     },
     "https://steamcommunity.com/app/3079210/discussions/1/590691913364102885/?ctp=1#c590691913364103178": {
-      "checked_at": "2026-10-25T12:38:46Z",
+      "checked_at": "2026-10-26T14:24:37Z",
       "scope": "accessibility_only",
       "http_status": 200,
       "final_url": "https://steamcommunity.com/app/3079210/discussions/1/590691913364102885/?ctp=1#c590691913364103178",
       "title": "Error window appear :: Hell Let Loose: Vietnam Report a Problem"
     },
     "https://steamcommunity.com/app/3079210/discussions/1/590691913364123471/?ctp=1#c590692129307648713": {
-      "checked_at": "2026-10-25T12:38:46Z",
+      "checked_at": "2026-10-26T14:24:37Z",
       "scope": "accessibility_only",
       "http_status": 200,
       "final_url": "https://steamcommunity.com/app/3079210/discussions/1/590691913364123471/?ctp=1#c590692129307648713",
       "title": "Sound Problems since the last update :: Hell Let Loose: Vietnam Report a Problem"
     },
     "https://steamcommunity.com/app/3079210/discussions/1/590692129307668829/?ctp=1#c590692129307643129": {
-      "checked_at": "2026-10-25T12:38:46Z",
+      "checked_at": "2026-10-26T14:24:37Z",
       "scope": "accessibility_only",
       "http_status": 200,
       "final_url": "https://steamcommunity.com/app/3079210/discussions/1/590692129307668829/?ctp=1#c590692129307643129",
       "title": "fps changes :: Hell Let Loose: Vietnam Report a Problem"
     },
     "https://steamcommunity.com/app/3079210/discussions/1/591816302688109179/?ctp=2#c590692129307778259": {
-      "checked_at": "2026-10-25T12:38:46Z",
+      "checked_at": "2026-10-26T14:24:37Z",
       "scope": "accessibility_only",
       "http_status": 200,
       "final_url": "https://steamcommunity.com/app/3079210/discussions/1/591816302688109179/?ctp=2#c590692129307778259",
       "title": "AMD crashes unacceptable. :: Hell Let Loose: Vietnam Report a Problem"
     },
     "https://steamcommunity.com/app/3079210/discussions/1/631219091886093496/?ctp=2#c590691669350841712": {
-      "checked_at": "2026-10-25T12:38:46Z",
+      "checked_at": "2026-10-26T14:24:37Z",
       "scope": "accessibility_only",
       "http_status": 200,
       "final_url": "https://steamcommunity.com/app/3079210/discussions/1/631219091886093496/?ctp=2#c590691669350841712",
       "title": "\"failed to load user data please try again\" :: Hell Let Loose: Vietnam Report a Problem"
     },
     "https://www.hellletloose.com/blog/community-update-8": {
-      "checked_at": "2026-10-25T12:38:46Z",
+      "checked_at": "2026-10-26T14:24:37Z",
       "scope": "accessibility_only",
       "http_status": 200,
       "final_url": "https://www.hellletloose.com/blog/community-update-8",
       "title": "Blog - Community Feedback #8 | Command Post | Hell Let Loose: Vietnam | Hell Let Loose"
     },
     "https://steamcommunity.com/app/3079210/discussions/1/570426104667569900/?ctp=1#c570426530135644652": {
-      "checked_at": "2026-10-25T12:38:46Z",
+      "checked_at": "2026-10-26T14:24:37Z",
       "scope": "accessibility_only",
       "http_status": 200,
       "final_url": "https://steamcommunity.com/app/3079210/discussions/1/570426104667569900/?ctp=1#c570426530135644652",
       "title": "Suggestions on QOL improvements. :: Hell Let Loose: Vietnam Report a Problem"
     },
     "https://steamcommunity.com/app/3079210/discussions/1/590691913364082100/?ctp=1#c590691913364082220": {
-      "checked_at": "2026-10-25T12:38:46Z",
+      "checked_at": "2026-10-26T14:24:37Z",
       "scope": "accessibility_only",
       "http_status": 200,
       "final_url": "https://steamcommunity.com/app/3079210/discussions/1/590691913364082100/?ctp=1#c590691913364082220",
       "title": "Tutorial Bug :: Hell Let Loose: Vietnam Report a Problem"
     },
     "https://steamcommunity.com/app/3079210/discussions/1/590691913364082327/?ctp=1#c590691913364102698": {
-      "checked_at": "2026-10-25T12:38:46Z",
+      "checked_at": "2026-10-26T14:24:37Z",
       "scope": "accessibility_only",
       "http_status": 200,
       "final_url": "https://steamcommunity.com/app/3079210/discussions/1/590691913364082327/?ctp=1#c590691913364102698",
       "title": "foliage looks TERRIBLE. :: Hell Let Loose: Vietnam Report a Problem"
     },
     "https://steamcommunity.com/games/3079210/announcements/detail/675134795999609522": {
-      "checked_at": "2026-10-25T12:38:46Z",
+      "checked_at": "2026-10-26T14:24:37Z",
       "scope": "accessibility_only",
       "http_status": 200,
       "final_url": "https://steamcommunity.com/games/3079210/announcements/detail/675134795999609522",
       "title": "Steam :: Hell Let Loose: Vietnam :: Patch 1.7 | Full Changelog | Now Live!"
     }
   },
-  "last_attempt_at": "2026-10-25T12:38:46Z",
+  "last_attempt_at": "2026-10-26T14:24:37Z",
   "schedule": "Nightly around 03:23 America/New_York",
   "source": "Steam official publisher announcements for app 3079210",
   "state": "ok",
@@ -1465,7 +1465,7 @@
     "discovery_enabled": true,
     "affiliate_channels_enabled": false,
     "state": "partial",
-    "last_attempt_at": "2026-10-25T12:38:46Z",
+    "last_attempt_at": "2026-10-26T14:24:37Z",
     "last_complete_at": "2026-10-20T12:48:26Z",
     "threads_total": 36,
     "threads_complete": 35,
@@ -1486,8 +1486,8 @@
         "pages_expected": 1,
         "comments_seen": 12,
         "comments_expected": 12,
-        "last_attempt_at": "2026-10-25T12:38:46Z",
-        "last_complete_at": "2026-10-25T12:38:46Z",
+        "last_attempt_at": "2026-10-26T14:24:37Z",
+        "last_complete_at": "2026-10-26T14:24:37Z",
         "baseline_at": "2026-10-15T14:09:31Z",
         "replies": [
           {
@@ -1500,9 +1500,9 @@
             "published_at": "2026-10-23T15:44:42Z",
             "source_edited_at": null,
             "content_sha256": "d13555e38cfacc8fcf75f4304369e7864c179de1b01a975823f60f8d2cdab66a",
-            "authority_checked_at": "2026-10-25T12:38:46Z",
+            "authority_checked_at": "2026-10-26T14:24:37Z",
             "first_seen_at": "2026-10-24T12:05:47Z",
-            "last_seen_at": "2026-10-25T12:38:46Z",
+            "last_seen_at": "2026-10-26T14:24:37Z",
             "last_changed_at": "2026-10-24T12:05:47Z",
             "change_kind": "new_reply",
             "previous_hashes": [],
@@ -1519,9 +1519,9 @@
             "published_at": "2026-10-07T16:50:10Z",
             "source_edited_at": "2026-10-07T16:56:30Z",
             "content_sha256": "e3796b377fa6245e440dbe2805fadd29353abb27c282cf373dfe87295e22cdc5",
-            "authority_checked_at": "2026-10-25T12:38:46Z",
+            "authority_checked_at": "2026-10-26T14:24:37Z",
             "first_seen_at": "2026-10-15T14:09:31Z",
-            "last_seen_at": "2026-10-25T12:38:46Z",
+            "last_seen_at": "2026-10-26T14:24:37Z",
             "last_changed_at": "2026-10-15T14:09:31Z",
             "change_kind": "baseline",
             "previous_hashes": [],
@@ -1542,9 +1542,9 @@
             "published_at": "2026-09-23T08:24:09Z",
             "source_edited_at": null,
             "content_sha256": "2edcc7a7097b9be029957dac12273103a86766a96be50efeb6b896b99d57418d",
-            "authority_checked_at": "2026-10-25T12:38:46Z",
+            "authority_checked_at": "2026-10-26T14:24:37Z",
             "first_seen_at": "2026-10-15T14:09:31Z",
-            "last_seen_at": "2026-10-25T12:38:46Z",
+            "last_seen_at": "2026-10-26T14:24:37Z",
             "last_changed_at": "2026-10-15T14:09:31Z",
             "change_kind": "baseline",
             "previous_hashes": [],
@@ -1560,9 +1560,9 @@
             "published_at": "2026-09-18T15:07:40Z",
             "source_edited_at": null,
             "content_sha256": "4259afbdcaa21529afd5c30b7cc1352c98c134cb72bb9fa885602bffb47a09ca",
-            "authority_checked_at": "2026-10-25T12:38:46Z",
+            "authority_checked_at": "2026-10-26T14:24:37Z",
             "first_seen_at": "2026-10-15T14:09:31Z",
-            "last_seen_at": "2026-10-25T12:38:46Z",
+            "last_seen_at": "2026-10-26T14:24:37Z",
             "last_changed_at": "2026-10-15T14:09:31Z",
             "change_kind": "baseline",
             "previous_hashes": [],
@@ -1584,8 +1584,8 @@
         "pages_expected": 1,
         "comments_seen": 1,
         "comments_expected": 1,
-        "last_attempt_at": "2026-10-25T12:38:46Z",
-        "last_complete_at": "2026-10-25T12:38:46Z",
+        "last_attempt_at": "2026-10-26T14:24:37Z",
+        "last_complete_at": "2026-10-26T14:24:37Z",
         "baseline_at": "2026-10-17T11:41:12Z",
         "replies": [
           {
@@ -1598,9 +1598,9 @@
             "published_at": "2026-10-14T15:16:50Z",
             "source_edited_at": null,
             "content_sha256": "121185956f5d038e0ac3737324e6bbea80cf3f74f86afebf161525c74adb9e1d",
-            "authority_checked_at": "2026-10-25T12:38:46Z",
+            "authority_checked_at": "2026-10-26T14:24:37Z",
             "first_seen_at": "2026-10-17T11:41:12Z",
-            "last_seen_at": "2026-10-25T12:38:46Z",
+            "last_seen_at": "2026-10-26T14:24:37Z",
             "last_changed_at": "2026-10-17T11:41:12Z",
             "change_kind": "baseline",
             "previous_hashes": [],
@@ -1623,8 +1623,8 @@
         "pages_expected": 1,
         "comments_seen": 1,
         "comments_expected": 1,
-        "last_attempt_at": "2026-10-25T12:38:46Z",
-        "last_complete_at": "2026-10-25T12:38:46Z",
+        "last_attempt_at": "2026-10-26T14:24:37Z",
+        "last_complete_at": "2026-10-26T14:24:37Z",
         "baseline_at": "2026-10-21T13:01:30Z",
         "replies": [
           {
@@ -1637,9 +1637,9 @@
             "published_at": "2026-10-19T13:32:53Z",
             "source_edited_at": null,
             "content_sha256": "db3a4a66c8f2ea4bf537185b70d85369e770b94163c08c297e721cdcc8ff8d89",
-            "authority_checked_at": "2026-10-25T12:38:46Z",
+            "authority_checked_at": "2026-10-26T14:24:37Z",
             "first_seen_at": "2026-10-21T13:01:30Z",
-            "last_seen_at": "2026-10-25T12:38:46Z",
+            "last_seen_at": "2026-10-26T14:24:37Z",
             "last_changed_at": "2026-10-21T13:01:30Z",
             "change_kind": "baseline",
             "previous_hashes": [],
@@ -1662,8 +1662,8 @@
         "pages_expected": 1,
         "comments_seen": 6,
         "comments_expected": 6,
-        "last_attempt_at": "2026-10-25T12:38:46Z",
-        "last_complete_at": "2026-10-25T12:38:46Z",
+        "last_attempt_at": "2026-10-26T14:24:37Z",
+        "last_complete_at": "2026-10-26T14:24:37Z",
         "baseline_at": "2026-10-15T14:09:31Z",
         "replies": [
           {
@@ -1676,9 +1676,9 @@
             "published_at": "2026-08-29T20:20:07Z",
             "source_edited_at": null,
             "content_sha256": "5e53a36328d676a4c073b68a99918b65c22af71d4a1de0033e00c9502f491bc3",
-            "authority_checked_at": "2026-10-25T12:38:46Z",
+            "authority_checked_at": "2026-10-26T14:24:37Z",
             "first_seen_at": "2026-10-15T14:09:31Z",
-            "last_seen_at": "2026-10-25T12:38:46Z",
+            "last_seen_at": "2026-10-26T14:24:37Z",
             "last_changed_at": "2026-10-15T14:09:31Z",
             "change_kind": "baseline",
             "previous_hashes": [],
@@ -1695,9 +1695,9 @@
             "published_at": "2026-08-29T16:57:12Z",
             "source_edited_at": null,
             "content_sha256": "b4a76d424173bf70509dbc5b61344e719b7f82a4cfc6a2b5910c53da650661d5",
-            "authority_checked_at": "2026-10-25T12:38:46Z",
+            "authority_checked_at": "2026-10-26T14:24:37Z",
             "first_seen_at": "2026-10-15T14:09:31Z",
-            "last_seen_at": "2026-10-25T12:38:46Z",
+            "last_seen_at": "2026-10-26T14:24:37Z",
             "last_changed_at": "2026-10-15T14:09:31Z",
             "change_kind": "baseline",
             "previous_hashes": [],
@@ -1713,9 +1713,9 @@
             "published_at": "2026-08-29T15:29:26Z",
             "source_edited_at": null,
             "content_sha256": "fc244fed625e3e7e3dd260b4ac4ab5501e0cdf99b046e247c76477bead819257",
-            "authority_checked_at": "2026-10-25T12:38:46Z",
+            "authority_checked_at": "2026-10-26T14:24:37Z",
             "first_seen_at": "2026-10-15T14:09:31Z",
-            "last_seen_at": "2026-10-25T12:38:46Z",
+            "last_seen_at": "2026-10-26T14:24:37Z",
             "last_changed_at": "2026-10-15T14:09:31Z",
             "change_kind": "baseline",
             "previous_hashes": [],
@@ -1737,8 +1737,8 @@
         "pages_expected": 1,
         "comments_seen": 1,
         "comments_expected": 1,
-        "last_attempt_at": "2026-10-25T12:38:46Z",
-        "last_complete_at": "2026-10-25T12:38:46Z",
+        "last_attempt_at": "2026-10-26T14:24:37Z",
+        "last_complete_at": "2026-10-26T14:24:37Z",
         "baseline_at": "2026-10-15T14:09:31Z",
         "replies": [
           {
@@ -1751,9 +1751,9 @@
             "published_at": "2026-08-29T19:55:47Z",
             "source_edited_at": null,
             "content_sha256": "d3b6193653fcdc6f2b84c96bf5980df841644b55937edfc847c486f1b46cabd9",
-            "authority_checked_at": "2026-10-25T12:38:46Z",
+            "authority_checked_at": "2026-10-26T14:24:37Z",
             "first_seen_at": "2026-10-15T14:09:31Z",
-            "last_seen_at": "2026-10-25T12:38:46Z",
+            "last_seen_at": "2026-10-26T14:24:37Z",
             "last_changed_at": "2026-10-15T14:09:31Z",
             "change_kind": "baseline",
             "previous_hashes": [],
@@ -1776,8 +1776,8 @@
         "pages_expected": 1,
         "comments_seen": 3,
         "comments_expected": 3,
-        "last_attempt_at": "2026-10-25T12:38:46Z",
-        "last_complete_at": "2026-10-25T12:38:46Z",
+        "last_attempt_at": "2026-10-26T14:24:37Z",
+        "last_complete_at": "2026-10-26T14:24:37Z",
         "baseline_at": "2026-10-15T14:09:31Z",
         "replies": [
           {
@@ -1790,9 +1790,9 @@
             "published_at": "2026-08-30T16:10:39Z",
             "source_edited_at": null,
             "content_sha256": "51977cdb83887ee3e5223d92ec6279f91215f1c20ac18a11a99061b7ceb694c8",
-            "authority_checked_at": "2026-10-25T12:38:46Z",
+            "authority_checked_at": "2026-10-26T14:24:37Z",
             "first_seen_at": "2026-10-15T14:09:31Z",
-            "last_seen_at": "2026-10-25T12:38:46Z",
+            "last_seen_at": "2026-10-26T14:24:37Z",
             "last_changed_at": "2026-10-15T14:09:31Z",
             "change_kind": "baseline",
             "previous_hashes": [],
@@ -1809,9 +1809,9 @@
             "published_at": "2026-08-30T15:18:53Z",
             "source_edited_at": null,
             "content_sha256": "ca6cf851ef0201e1ca14a6729517d11a164b397c07cb7579f4b6f031c094f01a",
-            "authority_checked_at": "2026-10-25T12:38:46Z",
+            "authority_checked_at": "2026-10-26T14:24:37Z",
             "first_seen_at": "2026-10-15T14:09:31Z",
-            "last_seen_at": "2026-10-25T12:38:46Z",
+            "last_seen_at": "2026-10-26T14:24:37Z",
             "last_changed_at": "2026-10-15T14:09:31Z",
             "change_kind": "baseline",
             "previous_hashes": [],
@@ -1833,8 +1833,8 @@
         "pages_expected": 1,
         "comments_seen": 1,
         "comments_expected": 1,
-        "last_attempt_at": "2026-10-25T12:38:46Z",
-        "last_complete_at": "2026-10-25T12:38:46Z",
+        "last_attempt_at": "2026-10-26T14:24:37Z",
+        "last_complete_at": "2026-10-26T14:24:37Z",
         "baseline_at": "2026-10-15T14:09:31Z",
         "replies": [
           {
@@ -1847,9 +1847,9 @@
             "published_at": "2026-08-30T16:34:48Z",
             "source_edited_at": null,
             "content_sha256": "33982c69c7b824a7d5ba2248355ec2a37784ce8cdd3b785b267eceab85a1a99c",
-            "authority_checked_at": "2026-10-25T12:38:46Z",
+            "authority_checked_at": "2026-10-26T14:24:37Z",
             "first_seen_at": "2026-10-15T14:09:31Z",
-            "last_seen_at": "2026-10-25T12:38:46Z",
+            "last_seen_at": "2026-10-26T14:24:37Z",
             "last_changed_at": "2026-10-15T14:09:31Z",
             "change_kind": "baseline",
             "previous_hashes": [],
@@ -1872,8 +1872,8 @@
         "pages_expected": 2,
         "comments_seen": 17,
         "comments_expected": 17,
-        "last_attempt_at": "2026-10-25T12:38:46Z",
-        "last_complete_at": "2026-10-25T12:38:46Z",
+        "last_attempt_at": "2026-10-26T14:24:37Z",
+        "last_complete_at": "2026-10-26T14:24:37Z",
         "baseline_at": "2026-10-15T14:09:31Z",
         "replies": [
           {
@@ -1886,9 +1886,9 @@
             "published_at": "2026-09-08T08:16:40Z",
             "source_edited_at": null,
             "content_sha256": "f5c2ede692270e494770bfce26d9524ec391549fc2679fa80a1ecaadca7a9969",
-            "authority_checked_at": "2026-10-25T12:38:46Z",
+            "authority_checked_at": "2026-10-26T14:24:37Z",
             "first_seen_at": "2026-10-15T14:09:31Z",
-            "last_seen_at": "2026-10-25T12:38:46Z",
+            "last_seen_at": "2026-10-26T14:24:37Z",
             "last_changed_at": "2026-10-15T14:09:31Z",
             "change_kind": "baseline",
             "previous_hashes": [],
@@ -1905,9 +1905,9 @@
             "published_at": "2026-09-05T14:38:12Z",
             "source_edited_at": null,
             "content_sha256": "3e822854c092119248438d1e8cbba03bb363dc9df860832d617c2974d90e9b03",
-            "authority_checked_at": "2026-10-25T12:38:46Z",
+            "authority_checked_at": "2026-10-26T14:24:37Z",
             "first_seen_at": "2026-10-15T14:09:31Z",
-            "last_seen_at": "2026-10-25T12:38:46Z",
+            "last_seen_at": "2026-10-26T14:24:37Z",
             "last_changed_at": "2026-10-15T14:09:31Z",
             "change_kind": "baseline",
             "previous_hashes": [],
@@ -1923,9 +1923,9 @@
             "published_at": "2026-09-04T07:47:25Z",
             "source_edited_at": null,
             "content_sha256": "3acab8d1d4e51da21836b4168749cb1236acf3cbba1874d7218d782615733045",
-            "authority_checked_at": "2026-10-25T12:38:46Z",
+            "authority_checked_at": "2026-10-26T14:24:37Z",
             "first_seen_at": "2026-10-15T14:09:31Z",
-            "last_seen_at": "2026-10-25T12:38:46Z",
+            "last_seen_at": "2026-10-26T14:24:37Z",
             "last_changed_at": "2026-10-15T14:09:31Z",
             "change_kind": "baseline",
             "previous_hashes": [],
@@ -1941,9 +1941,9 @@
             "published_at": "2026-09-02T12:52:00Z",
             "source_edited_at": null,
             "content_sha256": "dbb5e8514cada007ff2ac3fb9062fef4f475f3be23e288e786481faef063b74e",
-            "authority_checked_at": "2026-10-25T12:38:46Z",
+            "authority_checked_at": "2026-10-26T14:24:37Z",
             "first_seen_at": "2026-10-15T14:09:31Z",
-            "last_seen_at": "2026-10-25T12:38:46Z",
+            "last_seen_at": "2026-10-26T14:24:37Z",
             "last_changed_at": "2026-10-15T14:09:31Z",
             "change_kind": "baseline",
             "previous_hashes": [],
@@ -1959,9 +1959,9 @@
             "published_at": "2026-09-02T08:15:15Z",
             "source_edited_at": "2026-09-02T08:16:28Z",
             "content_sha256": "4e67e9a723079a1f039651346875bcde7d3a330037db674d9475eb3f6ff291ca",
-            "authority_checked_at": "2026-10-25T12:38:46Z",
+            "authority_checked_at": "2026-10-26T14:24:37Z",
             "first_seen_at": "2026-10-15T14:09:31Z",
-            "last_seen_at": "2026-10-25T12:38:46Z",
+            "last_seen_at": "2026-10-26T14:24:37Z",
             "last_changed_at": "2026-10-15T14:09:31Z",
             "change_kind": "baseline",
             "previous_hashes": [],
@@ -1977,9 +1977,9 @@
             "published_at": "2026-09-01T09:39:37Z",
             "source_edited_at": null,
             "content_sha256": "32cf6b034b5cb5e00d0665c9b3690289ca61d7b3294b0ebc73406aed5424643b",
-            "authority_checked_at": "2026-10-25T12:38:46Z",
+            "authority_checked_at": "2026-10-26T14:24:37Z",
             "first_seen_at": "2026-10-15T14:09:31Z",
-            "last_seen_at": "2026-10-25T12:38:46Z",
+            "last_seen_at": "2026-10-26T14:24:37Z",
             "last_changed_at": "2026-10-15T14:09:31Z",
             "change_kind": "baseline",
             "previous_hashes": [],
@@ -1995,9 +1995,9 @@
             "published_at": "2026-08-31T14:47:00Z",
             "source_edited_at": null,
             "content_sha256": "96158b05fbb0f6e40dfd1e122cd45386bde925d0e6b9b0df0e4dcc189e77ad5b",
-            "authority_checked_at": "2026-10-25T12:38:46Z",
+            "authority_checked_at": "2026-10-26T14:24:37Z",
             "first_seen_at": "2026-10-15T14:09:31Z",
-            "last_seen_at": "2026-10-25T12:38:46Z",
+            "last_seen_at": "2026-10-26T14:24:37Z",
             "last_changed_at": "2026-10-15T14:09:31Z",
             "change_kind": "baseline",
             "previous_hashes": [],
@@ -2019,8 +2019,8 @@
         "pages_expected": 1,
         "comments_seen": 4,
         "comments_expected": 4,
-        "last_attempt_at": "2026-10-25T12:38:46Z",
-        "last_complete_at": "2026-10-25T12:38:46Z",
+        "last_attempt_at": "2026-10-26T14:24:37Z",
+        "last_complete_at": "2026-10-26T14:24:37Z",
         "baseline_at": "2026-10-17T11:41:12Z",
         "replies": [
           {
@@ -2033,9 +2033,9 @@
             "published_at": "2026-10-07T07:29:43Z",
             "source_edited_at": null,
             "content_sha256": "241477104a3642fbe0e329776a72afde6630f810e8c18d5c08dc6178254ee00b",
-            "authority_checked_at": "2026-10-25T12:38:46Z",
+            "authority_checked_at": "2026-10-26T14:24:37Z",
             "first_seen_at": "2026-10-17T11:41:12Z",
-            "last_seen_at": "2026-10-25T12:38:46Z",
+            "last_seen_at": "2026-10-26T14:24:37Z",
             "last_changed_at": "2026-10-17T11:41:12Z",
             "change_kind": "baseline",
             "previous_hashes": [],
@@ -2052,9 +2052,9 @@
             "published_at": "2026-09-03T08:07:02Z",
             "source_edited_at": null,
             "content_sha256": "4af94b7e74f91eef92d59053ed64b864eb221c98fc8acf17947e56ef270bde21",
-            "authority_checked_at": "2026-10-25T12:38:46Z",
+            "authority_checked_at": "2026-10-26T14:24:37Z",
             "first_seen_at": "2026-10-17T11:41:12Z",
-            "last_seen_at": "2026-10-25T12:38:46Z",
+            "last_seen_at": "2026-10-26T14:24:37Z",
             "last_changed_at": "2026-10-17T11:41:12Z",
             "change_kind": "baseline",
             "previous_hashes": [],
@@ -2076,8 +2076,8 @@
         "pages_expected": 1,
         "comments_seen": 1,
         "comments_expected": 1,
-        "last_attempt_at": "2026-10-25T12:38:46Z",
-        "last_complete_at": "2026-10-25T12:38:46Z",
+        "last_attempt_at": "2026-10-26T14:24:37Z",
+        "last_complete_at": "2026-10-26T14:24:37Z",
         "baseline_at": "2026-10-15T14:09:31Z",
         "replies": [
           {
@@ -2090,9 +2090,9 @@
             "published_at": "2026-08-20T07:56:09Z",
             "source_edited_at": null,
             "content_sha256": "8834dd681e2367dccadb31ed75c14d6b272254f178f1a350960712d97ecd3590",
-            "authority_checked_at": "2026-10-25T12:38:46Z",
+            "authority_checked_at": "2026-10-26T14:24:37Z",
             "first_seen_at": "2026-10-15T14:09:31Z",
-            "last_seen_at": "2026-10-25T12:38:46Z",
+            "last_seen_at": "2026-10-26T14:24:37Z",
             "last_changed_at": "2026-10-15T14:09:31Z",
             "change_kind": "baseline",
             "previous_hashes": [],
@@ -2115,8 +2115,8 @@
         "pages_expected": 1,
         "comments_seen": 2,
         "comments_expected": 2,
-        "last_attempt_at": "2026-10-25T12:38:46Z",
-        "last_complete_at": "2026-10-25T12:38:46Z",
+        "last_attempt_at": "2026-10-26T14:24:37Z",
+        "last_complete_at": "2026-10-26T14:24:37Z",
         "baseline_at": "2026-10-15T14:09:31Z",
         "replies": [
           {
@@ -2129,9 +2129,9 @@
             "published_at": "2026-08-22T13:49:04Z",
             "source_edited_at": null,
             "content_sha256": "dd9e0fbce7229b0974c3ab5ea1279e2ada54e248b30f5da8164a8e2f9af2fb03",
-            "authority_checked_at": "2026-10-25T12:38:46Z",
+            "authority_checked_at": "2026-10-26T14:24:37Z",
             "first_seen_at": "2026-10-15T14:09:31Z",
-            "last_seen_at": "2026-10-25T12:38:46Z",
+            "last_seen_at": "2026-10-26T14:24:37Z",
             "last_changed_at": "2026-10-15T14:09:31Z",
             "change_kind": "baseline",
             "previous_hashes": [],
@@ -2154,8 +2154,8 @@
         "pages_expected": 1,
         "comments_seen": 4,
         "comments_expected": 4,
-        "last_attempt_at": "2026-10-25T12:38:46Z",
-        "last_complete_at": "2026-10-25T12:38:46Z",
+        "last_attempt_at": "2026-10-26T14:24:37Z",
+        "last_complete_at": "2026-10-26T14:24:37Z",
         "baseline_at": "2026-10-17T11:41:12Z",
         "replies": [
           {
@@ -2168,9 +2168,9 @@
             "published_at": "2026-10-09T13:41:19Z",
             "source_edited_at": null,
             "content_sha256": "0b86722d8f6af81e5efb618e48903e024e239e48f410ceb0a52739bb477b6437",
-            "authority_checked_at": "2026-10-25T12:38:46Z",
+            "authority_checked_at": "2026-10-26T14:24:37Z",
             "first_seen_at": "2026-10-17T11:41:12Z",
-            "last_seen_at": "2026-10-25T12:38:46Z",
+            "last_seen_at": "2026-10-26T14:24:37Z",
             "last_changed_at": "2026-10-17T11:41:12Z",
             "change_kind": "baseline",
             "previous_hashes": [],
@@ -2187,9 +2187,9 @@
             "published_at": "2026-10-05T10:38:02Z",
             "source_edited_at": null,
             "content_sha256": "2c656b962fa21b6fec107977ed14ea3bffbd0aa20eb2ffe9e9642dbbcd8915e4",
-            "authority_checked_at": "2026-10-25T12:38:46Z",
+            "authority_checked_at": "2026-10-26T14:24:37Z",
             "first_seen_at": "2026-10-17T11:41:12Z",
-            "last_seen_at": "2026-10-25T12:38:46Z",
+            "last_seen_at": "2026-10-26T14:24:37Z",
             "last_changed_at": "2026-10-17T11:41:12Z",
             "change_kind": "baseline",
             "previous_hashes": [],
@@ -2211,8 +2211,8 @@
         "pages_expected": 1,
         "comments_seen": 1,
         "comments_expected": 1,
-        "last_attempt_at": "2026-10-25T12:38:46Z",
-        "last_complete_at": "2026-10-25T12:38:46Z",
+        "last_attempt_at": "2026-10-26T14:24:37Z",
+        "last_complete_at": "2026-10-26T14:24:37Z",
         "baseline_at": "2026-10-15T14:09:31Z",
         "replies": [
           {
@@ -2225,9 +2225,9 @@
             "published_at": "2026-10-05T10:03:08Z",
             "source_edited_at": null,
             "content_sha256": "482515938af207f94efb2360c57d423f22e91c5f261b00a2b13d164c7333fadd",
-            "authority_checked_at": "2026-10-25T12:38:46Z",
+            "authority_checked_at": "2026-10-26T14:24:37Z",
             "first_seen_at": "2026-10-15T14:09:31Z",
-            "last_seen_at": "2026-10-25T12:38:46Z",
+            "last_seen_at": "2026-10-26T14:24:37Z",
             "last_changed_at": "2026-10-15T14:09:31Z",
             "change_kind": "baseline",
             "previous_hashes": [],
@@ -2250,8 +2250,8 @@
         "pages_expected": 1,
         "comments_seen": 2,
         "comments_expected": 2,
-        "last_attempt_at": "2026-10-25T12:38:46Z",
-        "last_complete_at": "2026-10-25T12:38:46Z",
+        "last_attempt_at": "2026-10-26T14:24:37Z",
+        "last_complete_at": "2026-10-26T14:24:37Z",
         "baseline_at": "2026-10-15T14:09:31Z",
         "replies": [
           {
@@ -2264,9 +2264,9 @@
             "published_at": "2026-10-05T09:56:48Z",
             "source_edited_at": null,
             "content_sha256": "1ea26b5c456d12bd59b7c83e3a68bd33a23ac31b7a6098774b697c8587d15b83",
-            "authority_checked_at": "2026-10-25T12:38:46Z",
+            "authority_checked_at": "2026-10-26T14:24:37Z",
             "first_seen_at": "2026-10-15T14:09:31Z",
-            "last_seen_at": "2026-10-25T12:38:46Z",
+            "last_seen_at": "2026-10-26T14:24:37Z",
             "last_changed_at": "2026-10-15T14:09:31Z",
             "change_kind": "baseline",
             "previous_hashes": [],
@@ -2289,8 +2289,8 @@
         "pages_expected": 1,
         "comments_seen": 1,
         "comments_expected": 1,
-        "last_attempt_at": "2026-10-25T12:38:46Z",
-        "last_complete_at": "2026-10-25T12:38:46Z",
+        "last_attempt_at": "2026-10-26T14:24:37Z",
+        "last_complete_at": "2026-10-26T14:24:37Z",
         "baseline_at": "2026-10-15T14:09:31Z",
         "replies": [
           {
@@ -2303,9 +2303,9 @@
             "published_at": "2026-10-05T10:51:04Z",
             "source_edited_at": null,
             "content_sha256": "69a5591248112e750efc4cbe5589111ef5109b4e3bb66028ab61464927551568",
-            "authority_checked_at": "2026-10-25T12:38:46Z",
+            "authority_checked_at": "2026-10-26T14:24:37Z",
             "first_seen_at": "2026-10-15T14:09:31Z",
-            "last_seen_at": "2026-10-25T12:38:46Z",
+            "last_seen_at": "2026-10-26T14:24:37Z",
             "last_changed_at": "2026-10-15T14:09:31Z",
             "change_kind": "baseline",
             "previous_hashes": [],
@@ -2328,8 +2328,8 @@
         "pages_expected": 1,
         "comments_seen": 4,
         "comments_expected": 4,
-        "last_attempt_at": "2026-10-25T12:38:46Z",
-        "last_complete_at": "2026-10-25T12:38:46Z",
+        "last_attempt_at": "2026-10-26T14:24:37Z",
+        "last_complete_at": "2026-10-26T14:24:37Z",
         "baseline_at": "2026-10-15T14:09:31Z",
         "replies": [
           {
@@ -2342,9 +2342,9 @@
             "published_at": "2026-10-07T16:22:06Z",
             "source_edited_at": null,
             "content_sha256": "e9f63bbc9531bd067a4dd6d12043110a4feeac1563f95fb1c1b494a535560fcc",
-            "authority_checked_at": "2026-10-25T12:38:46Z",
+            "authority_checked_at": "2026-10-26T14:24:37Z",
             "first_seen_at": "2026-10-15T14:09:31Z",
-            "last_seen_at": "2026-10-25T12:38:46Z",
+            "last_seen_at": "2026-10-26T14:24:37Z",
             "last_changed_at": "2026-10-15T14:09:31Z",
             "change_kind": "baseline",
             "previous_hashes": [],
@@ -2361,9 +2361,9 @@
             "published_at": "2026-10-05T10:15:42Z",
             "source_edited_at": null,
             "content_sha256": "e1cbd69e357a0d98068e3dd3ace21b15cdbaba3f5c48036be787142ff1e3d626",
-            "authority_checked_at": "2026-10-25T12:38:46Z",
+            "authority_checked_at": "2026-10-26T14:24:37Z",
             "first_seen_at": "2026-10-15T14:09:31Z",
-            "last_seen_at": "2026-10-25T12:38:46Z",
+            "last_seen_at": "2026-10-26T14:24:37Z",
             "last_changed_at": "2026-10-15T14:09:31Z",
             "change_kind": "baseline",
             "previous_hashes": [],
@@ -2385,8 +2385,8 @@
         "pages_expected": 1,
         "comments_seen": 3,
         "comments_expected": 3,
-        "last_attempt_at": "2026-10-25T12:38:46Z",
-        "last_complete_at": "2026-10-25T12:38:46Z",
+        "last_attempt_at": "2026-10-26T14:24:37Z",
+        "last_complete_at": "2026-10-26T14:24:37Z",
         "baseline_at": "2026-10-15T14:09:31Z",
         "replies": [
           {
@@ -2399,9 +2399,9 @@
             "published_at": "2026-10-06T08:20:07Z",
             "source_edited_at": null,
             "content_sha256": "2c569ee9d24522f5fdcb4585a89985b09ee68290702970851ec1fd866cbb2af8",
-            "authority_checked_at": "2026-10-25T12:38:46Z",
+            "authority_checked_at": "2026-10-26T14:24:37Z",
             "first_seen_at": "2026-10-15T14:09:31Z",
-            "last_seen_at": "2026-10-25T12:38:46Z",
+            "last_seen_at": "2026-10-26T14:24:37Z",
             "last_changed_at": "2026-10-15T14:09:31Z",
             "change_kind": "baseline",
             "previous_hashes": [],
@@ -2418,9 +2418,9 @@
             "published_at": "2026-10-05T10:42:09Z",
             "source_edited_at": null,
             "content_sha256": "27b066d26a83a9dea0c2da259be18b920441a2ad7d69209113bf5c88a08da821",
-            "authority_checked_at": "2026-10-25T12:38:46Z",
+            "authority_checked_at": "2026-10-26T14:24:37Z",
             "first_seen_at": "2026-10-15T14:09:31Z",
-            "last_seen_at": "2026-10-25T12:38:46Z",
+            "last_seen_at": "2026-10-26T14:24:37Z",
             "last_changed_at": "2026-10-15T14:09:31Z",
             "change_kind": "baseline",
             "previous_hashes": [],
@@ -2442,8 +2442,8 @@
         "pages_expected": 1,
         "comments_seen": 9,
         "comments_expected": 9,
-        "last_attempt_at": "2026-10-25T12:38:46Z",
-        "last_complete_at": "2026-10-25T12:38:46Z",
+        "last_attempt_at": "2026-10-26T14:24:37Z",
+        "last_complete_at": "2026-10-26T14:24:37Z",
         "baseline_at": "2026-10-17T11:41:12Z",
         "replies": [
           {
@@ -2456,9 +2456,9 @@
             "published_at": "2026-10-09T07:32:17Z",
             "source_edited_at": null,
             "content_sha256": "445d8aae8d233f215aca254681658a165997d296dd9ec149d159d2c4278d4bd3",
-            "authority_checked_at": "2026-10-25T12:38:46Z",
+            "authority_checked_at": "2026-10-26T14:24:37Z",
             "first_seen_at": "2026-10-17T11:41:12Z",
-            "last_seen_at": "2026-10-25T12:38:46Z",
+            "last_seen_at": "2026-10-26T14:24:37Z",
             "last_changed_at": "2026-10-17T11:41:12Z",
             "change_kind": "baseline",
             "previous_hashes": [],
@@ -2475,9 +2475,9 @@
             "published_at": "2026-10-07T16:43:07Z",
             "source_edited_at": null,
             "content_sha256": "11506a0bd4f7f19215f8a4dccb391c9d6e46558db951247ee16f6d6525b42dfa",
-            "authority_checked_at": "2026-10-25T12:38:46Z",
+            "authority_checked_at": "2026-10-26T14:24:37Z",
             "first_seen_at": "2026-10-17T11:41:12Z",
-            "last_seen_at": "2026-10-25T12:38:46Z",
+            "last_seen_at": "2026-10-26T14:24:37Z",
             "last_changed_at": "2026-10-17T11:41:12Z",
             "change_kind": "baseline",
             "previous_hashes": [],
@@ -2493,9 +2493,9 @@
             "published_at": "2026-10-07T07:32:46Z",
             "source_edited_at": null,
             "content_sha256": "38cd47c46e21ff920228ee93db86d66dd3fd55027390c36579d1edf27d3886b4",
-            "authority_checked_at": "2026-10-25T12:38:46Z",
+            "authority_checked_at": "2026-10-26T14:24:37Z",
             "first_seen_at": "2026-10-17T11:41:12Z",
-            "last_seen_at": "2026-10-25T12:38:46Z",
+            "last_seen_at": "2026-10-26T14:24:37Z",
             "last_changed_at": "2026-10-17T11:41:12Z",
             "change_kind": "baseline",
             "previous_hashes": [],
@@ -2511,9 +2511,9 @@
             "published_at": "2026-10-05T10:07:07Z",
             "source_edited_at": null,
             "content_sha256": "1cb76a6898039610c0771990ba807f2483ba0862fffceb0b3e3e5e020297e92c",
-            "authority_checked_at": "2026-10-25T12:38:46Z",
+            "authority_checked_at": "2026-10-26T14:24:37Z",
             "first_seen_at": "2026-10-17T11:41:12Z",
-            "last_seen_at": "2026-10-25T12:38:46Z",
+            "last_seen_at": "2026-10-26T14:24:37Z",
             "last_changed_at": "2026-10-17T11:41:12Z",
             "change_kind": "baseline",
             "previous_hashes": [],
@@ -2535,8 +2535,8 @@
         "pages_expected": 1,
         "comments_seen": 3,
         "comments_expected": 3,
-        "last_attempt_at": "2026-10-25T12:38:46Z",
-        "last_complete_at": "2026-10-25T12:38:46Z",
+        "last_attempt_at": "2026-10-26T14:24:37Z",
+        "last_complete_at": "2026-10-26T14:24:37Z",
         "baseline_at": "2026-10-17T11:41:12Z",
         "replies": [
           {
@@ -2549,9 +2549,9 @@
             "published_at": "2026-10-09T07:31:50Z",
             "source_edited_at": null,
             "content_sha256": "6693d6f30ee214d368aa1afb0ba27511cc4715169b8b14caab59b4ec8a293def",
-            "authority_checked_at": "2026-10-25T12:38:46Z",
+            "authority_checked_at": "2026-10-26T14:24:37Z",
             "first_seen_at": "2026-10-17T11:41:12Z",
-            "last_seen_at": "2026-10-25T12:38:46Z",
+            "last_seen_at": "2026-10-26T14:24:37Z",
             "last_changed_at": "2026-10-17T11:41:12Z",
             "change_kind": "baseline",
             "previous_hashes": [],
@@ -2568,9 +2568,9 @@
             "published_at": "2026-10-06T07:58:10Z",
             "source_edited_at": null,
             "content_sha256": "520168628a8c68045a367ff53453a68b7aec1f1216bc175d6dc9da9f0335c483",
-            "authority_checked_at": "2026-10-25T12:38:46Z",
+            "authority_checked_at": "2026-10-26T14:24:37Z",
             "first_seen_at": "2026-10-17T11:41:12Z",
-            "last_seen_at": "2026-10-25T12:38:46Z",
+            "last_seen_at": "2026-10-26T14:24:37Z",
             "last_changed_at": "2026-10-17T11:41:12Z",
             "change_kind": "baseline",
             "previous_hashes": [],
@@ -2592,8 +2592,8 @@
         "pages_expected": 1,
         "comments_seen": 2,
         "comments_expected": 2,
-        "last_attempt_at": "2026-10-25T12:38:46Z",
-        "last_complete_at": "2026-10-25T12:38:46Z",
+        "last_attempt_at": "2026-10-26T14:24:37Z",
+        "last_complete_at": "2026-10-26T14:24:37Z",
         "baseline_at": "2026-10-17T11:41:12Z",
         "replies": [
           {
@@ -2606,9 +2606,9 @@
             "published_at": "2026-10-07T16:26:10Z",
             "source_edited_at": null,
             "content_sha256": "96de68b5488a2a055830c2ac7b9204d4d489b7f42685755d74e54a827df9b74b",
-            "authority_checked_at": "2026-10-25T12:38:46Z",
+            "authority_checked_at": "2026-10-26T14:24:37Z",
             "first_seen_at": "2026-10-17T11:41:12Z",
-            "last_seen_at": "2026-10-25T12:38:46Z",
+            "last_seen_at": "2026-10-26T14:24:37Z",
             "last_changed_at": "2026-10-17T11:41:12Z",
             "change_kind": "baseline",
             "previous_hashes": [],
@@ -2631,8 +2631,8 @@
         "pages_expected": 1,
         "comments_seen": 1,
         "comments_expected": 1,
-        "last_attempt_at": "2026-10-25T12:38:46Z",
-        "last_complete_at": "2026-10-25T12:38:46Z",
+        "last_attempt_at": "2026-10-26T14:24:37Z",
+        "last_complete_at": "2026-10-26T14:24:37Z",
         "baseline_at": "2026-10-17T11:41:12Z",
         "replies": [
           {
@@ -2645,9 +2645,9 @@
             "published_at": "2026-10-09T07:42:47Z",
             "source_edited_at": null,
             "content_sha256": "90dc13b9cfb8f7b6662c00083884a08a0b7a76f027833268246fea4b2bd2800f",
-            "authority_checked_at": "2026-10-25T12:38:46Z",
+            "authority_checked_at": "2026-10-26T14:24:37Z",
             "first_seen_at": "2026-10-17T11:41:12Z",
-            "last_seen_at": "2026-10-25T12:38:46Z",
+            "last_seen_at": "2026-10-26T14:24:37Z",
             "last_changed_at": "2026-10-17T11:41:12Z",
             "change_kind": "baseline",
             "previous_hashes": [],
@@ -2670,8 +2670,8 @@
         "pages_expected": 1,
         "comments_seen": 2,
         "comments_expected": 2,
-        "last_attempt_at": "2026-10-25T12:38:46Z",
-        "last_complete_at": "2026-10-25T12:38:46Z",
+        "last_attempt_at": "2026-10-26T14:24:37Z",
+        "last_complete_at": "2026-10-26T14:24:37Z",
         "baseline_at": "2026-10-17T11:41:12Z",
         "replies": [
           {
@@ -2684,9 +2684,9 @@
             "published_at": "2026-10-10T09:02:32Z",
             "source_edited_at": null,
             "content_sha256": "be72a6a5dfba8eab1e21327da04dd10cd876fb4b6935bca710c7ec5fac5d6835",
-            "authority_checked_at": "2026-10-25T12:38:46Z",
+            "authority_checked_at": "2026-10-26T14:24:37Z",
             "first_seen_at": "2026-10-17T11:41:12Z",
-            "last_seen_at": "2026-10-25T12:38:46Z",
+            "last_seen_at": "2026-10-26T14:24:37Z",
             "last_changed_at": "2026-10-17T11:41:12Z",
             "change_kind": "baseline",
             "previous_hashes": [],
@@ -2709,7 +2709,7 @@
         "pages_expected": null,
         "comments_seen": 0,
         "comments_expected": null,
-        "last_attempt_at": "2026-10-25T12:38:46Z",
+        "last_attempt_at": "2026-10-26T14:24:37Z",
         "last_complete_at": "2026-10-20T12:48:26Z",
         "baseline_at": "2026-10-17T11:41:12Z",
         "replies": [
@@ -2748,8 +2748,8 @@
         "pages_expected": 1,
         "comments_seen": 1,
         "comments_expected": 1,
-        "last_attempt_at": "2026-10-25T12:38:46Z",
-        "last_complete_at": "2026-10-25T12:38:46Z",
+        "last_attempt_at": "2026-10-26T14:24:37Z",
+        "last_complete_at": "2026-10-26T14:24:37Z",
         "baseline_at": "2026-10-17T11:41:12Z",
         "replies": [
           {
@@ -2762,9 +2762,9 @@
             "published_at": "2026-10-10T09:21:25Z",
             "source_edited_at": null,
             "content_sha256": "5eeb5083e1bf2b082a0ff7e5989d773b233fd8cb83be538d6bf3480baa890d76",
-            "authority_checked_at": "2026-10-25T12:38:46Z",
+            "authority_checked_at": "2026-10-26T14:24:37Z",
             "first_seen_at": "2026-10-17T11:41:12Z",
-            "last_seen_at": "2026-10-25T12:38:46Z",
+            "last_seen_at": "2026-10-26T14:24:37Z",
             "last_changed_at": "2026-10-17T11:41:12Z",
             "change_kind": "baseline",
             "previous_hashes": [],
@@ -2787,8 +2787,8 @@
         "pages_expected": 1,
         "comments_seen": 1,
         "comments_expected": 1,
-        "last_attempt_at": "2026-10-25T12:38:46Z",
-        "last_complete_at": "2026-10-25T12:38:46Z",
+        "last_attempt_at": "2026-10-26T14:24:37Z",
+        "last_complete_at": "2026-10-26T14:24:37Z",
         "baseline_at": "2026-10-17T11:41:12Z",
         "replies": [
           {
@@ -2801,9 +2801,9 @@
             "published_at": "2026-10-11T08:14:46Z",
             "source_edited_at": null,
             "content_sha256": "21a07584431db5785b6153832e79f70979c42c54d9e7d37068c12917379fa75c",
-            "authority_checked_at": "2026-10-25T12:38:46Z",
+            "authority_checked_at": "2026-10-26T14:24:37Z",
             "first_seen_at": "2026-10-17T11:41:12Z",
-            "last_seen_at": "2026-10-25T12:38:46Z",
+            "last_seen_at": "2026-10-26T14:24:37Z",
             "last_changed_at": "2026-10-17T11:41:12Z",
             "change_kind": "baseline",
             "previous_hashes": [],
@@ -2826,8 +2826,8 @@
         "pages_expected": 1,
         "comments_seen": 2,
         "comments_expected": 2,
-        "last_attempt_at": "2026-10-25T12:38:46Z",
-        "last_complete_at": "2026-10-25T12:38:46Z",
+        "last_attempt_at": "2026-10-26T14:24:37Z",
+        "last_complete_at": "2026-10-26T14:24:37Z",
         "baseline_at": "2026-10-21T13:01:30Z",
         "replies": [
           {
@@ -2840,9 +2840,9 @@
             "published_at": "2026-10-11T13:45:43Z",
             "source_edited_at": null,
             "content_sha256": "26b8c46aa20055ce27fae78fbb4015eaf48decf7eeb418e44767d0fe1ec64c80",
-            "authority_checked_at": "2026-10-25T12:38:46Z",
+            "authority_checked_at": "2026-10-26T14:24:37Z",
             "first_seen_at": "2026-10-21T13:01:30Z",
-            "last_seen_at": "2026-10-25T12:38:46Z",
+            "last_seen_at": "2026-10-26T14:24:37Z",
             "last_changed_at": "2026-10-21T13:01:30Z",
             "change_kind": "baseline",
             "previous_hashes": [],
@@ -2865,8 +2865,8 @@
         "pages_expected": 1,
         "comments_seen": 5,
         "comments_expected": 5,
-        "last_attempt_at": "2026-10-25T12:38:46Z",
-        "last_complete_at": "2026-10-25T12:38:46Z",
+        "last_attempt_at": "2026-10-26T14:24:37Z",
+        "last_complete_at": "2026-10-26T14:24:37Z",
         "baseline_at": "2026-10-21T13:01:30Z",
         "replies": [
           {
@@ -2879,9 +2879,9 @@
             "published_at": "2026-10-23T16:14:06Z",
             "source_edited_at": null,
             "content_sha256": "0d04784e9d7a8b5b171511574614f7c86383e23cf9b6d506cc30cbce75a1869e",
-            "authority_checked_at": "2026-10-25T12:38:46Z",
+            "authority_checked_at": "2026-10-26T14:24:37Z",
             "first_seen_at": "2026-10-24T12:05:47Z",
-            "last_seen_at": "2026-10-25T12:38:46Z",
+            "last_seen_at": "2026-10-26T14:24:37Z",
             "last_changed_at": "2026-10-24T12:05:47Z",
             "change_kind": "new_reply",
             "previous_hashes": [],
@@ -2898,9 +2898,9 @@
             "published_at": "2026-10-11T17:53:18Z",
             "source_edited_at": null,
             "content_sha256": "fd4299a28afa06134207e54591e4661fb07a7262a0305cd7a0373a0b4b51ea1a",
-            "authority_checked_at": "2026-10-25T12:38:46Z",
+            "authority_checked_at": "2026-10-26T14:24:37Z",
             "first_seen_at": "2026-10-21T13:01:30Z",
-            "last_seen_at": "2026-10-25T12:38:46Z",
+            "last_seen_at": "2026-10-26T14:24:37Z",
             "last_changed_at": "2026-10-21T13:01:30Z",
             "change_kind": "baseline",
             "previous_hashes": [],
@@ -2916,9 +2916,9 @@
             "published_at": "2026-10-11T13:48:44Z",
             "source_edited_at": null,
             "content_sha256": "97f8fea851fb54b063585d51da364e2d4b4696cd0f20ac4ad974bbe5e94bf74d",
-            "authority_checked_at": "2026-10-25T12:38:46Z",
+            "authority_checked_at": "2026-10-26T14:24:37Z",
             "first_seen_at": "2026-10-21T13:01:30Z",
-            "last_seen_at": "2026-10-25T12:38:46Z",
+            "last_seen_at": "2026-10-26T14:24:37Z",
             "last_changed_at": "2026-10-21T13:01:30Z",
             "change_kind": "baseline",
             "previous_hashes": [],
@@ -2940,8 +2940,8 @@
         "pages_expected": 1,
         "comments_seen": 1,
         "comments_expected": 1,
-        "last_attempt_at": "2026-10-25T12:38:46Z",
-        "last_complete_at": "2026-10-25T12:38:46Z",
+        "last_attempt_at": "2026-10-26T14:24:37Z",
+        "last_complete_at": "2026-10-26T14:24:37Z",
         "baseline_at": "2026-10-17T11:41:12Z",
         "replies": [
           {
@@ -2954,9 +2954,9 @@
             "published_at": "2026-10-11T17:59:20Z",
             "source_edited_at": null,
             "content_sha256": "ed133a08195b2fbb17bf680fe05ef4d34919a17a664c39e12918a084e1873dea",
-            "authority_checked_at": "2026-10-25T12:38:46Z",
+            "authority_checked_at": "2026-10-26T14:24:37Z",
             "first_seen_at": "2026-10-17T11:41:12Z",
-            "last_seen_at": "2026-10-25T12:38:46Z",
+            "last_seen_at": "2026-10-26T14:24:37Z",
             "last_changed_at": "2026-10-17T11:41:12Z",
             "change_kind": "baseline",
             "previous_hashes": [],
@@ -2979,8 +2979,8 @@
         "pages_expected": 1,
         "comments_seen": 1,
         "comments_expected": 1,
-        "last_attempt_at": "2026-10-25T12:38:46Z",
-        "last_complete_at": "2026-10-25T12:38:46Z",
+        "last_attempt_at": "2026-10-26T14:24:37Z",
+        "last_complete_at": "2026-10-26T14:24:37Z",
         "baseline_at": "2026-10-17T11:41:12Z",
         "replies": [
           {
@@ -2993,9 +2993,9 @@
             "published_at": "2026-10-12T08:15:03Z",
             "source_edited_at": null,
             "content_sha256": "b2ff12e2ad53b6601974bd811c0964b9793e3cb466a0f5228241848748eb7cb0",
-            "authority_checked_at": "2026-10-25T12:38:46Z",
+            "authority_checked_at": "2026-10-26T14:24:37Z",
             "first_seen_at": "2026-10-17T11:41:12Z",
-            "last_seen_at": "2026-10-25T12:38:46Z",
+            "last_seen_at": "2026-10-26T14:24:37Z",
             "last_changed_at": "2026-10-17T11:41:12Z",
             "change_kind": "baseline",
             "previous_hashes": [],
@@ -3018,8 +3018,8 @@
         "pages_expected": 1,
         "comments_seen": 3,
         "comments_expected": 3,
-        "last_attempt_at": "2026-10-25T12:38:46Z",
-        "last_complete_at": "2026-10-25T12:38:46Z",
+        "last_attempt_at": "2026-10-26T14:24:37Z",
+        "last_complete_at": "2026-10-26T14:24:37Z",
         "baseline_at": "2026-10-17T11:41:12Z",
         "replies": [
           {
@@ -3032,9 +3032,9 @@
             "published_at": "2026-10-12T13:38:15Z",
             "source_edited_at": null,
             "content_sha256": "4ab683d44ca96469d46d6c92c1ed64b569f3e4b9617e96c5edae353b6f6cc4ea",
-            "authority_checked_at": "2026-10-25T12:38:46Z",
+            "authority_checked_at": "2026-10-26T14:24:37Z",
             "first_seen_at": "2026-10-17T11:41:12Z",
-            "last_seen_at": "2026-10-25T12:38:46Z",
+            "last_seen_at": "2026-10-26T14:24:37Z",
             "last_changed_at": "2026-10-17T11:41:12Z",
             "change_kind": "baseline",
             "previous_hashes": [],
@@ -3057,8 +3057,8 @@
         "pages_expected": 2,
         "comments_seen": 21,
         "comments_expected": 21,
-        "last_attempt_at": "2026-10-25T12:38:46Z",
-        "last_complete_at": "2026-10-25T12:38:46Z",
+        "last_attempt_at": "2026-10-26T14:24:37Z",
+        "last_complete_at": "2026-10-26T14:24:37Z",
         "baseline_at": "2026-10-17T11:41:12Z",
         "replies": [
           {
@@ -3071,9 +3071,9 @@
             "published_at": "2026-10-13T15:34:10Z",
             "source_edited_at": null,
             "content_sha256": "eb997c221cf40eee3262c5701fbfdcb01d8d86f0b0c2cadb9435d9101b38f297",
-            "authority_checked_at": "2026-10-25T12:38:46Z",
+            "authority_checked_at": "2026-10-26T14:24:37Z",
             "first_seen_at": "2026-10-17T11:41:12Z",
-            "last_seen_at": "2026-10-25T12:38:46Z",
+            "last_seen_at": "2026-10-26T14:24:37Z",
             "last_changed_at": "2026-10-17T11:41:12Z",
             "change_kind": "baseline",
             "previous_hashes": [],
@@ -3090,9 +3090,9 @@
             "published_at": "2026-10-12T18:52:40Z",
             "source_edited_at": null,
             "content_sha256": "3eac47155b472a9937a0d31ba696e58fd40502a66d2fddb8415bfbb94a7913c0",
-            "authority_checked_at": "2026-10-25T12:38:46Z",
+            "authority_checked_at": "2026-10-26T14:24:37Z",
             "first_seen_at": "2026-10-17T11:41:12Z",
-            "last_seen_at": "2026-10-25T12:38:46Z",
+            "last_seen_at": "2026-10-26T14:24:37Z",
             "last_changed_at": "2026-10-17T11:41:12Z",
             "change_kind": "baseline",
             "previous_hashes": [],
@@ -3108,9 +3108,9 @@
             "published_at": "2026-10-11T17:47:08Z",
             "source_edited_at": null,
             "content_sha256": "3c7f180d1dfd63c40272c96f9336fb0e45ed08512c4649f50bea802aed4250be",
-            "authority_checked_at": "2026-10-25T12:38:46Z",
+            "authority_checked_at": "2026-10-26T14:24:37Z",
             "first_seen_at": "2026-10-17T11:41:12Z",
-            "last_seen_at": "2026-10-25T12:38:46Z",
+            "last_seen_at": "2026-10-26T14:24:37Z",
             "last_changed_at": "2026-10-17T11:41:12Z",
             "change_kind": "baseline",
             "previous_hashes": [],
@@ -3126,9 +3126,9 @@
             "published_at": "2026-10-11T13:41:19Z",
             "source_edited_at": "2026-10-11T13:42:03Z",
             "content_sha256": "92405d7fe405661fbb04922d3d000d6801716660e749da2d220a25f94be10b58",
-            "authority_checked_at": "2026-10-25T12:38:46Z",
+            "authority_checked_at": "2026-10-26T14:24:37Z",
             "first_seen_at": "2026-10-17T11:41:12Z",
-            "last_seen_at": "2026-10-25T12:38:46Z",
+            "last_seen_at": "2026-10-26T14:24:37Z",
             "last_changed_at": "2026-10-17T11:41:12Z",
             "change_kind": "baseline",
             "previous_hashes": [],
@@ -3144,9 +3144,9 @@
             "published_at": "2026-09-26T13:59:52Z",
             "source_edited_at": null,
             "content_sha256": "c4b115654ade9e236c06204dcf87dd96711f1dcbdc875a213c635799cda9b9b1",
-            "authority_checked_at": "2026-10-25T12:38:46Z",
+            "authority_checked_at": "2026-10-26T14:24:37Z",
             "first_seen_at": "2026-10-17T11:41:12Z",
-            "last_seen_at": "2026-10-25T12:38:46Z",
+            "last_seen_at": "2026-10-26T14:24:37Z",
             "last_changed_at": "2026-10-17T11:41:12Z",
             "change_kind": "baseline",
             "previous_hashes": [],
@@ -3162,9 +3162,9 @@
             "published_at": "2026-09-24T20:30:30Z",
             "source_edited_at": null,
             "content_sha256": "0cab05c2279dc48c4cfa983284434608f70abe03614d78c4e1b4bfc7c6a37d7d",
-            "authority_checked_at": "2026-10-25T12:38:46Z",
+            "authority_checked_at": "2026-10-26T14:24:37Z",
             "first_seen_at": "2026-10-17T11:41:12Z",
-            "last_seen_at": "2026-10-25T12:38:46Z",
+            "last_seen_at": "2026-10-26T14:24:37Z",
             "last_changed_at": "2026-10-17T11:41:12Z",
             "change_kind": "baseline",
             "previous_hashes": [],
@@ -3186,8 +3186,8 @@
         "pages_expected": 2,
         "comments_seen": 22,
         "comments_expected": 22,
-        "last_attempt_at": "2026-10-25T12:38:46Z",
-        "last_complete_at": "2026-10-25T12:38:46Z",
+        "last_attempt_at": "2026-10-26T14:24:37Z",
+        "last_complete_at": "2026-10-26T14:24:37Z",
         "baseline_at": "2026-10-17T11:41:12Z",
         "replies": [
           {
@@ -3200,9 +3200,9 @@
             "published_at": "2026-10-23T14:30:22Z",
             "source_edited_at": null,
             "content_sha256": "b8bc5088f022c14bac8cb0533723e7489131ea0037b68645602be2b85cdc49e6",
-            "authority_checked_at": "2026-10-25T12:38:46Z",
+            "authority_checked_at": "2026-10-26T14:24:37Z",
             "first_seen_at": "2026-10-24T12:05:47Z",
-            "last_seen_at": "2026-10-25T12:38:46Z",
+            "last_seen_at": "2026-10-26T14:24:37Z",
             "last_changed_at": "2026-10-24T12:05:47Z",
             "change_kind": "new_reply",
             "previous_hashes": [],
@@ -3219,9 +3219,9 @@
             "published_at": "2026-10-07T07:22:01Z",
             "source_edited_at": null,
             "content_sha256": "4c78f303f31554e03e978c3c9f04abcab76d371bf7f6c910aa54d17895c8b5ff",
-            "authority_checked_at": "2026-10-25T12:38:46Z",
+            "authority_checked_at": "2026-10-26T14:24:37Z",
             "first_seen_at": "2026-10-17T11:41:12Z",
-            "last_seen_at": "2026-10-25T12:38:46Z",
+            "last_seen_at": "2026-10-26T14:24:37Z",
             "last_changed_at": "2026-10-17T11:41:12Z",
             "change_kind": "baseline",
             "previous_hashes": [],
@@ -3237,9 +3237,9 @@
             "published_at": "2026-09-02T08:35:53Z",
             "source_edited_at": null,
             "content_sha256": "895c3fec3068ccf65898b09de7c35a6dcb5d342914826928ea5bacc00de2f644",
-            "authority_checked_at": "2026-10-25T12:38:46Z",
+            "authority_checked_at": "2026-10-26T14:24:37Z",
             "first_seen_at": "2026-10-17T11:41:12Z",
-            "last_seen_at": "2026-10-25T12:38:46Z",
+            "last_seen_at": "2026-10-26T14:24:37Z",
             "last_changed_at": "2026-10-17T11:41:12Z",
             "change_kind": "baseline",
             "previous_hashes": [],
@@ -3255,9 +3255,9 @@
             "published_at": "2026-08-14T18:30:12Z",
             "source_edited_at": null,
             "content_sha256": "43ed8503dcfffc8e83176237a9d40c53313a381a2e1726d5fbce6b5e7a8b2830",
-            "authority_checked_at": "2026-10-25T12:38:46Z",
+            "authority_checked_at": "2026-10-26T14:24:37Z",
             "first_seen_at": "2026-10-17T11:41:12Z",
-            "last_seen_at": "2026-10-25T12:38:46Z",
+            "last_seen_at": "2026-10-26T14:24:37Z",
             "last_changed_at": "2026-10-17T11:41:12Z",
             "change_kind": "baseline",
             "previous_hashes": [],
@@ -3273,9 +3273,9 @@
             "published_at": "2026-08-14T14:26:07Z",
             "source_edited_at": null,
             "content_sha256": "1dd3323d7151b9fc30268702ee5df675769d913c756e664b75546aa748ec315a",
-            "authority_checked_at": "2026-10-25T12:38:46Z",
+            "authority_checked_at": "2026-10-26T14:24:37Z",
             "first_seen_at": "2026-10-17T11:41:12Z",
-            "last_seen_at": "2026-10-25T12:38:46Z",
+            "last_seen_at": "2026-10-26T14:24:37Z",
             "last_changed_at": "2026-10-17T11:41:12Z",
             "change_kind": "baseline",
             "previous_hashes": [],
@@ -3291,9 +3291,9 @@
             "published_at": "2026-08-14T12:33:15Z",
             "source_edited_at": null,
             "content_sha256": "75d082a70f5c2c07d3eb580e4dacacf3ace54a36fb41ac60d08fe800ead22fc1",
-            "authority_checked_at": "2026-10-25T12:38:46Z",
+            "authority_checked_at": "2026-10-26T14:24:37Z",
             "first_seen_at": "2026-10-17T11:41:12Z",
-            "last_seen_at": "2026-10-25T12:38:46Z",
+            "last_seen_at": "2026-10-26T14:24:37Z",
             "last_changed_at": "2026-10-17T11:41:12Z",
             "change_kind": "baseline",
             "previous_hashes": [],
@@ -3309,9 +3309,9 @@
             "published_at": "2026-08-14T09:58:45Z",
             "source_edited_at": null,
             "content_sha256": "de0e774c386002b39a2671f52c42a89040cee242d2dc907db1fa61f9cbb2381b",
-            "authority_checked_at": "2026-10-25T12:38:46Z",
+            "authority_checked_at": "2026-10-26T14:24:37Z",
             "first_seen_at": "2026-10-17T11:41:12Z",
-            "last_seen_at": "2026-10-25T12:38:46Z",
+            "last_seen_at": "2026-10-26T14:24:37Z",
             "last_changed_at": "2026-10-17T11:41:12Z",
             "change_kind": "baseline",
             "previous_hashes": [],
@@ -3327,9 +3327,9 @@
             "published_at": "2026-08-13T18:38:19Z",
             "source_edited_at": null,
             "content_sha256": "6d8326c950fc6fd7157f10d78961d7ad640c39ad87532035b61a40aa613f267f",
-            "authority_checked_at": "2026-10-25T12:38:46Z",
+            "authority_checked_at": "2026-10-26T14:24:37Z",
             "first_seen_at": "2026-10-17T11:41:12Z",
-            "last_seen_at": "2026-10-25T12:38:46Z",
+            "last_seen_at": "2026-10-26T14:24:37Z",
             "last_changed_at": "2026-10-17T11:41:12Z",
             "change_kind": "baseline",
             "previous_hashes": [],
@@ -3345,9 +3345,9 @@
             "published_at": "2026-08-13T16:38:59Z",
             "source_edited_at": null,
             "content_sha256": "b0f0670e191406ba6bc83dae99a362f056f6ed4321b66c81834454a6e3a2960d",
-            "authority_checked_at": "2026-10-25T12:38:46Z",
+            "authority_checked_at": "2026-10-26T14:24:37Z",
             "first_seen_at": "2026-10-17T11:41:12Z",
-            "last_seen_at": "2026-10-25T12:38:46Z",
+            "last_seen_at": "2026-10-26T14:24:37Z",
             "last_changed_at": "2026-10-17T11:41:12Z",
             "change_kind": "baseline",
             "previous_hashes": [],
@@ -3369,8 +3369,8 @@
         "pages_expected": 3,
         "comments_seen": 37,
         "comments_expected": 37,
-        "last_attempt_at": "2026-10-25T12:38:46Z",
-        "last_complete_at": "2026-10-25T12:38:46Z",
+        "last_attempt_at": "2026-10-26T14:24:37Z",
+        "last_complete_at": "2026-10-26T14:24:37Z",
         "baseline_at": "2026-10-15T14:09:31Z",
         "replies": [
           {
@@ -3383,9 +3383,9 @@
             "published_at": "2026-08-31T14:14:23Z",
             "source_edited_at": null,
             "content_sha256": "368b1c73297458ebd6a3f315746d79d3c8e5c913a41ed9524e26d5a4f45bdf40",
-            "authority_checked_at": "2026-10-25T12:38:46Z",
+            "authority_checked_at": "2026-10-26T14:24:37Z",
             "first_seen_at": "2026-10-15T14:09:31Z",
-            "last_seen_at": "2026-10-25T12:38:46Z",
+            "last_seen_at": "2026-10-26T14:24:37Z",
             "last_changed_at": "2026-10-15T14:09:31Z",
             "change_kind": "baseline",
             "previous_hashes": [],
@@ -3402,9 +3402,9 @@
             "published_at": "2026-08-21T12:48:14Z",
             "source_edited_at": null,
             "content_sha256": "c847f3b05fae231dbbc42c7f9b4bf4c9369556dc418abe8680cd50be94dda8c9",
-            "authority_checked_at": "2026-10-25T12:38:46Z",
+            "authority_checked_at": "2026-10-26T14:24:37Z",
             "first_seen_at": "2026-10-15T14:09:31Z",
-            "last_seen_at": "2026-10-25T12:38:46Z",
+            "last_seen_at": "2026-10-26T14:24:37Z",
             "last_changed_at": "2026-10-15T14:09:31Z",
             "change_kind": "baseline",
             "previous_hashes": [],
@@ -3420,9 +3420,9 @@
             "published_at": "2026-08-17T11:11:47Z",
             "source_edited_at": null,
             "content_sha256": "dff9207d77e2aefc9392107ae985349c0fcb21b5d7d7eda586a83f65a6f070be",
-            "authority_checked_at": "2026-10-25T12:38:46Z",
+            "authority_checked_at": "2026-10-26T14:24:37Z",
             "first_seen_at": "2026-10-15T14:09:31Z",
-            "last_seen_at": "2026-10-25T12:38:46Z",
+            "last_seen_at": "2026-10-26T14:24:37Z",
             "last_changed_at": "2026-10-15T14:09:31Z",
             "change_kind": "baseline",
             "previous_hashes": [],
@@ -3438,9 +3438,9 @@
             "published_at": "2026-08-15T19:21:28Z",
             "source_edited_at": null,
             "content_sha256": "36cde1c5b4975ae062f7b4e0db01eaae88cdbdbb6dd49830b5bc3a6b202c89d5",
-            "authority_checked_at": "2026-10-25T12:38:46Z",
+            "authority_checked_at": "2026-10-26T14:24:37Z",
             "first_seen_at": "2026-10-15T14:09:31Z",
-            "last_seen_at": "2026-10-25T12:38:46Z",
+            "last_seen_at": "2026-10-26T14:24:37Z",
             "last_changed_at": "2026-10-15T14:09:31Z",
             "change_kind": "baseline",
             "previous_hashes": [],
@@ -3456,9 +3456,9 @@
             "published_at": "2026-08-14T20:46:29Z",
             "source_edited_at": null,
             "content_sha256": "60b8624fb07111999f48c015b4159b30cf7abcfe43bb405dd7b86f3f7cfdbf8d",
-            "authority_checked_at": "2026-10-25T12:38:46Z",
+            "authority_checked_at": "2026-10-26T14:24:37Z",
             "first_seen_at": "2026-10-15T14:09:31Z",
-            "last_seen_at": "2026-10-25T12:38:46Z",
+            "last_seen_at": "2026-10-26T14:24:37Z",
             "last_changed_at": "2026-10-15T14:09:31Z",
             "change_kind": "baseline",
             "previous_hashes": [],
@@ -3474,9 +3474,9 @@
             "published_at": "2026-08-14T10:26:50Z",
             "source_edited_at": "2026-08-14T10:27:03Z",
             "content_sha256": "31021d0c1a34d1556923c2f1528e7caa4ca88ed917716ceb1096f5120c038005",
-            "authority_checked_at": "2026-10-25T12:38:46Z",
+            "authority_checked_at": "2026-10-26T14:24:37Z",
             "first_seen_at": "2026-10-15T14:09:31Z",
-            "last_seen_at": "2026-10-25T12:38:46Z",
+            "last_seen_at": "2026-10-26T14:24:37Z",
             "last_changed_at": "2026-10-15T14:09:31Z",
             "change_kind": "baseline",
             "previous_hashes": [],
@@ -3498,8 +3498,8 @@
         "pages_expected": 1,
         "comments_seen": 1,
         "comments_expected": 1,
-        "last_attempt_at": "2026-10-25T12:38:46Z",
-        "last_complete_at": "2026-10-25T12:38:46Z",
+        "last_attempt_at": "2026-10-26T14:24:37Z",
+        "last_complete_at": "2026-10-26T14:24:37Z",
         "baseline_at": "2026-10-15T14:09:31Z",
         "replies": [
           {
@@ -3512,9 +3512,9 @@
             "published_at": "2026-08-15T16:12:57Z",
             "source_edited_at": null,
             "content_sha256": "2fd21ec84bc9c1c14f50fd4caeb1c530ada1415131d092f4241cc172910cbe13",
-            "authority_checked_at": "2026-10-25T12:38:46Z",
+            "authority_checked_at": "2026-10-26T14:24:37Z",
             "first_seen_at": "2026-10-15T14:09:31Z",
-            "last_seen_at": "2026-10-25T12:38:46Z",
+            "last_seen_at": "2026-10-26T14:24:37Z",
             "last_changed_at": "2026-10-15T14:09:31Z",
             "change_kind": "baseline",
             "previous_hashes": [],
@@ -3537,8 +3537,8 @@
         "pages_expected": 1,
         "comments_seen": 1,
         "comments_expected": 1,
-        "last_attempt_at": "2026-10-25T12:38:46Z",
-        "last_complete_at": "2026-10-25T12:38:46Z",
+        "last_attempt_at": "2026-10-26T14:24:37Z",
+        "last_complete_at": "2026-10-26T14:24:37Z",
         "baseline_at": "2026-10-15T14:09:31Z",
         "replies": [
           {
@@ -3551,9 +3551,9 @@
             "published_at": "2026-08-18T08:35:12Z",
             "source_edited_at": null,
             "content_sha256": "febf8c4cbe1692e019a034e27e823580e374158e3d57ff607959fc7d0a9811dd",
-            "authority_checked_at": "2026-10-25T12:38:46Z",
+            "authority_checked_at": "2026-10-26T14:24:37Z",
             "first_seen_at": "2026-10-15T14:09:31Z",
-            "last_seen_at": "2026-10-25T12:38:46Z",
+            "last_seen_at": "2026-10-26T14:24:37Z",
             "last_changed_at": "2026-10-15T14:09:31Z",
             "change_kind": "baseline",
             "previous_hashes": [],
@@ -3576,8 +3576,8 @@
         "pages_expected": 2,
         "comments_seen": 17,
         "comments_expected": 17,
-        "last_attempt_at": "2026-10-25T12:38:46Z",
-        "last_complete_at": "2026-10-25T12:38:46Z",
+        "last_attempt_at": "2026-10-26T14:24:37Z",
+        "last_complete_at": "2026-10-26T14:24:37Z",
         "baseline_at": "2026-10-15T14:09:31Z",
         "replies": [
           {
@@ -3590,9 +3590,9 @@
             "published_at": "2026-08-31T13:23:20Z",
             "source_edited_at": null,
             "content_sha256": "f9c3fbc035d8c8ab87fd66fe222bea15a809b20eeeec3c9631235859b30761ff",
-            "authority_checked_at": "2026-10-25T12:38:46Z",
+            "authority_checked_at": "2026-10-26T14:24:37Z",
             "first_seen_at": "2026-10-15T14:09:31Z",
-            "last_seen_at": "2026-10-25T12:38:46Z",
+            "last_seen_at": "2026-10-26T14:24:37Z",
             "last_changed_at": "2026-10-15T14:09:31Z",
             "change_kind": "baseline",
             "previous_hashes": [],
@@ -3609,9 +3609,9 @@
             "published_at": "2026-08-27T07:52:58Z",
             "source_edited_at": null,
             "content_sha256": "579da52a5d7b48ca6614c18f6fb441f741579f31a1d57433e0651c0eb6b22476",
-            "authority_checked_at": "2026-10-25T12:38:46Z",
+            "authority_checked_at": "2026-10-26T14:24:37Z",
             "first_seen_at": "2026-10-15T14:09:31Z",
-            "last_seen_at": "2026-10-25T12:38:46Z",
+            "last_seen_at": "2026-10-26T14:24:37Z",
             "last_changed_at": "2026-10-15T14:09:31Z",
             "change_kind": "baseline",
             "previous_hashes": [],
@@ -3627,9 +3627,9 @@
             "published_at": "2026-08-24T08:30:37Z",
             "source_edited_at": null,
             "content_sha256": "e887eaaee169a1c9179b6bcbc287f084de7bc7c550ad69ea0b7ae0ced0cf6562",
-            "authority_checked_at": "2026-10-25T12:38:46Z",
+            "authority_checked_at": "2026-10-26T14:24:37Z",
             "first_seen_at": "2026-10-15T14:09:31Z",
-            "last_seen_at": "2026-10-25T12:38:46Z",
+            "last_seen_at": "2026-10-26T14:24:37Z",
             "last_changed_at": "2026-10-15T14:09:31Z",
             "change_kind": "baseline",
             "previous_hashes": [],
@@ -3645,9 +3645,9 @@
             "published_at": "2026-08-18T13:13:37Z",
             "source_edited_at": null,
             "content_sha256": "9e5015a42161f931adaffd56bd1df5b0afa3ee8e403ecce6f0ef57b48bf2e477",
-            "authority_checked_at": "2026-10-25T12:38:46Z",
+            "authority_checked_at": "2026-10-26T14:24:37Z",
             "first_seen_at": "2026-10-15T14:09:31Z",
-            "last_seen_at": "2026-10-25T12:38:46Z",
+            "last_seen_at": "2026-10-26T14:24:37Z",
             "last_changed_at": "2026-10-15T14:09:31Z",
             "change_kind": "baseline",
             "previous_hashes": [],
@@ -3663,9 +3663,9 @@
             "published_at": "2026-08-18T09:15:33Z",
             "source_edited_at": null,
             "content_sha256": "eed7fb680d2eed7cdd1d54f4ca1741eb5f02507c9ce5aa30cf0359c5bf821590",
-            "authority_checked_at": "2026-10-25T12:38:46Z",
+            "authority_checked_at": "2026-10-26T14:24:37Z",
             "first_seen_at": "2026-10-15T14:09:31Z",
-            "last_seen_at": "2026-10-25T12:38:46Z",
+            "last_seen_at": "2026-10-26T14:24:37Z",
             "last_changed_at": "2026-10-15T14:09:31Z",
             "change_kind": "baseline",
             "previous_hashes": [],
@@ -3681,9 +3681,9 @@
             "published_at": "2026-08-15T19:05:24Z",
             "source_edited_at": null,
             "content_sha256": "c7379cf1f93c0edbaaa5aca96ef9848c2ebf7f33f02535e81af6e4f379b4e332",
-            "authority_checked_at": "2026-10-25T12:38:46Z",
+            "authority_checked_at": "2026-10-26T14:24:37Z",
             "first_seen_at": "2026-10-15T14:09:31Z",
-            "last_seen_at": "2026-10-25T12:38:46Z",
+            "last_seen_at": "2026-10-26T14:24:37Z",
             "last_changed_at": "2026-10-15T14:09:31Z",
             "change_kind": "baseline",
             "previous_hashes": [],
@@ -3699,9 +3699,9 @@
             "published_at": "2026-06-02T07:44:29Z",
             "source_edited_at": null,
             "content_sha256": "639be9c47e8f597c3833beedd402526b333b957e2e8a8fa1c8afa8fac0a85605",
-            "authority_checked_at": "2026-10-25T12:38:46Z",
+            "authority_checked_at": "2026-10-26T14:24:37Z",
             "first_seen_at": "2026-10-15T14:09:31Z",
-            "last_seen_at": "2026-10-25T12:38:46Z",
+            "last_seen_at": "2026-10-26T14:24:37Z",
             "last_changed_at": "2026-10-15T14:09:31Z",
             "change_kind": "baseline",
             "previous_hashes": [],
@@ -3717,9 +3717,9 @@
             "published_at": "2026-06-01T08:24:55Z",
             "source_edited_at": null,
             "content_sha256": "d4aaedb5fa6ae527ee0400627a472b5ed1aa666ff1b1f15269b672764e7e00bb",
-            "authority_checked_at": "2026-10-25T12:38:46Z",
+            "authority_checked_at": "2026-10-26T14:24:37Z",
             "first_seen_at": "2026-10-15T14:09:31Z",
-            "last_seen_at": "2026-10-25T12:38:46Z",
+            "last_seen_at": "2026-10-26T14:24:37Z",
             "last_changed_at": "2026-10-15T14:09:31Z",
             "change_kind": "baseline",
             "previous_hashes": [],
@@ -3737,7 +3737,7 @@
       "scope": "First two recently active listing pages per forum, plus rotating retained discoveries. Not all Steam discussions; staff replies only, not opening posts.",
       "state": "partial",
       "monitoring_started_at": "2026-10-15T15:18:14Z",
-      "last_attempt_at": "2026-10-25T12:38:46Z",
+      "last_attempt_at": "2026-10-26T14:24:37Z",
       "last_window_complete_at": null,
       "pages_per_forum": 2,
       "thread_limit_per_pass": 24,
@@ -3749,9 +3749,9 @@
           "state": "window_checked",
           "pages_checked": 2,
           "pages_planned": 2,
-          "total_forum_topics": 285,
+          "total_forum_topics": 286,
           "failure_kind": null,
-          "last_attempt_at": "2026-10-25T12:38:46Z"
+          "last_attempt_at": "2026-10-26T14:24:37Z"
         },
         {
           "forum": "0",
@@ -3760,25 +3760,25 @@
           "state": "window_checked",
           "pages_checked": 2,
           "pages_planned": 2,
-          "total_forum_topics": 272,
+          "total_forum_topics": 274,
           "failure_kind": null,
-          "last_attempt_at": "2026-10-25T12:38:46Z"
+          "last_attempt_at": "2026-10-26T14:24:37Z"
         }
       ],
       "listed_distinct_threads": 60,
-      "new_candidates_this_run": 4,
-      "candidate_count": 98,
-      "eligible_candidates": 77,
-      "zero_reply_leads_not_scanned": 21,
+      "new_candidates_this_run": 6,
+      "candidate_count": 104,
+      "eligible_candidates": 80,
+      "zero_reply_leads_not_scanned": 24,
       "threads_attempted_this_run": 24,
-      "threads_complete_this_run": 24,
+      "threads_complete_this_run": 23,
       "awaiting_first_complete_scan": 0,
-      "not_fully_scanned_this_run": 53,
+      "not_fully_scanned_this_run": 57,
       "unqualified_leads_expired_or_capped": 0,
       "staff_response_threads_retained": 17,
       "staff_responses_retained": 30,
       "identities_pending": 1,
-      "new_replies_this_run": 10,
+      "new_replies_this_run": 0,
       "edited_replies_this_run": 0,
       "candidates": [
         {
@@ -3809,11 +3809,11 @@
           "url": "https://steamcommunity.com/app/3079210/discussions/0/562542339336393457/",
           "title": "1300 players on steam a saturday morning lmao",
           "forum": "0",
-          "listed_reply_count": 65,
-          "listed_last_activity_at": "2026-10-24T01:37:35Z",
+          "listed_reply_count": 69,
+          "listed_last_activity_at": "2026-10-26T10:50:51Z",
           "pinned": false,
           "first_discovered_at": "2026-10-15T15:18:14Z",
-          "last_seen_in_listing_at": "2026-10-25T12:38:46Z",
+          "last_seen_in_listing_at": "2026-10-26T14:24:37Z",
           "last_attempt_at": "2026-10-24T12:05:47Z",
           "last_complete_at": "2026-10-24T12:05:47Z"
         },
@@ -3850,8 +3850,8 @@
           "pinned": false,
           "first_discovered_at": "2026-10-21T13:01:30Z",
           "last_seen_in_listing_at": "2026-10-23T12:41:59Z",
-          "last_attempt_at": "2026-10-23T12:41:59Z",
-          "last_complete_at": "2026-10-23T12:41:59Z"
+          "last_attempt_at": "2026-10-26T14:24:37Z",
+          "last_complete_at": "2026-10-26T14:24:37Z"
         },
         {
           "url": "https://steamcommunity.com/app/3079210/discussions/0/562545439722762736/",
@@ -3862,18 +3862,18 @@
           "pinned": false,
           "first_discovered_at": "2026-10-21T13:01:30Z",
           "last_seen_in_listing_at": "2026-10-24T12:05:47Z",
-          "last_attempt_at": "2026-10-23T12:41:59Z",
-          "last_complete_at": "2026-10-23T12:41:59Z"
+          "last_attempt_at": "2026-10-26T14:24:37Z",
+          "last_complete_at": "2026-10-26T14:24:37Z"
         },
         {
           "url": "https://steamcommunity.com/app/3079210/discussions/0/562545439722770363/",
           "title": "The Microphone mafia",
           "forum": "0",
-          "listed_reply_count": 12,
-          "listed_last_activity_at": "2026-10-24T01:16:25Z",
+          "listed_reply_count": 16,
+          "listed_last_activity_at": "2026-10-26T13:35:58Z",
           "pinned": false,
           "first_discovered_at": "2026-10-22T13:02:53Z",
-          "last_seen_in_listing_at": "2026-10-25T12:38:46Z",
+          "last_seen_in_listing_at": "2026-10-26T14:24:37Z",
           "last_attempt_at": "2026-10-24T12:05:47Z",
           "last_complete_at": "2026-10-24T12:05:47Z"
         },
@@ -3885,7 +3885,7 @@
           "listed_last_activity_at": "2026-10-21T20:52:48Z",
           "pinned": false,
           "first_discovered_at": "2026-10-22T13:02:53Z",
-          "last_seen_in_listing_at": "2026-10-25T12:38:46Z",
+          "last_seen_in_listing_at": "2026-10-26T14:24:37Z",
           "last_attempt_at": "2026-10-25T12:38:46Z",
           "last_complete_at": "2026-10-25T12:38:46Z"
         },
@@ -3907,7 +3907,7 @@
           "listed_last_activity_at": "2026-10-22T05:51:49Z",
           "pinned": false,
           "first_discovered_at": "2026-10-22T13:02:53Z",
-          "last_seen_in_listing_at": "2026-10-25T12:38:46Z",
+          "last_seen_in_listing_at": "2026-10-26T14:24:37Z",
           "last_attempt_at": "2026-10-24T12:05:47Z",
           "last_complete_at": "2026-10-24T12:05:47Z"
         },
@@ -3953,7 +3953,7 @@
           "listed_last_activity_at": "2026-10-21T22:26:52Z",
           "pinned": false,
           "first_discovered_at": "2026-10-22T13:02:53Z",
-          "last_seen_in_listing_at": "2026-10-25T12:38:46Z",
+          "last_seen_in_listing_at": "2026-10-26T14:24:37Z",
           "last_attempt_at": "2026-10-25T12:38:46Z",
           "last_complete_at": "2026-10-25T12:38:46Z"
         },
@@ -3965,7 +3965,7 @@
           "listed_last_activity_at": "2026-10-21T22:28:32Z",
           "pinned": false,
           "first_discovered_at": "2026-10-22T13:02:53Z",
-          "last_seen_in_listing_at": "2026-10-25T12:38:46Z"
+          "last_seen_in_listing_at": "2026-10-26T14:24:37Z"
         },
         {
           "url": "https://steamcommunity.com/app/3079210/discussions/0/562545439722848313/",
@@ -3981,13 +3981,13 @@
           "url": "https://steamcommunity.com/app/3079210/discussions/0/562545439722849446/",
           "title": "Still can't shot helis pilots? WHAT A JOKE! xD",
           "forum": "0",
-          "listed_reply_count": 9,
-          "listed_last_activity_at": "2026-10-23T15:22:03Z",
+          "listed_reply_count": 11,
+          "listed_last_activity_at": "2026-10-26T01:40:20Z",
           "pinned": false,
           "first_discovered_at": "2026-10-22T13:02:53Z",
-          "last_seen_in_listing_at": "2026-10-25T12:38:46Z",
-          "last_attempt_at": "2026-10-23T12:41:59Z",
-          "last_complete_at": "2026-10-23T12:41:59Z"
+          "last_seen_in_listing_at": "2026-10-26T14:24:37Z",
+          "last_attempt_at": "2026-10-26T14:24:37Z",
+          "last_complete_at": "2026-10-26T14:24:37Z"
         },
         {
           "url": "https://steamcommunity.com/app/3079210/discussions/0/562545439722872306/",
@@ -3997,21 +3997,21 @@
           "listed_last_activity_at": "2026-10-22T21:27:48Z",
           "pinned": false,
           "first_discovered_at": "2026-10-22T13:02:53Z",
-          "last_seen_in_listing_at": "2026-10-25T12:38:46Z",
-          "last_attempt_at": "2026-10-23T12:41:59Z",
-          "last_complete_at": "2026-10-23T12:41:59Z"
+          "last_seen_in_listing_at": "2026-10-26T14:24:37Z",
+          "last_attempt_at": "2026-10-26T14:24:37Z",
+          "last_complete_at": "2026-10-26T14:24:37Z"
         },
         {
           "url": "https://steamcommunity.com/app/3079210/discussions/0/562545439722902101/",
           "title": "GIVE ME MY",
           "forum": "0",
-          "listed_reply_count": 18,
-          "listed_last_activity_at": "2026-10-25T10:02:55Z",
+          "listed_reply_count": 21,
+          "listed_last_activity_at": "2026-10-26T10:42:05Z",
           "pinned": false,
           "first_discovered_at": "2026-10-23T12:41:59Z",
-          "last_seen_in_listing_at": "2026-10-25T12:38:46Z",
-          "last_attempt_at": "2026-10-23T12:41:59Z",
-          "last_complete_at": "2026-10-23T12:41:59Z"
+          "last_seen_in_listing_at": "2026-10-26T14:24:37Z",
+          "last_attempt_at": "2026-10-26T14:24:37Z",
+          "last_complete_at": "2026-10-26T14:24:37Z"
         },
         {
           "url": "https://steamcommunity.com/app/3079210/discussions/0/562545439722925132/",
@@ -4021,9 +4021,9 @@
           "listed_last_activity_at": "2026-10-23T19:21:53Z",
           "pinned": false,
           "first_discovered_at": "2026-10-23T12:41:59Z",
-          "last_seen_in_listing_at": "2026-10-25T12:38:46Z",
-          "last_attempt_at": "2026-10-23T12:41:59Z",
-          "last_complete_at": "2026-10-23T12:41:59Z"
+          "last_seen_in_listing_at": "2026-10-26T14:24:37Z",
+          "last_attempt_at": "2026-10-26T14:24:37Z",
+          "last_complete_at": "2026-10-26T14:24:37Z"
         },
         {
           "url": "https://steamcommunity.com/app/3079210/discussions/0/562545439722946790/",
@@ -4033,9 +4033,9 @@
           "listed_last_activity_at": "2026-10-23T21:52:50Z",
           "pinned": false,
           "first_discovered_at": "2026-10-23T12:41:59Z",
-          "last_seen_in_listing_at": "2026-10-25T12:38:46Z",
-          "last_attempt_at": "2026-10-23T12:41:59Z",
-          "last_complete_at": "2026-10-23T12:41:59Z"
+          "last_seen_in_listing_at": "2026-10-26T14:24:37Z",
+          "last_attempt_at": "2026-10-26T14:24:37Z",
+          "last_complete_at": "2026-10-26T14:24:37Z"
         },
         {
           "url": "https://steamcommunity.com/app/3079210/discussions/0/562545439722979728/",
@@ -4055,17 +4055,17 @@
           "listed_last_activity_at": "2026-10-21T23:36:45Z",
           "pinned": false,
           "first_discovered_at": "2026-10-24T12:05:47Z",
-          "last_seen_in_listing_at": "2026-10-25T12:38:46Z"
+          "last_seen_in_listing_at": "2026-10-26T14:24:37Z"
         },
         {
           "url": "https://steamcommunity.com/app/3079210/discussions/0/562545439723002452/",
           "title": "DLSS option missing after Update 1.7",
           "forum": "0",
-          "listed_reply_count": 3,
-          "listed_last_activity_at": "2026-10-23T18:58:43Z",
+          "listed_reply_count": 5,
+          "listed_last_activity_at": "2026-10-25T22:20:02Z",
           "pinned": false,
           "first_discovered_at": "2026-10-24T12:05:47Z",
-          "last_seen_in_listing_at": "2026-10-25T12:38:46Z",
+          "last_seen_in_listing_at": "2026-10-26T14:24:37Z",
           "last_attempt_at": "2026-10-24T12:05:47Z",
           "last_complete_at": "2026-10-24T12:05:47Z"
         },
@@ -4073,11 +4073,11 @@
           "url": "https://steamcommunity.com/app/3079210/discussions/0/562545439723021820/",
           "title": "i lvoe the game",
           "forum": "0",
-          "listed_reply_count": 1,
-          "listed_last_activity_at": "2026-10-25T02:30:38Z",
+          "listed_reply_count": 5,
+          "listed_last_activity_at": "2026-10-26T13:39:41Z",
           "pinned": false,
           "first_discovered_at": "2026-10-24T12:05:47Z",
-          "last_seen_in_listing_at": "2026-10-25T12:38:46Z",
+          "last_seen_in_listing_at": "2026-10-26T14:24:37Z",
           "last_attempt_at": "2026-10-25T12:38:46Z",
           "last_complete_at": "2026-10-25T12:38:46Z"
         },
@@ -4089,7 +4089,63 @@
           "listed_last_activity_at": "2026-10-25T08:40:26Z",
           "pinned": false,
           "first_discovered_at": "2026-10-25T12:38:46Z",
-          "last_seen_in_listing_at": "2026-10-25T12:38:46Z"
+          "last_seen_in_listing_at": "2026-10-26T14:24:37Z"
+        },
+        {
+          "url": "https://steamcommunity.com/app/3079210/discussions/0/562545740485916854/",
+          "title": "They broke mortar pits again",
+          "forum": "0",
+          "listed_reply_count": 0,
+          "listed_last_activity_at": "2026-10-25T17:50:09Z",
+          "pinned": false,
+          "first_discovered_at": "2026-10-26T14:24:37Z",
+          "last_seen_in_listing_at": "2026-10-26T14:24:37Z"
+        },
+        {
+          "url": "https://steamcommunity.com/app/3079210/discussions/0/562545740485918076/",
+          "title": "Vietnam (The Game) Had a Good Run...",
+          "forum": "0",
+          "listed_reply_count": 9,
+          "listed_last_activity_at": "2026-10-26T10:54:15Z",
+          "pinned": false,
+          "first_discovered_at": "2026-10-26T14:24:37Z",
+          "last_seen_in_listing_at": "2026-10-26T14:24:37Z",
+          "last_attempt_at": "2026-10-26T14:24:37Z",
+          "last_complete_at": "2026-10-26T14:24:37Z"
+        },
+        {
+          "url": "https://steamcommunity.com/app/3079210/discussions/0/562545740485958369/",
+          "title": "Path not found!",
+          "forum": "0",
+          "listed_reply_count": 2,
+          "listed_last_activity_at": "2026-10-26T12:14:42Z",
+          "pinned": false,
+          "first_discovered_at": "2026-10-26T14:24:37Z",
+          "last_seen_in_listing_at": "2026-10-26T14:24:37Z",
+          "last_attempt_at": "2026-10-26T14:24:37Z",
+          "last_complete_at": "2026-10-26T14:24:37Z"
+        },
+        {
+          "url": "https://steamcommunity.com/app/3079210/discussions/0/562545740485968410/",
+          "title": "Performance",
+          "forum": "0",
+          "listed_reply_count": 4,
+          "listed_last_activity_at": "2026-10-26T10:43:49Z",
+          "pinned": false,
+          "first_discovered_at": "2026-10-26T14:24:37Z",
+          "last_seen_in_listing_at": "2026-10-26T14:24:37Z",
+          "last_attempt_at": "2026-10-26T14:24:37Z",
+          "last_complete_at": "2026-10-26T14:24:37Z"
+        },
+        {
+          "url": "https://steamcommunity.com/app/3079210/discussions/0/562545740485985749/",
+          "title": "New bug just dropped",
+          "forum": "0",
+          "listed_reply_count": 0,
+          "listed_last_activity_at": "2026-10-26T13:33:08Z",
+          "pinned": false,
+          "first_discovered_at": "2026-10-26T14:24:37Z",
+          "last_seen_in_listing_at": "2026-10-26T14:24:37Z"
         },
         {
           "url": "https://steamcommunity.com/app/3079210/discussions/0/570426104667493382/",
@@ -4111,7 +4167,7 @@
           "listed_last_activity_at": "2026-10-21T20:57:19Z",
           "pinned": false,
           "first_discovered_at": "2026-10-15T15:18:14Z",
-          "last_seen_in_listing_at": "2026-10-25T12:38:46Z",
+          "last_seen_in_listing_at": "2026-10-26T14:24:37Z",
           "last_attempt_at": "2026-10-25T12:38:46Z",
           "last_complete_at": "2026-10-25T12:38:46Z"
         },
@@ -4124,8 +4180,8 @@
           "pinned": false,
           "first_discovered_at": "2026-10-15T15:18:14Z",
           "last_seen_in_listing_at": "2026-10-20T12:48:26Z",
-          "last_attempt_at": "2026-10-23T12:41:59Z",
-          "last_complete_at": "2026-10-23T12:41:59Z"
+          "last_attempt_at": "2026-10-26T14:24:37Z",
+          "last_complete_at": "2026-10-26T14:24:37Z"
         },
         {
           "url": "https://steamcommunity.com/app/3079210/discussions/0/570426104667542525/",
@@ -4136,8 +4192,8 @@
           "pinned": false,
           "first_discovered_at": "2026-10-15T15:18:14Z",
           "last_seen_in_listing_at": "2026-10-20T12:48:26Z",
-          "last_attempt_at": "2026-10-22T13:02:53Z",
-          "last_complete_at": "2026-10-22T13:02:53Z"
+          "last_attempt_at": "2026-10-26T14:24:37Z",
+          "last_complete_at": "2026-10-26T14:24:37Z"
         },
         {
           "url": "https://steamcommunity.com/app/3079210/discussions/0/570426104667593901/",
@@ -4157,9 +4213,9 @@
           "listed_last_activity_at": "2026-10-22T12:10:44Z",
           "pinned": false,
           "first_discovered_at": "2026-10-16T12:33:17Z",
-          "last_seen_in_listing_at": "2026-10-25T12:38:46Z",
-          "last_attempt_at": "2026-10-23T12:41:59Z",
-          "last_complete_at": "2026-10-23T12:41:59Z"
+          "last_seen_in_listing_at": "2026-10-26T14:24:37Z",
+          "last_attempt_at": "2026-10-26T14:24:37Z",
+          "last_complete_at": "2026-10-26T14:24:37Z"
         },
         {
           "url": "https://steamcommunity.com/app/3079210/discussions/0/570426339809579397/",
@@ -4228,8 +4284,8 @@
           "pinned": false,
           "first_discovered_at": "2026-10-19T14:46:59Z",
           "last_seen_in_listing_at": "2026-10-22T13:02:53Z",
-          "last_attempt_at": "2026-10-23T12:41:59Z",
-          "last_complete_at": "2026-10-23T12:41:59Z"
+          "last_attempt_at": "2026-10-26T14:24:37Z",
+          "last_complete_at": "2026-10-26T14:24:37Z"
         },
         {
           "url": "https://steamcommunity.com/app/3079210/discussions/0/570426530135651859/",
@@ -4252,8 +4308,8 @@
           "pinned": false,
           "first_discovered_at": "2026-10-20T12:48:26Z",
           "last_seen_in_listing_at": "2026-10-22T13:02:53Z",
-          "last_attempt_at": "2026-10-23T12:41:59Z",
-          "last_complete_at": "2026-10-23T12:41:59Z"
+          "last_attempt_at": "2026-10-26T14:24:37Z",
+          "last_complete_at": "2026-10-26T14:24:37Z"
         },
         {
           "url": "https://steamcommunity.com/app/3079210/discussions/0/570426530135696305/",
@@ -4263,7 +4319,7 @@
           "listed_last_activity_at": "2026-10-22T05:08:27Z",
           "pinned": false,
           "first_discovered_at": "2026-10-20T12:48:26Z",
-          "last_seen_in_listing_at": "2026-10-25T12:38:46Z",
+          "last_seen_in_listing_at": "2026-10-26T14:24:37Z",
           "last_attempt_at": "2026-10-24T12:05:47Z",
           "last_complete_at": "2026-10-24T12:05:47Z"
         },
@@ -4310,8 +4366,8 @@
           "pinned": false,
           "first_discovered_at": "2026-10-15T15:18:14Z",
           "last_seen_in_listing_at": "2026-10-19T14:46:59Z",
-          "last_attempt_at": "2026-10-23T12:41:59Z",
-          "last_complete_at": "2026-10-23T12:41:59Z"
+          "last_attempt_at": "2026-10-26T14:24:37Z",
+          "last_complete_at": "2026-10-26T14:24:37Z"
         },
         {
           "url": "https://steamcommunity.com/app/3079210/discussions/0/590691034935186856/",
@@ -4321,7 +4377,7 @@
           "listed_last_activity_at": "2026-10-21T21:40:33Z",
           "pinned": false,
           "first_discovered_at": "2026-10-22T13:02:53Z",
-          "last_seen_in_listing_at": "2026-10-25T12:38:46Z",
+          "last_seen_in_listing_at": "2026-10-26T14:24:37Z",
           "last_attempt_at": "2026-10-25T12:38:46Z",
           "last_complete_at": "2026-10-25T12:38:46Z"
         },
@@ -4358,18 +4414,18 @@
           "pinned": false,
           "first_discovered_at": "2026-10-18T12:06:54Z",
           "last_seen_in_listing_at": "2026-10-21T13:01:30Z",
-          "last_attempt_at": "2026-10-22T13:02:53Z",
-          "last_complete_at": "2026-10-22T13:02:53Z"
+          "last_attempt_at": "2026-10-26T14:24:37Z",
+          "last_complete_at": "2026-10-26T14:24:37Z"
         },
         {
           "url": "https://steamcommunity.com/app/3079210/discussions/0/590691669350816291/",
           "title": "Endless crashing since last update",
           "forum": "0",
-          "listed_reply_count": 9,
-          "listed_last_activity_at": "2026-10-23T19:17:14Z",
+          "listed_reply_count": 10,
+          "listed_last_activity_at": "2026-10-25T15:57:58Z",
           "pinned": false,
           "first_discovered_at": "2026-10-22T13:02:53Z",
-          "last_seen_in_listing_at": "2026-10-25T12:38:46Z",
+          "last_seen_in_listing_at": "2026-10-26T14:24:37Z",
           "last_attempt_at": "2026-10-24T12:05:47Z",
           "last_complete_at": "2026-10-24T12:05:47Z"
         },
@@ -4429,9 +4485,9 @@
           "listed_last_activity_at": "2026-10-23T19:01:22Z",
           "pinned": false,
           "first_discovered_at": "2026-10-15T15:18:14Z",
-          "last_seen_in_listing_at": "2026-10-25T12:38:46Z",
-          "last_attempt_at": "2026-10-23T12:41:59Z",
-          "last_complete_at": "2026-10-23T12:41:59Z"
+          "last_seen_in_listing_at": "2026-10-26T14:24:37Z",
+          "last_attempt_at": "2026-10-26T14:24:37Z",
+          "last_complete_at": "2026-10-26T14:24:37Z"
         },
         {
           "url": "https://steamcommunity.com/app/3079210/discussions/0/590691913364108551/",
@@ -4454,8 +4510,8 @@
           "pinned": false,
           "first_discovered_at": "2026-10-15T15:18:14Z",
           "last_seen_in_listing_at": "2026-10-20T12:48:26Z",
-          "last_attempt_at": "2026-10-22T13:02:53Z",
-          "last_complete_at": "2026-10-22T13:02:53Z"
+          "last_attempt_at": "2026-10-26T14:24:37Z",
+          "last_complete_at": "2026-10-26T14:24:37Z"
         },
         {
           "url": "https://steamcommunity.com/app/3079210/discussions/0/590692129307680157/",
@@ -4488,7 +4544,7 @@
           "pinned": false,
           "first_discovered_at": "2026-10-15T15:18:14Z",
           "last_seen_in_listing_at": "2026-10-19T14:46:59Z",
-          "last_attempt_at": "2026-10-22T13:02:53Z",
+          "last_attempt_at": "2026-10-26T14:24:37Z",
           "last_complete_at": "2026-10-18T12:06:54Z"
         },
         {
@@ -4510,8 +4566,8 @@
           "pinned": false,
           "first_discovered_at": "2026-10-15T15:18:14Z",
           "last_seen_in_listing_at": "2026-10-21T13:01:30Z",
-          "last_attempt_at": "2026-10-23T12:41:59Z",
-          "last_complete_at": "2026-10-23T12:41:59Z"
+          "last_attempt_at": "2026-10-26T14:24:37Z",
+          "last_complete_at": "2026-10-26T14:24:37Z"
         },
         {
           "url": "https://steamcommunity.com/app/3079210/discussions/0/631219091886103327/",
@@ -4521,7 +4577,7 @@
           "listed_last_activity_at": "2026-10-25T00:13:18Z",
           "pinned": false,
           "first_discovered_at": "2026-10-25T12:38:46Z",
-          "last_seen_in_listing_at": "2026-10-25T12:38:46Z",
+          "last_seen_in_listing_at": "2026-10-26T14:24:37Z",
           "last_attempt_at": "2026-10-25T12:38:46Z",
           "last_complete_at": "2026-10-25T12:38:46Z"
         },
@@ -4533,7 +4589,7 @@
           "listed_last_activity_at": "2026-08-13T23:06:02Z",
           "pinned": true,
           "first_discovered_at": "2026-10-15T15:18:14Z",
-          "last_seen_in_listing_at": "2026-10-25T12:38:46Z"
+          "last_seen_in_listing_at": "2026-10-26T14:24:37Z"
         },
         {
           "url": "https://steamcommunity.com/app/3079210/discussions/0/631219091886205687/",
@@ -4543,9 +4599,9 @@
           "listed_last_activity_at": "2026-10-22T05:05:17Z",
           "pinned": false,
           "first_discovered_at": "2026-10-15T15:18:14Z",
-          "last_seen_in_listing_at": "2026-10-25T12:38:46Z",
-          "last_attempt_at": "2026-10-23T12:41:59Z",
-          "last_complete_at": "2026-10-23T12:41:59Z"
+          "last_seen_in_listing_at": "2026-10-26T14:24:37Z",
+          "last_attempt_at": "2026-10-26T14:24:37Z",
+          "last_complete_at": "2026-10-26T14:24:37Z"
         },
         {
           "url": "https://steamcommunity.com/app/3079210/discussions/0/631219091886227876/",
@@ -4567,7 +4623,7 @@
           "listed_last_activity_at": "2026-10-22T05:26:30Z",
           "pinned": false,
           "first_discovered_at": "2026-10-22T13:02:53Z",
-          "last_seen_in_listing_at": "2026-10-25T12:38:46Z",
+          "last_seen_in_listing_at": "2026-10-26T14:24:37Z",
           "last_attempt_at": "2026-10-24T12:05:47Z",
           "last_complete_at": "2026-10-24T12:05:47Z"
         },
@@ -4628,8 +4684,8 @@
           "pinned": false,
           "first_discovered_at": "2026-10-15T15:18:14Z",
           "last_seen_in_listing_at": "2026-10-19T14:46:59Z",
-          "last_attempt_at": "2026-10-23T12:41:59Z",
-          "last_complete_at": "2026-10-23T12:41:59Z"
+          "last_attempt_at": "2026-10-26T14:24:37Z",
+          "last_complete_at": "2026-10-26T14:24:37Z"
         },
         {
           "url": "https://steamcommunity.com/app/3079210/discussions/1/562542339336181519/",
@@ -4639,7 +4695,7 @@
           "listed_last_activity_at": "2026-10-10T22:27:45Z",
           "pinned": false,
           "first_discovered_at": "2026-10-15T15:18:14Z",
-          "last_seen_in_listing_at": "2026-10-25T12:38:46Z",
+          "last_seen_in_listing_at": "2026-10-26T14:24:37Z",
           "last_attempt_at": "2026-10-24T12:05:47Z",
           "last_complete_at": "2026-10-24T12:05:47Z"
         },
@@ -4651,9 +4707,9 @@
           "listed_last_activity_at": "2026-10-17T02:16:30Z",
           "pinned": false,
           "first_discovered_at": "2026-10-17T11:41:12Z",
-          "last_seen_in_listing_at": "2026-10-25T12:38:46Z",
-          "last_attempt_at": "2026-10-22T13:02:53Z",
-          "last_complete_at": "2026-10-22T13:02:53Z"
+          "last_seen_in_listing_at": "2026-10-26T14:24:37Z",
+          "last_attempt_at": "2026-10-26T14:24:37Z",
+          "last_complete_at": "2026-10-26T14:24:37Z"
         },
         {
           "url": "https://steamcommunity.com/app/3079210/discussions/1/562545439722708742/",
@@ -4663,7 +4719,7 @@
           "listed_last_activity_at": "2026-10-23T15:25:35Z",
           "pinned": false,
           "first_discovered_at": "2026-10-21T13:01:30Z",
-          "last_seen_in_listing_at": "2026-10-25T12:38:46Z",
+          "last_seen_in_listing_at": "2026-10-26T14:24:37Z",
           "last_attempt_at": "2026-10-25T12:38:46Z",
           "last_complete_at": "2026-10-25T12:38:46Z"
         },
@@ -4685,7 +4741,7 @@
           "listed_last_activity_at": "2026-10-23T15:48:29Z",
           "pinned": false,
           "first_discovered_at": "2026-10-22T13:02:53Z",
-          "last_seen_in_listing_at": "2026-10-25T12:38:46Z",
+          "last_seen_in_listing_at": "2026-10-26T14:24:37Z",
           "last_attempt_at": "2026-10-25T12:38:46Z",
           "last_complete_at": "2026-10-25T12:38:46Z"
         },
@@ -4717,7 +4773,7 @@
           "listed_last_activity_at": "2026-10-23T15:58:03Z",
           "pinned": false,
           "first_discovered_at": "2026-10-22T13:02:53Z",
-          "last_seen_in_listing_at": "2026-10-25T12:38:46Z",
+          "last_seen_in_listing_at": "2026-10-26T14:24:37Z",
           "last_attempt_at": "2026-10-25T12:38:46Z",
           "last_complete_at": "2026-10-25T12:38:46Z"
         },
@@ -4729,7 +4785,7 @@
           "listed_last_activity_at": "2026-10-23T15:56:01Z",
           "pinned": false,
           "first_discovered_at": "2026-10-23T12:41:59Z",
-          "last_seen_in_listing_at": "2026-10-25T12:38:46Z",
+          "last_seen_in_listing_at": "2026-10-26T14:24:37Z",
           "last_attempt_at": "2026-10-25T12:38:46Z",
           "last_complete_at": "2026-10-25T12:38:46Z"
         },
@@ -4741,7 +4797,7 @@
           "listed_last_activity_at": "2026-10-23T16:01:58Z",
           "pinned": false,
           "first_discovered_at": "2026-10-23T12:41:59Z",
-          "last_seen_in_listing_at": "2026-10-25T12:38:46Z",
+          "last_seen_in_listing_at": "2026-10-26T14:24:37Z",
           "last_attempt_at": "2026-10-25T12:38:46Z",
           "last_complete_at": "2026-10-25T12:38:46Z"
         },
@@ -4749,11 +4805,11 @@
           "url": "https://steamcommunity.com/app/3079210/discussions/1/562545439723036536/",
           "title": "Problems with uploading to the map",
           "forum": "1",
-          "listed_reply_count": 1,
-          "listed_last_activity_at": "2026-10-24T14:43:03Z",
+          "listed_reply_count": 3,
+          "listed_last_activity_at": "2026-10-26T13:59:51Z",
           "pinned": false,
           "first_discovered_at": "2026-10-25T12:38:46Z",
-          "last_seen_in_listing_at": "2026-10-25T12:38:46Z",
+          "last_seen_in_listing_at": "2026-10-26T14:24:37Z",
           "last_attempt_at": "2026-10-25T12:38:46Z",
           "last_complete_at": "2026-10-25T12:38:46Z"
         },
@@ -4765,9 +4821,19 @@
           "listed_last_activity_at": "2026-10-24T15:12:53Z",
           "pinned": false,
           "first_discovered_at": "2026-10-25T12:38:46Z",
-          "last_seen_in_listing_at": "2026-10-25T12:38:46Z",
+          "last_seen_in_listing_at": "2026-10-26T14:24:37Z",
           "last_attempt_at": "2026-10-25T12:38:46Z",
           "last_complete_at": "2026-10-25T12:38:46Z"
+        },
+        {
+          "url": "https://steamcommunity.com/app/3079210/discussions/1/562545740485934078/",
+          "title": "First shot register on your body causes you to lag",
+          "forum": "1",
+          "listed_reply_count": 0,
+          "listed_last_activity_at": "2026-10-25T21:29:47Z",
+          "pinned": false,
+          "first_discovered_at": "2026-10-26T14:24:37Z",
+          "last_seen_in_listing_at": "2026-10-26T14:24:37Z"
         },
         {
           "url": "https://steamcommunity.com/app/3079210/discussions/1/570426104667542607/",
@@ -4777,7 +4843,7 @@
           "listed_last_activity_at": "2026-10-15T01:32:35Z",
           "pinned": false,
           "first_discovered_at": "2026-10-15T15:18:14Z",
-          "last_seen_in_listing_at": "2026-10-25T12:38:46Z"
+          "last_seen_in_listing_at": "2026-10-26T14:24:37Z"
         },
         {
           "url": "https://steamcommunity.com/app/3079210/discussions/1/570426339809651925/",
@@ -4787,7 +4853,7 @@
           "listed_last_activity_at": "2026-10-23T14:21:17Z",
           "pinned": false,
           "first_discovered_at": "2026-10-17T11:41:12Z",
-          "last_seen_in_listing_at": "2026-10-25T12:38:46Z",
+          "last_seen_in_listing_at": "2026-10-26T14:24:37Z",
           "last_attempt_at": "2026-10-25T12:38:46Z",
           "last_complete_at": "2026-10-25T12:38:46Z"
         },
@@ -4799,7 +4865,7 @@
           "listed_last_activity_at": "2026-10-23T14:25:19Z",
           "pinned": false,
           "first_discovered_at": "2026-10-18T12:06:54Z",
-          "last_seen_in_listing_at": "2026-10-25T12:38:46Z",
+          "last_seen_in_listing_at": "2026-10-26T14:24:37Z",
           "last_attempt_at": "2026-10-25T12:38:46Z",
           "last_complete_at": "2026-10-25T12:38:46Z"
         },
@@ -4821,7 +4887,7 @@
           "listed_last_activity_at": "2026-10-23T15:18:06Z",
           "pinned": false,
           "first_discovered_at": "2026-10-21T13:01:30Z",
-          "last_seen_in_listing_at": "2026-10-25T12:38:46Z",
+          "last_seen_in_listing_at": "2026-10-26T14:24:37Z",
           "last_attempt_at": "2026-10-25T12:38:46Z",
           "last_complete_at": "2026-10-25T12:38:46Z"
         },
@@ -4901,7 +4967,7 @@
           "listed_last_activity_at": "2026-10-23T19:31:09Z",
           "pinned": false,
           "first_discovered_at": "2026-10-22T13:02:53Z",
-          "last_seen_in_listing_at": "2026-10-25T12:38:46Z",
+          "last_seen_in_listing_at": "2026-10-26T14:24:37Z",
           "last_attempt_at": "2026-10-24T12:05:47Z",
           "last_complete_at": "2026-10-24T12:05:47Z"
         },
@@ -4913,7 +4979,7 @@
           "listed_last_activity_at": "2026-04-23T15:26:28Z",
           "pinned": true,
           "first_discovered_at": "2026-10-15T15:18:14Z",
-          "last_seen_in_listing_at": "2026-10-25T12:38:46Z"
+          "last_seen_in_listing_at": "2026-10-26T14:24:37Z"
         }
       ],
       "threads": [
@@ -4997,7 +5063,7 @@
           "replies": [],
           "identities_pending": [],
           "changes_this_run": [],
-          "observed_this_run": true,
+          "observed_this_run": false,
           "first_discovered_at": "2026-10-20T12:48:26Z",
           "last_seen_in_listing_at": "2026-10-25T12:38:46Z"
         },
@@ -5018,7 +5084,7 @@
           "replies": [],
           "identities_pending": [],
           "changes_this_run": [],
-          "observed_this_run": true,
+          "observed_this_run": false,
           "first_discovered_at": "2026-10-21T13:01:30Z",
           "last_seen_in_listing_at": "2026-10-25T12:38:46Z"
         },
@@ -5033,13 +5099,13 @@
           "pages_expected": 1,
           "comments_seen": 1,
           "comments_expected": 1,
-          "last_attempt_at": "2026-10-23T12:41:59Z",
-          "last_complete_at": "2026-10-23T12:41:59Z",
+          "last_attempt_at": "2026-10-26T14:24:37Z",
+          "last_complete_at": "2026-10-26T14:24:37Z",
           "baseline_at": "2026-10-21T13:01:30Z",
           "replies": [],
           "identities_pending": [],
           "changes_this_run": [],
-          "observed_this_run": false,
+          "observed_this_run": true,
           "first_discovered_at": "2026-10-21T13:01:30Z",
           "last_seen_in_listing_at": "2026-10-23T12:41:59Z"
         },
@@ -5054,15 +5120,15 @@
           "pages_expected": 1,
           "comments_seen": 2,
           "comments_expected": 2,
-          "last_attempt_at": "2026-10-23T12:41:59Z",
-          "last_complete_at": "2026-10-23T12:41:59Z",
+          "last_attempt_at": "2026-10-26T14:24:37Z",
+          "last_complete_at": "2026-10-26T14:24:37Z",
           "baseline_at": "2026-10-21T13:01:30Z",
           "replies": [],
           "identities_pending": [],
           "changes_this_run": [],
-          "observed_this_run": false,
+          "observed_this_run": true,
           "first_discovered_at": "2026-10-21T13:01:30Z",
-          "last_seen_in_listing_at": "2026-10-23T12:41:59Z"
+          "last_seen_in_listing_at": "2026-10-24T12:05:47Z"
         },
         {
           "url": "https://steamcommunity.com/app/3079210/discussions/0/562545439722770363/",
@@ -5102,7 +5168,7 @@
           "replies": [],
           "identities_pending": [],
           "changes_this_run": [],
-          "observed_this_run": true,
+          "observed_this_run": false,
           "first_discovered_at": "2026-10-22T13:02:53Z",
           "last_seen_in_listing_at": "2026-10-25T12:38:46Z"
         },
@@ -5144,7 +5210,7 @@
           "replies": [],
           "identities_pending": [],
           "changes_this_run": [],
-          "observed_this_run": true,
+          "observed_this_run": false,
           "first_discovered_at": "2026-10-22T13:02:53Z",
           "last_seen_in_listing_at": "2026-10-24T12:05:47Z"
         },
@@ -5165,7 +5231,7 @@
           "replies": [],
           "identities_pending": [],
           "changes_this_run": [],
-          "observed_this_run": true,
+          "observed_this_run": false,
           "first_discovered_at": "2026-10-22T13:02:53Z",
           "last_seen_in_listing_at": "2026-10-25T12:38:46Z"
         },
@@ -5186,7 +5252,7 @@
           "replies": [],
           "identities_pending": [],
           "changes_this_run": [],
-          "observed_this_run": true,
+          "observed_this_run": false,
           "first_discovered_at": "2026-10-22T13:02:53Z",
           "last_seen_in_listing_at": "2026-10-25T12:38:46Z"
         },
@@ -5199,17 +5265,17 @@
           "failure_kind": null,
           "pages_checked": 1,
           "pages_expected": 1,
-          "comments_seen": 5,
-          "comments_expected": 5,
-          "last_attempt_at": "2026-10-23T12:41:59Z",
-          "last_complete_at": "2026-10-23T12:41:59Z",
+          "comments_seen": 11,
+          "comments_expected": 11,
+          "last_attempt_at": "2026-10-26T14:24:37Z",
+          "last_complete_at": "2026-10-26T14:24:37Z",
           "baseline_at": "2026-10-23T12:41:59Z",
           "replies": [],
           "identities_pending": [],
           "changes_this_run": [],
-          "observed_this_run": false,
+          "observed_this_run": true,
           "first_discovered_at": "2026-10-22T13:02:53Z",
-          "last_seen_in_listing_at": "2026-10-23T12:41:59Z"
+          "last_seen_in_listing_at": "2026-10-26T14:24:37Z"
         },
         {
           "url": "https://steamcommunity.com/app/3079210/discussions/0/562545439722872306/",
@@ -5222,15 +5288,15 @@
           "pages_expected": 1,
           "comments_seen": 2,
           "comments_expected": 2,
-          "last_attempt_at": "2026-10-23T12:41:59Z",
-          "last_complete_at": "2026-10-23T12:41:59Z",
+          "last_attempt_at": "2026-10-26T14:24:37Z",
+          "last_complete_at": "2026-10-26T14:24:37Z",
           "baseline_at": "2026-10-23T12:41:59Z",
           "replies": [],
           "identities_pending": [],
           "changes_this_run": [],
-          "observed_this_run": false,
+          "observed_this_run": true,
           "first_discovered_at": "2026-10-22T13:02:53Z",
-          "last_seen_in_listing_at": "2026-10-23T12:41:59Z"
+          "last_seen_in_listing_at": "2026-10-26T14:24:37Z"
         },
         {
           "url": "https://steamcommunity.com/app/3079210/discussions/0/562545439722902101/",
@@ -5239,19 +5305,19 @@
           "title": "GIVE ME MY",
           "state": "complete",
           "failure_kind": null,
-          "pages_checked": 1,
-          "pages_expected": 1,
-          "comments_seen": 8,
-          "comments_expected": 8,
-          "last_attempt_at": "2026-10-23T12:41:59Z",
-          "last_complete_at": "2026-10-23T12:41:59Z",
+          "pages_checked": 2,
+          "pages_expected": 2,
+          "comments_seen": 21,
+          "comments_expected": 21,
+          "last_attempt_at": "2026-10-26T14:24:37Z",
+          "last_complete_at": "2026-10-26T14:24:37Z",
           "baseline_at": "2026-10-23T12:41:59Z",
           "replies": [],
           "identities_pending": [],
           "changes_this_run": [],
-          "observed_this_run": false,
+          "observed_this_run": true,
           "first_discovered_at": "2026-10-23T12:41:59Z",
-          "last_seen_in_listing_at": "2026-10-23T12:41:59Z"
+          "last_seen_in_listing_at": "2026-10-26T14:24:37Z"
         },
         {
           "url": "https://steamcommunity.com/app/3079210/discussions/0/562545439722925132/",
@@ -5262,17 +5328,17 @@
           "failure_kind": null,
           "pages_checked": 1,
           "pages_expected": 1,
-          "comments_seen": 5,
-          "comments_expected": 5,
-          "last_attempt_at": "2026-10-23T12:41:59Z",
-          "last_complete_at": "2026-10-23T12:41:59Z",
+          "comments_seen": 11,
+          "comments_expected": 11,
+          "last_attempt_at": "2026-10-26T14:24:37Z",
+          "last_complete_at": "2026-10-26T14:24:37Z",
           "baseline_at": "2026-10-23T12:41:59Z",
           "replies": [],
           "identities_pending": [],
           "changes_this_run": [],
-          "observed_this_run": false,
+          "observed_this_run": true,
           "first_discovered_at": "2026-10-23T12:41:59Z",
-          "last_seen_in_listing_at": "2026-10-23T12:41:59Z"
+          "last_seen_in_listing_at": "2026-10-26T14:24:37Z"
         },
         {
           "url": "https://steamcommunity.com/app/3079210/discussions/0/562545439722946790/",
@@ -5283,17 +5349,17 @@
           "failure_kind": null,
           "pages_checked": 1,
           "pages_expected": 1,
-          "comments_seen": 1,
-          "comments_expected": 1,
-          "last_attempt_at": "2026-10-23T12:41:59Z",
-          "last_complete_at": "2026-10-23T12:41:59Z",
+          "comments_seen": 3,
+          "comments_expected": 3,
+          "last_attempt_at": "2026-10-26T14:24:37Z",
+          "last_complete_at": "2026-10-26T14:24:37Z",
           "baseline_at": "2026-10-23T12:41:59Z",
           "replies": [],
           "identities_pending": [],
           "changes_this_run": [],
-          "observed_this_run": false,
+          "observed_this_run": true,
           "first_discovered_at": "2026-10-23T12:41:59Z",
-          "last_seen_in_listing_at": "2026-10-23T12:41:59Z"
+          "last_seen_in_listing_at": "2026-10-26T14:24:37Z"
         },
         {
           "url": "https://steamcommunity.com/app/3079210/discussions/0/562545439723002452/",
@@ -5333,9 +5399,72 @@
           "replies": [],
           "identities_pending": [],
           "changes_this_run": [],
-          "observed_this_run": true,
+          "observed_this_run": false,
           "first_discovered_at": "2026-10-24T12:05:47Z",
           "last_seen_in_listing_at": "2026-10-25T12:38:46Z"
+        },
+        {
+          "url": "https://steamcommunity.com/app/3079210/discussions/0/562545740485918076/",
+          "tracked_issue_ids": [],
+          "source_origin": "discovered",
+          "title": "Vietnam (The Game) Had a Good Run...",
+          "state": "complete",
+          "failure_kind": null,
+          "pages_checked": 1,
+          "pages_expected": 1,
+          "comments_seen": 9,
+          "comments_expected": 9,
+          "last_attempt_at": "2026-10-26T14:24:37Z",
+          "last_complete_at": "2026-10-26T14:24:37Z",
+          "baseline_at": "2026-10-26T14:24:37Z",
+          "replies": [],
+          "identities_pending": [],
+          "changes_this_run": [],
+          "observed_this_run": true,
+          "first_discovered_at": "2026-10-26T14:24:37Z",
+          "last_seen_in_listing_at": "2026-10-26T14:24:37Z"
+        },
+        {
+          "url": "https://steamcommunity.com/app/3079210/discussions/0/562545740485958369/",
+          "tracked_issue_ids": [],
+          "source_origin": "discovered",
+          "title": "Path not found!",
+          "state": "complete",
+          "failure_kind": null,
+          "pages_checked": 1,
+          "pages_expected": 1,
+          "comments_seen": 2,
+          "comments_expected": 2,
+          "last_attempt_at": "2026-10-26T14:24:37Z",
+          "last_complete_at": "2026-10-26T14:24:37Z",
+          "baseline_at": "2026-10-26T14:24:37Z",
+          "replies": [],
+          "identities_pending": [],
+          "changes_this_run": [],
+          "observed_this_run": true,
+          "first_discovered_at": "2026-10-26T14:24:37Z",
+          "last_seen_in_listing_at": "2026-10-26T14:24:37Z"
+        },
+        {
+          "url": "https://steamcommunity.com/app/3079210/discussions/0/562545740485968410/",
+          "tracked_issue_ids": [],
+          "source_origin": "discovered",
+          "title": "Performance",
+          "state": "complete",
+          "failure_kind": null,
+          "pages_checked": 1,
+          "pages_expected": 1,
+          "comments_seen": 4,
+          "comments_expected": 4,
+          "last_attempt_at": "2026-10-26T14:24:37Z",
+          "last_complete_at": "2026-10-26T14:24:37Z",
+          "baseline_at": "2026-10-26T14:24:37Z",
+          "replies": [],
+          "identities_pending": [],
+          "changes_this_run": [],
+          "observed_this_run": true,
+          "first_discovered_at": "2026-10-26T14:24:37Z",
+          "last_seen_in_listing_at": "2026-10-26T14:24:37Z"
         },
         {
           "url": "https://steamcommunity.com/app/3079210/discussions/0/570426104667493382/",
@@ -5375,7 +5504,7 @@
           "replies": [],
           "identities_pending": [],
           "changes_this_run": [],
-          "observed_this_run": true,
+          "observed_this_run": false,
           "first_discovered_at": "2026-10-15T15:18:14Z",
           "last_seen_in_listing_at": "2026-10-25T12:38:46Z"
         },
@@ -5390,13 +5519,13 @@
           "pages_expected": 1,
           "comments_seen": 2,
           "comments_expected": 2,
-          "last_attempt_at": "2026-10-23T12:41:59Z",
-          "last_complete_at": "2026-10-23T12:41:59Z",
+          "last_attempt_at": "2026-10-26T14:24:37Z",
+          "last_complete_at": "2026-10-26T14:24:37Z",
           "baseline_at": "2026-10-15T15:18:14Z",
           "replies": [],
           "identities_pending": [],
           "changes_this_run": [],
-          "observed_this_run": false,
+          "observed_this_run": true,
           "first_discovered_at": "2026-10-15T15:18:14Z",
           "last_seen_in_listing_at": "2026-10-20T12:48:26Z"
         },
@@ -5411,13 +5540,13 @@
           "pages_expected": 1,
           "comments_seen": 2,
           "comments_expected": 2,
-          "last_attempt_at": "2026-10-22T13:02:53Z",
-          "last_complete_at": "2026-10-22T13:02:53Z",
+          "last_attempt_at": "2026-10-26T14:24:37Z",
+          "last_complete_at": "2026-10-26T14:24:37Z",
           "baseline_at": "2026-10-15T15:18:14Z",
           "replies": [],
           "identities_pending": [],
           "changes_this_run": [],
-          "observed_this_run": false,
+          "observed_this_run": true,
           "first_discovered_at": "2026-10-15T15:18:14Z",
           "last_seen_in_listing_at": "2026-10-20T12:48:26Z"
         },
@@ -5432,15 +5561,15 @@
           "pages_expected": 2,
           "comments_seen": 24,
           "comments_expected": 24,
-          "last_attempt_at": "2026-10-23T12:41:59Z",
-          "last_complete_at": "2026-10-23T12:41:59Z",
+          "last_attempt_at": "2026-10-26T14:24:37Z",
+          "last_complete_at": "2026-10-26T14:24:37Z",
           "baseline_at": "2026-10-16T14:36:07Z",
           "replies": [],
           "identities_pending": [],
           "changes_this_run": [],
-          "observed_this_run": false,
+          "observed_this_run": true,
           "first_discovered_at": "2026-10-16T12:33:17Z",
-          "last_seen_in_listing_at": "2026-10-23T12:41:59Z"
+          "last_seen_in_listing_at": "2026-10-26T14:24:37Z"
         },
         {
           "url": "https://steamcommunity.com/app/3079210/discussions/0/570426339809579397/",
@@ -5459,7 +5588,7 @@
           "replies": [],
           "identities_pending": [],
           "changes_this_run": [],
-          "observed_this_run": true,
+          "observed_this_run": false,
           "first_discovered_at": "2026-10-17T11:41:12Z",
           "last_seen_in_listing_at": "2026-10-23T12:41:59Z"
         },
@@ -5480,7 +5609,7 @@
           "replies": [],
           "identities_pending": [],
           "changes_this_run": [],
-          "observed_this_run": true,
+          "observed_this_run": false,
           "first_discovered_at": "2026-10-17T11:41:12Z",
           "last_seen_in_listing_at": "2026-10-21T13:01:30Z"
         },
@@ -5537,13 +5666,13 @@
           "pages_expected": 1,
           "comments_seen": 4,
           "comments_expected": 4,
-          "last_attempt_at": "2026-10-23T12:41:59Z",
-          "last_complete_at": "2026-10-23T12:41:59Z",
+          "last_attempt_at": "2026-10-26T14:24:37Z",
+          "last_complete_at": "2026-10-26T14:24:37Z",
           "baseline_at": "2026-10-19T14:46:59Z",
           "replies": [],
           "identities_pending": [],
           "changes_this_run": [],
-          "observed_this_run": false,
+          "observed_this_run": true,
           "first_discovered_at": "2026-10-19T14:46:59Z",
           "last_seen_in_listing_at": "2026-10-22T13:02:53Z"
         },
@@ -5564,7 +5693,7 @@
           "replies": [],
           "identities_pending": [],
           "changes_this_run": [],
-          "observed_this_run": true,
+          "observed_this_run": false,
           "first_discovered_at": "2026-10-20T12:48:26Z",
           "last_seen_in_listing_at": "2026-10-21T13:01:30Z"
         },
@@ -5579,13 +5708,13 @@
           "pages_expected": 1,
           "comments_seen": 1,
           "comments_expected": 1,
-          "last_attempt_at": "2026-10-23T12:41:59Z",
-          "last_complete_at": "2026-10-23T12:41:59Z",
+          "last_attempt_at": "2026-10-26T14:24:37Z",
+          "last_complete_at": "2026-10-26T14:24:37Z",
           "baseline_at": "2026-10-21T13:01:30Z",
           "replies": [],
           "identities_pending": [],
           "changes_this_run": [],
-          "observed_this_run": false,
+          "observed_this_run": true,
           "first_discovered_at": "2026-10-20T12:48:26Z",
           "last_seen_in_listing_at": "2026-10-22T13:02:53Z"
         },
@@ -5627,7 +5756,7 @@
           "replies": [],
           "identities_pending": [],
           "changes_this_run": [],
-          "observed_this_run": true,
+          "observed_this_run": false,
           "first_discovered_at": "2026-10-20T12:48:26Z",
           "last_seen_in_listing_at": "2026-10-25T12:38:46Z"
         },
@@ -5663,13 +5792,13 @@
           "pages_expected": 1,
           "comments_seen": 3,
           "comments_expected": 3,
-          "last_attempt_at": "2026-10-23T12:41:59Z",
-          "last_complete_at": "2026-10-23T12:41:59Z",
+          "last_attempt_at": "2026-10-26T14:24:37Z",
+          "last_complete_at": "2026-10-26T14:24:37Z",
           "baseline_at": "2026-10-15T15:18:14Z",
           "replies": [],
           "identities_pending": [],
           "changes_this_run": [],
-          "observed_this_run": false,
+          "observed_this_run": true,
           "first_discovered_at": "2026-10-15T15:18:14Z",
           "last_seen_in_listing_at": "2026-10-19T14:46:59Z"
         },
@@ -5690,7 +5819,7 @@
           "replies": [],
           "identities_pending": [],
           "changes_this_run": [],
-          "observed_this_run": true,
+          "observed_this_run": false,
           "first_discovered_at": "2026-10-22T13:02:53Z",
           "last_seen_in_listing_at": "2026-10-25T12:38:46Z"
         },
@@ -5747,13 +5876,13 @@
           "pages_expected": 1,
           "comments_seen": 11,
           "comments_expected": 11,
-          "last_attempt_at": "2026-10-22T13:02:53Z",
-          "last_complete_at": "2026-10-22T13:02:53Z",
+          "last_attempt_at": "2026-10-26T14:24:37Z",
+          "last_complete_at": "2026-10-26T14:24:37Z",
           "baseline_at": "2026-10-18T12:06:54Z",
           "replies": [],
           "identities_pending": [],
           "changes_this_run": [],
-          "observed_this_run": false,
+          "observed_this_run": true,
           "first_discovered_at": "2026-10-18T12:06:54Z",
           "last_seen_in_listing_at": "2026-10-21T13:01:30Z"
         },
@@ -5871,17 +6000,17 @@
           "failure_kind": null,
           "pages_checked": 2,
           "pages_expected": 2,
-          "comments_seen": 23,
-          "comments_expected": 23,
-          "last_attempt_at": "2026-10-23T12:41:59Z",
-          "last_complete_at": "2026-10-23T12:41:59Z",
+          "comments_seen": 26,
+          "comments_expected": 26,
+          "last_attempt_at": "2026-10-26T14:24:37Z",
+          "last_complete_at": "2026-10-26T14:24:37Z",
           "baseline_at": "2026-10-15T15:18:14Z",
           "replies": [],
           "identities_pending": [],
           "changes_this_run": [],
-          "observed_this_run": false,
+          "observed_this_run": true,
           "first_discovered_at": "2026-10-15T15:18:14Z",
-          "last_seen_in_listing_at": "2026-10-23T12:41:59Z"
+          "last_seen_in_listing_at": "2026-10-26T14:24:37Z"
         },
         {
           "url": "https://steamcommunity.com/app/3079210/discussions/0/590691913364108551/",
@@ -5915,13 +6044,13 @@
           "pages_expected": 1,
           "comments_seen": 10,
           "comments_expected": 10,
-          "last_attempt_at": "2026-10-22T13:02:53Z",
-          "last_complete_at": "2026-10-22T13:02:53Z",
+          "last_attempt_at": "2026-10-26T14:24:37Z",
+          "last_complete_at": "2026-10-26T14:24:37Z",
           "baseline_at": "2026-10-15T15:18:14Z",
           "replies": [],
           "identities_pending": [],
           "changes_this_run": [],
-          "observed_this_run": false,
+          "observed_this_run": true,
           "first_discovered_at": "2026-10-15T15:18:14Z",
           "last_seen_in_listing_at": "2026-10-20T12:48:26Z"
         },
@@ -5957,13 +6086,13 @@
           "pages_expected": null,
           "comments_seen": 0,
           "comments_expected": null,
-          "last_attempt_at": "2026-10-22T13:02:53Z",
+          "last_attempt_at": "2026-10-26T14:24:37Z",
           "last_complete_at": "2026-10-18T12:06:54Z",
           "baseline_at": "2026-10-15T15:18:14Z",
           "replies": [],
           "identities_pending": [],
           "changes_this_run": [],
-          "observed_this_run": false,
+          "observed_this_run": true,
           "first_discovered_at": "2026-10-15T15:18:14Z",
           "last_seen_in_listing_at": "2026-10-19T14:46:59Z"
         },
@@ -5978,13 +6107,13 @@
           "pages_expected": 5,
           "comments_seen": 75,
           "comments_expected": 75,
-          "last_attempt_at": "2026-10-23T12:41:59Z",
-          "last_complete_at": "2026-10-23T12:41:59Z",
+          "last_attempt_at": "2026-10-26T14:24:37Z",
+          "last_complete_at": "2026-10-26T14:24:37Z",
           "baseline_at": "2026-10-15T15:18:14Z",
           "replies": [],
           "identities_pending": [],
           "changes_this_run": [],
-          "observed_this_run": false,
+          "observed_this_run": true,
           "first_discovered_at": "2026-10-15T15:18:14Z",
           "last_seen_in_listing_at": "2026-10-21T13:01:30Z"
         },
@@ -6012,7 +6141,7 @@
             }
           ],
           "changes_this_run": [],
-          "observed_this_run": true,
+          "observed_this_run": false,
           "first_discovered_at": "2026-10-25T12:38:46Z",
           "last_seen_in_listing_at": "2026-10-25T12:38:46Z"
         },
@@ -6027,15 +6156,15 @@
           "pages_expected": 2,
           "comments_seen": 21,
           "comments_expected": 21,
-          "last_attempt_at": "2026-10-23T12:41:59Z",
-          "last_complete_at": "2026-10-23T12:41:59Z",
+          "last_attempt_at": "2026-10-26T14:24:37Z",
+          "last_complete_at": "2026-10-26T14:24:37Z",
           "baseline_at": "2026-10-15T15:18:14Z",
           "replies": [],
           "identities_pending": [],
           "changes_this_run": [],
-          "observed_this_run": false,
+          "observed_this_run": true,
           "first_discovered_at": "2026-10-15T15:18:14Z",
-          "last_seen_in_listing_at": "2026-10-23T12:41:59Z"
+          "last_seen_in_listing_at": "2026-10-26T14:24:37Z"
         },
         {
           "url": "https://steamcommunity.com/app/3079210/discussions/0/631219091886227876/",
@@ -6174,13 +6303,13 @@
           "pages_expected": 1,
           "comments_seen": 11,
           "comments_expected": 11,
-          "last_attempt_at": "2026-10-23T12:41:59Z",
-          "last_complete_at": "2026-10-23T12:41:59Z",
+          "last_attempt_at": "2026-10-26T14:24:37Z",
+          "last_complete_at": "2026-10-26T14:24:37Z",
           "baseline_at": "2026-10-15T15:18:14Z",
           "replies": [],
           "identities_pending": [],
           "changes_this_run": [],
-          "observed_this_run": false,
+          "observed_this_run": true,
           "first_discovered_at": "2026-10-15T15:18:14Z",
           "last_seen_in_listing_at": "2026-10-19T14:46:59Z"
         },
@@ -6254,8 +6383,8 @@
           "pages_expected": 1,
           "comments_seen": 3,
           "comments_expected": 3,
-          "last_attempt_at": "2026-10-22T13:02:53Z",
-          "last_complete_at": "2026-10-22T13:02:53Z",
+          "last_attempt_at": "2026-10-26T14:24:37Z",
+          "last_complete_at": "2026-10-26T14:24:37Z",
           "baseline_at": "2026-10-17T11:41:12Z",
           "replies": [
             {
@@ -6268,21 +6397,21 @@
               "published_at": "2026-09-23T10:01:53Z",
               "source_edited_at": null,
               "content_sha256": "b5299899a9a4ffcffc5d786479daeb3ecd7d971a348260ea7538644a1848f40a",
-              "authority_checked_at": "2026-10-22T13:02:53Z",
+              "authority_checked_at": "2026-10-26T14:24:37Z",
               "first_seen_at": "2026-10-17T11:41:12Z",
-              "last_seen_at": "2026-10-22T13:02:53Z",
+              "last_seen_at": "2026-10-26T14:24:37Z",
               "last_changed_at": "2026-10-17T11:41:12Z",
               "change_kind": "historical_discovery",
               "previous_hashes": [],
               "excerpt": "Hi -[XIV]- Aeo, Thanks for getting in touch with us! There are multiple uses on the",
-              "observed_this_run": false
+              "observed_this_run": true
             }
           ],
           "identities_pending": [],
           "changes_this_run": [],
-          "observed_this_run": false,
+          "observed_this_run": true,
           "first_discovered_at": "2026-10-17T11:41:12Z",
-          "last_seen_in_listing_at": "2026-10-22T13:02:53Z"
+          "last_seen_in_listing_at": "2026-10-26T14:24:37Z"
         },
         {
           "url": "https://steamcommunity.com/app/3079210/discussions/1/562545439722708742/",
@@ -6316,18 +6445,12 @@
               "change_kind": "new_reply",
               "previous_hashes": [],
               "excerpt": "Hi there Weeewoon , Thank you for reaching out to us regarding the freezing and crashing happening to",
-              "observed_this_run": true
+              "observed_this_run": false
             }
           ],
           "identities_pending": [],
-          "changes_this_run": [
-            {
-              "id": "562545439722991680",
-              "kind": "new_reply",
-              "detected_at": "2026-10-25T12:38:46Z"
-            }
-          ],
-          "observed_this_run": true,
+          "changes_this_run": [],
+          "observed_this_run": false,
           "first_discovered_at": "2026-10-21T13:01:30Z",
           "last_seen_in_listing_at": "2026-10-25T12:38:46Z"
         },
@@ -6363,18 +6486,12 @@
               "change_kind": "new_reply",
               "previous_hashes": [],
               "excerpt": "Hi there Havoc.In.Vegas , Thank you for reaching out to us regarding the issue",
-              "observed_this_run": true
+              "observed_this_run": false
             }
           ],
           "identities_pending": [],
-          "changes_this_run": [
-            {
-              "id": "562545439722993447",
-              "kind": "new_reply",
-              "detected_at": "2026-10-25T12:38:46Z"
-            }
-          ],
-          "observed_this_run": true,
+          "changes_this_run": [],
+          "observed_this_run": false,
           "first_discovered_at": "2026-10-22T13:02:53Z",
           "last_seen_in_listing_at": "2026-10-25T12:38:46Z"
         },
@@ -6410,18 +6527,12 @@
               "change_kind": "new_reply",
               "previous_hashes": [],
               "excerpt": "Hi there T-pin2 , Thank you for reaching out to us about the issue you experienced with being",
-              "observed_this_run": true
+              "observed_this_run": false
             }
           ],
           "identities_pending": [],
-          "changes_this_run": [
-            {
-              "id": "562545439722994101",
-              "kind": "new_reply",
-              "detected_at": "2026-10-25T12:38:46Z"
-            }
-          ],
-          "observed_this_run": true,
+          "changes_this_run": [],
+          "observed_this_run": false,
           "first_discovered_at": "2026-10-22T13:02:53Z",
           "last_seen_in_listing_at": "2026-10-25T12:38:46Z"
         },
@@ -6457,18 +6568,12 @@
               "change_kind": "new_reply",
               "previous_hashes": [],
               "excerpt": "Hey KRT™sulu , Thank you for reaching out to us. We completely understand how frustrating it can be",
-              "observed_this_run": true
+              "observed_this_run": false
             }
           ],
           "identities_pending": [],
-          "changes_this_run": [
-            {
-              "id": "562545439722993961",
-              "kind": "new_reply",
-              "detected_at": "2026-10-25T12:38:46Z"
-            }
-          ],
-          "observed_this_run": true,
+          "changes_this_run": [],
+          "observed_this_run": false,
           "first_discovered_at": "2026-10-23T12:41:59Z",
           "last_seen_in_listing_at": "2026-10-25T12:38:46Z"
         },
@@ -6504,18 +6609,12 @@
               "change_kind": "new_reply",
               "previous_hashes": [],
               "excerpt": "Hello there ApplejuiceCaboose , Thank you for reaching out to us about",
-              "observed_this_run": true
+              "observed_this_run": false
             }
           ],
           "identities_pending": [],
-          "changes_this_run": [
-            {
-              "id": "562545439722994382",
-              "kind": "new_reply",
-              "detected_at": "2026-10-25T12:38:46Z"
-            }
-          ],
-          "observed_this_run": true,
+          "changes_this_run": [],
+          "observed_this_run": false,
           "first_discovered_at": "2026-10-23T12:41:59Z",
           "last_seen_in_listing_at": "2026-10-25T12:38:46Z"
         },
@@ -6551,18 +6650,12 @@
               "change_kind": "new_reply",
               "previous_hashes": [],
               "excerpt": "Hey Jagger_ENG , Thank you for reaching out to us. We completely understand how frustrating it can be",
-              "observed_this_run": true
+              "observed_this_run": false
             }
           ],
           "identities_pending": [],
-          "changes_this_run": [
-            {
-              "id": "562545740485791622",
-              "kind": "new_reply",
-              "detected_at": "2026-10-25T12:38:46Z"
-            }
-          ],
-          "observed_this_run": true,
+          "changes_this_run": [],
+          "observed_this_run": false,
           "first_discovered_at": "2026-10-25T12:38:46Z",
           "last_seen_in_listing_at": "2026-10-25T12:38:46Z"
         },
@@ -6598,18 +6691,12 @@
               "change_kind": "new_reply",
               "previous_hashes": [],
               "excerpt": "Hello there Lordhyper , Thank you for reaching out to us about the issue you are",
-              "observed_this_run": true
+              "observed_this_run": false
             }
           ],
           "identities_pending": [],
-          "changes_this_run": [
-            {
-              "id": "562545740485793965",
-              "kind": "new_reply",
-              "detected_at": "2026-10-25T12:38:46Z"
-            }
-          ],
-          "observed_this_run": true,
+          "changes_this_run": [],
+          "observed_this_run": false,
           "first_discovered_at": "2026-10-25T12:38:46Z",
           "last_seen_in_listing_at": "2026-10-25T12:38:46Z"
         },
@@ -6645,18 +6732,12 @@
               "change_kind": "new_reply",
               "previous_hashes": [],
               "excerpt": "Hi there KRT™sulu Thank you for reaching out to us about the lack or rendering or the delay",
-              "observed_this_run": true
+              "observed_this_run": false
             }
           ],
           "identities_pending": [],
-          "changes_this_run": [
-            {
-              "id": "562545439722986963",
-              "kind": "new_reply",
-              "detected_at": "2026-10-25T12:38:46Z"
-            }
-          ],
-          "observed_this_run": true,
+          "changes_this_run": [],
+          "observed_this_run": false,
           "first_discovered_at": "2026-10-17T11:41:12Z",
           "last_seen_in_listing_at": "2026-10-25T12:38:46Z"
         },
@@ -6692,18 +6773,12 @@
               "change_kind": "new_reply",
               "previous_hashes": [],
               "excerpt": "Hi there Dreed , Thank you for reaching out to us about",
-              "observed_this_run": true
+              "observed_this_run": false
             }
           ],
           "identities_pending": [],
-          "changes_this_run": [
-            {
-              "id": "562545439722987240",
-              "kind": "new_reply",
-              "detected_at": "2026-10-25T12:38:46Z"
-            }
-          ],
-          "observed_this_run": true,
+          "changes_this_run": [],
+          "observed_this_run": false,
           "first_discovered_at": "2026-10-18T12:06:54Z",
           "last_seen_in_listing_at": "2026-10-25T12:38:46Z"
         },
@@ -6739,18 +6814,12 @@
               "change_kind": "new_reply",
               "previous_hashes": [],
               "excerpt": "Hello there Predator , Thank you for reaching out to us about the issue you are experiencing with",
-              "observed_this_run": true
+              "observed_this_run": false
             }
           ],
           "identities_pending": [],
-          "changes_this_run": [
-            {
-              "id": "562545439722991162",
-              "kind": "new_reply",
-              "detected_at": "2026-10-25T12:38:46Z"
-            }
-          ],
-          "observed_this_run": true,
+          "changes_this_run": [],
+          "observed_this_run": false,
           "first_discovered_at": "2026-10-21T13:01:30Z",
           "last_seen_in_listing_at": "2026-10-25T12:38:46Z"
         },
@@ -7183,7 +7252,7 @@
       "schema_version": 1,
       "state": "not_connected",
       "directory_url": "https://www.hellletloose.com/community",
-      "last_attempt_at": "2026-10-25T12:38:46Z",
+      "last_attempt_at": "2026-10-26T14:24:37Z",
       "directory_verified_count": 2,
       "content_collection_enabled": false,
       "channels": [
@@ -7193,8 +7262,8 @@
           "directory_label": "SoulSniper",
           "directory_url": "https://www.hellletloose.com/community",
           "directory_status": "listed",
-          "directory_checked_at": "2026-10-25T12:38:46Z",
-          "last_directory_verified_at": "2026-10-25T12:38:46Z",
+          "directory_checked_at": "2026-10-26T14:24:37Z",
+          "last_directory_verified_at": "2026-10-26T14:24:37Z",
           "content_status": "not_connected",
           "content_collection_enabled": false,
           "failure_kind": null,
@@ -7206,8 +7275,8 @@
           "directory_label": "Gebatron",
           "directory_url": "https://www.hellletloose.com/community",
           "directory_status": "listed",
-          "directory_checked_at": "2026-10-25T12:38:46Z",
-          "last_directory_verified_at": "2026-10-25T12:38:46Z",
+          "directory_checked_at": "2026-10-26T14:24:37Z",
+          "last_directory_verified_at": "2026-10-26T14:24:37Z",
           "content_status": "not_connected",
           "content_collection_enabled": false,
           "failure_kind": null,
