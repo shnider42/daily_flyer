@@ -3,18 +3,21 @@ from __future__ import annotations
 from daily_flyer.utils import resolve_date
 from daily_flyer_v2.context import FlyerContext
 from daily_flyer_v2.experience import FlyerExperience
-from daily_flyer_v2.products import f9_hub
+from daily_flyer_v2.products import f9_hub, rlcs_catch_up
 from daily_flyer_v2.renderers.f9_arena import render_f9_arena
+from daily_flyer_v2.renderers.rlcs_catch_up import render_rlcs_catch_up
 
 
 PRODUCT_BUILDERS = {
     "f9": f9_hub.build,
     "f9_hub": f9_hub.build,
     "f9_daily": f9_hub.build,
+    "rlcs_catch_up": rlcs_catch_up.build,
 }
 
 RENDERERS = {
     "f9_arena": render_f9_arena,
+    "rlcs_catch_up": render_rlcs_catch_up,
 }
 
 

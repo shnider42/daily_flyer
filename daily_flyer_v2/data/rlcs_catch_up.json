@@ -1,0 +1,912 @@
+{
+  "schema_version": 1,
+  "reviewed_at": "2026-10-26",
+  "coverage_from": "2018-11-11",
+  "coverage_through": "2026-09-20",
+  "coverage_note": "A reviewed selection of milestones, not every match or roster move. The latest included development is September 20, 2026. No automatic news updates yet.",
+  "sources": [
+    {
+      "id": "cloud9-2018",
+      "publisher": "Rocket League",
+      "title": "Cloud9 Brings LANVegas World Championship Home",
+      "url": "https://www.rocketleague.com/news/cloud9-brings-lanvegas-world-championship-home",
+      "published_at": "2018-11-14",
+      "checked_at": "2026-10-26",
+      "kind": "Publisher recap",
+      "spoiler": true
+    },
+    {
+      "id": "nrg-2019",
+      "publisher": "Rocket League",
+      "title": "Presenting Your Season 8 World Champions",
+      "url": "https://www.rocketleague.com/news/presenting-your-season-8-world-champions",
+      "published_at": "2019-12-18",
+      "checked_at": "2026-10-26",
+      "kind": "Publisher recap",
+      "spoiler": true
+    },
+    {
+      "id": "rlcs-x",
+      "publisher": "Rocket League",
+      "title": "Announcing RLCS X",
+      "url": "https://www.rocketleague.com/news/announcing-rlcs-x",
+      "published_at": "2020-07-01",
+      "checked_at": "2026-10-26",
+      "kind": "Format announcement",
+      "spoiler": false
+    },
+    {
+      "id": "expansion",
+      "publisher": "Rocket League",
+      "title": "Announcing the RLCS 2021–22 Season",
+      "url": "https://www.rocketleague.com/news/announcing-the-rlcs-202122-season",
+      "published_at": "2021-09-15",
+      "checked_at": "2026-10-26",
+      "kind": "Season announcement",
+      "spoiler": false
+    },
+    {
+      "id": "worlds-2022",
+      "publisher": "BLAST",
+      "title": "RLCS World Championship 2022 results",
+      "url": "https://blast.tv/rl/tournaments/rlcs-world-championship-2022",
+      "published_at": null,
+      "checked_at": "2026-10-26",
+      "kind": "Tournament record",
+      "spoiler": true
+    },
+    {
+      "id": "vitality-2023",
+      "publisher": "Team Vitality",
+      "title": "Team Vitality wins the 2023 RLCS World Championship",
+      "url": "https://vitality.gg/en-na/blogs/presse/team-vitality-remporte-les-rlcs-world-championship-2023",
+      "published_at": "2023-09-01",
+      "checked_at": "2026-10-26",
+      "kind": "Team statement",
+      "spoiler": true
+    },
+    {
+      "id": "format-2024",
+      "publisher": "Rocket League",
+      "title": "The RLCS Returns for 2024",
+      "url": "https://www.rocketleague.com/news/the-rlcs-returns-for-2024",
+      "published_at": "2024-01-10",
+      "checked_at": "2026-10-26",
+      "kind": "Season announcement",
+      "spoiler": false
+    },
+    {
+      "id": "worlds-2024",
+      "publisher": "BLAST",
+      "title": "RLCS World Championship 2024 results",
+      "url": "https://blast.tv/rl/tournaments/rlcs-2024-world-championship",
+      "published_at": null,
+      "checked_at": "2026-10-26",
+      "kind": "Tournament record",
+      "spoiler": true
+    },
+    {
+      "id": "format-2025",
+      "publisher": "Rocket League",
+      "title": "RLCS 2025: Updates",
+      "url": "https://www.rocketleague.com/news/rlcs-2025-updates",
+      "published_at": "2024-12-15",
+      "checked_at": "2026-10-26",
+      "kind": "Season announcement",
+      "spoiler": false
+    },
+    {
+      "id": "nrg-2025",
+      "publisher": "NRG",
+      "title": "World Championship Edition",
+      "url": "https://nrg.gg/blogs/news/world-championship-edition",
+      "published_at": "2025-09-15",
+      "checked_at": "2026-10-26",
+      "kind": "Team statement",
+      "spoiler": true
+    },
+    {
+      "id": "format-2026",
+      "publisher": "Rocket League",
+      "title": "Get Ready for the RLCS 2026 Season",
+      "url": "https://www.rocketleague.com/news/rocket-league-championship-series-2026-season",
+      "published_at": "2025-09-14",
+      "checked_at": "2026-10-26",
+      "kind": "Season announcement",
+      "spoiler": true
+    },
+    {
+      "id": "boston-2026",
+      "publisher": "BLAST",
+      "title": "RLCS Boston Major 2026 results",
+      "url": "https://blast.tv/rl/tournaments/rlcs-major-1-2026",
+      "published_at": null,
+      "checked_at": "2026-10-26",
+      "kind": "Tournament record",
+      "spoiler": true
+    },
+    {
+      "id": "paris-2026",
+      "publisher": "BLAST",
+      "title": "RLCS Paris Major 2026 results",
+      "url": "https://blast.tv/rl/tournaments/rlcs-paris-major-2-2026",
+      "published_at": null,
+      "checked_at": "2026-10-26",
+      "kind": "Tournament record",
+      "spoiler": true
+    },
+    {
+      "id": "worlds-2026",
+      "publisher": "BLAST",
+      "title": "RLCS World Championship 2026 results",
+      "url": "https://blast.tv/rl/tournaments/rlcs-world-championship-2026",
+      "published_at": null,
+      "checked_at": "2026-10-26",
+      "kind": "Tournament record",
+      "spoiler": true
+    },
+    {
+      "id": "club-2026",
+      "publisher": "Rocket League",
+      "title": "RLCS Returns to London for the Club Championship",
+      "url": "https://www.rocketleague.com/news/rlcs-returns-to-london-this-december-for-the-club-championship-with-dollar25m-up-for-grabs",
+      "published_at": "2026-09-20",
+      "checked_at": "2026-10-26",
+      "kind": "Competition announcement",
+      "spoiler": false
+    }
+  ],
+  "events": [
+    {
+      "label": "Season 6 Worlds · 2018",
+      "date": "2018-11-11"
+    },
+    {
+      "label": "Season 8 Worlds · 2019",
+      "date": "2019-12-15"
+    },
+    {
+      "label": "World Championship · 2022",
+      "date": "2022-08-14"
+    },
+    {
+      "label": "World Championship · 2023",
+      "date": "2023-08-13"
+    },
+    {
+      "label": "World Championship · 2024",
+      "date": "2024-09-15"
+    },
+    {
+      "label": "World Championship · 2025",
+      "date": "2025-09-14"
+    },
+    {
+      "label": "Boston Major · 2026",
+      "date": "2026-02-22"
+    },
+    {
+      "label": "Paris Major · 2026",
+      "date": "2026-05-24"
+    },
+    {
+      "label": "World Championship · 2026",
+      "date": "2026-09-20"
+    }
+  ],
+  "glossary": [
+    {
+      "term": "RLCS",
+      "definition": "Rocket League Championship Series: the game's official esports competition."
+    },
+    {
+      "term": "Roster",
+      "definition": "The players representing a team at a particular time. A familiar organization can field an entirely different roster."
+    },
+    {
+      "term": "Split",
+      "definition": "A segment of a season. The number and structure of splits have changed over time."
+    },
+    {
+      "term": "Open",
+      "definition": "A tournament with open qualification. Results can earn points toward larger events, under that season's rules."
+    },
+    {
+      "term": "Major",
+      "definition": "An international tournament within the season. Winning a Major and winning Worlds are different achievements."
+    },
+    {
+      "term": "Worlds",
+      "definition": "The Rocket League World Championship. Specify the year and game mode when comparing titles."
+    },
+    {
+      "term": "LAN",
+      "definition": "An in-person competition, with players at the event venue instead of competing remotely."
+    },
+    {
+      "term": "LCQ",
+      "definition": "Last Chance Qualifier: a later opportunity to earn a place at an event."
+    },
+    {
+      "term": "Series score",
+      "definition": "The number of games each side won in a match series. A 4–2 series is not a single game's goal score."
+    }
+  ],
+  "stories": [
+    {
+      "id": "cloud9-worlds",
+      "date": "2018-11-11",
+      "date_kind": "Event ended",
+      "era": "2018–2019",
+      "category": "results",
+      "topics": [
+        "results",
+        "people"
+      ],
+      "regions": [
+        "NA",
+        "EU"
+      ],
+      "people": [
+        "SquishyMuffinz",
+        "Torment",
+        "Gimmick",
+        "Kaydop",
+        "Turbopolsa",
+        "ViolentPanda"
+      ],
+      "teams": [
+        "Cloud9",
+        "Dignitas"
+      ],
+      "source_ids": [
+        "cloud9-2018"
+      ],
+      "priority": 9,
+      "spoiler": true,
+      "safe_title": "Season 6: the Las Vegas chapter",
+      "safe_summary": "The 2018 World Championship has a result and a roster snapshot to revisit. Reveal this story when you're ready.",
+      "title": "Cloud9 breaks through in Las Vegas",
+      "summary": "SquishyMuffinz, Torment and Gimmick beat Dignitas to win the Season 6 World Championship.",
+      "before": "Dignitas arrived as the two-time defending champion.",
+      "after": "Cloud9 won both grand-final series, taking the title through the lower bracket.",
+      "context": "A lower-bracket team had to win two final series in this format. This is why fans talk about a bracket reset.",
+      "meaning": "This result is a useful landmark between the Dignitas dynasty and the champions that followed.",
+      "detail": "The publisher's recap lists both finalists' players and explains the two-series final. This card describes that event, not either organization's current roster.",
+      "visual": {
+        "kind": "score",
+        "left": "Cloud9",
+        "right": "Dignitas",
+        "score": "4–1 / 4–1",
+        "caption": "Two grand-final series"
+      }
+    },
+    {
+      "id": "nrg-madrid",
+      "date": "2019-12-15",
+      "date_kind": "Event ended",
+      "era": "2018–2019",
+      "category": "results",
+      "topics": [
+        "results",
+        "people"
+      ],
+      "regions": [
+        "NA",
+        "EU"
+      ],
+      "people": [
+        "GarrettG",
+        "jstn.",
+        "Turbopolsa",
+        "Fireburner",
+        "Fairy Peak!"
+      ],
+      "teams": [
+        "NRG",
+        "Team Vitality"
+      ],
+      "source_ids": [
+        "nrg-2019"
+      ],
+      "priority": 10,
+      "spoiler": true,
+      "safe_title": "Season 8: the Madrid chapter",
+      "safe_summary": "Catch up on the 2019 season finale and the players behind it. The outcome stays hidden until you reveal it.",
+      "title": "NRG's long chase ends in a world title",
+      "summary": "GarrettG, jstn. and Turbopolsa win Season 8 in Madrid, beating Renault Vitality in a seven-game final.",
+      "before": "Fireburner retired; NRG brought in Turbopolsa during the offseason.",
+      "after": "jstn. scored the deciding goal in game-seven overtime. Turbopolsa claimed his fourth world title.",
+      "context": "This NRG roster belongs to the 2019 chapter. Organization names alone cannot tell you which players a result refers to.",
+      "meaning": "A familiar name can connect two eras, while the team around that name changes.",
+      "detail": "The official recap supports the roster transition, final result and deciding goal. Later NRG stories in this guide are separately dated snapshots.",
+      "visual": {
+        "kind": "roster",
+        "left": "NRG · 2019",
+        "left_items": [
+          "GarrettG",
+          "jstn.",
+          "Turbopolsa"
+        ],
+        "right": "World Championship",
+        "right_items": [
+          "Madrid",
+          "Season 8"
+        ],
+        "caption": "Roster at this event"
+      }
+    },
+    {
+      "id": "open-circuit",
+      "date": "2020-07-01",
+      "date_kind": "Announced",
+      "era": "2020–2021",
+      "category": "format",
+      "topics": [
+        "format"
+      ],
+      "regions": [
+        "global"
+      ],
+      "people": [],
+      "teams": [],
+      "source_ids": [
+        "rlcs-x"
+      ],
+      "priority": 1,
+      "spoiler": false,
+      "safe_title": "The league becomes an open circuit",
+      "safe_summary": "RLCS X replaced league play and twice-yearly seasons with an open tournament circuit built around a longer season.",
+      "title": "The league becomes an open circuit",
+      "summary": "RLCS X replaced league play and twice-yearly seasons with an open tournament circuit built around a longer season.",
+      "before": "League play led toward two seasonal world championships each year.",
+      "after": "The announced structure used three splits, regional events and Majors, with points toward an annual world championship.",
+      "context": "A split is a section of a season. An Open is a tournament entry path; a Major is an international event within the season.",
+      "meaning": "Following RLCS now involves a sequence of tournaments and qualification races, rather than one familiar league table.",
+      "detail": "This is the July 2020 format announcement. It explains the structural change; it does not establish that every planned international event subsequently took place.",
+      "visual": {
+        "kind": "change",
+        "left": "League play",
+        "right": "Open circuit",
+        "caption": "RLCS X · announced July 2020"
+      }
+    },
+    {
+      "id": "regional-expansion",
+      "date": "2021-09-15",
+      "date_kind": "Announced",
+      "era": "2020–2021",
+      "category": "format",
+      "topics": [
+        "format"
+      ],
+      "regions": [
+        "global",
+        "MENA",
+        "APAC",
+        "SSA"
+      ],
+      "people": [],
+      "teams": [],
+      "source_ids": [
+        "expansion"
+      ],
+      "priority": 2,
+      "spoiler": false,
+      "safe_title": "A wider world enters the picture",
+      "safe_summary": "The 2021–22 announcement added MENA and Asia-Pacific competition, plus a Worlds Wildcard route for Sub-Saharan Africa.",
+      "title": "A wider world enters the picture",
+      "summary": "The 2021–22 announcement added MENA and Asia-Pacific competition, plus a Worlds Wildcard route for Sub-Saharan Africa.",
+      "before": "Those regions did not have these RLCS qualification routes.",
+      "after": "APAC North, APAC South and MENA joined. SSA received supported events and two Worlds Wildcard places, with a different participation status that season.",
+      "context": "MENA means Middle East and North Africa; APAC means Asia-Pacific; SSA means Sub-Saharan Africa.",
+      "meaning": "Regional labels are part of the story: they describe a team's competitive route, not just its location.",
+      "detail": "The announcement also planned a return to LAN in Stockholm. This historical expansion card is not a statement of current slot allocations.",
+      "visual": {
+        "kind": "regions",
+        "items": [
+          "MENA",
+          "APAC N",
+          "APAC S",
+          "SSA route"
+        ],
+        "caption": "Expanded access · 2021–22"
+      }
+    },
+    {
+      "id": "bds-2022",
+      "date": "2022-08-14",
+      "date_kind": "Event ended",
+      "era": "2022–2023",
+      "category": "results",
+      "topics": [
+        "results"
+      ],
+      "regions": [
+        "EU",
+        "NA"
+      ],
+      "people": [],
+      "teams": [
+        "Team BDS",
+        "G2 Esports"
+      ],
+      "source_ids": [
+        "worlds-2022"
+      ],
+      "priority": 11,
+      "spoiler": true,
+      "safe_title": "Worlds 2022: the Fort Worth chapter",
+      "safe_summary": "The expanded season reaches its World Championship. Reveal the final result and its place in the timeline.",
+      "title": "BDS takes the 2022 world title",
+      "summary": "Team BDS defeats G2 Esports 4–1 in the World Championship final in Fort Worth.",
+      "before": "The expanded circuit brought 24 teams to the World Championship.",
+      "after": "BDS finished first; G2 finished second.",
+      "context": "Worlds is the season's world championship. Its title is separate from the Majors played earlier in the season.",
+      "meaning": "This is one of the major reference points for understanding later BDS results.",
+      "detail": "The event record supports the final score, placements and event dates. The date here is the event's local final day; some match timestamps display the following day in other time zones.",
+      "visual": {
+        "kind": "score",
+        "left": "Team BDS",
+        "right": "G2 Esports",
+        "score": "4–1",
+        "caption": "Worlds 2022 · grand final"
+      }
+    },
+    {
+      "id": "vitality-2023",
+      "date": "2023-08-13",
+      "date_kind": "Event ended",
+      "era": "2022–2023",
+      "category": "results",
+      "topics": [
+        "results",
+        "people"
+      ],
+      "regions": [
+        "EU"
+      ],
+      "people": [
+        "zen",
+        "Alpha54",
+        "Radosin",
+        "Kaydop",
+        "Fairy Peak!",
+        "Scrub Killa"
+      ],
+      "teams": [
+        "Team Vitality",
+        "Team BDS"
+      ],
+      "source_ids": [
+        "vitality-2023"
+      ],
+      "priority": 8,
+      "spoiler": true,
+      "safe_title": "Worlds 2023: the Düsseldorf chapter",
+      "safe_summary": "A World Championship story connects a familiar organization to a different generation of players.",
+      "title": "Vitality wins with a new generation",
+      "summary": "zen, Alpha54 and Radosin win the 2023 World Championship, following a sweep of the Spring regionals and Major.",
+      "before": "Vitality's 2019 title came with Kaydop, Fairy Peak! and Scrub Killa.",
+      "after": "A different trio won the organization's second world title in 2023.",
+      "context": "A team's history and a player's history overlap, but they are not interchangeable.",
+      "meaning": "This is why recognizing the Vitality name is only the start of catching up on its story.",
+      "detail": "Vitality's statement identifies both championship rosters and the 2023 Spring run. It is a team-authored account; the interpretation here is editorial context.",
+      "visual": {
+        "kind": "roster",
+        "left": "Vitality · 2019",
+        "left_items": [
+          "Kaydop",
+          "Fairy Peak!",
+          "Scrub Killa"
+        ],
+        "right": "Vitality · 2023",
+        "right_items": [
+          "zen",
+          "Alpha54",
+          "Radosin"
+        ],
+        "caption": "Two historical rosters · not a current lineup"
+      }
+    },
+    {
+      "id": "two-majors",
+      "date": "2024-01-10",
+      "date_kind": "Announced",
+      "era": "2024–2025",
+      "category": "format",
+      "topics": [
+        "format"
+      ],
+      "regions": [
+        "global"
+      ],
+      "people": [],
+      "teams": [],
+      "source_ids": [
+        "format-2024",
+        "expansion"
+      ],
+      "priority": 6,
+      "spoiler": false,
+      "safe_title": "The season moves to two Majors",
+      "safe_summary": "The 2024 season announcement set out two international Majors followed by the World Championship.",
+      "title": "The season moves to two Majors",
+      "summary": "The 2024 season announcement set out two international Majors followed by the World Championship.",
+      "before": "The preceding circuit used Fall, Winter and Spring splits.",
+      "after": "Three online Open Qualifiers per Major led to two Majors, with season points determining Worlds qualification.",
+      "context": "A Major winner and a world champion hold different titles. Always check which event a headline describes.",
+      "meaning": "An older three-split calendar will not explain the 2024 season's qualification race.",
+      "detail": "This is the announced 2024 structure. Later format changes are separate stories; do not reuse historical bracket rules as today's rules.",
+      "visual": {
+        "kind": "change",
+        "left": "Three splits",
+        "right": "Two Majors + Worlds",
+        "caption": "Season structure · 2024"
+      }
+    },
+    {
+      "id": "bds-2024",
+      "date": "2024-09-15",
+      "date_kind": "Event ended",
+      "era": "2024–2025",
+      "category": "results",
+      "topics": [
+        "results"
+      ],
+      "regions": [
+        "EU",
+        "NA"
+      ],
+      "people": [],
+      "teams": [
+        "Team BDS",
+        "G2 Esports"
+      ],
+      "source_ids": [
+        "worlds-2024",
+        "worlds-2022"
+      ],
+      "priority": 12,
+      "spoiler": true,
+      "safe_title": "Worlds 2024: another Fort Worth chapter",
+      "safe_summary": "The 2024 finale adds another chapter to the championship timeline. Reveal it without opening the entire results archive.",
+      "title": "BDS wins Worlds again",
+      "summary": "Team BDS beats G2 Esports 4–2 in the 2024 World Championship final.",
+      "before": "BDS and G2 had also met in the 2022 Worlds final.",
+      "after": "BDS adds the 2024 title to its 2022 win.",
+      "context": "These are organization-level results. Matching team names do not imply identical rosters across years.",
+      "meaning": "The repeat final links two seasons without requiring you to read every tournament between them.",
+      "detail": "The two BLAST event records support the two results. This card does not claim that the same players contested both finals.",
+      "visual": {
+        "kind": "score",
+        "left": "Team BDS",
+        "right": "G2 Esports",
+        "score": "4–2",
+        "caption": "Worlds 2024 · grand final"
+      }
+    },
+    {
+      "id": "ones-2025",
+      "date": "2024-12-15",
+      "date_kind": "Announced",
+      "era": "2024–2025",
+      "category": "format",
+      "topics": [
+        "format"
+      ],
+      "regions": [
+        "global"
+      ],
+      "people": [],
+      "teams": [],
+      "source_ids": [
+        "format-2025"
+      ],
+      "priority": 4,
+      "spoiler": false,
+      "safe_title": "1v1 gets its own RLCS title path",
+      "safe_summary": "The 2025 announcement introduced RLCS 1v1 competition alongside the existing 3v3 circuit.",
+      "title": "1v1 gets its own RLCS title path",
+      "summary": "The 2025 announcement introduced RLCS 1v1 competition alongside the existing 3v3 circuit.",
+      "before": "The RLCS championship circuit centered on 3v3.",
+      "after": "A separate 1v1 route led to a 1v1 World Championship.",
+      "context": "1v1 means one player on each side; a 1v1 title is distinct from a team's 3v3 title.",
+      "meaning": "Check the game mode before comparing championship headlines.",
+      "detail": "This records the introduction, not the full eligibility rules or the champion.",
+      "visual": {
+        "kind": "change",
+        "left": "3v3 circuit",
+        "right": "3v3 + 1v1",
+        "caption": "Separate competitions · 2025"
+      }
+    },
+    {
+      "id": "lcq-2025",
+      "date": "2024-12-15",
+      "date_kind": "Announced",
+      "era": "2024–2025",
+      "category": "format",
+      "topics": [
+        "format"
+      ],
+      "regions": [
+        "global"
+      ],
+      "people": [],
+      "teams": [],
+      "source_ids": [
+        "format-2025",
+        "format-2024"
+      ],
+      "priority": 13,
+      "spoiler": false,
+      "safe_title": "A last-chance route to Worlds",
+      "safe_summary": "The 2025 format added four Last Chance Qualifier places to the 16 points-based Worlds invitations.",
+      "title": "A last-chance route to Worlds",
+      "summary": "The 2025 format added four Last Chance Qualifier places to the 16 points-based Worlds invitations.",
+      "before": "The previous season's published qualification route used cumulative points.",
+      "after": "Four additional teams could qualify through regional LCQs.",
+      "context": "LCQ stands for Last Chance Qualifier.",
+      "meaning": "A team outside the initial points places could still have a route to Worlds.",
+      "detail": "Regional allocation depended on LAN performance under the announced rules.",
+      "visual": {
+        "kind": "change",
+        "left": "16 points places",
+        "right": "+ 4 LCQ places",
+        "caption": "Worlds qualification · 2025"
+      }
+    },
+    {
+      "id": "nrg-2025",
+      "date": "2025-09-14",
+      "date_kind": "Event ended",
+      "era": "2024–2025",
+      "category": "results",
+      "topics": [
+        "results",
+        "people"
+      ],
+      "regions": [
+        "NA",
+        "MENA"
+      ],
+      "people": [
+        "BeastMode",
+        "Daniel",
+        "Atomic",
+        "GarrettG",
+        "jstn.",
+        "Turbopolsa"
+      ],
+      "teams": [
+        "NRG",
+        "Team Falcons"
+      ],
+      "source_ids": [
+        "nrg-2025",
+        "nrg-2019"
+      ],
+      "priority": 7,
+      "spoiler": true,
+      "safe_title": "Worlds 2025: the Lyon chapter",
+      "safe_summary": "The 2025 final connects a familiar team name with a different roster. The result and comparison are hidden together.",
+      "title": "NRG returns to the top with a different trio",
+      "summary": "BeastMode, Daniel and Atomic win Worlds 2025, beating Team Falcons 4–1 in the final.",
+      "before": "NRG's 2019 world title belonged to GarrettG, jstn. and Turbopolsa.",
+      "after": "The organization won again in 2025 with an entirely different playing roster.",
+      "context": "These are rosters at two historical events, not a claim about NRG's current lineup.",
+      "meaning": "Following the organization and following its former players lead to different catch-up stories.",
+      "detail": "NRG's September 2025 recap supports that year's lineup and final score; the publisher's 2019 recap supports the earlier lineup.",
+      "visual": {
+        "kind": "roster",
+        "left": "NRG · 2019",
+        "left_items": [
+          "GarrettG",
+          "jstn.",
+          "Turbopolsa"
+        ],
+        "right": "NRG · 2025",
+        "right_items": [
+          "BeastMode",
+          "Daniel",
+          "Atomic"
+        ],
+        "caption": "Same organization · two championship rosters"
+      }
+    },
+    {
+      "id": "twos-2026",
+      "date": "2025-09-14",
+      "date_kind": "Announced",
+      "era": "2024–2025",
+      "category": "format",
+      "topics": [
+        "format"
+      ],
+      "regions": [
+        "global"
+      ],
+      "people": [],
+      "teams": [],
+      "source_ids": [
+        "format-2026",
+        "format-2025"
+      ],
+      "priority": 5,
+      "spoiler": false,
+      "safe_title": "2v2 joins the RLCS program",
+      "safe_summary": "The 2026 roadmap introduced 2v2 competition alongside 3v3 and the returning 1v1 competition.",
+      "title": "2v2 joins the RLCS program",
+      "summary": "The 2026 roadmap introduced 2v2 competition alongside 3v3 and the returning 1v1 competition.",
+      "before": "The 2025 program had added 1v1 alongside 3v3.",
+      "after": "The 2026 roadmap added 2v2 Opens and a separate 2v2 World Championship.",
+      "context": "A player may compete in more than one mode. The event name and mode identify which title is at stake.",
+      "meaning": "A single Worlds week can contain several different championship stories.",
+      "detail": "This source is an early season announcement. Later rulebook revisions govern exact qualification details. Its opening paragraph reveals the 2025 3v3 champion, so the source link has its own spoiler gate.",
+      "visual": {
+        "kind": "regions",
+        "items": [
+          "3v3",
+          "1v1",
+          "2v2"
+        ],
+        "caption": "Distinct title paths in the 2026 program"
+      }
+    },
+    {
+      "id": "boston-2026",
+      "date": "2026-02-22",
+      "date_kind": "Event ended",
+      "era": "2026",
+      "category": "results",
+      "topics": [
+        "results"
+      ],
+      "regions": [
+        "EU"
+      ],
+      "people": [],
+      "teams": [
+        "Gentle Mates",
+        "Team Vitality"
+      ],
+      "source_ids": [
+        "boston-2026"
+      ],
+      "priority": 14,
+      "spoiler": true,
+      "safe_title": "Boston Major 2026",
+      "safe_summary": "Catch up on the first Major of the 2026 season. The finalists and score stay hidden here.",
+      "title": "Gentle Mates wins the Boston Major",
+      "summary": "Gentle Mates beats Vitality 4–2 in the Boston Major final.",
+      "before": "Sixteen teams entered the international Major.",
+      "after": "Gentle Mates took the Major title in Boston.",
+      "context": "A Major is an international season event; it is not the World Championship.",
+      "meaning": "This result belongs to the first part of the 2026 season, before the Paris Major and Worlds.",
+      "detail": "BLAST's event record lists the February 19–22 dates and the grand-final score. The score counts games won in the series.",
+      "visual": {
+        "kind": "score",
+        "left": "Gentle Mates",
+        "right": "Vitality",
+        "score": "4–2",
+        "caption": "Boston Major · grand final"
+      }
+    },
+    {
+      "id": "paris-2026",
+      "date": "2026-05-24",
+      "date_kind": "Event ended",
+      "era": "2026",
+      "category": "results",
+      "topics": [
+        "results"
+      ],
+      "regions": [
+        "EU",
+        "MENA"
+      ],
+      "people": [],
+      "teams": [
+        "Karmine Corp",
+        "Twisted Minds"
+      ],
+      "source_ids": [
+        "paris-2026"
+      ],
+      "priority": 15,
+      "spoiler": true,
+      "safe_title": "Paris Major 2026",
+      "safe_summary": "The second Major of 2026 took place at Paris La Défense Arena. Reveal its final when you're ready.",
+      "title": "Karmine Corp takes the Paris Major",
+      "summary": "Karmine Corp defeats Twisted Minds 4–1 in the Paris Major final.",
+      "before": "The season moved from Boston to its second international Major.",
+      "after": "Karmine Corp won the Paris title; Twisted Minds finished runner-up.",
+      "context": "A runner-up is the team that loses the final, finishing second.",
+      "meaning": "This gives you the next major result in the 2026 sequence without opening a dense bracket.",
+      "detail": "BLAST's event record supports the May 20–24 dates, venue and final result.",
+      "visual": {
+        "kind": "score",
+        "left": "Karmine Corp",
+        "right": "Twisted Minds",
+        "score": "4–1",
+        "caption": "Paris Major · grand final"
+      }
+    },
+    {
+      "id": "worlds-2026",
+      "date": "2026-09-20",
+      "date_kind": "Event ended",
+      "era": "2026",
+      "category": "results",
+      "topics": [
+        "results"
+      ],
+      "regions": [
+        "MENA",
+        "NA"
+      ],
+      "people": [],
+      "teams": [
+        "Team Falcons",
+        "Spacestation Gaming"
+      ],
+      "source_ids": [
+        "worlds-2026"
+      ],
+      "priority": 16,
+      "spoiler": true,
+      "safe_title": "Worlds 2026: the latest included final",
+      "safe_summary": "The 2026 3v3 World Championship concluded in Fort Worth. Reveal the result separately from the format announcements.",
+      "title": "Team Falcons wins Worlds 2026",
+      "summary": "Team Falcons defeats Spacestation Gaming 4–0 in the World Championship final.",
+      "before": "Twenty teams entered the 2026 3v3 World Championship.",
+      "after": "Falcons took the title, with Spacestation finishing second.",
+      "context": "This story covers the 3v3 title. The 1v1 and 2v2 results are separate competitions and are not yet covered in this edition.",
+      "meaning": "This is the latest 3v3 Worlds result included in your catch-up.",
+      "detail": "The event record supports the September 15–20 dates and final score. The guide does not infer later roster changes from this result.",
+      "visual": {
+        "kind": "score",
+        "left": "Team Falcons",
+        "right": "Spacestation",
+        "score": "4–0",
+        "caption": "Worlds 2026 · 3v3 grand final"
+      }
+    },
+    {
+      "id": "club-championship",
+      "date": "2026-09-20",
+      "date_kind": "Announced",
+      "era": "2026",
+      "category": "format",
+      "topics": [
+        "format"
+      ],
+      "regions": [
+        "global"
+      ],
+      "people": [],
+      "teams": [],
+      "source_ids": [
+        "club-2026"
+      ],
+      "priority": 3,
+      "spoiler": false,
+      "safe_title": "A separate Club Championship is announced",
+      "safe_summary": "The new Club Championship sits apart from the Major structure, beginning with a London kickoff and continuing into 2027.",
+      "title": "A separate Club Championship is announced",
+      "summary": "The new Club Championship sits apart from the Major structure, beginning with a London kickoff and continuing into 2027.",
+      "before": "The familiar season pathway centered on Opens, Majors and Worlds.",
+      "after": "The announcement describes 20 invited clubs plus four qualifiers, followed by league play and a 16-team Club Finale.",
+      "context": "Treat this as its own competition when reading the calendar, rather than another Major.",
+      "meaning": "Knowing which competition an event belongs to is the first step to understanding its stakes.",
+      "detail": "The September announcement schedules the kickoff for December 9–13, 2026. Invitations, later qualifier details and subsequent announcements are outside this first edition.",
+      "visual": {
+        "kind": "change",
+        "left": "London kickoff",
+        "right": "League → Club Finale",
+        "caption": "Announced pathway · 2026–27"
+      }
+    }
+  ]
+}
