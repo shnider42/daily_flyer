@@ -1,0 +1,71 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width,initial-scale=1">
+  <meta name="theme-color" content="#101820">
+  <meta name="description" content="Find your way back into Rocket League esports. A sourced, spoiler-aware catch-up shaped around where you left off.">
+  <title>RLCS Catch Up · Pick up where you left off</title>
+  <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Crect width='48' height='48' rx='10' fill='%23101820'/%3E%3Cpath d='M12 12h23v6H19v5h13v6H19v8h-7z' fill='%23ffad67'/%3E%3C/svg%3E">
+  <style>@@CSS@@</style>
+</head>
+<body>
+  <a class="skip-link" href="#briefing">Skip to your briefing</a>
+  <header class="site-header wrap">
+    <a class="brand" href="#briefing" aria-label="RLCS Catch Up briefing"><span class="brand-mark" aria-hidden="true">↗</span><span>RLCS <strong>CATCH UP</strong></span></a>
+    <nav aria-label="Main navigation"><a href="#briefing">Your briefing</a><a href="#guide">The basics</a><a href="#coverage">Sources & coverage</a></nav>
+    <span class="edition">FIRST EDITION</span>
+  </header>
+  <main class="wrap">
+    <section class="hero" aria-labelledby="hero-title">
+      <div class="hero-copy"><p class="eyebrow"><span class="accent-dot"></span> Rocket League esports, reconnected</p>
+        <h1 id="hero-title">Pick up where<br>you <em>left off.</em></h1>
+        <p class="hero-deck">Missed a tournament? Been away for years?<br>Find the changes that connect then to now.</p>
+        <a class="primary hero-cta" href="#briefing">Find my place <span aria-hidden="true">↘</span></a>
+      </div>
+      <aside class="hero-aside" aria-label="About this briefing">
+        <div class="field-art" aria-hidden="true"><div class="pitch"><div class="center-line"></div><div class="center-ring"></div><div class="goal goal-left"></div><div class="goal goal-right"></div><div class="ball"></div><div class="path"></div></div><span class="field-label">THEN <b>→</b> NOW</span></div>
+        <p><strong>The story, at your pace.</strong><br>Start with the big changes. Follow a team or player. Open the evidence when you want more.</p>
+      </aside>
+    </section>
+    <div class="edition-strip"><span>Selected milestones <strong>2018–2026</strong></span><span>Sources checked <time datetime="@@REVIEWED@@">@@REVIEWED_LABEL@@</time></span><span>Reviewed edition · not a live feed</span></div>
+    <section id="briefing" class="briefing" aria-labelledby="briefing-title">
+      <div class="section-heading"><div><p class="eyebrow">01 / Find your place</p><h2 id="briefing-title">Your catch-up starts here.</h2></div><p class="section-hint">No account. Change any choice as you go.</p></div>
+      <div id="controls" class="control-panel" hidden>
+        <div class="main-controls">
+          <label class="field-label-text">Last followed<select id="when"><option value="all">Not sure · show the big picture</option><option value="month">About a month ago</option><option value="year">About a year ago</option><option value="event">After a tournament</option><option value="custom">Choose a date</option></select></label>
+          <label id="date-field" class="field-label-text" hidden>Include changes from<input type="date" id="since" aria-describedby="control-message"></label>
+          <label id="event-field" class="field-label-text" hidden>Last tournament watched<select id="event-date"><option value="">Choose a tournament</option></select></label>
+          <label class="field-label-text">Team or player <span class="optional">optional</span><input id="search" type="search" placeholder="e.g. NRG, Vitality, zen…" maxlength="80" autocomplete="off"></label>
+          <label class="spoiler-switch"><input id="spoilers" type="checkbox"><span><strong>Show results</strong><small id="spoiler-label">Outcomes hidden</small></span></label>
+        </div>
+        <div class="secondary-controls">
+          <div class="reading-controls"><span class="control-caption">Reading depth</span><div class="segmented" role="group" aria-label="Reading depth"><button type="button" data-depth="overview" aria-pressed="false">Quick overview</button><button type="button" data-depth="refresher" aria-pressed="true">Refresher</button><button type="button" data-depth="detailed" aria-pressed="false">Detailed</button></div></div>
+          <details class="more-filters"><summary>More filters <span aria-hidden="true">+</span></summary><div><label class="field-label-text">Region<select id="region"><option value="all">All regions</option><option value="NA">North America</option><option value="EU">Europe</option><option value="MENA">Middle East & North Africa</option><option value="SAM">South America</option><option value="OCE">Oceania</option><option value="APAC">Asia-Pacific</option><option value="SSA">Sub-Saharan Africa</option></select></label><label class="field-label-text">Order<select id="order"><option value="essentials">Start with the essentials</option><option value="oldest">Oldest first</option><option value="newest">Newest first</option></select></label><button class="text-button" id="reset" type="button">Reset choices ↺</button></div></details>
+        </div>
+        <p class="control-message" id="control-message" role="status" aria-live="polite"></p>
+        <p class="filter-help">Dates choose the stories. Reading depth changes the explanation. Region follows the featured teams, not the venue. Regional views also include changes affecting everyone.</p>
+      </div>
+      <div id="dynamic" hidden>
+        <div class="chapter-heading"><p class="eyebrow">Explore a chapter</p><button id="all-eras" class="text-button" type="button">All years</button></div>
+        <div id="chapters" class="chapters" role="group" aria-label="Filter by era"></div>
+        <div class="results-toolbar"><div class="topic-filters" role="group" aria-label="Story type"><button data-topic="all" type="button" aria-pressed="true">Everything</button><button data-topic="format" type="button" aria-pressed="false">How RLCS changed</button><button data-topic="results" type="button" aria-pressed="false">Tournament results</button><button data-topic="people" type="button" aria-pressed="false">People & teams</button></div><button id="share" class="text-button" type="button">Copy briefing link ↗</button></div>
+        <label id="share-fallback" class="field-label-text" hidden>Your briefing link<input id="share-url" readonly></label>
+        <div class="result-heading"><div><h2 id="result-title">Start with these stories.</h2><p id="result-description"></p></div><p id="result-count" role="status" aria-live="polite"></p></div>
+        <p id="coverage-message" class="coverage-message"></p>
+        <div id="stories" class="story-grid"></div>
+        <div class="more-row"><button id="more" class="secondary" type="button" aria-expanded="false">Explore more stories ↓</button><span id="remaining"></span></div>
+      </div>
+      <div id="fallback"><p class="fallback-note">Start with these reviewed changes. Interactive filters become available when JavaScript loads.</p><div class="story-grid">@@FALLBACK@@</div></div>
+    </section>
+    <section id="guide" class="guide" aria-labelledby="guide-title"><div><p class="eyebrow">02 / A little context goes a long way</p><h2 id="guide-title">Get your bearings.</h2><p>Open a term whenever you need it.</p><p class="guide-note">Historical formats stay attached to their year. These definitions explain the language, not today's full rulebook.</p></div><div id="glossary"><details><summary>What is RLCS?</summary><p>The Rocket League Championship Series is the game's official esports competition. This guide connects selected changes across its history.</p></details><details><summary>What does a team name tell me?</summary><p>The organization and the players representing it are different things. Always check the date of a roster.</p></details></div></section>
+    <section id="coverage" class="coverage" aria-labelledby="coverage-title"><div class="section-heading"><div><p class="eyebrow">03 / Know what you're reading</p><h2 id="coverage-title">A source behind every story.</h2></div><span class="review-mark">REVIEWED · @@REVIEWED_LABEL@@</span></div>
+      <div class="coverage-columns"><div><h3>What's in this edition</h3><p>Selected milestones from November 2018 through September 20, 2026: competition changes, major results and dated roster comparisons. Each story links to a publisher announcement, tournament record or team statement.</p><p><strong>This is not a complete archive.</strong> Regional tournaments, most transfers and 1v1/2v2 results still need backfilling. No automatic news refresh is connected.</p></div><div><h3>Facts and context stay distinct</h3><p>“What changed” records sourced facts. “Why it matters” is our editorial explanation. A source-check date means we reviewed those pages, not that every development through that day is included.</p><p>External pages may contain spoilers. Result stories and source titles stay concealed until you choose to reveal them. Source links with other results have a separate warning.</p></div></div>
+      <details class="source-directory"><summary>Browse this edition's sources <span id="source-count"></span></summary><div id="sources"><p>Sources are attached to the stories above.</p></div></details>
+    </section>
+  </main>
+  <footer class="site-footer wrap"><span class="brand footer-brand">RLCS <strong>CATCH UP</strong></span><p>An independent fan project built with Daily Flyer Engine.<br>Not affiliated with or endorsed by Psyonix, Epic Games or BLAST.</p><span>No account or tracking scripts.<br>Filter choices stay in this browser.</span></footer>
+  <script id="rlcs-data" type="application/json">@@DATA@@</script>
+  <script>@@JS@@</script>
+</body>
+</html>
