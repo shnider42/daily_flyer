@@ -29,6 +29,13 @@ Private working preview: https://magic-catch-up-field-guide.primemouse3.chatgpt.
 
 ## Reader behavior
 
+Night mode is the default, with deep green surfaces and warm text. The header
+toggle restores the original light palette and remembers an explicit choice
+under `dfe-magic-theme-v1`, independently of filters and reading progress.
+The saved palette is applied before the first paint. Blocked storage still
+allows switching during the current visit; without JavaScript, night mode and
+the sourced fallback remain available.
+
 Starting date, format, platform, topic and search intersect. All-format rules
 remain eligible for every relevant format. Commander/Modern with Arena and
 Arena-only formats with paper produce a helpful incompatible-selection state.

@@ -1,15 +1,25 @@
 <!doctype html>
-<html lang="en">
+<html lang="en" data-theme="dark">
 <head>
 <meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1">
-<meta name="theme-color" content="#172b29"><meta name="description" content="Return to Magic: The Gathering with a catch-up shaped around when you last played, your format, and how much detail you want.">
+<meta name="theme-color" content="#111e1c"><meta name="description" content="Return to Magic: The Gathering with a catch-up shaped around when you last played, your format, and how much detail you want.">
+<script>
+// Restore an explicit choice before styles paint. Night is the default,
+// including when storage is unavailable or scripting is disabled.
+try {
+  if (localStorage.getItem('dfe-magic-theme-v1') === 'light') {
+    document.documentElement.dataset.theme = 'light';
+    document.querySelector('meta[name="theme-color"]').content = '#f4f0e6';
+  }
+} catch (_) {}
+</script>
 <title>Magic Catch Up · Your next game starts here</title>
 <link rel="icon" href="data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 48 48'%3E%3Crect width='48' height='48' rx='10' fill='%23172b29'/%3E%3Cpath d='M24 5 39 24 24 43 9 24Z' fill='none' stroke='%23e5c48e' stroke-width='2'/%3E%3Cpath d='M24 13v22M16 24h16' stroke='%23e5c48e' stroke-width='2'/%3E%3C/svg%3E">
 <style>@@CSS@@</style>
 </head>
 <body>
 <a class="skip" href="#catch-up">Skip to your catch-up</a>
-<header class="header wrap"><a class="brand" href="#"><span class="brand-symbol" aria-hidden="true">◇</span><span>MAGIC <b>CATCH UP</b><small>A returning player’s field guide</small></span></a><nav aria-label="Main navigation"><a href="#catch-up">Your catch-up</a><a href="#field-notes">Field notes</a><a href="#sources-section">Sources</a></nav><span class="edition">VOL. 01 <span>REVIEWED EDITION</span></span></header>
+<header class="header wrap"><a class="brand" href="#"><span class="brand-symbol" aria-hidden="true">◇</span><span>MAGIC <b>CATCH UP</b><small>A returning player’s field guide</small></span></a><nav aria-label="Main navigation"><a href="#catch-up">Your catch-up</a><a href="#field-notes">Field notes</a><a href="#sources-section">Sources</a></nav><div class="header-actions"><span class="edition">VOL. 01 <span>REVIEWED EDITION</span></span><button id="theme-toggle" class="theme-toggle" type="button" aria-pressed="true" hidden><span class="theme-switch" aria-hidden="true"></span>Night mode</button></div></header>
 <main>
 <section class="hero wrap" aria-labelledby="title">
 <div class="hero-copy"><p class="eyebrow"><span class="tiny-star" aria-hidden="true">✦</span> Magic: The Gathering, since you’ve been away</p><h1 id="title">Your next game<br>starts <em>here.</em></h1><p class="intro">The cards kept coming. Life happened.<br>Find the changes that matter to the way you play.</p><a class="primary" href="#catch-up">Pick up where I left off <span aria-hidden="true">↘</span></a><p class="hero-footnote">A few months or a few decades. Start wherever you are.</p></div>

@@ -61,7 +61,7 @@ def test_embedded_content_and_fallback_are_escaped():
     for story in exp.data['stories']:
         story['title'] = attack
     soup = BeautifulSoup(render_mtg_catch_up(exp), 'html.parser')
-    assert len(soup.select('script')) == 2
+    assert len(soup.select('script')) == 3
     assert json.loads(soup.select_one('#mtg-data').string)['stories'][0]['title'] == attack
     assert not soup.select('#fallback script')
 

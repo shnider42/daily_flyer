@@ -64,6 +64,22 @@
   if (!root.document) return;
   const doc = root.document;
   const $ = id => doc.getElementById(id);
+  const themeToggle = $('theme-toggle');
+  if (themeToggle) {
+    // Theme stays separate from reading filters, progress, and shared links.
+    const setTheme = theme => {
+      doc.documentElement.dataset.theme = theme;
+      themeToggle.setAttribute('aria-pressed', String(theme === 'dark'));
+      doc.querySelector('meta[name="theme-color"]').content = theme === 'dark' ? '#111e1c' : '#f4f0e6';
+    };
+    setTheme(doc.documentElement.dataset.theme === 'light' ? 'light' : 'dark');
+    themeToggle.hidden = false;
+    themeToggle.addEventListener('click', () => {
+      const theme = doc.documentElement.dataset.theme === 'dark' ? 'light' : 'dark';
+      setTheme(theme);
+      try { root.localStorage.setItem('dfe-magic-theme-v1', theme); } catch (_) {}
+    });
+  }
   const esc = value => String(value).replace(/[&<>"']/g,c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const storageKey = 'dfe-magic-catch-up-v1';
   const readKey = 'dfe-magic-caught-up-v1';
