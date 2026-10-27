@@ -5,6 +5,8 @@ Magic: The Gathering Catch Up is an independent DFE v2 product on
 `f412aa71079dc8a8a1d80f0eae2b0977b34f04c9`. It adds a separate product; existing
 RLCS and F9 routes and exports remain unchanged.
 
+Public site: https://mtg-catch-up.onrender.com/
+
 Private working preview: https://magic-catch-up-field-guide.primemouse3.chatgpt.site
 
 ## Run and export
@@ -19,7 +21,11 @@ Private working preview: https://magic-catch-up-field-guide.primemouse3.chatgpt.
   `mtg_catchup`, build command `test -s mtg_catchup/index.html`. No environment
   variables or web-service runtime are required for the static export.
 - The `.openai/hosting.json` file is local preview configuration only, not part
-  of the Git change. This edition has not yet been deployed to Render.
+  of the Git change.
+- Render service: `srv-dbggv608v5cc73dukpsg`, with automatic deployment enabled
+  for commits to `feat/mtg-catch-up`. Initial deploy `dep-dbggv688v5cc73dukqrg`
+  reached `live` on October 27, 2026, serving commit
+  `a1ab6a6162949b74369488f0a1063938fa520b00`.
 
 ## Reader behavior
 
@@ -98,3 +104,8 @@ frame with storage blocked retains full interaction; a scripting-disabled
 frame retains three sourced entries. These are responsive Chromium checks,
 not a physical iPhone/Safari certification. The private deployment succeeded;
 the live preview requires the owner's ChatGPT sign-in.
+
+The public Render site was verified without sign-in. Date and format filters
+updated the matching entries, and the detail selector expanded context and
+official evidence while preserving the same eight matching Commander changes
+from 2017 onward.
