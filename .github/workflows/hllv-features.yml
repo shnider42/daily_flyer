@@ -23,7 +23,7 @@ jobs:
           node .github/hllv-evidence/test_evidence.cjs
           node --check .github/hllv-features/app.js
           node --check .github/hllv-ux-20261012/feed.js
-          python3 .github/hllv-features/publish.py
+          python3 .github/hllv-homepage/publish.py
           git diff --exit-code -- hllv_tracker/index.html hllv_tracker/deployment-manifest.json
       - name: Install isolated browser test dependencies
         run: |
