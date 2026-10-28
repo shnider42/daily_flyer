@@ -1,0 +1,748 @@
+{
+  "schema_version": 1,
+  "reviewed_at": "2026-10-27",
+  "coverage_from": "2009-06-10",
+  "coverage_through": "2026-09-22",
+  "coverage_note": "16 selected milestones, 2009–2026. Rules, formats, packs, and Arena changes; not a complete archive of releases, bans, or tournament results.",
+  "sources": [
+    {
+      "id": "m2010",
+      "title": "Magic 2010 rules changes",
+      "url": "https://magic.wizards.com/en/news/feature/rules-changes-2009-06-10",
+      "publisher": "Wizards of the Coast",
+      "published_at": "2009-06-10",
+      "checked_at": "2026-10-27",
+      "kind": "Official announcement"
+    },
+    {
+      "id": "london",
+      "title": "The London Mulligan",
+      "url": "https://magic.wizards.com/en/news/announcements/london-mulligan-2019-06-03",
+      "publisher": "Wizards of the Coast",
+      "published_at": "2019-06-03",
+      "checked_at": "2026-10-27",
+      "kind": "Official announcement"
+    },
+    {
+      "id": "pioneer",
+      "title": "Announcing the Pioneer Format",
+      "url": "https://magic.wizards.com/en/news/announcements/announcing-pioneer-format-2019-10-21",
+      "publisher": "Wizards of the Coast",
+      "published_at": "2019-10-21",
+      "checked_at": "2026-10-27",
+      "kind": "Official announcement"
+    },
+    {
+      "id": "companion",
+      "title": "June 1, 2020 rules and banned announcement",
+      "url": "https://magic.wizards.com/en/news/announcements/june-1-2020-banned-and-restricted-announcement",
+      "publisher": "Wizards of the Coast",
+      "published_at": "2020-06-01",
+      "checked_at": "2026-10-27",
+      "kind": "Official announcement"
+    },
+    {
+      "id": "ward",
+      "title": "Introducing Ward",
+      "url": "https://magic.wizards.com/en/news/card-preview/introducing-ward-2021-03-25",
+      "publisher": "Wizards of the Coast",
+      "published_at": "2021-03-25",
+      "checked_at": "2026-10-27",
+      "kind": "Official announcement"
+    },
+    {
+      "id": "battles",
+      "title": "March of the Machine Mechanics",
+      "url": "https://magic.wizards.com/en/news/feature/march-of-the-machine-mechanics",
+      "publisher": "Wizards of the Coast",
+      "published_at": "2023-03-29",
+      "checked_at": "2026-10-27",
+      "kind": "Official announcement"
+    },
+    {
+      "id": "standard3",
+      "title": "Revitalizing Standard",
+      "url": "https://magic.wizards.com/en/news/announcements/revitalizing-standard",
+      "publisher": "Wizards of the Coast",
+      "published_at": "2023-05-07",
+      "checked_at": "2026-10-27",
+      "kind": "Official announcement"
+    },
+    {
+      "id": "boosters",
+      "title": "What Are Play Boosters?",
+      "url": "https://magic.wizards.com/en/news/making-magic/what-are-play-boosters",
+      "publisher": "Wizards of the Coast",
+      "published_at": "2023-10-16",
+      "checked_at": "2026-10-27",
+      "kind": "Official announcement"
+    },
+    {
+      "id": "stewardship",
+      "title": "On the Future of Commander",
+      "url": "https://magic.wizards.com/en/news/announcements/on-the-future-of-commander",
+      "publisher": "Wizards of the Coast",
+      "published_at": "2024-09-30",
+      "checked_at": "2026-10-27",
+      "kind": "Official announcement"
+    },
+    {
+      "id": "universes",
+      "title": "Aligning the Universes",
+      "url": "https://magic.wizards.com/en/news/announcements/aligning-the-universes-making-all-our-sets-legal-in-all-our-formats",
+      "publisher": "Wizards of the Coast",
+      "published_at": "2024-10-25",
+      "checked_at": "2026-10-27",
+      "kind": "Official announcement"
+    },
+    {
+      "id": "combat",
+      "title": "Foundations Update Bulletin",
+      "url": "https://magic.wizards.com/en/news/announcements/foundations-update-bulletin",
+      "publisher": "Wizards of the Coast",
+      "published_at": "2024-11-14",
+      "checked_at": "2026-10-27",
+      "kind": "Official announcement"
+    },
+    {
+      "id": "brackets",
+      "title": "Introducing Commander Brackets Beta",
+      "url": "https://magic.wizards.com/en/news/announcements/introducing-commander-brackets-beta",
+      "publisher": "Wizards of the Coast",
+      "published_at": "2025-02-11",
+      "checked_at": "2026-10-27",
+      "kind": "Official announcement"
+    },
+    {
+      "id": "hybrid",
+      "title": "Commander Brackets Beta Update – February 9, 2026",
+      "url": "https://magic.wizards.com/en/news/announcements/commander-brackets-beta-update-february-9-2026",
+      "publisher": "Wizards of the Coast",
+      "published_at": "2026-02-09",
+      "checked_at": "2026-10-27",
+      "kind": "Official announcement"
+    },
+    {
+      "id": "arena2026",
+      "title": "MTG Arena State of the Formats 2026",
+      "url": "https://magic.wizards.com/en/news/mtg-arena/state-of-the-formats-2026",
+      "publisher": "Wizards of the Coast",
+      "published_at": "2026-09-11",
+      "checked_at": "2026-10-27",
+      "kind": "Official announcement"
+    },
+    {
+      "id": "cmd",
+      "title": "Commander format and brackets",
+      "url": "https://magic.wizards.com/en/formats/commander",
+      "publisher": "Wizards of the Coast",
+      "published_at": null,
+      "checked_at": "2026-10-27",
+      "kind": "Official reference"
+    },
+    {
+      "id": "std",
+      "title": "Standard format and legal sets",
+      "url": "https://magic.wizards.com/en/formats/standard",
+      "publisher": "Wizards of the Coast",
+      "published_at": null,
+      "checked_at": "2026-10-27",
+      "kind": "Official reference"
+    },
+    {
+      "id": "modern",
+      "title": "Modern format",
+      "url": "https://magic.wizards.com/en/formats/modern",
+      "publisher": "Wizards of the Coast",
+      "published_at": null,
+      "checked_at": "2026-10-27",
+      "kind": "Official reference"
+    },
+    {
+      "id": "draft",
+      "title": "Booster Draft",
+      "url": "https://magic.wizards.com/en/formats/booster-draft",
+      "publisher": "Wizards of the Coast",
+      "published_at": null,
+      "checked_at": "2026-10-27",
+      "kind": "Official reference"
+    },
+    {
+      "id": "rules",
+      "title": "Basic and Comprehensive Rules",
+      "url": "https://magic.wizards.com/en/rules",
+      "publisher": "Wizards of the Coast",
+      "published_at": null,
+      "checked_at": "2026-10-27",
+      "kind": "Official reference"
+    },
+    {
+      "id": "bans",
+      "title": "Banned and restricted lists",
+      "url": "https://magic.wizards.com/en/banned-restricted-list",
+      "publisher": "Wizards of the Coast",
+      "published_at": null,
+      "checked_at": "2026-10-27",
+      "kind": "Official reference"
+    }
+  ],
+  "stories": [
+    {
+      "id": "m2010",
+      "date": "2009-06-10",
+      "date_kind": "Announced",
+      "formats": [
+        "all"
+      ],
+      "platform": "both",
+      "category": "rules",
+      "title": "Mana burn is gone. Damage left the stack.",
+      "summary": "If your memories reach back before Magic 2010, two fundamental rules changed.",
+      "before": "Unused mana could cost life; combat damage used the stack.",
+      "after": "Unused mana normally empties each step and phase without life loss. Combat damage is assigned and dealt without a response window between them.",
+      "context": "You can still act before the combat damage step. Sacrificing a creature before it deals damage means it will not deal that combat damage. The 2009 article also describes an ordering rule later removed in 2024.",
+      "meaning": "Old combat tricks may work differently even when the cards look familiar.",
+      "source_ids": [
+        "m2010"
+      ],
+      "visual": [
+        "Mana burn",
+        "Removed"
+      ],
+      "priority": 3,
+      "terms": [
+        "stack"
+      ],
+      "status": "Historical change",
+      "effective_on": null
+    },
+    {
+      "id": "london",
+      "date": "2019-06-03",
+      "date_kind": "Announced",
+      "formats": [
+        "all"
+      ],
+      "platform": "both",
+      "category": "rules",
+      "title": "A fresh seven, every mulligan.",
+      "summary": "The London mulligan changed how you replace an opening hand.",
+      "before": "Earlier mulligan systems drew fewer cards on each attempt.",
+      "after": "Draw seven each time; when you keep, put one card on the bottom of your library for each non-free mulligan.",
+      "context": "The rollout accompanied Core Set 2020 in July 2019, with different platform dates. The old Vancouver scry step disappeared. Multiplayer games normally give a free first mulligan.",
+      "meaning": "You choose what to keep from a full hand before paying the card-count cost.",
+      "source_ids": [
+        "london",
+        "rules"
+      ],
+      "visual": [
+        "Draw 7",
+        "Keep 6*"
+      ],
+      "priority": 1,
+      "terms": [
+        "mulligan"
+      ],
+      "status": "Historical change",
+      "effective_on": "2019-07-12"
+    },
+    {
+      "id": "pioneer",
+      "date": "2019-10-21",
+      "date_kind": "Announced",
+      "formats": [
+        "pioneer",
+        "modern"
+      ],
+      "platform": "both",
+      "category": "formats",
+      "title": "Pioneer joined the format family.",
+      "summary": "A nonrotating format arrived with a later starting point than Modern.",
+      "before": "Modern reached back to sets from 2003.",
+      "after": "Pioneer was introduced using eligible sets from Return to Ravnica onward, with its own banned list.",
+      "context": "This is a dated account of the launch, not a claim that every product released since 2012 is Pioneer-legal. Its original five-card ban list is historical.",
+      "meaning": "A card leaving Standard does not automatically become unusable everywhere.",
+      "source_ids": [
+        "pioneer"
+      ],
+      "visual": [
+        "Format options",
+        "Pioneer added"
+      ],
+      "priority": 6,
+      "terms": [
+        "format",
+        "rotation"
+      ],
+      "status": "Historical change",
+      "effective_on": null
+    },
+    {
+      "id": "companion",
+      "date": "2020-06-01",
+      "date_kind": "Announced",
+      "formats": [
+        "all"
+      ],
+      "platform": "both",
+      "category": "rules",
+      "title": "Companions gained an extra step.",
+      "summary": "The original printed reminder text on companion cards is no longer the whole procedure.",
+      "before": "A companion could be cast directly from outside the game.",
+      "after": "Once per game, pay three generic mana at sorcery timing to put your chosen companion into your hand, then cast it normally.",
+      "context": "This is a special action, not an activated ability. The update applied to tabletop on June 1, Magic Online on June 3, and Arena on June 4, 2020. Deck-building requirements still apply.",
+      "meaning": "An old card can have updated rules without a new printing.",
+      "source_ids": [
+        "companion"
+      ],
+      "visual": [
+        "Outside game",
+        "3 → hand"
+      ],
+      "priority": 6,
+      "terms": [
+        "oracle",
+        "sorcery-timing"
+      ],
+      "status": "Historical change",
+      "effective_on": null
+    },
+    {
+      "id": "ward",
+      "date": "2021-03-25",
+      "date_kind": "Announced",
+      "formats": [
+        "all"
+      ],
+      "platform": "both",
+      "category": "mechanics",
+      "title": "Ward adds a cost to targeting.",
+      "summary": "Strixhaven introduced a protection ability that asks opponents to pay.",
+      "before": "Hexproof prevents an opponent from targeting the protected permanent.",
+      "after": "Ward allows targeting, but triggers to counter that opponent’s spell or ability unless they pay the ward cost.",
+      "context": "Ward is not an extra casting cost. It triggers after targeting; an uncounterable spell is not stopped by the countering part of ward.",
+      "meaning": "Targeting permission and whether a spell resolves are different questions.",
+      "source_ids": [
+        "ward"
+      ],
+      "visual": [
+        "Target",
+        "Pay ward"
+      ],
+      "priority": 4,
+      "terms": [
+        "ward",
+        "permanent"
+      ],
+      "status": "Historical change",
+      "effective_on": null
+    },
+    {
+      "id": "battles",
+      "date": "2023-03-29",
+      "date_kind": "Announced",
+      "formats": [
+        "all"
+      ],
+      "platform": "both",
+      "category": "mechanics",
+      "title": "You can attack a battle you control.",
+      "summary": "March of the Machine introduced Battle as a card type.",
+      "before": "Players and planeswalkers were the familiar things to attack.",
+      "after": "A Siege battle’s controller chooses an opponent to protect it. Other players can attack it; damage removes defense counters.",
+      "context": "When its final defense counter is removed, a Siege triggers an ability that exiles it and lets its controller cast the back face without paying its mana cost. These details describe Sieges, not every possible future Battle subtype.",
+      "meaning": "The card’s controller and the player defending it can be different people.",
+      "source_ids": [
+        "battles"
+      ],
+      "visual": [
+        "Battle — Siege",
+        "Defeat → back face"
+      ],
+      "priority": 4,
+      "terms": [
+        "permanent"
+      ],
+      "status": "Historical change",
+      "effective_on": null
+    },
+    {
+      "id": "standard3",
+      "date": "2023-05-07",
+      "date_kind": "Announced",
+      "formats": [
+        "standard"
+      ],
+      "platform": "both",
+      "category": "formats",
+      "title": "Standard expanded to three years.",
+      "summary": "Wizards changed the rotation model from roughly two years of sets to three.",
+      "before": "Older sets left Standard on a roughly two-year cycle.",
+      "after": "The 2023 rotation was skipped as Standard moved to a three-year model.",
+      "context": "This is the 2023 change. A later announcement changed the rotation calendar again, including no rotation in 2026. Set-specific exceptions and bans still matter.",
+      "meaning": "The Standard card pool may be larger than the one you remember.",
+      "source_ids": [
+        "standard3"
+      ],
+      "visual": [
+        "2 years",
+        "3 years"
+      ],
+      "priority": 3,
+      "terms": [
+        "rotation"
+      ],
+      "status": "Historical change",
+      "effective_on": null
+    },
+    {
+      "id": "boosters",
+      "date": "2023-10-16",
+      "date_kind": "Announced",
+      "formats": [
+        "limited",
+        "casual"
+      ],
+      "platform": "paper",
+      "category": "sets",
+      "title": "Play Boosters combined two pack types.",
+      "summary": "The change arrived with Murders at Karlov Manor in 2024.",
+      "before": "Draft Boosters and Set Boosters served different purposes.",
+      "after": "Play Boosters combined the two, keeping packs suitable for Draft and Sealed.",
+      "context": "Collector Boosters remained separate. Pack contents and special slots vary by release; the announcement’s exact slot breakdown describes the first implementation.",
+      "meaning": "The pack name changed; the set still determines the Limited environment.",
+      "source_ids": [
+        "boosters"
+      ],
+      "visual": [
+        "Draft + Set",
+        "Play Booster"
+      ],
+      "priority": 3,
+      "terms": [
+        "limited"
+      ],
+      "status": "Historical change",
+      "effective_on": null
+    },
+    {
+      "id": "stewardship",
+      "date": "2024-09-30",
+      "date_kind": "Announced",
+      "formats": [
+        "commander"
+      ],
+      "platform": "paper",
+      "category": "formats",
+      "title": "Commander’s stewardship changed.",
+      "summary": "The Rules Committee handed management of the format to Wizards of the Coast.",
+      "before": "An independent Rules Committee managed Commander.",
+      "after": "Wizards’ game design team took responsibility for format management.",
+      "context": "This milestone records the handover. Later announcements describe the Commander Format Panel and bracket system. This entry is not a complete history of Commander bans.",
+      "meaning": "The official place to follow format policy changed.",
+      "source_ids": [
+        "stewardship"
+      ],
+      "visual": [
+        "Rules Committee",
+        "Wizards"
+      ],
+      "priority": 5,
+      "terms": [],
+      "status": "Historical change",
+      "effective_on": null
+    },
+    {
+      "id": "universes",
+      "date": "2024-10-25",
+      "date_kind": "Announced",
+      "formats": [
+        "standard",
+        "pioneer",
+        "modern",
+        "limited",
+        "casual"
+      ],
+      "platform": "both",
+      "category": "sets",
+      "title": "Crossover booster sets entered Standard.",
+      "summary": "New Universes Beyond booster sets from 2025 onward joined the normal Constructed release path.",
+      "before": "Earlier crossover releases had different format legality.",
+      "after": "The new policy covers main-set cards; it does not retroactively legalize older crossovers.",
+      "context": "Commander products and bonus-slot cards can follow different legality rules.",
+      "meaning": "The franchise or pack alone does not establish legality.",
+      "source_ids": [
+        "universes"
+      ],
+      "visual": [
+        "Crossover sets",
+        "Check the set"
+      ],
+      "priority": 4,
+      "terms": [
+        "legality"
+      ],
+      "status": "Historical change",
+      "effective_on": null
+    },
+    {
+      "id": "rotation-calendar",
+      "date": "2024-10-25",
+      "date_kind": "Announced",
+      "formats": [
+        "standard"
+      ],
+      "platform": "both",
+      "category": "formats",
+      "title": "The rotation calendar moved.",
+      "summary": "No Standard rotation in 2026; rotation shifts to the first set of 2027.",
+      "before": "Rotation happened with a release later in the year.",
+      "after": "The announced calendar moves that reset to the start of the year from 2027.",
+      "context": "Standard still uses a three-year model. Consult the official set list for exceptions.",
+      "meaning": "A familiar autumn date no longer tells you which cards rotate.",
+      "source_ids": [
+        "universes",
+        "std"
+      ],
+      "visual": [
+        "2026 · no rotation",
+        "2027 · first set"
+      ],
+      "priority": 1,
+      "terms": [
+        "rotation"
+      ],
+      "status": "Announced schedule",
+      "effective_on": null
+    },
+    {
+      "id": "combat",
+      "date": "2024-11-14",
+      "date_kind": "Announced",
+      "formats": [
+        "all"
+      ],
+      "platform": "both",
+      "category": "rules",
+      "title": "Double-blocking works differently.",
+      "summary": "Foundations removed the requirement to order blockers for combat damage.",
+      "before": "The attacker ordered blockers, then assigned lethal damage to earlier blockers first.",
+      "after": "When damage is assigned, you can divide it among blockers without that order or lethal-first requirement.",
+      "context": "Trample still requires lethal damage to all blockers before excess reaches the defending player or other attacked object. Combat damage still does not use the stack.",
+      "meaning": "An old blocking habit may give you the wrong expectation about where damage goes.",
+      "source_ids": [
+        "combat"
+      ],
+      "visual": [
+        "Ordered blockers",
+        "Choose the split"
+      ],
+      "priority": 0,
+      "terms": [
+        "stack",
+        "trample"
+      ],
+      "status": "Historical change",
+      "effective_on": null
+    },
+    {
+      "id": "brackets",
+      "date": "2025-02-11",
+      "date_kind": "Announced",
+      "formats": [
+        "commander"
+      ],
+      "platform": "paper",
+      "category": "formats",
+      "title": "Commander gained a shared vocabulary.",
+      "summary": "Five brackets were introduced to help players describe the game they want.",
+      "before": "Players often used informal power-level descriptions.",
+      "after": "The beta introduced Exhibition, Core, Upgraded, Optimized, and cEDH, alongside a Game Changers list.",
+      "context": "The original beta has since been revised. Use the linked current Commander reference for bracket guidance and the Game Changers list; do not treat the first announcement as today’s full rules.",
+      "meaning": "A bracket describes an intended experience, not a guaranteed match.",
+      "source_ids": [
+        "brackets",
+        "cmd"
+      ],
+      "visual": [
+        "New vocabulary",
+        "5 experience brackets"
+      ],
+      "priority": 1,
+      "terms": [
+        "brackets"
+      ],
+      "status": "Historical change",
+      "effective_on": null
+    },
+    {
+      "id": "hybrid",
+      "date": "2026-02-09",
+      "date_kind": "Announced",
+      "formats": [
+        "commander"
+      ],
+      "platform": "paper",
+      "category": "formats",
+      "title": "Hybrid mana: the proposed change did not happen.",
+      "summary": "The February 2026 update kept the existing color-identity rule.",
+      "before": "A proposal would have treated hybrid colors as “either” for deck construction.",
+      "after": "The update retained “both”: a green/white hybrid symbol contributes both colors to color identity.",
+      "context": "The same update emphasized that brackets support pregame conversations rather than mechanically determining who can play together.",
+      "meaning": "A proposal and an adopted rule are different kinds of news.",
+      "source_ids": [
+        "hybrid"
+      ],
+      "visual": [
+        "Proposal",
+        "Not adopted"
+      ],
+      "priority": 2,
+      "terms": [
+        "color-identity"
+      ],
+      "status": "Decision recorded",
+      "effective_on": null
+    },
+    {
+      "id": "arena-rebalance",
+      "date": "2026-09-22",
+      "date_kind": "Effective",
+      "formats": [
+        "historic",
+        "timeless",
+        "brawl",
+        "alchemy"
+      ],
+      "platform": "arena",
+      "category": "digital",
+      "title": "Arena reverted rebalanced tabletop cards.",
+      "summary": "The September update returned over 200 cards to their printed tabletop versions.",
+      "before": "Some Arena formats used adjusted versions of paper cards.",
+      "after": "The announced September 22 change reverted those versions and adjusted Historic and Brawl bans.",
+      "context": "Digital-only cards are a separate category. Consult the official banned list for current restrictions.",
+      "meaning": "An old Arena deck may behave differently.",
+      "source_ids": [
+        "arena2026",
+        "bans"
+      ],
+      "visual": [
+        "Rebalanced",
+        "Tabletop text"
+      ],
+      "priority": 1,
+      "terms": [
+        "oracle"
+      ],
+      "status": "Historical change",
+      "effective_on": null
+    },
+    {
+      "id": "alchemy-future",
+      "date": "2026-09-11",
+      "date_kind": "Announced",
+      "formats": [
+        "alchemy"
+      ],
+      "platform": "arena",
+      "category": "digital",
+      "title": "Alchemy’s retirement was announced.",
+      "summary": "The format is scheduled to leave Arena on February 2, 2027.",
+      "before": "Alchemy has its own queues and rotating card pool.",
+      "after": "The announced removal is upcoming, not already in effect in this edition.",
+      "context": "Digital-only cards remain on Arena and in other eligible formats, subject to bans or rebalancing.",
+      "meaning": "The format ending does not mean those cards are being deleted.",
+      "source_ids": [
+        "arena2026"
+      ],
+      "visual": [
+        "Announced Sep 2026",
+        "Planned Feb 2027"
+      ],
+      "priority": 2,
+      "terms": [],
+      "status": "Upcoming",
+      "effective_on": "2027-02-02"
+    }
+  ],
+  "glossary": [
+    {
+      "id": "format",
+      "term": "Format",
+      "definition": "A set of deck-building and play rules, including which cards are allowed. Standard, Commander, and Modern are different formats.",
+      "source_id": "std"
+    },
+    {
+      "id": "rotation",
+      "term": "Rotation",
+      "definition": "When older sets leave a format’s card pool. This differs from a ban on a particular card.",
+      "source_id": "std"
+    },
+    {
+      "id": "legality",
+      "term": "Legality",
+      "definition": "Whether a card is allowed in a particular format. A reprint, special slot, or product name does not settle every case.",
+      "source_id": "bans"
+    },
+    {
+      "id": "mulligan",
+      "term": "Mulligan",
+      "definition": "Replacing your opening hand before play begins. Under the London procedure, you draw seven each time and bottom cards when you keep.",
+      "source_id": "london"
+    },
+    {
+      "id": "stack",
+      "term": "The stack",
+      "definition": "The game zone where spells and most activated or triggered abilities wait to resolve. Combat damage does not use it.",
+      "source_id": "rules"
+    },
+    {
+      "id": "oracle",
+      "term": "Oracle text",
+      "definition": "A card’s official current wording. Old printed text may differ; the official card database and rules settle details.",
+      "source_id": "rules"
+    },
+    {
+      "id": "ward",
+      "term": "Ward",
+      "definition": "A triggered ability that counters an opponent’s targeting spell or ability unless that opponent pays the stated cost.",
+      "source_id": "ward"
+    },
+    {
+      "id": "permanent",
+      "term": "Permanent",
+      "definition": "A card or token on the battlefield: creatures, lands, artifacts, enchantments, planeswalkers, and battles can be permanents.",
+      "source_id": "rules"
+    },
+    {
+      "id": "limited",
+      "term": "Limited",
+      "definition": "Formats where you build from a restricted pool for that event. Draft involves picking cards from packs; Sealed uses opened packs.",
+      "source_id": "draft"
+    },
+    {
+      "id": "brackets",
+      "term": "Commander brackets",
+      "definition": "Descriptions of intended play experiences, used with table discussion. They are not player skill rankings.",
+      "source_id": "cmd"
+    },
+    {
+      "id": "color-identity",
+      "term": "Color identity",
+      "definition": "The colors that constrain a Commander deck’s card choices. Hybrid symbols normally contribute both of their colors.",
+      "source_id": "hybrid"
+    },
+    {
+      "id": "trample",
+      "term": "Trample",
+      "definition": "An ability that can let excess combat damage pass blockers, after assigning them lethal damage.",
+      "source_id": "combat"
+    },
+    {
+      "id": "sorcery-timing",
+      "term": "Sorcery timing",
+      "definition": "During your main phase, with an empty stack and priority. It describes when you can act, not the action’s card type.",
+      "source_id": "rules"
+    }
+  ]
+}
