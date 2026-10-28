@@ -54,8 +54,12 @@ const sdk = 'export function createClient(){return {auth:{onAuthStateChange:()=>
   await expect(page.locator('#suggestionBox')).toContainText('Private first. Public after moderator approval.');
   await page.locator('[data-page="issues"]').click();
   await page.locator('#homeSearch').fill('Spawn choices');
-  await expect(page.locator('#homeList [data-home-id]')).toHaveCount(1);
-  await page.locator('#homeList [data-home-id]').click();
+  // Other dossiers may mention the same symptom as reviewed evidence grows.
+  // Verify filtering and the intended route without assuming a unique text match.
+  const spawnChoices = page.locator('#homeList [data-home-id="HLLV-046"]');
+  await expect(spawnChoices).toBeVisible();
+  await expect(page.locator('#homeList [data-home-id="HLLV-045"]')).toHaveCount(0);
+  await spawnChoices.click();
   await expect(page.locator('#dossier h1')).toContainText('Spawn choices');
   await page.locator('.tabs [data-tab="sources"]').click();
   await expect(page.locator('#sources .evidence-source').first()).toBeVisible();
