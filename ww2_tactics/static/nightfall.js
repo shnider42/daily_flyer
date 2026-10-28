@@ -2,6 +2,9 @@
 'use strict';
 (()=>{
  let mode=null,modeUnit=null,modeRevision=null;
+ const depth=(simple,moderate,expert=moderate)=>({simple,moderate,expert})[window.ww2Experience?.level||'simple'];
+ const aimRules=uiNode('details');aimRules.id='nightAimRules';aimRules.hidden=true;
+ const aimRuleSummary=uiNode('summary'),aimRuleText=uiNode('p');aimRules.append(aimRuleSummary,aimRuleText);$('orders').append(aimRules);
  const distance=(a,b)=>{const dy=a[1]-b[1],dq=a[0]-(a[1]-(a[1]&1))/2-b[0]+(b[1]-(b[1]&1))/2;return Math.max(Math.abs(dq),Math.abs(dy),Math.abs(dq+dy));};
  const designs=[['spotlightAim','spotlight','Aim spotlight',1],['pathfinderFlare','flare','Drop flare',2],['nightDrop','airborne_drop','Drop paratroopers',3]];
  const sightBrief='Night sight replaces daylight ranges. Fighters see 4–5 air hexes; other aircraft usually see 2. Spotlights reveal a narrow air corridor, flares a radius of 2. Dakotas must fly near the aim before dropping.';
@@ -29,6 +32,7 @@
  function points(x,y){const [cx,cy]=center(x,y);return Array.from({length:6},(_,i)=>{const a=(60*i-30)*Math.PI/180;return `${cx+30*Math.cos(a)},${cy+30*Math.sin(a)}`;}).join(' ');}
  window.renderNight=(u,legal,svg)=>{
   const on=!!state.scenario.night_ops_version,war=!!state.war_version;document.body.classList.toggle('night-battle',on&&(!war||state.war_status?.dark));
+  aimRules.hidden=true;
   for(const [id] of designs)$(id).hidden=true;
   if(!on){mode=null;return;}
   if(!war){
@@ -50,7 +54,9 @@
   paintLights(svg,state);
   if(mode&&u){
    const positions=mode==='airborne_drop'?state.map.flatMap((row,y)=>row.map((_,x)=>[x,y])).filter(p=>distance(u.pos,p)<=1):legal[mode];
-   $('hint').textContent=mode==='airborne_drop'?'Choose a drop aim within 1 hex of this Dakota. Roll 1 loses the squad; 2–5 scatter; 6 is exact if legal. Hidden terrain hazards and Flak still apply.':mode==='spotlight'?'Aim a narrow air search within 8 hexes. Switching it on reveals the Spotlight.':'Aim a radius-2 flare within 5 hexes. It helps both armies see and reduces friendly drop scatter by 1.';
+   const exact=mode==='airborne_drop'?'Choose a drop aim within 1 hex of this Dakota. Roll 1 loses the squad; 2–5 scatter; 6 is exact if legal. Hidden terrain hazards and Flak still apply.':mode==='spotlight'?'Aim a narrow air search within 8 hexes. Switching it on reveals the Spotlight.':'Aim a radius-2 flare within 5 hexes. It helps both armies see and reduces friendly drop scatter by 1.';
+   $('hint').textContent=depth(mode==='airborne_drop'?'Choose a nearby drop point · 3 AP. Troops may scatter or be lost; hidden terrain and anti-aircraft fire still matter.':mode==='spotlight'?'Aim the light · 1 AP. Both armies can see the lit corridor, and the light reveals its own position.':'Choose where to light the ground · 2 AP. Both armies can see the lit area. A flare helps friendly paratroopers land.',mode==='airborne_drop'?'Choose a drop point within 1 hex · 3 AP. A flare can reduce scatter, but troops may still be lost to the drop, terrain or Flak.':mode==='spotlight'?'Aim within 8 hexes · 1 AP. The narrow air corridor is visible to both armies and exposes the light’s position.':'Aim within 5 hexes · 2 AP. A flare lights a radius of 2 for both armies and reduces friendly drop scatter by 1.',exact);
+   aimRuleSummary.textContent=mode==='airborne_drop'?'Exact drop risks':'Full illumination rules';aimRuleText.textContent=exact;aimRules.hidden=window.ww2Experience?.level==='expert';
    for(const pos of positions){const tile=element('polygon',{points:points(...pos),class:'night-choice',role:'button',tabindex:0,'data-x':pos[0],'data-y':pos[1],'aria-label':`${mode==='airborne_drop'?'Drop':'Illuminate'} ${hexColumn(pos[0])}${pos[1]+1}`});activate(tile,()=>{const kind=mode;mode=null;act({kind,unit:u.id,pos});});svg.append(tile);}
   }
  };

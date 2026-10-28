@@ -17,30 +17,35 @@
   ['fubar','Bring it all together','Air and surface layers, combined support and three control zones.'],
   ['breakwater','Plan a larger operation','Apply the full landing plan across a wider defended coast.']
  ];
+ const firstSteps={village:'Learn to select a unit, move into cover, and reach the marked objective.',orchard:'Try smoke to block sight, then help a pinned team recover.',stonebridge:'Choose a crossing route and keep enough actions for the far bank.',riverfront:'Use your officers to help nearby teams work together.',relay_crossing:'Learn what your scouts can see and how to share their reports.',kharkov:'Choose which control point to contest and support your infantry with armor.',shingle_cove:'Review the starting positions, then prepare where your troops will land.',dunkirk:'Use some teams to protect the others while they board rescue boats.',iron_lantern:'Choose where to bring in your reserve and learn what can go wrong.',tidal_gate:'Find the routes that connect your troops to the mission objectives.',midway:'Find the enemy fleet before committing your ships and aircraft.',britain:'Learn how to move aircraft, protect them, and bring them back to base.',fubar:'Read the mission first, then choose one group to act with.',breakwater:'Break the landing into smaller decisions, starting with one boat or team.'};
  const storage='ww2-journey-v1';let progress={};
  try{const value=JSON.parse(localStorage.getItem(storage));if(value&&typeof value==='object')for(const [id,p] of Object.entries(value))if(chapters.some(c=>c[0]===id.replace(/^current:/,''))&&p&&typeof p.code==='string'&&['started','victory','defeat'].includes(p.status))progress[id]=p;}catch{}
  const persist=()=>{try{localStorage.setItem(storage,JSON.stringify(progress));}catch{}};
  const dialog=document.createElement('dialog');dialog.id='journeyDialog';dialog.setAttribute('aria-labelledby','journeyTitle');
  dialog.innerHTML='<button id="journeyClose" class="dialog-back">Back</button><p class="eyebrow">LEARN THROUGH OPERATIONS</p><h2 id="journeyTitle">WWII Journey</h2><p>Build your command skills through fourteen operations. Start at the beginning, resume a chapter or jump to a topic. These are fictional tactical exercises, not a chronology of the war.</p><div class="journey-settings"><div><label for="journeyExperience">Your Experience</label><select id="journeyExperience"><option value="simple">Simple</option><option value="moderate">Moderate</option><option value="expert">Expert</option></select></div><div><label for="journeySide">Your army in new chapters</label><select id="journeySide"><option value="us">Allied side</option><option value="de">Axis side</option></select></div></div><p id="journeyNote"></p><p>Each chapter starts a separate solo battle with Field coach ready. Progress is saved on this browser. Wins and defeats both let you continue; you can revisit any chapter.</p><p id="journeyStatus" role="status"></p><ol id="journeyChapters"></ol>';
  document.body.append(dialog);
+ $('journeyExperience').dataset.experienceSelect='';
+ const journeyIntro=$('journeyTitle').nextElementSibling;
  const editionLabel=document.createElement('label');editionLabel.htmlFor='journeyEdition';editionLabel.textContent='DSL edition';
  const edition=document.createElement('select');edition.id='journeyEdition';edition.add(new Option('Legacy · original Journey','legacy'));edition.add(new Option('Current · shared rules Journey','current'));editionLabel.append(edition);dialog.querySelector('.journey-settings').prepend(editionLabel);
  const chapterId=id=>edition.value==='current'?'current:'+id:id;
  const shortcut=document.createElement('button');shortcut.id='journeyFromBattle';shortcut.textContent='WWII Journey';$('guideToggle').after(shortcut);
  const available=id=>savedSessions.find(s=>s.code===progress[id]?.code);
  const current=()=>Object.keys(progress).find(id=>progress[id]?.code===session?.code&&progress[id]?.battle===(state?.battle_number||1));
- const descriptions={simple:'Start with the basics, one action at a time. Field coach explains terms and shows where to tap.',moderate:'You know board games. Field coach concentrates on DSL choices and introduces the details as you need them.',expert:'Focus on exact costs, thresholds, interactions and tactical tradeoffs. Skip basic board-game explanations.'};
+ const descriptions={simple:'Start with a goal and one action to try. Field coach explains the words and shows where to tap.',moderate:'Practice the choices behind each mission: costs, timing, attack odds, and what to keep in reserve.',expert:'Review exact costs, thresholds, interactions and tactical constraints. The full rule detail stays available.'};
  function paint(){
   $('journeyExperience').value=ww2Experience.level;$('journeyNote').textContent=descriptions[ww2Experience.level];
+  journeyIntro.textContent=ww2Experience.pick('Choose a topic to practice. The first chapter teaches selecting a unit, moving, and understanding the goal. You can return to any chapter.', 'Use these fourteen separate missions to practice tactical choices. Start a new topic or resume a chapter; your coach uses the selected Experience.', 'Fourteen fictional tactical exercises, each a separate solo battle. Jump to a topic, resume progress, or replay a chapter with the complete rules and reports.');
   const complete=chapters.filter(c=>progress[chapterId(c[0])]&&progress[chapterId(c[0])].status!=='started').length;
   $('journeyStatus').textContent=`${complete} / ${chapters.length} chapters played to a result`;
   $('journeyChapters').replaceChildren(...chapters.map(([id,title,focus],index)=>{
    const row=document.createElement('li');row.className='journey-chapter';row.dataset.chapter=id;
    const number=document.createElement('span');number.className='journey-number';number.textContent=String(index+1).padStart(2,'0');
    const copy=document.createElement('div'),heading=document.createElement('h3'),text=document.createElement('p'),status=document.createElement('small'),button=document.createElement('button');
-   heading.textContent=title;text.textContent=focus;
+   heading.textContent=title;text.textContent=ww2Experience.level==='simple'?firstSteps[id]:focus;
    const key=chapterId(id),saved=progress[key],map=operationById(key),seat=available(key);
    status.textContent=`${map?.name||id.replaceAll('_',' ')}${saved?` · ${saved.status==='started'?'In progress':saved.status==='victory'?'Victory recorded':'Defeat reviewed'}${saved.side?` · ${map?.factions?.[saved.side]||(saved.side==='us'?'Allied':'Axis')}`:''}`:''}`;
+   if(map&&ww2Experience.level!=='simple')status.textContent+=` · ${map.width} × ${map.height} hexes · ${map.rounds} rounds`;
    button.type='button';button.textContent=seat&&saved.status==='started'?'Resume chapter':saved?'Play chapter again':'Start chapter';button.onclick=()=>launch(key,seat&&saved.status==='started'?seat:null);button.disabled=busy;
    copy.append(heading,text,status);row.append(number,copy,button);return row;
   }));
@@ -63,7 +68,7 @@
   edition.value=!lobbyMode&&state?.ruleset==='dsl'?(state.edition==='current'?'current':'legacy'):($('scenarioSelectEdition')?.value||'legacy');
   for(const d of document.querySelectorAll('dialog[open]'))if(d!==dialog)d.close();paint();if(!dialog.open)dialog.showModal();
  }
- $('journeyClose').onclick=()=>dialog.close();$('journeyExperience').onchange=()=>{ww2Experience.set($('journeyExperience').value);paint();};
+ $('journeyClose').onclick=()=>dialog.close();
  edition.onchange=paint;
  $('learnStart').onclick=open;shortcut.onclick=open;
  document.querySelector('.home-learn').hidden=false;

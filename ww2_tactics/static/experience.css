@@ -5,8 +5,17 @@
 .experience-control select,.operation-filters select{width:100%;min-height:44px;margin:4px 0 0;padding:8px 30px 8px 10px;font:inherit;font-size:16px;line-height:22px;border:1px solid #8b9b80;border-radius:4px;background:#fbfaf3;color:#1f3729}
 .experience-control select:focus-visible,.operation-filters select:focus-visible{outline:3px solid #95642a;outline-offset:2px}
 .experience-control p{font-size:12px;line-height:18px;margin:5px 0;color:#43523d}
-.home-experience{margin:14px 0;padding-top:12px;border-top:1px solid #9ba689}
+.home-experience{display:grid;grid-template-columns:minmax(0,1fr) minmax(0,1fr);gap:10px 24px;margin:14px 0 20px;padding:18px;border:1px solid #9ba689;border-radius:8px;background:var(--ui-surface,#eef1e7)}
+.home-experience h2{font-family:inherit;font-size:21px;line-height:1.25;letter-spacing:0;margin:0 0 8px}
+.home-experience>.experience-mark,.home-experience>.experience-compare{grid-column:1/-1}
+.home-experience>.experience-mark{justify-self:start;margin:0}
+.home-experience p{font-size:14px;line-height:1.5}
 .home-experience>label{margin:0}.home-experience select{margin-bottom:3px}
+.setup-experience{padding:12px;margin:12px 0;border:1px solid var(--ui-line,#a1b095);border-radius:6px;background:var(--ui-raised,#edf1e6)}
+.setup-experience p{margin:7px 0 0;font-size:14px;line-height:1.5}
+.setup-experience label{font-size:13px}
+.setup-guide{padding:10px 12px;border-left:3px solid #788c61;font-size:15px;line-height:1.5}
+.operation-details-note{margin:8px 0;font-size:13px;line-height:1.5}
 #battleViewSettings #experienceControl{grid-column:1/-1}
 #battleViewSettings #simpleToggle{background:#fbfaf3;color:#1f3729;border-color:#8b9b80}
 #battleViewSettings #layoutControl+button{align-self:end}
@@ -32,3 +41,4 @@ body[data-experience=moderate] :is(#mobileUnitDetails,#experimentalUnitDetails,#
 .desktop-mode.simple-play .desktop-briefing .status-line{visibility:hidden}
 .desktop-mode .desktop-orders>.terrain-legend{margin-top:12px}
 @media(max-width:359px){.operation-filters{grid-template-columns:1fr}.home-experience{margin:10px 0}}
+@media(max-width:700px){.home-experience{grid-template-columns:minmax(0,1fr);gap:10px;padding:14px}.home-experience h2{font-size:19px}}

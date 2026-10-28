@@ -132,6 +132,12 @@ body.empires-active :is(#empires,#empManual) :is(input,select){border-color:var(
 #empires .emp-tabs button{flex:1;min-width:0;font-size:12px;padding:8px 6px}
 #empPanel{min-height:230px}
 #empPanel p{color:var(--emp-muted);font-size:13px;margin:8px 0 14px}
+#empires .emp-experience-context{font:600 11px/1.5 system-ui,sans-serif;letter-spacing:.04em;color:var(--emp-gold);margin:0 0 10px}
+#empPanel .emp-decision-card{padding:12px;margin:0 0 16px;background:var(--emp-bg);border-left:3px solid var(--emp-gold);border-radius:3px}
+#empPanel .emp-decision-card h3{font:600 15px/1.4 system-ui,sans-serif;margin:0 0 7px}
+#empPanel .emp-decision-card p{font-size:13px;line-height:1.6;margin:0;color:var(--emp-text)}
+#empires[data-experience=simple] #empPanel .emp-decision-card p{font-size:14px;line-height:1.65}
+#empires .emp-lesson-planning{border-left:3px solid var(--emp-gold);padding:10px 12px;background:var(--emp-bg);color:var(--emp-text)}
 .emp-actions{display:flex;gap:7px;flex-wrap:wrap;margin:15px 0}
 .emp-stats{display:flex;gap:12px;flex-wrap:wrap;font-size:12px;margin-bottom:12px;color:var(--emp-gold)}
 #empires .emp-tech{display:block;width:100%;text-align:left;margin:6px 0;padding:10px}
@@ -170,8 +176,8 @@ body.empires-active :is(#empires,#empManual) :is(input,select){border-color:var(
 #empMenu .emp-experience{margin:0 0 14px;padding-top:0;border-top:0}
 #empires .emp-rule-detail,#empManual .emp-rule-detail{padding:10px 0;border-top:1px solid var(--emp-line);margin-top:16px}
 #empires .emp-rule-detail summary,#empManual .emp-rule-detail summary{min-height:44px;display:flex;gap:8px;align-items:center;padding:8px;color:var(--emp-gold);font-size:13px;cursor:pointer;list-style:none}
-#empires .emp-rule-detail summary::before,#empManual .emp-rule-detail summary::before{content:'＋';font-size:16px;flex:none}
-#empires .emp-rule-detail[open]>summary::before,#empManual .emp-rule-detail[open]>summary::before{content:'−'}
+#empires .emp-rule-detail summary::before,#empManual .emp-rule-detail summary::before{content:'+';font-size:16px;flex:none}
+#empires .emp-rule-detail[open]>summary::before,#empManual .emp-rule-detail[open]>summary::before{content:'-'}
 .emp-rule-detail summary::-webkit-details-marker{display:none}
 #empires .emp-rule-detail p{font-size:12px;line-height:1.6}
 #empires .emp-action-help p{font-size:12px;margin:8px 0;line-height:1.5}

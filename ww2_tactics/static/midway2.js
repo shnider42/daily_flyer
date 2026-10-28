@@ -3,6 +3,15 @@
 (()=>{
  const air=u=>['fighter','bomber'].includes(u.kind)&&(!state?.war_version||u.carrier_capable);
  const node=(tag,text)=>{const n=document.createElement(tag);if(text!==undefined)n.textContent=text;return n;};
+ const level=()=>window.ww2Experience?.level||'simple';
+ const depth=(simple,moderate,expert=moderate)=>({simple,moderate,expert})[level()];
+ const rulesOpen=new Map();
+ function deckRules(unit){
+  const rules=node('details');rules.id='carrierDeckRules';rules.open=rulesOpen.get(unit.id)??level()==='expert';
+  const heading=node('summary','Full deck costs and readiness');heading.onclick=()=>rulesOpen.set(unit.id,!rules.open);
+  rules.append(heading,node('p','Launch: 1 carrier AP + 1 flight AP. Land: 1 flight AP. Service: 1 carrier AP + 1 store. Each uses one deck cycle; land/service means ready next turn.'));
+  return rules;
+ }
  let launching=null;
  const dialog=node('dialog');dialog.id='carrierAirGroupDialog';dialog.setAttribute('aria-labelledby','carrierAirGroupTitle');
  const close=node('button','Back to map');close.id='carrierAirGroupClose';close.onclick=()=>dialog.close();
@@ -80,8 +89,9 @@
     if(privateDeck)panel.append(node('p','Enemy deck readiness, service stores and aircraft manifest are private.'));
     else{
     const available=Math.max(0,limit(unit)-unit.deck_used);
-    panel.append(node('p',`${aboard(unit).length}/${unit.air_capacity} aboard · ${available}/${limit(unit)} deck cycles remaining · ${unit.air_stores}/${unit.max_air_stores} service stores${limit(unit)===1?' · HALF-HULL: reduced deck throughput':''}`));
-    panel.append(node('p','Launch: 1 carrier AP + 1 flight AP. Land: 1 flight AP. Service: 1 carrier AP + 1 store. Each uses one deck cycle; land/service means ready next turn.'));
+    const decision=node('p',depth('Simple · Choose a ready flight below. A deck action is one launch, landing or service. Keep a deck action free for an aircraft that needs to return.','Moderate · Compare launching with recovering and servicing. They share this turn’s deck cycles; a flight that lands or is serviced becomes ready next own turn.','Expert · Finite aircraft, shared deck cycles and next-turn readiness.'));decision.id='carrierDecision';panel.append(decision);
+    panel.append(node('p',depth(`${aboard(unit).length} aircraft aboard. ${available} deck actions left this turn; ${unit.air_stores} service stores.${limit(unit)===1?' Damaged deck: only one action per turn.':''}`,`${aboard(unit).length}/${unit.air_capacity} aboard · ${available}/${limit(unit)} deck cycles remaining · ${unit.air_stores}/${unit.max_air_stores} service stores${limit(unit)===1?' · HALF-HULL: reduced deck throughput':''}`)));
+    panel.append(deckRules(unit));
     const flights=state.units.filter(p=>air(p)&&(p.home_carrier===unit.id||p.carrier_id===unit.id));
     for(const p of flights){
      const row=node('div');row.className='midway-flight';row.dataset.flightId=p.id;
@@ -90,15 +100,16 @@
      const heading=node('div');heading.className='midway-flight-heading';
      const portrait=window.makeUnitPortrait?.(p);if(portrait)heading.append(portrait);
      const summary=node('div');summary.className='midway-flight-summary';
-     summary.append(node('strong',unitName(p)),node('small',`${status} · ${p.hp}/${p.max_hp} strength${p.kind==='bomber'?` · ${p.bombs}/${p.max_bombs} load`:''}`));
+     summary.append(node('strong',unitName(p)),node('small',`${status} · ${p.hp}/${p.max_hp} strength${p.kind==='bomber'?` · ${p.bombs}/${p.max_bombs} load`:''}${p.side===state.side&&p.fuel!==undefined?` · Fuel ${p.fuel}/${p.max_fuel}`:''}`));
      heading.append(summary);row.append(heading);row.classList.toggle('midway-flight-lost',p.hp<=0);
      const actions=node('div');actions.className='midway-flight-actions';
      if(onBoard){
       const launch=legal?.launch?.find(c=>c.id===p.id),service=legal?.deck_service?.includes(p.id);
       const launchReason=readyReason(unit,p),serviceReason=readyReason(unit,p,true);
-      actions.append(button(launching?.plane===p.id?'Cancel launch':'Launch · 1 + 1 AP','launchPlane',p.id,()=>{launching=launching?.plane===p.id?null:{unit:unit.id,plane:p.id,revision:state.revision};dialog.close();target=null;combatMode=null;smokeMode=false;barrageMode=false;render();},!launch||blocked(),launch?'Choose a highlighted launch hex':launchReason));
-      actions.append(button('Service · 1 AP + store','servicePlane',p.id,()=>act({kind:'deck_service',unit:unit.id,target:p.id}),!service||blocked(),service?'Repair, reload, and prepare for next turn':serviceReason));
+      actions.append(button(launching?.plane===p.id?'Cancel launch':depth('Launch · 1 ship + 1 flight AP','Launch · 1 + 1 AP'),'launchPlane',p.id,()=>{launching=launching?.plane===p.id?null:{unit:unit.id,plane:p.id,revision:state.revision};dialog.close();target=null;combatMode=null;smokeMode=false;barrageMode=false;render();},!launch||blocked(),launch?'Choose a highlighted launch hex':launchReason));
+      actions.append(button(depth('Service · 1 ship AP + 1 store','Service · 1 AP + store'),'servicePlane',p.id,()=>act({kind:'deck_service',unit:unit.id,target:p.id}),!service||blocked(),service?'Repair, reload, and prepare for next turn':serviceReason));
       if(!launch)row.append(node('small',launchReason));
+      if(!service)row.append(node('small','Service: '+serviceReason));
      }else if(p.hp>0)actions.append(button('Select aircraft','selectPlane',p.id,()=>{dialog.close();chooseUnit(p);},busy||!!playbackSession));
      row.append(actions);panel.append(row);
     }

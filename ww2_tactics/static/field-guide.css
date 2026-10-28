@@ -4,7 +4,7 @@
 .experience-mark[data-depth=expert]{border-left-color:#645f86!important}
 .experience-compare{grid-column:1/-1;margin-top:8px;padding:0;border:0;background:transparent}
 .experience-compare>summary{min-height:44px;display:flex;align-items:center;font-size:14px;line-height:20px;font-weight:700;cursor:pointer;text-transform:none;letter-spacing:0}
-.experience-compare>summary:before{content:'＋';margin-right:8px}.experience-compare[open]>summary:before{content:'−'}
+.experience-compare>summary:before{content:'+';margin-right:8px}.experience-compare[open]>summary:before{content:'-'}
 .experience-levels{display:grid;grid-template-columns:1fr;gap:8px}
 .experience-levels button{display:block;white-space:normal;text-align:left;padding:12px;background:#fbfaf3;color:#21372a;border:1px solid #a3ac96;border-radius:4px;min-height:72px;width:100%;font-size:14px;line-height:21px;text-transform:none;letter-spacing:0}
 .experience-levels button strong,.experience-levels button span{display:block}
@@ -30,3 +30,25 @@ body[data-operation=relay_crossing] #mapWrap{border-color:#506e42}
 .dad-mode #orderGuide :is(p,button),.dad-mode #supplyDialog :is(p,button){font-size:18px;line-height:27px}
 @media(min-width:1100px){#orderGuideOpen{float:right;margin:0 0 4px 6px}.experience-levels{grid-template-columns:1fr}}
 @media(max-width:359px){#mobileOrderHead{column-gap:3px!important}#orderGuideOpen{flex-basis:44px}}
+
+/* Coaching occupies an overlay, never a new battlefield grid row. */
+#fieldCoachPrompt,#hexInspectStatus{position:fixed;z-index:6;min-height:44px;height:44px;padding:5px 10px;border:1px solid var(--line);border-left:4px solid var(--green);border-radius:6px;background:var(--paper);color:var(--ink);box-shadow:0 2px 8px #17272235;font-size:12px;line-height:16px;text-align:left;white-space:normal;overflow:hidden}
+#fieldCoachPrompt:focus-visible,#hexInspectStatus:focus-visible{outline:3px solid var(--ui-accent,#a06b20);outline-offset:2px}
+#lessonDecision{padding:12px;margin:0 0 16px;border:1px solid var(--line);border-left:4px solid var(--green);border-radius:5px}
+#lessonDecision h3{margin:0 0 7px;font-size:18px;line-height:24px}
+#lessonDecision p{margin:7px 0;font-size:15px;line-height:23px}
+#lessonDecision button{min-height:44px;font-size:14px;white-space:normal}
+.guide-order-rules>summary,.unit-explanation>summary,#hexInspectRules>summary{min-height:44px;padding:10px 0;font-size:14px;line-height:22px}
+#orderGuide[data-experience=simple] .guide-order>p{font-size:16px;line-height:24px}
+#hexInspectDialog{width:min(94vw,660px);max-width:calc(100vw - 16px);max-height:85dvh;overflow:auto;background:var(--paper);color:var(--ink)}
+#hexInspectDialog h2{margin:16px 0 10px;font-size:25px;line-height:32px}
+#hexInspectDialog p{font-size:15px;line-height:23px}
+#hexInspectDialog button{min-height:44px;white-space:normal}
+#hexInspectMove,#hexInspectOccupants{padding:10px;border-left:3px solid var(--green);background:var(--paper)}
+#mapWrap.inspecting-hexes{outline:3px dashed var(--green);outline-offset:-3px}
+body[data-experience=simple] #unitMechanics:not([hidden]){display:block!important}
+.unit-state-help{padding:8px 10px;border-left:3px solid var(--green);font-size:14px;line-height:21px}
+body[data-experience=simple] .unit-meters{gap:15px;flex-wrap:wrap}
+body[data-experience=simple] .unit-meters .meter-marks{display:none}
+.dad-mode #fieldCoachPrompt,.dad-mode #hexInspectStatus{font-size:14px;line-height:18px;max-width:240px}
+@media(max-width:359px){#fieldCoachPrompt,#hexInspectStatus{font-size:11px;line-height:15px}}

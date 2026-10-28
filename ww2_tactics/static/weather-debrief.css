@@ -1,4 +1,8 @@
 .weather-brief{margin:10px 0;padding:10px 12px;border:1px solid #8b987c;border-left:4px solid #52705b;border-radius:4px;background:#e8ebde;color:#25372a;font-size:13px;line-height:1.45}
+.debrief-experience{margin:10px 0 18px;max-width:460px}
+.debrief-objective{padding:10px 12px;border-left:3px solid #657f4d;background:#e4ead9;font-weight:650}
+.debrief-next{line-height:1.55}#debriefFullRecord{border-top:1px solid #a4b197;padding-top:8px;margin-top:18px}#debriefFullRecord>summary{min-height:44px;cursor:pointer;font-weight:700;line-height:1.45;padding:8px 4px;box-sizing:border-box}
+html[data-theme=dark] .debrief-objective{background:#2d412f}html[data-theme=dark] #debriefFullRecord{border-color:var(--ui-line,#4b604a)}
 .weather-brief p{margin:4px 0;overflow-wrap:anywhere}
 .weather-brief>p:first-child{font-weight:700}
 .weather-brief details{margin-top:5px}

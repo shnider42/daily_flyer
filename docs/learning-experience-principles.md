@@ -1,8 +1,10 @@
-# Learning principles shared by Empires and future DSL work
+# Learning principles shared by Empires and DSL
 
 Recorded from Chris's October 2026 iPhone feedback. These are product decisions
-to preserve in future work, not a claim that DSL already implements all of them.
-Empires' current implementation is described in [its learning notes](empires-learning.md).
+to preserve as both games develop. Empires' initial guided loop is described in
+[its learning notes](empires-learning.md); the subsequent
+[site-wide Experience review](experience-depth-review.md) applies the three
+levels consistently across DSL and Empires.
 
 ## Simple must teach decisions
 
@@ -57,11 +59,16 @@ understanding. Ask a novice to predict an outcome and explain a map choice;
 record their confusion for the next iteration. Experienced friends provide
 balance insight, but do not substitute for novice playtesting.
 
-## Future DSL application
+## Current DSL application
 
-DSL currently retains its existing opt-in Field coach outside Journey. Before
-changing that flow, use these principles to add default Simple guidance with
-explicit opt-out, safely explain selected hexes, connect lessons to live orders
-and show resulting changes. Preserve existing lesson content, save ownership,
-fog, action legality and the independence of presentation preferences. Empires
-and DSL should share learning standards while teaching their own game concepts.
+DSL now offers a compact Simple prompt with explicit Ignore/Resume tutorial
+consent, current-decision guidance and a safe hex-inspection mode. Closing or
+completing the coach does not disable contextual help. Moderate has authored
+planning explanations; Expert retains full rules. Home, setup, Greybridge,
+missions, orders, preparation, results and specialist interfaces use the same
+Experience preference as Empires. Existing lesson progress, save ownership,
+fog, action legality and independent presentation preferences are preserved.
+
+Automated checks establish those behavioral boundaries; they do not prove that
+a first-time player understands every lesson. Keep testing the explanation
+against a player's predicted result and actual confusion.

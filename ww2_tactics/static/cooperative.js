@@ -6,8 +6,19 @@
  const room=node('section',null,'coopRoom');room.hidden=true;room.setAttribute('aria-labelledby','coopRoomTitle');
  room.innerHTML='<div class="coop-heading"><button id="coopHome" type="button">Home</button><span class="eyebrow">CO-OP &amp; TEAMS</span></div><h1 id="coopRoomTitle">Command room</h1><p id="coopRoomMap"></p><p>Choose an army and one command group. The host also controls their army’s commander, if the map has one. Everyone else keeps their own orders. Unclaimed groups become computer controlled when the host starts.</p><div class="coop-invite"><label for="coopInvite">Invite players</label><input id="coopInvite" readonly><button id="coopCopy" type="button">Copy invitation</button></div><section class="coop-choice"><h2>Your command</h2><label for="coopSide">Army</label><select id="coopSide"></select><label for="coopGroup">Squad / platoon</label><select id="coopGroup"></select><button id="coopClaim" type="button">Take this command</button><p id="coopYourCommand" role="status"></p></section><div id="coopHostSettings"><label for="coopAllDifficulty">Set all unclaimed groups</label><select id="coopAllDifficulty"><option value="standard">Standard computer</option><option value="easy">Easy computer</option></select><button id="coopSetDifficulty" type="button">Apply difficulty</button><p>Standard uses the current tactical opponent. Easy makes less consistent choices and coordinates support less effectively. Both use the same dice, sight and unit stats. Experience changes explanations independently.</p></div><div id="coopAssignments"></div><div class="coop-start"><p id="coopStartHint" role="status"></p><button id="coopStart" type="button" class="primary">Start battle</button></div>';
  $('lobby').after(room);
+ const roomIntro=$('coopRoomMap').nextElementSibling,roomRules=roomIntro.textContent;
+ roomIntro.id='coopRoomIntro';
+ const roomDepth=node('div',null,'coopExperienceControl');roomDepth.className='experience-control setup-experience';
+ const roomLabel=node('label','Your guidance'),roomSelect=node('select',null,'coopExperience'),roomNote=node('p',null,'coopExperienceNote');
+ roomLabel.htmlFor=roomSelect.id;roomSelect.dataset.experienceSelect='';roomNote.dataset.experienceNote='';roomSelect.setAttribute('aria-describedby',roomNote.id);
+ for(const level of ['simple','moderate','expert'])roomSelect.add(new Option(ww2Experience.describe(level).label,level));
+ roomDepth.append(roomLabel,roomSelect,roomNote);roomIntro.before(roomDepth);
+ const roomMore=node('details',null,'coopRoomDetails');roomMore.append(node('summary','How shared commands work'),node('p',roomRules));roomIntro.after(roomMore);
  const teams=node('dialog',null,'coopTeamsDialog');teams.setAttribute('aria-labelledby','coopTeamsTitle');
  teams.append(button('Back to battle','coopTeamsClose',()=>teams.close()),node('h2','Shared command','coopTeamsTitle'),node('p',null,'coopTurnHelp'),node('div',null,'coopPlayers'));
+ const teamDepth=node('p',null,'coopTeamsExperience'),teamMore=node('details',null,'coopTeamDetails');teamDepth.className='experience-mark';
+ const teamRules='Each player orders only their own group; gold counter outlines mark your units. Finish my orders commits your turn; teammates keep playing. When the army’s players are done, its computer groups act, then the other army begins. Orders cannot be undone in a shared battle. Only the army captain can concede. A disconnected player keeps their command until they or the host explicitly hand it to the computer.';
+ teamMore.append(node('summary','Full shared-turn and ownership rules'),node('p',teamRules));teams.querySelector('#coopTurnHelp').before(teamDepth);teams.querySelector('#coopTurnHelp').after(teamMore);
  const transport=node('label',null,'coopTransportLabel'),consent=node('input',null,'coopTransport');consent.type='checkbox';
  transport.append(consent,document.createTextNode(' Allow allied players and computers to carry, unload or evacuate my troops.'));
  consent.onchange=()=>change({operation:'transport',allow:consent.checked});teams.append(transport);
@@ -68,6 +79,9 @@
  }
  function paintRoom(){
   const c=state.coop,p=me();
+  roomSelect.value=ww2Experience.level;roomNote.textContent=ww2Experience.describe().summary;
+  roomIntro.textContent=ww2Experience.pick('Choose an army and a group, then take that command. The host starts when everyone is ready. Each player gives orders to their own units.', 'Choose the command size you want to manage. The host can set unclaimed groups to computer control before starting; computer difficulty is separate from your guidance level.', roomRules);
+  if(roomMore.dataset.level!==ww2Experience.level){roomMore.open=ww2Experience.level==='expert';roomMore.dataset.level=ww2Experience.level;}
   if(difficultyKey!==state.code+':'+c.default_difficulty){difficultyKey=state.code+':'+c.default_difficulty;$('coopAllDifficulty').value=c.default_difficulty;}
   $('coopRoomTitle').textContent=state.match_name||'Command room';
   $('coopRoomMap').textContent=`${state.scenario.name} · ${battleEdition()} DSL · ${c.control_size==='platoons'?'Platoon control':'Squad / unit control'} · ${state.code}`;
@@ -95,7 +109,9 @@
   consent.checked=c.transport_consent;consent.disabled=busy||c.aboard;
   transport.title=c.aboard?'Disembark before withdrawing permission.':'Your transport permission applies only to your troops.';
 
-  $('coopTurnHelp').textContent='Each player orders only their own group; gold counter outlines mark your units. Finish my orders commits your turn; teammates keep playing. When the army’s players are done, its computer groups act, then the other army begins. Orders cannot be undone in a shared battle. Only the army captain can concede. A disconnected player keeps their command until they or the host explicitly hand it to the computer.';
+  teamDepth.textContent=ww2Experience.label+' · Shared command';
+  $('coopTurnHelp').textContent=ww2Experience.pick('Your units have gold outlines. Use their orders, then choose Finish my orders. Your teammates can keep playing. Shared-battle orders cannot be undone.', 'Finish my orders commits your group. When all players on your army finish, its computer groups act and the other army takes its turn. Teammates keep their own units and transport permissions.', 'Review player readiness, ownership, computer assignments and transport consent below.');
+  if(teamMore.dataset.level!==ww2Experience.level){teamMore.open=ww2Experience.level==='expert';teamMore.dataset.level=ww2Experience.level;}
   $('coopPlayers').replaceChildren(...c.players.map(p=>{
    const row=node('div');row.className='coop-player';const group=c.groups.find(g=>g.id===p.group);
    row.append(node('p',`${p.name}${p.id===c.host?' · HOST':p.captain?' · ARMY CAPTAIN':''} · ${sideLabel(p.side)} · ${group?.label||'Computer takeover'}${p.done?' · orders finished':''}`));
@@ -152,6 +168,7 @@
   finally{$('coopJoinSubmit').disabled=false;}
  };
  document.addEventListener('ww2:render',sync);
+ document.addEventListener('ww2:experience',()=>{if(state?.coop&&!lobbyMode){if(state.coop.phase==='lobby')paintRoom();if(teams.open)paintTeams();}});
  document.addEventListener('visibilitychange',continueComputers);
  setInterval(continueComputers,1500);
  new MutationObserver(sync).observe($('lobby'),{attributes:true,attributeFilter:['hidden']});

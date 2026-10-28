@@ -11,6 +11,7 @@
  const experience=()=>window.ww2Experience?.level||'simple';
  const depth=(simple,moderate,expert=moderate)=>({simple,moderate,expert})[experience()];
  const levelName=()=>experience()[0].toUpperCase()+experience().slice(1);
+ const experienceMarker=topic=>el('p',`${levelName()} · ${topic}`,'emp-experience-context');
  const signed=n=>`${n>=0?'+':''}${n}`;
  const ruleExpansion=new Map();
  function ruleDetail(key,title,text){
@@ -340,10 +341,47 @@
   const b=button(fortified?'Fortified':labels[kind],()=>order({kind,unit:unit.id}),fortified||!myTurn()||!game.legal[unit.id]?.actions.includes(kind));
   b.dataset.empAction=kind;b.title=actionReason(unit,kind)||depth(actionHelp[kind][0],actionHelp[kind][1]);return b;
  }
+ function decisionCard(){
+  if(experience()==='expert'||!myTurn()||target)return null;
+  const unit=game.units.find(u=>u.id===chosen&&u.side===game.side),city=game.cities.find(c=>c.id===chosen&&c.side===game.side);
+  let title,copy;
+  if(tab==='research'){
+   const tech=game.technologies[game.player.research];
+   if(!tech&&game.player.techs.length===Object.keys(game.technologies).length)return null;
+   title=tech?'Your research is already running':'Choose a useful discovery';
+   copy=tech?depth(`${tech.name} advances when you End turn. Use your units while your civilization researches.`,`${tech.name}: ${researchTiming(tech)} Compare another benefit below before switching; all stored knowledge is kept.`):depth('Choose a benefit below. Research uses knowledge and advances at End turn; it spends no unit action points.',`You have ${game.player.knowledge} knowledge stored and earn ${game.economy.knowledge} each turn. Compare benefits and completion times below.`);
+  }else if(tab==='diplomacy'){
+   if(!game.diplomacy.met)return null;
+   title=game.diplomacy.war?'Choose whether to keep fighting':'Consider trade before war';
+   copy=depth(game.diplomacy.war?'You can offer peace below. Your neighbor must accept before fighting stops.':'Trade helps both civilizations earn gold. War enables attacks and puts capitals at risk.',game.diplomacy.war?'Peace needs the recipient’s acceptance on their turn. An offer alone does not end the war.':'Accepted trade adds 3 gold per side each turn. Declaring war cancels trade immediately; it does not require acceptance.');
+  }else if(city){
+   const project=city.projects[city.project],missing=project?Math.max(0,project.cost-city.production):0;
+   title=project?depth('Your city already has a job','Compare production with gold'):'Choose what this city builds';
+   copy=project?depth(`${city.name} is building ${project.name}. Its production is resolved when you End turn. You can use your units while it builds.`,`${project.name}: ${city.production} / ${project.cost} production, ${signed(city.yields.production)} per turn. ${missing?`Rush costs ${missing*3} gold and completes the project immediately if there is room. Gold also pays unit upkeep.`:'Production is funded; completion waits for turn end and any required unit space.'}`):depth('Choose a project below. Your city saves production and uses it when you End turn.',`${city.production} production is stored. Compare project benefits and costs; changing a project keeps that production.`);
+  }else if(unit){
+   const legal=game.legal[unit.id]||{moves:[],actions:[],attacks:[]};
+   if(unit.shaken){title='Recover this unit first';copy=actionReason(unit,'rally')||'Rally costs 1 AP. Once recovered, this unit can move or attack again.';}
+   else if(!unit.ap){title='This unit has used its actions';copy='Choose another unit, or End turn when you are ready. Its action points refresh for its next turn.';}
+   else if(unit.kind==='builder'){
+    const improvements=legal.actions.filter(k=>['farm','mine','road'].includes(k));
+    title=improvements.length?'Choose how to improve this hex':'Find useful land for these Builders';
+    copy=depth(improvements.length?'Use an available improvement below. It costs 2 AP and one building charge. Farms and mines help income when a city works this land; roads help travel.':'Inspect nearby land to find where your city works. Move the Builders onto an eligible hex before improving it.',`${unit.ap} AP · ${unit.charges} charges. ${improvements.length?'Available here: '+improvements.map(k=>labels[k].split(' · ')[0]).join(', ')+'.':'No improvement is available here.'} Compare an income improvement on worked land with a road for movement. Each uses 2 AP and one charge.`);
+   }else if(unit.kind==='settler'){
+    title=legal.actions.includes('found')?'Choose whether to found here':'Find room for another city';
+    copy=depth('Found city uses these Settlers and costs 2 AP. Inspect the nearby land before choosing the city’s permanent home.',`${unit.ap} AP. Founding costs 2 AP and consumes this unit; cities must be at least 4 hexes apart. Compare nearby yields and space before committing.`);
+   }else{
+    title=depth('Choose one useful move','Budget this unit’s actions');
+    copy=depth(unit.kind==='scout'?'Tap a highlighted neighboring hex to explore. The number on it is the AP cost; Inspect hex explains the land without moving.':'Tap a highlighted hex to move, or a visible rival to review an attack. An attack happens only after you confirm it.',`${unit.ap} AP available. ${legal.attacks.length?'A legal attack costs 2 AP; compare its odds with moving into cover.':'Compare movement costs with keeping AP for another order.'} At most 1 unused AP carries into the next turn.`);
+   }
+  }else{return null;}
+  const box=el('section',undefined,'emp-decision-card');box.id='empDecision';box.append(el('h3',title),el('p',copy));return box;
+ }
  function renderPanel(){
   if(!game)return;const panel=byId('empPanel');panel.replaceChildren();for(const b of root.querySelectorAll('[data-emp-tab]'))b.setAttribute('aria-pressed',String(b.dataset.empTab===tab));
+  panel.append(experienceMarker(depth('Next step and what it does','Choices, costs and timing','Full rules and exact values')));
   byId('empResearchNotice').hidden=tab!=='research';
   if(!myTurn())panel.append(el('p',turnSummary(),'emp-warning'));
+  const decision=decisionCard();if(decision)panel.append(decision);
   if(tab==='research'){
    panel.append(currentResearch(),el('h3',depth('Discoveries','Discoveries & timing','Discoveries & prerequisites')));
    for(const [k,t] of Object.entries(game.technologies)){
@@ -581,20 +619,27 @@
   if(!game||!inspected)return;
   const pos=inspected,t=game.map[pos[1]]?.[pos[0]],current=game.visible.includes(posKey(pos)),panel=byId('empHexContent');panel.replaceChildren();
   byId('empHexTitle').textContent=`${coord(pos)} · ${t?learning.terrain[t.terrain]?.[0]||t.terrain:'Unexplored'}`;
+  panel.append(experienceMarker(depth('What this hex helps you do','Yield, movement and tradeoffs','Terrain and current legal orders')));
   if(!t){panel.append(el('p','You have not seen this land yet. Its terrain, resources and occupants are unknown.'),el('p','Move a Scout toward the edge of visible land. You can only enter currently visible neighboring hexes.'));return;}
   panel.append(el('p',current?'Currently visible · inspection spends no AP.':'Last-seen land · these are remembered features, not a live report. Current occupants and changes are unknown.',current?'emp-small':'emp-warning'));
   panel.append(el('p',learning.terrain[t.terrain][1]));
   const city=game.cities.find(c=>same(c.pos,pos)),ownCity=city?.side===game.side,value=game.land_yields?.[posKey(pos)];
   if(city){
    panel.append(el('h3',`${city.name}${city.visible===false?' · last reported':''}`));
-   if(ownCity){panel.append(yieldRow(city.yields,true),el('p',`City totals per turn, including worked land and buildings. Food is after population consumption. This city also produces ${city.yields.knowledge} knowledge. The center provides base income; it is not another citizen-worked tile.`));}
+   if(ownCity){
+    const full=`City totals per turn, including worked land and buildings. Food is after population consumption. This city also produces ${city.yields.knowledge} knowledge. The center provides base income; it is not another citizen-worked tile.`;
+    panel.append(yieldRow(city.yields,true),el('p',depth(`These are this city’s totals each turn. Food helps it grow; production builds its project. It also earns ${city.yields.knowledge} knowledge.`,`Net food is after population consumption. These totals include worked land and buildings, plus ${city.yields.knowledge} knowledge per turn.`,full)));
+    if(experience()!=='expert')panel.append(ruleDetail('hex-city-'+coord(pos),'How city income is counted',full));
+   }
    else panel.append(el('p','This rival city’s economy and production choices are private. Its visible or last-reported public details can be inspected.'));
    panel.append(button(ownCity?'Open city production':'Inspect city',()=>{closeMobileSheets();select(city.id);if(!mobile)openPanel('orders');}));
   }else if(value){
-   panel.append(el('h3',current?'Potential yield when worked':'Potential from remembered land'),yieldRow(value),el('p','Food grows population. Production builds projects. Gold pays upkeep or rushes production. These values are per turn, using your discoveries. A unit standing here does not collect them.'));
+   panel.append(el('h3',current?'Potential yield when worked':'Potential from remembered land'),yieldRow(value),el('p',depth('A city can collect these amounts each turn when a citizen works this hex. A unit standing here does not collect them.','Per-turn potential with your discoveries: food grows population, production builds projects, and gold pays upkeep or rushes a project. A citizen must work the hex.','Food grows population. Production builds projects. Gold pays upkeep or rushes production. These values are per turn, using your discoveries. A unit standing here does not collect them.')));
    const worked=current?game.cities.find(c=>c.side===game.side&&c.yields.worked.some(p=>same(p,pos))):null;
    const nearby=game.cities.filter(c=>c.side===game.side&&learning.distance(c.pos,pos)<=2);
-   panel.append(el('p',worked?`Worked by ${worked.name} now. This yield is included in that city’s output and collected at your turn end.`:!current?'We cannot treat remembered land as a current activity report.':nearby.length?`Not currently worked. Within range of ${nearby.map(c=>c.name).join(', ')}. Each citizen automatically works one nearby hex; only the nearest city can use it. More population or a better improvement can change the choice.`:'Outside the working range of your cities. A city must be within two hexes to use this land. Settlers can found a city, subject to spacing and terrain rules.','emp-hex-working'));
+   const workingRule=worked?`Worked by ${worked.name} now. This yield is included in that city’s output and collected at your turn end.`:!current?'We cannot treat remembered land as a current activity report.':nearby.length?`Not currently worked. Within range of ${nearby.map(c=>c.name).join(', ')}. Each citizen automatically works one nearby hex; only the nearest city can use it. More population or a better improvement can change the choice.`:'Outside the working range of your cities. A city must be within two hexes to use this land. Settlers can found a city, subject to spacing and terrain rules.';
+   panel.append(el('p',experience()==='simple'&&current&&!worked?(nearby.length?'Your city is not working this hex now. It may become useful as the city grows or the land improves.':'This land is too far from your cities to earn income. A city must be within two hexes.'):workingRule,'emp-hex-working'));
+   if(experience()==='simple'&&current&&!worked)panel.append(ruleDetail('hex-working-'+coord(pos),'Why this land is not earning income',workingRule));
   }
   const features=[];
   if(t.resource==='grain')features.push('Grain adds +1 food; it is already included in the potential shown.');
@@ -638,13 +683,29 @@
  }
  function renderLearning(){
   const guided=experience()==='simple'&&!learning.ignored,lesson=learning.lesson(game);
-  byId('empHomeLearning').hidden=!guided;byId('empLearnOpen').hidden=!guided;
+  const homeGuide=byId('empHomeLearning');homeGuide.hidden=!guided&&experience()!=='moderate';byId('empLearnOpen').hidden=!guided;
+  homeGuide.querySelector('h2').textContent=depth('Simple · Your first turns','Moderate · Plan your civilization','Expert · Rules reference');
+  homeGuide.querySelector('p').textContent=depth('Start with one city and one useful move. The guide explains your goal, what to do next, and when the result happens.','Compare city output, project timing, research benefits and movement costs. The planning guide helps you connect those choices across turns.','Review exact formulas, unit values and turn timing in the full rulebook.');
+  homeGuide.querySelector('.emp-small').textContent=depth('Simple includes guided lessons by default. Ignore tutorial keeps Simple selected.','Useful numbers and tradeoffs beside your decisions. All actions and the full rulebook stay available.','The full reference is available from How to play.');
+  byId('empHomeLearn').textContent=depth('Teach me how to play','Open the planning guide','Open full rules');
   byId('empLearningMenu').textContent=learning.ignored?'Resume tutorial':'Guided tutorial';
   byId('empLearnLabel').textContent=lesson.complete?'Next decision':`Learn${game?' · '+learning.done(game).length+'/'+learning.steps.length:''}`;
   byId('empLearnNext').textContent=lesson.title;
-  const panel=byId('empLesson');panel.replaceChildren(el('p',game&&!lesson.complete?`Guided first turns · ${learning.done(game).length} of ${learning.steps.length} lessons reviewed or practiced`:'A beginner’s guide to Empires','emp-kicker'),el('h3',lesson.title));
+  const panel=byId('empLesson');panel.replaceChildren(experienceMarker(depth('One decision at a time','Costs, tradeoffs and results','Rules and interactions')),el('p',game&&!lesson.complete?`Guided first turns · ${learning.done(game).length} of ${learning.steps.length} lessons reviewed or practiced`:'A guide to Empires','emp-kicker'),el('h3',lesson.title));
   if(game&&learning.feedback(game))panel.append(el('p',learning.feedback(game),'emp-lesson-feedback'));
-  for(const fact of lesson.facts)panel.append(el('p',fact));
+  const planning={
+   goal:'Choose a development plan before committing to war. Cities, population, discoveries and ruins contribute to the final score; capturing the rival capital can end the campaign earlier.',
+   land:'Compare potential yield with land your cities actually work. An improvement on worked land affects the next turn’s income; unused land is a future opportunity.',
+   explore:'Compare the AP cost of each legal step. Scouts pay 1 AP for woods and 2 for hills. Keep the next move in mind; only 1 unused AP can carry over.',
+   city:'Compare the project’s benefit with its completion time. Turn-end production keeps gold available for upkeep. Rushing spends gold and completes the project immediately when placement is possible.',
+   improve:'Each improvement uses 2 AP and one building charge. Farms and mines improve income when worked; roads improve movement. Check the hex before spending a charge.',
+   research:'Compare benefits and estimated turns. Switching preserves stored knowledge and uses no unit AP; progress happens at your turn end.',
+   turn:'Check the projects and research you expect to advance, then review the actual result. Unused AP carries over only up to 1 per unit; your rival acts between your turns.'
+  };
+  const shown=experience()==='simple'?lesson.facts.slice(0,2):experience()==='moderate'&&planning[lesson.id]?lesson.facts.slice(0,1):lesson.facts;
+  for(const fact of shown)panel.append(el('p',fact));
+  if(experience()==='moderate'&&planning[lesson.id])panel.append(el('p',planning[lesson.id],'emp-lesson-planning'));
+  if(shown.length<lesson.facts.length)panel.append(ruleDetail('lesson-'+lesson.id,'More about this decision',lesson.facts.slice(shown.length).join(' ')));
   if(game&&(!game.ready||game.turn!==game.side)&&!game.winner)panel.append(el('p','You can inspect and learn now. Orders wait until your turn and your opponent has joined.','emp-warning'));
   panel.append(button(lesson.label,()=>lessonAction(lesson),working||lesson.action==='end'&&!myTurn(),'emp-primary'));
   if(game&&lesson.id&&learning.steps.includes(lesson.id)&&lesson.id!=='goal')panel.append(button('I’ve read this · next lesson',()=>{learning.mark(game,lesson.id,`Reviewed: ${lesson.title}. You can practice this later.`);renderLearning();},false,'emp-lesson-review'));
@@ -657,7 +718,7 @@
  }
  byId('empInspectToggle').onclick=()=>{inspectMode=!inspectMode;renderMap();renderMobile();};
  byId('empMapView').onclick=()=>{mapLens=landLens()==='yields'?'land':'yields';try{localStorage.setItem('empires-map-lens',mapLens);}catch{}renderMap();syncMapTools();};
- byId('empLearnOpen').onclick=()=>openLearning();byId('empHomeLearn').onclick=()=>openLearning();
+ byId('empLearnOpen').onclick=()=>openLearning();byId('empHomeLearn').onclick=()=>{if(experience()==='simple')openLearning();else{closeMobileSheets();byId('empManual').showModal();}};
  byId('empLearningMenu').onclick=()=>openLearning(true);byId('empManualTutorial').onclick=()=>openLearning(true);
  byId('empIgnoreTutorial').onclick=()=>{learning.ignore();byId('empLearnSheet').close();renderLearning();};
  byId('empRestartTutorial').onclick=()=>{learning.restart(game);renderLearning();};
@@ -698,7 +759,7 @@
   byId('empMapHint').textContent=depth('Select a unit, then a highlighted hex','Move labels show AP cost; dim tiles are last reports','Coordinates · move AP · dim = last seen');
   const note=depth('Short instructions and one decision at a time. Full rules are available when you want them.','Useful numbers, timing and tactical explanations beside your decisions.','Exact unit statistics, map coordinates, formulas and die thresholds.');
   for(const n of document.querySelectorAll('[data-emp-experience-note]'))n.textContent=note;
-  const positions=['empMapWrap','empOrdersSheet','empRosterSheet','empMenu','empManual','empRoster'].map(id=>[byId(id),byId(id).scrollLeft,byId(id).scrollTop]);
+  const positions=['empMapWrap','empOrdersSheet','empRosterSheet','empMenu','empManual','empRoster','empHexSheet','empLearnSheet'].map(id=>[byId(id),byId(id).scrollLeft,byId(id).scrollTop]);
   renderGuide();if(game&&active)render();renderLearning();
   for(const [n,left,top] of positions){n.scrollLeft=left;n.scrollTop=top;}
  }

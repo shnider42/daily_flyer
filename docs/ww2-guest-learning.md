@@ -2,6 +2,9 @@
 
 The current learning flow is [WWII Journey and Field coach](ww2-journey.md).
 Learning remains optional and is available to both guests and signed-in commanders.
+Simple shows a compact contextual prompt by default; Ignore tutorial is the
+explicit opt-out, with Resume tutorial available later. Closing the full coach
+sheet is temporary and does not change this independent consent preference.
 The previous guest-only gate has been removed. The home entry opens fourteen
 practice chapters; each creates or resumes its own separate solo battle.
 The Field coach also works in every DSL scenario. Experience changes the actual
@@ -13,7 +16,7 @@ The course covers victory, turns, unit selection, movement, AP and banking, unav
 
 Each lesson has an explanation and a concrete task. Show me closes the guide and highlights the relevant control; it never issues an order. Selection, movement, attacks, rally and ending a turn can record a practiced task using the existing public action history. Reading ahead or skipping a task is allowed. Nothing awards AP, changes dice or alters visibility.
 
-Progress is stored per browser, match code and battle number under `ww2-learning-v2`, for up to 16 battles. Closing the guide preserves progress; Pause guide hides it until reopened. A topic index allows direct review. Storage failures fall back to the current page’s memory. Signing in preserves the coach and never changes the battle.
+Progress is stored per browser, match code and battle number under `ww2-learning-v2`, for up to 16 battles. Closing the guide preserves progress; completing its lessons leaves contextual guidance available. Tutorial consent is stored separately under `ww2-coaching-preferences-v1`. A topic index allows direct review. Storage failures fall back to the current page’s memory. Signing in preserves the coach and never changes the battle.
 
 ## Win and turn signals: everyone
 

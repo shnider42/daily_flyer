@@ -37,7 +37,7 @@ const snapshot=p=>p.evaluate(()=>{const w=$('mapWrap');return {state:JSON.string
   await p.locator('#createSolo').click();assert.equal(await p.locator('#soloScenario').inputValue(),'village','Reopening preserves the requested Home map despite a previous filter');
   await p.locator('#startSolo').click();await p.waitForFunction(()=>state&&!busy&&!polling);await settle(p);
   await p.evaluate(()=>{refresh=async()=>{};chooseUnit(state.units.find(u=>u.side===state.side&&u.kind==='squad'));});await settle(p);
-  assert.equal(await p.locator('#tutorialCoach').isVisible(),false,'Guide remains opt-in');
+  assert.equal(await p.locator('#tutorialCoach').isVisible(),false,'Simple guidance stays nonmodal until opened');
   for(const [width,height] of touch?[[320,568],[390,844],[844,390]]:[[1100,600],[1280,720],[1440,1000]]){
    await p.setViewportSize({width,height});await settle(p);
    await p.locator('#battleViewOpen').click();const before=await snapshot(p);

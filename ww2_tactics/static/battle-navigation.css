@@ -4,6 +4,9 @@
 #battleNavigation button{min-height:44px;padding:8px 12px;border:1px solid #ffffff45;border-radius:4px;background:#ffffff0d;color:#fff9e8;font-size:13px;line-height:18px;font-weight:750;white-space:nowrap;transition:box-shadow .12s}
 #battleNavigation button:focus-visible{outline:3px solid #e0b46d;outline-offset:1px}
 #battleNavigation button[aria-expanded=true]{background:#f3f0df;color:#20392c;border-color:#f3f0df}
+#battleNavigation #battleViewOpen{width:76px;min-width:76px;padding:4px 7px}
+.experience-nav-level{display:block;font-size:13px;line-height:17px;font-weight:800}
+.experience-nav-caption{display:block;font-size:10px;line-height:13px;font-weight:500}
 .battle-navigation-active>header{justify-content:flex-start;gap:20px;padding-left:max(12px,env(safe-area-inset-left));position:sticky;top:0;z-index:15;background:#192f27;color:#fff9e8}
 .battle-navigation-active>header .brand{display:none}
 .battle-navigation-active.compact-desktop>header{height:48px;min-height:48px}

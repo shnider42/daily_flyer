@@ -5,6 +5,9 @@ document.addEventListener('DOMContentLoaded',()=>{
  const operation=document.querySelector('.home-operation'),directory=$('multiplayerLobby');
  directory.before(operation);
  directory.before($('savedSessions'));
+ const experience=$('homeExperience').closest('.home-experience');
+ $('entryStatus').after(experience);
+ if($('greybridgeHome'))experience.after($('greybridgeHome'));
  let motion=true;
  try{motion=localStorage.getItem('ww2-home-motion')!=='off';}catch{}
  const reduced=matchMedia('(prefers-reduced-motion: reduce)');
@@ -22,7 +25,8 @@ document.addEventListener('DOMContentLoaded',()=>{
   document.getElementById('homeTheater').textContent=board.theater||(operationSource(board)==='midway'?'PACIFIC':'WESTERN EUROPE');
   document.getElementById('homeMapSize').textContent=`${board.width} × ${board.height} HEXES`;
   $('operationTitle').textContent=board.name;
-  $('operationSummary').textContent=board.summary||(board.naval?'Fleet combat · island landings':board.combined_arms?'Combined arms · fog of war':board.platoons?'Three platoons · a wider battlefield':'Infantry · close-quarters tactics');
+  const level=ww2Experience.level,focus=board.browse?.focus||'Select a unit, review its orders, and work toward the mission goal.';
+  $('operationSummary').textContent=level==='simple'?focus:level==='moderate'?`${board.summary||focus} ${board.width} × ${board.height} hexes to plan around.`:board.summary||(board.naval?'Fleet combat · island landings':board.combined_arms?'Combined arms · fog of war':board.platoons?'Three platoons · a wider battlefield':'Infantry · close-quarters tactics');
   const factions=board.factions||(board.naval?{us:'Americans',de:'Japanese'}:{us:'Americans',de:'Germans'});
   $('operationFactions').textContent=`${factions.us} vs ${factions.de} · ${board.rounds} rounds${board.playtest?' · PLAYTEST':''}`;
   $('playtestNote').hidden=!board.playtest;
@@ -33,5 +37,6 @@ document.addEventListener('DOMContentLoaded',()=>{
  if(new URLSearchParams(location.search).get('join'))document.getElementById('joinOptions').open=true;
  new MutationObserver(syncHome).observe(lobby,{attributes:true,attributeFilter:['hidden']});
  document.addEventListener('ww2:preview',syncPreview);
+ document.addEventListener('ww2:experience',syncPreview);
  syncHome();syncPreview();
 });

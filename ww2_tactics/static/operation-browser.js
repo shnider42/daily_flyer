@@ -28,7 +28,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   if(!scenarios.length)return; // Existing options remain usable if the catalog fails.
   const {select,edition,editionNote,category,sort,status,info}=browser,chosen=requested||select.value||scenarios[0].id;
   const current=operationById(chosen);if(current)edition.value=current.edition==='current'?'current':'legacy';
-  editionNote.textContent=edition.value==='current'?'Current DSL: shared ground rules, two friendly ground units per hex and separate air occupancy. Original armies, terrain and missions; fleet and air exceptions apply. Start a new battle to use these rules.':'Legacy: all original maps and scenario rules remain available. Existing battles and co-op assignments keep their saved rules.';
+  editionNote.textContent=edition.value==='current'?ww2Experience.pick('Current DSL uses the shared rules. Experience controls how they are explained.', 'Current DSL shares ground rules across maps: two friendly ground units may share a hex, with aircraft kept separate. Fleet and air missions have their own exceptions.', 'Current DSL: shared ground rules, two friendly ground units per hex and separate air occupancy. Original armies, terrain and missions; fleet and air exceptions apply. Start a new battle to use these rules.'):ww2Experience.pick('Legacy keeps each original map’s rules. Experience still changes the help you see.', 'Legacy preserves the original scenario rules. A saved battle keeps the edition and rules it started with.', 'Legacy: all original maps and scenario rules remain available. Existing battles and co-op assignments keep their saved rules.');
   const catalog=edition.value==='current'?currentScenarios:scenarios;
   const level=ww2Experience.level,rank=b=>b.browse?.learning_order??1000;
   const matches=catalog.filter(b=>category.value==='all'||b.browse?.tags.includes(category.value));
@@ -39,7 +39,7 @@ document.addEventListener('DOMContentLoaded',()=>{
   if(outside){const group=el('optgroup');group.label='Current choice · outside filter';group.append(option(current));nodes.unshift(group);}
   select.replaceChildren(...nodes);select.value=chosen;
   status.textContent=`${edition.value==='current'?'Current':'Legacy'} · ${matches.length} operation${matches.length===1?'':'s'}${outside?' match · current choice kept':''}${sort.value==='learning'?' · suggested learning order':''}`;
-  info.textContent=current?`${current.browse?.focus||''}${level==='simple'?'':` ${current.browse?.labels?.join(' · ')||''}`}`:'';
+  info.textContent=current?level==='simple'?`You’ll practice: ${current.browse?.focus||'reading the mission, choosing a unit, and using its available orders.'}`:level==='moderate'?`${current.browse?.focus||''} Plan for ${current.rounds} rounds. ${current.browse?.labels?.join(' · ')||''}`:`${current.browse?.focus||''} ${current.browse?.labels?.join(' · ')||''}`:'';
   // Existing ruleset handlers remain in charge; this also covers future catalog maps.
   if(current?.dsl_only)$(select.id==='scenarioSelect'?'rulesetSelect':select.id==='soloScenario'?'soloRuleset':'rematchRuleset').value='dsl';
  }

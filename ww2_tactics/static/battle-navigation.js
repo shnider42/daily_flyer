@@ -6,7 +6,8 @@
  const header=document.querySelector('body>header'),home=$('homeBattles'),manual=$('rulesButton');
  const manualAnchor=document.createComment('home field manual');manual.before(manualAnchor);
  const nav=node('nav','battleNavigation');nav.setAttribute('aria-label','Home and display settings');nav.hidden=true;
- const view=node('button','battleViewOpen','View');view.type='button';view.setAttribute('aria-haspopup','dialog');view.setAttribute('aria-controls','battleViewSettings');view.setAttribute('aria-expanded','false');
+ const view=node('button','battleViewOpen');view.type='button';view.setAttribute('aria-haspopup','dialog');view.setAttribute('aria-controls','battleViewSettings');view.setAttribute('aria-expanded','false');
+ const viewLevel=node('span','battleExperienceLabel'),viewName=node('span',null,'View & help');viewLevel.dataset.experienceLabel='';viewLevel.className='experience-nav-level';viewName.className='experience-nav-caption';view.append(viewLevel,viewName);
  home.textContent='Home';home.setAttribute('aria-label','Home — saved battles and multiplayer lobby');home.title='Home — your battle stays saved';
  home.dataset.help='Return to your saved battles and the multiplayer lobby. This does not resign or end your turn.';
  view.title='Display settings and help';view.dataset.help='Change Experience, battle layout, Dad mode, terrain and unit pictures, or open Field coach and WWII Journey.';
@@ -17,13 +18,14 @@
  heading.append(node('h2','battleViewTitle','View & help'),close);dialog.append(heading);
  const tools=$('playTools');dialog.append(tools);document.body.append(dialog);
  function group(title,ids){const section=node('section');section.className='battle-view-group';section.append(node('h3',null,title));for(const id of ids)if($(id))section.append($(id));tools.append(section);return section;}
- const experience=group('Information',['experienceControl']);
- experience.append(node('p',null,'Display and coaching detail — same rules, difficulty and available orders.'));
+ const experience=group('How much guidance?',['experienceControl']);
+ const depth=node('p','battleExperienceDescription');depth.dataset.experienceDescription='';experience.append(depth);
+ experience.append(node('p',null,'Shared across Squad Leader and Empires on this browser. Changing Experience changes explanations, not rules, difficulty or available orders.'));
  const layout=group('Display',['layoutControl','dadModeToggle']);
  layout.append(node('p',null,'Map-first gives the battlefield more room. Command center keeps your roster, map, orders and reports side by side on desktop.'));
  group('Map & units',['terrainToggle','unitStyleToggle']);
  const guides=group('Map guides',['rangeGuideToggle','intelligenceView','sectorNavigator']);
- const help=group('Help',['guideToggle']);
+ const help=group('Help',['guideToggle','hexInspectOpen']);help.id='battleViewHelp';
  function open(){
   if(nav.hidden)return;
   if(playbackSession){playbackSession.paused=true;clearTimeout(playbackTimer);$('pausePlayback').textContent='Resume';}
@@ -39,6 +41,8 @@
  dialog.addEventListener('pointerdown',e=>{backdropDown=e.target===dialog&&outside(e);});
  dialog.addEventListener('click',e=>{if(backdropDown&&e.target===dialog&&outside(e))dialog.close();backdropDown=false;});
  function sync(){
+  const level=window.ww2Experience?.describe?.();
+  if(level){viewLevel.textContent=level.label;depth.textContent=level.description;view.setAttribute('aria-label',`${level.label} experience. Change guidance, display settings and help.`);}
   const active=!!state&&!$('game').hidden&&!lobbyMode;
   document.body.classList.toggle('battle-navigation-active',active);nav.hidden=!active;
   if(!active){if(dialog.open)dialog.close();header.prepend(nav);manualAnchor.after(manual);return;}
@@ -50,7 +54,7 @@
  // Moving these nodes never submits an order, changes targeting, or touches
  // the map camera. Keep the dialog itself mounted across preference changes.
  document.addEventListener('ww2:before-layout',()=>header.prepend(nav));
- for(const event of ['ww2:render','ww2:playback','ww2:layout','ww2:dad-mode'])document.addEventListener(event,sync);
+ for(const event of ['ww2:render','ww2:playback','ww2:layout','ww2:dad-mode','ww2:experience'])document.addEventListener(event,sync);
  window.addEventListener('resize',()=>requestAnimationFrame(sync));
  new MutationObserver(sync).observe($('game'),{attributes:true,attributeFilter:['hidden']});
  window.ww2BattleNavigation={open,openContaining(n){if(dialog.contains(n)){open();return true;}return false;}};

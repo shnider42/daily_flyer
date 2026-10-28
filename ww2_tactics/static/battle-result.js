@@ -4,16 +4,20 @@
  const dialog=document.createElement('dialog');dialog.id='battleResultDialog';dialog.setAttribute('aria-labelledby','battleResultTitle');
  dialog.innerHTML='<p class="eyebrow">BATTLE COMPLETE</p><h2 id="battleResultTitle"></h2><p id="battleResultArmies"></p><p id="battleResultReason"></p><p id="battleResultProgress"></p><div class="result-actions"><button id="resultReview">Review battlefield</button><button id="resultRematch">Play again</button><button id="resultJourney" hidden>Continue WWII Journey</button><button id="resultHome">Back to operations</button></div>';
  document.body.append(dialog);
+ const levelControl=document.createElement('div');levelControl.className='experience-control mission-experience';levelControl.innerHTML='<label for="battleResultExperience">Your guidance</label><select id="battleResultExperience" data-experience-select><option value="simple">Simple</option><option value="moderate">Moderate</option><option value="expert">Expert</option></select>';$('battleResultTitle').after(levelControl);
+ const next=document.createElement('p');next.id='battleResultNext';$('battleResultProgress').after(next);
  const reopen=document.createElement('button');reopen.type='button';reopen.id='showBattleResult';reopen.textContent='View battle result';$('battleReport').append(reopen);
  const seen=new Set();
  const key=()=>`${session?.code}:${state?.battle_number||1}:${state?.winner}`;
  function fill(){
   const won=state.winner===state.side;
+  const level=window.ww2Experience?.level||'simple';$('battleResultExperience').value=level;dialog.dataset.experience=level;
   dialog.dataset.result=won?'victory':'defeat';
   $('battleResultTitle').textContent=won?'Victory':'Defeat';
   $('battleResultArmies').textContent=`${sideLabel(state.winner)} won ${state.scenario.name} · Round ${state.battle_result?.round||Math.min(state.round,state.scenario.rounds)}.`;
   $('battleResultReason').textContent=state.resigned_by?(state.resigned_by===state.side?'You resigned this battle.':'Your opponent resigned this battle.'):(state.battle_result?.reason||'The battle has ended. Review the mission and final battlefield.');
   $('battleResultProgress').textContent=ww2Briefing.mission({...state,round:Math.min(state.round,state.scenario.rounds)}).progress;
+  next.textContent=level==='simple'?'Review battlefield lets you look back without giving orders. The battle review explains your result.':level==='moderate'?'Open the debrief to compare your objective progress, losses and resources before choosing the next battle.':'The debrief contains recorded force, resource and objective accounting. The retained replay covers the latest computer turn.';
   $('resultRematch').hidden=!!state.coop;
   $('resultRematch').textContent=state.ai_side?'Play again':'Propose next battle';$('resultRematch').disabled=!!state.rematch||busy;
   $('resultJourney').hidden=!window.ww2Journey?.isCurrent();
@@ -39,7 +43,7 @@
   if(!shown)open();
  }
  let timer;const schedule=()=>{clearTimeout(timer);timer=setTimeout(sync,0);};
- for(const event of ['ww2:render','ww2:playback'])document.addEventListener(event,schedule);
+ for(const event of ['ww2:render','ww2:playback','ww2:experience'])document.addEventListener(event,schedule);
  new MutationObserver(schedule).observe($('game'),{attributes:true,attributeFilter:['hidden']});
  window.ww2Result={open};
 })();

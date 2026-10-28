@@ -1,4 +1,8 @@
 .screen-reader-only{position:absolute!important;width:1px;height:1px;padding:0;overflow:hidden;clip-path:inset(50%);white-space:nowrap;border:0}
+.mission-experience{margin:8px 0 18px;max-width:460px}
+#missionNext{margin:14px 0}#missionNext h3{font-size:16px;margin:0 0 6px}#missionNext p,#missionEssentials{line-height:1.55;margin:8px 0}#missionWhy{font-size:14px}#missionEssentials{padding-left:21px}#missionEssentials li{margin:7px 0}
+#missionFullDetails{border-top:1px solid #a4b197;margin-top:16px;padding-top:7px}#missionFullDetails>summary{min-height:44px;cursor:pointer;font-weight:700;line-height:1.45;padding:8px 4px;box-sizing:border-box}#missionRules li{margin:9px 0;line-height:1.55}#missionFind{min-height:44px}
+html[data-theme=dark] #missionFullDetails{border-color:var(--ui-line,#4b604a)}
 #game #turnBanner{background:#245439;color:#fffcef;border-left:5px solid #9cc377;padding:9px 12px;line-height:1.4}
 #turnBanner strong{font-size:15px;letter-spacing:.4px;display:block}#turnBanner span{font-size:12px;display:block;margin-top:2px}
 #game #turnBanner[data-phase=opponent],#game #turnBanner[data-phase=waiting]{background:#59492c;color:#fff7e3;border-left-color:#d5b061}

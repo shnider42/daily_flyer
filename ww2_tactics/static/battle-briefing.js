@@ -2,6 +2,26 @@
 'use strict';
 (()=>{
  const node=(tag,id,text)=>{const n=document.createElement(tag);if(id)n.id=id;if(text)n.textContent=text;return n;};
+ const experience=()=>window.ww2Experience?.level||'simple';
+ function guidance(s,m){
+  if(s.greybridge&&window.ww2LinkedOperations?.guidance)return window.ww2LinkedOperations.guidance(s);
+  const target=s.scenario.objective_name||'the marked objective';
+  let next=`Choose one of your infantry units and look for a route to ${target}.`,why='The objective is checked when a turn ends. Reaching it is only the first step.',notes=[];
+  if(s.side==='de'){next=`Find ${target}, then choose a unit that can help defend its approaches.`;why='Keep the attackers from completing the mission before the last round.';}
+  if(s.war_version){next='Choose one command group and one nearby flag or sea lane to work toward.';why='Each front contributes to the same campaign score. You can learn one group at a time.';notes=['Infantry take land flags; warships hold sea lanes. Aircraft support them.','Control scores at turn end. Read the sector rules before committing a specialist unit.'];}
+  else if(s.front_mode==='evacuation'){next=s.side==='us'?'Find an infantry unit marked RESCUE and a boat that can reach it.':'Choose a unit that can delay the marked rescue teams or their boats.';why='Only marked rescue teams count. Moving a boat to the top edge still requires the Evacuate order.';notes=['Loading costs the infantry 1 AP. Evacuating one team costs the boat 1 AP.','Use the rearguard to protect the teams that must leave.'];}
+  else if(s.scenario.night_ops_version){next=s.side==='us'?'Locate the radar targets and choose an aircraft to inspect its available orders.':'Locate your radar sites and the signals station, then choose a defending unit.';why='After both radars are destroyed, keep an unpinned paratrooper on the station with no German infantry on or next to it. End two Allied turns in a row in that position.';notes=['Keep a viable airborne squad for the station after the bombing.','Illumination helps both armies see; check the full mission rules before using flares or searchlights.'];}
+  else if(s.air_version||s.britain_ops_version){next=s.side==='us'?'Find your sector stations, then select a fighter or anti-aircraft unit to inspect its orders.':'Find a sector station, then select a bomber and inspect its route and weapons.';why='Station damage and survival determine the mission. Destroying fighters alone does not achieve the bombing objective.';notes=['Use the mission progress above to judge which targets still matter.','Check fuel, ordnance and return options before committing a flight.'];}
+  else if((s.naval_version&&!s.joint_ops_version)||s.midway_ops_version||s.scenario.fleet_battle_version){next='Find a marked sea lane and choose one ship to inspect its movement options.';why='Ships earn sea-control points at turn end. Aircraft help protect or attack them.';notes=['Read the goal above to check this mission’s exact victory conditions.','Approach through a legal sea route; islands block surface movement and weapons.'];}
+  else if(s.joint_ops_version){next='Choose a nearby land flag for infantry, or a sea lane for a warship.';why='Different units capture different objectives. Aircraft support the units that hold them.';notes=['Infantry stand on land flags. Warships hold sea zones within one hex.','Control scores at turn end; aircraft and armor cannot capture a land flag.'];}
+  else if(s.front_mode==='armored_control'){next='Choose a fighting infantry unit or tank and locate one of the three flags.';why='A flag’s printed value contributes to your score at the end of your turn.';notes=['Tanks and fighting infantry capture. Supply teams and fixed guns do not.','Use nearby cover while keeping a unit on the flag for scoring.'];}
+  else if(s.airborne_version||s.linked_front_version){next=s.side==='us'?'Locate the main objective and one linked exit. Choose infantry for both positions.':'Find the linked objectives and choose which approach to defend.';why='The attackers need both parts of the link at the same turn ending. Losing either breaks the count.';notes=['Infantry must occupy the main objective and a qualifying exit together.','Keep the link through two consecutive Allied turn endings.'];}
+  if(!notes.length)notes=[`Keep the required unit on ${target} when ending your turn.`,'Use the progress counter to see whether the hold continued or was broken.'];
+  const currentPhase=phase(s);
+  if(currentPhase.id==='finished')next='Review the result and final battlefield, then choose another battle when ready.';
+  else if(currentPhase.id!=='yours')next=currentPhase.text;
+  return {next,why,notes};
+ }
  function mission(s){
   if(s.greybridge&&window.ww2LinkedOperations)return window.ww2LinkedOperations.mission(s);
   const attacker=s.factions?.us||'Americans',defender=s.factions?.de||'Germans',rounds=s.scenario.rounds;
@@ -143,11 +163,15 @@
  const dialog=node('dialog','missionDialog');dialog.setAttribute('aria-labelledby','missionTitle');
  const close=node('button','missionClose','Back to battle');close.onclick=()=>dialog.close();
  const heading=node('h2','missionTitle','How to win'),goal=node('p','missionGoal'),progress=node('p','missionProgress'),list=node('ul','missionRules'),result=node('p','missionResult'),find=node('button','missionFind','Find the objective');
+ const levelControl=node('div','missionExperienceControl');levelControl.className='experience-control mission-experience';
+ levelControl.innerHTML='<label for="missionExperience">Your guidance</label><select id="missionExperience" data-experience-select><option value="simple">Simple</option><option value="moderate">Moderate</option><option value="expert">Expert</option></select><p id="missionExperienceNote"></p>';
+ const next=node('section','missionNext'),nextHeading=node('h3',null,'What to do next'),nextText=node('p','missionNextText'),reason=node('p','missionWhy'),essentials=node('ul','missionEssentials');next.append(nextHeading,nextText,reason,essentials);
+ const full=node('details','missionFullDetails'),fullTitle=node('summary',null,'Full mission rules');full.append(fullTitle,list);
  find.onclick=()=>{dialog.close();const point=mission(state).focus;if(point)focusMapUnit({pos:point});};
  const flags=node('p','missionFlags'),sectors=node('nav','missionSectors');sectors.setAttribute('aria-label','Jump to battlefield sector');
- dialog.append(close,heading,result,goal,progress,flags,sectors,list,find);document.body.append(dialog);
+ dialog.append(close,heading,levelControl,result,goal,progress,next,find,flags,sectors,full);document.body.append(dialog);
  const live=node('div','battleAnnouncer');live.className='screen-reader-only';live.setAttribute('role','status');live.setAttribute('aria-live','polite');live.setAttribute('aria-atomic','true');document.body.append(live);
- let announcement='',timer=null,lastPaint='',lastMobile=null;
+ let announcement='',timer=null,lastPaint='',lastMobile=null,detailKey='';
  function open(){if(!state||$('game').hidden)return;fill();for(const d of document.querySelectorAll('dialog[open]'))if(d!==dialog)d.close();if(!dialog.open)dialog.showModal();}
  button.onclick=open;
  function fill(){
@@ -155,19 +179,27 @@
   if(state.edition==='current')m.rules.push('Current DSL uses the same role, terrain and equipment rules across operations. Original forces, mission, supplies, reserves and faction differences remain. Two friendly ground units can share, at most one vehicle/fixed gun; aircraft use a separate slot. Ships and boats remain separate.',...(state.rule_manifest?.exceptions||[]));
   if(state.deployment_version)m.rules.push('This operation starts with private pre-battle deployment. Both armies lock their plans before naval fire and round 1. See How it works in the preparation panel.');
   for(const shot of state.prebattle_impacts||[])m.rules.push(`Opening naval fire: aimed at ${hexColumn(shot.aim[0])}${shot.aim[1]+1}, d6 ${shot.roll}, landed at ${hexColumn(shot.impact[0])}${shot.impact[1]+1} and neighboring hexes. Enemy casualties unconfirmed.`);
-  list.replaceChildren(...m.rules.map(t=>node('li',null,t)));
+  const level=experience(),guide=guidance(shown,m),newDetailKey=`${session?.code}:${state.battle_number}:${level}`;
+  dialog.dataset.experience=level;$('missionExperience').value=level;
+  $('missionExperienceNote').textContent={simple:'Your goal and one useful next step. Open the full rules whenever you need them.',moderate:'The goal, the reason behind your next decision, and the timing to watch.',expert:'Complete mission conditions, doctrine and rule interactions.'}[level];
+  nextText.textContent=guide.next;reason.textContent=guide.why;reason.hidden=level==='expert';
+  essentials.replaceChildren(...guide.notes.map(t=>node('li',null,t)));essentials.hidden=level!=='moderate';
+  nextHeading.textContent=level==='expert'?'Command focus':'What to do next';
+  fullTitle.textContent=level==='expert'?'Complete mission rules':'Full mission rules and exceptions';
+  if(detailKey!==newDetailKey){full.open=level==='expert';detailKey=newDetailKey;}
+  list.replaceChildren(...m.rules.filter(Boolean).map(t=>node('li',null,t)));
   flags.hidden=!state.linked_front_version;flags.textContent=(state.scenario.linked_objectives||[]).map(p=>`${p.name}: ${state.objective_control?.[p.id]?sideLabel(state.objective_control[p.id]):'Ungarrisoned'}`).join(' · ');
   sectors.replaceChildren(...(state.scenario.joint_objectives||state.scenario.sectors||[]).map(s=>{const b=node('button',null,s.name);b.type='button';b.onclick=()=>{dialog.close();focusMapUnit({pos:s.pos});};return b;}));
   if(state.joint_ops_version){flags.hidden=false;flags.textContent=(state.joint_control||[]).map(p=>`${p.name}: ${p.contested?'Contested':p.owner?sideLabel(p.owner):'Unoccupied'}`).join(' · ');}
   if(shown.front_control){flags.hidden=false;flags.textContent=shown.front_control.map(p=>`${p.name} +${p.points}: ${p.owner?sideLabel(p.owner):'Unoccupied'}`).join(' · ');}
-  result.hidden=!shown.winner;result.textContent=shown.winner?`${state.factions?.[shown.winner]||names[shown.winner]} won.${shown.resigned_by?' The opponent resigned.':''}`:'';
+  result.hidden=!shown.winner;result.textContent=shown.winner?`${state.factions?.[shown.winner]||names[shown.winner]} won.${shown.resigned_by?` ${state.factions?.[shown.resigned_by]||names[shown.resigned_by]} resigned.`:''}`:'';
   find.textContent=state.air_version?'Find a sector station':'Find ★ on the map';
  }
  function sync(){
   if(!state||$('game').hidden||lobbyMode){dialog.close();clearTimeout(timer);announcement='';lastPaint='';return;}
   const shown=displayed(),m=mission(shown),p=phase(state),mobile=$('mobileBattleTop');
   const compact=!!mobile||state.ruleset==='dsl'&&window.ww2Desktop?.active&&window.ww2ViewMode?.mode==='experimental';
-  const paintKey=[state.code,state.battle_number,state.side,state.round,state.match_name,p.id,p.title,p.text,m.goal,m.compact,m.progress,compact].join('|');
+  const paintKey=[state.code,state.battle_number,state.side,state.round,state.match_name,p.id,p.title,p.text,m.goal,m.compact,m.progress,compact,experience()].join('|');
   // Unit selection cannot change this public briefing. Avoid rebuilding the
   // header on every tap: that forces large SVG maps through another layout.
   if(lastPaint===paintKey&&lastMobile===mobile)return;
@@ -188,8 +220,8 @@
   },250);}
   if(dialog.open)fill();
  }
- window.ww2Briefing={mission,phase,open,sync};
- for(const event of ['ww2:render','ww2:playback','ww2:busy','ww2:layout'])document.addEventListener(event,sync);
+ window.ww2Briefing={mission,phase,guidance,open,sync};
+ for(const event of ['ww2:render','ww2:playback','ww2:busy','ww2:layout','ww2:experience'])document.addEventListener(event,sync);
  new MutationObserver(()=>{if($('game').hidden)sync();}).observe($('game'),{attributes:true,attributeFilter:['hidden']});
  sync();
 })();

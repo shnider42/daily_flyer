@@ -5,8 +5,8 @@
  const node=(tag,id,text)=>{const n=document.createElement(tag);if(id)n.id=id;if(text!==undefined)n.textContent=text;return n;};
  kinds.supply='Supply squad';unitCodes.supply='SUP';
  const namesByLevel={simple:'Simple',moderate:'Moderate',expert:'Expert'};
- const depth={simple:['I','Essentials','Purpose, AP cost, availability and danger. Inspect any order for its full explanation.'],moderate:['II','Tactical detail','Everything in Simple, plus useful odds, ranges and unit mechanics.'],expert:['III','Full accounting','Everything in Moderate, plus dice, modifiers and detailed battle reports.']};
- const shared='Same rules, same difficulty, same orders. Experience changes information detail only; Layout and Large text are separate.';
+ const depth={simple:['I','Essentials','Clear goals, a useful next step, and plain-language help.'],moderate:['II','Tactical detail','Costs, timing, tactical choices, and attack odds.'],expert:['III','Full accounting','Full rules, exact modifiers, and complete reports.']};
+ const shared='Shared across Squad Leader and Empires on this browser. Same rules, difficulty and orders. Layout, artwork and tutorial consent are separate.';
  const controls=[];
  for(const wrap of document.querySelectorAll('.experience-control')){
   const mark=node('p',null);mark.className='experience-mark';mark.setAttribute('aria-live','polite');
@@ -14,7 +14,7 @@
   const cards=node('div',null);cards.className='experience-levels';
   for(const [level,[number,title,desc]] of Object.entries(depth)){
    const b=node('button',null);b.type='button';b.dataset.experienceChoice=level;
-   b.append(node('strong',null,`${number} · ${namesByLevel[level]} — ${title}`),node('span',null,desc));
+   b.append(node('strong',null,`${number} · ${namesByLevel[level]} — ${title}`),node('span',null,window.ww2Experience?.describe?.(level)?.summary||desc));
    b.onclick=()=>ww2Experience.set(level);cards.append(b);
   }
   detail.append(cards,node('p',null,shared));wrap.prepend(mark);wrap.append(detail);controls.push({wrap,mark,cards});
@@ -24,10 +24,8 @@
   for(const {mark,cards} of controls){
    const text=`${depth[level][0]} · ${namesByLevel[level]} · ${depth[level][1]}`;
    if(mark.textContent!==text)mark.textContent=text;mark.dataset.depth=level;
-   for(const b of cards.children)b.setAttribute('aria-pressed',String(b.dataset.experienceChoice===level));
+   for(const b of cards.children){b.setAttribute('aria-pressed',String(b.dataset.experienceChoice===level));const desc=window.ww2Experience?.describe?.(b.dataset.experienceChoice)?.summary;if(desc)b.querySelector('span').textContent=desc;}
   }
-  for(const p of document.querySelectorAll('[data-experience-note]'))p.textContent=depth[level][2];
-  const note=$('experienceRulesNote');if(note)note.textContent=shared;
  }
  const dialog=node('dialog','orderGuide');dialog.setAttribute('aria-labelledby','orderGuideTitle');
  const close=node('button','orderGuideClose','Back to battle');close.type='button';close.onclick=()=>dialog.close();
@@ -52,6 +50,8 @@
  };
  evacuate.onclick=()=>{const uid=selected;if(confirm('Evacuate the marked passenger? This rescue is permanent and commits earlier takebacks. The empty boat can return.'))act({kind:'evacuate',unit:uid});};
  function detailedHelp(id,u,legal){
+  if(id==='greybridgeSabotage')return 'An active, unpinned Allied infantry team on or within 1 hex of the relay can spend 2 AP to disable it once. German crossing reserves then arrive in round 6 instead of round 4. The accomplishment survives raid defeat; sabotage commits earlier takebacks.';
+  if(id==='greybridgeExtract')return `An active, unpinned Allied infantry team on a marked exit can spend 1 AP to extract. It leaves the battlefield, is counted separately from casualties, and cannot return in this mission. Extract ${state.greybridge.required} teams by round ${state.scenario.rounds}. Extraction commits earlier takebacks.`;
   if(state.war_version){
    if(id==='evacuate')return 'Carry a marked shore team to your rear evacuation buoy. Spend 1 boat AP to rescue it for 2 campaign points; the boat can return. Two teams per army, no replacements.';
    if(id==='caveMove')return 'Axis infantry on an open gallery can spend 2 AP to relocate to another entrance, ending remaining actions. Hidden occupants may block the exit and reaction fire applies.';
@@ -85,7 +85,7 @@
    barrage:`This is the army’s off-map mortar support call, not a mortar team’s shell inventory. ${state.support?.[state.side]||0} calls remain. It resolves after the enemy turn and can hit friendly infantry. Supply squads do not replenish off-map support.`,
    overwatch:'Pay AP now for a reaction to a qualifying enemy move. A possible-firing-lane warning is not proof of hidden Overwatch. Mortar teams use their rifles for Overwatch, not mortar shells.'
   };
-  return extra[id]||window.orderHelp?.(id,u,legal,false)||$(id)?.dataset.help||'Use the marked legal target or destination. The server confirms AP costs and the result.';
+  return extra[id]||window.orderHelp?.(id,u,legal,false,'expert')||$(id)?.dataset.help||'Use the marked legal target or destination. The server confirms AP costs and the result.';
  }
  function unitStatus(u,legal){
   const parts=[`${u.hp}/${u.max_hp||u.hp} strength`,`${u.ap} AP`];
@@ -106,22 +106,35 @@
   if(u.pinned)parts.push('PINNED');
   return parts.join(' · ');
  }
+ const decisions={fire:'Use it to attack a visible target now. Read the effect and odds before spending AP.',dig:'Useful when staying in place. Moving or assaulting gives up this extra protection.',smoke:'Use it to block sight while moving or protecting a position. Smoke is not armor and can obstruct your own shots too.',overwatch:'Use it to cover an approach during enemy movement. You spend AP now and wait for one possible reaction.',rally:'Use it when a pin is stopping this team from acting. Removing a pin does not heal strength.',inspire:'Use an officer to free nearby pinned teams so they can use their own remaining AP.',command:'Use it when eligible troops need another action. It grants AP instead of removing pins.',assault:'A close attack with risk to your own team: failure causes damage and pinning.',grenade:'A limited explosive attack. Check the target, cost and remaining supply.',suppress:'Use it to deny infantry actions. A pin and damage are different outcomes.',areaFire:'Aim at a hex instead of a unit. Area blasts can hurt nearby friendly troops and damage buildings.',bombard:'Attack ground beyond sight. A successful blast can hurt friendly troops as well as enemies.',artillery:'Choose an area before the delayed strike lands. Either army may move away, and friendly troops can be hit.',barrage:'Call a delayed area effect. Keep your own troops clear of the marked area.',fieldRecon:'Use it for information before committing troops. New sightings commit earlier takebacks.',recon:'Search uncertain water before planning attacks. The search reveals information and commits earlier takebacks.',observe:'Look farther from here before deciding where to move. It does not extend weapon range.',radioUpdate:'Tell other platoons where an enemy was seen. A dated report is not live tracking.',mortarFire:'Choose the aim and check shell supply. The delayed blast can hit your own infantry too.',load:'The passenger pays the boarding cost and cannot fight while aboard.',unload:'Choose a legal landing place with room. The passenger pays the cost and can face reaction fire.',rearm:'Use a suitable supplied base or carrier to prepare an aircraft for another sortie.',bridgeGap:'Use it to open a crossing. Read the gap requirements and kit cost first; either army can use the result.',greybridgeSabotage:'Optional: spend 2 AP to give the crossing force two extra rounds before German reserves arrive.',greybridgeExtract:'Bring this team safely off the map for 1 AP. Standing on an exit alone does not count.'};
+ let guideSignature='';const expanded=new Set();
  function fillGuide(){
   const u=state?.units.find(v=>v.id===selected&&v.side===state.side),legal=state?.legal[selected];
+  const level=ww2Experience.level,signature=[session?.code,state?.revision,selected,target,level,busy,state?.turn,!!playbackSession].join('|');if(signature===guideSignature)return;guideSignature=signature;
+  const scroll=dialog.scrollTop,focused=document.activeElement?.dataset.guideRule;
+  dialog.dataset.experience=level;
   heading.textContent=u?`${unitName(u)} · orders explained`:'Orders explained';
-  depthNote.textContent=`${namesByLevel[ww2Experience.level]} Experience. Full explanations remain available in every Experience; opening this sheet does not spend AP.`;
+  depthNote.textContent={simple:'Simple · What each order does, what it costs, and why you might use it. Exact rules can be opened below.',moderate:'Moderate · Compare purpose, cost, timing and availability. Open an order’s exact rules for its full limits.',expert:'Expert · Complete order requirements, resource limits and rule interactions.'}[level]+' Reading this sheet spends no AP.';
   items.replaceChildren();status.textContent=u?unitStatus(u,legal):'Select one of your units, then open ? for its current orders.';
   if(!u)return;
   const safety=node('p',null,state.signals_version?'A possible firing lane is inferred from a currently spotted enemy’s weapon range and line of fire. It does not reveal secret Overwatch. Unmarked hexes may hide threats. Old radio markers are not live positions.':'Movement and combat are confirmed by the server. Fog may conceal enemy positions. Review visible targets and danger warnings before moving.');safety.className='guide-safety';items.append(safety);
-  const caps=window.unitOrderCapabilities?.(u)||[];
+  const caps=[...(window.unitOrderCapabilities?.(u)||[]),...['greybridgeSabotage','greybridgeExtract'].filter(id=>$(id)&&!$(id).hidden)];
   for(const id of caps){
    const b=id==='command'?$('commandOrders').querySelector('button'):$(id),section=node('section',null);section.className='guide-order';
-   const raw=b?.dataset.orderLabel||b?.textContent||id;const title=b?.querySelector('.action-name')?.textContent||raw;
-   const stateLine=b?.dataset.orderReason?`Unavailable: ${b.dataset.orderReason}`:'Available when its highlighted target is chosen';
-   const chip=node('p',null,stateLine);chip.className=b?.dataset.orderReason?'guide-unavailable':'guide-ready';
-   section.append(node('h3',null,title),node('p',null,detailedHelp(id,u,legal)),chip);items.append(section);
+   section.dataset.order=id;
+   const raw=b?.dataset.orderLabel||b?.textContent||id,cost=b?.querySelector('.action-cost')?.textContent;const title=(b?.querySelector('.action-name')?.textContent||raw)+(cost?' · '+cost:'');
+   const reason=b?.dataset.orderReason||b?.dataset.unavailableReason,stateLine=reason?`Unavailable: ${reason}`:'Available now; read the order’s purpose and cost before choosing it.';
+   const chip=node('p',null,stateLine);chip.className=reason?'guide-unavailable':'guide-ready';
+   const full=detailedHelp(id,u,legal),purpose=decisions[id]||window.orderHelp?.(id,u,legal,level==='simple',level)||full.split(/(?<=\.)\s/)[0];
+   section.append(node('h3',null,title),node('p',null,level==='expert'?full:purpose),chip);
+   if(level!=='expert'){
+    const rules=node('details',null),summary=node('summary',null,'Exact rules & limits'),key=selected+':'+id;rules.className='guide-order-rules';summary.dataset.guideRule=id;rules.open=expanded.has(key);rules.append(summary,node('p',null,full));rules.addEventListener('toggle',()=>{if(rules.open)expanded.add(key);else expanded.delete(key);});section.append(rules);
+    if(level==='moderate'){const facts=window.orderHelp?.(id,u,legal,false,'moderate');if(facts&&facts!==purpose)section.insertBefore(node('p',null,facts),chip);}
+   }
+   items.append(section);
   }
   if(!caps.length)items.append(node('p',null,'This unit has no active orders here. It may be a passive installation, a casualty, or a unit using the classic ruleset.'));
+  dialog.scrollTop=scroll;if(focused)items.querySelector(`[data-guide-rule="${focused}"]`)?.focus({preventScroll:true});
  }
  help.onclick=()=>{fillGuide();for(const d of document.querySelectorAll('dialog[open]'))if(d!==dialog)d.close();dialog.showModal();};
  function placeHelp(){

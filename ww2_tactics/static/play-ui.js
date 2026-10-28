@@ -3,6 +3,12 @@
 (()=>{
  const key='ww2-play-preferences';
  const levels=['simple','moderate','expert'],layouts=['map-first','panels'];
+ const descriptions={
+  simple:{label:'Simple',summary:'Clear goals, a useful next step, and plain-language help.',description:'Start with the decision in front of you. Guidance explains what to do, why it helps, and what it costs. Open more detail whenever you want it.'},
+  moderate:{label:'Moderate',summary:'Costs, timing, tactical choices, and attack odds.',description:'Compare your options with the information needed to choose: action costs, likely outcomes, timing, and useful tradeoffs. Full rules remain available.'},
+  expert:{label:'Expert',summary:'Full rules, exact modifiers, and complete reports.',description:'Keep the complete tactical information in view, including exact thresholds, rule interactions, and detailed reports. Help remains available when you need it.'}
+ };
+ const describe=(level=prefs.experience)=>({...descriptions[levels.includes(level)?level:'simple']});
  let prefs={version:2,experience:'simple',layout:'map-first',simple:true};
  try{const saved=JSON.parse(localStorage.getItem(key));
   if(saved?.version===2){prefs.experience=levels.includes(saved.experience)?saved.experience:'simple';prefs.layout=layouts.includes(saved.layout)?saved.layout:'map-first';}
@@ -169,7 +175,10 @@
   if(lastSimple===null){$('battleOptions').open=!!dock||!prefs.simple;lastSimple=prefs.simple;}
   for(const select of document.querySelectorAll('[data-experience-select]'))select.value=prefs.experience;
   $('battleLayout').value=prefs.layout;
-  for(const note of document.querySelectorAll('[data-experience-note]'))note.textContent={simple:'Basic instructions, one decision at a time. All orders stay available.',moderate:'DSL tactics explained as you go, with attack odds and status detail.',expert:'Exact rules, modifiers and interactions for experienced players.'}[prefs.experience];
+  const experience=describe();
+  for(const note of document.querySelectorAll('[data-experience-note]'))note.textContent=experience.summary;
+  for(const note of document.querySelectorAll('[data-experience-description]'))note.textContent=experience.description;
+  for(const label of document.querySelectorAll('[data-experience-label]'))label.textContent=experience.label;
   if(!state||$('game').hidden){unmount();return;}
   // Desktop restores its anchors before mobile is allowed to move the same controls.
   if(!matchMedia('(min-width:1100px)').matches&&window.ww2Desktop?.active)return;
@@ -237,10 +246,12 @@
   if(playbackSession){sync();drawPlayback();}else if(state&&!$('game').hidden)render();else sync();
   document.dispatchEvent(new Event('ww2:experience'));
  }
- window.ww2Experience={get level(){return prefs.experience;},get layout(){return prefs.layout;},set(level){if(!levels.includes(level))return;prefs.experience=level;applyPreferences();},setLayout(layout){if(!layouts.includes(layout))return;prefs.layout=layout;applyPreferences();}};
+ window.ww2Experience={get level(){return prefs.experience;},get label(){return describe().label;},get layout(){return prefs.layout;},describe,pick(simple,moderate,expert){return {simple,moderate,expert}[prefs.experience];},set(level){if(!levels.includes(level))return;prefs.experience=level;applyPreferences();},setLayout(layout){if(!layouts.includes(layout))return;prefs.layout=layout;applyPreferences();}};
  // Compatibility for existing integrations; no old mode labels in the UI.
  window.ww2ViewMode={get mode(){return prefs.layout==='map-first'?'experimental':prefs.simple?'on':'off';},set(mode){if(!['on','off','experimental'].includes(mode))return;prefs.experience=mode==='off'?'expert':'simple';prefs.layout=mode==='experimental'?'map-first':'panels';applyPreferences();}};
- for(const select of document.querySelectorAll('[data-experience-select]'))select.onchange=()=>ww2Experience.set(select.value);
+ // Dynamic mission, manual and learning sheets share this one preference.
+ // Delegation also covers controls installed after this module has loaded.
+ document.addEventListener('change',event=>{const select=event.target.closest?.('select[data-experience-select]');if(select)ww2Experience.set(select.value);});
  $('battleLayout').onchange=()=>ww2Experience.setLayout($('battleLayout').value);
  document.addEventListener('ww2:before-layout',unmount);
  document.addEventListener('ww2:render',sync);

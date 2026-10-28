@@ -14,12 +14,18 @@
  const dialog=el('dialog','deploymentDialog');dialog.setAttribute('aria-labelledby','deploymentDialogTitle');
  const close=el('button','deploymentClose','Back to map'),heading=el('h2','deploymentDialogTitle','Plan before the first shot'),body=el('div','deploymentExplanation'),confirm=el('button','deploymentConfirm','Lock my plan');confirm.className='primary';
  close.onclick=()=>dialog.close();dialog.append(close,heading,body,confirm);document.body.append(dialog);
- let mode='units',key='',lastOverlay='',wasActive=false;
+ let mode='units',key='',lastOverlay='',wasActive=false,reviewing=false;
+ const depth=el('div','deploymentExperienceControl');depth.className='experience-control setup-experience';
+ const depthLabel=el('label',null,'Your guidance'),depthSelect=el('select','deploymentExperience'),depthNote=el('p','deploymentExperienceNote');
+ depthLabel.htmlFor=depthSelect.id;depthSelect.dataset.experienceSelect='';depthNote.dataset.experienceNote='';depthSelect.setAttribute('aria-describedby',depthNote.id);
+ for(const level of ['simple','moderate','expert'])depthSelect.add(new Option(ww2Experience.describe(level).label,level));
+ depth.append(depthLabel,depthSelect,depthNote);heading.after(depth);
  const preparing=()=>state?.coop?.phase!=='lobby'&&state?.deployment?.phase==='planning'&&!state.winner;
  const coord=p=>`${hexColumn(p[0])}${p[1]+1}`;
  function available(){return preparing()&&!state.deployment.locked[state.side]&&!state.coop?.done&&!busy&&!state.rematch;}
  function explain(review=false){
   if(!preparing())return;
+  reviewing=review;
   const d=state.deployment,de=state.side==='de';
   heading.textContent=review?'Review your plan':'Plan before the first shot';
   const copy=[
@@ -35,9 +41,18 @@
    copy[1]='Each command group has its own assembly area. Ships and landing craft stay on water; ground troops and installations stay ashore. Passengers and grounded flights move with their transport or base. Reserves keep their scheduled entry. The defaults are ready to play; reposition only what you need.';
    copy[4]='Locking is final. Both armies finish privately, then naval preparation resolves and Allied round 1 begins. MG 42 suppression teams have no overwatch. Win by the campaign score shown in the mission.';
   }
-  if(review)copy.push('Use the map and selector to review unit positions before locking. Unused bunker or fire allocations are forfeited.');
-  body.replaceChildren(...copy.map(t=>el('p',null,t)));
-  confirm.hidden=!review;confirm.disabled=!available();
+  if(state.coop)copy[4]='Each player finishes their own preparation. Your placements become final when you finish; teammates can continue theirs. The army plan locks when everyone is done. Only the army captain sets shared bunkers or naval fire.';
+  if(review)copy.push(state.coop?'Review your own unit positions before finishing. If you control the shared bunker or naval-fire plan, set it before finishing your preparation. Both armies must finish before preparation resolves.':'Use the map and selector to review unit positions before locking. Unused bunker or fire allocations are forfeited.');
+  depthSelect.value=ww2Experience.level;depthNote.textContent=ww2Experience.describe().summary;
+  const simple=ww2Experience.level==='simple';
+  const next=el('p',null,review?(state.coop?'Review your own unit positions, then finish your preparation. Your placements become final; teammates can continue preparing.':'Review the positions and markers, then lock when you are ready. Locking is final; any unused preparation is forfeited.'):simple?'Your units already have legal starting positions. Keep them or choose a unit and tap a highlighted hex to reposition it. This costs no actions.':'Compare the starting lanes, cover and nearby support before locking. Preparation is private, costs no AP, and does not advance round 1.');
+  next.className='setup-guide';
+  const plan=el('p',null,state.coop&&!state.coop.captain?'Your army captain sets the shared bunker or naval-fire plan. You reposition only the units you command.':de?`You may place up to ${d.bunker_budget} bunkers. Leave a hex between them and keep roads and the objective clear.`:`You may mark up to ${d.fire_budget} naval aim points. These fire before the first turn; enemy positions are unknown and a strike may scatter.`);
+  const full=el('details','deploymentFullDetails');full.open=ww2Experience.level==='expert';full.append(el('summary',null,'Complete preparation rules and your plan'),...copy.map(t=>el('p',null,t)));
+  body.replaceChildren(next,plan);
+  if(ww2Experience.level==='moderate')body.append(el('p',null,'Naval fire affects the impact hex and its neighbors. Exposed infantry may lose strength and become pinned; armor is unaffected. Both armies lock before the result is resolved.'));
+  body.append(full);
+  confirm.hidden=!review;confirm.disabled=!available();confirm.textContent=state.coop?'Finish my preparation':'Lock my plan';
   for(const d of document.querySelectorAll('dialog[open]'))if(d!==dialog)d.close();
   if(!dialog.open)dialog.showModal();
  }
@@ -97,6 +112,7 @@
   draw();
  }
  document.addEventListener('ww2:render',sync);document.addEventListener('ww2:layout',sync);document.addEventListener('ww2:busy',sync);
+ document.addEventListener('ww2:experience',()=>{if(dialog.open){const top=dialog.scrollTop;explain(reviewing);dialog.scrollTop=top;}});
  // Layout owners may remove their old screen. Rescue this panel first.
  document.addEventListener('ww2:before-layout',()=>home.after(panel));
  window.ww2Deployment={get active(){return preparing();},sync};

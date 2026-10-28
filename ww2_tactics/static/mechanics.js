@@ -33,7 +33,8 @@ function chanceRow(label,threshold,modifiers,effect){
 function renderOdds(shot,assault,grenade,picking){
  const panel=document.getElementById('odds');panel.replaceChildren();panel.hidden=picking||!(shot||assault||grenade);
  if(panel.hidden)return;
- if(shot)panel.append(chanceRow(shot.weapon_label||'Fire',shot.threshold,shot.modifiers,shot.effect_text?`${shot.effect_text}. Costs 2 AP.${shot.suppression_threshold?' The same die also pins infantry on '+shot.suppression_threshold+'+, even if damage misses.':''}`:shot.air?`Hit: −${shot.damage} strength. Costs 2 AP. No pinning or terrain cover.`:shot.naval?`Hit: −${shot.damage} hull. Costs 2 AP. Ships do not suffer pins.`:`Hit: −${shot.damage||1} strength and pinned. Costs 2 actions.${shot.suppression_threshold?' The same die also pins infantry on '+shot.suppression_threshold+'+, even if the damage roll misses.':''}`));
+ const expert=window.ww2Experience?.level==='expert',suppression=shot?.suppression_threshold?(expert?' The same die also pins infantry on '+shot.suppression_threshold+'+, even if damage misses.':' The shot may pin infantry even when it causes no damage.'):'';
+ if(shot)panel.append(chanceRow(shot.weapon_label||'Fire',shot.threshold,shot.modifiers,shot.effect_text?`${shot.effect_text}. Costs 2 AP.${suppression}`:shot.air?`Hit: −${shot.damage} strength. Costs 2 AP. No pinning or terrain cover.`:shot.naval?`Hit: −${shot.damage} hull. Costs 2 AP. Ships do not suffer pins.`:`Hit: −${shot.damage||1} strength and pinned. Costs 2 actions.${suppression}`));
  const alternatives=[];
  if(grenade)alternatives.push(chanceRow('Frag',grenade.threshold,{cover:grenade.threshold-4},'Hit: −2 strength and pinned. Costs 2 actions and one frag.'));
  if(assault)alternatives.push(chanceRow('Assault',assault.threshold,{pinned_target:assault.threshold===3?-1:0},'Hit: −2 strength; advance if eliminated. Miss: attacker loses 1 strength and is pinned. Costs 2 actions.'));
@@ -41,16 +42,23 @@ function renderOdds(shot,assault,grenade,picking){
 }
 function renderUnitMechanics(state,unit){
  const panel=document.getElementById('unitMechanics');panel.hidden=!unit;panel.replaceChildren();if(!unit)return;
+ const level=window.ww2Experience?.level||'expert';panel.dataset.experience=level;
  const meters=uiNode('div','unit-meters');
  const base=unit.base_ap??(unit.kind==='leader'?3:2),bank=base?(['leader','commander'].includes(unit.kind)?2:1):0;
  for(const [label,current,max] of [['Strength',Math.max(0,unit.hp),unit.max_hp||(unit.kind==='leader'?2:3)],['Actions',unit.ap,state.ruleset==='dsl'?base+bank:2]]){
-  const meter=uiNode('span','unit-meter');meter.append(uiNode('strong','',`${label} ${current}/${max}`));
+  const meter=uiNode('span','unit-meter');meter.append(uiNode('strong','',level==='simple'&&label==='Actions'?`${current} action points left`:`${label} ${current}/${max}`));
   const marks=uiNode('span','meter-marks');marks.setAttribute('aria-hidden','true');
   for(let i=0;i<max;i++)marks.append(uiNode('i',i<current?'filled':''));meter.append(marks);meters.append(meter);
  }
  panel.append(meters);
- if(state.ruleset==='dsl')panel.append(uiNode('p','mechanics-caption',`Base ${base} AP · carried ${unit.carried_ap||0} · received ${unit.ap_received}/${base+bank} this turn. ${unit.side===state.turn?'End now to bank '+Math.min(unit.ap,bank):'Banked: '+(unit.banked_ap||0)} AP. Spending actions does not reset the received limit.`));
- const details=uiNode('details','unit-explanation');details.append(uiNode('summary','','Terrain & status explained'));
+ if(state.ruleset==='dsl')panel.append(uiNode('p','mechanics-caption',level==='expert'?`Base ${base} AP · carried ${unit.carried_ap||0} · received ${unit.ap_received}/${base+bank} this turn. ${unit.side===state.turn?'End now to bank '+Math.min(unit.ap,bank):'Banked: '+(unit.banked_ap||0)} AP. Spending actions does not reset the received limit.`:level==='moderate'?`This unit normally starts with ${base} AP. Compare movement costs with the AP needed for an attack or support order; the order buttons show current availability.`:'Action points pay for moves and orders. Most attacks need 2 AP. Selecting this unit or reading its orders spends nothing.'));
+ if(level!=='expert'){
+  if(unit.pinned)panel.append(uiNode('p','unit-state-help','Pinned: this team cannot move or attack. Check its rally options or nearby officer support.'));
+  if(unit.immobilized)panel.append(uiNode('p','unit-state-help','Tracks disabled: movement is blocked, but the weapon may still be usable. Repairing tracks does not restore strength.'));
+  if(unit.entrenched)panel.append(uiNode('p','unit-state-help','Dug in: extra protection while staying here. Moving or assaulting removes it.'));
+  if(unit.overwatch)panel.append(uiNode('p','unit-state-help','Watching for one enemy movement. This is a possible reaction later, not an attack already made.'));
+ }
+ const details=uiNode('details','unit-explanation');details.append(uiNode('summary','',level==='expert'?'Terrain & status explained':'Exact unit rules & status'));
  const type=state.map[unit.pos[1]][unit.pos[0]],condition=buildingCondition(state,unit.pos),cover=['woods','building','tower','church',...(state.naval_version?[]:['objective'])].includes(type)&&condition!=='damaged';
  const terrainCopy=window.fieldworksTerrainHelp?.(type,unit,null,condition,unit.pos)?.[1];
  const items=[terrainCopy|| (condition?buildingHelp(condition):`${type[0].toUpperCase()+type.slice(1)}: ${cover?'incoming fire needs +1 on the die':'no terrain cover bonus'}. Entering this terrain costs ${['woods','building','tower','church'].includes(type)?2:1} action(s).`),
@@ -69,13 +77,13 @@ function combatCard(event,compact=false){
  card.append(uiNode('p','combat-heading',`${event.kind}${event.round?` · round ${event.round}`:''}`));
  if(event.attacker_label)card.append(uiNode('p','mechanics-caption',event.attacker_label+(event.target_label?` → ${event.target_label}`:'')));
  if(event.roll!==undefined&&event.threshold!==undefined){
-  const hit=event.roll>=event.threshold,row=uiNode('div','roll-result');row.append(dieFace(event.roll,hit?'winning-face':'miss-face'));
+  const hit=event.roll>=event.threshold,row=uiNode('div','roll-result mechanics-expert');row.append(dieFace(event.roll,hit?'winning-face':'miss-face'));
   const suppressed=event.result?.startsWith('suppressed');
   const text=uiNode('div');text.append(uiNode('strong','',`Rolled ${event.roll} · needed ${event.threshold}+`),uiNode('span',hit||suppressed?'result-hit':'result-miss',hit?'SUCCESS':suppressed?'PINNED · NO DAMAGE':'MISS'));row.append(text);card.append(row);
-  card.append(uiNode('p','mechanics-caption',rollFormula(event.modifiers,event.threshold)));
- }else if(event.roll!==undefined)card.append(uiNode('strong','automatic-result',`Rolled ${event.roll} · target unobserved`));
- else card.append(uiNode('strong','automatic-result',event.structure_roll!==undefined?'Infantry fragments · automatic effect':'Automatic effect · no dice roll'));
- if(event.structure_roll!==undefined)card.append(uiNode('p','combat-effect',`Building damage: rolled ${event.structure_roll} · needed ${event.structure_threshold}+${event.structure_roll>=event.structure_threshold?' · structural hit':' · no structural damage'}`));
+  card.append(uiNode('p','mechanics-caption mechanics-expert',rollFormula(event.modifiers,event.threshold)));
+ }else if(event.roll!==undefined)card.append(uiNode('strong','automatic-result mechanics-expert',`Rolled ${event.roll} · target unobserved`));
+ else card.append(uiNode('strong','automatic-result mechanics-expert',event.structure_roll!==undefined?'Infantry fragments · automatic effect':'Automatic effect · no dice roll'));
+ if(event.structure_roll!==undefined)card.append(uiNode('p','combat-effect mechanics-expert',`Building damage: rolled ${event.structure_roll} · needed ${event.structure_threshold}+${event.structure_roll>=event.structure_threshold?' · structural hit':' · no structural damage'}`));
  card.append(uiNode('p','combat-effect',event.result));
  for(const change of event.terrain_changes||[])card.append(uiNode('p','combat-impact',`${hexColumn(change.pos[0])}${change.pos[1]+1} · building ${change.after==='destroyed'?'collapsed — ground entry blocked':'damaged — reduced cover'}`));
  for(const hit of event.impacts||[])if(hit.id!==event.target)card.append(uiNode('p','combat-impact',`${kinds[hit.kind]||hit.kind} · ${hexColumn(hit.pos[0])}${hit.pos[1]+1}: ${hit.result}`));

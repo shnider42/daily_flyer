@@ -1,11 +1,14 @@
-/* Optional coaching for guests and signed-in commanders. Lessons never issue game orders or change rules. */
+/* Presentation-only coaching. Simple offers help by default; tutorial consent
+   is independent of Experience. Lessons never issue orders or change rules. */
 'use strict';
 (()=>{
- const storage='ww2-learning-v2';let saved={},topicSignature='';
+ const storage='ww2-learning-v2',consentStorage='ww2-coaching-preferences-v1';let saved={},topicSignature='',ignored=false;
  try{const value=JSON.parse(localStorage.getItem(storage));if(value&&typeof value==='object'&&!Array.isArray(value))for(const [k,g] of Object.entries(value)){if(g&&typeof g.lesson==='string'&&Array.isArray(g.done)&&Array.isArray(g.read)&&Number.isInteger(g.since)&&typeof g.enabled==='boolean')saved[k]=g;}}catch{}
+ try{ignored=JSON.parse(localStorage.getItem(consentStorage))?.ignored===true;}catch{}
  const key=()=>`${session?.code}:${state?.battle_number||1}`;
  const current=()=>saved[key()];
  const persist=()=>{try{localStorage.setItem(storage,JSON.stringify(saved));}catch{}};
+ const saveConsent=()=>{try{localStorage.setItem(consentStorage,JSON.stringify({ignored}));}catch{}};
  const add=(list,id,title,text,task,selector,orders=[])=>list.push({id,title,text,task,selector,orders});
  function lessons(s=state){
   if(!s)return [];
@@ -86,25 +89,90 @@
  }
  const dialog=document.createElement('dialog');dialog.id='learningDialog';dialog.setAttribute('aria-label','Field coach');
  const close=document.createElement('button');close.id='learningDialogClose';close.textContent='Back to battle';close.onclick=()=>dialog.close();dialog.append(close,$('tutorialCoach'));document.body.append(dialog);
+ const prompt=document.createElement('button');prompt.id='fieldCoachPrompt';prompt.type='button';prompt.hidden=true;prompt.setAttribute('aria-haspopup','dialog');prompt.setAttribute('aria-controls','learningDialog');document.body.append(prompt);
+ const nextDecision=document.createElement('section');nextDecision.id='lessonDecision';nextDecision.setAttribute('aria-label','Your next decision');
+ const decisionTitle=document.createElement('h3'),decisionText=document.createElement('p'),decisionAction=document.createElement('button');decisionTitle.id='lessonDecisionTitle';decisionText.id='lessonDecisionText';decisionAction.id='lessonDecisionShow';decisionAction.type='button';
+ nextDecision.append(decisionTitle,decisionText,decisionAction);$('lessonCount').before(nextDecision);
+ const ignore=document.createElement('button');ignore.id='lessonIgnore';ignore.type='button';ignore.className='quiet';ignore.textContent='Ignore tutorial';$('lessonExit').after(ignore);
+ $('lessonExit').textContent='Back to map';
  function clearFocus(){document.querySelectorAll('.lesson-focus').forEach(n=>n.classList.remove('lesson-focus'));}
  function closeGuides(){dialog.close();$('mobileGuide')?.close();clearFocus();}
+ function targetChoicePending(){
+  // Read the current UI only. The gameplay *Picking helpers normalize their
+  // private modes, and chooseUnit can issue a targeted order instead of select.
+  const map=$('map');return !!(smokeMode||barrageMode||combatMode||map.matches('.support-picking,.transport-picking')||map.querySelector('.airdrop-aim,.engineering-choice,.signal-choice,.night-choice,.small-front-choice,.landing-zone,.transport-choice,.recon-choice'));
+ }
  function allowed(){return state?.ruleset==='dsl'&&!$('game').hidden&&!lobbyMode;}
- function start(){
+ function start(resume=false){
   if(!allowed())return;
+  if(resume){ignored=false;saveConsent();}
   const old=current();if(!old||!Array.isArray(old.done)||!Array.isArray(old.read))saved[key()]={lesson:state.deployment?.phase==='planning'?'preparation':'mission',done:[],read:[],since:state.revision,enabled:true};else old.enabled=true;
   const keys=Object.keys(saved);while(keys.length>16){const oldest=keys.shift();if(oldest!==key())delete saved[oldest];}
   persist();
  }
+ function decision(){
+  const m=ww2Briefing.mission(state),u=state.units.find(v=>v.id===selected&&v.side===state.side&&controlsUnit(v)),legal=state.legal?.[u?.id]||{},g=state.greybridge;
+  const result=(title,text,topic='mission',action='Review this idea',selector=null)=>({title,text,topic,action,selector});
+  const phase=ww2Briefing.phase(state);
+  if(phase.id!=='yours'){
+   const waiting={
+    finished:['Review the result','results','Show the result','@mission'],
+    prebattle:[state.coop?.done||state.deployment?.locked?.[state.side]?'Wait for the remaining plans':'Review your starting positions','preparation','Show preparation','#deploymentPanel'],
+    sending:['Waiting for confirmation','orders','Review this idea',null],
+    waiting:['Waiting to begin','turn','Show the mission','@mission'],
+    computer:[state.computer_work?.status==='paused'?'Review the paused computer turn':'Wait for computer orders','turn',state.coop?.needs_advance?'Show Shared command':state.computer_work?.status==='paused'?'Show Battle options':'Show the mission',state.coop?.needs_advance?'#coopQuick':state.computer_work?.status==='paused'?'#battleOptions':'@mission'],
+    opponent:['Watch, then plan','turn','Show the mission','@mission'],
+    teamwait:['Wait for your teammates','cooperative','Show Shared command','#coopQuick'],
+    watching:['Watch your army','cooperative','Show Shared command','#coopQuick'],
+    redo:['Restore the recorded order','undo','Show Redo','#redoOrder'],
+    replay:['Review the replay','turn','Review this idea',null]
+   },[title,topic,action,selector]=waiting[phase.id]||['Review the turn status','turn','Show the mission','@mission'];
+   return result(title,phase.text,topic,action,selector);
+  }
+  if(targetChoicePending())return result('Finish choosing a target','An order is waiting for a target. Finish or cancel that target choice before asking the coach to select another unit. You can keep reading help while you decide.','orders','Show current orders','#orders');
+  if(!u)return result('Choose a unit',m.goal+' Start by selecting one of your counters or opening Your units. Selection itself spends no action points.','select','Show your units','#roster');
+  if(u.reserve||u.carrier_id)return result(u.reserve?'This unit is waiting to enter':'This unit is aboard transport','Check its arrival or transport orders. Choose another unit on the battlefield if you want to act immediately.','select','Show unit orders','#orders');
+  if(u.pinned)return result(legal.rally?'Rally this unit':'Find help for this pinned unit',legal.rally?'Rally removes the pin so this unit can act again. Check the displayed AP cost; rallying does not restore lost strength.':'Pinned troops cannot move or attack. Check their available rally or officer-help options, or choose another unit.','rally','Show unit orders','#orders');
+  if(u.immobilized)return result('Decide whether to repair the tracks','This vehicle cannot move, but may still be able to fire. Check its available repair and firing orders before spending AP.','armor','Compare unit orders','#orders');
+  if(legal.extract)return result('Extract this team','This team is on an exit. Extract unit costs 1 AP, removes it safely from the battlefield and adds it to your mission total.','greybridge-extract','Show Extract unit','#greybridgeExtract');
+  if(legal.sabotage_relay)return result('The relay is within reach','Disabling the relay is optional. Spend 2 AP now to delay German reserves in the next mission by two rounds, even if this raid later fails.','greybridge-relay','Show Disable relay','#greybridgeSabotage');
+  const shot=legal.targets?.find(v=>v.id===target),frag=legal.grenades?.find(v=>v.id===target),assault=legal.assaults?.find(v=>v.id===target);
+  if(shot||frag||assault)return result('Compare an attack with moving',ww2Experience.level==='simple'?'You have a legal target. Read the attack purpose and cost before choosing it. A legal attack can still miss; you may move or use another order instead.':'Compare the shown attack odds, effect and AP cost. Keep enough AP for the next action you need; selecting a target has spent nothing.','fire','Explain these orders','@orders');
+  if(!u.ap)return result('Choose another ready unit','This unit has no AP left. Check your other units before ending the army’s turn.','end','Show your units','#roster');
+  if(g&&g.stage==='raid')return result('Plan a route to an exit','Get two teams to the marked exits and extract them. The relay is an optional detour. Use cover where it helps; highlighted moves show what this team can do now.','greybridge-extract','Review the raid','@mission');
+  if(g&&g.stage==='withdrawal')return result('Bring teams toward the exits','Four teams need to leave through marked exits. Moving a team onto an exit and choosing Extract unit are separate actions.','greybridge-extract','Review the withdrawal','@mission');
+  if(g&&['crossing','hold'].includes(g.stage))return result('Work toward the depot hold',m.goal+' An infantry unit must remain on the depot at each required turn ending. Moving onto it alone does not finish the mission.','mission','Review the goal','@mission');
+  if(legal.moves?.length){const costs=[...new Set(legal.moves.map(v=>v.cost))].sort((a,b)=>a-b),cost=costs.length===1?`${costs[0]} AP`:`${costs[0]}–${costs.at(-1)} AP`;return result('Compare a move with your other orders',`Highlighted moves cost ${cost}. Think about the mission and protected ground before committing. Inspect hex can explain terrain without moving this unit.`,'move','Inspect the map','@inspect');}
+  return result('Check this unit’s available orders','Open its order explanations to see what it can do now and why other actions are unavailable. You can always choose another unit.','orders','Explain these orders','@orders');
+ }
+ function placePrompt(){
+  if(prompt.hidden)return;const box=$('mapWrap').getBoundingClientRect();
+  prompt.style.left=Math.max(8,box.left+8)+'px';prompt.style.top=Math.max(box.top+8,Math.min(innerHeight-52,box.bottom-52))+'px';
+  prompt.style.maxWidth=Math.max(100,Math.min(230,box.width-24))+'px';
+ }
+ let promptFrame=0;
+ function positionPrompt(){if(promptFrame)return;promptFrame=requestAnimationFrame(()=>{promptFrame=0;placePrompt();});}
+ new ResizeObserver(positionPrompt).observe($('mapWrap'));window.addEventListener('resize',positionPrompt);window.addEventListener('scroll',positionPrompt,{passive:true});
+ function showDecision(){
+  const d=decision(),g=current();closeGuides();
+  if(d.selector==='@mission'){ww2Briefing.open();return;}
+  if(d.selector==='@inspect'){window.ww2BattleHelp?.inspect();return;}
+  if(d.selector==='@orders'){$('orderGuideOpen')?.click();return;}
+  if(d.selector){const n=document.querySelector(d.selector);if(n){n.classList.add('lesson-focus');const sheet=n.closest('.mobile-battle-sheet');if(sheet)ww2Mobile.openSheet(sheet.id);window.ww2ExperimentalDesktop?.openContaining(n);window.ww2BattleNavigation?.openContaining(n);return;}}
+  if(g&&lessons().some(l=>l.id===d.topic))g.lesson=d.topic;open();
+ }
+ decisionAction.onclick=showDecision;prompt.onclick=open;
  function paint(book,g){
   let index=book.findIndex(l=>l.id===g.lesson);if(index<0){index=0;g.lesson=book[0].id;}
   const lesson=book[index];
-  $('lessonCount').textContent=`FIELD COACH · ${ww2Experience.level.toUpperCase()} · ${index+1} / ${book.length} · ${g.done.filter(id=>book.some(l=>l.id===id)).length} practiced`;
+  const d=decision();decisionTitle.textContent=d.title;decisionText.textContent=d.text;decisionAction.textContent=d.action;decisionAction.disabled=busy||!!playbackSession;
+  $('lessonCount').textContent=`FIELD COACH · ${ww2Experience.level.toUpperCase()} · ${index+1} / ${book.length} · ${g.done.filter(id=>book.some(l=>l.id===id)).length} practiced${g.completed?' · guide reviewed':''}`;
   $('lessonLevelNote').textContent={simple:'One idea at a time. Open the detail below whenever you want more.',moderate:'DSL decisions explained as you go. Exact rules are available below.',expert:'Rule interactions, action costs and tactical constraints.'}[ww2Experience.level];
   $('lessonContext').textContent=`${state.scenario.name} · ${sideLabel(state.side)} · ${lesson.group||'Field coach'}`;
   $('lessonMore').hidden=!lesson.detail;$('lessonMoreText').textContent=lesson.detail||'';
   $('lessonTitle').textContent=lesson.title;$('lessonText').textContent=lesson.text;$('lessonTask').textContent='Try this: '+lesson.task;
   $('lessonResult').textContent=g.done.includes(lesson.id)?'✓ You tried this in your battle.':lesson.orders.length&&state.turn!==state.side?'You can read ahead while you wait for your turn.':'Read at your own pace. You can skip a task and return later.';
-  $('lessonBack').disabled=index===0;$('lessonNext').textContent=index===book.length-1?'Finish guide':'Next lesson →';
+  $('lessonBack').disabled=index===0;$('lessonNext').textContent=index===book.length-1?'Finish lessons · keep guidance':'Next lesson →';
   $('lessonShow').textContent=lesson.selector==='@mission'?'Show win conditions':lesson.selector==='#end'?'Show End turn':lesson.selector==='#orders'?'Show unit orders':'Show me';
   const signature=[key(),ww2Experience.level,g.lesson,g.done.join(','),g.read.join(','),book.map(l=>l.id).join(',')].join('|');
   if(signature!==topicSignature){topicSignature=signature;$('lessonTopics').replaceChildren(...book.map((l,i)=>{
@@ -115,10 +183,14 @@
  function filterTopics(){const q=$('lessonSearch').value.toLowerCase().trim();for(const b of $('lessonTopics').querySelectorAll('button'))b.hidden=!!q&&!b.textContent.toLowerCase().includes(q);}
  $('lessonSearch').oninput=filterTopics;
  function sync(){
-  const eligible=allowed(),g=current(),active=eligible&&g?.enabled;
+  const eligible=allowed();if(eligible&&ww2Experience.level==='simple'&&!ignored&&!current()?.enabled)start();
+  const g=current(),active=eligible&&!ignored&&g?.enabled;
   const book=active?lessons():[];
   document.querySelector('.home-learn').hidden=false;$('guideToggle').hidden=!eligible;
-  $('guideToggle').textContent=g?.enabled?'Resume Field coach':'Field coach';$('guideToggle').setAttribute('aria-pressed',String(!!active));
+  $('guideToggle').textContent=ignored?'Resume tutorial':active?'Field coach · '+ww2Experience.level[0].toUpperCase()+ww2Experience.level.slice(1):'Field coach';$('guideToggle').setAttribute('aria-pressed',String(!!active));
+  const show=!!active&&ww2Experience.level==='simple'&&!playbackSession&&!window.ww2BattleHelp?.inspecting;
+  if(show){const d=decision();prompt.textContent='Next: '+d.title;prompt.setAttribute('aria-label','Simple guidance. '+d.title+'. Open Field coach');prompt.disabled=busy;prompt.setAttribute('aria-controls',window.ww2Mobile?.active?'mobileGuide':'learningDialog');}
+  if(prompt.hidden===show){prompt.hidden=!show;if(show)positionPrompt();}
   $('tutorialCoach').hidden=!active;
   if(!active){closeGuides();return;}
   const l=book.find(l=>l.id===g.lesson);
@@ -130,7 +202,7 @@
   if(dialog.open||$('mobileGuide')?.open)paint(book,g);
  }
  function open(){
-  if(!allowed()||playbackSession)return;start();sync();paint(lessons(),current());
+  if(!allowed()||playbackSession)return;start(true);sync();paint(lessons(),current());
   const destination=window.ww2Mobile?.active?'mobileGuide':'learningDialog';
   for(const d of document.querySelectorAll('dialog[open]'))if(d.id!==destination)d.close();
   if(window.ww2Mobile?.active)ww2Mobile.openGuide();else if(!dialog.open)dialog.showModal();
@@ -139,14 +211,18 @@
  $('lessonNext').onclick=()=>{
   if(!allowed()||!current()?.enabled)return;const g=current(),book=lessons(),i=Math.max(0,book.findIndex(l=>l.id===g.lesson));
   if(!g.read.includes(g.lesson))g.read.push(g.lesson);clearFocus();
-  if(i===book.length-1){g.enabled=false;persist();sync();notify('Guide finished. Your battle continues; reopen any topic when you need it.');return;}
+  if(i===book.length-1){g.completed=true;persist();closeGuides();sync();notify('Lessons reviewed. Contextual guidance stays available; Ignore tutorial is a separate choice.');return;}
   $('lessonMore').open=false;g.lesson=book[i+1].id;persist();paint(book,g);
  };
  $('lessonBack').onclick=()=>{if(!allowed()||!current()?.enabled)return;const g=current(),book=lessons(),i=book.findIndex(l=>l.id===g.lesson);g.lesson=book[Math.max(0,i-1)].id;persist();paint(book,g);clearFocus();};
- $('lessonExit').onclick=()=>{if(current()){current().enabled=false;persist();}sync();};
+ $('lessonExit').onclick=closeGuides;
+ ignore.onclick=()=>{ignored=true;saveConsent();if(current())current().enabled=false;persist();sync();notify('Tutorial ignored. Your Experience stays the same. Use Resume tutorial in View to bring it back.');};
  $('lessonShow').onclick=()=>{
-  if(!allowed()||!current()?.enabled)return;const g=current(),l=lessons().find(l=>l.id===g.lesson);if(!l)return;closeGuides();
+  if(!allowed()||!current()?.enabled)return;const g=current(),l=lessons().find(l=>l.id===g.lesson);if(!l)return;
+  if(l.roles?.length&&targetChoicePending()){const message='Finish or cancel your current target choice before the coach selects another unit. Your pending order is unchanged.';$('lessonResult').textContent=message;notify(message);return;}
+  closeGuides();
   if(l.selector==='@mission'){if(!g.done.includes(l.id)){g.done.push(l.id);persist();}ww2Briefing.open();return;}
+  if(l.id==='cover'){window.ww2BattleHelp?.inspect();return;}
   if(l.id==='results'&&!state.winner){notify('The result appears when this battle ends. Keep playing toward the mission.');return;}
   if(l.roles?.length){const u=state.units.find(u=>u.side===state.side&&controlsUnit(u)&&u.hp>0&&!u.reserve&&!u.carrier_id&&l.roles.includes(u.kind));if(u)chooseUnit(u);}
   let selector=l.selector;if(window.ww2Mobile?.active&&selector==='#turnBanner')selector='#mobileBattleTop';
@@ -159,10 +235,10 @@
   if(!window.ww2Mobile?.active&&selector!=='#mapWrap')target.scrollIntoView({block:'nearest',behavior:'auto'});
  };
  document.addEventListener('ww2:order',event=>{const g=current();if(!allowed()||!g?.enabled||event.detail.code!==session.code||event.detail.battle!==(state.battle_number||1))return;const l=lessons().find(l=>l.id===g.lesson);if(l?.orders.includes(event.detail.kind)&&!g.done.includes(l.id)){g.done.push(l.id);persist();}});
- window.ww2Learning={open,lessons,get enabled(){return allowed()&&!!current()?.enabled;}};
- for(const event of ['ww2:render','ww2:selection','ww2:playback','ww2:commander','ww2:experience'])document.addEventListener(event,sync);
+ window.ww2Learning={open,lessons,decision,get ignored(){return ignored;},get enabled(){return allowed()&&!ignored&&!!current()?.enabled;}};
+ for(const event of ['ww2:render','ww2:selection','ww2:playback','ww2:commander','ww2:experience','ww2:inspection'])document.addEventListener(event,sync);
  // Reparenting preserves progress without leaving an empty modal over the map.
- document.addEventListener('ww2:before-layout',closeGuides);
+ document.addEventListener('ww2:before-layout',closeGuides);document.addEventListener('ww2:layout',positionPrompt);
  matchMedia('(min-width:1100px)').addEventListener('change',sync);
  new MutationObserver(()=>{if($('game').hidden)sync();}).observe($('game'),{attributes:true,attributeFilter:['hidden']});
  sync();

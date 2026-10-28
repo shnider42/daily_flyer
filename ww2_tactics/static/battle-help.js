@@ -1,6 +1,7 @@
 'use strict';
-window.orderHelp=(id,u,legal,simple)=>{
- const roleHelp=window.groundRoleHelp?.(id,u);if(roleHelp)return roleHelp;
+window.orderHelp=(id,u,legal,simple,depthOverride)=>{
+ const level=depthOverride||(simple?'simple':window.ww2Experience?.level||'expert');
+ const roleHelp=window.groundRoleHelp?.(id,u);if(roleHelp&&level==='expert')return roleHelp;
  const shot=legal?.targets?.find(s=>s.id===target),frag=legal?.grenades?.find(s=>s.id===target),assault=legal?.assaults?.find(s=>s.id===target);
  const strike=legal?.airstrikes?.find(s=>s.id===target),torpedo=legal?.torpedoes?.find(s=>s.id===target);
  const ap=u?.weapon_overrides?.ap||{},he=u?.weapon_overrides?.he||{};
@@ -62,7 +63,12 @@ window.orderHelp=(id,u,legal,simple)=>{
  }
  if(state?.joint_ops_version)descriptions.airstrike[0]='Carrier sortie · surface target';
  if(simple&&id==='suppress'&&!state?.dsl_expansion&&!state?.combat_version)return 'Pin enemy';
- return descriptions[id]?.[simple?0:1]||'';
+ if(level==='moderate'){
+  const chance=s=>s?`${Math.round(Math.max(0,Math.min(6,7-s.threshold))/6*100)}% hit${s.damage?' · '+s.damage+' damage':''}`:null;
+  const tactical={fire:chance(shot)||`Range ${u?.range||0} · select a visible target for odds`,grenade:chance(frag)||'Close blast · finite grenade supply',assault:assault?`${chance(assault)} · a miss hurts your team`:'Adjacent attack · a miss hurts your team',airstrike:chance(strike)||`Strike range ${u?.strike_range||0} · needs a spotted ship`,torpedo:chance(torpedo)||`Range ${u?.torpedo_range||0} · finite torpedoes`,overwatch:'Spend AP now · one possible reaction later',dig:'Protection while stationary · ends on movement',smoke:'Blocks both armies’ sight · finite supply',suppress:'Pinning denies actions · no strength damage',rally:'Remove pin · 1 AP · does not heal',inspire:'Officer removes eligible nearby pins',command:'Give eligible troops 1 AP · check recipients',bombard:'Attack beyond sight · low accuracy · friendly fire',artillery:'Delayed area strike · finite calls · friendly fire',areaFire:'Hex attack · check area and friendly-fire risk',snipe:'Accurate infantry shot · 3 AP · reveals your team',demolition:'Adjacent armor · finite charge · can miss',spotFire:'Observe first · helps same-platoon fire',rearm:'Repair and reload · needs a suitable supplied base'};
+  return tactical[id]||descriptions[id]?.[0]||(roleHelp?roleHelp.split(/(?<=\.)\s/)[0]:'');
+ }
+ return descriptions[id]?.[level==='simple'?0:1]||(roleHelp?roleHelp.split(/(?<=\.)\s/)[0]:'');
 };
 (()=>{
  const tip=document.createElement('div');tip.id='battleTooltip';tip.setAttribute('role','tooltip');tip.hidden=true;document.body.append(tip);
@@ -115,6 +121,57 @@ window.orderHelp=(id,u,legal,simple)=>{
   return null;
  }
  function show(n){const lines=content(n);if(!lines){hide();return;}if(anchor!==n)hide();anchor=n;n.setAttribute('aria-describedby',tip.id);tip.replaceChildren(...lines.filter(Boolean).map((s,i)=>{const e=document.createElement(i?'p':'strong');e.textContent=s;return e;}));if(window.ww2Dad?.enabled&&n.dataset.unitId){const u=state.units.find(u=>u.id===n.dataset.unitId);if(u&&window.makeUnitPortrait)tip.prepend(makeUnitPortrait(u));}tip.hidden=false;place();}
+ const make=(tag,id,text)=>{const n=document.createElement(tag);if(id)n.id=id;if(text!==undefined)n.textContent=text;return n;};
+ const inspectButton=make('button','hexInspectOpen','Inspect hex');inspectButton.type='button';inspectButton.setAttribute('aria-pressed','false');inspectButton.setAttribute('aria-describedby','hexInspectExplanation');$('guideToggle').after(inspectButton);
+ const inspectStatus=make('button','hexInspectStatus','Inspecting hexes · Done');inspectStatus.type='button';inspectStatus.hidden=true;document.body.append(inspectStatus);
+ const inspectDialog=make('dialog','hexInspectDialog');inspectDialog.setAttribute('aria-labelledby','hexInspectTitle');
+ const inspectClose=make('button','hexInspectClose','Inspect another hex'),inspectDone=make('button','hexInspectDone','Return to orders'),inspectTitle=make('h2','hexInspectTitle','Inspect a hex'),inspectBody=make('div','hexInspectBody');inspectClose.type=inspectDone.type='button';
+ inspectDialog.append(inspectClose,inspectTitle,make('p','hexInspectExplanation','Inspection spends no AP and gives no order. Dragging still pans the map.'),inspectBody,inspectDone);document.body.append(inspectDialog);
+ let inspecting=false,inspected=null,inspectBattle='',inspectFrame=0;
+ const terrainPurpose={field:'Open ground is easy to cross but offers little protection.',woods:'Woods can protect infantry and block sight through the hex. They can slow movement.',building:'Buildings protect infantry but can be damaged by heavy weapons.',tower:'High ground helps observation, while making its occupants easier to spot.',church:'This high building helps observation, but also exposes its occupants to detection.',road:'A road can help ground units move efficiently. Check the highlighted move cost.',bridge:'A bridge provides a route across water. Check that the next hex is legal for this unit.',water:'Ships, boats and amphibious troops use water differently. Check the selected unit’s legal destinations.',mountain:'Mountains protect infantry and block sight. Mountain-trained troops cross them more easily; vehicles cannot enter.',ridge:'Ridges protect infantry and block sight. They can slow troops and block vehicles.',desert:'Open desert offers no cover. Think about exposure before crossing.',dune:'Dunes can slow vehicles without providing cover.',wadi:'A wadi gives infantry cover without blocking sight through it. Vehicles cannot enter.',oasis:'Palm cover protects infantry and blocks sight; vehicles cannot enter.',beach:'A beach is open landing ground with no cover.',marsh:'Flooded ground slows ordinary infantry and blocks most vehicles.',bocage:'Hedgerows provide infantry cover and block sight. Vehicles need an engineer to open a gap.',bunker:'A strongpoint protects infantry, but heavy weapons can damage and collapse it.',causeway:'A causeway is a road across flooded ground. It offers no cover.',rubble:'Cleared rubble slows movement and offers cover without blocking sight.',objective:'This is a marked objective. Read the mission before assuming that reaching it is enough to win.'};
+ function positionInspect(){
+  if(inspectStatus.hidden||inspectFrame)return;inspectFrame=requestAnimationFrame(()=>{inspectFrame=0;if(inspectStatus.hidden)return;const r=$('mapWrap').getBoundingClientRect();inspectStatus.style.left=Math.max(8,r.left+8)+'px';inspectStatus.style.top=Math.max(r.top+8,Math.min(innerHeight-52,r.bottom-52))+'px';inspectStatus.style.maxWidth=Math.max(100,Math.min(230,r.width-24))+'px';});
+ }
+ function stopInspect(){inspecting=false;inspected=null;inspectDialog.close();inspectStatus.hidden=true;inspectButton.setAttribute('aria-pressed','false');$('mapWrap').classList.remove('inspecting-hexes');document.dispatchEvent(new Event('ww2:inspection'));}
+ function beginInspect(){
+  if(!state||$('game').hidden||lobbyMode||playbackSession)return;
+  for(const d of document.querySelectorAll('dialog[open]'))d.close();
+  inspecting=true;inspectBattle=state.code+':'+state.battle_number;inspectStatus.hidden=false;inspectButton.setAttribute('aria-pressed','true');$('mapWrap').classList.add('inspecting-hexes');positionInspect();hide();document.dispatchEvent(new Event('ww2:inspection'));notify('Inspect hex: tap a space to read it. No move or attack will be issued. Choose Done to return to orders.');
+ }
+ function fillInspection(pos){
+  const [x,y]=pos,n=$('map').querySelector(`.hex[data-x="${x}"][data-y="${y}"]`);if(!n)return;
+  const full=content(n)||[],level=window.ww2Experience?.level||'simple',u=state.units.find(v=>v.id===selected),move=state.legal?.[selected]?.moves?.find(m=>m.pos[0]===x&&m.pos[1]===y),type=state.map[y][x],condition=buildingCondition(state,pos);
+  const visible=!state.fog_of_war||(state.visible_hexes||[]).some(p=>Array.isArray(p)?p[0]===x&&p[1]===y:p===x+','+y);
+  const own=state.units.filter(v=>v.hp>0&&!v.reserve&&!v.carrier_id&&v.pos[0]===x&&v.pos[1]===y&&(v.side===state.side||visible));
+  inspectTitle.textContent=full[0]||'Hex '+hexColumn(x)+(y+1);inspectBody.replaceChildren();inspectDialog.dataset.experience=level;
+  inspectBody.append(make('p',null,visible?'Currently observed terrain.':'Outside current sight. This is your map information; unseen changes and enemy occupancy are unconfirmed.'));
+  const legalText=move?`For ${unitName(u)}: this is a legal move costing ${move.cost} AP${move.road_bonus?' with a road bonus':''}.`:u?'This is not a legal destination for the selected unit right now.':'Select a unit after inspection to see its legal moves.';
+  inspectBody.append(make('p','hexInspectMove',legalText));
+  if(level==='simple'){
+   inspectBody.append(make('p',null,full[0]?.startsWith('Airspace')?'Aircraft fly above terrain. Check flight paths and visible interception warnings.':terrainPurpose[type]||'Terrain can affect movement, protection and sight. Open the full explanation below for this hex.'));
+   if(condition==='damaged'||condition==='destroyed')inspectBody.append(make('p',null,buildingHelp(condition,true)));
+  }else for(const line of full.slice(1).filter(Boolean))inspectBody.append(make('p',null,line));
+  inspectBody.append(make('p','hexInspectOccupants',own.length?'Visible occupants: '+own.map(unitName).join(', ')+'.':visible?'No currently visible unit occupies this hex. Concealed enemies may still be present.':'Enemy occupancy is unknown here.'));
+  if(move?.threats)inspectBody.append(make('p',null,'This move has a known threat warning. Inspection does not reveal hidden enemies or secret readiness.'));
+  if(level!=='expert'){const more=make('details','hexInspectRules');more.append(make('summary',null,'Full terrain explanation'),...full.slice(1).filter(Boolean).map(line=>make('p',null,line)));inspectBody.append(more);}
+ }
+ function inspectTap(event){
+  if(!inspecting||playbackSession)return;
+  if(event.type==='keydown'&&!['Enter',' '].includes(event.key))return;
+  const n=event.target.closest('#map .hex,#map .unit');
+  event.preventDefault();event.stopImmediatePropagation();
+  let pos;if(n?.matches('.hex'))pos=[+n.dataset.x,+n.dataset.y];else if(n?.dataset.unitId)pos=state.units.find(v=>v.id===n.dataset.unitId)?.pos;
+  if(!pos){notify('Tap a hex to inspect its terrain. Choose Done to return to orders.');return;}
+  inspected=pos.slice();fillInspection(inspected);if(!inspectDialog.open)inspectDialog.showModal();
+ }
+ // These run after the existing desktop and touch drag guards on mapWrap.
+ // A completed drag is suppressed before it can become an inspection tap.
+ $('mapWrap').addEventListener('click',inspectTap,true);$('mapWrap').addEventListener('keydown',inspectTap,true);
+ inspectButton.onclick=()=>inspecting?stopInspect():beginInspect();inspectStatus.onclick=inspectDone.onclick=stopInspect;inspectClose.onclick=()=>inspectDialog.close();
+ window.ww2BattleHelp={inspect:beginInspect,stopInspect,get inspecting(){return inspecting;}};
+ new ResizeObserver(positionInspect).observe($('mapWrap'));window.addEventListener('resize',positionInspect);window.addEventListener('scroll',positionInspect,{passive:true});
+ document.addEventListener('ww2:selection',()=>{if(inspecting)stopInspect();});document.addEventListener('ww2:before-layout',()=>{if(inspecting)stopInspect();});
+ document.addEventListener('ww2:experience',()=>{hide();if(inspectDialog.open&&inspected)fillInspection(inspected);});
  const selector='#map > .hex,#map .unit,#roster [data-unit-id],.tactical-action,#undoOrder,#redoOrder,[data-help]';
  document.addEventListener('pointerover',e=>{if(e.pointerType!=='mouse'||!matchMedia('(hover:hover)').matches)return;const n=e.target.closest(selector);point={x:e.clientX,y:e.clientY};if(n)show(n);else hide();});
  document.addEventListener('pointermove',e=>{if(!tip.hidden&&e.pointerType==='mouse'){point={x:e.clientX,y:e.clientY};place();}});
@@ -123,7 +180,10 @@ window.orderHelp=(id,u,legal,simple)=>{
  document.addEventListener('focusout',hide);document.addEventListener('pointerdown',hide);document.addEventListener('keydown',e=>{if(e.key==='Escape')hide();});window.addEventListener('scroll',hide,true);
  for(const kind of ['undo','redo'])$(kind+'Order').onclick=()=>act({kind});
  function sync(){
-  hide();if(!state)return;const h=state.order_history||{};
+  hide();inspectButton.disabled=!state||!!playbackSession;inspectButton.hidden=!state||$('game').hidden||lobbyMode;
+  if(inspecting&&(!state||$('game').hidden||lobbyMode||playbackSession||inspectBattle!==state.code+':'+state.battle_number))stopInspect();
+  if(inspecting&&inspectDialog.open&&inspected)fillInspection(inspected);
+  if(!state)return;const h=state.order_history||{};
   historyHelp.textContent='Undo / redo: up to 20 recent orders this turn. New sightings, searches and End turn commit earlier orders. Combat redo keeps the exact dice; different orders are blocked until those results are restored. '+(h.reason||'');
   document.querySelectorAll('#map .unit-art-title').forEach(n=>n.remove());
   document.querySelectorAll('#roster [title]').forEach(n=>n.removeAttribute('title'));

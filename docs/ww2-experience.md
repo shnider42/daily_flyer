@@ -4,24 +4,39 @@ Experience changes display and coaching detail, not the ruleset, computer
 difficulty, available orders, fog of war or battle state. See
 [WWII Journey and Field coach](ww2-journey.md) for the expanded learning flow.
 
-The subsequent Empires iPhone playtest established
-[shared learning principles for future DSL changes](learning-experience-principles.md):
-Simple must teach real decisions, default guidance needs an explicit opt-out,
-and safe hex inspection must explain what the map means. Empires now implements
-that first guided loop. DSL's existing Field coach behavior described below is
-unchanged by the Empires update.
+The site-wide presentation review applies the
+[shared learning principles](learning-experience-principles.md) to both games.
+Simple teaches the current decision; Moderate explains the costs and choices;
+Expert keeps the full rules and accounting in view. See the
+[Experience depth review](experience-depth-review.md) for the surface-by-surface
+audit and verification boundaries.
 
 | Experience | Presentation |
 | --- | --- |
-| Simple | Short action explanations, outcomes and map names; inspect a unit for its role and status. |
-| Moderate | Short action explanations plus attack percentages in unit details and fuller hover help. |
-| Expert | Exact roll thresholds, modifiers, dice faces and combat reports. |
+| Simple | The actual goal, a useful next step, plain-language order purposes and essential costs. Longer rules and records remain expandable. |
+| Moderate | Costs, timing, resources, tactical choices, attack odds and the consequences needed to plan. Full rules remain available. |
+| Expert | Complete mission rules, exact thresholds and modifiers, interactions, detailed unit accounting and full reports. |
 
-Home and the persistent **View → Experience** control share one browser
-preference. Turn, mission, AP, unavailable-order reasons and danger warnings stay
-available at every level. Field coach remains opt-in for guests and signed-in commanders. Journey
-chapters intentionally open it at the selected Experience. Dad mode, terrain detail and illustrated units keep
-their existing independent settings.
+Home, setup, Journey, briefings, preparation, results and the persistent
+**View & help** control share one browser preference with Empires. Home places
+the choice before the operation cards; the battle navigation shows the active
+level. Turn, mission, AP, unavailable-order reasons and danger warnings stay
+available at every level. Changing Experience does not hide operations or orders.
+
+Simple offers a compact contextual Field coach prompt by default. Opening its
+full lesson sheet is a separate action. **Ignore tutorial** explicitly opts out;
+**Resume tutorial** restores it. Closing the sheet and completing the lessons do
+not silently opt out of contextual help. This consent is stored separately in
+`ww2-coaching-preferences-v1`, with an in-memory fallback. Existing per-battle
+lesson progress remains in `ww2-learning-v2`. Journey chapters intentionally open
+the coach at the selected Experience. Dad mode, terrain detail, unit artwork and
+layout keep their independent settings.
+
+**View & help → Inspect a hex** provides an explicit read-only map mode. It
+explains public terrain, cover and the selected unit's available movement cost
+without submitting an order. Unknown information stays unknown. Inspection and
+lesson navigation preserve unfinished targeting; a tutorial shortcut must never
+route a unit selection through a live attack, barrage or smoke order.
 
 ## Layout and migration
 
@@ -67,7 +82,11 @@ a tested ranking of difficulty. Newest follows catalog registration order, not
 an invented historical or release date. Future maps get a visible fallback
 until someone supplies their learning focus and categories.
 
-## Subsequent work — proposals, not implemented
+## Earlier roadmap context
+
+The following proposals were recorded before the later deployment, Journey and
+linked-operation work. They are retained as planning context, not a description
+of the current implementation or additional scope for this presentation update.
 
 1. **Movement responsiveness:** measure input-to-highlight paint on Midway,
    Tidal Gate and Fubar on an actual iPhone. Separate local selection/rendering
@@ -99,11 +118,18 @@ WWII Journey now provides a fourteen-operation path; Field coach adapts its expl
 
 ## Verification
 
-The isolated Python suite passes 309 tests, including catalog coverage and
-unchanged battle snapshots. Browser coverage exercises preference migration,
-safe filtering, saved choices, absent storage, desktop/phone sizes, and stable
-camera, selection, pending targeting and available orders across Experience.
-Shared navigation, guided practice and Fubar supply regression coverage.
+The focused browser checks exercise shared controls, preference migration, safe
+filtering, saved choices, absent storage, tutorial consent, read-only inspection,
+desktop/phone sizes, and stable camera, selection, pending targeting and available
+orders across Experience. Mission checks cover all three levels in Greybridge,
+standard briefings and debriefs. Shared-site and cooperative checks cover setup,
+rematches, preparation authority and Empires. DOM checks cover Empires and the
+carrier, airfield and night-drop interfaces. The linked-operation browser test
+also exercises real raid/extraction orders, progression and save recovery.
+
+This update changes client presentation, help and its navigation, plus tests and
+documentation. It does not modify Python rules, scenario data, AI, persistence or
+API handlers. Detailed suite names and assertions are listed in the review.
 
 Browser automation uses Chromium with touch/phone emulation. It does not replace
 an actual Safari/iPhone playtest or verify a Render rollout.

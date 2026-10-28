@@ -4,6 +4,7 @@
  const strip=uiNode('p','war-status');strip.id='warStatus';strip.hidden=true;strip.setAttribute('role','status');$('missionHint').after(strip);
  const manual=uiNode('section');manual.id='warManual';manual.hidden=true;$('rules').append(manual);
  const air=u=>['fighter','bomber','transport_aircraft'].includes(u.kind);
+ const depth=(simple,moderate,expert=moderate)=>({simple,moderate,expert})[window.ww2Experience?.level||'simple'];
  function place(){
   if(!state?.war_version)return;
   const anchor=$('weatherBrief');
@@ -20,7 +21,7 @@
   $('rulesetBadge').textContent='Current DSL · The War 1.0';
   $('objectiveName').textContent='THE WAR 1.0 · EIGHT FRONTS';
   $('objective').textContent=`Allies ${state.joint_score.us}/70 · Axis ${state.joint_score.de}/70`;
-  $('missionHint').textContent='Hold zones: city +2, others +1. City + mountain link: +1. Destroy an enemy airfield: +3 once. Rescue a shore team: +2. First to 70.';
+  $('missionHint').textContent=depth('Hold marked ground and sea areas to earn points. Reach 70 before the enemy. Open the mission briefing to see which units can hold each area.','Earn points at your turn end: city +2, other zones +1, and a city–mountain link adds +1. Airfields are worth +3 once; each shore rescue +2. First to 70.','Hold zones: city +2, others +1. City + mountain link: +1. Destroy an enemy airfield: +3 once. Rescue a shore team: +2. First to 70.');
   $('rangeGuideToggle').hidden=false;
   $('manualAP').textContent='Use the platoon buttons to focus a front. Every unit keeps its own AP and legal orders. Ground stacking, local spotting, finite supplies and separate aircraft occupancy apply across the campaign.';
   manual.replaceChildren(uiNode('h3','','The War 1.0 · campaign guide'),...ww2Briefing.mission(state).rules.map(t=>uiNode('p','',t)));

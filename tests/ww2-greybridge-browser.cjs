@@ -153,7 +153,7 @@ async function position(p,mode){
   assert.equal(await desktop.locator('#map .hex').count(),168);
   assert.equal(await desktop.evaluate(()=>state.greybridge.reserve_round),6);
   assert.equal(await desktop.evaluate(()=>state.operation.history.length),1);
-  await desktop.locator('#greybridgeHistory button[data-history-index="0"]').click();
+  await tap(desktop,desktop.locator('#greybridgeHistory button[data-history-index="0"]'));
   await desktop.locator('#greybridgeReviewDialog').waitFor({state:'visible'});
   assert.equal(await desktop.locator('#greybridgeReviewMap .hex').count(),120);
   assert.match(await desktop.locator('#greybridgeReviewMap').getAttribute('aria-label'),/Read only/);

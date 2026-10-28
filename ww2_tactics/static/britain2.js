@@ -2,6 +2,15 @@
 'use strict';
 (()=>{
  const node=(tag,text)=>{const n=document.createElement(tag);if(text!==undefined)n.textContent=text;return n;};
+ const level=()=>window.ww2Experience?.level||'simple';
+ const depth=(simple,moderate,expert=moderate)=>({simple,moderate,expert})[level()];
+ const rulesOpen=new Map();
+ function runwayRules(unit){
+  const rules=node('details');rules.id='airfieldRunwayRules';rules.open=rulesOpen.get(unit.id)??level()==='expert';
+  const heading=node('summary','Full runway costs and readiness');heading.onclick=()=>rulesOpen.set(unit.id,!rules.open);
+  rules.append(heading,node('p','Launch, land and service each use one cycle. Leave capacity for returning flights. Repairs restore runway capacity.'),node('p','Launch costs 1 field AP, 1 flight AP and 1 fuel. Land costs 1 flight AP and does not refuel or reload. Service costs 1 field AP and 1 store; it repairs, refuels and reloads. A landed or serviced flight is ready next own turn. Repair station costs 2 field AP, 1 store and 1 runway cycle.'));
+  return rules;
+ }
  const air=u=>['fighter','bomber','transport_aircraft'].includes(u.kind),limit=f=>f.hp*2<=f.max_hp?1:3;
  const grounded=f=>state.units.filter(u=>u.hp>0&&u.carrier_id===f.id);
  let launching=null;
@@ -93,8 +102,9 @@
     if(unit.side!==state.side){content.append(node('p','Enemy aircraft manifests, runway use and service stores are private.'));}
     else{
      const available=Math.max(0,limit(unit)-unit.runway_used);
-     content.append(node('p',`${grounded(unit).length}/${unit.air_capacity} on ground · ${available}/${limit(unit)} runway cycles · ${unit.air_stores}/${unit.max_air_stores} service stores${limit(unit)===1?' · DAMAGED RUNWAY':''}`));
-     content.append(node('p','Launch, land and service each use one cycle. Leave capacity for returning flights. Repairs restore runway capacity.'));
+     const decision=node('p',depth('Simple · Choose a ready flight to launch, or service one that needs repair, fuel or bombs. Each uses one runway action. Keep an action free for returning flights; takeoff also uses 1 fuel.','Moderate · Plan the runway before launching. A returning flight needs 1 flight AP and a free runway cycle. Landing does not refuel or reload; service is separate and makes the flight ready next own turn.','Expert · Finite flights, fuel, runway cycles, service stores and next-turn readiness.'));decision.id='airfieldDecision';content.append(decision);
+     content.append(node('p',depth(`${grounded(unit).length} aircraft on the ground. ${available} runway actions left this turn; ${unit.air_stores} service stores.${limit(unit)===1?' Damaged runway: only one action per turn.':''}`,`${grounded(unit).length}/${unit.air_capacity} on ground · ${available}/${limit(unit)} runway cycles · ${unit.air_stores}/${unit.max_air_stores} service stores${limit(unit)===1?' · DAMAGED RUNWAY':''}`)));
+     content.append(runwayRules(unit));
      content.append(button('Repair station · 2 AP + store','repairStation',unit.id,()=>act({kind:'station_repair',unit:unit.id}),blocked()||!legal?.station_repair,'Requires damage, 2 field AP, one store and one unused runway cycle.'));
      const flights=state.units.filter(p=>air(p)&&(p.home_field===unit.id||p.carrier_id===unit.id));
      for(const p of flights){
@@ -105,9 +115,11 @@
       const actions=node('div');actions.className='britain-flight-actions';
       if(here){
        const canLaunch=legal?.scramble?.some(c=>c.id===p.id),canService=legal?.field_service?.includes(p.id);
-       actions.append(button(launching?.plane===p.id?'Cancel takeoff':'Launch · 1 + 1 AP','scrambleFlight',p.id,()=>{launching=launching?.plane===p.id?null:{unit:unit.id,plane:p.id,revision:state.revision};dialog.close();target=null;combatMode=null;smokeMode=false;barrageMode=false;render();},blocked()||!canLaunch,canLaunch?'Choose a highlighted takeoff hex':reason(unit,p)));
-       actions.append(button('Service · 1 AP + store','serviceFlight',p.id,()=>act({kind:'field_service',unit:unit.id,target:p.id}),blocked()||!canService,canService?'Repair, refuel and reload; ready next own turn':!unit.air_stores?'No stores left':p.service_used?'Already serviced this turn':'Requires damage, spent fuel or bombs, 1 field AP and a runway cycle'));
+       actions.append(button(launching?.plane===p.id?'Cancel takeoff':depth('Launch · 1 field + 1 flight AP','Launch · 1 + 1 AP'),'scrambleFlight',p.id,()=>{launching=launching?.plane===p.id?null:{unit:unit.id,plane:p.id,revision:state.revision};dialog.close();target=null;combatMode=null;smokeMode=false;barrageMode=false;render();},blocked()||!canLaunch,canLaunch?'Choose a highlighted takeoff hex':reason(unit,p)));
+       const serviceReason=!unit.air_stores?'No stores left':p.service_used?'Already serviced this turn':'Requires damage, spent fuel or bombs, 1 field AP and a runway cycle';
+       actions.append(button(depth('Service · 1 field AP + 1 store','Service · 1 AP + store'),'serviceFlight',p.id,()=>act({kind:'field_service',unit:unit.id,target:p.id}),blocked()||!canService,canService?'Repair, refuel and reload; ready next own turn':serviceReason));
        if(!canLaunch)row.append(node('small',reason(unit,p)));
+       if(!canService)row.append(node('small','Service: '+serviceReason));
       }else if(p.hp>0)actions.append(button('Select flight','selectFlight',p.id,()=>{dialog.close();chooseUnit(p);},busy||!!playbackSession));
       row.append(actions);content.append(row);
      }

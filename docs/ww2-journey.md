@@ -85,13 +85,16 @@ preferences are not embedded in SAVE codes.
 ## Field coach
 
 The former in-battle learning guide is **Field coach**, under **View → Help**.
-It remains optional in every DSL battle, and now works for signed-in commanders
-as well as guests. Journey battles open it intentionally. Classic is unchanged.
+It remains optional in every DSL battle and works for signed-in commanders as
+well as guests. Simple now shows a compact contextual prompt by default, with
+explicit Ignore tutorial and Resume tutorial controls. Closing the lesson sheet
+does not opt out, and finishing the lessons leaves contextual help available.
+Journey battles open the full coach intentionally. Classic is unchanged.
 
 | Experience | Instruction |
 | --- | --- |
-| Simple | Explains terms and controls, one action at a time. |
-| Moderate | Assumes board-game familiarity; explains DSL choices and tradeoffs. |
+| Simple | Explains the actual goal, the next decision, and useful terms and controls one action at a time. |
+| Moderate | Explains costs, timing, resources, likely outcomes and DSL tradeoffs without requiring another game's rules. |
 | Expert | Costs, thresholds, interactions, timing and commitment boundaries. |
 
 Switching Experience updates the current explanation without changing rules or
@@ -99,7 +102,9 @@ lesson progress. Simple/Moderate offer expandable exact detail. Expert does
 not repeat basic explanations of turns or what a d6 is. A searchable topic
 index supports direct review. Each topic has a practical task and **Show me**
 navigation; specialist lessons can select an appropriate friendly unit to show
-its controls. They never issue game orders or spend AP.
+its controls. They never issue game orders or spend AP. If a target choice is
+pending, the coach asks the player to finish or cancel it before navigating to
+another unit; it does not clear the target choice or route through an order.
 
 Topics are selected from the current operation's version flags and own roster,
 never concealed enemy data. Coverage includes GUI navigation, Experience,

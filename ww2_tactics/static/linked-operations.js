@@ -7,7 +7,8 @@
  const isOperation=()=>state?.operation?.id==='greybridge';
  const hex=p=>p?`${hexColumn(p[0])}${p[1]+1}`:'';
  const text=value=>Array.isArray(value)?value.filter(Boolean).join(' '):String(value||'');
- const seen=new Set();let operationKey='',remoteRuns=[],listIdentity=null,listRequest=0,syncTimer=null;
+ const experience=()=>window.ww2Experience?.level||'simple';
+ const seen=new Set();let operationKey='',remoteRuns=[],listIdentity=null,listRequest=0,syncTimer=null,detailKey='';
 
  const home=node('section',undefined,'greybridge-home');home.id='greybridgeHome';home.setAttribute('aria-labelledby','greybridgeHomeTitle');
  home.innerHTML='<div class="greybridge-home-copy"><p class="eyebrow">CURRENT DSL · LINKED OPERATION</p><h2 id="greybridgeHomeTitle">Operation Greybridge</h2><p>Raid the relay. Seize the crossing. Hold the corridor—or bring your force home.</p><p class="greybridge-home-meta">3 connected missions · compact 10×12 and 12×14 maps · solo Allied command</p></div><div class="greybridge-home-actions"><button id="greybridgeStart" class="primary" type="button">Start Greybridge →</button><p>Your decisions carry into the next battle. A setback still lets the operation continue.</p></div><section id="greybridgeSaved" class="greybridge-saved" hidden aria-label="Saved Greybridge operations"><h3>Continue an operation</h3><p id="greybridgeSavedStatus" role="status"></p><div id="greybridgeSavedRuns"></div></section>';
@@ -20,6 +21,17 @@
  const dialog=node('dialog');dialog.id='greybridgeDialog';dialog.setAttribute('aria-labelledby','greybridgeTitle');
  dialog.innerHTML='<button id="greybridgeClose" class="dialog-back" type="button">Back to battlefield</button><p class="eyebrow" id="greybridgeDialogEyebrow">LINKED OPERATION</p><h2 id="greybridgeTitle">Operation Greybridge</h2><ol id="greybridgePath" aria-label="Operation progress"></ol><h3 id="greybridgeMissionTitle"></h3><p id="greybridgeBrief"></p><p id="greybridgeGoal" class="greybridge-goal"></p><section id="greybridgeOutcome" hidden><h3 id="greybridgeOutcomeTitle"></h3><dl id="greybridgeOutcomeDetails"></dl></section><p id="greybridgeRecovery" class="greybridge-recovery">The whole operation travels with its SAVE or MOVE code. Completed mission records remain available below.</p><p id="greybridgeActionStatus" role="status"></p><div class="greybridge-dialog-actions"><button id="greybridgeContinue" class="primary" type="button" hidden>Continue operation →</button><button id="greybridgeRetry" type="button" hidden>Retry this mission</button><button id="greybridgeReviewCurrent" type="button">Review battlefield</button><button id="greybridgeHomeButton" class="quiet" type="button">Back to operations</button></div><section class="greybridge-record"><h3>Operation record</h3><p id="greybridgeHistoryEmpty">Your first mission is underway. Accomplishments and their consequences will be recorded here.</p><ol id="greybridgeHistory"></ol></section>';
  document.body.append(dialog);
+ const levelControl=node('div',undefined,'experience-control greybridge-experience');
+ levelControl.innerHTML='<label for="greybridgeExperience">Your guidance</label><select id="greybridgeExperience" data-experience-select><option value="simple">Simple</option><option value="moderate">Moderate</option><option value="expert">Expert</option></select><p id="greybridgeExperienceNote"></p>';
+ $('greybridgeTitle').after(levelControl);
+ // Lead with the required goal before narrative or an optional mission benefit.
+ $('greybridgeBrief').before($('greybridgeGoal'));
+ const next=node('section');next.id='greybridgeNext';next.innerHTML='<h3>What to do next</h3><p id="greybridgeNextText"></p><ul id="greybridgeDecisions"></ul><button id="greybridgeFind" type="button">Find the objective</button>';
+ $('greybridgeGoal').after(next);
+ const full=node('details');full.id='greybridgeFullDetails';full.innerHTML='<summary id="greybridgeFullSummary">Optional objective and full rules</summary><ul id="greybridgeRules"></ul>';
+ full.append($('greybridgeRecovery'));dialog.querySelector('.greybridge-dialog-actions').after(full);
+ const recordDetails=node('details');recordDetails.id='greybridgeRecordDetails';const recordSummary=node('summary','Operation record');recordSummary.id='greybridgeRecordSummary';recordDetails.append(recordSummary);
+ const recordSection=dialog.querySelector('.greybridge-record');recordSection.before(recordDetails);recordDetails.append(recordSection);
 
  const review=node('dialog');review.id='greybridgeReviewDialog';review.setAttribute('aria-labelledby','greybridgeReviewTitle');
  review.innerHTML='<button id="greybridgeReviewClose" class="dialog-back" type="button">Back to operation record</button><p class="eyebrow">COMPLETED MISSION · READ ONLY</p><h2 id="greybridgeReviewTitle"></h2><p id="greybridgeReviewSummary"></p><p id="greybridgeReviewForce" class="greybridge-force-record"></p><p>Final battlefield as your army saw it. Unseen enemies remain concealed. Dashed counters are dated contacts.</p><div class="greybridge-review-tools"><button id="greybridgeReviewZoom" type="button" aria-pressed="false">Enlarge map</button><p id="greybridgeReviewSelection" role="status">Select a visible counter to inspect it.</p></div><div id="greybridgeReviewMapWrap"><svg id="greybridgeReviewMap" role="group" aria-label="Completed mission battlefield"></svg></div><div id="greybridgeReviewRoster"></div>';
@@ -151,6 +163,44 @@
    'Eliminating defenders does not bypass an extraction or hold objective. Fog of war remains in effect.');
   return {goal,compact,progress,rules:rules.filter(Boolean),focus};
  }
+ function missionGuidance(s){
+  const g=s.greybridge,limit=s.scenario.rounds,required=g.required;
+  if(g.stage==='raid')return {
+   goal:`Get ${required} infantry teams to a marked exit and extract them by the end of round ${limit}.`,
+   next:'Select one of your infantry teams. Move toward an EXTRACT exit. On that hex, choose Extract unit and spend 1 action point (AP).',
+   why:g.relay_disabled?'The relay is disabled. You have earned two extra rounds before enemy reserves arrive in the next battle.':'Disabling the relay is optional. It gives you two extra rounds before enemy reserves arrive in the next battle.',
+   notes:['Save 1 AP to extract a team once it reaches an exit. A pinned team must recover first.',
+    g.relay_disabled?'The reserve delay carries forward even if this raid ends in defeat.':'Relay sabotage costs 2 AP from the relay hex or an adjacent hex. Decide whether the detour is worth the time.',
+    'Choose cover along the route. Night sight is short, so an apparently empty route can still contain unseen enemies.'],focus:s.scenario.greybridge_exits?.[0]};
+  if(g.stage==='crossing')return {
+   goal:`Keep infantry on the north-bank depot when ending two turns in a row, by round ${limit}.`,
+   next:'Find the depot, then choose an infantry team to approach it using either bridge. Keep infantry there when you press End turn.',
+   why:g.relay_disabled?'Your raid delayed the enemy reserves until round 6. Use that time to reach the depot.':'Enemy reserves are due in round 4. You can approach the depot by either bridge.',
+   notes:[`The reserve arrives in round ${g.reserve_round||4}. Compare the two routes before committing your teams.`,
+    'The depot must remain occupied at two consecutive Allied turn endings. Losing control resets the count.',
+    'Securing the crossing leads to its defense. A setback leads to a withdrawal.'],focus:s.scenario.objective};
+  if(g.stage==='hold')return {
+   goal:`Keep infantry on the depot when ending ${required} turns in a row, by round ${limit}.`,
+   next:'Keep an infantry team on the depot. Use your other teams to protect its approaches, then end your turn when ready.',
+   why:'The hold counter advances at the end of your turns. Losing the depot resets it.',
+   notes:[`Protect the depot through ${required} consecutive Allied turn endings. Retaking it starts a new count.`,
+    'A team that leaves the depot may break the hold. Check the progress counter before ending your turn.',
+    'Winning this defense secures the bridge and completes the operation.'],focus:s.scenario.objective};
+  return {
+   goal:`Get ${required} infantry teams to a marked exit and extract them by the end of round ${limit}.`,
+   next:'Choose one team to head toward a south-edge EXTRACT exit. On that hex, choose Extract unit and spend 1 action point (AP).',
+   why:'Bring the force home. A successful withdrawal saves the teams, while the bridge objective remains lost.',
+   notes:['Save 1 AP for extraction. Pinned teams must recover before they can leave.',
+    'Use some teams to cover the withdrawal while others move toward either exit.',
+    'Extraction removes a team from this battle. It is recorded as saved, not lost.'],focus:s.scenario.greybridge_exits?.[0]};
+ }
+ function guidance(s){
+  const guide=missionGuidance(s);
+  if(playbackSession)guide.next='Finish or skip the replay, then choose a team for your next order.';
+  else if(s.computer_work?.pending||s.turn!==s.side)guide.next='Review the objective and plan a route while the other army finishes its turn.';
+  else if(s.order_history?.redo_required)guide.next='Use Redo to restore the recorded result before choosing a new order.';
+  return guide;
+ }
  function addDetail(dl,label,value){if(!value)return;dl.append(node('dt',label),node('dd',text(value)));}
  function forceRecordText(record){
   if(!record)return 'Loss record unavailable.';
@@ -158,15 +208,24 @@
   return `${losses} · Still on battlefield: ${record.units_remaining} · Extracted: ${record.units_extracted}${record.complete?'':' · Partial record'}`;
  }
  function fill(){
-  if(!isOperation())return;const op=state.operation,g=state.greybridge,m=mission(state);
+  if(!isOperation())return;const op=state.operation,g=state.greybridge,m=mission(state),level=experience(),guide=guidance(state);
+  dialog.dataset.experience=level;$('greybridgeExperience').value=level;
+  $('greybridgeExperienceNote').textContent={simple:'One task at a time. Optional tasks and full rules are below.',moderate:'Plan the route, action costs and consequences. Full rules remain available.',expert:'Complete mission rules, inherited outcomes and operation records.'}[level];
   $('greybridgeDialogEyebrow').textContent=op.completed?'OPERATION COMPLETE':`LINKED OPERATION · MISSION ${op.stage} / 3`;
   $('greybridgeTitle').textContent=op.name||'Operation Greybridge';
   $('greybridgePath').replaceChildren(...['Night Raid','Dawn Crossing',g.stage==='withdrawal'?'Fighting Withdrawal':g.stage==='hold'?'Hold the Bridgehead':'Hold or Withdraw'].map((title,i)=>{
    const li=node('li',undefined,i+1<op.stage?'past':i+1===op.stage?'active':'');li.append(node('span',String(i+1)),node('strong',title));if(i+1===op.stage)li.setAttribute('aria-current','step');return li;
   }));
   $('greybridgeMissionTitle').textContent=op.mission_title||state.scenario.name;
-  $('greybridgeBrief').textContent=text(op.briefing)||state.scenario.brief;
-  $('greybridgeGoal').textContent=m.goal;
+  $('greybridgeBrief').textContent=level==='simple'?guide.why:text(op.briefing)||state.scenario.brief;
+  $('greybridgeGoal').textContent=level==='simple'?guide.goal:m.goal;
+  next.hidden=!!state.winner;$('greybridgeNextText').textContent=guide.next;
+  $('greybridgeDecisions').hidden=level==='simple';$('greybridgeDecisions').replaceChildren(...guide.notes.map(t=>node('li',t)));
+  $('greybridgeFind').textContent=['raid','withdrawal'].includes(g.stage)?'Find an extraction exit':'Find the depot';
+  $('greybridgeRules').replaceChildren(...m.rules.map(t=>node('li',t)));
+  $('greybridgeFullSummary').textContent=level==='expert'?'Complete mission rules and saving':g.stage==='raid'?'Optional relay objective and full rules':'Full mission rules and saving';
+  const newDetailKey=`${session.code}:${level}`;
+  if(detailKey!==newDetailKey){full.open=level==='expert';recordDetails.open=level==='expert'||level==='moderate'&&!!op.history?.length;detailKey=newDetailKey;}
   const finished=!!state.winner;
   $('greybridgeOutcome').hidden=!finished;
   $('greybridgeOutcomeTitle').textContent=op.completed?(op.outcome_label||'Operation complete'):(state.winner===state.side?'Mission accomplished':'Mission setback');
@@ -183,6 +242,7 @@
   $('greybridgeRetry').disabled=busy||!!playbackSession;
   $('greybridgeReviewCurrent').textContent=finished?'Review final battlefield':'Return to battlefield';
   const history=op.history||[];$('greybridgeHistoryEmpty').hidden=!!history.length;
+  recordSummary.textContent=`Operation record · ${history.length} completed mission${history.length===1?'':'s'}`;
   $('greybridgeHistory').replaceChildren(...history.map((r,i)=>{
    const row=node('li'),copy=node('div');copy.append(node('h4',`${r.stage||i+1}. ${r.title}`),node('p',text(r.what_happened)),node('p',forceRecordText(r.force_record),'greybridge-force-record'),node('p',text(r.what_changes),'greybridge-history-change'));
    const b=node('button','Review mission');b.type='button';b.dataset.historyIndex=String(r.index??i);b.disabled=busy;b.onclick=()=>showHistory(r.index??i);
@@ -286,6 +346,9 @@
   }
  }
  function sync(){
+  const level=experience();home.dataset.experience=level;
+  home.querySelector('.greybridge-home-meta').textContent=level==='simple'?'Three connected battles · play solo':level==='moderate'?'3 connected missions · small infantry forces · solo Allied command':'3 connected missions · 10×12 and 12×14 maps · solo Allied command';
+  home.querySelector('.greybridge-home-copy > p:not(.eyebrow):not(.greybridge-home-meta)').textContent=level==='simple'?'Lead a small force through a raid, a river crossing and a final battle.':level==='moderate'?'Raid the relay to delay reserves, then seize the crossing. Your result decides the final mission.':'Raid the relay. Seize the crossing. Hold the corridor—or bring your force home.';
   const enabled=isOperation()&&!lobbyMode&&!$('game').hidden;
   panel.hidden=!enabled;missionOpen.hidden=!enabled;resultOpen.hidden=!enabled||!state.winner;
   if(!enabled){sabotage.hidden=true;extract.hidden=true;orderReason.hidden=true;document.querySelectorAll('.greybridge-menu-status').forEach(n=>n.remove());if(dialog.open)dialog.close();if(review.open)review.close();updateSaved();return;}
@@ -324,6 +387,7 @@
  $('greybridgeRetry').onclick=()=>transition('retry');
  $('greybridgeReviewClose').onclick=()=>{review.close();open();};
  $('greybridgeReviewZoom').onclick=()=>{const enlarged=$('greybridgeReviewMapWrap').classList.toggle('enlarged');$('greybridgeReviewZoom').textContent=enlarged?'Fit map':'Enlarge map';$('greybridgeReviewZoom').setAttribute('aria-pressed',String(enlarged));};
+ $('greybridgeFind').onclick=()=>{const point=guidance(state).focus;if(point){dialog.close();focusMapUnit({pos:point});}};
  sabotage.onclick=()=>performOrder('sabotage_relay',sabotage);extract.onclick=()=>performOrder('extract',extract);
  const ordinarySave=$('saveButton').onclick;
  $('saveButton').onclick=()=>{
@@ -356,10 +420,10 @@
   loadSaved();
  };
  document.addEventListener('ww2:before-layout',()=>document.body.append(panel));
- for(const event of ['ww2:render','ww2:playback','ww2:layout','ww2:busy'])document.addEventListener(event,sync);
+ for(const event of ['ww2:render','ww2:playback','ww2:layout','ww2:busy','ww2:experience'])document.addEventListener(event,sync);
  document.addEventListener('ww2:commander',loadSaved);
  new MutationObserver(sync).observe($('game'),{attributes:true,attributeFilter:['hidden']});
  document.addEventListener('close',()=>{clearTimeout(syncTimer);syncTimer=setTimeout(maybeResult,0);},true);
- window.ww2LinkedOperations={open,mission,sync,start,resume};
+ window.ww2LinkedOperations={open,mission,guidance,sync,start,resume};
   updateSaved();if(window.ww2Commander?.ready)loadSaved();
 })();

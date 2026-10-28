@@ -20,6 +20,10 @@ async function noOverflow(p){assert.ok(await p.evaluate(()=>document.documentEle
  const host=await page(1440),ally=await page(390),enemy=await page(390);
  await register(host,'BrowserHost');await register(ally,'BrowserAlly');await register(enemy,'BrowserEnemy');
  await host.locator('#scenarioSelect').selectOption('village');await host.locator('#createCoop').click();await host.locator('#coopDefaultDifficulty').selectOption('easy');await host.locator('#multiplayerName').fill('Co-op browser exercise');await host.locator('#namedGameSubmit').click();await host.locator('#coopRoom').waitFor({state:'visible'});await settle(host);
+ const beforeDepth=await host.evaluate(()=>({state:JSON.stringify(state),army:$('coopSide').value,group:$('coopGroup').value}));
+ let depthOrders=0;const watchDepth=r=>{if(r.method()==='POST')depthOrders++;};host.on('request',watchDepth);
+ for(const level of ['moderate','expert','simple']){await host.locator('#coopExperience').selectOption(level);assert.deepEqual(await host.evaluate(()=>({state:JSON.stringify(state),army:$('coopSide').value,group:$('coopGroup').value})),beforeDepth);}
+ host.off('request',watchDepth);assert.equal(depthOrders,0,'Changing guidance does not claim groups or change computer difficulty');
  const code=await host.evaluate(()=>session.code);await join(ally,code,'us');await join(enemy,code,'de');await refresh(host);
  assert.equal(await host.evaluate(()=>state.coop.players.length),3);
  for(const p of [host,ally,enemy])await noOverflow(p);
@@ -30,8 +34,11 @@ async function noOverflow(p){assert.ok(await p.evaluate(()=>document.documentEle
  for(const p of [host,ally,enemy])await noOverflow(p);
  await host.screenshot({path:path.join(tmp,'desktop-shared-battle.png'),fullPage:true});await ally.screenshot({path:path.join(tmp,'phone-shared-battle.png'),fullPage:true});
  await tap(host,host.locator('#end'));await settle(host);assert.equal(await host.evaluate(()=>state.coop.done),true);assert.equal(await host.evaluate(()=>state.turn),'us');
- await refresh(ally);await tap(ally,ally.locator('#end'));await settle(ally);await skip(ally);await refresh(enemy);assert.equal(await enemy.evaluate(()=>state.turn),'de');
- await tap(enemy,enemy.locator('#end'));await settle(enemy);await skip(enemy);await refresh(host);assert.equal(await host.evaluate(()=>state.round),2);
+ await refresh(ally);await tap(ally,ally.locator('#end'));await settle(ally);await skip(ally);await refresh(enemy);
+ // The persisted computer pipeline may finish after the initiating response.
+ await enemy.waitForFunction(()=>state.turn==='de',null,{timeout:60000});await skip(enemy);assert.equal(await enemy.evaluate(()=>state.turn),'de');
+ await tap(enemy,enemy.locator('#end'));await settle(enemy);await skip(enemy);await refresh(host);
+ await host.waitForFunction(()=>state.round===2,null,{timeout:60000});await skip(host);assert.equal(await host.evaluate(()=>state.round),2);
  await host.locator('#coopQuick').click();await host.locator('#coopTeamsDialog').waitFor({state:'visible'});assert.match(await host.locator('#coopPlayers').textContent(),/BrowserAlly/);await host.locator('#coopTeamsClose').click();
  if(!await host.locator('#battleOptions').evaluate(n=>n.open))await tap(host,host.locator('#battleOptions>summary'));
  await tap(host,host.locator('#resignButton'));await host.locator('#battleResultDialog').waitFor({state:'visible'});assert.equal(await host.locator('#resultRematch').isVisible(),false);await host.locator('#resultHome').click();
@@ -41,15 +48,27 @@ async function noOverflow(p){assert.ok(await p.evaluate(()=>document.documentEle
  await host.locator('#deploymentPanel').waitFor({state:'visible'});assert.equal(await ally.locator('#deploymentPlan').isVisible(),false);assert.equal(await host.locator('#deploymentReset').isVisible(),false);
  await noOverflow(ally);await ally.screenshot({path:path.join(tmp,'phone-cooperative-preparation.png'),fullPage:true});
  await host.locator('#deploymentLock').click();await host.locator('#deploymentConfirm').click();await settle(host);assert.equal(await host.evaluate(()=>state.deployment.phase),'planning');
- await refresh(ally);await ally.locator('#deploymentLock').click();await ally.locator('#deploymentConfirm').click();await settle(ally);await skip(ally);assert.equal(await ally.evaluate(()=>state.deployment.phase),'battle');
+ await refresh(ally);await ally.locator('#deploymentLock').click();
+ assert.match(await ally.locator('#deploymentExplanation').textContent(),/army captain sets|army captain sets shared/i);
+ assert.equal(await ally.locator('#deploymentConfirm').textContent(),'Finish my preparation');
+ const beforePreparationDepth=await ally.evaluate(()=>JSON.stringify(state));
+ for(const level of ['moderate','expert','simple']){await ally.locator('#deploymentExperience').selectOption(level);assert.equal(await ally.evaluate(()=>JSON.stringify(state)),beforePreparationDepth);assert.ok(await ally.locator('#deploymentDialog').evaluate(d=>d.open));}
+ await ally.locator('#deploymentConfirm').click();await settle(ally);await skip(ally);assert.equal(await ally.evaluate(()=>state.deployment.phase),'battle');
  for(const [width,height] of [[320,740],[844,390]]){await ally.setViewportSize({width,height});await ally.waitForTimeout(150);await noOverflow(ally);await ally.screenshot({path:path.join(tmp,`phone-${width}.png`),fullPage:true});}
  const large=await page(1440);await register(large,'BrowserLarge');
  await large.locator('#scenarioSelect').selectOption('fubar');await large.locator('#createCoop').click();await large.locator('#coopControlSize').selectOption('platoons');await large.locator('#namedGameSubmit').click();await large.locator('#coopRoom').waitFor({state:'visible'});await settle(large);
  let automaticBatches=0;large.on('request',r=>{if(r.method()==='POST'&&r.url().endsWith('/cooperative')&&r.postDataJSON()?.operation==='advance')automaticBatches++;});
- await large.locator('#coopStart').click();await large.locator('#game').waitFor({state:'visible'});await settle(large);await tap(large,large.locator('#end'));
- await large.waitForFunction(()=>state.round===2&&state.turn==='us'&&!state.coop.resolving,{},{timeout:120000});await settle(large);await skip(large);
- assert.ok(automaticBatches>1,'Large-map computer orders continue automatically across requests');
+ await large.locator('#coopStart').click();await large.locator('#game').waitFor({state:'visible'});await settle(large);
+ const largeStart=await large.evaluate(()=>({round:state.round,turn:state.turn,revision:state.revision}));assert.equal(largeStart.round,1);assert.equal(largeStart.turn,'us');
+ await tap(large,large.locator('#end'));
+ await large.waitForFunction(()=>state.round===2&&state.turn==='us'&&!state.coop.resolving&&!state.computer_work?.pending,{},{timeout:120000});await settle(large);await skip(large);
+ // Durable workers can complete every batch without browser advance requests.
+ // Verify actual orders and the return to human control under either driver.
+ const largeComplete=await large.evaluate(()=>({revision:state.revision,needsAdvance:state.coop.needs_advance,replayFrames:state.computer_playback?.count??state.computer_playback?.frames?.length??0}));
+ assert.ok(largeComplete.revision>largeStart.revision+3,'Computer orders progress beyond finishing human orders and the two army turn transitions');
+ assert.equal(largeComplete.needsAdvance,false,'Large-map computer work has finished');
+ assert.ok(largeComplete.replayFrames>0,'Completed computer orders retain an observable replay');
  assert.equal(await large.evaluate(()=>state.coop.done),false);assert.equal(await large.locator('#end').isDisabled(),false);await noOverflow(large);
  await large.screenshot({path:path.join(tmp,'desktop-large-computer-complete.png'),fullPage:true});
- assert.deepEqual(errors,[]);console.log('PASS: actual desktop + phone co-op recruitment, difficulty, three players/two armies, readiness, AI replays, results, pre-battle placement, 320px + landscape overflow checks, large-map automatic computer batches ('+automaticBatches+').',tmp);
+ assert.deepEqual(errors,[]);console.log('PASS: actual desktop + phone co-op recruitment, difficulty, three players/two armies, readiness, AI replays, results, pre-battle placement, 320px + landscape overflow checks, large-map automatic computer completion (revision progress '+(largeComplete.revision-largeStart.revision)+', replay frames '+largeComplete.replayFrames+', browser advance requests '+automaticBatches+').',tmp);
 })().catch(async error=>{console.error(error);console.error(errors);for(let i=0;i<pages.length;i++){try{await pages[i].screenshot({path:path.join(tmp,`failure-${i}.png`),fullPage:true});console.error(i,await pages[i].evaluate(()=>({code:state?.code,side:state?.side,turn:state?.turn,phase:state?.coop?.phase,done:state?.coop?.done,message:$('message').textContent,playing:!!playbackSession,busy,polling,dialogs:[...document.querySelectorAll('dialog[open]')].map(d=>d.id)})));}catch{}}console.error(tmp);process.exitCode=1;}).finally(async()=>{if(browser)await browser.close();server.kill();});
