@@ -21,7 +21,7 @@ from ww2_tactics.order_history import perform, status as history_status, KEY as 
 from ww2_tactics.lobby import install_lobby
 from ww2_tactics.admin import install_admin
 from ww2_tactics.battle_setup import assignment, seats, carry_creator, result_summary
-from ww2_tactics import cooperative, pipeline, jobs
+from ww2_tactics import cooperative, pipeline, jobs, linked_operations
 
 
 def create_app(db_path=None, *, background_ai=None, start_worker=True):
@@ -116,6 +116,8 @@ def create_app(db_path=None, *, background_ai=None, start_worker=True):
 
     def public(db, row, side):
         state = json.loads(row["state"])
+        operation = linked_operations.summary(state)
+        state.pop(linked_operations.KEY, None)
         state.pop('_ai_progress', None)
         if app.config['WW2_BACKGROUND_AI']:
             state['background_ai'] = True
@@ -155,6 +157,8 @@ def create_app(db_path=None, *, background_ai=None, start_worker=True):
                 safe_coop = cooperative.public(state, pid)
                 state.pop('coop')
             result = public_state(state,side)
+            if operation is not None:
+                result['operation'] = operation
             if pid:
                 result['coop'] = safe_coop
             if isinstance(replay, dict):
@@ -243,7 +247,10 @@ def create_app(db_path=None, *, background_ai=None, start_worker=True):
             body = {}
         if not isinstance(body, dict):
             raise ValueError('Expected a match settings object.')
-        return get_scenario(body.get('scenario', 'village'))['id']
+        scenario = get_scenario(body.get('scenario', 'village'))
+        if scenario.get('operation_only'):
+            raise ValueError('Start this mission through Operation Greybridge so its progress is preserved.')
+        return scenario['id']
 
     def new_battle(scenario):
         body = request.get_json(silent=True) or {}
@@ -298,6 +305,103 @@ def create_app(db_path=None, *, background_ai=None, start_worker=True):
                 if name:
                     db.execute('UPDATE lobby_names SET name=? WHERE code=?', (name, code))
         return jsonify(code=code, token=token), 201
+
+    @app.route('/api/operations/greybridge', methods=['GET', 'POST'])
+    def greybridge_operation():
+        if request.method == 'GET':
+            with connect() as db:
+                player = commander(db, required=True)
+                rows = db.execute('''SELECT m.code,m.state FROM match m
+                    JOIN commander_seats s ON s.owner_hash=m.host
+                    WHERE s.commander_id=? AND json_extract(m.state,'$._operation.id')='greybridge'
+                      AND json_extract(m.state,'$._operation.transition.code') IS NULL
+                    ORDER BY m.slot DESC LIMIT 20''', (player['id'],)).fetchall()
+                operations = [dict(code=row['code'], **linked_operations.summary(json.loads(row['state'])))
+                              for row in rows]
+            return jsonify(operations=operations)
+        body = request.get_json(silent=True)
+        if body is None:
+            body = {}
+        if not isinstance(body, dict):
+            return jsonify(error='Expected operation settings.'), 400
+        if (body.get('side', 'us') != 'us' or body.get('opponent', 'computer') != 'computer'
+                or body.get('ruleset', 'dsl') != 'dsl'):
+            return jsonify(error='Greybridge is a solo Allied operation using Current DSL rules.'), 400
+        with connect() as db:
+            # Validate a supplied sign-in before generating private starts.
+            player = commander(db, required=bool(request.headers.get('X-Commander-Token')))
+        state = linked_operations.create(initial)
+        token, code = secrets.token_urlsafe(32), secrets.token_hex(5).upper()
+        owner = digest(token)
+        with connect() as db:
+            db.execute('BEGIN IMMEDIATE')
+            # The account may have signed out while the initial maps were made.
+            player = commander(db, required=bool(request.headers.get('X-Commander-Token')))
+            db.execute('INSERT INTO match (code,host,guest,state) VALUES (?,?,?,?)',
+                       (code, owner, digest(secrets.token_urlsafe(32)), json.dumps(state)))
+            bind_commander(db, owner, player)
+            save_state(db, code, state)
+        return jsonify(code=code, token=token), 201
+
+    @app.route('/api/match/<code>/operation', methods=['GET', 'POST'])
+    def operation_progress(code):
+        with connect() as db:
+            if request.method == 'POST':
+                db.execute('BEGIN IMMEDIATE')
+            row = db.execute('SELECT * FROM match WHERE code=?', (code.upper(),)).fetchone()
+            side = identify(db, row) if row else None
+            if side != 'us':
+                return jsonify(error='The operation commander key is required.'), 403
+            state = json.loads(row['state'])
+            if not linked_operations.enabled(state):
+                return jsonify(error='This battle is not part of a linked operation.'), 404
+            if request.method == 'GET':
+                return jsonify(linked_operations.summary(state))
+            body = request.get_json(silent=True)
+            if not isinstance(body, dict) or body.get('action') not in ('continue', 'retry'):
+                return jsonify(error='Choose Continue operation or Retry mission.'), 400
+            action = body['action']
+            if 'request_id' in body and (not isinstance(body['request_id'], str) or not 1 <= len(body['request_id']) <= 128):
+                return jsonify(error='Invalid operation request identifier.'), 400
+            # One edge per finished mission is the idempotency boundary. A lost
+            # response or two identical taps must return the same successor.
+            prior = state[linked_operations.KEY].get('transition')
+            if prior:
+                if prior['action'] != action:
+                    return jsonify(error='This mission has already continued. Open its saved continuation.'), 409
+                target = db.execute('SELECT host FROM match WHERE code=?', (prior['code'],)).fetchone()
+                if not target or target['host'] != row['host']:
+                    return jsonify(error='The saved continuation is unavailable. Restore an operation save to start a separate run.'), 409
+                return jsonify(code=prior['code'])
+            if type(body.get('revision')) is not int or body['revision'] != state['revision']:
+                return jsonify(error='The mission changed. Refresh before continuing or retrying.'), 409
+            try:
+                successor = linked_operations.transition(state, action, public(db, row, side) if action == 'continue' else None)
+            except ValueError as error:
+                return jsonify(error=str(error)), 400
+            next_code = secrets.token_hex(5).upper()
+            db.execute('INSERT INTO match (code,host,guest,state) VALUES (?,?,?,?)',
+                       (next_code, row['host'], digest(secrets.token_urlsafe(32)), json.dumps(successor)))
+            # Same owner means browser tokens, MOVE aliases and commander
+            # sign-in all retain authority across mission boundaries.
+            save_state(db, next_code, successor)
+            state[linked_operations.KEY]['transition'] = dict(action=action, code=next_code)
+            state['revision'] += 1
+            state[HISTORY_KEY] = dict(side='us', past=[], future=[], reason='This mission has continued and is now read-only.')
+            save_state(db, row['code'], state)
+        return jsonify(code=next_code)
+
+    @app.get('/api/match/<code>/operation/history/<int:index>')
+    def operation_history(code, index):
+        with connect() as db:
+            row = db.execute('SELECT * FROM match WHERE code=?', (code.upper(),)).fetchone()
+            if not row or identify(db, row) != 'us':
+                return jsonify(error='The operation commander key is required.'), 403
+            try:
+                item = linked_operations.history_item(json.loads(row['state']), index)
+            except ValueError as error:
+                return jsonify(error=str(error)), 404
+        return jsonify(item)
 
     @app.post("/api/match/<code>/join")
     def join(code):
@@ -382,15 +486,21 @@ def create_app(db_path=None, *, background_ai=None, start_worker=True):
                 except ValueError as error:
                     return jsonify(error=str(error)), 400
                 state = json.loads(row["state"])
+                if linked_operations.enabled(state) and state[linked_operations.KEY].get('transition'):
+                    return jsonify(error='This completed mission is read-only. Open its operation continuation.'), 409
                 if not duplicate and (type(body.get("revision")) is not int or body["revision"] != state["revision"]):
                     return jsonify(error="The match changed. Refreshing the battlefield; try again."), 409
                 member = membership(db, row) if state.get('coop') else None
                 pipeline.hydrate_takeback(db, row['code'], state, body.get('kind'))
         if request.method == 'POST' and not duplicate:
             previous = state
+            operation = state.get(linked_operations.KEY)
             try:
-                state = (cooperative.order(state, member['player_id'], body, defer_computer=app.config['WW2_BACKGROUND_AI'])
-                         if member else perform(state, side, body, defer_computer=app.config['WW2_BACKGROUND_AI']))
+                working = linked_operations.without_context(state) if operation else state
+                state = (cooperative.order(working, member['player_id'], body, defer_computer=app.config['WW2_BACKGROUND_AI'])
+                         if member else perform(working, side, body, defer_computer=app.config['WW2_BACKGROUND_AI']))
+                if operation:
+                    state[linked_operations.KEY] = operation
             except ValueError as error:
                 return jsonify(error=str(error)), 400
             with connect() as db:
@@ -494,6 +604,8 @@ def create_app(db_path=None, *, background_ai=None, start_worker=True):
             side = identify(db, row) if row else None
             if not side or (side != json.loads(row['state']).get('created_side', 'us') and not state.get('ai_side') and not json.loads(row['state']).get('ai_side')):
                 return jsonify(error="Only the creator can replace this multiplayer invitation."), 403
+            if linked_operations.enabled(json.loads(row['state'])):
+                return jsonify(error='Use Retry mission or start a new operation. This operation history is preserved.'), 400
             # New code revokes both old seats; no accidental reuse of an old invitation.
             new_code, token = secrets.token_hex(5).upper(), secrets.token_urlsafe(32)
             old_owner = row['host' if side == 'us' else 'guest']
@@ -518,6 +630,8 @@ def create_app(db_path=None, *, background_ai=None, start_worker=True):
             if not side:
                 return jsonify(error='Player key required.'), 403
             state = json.loads(row['state'])
+            if linked_operations.enabled(state):
+                return jsonify(error='Use the operation result to continue or retry. Its missions cannot be replaced by a rematch.'), 400
             if state.get('coop'):
                 return jsonify(error='Create a new cooperative lobby from Home for the next operation.'), 400
             if not state['ready']:
@@ -530,6 +644,8 @@ def create_app(db_path=None, *, background_ai=None, start_worker=True):
                     return jsonify(error='Accept, decline, or cancel the pending proposal first.'), 409
                 try:
                     scenario = get_scenario(body.get('scenario'))
+                    if scenario.get('operation_only'):
+                        raise ValueError('Start this mission through Operation Greybridge.')
                     rules = profile(body.get('ruleset', state.get('ruleset', 'classic')))
                     if scenario.get('dsl_only') and rules['id']!='dsl':
                         raise ValueError(f"{scenario['name']} requires the DSL ruleset.")
@@ -653,8 +769,11 @@ def create_app(db_path=None, *, background_ai=None, start_worker=True):
             player, computer = digest(token), digest(secrets.token_urlsafe(32))
             host, guest = (player, computer) if saved['side'] == 'us' else (computer, player)
             # Copy the exact checkpoint. Never resolve a turn or reroll during restore.
+            restored_state = linked_operations.restored(json.loads(saved['state']))
             db.execute('INSERT INTO match (code,host,guest,state) VALUES (?,?,?,?)',
-                       (code, host, guest, saved['state']))
+                       (code, host, guest, json.dumps(restored_state)))
+            if linked_operations.enabled(restored_state):
+                bind_commander(db, player, commander(db, required=bool(request.headers.get('X-Commander-Token'))))
             pipeline.copy_artifacts(db, 'save:' + key, code)
             if app.config['WW2_BACKGROUND_AI']:
                 pipeline.migrate(db, code)

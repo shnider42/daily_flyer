@@ -3,7 +3,7 @@
 (()=>{
  let player=null,pending=null,register=false,offset=0,requestNumber=0,lastList='',renameCode=null,searchTimer,identityReady=false;
  try{const saved=JSON.parse(localStorage.getItem('ww2-commander'));if(typeof saved?.token==='string'&&typeof saved?.name==='string')player=saved;}catch{}
- window.ww2Commander={get name(){return player?.name;},get guest(){return identityReady&&!player;},get ready(){return identityReady;}};
+ window.ww2Commander={get name(){return player?.name;},get guest(){return identityReady&&!player;},get ready(){return identityReady;},request:(path,body,seat)=>requestLobby(path,body,seat)};
  function storePlayer(){try{if(player)localStorage.setItem('ww2-commander',JSON.stringify(player));else localStorage.removeItem('ww2-commander');}catch{}}
  async function requestLobby(path,body,seat){
   const response=await fetch(path,{method:body===undefined?'GET':'POST',headers:{'Content-Type':'application/json',...(player?{'X-Commander-Token':player.token}:{}),...(seat?{Authorization:`Bearer ${seat.token}`}:{})},...(body===undefined?{}:{body:JSON.stringify(body)})});

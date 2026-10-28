@@ -42,6 +42,8 @@ def result_summary(state):
     loser = 'de' if winner == 'us' else 'us'
     if state.get('resigned_by'):
         reason = 'The opposing commander resigned.'
+    elif board.get('greybridge_version') and state.get('greybridge'):
+        reason = state['greybridge'].get('outcome_reason') or 'The Greybridge mission ended.'
     elif state.get('front_mode') == 'evacuation':
         if winner == 'us':
             reason = ('The required six infantry units were evacuated.' if state.get('evacuated_count', 0) >= board['evacuation_target'] else 'The opposing army was eliminated.')

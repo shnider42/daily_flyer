@@ -19,6 +19,7 @@
   $('resultJourney').hidden=!window.ww2Journey?.isCurrent();
  }
  function open(){
+  if(state?.operation){window.ww2LinkedOperations?.open();return;}
   if(!state?.winner||busy||playbackSession||$('game').hidden||lobbyMode)return;
   fill();for(const d of document.querySelectorAll('dialog[open]'))if(d!==dialog)d.close();
   if(!dialog.open)dialog.showModal();
@@ -30,6 +31,7 @@
  $('resultJourney').onclick=()=>{dialog.close();window.ww2Journey?.open();};
  reopen.onclick=open;
  function sync(){
+  if(state?.operation){dialog.close();return;}
   if(!state?.winner||$('game').hidden||lobbyMode){dialog.close();return;}
   if(playbackSession){dialog.close();return;}
   if(dialog.open){fill();return;}

@@ -3,6 +3,7 @@
 (()=>{
  const node=(tag,id,text)=>{const n=document.createElement(tag);if(id)n.id=id;if(text)n.textContent=text;return n;};
  function mission(s){
+  if(s.greybridge&&window.ww2LinkedOperations)return window.ww2LinkedOperations.mission(s);
   const attacker=s.factions?.us||'Americans',defender=s.factions?.de||'Germans',rounds=s.scenario.rounds;
   if(s.war_version){
    const score=s.joint_score||{us:0,de:0};

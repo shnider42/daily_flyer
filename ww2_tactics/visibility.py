@@ -3,7 +3,7 @@ import copy
 from contextlib import contextmanager
 from contextvars import ContextVar
 from functools import wraps
-from . import fieldworks, domains, weather, debrief, small_fronts, ground_roles, the_war
+from . import fieldworks, domains, weather, debrief, small_fronts, ground_roles, the_war, greybridge
 
 
 _sight_work = ContextVar('sight_work', default=None)
@@ -113,6 +113,8 @@ def unit_sees_hex(state, scout, pos, concealed=False):
         from .nightfall import unit_sees
         return unit_sees(state,scout,pos,concealed)
     gap=distance(scout['pos'],pos)
+    night_limit=greybridge.night_limit(state,scout)
+    if night_limit is not None and gap>night_limit:return False
     if domains.joint(state):
         if concealed=='air':
             # Radar and aircraft look through terrain, not through the ground fog.
@@ -234,6 +236,7 @@ def view(state, side, terrain_visibility=True):
     small_fronts.redact(result,state,side)
     ground_roles.redact(result,state,side)
     the_war.redact(result,state,side)
+    greybridge.redact(result,state,side)
     if state.get('signals_version') or state.get('battlefield', {}).get('fleet_battle_version') or state.get('battlefield',{}).get('night_ops_version'):
         for u in result['units']:
             if u['side']!=side:
@@ -334,6 +337,7 @@ def public_state(state, side):
     the_war.redact(result,state,side)
     ground_roles.redact(result,state,side)
     result.pop('_order_history',None)
+    greybridge.redact(result,state,side)
     return debrief.redact(weather.redact(small_fronts.redact(result,state,side),state,side),state,side)
 
 

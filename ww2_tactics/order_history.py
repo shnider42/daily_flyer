@@ -112,6 +112,9 @@ def _perform(state, side, action, defer_computer=False):
         dice.append(value)
         return value
     result = apply(state, side, action, roll=roll)
+    if kind in {'sabotage_relay', 'extract'} or (result.get('greybridge') and result.get('winner')):
+        result[KEY] = dict(side=side, past=[], future=[], reason='A mission result or extraction was committed.')
+        return result
     if kind == 'end':
         if not defer_computer: result = play_turn(result)
         result[KEY] = dict(side=result['turn'], past=[], future=[], reason='A turn ended. Earlier orders are committed.')

@@ -12,7 +12,7 @@ from .effects import record_effect, record_shot_effect
 from . import combined, naval, transport, campaigns, air, weapons, buildings, operations, fieldworks, linked_front, signals, airborne, domains, fubar, logistics, new_fronts, deployment
 from .visibility import fog, active, visible_ids, unit_visible_ids, sees_hex, update_intel, record_reports
 from . import fire_control, editions, nightfall, midway2, air_support, carrier_decks, britain2, weather, debrief, small_fronts, ground_roles
-from . import the_war
+from . import the_war, greybridge
 
 WIDTH, HEIGHT = 7, 9
 OBJECTIVE = [3, 4]
@@ -51,7 +51,7 @@ def line_clear(a, b, smoke=(), state=None, high_ground=False):
 
 
 def initial(scenario='village', ruleset='classic'):
-    return debrief.initialize(weather.initialize(the_war.initialize(ground_roles.initialize(small_fronts.initialize(_initial(scenario, ruleset))))))
+    return debrief.initialize(weather.initialize(the_war.initialize(ground_roles.initialize(small_fronts.initialize(greybridge.initialize(_initial(scenario, ruleset)))))))
 
 
 def _initial(scenario='village', ruleset='classic'):
@@ -89,7 +89,8 @@ def _initial(scenario='village', ruleset='classic'):
     if board.get('combined_arms'):
         units=combined.roster('us',board['height'])+combined.roster('de',board['height'])
     if board.get('campaign'):
-        units=campaigns.setup(board)
+        units=(greybridge.roster(board['greybridge_stage']) if board.get('greybridge_version') == greybridge.VERSION
+               else campaigns.setup(board))
     state = dict(ruleset=ruleset, ruleset_version=rules['version'], units=units, turn="us", round=1, hold=0, winner=None, rules_version=4, smoke=[], battlefield=board,
                 support={'us': 1, 'de': 1}, barrages=[],
                 battle_number=1, victories={'us': 0, 'de': 0},
@@ -232,6 +233,7 @@ def _options(state, unit):
     if state.get("logistics_version"):extras.update(logistics.options(state,unit))
     if new_fronts.enabled(state):extras.update(new_fronts.options(state,unit))
     if small_fronts.enabled(state):extras.update(small_fronts.options(state,unit))
+    if greybridge.enabled(state):extras.update(greybridge.options(state,unit))
     if not state["ready"] or state["winner"] or unit["hp"] <= 0 or unit["side"] != state["turn"]:
         return dict(moves=moves, targets=targets, rally=False, **extras)
     seen=unit_visible_ids(state,unit)
@@ -328,7 +330,9 @@ def _apply(state, side, action, roll=None):
         reactions.extend(airborne.end_turn(state,side))
         state['smoke'] = [dict(s, ttl=s['ttl']-1) for s in state.get('smoke', []) if s['ttl'] > 1]
         state['recon'] = [dict(r, ttl=r['ttl']-1) for r in state.get('recon', []) if r['ttl'] > 1]
-        if the_war.enabled(state):
+        if greybridge.enabled(state):
+            greybridge.end_turn(state,side)
+        elif the_war.enabled(state):
             the_war.end_turn(state,side)
         elif nightfall.enabled(state):
             nightfall.end_turn(state,side)
@@ -384,7 +388,9 @@ def _apply(state, side, action, roll=None):
         nightfall.before_order(state,unit,kind)
         if dsl(state) and kind != 'move':
             unit['road_pending'] = False
-        if the_war.enabled(state) and kind in britain2.ORDERS:
+        if kind in greybridge.ORDERS:
+            message=greybridge.action(state,unit,action,legal)
+        elif the_war.enabled(state) and kind in britain2.ORDERS:
             message=britain2.action(state,unit,action,legal,roll_die,before_sight)
         elif the_war.enabled(state) and kind=='evacuate':
             message=the_war.evacuate(state,unit,legal)
@@ -555,8 +561,9 @@ def _apply(state, side, action, roll=None):
     the_war.after_order(state,action)
     if nightfall.enabled(state) and (not the_war.enabled(state) or the_war.dark(state)) and kind in {'fire','area_fire'} and unit['kind'] not in domains.AIR_UNITS:unit['night_flash']=True
     nightfall.after_order(state)
+    greybridge.after_order(state)
     for team in ("us", "de"):
-        if not nightfall.enabled(state) and not any(u["hp"] > 0 and u["side"] == team for u in state["units"]):
+        if not greybridge.enabled(state) and not nightfall.enabled(state) and not any(u["hp"] > 0 and u["side"] == team for u in state["units"]):
             state["winner"] = "de" if team == "us" else "us"
     new_fronts.check_result(state)
     # Losing any required link immediately breaks consecutive occupation.

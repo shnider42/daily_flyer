@@ -140,6 +140,8 @@ from .ground_roles import scenarios as role_scenarios
 CURRENT_SCENARIOS.update(role_scenarios(build))
 from .the_war import scenario as war_scenario
 CURRENT_SCENARIOS['the_war_1'] = war_scenario(build)
+from .greybridge import scenarios as greybridge_scenarios
+CURRENT_SCENARIOS.update(greybridge_scenarios(build))
 
 
 def get_scenario(key='village'):
@@ -168,6 +170,7 @@ def catalog(edition='legacy'):
     boards = [get_scenario((PREFIX if edition == 'current' else '')+key) for key in SCENARIOS]
     if edition == 'current':
         boards += [get_scenario(PREFIX+key) for key in CURRENT_SCENARIOS]
+    boards = [board for board in boards if not board.get('operation_only')]
     for position, board in enumerate(boards):
         board['browse'] = describe(board, position)
     return boards

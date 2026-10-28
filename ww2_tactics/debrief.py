@@ -19,6 +19,12 @@ def objective(state):
     """Only counters already advertised as public mission progress."""
     from .scenarios import battlefield
     board = battlefield(state)
+    if board.get('greybridge_version') and state.get('greybridge'):
+        mission = state['greybridge']
+        extraction = mission['stage'] in {'raid', 'withdrawal'}
+        return dict(label='Teams extracted' if extraction else 'Consecutive infantry hold',
+                    values={'us': mission['extracted'] if extraction else mission['hold']},
+                    target=mission['required'])
     if board.get('war_version'):
         return dict(label='Campaign points',values=copy.deepcopy(state['joint_score']),target=70)
     if state.get('britain_ops_version'):
