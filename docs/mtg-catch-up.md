@@ -16,7 +16,9 @@ Private working preview: https://magic-catch-up-field-guide.primemouse3.chatgpt.
   `F9_ROOT_PRODUCT` is unset because that existing setting takes precedence.
 - Install `requirements.txt`, then run `python scripts/build_mtg_catch_up.py`.
 - Static output: `mtg_catchup/index.html`, with all styles, JavaScript, reviewed
-  data and fallback content embedded. No API key or external asset is required.
+  data and fallback content embedded. No API key is required. Optional illustrations and display fonts load from
+  Wizards of the Coast, Scryfall, and Google Fonts; reading data and behavior
+  remain embedded.
 - Render static settings: branch `feat/mtg-catch-up`, publish directory
   `mtg_catchup`, build command `test -s mtg_catchup/index.html`. No environment
   variables or web-service runtime are required for the static export.
@@ -29,8 +31,8 @@ Private working preview: https://magic-catch-up-field-guide.primemouse3.chatgpt.
 
 ## Reader behavior
 
-Night mode is the default, with deep green surfaces and warm text. The header
-toggle restores the original light palette and remembers an explicit choice
+Night mode is the default, with charcoal surfaces, warm text, and gold accents. The header
+toggle restores a parchment light palette and remembers an explicit choice
 under `dfe-magic-theme-v1`, independently of filters and reading progress.
 The saved palette is applied before the first paint. Blocked storage still
 allows switching during the current visit; without JavaScript, night mode and
@@ -58,8 +60,9 @@ filter choices in the URL fragment, never personal reading marks. When
 clipboard access is unavailable a selectable link is shown.
 
 Three real, sourced entries are rendered before JavaScript loads. They remain
-visible if scripting is disabled or initialization fails. There are no
-external images, fonts, trackers, API requests, or modules needed for rendering.
+visible if scripting is disabled or initialization fails. Artwork and display fonts are external enhancements; system font fallbacks and
+HTML text preserve the reading experience if those providers are unavailable.
+No external JavaScript or live data API is required.
 An HTML viewer that disables scripts can show the fallback but cannot provide
 the interactive controls; a normal hosted browser page is the full experience.
 
@@ -116,3 +119,25 @@ The public Render site was verified without sign-in. Date and format filters
 updated the matching entries, and the detail selector expanded context and
 official evidence while preserving the same eight matching Commander changes
 from 2017 onward.
+
+## Illustrated visual edition
+
+The complete pre-redesign night-mode version is retained at
+`56ef6213bfddf065b0207c26dcf50624bdff5b20`. The visual redesign changes the
+HTML template and CSS, story category classes, theme-color values, and static
+export; the reviewed content dataset and filter semantics remain unchanged.
+
+The hero uses Tarkir: Dragonstorm art by Joshua Raphael from Wizards'
+[The Foundations of Magic's Next Era](https://magic.wizards.com/en/news/announcements/the-foundations-of-magics-next-era).
+The glossary uses Edge of Eternities art by Chris Rallis from the same article.
+Scryfall supplies full-card images of Llanowar Elves (Kev Walker), Black Lotus
+(Christopher Rush), and Serra Angel (Greg Staples), plus a Shivan Dragon art
+crop (Donato Giancola). Image URLs are pinned to specific card printings, not
+random or latest-card API requests. Illustrations are atmospheric, not legality
+claims or card recommendations. Visible artist credits and source links are
+in the page's art notebook.
+
+Cinzel (Natanael Gama) and Manrope (Mikhail Sharanda) are loaded through Google
+Fonts with display=swap, with Georgia and system sans fallbacks. Image space
+is reserved, below-fold artwork loads lazily, and hover movement respects
+reduced-motion preferences. The page remains usable without these assets.

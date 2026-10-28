@@ -43,7 +43,9 @@ def test_flask_export_and_fallback():
     assert len(soup.select('#fallback article')) == 3
     assert len(soup.select('#fallback article a')) == 3
     assert soup.select_one('#controls').has_attr('hidden')
-    assert not soup.select('script[src], link[rel=stylesheet], img[src]')
+    assert not soup.select('script[src]')
+    assert all(img.get('alt') is not None for img in soup.select('img'))
+    assert soup.select_one('#art-credits')
     assert '@@' not in page
     assert len(json.loads(soup.select_one('#mtg-data').string)['stories']) == 16
 
