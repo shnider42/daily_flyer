@@ -1,10 +1,10 @@
 {
-  "generated_at": "2026-10-21",
+  "generated_at": "2026-10-28",
   "latest_change": {
-    "date": "2026-10-21",
-    "label": "Patch 1.7 reviewed",
-    "url": "https://steamcommunity.com/games/3079210/announcements/detail/675134795999609522",
-    "summary": "Voice-volume and boat-shutdown changes are released; targeted graphics and control fixes are recorded. The content tracker now includes new weapons, vehicle behavior and clearly separated future plans."
+    "date": "2026-10-28",
+    "label": "October 28 evidence review",
+    "url": "https://hllv-bug-track.onrender.com/reviews/2026-10-28-source-review.json",
+    "summary": "Six dossiers refreshed and seven scoped reports added from October 22–27 replies. Patch 1.7 remains the latest release; Support follow-ups do not establish new fixes or confirmed causes."
   },
   "method": "Public evidence only. Official acknowledgement, reproduction, a shipped change, and post-fix verification are recorded separately.",
   "issues": [
@@ -292,11 +292,11 @@
       "kind": "issue family",
       "status_key": "monitoring",
       "status_label": "Improvements released · monitoring",
-      "bottom_line": "Patch 1.7 adds targeted stability/performance changes. Complete resolution of the previously reported crashes is not established.",
+      "bottom_line": "Patch 1.7 includes targeted stability changes. October 23 Support replies address tank-fire crash reports; their cause and a specific remedy remain unconfirmed.",
       "official_short": "Improvement reported",
       "fix_short": "Targeted changes through 1.7",
       "cause_short": "Blood/decal load + others",
-      "last_updated": "2026-10-21",
+      "last_updated": "2026-10-23",
       "scope": [
         "PC",
         "PS5",
@@ -305,7 +305,7 @@
         "multiple hardware configurations"
       ],
       "symptom": "Clients can crash for several distinct reasons, including a documented failure associated with large quantities of blood and decal effects.",
-      "official_position": "The notes identify a Tank Driver rotation NaN error and shoreline rubberbanding. They do not identify either as the cause of every AMD, loading, deployment or tank-fire crash; the earlier monitoring history remains relevant.",
+      "official_position": "The notes identify a Tank Driver rotation NaN error and shoreline rubberbanding. They do not identify either as the cause of every AMD, loading, deployment or tank-fire crash; the earlier monitoring history remains relevant. On October 23, Support escalated a tank-fire crash report and requested diagnostics in another. Neither reply links those symptoms to the Tank Driver rotation correction or confirms a working DirectX 11 workaround.",
       "workaround": "PC: finish shader caching before continuing; reset Video Settings after updating.",
       "known": [
         "Several individual stability problems have been identified.",
@@ -314,13 +314,15 @@
         "Team17 says that documented cause was not AMD-specific.",
         "1.5.2 adds memory-corruption and flare fixes, reduces VRAM use, and introduces FSR 4.1 for RX 7000+.",
         "October 7 release-note review: Records a tank-driver rotation crash correction, tutorial memory cleanup and broader VFX stability work.",
-        "October 9 follow-up: The October 9 publisher update reports fewer crashes after 1.6, while investigation of remaining AMD crash/driver reports continues. It provides no independent crash-rate measurement."
+        "October 9 follow-up: The October 9 publisher update reports fewer crashes after 1.6, while investigation of remaining AMD crash/driver reports continues. It provides no independent crash-rate measurement.",
+        "Two October 23 Support replies concern freezing or crashing when a tank gunner fires; they record escalation and diagnostic requests."
       ],
       "unknown": [
         "Remaining crash causes are not fully enumerated.",
         "A fix for one crash does not establish the cause of another report.",
         "Independent post-hotfix verification is not recorded.",
-        "Independent gameplay verification of the Patch 1.6 outcome is not recorded."
+        "Independent gameplay verification of the Patch 1.6 outcome is not recorded.",
+        "Whether the tank-fire reports share a cause with each other or with an earlier released correction."
       ],
       "timeline": [
         {
@@ -379,22 +381,34 @@
           "detail": "The October 9 publisher update reports fewer crashes after 1.6, while investigation of remaining AMD crash/driver reports continues. It provides no independent crash-rate measurement."
         },
         {
-          "date": "2026-10-15",
-          "event": "Community Feedback #8 | Command Post",
-          "detail": "Added in the October 16 editorial review. The Sources entry records the scoped claim and direct reference.",
-          "source_url": "https://www.hellletloose.com/blog/community-update-8"
-        },
-        {
           "date": "2026-10-13",
           "event": "AMD crashes unacceptable.",
           "detail": "Added in the October 16 editorial review. The Sources entry records the scoped claim and direct reference.",
           "source_url": "https://steamcommunity.com/app/3079210/discussions/1/591816302688109179/?ctp=2#c590692129307778259"
         },
         {
+          "date": "2026-10-15",
+          "event": "Community Feedback #8 | Command Post",
+          "detail": "Added in the October 16 editorial review. The Sources entry records the scoped claim and direct reference.",
+          "source_url": "https://www.hellletloose.com/blog/community-update-8"
+        },
+        {
           "date": "2026-10-21",
           "event": "Patch 1.7 release review",
           "detail": "The release lists a Tank Driver rotation error correction and reduced shoreline rubberbanding, not closure of all client crashes.",
           "source_url": "https://steamcommunity.com/games/3079210/announcements/detail/675134795999609522"
+        },
+        {
+          "date": "2026-10-23",
+          "event": "Team17 Support follow-up",
+          "detail": "Support acknowledges similar reports of freezing or crashing when tank gunners fire and forwards the report for investigation. It does not identify a cause, a released remedy or a link to the separately fixed Tank Driver rotation error.",
+          "source_url": "https://steamcommunity.com/app/3079210/discussions/1/562545439722708742/?ctp=1#c562545439722991680"
+        },
+        {
+          "date": "2026-10-23",
+          "event": "Team17 Support follow-up",
+          "detail": "Support asks whether a player-tried DirectX 11 launch option helped a tank-related crash and requests DxDiag if it did not. The opening report describes freezing when a gunner fires. No successful workaround or driver cause is confirmed.",
+          "source_url": "https://steamcommunity.com/app/3079210/discussions/1/562545439722914380/?ctp=1#c562545439722994382"
         }
       ],
       "sources": [
@@ -614,9 +628,39 @@
           "content_sha256": "e09490c9fbe88e5c27342a6f7201df5cecc4e262b4479e0eaccea3cc0e167b16",
           "source_locator": "Stability & Performance",
           "claim": "The release lists a Tank Driver rotation error correction and reduced shoreline rubberbanding, not closure of all client crashes."
+        },
+        {
+          "type": "support thread",
+          "publisher": "Team17 Support",
+          "title": "Crashing from firing tanks main gun",
+          "url": "https://steamcommunity.com/app/3079210/discussions/1/562545439722708742/?ctp=1#c562545439722991680",
+          "date": "2026-10-23",
+          "source_published_at": "2026-10-23T15:25:35Z",
+          "source_reviewed_at": "2026-10-28",
+          "source_locator": "Reply 562545439722991680; original report and surrounding replies reviewed",
+          "content_sha256": "d08318e04ef0ff9d2c1f617ba01ddbcbf7d947478e4b82a306adfd99dba2ddcc",
+          "source_author_id": "76561199418165143",
+          "source_category": "Team17 Support",
+          "claim": "Support acknowledges similar reports of freezing or crashing when tank gunners fire and forwards the report for investigation. It does not identify a cause, a released remedy or a link to the separately fixed Tank Driver rotation error.",
+          "authority_checked_at": "2026-10-28T13:01:49Z"
+        },
+        {
+          "type": "support thread",
+          "publisher": "Team17 Support",
+          "title": "Crashing to Desktop - If it matters Im always in a tank",
+          "url": "https://steamcommunity.com/app/3079210/discussions/1/562545439722914380/?ctp=1#c562545439722994382",
+          "date": "2026-10-23",
+          "source_published_at": "2026-10-23T16:01:58Z",
+          "source_reviewed_at": "2026-10-28",
+          "source_locator": "Reply 562545439722994382; original report and surrounding replies reviewed",
+          "content_sha256": "9e521ec3edc44f3f14404951be0df5c4cb4b15fb7f40092a1e1ab4f4198baed1",
+          "source_author_id": "76561199418165143",
+          "source_category": "Team17 Support",
+          "claim": "Support asks whether a player-tried DirectX 11 launch option helped a tank-related crash and requests DxDiag if it did not. The opening report describes freezing when a gunner fires. No successful workaround or driver cause is confirmed.",
+          "authority_checked_at": "2026-10-28T13:01:49Z"
         }
       ],
-      "last_reviewed": "2026-10-21",
+      "last_reviewed": "2026-10-28",
       "editorial_history": [
         {
           "date": "2026-10-11",
@@ -644,6 +688,29 @@
             "bottom_line": "October 15: fewer crashes reported internally; remaining cases stay open, with further stability work planned for 1.7.",
             "fix_short": "Earlier improvements; 1.7 planned",
             "official_position": "The publisher reports improvement, not universal resolution. A separate October 13 Support exchange continues troubleshooting tank-fire crashes; neither a shared hardware cause nor a reliable workaround is established."
+          }
+        },
+        {
+          "date": "2026-10-28",
+          "reason": "Reviewed original October 22–27 public replies; preserved released-fix scope and uncertainty.",
+          "previous": {
+            "bottom_line": "Patch 1.7 adds targeted stability/performance changes. Complete resolution of the previously reported crashes is not established.",
+            "official_position": "The notes identify a Tank Driver rotation NaN error and shoreline rubberbanding. They do not identify either as the cause of every AMD, loading, deployment or tank-fire crash; the earlier monitoring history remains relevant.",
+            "known": [
+              "Several individual stability problems have been identified.",
+              "One crash cause is associated with large quantities of blood and decal effects.",
+              "Patch 1.4 considerably reduced crashes from that cause in internal testing.",
+              "Team17 says that documented cause was not AMD-specific.",
+              "1.5.2 adds memory-corruption and flare fixes, reduces VRAM use, and introduces FSR 4.1 for RX 7000+.",
+              "October 7 release-note review: Records a tank-driver rotation crash correction, tutorial memory cleanup and broader VFX stability work.",
+              "October 9 follow-up: The October 9 publisher update reports fewer crashes after 1.6, while investigation of remaining AMD crash/driver reports continues. It provides no independent crash-rate measurement."
+            ],
+            "unknown": [
+              "Remaining crash causes are not fully enumerated.",
+              "A fix for one crash does not establish the cause of another report.",
+              "Independent post-hotfix verification is not recorded.",
+              "Independent gameplay verification of the Patch 1.6 outcome is not recorded."
+            ]
           }
         }
       ]
@@ -1652,23 +1719,24 @@
       "kind": "support-level report cluster",
       "status_key": "reported",
       "status_label": "Reports escalated",
-      "bottom_line": "An October 1 player report describes combat freezes continuing. Root cause and a released fix remain unconfirmed.",
+      "bottom_line": "An October 26 Support reply addresses a report of stalling on the first received shot. Diagnostic requests do not establish the cause, a reliable workaround or a released fix.",
       "official_short": "Support acknowledged",
       "fix_short": "None confirmed",
       "cause_short": "Unknown",
-      "last_updated": "2026-10-01",
+      "last_updated": "2026-10-26",
       "scope": [
         "PC",
         "close combat",
         "multiple GPU brands"
       ],
       "symptom": "The game can freeze or stutter for roughly half a second when the player fires, is hit, or enters a close-range engagement.",
-      "official_position": "Team17 Support gathered diagnostics and forwarded the reports for investigation. The thread includes AMD, Nvidia, and Intel Arc systems, which argues against assigning the symptom to a single GPU brand without further evidence.",
+      "official_position": "Team17 Support gathered diagnostics and forwarded the reports for investigation. The thread includes AMD, Nvidia, and Intel Arc systems, which argues against assigning the symptom to a single GPU brand without further evidence. In a separate October 26 reply, Support requested game-file verification and DxDiag for first-hit stutter. This does not identify file corruption as the cause.",
       "workaround": null,
       "known": [
         "The symptom was reported in both testing and the full release.",
         "Multiple hardware configurations appear in the same report thread.",
-        "Team17 Support forwarded the reports for investigation."
+        "Team17 Support forwarded the reports for investigation.",
+        "A newly reviewed report describes a one-to-two-second stall on the first received shot after joining a server; Support requested diagnostics on October 26."
       ],
       "unknown": [
         "The trigger—firing, being hit, asset loading, effects, or another event—is not established.",
@@ -1701,6 +1769,12 @@
           "date": "2026-10-01",
           "event": "Player report",
           "detail": "A player describes freezes of up to three seconds during suppression or close-range kills. Their particle-effect explanation is unverified."
+        },
+        {
+          "date": "2026-10-26",
+          "event": "Team17 Support follow-up",
+          "detail": "Support responds to a report of a one-to-two-second stall on the first received shot after joining a server, requesting game-file verification and DxDiag if it continues. The advice does not establish corrupted files as the cause or a working fix.",
+          "source_url": "https://steamcommunity.com/app/3079210/discussions/1/562545740485934078/?ctp=1#c562545740485991792"
         }
       ],
       "sources": [
@@ -1729,8 +1803,39 @@
             "http_status": 200
           },
           "link_checked_at": "2026-10-11"
+        },
+        {
+          "type": "support thread",
+          "publisher": "Team17 Support",
+          "title": "First shot register on your body causes you to lag",
+          "url": "https://steamcommunity.com/app/3079210/discussions/1/562545740485934078/?ctp=1#c562545740485991792",
+          "date": "2026-10-26",
+          "source_published_at": "2026-10-26T14:52:02Z",
+          "source_reviewed_at": "2026-10-28",
+          "source_locator": "Reply 562545740485991792; original report and surrounding replies reviewed",
+          "content_sha256": "e3e967a69fb4dec0ea2b2e238b82d0a035688fae36e21bdd21466122e95c4527",
+          "source_author_id": "76561198363837070",
+          "source_category": "Team17 Support",
+          "claim": "Support responds to a report of a one-to-two-second stall on the first received shot after joining a server, requesting game-file verification and DxDiag if it continues. The advice does not establish corrupted files as the cause or a working fix.",
+          "authority_checked_at": "2026-10-28T13:01:22Z"
         }
-      ]
+      ],
+      "editorial_history": [
+        {
+          "date": "2026-10-28",
+          "reason": "Reviewed original October 22–27 public replies; preserved released-fix scope and uncertainty.",
+          "previous": {
+            "bottom_line": "An October 1 player report describes combat freezes continuing. Root cause and a released fix remain unconfirmed.",
+            "official_position": "Team17 Support gathered diagnostics and forwarded the reports for investigation. The thread includes AMD, Nvidia, and Intel Arc systems, which argues against assigning the symptom to a single GPU brand without further evidence.",
+            "known": [
+              "The symptom was reported in both testing and the full release.",
+              "Multiple hardware configurations appear in the same report thread.",
+              "Team17 Support forwarded the reports for investigation."
+            ]
+          }
+        }
+      ],
+      "last_reviewed": "2026-10-28"
     },
     {
       "id": "HLLV-012",
@@ -2987,11 +3092,11 @@
       "kind": "support-level vehicle report",
       "status_key": "partial",
       "status_label": "Related fix released",
-      "bottom_line": "Update 1.5 fixes destroyed boats remaining visible to some players. Its relationship to every unusable or indestructible boat report is unverified.",
+      "bottom_line": "Support escalated another unusable-boat spawn report on October 27. The older destroyed-boat visibility fix and Patch 1.7 engine-exit change do not establish closure of this report.",
       "official_short": "Related fix documented",
       "fix_short": "Update 1.5",
       "cause_short": "Unknown",
-      "last_updated": "2026-09-16",
+      "last_updated": "2026-10-27",
       "scope": [
         "boats",
         "spawn points",
@@ -2999,16 +3104,19 @@
         "servers"
       ],
       "symptom": "A boat can remain bobbing in the water and appear active to both teams while rejecting spawns and taking no apparent damage.",
-      "official_position": "The official fix concerns post-destruction boat visibility. It is relevant to the ghost-boat reports, but does not explicitly confirm all reported spawn and damage failures.",
+      "official_position": "The official fix concerns post-destruction boat visibility. It is relevant to the ghost-boat reports, but does not explicitly confirm all reported spawn and damage failures. An October 27 reply forwards a new report of boats that appear active for spawning but fail to work. The same thread also discusses Garrison construction; no common cause or relationship to manual driver exit is established.",
       "workaround": null,
       "known": [
         "Reports describe the behavior on multiple maps.",
         "The unusable boat may still have active communications.",
-        "Team17 Support says the issue is under investigation."
+        "Team17 Support says the issue is under investigation.",
+        "Support requested timestamped footage on October 26 and forwarded the described boat-spawn failure on October 27."
       ],
       "unknown": [
         "Exact linkage to every earlier ghost-boat report is unproven.",
-        "Post-fix verification is not recorded."
+        "Post-fix verification is not recorded.",
+        "Whether the newer boat-spawn report involves destruction, driver exit, replication or another condition.",
+        "The tracker has not reviewed the offered video or independently reproduced the report."
       ],
       "timeline": [
         {
@@ -3025,6 +3133,18 @@
           "date": "2026-09-16",
           "event": "Update 1.5 (released September 16)",
           "detail": "Post-destruction boat visibility corrected."
+        },
+        {
+          "date": "2026-10-26",
+          "event": "Team17 Support follow-up",
+          "detail": "Support requests a video with timestamps or shorter clips for a mixed report of unusable Garrisons and boats during a match. This request does not establish that the video was received, reproduced internally or proves one shared cause.",
+          "source_url": "https://steamcommunity.com/app/3079210/discussions/1/562545740486013340/?ctp=1#c562545740486017879"
+        },
+        {
+          "date": "2026-10-27",
+          "event": "Team17 Support follow-up",
+          "detail": "Support acknowledges repeated Garrison-construction reports and forwards both the Garrison report and newly described boats that appear active for respawning but do not work. The reply identifies no common cause, reproduction result, released fix or relation to Patch 1.7 manual-driver-exit behavior.",
+          "source_url": "https://steamcommunity.com/app/3079210/discussions/1/562545740486013340/?ctp=1#c562546024123496682"
         }
       ],
       "sources": [
@@ -3053,8 +3173,59 @@
             "http_status": 200
           },
           "link_checked_at": "2026-10-11"
+        },
+        {
+          "type": "support thread",
+          "publisher": "Team17 Support",
+          "title": "I have an hour long clip",
+          "url": "https://steamcommunity.com/app/3079210/discussions/1/562545740486013340/?ctp=1#c562545740486017879",
+          "date": "2026-10-26",
+          "source_published_at": "2026-10-26T20:08:55Z",
+          "source_reviewed_at": "2026-10-28",
+          "source_locator": "Reply 562545740486017879; original report and surrounding replies reviewed",
+          "content_sha256": "45b6a8c7a7903cf49b5ae37d11a5e266482eee484015124fb1eef7fcc3a049d6",
+          "source_author_id": "76561198363837070",
+          "source_category": "Team17 Support",
+          "claim": "Support requests a video with timestamps or shorter clips for a mixed report of unusable Garrisons and boats during a match. This request does not establish that the video was received, reproduced internally or proves one shared cause.",
+          "authority_checked_at": "2026-10-28T13:02:05Z",
+          "source_edited_at": "2026-10-26T20:09:19Z"
+        },
+        {
+          "type": "support thread",
+          "publisher": "Team17 Support",
+          "title": "I have an hour long clip",
+          "url": "https://steamcommunity.com/app/3079210/discussions/1/562545740486013340/?ctp=1#c562546024123496682",
+          "date": "2026-10-27",
+          "source_published_at": "2026-10-27T16:33:31Z",
+          "source_reviewed_at": "2026-10-28",
+          "source_locator": "Reply 562546024123496682; original report and surrounding replies reviewed",
+          "content_sha256": "f3a4f7671d6937f081ce9945d33b39b42bf175365e5dc1b33e8e63694df17e31",
+          "source_author_id": "76561199418165143",
+          "source_category": "Team17 Support",
+          "claim": "Support acknowledges repeated Garrison-construction reports and forwards both the Garrison report and newly described boats that appear active for respawning but do not work. The reply identifies no common cause, reproduction result, released fix or relation to Patch 1.7 manual-driver-exit behavior.",
+          "authority_checked_at": "2026-10-28T13:02:05Z"
         }
-      ]
+      ],
+      "editorial_history": [
+        {
+          "date": "2026-10-28",
+          "reason": "Reviewed original October 22–27 public replies; preserved released-fix scope and uncertainty.",
+          "previous": {
+            "bottom_line": "Update 1.5 fixes destroyed boats remaining visible to some players. Its relationship to every unusable or indestructible boat report is unverified.",
+            "official_position": "The official fix concerns post-destruction boat visibility. It is relevant to the ghost-boat reports, but does not explicitly confirm all reported spawn and damage failures.",
+            "known": [
+              "Reports describe the behavior on multiple maps.",
+              "The unusable boat may still have active communications.",
+              "Team17 Support says the issue is under investigation."
+            ],
+            "unknown": [
+              "Exact linkage to every earlier ghost-boat report is unproven.",
+              "Post-fix verification is not recorded."
+            ]
+          }
+        }
+      ],
+      "last_reviewed": "2026-10-28"
     },
     {
       "id": "HLLV-031",
@@ -5037,11 +5208,11 @@
       "kind": "rendering issue family",
       "status_key": "partial",
       "status_label": "Visual improvements released",
-      "bottom_line": "Patch 1.7 fixes specific long-range foliage and shadow cases and adds map LOD corrections. Broad blur, pop-in and disappearing-cover closure remains unverified.",
+      "bottom_line": "Patch 1.7 includes specific foliage and LOD fixes. October 23 Support replies escalate further foliage-quality and distant-asset reports; broader closure remains unverified.",
       "official_short": "Developer acknowledged",
       "fix_short": "Targeted foliage / LOD fixes in 1.7",
       "cause_short": "Not public",
-      "last_updated": "2026-10-21",
+      "last_updated": "2026-10-23",
       "scope": [
         "PC",
         "PS5",
@@ -5049,17 +5220,20 @@
         "foliage"
       ],
       "symptom": "Blurry foliage and disappearing cover",
-      "official_position": "The beyond-200-metre foliage correction is a defined case, not proof that all shorter-range blur or cover-loss reports are fixed. Wider 2.0 visual plans and the earlier Support diagnostic history remain separate.",
+      "official_position": "The beyond-200-metre foliage correction is a defined case, not proof that all shorter-range blur or cover-loss reports are fixed. Wider 2.0 visual plans and the earlier Support diagnostic history remain separate. October 23 Support replies forward separate foliage-quality and distance/scope rendering reports. One follow-up also mentions terrain flashes with Frame Generation; its generic acknowledgement does not confirm each complaint or a shared cause.",
       "workaround": null,
       "known": [
         "The linked official evidence documents this issue.",
         "October 7 release-note review: Lists reduced post-map texture streaming pop-in and further culling/graphics corrections; no blanket foliage resolution is stated.",
-        "October 9 follow-up: Further HLOD-bounds, foliage/tree screen-size transitions and individual asset work target Patch 1.7. The publisher does not promise to eliminate all pop-in or disappearing cover."
+        "October 9 follow-up: Further HLOD-bounds, foliage/tree screen-size transitions and individual asset work target Patch 1.7. The publisher does not promise to eliminate all pop-in or disappearing cover.",
+        "The previously unacknowledged October 17 distance/LOD report received a Support escalation on October 23.",
+        "A separate October 23 reply acknowledges similar reports after a mixed foliage-quality and terrain-flash follow-up."
       ],
       "unknown": [
         "HLLV-056 covers one released correction; the wider rendering issue remains open.",
         "Independent gameplay verification of the Patch 1.6 outcome is not recorded.",
-        "A driver suggestion for one PC is not proof that drivers explain the wider foliage issue."
+        "A driver suggestion for one PC is not proof that drivers explain the wider foliage issue.",
+        "Whether the newly reviewed symptoms overlap the specific long-range foliage and shadow cases corrected in Patch 1.7."
       ],
       "timeline": [
         {
@@ -5100,6 +5274,18 @@
           "event": "Patch 1.7 release review",
           "detail": "Fixes some foliage disappearing beyond 200 metres unless zoomed, a Low Quality post-ADS shadow issue, and eight map culling/LOD cases.",
           "source_url": "https://steamcommunity.com/games/3079210/announcements/detail/675134795999609522"
+        },
+        {
+          "date": "2026-10-23",
+          "event": "Team17 Support follow-up",
+          "detail": "Support forwards a report of delayed or missing rendering of large asset groups or complex structures viewed at distance through a scope. No reproduced cause, specified correction or successful outcome is identified.",
+          "source_url": "https://steamcommunity.com/app/3079210/discussions/1/570426339809651925/?ctp=1#c562545439722986963"
+        },
+        {
+          "date": "2026-10-23",
+          "event": "Team17 Support follow-up",
+          "detail": "Support acknowledges similar reports and forwards a mixed follow-up about poor foliage quality and white terrain flashes with Frame Generation for investigation. The reply does not establish which complaint was reproduced or identify a cause or released remedy.",
+          "source_url": "https://steamcommunity.com/app/3079210/discussions/1/590691913364082327/?ctp=1#c562545439722995267"
         }
       ],
       "sources": [
@@ -5218,9 +5404,39 @@
           "content_sha256": "e09490c9fbe88e5c27342a6f7201df5cecc4e262b4479e0eaccea3cc0e167b16",
           "source_locator": "Audio, Visuals & Animation; Maps & Environments",
           "claim": "Fixes some foliage disappearing beyond 200 metres unless zoomed, a Low Quality post-ADS shadow issue, and eight map culling/LOD cases."
+        },
+        {
+          "type": "support thread",
+          "publisher": "Team17 Support",
+          "title": "another LoD issue",
+          "url": "https://steamcommunity.com/app/3079210/discussions/1/570426339809651925/?ctp=1#c562545439722986963",
+          "date": "2026-10-23",
+          "source_published_at": "2026-10-23T14:21:17Z",
+          "source_reviewed_at": "2026-10-28",
+          "source_locator": "Reply 562545439722986963; original report and surrounding replies reviewed",
+          "content_sha256": "d888ff9b015dc953b7a3be7db43442eea5ad10e9066a837271553edf65bf30ba",
+          "source_author_id": "76561199418165143",
+          "source_category": "Team17 Support",
+          "claim": "Support forwards a report of delayed or missing rendering of large asset groups or complex structures viewed at distance through a scope. No reproduced cause, specified correction or successful outcome is identified.",
+          "authority_checked_at": "2026-10-28T13:02:05Z"
+        },
+        {
+          "type": "support thread",
+          "publisher": "Team17 Support",
+          "title": "foliage looks TERRIBLE.",
+          "url": "https://steamcommunity.com/app/3079210/discussions/1/590691913364082327/?ctp=1#c562545439722995267",
+          "date": "2026-10-23",
+          "source_published_at": "2026-10-23T16:14:06Z",
+          "source_reviewed_at": "2026-10-28",
+          "source_locator": "Reply 562545439722995267; original report and surrounding replies reviewed",
+          "content_sha256": "0d04784e9d7a8b5b171511574614f7c86383e23cf9b6d506cc30cbce75a1869e",
+          "source_author_id": "76561198363837070",
+          "source_category": "Team17 Support",
+          "claim": "Support acknowledges similar reports and forwards a mixed follow-up about poor foliage quality and white terrain flashes with Frame Generation for investigation. The reply does not establish which complaint was reproduced or identify a cause or released remedy.",
+          "authority_checked_at": "2026-10-28T13:01:22Z"
         }
       ],
-      "last_reviewed": "2026-10-21",
+      "last_reviewed": "2026-10-28",
       "editorial_history": [
         {
           "date": "2026-10-11",
@@ -5258,6 +5474,24 @@
             "bottom_line": "Foliage and disappearing-cover problems remain open; 1.7 and 2.0 improvements are still future work.",
             "fix_short": "Earlier changes; 1.7 / 2.0 planned",
             "official_position": "October 15 development plans remain unreleased in the reviewed sources. In a separate October 11 PC thread, Support requested diagnostics and suggested updating one player’s NVIDIA driver. No successful outcome or general rendering fix was established."
+          }
+        },
+        {
+          "date": "2026-10-28",
+          "reason": "Reviewed original October 22–27 public replies; preserved released-fix scope and uncertainty.",
+          "previous": {
+            "bottom_line": "Patch 1.7 fixes specific long-range foliage and shadow cases and adds map LOD corrections. Broad blur, pop-in and disappearing-cover closure remains unverified.",
+            "official_position": "The beyond-200-metre foliage correction is a defined case, not proof that all shorter-range blur or cover-loss reports are fixed. Wider 2.0 visual plans and the earlier Support diagnostic history remain separate.",
+            "known": [
+              "The linked official evidence documents this issue.",
+              "October 7 release-note review: Lists reduced post-map texture streaming pop-in and further culling/graphics corrections; no blanket foliage resolution is stated.",
+              "October 9 follow-up: Further HLOD-bounds, foliage/tree screen-size transitions and individual asset work target Patch 1.7. The publisher does not promise to eliminate all pop-in or disappearing cover."
+            ],
+            "unknown": [
+              "HLLV-056 covers one released correction; the wider rendering issue remains open.",
+              "Independent gameplay verification of the Patch 1.6 outcome is not recorded.",
+              "A driver suggestion for one PC is not proof that drivers explain the wider foliage issue."
+            ]
           }
         }
       ]
@@ -5787,20 +6021,21 @@
       "kind": "volume-control defect",
       "status_key": "shipped",
       "status_label": "Slider fix released in 1.7",
-      "bottom_line": "Patch 1.7 explicitly fixes voice-volume slider scaling across audio channels. Independent post-patch outcome testing is not recorded.",
+      "bottom_line": "Patch 1.7 releases the voice-volume slider correction. One player reports improvement; Support requested further feedback on October 23. General post-patch recovery is not independently verified.",
       "official_short": "Release documented",
       "fix_short": "Patch 1.7",
       "cause_short": "Not public",
-      "last_updated": "2026-10-21",
+      "last_updated": "2026-10-23",
       "scope": [
         "Voice Chat"
       ],
       "symptom": "Voice volume stays excessively loud",
-      "official_position": "This is direct release evidence for the slider-scaling defect, not a fix for every VOIP outage. The unrelated Support reply under editorial hold remains excluded.",
+      "official_position": "This is direct release evidence for the slider-scaling defect, not a fix for every VOIP outage. The unrelated Support reply under editorial hold remains excluded. The October 23 Support follow-up asks whether the problem persists; it does not confirm success or failure of the released correction.",
       "workaround": null,
       "known": [
         "The linked official evidence documents this issue.",
-        "October 7 release-note review: The audio overhaul covers weapons, spawns and ambience; a voice-volume slider correction is not stated."
+        "October 7 release-note review: The audio overhaul covers weapons, spawns and ambience; a voice-volume slider correction is not stated.",
+        "One October 22 player reply describes raising volume values from 15 to 30 after the patch and perceiving improved scaling. This is a single reported outcome, not a controlled or platform-wide test."
       ],
       "unknown": [
         "Independent post-1.7 outcome verification is not recorded.",
@@ -5833,6 +6068,18 @@
           "event": "Patch 1.7 release review",
           "detail": "The release explicitly corrects Voice Volume slider scaling across Audio Settings channels.",
           "source_url": "https://steamcommunity.com/games/3079210/announcements/detail/675134795999609522"
+        },
+        {
+          "date": "2026-10-22",
+          "event": "Player-reported improvement",
+          "detail": "One player reports raising voice-volume values from 15 to 30 after Patch 1.7 and perceiving the slider problem as fixed. This is an individual improvement report without a documented cross-channel, platform-wide or controlled test.",
+          "source_url": "https://steamcommunity.com/app/3079210/discussions/1/562542339336314254/?ctp=1#c562545439722828347"
+        },
+        {
+          "date": "2026-10-23",
+          "event": "Team17 Support follow-up",
+          "detail": "Support asks whether the reporting player still experiences the voice-volume problem. This is a follow-up after Patch 1.7, not confirmation of either recovery or failure.",
+          "source_url": "https://steamcommunity.com/app/3079210/discussions/1/562542339336314254/?ctp=1#c562545439722993157"
         }
       ],
       "sources": [
@@ -5918,9 +6165,38 @@
           "content_sha256": "e09490c9fbe88e5c27342a6f7201df5cecc4e262b4479e0eaccea3cc0e167b16",
           "source_locator": "Controls & Settings",
           "claim": "The release explicitly corrects Voice Volume slider scaling across Audio Settings channels."
+        },
+        {
+          "type": "player report",
+          "publisher": "Steam community",
+          "title": "VOIP Volume Sliders: player reports improved scaling",
+          "url": "https://steamcommunity.com/app/3079210/discussions/1/562542339336314254/?ctp=1#c562545439722828347",
+          "date": "2026-10-22",
+          "source_published_at": "2026-10-22T00:20:15Z",
+          "source_reviewed_at": "2026-10-28",
+          "source_locator": "Reply 562545439722828347; original report and surrounding replies reviewed",
+          "content_sha256": "cfdb214e4f12b736ef58b3f5d4d7c6f9f3f84896cb37b9901dcb3322f414c76a",
+          "source_author_id": "76561198392610704",
+          "source_category": "Player observation",
+          "claim": "One player reports raising voice-volume values from 15 to 30 after Patch 1.7 and perceiving the slider problem as fixed. This is an individual improvement report without a documented cross-channel, platform-wide or controlled test."
+        },
+        {
+          "type": "support thread",
+          "publisher": "Team17 Support",
+          "title": "VOIP Volume Sliders",
+          "url": "https://steamcommunity.com/app/3079210/discussions/1/562542339336314254/?ctp=1#c562545439722993157",
+          "date": "2026-10-23",
+          "source_published_at": "2026-10-23T15:44:42Z",
+          "source_reviewed_at": "2026-10-28",
+          "source_locator": "Reply 562545439722993157; original report and surrounding replies reviewed",
+          "content_sha256": "d13555e38cfacc8fcf75f4304369e7864c179de1b01a975823f60f8d2cdab66a",
+          "source_author_id": "76561198363837070",
+          "source_category": "Team17 Support",
+          "claim": "Support asks whether the reporting player still experiences the voice-volume problem. This is a follow-up after Patch 1.7, not confirmation of either recovery or failure.",
+          "authority_checked_at": "2026-10-28T13:01:22Z"
         }
       ],
-      "last_reviewed": "2026-10-21",
+      "last_reviewed": "2026-10-28",
       "editorial_history": [
         {
           "date": "2026-10-16",
@@ -5944,6 +6220,18 @@
               "Release timing is provisional; this is separate from silent muting (HLLV-029).",
               "No new developer confirmation of a shipped volume fix was found in the reviewed thread.",
               "Independent gameplay verification of the Patch 1.6 outcome is not recorded."
+            ]
+          }
+        },
+        {
+          "date": "2026-10-28",
+          "reason": "Reviewed original October 22–27 public replies; preserved released-fix scope and uncertainty.",
+          "previous": {
+            "bottom_line": "Patch 1.7 explicitly fixes voice-volume slider scaling across audio channels. Independent post-patch outcome testing is not recorded.",
+            "official_position": "This is direct release evidence for the slider-scaling defect, not a fix for every VOIP outage. The unrelated Support reply under editorial hold remains excluded.",
+            "known": [
+              "The linked official evidence documents this issue.",
+              "October 7 release-note review: The audio overhaul covers weapons, spawns and ambience; a voice-volume slider correction is not stated."
             ]
           }
         }
@@ -7457,23 +7745,24 @@
       "kind": "online profile loading report",
       "status_key": "reported",
       "status_label": "Player workaround; general fix unconfirmed",
-      "bottom_line": "A player reports recovering from a save-data loading loop after correcting Windows time. Other causes and general resolution remain unverified.",
+      "bottom_line": "An October 23 Support reply follows up on another user-data loading error. The earlier Windows-time workaround helped one player; general recovery remains unconfirmed.",
       "official_short": "Support troubleshooting recorded",
       "fix_short": "One player-reported workaround",
       "cause_short": "Not established for all reports",
-      "last_updated": "2026-10-08",
-      "last_reviewed": "2026-10-16",
+      "last_updated": "2026-10-23",
+      "last_reviewed": "2026-10-28",
       "scope": [
         "PC",
         "online sign-in",
         "save-data loading"
       ],
       "symptom": "Online entry repeatedly fails with a save-data loading message.",
-      "official_position": "Support recommended checking Windows time/time-zone settings.",
+      "official_position": "Support recommended checking Windows time/time-zone settings. On October 23, Support asked another player to list troubleshooting already attempted. The reply does not confirm a clock-related cause, successful recovery or a released correction.",
       "workaround": "Check that Windows date, time and time zone are correct, then retry. This helped one reporting player; no files need to be deleted for this check.",
       "known": [
         "Support recommended checking Windows time/time-zone settings.",
-        "The reporting player says correcting the time allowed entry the following day."
+        "The reporting player says correcting the time allowed entry the following day.",
+        "The October 23 reply concerns inability to enter the game, not a newly established loss of career progression."
       ],
       "unknown": [
         "This does not establish data loss or a universal clock-related cause.",
@@ -7492,6 +7781,12 @@
           "event": "Failed to load user's save data.Please try again",
           "detail": "The reporting player says correcting system time restored access.",
           "source_url": "https://steamcommunity.com/app/3079210/discussions/1/590691669350862712/?ctp=1#c590691669350947030"
+        },
+        {
+          "date": "2026-10-23",
+          "event": "Team17 Support follow-up",
+          "detail": "Support asks a player still unable to enter the game because of the user-data loading error to list troubleshooting already attempted. No successful recovery, general workaround or released correction is confirmed.",
+          "source_url": "https://steamcommunity.com/app/3079210/discussions/1/631219091886093496/?ctp=2#c562545439722987651"
         }
       ],
       "sources": [
@@ -7521,6 +7816,35 @@
           "source_locator": "Reply 590691669350947030",
           "content_sha256": "b9cedb648ce4559c7932ab3d75cf23e0fcf820441c74e4219a7062fcacc5c5c3",
           "claim": "The reporting player says correcting system time restored access."
+        },
+        {
+          "type": "support thread",
+          "publisher": "Team17 Support",
+          "title": "\"failed to load user data please try again\"",
+          "url": "https://steamcommunity.com/app/3079210/discussions/1/631219091886093496/?ctp=2#c562545439722987651",
+          "date": "2026-10-23",
+          "source_published_at": "2026-10-23T14:30:22Z",
+          "source_reviewed_at": "2026-10-28",
+          "source_locator": "Reply 562545439722987651; original report and surrounding replies reviewed",
+          "content_sha256": "b8bc5088f022c14bac8cb0533723e7489131ea0037b68645602be2b85cdc49e6",
+          "source_author_id": "76561198363837070",
+          "source_category": "Team17 Support",
+          "claim": "Support asks a player still unable to enter the game because of the user-data loading error to list troubleshooting already attempted. No successful recovery, general workaround or released correction is confirmed.",
+          "authority_checked_at": "2026-10-28T13:01:22Z"
+        }
+      ],
+      "editorial_history": [
+        {
+          "date": "2026-10-28",
+          "reason": "Reviewed original October 22–27 public replies; preserved released-fix scope and uncertainty.",
+          "previous": {
+            "bottom_line": "A player reports recovering from a save-data loading loop after correcting Windows time. Other causes and general resolution remain unverified.",
+            "official_position": "Support recommended checking Windows time/time-zone settings.",
+            "known": [
+              "Support recommended checking Windows time/time-zone settings.",
+              "The reporting player says correcting the time allowed entry the following day."
+            ]
+          }
         }
       ]
     },
@@ -8671,6 +8995,446 @@
           "claim": "Patch 1.7 fixes reload haptics stopping. This is distinct from the earlier M14/SKS feedback correction."
         }
       ]
+    },
+    {
+      "id": "HLLV-104",
+      "title": "HUD refresh can leave tactical markers invisible",
+      "category": "ui",
+      "kind": "HUD marker visibility report",
+      "status_label": "Report escalated by Support",
+      "bottom_line": "On October 23, Support escalated a report of tactical markers remaining invisible after a HUD refresh. Reproduction, cause and a released fix are unconfirmed.",
+      "scope": [
+        "HUD tactical markers",
+        "Multiple roles reported"
+      ],
+      "symptom": "A player reports that refreshing the HUD does not reveal squad tactical markers, including tank markers, across roles.",
+      "official_position": "Support acknowledges similar reports and forwards this report for investigation.",
+      "known": [
+        "The report concerns marker visibility when refreshing the HUD."
+      ],
+      "unknown": [
+        "Affected platforms, frequency and internal reproduction.",
+        "Whether this is related to persistent Recon markers or missing spawn choices; no common cause is established."
+      ],
+      "status_key": "reported",
+      "official_short": "Support replied; no reproduction stated",
+      "fix_short": "None confirmed",
+      "cause_short": "Not established",
+      "last_updated": "2026-10-23",
+      "last_reviewed": "2026-10-28",
+      "workaround": null,
+      "timeline": [
+        {
+          "date": "2026-10-23",
+          "event": "Team17 Support response",
+          "detail": "Support acknowledges similar reports of missing HUD markers and forwards the report for investigation. The opening post describes refreshing the HUD without revealing squad tactical markers across roles. No fix or confirmed cause is supplied.",
+          "source_url": "https://steamcommunity.com/app/3079210/discussions/1/562545439722813894/?ctp=1#c562545439722993447"
+        }
+      ],
+      "sources": [
+        {
+          "type": "support thread",
+          "publisher": "Team17 Support",
+          "title": "Can't bring up markers (ie tank) when i refresh hud",
+          "url": "https://steamcommunity.com/app/3079210/discussions/1/562545439722813894/?ctp=1#c562545439722993447",
+          "date": "2026-10-23",
+          "source_published_at": "2026-10-23T15:48:29Z",
+          "source_reviewed_at": "2026-10-28",
+          "source_locator": "Reply 562545439722993447; original report and surrounding replies reviewed",
+          "content_sha256": "6a62bb85daa5de9102bb4b0a2b558ac3fc0f4964f8f63a6fa51799221f6248d5",
+          "source_author_id": "76561199418165143",
+          "source_category": "Team17 Support",
+          "claim": "Support acknowledges similar reports of missing HUD markers and forwards the report for investigation. The opening post describes refreshing the HUD without revealing squad tactical markers across roles. No fix or confirmed cause is supplied.",
+          "authority_checked_at": "2026-10-28T13:01:49Z"
+        }
+      ]
+    },
+    {
+      "id": "HLLV-105",
+      "title": "Existing map icons can block marker placement",
+      "category": "ui",
+      "kind": "Tactical Map marker placement report",
+      "status_label": "Support requests diagnostics",
+      "bottom_line": "A player reports being unable to place markers over existing map icons. Support requested diagnostics on October 23; an intended rule, regression or reproduced defect is not established.",
+      "scope": [
+        "Tactical Map",
+        "Overlapping icons and markers"
+      ],
+      "symptom": "The player says friendly icons or existing pings prevent marker placement at the same location and associates the change with Patch 1.6.",
+      "official_position": "Support asks for game-file verification and DxDiag; it does not confirm the alleged patch association.",
+      "known": [
+        "The original report and October 23 diagnostic response were reviewed."
+      ],
+      "unknown": [
+        "Whether the behavior is intentional, a regression or specific to a configuration.",
+        "Cause, internal reproduction, reliable workaround and release date."
+      ],
+      "status_key": "reported",
+      "official_short": "Support replied; no reproduction stated",
+      "fix_short": "None confirmed",
+      "cause_short": "Not established",
+      "last_updated": "2026-10-23",
+      "last_reviewed": "2026-10-28",
+      "workaround": null,
+      "timeline": [
+        {
+          "date": "2026-10-23",
+          "event": "Team17 Support response",
+          "detail": "Support requests file verification and DxDiag for a map-marker report. The player says existing friendly icons or pings prevent placing markers over the same location after 1.6; the response does not confirm a regression, intended rule or reproduced bug.",
+          "source_url": "https://steamcommunity.com/app/3079210/discussions/1/562545439722894186/?ctp=1#c562545439722993961"
+        }
+      ],
+      "sources": [
+        {
+          "type": "support thread",
+          "publisher": "Team17 Support",
+          "title": "UI bug since 1.6",
+          "url": "https://steamcommunity.com/app/3079210/discussions/1/562545439722894186/?ctp=1#c562545439722993961",
+          "date": "2026-10-23",
+          "source_published_at": "2026-10-23T15:56:01Z",
+          "source_reviewed_at": "2026-10-28",
+          "source_locator": "Reply 562545439722993961; original report and surrounding replies reviewed",
+          "content_sha256": "f63c8991bca5869058e24649d977a574e4d889567abf7ac743f98866ca1b15ca",
+          "source_author_id": "76561198363837070",
+          "source_category": "Team17 Support",
+          "claim": "Support requests file verification and DxDiag for a map-marker report. The player says existing friendly icons or pings prevent placing markers over the same location after 1.6; the response does not confirm a regression, intended rule or reproduced bug.",
+          "authority_checked_at": "2026-10-28T13:01:49Z"
+        }
+      ]
+    },
+    {
+      "id": "HLLV-106",
+      "title": "Munitions Nodes cannot be built in a match",
+      "category": "gameplay",
+      "kind": "Munitions Node construction report",
+      "status_label": "Report escalated by Support",
+      "bottom_line": "Support forwarded a report that Munitions Nodes could not be built while other node types remained available. A cause or released correction is not confirmed.",
+      "scope": [
+        "Munitions Nodes",
+        "Match-specific construction report"
+      ],
+      "symptom": "The player reports a match where Munitions Nodes could not be constructed, while Fuel and Manpower Nodes could.",
+      "official_position": "Support forwarded the report for investigation on October 23 without stating internal reproduction or a fix.",
+      "known": [
+        "The report distinguishes Munitions Nodes from the other node types."
+      ],
+      "unknown": [
+        "The conditions, extent and technical cause of the construction failure.",
+        "Whether missing blueprints or other construction reports share this cause."
+      ],
+      "status_key": "reported",
+      "official_short": "Support replied; no reproduction stated",
+      "fix_short": "None confirmed",
+      "cause_short": "Not established",
+      "last_updated": "2026-10-23",
+      "last_reviewed": "2026-10-28",
+      "workaround": null,
+      "timeline": [
+        {
+          "date": "2026-10-23",
+          "event": "Team17 Support response",
+          "detail": "Support forwards a report that Munitions Nodes could not be constructed during a match. The opening post says Fuel and Manpower Nodes remained buildable. No internal reproduction, shared construction-system cause or fix is established.",
+          "source_url": "https://steamcommunity.com/app/3079210/discussions/1/562545439722866531/?ctp=1#c562545439722994101"
+        }
+      ],
+      "sources": [
+        {
+          "type": "support thread",
+          "publisher": "Team17 Support",
+          "title": "vietnam HLL",
+          "url": "https://steamcommunity.com/app/3079210/discussions/1/562545439722866531/?ctp=1#c562545439722994101",
+          "date": "2026-10-23",
+          "source_published_at": "2026-10-23T15:58:03Z",
+          "source_reviewed_at": "2026-10-28",
+          "source_locator": "Reply 562545439722994101; original report and surrounding replies reviewed",
+          "content_sha256": "5fde4a312619c3b1e03601690166fff12b3de7eaf4e21c6ec895c218fb8d2399",
+          "source_author_id": "76561199418165143",
+          "source_category": "Team17 Support",
+          "claim": "Support forwards a report that Munitions Nodes could not be constructed during a match. The opening post says Fuel and Manpower Nodes remained buildable. No internal reproduction, shared construction-system cause or fix is established.",
+          "authority_checked_at": "2026-10-28T13:01:49Z"
+        }
+      ]
+    },
+    {
+      "id": "HLLV-107",
+      "title": "Push-to-talk can crash the game",
+      "category": "stability",
+      "kind": "Voice-input-triggered client crash report",
+      "status_label": "Report escalated by Support",
+      "bottom_line": "Support escalated a report of client crashes when using Squad or Proximity push-to-talk. The voice trigger is player-reported; cause, reproduction and a fix remain unconfirmed.",
+      "scope": [
+        "PC",
+        "Squad or Proximity push-to-talk"
+      ],
+      "symptom": "The opening post describes intermittent client exits when using Squad or Proximity push-to-talk. Its references to earlier patches are reported history, not a new Patch 1.7 outcome test.",
+      "official_position": "On October 23, Support acknowledges similar reports and forwards the report for investigation.",
+      "known": [
+        "The October 17 report was previously excluded while it lacked a Support reply; the October 23 escalation supplies new evidence."
+      ],
+      "unknown": [
+        "Internal reproduction, the technical cause and which builds or configurations are affected.",
+        "This is distinct from unavailable voice channels and excessive voice-volume scaling."
+      ],
+      "status_key": "reported",
+      "official_short": "Support replied; no reproduction stated",
+      "fix_short": "None confirmed",
+      "cause_short": "Not established",
+      "last_updated": "2026-10-23",
+      "last_reviewed": "2026-10-28",
+      "workaround": null,
+      "timeline": [
+        {
+          "date": "2026-10-23",
+          "event": "Team17 Support response",
+          "detail": "Support acknowledges similar reports of game crashes when using push-to-talk and forwards the report for investigation. The opening post identifies Squad and Proximity inputs and an intermittent client exit; no root cause or released correction is given.",
+          "source_url": "https://steamcommunity.com/app/3079210/discussions/1/570426339809731198/?ctp=1#c562545439722987240"
+        }
+      ],
+      "sources": [
+        {
+          "type": "support thread",
+          "publisher": "Team17 Support",
+          "title": "Game crashes instantly when pressing Push-to-Talk (Squad/Proximity) — still happening after 1.5.2/1.6",
+          "url": "https://steamcommunity.com/app/3079210/discussions/1/570426339809731198/?ctp=1#c562545439722987240",
+          "date": "2026-10-23",
+          "source_published_at": "2026-10-23T14:25:19Z",
+          "source_reviewed_at": "2026-10-28",
+          "source_locator": "Reply 562545439722987240; original report and surrounding replies reviewed",
+          "content_sha256": "e79dd4b491bd25344daa7f0e5168bad3cd68267e1265791b58c99382bfeae10a",
+          "source_author_id": "76561199418165143",
+          "source_category": "Team17 Support",
+          "claim": "Support acknowledges similar reports of game crashes when using push-to-talk and forwards the report for investigation. The opening post identifies Squad and Proximity inputs and an intermittent client exit; no root cause or released correction is given.",
+          "authority_checked_at": "2026-10-28T13:02:05Z"
+        }
+      ]
+    },
+    {
+      "id": "HLLV-108",
+      "title": "RPG impact or damage feedback is reported missing",
+      "category": "gameplay",
+      "kind": "Unresolved RPG hit or feedback report",
+      "status_label": "Support requests clarification",
+      "bottom_line": "Support is clarifying whether an RPG report concerns misses, missing damage or absent explosion visuals. The October 24 reply does not establish a hit-registration defect.",
+      "scope": [
+        "RPG",
+        "Hit, damage or visual feedback unresolved"
+      ],
+      "symptom": "The player reports that RPG shots fail to affect tanks after an update, without distinguishing the underlying hit, damage or visual-feedback behavior.",
+      "official_position": "Support asks whether rockets miss or damage occurs without a visible explosion, and requests game-file verification.",
+      "known": [
+        "The response explicitly seeks clarification of the reported symptom."
+      ],
+      "unknown": [
+        "Whether the report concerns hit registration, damage application or missing visual effects.",
+        "Patch association, internal reproduction, cause, workaround and fix."
+      ],
+      "status_key": "reported",
+      "official_short": "Support replied; no reproduction stated",
+      "fix_short": "None confirmed",
+      "cause_short": "Not established",
+      "last_updated": "2026-10-24",
+      "last_reviewed": "2026-10-28",
+      "workaround": null,
+      "timeline": [
+        {
+          "date": "2026-10-24",
+          "event": "Team17 Support response",
+          "detail": "Support asks whether a reported RPG problem means the rocket misses the target or damage occurs without a visible explosion, and requests file verification. Hit registration, damage failure and missing visual feedback remain unresolved alternatives.",
+          "source_url": "https://steamcommunity.com/app/3079210/discussions/1/562545740485793191/?ctp=1#c562545740485793965"
+        }
+      ],
+      "sources": [
+        {
+          "type": "support thread",
+          "publisher": "Team17 Support",
+          "title": "rpg does not hit any tank ..after update...wtf",
+          "url": "https://steamcommunity.com/app/3079210/discussions/1/562545740485793191/?ctp=1#c562545740485793965",
+          "date": "2026-10-24",
+          "source_published_at": "2026-10-24T15:12:53Z",
+          "source_reviewed_at": "2026-10-28",
+          "source_locator": "Reply 562545740485793965; original report and surrounding replies reviewed",
+          "content_sha256": "fc9dd83d6d79917bb620ac8d52822ae1679903ec41792d024bc7114f4e7cd8a4",
+          "source_author_id": "76561199418165143",
+          "source_category": "Team17 Support",
+          "claim": "Support asks whether a reported RPG problem means the rocket misses the target or damage occurs without a visible explosion, and requests file verification. Hit registration, damage failure and missing visual feedback remain unresolved alternatives.",
+          "authority_checked_at": "2026-10-28T13:02:05Z"
+        }
+      ]
+    },
+    {
+      "id": "HLLV-109",
+      "title": "Map transitions can stall loading or lock selection controls",
+      "category": "stability",
+      "kind": "Round-transition client loading report",
+      "status_label": "Support diagnostics; outcome unconfirmed",
+      "bottom_line": "Support investigated a report of stalled loading or unresponsive selection screens between maps. October 26 driver and installation checks do not establish a fix.",
+      "scope": [
+        "PC",
+        "Round-to-round loading",
+        "Map or unit selection"
+      ],
+      "symptom": "A player describes lengthy loading or unresponsive map/unit-selection screens after a match changes map, and reports that restarting permits entry.",
+      "official_position": "Support requested DxDiag on October 24, then suggested a driver update and checking installation locations on October 26. The reviewed exchange records no recovery after that advice.",
+      "known": [
+        "Restarting is reported by the player, not independently verified.",
+        "Support reviewed the supplied diagnostics before its October 26 follow-up; the tracker did not open the diagnostic file."
+      ],
+      "unknown": [
+        "Whether loading and selection symptoms share a cause.",
+        "This does not establish a server crash or a missing-spawn replication failure.",
+        "A reliable workaround and released correction."
+      ],
+      "status_key": "reported",
+      "official_short": "Support replied; no reproduction stated",
+      "fix_short": "None confirmed",
+      "cause_short": "Not established",
+      "last_updated": "2026-10-26",
+      "last_reviewed": "2026-10-28",
+      "workaround": null,
+      "timeline": [
+        {
+          "date": "2026-10-24",
+          "event": "Team17 Support response",
+          "detail": "Support requests DxDiag for a report of long loading or unresponsive map/unit-selection screens when a round transitions to another map. The player says restarting restores entry. The reply offers no confirmed diagnosis or fix.",
+          "source_url": "https://steamcommunity.com/app/3079210/discussions/1/562545439723036536/?ctp=1#c562545740485791622"
+        },
+        {
+          "date": "2026-10-26",
+          "event": "Team17 Support response",
+          "detail": "After reviewing the supplied DxDiag, Support suggests updating the graphics driver and checking Steam/game installation locations for this player. It asks whether the problem continues; no recovery is recorded in the reviewed exchange.",
+          "source_url": "https://steamcommunity.com/app/3079210/discussions/1/562545439723036536/?ctp=1#c562545740485987775"
+        }
+      ],
+      "sources": [
+        {
+          "type": "support thread",
+          "publisher": "Team17 Support",
+          "title": "Problems with uploading to the map",
+          "url": "https://steamcommunity.com/app/3079210/discussions/1/562545439723036536/?ctp=1#c562545740485791622",
+          "date": "2026-10-24",
+          "source_published_at": "2026-10-24T14:43:03Z",
+          "source_reviewed_at": "2026-10-28",
+          "source_locator": "Reply 562545740485791622; original report and surrounding replies reviewed",
+          "content_sha256": "228dd2d3b1b0734f224dba5aaca8ed5dd775b96a181e893897dbdaa8785ae409",
+          "source_author_id": "76561198363837070",
+          "source_category": "Team17 Support",
+          "claim": "Support requests DxDiag for a report of long loading or unresponsive map/unit-selection screens when a round transitions to another map. The player says restarting restores entry. The reply offers no confirmed diagnosis or fix.",
+          "authority_checked_at": "2026-10-28T13:01:49Z"
+        },
+        {
+          "type": "support thread",
+          "publisher": "Team17 Support",
+          "title": "Problems with uploading to the map",
+          "url": "https://steamcommunity.com/app/3079210/discussions/1/562545439723036536/?ctp=1#c562545740485987775",
+          "date": "2026-10-26",
+          "source_published_at": "2026-10-26T13:59:51Z",
+          "source_reviewed_at": "2026-10-28",
+          "source_locator": "Reply 562545740485987775; original report and surrounding replies reviewed",
+          "content_sha256": "3ab519848206bde1d2b36bcf58b65f0cb690ee8fa85d4068dc5aa3200dfbd614",
+          "source_author_id": "76561198363837070",
+          "source_category": "Team17 Support",
+          "claim": "After reviewing the supplied DxDiag, Support suggests updating the graphics driver and checking Steam/game installation locations for this player. It asks whether the problem continues; no recovery is recorded in the reviewed exchange.",
+          "authority_checked_at": "2026-10-28T13:01:49Z"
+        }
+      ]
+    },
+    {
+      "id": "HLLV-110",
+      "title": "Garrison construction can fail for one faction",
+      "category": "gameplay",
+      "kind": "Faction-specific Garrison construction report",
+      "status_label": "Report escalated by Support",
+      "bottom_line": "October 23 and 27 Support replies escalate Garrison-construction reports, including US-only failure in a named match. A universal faction problem, common cause or fix is not established.",
+      "scope": [
+        "Garrison construction",
+        "US faction in reported matches"
+      ],
+      "symptom": "One report names Official EU 28 and says US Garrisons could not be built while NVA construction worked. A later thread also describes unusable boats.",
+      "official_position": "Support acknowledges similar Garrison-construction reports, requests timestamped footage and forwards the Garrison and boat complaints. It does not confirm internal reproduction or a common cause.",
+      "known": [
+        "The evidence consists of reviewed public reports and Support replies through October 27.",
+        "The separate boat-spawn symptom is recorded in HLLV-030."
+      ],
+      "unknown": [
+        "Extent across servers, factions, match states and builds.",
+        "Whether this is related to missing blueprints, Munitions Node construction or spawn replication.",
+        "The offered video was not reviewed by this tracker; no independent gameplay check or released fix is recorded."
+      ],
+      "status_key": "reported",
+      "official_short": "Support replied; no reproduction stated",
+      "fix_short": "None confirmed",
+      "cause_short": "Not established",
+      "last_updated": "2026-10-27",
+      "last_reviewed": "2026-10-28",
+      "workaround": null,
+      "timeline": [
+        {
+          "date": "2026-10-23",
+          "event": "Team17 Support response",
+          "detail": "Support acknowledges similar reports of being unable to construct Garrisons as the US faction and escalates the report. The opening report names Official EU 28 and says NVA construction worked. No cause, internal reproduction or fix is confirmed.",
+          "source_url": "https://steamcommunity.com/app/3079210/discussions/1/570426530135769009/?ctp=1#c562545439722991162"
+        },
+        {
+          "date": "2026-10-26",
+          "event": "Team17 Support response",
+          "detail": "Support requests a video with timestamps or shorter clips for a mixed report of unusable Garrisons and boats during a match. This request does not establish that the video was received, reproduced internally or proves one shared cause.",
+          "source_url": "https://steamcommunity.com/app/3079210/discussions/1/562545740486013340/?ctp=1#c562545740486017879"
+        },
+        {
+          "date": "2026-10-27",
+          "event": "Team17 Support response",
+          "detail": "Support acknowledges repeated Garrison-construction reports and forwards both the Garrison report and newly described boats that appear active for respawning but do not work. The reply identifies no common cause, reproduction result, released fix or relation to Patch 1.7 manual-driver-exit behavior.",
+          "source_url": "https://steamcommunity.com/app/3079210/discussions/1/562545740486013340/?ctp=1#c562546024123496682"
+        }
+      ],
+      "sources": [
+        {
+          "type": "support thread",
+          "publisher": "Team17 Support",
+          "title": "Official Server EU #28 is bugged",
+          "url": "https://steamcommunity.com/app/3079210/discussions/1/570426530135769009/?ctp=1#c562545439722991162",
+          "date": "2026-10-23",
+          "source_published_at": "2026-10-23T15:18:06Z",
+          "source_reviewed_at": "2026-10-28",
+          "source_locator": "Reply 562545439722991162; original report and surrounding replies reviewed",
+          "content_sha256": "47aa59ec53749eb608b85a1964e5bdc77fcfc52b72ca92456e2d9c33ec8a41db",
+          "source_author_id": "76561199418165143",
+          "source_category": "Team17 Support",
+          "claim": "Support acknowledges similar reports of being unable to construct Garrisons as the US faction and escalates the report. The opening report names Official EU 28 and says NVA construction worked. No cause, internal reproduction or fix is confirmed.",
+          "authority_checked_at": "2026-10-28T13:02:05Z"
+        },
+        {
+          "type": "support thread",
+          "publisher": "Team17 Support",
+          "title": "I have an hour long clip",
+          "url": "https://steamcommunity.com/app/3079210/discussions/1/562545740486013340/?ctp=1#c562545740486017879",
+          "date": "2026-10-26",
+          "source_published_at": "2026-10-26T20:08:55Z",
+          "source_reviewed_at": "2026-10-28",
+          "source_locator": "Reply 562545740486017879; original report and surrounding replies reviewed",
+          "content_sha256": "45b6a8c7a7903cf49b5ae37d11a5e266482eee484015124fb1eef7fcc3a049d6",
+          "source_author_id": "76561198363837070",
+          "source_category": "Team17 Support",
+          "claim": "Support requests a video with timestamps or shorter clips for a mixed report of unusable Garrisons and boats during a match. This request does not establish that the video was received, reproduced internally or proves one shared cause.",
+          "authority_checked_at": "2026-10-28T13:02:05Z",
+          "source_edited_at": "2026-10-26T20:09:19Z"
+        },
+        {
+          "type": "support thread",
+          "publisher": "Team17 Support",
+          "title": "I have an hour long clip",
+          "url": "https://steamcommunity.com/app/3079210/discussions/1/562545740486013340/?ctp=1#c562546024123496682",
+          "date": "2026-10-27",
+          "source_published_at": "2026-10-27T16:33:31Z",
+          "source_reviewed_at": "2026-10-28",
+          "source_locator": "Reply 562546024123496682; original report and surrounding replies reviewed",
+          "content_sha256": "f3a4f7671d6937f081ce9945d33b39b42bf175365e5dc1b33e8e63694df17e31",
+          "source_author_id": "76561199418165143",
+          "source_category": "Team17 Support",
+          "claim": "Support acknowledges repeated Garrison-construction reports and forwards both the Garrison report and newly described boats that appear active for respawning but do not work. The reply identifies no common cause, reproduction result, released fix or relation to Patch 1.7 manual-driver-exit behavior.",
+          "authority_checked_at": "2026-10-28T13:02:05Z"
+        }
+      ]
     }
   ],
   "incidents": [
@@ -8683,7 +9447,7 @@
       "note": "Operational incidents remain separate from game issues until evidence establishes a relationship."
     }
   ],
-  "review_notes": "October 21: reviewed Patch 1.7 release evidence; historical assessments and source dates retained. October 20: reviewed official acknowledgements with their original dates; see review_history for claim limits. Previous review: October 16: 14 existing dossiers refreshed; 8 separately scoped issues added. Read review_history for coverage and limits. Older evidence dates and the existing held reply remain unchanged. Previous review: October 11: reviewed the October 9 Community Feedback #7 publisher text on Steam and compared its Huey sensitivity target with the 1.6 release notes. Newest claims remain plans, publisher observations or ongoing investigations as appropriate. Ten existing dossiers updated; no new issue IDs or independent gameplay checks. Recent player report dates remain unchanged. Previous review: October 7: reviewed the published Patch 1.6 changelog and earlier publisher text for 21 precise citation clarifications. Promoted only explicitly released changes; preserved unresolved wider families and all old reports. No independent gameplay testing. Recent player-thread bodies were inaccessible in the research reader, so no new player confirmation is claimed. Previous notes: Source-link audit, October 5: corrected the verified Community Feedback #4 URL wherever reused. Replaced the generic Hotfix 1.5.1 feed link only if the exact announcement title and destination were verified. Other issue content and historical claims are unchanged. October 5 review: rechecked the official Steam announcements through the October 2 VLOG notice, September 29 Hotfix 1.5.2 and October 1 Community Feedback #6. Clarified stale server-family wording, current mitigations and planned-versus-released changes. No new gameplay fix or independent gameplay verification was established. Individual evidence dates and prior player reports remain unchanged unless newer evidence was added. This pass did not revalidate every historical player report. A review date is not proof an old bug persists. Equivalent source permalinks are changed only when their publisher title and accessibility are verified. Prior review: October 2 review: checked the official blog, current Steam announcements and six Steam support threads. Added the publisher's Patch 1.6 timing and dated player reports. A recent forum reply is not a new patch, reproduced defect, confirmed root cause or proof that a previous fix failed. The linked VLOG announcement text was reviewed; the video itself was not used as evidence. Original issue dates and history are retained. Reviewed the official September 25 Community Feedback #5, September 29 Hotfix 1.5.2 and October 1 Community Feedback #6 posts, using their full publisher text on Steam. Targets for 1.6, 1.7 and 2.0 are not release confirmations. Old reports retain their evidence dates unless new evidence applies. Similar symptoms do not establish a shared cause; SoulSniper incidents remain separate. No independent gameplay verification was performed. Prior review: Reviewed official releases through the September 22 live announcement. The website dates Hotfix 1.5.1 September 21; Steam announces it live September 22. Update 1.5 notes preceded its September 16 release. Older unresolved reports retain their evidence dates; absence from newer notes is not confirmation of persistence or resolution.",
+  "review_notes": "October 28: rechecked publisher announcements and reviewed selected October 22–27 Support/player replies. Six dossiers updated and seven qualified reports added; existing statuses and all original evidence dates preserved. Patch 1.7 remains the latest verified release. Coverage and exclusions are in review_history. Previous review: October 21: reviewed Patch 1.7 release evidence; historical assessments and source dates retained. October 20: reviewed official acknowledgements with their original dates; see review_history for claim limits. Previous review: October 16: 14 existing dossiers refreshed; 8 separately scoped issues added. Read review_history for coverage and limits. Older evidence dates and the existing held reply remain unchanged. Previous review: October 11: reviewed the October 9 Community Feedback #7 publisher text on Steam and compared its Huey sensitivity target with the 1.6 release notes. Newest claims remain plans, publisher observations or ongoing investigations as appropriate. Ten existing dossiers updated; no new issue IDs or independent gameplay checks. Recent player report dates remain unchanged. Previous review: October 7: reviewed the published Patch 1.6 changelog and earlier publisher text for 21 precise citation clarifications. Promoted only explicitly released changes; preserved unresolved wider families and all old reports. No independent gameplay testing. Recent player-thread bodies were inaccessible in the research reader, so no new player confirmation is claimed. Previous notes: Source-link audit, October 5: corrected the verified Community Feedback #4 URL wherever reused. Replaced the generic Hotfix 1.5.1 feed link only if the exact announcement title and destination were verified. Other issue content and historical claims are unchanged. October 5 review: rechecked the official Steam announcements through the October 2 VLOG notice, September 29 Hotfix 1.5.2 and October 1 Community Feedback #6. Clarified stale server-family wording, current mitigations and planned-versus-released changes. No new gameplay fix or independent gameplay verification was established. Individual evidence dates and prior player reports remain unchanged unless newer evidence was added. This pass did not revalidate every historical player report. A review date is not proof an old bug persists. Equivalent source permalinks are changed only when their publisher title and accessibility are verified. Prior review: October 2 review: checked the official blog, current Steam announcements and six Steam support threads. Added the publisher's Patch 1.6 timing and dated player reports. A recent forum reply is not a new patch, reproduced defect, confirmed root cause or proof that a previous fix failed. The linked VLOG announcement text was reviewed; the video itself was not used as evidence. Original issue dates and history are retained. Reviewed the official September 25 Community Feedback #5, September 29 Hotfix 1.5.2 and October 1 Community Feedback #6 posts, using their full publisher text on Steam. Targets for 1.6, 1.7 and 2.0 are not release confirmations. Old reports retain their evidence dates unless new evidence applies. Similar symptoms do not establish a shared cause; SoulSniper incidents remain separate. No independent gameplay verification was performed. Prior review: Reviewed official releases through the September 22 live announcement. The website dates Hotfix 1.5.1 September 21; Steam announces it live September 22. Update 1.5 notes preceded its September 16 release. Older unresolved reports retain their evidence dates; absence from newer notes is not confirmation of persistence or resolution.",
   "source_link_review": {
     "date": "2026-10-05",
     "repaired_references": 9,
@@ -8750,8 +9514,8 @@
     ],
     "method": "Verified source titles and HTTP responses. The earlier Steam API discovery did not produce replacements because official announcements were returned through external CDN redirects; no guessed URL was published."
   },
-  "page_updated_at": "2026-10-21T17:59:33Z",
-  "review_release": "2026-10-21-patch-1-7-review",
+  "page_updated_at": "2026-10-28T13:07:00Z",
+  "review_release": "2026-10-28-source-review",
   "review_history": [
     {
       "date": "2026-10-07",
@@ -9062,6 +9826,351 @@
         "The existing automatic forum monitor remains partial (35 of 36 tracked threads complete at its last run); this patch review is not a fresh all-forum audit.",
         "Unrelated Support-text editorial hold, private suggestions, moderation and account data are unchanged."
       ]
+    },
+    {
+      "date": "2026-10-28",
+      "review_release": "2026-10-28-source-review",
+      "base_commit": "e40dc337e7b4c8ec0cdd0620e39424931162e9aa",
+      "page_updated_at": "2026-10-28T13:07:00Z",
+      "updated_issues": [
+        "HLLV-003",
+        "HLLV-011",
+        "HLLV-030",
+        "HLLV-057",
+        "HLLV-061",
+        "HLLV-082"
+      ],
+      "new_issues": [
+        "HLLV-104",
+        "HLLV-105",
+        "HLLV-106",
+        "HLLV-107",
+        "HLLV-108",
+        "HLLV-109",
+        "HLLV-110"
+      ],
+      "issue_count": 110,
+      "feature_count": 33,
+      "new_features": [],
+      "changed_existing_statuses": [],
+      "latest_verified_release": {
+        "title": "Patch 1.7",
+        "date": "2026-10-21"
+      },
+      "latest_official_announcement": {
+        "title": "Patch 1.7 | Full Changelog | Now Live!",
+        "published_at": "2026-10-21T10:00:57Z"
+      },
+      "official_announcement_check": {
+        "checked_at": "2026-10-28T13:00:53Z",
+        "latest_feed_items_compared": 40,
+        "new_announcements": 0,
+        "edited_announcements": 0,
+        "retained_announcements": 42
+      },
+      "latest_selected_staff_reply": "2026-10-27",
+      "independent_gameplay_testing": false,
+      "source_review": "Original public Support replies, associated opening reports and surrounding context reviewed. Exact registered staff Steam IDs and current developer badges verified. Player outcomes remain separately attributed.",
+      "scope": "Six existing dossiers refreshed and seven separately scoped reports added; no new game release or feature commitment inferred. Patch 1.6 caution clarified as historical; content tracker and Catch Up release rules remain unchanged.",
+      "source_count": 18,
+      "source_refs": [
+        {
+          "type": "support thread",
+          "publisher": "Team17 Support",
+          "title": "VOIP Volume Sliders",
+          "url": "https://steamcommunity.com/app/3079210/discussions/1/562542339336314254/?ctp=1#c562545439722993157",
+          "date": "2026-10-23",
+          "source_published_at": "2026-10-23T15:44:42Z",
+          "source_reviewed_at": "2026-10-28",
+          "source_locator": "Reply 562545439722993157; original report and surrounding replies reviewed",
+          "content_sha256": "d13555e38cfacc8fcf75f4304369e7864c179de1b01a975823f60f8d2cdab66a",
+          "source_author_id": "76561198363837070",
+          "source_category": "Team17 Support",
+          "claim": "Support asks whether the reporting player still experiences the voice-volume problem. This is a follow-up after Patch 1.7, not confirmation of either recovery or failure.",
+          "authority_checked_at": "2026-10-28T13:01:22Z"
+        },
+        {
+          "type": "support thread",
+          "publisher": "Team17 Support",
+          "title": "foliage looks TERRIBLE.",
+          "url": "https://steamcommunity.com/app/3079210/discussions/1/590691913364082327/?ctp=1#c562545439722995267",
+          "date": "2026-10-23",
+          "source_published_at": "2026-10-23T16:14:06Z",
+          "source_reviewed_at": "2026-10-28",
+          "source_locator": "Reply 562545439722995267; original report and surrounding replies reviewed",
+          "content_sha256": "0d04784e9d7a8b5b171511574614f7c86383e23cf9b6d506cc30cbce75a1869e",
+          "source_author_id": "76561198363837070",
+          "source_category": "Team17 Support",
+          "claim": "Support acknowledges similar reports and forwards a mixed follow-up about poor foliage quality and white terrain flashes with Frame Generation for investigation. The reply does not establish which complaint was reproduced or identify a cause or released remedy.",
+          "authority_checked_at": "2026-10-28T13:01:22Z"
+        },
+        {
+          "type": "support thread",
+          "publisher": "Team17 Support",
+          "title": "\"failed to load user data please try again\"",
+          "url": "https://steamcommunity.com/app/3079210/discussions/1/631219091886093496/?ctp=2#c562545439722987651",
+          "date": "2026-10-23",
+          "source_published_at": "2026-10-23T14:30:22Z",
+          "source_reviewed_at": "2026-10-28",
+          "source_locator": "Reply 562545439722987651; original report and surrounding replies reviewed",
+          "content_sha256": "b8bc5088f022c14bac8cb0533723e7489131ea0037b68645602be2b85cdc49e6",
+          "source_author_id": "76561198363837070",
+          "source_category": "Team17 Support",
+          "claim": "Support asks a player still unable to enter the game because of the user-data loading error to list troubleshooting already attempted. No successful recovery, general workaround or released correction is confirmed.",
+          "authority_checked_at": "2026-10-28T13:01:22Z"
+        },
+        {
+          "type": "support thread",
+          "publisher": "Team17 Support",
+          "title": "First shot register on your body causes you to lag",
+          "url": "https://steamcommunity.com/app/3079210/discussions/1/562545740485934078/?ctp=1#c562545740485991792",
+          "date": "2026-10-26",
+          "source_published_at": "2026-10-26T14:52:02Z",
+          "source_reviewed_at": "2026-10-28",
+          "source_locator": "Reply 562545740485991792; original report and surrounding replies reviewed",
+          "content_sha256": "e3e967a69fb4dec0ea2b2e238b82d0a035688fae36e21bdd21466122e95c4527",
+          "source_author_id": "76561198363837070",
+          "source_category": "Team17 Support",
+          "claim": "Support responds to a report of a one-to-two-second stall on the first received shot after joining a server, requesting game-file verification and DxDiag if it continues. The advice does not establish corrupted files as the cause or a working fix.",
+          "authority_checked_at": "2026-10-28T13:01:22Z"
+        },
+        {
+          "type": "support thread",
+          "publisher": "Team17 Support",
+          "title": "Crashing from firing tanks main gun",
+          "url": "https://steamcommunity.com/app/3079210/discussions/1/562545439722708742/?ctp=1#c562545439722991680",
+          "date": "2026-10-23",
+          "source_published_at": "2026-10-23T15:25:35Z",
+          "source_reviewed_at": "2026-10-28",
+          "source_locator": "Reply 562545439722991680; original report and surrounding replies reviewed",
+          "content_sha256": "d08318e04ef0ff9d2c1f617ba01ddbcbf7d947478e4b82a306adfd99dba2ddcc",
+          "source_author_id": "76561199418165143",
+          "source_category": "Team17 Support",
+          "claim": "Support acknowledges similar reports of freezing or crashing when tank gunners fire and forwards the report for investigation. It does not identify a cause, a released remedy or a link to the separately fixed Tank Driver rotation error.",
+          "authority_checked_at": "2026-10-28T13:01:49Z"
+        },
+        {
+          "type": "support thread",
+          "publisher": "Team17 Support",
+          "title": "Can't bring up markers (ie tank) when i refresh hud",
+          "url": "https://steamcommunity.com/app/3079210/discussions/1/562545439722813894/?ctp=1#c562545439722993447",
+          "date": "2026-10-23",
+          "source_published_at": "2026-10-23T15:48:29Z",
+          "source_reviewed_at": "2026-10-28",
+          "source_locator": "Reply 562545439722993447; original report and surrounding replies reviewed",
+          "content_sha256": "6a62bb85daa5de9102bb4b0a2b558ac3fc0f4964f8f63a6fa51799221f6248d5",
+          "source_author_id": "76561199418165143",
+          "source_category": "Team17 Support",
+          "claim": "Support acknowledges similar reports of missing HUD markers and forwards the report for investigation. The opening post describes refreshing the HUD without revealing squad tactical markers across roles. No fix or confirmed cause is supplied.",
+          "authority_checked_at": "2026-10-28T13:01:49Z"
+        },
+        {
+          "type": "support thread",
+          "publisher": "Team17 Support",
+          "title": "vietnam HLL",
+          "url": "https://steamcommunity.com/app/3079210/discussions/1/562545439722866531/?ctp=1#c562545439722994101",
+          "date": "2026-10-23",
+          "source_published_at": "2026-10-23T15:58:03Z",
+          "source_reviewed_at": "2026-10-28",
+          "source_locator": "Reply 562545439722994101; original report and surrounding replies reviewed",
+          "content_sha256": "5fde4a312619c3b1e03601690166fff12b3de7eaf4e21c6ec895c218fb8d2399",
+          "source_author_id": "76561199418165143",
+          "source_category": "Team17 Support",
+          "claim": "Support forwards a report that Munitions Nodes could not be constructed during a match. The opening post says Fuel and Manpower Nodes remained buildable. No internal reproduction, shared construction-system cause or fix is established.",
+          "authority_checked_at": "2026-10-28T13:01:49Z"
+        },
+        {
+          "type": "support thread",
+          "publisher": "Team17 Support",
+          "title": "UI bug since 1.6",
+          "url": "https://steamcommunity.com/app/3079210/discussions/1/562545439722894186/?ctp=1#c562545439722993961",
+          "date": "2026-10-23",
+          "source_published_at": "2026-10-23T15:56:01Z",
+          "source_reviewed_at": "2026-10-28",
+          "source_locator": "Reply 562545439722993961; original report and surrounding replies reviewed",
+          "content_sha256": "f63c8991bca5869058e24649d977a574e4d889567abf7ac743f98866ca1b15ca",
+          "source_author_id": "76561198363837070",
+          "source_category": "Team17 Support",
+          "claim": "Support requests file verification and DxDiag for a map-marker report. The player says existing friendly icons or pings prevent placing markers over the same location after 1.6; the response does not confirm a regression, intended rule or reproduced bug.",
+          "authority_checked_at": "2026-10-28T13:01:49Z"
+        },
+        {
+          "type": "support thread",
+          "publisher": "Team17 Support",
+          "title": "Crashing to Desktop - If it matters Im always in a tank",
+          "url": "https://steamcommunity.com/app/3079210/discussions/1/562545439722914380/?ctp=1#c562545439722994382",
+          "date": "2026-10-23",
+          "source_published_at": "2026-10-23T16:01:58Z",
+          "source_reviewed_at": "2026-10-28",
+          "source_locator": "Reply 562545439722994382; original report and surrounding replies reviewed",
+          "content_sha256": "9e521ec3edc44f3f14404951be0df5c4cb4b15fb7f40092a1e1ab4f4198baed1",
+          "source_author_id": "76561199418165143",
+          "source_category": "Team17 Support",
+          "claim": "Support asks whether a player-tried DirectX 11 launch option helped a tank-related crash and requests DxDiag if it did not. The opening report describes freezing when a gunner fires. No successful workaround or driver cause is confirmed.",
+          "authority_checked_at": "2026-10-28T13:01:49Z"
+        },
+        {
+          "type": "support thread",
+          "publisher": "Team17 Support",
+          "title": "Problems with uploading to the map",
+          "url": "https://steamcommunity.com/app/3079210/discussions/1/562545439723036536/?ctp=1#c562545740485791622",
+          "date": "2026-10-24",
+          "source_published_at": "2026-10-24T14:43:03Z",
+          "source_reviewed_at": "2026-10-28",
+          "source_locator": "Reply 562545740485791622; original report and surrounding replies reviewed",
+          "content_sha256": "228dd2d3b1b0734f224dba5aaca8ed5dd775b96a181e893897dbdaa8785ae409",
+          "source_author_id": "76561198363837070",
+          "source_category": "Team17 Support",
+          "claim": "Support requests DxDiag for a report of long loading or unresponsive map/unit-selection screens when a round transitions to another map. The player says restarting restores entry. The reply offers no confirmed diagnosis or fix.",
+          "authority_checked_at": "2026-10-28T13:01:49Z"
+        },
+        {
+          "type": "support thread",
+          "publisher": "Team17 Support",
+          "title": "Problems with uploading to the map",
+          "url": "https://steamcommunity.com/app/3079210/discussions/1/562545439723036536/?ctp=1#c562545740485987775",
+          "date": "2026-10-26",
+          "source_published_at": "2026-10-26T13:59:51Z",
+          "source_reviewed_at": "2026-10-28",
+          "source_locator": "Reply 562545740485987775; original report and surrounding replies reviewed",
+          "content_sha256": "3ab519848206bde1d2b36bcf58b65f0cb690ee8fa85d4068dc5aa3200dfbd614",
+          "source_author_id": "76561198363837070",
+          "source_category": "Team17 Support",
+          "claim": "After reviewing the supplied DxDiag, Support suggests updating the graphics driver and checking Steam/game installation locations for this player. It asks whether the problem continues; no recovery is recorded in the reviewed exchange.",
+          "authority_checked_at": "2026-10-28T13:01:49Z"
+        },
+        {
+          "type": "support thread",
+          "publisher": "Team17 Support",
+          "title": "rpg does not hit any tank ..after update...wtf",
+          "url": "https://steamcommunity.com/app/3079210/discussions/1/562545740485793191/?ctp=1#c562545740485793965",
+          "date": "2026-10-24",
+          "source_published_at": "2026-10-24T15:12:53Z",
+          "source_reviewed_at": "2026-10-28",
+          "source_locator": "Reply 562545740485793965; original report and surrounding replies reviewed",
+          "content_sha256": "fc9dd83d6d79917bb620ac8d52822ae1679903ec41792d024bc7114f4e7cd8a4",
+          "source_author_id": "76561199418165143",
+          "source_category": "Team17 Support",
+          "claim": "Support asks whether a reported RPG problem means the rocket misses the target or damage occurs without a visible explosion, and requests file verification. Hit registration, damage failure and missing visual feedback remain unresolved alternatives.",
+          "authority_checked_at": "2026-10-28T13:02:05Z"
+        },
+        {
+          "type": "support thread",
+          "publisher": "Team17 Support",
+          "title": "I have an hour long clip",
+          "url": "https://steamcommunity.com/app/3079210/discussions/1/562545740486013340/?ctp=1#c562545740486017879",
+          "date": "2026-10-26",
+          "source_published_at": "2026-10-26T20:08:55Z",
+          "source_reviewed_at": "2026-10-28",
+          "source_locator": "Reply 562545740486017879; original report and surrounding replies reviewed",
+          "content_sha256": "45b6a8c7a7903cf49b5ae37d11a5e266482eee484015124fb1eef7fcc3a049d6",
+          "source_author_id": "76561198363837070",
+          "source_category": "Team17 Support",
+          "claim": "Support requests a video with timestamps or shorter clips for a mixed report of unusable Garrisons and boats during a match. This request does not establish that the video was received, reproduced internally or proves one shared cause.",
+          "authority_checked_at": "2026-10-28T13:02:05Z",
+          "source_edited_at": "2026-10-26T20:09:19Z"
+        },
+        {
+          "type": "support thread",
+          "publisher": "Team17 Support",
+          "title": "another LoD issue",
+          "url": "https://steamcommunity.com/app/3079210/discussions/1/570426339809651925/?ctp=1#c562545439722986963",
+          "date": "2026-10-23",
+          "source_published_at": "2026-10-23T14:21:17Z",
+          "source_reviewed_at": "2026-10-28",
+          "source_locator": "Reply 562545439722986963; original report and surrounding replies reviewed",
+          "content_sha256": "d888ff9b015dc953b7a3be7db43442eea5ad10e9066a837271553edf65bf30ba",
+          "source_author_id": "76561199418165143",
+          "source_category": "Team17 Support",
+          "claim": "Support forwards a report of delayed or missing rendering of large asset groups or complex structures viewed at distance through a scope. No reproduced cause, specified correction or successful outcome is identified.",
+          "authority_checked_at": "2026-10-28T13:02:05Z"
+        },
+        {
+          "type": "support thread",
+          "publisher": "Team17 Support",
+          "title": "Game crashes instantly when pressing Push-to-Talk (Squad/Proximity) — still happening after 1.5.2/1.6",
+          "url": "https://steamcommunity.com/app/3079210/discussions/1/570426339809731198/?ctp=1#c562545439722987240",
+          "date": "2026-10-23",
+          "source_published_at": "2026-10-23T14:25:19Z",
+          "source_reviewed_at": "2026-10-28",
+          "source_locator": "Reply 562545439722987240; original report and surrounding replies reviewed",
+          "content_sha256": "e79dd4b491bd25344daa7f0e5168bad3cd68267e1265791b58c99382bfeae10a",
+          "source_author_id": "76561199418165143",
+          "source_category": "Team17 Support",
+          "claim": "Support acknowledges similar reports of game crashes when using push-to-talk and forwards the report for investigation. The opening post identifies Squad and Proximity inputs and an intermittent client exit; no root cause or released correction is given.",
+          "authority_checked_at": "2026-10-28T13:02:05Z"
+        },
+        {
+          "type": "support thread",
+          "publisher": "Team17 Support",
+          "title": "Official Server EU #28 is bugged",
+          "url": "https://steamcommunity.com/app/3079210/discussions/1/570426530135769009/?ctp=1#c562545439722991162",
+          "date": "2026-10-23",
+          "source_published_at": "2026-10-23T15:18:06Z",
+          "source_reviewed_at": "2026-10-28",
+          "source_locator": "Reply 562545439722991162; original report and surrounding replies reviewed",
+          "content_sha256": "47aa59ec53749eb608b85a1964e5bdc77fcfc52b72ca92456e2d9c33ec8a41db",
+          "source_author_id": "76561199418165143",
+          "source_category": "Team17 Support",
+          "claim": "Support acknowledges similar reports of being unable to construct Garrisons as the US faction and escalates the report. The opening report names Official EU 28 and says NVA construction worked. No cause, internal reproduction or fix is confirmed.",
+          "authority_checked_at": "2026-10-28T13:02:05Z"
+        },
+        {
+          "type": "support thread",
+          "publisher": "Team17 Support",
+          "title": "I have an hour long clip",
+          "url": "https://steamcommunity.com/app/3079210/discussions/1/562545740486013340/?ctp=1#c562546024123496682",
+          "date": "2026-10-27",
+          "source_published_at": "2026-10-27T16:33:31Z",
+          "source_reviewed_at": "2026-10-28",
+          "source_locator": "Reply 562546024123496682; original report and surrounding replies reviewed",
+          "content_sha256": "f3a4f7671d6937f081ce9945d33b39b42bf175365e5dc1b33e8e63694df17e31",
+          "source_author_id": "76561199418165143",
+          "source_category": "Team17 Support",
+          "claim": "Support acknowledges repeated Garrison-construction reports and forwards both the Garrison report and newly described boats that appear active for respawning but do not work. The reply identifies no common cause, reproduction result, released fix or relation to Patch 1.7 manual-driver-exit behavior.",
+          "authority_checked_at": "2026-10-28T13:02:05Z"
+        },
+        {
+          "type": "player report",
+          "publisher": "Steam community",
+          "title": "VOIP Volume Sliders: player reports improved scaling",
+          "url": "https://steamcommunity.com/app/3079210/discussions/1/562542339336314254/?ctp=1#c562545439722828347",
+          "date": "2026-10-22",
+          "source_published_at": "2026-10-22T00:20:15Z",
+          "source_reviewed_at": "2026-10-28",
+          "source_locator": "Reply 562545439722828347; original report and surrounding replies reviewed",
+          "content_sha256": "cfdb214e4f12b736ef58b3f5d4d7c6f9f3f84896cb37b9901dcb3322f414c76a",
+          "source_author_id": "76561198392610704",
+          "source_category": "Player observation",
+          "claim": "One player reports raising voice-volume values from 15 to 30 after Patch 1.7 and perceiving the slider problem as fixed. This is an individual improvement report without a documented cross-channel, platform-wide or controlled test."
+        }
+      ],
+      "collector_coverage_at_review": {
+        "last_attempt_at": "2026-10-28T13:00:53Z",
+        "tracked_threads_complete": 35,
+        "tracked_threads_total": 36,
+        "discovery_attempted": 24,
+        "discovery_complete": 22,
+        "discovery_pending_identity_count": 1
+      },
+      "limitations": [
+        "No Support response establishes a newly shipped fix, internal reproduction or confirmed root cause; no feature baseline/status change recommended from these replies.",
+        "HLLV-061: Saul October 21 comment says the symptom existed before 1.7 and asks whether fixed; it is not evidence the released correction failed.",
+        "HLLV-057: October 22 player follow-up combines foliage quality and Frame Generation terrain flashes; generic Support acknowledgement does not verify each complaint separately.",
+        "HLLV-047: the October 23 response in its tracked source thread addresses a load-error inability to enter, not a new career-progression loss.",
+        "Historical discoveries first detected after October 21 in old Crash and Game Freezes threads retain their May-August original dates and are excluded as new October activity.",
+        "Pending identity Steam ID 76561199030467887 in Where's the freaking FSR?? remains unreviewed and is excluded from qualifying evidence: https://steamcommunity.com/app/3079210/discussions/0/631219091886103327/?ctp=1#c631219091886108439 .",
+        "The unrelated October 7 VOIP response content-review hold remains unchanged.",
+        "Bounded discovery is not exhaustive: today 24 threads attempted, 22 complete, one identity pending; source check time must not be represented as complete forum review.",
+        "The new October 27 Garrison/boat reply was read directly but is not yet in the bounded source-feed snapshot; do not synthesize collector coverage or counts to include it.",
+        "No linked DxDiag files, private Support cases, player videos or YouTube comments were opened. Do not claim independent gameplay or video outcome testing."
+      ],
+      "unchanged_areas": [
+        "CSS, JavaScript, images, fonts and layout",
+        "33 feature baselines and statuses",
+        "10 Catch Up topics and factual review locks",
+        "Account, submission and moderation behavior"
+      ]
     }
   ],
   "source_access_review": {
@@ -9360,7 +10469,7 @@
         "Server filters and favourites receive fixes, fuller servers are prioritised, and visible-by-default Vote Kick notifications get a 30-second response window.",
         "Further helicopter controls, spectator camera, artillery, effects-related stability and map corrections are included."
       ],
-      "caution": "Voice-volume, Frame Generation reapplication and tutorial-completion closure remain unconfirmed. The October 9 follow-up still targets the Huey M60 ADS fix for 1.7 despite the broader 1.6 sensitivity claim.",
+      "caution": "At the October 11 review, voice-volume, Frame Generation reapplication and tutorial-completion fixes were unconfirmed. Patch 1.7 later released the voice-volume slider correction; closure of the other two remains unconfirmed. The Huey M60 ADS fix was targeted for 1.7 but is not explicitly confirmed by its final notes.",
       "source_url": "https://www.hellletloose.com/blog/hllv-patch-1-6",
       "source_title": "Patch 1.6 | Hell Let Loose: Vietnam",
       "related_issues": [
@@ -9370,7 +10479,13 @@
       ],
       "review_basis": "Patch 1.6 publisher text cross-checked with Community Feedback #7. The newer Huey-specific target qualifies the earlier general release claim; neither is independent outcome verification.",
       "reviewed_at": "2026-10-11",
-      "followup_source_url": "https://www.hellletloose.com/blog/community-update-7"
+      "followup_source_url": "https://www.hellletloose.com/blog/community-update-7",
+      "editorial_clarification": {
+        "date": "2026-10-28",
+        "reason": "Distinguish the historical October 11 assessment from the later Patch 1.7 release evidence; no older review date or release claim is changed.",
+        "source_url": "https://steamcommunity.com/games/3079210/announcements/detail/675134795999609522",
+        "previous_caution": "Voice-volume, Frame Generation reapplication and tutorial-completion closure remain unconfirmed. The October 9 follow-up still targets the Huey M60 ADS fix for 1.7 despite the broader 1.6 sensitivity claim."
+      }
     },
     {
       "id": "hotfix-1-5-2",

@@ -16,7 +16,9 @@ announcement matches flag possible updates for review; they never change status.
 Existing Suggestion Box approval and account permissions remain separate. These
 feature records are curated through the repository, not a new moderator dashboard.
 
-The current tracker contains 103 issue dossiers and 33 feature topics. The October 21 Patch 1.7 review updates 15 existing dossiers, adds 19 scoped release-documented defects, updates five feature topics and adds 17 functionality/content topics. Voice-volume scaling and manual-exit boat shutdown have release evidence; broader replication, persistence and rendering issues are not automatically closed. Khe Sanh and ANZAC remain future 2.0 content; base-PS5 QSSR has no stated release date. Coverage and limits are in `reviews/2026-10-21-patch-1-7-review.json`.
+The current tracker contains 110 issue dossiers and 33 feature topics. The October 28 source review refreshes six existing dossiers and adds seven separately scoped reports from October 22–27 public replies. Patch 1.7 remains the latest verified release. Support escalation and diagnostic advice do not establish reproduction, root cause or a shipped fix; the single positive voice-volume outcome remains player-reported. Existing statuses, feature baselines and Catch Up gameplay rules are preserved. Coverage and exclusions are in `reviews/2026-10-28-source-review.json`.
+
+The October 21 Patch 1.7 review updates 15 existing dossiers, adds 19 scoped release-documented defects, updates five feature topics and adds 17 functionality/content topics. Voice-volume scaling and manual-exit boat shutdown have release evidence; broader replication, persistence and rendering issues are not automatically closed. Khe Sanh and ANZAC remain future 2.0 content; base-PS5 QSSR has no stated release date. Coverage and limits are in `reviews/2026-10-21-patch-1-7-review.json`.
 
 The October 20 review added a qualified settings-persistence report, two older Support follow-ups, and Clan Tags/rank emblems as tracked requests. Original evidence dates and that review remain in `reviews/2026-10-20-official-response-review.json`.
 
