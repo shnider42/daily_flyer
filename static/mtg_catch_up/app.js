@@ -83,7 +83,7 @@
   const esc = value => String(value).replace(/[&<>"']/g,c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
   const storageKey = 'dfe-magic-catch-up-v1';
   const readKey = 'dfe-magic-caught-up-v1';
-  let data, state, read = new Set(), expanded = false, allMatches = [];
+  let data, state, read = new Set(), expanded = false, allMatches = [], mobileMotion = null;
   let canStore = true;
   function restore(key) {try {return JSON.parse(root.localStorage.getItem(key));} catch (_) {canStore=false; return null;}}
   function save() {
@@ -133,6 +133,7 @@
     $('more').textContent=expanded?'Show the first three ↑':'See '+(allMatches.length-3)+' more changes ↓';
     $('more').setAttribute('aria-expanded',String(expanded));
     progress();
+    if (mobileMotion) mobileMotion.refresh();
   }
   function update(change) {
     $('share-fallback').hidden=true;$('share-status').textContent='';
@@ -189,5 +190,95 @@
     $('controls').hidden=true;$('interactive').hidden=true;$('fallback').hidden=false;
     $('fallback').querySelector('.fallback-intro').textContent='The interactive view could not load. These reviewed changes and official sources are still available.';
     if(root.console)root.console.error('Magic Catch Up initialization failed',error);
+  }
+  // Motion is a separate progressive enhancement. A failure here must never
+  // interrupt the reader, and desktop never receives the motion classes.
+  function createMobileMotion() {
+    if (!root.matchMedia) return null;
+    const phone = root.matchMedia('(max-width: 720px)');
+    const reduce = root.matchMedia('(prefers-reduced-motion: reduce)');
+    const html = doc.documentElement, hero = doc.querySelector('.hero-stage');
+    const fan = doc.querySelector('.fan-cards'), toggle = $('motion-toggle');
+    const shuffle = $('shuffle-cards'), tools = $('mobile-motion-tools');
+    const key = 'dfe-magic-motion-v1';
+    let preferred = true, enabled = false, observer = null, heroObserver = null;
+    let dealTimer = null;
+    const watched = new Set();
+    try { preferred = root.localStorage.getItem(key) !== 'off'; } catch (_) {}
+    function stopDeal() {
+      root.clearTimeout(dealTimer);
+      fan.classList.remove('is-dealing');
+      shuffle.disabled = !enabled;
+    }
+    function deal() {
+      if (!enabled || shuffle.disabled) return;
+      shuffle.disabled = true;
+      fan.classList.add('is-dealing');
+      // The last card ends the deal; the timer only recovers an interrupted
+      // animation (for example, a phone tab being sent to the background).
+      dealTimer = root.setTimeout(stopDeal, 2500);
+    }
+    function refresh() {
+      if (!enabled || !observer) return;
+      // Filters replace story nodes; stop retaining or watching the old ones.
+      for (const el of watched) if (!el.isConnected) { observer.unobserve(el); watched.delete(el); }
+      doc.querySelectorAll('.story, .section-top, .notes-layout > div, .source-explanation > div').forEach(el => {
+        if (watched.has(el)) return;
+        watched.add(el);
+        // A one-shot entrance never hides text, even if observation fails.
+        observer.observe(el);
+      });
+    }
+    function configure() {
+      enabled = phone.matches && !reduce.matches && preferred;
+      observer?.disconnect(); heroObserver?.disconnect();
+      observer = null; heroObserver = null; watched.clear();
+      doc.querySelectorAll('.motion-enter').forEach(el => el.classList.remove('motion-enter'));
+      html.classList.toggle('mobile-motion', enabled);
+      html.classList.remove('hero-in-view');
+      tools.hidden = !phone.matches || reduce.matches;
+      toggle.setAttribute('aria-pressed', String(enabled));
+      $('motion-label').textContent = enabled ? 'Motion on' : 'Motion off';
+      stopDeal();
+      if (!enabled) return;
+      if (root.IntersectionObserver) {
+        observer = new root.IntersectionObserver(entries => {
+          entries.forEach(entry => {
+            if (!entry.isIntersecting) return;
+            entry.target.classList.add('motion-enter');
+            observer.unobserve(entry.target);
+          });
+        }, {threshold:0, rootMargin:'0px 0px -28px 0px'});
+        heroObserver = new root.IntersectionObserver(entries => {
+          html.classList.toggle('hero-in-view', entries[0].isIntersecting);
+        });
+        heroObserver.observe(hero);
+        refresh();
+      } else html.classList.add('hero-in-view');
+      deal();
+    }
+    toggle.addEventListener('click', () => {
+      preferred = !preferred;
+      try { root.localStorage.setItem(key, preferred ? 'on' : 'off'); } catch (_) {}
+      configure();
+    });
+    shuffle.addEventListener('click', deal);
+    fan.addEventListener('animationend', event => {
+      if (event.animationName === 'phone-deal' && event.target === fan.lastElementChild) stopDeal();
+    });
+    // Support older iOS MediaQueryList implementations as well.
+    [phone, reduce].forEach(query => {
+      if (query.addEventListener) query.addEventListener('change', configure);
+      else query.addListener(configure);
+    });
+    const visibility = () => html.classList.toggle('motion-background', doc.hidden);
+    doc.addEventListener('visibilitychange', visibility);
+    visibility(); configure();
+    return {refresh};
+  }
+  try { mobileMotion = createMobileMotion(); }
+  catch (_) {
+    doc.documentElement.classList.remove('mobile-motion', 'hero-in-view');
+    if ($('mobile-motion-tools')) $('mobile-motion-tools').hidden = true;
   }
 })(typeof window !== 'undefined' ? window : globalThis);

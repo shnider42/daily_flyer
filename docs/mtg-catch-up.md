@@ -141,3 +141,28 @@ Cinzel (Natanael Gama) and Manrope (Mikhail Sharanda) are loaded through Google
 Fonts with display=swap, with Georgia and system sans fallbacks. Image space
 is reserved, below-fold artwork loads lazily, and hover movement respects
 reduced-motion preferences. The page remains usable without these assets.
+
+
+## Phone motion experiment
+
+The pre-motion illustrated design is retained at
+`d558e82ae10162ed86a45e125dc021aa85d635c4`. Enhancements apply at viewport
+widths of 720px or below; the desktop layout, typography, artwork placement,
+and reader presentation are unchanged. Phone cards are slightly larger, deal
+into their fan, and can be shuffled again with a button. The opening artwork
+drifts gently, five decorative sparks rise, and sections enter once as they
+appear. Disclosure panels and caught-up buttons have short feedback animations.
+
+The phone-only Motion toggle remembers an explicit off preference separately
+from theme, filters, and progress (`dfe-magic-motion-v1`). The OS Reduce Motion
+setting takes precedence. Decorative loops pause offscreen and when the tab is
+hidden. Text stays visible without IntersectionObserver, JavaScript, or motion;
+animations do not control navigation or the availability of any catch-up entry.
+No animation libraries, scroll listeners, sensors, or new external assets were
+added. Card art links still open their existing Scryfall pages.
+
+Validation used 320px and 390px browser frames, an explicit reduced-motion
+preference fixture, saved-toggle checks, offscreen pause checks, and CSS
+animation events for the card deal/replay. Desktop geometry and computed styles
+matched the previous deployment across 17 key elements at the same viewport.
+This is responsive-browser validation, not a physical iPhone Safari test.
