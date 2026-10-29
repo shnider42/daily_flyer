@@ -1,0 +1,46 @@
+name: BREACH networking regression checks
+on:
+  push:
+    branches: [qa/breach-network-recovery, feat/breach-fps]
+    paths:
+      - 'daily_flyer/themes/breach*'
+      - 'daily_flyer/themes/breach_assets/**'
+      - 'server/breach-*.mjs'
+      - 'tests/breach-*.test.mjs'
+      - 'scripts/breach-*.mjs'
+      - 'package*.json'
+      - '.github/workflows/breach-network.yml'
+permissions:
+  contents: read
+concurrency:
+  group: breach-network-${{ github.ref }}
+  cancel-in-progress: true
+jobs:
+  verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - run: npm ci --ignore-scripts
+      - run: npm run test:breach
+      - run: python -m unittest discover -s tests -p test_breach_export.py
+      - run: python scripts/build_breach.py
+      - name: Export reproducible test inputs
+        run: |
+          mkdir -p /tmp/breach-qa
+          git archive --format=tar HEAD daily_flyer scripts/build_breach.py server tests docs package.json package-lock.json > /tmp/breach-qa/source.tar
+          tar -rf /tmp/breach-qa/source.tar node_modules/ws
+          gzip /tmp/breach-qa/source.tar
+      - uses: actions/upload-artifact@v4
+        with:
+          name: breach-qa-source
+          path: /tmp/breach-qa/source.tar.gz
+          retention-days: 3
