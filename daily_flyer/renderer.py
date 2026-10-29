@@ -7,6 +7,14 @@ from daily_flyer.models import CardItem, PageContext
 
 
 def build_html(context: PageContext) -> str:
+    # Immersive themes can own their document while retaining DFE's validated
+    # theme loading, PageContext contract, Flask routing, and HTML export.
+    standalone_html = context.metadata.get("standalone_html")
+    if standalone_html is not None:
+        if not isinstance(standalone_html, str) or not standalone_html.lstrip().lower().startswith("<!doctype html>"):
+            raise ValueError("A standalone theme must provide a complete HTML document.")
+        return standalone_html
+
     css = """
     :root {
         --bg: #07131c;

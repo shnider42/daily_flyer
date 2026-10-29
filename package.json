@@ -1,0 +1,9 @@
+{
+  "name": "dailyflyer-breach",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "build:breach": "python scripts/build_breach.py",
+    "test:breach": "node --test tests/breach-core.test.mjs"
+  }
+}
