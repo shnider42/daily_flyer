@@ -398,15 +398,18 @@ export class Game {
     return candidates[0]?.object ?? null;
   }
 
-  getPrompt() {
+  getInteractionInfo() {
     const o = this._interactionCandidate();
-    if (!o) return '';
-    if (o.requires === 'power' && !this.state.power) return 'Airlock offline — restore power';
-    if (o.requires === 'key' && !this.state.power) return 'Security gate offline — restore power';
-    if (o.requires === 'key' && !this.state.player.key) return 'Security gate — access key required';
-    if (o.type === 'exit') return this.state.power && this.state.player.key ? 'Signal extraction' : 'Extraction offline — power and key required';
-    return o.label || (o.secret ? 'Inspect maintenance panel' : 'Open airlock');
+    if (!o) return null;
+    if (o.requires === 'power' && !this.state.power) return { text: 'Airlock offline — restore power', label: 'OFFLINE', canUse: false };
+    if (o.requires === 'key' && !this.state.power) return { text: 'Security gate offline — restore power', label: 'OFFLINE', canUse: false };
+    if (o.requires === 'key' && !this.state.player.key) return { text: 'Security gate — access key required', label: 'LOCKED', canUse: false };
+    if (o.type === 'exit' && (!this.state.power || !this.state.player.key)) return { text: 'Extraction offline — power and key required', label: this.state.power ? 'LOCKED' : 'OFFLINE', canUse: false };
+    const label = o.type === 'power' ? 'POWER' : o.type === 'exit' ? 'EXTRACT' : o.type === 'secret' || o.secret ? 'INSPECT' : 'OPEN';
+    return { text: o.label || (o.secret ? 'Inspect maintenance panel' : 'Open airlock'), label, canUse: this.state.status === 'playing' };
   }
+
+  getPrompt() { return this.getInteractionInfo()?.text || ''; }
 
   interact() {
     if (this.state.status !== 'playing') return false;
@@ -443,11 +446,11 @@ export class Game {
 
   getObjective() {
     if (this.state.status === 'won') return { title: 'Extraction complete', detail: 'Blacksite 07 is behind you.', x: 26.5, z: 25.5 };
-    if (!this.state.doors[0].open) return { title: 'Leave the arrival bay', detail: 'Move toward the airlock and use it to enter the facility.', x: 5.5, z: 20.5 };
-    if (!this.state.power) return { title: 'Restore auxiliary power', detail: 'Find the illuminated console in the generator room.', x: 10.5, z: 4.5 };
-    if (!this.state.player.key) return { title: 'Recover the security key', detail: 'Enter the research lab through a powered airlock.', x: 26.5, z: 4.5 };
-    if (!this.state.doors.find(d => d.id === 'security').open) return { title: 'Open the extraction gate', detail: 'Head south through quarantine. Your key opens the gate.', x: 23.5, z: 23.5 };
-    return { title: 'Signal extraction', detail: 'Use the green terminal at the far end of the extraction bay.', x: 26.5, z: 25.5 };
+    if (!this.state.doors[0].open) return { title: 'Leave the arrival bay', detail: 'Move toward the airlock and use it to enter the facility.', x: 5.5, z: 20.5, action: 'interact' };
+    if (!this.state.power) return { title: 'Restore auxiliary power', detail: 'Find the illuminated console in the generator room.', x: 10.5, z: 4.5, action: 'interact' };
+    if (!this.state.player.key) return { title: 'Recover the security key', detail: 'Enter the research lab through a powered airlock.', x: 26.5, z: 4.5, action: 'collect' };
+    if (!this.state.doors.find(d => d.id === 'security').open) return { title: 'Open the extraction gate', detail: 'Head south through quarantine. Your key opens the gate.', x: 23.5, z: 23.5, action: 'interact' };
+    return { title: 'Signal extraction', detail: 'Use the green terminal at the far end of the extraction bay.', x: 26.5, z: 25.5, action: 'interact' };
   }
 
   getZone() {

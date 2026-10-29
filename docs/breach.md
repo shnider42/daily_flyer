@@ -67,10 +67,39 @@ Release checks completed on 2026-10-29:
   Canvas fallback renderer. WebGL was unavailable in that QA browser, so the
   WebGL rendering path remains unverified there.
 
-Physical iPhone play has not yet been tested. Touch aiming, simultaneous controls,
-and sustained device performance still need that check. The broader legacy
+The user has completed an initial phone playtest and reported that it works,
+with some rough edges. This is informal feedback rather than a device benchmark;
+touch aiming, simultaneous controls, and sustained performance still need focused
+real-device checks. The broader legacy
 `test_theme_platform` suite has three pre-existing failures on the base branch;
 the focused BREACH suites above pass.
+
+## 0.1.1 — Phone guidance and actions
+
+This small follow-up concentrates on reading and using the existing mission:
+
+- Compact touch guidance sits near the objective, leaving the aiming area clear.
+  Nearby interaction feedback takes priority over the tutorial, and the firing
+  lesson waits until a hostile is in view.
+- Touch interaction controls show the available action, such as OPEN, POWER, or
+  EXTRACT. Unmet requirements show OFFLINE or LOCKED with an explanation. The
+  interaction prompt can also be tapped; weapon swapping appears after acquisition.
+- Simple guidance correctly tells the player to walk over the security key,
+  instead of asking for a USE prompt that cannot appear.
+
+The simulation, combat balance, level, save format, and aiming sensitivity remain
+compatible with 0.1.0. Focused core coverage now includes 20 passing tests.
+All three export tests also pass. Browser checks at 375×667, 393×852, and
+852×393 confirmed the guidance stays above the aim point, arrival-door prompts
+open the door when tapped, offline controls stay disabled with an explanation,
+the nearby key hint uses collection wording, and tutorial dismissal still works.
+These layout checks use desktop browser viewports with the touch UI enabled;
+they do not measure physical-device touch latency or frame rate.
+
+For the next playtest, use the same first route: leave arrival, clear the first
+room, and reach the generator. Note whether any difficulty comes from aiming,
+unclear instructions, or uneven motion. That distinction will guide the next
+small change before adding a second mission.
 
 ## Scope
 

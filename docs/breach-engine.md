@@ -53,6 +53,11 @@ Methods:
 - `switchWeapon()` toggles available weapons.
 - `getObjective()` -> `{title,detail,x,z}` (guidance target).
 - `getPrompt()` -> string (current nearby interaction, or empty).
+- `getInteractionInfo()` -> `null` or `{text,label,canUse}`. Labels identify
+  OPEN, POWER, EXTRACT, INSPECT, OFFLINE, or LOCKED; availability matches the
+  existing interaction requirements and active-play state.
+- Active objectives include `action:'interact'` or `action:'collect'` so hints
+  distinguish doors/terminals from walk-over key collection.
 - `getZone()` -> string.
 - `drainEvents()` -> events `{type,...}` for `shot`, `hit`, `hurt`, `kill`,
   `pickup`, `door`, `power`, `secret`, `checkpoint`, `message`, `win`, `death`.

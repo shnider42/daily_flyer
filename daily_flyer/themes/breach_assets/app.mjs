@@ -152,7 +152,7 @@ function makeGame(options = {}) {
   renderer?.dispose();
   game = candidate;
   renderer = new BreachRenderer($('world'),game,{quality:'auto',reducedMotion:settings.reducedMotion});
-  resetExploration(); helpRevealed = 0;
+  resetExploration(); helpRevealed = 0; updateTutorial.identity = null;
 }
 function launchNew() {
   if(!ready) return;
@@ -316,23 +316,36 @@ function updateDirection() {
   if(settings.guidance!=='simple'||!pathHint){$('direction').textContent='';return;}
   const p=game.state.player,a=normAngle(Math.atan2(pathHint.x-p.x,-(pathHint.z-p.z))-p.angle);
   const label=Math.abs(a)>2.45?'↓ TURN AROUND':a>.48?'→ TURN RIGHT':a<-.48?'← TURN LEFT':'↑ AHEAD';
-  $('direction').textContent=pathHint.distance<2?'NEARBY · LOOK FOR THE USE PROMPT':`${label} · ${Math.round(pathHint.distance)} M TO OBJECTIVE`;
+  const nearby = game.getObjective().action === 'collect' ? 'NEARBY · WALK OVER THE SECURITY KEY' : (touch ? 'NEARBY · TAP THE ACTION PROMPT' : 'NEARBY · LOOK FOR THE USE PROMPT');
+  $('direction').textContent=pathHint.distance<2?nearby:`${label} · ${Math.round(pathHint.distance)} M TO OBJECTIVE`;
+}
+function visibleHostileForTraining() {
+  const p=game.state.player;
+  return game.state.enemies.some(enemy=>enemy.alive
+    && Math.hypot(enemy.x-p.x,enemy.z-p.z)<12
+    && Math.abs(normAngle(Math.atan2(enemy.x-p.x,-(enemy.z-p.z))-p.angle))<.72
+    && game.hasLineOfSight(p.x,p.z,enemy.x,enemy.z));
 }
 function updateTutorial() {
   const state=game.state,t=state.tutorial||{};
   const show=settings.guidance==='simple'&&settings.tutorial&&mode==='playing';
-  if(!show){$('tutorial').hidden=true;return;}
+  // A nearby action or its missing requirement is the most useful guidance now.
+  if(!show || (touch && game.getInteractionInfo())){$('tutorial').hidden=true;return;}
   let text='',index='FIELD TRAINING';
-  if(!t.moved)text=touch?'Drag the left pad to move. Drag the right side of the screen to turn.':'Use W A S D to move. Move your mouse to look around. Arrow keys also turn.';
-  else if(!t.interacted && !state.doors[0]?.open)text=touch?'Approach the arrival airlock. When USE lights up, tap it to open the door.':'Approach the arrival airlock. Press E when the door prompt appears.';
-  else if(!t.fired)text=touch?'Hold FIRE and drag on the same pad to aim. Keep moving with your left thumb.':'Click or hold SPACE to fire. Move sideways with A and D to dodge.';
+  if(!t.moved)text=touch?'Left pad: move. Drag the right side to turn.':'Use W A S D to move. Move your mouse to look around. Arrow keys also turn.';
+  else if(!t.interacted && !state.doors[0]?.open)text=touch?'Walk to the airlock. Tap OPEN when it lights up.':'Approach the arrival airlock. Press E when the door prompt appears.';
+  else if(!t.fired) {
+    if(!visibleHostileForTraining()){$('tutorial').hidden=true;return;}
+    text=touch?'Hold FIRE. Drag on it to aim while you shoot.':'Click or hold SPACE to fire. Move sideways with A and D to dodge.';
+  }
+  else if(state.player.hasShotgun&&!t.weaponSwitched)text=touch?'Tap SWAP for your scattergun. It works best up close.':'Scattergun acquired. Press 2 to equip it, or 1 to return to the pistol. It is strongest up close.';
+  else if(touch) {text='Keep moving. Walk over supplies to collect them.';index='FIELD TIP';}
   else if(!state.power) {text='Find the generator console. Walk over health and ammunition to collect them. The route hint points the way.';index='MISSION BRIEF';}
-  else if(state.player.hasShotgun&&!t.weaponSwitched)text=touch?'Scattergun acquired. Tap SWAP to change weapons. It is strongest up close.':'Scattergun acquired. Press 2 to equip it, or 1 to return to the pistol. It is strongest up close.';
   else if(!state.player.key){text='Power is restored and your checkpoint is saved. Open the powered airlocks to reach the research lab.';index='MISSION BRIEF';}
   else {text='You have the access key. Head through quarantine and use the extraction terminal.';index='MISSION BRIEF';}
-  // Early controls stay visible until performed. Later mission reminders fade after a short time.
-  if(index==='MISSION BRIEF') {
-    const identity=`${state.power}-${state.player.key}`;
+  // Early controls wait for the action; the later supply reminder appears briefly.
+  if(index==='MISSION BRIEF'||index==='FIELD TIP') {
+    const identity=touch?'supply-tip':`${state.power}-${state.player.key}`;
     if(updateTutorial.identity!==identity){updateTutorial.identity=identity;helpRevealed=performance.now();}
     if(performance.now()-helpRevealed>8500){$('tutorial').hidden=true;return;}
   }
@@ -350,10 +363,22 @@ function updateHud() {
   $('power-token').classList.toggle('active',state.power);$('key-token').classList.toggle('active',p.key);
   $('power-token').setAttribute('aria-label',state.power?'Power restored':'Power offline');$('key-token').setAttribute('aria-label',p.key?'Access key collected':'Access key needed');
   const obj=game.getObjective();$('objective-title').textContent=obj.title;$('objective-detail').textContent=obj.detail;
-  $('objective-detail').hidden=settings.guidance==='expert';
+  $('objective-detail').hidden=touch||settings.guidance==='expert';
   $('objective').querySelector('.label').textContent=settings.guidance==='expert'?'MISSION':'CURRENT OBJECTIVE';
-  const prompt=game.getPrompt();$('interaction').hidden=!prompt||mode!=='playing';$('interaction-text').textContent=prompt;
-  $('touch-interact').disabled=!prompt;$('touch-weapon').disabled=!p.hasShotgun;
+  const interaction=game.getInteractionInfo();
+  const canUse=!!interaction?.canUse;
+  $('interaction').hidden=!interaction||mode!=='playing';
+  $('interaction-text').textContent=interaction?.text||'';
+  $('interaction-label').textContent=interaction?.label||'USE';
+  $('interaction').disabled=!canUse;
+  $('interaction').classList.toggle('action-ready',canUse);
+  $('interaction').setAttribute('aria-label',interaction ? `${interaction.label}: ${interaction.text}` : 'Interact');
+  $('touch-interact').disabled=!canUse;
+  $('touch-interact').textContent=interaction?.label||'USE';
+  $('touch-interact').classList.toggle('action-ready',canUse);
+  $('touch-interact').setAttribute('aria-label',interaction ? `${interaction.label}: ${interaction.text}` : 'Interact when near a door or console');
+  $('touch-weapon').hidden=!p.hasShotgun;
+  $('touch-weapon').disabled=!p.hasShotgun;
   $('checkpoint').hidden=!state.checkpoint;
   updateDirection();updateTutorial();
 }
@@ -505,7 +530,9 @@ $('fire-pad').addEventListener('pointerdown',event=>{
 $('fire-pad').addEventListener('pointermove',event=>{if(event.pointerId===firePointer&&mode==='playing'){pendingTurn+=(event.clientX-fireLastX)*.005*settings.sensitivity;fireLastX=event.clientX;}});
 function endFire(event){if(event.pointerId!==firePointer)return;firePointer=null;$('fire-pad').classList.remove('pressed');}
 for(const type of ['pointerup','pointercancel','lostpointercapture'])$('fire-pad').addEventListener(type,endFire);
-$('touch-interact').addEventListener('click',()=>{if(mode==='playing')game.interact();});
+function useAvailableAction() { if(mode==='playing'&&game.getInteractionInfo()?.canUse)game.interact(); }
+$('touch-interact').addEventListener('click',useAvailableAction);
+$('interaction').addEventListener('click',useAvailableAction);
 $('touch-weapon').addEventListener('click',()=>{if(mode==='playing')game.switchWeapon();});
 
 try {

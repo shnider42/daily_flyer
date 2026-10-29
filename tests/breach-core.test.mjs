@@ -268,3 +268,48 @@ test('first live encounter is beatable with the starting pistol and normal damag
   assert.ok(game.state.player.health > 0);
   assert.ok(game.state.player.ammo.pistol > 0);
 });
+
+test('objective actions distinguish walk-over key collection from doors and terminals', () => {
+  const game = new Game(); quiet(game);
+  assert.equal(game.getObjective().action, 'interact', 'Arrival airlock uses an interaction');
+  at(game, 5.5, 21.5); game.interact();
+  assert.equal(game.getObjective().action, 'interact', 'Generator console uses an interaction');
+  at(game, 10.5, 4.5); game.interact();
+  at(game, 25.5, 4.5);
+  assert.equal(game.getObjective().action, 'collect', 'Nearby key must be walked over');
+  assert.equal(game.getPrompt(), '', 'Key does not provide a use prompt');
+  at(game, 26.5, 4.5); game.update(.016, {});
+  assert.equal(game.getObjective().action, 'interact', 'Security gate uses an interaction');
+  at(game, 23.5, 22.5); game.interact();
+  assert.equal(game.getObjective().action, 'interact', 'Extraction terminal uses an interaction');
+  at(game, 26.5, 25.5); game.interact();
+  assert.equal(game.state.status, 'won');
+  assert.equal(game.getObjective().action, undefined, 'Completed objective has no remaining action');
+});
+
+test('interaction information reports actionable controls and unmet requirements accurately', () => {
+  const game = new Game(); quiet(game);
+  assert.equal(game.getInteractionInfo(), null, 'No nearby interaction at spawn');
+  assert.equal(game.getPrompt(), '');
+  at(game, 5.5, 21.5);
+  assert.deepEqual(game.getInteractionInfo(), { text: 'Open airlock', label: 'OPEN', canUse: true });
+  game.pause(); assert.equal(game.getInteractionInfo().canUse, false); assert.equal(game.interact(), false);
+  game.resume(); assert.equal(game.interact(), true);
+  at(game, 14.5, 6.5);
+  assert.deepEqual(game.getInteractionInfo(), { text: 'Airlock offline — restore power', label: 'OFFLINE', canUse: false });
+  assert.equal(game.getPrompt(), game.getInteractionInfo().text); assert.equal(game.interact(), false);
+  at(game, 12.5, 18.5);
+  assert.equal(game.getInteractionInfo().label, 'INSPECT'); assert.equal(game.getInteractionInfo().canUse, true);
+  at(game, 10.5, 4.5);
+  assert.equal(game.getInteractionInfo().label, 'POWER'); assert.equal(game.getInteractionInfo().canUse, true);
+  assert.equal(game.interact(), true);
+  at(game, 23.5, 22.5);
+  assert.deepEqual(game.getInteractionInfo(), { text: 'Security gate — access key required', label: 'LOCKED', canUse: false });
+  assert.equal(game.interact(), false);
+  at(game, 26.5, 25.5);
+  assert.equal(game.getInteractionInfo().label, 'LOCKED'); assert.equal(game.getInteractionInfo().canUse, false);
+  at(game, 26.5, 4.5); game.update(.016, {});
+  at(game, 26.5, 25.5);
+  assert.deepEqual(game.getInteractionInfo(), { text: 'Signal extraction', label: 'EXTRACT', canUse: true });
+  assert.equal(game.interact(), true); assert.equal(game.state.status, 'won');
+});
