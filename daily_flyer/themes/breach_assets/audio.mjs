@@ -47,6 +47,7 @@ export class BreachAudio {
         case 'pickup': this.tone(440, .1, .17, 660, 'triangle'); this.tone(880, .13, .1, 880, 'sine', .07); break;
         case 'door': this.noise(.55, .2, 500); this.tone(75, .45, .14, 110, 'sawtooth'); break;
         case 'power': this.tone(90, 1, .23, 180, 'triangle'); this.tone(660, .15, .16, 660, 'sine', .7); break;
+        case 'relay': [392,587,784].forEach((f,i)=>this.tone(f,.18,.14,f,'sine',i*.1)); break;
         case 'checkpoint': this.tone(520, .15, .15, 520); this.tone(780, .2, .15, 780, 'sine', .16); break;
         case 'secret': [330,440,660].forEach((f,i)=>this.tone(f,.25,.17,f,'triangle',i*.12)); break;
         case 'death': this.tone(160, .9, .4, 25, 'triangle'); break;

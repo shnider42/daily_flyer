@@ -31,7 +31,7 @@ function createLevel() {
   const enemy = (id, type, x, z) => ({ id, type, x: x + .5, z: z + .5, health: type === 'brute' ? 145 : type === 'spitter' ? 70 : 52, maxHealth: type === 'brute' ? 145 : type === 'spitter' ? 70 : 52, alive: true });
   const pickup = (id, type, x, z, amount = 1) => ({ id, type, x: x + .5, z: z + .5, amount });
   return {
-    id: 'blacksite-07-v1', name: 'Blacksite 07', width, height,
+    id: 'blacksite-07-v1', missionId: 'blacksite-07', name: 'Blacksite 07', width, height,
     grid: cells.map(row => row.join('')),
     spawn: { x: 5.5, z: 25.5, angle: 0 },
     doors: [
@@ -85,6 +85,104 @@ function createLevel() {
 }
 
 export const LEVEL = createLevel();
+
+function createRelayLevel() {
+  const width = 35, height = 33;
+  const cells = Array.from({ length: height }, () => Array(width).fill('#'));
+  const room = (x1, z1, x2, z2) => {
+    for (let z = z1; z <= z2; z++) for (let x = x1; x <= x2; x++) cells[z][x] = '.';
+  };
+  room(14, 28, 20, 31);                     // Isolated maintenance landing.
+  room(17, 25, 18, 27);
+  room(5, 6, 8, 25);                        // Four wide galleries form a complete ring.
+  room(26, 6, 29, 25);
+  room(5, 6, 29, 9);
+  room(5, 22, 29, 25);
+  room(2, 19, 10, 25);                      // Power plant, southwest.
+  room(2, 10, 10, 16);                      // Western relay room.
+  room(24, 11, 32, 18);                     // Eastern relay room.
+  room(12, 12, 22, 18);                     // Isolated communications vault.
+  room(17, 10, 17, 11);                     // Only vault entrance; both relays unlock it.
+  room(14, 2, 21, 4);                       // Extraction control, north.
+  room(17, 5, 17, 5);
+  room(30, 24, 30, 24);                     // Optional side cache.
+  room(31, 22, 33, 27);
+  // Console banks break the ring's sightlines without removing either route.
+  for (const [x, z] of [[6, 14], [7, 14], [7, 20], [10, 7], [14, 8], [23, 7], [27, 12], [27, 17], [28, 17], [12, 23], [21, 24], [3, 22], [8, 12], [29, 14], [15, 15], [19, 15]]) cells[z][x] = '#';
+  const enemy = (id, type, x, z) => ({ id, type, x: x + .5, z: z + .5, health: type === 'brute' ? 145 : type === 'spitter' ? 70 : 52, maxHealth: type === 'brute' ? 145 : type === 'spitter' ? 70 : 52, alive: true });
+  const pickup = (id, type, x, z, amount = 1) => ({ id, type, x: x + .5, z: z + .5, amount });
+  return {
+    id: 'relay-09-v1', missionId: 'relay-09', name: 'Dead Relay', width, height,
+    grid: cells.map(row => row.join('')),
+    spawn: { x: 17.5, z: 30.5, angle: 0 },
+    doors: [
+      { id: 'arrival', x: 17.5, z: 26.5, axis: 'x', requires: null, open: false },
+      { id: 'arrival-side', x: 18.5, z: 26.5, axis: 'x', requires: null, open: false, paired: 'arrival' },
+      { id: 'relay-vault', x: 17.5, z: 11.5, axis: 'x', requires: 'relays', open: false },
+      { id: 'security', x: 17.5, z: 5.5, axis: 'x', requires: 'key', open: false },
+      { id: 'maintenance', x: 30.5, z: 24.5, axis: 'z', requires: null, open: false, secret: true },
+    ],
+    interactables: [
+      { id: 'aux-power', type: 'power', x: 3.5, z: 20.5, label: 'Restore ring power' },
+      { id: 'relay-west', type: 'relay', x: 3.5, z: 11.5, label: 'Activate western relay', requires: 'power' },
+      { id: 'relay-east', type: 'relay', x: 31.5, z: 12.5, label: 'Activate eastern relay', requires: 'power' },
+      { id: 'cache-panel', type: 'secret', x: 29.5, z: 24.5, label: 'Inspect service panel' },
+      { id: 'extraction', type: 'exit', x: 19.5, z: 3.5, label: 'Transmit extraction signal' },
+    ],
+    pickups: [
+      pickup('arrival-ammo', 'ammo', 17, 29, 36),
+      pickup('arrival-armor', 'armor', 19, 30, 30),
+      pickup('pump-shotgun', 'shotgun', 15, 24, 14),
+      pickup('south-health', 'health', 9, 24, 35),
+      pickup('south-ammo', 'ammo', 24, 23, 32),
+      pickup('generator-ammo', 'ammo', 4, 20, 36),
+      pickup('generator-health', 'health', 2, 24, 35),
+      pickup('west-shells', 'shells', 9, 15, 14),
+      pickup('west-health', 'health', 2, 15, 40),
+      pickup('north-armor', 'armor', 8, 8, 35),
+      pickup('north-ammo', 'ammo', 21, 8, 36),
+      pickup('north-health', 'health', 28, 6, 35),
+      pickup('east-shells', 'shells', 31, 17, 16),
+      pickup('east-health', 'health', 25, 12, 40),
+      pickup('east-armor', 'armor', 25, 17, 35),
+      { ...pickup('access-key', 'key', 17, 16), requires: 'relays' },
+      pickup('vault-shells', 'shells', 13, 13, 12),
+      pickup('vault-health', 'health', 21, 16, 45),
+      pickup('cache-armor', 'armor', 32, 23, 75),
+      pickup('cache-shells', 'shells', 32, 25, 22),
+      pickup('cache-health', 'health', 31, 26, 60),
+    ],
+    enemies: [
+      enemy('s1', 'runner', 11, 24), enemy('s2', 'runner', 23, 24), enemy('s3', 'spitter', 27, 22), enemy('s4', 'runner', 19, 22),
+      enemy('g1', 'runner', 4, 23), enemy('g2', 'spitter', 8, 20),
+      enemy('w1', 'runner', 6, 17), enemy('w2', 'spitter', 4, 13), enemy('w3', 'runner', 9, 11),
+      enemy('n1', 'spitter', 11, 7), enemy('n2', 'brute', 19, 7), enemy('n3', 'runner', 25, 8),
+      enemy('e1', 'runner', 27, 10), enemy('e2', 'spitter', 31, 14), enemy('e3', 'brute', 25, 16), enemy('e4', 'runner', 29, 19),
+      enemy('v1', 'runner', 14, 16), enemy('v2', 'spitter', 20, 13), enemy('v3', 'brute', 21, 17), enemy('v4', 'runner', 13, 17),
+    ],
+    zones: [
+      { name: 'Maintenance landing', x1: 14, x2: 21, z1: 26, z2: 32 },
+      { name: 'Ring power plant', x1: 2, x2: 11, z1: 19, z2: 26 },
+      { name: 'Western relay', x1: 2, x2: 11, z1: 10, z2: 17 },
+      { name: 'Eastern relay', x1: 24, x2: 33, z1: 11, z2: 19 },
+      { name: 'Communications vault', x1: 12, x2: 23, z1: 10, z2: 19 },
+      { name: 'Extraction control', x1: 14, x2: 22, z1: 2, z2: 6 },
+      { name: 'Service cache', x1: 30, x2: 34, z1: 22, z2: 28 },
+      { name: 'North signal gallery', x1: 5, x2: 30, z1: 6, z2: 10 },
+      { name: 'South ring gallery', x1: 5, x2: 30, z1: 22, z2: 26 },
+      { name: 'West ring gallery', x1: 5, x2: 9, z1: 10, z2: 22 },
+      { name: 'East ring gallery', x1: 26, x2: 30, z1: 10, z2: 22 },
+    ],
+  };
+}
+
+export const LEVELS = { 'blacksite-07': LEVEL, 'relay-09': createRelayLevel() };
+export const MISSIONS = [
+  { id: 'blacksite-07', levelId: LEVEL.id, name: 'Blacksite 07', number: '001', subtitle: 'The first breach', briefing: 'Emergency power is down. Enter the research facility, recover its security key, and reach extraction.', steps: ['Restore auxiliary power', 'Recover the security key', 'Reach extraction'] },
+  { id: 'relay-09', levelId: LEVELS['relay-09'].id, name: 'Dead Relay', number: '002', subtitle: 'Bring the signal back', briefing: 'A silent communications station surrounds a sealed vault. Restore ring power, reconnect both relays, and recover the key to the extraction uplink.', steps: ['Restore ring power', 'Activate both relay consoles', 'Recover the vault key', 'Transmit the extraction signal'] },
+];
+export function getLevel(missionId = 'blacksite-07') { return Object.hasOwn(LEVELS, missionId) ? LEVELS[missionId] : LEVEL; }
+
 const DIFFICULTY = {
   relaxed: { health: .8, damage: .55, speed: .85 },
   standard: { health: 1, damage: 1, speed: 1 },
@@ -93,14 +191,15 @@ const DIFFICULTY = {
 
 export class Game {
   constructor(options = {}) {
-    this.level = LEVEL;
-    this.options = { difficulty: 'standard', guidance: 'simple', aimAssist: true, seed: 1, ...options };
+    this.options = { mission: 'blacksite-07', difficulty: 'standard', guidance: 'simple', aimAssist: true, seed: 1, ...options };
     this._events = [];
     this._checkpoint = null;
     this._reset();
   }
 
   _reset() {
+    this.level = getLevel(this.options.mission);
+    this.options.mission = this.level.missionId;
     if (!DIFFICULTY[this.options.difficulty]) this.options.difficulty = 'standard';
     this._difficulty = DIFFICULTY[this.options.difficulty];
     this._runDifficulty = this.options.difficulty;
@@ -116,10 +215,10 @@ export class Game {
     this._checkpoint = null;
     this.state = {
       status: 'ready',
-      player: { ...copy(LEVEL.spawn), health: 100, armor: 20, ammo: { pistol: 40, shells: 0 }, weapon: 'pistol', hasShotgun: false, key: false },
-      enemies: LEVEL.enemies.map(e => ({ ...e, health: Math.round(e.health * this._difficulty.health), maxHealth: Math.round(e.maxHealth * this._difficulty.health), active: false, angle: Math.PI, attackCooldown: 1, hitTimer: 0, pathTimer: 0 })),
-      pickups: LEVEL.pickups.map(p => ({ ...p, collected: false })),
-      doors: copy(LEVEL.doors), interactables: LEVEL.interactables.map(i => ({ ...i, used: false })),
+      player: { ...copy(this.level.spawn), health: 100, armor: 20, ammo: { pistol: 40, shells: 0 }, weapon: 'pistol', hasShotgun: false, key: false },
+      enemies: this.level.enemies.map(e => ({ ...e, health: Math.round(e.health * this._difficulty.health), maxHealth: Math.round(e.maxHealth * this._difficulty.health), active: false, angle: Math.PI, attackCooldown: 1, hitTimer: 0, pathTimer: 0 })),
+      pickups: this.level.pickups.map(p => ({ ...p, collected: false })),
+      doors: copy(this.level.doors), interactables: this.level.interactables.map(i => ({ ...i, used: false })),
       projectiles: [], effects: [], power: false, secretFound: false,
       checkpoint: false, time: 0, kills: 0, shots: 0, hits: 0,
       tutorial: { moved: false, fired: false, interacted: false, weaponSwitched: false },
@@ -129,7 +228,7 @@ export class Game {
   start() {
     if (this.state.status === 'ready') {
       this.state.status = 'playing';
-      this._events.push({ type: 'message', text: 'Blacksite 07. Find the auxiliary generator.' });
+      this._events.push({ type: 'message', text: this.level.missionId === 'relay-09' ? 'Dead Relay. Restore power to the communications ring.' : 'Blacksite 07. Find the auxiliary generator.' });
     }
   }
   pause() { if (this.state.status === 'playing') this.state.status = 'paused'; }
@@ -143,7 +242,7 @@ export class Game {
 
   _wall(x, z) {
     const cx = Math.floor(x), cz = Math.floor(z);
-    if (cx < 0 || cz < 0 || cx >= LEVEL.width || cz >= LEVEL.height || LEVEL.grid[cz][cx] === '#') return true;
+    if (cx < 0 || cz < 0 || cx >= this.level.width || cz >= this.level.height || this.level.grid[cz][cx] === '#') return true;
     return this.state.doors.some(d => !d.open && Math.floor(d.x) === cx && Math.floor(d.z) === cz);
   }
 
@@ -198,7 +297,7 @@ export class Game {
     const beforeX = player.x, beforeZ = player.z;
     this._move(player, (Math.sin(player.angle) * forward + Math.cos(player.angle) * strafe) * speed,
       (-Math.cos(player.angle) * forward + Math.sin(player.angle) * strafe) * speed);
-    if (Math.hypot(player.x - LEVEL.spawn.x, player.z - LEVEL.spawn.z) > .75) state.tutorial.moved = true;
+    if (Math.hypot(player.x - this.level.spawn.x, player.z - this.level.spawn.z) > .75) state.tutorial.moved = true;
     player.moving = Math.hypot(player.x - beforeX, player.z - beforeZ) > .0001;
     this._collectPickups();
     if (input.fire) this._fire();
@@ -220,6 +319,7 @@ export class Game {
     const p = this.state.player;
     for (const item of this.state.pickups) {
       if (item.collected || distance(p, item) > .62 || !this.hasLineOfSight(p.x, p.z, item.x, item.z)) continue;
+      if (item.requires === 'relays' && !this._relaysReady()) continue;
       if (item.type === 'health' && p.health >= 100 || item.type === 'armor' && p.armor >= 100) continue;
       item.collected = true;
       let text = '';
@@ -296,7 +396,7 @@ export class Game {
   }
 
   _buildDistanceField() {
-    const w = LEVEL.width, h = LEVEL.height;
+    const w = this.level.width, h = this.level.height;
     const field = new Int16Array(w * h).fill(-1);
     const sx = Math.floor(this.state.player.x), sz = Math.floor(this.state.player.z);
     const queue = [[sx, sz]]; field[sz * w + sx] = 0;
@@ -332,10 +432,10 @@ export class Game {
       let targetX = p.x, targetZ = p.z;
       if (!visible) {
         const x = Math.floor(enemy.x), z = Math.floor(enemy.z);
-        let best = this._distances?.[z * LEVEL.width + x] ?? -1;
+        let best = this._distances?.[z * this.level.width + x] ?? -1;
         let target = null;
         for (const [nx, nz] of [[x + 1, z], [x - 1, z], [x, z + 1], [x, z - 1]]) {
-          const value = this._distances?.[nz * LEVEL.width + nx] ?? -1;
+          const value = this._distances?.[nz * this.level.width + nx] ?? -1;
           if (value >= 0 && (best < 0 || value < best) && !this._wall(nx + .5, nz + .5)) { best = value; target = [nx + .5, nz + .5]; }
         }
         if (!target) continue;
@@ -390,7 +490,7 @@ export class Game {
       const d = distance(p, object);
       if (d > 1.65) continue;
       // A door is solid; stop outside its cell. Consoles need full line of sight.
-      const t = 'requires' in object ? Math.max(0, (d - .74) / Math.max(d, .01)) : 1;
+      const t = this.state.doors.includes(object) ? Math.max(0, (d - .74) / Math.max(d, .01)) : 1;
       if (!this.hasLineOfSight(p.x, p.z, p.x + (object.x - p.x) * t, p.z + (object.z - p.z) * t)) continue;
       candidates.push({ object, d });
     }
@@ -401,11 +501,14 @@ export class Game {
   getInteractionInfo() {
     const o = this._interactionCandidate();
     if (!o) return null;
-    if (o.requires === 'power' && !this.state.power) return { text: 'Airlock offline — restore power', label: 'OFFLINE', canUse: false };
+    if (o.requires === 'power' && !this.state.power) return { text: o.type === 'relay' ? 'Relay offline — restore ring power' : 'Airlock offline — restore power', label: 'OFFLINE', canUse: false };
+    if (o.requires === 'relays' && !this.state.power) return { text: 'Communications vault offline — restore ring power', label: 'OFFLINE', canUse: false };
+    if (o.requires === 'relays' && !this._relaysReady()) return { text: 'Vault locked — activate both relay consoles', label: 'LOCKED', canUse: false };
     if (o.requires === 'key' && !this.state.power) return { text: 'Security gate offline — restore power', label: 'OFFLINE', canUse: false };
     if (o.requires === 'key' && !this.state.player.key) return { text: 'Security gate — access key required', label: 'LOCKED', canUse: false };
     if (o.type === 'exit' && (!this.state.power || !this.state.player.key)) return { text: 'Extraction offline — power and key required', label: this.state.power ? 'LOCKED' : 'OFFLINE', canUse: false };
-    const label = o.type === 'power' ? 'POWER' : o.type === 'exit' ? 'EXTRACT' : o.type === 'secret' || o.secret ? 'INSPECT' : 'OPEN';
+    if (o.type === 'exit' && !this._relaysReady()) return { text: 'Uplink offline — activate both relay consoles', label: 'LOCKED', canUse: false };
+    const label = o.type === 'power' ? 'POWER' : o.type === 'relay' ? 'LINK' : o.type === 'exit' ? 'EXTRACT' : o.type === 'secret' || o.secret ? 'INSPECT' : 'OPEN';
     return { text: o.label || (o.secret ? 'Inspect maintenance panel' : 'Open airlock'), label, canUse: this.state.status === 'playing' };
   }
 
@@ -415,7 +518,7 @@ export class Game {
     if (this.state.status !== 'playing') return false;
     const o = this._interactionCandidate();
     if (!o) return false;
-    if (o.requires === 'power' && !this.state.power || o.requires === 'key' && (!this.state.player.key || !this.state.power)) {
+    if (o.requires === 'power' && !this.state.power || o.requires === 'key' && (!this.state.player.key || !this.state.power) || o.requires === 'relays' && (!this.state.power || !this._relaysReady())) {
       this._events.push({ type: 'message', text: this.getPrompt() }); return false;
     }
     this.state.tutorial.interacted = true;
@@ -424,9 +527,20 @@ export class Game {
       this.state.player.health = Math.max(75, this.state.player.health);
       this.state.player.armor = Math.max(30, this.state.player.armor);
       this.state.player.ammo.pistol = Math.max(24, this.state.player.ammo.pistol);
-      this._events.push({ type: 'power' }, { type: 'message', text: 'Power restored. Airlocks online. Find the security key.' });
+      this._events.push({ type: 'power' }, { type: 'message', text: this.level.missionId === 'relay-09' ? 'Ring power restored. Activate the western and eastern relay consoles.' : 'Power restored. Airlocks online. Find the security key.' });
       this._checkpoint = this._snapshot();
       this._events.push({ type: 'checkpoint', text: 'Checkpoint saved at the generator.' });
+    } else if (o.type === 'relay') {
+      o.used = true;
+      const progress = this.getMissionProgress();
+      const text = progress.relaysUsed === progress.relaysTotal ? 'Both relays online. The communications vault can now be opened.' : `${o.id === 'relay-west' ? 'Western' : 'Eastern'} relay online. Activate the other relay to unlock the vault.`;
+      this._events.push({ type: 'relay', id: o.id, count: progress.relaysUsed, total: progress.relaysTotal, text }, { type: 'message', text });
+      this._pathTimer = 0;
+      if (progress.relaysUsed === progress.relaysTotal) {
+        this.state.checkpoint = true;
+        this._checkpoint = this._snapshot();
+        this._events.push({ type: 'checkpoint', text: 'Checkpoint saved: both relays online.' });
+      }
     } else if (o.type === 'secret' || o.secret) {
       this.state.secretFound = true;
       this.state.interactables.find(i => i.type === 'secret').used = true;
@@ -434,7 +548,7 @@ export class Game {
       this._events.push({ type: 'secret', text: 'Secret found: maintenance supply cache.' }, { type: 'door', id: 'maintenance' });
       this._pathTimer = 0;
     } else if (o.type === 'exit') {
-      if (!this.state.power || !this.state.player.key) { this._events.push({ type: 'message', text: this.getPrompt() }); return false; }
+      if (!this.state.power || !this.state.player.key || !this._relaysReady()) { this._events.push({ type: 'message', text: this.getPrompt() }); return false; }
       o.used = true; this.state.status = 'won'; this._events.push({ type: 'win', time: this.state.time });
     } else {
       o.open = true;
@@ -445,17 +559,37 @@ export class Game {
   }
 
   getObjective() {
-    if (this.state.status === 'won') return { title: 'Extraction complete', detail: 'Blacksite 07 is behind you.', x: 26.5, z: 25.5 };
-    if (!this.state.doors[0].open) return { title: 'Leave the arrival bay', detail: 'Move toward the airlock and use it to enter the facility.', x: 5.5, z: 20.5, action: 'interact' };
-    if (!this.state.power) return { title: 'Restore auxiliary power', detail: 'Find the illuminated console in the generator room.', x: 10.5, z: 4.5, action: 'interact' };
-    if (!this.state.player.key) return { title: 'Recover the security key', detail: 'Enter the research lab through a powered airlock.', x: 26.5, z: 4.5, action: 'collect' };
-    if (!this.state.doors.find(d => d.id === 'security').open) return { title: 'Open the extraction gate', detail: 'Head south through quarantine. Your key opens the gate.', x: 23.5, z: 23.5, action: 'interact' };
-    return { title: 'Signal extraction', detail: 'Use the green terminal at the far end of the extraction bay.', x: 26.5, z: 25.5, action: 'interact' };
+    const relayMission = this.level.missionId === 'relay-09';
+    const arrival = this.state.doors.find(d => d.id === 'arrival');
+    const power = this.state.interactables.find(i => i.type === 'power');
+    const key = this.state.pickups.find(p => p.type === 'key');
+    const gate = this.state.doors.find(d => d.id === 'security');
+    const exit = this.state.interactables.find(i => i.type === 'exit');
+    const objective = (target, title, detail, stage, action = 'interact') => ({ title, detail, x: target.x, z: target.z, stage, ...(action ? { action } : {}) });
+    if (this.state.status === 'won') return objective(exit, 'Extraction complete', `${this.level.name} is behind you.`, 'complete', null);
+    if (!arrival.open) return objective(arrival, relayMission ? 'Enter the communications ring' : 'Leave the arrival bay', 'Move toward the airlock and use it to enter the facility.', 'arrival');
+    if (!this.state.power) return objective(power, relayMission ? 'Restore ring power' : 'Restore auxiliary power', relayMission ? 'Find the power console in the southwest plant.' : 'Find the illuminated console in the generator room.', 'power');
+    const nextRelay = this.state.interactables.find(i => i.type === 'relay' && !i.used);
+    if (nextRelay) return objective(nextRelay, nextRelay.label, `Find and activate both relay consoles. ${this.getMissionProgress().relaysUsed} of 2 relays online.`, 'relays');
+    if (!this.state.player.key) {
+      const vault = this.state.doors.find(d => d.requires === 'relays');
+      if (vault && !vault.open) return objective(vault, 'Open the communications vault', 'Both relays are online. Open the central vault to recover its security key.', 'vault');
+      return objective(key, 'Recover the security key', relayMission ? 'Enter the central vault and collect the illuminated key.' : 'Enter the research lab through a powered airlock.', 'key', 'collect');
+    }
+    if (!gate.open) return objective(gate, 'Open the extraction gate', relayMission ? 'Return to the north gallery. Your key opens the uplink gate.' : 'Head south through quarantine. Your key opens the gate.', 'gate');
+    return objective(exit, 'Signal extraction', relayMission ? 'Use the terminal in extraction control to transmit your signal.' : 'Use the green terminal at the far end of the extraction bay.', 'extraction');
   }
+
+  getMissionProgress() {
+    const relays = this.state.interactables.filter(i => i.type === 'relay');
+    return { missionId: this.level.missionId, relaysUsed: relays.filter(i => i.used).length, relaysTotal: relays.length };
+  }
+
+  _relaysReady() { const p = this.getMissionProgress(); return p.relaysUsed === p.relaysTotal; }
 
   getZone() {
     const p = this.state.player;
-    return LEVEL.zones.find(zone => p.x >= zone.x1 && p.x < zone.x2 && p.z >= zone.z1 && p.z < zone.z2)?.name || 'Service passage';
+    return this.level.zones.find(zone => p.x >= zone.x1 && p.x < zone.x2 && p.z >= zone.z1 && p.z < zone.z2)?.name || 'Service passage';
   }
 
   drainEvents() { const events = this._events; this._events = []; return events; }
@@ -473,70 +607,89 @@ export class Game {
   }
 
   serialize() {
-    return { version: 1, levelId: LEVEL.id, options: { difficulty: this._runDifficulty, seed: this._runSeed }, state: this._snapshot(), checkpoint: this._checkpoint ? copy(this._checkpoint) : null };
+    return { version: 1, levelId: this.level.id, options: { mission: this.level.missionId, difficulty: this._runDifficulty, seed: this._runSeed }, state: this._snapshot(), checkpoint: this._checkpoint ? copy(this._checkpoint) : null };
   }
 
-  _validSnapshot(s) {
+  _validSnapshot(s, level = this.level) {
     if (!s || typeof s !== 'object') return false;
     const p = s.player;
-    if (!p || !finite(p.x, 1, LEVEL.width - 1) || !finite(p.z, 1, LEVEL.height - 1) || !finite(p.angle, -1000, 1000) || !finite(p.health, 1, 100) || !finite(p.armor, 0, 100)) return false;
-    if (LEVEL.grid[Math.floor(p.z)][Math.floor(p.x)] === '#') return false;
+    if (!p || !finite(p.x, 1, level.width - 1) || !finite(p.z, 1, level.height - 1) || !finite(p.angle, -1000, 1000) || !finite(p.health, 1, 100) || !finite(p.armor, 0, 100)) return false;
+    if (level.grid[Math.floor(p.z)][Math.floor(p.x)] === '#') return false;
     if (!p.ammo || !finite(p.ammo.pistol, 0, 10000) || !finite(p.ammo.shells, 0, 10000) || !['pistol', 'shotgun'].includes(p.weapon) || typeof p.key !== 'boolean' || typeof p.hasShotgun !== 'boolean' || p.weapon === 'shotgun' && !p.hasShotgun) return false;
     if (typeof s.power !== 'boolean' || typeof s.secretFound !== 'boolean') return false;
     for (const key of ['time', 'kills', 'shots', 'hits', 'randomState']) if (!finite(s[key], 0, key === 'randomState' ? 4294967295 : 10000000)) return false;
     for (const [key, flag] of [['pickups', 'collected'], ['doors', 'open'], ['interactables', 'used']]) {
-      if (!Array.isArray(s[key]) || s[key].length !== LEVEL[key].length || new Set(s[key].map(v => v?.id)).size !== LEVEL[key].length) return false;
-      for (const base of LEVEL[key]) if (!s[key].some(v => v?.id === base.id && typeof v[flag] === 'boolean')) return false;
+      if (!Array.isArray(s[key]) || s[key].length !== level[key].length || new Set(s[key].map(v => v?.id)).size !== level[key].length) return false;
+      for (const base of level[key]) if (!s[key].some(v => v?.id === base.id && typeof v[flag] === 'boolean')) return false;
     }
     const savedDoor = id => s.doors.find(d => d.id === id);
     const savedItem = id => s.pickups.find(item => item.id === id);
     const savedFeature = id => s.interactables.find(i => i.id === id);
     if (p.key !== savedItem('access-key').collected || p.hasShotgun !== savedItem('pump-shotgun').collected || s.power !== savedFeature('aux-power').used) return false;
     if (s.secretFound !== savedFeature('cache-panel').used || s.secretFound !== savedDoor('maintenance').open) return false;
-    if (savedDoor('arrival').open !== savedDoor('arrival-side').open) return false;
-    if (!s.power && (savedDoor('lab-airlock').open || savedDoor('return-airlock').open)) return false;
-    if (savedDoor('security').open && (!p.key || !s.power) || savedFeature('extraction').used && (!p.key || !s.power)) return false;
+    const relays = level.interactables.filter(i => i.type === 'relay');
+    const relaysReady = relays.every(i => savedFeature(i.id).used);
+    if (!s.power && relays.some(i => savedFeature(i.id).used)) return false;
+    if (p.key && !relaysReady) return false;
+    for (const door of level.doors) {
+      if (door.paired && savedDoor(door.id).open !== savedDoor(door.paired).open) return false;
+      if (!savedDoor(door.id).open) continue;
+      if (door.requires === 'power' && !s.power || door.requires === 'relays' && (!s.power || !relaysReady) || door.requires === 'key' && (!p.key || !s.power || !relaysReady)) return false;
+    }
+    if (savedFeature('extraction').used && (!p.key || !s.power || !relaysReady)) return false;
     // A resumable player must fit on the floor and outside any closed door.
     for (const [dx, dz] of [[-.22, -.22], [-.22, .22], [.22, -.22], [.22, .22]]) {
       const cx = Math.floor(p.x + dx), cz = Math.floor(p.z + dz);
-      if (LEVEL.grid[cz]?.[cx] === '#' || s.doors.some(d => !d.open && Math.floor(LEVEL.doors.find(base => base.id === d.id).x) === cx && Math.floor(LEVEL.doors.find(base => base.id === d.id).z) === cz)) return false;
+      if (level.grid[cz]?.[cx] === '#' || s.doors.some(d => !d.open && Math.floor(level.doors.find(base => base.id === d.id).x) === cx && Math.floor(level.doors.find(base => base.id === d.id).z) === cz)) return false;
     }
-    if (!Array.isArray(s.enemies) || s.enemies.length !== LEVEL.enemies.length || new Set(s.enemies.map(e => e?.id)).size !== LEVEL.enemies.length) return false;
-    for (const base of LEVEL.enemies) {
+    if (!Array.isArray(s.enemies) || s.enemies.length !== level.enemies.length || new Set(s.enemies.map(e => e?.id)).size !== level.enemies.length) return false;
+    for (const base of level.enemies) {
       const e = s.enemies.find(v => v?.id === base.id);
-      if (!e || !finite(e.x, 1, LEVEL.width - 1) || !finite(e.z, 1, LEVEL.height - 1) || LEVEL.grid[Math.floor(e.z)][Math.floor(e.x)] === '#' || !finite(e.health, 0, 1000) || typeof e.alive !== 'boolean' || typeof e.active !== 'boolean') return false;
+      if (!e || !finite(e.x, 1, level.width - 1) || !finite(e.z, 1, level.height - 1) || level.grid[Math.floor(e.z)][Math.floor(e.x)] === '#' || !finite(e.health, 0, 1000) || typeof e.alive !== 'boolean' || typeof e.active !== 'boolean') return false;
       if (e.alive !== (e.health > 0)) return false;
     }
     return true;
   }
 
-  _applySnapshot(s) {
+  _stateFromSnapshot(s, level = this.level, difficulty = this._difficulty) {
     const p = s.player;
-    this.state.player = { x: p.x, z: p.z, angle: p.angle, health: p.health, armor: p.armor, ammo: { pistol: Math.floor(p.ammo.pistol), shells: Math.floor(p.ammo.shells) }, weapon: p.weapon, key: p.key, hasShotgun: p.hasShotgun };
-    this.state.enemies = LEVEL.enemies.map(base => {
+    const next = { player: { x: p.x, z: p.z, angle: p.angle, health: p.health, armor: p.armor, ammo: { pistol: Math.floor(p.ammo.pistol), shells: Math.floor(p.ammo.shells) }, weapon: p.weapon, key: p.key, hasShotgun: p.hasShotgun } };
+    next.enemies = level.enemies.map(base => {
       const e = s.enemies.find(v => v.id === base.id);
-      return { ...base, x: e.x, z: e.z, health: e.health, maxHealth: Math.round(base.maxHealth * this._difficulty.health), alive: e.alive, active: e.active, angle: finite(e.angle, -1000, 1000) ? e.angle : 0, attackCooldown: .8, hitTimer: 0 };
+      return { ...base, x: e.x, z: e.z, health: e.health, maxHealth: Math.round(base.maxHealth * difficulty.health), alive: e.alive, active: e.active, angle: finite(e.angle, -1000, 1000) ? e.angle : 0, attackCooldown: .8, hitTimer: 0 };
     });
-    this.state.pickups = LEVEL.pickups.map(base => ({ ...base, collected: s.pickups.find(v => v.id === base.id).collected }));
-    this.state.doors = LEVEL.doors.map(base => ({ ...base, open: s.doors.find(v => v.id === base.id).open }));
-    this.state.interactables = LEVEL.interactables.map(base => ({ ...base, used: s.interactables.find(v => v.id === base.id).used }));
-    for (const key of ['power', 'secretFound', 'time', 'kills', 'shots', 'hits']) this.state[key] = s[key];
-    this.state.tutorial = Object.fromEntries(['moved', 'fired', 'interacted', 'weaponSwitched'].map(k => [k, s.tutorial?.[k] === true]));
-    this.state.effects = []; this.state.projectiles = []; this.state.status = 'paused';
+    next.pickups = level.pickups.map(base => ({ ...base, collected: s.pickups.find(v => v.id === base.id).collected }));
+    next.doors = level.doors.map(base => ({ ...base, open: s.doors.find(v => v.id === base.id).open }));
+    next.interactables = level.interactables.map(base => ({ ...base, used: s.interactables.find(v => v.id === base.id).used }));
+    for (const key of ['power', 'secretFound', 'time', 'kills', 'shots', 'hits']) next[key] = s[key];
+    next.tutorial = Object.fromEntries(['moved', 'fired', 'interacted', 'weaponSwitched'].map(k => [k, s.tutorial?.[k] === true]));
+    next.effects = []; next.projectiles = []; next.status = 'paused'; next.checkpoint = false;
+    return next;
+  }
+
+  _resetAfterRestore(s) {
     this._random = s.randomState >>> 0; this._shotCooldown = 0; this._pathTimer = 0; this._distances = null;
     this._reserveTimer = 0; this._messageCooldown = 0; this._serial = 0;
   }
 
   restore(data) {
     try {
-      if (!data || data.version !== 1 || data.levelId !== LEVEL.id || !DIFFICULTY[data.options?.difficulty] || !this._validSnapshot(data.state) || data.checkpoint && (!this._validSnapshot(data.checkpoint) || !data.checkpoint.power || !data.state.power || data.checkpoint.time > data.state.time)) return false;
-      this.options.difficulty = data.options.difficulty;
-      this._runDifficulty = data.options.difficulty;
-      this._runSeed = (Number(data.options.seed) >>> 0) || 1;
-      this._difficulty = DIFFICULTY[this.options.difficulty];
-      this._applySnapshot(data.state);
-      this._checkpoint = data.checkpoint ? copy(data.checkpoint) : null;
-      this.state.checkpoint = Boolean(this._checkpoint);
+      // Resolve and construct everything before changing the active mission.
+      const saved = copy(data);
+      const level = Object.values(LEVELS).find(candidate => candidate.id === saved?.levelId);
+      if (!saved || saved.version !== 1 || !level || !Object.hasOwn(DIFFICULTY, saved.options?.difficulty) || saved.options.mission !== undefined && saved.options.mission !== level.missionId) return false;
+      if (!this._validSnapshot(saved.state, level)) return false;
+      if (saved.checkpoint && (!this._validSnapshot(saved.checkpoint, level) || !saved.checkpoint.power || !saved.state.power || saved.checkpoint.time > saved.state.time || saved.checkpoint.interactables.some(i => i.used && !saved.state.interactables.find(current => current.id === i.id).used))) return false;
+      const difficulty = DIFFICULTY[saved.options.difficulty];
+      const nextState = this._stateFromSnapshot(saved.state, level, difficulty);
+      const checkpoint = saved.checkpoint ? copy(saved.checkpoint) : null;
+      const seed = (Number(saved.options.seed) >>> 0) || 1;
+      nextState.checkpoint = Boolean(checkpoint);
+      this.level = level;
+      this.options = { ...this.options, mission: level.missionId, difficulty: saved.options.difficulty, seed };
+      this._runDifficulty = saved.options.difficulty; this._runSeed = seed; this._difficulty = difficulty;
+      this.state = nextState; this._checkpoint = checkpoint;
+      this._resetAfterRestore(saved.state);
       this._events = [{ type: 'message', text: 'Mission restored. Resume when ready.' }];
       return true;
     } catch { return false; }
@@ -544,8 +697,8 @@ export class Game {
 
   restartCheckpoint() {
     if (!this._checkpoint || !this._validSnapshot(this._checkpoint)) return false;
-    this._applySnapshot(copy(this._checkpoint)); this.state.checkpoint = true;
-    this.state.status = 'playing'; this._events = [{ type: 'message', text: 'Generator checkpoint restored.' }];
+    this.state = this._stateFromSnapshot(this._checkpoint); this._resetAfterRestore(this._checkpoint); this.state.checkpoint = true;
+    this.state.status = 'playing'; this._events = [{ type: 'message', text: this.level.missionId === 'relay-09' ? 'Dead Relay checkpoint restored.' : 'Generator checkpoint restored.' }];
     return true;
   }
 }

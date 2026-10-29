@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { Game, LEVEL } from '../daily_flyer/themes/breach_assets/core.mjs';
+import { Game, LEVEL, LEVELS, MISSIONS, getLevel } from '../daily_flyer/themes/breach_assets/core.mjs';
 
 function pathTo(game, target) {
   const p = game.state.player;
@@ -312,4 +312,151 @@ test('interaction information reports actionable controls and unmet requirements
   at(game, 26.5, 25.5);
   assert.deepEqual(game.getInteractionInfo(), { text: 'Signal extraction', label: 'EXTRACT', canUse: true });
   assert.equal(game.interact(), true); assert.equal(game.state.status, 'won');
+});
+
+function enterRelay(game) {
+  quiet(game);
+  walkTo(game, { x: 17.5, z: 27.5 });
+  assert.equal(game.interact(), true);
+}
+
+function powerRelay(game) {
+  enterRelay(game);
+  walkTo(game, game.level.interactables.find(i => i.type === 'power'));
+  assert.equal(game.interact(), true);
+}
+
+test('mission registry preserves the original default and both maps have connected floor entities', () => {
+  assert.deepEqual(MISSIONS.map(m => m.id), ['blacksite-07', 'relay-09']);
+  assert.equal(getLevel(), LEVEL); assert.equal(new Game().level, LEVEL);
+  assert.equal(getLevel('unknown'), LEVEL); assert.equal(getLevel('__proto__'), LEVEL);
+  assert.equal(LEVEL.id, 'blacksite-07-v1');
+  for (const mission of MISSIONS) {
+    const game = new Game({ mission: mission.id }), level = game.level;
+    assert.equal(level.id, mission.levelId); assert.equal(level.missionId, mission.id);
+    assert.equal(level.grid.length, level.height);
+    for (const row of level.grid) assert.equal(row.length, level.width);
+    for (const door of game.state.doors) door.open = true;
+    for (const entity of [level.spawn, ...level.enemies, ...level.pickups, ...level.doors, ...level.interactables]) {
+      assert.notEqual(level.grid[Math.floor(entity.z)][Math.floor(entity.x)], '#', `${level.id}: ${entity.id}`);
+      assert.ok(pathTo(game, entity), `${level.id}: isolated entity ${entity.id}`);
+    }
+  }
+  assert.equal(LEVELS['relay-09'].enemies.length, 20);
+  assert.notDeepEqual(LEVELS['relay-09'].grid, LEVEL.grid);
+});
+
+test('Dead Relay completes by normal movement only after power, both relays, vault and key', () => {
+  const game = new Game({ mission: 'relay-09' }); enterRelay(game);
+  const power = game.level.interactables.find(i => i.type === 'power');
+  const west = game.level.interactables.find(i => i.id === 'relay-west');
+  const east = game.level.interactables.find(i => i.id === 'relay-east');
+  const key = game.level.pickups.find(i => i.type === 'key');
+  const exit = game.level.interactables.find(i => i.type === 'exit');
+  assert.equal(game.getObjective().stage, 'power');
+  assert.equal(pathTo(game, key), null, 'The central vault begins sealed');
+  walkTo(game, west);
+  assert.equal(game.getInteractionInfo().label, 'OFFLINE');
+  assert.equal(game.interact(), false); assert.equal(game.getMissionProgress().relaysUsed, 0);
+  walkTo(game, power); assert.equal(game.interact(), true);
+  assert.equal(game.getObjective().stage, 'relays');
+  walkTo(game, west); assert.equal(game.getInteractionInfo().label, 'LINK'); assert.equal(game.interact(), true);
+  assert.equal(game.getMissionProgress().relaysUsed, 1);
+  assert.equal(pathTo(game, key), null, 'One relay cannot unlock the vault');
+  walkTo(game, { x: 17.5, z: 10.5 });
+  assert.equal(game.getInteractionInfo().label, 'LOCKED'); assert.equal(game.interact(), false);
+  walkTo(game, east); assert.equal(game.interact(), true);
+  assert.deepEqual(game.getMissionProgress(), { missionId: 'relay-09', relaysUsed: 2, relaysTotal: 2 });
+  assert.equal(game.getObjective().stage, 'vault');
+  assert.equal(game.serialize().checkpoint.interactables.filter(i => i.id.startsWith('relay-') && i.used).length, 2);
+  walkTo(game, { x: 17.5, z: 10.5 }); assert.equal(game.interact(), true);
+  assert.equal(game.getObjective().action, 'collect');
+  assert.equal(pathTo(game, exit), null, 'Extraction remains locked until the key is collected');
+  walkTo(game, key); assert.equal(game.state.player.key, true);
+  assert.equal(game.getObjective().stage, 'gate');
+  walkTo(game, { x: 17.5, z: 6.5 }); assert.equal(game.interact(), true);
+  walkTo(game, exit); assert.equal(game.interact(), true);
+  assert.equal(game.state.status, 'won'); assert.equal(game.getObjective().stage, 'complete');
+  assert.equal(game.state.secretFound, false, 'The supply cache is optional');
+  const relayEvents = game.drainEvents().filter(e => e.type === 'relay');
+  assert.deepEqual(relayEvents.map(e => [e.id, e.count, e.total]), [['relay-west', 1, 2], ['relay-east', 2, 2]]);
+});
+
+test('either relay can be activated first and the completed pair survives checkpoint restart', () => {
+  const game = new Game({ mission: 'relay-09' }); powerRelay(game);
+  for (const id of ['relay-east', 'relay-west']) {
+    walkTo(game, game.level.interactables.find(i => i.id === id));
+    assert.equal(game.interact(), true);
+  }
+  assert.equal(game.getMissionProgress().relaysUsed, 2);
+  game.state.player.health = 1;
+  assert.equal(game.restartCheckpoint(), true);
+  assert.equal(game.getMissionProgress().relaysUsed, 2);
+  assert.equal(game.getObjective().stage, 'vault');
+  assert.equal(game.state.player.x, 3.5);
+  assert.ok(game.state.player.health > 1);
+});
+
+test('saved runs select the correct level and legacy saves without mission remain compatible', () => {
+  const original = new Game({ difficulty: 'hard', seed: 314 }); quiet(original);
+  at(original, 10.5, 4.5); original.interact();
+  const legacy = original.serialize(); delete legacy.options.mission;
+  const relayDefault = new Game({ mission: 'relay-09' });
+  assert.equal(relayDefault.restore(legacy), true);
+  assert.equal(relayDefault.level.id, LEVEL.id); assert.equal(relayDefault.options.mission, 'blacksite-07');
+  assert.equal(relayDefault.serialize().options.difficulty, 'hard'); assert.equal(relayDefault.state.checkpoint, true);
+  const relay = new Game({ mission: 'relay-09', seed: 771 }); powerRelay(relay);
+  walkTo(relay, relay.level.interactables.find(i => i.id === 'relay-west')); relay.interact();
+  const saved = relay.serialize(), continued = new Game();
+  assert.equal(continued.restore(saved), true);
+  assert.equal(continued.level.id, 'relay-09-v1'); assert.equal(continued.options.mission, 'relay-09');
+  assert.equal(continued.state.status, 'paused'); assert.equal(continued.getMissionProgress().relaysUsed, 1);
+  assert.equal(continued.state.player.x, relay.state.player.x);
+  assert.equal(continued.restartCheckpoint(), true); assert.equal(continued.getMissionProgress().relaysUsed, 0);
+  // Completing both relays writes the later checkpoint and persists its used flags.
+  for (const id of ['relay-west', 'relay-east']) { at(continued, ...[continued.level.interactables.find(i => i.id === id).x, continued.level.interactables.find(i => i.id === id).z]); continued.interact(); }
+  const afterPair = new Game(); assert.equal(afterPair.restore(continued.serialize()), true);
+  assert.equal(afterPair.restartCheckpoint(), true); assert.equal(afterPair.getMissionProgress().relaysUsed, 2);
+});
+
+test('invalid cross-mission saves fail atomically without changing the active map, options or state', () => {
+  const target = new Game({ mission: 'relay-09', difficulty: 'hard', seed: 813 }); target.start();
+  const before = target.serialize(), beforeLevel = target.level, beforeOptions = { ...target.options };
+  const wrongMap = new Game().serialize(); wrongMap.levelId = 'relay-09-v1'; wrongMap.options.mission = 'relay-09';
+  const wrongMission = new Game().serialize(); wrongMission.options.mission = 'relay-09';
+  const invalidRelays = new Game({ mission: 'relay-09' }).serialize(); invalidRelays.state.interactables.find(i => i.id === 'relay-west').used = true;
+  const invalidGate = new Game({ mission: 'relay-09' }).serialize(); invalidGate.state.doors.find(d => d.id === 'relay-vault').open = true;
+  const invalidCheckpoint = new Game().serialize(); invalidCheckpoint.checkpoint = before.state;
+  for (const data of [wrongMap, wrongMission, invalidRelays, invalidGate, invalidCheckpoint]) {
+    assert.equal(target.restore(data), false);
+    assert.equal(target.level, beforeLevel); assert.deepEqual(target.options, beforeOptions); assert.deepEqual(target.serialize(), before);
+  }
+});
+
+test('mission state changes do not mutate definitions or another mission instance', () => {
+  const definitions = JSON.stringify(LEVELS);
+  const original = new Game(), other = new Game({ mission: 'relay-09' }), untouched = new Game({ mission: 'relay-09' });
+  const initialOther = untouched.serialize();
+  powerRelay(other);
+  at(other, 29.5, 24.5); assert.equal(other.interact(), true); assert.equal(other.state.secretFound, true);
+  assert.equal(original.state.power, false); assert.equal(original.state.secretFound, false);
+  assert.deepEqual(untouched.serialize(), initialOther);
+  assert.equal(JSON.stringify(LEVELS), definitions);
+  other.options.mission = 'blacksite-07'; other.restart();
+  assert.equal(other.level, LEVEL); assert.equal(other.state.power, false); assert.equal(other.state.enemies.length, 14);
+});
+
+test('Dead Relay first live encounter is beatable with unchanged standard pistol damage', () => {
+  const game = new Game({ mission: 'relay-09', difficulty: 'standard', aimAssist: true }); game.start();
+  walkTo(game, { x: 17.5, z: 27.5 }); game.interact();
+  walkTo(game, { x: 17.5, z: 24.5 });
+  for (let n = 0; n < 400 && game.state.kills < 3 && game.state.status === 'playing'; n++) {
+    const p = game.state.player;
+    const target = game.state.enemies.filter(e => e.alive && Math.hypot(e.x - p.x, e.z - p.z) < 10 && game.hasLineOfSight(p.x, p.z, e.x, e.z))
+      .sort((a, b) => Math.hypot(a.x - p.x, a.z - p.z) - Math.hypot(b.x - p.x, b.z - p.z))[0];
+    if (target) p.angle = Math.atan2(target.x - p.x, -(target.z - p.z));
+    game.update(.05, { fire: Boolean(target) });
+  }
+  assert.equal(game.state.status, 'playing'); assert.equal(game.state.kills, 3);
+  assert.equal(game.state.player.weapon, 'pistol'); assert.ok(game.state.player.health > 0); assert.ok(game.state.player.ammo.pistol > 0);
 });

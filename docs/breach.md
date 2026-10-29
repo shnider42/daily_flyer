@@ -1,4 +1,4 @@
-# BREACH — Blacksite 07
+# BREACH — DailyFlyer Arcade
 
 An original retro first-person game built on DailyFlyer. Single player; all
 movement, combat, sound, rendering, and saves run in the browser.
@@ -32,19 +32,33 @@ Render Static Site settings:
 
 ## Play
 
-Restore auxiliary power, recover the security key, and reach extraction. Explore
-for supplies and an optional secret. The power station creates a checkpoint.
-Guidance level and combat difficulty are separate settings.
+Select an operation from the mission briefing. Blacksite 07 introduces power,
+security keys, and extraction. Dead Relay is a second facility: restore ring
+power, activate western and eastern relays, enter the communications vault, and
+recover its key before returning to extraction control. Both operations include
+supplies, an optional secret, and checkpoints. Guidance level and combat difficulty
+are separate settings.
 
 Desktop uses WASD movement, mouse look (or click-and-drag when pointer lock is
 unavailable), firing, E interaction, and the pause menu. The game displays its
 current control bindings. Touch uses the left movement pad and right-side aiming;
 the fire control accepts dragging so moving, aiming, and firing work with two thumbs.
 
+Desktop also supports F for fullscreen and the mouse wheel for swapping acquired
+weapons. Settings offer automatic, wide, or wider field of view and automatic,
+performance, or sharp graphics. Fullscreen is available when the browser supports
+the API; ordinary windowed play remains available. Graphics remain deliberately
+pixelated, with bounded render sizes in both WebGL and the software fallback.
+
 Saves and preferences are browser-local and do not sync between devices. Clearing
 website data clears progress. Private browsing or blocked storage may prevent
 persistence; gameplay continues without requiring storage. The game pauses when
 the page loses focus or becomes hidden.
+
+There is one current-run save. Selecting another mission's briefing does not
+replace it; Continue identifies the saved mission. Starting a new run replaces
+the current save. Blacksite saves from 0.1.x remain compatible. A mission link,
+such as `?mission=relay-09`, selects its briefing without starting it.
 
 ## Validation
 
@@ -53,7 +67,7 @@ node tests/breach-core.test.mjs
 python -m unittest discover -s tests -p test_breach_export.py
 ```
 
-Release checks completed on 2026-10-29:
+Initial 0.1.0 release checks completed on 2026-10-29:
 
 - **18 core tests passed:** mission routing and gates, movement and collisions,
   weapon damage, projectile and enemy behavior, secrets, checkpoints, save
@@ -96,15 +110,44 @@ the nearby key hint uses collection wording, and tutorial dismissal still works.
 These layout checks use desktop browser viewports with the touch UI enabled;
 they do not measure physical-device touch latency or frame rate.
 
-For the next playtest, use the same first route: leave arrival, clear the first
-room, and reach the generator. Note whether any difficulty comes from aiming,
-unclear instructions, or uneven motion. That distinction will guide the next
-small change before adding a second mission.
+## 0.2.0 — Dead Relay and desktop play
+
+- Added a second authored 35×33 facility, with a ring layout, 20 enemies, two relay
+  branches, a gated central vault, an extraction uplink, and a service cache.
+- Relay consoles require power. Both must be activated before the vault unlocks.
+  The second relay refreshes the checkpoint so the completed circuit is saved.
+- Added mission selection, mission-specific briefings and progress, and a next
+  mission action on successful extraction.
+- Gave Dead Relay its own blue concrete, relay hardware, zone signs, and console
+  status visuals in both rendering paths, plus a relay activation sound.
+- Added fullscreen, wheel-based weapon switching, field-of-view choices, and
+  graphics presets for desktop play. Phone guidance and touch controls remain
+  available for either mission.
+- Kept the desktop launch menu within an 810px-tall viewport, including both
+  mission choices, Continue, settings, and the full briefing.
+- Restarting a continued mission preserves its saved difficulty and seed.
+
+Validation: all **27 core tests** and **3 export tests** pass. New coverage checks
+the complete Dead Relay route with real movement, both relay orders, vault/key
+requirements, the second-relay checkpoint, mission isolation, legacy saves,
+and an opening live-combat encounter. Route tests disable enemies to isolate
+navigation; they do not establish combat balance for the entire mission.
+
+Browser checks exercised the mission selector, preserved Continue across mission
+selection, a genuine 0.1.1 Blacksite save, desktop E interaction and mouse-wheel
+weapon switching, field-of-view/quality controls, and fullscreen rejection in an
+embedded view. At 393×852 and 852×393, touch controls linked the second relay,
+showed 2/2 progress and a checkpoint, and completed extraction. Completing
+Blacksite exposed the Next: Dead Relay action, which started the correct new
+mission. The desktop menu fits 1440×810 without scrolling. These checks use the Canvas fallback because
+the QA browser disables WebGL; actual GPU performance and physical-device touch
+latency still need playtesting.
 
 ## Scope
 
-This first release contains one authored mission, two weapons, three enemy roles,
-power/key progression, a secret, a checkpoint, and a results screen. It has no
+The game contains two authored missions, two weapons, three enemy roles,
+power/key progression, relay objectives, optional secrets, checkpoints, and
+results screens. It has no
 multiplayer, shared leaderboard, accounts, or procedural campaign. Those features
 would require separate design and validation.
 

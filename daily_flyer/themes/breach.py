@@ -10,14 +10,14 @@ from daily_flyer.models import PageContext
 
 
 THEME_CONFIG = {
-    "page_title": "BREACH — Blacksite 07",
+    "page_title": "BREACH — DailyFlyer Arcade",
     "header_title": "BREACH",
     "header_subtitle": "Restore the power. Find a way out.",
     "footer_text": "An original game built on DailyFlyer.",
 }
 
 ASSET_DIRECTORY = Path(__file__).with_name("breach_assets")
-VERSION = "0.1.1"
+VERSION = "0.2.0"
 
 
 def build_theme_page(date_str: str | None = None, seed: int | None = None) -> PageContext:

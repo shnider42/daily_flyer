@@ -1,4 +1,4 @@
-import { Game } from './core.mjs';
+import { Game, MISSIONS } from './core.mjs';
 import { BreachRenderer } from './renderer.mjs';
 import { BreachAudio } from './audio.mjs';
 
@@ -14,7 +14,12 @@ function writeStorage(key, value) { try { localStorage.setItem(key, JSON.stringi
 function removeStorage(key) { try { localStorage.removeItem(key); } catch (_) { storageAvailable = false; } }
 const prior = readStorage(SETTINGS_KEY) || {};
 const choices = (x, valid, fallback) => valid.includes(x) ? x : fallback;
+const requestedMission = new URL(location.href).searchParams.get('mission');
+const missionIds = MISSIONS.map(mission=>mission.id);
 const settings = {
+  mission: choices(requestedMission, missionIds, choices(prior.mission,missionIds,MISSIONS[0].id)),
+  fov: [80,90].includes(prior.fov) ? prior.fov : null,
+  quality: choices(prior.quality, ['auto','low','high'], 'auto'),
   controls: choices(prior.controls, ['auto','touch','keyboard'], 'auto'),
   guidance: choices(prior.guidance, ['simple','moderate','expert'], 'simple'),
   difficulty: choices(prior.difficulty, ['relaxed','standard','hard'], 'standard'),
@@ -50,6 +55,8 @@ let pathTimer = 0, pathHint = null, mapDirty = true;
 let helpRevealed = 0;
 let statusError = false;
 let pointerLockedOnce = false;
+let fullscreenTransitionUntil = 0;
+let lastWeaponWheel = 0;
 
 function formatTime(value) {
   const seconds = Math.max(0,Math.floor(Number(value) || 0));
@@ -87,6 +94,41 @@ function requestMouse() {
   if(typeof canvas.requestPointerLock !== 'function') return;
   try { const promise = canvas.requestPointerLock(); if(promise && promise.catch) promise.catch(() => { showToast('Mouse capture unavailable. Hold and drag to aim, or use the arrow keys.'); }); } catch (_) { showToast('Hold and drag to aim, or use the arrow keys.'); }
 }
+function fullscreenElement() { return document.fullscreenElement || document.webkitFullscreenElement; }
+function fullscreenAvailable() {
+  const root=document.documentElement;
+  return (typeof root.requestFullscreen==='function'&&document.fullscreenEnabled!==false)
+    || (typeof root.webkitRequestFullscreen==='function'&&document.webkitFullscreenEnabled!==false);
+}
+function updateFullscreen() {
+  const supported=fullscreenAvailable(),active=!!fullscreenElement();
+  $('fullscreen').hidden=!supported;$('settings-fullscreen').hidden=!supported;
+  $('fullscreen').setAttribute('aria-pressed',String(active));
+  $('fullscreen').setAttribute('aria-label',active?'Exit fullscreen':'Enter fullscreen');
+  $('fullscreen').innerHTML=`${active?'EXIT FULLSCREEN':'FULLSCREEN'} <span class="keycap">F</span>`;
+  $('settings-fullscreen').innerHTML=`${active?'EXIT FULLSCREEN':'ENTER FULLSCREEN'} <span>↗</span>`;
+}
+async function toggleFullscreen() {
+  if(!fullscreenAvailable())return;
+  fullscreenTransitionUntil=performance.now()+1500;clearInputs();
+  $('fullscreen-status').hidden=true;
+  try {
+    if(fullscreenElement()) {
+      const exit=document.exitFullscreen||document.webkitExitFullscreen;
+      if(exit)await exit.call(document);
+    }else {
+      const enter=document.documentElement.requestFullscreen||document.documentElement.webkitRequestFullscreen;
+      await enter.call(document.documentElement);
+    }
+  }catch(_) {
+    const message='Fullscreen is unavailable in this view. You can keep playing in the window.';
+    $('fullscreen-status').textContent=message;$('fullscreen-status').hidden=false;
+    if(mode==='playing')showToast(message);else if(mode==='menu')$('load-status').textContent=message;
+  }finally {
+    fullscreenTransitionUntil=performance.now()+350;updateFullscreen();renderer?.resize();
+    if(mode==='playing'&&!document.hidden)requestMouse();
+  }
+}
 function setMode(next) {
   mode = next; document.body.dataset.mode = next;
   $('menu').hidden = next !== 'menu';
@@ -102,7 +144,7 @@ function saveSettings() {
   writeStorage(SETTINGS_KEY,settings);
   document.body.classList.toggle('reduced-motion',settings.reducedMotion);
   if(game) { game.options.guidance = settings.guidance; game.options.aimAssist = settings.aimAssist; }
-  if(renderer) renderer.options.reducedMotion = settings.reducedMotion;
+  if(renderer) { renderer.options.reducedMotion = settings.reducedMotion; renderer.options.fov = settings.fov; renderer.options.quality = settings.quality; renderer.resize(); }
   applyControlMode();
   audio.setEnabled(settings.sound);
 }
@@ -122,6 +164,8 @@ function updateChoices() {
 }
 function updateSettingsFields() {
   $('setting-controls').value = settings.controls;
+  $('setting-fov').value = settings.fov === null ? 'auto' : String(settings.fov);
+  $('setting-quality').value = settings.quality;
   $('setting-sound').checked = settings.sound;
   $('setting-aim').checked = settings.aimAssist;
   $('setting-auto').checked = settings.autoFire;
@@ -130,13 +174,53 @@ function updateSettingsFields() {
   $('sensitivity-value').textContent = `${settings.sensitivity.toFixed(2).replace(/0$/,'')}×`;
   if($('setting-tutorial')) $('setting-tutorial').checked = settings.tutorial;
 }
+function missionForId(id) { return MISSIONS.find(mission=>mission.id===id)||MISSIONS[0]; }
+function savedMission(record=savedRecord) {
+  return MISSIONS.find(mission=>mission.levelId===record?.game?.levelId)
+    || MISSIONS.find(mission=>mission.id===record?.game?.options?.mission) || MISSIONS[0];
+}
+function currentMission() { return missionForId(game?.level?.missionId); }
+function updateMissionMenu() {
+  const selected=missionForId(settings.mission);
+  $('mission-number').textContent=`MISSION ${selected.number}`;
+  $('mission-subtitle').textContent=selected.subtitle;
+  $('mission-title').textContent=selected.name.toUpperCase();
+  $('mission-briefing').textContent=selected.briefing;
+  $('mission-steps').replaceChildren(...selected.steps.map((step,index)=>{
+    const li=document.createElement('li'),number=document.createElement('span');
+    number.textContent=String(index+1).padStart(2,'0');li.append(number,document.createTextNode(step));return li;
+  }));
+  $('mission-picker').replaceChildren(...MISSIONS.map(mission=>{
+    const button=document.createElement('button');button.type='button';button.dataset.mission=mission.id;
+    button.setAttribute('aria-pressed',String(mission.id===settings.mission));
+    const number=document.createElement('span');number.className='mission-choice-number';number.textContent=`${mission.number} /`;
+    const title=document.createElement('strong');title.textContent=mission.name;
+    const subtitle=document.createElement('small');subtitle.textContent=mission.subtitle;
+    button.append(number,title,subtitle);return button;
+  }));
+  updateContinue();
+}
+function selectMission(id) {
+  if(!missionIds.includes(id)||mode!=='menu'||id===settings.mission)return;
+  settings.mission=id;saveSettings();updateMissionMenu();
+  const url=new URL(location.href);url.searchParams.set('mission',id);
+  try{history.replaceState(null,'',url);}catch(_){}
+  // Browsing briefings never replaces a saved run.
+  if(ready){try{makeGame();}catch(error){fail(error);}}
+}
 function updateContinue() {
+  const selected=missionForId(settings.mission);
   $('continue').hidden = !savedRecord;
   $('start').classList.toggle('subdued',!!savedRecord);
   $('start').classList.toggle('primary',!savedRecord);
-  $('start').innerHTML = savedRecord ? 'NEW MISSION <span>↗</span>' : 'ENTER FACILITY <span>↗</span>';
-  if(savedRecord?.game?.state?.time) $('continue').innerHTML = `CONTINUE RUN <span>${formatTime(savedRecord.game.state.time)}</span>`;
+  $('start').replaceChildren(document.createTextNode(`START ${selected.name.toUpperCase()} `));
+  const arrow=document.createElement('span');arrow.textContent='↗';$('start').append(arrow);
+  if(savedRecord) {
+    $('continue').replaceChildren(document.createTextNode(`CONTINUE ${savedMission().name.toUpperCase()} `));
+    const time=document.createElement('span');time.textContent=formatTime(savedRecord.game?.state?.time);$('continue').append(time);
+  }
 }
+
 function saveRun() {
   if(!game || !['playing','paused'].includes(game.state.status) || game.state.player.health <= 0) return false;
   try {
@@ -147,37 +231,45 @@ function saveRun() {
   } catch (_) { return false; }
 }
 function resetExploration() { explored = new Set(); mapDirty = true; pathHint = null; pathTimer = 0; }
-function makeGame(options = {}) {
-  const candidate = new Game({difficulty:settings.difficulty,guidance:settings.guidance,aimAssist:settings.aimAssist,seed,...options});
-  renderer?.dispose();
-  game = candidate;
-  renderer = new BreachRenderer($('world'),game,{quality:'auto',reducedMotion:settings.reducedMotion});
-  resetExploration(); helpRevealed = 0; updateTutorial.identity = null;
+function mountGame(candidate) {
+  renderer?.dispose();game=candidate;
+  renderer = new BreachRenderer($('world'),game,{quality:settings.quality,fov:settings.fov,reducedMotion:settings.reducedMotion});
+  resetExploration(); helpRevealed=0;updateTutorial.identity=null;
 }
-function launchNew() {
-  if(!ready) return;
+function makeGame(options = {}) {
+  mountGame(new Game({mission:settings.mission,difficulty:settings.difficulty,guidance:settings.guidance,aimAssist:settings.aimAssist,seed,...options}));
+}
+function launchMission(missionId, runOptions = {}) {
+  if(!ready||!missionIds.includes(missionId))return;
   try {
-    makeGame(); savedRecord = null; removeStorage(SAVE_KEY);
-    mapVisible = false; updateMapVisibility();
-    audio.unlock(); game.start(); setMode('playing'); lastSave = 0; lastFrame = performance.now();
-    saveRun(); updateHud(); requestMouse();
-  } catch(error) { fail(error); }
+    makeGame({...runOptions,mission:missionId}); savedRecord=null;removeStorage(SAVE_KEY);
+    mapVisible=false;updateMapVisibility();
+    audio.unlock();game.start();setMode('playing');lastSave=0;lastFrame=performance.now();
+    saveRun();updateHud();requestMouse();
+  }catch(error){fail(error);}
+}
+function launchNew() { launchMission(settings.mission); }
+function restartCurrent() {
+  if(!game)return;
+  launchMission(currentMission().id,{difficulty:game.options.difficulty,seed:game.options.seed});
 }
 function continueRun() {
-  if(!ready || !savedRecord) return;
+  if(!ready||!savedRecord)return;
   try {
-    const record = savedRecord;
-    makeGame(record.game?.options || {});
-    if(!game.restore(record.game)) {
-      savedRecord = null; removeStorage(SAVE_KEY); updateContinue();
-      $('load-status').textContent = 'That saved run could not be restored. Start a new mission.'; return;
+    const record=savedRecord;
+    const restored=new Game({mission:savedMission(record).id,...record.game?.options});
+    if(!restored.restore(record.game)) {
+      $('load-status').textContent='That saved run could not be restored. Start a new mission.';return;
     }
-    game.options.guidance = settings.guidance; game.options.aimAssist = settings.aimAssist;
-    if(Array.isArray(record.explored)) for(const value of record.explored) if(Number.isInteger(value) && value>=0 && value<game.level.width*game.level.height) explored.add(value);
-    mapVisible = false; updateMapVisibility(); audio.unlock(); game.resume(); setMode('playing');
-    lastFrame = performance.now(); updateHud(); requestMouse();
-  } catch(error) { fail(error); }
+    restored.options.guidance=settings.guidance;restored.options.aimAssist=settings.aimAssist;
+    // Restore chooses the saved level before its geometry is constructed.
+    mountGame(restored);
+    if(Array.isArray(record.explored))for(const value of record.explored)if(Number.isInteger(value)&&value>=0&&value<game.level.width*game.level.height)explored.add(value);
+    mapVisible=false;updateMapVisibility();audio.unlock();game.resume();setMode('playing');
+    lastFrame=performance.now();updateHud();requestMouse();
+  }catch(error){fail(error);}
 }
+
 function pauseGame() {
   if(mode !== 'playing') return;
   game.pause(); saveRun(); setMode('paused'); updateHud();
@@ -189,7 +281,7 @@ function resumeGame() {
 }
 function retryCheckpoint() {
   if(!game || !ready) return;
-  if(!game.restartCheckpoint()) return launchNew();
+  if(!game.restartCheckpoint()) return restartCurrent();
   mapVisible = false; updateMapVisibility(); audio.unlock(); setMode('playing');
   pathHint = null; pathTimer = 0; lastFrame = performance.now(); saveRun(); updateHud(); requestMouse();
 }
@@ -204,17 +296,22 @@ function finish(won) {
   setMode(won ? 'won' : 'dead');
   $('end-kicker').textContent = won ? 'EXTRACTION CONFIRMED' : 'SIGNAL TERMINATED';
   $('end-title').innerHTML = won ? 'SURVIVED<span>_</span>' : 'LOST<span>_</span>';
-  $('end-copy').textContent = won ? 'You made it out of Blacksite 07. The facility will keep its secrets. For now.' : 'The facility got the better of you. Keep moving, use cover, and collect supplies.';
+  const completed=currentMission(),next=MISSIONS[MISSIONS.findIndex(mission=>mission.id===completed.id)+1];
+  $('end-copy').textContent=won ? `You made it out of ${completed.name}. Your mission is complete.` : 'The facility got the better of you. Keep moving, use cover, and collect supplies.';
+  $('end-next').hidden=!won||!next;
+  if(next){$('end-next').textContent=`NEXT: ${next.name.toUpperCase()} ↗`;$('end-next').dataset.mission=next.id;}
   $('result-time').textContent = formatTime(game.state.time);
   $('result-kills').textContent = `${game.state.kills} / ${game.state.enemies.length}`;
   $('result-secrets').textContent = `${game.state.secretFound ? 1 : 0} / 1`;
   $('end-checkpoint').hidden = won || !game.state.checkpoint;
-  $('end-restart').classList.toggle('subdued',!won && game.state.checkpoint);
-  $('end-restart').classList.toggle('primary',won || !game.state.checkpoint);
+  const secondaryRestart=(!won&&game.state.checkpoint)||(won&&!!next);
+  $('end-restart').classList.toggle('subdued',secondaryRestart);
+  $('end-restart').classList.toggle('primary',!secondaryRestart);
   $('end-restart').innerHTML = won ? 'PLAY AGAIN <span>↗</span>' : 'RESTART MISSION <span>↗</span>';
   if(won) {
-    const oldBest = readStorage(BEST_KEY);
-    if(!oldBest || game.state.time < oldBest.time) writeStorage(BEST_KEY,{time:game.state.time,difficulty:game.options.difficulty});
+    const bestKey=`${BEST_KEY}.${completed.id}.${game.options.difficulty}`;
+    const oldBest=readStorage(bestKey);
+    if(!oldBest||game.state.time<oldBest.time)writeStorage(bestKey,{time:game.state.time,mission:completed.id,difficulty:game.options.difficulty});
     savedRecord = null; removeStorage(SAVE_KEY);
   }
 }
@@ -290,6 +387,7 @@ function drawMap() {
 }
 function calculatePath() {
   const level=game.level,p=game.state.player,target=game.getObjective();
+  const progress=game.getMissionProgress();
   if(!Number.isFinite(target.x)||!Number.isFinite(target.z))return null;
   const sx=Math.floor(p.x),sz=Math.floor(p.z),tx=Math.floor(target.x),tz=Math.floor(target.z);
   const start=sz*level.width+sx,end=tz*level.width+tx;
@@ -301,7 +399,7 @@ function calculatePath() {
       const nx=x+dx,nz=z+dz,ni=nz*level.width+nx;
       if(nx<0||nz<0||nx>=level.width||nz>=level.height||level.grid[nz][nx]==='#'||came.has(ni))continue;
       const door=game.state.doors.find(d=>!d.open&&Math.floor(d.x)===nx&&Math.floor(d.z)===nz);
-      if(door && ni!==end && ((door.requires==='power'&&!game.state.power)||(door.requires==='key'&&!p.key)||door.secret))continue;
+      if(door && ni!==end && ((door.requires==='power'&&!game.state.power)||(door.requires==='key'&&!p.key)||(door.requires==='relays'&&(!game.state.power||progress.relaysUsed<progress.relaysTotal))||door.secret))continue;
       came.set(ni,index);queue.push(ni);
     }
   }
@@ -327,25 +425,24 @@ function visibleHostileForTraining() {
     && game.hasLineOfSight(p.x,p.z,enemy.x,enemy.z));
 }
 function updateTutorial() {
-  const state=game.state,t=state.tutorial||{};
+  const state=game.state,t=state.tutorial||{},objective=game.getObjective();
   const show=settings.guidance==='simple'&&settings.tutorial&&mode==='playing';
   // A nearby action or its missing requirement is the most useful guidance now.
   if(!show || (touch && game.getInteractionInfo())){$('tutorial').hidden=true;return;}
   let text='',index='FIELD TRAINING';
   if(!t.moved)text=touch?'Left pad: move. Drag the right side to turn.':'Use W A S D to move. Move your mouse to look around. Arrow keys also turn.';
-  else if(!t.interacted && !state.doors[0]?.open)text=touch?'Walk to the airlock. Tap OPEN when it lights up.':'Approach the arrival airlock. Press E when the door prompt appears.';
+  else if(objective.stage==='arrival')text=touch?'Walk to the airlock. Tap OPEN when it lights up.':'Approach the arrival airlock. Press E when the door prompt appears.';
   else if(!t.fired) {
     if(!visibleHostileForTraining()){$('tutorial').hidden=true;return;}
     text=touch?'Hold FIRE. Drag on it to aim while you shoot.':'Click or hold SPACE to fire. Move sideways with A and D to dodge.';
   }
   else if(state.player.hasShotgun&&!t.weaponSwitched)text=touch?'Tap SWAP for your scattergun. It works best up close.':'Scattergun acquired. Press 2 to equip it, or 1 to return to the pistol. It is strongest up close.';
-  else if(touch) {text='Keep moving. Walk over supplies to collect them.';index='FIELD TIP';}
-  else if(!state.power) {text='Find the generator console. Walk over health and ammunition to collect them. The route hint points the way.';index='MISSION BRIEF';}
-  else if(!state.player.key){text='Power is restored and your checkpoint is saved. Open the powered airlocks to reach the research lab.';index='MISSION BRIEF';}
-  else {text='You have the access key. Head through quarantine and use the extraction terminal.';index='MISSION BRIEF';}
+  else if(objective.stage==='relays'){text=touch?'Bring both relay consoles online. Each active link stays lit.':'Find and activate both relay consoles. Active links stay lit; the link counter tracks your progress.';index='MISSION BRIEF';}
+  else if(objective.action==='collect'){text='Walk over the security key to collect it.';index='MISSION BRIEF';}
+  else {text=touch?'Keep moving. Walk over supplies to collect them.':'Keep moving and use cover. Walk over health, armor, and ammunition to collect them.';index='FIELD TIP';}
   // Early controls wait for the action; the later supply reminder appears briefly.
   if(index==='MISSION BRIEF'||index==='FIELD TIP') {
-    const identity=touch?'supply-tip':`${state.power}-${state.player.key}`;
+    const identity=`${game.level.missionId}:${index==='FIELD TIP'?'supplies':objective.stage}`;
     if(updateTutorial.identity!==identity){updateTutorial.identity=identity;helpRevealed=performance.now();}
     if(performance.now()-helpRevealed>8500){$('tutorial').hidden=true;return;}
   }
@@ -362,6 +459,11 @@ function updateHud() {
   $('weapon-name').textContent=p.weapon==='shotgun'?'SCATTERGUN':'SERVICE PISTOL';
   $('power-token').classList.toggle('active',state.power);$('key-token').classList.toggle('active',p.key);
   $('power-token').setAttribute('aria-label',state.power?'Power restored':'Power offline');$('key-token').setAttribute('aria-label',p.key?'Access key collected':'Access key needed');
+  const progress=game.getMissionProgress();
+  $('relay-token').hidden=!progress.relaysTotal;
+  $('relay-token').textContent=`LINK ${progress.relaysUsed}/${progress.relaysTotal}`;
+  $('relay-token').classList.toggle('active',progress.relaysTotal>0&&progress.relaysUsed===progress.relaysTotal);
+  $('relay-token').setAttribute('aria-label',`${progress.relaysUsed} of ${progress.relaysTotal} relay links online`);
   const obj=game.getObjective();$('objective-title').textContent=obj.title;$('objective-detail').textContent=obj.detail;
   $('objective-detail').hidden=touch||settings.guidance==='expert';
   $('objective').querySelector('.label').textContent=settings.guidance==='expert'?'MISSION':'CURRENT OBJECTIVE';
@@ -390,7 +492,7 @@ function processEvents(events) {
     if(['message','pickup','checkpoint','secret'].includes(event.type)&&event.text)notice=event.text;
     if(event.type==='hurt')damageUntil=performance.now()+(settings.reducedMotion?130:200);
     if(event.type==='hit')hitUntil=performance.now()+120;
-    if(['door','power','pickup'].includes(event.type)) {pathTimer=0;mapDirty=true;}
+    if(['door','power','pickup','relay'].includes(event.type)) {pathTimer=0;mapDirty=true;}
     if(event.type==='checkpoint')saveRun();
     if(event.type==='win')finish(true);
     if(event.type==='death')finish(false);
@@ -431,9 +533,12 @@ function frame(now) {
 $('start').addEventListener('click',launchNew);$('continue').addEventListener('click',continueRun);
 $('retry-load').addEventListener('click',()=>location.reload());
 $('brand-home').addEventListener('click',event=>{event.preventDefault();});
+$('fullscreen').addEventListener('click',toggleFullscreen);$('settings-fullscreen').addEventListener('click',toggleFullscreen);
 $('pause').addEventListener('click',pauseGame);$('resume').addEventListener('click',resumeGame);
 $('checkpoint').addEventListener('click',retryCheckpoint);$('end-checkpoint').addEventListener('click',retryCheckpoint);
-$('restart').addEventListener('click',launchNew);$('end-restart').addEventListener('click',launchNew);
+$('restart').addEventListener('click',restartCurrent);$('end-restart').addEventListener('click',restartCurrent);
+$('end-next').addEventListener('click',()=>{const id=$('end-next').dataset.mission;if(missionIds.includes(id)){settings.mission=id;saveSettings();updateMissionMenu();const url=new URL(location.href);url.searchParams.set('mission',id);try{history.replaceState(null,'',url);}catch(_){}launchMission(id);}});
+$('mission-picker').addEventListener('click',event=>{const button=event.target.closest('[data-mission]');if(button)selectMission(button.dataset.mission);});
 $('back-menu').addEventListener('click',backToMenu);$('end-menu').addEventListener('click',backToMenu);
 $('open-settings').addEventListener('click',()=>openDialog('settings-dialog'));
 $('pause-settings').addEventListener('click',()=>openDialog('settings-dialog'));
@@ -448,6 +553,8 @@ $('dismiss-tutorial').addEventListener('click',()=>{settings.tutorial=false;save
 for(const button of document.querySelectorAll('[data-guidance]'))button.addEventListener('click',()=>{settings.guidance=button.dataset.guidance;updateChoices();saveSettings();});
 for(const button of document.querySelectorAll('[data-difficulty]'))button.addEventListener('click',()=>{settings.difficulty=button.dataset.difficulty;updateChoices();saveSettings();});
 for(const [id,property]of [['setting-sound','sound'],['setting-aim','aimAssist'],['setting-auto','autoFire'],['setting-motion','reducedMotion']])$(id).addEventListener('change',event=>{settings[property]=event.target.checked;saveSettings();});
+$('setting-fov').addEventListener('change',event=>{settings.fov=event.target.value==='auto'?null:Number(event.target.value);saveSettings();});
+$('setting-quality').addEventListener('change',event=>{settings.quality=event.target.value;saveSettings();});
 $('setting-controls').addEventListener('change',event=>{settings.controls=event.target.value;saveSettings();updateSettingsFields();});
 const controlMediaChanged = () => { if(settings.controls === 'auto') applyControlMode(); };
 if(touchMedia.addEventListener) touchMedia.addEventListener('change',controlMediaChanged);
@@ -459,10 +566,11 @@ $('setting-motion').closest('.setting-row').after(trainingRow);
 $('setting-tutorial').addEventListener('change',event=>{settings.tutorial=event.target.checked;helpRevealed=performance.now();saveSettings();});
 
 window.addEventListener('keydown',event=>{
-  if(event.target instanceof HTMLInputElement||document.querySelector('dialog[open]'))return;
+  if((event.target instanceof HTMLInputElement||event.target instanceof HTMLSelectElement)||document.querySelector('dialog[open]'))return;
   if(mode==='playing') {
-    if(['KeyW','KeyA','KeyS','KeyD','ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space','Tab','KeyE','KeyP','Escape','Digit1','Digit2','KeyQ'].includes(event.code))event.preventDefault();
+    if(['KeyW','KeyA','KeyS','KeyD','ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space','Tab','KeyE','KeyP','Escape','Digit1','Digit2','KeyQ','KeyF'].includes(event.code))event.preventDefault();
     if(event.code==='Escape'||event.code==='KeyP'){pauseGame();return;}
+    if(event.code==='KeyF'&&!event.repeat){toggleFullscreen();return;}
     if(!event.repeat) {
       if(event.code==='Space')firePulse=true;
       if(event.code==='KeyE')game.interact();
@@ -473,17 +581,25 @@ window.addEventListener('keydown',event=>{
     }
     keys.add(event.code);
   }else if(mode==='paused'&&(event.code==='Escape'||event.code==='KeyP')){event.preventDefault();resumeGame();}
+  else if(['menu','paused'].includes(mode)&&event.code==='KeyF'&&!event.repeat){event.preventDefault();toggleFullscreen();}
 });
 window.addEventListener('keyup',event=>keys.delete(event.code));
-window.addEventListener('blur',()=>{if(mode==='playing')pauseGame();else clearInputs();});
+window.addEventListener('blur',()=>{if(mode==='playing'&&performance.now()>fullscreenTransitionUntil)pauseGame();else clearInputs();});
 document.addEventListener('visibilitychange',()=>{if(document.hidden){if(mode==='playing')pauseGame();saveRun();clearInputs();}});
 window.addEventListener('pagehide',()=>{if(mode==='playing')game.pause();saveRun();audio.setPlaying(false);clearInputs();});
 window.addEventListener('pageshow',event=>{if(event.persisted&&game?.state.status==='paused')setMode('paused');});
 window.addEventListener('resize',()=>{clearInputs();renderer?.resize();});
 document.addEventListener('pointerlockchange',()=>{
   if(document.pointerLockElement===$('world')){pointerLockedOnce=true;return;}
-  if(pointerLockedOnce&&mode==='playing')pauseGame();
+  if(pointerLockedOnce&&mode==='playing'){if(performance.now()<fullscreenTransitionUntil)clearInputs();else pauseGame();}
 });
+for(const name of ['fullscreenchange','webkitfullscreenchange'])document.addEventListener(name,()=>{clearInputs();renderer?.resize();updateFullscreen();});
+window.addEventListener('wheel',event=>{
+  if(mode!=='playing'||!game.state.player.hasShotgun||document.querySelector('dialog[open]'))return;
+  if(document.pointerLockElement!==$('world')&&event.target!==$('world'))return;
+  event.preventDefault();
+  if(event.deltaY!==0&&performance.now()-lastWeaponWheel>180){game.switchWeapon();lastWeaponWheel=performance.now();}
+},{passive:false});
 document.addEventListener('pointerlockerror',()=>{if(mode==='playing')showToast('Hold and drag to aim, or use the arrow keys.');});
 document.addEventListener('mousemove',event=>{if(mode==='playing'&&document.pointerLockElement===$('world'))pendingTurn+=event.movementX*.0028*settings.sensitivity;});
 $('world').addEventListener('contextmenu',event=>event.preventDefault());
@@ -539,7 +655,7 @@ try {
   makeGame();
   if(savedRecord?.version!==1 || !savedRecord.game) savedRecord=null;
   if(savedRecord) { const validator=new Game();if(!validator.restore(savedRecord.game)){savedRecord=null;removeStorage(SAVE_KEY);} }
-  updateChoices();updateSettingsFields();updateContinue();
+  updateChoices();updateSettingsFields();updateMissionMenu();updateFullscreen();
   document.body.classList.toggle('reduced-motion',settings.reducedMotion);
   ready=true;$('start').disabled=false;$('continue').disabled=false;
   $('load-status').textContent=touch?'READY · TURN YOUR PHONE SIDEWAYS FOR A WIDER VIEW':'READY · CLICK TO ENTER';

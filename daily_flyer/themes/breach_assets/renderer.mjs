@@ -5,6 +5,23 @@ import * as THREE from './vendor/three.module.js';
 const WALL_HEIGHT = 2.5;
 const EYE_HEIGHT = 1.25;
 const clamp = (n, lo, hi) => Math.max(lo, Math.min(hi, n));
+const viewFov = (options, width, height) => {
+  const requested = Number(options.fov);
+  return Number.isFinite(requested) && requested > 0 ? clamp(requested, 60, 100) : width < height ? 78 : 68;
+};
+const missionVisuals = (level) => {
+  const relay = level.missionId === 'relay-09' || String(level.id).startsWith('relay-09');
+  return {
+    relay,
+    signCode: level.signCode || (relay ? 'RELAY 09' : 'BS 07'),
+    doorCode: level.signCode || (relay ? 'DEAD RELAY 09' : 'BLACKSITE 07'),
+    signColor: relay ? '#b6c5e6' : '#9fd8cf',
+    fog: relay ? 0x0c1526 : 0x08131c,
+    fogRgb: relay ? [12, 21, 38] : [8, 19, 28],
+  };
+};
+const exitReady = (state) => !!(state.power && state.player.key && (state.interactables || []).filter(i => i.type === 'relay').every(i => i.used));
+const relayTitle = (item) => item.shortName || item.name || (/north/i.test(item.id) ? 'NORTH RELAY' : /south/i.test(item.id) ? 'SOUTH RELAY' : /east/i.test(item.id) ? 'EAST RELAY' : /west/i.test(item.id) ? 'WEST RELAY' : item.label?.replace(/^(synchronize|activate|align|restore)\s+/i, '').slice(0, 17) || 'RELAY NODE');
 const hash = (x, y, salt = 0) => {
   const n = Math.sin(x * 127.1 + y * 311.7 + salt * 74.7) * 43758.5453;
   return n - Math.floor(n);
@@ -42,8 +59,31 @@ function rect(ctx, x, y, w, h, color) {
   ctx.fillRect(Math.round(x), Math.round(y), Math.round(w), Math.round(h));
 }
 
-function makeWallTexture(variant = 0) {
+function makeWallTexture(variant = 0, relay = false) {
   const [canvas, c] = canvas2d(64, 128);
+  if (relay) {
+    // Dead Relay uses poured concrete and blue service panels. The new room
+    // identity remains within the same deliberately small texture palette.
+    for (let y = 0; y < 128; y += 2) for (let x = 0; x < 64; x += 2) {
+      const b = Math.round(50 + hash(x, y, variant + 9) * 26);
+      rect(c, x, y, 2, 2, `rgb(${b},${b + 13},${b + 25})`);
+    }
+    rect(c, 0, 0, 64, 5, '#253746');rect(c, 0, 5, 64, 2, '#849398');
+    rect(c, 0, 7, 2, 106, '#203541');rect(c, 3, 7, 1, 106, '#8b9697');
+    rect(c, 61, 7, 3, 106, '#263b4b');
+    rect(c, 7, 20, 50, 26, '#2b4053');rect(c, 8, 20, 48, 2, '#869aa6');
+    for (let y = 26; y < 42; y += 5) {rect(c, 12, y, 38, 2, '#142b3b');rect(c, 12, y + 2, 38, 1, '#536e84');}
+    rect(c, 9, 60, 34, 2, '#9aa7a7');rect(c, 9, 62, 34, 1, '#344e60');
+    rect(c, 47, 51, 8, 55, '#1f3447');rect(c, 49, 52, 3, 54, '#6b8dba');rect(c, 49, 54, 1, 50, '#a2b9d0');
+    rect(c, 43, 71, 16, 12, '#334959');rect(c, 46, 74, 10, 4, '#b8a7d4');
+    rect(c, 9, 83, 32, 25, '#354e69');rect(c, 10, 84, 30, 2, '#7c98b2');
+    rect(c, 14, 91, 6, 11, '#c4b797');rect(c, 23, 91, 13, 3, '#8fa6bf');rect(c, 23, 98, 9, 3, '#8fa6bf');
+    for (const x of [7, 56]) for (const y of [12, 51, 106]) {rect(c, x, y, 3, 3, '#1e303c');rect(c, x, y, 2, 1, '#bac2ba');}
+    rect(c, 0, 115, 64, 7, '#253546');
+    for (let x = -12; x < 64; x += 18) poly(c, [[x,115],[x+8,115],[x+15,122],[x+7,122]], '#a8844e');
+    rect(c, 0, 123, 64, 5, '#172b3c');
+    return textureFrom(canvas);
+  }
   rect(c, 0, 0, 64, 128, '#485052');
   for (let y = 0; y < 128; y += 2) {
     for (let x = 0; x < 64; x += 2) {
@@ -82,12 +122,12 @@ function makeWallTexture(variant = 0) {
   return textureFrom(canvas);
 }
 
-function makeFloorTexture(ceiling = false) {
+function makeFloorTexture(ceiling = false, relay = false) {
   const [canvas,c] = canvas2d(64,64);
   rect(c,0,0,64,64,ceiling ? '#253138' : '#343f42');
   for (let y = 0; y < 64; y += 2) for (let x = 0; x < 64; x += 2) {
     const b = (ceiling ? 26 : 37) + Math.floor(hash(x,y) * 15);
-    rect(c,x,y,2,2,`rgb(${b},${b+7},${b+9})`);
+    rect(c,x,y,2,2,`rgb(${b},${b+(relay?11:7)},${b+(relay?24:9)})`);
   }
   rect(c,0,0,64,2,'#121c22');
   rect(c,0,0,2,64,'#121c22');
@@ -96,6 +136,10 @@ function makeFloorTexture(ceiling = false) {
   if (ceiling) {
     rect(c,28,0,8,64,'#18252d');
     rect(c,30,0,1,64,'#48555b');
+  } else if (relay) {
+    rect(c, 30, 3, 2, 58, '#213b50');rect(c, 3, 30, 58, 2, '#213b50');
+    rect(c, 32, 3, 1, 58, '#627990');rect(c, 3, 32, 58, 1, '#627990');
+    for(const x of [8,55])for(const y of [8,55]){rect(c,x,y,2,2,'#183042');rect(c,x,y,1,1,'#8a9caa');}
   } else {
     for (let y = 10; y < 60; y += 12) for (let x = 8; x < 60; x += 12) {
       rect(c,x,y,5,2,'#4f5d5d');
@@ -105,7 +149,7 @@ function makeFloorTexture(ceiling = false) {
   return textureFrom(canvas, true);
 }
 
-function makeDoorTexture(kind) {
+function makeDoorTexture(kind, visuals = {}) {
   const [canvas,c] = canvas2d(64,128);
   rect(c,0,0,64,128,'#283339');
   for(let y=3;y<128;y+=16){
@@ -116,12 +160,13 @@ function makeDoorTexture(kind) {
   }
   rect(c,0,0,4,128,'#15232a');
   rect(c,60,0,4,128,'#15232a');
-  const color = kind === 'power' ? '#dd7840' : kind === 'key' ? '#54c6cb' : '#bca970';
+  const color = kind === 'relays' ? '#b9a1ed' : kind === 'power' ? '#dd7840' : kind === 'key' ? '#54c6cb' : visuals.relay ? '#9db3db' : '#bca970';
   rect(c,7,50,50,26,'#111d25');
   rect(c,8,51,48,2,color);
   c.font='bold 8px monospace'; c.textAlign='center';c.fillStyle=color;
-  c.fillText(kind==='power'?'AUX POWER':kind==='key'?'SECURITY':'ACCESS',32,63);
-  c.font='6px monospace';c.fillText(kind==='key'?'CLEARANCE 07':'BLACKSITE 07',32,71);
+  c.fillText(kind==='relays'?'RELAY GATE':kind==='power'?'AUX POWER':kind==='key'?'SECURITY':'ACCESS',32,63);
+  c.font='6px monospace';c.fillText(kind==='relays'?'SYNC BOTH NODES':kind==='key'?'KEY REQUIRED':visuals.doorCode||'BLACKSITE 07',32,71);
+  if(kind==='relays'){rect(c,17,80,11,4,'#b9a1ed');rect(c,36,80,11,4,'#b9a1ed');}
   return textureFrom(canvas);
 }
 
@@ -261,7 +306,8 @@ function makeSign(text, sub, color='#9fd8cf') {
 class WebGLBreachRenderer {
   constructor(canvas, game, options={}) {
     if(!canvas)throw new Error('BREACH could not find its game screen.');
-    this.canvas=canvas;this.game=game;this.options={quality:'auto',reducedMotion:false,...options};
+    this.canvas=canvas;this.game=game;this.options={quality:'auto',fov:null,reducedMotion:false,...options};
+    this.visuals=missionVisuals(game.level);
     this.mode='webgl';this.isSoftware=false;
     this.textures=new Set();this.materials=new Set();this.geometries=new Set();
     this.enemyVisuals=new Map();this.pickupVisuals=new Map();this.doorVisuals=new Map();
@@ -274,10 +320,10 @@ class WebGLBreachRenderer {
     }catch(error){throw new Error('This browser could not start WebGL. Open BREACH in Safari or Chrome and try again.');}
     this.renderer.setPixelRatio(1);
     this.renderer.outputColorSpace=THREE.SRGBColorSpace;
-    this.renderer.setClearColor(0x08131c,1);
+    this.renderer.setClearColor(this.visuals.fog,1);
     this.scene=new THREE.Scene();
-    this.scene.background=new THREE.Color(0x08131c);
-    this.scene.fog=new THREE.Fog(0x08131c,5,23);
+    this.scene.background=new THREE.Color(this.visuals.fog);
+    this.scene.fog=new THREE.Fog(this.visuals.fog,5,23);
     this.camera=new THREE.PerspectiveCamera(68,1,.045,38);
     this.weaponCanvas=document.createElement('canvas');
     this.weaponCanvas.className='breach-weapon-canvas';
@@ -305,8 +351,8 @@ class WebGLBreachRenderer {
   buildEnvironment(){
     const level=this.game.level;
     const wallGeometry=this.geometry(new THREE.BoxGeometry(1,WALL_HEIGHT,1));
-    const wallMap=this.texture(makeWallTexture());
-    const wallMaterial=this.material(new THREE.MeshBasicMaterial({map:wallMap,color:0xb5c4c1}));
+    const wallMap=this.texture(makeWallTexture(0,this.visuals.relay));
+    const wallMaterial=this.material(new THREE.MeshBasicMaterial({map:wallMap,color:this.visuals.relay?0xc3cedb:0xb5c4c1}));
     const wallCells=[];const lightCells=[];const rails=[];
     for(let z=0;z<level.height;z++)for(let x=0;x<level.width;x++)if(this.solid(x,z)){
       const sides=[[0,-1,0],[1,0,Math.PI/2],[0,1,Math.PI],[-1,0,-Math.PI/2]].filter(([dx,dz])=>!this.solid(x+dx,z+dz));
@@ -321,16 +367,16 @@ class WebGLBreachRenderer {
       const shade=.75+hash(x,z)*.24;color.setRGB(shade*.91,shade*.98,shade);walls.setColorAt(i,color);
     });
     walls.instanceMatrix.needsUpdate=true;walls.frustumCulled=false;this.scene.add(walls);
-    const floorMap=this.texture(makeFloorTexture());floorMap.repeat.set(level.width/2,level.height/2);
-    const floor=this.mesh(this.geometry(new THREE.PlaneGeometry(level.width,level.height)),this.material(new THREE.MeshBasicMaterial({map:floorMap,color:0x919d94})),level.width/2,0,level.height/2);
+    const floorMap=this.texture(makeFloorTexture(false,this.visuals.relay));floorMap.repeat.set(level.width/2,level.height/2);
+    const floor=this.mesh(this.geometry(new THREE.PlaneGeometry(level.width,level.height)),this.material(new THREE.MeshBasicMaterial({map:floorMap,color:this.visuals.relay?0x9eacbd:0x919d94})),level.width/2,0,level.height/2);
     floor.rotation.x=-Math.PI/2;
-    const ceilingMap=this.texture(makeFloorTexture(true));ceilingMap.repeat.set(level.width/2,level.height/2);
+    const ceilingMap=this.texture(makeFloorTexture(true,this.visuals.relay));ceilingMap.repeat.set(level.width/2,level.height/2);
     const ceiling=this.mesh(this.geometry(new THREE.PlaneGeometry(level.width,level.height)),this.material(new THREE.MeshBasicMaterial({map:ceilingMap,color:0x68787f})),level.width/2,WALL_HEIGHT,level.height/2);
     ceiling.rotation.x=Math.PI/2;
     const lightGeometry=this.geometry(new THREE.BoxGeometry(.62,.065,.045));
     for(const warm of [false,true]){
       const cells=lightCells.filter(x=>x.warm===warm);
-      const material=this.material(new THREE.MeshBasicMaterial({color:warm?0xea9752:0x8bd6ce}));
+      const material=this.material(new THREE.MeshBasicMaterial({color:warm?0xea9752:this.visuals.relay?0xb4c8eb:0x8bd6ce}));
       const lights=new THREE.InstancedMesh(lightGeometry,material,cells.length);
       cells.forEach((cell,i)=>{transform.position.set(cell.x,2.12,cell.z);transform.rotation.set(0,cell.rot,0);transform.updateMatrix();lights.setMatrixAt(i,transform.matrix);});
       lights.frustumCulled=false;this.scene.add(lights);
@@ -350,7 +396,7 @@ class WebGLBreachRenderer {
     beams.frustumCulled=false;this.scene.add(beams);transform.scale.set(1,1,1);
 
     for(const door of this.game.state.doors){
-      const material=this.material(new THREE.MeshBasicMaterial({map:this.texture(makeDoorTexture(door.requires)),color:0xc4cec0}));
+      const material=this.material(new THREE.MeshBasicMaterial({map:this.texture(makeDoorTexture(door.requires,this.visuals)),color:0xc4cec0}));
       const geometry=this.geometry(new THREE.BoxGeometry(door.axis==='z'?.14:.98,WALL_HEIGHT,door.axis==='z'?.98:.14));
       const mesh=this.mesh(geometry,material,door.x,WALL_HEIGHT/2,door.z);
       this.doorVisuals.set(door.id,{mesh,amount:door.open?1:0});
@@ -370,7 +416,7 @@ class WebGLBreachRenderer {
       }
     }
     if(!candidate)return;
-    const map=this.texture(makeSign(zone.name,`BS 07 / SECTOR ${String(index+1).padStart(2,'0')}`));
+    const map=this.texture(makeSign(zone.name,`${this.visuals.signCode} / SECTOR ${String(index+1).padStart(2,'0')}`,this.visuals.signColor));
     const sign=this.mesh(this.geometry(new THREE.PlaneGeometry(.88,.275)),this.material(new THREE.MeshBasicMaterial({map})),candidate.x,1.83,candidate.z);
     sign.rotation.y=candidate.rotation;
   }
@@ -384,12 +430,24 @@ class WebGLBreachRenderer {
     const group=new THREE.Group();group.position.set(item.x,0,item.z);this.scene.add(group);
     const base=new THREE.Mesh(this.geometry(new THREE.BoxGeometry(.34,.65,.32)),this.material(new THREE.MeshBasicMaterial({color:0x34464d})));
     base.position.y=.325;group.add(base);
-    const panelMap=this.texture(makeSign(item.type==='power'?'AUX POWER':'EXTRACTION',item.type==='power'?'RESTORE GRID':'EVACUATION SYSTEM',item.type==='power'?'#ecc477':'#81d9c7'));
-    const screen=new THREE.Sprite(this.material(new THREE.SpriteMaterial({map:panelMap})));
+    const isRelay=item.type==='relay';
+    const title=isRelay?relayTitle(item):item.type==='power'?(this.visuals.relay?'RING POWER':'AUX POWER'):'EXTRACTION';
+    const maps={
+      off:this.texture(makeSign(title,isRelay?'NODE OFFLINE / SYNCHRONIZE':item.type==='power'?'RESTORE GRID':'CLEARANCE REQUIRED',isRelay?'#b9a1ed':item.type==='power'?'#ecc477':'#81d9c7')),
+      on:this.texture(makeSign(title,isRelay?'NODE SYNCHRONIZED':'SYSTEM ONLINE','#a1e4c5')),
+    };
+    const screen=new THREE.Sprite(this.material(new THREE.SpriteMaterial({map:maps.off})));
     screen.position.y=1.05;screen.scale.set(.86,.27,1);group.add(screen);
     const beacon=new THREE.Sprite(this.material(new THREE.SpriteMaterial({map:this.plasmaMap,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending})));
     beacon.position.y=1.43;beacon.scale.set(.19,.19,1);group.add(beacon);
-    this.featureVisuals.set(item.id,{group,beacon,screen,type:item.type});
+    this.featureVisuals.set(item.id,{group,beacon,screen,maps,type:item.type});
+    if(isRelay){
+      const antennaMaterial=this.material(new THREE.MeshBasicMaterial({color:0x9ca6d3}));
+      for(const side of [-1,1]){
+        const antenna=new THREE.Mesh(this.geometry(new THREE.BoxGeometry(.045,.43,.045)),antennaMaterial);antenna.position.set(side*.3,1.40,.03);group.add(antenna);
+        const cap=new THREE.Mesh(this.geometry(new THREE.BoxGeometry(.10,.06,.10)),antennaMaterial);cap.position.set(side*.3,1.62,.03);group.add(cap);
+      }
+    }
     if(item.type==='exit'){
       const barMaterial=this.material(new THREE.MeshBasicMaterial({color:0x79c6b5}));
       for(const side of [-1,1]){
@@ -402,16 +460,21 @@ class WebGLBreachRenderer {
     const bounds=this.canvas.getBoundingClientRect();
     const width=Math.max(1,bounds.width||window.innerWidth),height=Math.max(1,bounds.height||window.innerHeight);
     const coarse=typeof matchMedia==='function'&&matchMedia('(pointer:coarse)').matches;
-    const low=this.options.quality==='low';
-    const pixelBudget=low?210000:coarse?360000:650000;
+    const low=this.options.quality==='low',high=this.options.quality==='high';
+    const pixelBudget=low?210000:high?(coarse?480000:960000):coarse?360000:650000;
     const scale=Math.min(1,Math.sqrt(pixelBudget/(width*height)));
     const rw=Math.max(1,Math.round(width*scale)),rh=Math.max(1,Math.round(height*scale));
     if(this.width!==rw||this.height!==rh){
       this.width=rw;this.height=rh;this.renderer.setSize(rw,rh,false);
       this.weaponCanvas.width=rw;this.weaponCanvas.height=rh;this.weaponContext.imageSmoothingEnabled=false;
-      this.camera.aspect=width/height;this.camera.fov=width<height?78:68;this.camera.updateProjectionMatrix();
     }
+    // Projection settings must update even when no backing-buffer resize occurs.
+    const fov=viewFov(this.options,width,height),aspect=width/height;
+    if(this.camera.aspect!==aspect||this.camera.fov!==fov){this.camera.aspect=aspect;this.camera.fov=fov;this.camera.updateProjectionMatrix();}
+    this.fieldOfView=fov;
   }
+
+  setOptions(options={}){Object.assign(this.options,options);this.resize();}
 
   handleEvents(events){
     for(const event of events||[]){
@@ -503,8 +566,13 @@ class WebGLBreachRenderer {
       visual.mesh.visible=visual.amount<.99;
     }
     for(const [id,feature]of this.featureVisuals){
-      if(feature.type==='power')feature.beacon.material.color.setHex(state.power?0x8affd0:0xffb25a);
-      if(feature.type==='exit')feature.beacon.material.color.setHex(state.power&&state.player.key?0x8affd0:0x547f78);
+      if(!feature.beacon)continue;
+      const entity=state.interactables.find(item=>item.id===id);
+      const on=feature.type==='power'?state.power:feature.type==='relay'?!!entity?.used:exitReady(state);
+      feature.screen.material.map=on?feature.maps.on:feature.maps.off;
+      if(feature.type==='power')feature.beacon.material.color.setHex(on?0x8affd0:0xffb25a);
+      if(feature.type==='relay')feature.beacon.material.color.setHex(on?0x8affd0:0xc9a6ff);
+      if(feature.type==='exit')feature.beacon.material.color.setHex(on?0x8affd0:0x547f78);
       if(feature.beacon&&!this.options.reducedMotion)feature.beacon.scale.setScalar(.19+Math.sin(this.clock*3)*.018);
     }
     const projectileIds=new Set();
@@ -583,7 +651,8 @@ class WebGLBreachRenderer {
 // The small pixel budget keeps the CPU renderer responsive on constrained devices.
 class SoftwareBreachRenderer {
   constructor(canvas,game,options={}){
-    this.canvas=canvas;this.game=game;this.options={quality:'auto',reducedMotion:false,...options};
+    this.canvas=canvas;this.game=game;this.options={quality:'auto',fov:null,reducedMotion:false,...options};
+    this.visuals=missionVisuals(game.level);
     this.mode='software';this.isSoftware=true;this.clock=0;this.recoil=0;this.flash=0;
     this.bobPhase=0;this.moveAmount=0;this.weaponSwap=0;this.lastWeapon=game.state.player.weapon;
     this.lastX=game.state.player.x;this.lastZ=game.state.player.z;this.hitAt=new Map();this.impacts=[];
@@ -601,17 +670,18 @@ class SoftwareBreachRenderer {
     Object.assign(this.weaponCanvas.style,{position:'absolute',inset:'0',width:'100%',height:'100%',zIndex:'2',pointerEvents:'none',imageRendering:'pixelated'});
     canvas.parentElement.appendChild(this.weaponCanvas);this.weaponContext=this.weaponCanvas.getContext('2d');
     const image=(texture)=>{this.textures.push(texture);return texture.image;};
-    this.wallImage=image(makeWallTexture());
-    this.floorImage=image(makeFloorTexture());this.ceilingImage=image(makeFloorTexture(true));
+    this.wallImage=image(makeWallTexture(0,this.visuals.relay));
+    this.floorImage=image(makeFloorTexture(false,this.visuals.relay));this.ceilingImage=image(makeFloorTexture(true,this.visuals.relay));
     this.floorPixels=this.floorImage.getContext('2d').getImageData(0,0,64,64).data;
     this.ceilingPixels=this.ceilingImage.getContext('2d').getImageData(0,0,64,64).data;
-    this.doorImages={plain:image(makeDoorTexture(null)),key:image(makeDoorTexture('key')),power:image(makeDoorTexture('power'))};
+    this.doorImages={plain:image(makeDoorTexture(null,this.visuals)),key:image(makeDoorTexture('key',this.visuals)),power:image(makeDoorTexture('power',this.visuals)),relays:image(makeDoorTexture('relays',this.visuals))};
     this.enemyFrames={};for(const type of ['runner','spitter','brute'])this.enemyFrames[type]=Array.from({length:7},(_,i)=>image(drawEnemy(type,i)));
     this.pickupImages={};for(const type of ['ammo','shells','health','armor','shotgun','key'])this.pickupImages[type]=image(makePickupTexture(type));
     this.plasmaImage=image(makeGlowTexture('#7fe8b1','#e6ffb5'));
     this.impactImage=image(makeGlowTexture('#f8aa58','#fff0b0'));
     this.powerImages={off:this.featureImage('power',false),on:this.featureImage('power',true)};
     this.exitImages={off:this.featureImage('exit',false),on:this.featureImage('exit',true)};
+    this.relayImages=new Map((game.state.interactables||[]).filter(item=>item.type==='relay').map(item=>[item.id,{off:this.featureImage('relay',false,relayTitle(item)),on:this.featureImage('relay',true,relayTitle(item))}]));
     this.secretImage=image(makeSign('MAINT.','AUTHORIZED STAFF','#87948d'));
     this.zoneSigns=[];
     for(const [index,zone] of (game.level.zones||[]).entries()){
@@ -623,23 +693,27 @@ class SoftwareBreachRenderer {
           if(!best||score<best.score)best={x:x+.5+dx*.45,z:z+.5+dz*.45,score};
         }
       }
-      if(best)this.zoneSigns.push({...best,image:image(makeSign(zone.name,`BS 07 / SECTOR ${String(index+1).padStart(2,'0')}`))});
+      if(best)this.zoneSigns.push({...best,image:image(makeSign(zone.name,`${this.visuals.signCode} / SECTOR ${String(index+1).padStart(2,'0')}`,this.visuals.signColor))});
     }
     this.enemyMotion=new Map();this.resize();
   }
 
   solid(x,z){return this.game.level.grid[z]?.[x]==='#'||!this.game.level.grid[z]?.[x];}
 
-  featureImage(type,on){
+  featureImage(type,on,title=null){
     const [canvas,c]=canvas2d(96,128);
-    const color=on?'#8bd7b4':type==='power'?'#e1b26b':'#6b9791';
+    const color=on?'#8bd7b4':type==='relay'?'#b9a1ed':type==='power'?'#e1b26b':'#6b9791';
     rect(c,31,68,35,60,'#293c45');rect(c,33,69,5,59,'#6a7e7b');
     rect(c,39,80,21,3,'#182c36');rect(c,39,87,21,3,'#182c36');rect(c,39,94,21,3,'#182c36');
     rect(c,8,37,80,34,'#101f28');rect(c,8,37,80,3,color);rect(c,12,41,72,2,'#354d54');
-    c.font='bold 9px monospace';c.fillStyle=color;c.textAlign='center';c.fillText(type==='power'?'AUX POWER':'EXTRACTION',48,54);
-    c.font='6px monospace';c.fillStyle='#b5c3b4';c.fillText(on?'SYSTEM ONLINE':type==='power'?'RESTORE GRID':'CLEARANCE REQUIRED',48,65);
+    c.font='bold 9px monospace';c.fillStyle=color;c.textAlign='center';c.fillText((title||(type==='power'?(this.visuals.relay?'RING POWER':'AUX POWER'):'EXTRACTION')).slice(0,13),48,54);
+    c.font='6px monospace';c.fillStyle='#b5c3b4';c.fillText(on?(type==='relay'?'SYNCHRONIZED':'SYSTEM ONLINE'):type==='relay'?'NODE OFFLINE':type==='power'?'RESTORE GRID':'CLEARANCE REQUIRED',48,65);
     rect(c,43,19,11,12,color);rect(c,46,16,5,18,on?'#d2f0c5':'#f4cf86');
     if(type==='exit'){rect(c,2,12,3,116,color);rect(c,91,12,3,116,color);rect(c,2,10,92,3,color);}
+    if(type==='relay'){
+      for(const x of [17,76]){rect(c,x,7,3,29,'#8e9db9');rect(c,x-2,6,7,4,color);}
+      for(let x=38;x<60;x+=7)rect(c,x,103,4,7,on?'#8bd7b4':'#6c608a');
+    }
     return canvas;
   }
 
@@ -647,22 +721,28 @@ class SoftwareBreachRenderer {
     const bounds=this.canvas.getBoundingClientRect();
     const cssWidth=Math.max(1,bounds.width||window.innerWidth),cssHeight=Math.max(1,bounds.height||window.innerHeight);
     const coarse=typeof matchMedia==='function'&&matchMedia('(pointer:coarse)').matches;
-    const low=this.options.quality==='low';const maxWidth=low?256:coarse?320:400;
+    const low=this.options.quality==='low',high=this.options.quality==='high';
+    const maxWidth=low?256:high?(coarse?448:560):coarse?320:400;
     // Compatibility mode runs on the CPU, including in GPU-disabled browsers.
     // Keep its pixel budget close to the original era instead of taxing input.
-    const scale=Math.min(1,maxWidth/cssWidth,Math.sqrt(96000/(cssWidth*cssHeight)));
+    const pixelBudget=low?64000:high?160000:96000;
+    const scale=Math.min(1,maxWidth/cssWidth,Math.sqrt(pixelBudget/(cssWidth*cssHeight)));
     const w=Math.max(2,Math.floor(cssWidth*scale/2)*2),h=Math.max(2,Math.floor(cssHeight*scale/2)*2);
-    if(w===this.width&&h===this.height)return;
-    this.width=w;this.height=h;this.outputCanvas.width=w;this.outputCanvas.height=h;
-    this.weaponCanvas.width=w;this.weaponCanvas.height=h;
-    this.context.imageSmoothingEnabled=false;this.weaponContext.imageSmoothingEnabled=false;
-    this.depth=new Float32Array(w);this.floorBuffer=this.context.createImageData(w,h);
-    // Canvas pixels are opaque; set alpha once rather than once per frame.
-    for(let i=3;i<this.floorBuffer.data.length;i+=4)this.floorBuffer.data[i]=255;
-    this.fov=(cssWidth<cssHeight?78:68)*Math.PI/180;
+    if(w!==this.width||h!==this.height){
+      this.width=w;this.height=h;this.outputCanvas.width=w;this.outputCanvas.height=h;
+      this.weaponCanvas.width=w;this.weaponCanvas.height=h;
+      this.context.imageSmoothingEnabled=false;this.weaponContext.imageSmoothingEnabled=false;
+      this.depth=new Float32Array(w);this.floorBuffer=this.context.createImageData(w,h);
+      // Canvas pixels are opaque; set alpha once rather than once per frame.
+      for(let i=3;i<this.floorBuffer.data.length;i+=4)this.floorBuffer.data[i]=255;
+    }
+    this.fieldOfView=viewFov(this.options,cssWidth,cssHeight);
+    this.fov=this.fieldOfView*Math.PI/180;
     this.projection=h/(2*Math.tan(this.fov/2));
     this.planeLength=w/(2*this.projection);
   }
+
+  setOptions(options={}){Object.assign(this.options,options);this.resize();}
 
   handleEvents(events){
     for(const event of events||[]){
@@ -694,6 +774,7 @@ class SoftwareBreachRenderer {
 
   drawPlanes(p){
     const data=this.floorBuffer.data,w=this.width,h=this.height;
+    const [fogR,fogG,fogB]=this.visuals.fogRgb;
     const lx=this.forwardX-this.rightX*this.planeLength,lz=this.forwardZ-this.rightZ*this.planeLength;
     const stepDirectionX=2*this.rightX*this.planeLength/w,stepDirectionZ=2*this.rightZ*this.planeLength/w;
     for(let y=0;y<h;y++){
@@ -708,9 +789,9 @@ class SoftwareBreachRenderer {
       let offset=y*w*4;
       for(let x=0;x<w;x++){
         const tx=Math.floor(worldX*32)&63,tz=Math.floor(worldZ*32)&63,index=(tz*64+tx)*4;
-        data[offset]=texture[index]*shade+8*fog;
-        data[offset+1]=texture[index+1]*shade+19*fog;
-        data[offset+2]=texture[index+2]*shade+28*fog;
+        data[offset]=texture[index]*shade+fogR*fog;
+        data[offset+1]=texture[index+1]*shade+fogG*fog;
+        data[offset+2]=texture[index+2]*shade+fogB*fog;
         offset+=4;worldX+=stepX;worldZ+=stepZ;
       }
     }
@@ -719,6 +800,7 @@ class SoftwareBreachRenderer {
 
   drawWalls(p){
     const c=this.context,w=this.width,h=this.height,level=this.game.level;
+    const fogRgb=this.visuals.fogRgb.join(',');
     const closed=new Map(this.game.state.doors.filter(d=>!d.open).map(d=>[`${Math.floor(d.x)},${Math.floor(d.z)}`,d]));
     for(let column=0;column<w;column++){
       const cameraX=2*(column+.5)/w-1;
@@ -747,7 +829,7 @@ class SoftwareBreachRenderer {
       if(side===0&&rayX<0||side===1&&rayZ>0)texX=texture.width-texX-1;
       c.drawImage(texture,texX,0,1,texture.height,column,top,1,wallHeight);
       const shade=clamp(.10+(side===0?.10:0)+distance/30,0,.91);
-      c.fillStyle=`rgba(5,14,21,${shade.toFixed(2)})`;
+      c.fillStyle=`rgba(${fogRgb},${shade.toFixed(2)})`;
       c.fillRect(column,Math.max(0,top),1,Math.min(h,top+wallHeight)-Math.max(0,top));
     }
   }
@@ -780,7 +862,11 @@ class SoftwareBreachRenderer {
     }
     for(const feature of state.interactables||[]){
       if(feature.type==='power')add(state.power?this.powerImages.on:this.powerImages.off,feature.x,feature.z,1.05,1.5);
-      if(feature.type==='exit')add(state.power&&p.key?this.exitImages.on:this.exitImages.off,feature.x,feature.z,1.1,1.6);
+      if(feature.type==='relay'){
+        const images=this.relayImages.get(feature.id);
+        if(images)add(feature.used?images.on:images.off,feature.x,feature.z,1.05,1.5);
+      }
+      if(feature.type==='exit')add(exitReady(state)?this.exitImages.on:this.exitImages.off,feature.x,feature.z,1.1,1.6);
       if(feature.type==='secret')add(this.secretImage,feature.x,feature.z,.55,.17,1.26);
     }
     for(const sign of this.zoneSigns)add(sign.image,sign.x,sign.z,.88,.275,1.69);
