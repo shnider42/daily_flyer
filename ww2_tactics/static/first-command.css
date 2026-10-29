@@ -1,0 +1,112 @@
+/* Additive interaction treatment. Never transform moving SVG counter groups. */
+:root{--first-command-space:0px}
+.first-command-home{--fc-bg:#20382e;--fc-line:#597563;--fc-text:#f3efdf;--fc-muted:#ccd5c7;--fc-accent:#e2c68a;display:grid;grid-template-columns:92px minmax(0,1fr) minmax(180px,230px);gap:24px;align-items:center;position:relative;margin:20px 0 26px;padding:26px;border:1px solid var(--fc-line);border-radius:12px;background:linear-gradient(110deg,#2c4437,var(--fc-bg));color:var(--fc-text);box-shadow:0 9px 28px #101b141a;overflow:hidden}
+.first-command-home[hidden],#firstCommandCard[hidden],.first-command-resume[hidden],.first-command-restore[hidden]{display:none!important}
+.first-command-home:before{content:'';position:absolute;inset:0;pointer-events:none;background:linear-gradient(115deg,transparent 62%,#ffffff05 62%,#ffffff05 63%,transparent 63%)}
+.first-command-emblem{font:400 56px/1 Georgia,serif;color:var(--fc-accent);border:1px solid #e2c68a55;border-radius:8px;padding:16px 8px;text-align:center}
+.first-command-emblem span{display:block;font:700 9px/1.5 system-ui,sans-serif;letter-spacing:1.2px;margin-top:10px}
+.first-command-kicker{font:700 11px/1.4 system-ui,sans-serif;letter-spacing:1.1px;margin:0 0 8px}
+#firstCommandHome h2{font:600 clamp(24px,3vw,34px)/1.15 system-ui,sans-serif;letter-spacing:-.6px;margin:0 0 10px;color:var(--fc-text)}
+#firstCommandHome p{line-height:1.6;margin:0 0 8px;font-size:15px;color:var(--fc-muted)}
+#firstCommandHome .first-command-kicker{color:var(--fc-accent);font-size:11px;line-height:1.4;margin-bottom:8px}
+#firstCommandHome .first-command-small{font-size:12px;margin-bottom:0}
+.first-command-home-actions{display:grid;gap:6px;position:relative}
+#firstCommandHome button{min-height:46px;white-space:normal;line-height:1.35;border-radius:7px;letter-spacing:0;font:650 14px/1.4 system-ui,sans-serif}
+#firstCommandStart{border:1px solid #eddba9;background:#e2c68a;color:#23372b;padding:12px 15px;box-shadow:0 2px 0 #101a1750;text-align:left}
+#firstCommandHome .first-command-secondary{color:var(--fc-text);background:transparent;border:1px solid #acc0af70;padding:9px 12px;text-align:left}
+#firstCommandHome .first-command-quiet{background:transparent;color:var(--fc-muted);border:0;text-align:left;padding:7px 0;text-decoration:underline;text-underline-offset:3px;font-size:12px}
+#firstCommandStartStatus:empty{display:none}
+.first-command-restore{margin:8px 0 16px;min-height:44px}
+#firstCommandCard{--fc-card:var(--ui-surface,#f7f6ed);--fc-ink:var(--ui-text,#203729);--fc-line:var(--ui-line,#97a68c);--fc-accent:var(--ui-accent,#c4a16a);position:fixed;z-index:35;left:0;right:0;bottom:0;display:grid;grid-template-columns:185px minmax(0,1fr) minmax(180px,230px);gap:18px;align-items:start;box-sizing:border-box;padding:17px max(20px,env(safe-area-inset-right)) max(16px,env(safe-area-inset-bottom)) max(20px,env(safe-area-inset-left));border-top:2px solid var(--fc-accent);color:var(--fc-ink);background:var(--fc-card);box-shadow:0 -8px 30px #08130e24;height:132px;max-height:34dvh;overflow:auto;overscroll-behavior:contain;font-family:system-ui,sans-serif}
+#firstCommandCard h2{font:650 20px/1.25 system-ui,sans-serif;letter-spacing:-.3px;margin:0 0 7px;color:inherit}
+#firstCommandCard p{font-size:14px;line-height:1.55;margin:0;color:inherit}
+#firstCommandCard .first-command-kicker{font-size:10px;letter-spacing:1px;color:var(--fc-accent)}
+#firstCommandSteps{list-style:none;margin:12px 0 0;padding:0;display:flex;gap:5px}
+#firstCommandSteps li{flex:1;height:4px;min-width:8px;border-radius:3px;background:var(--fc-line);opacity:.45}
+#firstCommandSteps li[data-status=done]{opacity:1;background:var(--fc-accent)}
+#firstCommandSteps li[data-status=current]{opacity:1;background:var(--fc-accent);box-shadow:0 0 0 2px var(--fc-card),0 0 0 3px var(--fc-accent)}
+#firstCommandCard .first-command-actions{display:flex;gap:6px;flex-wrap:wrap}
+#firstCommandCard button{border-radius:6px;min-height:44px;padding:9px 12px;font:650 13px/1.35 system-ui,sans-serif;text-align:center;letter-spacing:0;white-space:normal}
+#firstCommandNext{background:#dcc18c;color:#23372b;border:1px solid #dcc18c}
+#firstCommandFind{background:transparent;color:var(--fc-ink);border:1px solid var(--fc-line)}
+#firstCommandCard .first-command-quiet{border:0;background:transparent;color:var(--ui-muted,#56634f);font-weight:500;font-size:12px;padding-inline:4px;text-decoration:underline;text-underline-offset:3px}
+#firstCommandResult:not(:empty){margin-top:8px;color:var(--fc-accent);font-size:12px;font-weight:700}
+#firstCommandResult:empty{display:none}
+#firstCommandCard[data-complete=true]{border-top-color:#8fad87}
+#firstCommandCard.first-command-inline{position:relative;inset:auto;box-shadow:none;border:1px solid var(--fc-line);border-left:4px solid var(--fc-accent);border-radius:7px;margin:10px 0 14px;display:block;height:auto;max-height:35dvh;padding:12px}
+#firstCommandCard.first-command-inline .first-command-progress{margin-bottom:10px}
+#firstCommandCard.first-command-inline #firstCommandSteps{display:none}
+#firstCommandCard.first-command-inline .first-command-actions{margin-top:10px}
+body.first-command-active #mobileBattleScreen,body.first-command-active #experimentalDesktopScreen{height:calc(100dvh - var(--first-command-space))!important;bottom:var(--first-command-space)!important}
+body.first-command-active.compact-desktop:not(.experimental-desktop)>main{height:calc(100dvh - 48px - var(--first-command-space))!important;min-height:0}
+body.first-command-active:not(.mobile-battle):not(.experimental-desktop):not(.compact-desktop)>main{padding-bottom:calc(var(--first-command-space) + 20px)}
+body.first-command-guiding #fieldCoachPrompt{display:none!important}
+.first-command-resume{position:fixed;z-index:20;bottom:auto;right:auto;background:var(--ui-surface,#f7f6ed);color:var(--ui-text,#203729);border:1px solid var(--ui-accent,#a0814b);border-radius:20px;padding:10px 16px;min-height:44px;font-size:13px;box-shadow:0 3px 14px #10201744}
+.first-command-focus{outline:3px solid #d8b877!important;outline-offset:3px!important;box-shadow:0 0 0 6px #d8b87724!important}
+.first-command-ring{fill:none;stroke:#ffe3a3;stroke-width:3;vector-effect:non-scaling-stroke;filter:drop-shadow(0 1px 2px #17231e)}
+.first-command-ring-outer{fill:none;stroke:#17372c;stroke-width:2;stroke-dasharray:5 4;vector-effect:non-scaling-stroke}
+#confirmedMoveRing{fill:none;stroke:#e5d498;stroke-width:3;vector-effect:non-scaling-stroke;animation:confirmed-move .8s ease-out both}
+@keyframes confirmed-move{from{stroke-width:5;opacity:.95}to{stroke-width:1;opacity:0}}
+/* Feedback remains immediate: no artificial wait before native actions. */
+body.dsl-interaction-polish:not(.empires-active) :is(.tactical-action,#firstCommandStart,#firstCommandNext,#firstCommandFind,.first-command-secondary){transition:background-color .13s ease,border-color .13s ease,box-shadow .13s ease;touch-action:manipulation}
+body.dsl-interaction-polish:not(.empires-active) .tactical-action:not(:disabled):not([aria-disabled=true]):active{box-shadow:inset 0 2px 6px #0004!important;filter:brightness(.94)}
+body.dsl-interaction-polish:not(.empires-active) :is(#firstCommandStart,#firstCommandNext,#firstCommandFind):active{box-shadow:inset 0 2px 7px #0004}
+body.dsl-interaction-polish:not(.empires-active) :is(.tactical-action,#firstCommandStart,#firstCommandNext,#firstCommandFind,.first-command-secondary,.first-command-quiet):focus-visible{outline:3px solid #d5b879;outline-offset:3px}
+body.dsl-interaction-polish:not(.empires-active) .tactical-action .action-cost{border-radius:4px;font-variant-numeric:tabular-nums}
+body.dsl-interaction-polish:not(.empires-active) #map .unit.selected>rect{stroke-width:3;filter:drop-shadow(0 1px 2px #17281c70)}
+body.dsl-interaction-polish:not(.empires-active) #map .unit:focus-visible{outline:none}
+body.dsl-interaction-polish:not(.empires-active) #map .unit:focus-visible>rect{stroke:#ffe5a2;stroke-width:4}
+@media(hover:hover) and (pointer:fine){
+ body.dsl-interaction-polish:not(.empires-active) .tactical-action:not(:disabled):not([aria-disabled=true]):hover{box-shadow:inset 0 0 0 1px var(--ui-accent,#9e824b),0 2px 8px #17221b25!important}
+ #firstCommandHome button:not(:disabled):hover,#firstCommandCard button:not(:disabled):hover{filter:brightness(1.08)}
+}
+@media(prefers-reduced-motion:no-preference){
+ body.dsl-interaction-polish:not(.empires-active) :is(#greybridgeDialog,#missionDialog,#orderGuide,#battleViewSettings,.mobile-battle-sheet)[open]{animation:dsl-sheet-enter .16s ease-out}
+ @keyframes dsl-sheet-enter{from{opacity:.65;transform:translateY(7px)}to{opacity:1;transform:translateY(0)}}
+}
+@media(max-width:1099px){
+ #firstCommandCard{display:grid;grid-template-columns:minmax(0,1fr);gap:7px;padding:10px max(12px,env(safe-area-inset-right)) max(10px,env(safe-area-inset-bottom)) max(12px,env(safe-area-inset-left));height:min(220px,34dvh);max-height:34dvh}
+ #firstCommandCard h2{font-size:17px;margin-bottom:4px}
+ #firstCommandCard p{font-size:13px;line-height:1.45}
+ #firstCommandCard .first-command-progress{display:flex;align-items:center;justify-content:space-between;gap:14px}
+ #firstCommandSteps{width:105px;flex:none;margin:0}
+ #firstCommandCard .first-command-actions{align-items:center;gap:4px}
+ #firstCommandCard button{min-height:44px;font-size:12px;padding:8px 11px}
+ #firstCommandCard #firstCommandPause{margin-left:auto}
+ #firstCommandCard[data-complete=true] .first-command-progress{display:none}
+ body.first-command-active #mobileBattleScreen{padding-bottom:0!important}
+
+}
+@media(max-width:650px){
+ .first-command-home{grid-template-columns:1fr;gap:13px;padding:20px;margin:16px 0 22px}
+ .first-command-emblem{display:none}
+ .first-command-home-actions{grid-template-columns:1fr}
+ #firstCommandHome h2{font-size:26px}
+ #firstCommandHome p{font-size:14px}
+ #firstCommandHome .first-command-quiet{min-height:44px}
+}
+@media(max-height:520px) and (min-width:650px) and (max-width:1099px){
+ #firstCommandCard:not(.first-command-inline){left:auto;top:0;bottom:0;width:280px;height:100dvh;max-height:none;border-top:0;border-left:2px solid var(--fc-accent);display:flex;flex-direction:column;justify-content:center;padding:14px}
+ #firstCommandCard .first-command-progress{display:block}
+ #firstCommandSteps{margin:12px 0 4px;width:100%}
+ #firstCommandCard .first-command-actions{margin-top:8px}
+ body.first-command-active #mobileBattleScreen{height:100dvh!important;bottom:0!important;right:280px!important;width:calc(100% - 280px)!important}
+}
+@media(prefers-reduced-motion:reduce){
+ #confirmedMoveRing{animation:none;opacity:.85}
+ body.dsl-interaction-polish:not(.empires-active) :is(.tactical-action,#firstCommandStart,#firstCommandNext,#firstCommandFind,.first-command-secondary){transition:none}
+}
+
+/* Keep a usable map when an existing phone preference uses inline orders.
+   This scrolls the same controls; it neither changes the stored layout nor
+   removes a capability. Map-first continues using the native Orders sheet. */
+@media(max-width:1099px) and (min-height:521px){
+ body.first-command-active.mobile-battle:not(.experimental-play) #mobileBattleScreen{grid-template-rows:90px minmax(90px,1fr) 40px 130px!important}
+ body.first-command-active.mobile-battle:not(.experimental-play) #mobileOrderDock{overflow:auto!important}
+ body.first-command-active.mobile-battle:not(.experimental-play) #mobileOrderBody #orders{height:auto!important}
+}
+
+.first-command-home button,#firstCommandCard button{transition:background-color .13s ease,border-color .13s ease,box-shadow .13s ease;touch-action:manipulation}
+.home-shortcuts .first-command-quick{background:transparent;color:inherit;border:1px solid currentColor;border-radius:5px;min-height:44px;padding:8px 12px;font-size:13px}
+#firstCommandHome button:focus-visible,#firstCommandCard button:focus-visible{outline:3px solid #d5b879;outline-offset:3px}
+@media(prefers-reduced-motion:reduce){.first-command-home button,#firstCommandCard button{transition:none}}

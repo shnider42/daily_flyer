@@ -1,0 +1,83 @@
+<!doctype html><html lang="en" data-theme="dark"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1"><title>DSL tutorial contract fixture — not the full game</title>
+<style>
+:root{--ui-surface:#1e2b25;--ui-text:#ececdd;--ui-line:#50634d;--ui-accent:#d3b37e;--ui-muted:#bcc5b4;--paper:#202d26;--ink:#e8edda}*{box-sizing:border-box}body{margin:0;background:#17211b;color:#ececdd;font:14px/1.5 system-ui}button,select{font:inherit;color:inherit;min-height:44px;padding:8px 12px;background:#2c4134;border:1px solid #596e52;border-radius:4px;cursor:pointer}button:disabled{opacity:.5}main{max-width:1240px;margin:auto;padding:24px}h1{font-size:32px;margin:4px 0 20px}h2{font-size:23px}header{padding:12px}section[hidden],button[hidden],dialog:not([open]){display:none!important}.home-experience{padding:20px;border:1px solid #50634d;border-radius:8px;background:#1e2b25;margin-bottom:20px}#greybridgeHome{padding:20px;border:1px solid #50634d}#game{margin:0}#experimentalDesktopScreen,#mobileBattleScreen{position:fixed;inset:0;height:100dvh;display:grid;grid-template-areas:'top' 'map' 'nav' 'orders';grid-template-rows:58px minmax(0,1fr) 44px 132px;background:#19291f;overflow:hidden}#mobileBattleScreen{grid-template-rows:90px minmax(0,1fr) 40px 82px;padding:0 6px}#mobileBattleScreen.panels{grid-template-rows:90px minmax(0,1fr) 40px 300px}.battle-top{grid-area:top;display:flex;align-items:center;gap:10px;background:#1b2f24;padding:8px 12px}#turnLabel{margin-left:auto}#mapWrap{grid-area:map;min-height:0;height:100%;overflow:auto;background:#839878}#map{display:block;width:100%;height:100%;min-height:0;max-width:none}#mapWrap.enlarged #map{width:600px;height:auto;min-width:600px}.hex{fill:#aeb998;stroke:#70805e;stroke-width:1}.hex.road{fill:#d9cdae}.hex.building{fill:#b8b19b}.hex.woods{fill:#6d8961}.hex.objective{fill:#ddc984}.hex.move{stroke:#315d3e;stroke-width:3}.unit{cursor:pointer}.unit>rect{fill:#38583a;stroke:#f1e1b5;stroke-width:1.5}.unit.de>rect{fill:#754d3c}.unit text{fill:#fff5df;font-size:10px;pointer-events:none}.unit.selected>rect{stroke:#f4d58a;stroke-width:3}.unit .art{font-size:22px}.unit-nav{grid-area:nav;display:flex;gap:6px;align-items:center}#ordersDock{grid-area:orders;padding:8px;display:flex;align-items:center;gap:10px;border-top:1px solid #50634d;overflow:auto}#mobileOrderHead{display:flex;gap:8px;align-items:center}#mobileOrderBody{min-width:0}#selectionText{min-width:140px}#end{margin-left:auto}#orders{display:flex;gap:6px;flex-wrap:wrap}.tactical-action{display:flex;gap:12px;align-items:center}.action-cost{padding:3px;background:#101b1433;font-size:12px}dialog{background:#1e2b25;color:#ececdd;border:1px solid #59715b;padding:18px;width:min(600px,calc(100vw - 24px));max-height:90dvh;overflow:auto;border-radius:9px}dialog::backdrop{background:#0008}.mobile-sheet-heading{display:flex;align-items:center;justify-content:space-between;gap:16px}#fieldCoachPrompt{position:fixed;bottom:180px;left:16px;z-index:8}#message{position:fixed;left:20px;top:60px;background:#243e2b;padding:8px;z-index:60;pointer-events:none}#message:empty{display:none}#roster{display:flex;gap:6px;flex-wrap:wrap}#playbackPanel{grid-area:orders;padding:10px;background:#243c30}#battleViewHelp{display:flex;flex-direction:column;gap:8px}#firstCommandCard :is(p,h2){text-transform:none}
+</style><link rel="stylesheet" href="/ww2_tactics/static/first-command.css?v=1"></head>
+<body><header><strong>DSL</strong> <small>TACTICAL COMMAND · TEST FIXTURE</small></header><main>
+<section id="lobby"><h1>SQUAD LEADER</h1><p id="entryStatus">Operations room</p><section class="home-experience"><label for="homeExperience">Choose your level of guidance</label> <select id="homeExperience"><option value="simple">Simple</option><option value="moderate">Moderate</option><option value="expert">Expert</option></select></section><section id="greybridgeHome"><h2>Operation Greybridge</h2><p>Three connected missions.</p></section></section>
+<section id="game" hidden><section id="battleScreen"><div class="battle-top"><button id="homeBattles">Home</button><button id="battleViewOpen">Simple · View & help</button><span id="turnLabel">YOUR TURN</span></div><div id="mapWrap"><svg id="map" viewBox="0 0 400 470" role="group"></svg></div><nav class="unit-nav"><button id="zoom">Detail</button><button id="rosterOpen">Your units</button><span>★ Hold the village square</span></nav><div id="ordersDock"><div id="mobileOrderHead"><span id="selectionText">Select a unit</span><button id="end">End turn →</button></div><div id="mobileOrderBody"><button id="dadOrdersOpen">Orders</button><div id="orders"></div></div></div><div id="playbackPanel" hidden><p>Computer replay · recorded orders</p><button id="skipPlayback">Skip to live board</button></div></section></section></main>
+<dialog id="dadOrders" class="mobile-battle-sheet"><div class="mobile-sheet-heading"><h2>Unit orders</h2><button id="ordersClose">Back to battle</button></div></dialog>
+<dialog id="mobileRoster" class="mobile-battle-sheet"><div class="mobile-sheet-heading"><h2>Your units</h2><button id="rosterClose">Back to battle</button></div><div id="roster"></div></dialog>
+<dialog id="battleViewSettings"><div class="battle-view-heading"><h2>View & help</h2><button id="viewClose">Back to battle</button></div><div id="battleViewHelp"></div></dialog>
+<button id="fieldCoachPrompt" hidden>Next: Choose a unit</button><button id="lessonIgnore" hidden>Ignore tutorial</button><button id="redoOrder" hidden>Redo</button><button id="retryComputer" hidden>Retry computer orders</button><button id="showBattleResult" hidden>Result</button><p id="message"></p>
+<script>
+// Intentionally small contract fixture. This does not claim to run the engine.
+const $=id=>document.getElementById(id);
+let session=null,state=null,selected=null,target=null,busy=false,polling=false,lobbyMode=true,playbackSession=null,smokeMode=false,barrageMode=false,combatMode=null;
+const counts={creates:0,reads:0,orders:0},posts=[];let failNext=false,loseNext=false,sequence=0,playReplay=false;
+const storeGet=(k,d)=>{try{return JSON.parse(localStorage.getItem(k)||'null')||d}catch{return d}};
+let serverStates=storeGet('fixture-states',{}),savedSessions=storeGet('ww2-sessions',[{code:'old-greybridge',token:'private-old',operation:'greybridge'}]);
+function persist(){try{localStorage.setItem('ww2-sessions',JSON.stringify(savedSessions));localStorage.setItem('fixture-states',JSON.stringify(serverStates));}catch{}}
+function hexColumn(n){return String.fromCharCode(65+n)}
+function center(x,y){return [27+x*52+(y%2)*26,30+y*49]}
+function controlsUnit(u){return true}
+function unitName(u){return u.name||u.kind}
+function sideLabel(s){return s==='us'?'Americans':'Germans'}
+function notify(text){$('message').textContent=text;setTimeout(()=>$('message').textContent='',800)}
+function legal(s){
+ const result={};for(const u of s.units.filter(u=>u.side===s.side)){
+  const base={moves:[],targets:[],dig:false,overwatch:false,rally:false};result[u.id]=base;
+  if(u.hp<=0||s.turn!==s.side||s.winner)continue;
+  if(u.ap>0)for(const [dx,dy]of [[0,-1],[1,-1],[1,0],[-1,0],[0,1]]){const p=[u.pos[0]+dx,u.pos[1]+dy];if(p[0]>=0&&p[0]<7&&p[1]>=0&&p[1]<9&&!s.units.some(v=>v.side!==s.side&&v.hp>0&&v.pos[0]===p[0]&&v.pos[1]===p[1]))base.moves.push({pos:p,cost:1});}
+  if(u.ap>=2){if(!u.entrenched)base.dig=true;base.overwatch=!u.overwatch;if(!new URLSearchParams(location.search).has('no-target'))base.targets=s.units.filter(e=>e.side!==s.side&&e.hp>0).map(e=>({id:e.id,threshold:4,damage:1}));}
+ }
+ return result;
+}
+function initial(code){const map=['...=...','...=...','T..=..T','.TB=BT.','===*===','T.B=B.T','.T.=.T.','...=...','...=...'].map(row=>[...row].map(v=>({'.':'field','=':'road',T:'woods',B:'building','*':'objective'})[v]));const s={code,ruleset:'dsl',edition:'current',battle_number:1,revision:0,round:1,turn:'us',side:'us',ready:true,winner:null,ai_side:'de',hold:0,scenario:{id:'current:village',name:'Village Crossing',objective_name:'Village square',objective:[3,4],rounds:8},map,action_history:[],units:[{id:'us1',name:'Rifle squad Alpha',kind:'squad',side:'us',pos:[2,7],ap:2,hp:3},{id:'us2',name:'Rifle squad Bravo',kind:'squad',side:'us',pos:[4,7],ap:2,hp:3},{id:'lt',name:'Lieutenant',kind:'leader',side:'us',pos:[3,8],ap:3,hp:2},{id:'de1',name:'German rifle squad',kind:'squad',side:'de',pos:[3,2],ap:2,hp:3}]};s.legal=legal(s);return s}
+async function api(path,body){if(path==='/api/match'){counts.creates++;posts.push({path,body});const code='practice'+Date.now()+ ++sequence;serverStates[code]=initial(code);persist();return{code,token:'practice-token'}}throw Error('Unexpected API route '+path)}
+async function apiWithSession(seat){counts.reads++;if(!serverStates[seat.code])throw Error('Unknown match');return structuredClone(serverStates[seat.code])}
+function remember(seat){session=seat;state=null;selected=null;target=null;lobbyMode=false;savedSessions=[seat,...savedSessions.filter(v=>v.code!==seat.code)];persist()}
+async function run(fn){if(busy||playbackSession)return;busy=true;document.dispatchEvent(new Event('ww2:busy'));try{await fn()}catch(e){notify(e.message)}finally{busy=false;if(state)render()}}
+async function act(body){if(busy||playbackSession)return;await run(async()=>{
+ counts.orders++;posts.push({path:'/api/match/'+session.code,body});if(failNext){failNext=false;throw Error('Rejected test order')}
+ const s=structuredClone(serverStates[session.code]),u=s.units.find(u=>u.id===body.unit);s.revision++;
+ if(body.kind==='move'){u.pos=body.pos.slice();u.ap--}
+ if(body.kind==='dig'){u.ap-=2;u.entrenched=true}
+ if(body.kind==='overwatch'){u.ap-=2;u.overwatch=true}
+ if(body.kind==='fire'){u.ap-=2;s.last_combat={revision:s.revision,kind:'Fire',roll:1,threshold:4,result:'Missed.'}}
+ if(body.kind==='end'){s.round++;s.turn='us';s.units.filter(v=>v.side==='us').forEach(v=>v.ap=2);if(playReplay)playbackSession={fixture:true}}
+ s.action_history.push({revision:s.revision,side:'us',action:body});s.legal=legal(s);serverStates[s.code]=s;persist();
+ if(loseNext){loseNext=false;throw Error('Response lost after commit')}
+ state=structuredClone(s);target=null;smokeMode=false;barrageMode=false;document.dispatchEvent(new CustomEvent('ww2:order',{detail:{kind:body.kind,code:session.code,battle:state.battle_number}}));
+ })}
+async function refresh(){state=await apiWithSession(session);render()}
+function chooseUnit(u){if(busy||playbackSession)return;if(combatMode||smokeMode||barrageMode){act({kind:'smoke',unit:selected,pos:u.pos});return;}if(u.side===state.side){selected=u.id;target=null}else target=u.id;render();document.dispatchEvent(new Event('ww2:selection'))}
+function focusMapUnit(u){if(!$('mapWrap').classList.contains('enlarged'))return;const [x,y]=center(...u.pos),wrap=$('mapWrap'),scale=$('map').getBoundingClientRect().width/400;wrap.scrollTo(x*scale-wrap.clientWidth/2,y*scale-wrap.clientHeight/2)}
+window.ww2Briefing={mission:s=>({goal:'Hold Village square at the end of two of your turns in a row.',focus:[3,4]})};
+window.ww2Journey={open:()=>notify('Chapter browser opened')};
+window.ww2Experience={level:'simple',set(v){this.level=v;document.dispatchEvent(new Event('ww2:experience'))}};
+window.ww2Mobile={openSheet:id=>{for(const d of document.querySelectorAll('dialog[open]'))d.close();$(id).showModal()}};
+window.ww2ExperimentalDesktop={openContaining:()=>{}};window.ww2BattleNavigation={openContaining:()=>{}};
+function setLayout(){if(!state)return;const screen=$('battleScreen')||$('mobileBattleScreen')||$('experimentalDesktopScreen'),mobile=innerWidth<1100;screen.id=mobile?'mobileBattleScreen':'experimentalDesktopScreen';document.body.classList.toggle('mobile-battle',mobile);document.body.classList.toggle('experimental-desktop',!mobile);const panels=new URLSearchParams(location.search).has('panels');document.body.classList.toggle('experimental-play',!panels);screen.classList.toggle('panels',panels);if(mobile&&!panels)$('dadOrders').append($('orders'));else $('mobileOrderBody').append($('orders'));$('dadOrdersOpen').hidden=!mobile||panels}
+function render(){
+ if(!state||lobbyMode)return;$('lobby').hidden=true;$('game').hidden=false;setLayout();
+ $('fieldCoachPrompt').hidden=false;$('turnLabel').textContent=playbackSession?'WATCHING REPLAY':state.turn==='us'?'YOUR TURN':'OPPONENT’S TURN';
+ const unit=state.units.find(u=>u.id===selected);$('selectionText').textContent=unit?unit.name+' · '+unit.ap+' AP':'Select a unit';
+ const svg=$('map');svg.replaceChildren();
+ state.map.forEach((row,y)=>row.forEach((type,x)=>{const p=document.createElementNS(svg.namespaceURI,'polygon'),[cx,cy]=center(x,y);p.setAttribute('points',Array.from({length:6},(_,i)=>{const a=(60*i-30)*Math.PI/180;return[cx+30*Math.cos(a),cy+30*Math.sin(a)].join(',')}).join(' '));p.dataset.x=x;p.dataset.y=y;const move=state.legal[selected]?.moves.find(m=>m.pos[0]===x&&m.pos[1]===y);p.setAttribute('class','hex '+type+(move?' move':''));p.setAttribute('tabindex','0');p.onclick=()=>{if(move)act({kind:'move',unit:selected,pos:[x,y]})};svg.append(p);if(type==='objective'){const t=document.createElementNS(svg.namespaceURI,'text');t.textContent='★';t.setAttribute('x',cx-10);t.setAttribute('y',cy+7);t.style.pointerEvents='none';svg.append(t)}}));
+ for(const u of state.units){const [cx,cy]=center(...u.pos),g=document.createElementNS(svg.namespaceURI,'g');g.dataset.unitId=u.id;g.setAttribute('class','unit '+u.side+(selected===u.id?' selected':''));g.setAttribute('tabindex','0');g.setAttribute('role','button');g.setAttribute('aria-label',u.name);g.innerHTML=`<rect x="${cx-21}" y="${cy-20}" width="42" height="40" rx="4"/><text class="art" x="${cx-10}" y="${cy}">${u.kind==='leader'?'Ⅱ':'⌃'}</text><text x="${cx-13}" y="${cy+15}">${u.hp} · ${u.ap}</text>`;g.onclick=()=>chooseUnit(u);g.onkeydown=e=>{if(e.key==='Enter')chooseUnit(u)};svg.append(g)}
+ $('roster').replaceChildren(...state.units.filter(u=>u.side==='us').map(u=>{const b=document.createElement('button');b.textContent=u.name;b.dataset.unitId=u.id;b.onclick=()=>{chooseUnit(u);$('mobileRoster').close()};return b}));
+ $('orders').replaceChildren(...['fire','dig','overwatch'].map(kind=>{const b=document.createElement('button');b.id=kind;b.className='tactical-action';const allowed=kind==='fire'?state.legal[selected]?.targets.some(t=>t.id===target):state.legal[selected]?.[kind];b.disabled=!allowed;b.innerHTML='<span>'+({fire:'Fire at unit',dig:'Dig in',overwatch:'Overwatch'})[kind]+'</span><span class="action-cost">2 AP</span>';b.onclick=()=>{if($('dadOrders').open)$('dadOrders').close();act({kind,unit:selected,target})};return b}));
+ $('playbackPanel').hidden=!playbackSession;$('ordersDock').hidden=!!playbackSession;
+ document.dispatchEvent(new Event('ww2:render'));
+}
+$('homeExperience').onchange=e=>ww2Experience.set(e.target.value);
+$('dadOrdersOpen').onclick=()=>ww2Mobile.openSheet('dadOrders');$('ordersClose').onclick=()=>$('dadOrders').close();
+$('battleViewOpen').onclick=()=>$('battleViewSettings').showModal();$('viewClose').onclick=()=>$('battleViewSettings').close();
+$('rosterOpen').onclick=()=>ww2Mobile.openSheet('mobileRoster');$('rosterClose').onclick=()=>$('mobileRoster').close();
+$('end').onclick=()=>{if(confirm('End your turn?'))act({kind:'end'})};
+$('skipPlayback').onclick=()=>{playbackSession=null;render();document.dispatchEvent(new Event('ww2:playback'))};
+$('zoom').onclick=()=>$('mapWrap').classList.toggle('enlarged');
+$('homeBattles').onclick=()=>{lobbyMode=true;$('game').hidden=true;$('lobby').hidden=false;document.body.classList.remove('mobile-battle','experimental-desktop')};
+$('lessonIgnore').onclick=()=>{try{localStorage.setItem('ww2-coaching-preferences-v1',JSON.stringify({ignored:true}))}catch{}};
+window.addEventListener('resize',()=>{if(state&&!lobbyMode){setLayout();document.dispatchEvent(new Event('ww2:layout'))}});
+</script><script src="/ww2_tactics/static/first-command.js?v=1"></script></body></html>

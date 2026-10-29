@@ -39,4 +39,10 @@ document.addEventListener('DOMContentLoaded',()=>{
  document.addEventListener('ww2:preview',syncPreview);
  document.addEventListener('ww2:experience',syncPreview);
  syncHome();syncPreview();
+ // Load after all deferred game modules are initialized. This optional UI can
+ // fail independently without blocking the existing game or Field coach.
+ const css=document.createElement('link');css.rel='stylesheet';css.href='/assets/first-command.css?v=1';
+ const tutorial=document.createElement('script');tutorial.src='/assets/first-command.js?v=1';tutorial.async=false;
+ tutorial.onerror=()=>console.warn('First-play tutorial unavailable; existing game and Field coach remain available.');
+ document.head.append(css);document.body.append(tutorial);
 });
