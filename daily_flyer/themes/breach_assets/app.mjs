@@ -1,6 +1,7 @@
 import { Game, MISSIONS } from './core.mjs';
 import { BreachRenderer } from './renderer.mjs';
 import { BreachAudio } from './audio.mjs';
+import { CoopClient } from './coop-client.mjs';
 
 const $ = id => document.getElementById(id);
 const SETTINGS_KEY = 'dfe.breach.settings.v1';
@@ -17,6 +18,7 @@ const choices = (x, valid, fallback) => valid.includes(x) ? x : fallback;
 const requestedMission = new URL(location.href).searchParams.get('mission');
 const missionIds = MISSIONS.map(mission=>mission.id);
 const settings = {
+  callSign: typeof prior.callSign==='string'?prior.callSign.slice(0,20):'Operator',
   mission: choices(requestedMission, missionIds, choices(prior.mission,missionIds,MISSIONS[0].id)),
   fov: [80,90].includes(prior.fov) ? prior.fov : null,
   quality: choices(prior.quality, ['auto','low','high'], 'auto'),
@@ -32,6 +34,9 @@ const settings = {
 };
 let config = {};
 try { config = JSON.parse($('breach-config').textContent); } catch (_) { /* A direct development view can use the default mission. */ }
+const coopConfigured=typeof config.coopServer==='string'&&!!config.coopServer.trim();
+let requestedRoom=(new URL(location.href).searchParams.get('room')||'').trim().toUpperCase().slice(0,8);
+let coop=null,coopConnection='idle';
 const seed = Number.isFinite(Number(config.seed)) ? Number(config.seed) : 1;
 const audio = new BreachAudio(settings.sound);
 const keys = new Set();
@@ -81,6 +86,7 @@ function showToast(text, duration = 3300) {
   toastTimer = performance.now() + duration;
 }
 function clearInputs() {
+  coop?.clearInput();
   keys.clear(); pendingTurn = 0; mouseFire = false; firePulse = false; joyX = 0; joyY = 0;
   lookPointer = movePointer = firePointer = null;
   input.forward = input.strafe = input.turn = 0; input.fire = false;
@@ -132,12 +138,13 @@ async function toggleFullscreen() {
 function setMode(next) {
   mode = next; document.body.dataset.mode = next;
   $('menu').hidden = next !== 'menu';
+  $('room-screen').hidden = next !== 'room';
   $('hud').hidden = !['playing','paused'].includes(next);
   $('pause-screen').hidden = next !== 'paused';
   $('end-screen').hidden = !['dead','won'].includes(next);
   audio.setPlaying(next === 'playing');
   if(next !== 'playing') { clearInputs(); releasePointer(); }
-  $('checkpoint').hidden = !game?.state.checkpoint;
+  updatePauseRoom();updateTeamStatus();
   if(next === 'menu') updateContinue();
 }
 function saveSettings() {
@@ -146,6 +153,7 @@ function saveSettings() {
   if(game) { game.options.guidance = settings.guidance; game.options.aimAssist = settings.aimAssist; }
   if(renderer) { renderer.options.reducedMotion = settings.reducedMotion; renderer.options.fov = settings.fov; renderer.options.quality = settings.quality; renderer.resize(); }
   applyControlMode();
+  if(coop)coop.aimAssist=settings.aimAssist;
   audio.setEnabled(settings.sound);
 }
 function updateChoices() {
@@ -194,7 +202,7 @@ function updateMissionMenu() {
     const button=document.createElement('button');button.type='button';button.dataset.mission=mission.id;
     button.setAttribute('aria-pressed',String(mission.id===settings.mission));
     const number=document.createElement('span');number.className='mission-choice-number';number.textContent=`${mission.number} /`;
-    const title=document.createElement('strong');title.textContent=mission.name;
+    const title=document.createElement('strong');title.textContent=mission.name.replace('Blacksite07','Blacksite 07');
     const subtitle=document.createElement('small');subtitle.textContent=mission.subtitle;
     button.append(number,title,subtitle);return button;
   }));
@@ -222,7 +230,7 @@ function updateContinue() {
 }
 
 function saveRun() {
-  if(!game || !['playing','paused'].includes(game.state.status) || game.state.player.health <= 0) return false;
+  if(coop || !game || !['playing','paused'].includes(game.state.status) || game.state.player.health <= 0) return false;
   try {
     savedRecord = {version:1,game:game.serialize(),explored:[...explored],savedAt:Date.now()};
     const persisted = writeStorage(SAVE_KEY,savedRecord);
@@ -240,7 +248,7 @@ function makeGame(options = {}) {
   mountGame(new Game({mission:settings.mission,difficulty:settings.difficulty,guidance:settings.guidance,aimAssist:settings.aimAssist,seed,...options}));
 }
 function launchMission(missionId, runOptions = {}) {
-  if(!ready||!missionIds.includes(missionId))return;
+  if(coop||!ready||!missionIds.includes(missionId))return;
   try {
     makeGame({...runOptions,mission:missionId}); savedRecord=null;removeStorage(SAVE_KEY);
     mapVisible=false;updateMapVisibility();
@@ -250,11 +258,12 @@ function launchMission(missionId, runOptions = {}) {
 }
 function launchNew() { launchMission(settings.mission); }
 function restartCurrent() {
+  if(coop){if(roomOwner())coop.restart(false);return;}
   if(!game)return;
   launchMission(currentMission().id,{difficulty:game.options.difficulty,seed:game.options.seed});
 }
 function continueRun() {
-  if(!ready||!savedRecord)return;
+  if(coop||!ready||!savedRecord)return;
   try {
     const record=savedRecord;
     const restored=new Game({mission:savedMission(record).id,...record.game?.options});
@@ -270,28 +279,34 @@ function continueRun() {
   }catch(error){fail(error);}
 }
 
-function pauseGame() {
+function pauseGame(reason='menu') {
   if(mode !== 'playing') return;
+  if(coop){coop.pause(reason==='background'?'background':'menu');setMode('paused');updatePauseRoom();return;}
   game.pause(); saveRun(); setMode('paused'); updateHud();
   $('resume').focus({preventScroll:true});
 }
 function resumeGame() {
+  if(coop){if(coop.connected&&coop.room?.status==='paused'){closeDialogs();audio.unlock();coop.resume();$('resume').disabled=true;$('resume').textContent='READY · WAITING FOR TEAMMATE';}return;}
   if(!ready || !game || game.state.status !== 'paused') return;
   closeDialogs(); audio.unlock(); game.resume(); setMode('playing'); lastFrame = performance.now(); requestMouse();
 }
 function retryCheckpoint() {
+  if(coop){if(roomOwner())coop.restart(true);return;}
   if(!game || !ready) return;
   if(!game.restartCheckpoint()) return restartCurrent();
   mapVisible = false; updateMapVisibility(); audio.unlock(); setMode('playing');
   pathHint = null; pathTimer = 0; lastFrame = performance.now(); saveRun(); updateHud(); requestMouse();
 }
 function backToMenu() {
+  if(coop)return leaveRoom();
   if(mode === 'playing') game.pause();
   saveRun(); closeDialogs();
   try { makeGame(); } catch(error) { return fail(error); }
   setMode('menu'); $('start').focus({preventScroll:true});
 }
 function finish(won) {
+  if(coop)return finishRoom(won);
+  $('end-restart').hidden=false;$('end-restart').disabled=false;$('end-menu').textContent='MAIN MENU';$('end-room-status').hidden=true;
   if(mode === 'dead' || mode === 'won') return;
   setMode(won ? 'won' : 'dead');
   $('end-kicker').textContent = won ? 'EXTRACTION CONFIRMED' : 'SIGNAL TERMINATED';
@@ -315,16 +330,178 @@ function finish(won) {
     savedRecord = null; removeStorage(SAVE_KEY);
   }
 }
+// Private rooms keep their network view separate from the single-player save.
+function roomInvite(id) {
+  const url=new URL(location.href);url.searchParams.delete('mission');url.searchParams.set('room',id);url.hash='';return url.href;
+}
+function clearRoomQuery() { requestedRoom='';const url=new URL(location.href);url.searchParams.delete('room');try{history.replaceState(null,'',url);}catch(_){} }
+function roomOwner() { return !!coop&&coop.selfId===coop.room?.ownerId; }
+function suspendRoomReadiness(reason='menu') {
+  if(!coop?.connected||!coop.room)return;
+  const self=coop.room.players.find(player=>player.id===coop.selfId);
+  if(coop.room.status==='lobby') {
+    if(self?.ready){self.ready=false;coop.ready(false);updateRoomEntry();}
+  }else if(coop.room.status==='playing'&&!coop.waitingPause||coop.room.status==='paused'&&self?.ready) {
+    if(self)self.ready=false;coop.pause(reason);updatePauseRoom();
+  }
+}
+function localOperatorAlive() { return !coop||game?.state.player.alive!==false&&game?.state.player.health>0; }
+function updateRoomEntry() {
+  const busy=!!coop&&['connecting','reconnecting'].includes(coopConnection),room=coop?.room;
+  $('room-entry').hidden=!!room;$('room-lobby').hidden=!room;
+  for(const id of ['room-name','room-mission','room-difficulty','room-code','room-create','room-join'])$(id).disabled=busy;
+  $('room-back').textContent=room?'LEAVE ROOM ←':busy?'CANCEL CONNECTION ←':'BACK TO MENU ←';
+  if(!room)return;
+  if(requestedRoom!==room.id){requestedRoom=room.id;$('room-code').value=room.id;try{history.replaceState(null,'',roomInvite(room.id));}catch(_){}}
+  $('room-id').textContent=room.id;$('room-combat').textContent=`CROSSLINK / ${room.difficulty.toUpperCase()}`;
+  $('room-invite').value=roomInvite(room.id);
+  const players=room.players||[];
+  $('room-players').replaceChildren(...['p1','p2'].map(id=>{
+    const player=players.find(value=>value.id===id),row=document.createElement('div');row.className='room-operator';
+    const indicator=document.createElement('span');indicator.className=`operator-light${player?.connected?' connected':''}${player?.ready?' ready':''}`;
+    const name=document.createElement('strong');name.textContent=player?`${player.name}${player.id===coop.selfId?' / YOU':''}`:'Awaiting operator';
+    const state=document.createElement('small');state.textContent=!player?'OPEN SLOT':!player.connected?'RECONNECTING':player.ready?'READY':'NOT READY';
+    row.append(indicator,name,state);return row;
+  }));
+  const self=players.find(player=>player.id===coop.selfId),allReady=players.length===2&&players.every(player=>player.connected&&player.ready);
+  $('room-ready').disabled=!coop.connected||room.status!=='lobby';
+  $('room-ready').setAttribute('aria-pressed',String(!!self?.ready));
+  $('room-ready').textContent=self?.ready?'READY ✓ / TAP TO UNDO':'I’M READY ✓';
+  $('room-ready').classList.toggle('subdued',!!self?.ready);$('room-ready').classList.toggle('primary',!self?.ready);
+  $('room-start').hidden=!roomOwner();$('room-start').disabled=!allReady||!coop.connected||room.status!=='lobby';
+  $('room-wait').textContent=players.length<2?'Send your invite to one friend.':!allReady?'Both operators must mark ready.':roomOwner()?'Your team is ready. Start Crosslink when you are.':'Your team is ready. Waiting for the room owner to start.';
+  if(coop.connected&&room.status==='lobby')$('room-status').textContent='ROOM OPEN · INVITE ONE FRIEND';
+}
+function updateTeamStatus() {
+  const room=coop?.room,network=coop?.view?.state;
+  $('team-status').hidden=!room||!network||!['playing','paused'].includes(mode);
+  const downed=!!network&&(network.player.alive===false||network.player.health<=0);
+  $('downed-banner').hidden=!downed||mode!=='playing';
+  document.body.classList.toggle('operator-downed',downed&&mode==='playing');
+  if(!room||!network)return;
+  const teammate=room.players.find(player=>player.id!==coop.selfId),body=network.players?.[teammate?.id];
+  const status=!teammate?'WAITING':!teammate.connected?'RECONNECTING':body?.alive===false||body?.health<=0?'DOWN':`${Math.ceil(body?.health??100)} HP`;
+  $('team-status-text').textContent=`${teammate?.name||'TEAMMATE'} · ${status}`;
+  $('team-status').classList.toggle('teammate-down',body?.alive===false);
+}
+function updatePauseRoom() {
+  const room=coop?.room,network=coop?.view;
+  $('pause-room-status').hidden=!coop;
+  $('restart').hidden=!!coop&&!roomOwner();
+  $('checkpoint').hidden=!game?.state.checkpoint||!!coop&&!roomOwner();
+  $('back-menu').textContent=coop?'LEAVE ROOM':'MAIN MENU';
+  if(!coop) {
+    $('pause-screen').querySelector('.eyebrow').textContent='SIGNAL HELD';
+    $('resume').innerHTML='RETURN TO FACILITY <span>↗</span>';$('resume').disabled=false;$('restart').disabled=false;$('checkpoint').disabled=false;
+    return;
+  }
+  const self=room?.players.find(player=>player.id===coop.selfId);
+  const offline=room?.players.some(player=>!player.connected);
+  $('pause-screen').querySelector('.eyebrow').textContent='TEAM SIGNAL HELD';
+  $('pause-screen').querySelector('.overlay-copy').textContent=coopConnection==='reconnecting'?'Connection interrupted. We’re rejoining your room.':(room?.pauseReason||'The whole team is paused. Both operators must choose Resume to continue.');
+  $('pause-room-status').textContent=coopConnection==='reconnecting'?'Your slot is reserved briefly. Keep this page open.':offline?'Waiting for your teammate to reconnect.':self?.ready?'YOU ARE READY · WAITING FOR YOUR TEAMMATE':'RESUME WHEN BOTH OPERATORS ARE READY';
+  $('resume').disabled=!coop.connected||room?.status!=='paused'||!!self?.ready;
+  $('resume').textContent=self?.ready?'READY · WAITING FOR TEAMMATE':'READY TO RESUME ↗';
+  $('restart').disabled=!coop.connected||offline;
+  $('checkpoint').disabled=!coop.connected||offline||!network;
+}
+function applyRoomStatus() {
+  if(!coop?.room)return;
+  updateRoomEntry();
+  if(!coop.view){if(mode!=='room')setMode('room');return;}
+  const status=coop.room.status;
+  if(status==='playing') {
+    if(document.hidden||document.querySelector('dialog[open]')) {coop.pause(document.hidden?'background':'menu');if(mode!=='paused')setMode('paused');}
+    else if(!coop.waitingPause&&coop.connected&&mode!=='playing') {
+      closeDialogs();setMode('playing');lastFrame=performance.now();requestMouse();
+    }
+  } else if(status==='paused') {if(mode!=='paused')setMode('paused');updatePauseRoom();}
+  else if(['dead','won'].includes(status)&&coop.view.state.status===status)finishRoom(status==='won');
+  updateTeamStatus();
+}
+function finishRoom(won) {
+  if(!coop?.view)return;
+  if(mode!==(won?'won':'dead'))setMode(won?'won':'dead');
+  $('end-kicker').textContent=won?'TEAM EXTRACTION CONFIRMED':'TEAM SIGNAL LOST';
+  $('end-title').innerHTML=won?'TOGETHER<span>_</span>':'TEAM DOWN<span>_</span>';
+  $('end-copy').textContent=won?'Crosslink is clear. Both operators made it out.':'Both operators are down. Regroup at the shared checkpoint and try again.';
+  $('result-time').textContent=formatTime(game.state.time);$('result-kills').textContent=`${game.state.kills} / ${game.state.enemies.length}`;
+  $('result-secrets').textContent=`${game.state.secretFound?1:0} / 1`;
+  $('end-next').hidden=true;$('end-checkpoint').hidden=won||!game.state.checkpoint||!roomOwner();
+  $('end-restart').hidden=!roomOwner();$('end-restart').disabled=!coop.connected;
+  $('end-restart').classList.toggle('subdued',!won&&!!game.state.checkpoint);$('end-restart').classList.toggle('primary',won||!game.state.checkpoint);
+  $('end-restart').textContent=won?'PLAY TOGETHER AGAIN ↗':'RESTART TEAM MISSION ↗';
+  $('end-menu').textContent='LEAVE ROOM';$('end-room-status').hidden=false;
+  $('end-room-status').textContent=roomOwner()?'You own this room. A restart moves both operators together.':'Waiting for the room owner to restart the team mission.';
+}
+function openRoom() {
+  if(!coopConfigured||!ready)return;
+  closeDialogs();setMode('room');$('room-error').hidden=true;
+  $('room-name').value=settings.callSign||'Operator';$('room-difficulty').value=settings.difficulty;
+  $('room-entry').classList.toggle('join-first',!!requestedRoom);
+  $('room-entry').querySelector('.room-divider span').textContent=requestedRoom?'OR CREATE A NEW ROOM':'HAVE AN INVITE?';
+  if(requestedRoom)$('room-code').value=requestedRoom;
+  $('room-status').textContent=requestedRoom?'YOU HAVE AN INVITE · ENTER YOUR CALL SIGN AND JOIN':'Create a private room, or enter a friend’s code.';
+  updateRoomEntry();
+}
+function endRoomConnection(message) {
+  coop=null;coopConnection='idle';clearInputs();closeDialogs();
+  try{makeGame();}catch(error){fail(error);return;}
+  setMode('room');updateRoomEntry();$('room-status').textContent='ROOM ENDED';
+  $('room-error').textContent=message;$('room-error').hidden=false;
+}
+function beginRoom(joining) {
+  if(!coopConfigured)return;
+  const name=$('room-name').value.trim().slice(0,20)||'Operator';
+  const roomId=$('room-code').value.trim().toUpperCase();
+  if(joining&&!/^[A-Z0-9]{8}$/.test(roomId)){$('room-error').textContent='Enter the 8-character room code from your invite.';$('room-error').hidden=false;$('room-code').focus();return;}
+  settings.callSign=name;saveSettings();$('room-error').hidden=true;audio.unlock();
+  coop?.leave();
+  let client;
+  try {
+    client=new CoopClient({base:config.coopServer,callbacks:{
+      onConnection(status,message){if(coop!==client)return;
+        if(status==='error'&&client.view){endRoomConnection(message);return;}
+        coopConnection=status;$('room-status').textContent=message;
+        if(['connecting','reconnecting','suspended'].includes(status)){clearInputs();if(client.view)setMode('paused');}
+        updateRoomEntry();updatePauseRoom();},
+      onRoom(){if(coop!==client)return;applyRoomStatus();},
+      onView(view){if(coop!==client)return;view.options.guidance=settings.guidance;view.options.aimAssist=settings.aimAssist;
+        try{mountGame(view);mapVisible=false;updateMapVisibility();}catch(error){client.pause();fail(error);}},
+      onState(state,events,allEvents){if(coop!==client)return;
+        if(state.player.alive===false)clearInputs();
+        processEvents(events,allEvents);applyRoomStatus();updateHud();},
+      onError(message){if(coop!==client)return;$('room-error').textContent=message;$('room-error').hidden=false;
+        if(mode==='playing')showToast(message);if(mode==='paused')$('pause-room-status').textContent=message;},
+      onClosed(message){if(coop!==client)return;endRoomConnection(message);},
+    }});
+    coop=client;coop.aimAssist=settings.aimAssist;
+    if(joining)client.join({roomId,name});else client.create({name,mission:'crosslink-11',difficulty:$('room-difficulty').value});
+  }catch(error){coop=null;coopConnection='error';$('room-error').textContent=error.message||'The room connection could not start.';$('room-error').hidden=false;updateRoomEntry();}
+}
+function leaveRoom() {
+  const current=coop;coop=null;coopConnection='idle';current?.leave();clearRoomQuery();closeDialogs();clearInputs();
+  try{makeGame();}catch(error){fail(error);return;}
+  setMode('menu');$('open-coop').focus({preventScroll:true});
+}
+async function copyInvite() {
+  const text=$('room-invite').value;
+  try{if(!navigator.clipboard?.writeText)throw new Error('Copy unavailable');await navigator.clipboard.writeText(text);$('room-status').textContent='INVITE COPIED · SEND IT TO ONE FRIEND';}
+  catch(_){$('room-invite').focus();$('room-invite').select();$('room-status').textContent='SELECTED YOUR INVITE · COPY IT AND SEND IT TO ONE FRIEND';}
+}
+function interact() { if(!localOperatorAlive())return;if(coop)coop.interact();else game.interact(); }
+function switchWeapon() { if(!localOperatorAlive())return;if(coop)coop.weapon();else game.switchWeapon(); }
+
 function fail(error) {
   console.error(error); statusError = true; ready = false;
-  try { game?.pause(); } catch (_) {}
+  try { if(coop)coop.pause('menu');else game?.pause(); } catch (_) {}
   setMode('menu'); $('start').disabled = true; $('continue').disabled = true;
   $('load-status').classList.add('error');
   $('load-status').textContent = /webgl|context|gpu/i.test(String(error)) ? 'This browser could not start the 3D view. Try opening this link in Safari or Chrome, then reload.' : 'The game hit a loading problem. Reload to try again; saved progress stays on this device.';
   $('retry-load').hidden = false;
 }
 function openDialog(id) {
-  if(mode === 'playing') pauseGame();
+  if(mode === 'playing') pauseGame();else suspendRoomReadiness('menu');
   releasePointer(); clearInputs(); updateSettingsFields();
   const dialog = $(id);
   if(typeof dialog.showModal === 'function') { if(!dialog.open) dialog.showModal(); }
@@ -426,7 +603,7 @@ function visibleHostileForTraining() {
 }
 function updateTutorial() {
   const state=game.state,t=state.tutorial||{},objective=game.getObjective();
-  const show=settings.guidance==='simple'&&settings.tutorial&&mode==='playing';
+  const show=settings.guidance==='simple'&&settings.tutorial&&mode==='playing'&&localOperatorAlive();
   // A nearby action or its missing requirement is the most useful guidance now.
   if(!show || (touch && game.getInteractionInfo())){$('tutorial').hidden=true;return;}
   let text='',index='FIELD TRAINING';
@@ -468,8 +645,8 @@ function updateHud() {
   $('objective-detail').hidden=touch||settings.guidance==='expert';
   $('objective').querySelector('.label').textContent=settings.guidance==='expert'?'MISSION':'CURRENT OBJECTIVE';
   const interaction=game.getInteractionInfo();
-  const canUse=!!interaction?.canUse;
-  $('interaction').hidden=!interaction||mode!=='playing';
+  const canUse=!!interaction?.canUse&&localOperatorAlive();
+  $('interaction').hidden=!interaction||mode!=='playing'||!localOperatorAlive();
   $('interaction-text').textContent=interaction?.text||'';
   $('interaction-label').textContent=interaction?.label||'USE';
   $('interaction').disabled=!canUse;
@@ -480,13 +657,14 @@ function updateHud() {
   $('touch-interact').classList.toggle('action-ready',canUse);
   $('touch-interact').setAttribute('aria-label',interaction ? `${interaction.label}: ${interaction.text}` : 'Interact when near a door or console');
   $('touch-weapon').hidden=!p.hasShotgun;
-  $('touch-weapon').disabled=!p.hasShotgun;
-  $('checkpoint').hidden=!state.checkpoint;
-  updateDirection();updateTutorial();
+  $('touch-weapon').disabled=!p.hasShotgun||!localOperatorAlive();
+  $('fire-pad').disabled=!localOperatorAlive();
+  $('checkpoint').hidden=!state.checkpoint||!!coop&&!roomOwner();
+  updateDirection();updateTutorial();updateTeamStatus();
 }
-function processEvents(events) {
-  if(!events.length)return;
-  renderer.handleEvents(events);audio.events(events);
+function processEvents(events,allEvents=events) {
+  if(!allEvents.length)return;
+  renderer.handleEvents(allEvents);audio.events(events);
   let notice=null;
   for(const event of events) {
     if(['message','pickup','checkpoint','secret'].includes(event.type)&&event.text)notice=event.text;
@@ -494,13 +672,15 @@ function processEvents(events) {
     if(event.type==='hit')hitUntil=performance.now()+120;
     if(['door','power','pickup','relay'].includes(event.type)) {pathTimer=0;mapDirty=true;}
     if(event.type==='checkpoint')saveRun();
-    if(event.type==='win')finish(true);
-    if(event.type==='death')finish(false);
+    if(event.type==='win'&&!coop)finish(true);
+    if(event.type==='death'&&!coop)finish(false);
+    if(event.type==='revive'&&coop)notice='Back in the fight. The team reached a shared checkpoint.';
+    if(event.type==='downed'&&coop)notice='Operator down. Your teammate can bring you back at the next checkpoint.';
   }
   if(notice&&mode==='playing')showToast(notice);
 }
 function shouldAutoFire() {
-  if(!settings.autoFire)return false;
+  if(!settings.autoFire||!localOperatorAlive())return false;
   const p=game.state.player;
   return game.state.enemies.some(e=>e.alive&&Math.hypot(e.x-p.x,e.z-p.z)<16&&Math.abs(normAngle(Math.atan2(e.x-p.x,-(e.z-p.z))-p.angle))<.085&&game.hasLineOfSight(p.x,p.z,e.x,e.z));
 }
@@ -514,12 +694,14 @@ function frame(now) {
       input.forward=Math.max(-1,Math.min(1,input.forward));input.strafe=Math.max(-1,Math.min(1,input.strafe));
       input.turn=pendingTurn+((keys.has('ArrowRight')?1:0)-(keys.has('ArrowLeft')?1:0))*dt*2.3*settings.sensitivity;
       pendingTurn=0;input.fire=firePulse||mouseFire||firePointer!==null||keys.has('Space')||shouldAutoFire();
-      game.update(dt,input);firePulse=false;processEvents(game.drainEvents());
-      if(game.state.status==='dead')finish(false);else if(game.state.status==='won')finish(true);
+      if(coop)coop.drive(dt,input);else{game.update(dt,input);processEvents(game.drainEvents());}
+      firePulse=false;
+      if(!coop){if(game.state.status==='dead')finish(false);else if(game.state.status==='won')finish(true);}
       if(now-lastMap>300){revealMap();lastMap=now;}
       if(now-pathTimer>650){pathHint=calculatePath();pathTimer=now;}
       if(now-lastSave>10000){saveRun();lastSave=now;}
     }
+    if(coop&&mode!=='playing')coop.drive(dt,{forward:0,strafe:0,turn:0,fire:false});
     if(now-lastHud>90){updateHud();lastHud=now;if(mapVisible&&mapDirty)drawMap();}
     if(now>toastTimer)$('toast').hidden=true;
     $('damage-flash').classList.toggle('active',now<damageUntil&&mode==='playing');
@@ -530,6 +712,18 @@ function frame(now) {
 }
 
 // Menu, dialogs, and discrete commands.
+$('open-coop').hidden=!coopConfigured;
+$('open-coop').addEventListener('click',openRoom);
+$('room-entry').addEventListener('submit',event=>{event.preventDefault();beginRoom($('room-entry').classList.contains('join-first'));});
+$('room-create').addEventListener('click',()=>beginRoom(false));
+$('room-join').addEventListener('click',()=>beginRoom(true));
+$('room-code').addEventListener('input',event=>{event.target.value=event.target.value.toUpperCase().replace(/[^A-Z0-9]/g,'').slice(0,8);});
+$('room-code').addEventListener('keydown',event=>{if(event.key==='Enter'){event.preventDefault();beginRoom(true);}});
+$('room-back').addEventListener('click',leaveRoom);
+$('room-copy').addEventListener('click',copyInvite);
+$('room-ready').addEventListener('click',()=>{audio.unlock();const self=coop?.room?.players.find(player=>player.id===coop.selfId);coop?.ready(!self?.ready);});
+$('room-start').addEventListener('click',()=>{audio.unlock();coop?.start();});
+$('room-settings').addEventListener('click',()=>openDialog('settings-dialog'));
 $('start').addEventListener('click',launchNew);$('continue').addEventListener('click',continueRun);
 $('retry-load').addEventListener('click',()=>location.reload());
 $('brand-home').addEventListener('click',event=>{event.preventDefault();});
@@ -573,21 +767,31 @@ window.addEventListener('keydown',event=>{
     if(event.code==='KeyF'&&!event.repeat){toggleFullscreen();return;}
     if(!event.repeat) {
       if(event.code==='Space')firePulse=true;
-      if(event.code==='KeyE')game.interact();
+      if(event.code==='KeyE')interact();
       if(event.code==='Tab')toggleMap();
-      if(event.code==='KeyQ')game.switchWeapon();
-      if(event.code==='Digit1'&&game.state.player.weapon!=='pistol')game.switchWeapon();
-      if(event.code==='Digit2'&&game.state.player.weapon!=='shotgun')game.switchWeapon();
+      if(event.code==='KeyQ')switchWeapon();
+      if(event.code==='Digit1'&&game.state.player.weapon!=='pistol')switchWeapon();
+      if(event.code==='Digit2'&&game.state.player.weapon!=='shotgun')switchWeapon();
     }
     keys.add(event.code);
   }else if(mode==='paused'&&(event.code==='Escape'||event.code==='KeyP')){event.preventDefault();resumeGame();}
   else if(['menu','paused'].includes(mode)&&event.code==='KeyF'&&!event.repeat){event.preventDefault();toggleFullscreen();}
 });
 window.addEventListener('keyup',event=>keys.delete(event.code));
-window.addEventListener('blur',()=>{if(mode==='playing'&&performance.now()>fullscreenTransitionUntil)pauseGame();else clearInputs();});
-document.addEventListener('visibilitychange',()=>{if(document.hidden){if(mode==='playing')pauseGame();saveRun();clearInputs();}});
-window.addEventListener('pagehide',()=>{if(mode==='playing')game.pause();saveRun();audio.setPlaying(false);clearInputs();});
-window.addEventListener('pageshow',event=>{if(event.persisted&&game?.state.status==='paused')setMode('paused');});
+window.addEventListener('blur',()=>{if(mode==='playing'&&performance.now()>fullscreenTransitionUntil)pauseGame('background');else{if(performance.now()>fullscreenTransitionUntil)suspendRoomReadiness('background');clearInputs();}});
+document.addEventListener('visibilitychange',()=>{
+  if(document.hidden){if(mode==='playing')pauseGame('background');else suspendRoomReadiness('background');coop?.setPageVisible(false);saveRun();clearInputs();}
+  else coop?.setPageVisible(true);
+});
+window.addEventListener('pagehide',()=>{
+  if(coop){if(mode==='playing')pauseGame('background');else suspendRoomReadiness('background');coop.suspend();}
+  else if(mode==='playing')game.pause();
+  saveRun();audio.setPlaying(false);clearInputs();
+});
+window.addEventListener('pageshow',event=>{
+  if(coop){if(event.persisted&&coop.view)setMode('paused');coop.setPageVisible(!document.hidden);}
+  else if(event.persisted&&game?.state.status==='paused')setMode('paused');
+});
 window.addEventListener('resize',()=>{clearInputs();renderer?.resize();});
 document.addEventListener('pointerlockchange',()=>{
   if(document.pointerLockElement===$('world')){pointerLockedOnce=true;return;}
@@ -598,7 +802,7 @@ window.addEventListener('wheel',event=>{
   if(mode!=='playing'||!game.state.player.hasShotgun||document.querySelector('dialog[open]'))return;
   if(document.pointerLockElement!==$('world')&&event.target!==$('world'))return;
   event.preventDefault();
-  if(event.deltaY!==0&&performance.now()-lastWeaponWheel>180){game.switchWeapon();lastWeaponWheel=performance.now();}
+  if(event.deltaY!==0&&performance.now()-lastWeaponWheel>180){switchWeapon();lastWeaponWheel=performance.now();}
 },{passive:false});
 document.addEventListener('pointerlockerror',()=>{if(mode==='playing')showToast('Hold and drag to aim, or use the arrow keys.');});
 document.addEventListener('mousemove',event=>{if(mode==='playing'&&document.pointerLockElement===$('world'))pendingTurn+=event.movementX*.0028*settings.sensitivity;});
@@ -646,10 +850,10 @@ $('fire-pad').addEventListener('pointerdown',event=>{
 $('fire-pad').addEventListener('pointermove',event=>{if(event.pointerId===firePointer&&mode==='playing'){pendingTurn+=(event.clientX-fireLastX)*.005*settings.sensitivity;fireLastX=event.clientX;}});
 function endFire(event){if(event.pointerId!==firePointer)return;firePointer=null;$('fire-pad').classList.remove('pressed');}
 for(const type of ['pointerup','pointercancel','lostpointercapture'])$('fire-pad').addEventListener(type,endFire);
-function useAvailableAction() { if(mode==='playing'&&game.getInteractionInfo()?.canUse)game.interact(); }
+function useAvailableAction() { if(mode==='playing'&&game.getInteractionInfo()?.canUse)interact(); }
 $('touch-interact').addEventListener('click',useAvailableAction);
 $('interaction').addEventListener('click',useAvailableAction);
-$('touch-weapon').addEventListener('click',()=>{if(mode==='playing')game.switchWeapon();});
+$('touch-weapon').addEventListener('click',()=>{if(mode==='playing')switchWeapon();});
 
 try {
   makeGame();
@@ -660,4 +864,5 @@ try {
   ready=true;$('start').disabled=false;$('continue').disabled=false;
   $('load-status').textContent=touch?'READY · TURN YOUR PHONE SIDEWAYS FOR A WIDER VIEW':'READY · CLICK TO ENTER';
   setMode('menu');renderer.resize();requestAnimationFrame(frame);
+  if(requestedRoom&&coopConfigured)openRoom();
 }catch(error){fail(error);}

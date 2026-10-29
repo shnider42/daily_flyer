@@ -2,8 +2,12 @@
   "name": "dailyflyer-breach",
   "private": true,
   "type": "module",
+  "engines": {"node": ">=22"},
   "scripts": {
+    "dev": "python3 scripts/build_breach.py && node server/breach-server.mjs",
+    "start": "node server/breach-server.mjs",
     "build:breach": "python scripts/build_breach.py",
-    "test:breach": "node --test tests/breach-core.test.mjs"
-  }
+    "test:breach": "node --test tests/breach-*.test.mjs"
+  },
+  "dependencies": {"ws": "8.22.0"}
 }

@@ -176,10 +176,87 @@ function createRelayLevel() {
   };
 }
 
-export const LEVELS = { 'blacksite-07': LEVEL, 'relay-09': createRelayLevel() };
+function createCrosslinkLevel() {
+  const width = 23, height = 21;
+  const cells = Array.from({ length: height }, () => Array(width).fill('#'));
+  const room = (x1, z1, x2, z2) => {
+    for (let z = z1; z <= z2; z++) for (let x = x1; x <= x2; x++) cells[z][x] = '.';
+  };
+  room(8, 17, 14, 19);                      // Safe landing for one or two operatives.
+  room(10, 15, 11, 16);
+  room(7, 11, 15, 14);                      // Power hub joins both short relay branches.
+  room(6, 11, 6, 12);
+  room(2, 8, 5, 13);                        // Western transmitter.
+  room(16, 11, 16, 12);
+  room(17, 8, 20, 13);                      // Eastern receiver.
+  room(11, 10, 11, 10);                     // Both relays are required to enter the vault.
+  room(9, 6, 13, 9);
+  room(11, 5, 11, 5);                       // The vault key opens the final gate.
+  room(8, 2, 14, 4);
+  room(19, 14, 19, 15);                     // Optional cache off the eastern branch.
+  room(17, 16, 20, 18);
+  for (const [x, z] of [[9, 12], [13, 12], [3, 10], [18, 10], [12, 8]]) cells[z][x] = '#';
+  const enemy = (id, type, x, z) => ({ id, type, x: x + .5, z: z + .5, health: type === 'brute' ? 145 : type === 'spitter' ? 70 : 52, maxHealth: type === 'brute' ? 145 : type === 'spitter' ? 70 : 52, alive: true });
+  const pickup = (id, type, x, z, amount = 1) => ({ id, type, x: x + .5, z: z + .5, amount });
+  return {
+    id: 'crosslink-11-v1', missionId: 'crosslink-11', name: 'Crosslink', signCode: 'XL-11', width, height,
+    grid: cells.map(row => row.join('')),
+    spawn: { x: 10.5, z: 18.5, angle: 0 },
+    coopSpawns: [{ x: 10.5, z: 18.5, angle: 0 }, { x: 12.5, z: 18.5, angle: 0 }],
+    doors: [
+      { id: 'arrival', x: 10.5, z: 16.5, axis: 'x', requires: null, open: false },
+      { id: 'arrival-side', x: 11.5, z: 16.5, axis: 'x', requires: null, open: false, paired: 'arrival' },
+      { id: 'relay-vault', x: 11.5, z: 10.5, axis: 'x', requires: 'relays', open: false },
+      { id: 'security', x: 11.5, z: 5.5, axis: 'x', requires: 'key', open: false },
+      { id: 'maintenance', x: 19.5, z: 14.5, axis: 'x', requires: null, open: false, secret: true },
+    ],
+    interactables: [
+      { id: 'aux-power', type: 'power', x: 8.5, z: 13.5, label: 'Restore hub power' },
+      { id: 'relay-west', type: 'relay', x: 2.5, z: 8.5, label: 'Activate western relay', requires: 'power' },
+      { id: 'relay-east', type: 'relay', x: 20.5, z: 8.5, label: 'Activate eastern relay', requires: 'power' },
+      { id: 'cache-panel', type: 'secret', x: 19.5, z: 13.5, label: 'Inspect supply panel' },
+      { id: 'extraction', type: 'exit', x: 13.5, z: 3.5, label: 'Signal team extraction' },
+    ],
+    pickups: [
+      pickup('arrival-ammo', 'ammo', 10, 17, 28),
+      pickup('arrival-armor', 'armor', 13, 18, 25),
+      pickup('pump-shotgun', 'shotgun', 10, 14, 12),
+      pickup('hub-ammo', 'ammo', 14, 14, 28),
+      pickup('hub-health', 'health', 7, 11, 40),
+      pickup('west-shells', 'shells', 4, 12, 12),
+      pickup('west-health', 'health', 2, 12, 40),
+      pickup('east-shells', 'shells', 17, 12, 12),
+      pickup('east-health', 'health', 20, 11, 40),
+      { ...pickup('access-key', 'key', 10, 7), requires: 'relays' },
+      pickup('vault-health', 'health', 9, 9, 40),
+      pickup('vault-ammo', 'ammo', 13, 6, 28),
+      pickup('cache-armor', 'armor', 18, 17, 75),
+      pickup('cache-shells', 'shells', 19, 17, 18),
+      pickup('cache-health', 'health', 17, 18, 60),
+    ],
+    enemies: [
+      enemy('h1', 'runner', 8, 11), enemy('h2', 'runner', 14, 11),
+      enemy('w1', 'runner', 4, 11), enemy('w2', 'spitter', 4, 8),
+      enemy('e1', 'runner', 19, 12), enemy('e2', 'spitter', 19, 8),
+      enemy('v1', 'brute', 12, 6), enemy('v2', 'runner', 9, 8),
+    ],
+    zones: [
+      { name: 'Crosslink landing', x1: 8, x2: 15, z1: 15, z2: 20 },
+      { name: 'Power hub', x1: 6, x2: 17, z1: 11, z2: 15 },
+      { name: 'Western transmitter', x1: 2, x2: 6, z1: 8, z2: 14 },
+      { name: 'Eastern receiver', x1: 17, x2: 21, z1: 8, z2: 14 },
+      { name: 'Crosslink vault', x1: 9, x2: 14, z1: 6, z2: 11 },
+      { name: 'Extraction uplink', x1: 8, x2: 15, z1: 2, z2: 6 },
+      { name: 'Supply cache', x1: 17, x2: 21, z1: 14, z2: 19 },
+    ],
+  };
+}
+
+export const LEVELS = { 'blacksite-07': LEVEL, 'relay-09': createRelayLevel(), 'crosslink-11': createCrosslinkLevel() };
 export const MISSIONS = [
   { id: 'blacksite-07', levelId: LEVEL.id, name: 'Blacksite 07', number: '001', subtitle: 'The first breach', briefing: 'Emergency power is down. Enter the research facility, recover its security key, and reach extraction.', steps: ['Restore auxiliary power', 'Recover the security key', 'Reach extraction'] },
   { id: 'relay-09', levelId: LEVELS['relay-09'].id, name: 'Dead Relay', number: '002', subtitle: 'Bring the signal back', briefing: 'A silent communications station surrounds a sealed vault. Restore ring power, reconnect both relays, and recover the key to the extraction uplink.', steps: ['Restore ring power', 'Activate both relay consoles', 'Recover the vault key', 'Transmit the extraction signal'] },
+  { id: 'crosslink-11', levelId: LEVELS['crosslink-11'].id, name: 'Crosslink', number: '003', subtitle: 'Two relays. One way out.', briefing: 'A compact relay facility has lost its uplink. Restore hub power, activate the western and eastern relays, and recover the vault key for extraction. Play solo or cover a teammate in a private co-op room.', steps: ['Restore hub power', 'Activate both relay consoles', 'Recover the vault key', 'Signal extraction'] },
 ];
 export function getLevel(missionId = 'blacksite-07') { return Object.hasOwn(LEVELS, missionId) ? LEVELS[missionId] : LEVEL; }
 
@@ -228,7 +305,7 @@ export class Game {
   start() {
     if (this.state.status === 'ready') {
       this.state.status = 'playing';
-      this._events.push({ type: 'message', text: this.level.missionId === 'relay-09' ? 'Dead Relay. Restore power to the communications ring.' : 'Blacksite 07. Find the auxiliary generator.' });
+      this._events.push({ type: 'message', text: this.level.missionId === 'crosslink-11' ? 'Crosslink. Restore hub power and reconnect both relays.' : this.level.missionId === 'relay-09' ? 'Dead Relay. Restore power to the communications ring.' : 'Blacksite 07. Find the auxiliary generator.' });
     }
   }
   pause() { if (this.state.status === 'playing') this.state.status = 'paused'; }
@@ -411,14 +488,17 @@ export class Game {
   }
 
   _updateEnemies(dt) {
+    for (const enemy of this.state.enemies) this._updateEnemy(enemy, dt);
+  }
+
+  _updateEnemy(enemy, dt) {
     const p = this.state.player;
-    for (const enemy of this.state.enemies) {
       enemy.hitTimer = Math.max(0, enemy.hitTimer - dt);
-      if (!enemy.alive || this.state.status !== 'playing') continue;
+      if (!enemy.alive || this.state.status !== 'playing') return;
       enemy.attackCooldown = Math.max(0, enemy.attackCooldown - dt);
       const d = distance(p, enemy), visible = this.hasLineOfSight(enemy.x, enemy.z, p.x, p.z);
       if (d < 9 && visible) enemy.active = true;
-      if (!enemy.active) continue;
+      if (!enemy.active) return;
       enemy.angle = Math.atan2(p.x - enemy.x, -(p.z - enemy.z));
       if (d < .8 && visible && enemy.attackCooldown === 0) {
         this._hurt(enemy.type === 'brute' ? 23 : enemy.type === 'runner' ? 10 : 8, enemy);
@@ -428,7 +508,7 @@ export class Game {
         this.state.projectiles.push({ id: `p-${++this._serial}`, x: enemy.x, z: enemy.z, dx: (p.x - enemy.x) / d * speed, dz: (p.z - enemy.z) / d * speed, life: 4, type: 'plasma' });
         enemy.attackCooldown = 1.65 + this._rng() * .45;
       }
-      if (d <= .65 || enemy.type === 'spitter' && visible && d > 3 && d < 6.5 || enemy.hitTimer > 0) continue;
+      if (d <= .65 || enemy.type === 'spitter' && visible && d > 3 && d < 6.5 || enemy.hitTimer > 0) return;
       let targetX = p.x, targetZ = p.z;
       if (!visible) {
         const x = Math.floor(enemy.x), z = Math.floor(enemy.z);
@@ -438,11 +518,11 @@ export class Game {
           const value = this._distances?.[nz * this.level.width + nx] ?? -1;
           if (value >= 0 && (best < 0 || value < best) && !this._wall(nx + .5, nz + .5)) { best = value; target = [nx + .5, nz + .5]; }
         }
-        if (!target) continue;
+        if (!target) return;
         [targetX, targetZ] = target;
       }
       const length = Math.hypot(targetX - enemy.x, targetZ - enemy.z);
-      if (length < .05) continue;
+      if (length < .05) return;
       const speed = (enemy.type === 'runner' ? 1.35 : enemy.type === 'brute' ? .69 : .85) * this._difficulty.speed;
       let dx = (targetX - enemy.x) / length * speed * dt, dz = (targetZ - enemy.z) / length * speed * dt;
       for (const other of this.state.enemies) {
@@ -451,7 +531,6 @@ export class Game {
         if (apart > .01 && apart < .55) { dx += (enemy.x - other.x) / apart * dt * .6; dz += (enemy.z - other.z) / apart * dt * .6; }
       }
       this._move(enemy, dx, dz, enemy.type === 'brute' ? .28 : .2);
-    }
   }
 
   _updateProjectiles(dt) {
@@ -501,15 +580,16 @@ export class Game {
   getInteractionInfo() {
     const o = this._interactionCandidate();
     if (!o) return null;
-    if (o.requires === 'power' && !this.state.power) return { text: o.type === 'relay' ? 'Relay offline — restore ring power' : 'Airlock offline — restore power', label: 'OFFLINE', canUse: false };
-    if (o.requires === 'relays' && !this.state.power) return { text: 'Communications vault offline — restore ring power', label: 'OFFLINE', canUse: false };
+    const relayPower = this.level.missionId === 'crosslink-11' ? 'hub power' : 'ring power';
+    if (o.requires === 'power' && !this.state.power) return { text: o.type === 'relay' ? `Relay offline — restore ${relayPower}` : 'Airlock offline — restore power', label: 'OFFLINE', canUse: false };
+    if (o.requires === 'relays' && !this.state.power) return { text: `Communications vault offline — restore ${relayPower}`, label: 'OFFLINE', canUse: false };
     if (o.requires === 'relays' && !this._relaysReady()) return { text: 'Vault locked — activate both relay consoles', label: 'LOCKED', canUse: false };
     if (o.requires === 'key' && !this.state.power) return { text: 'Security gate offline — restore power', label: 'OFFLINE', canUse: false };
     if (o.requires === 'key' && !this.state.player.key) return { text: 'Security gate — access key required', label: 'LOCKED', canUse: false };
     if (o.type === 'exit' && (!this.state.power || !this.state.player.key)) return { text: 'Extraction offline — power and key required', label: this.state.power ? 'LOCKED' : 'OFFLINE', canUse: false };
     if (o.type === 'exit' && !this._relaysReady()) return { text: 'Uplink offline — activate both relay consoles', label: 'LOCKED', canUse: false };
     const label = o.type === 'power' ? 'POWER' : o.type === 'relay' ? 'LINK' : o.type === 'exit' ? 'EXTRACT' : o.type === 'secret' || o.secret ? 'INSPECT' : 'OPEN';
-    return { text: o.label || (o.secret ? 'Inspect maintenance panel' : 'Open airlock'), label, canUse: this.state.status === 'playing' };
+    return { text: o.label || (o.secret ? 'Inspect maintenance panel' : 'Open airlock'), label, canUse: this.state.status === 'playing' && this.state.player.alive !== false };
   }
 
   getPrompt() { return this.getInteractionInfo()?.text || ''; }
@@ -527,9 +607,8 @@ export class Game {
       this.state.player.health = Math.max(75, this.state.player.health);
       this.state.player.armor = Math.max(30, this.state.player.armor);
       this.state.player.ammo.pistol = Math.max(24, this.state.player.ammo.pistol);
-      this._events.push({ type: 'power' }, { type: 'message', text: this.level.missionId === 'relay-09' ? 'Ring power restored. Activate the western and eastern relay consoles.' : 'Power restored. Airlocks online. Find the security key.' });
-      this._checkpoint = this._snapshot();
-      this._events.push({ type: 'checkpoint', text: 'Checkpoint saved at the generator.' });
+      this._events.push({ type: 'power' }, { type: 'message', text: this.level.missionId === 'crosslink-11' ? 'Hub power restored. Activate the western and eastern relay consoles.' : this.level.missionId === 'relay-09' ? 'Ring power restored. Activate the western and eastern relay consoles.' : 'Power restored. Airlocks online. Find the security key.' });
+      this._saveCheckpoint(this.level.missionId === 'crosslink-11' ? 'Checkpoint saved at the power hub.' : 'Checkpoint saved at the generator.');
     } else if (o.type === 'relay') {
       o.used = true;
       const progress = this.getMissionProgress();
@@ -538,8 +617,7 @@ export class Game {
       this._pathTimer = 0;
       if (progress.relaysUsed === progress.relaysTotal) {
         this.state.checkpoint = true;
-        this._checkpoint = this._snapshot();
-        this._events.push({ type: 'checkpoint', text: 'Checkpoint saved: both relays online.' });
+        this._saveCheckpoint('Checkpoint saved: both relays online.');
       }
     } else if (o.type === 'secret' || o.secret) {
       this.state.secretFound = true;
@@ -559,7 +637,8 @@ export class Game {
   }
 
   getObjective() {
-    const relayMission = this.level.missionId === 'relay-09';
+    const relayMission = this.state.interactables.some(i => i.type === 'relay');
+    const crosslink = this.level.missionId === 'crosslink-11';
     const arrival = this.state.doors.find(d => d.id === 'arrival');
     const power = this.state.interactables.find(i => i.type === 'power');
     const key = this.state.pickups.find(p => p.type === 'key');
@@ -567,8 +646,8 @@ export class Game {
     const exit = this.state.interactables.find(i => i.type === 'exit');
     const objective = (target, title, detail, stage, action = 'interact') => ({ title, detail, x: target.x, z: target.z, stage, ...(action ? { action } : {}) });
     if (this.state.status === 'won') return objective(exit, 'Extraction complete', `${this.level.name} is behind you.`, 'complete', null);
-    if (!arrival.open) return objective(arrival, relayMission ? 'Enter the communications ring' : 'Leave the arrival bay', 'Move toward the airlock and use it to enter the facility.', 'arrival');
-    if (!this.state.power) return objective(power, relayMission ? 'Restore ring power' : 'Restore auxiliary power', relayMission ? 'Find the power console in the southwest plant.' : 'Find the illuminated console in the generator room.', 'power');
+    if (!arrival.open) return objective(arrival, crosslink ? 'Enter the Crosslink facility' : relayMission ? 'Enter the communications ring' : 'Leave the arrival bay', 'Move toward the airlock and use it to enter the facility.', 'arrival');
+    if (!this.state.power) return objective(power, crosslink ? 'Restore hub power' : relayMission ? 'Restore ring power' : 'Restore auxiliary power', crosslink ? 'Find the power console on the west side of the central hub.' : relayMission ? 'Find the power console in the southwest plant.' : 'Find the illuminated console in the generator room.', 'power');
     const nextRelay = this.state.interactables.find(i => i.type === 'relay' && !i.used);
     if (nextRelay) return objective(nextRelay, nextRelay.label, `Find and activate both relay consoles. ${this.getMissionProgress().relaysUsed} of 2 relays online.`, 'relays');
     if (!this.state.player.key) {
@@ -576,7 +655,7 @@ export class Game {
       if (vault && !vault.open) return objective(vault, 'Open the communications vault', 'Both relays are online. Open the central vault to recover its security key.', 'vault');
       return objective(key, 'Recover the security key', relayMission ? 'Enter the central vault and collect the illuminated key.' : 'Enter the research lab through a powered airlock.', 'key', 'collect');
     }
-    if (!gate.open) return objective(gate, 'Open the extraction gate', relayMission ? 'Return to the north gallery. Your key opens the uplink gate.' : 'Head south through quarantine. Your key opens the gate.', 'gate');
+    if (!gate.open) return objective(gate, 'Open the extraction gate', crosslink ? 'Cross the vault to the northern gate. Your key opens the extraction uplink.' : relayMission ? 'Return to the north gallery. Your key opens the uplink gate.' : 'Head south through quarantine. Your key opens the gate.', 'gate');
     return objective(exit, 'Signal extraction', relayMission ? 'Use the terminal in extraction control to transmit your signal.' : 'Use the green terminal at the far end of the extraction bay.', 'extraction');
   }
 
@@ -593,6 +672,11 @@ export class Game {
   }
 
   drainEvents() { const events = this._events; this._events = []; return events; }
+
+  _saveCheckpoint(text) {
+    this._checkpoint = this._snapshot();
+    this._events.push({ type: 'checkpoint', text });
+  }
 
   _snapshot() {
     return {
@@ -698,7 +782,7 @@ export class Game {
   restartCheckpoint() {
     if (!this._checkpoint || !this._validSnapshot(this._checkpoint)) return false;
     this.state = this._stateFromSnapshot(this._checkpoint); this._resetAfterRestore(this._checkpoint); this.state.checkpoint = true;
-    this.state.status = 'playing'; this._events = [{ type: 'message', text: this.level.missionId === 'relay-09' ? 'Dead Relay checkpoint restored.' : 'Generator checkpoint restored.' }];
+    this.state.status = 'playing'; this._events = [{ type: 'message', text: this.level.missionId === 'crosslink-11' ? 'Crosslink checkpoint restored.' : this.level.missionId === 'relay-09' ? 'Dead Relay checkpoint restored.' : 'Generator checkpoint restored.' }];
     return true;
   }
 }

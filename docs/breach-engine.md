@@ -4,6 +4,7 @@ An original retro first-person game delivered through DailyFlyer's custom theme 
 Blacksite 07 introduces power, access keys, extraction, a secret, and a checkpoint.
 Dead Relay adds a separate facility with two relay branches that unlock a data
 vault before the return to extraction.
+Crosslink adds a compact third facility for solo play and private two-player co-op.
 
 ## Modules and ownership
 
@@ -11,6 +12,8 @@ vault before the return to extraction.
 - `daily_flyer/themes/breach_assets/renderer.mjs`: Three.js renderer and original procedural pixel art.
 - `daily_flyer/themes/breach_assets/app.mjs`, `index.html`, `style.css`: interface, input, sound and lifecycle.
 - Python theme, export builder, deployment, integration verification: parent agent.
+- `coop-core.mjs`, `coop-client.mjs`, and `server/`: private-room simulation,
+  browser projection, and server lifecycle; see [the room protocol](breach-coop-protocol.md).
 
 ## Shared contract
 
@@ -21,7 +24,7 @@ positive angles turn right: forward is `(sin(angle),-cos(angle))`. Three.js came
 rotation around Y is `-angle`. Wall height is approximately 2.5, eye height 1.25.
 
 `core.mjs` exports `LEVEL` (the original Blacksite default), `LEVELS`, `MISSIONS`,
-`getLevel(id)`, and `Game`. Mission ids are `blacksite-07` and `relay-09`.
+`getLevel(id)`, and `Game`. Mission ids are `blacksite-07`, `relay-09`, and `crosslink-11`.
 `MISSIONS` provides the menu's `id,levelId,name,number,subtitle,briefing,steps`.
 
 `LEVEL`: `{id,name,width,height,grid,spawn,doors,interactables,pickups,enemies,zones}`.
@@ -99,5 +102,7 @@ touch, sound on after explicit Start, and reduced motion respects system setting
 Source index.html must include `<base href="__BREACH_BASE__">` and
 `<script id="breach-config" type="application/json">__BREACH_CONFIG__</script>`.
 Builder fills these for static and Flask delivery. All assets use relative paths.
-No remote runtime resources, no analytics, no external accounts. No build framework.
-All code and artwork is original except the MIT-licensed vendored Three.js.
+Solo uses local runtime resources. Optional co-op connects to the configured room
+service. No analytics or external accounts. No build framework.
+Artwork and gameplay code are original. Third-party code is limited to the
+MIT-licensed vendored Three.js and the room server's MIT-licensed `ws` package.

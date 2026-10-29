@@ -39,6 +39,11 @@ recover its key before returning to extraction control. Both operations include
 supplies, an optional secret, and checkpoints. Guidance level and combat difficulty
 are separate settings.
 
+Crosslink is a compact third mission with a power hub and two relay branches.
+It supports solo play and is the first operation available in private two-player
+co-op. Choose Play with a friend to create or join a room; see
+[private co-op](breach-multiplayer.md) for joining, shared pause, and checkpoint rules.
+
 Desktop uses WASD movement, mouse look (or click-and-drag when pointer lock is
 unavailable), firing, E interaction, and the pause menu. The game displays its
 current control bindings. Touch uses the left movement pad and right-side aiming;
@@ -143,14 +148,43 @@ mission. The desktop menu fits 1440×810 without scrolling. These checks use the
 the QA browser disables WebGL; actual GPU performance and physical-device touch
 latency still need playtesting.
 
+## 0.3.0 — Crosslink and private co-op
+
+- Added Crosslink, a 23×21 third facility with eight enemies, two short relay
+  branches, a gated key vault, extraction, a secret, and two checkpoint moments.
+- Added private two-player rooms with invite links, readiness, shared start,
+  shared pause, a 60-second reconnect window, and team checkpoint retry.
+- The server owns movement, enemy targeting, damage, pickups, and mission
+  progression. Clients predict local movement and smooth teammate motion.
+- Teammates appear in both the WebGL and software renderers, with directional
+  weapon poses, distinct uniforms, and downed/revived states.
+- Each player retains personal controls and guidance. Room sessions have a
+  separate live-state protocol and never overwrite a solo save.
+
+The first co-op release is deliberately limited to Crosslink and two players.
+Rooms are temporary and end on a server restart or deployment. Full operational
+details and validation commands are in [breach-multiplayer.md](breach-multiplayer.md).
+
+Validation: 69 focused JavaScript tests and three Python export tests pass. The
+JavaScript suites cover the original missions, complete solo/team Crosslink
+routes, authored live combat, independent combat inputs, shared pickups and
+objectives, checkpoint revival/retry, transport privacy, real two-client
+WebSockets, pause/resume, disconnects, and reconnect lifecycle. Browser QA covers
+room creation/readiness/start, a rendered teammate, shared airlock interaction,
+pause/resume, same-tab reload/rejoin, room closure, and preservation of an
+existing solo Continue record. Portrait 393×852 and landscape 852×393 layouts
+were inspected with touch controls. These browser checks use the software
+renderer; physical-device latency and WebGL performance still need playtesting.
+
 ## Scope
 
-The game contains two authored missions, two weapons, three enemy roles,
+The game contains three authored missions, two weapons, three enemy roles,
 power/key progression, relay objectives, optional secrets, checkpoints, and
-results screens. It has no
-multiplayer, shared leaderboard, accounts, or procedural campaign. Those features
-would require separate design and validation.
+results screens. Private two-player co-op is available for Crosslink. Shared
+leaderboards, accounts, public matchmaking, and a procedural campaign would
+require separate design and validation.
 
 The renderer, textures, enemy artwork, interface, and synthesized sounds are
 original project code. Three.js is distributed under `vendor/THREE-LICENSE.txt`.
-No original Doom game assets are included.
+The room server uses the MIT-licensed `ws` package. No original Doom game assets
+are included.

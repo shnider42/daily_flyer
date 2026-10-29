@@ -1,7 +1,7 @@
 """Export the validated DFE BREACH theme and its local assets for static hosting.
 
 Uses only the Python standard library and DFE's loader/renderer. The published
-game has no Python runtime and makes no third-party requests.
+game has no Python runtime. Optional co-op connects to its configured room service.
 """
 
 from __future__ import annotations

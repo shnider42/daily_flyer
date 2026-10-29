@@ -11,17 +11,31 @@ const viewFov = (options, width, height) => {
 };
 const missionVisuals = (level) => {
   const relay = level.missionId === 'relay-09' || String(level.id).startsWith('relay-09');
+  const crosslink = level.missionId === 'crosslink-11' || String(level.id).startsWith('crosslink-11');
   return {
-    relay,
-    signCode: level.signCode || (relay ? 'RELAY 09' : 'BS 07'),
-    doorCode: level.signCode || (relay ? 'DEAD RELAY 09' : 'BLACKSITE 07'),
-    signColor: relay ? '#b6c5e6' : '#9fd8cf',
-    fog: relay ? 0x0c1526 : 0x08131c,
-    fogRgb: relay ? [12, 21, 38] : [8, 19, 28],
+    relay, crosslink,
+    signCode: level.signCode || (crosslink ? 'CROSSLINK 11' : relay ? 'RELAY 09' : 'BS 07'),
+    doorCode: level.signCode || (crosslink ? 'CROSSLINK 11' : relay ? 'DEAD RELAY 09' : 'BLACKSITE 07'),
+    signColor: crosslink ? '#e2c78c' : relay ? '#b6c5e6' : '#9fd8cf',
+    fog: crosslink ? 0x101b19 : relay ? 0x0c1526 : 0x08131c,
+    fogRgb: crosslink ? [16, 27, 25] : relay ? [12, 21, 38] : [8, 19, 28],
   };
 };
 const exitReady = (state) => !!(state.power && state.player.key && (state.interactables || []).filter(i => i.type === 'relay').every(i => i.used));
 const relayTitle = (item) => item.shortName || item.name || (/north/i.test(item.id) ? 'NORTH RELAY' : /south/i.test(item.id) ? 'SOUTH RELAY' : /east/i.test(item.id) ? 'EAST RELAY' : /west/i.test(item.id) ? 'WEST RELAY' : item.label?.replace(/^(synchronize|activate|align|restore)\s+/i, '').slice(0, 17) || 'RELAY NODE');
+const localPlayerId = (state) => state.localPlayerId || state.player?.id;
+const otherPlayers = (state) => Object.entries(state.players || {}).filter(([id, player]) => player && id !== localPlayerId(state) && player !== state.player && Number.isFinite(player.x) && Number.isFinite(player.z));
+const localEvent = (event, state) => !event.playerId || !localPlayerId(state) || event.playerId === localPlayerId(state);
+const teammateView = (player, observer, motion, dt, advancing, clock, firedAt) => {
+  const speed = Math.hypot(player.x-motion.x,player.z-motion.z)/Math.max(.001,dt);
+  motion.x=player.x;motion.z=player.z;if(advancing)motion.phase+=dt*(speed>.05?8:1.5);
+  const bearing=Math.atan2(observer.x-player.x,-(observer.z-player.z));
+  const relative=Math.atan2(Math.sin(bearing-(player.angle||0)),Math.cos(bearing-(player.angle||0)));
+  const direction=Math.abs(relative)<Math.PI/4?'front':Math.abs(relative)>Math.PI*.75?'back':relative>0?'right':'left';
+  const down=player.alive===false||player.health<=0;
+  const frame=down?4:clock-(firedAt??-99)<.12?5:speed>.05?Math.floor(motion.phase)%4:0;
+  return {direction,frame,down};
+};
 const hash = (x, y, salt = 0) => {
   const n = Math.sin(x * 127.1 + y * 311.7 + salt * 74.7) * 43758.5453;
   return n - Math.floor(n);
@@ -59,7 +73,7 @@ function rect(ctx, x, y, w, h, color) {
   ctx.fillRect(Math.round(x), Math.round(y), Math.round(w), Math.round(h));
 }
 
-function makeWallTexture(variant = 0, relay = false) {
+function makeWallTexture(variant = 0, relay = false, crosslink = false) {
   const [canvas, c] = canvas2d(64, 128);
   if (relay) {
     // Dead Relay uses poured concrete and blue service panels. The new room
@@ -119,15 +133,22 @@ function makeWallTexture(variant = 0, relay = false) {
     rect(c, x, y, 3, 3, '#151d20');
     rect(c, x, y, 2, 1, '#a4a187');
   }
+  if(crosslink){
+    rect(c,9,65,44,40,'#31534f');rect(c,10,66,42,2,'#88a49a');
+    rect(c,13,72,36,3,'#b5985c');rect(c,15,81,8,15,'#d3bb7b');rect(c,29,81,8,15,'#d3bb7b');
+    rect(c,15,81,3,15,'#31534f');rect(c,29,81,3,15,'#31534f');
+    rect(c,44,80,3,18,'#77c5b0');rect(c,13,100,35,2,'#1b3835');
+    rect(c,0,8,64,2,'#c6a66a');
+  }
   return textureFrom(canvas);
 }
 
-function makeFloorTexture(ceiling = false, relay = false) {
+function makeFloorTexture(ceiling = false, relay = false, crosslink = false) {
   const [canvas,c] = canvas2d(64,64);
   rect(c,0,0,64,64,ceiling ? '#253138' : '#343f42');
   for (let y = 0; y < 64; y += 2) for (let x = 0; x < 64; x += 2) {
     const b = (ceiling ? 26 : 37) + Math.floor(hash(x,y) * 15);
-    rect(c,x,y,2,2,`rgb(${b},${b+(relay?11:7)},${b+(relay?24:9)})`);
+    rect(c,x,y,2,2,`rgb(${b},${b+(crosslink?16:relay?11:7)},${b+(crosslink?12:relay?24:9)})`);
   }
   rect(c,0,0,64,2,'#121c22');
   rect(c,0,0,2,64,'#121c22');
@@ -146,6 +167,7 @@ function makeFloorTexture(ceiling = false, relay = false) {
       rect(c,x+2,y+2,5,2,'#222f36');
     }
   }
+  if(crosslink&&!ceiling){rect(c,8,5,48,2,'#96855b');rect(c,8,57,48,2,'#96855b');}
   return textureFrom(canvas, true);
 }
 
@@ -256,6 +278,76 @@ function drawEnemy(type, frame) {
   return textureFrom(canvas);
 }
 
+function drawTeammate(team, direction, frame){
+  const [canvas,c]=canvas2d(80,112);
+  const blue=team==='p2';
+  const armor=blue?'#517ea6':'#468b85',light=blue?'#94c5e4':'#8dd6c4',dark=blue?'#263f5b':'#244b4c';
+  const trim=blue?'#b2e2f2':'#c2ead7';
+  if(frame===4){
+    // A downed teammate stays recognizable, without a misleading revive prompt.
+    poly(c,[[8,101],[20,91],[48,90],[69,99],[65,107],[12,107]],'#16262e');
+    rect(c,17,94,40,9,armor);rect(c,24,92,15,7,light);rect(c,51,95,16,7,dark);
+    rect(c,10,98,12,7,'#667d87');rect(c,11,99,10,3,trim);
+    rect(c,35,95,3,8,'#e4e9d5');rect(c,32,98,9,3,'#e4e9d5');
+    return textureFrom(canvas);
+  }
+  const step=frame<4?[0,3,0,-3][frame]:0;
+  const bob=frame===1||frame===3?1:0;
+  c.save();c.translate(0,bob);
+  if(direction==='left'){c.translate(80,0);c.scale(-1,1);}
+  // A pale team chevron and sealed helmet distinguish friendlies from creatures.
+  poly(c,[[33,5],[40,9],[47,5],[47,8],[40,12],[33,8]],trim);
+  if(direction==='right'||direction==='left'){
+    poly(c,[[30,70],[41,72],[40+step,99],[45+step,107],[25+step,107],[28+step,89]],'#182a35');
+    poly(c,[[41,72],[49,70],[53-step,98],[62-step,103],[61-step,108],[43-step,108],[39-step,91]],'#142631');
+    rect(c,30+step,77,6,22,'#42596a');rect(c,45-step,78,5,20,'#4b6371');
+    poly(c,[[27,34],[45,31],[53,42],[50,73],[29,77],[23,55]],dark);
+    poly(c,[[32,35],[47,35],[49,57],[45,70],[30,69],[27,50]],armor);
+    rect(c,29,38,4,24,light);rect(c,25,37,5,34,'#1d3540');
+    rect(c,24,40,7,24,'#526d78');rect(c,25,42,4,18,dark);
+    poly(c,[[38,39],[47,39],[55,51],[67,50],[70,57],[50,60],[37,50]],light);
+    rect(c,57,52,13,7,'#293e4b');rect(c,47,50,27,4,'#8c9fa7');
+    rect(c,49,54,20,5,'#253a48');rect(c,70,49,5,7,'#c0c9ba');
+    rect(c,74,51,3,3,'#192d39');rect(c,55,47,3,3,trim);
+    poly(c,[[32,15],[45,14],[52,21],[54,30],[48,36],[32,34],[27,24]],'#233c4b');
+    rect(c,32,17,16,5,light);rect(c,38,22,15,7,'#15313f');
+    rect(c,41,23,12,3,trim);rect(c,48,30,6,4,'#7a969e');
+    rect(c,32,29,8,7,armor);rect(c,28,22,5,8,light);
+    if(frame===5){poly(c,[[77,43],[78,49],[80,47],[80,58],[77,56],[75,61],[74,54],[70,52],[75,49]],'#f1c47c');rect(c,75,50,5,4,'#fff0ba');}
+  }else{
+    poly(c,[[23,71],[37,72],[35+step,99],[34+step,108],[17+step,108],[20+step,89]],'#1b2c37');
+    poly(c,[[42,73],[56,71],[59-step,91],[64-step,107],[46-step,108],[41-step,91]],'#182c38');
+    rect(c,24+step,79,7,22,'#4b626e');rect(c,47-step,79,7,22,'#455e6d');
+    rect(c,17+step,103,18,6,'#152935');rect(c,46-step,102,19,6,'#152935');
+    poly(c,[[23,33],[33,29],[48,29],[58,36],[61,60],[52,79],[27,78],[19,57]],dark);
+    poly(c,[[27,35],[52,35],[56,58],[50,71],[29,71],[24,53]],armor);
+    rect(c,29,37,21,4,light);rect(c,28,69,24,7,'#1e3540');rect(c,37,70,7,4,'#a7b49b');
+    poly(c,[[17,36],[27,34],[28,47],[20,54],[12,49]],armor);
+    poly(c,[[53,34],[63,37],[68,51],[58,55],[51,46]],armor);
+    rect(c,17,37,8,3,light);rect(c,56,38,8,3,light);
+    if(direction==='back'){
+      rect(c,29,42,22,24,'#243d4b');rect(c,32,44,16,3,light);rect(c,33,51,14,13,'#516e7c');
+      rect(c,38,51,4,13,trim);rect(c,12,50,10,23,'#304957');rect(c,60,50,9,23,'#304957');
+      rect(c,10,69,11,9,'#162c39');rect(c,59,69,11,9,'#162c39');
+      rect(c,61,41,4,21,'#869eaa');rect(c,61,39,4,4,'#243e4c');
+    }else{
+      rect(c,32,45,16,18,dark);rect(c,37,47,6,12,'#e4e9d5');rect(c,34,50,12,5,'#e4e9d5');
+      poly(c,[[13,50],[24,49],[29,58],[43,57],[44,66],[25,69],[13,61]],'#66878d');
+      poly(c,[[59,50],[67,54],[65,65],[48,68],[38,62],[42,55],[57,59]],'#75969a');
+      rect(c,26,56,28,6,'#93a7ad');rect(c,28,61,23,6,'#243b48');
+      rect(c,35,53,11,12,'#253d4a');rect(c,37,53,7,7,'#afc4c3');rect(c,39,54,3,4,'#152c3b');
+      rect(c,36,50,3,3,trim);
+      if(frame===5){poly(c,[[40,37],[44,47],[51,44],[47,52],[53,56],[44,58],[40,65],[36,58],[28,56],[34,52],[30,45],[37,47]],'#f1c47c');rect(c,37,49,7,8,'#fff0ba');}
+    }
+    poly(c,[[30,14],[48,14],[55,22],[51,35],[29,35],[24,24]],'#233d4c');
+    rect(c,29,16,21,6,armor);rect(c,32,16,15,3,light);
+    if(direction==='back'){rect(c,30,25,19,4,light);rect(c,33,30,13,4,dark);}
+    else{rect(c,28,23,24,7,'#13303e');rect(c,30,24,20,3,trim);rect(c,34,31,12,4,'#78959a');}
+    rect(c,25,22,4,9,light);rect(c,51,22,4,9,light);
+  }
+  c.restore();return textureFrom(canvas);
+}
+
 function makePickupTexture(type) {
   const [canvas,c]=canvas2d(64,64);
   if(type==='health'){
@@ -311,6 +403,7 @@ class WebGLBreachRenderer {
     this.mode='webgl';this.isSoftware=false;
     this.textures=new Set();this.materials=new Set();this.geometries=new Set();
     this.enemyVisuals=new Map();this.pickupVisuals=new Map();this.doorVisuals=new Map();
+    this.teammateVisuals=new Map();this.teammateFrames={};this.teammateFireAt=new Map();
     this.projectileVisuals=new Map();this.featureVisuals=new Map();this.impacts=[];
     this.clock=0;this.recoil=0;this.flash=0;this.bobPhase=0;this.moveAmount=0;
     this.lastX=game.state.player.x;this.lastZ=game.state.player.z;this.deadAt=new Map();
@@ -343,6 +436,11 @@ class WebGLBreachRenderer {
   texture(texture){this.textures.add(texture);return texture;}
   material(material){this.materials.add(material);return material;}
   geometry(geometry){this.geometries.add(geometry);return geometry;}
+  getTeammateFrames(id){
+    const team=id==='p2'?'p2':'p1';
+    if(!this.teammateFrames[team])this.teammateFrames[team]=Object.fromEntries(['front','back','right','left'].map(direction=>[direction,Array.from({length:6},(_,frame)=>this.texture(drawTeammate(team,direction,frame)))]));
+    return this.teammateFrames[team];
+  }
   mesh(geometry,material,x=0,y=0,z=0){
     const mesh=new THREE.Mesh(geometry,material);mesh.position.set(x,y,z);this.scene.add(mesh);return mesh;
   }
@@ -351,8 +449,8 @@ class WebGLBreachRenderer {
   buildEnvironment(){
     const level=this.game.level;
     const wallGeometry=this.geometry(new THREE.BoxGeometry(1,WALL_HEIGHT,1));
-    const wallMap=this.texture(makeWallTexture(0,this.visuals.relay));
-    const wallMaterial=this.material(new THREE.MeshBasicMaterial({map:wallMap,color:this.visuals.relay?0xc3cedb:0xb5c4c1}));
+    const wallMap=this.texture(makeWallTexture(0,this.visuals.relay,this.visuals.crosslink));
+    const wallMaterial=this.material(new THREE.MeshBasicMaterial({map:wallMap,color:this.visuals.crosslink?0xc7cabc:this.visuals.relay?0xc3cedb:0xb5c4c1}));
     const wallCells=[];const lightCells=[];const rails=[];
     for(let z=0;z<level.height;z++)for(let x=0;x<level.width;x++)if(this.solid(x,z)){
       const sides=[[0,-1,0],[1,0,Math.PI/2],[0,1,Math.PI],[-1,0,-Math.PI/2]].filter(([dx,dz])=>!this.solid(x+dx,z+dz));
@@ -367,16 +465,16 @@ class WebGLBreachRenderer {
       const shade=.75+hash(x,z)*.24;color.setRGB(shade*.91,shade*.98,shade);walls.setColorAt(i,color);
     });
     walls.instanceMatrix.needsUpdate=true;walls.frustumCulled=false;this.scene.add(walls);
-    const floorMap=this.texture(makeFloorTexture(false,this.visuals.relay));floorMap.repeat.set(level.width/2,level.height/2);
-    const floor=this.mesh(this.geometry(new THREE.PlaneGeometry(level.width,level.height)),this.material(new THREE.MeshBasicMaterial({map:floorMap,color:this.visuals.relay?0x9eacbd:0x919d94})),level.width/2,0,level.height/2);
+    const floorMap=this.texture(makeFloorTexture(false,this.visuals.relay,this.visuals.crosslink));floorMap.repeat.set(level.width/2,level.height/2);
+    const floor=this.mesh(this.geometry(new THREE.PlaneGeometry(level.width,level.height)),this.material(new THREE.MeshBasicMaterial({map:floorMap,color:this.visuals.crosslink?0xb2baa0:this.visuals.relay?0x9eacbd:0x919d94})),level.width/2,0,level.height/2);
     floor.rotation.x=-Math.PI/2;
-    const ceilingMap=this.texture(makeFloorTexture(true,this.visuals.relay));ceilingMap.repeat.set(level.width/2,level.height/2);
+    const ceilingMap=this.texture(makeFloorTexture(true,this.visuals.relay,this.visuals.crosslink));ceilingMap.repeat.set(level.width/2,level.height/2);
     const ceiling=this.mesh(this.geometry(new THREE.PlaneGeometry(level.width,level.height)),this.material(new THREE.MeshBasicMaterial({map:ceilingMap,color:0x68787f})),level.width/2,WALL_HEIGHT,level.height/2);
     ceiling.rotation.x=Math.PI/2;
     const lightGeometry=this.geometry(new THREE.BoxGeometry(.62,.065,.045));
     for(const warm of [false,true]){
       const cells=lightCells.filter(x=>x.warm===warm);
-      const material=this.material(new THREE.MeshBasicMaterial({color:warm?0xea9752:this.visuals.relay?0xb4c8eb:0x8bd6ce}));
+      const material=this.material(new THREE.MeshBasicMaterial({color:warm?0xea9752:this.visuals.crosslink?0x7be1c5:this.visuals.relay?0xb4c8eb:0x8bd6ce}));
       const lights=new THREE.InstancedMesh(lightGeometry,material,cells.length);
       cells.forEach((cell,i)=>{transform.position.set(cell.x,2.12,cell.z);transform.rotation.set(0,cell.rot,0);transform.updateMatrix();lights.setMatrixAt(i,transform.matrix);});
       lights.frustumCulled=false;this.scene.add(lights);
@@ -431,7 +529,7 @@ class WebGLBreachRenderer {
     const base=new THREE.Mesh(this.geometry(new THREE.BoxGeometry(.34,.65,.32)),this.material(new THREE.MeshBasicMaterial({color:0x34464d})));
     base.position.y=.325;group.add(base);
     const isRelay=item.type==='relay';
-    const title=isRelay?relayTitle(item):item.type==='power'?(this.visuals.relay?'RING POWER':'AUX POWER'):'EXTRACTION';
+    const title=isRelay?relayTitle(item):item.type==='power'?(this.visuals.crosslink?'LINK POWER':this.visuals.relay?'RING POWER':'AUX POWER'):'EXTRACTION';
     const maps={
       off:this.texture(makeSign(title,isRelay?'NODE OFFLINE / SYNCHRONIZE':item.type==='power'?'RESTORE GRID':'CLEARANCE REQUIRED',isRelay?'#b9a1ed':item.type==='power'?'#ecc477':'#81d9c7')),
       on:this.texture(makeSign(title,isRelay?'NODE SYNCHRONIZED':'SYSTEM ONLINE','#a1e4c5')),
@@ -478,7 +576,10 @@ class WebGLBreachRenderer {
 
   handleEvents(events){
     for(const event of events||[]){
-      if(event.type==='shot'){this.flash=.075;this.recoil=event.weapon==='shotgun'?1:.58;}
+      if(event.type==='shot'){
+        if(localEvent(event,this.game.state)){this.flash=.075;this.recoil=event.weapon==='shotgun'?1:.58;}
+        else this.teammateFireAt.set(event.playerId,this.clock);
+      }
       if(event.type==='hit'){
         const id=event.enemyId??event.id??event.targetId;
         if(id)this.hitAt.set(id,this.clock);
@@ -514,7 +615,7 @@ class WebGLBreachRenderer {
     if(state.status==='ready'&&!reduced)angle+=Math.sin(this.clock*.19)*.16;
     const bob=reduced||state.status!=='playing'?0:Math.sin(this.bobPhase)*this.moveAmount*.025;
     this.camera.position.set(p.x,EYE_HEIGHT+bob,p.z);this.camera.rotation.set(0,-angle,0);
-    if(state.status==='dead')this.camera.position.y=.65;
+    if(state.status==='dead'||p.alive===false||p.health<=0)this.camera.position.y=.65;
     this.updateEntities(dt,advancing);
     this.renderer.render(this.scene,this.camera);
     this.drawWeapon();
@@ -522,6 +623,7 @@ class WebGLBreachRenderer {
 
   updateEntities(dt,advancing){
     const state=this.game.state;
+    this.updateTeammates(dt,advancing);
     for(const enemy of state.enemies){
       let visual=this.enemyVisuals.get(enemy.id);
       if(!visual){
@@ -590,10 +692,39 @@ class WebGLBreachRenderer {
     }
   }
 
+  updateTeammates(dt,advancing){
+    const state=this.game.state,p=state.player,present=new Set();
+    for(const[id,player]of otherPlayers(state)){
+      present.add(id);let visual=this.teammateVisuals.get(id);
+      const frames=this.getTeammateFrames(id);
+      if(!visual){
+        const material=this.material(new THREE.SpriteMaterial({map:frames.front[0],transparent:true,alphaTest:.25,depthWrite:true}));
+        const sprite=new THREE.Sprite(material);sprite.center.set(.5,0);this.scene.add(sprite);
+        if(!this.teammateShadowGeometry){
+          this.teammateShadowGeometry=this.geometry(new THREE.CircleGeometry(.27,12));
+          this.teammateShadowMaterial=this.material(new THREE.MeshBasicMaterial({color:0x051116,transparent:true,opacity:.4,depthWrite:false}));
+        }
+        const shadow=new THREE.Mesh(this.teammateShadowGeometry,this.teammateShadowMaterial);shadow.rotation.x=-Math.PI/2;this.scene.add(shadow);
+        visual={sprite,shadow,x:player.x,z:player.z,phase:0};this.teammateVisuals.set(id,visual);
+      }
+      const pose=teammateView(player,p,visual,dt,advancing,this.clock,this.teammateFireAt.get(id));
+      visual.sprite.material.map=frames[pose.direction][pose.frame];
+      visual.sprite.position.set(player.x,.015,player.z);visual.sprite.scale.set(1.74*80/112,1.74,1);
+      // Co-op allows walking through each other. Hide a body once inside the
+      // camera, avoiding a full-screen sprite while two players cross paths.
+      visual.sprite.visible=Math.hypot(player.x-p.x,player.z-p.z)>.32;
+      visual.shadow.position.set(player.x,.008,player.z);visual.shadow.visible=visual.sprite.visible;
+    }
+    for(const[id,visual]of this.teammateVisuals)if(!present.has(id)){
+      this.scene.remove(visual.sprite,visual.shadow);this.materials.delete(visual.sprite.material);visual.sprite.material.dispose();
+      this.teammateVisuals.delete(id);this.teammateFireAt.delete(id);
+    }
+  }
+
   drawWeapon(){
     const c=this.weaponContext,w=this.width,h=this.height,p=this.game.state.player;
     c.clearRect(0,0,w,h);
-    if(this.game.state.status==='won')return;
+    if(this.game.state.status==='won'||p.alive===false||p.health<=0)return;
     if(this.lastWeapon!==p.weapon){this.lastWeapon=p.weapon;this.weaponSwap=1;}
     const reduced=this.options.reducedMotion;
     const scale=Math.min(w/400,h/270)*.9;
@@ -656,6 +787,7 @@ class SoftwareBreachRenderer {
     this.mode='software';this.isSoftware=true;this.clock=0;this.recoil=0;this.flash=0;
     this.bobPhase=0;this.moveAmount=0;this.weaponSwap=0;this.lastWeapon=game.state.player.weapon;
     this.lastX=game.state.player.x;this.lastZ=game.state.player.z;this.hitAt=new Map();this.impacts=[];
+    this.teammateMotion=new Map();this.teammateFrames={};this.teammateFireAt=new Map();
     this.textures=[];this._oldOpacity=canvas.style.opacity;
     // A failed WebGL constructor can reserve the canvas context. Use a separate
     // visual surface while preserving #world and all its existing input handlers.
@@ -670,8 +802,8 @@ class SoftwareBreachRenderer {
     Object.assign(this.weaponCanvas.style,{position:'absolute',inset:'0',width:'100%',height:'100%',zIndex:'2',pointerEvents:'none',imageRendering:'pixelated'});
     canvas.parentElement.appendChild(this.weaponCanvas);this.weaponContext=this.weaponCanvas.getContext('2d');
     const image=(texture)=>{this.textures.push(texture);return texture.image;};
-    this.wallImage=image(makeWallTexture(0,this.visuals.relay));
-    this.floorImage=image(makeFloorTexture(false,this.visuals.relay));this.ceilingImage=image(makeFloorTexture(true,this.visuals.relay));
+    this.wallImage=image(makeWallTexture(0,this.visuals.relay,this.visuals.crosslink));
+    this.floorImage=image(makeFloorTexture(false,this.visuals.relay,this.visuals.crosslink));this.ceilingImage=image(makeFloorTexture(true,this.visuals.relay,this.visuals.crosslink));
     this.floorPixels=this.floorImage.getContext('2d').getImageData(0,0,64,64).data;
     this.ceilingPixels=this.ceilingImage.getContext('2d').getImageData(0,0,64,64).data;
     this.doorImages={plain:image(makeDoorTexture(null,this.visuals)),key:image(makeDoorTexture('key',this.visuals)),power:image(makeDoorTexture('power',this.visuals)),relays:image(makeDoorTexture('relays',this.visuals))};
@@ -700,13 +832,21 @@ class SoftwareBreachRenderer {
 
   solid(x,z){return this.game.level.grid[z]?.[x]==='#'||!this.game.level.grid[z]?.[x];}
 
+  getTeammateFrames(id){
+    const team=id==='p2'?'p2':'p1';
+    if(!this.teammateFrames[team])this.teammateFrames[team]=Object.fromEntries(['front','back','right','left'].map(direction=>[direction,Array.from({length:6},(_,frame)=>{
+      const texture=drawTeammate(team,direction,frame);this.textures.push(texture);return texture.image;
+    })]));
+    return this.teammateFrames[team];
+  }
+
   featureImage(type,on,title=null){
     const [canvas,c]=canvas2d(96,128);
     const color=on?'#8bd7b4':type==='relay'?'#b9a1ed':type==='power'?'#e1b26b':'#6b9791';
     rect(c,31,68,35,60,'#293c45');rect(c,33,69,5,59,'#6a7e7b');
     rect(c,39,80,21,3,'#182c36');rect(c,39,87,21,3,'#182c36');rect(c,39,94,21,3,'#182c36');
     rect(c,8,37,80,34,'#101f28');rect(c,8,37,80,3,color);rect(c,12,41,72,2,'#354d54');
-    c.font='bold 9px monospace';c.fillStyle=color;c.textAlign='center';c.fillText((title||(type==='power'?(this.visuals.relay?'RING POWER':'AUX POWER'):'EXTRACTION')).slice(0,13),48,54);
+    c.font='bold 9px monospace';c.fillStyle=color;c.textAlign='center';c.fillText((title||(type==='power'?(this.visuals.crosslink?'LINK POWER':this.visuals.relay?'RING POWER':'AUX POWER'):'EXTRACTION')).slice(0,13),48,54);
     c.font='6px monospace';c.fillStyle='#b5c3b4';c.fillText(on?(type==='relay'?'SYNCHRONIZED':'SYSTEM ONLINE'):type==='relay'?'NODE OFFLINE':type==='power'?'RESTORE GRID':'CLEARANCE REQUIRED',48,65);
     rect(c,43,19,11,12,color);rect(c,46,16,5,18,on?'#d2f0c5':'#f4cf86');
     if(type==='exit'){rect(c,2,12,3,116,color);rect(c,91,12,3,116,color);rect(c,2,10,92,3,color);}
@@ -746,7 +886,10 @@ class SoftwareBreachRenderer {
 
   handleEvents(events){
     for(const event of events||[]){
-      if(event.type==='shot'){this.flash=.075;this.recoil=event.weapon==='shotgun'?1:.58;}
+      if(event.type==='shot'){
+        if(localEvent(event,this.game.state)){this.flash=.075;this.recoil=event.weapon==='shotgun'?1:.58;}
+        else this.teammateFireAt.set(event.playerId,this.clock);
+      }
       if(event.type==='hit'||event.type==='kill'){
         const id=event.enemyId??event.id??event.targetId;
         if(id)this.hitAt.set(id,this.clock);
@@ -766,7 +909,7 @@ class SoftwareBreachRenderer {
     if(advancing)this.bobPhase+=dt*(6+this.moveAmount*5);
     let angle=p.angle;if(state.status==='ready'&&!this.options.reducedMotion)angle+=Math.sin(this.clock*.19)*.16;
     this.forwardX=Math.sin(angle);this.forwardZ=-Math.cos(angle);this.rightX=Math.cos(angle);this.rightZ=Math.sin(angle);
-    this.eye=state.status==='dead'?.65:EYE_HEIGHT;
+    this.eye=(state.status==='dead'||p.alive===false||p.health<=0)? .65:EYE_HEIGHT;
     this.horizon=Math.round(this.height/2+(this.options.reducedMotion||state.status!=='playing'?0:Math.sin(this.bobPhase)*this.moveAmount*1.2));
     this.drawPlanes(p);this.drawWalls(p);this.drawSprites(dt,advancing,p);
     WebGLBreachRenderer.prototype.drawWeapon.call(this);
@@ -841,6 +984,14 @@ class SoftwareBreachRenderer {
       if(depth<=.06||depth>28)return;
       sprites.push({image,x,z,width,height,bottom,depth,side:dx*this.rightX+dz*this.rightZ,additive});
     };
+    const present=new Set();
+    for(const[id,player]of otherPlayers(state)){
+      present.add(id);let motion=this.teammateMotion.get(id);
+      if(!motion){motion={x:player.x,z:player.z,phase:0};this.teammateMotion.set(id,motion);}
+      const pose=teammateView(player,p,motion,dt,advancing,this.clock,this.teammateFireAt.get(id));
+      if(Math.hypot(player.x-p.x,player.z-p.z)>.32)add(this.getTeammateFrames(id)[pose.direction][pose.frame],player.x,player.z,1.74*80/112,1.74,.015);
+    }
+    for(const id of this.teammateMotion.keys())if(!present.has(id)){this.teammateMotion.delete(id);this.teammateFireAt.delete(id);}
     for(const enemy of state.enemies){
       let motion=this.enemyMotion.get(enemy.id);
       if(!motion){motion={x:enemy.x,z:enemy.z,phase:hash(enemy.x,enemy.z)*5};this.enemyMotion.set(enemy.id,motion);}

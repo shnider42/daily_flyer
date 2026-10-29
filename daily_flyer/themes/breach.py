@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import json
+import os
 from datetime import date
 from pathlib import Path
 
@@ -17,7 +18,7 @@ THEME_CONFIG = {
 }
 
 ASSET_DIRECTORY = Path(__file__).with_name("breach_assets")
-VERSION = "0.2.0"
+VERSION = "0.3.0"
 
 
 def build_theme_page(date_str: str | None = None, seed: int | None = None) -> PageContext:
@@ -31,6 +32,7 @@ def build_theme_page(date_str: str | None = None, seed: int | None = None) -> Pa
         "seed": mission_seed,
         "date": today.isoformat(),
         "engine": "DailyFlyer",
+        "coopServer": os.environ.get("BREACH_COOP_SERVER", ""),
     }
     document = (ASSET_DIRECTORY / "index.html").read_text(encoding="utf-8")
     document = document.replace("__BREACH_CONFIG__", json.dumps(config).replace("<", "\\u003c"))
