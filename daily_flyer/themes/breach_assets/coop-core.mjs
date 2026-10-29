@@ -141,11 +141,13 @@ export class CoopGame extends Game {
 
   _updateEnemies(dt) {
     for (const enemy of this.state.enemies) {
+      if (!enemy.alive) { enemy.hitTimer = Math.max(0, enemy.hitTimer - dt); enemy.targetId = null; continue; }
       const candidates = this._playerIds.map(id => {
         const player = this._player(id);
-        const visible = player.alive && this.hasLineOfSight(enemy.x, enemy.z, player.x, player.z);
+        const d = distance(enemy, player);
+        const visible = player.alive && (!this.level.exploration || d <= this.level.enemyAwarenessDistance) && this.hasLineOfSight(enemy.x, enemy.z, player.x, player.z);
         const route = this._distanceFields.get(id)?.[Math.floor(enemy.z) * this.level.width + Math.floor(enemy.x)] ?? -1;
-        return { id, player, visible, route, distance: distance(enemy, player) };
+        return { id, player, visible, route, distance: d };
       }).filter(candidate => candidate.player.alive);
       // A visible operative takes priority; otherwise pursue the shortest
       // reachable route. An unreachable player never lures enemies into walls.
@@ -248,8 +250,10 @@ export class CoopGame extends Game {
         player.alive = true; occupied.push(player);
         this._events.push({ type: 'revive', playerId: id, text: 'Revived at the team checkpoint.' });
       }
-      player.health = Math.max(75, player.health); player.armor = Math.max(30, player.armor);
-      player.ammo.pistol = Math.max(24, player.ammo.pistol); player.ammo.shells = Math.max(6, player.ammo.shells);
+      player.health = this.level.exploration ? this._maxHealth(player) : Math.max(75, player.health);
+      player.armor = Math.max(this.level.exploration ? 50 : 30, player.armor);
+      player.ammo.pistol = Math.max(this.level.exploration ? 60 : 24, player.ammo.pistol);
+      player.ammo.shells = Math.max(this.level.exploration ? 16 : 6, player.ammo.shells);
       const runtime = this._playerRuntime[id];
       runtime.shotCooldown = 0; runtime.reserveTimer = 0; runtime.messageCooldown = 0;
     }

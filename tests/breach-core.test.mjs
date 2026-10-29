@@ -327,7 +327,7 @@ function powerRelay(game) {
 }
 
 test('mission registry preserves the original default and all maps have connected floor entities', () => {
-  assert.deepEqual(MISSIONS.map(m => m.id), ['blacksite-07', 'relay-09', 'crosslink-11']);
+  assert.deepEqual(MISSIONS.map(m => m.id), ['blacksite-07', 'relay-09', 'crosslink-11', 'underworks-13']);
   assert.equal(getLevel(), LEVEL); assert.equal(new Game().level, LEVEL);
   assert.equal(getLevel('unknown'), LEVEL); assert.equal(getLevel('__proto__'), LEVEL);
   assert.equal(LEVEL.id, 'blacksite-07-v1');

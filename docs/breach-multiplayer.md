@@ -1,14 +1,16 @@
 # BREACH private co-op
 
-Version 0.3 adds private two-player rooms and Crosslink, a compact third mission
-that can also be played solo. Crosslink is the first supported co-op operation.
+Version 0.4 offers private two-player rooms for Crosslink, a compact operation,
+and The Underworks, a large exploration mission with shared permanent upgrades,
+refuge checkpoints, and transit links. Both missions can also be played solo.
 The original Blacksite 07 and Dead Relay missions remain available for solo play.
 
 ## Play together
 
 Open Play with a friend, enter a display name, and create a room. Copy its invite
 link to the second player. Both players select Ready, then the creator starts.
-The two players can use different control schemes and personal graphics/guidance
+The room creator chooses Crosslink or The Underworks. The two players can use
+different control schemes and personal graphics/guidance
 settings; the room creator selects the shared combat difficulty.
 
 Keys, power, doors, relays, and extraction belong to the team. Health, armor,
@@ -19,6 +21,11 @@ teammate body blocking are disabled.
 One downed operative waits until the surviving teammate activates the next team
 checkpoint. A checkpoint revives downed teammates and replenishes supplies. If
 both operatives fall, the creator can retry the team checkpoint or restart.
+
+In The Underworks, upgrades unlock routes for both players, refuges can be reused
+once nearby threats are cleared, and discovered transit pairs move only the
+player using them. The expanded exploration map pauses the team; both players
+resume when they are ready. See [The Underworks guide](breach-underworks.md).
 
 Pausing or backgrounding the game deliberately pauses the room. Both players
 must resume. A disconnected player has 60 seconds to reconnect with their

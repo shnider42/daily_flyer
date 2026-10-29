@@ -52,7 +52,7 @@ test('room validation rejects malformed and incompatible requests before allocat
     const p = peer(); rooms.handle(p, message); assert.equal(error(p), 'INVALID_MESSAGE');
   }
   for (const [override, expected] of [
-    [{ protocol: 99 }, 'VERSION_MISMATCH'], [{ mission: 'missing' }, 'INVALID_MISSION'],
+    [{ protocol: 1 }, 'VERSION_MISMATCH'], [{ protocol: 99 }, 'VERSION_MISMATCH'], [{ mission: 'missing' }, 'INVALID_MISSION'],
     [{ difficulty: 'impossible' }, 'INVALID_DIFFICULTY'], [{ name: ' \n<> ' }, 'INVALID_NAME'],
   ]) {
     const p = peer(); rooms.handle(p, request('create', override)); assert.equal(error(p), expected);

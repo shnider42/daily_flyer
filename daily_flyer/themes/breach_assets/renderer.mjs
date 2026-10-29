@@ -4,6 +4,20 @@ import * as THREE from './vendor/three.module.js';
 // Geometry is deliberately simple: artwork, silhouette and composition carry detail.
 const WALL_HEIGHT = 2.5;
 const EYE_HEIGHT = 1.25;
+const VIEW_DEPTH = 28;
+// A 32-cell batch keeps draw submission low while the 81-cell world still has
+// independently culled regions. Smaller chunks cost more calls than they save.
+const WORLD_CHUNK = 32;
+const SECTORS = {
+  arrival: { base:[67,69,63], panel:'#535d59', dark:'#222e2d', trim:'#b3b6a0', accent:'#e2b978', light:0xe6c590, motif:'ribs' },
+  foundry: { base:[71,47,40], panel:'#6b4636', dark:'#302621', trim:'#b59068', accent:'#ed9b53', light:0xf4aa67, motif:'furnace' },
+  floodworks: { base:[39,65,65], panel:'#31575b', dark:'#172f36', trim:'#7ca9a4', accent:'#79d0b9', light:0x8fe0ce, motif:'pipes' },
+  archives: { base:[56,50,69], panel:'#50445e', dark:'#252533', trim:'#a9a0b7', accent:'#c8b5ed', light:0xcdbff0, motif:'shelves' },
+  rail: { base:[67,60,42], panel:'#625739', dark:'#302b24', trim:'#a69b72', accent:'#e3c66d', light:0xe9d183, motif:'rails' },
+  reactor: { base:[37,49,68], panel:'#304761', dark:'#1b273b', trim:'#829eae', accent:'#8cbddf', light:0x9ed9ef, motif:'coils' },
+  hub: { base:[59,68,58], panel:'#465f55', dark:'#26362f', trim:'#adc3a2', accent:'#a2dbc0', light:0xb8ebce, motif:'ribs' },
+};
+const UPGRADE_COLORS = { cutter:'#f1a866', insulator:'#efcf63', phase:'#c5a1f2' };
 const clamp = (n, lo, hi) => Math.max(lo, Math.min(hi, n));
 const viewFov = (options, width, height) => {
   const requested = Number(options.fov);
@@ -12,20 +26,92 @@ const viewFov = (options, width, height) => {
 const missionVisuals = (level) => {
   const relay = level.missionId === 'relay-09' || String(level.id).startsWith('relay-09');
   const crosslink = level.missionId === 'crosslink-11' || String(level.id).startsWith('crosslink-11');
+  const underworks = level.missionId === 'underworks-13' || String(level.id).startsWith('underworks-13');
   return {
-    relay, crosslink,
-    signCode: level.signCode || (crosslink ? 'CROSSLINK 11' : relay ? 'RELAY 09' : 'BS 07'),
-    doorCode: level.signCode || (crosslink ? 'CROSSLINK 11' : relay ? 'DEAD RELAY 09' : 'BLACKSITE 07'),
-    signColor: crosslink ? '#e2c78c' : relay ? '#b6c5e6' : '#9fd8cf',
-    fog: crosslink ? 0x101b19 : relay ? 0x0c1526 : 0x08131c,
-    fogRgb: crosslink ? [16, 27, 25] : relay ? [12, 21, 38] : [8, 19, 28],
+    relay, crosslink, underworks,
+    signCode: level.signCode || (underworks ? 'UW 13' : crosslink ? 'CROSSLINK 11' : relay ? 'RELAY 09' : 'BS 07'),
+    doorCode: level.signCode || (underworks ? 'UNDERWORKS 13' : crosslink ? 'CROSSLINK 11' : relay ? 'DEAD RELAY 09' : 'BLACKSITE 07'),
+    signColor: underworks ? '#d8c5a2' : crosslink ? '#e2c78c' : relay ? '#b6c5e6' : '#9fd8cf',
+    fog: underworks ? 0x131917 : crosslink ? 0x101b19 : relay ? 0x0c1526 : 0x08131c,
+    fogRgb: underworks ? [19,25,23] : crosslink ? [16, 27, 25] : relay ? [12, 21, 38] : [8, 19, 28],
   };
 };
 const exitReady = (state) => !!(state.power && state.player.key && (state.interactables || []).filter(i => i.type === 'relay').every(i => i.used));
 const relayTitle = (item) => item.shortName || item.name || (/north/i.test(item.id) ? 'NORTH RELAY' : /south/i.test(item.id) ? 'SOUTH RELAY' : /east/i.test(item.id) ? 'EAST RELAY' : /west/i.test(item.id) ? 'WEST RELAY' : item.label?.replace(/^(synchronize|activate|align|restore)\s+/i, '').slice(0, 17) || 'RELAY NODE');
+const zoneTitle = (zone,visuals) => visuals.underworks ? zone.shortName||zone.id?.replaceAll('-',' ')||zone.name : zone.name;
 const localPlayerId = (state) => state.localPlayerId || state.player?.id;
 const otherPlayers = (state) => Object.entries(state.players || {}).filter(([id, player]) => player && id !== localPlayerId(state) && player !== state.player && Number.isFinite(player.x) && Number.isFinite(player.z));
 const localEvent = (event, state) => !event.playerId || !localPlayerId(state) || event.playerId === localPlayerId(state);
+const doorKind = (door) => ['grille','hazard','phase','shortcut'].includes(door.kind) ? door.kind : ({cutter:'grille',insulator:'hazard',phase:'phase'}[door.requires] || door.requires || 'plain');
+const explorationFeature = (item) => ['upgrade','refuge','transit'].includes(item.type);
+const featureMode = (item,state) => item.type==='upgrade' ? Number(!!(item.used||state.upgrades?.[item.upgrade]))
+  : item.type==='transit' ? item.used ? (state.interactables||[]).some(other=>other.id===item.destination&&other.used)?2:1 : 0
+  : Number(!!item.used);
+const inEntityRange = (entity,player,range) => Math.abs(entity.x-player.x)<=range && Math.abs(entity.z-player.z)<=range;
+
+// Resolve authored sectors once. Rendering never searches zone rectangles per
+// pixel or per wall; the largest map needs only a few kilobytes of cell indices.
+function surfaceLayout(level,underworks=false){
+  const names=underworks?Object.keys(SECTORS):['default'],indices=new Uint8Array(level.width*level.height);
+  const hazards=new Uint8Array(indices.length),solid=(x,z)=>!level.grid[z]?.[x]||level.grid[z][x]==='#';
+  if(underworks)for(let z=0;z<level.height;z++)for(let x=0;x<level.width;x++){
+    const zone=(level.zones||[]).find(zone=>x+.5>=zone.x1&&x+.5<zone.x2&&z+.5>=zone.z1&&z+.5<zone.z2);
+    indices[z*level.width+x]=Math.max(0,names.indexOf(zone?.palette));
+  }
+  for(const area of level.hazards||[])for(let z=Math.max(0,Math.floor(area.z1));z<Math.min(level.height,Math.ceil(area.z2));z++)for(let x=Math.max(0,Math.floor(area.x1));x<Math.min(level.width,Math.ceil(area.x2));x++){
+    if(!solid(x,z)&&x+.5>=area.x1&&x+.5<area.x2&&z+.5>=area.z1&&z+.5<area.z2)hazards[z*level.width+x]=area.type==='flood'?1:2;
+  }
+  const paletteAt=(x,z)=>indices[Math.floor(z)*level.width+Math.floor(x)]||0;
+  const large=level.width>45||level.height>45;
+  const chunkAt=(x,z)=>large?`${Math.floor(x/WORLD_CHUNK)},${Math.floor(z/WORLD_CHUNK)}`:'all';
+  const walls=[],lights=[],runs=[],rails=[];let solidCells=0,exposedCells=0,walkableCells=0;
+  for(let z=0;z<level.height;z++)for(let x=0;x<level.width;x++){
+    if(!solid(x,z)){walkableCells++;continue;}solidCells++;
+    const sides=[[0,-1],[1,0],[0,1],[-1,0]].filter(([dx,dz])=>!solid(x+dx,z+dz));
+    if(sides.length)exposedCells++;
+    for(const[dx,dz]of sides){
+      const palette=paletteAt(x+dx,z+dz),chunk=chunkAt(x+dx,z+dz);
+      walls.push({x:x+.5+dx*.5,z:z+.5+dz*.5,rot:Math.atan2(dx,dz),palette,chunk,shade:.75+hash(x,z)*.24});
+      if((x+z*3)%4===0)lights.push({x:x+.5+dx*.515,z:z+.5+dz*.515,rot:Math.atan2(dx,dz),palette,chunk,warm:(x+z)%7===0});
+    }
+  }
+  // Consecutive floor cells share a quad, split only at walls, sectors and
+  // chunk boundaries. Ceiling uses these same runs with reversed winding.
+  for(let z=0;z<level.height;z++){
+    let run=null;
+    for(let x=0;x<=level.width;x++){
+      const palette=paletteAt(x,z),chunk=chunkAt(x,z),open=!solid(x,z);
+      if(run&&(!open||run.palette!==palette||run.chunk!==chunk)){run.x2=x;runs.push(run);run=null;}
+      if(open&&!run)run={x1:x,x2:x+1,z,palette,chunk};
+    }
+  }
+  for(let z=2;z<level.height-1;z+=4){
+    let start=-1;
+    for(let x=0;x<=level.width;x++){
+      if(!solid(x,z)&&start<0)start=x;
+      if(solid(x,z)&&start>=0){
+        if(x-start>=3)for(let a=start;a<x;){const b=large?Math.min(x,(Math.floor(a/WORLD_CHUNK)+1)*WORLD_CHUNK):x;rails.push({x:(a+b)/2,z:z+.5,width:b-a,palette:paletteAt(a,z),chunk:chunkAt(a,z)});a=b;}
+        start=-1;
+      }
+    }
+  }
+  return {names,indices,hazards,paletteAt,large,walls,lights,runs,rails,stats:{gridCells:indices.length,solidCells,walkableCells,exposedCells,enclosedCells:solidCells-exposedCells,wallFaces:walls.length,wallTriangles:walls.length*2,previousWallTriangles:exposedCells*12,floorRuns:runs.length}};
+}
+
+function batches(records,key){
+  const groups=new Map();for(const record of records){const id=key(record);if(!groups.has(id))groups.set(id,[]);groups.get(id).push(record);}return groups.values();
+}
+
+function horizontalGeometry(runs,height=0,ceiling=false){
+  const positions=[],uvs=[],indices=[];
+  for(const run of runs){
+    const i=positions.length/3,z2=run.z2??run.z+1;
+    positions.push(run.x1,height,run.z, run.x1,height,z2, run.x2,height,z2, run.x2,height,run.z);
+    uvs.push(run.x1/2,run.z/2,run.x1/2,z2/2,run.x2/2,z2/2,run.x2/2,run.z/2);
+    if(ceiling)indices.push(i,i+2,i+1,i,i+3,i+2);else indices.push(i,i+1,i+2,i,i+2,i+3);
+  }
+  const geometry=new THREE.BufferGeometry();geometry.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));geometry.setAttribute('uv',new THREE.Float32BufferAttribute(uvs,2));geometry.setIndex(indices);geometry.computeBoundingSphere();return geometry;
+}
 const teammateView = (player, observer, motion, dt, advancing, clock, firedAt) => {
   const speed = Math.hypot(player.x-motion.x,player.z-motion.z)/Math.max(.001,dt);
   motion.x=player.x;motion.z=player.z;if(advancing)motion.phase+=dt*(speed>.05?8:1.5);
@@ -171,7 +257,96 @@ function makeFloorTexture(ceiling = false, relay = false, crosslink = false) {
   return textureFrom(canvas, true);
 }
 
+function makeSectorWallTexture(name){
+  const p=SECTORS[name]||SECTORS.arrival,[canvas,c]=canvas2d(64,128);
+  for(let y=0;y<128;y+=2)for(let x=0;x<64;x+=2){const n=hash(x,y,3)*16-8;rect(c,x,y,2,2,`rgb(${p.base.map(v=>Math.round(v+n)).join(',')})`);}
+  rect(c,0,0,64,8,p.dark);rect(c,0,8,64,2,p.trim);rect(c,1,10,3,105,p.dark);rect(c,60,10,4,105,p.dark);
+  rect(c,6,17,51,43,p.panel);rect(c,7,17,49,2,p.trim);rect(c,7,59,49,2,p.dark);
+  if(p.motif==='furnace'){
+    rect(c,11,24,42,30,'#211b1a');
+    for(let x=15;x<52;x+=7){rect(c,x,27,3,24,'#e7a05b');rect(c,x,31,1,17,'#f4cd88');rect(c,x+3,24,3,30,p.dark);}
+    rect(c,9,70,46,34,p.dark);for(let y=73;y<103;y+=6){rect(c,11,y,42,3,p.panel);rect(c,11,y,42,1,p.trim);}
+  }else if(p.motif==='pipes'){
+    for(const x of [14,44]){rect(c,x,10,8,102,p.dark);rect(c,x+2,10,4,102,p.trim);rect(c,x+2,12,1,98,p.accent);for(const y of[31,76,99])rect(c,x-2,y,12,5,p.panel);}
+    rect(c,25,27,13,24,p.dark);rect(c,28,30,7,10,p.accent);rect(c,28,43,7,3,p.trim);
+    rect(c,24,80,15,20,p.panel);rect(c,29,83,5,13,p.accent);rect(c,25,87,13,4,p.accent);
+  }else if(p.motif==='shelves'){
+    for(let y=24;y<103;y+=21){rect(c,8,y,48,18,p.dark);for(let x=12;x<54;x+=9){rect(c,x,y+2,6,13,p.panel);rect(c,x,y+3,6,2,p.trim);rect(c,x+1,y+11,2,2,p.accent);}rect(c,8,y+17,48,2,p.trim);}
+  }else if(p.motif==='rails'){
+    rect(c,10,25,44,82,p.dark);for(const x of[14,44]){rect(c,x,23,5,87,p.trim);rect(c,x+2,24,1,84,p.accent);}
+    for(let y=32;y<105;y+=13){rect(c,12,y,39,4,p.panel);rect(c,12,y,39,1,p.trim);}
+    poly(c,[[27,44],[36,44],[36,38],[46,50],[36,61],[36,55],[27,55]],p.accent);
+  }else if(p.motif==='coils'){
+    for(const x of[12,37]){rect(c,x,22,15,85,p.dark);rect(c,x+4,24,7,81,p.accent);rect(c,x+7,24,2,81,'#d3eaf0');for(let y=29;y<103;y+=8){rect(c,x,y,15,3,p.panel);rect(c,x,y,15,1,p.trim);}}
+    rect(c,26,58,12,14,p.dark);rect(c,29,62,6,6,'#c6acdf');
+  }else{
+    for(let y=24;y<54;y+=7){rect(c,12,y,40,3,p.dark);rect(c,12,y+3,40,1,p.trim);}
+    rect(c,9,71,46,35,p.panel);rect(c,11,73,42,2,p.trim);rect(c,15,81,7,16,p.accent);rect(c,27,81,20,3,p.trim);rect(c,27,88,15,2,p.trim);
+    rect(c,27,95,20,2,p.dark);
+  }
+  for(const x of[7,55])for(const y of[12,65,110]){rect(c,x,y,3,3,p.dark);rect(c,x,y,2,1,p.trim);}
+  rect(c,0,115,64,9,p.dark);
+  for(let x=-10;x<64;x+=18)poly(c,[[x,115],[x+7,115],[x+15,124],[x+8,124]],p.accent);
+  rect(c,0,125,64,3,p.dark);return textureFrom(canvas);
+}
+
+function makeSectorFloorTexture(name,ceiling=false){
+  const p=SECTORS[name]||SECTORS.arrival,[canvas,c]=canvas2d(64,64);
+  for(let y=0;y<64;y+=2)for(let x=0;x<64;x+=2){const n=hash(x,y,11)*12-6;rect(c,x,y,2,2,`rgb(${p.base.map(v=>Math.round(v*(ceiling?.51:.70)+n)).join(',')})`);}
+  rect(c,0,0,64,2,p.dark);rect(c,0,0,2,64,p.dark);rect(c,3,3,58,1,p.panel);rect(c,3,3,1,58,p.panel);
+  if(ceiling){rect(c,27,0,10,64,p.dark);rect(c,29,0,2,64,p.trim);rect(c,35,0,1,64,p.panel);}
+  else{
+    for(const x of[8,54])for(const y of[8,54]){rect(c,x,y,3,3,p.dark);rect(c,x,y,2,1,p.trim);}
+    if(name==='rail'){rect(c,15,0,4,64,p.trim);rect(c,44,0,4,64,p.trim);for(let y=7;y<64;y+=13)rect(c,19,y,25,4,p.dark);}
+    else if(name==='floodworks'||name==='foundry'){for(let y=14;y<51;y+=6){rect(c,14,y,37,3,p.dark);rect(c,14,y+3,37,1,p.panel);}}
+    else{rect(c,29,8,2,48,p.dark);rect(c,8,29,48,2,p.dark);rect(c,32,8,1,48,p.panel);rect(c,8,32,48,1,p.panel);}
+    rect(c,7,59,50,2,p.accent);
+  }
+  return textureFrom(canvas,true);
+}
+
+function makeHazardTexture(type){
+  const[canvas,c]=canvas2d(64,64);
+  if(type==='flood'){
+    rect(c,0,0,64,64,'#1c4349');
+    for(let y=2;y<64;y+=6)for(let x=0;x<64;x+=16){const offset=Math.floor(hash(x,y)*5);rect(c,x+offset,y,12,1,'#4a8585');rect(c,x+offset+3,y+2,7,1,'#284f58');}
+    rect(c,0,0,64,2,'#82bdb1');rect(c,0,0,2,64,'#274850');
+  }else{
+    rect(c,0,0,64,64,'#20303b');for(let x=8;x<60;x+=12){rect(c,x,0,5,64,'#101d28');rect(c,x+1,0,2,64,'#83b7c9');}
+    for(let x=-12;x<64;x+=20)poly(c,[[x,26],[x+8,26],[x+20,38],[x+12,38]],'#d8ba66');
+    rect(c,0,25,64,1,'#6d654c');rect(c,0,39,64,2,'#121e29');
+  }
+  return textureFrom(canvas,true);
+}
+
+function makeTraversalDoorTexture(kind){
+  const[canvas,c]=canvas2d(64,128),color=kind==='grille'?UPGRADE_COLORS.cutter:kind==='hazard'?UPGRADE_COLORS.insulator:kind==='phase'?UPGRADE_COLORS.phase:'#8edbc5';
+  rect(c,0,0,64,128,'#131e24');rect(c,0,0,5,128,'#667875');rect(c,59,0,5,128,'#667875');
+  rect(c,5,0,54,6,'#9fa993');rect(c,5,121,54,7,'#3c514f');
+  if(kind==='grille'){
+    for(let x=-48;x<100;x+=13){poly(c,[[x,6],[x+3,6],[x+64,121],[x+61,121]],'#688082');poly(c,[[x,121],[x+3,121],[x+64,6],[x+61,6]],'#35474e');}
+    for(const y of[20,105]){rect(c,5,y,54,5,'#9a7957');rect(c,5,y,54,1,color);}
+    for(const y of[14,35,86,107]){rect(c,4,y,7,8,color);rect(c,53,y,7,8,color);}
+  }else if(kind==='hazard'){
+    for(let y=18;y<120;y+=21){rect(c,6,y,52,3,'#d8b94f');rect(c,7,y+1,50,1,'#fff2a3');}
+    for(const x of[10,46]){poly(c,[[x+6,9],[x,28],[x+6,28],[x+2,45],[x+13,23],[x+7,23]],color);}
+    for(let x=5;x<59;x+=13)poly(c,[[x,110],[x+7,110],[x+14,120],[x+7,120]],color);
+  }else if(kind==='phase'){
+    rect(c,7,7,50,113,'#302844');
+    for(let y=9;y<120;y+=7){rect(c,8,y,48,1,'#6a5592');rect(c,16+(y%3)*8,y+2,12,1,'#b0a0d3');}
+    for(const y of[25,94]){poly(c,[[32,y-13],[47,y-6],[47,y+7],[32,y+14],[17,y+7],[17,y-6]],color);poly(c,[[32,y-9],[43,y-4],[43,y+5],[32,y+10],[21,y+5],[21,y-4]],'#302844');}
+  }else{
+    for(let y=9;y<120;y+=12){rect(c,6,y,52,9,'#3b5553');rect(c,6,y,52,1,'#83a497');}
+    for(const y of[28,93])poly(c,[[18,y],[34,y],[34,y-7],[47,y+5],[34,y+17],[34,y+10],[18,y+10]],color);
+  }
+  rect(c,7,49,50,30,'#101c25');rect(c,8,49,48,2,color);rect(c,8,77,48,1,color);
+  c.textAlign='center';c.fillStyle=color;c.font='bold 8px monospace';c.fillText(kind==='grille'?'CUTTER':kind==='hazard'?'HIGH VOLT':kind==='phase'?'PHASE':'SHORTCUT',32,62);
+  c.font='6px monospace';c.fillText(kind==='grille'?'SEALED GRILLE':kind==='hazard'?'INSULATION':kind==='phase'?'FIELD BARRIER':'SERVICE LINK',32,72);
+  return textureFrom(canvas);
+}
+
 function makeDoorTexture(kind, visuals = {}) {
+  if(['grille','hazard','phase','shortcut'].includes(kind))return makeTraversalDoorTexture(kind);
   const [canvas,c] = canvas2d(64,128);
   rect(c,0,0,64,128,'#283339');
   for(let y=3;y<128;y+=16){
@@ -189,6 +364,47 @@ function makeDoorTexture(kind, visuals = {}) {
   c.fillText(kind==='relays'?'RELAY GATE':kind==='power'?'AUX POWER':kind==='key'?'SECURITY':'ACCESS',32,63);
   c.font='6px monospace';c.fillText(kind==='relays'?'SYNC BOTH NODES':kind==='key'?'KEY REQUIRED':visuals.doorCode||'BLACKSITE 07',32,71);
   if(kind==='relays'){rect(c,17,80,11,4,'#b9a1ed');rect(c,36,80,11,4,'#b9a1ed');}
+  return textureFrom(canvas);
+}
+
+function makeStationTexture(item,mode){
+  const[canvas,c]=canvas2d(112,160),type=item.type,installed=mode>0;
+  const color=type==='upgrade'?UPGRADE_COLORS[item.upgrade]||'#e0c080':type==='refuge'?'#b2e3a2':mode===2?'#85ebda':mode===1?'#e6c181':'#819caf';
+  rect(c,22,144,70,12,'#17282e');rect(c,25,139,64,6,'#758680');rect(c,31,88,52,51,'#30454a');rect(c,33,91,5,46,'#81928a');
+  for(let y=113;y<135;y+=6){rect(c,42,y,33,2,'#172b33');rect(c,42,y+2,33,1,'#56696a');}
+  rect(c,9,80,94,31,'#14262d');rect(c,10,80,92,3,color);rect(c,13,108,86,2,'#58706c');
+  c.textAlign='center';c.font='bold 10px monospace';c.fillStyle=color;
+  const title=type==='upgrade'?(item.upgrade==='phase'?'PHASE MODULE':item.upgrade==='insulator'?'INSULATOR':'THERMAL CUTTER'):type==='refuge'?'REFUGE':'TRANSIT LINK';
+  c.fillText(title,56,94);c.font='6px monospace';c.fillStyle='#c5d6c8';
+  c.fillText(type==='upgrade'?(installed?'MODULE INSTALLED':'USE TO INSTALL'):type==='refuge'?(installed?'VISITED / CHECKPOINT':'USE / CHECKPOINT'):mode===2?'LINKED / USE TO TRAVEL':mode===1?'FIND PAIRED STATION':'USE TO ACTIVATE',56,104);
+  if(type==='upgrade'){
+    rect(c,25,69,64,8,'#61777a');rect(c,29,72,56,3,color);
+    if(installed){rect(c,43,56,26,8,'#253b40');poly(c,[[48,55],[54,61],[65,48],[68,51],[54,67],[45,58]],'#b7e6c4');}
+    else if(item.upgrade==='cutter'){
+      poly(c,[[34,28],[47,22],[65,35],[67,58],[52,64],[41,52],[34,52]],'#1b2c33');
+      rect(c,39,33,16,22,'#af7751');rect(c,42,34,5,18,color);rect(c,52,40,20,7,'#82918a');
+      poly(c,[[64,29],[80,18],[85,22],[72,37],[69,45],[65,43]],color);rect(c,39,55,11,10,'#52666a');
+    }else if(item.upgrade==='insulator'){
+      poly(c,[[38,21],[47,17],[65,17],[74,21],[83,36],[76,66],[36,66],[29,36]],'#1c2e35');
+      poly(c,[[41,26],[71,26],[74,39],[68,61],[44,61],[38,39]],'#99945c');rect(c,43,29,25,4,color);
+      poly(c,[[58,34],[49,48],[56,48],[51,58],[66,42],[59,42]],'#f2e6a1');
+    }else{
+      poly(c,[[56,15],[77,31],[73,57],[56,71],[38,57],[34,31]],'#405062');
+      poly(c,[[56,20],[70,34],[66,55],[56,64],[45,55],[42,34]],color);poly(c,[[56,24],[61,36],[57,58],[51,36]],'#e1dcfa');
+      rect(c,28,32,6,23,'#8a9a9b');rect(c,78,32,6,23,'#8a9a9b');
+    }
+  }else if(type==='refuge'){
+    rect(c,20,12,7,126,'#586f67');rect(c,85,12,7,126,'#586f67');rect(c,24,11,64,7,color);
+    poly(c,[[56,23],[77,31],[74,57],[56,73],[37,57],[34,31]],'#335c4d');
+    rect(c,51,32,11,30,color);rect(c,41,42,31,10,color);rect(c,54,35,3,24,'#e2f4c8');
+    for(const x of[22,87])rect(c,x,32,3,97,installed?'#b4e8a7':'#567765');
+  }else{
+    for(const x of[18,88]){rect(c,x,14,6,63,'#536c79');rect(c,x+1,20,3,49,color);}
+    for(const y of[20,31,60,71]){rect(c,29,y,54,3,color);rect(c,34,y+3,44,1,'#3b6871');}
+    poly(c,[[56,31],[72,45],[56,60],[40,45]],mode===2?'#b6fff0':mode===1?'#d6bd80':'#597783');
+    poly(c,[[56,37],[64,45],[56,53],[48,45]],'#24414b');rect(c,52,43,8,4,color);
+    rect(c,15,151,82,3,color);
+  }
   return textureFrom(canvas);
 }
 
@@ -350,11 +566,16 @@ function drawTeammate(team, direction, frame){
 
 function makePickupTexture(type) {
   const [canvas,c]=canvas2d(64,64);
-  if(type==='health'){
+  if(type==='health'||type==='healthExpansion'){
     rect(c,11,21,44,29,'#1a2d32');rect(c,13,19,39,27,'#b8c2ae');
     rect(c,15,20,35,4,'#e0dfbb');rect(c,27,12,13,7,'#5d7774');
     rect(c,29,24,8,19,'#aa4d3d');rect(c,23,30,20,7,'#aa4d3d');
     rect(c,14,43,38,3,'#687f7a');
+    if(type==='healthExpansion'){
+      rect(c,29,24,8,19,'#5c9a65');rect(c,23,30,20,7,'#5c9a65');
+      rect(c,9,15,3,37,'#e2ca87');rect(c,53,15,3,37,'#e2ca87');rect(c,9,12,47,3,'#e2ca87');rect(c,9,51,47,3,'#e2ca87');
+      c.font='bold 6px monospace';c.fillStyle='#eddfab';c.textAlign='center';c.fillText('MAX +',33,61);
+    }
   }else if(type==='ammo'||type==='shells'){
     rect(c,12,25,40,24,'#263b3b');rect(c,13,24,38,18,type==='shells'?'#8e4936':'#687250');
     rect(c,16,21,30,4,'#c0a570');rect(c,17,33,28,3,'#c1b78a');
@@ -389,8 +610,9 @@ function makeSign(text, sub, color='#9fd8cf') {
   const [canvas,c]=canvas2d(256,80);
   rect(c,0,0,256,80,'#101e27');rect(c,0,0,256,3,color);
   rect(c,0,76,256,4,'#1c3039');rect(c,6,7,3,66,'#2d4550');
-  c.font='bold 24px monospace';c.fillStyle=color;c.textAlign='left';
-  c.fillText(text.toUpperCase().slice(0,17),16,35);
+  const title=text.toUpperCase().slice(0,27);
+  c.font=`bold ${Math.min(24,Math.floor(224/Math.max(1,title.length)/.61))}px monospace`;c.fillStyle=color;c.textAlign='left';
+  c.fillText(title,16,35);
   c.font='12px monospace';c.fillStyle='#99aaa5';c.fillText(sub.toUpperCase().slice(0,29),17,59);
   return textureFrom(canvas);
 }
@@ -411,6 +633,7 @@ class WebGLBreachRenderer {
     try{
       this.renderer=new THREE.WebGLRenderer({canvas,antialias:false,alpha:false,powerPreference:'high-performance',stencil:false});
     }catch(error){throw new Error('This browser could not start WebGL. Open BREACH in Safari or Chrome and try again.');}
+    this.layout=surfaceLayout(game.level,this.visuals.underworks);this.stats={...this.layout.stats};this.staticBatches=[];this.stationMaps=new Map();
     this.renderer.setPixelRatio(1);
     this.renderer.outputColorSpace=THREE.SRGBColorSpace;
     this.renderer.setClearColor(this.visuals.fog,1);
@@ -427,7 +650,7 @@ class WebGLBreachRenderer {
     this.enemyFrames={};
     for(const type of ['runner','spitter','brute'])this.enemyFrames[type]=Array.from({length:7},(_,i)=>this.texture(drawEnemy(type,i)));
     this.pickupMaps={};
-    for(const type of ['ammo','shells','health','armor','shotgun','key'])this.pickupMaps[type]=this.texture(makePickupTexture(type));
+    for(const type of ['ammo','shells','health','armor','shotgun','key','healthExpansion'])this.pickupMaps[type]=this.texture(makePickupTexture(type));
     this.plasmaMap=this.texture(makeGlowTexture('#7fe8b1','#e6ffb5'));
     this.impactMap=this.texture(makeGlowTexture('#f8aa58','#fff0b0'));
     this.buildEnvironment();this.resize();
@@ -438,7 +661,10 @@ class WebGLBreachRenderer {
   geometry(geometry){this.geometries.add(geometry);return geometry;}
   getTeammateFrames(id){
     const team=id==='p2'?'p2':'p1';
-    if(!this.teammateFrames[team])this.teammateFrames[team]=Object.fromEntries(['front','back','right','left'].map(direction=>[direction,Array.from({length:6},(_,frame)=>this.texture(drawTeammate(team,direction,frame)))]));
+    if(!this.teammateFrames[team]){
+      this.teammateFrames[team]=Object.fromEntries(['front','back','right','left'].map(direction=>[direction,Array.from({length:6},(_,frame)=>this.texture(drawTeammate(team,direction,frame)))]));
+      if(this.stats.textureSourceBytes)this.stats.textureSourceBytes+=24*80*112*4;
+    }
     return this.teammateFrames[team];
   }
   mesh(geometry,material,x=0,y=0,z=0){
@@ -447,60 +673,65 @@ class WebGLBreachRenderer {
   solid(x,z){return this.game.level.grid[z]?.[x]==='#'||!this.game.level.grid[z]?.[x];}
 
   buildEnvironment(){
-    const level=this.game.level;
-    const wallGeometry=this.geometry(new THREE.BoxGeometry(1,WALL_HEIGHT,1));
-    const wallMap=this.texture(makeWallTexture(0,this.visuals.relay,this.visuals.crosslink));
-    const wallMaterial=this.material(new THREE.MeshBasicMaterial({map:wallMap,color:this.visuals.crosslink?0xc7cabc:this.visuals.relay?0xc3cedb:0xb5c4c1}));
-    const wallCells=[];const lightCells=[];const rails=[];
-    for(let z=0;z<level.height;z++)for(let x=0;x<level.width;x++)if(this.solid(x,z)){
-      const sides=[[0,-1,0],[1,0,Math.PI/2],[0,1,Math.PI],[-1,0,-Math.PI/2]].filter(([dx,dz])=>!this.solid(x+dx,z+dz));
-      if(!sides.length)continue;
-      wallCells.push([x,z]);
-      for(const [dx,dz,rot]of sides)if((x+z*3)%4===0)lightCells.push({x:x+.5+dx*.515,z:z+.5+dz*.515,rot,warm:(x+z)%7===0});
-    }
-    const walls=new THREE.InstancedMesh(wallGeometry,wallMaterial,wallCells.length);
-    const transform=new THREE.Object3D();const color=new THREE.Color();
-    wallCells.forEach(([x,z],i)=>{
-      transform.position.set(x+.5,WALL_HEIGHT/2,z+.5);transform.updateMatrix();walls.setMatrixAt(i,transform.matrix);
-      const shade=.75+hash(x,z)*.24;color.setRGB(shade*.91,shade*.98,shade);walls.setColorAt(i,color);
-    });
-    walls.instanceMatrix.needsUpdate=true;walls.frustumCulled=false;this.scene.add(walls);
-    const floorMap=this.texture(makeFloorTexture(false,this.visuals.relay,this.visuals.crosslink));floorMap.repeat.set(level.width/2,level.height/2);
-    const floor=this.mesh(this.geometry(new THREE.PlaneGeometry(level.width,level.height)),this.material(new THREE.MeshBasicMaterial({map:floorMap,color:this.visuals.crosslink?0xb2baa0:this.visuals.relay?0x9eacbd:0x919d94})),level.width/2,0,level.height/2);
-    floor.rotation.x=-Math.PI/2;
-    const ceilingMap=this.texture(makeFloorTexture(true,this.visuals.relay,this.visuals.crosslink));ceilingMap.repeat.set(level.width/2,level.height/2);
-    const ceiling=this.mesh(this.geometry(new THREE.PlaneGeometry(level.width,level.height)),this.material(new THREE.MeshBasicMaterial({map:ceilingMap,color:0x68787f})),level.width/2,WALL_HEIGHT,level.height/2);
-    ceiling.rotation.x=Math.PI/2;
-    const lightGeometry=this.geometry(new THREE.BoxGeometry(.62,.065,.045));
-    for(const warm of [false,true]){
-      const cells=lightCells.filter(x=>x.warm===warm);
-      const material=this.material(new THREE.MeshBasicMaterial({color:warm?0xea9752:this.visuals.crosslink?0x7be1c5:this.visuals.relay?0xb4c8eb:0x8bd6ce}));
-      const lights=new THREE.InstancedMesh(lightGeometry,material,cells.length);
-      cells.forEach((cell,i)=>{transform.position.set(cell.x,2.12,cell.z);transform.rotation.set(0,cell.rot,0);transform.updateMatrix();lights.setMatrixAt(i,transform.matrix);});
-      lights.frustumCulled=false;this.scene.add(lights);
-    }
-    // Repeating overhead beams break up long sight lines with almost no draw overhead.
-    for(let z=2;z<level.height-1;z+=4){
-      let start=-1;
-      for(let x=0;x<=level.width;x++){
-        if(!this.solid(x,z)&&start<0)start=x;
-        if(this.solid(x,z)&&start>=0){if(x-start>=3)rails.push({x:(start+x)/2,z:z+.5,width:x-start});start=-1;}
-      }
-    }
-    const beamGeometry=this.geometry(new THREE.BoxGeometry(1,.13,.16));
-    const beamMaterial=this.material(new THREE.MeshBasicMaterial({color:0x293b44}));
-    const beams=new THREE.InstancedMesh(beamGeometry,beamMaterial,rails.length);
-    rails.forEach((r,i)=>{transform.position.set(r.x,2.35,r.z);transform.rotation.set(0,0,0);transform.scale.set(r.width,1,1);transform.updateMatrix();beams.setMatrixAt(i,transform.matrix);});
-    beams.frustumCulled=false;this.scene.add(beams);transform.scale.set(1,1,1);
+    const level=this.game.level,layout=this.layout,underworks=this.visuals.underworks;
+    const transform=new THREE.Object3D(),color=new THREE.Color();
+    const install=(geometry,material,cells,place,tint=false)=>{
+      const mesh=new THREE.InstancedMesh(geometry,material,cells.length);
+      cells.forEach((cell,i)=>{
+        transform.position.set(0,0,0);transform.rotation.set(0,0,0);transform.scale.set(1,1,1);
+        place(cell,transform);transform.updateMatrix();mesh.setMatrixAt(i,transform.matrix);
+        if(tint){color.setRGB(cell.shade*.91,cell.shade*.98,cell.shade);mesh.setColorAt(i,color);}
+      });
+      mesh.instanceMatrix.needsUpdate=true;mesh.computeBoundingSphere();mesh.frustumCulled=true;
+      this.scene.add(mesh);this.staticBatches.push(mesh);return mesh;
+    };
+    const wallGeometry=this.geometry(new THREE.PlaneGeometry(1,WALL_HEIGHT));
+    const wallMaterials=layout.names.map(name=>this.material(new THREE.MeshBasicMaterial({
+      map:this.texture(underworks?makeSectorWallTexture(name):makeWallTexture(0,this.visuals.relay,this.visuals.crosslink)),
+      color:underworks?0xd1d5c8:this.visuals.crosslink?0xc7cabc:this.visuals.relay?0xc3cedb:0xb5c4c1,
+    })));
+    for(const cells of batches(layout.walls,cell=>`${cell.chunk}:${cell.palette}`))install(wallGeometry,wallMaterials[cells[0].palette],cells,(cell,t)=>{t.position.set(cell.x,WALL_HEIGHT/2,cell.z);t.rotation.y=cell.rot;},true);
 
+    if(underworks){
+      for(const ceiling of[false,true]){
+        const materials=layout.names.map(name=>this.material(new THREE.MeshBasicMaterial({map:this.texture(makeSectorFloorTexture(name,ceiling)),color:ceiling?0x9ca9a6:0xb4bdb0})));
+        for(const runs of batches(layout.runs,run=>`${run.chunk}:${run.palette}`)){
+          const mesh=this.mesh(this.geometry(horizontalGeometry(runs,ceiling?WALL_HEIGHT:0,ceiling)),materials[runs[0].palette]);this.staticBatches.push(mesh);
+        }
+      }
+      const hazardMaterials={flood:this.material(new THREE.MeshBasicMaterial({map:this.texture(makeHazardTexture('flood')),color:0xc0d7ca})),conduit:this.material(new THREE.MeshBasicMaterial({map:this.texture(makeHazardTexture('conduit')),color:0xc5d1bf}))};
+      for(const area of level.hazards||[]){
+        const mesh=this.mesh(this.geometry(horizontalGeometry([{x1:area.x1,x2:area.x2,z:area.z1,z2:area.z2}],.012)),hazardMaterials[area.type]||hazardMaterials.conduit);this.staticBatches.push(mesh);
+      }
+    }else{
+      const floorMap=this.texture(makeFloorTexture(false,this.visuals.relay,this.visuals.crosslink));floorMap.repeat.set(level.width/2,level.height/2);
+      const floor=this.mesh(this.geometry(new THREE.PlaneGeometry(level.width,level.height)),this.material(new THREE.MeshBasicMaterial({map:floorMap,color:this.visuals.crosslink?0xb2baa0:this.visuals.relay?0x9eacbd:0x919d94})),level.width/2,0,level.height/2);floor.rotation.x=-Math.PI/2;
+      const ceilingMap=this.texture(makeFloorTexture(true,this.visuals.relay,this.visuals.crosslink));ceilingMap.repeat.set(level.width/2,level.height/2);
+      const ceiling=this.mesh(this.geometry(new THREE.PlaneGeometry(level.width,level.height)),this.material(new THREE.MeshBasicMaterial({map:ceilingMap,color:0x68787f})),level.width/2,WALL_HEIGHT,level.height/2);ceiling.rotation.x=Math.PI/2;
+      this.staticBatches.push(floor,ceiling);
+    }
+    const lightGeometry=this.geometry(new THREE.BoxGeometry(.62,.065,.045));
+    const lightMaterials=layout.names.map(name=>[this.material(new THREE.MeshBasicMaterial({color:underworks?SECTORS[name].light:this.visuals.crosslink?0x7be1c5:this.visuals.relay?0xb4c8eb:0x8bd6ce})),this.material(new THREE.MeshBasicMaterial({color:0xea9752}))]);
+    for(const cells of batches(layout.lights,cell=>`${cell.chunk}:${cell.palette}:${cell.warm}`))install(lightGeometry,lightMaterials[cells[0].palette][Number(cells[0].warm)],cells,(cell,t)=>{t.position.set(cell.x,2.12,cell.z);t.rotation.y=cell.rot;});
+    const beamGeometry=this.geometry(new THREE.BoxGeometry(1,.13,.16));
+    const beamMaterials=layout.names.map(name=>this.material(new THREE.MeshBasicMaterial({color:underworks?SECTORS[name].dark:0x293b44})));
+    for(const cells of batches(layout.rails,cell=>`${cell.chunk}:${cell.palette}`))install(beamGeometry,beamMaterials[cells[0].palette],cells,(cell,t)=>{t.position.set(cell.x,2.35,cell.z);t.scale.set(cell.width,1,1);});
+
+    // Door artwork and geometry are shared by kind, even across dozens of gates.
+    const doorMaterials=new Map(),doorGeometry={x:this.geometry(new THREE.BoxGeometry(.98,WALL_HEIGHT,.14)),z:this.geometry(new THREE.BoxGeometry(.14,WALL_HEIGHT,.98))};
     for(const door of this.game.state.doors){
-      const material=this.material(new THREE.MeshBasicMaterial({map:this.texture(makeDoorTexture(door.requires,this.visuals)),color:0xc4cec0}));
-      const geometry=this.geometry(new THREE.BoxGeometry(door.axis==='z'?.14:.98,WALL_HEIGHT,door.axis==='z'?.98:.14));
-      const mesh=this.mesh(geometry,material,door.x,WALL_HEIGHT/2,door.z);
+      const kind=doorKind(door);
+      if(!doorMaterials.has(kind))doorMaterials.set(kind,this.material(new THREE.MeshBasicMaterial({map:this.texture(makeDoorTexture(kind,this.visuals)),color:0xc4cec0})));
+      const mesh=this.mesh(doorGeometry[door.axis]||doorGeometry.x,doorMaterials.get(kind),door.x,WALL_HEIGHT/2,door.z);
       this.doorVisuals.set(door.id,{mesh,amount:door.open?1:0});
     }
     for(const [index,zone]of (level.zones||[]).entries())this.addZoneSign(zone,index);
     for(const item of this.game.state.interactables||[])this.addFeature(item);
+    this.stats.staticBatches=this.staticBatches.length;
+    this.stats.staticInstanceBytes=this.staticBatches.reduce((sum,mesh)=>sum+(mesh.instanceMatrix?.array.byteLength||0)+(mesh.instanceColor?.array.byteLength||0),0);
+    this.stats.geometryBytes=[...this.geometries].reduce((sum,geometry)=>sum+Object.values(geometry.attributes).reduce((n,attribute)=>n+attribute.array.byteLength,0)+(geometry.index?.array.byteLength||0),0);
+    this.stats.textureSourceBytes=[...this.textures].reduce((sum,texture)=>sum+(texture.image?.width||0)*(texture.image?.height||0)*4,0);
+    for(const key of['walls','lights','runs','rails'])delete this.layout[key];
   }
 
   addZoneSign(zone,index){
@@ -514,12 +745,19 @@ class WebGLBreachRenderer {
       }
     }
     if(!candidate)return;
-    const map=this.texture(makeSign(zone.name,`${this.visuals.signCode} / SECTOR ${String(index+1).padStart(2,'0')}`,this.visuals.signColor));
-    const sign=this.mesh(this.geometry(new THREE.PlaneGeometry(.88,.275)),this.material(new THREE.MeshBasicMaterial({map})),candidate.x,1.83,candidate.z);
+    const map=this.texture(makeSign(zoneTitle(zone,this.visuals),`${this.visuals.signCode} / SECTOR ${String(index+1).padStart(2,'0')}`,this.visuals.underworks?SECTORS[zone.palette]?.accent||this.visuals.signColor:this.visuals.signColor));
+    const sign=this.mesh(this.geometry(new THREE.PlaneGeometry(this.visuals.underworks?1.15:.88,this.visuals.underworks?.36:.275)),this.material(new THREE.MeshBasicMaterial({map})),candidate.x,1.83,candidate.z);
     sign.rotation.y=candidate.rotation;
   }
 
   addFeature(item){
+    if(explorationFeature(item)){
+      const key=`${item.type}:${item.upgrade||''}`;
+      if(!this.stationMaps.has(key))this.stationMaps.set(key,Array.from({length:item.type==='transit'?3:2},(_,mode)=>this.texture(makeStationTexture(item,mode))));
+      const maps=this.stationMaps.get(key),sprite=new THREE.Sprite(this.material(new THREE.SpriteMaterial({map:maps[featureMode(item,this.game.state)],transparent:true,alphaTest:.18})));
+      sprite.center.set(.5,0);sprite.position.set(item.x,.015,item.z);sprite.scale.set(1.19,1.7,1);this.scene.add(sprite);
+      this.featureVisuals.set(item.id,{sprite,maps,type:item.type,station:true});return;
+    }
     if(item.type==='secret'){
       const sprite=new THREE.Sprite(this.material(new THREE.SpriteMaterial({map:this.texture(makeSign('MAINT.','AUTHORIZED STAFF','#87948d')),transparent:true})));
       sprite.position.set(item.x,1.35,item.z);sprite.scale.set(.55,.17,1);this.scene.add(sprite);
@@ -529,7 +767,7 @@ class WebGLBreachRenderer {
     const base=new THREE.Mesh(this.geometry(new THREE.BoxGeometry(.34,.65,.32)),this.material(new THREE.MeshBasicMaterial({color:0x34464d})));
     base.position.y=.325;group.add(base);
     const isRelay=item.type==='relay';
-    const title=isRelay?relayTitle(item):item.type==='power'?(this.visuals.crosslink?'LINK POWER':this.visuals.relay?'RING POWER':'AUX POWER'):'EXTRACTION';
+    const title=isRelay?relayTitle(item):item.type==='power'?(this.visuals.underworks?'CORE POWER':this.visuals.crosslink?'LINK POWER':this.visuals.relay?'RING POWER':'AUX POWER'):'EXTRACTION';
     const maps={
       off:this.texture(makeSign(title,isRelay?'NODE OFFLINE / SYNCHRONIZE':item.type==='power'?'RESTORE GRID':'CLEARANCE REQUIRED',isRelay?'#b9a1ed':item.type==='power'?'#ecc477':'#81d9c7')),
       on:this.texture(makeSign(title,isRelay?'NODE SYNCHRONIZED':'SYSTEM ONLINE','#a1e4c5')),
@@ -570,6 +808,7 @@ class WebGLBreachRenderer {
     const fov=viewFov(this.options,width,height),aspect=width/height;
     if(this.camera.aspect!==aspect||this.camera.fov!==fov){this.camera.aspect=aspect;this.camera.fov=fov;this.camera.updateProjectionMatrix();}
     this.fieldOfView=fov;
+    this.entityRange=VIEW_DEPTH*Math.sqrt(1+Math.pow(Math.tan(fov*Math.PI/360)*aspect,2))+2;
   }
 
   setOptions(options={}){Object.assign(this.options,options);this.resize();}
@@ -618,6 +857,7 @@ class WebGLBreachRenderer {
     if(state.status==='dead'||p.alive===false||p.health<=0)this.camera.position.y=.65;
     this.updateEntities(dt,advancing);
     this.renderer.render(this.scene,this.camera);
+    this.stats.drawCalls=this.renderer.info.render.calls;this.stats.drawTriangles=this.renderer.info.render.triangles;
     this.drawWeapon();
   }
 
@@ -626,13 +866,16 @@ class WebGLBreachRenderer {
     this.updateTeammates(dt,advancing);
     for(const enemy of state.enemies){
       let visual=this.enemyVisuals.get(enemy.id);
+      if(!inEntityRange(enemy,state.player,this.entityRange)){if(visual){visual.sprite.visible=false;visual.shadow.visible=false;}continue;}
       if(!visual){
         const material=this.material(new THREE.SpriteMaterial({map:(this.enemyFrames[enemy.type]||this.enemyFrames.runner)[0],transparent:true,alphaTest:.25,depthWrite:true}));
         const sprite=new THREE.Sprite(material);sprite.center.set(.5,0);this.scene.add(sprite);
-        const shadow=new THREE.Mesh(this.geometry(new THREE.CircleGeometry(.27,12)),this.material(new THREE.MeshBasicMaterial({color:0x050b10,transparent:true,opacity:.45,depthWrite:false})));
+        if(!this.enemyShadowGeometry){this.enemyShadowGeometry=this.geometry(new THREE.CircleGeometry(.27,12));this.enemyShadowMaterial=this.material(new THREE.MeshBasicMaterial({color:0x050b10,transparent:true,opacity:.45,depthWrite:false}));}
+        const shadow=new THREE.Mesh(this.enemyShadowGeometry,this.enemyShadowMaterial);
         shadow.rotation.x=-Math.PI/2;this.scene.add(shadow);
         visual={sprite,shadow,x:enemy.x,z:enemy.z,phase:hash(enemy.x,enemy.z)*5};this.enemyVisuals.set(enemy.id,visual);
       }
+      visual.sprite.visible=true;visual.shadow.visible=true;
       const dead=enemy.alive===false||enemy.health<=0;
       const speed=Math.hypot(enemy.x-visual.x,enemy.z-visual.z)/Math.max(dt,.001);
       visual.x=enemy.x;visual.z=enemy.z;
@@ -653,9 +896,10 @@ class WebGLBreachRenderer {
     }
     for(const pickup of state.pickups){
       let sprite=this.pickupVisuals.get(pickup.id);
+      if(pickup.collected||!inEntityRange(pickup,state.player,this.entityRange)){if(sprite)sprite.visible=false;continue;}
       if(!sprite){
         sprite=new THREE.Sprite(this.material(new THREE.SpriteMaterial({map:this.pickupMaps[pickup.type]||this.pickupMaps.ammo,transparent:true,alphaTest:.25})));
-        sprite.scale.setScalar(pickup.type==='shotgun'?.78:.56);this.scene.add(sprite);this.pickupVisuals.set(pickup.id,sprite);
+        sprite.scale.setScalar(pickup.type==='shotgun'?.78:pickup.type==='healthExpansion'?.7:.56);this.scene.add(sprite);this.pickupVisuals.set(pickup.id,sprite);
       }
       sprite.visible=!pickup.collected;
       sprite.position.set(pickup.x,.35+(this.options.reducedMotion?0:Math.sin(this.clock*2.4+pickup.x)*.035),pickup.z);
@@ -665,11 +909,14 @@ class WebGLBreachRenderer {
       const target=door.open?1:0;
       visual.amount+=clamp(target-visual.amount,-dt*1.7,dt*1.7);
       visual.mesh.position.y=WALL_HEIGHT/2+visual.amount*2.7;
-      visual.mesh.visible=visual.amount<.99;
+      visual.mesh.visible=visual.amount<.99&&inEntityRange(door,state.player,this.entityRange);
     }
+    const featureEntities=new Map((state.interactables||[]).map(item=>[item.id,item]));
     for(const [id,feature]of this.featureVisuals){
-      if(!feature.beacon)continue;
-      const entity=state.interactables.find(item=>item.id===id);
+      const entity=featureEntities.get(id);if(!entity)continue;
+      const visible=inEntityRange(entity,state.player,this.entityRange);(feature.group||feature.sprite).visible=visible;
+      if(feature.station){if(visible)feature.sprite.material.map=feature.maps[featureMode(entity,state)];continue;}
+      if(!feature.beacon||!visible)continue;
       const on=feature.type==='power'?state.power:feature.type==='relay'?!!entity?.used:exitReady(state);
       feature.screen.material.map=on?feature.maps.on:feature.maps.off;
       if(feature.type==='power')feature.beacon.material.color.setHex(on?0x8affd0:0xffb25a);
@@ -683,6 +930,7 @@ class WebGLBreachRenderer {
       let sprite=this.projectileVisuals.get(projectile.id);
       if(!sprite){sprite=new THREE.Sprite(this.material(new THREE.SpriteMaterial({map:this.plasmaMap,transparent:true,depthWrite:false,blending:THREE.AdditiveBlending})));sprite.scale.setScalar(.22);this.scene.add(sprite);this.projectileVisuals.set(projectile.id,sprite);}
       sprite.position.set(projectile.x,projectile.y??1.02,projectile.z);
+      sprite.visible=inEntityRange(projectile,state.player,this.entityRange);
     }
     for(const[id,sprite]of this.projectileVisuals)if(!projectileIds.has(id)){this.scene.remove(sprite);this.projectileVisuals.delete(id);this.materials.delete(sprite.material);sprite.material.dispose();}
     for(let i=this.impacts.length-1;i>=0;i--){
@@ -784,6 +1032,7 @@ class SoftwareBreachRenderer {
   constructor(canvas,game,options={}){
     this.canvas=canvas;this.game=game;this.options={quality:'auto',fov:null,reducedMotion:false,...options};
     this.visuals=missionVisuals(game.level);
+    this.layout=surfaceLayout(game.level,this.visuals.underworks);this.stats={...this.layout.stats,viewDepth:VIEW_DEPTH,maxRaySteps:160};
     this.mode='software';this.isSoftware=true;this.clock=0;this.recoil=0;this.flash=0;
     this.bobPhase=0;this.moveAmount=0;this.weaponSwap=0;this.lastWeapon=game.state.player.weapon;
     this.lastX=game.state.player.x;this.lastZ=game.state.player.z;this.hitAt=new Map();this.impacts=[];
@@ -802,18 +1051,23 @@ class SoftwareBreachRenderer {
     Object.assign(this.weaponCanvas.style,{position:'absolute',inset:'0',width:'100%',height:'100%',zIndex:'2',pointerEvents:'none',imageRendering:'pixelated'});
     canvas.parentElement.appendChild(this.weaponCanvas);this.weaponContext=this.weaponCanvas.getContext('2d');
     const image=(texture)=>{this.textures.push(texture);return texture.image;};
-    this.wallImage=image(makeWallTexture(0,this.visuals.relay,this.visuals.crosslink));
-    this.floorImage=image(makeFloorTexture(false,this.visuals.relay,this.visuals.crosslink));this.ceilingImage=image(makeFloorTexture(true,this.visuals.relay,this.visuals.crosslink));
-    this.floorPixels=this.floorImage.getContext('2d').getImageData(0,0,64,64).data;
-    this.ceilingPixels=this.ceilingImage.getContext('2d').getImageData(0,0,64,64).data;
-    this.doorImages={plain:image(makeDoorTexture(null,this.visuals)),key:image(makeDoorTexture('key',this.visuals)),power:image(makeDoorTexture('power',this.visuals)),relays:image(makeDoorTexture('relays',this.visuals))};
+    this.wallImages=this.layout.names.map(name=>image(this.visuals.underworks?makeSectorWallTexture(name):makeWallTexture(0,this.visuals.relay,this.visuals.crosslink)));
+    this.floorPixelsByPalette=this.layout.names.map(name=>image(this.visuals.underworks?makeSectorFloorTexture(name):makeFloorTexture(false,this.visuals.relay,this.visuals.crosslink)).getContext('2d').getImageData(0,0,64,64).data);
+    this.ceilingPixelsByPalette=this.layout.names.map(name=>image(this.visuals.underworks?makeSectorFloorTexture(name,true):makeFloorTexture(true,this.visuals.relay,this.visuals.crosslink)).getContext('2d').getImageData(0,0,64,64).data);
+    this.hazardPixels=this.visuals.underworks?[null,...['flood','conduit'].map(type=>image(makeHazardTexture(type)).getContext('2d').getImageData(0,0,64,64).data)]:[null];
+    this.doorImages={};for(const kind of new Set(['plain',...game.state.doors.map(doorKind)]))this.doorImages[kind]=image(makeDoorTexture(kind,this.visuals));
+    this.doorCells=new Array(game.level.width*game.level.height).fill(null);
     this.enemyFrames={};for(const type of ['runner','spitter','brute'])this.enemyFrames[type]=Array.from({length:7},(_,i)=>image(drawEnemy(type,i)));
-    this.pickupImages={};for(const type of ['ammo','shells','health','armor','shotgun','key'])this.pickupImages[type]=image(makePickupTexture(type));
+    this.pickupImages={};for(const type of ['ammo','shells','health','armor','shotgun','key','healthExpansion'])this.pickupImages[type]=image(makePickupTexture(type));
     this.plasmaImage=image(makeGlowTexture('#7fe8b1','#e6ffb5'));
     this.impactImage=image(makeGlowTexture('#f8aa58','#fff0b0'));
     this.powerImages={off:this.featureImage('power',false),on:this.featureImage('power',true)};
     this.exitImages={off:this.featureImage('exit',false),on:this.featureImage('exit',true)};
     this.relayImages=new Map((game.state.interactables||[]).filter(item=>item.type==='relay').map(item=>[item.id,{off:this.featureImage('relay',false,relayTitle(item)),on:this.featureImage('relay',true,relayTitle(item))}]));
+    this.stationImages=new Map();for(const item of game.state.interactables||[])if(explorationFeature(item)){
+      const key=`${item.type}:${item.upgrade||''}`;
+      if(!this.stationImages.has(key))this.stationImages.set(key,Array.from({length:item.type==='transit'?3:2},(_,mode)=>image(makeStationTexture(item,mode))));
+    }
     this.secretImage=image(makeSign('MAINT.','AUTHORIZED STAFF','#87948d'));
     this.zoneSigns=[];
     for(const [index,zone] of (game.level.zones||[]).entries()){
@@ -822,11 +1076,16 @@ class SoftwareBreachRenderer {
         if(this.solid(x,z))continue;
         for(const[dx,dz]of [[0,-1],[-1,0],[0,1],[1,0]])if(this.solid(x+dx,z+dz)){
           const score=Math.hypot(x-cx,z-cz)+(dz===-1?0:2);
-          if(!best||score<best.score)best={x:x+.5+dx*.45,z:z+.5+dz*.45,score};
+          if(!best||score<best.score)best={x:x+.5+dx*.45,z:z+.5+dz*.45,dx,dz,score};
         }
       }
-      if(best)this.zoneSigns.push({...best,image:image(makeSign(zone.name,`${this.visuals.signCode} / SECTOR ${String(index+1).padStart(2,'0')}`,this.visuals.signColor))});
+      if(best)this.zoneSigns.push({...best,width:this.visuals.underworks?1.15:.88,height:this.visuals.underworks?.36:.275,bottom:this.visuals.underworks?1.65:1.69,image:image(makeSign(zoneTitle(zone,this.visuals),`${this.visuals.signCode} / SECTOR ${String(index+1).padStart(2,'0')}`,this.visuals.underworks?SECTORS[zone.palette]?.accent||this.visuals.signColor:this.visuals.signColor))});
     }
+    this.stats.textureSourceBytes=this.textures.reduce((sum,texture)=>sum+(texture.image?.width||0)*(texture.image?.height||0)*4,0);
+    this.stats.textureSourceBytes+=(4+2*this.relayImages.size)*96*128*4;
+    this.stats.textureReadbackBytes=[...this.floorPixelsByPalette,...this.ceilingPixelsByPalette,...this.hazardPixels.filter(Boolean)].reduce((sum,pixels)=>sum+pixels.byteLength,0);
+    this.stats.cellLookupBytes=this.layout.indices.byteLength+this.layout.hazards.byteLength;
+    for(const key of['walls','lights','runs','rails'])delete this.layout[key];
     this.enemyMotion=new Map();this.resize();
   }
 
@@ -834,9 +1093,12 @@ class SoftwareBreachRenderer {
 
   getTeammateFrames(id){
     const team=id==='p2'?'p2':'p1';
-    if(!this.teammateFrames[team])this.teammateFrames[team]=Object.fromEntries(['front','back','right','left'].map(direction=>[direction,Array.from({length:6},(_,frame)=>{
-      const texture=drawTeammate(team,direction,frame);this.textures.push(texture);return texture.image;
-    })]));
+    if(!this.teammateFrames[team]){
+      this.teammateFrames[team]=Object.fromEntries(['front','back','right','left'].map(direction=>[direction,Array.from({length:6},(_,frame)=>{
+        const texture=drawTeammate(team,direction,frame);this.textures.push(texture);return texture.image;
+      })]));
+      if(this.stats.textureSourceBytes)this.stats.textureSourceBytes+=24*80*112*4;
+    }
     return this.teammateFrames[team];
   }
 
@@ -846,7 +1108,7 @@ class SoftwareBreachRenderer {
     rect(c,31,68,35,60,'#293c45');rect(c,33,69,5,59,'#6a7e7b');
     rect(c,39,80,21,3,'#182c36');rect(c,39,87,21,3,'#182c36');rect(c,39,94,21,3,'#182c36');
     rect(c,8,37,80,34,'#101f28');rect(c,8,37,80,3,color);rect(c,12,41,72,2,'#354d54');
-    c.font='bold 9px monospace';c.fillStyle=color;c.textAlign='center';c.fillText((title||(type==='power'?(this.visuals.crosslink?'LINK POWER':this.visuals.relay?'RING POWER':'AUX POWER'):'EXTRACTION')).slice(0,13),48,54);
+    c.font='bold 9px monospace';c.fillStyle=color;c.textAlign='center';c.fillText((title||(type==='power'?(this.visuals.underworks?'CORE POWER':this.visuals.crosslink?'LINK POWER':this.visuals.relay?'RING POWER':'AUX POWER'):'EXTRACTION')).slice(0,13),48,54);
     c.font='6px monospace';c.fillStyle='#b5c3b4';c.fillText(on?(type==='relay'?'SYNCHRONIZED':'SYSTEM ONLINE'):type==='relay'?'NODE OFFLINE':type==='power'?'RESTORE GRID':'CLEARANCE REQUIRED',48,65);
     rect(c,43,19,11,12,color);rect(c,46,16,5,18,on?'#d2f0c5':'#f4cf86');
     if(type==='exit'){rect(c,2,12,3,116,color);rect(c,91,12,3,116,color);rect(c,2,10,92,3,color);}
@@ -880,6 +1142,8 @@ class SoftwareBreachRenderer {
     this.fov=this.fieldOfView*Math.PI/180;
     this.projection=h/(2*Math.tan(this.fov/2));
     this.planeLength=w/(2*this.projection);
+    this.entityRange=VIEW_DEPTH*Math.sqrt(1+this.planeLength*this.planeLength)+2;
+    this.stats.pixelCount=w*h;this.stats.frameBufferBytes=this.floorBuffer.data.byteLength+this.depth.byteLength;
   }
 
   setOptions(options={}){Object.assign(this.options,options);this.resize();}
@@ -911,12 +1175,13 @@ class SoftwareBreachRenderer {
     this.forwardX=Math.sin(angle);this.forwardZ=-Math.cos(angle);this.rightX=Math.cos(angle);this.rightZ=Math.sin(angle);
     this.eye=(state.status==='dead'||p.alive===false||p.health<=0)? .65:EYE_HEIGHT;
     this.horizon=Math.round(this.height/2+(this.options.reducedMotion||state.status!=='playing'?0:Math.sin(this.bobPhase)*this.moveAmount*1.2));
-    this.drawPlanes(p);this.drawWalls(p);this.drawSprites(dt,advancing,p);
+    this.drawPlanes(p);this.drawWalls(p);this.drawWallSigns(p);this.drawSprites(dt,advancing,p);
     WebGLBreachRenderer.prototype.drawWeapon.call(this);
   }
 
   drawPlanes(p){
     const data=this.floorBuffer.data,w=this.width,h=this.height;
+    const level=this.game.level,sectorCells=this.layout.indices,hazardCells=this.layout.hazards,underworks=this.visuals.underworks;
     const [fogR,fogG,fogB]=this.visuals.fogRgb;
     const lx=this.forwardX-this.rightX*this.planeLength,lz=this.forwardZ-this.rightZ*this.planeLength;
     const stepDirectionX=2*this.rightX*this.planeLength/w,stepDirectionZ=2*this.rightZ*this.planeLength/w;
@@ -924,7 +1189,7 @@ class SoftwareBreachRenderer {
       const isFloor=y>=this.horizon;
       const screenDistance=Math.abs(y-this.horizon)+.5;
       const distance=(isFloor?this.eye:WALL_HEIGHT-this.eye)*this.projection/screenDistance;
-      const texture=isFloor?this.floorPixels:this.ceilingPixels;
+      const textures=isFloor?this.floorPixelsByPalette:this.ceilingPixelsByPalette,baseTexture=textures[0];
       const shade=(isFloor?.96:.78)*(1-clamp(distance/27,0,.88));
       const fog=clamp(distance/27,0,.88);
       const stepX=distance*stepDirectionX,stepZ=distance*stepDirectionZ;
@@ -932,6 +1197,8 @@ class SoftwareBreachRenderer {
       let offset=y*w*4;
       for(let x=0;x<w;x++){
         const tx=Math.floor(worldX*32)&63,tz=Math.floor(worldZ*32)&63,index=(tz*64+tx)*4;
+        const cell=underworks&&worldX>=0&&worldZ>=0&&worldX<level.width&&worldZ<level.height?Math.floor(worldZ)*level.width+Math.floor(worldX):-1;
+        const texture=cell<0?baseTexture:isFloor&&hazardCells[cell]?this.hazardPixels[hazardCells[cell]]:textures[sectorCells[cell]];
         data[offset]=texture[index]*shade+fogR*fog;
         data[offset+1]=texture[index+1]*shade+fogG*fog;
         data[offset+2]=texture[index+2]*shade+fogB*fog;
@@ -944,7 +1211,9 @@ class SoftwareBreachRenderer {
   drawWalls(p){
     const c=this.context,w=this.width,h=this.height,level=this.game.level;
     const fogRgb=this.visuals.fogRgb.join(',');
-    const closed=new Map(this.game.state.doors.filter(d=>!d.open).map(d=>[`${Math.floor(d.x)},${Math.floor(d.z)}`,d]));
+    const closed=this.doorCells;closed.fill(null);
+    for(const door of this.game.state.doors)if(!door.open)closed[Math.floor(door.z)*level.width+Math.floor(door.x)]=door;
+    let traversed=0,maxSteps=0;
     for(let column=0;column<w;column++){
       const cameraX=2*(column+.5)/w-1;
       const rayX=this.forwardX+this.rightX*this.planeLength*cameraX,rayZ=this.forwardZ+this.rightZ*this.planeLength*cameraX;
@@ -953,18 +1222,24 @@ class SoftwareBreachRenderer {
       const stepX=rayX<0?-1:1,stepZ=rayZ<0?-1:1;
       let nextX=(rayX<0?p.x-mapX:mapX+1-p.x)*deltaX;
       let nextZ=(rayZ<0?p.z-mapZ:mapZ+1-p.z)*deltaZ;
-      let side=0,distance=40,door=null;
-      for(let step=0;step<100;step++){
+      let side=0,distance=VIEW_DEPTH,door=null,hit=false,steps=0;
+      const stepLimit=Math.min(160,Math.ceil(VIEW_DEPTH*(Math.abs(rayX)+Math.abs(rayZ)))+2);
+      for(let step=0;step<stepLimit;step++){
+        steps++;
         if(nextX<nextZ){distance=nextX;nextX+=deltaX;mapX+=stepX;side=0;}
         else{distance=nextZ;nextZ+=deltaZ;mapZ+=stepZ;side=1;}
-        door=closed.get(`${mapX},${mapZ}`);
-        if(door||this.solid(mapX,mapZ))break;
+        if(distance>VIEW_DEPTH)break;
+        door=closed[mapZ*level.width+mapX];
+        if(door||this.solid(mapX,mapZ)){hit=true;break;}
       }
+      traversed+=steps;maxSteps=Math.max(maxSteps,steps);
+      if(!hit){this.depth[column]=VIEW_DEPTH;continue;}
       distance=Math.max(.035,distance);this.depth[column]=distance;
       const wallHeight=WALL_HEIGHT*this.projection/distance;
       const top=this.horizon-(WALL_HEIGHT-this.eye)*this.projection/distance;
       let wallX=side===0?p.z+distance*rayZ:p.x+distance*rayX;wallX-=Math.floor(wallX);
-      const texture=door?this.doorImages[door.requires||'plain']||this.doorImages.plain:this.wallImage;
+      const sector=this.layout.paletteAt(mapX-(side===0?stepX:0),mapZ-(side===1?stepZ:0));
+      const texture=door?this.doorImages[doorKind(door)]||this.doorImages.plain:this.wallImages[sector];
       let texX=Math.floor(wallX*texture.width);
       // U must increase from screen-left to screen-right. Our camera's right
       // vector is (cos(angle), sin(angle)): west/south faces need the reversal,
@@ -975,14 +1250,16 @@ class SoftwareBreachRenderer {
       c.fillStyle=`rgba(${fogRgb},${shade.toFixed(2)})`;
       c.fillRect(column,Math.max(0,top),1,Math.min(h,top+wallHeight)-Math.max(0,top));
     }
+    this.stats.raySteps=traversed;this.stats.lastMaxRaySteps=maxSteps;
   }
 
   drawSprites(dt,advancing,p){
     const sprites=[];const state=this.game.state;
     const add=(image,x,z,width,height,bottom=0,additive=false)=>{
       const dx=x-p.x,dz=z-p.z,depth=dx*this.forwardX+dz*this.forwardZ;
-      if(depth<=.06||depth>28)return;
-      sprites.push({image,x,z,width,height,bottom,depth,side:dx*this.rightX+dz*this.rightZ,additive});
+      const side=dx*this.rightX+dz*this.rightZ;
+      if(depth<=.06||depth>VIEW_DEPTH||Math.abs(side)>depth*this.planeLength+width)return;
+      sprites.push({image,x,z,width,height,bottom,depth,side,additive});
     };
     const present=new Set();
     for(const[id,player]of otherPlayers(state)){
@@ -993,6 +1270,7 @@ class SoftwareBreachRenderer {
     }
     for(const id of this.teammateMotion.keys())if(!present.has(id)){this.teammateMotion.delete(id);this.teammateFireAt.delete(id);}
     for(const enemy of state.enemies){
+      if(!inEntityRange(enemy,p,this.entityRange))continue;
       let motion=this.enemyMotion.get(enemy.id);
       if(!motion){motion={x:enemy.x,z:enemy.z,phase:hash(enemy.x,enemy.z)*5};this.enemyMotion.set(enemy.id,motion);}
       const speed=Math.hypot(enemy.x-motion.x,enemy.z-motion.z)/Math.max(.001,dt);motion.x=enemy.x;motion.z=enemy.z;
@@ -1007,11 +1285,16 @@ class SoftwareBreachRenderer {
       add((this.enemyFrames[enemy.type]||this.enemyFrames.runner)[frame],enemy.x,enemy.z,height*80/112,height,.015);
     }
     for(const pickup of state.pickups)if(!pickup.collected){
-      const size=pickup.type==='shotgun'?.78:.56;
+      const size=pickup.type==='shotgun'?.78:pickup.type==='healthExpansion'?.7:.56;
       const bob=this.options.reducedMotion?0:Math.sin(this.clock*2.4+pickup.x)*.035;
       add(this.pickupImages[pickup.type]||this.pickupImages.ammo,pickup.x,pickup.z,size,size,.35-size/2+bob);
     }
     for(const feature of state.interactables||[]){
+      if(explorationFeature(feature)){
+        const frames=this.stationImages.get(`${feature.type}:${feature.upgrade||''}`);
+        if(frames)add(frames[featureMode(feature,state)],feature.x,feature.z,1.19,1.7,.015);
+        continue;
+      }
       if(feature.type==='power')add(state.power?this.powerImages.on:this.powerImages.off,feature.x,feature.z,1.05,1.5);
       if(feature.type==='relay'){
         const images=this.relayImages.get(feature.id);
@@ -1020,7 +1303,6 @@ class SoftwareBreachRenderer {
       if(feature.type==='exit')add(exitReady(state)?this.exitImages.on:this.exitImages.off,feature.x,feature.z,1.1,1.6);
       if(feature.type==='secret')add(this.secretImage,feature.x,feature.z,.55,.17,1.26);
     }
-    for(const sign of this.zoneSigns)add(sign.image,sign.x,sign.z,.88,.275,1.69);
     for(const projectile of state.projectiles||[])add(this.plasmaImage,projectile.x,projectile.z,.22,.22,(projectile.y??1.02)-.11,true);
     for(let i=this.impacts.length-1;i>=0;i--){
       const impact=this.impacts[i];if(advancing)impact.life-=dt;
@@ -1050,6 +1332,28 @@ class SoftwareBreachRenderer {
       }
     }
     c.globalAlpha=1;c.globalCompositeOperation='source-over';
+  }
+
+  drawWallSigns(p){
+    // A wall sign is a plane, not a billboard. Per-column perspective depth
+    // prevents angled lettering from clipping into the wall behind it.
+    const c=this.context,w=this.width;
+    for(const sign of this.zoneSigns){
+      if((p.x-sign.x)*-sign.dx+(p.z-sign.z)*-sign.dz<=0)continue;
+      const tx=-sign.dz*sign.width/2,tz=sign.dx*sign.width/2;
+      const ax=sign.x-tx-p.x,az=sign.z-tz-p.z,bx=sign.x+tx-p.x,bz=sign.z+tz-p.z;
+      const da=ax*this.forwardX+az*this.forwardZ,db=bx*this.forwardX+bz*this.forwardZ;
+      if(da<=.04||db<=.04||Math.min(da,db)>VIEW_DEPTH)continue;
+      const left=w/2+(ax*this.rightX+az*this.rightZ)*this.projection/da;
+      const right=w/2+(bx*this.rightX+bz*this.rightZ)*this.projection/db;
+      if(right<=left)continue;
+      for(let x=Math.max(0,Math.floor(left));x<Math.min(w,Math.ceil(right));x++){
+        const t=clamp((x+.5-left)/(right-left),0,1),inverse=(1-t)/da+t/db,depth=1/inverse;
+        if(depth>this.depth[x]+.015)continue;
+        const u=clamp(t/db/inverse,0,.9999),top=this.horizon+(this.eye-sign.bottom-sign.height)*this.projection/depth;
+        c.drawImage(sign.image,Math.floor(u*sign.image.width),0,1,sign.image.height,x,top,1,sign.height*this.projection/depth);
+      }
+    }
   }
 
   dispose(){

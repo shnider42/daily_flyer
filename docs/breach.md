@@ -1,7 +1,7 @@
 # BREACH — DailyFlyer Arcade
 
-An original retro first-person game built on DailyFlyer. Single player; all
-movement, combat, sound, rendering, and saves run in the browser.
+An original retro first-person game built on DailyFlyer. Solo play runs in the
+browser; private two-player co-op uses an authoritative room server.
 
 ## Run and publish
 
@@ -44,6 +44,12 @@ It supports solo play and is the first operation available in private two-player
 co-op. Choose Play with a friend to create or join a room; see
 [private co-op](breach-multiplayer.md) for joining, shared pause, and checkpoint rules.
 
+The Underworks is a large fourth operation, playable solo or in co-op. Explore
+nine connected sectors, recover three permanent traversal tools, return through
+newly opened shortcuts, and reconnect the reactor before returning to the
+arrival lift. See [The Underworks](breach-underworks.md) for its exploration,
+refuges, transit links, and expanded map.
+
 Desktop uses WASD movement, mouse look (or click-and-drag when pointer lock is
 unavailable), firing, E interaction, and the pause menu. The game displays its
 current control bindings. Touch uses the left movement pad and right-side aiming;
@@ -68,7 +74,7 @@ such as `?mission=relay-09`, selects its briefing without starting it.
 ## Validation
 
 ```sh
-node tests/breach-core.test.mjs
+npm run test:breach
 python -m unittest discover -s tests -p test_breach_export.py
 ```
 
@@ -176,11 +182,49 @@ existing solo Continue record. Portrait 393×852 and landscape 852×393 layouts
 were inspected with touch controls. These browser checks use the software
 renderer; physical-device latency and WebGL performance still need playtesting.
 
+## 0.4.0 — The Underworks
+
+- Added an authored 81×81 exploration world with nine connected sectors,
+  3,504 walkable tiles, 40 enemies, and a reactor guardian.
+- Added permanent cutter, insulator, and phase upgrades that open several
+  routes each, including return shortcuts and optional supply caches.
+- Added eight reusable refuge checkpoints, four paired transit routes, and a
+  hidden +25 maximum-health expansion. Transit moves only its acting operator;
+  upgrades and the health expansion benefit the whole co-op team.
+- Added a paused, zoomable map with local and facility views, sector navigation,
+  discovered landmarks, upgrade markers, and survey progress. Opening the large
+  map pauses the team in co-op; both operators resume together afterward.
+- Added distinct sector palettes and station artwork to both rendering paths.
+  The large map uses exposed wall faces, spatial rendering batches, and bounded
+  distant-enemy work to keep its larger footprint practical.
+- Added Underworks room selection and protocol 2, so a cached older client
+  cannot join a mission whose geometry it does not recognize.
+
+Validation: **89 JavaScript tests and three Python export tests pass**. New
+coverage walks the entire Underworks in both relay orders, including the
+upgrade-gated return loops, health annex, a live standard-difficulty guardian,
+transit back to arrival, and extraction. Ordinary enemies are disabled in those
+route checks; separate authored opening encounters exercise normal solo and
+two-player combat. Tests also cover permanent progress after retry/restore,
+rejection of inconsistent saves, shared health and equipment, actor-only transit,
+refuge revival, and refusing refuge use while either operator faces a ranged
+attack or an incoming projectile. Renderer tests inspect actual Three.js geometry
+and state changes in both paths without claiming a measured GPU frame rate.
+
+Browser QA at 393×852 and 852×393 verifies the map, sector navigation, zoom/pan,
+phase-module acquisition, reusable refuge healing to 125 HP, reactor-return
+transit, lift unlock, and extraction using validated local test saves. A desktop
+room check with a real WebSocket teammate verifies Underworks selection/start,
+shared transit activation, map pause, both-player resume, and solo-save isolation.
+These checks use the software renderer. Physical-phone input latency, sustained
+GPU performance, and the full expedition's combat pacing still need playtesting.
+
 ## Scope
 
-The game contains three authored missions, two weapons, three enemy roles,
+The game contains four authored missions, two weapons, three enemy roles,
 power/key progression, relay objectives, optional secrets, checkpoints, and
-results screens. Private two-player co-op is available for Crosslink. Shared
+results screens. Private two-player co-op is available for Crosslink and The
+Underworks. Shared
 leaderboards, accounts, public matchmaking, and a procedural campaign would
 require separate design and validation.
 

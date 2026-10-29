@@ -1,7 +1,9 @@
-# BREACH co-op implementation contract (0.3)
+# BREACH co-op implementation contract (0.4)
 
 The first release uses private two-player rooms and a server-authoritative
-simulation over WebSocket. The compact third mission is Crosslink (`crosslink-11`).
+simulation over WebSocket. Crosslink (`crosslink-11`) and The Underworks
+(`underworks-13`) support co-op. Protocol 2 rejects older clients that do not know
+the expanded mission and progression model before they can join.
 Solo saves remain owned by the existing single-player flow.
 
 ## Ownership
@@ -33,25 +35,32 @@ changes. Input consumption never runs the world more than once per server tick.
 Personal events carry `playerId` (`shot`, `hit`, `hurt`, `pickup`, `death`/`downed`).
 Shared events such as `door`, `relay`, `power`, `checkpoint`, `win` remain shared.
 
-Power, key, doors, and relays are team progress. Health/ammo/weapons are personal;
+Power, key, doors, relays, and Underworks upgrades are team progress. The
+Underworks health expansion increases both players' maximum health. Ordinary
+health/ammo/weapons are personal;
 pickups are awarded once. Both players begin with pistol and scattergun in co-op
 so the original single weapon pickup cannot lock out a teammate. Friendly fire
 and player body blocking are off. One downed player waits for the next shared
 checkpoint, which revives the team; both down ends the attempt and exposes a
 shared checkpoint retry. Extraction completes for the team.
 
+The Underworks adds shared `upgrades: {cutter,insulator,phase}` and `healthBonus`
+state. Refuge and transit discovery uses interactable `used` flags. Refuges are
+repeatable checkpoints after nearby enemies are cleared; transit moves only the
+operative who activated it. See [The Underworks](breach-underworks.md).
+
 ## Connection and messages
 
 Endpoint: `/ws`. Client connects using the configured co-op service URL (convert
-https to wss), or current origin on the standalone room service. Protocol is 1.
+https to wss), or current origin on the standalone room service. Protocol is 2.
 Maximum two players per room. IDs are `p1`/`p2`; the server returns unguessable
 reconnect tokens, never included in invite links or broadcast room records.
 
 Client -> server:
 
 ```
-{type:'create',protocol:1,name,mission:'crosslink-11',difficulty:'standard'}
-{type:'join',protocol:1,roomId,name,token?}
+{type:'create',protocol:2,name,mission:'crosslink-11',difficulty:'standard'}
+{type:'join',protocol:2,roomId,name,token?}
 {type:'ready',ready:true}
 {type:'start'}                         // owner only; both ready and connected
 {type:'input',seq,forward,strafe,angle,fire,aimAssist?}
@@ -67,7 +76,7 @@ Client -> server:
 Server -> client:
 
 ```
-{type:'welcome',protocol:1,roomId,selfId,ownerId,token}
+{type:'welcome',protocol:2,roomId,selfId,ownerId,token}
 {type:'room',room:{id,mission,difficulty,status,ownerId,players:[
   {id,name,connected,ready}
 ],pauseReason,maxPlayers:2}}

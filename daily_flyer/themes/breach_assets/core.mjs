@@ -1,4 +1,5 @@
 // BREACH — original browser-local simulation. No DOM or graphics dependencies.
+import { UNDERWORKS } from './underworks.mjs';
 const TAU = Math.PI * 2;
 const clamp = (n, lo, hi) => Math.max(lo, Math.min(hi, n));
 const copy = (value) => JSON.parse(JSON.stringify(value));
@@ -252,11 +253,12 @@ function createCrosslinkLevel() {
   };
 }
 
-export const LEVELS = { 'blacksite-07': LEVEL, 'relay-09': createRelayLevel(), 'crosslink-11': createCrosslinkLevel() };
+export const LEVELS = { 'blacksite-07': LEVEL, 'relay-09': createRelayLevel(), 'crosslink-11': createCrosslinkLevel(), 'underworks-13': UNDERWORKS };
 export const MISSIONS = [
   { id: 'blacksite-07', levelId: LEVEL.id, name: 'Blacksite 07', number: '001', subtitle: 'The first breach', briefing: 'Emergency power is down. Enter the research facility, recover its security key, and reach extraction.', steps: ['Restore auxiliary power', 'Recover the security key', 'Reach extraction'] },
   { id: 'relay-09', levelId: LEVELS['relay-09'].id, name: 'Dead Relay', number: '002', subtitle: 'Bring the signal back', briefing: 'A silent communications station surrounds a sealed vault. Restore ring power, reconnect both relays, and recover the key to the extraction uplink.', steps: ['Restore ring power', 'Activate both relay consoles', 'Recover the vault key', 'Transmit the extraction signal'] },
   { id: 'crosslink-11', levelId: LEVELS['crosslink-11'].id, name: 'Crosslink', number: '003', subtitle: 'Two relays. One way out.', briefing: 'A compact relay facility has lost its uplink. Restore hub power, activate the western and eastern relays, and recover the vault key for extraction. Play solo or cover a teammate in a private co-op room.', steps: ['Restore hub power', 'Activate both relay consoles', 'Recover the vault key', 'Signal extraction'] },
+  { id: 'underworks-13', levelId: UNDERWORKS.id, name: 'The Underworks', number: '004', subtitle: 'An entire world beneath the breach', briefing: 'Explore nine connected sectors below the arrival lift. Recover the cutter, insulator and phase module to open new routes through familiar territory. Restore two distant relays, defeat the reactor guardian and bring its key back to the lift. Refuges and activated transit stations support the journey, solo or together.', steps: ['Restore central power', 'Recover three permanent upgrades', 'Reconnect both crown relays', 'Defeat the reactor guardian', 'Return to the arrival lift'] },
 ];
 export function getLevel(missionId = 'blacksite-07') { return Object.hasOwn(LEVELS, missionId) ? LEVELS[missionId] : LEVEL; }
 
@@ -300,12 +302,17 @@ export class Game {
       checkpoint: false, time: 0, kills: 0, shots: 0, hits: 0,
       tutorial: { moved: false, fired: false, interacted: false, weaponSwitched: false },
     };
+    if (this.level.exploration) {
+      this.state.upgrades = { cutter: false, insulator: false, phase: false };
+      this.state.healthBonus = 0;
+      this.state.player.maxHealth = 100;
+    }
   }
 
   start() {
     if (this.state.status === 'ready') {
       this.state.status = 'playing';
-      this._events.push({ type: 'message', text: this.level.missionId === 'crosslink-11' ? 'Crosslink. Restore hub power and reconnect both relays.' : this.level.missionId === 'relay-09' ? 'Dead Relay. Restore power to the communications ring.' : 'Blacksite 07. Find the auxiliary generator.' });
+      this._events.push({ type: 'message', text: this.level.exploration ? 'The Underworks. Activate the lift transit, then find power in the central exchange.' : this.level.missionId === 'crosslink-11' ? 'Crosslink. Restore hub power and reconnect both relays.' : this.level.missionId === 'relay-09' ? 'Dead Relay. Restore power to the communications ring.' : 'Blacksite 07. Find the auxiliary generator.' });
     }
   }
   pause() { if (this.state.status === 'playing') this.state.status = 'paused'; }
@@ -320,7 +327,14 @@ export class Game {
   _wall(x, z) {
     const cx = Math.floor(x), cz = Math.floor(z);
     if (cx < 0 || cz < 0 || cx >= this.level.width || cz >= this.level.height || this.level.grid[cz][cx] === '#') return true;
-    return this.state.doors.some(d => !d.open && Math.floor(d.x) === cx && Math.floor(d.z) === cz);
+    // The client replaces state with fresh network snapshots. Detect the array
+    // identity lazily; each cached door reference still sees in-place opening.
+    if (this._doorSource !== this.state.doors) {
+      this._doorSource = this.state.doors;
+      this._doorCells = new Map(this.state.doors.map(d => [`${Math.floor(d.x)},${Math.floor(d.z)}`, d]));
+    }
+    const door = this._doorCells.get(`${cx},${cz}`);
+    return Boolean(door && !door.open);
   }
 
   _clearCircle(x, z, radius) {
@@ -396,17 +410,27 @@ export class Game {
     const p = this.state.player;
     for (const item of this.state.pickups) {
       if (item.collected || distance(p, item) > .62 || !this.hasLineOfSight(p.x, p.z, item.x, item.z)) continue;
-      if (item.requires === 'relays' && !this._relaysReady()) continue;
-      if (item.type === 'health' && p.health >= 100 || item.type === 'armor' && p.armor >= 100) continue;
+      if (item.requires && !this._requirementMet(item.requires)) continue;
+      if (item.type === 'health' && p.health >= this._maxHealth(p) || item.type === 'armor' && p.armor >= 100) continue;
       item.collected = true;
       let text = '';
       if (item.type === 'ammo') { p.ammo.pistol += item.amount; text = `+${item.amount} pistol rounds`; }
       if (item.type === 'shells') { p.ammo.shells += item.amount; text = `+${item.amount} shotgun shells`; }
-      if (item.type === 'health') { p.health = Math.min(100, p.health + item.amount); text = `Health restored`; }
+      if (item.type === 'health') { p.health = Math.min(this._maxHealth(p), p.health + item.amount); text = `Health restored`; }
       if (item.type === 'armor') { p.armor = Math.min(100, p.armor + item.amount); text = `Armor reinforced`; }
       if (item.type === 'shotgun') { p.hasShotgun = true; p.weapon = 'shotgun'; p.ammo.shells += item.amount; text = 'Scattergun acquired. Devastating at close range.'; }
       if (item.type === 'key') { p.key = true; text = 'Security key recovered. Reach the extraction gate.'; }
+      if (item.type === 'healthExpansion') {
+        this.state.healthBonus = 25;
+        for (const recipient of Object.values(this.state.players || { solo: p })) {
+          recipient.maxHealth = 125;
+          if (recipient.alive !== false) recipient.health = Math.min(125, recipient.health + 25);
+        }
+        text = 'Medical expansion: maximum health increased to 125.';
+        this._events.push({ type: 'reward', id: item.id, text });
+      }
       this._events.push({ type: 'pickup', item: item.type, text });
+      if (item.type === 'key' || item.type === 'healthExpansion') this._syncPermanentProgress();
     }
   }
 
@@ -458,6 +482,7 @@ export class Game {
       if (enemy.health === 0) {
         enemy.alive = false; this.state.kills++;
         this._events.push({ type: 'kill', id: enemy.id, enemyType: enemy.type, x: enemy.x, z: enemy.z });
+        if (enemy.guardian) this._syncPermanentProgress();
       }
     }
     for (const enemy of this.state.enemies) if (enemy.alive && distance(p, enemy) < 7) enemy.active = true;
@@ -496,9 +521,15 @@ export class Game {
       enemy.hitTimer = Math.max(0, enemy.hitTimer - dt);
       if (!enemy.alive || this.state.status !== 'playing') return;
       enemy.attackCooldown = Math.max(0, enemy.attackCooldown - dt);
-      const d = distance(p, enemy), visible = this.hasLineOfSight(enemy.x, enemy.z, p.x, p.z);
+      const d = distance(p, enemy);
+      if (this.level.exploration && d > this.level.enemyAwarenessDistance) { enemy.active = false; return; }
+      const visible = this.hasLineOfSight(enemy.x, enemy.z, p.x, p.z);
       if (d < 9 && visible) enemy.active = true;
       if (!enemy.active) return;
+      if (this.level.exploration) {
+        enemy.alertTimer = visible ? 8 : Math.max(0, (enemy.alertTimer ?? 8) - dt);
+        if (enemy.alertTimer === 0) { enemy.active = false; return; }
+      }
       enemy.angle = Math.atan2(p.x - enemy.x, -(p.z - enemy.z));
       if (d < .8 && visible && enemy.attackCooldown === 0) {
         this._hurt(enemy.type === 'brute' ? 23 : enemy.type === 'runner' ? 10 : 8, enemy);
@@ -565,7 +596,7 @@ export class Game {
     const p = this.state.player;
     const candidates = [];
     for (const object of [...this.state.interactables, ...this.state.doors]) {
-      if (object.used || object.open || object.paired) continue;
+      if (object.used && !object.repeatable || object.open || object.paired) continue;
       const d = distance(p, object);
       if (d > 1.65) continue;
       // A door is solid; stop outside its cell. Consoles need full line of sight.
@@ -577,9 +608,75 @@ export class Game {
     return candidates[0]?.object ?? null;
   }
 
+  _maxHealth(player = this.state.player) { return player.maxHealth || 100; }
+
+  _requirementMet(requirement) {
+    if (!requirement) return true;
+    if (requirement === 'power') return this.state.power;
+    if (requirement === 'key') return this.state.power && this.state.player.key && this._relaysReady();
+    if (requirement === 'relays') return this.state.power && this._relaysReady();
+    if (requirement === 'secret') return this.state.secretFound;
+    if (requirement === 'guardian') return this.state.power && this._relaysReady() && this.state.enemies.some(e => e.id === this.level.guardianId && !e.alive);
+    return ['cutter', 'insulator', 'phase'].includes(requirement) && this.state.upgrades?.[requirement] === true;
+  }
+
+  canOpenDoor(door) { return Boolean(door && (door.open || this._requirementMet(door.requires))); }
+  canTraverseDoor(door) { return Boolean(door && (door.open || !door.secret && this.canOpenDoor(door))); }
+
+  _refugeSafe(station) {
+    const living = Object.values(this.state.players || { solo: this.state.player }).filter(p => p.alive !== false);
+    const hostile = this.state.enemies.some(enemy => enemy.alive && (
+      distance(enemy, station) < 8 && this.hasLineOfSight(enemy.x, enemy.z, station.x, station.z)
+      || living.some(p => distance(enemy, p) < (enemy.type === 'spitter' ? 10 : 6) && this.hasLineOfSight(enemy.x, enemy.z, p.x, p.z))));
+    // A projectile remains dangerous after its shooter dies. Rest must not erase
+    // an incoming hit or continually refill a teammate in a ranged encounter.
+    const incoming = this.state.projectiles.some(shot => shot.life > 0 && living.some(p => distance(shot, p) < 10 && this.hasLineOfSight(shot.x, shot.z, p.x, p.z)));
+    return !hostile && !incoming;
+  }
+
+  _replenishAtStation() {
+    const p = this.state.player;
+    p.health = this._maxHealth(p); p.armor = Math.max(50, p.armor);
+    p.ammo.pistol = Math.max(60, p.ammo.pistol); p.ammo.shells = Math.max(16, p.ammo.shells);
+    this.state.projectiles = []; this.state.effects = [];
+  }
+
+  _syncPermanentProgress() {
+    if (!this.level.exploration || !this._checkpoint) return;
+    // Keep capabilities, routes and discoveries on checkpoint retry while the
+    // checkpoint continues to own respawn positions and consumable supplies.
+    const saved = this._checkpoint.state || this._checkpoint;
+    saved.upgrades = copy(this.state.upgrades); saved.healthBonus = this.state.healthBonus;
+    saved.power = this.state.power; saved.secretFound = this.state.secretFound;
+    for (const door of saved.doors) door.open ||= this.state.doors.find(current => current.id === door.id).open;
+    for (const object of saved.interactables) {
+      const current = this.state.interactables.find(i => i.id === object.id);
+      if (current.type !== 'exit') object.used ||= current.used;
+    }
+    for (const item of this.state.pickups) if (['key', 'healthExpansion'].includes(item.type) && item.collected) saved.pickups.find(current => current.id === item.id).collected = true;
+    const teamKey = this.state.pickups.find(item => item.type === 'key')?.collected === true;
+    for (const p of Object.values(saved.players || { solo: saved.player })) {
+      p.maxHealth = 100 + this.state.healthBonus; p.key = teamKey;
+    }
+    const guardian = this.state.enemies.find(e => e.id === this.level.guardianId);
+    const savedGuardian = saved.enemies.find(e => e.id === this.level.guardianId);
+    if (guardian && !guardian.alive && savedGuardian?.alive) {
+      Object.assign(savedGuardian, copy(guardian)); saved.kills++;
+    }
+  }
+
   getInteractionInfo() {
     const o = this._interactionCandidate();
     if (!o) return null;
+    if (['cutter', 'insulator', 'phase'].includes(o.requires) && !this._requirementMet(o.requires)) return { text: `${this.level.upgradeNames?.[o.requires] || o.requires} required`, label: 'LOCKED', canUse: false };
+    const active = this.state.status === 'playing' && this.state.player.alive !== false;
+    if (o.type === 'transit') {
+      if (!o.used) return { text: `Activate ${o.label}`, label: 'LINK', canUse: active };
+      const destination = this.state.interactables.find(i => i.id === o.destination);
+      if (!this.state.power) return { text: 'Transit offline — restore central power', label: 'OFFLINE', canUse: false };
+      if (!destination?.used) return { text: 'Station active — activate the other end to travel', label: 'OFFLINE', canUse: false };
+      return { text: `Travel to ${this.level.zones.find(zone => destination.x >= zone.x1 && destination.x < zone.x2 && destination.z >= zone.z1 && destination.z < zone.z2)?.name || destination.label}`, label: 'TRAVEL', canUse: active };
+    }
     const relayPower = this.level.missionId === 'crosslink-11' ? 'hub power' : 'ring power';
     if (o.requires === 'power' && !this.state.power) return { text: o.type === 'relay' ? `Relay offline — restore ${relayPower}` : 'Airlock offline — restore power', label: 'OFFLINE', canUse: false };
     if (o.requires === 'relays' && !this.state.power) return { text: `Communications vault offline — restore ${relayPower}`, label: 'OFFLINE', canUse: false };
@@ -588,7 +685,8 @@ export class Game {
     if (o.requires === 'key' && !this.state.player.key) return { text: 'Security gate — access key required', label: 'LOCKED', canUse: false };
     if (o.type === 'exit' && (!this.state.power || !this.state.player.key)) return { text: 'Extraction offline — power and key required', label: this.state.power ? 'LOCKED' : 'OFFLINE', canUse: false };
     if (o.type === 'exit' && !this._relaysReady()) return { text: 'Uplink offline — activate both relay consoles', label: 'LOCKED', canUse: false };
-    const label = o.type === 'power' ? 'POWER' : o.type === 'relay' ? 'LINK' : o.type === 'exit' ? 'EXTRACT' : o.type === 'secret' || o.secret ? 'INSPECT' : 'OPEN';
+    if (o.type === 'refuge' && !this._refugeSafe(o)) return { text: 'Clear nearby hostiles before the team can rest', label: 'THREAT', canUse: false };
+    const label = o.type === 'upgrade' ? 'EQUIP' : o.type === 'refuge' ? 'REST' : o.type === 'power' ? 'POWER' : o.type === 'relay' ? 'LINK' : o.type === 'exit' ? 'EXTRACT' : o.type === 'secret' || o.secret ? 'INSPECT' : o.requires === 'cutter' ? 'CUT' : o.requires === 'insulator' ? 'CROSS' : o.requires === 'phase' ? 'PHASE' : 'OPEN';
     return { text: o.label || (o.secret ? 'Inspect maintenance panel' : 'Open airlock'), label, canUse: this.state.status === 'playing' && this.state.player.alive !== false };
   }
 
@@ -598,21 +696,46 @@ export class Game {
     if (this.state.status !== 'playing') return false;
     const o = this._interactionCandidate();
     if (!o) return false;
-    if (o.requires === 'power' && !this.state.power || o.requires === 'key' && (!this.state.player.key || !this.state.power) || o.requires === 'relays' && (!this.state.power || !this._relaysReady())) {
+    if (!this._requirementMet(o.requires)) {
       this._events.push({ type: 'message', text: this.getPrompt() }); return false;
     }
     this.state.tutorial.interacted = true;
-    if (o.type === 'power') {
+    if (o.type === 'upgrade') {
+      this.state.upgrades[o.upgrade] = true; o.used = true; this.state.checkpoint = true;
+      this._replenishAtStation();
+      const text = `${this.level.upgradeNames[o.upgrade]} acquired. New routes through earlier sectors are now available.`;
+      this._events.push({ type: 'upgrade', id: o.id, upgrade: o.upgrade, text }, { type: 'message', text });
+      this._saveCheckpoint(`${this.level.upgradeNames[o.upgrade]} checkpoint saved.`);
+    } else if (o.type === 'refuge') {
+      if (!this._refugeSafe(o)) { this._events.push({ type: 'message', text: this.getPrompt() }); return false; }
+      o.used = true; this.state.checkpoint = true; this._replenishAtStation();
+      this._events.push({ type: 'refuge', id: o.id, text: 'Refuge secured. Health and ammunition replenished.' });
+      this._saveCheckpoint('Refuge checkpoint saved.');
+    } else if (o.type === 'transit') {
+      if (!o.used) {
+        o.used = true;
+        this._events.push({ type: 'transit-activated', id: o.id, destination: o.destination }, { type: 'message', text: 'Transit station activated. Activate its partner to connect this route.' });
+      } else {
+        const destination = this.state.interactables.find(i => i.id === o.destination);
+        if (!this.state.power || !destination?.used) { this._events.push({ type: 'message', text: this.getPrompt() }); return false; }
+        const landing = destination.landing || destination;
+        if (!this._clearCircle(landing.x, landing.z, .22)) return false;
+        const p = this.state.player;
+        p.x = landing.x; p.z = landing.z; p.moving = false; this._pathTimer = 0;
+        this._events.push({ type: 'transit', ...(p.id ? { playerId: p.id } : {}), from: o.id, to: destination.id, x: p.x, z: p.z });
+      }
+    } else if (o.type === 'power') {
       o.used = true; this.state.power = true; this.state.checkpoint = true;
       this.state.player.health = Math.max(75, this.state.player.health);
       this.state.player.armor = Math.max(30, this.state.player.armor);
       this.state.player.ammo.pistol = Math.max(24, this.state.player.ammo.pistol);
-      this._events.push({ type: 'power' }, { type: 'message', text: this.level.missionId === 'crosslink-11' ? 'Hub power restored. Activate the western and eastern relay consoles.' : this.level.missionId === 'relay-09' ? 'Ring power restored. Activate the western and eastern relay consoles.' : 'Power restored. Airlocks online. Find the security key.' });
-      this._saveCheckpoint(this.level.missionId === 'crosslink-11' ? 'Checkpoint saved at the power hub.' : 'Checkpoint saved at the generator.');
+      if (this.level.exploration) this._replenishAtStation();
+      this._events.push({ type: 'power' }, { type: 'message', text: this.level.exploration ? 'Central power restored. Find the industrial cutter in the western foundry.' : this.level.missionId === 'crosslink-11' ? 'Hub power restored. Activate the western and eastern relay consoles.' : this.level.missionId === 'relay-09' ? 'Ring power restored. Activate the western and eastern relay consoles.' : 'Power restored. Airlocks online. Find the security key.' });
+      this._saveCheckpoint(this.level.exploration ? 'Checkpoint saved at the central exchange.' : this.level.missionId === 'crosslink-11' ? 'Checkpoint saved at the power hub.' : 'Checkpoint saved at the generator.');
     } else if (o.type === 'relay') {
       o.used = true;
       const progress = this.getMissionProgress();
-      const text = progress.relaysUsed === progress.relaysTotal ? 'Both relays online. The communications vault can now be opened.' : `${o.id === 'relay-west' ? 'Western' : 'Eastern'} relay online. Activate the other relay to unlock the vault.`;
+      const text = progress.relaysUsed === progress.relaysTotal ? this.level.exploration ? 'Both crown relays online. Open reactor containment and defeat its guardian.' : 'Both relays online. The communications vault can now be opened.' : `${o.id === 'relay-west' ? 'Western' : 'Eastern'} relay online. Activate the other relay to unlock ${this.level.exploration ? 'reactor containment' : 'the vault'}.`;
       this._events.push({ type: 'relay', id: o.id, count: progress.relaysUsed, total: progress.relaysTotal, text }, { type: 'message', text });
       this._pathTimer = 0;
       if (progress.relaysUsed === progress.relaysTotal) {
@@ -633,10 +756,12 @@ export class Game {
       for (const paired of this.state.doors) if (paired.paired === o.id) paired.open = true;
       this._events.push({ type: 'door', id: o.id }); this._pathTimer = 0;
     }
+    this._syncPermanentProgress();
     return true;
   }
 
   getObjective() {
+    if (this.level.exploration) return this._getExplorationObjective();
     const relayMission = this.state.interactables.some(i => i.type === 'relay');
     const crosslink = this.level.missionId === 'crosslink-11';
     const arrival = this.state.doors.find(d => d.id === 'arrival');
@@ -666,6 +791,53 @@ export class Game {
 
   _relaysReady() { const p = this.getMissionProgress(); return p.relaysUsed === p.relaysTotal; }
 
+  _getExplorationObjective() {
+    const find = id => this.state.interactables.find(i => i.id === id);
+    const objective = (target, title, detail, stage, action = 'interact') => ({ title, detail, x: target.x, z: target.z, stage, ...(action ? { action } : {}) });
+    const exit = find('extraction'), arrival = this.state.doors.find(d => d.id === 'arrival');
+    if (this.state.status === 'won') return objective(exit, 'The Underworks secured', 'You returned to the arrival lift with the reactor key.', 'complete', null);
+    if (!arrival.open) {
+      if (!find('transit-arrival').used) return objective(find('transit-arrival'), 'Activate the arrival transit', 'Link this station now so the reactor station can bring you back later.', 'arrival');
+      return objective(arrival, 'Enter the freight terminal', 'Open the north airlock and follow the freight route to the central exchange.', 'arrival');
+    }
+    if (!this.state.power) return objective(find('aux-power'), 'Restore central power', 'Find the power console on the southwest side of the central exchange.', 'power');
+    for (const [upgrade, detail] of [
+      ['cutter', 'Enter the western foundry. The cutter opens grilles here and back near the arrival terminal.'],
+      ['insulator', 'Return to the exchange, cut the eastern grille and follow the pump works south into the flood reserve.'],
+      ['phase', 'Return north through the pump works. Your insulator opens the energized passage to the archive workshop.'],
+    ]) if (!this.state.upgrades[upgrade]) return objective(find(`upgrade-${upgrade}`), `Recover the ${this.level.upgradeNames[upgrade].toLowerCase()}`, detail, upgrade);
+    const relay = this.state.interactables.filter(i => i.type === 'relay' && !i.used).sort((a, b) => distance(a, this.state.player) - distance(b, this.state.player))[0];
+    if (relay) return objective(relay, relay.label, `Reconnect the rail crown and archive relays in either order. ${this.getMissionProgress().relaysUsed} of 2 online. Phase fields now open shortcuts through the reactor ring.`, 'relays');
+    const seal = this.state.doors.find(d => d.id === 'reactor-seal');
+    if (!seal.open) return objective(seal, 'Open reactor containment', 'Both relays are online. Enter the inner reactor from the south side of the crown.', 'guardian');
+    const guardian = this.state.enemies.find(e => e.id === this.level.guardianId);
+    if (guardian.alive) return objective(guardian, 'Defeat the reactor guardian', 'Use cover and both weapons. Its defeat releases the lift key.', 'guardian', 'fight');
+    if (!this.state.player.key) return objective(this.state.pickups.find(i => i.type === 'key'), 'Recover the reactor key', 'Collect the illuminated key inside containment.', 'key', 'collect');
+    const gate = this.state.doors.find(d => d.id === 'security');
+    if (!gate.open) {
+      const returnStation = find('transit-reactor');
+      if (find('transit-arrival').used && distance(this.state.player, gate) > 30) return objective(returnStation, returnStation.used ? 'Return by reactor transit' : 'Activate the reactor return transit', returnStation.used ? 'Use the linked station to return to the arrival lift.' : 'Activate the station, then use it again to return to the lift.', 'return');
+      return objective(gate, 'Unlock the arrival lift', 'Return south through the central exchange, or use the linked reactor transit.', 'return');
+    }
+    return objective(exit, 'Leave The Underworks', 'Use the arrival lift to complete the expedition.', 'extraction');
+  }
+
+  getExplorationProgress() {
+    const upgrades = Object.entries(this.level.upgradeNames || {}).map(([id, name]) => ({ id, name, owned: this.state.upgrades?.[id] === true }));
+    const refuges = this.state.interactables.filter(i => i.type === 'refuge'), transits = this.state.interactables.filter(i => i.type === 'transit');
+    return { upgrades, upgradesFound: upgrades.filter(i => i.owned).length, upgradesTotal: upgrades.length, refugesVisited: refuges.filter(i => i.used).length, refugesTotal: refuges.length, transitsActive: transits.filter(i => i.used).length, transitsTotal: transits.length, healthBonus: this.state.healthBonus || 0 };
+  }
+
+  getMapInfo() {
+    const sectors = this.level.zones.map((zone, index) => ({ id: zone.id || `sector-${index}`, name: zone.name, x: (zone.x1 + zone.x2) / 2, z: (zone.z1 + zone.z2) / 2, bounds: { x1: zone.x1, x2: zone.x2, z1: zone.z1, z2: zone.z2 }, palette: zone.palette || 'arrival' }));
+    const markers = this.state.interactables.map(i => ({ id: i.id, type: i.type === 'secret' ? 'cache' : i.type, label: i.label, x: i.x, z: i.z, active: i.used, requires: i.requires || null, locked: !this._requirementMet(i.requires), ...(i.upgrade ? { upgrade: i.upgrade } : {}), ...(i.destination ? { destination: i.destination, landing: copy(i.landing || i) } : {}) }));
+    for (const door of this.state.doors) if (!door.paired) markers.push({ id: door.id, type: door.secret ? 'cache' : ['grille', 'hazard', 'phase', 'shortcut'].includes(door.kind) ? door.kind : 'gate', label: door.label || 'Airlock', x: door.x, z: door.z, active: door.open, requires: door.requires || null, locked: !this.canOpenDoor(door) });
+    for (const item of this.state.pickups) if (['key', 'healthExpansion'].includes(item.type)) markers.push({ id: item.id, type: item.type === 'key' ? 'key' : 'cache', label: item.type === 'key' ? 'Security key' : 'Medical expansion · +25 maximum health', x: item.x, z: item.z, active: item.collected, requires: item.requires || null, locked: !this._requirementMet(item.requires) });
+    const guardian = this.state.enemies.find(e => e.id === this.level.guardianId);
+    if (guardian) markers.push({ id: guardian.id, type: 'guardian', label: 'Reactor guardian', x: guardian.x, z: guardian.z, active: !guardian.alive, requires: 'relays', locked: !this._requirementMet('relays') });
+    return { large: Boolean(this.level.exploration), sectors, markers, upgrades: this.getExplorationProgress().upgrades };
+  }
+
   getZone() {
     const p = this.state.player;
     return this.level.zones.find(zone => p.x >= zone.x1 && p.x < zone.x2 && p.z >= zone.z1 && p.z < zone.z2)?.name || 'Service passage';
@@ -687,6 +859,7 @@ export class Game {
       power: this.state.power, secretFound: this.state.secretFound,
       time: this.state.time, kills: this.state.kills, shots: this.state.shots, hits: this.state.hits,
       tutorial: copy(this.state.tutorial), randomState: this._random,
+      ...(this.level.exploration ? { upgrades: copy(this.state.upgrades), healthBonus: this.state.healthBonus } : {}),
     };
   }
 
@@ -696,8 +869,10 @@ export class Game {
 
   _validSnapshot(s, level = this.level) {
     if (!s || typeof s !== 'object') return false;
+    if (level.exploration && (!s.upgrades || typeof s.upgrades !== 'object' || Array.isArray(s.upgrades) || Object.keys(s.upgrades).length !== 3 || !['cutter', 'insulator', 'phase'].every(id => typeof s.upgrades[id] === 'boolean') || ![0, 25].includes(s.healthBonus))) return false;
     const p = s.player;
-    if (!p || !finite(p.x, 1, level.width - 1) || !finite(p.z, 1, level.height - 1) || !finite(p.angle, -1000, 1000) || !finite(p.health, 1, 100) || !finite(p.armor, 0, 100)) return false;
+    const maxHealth = level.exploration ? 100 + s.healthBonus : 100;
+    if (!p || !finite(p.x, 1, level.width - 1) || !finite(p.z, 1, level.height - 1) || !finite(p.angle, -1000, 1000) || !finite(p.health, 1, maxHealth) || !finite(p.armor, 0, 100) || level.exploration && p.maxHealth !== maxHealth) return false;
     if (level.grid[Math.floor(p.z)][Math.floor(p.x)] === '#') return false;
     if (!p.ammo || !finite(p.ammo.pistol, 0, 10000) || !finite(p.ammo.shells, 0, 10000) || !['pistol', 'shotgun'].includes(p.weapon) || typeof p.key !== 'boolean' || typeof p.hasShotgun !== 'boolean' || p.weapon === 'shotgun' && !p.hasShotgun) return false;
     if (typeof s.power !== 'boolean' || typeof s.secretFound !== 'boolean') return false;
@@ -713,12 +888,27 @@ export class Game {
     if (s.secretFound !== savedFeature('cache-panel').used || s.secretFound !== savedDoor('maintenance').open) return false;
     const relays = level.interactables.filter(i => i.type === 'relay');
     const relaysReady = relays.every(i => savedFeature(i.id).used);
+    const meets = requirement => {
+      if (!requirement) return true;
+      if (requirement === 'power') return s.power;
+      if (requirement === 'key') return s.power && p.key && relaysReady;
+      if (requirement === 'relays') return s.power && relaysReady;
+      if (requirement === 'secret') return s.secretFound;
+      if (requirement === 'guardian') return s.power && relaysReady && Array.isArray(s.enemies) && s.enemies.some(e => e.id === level.guardianId && !e.alive);
+      return ['cutter', 'insulator', 'phase'].includes(requirement) && s.upgrades?.[requirement] === true;
+    };
     if (!s.power && relays.some(i => savedFeature(i.id).used)) return false;
     if (p.key && !relaysReady) return false;
+    if (level.exploration) {
+      if (s.healthBonus !== (savedItem('health-expansion').collected ? 25 : 0)) return false;
+      for (const id of ['cutter', 'insulator', 'phase']) if (s.upgrades[id] !== savedFeature(`upgrade-${id}`).used) return false;
+    }
+    for (const object of level.interactables) if (savedFeature(object.id).used && !meets(object.requires)) return false;
+    for (const item of level.pickups) if (savedItem(item.id).collected && !meets(item.requires)) return false;
     for (const door of level.doors) {
       if (door.paired && savedDoor(door.id).open !== savedDoor(door.paired).open) return false;
       if (!savedDoor(door.id).open) continue;
-      if (door.requires === 'power' && !s.power || door.requires === 'relays' && (!s.power || !relaysReady) || door.requires === 'key' && (!p.key || !s.power || !relaysReady)) return false;
+      if (!meets(door.requires)) return false;
     }
     if (savedFeature('extraction').used && (!p.key || !s.power || !relaysReady)) return false;
     // A resumable player must fit on the floor and outside any closed door.
@@ -738,6 +928,7 @@ export class Game {
   _stateFromSnapshot(s, level = this.level, difficulty = this._difficulty) {
     const p = s.player;
     const next = { player: { x: p.x, z: p.z, angle: p.angle, health: p.health, armor: p.armor, ammo: { pistol: Math.floor(p.ammo.pistol), shells: Math.floor(p.ammo.shells) }, weapon: p.weapon, key: p.key, hasShotgun: p.hasShotgun } };
+    if (level.exploration) { next.upgrades = copy(s.upgrades); next.healthBonus = s.healthBonus; next.player.maxHealth = 100 + s.healthBonus; }
     next.enemies = level.enemies.map(base => {
       const e = s.enemies.find(v => v.id === base.id);
       return { ...base, x: e.x, z: e.z, health: e.health, maxHealth: Math.round(base.maxHealth * difficulty.health), alive: e.alive, active: e.active, angle: finite(e.angle, -1000, 1000) ? e.angle : 0, attackCooldown: .8, hitTimer: 0 };
@@ -748,6 +939,7 @@ export class Game {
     for (const key of ['power', 'secretFound', 'time', 'kills', 'shots', 'hits']) next[key] = s[key];
     next.tutorial = Object.fromEntries(['moved', 'fired', 'interacted', 'weaponSwitched'].map(k => [k, s.tutorial?.[k] === true]));
     next.effects = []; next.projectiles = []; next.status = 'paused'; next.checkpoint = false;
+    if (level.exploration && next.interactables.find(i => i.type === 'exit').used) next.status = 'won';
     return next;
   }
 
@@ -764,6 +956,7 @@ export class Game {
       if (!saved || saved.version !== 1 || !level || !Object.hasOwn(DIFFICULTY, saved.options?.difficulty) || saved.options.mission !== undefined && saved.options.mission !== level.missionId) return false;
       if (!this._validSnapshot(saved.state, level)) return false;
       if (saved.checkpoint && (!this._validSnapshot(saved.checkpoint, level) || !saved.checkpoint.power || !saved.state.power || saved.checkpoint.time > saved.state.time || saved.checkpoint.interactables.some(i => i.used && !saved.state.interactables.find(current => current.id === i.id).used))) return false;
+      if (level.exploration && saved.checkpoint && (saved.checkpoint.healthBonus > saved.state.healthBonus || saved.checkpoint.doors.some(d => d.open && !saved.state.doors.find(current => current.id === d.id).open) || saved.checkpoint.pickups.some(p => p.collected && ['access-key', 'health-expansion'].includes(p.id) && !saved.state.pickups.find(current => current.id === p.id).collected))) return false;
       const difficulty = DIFFICULTY[saved.options.difficulty];
       const nextState = this._stateFromSnapshot(saved.state, level, difficulty);
       const checkpoint = saved.checkpoint ? copy(saved.checkpoint) : null;
@@ -782,7 +975,7 @@ export class Game {
   restartCheckpoint() {
     if (!this._checkpoint || !this._validSnapshot(this._checkpoint)) return false;
     this.state = this._stateFromSnapshot(this._checkpoint); this._resetAfterRestore(this._checkpoint); this.state.checkpoint = true;
-    this.state.status = 'playing'; this._events = [{ type: 'message', text: this.level.missionId === 'crosslink-11' ? 'Crosslink checkpoint restored.' : this.level.missionId === 'relay-09' ? 'Dead Relay checkpoint restored.' : 'Generator checkpoint restored.' }];
+    this.state.status = 'playing'; this._events = [{ type: 'message', text: this.level.exploration ? 'Underworks refuge restored. Acquired upgrades and opened routes remain available.' : this.level.missionId === 'crosslink-11' ? 'Crosslink checkpoint restored.' : this.level.missionId === 'relay-09' ? 'Dead Relay checkpoint restored.' : 'Generator checkpoint restored.' }];
     return true;
   }
 }

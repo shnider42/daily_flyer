@@ -14,7 +14,7 @@ async function fixture(t) {
   const directory = join(root, 'public'); await mkdir(join(directory, 'vendor'), { recursive: true });
   await writeFile(join(root, 'secret.txt'), 'outside-document-root-secret');
   await writeFile(join(directory, '.env'), 'hidden-document-root-secret');
-  await writeFile(join(directory, 'index.html'), '<!doctype html><title>BREACH test</title><script id="breach-config" type="application/json">{"version":"0.3.0","coopServer":""}</script>');
+  await writeFile(join(directory, 'index.html'), '<!doctype html><title>BREACH test</title><script id="breach-config" type="application/json">{"version":"0.4.0","coopServer":""}</script>');
   await writeFile(join(directory, 'app.mjs'), 'export const game = "BREACH";');
   await writeFile(join(directory, 'vendor', 'local.js'), 'export const vendor = true;');
   const app = createBreachServer({ directory, allowedOrigins: ORIGIN });
@@ -74,11 +74,11 @@ function rejectedUpgrade(url, origin) {
   });
 }
 
-async function pair(f) {
+async function pair(f, mission = 'crosslink-11') {
   const host = await f.client(), guest = await f.client();
-  host.send({ type: 'create', protocol: 1, name: 'Host', mission: 'crosslink-11', difficulty: 'relaxed' });
+  host.send({ type: 'create', protocol: 2, name: 'Host', mission, difficulty: 'relaxed' });
   const ownerWelcome = await host.wait(m => m.type === 'welcome');
-  guest.send({ type: 'join', protocol: 1, roomId: ownerWelcome.roomId, name: 'Guest' });
+  guest.send({ type: 'join', protocol: 2, roomId: ownerWelcome.roomId, name: 'Guest' });
   const guestWelcome = await guest.wait(m => m.type === 'welcome');
   await host.wait(m => m.type === 'room' && m.room.players.length === 2);
   return { host, guest, ownerWelcome, guestWelcome };
@@ -87,7 +87,7 @@ async function pair(f) {
 test('HTTP health and static delivery expose only the public build and configure same-origin co-op', { timeout: 10000 }, async t => {
   const f = await fixture(t);
   const health = await get(f.base, '/health'); assert.equal(health.status, 200);
-  const status = JSON.parse(health.body); assert.equal(status.ok, true); assert.equal(status.service, 'breach-rooms'); assert.equal(status.protocol, 1); assert.equal(status.activeRooms, 0);
+  const status = JSON.parse(health.body); assert.equal(status.ok, true); assert.equal(status.service, 'breach-rooms'); assert.equal(status.version, '0.4.0'); assert.equal(status.protocol, 2); assert.equal(status.activeRooms, 0);
   assert.equal(health.headers['cache-control'], 'no-store');
   const page = await get(f.base); assert.equal(page.status, 200); assert.match(page.body, /"coopServer":"same-origin"/);
   assert.equal(page.headers['x-content-type-options'], 'nosniff'); assert.match(page.headers['content-type'], /text\/html/);
@@ -159,7 +159,7 @@ test('two actual WebSocket clients share authoritative play, expire inputs, paus
   cursor = host.messages.length; guest.socket.close(1000, 'Test reconnect'); await guest.waitClosed();
   await host.wait(m => m.type === 'room' && m.room.status === 'paused' && !m.room.players.find(p => p.id === 'p2').connected, cursor);
   const returned = await f.client();
-  returned.send({ type: 'join', protocol: 1, roomId: ownerWelcome.roomId, name: 'Returned', token: guestWelcome.token });
+  returned.send({ type: 'join', protocol: 2, roomId: ownerWelcome.roomId, name: 'Returned', token: guestWelcome.token });
   const welcome = await returned.wait(m => m.type === 'welcome'); assert.equal(welcome.selfId, 'p2'); assert.equal(welcome.resumed, true);
   const rejoined = await returned.wait(m => m.type === 'state'); assert.equal(rejoined.state.status, 'paused');
   assert.equal(rejoined.state.players.p2.x, later.state.players.p2.x);
@@ -173,6 +173,26 @@ test('two actual WebSocket clients share authoritative play, expire inputs, paus
   assert.match((await returned.wait(m => m.type === 'closed', guestCursor)).message, /Host left/);
   assert.equal((await returned.waitClosed()).code, 1000);
   assert.equal(JSON.parse((await get(f.base, '/health')).body).activeRooms, 0);
+});
+
+test('the large Underworks mission starts over the real room transport with shared upgrade state', { timeout: 10000 }, async t => {
+  const f = await fixture(t), { host, guest, ownerWelcome } = await pair(f, 'underworks-13');
+  assert.equal(ownerWelcome.protocol, 2);
+  host.send({ type: 'ready', ready: true }); guest.send({ type: 'ready', ready: true });
+  await host.wait(m => m.type === 'room' && m.room.players.every(p => p.ready));
+  host.send({ type: 'start' });
+  const initial = await host.wait(m => m.type === 'state' && m.state.status === 'playing');
+  const matching = await guest.wait(m => m.type === 'state' && m.tick === initial.tick);
+  assert.equal(initial.state.missionId, 'underworks-13');
+  assert.equal(initial.state.levelId, 'underworks-13-v1');
+  assert.deepEqual(initial.state.upgrades, { cutter: false, insulator: false, phase: false });
+  assert.deepEqual(matching.state, initial.state);
+  assert.ok(initial.state.enemies.length >= 30);
+  assert.ok(initial.state.interactables.some(item => item.type === 'refuge'));
+  assert.ok(initial.state.interactables.some(item => item.type === 'transit'));
+  const oldClient = await f.client();
+  oldClient.send({ type: 'join', protocol: 1, roomId: ownerWelcome.roomId, name: 'Old client' });
+  assert.equal((await oldClient.wait(m => m.type === 'error')).code, 'VERSION_MISMATCH');
 });
 
 test('service shutdown delivers an explanation to both real room clients', { timeout: 10000 }, async t => {

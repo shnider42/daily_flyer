@@ -1,6 +1,7 @@
 import { Game } from './core.mjs';
 
 const STEP = 1 / 30;
+const PROTOCOL = 2;
 const clamp = (n,a,b) => Math.max(a,Math.min(b,n));
 const copy = value => JSON.parse(JSON.stringify(value));
 const angleDelta = (a,b) => Math.atan2(Math.sin(a-b),Math.cos(a-b));
@@ -50,11 +51,11 @@ export class CoopClient {
   _emit(name,...args){this.callbacks[name]?.(...args);}
   _readToken(roomId){try{return JSON.parse(this.storage?.getItem(`dfe.breach.room.${roomId}`)||'null');}catch(_){return null;}}
   _storeToken(){try{this.storage?.setItem(`dfe.breach.room.${this.roomId}`,JSON.stringify({token:this.token,selfId:this.selfId,name:this.intent?.name}));}catch(_){}}
-  create({name,mission,difficulty}){this.intent={type:'create',protocol:1,name,mission,difficulty};this.manual=false;this.initialStart=Date.now();this._connect(false);}
+  create({name,mission,difficulty}){this.intent={type:'create',protocol:PROTOCOL,name,mission,difficulty};this.manual=false;this.initialStart=Date.now();this._connect(false);}
   join({roomId,name}){
     roomId=String(roomId||'').trim().toUpperCase();const saved=this._readToken(roomId);
     this.roomId=roomId;this.token=saved?.token||null;
-    this.intent={type:'join',protocol:1,roomId,name,...(this.token?{token:this.token}:{})};this.manual=false;this.initialStart=Date.now();this._connect(false);
+    this.intent={type:'join',protocol:PROTOCOL,roomId,name,...(this.token?{token:this.token}:{})};this.manual=false;this.initialStart=Date.now();this._connect(false);
   }
   _connect(retry) {
     if(this.manual||this.suspended||!this.pageVisible)return;
@@ -67,7 +68,7 @@ export class CoopClient {
     const warming=setTimeout(()=>{if(this.socket===socket&&!this.connected&&!retry)this._emit('onConnection','connecting','Waking the room service. The first connection may take about a minute…');},4500);
     socket.addEventListener('open',()=>{
       clearTimeout(timeout);if(this.socket!==socket||this.manual||this.suspended)return;this.everOpened=true;
-      const intent=retry?{type:'join',protocol:1,roomId:this.roomId,name:this.intent.name,token:this.token}:this.intent;
+      const intent=retry?{type:'join',protocol:PROTOCOL,roomId:this.roomId,name:this.intent.name,token:this.token}:this.intent;
       socket.send(JSON.stringify(intent));
     });
     socket.addEventListener('message',event=>{
@@ -89,7 +90,7 @@ export class CoopClient {
   }
   _message(message) {
     if(message.type==='welcome') {
-      if(message.protocol!==1){this._closed('This room needs a newer game version. Reload and try again.');return;}
+      if(message.protocol!==PROTOCOL){this._closed('This room needs a newer game version. Reload and try again.');return;}
       this.roomId=message.roomId;this.selfId=message.selfId;this.ownerId=message.ownerId;this.token=message.token;
       this.connected=true;this.retryCount=0;this.reconnectStart=0;this.error=null;this._storeToken();this._startStream();
       this._emit('onConnection','connected','Connected');return;

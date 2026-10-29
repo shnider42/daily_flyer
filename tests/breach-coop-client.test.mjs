@@ -4,11 +4,11 @@ import { Game } from '../daily_flyer/themes/breach_assets/core.mjs';
 import { CoopGame } from '../daily_flyer/themes/breach_assets/coop-core.mjs';
 import { CoopClient, websocketURL, predictMovement, personalEvents } from '../daily_flyer/themes/breach_assets/coop-client.mjs';
 
-function networkFixture(callbacks={}) {
-  const simulation=new CoopGame({mission:'crosslink-11',players:['p1','p2']});simulation.start();
+function networkFixture(callbacks={}, mission='crosslink-11') {
+  const simulation=new CoopGame({mission,players:['p1','p2']});simulation.start();
   const client=new CoopClient({base:'same-origin',origin:'https://breach.example',storage:null,callbacks});
   client.selfId='p1';client.ownerId='p1';client.connected=true;
-  client.room={id:'ABCDEFGH',mission:'crosslink-11',difficulty:'standard',status:'playing',ownerId:'p1',players:[{id:'p1',name:'One',connected:true,ready:true},{id:'p2',name:'Two',connected:true,ready:true}]};
+  client.room={id:'ABCDEFGH',mission,difficulty:'standard',status:'playing',ownerId:'p1',players:[{id:'p1',name:'One',connected:true,ready:true},{id:'p2',name:'Two',connected:true,ready:true}]};
   const packet=(tick=1,ack=0,events=[])=>({type:'state',tick,ackByPlayer:{p1:ack,p2:0},state:simulation.networkSnapshot(),events});
   client._applySnapshot(packet());return {client,simulation,packet};
 }
@@ -46,6 +46,19 @@ test('a network snapshot projects the local player and personal tutorial without
   assert.equal(client.view.state.localPlayerId,'p1');assert.equal(client.view.state.tutorial.moved,true);
   assert.deepEqual(personal,[events[1],events[2]]);assert.deepEqual(all,events);
   assert.equal(client.view.getObjective().stage,'arrival');
+});
+
+test('Underworks projection keeps its large level and refreshes collision after a shared gate opens',()=>{
+  const {client,simulation,packet}=networkFixture({},'underworks-13');
+  assert.equal(client.view.level.missionId,'underworks-13');
+  assert.ok(client.view.level.width>=75&&client.view.level.height>=75);
+  const grille=simulation.state.doors.find(door=>door.requires==='cutter'&&!door.open);
+  assert.ok(grille,'the authored mission contains cutter-gated routes');
+  assert.equal(client.view.hasLineOfSight(grille.x,grille.z,grille.x+.05,grille.z+.05),false);
+  simulation.state.upgrades.cutter=true;grille.open=true;
+  client._applySnapshot(packet(2));
+  assert.equal(client.view.state.upgrades.cutter,true);
+  assert.equal(client.view.hasLineOfSight(grille.x,grille.z,grille.x+.05,grille.z+.05),true,'a replaced network state cannot retain a stale solid-door cache');
 });
 
 test('immediate look survives authoritative snapshots and acknowledged movement is reconciled',()=>{
@@ -128,8 +141,8 @@ test('page suspension releases the old socket without leaving, keeps its pass, a
     client.setPageVisible(true);
     assert.equal(Socket.instances.length,2,'a visible persisted page opens exactly one new socket');
     const rejoined=Socket.instances[1];rejoined.open();
-    assert.deepEqual(rejoined.sent[0],{type:'join',protocol:1,roomId:'ABCDEFGH',name:'Operator',token:'keep-this-pass'});
-    rejoined.receive({type:'welcome',protocol:1,roomId:'ABCDEFGH',selfId:'p1',ownerId:'p1',token:'keep-this-pass'});
+    assert.deepEqual(rejoined.sent[0],{type:'join',protocol:2,roomId:'ABCDEFGH',name:'Operator',token:'keep-this-pass'});
+    rejoined.receive({type:'welcome',protocol:2,roomId:'ABCDEFGH',selfId:'p1',ownerId:'p1',token:'keep-this-pass'});
     rejoined.receive({type:'room',room:{id:'ABCDEFGH',mission:'crosslink-11',difficulty:'standard',status:'paused',ownerId:'p1',players:[{id:'p1',ready:false,connected:true},{id:'p2',ready:false,connected:true}]}});
     rejoined.receive({type:'state',tick:1,ackByPlayer:{p1:-1,p2:-1},state:simulation.networkSnapshot(),events:[]});
     assert.equal(client.connected,true);assert.equal(client.waitingPause,true);assert.equal(client.view.state.status,'paused');

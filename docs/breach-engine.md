@@ -5,6 +5,8 @@ Blacksite 07 introduces power, access keys, extraction, a secret, and a checkpoi
 Dead Relay adds a separate facility with two relay branches that unlock a data
 vault before the return to extraction.
 Crosslink adds a compact third facility for solo play and private two-player co-op.
+The Underworks adds a large interconnected facility with permanent upgrades,
+return shortcuts, refuges, and transit links in both solo and co-op.
 
 ## Modules and ownership
 
@@ -25,6 +27,8 @@ rotation around Y is `-angle`. Wall height is approximately 2.5, eye height 1.25
 
 `core.mjs` exports `LEVEL` (the original Blacksite default), `LEVELS`, `MISSIONS`,
 `getLevel(id)`, and `Game`. Mission ids are `blacksite-07`, `relay-09`, and `crosslink-11`.
+The fourth mission ID is `underworks-13`; its extended map/progression contract is
+documented in [The Underworks](breach-underworks.md).
 `MISSIONS` provides the menu's `id,levelId,name,number,subtitle,briefing,steps`.
 
 `LEVEL`: `{id,name,width,height,grid,spawn,doors,interactables,pickups,enemies,zones}`.

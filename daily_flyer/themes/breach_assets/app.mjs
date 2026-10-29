@@ -17,7 +17,9 @@ const prior = readStorage(SETTINGS_KEY) || {};
 const choices = (x, valid, fallback) => valid.includes(x) ? x : fallback;
 const requestedMission = new URL(location.href).searchParams.get('mission');
 const missionIds = MISSIONS.map(mission=>mission.id);
+const coopMissionIds=['crosslink-11','underworks-13'].filter(id=>missionIds.includes(id));
 const settings = {
+  coopMission: choices(prior.coopMission,coopMissionIds,coopMissionIds[0]),
   callSign: typeof prior.callSign==='string'?prior.callSign.slice(0,20):'Operator',
   mission: choices(requestedMission, missionIds, choices(prior.mission,missionIds,MISSIONS[0].id)),
   fov: [80,90].includes(prior.fov) ? prior.fov : null,
@@ -45,6 +47,8 @@ let game, renderer, mode = 'menu', ready = false;
 let savedRecord = readStorage(SAVE_KEY);
 let explored = new Set();
 let mapVisible = false;
+let mapView='local',mapZoom=1,mapCenter=null,mapFollow=true,mapPan=null,mapScale=1,mapHits=[];
+let mapSelected=null,mapIndexSignature='',mapFloorTotal=0,mapKnownMarkers=[],mapKnownSectors=[];
 let mouseFire = false;
 let firePulse = false;
 let lookPointer = null;
@@ -137,6 +141,7 @@ async function toggleFullscreen() {
 }
 function setMode(next) {
   mode = next; document.body.dataset.mode = next;
+  if(mapVisible&&!['playing','paused'].includes(next)){mapVisible=false;updateMapVisibility();}
   $('menu').hidden = next !== 'menu';
   $('room-screen').hidden = next !== 'room';
   $('hud').hidden = !['playing','paused'].includes(next);
@@ -190,6 +195,9 @@ function savedMission(record=savedRecord) {
 function currentMission() { return missionForId(game?.level?.missionId); }
 function updateMissionMenu() {
   const selected=missionForId(settings.mission);
+  $('mission-count').textContent=`${MISSIONS.length} AUTHORED MISSIONS`;
+  $('mission-briefing').closest('.mission-dossier').classList.toggle('exploration-dossier',selected.id==='underworks-13');
+  $('mission-mode').textContent=coopMissionIds.includes(selected.id)?'SOLO / PRIVATE CO-OP':'SINGLE PLAYER';
   $('mission-number').textContent=`MISSION ${selected.number}`;
   $('mission-subtitle').textContent=selected.subtitle;
   $('mission-title').textContent=selected.name.toUpperCase();
@@ -202,7 +210,7 @@ function updateMissionMenu() {
     const button=document.createElement('button');button.type='button';button.dataset.mission=mission.id;
     button.setAttribute('aria-pressed',String(mission.id===settings.mission));
     const number=document.createElement('span');number.className='mission-choice-number';number.textContent=`${mission.number} /`;
-    const title=document.createElement('strong');title.textContent=mission.name.replace('Blacksite07','Blacksite 07');
+    const title=document.createElement('strong');title.textContent=mission.name.replace('Blacksite07','Blacksite 07').replace(/^The /,'');
     const subtitle=document.createElement('small');subtitle.textContent=mission.subtitle;
     button.append(number,title,subtitle);return button;
   }));
@@ -238,7 +246,7 @@ function saveRun() {
     return persisted;
   } catch (_) { return false; }
 }
-function resetExploration() { explored = new Set(); mapDirty = true; pathHint = null; pathTimer = 0; }
+function resetExploration() { explored=new Set();mapDirty=true;pathHint=null;pathTimer=0;mapCenter=null;mapFollow=true;mapView='local';mapZoom=1;mapSelected=null;mapIndexSignature='';mapKnownMarkers=[];mapKnownSectors=[];$('map-selection').textContent='Select a landmark to inspect its location and access.';mapFloorTotal=game?.level.grid.reduce((sum,row)=>sum+[...row].filter(cell=>cell!=='#').length,0)||0; }
 function mountGame(candidate) {
   renderer?.dispose();game=candidate;
   renderer = new BreachRenderer($('world'),game,{quality:settings.quality,fov:settings.fov,reducedMotion:settings.reducedMotion});
@@ -346,6 +354,19 @@ function suspendRoomReadiness(reason='menu') {
   }
 }
 function localOperatorAlive() { return !coop||game?.state.player.alive!==false&&game?.state.player.health>0; }
+function updateRoomBriefing(id) {
+  const mission=missionForId(id||coop?.room?.mission||$('room-mission').value);
+  $('room-mission-tag').textContent=`MISSION ${mission.number} / PRIVATE CO-OP`;
+  $('room-mission-title').textContent=mission.name.toUpperCase();
+  $('room-mission-briefing').textContent=mission.briefing;
+  $('room-exploration-rule').hidden=mission.id!=='underworks-13';
+}
+function populateRoomMissions() {
+  $('room-mission').replaceChildren(...coopMissionIds.map(id=>{
+    const option=document.createElement('option');option.value=id;option.textContent=missionForId(id).name;return option;
+  }));
+  $('room-mission').value=settings.coopMission;updateRoomBriefing();
+}
 function updateRoomEntry() {
   const busy=!!coop&&['connecting','reconnecting'].includes(coopConnection),room=coop?.room;
   $('room-entry').hidden=!!room;$('room-lobby').hidden=!room;
@@ -353,7 +374,7 @@ function updateRoomEntry() {
   $('room-back').textContent=room?'LEAVE ROOM ←':busy?'CANCEL CONNECTION ←':'BACK TO MENU ←';
   if(!room)return;
   if(requestedRoom!==room.id){requestedRoom=room.id;$('room-code').value=room.id;try{history.replaceState(null,'',roomInvite(room.id));}catch(_){}}
-  $('room-id').textContent=room.id;$('room-combat').textContent=`CROSSLINK / ${room.difficulty.toUpperCase()}`;
+  $('room-id').textContent=room.id;$('room-combat').textContent=`${missionForId(room.mission).name.toUpperCase()} / ${room.difficulty.toUpperCase()}`;updateRoomBriefing(room.mission);
   $('room-invite').value=roomInvite(room.id);
   const players=room.players||[];
   $('room-players').replaceChildren(...['p1','p2'].map(id=>{
@@ -368,8 +389,9 @@ function updateRoomEntry() {
   $('room-ready').setAttribute('aria-pressed',String(!!self?.ready));
   $('room-ready').textContent=self?.ready?'READY ✓ / TAP TO UNDO':'I’M READY ✓';
   $('room-ready').classList.toggle('subdued',!!self?.ready);$('room-ready').classList.toggle('primary',!self?.ready);
+  $('room-start').textContent=`START ${missionForId(room.mission).name.toUpperCase()} ↗`;
   $('room-start').hidden=!roomOwner();$('room-start').disabled=!allReady||!coop.connected||room.status!=='lobby';
-  $('room-wait').textContent=players.length<2?'Send your invite to one friend.':!allReady?'Both operators must mark ready.':roomOwner()?'Your team is ready. Start Crosslink when you are.':'Your team is ready. Waiting for the room owner to start.';
+  $('room-wait').textContent=players.length<2?'Send your invite to one friend.':!allReady?'Both operators must mark ready.':roomOwner()?'Your team is ready. Start the mission when you are.':'Your team is ready. Waiting for the room owner to start.';
   if(coop.connected&&room.status==='lobby')$('room-status').textContent='ROOM OPEN · INVITE ONE FRIEND';
 }
 function updateTeamStatus() {
@@ -386,6 +408,7 @@ function updateTeamStatus() {
 }
 function updatePauseRoom() {
   const room=coop?.room,network=coop?.view;
+  $('pause-map').hidden=!game?.level.exploration;
   $('pause-room-status').hidden=!coop;
   $('restart').hidden=!!coop&&!roomOwner();
   $('checkpoint').hidden=!game?.state.checkpoint||!!coop&&!roomOwner();
@@ -411,7 +434,7 @@ function applyRoomStatus() {
   if(!coop.view){if(mode!=='room')setMode('room');return;}
   const status=coop.room.status;
   if(status==='playing') {
-    if(document.hidden||document.querySelector('dialog[open]')) {coop.pause(document.hidden?'background':'menu');if(mode!=='paused')setMode('paused');}
+    if(document.hidden||document.querySelector('dialog[open]')||mapVisible&&game.level.exploration) {if(!coop.waitingPause)coop.pause(document.hidden?'background':'menu');if(mode!=='paused')setMode('paused');}
     else if(!coop.waitingPause&&coop.connected&&mode!=='playing') {
       closeDialogs();setMode('playing');lastFrame=performance.now();requestMouse();
     }
@@ -424,7 +447,7 @@ function finishRoom(won) {
   if(mode!==(won?'won':'dead'))setMode(won?'won':'dead');
   $('end-kicker').textContent=won?'TEAM EXTRACTION CONFIRMED':'TEAM SIGNAL LOST';
   $('end-title').innerHTML=won?'TOGETHER<span>_</span>':'TEAM DOWN<span>_</span>';
-  $('end-copy').textContent=won?'Crosslink is clear. Both operators made it out.':'Both operators are down. Regroup at the shared checkpoint and try again.';
+  $('end-copy').textContent=won?`${missionForId(coop.room.mission).name} is clear. Your team made it out.`:'Both operators are down. Regroup at the shared checkpoint and try again.';
   $('result-time').textContent=formatTime(game.state.time);$('result-kills').textContent=`${game.state.kills} / ${game.state.enemies.length}`;
   $('result-secrets').textContent=`${game.state.secretFound?1:0} / 1`;
   $('end-next').hidden=true;$('end-checkpoint').hidden=won||!game.state.checkpoint||!roomOwner();
@@ -438,6 +461,7 @@ function openRoom() {
   if(!coopConfigured||!ready)return;
   closeDialogs();setMode('room');$('room-error').hidden=true;
   $('room-name').value=settings.callSign||'Operator';$('room-difficulty').value=settings.difficulty;
+  $('room-mission').value=coopMissionIds.includes(settings.mission)?settings.mission:settings.coopMission;updateRoomBriefing();
   $('room-entry').classList.toggle('join-first',!!requestedRoom);
   $('room-entry').querySelector('.room-divider span').textContent=requestedRoom?'OR CREATE A NEW ROOM':'HAVE AN INVITE?';
   if(requestedRoom)$('room-code').value=requestedRoom;
@@ -470,13 +494,13 @@ function beginRoom(joining) {
         try{mountGame(view);mapVisible=false;updateMapVisibility();}catch(error){client.pause();fail(error);}},
       onState(state,events,allEvents){if(coop!==client)return;
         if(state.player.alive===false)clearInputs();
-        processEvents(events,allEvents);applyRoomStatus();updateHud();},
+        processEvents(events,allEvents);applyRoomStatus();updateHud();if(mapVisible){mapDirty=true;pathHint=calculatePath();}},
       onError(message){if(coop!==client)return;$('room-error').textContent=message;$('room-error').hidden=false;
         if(mode==='playing')showToast(message);if(mode==='paused')$('pause-room-status').textContent=message;},
       onClosed(message){if(coop!==client)return;endRoomConnection(message);},
     }});
     coop=client;coop.aimAssist=settings.aimAssist;
-    if(joining)client.join({roomId,name});else client.create({name,mission:'crosslink-11',difficulty:$('room-difficulty').value});
+    if(joining)client.join({roomId,name});else client.create({name,mission:choices($('room-mission').value,coopMissionIds,coopMissionIds[0]),difficulty:$('room-difficulty').value});
   }catch(error){coop=null;coopConnection='error';$('room-error').textContent=error.message||'The room connection could not start.';$('room-error').hidden=false;updateRoomEntry();}
 }
 function leaveRoom() {
@@ -513,58 +537,193 @@ function closeDialogs() {
   }
   clearInputs();
 }
+function mapInfo() { return game.getMapInfo?.()||{large:false,sectors:[],markers:[],upgrades:[]}; }
 function updateMapVisibility() {
-  $('map-panel').hidden = !mapVisible;
+  const large=!!game?.level.exploration;
+  $('map-panel').hidden=!mapVisible;$('map-panel').classList.toggle('expanded-map',large);
+  document.body.classList.toggle('map-expanded',mapVisible&&large);
   $('map-toggle').setAttribute('aria-pressed',String(mapVisible));
-  $('map-toggle').setAttribute('aria-label',mapVisible ? 'Hide map' : 'Show map');
-  if(mapVisible) { revealMap(); drawMap(); }
+  $('map-toggle').setAttribute('aria-label',mapVisible?'Hide map':'Show map');
+  $('map-title').textContent=large?currentMission().name.toUpperCase():'FACILITY MAP';
+  $('map-help').textContent=coop?'Drag to pan · + / − to zoom. The whole team is paused. Close the map, then both choose Resume.':'Drag to pan · + / − to zoom. Close the map to return to Resume. Arrow keys pan; Home finds you.';
+  if(mapVisible){revealMap();if(large){pathHint=calculatePath();refreshMapIndex(true);}drawMap();}
 }
-function toggleMap() { if(mode !== 'playing') return; mapVisible = !mapVisible; updateMapVisibility(); }
+function closeMap() {
+  mapVisible=false;mapPan=null;updateMapVisibility();
+  const target=mode==='paused'&&game?.level.exploration?$('pause-map'):$('map-toggle');
+  target.focus({preventScroll:true});
+}
+function toggleMap() {
+  if(mapVisible){closeMap();return;}
+  if(!game||!['playing','paused'].includes(mode))return;
+  if(game.level.exploration){
+    if(mode==='playing')pauseGame();else suspendRoomReadiness('menu');
+    mapFollow=true;mapCenter={x:game.state.player.x,z:game.state.player.z};mapView='local';mapZoom=1;
+    $('map-index').open=innerWidth>=1000&&innerHeight>=560;
+  }else if(mode!=='playing')return;
+  mapVisible=true;updateMapVisibility();
+  if(game.level.exploration)$('minimap').focus({preventScroll:true});
+}
 function revealMap() {
-  if(!game) return;
-  const p = game.state.player, level = game.level;
+  if(!game)return;
+  const p=game.state.player,level=game.level;
   for(let z=Math.max(0,Math.floor(p.z)-5);z<Math.min(level.height,Math.floor(p.z)+6);z++) {
     for(let x=Math.max(0,Math.floor(p.x)-5);x<Math.min(level.width,Math.floor(p.x)+6);x++) {
-      const dx=x+.5-p.x,dz=z+.5-p.z,d=Math.hypot(dx,dz);
-      if(d>5.8) continue;
-      const nearT = d > .6 ? (d-.6)/d : 0;
-      if(game.hasLineOfSight(p.x,p.z,p.x+dx*nearT,p.z+dz*nearT)) explored.add(z*level.width+x);
+      const dx=x+.5-p.x,dz=z+.5-p.z,d=Math.hypot(dx,dz);if(d>5.8)continue;
+      const nearT=d>.6?(d-.6)/d:0;
+      if(game.hasLineOfSight(p.x,p.z,p.x+dx*nearT,p.z+dz*nearT))explored.add(z*level.width+x);
     }
   }
-  mapDirty = true;
+  mapDirty=true;
+}
+function markerSymbol(marker) {
+  return {refuge:'+',transit:'T',upgrade:'◆',grille:'C',hazard:'I',phase:'Φ',shortcut:'↔',exit:'⇧',cache:'□',guardian:'!',power:'P',relay:'R',key:'K',gate:'▣'}[marker.type]||'•';
+}
+function markerColor(marker) {
+  if(marker.locked)return '#d28d70';
+  return {refuge:'#a9deba',transit:'#81cfd9',upgrade:'#f2bd66',grille:'#e8ad5f',hazard:'#a6d5b2',phase:'#c0a2e7',exit:'#eee8ce',guardian:'#f49b72',cache:'#a8bbaa'}[marker.type]||'#a3bdae';
+}
+function markerDescription(marker,info=mapInfo()) {
+  const equipment=info.upgrades.find(item=>item.id===marker.requires)?.name;
+  if(marker.locked)return equipment?`Needs ${equipment}`:({power:'Needs central power',relays:'Needs both relay links',key:'Needs the lift key',guardian:'Defeat the guardian first'}[marker.requires]||'Route not yet available');
+  if(marker.type==='upgrade')return marker.active?'Equipment acquired':'Equipment available here';
+  if(marker.type==='refuge')return marker.active?'Refuge visited · use to regroup':'Refuge · shared checkpoint';
+  if(marker.type==='transit'){if(!marker.active)return 'Transit station · activate on arrival';if(!game.state.power)return 'Activated · central power needed';const partner=info.markers.find(item=>item.id===marker.destination);return partner?.active?'Transit linked · use here to travel':'Activated · link the other station to travel';}
+  if(marker.type==='cache')return marker.active?'Cache recovered':'Optional cache';
+  if(marker.type==='guardian')return marker.active?'Guardian cleared':'Hostile guardian';
+  if(marker.type==='exit')return 'Arrival lift · return here to extract';
+  if(['grille','hazard','phase','shortcut','gate'].includes(marker.type))return marker.active?'Route open':'Access available · interact to open';
+  return marker.active?'Activated':'Discovered landmark';
+}
+function upgradeTokens(container,upgrades,compact=false) {
+  const signature=upgrades.map(item=>`${item.id}:${item.owned}`).join('|');
+  if(container.dataset.signature===signature)return;container.dataset.signature=signature;
+  container.replaceChildren(...upgrades.map(item=>{
+    const token=document.createElement('span');token.className=`equipment-token${item.owned?' owned':''}`;
+    token.textContent=compact?({cutter:'CUT',insulator:'INS',phase:'PHASE'}[item.id]||item.name):item.name;
+    token.title=`${item.name}: ${item.owned?'acquired':'not acquired'}`;token.setAttribute('aria-label',token.title);return token;
+  }));
+}
+function refreshMapIndex(force=false) {
+  if(!game.level.exploration)return;
+  const info=mapInfo(),level=game.level;
+  const signature=`${explored.size}:${info.markers.map(m=>`${m.id}:${m.active}:${m.locked}`).join('|')}:${info.upgrades.map(u=>u.owned).join('')}`;
+  $('map-objective').textContent=game.getObjective().title;
+  if(!force&&signature===mapIndexSignature)return;mapIndexSignature=signature;
+  let floorSeen=0;const sectorSeen=new Set();
+  for(const index of explored){const x=index%level.width,z=Math.floor(index/level.width);if(level.grid[z]?.[x]==='#')continue;floorSeen++;
+    for(const sector of info.sectors){const b=sector.bounds;if(x>=b.x1&&x<=b.x2&&z>=b.z1&&z<=b.z2)sectorSeen.add(sector.id);}
+  }
+  const sharedTypes=new Set(['upgrade','refuge','transit','cache','power','relay']);
+  mapKnownMarkers=info.markers.filter(marker=>explored.has(Math.floor(marker.z)*level.width+Math.floor(marker.x))||marker.active&&sharedTypes.has(marker.type));
+  for(const marker of mapKnownMarkers)for(const sector of info.sectors){const b=sector.bounds;if(marker.x>=b.x1&&marker.x<=b.x2&&marker.z>=b.z1&&marker.z<=b.z2)sectorSeen.add(sector.id);}
+  mapKnownSectors=info.sectors.filter(sector=>sectorSeen.has(sector.id));
+  const progress=game.getExplorationProgress();
+  $('map-progress').textContent=`${Math.min(100,Math.floor(floorSeen/Math.max(1,mapFloorTotal)*100))}% SURVEYED · ${progress.refugesVisited}/${progress.refugesTotal} REFUGES · ${progress.transitsActive}/${progress.transitsTotal} TRANSIT`;
+  upgradeTokens($('map-upgrades'),info.upgrades);
+  const selectedSector=$('map-sector').value;
+  $('map-sector').replaceChildren(...[{id:'',name:'Choose a discovered sector'},...mapKnownSectors].map(sector=>{const option=document.createElement('option');option.value=sector.id;option.textContent=sector.id?`${String(info.sectors.findIndex(item=>item.id===sector.id)+1).padStart(2,'0')} / ${sector.name}`:sector.name;return option;}));
+  if(mapKnownSectors.some(sector=>sector.id===selectedSector))$('map-sector').value=selectedSector;
+  $('map-marker-count').textContent=String(mapKnownMarkers.length);
+  const ranks={refuge:0,transit:1,exit:2,grille:3,hazard:3,phase:3,shortcut:3,gate:3,upgrade:4,guardian:5,cache:6};
+  const markers=[...mapKnownMarkers].sort((a,b)=>(ranks[a.type]??7)-(ranks[b.type]??7)||a.label.localeCompare(b.label));
+  $('map-marker-list').replaceChildren(...markers.map(marker=>{
+    const button=document.createElement('button');button.type='button';button.dataset.mapMarker=marker.id;
+    button.setAttribute('aria-pressed',String(marker.id===mapSelected));
+    const icon=document.createElement('b');icon.textContent=markerSymbol(marker);icon.style.color=markerColor(marker);
+    const content=document.createElement('span'),label=document.createElement('strong'),detail=document.createElement('small');
+    label.textContent=marker.label;detail.textContent=markerDescription(marker,info);content.append(label,detail);button.append(icon,content);return button;
+  }));
+  if(mapSelected){const marker=mapKnownMarkers.find(item=>item.id===mapSelected);if(marker)$('map-selection').textContent=`${marker.label} · ${markerDescription(marker,info)}`;}
 }
 function drawMap() {
-  if(!game || !mapVisible) return;
-  const canvas=$('minimap'),ctx=canvas.getContext('2d'),level=game.level;
-  const scale=Math.min((canvas.width-20)/level.width,(canvas.height-20)/level.height);
-  const ox=(canvas.width-level.width*scale)/2,oz=(canvas.height-level.height*scale)/2;
-  ctx.fillStyle='#08110f';ctx.fillRect(0,0,canvas.width,canvas.height);
-  for(const index of explored) {
-    const x=index%level.width,z=Math.floor(index/level.width);
-    ctx.fillStyle=level.grid[z]?.[x]==='#'?'#4d6254':'#20392d';ctx.fillRect(ox+x*scale,oz+z*scale,scale-.35,scale-.35);
-  }
-  for(const door of game.state.doors) {
-    if(!explored.has(Math.floor(door.z)*level.width+Math.floor(door.x)))continue;
-    ctx.fillStyle=door.open?'#8acac1':'#f2a744';ctx.fillRect(ox+(door.x-.35)*scale,oz+(door.z-.35)*scale,scale*.7,scale*.7);
-  }
-  if(settings.guidance==='simple' && pathHint?.path) {
-    ctx.strokeStyle='#f2a74488';ctx.lineWidth=1;ctx.beginPath();let started=false;
-    for(const cell of pathHint.path) {
-      if(!explored.has(cell.z*level.width+cell.x)) { started=false; continue; }
-      if(!started){ctx.moveTo(ox+(cell.x+.5)*scale,oz+(cell.z+.5)*scale);started=true;}
-      else ctx.lineTo(ox+(cell.x+.5)*scale,oz+(cell.z+.5)*scale);
-    }ctx.stroke();
-  }
-  const target=game.getObjective();
-  if(Number.isFinite(target.x) && (settings.guidance==='simple' || explored.has(Math.floor(target.z)*level.width+Math.floor(target.x)))) {
-    const tx=ox+target.x*scale,tz=oz+target.z*scale;ctx.fillStyle='#f2a744';ctx.beginPath();ctx.moveTo(tx,tz-4);ctx.lineTo(tx+4,tz);ctx.lineTo(tx,tz+4);ctx.lineTo(tx-4,tz);ctx.closePath();ctx.fill();
-  }
-  const p=game.state.player;ctx.save();ctx.translate(ox+p.x*scale,oz+p.z*scale);ctx.rotate(p.angle);ctx.fillStyle='#d7f7e8';ctx.beginPath();ctx.moveTo(0,-6);ctx.lineTo(4,4);ctx.lineTo(0,2);ctx.lineTo(-4,4);ctx.closePath();ctx.fill();ctx.restore();
+  if(!game||!mapVisible)return;
+  if(game.level.exploration){refreshMapIndex();drawExpandedMap();}else drawSmallMap();
   mapDirty=false;
+}
+function drawSmallMap() {
+  const canvas=$('minimap');if(canvas.width!==350||canvas.height!==280){canvas.width=350;canvas.height=280;}
+  const ctx=canvas.getContext('2d'),level=game.level;ctx.setTransform(1,0,0,1,0,0);
+  const scale=Math.min((canvas.width-20)/level.width,(canvas.height-20)/level.height),ox=(canvas.width-level.width*scale)/2,oz=(canvas.height-level.height*scale)/2;
+  ctx.fillStyle='#08110f';ctx.fillRect(0,0,canvas.width,canvas.height);
+  for(const index of explored){const x=index%level.width,z=Math.floor(index/level.width);ctx.fillStyle=level.grid[z]?.[x]==='#'?'#4d6254':'#20392d';ctx.fillRect(ox+x*scale,oz+z*scale,scale-.35,scale-.35);}
+  for(const door of game.state.doors){if(!explored.has(Math.floor(door.z)*level.width+Math.floor(door.x)))continue;ctx.fillStyle=door.open?'#8acac1':'#f2a744';ctx.fillRect(ox+(door.x-.35)*scale,oz+(door.z-.35)*scale,scale*.7,scale*.7);}
+  drawMapRoute(ctx,scale,ox,oz);
+  const target=game.getObjective();
+  if(Number.isFinite(target.x)&&(settings.guidance==='simple'||explored.has(Math.floor(target.z)*level.width+Math.floor(target.x))))drawObjectiveMarker(ctx,ox+target.x*scale,oz+target.z*scale,4);
+  drawMapPlayers(ctx,scale,ox,oz,6);
+}
+function drawMapRoute(ctx,scale,ox,oz) {
+  if(settings.guidance!=='simple'||!pathHint?.path)return;
+  ctx.strokeStyle='#f2a74488';ctx.lineWidth=1.5;ctx.setLineDash([4,4]);ctx.beginPath();let started=false;
+  for(const cell of pathHint.path){if(!explored.has(cell.z*game.level.width+cell.x)){started=false;continue;}if(!started){ctx.moveTo(ox+(cell.x+.5)*scale,oz+(cell.z+.5)*scale);started=true;}else ctx.lineTo(ox+(cell.x+.5)*scale,oz+(cell.z+.5)*scale);}
+  ctx.stroke();ctx.setLineDash([]);
+}
+function drawObjectiveMarker(ctx,x,z,radius) {
+  ctx.fillStyle='#f2a744';ctx.strokeStyle='#111b13';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(x,z-radius);ctx.lineTo(x+radius,z);ctx.lineTo(x,z+radius);ctx.lineTo(x-radius,z);ctx.closePath();ctx.stroke();ctx.fill();
+}
+function drawMapPlayers(ctx,scale,ox,oz,size) {
+  if(coop)for(const[id,player]of Object.entries(game.state.players||{})){if(id===coop.selfId)continue;ctx.fillStyle=player.alive===false?'#e29977':'#81cfd9';ctx.beginPath();ctx.arc(ox+player.x*scale,oz+player.z*scale,size*.7,0,Math.PI*2);ctx.fill();}
+  const p=game.state.player;ctx.save();ctx.translate(ox+p.x*scale,oz+p.z*scale);ctx.rotate(p.angle);ctx.fillStyle='#eff7dc';ctx.strokeStyle='#07110d';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(0,-size);ctx.lineTo(size*.7,size*.7);ctx.lineTo(0,size*.3);ctx.lineTo(-size*.7,size*.7);ctx.closePath();ctx.stroke();ctx.fill();ctx.restore();
+}
+function expandedMapSize() {
+  const bounds=$('minimap').getBoundingClientRect();return {width:Math.max(1,bounds.width),height:Math.max(1,bounds.height)};
+}
+function drawExpandedMap() {
+  const canvas=$('minimap'),{width,height}=expandedMapSize(),dpr=Math.min(2,devicePixelRatio||1),level=game.level,info=mapInfo();
+  const pixelsX=Math.round(width*dpr),pixelsY=Math.round(height*dpr);if(canvas.width!==pixelsX||canvas.height!==pixelsY){canvas.width=pixelsX;canvas.height=pixelsY;}
+  const ctx=canvas.getContext('2d');ctx.setTransform(dpr,0,0,dpr,0,0);ctx.fillStyle='#07100e';ctx.fillRect(0,0,width,height);
+  if(!mapCenter||mapFollow)mapCenter={x:game.state.player.x,z:game.state.player.z};
+  const base=mapView==='facility'?Math.min((width-28)/level.width,(height-28)/level.height):Math.max(12,Math.min(width/28,height/24));
+  mapScale=Math.max(.5,base*mapZoom);const ox=width/2-mapCenter.x*mapScale,oz=height/2-mapCenter.z*mapScale;
+  const colors=['#294438','#343b49','#48402c','#3c354a','#294748','#42392f','#3e4640','#283c4b','#463438'];
+  const sectorFor=(x,z)=>info.sectors.findIndex(sector=>{const b=sector.bounds;return x>=b.x1&&x<=b.x2&&z>=b.z1&&z<=b.z2;});
+  for(const index of explored){const x=index%level.width,z=Math.floor(index/level.width),px=ox+x*mapScale,pz=oz+z*mapScale;if(px<-mapScale||pz<-mapScale||px>width||pz>height)continue;
+    ctx.fillStyle=level.grid[z]?.[x]==='#'?'#52645b':colors[Math.max(0,sectorFor(x,z))%colors.length];ctx.fillRect(px,pz,Math.max(1,mapScale-.45),Math.max(1,mapScale-.45));
+  }
+  for(const sector of mapKnownSectors){const x=ox+sector.x*mapScale,z=oz+sector.z*mapScale;if(x<12||x>width-12||z<12||z>height-12)continue;
+    const overview=mapView==='facility'&&mapZoom<1.5,number=String(info.sectors.findIndex(item=>item.id===sector.id)+1).padStart(2,'0');
+    ctx.font=`bold ${overview?9:12}px "Courier New",monospace`;ctx.textAlign='center';ctx.lineWidth=4;ctx.strokeStyle='#07100edf';ctx.fillStyle='#c4d3bcbf';
+    const lines=[];let line='';const maxWidth=overview?Math.max(48,(sector.bounds.x2-sector.bounds.x1)*mapScale-8):220;
+    if(mapScale<2.2)lines.push(number);else{for(const word of `${number} ${sector.name.toUpperCase()}`.split(' ')){const next=line?`${line} ${word}`:word;if(line&&ctx.measureText(next).width>maxWidth){lines.push(line);line=word;}else line=next;}if(line)lines.push(line);}
+    lines.forEach((label,index)=>{const half=ctx.measureText(label).width/2+5,tx=Math.max(half,Math.min(width-half,x)),tz=z-18+index*(overview?11:14);ctx.strokeText(label,tx,tz);ctx.fillText(label,tx,tz);});
+  }
+  const activeTransits=mapKnownMarkers.filter(marker=>marker.type==='transit'&&marker.active);
+  ctx.strokeStyle='#81cfd948';ctx.lineWidth=1.5;ctx.setLineDash([3,6]);
+  for(const from of activeTransits){const to=activeTransits.find(marker=>marker.id===from.destination);if(!to||from.id>to.id)continue;ctx.beginPath();ctx.moveTo(ox+from.x*mapScale,oz+from.z*mapScale);ctx.lineTo(ox+to.x*mapScale,oz+to.z*mapScale);ctx.stroke();}ctx.setLineDash([]);
+  drawMapRoute(ctx,mapScale,ox,oz);
+  mapHits=[];
+  for(const marker of mapKnownMarkers){const x=ox+marker.x*mapScale,z=oz+marker.z*mapScale;if(x<-12||z<-12||x>width+12||z>height+12)continue;
+    const selected=marker.id===mapSelected,r=mapView==='facility'&&mapZoom<1.4?7:9;
+    ctx.fillStyle='#0a1713';ctx.strokeStyle=selected?'#f4e7b9':markerColor(marker);ctx.lineWidth=selected?2:1;
+    if(marker.type==='transit'){ctx.beginPath();ctx.arc(x,z,r,0,Math.PI*2);ctx.fill();ctx.stroke();}else{ctx.fillRect(x-r,z-r,r*2,r*2);ctx.strokeRect(x-r,z-r,r*2,r*2);}
+    ctx.fillStyle=markerColor(marker);ctx.font=`bold ${r+3}px "Courier New",monospace`;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(markerSymbol(marker),x,z+.5);ctx.textBaseline='alphabetic';
+    mapHits.push({id:marker.id,x,z});
+  }
+  const objective=game.getObjective();if(Number.isFinite(objective.x)&&(settings.guidance==='simple'||explored.has(Math.floor(objective.z)*level.width+Math.floor(objective.x))))drawObjectiveMarker(ctx,ox+objective.x*mapScale,oz+objective.z*mapScale,6);
+  drawMapPlayers(ctx,mapScale,ox,oz,8);
+  $('map-local').setAttribute('aria-pressed',String(mapView==='local'));$('map-facility').setAttribute('aria-pressed',String(mapView==='facility'));
+  $('map-zoom-label').textContent=`${mapZoom.toFixed(1).replace('.0','')}×`;
+  $('map-zoom-out').disabled=mapZoom<=(mapView==='facility'?1:.65);$('map-zoom-in').disabled=mapZoom>=(mapView==='facility'?6:3);
+}
+function changeMapView(view) {
+  if(!game?.level.exploration)return;mapView=view;mapZoom=1;mapFollow=view==='local';
+  mapCenter=view==='facility'?{x:game.level.width/2,z:game.level.height/2}:{x:game.state.player.x,z:game.state.player.z};drawMap();
+}
+function changeMapZoom(factor) {
+  if(!mapVisible||!game?.level.exploration)return;mapZoom=Math.max(mapView==='facility'?1:.65,Math.min(mapView==='facility'?6:3,mapZoom*factor));drawMap();
+}
+function selectMapMarker(id,center=true) {
+  const marker=mapKnownMarkers.find(item=>item.id===id);if(!marker)return;
+  mapSelected=id;$('map-selection').textContent=`${marker.label} · ${markerDescription(marker)}`;
+  document.querySelectorAll('[data-map-marker]').forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.mapMarker===id)));
+  if(center){mapView='local';mapZoom=1.4;mapFollow=false;mapCenter={x:marker.x,z:marker.z};if(innerWidth<700)$('map-index').open=false;}
+  drawMap();
 }
 function calculatePath() {
   const level=game.level,p=game.state.player,target=game.getObjective();
   const progress=game.getMissionProgress();
+  const doorCells=new Map(game.state.doors.map(door=>[Math.floor(door.z)*level.width+Math.floor(door.x),door]));
   if(!Number.isFinite(target.x)||!Number.isFinite(target.z))return null;
   const sx=Math.floor(p.x),sz=Math.floor(p.z),tx=Math.floor(target.x),tz=Math.floor(target.z);
   const start=sz*level.width+sx,end=tz*level.width+tx;
@@ -575,12 +734,12 @@ function calculatePath() {
     for(const [dx,dz]of [[1,0],[-1,0],[0,1],[0,-1]]) {
       const nx=x+dx,nz=z+dz,ni=nz*level.width+nx;
       if(nx<0||nz<0||nx>=level.width||nz>=level.height||level.grid[nz][nx]==='#'||came.has(ni))continue;
-      const door=game.state.doors.find(d=>!d.open&&Math.floor(d.x)===nx&&Math.floor(d.z)===nz);
-      if(door && ni!==end && ((door.requires==='power'&&!game.state.power)||(door.requires==='key'&&!p.key)||(door.requires==='relays'&&(!game.state.power||progress.relaysUsed<progress.relaysTotal))||door.secret))continue;
+      const door=doorCells.get(ni);
+      if(door&&!door.open){const permitted=game.canTraverseDoor?game.canTraverseDoor(door):!((door.requires==='power'&&!game.state.power)||(door.requires==='key'&&!p.key)||(door.requires==='relays'&&(!game.state.power||progress.relaysUsed<progress.relaysTotal))||door.secret);if(!permitted)continue;}
       came.set(ni,index);queue.push(ni);
     }
   }
-  if(!came.has(end))return {x:target.x,z:target.z,distance:Math.hypot(target.x-p.x,target.z-p.z),path:null};
+  if(!came.has(end))return {x:target.x,z:target.z,distance:Math.hypot(target.x-p.x,target.z-p.z),path:null,blocked:true};
   const path=[];let at=end;
   while(at!==null){path.push({x:at%level.width,z:Math.floor(at/level.width)});at=came.get(at);}
   path.reverse();const next=path[Math.min(2,path.length-1)];
@@ -589,9 +748,10 @@ function calculatePath() {
 function normAngle(angle) { return Math.atan2(Math.sin(angle),Math.cos(angle)); }
 function updateDirection() {
   if(settings.guidance!=='simple'||!pathHint){$('direction').textContent='';return;}
+  if(pathHint.blocked){$('direction').textContent=game.level.exploration?'ROUTE SEALED · CHECK YOUR MAP AND EQUIPMENT':'ROUTE SEALED · CHECK THE CURRENT OBJECTIVE';return;}
   const p=game.state.player,a=normAngle(Math.atan2(pathHint.x-p.x,-(pathHint.z-p.z))-p.angle);
   const label=Math.abs(a)>2.45?'↓ TURN AROUND':a>.48?'→ TURN RIGHT':a<-.48?'← TURN LEFT':'↑ AHEAD';
-  const nearby = game.getObjective().action === 'collect' ? 'NEARBY · WALK OVER THE SECURITY KEY' : (touch ? 'NEARBY · TAP THE ACTION PROMPT' : 'NEARBY · LOOK FOR THE USE PROMPT');
+  const nearby = game.getObjective().action === 'fight' ? 'HOSTILE NEARBY · KEEP MOVING AND USE COVER' : game.getObjective().action === 'collect' ? 'NEARBY · WALK OVER THE MARKED KEY' : (touch ? 'NEARBY · TAP THE ACTION PROMPT' : 'NEARBY · LOOK FOR THE USE PROMPT');
   $('direction').textContent=pathHint.distance<2?nearby:`${label} · ${Math.round(pathHint.distance)} M TO OBJECTIVE`;
 }
 function visibleHostileForTraining() {
@@ -608,17 +768,21 @@ function updateTutorial() {
   if(!show || (touch && game.getInteractionInfo())){$('tutorial').hidden=true;return;}
   let text='',index='FIELD TRAINING';
   if(!t.moved)text=touch?'Left pad: move. Drag the right side to turn.':'Use W A S D to move. Move your mouse to look around. Arrow keys also turn.';
+  else if(objective.stage==='arrival'&&game.level.exploration&&state.interactables.some(item=>item.type==='transit'&&!item.used&&item.x===objective.x&&item.z===objective.z))text=touch?'Walk to the marked transit station. Tap LINK to activate your return route.':'Approach the marked transit station and press E. Linking it now prepares your return route.';
   else if(objective.stage==='arrival')text=touch?'Walk to the airlock. Tap OPEN when it lights up.':'Approach the arrival airlock. Press E when the door prompt appears.';
   else if(!t.fired) {
-    if(!visibleHostileForTraining()){$('tutorial').hidden=true;return;}
-    text=touch?'Hold FIRE. Drag on it to aim while you shoot.':'Click or hold SPACE to fire. Move sideways with A and D to dodge.';
+    if(!visibleHostileForTraining()){
+      if(game.level.exploration&&objective.stage==='power'){text=touch?'MAP pauses the run. Use it to remember gates, refuges, and your route back.':'Press TAB to inspect the facility map. It pauses the run and remembers discovered routes.';index='EXPLORATION TIP';}
+      else{$('tutorial').hidden=true;return;}
+    }else text=touch?'Hold FIRE. Drag on it to aim while you shoot.':'Click or hold SPACE to fire. Move sideways with A and D to dodge.';
   }
   else if(state.player.hasShotgun&&!t.weaponSwitched)text=touch?'Tap SWAP for your scattergun. It works best up close.':'Scattergun acquired. Press 2 to equip it, or 1 to return to the pistol. It is strongest up close.';
+  else if(game.level.exploration&&['cutter','insulator','phase','return'].includes(objective.stage)){text=objective.stage==='return'?'Activated transit stations shorten the trip back. Check the map for linked stations.':'New equipment opens routes you passed earlier. The map remembers discovered gates and refuges.';index='EXPLORATION TIP';}
   else if(objective.stage==='relays'){text=touch?'Bring both relay consoles online. Each active link stays lit.':'Find and activate both relay consoles. Active links stay lit; the link counter tracks your progress.';index='MISSION BRIEF';}
-  else if(objective.action==='collect'){text='Walk over the security key to collect it.';index='MISSION BRIEF';}
+  else if(objective.action==='collect'){text=game.level.exploration?'Walk over the reactor key to collect it.':'Walk over the security key to collect it.';index='MISSION BRIEF';}
   else {text=touch?'Keep moving. Walk over supplies to collect them.':'Keep moving and use cover. Walk over health, armor, and ammunition to collect them.';index='FIELD TIP';}
   // Early controls wait for the action; the later supply reminder appears briefly.
-  if(index==='MISSION BRIEF'||index==='FIELD TIP') {
+  if(index==='MISSION BRIEF'||index==='FIELD TIP'||index==='EXPLORATION TIP') {
     const identity=`${game.level.missionId}:${index==='FIELD TIP'?'supplies':objective.stage}`;
     if(updateTutorial.identity!==identity){updateTutorial.identity=identity;helpRevealed=performance.now();}
     if(performance.now()-helpRevealed>8500){$('tutorial').hidden=true;return;}
@@ -630,7 +794,7 @@ function updateHud() {
   const state=game.state,p=state.player;
   $('zone').textContent=game.getZone().toUpperCase();$('clock').textContent=formatTime(state.time);
   $('health').textContent=Math.ceil(p.health);$('armor').textContent=Math.ceil(p.armor);
-  $('health-fill').style.width=`${Math.max(0,p.health)}%`;$('health').closest('.health').classList.toggle('low',p.health<30);
+  $('health-fill').style.width=`${Math.max(0,p.health)/(p.maxHealth||100)*100}%`;$('health-unit').textContent=p.maxHealth>100?`/ ${p.maxHealth}`:'HP';$('health').closest('.health').classList.toggle('low',p.health<30);
   $('ammo').textContent=p.weapon==='shotgun'?p.ammo.shells:p.ammo.pistol;
   $('ammo-label').textContent=p.weapon==='shotgun'?'SCATTERGUN SHELLS':'9MM AMMUNITION';
   $('weapon-name').textContent=p.weapon==='shotgun'?'SCATTERGUN':'SERVICE PISTOL';
@@ -641,6 +805,8 @@ function updateHud() {
   $('relay-token').textContent=`LINK ${progress.relaysUsed}/${progress.relaysTotal}`;
   $('relay-token').classList.toggle('active',progress.relaysTotal>0&&progress.relaysUsed===progress.relaysTotal);
   $('relay-token').setAttribute('aria-label',`${progress.relaysUsed} of ${progress.relaysTotal} relay links online`);
+  $('hud-upgrades').hidden=!game.level.exploration;
+  if(game.level.exploration)upgradeTokens($('hud-upgrades'),mapInfo().upgrades,true);
   const obj=game.getObjective();$('objective-title').textContent=obj.title;$('objective-detail').textContent=obj.detail;
   $('objective-detail').hidden=touch||settings.guidance==='expert';
   $('objective').querySelector('.label').textContent=settings.guidance==='expert'?'MISSION':'CURRENT OBJECTIVE';
@@ -667,11 +833,11 @@ function processEvents(events,allEvents=events) {
   renderer.handleEvents(allEvents);audio.events(events);
   let notice=null;
   for(const event of events) {
-    if(['message','pickup','checkpoint','secret'].includes(event.type)&&event.text)notice=event.text;
+    if(['message','pickup','checkpoint','secret','upgrade','refuge','transit-activated','transit','reward'].includes(event.type)&&event.text)notice=event.text;
     if(event.type==='hurt')damageUntil=performance.now()+(settings.reducedMotion?130:200);
     if(event.type==='hit')hitUntil=performance.now()+120;
-    if(['door','power','pickup','relay'].includes(event.type)) {pathTimer=0;mapDirty=true;}
-    if(event.type==='checkpoint')saveRun();
+    if(['door','power','pickup','relay','upgrade','refuge','transit-activated','transit','reward','hit','death'].includes(event.type)) {pathTimer=0;mapDirty=true;}
+    if(['checkpoint','upgrade','refuge','transit-activated','reward'].includes(event.type))saveRun();
     if(event.type==='win'&&!coop)finish(true);
     if(event.type==='death'&&!coop)finish(false);
     if(event.type==='revive'&&coop)notice='Back in the fight. The team reached a shared checkpoint.';
@@ -724,6 +890,7 @@ $('room-copy').addEventListener('click',copyInvite);
 $('room-ready').addEventListener('click',()=>{audio.unlock();const self=coop?.room?.players.find(player=>player.id===coop.selfId);coop?.ready(!self?.ready);});
 $('room-start').addEventListener('click',()=>{audio.unlock();coop?.start();});
 $('room-settings').addEventListener('click',()=>openDialog('settings-dialog'));
+$('room-mission').addEventListener('change',()=>{settings.coopMission=$('room-mission').value;saveSettings();updateRoomBriefing();});
 $('start').addEventListener('click',launchNew);$('continue').addEventListener('click',continueRun);
 $('retry-load').addEventListener('click',()=>location.reload());
 $('brand-home').addEventListener('click',event=>{event.preventDefault();});
@@ -742,7 +909,28 @@ for(const id of ['settings-dialog','controls-dialog']) {
   $(id).addEventListener('close',clearInputs);
   $(id).addEventListener('click',e=>{if(e.target===$(id)){const r=$(id).getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)closeDialogs();}});
 }
-$('map-toggle').addEventListener('click',toggleMap);$('map-close').addEventListener('click',()=>{mapVisible=false;updateMapVisibility();});
+$('map-toggle').addEventListener('click',toggleMap);$('map-close').addEventListener('click',closeMap);$('pause-map').addEventListener('click',toggleMap);
+$('map-local').addEventListener('click',()=>changeMapView('local'));$('map-facility').addEventListener('click',()=>changeMapView('facility'));
+$('map-center').addEventListener('click',()=>changeMapView('local'));
+$('map-zoom-in').addEventListener('click',()=>changeMapZoom(1.3));$('map-zoom-out').addEventListener('click',()=>changeMapZoom(1/1.3));
+$('map-marker-list').addEventListener('click',event=>{const button=event.target.closest('[data-map-marker]');if(button)selectMapMarker(button.dataset.mapMarker);});
+$('map-sector').addEventListener('change',event=>{const sector=mapKnownSectors.find(item=>item.id===event.target.value);if(!sector)return;mapView='local';mapZoom=.85;mapFollow=false;mapCenter={x:sector.x,z:sector.z};drawMap();});
+$('map-index').addEventListener('toggle',()=>{if(mapVisible)drawMap();});
+$('minimap').addEventListener('wheel',event=>{if(!game?.level.exploration||!mapVisible)return;event.preventDefault();event.stopPropagation();changeMapZoom(Math.exp(-event.deltaY*.0015));},{passive:false});
+$('minimap').addEventListener('pointerdown',event=>{
+  if(!game?.level.exploration||!mapVisible||mapPan||event.pointerType==='mouse'&&event.button!==0)return;
+  mapFollow=false;mapPan={id:event.pointerId,x:event.clientX,y:event.clientY,cx:mapCenter.x,cz:mapCenter.z,moved:false};
+  try{$('minimap').setPointerCapture(event.pointerId);}catch(_){}event.preventDefault();
+});
+$('minimap').addEventListener('pointermove',event=>{
+  if(!mapPan||event.pointerId!==mapPan.id)return;const dx=event.clientX-mapPan.x,dz=event.clientY-mapPan.y;if(Math.hypot(dx,dz)>5)mapPan.moved=true;
+  mapCenter={x:Math.max(0,Math.min(game.level.width,mapPan.cx-dx/mapScale)),z:Math.max(0,Math.min(game.level.height,mapPan.cz-dz/mapScale))};drawMap();
+});
+$('minimap').addEventListener('pointerup',event=>{
+  if(!mapPan||event.pointerId!==mapPan.id)return;const clicked=!mapPan.moved;mapPan=null;
+  if(clicked){const bounds=$('minimap').getBoundingClientRect(),x=event.clientX-bounds.left,z=event.clientY-bounds.top;const nearest=mapHits.map(hit=>({...hit,d:Math.hypot(hit.x-x,hit.z-z)})).filter(hit=>hit.d<=22).sort((a,b)=>a.d-b.d)[0];if(nearest)selectMapMarker(nearest.id,false);}
+});
+for(const event of ['pointercancel','lostpointercapture'])$('minimap').addEventListener(event,()=>{mapPan=null;});
 $('dismiss-tutorial').addEventListener('click',()=>{settings.tutorial=false;saveSettings();$('tutorial').hidden=true;showToast('Tutorial hidden. You can turn it on again in Settings.');});
 for(const button of document.querySelectorAll('[data-guidance]'))button.addEventListener('click',()=>{settings.guidance=button.dataset.guidance;updateChoices();saveSettings();});
 for(const button of document.querySelectorAll('[data-difficulty]'))button.addEventListener('click',()=>{settings.difficulty=button.dataset.difficulty;updateChoices();saveSettings();});
@@ -761,6 +949,12 @@ $('setting-tutorial').addEventListener('change',event=>{settings.tutorial=event.
 
 window.addEventListener('keydown',event=>{
   if((event.target instanceof HTMLInputElement||event.target instanceof HTMLSelectElement)||document.querySelector('dialog[open]'))return;
+  if(mapVisible&&game?.level.exploration){
+    if(['Escape','Tab','KeyP'].includes(event.code)){event.preventDefault();closeMap();return;}
+    if(['Equal','NumpadAdd','Minus','NumpadSubtract'].includes(event.code)){event.preventDefault();changeMapZoom(['Equal','NumpadAdd'].includes(event.code)?1.3:1/1.3);return;}
+    if(event.code==='Home'){event.preventDefault();changeMapView('local');return;}
+    if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(event.code)){event.preventDefault();mapFollow=false;const shift=70/mapScale;mapCenter.x=Math.max(0,Math.min(game.level.width,mapCenter.x+(event.code==='ArrowRight'?shift:event.code==='ArrowLeft'?-shift:0)));mapCenter.z=Math.max(0,Math.min(game.level.height,mapCenter.z+(event.code==='ArrowDown'?shift:event.code==='ArrowUp'?-shift:0)));drawMap();}return;
+  }
   if(mode==='playing') {
     if(['KeyW','KeyA','KeyS','KeyD','ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space','Tab','KeyE','KeyP','Escape','Digit1','Digit2','KeyQ','KeyF'].includes(event.code))event.preventDefault();
     if(event.code==='Escape'||event.code==='KeyP'){pauseGame();return;}
@@ -792,7 +986,7 @@ window.addEventListener('pageshow',event=>{
   if(coop){if(event.persisted&&coop.view)setMode('paused');coop.setPageVisible(!document.hidden);}
   else if(event.persisted&&game?.state.status==='paused')setMode('paused');
 });
-window.addEventListener('resize',()=>{clearInputs();renderer?.resize();});
+window.addEventListener('resize',()=>{clearInputs();renderer?.resize();if(mapVisible)requestAnimationFrame(drawMap);});
 document.addEventListener('pointerlockchange',()=>{
   if(document.pointerLockElement===$('world')){pointerLockedOnce=true;return;}
   if(pointerLockedOnce&&mode==='playing'){if(performance.now()<fullscreenTransitionUntil)clearInputs();else pauseGame();}
@@ -859,7 +1053,7 @@ try {
   makeGame();
   if(savedRecord?.version!==1 || !savedRecord.game) savedRecord=null;
   if(savedRecord) { const validator=new Game();if(!validator.restore(savedRecord.game)){savedRecord=null;removeStorage(SAVE_KEY);} }
-  updateChoices();updateSettingsFields();updateMissionMenu();updateFullscreen();
+  updateChoices();updateSettingsFields();updateMissionMenu();populateRoomMissions();updateFullscreen();
   document.body.classList.toggle('reduced-motion',settings.reducedMotion);
   ready=true;$('start').disabled=false;$('continue').disabled=false;
   $('load-status').textContent=touch?'READY · TURN YOUR PHONE SIDEWAYS FOR A WIDER VIEW':'READY · CLICK TO ENTER';
