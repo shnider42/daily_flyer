@@ -1,0 +1,100 @@
+/* Current-only tactile surfaces. Geometry/camera remain owned by game layouts.
+   No battlefield-wide filters, timers, external images or third-party fonts. */
+body.dsl-touch-command{--touch-accent:#d5bd87;--touch-cool:#94ced3;--touch-panel:var(--ui-surface,#f5f4e9);--touch-raised:var(--ui-raised,#e4e9de);--touch-line:var(--ui-line,#8a9d82);--touch-ink:var(--ui-text,#21362b);--touch-muted:var(--ui-muted,#50654f)}
+html[data-theme=light] body.dsl-touch-command{--touch-accent:#7b591e;--touch-cool:#246979}
+body.dsl-touch-command #mapWrap{background-image:radial-gradient(ellipse at 50% 30%,#8ba18b15,transparent 75%);box-shadow:inset 0 0 0 1px #cedac329}
+body.dsl-touch-command #map .hex.move{stroke:#e1d9ad;stroke-width:2.1;stroke-dasharray:4 2;stroke-opacity:.95}
+body.dsl-touch-command #map .unit.selected>rect{stroke:#ffe7a4;stroke-width:3;stroke-opacity:1}
+body.dsl-touch-command #map :is(.unit:focus-visible,.hex:focus-visible){outline:none}
+body.dsl-touch-command #map .unit:focus-visible>rect{stroke:#fff2b9;stroke-width:4}
+body.dsl-touch-command #map .hex:focus-visible{stroke:#fff2b9;stroke-width:4}
+body.dsl-touch-command #map .move-beacon{fill:#fff4d0;paint-order:stroke;stroke:#173e36;stroke-width:3;stroke-linejoin:round;font-weight:800;pointer-events:none}
+body.dsl-touch-command #battleFeedback{border-radius:9px;overflow:hidden;box-shadow:inset 0 1px 0 #fff1,0 3px 12px #0002}
+body.dsl-touch-command #battleFeedback .battle-result-label{letter-spacing:1px;font-size:10px}
+body.dsl-touch-command #battleFeedback .battle-result-title{font-weight:800;letter-spacing:.25px}
+body.dsl-touch-command #battleFeedback .battle-result-die{border-radius:8px}
+body.dsl-touch-command #orders .tactical-action{border-radius:9px;box-shadow:inset 0 1px 0 #fff1;transition:border-color .12s,background-color .12s,box-shadow .12s}
+body.dsl-touch-command #orders .tactical-action .action-cost{border-radius:5px;font-variant-numeric:tabular-nums;background:#10191212;padding:4px 6px}
+body.dsl-touch-command #orders .order-unavailable{opacity:.72;filter:none}
+body.dsl-touch-command #orders .action-reason{font-weight:500;line-height:1.45}
+body.dsl-touch-command :is(button,summary):focus-visible{outline:3px solid var(--touch-accent);outline-offset:3px}
+body.dsl-touch-command :is(button,summary){-webkit-tap-highlight-color:transparent;touch-action:manipulation}
+body.dsl-touch-command button:not(:disabled):not([aria-disabled=true]):active{box-shadow:inset 0 2px 7px #0004!important}
+.touch-target-card{border:1px solid var(--touch-line,#8a9d82);border-left:3px solid #d8a376;border-radius:10px;background:var(--touch-panel,#f5f4e9);color:var(--touch-ink,#21362b);padding:14px;margin:10px 0 16px;text-align:left}
+.touch-target-card[hidden]{display:none!important}
+.touch-target-card .touch-eyebrow{font:750 10px/1.4 system-ui,sans-serif;letter-spacing:1.4px;color:var(--touch-muted,#50654f);margin:0 0 5px}
+.touch-target-card h3{font:700 18px/1.3 system-ui,sans-serif;margin:0 0 6px;letter-spacing:0;color:inherit}
+.touch-target-card p{font:400 13px/1.5 system-ui,sans-serif;margin:0 0 8px}
+.touch-target-shots{display:flex;flex-wrap:wrap;gap:8px}
+.touch-target-shots>div{flex:1 1 110px;border:1px solid var(--touch-line,#8a9d82);background:var(--touch-raised,#e4e9de);border-radius:7px;padding:8px 10px}
+.touch-target-shots strong,.touch-target-shots span,.touch-target-shots small{display:block}
+.touch-target-shots strong{font-size:12px}.touch-target-shots span{font-size:19px;font-weight:750;font-variant-numeric:tabular-nums;margin:3px 0}.touch-target-shots small{font-size:11px;line-height:1.5}
+body.dsl-touch-command .touch-unit-portrait{width:38px;height:40px;display:grid;place-items:center;flex:none;border-radius:8px;overflow:hidden;background:var(--touch-raised);box-shadow:inset 0 0 0 1px var(--touch-line)}
+body.dsl-touch-command .touch-unit-portrait .dad-unit-portrait{display:block!important;width:36px!important;height:38px!important;margin:0!important}
+body.dsl-touch-command .touch-unit-portrait svg{width:36px;height:38px}
+.touch-movement-path{fill:none;stroke:#f6e4ad;stroke-width:3;stroke-linecap:round;vector-effect:non-scaling-stroke}
+.touch-flight-trail .touch-movement-path{stroke:#d9f0f3;stroke-width:2.5;stroke-dasharray:7 6}
+.touch-wake-trail .touch-movement-path{stroke:#d1edef;stroke-width:4}
+.touch-wake{fill:none;stroke:#e3f3ec;stroke-width:1.5;vector-effect:non-scaling-stroke;opacity:.6}
+#touchConfirmedTrail{animation:touch-path-fade .85s ease-out both;pointer-events:none}
+@keyframes touch-path-fade{0%{opacity:.8}35%{opacity:.65}100%{opacity:0}}
+@media(hover:hover) and (pointer:fine){
+ body.dsl-touch-command #orders .tactical-action:not(:disabled):not([aria-disabled=true]):hover{box-shadow:inset 0 0 0 1px var(--touch-accent),0 3px 10px #0002!important}
+ body.dsl-touch-command #map .hex.move:hover{stroke:#ffe9ad;stroke-width:3.5;stroke-dasharray:none}
+ body.dsl-touch-command #roster button:hover{border-color:var(--touch-accent)}
+ .training-course button:not(:disabled):hover{box-shadow:inset 0 0 0 1px var(--course-accent)}
+}
+@media(max-width:1099px){
+ body.dsl-touch-command.mobile-battle #mobileBattleTop{background:var(--touch-panel);border-bottom:1px solid var(--touch-line)}
+ body.dsl-touch-command.mobile-battle #mobileBattleTop #battleNavigation button{border-radius:8px;background:var(--touch-raised);border-color:var(--touch-line);color:var(--touch-ink)}
+ body.dsl-touch-command.mobile-battle #mobileBattleTop #battleMission{border-radius:7px;font-size:12px;font-weight:650;line-height:16px}
+ body.dsl-touch-command.mobile-battle #mobileBattleStatus{border-radius:7px}
+ body.dsl-touch-command.mobile-battle #mobileBattleStatus strong{font-size:12px;letter-spacing:.4px}
+ body.dsl-touch-command.mobile-battle #mobileUnitNav{border-top:1px solid var(--touch-line);gap:2px;background:var(--touch-panel)}
+ body.dsl-touch-command.mobile-battle #mobileUnitNav button{border-radius:7px;font-size:12px;font-weight:600}
+ body.dsl-touch-command.mobile-battle #mobileUnitNav :is(#previousUnit,#nextUnit){font-size:25px;font-weight:400}
+ body.dsl-touch-command.mobile-battle #mobileOrderDock{border-top:1px solid var(--touch-line);box-shadow:0 -4px 16px #0002;background:var(--touch-panel)!important}
+ body.dsl-touch-command.mobile-battle #mobileOrderHead{padding:2px 0;gap:5px}
+ body.dsl-touch-command.mobile-battle #mobileOrderToggle{border:1px solid var(--touch-line);border-radius:9px;background:var(--touch-raised);padding:4px 6px;color:var(--touch-ink)}
+ body.dsl-touch-command.mobile-battle #mobileOrderToggle.touch-has-portrait{display:grid;grid-template-columns:38px minmax(0,1fr);grid-template-rows:auto auto;column-gap:7px;align-content:center;min-width:0}
+ body.dsl-touch-command.mobile-battle #mobileOrderToggle .touch-unit-portrait{grid-column:1;grid-row:1/3}
+ body.dsl-touch-command.mobile-battle #mobileOrderToggle.touch-has-portrait .selected-unit-name{grid-column:2;grid-row:1;font-size:13px;line-height:17px;font-weight:750;overflow:hidden;text-overflow:ellipsis;white-space:nowrap}
+ body.dsl-touch-command.mobile-battle #mobileOrderToggle.touch-has-portrait .selected-unit-meta{grid-column:2;grid-row:2;font-size:11px;line-height:14px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis;margin:0;color:var(--touch-muted)}
+ body.dsl-touch-command.mobile-battle #mobileOrderHead #end{border-radius:9px;min-height:44px;font-size:12px;font-weight:750;border:1px solid #9fb985;background:#34583c;color:#f5f3df}
+ body.dsl-touch-command.mobile-battle #orderGuideOpen{border-radius:9px;border-color:var(--touch-line);background:var(--touch-raised);color:var(--touch-ink)}
+ body.dsl-touch-command.mobile-battle #dadOrdersOpen{border-radius:8px;border:1px solid var(--touch-accent);color:var(--touch-ink);background:var(--touch-raised);font-weight:700;letter-spacing:.25px}
+ /* A real bottom sheet, rather than a small floating desktop modal. */
+ body.dsl-touch-command .mobile-battle-sheet{width:100%;max-width:650px;max-height:calc(100dvh - env(safe-area-inset-top) - 20px);margin:auto auto 0;box-sizing:border-box;padding:18px 16px max(18px,env(safe-area-inset-bottom));border:1px solid var(--touch-line);border-bottom:0;border-radius:20px 20px 0 0;background:var(--touch-panel);color:var(--touch-ink);box-shadow:0 -12px 46px #0006;overscroll-behavior:contain}
+ body.dsl-touch-command .mobile-battle-sheet::before{content:'';display:block;width:34px;height:4px;margin:-8px auto 13px;border-radius:9px;background:var(--touch-line)}
+ body.dsl-touch-command .mobile-battle-sheet::backdrop{background:#07120ecc}
+ body.dsl-touch-command .mobile-sheet-heading{top:-18px;background:var(--touch-panel);border-bottom:1px solid var(--touch-line);padding:8px 0 12px;gap:10px;margin:0 0 14px}
+ body.dsl-touch-command .mobile-sheet-heading h2{font:700 21px/1.2 system-ui,sans-serif;letter-spacing:-.5px;min-width:0}
+ body.dsl-touch-command .mobile-sheet-heading button{font-size:13px;line-height:1.3;min-height:44px;border-radius:8px;padding:8px 11px;background:var(--touch-raised);border:1px solid var(--touch-line);color:var(--touch-ink)}
+ /* Full-width, readable order rows. No capabilities or unavailable reasons removed. */
+ body.dsl-touch-command #dadOrders #orders{display:flex!important;flex-direction:column;gap:8px;margin:0;padding:0;border:0;min-width:0;height:auto!important}
+ body.dsl-touch-command #dadOrders #orders>.order-buttons,body.dsl-touch-command #dadOrders #commandOrders{display:contents}
+ body.dsl-touch-command #dadOrders #orders [hidden]{display:none!important}
+ body.dsl-touch-command #dadOrders #orders .tactical-action{display:grid;grid-template-columns:30px minmax(0,1fr) auto;align-items:center;column-gap:12px;row-gap:4px;flex:none;width:100%;min-height:72px;height:auto;margin:0;padding:12px;border-radius:11px;border-left-width:3px;box-sizing:border-box}
+ body.dsl-touch-command #dadOrders .tactical-action .action-copy{display:contents}
+ body.dsl-touch-command #dadOrders .tactical-action .action-icon{grid-column:1;grid-row:1/3;width:27px;height:27px;align-self:center}
+ body.dsl-touch-command #dadOrders .tactical-action .action-name{grid-column:2;grid-row:1;font-size:15px;line-height:20px;white-space:normal;overflow-wrap:anywhere}
+ body.dsl-touch-command #dadOrders .tactical-action .action-cost{grid-column:3;grid-row:1/3;font-size:12px;line-height:16px;align-self:center;padding:6px;border:1px solid currentColor;max-width:76px;white-space:normal;text-align:center}
+ body.dsl-touch-command #dadOrders .tactical-action .action-purpose{display:block;grid-column:2;grid-row:2;font-size:13px;line-height:18px;margin:0}
+ body.dsl-touch-command #dadOrders .order-unavailable .action-purpose{display:none}
+ body.dsl-touch-command #dadOrders .tactical-action .action-reason{grid-column:2;grid-row:2;font-size:13px;line-height:18px;margin:0}
+ body.dsl-touch-command #dadOrders #orders>button:not(.tactical-action){min-height:48px;padding:12px;border-radius:9px;white-space:normal}
+ body.dsl-touch-command #dadOrders #greybridgeOrderReason{font-size:13px;line-height:1.5}
+ body.dsl-touch-command #mobileRoster #roster{gap:9px}
+ body.dsl-touch-command #mobileRoster #roster button{border-radius:11px;border:1px solid var(--touch-line);padding:11px;min-height:78px;background:var(--touch-raised);color:var(--touch-ink);text-align:left}
+ body.dsl-touch-command #mobileRoster #roster button.selected{border-color:var(--touch-accent);box-shadow:inset 3px 0 var(--touch-accent)}
+ body.dsl-touch-command #mobileRoster .roster-unit-name{font-size:14px;line-height:19px}body.dsl-touch-command #mobileRoster .roster-unit-state{font-size:12px;line-height:17px}
+ body.dsl-touch-command #mobileUnitDetails .unit-meter strong{font-size:16px;font-variant-numeric:tabular-nums}
+ body.dsl-touch-command #mobileUnitDetails .unit-explanation{border-top:1px solid var(--touch-line);margin-top:14px}
+ body.dsl-touch-command #mobileUnitDetails .unit-explanation summary{font-size:14px;min-height:44px}
+}
+@media(max-width:359px){body.dsl-touch-command.mobile-battle #mobileOrderToggle.touch-has-portrait{grid-template-columns:30px minmax(0,1fr);gap:4px}body.dsl-touch-command .touch-unit-portrait{width:30px;height:34px}body.dsl-touch-command .touch-unit-portrait svg,body.dsl-touch-command .touch-unit-portrait .dad-unit-portrait{width:29px!important;height:32px!important}body.dsl-touch-command .mobile-battle-sheet{padding-inline:12px}body.dsl-touch-command #dadOrders #orders .tactical-action{grid-template-columns:24px minmax(0,1fr) auto;gap:5px 8px;padding:10px}body.dsl-touch-command #dadOrders .tactical-action .action-name{font-size:14px}body.dsl-touch-command #dadOrders .tactical-action .action-cost{font-size:11px}}
+@media(prefers-reduced-motion:no-preference){
+ body.dsl-touch-command .mobile-battle-sheet[open]{animation:touch-sheet-arrive .18s cubic-bezier(.2,.8,.2,1)}
+ @keyframes touch-sheet-arrive{from{opacity:.5;transform:translateY(16px)}to{opacity:1;transform:translateY(0)}}
+}
+@media(prefers-reduced-motion:reduce){#touchConfirmedTrail{display:none}body.dsl-touch-command #orders .tactical-action{transition:none}body.dsl-touch-command .mobile-battle-sheet[open]{animation:none!important}}
