@@ -1,0 +1,83 @@
+name: BREACH published sandbox smoke check
+on:
+  push:
+    branches: [feat/breach-fps]
+    paths:
+      - 'daily_flyer/themes/breach.py'
+      - 'daily_flyer/themes/breach_assets/**'
+      - 'server/breach-*.mjs'
+      - '.github/workflows/breach-live-check.yml'
+permissions:
+  contents: read
+concurrency:
+  group: breach-live-check
+  cancel-in-progress: true
+jobs:
+  published:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - run: npm ci --ignore-scripts
+      - name: Verify deployed assets and private-room replacement
+        run: |
+          node --input-type=module <<'JS'
+          import assert from 'node:assert/strict';
+          import { readFileSync, mkdirSync, writeFileSync } from 'node:fs';
+          import { WebSocket } from 'ws';
+          const site='https://dfe-breach.onrender.com',service='https://dfe-breach-coop.onrender.com';
+          const expected=readFileSync('daily_flyer/themes/breach.py','utf8').match(/VERSION = "([^"]+)"/)[1];
+          const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
+          let health,manifest,ready=false;
+          for(let n=0;n<30;n++){
+            try{
+              health=await (await fetch(service+'/health',{signal:AbortSignal.timeout(4000)})).json();
+              manifest=await (await fetch(site+'/build-manifest.json?release='+process.env.GITHUB_SHA,{signal:AbortSignal.timeout(4000)})).json();
+              if(health.version===expected&&manifest.version===expected&&health.ok){ready=true;break;}
+            }catch(_){}
+            await sleep(3000);
+          }
+          assert.ok(ready,'Both published services must report the expected release');
+          for(const file of ['coop-client.mjs','coop-status.mjs']){
+            const response=await fetch(site+'/'+file+'?release='+process.env.GITHUB_SHA,{signal:AbortSignal.timeout(10000)});
+            assert.equal(response.status,200);assert.equal(await response.text(),readFileSync('daily_flyer/themes/breach_assets/'+file,'utf8'));
+          }
+          const peers=[];let timer;
+          const connect=async()=>{
+            const socket=new WebSocket(service.replace('https:','wss:')+'/ws',{headers:{Origin:site}});
+            const peer={socket,messages:[],seq:0};peers.push(peer);
+            socket.on('message',data=>peer.messages.push(JSON.parse(data)));socket.on('error',()=>{});
+            await new Promise((resolve,reject)=>{const t=setTimeout(()=>reject(new Error('Socket open timed out')),10000);socket.once('open',()=>{clearTimeout(t);resolve();});socket.once('error',e=>{clearTimeout(t);reject(e);});});
+            peer.send=m=>{if(socket.readyState===WebSocket.OPEN)socket.send(JSON.stringify(m));};
+            peer.wait=async(predicate,from=0)=>{for(let n=0;n<200;n++){const value=peer.messages.slice(from).find(predicate);if(value)return value;await sleep(50);}throw new Error('Expected room response did not arrive');};
+            return peer;
+          };
+          try{
+            const host=await connect();host.send({type:'create',protocol:2,name:'Release check',mission:'underworks-13',difficulty:'relaxed'});
+            const welcome=await host.wait(m=>m.type==='welcome');
+            const guest=await connect();guest.send({type:'join',protocol:2,roomId:welcome.roomId,name:'Release teammate'});await guest.wait(m=>m.type==='welcome');
+            host.send({type:'ready',ready:true});guest.send({type:'ready',ready:true});await host.wait(m=>m.type==='room'&&m.room.players.length===2&&m.room.players.every(p=>p.ready));host.send({type:'start'});
+            await host.wait(m=>m.type==='state'&&m.state.status==='playing');
+            timer=setInterval(()=>{for(const p of [host,guest])p.send({type:'input',seq:++p.seq,forward:0,strafe:0,angle:0,fire:p===host});},50);
+            const progress=await host.wait(m=>m.type==='state'&&m.state.shots>0);clearInterval(timer);
+            const returned=await connect();returned.send({type:'join',protocol:2,roomId:welcome.roomId,name:'Release check',token:welcome.token,replace:true});
+            const same=await returned.wait(m=>m.type==='welcome');assert.equal(same.roomId,welcome.roomId);assert.equal(same.selfId,welcome.selfId);
+            const saved=await returned.wait(m=>m.type==='state');assert.equal(saved.state.status,'paused');assert.ok(saved.state.shots>=progress.state.shots);assert.ok(saved.state.time>=progress.state.time);
+            const paused=await returned.wait(m=>m.type==='room');assert.ok(paused.room.players.every(p=>!p.ready));assert.match(paused.room.pauseReason,/reconnected/);
+            returned.send({type:'resume'});guest.send({type:'resume'});await returned.wait(m=>m.type==='state'&&m.state.status==='playing');
+            returned.send({type:'leave'});await guest.wait(m=>m.type==='closed');
+            mkdirSync('breach-live-results',{recursive:true});writeFileSync('breach-live-results/result.json',JSON.stringify({version:expected,publishedAssetsMatch:true,twoPlayerStart:true,sameRoomReplacement:true,shotsAndElapsedTimeRetained:true,bothPlayerResume:true,roomCleanedUp:true},null,2));
+            console.log('Published release '+expected+': assets, two-player play, same-room replacement, retained progress, resume, and cleanup passed.');
+          }finally{clearInterval(timer);for(const p of peers){p.send?.({type:'leave'});}await sleep(150);for(const p of peers)p.socket.terminate();}
+          JS
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: breach-live-results
+          path: breach-live-results/
+          retention-days: 7
