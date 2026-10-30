@@ -150,3 +150,19 @@ Cloud browser visual checks use Canvas because WebGL is unavailable there.
 Physical iPhone touch feel, sustained device performance, audio balance, and
 the mission's first-run duration still require hands-on playtesting. Stairs and
 traversable elevation remain outside this update.
+
+### Published release evidence
+
+The gameplay release is commit `509ece8ec471ddf70abb78d6eeef0a6909592699`.
+The [regression workflow](https://github.com/shnider42/daily_flyer/actions/runs/41001659312)
+passed all 168 Node tests, three Python export tests, five existing browser
+connection/layout checks, and ten new Switchyard/touch browser checks.
+The [published sandbox smoke check](https://github.com/shnider42/daily_flyer/actions/runs/41001659297)
+confirmed version 0.6.0 and byte-for-byte agreement between the deployed
+gameplay assets and this release. Existing private-room replacement and
+progress-retention checks also passed.
+
+The live menu was inspected with Switchyard selected, and the settings showed
+Safe aiming as the default for the existing browser's preferences.
+
+![Published Switchyard menu in BREACH 0.6.0](images/breach-switchyard-06-live-1793333682394.jpg)
