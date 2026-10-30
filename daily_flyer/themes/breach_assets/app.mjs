@@ -811,7 +811,7 @@ function updateTutorial() {
       else{$('tutorial').hidden=true;return;}
     }else text=touch?(settings.fireGesture==='safe'?'Drag the view to aim. Tap FIRE once, or hold it still briefly for continuous fire.':'Hold FIRE. Drag on it to aim while you shoot.'):'Click or hold SPACE to fire. Move sideways with A and D to dodge.';
   }
-  else if(ownedWeapons(state.player).length>1&&!t.weaponSwitched)text=touch?'Tap SWAP to cycle your carried weapons, or choose one in the inventory.':'Press 1 for the pistol, 2 for the scattergun, or 3 for the arc caster when acquired. The mouse wheel cycles carried weapons.';
+  else if(ownedWeapons(state.player).length>1&&!t.weaponSwitched)text=touch?'Tap a gun in the bottom weapon selector to equip it.':'Press 1 for the pistol, 2 for the scattergun, or 3 for the arc caster when acquired. The mouse wheel cycles carried weapons.';
   else if(state.enemies.some(enemy=>enemy.alive&&enemy.faction==='security'&&!enemy.provoked&&Math.hypot(enemy.x-state.player.x,enemy.z-state.player.z)<9&&game.hasLineOfSight(state.player.x,state.player.z,enemy.x,enemy.z))){text='Security sentries fight the creatures. They leave you alone unless you shoot them.';index='ENCOUNTER TIP';}
   else if(game.level.exploration&&['cutter','insulator','phase','return'].includes(objective.stage)){text=objective.stage==='return'?'Activated transit stations shorten the trip back. Check the map for linked stations.':'New equipment opens routes you passed earlier. The map remembers discovered gates and refuges.';index='EXPLORATION TIP';}
   else if(objective.stage==='relays'){text=touch?'Bring both relay consoles online. Each active link stays lit.':'Find and activate both relay consoles. Active links stay lit; the link counter tracks your progress.';index='MISSION BRIEF';}
@@ -870,9 +870,6 @@ function updateHud() {
   $('touch-interact').textContent=interaction?.label||'USE';
   $('touch-interact').classList.toggle('action-ready',canUse);
   $('touch-interact').setAttribute('aria-label',interaction ? `${interaction.label}: ${interaction.text}` : 'Interact when near a door or console');
-  $('touch-weapon').hidden=carried.length<2;
-  $('touch-weapon').disabled=carried.length<2||!localOperatorAlive();
-  $('touch-weapon').setAttribute('aria-label',`Switch weapon. Next: ${WEAPONS[carried[(carried.indexOf(p.weapon)+1)%carried.length]].name}`);
   $('fire-pad').disabled=!localOperatorAlive();
   $('touch-look-hint').hidden=!(touch&&settings.fireGesture==='safe'&&settings.guidance==='simple'&&settings.tutorial&&mode==='playing'&&performance.now()<touchLookHintUntil);
   $('checkpoint').hidden=!state.checkpoint||!!coop&&!roomOwner();
@@ -1125,7 +1122,6 @@ $('fire-pad').addEventListener('click',event=>event.preventDefault());
 function useAvailableAction() { if(mode==='playing'&&game.getInteractionInfo()?.canUse)interact(); }
 $('touch-interact').addEventListener('click',useAvailableAction);
 $('interaction').addEventListener('click',useAvailableAction);
-$('touch-weapon').addEventListener('click',()=>{if(mode==='playing')switchWeapon();});
 for(const button of document.querySelectorAll('[data-weapon]'))button.addEventListener('click',()=>{if(mode==='playing')selectWeapon(button.dataset.weapon);});
 
 try {

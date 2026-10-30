@@ -73,8 +73,14 @@ not refill the caster. Original procedural weapon art, a cyan discharge, an
 electrical sound, and a visible stun cue communicate the weapon's behavior in
 both rendering paths. A guardian never shows the ordinary-enemy stun cue.
 
-Desktop keys **1 / 2 / 3** select owned weapons. **Q**, the mouse wheel, and
-**SWAP** cycle among them. Owned-weapon buttons also allow direct selection.
+Desktop keys **1 / 2 / 3** select owned weapons. **Q** and the mouse wheel
+cycle among them. On phones, tap the bottom weapon selector to choose a gun.
+Patch 0.6.1 removes the separate SWAP button to leave more room for aiming;
+all other controls keep their positions and behavior.
+The 0.6.1 phone preview below shows the retained selector and clear space beside Fire.
+
+![Phone controls in 0.6.1, with the bottom gun selector and no SWAP button](images/breach-phone-no-swap-1793361048929.jpg)
+
 The Arc caster is currently found in Switchyard; the two existing co-op missions
 and their weapon protocol remain unchanged.
 
