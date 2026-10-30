@@ -1,7 +1,17 @@
 # BREACH — DailyFlyer Arcade
 
-An original retro first-person game built on DailyFlyer. Solo play runs in the
-browser; private two-player co-op uses an authoritative room server.
+An original retro first-person game built on DailyFlyer, with six solo missions
+and three operations available in private two-player co-op. Solo play runs in the
+browser; co-op uses an authoritative room server.
+
+## 0.7.0 — The Glasshouse
+
+The sixth mission supports solo and co-op play through a connected research
+conservatory. It adds the Rebound carbine, Thumper grenade launcher, shielded
+bulwarks, healing menders, and conservatory artwork in both rendering paths.
+Weapon racks now equip both co-op operatives, while ammunition use and weapon
+selection remain personal. See [the Glasshouse update](breach-glasshouse-07.md)
+for the release details and current validation record.
 
 ## 0.6.0 — Switchyard and deliberate touch controls
 
@@ -66,6 +76,18 @@ Switchyard is the fifth solo mission: choose a freight-yard or service approach,
 operate reversible shutters, recover the Arc caster, reconnect two gallery
 relays, and return past the guardian to the freight lift.
 
+The Glasshouse is the sixth mission and third co-op operation. Explore the
+ballistics practice bay, restore the planted atrium, follow either cultivation
+wing to its relay, defeat the propagation guardian, and open the direct route
+back to the laboratory lift. Bulwarks expose their shields between attacks;
+menders can be interrupted while healing other creatures.
+
+The arsenal has five weapons: pistol, scattergun, Arc caster, Rebound carbine,
+and Thumper. The Rebound reflects once from a solid wall; closed doors absorb
+its slug. Thumper grenades bounce and detonate after a fuse, with splash blocked
+by walls. Your own grenade can hurt you; it cannot hurt your co-op teammate.
+The two new weapons require deliberate firing even when automatic fire is enabled.
+
 Desktop uses WASD movement, mouse look (or click-and-drag when pointer lock is
 unavailable), firing, E interaction, and the pause menu. The game displays its
 current control bindings. Touch uses the left movement pad and right-side aiming.
@@ -73,9 +95,10 @@ Safe fire controls are the default: drag to look, tap Fire for one shot on relea
 or hold it still briefly to fire continuously. An immediate drag starting on Fire
 becomes look-only. Classic immediate fire-and-drag remains selectable in Settings.
 
-Desktop also supports F for fullscreen and the mouse wheel for swapping acquired
-weapons. Settings offer automatic, wide, or wider field of view and automatic,
-performance, or sharp graphics. Fullscreen is available when the browser supports
+Desktop also supports F for fullscreen, 1–5 for direct weapon selection, and Q or
+the mouse wheel to cycle acquired weapons. The bottom inventory selects a carried
+weapon directly on phone or desktop. Settings offer automatic, wide, or wider
+field of view and automatic, performance, or sharp graphics. Fullscreen is available when the browser supports
 the API; ordinary windowed play remains available. Graphics remain deliberately
 pixelated, with bounded render sizes in both WebGL and the software fallback.
 
@@ -90,6 +113,11 @@ the current save. Blacksite saves from 0.1.x remain compatible. A mission link,
 such as `?mission=relay-09`, selects its briefing without starting it.
 
 ## Validation
+
+The current 0.7.0 validation record belongs to
+[the Glasshouse update](breach-glasshouse-07.md). The release records below retain
+their original results and do not establish completion of the current CI or
+published-service checks.
 
 ```sh
 npm run test:breach
@@ -239,10 +267,11 @@ GPU performance, and the full expedition's combat pacing still need playtesting.
 
 ## Scope
 
-The game contains four authored missions, two weapons, three enemy roles,
-power/key progression, relay objectives, optional secrets, checkpoints, and
-results screens. Private two-player co-op is available for Crosslink and The
-Underworks. Shared
+The game contains six authored missions, five weapons, seven enemy roles
+(`runner`, `spitter`, `brute`, `sentry`, `stalker`, `bulwark`, and `mender`),
+guardian encounters, power/key progression, relay objectives, optional secrets,
+checkpoints, and results screens. Private two-player co-op is available for
+Crosslink, The Underworks, and The Glasshouse. Shared
 leaderboards, accounts, public matchmaking, and a procedural campaign would
 require separate design and validation.
 

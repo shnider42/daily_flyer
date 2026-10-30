@@ -55,6 +55,35 @@ test('successful actions report what happened without leaking the next prerequis
   assert.equal(noticeForGuidance({ type: 'provoked' }, 'simple'), 'Security turns hostile.');
 });
 
+test('new encounter hints describe observed feedback and remain silent in Expert', () => {
+  for (const type of ['shield-hit', 'heal', 'heal-interrupt']) {
+    const event = { type };
+    for (const guidance of ['simple', 'moderate', 'expert']) assert.equal(noticeForGuidance(event, guidance), null, 'off-screen encounters never reveal themselves through a hint');
+    assert.equal(noticeForGuidance(event, 'expert', null, { observed: true }), null);
+    assert.ok(noticeForGuidance(event, 'simple', null, { observed: true }));
+    assert.doesNotMatch(noticeForGuidance(event, 'moderate', null, { observed: true }), /flank|damage|interrupt|wait|rebound|thumper|grenade/i);
+  }
+  assert.match(noticeForGuidance({ type: 'shield-hit' }, 'simple', null, { observed: true }), /reduces damage/);
+  assert.doesNotMatch(noticeForGuidance({ type: 'shield-hit' }, 'simple', null, { observed: true }), /blocks|immune/i);
+  for (const guidance of ['moderate', 'expert']) {
+    assert.equal(noticeForGuidance({ type: 'message', text: 'No rebound slugs. Switch weapons or find ammunition.' }, guidance), 'No rebound slugs.');
+    assert.equal(noticeForGuidance({ type: 'message', text: 'No grenades. Switch weapons or find an ammunition rack.' }, guidance), 'No grenades.');
+  }
+});
+
+test('Glasshouse discovery guidance does not reveal its new weapons or enemy counters', () => {
+  const mission = MISSIONS.find(item => item.id === 'glasshouse-17');
+  assert.ok(mission);
+  assert.equal(briefingForGuidance(mission, 'simple').text, mission.briefing);
+  for (const guidance of ['moderate', 'expert']) {
+    const briefing = briefingForGuidance(mission, guidance);
+    assert.doesNotMatch(`${briefing.text} ${briefing.subtitle}`, /carbine|rebound|thumper|grenade|bulwark|mender|shield|heal|relays|guardian/i);
+    if (guidance === 'expert') assert.deepEqual(briefing.steps, []);
+  }
+  assert.equal(objectiveForGuidance({ stage: 'practice', title: 'Collect the Rebound carbine' }, 'moderate').title, 'Explore the training gallery');
+  assert.equal(objectiveForGuidance({ stage: 'practice' }, 'expert'), null);
+});
+
 test('Expert briefings, objectives, maps and equipment do not reveal unacquired upgrade requirements', () => {
   const game = new Game({ mission: 'underworks-13' });
   assert.equal(objectiveForGuidance(game.getObjective(), 'expert'), null);
@@ -111,6 +140,18 @@ test('arc automatic fire respects its short range and protects a neutral in the 
   assert.equal(automaticFireAllowed([{ ...target, z: 12.4 }], player, { aimAssist: true }), false);
   assert.equal(automaticFireAllowed([target, neutral], player, { aimAssist: true }), false);
   assert.equal(automaticFireAllowed([target, { ...neutral, x: 11 }], player, { aimAssist: true }), true, 'There is no arc chain or shotgun spread');
+});
+
+test('ricochet and grenade shots always require deliberate fire even with a target directly ahead', () => {
+  const enemy = { x: 5, z: 5, alive: true, health: 100, faction: 'infestation' };
+  const neutral = { x: 6, z: 5, alive: true, health: 120, faction: 'security', provoked: false };
+  for (const weapon of ['ricochet', 'grenade']) {
+    for (const aimAssist of [false, true]) {
+      const player = { x: 5, z: 10, angle: 0, weapon };
+      assert.equal(automaticFireAllowed([enemy], player, { aimAssist }), false);
+      assert.equal(automaticFireAllowed([enemy, neutral], player, { aimAssist }), false);
+    }
+  }
 });
 
 test('shotgun protection uses the actual core assist pool even when a farther target redirects its spread', () => {

@@ -5,6 +5,7 @@ import { runInNewContext } from 'node:vm';
 import * as THREE from '../daily_flyer/themes/breach_assets/vendor/three.module.js';
 import { UNDERWORKS } from '../daily_flyer/themes/breach_assets/underworks.mjs';
 import { SWITCHYARD } from '../daily_flyer/themes/breach_assets/switchyard.mjs';
+import { GLASSHOUSE } from '../daily_flyer/themes/breach_assets/glasshouse.mjs';
 import { LEVELS } from '../daily_flyer/themes/breach_assets/core.mjs';
 
 // Test real Three.js geometry and renderer state without pretending that this
@@ -43,7 +44,7 @@ class GeometryOnlyRenderer {
 
 const source=readFileSync(new URL('../daily_flyer/themes/breach_assets/renderer.mjs',import.meta.url),'utf8')
   .replace(/^import \* as THREE from .*;\n/,'').replace('export class BreachRenderer','class BreachRenderer');
-const api=runInNewContext(source+';({surfaceLayout,doorKind,doorStyleKey,doorReady,doorFrame,stationKey,featureMode,enemyArt,encounterCues,makeDoorTexture,makeStationTexture,makePickupTexture,yardLandmarkPanels,destinationPanels,WebGLBreachRenderer,SoftwareBreachRenderer})',{
+const api=runInNewContext(source+';({surfaceLayout,doorKind,doorStyleKey,doorReady,doorFrame,stationKey,featureMode,enemyArt,encounterCues,projectileAppearance,makeDoorTexture,makeStationTexture,makePickupTexture,yardLandmarkPanels,gardenLandmarkPanels,destinationPanels,WebGLBreachRenderer,SoftwareBreachRenderer})',{
   THREE:{...THREE,WebGLRenderer:GeometryOnlyRenderer},document:{createElement:()=>canvas()},window:{innerWidth:1440,innerHeight:900},matchMedia:()=>({matches:false}),
 });
 
@@ -267,6 +268,118 @@ test('Arc caster has its own weapon and pickup art, electrical discharge, and tr
     else assert.ok(renderer.stats.drawnCuePoints>0);
     game.state.effects=[];renderer.render(1/60);
     if(renderer.mode==='webgl')assert.equal(renderer.cueVisuals[0].arc.some(piece=>piece.visible),false);
+    renderer.dispose();
+  }
+});
+
+test('Glasshouse palettes, planted solids, shallow channels and taller canopy share bounded render budgets',t=>{
+  const panels=api.gardenLandmarkPanels(GLASSHOUSE);
+  assert.equal(panels.length,40);assert.equal(new Set(panels.map(panel=>panel.type)).size,5);
+  assert.ok(panels.filter(panel=>panel.type==='root-mass').every(panel=>panel.height>3));
+  const invalid={...GLASSHOUSE,landmarks:[{type:'root-mass',id:'phantom-tree',x:26.5,z:49.5,width:1,depth:1}]};
+  assert.equal(api.gardenLandmarkPanels(invalid).length,0,'Plant artwork never invents solid cover on a traversable cell');
+  for(const Renderer of[api.WebGLBreachRenderer,api.SoftwareBreachRenderer]){
+    const game=gameFor(GLASSHOUSE),renderer=new Renderer(canvas(1280,720),game,{quality:'low',reducedMotion:true});
+    assert.equal(renderer.visuals.glasshouse,true);assert.equal(renderer.layout.names.length,4);assert.equal(renderer.stats.landmarkPanels,40);
+    assert.equal(renderer.ceilingHeight,4.2);assert.ok(renderer.stats.waterCells>50);
+    for(const area of renderer.gardenDetails.areas)for(const cell of area.cells)assert.notEqual(GLASSHOUSE.grid[cell.z][cell.x],'#');
+    for(const zone of GLASSHOUSE.zones){
+      const x=(zone.x1+zone.x2)/2,z=(zone.z1+zone.z2)/2;
+      assert.equal(renderer.layout.names[renderer.layout.paletteAt(x,z)],zone.palette);
+    }
+    assert.ok(renderer.stats.textureSourceBytes<9_000_000,`Original shared garden textures remain below 9 MB: ${renderer.stats.textureSourceBytes}`);
+    for(const point of[{x:26.5,z:37.5,angle:0},{x:47.5,z:34.5,angle:-.5},{x:15.5,z:16.5,angle:-.8}]){Object.assign(game.state.player,point);renderer.render(1/60);}
+    if(renderer.mode==='webgl'){
+      assert.ok(renderer.canopyVisuals.length>=4);assert.ok(renderer.stats.staticBatches<200);
+      assert.ok(renderer.stats.staticInstanceBytes+renderer.stats.geometryBytes<512_000);
+      renderer.clock=20;renderer.render(1/60);assert.equal(renderer.waterMap.offset.x,0);assert.equal(renderer.waterMap.offset.y,0);
+      renderer.options.reducedMotion=false;renderer.render(1/60);assert.ok(renderer.waterMap.offset.x>0);
+    }else{
+      assert.ok(renderer.stats.pixelCount<=64000);assert.ok(renderer.stats.lastMaxRaySteps<=160);
+      assert.ok(renderer.stats.textureReadbackBytes<1_000_000);
+    }
+    t.diagnostic(`${renderer.mode}: ${JSON.stringify(renderer.stats)}`);renderer.dispose();
+  }
+});
+
+test('Rebound and Thumper have distinct pickups, ammo, held silhouettes and remote fire ownership in both paths',()=>{
+  const pickupTypes=['pistol','shotgun','arc','ricochet','grenade','ammo','cells','slugs','grenades'];
+  const hashes=pickupTypes.slice(1).map(type=>api.makePickupTexture(type).image.context.shapeHash);
+  assert.equal(new Set(hashes).size,hashes.length);
+  for(const Renderer of[api.WebGLBreachRenderer,api.SoftwareBreachRenderer]){
+    const game=gameFor(GLASSHOUSE),p=game.state.player;Object.assign(p,{x:12.5,z:49.5,angle:0,id:'p1',hasRicochet:true,hasGrenade:true});
+    game.state.enemies=[];game.state.localPlayerId='p1';
+    const remote={...p,id:'p2',x:13.5,z:46.5,angle:Math.PI,alive:true};game.state.players={p1:p,p2:remote};
+    const renderer=new Renderer(canvas(960,540),game,{reducedMotion:true}),heldShapes=[];
+    for(const weapon of['pistol','shotgun','arc','ricochet','grenade']){
+      p.weapon=weapon;remote.weapon=weapon;renderer.weaponContext.shapeHash=2166136261;renderer.render(0);heldShapes.push(renderer.weaponContext.shapeHash);
+      renderer.handleEvents([{type:'shot',weapon,playerId:'p2'}]);assert.equal(renderer.flash,0);assert.equal(renderer.recoil,0);
+      renderer.render(0);
+      if(weapon!=='pistol'){
+        assert.ok(renderer.teammateWeaponMaps.has(`${weapon}:front:1`));
+        if(renderer.mode==='webgl')assert.equal(renderer.teammateVisuals.get('p2').weapon.material.map,renderer.teammateWeaponMaps.get(`${weapon}:front:1`));
+      }
+    }
+    assert.equal(new Set(heldShapes).size,5,'Every selected gun draws its own first-person geometry');
+    renderer.handleEvents([{type:'shot',weapon:'grenade',playerId:'p1'}]);renderer.render(0);assert.ok(renderer.flash>0);assert.ok(renderer.recoil>1);
+    assert.ok(renderer.weaponContext.colors.has('#adbaaa'),'Thumper emits its own gas pulse');
+    renderer.dispose();
+  }
+});
+
+test('ricochet traces only authoritative segments, while a timed remote grenade becomes a visible blast',()=>{
+  for(const Renderer of[api.WebGLBreachRenderer,api.SoftwareBreachRenderer]){
+    const game=gameFor(GLASSHOUSE),p=game.state.player;Object.assign(p,{x:12.5,z:49.5,angle:0});game.state.enemies=[];
+    const renderer=new Renderer(canvas(960,540),game,{reducedMotion:true});
+    const first={x:12.5,z:48.5,targetX:13.5,targetZ:45.5},second={x:13.5,z:45.5,targetX:15.5,targetZ:46.5};
+    game.state.effects=[{id:'bank-shot',type:'ricochet',x:first.x,z:first.z,segments:[first,second],life:.16,ownerId:'p2'}];
+    renderer.render(0);let cues=api.encounterCues(game.state);assert.equal(cues.length,2);assert.equal(cues[1].reflected,true);assert.equal(cues[1].fromX,second.x);assert.equal(cues[1].z,second.targetZ);
+    if(renderer.mode==='webgl'){
+      assert.equal(renderer.cueVisuals[0].beam.visible,true);assert.equal(renderer.cueVisuals[1].beam.position.x,14.5);
+      assert.equal(renderer.cueVisuals[1].echo.position.x,second.x);
+    }else assert.ok(renderer.stats.drawnCuePoints>0);
+    game.state.effects[0].segments=[first];renderer.render(0);assert.equal(renderer.stats.encounterCues,1);
+    if(renderer.mode==='webgl')assert.equal(renderer.cueVisuals[1].beam.visible,false,'An absorbed shot never leaves a cached reflected line');
+    game.state.effects=[];
+    const grenade={id:'remote-grenade',type:'grenade',ownerKind:'player',ownerId:'p2',x:12.5,z:46.5,life:1.5,fuse:1.5,bounces:0};game.state.projectiles=[grenade];renderer.render(0);
+    assert.equal(api.encounterCues(game.state)[0].radius,2.8);assert.equal(renderer.flash,0);
+    if(renderer.mode==='webgl')assert.equal(renderer.projectileVisuals.get(grenade.id).material.map,renderer.grenadeMaps[0]);
+    else assert.ok(renderer.context.images.has(renderer.grenadeImages[0]));
+    grenade.life=.2;renderer.render(0);
+    if(renderer.mode==='webgl')assert.equal(renderer.projectileVisuals.get(grenade.id).material.map,renderer.grenadeMaps[3]);
+    else assert.ok(renderer.context.images.has(renderer.grenadeImages[3]));
+    game.state.projectiles=[];game.state.effects=[{type:'explosion',x:grenade.x,z:grenade.z,radius:2.8,life:.45}];renderer.render(0);
+    if(renderer.mode==='webgl'){assert.equal(renderer.projectileVisuals.has(grenade.id),false);assert.equal(renderer.cueVisuals[0].echo.material.map,renderer.combatMaps.explosion);}
+    else assert.ok(renderer.context.images.has(renderer.combatImages.explosion));
+    game.state.effects=[];renderer.render(0);assert.equal(renderer.stats.encounterCues,0);renderer.dispose();
+  }
+});
+
+test('bulwark shield art follows the real frontal cone and exposed phase; mender cues distinguish windup, heal and interrupt',()=>{
+  for(const Renderer of[api.WebGLBreachRenderer,api.SoftwareBreachRenderer]){
+    const game=gameFor(GLASSHOUSE),p=game.state.player;Object.assign(p,{x:12.5,z:49.5,angle:0});
+    const bulwark={id:'shield-check',type:'bulwark',x:12.5,z:46.5,angle:Math.PI,shieldPhase:'guard',health:165,alive:true};
+    const mender={id:'heal-check',type:'mender',x:15,z:46,health:80,alive:true};game.state.enemies=[bulwark,mender];
+    const renderer=new Renderer(canvas(960,540),game,{reducedMotion:true});
+    const checkArt=expected=>{
+      if(renderer.mode==='software')renderer.context.images.clear();renderer.render(0);assert.equal(api.enemyArt(bulwark,p),expected);
+      if(renderer.mode==='webgl')assert.equal(renderer.enemyVisuals.get(bulwark.id).sprite.material.map,renderer.enemyFrames[expected][0]);
+      else assert.ok(renderer.context.images.has(renderer.enemyFrames[expected][0]));
+    };
+    checkArt('bulwark');bulwark.angle=0;checkArt('bulwark-back');bulwark.angle=Math.PI;bulwark.shieldPhase='exposed';checkArt('bulwark-open');
+    bulwark.shieldPhase='guard';bulwark.angle=Math.PI-.96;checkArt('bulwark-back');bulwark.angle=Math.PI-.94;checkArt('bulwark');
+    mender.telegraph={kind:'heal',targetId:bulwark.id,targetKind:'enemy',x:bulwark.x,z:bulwark.z,radius:.6,remaining:.45,duration:.9};
+    renderer.render(0);assert.equal(api.enemyArt(mender,p),'mender-healing');assert.equal(renderer.stats.encounterCues,1);
+    if(renderer.mode==='webgl'){
+      assert.equal(renderer.cueVisuals[0].echo.material.map,renderer.combatMaps['heal-windup']);assert.equal(renderer.cueVisuals[0].beam.visible,false);assert.equal(renderer.cueVisuals[0].dots.filter(piece=>piece.visible).length,8);
+    }else assert.ok(renderer.context.images.has(renderer.combatImages['heal-windup']));
+    bulwark.alive=false;renderer.render(0);assert.equal(renderer.stats.encounterCues,0,'A stale warning does not claim a dead target is being healed');bulwark.alive=true;
+    mender.telegraph=null;game.state.effects=[{type:'heal',x:mender.x,z:mender.z,targetX:bulwark.x,targetZ:bulwark.z,life:.5}];renderer.render(0);
+    if(renderer.mode==='webgl'){assert.equal(renderer.cueVisuals[0].echo.material.map,renderer.combatMaps.heal);assert.equal(renderer.cueVisuals[0].beam.visible,true);assert.equal(renderer.cueVisuals[0].dots.some(piece=>piece.visible),false);}
+    else assert.ok(renderer.context.images.has(renderer.combatImages.heal));
+    game.state.effects=[{type:'heal-interrupt',x:mender.x,z:mender.z,life:.22},{type:'shield-hit',x:bulwark.x,z:bulwark.z,life:.18}];renderer.render(0);
+    if(renderer.mode==='webgl'){assert.equal(renderer.cueVisuals[0].echo.material.map,renderer.combatMaps['heal-interrupt']);assert.equal(renderer.cueVisuals[1].echo.material.map,renderer.combatMaps['shield-hit']);}
+    else {assert.ok(renderer.context.images.has(renderer.combatImages['heal-interrupt']));assert.ok(renderer.context.images.has(renderer.combatImages['shield-hit']));}
     renderer.dispose();
   }
 });

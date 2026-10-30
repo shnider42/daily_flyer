@@ -63,7 +63,7 @@ function reachWorkshop(game, route) {
 
 test('Switchyard is a separate compact mission with honest landmark collision and two-sided shutter controls', () => {
   const game = makeQuiet(), level = game.level;
-  assert.equal(MISSIONS.at(-1).id, mission); assert.equal(level.id, 'switchyard-15-v1');
+  assert.equal(MISSIONS.find(item => item.id === mission).levelId, level.id); assert.equal(level.id, 'switchyard-15-v1');
   assert.ok(level.width < LEVELS['underworks-13'].width); assert.equal(level.enemies.length, 13);
   for (const landmark of level.landmarks) for (let z = landmark.z - landmark.depth / 2; z < landmark.z + landmark.depth / 2; z++) {
     for (let x = landmark.x - landmark.width / 2; x < landmark.x + landmark.width / 2; x++) assert.equal(level.grid[z][x], '#');

@@ -1,4 +1,4 @@
-import { Game, MISSIONS, WEAPONS } from './core.mjs';
+import { Game, MISSIONS, WEAPONS, ownedWeapons } from './core.mjs';
 import { BreachRenderer } from './renderer.mjs';
 import { BreachAudio } from './audio.mjs';
 import { CoopClient } from './coop-client.mjs';
@@ -19,7 +19,8 @@ const prior = readStorage(SETTINGS_KEY) || {};
 const choices = (x, valid, fallback) => valid.includes(x) ? x : fallback;
 const requestedMission = new URL(location.href).searchParams.get('mission');
 const missionIds = MISSIONS.map(mission=>mission.id);
-const coopMissionIds=['crosslink-11','underworks-13'].filter(id=>missionIds.includes(id));
+const coopMissionIds=['crosslink-11','underworks-13','glasshouse-17'].filter(id=>missionIds.includes(id));
+const weaponHotkeys={Digit1:'pistol',Digit2:'shotgun',Digit3:'arc',Digit4:'ricochet',Digit5:'grenade'};
 const settings = {
   coopMission: choices(prior.coopMission,coopMissionIds,coopMissionIds[0]),
   callSign: typeof prior.callSign==='string'?prior.callSign.slice(0,20):'Operator',
@@ -72,6 +73,7 @@ let pointerLockedOnce = false;
 let fullscreenTransitionUntil = 0;
 let lastWeaponWheel = 0;
 let touchLookHintUntil = 0, touchLookHelpShown = false;
+const encounterNotices = new Set();
 
 function formatTime(value) {
   const seconds = Math.max(0,Math.floor(Number(value) || 0));
@@ -191,6 +193,7 @@ function changeGuidance(value) {
   settings.guidance=choices(value,['simple','moderate','expert'],'simple');
   $('toast').hidden=true;toastTimer=0;pathHint=null;pathTimer=0;mapDirty=true;mapIndexSignature='';
   updateTutorial.identity=null;helpRevealed=performance.now();
+  encounterNotices.clear();
   updateChoices();saveSettings();updateSettingsFields();updateMissionMenu();updateRoomBriefing();
   $('minimap').setAttribute('aria-label',settings.guidance==='simple'?'Map showing explored facility, your position, and the current objective':'Map showing explored facility and your position');
   if(game){updateHud();if(mapVisible){if(settings.guidance==='simple')pathHint=calculatePath();drawMap();}}
@@ -222,9 +225,9 @@ function updateMissionMenu() {
   $('mission-briefing').closest('.mission-dossier').classList.toggle('exploration-dossier',selected.id==='underworks-13');
   $('mission-mode').textContent=coopMissionIds.includes(selected.id)?'SOLO / PRIVATE CO-OP':'SINGLE PLAYER';
   $('mission-number').textContent=`MISSION ${selected.number}`;
-  $('mission-subtitle').textContent=selected.subtitle;
   $('mission-title').textContent=selected.name.toUpperCase();
   const briefing=briefingForGuidance(selected,settings.guidance);
+  $('mission-subtitle').textContent=briefing.subtitle;
   $('mission-briefing').textContent=briefing.text;
   $('mission-steps').hidden=!briefing.steps.length;
   $('mission-steps').replaceChildren(...briefing.steps.map((step,index)=>{
@@ -236,7 +239,7 @@ function updateMissionMenu() {
     button.setAttribute('aria-pressed',String(mission.id===settings.mission));
     const number=document.createElement('span');number.className='mission-choice-number';number.textContent=`${mission.number} /`;
     const title=document.createElement('strong');title.textContent=mission.name.replace('Blacksite07','Blacksite 07').replace(/^The /,'');
-    const subtitle=document.createElement('small');subtitle.textContent=mission.subtitle;
+    const subtitle=document.createElement('small');subtitle.textContent=briefingForGuidance(mission,settings.guidance).subtitle;
     button.append(number,title,subtitle);return button;
   }));
   updateContinue();
@@ -275,7 +278,7 @@ function resetExploration() { explored=new Set();mapDirty=true;pathHint=null;pat
 function mountGame(candidate) {
   renderer?.dispose();game=candidate;
   renderer = new BreachRenderer($('world'),game,{quality:settings.quality,fov:settings.fov,reducedMotion:settings.reducedMotion});
-  resetExploration(); helpRevealed=0;updateTutorial.identity=null;touchLookHelpShown=false;
+  resetExploration(); helpRevealed=0;updateTutorial.identity=null;touchLookHelpShown=false;encounterNotices.clear();
 }
 function makeGame(options = {}) {
   mountGame(new Game({mission:settings.mission,difficulty:settings.difficulty,guidance:settings.guidance,aimAssist:settings.aimAssist,seed,...options}));
@@ -540,10 +543,9 @@ async function copyInvite() {
 }
 function interact() { if(!localOperatorAlive())return;if(coop)coop.interact();else game.interact(); }
 function switchWeapon() { if(!localOperatorAlive())return;if(coop)coop.weapon();else game.switchWeapon(); }
-function ownedWeapons(player=game.state.player) { return ['pistol',...(player.hasShotgun?['shotgun']:[]),...(player.hasArc?['arc']:[])]; }
 function selectWeapon(id) {
-  if(!localOperatorAlive()||!ownedWeapons().includes(id)||game.state.player.weapon===id)return;
-  if(coop){if(id!=='arc')coop.weapon();}else game.selectWeapon(id);
+  if(!localOperatorAlive()||!ownedWeapons(game.state.player).includes(id)||game.state.player.weapon===id)return;
+  if(coop)coop.weapon(id);else game.selectWeapon(id);
 }
 
 function fail(error) {
@@ -786,7 +788,7 @@ function updateDirection() {
   if(pathHint.blocked){$('direction').textContent=game.level.exploration?'ROUTE SEALED · CHECK YOUR MAP AND EQUIPMENT':'ROUTE SEALED · CHECK THE CURRENT OBJECTIVE';return;}
   const p=game.state.player,a=normAngle(Math.atan2(pathHint.x-p.x,-(pathHint.z-p.z))-p.angle);
   const label=Math.abs(a)>2.45?'↓ TURN AROUND':a>.48?'→ TURN RIGHT':a<-.48?'← TURN LEFT':'↑ AHEAD';
-  const nearby = game.getObjective().action === 'fight' ? 'HOSTILE NEARBY · KEEP MOVING AND USE COVER' : game.getObjective().action === 'collect' ? 'NEARBY · WALK OVER THE MARKED KEY' : (touch ? 'NEARBY · TAP THE ACTION PROMPT' : 'NEARBY · LOOK FOR THE USE PROMPT');
+  const nearby = game.getObjective().action === 'fight' ? 'HOSTILE NEARBY · KEEP MOVING AND USE COVER' : game.getObjective().action === 'collect' ? 'NEARBY · WALK OVER THE MARKED ITEM' : (touch ? 'NEARBY · TAP THE ACTION PROMPT' : 'NEARBY · LOOK FOR THE USE PROMPT');
   $('direction').textContent=pathHint.distance<2?nearby:`${label} · ${Math.round(pathHint.distance)} M TO OBJECTIVE`;
 }
 function visibleHostileForTraining() {
@@ -811,11 +813,11 @@ function updateTutorial() {
       else{$('tutorial').hidden=true;return;}
     }else text=touch?(settings.fireGesture==='safe'?'Drag the view to aim. Tap FIRE once, or hold it still briefly for continuous fire.':'Hold FIRE. Drag on it to aim while you shoot.'):'Click or hold SPACE to fire. Move sideways with A and D to dodge.';
   }
-  else if(ownedWeapons(state.player).length>1&&!t.weaponSwitched)text=touch?'Tap a gun in the bottom weapon selector to equip it.':'Press 1 for the pistol, 2 for the scattergun, or 3 for the arc caster when acquired. The mouse wheel cycles carried weapons.';
+  else if(ownedWeapons(state.player).length>1&&!t.weaponSwitched)text=touch?'Tap a gun in the bottom weapon selector to equip it.':'Press 1–5 to select a carried weapon. The numbers match the bottom weapon selector; the mouse wheel cycles them.';
   else if(state.enemies.some(enemy=>enemy.alive&&enemy.faction==='security'&&!enemy.provoked&&Math.hypot(enemy.x-state.player.x,enemy.z-state.player.z)<9&&game.hasLineOfSight(state.player.x,state.player.z,enemy.x,enemy.z))){text='Security sentries fight the creatures. They leave you alone unless you shoot them.';index='ENCOUNTER TIP';}
   else if(game.level.exploration&&['cutter','insulator','phase','return'].includes(objective.stage)){text=objective.stage==='return'?'Activated transit stations shorten the trip back. Check the map for linked stations.':'New equipment opens routes you passed earlier. The map remembers discovered gates and refuges.';index='EXPLORATION TIP';}
   else if(objective.stage==='relays'){text=touch?'Bring both relay consoles online. Each active link stays lit.':'Find and activate both relay consoles. Active links stay lit; the link counter tracks your progress.';index='MISSION BRIEF';}
-  else if(objective.action==='collect'){text=['arc','weapon'].includes(objective.stage)?'Walk over the arc caster to collect it.':game.level.exploration?'Walk over the reactor key to collect it.':'Walk over the security key to collect it.';index='MISSION BRIEF';}
+  else if(objective.action==='collect'){text='Walk over the marked item to collect it.';index='MISSION BRIEF';}
   else {text=touch?'Keep moving. Walk over supplies to collect them.':'Keep moving and use cover. Walk over health, armor, and ammunition to collect them.';index='FIELD TIP';}
   // Early controls wait for the action; the later supply reminder appears briefly.
   if(index==='MISSION BRIEF'||index==='FIELD TIP'||index==='EXPLORATION TIP'||index==='ENCOUNTER TIP') {
@@ -833,11 +835,13 @@ function updateHud() {
   $('health-fill').style.width=`${Math.max(0,p.health)/(p.maxHealth||100)*100}%`;$('health-unit').textContent=p.maxHealth>100?`/ ${p.maxHealth}`:'HP';$('health').closest('.health').classList.toggle('low',p.health<30);
   const weapon=WEAPONS[p.weapon]||WEAPONS.pistol;
   $('ammo').textContent=p.ammo[weapon.ammoKey]||0;
-  $('ammo-label').textContent=({pistol:'9MM AMMUNITION',shotgun:'SCATTERGUN SHELLS',arc:'ARC CELLS'})[p.weapon]||'AMMUNITION';
-  $('ammo-unit').textContent=p.weapon==='arc'?'CELLS':'RDS';
+  $('ammo-label').textContent=({pistol:'9MM AMMUNITION',shells:'SCATTERGUN SHELLS',cells:'ARC CELLS',slugs:'REBOUND SLUGS',grenades:'THUMPER GRENADES'})[weapon.ammoKey]||'AMMUNITION';
+  $('ammo-unit').textContent=({cells:'CELLS',slugs:'SLUGS',grenades:'GREN'})[weapon.ammoKey]||'RDS';
   $('weapon-name').textContent=weapon.name.toUpperCase();
   const carried=ownedWeapons(p);
   $('weapon-slots').hidden=carried.length<2;
+  $('weapon-slots').dataset.count=String(carried.length);
+  $('weapon-slots').parentElement.classList.toggle('expanded-arsenal',carried.length>3);
   for(const button of document.querySelectorAll('[data-weapon]')){
     const id=button.dataset.weapon;button.hidden=!carried.includes(id);button.disabled=!localOperatorAlive();
     button.setAttribute('aria-pressed',String(p.weapon===id));
@@ -880,7 +884,12 @@ function processEvents(events,allEvents=events) {
   renderer.handleEvents(allEvents);audio.events(events,game.state.player);
   let notice=null;
   for(const event of events) {
-    const eventNotice=noticeForGuidance(event,settings.guidance,game.getInteractionInfo());
+    const combatCue=['shield-hit','heal','heal-interrupt'].includes(event.type);
+    const p=game.state.player,actor=combatCue?game.state.enemies.find(enemy=>enemy.id===event.id):null;
+    const observed=!!actor&&!encounterNotices.has(event.type)&&Math.hypot(actor.x-p.x,actor.z-p.z)<14
+      &&Math.abs(normAngle(Math.atan2(actor.x-p.x,-(actor.z-p.z))-p.angle))<.72&&game.hasLineOfSight(p.x,p.z,actor.x,actor.z);
+    const eventNotice=noticeForGuidance(event,settings.guidance,game.getInteractionInfo(),{observed});
+    if(combatCue&&eventNotice)encounterNotices.add(event.type);
     if(eventNotice)notice=eventNotice;
     if(event.type==='hurt')damageUntil=performance.now()+(settings.reducedMotion?130:200);
     if(event.type==='hit')hitUntil=performance.now()+120;
@@ -1008,7 +1017,7 @@ window.addEventListener('keydown',event=>{
     if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(event.code)){event.preventDefault();mapFollow=false;const shift=70/mapScale;mapCenter.x=Math.max(0,Math.min(game.level.width,mapCenter.x+(event.code==='ArrowRight'?shift:event.code==='ArrowLeft'?-shift:0)));mapCenter.z=Math.max(0,Math.min(game.level.height,mapCenter.z+(event.code==='ArrowDown'?shift:event.code==='ArrowUp'?-shift:0)));drawMap();}return;
   }
   if(mode==='playing') {
-    if(['KeyW','KeyA','KeyS','KeyD','ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space','Tab','KeyE','KeyP','Escape','Digit1','Digit2','Digit3','KeyQ','KeyF'].includes(event.code))event.preventDefault();
+    if(['KeyW','KeyA','KeyS','KeyD','ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space','Tab','KeyE','KeyP','Escape','Digit1','Digit2','Digit3','Digit4','Digit5','KeyQ','KeyF'].includes(event.code))event.preventDefault();
     if(event.code==='Escape'||event.code==='KeyP'){pauseGame();return;}
     if(event.code==='KeyF'&&!event.repeat){toggleFullscreen();return;}
     if(!event.repeat) {
@@ -1016,9 +1025,7 @@ window.addEventListener('keydown',event=>{
       if(event.code==='KeyE')interact();
       if(event.code==='Tab')toggleMap();
       if(event.code==='KeyQ')switchWeapon();
-      if(event.code==='Digit1')selectWeapon('pistol');
-      if(event.code==='Digit2')selectWeapon('shotgun');
-      if(event.code==='Digit3')selectWeapon('arc');
+      if(weaponHotkeys[event.code])selectWeapon(weaponHotkeys[event.code]);
     }
     keys.add(event.code);
   }else if(mode==='paused'&&(event.code==='Escape'||event.code==='KeyP')){event.preventDefault();resumeGame();}
@@ -1046,7 +1053,7 @@ document.addEventListener('pointerlockchange',()=>{
 });
 for(const name of ['fullscreenchange','webkitfullscreenchange'])document.addEventListener(name,()=>{clearInputs();renderer?.resize();updateFullscreen();});
 window.addEventListener('wheel',event=>{
-  if(mode!=='playing'||ownedWeapons().length<2||document.querySelector('dialog[open]'))return;
+  if(mode!=='playing'||ownedWeapons(game.state.player).length<2||document.querySelector('dialog[open]'))return;
   if(document.pointerLockElement!==$('world')&&event.target!==$('world'))return;
   event.preventDefault();
   if(event.deltaY!==0&&performance.now()-lastWeaponWheel>180){switchWeapon();lastWeaponWheel=performance.now();}

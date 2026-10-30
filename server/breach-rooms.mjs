@@ -1,8 +1,14 @@
 import { randomBytes, timingSafeEqual } from 'node:crypto';
 import { CoopGame } from '../daily_flyer/themes/breach_assets/coop-core.mjs';
+import { WEAPONS } from '../daily_flyer/themes/breach_assets/core.mjs';
 
 export const PROTOCOL = 2;
-export const COOP_MISSIONS = ['crosslink-11', 'underworks-13'];
+export const COOP_MISSIONS = ['crosslink-11', 'underworks-13', 'glasshouse-17'];
+// Older clients may still use the original two maps. A new-map handshake must
+// advertise its local level data before we attach it to a shared simulation.
+const supportsMission = (message, mission) => message.supportedMissions === undefined
+  ? ['crosslink-11', 'underworks-13'].includes(mission)
+  : Array.isArray(message.supportedMissions) && message.supportedMissions.includes(mission);
 const DIFFICULTIES = new Set(['relaxed', 'standard', 'hard']);
 const NEUTRAL = { forward: 0, strafe: 0, fire: false };
 const safeName = value => typeof value === 'string' ? value.replace(/[\u0000-\u001f\u007f<>]/g, '').trim().slice(0, 24) : '';
@@ -59,7 +65,8 @@ export class BreachRooms {
 
   create(peer, message) {
     if (this.rooms.size >= this.maxRooms) return this.error(peer, 'ROOM_CAPACITY', 'All test rooms are in use. Try again after another team finishes.');
-    if (!COOP_MISSIONS.includes(message.mission)) return this.error(peer, 'INVALID_MISSION', 'Choose Crosslink or The Underworks for co-op.');
+    if (!COOP_MISSIONS.includes(message.mission)) return this.error(peer, 'INVALID_MISSION', 'Choose Crosslink, The Underworks, or The Glasshouse for co-op.');
+    if (!supportsMission(message, message.mission)) return this.error(peer, 'VERSION_MISMATCH', 'Refresh the game to load this co-op mission.');
     if (!DIFFICULTIES.has(message.difficulty)) return this.error(peer, 'INVALID_DIFFICULTY', 'Choose a valid combat difficulty.');
     const name = safeName(message.name);
     if (!name) return this.error(peer, 'INVALID_NAME', 'Enter a display name to create a room.');
@@ -79,6 +86,7 @@ export class BreachRooms {
     const id = typeof message.roomId === 'string' ? message.roomId.trim().toUpperCase() : '';
     const room = this.rooms.get(id);
     if (!room) return this.error(peer, 'ROOM_NOT_FOUND', 'This room has ended or expired. Ask your friend for a new invite.');
+    if (!supportsMission(message, room.mission)) return this.error(peer, 'VERSION_MISMATCH', 'Refresh the game to load this co-op mission.');
     if (message.token) {
       const player = [...room.players.values()].find(p => sameToken(p.token, message.token));
       if (!player) return this.error(peer, 'INVALID_TOKEN', 'This reconnect pass has expired. Create a new room with your friend.');
@@ -137,8 +145,9 @@ export class BreachRooms {
       case 'interact':
       case 'weapon':
         if (room.status !== 'playing' || this.now() - player.lastActionAt < 100) return;
+        if (message.type === 'weapon' && message.weapon !== undefined && (typeof message.weapon !== 'string' || !Object.hasOwn(WEAPONS, message.weapon))) return this.error(peer, 'INVALID_WEAPON', 'Choose a carried weapon.');
         player.lastActionAt = this.now();
-        if (message.type === 'interact') room.game.interact(player.id); else room.game.switchWeapon(player.id);
+        if (message.type === 'interact') room.game.interact(player.id); else room.game.switchWeapon(player.id, message.weapon);
         this.syncStatus(room); this.publishState(room); return;
       case 'pause':
         if (!['playing', 'paused'].includes(room.status)) return;

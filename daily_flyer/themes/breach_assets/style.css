@@ -107,7 +107,6 @@ body[data-guidance="expert"] .objective{display:none}
 
 /* 0.6: a separate firing control keeps the open view available for aiming. */
 .mission-picker{grid-template-columns:repeat(3,minmax(0,1fr))}
-.mission-picker button:last-child:nth-child(5){grid-column:span 2}
 .weapon-slots{display:flex;justify-content:center;width:100%;gap:3px;pointer-events:auto}
 .weapon-slot{display:flex;align-items:center;justify-content:center;gap:4px;min-width:42px;min-height:34px;padding:5px;background:#10231bbf;border:1px solid #82927e55;color:var(--muted);font-size:8px;letter-spacing:0;touch-action:manipulation}
 .weapon-slot b{font-weight:400;color:var(--dim)}
@@ -136,5 +135,29 @@ body[data-guidance="expert"] .objective{display:none}
 #fire-pad.aim-only .fire-ring{color:var(--teal)}
 @keyframes fire-arm{from{transform:scaleX(0)}to{transform:scaleX(1)}}
 .reduced-motion #fire-pad.pending::after{animation:none;transform:scaleX(1)}
-@media(max-width:999px){.mission-picker{grid-template-columns:repeat(2,minmax(0,1fr))}.mission-picker button:last-child:nth-child(5){grid-column:1/-1}}
+@media(max-width:999px){.mission-picker{grid-template-columns:repeat(2,minmax(0,1fr))}}
 @media(max-height:560px) and (orientation:landscape){.touch-look-hint{top:48%;right:calc(30px + var(--safe-right));width:32vw;font-size:7px}.touch-look-hint small{font-size:7px}.touch .inventory:has(.weapon-slots:not([hidden])){padding-top:2px;padding-bottom:2px}.touch .weapon-slot{min-height:44px}}
+
+/* 0.7: five carried guns stay directly selectable without crowding the thumbs. */
+.inventory.expanded-arsenal{width:268px}
+.weapon-slot{flex-shrink:0}
+.touch .inventory.expanded-arsenal:has(.weapon-slots:not([hidden])){width:140px;max-width:none;padding:0;gap:4px;flex-shrink:0}
+.touch .expanded-arsenal #weapon-name{order:-1;margin-top:0;line-height:1.4}
+.touch .expanded-arsenal .weapon-slots{order:1;flex-wrap:wrap;gap:2px}
+.touch .expanded-arsenal .weapon-slot{flex:0 0 44px;min-height:44px;height:44px}
+.touch .expanded-arsenal .weapon-slots[data-count="4"]{max-width:90px}
+@media(min-width:700px) and (orientation:landscape){
+  .touch .inventory.expanded-arsenal:has(.weapon-slots:not([hidden])){width:232px}
+  .touch .expanded-arsenal .weapon-slots{flex-wrap:nowrap;max-width:none}
+  .touch .expanded-arsenal .weapon-slots[data-count="4"]{max-width:none}
+}
+@media(max-width:359px) and (orientation:portrait){
+  .touch .hud-bottom:has(.expanded-arsenal){left:calc(8px + var(--safe-left));right:calc(8px + var(--safe-right));gap:2px}
+  .touch .hud-bottom:has(.expanded-arsenal) .readout{min-width:0;padding:5px 3px;flex:1}
+  .touch .hud-bottom:has(.expanded-arsenal) .readout>div{flex-wrap:wrap;gap:2px}
+  .touch .hud-bottom:has(.expanded-arsenal) .readout strong{font-size:28px}
+  .touch .hud-bottom:has(.expanded-arsenal) .readout small{margin-left:0}
+}
+@media(max-width:380px) and (orientation:portrait){
+  .touch[data-touch-preset] .touch-right #touch-interact{left:auto;right:0}
+}

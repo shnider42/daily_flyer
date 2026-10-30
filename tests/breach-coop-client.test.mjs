@@ -1,6 +1,6 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { Game } from '../daily_flyer/themes/breach_assets/core.mjs';
+import { Game, MISSIONS, WEAPONS } from '../daily_flyer/themes/breach_assets/core.mjs';
 import { CoopGame } from '../daily_flyer/themes/breach_assets/coop-core.mjs';
 import { CoopClient, websocketURL, predictMovement, personalEvents } from '../daily_flyer/themes/breach_assets/coop-client.mjs';
 
@@ -141,7 +141,7 @@ test('page suspension releases the old socket without leaving, keeps its pass, a
     client.setPageVisible(true);
     assert.equal(Socket.instances.length,2,'a visible persisted page opens exactly one new socket');
     const rejoined=Socket.instances[1];rejoined.open();
-    assert.deepEqual(rejoined.sent[0],{type:'join',protocol:2,roomId:'ABCDEFGH',name:'Operator',token:'keep-this-pass',replace:true});
+    assert.deepEqual(rejoined.sent[0],{type:'join',protocol:2,supportedMissions:MISSIONS.map(mission=>mission.id),roomId:'ABCDEFGH',name:'Operator',token:'keep-this-pass',replace:true});
     rejoined.receive({type:'welcome',protocol:2,roomId:'ABCDEFGH',selfId:'p1',ownerId:'p1',token:'keep-this-pass'});
     rejoined.receive({type:'room',room:{id:'ABCDEFGH',mission:'crosslink-11',difficulty:'standard',status:'paused',ownerId:'p1',players:[{id:'p1',ready:false,connected:true},{id:'p2',ready:false,connected:true}]}});
     rejoined.receive({type:'state',tick:1,ackByPlayer:{p1:-1,p2:-1},state:simulation.networkSnapshot(),events:[]});
@@ -157,4 +157,67 @@ test('a background connection loss waits for visibility before retrying',()=>{
   client.setPageVisible(false);client._scheduleReconnect();
   assert.equal(client.retryTimer,null);assert.equal(attempts,0);
   client.setPageVisible(true);assert.equal(attempts,1);
+});
+
+test('create, join, warm retries and authenticated reconnects advertise local mission support',()=>{
+  class Socket {
+    static instances=[];
+    constructor(){this.readyState=0;this.listeners={};this.sent=[];Socket.instances.push(this);}
+    addEventListener(type,listener){this.listeners[type]=listener;}
+    open(){this.readyState=1;this.listeners.open();}
+    send(value){this.sent.push(JSON.parse(value));}
+    close(){this.readyState=3;}
+  }
+  const client=new CoopClient({base:'same-origin',origin:'https://game.example',Socket,storage:null,statusUI:false});
+  const openHandshake=()=>{const socket=Socket.instances.at(-1);socket.open();return socket.sent[0];};
+  const expected=MISSIONS.map(mission=>mission.id);
+  try {
+    client.create({name:'One',mission:'glasshouse-17',difficulty:'standard'});
+    let handshake=openHandshake();
+    assert.equal(handshake.type,'create');assert.equal(handshake.protocol,2);assert.deepEqual(handshake.supportedMissions,expected);
+    assert.ok(handshake.supportedMissions.includes('glasshouse-17'));
+    client._connect(false);handshake=openHandshake();
+    assert.equal(handshake.type,'create');assert.deepEqual(handshake.supportedMissions,expected,'a cold-service retry keeps the capability list');
+    client.join({roomId:'abcdefgh',name:'Two'});handshake=openHandshake();
+    assert.equal(handshake.type,'join');assert.deepEqual(handshake.supportedMissions,expected);
+    client.token='rejoin-pass';assert.equal(client.reconnect(),true);handshake=openHandshake();
+    assert.equal(handshake.replace,true);assert.equal(handshake.token,'rejoin-pass');assert.equal(handshake.protocol,2);
+    assert.deepEqual(handshake.supportedMissions,expected,'an authenticated replacement repeats local capabilities');
+  } finally {client.leave();}
+});
+
+test('an unknown room mission is rejected before mounting or projecting a fallback level',()=>{
+  let mounted=0,roomEvents=0;const errors=[];
+  const client=new CoopClient({base:'same-origin',origin:'https://game.example',storage:null,statusUI:false,
+    callbacks:{onView(){mounted++;},onRoom(){roomEvents++;},onError:message=>errors.push(message)}});
+  client.selfId='p1';client.connected=true;
+  client._message({type:'room',room:{mission:'future-facility',ownerId:'p1',status:'playing'}});
+  assert.equal(client.view,null);assert.equal(client.room,null);assert.equal(mounted,0);assert.equal(roomEvents,0);
+  assert.equal(client.connected,false);assert.equal(client.manual,true);assert.match(errors[0],/Reload.*rejoin/);
+
+  const fixture=networkFixture({onError:message=>errors.push(message)});
+  const before=JSON.stringify(fixture.client.view.state),level=fixture.client.view.level;
+  fixture.client.room.mission='future-facility';fixture.client._applySnapshot(fixture.packet(2));
+  assert.equal(fixture.client.view.level,level);assert.equal(JSON.stringify(fixture.client.view.state),before);
+  assert.equal(fixture.client.connected,false);assert.match(errors.at(-1),/Reload.*rejoin/);
+});
+
+test('exact co-op weapon requests select any owned gun while the legacy message still cycles',()=>{
+  const {client,simulation,packet}=networkFixture({},'glasshouse-17');
+  const operator=simulation.state.players.p1,partner=simulation.state.players.p2;
+  for(const weapon of Object.values(WEAPONS))if(weapon.ownershipKey)operator[weapon.ownershipKey]=true;
+  client._applySnapshot(packet(2));
+  const sent=[];client.socket={readyState:1,send:value=>sent.push(JSON.parse(value))};
+  const partnerWeapon=partner.weapon;
+  for(const [index,id]of ['grenade','arc','pistol','ricochet','shotgun'].entries()) {
+    const current=client.view.state.player.weapon;
+    assert.equal(client.weapon(id),true);
+    assert.deepEqual(sent.at(-1),{type:'weapon',weapon:id});
+    assert.equal(client.view.state.player.weapon,current,'selection waits for authority');
+    assert.equal(simulation.switchWeapon('p1',sent.at(-1).weapon),true);
+    client._applySnapshot(packet(index+3));assert.equal(client.view.state.player.weapon,id);
+    assert.equal(partner.weapon,partnerWeapon,'only the requesting operator changes weapons');
+  }
+  client.weapon();assert.deepEqual(sent.at(-1),{type:'weapon'});
+  simulation.switchWeapon('p1');client._applySnapshot(packet(10));assert.equal(client.view.state.player.weapon,'arc');
 });

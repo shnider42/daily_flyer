@@ -1,6 +1,6 @@
 // Authoritative private-room simulation. Rendering snapshots are deliberately
 // separate from Game's browser-local save format and are never accepted as input.
-import { Game } from './core.mjs';
+import { Game, WEAPONS } from './core.mjs';
 
 const TAU = Math.PI * 2;
 const copy = value => JSON.parse(JSON.stringify(value));
@@ -29,7 +29,7 @@ export class CoopGame extends Game {
       const spawn = this.level.coopSpawns?.[index] || (index === 0 ? this.level.spawn : this._spawnNear(this.level.spawn, Object.values(this.state.players)));
       this.state.players[id] = {
         ...copy(template), ...spawn, id, alive: true, moving: false,
-        hasShotgun: true, ammo: { pistol: 40, shells: 8, cells: 0 },
+        hasShotgun: true, ammo: { pistol: 40, shells: 8, cells: 0, slugs: 0, grenades: 0 },
         tutorial: { moved: false, fired: false, interacted: false, weaponSwitched: false },
       };
       this._playerRuntime[id] = { shotCooldown: 0, reserveTimer: 0, messageCooldown: 0, aimAssist: this.options.aimAssist !== false, spawn: copy(spawn) };
@@ -123,7 +123,20 @@ export class CoopGame extends Game {
   }
 
   _collectPickups() {
+    const before = new Set(this.state.pickups.filter(item => item.collected).map(item => item.id));
     super._collectPickups();
+    // A rack equips the team once. Loose ammunition, armor and health retain
+    // the existing collector-only rule, so teammates can allocate supplies.
+    for (const item of this.state.pickups) {
+      const weapon = WEAPONS[item.type];
+      if (!item.collected || before.has(item.id) || !weapon?.ownershipKey) continue;
+      for (const player of Object.values(this.state.players)) {
+        if (player === this.state.player) continue;
+        player[weapon.ownershipKey] = true;
+        player.ammo[weapon.ammoKey] = (player.ammo[weapon.ammoKey] || 0) + item.amount;
+        this._events.push({ type: 'pickup', playerId: player.id, item: item.type, text: `${weapon.name} added to the team racks.` });
+      }
+    }
     if (this.state.player.key) for (const player of Object.values(this.state.players)) player.key = true;
   }
 
@@ -164,23 +177,7 @@ export class CoopGame extends Game {
   }
 
   _updateProjectiles(dt) {
-    const survivors = [];
-    for (const shot of this.state.projectiles) {
-      shot.life -= dt;
-      let removed = shot.life <= 0;
-      const steps = Math.max(1, Math.ceil(Math.hypot(shot.dx, shot.dz) * dt / .12));
-      for (let n = 0; n < steps && !removed; n++) {
-        const previousX = shot.x, previousZ = shot.z;
-        shot.x += shot.dx * dt / steps; shot.z += shot.dz * dt / steps;
-        if (!this.hasLineOfSight(previousX, previousZ, shot.x, shot.z)) { removed = true; break; }
-        const target = this._playerIds.map(id => this._player(id))
-          .filter(player => player.alive && distance(shot, player) < .32 && this.hasLineOfSight(shot.x, shot.z, player.x, player.z))
-          .sort((a, b) => distance(shot, a) - distance(shot, b))[0];
-        if (target) { this._withPlayer(target.id, () => this._hurt(15, shot)); removed = true; }
-      }
-      if (!removed) survivors.push(shot);
-    }
-    this.state.projectiles = survivors;
+    super._updateProjectiles(dt);
   }
 
   _hurt(amount, source) {
@@ -210,10 +207,9 @@ export class CoopGame extends Game {
     });
   }
 
-  switchWeapon(playerId) {
+  switchWeapon(playerId, weaponId) {
     if (!this._player(playerId)?.alive || this.state.status !== 'playing') return false;
-    this._withPlayer(playerId, () => super.switchWeapon());
-    return true;
+    return this._withPlayer(playerId, () => super.switchWeapon(weaponId)) === true;
   }
 
   getInteractionInfo(playerId = this._activePlayerId || this._playerIds[0]) {
@@ -255,6 +251,8 @@ export class CoopGame extends Game {
       player.ammo.pistol = Math.max(this.level.exploration ? 60 : 24, player.ammo.pistol);
       player.ammo.shells = Math.max(this.level.exploration ? 16 : 6, player.ammo.shells);
       player.ammo.cells = player.hasArc ? Math.max(4, player.ammo.cells || 0) : player.ammo.cells || 0;
+      player.ammo.slugs = player.hasRicochet ? Math.max(8, player.ammo.slugs || 0) : player.ammo.slugs || 0;
+      player.ammo.grenades = player.hasGrenade ? Math.max(2, player.ammo.grenades || 0) : player.ammo.grenades || 0;
       const runtime = this._playerRuntime[id];
       runtime.shotCooldown = 0; runtime.reserveTimer = 0; runtime.messageCooldown = 0;
     }

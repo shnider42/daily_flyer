@@ -41,7 +41,7 @@ export function objectiveForGuidance(objective, guidance) {
   if (guidance === 'simple') return objective;
   if (guidance === 'expert') return null;
   const titles = {
-    arrival: 'Find a way into the facility', power: 'Trace the silent machinery',
+    arrival: 'Find a way into the facility', practice: 'Explore the training gallery', power: 'Trace the silent machinery',
     cutter: 'Explore the working machinery', insulator: 'Follow the conduits',
     phase: 'Explore beyond the live conduits', relays: 'Trace the disconnected circuits',
     guardian: 'Read the guardian’s movements', key: 'Search the chamber', arc: 'Explore the equipment bay', weapon: 'Explore the equipment bay',
@@ -51,22 +51,35 @@ export function objectiveForGuidance(objective, guidance) {
 }
 
 export function briefingForGuidance(mission, guidance) {
-  if (guidance === 'simple') return { text: mission.briefing, steps: mission.steps };
+  if (guidance === 'simple') return { text: mission.briefing, steps: mission.steps, subtitle: mission.subtitle };
+  const subtitles = {
+    'blacksite-07': 'The first breach', 'relay-09': 'A silent communications ring',
+    'crosslink-11': 'A divided relay complex', 'underworks-13': 'An entire world beneath the breach',
+    'switchyard-15': 'Signals across the freight yard', 'glasshouse-17': 'Life behind the glass',
+  };
   const briefs = {
     'blacksite-07': 'Emergency lights mark an abandoned research facility. Get inside, read its machinery, and find a way out.',
     'relay-09': 'A silent communications ring surrounds a sealed vault. Its disconnected circuitry runs through rooms that are no longer empty.',
     'crosslink-11': 'The compact relay complex has lost its signal. Explore its two wings and find a way to call for extraction.',
     'underworks-13': 'An entire facility stretches beneath the arrival lift. Explore connected sectors, remember the barriers you pass, and find a route back.',
     'switchyard-15': 'The freight yard is divided by heavy shutters and numbered circuits. Read its signals, choose when to open a route, and watch what moves on the other side.',
+    'glasshouse-17': 'Light filters through a silent research conservatory. Broken sightlines divide its galleries; follow the machinery through the growth and find a way back.',
   };
   return {
     text: briefs[mission.id] || 'Explore the facility and find a way out.',
+    subtitle: subtitles[mission.id] || 'Explore the facility',
     steps: guidance === 'expert' ? [] : ['Read the machinery around you', 'Remember the routes you discover', 'Find your way to extraction'],
   };
 }
 
-export function noticeForGuidance(event, guidance, interaction = null) {
+export function noticeForGuidance(event, guidance, interaction = null, { observed = false } = {}) {
   const eligible = ['message', 'pickup', 'checkpoint', 'secret', 'upgrade', 'refuge', 'transit-activated', 'transit', 'reward', 'shutter'];
+  const encounter = {
+    'shield-hit': { simple: 'The front shield reduces damage. Flank the bulwark or wait for its shield to open.', moderate: 'Sparks scatter from the front plate.' },
+    heal: { simple: 'The mender is healing another creature. Damage the mender to interrupt its next healing pulse.', moderate: 'A bright beam links the creatures.' },
+    'heal-interrupt': { simple: 'Healing interrupted.', moderate: 'The healing beam breaks.' },
+  }[event.type];
+  if (encounter) return observed && guidance !== 'expert' ? encounter[guidance] || null : null;
   if (event.type === 'provoked') return guidance === 'expert' ? null : 'Security turns hostile.';
   if (guidance === 'simple') return eligible.includes(event.type) ? event.text || null : null;
   // Generic message events often repeat a successful event with a next-step spoiler.
@@ -74,6 +87,8 @@ export function noticeForGuidance(event, guidance, interaction = null) {
   if (event.type === 'message') {
     if (/^No shells\./.test(event.text || '')) return 'No shells.';
     if (/^No (arc )?cells\./i.test(event.text || '')) return 'No arc cells.';
+    if (/^No (rebound )?slugs\./i.test(event.text || '')) return 'No rebound slugs.';
+    if (/^No (thumper )?grenades\./i.test(event.text || '')) return 'No grenades.';
     if (/^Cell empty\./.test(event.text || '')) return 'Cell empty.';
     if (/^Emergency cell:/.test(event.text || '')) return 'Emergency cell recharged.';
     if (guidance === 'moderate' && interaction && !interaction.canUse && event.text === interaction.text) return blockedCue(interaction);
@@ -123,6 +138,9 @@ export function hostileToPlayer(enemy) {
 
 export function automaticFireAllowed(enemies, player, { aimAssist = false, hasLineOfSight = () => true } = {}) {
   const weapon = WEAPONS[player.weapon] || WEAPONS.pistol;
+  // Bank shots and delayed explosions can hit actors beyond the initial aim
+  // line. Their trigger remains deliberate, even when automatic fire is on.
+  if (weapon.autoFire === false) return false;
   const range = Math.min(16, weapon.range);
   const delta = angle => Math.atan2(Math.sin(angle - player.angle), Math.cos(angle - player.angle));
   const visible = enemies.filter(enemy => hostileToPlayer(enemy)

@@ -14,7 +14,7 @@ class RecordingGame {
   resume() { this.state.status = 'playing'; }
   update(dt, inputs) { this.updates.push({ dt, inputs: structuredClone(inputs) }); this.state.time += dt; }
   interact(id) { this.actions.push(['interact', id]); }
-  switchWeapon(id) { this.actions.push(['weapon', id]); }
+  switchWeapon(id, weapon) { this.actions.push(weapon === undefined ? ['weapon', id] : ['weapon', id, weapon]); }
   restart() { this.actions.push(['restart']); this.state.time = 0; this.start(); }
   restartCheckpoint() { this.actions.push(['checkpoint']); this.start(); return true; }
   drainEvents() { return this.events.splice(0); }
@@ -29,7 +29,7 @@ function peer() {
 }
 const last = (p, type) => p.messages.findLast(m => m.type === type);
 const error = p => last(p, 'error')?.code;
-const request = (type, extra = {}) => ({ type, protocol: PROTOCOL, name: 'Pilot', mission: 'crosslink-11', difficulty: 'standard', ...extra });
+const request = (type, extra = {}) => ({ type, protocol: PROTOCOL, name: 'Pilot', mission: 'crosslink-11', difficulty: 'standard', supportedMissions: ['crosslink-11', 'underworks-13', 'glasshouse-17'], ...extra });
 function setup(options = {}) {
   let time = 1000;
   const rooms = new BreachRooms({ now: () => time, GameClass: RecordingGame, ...options });
@@ -139,6 +139,58 @@ test('invalid numeric inputs and replayed sequences cannot replace accepted cont
   assert.equal(f.room.players.get('p1').seq, 10);
   const actual = f.room.game.updates[0].inputs.p1;
   assert.equal(actual.forward, .5); assert.equal(actual.strafe, -.5); assert.equal(actual.angle, 1); assert.equal(actual.fire, false);
+});
+
+test('Glasshouse rooms start a shared mission with the requested team and difficulty', () => {
+  const rooms = new BreachRooms({ GameClass: RecordingGame }), host = peer(), guest = peer();
+  rooms.handle(host, request('create', { mission: 'glasshouse-17', difficulty: 'hard', name: 'Garden host' }));
+  const welcome = last(host, 'welcome'); assert.ok(welcome);
+  rooms.handle(guest, request('join', { roomId: welcome.roomId, name: 'Garden guest' }));
+  const room = rooms.rooms.get(welcome.roomId); start({ rooms, host, guest, room });
+  assert.equal(room.game.options.mission, 'glasshouse-17');
+  assert.equal(room.game.options.difficulty, 'hard');
+  assert.deepEqual(room.game.options.players, ['p1', 'p2']);
+  assert.deepEqual(last(host, 'state'), last(guest, 'state'));
+});
+
+test('new-map rooms reject stale clients before attaching while legacy missions remain compatible', () => {
+  const rooms = new BreachRooms({ GameClass: RecordingGame }), stale = peer(), host = peer(), guest = peer();
+  rooms.handle(stale, request('create', { mission: 'glasshouse-17', supportedMissions: undefined }));
+  assert.equal(error(stale), 'VERSION_MISMATCH'); assert.equal(rooms.rooms.size, 0);
+  rooms.handle(host, request('create', { mission: 'glasshouse-17' }));
+  const id = last(host, 'welcome').roomId;
+  rooms.handle(guest, request('join', { roomId: id, supportedMissions: undefined }));
+  assert.equal(error(guest), 'VERSION_MISMATCH'); assert.equal(rooms.rooms.get(id).players.size, 1);
+  rooms.handle(guest, request('join', { roomId: id }));
+  assert.equal(last(guest, 'welcome').selfId, 'p2');
+  const legacy = peer(); rooms.handle(legacy, request('create', { supportedMissions: undefined }));
+  assert.ok(last(legacy, 'welcome'));
+});
+
+test('exact weapon selection is bound to the authenticated operator and old cycle commands remain valid', () => {
+  const f = setup(); start(f);
+  f.rooms.handle(f.guest, { type: 'weapon', weapon: 'ricochet', playerId: 'p1' });
+  assert.deepEqual(f.room.game.actions.at(-1), ['weapon', 'p2', 'ricochet']);
+  f.rooms.handle(f.host, { type: 'weapon', weapon: 'grenade', playerId: 'p2' });
+  assert.deepEqual(f.room.game.actions.at(-1), ['weapon', 'p1', 'grenade']);
+  f.advance(100);
+  f.rooms.handle(f.host, { type: 'weapon' });
+  assert.deepEqual(f.room.game.actions.at(-1), ['weapon', 'p1']);
+  const count = f.room.game.actions.length;
+  f.rooms.handle(f.host, { type: 'pause' });
+  f.rooms.handle(f.guest, { type: 'weapon', weapon: 'pistol' });
+  assert.equal(f.room.game.actions.length, count, 'paused rooms cannot change weapon state');
+});
+
+test('malformed weapon selectors neither mutate the simulation nor consume a valid action', () => {
+  const f = setup(); start(f);
+  for (const weapon of ['missing', '__proto__', 'constructor', null, 1, [], {}]) {
+    f.rooms.handle(f.host, { type: 'weapon', weapon });
+    assert.equal(error(f.host), 'INVALID_WEAPON');
+    assert.equal(f.room.game.actions.length, 0);
+  }
+  f.rooms.handle(f.host, { type: 'weapon', weapon: 'pistol' });
+  assert.deepEqual(f.room.game.actions, [['weapon', 'p1', 'pistol']]);
 });
 
 test('deliberate pause freezes the shared world and requires fresh consent and input from both players', () => {

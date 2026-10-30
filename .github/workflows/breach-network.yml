@@ -41,6 +41,8 @@ jobs:
         run: node scripts/breach-network-browser.mjs
       - name: Switchyard and safe touch controls
         run: node scripts/breach-switchyard-browser.mjs
+      - name: Glasshouse co-op weapons and phone inventory
+        run: node scripts/breach-glasshouse-browser.mjs
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -48,5 +50,6 @@ jobs:
           path: |
             breach-network-results/
             breach-switchyard-results/
+            breach-glasshouse-results/
           retention-days: 7
 

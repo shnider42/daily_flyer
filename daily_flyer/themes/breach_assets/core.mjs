@@ -1,6 +1,7 @@
 // BREACH — original browser-local simulation. No DOM or graphics dependencies.
 import { UNDERWORKS } from './underworks.mjs';
 import { SWITCHYARD } from './switchyard.mjs';
+import { GLASSHOUSE } from './glasshouse.mjs';
 const TAU = Math.PI * 2;
 const clamp = (n, lo, hi) => Math.max(lo, Math.min(hi, n));
 const copy = (value) => JSON.parse(JSON.stringify(value));
@@ -254,21 +255,27 @@ function createCrosslinkLevel() {
   };
 }
 
-export const LEVELS = { 'blacksite-07': LEVEL, 'relay-09': createRelayLevel(), 'crosslink-11': createCrosslinkLevel(), 'underworks-13': UNDERWORKS, 'switchyard-15': SWITCHYARD };
+export const LEVELS = { 'blacksite-07': LEVEL, 'relay-09': createRelayLevel(), 'crosslink-11': createCrosslinkLevel(), 'underworks-13': UNDERWORKS, 'switchyard-15': SWITCHYARD, 'glasshouse-17': GLASSHOUSE };
 export const MISSIONS = [
   { id: 'blacksite-07', levelId: LEVEL.id, name: 'Blacksite 07', number: '001', subtitle: 'The first breach', briefing: 'Emergency power is down. Enter the research facility, recover its security key, and reach extraction.', steps: ['Restore auxiliary power', 'Recover the security key', 'Reach extraction'] },
   { id: 'relay-09', levelId: LEVELS['relay-09'].id, name: 'Dead Relay', number: '002', subtitle: 'Bring the signal back', briefing: 'A silent communications station surrounds a sealed vault. Restore ring power, reconnect both relays, and recover the key to the extraction uplink.', steps: ['Restore ring power', 'Activate both relay consoles', 'Recover the vault key', 'Transmit the extraction signal'] },
   { id: 'crosslink-11', levelId: LEVELS['crosslink-11'].id, name: 'Crosslink', number: '003', subtitle: 'Two relays. One way out.', briefing: 'A compact relay facility has lost its uplink. Restore hub power, activate the western and eastern relays, and recover the vault key for extraction. Play solo or cover a teammate in a private co-op room.', steps: ['Restore hub power', 'Activate both relay consoles', 'Recover the vault key', 'Signal extraction'] },
   { id: 'underworks-13', levelId: UNDERWORKS.id, name: 'The Underworks', number: '004', subtitle: 'An entire world beneath the breach', briefing: 'Explore nine connected sectors below the arrival lift. Recover the cutter, insulator and phase module to open new routes through familiar territory. Restore two distant relays, defeat the reactor guardian and bring its key back to the lift. Refuges and activated transit stations support the journey, solo or together.', steps: ['Restore central power', 'Recover three permanent upgrades', 'Reconnect both crown relays', 'Defeat the reactor guardian', 'Return to the arrival lift'] },
   { id: 'switchyard-15', levelId: SWITCHYARD.id, name: 'Switchyard', number: '005', subtitle: 'Choose your route. Control the fight.', briefing: 'A freight battle divides the switchyard. Restore power, choose the yard or service route, and recover the arc caster from the workshop. Read the cable and phase galleries, reconnect their relays, and defeat the switching-engine guardian to reclaim the freight lift.', steps: ['Restore switchyard power', 'Reach the arc workshop', 'Reconnect both gallery relays', 'Defeat the switching-engine guardian', 'Return to the freight lift'] },
+  { id: 'glasshouse-17', levelId: GLASSHOUSE.id, name: 'The Glasshouse', number: '006', subtitle: 'Break the shield. Cut the healing line.', briefing: 'An overgrown conservatory hides armored defenders and their healers. Practice bank shots with the Rebound carbine, restore atrium power, and recover the Thumper. Follow either cultivation wing to the relays, defeat the propagation guardian, and open the direct route back to the laboratory lift. Play solo or share the expedition in co-op.', steps: ['Explore the ballistics practice bay', 'Restore conservatory power', 'Reconnect both cultivation relays', 'Defeat the propagation guardian', 'Open the atrium return and extract'] },
 ];
 export function getLevel(missionId = 'blacksite-07') { return Object.hasOwn(LEVELS, missionId) ? LEVELS[missionId] : LEVEL; }
 
 export const WEAPONS = Object.freeze({
-  pistol: Object.freeze({ id: 'pistol', name: 'Pistol', ammoKey: 'pistol', range: 23, aimAssistRange: 16, cooldown: .27, damage: 24, pellets: 1 }),
-  shotgun: Object.freeze({ id: 'shotgun', name: 'Scattergun', ammoKey: 'shells', range: 13, aimAssistRange: 16, cooldown: .72, damage: 14, pellets: 7 }),
-  arc: Object.freeze({ id: 'arc', name: 'Arc caster', ammoKey: 'cells', range: 7.5, aimAssistRange: 7.5, cooldown: .82, damage: 28, pellets: 1, stun: .65 }),
+  pistol: Object.freeze({ id: 'pistol', name: 'Pistol', ownershipKey: null, ammoKey: 'pistol', range: 23, aimAssistRange: 16, cooldown: .27, damage: 24, pellets: 1, autoFire: true }),
+  shotgun: Object.freeze({ id: 'shotgun', name: 'Scattergun', ownershipKey: 'hasShotgun', ammoKey: 'shells', range: 13, aimAssistRange: 16, cooldown: .72, damage: 14, pellets: 7, autoFire: true }),
+  arc: Object.freeze({ id: 'arc', name: 'Arc caster', ownershipKey: 'hasArc', ammoKey: 'cells', range: 7.5, aimAssistRange: 7.5, cooldown: .82, damage: 28, pellets: 1, stun: .65, autoFire: true }),
+  ricochet: Object.freeze({ id: 'ricochet', name: 'Rebound carbine', ownershipKey: 'hasRicochet', ammoKey: 'slugs', range: 26, aimAssistRange: 18, cooldown: .52, damage: 38, pellets: 1, maxBounces: 1, autoFire: false }),
+  grenade: Object.freeze({ id: 'grenade', name: 'Thumper', ownershipKey: 'hasGrenade', ammoKey: 'grenades', range: 9, aimAssistRange: 0, cooldown: 1.15, damage: 90, pellets: 1, projectileSpeed: 6, fuse: 1.5, blastRadius: 2.8, autoFire: false }),
 });
+export function ownedWeapons(player) {
+  return Object.values(WEAPONS).filter(weapon => !weapon.ownershipKey || player?.[weapon.ownershipKey] === true).map(weapon => weapon.id);
+}
 
 const DIFFICULTY = {
   relaxed: { health: .8, damage: .55, speed: .85 },
@@ -302,7 +309,7 @@ export class Game {
     this._checkpoint = null;
     this.state = {
       status: 'ready',
-      player: { ...copy(this.level.spawn), health: 100, armor: 20, ammo: { pistol: 40, shells: 0, cells: 0 }, weapon: 'pistol', hasShotgun: false, hasArc: false, key: false },
+      player: { ...copy(this.level.spawn), health: 100, armor: 20, ammo: { pistol: 40, shells: 0, cells: 0, slugs: 0, grenades: 0 }, weapon: 'pistol', hasShotgun: false, hasArc: false, hasRicochet: false, hasGrenade: false, key: false },
       enemies: this.level.enemies.map(e => ({ ...e, ...this._encounterDefaults(e), health: Math.round(e.health * this._difficulty.health), maxHealth: Math.round(e.maxHealth * this._difficulty.health), active: false, angle: Math.PI, attackCooldown: 1, hitTimer: 0, pathTimer: 0 })),
       pickups: this.level.pickups.map(p => ({ ...p, collected: false })),
       doors: copy(this.level.doors), interactables: this.level.interactables.map(i => ({ ...i, used: false })),
@@ -322,7 +329,7 @@ export class Game {
   start() {
     if (this.state.status === 'ready') {
       this.state.status = 'playing';
-      this._events.push({ type: 'message', text: this.level.missionId === 'switchyard-15' ? 'Switchyard. Restore power in the observation concourse, then choose a route to the workshop.' : this.level.exploration ? 'The Underworks. Activate the lift transit, then find power in the central exchange.' : this.level.missionId === 'crosslink-11' ? 'Crosslink. Restore hub power and reconnect both relays.' : this.level.missionId === 'relay-09' ? 'Dead Relay. Restore power to the communications ring.' : 'Blacksite 07. Find the auxiliary generator.' });
+      this._events.push({ type: 'message', text: this.level.missionId === 'glasshouse-17' ? 'The Glasshouse. Explore the practice bay, then restore power in the planted atrium.' : this.level.missionId === 'switchyard-15' ? 'Switchyard. Restore power in the observation concourse, then choose a route to the workshop.' : this.level.exploration ? 'The Underworks. Activate the lift transit, then find power in the central exchange.' : this.level.missionId === 'crosslink-11' ? 'Crosslink. Restore hub power and reconnect both relays.' : this.level.missionId === 'relay-09' ? 'Dead Relay. Restore power to the communications ring.' : 'Blacksite 07. Find the auxiliary generator.' });
     }
   }
   pause() { if (this.state.status === 'playing') this.state.status = 'paused'; }
@@ -340,6 +347,8 @@ export class Game {
       provoked: false, killedByPlayer: false, telegraph: null, stunTimer: 0,
       ...(enemy.encounterId ? { encounterAwake: false } : {}),
       ...(enemy.type === 'stalker' ? { blinkCooldown: 2.4 } : {}),
+      ...(enemy.type === 'bulwark' ? { shieldPhase: 'guard', shieldTimer: 3.4 } : {}),
+      ...(enemy.type === 'mender' ? { healCooldown: 1 } : {}),
       ...(enemy.guardian ? { bossPhase: 'stalk', phaseTimer: 0, bossCycle: 0, chargeAngle: 0, chargeHit: false, chargeTargetId: null, chargeTargetKind: null } : {}),
     };
   }
@@ -441,10 +450,14 @@ export class Game {
       if (item.type === 'ammo') { p.ammo.pistol += item.amount; text = `+${item.amount} pistol rounds`; }
       if (item.type === 'shells') { p.ammo.shells += item.amount; text = `+${item.amount} shotgun shells`; }
       if (item.type === 'cells') { p.ammo.cells = (p.ammo.cells || 0) + item.amount; text = `+${item.amount} arc cells`; }
+      if (item.type === 'slugs') { p.ammo.slugs = (p.ammo.slugs || 0) + item.amount; text = `+${item.amount} rebound slugs`; }
+      if (item.type === 'grenades') { p.ammo.grenades = (p.ammo.grenades || 0) + item.amount; text = `+${item.amount} grenades`; }
       if (item.type === 'health') { p.health = Math.min(this._maxHealth(p), p.health + item.amount); text = `Health restored`; }
       if (item.type === 'armor') { p.armor = Math.min(100, p.armor + item.amount); text = `Armor reinforced`; }
       if (item.type === 'shotgun') { p.hasShotgun = true; p.weapon = 'shotgun'; p.ammo.shells += item.amount; text = 'Scattergun acquired. Devastating at close range.'; }
       if (item.type === 'arc') { p.hasArc = true; p.weapon = 'arc'; p.ammo.cells = (p.ammo.cells || 0) + item.amount; text = 'Arc caster acquired. Short-range shots interrupt ordinary enemies.'; }
+      if (item.type === 'ricochet') { p.hasRicochet = true; p.weapon = 'ricochet'; p.ammo.slugs = (p.ammo.slugs || 0) + item.amount; text = 'Rebound carbine acquired. One reflection from a wall; shutters absorb the shot.'; }
+      if (item.type === 'grenade') { p.hasGrenade = true; p.weapon = 'grenade'; p.ammo.grenades = (p.ammo.grenades || 0) + item.amount; text = 'Thumper acquired. Bouncing grenades explode after a short fuse. Keep clear of your blast.'; }
       if (item.type === 'key') { p.key = true; text = 'Security key recovered. Reach the extraction gate.'; }
       if (item.type === 'healthExpansion') {
         this.state.healthBonus = 25;
@@ -467,11 +480,12 @@ export class Game {
     if (!(p.ammo[ammo] > 0)) {
       this._shotCooldown = .25;
       if (this._messageCooldown <= 0) {
-        this._events.push({ type: 'message', text: weapon === 'arc' ? 'No arc cells. Switch weapons or find a cell pack.' : weapon === 'shotgun' ? 'No shells. Switch to your pistol.' : 'Cell empty. One emergency round recharges shortly.' });
+        this._events.push({ type: 'message', text: weapon === 'grenade' ? 'No grenades. Switch weapons or find an ammunition rack.' : weapon === 'ricochet' ? 'No rebound slugs. Switch weapons or find ammunition.' : weapon === 'arc' ? 'No arc cells. Switch weapons or find a cell pack.' : weapon === 'shotgun' ? 'No shells. Switch to your pistol.' : 'Cell empty. One emergency round recharges shortly.' });
         this._messageCooldown = 2;
       }
       return;
     }
+    if (weapon === 'grenade' && this.state.projectiles.filter(shot => shot.type === 'grenade').length >= 8) return;
     p.ammo[ammo]--; this.state.shots++; this.state.tutorial.fired = true;
     this._shotCooldown = spec.cooldown;
     let aim = p.angle;
@@ -481,6 +495,22 @@ export class Game {
         .filter(e => Math.abs(angleDelta(e.angle, aim)) < .12)
         .sort((a, b) => Math.abs(angleDelta(a.angle, aim)) - Math.abs(angleDelta(b.angle, aim)))[0];
       if (target) aim = target.angle;
+    }
+    if (weapon === 'grenade') {
+      this.state.projectiles.push({ id: `grenade-${++this._serial}`, type: 'grenade', x: p.x, z: p.z,
+        dx: Math.sin(aim) * spec.projectileSpeed, dz: -Math.cos(aim) * spec.projectileSpeed,
+        life: spec.fuse, fuse: spec.fuse, ownerId: p.id || 'player', ownerKind: 'player', bounces: 0 });
+      this._events.push({ type: 'shot', weapon, hit: false });
+      return;
+    }
+    if (weapon === 'ricochet') {
+      const trace = this._ricochetShot(p, aim, spec.range);
+      if (trace.victim) { this.state.hits++; this._damageEnemy(trace.victim, spec.damage, 'player', trace.origin); }
+      this.state.effects.push({ id: `ricochet-${++this._serial}`, type: 'ricochet', x: p.x, z: p.z, segments: trace.segments, life: .16 });
+      this._events.push({ type: 'shot', weapon, hit: Boolean(trace.victim) });
+      if (trace.segments.length > 1) this._events.push({ type: 'ricochet', x: trace.segments[0].targetX, z: trace.segments[0].targetZ });
+      for (const enemy of this.state.enemies) if (this.isHostileToPlayer(enemy) && distance(p, enemy) < 7) enemy.active = true;
+      return;
     }
     const hits = new Map();
     const pellets = spec.pellets;
@@ -505,6 +535,7 @@ export class Game {
       this._damageEnemy(enemy, damage, 'player');
       if (weapon === 'arc' && enemy.alive && !enemy.guardian) {
         enemy.stunTimer = spec.stun; enemy.telegraph = null;
+        if (enemy.type === 'bulwark') this._exposeBulwark(enemy);
         enemy.attackCooldown = Math.max(enemy.attackCooldown, spec.stun);
         this._events.push({ type: 'stun', id: enemy.id, x: enemy.x, z: enemy.z, duration: spec.stun });
       }
@@ -521,12 +552,85 @@ export class Game {
     for (const enemy of this.state.enemies) if (this.isHostileToPlayer(enemy) && distance(p, enemy) < 7) enemy.active = true;
   }
 
-  _damageEnemy(enemy, amount, source) {
+  _traceWall(x, z, dx, dz, range) {
+    let cellX = Math.floor(x), cellZ = Math.floor(z);
+    const stepX = Math.sign(dx), stepZ = Math.sign(dz);
+    const deltaX = dx ? Math.abs(1 / dx) : Infinity, deltaZ = dz ? Math.abs(1 / dz) : Infinity;
+    let edgeX = dx ? ((stepX > 0 ? cellX + 1 : cellX) - x) / dx : Infinity;
+    let edgeZ = dz ? ((stepZ > 0 ? cellZ + 1 : cellZ) - z) / dz : Infinity;
+    const hit = (length, normalX, normalZ, cells) => ({ x: x + dx * length, z: z + dz * length, distance: length,
+      normalX, normalZ, hitWall: true, door: cells.some(([cx, cz]) => this._doorCells?.get(`${cx},${cz}`)?.open === false) });
+    // Exact grid traversal gives bank shots a stable reflection plane and
+    // treats a touched solid corner as a collision, just like line of sight.
+    while (Math.min(edgeX, edgeZ) <= range) {
+      if (Math.abs(edgeX - edgeZ) < 1e-9) {
+        const sideX = this._wall(cellX + stepX + .5, cellZ + .5);
+        const sideZ = this._wall(cellX + .5, cellZ + stepZ + .5);
+        const diagonal = this._wall(cellX + stepX + .5, cellZ + stepZ + .5);
+        if (sideX || sideZ || diagonal) {
+          const blocked = [];
+          if (sideX) blocked.push([cellX + stepX, cellZ]);
+          if (sideZ) blocked.push([cellX, cellZ + stepZ]);
+          if (diagonal) blocked.push([cellX + stepX, cellZ + stepZ]);
+          return hit(edgeX, sideX || !sideZ ? -stepX : 0, sideZ || !sideX ? -stepZ : 0, blocked);
+        }
+        cellX += stepX; cellZ += stepZ; edgeX += deltaX; edgeZ += deltaZ;
+      } else if (edgeX < edgeZ) {
+        cellX += stepX;
+        if (this._wall(cellX + .5, cellZ + .5)) return hit(edgeX, -stepX, 0, [[cellX, cellZ]]);
+        edgeX += deltaX;
+      } else {
+        cellZ += stepZ;
+        if (this._wall(cellX + .5, cellZ + .5)) return hit(edgeZ, 0, -stepZ, [[cellX, cellZ]]);
+        edgeZ += deltaZ;
+      }
+    }
+    return { x: x + dx * range, z: z + dz * range, distance: range, normalX: 0, normalZ: 0, hitWall: false, door: false };
+  }
+
+  _ricochetShot(player, aim, range) {
+    let origin = { x: player.x, z: player.z }, dx = Math.sin(aim), dz = -Math.cos(aim), remaining = range;
+    const segments = [];
+    for (let bounce = 0; bounce <= WEAPONS.ricochet.maxBounces; bounce++) {
+      const wall = this._traceWall(origin.x, origin.z, dx, dz, remaining);
+      let victim = null, closest = wall.distance;
+      for (const enemy of this.state.enemies) {
+        if (!enemy.alive) continue;
+        const ex = enemy.x - origin.x, ez = enemy.z - origin.z;
+        const along = ex * dx + ez * dz, across = Math.abs(ex * dz - ez * dx);
+        const radius = enemy.type === 'brute' || enemy.type === 'bulwark' ? .4 : .28;
+        if (along <= 0 || across >= radius) continue;
+        const entry = Math.max(0, along - Math.sqrt(radius * radius - across * across));
+        if (entry < closest && this.hasLineOfSight(origin.x, origin.z, enemy.x, enemy.z)) { victim = enemy; closest = entry; }
+      }
+      segments.push({ x: origin.x, z: origin.z, targetX: origin.x + dx * closest, targetZ: origin.z + dz * closest });
+      if (victim) return { victim, segments, origin };
+      if (!wall.hitWall || wall.door || bounce === WEAPONS.ricochet.maxBounces) break;
+      remaining -= wall.distance + .002;
+      if (remaining <= 0) break;
+      if (wall.normalX) dx = -dx;
+      if (wall.normalZ) dz = -dz;
+      origin = { x: wall.x + dx * .002, z: wall.z + dz * .002 };
+    }
+    return { victim: null, segments, origin };
+  }
+
+  _damageEnemy(enemy, amount, source, impact = null) {
     if (!enemy?.alive || !(amount > 0)) return;
-    const playerHit = source === 'player';
+    const playerHit = source === 'player' || source?.kind === 'player';
+    const ownerId = playerHit ? source?.playerId || this.state.player.id || 'player' : source?.id;
+    const owner = playerHit && ownerId && this.state.players?.[ownerId] ? { playerId: ownerId } : {};
+    const origin = impact || (source === 'player' ? this.state.player : source);
+    let multiplier = enemy.guardian ? enemy.bossPhase === 'recover' ? 1.6 : .65 : 1;
+    if (enemy.type === 'bulwark' && enemy.shieldPhase !== 'exposed' && origin
+      && Math.abs(angleDelta(Math.atan2(origin.x - enemy.x, -(origin.z - enemy.z)), enemy.angle)) <= .95) {
+      multiplier *= .22;
+      this.state.effects.push({ id: `shield-${++this._serial}`, type: 'shield-hit', x: enemy.x, z: enemy.z, life: .18 });
+      this._events.push({ type: 'shield-hit', id: enemy.id, x: enemy.x, z: enemy.z, ...owner });
+    }
     // The guardian's plates open while its core cools. The visible recovery
     // window is a better shot than firing continuously into the armor.
-    const damage = Math.max(1, Math.round(amount * (enemy.guardian ? enemy.bossPhase === 'recover' ? 1.6 : .65 : 1)));
+    const damage = Math.max(1, Math.round(amount * multiplier));
     enemy.health = Math.max(0, enemy.health - damage); enemy.active = true; enemy.hitTimer = .13;
     if (playerHit && enemy.faction === 'security' && !enemy.provoked) {
       enemy.provoked = true; enemy.telegraph = null; enemy.attackCooldown = Math.max(enemy.attackCooldown, .8);
@@ -536,20 +640,26 @@ export class Game {
     if (enemy.type === 'stalker' && enemy.telegraph?.kind === 'blink') {
       enemy.telegraph = null; enemy.blinkCooldown = 3;
     }
-    this._events.push({ type: playerHit ? 'hit' : 'enemy-hit', id: enemy.id, x: enemy.x, z: enemy.z, damage, sourceId: playerHit ? 'player' : source?.id });
+    if (enemy.type === 'mender' && enemy.telegraph?.kind === 'heal') {
+      enemy.telegraph = null; enemy.healCooldown = 2.5;
+      this.state.effects.push({ id: `heal-interrupt-${++this._serial}`, type: 'heal-interrupt', x: enemy.x, z: enemy.z, life: .22 });
+      this._events.push({ type: 'heal-interrupt', id: enemy.id, x: enemy.x, z: enemy.z, ...owner });
+    }
+    this._events.push({ type: playerHit ? 'hit' : 'enemy-hit', id: enemy.id, x: enemy.x, z: enemy.z, damage, sourceId: ownerId, ...owner });
     this.state.effects.push({ id: `hit-${++this._serial}`, type: 'hit', x: enemy.x, z: enemy.z, life: .22 });
     if (enemy.health === 0) {
       enemy.alive = false; enemy.killedByPlayer = playerHit; enemy.telegraph = null;
+      if (enemy.type === 'bulwark') { enemy.shieldPhase = 'guard'; enemy.shieldTimer = 3.4; }
       if (enemy.guardian) { enemy.bossPhase = 'stalk'; enemy.phaseTimer = 0; enemy.chargeTargetId = null; enemy.chargeTargetKind = null; }
       if (playerHit) this.state.kills++;
-      this._events.push({ type: playerHit ? 'kill' : 'enemy-kill', id: enemy.id, enemyType: enemy.type, x: enemy.x, z: enemy.z, sourceId: playerHit ? 'player' : source?.id });
+      this._events.push({ type: playerHit ? 'kill' : 'enemy-kill', id: enemy.id, enemyType: enemy.type, x: enemy.x, z: enemy.z, sourceId: ownerId, ...owner });
       if (enemy.guardian) this._syncPermanentProgress();
     }
   }
 
   selectWeapon(id) {
     const p = this.state.player;
-    if (!Object.hasOwn(WEAPONS, id) || id === 'shotgun' && !p.hasShotgun || id === 'arc' && !p.hasArc) return false;
+    if (!ownedWeapons(p).includes(id)) return false;
     if (p.weapon === id) return true;
     p.weapon = id; this.state.tutorial.weaponSwitched = true;
     this._shotCooldown = Math.max(this._shotCooldown, .15);
@@ -559,7 +669,7 @@ export class Game {
   switchWeapon(id) {
     if (id !== undefined) return this.selectWeapon(id);
     const p = this.state.player;
-    const owned = ['pistol', ...(p.hasShotgun ? ['shotgun'] : []), ...(p.hasArc ? ['arc'] : [])];
+    const owned = ownedWeapons(p);
     if (owned.length === 1) {
       this._events.push({ type: 'message', text: 'Find the scattergun in the generator room.' }); return;
     }
@@ -703,6 +813,71 @@ export class Game {
     return false;
   }
 
+  _exposeBulwark(enemy) {
+    if (enemy.shieldPhase !== 'exposed') this._events.push({ type: 'shield-open', id: enemy.id, x: enemy.x, z: enemy.z });
+    enemy.telegraph = null; enemy.shieldPhase = 'exposed'; enemy.shieldTimer = 1.4;
+  }
+
+  _updateBulwark(enemy, dt, target, visible) {
+    enemy.shieldTimer = Math.max(0, enemy.shieldTimer - dt);
+    if (enemy.shieldPhase === 'windup') {
+      const warning = enemy.telegraph;
+      if (warning) warning.remaining = enemy.shieldTimer;
+      if (!warning || enemy.shieldTimer === 0) {
+        const victim = warning && this._resolveTarget(warning.targetId, warning.targetKind);
+        if (victim && distance(victim, warning) < warning.radius && distance(enemy, victim) < 2.8
+          && this.hasLineOfSight(enemy.x, enemy.z, victim.x, victim.z)) this._hurtTarget(victim, 20, enemy);
+        this._exposeBulwark(enemy); enemy.attackCooldown = 1.8;
+      }
+      return true;
+    }
+    if (enemy.shieldPhase === 'exposed') {
+      if (enemy.shieldTimer === 0) { enemy.shieldPhase = 'guard'; enemy.shieldTimer = 3.4; }
+      return true;
+    }
+    if (visible && distance(enemy, target) < 1.8 && enemy.attackCooldown === 0) {
+      enemy.shieldPhase = 'windup'; enemy.shieldTimer = .8;
+      this._warning(enemy, 'bash', target, .8, 1.3);
+      return true;
+    }
+    if (enemy.shieldTimer === 0) { this._exposeBulwark(enemy); return true; }
+    return false;
+  }
+
+  _canMend(mender, ally) {
+    return Boolean(ally && ally !== mender && ally.alive && !ally.guardian
+      && (ally.faction || 'infestation') === 'infestation' && ally.type !== 'sentry'
+      && ally.health < ally.maxHealth && distance(mender, ally) <= 7
+      && this.hasLineOfSight(mender.x, mender.z, ally.x, ally.z));
+  }
+
+  _updateMender(enemy, dt) {
+    enemy.healCooldown = Math.max(0, enemy.healCooldown - dt);
+    if (enemy.telegraph?.kind === 'heal') {
+      const warning = enemy.telegraph;
+      warning.remaining = Math.max(0, warning.remaining - dt);
+      const ally = this._resolveTarget(warning.targetId, 'enemy');
+      if (!this._canMend(enemy, ally)) { enemy.telegraph = null; enemy.healCooldown = 1; return true; }
+      warning.x = ally.x; warning.z = ally.z;
+      if (warning.remaining === 0) {
+        const amount = Math.min(28, ally.maxHealth - ally.health);
+        ally.health += amount;
+        this.state.effects.push({ id: `heal-${++this._serial}`, type: 'heal', x: enemy.x, z: enemy.z,
+          targetX: ally.x, targetZ: ally.z, life: .5 });
+        this._events.push({ type: 'heal', id: enemy.id, targetId: ally.id, x: enemy.x, z: enemy.z,
+          targetX: ally.x, targetZ: ally.z, amount });
+        enemy.telegraph = null; enemy.healCooldown = 4.8; enemy.attackCooldown = Math.max(enemy.attackCooldown, .7);
+      }
+      return true;
+    }
+    if (enemy.healCooldown > 0) return false;
+    const ally = this.state.enemies.filter(other => this._canMend(enemy, other) && other.maxHealth - other.health >= 12)
+      .sort((a, b) => (b.maxHealth - b.health) - (a.maxHealth - a.health) || distance(enemy, a) - distance(enemy, b))[0];
+    if (!ally) return false;
+    this._warning(enemy, 'heal', ally, .9, .6);
+    return true;
+  }
+
   _guardianRecovery(enemy) {
     enemy.bossPhase = 'recover'; enemy.phaseTimer = 1.65; enemy.telegraph = null; enemy.chargeTargetId = null; enemy.chargeTargetKind = null;
     this._events.push({ type: 'boss-phase', id: enemy.id, phase: 'recover', x: enemy.x, z: enemy.z });
@@ -788,27 +963,33 @@ export class Game {
       enemy.alertTimer = visible ? 8 : Math.max(0, (enemy.alertTimer ?? 8) - dt);
       if (enemy.alertTimer === 0) { enemy.active = false; return; }
     }
-    enemy.angle = Math.atan2(target.x - enemy.x, -(target.z - enemy.z));
+    const facing = Math.atan2(target.x - enemy.x, -(target.z - enemy.z));
+    if (enemy.type === 'bulwark') {
+      if (enemy.shieldPhase !== 'windup') enemy.angle += clamp(angleDelta(facing, enemy.angle), -1.35 * dt, 1.35 * dt);
+    } else enemy.angle = facing;
     if (enemy.guardian && this._updateGuardian(enemy, dt, target, visible)) return;
     if (enemy.type === 'stalker' && this._updateStalker(enemy, dt, target, visible)) return;
     if (enemy.type === 'sentry' && this._updateSentry(enemy, dt, target, visible)) return;
-    if (!enemy.guardian && enemy.type !== 'sentry' && d < .8 && visible && enemy.attackCooldown === 0) {
+    if (enemy.type === 'bulwark' && this._updateBulwark(enemy, dt, target, visible)) return;
+    if (enemy.type === 'mender' && this._updateMender(enemy, dt)) return;
+    if (!enemy.guardian && !['sentry', 'bulwark'].includes(enemy.type) && d < .8 && visible && enemy.attackCooldown === 0) {
       this._hurtTarget(target, enemy.type === 'brute' ? 23 : enemy.type === 'stalker' ? 15 : enemy.type === 'runner' ? 10 : 8, enemy);
       enemy.attackCooldown = enemy.type === 'brute' ? 1.15 : .85;
-    } else if (enemy.type === 'spitter' && d > 1.4 && d < 10 && visible && enemy.attackCooldown === 0) {
+    } else if (['spitter', 'mender'].includes(enemy.type) && d > 1.4 && d < 10 && visible && enemy.attackCooldown === 0) {
+      const damage = enemy.type === 'mender' ? 10 : 15;
       if (target === player) {
-        const speed = 4.1;
+        const speed = enemy.type === 'mender' ? 3.6 : 4.1;
         this.state.projectiles.push({ id: `p-${++this._serial}`, x: enemy.x, z: enemy.z, dx: (target.x - enemy.x) / d * speed,
-          dz: (target.z - enemy.z) / d * speed, life: 4, type: 'plasma' });
+          dz: (target.z - enemy.z) / d * speed, life: 4, type: 'plasma', damage });
       } else {
-        this._damageEnemy(target, 15, enemy);
+        this._damageEnemy(target, damage, enemy);
         this.state.effects.push({ id: `beam-${++this._serial}`, type: 'beam', x: enemy.x, z: enemy.z,
           targetX: target.x, targetZ: target.z, life: .16, faction: 'infestation' });
       }
-      enemy.attackCooldown = 1.65 + this._rng() * .45;
+      enemy.attackCooldown = (enemy.type === 'mender' ? 2.4 : 1.65) + this._rng() * .45;
     }
     if (d <= .65 || enemy.hitTimer > 0) return;
-    if ((enemy.type === 'spitter' || enemy.type === 'sentry') && visible && d < 6.5) {
+    if (['spitter', 'sentry', 'mender'].includes(enemy.type) && visible && d < 6.5) {
       // Ranged enemies hold a lane and retreat from pressure instead of joining
       // every runner in the same stationary pile at the player's feet.
       const direction = d < 2.8 ? -1 : 0;
@@ -831,7 +1012,7 @@ export class Game {
     }
     const length = Math.hypot(targetX - enemy.x, targetZ - enemy.z);
     if (length < .05) return;
-    const speed = (enemy.type === 'runner' ? 1.35 : enemy.type === 'stalker' ? 1.65 : enemy.type === 'brute' ? .69 : .85) * this._difficulty.speed;
+    const speed = (enemy.type === 'runner' ? 1.35 : enemy.type === 'stalker' ? 1.65 : enemy.type === 'brute' ? .69 : enemy.type === 'bulwark' ? .72 : .85) * this._difficulty.speed;
     let dx = (targetX - enemy.x) / length * speed * dt, dz = (targetZ - enemy.z) / length * speed * dt;
     for (const other of this.state.enemies) {
       if (other === enemy || !other.alive) continue;
@@ -844,6 +1025,10 @@ export class Game {
   _updateProjectiles(dt) {
     const survivors = [];
     for (const shot of this.state.projectiles) {
+      if (shot.type === 'grenade') {
+        if (this._updateGrenade(shot, dt)) survivors.push(shot);
+        continue;
+      }
       shot.life -= dt;
       let removed = shot.life <= 0;
       const steps = Math.max(1, Math.ceil(Math.hypot(shot.dx, shot.dz) * dt / .12));
@@ -851,11 +1036,60 @@ export class Game {
         const previousX = shot.x, previousZ = shot.z;
         shot.x += shot.dx * dt / steps; shot.z += shot.dz * dt / steps;
         if (!this.hasLineOfSight(previousX, previousZ, shot.x, shot.z)) removed = true;
-        else if (distance(shot, this.state.player) < .32 && this.hasLineOfSight(shot.x, shot.z, this.state.player.x, this.state.player.z)) { this._hurt(15, shot); removed = true; }
+        else {
+          const victim = Object.values(this.state.players || { solo: this.state.player })
+            .filter(player => player.alive !== false && distance(shot, player) < .32 && this.hasLineOfSight(shot.x, shot.z, player.x, player.z))
+            .sort((a, b) => distance(shot, a) - distance(shot, b))[0];
+          if (victim) { this._hurtTarget(victim, shot.damage || 15, shot); removed = true; }
+        }
       }
       if (!removed) survivors.push(shot);
     }
     this.state.projectiles = survivors;
+  }
+
+  _updateGrenade(shot, dt) {
+    let travelTime = Math.min(dt, Math.max(0, shot.life));
+    // An expired grenade detonates once. Wall reflections consume travel time,
+    // lose energy and stop after four impacts, bounding both motion and work.
+    for (let collision = 0; travelTime > .000001 && collision < 5; collision++) {
+      const speed = Math.hypot(shot.dx, shot.dz);
+      if (speed < .01 || shot.bounces >= 4) { shot.dx = 0; shot.dz = 0; break; }
+      const dx = shot.dx / speed, dz = shot.dz / speed;
+      const wall = this._traceWall(shot.x, shot.z, dx, dz, speed * travelTime);
+      if (!wall.hitWall) { shot.x = wall.x; shot.z = wall.z; break; }
+      shot.x = wall.x - dx * .002; shot.z = wall.z - dz * .002;
+      travelTime -= wall.distance / speed;
+      if (wall.normalX) shot.dx = -shot.dx;
+      if (wall.normalZ) shot.dz = -shot.dz;
+      shot.dx *= .66; shot.dz *= .66; shot.bounces++;
+    }
+    shot.life = Math.max(0, shot.life - dt);
+    if (shot.life < .000001) shot.life = 0;
+    if (shot.life > 0) return true;
+    this._explodeGrenade(shot);
+    return false;
+  }
+
+  _explodeGrenade(shot) {
+    const spec = WEAPONS.grenade, source = { kind: 'player', playerId: shot.ownerId, x: shot.x, z: shot.z };
+    let hit = false;
+    for (const enemy of this.state.enemies) {
+      const d = distance(shot, enemy);
+      if (!enemy.alive || d >= spec.blastRadius || !this.hasLineOfSight(shot.x, shot.z, enemy.x, enemy.z)) continue;
+      this._damageEnemy(enemy, spec.damage * (1 - .7 * d / spec.blastRadius), source);
+      hit = true;
+    }
+    if (hit) this.state.hits++;
+    // Co-op has no teammate damage. Only the stable throwing operative can
+    // suffer their own splash, even if state.player now aliases somebody else.
+    const owner = shot.ownerId === 'player' ? this.state.player : this.state.players?.[shot.ownerId];
+    if (owner && owner.alive !== false && distance(shot, owner) < spec.blastRadius
+      && this.hasLineOfSight(shot.x, shot.z, owner.x, owner.z)) {
+      this._hurtTarget(owner, 55 * (1 - .7 * distance(shot, owner) / spec.blastRadius), shot);
+    }
+    this.state.effects.push({ id: `explosion-${++this._serial}`, type: 'explosion', x: shot.x, z: shot.z, radius: spec.blastRadius, life: .45 });
+    this._events.push({ type: 'explosion', x: shot.x, z: shot.z, radius: spec.blastRadius, ownerId: shot.ownerId, hit });
   }
 
   _hurt(amount, source) {
@@ -904,9 +1138,9 @@ export class Game {
 
   _shutterOccupied(control) {
     const actors = [...Object.values(this.state.players || { solo: this.state.player }).filter(player => player.alive !== false && player.health > 0),
-      ...this.state.enemies.filter(enemy => enemy.alive)];
+      ...this.state.enemies.filter(enemy => enemy.alive), ...this.state.projectiles.filter(shot => shot.type === 'grenade' && shot.life > 0)];
     return this._shutterDoors(control).some(door => actors.some(actor => {
-      const radius = actor.type === 'brute' ? .3 : .22;
+      const radius = actor.type === 'grenade' ? .08 : actor.type === 'brute' ? .3 : .22;
       return Math.abs(actor.x - door.x) < .5 + radius && Math.abs(actor.z - door.z) < .5 + radius;
     }));
   }
@@ -920,7 +1154,7 @@ export class Game {
     for (const linked of this.state.interactables.filter(item => item.type === 'shutter-switch')) linked.used = this._shutterDoors(linked).every(door => door.open);
     this._pathTimer = 0;
     this._events.push({ type: 'shutter', id: control.id, doorIds: [...control.doorIds], open, x: control.x, z: control.z,
-      text: open ? 'Freight shutter raised.' : 'Freight shutter lowered.' });
+      text: `${control.label || 'Shutter'} ${open ? 'raised' : 'lowered'}.` });
     return true;
   }
 
@@ -940,6 +1174,8 @@ export class Game {
     p.health = this._maxHealth(p); p.armor = Math.max(50, p.armor);
     p.ammo.pistol = Math.max(60, p.ammo.pistol); p.ammo.shells = Math.max(16, p.ammo.shells);
     p.ammo.cells = p.hasArc ? Math.max(4, p.ammo.cells || 0) : p.ammo.cells || 0;
+    p.ammo.slugs = p.hasRicochet ? Math.max(8, p.ammo.slugs || 0) : p.ammo.slugs || 0;
+    p.ammo.grenades = p.hasGrenade ? Math.max(2, p.ammo.grenades || 0) : p.ammo.grenades || 0;
     this.state.projectiles = []; this.state.effects = [];
   }
 
@@ -976,7 +1212,7 @@ export class Game {
       if (!this.state.power) return { text: 'Shutter control offline — restore power', label: 'OFFLINE', canUse: false };
       const open = this._shutterDoors(o).every(door => door.open);
       if (open && this._shutterOccupied(o)) return { text: 'Shutter path occupied — clear the doorway', label: 'BLOCKED', canUse: false };
-      return { text: `${open ? 'Lower' : 'Raise'} freight shutter ${o.mark || ''}`.trim(), label: open ? 'LOWER' : 'RAISE', canUse: active };
+      return { text: `${open ? 'Lower' : 'Raise'} ${(o.label || `shutter ${o.mark || ''}`).toLowerCase()}`.trim(), label: open ? 'LOWER' : 'RAISE', canUse: active };
     }
     if (o.type === 'transit') {
       if (!o.used) return { text: `Activate ${o.label}`, label: 'LINK', canUse: active };
@@ -1040,12 +1276,12 @@ export class Game {
       this.state.player.armor = Math.max(30, this.state.player.armor);
       this.state.player.ammo.pistol = Math.max(24, this.state.player.ammo.pistol);
       if (this.level.exploration) this._replenishAtStation();
-      this._events.push({ type: 'power' }, { type: 'message', text: this.level.missionId === 'switchyard-15' ? 'Switchyard power restored. The freight shutter and western service loop both lead toward the arc workshop.' : this.level.exploration ? 'Central power restored. Find the industrial cutter in the western foundry.' : this.level.missionId === 'crosslink-11' ? 'Hub power restored. Activate the western and eastern relay consoles.' : this.level.missionId === 'relay-09' ? 'Ring power restored. Activate the western and eastern relay consoles.' : 'Power restored. Airlocks online. Find the security key.' });
-      this._saveCheckpoint(this.level.missionId === 'switchyard-15' ? 'Checkpoint saved in the observation concourse.' : this.level.exploration ? 'Checkpoint saved at the central exchange.' : this.level.missionId === 'crosslink-11' ? 'Checkpoint saved at the power hub.' : 'Checkpoint saved at the generator.');
+      this._events.push({ type: 'power' }, { type: 'message', text: this.level.missionId === 'glasshouse-17' ? 'Conservatory power restored. The Thumper rack is active. Both cultivation wings lead to the northern relays.' : this.level.missionId === 'switchyard-15' ? 'Switchyard power restored. The freight shutter and western service loop both lead toward the arc workshop.' : this.level.exploration ? 'Central power restored. Find the industrial cutter in the western foundry.' : this.level.missionId === 'crosslink-11' ? 'Hub power restored. Activate the western and eastern relay consoles.' : this.level.missionId === 'relay-09' ? 'Ring power restored. Activate the western and eastern relay consoles.' : 'Power restored. Airlocks online. Find the security key.' });
+      this._saveCheckpoint(this.level.missionId === 'glasshouse-17' ? 'Checkpoint saved in the planted atrium.' : this.level.missionId === 'switchyard-15' ? 'Checkpoint saved in the observation concourse.' : this.level.exploration ? 'Checkpoint saved at the central exchange.' : this.level.missionId === 'crosslink-11' ? 'Checkpoint saved at the power hub.' : 'Checkpoint saved at the generator.');
     } else if (o.type === 'relay') {
       o.used = true;
       const progress = this.getMissionProgress();
-      const text = this.level.missionId === 'switchyard-15' ? progress.relaysUsed === progress.relaysTotal ? 'Both galleries linked. The switching-engine chamber is ready to open.' : 'Gallery relay linked. Reconnect the other gallery to release containment.' : progress.relaysUsed === progress.relaysTotal ? this.level.exploration ? 'Both crown relays online. Open reactor containment and defeat its guardian.' : 'Both relays online. The communications vault can now be opened.' : `${o.id === 'relay-west' ? 'Western' : 'Eastern'} relay online. Activate the other relay to unlock ${this.level.exploration ? 'reactor containment' : 'the vault'}.`;
+      const text = this.level.missionId === 'glasshouse-17' ? progress.relaysUsed === progress.relaysTotal ? 'Both cultivation relays linked. Open the propagation chamber.' : 'Cultivation relay linked. Reconnect the other wing to open containment.' : this.level.missionId === 'switchyard-15' ? progress.relaysUsed === progress.relaysTotal ? 'Both galleries linked. The switching-engine chamber is ready to open.' : 'Gallery relay linked. Reconnect the other gallery to release containment.' : progress.relaysUsed === progress.relaysTotal ? this.level.exploration ? 'Both crown relays online. Open reactor containment and defeat its guardian.' : 'Both relays online. The communications vault can now be opened.' : `${o.id === 'relay-west' ? 'Western' : 'Eastern'} relay online. Activate the other relay to unlock ${this.level.exploration ? 'reactor containment' : 'the vault'}.`;
       this._events.push({ type: 'relay', id: o.id, count: progress.relaysUsed, total: progress.relaysTotal, text }, { type: 'message', text });
       this._pathTimer = 0;
       if (progress.relaysUsed === progress.relaysTotal) {
@@ -1071,6 +1307,7 @@ export class Game {
   }
 
   getObjective() {
+    if (this.level.missionId === 'glasshouse-17') return this._getGlasshouseObjective();
     if (this.level.missionId === 'switchyard-15') return this._getSwitchyardObjective();
     if (this.level.exploration) return this._getExplorationObjective();
     const relayMission = this.state.interactables.some(i => i.type === 'relay');
@@ -1093,6 +1330,25 @@ export class Game {
     }
     if (!gate.open) return objective(gate, 'Open the extraction gate', crosslink ? 'Cross the vault to the northern gate. Your key opens the extraction uplink.' : relayMission ? 'Return to the north gallery. Your key opens the uplink gate.' : 'Head south through quarantine. Your key opens the gate.', 'gate');
     return objective(exit, 'Signal extraction', relayMission ? 'Use the terminal in extraction control to transmit your signal.' : 'Use the green terminal at the far end of the extraction bay.', 'extraction');
+  }
+
+  _getGlasshouseObjective() {
+    const find = id => [...this.state.interactables, ...this.state.doors, ...this.state.pickups].find(item => item.id === id);
+    const objective = (target, title, detail, stage, action = 'interact') => ({ title, detail, x: target.x, z: target.z, stage, ...(action ? { action } : {}) });
+    if (this.state.status === 'won') return objective(find('extraction'), 'Glasshouse secured', 'The laboratory lift carries the team clear of the conservatory.', 'complete', null);
+    if (!find('rebound-carbine').collected && !find('arrival').open) return objective(find('rebound-carbine'), 'Explore the ballistics practice bay', 'The western lab holds a Rebound carbine. Its slugs reflect once from solid walls.', 'practice', 'collect');
+    if (!find('arrival').open) return objective(find('arrival'), 'Enter the planted atrium', 'Open the northern lab airlock. The lift behind you needs the guardian key.', 'arrival');
+    if (!this.state.power) return objective(find('aux-power'), 'Restore conservatory power', 'The power console stands on the southwest side of the planted atrium.', 'power');
+    if (!find('thumper').collected) return objective(find('thumper'), 'Recover the Thumper', 'The powered weapon rack on the southeast side of the atrium holds bouncing grenades.', 'armory', 'collect');
+    const relay = this.state.interactables.filter(item => item.type === 'relay' && !item.used).sort((a, b) => distance(a, this.state.player) - distance(b, this.state.player))[0];
+    if (relay) return objective(relay, relay.label, 'Follow either cultivation wing. The northern gallery connects both relays.', 'relays');
+    if (!find('arena-seal').open) return objective(find('arena-seal'), 'Open the propagation chamber', 'Both relays are linked. Open the chamber from the north gallery.', 'containment');
+    const guardian = this.state.enemies.find(enemy => enemy.id === this.level.guardianId);
+    if (guardian.alive) return objective(guardian, 'Defeat the propagation guardian', 'Use the root banks as cover and attack when its reactor opens. Interrupt the supporting mender.', 'guardian', 'fight');
+    if (!this.state.player.key) return objective(find('access-key'), 'Recover the laboratory key', 'Collect the key at the north end of the chamber.', 'key', 'collect');
+    if (!find('return-shortcut').open) return objective(find('return-shortcut'), 'Open the atrium return', 'Follow the central spine south. The key opens a direct route into the familiar atrium.', 'return');
+    if (!find('security').open) return objective(find('security'), 'Return to the laboratory lift', 'Pass through the atrium and arrival lab to the lift gate.', 'gate');
+    return objective(find('extraction'), 'Depart from the Glasshouse', 'Use the laboratory lift terminal to extract.', 'extraction');
   }
 
   _getSwitchyardObjective() {
@@ -1182,6 +1438,7 @@ export class Game {
   _snapshot() {
     return {
       player: copy(this.state.player), enemies: copy(this.state.enemies),
+      projectiles: copy(this.state.projectiles.filter(shot => shot.type === 'grenade')), serial: this._serial,
       pickups: this.state.pickups.map(p => ({ id: p.id, collected: p.collected })),
       doors: this.state.doors.map(d => ({ id: d.id, open: d.open })),
       interactables: this.state.interactables.map(i => ({ id: i.id, used: i.used })),
@@ -1205,6 +1462,9 @@ export class Game {
           : id === 'player' || level.enemies.some(other => other.id === id));
     for (const flag of ['provoked', 'killedByPlayer', 'chargeHit', 'encounterAwake']) if (enemy[flag] !== undefined && typeof enemy[flag] !== 'boolean') return false;
     if (enemy.stunTimer !== undefined && (!finite(enemy.stunTimer, 0, WEAPONS.arc.stun) || base.guardian && enemy.stunTimer !== 0)) return false;
+    if (enemy.shieldPhase !== undefined && (base.type !== 'bulwark' || !['guard', 'windup', 'exposed'].includes(enemy.shieldPhase))) return false;
+    if (enemy.shieldTimer !== undefined && (base.type !== 'bulwark' || !finite(enemy.shieldTimer, 0, 3.4))) return false;
+    if (enemy.healCooldown !== undefined && (base.type !== 'mender' || !finite(enemy.healCooldown, 0, 4.8))) return false;
     for (const timer of ['blinkCooldown', 'phaseTimer', 'attackCooldown']) if (enemy[timer] !== undefined && !finite(enemy[timer], 0, 30)) return false;
     if (enemy.bossPhase !== undefined && (!base.guardian || !['stalk', 'charge-windup', 'charge', 'volley-windup', 'recover'].includes(enemy.bossPhase))) return false;
     if (enemy.bossCycle !== undefined && (!Number.isSafeInteger(enemy.bossCycle) || enemy.bossCycle < 0 || enemy.bossCycle > 1000000)) return false;
@@ -1212,15 +1472,17 @@ export class Game {
     if (enemy.chargeTargetKind !== undefined && enemy.chargeTargetKind !== null && (!base.guardian || !['player', 'enemy'].includes(enemy.chargeTargetKind) || !enemy.chargeTargetId)) return false;
     if (enemy.chargeTargetId !== undefined && enemy.chargeTargetId !== null && (!base.guardian || !validTarget(enemy.chargeTargetId, enemy.chargeTargetKind))) return false;
     const mark = enemy.telegraph;
-    if (mark === undefined || mark === null) return !['charge-windup', 'volley-windup'].includes(enemy.bossPhase);
-    if (!mark || typeof mark !== 'object' || Array.isArray(mark) || !['blink', 'charge', 'volley', 'shot'].includes(mark.kind)) return false;
+    if (mark === undefined || mark === null) return !['charge-windup', 'volley-windup'].includes(enemy.bossPhase) && enemy.shieldPhase !== 'windup';
+    if (!mark || typeof mark !== 'object' || Array.isArray(mark) || !['blink', 'charge', 'volley', 'shot', 'bash', 'heal'].includes(mark.kind)) return false;
     if (mark.kind === 'blink' && base.type !== 'stalker' || mark.kind === 'shot' && base.type !== 'sentry'
+      || mark.kind === 'bash' && (base.type !== 'bulwark' || enemy.shieldPhase !== 'windup') || mark.kind === 'heal' && base.type !== 'mender'
       || ['charge', 'volley'].includes(mark.kind) && !base.guardian) return false;
     for (const [key, bound] of [['x', level.width], ['z', level.height], ['fromX', level.width], ['fromZ', level.height]]) if (!finite(mark[key], 1, bound - 1)) return false;
     if (level.grid[Math.floor(mark.z)][Math.floor(mark.x)] === '#' || !finite(mark.radius, .1, 3)
       || !finite(mark.duration, .1, 3) || !finite(mark.remaining, 0, mark.duration)) return false;
     if (mark.targetKind !== undefined && (!['player', 'enemy'].includes(mark.targetKind) || !mark.targetId)) return false;
     if (mark.targetId !== undefined && !validTarget(mark.targetId, mark.targetKind)) return false;
+    if (mark.kind === 'heal' && (mark.targetKind !== 'enemy' || !level.enemies.some(other => other.id === mark.targetId && other.id !== base.id && !other.guardian && other.type !== 'sentry' && (other.faction || 'infestation') === 'infestation'))) return false;
     return true;
   }
 
@@ -1234,7 +1496,11 @@ export class Game {
     if (level.grid[Math.floor(p.z)][Math.floor(p.x)] === '#') return false;
     if (!p.ammo || !finite(p.ammo.pistol, 0, 10000) || !finite(p.ammo.shells, 0, 10000) || p.ammo.cells !== undefined && !finite(p.ammo.cells, 0, 10000)
       || !Object.hasOwn(WEAPONS, p.weapon) || typeof p.key !== 'boolean' || typeof p.hasShotgun !== 'boolean'
-      || p.hasArc !== undefined && typeof p.hasArc !== 'boolean' || p.weapon === 'shotgun' && !p.hasShotgun || p.weapon === 'arc' && !p.hasArc) return false;
+      || !ownedWeapons(p).includes(p.weapon)) return false;
+    for (const weapon of [WEAPONS.arc, WEAPONS.ricochet, WEAPONS.grenade]) {
+      if (p[weapon.ownershipKey] !== undefined && typeof p[weapon.ownershipKey] !== 'boolean') return false;
+      if (p.ammo[weapon.ammoKey] !== undefined && (!finite(p.ammo[weapon.ammoKey], 0, 10000) || weapon.id !== 'arc' && !Number.isSafeInteger(p.ammo[weapon.ammoKey]))) return false;
+    }
     if (typeof s.power !== 'boolean' || typeof s.secretFound !== 'boolean') return false;
     for (const key of ['time', 'kills', 'shots', 'hits', 'randomState']) if (!finite(s[key], 0, key === 'randomState' ? 4294967295 : 10000000)) return false;
     for (const [key, flag] of [['pickups', 'collected'], ['doors', 'open'], ['interactables', 'used']]) {
@@ -1245,8 +1511,9 @@ export class Game {
     const savedItem = id => s.pickups.find(item => item.id === id);
     const savedFeature = id => s.interactables.find(i => i.id === id);
     if (p.key !== savedItem('access-key').collected || p.hasShotgun !== savedItem('pump-shotgun').collected || s.power !== savedFeature('aux-power').used) return false;
-    if ((p.hasArc === true) !== level.pickups.filter(item => item.type === 'arc').some(item => savedItem(item.id).collected)) return false;
-    if (s.secretFound !== savedFeature('cache-panel').used || s.secretFound !== savedDoor('maintenance').open) return false;
+    for (const weapon of [WEAPONS.arc, WEAPONS.ricochet, WEAPONS.grenade]) if ((p[weapon.ownershipKey] === true) !== level.pickups.filter(item => item.type === weapon.id).some(item => savedItem(item.id).collected)) return false;
+    const cachePanel = savedFeature('cache-panel'), maintenanceDoor = savedDoor('maintenance');
+    if (cachePanel ? s.secretFound !== cachePanel.used || s.secretFound !== maintenanceDoor?.open : s.secretFound) return false;
     const relays = level.interactables.filter(i => i.type === 'relay');
     const relaysReady = relays.every(i => savedFeature(i.id).used);
     const meets = requirement => {
@@ -1296,18 +1563,35 @@ export class Game {
         return !door.open && Math.abs(e.x - geometry.x) < .5 + radius && Math.abs(e.z - geometry.z) < .5 + radius;
       })) return false;
     }
+    if (s.serial !== undefined && (!Number.isSafeInteger(s.serial) || !finite(s.serial, 0, 10000000))) return false;
+    if (s.projectiles !== undefined) {
+      if (!Array.isArray(s.projectiles) || s.projectiles.length > 8 || new Set(s.projectiles.map(shot => shot?.id)).size !== s.projectiles.length) return false;
+      for (const shot of s.projectiles) {
+        if (!shot || typeof shot !== 'object' || !/^grenade-[1-9][0-9]{0,7}$/.test(shot.id) || Number(shot.id.slice(8)) > 10000000 || shot.type !== 'grenade'
+          || shot.ownerId !== 'player' || shot.ownerKind !== 'player' || !p.hasGrenade || !finite(shot.life, .000001, WEAPONS.grenade.fuse)
+          || shot.fuse !== WEAPONS.grenade.fuse || !Number.isInteger(shot.bounces) || !finite(shot.bounces, 0, 4)
+          || !finite(shot.x, 1, level.width - 1) || !finite(shot.z, 1, level.height - 1)
+          || !finite(shot.dx, -WEAPONS.grenade.projectileSpeed, WEAPONS.grenade.projectileSpeed)
+          || !finite(shot.dz, -WEAPONS.grenade.projectileSpeed, WEAPONS.grenade.projectileSpeed)
+          || Math.hypot(shot.dx, shot.dz) > WEAPONS.grenade.projectileSpeed + .000001) return false;
+        const cx = Math.floor(shot.x), cz = Math.floor(shot.z);
+        if (level.grid[cz][cx] === '#' || s.doors.some(door => !door.open && Math.floor(level.doors.find(base => base.id === door.id).x) === cx && Math.floor(level.doors.find(base => base.id === door.id).z) === cz)) return false;
+      }
+    }
     return true;
   }
 
   _stateFromSnapshot(s, level = this.level, difficulty = this._difficulty) {
     const p = s.player;
-    const next = { player: { x: p.x, z: p.z, angle: p.angle, health: p.health, armor: p.armor, ammo: { pistol: Math.floor(p.ammo.pistol), shells: Math.floor(p.ammo.shells), cells: Math.floor(p.ammo.cells || 0) }, weapon: p.weapon, key: p.key, hasShotgun: p.hasShotgun, hasArc: p.hasArc === true } };
+    const next = { player: { x: p.x, z: p.z, angle: p.angle, health: p.health, armor: p.armor,
+      ammo: Object.fromEntries(Object.values(WEAPONS).map(weapon => [weapon.ammoKey, Math.floor(p.ammo[weapon.ammoKey] || 0)])),
+      weapon: p.weapon, key: p.key, hasShotgun: p.hasShotgun, hasArc: p.hasArc === true, hasRicochet: p.hasRicochet === true, hasGrenade: p.hasGrenade === true } };
     if (level.upgradeNames) next.upgrades = copy(s.upgrades);
     if (level.exploration) { next.healthBonus = s.healthBonus; next.player.maxHealth = 100 + s.healthBonus; }
     next.enemies = level.enemies.map(base => {
       const e = s.enemies.find(v => v.id === base.id);
       const encounter = this._encounterDefaults(base);
-      for (const key of ['provoked', 'killedByPlayer', 'telegraph', 'blinkCooldown', 'bossPhase', 'phaseTimer', 'bossCycle', 'chargeAngle', 'chargeHit', 'chargeTargetId', 'chargeTargetKind', 'stunTimer', 'encounterAwake']) {
+      for (const key of ['provoked', 'killedByPlayer', 'telegraph', 'blinkCooldown', 'bossPhase', 'phaseTimer', 'bossCycle', 'chargeAngle', 'chargeHit', 'chargeTargetId', 'chargeTargetKind', 'stunTimer', 'encounterAwake', 'shieldPhase', 'shieldTimer', 'healCooldown']) {
         if (e[key] !== undefined) encounter[key] = copy(e[key]);
       }
       return { ...base, ...encounter, x: e.x, z: e.z, health: e.health, maxHealth: Math.round(base.maxHealth * difficulty.health), alive: e.alive, active: e.active, angle: finite(e.angle, -1000, 1000) ? e.angle : 0, attackCooldown: e.attackCooldown ?? .8, hitTimer: 0 };
@@ -1317,14 +1601,15 @@ export class Game {
     next.interactables = level.interactables.map(base => ({ ...base, used: s.interactables.find(v => v.id === base.id).used }));
     for (const key of ['power', 'secretFound', 'time', 'kills', 'shots', 'hits']) next[key] = s[key];
     next.tutorial = Object.fromEntries(['moved', 'fired', 'interacted', 'weaponSwitched'].map(k => [k, s.tutorial?.[k] === true]));
-    next.effects = []; next.projectiles = []; next.status = 'paused'; next.checkpoint = false;
+    next.effects = []; next.projectiles = copy(s.projectiles || []); next.status = 'paused'; next.checkpoint = false;
     if (next.interactables.find(i => i.type === 'exit').used) next.status = 'won';
     return next;
   }
 
   _resetAfterRestore(s) {
     this._random = s.randomState >>> 0; this._shotCooldown = 0; this._pathTimer = 0; this._distances = null;
-    this._reserveTimer = 0; this._messageCooldown = 0; this._serial = 0;
+    this._reserveTimer = 0; this._messageCooldown = 0;
+    this._serial = Math.max(s.serial || 0, ...((s.projectiles || []).map(shot => Number(shot.id.split('-').at(-1)))));
   }
 
   restore(data) {
@@ -1354,7 +1639,7 @@ export class Game {
   restartCheckpoint() {
     if (!this._checkpoint || !this._validSnapshot(this._checkpoint)) return false;
     this.state = this._stateFromSnapshot(this._checkpoint); this._resetAfterRestore(this._checkpoint); this.state.checkpoint = true;
-    this.state.status = 'playing'; this._events = [{ type: 'message', text: this.level.missionId === 'switchyard-15' ? 'Switchyard checkpoint restored.' : this.level.exploration ? 'Underworks refuge restored. Acquired upgrades and opened routes remain available.' : this.level.missionId === 'crosslink-11' ? 'Crosslink checkpoint restored.' : this.level.missionId === 'relay-09' ? 'Dead Relay checkpoint restored.' : 'Generator checkpoint restored.' }];
+    this.state.status = 'playing'; this._events = [{ type: 'message', text: this.level.missionId === 'glasshouse-17' ? 'Glasshouse checkpoint restored.' : this.level.missionId === 'switchyard-15' ? 'Switchyard checkpoint restored.' : this.level.exploration ? 'Underworks refuge restored. Acquired upgrades and opened routes remain available.' : this.level.missionId === 'crosslink-11' ? 'Crosslink checkpoint restored.' : this.level.missionId === 'relay-09' ? 'Dead Relay checkpoint restored.' : 'Generator checkpoint restored.' }];
     return true;
   }
 }

@@ -1,8 +1,9 @@
-import { Game } from './core.mjs';
+import { Game, MISSIONS } from './core.mjs';
 import { createConnectionStatus } from './coop-status.mjs';
 
 const STEP = 1 / 30;
 const PROTOCOL = 2;
+const SUPPORTED_MISSIONS = MISSIONS.map(mission=>mission.id);
 const STALE_STATE_MS = 1200;
 const RECONNECT_MS = 4500;
 const MAX_BUFFERED_BYTES = 8192;
@@ -69,7 +70,7 @@ export class CoopClient {
     const stateAge=this.lastStateAt===null?null:Math.max(0,this.now()-this.lastStateAt);
     const stalled=this.connected&&(this.networkHold||age>STALE_STATE_MS||this.room?.status==='playing'&&!this.waitingPause&&stateAge>STALE_STATE_MS);
     const quality=this.suspended?'away':!this.connected?this.connectionStatus:stalled?'stalled':this.rtt!==null&&(this.rtt>250||this.jitter>80)?'unstable':'connected';
-    return {quality,rtt:this.rtt===null?null:Math.round(this.rtt),jitter:Math.round(this.jitter),lastReplyMs:age,stateAgeMs:stateAge,canReconnect:!!this.token&&!!this.roomId&&!this.manual,version:'0.6.1'};
+    return {quality,rtt:this.rtt===null?null:Math.round(this.rtt),jitter:Math.round(this.jitter),lastReplyMs:age,stateAgeMs:stateAge,canReconnect:!!this.token&&!!this.roomId&&!this.manual,version:'0.7.0'};
   }
   _reportNetwork(){const status=this.getNetworkStatus();this.statusPanel?.update(status);this.callbacks.onNetwork?.(status);}
   _resetPrediction(){this.pending=[];this.predicted=null;this.lastAuthoritative=null;}
@@ -82,11 +83,11 @@ export class CoopClient {
 
   _readToken(roomId){try{return JSON.parse(this.storage?.getItem(`dfe.breach.room.${roomId}`)||'null');}catch(_){return null;}}
   _storeToken(){try{this.storage?.setItem(`dfe.breach.room.${this.roomId}`,JSON.stringify({token:this.token,selfId:this.selfId,name:this.intent?.name}));}catch(_){}}
-  create({name,mission,difficulty}){this.intent={type:'create',protocol:PROTOCOL,name,mission,difficulty};this.manual=false;this.initialStart=this.now();this._connect(false);}
+  create({name,mission,difficulty}){this.intent={type:'create',protocol:PROTOCOL,supportedMissions:[...SUPPORTED_MISSIONS],name,mission,difficulty};this.manual=false;this.initialStart=this.now();this._connect(false);}
   join({roomId,name}){
     roomId=String(roomId||'').trim().toUpperCase();const saved=this._readToken(roomId);
     this.roomId=roomId;this.token=saved?.token||null;
-    this.intent={type:'join',protocol:PROTOCOL,roomId,name,...(this.token?{token:this.token}:{})};this.manual=false;this.initialStart=this.now();this._connect(false);
+    this.intent={type:'join',protocol:PROTOCOL,supportedMissions:[...SUPPORTED_MISSIONS],roomId,name,...(this.token?{token:this.token}:{})};this.manual=false;this.initialStart=this.now();this._connect(false);
   }
   _connect(retry) {
     if(this.manual||this.suspended||!this.pageVisible)return;
@@ -102,7 +103,7 @@ export class CoopClient {
     this.warmTimer=setTimeout(()=>{if(this.socket===socket&&!this.connected&&!retry)this._emit('onConnection','connecting','Waking the room service. The first connection may take about a minute…');},4500);
     socket.addEventListener('open',()=>{
       if(this.socket!==socket||this.manual||this.suspended)return;this.everOpened=true;
-      const intent=retry?{type:'join',protocol:PROTOCOL,roomId:this.roomId,name:this.intent.name,token:this.token,replace:true}:this.intent;
+      const intent=retry?{type:'join',protocol:PROTOCOL,supportedMissions:[...SUPPORTED_MISSIONS],roomId:this.roomId,name:this.intent.name,token:this.token,replace:true}:this.intent;
       try{socket.send(JSON.stringify(intent));}catch(_){this._connectionLost('Could not send the room handshake.');}
     });
     socket.addEventListener('message',event=>{
@@ -154,6 +155,7 @@ export class CoopClient {
       this._emit('onConnection','connected','Connected');return;
     }
     if(message.type==='room') {
+      if(!this._supportsMission(message.room?.mission))return;
       const previous=this.room?.status;this.room=message.room;this.ownerId=this.room.ownerId;
       if(this.room.status!=='playing') {this.waitingPause=true;this.clearInput();}
       else if(previous!=='playing'||this.awaitingRoom){this.waitingPause=false;this.pending=[];this.lastStateAt=this.now();}
@@ -178,7 +180,13 @@ export class CoopClient {
       this._reportNetwork();
     }
   }
+  _supportsMission(mission) {
+    if(SUPPORTED_MISSIONS.includes(mission))return true;
+    this._failedConnection('This room uses a mission that is not available in this game version. Reload the game, then rejoin the room.');
+    return false;
+  }
   _applySnapshot(message) {
+    if(this.room&&!this._supportsMission(this.room.mission))return;
     if(!this.selfId||!this.room||!message.state?.players?.[this.selfId]||message.tick<this.tick)return;
     this.tick=message.tick;this.lastStateAt=this.now();
     let created=false;
@@ -266,7 +274,7 @@ export class CoopClient {
   ready(value){return this.send({type:'ready',ready:!!value});}
   start(){return this.send({type:'start'});}
   interact(){return this.send({type:'interact'});}
-  weapon(){return this.send({type:'weapon'});}
+  weapon(weapon){return this.send(weapon===undefined?{type:'weapon'}:{type:'weapon',weapon});}
   pause(reason='menu'){this.clearInput();this.waitingPause=true;return this.send({type:'pause',reason});}
   resume(){return this.send({type:'resume'});}
   restart(checkpoint=true){this._resetPrediction();this.lookAngle=null;this.clearInput();return this.send({type:'restart',checkpoint:!!checkpoint});}

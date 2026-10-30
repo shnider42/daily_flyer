@@ -40,7 +40,7 @@ export class BreachAudio {
   }
   events(events, listener = null) {
     for(const event of events) {
-      const encounter = ['enemy-warning','enemy-shot','teleport','provoked','boss-phase','shutter'].includes(event.type);
+      const encounter = ['enemy-warning','enemy-shot','teleport','provoked','boss-phase','shutter','ricochet','explosion','shield-hit','shield-open','heal','heal-interrupt'].includes(event.type);
       const distance = listener && Number.isFinite(event.x) && Number.isFinite(event.z) ? Math.hypot(event.x-listener.x,event.z-listener.z) : 0;
       if(encounter && distance > 14) continue;
       const volume = Math.max(.15, 1-distance/16);
@@ -49,12 +49,23 @@ export class BreachAudio {
           if(event.weapon==='arc') {
             this.noise(.14,.28,3100); this.tone(820,.2,.27,150,'sawtooth');
             this.tone(1240,.12,.12,480,'sine',.035);
+          } else if(event.weapon==='ricochet') {
+            this.noise(.1,.55,2900); this.tone(210,.1,.28,55,'triangle');
+            this.tone(1040,.06,.08,720,'sine',.025);
+          } else if(event.weapon==='grenade') {
+            this.noise(.15,.55,850); this.tone(115,.2,.4,32,'sine');
           } else {
             this.noise(event.weapon === 'shotgun' ? .27 : .13, event.weapon === 'shotgun' ? 1.2 : .65, event.weapon === 'shotgun' ? 2600 : 1800);
             this.tone(event.weapon === 'shotgun' ? 110 : 145, .15, .4, 30, 'triangle');
           }
           break;
         case 'hit': this.tone(170, .06, .13, 75, 'square'); break;
+        case 'ricochet': this.tone(1720,.11,.12*volume,640,'triangle'); this.noise(.06,.08*volume,3600); break;
+        case 'explosion': this.noise(.46,.7*volume,1500); this.tone(75,.48,.45*volume,23,'sine'); break;
+        case 'shield-hit': this.tone(960,.1,.16*volume,350,'sine'); this.noise(.06,.1*volume,2700); break;
+        case 'shield-open': this.noise(.24,.1*volume,650); this.tone(300,.3,.1*volume,75,'triangle'); break;
+        case 'heal': this.tone(480,.24,.08*volume,700,'sine'); this.tone(720,.18,.06*volume,960,'sine',.08); break;
+        case 'heal-interrupt': this.noise(.12,.12*volume,2100); this.tone(690,.16,.08*volume,140,'triangle'); break;
         case 'hurt': this.noise(.18, .4, 400); this.tone(60, .18, .5, 35, 'sine'); break;
         case 'pickup': this.tone(440, .1, .17, 660, 'triangle'); this.tone(880, .13, .1, 880, 'sine', .07); break;
         case 'door': this.noise(.55, .2, 500); this.tone(75, .45, .14, 110, 'sawtooth'); break;
@@ -72,6 +83,8 @@ export class BreachAudio {
           else if(event.kind==='charge') this.tone(65,.7,.16*volume,135,'triangle');
           else if(event.kind==='volley') [165,220,330].forEach((f,i)=>this.tone(f,.13,.11*volume,f,'triangle',i*.16));
           else if(event.kind==='shot') this.tone(540,.16,.06*volume,610,'sine');
+          else if(event.kind==='bash') this.tone(85,.6,.13*volume,180,'triangle');
+          else if(event.kind==='heal') { this.tone(300,.65,.08*volume,600,'sine'); this.tone(450,.65,.05*volume,900,'sine'); }
           break;
         case 'enemy-shot': this.tone(event.faction==='security'?720:190,.12,.11*volume,event.faction==='security'?280:65,'triangle'); break;
         case 'teleport': this.noise(.16,.1*volume,1700); this.tone(760,.22,.12*volume,115,'sine'); break;
