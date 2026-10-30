@@ -30,11 +30,11 @@ sockets.on('connection',downstream=>{
 await new Promise(resolve=>proxy.listen(0,'127.0.0.1',resolve));
 const base=`http://127.0.0.1:${proxy.address().port}`;
 const browser=await chromium.launch({headless:true,args:['--disable-webgl']});
-let guest,stream;const results=[];
+let guest,stream,page,authoritativeRoom,run;const results=[],errors=[];
 async function until(predicate,message,timeout=10000){const end=Date.now()+timeout;while(Date.now()<end){if(predicate())return;await new Promise(r=>setTimeout(r,25));}throw new Error(message);}
 try{
-  const page=await browser.newPage({viewport:{width:1440,height:900}});
-  const errors=[];page.on('pageerror',error=>errors.push(error.message));
+  page=await browser.newPage({viewport:{width:1440,height:900}});
+  page.on('pageerror',error=>errors.push(error.message));
   await page.goto(base+'/?mission=underworks-13');
   await page.getByRole('button',{name:'PLAY WITH A FRIEND'}).click();
   await page.getByLabel('YOUR CALL SIGN').fill('Network QA');
@@ -53,10 +53,22 @@ try{
   stream=setInterval(()=>{if(room?.status==='playing'&&guest.readyState===WebSocket.OPEN)guest.send(JSON.stringify({type:'input',seq:++seq,forward:0,strafe:0,angle:0,fire:false}));},33);
   await page.getByRole('button',{name:'START THE UNDERWORKS'}).click();
   await page.waitForFunction(()=>document.body.dataset.mode==='playing');
-  await page.keyboard.down('a');await page.waitForTimeout(650);await page.keyboard.up('a');
+  authoritativeRoom=app.rooms.rooms.get(roomId);run=authoritativeRoom.game;
+  const transit=run.state.interactables.find(i=>i.id==='transit-arrival');
+  const transitDistance=()=>Math.hypot(run.state.players.p1.x-transit.x,run.state.players.p1.z-transit.z);
+  // Canvas frame timing varies across CI machines. Keep real keyboard input,
+  // but observe the resulting server position instead of guessing its duration.
+  await page.keyboard.down('a');
+  try{await until(()=>transitDistance()<1.25,'keyboard movement must reach the arrival transit');}
+  finally{await page.keyboard.up('a');}
+  await until(()=>authoritativeRoom.players.get('p1').input.strafe===0,'keyboard release must reach the server');
+  assert.ok(transitDistance()<1.65,'the stopped player must remain within interaction reach');
+  await page.waitForFunction(()=>{
+    const action=document.getElementById('interaction');
+    return !action.hidden&&!action.disabled&&action.textContent.includes('Arrival lift transit');
+  });
   await page.keyboard.press('e');
   await until(()=>lastState?.interactables.find(i=>i.id==='transit-arrival')?.used,'initial transit must activate through real input');
-  const authoritativeRoom=app.rooms.rooms.get(roomId),run=authoritativeRoom.game;
   const beforeTime=run.state.time,originalPeer=authoritativeRoom.players.get('p1').peer;
   results.push({check:'two-player start and shared transit activation',passed:true});
   links[0].muted=true;
@@ -96,8 +108,17 @@ try{
   results.push({check:'leave cleans up the room and diagnostics',passed:true});
   await writeFile(`${out}/results.json`,JSON.stringify(results,null,2));
   console.log(JSON.stringify({passed:results.length,results},null,2));
+}catch(error){
+  const player=run?.state.players.p1,slot=authoritativeRoom?.players.get('p1');
+  await writeFile(`${out}/failure.json`,JSON.stringify({error:String(error),pageErrors:errors,
+    roomStatus:authoritativeRoom?.status,pauseReason:authoritativeRoom?.pauseReason,
+    player:player&&{x:player.x,z:player.z,angle:player.angle,alive:player.alive},
+    input:slot?.input,completed:results},null,2));
+  if(page)await page.screenshot({path:`${out}/failure.png`,timeout:5000}).catch(()=>{});
+  throw error;
 }finally{
   clearInterval(stream);guest?.terminate();
   for(const link of links){link.downstream.terminate();link.upstream.terminate();}
   sockets.close();await new Promise(resolve=>proxy.close(resolve));await app.close();await browser.close();
 }
+
