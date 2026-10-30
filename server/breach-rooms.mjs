@@ -52,7 +52,7 @@ export class BreachRooms {
 
   attach(room, player, peer, resumed = false) {
     player.peer = peer; player.disconnectedAt = null; player.ready = false;
-    player.input = { ...NEUTRAL }; player.lastInputAt = 0; player.seq = -1; player.ack = -1;
+    player.input = { ...NEUTRAL }; player.pendingFireAt = null; player.lastInputAt = 0; player.seq = -1; player.ack = -1;
     peer.roomId = room.id; peer.playerId = player.id;
     peer.send({ type: 'welcome', protocol: PROTOCOL, roomId: room.id, selfId: player.id, ownerId: room.ownerId, token: player.token, resumed });
     if (resumed && room.status === 'paused') {
@@ -79,7 +79,7 @@ export class BreachRooms {
   }
 
   newPlayer(id, name) {
-    return { id, name, token: randomBytes(24).toString('base64url'), peer: null, ready: false, disconnectedAt: null, input: { ...NEUTRAL }, seq: -1, ack: -1, lastInputAt: 0, lastActionAt: -Infinity };
+    return { id, name, token: randomBytes(24).toString('base64url'), peer: null, ready: false, disconnectedAt: null, input: { ...NEUTRAL }, pendingFireAt: null, seq: -1, ack: -1, lastInputAt: 0, lastActionAt: -Infinity };
   }
 
   join(peer, message) {
@@ -179,9 +179,12 @@ export class BreachRooms {
     if (![message.forward, message.strafe, message.angle].every(Number.isFinite) || Math.abs(message.angle) > 1e6 || typeof message.fire !== 'boolean') return;
     player.seq = message.seq; player.lastInputAt = this.now();
     player.input = { forward: clamp(message.forward, -1, 1), strafe: clamp(message.strafe, -1, 1), angle: message.angle, fire: message.fire, aimAssist: message.aimAssist !== false };
+    // A tap and its release may both arrive between fixed simulation steps.
+    // Keep one fresh pulse until the next step without extending held fire.
+    if (message.fire) player.pendingFireAt = player.lastInputAt;
   }
 
-  clearInputs(room) { for (const p of room.players.values()) { p.input = { ...NEUTRAL }; p.lastInputAt = this.now(); } }
+  clearInputs(room) { for (const p of room.players.values()) { p.input = { ...NEUTRAL }; p.pendingFireAt = null; p.lastInputAt = this.now(); } }
 
   pause(room, reason) {
     if (room.status !== 'playing' && room.status !== 'paused') return;
@@ -193,7 +196,7 @@ export class BreachRooms {
   disconnect(peer) {
     const room = this.rooms.get(peer.roomId), player = room?.players.get(peer.playerId);
     if (!player || player.peer !== peer) return;
-    player.peer = null; player.disconnectedAt = this.now(); player.ready = false; player.input = { ...NEUTRAL }; room.lastActivity = this.now();
+    player.peer = null; player.disconnectedAt = this.now(); player.ready = false; player.input = { ...NEUTRAL }; player.pendingFireAt = null; room.lastActivity = this.now();
     peer.roomId = null; peer.playerId = null;
     if (['playing', 'paused'].includes(room.status)) this.pause(room, `${player.name} disconnected. Their place is reserved for 60 seconds.`);
     else this.publishRoom(room);
@@ -219,7 +222,10 @@ export class BreachRooms {
       if (stalled) { this.pause(room, `${stalled.name}'s connection stopped sending controls. Both players must resume when the connection returns.`); continue; }
       const inputs = {};
       for (const p of room.players.values()) {
-        inputs[p.id] = p.peer && now - p.lastInputAt <= 300 ? p.input : NEUTRAL;
+        inputs[p.id] = p.peer && now - p.lastInputAt <= 300
+          ? { ...p.input, fire: p.input.fire || p.pendingFireAt !== null && now - p.pendingFireAt <= 300 }
+          : NEUTRAL;
+        p.pendingFireAt = null;
         p.ack = p.seq;
       }
       room.game.update(dt, inputs); room.tick++; this.syncStatus(room);

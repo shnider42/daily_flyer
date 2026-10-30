@@ -134,6 +134,9 @@ Room status is `lobby`, `playing`, `paused`, `dead`, or `won`. State status uses
 the existing core values. Initial join sends the current full state. Simulation
 is fixed at 30 Hz; snapshots at 10 Hz with per-message compression. Inputs expire
 after 300 ms. Client sends a regular held-input stream, independent of change.
+An accepted fire pulse survives a later release packet until the next simulation
+step, where it is consumed once. The pulse expires after 300 ms independently of
+fresh movement packets, and pause, restart or reconnection clears it.
 Room pauses deliberately when either player pauses, backgrounds, or disconnects;
 an input-stream stall of 1.5 seconds also pauses the room. Both connected players
 must Resume. Disconnects reserve the slot for 60 seconds.

@@ -148,6 +148,10 @@ try {
   assert.ok(host().ammo.grenades>0&&partner().ammo.grenades>0);
   results.push({check:'real traversal acquires both new weapons for both players and restores power/checkpoint',passed:true});
 
+  // Return through the real floor route before firing. This keeps the inventory
+  // and network checks separate from the northern atrium's live enemies.
+  await walk({x:12.5,z:48.5});
+
   await equip('ricochet'); send({type:'weapon',weapon:'grenade'});
   await until(()=>partner().weapon==='grenade','teammate selects Thumper directly');
   assert.equal(host().weapon,'ricochet');
@@ -191,7 +195,9 @@ try {
   await writeFile(`${out}/results.json`,JSON.stringify({passed:results.length,results},null,2));
   console.log(JSON.stringify({passed:results.length,results},null,2));
 } catch(error) {
-  await writeFile(`${out}/failure.json`,JSON.stringify({error:String(error),errors,completed:results,room:room&&{status:room.status,pauseReason:room.pauseReason},host:run?.state.players.p1,guest:run?.state.players.p2,guestErrors:guestPackets.filter(p=>p.type==='error')},null,2));
+  const failure={error:String(error),errors,completed:results,room:room&&{status:room.status,pauseReason:room.pauseReason},host:run?.state.players.p1,guest:run?.state.players.p2,guestErrors:guestPackets.filter(p=>p.type==='error')};
+  await writeFile(`${out}/failure.json`,JSON.stringify(failure,null,2));
+  console.error(JSON.stringify(failure,null,2));
   await page.screenshot({path:`${out}/failure.png`,timeout:5000}).catch(()=>{});
   throw error;
 } finally {

@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { BreachRooms, PROTOCOL } from '../server/breach-rooms.mjs';
+import { CoopGame } from '../daily_flyer/themes/breach_assets/coop-core.mjs';
 
 // Record the simulation boundary rather than duplicating its combat rules. The
 // real simulation is exercised in breach-coop and the WebSocket integration tests.
@@ -139,6 +140,39 @@ test('invalid numeric inputs and replayed sequences cannot replace accepted cont
   assert.equal(f.room.players.get('p1').seq, 10);
   const actual = f.room.game.updates[0].inputs.p1;
   assert.equal(actual.forward, .5); assert.equal(actual.strafe, -.5); assert.equal(actual.angle, 1); assert.equal(actual.fire, false);
+});
+
+test('a phone fire tap followed by release before a server tick still fires exactly one round', () => {
+  const f = setup({ GameClass: CoopGame }); start(f);
+  const ammo = f.room.game.state.players.p1.ammo.pistol;
+  const input = { type: 'input', forward: 0, strafe: 0, angle: 0 };
+  f.rooms.handle(f.host, { ...input, seq: 1, fire: true });
+  f.rooms.handle(f.host, { ...input, seq: 2, fire: false });
+  f.rooms.step();
+  assert.equal(f.room.game.state.players.p1.ammo.pistol, ammo - 1);
+  for (let i = 0; i < 15; i++) f.rooms.step();
+  assert.equal(f.room.game.state.players.p1.ammo.pistol, ammo - 1, 'release cannot turn one tap into held fire');
+});
+
+test('queued taps reject replays, expire independently of fresh look packets, and clear on pause or reconnect', () => {
+  const f = setup(); start(f);
+  const input = { type: 'input', forward: 0, strafe: 0, angle: 0 };
+  f.rooms.handle(f.host, { ...input, seq: 2, fire: false });
+  f.rooms.handle(f.host, { ...input, seq: 1, fire: true });
+  f.rooms.step(); assert.equal(f.room.game.updates.at(-1).inputs.p1.fire, false);
+  f.rooms.handle(f.host, { ...input, seq: 3, fire: true });
+  f.advance(301);
+  f.rooms.handle(f.host, { ...input, seq: 4, fire: false });
+  f.rooms.step(); assert.equal(f.room.game.updates.at(-1).inputs.p1.fire, false, 'fresh look cannot revive an expired shot');
+  f.rooms.handle(f.host, { ...input, seq: 5, fire: true });
+  f.rooms.handle(f.host, { type: 'pause' });
+  f.rooms.handle(f.host, { type: 'resume' }); f.rooms.handle(f.guest, { type: 'resume' });
+  f.rooms.step(); assert.equal(f.room.game.updates.at(-1).inputs.p1.fire, false);
+  f.rooms.handle(f.host, { ...input, seq: 6, fire: true });
+  const pass = last(f.host, 'welcome'), returned = peer();
+  f.rooms.handle(returned, request('join', { roomId: pass.roomId, token: pass.token, replace: true }));
+  f.rooms.handle(returned, { type: 'resume' }); f.rooms.handle(f.guest, { type: 'resume' });
+  f.rooms.step(); assert.equal(f.room.game.updates.at(-1).inputs.p1.fire, false);
 });
 
 test('Glasshouse rooms start a shared mission with the requested team and difficulty', () => {

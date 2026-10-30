@@ -1,4 +1,4 @@
-# BREACH 0.7.0 — The Glasshouse
+# BREACH 0.7 — The Glasshouse
 
 The sixth operation adds an overgrown conservatory, two weapons and two enemy
 types. The entire map is available solo or in a private two-player room. Existing
@@ -114,10 +114,15 @@ movement and a stationary tap as a deliberate shot on release.
 
 ## Validation
 
-Local validation passed 178 focused JavaScript checks and all three Python export
+Local validation passed 180 focused JavaScript checks and all three Python export
 checks. The actual Canvas scene and phone HUD were inspected in the cloud browser,
 including all five guns at 428×926, 926×428 and a 320×568 screen with Large controls.
 Networked browser and published-service checks run in the release workflows.
+
+The 0.7.1 follow-up preserves a quick co-op fire tap when its press and release
+packets arrive before the same server tick. That pulse is consumed once, expires
+after 300 ms, and clears on pause, restart or reconnection. A real room simulation
+regression verifies one round is fired rather than silently dropping the tap.
 
 Run the focused simulation, room, client, renderer and export suites with:
 
