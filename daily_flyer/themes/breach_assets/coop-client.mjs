@@ -1,7 +1,12 @@
 import { Game } from './core.mjs';
+import { createConnectionStatus } from './coop-status.mjs';
 
 const STEP = 1 / 30;
 const PROTOCOL = 2;
+const STALE_STATE_MS = 1200;
+const RECONNECT_MS = 4500;
+const MAX_BUFFERED_BYTES = 8192;
+const PREDICTION_SECONDS = 1.5;
 const clamp = (n,a,b) => Math.max(a,Math.min(b,n));
 const copy = value => JSON.parse(JSON.stringify(value));
 const angleDelta = (a,b) => Math.atan2(Math.sin(a-b),Math.cos(a-b));
@@ -37,8 +42,8 @@ export function personalEvents(events, selfId) {
 }
 
 export class CoopClient {
-  constructor({base,origin=globalThis.location?.origin,callbacks={},Socket=globalThis.WebSocket,storage}={}) {
-    this.url=websocketURL(base,origin);this.callbacks=callbacks;this.Socket=Socket;
+  constructor({base,origin=globalThis.location?.origin,callbacks={},Socket=globalThis.WebSocket,storage,now=Date.now,statusUI=true}={}) {
+    this.url=websocketURL(base,origin);this.callbacks=callbacks;this.Socket=Socket;this.now=now;
     try{this.storage=storage===undefined?globalThis.sessionStorage:storage;}catch(_){this.storage=null;}
     this.socket=null;this.room=null;this.selfId=null;this.ownerId=null;this.roomId=null;this.token=null;
     this.view=null;this.seq=0;this.pending=[];this.lookAngle=null;this.predicted=null;this.remoteTargets={};
@@ -47,86 +52,148 @@ export class CoopClient {
     this.tick=-1;this.intent=null;this.error=null;this._lag=0;this.aimAssist=true;
     this.initialStart=0;this.everOpened=false;this.awaitingRoom=false;
     this.suspended=false;this.pageVisible=true;
+    this.lastReceivedAt=null;this.lastStateAt=null;this.lastAuthoritative=null;
+    this.rtt=null;this.jitter=0;this.lastRtt=null;this.pingSentAt=null;this.networkHold=false;
+    this.watchTimer=null;this.connectTimer=null;this.warmTimer=null;this.connectionStatus='idle';
+    this.statusPanel=statusUI?createConnectionStatus(()=>this.reconnect()):null;
+    this.onlineHandler=()=>{if(this.token&&this.roomId&&(!this.connected||this.lastReceivedAt!==null&&this.now()-this.lastReceivedAt>STALE_STATE_MS))this.reconnect();};
+    globalThis.addEventListener?.('online',this.onlineHandler);
   }
-  _emit(name,...args){this.callbacks[name]?.(...args);}
+  _emit(name,...args){
+    if(name==='onConnection')this.connectionStatus=args[0];
+    this.callbacks[name]?.(...args);
+    if(name==='onConnection'||name==='onRoom')this._reportNetwork();
+  }
+  getNetworkStatus(){
+    const age=this.lastReceivedAt===null?null:Math.max(0,this.now()-this.lastReceivedAt);
+    const stateAge=this.lastStateAt===null?null:Math.max(0,this.now()-this.lastStateAt);
+    const stalled=this.connected&&(this.networkHold||age>STALE_STATE_MS||this.room?.status==='playing'&&!this.waitingPause&&stateAge>STALE_STATE_MS);
+    const quality=this.suspended?'away':!this.connected?this.connectionStatus:stalled?'stalled':this.rtt!==null&&(this.rtt>250||this.jitter>80)?'unstable':'connected';
+    return {quality,rtt:this.rtt===null?null:Math.round(this.rtt),jitter:Math.round(this.jitter),lastReplyMs:age,stateAgeMs:stateAge,canReconnect:!!this.token&&!!this.roomId&&!this.manual,version:'0.4.1'};
+  }
+  _reportNetwork(){const status=this.getNetworkStatus();this.statusPanel?.update(status);this.callbacks.onNetwork?.(status);}
+  _resetPrediction(){this.pending=[];this.predicted=null;this.lastAuthoritative=null;}
+  _clearConnectTimers(){clearTimeout(this.connectTimer);clearTimeout(this.warmTimer);this.connectTimer=this.warmTimer=null;}
+  _releaseSocket(reason){
+    this._clearConnectTimers();this._stopStream();const socket=this.socket;this.socket=null;
+    try{socket?.close(1000,reason);}catch(_){}
+  }
+  _disposeStatus(){this.statusPanel?.dispose();this.statusPanel=null;globalThis.removeEventListener?.('online',this.onlineHandler);}
+
   _readToken(roomId){try{return JSON.parse(this.storage?.getItem(`dfe.breach.room.${roomId}`)||'null');}catch(_){return null;}}
   _storeToken(){try{this.storage?.setItem(`dfe.breach.room.${this.roomId}`,JSON.stringify({token:this.token,selfId:this.selfId,name:this.intent?.name}));}catch(_){}}
-  create({name,mission,difficulty}){this.intent={type:'create',protocol:PROTOCOL,name,mission,difficulty};this.manual=false;this.initialStart=Date.now();this._connect(false);}
+  create({name,mission,difficulty}){this.intent={type:'create',protocol:PROTOCOL,name,mission,difficulty};this.manual=false;this.initialStart=this.now();this._connect(false);}
   join({roomId,name}){
     roomId=String(roomId||'').trim().toUpperCase();const saved=this._readToken(roomId);
     this.roomId=roomId;this.token=saved?.token||null;
-    this.intent={type:'join',protocol:PROTOCOL,roomId,name,...(this.token?{token:this.token}:{})};this.manual=false;this.initialStart=Date.now();this._connect(false);
+    this.intent={type:'join',protocol:PROTOCOL,roomId,name,...(this.token?{token:this.token}:{})};this.manual=false;this.initialStart=this.now();this._connect(false);
   }
   _connect(retry) {
     if(this.manual||this.suspended||!this.pageVisible)return;
-    this._emit('onConnection',retry?'reconnecting':'connecting',retry?'Reconnecting to your room…':'Connecting to the room service…');
-    this.connected=false;this.waitingPause=true;this.awaitingRoom=true;this.pending=[];this.tick=-1;
+    clearTimeout(this.retryTimer);this.retryTimer=null;this._releaseSocket('Replacing transport');
+    this.connected=false;this.waitingPause=true;this.awaitingRoom=true;this._resetPrediction();this.tick=-1;
+    this.networkHold=false;this.lastReceivedAt=this.lastStateAt=null;
+    this._emit('onConnection',retry?'reconnecting':'connecting',retry?'Reconnecting to the same room…':'Connecting to the room service…');
     let socket;
     try{socket=new this.Socket(this.url);}catch(error){this._failedConnection(error.message);return;}
     this.socket=socket;
-    const timeout=setTimeout(()=>{if(socket.readyState!==1)socket.close();},retry?12000:95000);
-    const warming=setTimeout(()=>{if(this.socket===socket&&!this.connected&&!retry)this._emit('onConnection','connecting','Waking the room service. The first connection may take about a minute…');},4500);
+    // The handshake is not complete just because TCP opened. A welcome is required.
+    this.connectTimer=setTimeout(()=>{if(this.socket===socket&&!this.connected)this._connectionLost('The room handshake timed out.');},retry?12000:95000);
+    this.warmTimer=setTimeout(()=>{if(this.socket===socket&&!this.connected&&!retry)this._emit('onConnection','connecting','Waking the room service. The first connection may take about a minute…');},4500);
     socket.addEventListener('open',()=>{
-      clearTimeout(timeout);if(this.socket!==socket||this.manual||this.suspended)return;this.everOpened=true;
-      const intent=retry?{type:'join',protocol:PROTOCOL,roomId:this.roomId,name:this.intent.name,token:this.token}:this.intent;
-      socket.send(JSON.stringify(intent));
+      if(this.socket!==socket||this.manual||this.suspended)return;this.everOpened=true;
+      const intent=retry?{type:'join',protocol:PROTOCOL,roomId:this.roomId,name:this.intent.name,token:this.token,replace:true}:this.intent;
+      try{socket.send(JSON.stringify(intent));}catch(_){this._connectionLost('Could not send the room handshake.');}
     });
     socket.addEventListener('message',event=>{
       if(this.socket!==socket||this.manual||this.suspended)return;
       let message;try{message=JSON.parse(event.data);}catch(_){return;}
-      this._message(message);
+      if(!message||typeof message!=='object'||!['welcome','room','state','error','closed','pong'].includes(message.type))return;
+      this.lastReceivedAt=this.now();this._message(message);
     });
-    socket.addEventListener('error',()=>{this.error='Unable to reach the room service. Please try again.';});
-    socket.addEventListener('close',()=>{
-      clearTimeout(timeout);clearTimeout(warming);if(this.socket!==socket)return;
-      this.connected=false;this._stopStream();this.clearInput();
-      if(this.manual||this.suspended)return;
-      if(this.token&&this.roomId)this._scheduleReconnect();
-      else if(!this.everOpened&&Date.now()-this.initialStart<90000){
-        this._emit('onConnection','connecting','Waking the room service. The first connection may take about a minute…');
-        if(this.pageVisible)this.retryTimer=setTimeout(()=>this._connect(false),3000);
-      }else this._failedConnection(this.error||'The connection closed before the room was ready. Try again.');
-    });
+    socket.addEventListener('error',()=>{if(this.socket===socket)this.error='Unable to reach the room service. Please try again.';});
+    socket.addEventListener('close',()=>{if(this.socket===socket)this._connectionLost(this.error||'Connection interrupted.');});
+  }
+  _connectionLost(message){
+    this.connected=false;this.waitingPause=true;this.clearInput();this._resetPrediction();this._releaseSocket('Connection interrupted');
+    if(this.manual||this.suspended)return;
+    if(this.token&&this.roomId)this._scheduleReconnect();
+    else if(!this.everOpened&&this.now()-this.initialStart<90000){
+      this._emit('onConnection','connecting','Waking the room service. The first connection may take about a minute…');
+      if(this.pageVisible)this.retryTimer=setTimeout(()=>this._connect(false),3000);
+    }else this._failedConnection(message);
+  }
+  reconnect(){
+    if(this.manual||!this.token||!this.roomId)return false;
+    // Never send Leave: that destroys the shared run. An authenticated replacement
+    // invalidates the old transport before queued commands can reach this slot.
+    this.send({type:'pause',reason:'network'});this.clearInput();this.waitingPause=true;
+    this.connected=false;this._resetPrediction();this._releaseSocket('Reconnect requested');
+    this._emit('onConnection','reconnecting','Rejoining the same room. Mission progress is held.');
+    if(!this.reconnectStart)this.reconnectStart=this.now();
+    if(this.pageVisible&&!this.suspended)this._connect(true);
+    return true;
+  }
+  _watchConnection(){
+    if(!this.connected||!this.pageVisible||this.suspended||this.manual)return;
+    const now=this.now(),replyAge=now-(this.lastReceivedAt??now);
+    const stateAge=now-(this.lastStateAt??this.lastReceivedAt??now);
+    if(replyAge>=RECONNECT_MS||this.room?.status==='playing'&&stateAge>=RECONNECT_MS){this.reconnect();return;}
+    if(!this.networkHold&&(replyAge>=STALE_STATE_MS||this.room?.status==='playing'&&!this.waitingPause&&stateAge>=STALE_STATE_MS)){
+      this.networkHold=true;this.waitingPause=true;this.clearInput();this.pending=[];
+      this.send({type:'pause',reason:'network'});
+      this._emit('onConnection','reconnecting','Server updates stalled. Holding the team while the connection recovers.');
+    }
+    this._reportNetwork();
   }
   _message(message) {
     if(message.type==='welcome') {
       if(message.protocol!==PROTOCOL){this._closed('This room needs a newer game version. Reload and try again.');return;}
       this.roomId=message.roomId;this.selfId=message.selfId;this.ownerId=message.ownerId;this.token=message.token;
-      this.connected=true;this.retryCount=0;this.reconnectStart=0;this.error=null;this._storeToken();this._startStream();
+      this.connected=true;this.retryCount=0;this.reconnectStart=0;this.error=null;this.networkHold=false;this.lastReceivedAt=this.now();this._clearConnectTimers();this._storeToken();this._startStream();
       this._emit('onConnection','connected','Connected');return;
     }
     if(message.type==='room') {
       const previous=this.room?.status;this.room=message.room;this.ownerId=this.room.ownerId;
       if(this.room.status!=='playing') {this.waitingPause=true;this.clearInput();}
-      else if(previous!=='playing'||this.awaitingRoom){this.waitingPause=false;this.pending=[];}
-      this.awaitingRoom=false;this._emit('onRoom',this.room);return;
+      else if(previous!=='playing'||this.awaitingRoom){this.waitingPause=false;this.pending=[];this.lastStateAt=this.now();}
+      this.awaitingRoom=false;if(this.networkHold&&this.room.status!=='playing'){this.networkHold=false;this._emit('onConnection','connected','Connection restored. Both players must resume.');}this._emit('onRoom',this.room);return;
     }
     if(message.type==='state') {this._applySnapshot(message);return;}
     if(message.type==='error') {
       this.error=message.message||'The room could not complete that action.';
       const terminal=['ROOM_NOT_FOUND','INVALID_TOKEN','ROOM_FULL','ROOM_CAPACITY','EXPIRED','VERSION_MISMATCH','PROTOCOL_MISMATCH'].includes(message.code);
-      if(message.code==='ALREADY_CONNECTED'&&this.token){this.socket?.close();return;}
+      if(message.code==='ALREADY_CONNECTED'&&this.token){this._connectionLost('The old connection is still closing. Retrying…');return;}
       this._emit('onError',this.error,message.code);
       if(terminal){try{this.storage?.removeItem(`dfe.breach.room.${this.roomId}`);}catch(_){}}
-      if(terminal||!this.selfId){this.manual=true;this.connected=false;this._stopStream();this.socket?.close();this._emit('onConnection','error',this.error);}
+      if(terminal||!this.selfId){this.manual=true;this.connected=false;this._releaseSocket('Room request rejected');this._disposeStatus();this._emit('onConnection','error',this.error);}
       return;
     }
     if(message.type==='closed'){this._closed(message.message||'This room has ended. Create a new room to play again.');return;}
-    if(message.type==='pong')this._lag=Math.max(0,Date.now()-Number(message.sentAt));
+    if(message.type==='pong'&&Number.isFinite(message.sentAt)&&message.sentAt===this.pingSentAt){
+      const sample=Math.max(0,this.now()-message.sentAt);this._lag=sample;
+      if(this.lastRtt!==null)this.jitter=this.jitter*.75+Math.abs(sample-this.lastRtt)*.25;
+      this.rtt=this.rtt===null?sample:this.rtt*.75+sample*.25;this.lastRtt=sample;this.pingSentAt=null;
+      if(this.networkHold&&this.room?.status!=='playing'){this.networkHold=false;this._emit('onConnection','connected','Connection restored. Both players must resume.');}
+      this._reportNetwork();
+    }
   }
   _applySnapshot(message) {
     if(!this.selfId||!this.room||!message.state?.players?.[this.selfId]||message.tick<this.tick)return;
-    this.tick=message.tick;
+    this.tick=message.tick;this.lastStateAt=this.now();
     let created=false;
     if(!this.view||this.view.level.missionId!==this.room.mission) {
       this.view=new Game({mission:this.room.mission,difficulty:this.room.difficulty});created=true;this.lookAngle=null;this.pending=[];
     }
     const state=copy(message.state),local=state.players[this.selfId],previous=this.view.state;
     const wasAlive=previous.players?.[this.selfId]?.alive;
-    const teleported=this.predicted&&Math.hypot(local.x-this.predicted.x,local.z-this.predicted.z)>2;
+    const previousAuthority=this.lastAuthoritative;
+    const elapsed=previousAuthority?Math.max(0,state.time-previousAuthority.time):0;
+    const teleported=!!previousAuthority&&(state.time<previousAuthority.time||Math.hypot(local.x-previousAuthority.x,local.z-previousAuthority.z)>3.35*elapsed+1);
+    this.lastAuthoritative={x:local.x,z:local.z,time:state.time};
     if(this.lookAngle===null||teleported||wasAlive===false&&local.alive!==false)this.lookAngle=local.angle;
     const ack=Number(message.ackByPlayer?.[this.selfId]??-1);
-    this.pending=this.pending.filter(entry=>entry.seq>ack).slice(-36);
+    this.pending=this.pending.filter(entry=>entry.seq>ack);this._trimPrediction();
     if(state.status!=='playing'||local.alive===false||teleported)this.pending=[];
     const predicted={...local};
     for(const entry of this.pending)predictMovement(predicted,entry.input,entry.dt,this.view.level,state.doors);
@@ -143,18 +210,36 @@ export class CoopClient {
   }
   _startStream(){
     this._stopStream();
-    this.timer=setInterval(()=>{
-      if(!this.connected||!this.view||this.room?.status!=='playing'||this.waitingPause)return;
-      const local=this.view.state.player,alive=local.alive!==false&&local.health>0;
-      this.seq++;
-      this.send({type:'input',seq:this.seq,forward:alive?this.held.forward:0,strafe:alive?this.held.strafe:0,angle:this.lookAngle??local.angle,fire:alive&&(this.held.fire||this.firePulse),aimAssist:!!this.aimAssist});
-      this.firePulse=false;
-    },STEP*1000);
-    this.pingTimer=setInterval(()=>this.send({type:'ping',sentAt:Date.now()}),5000);
+    this.timer=setInterval(()=>this._flushInput(),STEP*1000);
+    this.pingTimer=setInterval(()=>this._ping(),1000);
+    this.watchTimer=setInterval(()=>this._watchConnection(),250);
+    this._ping();
   }
-  _stopStream(){clearInterval(this.timer);clearInterval(this.pingTimer);this.timer=this.pingTimer=null;}
+  _ping(){
+    if(!this.connected||!this.pageVisible||this.suspended)return;
+    // One outstanding sample prevents a delayed pong from being mistaken for a
+    // reply to a newer ping, and permits meaningful high-latency measurements.
+    if(this.pingSentAt!==null&&this.now()-this.pingSentAt<3000)return;
+    this.pingSentAt=this.now();this.send({type:'ping',sentAt:this.pingSentAt});
+  }
+  _flushInput(){
+    if(!this.connected||!this.view||this.room?.status!=='playing'||this.waitingPause||!this.pageVisible||this.suspended)return;
+    const local=this.view.state.player,alive=local.alive!==false&&local.health>0;
+    const next=this.seq+1;
+    if(this.send({type:'input',seq:next,forward:alive?this.held.forward:0,strafe:alive?this.held.strafe:0,angle:this.lookAngle??local.angle,fire:alive&&(this.held.fire||this.firePulse),aimAssist:!!this.aimAssist})){
+      this.seq=next;this.firePulse=false;
+    }
+  }
+  _stopStream(){clearInterval(this.timer);clearInterval(this.pingTimer);clearInterval(this.watchTimer);this.timer=this.pingTimer=this.watchTimer=null;this.pingSentAt=null;}
+  _trimPrediction(){
+    let seconds=this.pending.reduce((sum,entry)=>sum+entry.dt,0);
+    // Bound by elapsed simulated time, not render frames: 240 Hz must retain the
+    // same latency window as 30 Hz. The count cap is only a pathological guard.
+    while(this.pending.length&&(seconds>PREDICTION_SECONDS+1e-8||this.pending.length>1024))seconds-=this.pending.shift().dt;
+  }
   drive(dt,input) {
     if(!this.view)return;
+    dt=clamp(Number.isFinite(dt)?dt:0,0,.05);
     const state=this.view.state,local=state.player;
     const active=this.connected&&!this.waitingPause&&this.room?.status==='playing'&&local.alive!==false&&local.health>0;
     if(active) {
@@ -163,7 +248,7 @@ export class CoopClient {
       if(input.fire)this.firePulse=true;
       const command={forward:this.held.forward,strafe:this.held.strafe,angle:this.lookAngle};
       predictMovement(local,command,dt,this.view.level,state.doors);this.predicted={x:local.x,z:local.z};
-      this.pending.push({seq:this.seq+1,dt:clamp(dt,0,.05),input:command});if(this.pending.length>36)this.pending.shift();
+      this.pending.push({seq:this.seq+1,dt:clamp(dt,0,.05),input:command});this._trimPrediction();
     } else this.clearInput();
     for(const[id,target]of Object.entries(this.remoteTargets)) {
       const remote=state.players?.[id];if(!remote||remote.alive===false)continue;
@@ -171,27 +256,33 @@ export class CoopClient {
     }
   }
   clearInput(){this.held.forward=this.held.strafe=0;this.held.fire=false;this.firePulse=false;}
-  send(message){try{if(this.socket?.readyState===1){this.socket.send(JSON.stringify(message));return true;}}catch(_){}return false;}
+  send(message){
+    try{if(this.socket?.readyState===1){
+      if(message.type==='input'&&this.socket.bufferedAmount>MAX_BUFFERED_BYTES)return false;
+      this.socket.send(JSON.stringify(message));return true;
+    }}catch(_){}
+    return false;
+  }
   ready(value){return this.send({type:'ready',ready:!!value});}
   start(){return this.send({type:'start'});}
   interact(){return this.send({type:'interact'});}
   weapon(){return this.send({type:'weapon'});}
   pause(reason='menu'){this.clearInput();this.waitingPause=true;return this.send({type:'pause',reason});}
   resume(){return this.send({type:'resume'});}
-  restart(checkpoint=true){this.pending=[];this.lookAngle=null;this.predicted=null;this.clearInput();return this.send({type:'restart',checkpoint:!!checkpoint});}
+  restart(checkpoint=true){this._resetPrediction();this.lookAngle=null;this.clearInput();return this.send({type:'restart',checkpoint:!!checkpoint});}
   // A cached page must release its socket without sending Leave or deleting its pass.
   suspend() {
     this.suspended=true;this.pageVisible=false;this.connected=false;this.waitingPause=true;
     this.clearInput();this.pending=[];this._stopStream();clearTimeout(this.retryTimer);this.retryTimer=null;
-    const socket=this.socket;this.socket=null;
-    try{socket?.close(1000,'Page suspended');}catch(_){}
+    this._resetPrediction();this._releaseSocket('Page suspended');
     this._emit('onConnection','suspended','Room paused while this page is away.');
   }
   setPageVisible(visible) {
     this.pageVisible=!!visible;
     if(!this.pageVisible){clearTimeout(this.retryTimer);this.retryTimer=null;return;}
     if(this.suspended){this.resumeConnection();return;}
-    if(this.manual||this.connected||this.socket&&this.socket.readyState<2)return;
+    if(this.connected){this._watchConnection();return;}
+    if(this.manual||this.socket&&this.socket.readyState<2)return;
     clearTimeout(this.retryTimer);this.retryTimer=null;
     if(this.token&&this.roomId)this._connect(true);
     else if(this.intent&&!this.everOpened)this._connect(false);
@@ -206,16 +297,15 @@ export class CoopClient {
   }
   _scheduleReconnect(){
     if(this.manual||this.suspended||!this.pageVisible)return;
-    if(!this.reconnectStart)this.reconnectStart=Date.now();
-    if(Date.now()-this.reconnectStart>55000){this._closed('The room connection expired. Create a new room to play again.');return;}
+    if(!this.reconnectStart)this.reconnectStart=this.now();
+    if(this.now()-this.reconnectStart>55000){this._closed('The room connection expired. Create a new room to play again.');return;}
     this._emit('onConnection','reconnecting','Connection interrupted. Rejoining your room…');
     clearTimeout(this.retryTimer);this.retryTimer=setTimeout(()=>this._connect(true),Math.min(4000,800*2**this.retryCount++));
   }
-  _failedConnection(message){this._stopStream();this._emit('onConnection','error',message);this._emit('onError',message);}
-  _closed(message){this.manual=true;this.connected=false;this._stopStream();clearTimeout(this.retryTimer);this.socket?.close();try{this.storage?.removeItem(`dfe.breach.room.${this.roomId}`);}catch(_){}this._emit('onClosed',message);}
+  _failedConnection(message){this.manual=true;this.connected=false;clearTimeout(this.retryTimer);this.retryTimer=null;this._releaseSocket('Connection failed');this._disposeStatus();this._emit('onConnection','error',message);this._emit('onError',message);}
+  _closed(message){this.manual=true;this.connected=false;this._releaseSocket('Room ended');this._disposeStatus();clearTimeout(this.retryTimer);this.retryTimer=null;try{this.storage?.removeItem(`dfe.breach.room.${this.roomId}`);}catch(_){}this._emit('onClosed',message);}
   leave(){
-    this.send({type:'leave'});this.manual=true;this.connected=false;this._stopStream();clearTimeout(this.retryTimer);
+    this.send({type:'leave'});this.manual=true;this.connected=false;this._releaseSocket('Leaving room');this._disposeStatus();clearTimeout(this.retryTimer);this.retryTimer=null;
     try{this.storage?.removeItem(`dfe.breach.room.${this.roomId}`);}catch(_){}
-    this.socket?.close();
   }
 }

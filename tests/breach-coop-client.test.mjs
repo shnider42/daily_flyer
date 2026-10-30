@@ -141,7 +141,7 @@ test('page suspension releases the old socket without leaving, keeps its pass, a
     client.setPageVisible(true);
     assert.equal(Socket.instances.length,2,'a visible persisted page opens exactly one new socket');
     const rejoined=Socket.instances[1];rejoined.open();
-    assert.deepEqual(rejoined.sent[0],{type:'join',protocol:2,roomId:'ABCDEFGH',name:'Operator',token:'keep-this-pass'});
+    assert.deepEqual(rejoined.sent[0],{type:'join',protocol:2,roomId:'ABCDEFGH',name:'Operator',token:'keep-this-pass',replace:true});
     rejoined.receive({type:'welcome',protocol:2,roomId:'ABCDEFGH',selfId:'p1',ownerId:'p1',token:'keep-this-pass'});
     rejoined.receive({type:'room',room:{id:'ABCDEFGH',mission:'crosslink-11',difficulty:'standard',status:'paused',ownerId:'p1',players:[{id:'p1',ready:false,connected:true},{id:'p2',ready:false,connected:true}]}});
     rejoined.receive({type:'state',tick:1,ackByPlayer:{p1:-1,p2:-1},state:simulation.networkSnapshot(),events:[]});

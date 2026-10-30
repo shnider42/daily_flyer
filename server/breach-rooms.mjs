@@ -49,6 +49,10 @@ export class BreachRooms {
     player.input = { ...NEUTRAL }; player.lastInputAt = 0; player.seq = -1; player.ack = -1;
     peer.roomId = room.id; peer.playerId = player.id;
     peer.send({ type: 'welcome', protocol: PROTOCOL, roomId: room.id, selfId: player.id, ownerId: room.ownerId, token: player.token, resumed });
+    if (resumed && room.status === 'paused') {
+      const missing = [...room.players.values()].find(p => !p.peer);
+      room.pauseReason = missing ? `Waiting for ${missing.name} to reconnect.` : `${player.name} reconnected. Both players must resume.`;
+    }
     this.publishRoom(room);
     if (room.game) peer.send(this.statePacket(room));
   }
@@ -78,7 +82,19 @@ export class BreachRooms {
     if (message.token) {
       const player = [...room.players.values()].find(p => sameToken(p.token, message.token));
       if (!player) return this.error(peer, 'INVALID_TOKEN', 'This reconnect pass has expired. Create a new room with your friend.');
-      if (player.peer) return this.error(peer, 'ALREADY_CONNECTED', 'This player is already connected. Close the other game tab, then reconnect.');
+      if (player.peer) {
+        if (message.replace !== true) return this.error(peer, 'ALREADY_CONNECTED', 'This player is already connected. Close the other game tab, then reconnect.');
+        // The unguessable per-player token was checked above. Wi-Fi handovers can
+        // leave the old socket apparently open; invalidate it BEFORE attaching
+        // its replacement so late packets/close callbacks cannot control the slot.
+        const old = player.peer;
+        old.roomId = null; old.playerId = null;
+        player.peer = null; player.ready = false; player.input = { ...NEUTRAL };
+        player.disconnectedAt = this.now();
+        if (['playing', 'paused'].includes(room.status)) this.pause(room, `${player.name} is reconnecting. Mission progress is held.`);
+        old.send({ type: 'closed', message: 'This player reconnected on another connection. The team session continues there.' });
+        old.close(1000, 'Connection replaced');
+      }
       if (player.disconnectedAt !== null && this.now() - player.disconnectedAt > this.reconnectMs) {
         this.end(room, 'The reconnect window expired. Create a new room to play again.');
         return this.error(peer, 'ROOM_NOT_FOUND', 'The reconnect window expired. Create a new room to play again.');
@@ -126,7 +142,7 @@ export class BreachRooms {
         this.syncStatus(room); this.publishState(room); return;
       case 'pause':
         if (!['playing', 'paused'].includes(room.status)) return;
-        this.pause(room, `${player.name} ${message.reason === 'background' ? 'switched away from the game' : 'paused the mission'}. Both players must resume.`); return;
+        this.pause(room, `${player.name} ${message.reason === 'background' ? 'switched away from the game' : message.reason === 'network' ? 'lost fresh server updates' : 'paused the mission'}. Both players must resume.`); return;
       case 'resume':
         if (room.status !== 'paused') return;
         player.ready = true;

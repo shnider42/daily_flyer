@@ -33,14 +33,15 @@ jobs:
       - run: npm run test:breach
       - run: python -m unittest discover -s tests -p test_breach_export.py
       - run: python scripts/build_breach.py
-      - name: Export reproducible test inputs
+      - name: Install browser test tooling
         run: |
-          mkdir -p /tmp/breach-qa
-          git archive --format=tar HEAD daily_flyer scripts/build_breach.py server tests docs package.json package-lock.json > /tmp/breach-qa/source.tar
-          tar -rf /tmp/breach-qa/source.tar node_modules/ws
-          gzip /tmp/breach-qa/source.tar
+          npm install --no-save --package-lock=false --ignore-scripts playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Browser connection recovery and phone layouts
+        run: node scripts/breach-network-browser.mjs
       - uses: actions/upload-artifact@v4
+        if: always()
         with:
-          name: breach-qa-source
-          path: /tmp/breach-qa/source.tar.gz
-          retention-days: 3
+          name: breach-network-results
+          path: breach-network-results/
+          retention-days: 7
