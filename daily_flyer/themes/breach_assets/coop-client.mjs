@@ -69,7 +69,7 @@ export class CoopClient {
     const stateAge=this.lastStateAt===null?null:Math.max(0,this.now()-this.lastStateAt);
     const stalled=this.connected&&(this.networkHold||age>STALE_STATE_MS||this.room?.status==='playing'&&!this.waitingPause&&stateAge>STALE_STATE_MS);
     const quality=this.suspended?'away':!this.connected?this.connectionStatus:stalled?'stalled':this.rtt!==null&&(this.rtt>250||this.jitter>80)?'unstable':'connected';
-    return {quality,rtt:this.rtt===null?null:Math.round(this.rtt),jitter:Math.round(this.jitter),lastReplyMs:age,stateAgeMs:stateAge,canReconnect:!!this.token&&!!this.roomId&&!this.manual,version:'0.4.1'};
+    return {quality,rtt:this.rtt===null?null:Math.round(this.rtt),jitter:Math.round(this.jitter),lastReplyMs:age,stateAgeMs:stateAge,canReconnect:!!this.token&&!!this.roomId&&!this.manual,version:'0.5.0'};
   }
   _reportNetwork(){const status=this.getNetworkStatus();this.statusPanel?.update(status);this.callbacks.onNetwork?.(status);}
   _resetPrediction(){this.pending=[];this.predicted=null;this.lastAuthoritative=null;}

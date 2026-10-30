@@ -101,7 +101,8 @@ and `enemy-kill`. Warning events occur once per windup. Encounter events include
 coordinates where applicable so optional procedural audio can attenuate distant
 sources. Visual cues work with audio disabled.
 
-No room transport or multiplayer feature work is included. The shared simulation
+Release labels in the site, server health response, and connection status are
+kept in sync at 0.5.0. No room transport or multiplayer feature work is included. The shared simulation
 and renderer retain their existing co-op contracts; real two-device/network
 playtesting remains separate.
 
