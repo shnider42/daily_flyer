@@ -3,6 +3,12 @@
 An original retro first-person game built on DailyFlyer. Solo play runs in the
 browser; private two-player co-op uses an authoritative room server.
 
+## 0.5.0 — Read the facility
+
+Environmental equipment cues, discovery-focused guidance, staged faction and
+phase encounters, a patterned reactor guardian, and compact phone controls are
+documented in [the gameplay update](breach-gameplay-05.md).
+
 ## Run and publish
 
 Requires Python 3.10+ to build. The static build uses only the standard library;

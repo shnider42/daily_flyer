@@ -157,7 +157,7 @@ function createRelayLevel() {
       enemy('s1', 'runner', 11, 24), enemy('s2', 'runner', 23, 24), enemy('s3', 'spitter', 27, 22), enemy('s4', 'runner', 19, 22),
       enemy('g1', 'runner', 4, 23), enemy('g2', 'spitter', 8, 20),
       enemy('w1', 'runner', 6, 17), enemy('w2', 'spitter', 4, 13), enemy('w3', 'runner', 9, 11),
-      enemy('n1', 'spitter', 11, 7), enemy('n2', 'brute', 19, 7), enemy('n3', 'runner', 25, 8),
+      enemy('n1', 'spitter', 11, 7), { ...enemy('n2', 'sentry', 19, 7), health: 120, maxHealth: 120, faction: 'security' }, enemy('n3', 'runner', 25, 8),
       enemy('e1', 'runner', 27, 10), enemy('e2', 'spitter', 31, 14), enemy('e3', 'brute', 25, 16), enemy('e4', 'runner', 29, 19),
       enemy('v1', 'runner', 14, 16), enemy('v2', 'spitter', 20, 13), enemy('v3', 'brute', 21, 17), enemy('v4', 'runner', 13, 17),
     ],
@@ -295,7 +295,7 @@ export class Game {
     this.state = {
       status: 'ready',
       player: { ...copy(this.level.spawn), health: 100, armor: 20, ammo: { pistol: 40, shells: 0 }, weapon: 'pistol', hasShotgun: false, key: false },
-      enemies: this.level.enemies.map(e => ({ ...e, health: Math.round(e.health * this._difficulty.health), maxHealth: Math.round(e.maxHealth * this._difficulty.health), active: false, angle: Math.PI, attackCooldown: 1, hitTimer: 0, pathTimer: 0 })),
+      enemies: this.level.enemies.map(e => ({ ...e, ...this._encounterDefaults(e), health: Math.round(e.health * this._difficulty.health), maxHealth: Math.round(e.maxHealth * this._difficulty.health), active: false, angle: Math.PI, attackCooldown: 1, hitTimer: 0, pathTimer: 0 })),
       pickups: this.level.pickups.map(p => ({ ...p, collected: false })),
       doors: copy(this.level.doors), interactables: this.level.interactables.map(i => ({ ...i, used: false })),
       projectiles: [], effects: [], power: false, secretFound: false,
@@ -322,6 +322,19 @@ export class Game {
   _rng() {
     this._random = (Math.imul(this._random, 1664525) + 1013904223) >>> 0;
     return this._random / 4294967296;
+  }
+
+  _encounterDefaults(enemy) {
+    return {
+      faction: enemy.faction || (enemy.type === 'sentry' ? 'security' : 'infestation'),
+      provoked: false, killedByPlayer: false, telegraph: null,
+      ...(enemy.type === 'stalker' ? { blinkCooldown: 2.4 } : {}),
+      ...(enemy.guardian ? { bossPhase: 'stalk', phaseTimer: 0, bossCycle: 0, chargeAngle: 0, chargeHit: false, chargeTargetId: null, chargeTargetKind: null } : {}),
+    };
+  }
+
+  isHostileToPlayer(enemy) {
+    return Boolean(enemy?.alive && (enemy.faction !== 'security' && enemy.type !== 'sentry' || enemy.provoked === true));
   }
 
   _wall(x, z) {
@@ -450,7 +463,7 @@ export class Game {
     this._shotCooldown = weapon === 'shotgun' ? .72 : .27;
     let aim = p.angle;
     if (this.options.aimAssist) {
-      const target = this.state.enemies.filter(e => e.alive && distance(p, e) < 16 && this.hasLineOfSight(p.x, p.z, e.x, e.z))
+      const target = this.state.enemies.filter(e => this.isHostileToPlayer(e) && distance(p, e) < 16 && this.hasLineOfSight(p.x, p.z, e.x, e.z))
         .map(e => ({ enemy: e, angle: Math.atan2(e.x - p.x, -(e.z - p.z)) }))
         .filter(e => Math.abs(angleDelta(e.angle, aim)) < .12)
         .sort((a, b) => Math.abs(angleDelta(a.angle, aim)) - Math.abs(angleDelta(b.angle, aim)))[0];
@@ -475,17 +488,34 @@ export class Game {
     }
     this._events.push({ type: 'shot', weapon, hit: hits.size > 0 });
     if (hits.size) this.state.hits++;
-    for (const [enemy, damage] of hits) {
-      enemy.health = Math.max(0, enemy.health - damage); enemy.active = true; enemy.hitTimer = .13;
-      this._events.push({ type: 'hit', id: enemy.id, x: enemy.x, z: enemy.z, damage });
-      this.state.effects.push({ id: `hit-${++this._serial}`, type: 'hit', x: enemy.x, z: enemy.z, life: .22 });
-      if (enemy.health === 0) {
-        enemy.alive = false; this.state.kills++;
-        this._events.push({ type: 'kill', id: enemy.id, enemyType: enemy.type, x: enemy.x, z: enemy.z });
-        if (enemy.guardian) this._syncPermanentProgress();
-      }
+    for (const [enemy, damage] of hits) this._damageEnemy(enemy, damage, 'player');
+    for (const enemy of this.state.enemies) if (this.isHostileToPlayer(enemy) && distance(p, enemy) < 7) enemy.active = true;
+  }
+
+  _damageEnemy(enemy, amount, source) {
+    if (!enemy?.alive || !(amount > 0)) return;
+    const playerHit = source === 'player';
+    // The guardian's plates open while its core cools. The visible recovery
+    // window is a better shot than firing continuously into the armor.
+    const damage = Math.max(1, Math.round(amount * (enemy.guardian ? enemy.bossPhase === 'recover' ? 1.6 : .65 : 1)));
+    enemy.health = Math.max(0, enemy.health - damage); enemy.active = true; enemy.hitTimer = .13;
+    if (playerHit && enemy.faction === 'security' && !enemy.provoked) {
+      enemy.provoked = true; enemy.telegraph = null; enemy.attackCooldown = Math.max(enemy.attackCooldown, .8);
+      this._events.push({ type: 'provoked', id: enemy.id, x: enemy.x, z: enemy.z });
     }
-    for (const enemy of this.state.enemies) if (enemy.alive && distance(p, enemy) < 7) enemy.active = true;
+    // A clean hit interrupts a phase shift before the creature disappears.
+    if (enemy.type === 'stalker' && enemy.telegraph?.kind === 'blink') {
+      enemy.telegraph = null; enemy.blinkCooldown = 3;
+    }
+    this._events.push({ type: playerHit ? 'hit' : 'enemy-hit', id: enemy.id, x: enemy.x, z: enemy.z, damage, sourceId: playerHit ? 'player' : source?.id });
+    this.state.effects.push({ id: `hit-${++this._serial}`, type: 'hit', x: enemy.x, z: enemy.z, life: .22 });
+    if (enemy.health === 0) {
+      enemy.alive = false; enemy.killedByPlayer = playerHit; enemy.telegraph = null;
+      if (enemy.guardian) { enemy.bossPhase = 'stalk'; enemy.phaseTimer = 0; enemy.chargeTargetId = null; enemy.chargeTargetKind = null; }
+      if (playerHit) this.state.kills++;
+      this._events.push({ type: playerHit ? 'kill' : 'enemy-kill', id: enemy.id, enemyType: enemy.type, x: enemy.x, z: enemy.z, sourceId: playerHit ? 'player' : source?.id });
+      if (enemy.guardian) this._syncPermanentProgress();
+    }
   }
 
   switchWeapon() {
@@ -516,52 +546,252 @@ export class Game {
     for (const enemy of this.state.enemies) this._updateEnemy(enemy, dt);
   }
 
-  _updateEnemy(enemy, dt) {
-    const p = this.state.player;
-      enemy.hitTimer = Math.max(0, enemy.hitTimer - dt);
-      if (!enemy.alive || this.state.status !== 'playing') return;
-      enemy.attackCooldown = Math.max(0, enemy.attackCooldown - dt);
-      const d = distance(p, enemy);
-      if (this.level.exploration && d > this.level.enemyAwarenessDistance) { enemy.active = false; return; }
-      const visible = this.hasLineOfSight(enemy.x, enemy.z, p.x, p.z);
-      if (d < 9 && visible) enemy.active = true;
-      if (!enemy.active) return;
-      if (this.level.exploration) {
-        enemy.alertTimer = visible ? 8 : Math.max(0, (enemy.alertTimer ?? 8) - dt);
-        if (enemy.alertTimer === 0) { enemy.active = false; return; }
-      }
-      enemy.angle = Math.atan2(p.x - enemy.x, -(p.z - enemy.z));
-      if (d < .8 && visible && enemy.attackCooldown === 0) {
-        this._hurt(enemy.type === 'brute' ? 23 : enemy.type === 'runner' ? 10 : 8, enemy);
-        enemy.attackCooldown = enemy.type === 'brute' ? 1.15 : .85;
-      } else if (enemy.type === 'spitter' && d > 1.4 && d < 10 && visible && enemy.attackCooldown === 0) {
-        const speed = 4.1;
-        this.state.projectiles.push({ id: `p-${++this._serial}`, x: enemy.x, z: enemy.z, dx: (p.x - enemy.x) / d * speed, dz: (p.z - enemy.z) / d * speed, life: 4, type: 'plasma' });
-        enemy.attackCooldown = 1.65 + this._rng() * .45;
-      }
-      if (d <= .65 || enemy.type === 'spitter' && visible && d > 3 && d < 6.5 || enemy.hitTimer > 0) return;
-      let targetX = p.x, targetZ = p.z;
-      if (!visible) {
-        const x = Math.floor(enemy.x), z = Math.floor(enemy.z);
-        let best = this._distances?.[z * this.level.width + x] ?? -1;
-        let target = null;
-        for (const [nx, nz] of [[x + 1, z], [x - 1, z], [x, z + 1], [x, z - 1]]) {
-          const value = this._distances?.[nz * this.level.width + nx] ?? -1;
-          if (value >= 0 && (best < 0 || value < best) && !this._wall(nx + .5, nz + .5)) { best = value; target = [nx + .5, nz + .5]; }
+  _combatTarget(enemy) {
+    const player = this.state.player;
+    const playerVisible = this.hasLineOfSight(enemy.x, enemy.z, player.x, player.z);
+    const faction = enemy.faction || 'infestation';
+    // Encounters wait for an observer instead of resolving across an unseen map.
+    const opponents = distance(enemy, player) <= 18 ? this.state.enemies.filter(other => other !== enemy && other.alive
+      && (other.faction || 'infestation') !== faction && distance(enemy, other) < 10
+      && this.hasLineOfSight(enemy.x, enemy.z, other.x, other.z)) : [];
+    opponents.sort((a, b) => distance(enemy, a) - distance(enemy, b));
+    if (!this.isHostileToPlayer(enemy)) return opponents[0] || null;
+    if (opponents[0] && (!playerVisible || distance(enemy, opponents[0]) < distance(enemy, player))) return opponents[0];
+    return player;
+  }
+
+  _hurtTarget(target, amount, source) {
+    if (!target) return;
+    if (target === this.state.player) this._hurt(amount, source);
+    else if (target.id && this.state.players?.[target.id] === target && typeof this._withPlayer === 'function') {
+      this._withPlayer(target.id, () => this._hurt(amount, source));
+    }
+    else this._damageEnemy(target, amount, source);
+  }
+
+  _isPlayerTarget(target) {
+    return Boolean(target && (target === this.state.player || target.id && this.state.players?.[target.id] === target));
+  }
+
+  _targetIdentity(target) {
+    return this._isPlayerTarget(target) ? target.id || 'player' : target?.id;
+  }
+
+  _targetKind(target) {
+    return this._isPlayerTarget(target) ? 'player' : target?.id ? 'enemy' : undefined;
+  }
+
+  _resolveTarget(id, kind) {
+    if (kind === 'player' || id === 'player') {
+      const player = id === 'player' ? this.state.player : Object.hasOwn(this.state.players || {}, id) ? this.state.players[id] : null;
+      return player && player.alive !== false && player.health > 0 ? player : null;
+    }
+    return this.state.enemies.find(enemy => enemy.id === id && enemy.alive) || null;
+  }
+
+  _warning(enemy, kind, target, duration, radius) {
+    enemy.telegraph = { kind, x: target.x, z: target.z, fromX: enemy.x, fromZ: enemy.z,
+      radius, duration, remaining: duration, targetId: this._targetIdentity(target), targetKind: this._targetKind(target) };
+    this._events.push({ type: 'enemy-warning', kind, id: enemy.id, x: enemy.x, z: enemy.z });
+  }
+
+  _validBlinkDestination(enemy, point) {
+    const player = this.state.player;
+    return point && distance(point, player) >= 2.2 && distance(point, player) <= 5.2
+      && distance(point, enemy) >= 1.3 && this._clearCircle(point.x, point.z, .25)
+      && this.hasLineOfSight(enemy.x, enemy.z, point.x, point.z)
+      && this.hasLineOfSight(player.x, player.z, point.x, point.z)
+      && this.state.enemies.every(other => other === enemy || !other.alive || distance(point, other) > .65)
+      && Object.values(this.state.players || { solo: player }).every(other => other.alive === false || distance(point, other) > 1.3);
+  }
+
+  _beginBlink(enemy) {
+    const player = this.state.player;
+    const initial = Math.atan2(enemy.z - player.z, enemy.x - player.x) + (this._rng() < .5 ? -1 : 1) * Math.PI / 2;
+    for (let i = 0; i < 8; i++) {
+      const angle = initial + i * Math.PI / 4;
+      const point = { x: player.x + Math.cos(angle) * 3.1, z: player.z + Math.sin(angle) * 3.1 };
+      if (!this._validBlinkDestination(enemy, point)) continue;
+      this._warning(enemy, 'blink', point, .8, .65);
+      return true;
+    }
+    enemy.blinkCooldown = 1.5;
+    return false;
+  }
+
+  _updateStalker(enemy, dt, target, visible) {
+    enemy.blinkCooldown = Math.max(0, (enemy.blinkCooldown ?? 2.4) - dt);
+    if (enemy.telegraph?.kind === 'blink') {
+      enemy.telegraph.remaining = Math.max(0, enemy.telegraph.remaining - dt);
+      if (enemy.telegraph.remaining === 0) {
+        const point = enemy.telegraph;
+        if (this._validBlinkDestination(enemy, point)) {
+          this.state.effects.push({ id: `blink-${++this._serial}`, type: 'blink', x: enemy.x, z: enemy.z, life: .45 });
+          enemy.x = point.x; enemy.z = point.z;
+          this.state.effects.push({ id: `blink-${++this._serial}`, type: 'blink', x: enemy.x, z: enemy.z, life: .45 });
+          this._events.push({ type: 'teleport', id: enemy.id, x: enemy.x, z: enemy.z });
         }
-        if (!target) return;
-        [targetX, targetZ] = target;
+        enemy.telegraph = null; enemy.blinkCooldown = 4.8;
+        enemy.attackCooldown = Math.max(.7, enemy.attackCooldown);
       }
-      const length = Math.hypot(targetX - enemy.x, targetZ - enemy.z);
-      if (length < .05) return;
-      const speed = (enemy.type === 'runner' ? 1.35 : enemy.type === 'brute' ? .69 : .85) * this._difficulty.speed;
-      let dx = (targetX - enemy.x) / length * speed * dt, dz = (targetZ - enemy.z) / length * speed * dt;
-      for (const other of this.state.enemies) {
-        if (other === enemy || !other.alive) continue;
-        const apart = distance(enemy, other);
-        if (apart > .01 && apart < .55) { dx += (enemy.x - other.x) / apart * dt * .6; dz += (enemy.z - other.z) / apart * dt * .6; }
+      return true;
+    }
+    if (target === this.state.player && visible && distance(enemy, target) > 2 && distance(enemy, target) < 10
+      && enemy.blinkCooldown === 0 && enemy.hitTimer === 0) return this._beginBlink(enemy);
+    return false;
+  }
+
+  _updateSentry(enemy, dt, target, visible) {
+    if (enemy.telegraph?.kind === 'shot') {
+      enemy.telegraph.remaining = Math.max(0, enemy.telegraph.remaining - dt);
+      if (enemy.telegraph.remaining === 0) {
+        const warning = enemy.telegraph;
+        const victim = this._resolveTarget(warning.targetId, warning.targetKind);
+        this.state.effects.push({ id: `beam-${++this._serial}`, type: 'beam', x: enemy.x, z: enemy.z,
+          targetX: warning.x, targetZ: warning.z, life: .16, faction: 'security' });
+        // The shot follows its shown aim point, so moving sideways beats it.
+        if (victim && (!this._isPlayerTarget(victim) || this.isHostileToPlayer(enemy))
+          && distance(victim, warning) < .72 && this.hasLineOfSight(enemy.x, enemy.z, victim.x, victim.z)) this._hurtTarget(victim, 20, enemy);
+        enemy.telegraph = null; enemy.attackCooldown = 1.15;
+        this._events.push({ type: 'enemy-shot', id: enemy.id, faction: 'security', x: enemy.x, z: enemy.z });
       }
-      this._move(enemy, dx, dz, enemy.type === 'brute' ? .28 : .2);
+      return true;
+    }
+    if (visible && distance(enemy, target) < 9 && enemy.attackCooldown === 0) {
+      this._warning(enemy, 'shot', target, .55, .45);
+      return true;
+    }
+    return false;
+  }
+
+  _guardianRecovery(enemy) {
+    enemy.bossPhase = 'recover'; enemy.phaseTimer = 1.65; enemy.telegraph = null; enemy.chargeTargetId = null; enemy.chargeTargetKind = null;
+    this._events.push({ type: 'boss-phase', id: enemy.id, phase: 'recover', x: enemy.x, z: enemy.z });
+  }
+
+  _updateGuardian(enemy, dt, target, visible) {
+    const phase = enemy.bossPhase || 'stalk';
+    if (phase === 'recover') {
+      enemy.phaseTimer = Math.max(0, enemy.phaseTimer - dt);
+      if (enemy.phaseTimer === 0) { enemy.bossPhase = 'stalk'; enemy.attackCooldown = .75; }
+      return true;
+    }
+    if (phase === 'charge-windup' || phase === 'volley-windup') {
+      enemy.phaseTimer = Math.max(0, enemy.phaseTimer - dt);
+      if (enemy.telegraph) enemy.telegraph.remaining = enemy.phaseTimer;
+      if (enemy.phaseTimer === 0) {
+        const warning = enemy.telegraph;
+        if (!warning) { this._guardianRecovery(enemy); return true; }
+        if (phase === 'charge-windup') {
+          enemy.chargeAngle = Math.atan2(warning.x - enemy.x, -(warning.z - enemy.z));
+          enemy.chargeTargetId = warning.targetId || this._targetIdentity(target);
+          enemy.chargeTargetKind = warning.targetKind || this._targetKind(target);
+          enemy.bossPhase = 'charge'; enemy.phaseTimer = .65; enemy.chargeHit = false; enemy.telegraph = null;
+        } else {
+          const aim = Math.atan2(warning.x - enemy.x, -(warning.z - enemy.z));
+          for (const offset of [-.18, 0, .18]) this.state.projectiles.push({ id: `p-${++this._serial}`, type: 'plasma',
+            x: enemy.x, z: enemy.z, dx: Math.sin(aim + offset) * 4.5, dz: -Math.cos(aim + offset) * 4.5, life: 3.5 });
+          this._events.push({ type: 'enemy-shot', id: enemy.id, x: enemy.x, z: enemy.z });
+          this._guardianRecovery(enemy);
+        }
+      }
+      return true;
+    }
+    if (phase === 'charge') {
+      // Co-op selects a nearby operative again every tick. A warned attack
+      // keeps its original victim even when that temporary player alias changes.
+      const victim = enemy.chargeTargetId ? this._resolveTarget(enemy.chargeTargetId, enemy.chargeTargetKind) : target;
+      const before = { x: enemy.x, z: enemy.z };
+      this._move(enemy, Math.sin(enemy.chargeAngle) * 7.1 * dt, -Math.cos(enemy.chargeAngle) * 7.1 * dt, .3);
+      const dx = enemy.x - before.x, dz = enemy.z - before.z, lengthSq = dx * dx + dz * dz;
+      const projection = victim && lengthSq ? clamp(((victim.x - before.x) * dx + (victim.z - before.z) * dz) / lengthSq, 0, 1) : 0;
+      const closest = { x: before.x + dx * projection, z: before.z + dz * projection };
+      if (victim && !enemy.chargeHit && distance(victim, closest) < .78 && this.hasLineOfSight(enemy.x, enemy.z, victim.x, victim.z)) {
+        this._hurtTarget(victim, 27, enemy); enemy.chargeHit = true;
+      }
+      this.state.effects.push({ id: `charge-${++this._serial}`, type: 'charge-trail', x: before.x, z: before.z, life: .25 });
+      enemy.phaseTimer = Math.max(0, enemy.phaseTimer - dt);
+      if (enemy.phaseTimer === 0 || lengthSq < .0001) this._guardianRecovery(enemy);
+      return true;
+    }
+    if (visible && distance(enemy, target) < 10 && enemy.attackCooldown === 0) {
+      const charge = (enemy.bossCycle || 0) % 2 === 0;
+      enemy.bossCycle = (enemy.bossCycle || 0) + 1;
+      enemy.bossPhase = charge ? 'charge-windup' : 'volley-windup'; enemy.phaseTimer = charge ? 1 : 1.1;
+      this._warning(enemy, charge ? 'charge' : 'volley', target, enemy.phaseTimer, charge ? .78 : 1.05);
+      this._events.push({ type: 'boss-phase', id: enemy.id, phase: enemy.bossPhase, x: enemy.x, z: enemy.z });
+      return true;
+    }
+    return false;
+  }
+
+  _updateEnemy(enemy, dt) {
+    enemy.hitTimer = Math.max(0, enemy.hitTimer - dt);
+    if (!enemy.alive || this.state.status !== 'playing') return;
+    enemy.attackCooldown = Math.max(0, enemy.attackCooldown - dt);
+    const player = this.state.player;
+    if (this.level.exploration && distance(player, enemy) > this.level.enemyAwarenessDistance) { enemy.active = false; return; }
+    const target = this._combatTarget(enemy);
+    if (!target) { enemy.active = false; enemy.telegraph = null; return; }
+    const d = distance(target, enemy), visible = this.hasLineOfSight(enemy.x, enemy.z, target.x, target.z);
+    enemy.combatTargetId = this._targetIdentity(target);
+    if (d < 9 && visible || target !== player) enemy.active = true;
+    if (!enemy.active) return;
+    if (this.level.exploration) {
+      enemy.alertTimer = visible ? 8 : Math.max(0, (enemy.alertTimer ?? 8) - dt);
+      if (enemy.alertTimer === 0) { enemy.active = false; return; }
+    }
+    enemy.angle = Math.atan2(target.x - enemy.x, -(target.z - enemy.z));
+    if (enemy.guardian && this._updateGuardian(enemy, dt, target, visible)) return;
+    if (enemy.type === 'stalker' && this._updateStalker(enemy, dt, target, visible)) return;
+    if (enemy.type === 'sentry' && this._updateSentry(enemy, dt, target, visible)) return;
+    if (!enemy.guardian && enemy.type !== 'sentry' && d < .8 && visible && enemy.attackCooldown === 0) {
+      this._hurtTarget(target, enemy.type === 'brute' ? 23 : enemy.type === 'stalker' ? 15 : enemy.type === 'runner' ? 10 : 8, enemy);
+      enemy.attackCooldown = enemy.type === 'brute' ? 1.15 : .85;
+    } else if (enemy.type === 'spitter' && d > 1.4 && d < 10 && visible && enemy.attackCooldown === 0) {
+      if (target === player) {
+        const speed = 4.1;
+        this.state.projectiles.push({ id: `p-${++this._serial}`, x: enemy.x, z: enemy.z, dx: (target.x - enemy.x) / d * speed,
+          dz: (target.z - enemy.z) / d * speed, life: 4, type: 'plasma' });
+      } else {
+        this._damageEnemy(target, 15, enemy);
+        this.state.effects.push({ id: `beam-${++this._serial}`, type: 'beam', x: enemy.x, z: enemy.z,
+          targetX: target.x, targetZ: target.z, life: .16, faction: 'infestation' });
+      }
+      enemy.attackCooldown = 1.65 + this._rng() * .45;
+    }
+    if (d <= .65 || enemy.hitTimer > 0) return;
+    if ((enemy.type === 'spitter' || enemy.type === 'sentry') && visible && d < 6.5) {
+      // Ranged enemies hold a lane and retreat from pressure instead of joining
+      // every runner in the same stationary pile at the player's feet.
+      const direction = d < 2.8 ? -1 : 0;
+      const side = direction ? 0 : Math.sin(this.state.time * 1.2 + enemy.x * .1) * .3;
+      this._move(enemy, ((target.x - enemy.x) / d * direction * .85 + (target.z - enemy.z) / d * side) * dt,
+        ((target.z - enemy.z) / d * direction * .85 - (target.x - enemy.x) / d * side) * dt, .2);
+      return;
+    }
+    let targetX = target.x, targetZ = target.z;
+    if (!visible) {
+      const x = Math.floor(enemy.x), z = Math.floor(enemy.z);
+      let best = this._distances?.[z * this.level.width + x] ?? -1;
+      let step = null;
+      for (const [nx, nz] of [[x + 1, z], [x - 1, z], [x, z + 1], [x, z - 1]]) {
+        const value = this._distances?.[nz * this.level.width + nx] ?? -1;
+        if (value >= 0 && (best < 0 || value < best) && !this._wall(nx + .5, nz + .5)) { best = value; step = [nx + .5, nz + .5]; }
+      }
+      if (!step) return;
+      [targetX, targetZ] = step;
+    }
+    const length = Math.hypot(targetX - enemy.x, targetZ - enemy.z);
+    if (length < .05) return;
+    const speed = (enemy.type === 'runner' ? 1.35 : enemy.type === 'stalker' ? 1.65 : enemy.type === 'brute' ? .69 : .85) * this._difficulty.speed;
+    let dx = (targetX - enemy.x) / length * speed * dt, dz = (targetZ - enemy.z) / length * speed * dt;
+    for (const other of this.state.enemies) {
+      if (other === enemy || !other.alive) continue;
+      const apart = distance(enemy, other);
+      if (apart > .01 && apart < .55) { dx += (enemy.x - other.x) / apart * dt * .6; dz += (enemy.z - other.z) / apart * dt * .6; }
+    }
+    this._move(enemy, dx, dz, enemy.type === 'brute' ? .28 : .2);
   }
 
   _updateProjectiles(dt) {
@@ -625,7 +855,7 @@ export class Game {
 
   _refugeSafe(station) {
     const living = Object.values(this.state.players || { solo: this.state.player }).filter(p => p.alive !== false);
-    const hostile = this.state.enemies.some(enemy => enemy.alive && (
+    const hostile = this.state.enemies.some(enemy => this.isHostileToPlayer(enemy) && (
       distance(enemy, station) < 8 && this.hasLineOfSight(enemy.x, enemy.z, station.x, station.z)
       || living.some(p => distance(enemy, p) < (enemy.type === 'spitter' ? 10 : 6) && this.hasLineOfSight(enemy.x, enemy.z, p.x, p.z))));
     // A projectile remains dangerous after its shooter dies. Rest must not erase
@@ -661,7 +891,7 @@ export class Game {
     const guardian = this.state.enemies.find(e => e.id === this.level.guardianId);
     const savedGuardian = saved.enemies.find(e => e.id === this.level.guardianId);
     if (guardian && !guardian.alive && savedGuardian?.alive) {
-      Object.assign(savedGuardian, copy(guardian)); saved.kills++;
+      Object.assign(savedGuardian, copy(guardian)); saved.kills += Number(guardian.killedByPlayer !== false);
     }
   }
 
@@ -867,6 +1097,32 @@ export class Game {
     return { version: 1, levelId: this.level.id, options: { mission: this.level.missionId, difficulty: this._runDifficulty, seed: this._runSeed }, state: this._snapshot(), checkpoint: this._checkpoint ? copy(this._checkpoint) : null };
   }
 
+  _validEncounterSnapshot(enemy, base, level) {
+    const validTarget = (id, kind) => typeof id === 'string'
+      && (kind === undefined || kind === null || ['player', 'enemy'].includes(kind))
+      && (kind === 'player' ? id === 'player' || Object.hasOwn(this.state.players || {}, id)
+        : kind === 'enemy' ? level.enemies.some(other => other.id === id)
+          : id === 'player' || level.enemies.some(other => other.id === id));
+    for (const flag of ['provoked', 'killedByPlayer', 'chargeHit']) if (enemy[flag] !== undefined && typeof enemy[flag] !== 'boolean') return false;
+    for (const timer of ['blinkCooldown', 'phaseTimer', 'attackCooldown']) if (enemy[timer] !== undefined && !finite(enemy[timer], 0, 30)) return false;
+    if (enemy.bossPhase !== undefined && (!base.guardian || !['stalk', 'charge-windup', 'charge', 'volley-windup', 'recover'].includes(enemy.bossPhase))) return false;
+    if (enemy.bossCycle !== undefined && (!Number.isSafeInteger(enemy.bossCycle) || enemy.bossCycle < 0 || enemy.bossCycle > 1000000)) return false;
+    if (enemy.chargeAngle !== undefined && !finite(enemy.chargeAngle, -Math.PI, Math.PI)) return false;
+    if (enemy.chargeTargetKind !== undefined && enemy.chargeTargetKind !== null && (!base.guardian || !['player', 'enemy'].includes(enemy.chargeTargetKind) || !enemy.chargeTargetId)) return false;
+    if (enemy.chargeTargetId !== undefined && enemy.chargeTargetId !== null && (!base.guardian || !validTarget(enemy.chargeTargetId, enemy.chargeTargetKind))) return false;
+    const mark = enemy.telegraph;
+    if (mark === undefined || mark === null) return !['charge-windup', 'volley-windup'].includes(enemy.bossPhase);
+    if (!mark || typeof mark !== 'object' || Array.isArray(mark) || !['blink', 'charge', 'volley', 'shot'].includes(mark.kind)) return false;
+    if (mark.kind === 'blink' && base.type !== 'stalker' || mark.kind === 'shot' && base.type !== 'sentry'
+      || ['charge', 'volley'].includes(mark.kind) && !base.guardian) return false;
+    for (const [key, bound] of [['x', level.width], ['z', level.height], ['fromX', level.width], ['fromZ', level.height]]) if (!finite(mark[key], 1, bound - 1)) return false;
+    if (level.grid[Math.floor(mark.z)][Math.floor(mark.x)] === '#' || !finite(mark.radius, .1, 3)
+      || !finite(mark.duration, .1, 3) || !finite(mark.remaining, 0, mark.duration)) return false;
+    if (mark.targetKind !== undefined && (!['player', 'enemy'].includes(mark.targetKind) || !mark.targetId)) return false;
+    if (mark.targetId !== undefined && !validTarget(mark.targetId, mark.targetKind)) return false;
+    return true;
+  }
+
   _validSnapshot(s, level = this.level) {
     if (!s || typeof s !== 'object') return false;
     if (level.exploration && (!s.upgrades || typeof s.upgrades !== 'object' || Array.isArray(s.upgrades) || Object.keys(s.upgrades).length !== 3 || !['cutter', 'insulator', 'phase'].every(id => typeof s.upgrades[id] === 'boolean') || ![0, 25].includes(s.healthBonus))) return false;
@@ -920,7 +1176,7 @@ export class Game {
     for (const base of level.enemies) {
       const e = s.enemies.find(v => v?.id === base.id);
       if (!e || !finite(e.x, 1, level.width - 1) || !finite(e.z, 1, level.height - 1) || level.grid[Math.floor(e.z)][Math.floor(e.x)] === '#' || !finite(e.health, 0, 1000) || typeof e.alive !== 'boolean' || typeof e.active !== 'boolean') return false;
-      if (e.alive !== (e.health > 0)) return false;
+      if (e.alive !== (e.health > 0) || !this._validEncounterSnapshot(e, base, level)) return false;
     }
     return true;
   }
@@ -931,7 +1187,11 @@ export class Game {
     if (level.exploration) { next.upgrades = copy(s.upgrades); next.healthBonus = s.healthBonus; next.player.maxHealth = 100 + s.healthBonus; }
     next.enemies = level.enemies.map(base => {
       const e = s.enemies.find(v => v.id === base.id);
-      return { ...base, x: e.x, z: e.z, health: e.health, maxHealth: Math.round(base.maxHealth * difficulty.health), alive: e.alive, active: e.active, angle: finite(e.angle, -1000, 1000) ? e.angle : 0, attackCooldown: .8, hitTimer: 0 };
+      const encounter = this._encounterDefaults(base);
+      for (const key of ['provoked', 'killedByPlayer', 'telegraph', 'blinkCooldown', 'bossPhase', 'phaseTimer', 'bossCycle', 'chargeAngle', 'chargeHit', 'chargeTargetId', 'chargeTargetKind']) {
+        if (e[key] !== undefined) encounter[key] = copy(e[key]);
+      }
+      return { ...base, ...encounter, x: e.x, z: e.z, health: e.health, maxHealth: Math.round(base.maxHealth * difficulty.health), alive: e.alive, active: e.active, angle: finite(e.angle, -1000, 1000) ? e.angle : 0, attackCooldown: e.attackCooldown ?? .8, hitTimer: 0 };
     });
     next.pickups = level.pickups.map(base => ({ ...base, collected: s.pickups.find(v => v.id === base.id).collected }));
     next.doors = level.doors.map(base => ({ ...base, open: s.doors.find(v => v.id === base.id).open }));

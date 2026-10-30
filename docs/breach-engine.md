@@ -38,7 +38,10 @@ cell-center world positions, axis is `x` or `z` (long dimension), requires is nu
 `power`, `exit`, `secret`, or `relay`. Relay progress uses their existing `used`
 flags. Pickups have `{id,type,x,z,amount}` with type `ammo`,
 `shells`, `health`, `armor`, `shotgun`, or `key`. Enemies have
-`{id,type,x,z,health,maxHealth,alive}`; types are `runner`, `spitter`, `brute`.
+`{id,type,x,z,health,maxHealth,alive}`; types are `runner`, `spitter`, `brute`,
+`sentry`, and `stalker`. The reactor guardian is a `brute` with `guardian:true`.
+Security sentries are neutral to players until damaged by a player; use
+`game.isHostileToPlayer(enemy)` rather than treating every living actor as hostile.
 Zones have `{name,x1,x2,z1,z2}`.
 
 `new Game({mission:'blacksite-07',difficulty:'standard',guidance:'simple',aimAssist:true,seed:1})`.
@@ -102,6 +105,16 @@ valid, resolved through their saved level id.
 Guidance (`simple`,`moderate`,`expert`) is independent of combat difficulty
 (`relaxed`,`standard`,`hard`). Defaults: simple + standard, aim assist enabled on
 touch, sound on after explicit Start, and reduced motion respects system setting.
+
+As of 0.5.0, `guidance.mjs` owns presentation filtering: Simple keeps explicit
+requirements, Moderate gives sensory hints, and Expert shows interactions only
+when usable. Progression rules remain in `Game`. Unknown equipment and objective
+locations must not leak through alternate HUD, map, accessibility, or toast paths.
+`touch-controls.mjs` resolves Compact/Standard/Large presets and scales joystick
+travel to the actual pad bounds. Phone presets do not change desktop controls.
+
+Encounter state, telegraphs, save compatibility, and render/audio events are
+specified in [the 0.5.0 gameplay notes](breach-gameplay-05.md).
 
 Source index.html must include `<base href="__BREACH_BASE__">` and
 `<script id="breach-config" type="application/json">__BREACH_CONFIG__</script>`.

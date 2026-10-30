@@ -42,12 +42,48 @@ const zoneTitle = (zone,visuals) => visuals.underworks ? zone.shortName||zone.id
 const localPlayerId = (state) => state.localPlayerId || state.player?.id;
 const otherPlayers = (state) => Object.entries(state.players || {}).filter(([id, player]) => player && id !== localPlayerId(state) && player !== state.player && Number.isFinite(player.x) && Number.isFinite(player.z));
 const localEvent = (event, state) => !event.playerId || !localPlayerId(state) || event.playerId === localPlayerId(state);
-const doorKind = (door) => ['grille','hazard','phase','shortcut'].includes(door.kind) ? door.kind : ({cutter:'grille',insulator:'hazard',phase:'phase'}[door.requires] || door.requires || 'plain');
+const doorKind = (door) => ({cutter:'grille',insulator:'hazard',phase:'phase'}[door.requires] || (['grille','hazard','phase','shortcut'].includes(door.kind) ? door.kind : door.requires || 'plain'));
 const explorationFeature = (item) => ['upgrade','refuge','transit'].includes(item.type);
 const featureMode = (item,state) => item.type==='upgrade' ? Number(!!(item.used||state.upgrades?.[item.upgrade]))
   : item.type==='transit' ? item.used ? (state.interactables||[]).some(other=>other.id===item.destination&&other.used)?2:1 : 0
   : Number(!!item.used);
 const inEntityRange = (entity,player,range) => Math.abs(entity.x-player.x)<=range && Math.abs(entity.z-player.z)<=range;
+const ENEMY_ART = ['runner','spitter','brute','stalker','sentry','sentry-hostile','guardian','guardian-exposed'];
+const enemyArt = enemy => enemy.guardian ? enemy.bossPhase==='recover'?'guardian-exposed':'guardian' : enemy.type==='sentry'&&enemy.provoked?'sentry-hostile':enemy.type;
+const enemyHeight = enemy => enemy.guardian?2.22:enemy.type==='brute'?1.93:enemy.type==='stalker'?1.84:enemy.type==='sentry'?1.74:enemy.type==='spitter'?1.69:1.59;
+const doorReady = (door,state) => !door.requires || door.requires==='power'&&state.power || door.requires==='key'&&state.player.key || door.requires==='relays'&&(state.interactables||[]).filter(item=>item.type==='relay').every(item=>item.used) || !!state.upgrades?.[door.requires];
+const doorFrame = (door,state,clock,reducedMotion) => ({ready:doorReady(door,state),frame:reducedMotion?0:Math.floor(clock*3)%4});
+
+// A repeated shape is the vocabulary: tools and the material they affect carry
+// the same mark. These are readable even without color or an explanatory HUD.
+function capabilityGlyph(c,kind,x,y,size,color='#eee3be'){
+  c.save();c.translate(x-size/2,y-size/2);c.scale(size/32,size/32);
+  if(kind==='cutter'||kind==='grille'){
+    poly(c,[[3,6],[8,2],[18,12],[14,17]],color);poly(c,[[24,2],[29,7],[18,18],[14,14]],color);
+    poly(c,[[13,16],[18,16],[22,29],[17,31],[15,24],[12,31],[7,29]],color);
+    rect(c,23,16,8,2,color);rect(c,24,20,6,2,color);
+  }else if(kind==='insulator'||kind==='hazard'){
+    poly(c,[[16,1],[29,7],[29,23],[16,31],[3,23],[3,7]],color);
+    poly(c,[[16,5],[25,10],[25,21],[16,27],[7,21],[7,10]],'#17262c');
+    poly(c,[[18,7],[10,18],[16,18],[12,26],[23,13],[17,13]],color);
+  }else if(kind==='phase'){
+    poly(c,[[16,1],[29,9],[29,23],[16,31],[3,23],[3,9]],color);
+    poly(c,[[16,5],[25,11],[25,21],[16,27],[7,21],[7,11]],'#232438');
+    rect(c,14,10,4,12,color);rect(c,10,14,12,4,color);
+  }else if(kind==='key'){
+    rect(c,6,3,21,27,color);rect(c,9,7,15,5,'#17262c');rect(c,10,17,5,6,'#17262c');
+    rect(c,18,18,6,2,'#17262c');rect(c,18,23,6,2,'#17262c');
+  }else if(kind==='relays'){
+    rect(c,2,8,9,14,color);rect(c,21,8,9,14,color);rect(c,11,14,10,3,color);
+    rect(c,5,11,3,8,'#17262c');rect(c,24,11,3,8,'#17262c');
+  }else if(kind==='power'){
+    rect(c,7,8,18,14,color);rect(c,10,2,3,8,color);rect(c,19,2,3,8,color);
+    rect(c,14,22,4,9,color);rect(c,11,11,10,3,'#17262c');
+  }else{
+    poly(c,[[3,12],[18,12],[18,5],[30,16],[18,27],[18,20],[3,20]],color);
+  }
+  c.restore();
+}
 
 // Resolve authored sectors once. Rendering never searches zone rectangles per
 // pixel or per wall; the largest map needs only a few kilobytes of cell indices.
@@ -319,51 +355,104 @@ function makeHazardTexture(type){
   return textureFrom(canvas,true);
 }
 
-function makeTraversalDoorTexture(kind){
+function makeTraversalDoorTexture(kind,frame=0,ready=false){
   const[canvas,c]=canvas2d(64,128),color=kind==='grille'?UPGRADE_COLORS.cutter:kind==='hazard'?UPGRADE_COLORS.insulator:kind==='phase'?UPGRADE_COLORS.phase:'#8edbc5';
-  rect(c,0,0,64,128,'#131e24');rect(c,0,0,5,128,'#667875');rect(c,59,0,5,128,'#667875');
+  rect(c,0,0,64,128,'#10191f');rect(c,0,0,5,128,'#667875');rect(c,59,0,5,128,'#667875');
   rect(c,5,0,54,6,'#9fa993');rect(c,5,121,54,7,'#3c514f');
   if(kind==='grille'){
-    for(let x=-48;x<100;x+=13){poly(c,[[x,6],[x+3,6],[x+64,121],[x+61,121]],'#688082');poly(c,[[x,121],[x+3,121],[x+64,6],[x+61,6]],'#35474e');}
-    for(const y of[20,105]){rect(c,5,y,54,5,'#9a7957');rect(c,5,y,54,1,color);}
-    for(const y of[14,35,86,107]){rect(c,4,y,7,8,color);rect(c,53,y,7,8,color);}
+    for(let x=-48;x<100;x+=13){poly(c,[[x,6],[x+3,6],[x+64,121],[x+61,121]],'#587071');poly(c,[[x,121],[x+3,121],[x+64,6],[x+61,6]],'#30444a');}
+    // Heavy welded crossbraces and copper hot spots suggest cutting a material,
+    // rather than a conventional key reader hidden behind a text label.
+    poly(c,[[8,17],[14,13],[56,108],[50,112]],'#b68c61');poly(c,[[50,13],[56,17],[14,112],[8,108]],'#b68c61');
+    for(const[x,y]of[[12,19],[52,19],[12,105],[52,105]]){rect(c,x-4,y-3,8,6,color);rect(c,x-2,y-1,4,2,'#ffe0a6');}
+    for(let i=0;i<8;i++)rect(c,29+(i%2)*2,36+i*7,2,4,'#5c3e32');
   }else if(kind==='hazard'){
-    for(let y=18;y<120;y+=21){rect(c,6,y,52,3,'#d8b94f');rect(c,7,y+1,50,1,'#fff2a3');}
-    for(const x of[10,46]){poly(c,[[x+6,9],[x,28],[x+6,28],[x+2,45],[x+13,23],[x+7,23]],color);}
-    for(let x=5;x<59;x+=13)poly(c,[[x,110],[x+7,110],[x+14,120],[x+7,120]],color);
+    for(const x of[8,51]){rect(c,x,8,5,109,'#83783d');for(let y=12;y<119;y+=9){rect(c,x-2,y,9,4,color);rect(c,x,y,5,1,'#fff0a0');}}
+    for(let y=20;y<120;y+=23){const shift=(frame+y)%4*2;
+      poly(c,[[13,y],[27,y-5+shift],[30,y+4],[43,y-3],[51,y+2],[44,y],[32,y+7],[26,y-2+shift],[13,y+3]],color);
+      rect(c,28,y+1,3,2,'#fff8d5');
+    }
+    for(let x=5;x<59;x+=13)poly(c,[[x,111],[x+7,111],[x+14,121],[x+7,121]],'#d5b24c');
   }else if(kind==='phase'){
-    rect(c,7,7,50,113,'#302844');
-    for(let y=9;y<120;y+=7){rect(c,8,y,48,1,'#6a5592');rect(c,16+(y%3)*8,y+2,12,1,'#b0a0d3');}
-    for(const y of[25,94]){poly(c,[[32,y-13],[47,y-6],[47,y+7],[32,y+14],[17,y+7],[17,y-6]],color);poly(c,[[32,y-9],[43,y-4],[43,y+5],[32,y+10],[21,y+5],[21,y-4]],'#302844');}
+    rect(c,7,7,50,113,'#28243e');
+    for(let y=9;y<120;y+=7){rect(c,8,y,48,1,'#68548f');rect(c,11+(y+frame*5)%27,y+2,14,2,'#b3a2dd');}
+    for(const y of[24,102]){poly(c,[[32,y-12],[47,y-6],[47,y+6],[32,y+13],[17,y+6],[17,y-6]],color);poly(c,[[32,y-8],[43,y-3],[43,y+4],[32,y+9],[21,y+4],[21,y-3]],'#302844');}
+    rect(c,6,12+frame*24,3,22,'#e7d7ff');rect(c,55,87-frame*24,3,22,'#e7d7ff');
   }else{
     for(let y=9;y<120;y+=12){rect(c,6,y,52,9,'#3b5553');rect(c,6,y,52,1,'#83a497');}
-    for(const y of[28,93])poly(c,[[18,y],[34,y],[34,y-7],[47,y+5],[34,y+17],[34,y+10],[18,y+10]],color);
+    for(const y of[28,96])poly(c,[[18,y],[34,y],[34,y-7],[47,y+5],[34,y+17],[34,y+10],[18,y+10]],color);
   }
-  rect(c,7,49,50,30,'#101c25');rect(c,8,49,48,2,color);rect(c,8,77,48,1,color);
-  c.textAlign='center';c.fillStyle=color;c.font='bold 8px monospace';c.fillText(kind==='grille'?'CUTTER':kind==='hazard'?'HIGH VOLT':kind==='phase'?'PHASE':'SHORTCUT',32,62);
-  c.font='6px monospace';c.fillText(kind==='grille'?'SEALED GRILLE':kind==='hazard'?'INSULATION':kind==='phase'?'FIELD BARRIER':'SERVICE LINK',32,72);
+  rect(c,14,46,36,36,'#101c25');rect(c,14,46,36,2,color);rect(c,14,80,36,2,color);
+  capabilityGlyph(c,kind,32,64,27,color);
+  // A fitted capability closes a little circuit around the emblem. An empty
+  // socket remains an incomplete circuit, without spelling out the solution.
+  for(const x of[8,54])rect(c,x,55,2,20,ready?'#c9f0cf':'#3f5352');
+  if(ready){rect(c,8,53,8,2,'#c9f0cf');rect(c,48,53,8,2,'#c9f0cf');}
   return textureFrom(canvas);
 }
 
-function makeDoorTexture(kind, visuals = {}) {
-  if(['grille','hazard','phase','shortcut'].includes(kind))return makeTraversalDoorTexture(kind);
+function makeDoorTexture(kind, visuals = {}, frame=0, ready=false) {
+  if(['grille','hazard','phase','shortcut'].includes(kind))return makeTraversalDoorTexture(kind,frame,ready);
   const [canvas,c] = canvas2d(64,128);
   rect(c,0,0,64,128,'#283339');
   for(let y=3;y<128;y+=16){
-    rect(c,5,y,54,13,'#546062');
-    rect(c,5,y,54,2,'#929789');
-    rect(c,5,y+12,54,2,'#1a252c');
-    rect(c,31,y,2,14,'#273940');
+    rect(c,5,y,54,13,'#546062');rect(c,5,y,54,2,'#929789');
+    rect(c,5,y+12,54,2,'#1a252c');rect(c,31,y,2,14,'#273940');
   }
-  rect(c,0,0,4,128,'#15232a');
-  rect(c,60,0,4,128,'#15232a');
+  rect(c,0,0,4,128,'#15232a');rect(c,60,0,4,128,'#15232a');
   const color = kind === 'relays' ? '#b9a1ed' : kind === 'power' ? '#dd7840' : kind === 'key' ? '#54c6cb' : visuals.relay ? '#9db3db' : '#bca970';
-  rect(c,7,50,50,26,'#111d25');
-  rect(c,8,51,48,2,color);
-  c.font='bold 8px monospace'; c.textAlign='center';c.fillStyle=color;
-  c.fillText(kind==='relays'?'RELAY GATE':kind==='power'?'AUX POWER':kind==='key'?'SECURITY':'ACCESS',32,63);
-  c.font='6px monospace';c.fillText(kind==='relays'?'SYNC BOTH NODES':kind==='key'?'KEY REQUIRED':visuals.doorCode||'BLACKSITE 07',32,71);
-  if(kind==='relays'){rect(c,17,80,11,4,'#b9a1ed');rect(c,36,80,11,4,'#b9a1ed');}
+  rect(c,12,45,40,43,'#111d25');rect(c,13,46,38,2,color);
+  capabilityGlyph(c,kind,32,65,28,ready?'#c9f0cf':color);
+  if(kind==='key'){rect(c,18,81,28,3,'#b9cbbe');rect(c,20,82,24,1,'#071216');}
+  if(kind==='relays')for(const x of[15,39]){rect(c,x,89,10,6,ready?'#c9f0cf':'#433c59');rect(c,x+2,91,6,2,ready?'#efffdf':'#716081');}
+  if(kind==='power'){
+    rect(c,14,95,3,21,ready?'#efcc7b':'#655546');rect(c,47,95,3,21,ready?'#efcc7b':'#655546');
+    rect(c,14,113,ready?36:13,3,ready?'#efcc7b':'#655546');rect(c,38,113,12,3,ready?'#efcc7b':'#655546');
+  }
+  return textureFrom(canvas);
+}
+
+function makeDoorRemnant(kind){
+  const[canvas,c]=canvas2d(64,128),color=kind==='grille'?UPGRADE_COLORS.cutter:kind==='hazard'?UPGRADE_COLORS.insulator:kind==='phase'?UPGRADE_COLORS.phase:'#9ac8b9';
+  for(const x of[1,58]){rect(c,x,1,5,126,'#465a59');rect(c,x+1,3,2,121,color);}
+  if(kind==='grille')for(const[x,y,dx]of[[4,18,1],[59,18,-1],[4,105,1],[59,105,-1]]){
+    poly(c,[[x,y],[x+dx*10,y+dx*14],[x+dx*6,y+dx*14],[x-dx*2,y+3]],'#8e785d');rect(c,x+dx*7,y+dx*12,3,3,'#ffe0ad');
+  }
+  if(kind==='hazard'){rect(c,5,119,54,5,'#b6aa69');for(let x=8;x<58;x+=9)rect(c,x,120,5,2,'#f0e4b4');}
+  if(kind==='phase'){for(const y of[6,117]){rect(c,5,y,13,3,color);rect(c,46,y,13,3,color);}}
+  return textureFrom(canvas);
+}
+
+function makeDoorFrameSet(kind,visuals){
+  const count=['hazard','phase'].includes(kind)?4:1;
+  return [false,true].map(ready=>Array.from({length:count},(_,frame)=>makeDoorTexture(kind,visuals,frame,ready)));
+}
+
+function encounterCues(state){
+  const cues=[];
+  for(const enemy of state.enemies||[]){
+    const t=enemy.telegraph;
+    if(enemy.alive===false||enemy.health<=0||!t||!(t.remaining>0)||!Number.isFinite(t.x)||!Number.isFinite(t.z))continue;
+    cues.push({...t,id:enemy.id,progress:clamp(1-t.remaining/Math.max(.01,t.duration||1),0,1),
+      fromX:Number.isFinite(t.fromX)?t.fromX:enemy.x,fromZ:Number.isFinite(t.fromZ)?t.fromZ:enemy.z,
+      radius:Math.max(.25,t.radius||.6),color:t.kind==='blink'?'#d6baff':t.kind==='shot'?'#f0d58d':'#ffad76',telegraph:true});
+  }
+  for(const effect of state.effects||[]){
+    if(!(effect.life>0)||!Number.isFinite(effect.x)||!Number.isFinite(effect.z))continue;
+    if(!['blink','beam','charge-trail'].includes(effect.type))continue;
+    cues.push({...effect,kind:effect.type,fromX:effect.x,fromZ:effect.z,
+      x:effect.targetX??effect.x,z:effect.targetZ??effect.z,radius:effect.type==='blink'?.65:.26,
+      progress:clamp(effect.life/(effect.type==='blink'?.45:effect.type==='beam'?.14:.25),0,1),
+      color:effect.type==='blink'?'#d6baff':effect.faction==='security'?'#ffe4a2':'#ffad76',telegraph:false});
+  }
+  return cues;
+}
+
+function makePhaseEcho(){
+  const[canvas,c]=canvas2d(64,96);
+  for(const x of[5,55]){rect(c,x,14,4,64,'#c5a1f2');rect(c,x+1,22,2,48,'#ede1ff');}
+  for(const y of[11,80]){rect(c,9,y,18,3,'#c5a1f2');rect(c,38,y,18,3,'#c5a1f2');}
+  capabilityGlyph(c,'phase',32,46,34,'#e0cdff');
   return textureFrom(canvas);
 }
 
@@ -376,7 +465,9 @@ function makeStationTexture(item,mode){
   c.textAlign='center';c.font='bold 10px monospace';c.fillStyle=color;
   const title=type==='upgrade'?(item.upgrade==='phase'?'PHASE MODULE':item.upgrade==='insulator'?'INSULATOR':'THERMAL CUTTER'):type==='refuge'?'REFUGE':'TRANSIT LINK';
   c.fillText(title,56,94);c.font='6px monospace';c.fillStyle='#c5d6c8';
-  c.fillText(type==='upgrade'?(installed?'MODULE INSTALLED':'USE TO INSTALL'):type==='refuge'?(installed?'VISITED / CHECKPOINT':'USE / CHECKPOINT'):mode===2?'LINKED / USE TO TRAVEL':mode===1?'FIND PAIRED STATION':'USE TO ACTIVATE',56,104);
+  if(type==='upgrade')capabilityGlyph(c,item.upgrade,56,124,20,color);
+  else if(type==='refuge'){rect(c,49,118,14,24,color);rect(c,43,124,26,10,color);}
+  else{rect(c,42,118,8,16,color);rect(c,62,118,8,16,mode===2?color:'#43535f');if(mode===2)rect(c,50,124,12,3,color);}
   if(type==='upgrade'){
     rect(c,25,69,64,8,'#61777a');rect(c,29,72,56,3,color);
     if(installed){rect(c,43,56,26,8,'#253b40');poly(c,[[48,55],[54,61],[65,48],[68,51],[54,67],[45,58]],'#b7e6c4');}
@@ -408,7 +499,54 @@ function makeStationTexture(item,mode){
   return textureFrom(canvas);
 }
 
+function drawEncounterEnemy(type,frame){
+  const[canvas,c]=canvas2d(80,112),sentry=type.startsWith('sentry'),angry=type==='sentry-hostile',attack=frame===4,step=frame<4?[0,3,0,-3][frame]:0;
+  const accent=sentry?(angry?'#f08a63':'#ecd28a'):'#d5bbff';
+  if(frame===6){
+    poly(c,[[8,102],[19,94],[58,94],[74,105],[62,110],[16,109]],'#14212b');
+    rect(c,19,96,43,9,sentry?'#92a7a4':'#755d98');rect(c,23,99,11,3,accent);return textureFrom(canvas);
+  }
+  if(sentry){
+    // A manufactured, symmetrical silhouette and white shield distinguish a
+    // security actor from the creatures before the player fires a shot.
+    poly(c,[[28,13],[52,13],[57,28],[66,36],[70,67],[61,79],[63,107],[45,109],[40,85],[35,109],[17,107],[19,78],[10,66],[14,36],[24,29]],'#101e26');
+    for(const[x,offset]of[[22,step],[45,-step]]){rect(c,x+offset,73,12,31,'#586e76');rect(c,x+offset,82,12,5,accent);rect(c,x-3+offset,101,18,7,'#bac9bd');}
+    poly(c,[[24,32],[56,32],[61,64],[53,81],[26,81],[18,59]],'#8fa8a6');
+    rect(c,27,37,25,7,'#dce1c6');rect(c,29,48,22,27,'#233c46');
+    poly(c,[[40,48],[49,53],[47,66],[40,73],[33,66],[31,53]],accent);
+    if(angry){poly(c,[[33,53],[36,51],[47,65],[44,68]],'#662b2e');poly(c,[[44,51],[47,54],[36,68],[33,65]],'#662b2e');}
+    else{poly(c,[[34,57],[40,61],[46,57],[46,61],[40,66],[34,61]],'#f6f2d4');}
+    rect(c,14,35,12,14,'#c3c9ae');rect(c,54,35,12,14,'#c3c9ae');rect(c,14,38,12,4,accent);rect(c,54,38,12,4,accent);
+    const lift=attack?-9:2;
+    poly(c,[[15,48],[25,49],[30,63+lift],[46,62+lift],[48,72+lift],[25,77+lift],[13,63]],'#768b8b');
+    poly(c,[[57,47],[67,48],[66,70+lift],[51,76+lift],[42,71+lift],[45,62+lift],[56,64+lift]],'#9dada3');
+    rect(c,28,61+lift,29,6,'#c3d5cf');rect(c,30,67+lift,25,6,'#233843');rect(c,38,59+lift,9,12,'#526b77');
+    poly(c,[[28,16],[50,16],[55,23],[51,34],[29,34],[25,24]],'#aebfb5');rect(c,27,23,27,7,'#172f3a');
+    if(angry){poly(c,[[29,23],[39,25],[37,28],[29,26]],accent);poly(c,[[41,25],[51,23],[51,26],[43,28]],accent);}
+    else rect(c,30,25,20,3,accent);
+    rect(c,35,33,11,5,'#536f77');
+    if(attack){poly(c,[[42,39],[47,49],[53,47],[49,57],[55,60],[45,64],[40,71],[36,63],[29,61],[34,55],[31,48],[39,50]],'#f4c578');rect(c,38,52,8,9,'#fff5d3');}
+  }else{
+    // A split, almost weightless outline and offset phase rings make the
+    // stalker recognizable at a distance, including while standing still.
+    poly(c,[[29,8],[35,2],[40,13],[47,3],[53,9],[51,24],[61,34],[66,56],[77,83],[69,89],[53,67],[48,88],[54,104],[43,110],[38,94],[31,108],[22,103],[28,83],[23,61],[10,89],[3,83],[17,47],[19,32],[30,23]],'#171a29');
+    poly(c,[[25,30],[52,27],[57,48],[47,78],[33,89],[24,66],[20,46]],'#70598c');
+    poly(c,[[33,32],[47,31],[48,53],[39,76],[32,62]],'#c0a2e6');rect(c,36,40,5,22,'#25283e');
+    poly(c,[[20,32],[27,36],[25,57],[16,79+step],[7,85+step],[14,58]],'#9b84b5');
+    poly(c,[[53,31],[60,36],[63,61],[73,80-step],[68,87-step],[55,68],[51,48]],'#b29bcb');
+    poly(c,[[30,74],[38,82],[32+step,102],[24+step,106],[28+step,87]],'#81709d');
+    poly(c,[[42,76],[50,72],[48-step,89],[53-step,104],[45-step,107],[38-step,88]],'#a28aba');
+    poly(c,[[30,13],[48,12],[53,25],[43,35],[31,29],[27,22]],'#ddd2df');rect(c,30,20,20,6,'#282039');
+    for(const x of[32,39,46])rect(c,x,21,2,3,accent);
+    if(attack){capabilityGlyph(c,'phase',40,55,39,'#e5d4ff');rect(c,39,43,3,24,'#fff1ff');}
+    else for(const[x,y]of[[11,34],[65,52],[20,92]]){rect(c,x,y,6,2,accent);rect(c,x+2,y-2,2,6,accent);}
+  }
+  if(frame===5){c.globalCompositeOperation='source-atop';rect(c,0,0,80,112,'rgba(255,190,151,.48)');}
+  return textureFrom(canvas);
+}
+
 function drawEnemy(type, frame) {
+  if(type==='stalker'||type.startsWith('sentry'))return drawEncounterEnemy(type,frame);
   const [canvas,c] = canvas2d(80,112);
   const dead = frame === 6;
   const attack = frame === 4;
@@ -482,6 +620,20 @@ function drawEnemy(type, frame) {
     rect(c,25,17,31,8,'#202d33');rect(c,28,20,24,3,'#fca260');
     rect(c,30,27,21,9,'#303c40');rect(c,32,29,17,2,'#9b9980');
     rect(c,21,75,36,5,'#17272e');rect(c,35,75,10,7,'#968b64');
+  }
+  if(type.startsWith('guardian')){
+    // The guardian's exposed reactor is a different shape, not just a color
+    // flash. Armor shutters separate after an attack to advertise the opening.
+    poly(c,[[16,30],[12,12],[21,23],[26,10],[30,29]],'#bbc2ab');poly(c,[[52,29],[57,10],[62,23],[70,12],[66,32]],'#bbc2ab');
+    poly(c,[[40,34],[57,43],[57,61],[40,72],[23,61],[23,43]],'#192c35');
+    const exposed=type==='guardian-exposed';
+    if(exposed){
+      poly(c,[[40,38],[52,45],[52,58],[40,66],[28,58],[28,45]],'#88e9e7');
+      poly(c,[[40,42],[47,48],[47,56],[40,61],[33,56],[33,48]],'#fff5cb');
+      for(const x of[21,55])rect(c,x,39,4,26,'#d1b877');
+    }else{
+      for(let y=41;y<65;y+=6){rect(c,27,y,27,4,'#8a9693');rect(c,38,y,5,4,'#eeb36b');}
+    }
   }
   // Deliberate sparse wear gives pixel sprites a material surface without noise mush.
   c.globalCompositeOperation='source-atop';
@@ -626,7 +778,7 @@ class WebGLBreachRenderer {
     this.textures=new Set();this.materials=new Set();this.geometries=new Set();
     this.enemyVisuals=new Map();this.pickupVisuals=new Map();this.doorVisuals=new Map();
     this.teammateVisuals=new Map();this.teammateFrames={};this.teammateFireAt=new Map();
-    this.projectileVisuals=new Map();this.featureVisuals=new Map();this.impacts=[];
+    this.projectileVisuals=new Map();this.featureVisuals=new Map();this.impacts=[];this.cueVisuals=[];this.doorMaterials=new Map();
     this.clock=0;this.recoil=0;this.flash=0;this.bobPhase=0;this.moveAmount=0;
     this.lastX=game.state.player.x;this.lastZ=game.state.player.z;this.deadAt=new Map();
     this.hitAt=new Map();this.lastWeapon=game.state.player.weapon;this.weaponSwap=0;
@@ -648,11 +800,12 @@ class WebGLBreachRenderer {
     canvas.parentElement.appendChild(this.weaponCanvas);
     this.weaponContext=this.weaponCanvas.getContext('2d');
     this.enemyFrames={};
-    for(const type of ['runner','spitter','brute'])this.enemyFrames[type]=Array.from({length:7},(_,i)=>this.texture(drawEnemy(type,i)));
+    for(const type of ENEMY_ART)this.enemyFrames[type]=Array.from({length:7},(_,i)=>this.texture(drawEnemy(type,i)));
     this.pickupMaps={};
     for(const type of ['ammo','shells','health','armor','shotgun','key','healthExpansion'])this.pickupMaps[type]=this.texture(makePickupTexture(type));
     this.plasmaMap=this.texture(makeGlowTexture('#7fe8b1','#e6ffb5'));
     this.impactMap=this.texture(makeGlowTexture('#f8aa58','#fff0b0'));
+    this.phaseEchoMap=this.texture(makePhaseEcho());
     this.buildEnvironment();this.resize();
   }
 
@@ -718,12 +871,15 @@ class WebGLBreachRenderer {
     for(const cells of batches(layout.rails,cell=>`${cell.chunk}:${cell.palette}`))install(beamGeometry,beamMaterials[cells[0].palette],cells,(cell,t)=>{t.position.set(cell.x,2.35,cell.z);t.scale.set(cell.width,1,1);});
 
     // Door artwork and geometry are shared by kind, even across dozens of gates.
-    const doorMaterials=new Map(),doorGeometry={x:this.geometry(new THREE.BoxGeometry(.98,WALL_HEIGHT,.14)),z:this.geometry(new THREE.BoxGeometry(.14,WALL_HEIGHT,.98))};
+    const doorGeometry={x:this.geometry(new THREE.BoxGeometry(.98,WALL_HEIGHT,.14)),z:this.geometry(new THREE.BoxGeometry(.14,WALL_HEIGHT,.98))};
+    const remnants=new Map(),frameGeometry=this.geometry(new THREE.PlaneGeometry(.98,WALL_HEIGHT));
     for(const door of this.game.state.doors){
       const kind=doorKind(door);
-      if(!doorMaterials.has(kind))doorMaterials.set(kind,this.material(new THREE.MeshBasicMaterial({map:this.texture(makeDoorTexture(kind,this.visuals)),color:0xc4cec0})));
-      const mesh=this.mesh(doorGeometry[door.axis]||doorGeometry.x,doorMaterials.get(kind),door.x,WALL_HEIGHT/2,door.z);
-      this.doorVisuals.set(door.id,{mesh,amount:door.open?1:0});
+      if(!this.doorMaterials.has(kind))this.doorMaterials.set(kind,makeDoorFrameSet(kind,this.visuals).map(frames=>frames.map(map=>this.material(new THREE.MeshBasicMaterial({map:this.texture(map),color:0xd8dfcf})))));
+      if(!remnants.has(kind))remnants.set(kind,this.material(new THREE.MeshBasicMaterial({map:this.texture(makeDoorRemnant(kind)),transparent:true,alphaTest:.2,side:THREE.DoubleSide})));
+      const maps=this.doorMaterials.get(kind),mesh=this.mesh(doorGeometry[door.axis]||doorGeometry.x,maps[Number(doorReady(door,this.game.state))][0],door.x,WALL_HEIGHT/2,door.z);
+      const remnant=this.mesh(frameGeometry,remnants.get(kind),door.x,WALL_HEIGHT/2,door.z);remnant.rotation.y=door.axis==='z'?Math.PI/2:0;remnant.visible=door.open;
+      this.doorVisuals.set(door.id,{mesh,remnant,maps,amount:door.open?1:0});
     }
     for(const [index,zone]of (level.zones||[]).entries())this.addZoneSign(zone,index);
     for(const item of this.game.state.interactables||[])this.addFeature(item);
@@ -769,7 +925,7 @@ class WebGLBreachRenderer {
     const isRelay=item.type==='relay';
     const title=isRelay?relayTitle(item):item.type==='power'?(this.visuals.underworks?'CORE POWER':this.visuals.crosslink?'LINK POWER':this.visuals.relay?'RING POWER':'AUX POWER'):'EXTRACTION';
     const maps={
-      off:this.texture(makeSign(title,isRelay?'NODE OFFLINE / SYNCHRONIZE':item.type==='power'?'RESTORE GRID':'CLEARANCE REQUIRED',isRelay?'#b9a1ed':item.type==='power'?'#ecc477':'#81d9c7')),
+      off:this.texture(makeSign(title,isRelay?'LINK 01 / LINK 02':item.type==='power'?'GRID OFFLINE':'LIFT OFFLINE',isRelay?'#b9a1ed':item.type==='power'?'#ecc477':'#81d9c7')),
       on:this.texture(makeSign(title,isRelay?'NODE SYNCHRONIZED':'SYSTEM ONLINE','#a1e4c5')),
     };
     const screen=new THREE.Sprite(this.material(new THREE.SpriteMaterial({map:maps.off})));
@@ -882,17 +1038,20 @@ class WebGLBreachRenderer {
       if(advancing)visual.phase+=dt*(speed>.05?8:2);
       let frame=speed>.05?Math.floor(visual.phase)%4:0;
       const close=Math.hypot(enemy.x-state.player.x,enemy.z-state.player.z)<1.7;
-      if(close&&enemy.active!==false&&Math.sin(this.clock*5+enemy.x)>.4)frame=4;
+      if(close&&enemy.type!=='sentry'&&enemy.active!==false&&Math.sin(this.clock*5+enemy.x)>.4)frame=4;
       if(enemy.type==='spitter'&&enemy.attackCooldown>.8&&Math.sin(this.clock*5)>.5)frame=4;
+      if(enemy.telegraph||enemy.bossPhase==='charge')frame=4;
+      if(enemy.guardian&&enemy.bossPhase==='recover')frame=0;
       if(enemy.hitTimer>0||this.clock-(this.hitAt.get(enemy.id)??-99)<.14)frame=5;
       if(dead)frame=6;
-      const maps=this.enemyFrames[enemy.type]||this.enemyFrames.runner;
+      const maps=this.enemyFrames[enemyArt(enemy)]||this.enemyFrames.runner;
       visual.sprite.material.map=maps[frame];
-      const height=enemy.type==='brute'?1.93:enemy.type==='spitter'?1.69:1.59;
+      const height=enemyHeight(enemy);
       visual.sprite.position.set(enemy.x,.015,enemy.z);visual.sprite.scale.set(height*80/112,height,1);
       visual.shadow.position.set(enemy.x,.008,enemy.z);
       visual.shadow.scale.setScalar(enemy.type==='brute'?1.3:1);
       visual.sprite.material.color.setHex(dead?0x9aa6a5:0xffffff);
+      visual.sprite.material.opacity=enemy.type==='stalker'&&enemy.telegraph?.kind==='blink'?.65:1;
     }
     for(const pickup of state.pickups){
       let sprite=this.pickupVisuals.get(pickup.id);
@@ -909,7 +1068,9 @@ class WebGLBreachRenderer {
       const target=door.open?1:0;
       visual.amount+=clamp(target-visual.amount,-dt*1.7,dt*1.7);
       visual.mesh.position.y=WALL_HEIGHT/2+visual.amount*2.7;
-      visual.mesh.visible=visual.amount<.99&&inEntityRange(door,state.player,this.entityRange);
+      const visible=inEntityRange(door,state.player,this.entityRange),status=doorFrame(door,state,this.clock,this.options.reducedMotion);
+      const frames=visual.maps[Number(status.ready)];visual.mesh.material=frames[status.frame%frames.length];
+      visual.mesh.visible=visual.amount<.99&&visible;visual.remnant.visible=door.open&&visible;
     }
     const featureEntities=new Map((state.interactables||[]).map(item=>[item.id,item]));
     for(const [id,feature]of this.featureVisuals){
@@ -924,6 +1085,7 @@ class WebGLBreachRenderer {
       if(feature.type==='exit')feature.beacon.material.color.setHex(on?0x8affd0:0x547f78);
       if(feature.beacon&&!this.options.reducedMotion)feature.beacon.scale.setScalar(.19+Math.sin(this.clock*3)*.018);
     }
+    this.updateEncounterCues();
     const projectileIds=new Set();
     for(const projectile of state.projectiles||[]){
       projectileIds.add(projectile.id);
@@ -937,6 +1099,34 @@ class WebGLBreachRenderer {
       const impact=this.impacts[i];if(advancing)impact.life-=dt;
       impact.sprite.material.opacity=Math.max(0,impact.life/.13);
       if(impact.life<=0){this.scene.remove(impact.sprite);this.materials.delete(impact.sprite.material);impact.sprite.material.dispose();this.impacts.splice(i,1);}
+    }
+  }
+
+  updateEncounterCues(){
+    const cues=encounterCues(this.game.state).filter(cue=>inEntityRange(cue,this.game.state.player,this.entityRange));
+    this.stats.encounterCues=cues.length;
+    if(!this.cueRingGeometry){this.cueRingGeometry=this.geometry(new THREE.RingGeometry(.90,1,32));this.cueBeamGeometry=this.geometry(new THREE.BoxGeometry(1,1,1));}
+    for(let i=0;i<Math.max(cues.length,this.cueVisuals.length);i++){
+      const cue=cues[i];let visual=this.cueVisuals[i];
+      if(!cue){visual.ring.visible=visual.beam.visible=visual.echo.visible=false;continue;}
+      if(!visual){
+        const ring=this.mesh(this.cueRingGeometry,this.material(new THREE.MeshBasicMaterial({color:0xffbd88,transparent:true,opacity:.65,depthWrite:false,side:THREE.DoubleSide})));ring.rotation.x=-Math.PI/2;
+        const beam=this.mesh(this.cueBeamGeometry,this.material(new THREE.MeshBasicMaterial({color:0xffbd88,transparent:true,opacity:.3,depthWrite:false})));
+        const echo=new THREE.Sprite(this.material(new THREE.SpriteMaterial({map:this.phaseEchoMap,transparent:true,opacity:.8,depthWrite:false,blending:THREE.AdditiveBlending})));
+        echo.center.set(.5,0);this.scene.add(echo);visual={ring,beam,echo};this.cueVisuals.push(visual);
+      }
+      const line=cue.kind==='charge'||cue.kind==='beam'||cue.kind==='shot';
+      visual.ring.visible=cue.kind!=='beam';visual.beam.visible=line;visual.echo.visible=cue.kind==='blink';
+      visual.ring.position.set(cue.x,.035,cue.z);visual.ring.scale.setScalar(cue.radius);
+      visual.ring.material.color.set(cue.color);visual.ring.material.opacity=cue.telegraph?.38+.45*cue.progress:.6*cue.progress;
+      if(line){
+        const length=Math.hypot(cue.x-cue.fromX,cue.z-cue.fromZ),charge=cue.kind==='charge';
+        visual.beam.position.set((cue.x+cue.fromX)/2,charge?.025:.96,(cue.z+cue.fromZ)/2);
+        visual.beam.rotation.y=Math.atan2(cue.x-cue.fromX,cue.z-cue.fromZ);
+        visual.beam.scale.set(charge?cue.radius*1.6:cue.kind==='shot'?.025:.055,charge?.015:.025,Math.max(.01,length));
+        visual.beam.material.color.set(cue.color);visual.beam.material.opacity=charge?.14+.14*cue.progress:cue.kind==='shot'?.25:.9*cue.progress;
+      }
+      visual.echo.position.set(cue.x,.015,cue.z);visual.echo.scale.set(.95,1.4,1);visual.echo.material.opacity=cue.telegraph?.35+.5*cue.progress:.8*cue.progress;
     }
   }
 
@@ -1055,12 +1245,17 @@ class SoftwareBreachRenderer {
     this.floorPixelsByPalette=this.layout.names.map(name=>image(this.visuals.underworks?makeSectorFloorTexture(name):makeFloorTexture(false,this.visuals.relay,this.visuals.crosslink)).getContext('2d').getImageData(0,0,64,64).data);
     this.ceilingPixelsByPalette=this.layout.names.map(name=>image(this.visuals.underworks?makeSectorFloorTexture(name,true):makeFloorTexture(true,this.visuals.relay,this.visuals.crosslink)).getContext('2d').getImageData(0,0,64,64).data);
     this.hazardPixels=this.visuals.underworks?[null,...['flood','conduit'].map(type=>image(makeHazardTexture(type)).getContext('2d').getImageData(0,0,64,64).data)]:[null];
-    this.doorImages={};for(const kind of new Set(['plain',...game.state.doors.map(doorKind)]))this.doorImages[kind]=image(makeDoorTexture(kind,this.visuals));
+    this.doorImages={};this.doorRemnants={};
+    for(const kind of new Set(['plain',...game.state.doors.map(doorKind)])){
+      this.doorImages[kind]=makeDoorFrameSet(kind,this.visuals).map(frames=>frames.map(image));
+      this.doorRemnants[kind]=image(makeDoorRemnant(kind));
+    }
     this.doorCells=new Array(game.level.width*game.level.height).fill(null);
-    this.enemyFrames={};for(const type of ['runner','spitter','brute'])this.enemyFrames[type]=Array.from({length:7},(_,i)=>image(drawEnemy(type,i)));
+    this.enemyFrames={};for(const type of ENEMY_ART)this.enemyFrames[type]=Array.from({length:7},(_,i)=>image(drawEnemy(type,i)));
     this.pickupImages={};for(const type of ['ammo','shells','health','armor','shotgun','key','healthExpansion'])this.pickupImages[type]=image(makePickupTexture(type));
     this.plasmaImage=image(makeGlowTexture('#7fe8b1','#e6ffb5'));
     this.impactImage=image(makeGlowTexture('#f8aa58','#fff0b0'));
+    this.phaseEchoImage=image(makePhaseEcho());
     this.powerImages={off:this.featureImage('power',false),on:this.featureImage('power',true)};
     this.exitImages={off:this.featureImage('exit',false),on:this.featureImage('exit',true)};
     this.relayImages=new Map((game.state.interactables||[]).filter(item=>item.type==='relay').map(item=>[item.id,{off:this.featureImage('relay',false,relayTitle(item)),on:this.featureImage('relay',true,relayTitle(item))}]));
@@ -1109,7 +1304,7 @@ class SoftwareBreachRenderer {
     rect(c,39,80,21,3,'#182c36');rect(c,39,87,21,3,'#182c36');rect(c,39,94,21,3,'#182c36');
     rect(c,8,37,80,34,'#101f28');rect(c,8,37,80,3,color);rect(c,12,41,72,2,'#354d54');
     c.font='bold 9px monospace';c.fillStyle=color;c.textAlign='center';c.fillText((title||(type==='power'?(this.visuals.underworks?'CORE POWER':this.visuals.crosslink?'LINK POWER':this.visuals.relay?'RING POWER':'AUX POWER'):'EXTRACTION')).slice(0,13),48,54);
-    c.font='6px monospace';c.fillStyle='#b5c3b4';c.fillText(on?(type==='relay'?'SYNCHRONIZED':'SYSTEM ONLINE'):type==='relay'?'NODE OFFLINE':type==='power'?'RESTORE GRID':'CLEARANCE REQUIRED',48,65);
+    c.font='6px monospace';c.fillStyle='#b5c3b4';c.fillText(on?(type==='relay'?'SYNCHRONIZED':'SYSTEM ONLINE'):type==='relay'?'NODE OFFLINE':type==='power'?'GRID OFFLINE':'LIFT OFFLINE',48,65);
     rect(c,43,19,11,12,color);rect(c,46,16,5,18,on?'#d2f0c5':'#f4cf86');
     if(type==='exit'){rect(c,2,12,3,116,color);rect(c,91,12,3,116,color);rect(c,2,10,92,3,color);}
     if(type==='relay'){
@@ -1175,7 +1370,7 @@ class SoftwareBreachRenderer {
     this.forwardX=Math.sin(angle);this.forwardZ=-Math.cos(angle);this.rightX=Math.cos(angle);this.rightZ=Math.sin(angle);
     this.eye=(state.status==='dead'||p.alive===false||p.health<=0)? .65:EYE_HEIGHT;
     this.horizon=Math.round(this.height/2+(this.options.reducedMotion||state.status!=='playing'?0:Math.sin(this.bobPhase)*this.moveAmount*1.2));
-    this.drawPlanes(p);this.drawWalls(p);this.drawWallSigns(p);this.drawSprites(dt,advancing,p);
+    this.drawPlanes(p);this.drawWalls(p);this.drawWallSigns(p);this.drawDoorRemnants(p);this.drawEncounterCues(p);this.drawSprites(dt,advancing,p);
     WebGLBreachRenderer.prototype.drawWeapon.call(this);
   }
 
@@ -1212,6 +1407,8 @@ class SoftwareBreachRenderer {
     const c=this.context,w=this.width,h=this.height,level=this.game.level;
     const fogRgb=this.visuals.fogRgb.join(',');
     const closed=this.doorCells;closed.fill(null);
+    const currentDoorImages=new Map();
+    for(const door of this.game.state.doors){const status=doorFrame(door,this.game.state,this.clock,this.options.reducedMotion),frames=this.doorImages[doorKind(door)][Number(status.ready)];currentDoorImages.set(door.id,frames[status.frame%frames.length]);}
     for(const door of this.game.state.doors)if(!door.open)closed[Math.floor(door.z)*level.width+Math.floor(door.x)]=door;
     let traversed=0,maxSteps=0;
     for(let column=0;column<w;column++){
@@ -1239,7 +1436,7 @@ class SoftwareBreachRenderer {
       const top=this.horizon-(WALL_HEIGHT-this.eye)*this.projection/distance;
       let wallX=side===0?p.z+distance*rayZ:p.x+distance*rayX;wallX-=Math.floor(wallX);
       const sector=this.layout.paletteAt(mapX-(side===0?stepX:0),mapZ-(side===1?stepZ:0));
-      const texture=door?this.doorImages[doorKind(door)]||this.doorImages.plain:this.wallImages[sector];
+      const texture=door?currentDoorImages.get(door.id):this.wallImages[sector];
       let texX=Math.floor(wallX*texture.width);
       // U must increase from screen-left to screen-right. Our camera's right
       // vector is (cos(angle), sin(angle)): west/south faces need the reversal,
@@ -1277,12 +1474,14 @@ class SoftwareBreachRenderer {
       if(advancing)motion.phase+=dt*(speed>.05?8:2);
       let frame=speed>.05?Math.floor(motion.phase)%4:0;
       const close=Math.hypot(enemy.x-p.x,enemy.z-p.z)<1.7;
-      if(close&&enemy.active!==false&&Math.sin(this.clock*5+enemy.x)>.4)frame=4;
+      if(close&&enemy.type!=='sentry'&&enemy.active!==false&&Math.sin(this.clock*5+enemy.x)>.4)frame=4;
       if(enemy.type==='spitter'&&enemy.attackCooldown>.8&&Math.sin(this.clock*5)>.5)frame=4;
+      if(enemy.telegraph||enemy.bossPhase==='charge')frame=4;
+      if(enemy.guardian&&enemy.bossPhase==='recover')frame=0;
       if(enemy.hitTimer>0||this.clock-(this.hitAt.get(enemy.id)??-99)<.14)frame=5;
       if(enemy.alive===false||enemy.health<=0)frame=6;
-      const height=enemy.type==='brute'?1.93:enemy.type==='spitter'?1.69:1.59;
-      add((this.enemyFrames[enemy.type]||this.enemyFrames.runner)[frame],enemy.x,enemy.z,height*80/112,height,.015);
+      const height=enemyHeight(enemy);
+      add((this.enemyFrames[enemyArt(enemy)]||this.enemyFrames.runner)[frame],enemy.x,enemy.z,height*80/112,height,.015);
     }
     for(const pickup of state.pickups)if(!pickup.collected){
       const size=pickup.type==='shotgun'?.78:pickup.type==='healthExpansion'?.7:.56;
@@ -1303,6 +1502,7 @@ class SoftwareBreachRenderer {
       if(feature.type==='exit')add(exitReady(state)?this.exitImages.on:this.exitImages.off,feature.x,feature.z,1.1,1.6);
       if(feature.type==='secret')add(this.secretImage,feature.x,feature.z,.55,.17,1.26);
     }
+    for(const cue of encounterCues(state))if(cue.kind==='blink')add(this.phaseEchoImage,cue.x,cue.z,.95,1.4,.015,true);
     for(const projectile of state.projectiles||[])add(this.plasmaImage,projectile.x,projectile.z,.22,.22,(projectile.y??1.02)-.11,true);
     for(let i=this.impacts.length-1;i>=0;i--){
       const impact=this.impacts[i];if(advancing)impact.life-=dt;
@@ -1334,11 +1534,47 @@ class SoftwareBreachRenderer {
     c.globalAlpha=1;c.globalCompositeOperation='source-over';
   }
 
-  drawWallSigns(p){
+  drawEncounterCues(p){
+    const cues=encounterCues(this.game.state),c=this.context;
+    this.stats.encounterCues=cues.length;this.stats.drawnCuePoints=0;
+    const dot=(x,z,y,color,width=.07)=>{
+      const dx=x-p.x,dz=z-p.z,depth=dx*this.forwardX+dz*this.forwardZ;
+      if(depth<.06||depth>VIEW_DEPTH)return;
+      const sx=this.width/2+(dx*this.rightX+dz*this.rightZ)*this.projection/depth,index=Math.floor(sx);
+      if(index<0||index>=this.width||depth>this.depth[index]+.04)return;
+      const sy=this.horizon+(this.eye-y)*this.projection/depth,size=clamp(width*this.projection/depth,1,5);
+      if(sy<0||sy>this.height)return;
+      c.fillStyle=color;c.fillRect(Math.round(sx-size/2),Math.round(sy-size/2),Math.ceil(size),Math.ceil(size));this.stats.drawnCuePoints++;
+    };
+    const line=(ax,az,bx,bz,y,color,width)=>{const steps=clamp(Math.ceil(Math.hypot(ax-bx,az-bz)/.10),2,96);for(let i=0;i<=steps;i++)dot(ax+(bx-ax)*i/steps,az+(bz-az)*i/steps,y,color,width);};
+    for(const cue of cues){
+      if(!inEntityRange(cue,p,this.entityRange))continue;
+      c.globalAlpha=cue.telegraph?.55+.4*cue.progress:.8*cue.progress;
+      if(cue.kind!=='beam')for(let i=0;i<40;i++){const a=i/40*Math.PI*2;dot(cue.x+Math.cos(a)*cue.radius,cue.z+Math.sin(a)*cue.radius,.035,cue.color,.085);}
+      if(cue.kind==='charge'){
+        const dx=cue.x-cue.fromX,dz=cue.z-cue.fromZ,length=Math.max(.01,Math.hypot(dx,dz)),ox=dz/length*cue.radius*.8,oz=-dx/length*cue.radius*.8;
+        for(const side of[-1,1])line(cue.fromX+ox*side,cue.fromZ+oz*side,cue.x+ox*side,cue.z+oz*side,.04,cue.color,.08);
+      }else if(cue.kind==='beam'||cue.kind==='shot')line(cue.fromX,cue.fromZ,cue.x,cue.z,.96,cue.color,cue.kind==='shot'?.025:.065);
+    }
+    c.globalAlpha=1;
+  }
+
+  drawDoorRemnants(p){
+    const panels=[];
+    for(const door of this.game.state.doors)if(door.open&&inEntityRange(door,p,this.entityRange)){
+      panels.push({x:door.x,z:door.z,dx:door.axis==='z'?(p.x>door.x?-1:1):0,dz:door.axis==='z'?0:(p.z>door.z?-1:1),
+        width:.98,height:WALL_HEIGHT,bottom:0,image:this.doorRemnants[doorKind(door)]});
+    }
+    this.drawWallPanels(p,panels);
+  }
+
+  drawWallSigns(p){this.drawWallPanels(p,this.zoneSigns);}
+
+  drawWallPanels(p,panels){
     // A wall sign is a plane, not a billboard. Per-column perspective depth
     // prevents angled lettering from clipping into the wall behind it.
     const c=this.context,w=this.width;
-    for(const sign of this.zoneSigns){
+    for(const sign of panels){
       if((p.x-sign.x)*-sign.dx+(p.z-sign.z)*-sign.dz<=0)continue;
       const tx=-sign.dz*sign.width/2,tz=sign.dx*sign.width/2;
       const ax=sign.x-tx-p.x,az=sign.z-tz-p.z,bx=sign.x+tx-p.x,bz=sign.z+tz-p.z;

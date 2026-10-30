@@ -152,9 +152,9 @@ export function createUnderworks() {
     enemy('f1', 'runner', 19, 40), enemy('f2', 'spitter', 18, 33), enemy('f3', 'runner', 5, 39), enemy('f4', 'brute', 11, 39), enemy('f5', 'runner', 14, 47),
     enemy('p1', 'runner', 59, 40), enemy('p2', 'spitter', 66, 32), enemy('p3', 'runner', 75, 38), enemy('p4', 'runner', 67, 46), enemy('p5', 'brute', 65, 40),
     enemy('flood1', 'runner', 67, 59), enemy('flood2', 'spitter', 74, 64), enemy('flood3', 'runner', 60, 66), enemy('flood4', 'brute', 68, 67), enemy('flood5', 'runner', 72, 74),
-    enemy('q1', 'runner', 13, 64), enemy('q2', 'spitter', 20, 67), enemy('q3', 'runner', 5, 59), enemy('q4', 'runner', 21, 74),
-    enemy('r1', 'runner', 13, 21), enemy('r2', 'spitter', 20, 15), enemy('r3', 'brute', 11, 14), enemy('r4', 'runner', 6, 10), enemy('r5', 'spitter', 11, 5),
-    enemy('ar1', 'runner', 67, 22), enemy('ar2', 'spitter', 59, 15), enemy('ar3', 'runner', 65, 18), enemy('ar4', 'brute', 72, 6), enemy('ar5', 'runner', 76, 8),
+    enemy('q1', 'runner', 13, 64), enemy('q2', 'spitter', 20, 67), enemy('q3', 'runner', 5, 59), { ...enemy('q4', 'sentry', 21, 74, 120), faction: 'security' },
+    enemy('r1', 'runner', 13, 21), enemy('r2', 'spitter', 20, 15), enemy('r3', 'brute', 11, 14), enemy('r4', 'stalker', 6, 10, 86), enemy('r5', 'spitter', 11, 5),
+    enemy('ar1', 'runner', 67, 22), enemy('ar2', 'spitter', 59, 15), enemy('ar3', 'stalker', 65, 18, 86), enemy('ar4', 'brute', 72, 6), enemy('ar5', 'runner', 76, 8),
     enemy('core1', 'runner', 33, 13), enemy('core2', 'spitter', 47, 14), enemy('core3', 'runner', 39, 15),
     { ...enemy('reactor-guardian', 'brute', 41, 12, 360), guardian: true },
   ];

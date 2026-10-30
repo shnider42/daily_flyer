@@ -38,8 +38,12 @@ export class BreachAudio {
     source.connect(filter); filter.connect(gain); gain.connect(this.master); source.start();
     source.onended = () => { source.disconnect(); filter.disconnect(); gain.disconnect(); };
   }
-  events(events) {
+  events(events, listener = null) {
     for(const event of events) {
+      const encounter = ['enemy-warning','enemy-shot','teleport','provoked','boss-phase'].includes(event.type);
+      const distance = listener && Number.isFinite(event.x) && Number.isFinite(event.z) ? Math.hypot(event.x-listener.x,event.z-listener.z) : 0;
+      if(encounter && distance > 14) continue;
+      const volume = Math.max(.15, 1-distance/16);
       switch(event.type) {
         case 'shot': this.noise(event.weapon === 'shotgun' ? .27 : .13, event.weapon === 'shotgun' ? 1.2 : .65, event.weapon === 'shotgun' ? 2600 : 1800); this.tone(event.weapon === 'shotgun' ? 110 : 145, .15, .4, 30, 'triangle'); break;
         case 'hit': this.tone(170, .06, .13, 75, 'square'); break;
@@ -50,6 +54,16 @@ export class BreachAudio {
         case 'relay': [392,587,784].forEach((f,i)=>this.tone(f,.18,.14,f,'sine',i*.1)); break;
         case 'checkpoint': this.tone(520, .15, .15, 520); this.tone(780, .2, .15, 780, 'sine', .16); break;
         case 'secret': [330,440,660].forEach((f,i)=>this.tone(f,.25,.17,f,'triangle',i*.12)); break;
+        case 'enemy-warning':
+          if(event.kind==='blink') { this.tone(190,.55,.12*volume,620,'sine'); this.tone(285,.55,.07*volume,930,'sine'); }
+          else if(event.kind==='charge') this.tone(65,.7,.16*volume,135,'triangle');
+          else if(event.kind==='volley') [165,220,330].forEach((f,i)=>this.tone(f,.13,.11*volume,f,'triangle',i*.16));
+          else if(event.kind==='shot') this.tone(540,.16,.06*volume,610,'sine');
+          break;
+        case 'enemy-shot': this.tone(event.faction==='security'?720:190,.12,.11*volume,event.faction==='security'?280:65,'triangle'); break;
+        case 'teleport': this.noise(.16,.1*volume,1700); this.tone(760,.22,.12*volume,115,'sine'); break;
+        case 'provoked': this.tone(630,.12,.13*volume,630,'square'); this.tone(420,.16,.1*volume,420,'square',.16); break;
+        case 'boss-phase': if(event.phase==='recover') { this.noise(.45,.12*volume,650); this.tone(180,.5,.12*volume,55,'triangle'); } break;
         case 'death': this.tone(160, .9, .4, 25, 'triangle'); break;
         case 'win': [262,330,392,523].forEach((f,i)=>this.tone(f,.5,.2,f,'triangle',i*.16)); break;
       }

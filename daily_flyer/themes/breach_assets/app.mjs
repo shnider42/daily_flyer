@@ -2,6 +2,8 @@ import { Game, MISSIONS } from './core.mjs';
 import { BreachRenderer } from './renderer.mjs';
 import { BreachAudio } from './audio.mjs';
 import { CoopClient } from './coop-client.mjs';
+import { GUIDANCE_DESCRIPTIONS, interactionForGuidance, objectiveForGuidance, briefingForGuidance, noticeForGuidance, markerLabelForGuidance, markerCueForGuidance, visibleEquipment, hostileToPlayer, automaticFireAllowed } from './guidance.mjs';
+import { resolveTouchPreset, joystickVector } from './touch-controls.mjs';
 
 const $ = id => document.getElementById(id);
 const SETTINGS_KEY = 'dfe.breach.settings.v1';
@@ -25,6 +27,7 @@ const settings = {
   fov: [80,90].includes(prior.fov) ? prior.fov : null,
   quality: choices(prior.quality, ['auto','low','high'], 'auto'),
   controls: choices(prior.controls, ['auto','touch','keyboard'], 'auto'),
+  touchPreset: resolveTouchPreset(prior.touchPreset, {coarse:touch,width:innerWidth,height:innerHeight}),
   guidance: choices(prior.guidance, ['simple','moderate','expert'], 'simple'),
   difficulty: choices(prior.difficulty, ['relaxed','standard','hard'], 'standard'),
   sound: typeof prior.sound === 'boolean' ? prior.sound : true,
@@ -74,6 +77,7 @@ function formatTime(value) {
 function setTouch(value) {
   touch = value;
   document.body.classList.toggle('touch',touch);
+  document.body.dataset.touchPreset=settings.touchPreset;
   $('device-hint').textContent = touch ? 'TOUCH TO PLAY · LANDSCAPE RECOMMENDED' : 'WASD MOVE · MOUSE AIM · E INTERACT';
   if(ready && !statusError) $('load-status').textContent = touch ? 'READY · TURN YOUR PHONE SIDEWAYS FOR A WIDER VIEW' : 'READY · CLICK TO ENTER';
 }
@@ -155,6 +159,7 @@ function setMode(next) {
 function saveSettings() {
   writeStorage(SETTINGS_KEY,settings);
   document.body.classList.toggle('reduced-motion',settings.reducedMotion);
+  document.body.dataset.guidance=settings.guidance;
   if(game) { game.options.guidance = settings.guidance; game.options.aimAssist = settings.aimAssist; }
   if(renderer) { renderer.options.reducedMotion = settings.reducedMotion; renderer.options.fov = settings.fov; renderer.options.quality = settings.quality; renderer.resize(); }
   applyControlMode();
@@ -164,19 +169,26 @@ function saveSettings() {
 function updateChoices() {
   document.querySelectorAll('[data-guidance]').forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.guidance === settings.guidance)));
   document.querySelectorAll('[data-difficulty]').forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.difficulty === settings.difficulty)));
-  $('guidance-description').textContent = {
-    simple:'Learn as you play, with clear objectives and a route hint.',
-    moderate:'Clear objectives with fewer prompts. Explore at your own pace.',
-    expert:'Minimal guidance. Read the facility and find your own route.',
-  }[settings.guidance];
+  $('guidance-description').textContent=GUIDANCE_DESCRIPTIONS[settings.guidance];
+  document.body.dataset.guidance=settings.guidance;
   $('difficulty-description').textContent = {
     relaxed:'More breathing room. Enemies are slower and less dangerous.',
     standard:'A balanced first run. Keep moving and watch your ammunition.',
     hard:'More pressure, tougher enemies. Every supply matters.',
   }[settings.difficulty];
 }
+function changeGuidance(value) {
+  settings.guidance=choices(value,['simple','moderate','expert'],'simple');
+  $('toast').hidden=true;toastTimer=0;pathHint=null;pathTimer=0;mapDirty=true;mapIndexSignature='';
+  updateTutorial.identity=null;helpRevealed=performance.now();
+  updateChoices();saveSettings();updateSettingsFields();updateMissionMenu();updateRoomBriefing();
+  $('minimap').setAttribute('aria-label',settings.guidance==='simple'?'Map showing explored facility, your position, and the current objective':'Map showing explored facility and your position');
+  if(game){updateHud();if(mapVisible){if(settings.guidance==='simple')pathHint=calculatePath();drawMap();}}
+}
 function updateSettingsFields() {
   $('setting-controls').value = settings.controls;
+  $('setting-touch-preset').value = settings.touchPreset;
+  $('setting-guidance').value = settings.guidance;
   $('setting-fov').value = settings.fov === null ? 'auto' : String(settings.fov);
   $('setting-quality').value = settings.quality;
   $('setting-sound').checked = settings.sound;
@@ -201,8 +213,10 @@ function updateMissionMenu() {
   $('mission-number').textContent=`MISSION ${selected.number}`;
   $('mission-subtitle').textContent=selected.subtitle;
   $('mission-title').textContent=selected.name.toUpperCase();
-  $('mission-briefing').textContent=selected.briefing;
-  $('mission-steps').replaceChildren(...selected.steps.map((step,index)=>{
+  const briefing=briefingForGuidance(selected,settings.guidance);
+  $('mission-briefing').textContent=briefing.text;
+  $('mission-steps').hidden=!briefing.steps.length;
+  $('mission-steps').replaceChildren(...briefing.steps.map((step,index)=>{
     const li=document.createElement('li'),number=document.createElement('span');
     number.textContent=String(index+1).padStart(2,'0');li.append(number,document.createTextNode(step));return li;
   }));
@@ -324,7 +338,7 @@ function finish(won) {
   $('end-next').hidden=!won||!next;
   if(next){$('end-next').textContent=`NEXT: ${next.name.toUpperCase()} ↗`;$('end-next').dataset.mission=next.id;}
   $('result-time').textContent = formatTime(game.state.time);
-  $('result-kills').textContent = `${game.state.kills} / ${game.state.enemies.length}`;
+  $('result-kills').textContent = String(game.state.kills);
   $('result-secrets').textContent = `${game.state.secretFound ? 1 : 0} / 1`;
   $('end-checkpoint').hidden = won || !game.state.checkpoint;
   const secondaryRestart=(!won&&game.state.checkpoint)||(won&&!!next);
@@ -358,7 +372,7 @@ function updateRoomBriefing(id) {
   const mission=missionForId(id||coop?.room?.mission||$('room-mission').value);
   $('room-mission-tag').textContent=`MISSION ${mission.number} / PRIVATE CO-OP`;
   $('room-mission-title').textContent=mission.name.toUpperCase();
-  $('room-mission-briefing').textContent=mission.briefing;
+  $('room-mission-briefing').textContent=briefingForGuidance(mission,settings.guidance).text;
   $('room-exploration-rule').hidden=mission.id!=='underworks-13';
 }
 function populateRoomMissions() {
@@ -448,7 +462,7 @@ function finishRoom(won) {
   $('end-kicker').textContent=won?'TEAM EXTRACTION CONFIRMED':'TEAM SIGNAL LOST';
   $('end-title').innerHTML=won?'TOGETHER<span>_</span>':'TEAM DOWN<span>_</span>';
   $('end-copy').textContent=won?`${missionForId(coop.room.mission).name} is clear. Your team made it out.`:'Both operators are down. Regroup at the shared checkpoint and try again.';
-  $('result-time').textContent=formatTime(game.state.time);$('result-kills').textContent=`${game.state.kills} / ${game.state.enemies.length}`;
+  $('result-time').textContent=formatTime(game.state.time);$('result-kills').textContent=String(game.state.kills);
   $('result-secrets').textContent=`${game.state.secretFound?1:0} / 1`;
   $('end-next').hidden=true;$('end-checkpoint').hidden=won||!game.state.checkpoint||!roomOwner();
   $('end-restart').hidden=!roomOwner();$('end-restart').disabled=!coop.connected;
@@ -546,7 +560,7 @@ function updateMapVisibility() {
   $('map-toggle').setAttribute('aria-label',mapVisible?'Hide map':'Show map');
   $('map-title').textContent=large?currentMission().name.toUpperCase():'FACILITY MAP';
   $('map-help').textContent=coop?'Drag to pan · + / − to zoom. The whole team is paused. Close the map, then both choose Resume.':'Drag to pan · + / − to zoom. Close the map to return to Resume. Arrow keys pan; Home finds you.';
-  if(mapVisible){revealMap();if(large){pathHint=calculatePath();refreshMapIndex(true);}drawMap();}
+  if(mapVisible){revealMap();if(large){pathHint=settings.guidance==='simple'?calculatePath():null;refreshMapIndex(true);}drawMap();}
 }
 function closeMap() {
   mapVisible=false;mapPan=null;updateMapVisibility();
@@ -577,13 +591,15 @@ function revealMap() {
   mapDirty=true;
 }
 function markerSymbol(marker) {
-  return {refuge:'+',transit:'T',upgrade:'◆',grille:'C',hazard:'I',phase:'Φ',shortcut:'↔',exit:'⇧',cache:'□',guardian:'!',power:'P',relay:'R',key:'K',gate:'▣'}[marker.type]||'•';
+  return {refuge:'+',transit:'T',upgrade:'◆',grille:'╳',hazard:'ϟ',phase:'◎',shortcut:'↔',exit:'⇧',cache:'□',guardian:'!',power:'P',relay:'R',key:'K',gate:'▣'}[marker.type]||'•';
 }
 function markerColor(marker) {
-  if(marker.locked)return '#d28d70';
+  if(marker.locked&&settings.guidance==='simple')return '#d28d70';
   return {refuge:'#a9deba',transit:'#81cfd9',upgrade:'#f2bd66',grille:'#e8ad5f',hazard:'#a6d5b2',phase:'#c0a2e7',exit:'#eee8ce',guardian:'#f49b72',cache:'#a8bbaa'}[marker.type]||'#a3bdae';
 }
 function markerDescription(marker,info=mapInfo()) {
+  const observed=markerCueForGuidance(marker,settings.guidance);
+  if(observed!==null)return observed;
   const equipment=info.upgrades.find(item=>item.id===marker.requires)?.name;
   if(marker.locked)return equipment?`Needs ${equipment}`:({power:'Needs central power',relays:'Needs both relay links',key:'Needs the lift key',guardian:'Defeat the guardian first'}[marker.requires]||'Route not yet available');
   if(marker.type==='upgrade')return marker.active?'Equipment acquired':'Equipment available here';
@@ -596,7 +612,8 @@ function markerDescription(marker,info=mapInfo()) {
   return marker.active?'Activated':'Discovered landmark';
 }
 function upgradeTokens(container,upgrades,compact=false) {
-  const signature=upgrades.map(item=>`${item.id}:${item.owned}`).join('|');
+  upgrades=visibleEquipment(upgrades,settings.guidance);
+  const signature=`${settings.guidance}:${upgrades.map(item=>`${item.id}:${item.owned}`).join('|')}`;
   if(container.dataset.signature===signature)return;container.dataset.signature=signature;
   container.replaceChildren(...upgrades.map(item=>{
     const token=document.createElement('span');token.className=`equipment-token${item.owned?' owned':''}`;
@@ -607,8 +624,10 @@ function upgradeTokens(container,upgrades,compact=false) {
 function refreshMapIndex(force=false) {
   if(!game.level.exploration)return;
   const info=mapInfo(),level=game.level;
-  const signature=`${explored.size}:${info.markers.map(m=>`${m.id}:${m.active}:${m.locked}`).join('|')}:${info.upgrades.map(u=>u.owned).join('')}`;
-  $('map-objective').textContent=game.getObjective().title;
+  const signature=`${settings.guidance}:${explored.size}:${info.markers.map(m=>`${m.id}:${m.active}:${m.locked}`).join('|')}:${info.upgrades.map(u=>u.owned).join('')}`;
+  const objective=objectiveForGuidance(game.getObjective(),settings.guidance);
+  $('map-objective').textContent=objective?.title||'';
+  $('map-objective').closest('.map-current').hidden=!objective;
   if(!force&&signature===mapIndexSignature)return;mapIndexSignature=signature;
   let floorSeen=0;const sectorSeen=new Set();
   for(const index of explored){const x=index%level.width,z=Math.floor(index/level.width);if(level.grid[z]?.[x]==='#')continue;floorSeen++;
@@ -632,9 +651,9 @@ function refreshMapIndex(force=false) {
     button.setAttribute('aria-pressed',String(marker.id===mapSelected));
     const icon=document.createElement('b');icon.textContent=markerSymbol(marker);icon.style.color=markerColor(marker);
     const content=document.createElement('span'),label=document.createElement('strong'),detail=document.createElement('small');
-    label.textContent=marker.label;detail.textContent=markerDescription(marker,info);content.append(label,detail);button.append(icon,content);return button;
+    label.textContent=markerLabelForGuidance(marker,settings.guidance);detail.textContent=markerDescription(marker,info);detail.hidden=!detail.textContent;content.append(label,detail);button.append(icon,content);return button;
   }));
-  if(mapSelected){const marker=mapKnownMarkers.find(item=>item.id===mapSelected);if(marker)$('map-selection').textContent=`${marker.label} · ${markerDescription(marker,info)}`;}
+  if(mapSelected){const marker=mapKnownMarkers.find(item=>item.id===mapSelected);if(marker)$('map-selection').textContent=[markerLabelForGuidance(marker,settings.guidance),markerDescription(marker,info)].filter(Boolean).join(' · ');}
 }
 function drawMap() {
   if(!game||!mapVisible)return;
@@ -650,7 +669,7 @@ function drawSmallMap() {
   for(const door of game.state.doors){if(!explored.has(Math.floor(door.z)*level.width+Math.floor(door.x)))continue;ctx.fillStyle=door.open?'#8acac1':'#f2a744';ctx.fillRect(ox+(door.x-.35)*scale,oz+(door.z-.35)*scale,scale*.7,scale*.7);}
   drawMapRoute(ctx,scale,ox,oz);
   const target=game.getObjective();
-  if(Number.isFinite(target.x)&&(settings.guidance==='simple'||explored.has(Math.floor(target.z)*level.width+Math.floor(target.x))))drawObjectiveMarker(ctx,ox+target.x*scale,oz+target.z*scale,4);
+  if(settings.guidance==='simple'&&Number.isFinite(target.x))drawObjectiveMarker(ctx,ox+target.x*scale,oz+target.z*scale,4);
   drawMapPlayers(ctx,scale,ox,oz,6);
 }
 function drawMapRoute(ctx,scale,ox,oz) {
@@ -700,7 +719,7 @@ function drawExpandedMap() {
     ctx.fillStyle=markerColor(marker);ctx.font=`bold ${r+3}px "Courier New",monospace`;ctx.textAlign='center';ctx.textBaseline='middle';ctx.fillText(markerSymbol(marker),x,z+.5);ctx.textBaseline='alphabetic';
     mapHits.push({id:marker.id,x,z});
   }
-  const objective=game.getObjective();if(Number.isFinite(objective.x)&&(settings.guidance==='simple'||explored.has(Math.floor(objective.z)*level.width+Math.floor(objective.x))))drawObjectiveMarker(ctx,ox+objective.x*mapScale,oz+objective.z*mapScale,6);
+  const objective=game.getObjective();if(settings.guidance==='simple'&&Number.isFinite(objective.x))drawObjectiveMarker(ctx,ox+objective.x*mapScale,oz+objective.z*mapScale,6);
   drawMapPlayers(ctx,mapScale,ox,oz,8);
   $('map-local').setAttribute('aria-pressed',String(mapView==='local'));$('map-facility').setAttribute('aria-pressed',String(mapView==='facility'));
   $('map-zoom-label').textContent=`${mapZoom.toFixed(1).replace('.0','')}×`;
@@ -715,7 +734,7 @@ function changeMapZoom(factor) {
 }
 function selectMapMarker(id,center=true) {
   const marker=mapKnownMarkers.find(item=>item.id===id);if(!marker)return;
-  mapSelected=id;$('map-selection').textContent=`${marker.label} · ${markerDescription(marker)}`;
+  mapSelected=id;$('map-selection').textContent=[markerLabelForGuidance(marker,settings.guidance),markerDescription(marker)].filter(Boolean).join(' · ');
   document.querySelectorAll('[data-map-marker]').forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.mapMarker===id)));
   if(center){mapView='local';mapZoom=1.4;mapFollow=false;mapCenter={x:marker.x,z:marker.z};if(innerWidth<700)$('map-index').open=false;}
   drawMap();
@@ -756,7 +775,7 @@ function updateDirection() {
 }
 function visibleHostileForTraining() {
   const p=game.state.player;
-  return game.state.enemies.some(enemy=>enemy.alive
+  return game.state.enemies.some(enemy=>hostileToPlayer(enemy)
     && Math.hypot(enemy.x-p.x,enemy.z-p.z)<12
     && Math.abs(normAngle(Math.atan2(enemy.x-p.x,-(enemy.z-p.z))-p.angle))<.72
     && game.hasLineOfSight(p.x,p.z,enemy.x,enemy.z));
@@ -777,13 +796,14 @@ function updateTutorial() {
     }else text=touch?'Hold FIRE. Drag on it to aim while you shoot.':'Click or hold SPACE to fire. Move sideways with A and D to dodge.';
   }
   else if(state.player.hasShotgun&&!t.weaponSwitched)text=touch?'Tap SWAP for your scattergun. It works best up close.':'Scattergun acquired. Press 2 to equip it, or 1 to return to the pistol. It is strongest up close.';
+  else if(state.enemies.some(enemy=>enemy.alive&&enemy.faction==='security'&&!enemy.provoked&&Math.hypot(enemy.x-state.player.x,enemy.z-state.player.z)<9&&game.hasLineOfSight(state.player.x,state.player.z,enemy.x,enemy.z))){text='Security sentries fight the creatures. They leave you alone unless you shoot them.';index='ENCOUNTER TIP';}
   else if(game.level.exploration&&['cutter','insulator','phase','return'].includes(objective.stage)){text=objective.stage==='return'?'Activated transit stations shorten the trip back. Check the map for linked stations.':'New equipment opens routes you passed earlier. The map remembers discovered gates and refuges.';index='EXPLORATION TIP';}
   else if(objective.stage==='relays'){text=touch?'Bring both relay consoles online. Each active link stays lit.':'Find and activate both relay consoles. Active links stay lit; the link counter tracks your progress.';index='MISSION BRIEF';}
   else if(objective.action==='collect'){text=game.level.exploration?'Walk over the reactor key to collect it.':'Walk over the security key to collect it.';index='MISSION BRIEF';}
   else {text=touch?'Keep moving. Walk over supplies to collect them.':'Keep moving and use cover. Walk over health, armor, and ammunition to collect them.';index='FIELD TIP';}
   // Early controls wait for the action; the later supply reminder appears briefly.
-  if(index==='MISSION BRIEF'||index==='FIELD TIP'||index==='EXPLORATION TIP') {
-    const identity=`${game.level.missionId}:${index==='FIELD TIP'?'supplies':objective.stage}`;
+  if(index==='MISSION BRIEF'||index==='FIELD TIP'||index==='EXPLORATION TIP'||index==='ENCOUNTER TIP') {
+    const identity=`${game.level.missionId}:${index==='FIELD TIP'?'supplies':index==='ENCOUNTER TIP'?'security':objective.stage}`;
     if(updateTutorial.identity!==identity){updateTutorial.identity=identity;helpRevealed=performance.now();}
     if(performance.now()-helpRevealed>8500){$('tutorial').hidden=true;return;}
   }
@@ -800,17 +820,19 @@ function updateHud() {
   $('weapon-name').textContent=p.weapon==='shotgun'?'SCATTERGUN':'SERVICE PISTOL';
   $('power-token').classList.toggle('active',state.power);$('key-token').classList.toggle('active',p.key);
   $('power-token').setAttribute('aria-label',state.power?'Power restored':'Power offline');$('key-token').setAttribute('aria-label',p.key?'Access key collected':'Access key needed');
+  $('power-token').hidden=settings.guidance!=='simple'&&!state.power;$('key-token').hidden=settings.guidance!=='simple'&&!p.key;
   const progress=game.getMissionProgress();
-  $('relay-token').hidden=!progress.relaysTotal;
+  $('relay-token').hidden=!progress.relaysTotal||settings.guidance!=='simple'&&!progress.relaysUsed;
   $('relay-token').textContent=`LINK ${progress.relaysUsed}/${progress.relaysTotal}`;
   $('relay-token').classList.toggle('active',progress.relaysTotal>0&&progress.relaysUsed===progress.relaysTotal);
   $('relay-token').setAttribute('aria-label',`${progress.relaysUsed} of ${progress.relaysTotal} relay links online`);
   $('hud-upgrades').hidden=!game.level.exploration;
   if(game.level.exploration)upgradeTokens($('hud-upgrades'),mapInfo().upgrades,true);
-  const obj=game.getObjective();$('objective-title').textContent=obj.title;$('objective-detail').textContent=obj.detail;
+  const obj=objectiveForGuidance(game.getObjective(),settings.guidance);$('objective-title').textContent=obj?.title||'';$('objective-detail').textContent=obj?.detail||'';
+  $('objective').hidden=!obj;
   $('objective-detail').hidden=touch||settings.guidance==='expert';
   $('objective').querySelector('.label').textContent=settings.guidance==='expert'?'MISSION':'CURRENT OBJECTIVE';
-  const interaction=game.getInteractionInfo();
+  const interaction=interactionForGuidance(game.getInteractionInfo(),settings.guidance);
   const canUse=!!interaction?.canUse&&localOperatorAlive();
   $('interaction').hidden=!interaction||mode!=='playing'||!localOperatorAlive();
   $('interaction-text').textContent=interaction?.text||'';
@@ -819,6 +841,7 @@ function updateHud() {
   $('interaction').classList.toggle('action-ready',canUse);
   $('interaction').setAttribute('aria-label',interaction ? `${interaction.label}: ${interaction.text}` : 'Interact');
   $('touch-interact').disabled=!canUse;
+  $('touch-interact').hidden=settings.guidance==='expert'&&!canUse;
   $('touch-interact').textContent=interaction?.label||'USE';
   $('touch-interact').classList.toggle('action-ready',canUse);
   $('touch-interact').setAttribute('aria-label',interaction ? `${interaction.label}: ${interaction.text}` : 'Interact when near a door or console');
@@ -830,10 +853,11 @@ function updateHud() {
 }
 function processEvents(events,allEvents=events) {
   if(!allEvents.length)return;
-  renderer.handleEvents(allEvents);audio.events(events);
+  renderer.handleEvents(allEvents);audio.events(events,game.state.player);
   let notice=null;
   for(const event of events) {
-    if(['message','pickup','checkpoint','secret','upgrade','refuge','transit-activated','transit','reward'].includes(event.type)&&event.text)notice=event.text;
+    const eventNotice=noticeForGuidance(event,settings.guidance,game.getInteractionInfo());
+    if(eventNotice)notice=eventNotice;
     if(event.type==='hurt')damageUntil=performance.now()+(settings.reducedMotion?130:200);
     if(event.type==='hit')hitUntil=performance.now()+120;
     if(['door','power','pickup','relay','upgrade','refuge','transit-activated','transit','reward','hit','death'].includes(event.type)) {pathTimer=0;mapDirty=true;}
@@ -847,8 +871,7 @@ function processEvents(events,allEvents=events) {
 }
 function shouldAutoFire() {
   if(!settings.autoFire||!localOperatorAlive())return false;
-  const p=game.state.player;
-  return game.state.enemies.some(e=>e.alive&&Math.hypot(e.x-p.x,e.z-p.z)<16&&Math.abs(normAngle(Math.atan2(e.x-p.x,-(e.z-p.z))-p.angle))<.085&&game.hasLineOfSight(p.x,p.z,e.x,e.z));
+  return automaticFireAllowed(game.state.enemies,game.state.player,{aimAssist:settings.aimAssist,hasLineOfSight:(...args)=>game.hasLineOfSight(...args)});
 }
 function frame(now) {
   if(statusError)return;
@@ -864,7 +887,7 @@ function frame(now) {
       firePulse=false;
       if(!coop){if(game.state.status==='dead')finish(false);else if(game.state.status==='won')finish(true);}
       if(now-lastMap>300){revealMap();lastMap=now;}
-      if(now-pathTimer>650){pathHint=calculatePath();pathTimer=now;}
+      if(settings.guidance==='simple'&&now-pathTimer>650){pathHint=calculatePath();pathTimer=now;}
       if(now-lastSave>10000){saveRun();lastSave=now;}
     }
     if(coop&&mode!=='playing')coop.drive(dt,{forward:0,strafe:0,turn:0,fire:false});
@@ -932,12 +955,14 @@ $('minimap').addEventListener('pointerup',event=>{
 });
 for(const event of ['pointercancel','lostpointercapture'])$('minimap').addEventListener(event,()=>{mapPan=null;});
 $('dismiss-tutorial').addEventListener('click',()=>{settings.tutorial=false;saveSettings();$('tutorial').hidden=true;showToast('Tutorial hidden. You can turn it on again in Settings.');});
-for(const button of document.querySelectorAll('[data-guidance]'))button.addEventListener('click',()=>{settings.guidance=button.dataset.guidance;updateChoices();saveSettings();});
+for(const button of document.querySelectorAll('[data-guidance]'))button.addEventListener('click',()=>changeGuidance(button.dataset.guidance));
 for(const button of document.querySelectorAll('[data-difficulty]'))button.addEventListener('click',()=>{settings.difficulty=button.dataset.difficulty;updateChoices();saveSettings();});
 for(const [id,property]of [['setting-sound','sound'],['setting-aim','aimAssist'],['setting-auto','autoFire'],['setting-motion','reducedMotion']])$(id).addEventListener('change',event=>{settings[property]=event.target.checked;saveSettings();});
 $('setting-fov').addEventListener('change',event=>{settings.fov=event.target.value==='auto'?null:Number(event.target.value);saveSettings();});
 $('setting-quality').addEventListener('change',event=>{settings.quality=event.target.value;saveSettings();});
 $('setting-controls').addEventListener('change',event=>{settings.controls=event.target.value;saveSettings();updateSettingsFields();});
+$('setting-guidance').addEventListener('change',event=>changeGuidance(event.target.value));
+$('setting-touch-preset').addEventListener('change',event=>{clearInputs();settings.touchPreset=resolveTouchPreset(event.target.value);saveSettings();updateSettingsFields();});
 const controlMediaChanged = () => { if(settings.controls === 'auto') applyControlMode(); };
 if(touchMedia.addEventListener) touchMedia.addEventListener('change',controlMediaChanged);
 else if(touchMedia.addListener) touchMedia.addListener(controlMediaChanged);
@@ -1027,12 +1052,9 @@ $('move-zone').addEventListener('pointerdown',event=>{
 });
 function moveJoystick(event){
   if(event.pointerId!==movePointer)return;
-  const bounds=$('move-zone').getBoundingClientRect(),radius=bounds.width*.33;
-  let dx=event.clientX-(bounds.left+bounds.width/2),dy=event.clientY-(bounds.top+bounds.height/2);const length=Math.hypot(dx,dy);
-  if(length>radius){dx=dx/length*radius;dy=dy/length*radius;}
-  joyX=dx/radius;joyY=dy/radius;
-  if(Math.abs(joyX)<.1)joyX=0;if(Math.abs(joyY)<.1)joyY=0;
-  $('joystick-knob').style.transform=`translate(${dx}px,${dy}px)`;
+  const move=joystickVector($('move-zone').getBoundingClientRect(),event.clientX,event.clientY);
+  joyX=move.x;joyY=move.y;
+  $('joystick-knob').style.transform=`translate(${move.dx}px,${move.dy}px)`;
 }
 $('move-zone').addEventListener('pointermove',moveJoystick);
 function endMove(event){if(event.pointerId!==movePointer)return;movePointer=null;joyX=joyY=0;$('joystick-knob').style.transform='';}
@@ -1054,6 +1076,7 @@ try {
   if(savedRecord?.version!==1 || !savedRecord.game) savedRecord=null;
   if(savedRecord) { const validator=new Game();if(!validator.restore(savedRecord.game)){savedRecord=null;removeStorage(SAVE_KEY);} }
   updateChoices();updateSettingsFields();updateMissionMenu();populateRoomMissions();updateFullscreen();
+  $('minimap').setAttribute('aria-label',settings.guidance==='simple'?'Map showing explored facility, your position, and the current objective':'Map showing explored facility and your position');
   document.body.classList.toggle('reduced-motion',settings.reducedMotion);
   ready=true;$('start').disabled=false;$('continue').disabled=false;
   $('load-status').textContent=touch?'READY · TURN YOUR PHONE SIDEWAYS FOR A WIDER VIEW':'READY · CLICK TO ENTER';

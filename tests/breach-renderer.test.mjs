@@ -10,12 +10,14 @@ import { LEVELS } from '../daily_flyer/themes/breach_assets/core.mjs';
 // environment supplies a GPU. Canvas records authored labels and allocations;
 // browser screenshots remain the visual acceptance check.
 function canvas(width=1440,height=900){
-  const context={texts:[],colors:new Set(),fillStyle:'#000',globalAlpha:1,
-    fillRect(){this.colors.add(this.fillStyle);},fillText(text){this.texts.push(text);},
+  const record=(context,values)=>{for(const value of values)context.shapeHash=Math.imul(context.shapeHash^Math.round(Number(value)*100),16777619)>>>0;};
+  const context={texts:[],colors:new Set(),fillStyle:'#000',globalAlpha:1,shapeHash:2166136261,
+    fillRect(...values){this.colors.add(this.fillStyle);record(this,values);},fillText(text){this.texts.push(text);},
+    moveTo(...values){record(this,[17,...values]);},lineTo(...values){record(this,[31,...values]);},
     getImageData(x,y,w,h){return {data:new Uint8ClampedArray(w*h*4)};},
     createImageData(w,h){return {data:new Uint8ClampedArray(w*h*4)};},
   };
-  for(const method of['beginPath','moveTo','lineTo','closePath','fill','save','restore','translate','scale','clearRect','drawImage','putImageData'])context[method]=()=>{};
+  for(const method of['beginPath','closePath','fill','save','restore','translate','scale','clearRect','drawImage','putImageData'])context[method]=()=>{};
   return {width,height,style:{},context,getContext(){return context;},getBoundingClientRect(){return {width,height};},
     parentElement:{appendChild(){}},insertAdjacentElement(){},setAttribute(){},remove(){this.removed=true;}};
 }
@@ -38,7 +40,7 @@ class GeometryOnlyRenderer {
 
 const source=readFileSync(new URL('../daily_flyer/themes/breach_assets/renderer.mjs',import.meta.url),'utf8')
   .replace(/^import \* as THREE from .*;\n/,'').replace('export class BreachRenderer','class BreachRenderer');
-const api=runInNewContext(source+';({surfaceLayout,doorKind,featureMode,makeDoorTexture,makeStationTexture,WebGLBreachRenderer,SoftwareBreachRenderer})',{
+const api=runInNewContext(source+';({surfaceLayout,doorKind,doorReady,doorFrame,featureMode,enemyArt,encounterCues,makeDoorTexture,makeStationTexture,WebGLBreachRenderer,SoftwareBreachRenderer})',{
   THREE:{...THREE,WebGLRenderer:GeometryOnlyRenderer},document:{createElement:()=>canvas()},window:{innerWidth:1440,innerHeight:900},matchMedia:()=>({matches:false}),
 });
 
@@ -104,17 +106,63 @@ test('both paths show upgrade, refuge and transit progression using shared autho
   }
 });
 
-test('traversal barriers and station art retain distinct readable capability cues',()=>{
-  const expected={grille:'CUTTER',hazard:'HIGH VOLT',phase:'PHASE',shortcut:'SHORTCUT'};
-  for(const[kind,title]of Object.entries(expected))assert.ok(labels(api.makeDoorTexture(kind)).includes(title));
-  assert.equal(api.doorKind({kind:'shortcut',requires:'cutter'}),'shortcut');
+test('barriers convey different materials and capabilities without requiring an instructional label',()=>{
+  const kinds=['grille','hazard','phase','shortcut','key','power','relays'];
+  const shapes=kinds.map(kind=>api.makeDoorTexture(kind).image.context.shapeHash);
+  assert.equal(new Set(shapes).size,kinds.length,'Each obstacle has a different silhouette and mark, independent of color');
+  for(const kind of kinds)assert.equal(labels(api.makeDoorTexture(kind)).length,0,'Barrier artwork leaves explanations to the selected guidance level');
+  assert.equal(api.doorKind({kind:'shortcut',requires:'cutter'}),'grille','A return shortcut carries the same material cue as any other cuttable barrier');
+  assert.equal(api.doorKind({kind:'shortcut',requires:'phase'}),'phase');
   assert.equal(api.doorKind({requires:'insulator'}),'hazard');
   for(const upgrade of['cutter','insulator','phase']){
-    assert.ok(labels(api.makeStationTexture({type:'upgrade',upgrade},0)).includes('USE TO INSTALL'));
-    assert.ok(labels(api.makeStationTexture({type:'upgrade',upgrade},1)).includes('MODULE INSTALLED'));
+    const before=api.makeStationTexture({type:'upgrade',upgrade},0),after=api.makeStationTexture({type:'upgrade',upgrade},1);
+    assert.notEqual(before.image.context.shapeHash,after.image.context.shapeHash,'Acquiring a module removes its model from the station');
+    assert.ok(!labels(before).join(' ').includes('USE TO INSTALL'));
   }
-  assert.ok(labels(api.makeStationTexture({type:'transit'},1)).includes('FIND PAIRED STATION'));
-  assert.ok(labels(api.makeStationTexture({type:'transit'},2)).includes('LINKED / USE TO TRAVEL'));
+  assert.notEqual(api.makeStationTexture({type:'transit'},1).image.context.shapeHash,api.makeStationTexture({type:'transit'},2).image.context.shapeHash,'A paired transit visibly completes its circuit');
+});
+
+test('barrier circuits follow acquired capabilities and reduced motion keeps the field stable',()=>{
+  for(const Renderer of[api.WebGLBreachRenderer,api.SoftwareBreachRenderer]){
+    const game=gameFor(),renderer=new Renderer(canvas(960,540),game,{reducedMotion:true});
+    const door=game.state.doors.find(door=>door.requires==='phase');
+    assert.equal(api.doorReady(door,game.state),false);
+    const before=renderer.mode==='webgl'?renderer.doorVisuals.get(door.id).mesh.material:null;
+    game.state.player.x=door.x;game.state.player.z=door.z+2;
+    game.state.upgrades.phase=true;renderer.render(1/60);
+    assert.equal(api.doorReady(door,game.state),true);
+    assert.equal(api.doorFrame(door,game.state,5,true).frame,0);
+    if(renderer.mode==='webgl'){
+      const visual=renderer.doorVisuals.get(door.id);assert.notEqual(visual.mesh.material,before);
+      const readyMaterial=visual.mesh.material;renderer.clock+=1.4;renderer.render(1/60);assert.equal(visual.mesh.material,readyMaterial);
+      door.open=true;renderer.render(1/60);assert.equal(visual.remnant.visible,true);
+    }else assert.ok(renderer.doorRemnants.phase,'The fallback retains the opened frame too');
+    renderer.dispose();
+  }
+});
+
+test('both renderers expose faction changes, a boss recovery window and fixed attack telegraphs',()=>{
+  for(const Renderer of[api.WebGLBreachRenderer,api.SoftwareBreachRenderer]){
+    const game=gameFor(LEVELS['blacksite-07']),p=game.state.player;
+    const sentry={id:'visual-sentry',type:'sentry',faction:'security',provoked:false,x:p.x,z:p.z-2,health:80,alive:true};
+    game.state.enemies=[sentry];
+    const renderer=new Renderer(canvas(960,540),game,{reducedMotion:true});
+    renderer.render(1/60);assert.equal(api.enemyArt(sentry),'sentry');
+    sentry.provoked=true;renderer.render(1/60);assert.equal(api.enemyArt(sentry),'sentry-hostile');
+    if(renderer.mode==='webgl')assert.equal(renderer.enemyVisuals.get(sentry.id).sprite.material.map,renderer.enemyFrames['sentry-hostile'][0]);
+    sentry.guardian=true;sentry.bossPhase='recover';renderer.render(1/60);assert.equal(api.enemyArt(sentry),'guardian-exposed');
+    sentry.guardian=false;sentry.type='stalker';sentry.telegraph={kind:'blink',x:p.x+.3,z:p.z-2.5,radius:.7,remaining:.6,duration:.75,fromX:sentry.x,fromZ:sentry.z};
+    renderer.render(1/60);assert.equal(renderer.stats.encounterCues,1);
+    if(renderer.mode==='webgl'){
+      const cue=renderer.cueVisuals[0];assert.equal(cue.ring.visible,true);assert.equal(cue.echo.visible,true);
+      assert.equal(cue.ring.position.x,sentry.telegraph.x);assert.equal(cue.ring.position.z,sentry.telegraph.z);
+    }else assert.ok(renderer.stats.drawnCuePoints>0,'Fallback draws a visible floor warning');
+    const target=api.encounterCues(game.state)[0];p.x+=.1;renderer.render(1/60);
+    assert.equal(api.encounterCues(game.state)[0].x,target.x,'The marker does not chase the camera while the player dodges');
+    sentry.alive=false;renderer.render(1/60);assert.equal(renderer.stats.encounterCues,0);
+    if(renderer.mode==='webgl')assert.equal(renderer.cueVisuals[0].ring.visible,false);
+    renderer.dispose();
+  }
 });
 
 test('software ray work and frame buffers remain bounded on the largest map at high desktop quality',()=>{
