@@ -108,3 +108,40 @@ body[data-guidance="expert"] .objective{display:none}
   .touch[data-touch-preset="large"] #touch-interact{left:0;right:auto;top:0;width:76px}
   .touch[data-touch-preset="large"] #touch-weapon{left:0;right:auto;top:64px;width:76px}
 }
+
+/* 0.6: a separate firing control keeps the open view available for aiming. */
+.mission-picker{grid-template-columns:repeat(3,minmax(0,1fr))}
+.mission-picker button:last-child:nth-child(5){grid-column:span 2}
+.weapon-slots{display:flex;justify-content:center;width:100%;gap:3px;pointer-events:auto}
+.weapon-slot{display:flex;align-items:center;justify-content:center;gap:4px;min-width:42px;min-height:34px;padding:5px;background:#10231bbf;border:1px solid #82927e55;color:var(--muted);font-size:8px;letter-spacing:0;touch-action:manipulation}
+.weapon-slot b{font-weight:400;color:var(--dim)}
+.weapon-slot[aria-pressed="true"]{border-color:var(--amber);color:#ffe0a3;background:#4e3b22d9}
+.weapon-slot[aria-pressed="true"] b{color:var(--amber)}
+.touch .weapon-slots{gap:2px}
+.touch .weapon-slot{min-width:44px;min-height:44px;flex-direction:column;gap:2px;padding:4px;font-size:7px}
+.touch .inventory:has(.weapon-slots:not([hidden])){width:140px;max-width:none}
+.touch-look-hint{position:absolute;right:calc(24px + var(--safe-right));top:49%;width:min(44vw,260px);pointer-events:none;text-align:center;color:#d0d8c38c;font-size:8px;line-height:1.8;letter-spacing:.08em;text-shadow:0 2px 4px #000}
+.touch-look-hint small{font-size:8px;letter-spacing:0;color:#c1cbb188}
+.touch[data-fire-gesture="safe"] .touch-right{width:152px;height:112px}
+.touch[data-fire-gesture="safe"] #fire-pad{width:78px;height:60px;min-width:44px;min-height:44px;border-radius:9px;background:#291e17c9;border:2px solid #df936477;box-shadow:inset 0 0 0 3px #0c171ab3;gap:4px;overflow:hidden}
+.touch[data-fire-gesture="safe"] #fire-pad .fire-ring{font-size:22px;line-height:1;color:#ffc78e}
+.touch[data-fire-gesture="safe"] #fire-caption{font-size:9px;font-weight:700;letter-spacing:.13em;color:#ffe1b0}
+.touch[data-fire-gesture="safe"] #touch-interact{left:0;right:auto;top:0;width:62px;height:48px}
+.touch[data-fire-gesture="safe"] #touch-weapon{left:0;right:auto;top:60px;width:62px;height:48px}
+.touch[data-fire-gesture="safe"][data-touch-preset="compact"] .touch-right{width:132px;height:100px}
+.touch[data-fire-gesture="safe"][data-touch-preset="compact"] #fire-pad{width:64px;height:52px}
+.touch[data-fire-gesture="safe"][data-touch-preset="compact"] #touch-interact{width:54px;height:44px}
+.touch[data-fire-gesture="safe"][data-touch-preset="compact"] #touch-weapon{top:54px;width:54px;height:44px}
+.touch[data-fire-gesture="safe"][data-touch-preset="large"] .touch-right{width:182px;height:128px}
+.touch[data-fire-gesture="safe"][data-touch-preset="large"] #fire-pad{width:94px;height:72px}
+.touch[data-fire-gesture="safe"][data-touch-preset="large"] #touch-interact{width:76px;height:54px}
+.touch[data-fire-gesture="safe"][data-touch-preset="large"] #touch-weapon{top:64px;width:76px;height:54px}
+#fire-pad.pending,.touch[data-fire-gesture="safe"] #fire-pad.pending{border-color:#f4c58e;box-shadow:inset 0 -4px #f4c58e66}
+#fire-pad.pending::after{content:"";position:absolute;left:5px;right:5px;bottom:4px;height:3px;background:#ffd293;transform-origin:left;animation:fire-arm .2s linear both}
+#fire-pad.pressed,.touch[data-fire-gesture="safe"] #fire-pad.pressed{border-color:#ffbd77;background:#704220da;box-shadow:inset 0 0 0 3px #ffc58444}
+#fire-pad.aim-only,.touch[data-fire-gesture="safe"] #fire-pad.aim-only{border-color:#94d6ca88;background:#12352ec4}
+#fire-pad.aim-only .fire-ring{color:var(--teal)}
+@keyframes fire-arm{from{transform:scaleX(0)}to{transform:scaleX(1)}}
+.reduced-motion #fire-pad.pending::after{animation:none;transform:scaleX(1)}
+@media(max-width:999px){.mission-picker{grid-template-columns:repeat(2,minmax(0,1fr))}.mission-picker button:last-child:nth-child(5){grid-column:1/-1}}
+@media(max-height:560px) and (orientation:landscape){.touch-look-hint{top:48%;right:calc(30px + var(--safe-right));width:32vw;font-size:7px}.touch-look-hint small{font-size:7px}.touch .inventory:has(.weapon-slots:not([hidden])){padding-top:2px;padding-bottom:2px}.touch .weapon-slot{min-height:44px}}

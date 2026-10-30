@@ -123,7 +123,7 @@ test('Underworks is one substantial authored world with nine connected sectors a
   assert.ok(level.width * level.height >= LEVELS['relay-09'].width * LEVELS['relay-09'].height * 5);
   assert.equal(floor, 3504); assert.ok(floor > level.width * level.height / 2);
   assert.equal(level.enemies.length, 40); assert.equal(level.zones.length, 9);
-  assert.equal(MISSIONS.at(-1).id, mission);
+  assert.equal(MISSIONS.find(entry => entry.id === mission).levelId, level.id);
   for (const door of game.state.doors) door.open = true;
   for (const entity of [level.spawn, ...level.coopSpawns, ...level.enemies, ...level.pickups, ...level.doors, ...level.interactables]) {
     assert.equal(level.grid[Math.floor(entity.z)][Math.floor(entity.x)], '.', entity.id);

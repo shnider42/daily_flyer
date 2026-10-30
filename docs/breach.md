@@ -3,6 +3,12 @@
 An original retro first-person game built on DailyFlyer. Solo play runs in the
 browser; private two-player co-op uses an authoritative room server.
 
+## 0.6.0 — Switchyard and deliberate touch controls
+
+A compact fifth solo mission, reversible shutters, the Arc caster, and a default
+phone gesture that separates aiming from firing are documented in
+[the Switchyard update](breach-switchyard-06.md).
+
 ## 0.5.0 — Read the facility
 
 Environmental equipment cues, discovery-focused guidance, staged faction and
@@ -56,10 +62,16 @@ newly opened shortcuts, and reconnect the reactor before returning to the
 arrival lift. See [The Underworks](breach-underworks.md) for its exploration,
 refuges, transit links, and expanded map.
 
+Switchyard is the fifth solo mission: choose a freight-yard or service approach,
+operate reversible shutters, recover the Arc caster, reconnect two gallery
+relays, and return past the guardian to the freight lift.
+
 Desktop uses WASD movement, mouse look (or click-and-drag when pointer lock is
 unavailable), firing, E interaction, and the pause menu. The game displays its
-current control bindings. Touch uses the left movement pad and right-side aiming;
-the fire control accepts dragging so moving, aiming, and firing work with two thumbs.
+current control bindings. Touch uses the left movement pad and right-side aiming.
+Safe fire controls are the default: drag to look, tap Fire for one shot on release,
+or hold it still briefly to fire continuously. An immediate drag starting on Fire
+becomes look-only. Classic immediate fire-and-drag remains selectable in Settings.
 
 Desktop also supports F for fullscreen and the mouse wheel for swapping acquired
 weapons. Settings offer automatic, wide, or wider field of view and automatic,

@@ -1,3 +1,5 @@
+import { WEAPONS } from './core.mjs';
+
 // Presentation only: guidance never changes access rules, combat, or rewards.
 export const GUIDANCE_DESCRIPTIONS = {
   simple: 'Clear explanations, a route hint, and a tutorial as you play.',
@@ -17,6 +19,7 @@ const barrierCues = {
 
 export function blockedCue(info) {
   const text = info?.text || '';
+  if (/shutter path occupied|doorway occupied|clear the doorway/i.test(text)) return 'Movement interrupts the doorway sensor.';
   if (/cutter/i.test(text)) return barrierCues.cutter;
   if (/insulator/i.test(text)) return barrierCues.insulator;
   if (/phase/i.test(text)) return barrierCues.phase;
@@ -41,8 +44,8 @@ export function objectiveForGuidance(objective, guidance) {
     arrival: 'Find a way into the facility', power: 'Trace the silent machinery',
     cutter: 'Explore the working machinery', insulator: 'Follow the conduits',
     phase: 'Explore beyond the live conduits', relays: 'Trace the disconnected circuits',
-    guardian: 'Read the guardian’s movements', key: 'Search the chamber',
-    return: 'Return to the arrival lift', extraction: 'Reach extraction',
+    guardian: 'Read the guardian’s movements', key: 'Search the chamber', arc: 'Explore the equipment bay', weapon: 'Explore the equipment bay',
+    return: 'Find your route back', extraction: 'Reach extraction', extract: 'Reach extraction',
   };
   return { title: titles[objective?.stage] || 'Explore the facility', detail: '', stage: objective?.stage };
 }
@@ -54,6 +57,7 @@ export function briefingForGuidance(mission, guidance) {
     'relay-09': 'A silent communications ring surrounds a sealed vault. Its disconnected circuitry runs through rooms that are no longer empty.',
     'crosslink-11': 'The compact relay complex has lost its signal. Explore its two wings and find a way to call for extraction.',
     'underworks-13': 'An entire facility stretches beneath the arrival lift. Explore connected sectors, remember the barriers you pass, and find a route back.',
+    'switchyard-15': 'The freight yard is divided by heavy shutters and numbered circuits. Read its signals, choose when to open a route, and watch what moves on the other side.',
   };
   return {
     text: briefs[mission.id] || 'Explore the facility and find a way out.',
@@ -62,13 +66,14 @@ export function briefingForGuidance(mission, guidance) {
 }
 
 export function noticeForGuidance(event, guidance, interaction = null) {
-  const eligible = ['message', 'pickup', 'checkpoint', 'secret', 'upgrade', 'refuge', 'transit-activated', 'transit', 'reward'];
+  const eligible = ['message', 'pickup', 'checkpoint', 'secret', 'upgrade', 'refuge', 'transit-activated', 'transit', 'reward', 'shutter'];
   if (event.type === 'provoked') return guidance === 'expert' ? null : 'Security turns hostile.';
   if (guidance === 'simple') return eligible.includes(event.type) ? event.text || null : null;
   // Generic message events often repeat a successful event with a next-step spoiler.
   // Only explicit resource feedback and observed blocked cues pass this boundary.
   if (event.type === 'message') {
     if (/^No shells\./.test(event.text || '')) return 'No shells.';
+    if (/^No (arc )?cells\./i.test(event.text || '')) return 'No arc cells.';
     if (/^Cell empty\./.test(event.text || '')) return 'Cell empty.';
     if (/^Emergency cell:/.test(event.text || '')) return 'Emergency cell recharged.';
     if (guidance === 'moderate' && interaction && !interaction.canUse && event.text === interaction.text) return blockedCue(interaction);
@@ -82,6 +87,7 @@ export function noticeForGuidance(event, guidance, interaction = null) {
   if (event.type === 'refuge') return 'Refuge secured. Supplies restored.';
   if (event.type === 'transit-activated') return 'Transit station active.';
   if (event.type === 'transit') return 'Transit complete.';
+  if (event.type === 'shutter') return event.open ? 'Shutter raised.' : 'Shutter lowered.';
   if (event.type === 'secret') return 'Hidden cache discovered.';
   if (event.type === 'reward') return (event.text || '').split('. ')[0] || null;
   return null;
@@ -90,6 +96,7 @@ export function noticeForGuidance(event, guidance, interaction = null) {
 export function markerLabelForGuidance(marker, guidance) {
   if (guidance === 'simple') return marker.label;
   if (marker.type === 'upgrade') return marker.active ? marker.label.replace(/^Acquire /i, '') : 'Equipment station';
+  if (marker.type === 'shutter' || marker.type === 'shutter-switch') return marker.mark ? `Shutter circuit ${marker.mark}` : 'Shutter control';
   if (marker.type === 'shortcut') return ({ cutter: 'Welded service passage', insulator: 'Energized service passage', phase: 'Shimmering service passage' })[marker.requires] || 'Service passage';
   return ({ grille: 'Welded grille', hazard: 'Energized conduit', phase: 'Shimmering field', gate: 'Airlock', cache: 'Supply cache' })[marker.type] || marker.label;
 }
@@ -100,6 +107,7 @@ export function markerCueForGuidance(marker, guidance) {
   if (marker.type === 'upgrade') return marker.active ? 'Equipment acquired' : 'Station discovered';
   if (marker.type === 'transit') return marker.active ? 'Station active' : 'Station discovered';
   if (marker.type === 'refuge') return marker.active ? 'Refuge visited' : 'Refuge discovered';
+  if (marker.type === 'shutter' || marker.type === 'shutter-switch') return marker.active ? 'Shutter raised' : 'Shutter lowered';
   if (['grille', 'hazard', 'phase', 'shortcut', 'gate'].includes(marker.type)) return marker.active ? 'Passage open' : guidance === 'expert' ? '' : 'Mechanism within reach';
   if (marker.type === 'guardian') return marker.active ? 'Containment cleared' : 'Movement in containment';
   return marker.active ? 'Visited' : '';
@@ -114,17 +122,18 @@ export function hostileToPlayer(enemy) {
 }
 
 export function automaticFireAllowed(enemies, player, { aimAssist = false, hasLineOfSight = () => true } = {}) {
-  const range = player.weapon === 'shotgun' ? 13 : 16;
+  const weapon = WEAPONS[player.weapon] || WEAPONS.pistol;
+  const range = Math.min(16, weapon.range);
   const delta = angle => Math.atan2(Math.sin(angle - player.angle), Math.cos(angle - player.angle));
   const visible = enemies.filter(enemy => hostileToPlayer(enemy)
-    && Math.hypot(enemy.x - player.x, enemy.z - player.z) < 16
+    && Math.hypot(enemy.x - player.x, enemy.z - player.z) < Math.max(range, weapon.aimAssistRange)
     && hasLineOfSight(player.x, player.z, enemy.x, enemy.z))
     .map(enemy => ({ enemy, distance: Math.hypot(enemy.x - player.x, enemy.z - player.z), angle: Math.atan2(enemy.x - player.x, -(enemy.z - player.z)) }));
   if (!visible.some(target => target.distance < range && Math.abs(delta(target.angle)) < .085)) return false;
   // Triggering automatic fire and choosing assisted aim are different decisions.
-  // Match Game._fire's full 16-unit/.12-radian assist pool, including a target
-  // beyond shotgun range that can redirect the actual pellet spread.
-  const assisted = aimAssist ? visible.filter(target => Math.abs(delta(target.angle)) < .12)
+  // Use the simulation's weapon metadata, including the shotgun's farther
+  // assist pool and the arc caster's strictly limited reach.
+  const assisted = aimAssist ? visible.filter(target => target.distance < weapon.aimAssistRange && Math.abs(delta(target.angle)) < .12)
     .sort((a, b) => Math.abs(delta(a.angle)) - Math.abs(delta(b.angle))) : [];
   const aim = assisted?.[0]?.angle ?? player.angle;
   // A creature behind a neutral sentry is not a safe automatic shot. Include
@@ -134,8 +143,9 @@ export function automaticFireAllowed(enemies, player, { aimAssist = false, hasLi
     const dx = enemy.x - player.x, dz = enemy.z - player.z;
     const along = dx * Math.sin(aim) - dz * Math.cos(aim);
     const across = Math.abs(dx * Math.cos(aim) + dz * Math.sin(aim));
-    const spread = player.weapon === 'shotgun' ? Math.tan(.09) * along : 0;
-    return along > 0 && along < (player.weapon === 'shotgun' ? 13 : 23)
-      && across < .32 + spread && hasLineOfSight(player.x, player.z, enemy.x, enemy.z);
+    const spread = weapon.pellets > 1 ? Math.tan(.09) * along : 0;
+    const radius = enemy.type === 'brute' ? .44 : .32;
+    return along > 0 && along < weapon.range
+      && across < radius + spread && hasLineOfSight(player.x, player.z, enemy.x, enemy.z);
   });
 }

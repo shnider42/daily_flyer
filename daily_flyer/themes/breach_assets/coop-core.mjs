@@ -29,7 +29,7 @@ export class CoopGame extends Game {
       const spawn = this.level.coopSpawns?.[index] || (index === 0 ? this.level.spawn : this._spawnNear(this.level.spawn, Object.values(this.state.players)));
       this.state.players[id] = {
         ...copy(template), ...spawn, id, alive: true, moving: false,
-        hasShotgun: true, ammo: { pistol: 40, shells: 8 },
+        hasShotgun: true, ammo: { pistol: 40, shells: 8, cells: 0 },
         tutorial: { moved: false, fired: false, interacted: false, weaponSwitched: false },
       };
       this._playerRuntime[id] = { shotCooldown: 0, reserveTimer: 0, messageCooldown: 0, aimAssist: this.options.aimAssist !== false, spawn: copy(spawn) };
@@ -254,6 +254,7 @@ export class CoopGame extends Game {
       player.armor = Math.max(this.level.exploration ? 50 : 30, player.armor);
       player.ammo.pistol = Math.max(this.level.exploration ? 60 : 24, player.ammo.pistol);
       player.ammo.shells = Math.max(this.level.exploration ? 16 : 6, player.ammo.shells);
+      player.ammo.cells = player.hasArc ? Math.max(4, player.ammo.cells || 0) : player.ammo.cells || 0;
       const runtime = this._playerRuntime[id];
       runtime.shotCooldown = 0; runtime.reserveTimer = 0; runtime.messageCooldown = 0;
     }

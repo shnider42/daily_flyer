@@ -4,6 +4,7 @@ import { readFileSync } from 'node:fs';
 import { runInNewContext } from 'node:vm';
 import * as THREE from '../daily_flyer/themes/breach_assets/vendor/three.module.js';
 import { UNDERWORKS } from '../daily_flyer/themes/breach_assets/underworks.mjs';
+import { SWITCHYARD } from '../daily_flyer/themes/breach_assets/switchyard.mjs';
 import { LEVELS } from '../daily_flyer/themes/breach_assets/core.mjs';
 
 // Test real Three.js geometry and renderer state without pretending that this
@@ -11,13 +12,15 @@ import { LEVELS } from '../daily_flyer/themes/breach_assets/core.mjs';
 // browser screenshots remain the visual acceptance check.
 function canvas(width=1440,height=900){
   const record=(context,values)=>{for(const value of values)context.shapeHash=Math.imul(context.shapeHash^Math.round(Number(value)*100),16777619)>>>0;};
-  const context={texts:[],colors:new Set(),fillStyle:'#000',globalAlpha:1,shapeHash:2166136261,
+  const context={texts:[],colors:new Set(),images:new Set(),fillStyle:'#000',globalAlpha:1,shapeHash:2166136261,
     fillRect(...values){this.colors.add(this.fillStyle);record(this,values);},fillText(text){this.texts.push(text);},
+    fill(){this.colors.add(this.fillStyle);},
     moveTo(...values){record(this,[17,...values]);},lineTo(...values){record(this,[31,...values]);},
+    drawImage(image){this.images.add(image);},
     getImageData(x,y,w,h){return {data:new Uint8ClampedArray(w*h*4)};},
     createImageData(w,h){return {data:new Uint8ClampedArray(w*h*4)};},
   };
-  for(const method of['beginPath','closePath','fill','save','restore','translate','scale','clearRect','drawImage','putImageData'])context[method]=()=>{};
+  for(const method of['beginPath','closePath','save','restore','translate','scale','clearRect','putImageData'])context[method]=()=>{};
   return {width,height,style:{},context,getContext(){return context;},getBoundingClientRect(){return {width,height};},
     parentElement:{appendChild(){}},insertAdjacentElement(){},setAttribute(){},remove(){this.removed=true;}};
 }
@@ -40,7 +43,7 @@ class GeometryOnlyRenderer {
 
 const source=readFileSync(new URL('../daily_flyer/themes/breach_assets/renderer.mjs',import.meta.url),'utf8')
   .replace(/^import \* as THREE from .*;\n/,'').replace('export class BreachRenderer','class BreachRenderer');
-const api=runInNewContext(source+';({surfaceLayout,doorKind,doorReady,doorFrame,featureMode,enemyArt,encounterCues,makeDoorTexture,makeStationTexture,WebGLBreachRenderer,SoftwareBreachRenderer})',{
+const api=runInNewContext(source+';({surfaceLayout,doorKind,doorStyleKey,doorReady,doorFrame,stationKey,featureMode,enemyArt,encounterCues,makeDoorTexture,makeStationTexture,makePickupTexture,yardLandmarkPanels,destinationPanels,WebGLBreachRenderer,SoftwareBreachRenderer})',{
   THREE:{...THREE,WebGLRenderer:GeometryOnlyRenderer},document:{createElement:()=>canvas()},window:{innerWidth:1440,innerHeight:900},matchMedia:()=>({matches:false}),
 });
 
@@ -189,6 +192,81 @@ test('existing mission materials and co-op local-player behavior survive every m
     if(renderer.mode==='webgl')assert.ok(Object.values(renderer.teammateFrames.p2).some(frames=>frames[4]===renderer.teammateVisuals.get('p2').sprite.material.map));
     renderer.handleEvents([{type:'shot',playerId:'p1',weapon:'pistol'}]);assert.ok(renderer.flash>0);assert.ok(renderer.recoil>0);
     delete game.state.players.p2;renderer.render(1/60);assert.equal((renderer.teammateVisuals||renderer.teammateMotion).has('p2'),false);
+    renderer.dispose();
+  }
+});
+
+test('Switchyard landmarks occupy real solid footprints and their visible cables follow playable floor',()=>{
+  for(const Renderer of[api.WebGLBreachRenderer,api.SoftwareBreachRenderer]){
+    const game=gameFor(SWITCHYARD),renderer=new Renderer(canvas(960,540),game,{quality:'low'});
+    assert.equal(renderer.visuals.switchyard,true);assert.equal(renderer.stats.landmarkPanels,12);
+    assert.equal(new Set(api.yardLandmarkPanels(game.level).map(panel=>panel.type)).size,3);
+    assert.ok(renderer.groundPaths.length>=4);
+    for(const route of renderer.groundPaths)for(const point of route.points)assert.notEqual(game.level.grid[Math.floor(point.z)][Math.floor(point.x)],'#','A visible control cable cannot lead through an unwalkable wall');
+    assert.ok(renderer.destinationSigns.some(sign=>(sign.panel||sign).label==='FREIGHT LIFT'));
+    assert.ok(renderer.destinationSigns.some(sign=>(sign.panel||sign).label.includes('LIFT RETURN')));
+    assert.ok(renderer.stats.textureSourceBytes<8_000_000);
+    for(const point of[{x:33.5,z:35.5,angle:Math.PI/2},{x:7.5,z:28.5,angle:Math.PI/2},{x:37.5,z:36.5,angle:Math.PI/2}]){Object.assign(game.state.player,point);renderer.render(1/60);}
+    if(renderer.mode==='software')assert.ok(renderer.stats.pixelCount<=64000);
+    renderer.dispose();
+  }
+  const invalid={...SWITCHYARD,landmarks:[{id:'phantom',type:'freight-car',x:22.5,z:43.5,width:1,depth:1,axis:'z'}]};
+  assert.equal(api.yardLandmarkPanels(invalid).length,0,'No decorative train appears on a traversable cell');
+});
+
+test('both renderers close a previously opened shutter and show actual circuit state at every switch',()=>{
+  for(const Renderer of[api.WebGLBreachRenderer,api.SoftwareBreachRenderer]){
+    const game=gameFor(SWITCHYARD),door=game.state.doors.find(door=>door.id==='yard-shutter');
+    const switches=game.state.interactables.filter(item=>item.doorIds?.includes(door.id));
+    Object.assign(game.state.player,{x:28.5,z:34.5,angle:Math.PI/2});game.state.power=true;
+    const renderer=new Renderer(canvas(960,540),game);
+    for(const open of[false,true,false,true,false]){
+      door.open=open;
+      for(const item of switches)item.used=!open; // Door state wins over stale cached interaction flags.
+      for(let n=0;n<10;n++)renderer.render(.08);
+      for(const item of switches){
+        assert.equal(api.featureMode(item,game.state),open?2:1);
+        if(renderer.mode==='webgl'){
+          const visual=renderer.featureVisuals.get(item.id);assert.equal(visual.sprite.material.map,visual.maps[open?2:1]);
+        }else assert.ok(renderer.stationImages.get(api.stationKey(item))[open?2:1]);
+      }
+      if(renderer.mode==='webgl'){
+        const visual=renderer.doorVisuals.get(door.id);assert.equal(visual.remnant.visible,open);assert.equal(visual.mesh.visible,!open);
+        assert.ok(Math.abs(visual.amount-Number(open))<.01);
+      }else{
+        assert.equal(renderer.depthDoorIds.includes(door.id),!open,'Fallback ray occlusion is rebuilt on re-close');
+        assert.equal(renderer.doorCells[Math.floor(door.z)*game.level.width+Math.floor(door.x)]===door,!open);
+      }
+    }
+    assert.equal(api.doorStyleKey(door),'shutter:01');
+    for(const item of switches)assert.ok(labels(api.makeStationTexture(item,2)).includes('01'));
+    renderer.dispose();
+  }
+});
+
+test('Arc caster has its own weapon and pickup art, electrical discharge, and truthful stun feedback',()=>{
+  assert.notEqual(api.makePickupTexture('arc').image.context.shapeHash,api.makePickupTexture('shotgun').image.context.shapeHash);
+  assert.notEqual(api.makePickupTexture('cells').image.context.shapeHash,api.makePickupTexture('ammo').image.context.shapeHash);
+  for(const Renderer of[api.WebGLBreachRenderer,api.SoftwareBreachRenderer]){
+    const game=gameFor(SWITCHYARD),p=game.state.player;
+    p.hasArc=true;p.weapon='arc';p.ammo.cells=8;
+    const enemy={id:'arc-visual-target',type:'runner',x:p.x,z:p.z-2,alive:true,health:50,stunTimer:.65};game.state.enemies=[enemy];
+    const renderer=new Renderer(canvas(960,540),game,{reducedMotion:true});
+    renderer.render(1/60);
+    if(renderer.mode==='webgl')assert.equal(renderer.enemyVisuals.get(enemy.id).stun.visible,true);
+    else assert.ok(renderer.context.images.has(renderer.stunImage));
+    enemy.guardian=true;
+    if(renderer.mode==='software')renderer.context.images.clear();renderer.render(1/60);
+    if(renderer.mode==='webgl')assert.equal(renderer.enemyVisuals.get(enemy.id).stun.visible,false);
+    else assert.equal(renderer.context.images.has(renderer.stunImage),false,'An immune guardian must never display the disabled cue');
+    renderer.handleEvents([{type:'shot',weapon:'arc'}]);
+    game.state.effects=[{id:'arc-shot',type:'arc',x:p.x,z:p.z,targetX:enemy.x,targetZ:enemy.z,life:.18}];
+    renderer.render(1/60);assert.ok(renderer.flash>0);assert.equal(renderer.lastWeapon,'arc');assert.equal(renderer.stats.encounterCues,1);
+    assert.ok(renderer.weaponContext.colors.has('#c7ffeb'),'The caster draws its electrical discharge instead of a firearm muzzle flash');
+    if(renderer.mode==='webgl')assert.equal(renderer.cueVisuals[0].arc.filter(piece=>piece.visible).length,4);
+    else assert.ok(renderer.stats.drawnCuePoints>0);
+    game.state.effects=[];renderer.render(1/60);
+    if(renderer.mode==='webgl')assert.equal(renderer.cueVisuals[0].arc.some(piece=>piece.visible),false);
     renderer.dispose();
   }
 });

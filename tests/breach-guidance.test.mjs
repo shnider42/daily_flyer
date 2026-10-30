@@ -26,10 +26,19 @@ test('blocked machinery teaches in Simple, hints in Moderate, and stays silent i
 });
 
 test('valid interactions remain discoverable in all guidance tiers', () => {
-  for (const label of ['OPEN', 'CUT', 'CROSS', 'PHASE', 'EQUIP', 'REST', 'TRAVEL']) {
+  for (const label of ['OPEN', 'CUT', 'CROSS', 'PHASE', 'EQUIP', 'REST', 'TRAVEL', 'RAISE', 'LOWER']) {
     const action = { text: 'An available action', label, canUse: true };
     for (const guidance of ['simple', 'moderate', 'expert']) assert.equal(interactionForGuidance(action, guidance), action);
   }
+});
+
+test('shutter occupancy is a sensory hint in Moderate and remains silent in Expert', () => {
+  const blocked = { text: 'Shutter path occupied — clear the doorway', label: 'BLOCKED', canUse: false };
+  assert.equal(interactionForGuidance(blocked, 'simple'), blocked);
+  assert.equal(interactionForGuidance(blocked, 'moderate').text, 'Movement interrupts the doorway sensor.');
+  assert.equal(interactionForGuidance(blocked, 'expert'), null);
+  assert.equal(noticeForGuidance({ type: 'message', text: blocked.text }, 'expert', blocked), null);
+  assert.equal(noticeForGuidance({ type: 'shutter', open: true }, 'expert'), 'Shutter raised.');
 });
 
 test('successful actions report what happened without leaking the next prerequisite', () => {
@@ -92,6 +101,16 @@ test('automatic fire will not provoke a neutral sentry standing in front of its 
   assert.equal(automaticFireAllowed([creature, { ...sentry, x: 6 }], player), true);
   assert.equal(automaticFireAllowed([creature, { ...sentry, x: 5.6 }], { ...player, weapon: 'shotgun' }), false);
   assert.equal(automaticFireAllowed([creature], player, { hasLineOfSight: () => false }), false);
+});
+
+test('arc automatic fire respects its short range and protects a neutral in the beam', () => {
+  const player = { x: 10, z: 20, angle: 0, weapon: 'arc' };
+  const target = { x: 10, z: 12.6, alive: true, health: 50, faction: 'infestation' };
+  const neutral = { x: 10, z: 15, alive: true, health: 120, faction: 'security', provoked: false };
+  assert.equal(automaticFireAllowed([target], player, { aimAssist: true }), true);
+  assert.equal(automaticFireAllowed([{ ...target, z: 12.4 }], player, { aimAssist: true }), false);
+  assert.equal(automaticFireAllowed([target, neutral], player, { aimAssist: true }), false);
+  assert.equal(automaticFireAllowed([target, { ...neutral, x: 11 }], player, { aimAssist: true }), true, 'There is no arc chain or shotgun spread');
 });
 
 test('shotgun protection uses the actual core assist pool even when a farther target redirects its spread', () => {

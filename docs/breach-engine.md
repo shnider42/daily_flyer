@@ -7,6 +7,8 @@ vault before the return to extraction.
 Crosslink adds a compact third facility for solo play and private two-player co-op.
 The Underworks adds a large interconnected facility with permanent upgrades,
 return shortcuts, refuges, and transit links in both solo and co-op.
+Switchyard adds a compact fifth solo mission with reversible shutters, a staged
+faction encounter, and the Arc caster; see [the 0.6.0 notes](breach-switchyard-06.md).
 
 ## Modules and ownership
 
@@ -29,6 +31,7 @@ rotation around Y is `-angle`. Wall height is approximately 2.5, eye height 1.25
 `getLevel(id)`, and `Game`. Mission ids are `blacksite-07`, `relay-09`, and `crosslink-11`.
 The fourth mission ID is `underworks-13`; its extended map/progression contract is
 documented in [The Underworks](breach-underworks.md).
+The fifth is `switchyard-15`, defined in `switchyard.mjs`.
 `MISSIONS` provides the menu's `id,levelId,name,number,subtitle,briefing,steps`.
 
 `LEVEL`: `{id,name,width,height,grid,spawn,doors,interactables,pickups,enemies,zones}`.
@@ -49,7 +52,7 @@ Zones have `{name,x1,x2,z1,z2}`.
 
 ```
 status: 'ready'|'playing'|'paused'|'dead'|'won'
-player: {x,z,angle,health,armor,ammo:{pistol,shells},weapon:'pistol'|'shotgun',hasShotgun,key}
+player: {x,z,angle,health,armor,ammo:{pistol,shells,cells},weapon:'pistol'|'shotgun'|'arc',hasShotgun,hasArc,key}
 enemies, pickups, doors, interactables, projectiles, effects
 power: boolean, secretFound: boolean, time: seconds, kills, shots, hits
 ```
@@ -64,7 +67,8 @@ Methods:
   forward/strafe in [-1,1], turn radians added that frame. Fire true while held.
   update clamps unreasonable dt and does nothing outside playing.
 - `interact()` activates nearest reachable feature within ~1.6 units.
-- `switchWeapon()` toggles available weapons.
+- `selectWeapon(id)` selects an owned weapon; `switchWeapon()` cycles all owned
+  weapons using exported `WEAPONS` metadata.
 - `getObjective()` -> `{title,detail,x,z,action,stage}` (guidance target).
 - `getPrompt()` -> string (current nearby interaction, or empty).
 - `getInteractionInfo()` -> `null` or `{text,label,canUse}`. Labels identify
@@ -112,6 +116,12 @@ when usable. Progression rules remain in `Game`. Unknown equipment and objective
 locations must not leak through alternate HUD, map, accessibility, or toast paths.
 `touch-controls.mjs` resolves Compact/Standard/Large presets and scales joystick
 travel to the actual pad bounds. Phone presets do not change desktop controls.
+
+As of 0.6.0, the same module owns `TouchFireGestures`, used by the actual pointer
+handlers. Safe touch Fire classifies an immediate drag as look-only, a tap as a
+single shot on release, and a stationary hold as continuous firing. Pointer
+ownership is stable; cancellation and lifecycle changes clear pending fire.
+Classic immediate fire-and-drag is an explicit saved alternative.
 
 Encounter state, telegraphs, save compatibility, and render/audio events are
 specified in [the 0.5.0 gameplay notes](breach-gameplay-05.md).

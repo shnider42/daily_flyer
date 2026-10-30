@@ -40,16 +40,29 @@ export class BreachAudio {
   }
   events(events, listener = null) {
     for(const event of events) {
-      const encounter = ['enemy-warning','enemy-shot','teleport','provoked','boss-phase'].includes(event.type);
+      const encounter = ['enemy-warning','enemy-shot','teleport','provoked','boss-phase','shutter'].includes(event.type);
       const distance = listener && Number.isFinite(event.x) && Number.isFinite(event.z) ? Math.hypot(event.x-listener.x,event.z-listener.z) : 0;
       if(encounter && distance > 14) continue;
       const volume = Math.max(.15, 1-distance/16);
       switch(event.type) {
-        case 'shot': this.noise(event.weapon === 'shotgun' ? .27 : .13, event.weapon === 'shotgun' ? 1.2 : .65, event.weapon === 'shotgun' ? 2600 : 1800); this.tone(event.weapon === 'shotgun' ? 110 : 145, .15, .4, 30, 'triangle'); break;
+        case 'shot':
+          if(event.weapon==='arc') {
+            this.noise(.14,.28,3100); this.tone(820,.2,.27,150,'sawtooth');
+            this.tone(1240,.12,.12,480,'sine',.035);
+          } else {
+            this.noise(event.weapon === 'shotgun' ? .27 : .13, event.weapon === 'shotgun' ? 1.2 : .65, event.weapon === 'shotgun' ? 2600 : 1800);
+            this.tone(event.weapon === 'shotgun' ? 110 : 145, .15, .4, 30, 'triangle');
+          }
+          break;
         case 'hit': this.tone(170, .06, .13, 75, 'square'); break;
         case 'hurt': this.noise(.18, .4, 400); this.tone(60, .18, .5, 35, 'sine'); break;
         case 'pickup': this.tone(440, .1, .17, 660, 'triangle'); this.tone(880, .13, .1, 880, 'sine', .07); break;
         case 'door': this.noise(.55, .2, 500); this.tone(75, .45, .14, 110, 'sawtooth'); break;
+        case 'shutter':
+          this.noise(.42,.2*volume,650);
+          this.tone(event.open?55:120,.42,.16*volume,event.open?120:55,'triangle');
+          this.tone(event.open?660:330,.1,.1*volume,event.open?660:330,'sine',.32);
+          break;
         case 'power': this.tone(90, 1, .23, 180, 'triangle'); this.tone(660, .15, .16, 660, 'sine', .7); break;
         case 'relay': [392,587,784].forEach((f,i)=>this.tone(f,.18,.14,f,'sine',i*.1)); break;
         case 'checkpoint': this.tone(520, .15, .15, 520); this.tone(780, .2, .15, 780, 'sine', .16); break;

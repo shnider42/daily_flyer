@@ -1,9 +1,9 @@
-import { Game, MISSIONS } from './core.mjs';
+import { Game, MISSIONS, WEAPONS } from './core.mjs';
 import { BreachRenderer } from './renderer.mjs';
 import { BreachAudio } from './audio.mjs';
 import { CoopClient } from './coop-client.mjs';
 import { GUIDANCE_DESCRIPTIONS, interactionForGuidance, objectiveForGuidance, briefingForGuidance, noticeForGuidance, markerLabelForGuidance, markerCueForGuidance, visibleEquipment, hostileToPlayer, automaticFireAllowed } from './guidance.mjs';
-import { resolveTouchPreset, joystickVector } from './touch-controls.mjs';
+import { resolveTouchPreset, joystickVector, resolveFireGesture, TouchFireGestures } from './touch-controls.mjs';
 
 const $ = id => document.getElementById(id);
 const SETTINGS_KEY = 'dfe.breach.settings.v1';
@@ -28,6 +28,7 @@ const settings = {
   quality: choices(prior.quality, ['auto','low','high'], 'auto'),
   controls: choices(prior.controls, ['auto','touch','keyboard'], 'auto'),
   touchPreset: resolveTouchPreset(prior.touchPreset, {coarse:touch,width:innerWidth,height:innerHeight}),
+  fireGesture: resolveFireGesture(prior.fireGesture),
   guidance: choices(prior.guidance, ['simple','moderate','expert'], 'simple'),
   difficulty: choices(prior.difficulty, ['relaxed','standard','hard'], 'standard'),
   sound: typeof prior.sound === 'boolean' ? prior.sound : true,
@@ -46,6 +47,7 @@ const seed = Number.isFinite(Number(config.seed)) ? Number(config.seed) : 1;
 const audio = new BreachAudio(settings.sound);
 const keys = new Set();
 const input = {forward:0,strafe:0,turn:0,fire:false};
+const fireGestures = new TouchFireGestures({mode:settings.fireGesture});
 let game, renderer, mode = 'menu', ready = false;
 let savedRecord = readStorage(SAVE_KEY);
 let explored = new Set();
@@ -54,11 +56,11 @@ let mapView='local',mapZoom=1,mapCenter=null,mapFollow=true,mapPan=null,mapScale
 let mapSelected=null,mapIndexSignature='',mapFloorTotal=0,mapKnownMarkers=[],mapKnownSectors=[];
 let mouseFire = false;
 let firePulse = false;
+let firePadPulse = false;
 let lookPointer = null;
 let movePointer = null;
 let firePointer = null;
 let lookLastX = 0;
-let fireLastX = 0;
 let joyX = 0, joyY = 0;
 let pendingTurn = 0;
 let lastFrame = 0, lastHud = 0, lastMap = 0, lastSave = 0;
@@ -69,6 +71,7 @@ let statusError = false;
 let pointerLockedOnce = false;
 let fullscreenTransitionUntil = 0;
 let lastWeaponWheel = 0;
+let touchLookHintUntil = 0, touchLookHelpShown = false;
 
 function formatTime(value) {
   const seconds = Math.max(0,Math.floor(Number(value) || 0));
@@ -78,6 +81,9 @@ function setTouch(value) {
   touch = value;
   document.body.classList.toggle('touch',touch);
   document.body.dataset.touchPreset=settings.touchPreset;
+  document.body.dataset.fireGesture=settings.fireGesture;
+  $('fire-caption').textContent=settings.fireGesture==='safe'?'FIRE':'FIRE / AIM';
+  $('fire-pad').setAttribute('aria-label',settings.fireGesture==='safe'?'Fire: tap once, or hold still briefly for continuous fire. Drag immediately to look without firing.':'Hold to fire and drag to aim');
   $('device-hint').textContent = touch ? 'TOUCH TO PLAY · LANDSCAPE RECOMMENDED' : 'WASD MOVE · MOUSE AIM · E INTERACT';
   if(ready && !statusError) $('load-status').textContent = touch ? 'READY · TURN YOUR PHONE SIDEWAYS FOR A WIDER VIEW' : 'READY · CLICK TO ENTER';
 }
@@ -95,11 +101,12 @@ function showToast(text, duration = 3300) {
 }
 function clearInputs() {
   coop?.clearInput();
-  keys.clear(); pendingTurn = 0; mouseFire = false; firePulse = false; joyX = 0; joyY = 0;
+  keys.clear(); pendingTurn = 0; mouseFire = false; firePulse = false; firePadPulse = false; joyX = 0; joyY = 0;
   lookPointer = movePointer = firePointer = null;
+  fireGestures.cancel();
   input.forward = input.strafe = input.turn = 0; input.fire = false;
   $('joystick-knob').style.transform = '';
-  $('fire-pad').classList.remove('pressed');
+  $('fire-pad').classList.remove('pressed','pending','aim-only');
 }
 function releasePointer() { if(document.pointerLockElement) { try { document.exitPointerLock(); } catch (_) {} } }
 function requestMouse() {
@@ -144,6 +151,7 @@ async function toggleFullscreen() {
   }
 }
 function setMode(next) {
+  if(next==='playing'&&!touchLookHelpShown){touchLookHintUntil=performance.now()+7000;touchLookHelpShown=true;}
   mode = next; document.body.dataset.mode = next;
   if(mapVisible&&!['playing','paused'].includes(next)){mapVisible=false;updateMapVisibility();}
   $('menu').hidden = next !== 'menu';
@@ -157,6 +165,8 @@ function setMode(next) {
   if(next === 'menu') updateContinue();
 }
 function saveSettings() {
+  clearInputs();
+  fireGestures.setMode(settings.fireGesture);
   writeStorage(SETTINGS_KEY,settings);
   document.body.classList.toggle('reduced-motion',settings.reducedMotion);
   document.body.dataset.guidance=settings.guidance;
@@ -188,6 +198,7 @@ function changeGuidance(value) {
 function updateSettingsFields() {
   $('setting-controls').value = settings.controls;
   $('setting-touch-preset').value = settings.touchPreset;
+  $('setting-fire-gesture').value = settings.fireGesture;
   $('setting-guidance').value = settings.guidance;
   $('setting-fov').value = settings.fov === null ? 'auto' : String(settings.fov);
   $('setting-quality').value = settings.quality;
@@ -264,7 +275,7 @@ function resetExploration() { explored=new Set();mapDirty=true;pathHint=null;pat
 function mountGame(candidate) {
   renderer?.dispose();game=candidate;
   renderer = new BreachRenderer($('world'),game,{quality:settings.quality,fov:settings.fov,reducedMotion:settings.reducedMotion});
-  resetExploration(); helpRevealed=0;updateTutorial.identity=null;
+  resetExploration(); helpRevealed=0;updateTutorial.identity=null;touchLookHelpShown=false;
 }
 function makeGame(options = {}) {
   mountGame(new Game({mission:settings.mission,difficulty:settings.difficulty,guidance:settings.guidance,aimAssist:settings.aimAssist,seed,...options}));
@@ -529,6 +540,11 @@ async function copyInvite() {
 }
 function interact() { if(!localOperatorAlive())return;if(coop)coop.interact();else game.interact(); }
 function switchWeapon() { if(!localOperatorAlive())return;if(coop)coop.weapon();else game.switchWeapon(); }
+function ownedWeapons(player=game.state.player) { return ['pistol',...(player.hasShotgun?['shotgun']:[]),...(player.hasArc?['arc']:[])]; }
+function selectWeapon(id) {
+  if(!localOperatorAlive()||!ownedWeapons().includes(id)||game.state.player.weapon===id)return;
+  if(coop){if(id!=='arc')coop.weapon();}else game.selectWeapon(id);
+}
 
 function fail(error) {
   console.error(error); statusError = true; ready = false;
@@ -793,13 +809,13 @@ function updateTutorial() {
     if(!visibleHostileForTraining()){
       if(game.level.exploration&&objective.stage==='power'){text=touch?'MAP pauses the run. Use it to remember gates, refuges, and your route back.':'Press TAB to inspect the facility map. It pauses the run and remembers discovered routes.';index='EXPLORATION TIP';}
       else{$('tutorial').hidden=true;return;}
-    }else text=touch?'Hold FIRE. Drag on it to aim while you shoot.':'Click or hold SPACE to fire. Move sideways with A and D to dodge.';
+    }else text=touch?(settings.fireGesture==='safe'?'Drag the view to aim. Tap FIRE once, or hold it still briefly for continuous fire.':'Hold FIRE. Drag on it to aim while you shoot.'):'Click or hold SPACE to fire. Move sideways with A and D to dodge.';
   }
-  else if(state.player.hasShotgun&&!t.weaponSwitched)text=touch?'Tap SWAP for your scattergun. It works best up close.':'Scattergun acquired. Press 2 to equip it, or 1 to return to the pistol. It is strongest up close.';
+  else if(ownedWeapons(state.player).length>1&&!t.weaponSwitched)text=touch?'Tap SWAP to cycle your carried weapons, or choose one in the inventory.':'Press 1 for the pistol, 2 for the scattergun, or 3 for the arc caster when acquired. The mouse wheel cycles carried weapons.';
   else if(state.enemies.some(enemy=>enemy.alive&&enemy.faction==='security'&&!enemy.provoked&&Math.hypot(enemy.x-state.player.x,enemy.z-state.player.z)<9&&game.hasLineOfSight(state.player.x,state.player.z,enemy.x,enemy.z))){text='Security sentries fight the creatures. They leave you alone unless you shoot them.';index='ENCOUNTER TIP';}
   else if(game.level.exploration&&['cutter','insulator','phase','return'].includes(objective.stage)){text=objective.stage==='return'?'Activated transit stations shorten the trip back. Check the map for linked stations.':'New equipment opens routes you passed earlier. The map remembers discovered gates and refuges.';index='EXPLORATION TIP';}
   else if(objective.stage==='relays'){text=touch?'Bring both relay consoles online. Each active link stays lit.':'Find and activate both relay consoles. Active links stay lit; the link counter tracks your progress.';index='MISSION BRIEF';}
-  else if(objective.action==='collect'){text=game.level.exploration?'Walk over the reactor key to collect it.':'Walk over the security key to collect it.';index='MISSION BRIEF';}
+  else if(objective.action==='collect'){text=['arc','weapon'].includes(objective.stage)?'Walk over the arc caster to collect it.':game.level.exploration?'Walk over the reactor key to collect it.':'Walk over the security key to collect it.';index='MISSION BRIEF';}
   else {text=touch?'Keep moving. Walk over supplies to collect them.':'Keep moving and use cover. Walk over health, armor, and ammunition to collect them.';index='FIELD TIP';}
   // Early controls wait for the action; the later supply reminder appears briefly.
   if(index==='MISSION BRIEF'||index==='FIELD TIP'||index==='EXPLORATION TIP'||index==='ENCOUNTER TIP') {
@@ -815,9 +831,17 @@ function updateHud() {
   $('zone').textContent=game.getZone().toUpperCase();$('clock').textContent=formatTime(state.time);
   $('health').textContent=Math.ceil(p.health);$('armor').textContent=Math.ceil(p.armor);
   $('health-fill').style.width=`${Math.max(0,p.health)/(p.maxHealth||100)*100}%`;$('health-unit').textContent=p.maxHealth>100?`/ ${p.maxHealth}`:'HP';$('health').closest('.health').classList.toggle('low',p.health<30);
-  $('ammo').textContent=p.weapon==='shotgun'?p.ammo.shells:p.ammo.pistol;
-  $('ammo-label').textContent=p.weapon==='shotgun'?'SCATTERGUN SHELLS':'9MM AMMUNITION';
-  $('weapon-name').textContent=p.weapon==='shotgun'?'SCATTERGUN':'SERVICE PISTOL';
+  const weapon=WEAPONS[p.weapon]||WEAPONS.pistol;
+  $('ammo').textContent=p.ammo[weapon.ammoKey]||0;
+  $('ammo-label').textContent=({pistol:'9MM AMMUNITION',shotgun:'SCATTERGUN SHELLS',arc:'ARC CELLS'})[p.weapon]||'AMMUNITION';
+  $('ammo-unit').textContent=p.weapon==='arc'?'CELLS':'RDS';
+  $('weapon-name').textContent=weapon.name.toUpperCase();
+  const carried=ownedWeapons(p);
+  $('weapon-slots').hidden=carried.length<2;
+  for(const button of document.querySelectorAll('[data-weapon]')){
+    const id=button.dataset.weapon;button.hidden=!carried.includes(id);button.disabled=!localOperatorAlive();
+    button.setAttribute('aria-pressed',String(p.weapon===id));
+  }
   $('power-token').classList.toggle('active',state.power);$('key-token').classList.toggle('active',p.key);
   $('power-token').setAttribute('aria-label',state.power?'Power restored':'Power offline');$('key-token').setAttribute('aria-label',p.key?'Access key collected':'Access key needed');
   $('power-token').hidden=settings.guidance!=='simple'&&!state.power;$('key-token').hidden=settings.guidance!=='simple'&&!p.key;
@@ -826,8 +850,9 @@ function updateHud() {
   $('relay-token').textContent=`LINK ${progress.relaysUsed}/${progress.relaysTotal}`;
   $('relay-token').classList.toggle('active',progress.relaysTotal>0&&progress.relaysUsed===progress.relaysTotal);
   $('relay-token').setAttribute('aria-label',`${progress.relaysUsed} of ${progress.relaysTotal} relay links online`);
-  $('hud-upgrades').hidden=!game.level.exploration;
-  if(game.level.exploration)upgradeTokens($('hud-upgrades'),mapInfo().upgrades,true);
+  const equipment=game.getExplorationProgress?.().upgrades||[];
+  $('hud-upgrades').hidden=!visibleEquipment(equipment,settings.guidance).length;
+  if(equipment.length)upgradeTokens($('hud-upgrades'),equipment,true);
   const obj=objectiveForGuidance(game.getObjective(),settings.guidance);$('objective-title').textContent=obj?.title||'';$('objective-detail').textContent=obj?.detail||'';
   $('objective').hidden=!obj;
   $('objective-detail').hidden=touch||settings.guidance==='expert';
@@ -845,9 +870,11 @@ function updateHud() {
   $('touch-interact').textContent=interaction?.label||'USE';
   $('touch-interact').classList.toggle('action-ready',canUse);
   $('touch-interact').setAttribute('aria-label',interaction ? `${interaction.label}: ${interaction.text}` : 'Interact when near a door or console');
-  $('touch-weapon').hidden=!p.hasShotgun;
-  $('touch-weapon').disabled=!p.hasShotgun||!localOperatorAlive();
+  $('touch-weapon').hidden=carried.length<2;
+  $('touch-weapon').disabled=carried.length<2||!localOperatorAlive();
+  $('touch-weapon').setAttribute('aria-label',`Switch weapon. Next: ${WEAPONS[carried[(carried.indexOf(p.weapon)+1)%carried.length]].name}`);
   $('fire-pad').disabled=!localOperatorAlive();
+  $('touch-look-hint').hidden=!(touch&&settings.fireGesture==='safe'&&settings.guidance==='simple'&&settings.tutorial&&mode==='playing'&&performance.now()<touchLookHintUntil);
   $('checkpoint').hidden=!state.checkpoint||!!coop&&!roomOwner();
   updateDirection();updateTutorial();updateTeamStatus();
 }
@@ -860,7 +887,7 @@ function processEvents(events,allEvents=events) {
     if(eventNotice)notice=eventNotice;
     if(event.type==='hurt')damageUntil=performance.now()+(settings.reducedMotion?130:200);
     if(event.type==='hit')hitUntil=performance.now()+120;
-    if(['door','power','pickup','relay','upgrade','refuge','transit-activated','transit','reward','hit','death'].includes(event.type)) {pathTimer=0;mapDirty=true;}
+    if(['door','shutter','power','pickup','relay','upgrade','refuge','transit-activated','transit','reward','hit','death'].includes(event.type)) {pathTimer=0;mapDirty=true;}
     if(['checkpoint','upgrade','refuge','transit-activated','reward'].includes(event.type))saveRun();
     if(event.type==='win'&&!coop)finish(true);
     if(event.type==='death'&&!coop)finish(false);
@@ -869,8 +896,8 @@ function processEvents(events,allEvents=events) {
   }
   if(notice&&mode==='playing')showToast(notice);
 }
-function shouldAutoFire() {
-  if(!settings.autoFire||!localOperatorAlive())return false;
+function shouldAutoFire(gesture) {
+  if(!settings.autoFire||!localOperatorAlive()||gesture.blocksAutoFire)return false;
   return automaticFireAllowed(game.state.enemies,game.state.player,{aimAssist:settings.aimAssist,hasLineOfSight:(...args)=>game.hasLineOfSight(...args)});
 }
 function frame(now) {
@@ -878,13 +905,14 @@ function frame(now) {
   const dt=Math.min(.05,Math.max(0,(now-(lastFrame||now))/1000));lastFrame=now;
   try {
     if(mode==='playing') {
+      const gesture=fireGestures.sample(now);updateFireAppearance(gesture);
       input.forward=(keys.has('KeyW')||keys.has('ArrowUp')?1:0)-(keys.has('KeyS')||keys.has('ArrowDown')?1:0)-joyY;
       input.strafe=(keys.has('KeyD')?1:0)-(keys.has('KeyA')?1:0)+joyX;
       input.forward=Math.max(-1,Math.min(1,input.forward));input.strafe=Math.max(-1,Math.min(1,input.strafe));
       input.turn=pendingTurn+((keys.has('ArrowRight')?1:0)-(keys.has('ArrowLeft')?1:0))*dt*2.3*settings.sensitivity;
-      pendingTurn=0;input.fire=firePulse||mouseFire||firePointer!==null||keys.has('Space')||shouldAutoFire();
+      pendingTurn=0;input.fire=firePulse||firePadPulse||mouseFire||gesture.firing||keys.has('Space')||shouldAutoFire(gesture);
       if(coop)coop.drive(dt,input);else{game.update(dt,input);processEvents(game.drainEvents());}
-      firePulse=false;
+      firePulse=false;firePadPulse=false;
       if(!coop){if(game.state.status==='dead')finish(false);else if(game.state.status==='won')finish(true);}
       if(now-lastMap>300){revealMap();lastMap=now;}
       if(settings.guidance==='simple'&&now-pathTimer>650){pathHint=calculatePath();pathTimer=now;}
@@ -963,6 +991,7 @@ $('setting-quality').addEventListener('change',event=>{settings.quality=event.ta
 $('setting-controls').addEventListener('change',event=>{settings.controls=event.target.value;saveSettings();updateSettingsFields();});
 $('setting-guidance').addEventListener('change',event=>changeGuidance(event.target.value));
 $('setting-touch-preset').addEventListener('change',event=>{clearInputs();settings.touchPreset=resolveTouchPreset(event.target.value);saveSettings();updateSettingsFields();});
+$('setting-fire-gesture').addEventListener('change',event=>{settings.fireGesture=resolveFireGesture(event.target.value);saveSettings();updateSettingsFields();});
 const controlMediaChanged = () => { if(settings.controls === 'auto') applyControlMode(); };
 if(touchMedia.addEventListener) touchMedia.addEventListener('change',controlMediaChanged);
 else if(touchMedia.addListener) touchMedia.addListener(controlMediaChanged);
@@ -974,6 +1003,7 @@ $('setting-tutorial').addEventListener('change',event=>{settings.tutorial=event.
 
 window.addEventListener('keydown',event=>{
   if((event.target instanceof HTMLInputElement||event.target instanceof HTMLSelectElement)||document.querySelector('dialog[open]'))return;
+  if(event.target instanceof HTMLElement&&event.target.closest('[data-weapon]')&&['Space','Enter'].includes(event.code))return;
   if(mapVisible&&game?.level.exploration){
     if(['Escape','Tab','KeyP'].includes(event.code)){event.preventDefault();closeMap();return;}
     if(['Equal','NumpadAdd','Minus','NumpadSubtract'].includes(event.code)){event.preventDefault();changeMapZoom(['Equal','NumpadAdd'].includes(event.code)?1.3:1/1.3);return;}
@@ -981,7 +1011,7 @@ window.addEventListener('keydown',event=>{
     if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight'].includes(event.code)){event.preventDefault();mapFollow=false;const shift=70/mapScale;mapCenter.x=Math.max(0,Math.min(game.level.width,mapCenter.x+(event.code==='ArrowRight'?shift:event.code==='ArrowLeft'?-shift:0)));mapCenter.z=Math.max(0,Math.min(game.level.height,mapCenter.z+(event.code==='ArrowDown'?shift:event.code==='ArrowUp'?-shift:0)));drawMap();}return;
   }
   if(mode==='playing') {
-    if(['KeyW','KeyA','KeyS','KeyD','ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space','Tab','KeyE','KeyP','Escape','Digit1','Digit2','KeyQ','KeyF'].includes(event.code))event.preventDefault();
+    if(['KeyW','KeyA','KeyS','KeyD','ArrowUp','ArrowDown','ArrowLeft','ArrowRight','Space','Tab','KeyE','KeyP','Escape','Digit1','Digit2','Digit3','KeyQ','KeyF'].includes(event.code))event.preventDefault();
     if(event.code==='Escape'||event.code==='KeyP'){pauseGame();return;}
     if(event.code==='KeyF'&&!event.repeat){toggleFullscreen();return;}
     if(!event.repeat) {
@@ -989,8 +1019,9 @@ window.addEventListener('keydown',event=>{
       if(event.code==='KeyE')interact();
       if(event.code==='Tab')toggleMap();
       if(event.code==='KeyQ')switchWeapon();
-      if(event.code==='Digit1'&&game.state.player.weapon!=='pistol')switchWeapon();
-      if(event.code==='Digit2'&&game.state.player.weapon!=='shotgun')switchWeapon();
+      if(event.code==='Digit1')selectWeapon('pistol');
+      if(event.code==='Digit2')selectWeapon('shotgun');
+      if(event.code==='Digit3')selectWeapon('arc');
     }
     keys.add(event.code);
   }else if(mode==='paused'&&(event.code==='Escape'||event.code==='KeyP')){event.preventDefault();resumeGame();}
@@ -1018,7 +1049,7 @@ document.addEventListener('pointerlockchange',()=>{
 });
 for(const name of ['fullscreenchange','webkitfullscreenchange'])document.addEventListener(name,()=>{clearInputs();renderer?.resize();updateFullscreen();});
 window.addEventListener('wheel',event=>{
-  if(mode!=='playing'||!game.state.player.hasShotgun||document.querySelector('dialog[open]'))return;
+  if(mode!=='playing'||ownedWeapons().length<2||document.querySelector('dialog[open]'))return;
   if(document.pointerLockElement!==$('world')&&event.target!==$('world'))return;
   event.preventDefault();
   if(event.deltaY!==0&&performance.now()-lastWeaponWheel>180){switchWeapon();lastWeaponWheel=performance.now();}
@@ -1027,10 +1058,11 @@ document.addEventListener('pointerlockerror',()=>{if(mode==='playing')showToast(
 document.addEventListener('mousemove',event=>{if(mode==='playing'&&document.pointerLockElement===$('world'))pendingTurn+=event.movementX*.0028*settings.sensitivity;});
 $('world').addEventListener('contextmenu',event=>event.preventDefault());
 $('world').addEventListener('pointerdown',event=>{
-  if(mode!=='playing')return;
-  if(event.pointerType==='touch') {
+  if(mode!=='playing'||!localOperatorAlive())return;
+  if(event.pointerType==='touch'||event.pointerType==='pen') {
     if(!touch && settings.controls === 'auto')setTouch(true);
     if(lookPointer!==null)return;
+    if(!fireGestures.begin({pointerId:event.pointerId,x:event.clientX,y:event.clientY,time:performance.now(),source:'look'}).accepted)return;
     lookPointer=event.pointerId;lookLastX=event.clientX;
     try{$('world').setPointerCapture(event.pointerId);}catch(_){}
   }else if(event.button===0) {
@@ -1041,9 +1073,10 @@ $('world').addEventListener('pointerdown',event=>{
 });
 $('world').addEventListener('pointermove',event=>{
   if(mode!=='playing'||event.pointerId!==lookPointer||document.pointerLockElement===$('world'))return;
+  fireGestures.move({pointerId:event.pointerId,x:event.clientX,y:event.clientY});
   pendingTurn+=(event.clientX-lookLastX)*.005*settings.sensitivity;lookLastX=event.clientX;
 });
-function endLook(event){if(event.pointerId===lookPointer)lookPointer=null;if(event.pointerType!=='touch')mouseFire=false;}
+function endLook(event){fireGestures.cancel(event.pointerId);if(event.pointerId===lookPointer)lookPointer=null;if(event.pointerType==='mouse')mouseFire=false;}
 $('world').addEventListener('pointerup',endLook);$('world').addEventListener('pointercancel',endLook);$('world').addEventListener('lostpointercapture',endLook);
 window.addEventListener('mouseup',()=>{mouseFire=false;});
 $('move-zone').addEventListener('pointerdown',event=>{
@@ -1060,16 +1093,40 @@ $('move-zone').addEventListener('pointermove',moveJoystick);
 function endMove(event){if(event.pointerId!==movePointer)return;movePointer=null;joyX=joyY=0;$('joystick-knob').style.transform='';}
 for(const type of ['pointerup','pointercancel','lostpointercapture'])$('move-zone').addEventListener(type,endMove);
 $('fire-pad').addEventListener('pointerdown',event=>{
-  if(mode!=='playing'||firePointer!==null)return;firePointer=event.pointerId;firePulse=true;fireLastX=event.clientX;
-  $('fire-pad').setPointerCapture(event.pointerId);$('fire-pad').classList.add('pressed');event.preventDefault();
+  if(mode!=='playing'||!localOperatorAlive()||firePointer!==null||event.pointerType==='mouse'&&event.button!==0)return;
+  const started=fireGestures.begin({pointerId:event.pointerId,x:event.clientX,y:event.clientY,time:performance.now(),source:'fire',mode:event.pointerType==='mouse'?'classic':settings.fireGesture});
+  if(!started.accepted)return;
+  firePointer=event.pointerId;firePadPulse ||= started.pulse;
+  try{$('fire-pad').setPointerCapture(event.pointerId);}catch(_){}
+  updateFireAppearance(fireGestures.sample(performance.now()));event.preventDefault();
 });
-$('fire-pad').addEventListener('pointermove',event=>{if(event.pointerId===firePointer&&mode==='playing'){pendingTurn+=(event.clientX-fireLastX)*.005*settings.sensitivity;fireLastX=event.clientX;}});
-function endFire(event){if(event.pointerId!==firePointer)return;firePointer=null;$('fire-pad').classList.remove('pressed');}
+$('fire-pad').addEventListener('pointermove',event=>{
+  if(event.pointerId!==firePointer||mode!=='playing')return;
+  const moved=fireGestures.move({pointerId:event.pointerId,x:event.clientX,y:event.clientY});
+  pendingTurn+=moved.dx*.005*settings.sensitivity;
+  updateFireAppearance(fireGestures.sample(performance.now()));
+});
+function updateFireAppearance(gesture) {
+  $('fire-pad').classList.toggle('pending',gesture.pending);
+  $('fire-pad').classList.toggle('pressed',gesture.firing);
+  $('fire-pad').classList.toggle('aim-only',gesture.fireLooking);
+}
+function endFire(event){
+  if(event.pointerId!==firePointer)return;
+  if(event.type==='pointerup'&&mode==='playing'&&localOperatorAlive()){
+    const ended=fireGestures.end({pointerId:event.pointerId,x:event.clientX,y:event.clientY});
+    firePadPulse ||= ended.pulse;
+  }else{fireGestures.cancel(event.pointerId);firePadPulse=false;}
+  firePointer=null;updateFireAppearance(fireGestures.sample(performance.now()));
+}
 for(const type of ['pointerup','pointercancel','lostpointercapture'])$('fire-pad').addEventListener(type,endFire);
+// Pointer gestures own firing. A synthesized click after a touch cannot fire twice.
+$('fire-pad').addEventListener('click',event=>event.preventDefault());
 function useAvailableAction() { if(mode==='playing'&&game.getInteractionInfo()?.canUse)interact(); }
 $('touch-interact').addEventListener('click',useAvailableAction);
 $('interaction').addEventListener('click',useAvailableAction);
 $('touch-weapon').addEventListener('click',()=>{if(mode==='playing')switchWeapon();});
+for(const button of document.querySelectorAll('[data-weapon]'))button.addEventListener('click',()=>{if(mode==='playing')selectWeapon(button.dataset.weapon);});
 
 try {
   makeGame();
