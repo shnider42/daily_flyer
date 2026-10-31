@@ -14,8 +14,9 @@ copyright in machine-generated material.
 The game uses the MP3 for consistent playback and bounded mobile CPU use.
 The editable MIDI is retained here as composition source; the browser does not
 need a MIDI player or soundbank. Nothing is streamed from external services.
-MIDI is downloaded only on request. Since 0.8.3, the game prepares one likely
-MP3 after Start, during opening silence; other cues load on demand. Preparation
+MIDI is downloaded only on request. Since 0.8.4, the game prepares a mission’s assigned opening
+MP3 after Start; silent arrivals prepare nothing. The menu theme loads after
+a user gesture, and later sections load on demand. Preparation
 does not grant permission to play.
 
 To regenerate, using Python with NumPy/SciPy and FFmpeg on your PATH:

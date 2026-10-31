@@ -173,3 +173,5 @@ body[data-guidance="expert"] .objective{display:none}
 
 /* Keep score discovery and release identity visible on phones. */
 .score-links{display:flex;flex-wrap:wrap;column-gap:24px;row-gap:2px;margin-top:12px}.score-links a{display:inline-flex;align-items:center;min-height:44px;color:var(--amber);font-size:10px;letter-spacing:.08em;text-decoration:underline;text-underline-offset:4px}.score-note{color:var(--muted);font-size:10px;line-height:1.5;margin:0;max-width:390px}.music-test{margin:14px 0 20px}.music-test .settings-footnote{margin:10px 0 0}.build-tag .version{display:inline;white-space:nowrap}@media(max-width:600px){.build-tag{flex-wrap:wrap;justify-content:flex-end;max-width:130px}.build-tag .version{font-size:9px;color:var(--muted)}}
+
+.menu-score{margin:-8px 0 20px}.menu-score .text-button{color:var(--amber);min-height:44px}.menu-score .score-note{max-width:330px}

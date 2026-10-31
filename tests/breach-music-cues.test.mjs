@@ -2,7 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFile } from 'node:fs/promises';
 import { Game, MISSIONS } from '../daily_flyer/themes/breach_assets/core.mjs';
-import { MUSIC_CUES, musicScene, chooseCue } from '../daily_flyer/themes/breach_assets/music-cues.mjs';
+import { MUSIC_CUES, MISSION_SCORE, musicScene } from '../daily_flyer/themes/breach_assets/music-cues.mjs';
 import { musicThreats } from '../daily_flyer/themes/breach_assets/audio.mjs';
 
 test('all thirteen distinct cues ship valid MIDI headers and local rendered audio', async () => {
@@ -15,24 +15,28 @@ test('all thirteen distinct cues ship valid MIDI headers and local rendered audi
   assert.equal(new Set(bodies).size,13);
 });
 
-test('actual mission zones select the palette and keys alone do not mark a final return', () => {
-  for(const mission of MISSIONS) {
-    const game=new Game({mission:mission.id});const initial=musicScene(game);
-    assert.ok(initial.pool.length);
-    if(['underworks-13','switchyard-15','glasshouse-17','hollow-19'].includes(mission.id)) {
-      game.state.player.key=true; assert.equal(musicScene(game).pool[0],'exit-load',mission.id);
-      const other=game.level.zones.find(z=>!['arrival','dock','lift'].includes(z.id));
-      Object.assign(game.state.player,{x:(other.x1+other.x2)/2,z:(other.z1+other.z2)/2});
-      assert.notEqual(musicScene(game).pool[0],'exit-load',mission.id);
-    }
+test('every authored section names an actual mission zone and a shipped cue',()=>{
+  const ids=new Set(MUSIC_CUES.map(c=>c.id));
+  for(const mission of MISSIONS){
+    const game=new Game({mission:mission.id}),score=MISSION_SCORE[mission.id];
+    assert.ok(score);if(score.opening)assert.ok(ids.has(score.opening));
+    const zones=new Set(game.level.zones.map(z=>z.id || z.name));
+    for(const [zone,section] of Object.entries(score.sections)){assert.ok(zones.has(zone),zone);assert.ok(ids.has(section.cue));}
+    for(const zone of score.quiet)assert.ok(zones.has(zone),zone);
   }
-  const game=new Game({mission:'hollow-19'}),zone=game.level.zones.find(z=>z.id==='listening');
-  Object.assign(game.state.player,{x:zone.x1+1,z:zone.z1+1});assert.equal(musicScene(game).ambient,'below-the-carrier');
 });
-
-test('small pools relax repeat exclusions without selecting an ambient track as combat', () => {
-  assert.equal(chooseCue(['dry-contact','iron-wake'],['dry-contact','iron-wake']),'dry-contact');
-  assert.equal(chooseCue(['dead-carrier','iron-wake'],['iron-wake']),'iron-wake');
+test('openings are fixed by mission, with three deliberately silent arrivals',()=>{
+  const opening=Object.fromEntries(MISSIONS.map(m=>[m.id,musicScene(new Game({mission:m.id})).opening]));
+  assert.deepEqual(opening,{'blacksite-07':'iron-wake','relay-09':null,'crosslink-11':'dry-contact','underworks-13':'spare-air','switchyard-15':'counterweight','glasshouse-17':null,'hollow-19':null});
+});
+test('return music requires the key and actual return sector; Glasshouse power earns its first theme',()=>{
+  for(const mission of ['underworks-13','switchyard-15','glasshouse-17','hollow-19']){
+    const game=new Game({mission});assert.notEqual(musicScene(game).section?.cue,'exit-load');
+    game.state.player.key=true;assert.equal(musicScene(game).section.cue,'exit-load');assert.equal(musicScene(game).section.danger,true);
+  }
+  const game=new Game({mission:'glasshouse-17'}),zone=game.level.zones.find(z=>z.id==='atrium');
+  Object.assign(game.state.player,{x:zone.x1+1,z:zone.z1+1});assert.equal(musicScene(game).section,null);
+  game.state.power=true;assert.equal(musicScene(game).section.cue,'root-pressure');
 });
 
 test('a crowd cannot hide a visible guardian from the exposure gate', () => {

@@ -1,63 +1,75 @@
-/** Restrained original score. Silence and local gameplay sounds have priority. */
-import { CUES_BY_ID, chooseCue } from './music-cues.mjs';
-const GRACE = 18, PRESSURE_HOLD = 2.5, QUIET_HOLD = 5, COOLDOWN = 120, MAX_CUE_SECONDS = 40;
-const DUCK_EVENTS = new Set(['enemy-warning', 'enemy-shot', 'hurt', 'explosion', 'teleport', 'provoked', 'boss-phase', 'shield-open', 'shield-hit', 'heal', 'heal-interrupt', 'ricochet']);
-const RELIEF_EVENTS = new Set(['refuge', 'transit', 'transit-activated', 'checkpoint', 'relay', 'power']);
-const LOCAL_EVENTS = new Set(['record', 'hurt', 'refuge', 'transit']);
-const level = (value, fallback) => Number.isFinite(value) ? Math.max(0, Math.min(1, value)) : fallback;
+/** Authored menu, mission-opening and section score. Never a combat playlist. */
+import { CUES_BY_ID, MENU_SCORE } from './music-cues.mjs';
+const MAX_CUE_SECONDS=40;
+const DUCK_EVENTS=new Set(['enemy-warning','enemy-shot','hurt','explosion','teleport','provoked','boss-phase','shield-open','shield-hit','heal','heal-interrupt','ricochet']);
+const RELIEF_EVENTS=new Set(['refuge','transit','transit-activated','checkpoint','relay','power']);
+const LOCAL_EVENTS=new Set(['record','hurt','refuge','transit']);
+const level=(value,fallback)=>Number.isFinite(value)?Math.max(0,Math.min(1,value)):fallback;
 
 export class BreachMusic {
-  constructor({ enabled = true, volume = .45, fetcher = globalThis.fetch?.bind(globalThis) } = {}) {
-    this.enabled = !!enabled; this.volume = level(volume, .45); this.fetcher = fetcher;
-    this.context = null; this.output = null; this.playing = false;
-    this.time = 0; this.graceUntil = GRACE; this.cooldownUntil = 0;
-    this.suppressedUntil = 0; this.duckUntil = 0; this.pressureTime = 0; this.quietTime = 0;
-    this.armed = true;
-    this.recent = []; this.seenMoments = new Set(); this._moment = null; this._scene = {};
-    this.silentTime = 0; this.guardianTime = 0; this.hadCombat = false;
-    this._buffers = new Map(); this._loads = new Map();
-    this._buffer = null; this._pending = null; this._active = null; this._sources = new Set(); this._generation = 0;
+  constructor({enabled=true,volume=.45,fetcher=globalThis.fetch?.bind(globalThis)}={}) {
+    this.enabled=!!enabled;this.volume=level(volume,.45);this.fetcher=fetcher;
+    this.context=null;this.output=null;this.playing=false;this.menu=false;
+    this.menuActivated=false;this.menuMuted=false;this.menuUsed=false;
+    this.time=0;this.cooldownUntil=0;this.suppressedUntil=0;this.duckUntil=0;
+    this.completed=new Set();this.visited=new Set();this.openingUsed=false;this._initialized=false;
+    this._candidate=null;this._scene={};this._pressure=0;this._guardian=false;
+    this._buffers=new Map();this._loads=new Map();this._pending=null;this._active=null;this._sources=new Set();this._generation=0;
   }
-
-  // This module never creates or resumes an AudioContext, including while loading.
-  attach(context, output) {
-    if (context === this.context && output === this.output) return;
+  attach(context,output) {
+    if(context===this.context && output===this.output)return;
     this._interrupt();
-    if (context !== this.context) {
-      this._buffer = null; this._buffers.clear(); this._loads.clear();
-      // A discarded/closed context may never dispatch its scheduled onended.
-      for (const cue of this._sources) {
-        cue.source.onended = null;
-        try { cue.source.stop(); } catch (_) { /* Already stopped. */ }
-        try { cue.source.disconnect(); cue.gain.disconnect(); } catch (_) { /* Already disconnected. */ }
-      }
+    if(context!==this.context){
+      this._buffers.clear();this._loads.clear();
+      for(const cue of this._sources){cue.source.onended=null;try{cue.source.stop();}catch(_){}try{cue.source.disconnect();cue.gain.disconnect();}catch(_){}}
       this._sources.clear();
     }
-    this.context = context || null; this.output = output || null;
+    this.context=context || null;this.output=output || null;
   }
-
-  configure({ enabled = this.enabled, volume = this.volume } = {}) {
-    const wasAudible = this.enabled && this.volume > 0;
-    this.enabled = !!enabled; this.volume = level(volume, this.volume);
-    if (!this.enabled || !this.volume) {
-      if (wasAudible || this._active || this._pending) this._interrupt();
-      this.pressureTime = 0; this._moment = null;
-    } else if (this._active) this._setLevel(.15);
+  configure({enabled=this.enabled,volume=this.volume}={}) {
+    this.enabled=!!enabled;this.volume=level(volume,this.volume);
+    if(!this.enabled || !this.volume){this._interrupt();this._discard();}
+    else if(this._active)this._setLevel(.15);
   }
-
   setPlaying(value) {
-    this.playing = !!value;
-    if (!this.playing) { this._interrupt(); this.pressureTime = 0; this._moment = null; }
+    const next=!!value;
+    if(next!==this.playing){this._interrupt();if(!next)this._discard();}
+    this.playing=next;
+    if(next)this.setMenu(false);
   }
-
-  // A mission/retry gets silence first, but cannot reset the session cooldown.
-  reset() {
-    this._interrupt(); this.graceUntil = this.time + GRACE;
-    this.seenMoments.clear(); this._moment = null; this._scene = {};
-    this.silentTime = 0; this.guardianTime = 0; this.hadCombat = false;
-    this.pressureTime = 0; this.quietTime = 0; this.suppressedUntil = this.time; this.duckUntil = this.time;
+  setMenu(value) {
+    const next=!!value;
+    if(next===this.menu)return;
+    if(this._pending?.kind==='menu' || this._active?.kind==='menu')this._interrupt();
+    this.menu=next;
+    if(next)this.menuUsed=false;
   }
-
+  activateMenu() {this.menuActivated=true;}
+  toggleMenu() {
+    if(!this.enabled || !this.volume)return;
+    this.menuActivated=true;
+    if(this._active?.kind==='menu' || this._pending?.kind==='menu') {this.menuMuted=true;this._interrupt();}
+    else {this.menuMuted=false;this.menuUsed=false;}
+  }
+  updateMenu({blocked=false}={}) {
+    if(!this.menu || this.playing)return;
+    if(blocked || !this.enabled || !this.volume){if(this._active?.kind==='menu' || this._pending?.kind==='menu')this._interrupt();return;}
+    if(this.menuActivated && !this.menuMuted && !this.menuUsed && !this._active && !this._pending && !this._sources.size && this._readyContext()) {
+      this.menuUsed=true;this._requestCue({...MENU_SCORE,kind:'menu',scope:'menu'});
+    }
+  }
+  reset({retry=false,snapshot=null}={}) {
+    if(this._active?.kind!=='menu' && this._pending?.kind!=='menu')this._interrupt();
+    this._candidate=null;this._initialized=false;this._scene={};
+    if(!retry){
+      this.completed=new Set((Array.isArray(snapshot?.completed)?snapshot.completed:[]).filter(x=>typeof x==='string').slice(0,64));
+      this.visited=new Set((Array.isArray(snapshot?.visited)?snapshot.visited:[]).filter(x=>typeof x==='string').slice(0,64));
+      this.openingUsed=!!snapshot?.openingUsed;this.cooldownUntil=0;
+    }else this.openingUsed=true;
+    this.suppressedUntil=this.time+(retry?8:0);this.duckUntil=this.time;
+  }
+  snapshot() {return {completed:[...this.completed],visited:[...this.visited],openingUsed:this.openingUsed};}
+  _discard() {if(this._candidate)this.completed.add(this._candidate.scope);this._candidate=null;}
   events(events, listener = null) {
     if (!Array.isArray(events)) return;
     for (const event of events) {
@@ -67,7 +79,7 @@ export class BreachMusic {
       if (spatial && Math.hypot(event.x - listener.x, event.z - listener.z) > 14) continue;
       if (event.type === 'record' || RELIEF_EVENTS.has(event.type)) {
         this.suppressedUntil = Math.max(this.suppressedUntil, this.time + (event.type === 'record' ? 12 : 8));
-        this.pressureTime = 0; this._interrupt();
+        this._interrupt();
       } else if (DUCK_EVENTS.has(event.type)) {
         this.duckUntil = Math.max(this.duckUntil, this.time + 1.2);
         if (this._active) this._setLevel(.035);
@@ -75,84 +87,72 @@ export class BreachMusic {
     }
   }
 
-  update({ dt = 0, pressure = 0, guardian = false, scene = {}, alive = true, blocked = false } = {}) {
+
+  update({dt=0,pressure=0,guardian=false,scene={},alive=true,blocked=false}={}) {
     try {
-      this._scene = scene;
-      if (!this.playing || blocked || scene.silence || !alive) {
-        // A passed story moment is never queued behind a menu, death or map.
-        if (this.playing) this._observeMoment(scene, true);
-        this._moment = null; this._interrupt(); this.pressureTime = 0; this.guardianTime = 0; return;
-      }
-      const delta = Number.isFinite(dt) ? Math.max(0, Math.min(.5, dt)) : 0;
-      this.time += delta;
-      const combat = Number.isFinite(pressure) && pressure >= 2;
-      this.silentTime = pressure === 0 ? this.silentTime + delta : 0;
-      this.guardianTime = guardian && combat ? this.guardianTime + delta : 0;
-      if (!combat) {
-        this.pressureTime = 0; this.quietTime += delta;
-        if (this._pending?.kind === 'combat') this._interrupt();
-        if (this.quietTime >= QUIET_HOLD) {
-          if (this._active?.kind === 'combat') this._interrupt();
-          this.armed = true;
+      this._scene=scene;this._pressure=pressure;this._guardian=guardian;
+      if(!this.playing)return;
+      if(blocked || !alive){this._discard();this._interrupt();return;}
+      const delta=Number.isFinite(dt)?Math.max(0,Math.min(.5,dt)):0;
+      this.time+=delta;
+      if(!this._initialized){
+        this._initialized=true;
+        if(scene.missionTime>5)this.openingUsed=true; // Continue / late co-op join.
+        if(!this.openingUsed){
+          this.openingUsed=true;
+          if(scene.opening)this._candidate={key:'opening',cue:scene.opening,scope:`${scene.mission}:opening`,kind:'opening',at:this.time,delay:1.5,window:25,gap:25};
         }
-      } else {
-        this.quietTime = 0;
-        if (this.time >= this.graceUntil && this.time >= this.suppressedUntil) this.pressureTime += Math.min(delta, this.time - Math.max(this.graceUntil, this.suppressedUntil));
-        else this.pressureTime = 0;
-        if (this.pressureTime >= PRESSURE_HOLD) this.hadCombat = true;
       }
-      // Ambient music yields even to a single local threat and cannot follow us
-      // out of its authored space. Quiet is never a promise that a room is safe.
-      for (const cue of [this._pending, this._active]) {
-        if (cue?.kind === 'ambient' && (pressure !== 0 || cue.zoneKey !== this._zoneKey(scene))) this._interrupt();
+      this.visited.add(`${scene.mission}:${scene.zone}`);
+      if(scene.silence){this._discard();this._interrupt();return;}
+      // A loaded cue may not follow its entry moment into another section.
+      if(this._pending && !this._currentRequest(this._pending))this._interrupt();
+      // Quiet horror textures yield to danger; ordinary passages finish their
+      // written phrase through minor movement and changes in enemy count.
+      if(this._active?.quiet && (pressure>0 || this._active.zone!==scene.zone))this._interrupt();
+      if(this._active){
+        if(this.context?.state!=='running')this._interrupt();
+        else if(this._active.ducked!==(this.time<this.duckUntil))this._setLevel(.3);
       }
-      this._observeMoment(scene, false);
-      if (pressure !== 0) this._moment = null;
-      if (this._pending && !this._readyContext()) this._interrupt();
-      if (this._active) {
-        if (this.context?.state !== 'running') this._interrupt();
-        else if (this._active.ducked !== (this.time < this.duckUntil)) this._setLevel(.3);
+      const passage=scene.section;
+      const scope=passage?`${scene.mission}:${passage.key}`:null;
+      if(this._candidate?.kind==='section' && this._candidate.scope!==scope)this._discard();
+      if(passage && !this.completed.has(scope) && this._candidate?.scope!==scope){
+        // Never queue a second track behind an opening or another passage.
+        if(this._candidate || this._active || this._pending || this.time<this.cooldownUntil)this.completed.add(scope);
+        else if(!passage.visit || this.visited.has(`${scene.mission}:${passage.visit}`))
+          this._candidate={...passage,scope,kind:'section',zone:scene.zone,at:this.time,eligible:0};
       }
-      if (!this.enabled || !this.volume || this._pending || this._active || this._sources.size) return;
-      if (this.time < this.graceUntil || this.time < this.suppressedUntil || this.time < this.cooldownUntil) return;
-      if (!this._readyContext() || typeof this.fetcher !== 'function') return;
-      if (combat && this.armed && this.pressureTime >= Math.max(PRESSURE_HOLD, scene.hold || 0)) {
-        // Let the guardian's first visible attack cycles speak for themselves.
-        if (guardian && this.guardianTime < 12) return;
-        const pool = guardian ? ['weight-of-stone', ...(scene.pool || [])] : (scene.pool || ['containment-pulse']);
-        this._moment = null;
-        this._requestCue(chooseCue(pool, this.recent));
-      } else if (this._moment && pressure === 0 && this.silentTime >= 12 && this.time - this._moment.at >= 12) {
-        const id = this._moment.id; this._moment = null;
-        this._requestCue(id);
-      }
-    } catch (_) { this._interrupt(); }
+      const candidate=this._candidate;
+      if(!candidate)return;
+      if(!this.enabled || !this.volume || this.time-candidate.at>candidate.window){this._discard();return;}
+      const permitted=(!candidate.guardian || guardian) && (!candidate.danger || pressure>0) && (!candidate.quiet || pressure===0);
+      if(candidate.guardian || candidate.danger)candidate.eligible=permitted?(candidate.eligible || 0)+delta:0;
+      if(!permitted)return;
+      const dwell=candidate.guardian || candidate.danger ? candidate.eligible : this.time-candidate.at;
+      if(dwell<candidate.delay || this.time<this.suppressedUntil || this._sources.size || !this._readyContext())return;
+      this.completed.add(candidate.scope);this._candidate=null;this._requestCue(candidate);
+    }catch(_){this._discard();this._interrupt();}
   }
-
-  _zoneKey(scene) { return `${scene.mission || ''}:${scene.zone || ''}`; }
-
-  _observeMoment(scene, blocked) {
-    const id = scene.ambient, key = `${scene.mission || ''}:${id}`;
-    if (this._moment && (this._moment.zoneKey !== this._zoneKey(scene) || this.time > this._moment.until)) this._moment = null;
-    if (!id || this.seenMoments.has(key)) return;
-    // A return to a hub is only a relief moment after a real local encounter.
-    if (id === 'spare-air' && !this.hadCombat) return;
-    if (id === 'the-room-replies' && !this.seenMoments.has('hollow-19:below-the-carrier')) return;
-    this.seenMoments.add(key);
-    if (blocked || !this.enabled || !this.volume || this._pending || this._active || this.time < this.cooldownUntil) return;
-    if (CUES_BY_ID.get(id)?.kind !== 'ambient') return;
-    this._moment = {id, zoneKey:this._zoneKey(scene), at:this.time, until:this.time + 26};
+  _readyContext(){return this.context?.state==='running' && this.output && typeof this.context.createBufferSource==='function' && typeof this.context.createGain==='function' && typeof this.context.decodeAudioData==='function';}
+  _currentRequest(request){
+    if(this._pending!==request || request.generation!==this._generation || request.context!==this.context || !this.enabled || !this.volume || !this._readyContext())return false;
+    if(request.kind==='menu')return this.menu && !this.playing && !this.menuMuted;
+    if(!this.playing || this._scene.silence || this.time>request.expires)return false;
+    if(request.kind==='opening')return this._scene.mission===request.mission;
+    return `${this._scene.mission}:${this._scene.section?.key}`===request.scope && (!request.guardian || this._guardian) && (!request.danger || this._pressure>0) && (!request.quiet || this._pressure===0);
   }
-
-  _readyContext() {
-    return this.context?.state === 'running' && this.output && typeof this.context.createBufferSource === 'function' && typeof this.context.createGain === 'function' && typeof this.context.decodeAudioData === 'function';
+  _requestCue(passage){
+    const request={...passage,id:passage.cue,mission:this._scene.mission,cooldown:passage.gap ?? 25,level:passage.level ?? 1,expires:(passage.at ?? this.time)+(passage.window ?? 30),generation:++this._generation,context:this.context};
+    this._pending=request;
+    Promise.resolve().then(async()=>{
+      if(!this._currentRequest(request))return;
+      const buffer=await this.prepare(request.id);
+      if(!this._currentRequest(request))return;
+      this._pending=null;this._start(buffer,request);
+    }).catch(()=>{if(this._pending===request)this._pending=null;});
   }
-
-  _currentRequest(request) {
-    return this._pending === request && request.generation === this._generation && request.context === this.context && this.playing && this.enabled && this.volume > 0 && this._readyContext() && (request.kind === 'combat' ? this.quietTime === 0 : this.silentTime >= 12 && request.zoneKey === this._zoneKey(this._scene));
-  }
-
-  // Loading and permission to play are separate. A missed fight can leave a
+  // Loading and permission to play are separate. A missed section can leave a
   // useful cached buffer, but can never leave a delayed musical surprise.
   prepare(id = 'containment-pulse') {
     const definition = CUES_BY_ID.get(id), context = this.context;
@@ -174,47 +174,31 @@ export class BreachMusic {
     return loading;
   }
 
-  _requestCue(id = 'containment-pulse') {
-    const definition = CUES_BY_ID.get(id);
-    if (!definition) return;
-    const request = { id, kind:definition.kind, cooldown:definition.cooldown, zoneKey:this._zoneKey(this._scene), generation: ++this._generation, context: this.context };
-    this.armed = false; this.pressureTime = 0; this._pending = request;
-    Promise.resolve().then(async () => {
-      if (!this._currentRequest(request)) return;
-      const buffer = await this.prepare(id);
-      if (!this._currentRequest(request)) return;
-      this._pending = null;
-      this._start(buffer, request);
-    }).catch(() => {
-      if (this._pending === request) {
-        this._pending = null; this.cooldownUntil = Math.max(this.cooldownUntil, this.time + COOLDOWN);
-      }
-    });
-  }
-
-  _start(buffer, request = {id:'containment-pulse',kind:'combat',cooldown:COOLDOWN}) {
+  _start(buffer, request = {id:'containment-pulse',kind:'section',cooldown:25,level:1}) {
     let source = null, gain = null, cue = null;
     try {
       const c = this.context, at = c.currentTime;
       source = c.createBufferSource(); gain = c.createGain();
       source.buffer = buffer; source.loop = false; gain.gain.setValueAtTime(0, at);
       source.connect(gain); gain.connect(this.output);
-      cue = { id:request.id, kind:request.kind, cooldown:request.cooldown, zoneKey:request.zoneKey, source, gain, ducked: this.time < this.duckUntil, stopped: false };
+      cue = { id:request.id, kind:request.kind, cooldown:request.cooldown, zone:request.zone, quiet:request.quiet, level:request.level, source, gain, ducked: request.kind !== 'menu' && this.time < this.duckUntil, stopped: false };
       this._active = cue; this._sources.add(cue);
       source.onended = () => {
         this._sources.delete(cue);
         if (this._active === cue) this._active = null;
-        this.cooldownUntil = Math.max(this.cooldownUntil, this.time + cue.cooldown);
+        // Interrupted cues spent their quiet interval at the interruption.
+        // Their delayed cleanup must not impose it on a newly reset mission.
+        if(cue.kind!=='menu' && !cue.stopped)this.cooldownUntil = Math.max(this.cooldownUntil, this.time + cue.cooldown);
         try { source.disconnect(); gain.disconnect(); } catch (_) { /* Optional audio cleanup. */ }
       };
-      gain.gain.linearRampToValueAtTime(this.volume * (cue.ducked ? .25 : 1), at + .8);
+      gain.gain.linearRampToValueAtTime(this.volume * cue.level * (cue.ducked ? .25 : 1), at + .8);
       source.start(at); source.stop(at + Math.min(buffer.duration, MAX_CUE_SECONDS));
-      this.recent.push(request.id); this.recent = this.recent.slice(-2);
+
     } catch (_) {
       if (cue) { this._sources.delete(cue); if (this._active === cue) this._active = null; }
       try { source?.stop(); } catch (_) { /* A source may not have started. */ }
       try { source?.disconnect(); gain?.disconnect(); } catch (_) { /* Optional audio cleanup. */ }
-      this.cooldownUntil = Math.max(this.cooldownUntil, this.time + COOLDOWN);
+      if(request.kind!=='menu')this.cooldownUntil = Math.max(this.cooldownUntil, this.time + 25);
     }
   }
 
@@ -223,19 +207,18 @@ export class BreachMusic {
     if (!cue || !this.context) return;
     try {
       const at = this.context.currentTime, param = cue.gain.gain;
-      cue.ducked = this.time < this.duckUntil;
+      cue.ducked = cue.kind !== 'menu' && this.time < this.duckUntil;
       param.cancelScheduledValues(at); param.setValueAtTime(param.value, at);
-      param.linearRampToValueAtTime(this.volume * (cue.ducked ? .25 : 1), at + seconds);
+      param.linearRampToValueAtTime(this.volume * cue.level * (cue.ducked ? .25 : 1), at + seconds);
     } catch (_) { this._interrupt(); }
   }
 
   _interrupt() {
     ++this._generation;
-    const pending = this._pending; this._pending = null;
+    this._pending = null;
     const cue = this._active; this._active = null;
-    if (pending || cue) this.armed = false;
     // A download that never became audible has not spent the music budget.
-    if (cue) this.cooldownUntil = Math.max(this.cooldownUntil, this.time + cue.cooldown);
+    if (cue && cue.kind!=='menu')this.cooldownUntil = Math.max(this.cooldownUntil, this.time + cue.cooldown);
     if (!cue || cue.stopped) return;
     cue.stopped = true;
     try {

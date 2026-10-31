@@ -1,5 +1,7 @@
 # Breach soundtrack palette
 
+> Placement superseded by [the authored 0.8.4 score](breach-score-084.md).
+
 > Update: all twelve briefs are now composed and included in 0.8.2. See the
 > [implemented placement policy](breach-music-082.md), the in-game listening
 > room, and the [campaign proposal](breach-campaign.md). The text below records

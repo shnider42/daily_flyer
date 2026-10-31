@@ -164,6 +164,7 @@ function setMode(next) {
   $('pause-screen').hidden = next !== 'paused';
   $('end-screen').hidden = !['dead','won'].includes(next);
   audio.setPlaying(next === 'playing');
+  audio.music.setMenu(next === 'menu');
   if(next !== 'playing') { clearInputs(); releasePointer(); }
   updatePauseRoom();updateTeamStatus();
   if(next === 'menu') updateContinue();
@@ -289,7 +290,7 @@ function updateContinue() {
 function saveRun() {
   if(coop || !game || !['playing','paused'].includes(game.state.status) || game.state.player.health <= 0) return false;
   try {
-    savedRecord = {version:1,game:game.serialize(),explored:[...explored],savedAt:Date.now()};
+    savedRecord = {version:1,game:game.serialize(),explored:[...explored],score:audio.music.snapshot(),savedAt:Date.now()};
     const persisted = writeStorage(SAVE_KEY,savedRecord);
     $('pause-screen').querySelector('.overlay-copy').textContent = persisted ? 'Take a breath. Your position is saved on this device.' : 'Take a breath. Your position is held while this page stays open.';
     return persisted;
@@ -331,6 +332,7 @@ function continueRun() {
     restored.options.guidance=settings.guidance;restored.options.aimAssist=settings.aimAssist;
     // Restore chooses the saved level before its geometry is constructed.
     mountGame(restored);
+    audio.resetMusic({snapshot:record.score || {openingUsed:true}});
     if(Array.isArray(record.explored))for(const value of record.explored)if(Number.isInteger(value)&&value>=0&&value<game.level.width*game.level.height)explored.add(value);
     mapVisible=false;updateMapVisibility();audio.unlock();game.resume();setMode('playing');
     lastFrame=performance.now();updateHud();requestMouse();
@@ -352,7 +354,7 @@ function retryCheckpoint() {
   if(coop){if(roomOwner())coop.restart(true);return;}
   if(!game || !ready) return;
   if(!game.restartCheckpoint()) return restartCurrent();
-  audio.resetMusic();
+  audio.resetMusic({retry:true});
   mapVisible = false; updateMapVisibility(); audio.unlock(); setMode('playing');
   pathHint = null; pathTimer = 0; lastFrame = performance.now(); saveRun(); updateHud(); requestMouse();
 }
@@ -950,8 +952,9 @@ function frame(now) {
       if(now-lastSave>10000){saveRun();lastSave=now;}
     }
     if(coop&&mode!=='playing')coop.drive(dt,{forward:0,strafe:0,turn:0,fire:false});
+    audio.music.updateMenu({blocked:document.hidden || !!document.querySelector('dialog[open]') || audio.preview.busy});
     audio.updateMusic(game,dt,mode!=='playing'||document.hidden||mapVisible||!!document.querySelector('dialog[open]'));
-    if(now-lastHud>90){updateHud();lastHud=now;if(mapVisible&&mapDirty)drawMap();}
+    if(now-lastHud>90){updateMusicUi();updateHud();lastHud=now;if(mapVisible&&mapDirty)drawMap();}
     if(now>toastTimer)$('toast').hidden=true;
     $('damage-flash').classList.toggle('active',now<damageUntil&&mode==='playing');
     $('hitmarker').classList.toggle('active',now<hitUntil&&mode==='playing');
@@ -959,6 +962,22 @@ function frame(now) {
     requestAnimationFrame(frame);
   }catch(error){fail(error);}
 }
+
+function updateMusicUi() {
+  const music=audio.music, active=music._active?.kind==='menu' || music._pending?.kind==='menu';
+  const label=active?'STOP MENU THEME':'PLAY MENU THEME';
+  if($('menu-music').textContent!==label)$('menu-music').textContent=label;
+  const status=!settings.sound || !settings.music || !settings.musicVolume?'Music is off in Settings.':
+    active?'Containment Pulse · menu theme':music.menuUsed?'Menu theme stopped. Play again whenever you like.':'Tap to hear the menu theme. Mission music follows each level’s pacing.';
+  if($('menu-music-status').textContent!==status)$('menu-music-status').textContent=status;
+}
+$('menu-music').addEventListener('click',()=>{audio.unlock();audio.music.toggleMenu();updateMusicUi();});
+// Browser audio is unlocked by a real menu interaction, never by page load.
+document.addEventListener('click',event=>{
+  if(mode==='menu' && !document.hidden && !document.querySelector('dialog[open]') && event.target.closest('button') && !event.target.closest('#menu-music')) {
+    audio.unlock();audio.music.activateMenu();
+  }
+});
 
 // Menu, dialogs, and discrete commands.
 $('open-coop').hidden=!coopConfigured;
@@ -1066,17 +1085,18 @@ window.addEventListener('keydown',event=>{
   else if(['menu','paused'].includes(mode)&&event.code==='KeyF'&&!event.repeat){event.preventDefault();toggleFullscreen();}
 });
 window.addEventListener('keyup',event=>keys.delete(event.code));
-window.addEventListener('blur',()=>{audio.stopMusicTest();if(mode==='playing'&&performance.now()>fullscreenTransitionUntil)pauseGame('background');else{if(performance.now()>fullscreenTransitionUntil)suspendRoomReadiness('background');clearInputs();}});
+window.addEventListener('blur',()=>{audio.stopMusicTest();audio.music.updateMenu({blocked:true});if(mode==='playing'&&performance.now()>fullscreenTransitionUntil)pauseGame('background');else{if(performance.now()>fullscreenTransitionUntil)suspendRoomReadiness('background');clearInputs();}});
 document.addEventListener('visibilitychange',()=>{
-  if(document.hidden){audio.stopMusicTest();if(mode==='playing')pauseGame('background');else suspendRoomReadiness('background');coop?.setPageVisible(false);saveRun();clearInputs();}
+  if(document.hidden){audio.stopMusicTest();audio.music.updateMenu({blocked:true});if(mode==='playing')pauseGame('background');else suspendRoomReadiness('background');coop?.setPageVisible(false);saveRun();clearInputs();}
   else coop?.setPageVisible(true);
 });
 window.addEventListener('pagehide',()=>{
   if(coop){if(mode==='playing')pauseGame('background');else suspendRoomReadiness('background');coop.suspend();}
   else if(mode==='playing')game.pause();
-  saveRun();audio.setPlaying(false);clearInputs();
+  saveRun();audio.setPlaying(false);audio.music.setMenu(false);clearInputs();
 });
 window.addEventListener('pageshow',event=>{
+  if(mode==='menu')audio.music.setMenu(true);
   if(coop){if(event.persisted&&coop.view)setMode('paused');coop.setPageVisible(!document.hidden);}
   else if(event.persisted&&game?.state.status==='paused')setMode('paused');
 });

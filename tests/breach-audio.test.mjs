@@ -91,36 +91,13 @@ test('Hollow containment shutter geometry conceals pressure until the real door 
   assert.equal(musicPressure(game), 1);
 });
 
-test('co-op mission rewind restores silence grace without clearing session cooldown or reacting to clock jitter', () => {
-  const audio = new BreachAudio();
-  const { game } = scene([enemy(), enemy({ x: 4 })]);
-  audio.setPlaying(true);
-  audio.music.time = 70;
-  audio.music.cooldownUntil = 190;
-  const originalGrace = audio.music.graceUntil;
-  for (const time of [100, 100, 99.95, 100.05]) {
-    game.state.time = time;
-    audio.updateMusic(game, .05);
-    assert.equal(audio.music.graceUntil, originalGrace, 'repeated snapshots and small jitter do not restart grace');
-    assert.equal(audio.music.cooldownUntil, 190);
-  }
-
-  const beforeRewind = audio.music.time;
-  game.state.time = 40;
-  audio.updateMusic(game, .05);
-  assert.equal(audio.music.graceUntil, beforeRewind + 18, 'checkpoint rewind grants eighteen seconds of silence');
-  assert.equal(audio.music.cooldownUntil, 190, 'retry cannot bypass the session music cooldown');
-  assert.equal(audio.music.pressureTime, 0, 'old sustained combat does not carry into the retry');
-  const retryGrace = audio.music.graceUntil;
-  audio.updateMusic(game, .05);
-  assert.equal(audio.music.graceUntil, retryGrace, 'duplicate retry snapshots do not keep postponing grace');
-
-  audio.resetMusic();
-  assert.equal(audio.lastMusicStateTime, null);
-  const mountedGrace = audio.music.graceUntil;
-  game.state.time = 0;
-  audio.updateMusic(game, .05);
-  assert.equal(audio.music.graceUntil, mountedGrace, 'a new mount has no prior mission clock to rewind');
-  assert.equal(audio.music.cooldownUntil, 190);
-  assert.equal(audio.context, null, 'policy updates never require browser audio initialization');
+test('co-op rewind preserves played sections and suppresses replaying the opening',()=>{
+  const audio=new BreachAudio(),{game}=scene([enemy()]);audio.setPlaying(true);
+  audio.music.time=70;audio.music.completed.add('hollow-19:listening');audio.music.cooldownUntil=190;
+  for(const time of [100,100,99.95,100.05]){game.state.time=time;audio.updateMusic(game,.05);}
+  const before=audio.music.time;game.state.time=40;audio.updateMusic(game,.05);
+  assert.equal(audio.music.openingUsed,true);assert.ok(audio.music.completed.has('hollow-19:listening'));
+  assert.equal(audio.music.cooldownUntil,190);assert.equal(audio.music.suppressedUntil,before+8);
+  const suppression=audio.music.suppressedUntil;audio.updateMusic(game,.05);assert.equal(audio.music.suppressedUntil,suppression);
+  assert.equal(audio.context,null);
 });

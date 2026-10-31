@@ -4,6 +4,13 @@ An original retro first-person game built on DailyFlyer, with seven solo mission
 and four operations available in private two-player co-op. Solo play runs in the
 browser; co-op uses an authoritative room server.
 
+## 0.8.4 — Authored musical placement
+
+The menu has an explicit theme control. Mission openings and later sections
+now have fixed cues, including three deliberately silent arrivals. Enemy counts
+no longer choose tracks. See [the placement map and playback rules](breach-score-084.md).
+Weapon discovery and campaign progression remain the next design pass.
+
 ## 0.8.3 — Music checks and visibility
 
 Settings now includes a short Test music control using the game audio path.

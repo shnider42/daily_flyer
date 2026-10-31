@@ -1,5 +1,7 @@
 # Breach 0.8.2 — Thirteen Signals
 
+> Placement superseded by [the authored 0.8.4 score](breach-score-084.md).
+
 Twelve newly composed MIDI cues join Containment Pulse. Each includes a
 procedural MP3 rendering; all thirteen can be auditioned in `soundtrack.html`,
 linked from Settings. That page also presents the seven-chapter

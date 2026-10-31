@@ -54,18 +54,18 @@ export class BreachAudio {
   setMusic(enabled, volume) { this.preview.stop(); this.musicEnabled = !!enabled; this.music.configure({enabled:this.enabled && this.musicEnabled, volume}); }
   setPlaying(value) { this.preview.stop(); this.playing = !!value; this.music.setPlaying(this.playing); if (this.hum && this.context) this.hum.gain.setTargetAtTime(value && this.enabled ? .065 : 0, this.context.currentTime, .2); }
   testMusic(onStatus) {
-    if (!this.enabled || !this.musicEnabled || !this.music.volume) { onStatus('Turn on Sound and Occasional music, and raise music volume to test.'); return; }
+    if (!this.enabled || !this.musicEnabled || !this.music.volume) { onStatus('Turn on Sound and Music, and raise music volume to test.'); return; }
     const ready = this.unlock();
     return this.preview.play({context:this.context,output:this.master,volume:this.music.volume,ready,onStatus});
   }
   stopMusicTest() { this.preview.stop(); }
-  resetMusic() { this.warmMission = null; this.pressureTimer = 0; this.pressure = 0; this.guardian = false; this.lastMusicStateTime = null; this.music.reset(); }
+  resetMusic(options = {}) { this.warmMission = null; this.pressureTimer = 0; this.pressure = 0; this.guardian = false; this.lastMusicStateTime = null; this.music.reset(options); }
   updateMusic(game, dt, blocked = false) {
     try {
       // Co-op retries reuse the same view but rewind authoritative mission time.
       const time = game?.state?.time;
       if (Number.isFinite(time)) {
-        if (this.lastMusicStateTime !== null && time < this.lastMusicStateTime - .1) this.resetMusic();
+        if (this.lastMusicStateTime !== null && time < this.lastMusicStateTime - .1) this.resetMusic({retry:true});
         this.lastMusicStateTime = time;
       }
       const player = game?.state?.player;
@@ -77,7 +77,7 @@ export class BreachAudio {
         this.warmMission = scene.mission;
         // Prepare just one likely cue during the silent opening after Start.
         // Preparation never starts playback or changes encounter eligibility.
-        this.music.prepare(scene.pool[0]).catch(() => {});
+        if(scene.opening && scene.missionTime<=5 && !this.music.openingUsed)this.music.prepare(scene.opening).catch(() => {});
       }
       this.music.update({dt, pressure:this.pressure, guardian:this.guardian, scene, alive, blocked});
     } catch (_) { /* Music failures must never interrupt a run. */ }
