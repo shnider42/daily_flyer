@@ -28,17 +28,19 @@ jobs:
         run: |
           node --input-type=module <<'JS'
           import assert from 'node:assert/strict';
+          import { createHash } from 'node:crypto';
           import { readFileSync, mkdirSync, writeFileSync } from 'node:fs';
           import { WebSocket } from 'ws';
           const site='https://dfe-breach.onrender.com',service='https://dfe-breach-coop.onrender.com';
           const expected=readFileSync('daily_flyer/themes/breach.py','utf8').match(/VERSION = "([^"]+)"/)[1];
+          const expectedAppHash=createHash('sha256').update(readFileSync('daily_flyer/themes/breach_assets/app.mjs')).digest('hex');
           const sleep=ms=>new Promise(resolve=>setTimeout(resolve,ms));
           let health,manifest,ready=false;
           for(let n=0;n<90;n++){
             try{
               health=await (await fetch(service+'/health',{signal:AbortSignal.timeout(4000)})).json();
               manifest=await (await fetch(site+'/build-manifest.json?release='+process.env.GITHUB_SHA,{signal:AbortSignal.timeout(4000)})).json();
-              if(health.version===expected&&manifest.version===expected&&health.ok){ready=true;break;}
+              if(health.version===expected&&manifest.version===expected&&manifest.files['app.mjs']===expectedAppHash&&health.ok){ready=true;break;}
             }catch(_){}
             await sleep(3000);
           }
