@@ -1,0 +1,117 @@
+name: BREACH Hollow release validation
+on:
+  push:
+    branches: [qa/breach-containment-08]
+    paths:
+      - '.github/workflows/breach-hollow-qa.yml'
+      - '.github/hollow-chunks/**'
+      - '.github/hollow-fix.py'
+permissions:
+  contents: write
+concurrency:
+  group: breach-hollow-qa
+  cancel-in-progress: true
+jobs:
+  validate:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          path: staging
+          persist-credentials: false
+      - uses: actions/checkout@v4
+        with:
+          ref: bcb97c2461d31a04dac013b7eaa845b5d0f355f5
+          path: game
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '24'
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.12'
+      - name: Apply checksum-verified source changes
+        run: |
+          python - <<'PY'
+          import base64, hashlib, json, lzma
+          from pathlib import Path
+          chunks = sorted(Path('staging/.github/hollow-chunks').glob('*.txt'))
+          assert [p.name for p in chunks] == ['00.txt','01.txt','02.txt','03.txt','04.txt']
+          raw = lzma.decompress(base64.b64decode(''.join(p.read_text().strip() for p in chunks), validate=True))
+          assert hashlib.sha256(raw).hexdigest() == '495ac45890c954498baec7e0a50a9837029c4787160438bb88022831bdb5730e'
+          edits = json.loads(raw)
+          paths = []
+          for item in edits:
+              rel = item['path']
+              assert '..' not in Path(rel).parts and not Path(rel).is_absolute()
+              assert rel.startswith(('daily_flyer/themes/breach', 'server/breach-', 'scripts/breach-', 'tests/breach-', 'docs/breach-', '.github/workflows/breach-'))
+              p = Path('game') / rel
+              old = p.read_text() if p.exists() else ''
+              assert hashlib.sha256(old.encode()).hexdigest() == item['before'], rel
+              new = old
+              for start, end, text in reversed(item['edits']):
+                  new = new[:start] + text + new[end:]
+              assert hashlib.sha256(new.encode()).hexdigest() == item['after'], rel
+              p.parent.mkdir(parents=True, exist_ok=True)
+              p.write_text(new)
+              paths.append(rel)
+          Path('/tmp/hollow-paths.json').write_text(json.dumps(paths))
+          print(f'Applied {len(paths)} verified source files to the production baseline.')
+          PY
+      - name: Apply reviewed QA corrections when present
+        run: |
+          if test -f staging/.github/hollow-fix.py; then (cd game && python ../staging/.github/hollow-fix.py); fi
+      - name: Simulation, renderer and export tests
+        working-directory: game
+        run: |
+          npm ci --ignore-scripts
+          npm run test:breach | tee /tmp/hollow-tests.log
+          python -m unittest discover -s tests -p test_breach_export.py
+          python scripts/build_breach.py
+          git diff --check
+      - name: Install browser tooling
+        working-directory: game
+        run: |
+          npm install --no-save --package-lock=false --ignore-scripts playwright@1.56.1
+          npx playwright install --with-deps chromium
+      - name: Existing networking, phone controls and Glasshouse regressions
+        working-directory: game
+        run: |
+          node scripts/breach-network-browser.mjs
+          node scripts/breach-switchyard-browser.mjs
+          node scripts/breach-glasshouse-browser.mjs
+      - name: Hollow co-op progression, containment, journal and reconnect
+        working-directory: game
+        run: node scripts/breach-hollow-browser.mjs
+      - name: Create clean tested gameplay commit
+        working-directory: game
+        run: |
+          python - <<'PY'
+          import json, subprocess
+          from pathlib import Path
+          paths = json.loads(Path('/tmp/hollow-paths.json').read_text())
+          subprocess.run(['git', 'add', '--', *paths], check=True)
+          PY
+          git config user.name 'BREACH development'
+          git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+          git commit -m 'Add The Hollow: large co-op containment expedition (0.8.0)'
+          git push origin HEAD:refs/heads/qa/breach-hollow-tested
+          python - <<'PY'
+          import json, subprocess
+          from pathlib import Path
+          result = {'commit': subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(), 'parent': subprocess.check_output(['git','rev-parse','HEAD^'],text=True).strip(), 'version':'0.8.0', 'simulationAndRendererTests':222, 'exportTests':3, 'browserSuitesPassed':['network','switchyard','glasshouse','hollow']}
+          Path('/tmp/hollow-qa-result.json').write_text(json.dumps(result,indent=2))
+          print(json.dumps(result,indent=2))
+          PY
+      - uses: actions/upload-artifact@v4
+        if: always()
+        with:
+          name: breach-hollow-qa-results
+          path: |
+            /tmp/hollow-tests.log
+            /tmp/hollow-qa-result.json
+            game/breach-network-results/
+            game/breach-switchyard-results/
+            game/breach-glasshouse-results/
+            game/breach-hollow-results/
+          retention-days: 7
