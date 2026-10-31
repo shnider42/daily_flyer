@@ -1,3 +1,4 @@
+import { platformSolid } from './shadow.mjs';
 import * as THREE from './vendor/three.module.js';
 
 // All texture, creature and weapon artwork below is original and generated locally.
@@ -26,8 +27,8 @@ const GARDEN_PALETTES = {
 const GARDEN_LANDMARKS = ['glass-lab','root-mass','cultivation-bed','pump-bank','water-vat'];
 const NEW_ENEMY_ART = ['bulwark','bulwark-open','bulwark-back','mender','mender-healing'];
 const PICKUP_ART = ['ammo','shells','cells','slugs','grenades','health','armor','shotgun','arc','ricochet','grenade','key','healthExpansion'];
-const WEAPON_PICKUPS = ['shotgun','arc','ricochet','grenade'];
-const WEAPON_RECOIL = {pistol:.58,shotgun:1,arc:.38,ricochet:.68,grenade:1.1};
+const WEAPON_PICKUPS = ['shotgun','arc','ricochet','grenade','repeater','nullgun','lance'];
+const WEAPON_RECOIL = {pistol:.58,shotgun:1,arc:.38,ricochet:.68,grenade:1.1,repeater:.28,nullgun:.32,lance:1.25};
 const UPGRADE_COLORS = { cutter:'#f1a866', insulator:'#efcf63', phase:'#c5a1f2' };
 const clamp = (n, lo, hi) => Math.max(lo, Math.min(hi, n));
 const viewFov = (options, width, height) => {
@@ -38,7 +39,7 @@ const missionVisuals = (level) => {
   const relay = level.missionId === 'relay-09' || String(level.id).startsWith('relay-09');
   const crosslink = level.missionId === 'crosslink-11' || String(level.id).startsWith('crosslink-11');
   const hollow = level.hollow === true;
-  const underworks = hollow || level.missionId === 'underworks-13' || String(level.id).startsWith('underworks-13');
+  const underworks = level.shadow || hollow || level.missionId === 'underworks-13' || String(level.id).startsWith('underworks-13');
   const switchyard = level.missionId === 'switchyard-15' || String(level.id).startsWith('switchyard-15');
   const glasshouse = level.missionId === 'glasshouse-17' || String(level.id).startsWith('glasshouse-17');
   return {
@@ -60,14 +61,16 @@ const doorKind = (door) => door.kind==='shutter'?'shutter':({cutter:'grille',ins
 const circuitMark = item => String(item.mark||String(item.circuitId||'1').split('-').at(-1)).padStart(2,'0').slice(-2);
 const doorStyleKey = door => doorKind(door)==='shutter'?`shutter:${circuitMark(door)}`:doorKind(door);
 const stationKey = item => item.routing?`routing:${circuitMark(item)}`:item.type==='shutter-switch'?`shutter-switch:${circuitMark(item)}`:`${item.type}:${item.upgrade||''}`;
-const explorationFeature = (item) => ['upgrade','refuge','transit','shutter-switch','record'].includes(item.type);
-const featureMode = (item,state) => item.type==='upgrade' ? Number(!!(item.used||state.upgrades?.[item.upgrade]))
+const explorationFeature = (item) => ['upgrade','refuge','transit','shutter-switch','record','jump'].includes(item.type);
+const featureMode = (item,state) => item.type==='jump' ? Number(platformSolid(item.landingPhase||{},state.time+(item.duration||1.05)+.2)) : item.type==='upgrade' ? Number(!!(item.used||state.upgrades?.[item.upgrade]))
   : item.type==='shutter-switch' ? !state.power?0:(item.doorIds||[]).length&&(item.doorIds||[]).every(id=>(state.doors||[]).find(door=>door.id===id)?.open)?2:1
   : item.type==='transit' ? item.used ? (state.interactables||[]).some(other=>other.id===item.destination&&other.used)?2:1 : 0
   : Number(!!item.used);
 const inEntityRange = (entity,player,range) => Math.abs(entity.x-player.x)<=range && Math.abs(entity.z-player.z)<=range;
 const ENEMY_ART = ['runner','spitter','brute','stalker','sentry','sentry-hostile','guardian','guardian-exposed'];
 const enemyArt = (enemy,observer) => {
+  if(enemy.type==='hydra')return enemy.suppressedTimer>0?'hydra-marked':'hydra';
+  if(enemy.stationary)return enemy.guardian?'mortar':'turret';
   if(enemy.echo)return 'echo';
   if(enemy.guardian)return enemy.bossPhase==='recover'?'guardian-exposed':'guardian';
   if(enemy.type==='bulwark'){
@@ -578,6 +581,51 @@ function makeYardFloorTexture(){
   return textureFrom(canvas,true);
 }
 
+function makeShadowLandmark(type){
+  const[canvas,c]=canvas2d(256,128);rect(c,0,0,256,128,'#181f2b');
+  for(let x=0;x<256;x+=32){rect(c,x,0,2,128,'#48515b');for(let y=0;y<128;y+=24)rect(c,x,y,32,1,'#313e49');}
+  if(type==='shadow-sun'){
+    for(let r=51;r>8;r-=7){c.strokeStyle=r%2?'#a2805f':'#4f9d9d';c.lineWidth=3;c.beginPath();c.arc(128,62,r,0,Math.PI*2);c.stroke();}
+    c.fillStyle='#03060c';c.beginPath();c.arc(128,62,27,0,Math.PI*2);c.fill();rect(c,125,39,5,47,'#ccf0cb');
+  }else if(type==='shadow-arch'){
+    poly(c,[[24,128],[24,50],[61,13],[195,13],[232,50],[232,128],[194,128],[194,55],[62,55],[62,128]],'#8c8c7b');
+    for(const x of[37,207]){rect(c,x,56,12,48,'#c9ad70');rect(c,x+3,62,6,29,'#ffe7ac');}rect(c,62,28,132,8,'#48535b');
+  }else{poly(c,[[104,124],[92,34],[128,3],[164,34],[152,124]],'#587b81');poly(c,[[128,3],[164,34],[152,124],[128,124]],'#2d4557');rect(c,123,29,6,76,'#b7ecd4');}
+  return textureFrom(canvas);
+}
+function drawShadowEnemy(type,frame){
+  const[canvas,c]=canvas2d(80,112),dead=frame===6,marked=type==='hydra-marked';
+  if(dead){poly(c,[[6,104],[20,93],[58,95],[75,108],[14,111]],'#334654');rect(c,20,101,41,4,'#657880');return textureFrom(canvas);}
+  if(type.startsWith('hydra')){
+    const body=marked?'#60cddb':'#807aa0',glow=marked?'#d5ffff':'#e9c4a3';
+    for(const[x,y]of[[15,30],[38,14],[61,31]]){poly(c,[[35,98],[x-6,53],[x-10,y+11],[x-3,y],[x+10,y+4],[x+12,y+20],[x+4,y+31],[46,95]],body);rect(c,x-6,y+10,15,10,'#1a1a2a');rect(c,x-3,y+12,10,3,glow);for(const dx of[0,6])rect(c,x-4+dx,y+20,3,7,'#dfd5bc');}
+    poly(c,[[31,73],[51,70],[66,100],[76,109],[50,107],[40,94],[26,108],[4,110],[21,97]],'#45505f');
+    for(const x of[23,36,49])rect(c,x,82,5,15,glow);
+  }else{
+    poly(c,[[9,108],[17,83],[26,73],[24,35],[33,19],[51,19],[59,37],[56,76],[68,90],[75,109]],'#273f4a');
+    rect(c,24,40,34,38,type==='mortar'?'#ae8561':'#819697');rect(c,29,44,25,5,'#d9d6af');
+    rect(c,34,14,14,38,'#8295a0');rect(c,32,12,18,8,'#d0ccac');rect(c,37,15,9,5,'#192d39');
+    for(const x of[18,56]){rect(c,x,80,7,26,'#b3a27d');rect(c,x-6,104,20,5,'#5c7780');}
+    rect(c,32,63,17,9,frame===4?'#ffcb84':'#a3cfba');
+  }
+  if(frame===5){c.globalCompositeOperation='source-atop';rect(c,0,0,80,112,'rgba(255,219,160,.45)');}
+  return textureFrom(canvas);
+}
+function drawShadowWeapon(c,type,flash,clock){
+  const nullgun=type==='nullgun',lance=type==='lance',accent=nullgun?'#93f0dc':lance?'#cdb6f4':'#efb96b';
+  poly(c,[[-30,0],[-34,-50],[-22,-104],[-15,-145],[18,-145],[25,-104],[36,-48],[31,0]],'#182934');
+  poly(c,[[-25,-4],[-27,-57],[-19,-99],[22,-99],[30,-55],[26,-4]],'#5f7785');
+  rect(c,-19,-91,39,9,'#b4bec0');rect(c,-15,-76,31,34,'#233c48');
+  for(const x of[-12,8]){rect(c,x,-137,6,49,'#a4bcc0');rect(c,x+1,-134,2,42,accent);}
+  if(nullgun){for(const x of[-30,23]){rect(c,x,-131,8,44,'#b4a47e');for(let y=-126;y<-90;y+=9)rect(c,x-4,y,16,3,accent);}rect(c,-9,-112,20,22,'#3a888d');rect(c,-5,-108,12,14,accent);}
+  else if(lance){rect(c,-8,-170,17,75,'#aabcc9');rect(c,-2,-168,4,69,'#303d5c');rect(c,-12,-174,25,6,accent);rect(c,-2,-178,4,7,'#f0d9fc');}
+  else {rect(c,-8,-153,17,57,'#b5b4a2');rect(c,-2,-152,4,49,'#374c55');rect(c,17,-58,17,34,'#ad895b');for(let y=-54;y<-23;y+=7)rect(c,20,y,11,3,'#e8c791');}
+  for(let y=-69;y<-45;y+=8){rect(c,-10,y,21,3,accent);rect(c,-9,y+3,19,2,'#19313e');}
+  rect(c,-16,-30,33,26,'#384c59');rect(c,-12,-26,9,19,'#8c9b9e');
+  c.font='bold 8px monospace';c.fillStyle=accent;c.fillText(nullgun?'NULL':lance?'LANCE':'RIVET',-15,-34);
+  if(flash>0){const y=lance?-178:-151;poly(c,[[-11,y],[0,y-31],[6,y-8],[19,y-18],[8,y+4],[-15,y+10]],accent);rect(c,-2,y-19,5,23,'#effff1');}
+}
+
 function makeLandmarkTexture(type,view='side'){
   const[canvas,c]=canvas2d(256,128);
   if(type==='freight-car'){
@@ -630,9 +678,9 @@ function solidLandmarkPanels(level,types){
 
 const yardLandmarkPanels=level=>solidLandmarkPanels(level,['freight-car','transformer','security-cabin']);
 const gardenLandmarkPanels=level=>solidLandmarkPanels(level,GARDEN_LANDMARKS);
-const allLandmarkPanels=level=>[...yardLandmarkPanels(level),...gardenLandmarkPanels(level),...solidLandmarkPanels(level,['sealed-crate','sleep-pod','tape-vault','listening-array'])];
+const allLandmarkPanels=level=>[...yardLandmarkPanels(level),...gardenLandmarkPanels(level),...solidLandmarkPanels(level,['shadow-arch','shadow-obelisk','shadow-sun']),...solidLandmarkPanels(level,['sealed-crate','sleep-pod','tape-vault','listening-array'])];
 const landmarkKey=panel=>GARDEN_LANDMARKS.includes(panel.type)?`${panel.type}:${panel.type==='glass-lab'?panel.view:'shared'}:${panel.palette}`:`${panel.type}:${panel.view}`;
-const landmarkTexture=panel=>['sealed-crate','sleep-pod','tape-vault','listening-array'].includes(panel.type)?makeHollowLandmarkTexture(panel.type):GARDEN_LANDMARKS.includes(panel.type)?makeGardenLandmarkTexture(panel.type,panel.view,panel.palette):makeLandmarkTexture(panel.type,panel.view);
+const landmarkTexture=panel=>panel.type.startsWith('shadow-')?makeShadowLandmark(panel.type):['sealed-crate','sleep-pod','tape-vault','listening-array'].includes(panel.type)?makeHollowLandmarkTexture(panel.type):GARDEN_LANDMARKS.includes(panel.type)?makeGardenLandmarkTexture(panel.type,panel.view,panel.palette):makeLandmarkTexture(panel.type,panel.view);
 
 function destinationPanels(level){
   const labels=new Map((level.doors||[]).filter(door=>door.destinationLabel).map(door=>[door.id,{label:door.destinationLabel,mark:level.signCode||'SW 15'}]));
@@ -842,6 +890,12 @@ function makeWaterHighlightsTexture(){
 }
 
 function makeStationTexture(item,mode){
+  if(item.type==='jump'){
+    const[canvas,c]=canvas2d(112,160),color=mode?'#a9edb4':'#d89a5b';
+    rect(c,24,139,64,14,'#526575');rect(c,46,94,20,45,'#263944');rect(c,18,22,76,79,'#182c38');rect(c,22,26,68,4,color);
+    poly(c,[[56,38],[78,63],[63,63],[63,80],[49,80],[49,63],[34,63]],color);
+    c.font='bold 9px monospace';c.textAlign='center';c.fillStyle=color;c.fillText(mode?'JUMP WINDOW':'WAIT',56,116);return textureFrom(canvas);
+  }
   if(item.type==='record')return makeRecordTexture(mode);
   if(item.routing)return makeContainmentSwitchTexture(item,mode);
   if(item.type==='shutter-switch')return makeShutterSwitchTexture(item,mode);
@@ -934,6 +988,7 @@ function drawEncounterEnemy(type,frame){
 }
 
 function drawEnemy(type, frame) {
+  if(['hydra','hydra-marked','turret','mortar'].includes(type))return drawShadowEnemy(type,frame);
   if(type.startsWith('bulwark')||type.startsWith('mender'))return drawGardenEnemy(type,frame);
   if(type==='echo')return makeEchoEnemy(frame);
   if(type==='stalker'||type.startsWith('sentry'))return drawEncounterEnemy(type,frame);
@@ -1209,7 +1264,9 @@ function makeTeammateWeapon(weapon,direction,firing=false){
 
 function makePickupTexture(type) {
   const [canvas,c]=canvas2d(64,64);
-  if(type==='ricochet'){
+  if(['repeater','nullgun','lance'].includes(type)){
+    c.save();c.translate(32,56);c.scale(.28,.28);drawShadowWeapon(c,type,0,0);c.restore();
+  }else if(type==='ricochet'){
     poly(c,[[4,25],[13,20],[52,24],[60,28],[58,35],[33,37],[27,48],[17,45],[20,35],[4,34]],'#273142');
     rect(c,7,23,45,8,'#b3b9c5');rect(c,12,25,34,4,'#8c82b0');rect(c,28,31,20,10,'#616b82');
     rect(c,44,23,17,4,'#d5d8ca');rect(c,28,38,10,13,'#555671');rect(c,30,40,6,3,'#d6b9e6');
@@ -1516,6 +1573,15 @@ class WebGLBreachRenderer {
         this.staticBatches.push(water);this.stats.waterCells=details.waterCells.reduce((sum,value)=>sum+value,0);
       }
     }
+    this.shadowPlatforms=[];
+    for(const room of level.platformRooms||[]){
+      const pit=this.mesh(this.geometry(new THREE.PlaneGeometry(room.x2-room.x1,room.z2-room.z1)),this.material(new THREE.MeshBasicMaterial({color:0x020308})),(room.x1+room.x2)/2,.025,(room.z1+room.z2)/2);pit.rotation.x=-Math.PI/2;this.staticBatches.push(pit);
+      for(const pad of room.platforms){
+        const mat=this.material(new THREE.MeshBasicMaterial({color:0x83bba7}));
+        const mesh=this.mesh(this.geometry(new THREE.BoxGeometry(pad.x2-pad.x1,.18,pad.z2-pad.z1)),mat,(pad.x1+pad.x2)/2,.08,(pad.z1+pad.z2)/2);
+        this.shadowPlatforms.push({pad,mesh,mat});this.staticBatches.push(mesh);
+      }
+    }
     const lightGeometry=this.geometry(new THREE.BoxGeometry(.62,.065,.045));
     const lightMaterials=layout.names.map(name=>[this.material(new THREE.MeshBasicMaterial({color:garden?GARDEN_PALETTES[name].light:underworks?SECTORS[name].light:this.visuals.crosslink?0x7be1c5:this.visuals.relay?0xb4c8eb:0x8bd6ce})),this.material(new THREE.MeshBasicMaterial({color:0xea9752}))]);
     for(const cells of batches(layout.lights,cell=>`${cell.chunk}:${cell.palette}:${cell.warm}`))install(lightGeometry,lightMaterials[cells[0].palette][Number(cells[0].warm)],cells,(cell,t)=>{t.position.set(cell.x,2.12,cell.z);t.rotation.y=cell.rot;});
@@ -1689,8 +1755,9 @@ class WebGLBreachRenderer {
     let angle=p.angle;
     if(state.status==='ready'&&!reduced)angle+=Math.sin(this.clock*.19)*.16;
     const bob=reduced||state.status!=='playing'?0:Math.sin(this.bobPhase)*this.moveAmount*.025;
-    this.camera.position.set(p.x,EYE_HEIGHT+bob,p.z);this.camera.rotation.set(0,-angle,0);
+    this.camera.position.set(p.x,EYE_HEIGHT+bob+(p.elevation||0)*(reduced?.4:1),p.z);this.camera.rotation.set(0,-angle,0);
     if(state.status==='dead'||p.alive===false||p.health<=0)this.camera.position.y=.65;
+    for(const {pad,mesh,mat} of this.shadowPlatforms||[]){const solid=platformSolid(pad,state.time);mesh.position.y=solid?.08:-.14;mat.color.setHex(solid?(pad.period?0x76dec3:0x748c98):0x372331);}
     this.updateEntities(dt,advancing);
     if(this.waterMap){const time=this.options.reducedMotion?0:this.clock;this.waterMap.offset.set(time*.025,time*.013);}
     this.renderer.render(this.scene,this.camera);
@@ -1703,7 +1770,7 @@ class WebGLBreachRenderer {
     this.updateTeammates(dt,advancing);
     for(const enemy of state.enemies){
       let visual=this.enemyVisuals.get(enemy.id);
-      if(!inEntityRange(enemy,state.player,this.entityRange)){if(visual){visual.sprite.visible=false;visual.shadow.visible=false;visual.stun.visible=false;}continue;}
+      if(enemy.dormant||!inEntityRange(enemy,state.player,this.entityRange)){if(visual){visual.sprite.visible=false;visual.shadow.visible=false;visual.stun.visible=false;}continue;}
       if(!visual){
         const material=this.material(new THREE.SpriteMaterial({map:(this.enemyFrames[enemy.type]||this.enemyFrames.runner)[0],transparent:true,alphaTest:.25,depthWrite:true}));
         const sprite=new THREE.Sprite(material);sprite.center.set(.5,0);this.scene.add(sprite);
@@ -1884,7 +1951,8 @@ class WebGLBreachRenderer {
     poly(c,[[28,0],[30,-42],[48,-52],[68,-34],[84,0]],'#17242b');
     poly(c,[[38,0],[39,-36],[49,-45],[62,-28],[75,0]],'#617064');
     rect(c,-52,-31,13,18,'#2d3c3c');rect(c,45,-27,14,15,'#344744');
-    if(p.weapon==='shotgun'){
+    if(['repeater','nullgun','lance'].includes(p.weapon)){drawShadowWeapon(c,p.weapon,this.flash,this.clock);
+    }else if(p.weapon==='shotgun'){
       poly(c,[[-27,0],[-27,-55],[-18,-110],[-15,-144],[15,-144],[19,-110],[30,-55],[30,0]],'#17242d');
       poly(c,[[-21,-57],[-14,-139],[-2,-142],[-3,-57]],'#7c8c8a');
       poly(c,[[3,-57],[3,-141],[13,-138],[22,-57]],'#52676c');
@@ -1954,7 +2022,7 @@ class WebGLBreachRenderer {
     }else if(this.flash>0&&p.weapon==='ricochet'){
       poly(c,[[0,-193],[7,-171],[18,-180],[10,-160],[22,-157],[8,-151],[2,-143],[-6,-153],[-20,-159],[-7,-165],[-15,-180],[-3,-173]],'#ceb4ed');
       poly(c,[[0,-183],[4,-167],[11,-159],[2,-152],[-6,-160],[-3,-170]],'#fff0d8');
-    }else if(this.flash>0){
+    }else if(this.flash>0&&!['repeater','nullgun','lance'].includes(p.weapon)){
       const my=p.weapon==='shotgun'?-149:-124;
       poly(c,[[0,my-37],[8,my-13],[26,my-28],[16,my-3],[37,my+2],[14,my+11],[20,my+32],[1,my+18],[-20,my+29],[-14,my+8],[-35,my+1],[-13,my-10],[-23,my-28],[-5,my-18]],'#eab05d');
       poly(c,[[0,my-20],[8,my-5],[17,my],[7,my+6],[0,my+16],[-7,my+5],[-17,my],[-6,my-8]],'#fff1b0');
@@ -2157,7 +2225,7 @@ class SoftwareBreachRenderer {
     if(advancing)this.bobPhase+=dt*(6+this.moveAmount*5);
     let angle=p.angle;if(state.status==='ready'&&!this.options.reducedMotion)angle+=Math.sin(this.clock*.19)*.16;
     this.forwardX=Math.sin(angle);this.forwardZ=-Math.cos(angle);this.rightX=Math.cos(angle);this.rightZ=Math.sin(angle);
-    this.eye=(state.status==='dead'||p.alive===false||p.health<=0)? .65:EYE_HEIGHT;
+    this.eye=(state.status==='dead'||p.alive===false||p.health<=0)? .65:EYE_HEIGHT+(p.elevation||0)*(this.options.reducedMotion?.4:1);
     this.horizon=Math.round(this.height/2+(this.options.reducedMotion||state.status!=='playing'?0:Math.sin(this.bobPhase)*this.moveAmount*1.2));
     this.drawPlanes(p);this.drawWalls(p);this.drawWallSigns(p);this.drawDoorRemnants(p);this.drawEncounterCues(p);this.drawSprites(dt,advancing,p);
     WebGLBreachRenderer.prototype.drawWeapon.call(this);
@@ -2197,6 +2265,13 @@ class SoftwareBreachRenderer {
         if(isFloor&&this.waterPixels&&cell>=0&&this.gardenDetails.waterCells[cell]){
           const waterIndex=(((tz+waterShiftZ)&63)*64+((tx+waterShiftX)&63))*4,alpha=this.waterPixels[waterIndex+3]/510;
           if(alpha){red=red*(1-alpha)+this.waterPixels[waterIndex]*alpha;green=green*(1-alpha)+this.waterPixels[waterIndex+1]*alpha;blue=blue*(1-alpha)+this.waterPixels[waterIndex+2]*alpha;}
+        }
+        if(isFloor&&level.shadow){
+          const room=level.platformRooms.find(r=>worldX>=r.x1&&worldX<r.x2&&worldZ>=r.z1&&worldZ<r.z2);
+          if(room){const pad=room.platforms.find(q=>worldX>=q.x1&&worldX<q.x2&&worldZ>=q.z1&&worldZ<q.z2);const solid=pad&&platformSolid(pad,this.game.state.time);
+            const edge=pad&&(worldX-pad.x1<.14||pad.x2-worldX<.14||worldZ-pad.z1<.14||pad.z2-worldZ<.14);
+            [red,green,blue]=solid?(edge?[146,231,202]:[62,89,100]):edge?[110,44,42]:[2,3,8];
+          }
         }
         data[offset]=red*shade+fogR*fog;
         data[offset+1]=green*shade+fogG*fog;
@@ -2276,7 +2351,7 @@ class SoftwareBreachRenderer {
     }
     for(const id of this.teammateMotion.keys())if(!present.has(id)){this.teammateMotion.delete(id);this.teammateFireAt.delete(id);}
     for(const enemy of state.enemies){
-      if(!inEntityRange(enemy,p,this.entityRange))continue;
+      if(enemy.dormant||!inEntityRange(enemy,p,this.entityRange))continue;
       let motion=this.enemyMotion.get(enemy.id);
       if(!motion){motion={x:enemy.x,z:enemy.z,phase:hash(enemy.x,enemy.z)*5};this.enemyMotion.set(enemy.id,motion);}
       const speed=Math.hypot(enemy.x-motion.x,enemy.z-motion.z)/Math.max(.001,dt);motion.x=enemy.x;motion.z=enemy.z;

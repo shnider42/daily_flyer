@@ -1,3 +1,4 @@
+import { SHADOW, platformSolid } from '../daily_flyer/themes/breach_assets/shadow.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { readFileSync } from 'node:fs';
@@ -22,7 +23,7 @@ function canvas(width=1440,height=900){
     getImageData(x,y,w,h){return {data:new Uint8ClampedArray(w*h*4)};},
     createImageData(w,h){return {data:new Uint8ClampedArray(w*h*4)};},
   };
-  for(const method of['beginPath','closePath','save','restore','translate','scale','clearRect','putImageData'])context[method]=()=>{};
+  for(const method of['arc','stroke','beginPath','closePath','save','restore','translate','scale','clearRect','putImageData'])context[method]=()=>{};
   return {width,height,style:{},context,getContext(){return context;},getBoundingClientRect(){return {width,height};},
     parentElement:{appendChild(){}},insertAdjacentElement(){},setAttribute(){},remove(){this.removed=true;}};
 }
@@ -44,9 +45,9 @@ class GeometryOnlyRenderer {
 }
 
 const source=readFileSync(new URL('../daily_flyer/themes/breach_assets/renderer.mjs',import.meta.url),'utf8')
-  .replace(/^import \* as THREE from .*;\n/,'').replace('export class BreachRenderer','class BreachRenderer');
+  .replace(/^import .*;\n/gm,'').replace('export class BreachRenderer','class BreachRenderer');
 const api=runInNewContext(source+';({surfaceLayout,doorKind,doorStyleKey,doorReady,doorFrame,stationKey,featureMode,enemyArt,encounterCues,projectileAppearance,makeDoorTexture,makeStationTexture,makePickupTexture,yardLandmarkPanels,gardenLandmarkPanels,destinationPanels,WebGLBreachRenderer,SoftwareBreachRenderer})',{
-  THREE:{...THREE,WebGLRenderer:GeometryOnlyRenderer},document:{createElement:()=>canvas()},window:{innerWidth:1440,innerHeight:900},matchMedia:()=>({matches:false}),
+  platformSolid,THREE:{...THREE,WebGLRenderer:GeometryOnlyRenderer},document:{createElement:()=>canvas()},window:{innerWidth:1440,innerHeight:900},matchMedia:()=>({matches:false}),
 });
 
 function gameFor(level=UNDERWORKS){
@@ -420,4 +421,16 @@ test('containment rings and routing lamps follow shared state, while journals us
     renderer.render(0);assert.ok(renderer.stats.encounterCues>0);game.state.power=false;renderer.render(0);
     assert.equal(renderer.stats.encounterCues,0);game.state.power=true;renderer.dispose();
   }
+});
+
+test('Shadow platforms, multiplying roots and three earned guns render in both paths',()=>{
+ const game=gameFor(SHADOW);assert.equal(api.enemyArt(game.state.enemies.find(e=>e.type==='hydra'),game.state.player),'hydra');
+ const marked={...game.state.enemies.find(e=>e.type==='hydra'),suppressedTimer:3};assert.equal(api.enemyArt(marked,game.state.player),'hydra-marked');
+ assert.equal(new Set(['repeater','nullgun','lance'].map(w=>api.makePickupTexture(w).image.context.shapeHash)).size,3);
+ for(const Renderer of[api.WebGLBreachRenderer,api.SoftwareBreachRenderer]){
+  Object.assign(game.state.player,{x:52.5,z:57.5,angle:0});const renderer=new Renderer(canvas(926,428),game,{quality:'low',reducedMotion:true});
+  for(const weapon of['repeater','nullgun','lance']){game.state.player.weapon=weapon;renderer.render(.016);}
+  game.state.time=6;renderer.render(.016);if(renderer.shadowPlatforms)assert.ok(renderer.shadowPlatforms.some(p=>p.mesh.position.y<0));
+  assert.ok(renderer.stats.geometryBytes===undefined||renderer.stats.geometryBytes<400000);renderer.dispose();
+ }
 });

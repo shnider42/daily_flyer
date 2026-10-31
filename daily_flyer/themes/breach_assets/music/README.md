@@ -1,4 +1,4 @@
-# Thirteen Signals — original Breach cue sketches
+# Sixteen Signals — original Breach cue sketches
 
 Original instrumental concept for Breach: 104 BPM, 4/4, 16 bars (36.923 seconds).
 The MIDI contains separate rhythm, accent guitar, bass, drone, melody, and drum
@@ -57,3 +57,34 @@ a commercial release; MIDI format itself does not confer legal clearance.
 See `../music-cues.mjs` for exact catalog entries and `../soundtrack.html` for
 explicit auditions and MIDI downloads. The game lazily loads a maximum of two
 decoded buffers; the full album is never fetched on arrival.
+
+## Beneath The Shadow — three further compositions
+
+`compose_shadow.py` authors three new scores with explicit phrase markers in
+the MIDI conductor track. These are composed A/B/return forms, not randomized
+playlists or transpositions of an earlier cue:
+
+| Cue | Tempo and form | Rendered length | Musical purpose |
+| --- | --- | --- | --- |
+| Shadow Running | 140 BPM; 24 bars; two-bar hook, contrasting middle, hook return and written descent | 42.94 s | An urgent arrival and forward motion through the exposed works |
+| Sever the Echo | 154 BPM; 28 bars; 3+3+2 accents over 4/4, answering melody, half-time bridge and resolved ending | 45.44 s | Boss pressure, with a distinct hook and space in its suppression bridge |
+| Lanterns Below | 80 BPM; 16 bars; clean-guitar call and answer, restrained bass, sparse distant toms | 49.80 s | The buried district's quieter human traces; the opening contour heard more slowly |
+
+The fast cues use independently written rhythmic and melodic phrases. The
+quiet cue intentionally recalls a short contour from Shadow Running to bind
+this mission's sound together. No existing songs, recordings, downloaded MIDI,
+sample libraries or vocal imitations were used. The source/provenance statement
+above applies to all three; it is not a legal clearance claim.
+
+```sh
+python3 scripts/breach_music/compose_shadow.py /tmp/breach-shadow-score
+python3 scripts/breach_music/render_preview.py /tmp/breach-shadow-score/shadow-running.json /tmp/breach-shadow-score/shadow-running
+python3 scripts/breach_music/render_preview.py /tmp/breach-shadow-score/sever-the-echo.json /tmp/breach-shadow-score/sever-the-echo
+python3 scripts/breach_music/render_preview.py /tmp/breach-shadow-score/lanterns-below.json /tmp/breach-shadow-score/lanterns-below
+```
+
+Copy only the `.mid` and `.mp3` files into this directory. Scores, intermediate
+WAVs and render diagnostics remain outside the shipped assets. Each MP3 is
+44.1 kHz stereo at 192 kbps, with a written ending and 1.8-second release tail.
+The game should allow the full cue length and apply its contextual fades when
+entering quiet areas. Do not cut these at the older 40-second cue limit.

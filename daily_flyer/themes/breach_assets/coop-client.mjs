@@ -49,7 +49,7 @@ export class CoopClient {
     this.socket=null;this.room=null;this.selfId=null;this.ownerId=null;this.roomId=null;this.token=null;
     this.view=null;this.seq=0;this.pending=[];this.lookAngle=null;this.predicted=null;this.remoteTargets={};
     this.held={forward:0,strafe:0,angle:0,fire:false};this.firePulse=false;this.manual=false;this.connected=false;
-    this.waitingPause=false;this.reconnectStart=0;this.retryCount=0;this.timer=null;this.retryTimer=null;this.pingTimer=null;
+    this.localMenu=false;this.waitingPause=false;this.reconnectStart=0;this.retryCount=0;this.timer=null;this.retryTimer=null;this.pingTimer=null;
     this.tick=-1;this.intent=null;this.error=null;this._lag=0;this.aimAssist=true;
     this.initialStart=0;this.everOpened=false;this.awaitingRoom=false;
     this.suspended=false;this.pageVisible=true;
@@ -202,7 +202,7 @@ export class CoopClient {
     if(this.lookAngle===null||teleported||wasAlive===false&&local.alive!==false)this.lookAngle=local.angle;
     const ack=Number(message.ackByPlayer?.[this.selfId]??-1);
     this.pending=this.pending.filter(entry=>entry.seq>ack);this._trimPrediction();
-    if(state.status!=='playing'||local.alive===false||teleported)this.pending=[];
+    if(state.status!=='playing'||local.alive===false||local.jump||this.localMenu||teleported)this.pending=[];
     const predicted={...local};
     for(const entry of this.pending)predictMovement(predicted,entry.input,entry.dt,this.view.level,state.doors);
     this.predicted={x:predicted.x,z:predicted.z};local.x=predicted.x;local.z=predicted.z;local.angle=this.lookAngle;
@@ -232,7 +232,7 @@ export class CoopClient {
   }
   _flushInput(){
     if(!this.connected||!this.view||this.room?.status!=='playing'||this.waitingPause||!this.pageVisible||this.suspended)return;
-    const local=this.view.state.player,alive=local.alive!==false&&local.health>0;
+    const local=this.view.state.player,alive=!this.localMenu&&!local.jump&&local.alive!==false&&local.health>0;
     const next=this.seq+1;
     if(this.send({type:'input',seq:next,forward:alive?this.held.forward:0,strafe:alive?this.held.strafe:0,angle:this.lookAngle??local.angle,fire:alive&&(this.held.fire||this.firePulse),aimAssist:!!this.aimAssist})){
       this.seq=next;this.firePulse=false;
@@ -249,7 +249,7 @@ export class CoopClient {
     if(!this.view)return;
     dt=clamp(Number.isFinite(dt)?dt:0,0,.05);
     const state=this.view.state,local=state.player;
-    const active=this.connected&&!this.waitingPause&&this.room?.status==='playing'&&local.alive!==false&&local.health>0;
+    const active=this.connected&&!this.localMenu&&!local.jump&&!this.waitingPause&&this.room?.status==='playing'&&local.alive!==false&&local.health>0;
     if(active) {
       this.lookAngle=(this.lookAngle??local.angle)+(Number(input.turn)||0);local.angle=this.lookAngle;
       this.held={forward:clamp(input.forward||0,-1,1),strafe:clamp(input.strafe||0,-1,1),angle:this.lookAngle,fire:!!input.fire};
@@ -275,6 +275,7 @@ export class CoopClient {
   start(){return this.send({type:'start'});}
   interact(){return this.send({type:'interact'});}
   weapon(weapon){return this.send(weapon===undefined?{type:'weapon'}:{type:'weapon',weapon});}
+  setMenu(open){this.localMenu=!!open;this.clearInput();this.pending=[];return this.send({type:'menu',open:!!open});}
   pause(reason='menu'){this.clearInput();this.waitingPause=true;return this.send({type:'pause',reason});}
   resume(){return this.send({type:'resume'});}
   restart(checkpoint=true){this._resetPrediction();this.lookAngle=null;this.clearInput();return this.send({type:'restart',checkpoint:!!checkpoint});}

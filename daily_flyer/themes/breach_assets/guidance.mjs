@@ -20,6 +20,10 @@ const barrierCues = {
 export function blockedCue(info) {
   const text = info?.text || '';
   if (/shutter path occupied|doorway occupied|clear the doorway/i.test(text)) return 'Movement interrupts the doorway sensor.';
+  if (/launch window/i.test(text)) return 'The launch beacon is amber.';
+  if (/landing lights/i.test(text)) return 'A lit platform waits across the gap.';
+  if (/guardian still/i.test(text)) return 'The circuit leads back to the guardian.';
+  if (/blue seal/i.test(text)) return 'A blue field seals the passage.';
   if (/cutter/i.test(text)) return barrierCues.cutter;
   if (/insulator/i.test(text)) return barrierCues.insulator;
   if (/phase/i.test(text)) return barrierCues.phase;
@@ -53,11 +57,13 @@ export function objectiveForGuidance(objective, guidance) {
 export function briefingForGuidance(mission, guidance) {
   if (guidance === 'simple') return { text: mission.briefing, steps: mission.steps, subtitle: mission.subtitle };
   const subtitles = {
+    'beneath-the-shadow':'They buried a second sun.',
     'blacksite-07': 'The first breach', 'relay-09': 'A silent communications ring',
     'crosslink-11': 'A divided relay complex', 'underworks-13': 'An entire world beneath the breach',
     'hollow-19': 'The recording answers first.', 'switchyard-15': 'Signals across the freight yard', 'glasshouse-17': 'Life behind the glass',
   };
   const briefs = {
+    'beneath-the-shadow':'A falling road leads beneath an abandoned city. Lanterns still burn in its empty houses. Trace the bells, earn the tools left by its builders, and discover what casts the shadow.',
     'blacksite-07': 'Emergency lights mark an abandoned research facility. Get inside, read its machinery, and find a way out.',
     'relay-09': 'A silent communications ring surrounds a sealed vault. Its disconnected circuitry runs through rooms that are no longer empty.',
     'crosslink-11': 'The compact relay complex has lost its signal. Explore its two wings and find a way to call for extraction.',
@@ -78,6 +84,8 @@ export function noticeForGuidance(event, guidance, interaction = null, { observe
   if (event.type === 'record') return `${event.title} — recorded in the field journal.`;
   const eligible = ['message', 'pickup', 'checkpoint', 'secret', 'upgrade', 'refuge', 'transit-activated', 'transit', 'reward', 'shutter'];
   const encounter = {
+    'root-split':{simple:'The unmarked root divided. The Null projector stops a dying root from splitting for eight seconds; mark it, switch weapons and finish it.',moderate:'Two mouths open where one closed.'},
+    'root-marked':{simple:'Root suppressed for eight seconds. Switch to a damage weapon and finish it while blue.',moderate:'The root turns blue and still.'},
     'shield-hit': { simple: 'The front shield reduces damage. Flank the bulwark or wait for its shield to open.', moderate: 'Sparks scatter from the front plate.' },
     heal: { simple: 'The mender is healing another creature. Damage the mender to interrupt its next healing pulse.', moderate: 'A bright beam links the creatures.' },
     'heal-interrupt': { simple: 'Healing interrupted.', moderate: 'The healing beam breaks.' },

@@ -3,7 +3,7 @@ import { CoopGame } from '../daily_flyer/themes/breach_assets/coop-core.mjs';
 import { WEAPONS } from '../daily_flyer/themes/breach_assets/core.mjs';
 
 export const PROTOCOL = 2;
-export const COOP_MISSIONS = ['crosslink-11', 'underworks-13', 'glasshouse-17', 'hollow-19'];
+export const COOP_MISSIONS = ['crosslink-11', 'underworks-13', 'glasshouse-17', 'hollow-19', 'beneath-the-shadow'];
 // Older clients may still use the original two maps. A new-map handshake must
 // advertise its local level data before we attach it to a shared simulation.
 const supportsMission = (message, mission) => message.supportedMissions === undefined
@@ -29,8 +29,8 @@ export class BreachRooms {
     return {
       id: room.id, mission: room.mission, difficulty: room.difficulty,
       status: room.status, ownerId: room.ownerId, maxPlayers: 2,
-      pauseReason: room.pauseReason,
-      players: [...room.players.values()].map(p => ({ id: p.id, name: p.name, connected: !!p.peer, ready: p.ready })),
+      pauseReason: room.pauseReason, pauseKind:room.pauseKind||null,
+      players: [...room.players.values()].map(p => ({ id: p.id, name: p.name, connected: !!p.peer, ready: p.ready, menu:!!p.menu })),
     };
   }
 
@@ -79,7 +79,7 @@ export class BreachRooms {
   }
 
   newPlayer(id, name) {
-    return { id, name, token: randomBytes(24).toString('base64url'), peer: null, ready: false, disconnectedAt: null, input: { ...NEUTRAL }, pendingFireAt: null, seq: -1, ack: -1, lastInputAt: 0, lastActionAt: -Infinity };
+    return { id, name, token: randomBytes(24).toString('base64url'), peer: null, ready: false, menu:false, disconnectedAt: null, input: { ...NEUTRAL }, pendingFireAt: null, seq: -1, ack: -1, lastInputAt: 0, lastActionAt: -Infinity };
   }
 
   join(peer, message) {
@@ -144,11 +144,20 @@ export class BreachRooms {
       case 'input': return this.input(room, player, message);
       case 'interact':
       case 'weapon':
-        if (room.status !== 'playing' || this.now() - player.lastActionAt < 100) return;
+        if (room.status !== 'playing' || player.menu || this.now() - player.lastActionAt < 100) return;
         if (message.type === 'weapon' && message.weapon !== undefined && (typeof message.weapon !== 'string' || !Object.hasOwn(WEAPONS, message.weapon))) return this.error(peer, 'INVALID_WEAPON', 'Choose a carried weapon.');
         player.lastActionAt = this.now();
         if (message.type === 'interact') room.game.interact(player.id); else room.game.switchWeapon(player.id, message.weapon);
         this.syncStatus(room); this.publishState(room); return;
+      case 'menu':
+        if(!['playing','paused'].includes(room.status)||typeof message.open!=='boolean')return;
+        player.menu=message.open;player.input={...NEUTRAL};player.pendingFireAt=null;player.lastInputAt=this.now();
+        if(room.status==='playing'&&[...room.players.values()].every(p=>p.peer&&p.menu)){
+          room.game.pause();room.status='paused';room.pauseKind='menus';room.pauseReason='Both operators are in menus. Returning to play resumes the world.';room.statusChangedAt=this.now();this.clearInputs(room);
+        }else if(room.status==='paused'&&room.pauseKind==='menus'&&[...room.players.values()].every(p=>p.peer)&&[...room.players.values()].some(p=>!p.menu)){
+          room.game.resume();room.status='playing';room.pauseKind=null;room.pauseReason='';room.statusChangedAt=this.now();this.clearInputs(room);
+        }
+        this.publishRoom(room);this.publishState(room);return;
       case 'pause':
         if (!['playing', 'paused'].includes(room.status)) return;
         this.pause(room, `${player.name} ${message.reason === 'background' ? 'switched away from the game' : message.reason === 'network' ? 'lost fresh server updates' : 'paused the mission'}. Both players must resume.`); return;
@@ -156,14 +165,14 @@ export class BreachRooms {
         if (room.status !== 'paused') return;
         player.ready = true;
         if (this.allReady(room)) {
-          room.game.resume(); room.status = 'playing'; room.pauseReason = ''; room.statusChangedAt = this.now(); this.clearInputs(room);
+          room.game.resume(); room.status = 'playing'; room.pauseKind=null; room.pauseReason = ''; room.statusChangedAt = this.now(); this.clearInputs(room);
         }
         this.publishRoom(room); this.publishState(room); return;
       case 'restart':
         if (player.id !== room.ownerId) return this.error(peer, 'OWNER_ONLY', 'The room creator restarts the team.');
         if (!room.game) return;
         if (message.checkpoint !== true || !room.game.restartCheckpoint()) room.game.restart();
-        room.game.pause(); room.status = 'paused'; room.statusChangedAt = this.now(); room.pauseReason = message.checkpoint === true ? 'Team checkpoint restored. Both players must resume.' : 'Mission restarted. Both players must resume.';
+        room.game.pause(); room.status = 'paused'; room.pauseKind='safety'; room.statusChangedAt = this.now(); room.pauseReason = message.checkpoint === true ? 'Team checkpoint restored. Both players must resume.' : 'Mission restarted. Both players must resume.';
         for (const p of room.players.values()) p.ready = false;
         this.clearInputs(room); this.publishRoom(room); this.publishState(room); return;
       case 'leave': this.end(room, `${player.name} left the room. Create a new room to play together again.`); return;
@@ -188,7 +197,7 @@ export class BreachRooms {
 
   pause(room, reason) {
     if (room.status !== 'playing' && room.status !== 'paused') return;
-    room.game.pause(); room.status = 'paused'; room.pauseReason = reason; room.statusChangedAt = this.now(); room.lastActivity = this.now();
+    room.pauseKind='safety';room.game.pause(); room.status = 'paused'; room.pauseReason = reason; room.statusChangedAt = this.now(); room.lastActivity = this.now();
     for (const p of room.players.values()) p.ready = false;
     this.clearInputs(room); this.publishRoom(room); this.publishState(room);
   }
@@ -222,7 +231,7 @@ export class BreachRooms {
       if (stalled) { this.pause(room, `${stalled.name}'s connection stopped sending controls. Both players must resume when the connection returns.`); continue; }
       const inputs = {};
       for (const p of room.players.values()) {
-        inputs[p.id] = p.peer && now - p.lastInputAt <= 300
+        inputs[p.id] = p.peer && !p.menu && now - p.lastInputAt <= 300
           ? { ...p.input, fire: p.input.fire || p.pendingFireAt !== null && now - p.pendingFireAt <= 300 }
           : NEUTRAL;
         p.pendingFireAt = null;

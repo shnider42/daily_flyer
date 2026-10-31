@@ -1,6 +1,9 @@
 /** Original cue palette. No gameplay state or network synchronization lives here. */
 const cue = (id, title, bpm, kind, sound, use, avoid, seconds, cooldown = 120) => Object.freeze({id, title, bpm, kind, sound, use, avoid, seconds, cooldown, url:new URL(`./music/${id}.mp3`, import.meta.url), midi:new URL(`./music/${id}.mid`, import.meta.url)});
 export const MUSIC_CUES = Object.freeze([
+  cue('shadow-running','Shadow Running',140,'combat','A fast two-bar guitar hook, a contrasting middle and a clear return.','Beneath The Shadow’s descent and Iron Warden.','Quiet houses, records, practice ledges and safe returns.',42.94),
+  cue('sever-the-echo','Sever the Echo',154,'combat','Fast 3+3+2 accents, answering bass and a half-time bridge.','The House of Echoes and Umbra Engine boss encounters.','Boss rooms before a visible threat, menus and repeated retries.',45.44),
+  cue('lanterns-below','Lanterns Below',80,'ambient','Clean guitar carries a slow fragment of the opening hook.','The quiet lantern district and a later aqueduct approach.','Reading, safe practice, attack tells and the final extraction.',49.80),
   cue('containment-pulse','Containment Pulse',104,'combat','Low, spacious power chords; a broad backbeat and an answering lead.','The main menu, Blacksite research laboratory and Crosslink vault.','Extraction, reading and revisiting a scored room. Never loop behind the menu.',38.72),
   cue('iron-wake','Iron Wake',92,'combat','Open low guitar, a patient straight pulse and large gaps.','The opening of a fresh Blacksite mission.','Continue, checkpoint retries and extraction. Attack warnings lower its mix.',33.10),
   cue('dry-contact','Dry Contact',118,'combat','A shifting three-bar accent pattern with a more independent bass.','The opening of a fresh Crosslink mission.','Continue, checkpoint retries, relay work and the debrief.',26.21),
@@ -20,6 +23,7 @@ export const CUES_BY_ID = new Map(MUSIC_CUES.map(c => [c.id,c]));
 const section = (key, cue, extra = {}) => Object.freeze({key, cue, delay:2, window:30, gap:25, ...extra});
 export const MENU_SCORE = section('menu','containment-pulse',{delay:0,gap:0,level:.65});
 export const MISSION_SCORE = Object.freeze({
+  'beneath-the-shadow':{opening:'shadow-running',openingFade:1.4,sections:{forge:section('warden','shadow-running',{guardian:true,priority:true,delay:3,window:120,gap:15,fade:2}),lantern:section('lantern','lanterns-below',{delay:4,gap:18,fade:2}),bridge:section('aqueduct','lanterns-below',{delay:4,gap:18,fade:2}),hydra:section('hydra','sever-the-echo',{guardian:true,priority:true,delay:3,window:120,gap:15,fade:2}),engine:section('sun','sever-the-echo',{guardian:true,priority:true,delay:3,window:120,gap:15,fade:2})},quiet:['null','gantry','chapel']},
   'blacksite-07': {opening:'iron-wake', sections:{'Research laboratory':section('research','containment-pulse')}, quiet:['Extraction bay']},
   'relay-09': {opening:null, sections:{'Communications vault':section('vault','dead-carrier',{delay:3})}, quiet:['Maintenance landing','Western relay','Eastern relay','Extraction control']},
   'crosslink-11': {opening:'dry-contact', sections:{'Crosslink vault':section('vault','containment-pulse')}, quiet:['Extraction uplink']},
@@ -34,9 +38,10 @@ export function musicScene(game) {
   const zone=p && level?.zones?.find(z=>p.x>=z.x1 && p.x<z.x2 && p.z>=z.z1 && p.z<z.z2);
   const zoneId=zone?.id || zone?.name || '', score=MISSION_SCORE[mission];
   let passage=score?.sections[zoneId] || null;
+  if(mission==='beneath-the-shadow'&&passage?.guardian){const group={forge:'warden',hydra:'hydra',engine:'sun'}[zoneId];if(!game.state.enemies.some(e=>e.bossGroup===group&&e.alive))passage=null;}
   if(passage?.power && !game.state.power) passage=null;
   const returning=!!p?.key && ((['underworks-13','glasshouse-17'].includes(mission) && zoneId==='arrival') || (mission==='switchyard-15' && zoneId==='lift') || (mission==='hollow-19' && zoneId==='dock'));
   if(returning) passage=section('return','exit-load',{danger:true,delay:2});
-  return {mission,zone:zoneId,opening:score?.opening || null,section:passage,
-    silence:!passage && !!score?.quiet.includes(zoneId),missionTime:game?.state?.time || 0};
+  return {mission,zone:zoneId,opening:score?.opening || null,openingFade:score?.openingFade,section:passage,
+    silence:!passage && (!!score?.quiet.includes(zoneId)||mission==='beneath-the-shadow'&&['forge','hydra','engine'].includes(zoneId)),missionTime:game?.state?.time || 0};
 }

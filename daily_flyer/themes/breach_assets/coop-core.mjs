@@ -1,5 +1,6 @@
 // Authoritative private-room simulation. Rendering snapshots are deliberately
 // separate from Game's browser-local save format and are never accepted as input.
+import { updateTraversal } from './shadow.mjs';
 import { Game, WEAPONS } from './core.mjs';
 
 const TAU = Math.PI * 2;
@@ -29,7 +30,7 @@ export class CoopGame extends Game {
       const spawn = this.level.coopSpawns?.[index] || (index === 0 ? this.level.spawn : this._spawnNear(this.level.spawn, Object.values(this.state.players)));
       this.state.players[id] = {
         ...copy(template), ...spawn, id, alive: true, moving: false,
-        hasShotgun: true, ammo: { pistol: 40, shells: 8, cells: 0, slugs: 0, grenades: 0 },
+        hasShotgun: !this.level.shadow, ammo: { pistol: 40, shells: this.level.shadow?0:8, cells: 0, slugs: 0, grenades: 0 },
         tutorial: { moved: false, fired: false, interacted: false, weaponSwitched: false },
       };
       this._playerRuntime[id] = { shotCooldown: 0, reserveTimer: 0, messageCooldown: 0, aimAssist: this.options.aimAssist !== false, spawn: copy(spawn) };
@@ -95,8 +96,9 @@ export class CoopGame extends Game {
         const forward = axis(input.forward), strafe = axis(input.strafe);
         const speed = 3.35 * dt / Math.max(1, Math.hypot(forward, strafe));
         const beforeX = p.x, beforeZ = p.z;
-        this._move(p, (Math.sin(p.angle) * forward + Math.cos(p.angle) * strafe) * speed,
+        if(!updateTraversal(this,dt))this._move(p, (Math.sin(p.angle) * forward + Math.cos(p.angle) * strafe) * speed,
           (-Math.cos(p.angle) * forward + Math.sin(p.angle) * strafe) * speed);
+        if(!p.jump)updateTraversal(this,0);
         p.moving = Math.hypot(p.x - beforeX, p.z - beforeZ) > .0001;
         if (distance(p, runtime.spawn) > .75) p.tutorial.moved = true;
         this._collectPickups();
@@ -250,8 +252,8 @@ export class CoopGame extends Game {
       player.armor = Math.max(this.level.exploration ? 50 : 30, player.armor);
       player.ammo.pistol = Math.max(this.level.exploration ? 60 : 24, player.ammo.pistol);
       player.ammo.shells = Math.max(this.level.exploration ? 16 : 6, player.ammo.shells);
-      player.ammo.cells = player.hasArc ? Math.max(4, player.ammo.cells || 0) : player.ammo.cells || 0;
-      player.ammo.slugs = player.hasRicochet ? Math.max(8, player.ammo.slugs || 0) : player.ammo.slugs || 0;
+      player.ammo.cells = (player.hasArc||player.hasNull) ? Math.max(4, player.ammo.cells || 0) : player.ammo.cells || 0;
+      player.ammo.slugs = (player.hasRicochet||player.hasLance) ? Math.max(8, player.ammo.slugs || 0) : player.ammo.slugs || 0;
       player.ammo.grenades = player.hasGrenade ? Math.max(2, player.ammo.grenades || 0) : player.ammo.grenades || 0;
       const runtime = this._playerRuntime[id];
       runtime.shotCooldown = 0; runtime.reserveTimer = 0; runtime.messageCooldown = 0;

@@ -1,6 +1,6 @@
 /** Authored menu, mission-opening and section score. Never a combat playlist. */
 import { CUES_BY_ID, MENU_SCORE } from './music-cues.mjs';
-const MAX_CUE_SECONDS=40;
+const MAX_CUE_SECONDS=56;
 const DUCK_EVENTS=new Set(['enemy-warning','enemy-shot','hurt','explosion','teleport','provoked','boss-phase','shield-open','shield-hit','heal','heal-interrupt','ricochet']);
 const RELIEF_EVENTS=new Set(['refuge','transit','transit-activated','checkpoint','relay','power']);
 const LOCAL_EVENTS=new Set(['record','hurt','refuge','transit']);
@@ -100,7 +100,7 @@ export class BreachMusic {
         if(scene.missionTime>5)this.openingUsed=true; // Continue / late co-op join.
         if(!this.openingUsed){
           this.openingUsed=true;
-          if(scene.opening)this._candidate={key:'opening',cue:scene.opening,scope:`${scene.mission}:opening`,kind:'opening',at:this.time,delay:1.5,window:25,gap:25};
+          if(scene.opening)this._candidate={key:'opening',cue:scene.opening,scope:`${scene.mission}:opening`,kind:'opening',at:this.time,delay:1.5,window:25,gap:25,fade:scene.openingFade};
         }
       }
       this.visited.add(`${scene.mission}:${scene.zone}`);
@@ -114,12 +114,13 @@ export class BreachMusic {
         if(this.context?.state!=='running')this._interrupt();
         else if(this._active.ducked!==(this.time<this.duckUntil))this._setLevel(.3);
       }
-      const passage=scene.section;
+      const passage=scene.section?.priority&&!guardian?null:scene.section;
+      if(passage?.priority&&guardian&&!this.completed.has(`${scene.mission}:${passage.key}`)&&(this._active||this._pending)){this._interrupt(2);this.cooldownUntil=this.time;}
       const scope=passage?`${scene.mission}:${passage.key}`:null;
       if(this._candidate?.kind==='section' && this._candidate.scope!==scope)this._discard();
       if(passage && !this.completed.has(scope) && this._candidate?.scope!==scope){
         // Never queue a second track behind an opening or another passage.
-        if(this._candidate || this._active || this._pending || this.time<this.cooldownUntil)this.completed.add(scope);
+        if(this._candidate || this._active || this._pending || this.time<this.cooldownUntil&&!passage.priority)this.completed.add(scope);
         else if(!passage.visit || this.visited.has(`${scene.mission}:${passage.visit}`))
           this._candidate={...passage,scope,kind:'section',zone:scene.zone,at:this.time,eligible:0};
       }
@@ -181,7 +182,7 @@ export class BreachMusic {
       source = c.createBufferSource(); gain = c.createGain();
       source.buffer = buffer; source.loop = false; gain.gain.setValueAtTime(0, at);
       source.connect(gain); gain.connect(this.output);
-      cue = { id:request.id, kind:request.kind, cooldown:request.cooldown, zone:request.zone, quiet:request.quiet, level:request.level, source, gain, ducked: request.kind !== 'menu' && this.time < this.duckUntil, stopped: false };
+      cue = { id:request.id, kind:request.kind, cooldown:request.cooldown, zone:request.zone, quiet:request.quiet, fade:request.fade||.3, endAt:at+Math.min(buffer.duration,MAX_CUE_SECONDS), level:request.level, source, gain, ducked: request.kind !== 'menu' && this.time < this.duckUntil, stopped: false };
       this._active = cue; this._sources.add(cue);
       source.onended = () => {
         this._sources.delete(cue);
@@ -191,7 +192,8 @@ export class BreachMusic {
         if(cue.kind!=='menu' && !cue.stopped)this.cooldownUntil = Math.max(this.cooldownUntil, this.time + cue.cooldown);
         try { source.disconnect(); gain.disconnect(); } catch (_) { /* Optional audio cleanup. */ }
       };
-      gain.gain.linearRampToValueAtTime(this.volume * cue.level * (cue.ducked ? .25 : 1), at + .8);
+      gain.gain.linearRampToValueAtTime(this.volume * cue.level * (cue.ducked ? .25 : 1), at + (request.fade||.8));
+      if(request.fade){gain.gain.setValueAtTime(this.volume*cue.level*(cue.ducked?.25:1),Math.max(at+request.fade,cue.endAt-request.fade));gain.gain.linearRampToValueAtTime(0,cue.endAt);}
       source.start(at); source.stop(at + Math.min(buffer.duration, MAX_CUE_SECONDS));
 
     } catch (_) {
@@ -210,10 +212,11 @@ export class BreachMusic {
       cue.ducked = cue.kind !== 'menu' && this.time < this.duckUntil;
       param.cancelScheduledValues(at); param.setValueAtTime(param.value, at);
       param.linearRampToValueAtTime(this.volume * cue.level * (cue.ducked ? .25 : 1), at + seconds);
+      if(cue.fade>.3&&cue.endAt>at+seconds){param.setValueAtTime(this.volume*cue.level*(cue.ducked?.25:1),Math.max(at+seconds,cue.endAt-cue.fade));param.linearRampToValueAtTime(0,cue.endAt);}
     } catch (_) { this._interrupt(); }
   }
 
-  _interrupt() {
+  _interrupt(seconds=null) {
     ++this._generation;
     this._pending = null;
     const cue = this._active; this._active = null;
@@ -222,9 +225,9 @@ export class BreachMusic {
     if (!cue || cue.stopped) return;
     cue.stopped = true;
     try {
-      const at = this.context?.currentTime || 0, param = cue.gain.gain;
-      param.cancelScheduledValues(at); param.setValueAtTime(param.value, at); param.linearRampToValueAtTime(0, at + .3);
-      cue.source.stop(at + .3);
+      const at = this.context?.currentTime || 0, param = cue.gain.gain,fade=seconds??cue.fade??.3;
+      param.cancelScheduledValues(at); param.setValueAtTime(param.value, at); param.linearRampToValueAtTime(0, at + fade);
+      cue.source.stop(at + fade);
     } catch (_) {
       this._sources.delete(cue);
       try { cue.source.disconnect(); cue.gain.disconnect(); } catch (_) { /* Optional audio cleanup. */ }

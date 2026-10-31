@@ -161,3 +161,19 @@ test('native browser fetch keeps its global receiver through actual cue playback
 test('replacing a closed context cleans up sources and permits a new run',async()=>{
   const s=setup();await startCue(s);s.c.state='closed';const fresh=new FakeContext();s.m.attach(fresh,{});s.m.reset();tick(s.m,fresh,2,0,{scene:opening});await settle();assert.equal(s.m._sources.size,1);assert.equal(fresh.sources.length,1);
 });
+
+test('Shadow opening keeps its full phrase and fades into a deliberate silent room',async()=>{
+ const s=setup();s.c.decodeAudioData=async()=>({duration:42.94});
+ const scene={mission:'beneath-the-shadow',zone:'descent',opening:'shadow-running',openingFade:1.4,missionTime:0};
+ await startCue(s,scene);const source=s.c.sources[0];assert.equal(source.endAt-source.starts[0],42.94);
+ assert.ok(s.c.gains[0].gain.actions.some(a=>a[0]==='ramp'&&a[1]===0&&a[2]===source.endAt));
+ tick(s.m,s.c,.25,0,{scene:{...scene,zone:'gantry',silence:true}});assert.equal(s.m._active,null);assert.ok(Math.abs(source.endAt-s.c.currentTime-1.4)<.001);
+});
+test('Shadow bosses can take over a fading passage without overlapping or losing their slot before exposure',async()=>{
+ const s=setup();const scene={mission:'beneath-the-shadow',zone:'lantern',missionTime:50,section:{key:'lantern',cue:'lanterns-below',delay:2,window:30,gap:18,fade:2}};
+ await startCue(s,{...scene,section:{...scene.section,delay:1}});
+ const boss={...scene,zone:'hydra',section:{key:'hydra',cue:'sever-the-echo',guardian:true,priority:true,delay:3,window:120,gap:15,fade:2}};
+ tick(s.m,s.c,5,0,{scene:boss,guardian:false});assert.ok(!s.m.completed.has('beneath-the-shadow:hydra'));
+ tick(s.m,s.c,3.5,2,{scene:boss,guardian:true});await settle();assert.equal(s.m._active.id,'sever-the-echo');assert.equal(s.c.sources.filter(x=>!x.ended).length,1);
+ tick(s.m,s.c,120,2,{scene:boss,guardian:true});await settle();assert.equal(s.c.sources.length,2,'no boss loop or doorway repeat');
+});

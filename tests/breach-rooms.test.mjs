@@ -304,3 +304,18 @@ test('shared retries are owner-only and pause for both players; leave and shutdo
   for (const p of [restart.host, restart.guest]) assert.match(last(p, 'closed').message, /restarting/);
   const next = peer(); restart.rooms.handle(next, request('create')); assert.equal(error(next), 'SERVER_RESTARTING');
 });
+
+test('one operator in a menu leaves the world live; both menus pause until someone returns',()=>{
+ const f=setup();start(f);
+ f.rooms.handle(f.host,{type:'menu',open:true});assert.equal(f.room.status,'playing');assert.equal(last(f.guest,'room').room.players.find(p=>p.id==='p1').menu,true);
+ f.rooms.handle(f.host,{type:'input',seq:1,forward:1,strafe:0,angle:0,fire:true});
+ f.rooms.handle(f.guest,{type:'input',seq:1,forward:1,strafe:0,angle:0,fire:false});
+ f.rooms.step(.1);assert.equal(f.room.game.updates.at(-1).inputs.p1.forward,0);assert.equal(f.room.game.updates.at(-1).inputs.p1.fire,false);assert.equal(f.room.game.updates.at(-1).inputs.p2.forward,1);
+ f.rooms.handle(f.host,{type:'interact'});assert.equal(f.room.game.actions.length,0);
+ f.rooms.handle(f.guest,{type:'menu',open:true});assert.equal(f.room.status,'paused');assert.equal(f.room.pauseKind,'menus');const time=f.room.game.state.time;f.rooms.step(.1);assert.equal(f.room.game.state.time,time);
+ f.rooms.handle(f.host,{type:'menu',open:false});assert.equal(f.room.status,'playing');assert.equal(f.room.players.get('p2').menu,true);assert.equal(f.room.players.get('p1').input.fire,false);
+});
+test('disconnect protection overrides the all-menu pause and cannot be dismissed by closing a menu',()=>{
+ const f=setup();start(f);f.rooms.handle(f.host,{type:'menu',open:true});f.rooms.handle(f.guest,{type:'menu',open:true});f.rooms.disconnect(f.guest);
+ assert.equal(f.room.pauseKind,'safety');f.rooms.handle(f.host,{type:'menu',open:false});assert.equal(f.room.status,'paused');assert.match(f.room.pauseReason,/disconnected/);
+});

@@ -111,7 +111,10 @@ export class BreachAudio {
         case 'record': this.tone(260,.3,.07,260,'triangle'); this.tone(257,.6,.045,190,'sine',.12); break;
         case 'containment-routed': this.tone(event.open?170:65,.8,.12*volume,event.open?45:170,'sine'); break;
         case 'shot':
-          if(event.weapon==='arc') {
+          if(event.weapon==='repeater'){this.noise(.07,.38,2600);this.tone(190,.06,.22,75,'triangle');}
+          else if(event.weapon==='nullgun'){this.tone(190,.32,.32,80,'sine');this.tone(520,.2,.12,210,'triangle');}
+          else if(event.weapon==='lance'){this.noise(.18,.8,3600);this.tone(95,.25,.5,28,'triangle');}
+          else if(event.weapon==='arc') {
             this.noise(.14,.28,3100); this.tone(820,.2,.27,150,'sawtooth');
             this.tone(1240,.12,.12,480,'sine',.035);
           } else if(event.weapon==='ricochet') {

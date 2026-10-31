@@ -1,8 +1,16 @@
 # BREACH — DailyFlyer Arcade
 
-An original retro first-person game built on DailyFlyer, with seven solo missions
-and four operations available in private two-player co-op. Solo play runs in the
+An original retro first-person game built on DailyFlyer, with eight solo missions
+and five operations available in private two-player co-op. Solo play runs in the
 browser; co-op uses an authoritative room server.
+
+## 0.9.0 — Beneath The Shadow
+
+A standalone buried-city expedition adds three bosses, a finite multiplying
+hydra, three earned weapons, two optional gantry courses, three secrets and
+three original tracks. The score follows authored places and silences. Co-op
+maps remain live; both operators in menus pause the world. See the
+[mission, soundtrack and co-op rules](breach-shadow-090.md).
 
 ## 0.8.4 — Authored musical placement
 
@@ -130,7 +138,7 @@ Safe fire controls are the default: drag to look, tap Fire for one shot on relea
 or hold it still briefly to fire continuously. An immediate drag starting on Fire
 becomes look-only. Classic immediate fire-and-drag remains selectable in Settings.
 
-Desktop also supports F for fullscreen, 1–5 for direct weapon selection, and Q or
+Desktop also supports F for fullscreen, 1–8 for direct weapon selection, and Q or
 the mouse wheel to cycle acquired weapons. The bottom inventory selects a carried
 weapon directly on phone or desktop. Settings offer automatic, wide, or wider
 field of view and automatic, performance, or sharp graphics. Fullscreen is available when the browser supports

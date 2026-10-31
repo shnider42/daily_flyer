@@ -14,7 +14,7 @@ async function fixture(t) {
   const directory = join(root, 'public'); await mkdir(join(directory, 'vendor'), { recursive: true });
   await writeFile(join(root, 'secret.txt'), 'outside-document-root-secret');
   await writeFile(join(directory, '.env'), 'hidden-document-root-secret');
-  await writeFile(join(directory, 'index.html'), '<!doctype html><title>BREACH test</title><script id="breach-config" type="application/json">{"version":"0.8.4","coopServer":""}</script>');
+  await writeFile(join(directory, 'index.html'), '<!doctype html><title>BREACH test</title><script id="breach-config" type="application/json">{"version":"0.9.0","coopServer":""}</script>');
   await writeFile(join(directory, 'app.mjs'), 'export const game = "BREACH";');
   await mkdir(join(directory, 'music'));
   await writeFile(join(directory, 'music', 'containment-pulse.mp3'), Buffer.from([0x49,0x44,0x33]));
@@ -90,7 +90,7 @@ async function pair(f, mission = 'crosslink-11') {
 test('HTTP health and static delivery expose only the public build and configure same-origin co-op', { timeout: 10000 }, async t => {
   const f = await fixture(t);
   const health = await get(f.base, '/health'); assert.equal(health.status, 200);
-  const status = JSON.parse(health.body); assert.equal(status.ok, true); assert.equal(status.service, 'breach-rooms'); assert.equal(status.version, '0.8.4'); assert.equal(status.protocol, 2); assert.equal(status.activeRooms, 0);
+  const status = JSON.parse(health.body); assert.equal(status.ok, true); assert.equal(status.service, 'breach-rooms'); assert.equal(status.version, '0.9.0'); assert.equal(status.protocol, 2); assert.equal(status.activeRooms, 0);
   assert.equal(health.headers['cache-control'], 'no-store');
   const page = await get(f.base); assert.equal(page.status, 200); assert.match(page.body, /"coopServer":"same-origin"/);
   assert.equal(page.headers['x-content-type-options'], 'nosniff'); assert.match(page.headers['content-type'], /text\/html/);
