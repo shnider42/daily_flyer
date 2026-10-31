@@ -28,7 +28,7 @@ export class MusicPreview {
       gain.gain.setValueAtTime(0,at); gain.gain.linearRampToValueAtTime(volume,at+.15);
       gain.gain.setValueAtTime(volume,at+Math.max(.15,duration-.3)); gain.gain.linearRampToValueAtTime(0,at+duration);
       source.connect(gain); gain.connect(output);
-      source.onended=()=>{ if (generation!==this.generation) return; this.cue=null; this.busy=false; source.disconnect(); gain.disconnect(); onStatus('Sample finished. Mission music follows openings and specific sections, with deliberate silence between them.'); };
+      source.onended=()=>{ if (generation!==this.generation) return; this.cue=null; this.busy=false; source.disconnect(); gain.disconnect(); onStatus('Sample finished. Mission music continues through exploration and combat, with only brief scripted pauses.'); };
       source.start(at); source.stop(at+duration);
       onStatus('Playing a short sample at your game music volume.');
     } catch (error) {

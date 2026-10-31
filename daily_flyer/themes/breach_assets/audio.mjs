@@ -1,4 +1,4 @@
-/** Original game audio: procedural effects and a lazy, same-origin music cue. */
+/** Original procedural effects and continuously scored, locally mixed missions. */
 import { BreachMusic } from './music.mjs';
 import { musicScene } from './music-cues.mjs';
 import { MusicPreview } from './music-preview.mjs';
@@ -75,7 +75,7 @@ export class BreachAudio {
       const scene = musicScene(game);
       if (this.playing && !blocked && alive && this.enabled && this.music.enabled && this.music.volume > 0 && this.context?.state === 'running' && this.warmMission !== scene.mission) {
         this.warmMission = scene.mission;
-        // Prepare just one likely cue during the silent opening after Start.
+        // Warm the authored opening while Start unlocks the browser audio context.
         // Preparation never starts playback or changes encounter eligibility.
         if(scene.opening && scene.missionTime<=5 && !this.music.openingUsed)this.music.prepare(scene.opening).catch(() => {});
       }

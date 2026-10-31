@@ -977,7 +977,7 @@ function frame(now) {
     }
     if(coop&&mode!=='playing')coop.drive(dt,{forward:0,strafe:0,turn:0,fire:false});
     audio.music.updateMenu({blocked:document.hidden || !document.hasFocus() || audio.preview.busy});
-    audio.updateMusic(game,dt,mode!=='playing'||document.hidden||mapVisible||!!document.querySelector('dialog[open]'));
+    audio.updateMusic(game,dt,mode!=='playing'||document.hidden||(!coop&&mapVisible)||!!document.querySelector('dialog[open]'));
     if(now-lastHud>90){updateMusicUi();updateHud();lastHud=now;if(mapVisible&&mapDirty)drawMap();}
     if(now>toastTimer)$('toast').hidden=true;
     $('damage-flash').classList.toggle('active',now<damageUntil&&mode==='playing');

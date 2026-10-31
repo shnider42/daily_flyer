@@ -1,3 +1,5 @@
+import { Game, MISSIONS } from '../daily_flyer/themes/breach_assets/core.mjs';
+import { musicScene } from '../daily_flyer/themes/breach_assets/music-cues.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { BreachMusic } from '../daily_flyer/themes/breach_assets/music.mjs';
@@ -40,42 +42,81 @@ function tick(m, c, seconds, pressure = 2, extra = {}) {
     c?.advance(dt); m.update({ dt, pressure, ...extra });
   }
 }
-const opening={mission:'blacksite-07',zone:'Arrival bay',opening:'iron-wake',missionTime:0};
-const foundry={mission:'underworks-13',zone:'foundry',section:{key:'foundry',cue:'root-pressure',delay:2,window:30,gap:25},missionTime:70};
+const bed={key:'facility',cues:['iron-wake','containment-pulse','dry-contact'],level:.9,fade:1.2};
+const opening={mission:'blacksite-07',zone:'Arrival bay',opening:'iron-wake',rotation:bed,missionTime:0};
+const foundry={mission:'underworks-13',zone:'foundry',rotation:{...bed,key:'foundry',cues:['root-pressure','counterweight']},missionTime:70};
 async function startCue(s,scene=opening){tick(s.m,s.c,2,0,{scene});await settle();assert.equal(s.c.sources.length,1);}
+async function playFor(s,seconds,scene,extra={}){
+  let audible=0,maxVoices=0;
+  for(let i=0;i<seconds*4;i++){
+    s.c.advance(.25);s.m.update({dt:.25,scene,pressure:0,...extra});await settle();
+    if(s.m._sources.size)audible+=.25;maxVoices=Math.max(maxVoices,s.m._sources.size);
+  }
+  return {audible,maxVoices};
+}
 
-test('opening music is fixed and starts without enemies after a brief fade-in delay',async()=>{
-  const s=setup();tick(s.m,s.c,1.5,0,{scene:opening});await settle();assert.equal(s.calls.length,0);
-  tick(s.m,s.c,.25,0,{scene:opening});await settle();assert.match(s.calls[0].url.pathname,/iron-wake/);
-  assert.equal(s.c.sources[0].loop,false);assert.equal(s.c.resumeCalls,0);
+test('a fresh mission opens promptly with its authored theme and preloads the next phrase',async()=>{
+  const s=setup();await startCue(s);assert.equal(s.m._active.id,'iron-wake');assert.equal(s.c.sources[0].loop,false);
+  assert.equal(s.calls.length,2);assert.equal(s.c.resumeCalls,0);
 });
-test('enemy counts alone never trigger or choose music',async()=>{
-  const s=setup();for(const pressure of [0,1,3,10]){tick(s.m,s.c,60,pressure,{scene:{mission:'hollow-19',zone:'wards',missionTime:90}});await settle();}
-  assert.equal(s.calls.length,0);
+test('mission scoring continues for ten minutes with crossfades, bounded memory and no random combat selection',async()=>{
+  const s=setup();const result=await playFor(s,600,opening);
+  assert.ok(result.audible/600>.98);assert.ok(result.maxVoices<=2);assert.ok(s.c.sources.length>15);assert.ok(s.m._buffers.size<=2);
+  const ids=s.calls.map(call=>call.url.pathname.split('/').at(-1));assert.ok(ids.every(id=>['iron-wake.mp3','containment-pulse.mp3','dry-contact.mp3'].includes(id)));
+  const active=s.m._active;await playFor(s,2,opening,{pressure:20});assert.equal(s.m._active,active,'ordinary threat counts never restart a phrase');
 });
-test('a section has one fixed cue and does not switch when enemies disappear',async()=>{
-  const s=setup();tick(s.m,s.c,2.5,3,{scene:foundry});await settle();assert.match(s.calls[0].url.pathname,/root-pressure/);
-  tick(s.m,s.c,8,0,{scene:foundry});assert.notEqual(s.m._active,null);
-  tick(s.m,s.c,100,0,{scene:foundry});await settle();assert.equal(s.c.sources.length,1);
+test('crossing ordinary sections preserves the current phrase and uses the latest location at the handoff',async()=>{
+  const s=setup();await startCue(s);const first=s.m._active;
+  await playFor(s,4,foundry);assert.equal(s.m._active,first);
+  const archive={...foundry,zone:'archives',rotation:{...bed,key:'archive',cues:['dead-carrier','lanterns-below']}};
+  await playFor(s,40,archive);assert.equal(s.m._active.scope,'underworks-13:archive');assert.ok(archive.rotation.cues.includes(s.m._active.id));
 });
-test('moving through unscored corridors lets a written phrase finish; a silent sector fades it',async()=>{
-  const s=setup();await startCue(s);tick(s.m,s.c,4,0,{scene:{...opening,zone:'Service passage'}});assert.ok(s.m._active);
-  tick(s.m,s.c,.25,0,{scene:{...opening,zone:'Extraction bay',silence:true}});assert.equal(s.m._active,null);
-  assert.ok(s.c.sources[0].endAt-s.c.currentTime<.31);
+test('a dramatic hush expires in the same room, is skipped in combat and never repeats on return',async()=>{
+  const s=setup();await startCue(s);
+  const quiet={...foundry,quietBeat:{key:'quarters',seconds:8}};
+  await playFor(s,2,quiet);assert.equal(s.m._active,null);
+  await playFor(s,8,quiet);assert.ok(s.m._active);
+  await playFor(s,2,foundry);await playFor(s,2,quiet);assert.ok(s.m._active);
+  const fighting=setup();await playFor(fighting,2,quiet,{pressure:2});assert.ok(fighting.m._active);
 });
-test('quickly crossing a section never schedules a late track or doorway replay',async()=>{
-  const s=setup();tick(s.m,s.c,1,0,{scene:foundry});tick(s.m,s.c,3,0,{scene:{mission:'underworks-13',zone:'hall'}});
-  tick(s.m,s.c,40,0,{scene:foundry});await settle();assert.equal(s.calls.length,0);
+test('danger interrupts a deliberate hush promptly without waiting out its timer',async()=>{
+  const s=setup(),quiet={...foundry,quietBeat:{key:'listening',seconds:10}};
+  await playFor(s,2,quiet);assert.equal(s.m._active,null);
+  await playFor(s,2,quiet,{pressure:2});assert.ok(s.m._active);
 });
-test('an opening occupies the moment; a section encountered under it is not queued',async()=>{
-  const s=setup();await startCue(s);tick(s.m,s.c,60,0,{scene:foundry});await settle();assert.equal(s.calls.length,1);
+test('records, power, checkpoints and refuges lower the mix instead of stopping music',async()=>{
+  const s=setup();await startCue(s);const cue=s.m._active;
+  for(const type of ['power','checkpoint','refuge','transit','enemy-warning']){
+    s.m.events([{type}],{id:'local'});assert.equal(s.m._active,cue);assert.equal(cue.mix,.55);
+  }
+  s.m.events([{type:'record',playerId:'remote'}],{id:'local'});assert.equal(cue.mix,.55);
+  s.m.events([{type:'record',playerId:'local'}],{id:'local'});assert.equal(cue.mix,.3);
+  await playFor(s,9,opening);assert.equal(cue.mix,1);assert.equal(s.m._active,cue);
 });
-test('separate later sections can play after the silence budget, but never overlap',async()=>{
-  const s=setup();await startCue(s);tick(s.m,s.c,70,0,{scene:{...opening,opening:null}});
-  tick(s.m,s.c,2.5,0,{scene:foundry});await settle();assert.equal(s.c.sources.length,2);
-  assert.equal(s.c.sources.filter(x=>!x.ended).length,1);
+test('pausing, muting, retries and old saves resume a musical bed without replaying the introduction',async()=>{
+  const s=setup();await startCue(s);s.m.setPlaying(false);s.c.advance(1);s.m.setPlaying(true);await playFor(s,2,opening);
+  assert.equal(s.m._active.kind,'score');assert.notEqual(s.m._active.id,'iron-wake');
+  s.m.configure({enabled:false});s.c.advance(1);s.m.configure({enabled:true});await playFor(s,2,opening);assert.ok(s.m._active);
+  s.m.reset({retry:true});await playFor(s,2,opening);assert.equal(s.m._active.kind,'score');
+  const restored=setup();restored.m.reset({snapshot:{openingUsed:true,completed:['blacksite-07:facility','blacksite-07:opening']}});
+  await playFor(restored,90,opening);assert.ok(restored.c.sources.length>=3,'old played-once flags cannot silence the new score');
 });
-for(const reason of ['pause','map','mute','death','silence','new-context'])test(`stale decoding cannot play an opening after ${reason}`,async()=>{
+test('a late co-op join receives the current score without an arrival replay',async()=>{
+  const s=setup();await playFor(s,2,{...opening,missionTime:140});assert.equal(s.m._active.kind,'score');
+});
+test('a boss needs local exposure, sustains music through cover and continues until defeat',async()=>{
+  const s=setup();const arena={...foundry,boss:{...bed,key:'warden',cues:['shadow-running','sever-the-echo'],delay:1.5,level:1}};
+  await playFor(s,2,arena);assert.equal(s.m._active.kind,'score');
+  await playFor(s,2,arena,{guardian:true});assert.equal(s.m._active.id,'shadow-running');assert.equal(s.m._active.kind,'boss');
+  const result=await playFor(s,150,arena,{guardian:false});assert.ok(result.audible>148);assert.equal(s.m._active.kind,'boss');
+  assert.ok(s.c.sources.length>=5,'boss score does not stop after its first cue');
+  await playFor(s,3,{...arena,boss:null});assert.equal(s.m._active.kind,'score');
+});
+test('a distant teammate fight cannot select the local boss score',async()=>{
+  const s=setup();await playFor(s,100,{...foundry,boss:{...bed,key:'boss',cues:['weight-of-stone','crown-circuit']}},{guardian:false});
+  assert.equal(s.m._active.kind,'score');assert.ok(s.calls.every(c=>!c.url.pathname.includes('weight-of-stone')));
+});
+for(const reason of ['pause','map','mute','death','silence','new-context'])test(`stale decoding cannot play after ${reason}`,async()=>{
   const s=setup(),d=deferred();s.c.decodePromise=d.promise;tick(s.m,s.c,2,0,{scene:opening});await settle();assert.equal(s.c.decodes,1);
   if(reason==='pause')s.m.setPlaying(false);
   if(reason==='map')tick(s.m,s.c,.25,0,{scene:opening,blocked:true});
@@ -83,44 +124,34 @@ for(const reason of ['pause','map','mute','death','silence','new-context'])test(
   if(reason==='death')tick(s.m,s.c,.25,0,{scene:opening,alive:false});
   if(reason==='silence')tick(s.m,s.c,.25,0,{scene:{...opening,silence:true}});
   if(reason==='new-context')s.m.attach(new FakeContext(),{});
-  d.resolve({duration:30});await settle();assert.equal(s.c.sources.length,0);assert.equal(s.m.cooldownUntil,0);
+  d.resolve({duration:30});await settle();assert.equal(s.c.sources.length,0);
 });
-test('stale section loads are retained for explicit tests but cannot follow the player',async()=>{
-  const s=setup(),d=deferred();s.c.decodePromise=d.promise;tick(s.m,s.c,2.5,0,{scene:foundry});await settle();
-  tick(s.m,s.c,.25,0,{scene:{mission:'underworks-13',zone:'hall'}});d.resolve({duration:30});await settle();
-  assert.equal(s.c.sources.length,0);assert.equal(s.m._buffers.size,1);assert.equal(s.m._pending,null);
+test('late downloads cannot bring a previous room or boss into a new location',async()=>{
+  const s=setup(),d=deferred();s.c.decodePromise=d.promise;tick(s.m,s.c,2,0,{scene:foundry});await settle();
+  s.m.update({dt:.25,scene:{...foundry,zone:'archive',rotation:{...bed,key:'archive',cues:['dead-carrier','lanterns-below']}}});
+  d.resolve({duration:30});await settle();assert.equal(s.c.sources.length,0);
+  await playFor(s,2,{...foundry,zone:'archive',rotation:{...bed,key:'archive',cues:['dead-carrier','lanterns-below']}});assert.equal(s.m._active.id,'dead-carrier');
 });
-test('loading an opening after its moment expires never backfills it',async()=>{
-  const s=setup(),d=deferred();s.c.decodePromise=d.promise;tick(s.m,s.c,2,0,{scene:opening});await settle();
-  tick(s.m,s.c,30,0,{scene:opening});d.resolve({duration:30});await settle();assert.equal(s.c.sources.length,0);
+test('all voices stop when a crossfade is paused or muted',async()=>{
+  for(const action of ['pause','mute','death']){
+    const s=setup();await startCue(s);s.c.advance(s.m._active.endAt-s.c.currentTime-1);s.m.update({dt:.25,scene:opening});await settle();assert.equal(s.m._sources.size,2);
+    if(action==='pause')s.m.setPlaying(false);if(action==='mute')s.m.configure({enabled:false});if(action==='death')s.m.update({dt:.25,scene:opening,alive:false});
+    s.c.advance(.5);assert.equal(s.m._sources.size,0);
+  }
 });
-test('guardians require local exposure in their authored arena; they cannot summon music elsewhere',async()=>{
-  const scene={...foundry,zone:'reactor',section:{...foundry.section,key:'guardian',cue:'weight-of-stone',guardian:true,delay:8}};
-  const s=setup();tick(s.m,s.c,4,3,{scene,guardian:true});tick(s.m,s.c,.25,0,{scene,guardian:false});
-  tick(s.m,s.c,7.75,3,{scene,guardian:true});await settle();assert.equal(s.calls.length,0);
-  tick(s.m,s.c,.25,3,{scene,guardian:true});await settle();assert.match(s.calls[0].url.pathname,/weight-of-stone/);
+test('missing audio is skipped with bounded retries and recovers after connectivity returns',async()=>{
+  let calls=0,online=false;
+  const s=setup({fetcher:async()=>{calls++;if(!online)throw new Error('offline');return {ok:true,arrayBuffer:async()=>new ArrayBuffer(2)};}});
+  await playFor(s,30,foundry);assert.ok(calls<=6,`bounded attempts: ${calls}`);assert.equal(s.m._active,null);
+  online=true;await playFor(s,20,foundry);assert.ok(s.m._active);
 });
-test('horror spaces have fixed quiet cues and yield to danger',async()=>{
-  const s=setup(),scene={mission:'hollow-19',zone:'listening',missionTime:100,section:{key:'listening',cue:'below-the-carrier',quiet:true,delay:4,window:30,gap:60}};
-  tick(s.m,s.c,4.5,0,{scene});await settle();assert.equal(s.c.sources.length,1);
-  tick(s.m,s.c,.25,1,{scene});assert.equal(s.m._active,null);assert.ok(s.m.cooldownUntil>=s.m.time+60);
+test('native fetch retains its global receiver; preparation stays bounded and never autoplays',async()=>{
+  const old=globalThis.fetch;globalThis.fetch=function(){assert.equal(this,globalThis);return Promise.resolve({ok:true,arrayBuffer:async()=>new ArrayBuffer(2)});};
+  try{const m=new BreachMusic(),c=new FakeContext();m.attach(c,{});const a=m.prepare('iron-wake');assert.equal(a,m.prepare('iron-wake'));await a;await m.prepare('dry-contact');await m.prepare('root-pressure');assert.equal(m._buffers.size,2);assert.equal(c.sources.length,0);m.setPlaying(true);await playFor({m,c},2,opening);assert.equal(c.sources.length,1);}finally{globalThis.fetch=old;}
 });
-test('records stop music, while local attack warnings duck it briefly',async()=>{
-  const s=setup();await startCue(s);s.m.events([{type:'enemy-warning',x:1,z:1}],{x:0,z:0});assert.equal(s.c.gains[0].gain.value,.45*.25);
-  tick(s.m,s.c,1.5,0,{scene:opening});assert.equal(s.c.gains[0].gain.value,.45);
-  s.m.events([{type:'record',playerId:'remote'}],{id:'local'});assert.ok(s.m._active);
-  s.m.events([{type:'record',playerId:'local'}],{id:'local'});assert.equal(s.m._active,null);
-});
-test('pause, retry and restored saves do not repeat introductions or already visited passages',async()=>{
-  const s=setup();await startCue(s);s.m.setPlaying(false);s.m.setPlaying(true);tick(s.m,s.c,80,0,{scene:opening});await settle();assert.equal(s.c.sources.length,1);
-  const memory=s.m.snapshot();s.m.reset({retry:true});tick(s.m,s.c,80,0,{scene:opening});await settle();assert.equal(s.c.sources.length,1);
-  const fresh=setup();fresh.m.reset({snapshot:memory});tick(fresh.m,fresh.c,80,0,{scene:opening});await settle();assert.equal(fresh.c.sources.length,0);
-});
-test('continuing an older save or joining co-op late does not restart the level introduction',async()=>{
-  const s=setup();tick(s.m,s.c,30,0,{scene:{...opening,missionTime:40}});await settle();assert.equal(s.calls.length,0);
-});
-test('muted openings are consumed rather than sprung on the listener when enabling music later',async()=>{
-  const s=setup({enabled:false});tick(s.m,s.c,3,0,{scene:opening});s.m.configure({enabled:true});tick(s.m,s.c,20,0,{scene:opening});await settle();assert.equal(s.calls.length,0);
+test('save and restore retain rotation order and spent quiet moments',async()=>{
+  const s=setup();await playFor(s,50,{...foundry,quietBeat:{key:'quarters',seconds:8}});const saved=s.m.snapshot(),restored=setup();restored.m.reset({snapshot:saved});
+  await playFor(restored,2,{...foundry,quietBeat:{key:'quarters',seconds:8}});assert.ok(restored.m._active);assert.notEqual(restored.m._active.id,saved.lastCue);
 });
 test('menu alternates two complete themes continuously with a quiet crossfade and bounded downloads',async()=>{
   const s=setup();s.m.setPlaying(false);s.m.setMenu(true);s.m.updateMenu();await settle();assert.equal(s.calls.length,0);
@@ -137,7 +168,7 @@ test('menu alternates two complete themes continuously with a quiet crossfade an
     assert.equal(s.c.sources.at(-1).loop,false,'each song plays its full phrase');
     s.c.advance(1.2);assert.equal(s.c.sources.filter(x=>!x.ended).length,1);
   }
-  assert.equal(s.calls.length,2);assert.equal(s.m._buffers.size,2);assert.equal(s.m.cooldownUntil,0);
+  assert.equal(s.calls.length,2);assert.equal(s.m._buffers.size,2);
 });
 for(const action of ['stop','mute','zero-volume','background','start'])test(`menu crossfade cancels both voices on ${action}`,async()=>{
   const s=setup();s.m.setPlaying(false);s.m.setMenu(true);s.m.activateMenu();s.m.updateMenu();await settle();
@@ -180,45 +211,30 @@ test('menu stop, backgrounding, and starting a level cancel stale menu loading',
     d.resolve({duration:38});await settle();assert.equal(s.c.sources.length,0);
   }
 });
-test('menu to mission fades without overlap or a menu-imposed opening cooldown',async()=>{
+test('menu to mission fades cleanly before its opening',async()=>{
   const s=setup();s.m.setPlaying(false);s.m.setMenu(true);s.m.activateMenu();s.m.updateMenu();await settle();
   s.m.reset();assert.equal(s.m._active.kind,'menu','browsing mission briefings preserves menu music');
   s.m.setPlaying(true);tick(s.m,s.c,2,0,{scene:opening});await settle();
   assert.equal(s.c.sources.length,2);assert.equal(s.c.sources.filter(x=>!x.ended).length,1);assert.equal(s.m._active.id,'iron-wake');
 });
-test('preparation is bounded, shares requests and cannot autoplay',async()=>{
-  const s=setup(),a=s.m.prepare('iron-wake'),b=s.m.prepare('iron-wake');assert.equal(a,b);await a;
-  await s.m.prepare('dry-contact');await s.m.prepare('root-pressure');assert.equal(s.m._buffers.size,2);assert.equal(s.c.sources.length,0);
-});
-test('cleanup from a previous mission cannot silence a new mission section',async()=>{
-  const s=setup();await startCue(s);s.m.setPlaying(false);s.m.reset();s.m.setPlaying(true);
-  tick(s.m,s.c,2.5,0,{scene:foundry});await settle();
-  assert.equal(s.m._active?.id,'root-pressure');assert.equal(s.m.cooldownUntil,0);
-  assert.equal(s.c.sources.filter(x=>!x.ended).length,1);
-});
-test('failed loading is not retried continuously in the same room',async()=>{
-  let calls=0;const s=setup({fetcher:async()=>{calls++;throw new Error('offline');}});tick(s.m,s.c,3,0,{scene:foundry});await settle();tick(s.m,s.c,120,0,{scene:foundry});await settle();assert.equal(calls,1);
-});
-test('native browser fetch keeps its global receiver through actual cue playback',async()=>{
-  const old=globalThis.fetch;globalThis.fetch=function(){assert.equal(this,globalThis);return Promise.resolve({ok:true,arrayBuffer:async()=>new ArrayBuffer(2)});};
-  try{const m=new BreachMusic(),c=new FakeContext();m.attach(c,{});m.setPlaying(true);tick(m,c,2,0,{scene:opening});await settle();assert.equal(c.sources.length,1);}finally{globalThis.fetch=old;}
-});
-test('replacing a closed context cleans up sources and permits a new run',async()=>{
-  const s=setup();await startCue(s);s.c.state='closed';const fresh=new FakeContext();s.m.attach(fresh,{});s.m.reset();tick(s.m,fresh,2,0,{scene:opening});await settle();assert.equal(s.m._sources.size,1);assert.equal(fresh.sources.length,1);
+
+for(const mission of MISSIONS)test(`${mission.name}: every district stays scored during a complete route`,async t=>{
+  const g=new Game({mission:mission.id}),s=setup();g.start();let audible=0,seconds=0,maxVoices=0;
+  for(const zone of g.level.zones){
+    Object.assign(g.state.player,{x:zone.x1+.5,z:zone.z1+.5});
+    const scene=musicScene(g),result=await playFor(s,45,scene);
+    audible+=result.audible;seconds+=45;g.state.time+=45;maxVoices=Math.max(maxVoices,result.maxVoices);
+    assert.ok(s.m._active,`music must return even when staying in ${scene.zone}`);
+  }
+  assert.ok(audible/seconds>.93,`route music coverage ${(audible/seconds*100).toFixed(1)}%`);assert.ok(maxVoices<=2);assert.ok(s.m._buffers.size<=2);
+  t.diagnostic(`${mission.id}: ${(audible/seconds*100).toFixed(1)}% scored; ${s.c.sources.length} phrases`);
 });
 
-test('Shadow opening keeps its full phrase and fades into a deliberate silent room',async()=>{
- const s=setup();s.c.decodeAudioData=async()=>({duration:42.94});
- const scene={mission:'beneath-the-shadow',zone:'descent',opening:'shadow-running',openingFade:1.4,missionTime:0};
- await startCue(s,scene);const source=s.c.sources[0];assert.equal(source.endAt-source.starts[0],42.94);
- assert.ok(s.c.gains[0].gain.actions.some(a=>a[0]==='ramp'&&a[1]===0&&a[2]===source.endAt));
- tick(s.m,s.c,.25,0,{scene:{...scene,zone:'gantry',silence:true}});assert.equal(s.m._active,null);assert.ok(Math.abs(source.endAt-s.c.currentTime-1.4)<.001);
+test('enabling music after a muted arrival starts the current region score',async()=>{
+  const s=setup({enabled:false});await playFor(s,3,opening);assert.equal(s.m._active,null);
+  s.m.configure({enabled:true});await playFor(s,2,foundry);assert.equal(s.m._active.kind,'score');assert.equal(s.m._active.id,'root-pressure');
 });
-test('Shadow bosses can take over a fading passage without overlapping or losing their slot before exposure',async()=>{
- const s=setup();const scene={mission:'beneath-the-shadow',zone:'lantern',missionTime:50,section:{key:'lantern',cue:'lanterns-below',delay:2,window:30,gap:18,fade:2}};
- await startCue(s,{...scene,section:{...scene.section,delay:1}});
- const boss={...scene,zone:'hydra',section:{key:'hydra',cue:'sever-the-echo',guardian:true,priority:true,delay:3,window:120,gap:15,fade:2}};
- tick(s.m,s.c,5,0,{scene:boss,guardian:false});assert.ok(!s.m.completed.has('beneath-the-shadow:hydra'));
- tick(s.m,s.c,3.5,2,{scene:boss,guardian:true});await settle();assert.equal(s.m._active.id,'sever-the-echo');assert.equal(s.c.sources.filter(x=>!x.ended).length,1);
- tick(s.m,s.c,120,2,{scene:boss,guardian:true});await settle();assert.equal(s.c.sources.length,2,'no boss loop or doorway repeat');
+test('replacing a closed context removes old voices and resumes the current score',async()=>{
+  const s=setup();await startCue(s);s.c.state='closed';const fresh=new FakeContext();s.m.attach(fresh,{});
+  await playFor({m:s.m,c:fresh},2,opening);assert.equal(s.m._sources.size,1);assert.equal(s.m._active.kind,'score');assert.equal(s.c.sources[0].onended,null);
 });

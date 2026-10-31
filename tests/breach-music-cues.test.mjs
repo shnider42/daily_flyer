@@ -15,28 +15,31 @@ test('all sixteen distinct cues ship valid MIDI headers and local rendered audio
   assert.equal(new Set(bodies).size,16);
 });
 
-test('every authored section names an actual mission zone and a shipped cue',()=>{
+test('every map and authored region has a fixed rotation of at least two shipped cues',()=>{
   const ids=new Set(MUSIC_CUES.map(c=>c.id));
   for(const mission of MISSIONS){
-    const game=new Game({mission:mission.id}),score=MISSION_SCORE[mission.id];
-    assert.ok(score);if(score.opening)assert.ok(ids.has(score.opening));
-    const zones=new Set(game.level.zones.map(z=>z.id || z.name));
-    for(const [zone,section] of Object.entries(score.sections)){assert.ok(zones.has(zone),zone);assert.ok(ids.has(section.cue));}
-    for(const zone of score.quiet)assert.ok(zones.has(zone),zone);
+    const game=new Game({mission:mission.id}),score=MISSION_SCORE[mission.id],zones=new Set(game.level.zones.map(z=>z.id||z.name));
+    assert.ok(ids.has(score.opening));
+    for(const profile of [score.rotation,...Object.values(score.sections),...Object.values(score.bosses)]){
+      assert.ok(profile.cues.length>=2);assert.equal(new Set(profile.cues).size,profile.cues.length);assert.ok(profile.cues.every(id=>ids.has(id)));
+    }
+    for(const zone of [...Object.keys(score.sections),...Object.keys(score.bosses),...Object.keys(score.quietBeats)])assert.ok(zones.has(zone),zone);
+    assert.ok(Object.keys(score.quietBeats).length<=2);assert.ok(Object.values(score.quietBeats).every(seconds=>seconds<=10));
+    // Includes corridors between named districts, not just hand-picked score triggers.
+    for(let z=0;z<game.level.height;z++)for(let x=0;x<game.level.width;x++)if(game.level.grid[z][x]!=='#'){
+      Object.assign(game.state.player,{x:x+.5,z:z+.5});const scene=musicScene(game);assert.ok(scene.rotation?.cues.length>=2);assert.notEqual(scene.silence,true);
+    }
   }
 });
-test('openings are fixed by mission, with three deliberately silent arrivals',()=>{
-  const opening=Object.fromEntries(MISSIONS.map(m=>[m.id,musicScene(new Game({mission:m.id})).opening]));
-  assert.deepEqual(opening,{'blacksite-07':'iron-wake','relay-09':null,'crosslink-11':'dry-contact','underworks-13':'spare-air','switchyard-15':'counterweight','glasshouse-17':null,'hollow-19':null,'beneath-the-shadow':'shadow-running'});
+test('every mission has an opening, while only Relay and Hollow arrivals have a brief hush',()=>{
+  for(const m of MISSIONS){const scene=musicScene(new Game({mission:m.id}));assert.ok(scene.opening);assert.equal(!!scene.quietBeat,['relay-09','hollow-19'].includes(m.id));}
 });
-test('return music requires the key and actual return sector; Glasshouse power earns its first theme',()=>{
-  for(const mission of ['underworks-13','switchyard-15','glasshouse-17','hollow-19']){
-    const game=new Game({mission});assert.notEqual(musicScene(game).section?.cue,'exit-load');
-    game.state.player.key=true;assert.equal(musicScene(game).section.cue,'exit-load');assert.equal(musicScene(game).section.danger,true);
+test('return routes are scored after the key even when no enemies remain',()=>{
+  for(const mission of MISSIONS){
+    const game=new Game({mission:mission.id}),score=MISSION_SCORE[mission.id],z=game.level.zones.find(z=>(z.id||z.name)===score.returnZone);
+    Object.assign(game.state.player,{x:z.x1+.5,z:z.z1+.5});assert.notEqual(musicScene(game).rotation.key,'return');
+    game.state.player.key=true;game.state.enemies=[];assert.equal(musicScene(game).rotation.cues[0],'exit-load');assert.equal(musicScene(game).quietBeat,null);
   }
-  const game=new Game({mission:'glasshouse-17'}),zone=game.level.zones.find(z=>z.id==='atrium');
-  Object.assign(game.state.player,{x:zone.x1+1,z:zone.z1+1});assert.equal(musicScene(game).section,null);
-  game.state.power=true;assert.equal(musicScene(game).section.cue,'root-pressure');
 });
 
 test('a crowd cannot hide a visible guardian from the exposure gate', () => {
@@ -46,10 +49,10 @@ test('a crowd cannot hide a visible guardian from the exposure gate', () => {
   assert.deepEqual(musicThreats(game),{pressure:3,guardian:true});
 });
 
-test('Shadow has fast arrival and boss cues, quiet traversal and cleared arenas',()=>{
+test('Shadow platforming and laboratories are scored; a cleared boss arena returns to the mission rotation',()=>{
  const g=new Game({mission:'beneath-the-shadow'});g.start();assert.equal(musicScene(g).opening,'shadow-running');
- const visit=id=>{const z=g.level.zones.find(z=>z.id===id);Object.assign(g.state.player,{x:z.x1+1,z:z.z1+1});return musicScene(g);};
- for(const id of ['null','gantry','chapel'])assert.equal(visit(id).silence,true);
- assert.equal(visit('lantern').section.cue,'lanterns-below');assert.equal(visit('hydra').section.cue,'sever-the-echo');
- for(const e of g.state.enemies.filter(e=>e.bossGroup==='hydra'))e.alive=false;assert.equal(visit('hydra').silence,true);
+ const visit=id=>{const z=g.level.zones.find(z=>z.id===id);Object.assign(g.state.player,{x:z.x1+.5,z:z.z1+.5});return musicScene(g);};
+ for(const id of ['null','gantry']){assert.ok(visit(id).rotation);assert.equal(visit(id).quietBeat,null);}
+ assert.equal(visit('chapel').quietBeat.seconds,10);assert.equal(visit('lantern').rotation.cues[0],'lanterns-below');assert.equal(visit('hydra').boss.cues[0],'sever-the-echo');
+ for(const e of g.state.enemies.filter(e=>e.bossGroup==='hydra'))e.alive=false;assert.equal(visit('hydra').boss,null);assert.ok(visit('hydra').rotation);
 });

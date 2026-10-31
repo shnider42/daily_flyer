@@ -26,7 +26,7 @@ for (const [index,cue] of MUSIC_CUES.entries()) {
   const duration = `${Math.floor(cue.seconds/60)}:${String(Math.round(cue.seconds%60)).padStart(2,'0')}`;
   body.append(el('span',`${cue.bpm ? cue.bpm + ' BPM' : 'FREE TIME'} / ${duration} / ${cue.kind === 'combat' ? 'PRESSURE' : 'DISCOVERY & BREATH'}`,'meta'),el('p',cue.sound));
   const placement = el('div',null,'placement');
-  for (const [label,description] of [['WHEN IT FITS',cue.use],['LEAVE IT QUIET',cue.avoid]]) {
+  for (const [label,description] of [['WHEN IT FITS',cue.use],['WHEN IT DOESN’T FIT',cue.avoid]]) {
     const p = el('p'); p.append(el('strong',label),document.createTextNode(description)); placement.append(p);
   }
   body.append(placement); row.append(body);

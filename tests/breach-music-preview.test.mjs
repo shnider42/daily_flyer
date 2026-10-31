@@ -44,7 +44,7 @@ test('muted tests never change preferences or create an audio context',()=>{
   const audio=new BreachAudio(false);let message='';audio.testMusic(m=>message=m);
   assert.equal(audio.context,null);assert.equal(audio.enabled,false);assert.match(message,/Turn on Sound/);
 });
-test('the silent opening prepares only one likely mission cue, with no autoplay',async()=>{
+test('opening preparation loads one likely cue and cannot autoplay without a usable context',async()=>{
   const audio=new BreachAudio(),game=new Game({mission:'blacksite-07'}),calls=[];
   audio.context={state:'running'};audio.music.prepare=async id=>calls.push(id);
   audio.setPlaying(true);

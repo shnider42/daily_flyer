@@ -91,13 +91,13 @@ test('Hollow containment shutter geometry conceals pressure until the real door 
   assert.equal(musicPressure(game), 1);
 });
 
-test('co-op rewind preserves played sections and suppresses replaying the opening',()=>{
+test('co-op rewind keeps rotation memory and resumes promptly without replaying the opening',()=>{
   const audio=new BreachAudio(),{game}=scene([enemy()]);audio.setPlaying(true);
-  audio.music.time=70;audio.music.completed.add('hollow-19:listening');audio.music.cooldownUntil=190;
+  audio.music.time=70;audio.music.completed.add('hollow-19:quiet:listening');audio.music.cursors.set('hollow-19:undertow',2);
   for(const time of [100,100,99.95,100.05]){game.state.time=time;audio.updateMusic(game,.05);}
   const before=audio.music.time;game.state.time=40;audio.updateMusic(game,.05);
-  assert.equal(audio.music.openingUsed,true);assert.ok(audio.music.completed.has('hollow-19:listening'));
-  assert.equal(audio.music.cooldownUntil,190);assert.equal(audio.music.suppressedUntil,before+8);
+  assert.equal(audio.music.openingUsed,true);assert.ok(audio.music.completed.has('hollow-19:quiet:listening'));
+  assert.equal(audio.music.cursors.get('hollow-19:undertow'),2);assert.equal(audio.music.suppressedUntil,before+.5);
   const suppression=audio.music.suppressedUntil;audio.updateMusic(game,.05);assert.equal(audio.music.suppressedUntil,suppression);
   assert.equal(audio.context,null);
 });

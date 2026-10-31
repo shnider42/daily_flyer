@@ -4,6 +4,25 @@ An original retro first-person game built on DailyFlyer, with eight solo mission
 and five operations available in private two-player co-op. Solo play runs in the
 browser; co-op uses an authoritative room server.
 
+## 0.9.2 — Music throughout the missions
+
+All eight maps now have recurring authored rotations, including unnamed corridors,
+backtracking, cleared rooms and extraction approaches. Ordinary region changes wait
+for the current phrase; 1.2-second crossfades connect tracks. Boss rotations begin
+after 1.5 seconds of local exposure, continue through cover, and end after defeat
+or leaving the arena. Music never signals an unseen teammate’s encounter.
+
+Six one-time quiet beats remain: Relay arrival (6 seconds), Underworks quarters (8),
+Glasshouse practice (6), Hollow dock (8) and listening gallery (10), Shadow chapel
+(10). Danger ends them early. Ordinary records, checkpoints, power and transit duck
+the music rather than stopping it. Live co-op maps keep their score. Settings,
+backgrounding, death and results still stop it. Continue, retries and old saves
+resume the current rotation without a fresh arrival cue. Menu alternation remains.
+
+Validation includes every traversable cell having a score and complete district
+routes with more than 93% music-source coverage in deterministic audio simulations,
+plus bounded decoding, stale-load cancellation and local/co-op threat tests.
+
 ## 0.9.1 — Menu rotation and weapon framing
 
 After an audio-unlocking tap, the menu continuously alternates Containment Pulse
