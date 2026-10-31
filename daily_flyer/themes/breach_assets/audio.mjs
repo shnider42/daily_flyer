@@ -1,20 +1,24 @@
 /** Original game audio: procedural effects and a lazy, same-origin music cue. */
 import { BreachMusic } from './music.mjs';
+import { musicScene } from './music-cues.mjs';
 
 // Local, active threats only: no music radar for enemies behind doors or walls,
 // neutral security, a far-away co-op encounter, or a downed listener.
-export function musicPressure(game) {
+export function musicPressure(game) { return musicThreats(game).pressure; }
+export function musicThreats(game) {
   const player = game?.state?.player;
-  if (!player || player.health <= 0 || player.alive === false) return 0;
-  let pressure = 0;
-  for (const enemy of game.state.enemies || []) {
+  if (!player || player.health <= 0 || player.alive === false) return {pressure:0, guardian:false};
+  let pressure = 0, guardian = false;
+  // Inspect visible guardians first so a crowd cannot hide their learning window.
+  for (const guardians of [true, false]) for (const enemy of game.state.enemies || []) {
+    if (!!enemy.guardian !== guardians) continue;
     if (!enemy.active || !game.isHostileToPlayer(enemy)
         || Math.hypot(enemy.x-player.x, enemy.z-player.z) > 10) continue;
     if (!game.hasLineOfSight(player.x, player.z, enemy.x, enemy.z)) continue;
-    pressure += enemy.guardian ? 3 : 1;
-    if (pressure >= 3) break;
+    pressure += enemy.guardian ? 3 : 1; guardian ||= !!enemy.guardian;
+    if (pressure >= 3) return {pressure, guardian};
   }
-  return pressure;
+  return {pressure, guardian};
 }
 
 export class BreachAudio {
@@ -22,7 +26,7 @@ export class BreachAudio {
     this.enabled = enabled; this.context = null; this.master = null; this.hum = null; this.playing = false;
     this.musicEnabled = musicEnabled;
     this.music = new BreachMusic({ enabled: enabled && musicEnabled, volume: musicVolume });
-    this.pressureTimer = 0; this.pressure = 0; this.lastMusicStateTime = null;
+    this.pressureTimer = 0; this.pressure = 0; this.guardian = false; this.lastMusicStateTime = null;
   }
   unlock() {
     if (!this.enabled) return;
@@ -45,7 +49,7 @@ export class BreachAudio {
   setEnabled(value) { this.enabled = !!value; this.music.configure({enabled:this.enabled && this.musicEnabled}); if (this.master && this.context) this.master.gain.setTargetAtTime(value ? .24 : 0, this.context.currentTime, .06); if (value) this.unlock(); }
   setMusic(enabled, volume) { this.musicEnabled = !!enabled; this.music.configure({enabled:this.enabled && this.musicEnabled, volume}); }
   setPlaying(value) { this.playing = !!value; this.music.setPlaying(this.playing); if (this.hum && this.context) this.hum.gain.setTargetAtTime(value && this.enabled ? .065 : 0, this.context.currentTime, .2); }
-  resetMusic() { this.pressureTimer = 0; this.pressure = 0; this.lastMusicStateTime = null; this.music.reset(); }
+  resetMusic() { this.pressureTimer = 0; this.pressure = 0; this.guardian = false; this.lastMusicStateTime = null; this.music.reset(); }
   updateMusic(game, dt, blocked = false) {
     try {
       // Co-op retries reuse the same view but rewind authoritative mission time.
@@ -57,8 +61,8 @@ export class BreachAudio {
       const player = game?.state?.player;
       const alive = !!player && player.health > 0 && player.alive !== false;
       this.pressureTimer -= dt;
-      if (this.pressureTimer <= 0) { this.pressure = blocked || !alive ? 0 : musicPressure(game); this.pressureTimer = .25; }
-      this.music.update({dt, pressure:this.pressure, alive, blocked});
+      if (this.pressureTimer <= 0) { const threat = blocked || !alive ? {pressure:0,guardian:false} : musicThreats(game); this.pressure = threat.pressure; this.guardian = threat.guardian; this.pressureTimer = .25; }
+      this.music.update({dt, pressure:this.pressure, guardian:this.guardian, scene:musicScene(game), alive, blocked});
     } catch (_) { /* Music failures must never interrupt a run. */ }
   }
   tone(frequency, duration = .12, volume = .3, end = frequency, type = 'sine', delay = 0) {

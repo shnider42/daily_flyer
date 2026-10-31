@@ -1,5 +1,10 @@
 # Breach soundtrack palette
 
+> Update: all twelve briefs are now composed and included in 0.8.2. See the
+> [implemented placement policy](breach-music-082.md), the in-game listening
+> room, and the [campaign proposal](breach-campaign.md). The text below records
+> the original composition brief and planned authoring order.
+
 Design plan: twelve additional original pieces, alongside **Containment Pulse**
 (104 BPM). These are composition briefs, not completed recordings or enabled
 game cues. The current release adds only Containment Pulse and its restrained

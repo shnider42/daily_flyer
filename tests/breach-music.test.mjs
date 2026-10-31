@@ -203,3 +203,66 @@ test('the single pass preserves the supplied cue release tail', async () => {
   assert.ok(Math.abs(s.c.sources[0].endAt - s.c.sources[0].starts[0] - 38.765) < 1e-8);
   assert.equal(s.c.sources[0].loop, false);
 });
+
+test('eligible combat pools avoid the previous two tracks when possible', async () => {
+  const s = setup(), scene = {pool:['iron-wake','dry-contact','containment-pulse']};
+  for (let index = 0; index < 3; index++) {
+    if (index) tick(s.m,s.c,170,0,{scene});
+    tick(s.m,s.c,index ? 2.5 : 20.5,2,{scene}); await settle();
+    assert.equal(s.c.sources.length,index+1);
+  }
+  assert.deepEqual(s.calls.map(c=>c.url.pathname.split('/').at(-1)),['iron-wake.mp3','dry-contact.mp3','containment-pulse.mp3']);
+  assert.equal(s.m._buffers.size,2,'at most two decoded cues are retained');
+});
+
+test('a guardian waits for twelve seconds of local exposure even late in a mission', async () => {
+  const s = setup(); tick(s.m,s.c,25,0);
+  tick(s.m,s.c,11.75,3,{guardian:true}); await settle(); assert.equal(s.calls.length,0);
+  tick(s.m,s.c,.25,3,{guardian:true}); await settle();
+  assert.match(s.calls[0].url.pathname,/weight-of-stone/);
+});
+
+test('Glasshouse holds pressure longer and the practice bay remains unscored', async () => {
+  const s = setup(); tick(s.m,s.c,25,0);
+  const scene = {pool:['glass-teeth'],hold:10};
+  tick(s.m,s.c,9.75,2,{scene}); await settle(); assert.equal(s.calls.length,0);
+  tick(s.m,s.c,.25,2,{scene}); await settle(); assert.match(s.calls[0].url.pathname,/glass-teeth/);
+  tick(s.m,s.c,.25,2,{scene:{...scene,silence:true}}); assert.equal(s.m._active,null);
+});
+
+const listening = {mission:'hollow-19',zone:'listening',ambient:'below-the-carrier'};
+test('a discovery waits twelve quiet seconds in its actual room, plays once, and leaves three minutes', async () => {
+  const s = setup(); tick(s.m,s.c,25,0);
+  tick(s.m,s.c,12,0,{scene:listening}); await settle(); assert.equal(s.calls.length,0);
+  tick(s.m,s.c,.25,0,{scene:listening}); await settle(); assert.match(s.calls[0].url.pathname,/below-the-carrier/);
+  tick(s.m,s.c,6,0,{scene:listening}); assert.notEqual(s.m._active,null,'ambient is not mistaken for expired combat');
+  tick(s.m,s.c,40,0,{scene:listening}); assert.ok(s.m.cooldownUntil > s.m.time + 160);
+  tick(s.m,s.c,200,0); tick(s.m,s.c,30,0,{scene:listening}); await settle(); assert.equal(s.calls.length,1,'crossing a doorway cannot replay the moment');
+});
+
+for (const reason of ['combat','blocked','leave','mute','cooldown']) {
+  test(`a ${reason} discovery opportunity is consumed instead of backfilled`, async () => {
+    const s=setup(); tick(s.m,s.c,25,0);
+    if(reason==='cooldown') s.m.cooldownUntil=s.m.time+5;
+    tick(s.m,s.c,.25,reason==='combat'?1:0,{scene:listening,blocked:reason==='blocked'});
+    if(reason==='leave') tick(s.m,s.c,.25,0);
+    if(reason==='mute') {s.m.configure({enabled:false});s.m.configure({enabled:true});}
+    tick(s.m,s.c,30,0,{scene:listening}); await settle(); assert.equal(s.calls.length,0);
+  });
+}
+
+test('a late ambient decode cannot revive after leaving its room or encountering one hostile', async () => {
+  for(const leave of [true,false]) {
+    const s=setup(), decoding=deferred();s.c.decodePromise=decoding.promise;
+    tick(s.m,s.c,25,0);tick(s.m,s.c,12.25,0,{scene:listening});await settle();assert.equal(s.c.decodes,1);
+    tick(s.m,s.c,.25,leave?0:1,{scene:leave?{}:listening});decoding.resolve({duration:21.8});await settle();
+    assert.equal(s.c.sources.length,0);
+  }
+});
+
+test('relief needs prior local pressure and the second Hollow beat needs the first space visited', async () => {
+  const s=setup();tick(s.m,s.c,30,0,{scene:{mission:'underworks-13',zone:'hub',ambient:'spare-air'}});await settle();assert.equal(s.calls.length,0);
+  tick(s.m,s.c,30,0,{scene:{mission:'hollow-19',zone:'archive',ambient:'the-room-replies'}});await settle();assert.equal(s.calls.length,0);
+  s.m.configure({enabled:false});tick(s.m,s.c,3,2);s.m.configure({enabled:true});
+  tick(s.m,s.c,12.25,0,{scene:{mission:'underworks-13',zone:'hub',ambient:'spare-air'}});await settle();assert.match(s.calls[0].url.pathname,/spare-air/);
+});

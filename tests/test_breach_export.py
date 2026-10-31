@@ -69,7 +69,7 @@ class BreachExportTests(unittest.TestCase):
             manifest = json.loads((target / "build-manifest.json").read_text())
             self.assertEqual(manifest["theme"], "breach")
             self.assertIn("core.mjs", manifest["files"])
-            for asset in ["music.mjs", "music/containment-pulse.mp3", "music/containment-pulse.mid"]:
+            for asset in ["music.mjs", "music-cues.mjs", "soundtrack.html", "soundtrack.mjs", "soundtrack.css", "music/containment-pulse.mp3", "music/containment-pulse.mid", "music/the-room-replies.mp3", "music/the-room-replies.mid"]:
                 self.assertIn(asset, manifest["files"])
                 self.assertGreater((target / asset).stat().st_size, 0)
 

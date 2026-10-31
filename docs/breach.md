@@ -4,6 +4,14 @@ An original retro first-person game built on DailyFlyer, with seven solo mission
 and four operations available in private two-player co-op. Solo play runs in the
 browser; co-op uses an authoritative room server.
 
+## 0.8.2 — Thirteen Signals
+
+Twelve further original MIDI cues, restrained mission/zone placement and a
+listening room expand the score. Settings links to all thirteen auditions and
+a seven-chapter campaign concept. See [soundtrack behavior](breach-music-082.md)
+and the [campaign proposal](breach-campaign.md). The proposal does not yet add
+a persistent campaign mode or an ending choice.
+
 ## 0.8.1 — Occasional music
 
 An original MIDI composition, Containment Pulse, now appears as a single-pass

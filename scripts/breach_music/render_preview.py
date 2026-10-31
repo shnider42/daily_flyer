@@ -67,6 +67,16 @@ def guitar(pitch, duration, velocity, muted):
     return p * .36 * (velocity / 127) ** .7
 
 
+def clean_guitar(pitch, duration, velocity):
+    dur = max(.1, duration + .3)
+    t = np.arange(int(dur * SR)) / SR
+    f = 440 * 2 ** ((pitch - 69) / 12)
+    p = osc_harmonics(t, f, 1.65, 14, decay=.8)
+    p = filt(p, 'lowpass', 4800, 2)
+    p *= np.exp(-t / 1.15) * release_envelope(len(t), dur, .003, .25)
+    return p * .48 * (velocity / 127)
+
+
 def bass(pitch, duration, velocity):
     dur = max(.05, duration + .055)
     t = np.arange(int(dur * SR)) / SR
@@ -187,6 +197,9 @@ def main():
             elif ins in ['guitar_muted', 'guitar_open']:
                 wave = guitar(pitch, duration, velocity, ins == 'guitar_muted')
                 lp, rp = left, right
+            elif ins == 'clean':
+                wave = clean_guitar(pitch, duration, velocity)
+                lp, rp = left, right
             elif ins == 'bass':
                 wave = bass(pitch, duration, velocity)
                 lp, rp = left, right
@@ -218,7 +231,7 @@ def main():
     mix = np.tanh(mix * .78)
     peak = float(np.max(np.abs(mix)))
     target = 10 ** (-1.0 / 20)
-    mix *= target / max(peak, 1e-8)
+    mix *= target / max(peak, 1e-8) * float(score.get("preview_gain", 1.0))
     # Only final release tail fades: the written loop attack stays clean.
     fade_n = min(int(.15 * SR), len(mix))
     mix[-fade_n:] *= np.linspace(1, 0, fade_n)[:,None]
@@ -228,7 +241,7 @@ def main():
     wav_path = stem.with_suffix('.wav')
     mp3_path = stem.with_suffix('.mp3')
     wavfile.write(wav_path, SR, pcm)
-    subprocess.run(['ffmpeg','-hide_banner','-loglevel','error','-y','-i',str(wav_path),'-codec:a','libmp3lame','-b:a','192k','-metadata','title=Containment Pulse — Breach original sketch','-metadata','artist=Breach procedural music sketch',str(mp3_path)], check=True)
+    subprocess.run(['ffmpeg','-hide_banner','-loglevel','error','-y','-i',str(wav_path),'-codec:a','libmp3lame','-b:a','192k','-metadata','title=' + score.get('title', 'Breach original cue'),'-metadata','artist=Breach procedural music sketch',str(mp3_path)], check=True)
     stats = {
         'sample_rate': SR, 'channels': 2, 'loop_seconds': round(loop_s, 4),
         'preview_seconds': round(length / SR, 4), 'peak_dbfs': round(20 * math.log10(np.max(np.abs(mix)) + 1e-12), 3),
