@@ -1,0 +1,24 @@
+name: BREACH development bundle
+on:
+  push:
+    branches: [qa/breach-containment-08]
+    paths: ['.github/workflows/breach-development-bundle.yml']
+permissions:
+  contents: read
+jobs:
+  bundle:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@v4
+        with:
+          node-version: '22'
+      - run: npm ci --ignore-scripts
+      - run: tar -czf /tmp/breach-source.tgz daily_flyer scripts server tests docs package.json package-lock.json node_modules .github
+      - uses: actions/upload-artifact@v4
+        with:
+          name: breach-development-source
+          path: /tmp/breach-source.tgz
+          retention-days: 1
