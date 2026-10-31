@@ -167,6 +167,12 @@ test('failed menu loads retry with a bounded interval and recover when connectiv
   assert.equal(calls,1);assert.equal(s.m.menuError,true);
   online=true;s.c.advance(6);s.m.updateMenu();await settle();assert.equal(s.m._active.id,'containment-pulse');assert.equal(s.m.menuError,false);
 });
+test('an iPhone resume gesture restarts an interrupted menu without turning the playlist off',async()=>{
+  const s=setup();s.m.setPlaying(false);s.m.setMenu(true);s.m.activateMenu();s.m.updateMenu();await settle();
+  s.m.updateMenu({blocked:true});s.c.advance(1);s.c.state='interrupted';s.m.updateMenu();await settle();assert.equal(s.m._active,null);
+  s.c.state='running';s.m.toggleMenu({resume:true});s.m.updateMenu();await settle();assert.equal(s.m.menuMuted,false);assert.equal(s.m._active.id,'lanterns-below');
+  s.m.toggleMenu();assert.equal(s.m.menuMuted,true,'a normal second tap still stops music');
+});
 test('menu stop, backgrounding, and starting a level cancel stale menu loading',async()=>{
   for(const action of ['stop','background','start']){
     const s=setup(),d=deferred();s.c.decodePromise=d.promise;s.m.setPlaying(false);s.m.setMenu(true);s.m.activateMenu();s.m.updateMenu();await settle();

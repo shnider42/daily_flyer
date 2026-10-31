@@ -46,9 +46,9 @@ export class BreachMusic {
     if(next){this.menuIndex=0;this.menuError=false;this._menuRetryAt=0;}
   }
   activateMenu() {this.menuActivated=true;}
-  toggleMenu() {
+  toggleMenu({resume=false}={}) {
     if(!this.enabled || !this.volume)return;
-    if(this.menuActivated && !this.menuMuted && !this.menuError) {this.menuMuted=true;this._interrupt();}
+    if(!resume && this.menuActivated && !this.menuMuted && !this.menuError) {this.menuMuted=true;this._interrupt();}
     else {this.menuMuted=false;this.menuError=false;this._menuRetryAt=0;}
     this.menuActivated=true;
   }

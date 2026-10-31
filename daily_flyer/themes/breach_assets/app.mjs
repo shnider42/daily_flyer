@@ -988,17 +988,20 @@ function frame(now) {
 }
 
 function updateMusicUi() {
-  const music=audio.music,active=music.menuActivated&&!music.menuMuted&&!music.menuError;
+  const music=audio.music,active=music.enabled&&music.volume>0&&music.context?.state==='running'&&music.menuActivated&&!music.menuMuted&&!music.menuError;
   const current=music._active?.kind==='menu'?music._active:music._pending?.kind==='menu'?music._pending:null;
   const label=active?'STOP MENU MUSIC':'PLAY MENU MUSIC';
   if($('menu-music').textContent!==label)$('menu-music').textContent=label;
   const status=!settings.sound || !settings.music || !settings.musicVolume?'Music is off in Settings.':
     music.menuMuted?'Menu music stopped. Tap to play again.':music.menuError?'Music could not load. Retrying shortly; tap to retry now.':
     current?`${CUES_BY_ID.get(current.id)?.title} · alternating menu themes`:
-    active?'Two menu themes alternate continuously.':'Tap to hear two alternating menu themes. Mission music follows each level’s pacing.';
+    active?'Two menu themes alternate continuously.':music.menuActivated?'Tap to resume menu music.':'Tap to hear two alternating menu themes. Mission music follows each level’s pacing.';
   if($('menu-music-status').textContent!==status)$('menu-music-status').textContent=status;
 }
-$('menu-music').addEventListener('click',()=>{audio.unlock();audio.music.toggleMenu();updateMusicUi();});
+$('menu-music').addEventListener('click',()=>{const resume=audio.context?.state!=='running';audio.unlock();audio.music.toggleMenu({resume});updateMusicUi();});
+function resumeMenuAudio(){
+  if(mode==='menu'&&!document.hidden&&audio.music.menuActivated&&!audio.music.menuMuted&&audio.music.enabled&&audio.music.volume&&audio.context&&audio.context.state!=='running')audio.unlock();
+}
 // Browser audio is unlocked by a real menu interaction, never by page load.
 document.addEventListener('click',event=>{
   if(mode==='menu' && !document.hidden && event.target.closest('button') && !event.target.closest('#menu-music')) {
@@ -1115,10 +1118,11 @@ window.addEventListener('keydown',event=>{
   else if(['menu','paused'].includes(mode)&&event.code==='KeyF'&&!event.repeat){event.preventDefault();toggleFullscreen();}
 });
 window.addEventListener('keyup',event=>keys.delete(event.code));
+window.addEventListener('focus',resumeMenuAudio);
 window.addEventListener('blur',()=>{audio.stopMusicTest();audio.music.updateMenu({blocked:true});if(mode==='playing'&&performance.now()>fullscreenTransitionUntil)pauseGame('background');else{if(performance.now()>fullscreenTransitionUntil)suspendRoomReadiness('background');clearInputs();}});
 document.addEventListener('visibilitychange',()=>{
   if(document.hidden){audio.stopMusicTest();audio.music.updateMenu({blocked:true});if(mode==='playing')pauseGame('background');else suspendRoomReadiness('background');coop?.setPageVisible(false);saveRun();clearInputs();}
-  else coop?.setPageVisible(true);
+  else {coop?.setPageVisible(true);resumeMenuAudio();}
 });
 window.addEventListener('pagehide',()=>{
   if(coop){if(mode==='playing')pauseGame('background');else suspendRoomReadiness('background');coop.suspend();}
@@ -1126,7 +1130,7 @@ window.addEventListener('pagehide',()=>{
   saveRun();audio.setPlaying(false);audio.music.setMenu(false);clearInputs();
 });
 window.addEventListener('pageshow',event=>{
-  if(mode==='menu')audio.music.setMenu(true);
+  if(mode==='menu'){audio.music.setMenu(true);resumeMenuAudio();}
   if(coop){if(event.persisted&&coop.view)setMode('paused');coop.setPageVisible(!document.hidden);}
   else if(event.persisted&&game?.state.status==='paused')setMode('paused');
 });
