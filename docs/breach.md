@@ -1,8 +1,21 @@
 # BREACH — DailyFlyer Arcade
 
-An original retro first-person game built on DailyFlyer, with six solo missions
-and three operations available in private two-player co-op. Solo play runs in the
+An original retro first-person game built on DailyFlyer, with seven solo missions
+and four operations available in private two-player co-op. Solo play runs in the
 browser; co-op uses an authoritative room server.
+
+## 0.8.1 — Occasional music
+
+An original MIDI composition, Containment Pulse, now appears as a single-pass
+cue during sustained nearby combat, with long quiet intervals and its own
+toggle/volume. It yields to enemy warnings, tapes, maps, and regrouping. See
+[music placement and playback](breach-music-081.md).
+
+## 0.8.0 — The Hollow
+
+The seventh mission is a larger solo/co-op listening-facility expedition with
+reversible containment routing, optional tapes, Echo stalkers, and the Choir
+Keeper. See [the Hollow update](breach-hollow-08.md).
 
 ## 0.7.0 — The Glasshouse
 

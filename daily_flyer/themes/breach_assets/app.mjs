@@ -33,6 +33,8 @@ const settings = {
   guidance: choices(prior.guidance, ['simple','moderate','expert'], 'simple'),
   difficulty: choices(prior.difficulty, ['relaxed','standard','hard'], 'standard'),
   sound: typeof prior.sound === 'boolean' ? prior.sound : true,
+  music: typeof prior.music === 'boolean' ? prior.music : true,
+  musicVolume: Number.isFinite(prior.musicVolume) ? Math.min(1,Math.max(0,prior.musicVolume)) : .45,
   aimAssist: typeof prior.aimAssist === 'boolean' ? prior.aimAssist : touch,
   autoFire: !!prior.autoFire,
   reducedMotion: typeof prior.reducedMotion === 'boolean' ? prior.reducedMotion : matchMedia('(prefers-reduced-motion: reduce)').matches,
@@ -45,7 +47,7 @@ const coopConfigured=typeof config.coopServer==='string'&&!!config.coopServer.tr
 let requestedRoom=(new URL(location.href).searchParams.get('room')||'').trim().toUpperCase().slice(0,8);
 let coop=null,coopConnection='idle';
 const seed = Number.isFinite(Number(config.seed)) ? Number(config.seed) : 1;
-const audio = new BreachAudio(settings.sound);
+const audio = new BreachAudio(settings.sound,{musicEnabled:settings.music,musicVolume:settings.musicVolume});
 const keys = new Set();
 const input = {forward:0,strafe:0,turn:0,fire:false};
 const fireGestures = new TouchFireGestures({mode:settings.fireGesture});
@@ -191,6 +193,7 @@ function saveSettings() {
   applyControlMode();
   if(coop)coop.aimAssist=settings.aimAssist;
   audio.setEnabled(settings.sound);
+  audio.setMusic(settings.music,settings.musicVolume);
 }
 function updateChoices() {
   document.querySelectorAll('[data-guidance]').forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.guidance === settings.guidance)));
@@ -220,6 +223,10 @@ function updateSettingsFields() {
   $('setting-fov').value = settings.fov === null ? 'auto' : String(settings.fov);
   $('setting-quality').value = settings.quality;
   $('setting-sound').checked = settings.sound;
+  $('setting-music').checked = settings.music;
+  $('setting-music-volume').value = Math.round(settings.musicVolume*100);
+  $('music-volume-value').textContent = `${Math.round(settings.musicVolume*100)}%`;
+  $('setting-music-volume').disabled = !settings.music || !settings.sound;
   $('setting-aim').checked = settings.aimAssist;
   $('setting-auto').checked = settings.autoFire;
   $('setting-motion').checked = settings.reducedMotion;
@@ -290,6 +297,7 @@ function saveRun() {
 }
 function resetExploration() { explored=new Set();mapDirty=true;pathHint=null;pathTimer=0;mapCenter=null;mapFollow=true;mapView='local';mapZoom=1;mapSelected=null;mapIndexSignature='';mapKnownMarkers=[];mapKnownSectors=[];$('map-selection').textContent='Select a landmark to inspect its location and access.';mapFloorTotal=game?.level.grid.reduce((sum,row)=>sum+[...row].filter(cell=>cell!=='#').length,0)||0; }
 function mountGame(candidate) {
+  audio.resetMusic();
   renderer?.dispose();game=candidate;
   renderer = new BreachRenderer($('world'),game,{quality:settings.quality,fov:settings.fov,reducedMotion:settings.reducedMotion});
   resetExploration(); helpRevealed=0;updateTutorial.identity=null;touchLookHelpShown=false;encounterNotices.clear();
@@ -344,6 +352,7 @@ function retryCheckpoint() {
   if(coop){if(roomOwner())coop.restart(true);return;}
   if(!game || !ready) return;
   if(!game.restartCheckpoint()) return restartCurrent();
+  audio.resetMusic();
   mapVisible = false; updateMapVisibility(); audio.unlock(); setMode('playing');
   pathHint = null; pathTimer = 0; lastFrame = performance.now(); saveRun(); updateHud(); requestMouse();
 }
@@ -940,6 +949,7 @@ function frame(now) {
       if(now-lastSave>10000){saveRun();lastSave=now;}
     }
     if(coop&&mode!=='playing')coop.drive(dt,{forward:0,strafe:0,turn:0,fire:false});
+    audio.updateMusic(game,dt,mode!=='playing'||document.hidden||mapVisible||!!document.querySelector('dialog[open]'));
     if(now-lastHud>90){updateHud();lastHud=now;if(mapVisible&&mapDirty)drawMap();}
     if(now>toastTimer)$('toast').hidden=true;
     $('damage-flash').classList.toggle('active',now<damageUntil&&mode==='playing');
@@ -1006,7 +1016,7 @@ for(const event of ['pointercancel','lostpointercapture'])$('minimap').addEventL
 $('dismiss-tutorial').addEventListener('click',()=>{settings.tutorial=false;saveSettings();$('tutorial').hidden=true;showToast('Tutorial hidden. You can turn it on again in Settings.');});
 for(const button of document.querySelectorAll('[data-guidance]'))button.addEventListener('click',()=>changeGuidance(button.dataset.guidance));
 for(const button of document.querySelectorAll('[data-difficulty]'))button.addEventListener('click',()=>{settings.difficulty=button.dataset.difficulty;updateChoices();saveSettings();});
-for(const [id,property]of [['setting-sound','sound'],['setting-aim','aimAssist'],['setting-auto','autoFire'],['setting-motion','reducedMotion']])$(id).addEventListener('change',event=>{settings[property]=event.target.checked;saveSettings();});
+for(const [id,property]of [['setting-sound','sound'],['setting-music','music'],['setting-aim','aimAssist'],['setting-auto','autoFire'],['setting-motion','reducedMotion']])$(id).addEventListener('change',event=>{settings[property]=event.target.checked;saveSettings();updateSettingsFields();});
 $('setting-fov').addEventListener('change',event=>{settings.fov=event.target.value==='auto'?null:Number(event.target.value);saveSettings();});
 $('setting-quality').addEventListener('change',event=>{settings.quality=event.target.value;saveSettings();});
 $('setting-controls').addEventListener('change',event=>{settings.controls=event.target.value;saveSettings();updateSettingsFields();});
@@ -1017,6 +1027,7 @@ const controlMediaChanged = () => { if(settings.controls === 'auto') applyContro
 if(touchMedia.addEventListener) touchMedia.addEventListener('change',controlMediaChanged);
 else if(touchMedia.addListener) touchMedia.addListener(controlMediaChanged);
 $('setting-sensitivity').addEventListener('input',event=>{settings.sensitivity=Number(event.target.value);updateSettingsFields();saveSettings();});
+$('setting-music-volume').addEventListener('input',event=>{settings.musicVolume=Math.min(1,Math.max(0,Number(event.target.value)/100));updateSettingsFields();saveSettings();});
 // Give explicitly dismissed training a way back without resetting other preferences.
 const trainingRow=document.createElement('label');trainingRow.className='setting-row';trainingRow.innerHTML='<span><b>Show tutorial</b><small>Step-by-step prompts when Simple guidance is selected</small></span><input id="setting-tutorial" type="checkbox">';
 $('setting-motion').closest('.setting-row').after(trainingRow);

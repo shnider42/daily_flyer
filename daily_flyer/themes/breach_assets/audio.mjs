@@ -1,6 +1,29 @@
-/** Original procedural audio. No downloaded recordings or background network calls. */
+/** Original game audio: procedural effects and a lazy, same-origin music cue. */
+import { BreachMusic } from './music.mjs';
+
+// Local, active threats only: no music radar for enemies behind doors or walls,
+// neutral security, a far-away co-op encounter, or a downed listener.
+export function musicPressure(game) {
+  const player = game?.state?.player;
+  if (!player || player.health <= 0 || player.alive === false) return 0;
+  let pressure = 0;
+  for (const enemy of game.state.enemies || []) {
+    if (!enemy.active || !game.isHostileToPlayer(enemy)
+        || Math.hypot(enemy.x-player.x, enemy.z-player.z) > 10) continue;
+    if (!game.hasLineOfSight(player.x, player.z, enemy.x, enemy.z)) continue;
+    pressure += enemy.guardian ? 3 : 1;
+    if (pressure >= 3) break;
+  }
+  return pressure;
+}
+
 export class BreachAudio {
-  constructor(enabled = true) { this.enabled = enabled; this.context = null; this.master = null; this.hum = null; this.playing = false; }
+  constructor(enabled = true, { musicEnabled = true, musicVolume = .45 } = {}) {
+    this.enabled = enabled; this.context = null; this.master = null; this.hum = null; this.playing = false;
+    this.musicEnabled = musicEnabled;
+    this.music = new BreachMusic({ enabled: enabled && musicEnabled, volume: musicVolume });
+    this.pressureTimer = 0; this.pressure = 0; this.lastMusicStateTime = null;
+  }
   unlock() {
     if (!this.enabled) return;
     try {
@@ -9,6 +32,7 @@ export class BreachAudio {
         if (!AudioContext) return;
         this.context = new AudioContext();
         this.master = this.context.createGain(); this.master.gain.value = .24; this.master.connect(this.context.destination);
+        this.music.attach(this.context, this.master);
         this.hum = this.context.createGain(); this.hum.gain.value = 0; this.hum.connect(this.master);
         const low = this.context.createOscillator(); low.type = 'sine'; low.frequency.value = 44; low.connect(this.hum); low.start();
         const upper = this.context.createOscillator(); upper.type = 'triangle'; upper.frequency.value = 66.2;
@@ -18,8 +42,25 @@ export class BreachAudio {
       this.setPlaying(this.playing);
     } catch (_) { /* Audio is optional. Gameplay must remain available. */ }
   }
-  setEnabled(value) { this.enabled = !!value; if (this.master && this.context) this.master.gain.setTargetAtTime(value ? .24 : 0, this.context.currentTime, .06); if (value) this.unlock(); }
-  setPlaying(value) { this.playing = value; if (this.hum && this.context) this.hum.gain.setTargetAtTime(value && this.enabled ? .065 : 0, this.context.currentTime, .2); }
+  setEnabled(value) { this.enabled = !!value; this.music.configure({enabled:this.enabled && this.musicEnabled}); if (this.master && this.context) this.master.gain.setTargetAtTime(value ? .24 : 0, this.context.currentTime, .06); if (value) this.unlock(); }
+  setMusic(enabled, volume) { this.musicEnabled = !!enabled; this.music.configure({enabled:this.enabled && this.musicEnabled, volume}); }
+  setPlaying(value) { this.playing = !!value; this.music.setPlaying(this.playing); if (this.hum && this.context) this.hum.gain.setTargetAtTime(value && this.enabled ? .065 : 0, this.context.currentTime, .2); }
+  resetMusic() { this.pressureTimer = 0; this.pressure = 0; this.lastMusicStateTime = null; this.music.reset(); }
+  updateMusic(game, dt, blocked = false) {
+    try {
+      // Co-op retries reuse the same view but rewind authoritative mission time.
+      const time = game?.state?.time;
+      if (Number.isFinite(time)) {
+        if (this.lastMusicStateTime !== null && time < this.lastMusicStateTime - .1) this.resetMusic();
+        this.lastMusicStateTime = time;
+      }
+      const player = game?.state?.player;
+      const alive = !!player && player.health > 0 && player.alive !== false;
+      this.pressureTimer -= dt;
+      if (this.pressureTimer <= 0) { this.pressure = blocked || !alive ? 0 : musicPressure(game); this.pressureTimer = .25; }
+      this.music.update({dt, pressure:this.pressure, alive, blocked});
+    } catch (_) { /* Music failures must never interrupt a run. */ }
+  }
   tone(frequency, duration = .12, volume = .3, end = frequency, type = 'sine', delay = 0) {
     if (!this.enabled || !this.context || this.context.state !== 'running') return;
     const c = this.context, at = c.currentTime + delay, osc = c.createOscillator(), gain = c.createGain();
@@ -39,6 +80,7 @@ export class BreachAudio {
     source.onended = () => { source.disconnect(); filter.disconnect(); gain.disconnect(); };
   }
   events(events, listener = null) {
+    this.music.events(events, listener);
     for(const event of events) {
       const encounter = ['containment-routed','enemy-warning','enemy-shot','teleport','provoked','boss-phase','shutter','ricochet','explosion','shield-hit','shield-open','heal','heal-interrupt'].includes(event.type);
       const distance = listener && Number.isFinite(event.x) && Number.isFinite(event.z) ? Math.hypot(event.x-listener.x,event.z-listener.z) : 0;

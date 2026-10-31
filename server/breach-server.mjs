@@ -6,7 +6,7 @@ import { WebSocketServer, WebSocket } from 'ws';
 import { BreachRooms, PROTOCOL } from './breach-rooms.mjs';
 
 const ROOT = fileURLToPath(new URL('../', import.meta.url));
-const TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.mjs': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.json': 'application/json', '.svg': 'image/svg+xml', '.png': 'image/png', '.ico': 'image/x-icon', '.txt': 'text/plain; charset=utf-8' };
+const TYPES = { '.html': 'text/html; charset=utf-8', '.js': 'text/javascript; charset=utf-8', '.mjs': 'text/javascript; charset=utf-8', '.css': 'text/css; charset=utf-8', '.json': 'application/json', '.svg': 'image/svg+xml', '.png': 'image/png', '.ico': 'image/x-icon', '.txt': 'text/plain; charset=utf-8', '.mp3': 'audio/mpeg', '.mid': 'audio/midi' };
 
 export function createBreachServer(options = {}) {
   const directory = resolve(options.directory || resolve(ROOT, 'dist_breach'));
@@ -23,7 +23,7 @@ export function createBreachServer(options = {}) {
     if (pathname === '/health' || pathname === '/api/health') {
       const healthy = !stopping && !rooms.shuttingDown;
       response.writeHead(healthy ? 200 : 503, { 'Content-Type': TYPES['.json'], 'Cache-Control': 'no-store' });
-      return response.end(request.method === 'HEAD' ? '' : JSON.stringify({ ok: healthy, service: 'breach-rooms', version: '0.8.0', protocol: PROTOCOL, activeRooms: rooms.rooms.size, maxRooms: rooms.maxRooms }));
+      return response.end(request.method === 'HEAD' ? '' : JSON.stringify({ ok: healthy, service: 'breach-rooms', version: '0.8.1', protocol: PROTOCOL, activeRooms: rooms.rooms.size, maxRooms: rooms.maxRooms }));
     }
     if (pathname === '/') pathname = '/index.html';
     const path = resolve(directory, '.' + pathname);
@@ -111,6 +111,6 @@ if (process.argv[1] && pathToFileURL(resolve(process.argv[1])).href === import.m
   const argumentPort = process.argv.indexOf('--port');
   const port = Number(process.env.PORT || (argumentPort >= 0 ? process.argv[argumentPort + 1] : 4173));
   const app = createBreachServer();
-  app.server.listen(port, '0.0.0.0', () => console.log(`BREACH rooms 0.8.0 listening on ${port}`));
+  app.server.listen(port, '0.0.0.0', () => console.log(`BREACH rooms 0.8.1 listening on ${port}`));
   for (const signal of ['SIGTERM', 'SIGINT']) process.once(signal, () => app.close().then(() => process.exit(0)));
 }

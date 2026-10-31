@@ -69,6 +69,9 @@ class BreachExportTests(unittest.TestCase):
             manifest = json.loads((target / "build-manifest.json").read_text())
             self.assertEqual(manifest["theme"], "breach")
             self.assertIn("core.mjs", manifest["files"])
+            for asset in ["music.mjs", "music/containment-pulse.mp3", "music/containment-pulse.mid"]:
+                self.assertIn(asset, manifest["files"])
+                self.assertGreater((target / asset).stat().st_size, 0)
 
     def test_regular_dfe_pages_still_render_cards(self):
         context = PageContext(
