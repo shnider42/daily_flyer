@@ -1,0 +1,292 @@
+{
+  "date": "2026-10-11",
+  "source_date": "2026-10-09",
+  "scope": "Community Feedback #7; cross-check against Patch 1.6; current source destination audit",
+  "source_url": "https://www.hellletloose.com/blog/community-update-7",
+  "source_reviewed_via": "https://steamcommunity.com/app/3079210/allnews/",
+  "updated_issues": [
+    "HLLV-003",
+    "HLLV-006",
+    "HLLV-007",
+    "HLLV-008",
+    "HLLV-046",
+    "HLLV-057",
+    "HLLV-060",
+    "HLLV-062",
+    "HLLV-063",
+    "HLLV-067"
+  ],
+  "new_issues": [],
+  "independent_gameplay_testing": false,
+  "limitations": [
+    "No independent gameplay testing.",
+    "Six recent player-thread bodies were unavailable in the research reader; earlier observations retain their original dates.",
+    "Only the newly relevant developer update and release-scope cross-check were substantively reviewed; successful URL checks do not renew old claims.",
+    "DLSS and deployable context is recorded without assuming that similar symptoms share a cause.",
+    "No change to Suggestion Box submissions, approvals, votes, roles, accounts or login configuration."
+  ],
+  "latest_verified_release": {
+    "title": "Patch 1.6",
+    "date": "2026-10-07"
+  },
+  "page_updated_at": "2026-10-11T18:11:37Z",
+  "base_commit": "3e986f5e1417f90a015e9ba0f01a40ae4bb99244",
+  "issue_count": 75,
+  "source_references": 167,
+  "distinct_issue_source_urls": 35,
+  "released_patch_summaries": 8,
+  "developer_briefs": 1,
+  "source_checks": {
+    "https://steamcommunity.com/app/3079210/allnews/": {
+      "checked_at": "2026-10-11",
+      "http_status": 200,
+      "final_url": "https://steamcommunity.com/app/3079210/allnews/",
+      "title": "Steam Community :: Hell Let Loose: Vietnam",
+      "scope": "Destination accessibility only, not claim or outcome verification"
+    },
+    "https://steamcommunity.com/app/3079210/discussions/1/562542339336314254/": {
+      "checked_at": "2026-10-11",
+      "http_status": 200,
+      "final_url": "https://steamcommunity.com/app/3079210/discussions/1/562542339336314254/",
+      "title": "VOIP Volume Sliders :: Hell Let Loose: Vietnam Report a Problem",
+      "scope": "Destination accessibility only, not claim or outcome verification"
+    },
+    "https://steamcommunity.com/app/3079210/discussions/1/583932755647170244/": {
+      "checked_at": "2026-10-11",
+      "http_status": 200,
+      "final_url": "https://steamcommunity.com/app/3079210/discussions/1/583932755647170244/",
+      "title": "\"Ghost boats\" appearing that cant be spawned into or killed :: Hell Let Loose: Vietnam Report a Problem",
+      "scope": "Destination accessibility only, not claim or outcome verification"
+    },
+    "https://steamcommunity.com/app/3079210/discussions/1/583932755647178248/": {
+      "checked_at": "2026-10-11",
+      "http_status": 200,
+      "final_url": "https://steamcommunity.com/app/3079210/discussions/1/583932755647178248/",
+      "title": "tutorial bugs :: Hell Let Loose: Vietnam Report a Problem",
+      "scope": "Destination accessibility only, not claim or outcome verification"
+    },
+    "https://steamcommunity.com/app/3079210/discussions/1/583932755647220221/": {
+      "checked_at": "2026-10-11",
+      "http_status": 200,
+      "final_url": "https://steamcommunity.com/app/3079210/discussions/1/583932755647220221/",
+      "title": "Issue with Keyboard inputs on Helicopters :: Hell Let Loose: Vietnam Report a Problem",
+      "scope": "Destination accessibility only, not claim or outcome verification"
+    },
+    "https://steamcommunity.com/app/3079210/discussions/1/583932755647245596/": {
+      "checked_at": "2026-10-11",
+      "http_status": 200,
+      "final_url": "https://steamcommunity.com/app/3079210/discussions/1/583932755647245596/",
+      "title": "Reload of Boat Guns Bugged :: Hell Let Loose: Vietnam Report a Problem",
+      "scope": "Destination accessibility only, not claim or outcome verification"
+    },
+    "https://steamcommunity.com/app/3079210/discussions/1/583932755647329810/": {
+      "checked_at": "2026-10-11",
+      "http_status": 200,
+      "final_url": "https://steamcommunity.com/app/3079210/discussions/1/583932755647329810/",
+      "title": "Fix the Audio PLEASEEEEEEEE :: Hell Let Loose: Vietnam Report a Problem",
+      "scope": "Destination accessibility only, not claim or outcome verification"
+    },
+    "https://steamcommunity.com/app/3079210/discussions/1/590687230526328326/": {
+      "checked_at": "2026-10-11",
+      "http_status": 200,
+      "final_url": "https://steamcommunity.com/app/3079210/discussions/1/590687230526328326/",
+      "title": "Key binding failure for pilot control :: Hell Let Loose: Vietnam Report a Problem",
+      "scope": "Destination accessibility only, not claim or outcome verification"
+    },
+    "https://steamcommunity.com/app/3079210/discussions/1/590687230526492958/": {
+      "checked_at": "2026-10-11",
+      "http_status": 200,
+      "final_url": "https://steamcommunity.com/app/3079210/discussions/1/590687230526492958/",
+      "title": "Voice chat not working after update :: Hell Let Loose: Vietnam Report a Problem",
+      "scope": "Destination accessibility only, not claim or outcome verification"
+    },
+    "https://steamcommunity.com/app/3079210/discussions/1/590691034935221629/": {
+      "checked_at": "2026-10-11",
+      "http_status": 200,
+      "final_url": "https://steamcommunity.com/app/3079210/discussions/1/590691034935221629/",
+      "title": "suppression causes game to freeze :: Hell Let Loose: Vietnam Report a Problem",
+      "scope": "Destination accessibility only, not claim or outcome verification"
+    },
+    "https://steamcommunity.com/app/3079210/discussions/1/590691034935260366/": {
+      "checked_at": "2026-10-11",
+      "http_status": 200,
+      "final_url": "https://steamcommunity.com/app/3079210/discussions/1/590691034935260366/",
+      "title": "Impossible to save tutorial progress :: Hell Let Loose: Vietnam Report a Problem",
+      "scope": "Destination accessibility only, not claim or outcome verification"
+    },
+    "https://steamcommunity.com/app/3079210/discussions/1/590691034935303773/": {
+      "checked_at": "2026-10-11",
+      "http_status": 200,
+      "final_url": "https://steamcommunity.com/app/3079210/discussions/1/590691034935303773/",
+      "title": "Tunnel icons not appearing resulting in unable to use tunnels :: Hell Let Loose: Vietnam Report a Problem",
+      "scope": "Destination accessibility only, not claim or outcome verification"
+    },
+    "https://steamcommunity.com/app/3079210/discussions/1/590691034935311372/": {
+      "checked_at": "2026-10-11",
+      "http_status": 200,
+      "final_url": "https://steamcommunity.com/app/3079210/discussions/1/590691034935311372/",
+      "title": "STILL spawning in locked areas :: Hell Let Loose: Vietnam Report a Problem",
+      "scope": "Destination accessibility only, not claim or outcome verification"
+    },
+    "https://steamcommunity.com/app/3079210/discussions/1/590691034935315590/": {
+      "checked_at": "2026-10-11",
+      "http_status": 200,
+      "final_url": "https://steamcommunity.com/app/3079210/discussions/1/590691034935315590/",
+      "title": "boat engine interaction stuttering :: Hell Let Loose: Vietnam Report a Problem",
+      "scope": "Destination accessibility only, not claim or outcome verification"
+    },
+    "https://steamcommunity.com/app/3079210/discussions/1/631219091886191710/": {
+      "checked_at": "2026-10-11",
+      "http_status": 200,
+      "final_url": "https://steamcommunity.com/app/3079210/discussions/1/631219091886191710/",
+      "title": "White flash/Flicker :: Hell Let Loose: Vietnam Report a Problem",
+      "scope": "Destination accessibility only, not claim or outcome verification"
+    },
+    "https://steamcommunity.com/app/3079210/discussions/1/631219091886213685/": {
+      "checked_at": "2026-10-11",
+      "http_status": 200,
+      "final_url": "https://steamcommunity.com/app/3079210/discussions/1/631219091886213685/",
+      "title": "Cannot shoot between fence boards or between chair or table legs :: Hell Let Loose: Vietnam Report a Problem",
+      "scope": "Destination accessibility only, not claim or outcome verification"
+    },
+    "https://steamcommunity.com/app/3079210/discussions/1/631219394426598831/": {
+      "checked_at": "2026-10-11",
+      "http_status": 200,
+      "final_url": "https://steamcommunity.com/app/3079210/discussions/1/631219394426598831/",
+      "title": "Server side crashes :: Hell Let Loose: Vietnam Report a Problem",
+      "scope": "Destination accessibility only, not claim or outcome verification"
+    },
+    "https://steamcommunity.com/app/3079210/discussions/1/663863457493431808/": {
+      "checked_at": "2026-10-11",
+      "http_status": 200,
+      "final_url": "https://steamcommunity.com/app/3079210/discussions/1/663863457493431808/",
+      "title": "game freezes when getting shot :: Hell Let Loose: Vietnam Report a Problem",
+      "scope": "Destination accessibility only, not claim or outcome verification"
+    },
+    "https://steamcommunity.com/games/3079210/announcements/detail/684139458559214482": {
+      "checked_at": "2026-10-11",
+      "http_status": 200,
+      "final_url": "https://steamcommunity.com/games/3079210/announcements/detail/684139458559214482",
+      "title": "Steam :: Hell Let Loose: Vietnam :: Hotfix 1.5.1 | Live Now",
+      "scope": "Destination accessibility only, not claim or outcome verification"
+    },
+    "https://steamcommunity.com/gid/103582791475269461/announcements/detail/676259427855107286": {
+      "checked_at": "2026-10-11",
+      "http_status": 200,
+      "final_url": "https://steamcommunity.com/games/3079210/announcements/detail/676259427855107286",
+      "title": "Steam :: Hell Let Loose: Vietnam :: Update 1.5 &amp; Patch 1.6 | Dev Update VLOG | Command Post",
+      "scope": "Destination accessibility only, not claim or outcome verification"
+    },
+    "https://www.hellletloose.com/blog/5-before-launch": {
+      "checked_at": "2026-10-11",
+      "http_status": 200,
+      "final_url": "https://www.hellletloose.com/blog/5-before-launch",
+      "title": "Blog - Known Issues, Launch Time & More | Hell Let Loose: Vietnam | Hell Let Loose",
+      "scope": "Destination accessibility only, not claim or outcome verification"
+    },
+    "https://www.hellletloose.com/blog/community-update-1": {
+      "checked_at": "2026-10-11",
+      "http_status": 200,
+      "final_url": "https://www.hellletloose.com/blog/community-update-1",
+      "title": "Blog - Community Update #1 | Command Post | Hell Let Loose: Vietnam | Hell Let Loose",
+      "scope": "Destination accessibility only, not claim or outcome verification"
+    },
+    "https://www.hellletloose.com/blog/community-update-2": {
+      "checked_at": "2026-10-11",
+      "http_status": 200,
+      "final_url": "https://www.hellletloose.com/blog/community-update-2",
+      "title": "Blog - Community Update #2 | Command Post | Hell Let Loose: Vietnam | Hell Let Loose",
+      "scope": "Destination accessibility only, not claim or outcome verification"
+    },
+    "https://www.hellletloose.com/blog/community-update-3": {
+      "checked_at": "2026-10-11",
+      "http_status": 200,
+      "final_url": "https://www.hellletloose.com/blog/community-update-3",
+      "title": "Blog - Community Feedback #3 | Command Post | Hell Let Loose: Vietnam | Hell Let Loose",
+      "scope": "Destination accessibility only, not claim or outcome verification"
+    },
+    "https://www.hellletloose.com/blog/community-update-4": {
+      "checked_at": "2026-10-11",
+      "http_status": 200,
+      "final_url": "https://www.hellletloose.com/blog/community-update-4",
+      "title": "Blog - Community Feedback #4 | Command Post | Hell Let Loose: Vietnam | Hell Let Loose",
+      "scope": "Destination accessibility only, not claim or outcome verification"
+    },
+    "https://www.hellletloose.com/blog/community-update-5": {
+      "checked_at": "2026-10-11",
+      "http_status": 200,
+      "final_url": "https://www.hellletloose.com/blog/community-update-5",
+      "title": "Blog - Community Feedback #5 | Command Post | Hell Let Loose",
+      "scope": "Destination accessibility only, not claim or outcome verification"
+    },
+    "https://www.hellletloose.com/blog/community-update-6": {
+      "checked_at": "2026-10-11",
+      "http_status": 200,
+      "final_url": "https://www.hellletloose.com/blog/community-update-6",
+      "title": "Blog - Community Feedback #6 | Command Post | Hell Let Loose",
+      "scope": "Destination accessibility only, not claim or outcome verification"
+    },
+    "https://www.hellletloose.com/blog/community-update-7": {
+      "checked_at": "2026-10-11",
+      "http_status": 200,
+      "final_url": "https://www.hellletloose.com/blog/community-update-7",
+      "title": "Blog - Community Feedback #7 | Command Post | Hell Let Loose",
+      "scope": "Destination accessibility only, not claim or outcome verification"
+    },
+    "https://www.hellletloose.com/blog/hllv-hotfix-1-4-2": {
+      "checked_at": "2026-10-11",
+      "http_status": 200,
+      "final_url": "https://www.hellletloose.com/blog/hllv-hotfix-1-4-2",
+      "title": "Blog - Hotfix 1.4.2 | Live Now | Hell Let Loose: Vietnam | Hell Let Loose",
+      "scope": "Destination accessibility only, not claim or outcome verification"
+    },
+    "https://www.hellletloose.com/blog/hllv-hotfix-1-5-2": {
+      "checked_at": "2026-10-11",
+      "http_status": 200,
+      "final_url": "https://www.hellletloose.com/blog/hllv-hotfix-1-5-2",
+      "title": "Blog - Hotfix 1.5.2 | Hell Let Loose: Vietnam | Hell Let Loose",
+      "scope": "Destination accessibility only, not claim or outcome verification"
+    },
+    "https://www.hellletloose.com/blog/hllv-patch-1-2": {
+      "checked_at": "2026-10-11",
+      "http_status": 200,
+      "final_url": "https://www.hellletloose.com/blog/hllv-patch-1-2",
+      "title": "Blog - Patch 1.2 | Full Changelog | Hell Let Loose: Vietnam | Hell Let Loose",
+      "scope": "Destination accessibility only, not claim or outcome verification"
+    },
+    "https://www.hellletloose.com/blog/hllv-patch-1-3": {
+      "checked_at": "2026-10-11",
+      "http_status": 200,
+      "final_url": "https://www.hellletloose.com/blog/hllv-patch-1-3",
+      "title": "Blog - Patch 1.3 | Full Changelog | Hell Let Loose: Vietnam | Hell Let Loose",
+      "scope": "Destination accessibility only, not claim or outcome verification"
+    },
+    "https://www.hellletloose.com/blog/hllv-patch-1-4": {
+      "checked_at": "2026-10-11",
+      "http_status": 200,
+      "final_url": "https://www.hellletloose.com/blog/hllv-patch-1-4",
+      "title": "Blog - Patch 1.4 | Full Changelog | Hell Let Loose: Vietnam | Hell Let Loose",
+      "scope": "Destination accessibility only, not claim or outcome verification"
+    },
+    "https://www.hellletloose.com/blog/hllv-patch-1-6": {
+      "checked_at": "2026-10-11",
+      "http_status": 200,
+      "final_url": "https://www.hellletloose.com/blog/hllv-patch-1-6",
+      "title": "Blog - Patch 1.6 | Hell Let Loose: Vietnam | Hell Let Loose",
+      "scope": "Destination accessibility only, not claim or outcome verification"
+    },
+    "https://www.hellletloose.com/blog/hllv-update-1-5": {
+      "checked_at": "2026-10-11",
+      "http_status": 200,
+      "final_url": "https://www.hellletloose.com/blog/hllv-update-1-5",
+      "title": "Blog - Update 1.5 | Full Changelog | Hell Let Loose: Vietnam | Hell Let Loose",
+      "scope": "Destination accessibility only, not claim or outcome verification"
+    },
+    "https://www.reddit.com/r/HellLetLooseVietnam/comments/1vxeovn/developer_ama_1_hell_let_loose_vietnam_reddit/": {
+      "checked_at": "2026-10-11",
+      "http_status": 403,
+      "scope": "Request failed; access restrictions are not proof of deletion"
+    }
+  },
+  "protected_features_unchanged": true
+}

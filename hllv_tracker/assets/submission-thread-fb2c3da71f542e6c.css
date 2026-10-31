@@ -1,0 +1,18 @@
+/* Theme variables follow the existing light/dark palette. */
+.submission-thread{border-top:1px solid var(--line);padding-top:1.25rem;margin-top:1.25rem}
+.thread-heading{display:flex;gap:1rem;align-items:flex-start;justify-content:space-between;flex-wrap:wrap}
+.thread-heading h3{margin:0}.thread-heading p,.thread-toolbar,.thread-message footer,.thread-event,.thread-public-summary small{color:var(--muted);font-size:.85rem}
+.thread-heading p{max-width:40rem}.thread-toolbar{display:flex;align-items:center;gap:1rem;justify-content:space-between;flex-wrap:wrap;margin:.8rem 0}
+.thread-toolbar select{font:inherit;color:var(--ink);background:var(--paper);border:1px solid var(--line);padding:.35rem}
+.thread-message{border:1px solid var(--line);border-left:3px solid var(--muted);padding:1rem;margin:.75rem 0;border-radius:4px;background:var(--paper)}
+.thread-message header{display:flex;justify-content:space-between;flex-wrap:wrap;gap:.4rem;font-size:.88rem}.thread-message header span{color:var(--muted)}
+.thread-body{white-space:pre-wrap;overflow-wrap:anywhere;line-height:1.6;margin:.6rem 0}
+.thread-public{border-left-color:var(--red)}.thread-version{padding:.7rem 0;border-bottom:1px solid var(--line)}.thread-version summary{cursor:pointer;font-size:.88rem}
+.thread-compose,.thread-public-compose{margin-top:1.25rem;padding-top:1rem;border-top:1px solid var(--line)}
+.thread-public-compose>summary{font-weight:600;cursor:pointer}.thread-public-compose>p{font-size:.88rem;color:var(--muted)}
+.thread-public-summary{margin:.9rem 0;padding:.9rem 1rem;border-left:3px solid var(--red);background:var(--paper);border-top:1px solid var(--line);border-bottom:1px solid var(--line)}
+.thread-public-summary>div+div{margin-top:.8rem;padding-top:.7rem;border-top:1px solid var(--line)}.thread-authority{display:block;margin-top:.8rem}
+.submission-thread textarea{background:var(--paper);color:var(--ink);border:1px solid var(--muted);font:inherit;width:100%;box-sizing:border-box;min-height:6rem}
+.submission-thread textarea:focus-visible,.thread-toolbar select:focus-visible{outline:2px solid var(--red);outline-offset:2px}
+#threadFeedback:empty{display:none}.thread-event{text-transform:none;overflow-wrap:anywhere}.thread-message footer{margin-top:.6rem}
+@media(max-width:600px){.thread-heading .sg-button{width:100%}.thread-message{padding:.8rem}.thread-toolbar{align-items:flex-start}.thread-public-summary{padding:.75rem}.thread-message header{flex-direction:column}}

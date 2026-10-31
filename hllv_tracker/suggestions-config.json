@@ -1,0 +1,13 @@
+{
+  "enabled": true,
+  "supabase_url": "https://uwbhjgvpaetrhfvcpvsg.supabase.co",
+  "publishable_key": "sb_publishable_S_ZARhEa6AK4BJyG6_Lhmw_tsCUFOn5",
+  "participant_contact": "",
+  "retention_notice": "",
+  "policy_version": "community-v1",
+  "connection_mode": "community",
+  "community_enabled": true,
+  "account_registration": "self_service",
+  "approval_mode": "site_moderator",
+  "email_verification_required": true
+}
