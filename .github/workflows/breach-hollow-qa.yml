@@ -89,7 +89,7 @@ jobs:
           python - <<'PY'
           import json, subprocess
           from pathlib import Path
-          paths = json.loads(Path('/tmp/hollow-paths.json').read_text())
+          paths = [p for p in json.loads(Path('/tmp/hollow-paths.json').read_text()) if not p.startswith('.github/')]
           subprocess.run(['git', 'add', '--', *paths], check=True)
           PY
           git config user.name 'BREACH development'
@@ -99,7 +99,7 @@ jobs:
           python - <<'PY'
           import json, subprocess
           from pathlib import Path
-          result = {'commit': subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(), 'parent': subprocess.check_output(['git','rev-parse','HEAD^'],text=True).strip(), 'version':'0.8.0', 'simulationAndRendererTests':222, 'exportTests':3, 'browserSuitesPassed':['network','switchyard','glasshouse','hollow']}
+          result = {'commit': subprocess.check_output(['git','rev-parse','HEAD'],text=True).strip(), 'parent': subprocess.check_output(['git','rev-parse','HEAD^'],text=True).strip(), 'version':'0.8.0', 'simulationAndRendererTests':222, 'exportTests':3, 'browserSuitesPassed':['network','switchyard','glasshouse','hollow'], 'note':'Release workflow updates are reviewed and published separately through the repository connector.'}
           Path('/tmp/hollow-qa-result.json').write_text(json.dumps(result,indent=2))
           print(json.dumps(result,indent=2))
           PY
