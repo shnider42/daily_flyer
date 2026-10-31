@@ -4,6 +4,13 @@ An original retro first-person game built on DailyFlyer, with seven solo mission
 and four operations available in private two-player co-op. Solo play runs in the
 browser; co-op uses an authoritative room server.
 
+## 0.8.3 — Music checks and visibility
+
+Settings now includes a short Test music control using the game audio path.
+The menu links to the soundtrack and clearly labeled campaign proposal.
+First-cue preparation, missed-download cooldown and interrupted audio recovery
+are corrected. See [the audio follow-up](breach-audio-083.md).
+
 ## 0.8.2 — Thirteen Signals
 
 Twelve further original MIDI cues, restrained mission/zone placement and a

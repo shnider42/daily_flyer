@@ -150,15 +150,18 @@ for (const interrupt of ['pause', 'mute', 'zero-volume', 'reset', 'quiet', 'bloc
     decoding.resolve({ duration: 36.923 }); await settle();
     assert.equal(s.c.sources.length, 0); assert.equal(replacement.sources.length, 0);
     tick(s.m, replacement, 5, 0); tick(s.m, replacement, 3, 3); await settle();
-    assert.equal(replacement.sources.length, 0, 'stale work also cannot bypass cooldown');
+    assert.equal(replacement.sources.length, interrupt === 'reset' ? 0 : 1, 'a new eligible fight may use a prepared buffer; reset still preserves opening grace');
   });
 }
 
-test('pending fetch is cancelled too; quiet combat disappearance cannot resurrect it', async () => {
+test('a missed encounter can finish preparing, but never start playback', async () => {
   const loading = deferred(), s = setup({ fetcher: () => loading.promise });
   tick(s.m, s.c, 20.5); await settle(); assert.notEqual(s.m._pending, null);
   tick(s.m, s.c, .25, 0); loading.resolve({ ok: true, arrayBuffer: async () => new ArrayBuffer(2) }); await settle();
-  assert.equal(s.c.decodes, 0); assert.equal(s.c.sources.length, 0); assert.equal(s.m._pending, null);
+  assert.equal(s.c.decodes, 1); assert.equal(s.c.sources.length, 0); assert.equal(s.m._pending, null);
+  assert.equal(s.m.cooldownUntil, 0, 'a never-audible cue does not spend the silence budget');
+  tick(s.m,s.c,5,0); tick(s.m,s.c,2.5,2); await settle();
+  assert.equal(s.c.sources.length,1); assert.equal(s.c.decodes,1, 'prepared audio survives a missed fight');
 });
 
 test('failed downloads have bounded retries after cooldown and a new encounter', async () => {
@@ -265,4 +268,26 @@ test('relief needs prior local pressure and the second Hollow beat needs the fir
   tick(s.m,s.c,30,0,{scene:{mission:'hollow-19',zone:'archive',ambient:'the-room-replies'}});await settle();assert.equal(s.calls.length,0);
   s.m.configure({enabled:false});tick(s.m,s.c,3,2);s.m.configure({enabled:true});
   tick(s.m,s.c,12.25,0,{scene:{mission:'underworks-13',zone:'hub',ambient:'spare-air'}});await settle();assert.match(s.calls[0].url.pathname,/spare-air/);
+});
+
+test('preparation and encounter loading share a request without autoplay or a cooldown',async()=>{
+  const s=setup(),a=s.m.prepare('containment-pulse'),b=s.m.prepare('containment-pulse');
+  assert.equal(a,b);await a;assert.equal(s.calls.length,1);assert.equal(s.c.sources.length,0);assert.equal(s.m.cooldownUntil,0);
+  await startCue(s);assert.equal(s.calls.length,1);assert.equal(s.c.decodes,1);
+});
+
+test('preparation failures are released so a later encounter can retry',async()=>{
+  const s=setup();s.m.fetcher=async()=>{throw new Error('offline');};
+  await assert.rejects(s.m.prepare());assert.equal(s.m._loads.size,0);
+  s.m.fetcher=async()=>({ok:true,arrayBuffer:async()=>new ArrayBuffer(2)});
+  await startCue(s);assert.equal(s.c.sources.length,1);
+});
+
+test('the default browser fetch keeps its required global receiver',async()=>{
+  const original=globalThis.fetch;let requested=0;
+  globalThis.fetch=function(){assert.equal(this,globalThis,'native browser fetch rejects a BreachMusic receiver');requested++;return Promise.resolve({ok:true,arrayBuffer:async()=>new ArrayBuffer(2)});};
+  try {
+    const m=new BreachMusic(),c=new FakeContext();m.attach(c,{});m.setPlaying(true);
+    tick(m,c,20.5);await settle();assert.equal(requested,1);assert.equal(c.sources.length,1,'the request must reach actual playback');
+  } finally {globalThis.fetch=original;}
 });

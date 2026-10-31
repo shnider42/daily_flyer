@@ -170,3 +170,6 @@ body[data-guidance="expert"] .objective{display:none}
 #journal-entries article+article{border-top:1px solid #344d58;margin-top:1rem;padding-top:1rem}
 #journal-entries h3{font:600 .83rem monospace;color:#e2c9a2;line-height:1.5;margin:0 0 .5rem}
 #journal-entries p{font-size:.95rem;line-height:1.6;color:#c1d0cd;margin:0 0 .7rem}
+
+/* Keep score discovery and release identity visible on phones. */
+.score-links{display:flex;flex-wrap:wrap;column-gap:24px;row-gap:2px;margin-top:12px}.score-links a{display:inline-flex;align-items:center;min-height:44px;color:var(--amber);font-size:10px;letter-spacing:.08em;text-decoration:underline;text-underline-offset:4px}.score-note{color:var(--muted);font-size:10px;line-height:1.5;margin:0;max-width:390px}.music-test{margin:14px 0 20px}.music-test .settings-footnote{margin:10px 0 0}.build-tag .version{display:inline;white-space:nowrap}@media(max-width:600px){.build-tag{flex-wrap:wrap;justify-content:flex-end;max-width:130px}.build-tag .version{font-size:9px;color:var(--muted)}}

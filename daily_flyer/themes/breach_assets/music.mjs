@@ -7,7 +7,7 @@ const LOCAL_EVENTS = new Set(['record', 'hurt', 'refuge', 'transit']);
 const level = (value, fallback) => Number.isFinite(value) ? Math.max(0, Math.min(1, value)) : fallback;
 
 export class BreachMusic {
-  constructor({ enabled = true, volume = .45, fetcher = globalThis.fetch } = {}) {
+  constructor({ enabled = true, volume = .45, fetcher = globalThis.fetch?.bind(globalThis) } = {}) {
     this.enabled = !!enabled; this.volume = level(volume, .45); this.fetcher = fetcher;
     this.context = null; this.output = null; this.playing = false;
     this.time = 0; this.graceUntil = GRACE; this.cooldownUntil = 0;
@@ -15,7 +15,7 @@ export class BreachMusic {
     this.armed = true;
     this.recent = []; this.seenMoments = new Set(); this._moment = null; this._scene = {};
     this.silentTime = 0; this.guardianTime = 0; this.hadCombat = false;
-    this._buffers = new Map();
+    this._buffers = new Map(); this._loads = new Map();
     this._buffer = null; this._pending = null; this._active = null; this._sources = new Set(); this._generation = 0;
   }
 
@@ -24,7 +24,7 @@ export class BreachMusic {
     if (context === this.context && output === this.output) return;
     this._interrupt();
     if (context !== this.context) {
-      this._buffer = null; this._buffers.clear();
+      this._buffer = null; this._buffers.clear(); this._loads.clear();
       // A discarded/closed context may never dispatch its scheduled onended.
       for (const cue of this._sources) {
         cue.source.onended = null;
@@ -152,34 +152,42 @@ export class BreachMusic {
     return this._pending === request && request.generation === this._generation && request.context === this.context && this.playing && this.enabled && this.volume > 0 && this._readyContext() && (request.kind === 'combat' ? this.quietTime === 0 : this.silentTime >= 12 && request.zoneKey === this._zoneKey(this._scene));
   }
 
+  // Loading and permission to play are separate. A missed fight can leave a
+  // useful cached buffer, but can never leave a delayed musical surprise.
+  prepare(id = 'containment-pulse') {
+    const definition = CUES_BY_ID.get(id), context = this.context;
+    if (this._buffers.has(id)) return Promise.resolve(this._buffers.get(id));
+    if (this._loads.has(id)) return this._loads.get(id);
+    if (!definition || !context || typeof this.fetcher !== 'function' || this._loads.size >= 2) return Promise.reject(new Error('Music unavailable'));
+    const loading = Promise.resolve().then(async () => {
+      const response = await this.fetcher(definition.url, {credentials:'same-origin',mode:'same-origin'});
+      if (!response?.ok) throw new Error('Music unavailable');
+      const bytes = await response.arrayBuffer();
+      if (context !== this.context) throw new Error('Audio changed');
+      const buffer = await context.decodeAudioData(bytes);
+      if (context !== this.context || !buffer || !Number.isFinite(buffer.duration) || buffer.duration <= 0) throw new Error('Invalid music');
+      this._buffers.delete(id); this._buffers.set(id,buffer);
+      while (this._buffers.size > 2) this._buffers.delete(this._buffers.keys().next().value);
+      return buffer;
+    }).finally(() => { if (this._loads.get(id) === loading) this._loads.delete(id); });
+    this._loads.set(id,loading);
+    return loading;
+  }
+
   _requestCue(id = 'containment-pulse') {
     const definition = CUES_BY_ID.get(id);
     if (!definition) return;
-    const request = { id, kind:definition.kind, cooldown:definition.cooldown, zoneKey:this._zoneKey(this._scene), generation: ++this._generation, context: this.context, abort: typeof AbortController === 'function' ? new AbortController() : null };
+    const request = { id, kind:definition.kind, cooldown:definition.cooldown, zoneKey:this._zoneKey(this._scene), generation: ++this._generation, context: this.context };
     this.armed = false; this.pressureTime = 0; this._pending = request;
-    // No preload: even the first fetch happens only after an eligible encounter.
     Promise.resolve().then(async () => {
       if (!this._currentRequest(request)) return;
-      let buffer = this._buffers.get(id);
-      if (!buffer) {
-        const response = await this.fetcher(definition.url, { credentials: 'same-origin', mode: 'same-origin', ...(request.abort ? { signal: request.abort.signal } : {}) });
-        if (!this._currentRequest(request)) return;
-        if (!response?.ok) throw new Error('Music unavailable');
-        const bytes = await response.arrayBuffer();
-        if (!this._currentRequest(request)) return;
-        buffer = await request.context.decodeAudioData(bytes);
-        if (!this._currentRequest(request)) return;
-        if (!buffer || !Number.isFinite(buffer.duration) || buffer.duration <= 0) throw new Error('Invalid music');
-        this._buffers.delete(id); this._buffers.set(id, buffer);
-        while (this._buffers.size > 2) this._buffers.delete(this._buffers.keys().next().value);
-        this._buffer = null; // No extra reference may keep an evicted buffer alive.
-      }
+      const buffer = await this.prepare(id);
       if (!this._currentRequest(request)) return;
       this._pending = null;
       this._start(buffer, request);
     }).catch(() => {
       if (this._pending === request) {
-        this._pending = null; this.cooldownUntil = Math.max(this.cooldownUntil, this.time + request.cooldown);
+        this._pending = null; this.cooldownUntil = Math.max(this.cooldownUntil, this.time + COOLDOWN);
       }
     });
   }
@@ -224,9 +232,10 @@ export class BreachMusic {
   _interrupt() {
     ++this._generation;
     const pending = this._pending; this._pending = null;
-    if (pending) { try { pending.abort?.abort(); } catch (_) { /* Fetch may already have finished. */ } }
     const cue = this._active; this._active = null;
-    if (pending || cue) { this.armed = false; this.cooldownUntil = Math.max(this.cooldownUntil, this.time + (cue?.cooldown || pending?.cooldown || COOLDOWN)); }
+    if (pending || cue) this.armed = false;
+    // A download that never became audible has not spent the music budget.
+    if (cue) this.cooldownUntil = Math.max(this.cooldownUntil, this.time + cue.cooldown);
     if (!cue || cue.stopped) return;
     cue.stopped = true;
     try {

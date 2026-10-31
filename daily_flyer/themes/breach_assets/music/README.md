@@ -14,8 +14,9 @@ copyright in machine-generated material.
 The game uses the MP3 for consistent playback and bounded mobile CPU use.
 The editable MIDI is retained here as composition source; the browser does not
 need a MIDI player or soundbank. Nothing is streamed from external services.
-Neither file is downloaded until needed by a listener (the game only requests
-the MP3, lazily on an eligible combat cue).
+MIDI is downloaded only on request. Since 0.8.3, the game prepares one likely
+MP3 after Start, during opening silence; other cues load on demand. Preparation
+does not grant permission to play.
 
 To regenerate, using Python with NumPy/SciPy and FFmpeg on your PATH:
 

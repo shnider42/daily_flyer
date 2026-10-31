@@ -587,6 +587,7 @@ function openDialog(id) {
   else { dialog.setAttribute('open',''); dialog.classList.add('fallback-dialog'); }
 }
 function closeDialogs() {
+  audio.stopMusicTest();
   for(const id of ['settings-dialog','controls-dialog']) {
     const dialog = $(id); if(dialog.open && typeof dialog.close === 'function') dialog.close(); else dialog.removeAttribute('open');
   }
@@ -983,12 +984,19 @@ $('restart').addEventListener('click',restartCurrent);$('end-restart').addEventL
 $('end-next').addEventListener('click',()=>{const id=$('end-next').dataset.mission;if(missionIds.includes(id)){settings.mission=id;saveSettings();updateMissionMenu();const url=new URL(location.href);url.searchParams.set('mission',id);try{history.replaceState(null,'',url);}catch(_){}launchMission(id);}});
 $('mission-picker').addEventListener('click',event=>{const button=event.target.closest('[data-mission]');if(button)selectMission(button.dataset.mission);});
 $('back-menu').addEventListener('click',backToMenu);$('end-menu').addEventListener('click',backToMenu);
+$('test-music').addEventListener('click',()=>{
+  if(audio.preview.busy){audio.stopMusicTest();return;}
+  audio.testMusic(message=>{
+    $('music-test-status').textContent=message;
+    $('test-music').textContent=audio.preview.busy?'STOP MUSIC TEST':'TEST MUSIC · 8 SECONDS';
+  });
+});
 $('open-settings').addEventListener('click',()=>openDialog('settings-dialog'));
 $('pause-settings').addEventListener('click',()=>openDialog('settings-dialog'));
 $('open-controls').addEventListener('click',()=>openDialog('controls-dialog'));
 for(const id of ['close-settings','done-settings','close-controls','done-controls'])$(id).addEventListener('click',closeDialogs);
 for(const id of ['settings-dialog','controls-dialog']) {
-  $(id).addEventListener('close',clearInputs);
+  $(id).addEventListener('close',()=>{audio.stopMusicTest();clearInputs();});
   $(id).addEventListener('click',e=>{if(e.target===$(id)){const r=$(id).getBoundingClientRect();if(e.clientX<r.left||e.clientX>r.right||e.clientY<r.top||e.clientY>r.bottom)closeDialogs();}});
 }
 $('map-toggle').addEventListener('click',toggleMap);$('map-close').addEventListener('click',closeMap);$('pause-map').addEventListener('click',toggleMap);
@@ -1058,9 +1066,9 @@ window.addEventListener('keydown',event=>{
   else if(['menu','paused'].includes(mode)&&event.code==='KeyF'&&!event.repeat){event.preventDefault();toggleFullscreen();}
 });
 window.addEventListener('keyup',event=>keys.delete(event.code));
-window.addEventListener('blur',()=>{if(mode==='playing'&&performance.now()>fullscreenTransitionUntil)pauseGame('background');else{if(performance.now()>fullscreenTransitionUntil)suspendRoomReadiness('background');clearInputs();}});
+window.addEventListener('blur',()=>{audio.stopMusicTest();if(mode==='playing'&&performance.now()>fullscreenTransitionUntil)pauseGame('background');else{if(performance.now()>fullscreenTransitionUntil)suspendRoomReadiness('background');clearInputs();}});
 document.addEventListener('visibilitychange',()=>{
-  if(document.hidden){if(mode==='playing')pauseGame('background');else suspendRoomReadiness('background');coop?.setPageVisible(false);saveRun();clearInputs();}
+  if(document.hidden){audio.stopMusicTest();if(mode==='playing')pauseGame('background');else suspendRoomReadiness('background');coop?.setPageVisible(false);saveRun();clearInputs();}
   else coop?.setPageVisible(true);
 });
 window.addEventListener('pagehide',()=>{

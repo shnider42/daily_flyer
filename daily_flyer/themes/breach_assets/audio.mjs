@@ -1,6 +1,7 @@
 /** Original game audio: procedural effects and a lazy, same-origin music cue. */
 import { BreachMusic } from './music.mjs';
 import { musicScene } from './music-cues.mjs';
+import { MusicPreview } from './music-preview.mjs';
 
 // Local, active threats only: no music radar for enemies behind doors or walls,
 // neutral security, a far-away co-op encounter, or a downed listener.
@@ -26,12 +27,13 @@ export class BreachAudio {
     this.enabled = enabled; this.context = null; this.master = null; this.hum = null; this.playing = false;
     this.musicEnabled = musicEnabled;
     this.music = new BreachMusic({ enabled: enabled && musicEnabled, volume: musicVolume });
+    this.preview = new MusicPreview(this.music); this.warmMission = null;
     this.pressureTimer = 0; this.pressure = 0; this.guardian = false; this.lastMusicStateTime = null;
   }
   unlock() {
     if (!this.enabled) return;
     try {
-      if (!this.context) {
+      if (!this.context || this.context.state === 'closed') {
         const AudioContext = window.AudioContext || window.webkitAudioContext;
         if (!AudioContext) return;
         this.context = new AudioContext();
@@ -42,14 +44,22 @@ export class BreachAudio {
         const upper = this.context.createOscillator(); upper.type = 'triangle'; upper.frequency.value = 66.2;
         const quiet = this.context.createGain(); quiet.gain.value = .12; upper.connect(quiet); quiet.connect(this.hum); upper.start();
       }
-      if (this.context.state === 'suspended') this.context.resume().catch(() => {});
+      // iOS may return from background with 'interrupted', not 'suspended'.
+      const resumed = this.context.state !== 'running' && this.context.state !== 'closed' ? this.context.resume().catch(() => {}) : Promise.resolve();
       this.setPlaying(this.playing);
+      return resumed;
     } catch (_) { /* Audio is optional. Gameplay must remain available. */ }
   }
-  setEnabled(value) { this.enabled = !!value; this.music.configure({enabled:this.enabled && this.musicEnabled}); if (this.master && this.context) this.master.gain.setTargetAtTime(value ? .24 : 0, this.context.currentTime, .06); if (value) this.unlock(); }
-  setMusic(enabled, volume) { this.musicEnabled = !!enabled; this.music.configure({enabled:this.enabled && this.musicEnabled, volume}); }
-  setPlaying(value) { this.playing = !!value; this.music.setPlaying(this.playing); if (this.hum && this.context) this.hum.gain.setTargetAtTime(value && this.enabled ? .065 : 0, this.context.currentTime, .2); }
-  resetMusic() { this.pressureTimer = 0; this.pressure = 0; this.guardian = false; this.lastMusicStateTime = null; this.music.reset(); }
+  setEnabled(value) { if (!value) this.preview.stop(); this.enabled = !!value; this.music.configure({enabled:this.enabled && this.musicEnabled}); if (this.master && this.context) this.master.gain.setTargetAtTime(value ? .24 : 0, this.context.currentTime, .06); if (value) this.unlock(); }
+  setMusic(enabled, volume) { this.preview.stop(); this.musicEnabled = !!enabled; this.music.configure({enabled:this.enabled && this.musicEnabled, volume}); }
+  setPlaying(value) { this.preview.stop(); this.playing = !!value; this.music.setPlaying(this.playing); if (this.hum && this.context) this.hum.gain.setTargetAtTime(value && this.enabled ? .065 : 0, this.context.currentTime, .2); }
+  testMusic(onStatus) {
+    if (!this.enabled || !this.musicEnabled || !this.music.volume) { onStatus('Turn on Sound and Occasional music, and raise music volume to test.'); return; }
+    const ready = this.unlock();
+    return this.preview.play({context:this.context,output:this.master,volume:this.music.volume,ready,onStatus});
+  }
+  stopMusicTest() { this.preview.stop(); }
+  resetMusic() { this.warmMission = null; this.pressureTimer = 0; this.pressure = 0; this.guardian = false; this.lastMusicStateTime = null; this.music.reset(); }
   updateMusic(game, dt, blocked = false) {
     try {
       // Co-op retries reuse the same view but rewind authoritative mission time.
@@ -62,7 +72,14 @@ export class BreachAudio {
       const alive = !!player && player.health > 0 && player.alive !== false;
       this.pressureTimer -= dt;
       if (this.pressureTimer <= 0) { const threat = blocked || !alive ? {pressure:0,guardian:false} : musicThreats(game); this.pressure = threat.pressure; this.guardian = threat.guardian; this.pressureTimer = .25; }
-      this.music.update({dt, pressure:this.pressure, guardian:this.guardian, scene:musicScene(game), alive, blocked});
+      const scene = musicScene(game);
+      if (this.playing && !blocked && alive && this.enabled && this.music.enabled && this.music.volume > 0 && this.context?.state === 'running' && this.warmMission !== scene.mission) {
+        this.warmMission = scene.mission;
+        // Prepare just one likely cue during the silent opening after Start.
+        // Preparation never starts playback or changes encounter eligibility.
+        this.music.prepare(scene.pool[0]).catch(() => {});
+      }
+      this.music.update({dt, pressure:this.pressure, guardian:this.guardian, scene, alive, blocked});
     } catch (_) { /* Music failures must never interrupt a run. */ }
   }
   tone(frequency, duration = .12, volume = .3, end = frequency, type = 'sine', delay = 0) {
