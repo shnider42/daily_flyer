@@ -3,8 +3,8 @@ const cue = (id, title, bpm, kind, sound, use, avoid, seconds, cooldown = 120) =
 export const MUSIC_CUES = Object.freeze([
   cue('shadow-running','Shadow Running',140,'combat','A fast two-bar guitar hook, a contrasting middle and a clear return.','Beneath The Shadow’s descent and Iron Warden.','Quiet houses, records, practice ledges and safe returns.',42.94),
   cue('sever-the-echo','Sever the Echo',154,'combat','Fast 3+3+2 accents, answering bass and a half-time bridge.','The House of Echoes and Umbra Engine boss encounters.','Boss rooms before a visible threat, menus and repeated retries.',45.44),
-  cue('lanterns-below','Lanterns Below',80,'ambient','Clean guitar carries a slow fragment of the opening hook.','The quiet lantern district and a later aqueduct approach.','Reading, safe practice, attack tells and the final extraction.',49.80),
-  cue('containment-pulse','Containment Pulse',104,'combat','Low, spacious power chords; a broad backbeat and an answering lead.','The main menu, Blacksite research laboratory and Crosslink vault.','Extraction, reading and revisiting a scored room. Never loop behind the menu.',38.72),
+  cue('lanterns-below','Lanterns Below',80,'ambient','Clean guitar carries a slow fragment of the opening hook.','Alternates with Containment Pulse in the menu; the lantern district and aqueduct approach.','Mission reading, safe practice, attack tells and the final extraction.',49.80),
+  cue('containment-pulse','Containment Pulse',104,'combat','Low, spacious power chords; a broad backbeat and an answering lead.','Alternates with Lanterns Below in the menu; Blacksite research laboratory and Crosslink vault.','Mission extraction, reading and revisiting a scored room.',38.72),
   cue('iron-wake','Iron Wake',92,'combat','Open low guitar, a patient straight pulse and large gaps.','The opening of a fresh Blacksite mission.','Continue, checkpoint retries and extraction. Attack warnings lower its mix.',33.10),
   cue('dry-contact','Dry Contact',118,'combat','A shifting three-bar accent pattern with a more independent bass.','The opening of a fresh Crosslink mission.','Continue, checkpoint retries, relay work and the debrief.',26.21),
   cue('dead-carrier','Dead Carrier',76,'ambient','Clean harmonics and rolling toms in 6/8, with an unresolved rise.','Dead Relay’s communications vault and the Underworks archives.','Dead Relay’s arrival, tape text and relay operation.',30.22),
@@ -21,7 +21,8 @@ export const MUSIC_CUES = Object.freeze([
 export const CUES_BY_ID = new Map(MUSIC_CUES.map(c => [c.id,c]));
 // A score is placed in the level. Enemy counts never choose a track.
 const section = (key, cue, extra = {}) => Object.freeze({key, cue, delay:2, window:30, gap:25, ...extra});
-export const MENU_SCORE = section('menu','containment-pulse',{delay:0,gap:0,level:.65});
+export const MENU_SCORES = Object.freeze(['containment-pulse','lanterns-below'].map(cue =>
+  section(`menu:${cue}`,cue,{delay:0,gap:0,level:.65,fade:1.2})));
 export const MISSION_SCORE = Object.freeze({
   'beneath-the-shadow':{opening:'shadow-running',openingFade:1.4,sections:{forge:section('warden','shadow-running',{guardian:true,priority:true,delay:3,window:120,gap:15,fade:2}),lantern:section('lantern','lanterns-below',{delay:4,gap:18,fade:2}),bridge:section('aqueduct','lanterns-below',{delay:4,gap:18,fade:2}),hydra:section('hydra','sever-the-echo',{guardian:true,priority:true,delay:3,window:120,gap:15,fade:2}),engine:section('sun','sever-the-echo',{guardian:true,priority:true,delay:3,window:120,gap:15,fade:2})},quiet:['null','gantry','chapel']},
   'blacksite-07': {opening:'iron-wake', sections:{'Research laboratory':section('research','containment-pulse')}, quiet:['Extraction bay']},

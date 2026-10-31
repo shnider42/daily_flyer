@@ -1,6 +1,8 @@
 import { Game, MISSIONS, WEAPONS, ownedWeapons } from './core.mjs';
 import { BreachRenderer } from './renderer.mjs';
 import { BreachAudio } from './audio.mjs';
+import { CUES_BY_ID } from './music-cues.mjs';
+import { WEAPON_VIEW_DEFAULTS, weaponViewOptions } from './weapon-view.mjs';
 import { CoopClient } from './coop-client.mjs';
 import { GUIDANCE_DESCRIPTIONS, interactionForGuidance, objectiveForGuidance, briefingForGuidance, noticeForGuidance, markerLabelForGuidance, markerCueForGuidance, visibleEquipment, hostileToPlayer, automaticFireAllowed } from './guidance.mjs';
 import { resolveTouchPreset, joystickVector, resolveFireGesture, TouchFireGestures } from './touch-controls.mjs';
@@ -22,6 +24,7 @@ const missionIds = MISSIONS.map(mission=>mission.id);
 const coopMissionIds=['crosslink-11','underworks-13','glasshouse-17','hollow-19','beneath-the-shadow'].filter(id=>missionIds.includes(id));
 const weaponHotkeys={Digit1:'pistol',Digit2:'shotgun',Digit3:'arc',Digit4:'ricochet',Digit5:'grenade',Digit6:'repeater',Digit7:'nullgun',Digit8:'lance'};
 const settings = {
+  ...weaponViewOptions(prior),
   coopMission: choices(prior.coopMission,coopMissionIds,coopMissionIds[0]),
   callSign: typeof prior.callSign==='string'?prior.callSign.slice(0,20):'Operator',
   mission: choices(requestedMission, missionIds, choices(prior.mission,missionIds,MISSIONS[0].id)),
@@ -190,7 +193,7 @@ function saveSettings() {
   document.body.classList.toggle('reduced-motion',settings.reducedMotion);
   document.body.dataset.guidance=settings.guidance;
   if(game) { game.options.guidance = settings.guidance; game.options.aimAssist = settings.aimAssist; }
-  if(renderer) { renderer.options.reducedMotion = settings.reducedMotion; renderer.options.fov = settings.fov; renderer.options.quality = settings.quality; renderer.resize(); }
+  if(renderer)renderer.setOptions({reducedMotion:settings.reducedMotion,fov:settings.fov,quality:settings.quality,...weaponViewOptions(settings)});
   applyControlMode();
   if(coop)coop.aimAssist=settings.aimAssist;
   audio.setEnabled(settings.sound);
@@ -223,6 +226,10 @@ function updateSettingsFields() {
   $('setting-guidance').value = settings.guidance;
   $('setting-fov').value = settings.fov === null ? 'auto' : String(settings.fov);
   $('setting-quality').value = settings.quality;
+  for(const [id,key]of [['weapon-size','weaponSize'],['weapon-position','weaponPosition'],['weapon-lowering','weaponLowering']]){
+    $(`setting-${id}`).value=Math.round(settings[key]*100);
+    $(`${id}-value`).textContent=`${Math.round(settings[key]*100)}%`;
+  }
   $('setting-sound').checked = settings.sound;
   $('setting-music').checked = settings.music;
   $('setting-music-volume').value = Math.round(settings.musicVolume*100);
@@ -300,7 +307,7 @@ function resetExploration() { explored=new Set();mapDirty=true;pathHint=null;pat
 function mountGame(candidate) {
   audio.resetMusic();
   renderer?.dispose();game=candidate;
-  renderer = new BreachRenderer($('world'),game,{quality:settings.quality,fov:settings.fov,reducedMotion:settings.reducedMotion});
+  renderer = new BreachRenderer($('world'),game,{quality:settings.quality,fov:settings.fov,reducedMotion:settings.reducedMotion,...weaponViewOptions(settings)});
   resetExploration(); helpRevealed=0;updateTutorial.identity=null;touchLookHelpShown=false;encounterNotices.clear();
 }
 function makeGame(options = {}) {
@@ -969,7 +976,7 @@ function frame(now) {
       if(now-lastSave>10000){saveRun();lastSave=now;}
     }
     if(coop&&mode!=='playing')coop.drive(dt,{forward:0,strafe:0,turn:0,fire:false});
-    audio.music.updateMenu({blocked:document.hidden || !!document.querySelector('dialog[open]') || audio.preview.busy});
+    audio.music.updateMenu({blocked:document.hidden || !document.hasFocus() || audio.preview.busy});
     audio.updateMusic(game,dt,mode!=='playing'||document.hidden||mapVisible||!!document.querySelector('dialog[open]'));
     if(now-lastHud>90){updateMusicUi();updateHud();lastHud=now;if(mapVisible&&mapDirty)drawMap();}
     if(now>toastTimer)$('toast').hidden=true;
@@ -981,17 +988,20 @@ function frame(now) {
 }
 
 function updateMusicUi() {
-  const music=audio.music, active=music._active?.kind==='menu' || music._pending?.kind==='menu';
-  const label=active?'STOP MENU THEME':'PLAY MENU THEME';
+  const music=audio.music,active=music.menuActivated&&!music.menuMuted&&!music.menuError;
+  const current=music._active?.kind==='menu'?music._active:music._pending?.kind==='menu'?music._pending:null;
+  const label=active?'STOP MENU MUSIC':'PLAY MENU MUSIC';
   if($('menu-music').textContent!==label)$('menu-music').textContent=label;
   const status=!settings.sound || !settings.music || !settings.musicVolume?'Music is off in Settings.':
-    active?'Containment Pulse · menu theme':music.menuUsed?'Menu theme stopped. Play again whenever you like.':'Tap to hear the menu theme. Mission music follows each level’s pacing.';
+    music.menuMuted?'Menu music stopped. Tap to play again.':music.menuError?'Music could not load. Retrying shortly; tap to retry now.':
+    current?`${CUES_BY_ID.get(current.id)?.title} · alternating menu themes`:
+    active?'Two menu themes alternate continuously.':'Tap to hear two alternating menu themes. Mission music follows each level’s pacing.';
   if($('menu-music-status').textContent!==status)$('menu-music-status').textContent=status;
 }
 $('menu-music').addEventListener('click',()=>{audio.unlock();audio.music.toggleMenu();updateMusicUi();});
 // Browser audio is unlocked by a real menu interaction, never by page load.
 document.addEventListener('click',event=>{
-  if(mode==='menu' && !document.hidden && !document.querySelector('dialog[open]') && event.target.closest('button') && !event.target.closest('#menu-music')) {
+  if(mode==='menu' && !document.hidden && event.target.closest('button') && !event.target.closest('#menu-music')) {
     audio.unlock();audio.music.activateMenu();
   }
 });
@@ -1063,6 +1073,9 @@ for(const button of document.querySelectorAll('[data-difficulty]'))button.addEve
 for(const [id,property]of [['setting-sound','sound'],['setting-music','music'],['setting-aim','aimAssist'],['setting-auto','autoFire'],['setting-motion','reducedMotion']])$(id).addEventListener('change',event=>{settings[property]=event.target.checked;saveSettings();updateSettingsFields();});
 $('setting-fov').addEventListener('change',event=>{settings.fov=event.target.value==='auto'?null:Number(event.target.value);saveSettings();});
 $('setting-quality').addEventListener('change',event=>{settings.quality=event.target.value;saveSettings();});
+for(const [id,key]of [['weapon-size','weaponSize'],['weapon-position','weaponPosition'],['weapon-lowering','weaponLowering']])
+  $(`setting-${id}`).addEventListener('input',event=>{settings[key]=Number(event.target.value)/100;Object.assign(settings,weaponViewOptions(settings));updateSettingsFields();saveSettings();});
+$('reset-weapon-view').addEventListener('click',()=>{Object.assign(settings,WEAPON_VIEW_DEFAULTS);updateSettingsFields();saveSettings();});
 $('setting-controls').addEventListener('change',event=>{settings.controls=event.target.value;saveSettings();updateSettingsFields();});
 $('setting-guidance').addEventListener('change',event=>changeGuidance(event.target.value));
 $('setting-touch-preset').addEventListener('change',event=>{clearInputs();settings.touchPreset=resolveTouchPreset(event.target.value);saveSettings();updateSettingsFields();});

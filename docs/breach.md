@@ -4,6 +4,19 @@ An original retro first-person game built on DailyFlyer, with eight solo mission
 and five operations available in private two-player co-op. Solo play runs in the
 browser; co-op uses an authoritative room server.
 
+## 0.9.1 — Menu rotation and weapon framing
+
+After an audio-unlocking tap, the menu continuously alternates Containment Pulse
+and Lanterns Below with a 1.2-second crossfade. Settings keep the music running;
+the audio test, mute, backgrounding and mission start fade it out. Mission scoring
+and intentional silences stay unchanged. Failed loads retry at most every 15 seconds.
+
+Held guns default to 70% size, farther right and lower. Settings → Weapon view
+adds saved size, horizontal-position and lowering sliders plus a reset button.
+Portrait views leave clearance above the bottom HUD.
+These preferences apply to every gun on both renderers and only affect the local
+view, leaving aim and co-op simulation unchanged.
+
 ## 0.9.0 — Beneath The Shadow
 
 A standalone buried-city expedition adds three bosses, a finite multiplying

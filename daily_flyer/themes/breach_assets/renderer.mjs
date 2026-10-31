@@ -1,4 +1,5 @@
 import { platformSolid } from './shadow.mjs';
+import { weaponViewTransform } from './weapon-view.mjs';
 import * as THREE from './vendor/three.module.js';
 
 // All texture, creature and weapon artwork below is original and generated locally.
@@ -1940,16 +1941,17 @@ class WebGLBreachRenderer {
     if(this.game.state.status==='won'||p.alive===false||p.health<=0)return;
     if(this.lastWeapon!==p.weapon){this.lastWeapon=p.weapon;this.weaponSwap=1;}
     const reduced=this.options.reducedMotion;
-    const scale=Math.min(w/400,h/270)*.9;
+    const {scale,x,y}=weaponViewTransform(this.options,w,h);
     const sway=reduced?0:Math.sin(this.bobPhase*.5)*this.moveAmount*4;
     const bob=reduced?0:Math.abs(Math.sin(this.bobPhase))*this.moveAmount*3;
     const recoil=reduced?this.recoil*3:this.recoil*13;
-    c.save();c.translate(Math.round(w*.51+sway),Math.round(h+12+bob+recoil+this.weaponSwap*60));c.scale(scale,scale);
+    c.save();c.translate(Math.round(x+sway),Math.round(y+bob+recoil+this.weaponSwap*60));c.scale(scale,scale);
+    const hem=Math.max(0,(h-y)/scale+1);
     // Gloved forearms and a steel weapon drawn as a low-resolution first-person sprite.
-    poly(c,[[-75,0],[-63,-37],[-40,-60],[-20,-41],[-10,0]],'#17232a');
-    poly(c,[[-70,0],[-59,-32],[-40,-51],[-28,-36],[-19,0]],'#52615b');
-    poly(c,[[28,0],[30,-42],[48,-52],[68,-34],[84,0]],'#17242b');
-    poly(c,[[38,0],[39,-36],[49,-45],[62,-28],[75,0]],'#617064');
+    poly(c,[[-75,hem],[-63,-37],[-40,-60],[-20,-41],[-10,hem]],'#17232a');
+    poly(c,[[-70,hem],[-59,-32],[-40,-51],[-28,-36],[-19,hem]],'#52615b');
+    poly(c,[[28,hem],[30,-42],[48,-52],[68,-34],[84,hem]],'#17242b');
+    poly(c,[[38,hem],[39,-36],[49,-45],[62,-28],[75,hem]],'#617064');
     rect(c,-52,-31,13,18,'#2d3c3c');rect(c,45,-27,14,15,'#344744');
     if(['repeater','nullgun','lance'].includes(p.weapon)){drawShadowWeapon(c,p.weapon,this.flash,this.clock);
     }else if(p.weapon==='shotgun'){

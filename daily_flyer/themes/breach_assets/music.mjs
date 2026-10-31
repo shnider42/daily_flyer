@@ -1,5 +1,5 @@
 /** Authored menu, mission-opening and section score. Never a combat playlist. */
-import { CUES_BY_ID, MENU_SCORE } from './music-cues.mjs';
+import { CUES_BY_ID, MENU_SCORES } from './music-cues.mjs';
 const MAX_CUE_SECONDS=56;
 const DUCK_EVENTS=new Set(['enemy-warning','enemy-shot','hurt','explosion','teleport','provoked','boss-phase','shield-open','shield-hit','heal','heal-interrupt','ricochet']);
 const RELIEF_EVENTS=new Set(['refuge','transit','transit-activated','checkpoint','relay','power']);
@@ -10,7 +10,8 @@ export class BreachMusic {
   constructor({enabled=true,volume=.45,fetcher=globalThis.fetch?.bind(globalThis)}={}) {
     this.enabled=!!enabled;this.volume=level(volume,.45);this.fetcher=fetcher;
     this.context=null;this.output=null;this.playing=false;this.menu=false;
-    this.menuActivated=false;this.menuMuted=false;this.menuUsed=false;
+    this.menuActivated=false;this.menuMuted=false;this.menuIndex=0;
+    this.menuError=false;this._menuRetryAt=0;
     this.time=0;this.cooldownUntil=0;this.suppressedUntil=0;this.duckUntil=0;
     this.completed=new Set();this.visited=new Set();this.openingUsed=false;this._initialized=false;
     this._candidate=null;this._scene={};this._pressure=0;this._guardian=false;
@@ -42,20 +43,23 @@ export class BreachMusic {
     if(next===this.menu)return;
     if(this._pending?.kind==='menu' || this._active?.kind==='menu')this._interrupt();
     this.menu=next;
-    if(next)this.menuUsed=false;
+    if(next){this.menuIndex=0;this.menuError=false;this._menuRetryAt=0;}
   }
   activateMenu() {this.menuActivated=true;}
   toggleMenu() {
     if(!this.enabled || !this.volume)return;
+    if(this.menuActivated && !this.menuMuted && !this.menuError) {this.menuMuted=true;this._interrupt();}
+    else {this.menuMuted=false;this.menuError=false;this._menuRetryAt=0;}
     this.menuActivated=true;
-    if(this._active?.kind==='menu' || this._pending?.kind==='menu') {this.menuMuted=true;this._interrupt();}
-    else {this.menuMuted=false;this.menuUsed=false;}
   }
   updateMenu({blocked=false}={}) {
     if(!this.menu || this.playing)return;
     if(blocked || !this.enabled || !this.volume){if(this._active?.kind==='menu' || this._pending?.kind==='menu')this._interrupt();return;}
-    if(this.menuActivated && !this.menuMuted && !this.menuUsed && !this._active && !this._pending && !this._sources.size && this._readyContext()) {
-      this.menuUsed=true;this._requestCue({...MENU_SCORE,kind:'menu',scope:'menu'});
+    const outgoing=this._active;
+    const handoff=outgoing?.kind==='menu' && this._sources.size===1 && this.context.currentTime>=outgoing.endAt-outgoing.fade;
+    if(this.menuActivated && !this.menuMuted && !this._pending && this._readyContext() && this.context.currentTime>=this._menuRetryAt &&
+       ((!outgoing && !this._sources.size) || handoff)) {
+      this._requestCue({...MENU_SCORES[this.menuIndex],menuIndex:this.menuIndex,kind:'menu',scope:'menu'});
     }
   }
   reset({retry=false,snapshot=null}={}) {
@@ -151,7 +155,11 @@ export class BreachMusic {
       const buffer=await this.prepare(request.id);
       if(!this._currentRequest(request))return;
       this._pending=null;this._start(buffer,request);
-    }).catch(()=>{if(this._pending===request)this._pending=null;});
+    }).catch(()=>{
+      if(this._pending!==request)return;
+      this._pending=null;
+      if(request.kind==='menu'){this.menuError=true;this._menuRetryAt=this.context.currentTime+15;}
+    });
   }
   // Loading and permission to play are separate. A missed section can leave a
   // useful cached buffer, but can never leave a delayed musical surprise.
@@ -195,12 +203,19 @@ export class BreachMusic {
       gain.gain.linearRampToValueAtTime(this.volume * cue.level * (cue.ducked ? .25 : 1), at + (request.fade||.8));
       if(request.fade){gain.gain.setValueAtTime(this.volume*cue.level*(cue.ducked?.25:1),Math.max(at+request.fade,cue.endAt-request.fade));gain.gain.linearRampToValueAtTime(0,cue.endAt);}
       source.start(at); source.stop(at + Math.min(buffer.duration, MAX_CUE_SECONDS));
+      if(request.kind==='menu'){
+        this.menuError=false;this.menuIndex=(request.menuIndex+1)%MENU_SCORES.length;
+        // Decode the other song during this phrase so the menu can crossfade
+        // without a network gap. The shared cache still holds only two cues.
+        this.prepare(MENU_SCORES[this.menuIndex].cue).catch(()=>{});
+      }
 
     } catch (_) {
       if (cue) { this._sources.delete(cue); if (this._active === cue) this._active = null; }
       try { source?.stop(); } catch (_) { /* A source may not have started. */ }
       try { source?.disconnect(); gain?.disconnect(); } catch (_) { /* Optional audio cleanup. */ }
       if(request.kind!=='menu')this.cooldownUntil = Math.max(this.cooldownUntil, this.time + 25);
+      else {this.menuError=true;this._menuRetryAt=(this.context?.currentTime||0)+15;}
     }
   }
 
@@ -222,15 +237,19 @@ export class BreachMusic {
     const cue = this._active; this._active = null;
     // A download that never became audible has not spent the music budget.
     if (cue && cue.kind!=='menu')this.cooldownUntil = Math.max(this.cooldownUntil, this.time + cue.cooldown);
-    if (!cue || cue.stopped) return;
-    cue.stopped = true;
-    try {
-      const at = this.context?.currentTime || 0, param = cue.gain.gain,fade=seconds??cue.fade??.3;
-      param.cancelScheduledValues(at); param.setValueAtTime(param.value, at); param.linearRampToValueAtTime(0, at + fade);
-      cue.source.stop(at + fade);
-    } catch (_) {
-      this._sources.delete(cue);
-      try { cue.source.disconnect(); cue.gain.disconnect(); } catch (_) { /* Optional audio cleanup. */ }
+    // A menu handoff briefly has two voices. Stop both when leaving, muting,
+    // backgrounding or testing audio; neither may spill into a mission.
+    for(const voice of this._sources){
+      if(voice.stopped)continue;
+      voice.stopped=true;
+      try {
+        const at=this.context?.currentTime||0,param=voice.gain.gain,fade=seconds??(voice.kind==='menu'?.4:voice.fade??.3);
+        param.cancelScheduledValues(at);param.setValueAtTime(param.value,at);param.linearRampToValueAtTime(0,at+fade);
+        voice.source.stop(at+fade);
+      }catch(_){
+        this._sources.delete(voice);
+        try{voice.source.disconnect();voice.gain.disconnect();}catch(_){ /* Optional audio cleanup. */ }
+      }
     }
   }
 }

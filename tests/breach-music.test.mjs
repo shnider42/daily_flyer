@@ -122,11 +122,50 @@ test('continuing an older save or joining co-op late does not restart the level 
 test('muted openings are consumed rather than sprung on the listener when enabling music later',async()=>{
   const s=setup({enabled:false});tick(s.m,s.c,3,0,{scene:opening});s.m.configure({enabled:true});tick(s.m,s.c,20,0,{scene:opening});await settle();assert.equal(s.calls.length,0);
 });
-test('menu theme needs user activation, plays once per visit, and has a quieter mix',async()=>{
+test('menu alternates two complete themes continuously with a quiet crossfade and bounded downloads',async()=>{
   const s=setup();s.m.setPlaying(false);s.m.setMenu(true);s.m.updateMenu();await settle();assert.equal(s.calls.length,0);
-  s.m.activateMenu();s.m.updateMenu();await settle();assert.equal(s.c.sources.length,1);assert.match(s.calls[0].url.pathname,/containment-pulse/);
-  assert.equal(s.c.gains[0].gain.value,.45*.65);s.c.advance(40);s.m.updateMenu();await settle();assert.equal(s.c.sources.length,1);
-  assert.equal(s.m.cooldownUntil,0);
+  s.m.activateMenu();s.m.updateMenu();await settle();assert.equal(s.c.sources.length,1);
+  assert.equal(s.m._active.id,'containment-pulse');
+  assert.ok(s.c.gains[0].gain.actions.some(a=>a[0]==='ramp'&&a[1]===.45*.65));
+  assert.equal(s.calls.length,2,'next theme is prepared during the first');
+  for(let i=0;i<6;i++){
+    const outgoing=s.m._active;
+    s.c.advance(outgoing.endAt-s.c.currentTime-outgoing.fade+.001);
+    s.m.updateMenu();await settle();
+    assert.equal(s.m._active.id,i%2?'containment-pulse':'lanterns-below');
+    assert.equal(s.c.sources.filter(x=>!x.ended).length,2,'brief menu-only overlap');
+    assert.equal(s.c.sources.at(-1).loop,false,'each song plays its full phrase');
+    s.c.advance(1.2);assert.equal(s.c.sources.filter(x=>!x.ended).length,1);
+  }
+  assert.equal(s.calls.length,2);assert.equal(s.m._buffers.size,2);assert.equal(s.m.cooldownUntil,0);
+});
+for(const action of ['stop','mute','zero-volume','background','start'])test(`menu crossfade cancels both voices on ${action}`,async()=>{
+  const s=setup();s.m.setPlaying(false);s.m.setMenu(true);s.m.activateMenu();s.m.updateMenu();await settle();
+  s.c.advance(s.m._active.endAt-1);s.m.updateMenu();await settle();assert.equal(s.m._sources.size,2);
+  if(action==='stop')s.m.toggleMenu();
+  if(action==='mute')s.m.configure({enabled:false});
+  if(action==='zero-volume')s.m.configure({volume:0});
+  if(action==='background')s.m.updateMenu({blocked:true});
+  if(action==='start')s.m.setPlaying(true);
+  assert.equal(s.m._active,null);s.c.advance(.5);assert.equal(s.m._sources.size,0);
+  s.m.updateMenu({blocked:action==='background'});await settle();assert.equal(s.c.sources.length,2);
+  if(action==='start'){tick(s.m,s.c,2,0,{scene:opening});await settle();assert.equal(s.m._active.id,'iron-wake');assert.equal(s.m._sources.size,1);}
+});
+test('menu returns after backgrounding and enabling music, but an explicit stop stays stopped',async()=>{
+  const s=setup();s.m.setPlaying(false);s.m.setMenu(true);s.m.activateMenu();s.m.updateMenu();await settle();
+  s.m.updateMenu({blocked:true});s.c.advance(1);s.m.updateMenu();await settle();assert.equal(s.m._active.id,'lanterns-below');
+  s.m.configure({enabled:false});s.c.advance(1);s.m.configure({enabled:true});s.m.updateMenu();await settle();assert.equal(s.m._active.id,'containment-pulse');
+  s.m.toggleMenu();s.c.advance(1);s.m.activateMenu();s.m.updateMenu();await settle();assert.equal(s.m._active,null);
+  s.m.setMenu(false);s.m.setMenu(true);s.m.updateMenu();await settle();assert.equal(s.m._active,null);
+  s.m.toggleMenu();s.m.updateMenu();await settle();assert.equal(s.m._active.id,'containment-pulse');
+});
+test('failed menu loads retry with a bounded interval and recover when connectivity returns',async()=>{
+  let calls=0,online=false;
+  const s=setup({fetcher:async()=>{calls++;if(!online)throw new Error('offline');return {ok:true,arrayBuffer:async()=>new ArrayBuffer(2)};}});
+  s.m.setPlaying(false);s.m.setMenu(true);s.m.activateMenu();
+  for(let i=0;i<100;i++){s.m.updateMenu();await settle();s.c.advance(.1);}
+  assert.equal(calls,1);assert.equal(s.m.menuError,true);
+  online=true;s.c.advance(6);s.m.updateMenu();await settle();assert.equal(s.m._active.id,'containment-pulse');assert.equal(s.m.menuError,false);
 });
 test('menu stop, backgrounding, and starting a level cancel stale menu loading',async()=>{
   for(const action of ['stop','background','start']){

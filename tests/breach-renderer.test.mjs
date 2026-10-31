@@ -1,3 +1,4 @@
+import { weaponViewTransform, weaponViewOptions, WEAPON_VIEW_DEFAULTS } from '../daily_flyer/themes/breach_assets/weapon-view.mjs';
 import { SHADOW, platformSolid } from '../daily_flyer/themes/breach_assets/shadow.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
@@ -47,7 +48,7 @@ class GeometryOnlyRenderer {
 const source=readFileSync(new URL('../daily_flyer/themes/breach_assets/renderer.mjs',import.meta.url),'utf8')
   .replace(/^import .*;\n/gm,'').replace('export class BreachRenderer','class BreachRenderer');
 const api=runInNewContext(source+';({surfaceLayout,doorKind,doorStyleKey,doorReady,doorFrame,stationKey,featureMode,enemyArt,encounterCues,projectileAppearance,makeDoorTexture,makeStationTexture,makePickupTexture,yardLandmarkPanels,gardenLandmarkPanels,destinationPanels,WebGLBreachRenderer,SoftwareBreachRenderer})',{
-  platformSolid,THREE:{...THREE,WebGLRenderer:GeometryOnlyRenderer},document:{createElement:()=>canvas()},window:{innerWidth:1440,innerHeight:900},matchMedia:()=>({matches:false}),
+  weaponViewTransform,platformSolid,THREE:{...THREE,WebGLRenderer:GeometryOnlyRenderer},document:{createElement:()=>canvas()},window:{innerWidth:1440,innerHeight:900},matchMedia:()=>({matches:false}),
 });
 
 function gameFor(level=UNDERWORKS){
@@ -433,4 +434,35 @@ test('Shadow platforms, multiplying roots and three earned guns render in both p
   game.state.time=6;renderer.render(.016);if(renderer.shadowPlatforms)assert.ok(renderer.shadowPlatforms.some(p=>p.mesh.position.y<0));
   assert.ok(renderer.stats.geometryBytes===undefined||renderer.stats.geometryBytes<400000);renderer.dispose();
  }
+});
+
+
+test('every held weapon uses smaller right-hand framing and local sliders in both renderers',()=>{
+  for(const Renderer of[api.WebGLBreachRenderer,api.SoftwareBreachRenderer]){
+    const game=gameFor(),renderer=new Renderer(canvas(844,390),game,{reducedMotion:true});
+    const original=JSON.stringify(game.state),transforms=[];
+    renderer.weaponContext.translate=(x,y)=>transforms.push({x,y});
+    renderer.weaponContext.scale=(x,y)=>Object.assign(transforms.at(-1),{sx:x,sy:y});
+    for(const weapon of['pistol','shotgun','arc','ricochet','grenade','repeater','nullgun','lance']){
+      game.state.player.weapon=weapon;renderer.lastWeapon=weapon;renderer.render(0);
+      const pose=transforms.at(-1);
+      assert.ok(pose.x>renderer.width*.65);assert.ok(pose.y>renderer.height);
+      assert.ok(pose.sx<Math.min(renderer.width/400,renderer.height/270)*.7);
+      assert.equal(pose.sx,pose.sy);
+    }
+    const old=transforms.at(-1);renderer.setOptions({weaponSize:.5,weaponPosition:.5,weaponLowering:-.2});renderer.render(0);
+    const adjusted=transforms.at(-1);assert.ok(adjusted.sx<old.sx);assert.ok(adjusted.x<old.x);assert.ok(adjusted.y<old.y);
+    game.state.player.weapon='pistol';assert.equal(JSON.stringify(game.state),original,'view preferences do not mutate simulation');
+    renderer.dispose();
+  }
+});
+test('weapon preferences recover from invalid saves and keep the muzzle visible on tall phones',()=>{
+  assert.deepEqual(weaponViewOptions({weaponSize:NaN,weaponPosition:'left',weaponLowering:null}),WEAPON_VIEW_DEFAULTS);
+  for(const [w,h]of[[390,844],[844,390],[1440,900]]){
+    const pose=weaponViewTransform({weaponSize:.45,weaponPosition:.82,weaponLowering:.3},w,h);
+    assert.ok(pose.y-120*pose.scale<h,'even the smallest pistol muzzle is inside the viewport');
+    assert.ok(pose.x+49*pose.scale<w,'the broad Thumper muzzle stays inside the right edge');
+    if(h>w)assert.ok(pose.y-120*pose.scale<h-80,'portrait HUD does not bury the pistol muzzle');
+  }
+  assert.deepEqual(weaponViewOptions({weaponSize:500,weaponPosition:-1,weaponLowering:100}),{weaponSize:1.1,weaponPosition:.4,weaponLowering:.3});
 });
