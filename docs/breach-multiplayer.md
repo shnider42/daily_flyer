@@ -143,3 +143,13 @@ Real-device testing should pair a desktop and a phone on separate networks.
 Exercise both relays, a contested pickup, individual and team deaths, a phone
 background/return, a brief network interruption, checkpoint retry, and extraction.
 Check smoothness and response time separately from shared-state correctness.
+
+## 0.8.0: The Hollow
+
+The Hollow (`hollow-19`) is the fourth private co-op operation. Its client must
+advertise the mission in `supportedMissions`. Containment routing, field-record
+discovery and relay progress are shared authoritative state. The existing
+no-friendly-fire, individual equipment selection, checkpoint revival and
+reconnect policies remain in effect. The much larger map does not introduce
+durable co-op saving: Leave, room expiry or service restart still ends the run.
+See [the Hollow release notes](breach-hollow-08.md).

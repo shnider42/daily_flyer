@@ -19,7 +19,7 @@ const prior = readStorage(SETTINGS_KEY) || {};
 const choices = (x, valid, fallback) => valid.includes(x) ? x : fallback;
 const requestedMission = new URL(location.href).searchParams.get('mission');
 const missionIds = MISSIONS.map(mission=>mission.id);
-const coopMissionIds=['crosslink-11','underworks-13','glasshouse-17'].filter(id=>missionIds.includes(id));
+const coopMissionIds=['crosslink-11','underworks-13','glasshouse-17','hollow-19'].filter(id=>missionIds.includes(id));
 const weaponHotkeys={Digit1:'pistol',Digit2:'shotgun',Digit3:'arc',Digit4:'ricochet',Digit5:'grenade'};
 const settings = {
   coopMission: choices(prior.coopMission,coopMissionIds,coopMissionIds[0]),
@@ -165,6 +165,20 @@ function setMode(next) {
   if(next !== 'playing') { clearInputs(); releasePointer(); }
   updatePauseRoom();updateTeamStatus();
   if(next === 'menu') updateContinue();
+  if(next === 'paused') updateFieldJournal();
+}
+function updateFieldJournal() {
+  const journal=$('field-journal');
+  if(!journal)return;
+  const records=(game?.state.interactables||[]).filter(item=>item.type==='record');
+  journal.hidden=!records.length;
+  const found=records.filter(item=>item.used);
+  $('journal-summary').textContent=`FIELD RECORDS / ${found.length} OF ${records.length}`;
+  $('journal-entries').replaceChildren(...found.map(record=>{
+    const article=document.createElement('article'),title=document.createElement('h3'),text=document.createElement('p');
+    title.textContent=record.label;text.textContent=record.text;article.append(title,text);return article;
+  }));
+  if(!found.length){const p=document.createElement('p');p.textContent='No records recovered. Inspect the tape terminals in the facility.';$('journal-entries').append(p);}
 }
 function saveSettings() {
   clearInputs();
@@ -222,7 +236,7 @@ function currentMission() { return missionForId(game?.level?.missionId); }
 function updateMissionMenu() {
   const selected=missionForId(settings.mission);
   $('mission-count').textContent=`${MISSIONS.length} AUTHORED MISSIONS`;
-  $('mission-briefing').closest('.mission-dossier').classList.toggle('exploration-dossier',selected.id==='underworks-13');
+  $('mission-briefing').closest('.mission-dossier').classList.toggle('exploration-dossier',['underworks-13','hollow-19'].includes(selected.id));
   $('mission-mode').textContent=coopMissionIds.includes(selected.id)?'SOLO / PRIVATE CO-OP':'SINGLE PLAYER';
   $('mission-number').textContent=`MISSION ${selected.number}`;
   $('mission-title').textContent=selected.name.toUpperCase();
@@ -387,7 +401,7 @@ function updateRoomBriefing(id) {
   $('room-mission-tag').textContent=`MISSION ${mission.number} / PRIVATE CO-OP`;
   $('room-mission-title').textContent=mission.name.toUpperCase();
   $('room-mission-briefing').textContent=briefingForGuidance(mission,settings.guidance).text;
-  $('room-exploration-rule').hidden=mission.id!=='underworks-13';
+  $('room-exploration-rule').hidden=!['underworks-13','hollow-19'].includes(mission.id);
 }
 function populateRoomMissions() {
   $('room-mission').replaceChildren(...coopMissionIds.map(id=>{
@@ -891,10 +905,11 @@ function processEvents(events,allEvents=events) {
     const eventNotice=noticeForGuidance(event,settings.guidance,game.getInteractionInfo(),{observed});
     if(combatCue&&eventNotice)encounterNotices.add(event.type);
     if(eventNotice)notice=eventNotice;
+    if(event.type==='record')updateFieldJournal();
     if(event.type==='hurt')damageUntil=performance.now()+(settings.reducedMotion?130:200);
     if(event.type==='hit')hitUntil=performance.now()+120;
     if(['door','shutter','power','pickup','relay','upgrade','refuge','transit-activated','transit','reward','hit','death'].includes(event.type)) {pathTimer=0;mapDirty=true;}
-    if(['checkpoint','upgrade','refuge','transit-activated','reward'].includes(event.type))saveRun();
+    if(['checkpoint','upgrade','refuge','transit-activated','reward','record','shutter'].includes(event.type))saveRun();
     if(event.type==='win'&&!coop)finish(true);
     if(event.type==='death'&&!coop)finish(false);
     if(event.type==='revive'&&coop)notice='Back in the fight. The team reached a shared checkpoint.';

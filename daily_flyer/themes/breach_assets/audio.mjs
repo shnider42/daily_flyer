@@ -40,11 +40,13 @@ export class BreachAudio {
   }
   events(events, listener = null) {
     for(const event of events) {
-      const encounter = ['enemy-warning','enemy-shot','teleport','provoked','boss-phase','shutter','ricochet','explosion','shield-hit','shield-open','heal','heal-interrupt'].includes(event.type);
+      const encounter = ['containment-routed','enemy-warning','enemy-shot','teleport','provoked','boss-phase','shutter','ricochet','explosion','shield-hit','shield-open','heal','heal-interrupt'].includes(event.type);
       const distance = listener && Number.isFinite(event.x) && Number.isFinite(event.z) ? Math.hypot(event.x-listener.x,event.z-listener.z) : 0;
       if(encounter && distance > 14) continue;
       const volume = Math.max(.15, 1-distance/16);
       switch(event.type) {
+        case 'record': this.tone(260,.3,.07,260,'triangle'); this.tone(257,.6,.045,190,'sine',.12); break;
+        case 'containment-routed': this.tone(event.open?170:65,.8,.12*volume,event.open?45:170,'sine'); break;
         case 'shot':
           if(event.weapon==='arc') {
             this.noise(.14,.28,3100); this.tone(820,.2,.27,150,'sawtooth');

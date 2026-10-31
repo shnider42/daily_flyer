@@ -37,16 +37,17 @@ const viewFov = (options, width, height) => {
 const missionVisuals = (level) => {
   const relay = level.missionId === 'relay-09' || String(level.id).startsWith('relay-09');
   const crosslink = level.missionId === 'crosslink-11' || String(level.id).startsWith('crosslink-11');
-  const underworks = level.missionId === 'underworks-13' || String(level.id).startsWith('underworks-13');
+  const hollow = level.hollow === true;
+  const underworks = hollow || level.missionId === 'underworks-13' || String(level.id).startsWith('underworks-13');
   const switchyard = level.missionId === 'switchyard-15' || String(level.id).startsWith('switchyard-15');
   const glasshouse = level.missionId === 'glasshouse-17' || String(level.id).startsWith('glasshouse-17');
   return {
-    relay, crosslink, underworks, switchyard, glasshouse,
+    relay, crosslink, underworks, switchyard, glasshouse, hollow,
     signCode: level.signCode || (glasshouse ? 'GH 17' : switchyard ? 'SW 15' : underworks ? 'UW 13' : crosslink ? 'CROSSLINK 11' : relay ? 'RELAY 09' : 'BS 07'),
     doorCode: level.signCode || (glasshouse ? 'GLASSHOUSE 17' : switchyard ? 'SWITCHYARD 15' : underworks ? 'UNDERWORKS 13' : crosslink ? 'CROSSLINK 11' : relay ? 'DEAD RELAY 09' : 'BLACKSITE 07'),
-    signColor: glasshouse ? '#c4f4cf' : switchyard ? '#f1c579' : underworks ? '#d8c5a2' : crosslink ? '#e2c78c' : relay ? '#b6c5e6' : '#9fd8cf',
-    fog: glasshouse ? 0x283c3d : switchyard ? 0x24272c : underworks ? 0x131917 : crosslink ? 0x101b19 : relay ? 0x0c1526 : 0x08131c,
-    fogRgb: glasshouse ? [40,60,61] : switchyard ? [36,39,44] : underworks ? [19,25,23] : crosslink ? [16, 27, 25] : relay ? [12, 21, 38] : [8, 19, 28],
+    signColor: hollow ? '#9dcbd4' : glasshouse ? '#c4f4cf' : switchyard ? '#f1c579' : underworks ? '#d8c5a2' : crosslink ? '#e2c78c' : relay ? '#b6c5e6' : '#9fd8cf',
+    fog: hollow ? 0x11131e : glasshouse ? 0x283c3d : switchyard ? 0x24272c : underworks ? 0x131917 : crosslink ? 0x101b19 : relay ? 0x0c1526 : 0x08131c,
+    fogRgb: hollow ? [17,19,30] : glasshouse ? [40,60,61] : switchyard ? [36,39,44] : underworks ? [19,25,23] : crosslink ? [16, 27, 25] : relay ? [12, 21, 38] : [8, 19, 28],
   };
 };
 const exitReady = (state) => !!(state.power && state.player.key && (state.interactables || []).filter(i => i.type === 'relay').every(i => i.used));
@@ -58,8 +59,8 @@ const localEvent = (event, state) => !event.playerId || !localPlayerId(state) ||
 const doorKind = (door) => door.kind==='shutter'?'shutter':({cutter:'grille',insulator:'hazard',phase:'phase'}[door.requires] || (['grille','hazard','phase','shortcut'].includes(door.kind) ? door.kind : door.requires || 'plain'));
 const circuitMark = item => String(item.mark||String(item.circuitId||'1').split('-').at(-1)).padStart(2,'0').slice(-2);
 const doorStyleKey = door => doorKind(door)==='shutter'?`shutter:${circuitMark(door)}`:doorKind(door);
-const stationKey = item => item.type==='shutter-switch'?`shutter-switch:${circuitMark(item)}`:`${item.type}:${item.upgrade||''}`;
-const explorationFeature = (item) => ['upgrade','refuge','transit','shutter-switch'].includes(item.type);
+const stationKey = item => item.routing?`routing:${circuitMark(item)}`:item.type==='shutter-switch'?`shutter-switch:${circuitMark(item)}`:`${item.type}:${item.upgrade||''}`;
+const explorationFeature = (item) => ['upgrade','refuge','transit','shutter-switch','record'].includes(item.type);
 const featureMode = (item,state) => item.type==='upgrade' ? Number(!!(item.used||state.upgrades?.[item.upgrade]))
   : item.type==='shutter-switch' ? !state.power?0:(item.doorIds||[]).length&&(item.doorIds||[]).every(id=>(state.doors||[]).find(door=>door.id===id)?.open)?2:1
   : item.type==='transit' ? item.used ? (state.interactables||[]).some(other=>other.id===item.destination&&other.used)?2:1 : 0
@@ -67,6 +68,7 @@ const featureMode = (item,state) => item.type==='upgrade' ? Number(!!(item.used|
 const inEntityRange = (entity,player,range) => Math.abs(entity.x-player.x)<=range && Math.abs(entity.z-player.z)<=range;
 const ENEMY_ART = ['runner','spitter','brute','stalker','sentry','sentry-hostile','guardian','guardian-exposed'];
 const enemyArt = (enemy,observer) => {
+  if(enemy.echo)return 'echo';
   if(enemy.guardian)return enemy.bossPhase==='recover'?'guardian-exposed':'guardian';
   if(enemy.type==='bulwark'){
     const bearing=observer?Math.atan2(observer.x-enemy.x,enemy.z-observer.z):(enemy.angle||0);
@@ -78,7 +80,7 @@ const enemyArt = (enemy,observer) => {
   return enemy.type==='sentry'&&enemy.provoked?'sentry-hostile':enemy.type;
 };
 const enemyHeight = enemy => enemy.guardian?2.22:enemy.type==='bulwark'?2.07:enemy.type==='mender'?1.91:enemy.type==='brute'?1.93:enemy.type==='stalker'?1.84:enemy.type==='sentry'?1.74:enemy.type==='spitter'?1.69:1.59;
-const enemyArtTypes = level => [...ENEMY_ART,...((level.enemies||[]).some(enemy=>['bulwark','mender'].includes(enemy.type))?NEW_ENEMY_ART:[])];
+const enemyArtTypes = level => [...ENEMY_ART,...((level.enemies||[]).some(enemy=>enemy.echo)?['echo']:[]),...((level.enemies||[]).some(enemy=>['bulwark','mender'].includes(enemy.type))?NEW_ENEMY_ART:[])];
 const projectileAppearance = projectile => {
   if(projectile.type!=='grenade')return {kind:'plasma',size:.22,y:projectile.y??1.02};
   const remaining=clamp((projectile.life||0)/Math.max(.01,projectile.fuse||1.5),0,1);
@@ -503,6 +505,11 @@ function makeDoorFrameSet(kind,visuals,mark='01'){
 
 function encounterCues(state){
   const cues=[];
+  for(const control of state.interactables||[])if(control.containment&&state.power&&!control.used){
+    const field=control.containment;
+    cues.push({id:`field-${control.id}`,kind:'containment',x:field.x,z:field.z,radius:field.radius,progress:.75,color:'#91e5de',telegraph:false});
+    cues.push({id:`emitter-${control.id}`,kind:'containment',x:field.x,z:field.z,radius:.45,progress:1,color:'#c5fff0',telegraph:false});
+  }
   for(const enemy of state.enemies||[]){
     const t=enemy.telegraph;
     if(enemy.alive===false||enemy.health<=0||!t||!(t.remaining>0)||!Number.isFinite(t.x)||!Number.isFinite(t.z))continue;
@@ -623,9 +630,9 @@ function solidLandmarkPanels(level,types){
 
 const yardLandmarkPanels=level=>solidLandmarkPanels(level,['freight-car','transformer','security-cabin']);
 const gardenLandmarkPanels=level=>solidLandmarkPanels(level,GARDEN_LANDMARKS);
-const allLandmarkPanels=level=>[...yardLandmarkPanels(level),...gardenLandmarkPanels(level)];
+const allLandmarkPanels=level=>[...yardLandmarkPanels(level),...gardenLandmarkPanels(level),...solidLandmarkPanels(level,['sealed-crate','sleep-pod','tape-vault','listening-array'])];
 const landmarkKey=panel=>GARDEN_LANDMARKS.includes(panel.type)?`${panel.type}:${panel.type==='glass-lab'?panel.view:'shared'}:${panel.palette}`:`${panel.type}:${panel.view}`;
-const landmarkTexture=panel=>GARDEN_LANDMARKS.includes(panel.type)?makeGardenLandmarkTexture(panel.type,panel.view,panel.palette):makeLandmarkTexture(panel.type,panel.view);
+const landmarkTexture=panel=>['sealed-crate','sleep-pod','tape-vault','listening-array'].includes(panel.type)?makeHollowLandmarkTexture(panel.type):GARDEN_LANDMARKS.includes(panel.type)?makeGardenLandmarkTexture(panel.type,panel.view,panel.palette):makeLandmarkTexture(panel.type,panel.view);
 
 function destinationPanels(level){
   const labels=new Map((level.doors||[]).filter(door=>door.destinationLabel).map(door=>[door.id,{label:door.destinationLabel,mark:level.signCode||'SW 15'}]));
@@ -634,6 +641,7 @@ function destinationPanels(level){
   for(const[doorId,meta]of labels){const door=(level.doors||[]).find(door=>door.id===doorId);if(!door)continue;
     for(const side of[-1,1])panels.push({doorId,x:door.x+(door.axis==='z'?side*.085:0),z:door.z+(door.axis==='z'?0:side*.085),dx:door.axis==='z'?-side:0,dz:door.axis==='z'?0:-side,width:.94,height:.29,bottom:2.04,label:meta.label,mark:meta.mark||'SW 15'});
   }
+  for(const notice of level.wallNotices||[])panels.push({...notice,label:notice.title,mark:level.signCode});
   return panels;
 }
 
@@ -834,6 +842,8 @@ function makeWaterHighlightsTexture(){
 }
 
 function makeStationTexture(item,mode){
+  if(item.type==='record')return makeRecordTexture(mode);
+  if(item.routing)return makeContainmentSwitchTexture(item,mode);
   if(item.type==='shutter-switch')return makeShutterSwitchTexture(item,mode);
   const[canvas,c]=canvas2d(112,160),type=item.type,installed=mode>0;
   const color=type==='upgrade'?UPGRADE_COLORS[item.upgrade]||'#e0c080':type==='refuge'?'#b2e3a2':mode===2?'#85ebda':mode===1?'#e6c181':'#819caf';
@@ -925,6 +935,7 @@ function drawEncounterEnemy(type,frame){
 
 function drawEnemy(type, frame) {
   if(type.startsWith('bulwark')||type.startsWith('mender'))return drawGardenEnemy(type,frame);
+  if(type==='echo')return makeEchoEnemy(frame);
   if(type==='stalker'||type.startsWith('sentry'))return drawEncounterEnemy(type,frame);
   const [canvas,c] = canvas2d(80,112);
   const dead = frame === 6;
@@ -1304,6 +1315,76 @@ function makeGlowTexture(color, core='#e8ffdb') {
   return textureFrom(canvas);
 }
 
+function makeHollowLandmarkTexture(type){
+  const[canvas,c]=canvas2d(256,128);
+  rect(c,0,0,256,128,'#15232d');rect(c,3,3,250,122,'#3d5056');
+  for(const x of[5,246])rect(c,x,4,5,120,'#95a69a');
+  if(type==='tape-vault'){
+    for(let x=13;x<240;x+=45)for(let y=13;y<115;y+=32){
+      rect(c,x,y,40,28,'#14232b');rect(c,x+2,y+2,36,3,'#82958e');
+      for(const dx of[10,28]){poly(c,[[x+dx-6,y+8],[x+dx+5,y+8],[x+dx+8,y+15],[x+dx+4,y+22],[x+dx-5,y+22],[x+dx-8,y+15]],'#9eaa9a');rect(c,x+dx-2,y+13,4,4,'#17232f');}
+      rect(c,x+15,y+24,12,2,'#b8916a');
+    }
+  }else if(type==='sleep-pod'){
+    for(const x of[17,96,175]){
+      rect(c,x,9,64,110,'#788c8d');rect(c,x+4,14,56,99,'#182934');
+      poly(c,[[x+11,20],[x+49,20],[x+54,34],[x+50,93],[x+12,101],[x+8,40]],'#34464d');
+      rect(c,x+12,25,36,3,'#657e7e');rect(c,x+11,102,41,6,'#ada98b');
+      for(const y of[35,55,75])rect(c,x+48,y,4,12,'#8eb9b4');
+      rect(c,x+26,65,11,21,'#17272f');rect(c,x+18,83,27,7,'#23343c');
+      rect(c,x+26,116,15,3,'#bad4bf');
+    }
+  }else if(type==='listening-array'){
+    for(let n=0;n<7;n++){const inset=n*8;rect(c,19+inset,6+inset*.6,218-2*inset,115-inset*1.2,n%2?'#1c2b38':'#83928c');}
+    rect(c,87,37,82,58,'#101a25');rect(c,107,48,42,37,'#202b38');
+    for(let n=0;n<14;n++)rect(c,16+n*16,113,6,4,n%3?'#a9c9b5':'#be956c');
+    rect(c,113,58,30,16,'#0b131e');rect(c,122,60,12,12,'#b3c4b7');rect(c,125,62,6,8,'#0b131e');
+  }else{
+    rect(c,12,12,232,102,'#536167');
+    for(let x=24;x<235;x+=29){rect(c,x,16,7,93,'#9baba3');rect(c,x+6,16,4,93,'#263844');}
+    rect(c,84,31,88,57,'#17232e');rect(c,91,38,74,4,'#c7b795');
+    c.textAlign='center';c.font='bold 17px monospace';c.fillStyle='#d0c9ae';c.fillText('SEALED',128,66);
+    for(let x=12;x<240;x+=20)poly(c,[[x,104],[x+9,104],[x+18,114],[x+9,114]],'#d7b279');
+  }
+  return textureFrom(canvas);
+}
+function makeContainmentSwitchTexture(item,mode){
+  const[canvas,c]=canvas2d(112,160),active=mode===1,route=mode===2;
+  rect(c,33,98,48,58,'#40555d');rect(c,38,102,6,50,'#78968f');
+  rect(c,10,9,92,107,'#172b36');rect(c,14,13,84,99,'#50656b');rect(c,18,17,76,91,'#1a2e3a');
+  c.textAlign='center';c.font='bold 12px monospace';c.fillStyle='#e4d4ad';c.fillText(`GRID ${circuitMark(item)}`,56,33);
+  const color=active?'#a7f0e0':route?'#e9bc7b':'#71818b';
+  for(let n=0;n<16;n++){const a=n/16*Math.PI*2;rect(c,37+Math.cos(a)*12,58+Math.sin(a)*12,3,3,active?color:'#526777');}
+  rect(c,67,46,16,26,route?color:'#526777');rect(c,70,49,10,20,'#1a2e3a');
+  rect(c,53,57,13,3,color);rect(c,54,53,3,11,color);
+  // A physical selector changes position as well as color.
+  const leverX=active?35:route?74:55;rect(c,leverX-2,70,4,11,'#e0e8ce');rect(c,leverX-5,69,10,4,'#c1d4c7');
+  c.font='bold 8px monospace';c.fillStyle=color;c.fillText(active?'FIELD ON':route?'ROUTE OPEN':'OFFLINE',56,90);
+  rect(c,45,98,22,4,color);for(const x of[44,66])rect(c,x,116,3,38,color);
+  return textureFrom(canvas);
+}
+function makeRecordTexture(mode){
+  const[canvas,c]=canvas2d(112,160);
+  rect(c,34,99,45,57,'#354651');rect(c,39,103,5,48,'#81938e');
+  rect(c,13,16,87,94,'#18252f');rect(c,17,20,79,86,'#7c8e8c');rect(c,22,25,69,74,'#263a45');
+  for(const x of[40,73]){poly(c,[[x-12,35],[x+10,35],[x+15,46],[x+10,59],[x-12,59],[x-17,46]],'#c5c4a8');rect(c,x-3,43,6,6,'#142631');}
+  rect(c,39,61,36,3,'#b69d7e');c.textAlign='center';c.font='bold 11px monospace';c.fillStyle=mode?'#9fe2c8':'#eed6a0';c.fillText(mode?'FILED':'RECORD',56,85);
+  rect(c,29,92,5,4,mode?'#9fe2c8':'#ddae7c');return textureFrom(canvas);
+}
+function makeEchoEnemy(frame){
+  const[canvas,c]=canvas2d(80,112);
+  if(frame===6){poly(c,[[6,99],[20,90],[48,92],[72,101],[61,108],[14,108]],'#3f5262');return textureFrom(canvas);}
+  const shift=frame%2?2:0;
+  poly(c,[[30,21],[49,20],[54,36],[61,49],[67,82],[61,84],[52,58],[49,79],[54,107],[45,109],[39,86],[33,108],[24,107],[28,78],[25,55],[17,83],[10,80],[20,41]],'#718c9c');
+  poly(c,[[32,31],[47,31],[49,66],[41,81],[29,70]],'#293d4f');
+  for(const x of[29,46])rect(c,x,37+shift,4,27,'#b8d1cc');
+  poly(c,[[31,4],[47,4],[53,14],[48,29],[31,28],[26,14]],'#b6c9c5');
+  rect(c,30,13,20,11,'#182638');rect(c,34,14,12,8,'#0e1724');rect(c,33,26,14,3,'#e0dfc3');
+  if(frame===4){rect(c,6,46,15,3,'#c5d9db');rect(c,59,43,17,3,'#c5d9db');}
+  if(frame===5){rect(c,29,35,23,5,'#e5c6b4');rect(c,32,52,16,4,'#e5c6b4');}
+  return textureFrom(canvas);
+}
+
 function makeSign(text, sub, color='#9fd8cf') {
   const [canvas,c]=canvas2d(256,80);
   rect(c,0,0,256,80,'#101e27');rect(c,0,0,256,3,color);
@@ -1425,7 +1506,7 @@ class WebGLBreachRenderer {
       this.staticBatches.push(floor,ceiling);
     }
     this.groundPaths=[];
-    if(this.visuals.switchyard||garden){
+    if(this.visuals.switchyard||this.visuals.hollow||garden){
       const details=garden?makeGardenGroundDetails(level):makeYardGroundDetails(level);this.groundPaths=details.paths||[];
       const floorDetails=this.mesh(this.geometry(new THREE.PlaneGeometry(level.width,level.height)),this.material(new THREE.MeshBasicMaterial({map:this.texture(details.texture),transparent:true,depthWrite:false,alphaTest:.08})),level.width/2,.012,level.height/2);
       floorDetails.rotation.x=-Math.PI/2;this.staticBatches.push(floorDetails);
@@ -1477,7 +1558,7 @@ class WebGLBreachRenderer {
       mesh.rotation.y=Math.atan2(-panel.dx,-panel.dz);this.staticBatches.push(mesh);this.landmarkVisuals.push({panel,mesh});
     }
     for(const panel of destinationPanels(level)){
-      const material=this.material(new THREE.MeshBasicMaterial({map:this.texture(makeSign(panel.label,`LIFT ${panel.mark}`,'#eec882'))}));
+      const material=this.material(new THREE.MeshBasicMaterial({map:this.texture(makeSign(panel.label,panel.sub||`LIFT ${panel.mark}`,'#eec882'))}));
       const mesh=this.mesh(this.geometry(new THREE.PlaneGeometry(panel.width,panel.height)),material,panel.x,panel.bottom+panel.height/2,panel.z);
       mesh.rotation.y=Math.atan2(-panel.dx,-panel.dz);this.staticBatches.push(mesh);this.destinationSigns.push({panel,mesh});
     }
@@ -1653,9 +1734,9 @@ class WebGLBreachRenderer {
       visual.sprite.position.set(enemy.x,.015,enemy.z);visual.sprite.scale.set(height*80/112,height,1);
       visual.shadow.position.set(enemy.x,.008,enemy.z);
       visual.shadow.scale.setScalar(enemy.type==='brute'?1.3:1);
-      visual.sprite.material.color.setHex(dead?0x9aa6a5:0xffffff);
+      visual.sprite.material.color.setHex(dead?0x9aa6a5:enemy.contained?0x9edfd5:0xffffff);
       visual.sprite.material.opacity=enemy.type==='stalker'&&enemy.telegraph?.kind==='blink'?.65:1;
-      visual.stun.visible=stunned;visual.stun.position.set(enemy.x,height+.05,enemy.z);visual.stun.scale.set(.62,.46,1);
+      visual.stun.visible=stunned||!!enemy.contained;visual.stun.position.set(enemy.x,height+.05,enemy.z);visual.stun.scale.set(.62,.46,1);
     }
     for(const pickup of state.pickups){
       let sprite=this.pickupVisuals.get(pickup.id);
@@ -1923,7 +2004,7 @@ class SoftwareBreachRenderer {
     this.ceilingPixelsByPalette=this.layout.names.map(name=>image(this.visuals.glasshouse?makeGardenFloorTexture(name,true):this.visuals.underworks?makeSectorFloorTexture(name,true):makeFloorTexture(true,this.visuals.relay,this.visuals.crosslink)).getContext('2d').getImageData(0,0,64,64).data);
     this.hazardPixels=this.visuals.underworks?[null,...['flood','conduit'].map(type=>image(makeHazardTexture(type)).getContext('2d').getImageData(0,0,64,64).data)]:[null];
     this.groundPaths=[];this.groundPixels=null;
-    if(this.visuals.switchyard||this.visuals.glasshouse){
+    if(this.visuals.switchyard||this.visuals.hollow||this.visuals.glasshouse){
       const details=this.visuals.glasshouse?makeGardenGroundDetails(game.level):makeYardGroundDetails(game.level),map=image(details.texture);this.groundPaths=details.paths||[];
       this.groundWidth=map.width;this.groundHeight=map.height;this.groundPixels=map.getContext('2d').getImageData(0,0,map.width,map.height).data;
       if(this.visuals.glasshouse){this.gardenDetails=details;this.waterPixels=image(makeWaterHighlightsTexture()).getContext('2d').getImageData(0,0,64,64).data;this.stats.waterCells=details.waterCells.reduce((sum,value)=>sum+value,0);}
@@ -1968,7 +2049,7 @@ class SoftwareBreachRenderer {
       if(!landmarkImages.has(key))landmarkImages.set(key,image(landmarkTexture(panel)));
       return{...panel,image:landmarkImages.get(key)};
     });
-    this.destinationSigns=destinationPanels(game.level).map(panel=>({...panel,image:image(makeSign(panel.label,`LIFT ${panel.mark}`,'#eec882'))}));
+    this.destinationSigns=destinationPanels(game.level).map(panel=>({...panel,image:image(makeSign(panel.label,panel.sub||`LIFT ${panel.mark}`,'#eec882'))}));
     this.stats.landmarkPanels=this.landmarkPanels.length;
     this.stats.textureSourceBytes=this.textures.reduce((sum,texture)=>sum+(texture.image?.width||0)*(texture.image?.height||0)*4,0);
     this.stats.textureSourceBytes+=(4+2*this.relayImages.size)*96*128*4;
@@ -2212,7 +2293,7 @@ class SoftwareBreachRenderer {
       if(enemy.alive===false||enemy.health<=0)frame=6;
       const height=enemyHeight(enemy);
       add(this.getEnemyFrames(enemyArt(enemy,p))[frame],enemy.x,enemy.z,height*80/112,height,.015);
-      if(stunned)add(this.stunImage,enemy.x,enemy.z,.62,.46,height-.18,true);
+      if(stunned||enemy.contained)add(this.stunImage,enemy.x,enemy.z,.62,.46,height-.18,true);
     }
     for(const pickup of state.pickups)if(!pickup.collected){
       const size=WEAPON_PICKUPS.includes(pickup.type)?.78:pickup.type==='healthExpansion'?.7:.56;

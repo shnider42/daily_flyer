@@ -55,7 +55,7 @@ export function briefingForGuidance(mission, guidance) {
   const subtitles = {
     'blacksite-07': 'The first breach', 'relay-09': 'A silent communications ring',
     'crosslink-11': 'A divided relay complex', 'underworks-13': 'An entire world beneath the breach',
-    'switchyard-15': 'Signals across the freight yard', 'glasshouse-17': 'Life behind the glass',
+    'hollow-19': 'The recording answers first.', 'switchyard-15': 'Signals across the freight yard', 'glasshouse-17': 'Life behind the glass',
   };
   const briefs = {
     'blacksite-07': 'Emergency lights mark an abandoned research facility. Get inside, read its machinery, and find a way out.',
@@ -63,6 +63,7 @@ export function briefingForGuidance(mission, guidance) {
     'crosslink-11': 'The compact relay complex has lost its signal. Explore its two wings and find a way to call for extraction.',
     'underworks-13': 'An entire facility stretches beneath the arrival lift. Explore connected sectors, remember the barriers you pass, and find a route back.',
     'switchyard-15': 'The freight yard is divided by heavy shutters and numbered circuits. Read its signals, choose when to open a route, and watch what moves on the other side.',
+    'hollow-19': 'The listening complex was sealed years ago. A transmission continues from its empty wards. Follow the cables, read what the staff left behind, and find your way back.',
     'glasshouse-17': 'Light filters through a silent research conservatory. Broken sightlines divide its galleries; follow the machinery through the growth and find a way back.',
   };
   return {
@@ -73,6 +74,8 @@ export function briefingForGuidance(mission, guidance) {
 }
 
 export function noticeForGuidance(event, guidance, interaction = null, { observed = false } = {}) {
+  if (event.type === 'containment-routed') return guidance === 'expert' ? null : event.text;
+  if (event.type === 'record') return `${event.title} — recorded in the field journal.`;
   const eligible = ['message', 'pickup', 'checkpoint', 'secret', 'upgrade', 'refuge', 'transit-activated', 'transit', 'reward', 'shutter'];
   const encounter = {
     'shield-hit': { simple: 'The front shield reduces damage. Flank the bulwark or wait for its shield to open.', moderate: 'Sparks scatter from the front plate.' },

@@ -3,7 +3,7 @@ import { CoopGame } from '../daily_flyer/themes/breach_assets/coop-core.mjs';
 import { WEAPONS } from '../daily_flyer/themes/breach_assets/core.mjs';
 
 export const PROTOCOL = 2;
-export const COOP_MISSIONS = ['crosslink-11', 'underworks-13', 'glasshouse-17'];
+export const COOP_MISSIONS = ['crosslink-11', 'underworks-13', 'glasshouse-17', 'hollow-19'];
 // Older clients may still use the original two maps. A new-map handshake must
 // advertise its local level data before we attach it to a shared simulation.
 const supportsMission = (message, mission) => message.supportedMissions === undefined
@@ -65,7 +65,7 @@ export class BreachRooms {
 
   create(peer, message) {
     if (this.rooms.size >= this.maxRooms) return this.error(peer, 'ROOM_CAPACITY', 'All test rooms are in use. Try again after another team finishes.');
-    if (!COOP_MISSIONS.includes(message.mission)) return this.error(peer, 'INVALID_MISSION', 'Choose Crosslink, The Underworks, or The Glasshouse for co-op.');
+    if (!COOP_MISSIONS.includes(message.mission)) return this.error(peer, 'INVALID_MISSION', 'Choose Crosslink, The Underworks, The Glasshouse, or The Hollow for co-op.');
     if (!supportsMission(message, message.mission)) return this.error(peer, 'VERSION_MISMATCH', 'Refresh the game to load this co-op mission.');
     if (!DIFFICULTIES.has(message.difficulty)) return this.error(peer, 'INVALID_DIFFICULTY', 'Choose a valid combat difficulty.');
     const name = safeName(message.name);

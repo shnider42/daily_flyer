@@ -18,7 +18,7 @@ THEME_CONFIG = {
 }
 
 ASSET_DIRECTORY = Path(__file__).with_name("breach_assets")
-VERSION = "0.7.1"
+VERSION = "0.8.0"
 
 
 def build_theme_page(date_str: str | None = None, seed: int | None = None) -> PageContext:

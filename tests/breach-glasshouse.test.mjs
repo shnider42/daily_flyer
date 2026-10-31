@@ -73,7 +73,7 @@ function fire(game, weapon, angle) {
 
 test('Glasshouse is a sixth connected mission with solid landmarks, shallow floor channels and separated practice racks', () => {
   const game = make(), level = game.level;
-  assert.equal(MISSIONS.at(-1).id, mission); assert.equal(level.id, 'glasshouse-17-v1');
+  assert.equal(MISSIONS[5].id, mission); assert.equal(level.id, 'glasshouse-17-v1');
   assert.equal(level.coopSpawns.length, 2); assert.equal(level.enemies.length, 23);
   for (const landmark of level.landmarks) for (let z = landmark.z - landmark.depth / 2; z < landmark.z + landmark.depth / 2; z++) {
     for (let x = landmark.x - landmark.width / 2; x < landmark.x + landmark.width / 2; x++) assert.equal(level.grid[z][x], '#', landmark.id);

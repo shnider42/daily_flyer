@@ -1,7 +1,7 @@
 # BREACH implementation contract
 
 An original retro first-person game delivered through DailyFlyer's custom theme hook.
-There are six solo missions; Crosslink, The Underworks, and The Glasshouse also
+There are seven solo missions; Crosslink, The Underworks, The Glasshouse, and The Hollow also
 support private two-player co-op.
 Blacksite 07 introduces power, access keys, extraction, a secret, and a checkpoint.
 Dead Relay adds a separate facility with two relay branches that unlock a data
@@ -15,11 +15,14 @@ The Glasshouse adds a sixth solo/co-op facility, Rebound and Thumper weapons,
 bulwarks, and menders; see [the 0.7.0 notes](breach-glasshouse-07.md) for release
 details and the current validation record.
 
+The Hollow adds a twelve-sector solo/co-op expedition, containment routing, and
+optional field records; see [the 0.8.0 notes](breach-hollow-08.md).
+
 ## Modules and ownership
 
 - `daily_flyer/themes/breach_assets/core.mjs`: deterministic simulation, weapon
   metadata, and the first three levels. `underworks.mjs`, `switchyard.mjs`, and
-  `glasshouse.mjs` supply the later authored levels.
+  `glasshouse.mjs`, and `hollow.mjs` supply the later authored levels.
 - `renderer.mjs`: WebGL and Canvas renderers, including original procedural art.
 - `app.mjs`, `index.html`, `style.css`: interface, input integration and lifecycle.
   `guidance.mjs` filters presentation; `touch-controls.mjs` owns touch gestures;
@@ -45,6 +48,7 @@ The fourth mission ID is `underworks-13`; its extended map/progression contract 
 documented in [The Underworks](breach-underworks.md).
 The fifth is `switchyard-15`, defined in `switchyard.mjs`.
 The sixth is `glasshouse-17`, defined in `glasshouse.mjs`.
+The seventh is `hollow-19`, defined in `hollow.mjs`.
 `MISSIONS` provides the menu's `id,levelId,name,number,subtitle,briefing,steps`.
 
 `LEVEL`: `{id,name,width,height,grid,spawn,doors,interactables,pickups,enemies,zones}`.
@@ -197,3 +201,17 @@ Solo uses local runtime resources. Optional co-op connects to the configured roo
 service. No analytics or external accounts. No build framework.
 Artwork and gameplay code are original. Third-party code is limited to the
 MIT-licensed vendored Three.js and the room server's MIT-licensed `ws` package.
+
+## Hollow containment and records
+
+Routing cabinets are reversible `shutter-switch` interactables with `routing:true`.
+One controller of each circuit defines a `containment:{x,z,radius}` emitter.
+Its active state is global power plus `used:false`; gameplay also requires
+line of sight from the emitter. `containmentAt(game,point)` owns that predicate.
+Ordinary infestation enemies expose a computed `contained` flag; players,
+security and guardians are unaffected. Server simulation owns both the
+slowdown and phase-arrival exclusion. Art does not affect damage or movement.
+
+Records are repeatable `record` interactables with `label`, `text` and a shared
+`used` discovery flag. The pause journal renders discovered records using
+`textContent`; record events provide reader-only feedback in co-op.

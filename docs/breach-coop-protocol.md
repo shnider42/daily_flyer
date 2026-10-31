@@ -1,8 +1,8 @@
 # BREACH co-op implementation contract (0.7)
 
 Private two-player rooms use a server-authoritative simulation over WebSocket.
-Three of the six solo missions support co-op: Crosslink (`crosslink-11`),
-The Underworks (`underworks-13`), and The Glasshouse (`glasshouse-17`). Protocol
+Four of the seven solo missions support co-op: Crosslink (`crosslink-11`),
+The Underworks (`underworks-13`), The Glasshouse (`glasshouse-17`), and The Hollow (`hollow-19`). Protocol
 remains 2; the 0.7 client additionally advertises its locally supported mission
 ids before joining the new map. Solo saves remain owned by the single-player
 flow. Release details and current validation are in
@@ -164,3 +164,8 @@ Configuration: `breach-config.coopServer` contains the full HTTP(S) base URL for
 the room service, or `same-origin`. An empty value hides/disables room entry until
 the service is configured. `?room=CODE` opens Join. Invites retain the public game
 origin and include only the room ID. Reconnect tokens use sessionStorage per room.
+
+Hollow uses the same protocol and required supported-mission handshake. Routing
+cabinet `used` and door `open` values, containment definitions, enemy `contained`
+feedback and record discovery are included in the shared snapshot. No new
+network command or client-side field simulation is required.

@@ -5,6 +5,7 @@ import { runInNewContext } from 'node:vm';
 import * as THREE from '../daily_flyer/themes/breach_assets/vendor/three.module.js';
 import { UNDERWORKS } from '../daily_flyer/themes/breach_assets/underworks.mjs';
 import { SWITCHYARD } from '../daily_flyer/themes/breach_assets/switchyard.mjs';
+import { HOLLOW } from '../daily_flyer/themes/breach_assets/hollow.mjs';
 import { GLASSHOUSE } from '../daily_flyer/themes/breach_assets/glasshouse.mjs';
 import { LEVELS } from '../daily_flyer/themes/breach_assets/core.mjs';
 
@@ -381,5 +382,42 @@ test('bulwark shield art follows the real frontal cone and exposed phase; mender
     if(renderer.mode==='webgl'){assert.equal(renderer.cueVisuals[0].echo.material.map,renderer.combatMaps['heal-interrupt']);assert.equal(renderer.cueVisuals[1].echo.material.map,renderer.combatMaps['shield-hit']);}
     else {assert.ok(renderer.context.images.has(renderer.combatImages['heal-interrupt']));assert.ok(renderer.context.images.has(renderer.combatImages['shield-hit']));}
     renderer.dispose();
+  }
+});
+
+
+test('Hollow renders twelve sector palettes and solid horror landmarks within bounded frame work',t=>{
+  for(const Renderer of[api.WebGLBreachRenderer,api.SoftwareBreachRenderer]){
+    const game=gameFor(HOLLOW),renderer=new Renderer(canvas(926,428),game,{quality:'low',reducedMotion:true});
+    assert.equal(renderer.visuals.hollow,true);assert.equal(renderer.stats.walkableCells,9234);
+    assert.ok(renderer.stats.landmarkPanels>=80);assert.ok(renderer.stats.textureSourceBytes<16_000_000);
+    for(const point of[{x:48.5,z:102.5},{x:27.5,z:60.5},{x:109.5,z:24.5}]){Object.assign(game.state.player,point);renderer.render(0);}
+    if(renderer.mode==='webgl'){
+      assert.ok(renderer.stats.staticInstanceBytes+renderer.stats.geometryBytes<1_000_000);
+      assert.ok(renderer.staticBatches.every(mesh=>mesh.frustumCulled));
+      assert.ok(renderer.enemyVisuals.size<game.state.enemies.length);
+    }else{
+      assert.ok(renderer.stats.pixelCount<=64000);assert.ok(renderer.stats.lastMaxRaySteps<=160);
+    }
+    t.diagnostic(`${renderer.mode}: ${JSON.stringify(renderer.stats)}`);renderer.dispose();
+  }
+});
+
+test('containment rings and routing lamps follow shared state, while journals use distinct terminal art',()=>{
+  const game=gameFor(HOLLOW),control=game.state.interactables.find(o=>o.id==='routing-1-a');
+  const phases=[0,1,2].map(mode=>api.makeStationTexture(control,mode));
+  assert.equal(new Set(phases.map(t=>t.image.context.shapeHash)).size,3);
+  assert.match(labels(phases[1]).join(' '),/FIELD/);assert.match(labels(phases[2]).join(' '),/ROUTE/);
+  assert.equal(api.encounterCues(game.state).length,0);game.state.power=true;
+  const fields=()=>api.encounterCues(game.state).filter(c=>c.kind==='containment');
+  assert.equal(fields().length,6);assert.equal(fields().find(c=>c.id==='field-routing-1-a').radius,control.containment.radius);
+  control.used=true;assert.equal(fields().length,4);control.used=false;
+  const record=game.state.interactables.find(o=>o.type==='record');
+  assert.notEqual(api.makeStationTexture(record,0).image.context.shapeHash,phases[0].image.context.shapeHash);
+  assert.equal(api.enemyArt({type:'stalker',echo:true},game.state.player),'echo');
+  for(const Renderer of[api.WebGLBreachRenderer,api.SoftwareBreachRenderer]){
+    Object.assign(game.state.player,{x:27.5,z:60.5});const renderer=new Renderer(canvas(926,428),game,{quality:'low',reducedMotion:true});
+    renderer.render(0);assert.ok(renderer.stats.encounterCues>0);game.state.power=false;renderer.render(0);
+    assert.equal(renderer.stats.encounterCues,0);game.state.power=true;renderer.dispose();
   }
 });

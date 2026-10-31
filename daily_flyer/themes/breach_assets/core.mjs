@@ -2,6 +2,7 @@
 import { UNDERWORKS } from './underworks.mjs';
 import { SWITCHYARD } from './switchyard.mjs';
 import { GLASSHOUSE } from './glasshouse.mjs';
+import { HOLLOW, HOLLOW_MISSION, containmentAt, hollowObjective } from './hollow.mjs';
 const TAU = Math.PI * 2;
 const clamp = (n, lo, hi) => Math.max(lo, Math.min(hi, n));
 const copy = (value) => JSON.parse(JSON.stringify(value));
@@ -255,7 +256,7 @@ function createCrosslinkLevel() {
   };
 }
 
-export const LEVELS = { 'blacksite-07': LEVEL, 'relay-09': createRelayLevel(), 'crosslink-11': createCrosslinkLevel(), 'underworks-13': UNDERWORKS, 'switchyard-15': SWITCHYARD, 'glasshouse-17': GLASSHOUSE };
+export const LEVELS = { 'blacksite-07': LEVEL, 'relay-09': createRelayLevel(), 'crosslink-11': createCrosslinkLevel(), 'underworks-13': UNDERWORKS, 'switchyard-15': SWITCHYARD, 'glasshouse-17': GLASSHOUSE, 'hollow-19': HOLLOW };
 export const MISSIONS = [
   { id: 'blacksite-07', levelId: LEVEL.id, name: 'Blacksite 07', number: '001', subtitle: 'The first breach', briefing: 'Emergency power is down. Enter the research facility, recover its security key, and reach extraction.', steps: ['Restore auxiliary power', 'Recover the security key', 'Reach extraction'] },
   { id: 'relay-09', levelId: LEVELS['relay-09'].id, name: 'Dead Relay', number: '002', subtitle: 'Bring the signal back', briefing: 'A silent communications station surrounds a sealed vault. Restore ring power, reconnect both relays, and recover the key to the extraction uplink.', steps: ['Restore ring power', 'Activate both relay consoles', 'Recover the vault key', 'Transmit the extraction signal'] },
@@ -263,6 +264,7 @@ export const MISSIONS = [
   { id: 'underworks-13', levelId: UNDERWORKS.id, name: 'The Underworks', number: '004', subtitle: 'An entire world beneath the breach', briefing: 'Explore nine connected sectors below the arrival lift. Recover the cutter, insulator and phase module to open new routes through familiar territory. Restore two distant relays, defeat the reactor guardian and bring its key back to the lift. Refuges and activated transit stations support the journey, solo or together.', steps: ['Restore central power', 'Recover three permanent upgrades', 'Reconnect both crown relays', 'Defeat the reactor guardian', 'Return to the arrival lift'] },
   { id: 'switchyard-15', levelId: SWITCHYARD.id, name: 'Switchyard', number: '005', subtitle: 'Choose your route. Control the fight.', briefing: 'A freight battle divides the switchyard. Restore power, choose the yard or service route, and recover the arc caster from the workshop. Read the cable and phase galleries, reconnect their relays, and defeat the switching-engine guardian to reclaim the freight lift.', steps: ['Restore switchyard power', 'Reach the arc workshop', 'Reconnect both gallery relays', 'Defeat the switching-engine guardian', 'Return to the freight lift'] },
   { id: 'glasshouse-17', levelId: GLASSHOUSE.id, name: 'The Glasshouse', number: '006', subtitle: 'Break the shield. Cut the healing line.', briefing: 'An overgrown conservatory hides armored defenders and their healers. Practice bank shots with the Rebound carbine, restore atrium power, and recover the Thumper. Follow either cultivation wing to the relays, defeat the propagation guardian, and open the direct route back to the laboratory lift. Play solo or share the expedition in co-op.', steps: ['Explore the ballistics practice bay', 'Restore conservatory power', 'Reconnect both cultivation relays', 'Defeat the propagation guardian', 'Open the atrium return and extract'] },
+  HOLLOW_MISSION,
 ];
 export function getLevel(missionId = 'blacksite-07') { return Object.hasOwn(LEVELS, missionId) ? LEVELS[missionId] : LEVEL; }
 
@@ -329,7 +331,7 @@ export class Game {
   start() {
     if (this.state.status === 'ready') {
       this.state.status = 'playing';
-      this._events.push({ type: 'message', text: this.level.missionId === 'glasshouse-17' ? 'The Glasshouse. Explore the practice bay, then restore power in the planted atrium.' : this.level.missionId === 'switchyard-15' ? 'Switchyard. Restore power in the observation concourse, then choose a route to the workshop.' : this.level.exploration ? 'The Underworks. Activate the lift transit, then find power in the central exchange.' : this.level.missionId === 'crosslink-11' ? 'Crosslink. Restore hub power and reconnect both relays.' : this.level.missionId === 'relay-09' ? 'Dead Relay. Restore power to the communications ring.' : 'Blacksite 07. Find the auxiliary generator.' });
+      this._events.push({ type: 'message', text: this.level.hollow ? 'The Hollow. Restore the isolation grid. The last transmission is still running.' : this.level.missionId === 'glasshouse-17' ? 'The Glasshouse. Explore the practice bay, then restore power in the planted atrium.' : this.level.missionId === 'switchyard-15' ? 'Switchyard. Restore power in the observation concourse, then choose a route to the workshop.' : this.level.exploration ? 'The Underworks. Activate the lift transit, then find power in the central exchange.' : this.level.missionId === 'crosslink-11' ? 'Crosslink. Restore hub power and reconnect both relays.' : this.level.missionId === 'relay-09' ? 'Dead Relay. Restore power to the communications ring.' : 'Blacksite 07. Find the auxiliary generator.' });
     }
   }
   pause() { if (this.state.status === 'playing') this.state.status = 'paused'; }
@@ -746,7 +748,7 @@ export class Game {
 
   _validBlinkDestination(enemy, point) {
     const player = this.state.player;
-    return point && distance(point, player) >= 2.2 && distance(point, player) <= 5.2
+    return point && !containmentAt(this, point) && distance(point, player) >= 2.2 && distance(point, player) <= 5.2
       && distance(point, enemy) >= 1.3 && this._clearCircle(point.x, point.z, .25)
       && this.hasLineOfSight(enemy.x, enemy.z, point.x, point.z)
       && this.hasLineOfSight(player.x, player.z, point.x, point.z)
@@ -940,6 +942,12 @@ export class Game {
   }
 
   _updateEnemy(enemy, dt) {
+    // Containment slows infestation, not players, security, or the guardian.
+    enemy.contained = !!(enemy.alive && !enemy.guardian && enemy.faction !== 'security' && containmentAt(this, enemy));
+    if (enemy.contained) {
+      dt *= .35;
+      if (enemy.type === 'stalker') { enemy.telegraph = null; enemy.blinkCooldown = Math.max(1, enemy.blinkCooldown || 0); }
+    }
     enemy.hitTimer = Math.max(0, enemy.hitTimer - dt);
     if (!enemy.alive || this.state.status !== 'playing') return;
     enemy.attackCooldown = Math.max(0, enemy.attackCooldown - dt);
@@ -1153,8 +1161,9 @@ export class Game {
     for (const door of doors) { door.open = open; this._events.push({ type: 'door', id: door.id, open }); }
     for (const linked of this.state.interactables.filter(item => item.type === 'shutter-switch')) linked.used = this._shutterDoors(linked).every(door => door.open);
     this._pathTimer = 0;
+    if (control.routing) this._events.push({ type: 'containment-routed', id: control.id, open, x: control.x, z: control.z, text: `Circuit ${control.mark}: ${open ? 'shortcut open / containment off' : 'containment restored / shortcut shut'}.` });
     this._events.push({ type: 'shutter', id: control.id, doorIds: [...control.doorIds], open, x: control.x, z: control.z,
-      text: `${control.label || 'Shutter'} ${open ? 'raised' : 'lowered'}.` });
+      text: control.routing ? `Circuit ${control.mark}: ${open ? 'shortcut open / containment off' : 'containment restored / shortcut shut'}.` : `${control.label || 'Shutter'} ${open ? 'raised' : 'lowered'}.` });
     return true;
   }
 
@@ -1208,10 +1217,12 @@ export class Game {
     if (!o) return null;
     if (['cutter', 'insulator', 'phase'].includes(o.requires) && !this._requirementMet(o.requires)) return { text: `${this.level.upgradeNames?.[o.requires] || o.requires} required`, label: 'LOCKED', canUse: false };
     const active = this.state.status === 'playing' && this.state.player.alive !== false;
+    if (o.type === 'record') return { text: o.used ? `Replay ${o.label}` : `Read ${o.label}`, label: 'READ', canUse: active };
     if (o.type === 'shutter-switch') {
       if (!this.state.power) return { text: 'Shutter control offline — restore power', label: 'OFFLINE', canUse: false };
       const open = this._shutterDoors(o).every(door => door.open);
       if (open && this._shutterOccupied(o)) return { text: 'Shutter path occupied — clear the doorway', label: 'BLOCKED', canUse: false };
+      if (o.routing) return { text: open ? `Circuit ${o.mark}: restore containment / close shortcut` : `Circuit ${o.mark}: open shortcut / release containment`, label: open ? 'CONTAIN' : 'ROUTE', canUse: active };
       return { text: `${open ? 'Lower' : 'Raise'} ${(o.label || `shutter ${o.mark || ''}`).toLowerCase()}`.trim(), label: open ? 'LOWER' : 'RAISE', canUse: active };
     }
     if (o.type === 'transit') {
@@ -1244,7 +1255,10 @@ export class Game {
       this._events.push({ type: 'message', text: this.getPrompt() }); return false;
     }
     this.state.tutorial.interacted = true;
-    if (o.type === 'shutter-switch') {
+    if (o.type === 'record') {
+      o.used = true;
+      this._events.push({ type: 'record', id: o.id, ...(this.state.player.id ? { playerId: this.state.player.id } : {}), title: o.label, text: o.text });
+    } else if (o.type === 'shutter-switch') {
       if (!this._toggleShutter(o)) { this._events.push({ type: 'message', text: 'Shutter path occupied — clear the doorway' }); return false; }
     } else if (o.type === 'upgrade') {
       this.state.upgrades[o.upgrade] = true; o.used = true; this.state.checkpoint = true;
@@ -1276,12 +1290,12 @@ export class Game {
       this.state.player.armor = Math.max(30, this.state.player.armor);
       this.state.player.ammo.pistol = Math.max(24, this.state.player.ammo.pistol);
       if (this.level.exploration) this._replenishAtStation();
-      this._events.push({ type: 'power' }, { type: 'message', text: this.level.missionId === 'glasshouse-17' ? 'Conservatory power restored. The Thumper rack is active. Both cultivation wings lead to the northern relays.' : this.level.missionId === 'switchyard-15' ? 'Switchyard power restored. The freight shutter and western service loop both lead toward the arc workshop.' : this.level.exploration ? 'Central power restored. Find the industrial cutter in the western foundry.' : this.level.missionId === 'crosslink-11' ? 'Hub power restored. Activate the western and eastern relay consoles.' : this.level.missionId === 'relay-09' ? 'Ring power restored. Activate the western and eastern relay consoles.' : 'Power restored. Airlocks online. Find the security key.' });
-      this._saveCheckpoint(this.level.missionId === 'glasshouse-17' ? 'Checkpoint saved in the planted atrium.' : this.level.missionId === 'switchyard-15' ? 'Checkpoint saved in the observation concourse.' : this.level.exploration ? 'Checkpoint saved at the central exchange.' : this.level.missionId === 'crosslink-11' ? 'Checkpoint saved at the power hub.' : 'Checkpoint saved at the generator.');
+      this._events.push({ type: 'power' }, { type: 'message', text: this.level.hollow ? 'Isolation grid restored. The rings are live. Reconnect the west and observatory repeaters; every shortcut has a walking detour.' : this.level.missionId === 'glasshouse-17' ? 'Conservatory power restored. The Thumper rack is active. Both cultivation wings lead to the northern relays.' : this.level.missionId === 'switchyard-15' ? 'Switchyard power restored. The freight shutter and western service loop both lead toward the arc workshop.' : this.level.exploration ? 'Central power restored. Find the industrial cutter in the western foundry.' : this.level.missionId === 'crosslink-11' ? 'Hub power restored. Activate the western and eastern relay consoles.' : this.level.missionId === 'relay-09' ? 'Ring power restored. Activate the western and eastern relay consoles.' : 'Power restored. Airlocks online. Find the security key.' });
+      this._saveCheckpoint(this.level.hollow ? 'Checkpoint saved at the resonance exchange.' : this.level.missionId === 'glasshouse-17' ? 'Checkpoint saved in the planted atrium.' : this.level.missionId === 'switchyard-15' ? 'Checkpoint saved in the observation concourse.' : this.level.exploration ? 'Checkpoint saved at the central exchange.' : this.level.missionId === 'crosslink-11' ? 'Checkpoint saved at the power hub.' : 'Checkpoint saved at the generator.');
     } else if (o.type === 'relay') {
       o.used = true;
       const progress = this.getMissionProgress();
-      const text = this.level.missionId === 'glasshouse-17' ? progress.relaysUsed === progress.relaysTotal ? 'Both cultivation relays linked. Open the propagation chamber.' : 'Cultivation relay linked. Reconnect the other wing to open containment.' : this.level.missionId === 'switchyard-15' ? progress.relaysUsed === progress.relaysTotal ? 'Both galleries linked. The switching-engine chamber is ready to open.' : 'Gallery relay linked. Reconnect the other gallery to release containment.' : progress.relaysUsed === progress.relaysTotal ? this.level.exploration ? 'Both crown relays online. Open reactor containment and defeat its guardian.' : 'Both relays online. The communications vault can now be opened.' : `${o.id === 'relay-west' ? 'Western' : 'Eastern'} relay online. Activate the other relay to unlock ${this.level.exploration ? 'reactor containment' : 'the vault'}.`;
+      const text = this.level.hollow ? (progress.relaysUsed === progress.relaysTotal ? 'Both repeaters linked. The choir vault can now be opened.' : 'Repeater linked. One more signal remains.') : this.level.missionId === 'glasshouse-17' ? progress.relaysUsed === progress.relaysTotal ? 'Both cultivation relays linked. Open the propagation chamber.' : 'Cultivation relay linked. Reconnect the other wing to open containment.' : this.level.missionId === 'switchyard-15' ? progress.relaysUsed === progress.relaysTotal ? 'Both galleries linked. The switching-engine chamber is ready to open.' : 'Gallery relay linked. Reconnect the other gallery to release containment.' : progress.relaysUsed === progress.relaysTotal ? this.level.exploration ? 'Both crown relays online. Open reactor containment and defeat its guardian.' : 'Both relays online. The communications vault can now be opened.' : `${o.id === 'relay-west' ? 'Western' : 'Eastern'} relay online. Activate the other relay to unlock ${this.level.exploration ? 'reactor containment' : 'the vault'}.`;
       this._events.push({ type: 'relay', id: o.id, count: progress.relaysUsed, total: progress.relaysTotal, text }, { type: 'message', text });
       this._pathTimer = 0;
       if (progress.relaysUsed === progress.relaysTotal) {
@@ -1307,6 +1321,7 @@ export class Game {
   }
 
   getObjective() {
+    if (this.level.hollow) return hollowObjective(this);
     if (this.level.missionId === 'glasshouse-17') return this._getGlasshouseObjective();
     if (this.level.missionId === 'switchyard-15') return this._getSwitchyardObjective();
     if (this.level.exploration) return this._getExplorationObjective();
@@ -1620,7 +1635,7 @@ export class Game {
       if (!saved || saved.version !== 1 || !level || !Object.hasOwn(DIFFICULTY, saved.options?.difficulty) || saved.options.mission !== undefined && saved.options.mission !== level.missionId) return false;
       if (!this._validSnapshot(saved.state, level)) return false;
       if (saved.checkpoint && (!this._validSnapshot(saved.checkpoint, level) || !saved.checkpoint.power || !saved.state.power || saved.checkpoint.time > saved.state.time || saved.checkpoint.interactables.some(i => i.used && level.interactables.find(base => base.id === i.id).type !== 'shutter-switch' && !saved.state.interactables.find(current => current.id === i.id).used))) return false;
-      if (level.exploration && saved.checkpoint && (saved.checkpoint.healthBonus > saved.state.healthBonus || saved.checkpoint.doors.some(d => d.open && !saved.state.doors.find(current => current.id === d.id).open) || saved.checkpoint.pickups.some(p => p.collected && ['access-key', 'health-expansion'].includes(p.id) && !saved.state.pickups.find(current => current.id === p.id).collected))) return false;
+      if (level.exploration && saved.checkpoint && (saved.checkpoint.healthBonus > saved.state.healthBonus || saved.checkpoint.doors.some(d => d.open && !level.doors.find(base => base.id === d.id).controlledBy && !saved.state.doors.find(current => current.id === d.id).open) || saved.checkpoint.pickups.some(p => p.collected && ['access-key', 'health-expansion'].includes(p.id) && !saved.state.pickups.find(current => current.id === p.id).collected))) return false;
       const difficulty = DIFFICULTY[saved.options.difficulty];
       const nextState = this._stateFromSnapshot(saved.state, level, difficulty);
       const checkpoint = saved.checkpoint ? copy(saved.checkpoint) : null;
@@ -1639,7 +1654,7 @@ export class Game {
   restartCheckpoint() {
     if (!this._checkpoint || !this._validSnapshot(this._checkpoint)) return false;
     this.state = this._stateFromSnapshot(this._checkpoint); this._resetAfterRestore(this._checkpoint); this.state.checkpoint = true;
-    this.state.status = 'playing'; this._events = [{ type: 'message', text: this.level.missionId === 'glasshouse-17' ? 'Glasshouse checkpoint restored.' : this.level.missionId === 'switchyard-15' ? 'Switchyard checkpoint restored.' : this.level.exploration ? 'Underworks refuge restored. Acquired upgrades and opened routes remain available.' : this.level.missionId === 'crosslink-11' ? 'Crosslink checkpoint restored.' : this.level.missionId === 'relay-09' ? 'Dead Relay checkpoint restored.' : 'Generator checkpoint restored.' }];
+    this.state.status = 'playing'; this._events = [{ type: 'message', text: this.level.hollow ? 'Hollow checkpoint restored. Permanent discoveries remain available.' : this.level.missionId === 'glasshouse-17' ? 'Glasshouse checkpoint restored.' : this.level.missionId === 'switchyard-15' ? 'Switchyard checkpoint restored.' : this.level.exploration ? 'Underworks refuge restored. Acquired upgrades and opened routes remain available.' : this.level.missionId === 'crosslink-11' ? 'Crosslink checkpoint restored.' : this.level.missionId === 'relay-09' ? 'Dead Relay checkpoint restored.' : 'Generator checkpoint restored.' }];
     return true;
   }
 }

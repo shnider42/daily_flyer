@@ -161,3 +161,12 @@ body[data-guidance="expert"] .objective{display:none}
 @media(max-width:380px) and (orientation:portrait){
   .touch[data-touch-preset] .touch-right #touch-interact{left:auto;right:0}
 }
+
+/* The Hollow journal lives in Pause, never in the right-thumb aiming area. */
+.field-journal{width:min(100%,38rem);margin:1.2rem auto 0;text-align:left;border-top:1px solid #6c8d93;padding-top:.8rem;color:#cfddd7}
+.field-journal[hidden]{display:none}
+.field-journal summary{cursor:pointer;min-height:44px;display:flex;align-items:center;font:600 .78rem monospace;letter-spacing:.12em;color:#a7d6d5}
+#journal-entries{max-height:35vh;overflow-y:auto;padding-right:.65rem;overscroll-behavior:contain}
+#journal-entries article+article{border-top:1px solid #344d58;margin-top:1rem;padding-top:1rem}
+#journal-entries h3{font:600 .83rem monospace;color:#e2c9a2;line-height:1.5;margin:0 0 .5rem}
+#journal-entries p{font-size:.95rem;line-height:1.6;color:#c1d0cd;margin:0 0 .7rem}
