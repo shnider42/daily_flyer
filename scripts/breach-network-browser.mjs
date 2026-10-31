@@ -69,11 +69,13 @@ try{
   });
   await page.keyboard.press('e');
   await until(()=>lastState?.interactables.find(i=>i.id==='transit-arrival')?.used,'initial transit must activate through real input');
-  await page.locator('#map-toggle').click();
+  // Desktop play owns pointer lock: use the same keys as a player.
+  await page.keyboard.press('Tab');await page.locator('#map-panel').waitFor({state:'visible'});
   assert.equal(await page.locator('body').getAttribute('data-mode'),'playing');
   const mapTime=run.state.time;await until(()=>run.state.time>mapTime+.3,'map leaves the shared simulation running');
   assert.match(await page.locator('#map-help').innerText(),/LIVE MAP/);
-  await page.locator('#map-close').click();await page.locator('#pause').click();
+  await page.keyboard.press('Escape');await page.locator('#map-panel').waitFor({state:'hidden'});
+  await page.keyboard.press('p');await page.locator('#pause-screen').waitFor({state:'visible'});
   assert.equal(run.state.status,'playing');
   guest.send(JSON.stringify({type:'menu',open:true}));
   await until(()=>authoritativeRoom.pauseKind==='menus'&&run.state.status==='paused','both menus pause the world');
