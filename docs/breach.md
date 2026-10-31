@@ -4,6 +4,11 @@ An original retro first-person game built on DailyFlyer, with eight solo mission
 and five operations available in private two-player co-op. Solo play runs in the
 browser; co-op uses an authoritative room server.
 
+## 0.9.3 — Centered weapon default
+
+Weapon horizontal position now defaults to 50%. Reset Weapon View uses this
+centered position; saved custom positions remain intact.
+
 ## 0.9.2 — Music throughout the missions
 
 All eight maps now have recurring authored rotations, including unnamed corridors,

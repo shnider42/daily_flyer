@@ -1,5 +1,5 @@
 /** Local presentation preferences, independent of aim, inventory and co-op state. */
-export const WEAPON_VIEW_DEFAULTS = Object.freeze({weaponSize:.7,weaponPosition:.7,weaponLowering:.12});
+export const WEAPON_VIEW_DEFAULTS = Object.freeze({weaponSize:.7,weaponPosition:.5,weaponLowering:.12});
 export function weaponViewOptions(options={}) {
   const bounded=(key,min,max)=>Number.isFinite(options[key])?Math.max(min,Math.min(max,options[key])):WEAPON_VIEW_DEFAULTS[key];
   return {weaponSize:bounded('weaponSize',.45,1.1),weaponPosition:bounded('weaponPosition',.4,.82),weaponLowering:bounded('weaponLowering',-.2,.3)};

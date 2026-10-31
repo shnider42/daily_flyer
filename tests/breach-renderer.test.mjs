@@ -437,7 +437,7 @@ test('Shadow platforms, multiplying roots and three earned guns render in both p
 });
 
 
-test('every held weapon uses smaller right-hand framing and local sliders in both renderers',()=>{
+test('every held weapon uses smaller centered framing and local sliders in both renderers',()=>{
   for(const Renderer of[api.WebGLBreachRenderer,api.SoftwareBreachRenderer]){
     const game=gameFor(),renderer=new Renderer(canvas(844,390),game,{reducedMotion:true});
     const original=JSON.stringify(game.state),transforms=[];
@@ -446,12 +446,12 @@ test('every held weapon uses smaller right-hand framing and local sliders in bot
     for(const weapon of['pistol','shotgun','arc','ricochet','grenade','repeater','nullgun','lance']){
       game.state.player.weapon=weapon;renderer.lastWeapon=weapon;renderer.render(0);
       const pose=transforms.at(-1);
-      assert.ok(pose.x>renderer.width*.65);assert.ok(pose.y>renderer.height);
+      assert.equal(pose.x,renderer.width*.5);assert.ok(pose.y>renderer.height);
       assert.ok(pose.sx<Math.min(renderer.width/400,renderer.height/270)*.7);
       assert.equal(pose.sx,pose.sy);
     }
-    const old=transforms.at(-1);renderer.setOptions({weaponSize:.5,weaponPosition:.5,weaponLowering:-.2});renderer.render(0);
-    const adjusted=transforms.at(-1);assert.ok(adjusted.sx<old.sx);assert.ok(adjusted.x<old.x);assert.ok(adjusted.y<old.y);
+    const old=transforms.at(-1);renderer.setOptions({weaponSize:.5,weaponPosition:.7,weaponLowering:-.2});renderer.render(0);
+    const adjusted=transforms.at(-1);assert.ok(adjusted.sx<old.sx);assert.ok(adjusted.x>old.x);assert.ok(adjusted.y<old.y);
     game.state.player.weapon='pistol';assert.equal(JSON.stringify(game.state),original,'view preferences do not mutate simulation');
     renderer.dispose();
   }
