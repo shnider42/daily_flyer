@@ -182,3 +182,17 @@ body[data-guidance="expert"] .objective{display:none}
 
 /* Keep the full fourth combat name readable at phone widths. */
 #difficulty-choices{display:grid;grid-template-columns:repeat(3,minmax(0,1fr))}#difficulty-choices button{min-height:44px}#difficulty-choices button[data-difficulty=hard]{border-right:0}#difficulty-choices button[data-difficulty=insane]{grid-column:1/-1;border-top:1px solid var(--line);border-right:0;line-height:1.35}
+
+/* Four named operators remain readable without covering the aiming area. */
+.room-operator[data-operator="p1"]{--operator:#8dd6c4}.room-operator[data-operator="p2"]{--operator:#94c5e4}.room-operator[data-operator="p3"]{--operator:#f0c27c}.room-operator[data-operator="p4"]{--operator:#d7a6eb}
+.room-operator strong{color:var(--operator,var(--text))}
+.friendly-fire-rule{color:#efb479!important;border-left:2px solid #d79863;padding-left:10px}
+.team-status{align-items:flex-start;max-width:min(35vw,290px)}
+#team-status-text{display:flex;flex-direction:column;gap:3px;min-width:0}
+#team-status-text>span{white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+#team-status-text [data-operator="p1"]{color:#8dd6c4}#team-status-text [data-operator="p2"]{color:#94c5e4}#team-status-text [data-operator="p3"]{color:#f0c27c}#team-status-text [data-operator="p4"]{color:#d7a6eb}
+#team-fire-status{font-size:7px;color:#ffc489;white-space:nowrap;margin-left:3px}
+.branch-ending #end-title{font-size:clamp(28px,5vw,58px);line-height:1.05;max-width:750px;overflow-wrap:normal}
+.branch-ending #end-copy{max-width:650px;line-height:1.65}
+@media(max-width:600px){.team-status{max-width:48vw;font-size:7px}#team-fire-status{font-size:6px}.branch-ending #end-title{font-size:30px}}
+@media(max-height:560px) and (orientation:landscape){.team-status{max-width:220px}.branch-ending #end-title{font-size:30px}.branch-ending #end-copy{font-size:12px;line-height:1.45}}

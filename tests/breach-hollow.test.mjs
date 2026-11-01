@@ -130,9 +130,9 @@ test('records are shared discoveries but replay feedback belongs only to the rea
 
 test('Hollow room handshakes require matching mission data and snapshots retain the same circuit state',()=>{
   const rooms=new BreachRooms(),peer=()=>({messages:[],send(m){this.messages.push(m);},close(){}}),host=peer(),guest=peer(),stale=peer();
-  rooms.handle(host,{type:'create',protocol:2,mission,difficulty:'standard',name:'Hollow QA',supportedMissions:[mission]});const id=host.messages.find(m=>m.type==='welcome').roomId;
-  rooms.handle(stale,{type:'join',protocol:2,roomId:id,name:'Old client'});assert.equal(stale.messages.at(-1).code,'VERSION_MISMATCH');
-  rooms.handle(guest,{type:'join',protocol:2,roomId:id,name:'Teammate',supportedMissions:[mission]});
+  rooms.handle(host,{type:'create',protocol:3,mission,difficulty:'standard',name:'Hollow QA',supportedMissions:[mission]});const id=host.messages.find(m=>m.type==='welcome').roomId;
+  rooms.handle(stale,{type:'join',protocol:3,roomId:id,name:'Old client'});assert.equal(stale.messages.at(-1).code,'VERSION_MISMATCH');
+  rooms.handle(guest,{type:'join',protocol:3,roomId:id,name:'Teammate',supportedMissions:[mission]});
   for(const p of [host,guest])rooms.handle(p,{type:'ready',ready:true});rooms.handle(host,{type:'start'});
   const room=rooms.rooms.get(id);assert.equal(room.game.level.id,HOLLOW.id);power(room.game);
   const control=object(room.game,'routing-1-a');Object.assign(room.game.state.players.p1,{x:control.x,z:control.z});rooms.handle(host,{type:'interact'});

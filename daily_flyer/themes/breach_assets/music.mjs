@@ -1,7 +1,6 @@
 /** Continuous authored scores, with brief, explicit dramatic silences. */
 import { CUES_BY_ID, MENU_SCORES } from './music-cues.mjs';
-const MAX_CUE_SECONDS=56;
-const DUCK_EVENTS=new Set(['enemy-warning','enemy-shot','hurt','explosion','teleport','provoked','boss-phase','shield-open','shield-hit','heal','heal-interrupt','ricochet','tether-broken']);
+const DUCK_EVENTS=new Set(['enemy-warning','enemy-shot','hurt','explosion','teleport','provoked','boss-phase','shield-open','shield-hit','heal','heal-interrupt','ricochet','tether-broken','tomorrow-shift']);
 const RELIEF_EVENTS=new Set(['refuge','transit','transit-activated','checkpoint','relay','power','shadow-puzzle']);
 const DUCK_LEVEL=.55;
 const LOCAL_EVENTS=new Set(['record','hurt','refuge','transit']);
@@ -15,7 +14,7 @@ export class BreachMusic {
     this.menuError=false;this._menuRetryAt=0;
     this.time=0;this.suppressedUntil=0;this.duckUntil=0;this.readingUntil=0;
     this.completed=new Set();this.cursors=new Map();this.lastCue=null;this.openingUsed=false;this._initialized=false;
-    this._opening=null;this._quiet=null;this._desired=null;this._scene={};this._entry=null;this._entryAt=0;
+    this._opening=null;this._intro=null;this._quiet=null;this._desired=null;this._scene={};this._entry=null;this._entryAt=0;
     this._bossScope=null;this._guardianDwell=0;this._scoreRetryAt=0;this._failed=new Map();this._blocked=false;
     this._buffers=new Map();this._loads=new Map();this._pending=null;this._active=null;this._sources=new Set();this._generation=0;
   }
@@ -66,7 +65,7 @@ export class BreachMusic {
   }
   reset({retry=false,snapshot=null}={}) {
     if(this._active?.kind!=='menu' && this._pending?.kind!=='menu')this._interrupt(.4);
-    this._initialized=false;this._scene={};this._opening=null;this._quiet=null;this._desired=null;this._entry=null;this._bossScope=null;this._guardianDwell=0;this._blocked=false;
+    this._initialized=false;this._scene={};this._opening=null;this._intro=null;this._quiet=null;this._desired=null;this._entry=null;this._bossScope=null;this._guardianDwell=0;this._blocked=false;
     if(!retry){
       this.completed=new Set((Array.isArray(snapshot?.completed)?snapshot.completed:[]).filter(x=>typeof x==='string').slice(0,64));
       this.cursors=new Map(Object.entries(snapshot?.cursors&&typeof snapshot.cursors==='object'?snapshot.cursors:{}).filter(([key,n])=>key.length<120&&Number.isSafeInteger(n)&&n>=0).slice(0,64));
@@ -92,12 +91,13 @@ export class BreachMusic {
   _mix(kind){return kind==='menu'?1:this.time<this.readingUntil?.3:this.time<this.duckUntil?DUCK_LEVEL:1;}
   _pick(profile){
     if(!profile?.cues?.length)return null;
-    const first=(this.cursors.get(profile.scope)||0)%profile.cues.length,choices=[];
-    for(let n=0;n<profile.cues.length;n++){
-      const index=(first+n)%profile.cues.length,id=profile.cues[index];
+    const progress=this.cursors.get(profile.scope)||0;
+    const first=profile.finite?progress:progress%profile.cues.length,choices=[];
+    for(let n=0;n<(profile.finite?profile.cues.length-first:profile.cues.length);n++){
+      const index=profile.finite?first+n:(first+n)%profile.cues.length,id=profile.cues[index];
       if(CUES_BY_ID.has(id)&&(this._failed.get(id)||0)<=this.time)choices.push({id,index});
     }
-    return choices.find(c=>c.id!==this.lastCue)||choices[0]||null;
+    return (profile.finite?choices[0]:choices.find(c=>c.id!==this.lastCue))||choices[0]||null;
   }
   _prime(profile){
     const next=this._pick(profile),context=this.context;
@@ -112,7 +112,15 @@ export class BreachMusic {
       if(!this._initialized){
         this._initialized=true;
         if(scene.missionTime>5)this.openingUsed=true;
-        if(!this.openingUsed&&scene.opening&&this.enabled&&this.volume)this._opening={cue:scene.opening,at:this.time,expires:this.time+18};
+        const introScope=`${scene.mission}:opening-sequence`;
+        const sequence=Array.isArray(scene.openingSequence)?scene.openingSequence.filter(id=>CUES_BY_ID.has(id)).slice(0,8):[];
+        const continuing=sequence.length&&this.cursors.has(introScope)&&this.cursors.get(introScope)<sequence.length;
+        if(sequence.length&&(continuing||!this.openingUsed&&this.enabled&&this.volume)){
+          // This listener's authored introduction survives a split spawn,
+          // ordinary room changes and save/restore. Late joins do not replay it.
+          this._intro={mission:scene.mission,key:'opening-sequence',cues:sequence,level:1,fade:1.2,finite:true};
+          if(!this.cursors.has(introScope))this.cursors.set(introScope,0);
+        }else if(!this.openingUsed&&scene.opening&&this.enabled&&this.volume)this._opening={cue:scene.opening,at:this.time,expires:this.time+18};
         this.openingUsed=true;
       }
       const quietScope=scene.quietBeat?`${scene.mission}:quiet:${scene.quietBeat.key}`:null;
@@ -130,8 +138,9 @@ export class BreachMusic {
       this._guardianDwell=guardian?this._guardianDwell+delta:0;
       if(bossScope&&this._guardianDwell>=(scene.boss.delay||1.5))this._bossScope=bossScope;
       const boss=!!bossScope&&this._bossScope===bossScope;
-      const profile=boss?scene.boss:scene.rotation;
-      const desired=profile?{...profile,scope:boss?bossScope:`${scene.mission}:${profile.key}`,kind:boss?'boss':'score'}:null;
+      const intro=this._intro?.mission===scene.mission&&(this.cursors.get(`${scene.mission}:opening-sequence`)||0)<this._intro.cues.length?this._intro:null;
+      const profile=boss?scene.boss:intro||scene.rotation;
+      const desired=profile?{...profile,scope:boss?bossScope:`${scene.mission}:${profile.key}`,kind:boss?'boss':intro?'intro':'score'}:null;
       const changed=desired?.scope!==this._desired?.scope;
       this._desired=desired;
       if(this._pending&&!this._currentRequest(this._pending)){++this._generation;this._pending=null;}
@@ -208,7 +217,7 @@ export class BreachMusic {
       source = c.createBufferSource(); gain = c.createGain();
       source.buffer = buffer; source.loop = false; gain.gain.setValueAtTime(0, at);
       source.connect(gain); gain.connect(this.output);
-      cue={id:request.id,kind:request.kind,scope:request.scope,fade:request.fade||1.2,endAt:at+Math.min(buffer.duration,MAX_CUE_SECONDS),level:request.level,source,gain,mix:this._mix(request.kind),stopped:false};
+      cue={id:request.id,kind:request.kind,scope:request.scope,fade:request.fade||1.2,endAt:at+buffer.duration,level:request.level,source,gain,mix:this._mix(request.kind),stopped:false};
       // Decode before fading the outgoing phrase, so a slow download keeps music playing.
       if(this._active&&!this._active.stopped)this._fadeVoice(this._active,cue.fade);
       this._active = cue; this._sources.add(cue);
@@ -219,7 +228,7 @@ export class BreachMusic {
       };
       gain.gain.linearRampToValueAtTime(this.volume * cue.level * cue.mix, at + (request.fade||.8));
       if(request.fade){gain.gain.setValueAtTime(this.volume*cue.level*cue.mix,Math.max(at+request.fade,cue.endAt-request.fade));gain.gain.linearRampToValueAtTime(0,cue.endAt);}
-      source.start(at); source.stop(at + Math.min(buffer.duration, MAX_CUE_SECONDS));
+      source.start(at); source.stop(at + buffer.duration);
       if(request.kind==='menu'){
         this.menuError=false;this.menuIndex=(request.menuIndex+1)%MENU_SCORES.length;
         // Decode the other song during this phrase so the menu can crossfade
@@ -227,7 +236,7 @@ export class BreachMusic {
         this.prepare(MENU_SCORES[this.menuIndex].cue).catch(()=>{});
       }else{
         this.lastCue=request.id;
-        if(request.cues)this.cursors.set(request.scope,(request.index+1)%request.cues.length);
+        if(request.cues)this.cursors.set(request.scope,request.finite?request.index+1:(request.index+1)%request.cues.length);
         this._prime(this._desired);
       }
 

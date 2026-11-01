@@ -63,7 +63,7 @@ test('room validation rejects malformed and incompatible requests before allocat
   const outsider = peer(); rooms.handle(outsider, { type: 'start' }); assert.equal(error(outsider), 'NOT_IN_ROOM');
 });
 
-test('invite codes identify a private two-player room and reconnect passes never enter broadcasts', () => {
+test('invite codes identify a private four-player room and reconnect passes never enter broadcasts', () => {
   const rooms = new BreachRooms({ GameClass: RecordingGame }), host = peer(), guest = peer();
   rooms.handle(host, request('create', { name: ' <Host>\n ' }));
   const ownerWelcome = last(host, 'welcome');
@@ -82,7 +82,10 @@ test('invite codes identify a private two-player room and reconnect passes never
   assert.ok(!JSON.stringify(rooms.record(room)).includes('token'));
   assert.ok(!JSON.stringify(host.messages).includes(guestWelcome.token));
   assert.ok(!JSON.stringify(guest.messages).includes(ownerWelcome.token));
-  const third = peer(); rooms.handle(third, request('join', { roomId: room.id })); assert.equal(error(third), 'ROOM_FULL');
+  const third = peer(), fourth = peer(), fifth = peer();
+  rooms.handle(third, request('join', { roomId: room.id })); assert.equal(last(third, 'welcome').selfId, 'p3');
+  rooms.handle(fourth, request('join', { roomId: room.id })); assert.equal(last(fourth, 'welcome').selfId, 'p4');
+  rooms.handle(fifth, request('join', { roomId: room.id })); assert.equal(error(fifth), 'ROOM_FULL');
   rooms.handle(host, request('create')); assert.equal(error(host), 'ALREADY_IN_ROOM');
 });
 
@@ -211,7 +214,7 @@ test('Shadow room admission requires an exact numeric content revision before al
     rooms.handle(stale, request('create', { ...capability, ...(revision === undefined ? {} : { shadowRevision: revision }) }));
     assert.equal(error(stale), 'VERSION_MISMATCH'); assert.equal(rooms.rooms.size, 0);
     assert.equal(last(stale, 'welcome'), undefined); assert.equal(stale.roomId, null);
-    assert.match(last(stale, 'error').message, /Beneath The Shadow.*Refresh both game tabs.*rejoin/);
+    assert.match(last(stale, 'error').message, /Beneath The Shadow.*Refresh every game tab.*rejoin/);
   }
   const host = peer();
   rooms.handle(host, request('create', { ...capability, shadowRevision: SHADOW_WORLD_REVISION }));
@@ -223,7 +226,7 @@ test('Shadow room admission requires an exact numeric content revision before al
     rooms.handle(stale, request('join', { ...capability, roomId: id, ...(revision === undefined ? {} : { shadowRevision: revision }) }));
     assert.equal(error(stale), 'VERSION_MISMATCH'); assert.equal(room.players.size, 1);
     assert.equal(last(stale, 'welcome'), undefined); assert.equal(stale.roomId, null);
-    assert.match(last(stale, 'error').message, /Refresh both game tabs/);
+    assert.match(last(stale, 'error').message, /Refresh every game tab/);
   }
   const guest = peer();
   rooms.handle(guest, request('join', { ...capability, roomId: id, shadowRevision: SHADOW_WORLD_REVISION }));
@@ -340,7 +343,7 @@ test('disconnect reserves identity, rejects forged or duplicate reconnects, and 
   const duplicate = peer(); f.rooms.handle(duplicate, request('join', { roomId: f.room.id, token: welcome.token }));
   assert.equal(error(duplicate), 'ALREADY_CONNECTED');
   f.rooms.disconnect(f.guest); assert.equal(f.room.status, 'paused'); assert.equal(f.guest.roomId, null);
-  const intruder = peer(); f.rooms.handle(intruder, request('join', { roomId: f.room.id })); assert.equal(error(intruder), 'ROOM_FULL');
+  const intruder = peer(); f.rooms.handle(intruder, request('join', { roomId: f.room.id })); assert.equal(error(intruder), 'ROOM_STARTED');
   for (const token of ['x'.repeat(32), 'é'.repeat(32), 'short']) {
     const p = peer(); f.rooms.handle(p, request('join', { roomId: f.room.id, token })); assert.equal(error(p), 'INVALID_TOKEN');
   }

@@ -1,9 +1,10 @@
 import { Game, MISSIONS } from './core.mjs';
 import { SHADOW_ID, SHADOW_WORLD_REVISION } from './shadow.mjs';
+import { TOMORROW_ID, TOMORROW_WORLD_REVISION } from './tomorrow.mjs';
 import { createConnectionStatus } from './coop-status.mjs';
 
 const STEP = 1 / 30;
-const PROTOCOL = 2;
+const PROTOCOL = 3;
 const SUPPORTED_MISSIONS = MISSIONS.map(mission=>mission.id);
 const STALE_STATE_MS = 1200;
 const RECONNECT_MS = 4500;
@@ -71,7 +72,7 @@ export class CoopClient {
     const stateAge=this.lastStateAt===null?null:Math.max(0,this.now()-this.lastStateAt);
     const stalled=this.connected&&(this.networkHold||age>STALE_STATE_MS||this.room?.status==='playing'&&!this.waitingPause&&stateAge>STALE_STATE_MS);
     const quality=this.suspended?'away':!this.connected?this.connectionStatus:stalled?'stalled':this.rtt!==null&&(this.rtt>250||this.jitter>80)?'unstable':'connected';
-    return {quality,rtt:this.rtt===null?null:Math.round(this.rtt),jitter:Math.round(this.jitter),lastReplyMs:age,stateAgeMs:stateAge,canReconnect:!!this.token&&!!this.roomId&&!this.manual,version:'0.8.0'};
+    return {quality,rtt:this.rtt===null?null:Math.round(this.rtt),jitter:Math.round(this.jitter),lastReplyMs:age,stateAgeMs:stateAge,canReconnect:!!this.token&&!!this.roomId&&!this.manual,version:'0.11.0'};
   }
   _reportNetwork(){const status=this.getNetworkStatus();this.statusPanel?.update(status);this.callbacks.onNetwork?.(status);}
   _resetPrediction(){this.pending=[];this.predicted=null;this.lastAuthoritative=null;}
@@ -84,11 +85,11 @@ export class CoopClient {
 
   _readToken(roomId){try{return JSON.parse(this.storage?.getItem(`dfe.breach.room.${roomId}`)||'null');}catch(_){return null;}}
   _storeToken(){try{this.storage?.setItem(`dfe.breach.room.${this.roomId}`,JSON.stringify({token:this.token,selfId:this.selfId,name:this.intent?.name}));}catch(_){}}
-  create({name,mission,difficulty}){this.intent={type:'create',protocol:PROTOCOL,supportedMissions:[...SUPPORTED_MISSIONS],shadowRevision:SHADOW_WORLD_REVISION,name,mission,difficulty};this.manual=false;this.initialStart=this.now();this._connect(false);}
+  create({name,mission,difficulty,friendlyFire}){this.intent={type:'create',protocol:PROTOCOL,supportedMissions:[...SUPPORTED_MISSIONS],shadowRevision:SHADOW_WORLD_REVISION,tomorrowRevision:TOMORROW_WORLD_REVISION,name,mission,difficulty,...(typeof friendlyFire==='boolean'?{friendlyFire}:{})};this.manual=false;this.initialStart=this.now();this._connect(false);}
   join({roomId,name}){
     roomId=String(roomId||'').trim().toUpperCase();const saved=this._readToken(roomId);
     this.roomId=roomId;this.token=saved?.token||null;
-    this.intent={type:'join',protocol:PROTOCOL,supportedMissions:[...SUPPORTED_MISSIONS],shadowRevision:SHADOW_WORLD_REVISION,roomId,name,...(this.token?{token:this.token}:{})};this.manual=false;this.initialStart=this.now();this._connect(false);
+    this.intent={type:'join',protocol:PROTOCOL,supportedMissions:[...SUPPORTED_MISSIONS],shadowRevision:SHADOW_WORLD_REVISION,tomorrowRevision:TOMORROW_WORLD_REVISION,roomId,name,...(this.token?{token:this.token}:{})};this.manual=false;this.initialStart=this.now();this._connect(false);
   }
   _connect(retry) {
     if(this.manual||this.suspended||!this.pageVisible)return;
@@ -104,7 +105,7 @@ export class CoopClient {
     this.warmTimer=setTimeout(()=>{if(this.socket===socket&&!this.connected&&!retry)this._emit('onConnection','connecting','Waking the room service. The first connection may take about a minute…');},4500);
     socket.addEventListener('open',()=>{
       if(this.socket!==socket||this.manual||this.suspended)return;this.everOpened=true;
-      const intent=retry?{type:'join',protocol:PROTOCOL,supportedMissions:[...SUPPORTED_MISSIONS],shadowRevision:SHADOW_WORLD_REVISION,roomId:this.roomId,name:this.intent.name,token:this.token,replace:true}:this.intent;
+      const intent=retry?{type:'join',protocol:PROTOCOL,supportedMissions:[...SUPPORTED_MISSIONS],shadowRevision:SHADOW_WORLD_REVISION,tomorrowRevision:TOMORROW_WORLD_REVISION,roomId:this.roomId,name:this.intent.name,token:this.token,replace:true}:this.intent;
       try{socket.send(JSON.stringify(intent));}catch(_){this._connectionLost('Could not send the room handshake.');}
     });
     socket.addEventListener('message',event=>{
@@ -156,11 +157,11 @@ export class CoopClient {
       this._emit('onConnection','connected','Connected');return;
     }
     if(message.type==='room') {
-      if(!this._supportsMission(message.room?.mission,message.room?.shadowRevision))return;
+      if(!this._supportsMission(message.room?.mission,message.room?.shadowRevision,message.room?.tomorrowRevision))return;
       const previous=this.room?.status;this.room=message.room;this.ownerId=this.room.ownerId;
       if(this.room.status!=='playing') {this.waitingPause=true;this.clearInput();}
       else if(previous!=='playing'||this.awaitingRoom){this.waitingPause=false;this.pending=[];this.lastStateAt=this.now();}
-      this.awaitingRoom=false;if(this.networkHold&&this.room.status!=='playing'){this.networkHold=false;this._emit('onConnection','connected','Connection restored. Both players must resume.');}this._emit('onRoom',this.room);return;
+      this.awaitingRoom=false;if(this.networkHold&&this.room.status!=='playing'){this.networkHold=false;this._emit('onConnection','connected','Connection restored. All players must resume.');}this._emit('onRoom',this.room);return;
     }
     if(message.type==='state') {this._applySnapshot(message);return;}
     if(message.type==='error') {
@@ -177,20 +178,23 @@ export class CoopClient {
       const sample=Math.max(0,this.now()-message.sentAt);this._lag=sample;
       if(this.lastRtt!==null)this.jitter=this.jitter*.75+Math.abs(sample-this.lastRtt)*.25;
       this.rtt=this.rtt===null?sample:this.rtt*.75+sample*.25;this.lastRtt=sample;this.pingSentAt=null;
-      if(this.networkHold&&this.room?.status!=='playing'){this.networkHold=false;this._emit('onConnection','connected','Connection restored. Both players must resume.');}
+      if(this.networkHold&&this.room?.status!=='playing'){this.networkHold=false;this._emit('onConnection','connected','Connection restored. All players must resume.');}
       this._reportNetwork();
     }
   }
-  _supportsMission(mission, shadowRevision) {
+  _supportsMission(mission, shadowRevision, tomorrowRevision) {
     if(mission===SHADOW_ID&&shadowRevision!==SHADOW_WORLD_REVISION){
-      this._failedConnection('Beneath The Shadow has been updated. Refresh both game tabs, then create or rejoin the room.');return false;
+      this._failedConnection('Beneath The Shadow has been updated. Refresh every game tab, then create or rejoin the room.');return false;
+    }
+    if(mission===TOMORROW_ID&&tomorrowRevision!==TOMORROW_WORLD_REVISION){
+      this._failedConnection('The Wrong Side of Tomorrow has been updated. Refresh every game tab, then create or rejoin the room.');return false;
     }
     if(SUPPORTED_MISSIONS.includes(mission))return true;
     this._failedConnection('This room uses a mission that is not available in this game version. Reload the game, then rejoin the room.');
     return false;
   }
   _applySnapshot(message) {
-    if(this.room&&!this._supportsMission(this.room.mission,this.room.shadowRevision))return;
+    if(this.room&&!this._supportsMission(this.room.mission,this.room.shadowRevision,this.room.tomorrowRevision))return;
     if(!this.selfId||!this.room||!message.state?.players?.[this.selfId]||message.tick<this.tick)return;
     this.tick=message.tick;this.lastStateAt=this.now();
     let created=false;

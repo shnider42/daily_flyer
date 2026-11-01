@@ -6,6 +6,7 @@ import { tmpdir } from 'node:os';
 import { join } from 'node:path';
 import { WebSocket } from 'ws';
 import { createBreachServer } from '../server/breach-server.mjs';
+import { TOMORROW_ID, TOMORROW_WORLD_REVISION } from '../daily_flyer/themes/breach_assets/tomorrow.mjs';
 
 const ORIGIN = 'https://dfe-breach.onrender.com';
 
@@ -79,9 +80,9 @@ function rejectedUpgrade(url, origin) {
 
 async function pair(f, mission = 'crosslink-11') {
   const host = await f.client(), guest = await f.client();
-  host.send({ type: 'create', protocol: 2, name: 'Host', mission, difficulty: 'relaxed' });
+  host.send({ type: 'create', protocol: 3, name: 'Host', mission, difficulty: 'relaxed' });
   const ownerWelcome = await host.wait(m => m.type === 'welcome');
-  guest.send({ type: 'join', protocol: 2, roomId: ownerWelcome.roomId, name: 'Guest' });
+  guest.send({ type: 'join', protocol: 3, roomId: ownerWelcome.roomId, name: 'Guest' });
   const guestWelcome = await guest.wait(m => m.type === 'welcome');
   await host.wait(m => m.type === 'room' && m.room.players.length === 2);
   return { host, guest, ownerWelcome, guestWelcome };
@@ -90,7 +91,7 @@ async function pair(f, mission = 'crosslink-11') {
 test('HTTP health and static delivery expose only the public build and configure same-origin co-op', { timeout: 10000 }, async t => {
   const f = await fixture(t);
   const health = await get(f.base, '/health'); assert.equal(health.status, 200);
-  const status = JSON.parse(health.body); assert.equal(status.ok, true); assert.equal(status.service, 'breach-rooms'); assert.equal(status.version, '0.10.0'); assert.equal(status.protocol, 2); assert.equal(status.activeRooms, 0);
+  const status = JSON.parse(health.body); assert.equal(status.ok, true); assert.equal(status.service, 'breach-rooms'); assert.equal(status.version, '0.11.0'); assert.equal(status.protocol, 3); assert.equal(status.activeRooms, 0);
   assert.equal(health.headers['cache-control'], 'no-store');
   const page = await get(f.base); assert.equal(page.status, 200); assert.match(page.body, /"coopServer":"same-origin"/);
   assert.equal(page.headers['x-content-type-options'], 'nosniff'); assert.match(page.headers['content-type'], /text\/html/);
@@ -164,7 +165,7 @@ test('two actual WebSocket clients share authoritative play, expire inputs, paus
   cursor = host.messages.length; guest.socket.close(1000, 'Test reconnect'); await guest.waitClosed();
   await host.wait(m => m.type === 'room' && m.room.status === 'paused' && !m.room.players.find(p => p.id === 'p2').connected, cursor);
   const returned = await f.client();
-  returned.send({ type: 'join', protocol: 2, roomId: ownerWelcome.roomId, name: 'Returned', token: guestWelcome.token });
+  returned.send({ type: 'join', protocol: 3, roomId: ownerWelcome.roomId, name: 'Returned', token: guestWelcome.token });
   const welcome = await returned.wait(m => m.type === 'welcome'); assert.equal(welcome.selfId, 'p2'); assert.equal(welcome.resumed, true);
   const rejoined = await returned.wait(m => m.type === 'state'); assert.equal(rejoined.state.status, 'paused');
   assert.equal(rejoined.state.players.p2.x, later.state.players.p2.x);
@@ -182,7 +183,7 @@ test('two actual WebSocket clients share authoritative play, expire inputs, paus
 
 test('the large Underworks mission starts over the real room transport with shared upgrade state', { timeout: 10000 }, async t => {
   const f = await fixture(t), { host, guest, ownerWelcome } = await pair(f, 'underworks-13');
-  assert.equal(ownerWelcome.protocol, 2);
+  assert.equal(ownerWelcome.protocol, 3);
   host.send({ type: 'ready', ready: true }); guest.send({ type: 'ready', ready: true });
   await host.wait(m => m.type === 'room' && m.room.players.every(p => p.ready));
   host.send({ type: 'start' });
@@ -206,4 +207,48 @@ test('service shutdown delivers an explanation to both real room clients', { tim
   await f.close();
   assert.match((await hostClosed).message, /restarting/); assert.match((await guestClosed).message, /restarting/);
   await host.waitClosed(); await guest.waitClosed();
+});
+
+test('four real WebSocket clients enter Tomorrow and receive the same authoritative friendly-fire result', { timeout: 15000 }, async t => {
+  const f = await fixture(t), clients = [];
+  for (let n = 0; n < 4; n++) clients.push(await f.client());
+  const capabilities = { protocol: 3, supportedMissions: [TOMORROW_ID], tomorrowRevision: TOMORROW_WORLD_REVISION };
+  clients[0].send({ type: 'create', ...capabilities, name: 'One', mission: TOMORROW_ID, difficulty: 'standard' });
+  const owner = await clients[0].wait(m => m.type === 'welcome');
+  for (let n = 1; n < 4; n++) {
+    clients[n].send({ type: 'join', ...capabilities, roomId: owner.roomId, name: `Operator ${n + 1}` });
+    assert.equal((await clients[n].wait(m => m.type === 'welcome')).selfId, `p${n + 1}`);
+  }
+  const roster = await clients[0].wait(m => m.type === 'room' && m.room.players.length === 4);
+  assert.equal(roster.room.maxPlayers, 4); assert.equal(roster.room.friendlyFire, true);
+  const fifth = await f.client(); fifth.send({ type: 'join', ...capabilities, roomId: owner.roomId, name: 'Fifth' });
+  assert.equal((await fifth.wait(m => m.type === 'error')).code, 'ROOM_FULL');
+  for (const c of clients) c.send({ type: 'ready', ready: true });
+  await clients[0].wait(m => m.type === 'room' && m.room.players.length === 4 && m.room.players.every(p => p.ready));
+  clients[0].send({ type: 'start' });
+  const initial = await clients[0].wait(m => m.type === 'state' && m.state.status === 'playing');
+  for (const c of clients.slice(1)) {
+    const same = await c.wait(m => m.type === 'state' && m.tick === initial.tick);
+    assert.deepEqual(same.state, initial.state);
+  }
+  assert.deepEqual(Object.keys(initial.state.players), ['p1', 'p2', 'p3', 'p4']);
+  assert.equal(initial.state.missionId, TOMORROW_ID);
+  const game = f.app.rooms.rooms.get(owner.roomId).game;
+  // Arrange a clear firing lane on authored arrival floor, then use only the
+  // actual authenticated wire input to resolve damage and broadcast the hit.
+  for (const [id, x, z] of [['p4', 45.5, 84.5], ['p1', 45.5, 83.5], ['p2', 43.5, 83.5], ['p3', 47.5, 83.5]]) {
+    assert.ok(game._clearCircle(x, z, .22), `${id} firing-lane floor`);
+    Object.assign(game.state.players[id], { x, z, health: 100, armor: 0 });
+  }
+  for (const c of clients.slice(0, 3)) c.send({ type: 'input', seq: 1, forward: 0, strafe: 0, angle: 0, fire: false });
+  clients[3].send({ type: 'input', playerId: 'p1', seq: 1, forward: 0, strafe: 0, angle: 0, fire: true });
+  clients[3].send({ type: 'input', seq: 2, forward: 0, strafe: 0, angle: 0, fire: false });
+  const result = await clients[0].wait(m => m.type === 'state' && m.state.players.p1.health === 88);
+  for (const c of clients.slice(1)) {
+    const same = await c.wait(m => m.type === 'state' && m.tick === result.tick);
+    assert.equal(same.state.players.p1.health, 88);
+    assert.ok(same.events.some(e => e.type === 'friendly-fire' && e.sourceId === 'p4' && e.targetId === 'p1'));
+  }
+  assert.equal(result.state.players.p4.health, 100);
+  assert.equal(result.state.friendlyHits, 1);
 });

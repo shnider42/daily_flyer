@@ -1,81 +1,137 @@
-# BREACH private co-op
+# BREACH private co-op — 0.11.0
 
-Version 0.7 offers private two-player rooms for three of the six solo missions:
-Crosslink, a compact operation; The Underworks, a large exploration mission; and
-The Glasshouse, a connected conservatory with new weapons and enemy roles.
-Blacksite 07, Dead Relay, and Switchyard remain solo missions. See
-[the Glasshouse update](breach-glasshouse-07.md) for release details and current
-validation.
+Private co-op supports **two to four players** across six missions. Blacksite 07,
+Dead Relay, and Switchyard remain solo missions.
+
+| Mission | Co-op focus | Default friendly fire |
+| --- | --- | --- |
+| Crosslink | Compact power-and-relay operation | Off |
+| The Underworks | Exploration, permanent upgrades, refuges, and transit | Off |
+| The Glasshouse | Connected conservatory, bank shots, shields, and healers | Off |
+| The Hollow | Containment routing, long loops, and field records | Off |
+| Beneath The Shadow | Buried-city expedition, earned weapons, puzzles, and multiple bosses | Off |
+| The Wrong Side of Tomorrow | Strange arrivals, changing door destinations, and three endings | **On** |
 
 ## Play together
 
-Open Play with a friend, enter a display name, and create a room. Copy its invite
-link to the second player. Both players select Ready, then the creator starts.
-The room creator chooses Crosslink, The Underworks, or The Glasshouse. The two
-players can use different control schemes and personal graphics/guidance
-settings; the room creator selects the shared combat difficulty.
+Open **Play with friends**, enter a display name, and create a room. Share its
+invite with up to three other players. A team can start with two, three, or four
+operators: everyone currently in the room selects Ready, then the creator
+starts. The creator chooses the mission and combat difficulty, including
+**Insane in the Membrane**. Controls, graphics, guidance, and weapon selections
+remain personal.
 
-Keys, power, doors, relays, and extraction belong to the team. Both operatives
-begin with a pistol and scattergun. Collecting a weapon rack equips both
-inventories with that weapon and its starter ammunition once; only the collector
-automatically switches to it. This also applies to the existing scattergun
-pickups in Crosslink and The Underworks, which add shells to both inventories.
-Loose ammunition, health and armor are collected once by the operative who takes
-them. Each player spends their own ammunition and chooses their own weapon.
-Friendly fire and teammate body blocking are disabled.
+Each operator has a persistent number from P1 to P4 and a distinct marker color.
+The roster shows every teammate. Invites contain only the room ID; each player's
+private reconnect pass stays in their browser session.
 
-The Glasshouse adds the Rebound carbine and Thumper to the pistol, scattergun and
-Arc caster arsenal. Rebound slugs reflect once from solid walls and stop at closed
-doors. Thumper grenades bounce before their fuse expires; walls block splash.
-Your grenade can hurt you but cannot hurt your teammate. Both new weapons require
-deliberate firing. Select a carried weapon with its bottom inventory button or
-desktop keys 1–5; Q and the mouse wheel still cycle carried weapons. Co-op confirms
-each selection on the server, independently for each operative.
+Keys, power, doors, relays, permanent upgrades, discoveries, and the mission's
+ending belong to the team. A weapon rack supplies every operator with that
+weapon and its starter ammunition once; only its collector automatically equips
+it. Loose ammunition, health, and armor are consumed once by whoever picks them
+up. Each operator spends their own ammunition.
 
-One downed operative waits until the surviving teammate activates the next team
-checkpoint. A checkpoint revives downed teammates and replenishes supplies. If
-both operatives fall, the creator can retry the team checkpoint or restart.
+Beneath The Shadow and Tomorrow start with the pistol and require the team to
+find the heavier weapons. Earlier co-op missions also provide the starting
+scattergun. The current arsenal includes the pistol, Scattergun, Arc caster,
+Rebound carbine, Thumper, Rivet repeater, Null projector, and Breach lance. Use
+the bottom inventory buttons or desktop weapon keys for carried weapons; Q and
+the mouse wheel still cycle. The server confirms each operator's selection.
 
-In The Underworks, upgrades unlock routes for both players, refuges can be reused
-once nearby threats are cleared, and discovered transit pairs move only the
-player using them. The expanded exploration map pauses the team; both players
-resume when they are ready. See [The Underworks guide](breach-underworks.md).
+## Tomorrow: arrivals, pressure, and endings
 
-In The Glasshouse, the two cultivation wings reconnect at the north gallery.
-Bulwarks reduce damage from their covered front; flanking and their visible open
-phase give better shots. Menders heal other living infestation creatures, with a
-visible windup that damage can interrupt. Shields, healing, grenades and their
-effects are shared server state, so both players see the same encounter.
+A new Tomorrow room may place the team together, on two separated arrival
+platforms, or at scattered entrances. These are authored starting positions,
+with open routes toward the central exchange. Each player receives a brief
+arrival message identifying their operator number and actual zone. Follow the
+signs and numbered teammate markers to reunite. Retrying a checkpoint restores
+that checkpoint's positions; a full restart uses the same seeded arrival layout.
 
-Pausing or backgrounding the game deliberately pauses the room. Both players
-must resume. A disconnected player has 60 seconds to reconnect with their
-browser's session token. Invites contain only the room ID, never the reconnect
-token. Explicitly leaving ends the private room for both players.
+Enemy health responds modestly to party size in this mission: 1.3 times the
+selected difficulty's health for two players, 1.6 for three, and 1.9 for four.
+Additional players do not shorten attack warnings or increase enemy damage or
+movement speed. Earlier missions retain their existing tuning.
 
-Clients advertise which missions their installed game assets support. Older
-protocol-2 clients can still use Crosslink and The Underworks; Glasshouse requires
-a client that advertises the new mission. A stale client receives a refresh
-message before joining, including when reconnecting to an existing Glasshouse
-room. This prevents loading a different facility's geometry into the shared run.
+The Cinder Sower, Tether Widow, Glass Skimmer, and Lantern Maw all appear in the
+new mission. Their warnings and counters carry over from Beneath The Shadow.
+Doors can change destinations as the registers are restored; room signs and
+interaction prompts show the current route. The main mission remains possible
+alone, and no simultaneous partner-only switch is required.
 
-## Session limits
+Reconnect the names and hours registers to print the departure pass. The team
+can escape, continue to defeat the guardian and seal the anomaly, or recover the
+three memories and complete the restoration ending. A terminal's prompt explains
+its commitment; activating an ending completes the shared run for everyone.
 
-Rooms are held in server memory. A service deployment or restart ends active
-rooms, with an explanation sent to connected players when possible. Rooms expire
-after ten minutes of inactivity or two hours of total lifetime. The default
-server limit is four simultaneous rooms. Reconnecting restores a room only
-while that server process still has it.
+## Friendly fire
 
-Co-op does not use or overwrite the single-player save slot. A room is a shared
-live session, not a cloud copy of a solo checkpoint. Display names are temporary;
-there are no accounts or public room listings.
+Tomorrow enables friendly fire by default. Earlier missions keep it disabled.
+The room summary and in-game badge show the active rule; operator numbers and
+colors identify real teammates even in the stranger environments.
+
+Friendly bullets, shotgun pellets, bank shots, lance shots, and grenade splash
+can injure teammates. Friendly damage is **50% of normal weapon damage**, with
+normal armor absorption and no additional combat-difficulty multiplier. Grenade
+splash falls off with distance, and walls block it. The thrower's existing
+self-damage remains separate. Null and Arc hits hurt teammates but do not give
+them the suppression or stun effects used for enemies.
+
+A teammate in front of an enemy can stop a direct shot; the lance can pierce
+multiple bodies. Aim assist never targets teammates, and optional automatic fire
+holds when an ally is in its firing lane. Manual firing remains your decision.
+A friendly hit warns the shooter and identifies the injured operator. Player
+body blocking remains disabled, so teammates can pass each other in narrow paths.
+
+## Downed players, checkpoints, and pause
+
+A downed operator waits until a surviving teammate activates a shared checkpoint
+or safe refuge. The checkpoint revives downed operators near its activating
+player and replenishes team supplies. If everyone falls, the room creator can
+retry the checkpoint or restart the mission. Checkpoint retries restore
+positions and supplies while retaining the permanent progress defined by the
+mission. After a
+shared retry, everyone explicitly resumes.
+
+Transit and fold doors move the operator who uses them. Shared doors, shutters,
+puzzles, and ending decisions use one authoritative world. In the older maps,
+this includes Underworks upgrades, Glasshouse shields and healing, Hollow
+containment routing, and the Shadow's earned weapons and crossing puzzles.
+
+The co-op field map stays **live**. Opening a personal menu holds that player's
+controls while the others continue; when everyone has a menu open, the room
+pauses. Returning from one menu resumes this menu-only pause. An explicit team
+pause, backgrounding the app, a connection loss, or a stale control stream
+instead pauses the room for safety. Every allocated operator must be connected
+and select Resume before that pause ends.
+
+A disconnected player has 60 seconds to reconnect to the same reserved identity.
+The reconnect action keeps the room instead of leaving it, and a replacement
+connection invalidates the old socket. Explicitly leaving ends the private room
+for the whole team.
+
+## Versions and session limits
+
+The room service and browser use **protocol 3**. Refresh old tabs before joining;
+protocol-2 tabs receive a version-mismatch explanation. Clients advertise their
+available missions, and mission-specific revisions must also match: Beneath The
+Shadow uses revision 2, and Tomorrow uses revision 1. The checks apply before
+creating, joining, or replacing a connection to an existing room.
+
+Rooms live in server memory. A deployment or service restart ends active rooms,
+with an explanation sent to connected players when possible. Defaults are four
+simultaneous rooms, ten minutes of inactivity outside active play, and two hours
+total room lifetime. A reconnect works only while the same server process still
+holds the room. An idle room service may take time to wake; the client explains
+this during the initial connection attempt.
+
+Co-op does not use or overwrite the single-player save slot. Display names are
+temporary; there are no accounts or public room listings.
 
 ## Build and run
 
-Node 22+ and Python 3.10+ are required for the combined room service. The browser
-client still uses static ES modules; the room service's only npm dependency is
-the pinned `ws` package. The existing Python exporter uses only the standard
-library and the DFE theme contract.
+The combined service uses Node 22+ and Python 3.10+. The browser uses static ES
+modules; the room service's only npm dependency is the pinned `ws` package. The
+Python exporter uses the standard library and DFE's theme contract.
 
 ```sh
 npm ci --ignore-scripts
@@ -83,73 +139,55 @@ python3 scripts/build_breach.py
 npm start
 ```
 
-`npm run dev` exports the game then starts the same service, including WebSocket
-rooms. Its default local port is 4173; `PORT` or `--port` chooses another port.
-The service binds `0.0.0.0`. `/health` reports readiness and aggregate room counts.
+`npm run dev` exports the game and starts the service. Its default local port is
+4173; `PORT` or `--port` selects another port. The service binds `0.0.0.0`.
+`/health` reports readiness, v0.11.0, protocol 3, aggregate room counts, and
+`maxPlayersPerRoom:4`.
 
-The server serves `dist_breach` and injects `coopServer: "same-origin"` into its
-game configuration. For an independently hosted static client, set the build
-environment variable `BREACH_COOP_SERVER` to the room service's HTTPS URL. The
-client derives the secure WebSocket endpoint `/ws` from that URL.
+The service serves `dist_breach` and injects `coopServer:"same-origin"` into its
+game configuration. For an independent static client, set `BREACH_COOP_SERVER`
+to the room service's HTTPS URL at build time. The client derives `/ws` from it.
 
-Render room-service configuration:
+Existing Render deployment pattern:
 
-- Runtime: Node
-- Repository: `shnider42/daily_flyer`
-- Branch: `feat/breach-fps`
-- Build: `npm ci --omit=dev --ignore-scripts && python3 scripts/build_breach.py`
-- Start: `node server/breach-server.mjs`
-- Environment: `NODE_VERSION=24`, `SKIP_INSTALL_DEPS=true`
-- Environment: `BREACH_ALLOWED_ORIGINS=https://dfe-breach.onrender.com`
-- Environment: `BREACH_MAX_ROOMS=4`
-- One service instance; shared storage/room routing is required before scaling
-  to several instances.
-
-The initial sandbox can use Render's free compute plan. An idle free service
-needs time to wake on a new connection; the client explains this and allows the
-initial connection up to about 90 seconds. Paid compute can remove idle sleep
-later if playtesting warrants it.
+- Runtime: Node; repository `shnider42/daily_flyer`; branch `feat/breach-fps`.
+- Build: `npm ci --omit=dev --ignore-scripts && python3 scripts/build_breach.py`.
+- Start: `node server/breach-server.mjs`.
+- Environment: `NODE_VERSION=24`, `SKIP_INSTALL_DEPS=true`.
+- Environment: `BREACH_ALLOWED_ORIGINS=https://dfe-breach.onrender.com`.
+- Environment: `BREACH_MAX_ROOMS=4`.
+- One service instance; persistent shared room state and routing would be needed
+  before distributing the same rooms across several instances.
 
 ## Architecture and validation
 
-`server/breach-rooms.mjs` owns room membership, ready/start/pause/resume, expiry,
-input validation, and reconnect reservations. `server/breach-server.mjs` supplies
-HTTP and WebSocket transport, origin checks, bounded message rates/sizes,
-heartbeats, compression, and graceful shutdown.
+`server/breach-rooms.mjs` owns membership, readiness, pause/resume, expiry, input
+validation, and reconnect reservations. `server/breach-server.mjs` supplies HTTP
+and WebSocket transport, origin checks, bounded messages, heartbeats, compression,
+and shutdown handling. See [the protocol](breach-coop-protocol.md) for the exact
+message shapes and simulation API.
 
-The server advances `CoopGame` at 30 Hz and sends live state at 10 Hz. Browsers
-predict local movement and smooth teammate motion; the server controls combat,
-collisions, supply awards, and progression. Input expires after 300 ms without
-fresh messages, and a 1.5-second control-stream stall pauses the room. Personal
-events identify their player so a teammate's shot does
-not recoil the local weapon or flash the local damage indicator.
-Grenade hits and kills keep the throwing player's identity through delayed
-detonation; explosion visuals are shared. Team checkpoints clear active
-projectiles and effects before capturing the retry state.
+The server advances `CoopGame` at 30 Hz and sends snapshots at 10 Hz. Browsers
+predict local movement and smooth teammate motion; damage, collisions, supply
+awards, and progression remain authoritative. Inputs expire after 300 ms, and a
+1.5-second control-stream stall pauses the room. Feedback events identify their
+player so another operator's shot does not recoil the local weapon. Grenade
+attribution survives delayed detonation. Network snapshots retain scaled enemy
+health and maximum health for both WebGL and software rendering.
 
-See [the protocol](breach-coop-protocol.md) for exact messages and simulation API.
-Run the focused suites with:
+Relevant checks include the four-player and real WebSocket suites:
 
 ```sh
+node tests/breach-four-player.test.mjs
+node tests/breach-server.test.mjs
 npm run test:breach
 python -m unittest discover -s tests -p test_breach_export.py
 ```
 
-For the 0.7 release's test commands, results and remaining checks, use
-[the Glasshouse validation record](breach-glasshouse-07.md). This guide describes
-the implemented contract and does not assert that CI or live checks have finished.
-
-Real-device testing should pair a desktop and a phone on separate networks.
-Exercise both relays, a contested pickup, individual and team deaths, a phone
-background/return, a brief network interruption, checkpoint retry, and extraction.
-Check smoothness and response time separately from shared-state correctness.
-
-## 0.8.0: The Hollow
-
-The Hollow (`hollow-19`) is the fourth private co-op operation. Its client must
-advertise the mission in `supportedMissions`. Containment routing, field-record
-discovery and relay progress are shared authoritative state. The existing
-no-friendly-fire, individual equipment selection, checkpoint revival and
-reconnect policies remain in effect. The much larger map does not introduce
-durable co-op saving: Leave, room expiry or service restart still ends the run.
-See [the Hollow release notes](breach-hollow-08.md).
+Automated checks exercise two-, three-, and four-player starts, a rejected fifth
+player, friendly damage and cover, each arrival variant, shared checkpoints,
+identity-preserving reconnects, and client projection. They do not establish
+physical iPhone performance. Device playtesting should include separate networks,
+split arrivals, contested supplies, friendly downs, background/return, a brief
+connection interruption, checkpoint retry, and an ending. Assess response time
+and visual smoothness separately from shared-state correctness.

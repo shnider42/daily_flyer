@@ -1,28 +1,47 @@
-# BREACH implementation contract
+# BREACH implementation contract — 0.11.0
 
 An original retro first-person game delivered through DailyFlyer's custom theme hook.
-There are seven solo missions; Crosslink, The Underworks, The Glasshouse, and The Hollow also
-support private two-player co-op.
+There are nine solo missions. Crosslink, The Underworks, The Glasshouse, The
+Hollow, Beneath The Shadow, and The Wrong Side of Tomorrow also support private
+two- to four-player co-op using protocol 3.
 Blacksite 07 introduces power, access keys, extraction, a secret, and a checkpoint.
 Dead Relay adds a separate facility with two relay branches that unlock a data
 vault before the return to extraction.
-Crosslink adds a compact third facility for solo play and private two-player co-op.
+Crosslink adds a compact third facility for solo play and private co-op.
 The Underworks adds a large interconnected facility with permanent upgrades,
 return shortcuts, refuges, and transit links in both solo and co-op.
 Switchyard adds a compact fifth solo mission with reversible shutters, a staged
 faction encounter, and the Arc caster; see [the 0.6.0 notes](breach-switchyard-06.md).
 The Glasshouse adds a sixth solo/co-op facility, Rebound and Thumper weapons,
-bulwarks, and menders; see [the 0.7.0 notes](breach-glasshouse-07.md) for release
-details and the current validation record.
+bulwarks, and menders; see [the 0.7.0 notes](breach-glasshouse-07.md) for its
+historical release details.
 
 The Hollow adds a twelve-sector solo/co-op expedition, containment routing, and
 optional field records; see [the 0.8.0 notes](breach-hollow-08.md).
+
+Beneath The Shadow adds a buried-city expedition, earned Rivet repeater/Null
+projector/Breach lance, crossing puzzles, and multiple bosses. Its current
+content revision is 2; see [the 0.10.0 notes](breach-shadow-0100.md).
+The Wrong Side of Tomorrow (`wrong-side-of-tomorrow`, content revision 1) adds
+three endings, changing fold-door destinations, three seeded co-op arrival
+layouts, and the latest Sower, Widow, Skimmer, and Maw enemy roles.
+
+Tomorrow enables friendly fire by default; earlier co-op missions default to
+off. Friendly damage uses half weapon damage with normal armor absorption and
+no combat-difficulty damage multiplier. Only Tomorrow also scales enemy current
+and maximum health by party size after difficulty: 1.3×/1.6×/1.9× for two/three/four
+operators, preserving warning and attack timing. Checkpoint retry retains scaled
+state; full restart applies scaling once. All present operators must be ready to
+start or resume a safety pause. See [the current co-op guide](breach-multiplayer.md)
+and [protocol contract](breach-coop-protocol.md) for damage, split arrivals,
+checkpoint, menu, and reconnect behavior.
 
 ## Modules and ownership
 
 - `daily_flyer/themes/breach_assets/core.mjs`: deterministic simulation, weapon
   metadata, and the first three levels. `underworks.mjs`, `switchyard.mjs`, and
-  `glasshouse.mjs`, and `hollow.mjs` supply the later authored levels.
+  `glasshouse.mjs`, `hollow.mjs`, `shadow.mjs`, and `tomorrow.mjs` supply the later
+  authored levels. `shadow-enemies.mjs` supplies the newest threat behaviors.
 - `renderer.mjs`: WebGL and Canvas renderers, including original procedural art.
 - `app.mjs`, `index.html`, `style.css`: interface, input integration and lifecycle.
   `guidance.mjs` filters presentation; `touch-controls.mjs` owns touch gestures;
@@ -49,6 +68,8 @@ documented in [The Underworks](breach-underworks.md).
 The fifth is `switchyard-15`, defined in `switchyard.mjs`.
 The sixth is `glasshouse-17`, defined in `glasshouse.mjs`.
 The seventh is `hollow-19`, defined in `hollow.mjs`.
+The eighth is `beneath-the-shadow`, defined in `shadow.mjs`.
+The ninth is `wrong-side-of-tomorrow`, defined in `tomorrow.mjs`.
 `MISSIONS` provides the menu's `id,levelId,name,number,subtitle,briefing,steps`.
 
 `LEVEL`: `{id,name,width,height,grid,spawn,doors,interactables,pickups,enemies,zones}`.
@@ -63,7 +84,8 @@ Pickups have `{id,type,x,z,amount}`. Weapon types match `WEAPONS` ids; loose
 ammunition uses `ammo`, `shells`, `cells`, `slugs`, or `grenades`. Other types
 include `health`, `armor`, `key`, and `healthExpansion`. Enemies have
 `{id,type,x,z,health,maxHealth,alive}`; types are `runner`, `spitter`, `brute`,
-`sentry`, `stalker`, `bulwark`, and `mender`. Guardians are `brute` actors with
+`sentry`, `stalker`, `bulwark`, `mender`, `cinder-sower`, `tether-widow`,
+`glass-skimmer`, and `lantern-maw`. Guardians are `brute` actors with
 `guardian:true`.
 Security sentries are neutral to players until damaged by a player; use
 `game.isHostileToPlayer(enemy)` rather than treating every living actor as hostile.
@@ -75,8 +97,8 @@ Zones have `{name,x1,x2,z1,z2}`.
 ```
 status: 'ready'|'playing'|'paused'|'dead'|'won'
 player: {x,z,angle,health,armor,ammo:{pistol,shells,cells,slugs,grenades},
-         weapon:'pistol'|'shotgun'|'arc'|'ricochet'|'grenade',
-         hasShotgun,hasArc,hasRicochet,hasGrenade,key}
+         weapon:'pistol'|'shotgun'|'arc'|'ricochet'|'grenade'|'repeater'|'nullgun'|'lance',
+         hasShotgun,hasArc,hasRicochet,hasGrenade,hasRepeater,hasNull,hasLance,key}
 enemies, pickups, doors, interactables, projectiles, effects
 power: boolean, secretFound: boolean, time: seconds, kills, shots, hits
 ```
@@ -96,16 +118,21 @@ the pistol has no ownership flag and is always available.
 | `arc` | Arc caster | `hasArc` | `cells` |
 | `ricochet` | Rebound carbine | `hasRicochet` | `slugs` |
 | `grenade` | Thumper | `hasGrenade` | `grenades` |
+| `repeater` | Rivet repeater | `hasRepeater` | `pistol` |
+| `nullgun` | Null projector | `hasNull` | `cells` |
+| `lance` | Breach lance | `hasLance` | `slugs` |
 
 Metadata also defines range, aim-assist range, cooldown, damage, pellet count and
-automatic-fire eligibility. Rebound and Thumper have `autoFire:false`. Rebound
+automatic-fire eligibility. Rebound, Thumper, Null, and lance have `autoFire:false`. Rebound
 traces at most one wall reflection, ends at closed doors, and uses the final
 segment's origin when testing a directional shield. Thumper projectiles carry
 `{id,type:'grenade',x,z,dx,dz,life,fuse,ownerId,ownerKind:'player',bounces}`.
 They bounce with energy loss and detonate after their fuse. Splash uses distance
 falloff and line of sight; only the throwing player can take self-splash.
 Damage and kill events retain that player's identity even after the co-op
-`state.player` alias changes. Teammates never take grenade damage.
+`state.player` alias changes. With friendly fire enabled, other operators can
+also take half-strength blast damage through the authoritative co-op damage
+path; cover and falloff still apply, and owner self-splash is not doubled.
 
 Methods:
 

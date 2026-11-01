@@ -191,7 +191,7 @@ try {
     if (packet.type === 'error') guestErrors.push(packet);
   });
   await new Promise((resolveOpen, reject) => { guest.once('open', resolveOpen); guest.once('error', reject); });
-  send({ type: 'join', protocol: 2, roomId, name: 'Shadow teammate', supportedMissions: ['beneath-the-shadow'], shadowRevision: SHADOW_WORLD_REVISION });
+  send({ type: 'join', protocol: 3, roomId, name: 'Shadow teammate', supportedMissions: ['beneath-the-shadow'], shadowRevision: SHADOW_WORLD_REVISION });
   await until(() => guestRoom?.players.length === 2, 'matching Shadow client joins the real private room');
   send({ type: 'ready', ready: true }); await page.locator('#room-ready').tap();
   stream = setInterval(() => {

@@ -1,5 +1,5 @@
 import { Game, MISSIONS } from '../daily_flyer/themes/breach_assets/core.mjs';
-import { musicScene } from '../daily_flyer/themes/breach_assets/music-cues.mjs';
+import { MISSION_SCORE, musicScene } from '../daily_flyer/themes/breach_assets/music-cues.mjs';
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import { BreachMusic } from '../daily_flyer/themes/breach_assets/music.mjs';
@@ -86,7 +86,7 @@ test('danger interrupts a deliberate hush promptly without waiting out its timer
 });
 test('records, power, checkpoints and refuges lower the mix instead of stopping music',async()=>{
   const s=setup();await startCue(s);const cue=s.m._active;
-  for(const type of ['power','checkpoint','refuge','transit','enemy-warning']){
+  for(const type of ['power','checkpoint','refuge','transit','enemy-warning','tomorrow-shift']){
     s.m.events([{type}],{id:'local'});assert.equal(s.m._active,cue);assert.equal(cue.mix,.55);
   }
   s.m.events([{type:'record',playerId:'remote'}],{id:'local'});assert.equal(cue.mix,.55);
@@ -237,4 +237,65 @@ test('enabling music after a muted arrival starts the current region score',asyn
 test('replacing a closed context removes old voices and resumes the current score',async()=>{
   const s=setup();await startCue(s);s.c.state='closed';const fresh=new FakeContext();s.m.attach(fresh,{});
   await playFor({m:s.m,c:fresh},2,opening);assert.equal(s.m._sources.size,1);assert.equal(s.m._active.kind,'score');assert.equal(s.c.sources[0].onended,null);
+});
+
+const tomorrowScore=MISSION_SCORE['wrong-side-of-tomorrow'];
+const tomorrowScene=(zone='arrivals',extra={})=>({mission:'wrong-side-of-tomorrow',zone,
+  opening:tomorrowScore.opening,openingSequence:tomorrowScore.openingSequence,
+  rotation:tomorrowScore.sections[zone]||tomorrowScore.rotation,missionTime:0,...extra});
+async function nextPhrase(s,scene,extra={}){
+  await playFor(s,1,scene,extra);
+  s.c.advance(Math.max(0,s.m._active.endAt-s.c.currentTime-s.m._active.fade)+.001);
+  s.m.update({dt:.25,pressure:0,scene,...extra});await settle();
+  s.c.advance(1.3);s.m.update({dt:.25,pressure:0,scene,...extra});await settle();
+}
+
+test('Tomorrow begins with all three newest songs in order across split spawns and changing rooms',async()=>{
+  for(const spawn of ['arrivals','orchard','aquarium']){
+    const s=setup();await playFor(s,2,tomorrowScene(spawn));
+    const heard=[s.m._active.id];
+    await nextPhrase(s,tomorrowScene('wardrobe'));heard.push(s.m._active.id);
+    await nextPhrase(s,tomorrowScene('weather'));heard.push(s.m._active.id);
+    assert.deepEqual(heard,['iron-teeth','blacksite-stomp','ash-cathedral']);
+    assert.equal(s.m.cursors.get('wrong-side-of-tomorrow:opening-sequence'),3);
+    await nextPhrase(s,tomorrowScene('wardrobe'));
+    assert.equal(s.m._active.kind,'score');assert.equal(s.m._active.id,'the-room-replies');
+    assert.ok(s.m._buffers.size<=2);assert.ok(s.m._sources.size<=2);
+  }
+});
+
+test('Tomorrow saves and retries continue the unfinished introduction without replaying heard songs',async()=>{
+  const s=setup();await playFor(s,2,tomorrowScene());
+  const snapshot=s.m.snapshot();assert.equal(snapshot.cursors['wrong-side-of-tomorrow:opening-sequence'],1);
+  const restored=setup();restored.m.reset({snapshot});await playFor(restored,2,tomorrowScene('aquarium',{missionTime:90}));
+  assert.equal(restored.m._active.id,'blacksite-stomp');
+  s.m.reset({retry:true});await playFor(s,2,tomorrowScene());assert.equal(s.m._active.id,'blacksite-stomp');
+  const late=setup();await playFor(late,2,tomorrowScene('wardrobe',{missionTime:140}));
+  assert.equal(late.m._active.kind,'score');assert.equal(late.m._active.id,'the-room-replies');
+});
+
+test('a completed Tomorrow introduction does not replay after restore or leak into another mission',async()=>{
+  const s=setup();s.m.reset({snapshot:{openingUsed:true,cursors:{'wrong-side-of-tomorrow:opening-sequence':3}}});
+  await playFor(s,2,tomorrowScene('wardrobe'));assert.equal(s.m._active.kind,'score');
+  const active=setup();await playFor(active,2,tomorrowScene());
+  active.m.setPlaying(false);active.c.advance(1);active.m.reset();active.m.setPlaying(true);
+  await playFor(active,2,opening);assert.equal(active.m._active.id,'iron-wake');assert.equal(active.m._active.kind,'opening');
+});
+
+test('local boss exposure can interrupt the introduction and returns to its remaining songs after defeat',async()=>{
+  const s=setup();await playFor(s,2,tomorrowScene());
+  const arena=tomorrowScene('court',{boss:tomorrowScore.bosses.court});
+  await playFor(s,2,arena,{guardian:true});assert.equal(s.m._active.kind,'boss');assert.equal(s.m._active.id,'ash-cathedral');
+  await playFor(s,3,tomorrowScene('court',{boss:null}));
+  assert.equal(s.m._active.kind,'intro');assert.equal(s.m._active.id,'blacksite-stomp');
+});
+
+test('full arrangements play to their decoded ending and crossfade without the obsolete 56-second cutoff',async()=>{
+  const s=setup();s.c.decodeAudioData=()=>Promise.resolve({duration:126.5});
+  await playFor(s,2,tomorrowScene());
+  const first=s.m._active;
+  assert.equal(first.endAt-first.source.starts[0],126.5);
+  assert.equal(first.source.stops[0]-first.source.starts[0],126.5);
+  await playFor(s,60,tomorrowScene('exchange'));assert.equal(s.m._active,first);
+  await nextPhrase(s,tomorrowScene('exchange'));assert.equal(s.m._active.id,'blacksite-stomp');
 });

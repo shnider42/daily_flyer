@@ -1,3 +1,4 @@
+import { tomorrowEnding } from './tomorrow.mjs';
 import { Game, MISSIONS, WEAPONS, ownedWeapons } from './core.mjs';
 import { DIFFICULTY, DIFFICULTY_IDS, difficultyLabel } from './difficulty.mjs';
 import { BreachRenderer } from './renderer.mjs';
@@ -22,7 +23,7 @@ const prior = readStorage(SETTINGS_KEY) || {};
 const choices = (x, valid, fallback) => valid.includes(x) ? x : fallback;
 const requestedMission = new URL(location.href).searchParams.get('mission');
 const missionIds = MISSIONS.map(mission=>mission.id);
-const coopMissionIds=['crosslink-11','underworks-13','glasshouse-17','hollow-19','beneath-the-shadow'].filter(id=>missionIds.includes(id));
+const coopMissionIds=['crosslink-11','underworks-13','glasshouse-17','hollow-19','beneath-the-shadow','wrong-side-of-tomorrow'].filter(id=>missionIds.includes(id));
 const weaponHotkeys={Digit1:'pistol',Digit2:'shotgun',Digit3:'arc',Digit4:'ricochet',Digit5:'grenade',Digit6:'repeater',Digit7:'nullgun',Digit8:'lance'};
 const settings = {
   ...weaponViewOptions(prior),
@@ -248,8 +249,8 @@ function currentMission() { return missionForId(game?.level?.missionId); }
 function updateMissionMenu() {
   const selected=missionForId(settings.mission);
   $('mission-count').textContent=`${MISSIONS.length} AUTHORED MISSIONS`;
-  $('mission-briefing').closest('.mission-dossier').classList.toggle('exploration-dossier',['underworks-13','hollow-19','beneath-the-shadow'].includes(selected.id));
-  $('mission-mode').textContent=coopMissionIds.includes(selected.id)?'SOLO / PRIVATE CO-OP':'SINGLE PLAYER';
+  $('mission-briefing').closest('.mission-dossier').classList.toggle('exploration-dossier',['underworks-13','hollow-19','beneath-the-shadow','wrong-side-of-tomorrow'].includes(selected.id));
+  $('mission-mode').textContent=coopMissionIds.includes(selected.id)?'SOLO / 2–4 PLAYER CO-OP':'SINGLE PLAYER';
   $('mission-number').textContent=`MISSION ${selected.number}`;
   $('mission-title').textContent=selected.name.toUpperCase();
   const briefing=briefingForGuidance(selected,settings.guidance);
@@ -350,7 +351,7 @@ function pauseGame(reason='menu') {
   $('resume').focus({preventScroll:true});
 }
 function resumeGame() {
-  if(coop){if(coop.connected){closeDialogs();audio.unlock();coop.setMenu(false);if(coop.room?.status==='paused'&&coop.room.pauseKind!=='menus'){coop.resume();$('resume').disabled=true;$('resume').textContent='READY · WAITING FOR TEAMMATE';}else if(coop.room?.status==='playing')setMode('playing');}return;}
+  if(coop){if(coop.connected){closeDialogs();audio.unlock();coop.setMenu(false);if(coop.room?.status==='paused'&&coop.room.pauseKind!=='menus'){coop.resume();$('resume').disabled=true;$('resume').textContent='READY · WAITING FOR TEAM';}else if(coop.room?.status==='playing')setMode('playing');}return;}
   if(!ready || !game || game.state.status !== 'paused') return;
   closeDialogs(); audio.unlock(); game.resume(); setMode('playing'); lastFrame = performance.now(); requestMouse();
 }
@@ -369,15 +370,25 @@ function backToMenu() {
   try { makeGame(); } catch(error) { return fail(error); }
   setMode('menu'); $('start').focus({preventScroll:true});
 }
+function applyMissionEnding(won){
+  const ending=won&&game?.level.tomorrow?tomorrowEnding(game):null;
+  if(!ending)return;
+  $('end-kicker').textContent=`ENDING ${{escape:'I',seal:'II',rewrite:'III'}[ending.id]} / THE WRONG SIDE OF TOMORROW`;
+  $('end-title').textContent=ending.title;
+  $('end-copy').textContent=ending.text;
+  $('end-screen').classList.add('branch-ending');
+}
 function finish(won) {
   if(coop)return finishRoom(won);
   $('end-restart').hidden=false;$('end-restart').disabled=false;$('end-menu').textContent='MAIN MENU';$('end-room-status').hidden=true;
   if(mode === 'dead' || mode === 'won') return;
+  $('end-screen').classList.remove('branch-ending');
   setMode(won ? 'won' : 'dead');
   $('end-kicker').textContent = won ? 'EXTRACTION CONFIRMED' : 'SIGNAL TERMINATED';
   $('end-title').innerHTML = won ? 'SURVIVED<span>_</span>' : 'LOST<span>_</span>';
   const completed=currentMission(),next=MISSIONS[MISSIONS.findIndex(mission=>mission.id===completed.id)+1];
   $('end-copy').textContent=won ? `You made it out of ${completed.name}. Your mission is complete.` : 'The facility got the better of you. Keep moving, use cover, and collect supplies.';
+  applyMissionEnding(won);
   $('end-next').hidden=!won||!next;
   if(next){$('end-next').textContent=`NEXT: ${next.name.toUpperCase()} ↗`;$('end-next').dataset.mission=next.id;}
   $('result-time').textContent = formatTime(game.state.time);
@@ -416,7 +427,8 @@ function updateRoomBriefing(id) {
   $('room-mission-tag').textContent=`MISSION ${mission.number} / PRIVATE CO-OP`;
   $('room-mission-title').textContent=mission.name.toUpperCase();
   $('room-mission-briefing').textContent=briefingForGuidance(mission,settings.guidance).text;
-  $('room-exploration-rule').hidden=!['underworks-13','hollow-19','beneath-the-shadow'].includes(mission.id);
+  $('room-friendly-rule').hidden=mission.id!=='wrong-side-of-tomorrow';
+  $('room-exploration-rule').hidden=!['underworks-13','hollow-19','beneath-the-shadow','wrong-side-of-tomorrow'].includes(mission.id);
 }
 function populateRoomMissions() {
   $('room-mission').replaceChildren(...coopMissionIds.map(id=>{
@@ -432,24 +444,25 @@ function updateRoomEntry() {
   if(!room)return;
   if(requestedRoom!==room.id){requestedRoom=room.id;$('room-code').value=room.id;try{history.replaceState(null,'',roomInvite(room.id));}catch(_){}}
   $('room-id').textContent=room.id;$('room-combat').textContent=`${missionForId(room.mission).name.toUpperCase()} / ${difficultyLabel(room.difficulty).toUpperCase()}`;updateRoomBriefing(room.mission);
+  $('room-fire-status').hidden=false;$('room-fire-status').textContent=room.friendlyFire?'FRIENDLY FIRE ON · Check your line of fire.':'FRIENDLY FIRE OFF';
   $('room-invite').value=roomInvite(room.id);
   const players=room.players||[];
-  $('room-players').replaceChildren(...['p1','p2'].map(id=>{
-    const player=players.find(value=>value.id===id),row=document.createElement('div');row.className='room-operator';
+  $('room-players').replaceChildren(...['p1','p2','p3','p4'].slice(0,room.maxPlayers||4).map(id=>{
+    const player=players.find(value=>value.id===id),row=document.createElement('div');row.className='room-operator';row.dataset.operator=id;
     const indicator=document.createElement('span');indicator.className=`operator-light${player?.connected?' connected':''}${player?.ready?' ready':''}`;
-    const name=document.createElement('strong');name.textContent=player?`${player.name}${player.id===coop.selfId?' / YOU':''}`:'Awaiting operator';
+    const name=document.createElement('strong');name.textContent=player?`${id.toUpperCase()} · ${player.name}${player.id===coop.selfId?' / YOU':''}`:`${id.toUpperCase()} · Open slot`;
     const state=document.createElement('small');state.textContent=!player?'OPEN SLOT':!player.connected?'RECONNECTING':player.ready?'READY':'NOT READY';
     row.append(indicator,name,state);return row;
   }));
-  const self=players.find(player=>player.id===coop.selfId),allReady=players.length===2&&players.every(player=>player.connected&&player.ready);
+  const self=players.find(player=>player.id===coop.selfId),allReady=players.length>=2&&players.length<=(room.maxPlayers||4)&&players.every(player=>player.connected&&player.ready);
   $('room-ready').disabled=!coop.connected||room.status!=='lobby';
   $('room-ready').setAttribute('aria-pressed',String(!!self?.ready));
   $('room-ready').textContent=self?.ready?'READY ✓ / TAP TO UNDO':'I’M READY ✓';
   $('room-ready').classList.toggle('subdued',!!self?.ready);$('room-ready').classList.toggle('primary',!self?.ready);
   $('room-start').textContent=`START ${missionForId(room.mission).name.toUpperCase()} ↗`;
   $('room-start').hidden=!roomOwner();$('room-start').disabled=!allReady||!coop.connected||room.status!=='lobby';
-  $('room-wait').textContent=players.length<2?'Send your invite to one friend.':!allReady?'Both operators must mark ready.':roomOwner()?'Your team is ready. Start the mission when you are.':'Your team is ready. Waiting for the room owner to start.';
-  if(coop.connected&&room.status==='lobby')$('room-status').textContent='ROOM OPEN · INVITE ONE FRIEND';
+  $('room-wait').textContent=players.length<2?'Invite one to three friends. Two players can start.':!allReady?'Every joined operator must mark ready.':roomOwner()?'Your team is ready. Start the mission when you are.':'Your team is ready. Waiting for the room owner to start.';
+  if(coop.connected&&room.status==='lobby')$('room-status').textContent=`ROOM OPEN · ${players.length}/${room.maxPlayers||4} OPERATORS${room.friendlyFire?' · FRIENDLY FIRE ON':''}`;
 }
 function updateTeamStatus() {
   const room=coop?.room,network=coop?.view?.state;
@@ -458,14 +471,18 @@ function updateTeamStatus() {
   $('downed-banner').hidden=!downed||mode!=='playing';
   document.body.classList.toggle('operator-downed',downed&&mode==='playing');
   if(!room||!network)return;
-  const teammate=room.players.find(player=>player.id!==coop.selfId),body=network.players?.[teammate?.id];
-  const status=teammate?.menu?'IN MENU':!teammate?'WAITING':!teammate.connected?'RECONNECTING':body?.alive===false||body?.health<=0?'DOWN':`${Math.ceil(body?.health??100)} HP`;
-  $('team-status-text').textContent=`${teammate?.name||'TEAMMATE'} · ${status}`;
-  $('team-status').classList.toggle('teammate-down',body?.alive===false);
+  const teammates=room.players.filter(player=>player.id!==coop.selfId);
+  $('team-status-text').replaceChildren(...teammates.map(teammate=>{
+    const body=network.players?.[teammate.id],line=document.createElement('span');line.dataset.operator=teammate.id;
+    const status=!teammate.connected?'RECONNECTING':body?.alive===false||body?.health<=0?'DOWN':teammate.menu?'IN MENU':`${Math.ceil(body?.health??100)} HP`;
+    line.textContent=`${teammate.id.toUpperCase()} · ${teammate.name} · ${status}`;return line;
+  }));
+  $('team-status').classList.toggle('teammate-down',teammates.some(teammate=>network.players?.[teammate.id]?.alive===false));
+  $('team-fire-status').hidden=!network.friendlyFire;
 }
 function updatePauseRoom() {
   const notice=$('settings-world-status');notice.hidden=!coop?.view;
-  if(coop?.view)notice.textContent=coop.room?.status==='playing'?'WORLD STILL LIVE · Your operator is standing still. Find cover; your teammate and enemies keep moving.':'SHARED WORLD PAUSED · The mission will resume when an operator returns, or both confirm after a connection interruption.';
+  if(coop?.view)notice.textContent=coop.room?.status==='playing'?'WORLD STILL LIVE · Your operator is standing still. Find cover; your teammates and enemies keep moving.':'SHARED WORLD PAUSED · The mission will resume when an operator returns, or everyone confirms after a connection interruption.';
   const room=coop?.room,network=coop?.view;
   $('pause-map').hidden=!game?.level.exploration;
   $('pause-room-status').hidden=!coop;
@@ -480,16 +497,16 @@ function updatePauseRoom() {
   const self=room?.players.find(player=>player.id===coop.selfId);
   const offline=room?.players.some(player=>!player.connected);
   if(room?.status==='playing'||room?.pauseKind==='menus'){
-    $('pause-screen').querySelector('.eyebrow').textContent=room.status==='playing'?'WORLD STILL LIVE':'BOTH OPERATORS IN MENUS';
-    $('pause-screen').querySelector('.overlay-copy').textContent=room.status==='playing'?'Your operator is standing still. Your teammate and enemies are still moving. Find cover before opening settings.':'Everyone is in a menu, so the world is paused. Either operator can return to play.';
-    $('pause-room-status').textContent='Maps stay live. Both operators in menus pauses the world.';
+    $('pause-screen').querySelector('.eyebrow').textContent=room.status==='playing'?'WORLD STILL LIVE':'ALL OPERATORS IN MENUS';
+    $('pause-screen').querySelector('.overlay-copy').textContent=room.status==='playing'?'Your operator is standing still. Your teammates and enemies are still moving. Find cover before opening settings.':'Everyone is in a menu, so the world is paused. Any operator can return to play.';
+    $('pause-room-status').textContent='Maps stay live. All operators in menus pauses the world.';
     $('resume').disabled=!coop.connected;$('resume').textContent='RETURN TO PLAY ↗';$('restart').disabled=!coop.connected;$('checkpoint').disabled=!coop.connected||!network;return;
   }
   $('pause-screen').querySelector('.eyebrow').textContent='TEAM SIGNAL HELD';
-  $('pause-screen').querySelector('.overlay-copy').textContent=coopConnection==='reconnecting'?'Connection interrupted. We’re rejoining your room.':(room?.pauseReason||'The whole team is paused. Both operators must choose Resume to continue.');
-  $('pause-room-status').textContent=coopConnection==='reconnecting'?'Your slot is reserved briefly. Keep this page open.':offline?'Waiting for your teammate to reconnect.':self?.ready?'YOU ARE READY · WAITING FOR YOUR TEAMMATE':'RESUME WHEN BOTH OPERATORS ARE READY';
+  $('pause-screen').querySelector('.overlay-copy').textContent=coopConnection==='reconnecting'?'Connection interrupted. We’re rejoining your room.':(room?.pauseReason||'The whole team is paused. Every operator must choose Resume to continue.');
+  $('pause-room-status').textContent=coopConnection==='reconnecting'?'Your slot is reserved briefly. Keep this page open.':offline?'Waiting for the disconnected operator to reconnect.':self?.ready?'YOU ARE READY · WAITING FOR YOUR TEAM':'RESUME WHEN EVERY OPERATOR IS READY';
   $('resume').disabled=!coop.connected||room?.status!=='paused'||!!self?.ready;
-  $('resume').textContent=self?.ready?'READY · WAITING FOR TEAMMATE':'READY TO RESUME ↗';
+  $('resume').textContent=self?.ready?'READY · WAITING FOR TEAM':'READY TO RESUME ↗';
   $('restart').disabled=!coop.connected||offline;
   $('checkpoint').disabled=!coop.connected||offline||!network;
 }
@@ -511,10 +528,12 @@ function applyRoomStatus() {
 function secretCount(){const secrets=game.state.interactables.filter(i=>i.type==='secret');return `${secrets.filter(i=>i.used).length} / ${secrets.length}`;}
 function finishRoom(won) {
   if(!coop?.view)return;
+  $('end-screen').classList.remove('branch-ending');
   if(mode!==(won?'won':'dead'))setMode(won?'won':'dead');
   $('end-kicker').textContent=won?'TEAM EXTRACTION CONFIRMED':'TEAM SIGNAL LOST';
   $('end-title').innerHTML=won?'TOGETHER<span>_</span>':'TEAM DOWN<span>_</span>';
-  $('end-copy').textContent=won?`${missionForId(coop.room.mission).name} is clear. Your team made it out.`:'Both operators are down. Regroup at the shared checkpoint and try again.';
+  $('end-copy').textContent=won?`${missionForId(coop.room.mission).name} is clear. Your team made it out.`:'All operators are down. Regroup at the shared checkpoint and try again.';
+  applyMissionEnding(won);
   $('result-time').textContent=formatTime(game.state.time);$('result-kills').textContent=String(game.state.kills);
   $('result-secrets').textContent=secretCount();
   $('end-next').hidden=true;$('end-checkpoint').hidden=won||!game.state.checkpoint||!roomOwner();
@@ -522,7 +541,7 @@ function finishRoom(won) {
   $('end-restart').classList.toggle('subdued',!won&&!!game.state.checkpoint);$('end-restart').classList.toggle('primary',won||!game.state.checkpoint);
   $('end-restart').textContent=won?'PLAY TOGETHER AGAIN ↗':'RESTART TEAM MISSION ↗';
   $('end-menu').textContent='LEAVE ROOM';$('end-room-status').hidden=false;
-  $('end-room-status').textContent=roomOwner()?'You own this room. A restart moves both operators together.':'Waiting for the room owner to restart the team mission.';
+  $('end-room-status').textContent=roomOwner()?'You own this room. A restart moves the whole team together.':'Waiting for the room owner to restart the team mission.';
 }
 function openRoom() {
   if(!coopConfigured||!ready)return;
@@ -577,8 +596,8 @@ function leaveRoom() {
 }
 async function copyInvite() {
   const text=$('room-invite').value;
-  try{if(!navigator.clipboard?.writeText)throw new Error('Copy unavailable');await navigator.clipboard.writeText(text);$('room-status').textContent='INVITE COPIED · SEND IT TO ONE FRIEND';}
-  catch(_){$('room-invite').focus();$('room-invite').select();$('room-status').textContent='SELECTED YOUR INVITE · COPY IT AND SEND IT TO ONE FRIEND';}
+  try{if(!navigator.clipboard?.writeText)throw new Error('Copy unavailable');await navigator.clipboard.writeText(text);$('room-status').textContent='INVITE COPIED · SEND IT TO UP TO THREE FRIENDS';}
+  catch(_){$('room-invite').focus();$('room-invite').select();$('room-status').textContent='SELECTED YOUR INVITE · COPY IT AND SEND IT TO UP TO THREE FRIENDS';}
 }
 function interact() { if(!localOperatorAlive())return;if(coop)coop.interact();else game.interact(); }
 function switchWeapon() { if(!localOperatorAlive())return;if(coop)coop.weapon();else game.switchWeapon(); }
@@ -617,7 +636,7 @@ function updateMapVisibility() {
   $('map-toggle').setAttribute('aria-pressed',String(mapVisible));
   $('map-toggle').setAttribute('aria-label',mapVisible?'Hide map':'Show map');
   $('map-title').textContent=large?currentMission().name.toUpperCase():'FACILITY MAP';
-  $('map-help').textContent=coop?'LIVE MAP · Your operator stands still; the world and teammate keep moving. Find cover first. Drag to pan; + / − zoom.':'Drag to pan · + / − to zoom. Close the map to return to Resume. Arrow keys pan; Home finds you.';
+  $('map-help').textContent=coop?'LIVE MAP · Your operator stands still; the world and your teammates keep moving. Find cover first. Drag to pan; + / − zoom.':'Drag to pan · + / − to zoom. Close the map to return to Resume. Arrow keys pan; Home finds you.';
   if(mapVisible){revealMap();if(large){pathHint=settings.guidance==='simple'?calculatePath():null;refreshMapIndex(true);}drawMap();}
 }
 function closeMap() {
@@ -949,12 +968,22 @@ function processEvents(events,allEvents=events) {
     if(event.type==='win'&&!coop)finish(true);
     if(event.type==='death'&&!coop)finish(false);
     if(event.type==='revive'&&coop)notice='Back in the fight. The team reached a shared checkpoint.';
-    if(event.type==='downed'&&coop)notice='Operator down. Your teammate can bring you back at the next checkpoint.';
+    if(event.type==='friendly-fire'&&coop)notice=`FRIENDLY FIRE · You hit ${coop.room?.players.find(p=>p.id===event.targetId)?.name||event.targetId?.toUpperCase()||'a teammate'}. Check your line of fire.`;
+    if(event.type==='hurt'&&event.friendlyFire&&coop)notice=`FRIENDLY FIRE · Hit by ${coop.room?.players.find(p=>p.id===event.sourceId)?.name||'a teammate'}.`;
+    if(event.type==='downed'&&coop)notice='Operator down. Your team can bring you back at the next checkpoint.';
   }
   if(notice&&mode==='playing')showToast(notice);
 }
 function shouldAutoFire(gesture) {
   if(!settings.autoFire||!localOperatorAlive()||gesture.blocksAutoFire)return false;
+  if(game.state.friendlyFire){
+    const p=game.state.player,spec=WEAPONS[p.weapon]||WEAPONS.pistol;
+    if(Object.values(game.state.players||{}).some(ally=>{
+      if(ally===p||ally.id===p.id||ally.alive===false)return false;
+      const dx=ally.x-p.x,dz=ally.z-p.z,along=dx*Math.sin(p.angle)-dz*Math.cos(p.angle),across=Math.abs(dx*Math.cos(p.angle)+dz*Math.sin(p.angle));
+      return along>0&&along<spec.range&&across<.5+along*.12&&game.hasLineOfSight(p.x,p.z,ally.x,ally.z);
+    }))return false;
+  }
   return automaticFireAllowed(game.state.enemies,game.state.player,{aimAssist:settings.aimAssist,hasLineOfSight:(...args)=>game.hasLineOfSight(...args)});
 }
 function frame(now) {

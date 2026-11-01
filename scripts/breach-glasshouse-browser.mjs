@@ -122,7 +122,7 @@ try {
   guest = new WebSocket(base.replace('http:','ws:')+'/ws',{headers:{Origin:base}});
   guest.on('message',data=>{const packet=JSON.parse(data);guestPackets.push(packet);if(packet.type==='state')lastGuestState=packet.state;if(packet.type==='room')guestRoom=packet.room;});
   await new Promise(resolve=>guest.once('open',resolve));
-  send({type:'join',protocol:2,roomId,name:'Garden teammate',supportedMissions:['glasshouse-17']});
+  send({type:'join',protocol:3,roomId,name:'Garden teammate',supportedMissions:['glasshouse-17']});
   await until(()=>guestRoom?.players.length===2,'second operator joins Glasshouse');
   send({type:'ready',ready:true}); await page.getByRole('button',{name:'I’M READY'}).tap();
   stream=setInterval(()=>{if(guest.readyState===WebSocket.OPEN&&guestRoom?.status==='playing')send({type:'input',seq:++guestSeq,forward:0,strafe:0,angle:0,fire:guestFire});},33);

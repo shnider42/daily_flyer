@@ -1,11 +1,12 @@
 import { randomBytes, timingSafeEqual } from 'node:crypto';
-import { CoopGame } from '../daily_flyer/themes/breach_assets/coop-core.mjs';
+import { CoopGame, COOP_PLAYER_IDS } from '../daily_flyer/themes/breach_assets/coop-core.mjs';
 import { WEAPONS } from '../daily_flyer/themes/breach_assets/core.mjs';
 import { DIFFICULTY_IDS } from '../daily_flyer/themes/breach_assets/difficulty.mjs';
 import { SHADOW_ID, SHADOW_WORLD_REVISION } from '../daily_flyer/themes/breach_assets/shadow.mjs';
+import { TOMORROW_ID, TOMORROW_WORLD_REVISION } from '../daily_flyer/themes/breach_assets/tomorrow.mjs';
 
-export const PROTOCOL = 2;
-export const COOP_MISSIONS = ['crosslink-11', 'underworks-13', 'glasshouse-17', 'hollow-19', 'beneath-the-shadow'];
+export const PROTOCOL = 3;
+export const COOP_MISSIONS = ['crosslink-11', 'underworks-13', 'glasshouse-17', 'hollow-19', 'beneath-the-shadow', TOMORROW_ID];
 // Older clients may still use the original two maps. A new-map handshake must
 // advertise its local level data before we attach it to a shared simulation.
 const supportsMission = (message, mission) => message.supportedMissions === undefined
@@ -31,7 +32,8 @@ export class BreachRooms {
     return {
       id: room.id, mission: room.mission, difficulty: room.difficulty,
       ...(room.mission === SHADOW_ID ? { shadowRevision: SHADOW_WORLD_REVISION } : {}),
-      status: room.status, ownerId: room.ownerId, maxPlayers: 2,
+      ...(room.mission === TOMORROW_ID ? { tomorrowRevision: TOMORROW_WORLD_REVISION } : {}),
+      status: room.status, ownerId: room.ownerId, maxPlayers: COOP_PLAYER_IDS.length, friendlyFire: room.friendlyFire,
       pauseReason: room.pauseReason, pauseKind:room.pauseKind||null,
       players: [...room.players.values()].map(p => ({ id: p.id, name: p.name, connected: !!p.peer, ready: p.ready, menu:!!p.menu })),
     };
@@ -60,7 +62,7 @@ export class BreachRooms {
     peer.send({ type: 'welcome', protocol: PROTOCOL, roomId: room.id, selfId: player.id, ownerId: room.ownerId, token: player.token, resumed });
     if (resumed && room.status === 'paused') {
       const missing = [...room.players.values()].find(p => !p.peer);
-      room.pauseReason = missing ? `Waiting for ${missing.name} to reconnect.` : `${player.name} reconnected. Both players must resume.`;
+      room.pauseReason = missing ? `Waiting for ${missing.name} to reconnect.` : `${player.name} reconnected. All players must resume.`;
     }
     this.publishRoom(room);
     if (room.game) peer.send(this.statePacket(room));
@@ -68,16 +70,20 @@ export class BreachRooms {
 
   create(peer, message) {
     if (this.rooms.size >= this.maxRooms) return this.error(peer, 'ROOM_CAPACITY', 'All test rooms are in use. Try again after another team finishes.');
-    if (!COOP_MISSIONS.includes(message.mission)) return this.error(peer, 'INVALID_MISSION', 'Choose Crosslink, The Underworks, The Glasshouse, The Hollow, or Beneath The Shadow for co-op.');
+    if (!COOP_MISSIONS.includes(message.mission)) return this.error(peer, 'INVALID_MISSION', 'Choose an available co-op mission.');
     if (!supportsMission(message, message.mission)) return this.error(peer, 'VERSION_MISMATCH', 'Refresh the game to load this co-op mission.');
-    if (message.mission === SHADOW_ID && message.shadowRevision !== SHADOW_WORLD_REVISION) return this.error(peer, 'VERSION_MISMATCH', 'Beneath The Shadow has been updated. Refresh both game tabs, then create or rejoin the room.');
+    if (message.mission === SHADOW_ID && message.shadowRevision !== SHADOW_WORLD_REVISION) return this.error(peer, 'VERSION_MISMATCH', 'Beneath The Shadow has been updated. Refresh every game tab, then create or rejoin the room.');
+    if (message.mission === TOMORROW_ID && message.tomorrowRevision !== TOMORROW_WORLD_REVISION) return this.error(peer, 'VERSION_MISMATCH', 'The Wrong Side of Tomorrow has been updated. Refresh every game tab, then create or rejoin the room.');
     if (!DIFFICULTIES.has(message.difficulty)) return this.error(peer, 'INVALID_DIFFICULTY', 'Choose a valid combat difficulty.');
+    if (message.friendlyFire !== undefined && typeof message.friendlyFire !== 'boolean') return this.error(peer, 'INVALID_FRIENDLY_FIRE', 'Friendly fire must be on or off.');
     const name = safeName(message.name);
     if (!name) return this.error(peer, 'INVALID_NAME', 'Enter a display name to create a room.');
     const alphabet = 'ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
     let id; do { id = [...randomBytes(8)].map(byte => alphabet[byte & 31]).join(''); } while (this.rooms.has(id));
     const now = this.now();
-    const room = { id, mission: message.mission, difficulty: message.difficulty, ownerId: 'p1', status: 'lobby', pauseReason: '', players: new Map(), game: null, tick: 0, createdAt: now, lastActivity: now, statusChangedAt: now };
+    const room = { id, mission: message.mission, difficulty: message.difficulty,
+      friendlyFire: message.friendlyFire ?? message.mission === TOMORROW_ID,
+      ownerId: 'p1', status: 'lobby', pauseReason: '', players: new Map(), game: null, tick: 0, createdAt: now, lastActivity: now, statusChangedAt: now };
     const player = this.newPlayer('p1', name);
     room.players.set(player.id, player); this.rooms.set(id, room); this.attach(room, player, peer);
   }
@@ -91,7 +97,8 @@ export class BreachRooms {
     const room = this.rooms.get(id);
     if (!room) return this.error(peer, 'ROOM_NOT_FOUND', 'This room has ended or expired. Ask your friend for a new invite.');
     if (!supportsMission(message, room.mission)) return this.error(peer, 'VERSION_MISMATCH', 'Refresh the game to load this co-op mission.');
-    if (room.mission === SHADOW_ID && message.shadowRevision !== SHADOW_WORLD_REVISION) return this.error(peer, 'VERSION_MISMATCH', 'Beneath The Shadow has been updated. Refresh both game tabs, then create or rejoin the room.');
+    if (room.mission === SHADOW_ID && message.shadowRevision !== SHADOW_WORLD_REVISION) return this.error(peer, 'VERSION_MISMATCH', 'Beneath The Shadow has been updated. Refresh every game tab, then create or rejoin the room.');
+    if (room.mission === TOMORROW_ID && message.tomorrowRevision !== TOMORROW_WORLD_REVISION) return this.error(peer, 'VERSION_MISMATCH', 'The Wrong Side of Tomorrow has been updated. Refresh every game tab, then create or rejoin the room.');
     if (message.token) {
       const player = [...room.players.values()].find(p => sameToken(p.token, message.token));
       if (!player) return this.error(peer, 'INVALID_TOKEN', 'This reconnect pass has expired. Create a new room with your friend.');
@@ -115,11 +122,11 @@ export class BreachRooms {
       this.attach(room, player, peer, true); room.lastActivity = this.now();
       return;
     }
-    if (room.players.size >= 2) return this.error(peer, 'ROOM_FULL', 'This room already has two players.');
+    if (room.players.size >= COOP_PLAYER_IDS.length) return this.error(peer, 'ROOM_FULL', 'This room already has four players.');
     if (room.status !== 'lobby') return this.error(peer, 'ROOM_STARTED', 'This run has already started. Ask your friend to create a new room.');
     const name = safeName(message.name);
     if (!name) return this.error(peer, 'INVALID_NAME', 'Enter a display name to join.');
-    const player = this.newPlayer('p2', name);
+    const player = this.newPlayer(COOP_PLAYER_IDS.find(id => !room.players.has(id)), name);
     room.players.set(player.id, player); room.lastActivity = this.now(); this.attach(room, player, peer);
   }
 
@@ -142,8 +149,8 @@ export class BreachRooms {
       case 'start':
         if (player.id !== room.ownerId) return this.error(peer, 'OWNER_ONLY', 'The room creator starts the mission.');
         if (room.status !== 'lobby') return;
-        if (!this.allReady(room)) return this.error(peer, 'NOT_READY', 'Both players must join and mark Ready.');
-        room.game = new this.GameClass({ mission: room.mission, difficulty: room.difficulty, seed: randomBytes(4).readUInt32LE(), players: [...room.players.keys()] });
+        if (!this.allReady(room)) return this.error(peer, 'NOT_READY', 'At least two players must join, and everyone in the room must mark Ready.');
+        room.game = new this.GameClass({ mission: room.mission, difficulty: room.difficulty, friendlyFire: room.friendlyFire, seed: randomBytes(4).readUInt32LE(), players: [...room.players.keys()] });
         room.game.start(); room.status = 'playing'; room.pauseReason = ''; room.statusChangedAt = this.now();
         this.clearInputs(room); this.publishRoom(room); this.publishState(room); return;
       case 'input': return this.input(room, player, message);
@@ -158,14 +165,14 @@ export class BreachRooms {
         if(!['playing','paused'].includes(room.status)||typeof message.open!=='boolean')return;
         player.menu=message.open;player.input={...NEUTRAL};player.pendingFireAt=null;player.lastInputAt=this.now();
         if(room.status==='playing'&&[...room.players.values()].every(p=>p.peer&&p.menu)){
-          room.game.pause();room.status='paused';room.pauseKind='menus';room.pauseReason='Both operators are in menus. Returning to play resumes the world.';room.statusChangedAt=this.now();this.clearInputs(room);
+          room.game.pause();room.status='paused';room.pauseKind='menus';room.pauseReason='All operators are in menus. Returning to play resumes the world.';room.statusChangedAt=this.now();this.clearInputs(room);
         }else if(room.status==='paused'&&room.pauseKind==='menus'&&[...room.players.values()].every(p=>p.peer)&&[...room.players.values()].some(p=>!p.menu)){
           room.game.resume();room.status='playing';room.pauseKind=null;room.pauseReason='';room.statusChangedAt=this.now();this.clearInputs(room);
         }
         this.publishRoom(room);this.publishState(room);return;
       case 'pause':
         if (!['playing', 'paused'].includes(room.status)) return;
-        this.pause(room, `${player.name} ${message.reason === 'background' ? 'switched away from the game' : message.reason === 'network' ? 'lost fresh server updates' : 'paused the mission'}. Both players must resume.`); return;
+        this.pause(room, `${player.name} ${message.reason === 'background' ? 'switched away from the game' : message.reason === 'network' ? 'lost fresh server updates' : 'paused the mission'}. All players must resume.`); return;
       case 'resume':
         if (room.status !== 'paused') return;
         player.ready = true;
@@ -177,7 +184,7 @@ export class BreachRooms {
         if (player.id !== room.ownerId) return this.error(peer, 'OWNER_ONLY', 'The room creator restarts the team.');
         if (!room.game) return;
         if (message.checkpoint !== true || !room.game.restartCheckpoint()) room.game.restart();
-        room.game.pause(); room.status = 'paused'; room.pauseKind='safety'; room.statusChangedAt = this.now(); room.pauseReason = message.checkpoint === true ? 'Team checkpoint restored. Both players must resume.' : 'Mission restarted. Both players must resume.';
+        room.game.pause(); room.status = 'paused'; room.pauseKind='safety'; room.statusChangedAt = this.now(); room.pauseReason = message.checkpoint === true ? 'Team checkpoint restored. All players must resume.' : 'Mission restarted. All players must resume.';
         for (const p of room.players.values()) p.ready = false;
         this.clearInputs(room); this.publishRoom(room); this.publishState(room); return;
       case 'leave': this.end(room, `${player.name} left the room. Create a new room to play together again.`); return;
@@ -185,7 +192,7 @@ export class BreachRooms {
     }
   }
 
-  allReady(room) { return room.players.size === 2 && [...room.players.values()].every(p => p.peer && p.ready); }
+  allReady(room) { return room.players.size >= 2 && room.players.size <= COOP_PLAYER_IDS.length && [...room.players.values()].every(p => p.peer && p.ready); }
 
   input(room, player, message) {
     if (room.status !== 'playing') return;
@@ -233,7 +240,7 @@ export class BreachRooms {
       }
       if (room.status !== 'playing') continue;
       const stalled = [...room.players.values()].find(p => p.peer && now - p.lastInputAt > 1500);
-      if (stalled) { this.pause(room, `${stalled.name}'s connection stopped sending controls. Both players must resume when the connection returns.`); continue; }
+      if (stalled) { this.pause(room, `${stalled.name}'s connection stopped sending controls. All players must resume when the connection returns.`); continue; }
       const inputs = {};
       for (const p of room.players.values()) {
         inputs[p.id] = p.peer && !p.menu && now - p.lastInputAt <= 300

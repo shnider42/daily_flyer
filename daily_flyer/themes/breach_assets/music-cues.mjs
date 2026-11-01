@@ -1,9 +1,9 @@
 /** Original cue palette. No gameplay state or network synchronization lives here. */
 const cue = (id, title, bpm, kind, sound, use, avoid, seconds) => Object.freeze({id, title, bpm, kind, sound, use, avoid, seconds, url:new URL(`./music/${id}.mp3`, import.meta.url), midi:new URL(`./music/${id}.mid`, import.meta.url)});
 export const MUSIC_CUES = Object.freeze([
-  cue('iron-teeth','Iron Teeth',168,'combat','Fast low guitar chugs, octave bass and a climbing lead hook; a broad middle section brings the riff back harder.','Beneath The Shadow’s opening, aqueduct and Iron Warden; Blacksite quarantine and the Underworks rail crowns.','The menu, listening rooms and quieter story districts.',47.51),
-  cue('blacksite-stomp','Blacksite Stomp',124,'combat','A dirty bass groove and stop/start power chords, with syncopated accents and a heavy half-time turn.','Shadow’s city, rivet works and restored street; Blacksite’s facility, Switchyard’s freight routes and the Hollow freight district.','Quiet reveal beats, archives and the lantern quarter.',48.25),
-  cue('ash-cathedral','Ash Cathedral',142,'combat','Dark organ, low guitar and a marching rock kit; an answering lead escalates into the final refrain.','The Hollow’s Choir Keeper, Shadow’s multiplying roots and the Umbra Engine.','Unrevealed bosses, the menu and quiet exploration.',49.12),
+  cue('iron-teeth','Iron Teeth',168,'combat','Fast low guitar chugs, octave bass and a climbing lead hook; a broad middle section brings the riff back harder.','First song in The Wrong Side of Tomorrow; Beneath The Shadow’s opening, aqueduct and Iron Warden; Blacksite quarantine and the Underworks rail crowns.','The menu, listening rooms and quieter story districts.',47.51),
+  cue('blacksite-stomp','Blacksite Stomp',124,'combat','A dirty bass groove and stop/start power chords, with syncopated accents and a heavy half-time turn.','Second song in The Wrong Side of Tomorrow; Shadow’s city, rivet works and restored street; Blacksite’s facility, Switchyard’s freight routes and the Hollow freight district.','Quiet reveal beats, archives and the lantern quarter.',48.25),
+  cue('ash-cathedral','Ash Cathedral',142,'combat','Dark organ, low guitar and a marching rock kit; an answering lead escalates into the final refrain.','Third song in The Wrong Side of Tomorrow and its final court; the Hollow’s Choir Keeper, Shadow’s multiplying roots and the Umbra Engine.','Unrevealed bosses outside Tomorrow’s opening trilogy, the menu and quiet exploration.',49.12),
   cue('shadow-running','Shadow Running',140,'combat','A fast two-bar guitar hook, a contrasting middle and a clear return.','Beneath The Shadow’s recurring city routes, aqueduct and Warden/root encounters.','The chapel’s first listening pause and the slower lantern district.',42.94),
   cue('sever-the-echo','Sever the Echo',154,'combat','Fast 3+3+2 accents, answering bass and a half-time bridge.','Sustained Shadow boss rotations and the Hollow’s Choir Keeper.','Unrevealed bosses, the menu and quiet exploration themes.',45.44),
   cue('lanterns-below','Lanterns Below',80,'ambient','Clean guitar carries a slow fragment of the opening hook.','Alternates with Containment Pulse in the menu; the lantern district and aqueduct approach.','Fast boss phases; lower the mix for records and attack warnings.',49.80),
@@ -69,6 +69,23 @@ export const MISSION_SCORE=Object.freeze({
     bosses:{forge:boss('warden',['iron-teeth','shadow-running','sever-the-echo']),hydra:boss('hydra',['ash-cathedral','sever-the-echo','shadow-running']),engine:boss('sun',['ash-cathedral','sever-the-echo','weight-of-stone'])},
     quietBeats:{chapel:10},returnZone:'descent',
   },
+  'wrong-side-of-tomorrow':{
+    opening:'iron-teeth',openingSequence:Object.freeze(['iron-teeth','blacksite-stomp','ash-cathedral']),
+    rotation:rotation('wrong-tomorrow',['iron-teeth','blacksite-stomp','ash-cathedral','shadow-running']),
+    sections:{
+      arrivals:rotation('arrivals',['iron-teeth','blacksite-stomp']),
+      exchange:rotation('exchange',['blacksite-stomp','ash-cathedral','crown-circuit']),
+      orchard:rotation('teeth-orchard',['blacksite-stomp','root-pressure','iron-teeth']),
+      aquarium:rotation('dry-aquarium',['ash-cathedral','glass-teeth','dead-carrier']),
+      wardrobe:rotation('borrowed-faces',['the-room-replies','ash-cathedral','containment-pulse'],{level:.8}),
+      sunday:rotation('permanent-sunday',['lanterns-below','glass-teeth','blacksite-stomp'],{level:.8}),
+      museum:rotation('future-museum',['below-the-carrier','the-room-replies','ash-cathedral'],{level:.8}),
+      court:rotation('unfinished-court',['ash-cathedral','iron-teeth','sever-the-echo']),
+      weather:rotation('weather-room',['iron-teeth','crown-circuit','blacksite-stomp']),
+    },
+    bosses:{court:boss('tomorrow',['ash-cathedral','sever-the-echo','iron-teeth'])},
+    quietBeats:{museum:6},returnZone:'arrivals',
+  },
 });
 const returnScore=rotation('return',['exit-load','dry-contact'],{level:.9});
 
@@ -80,10 +97,11 @@ export function musicScene(game){
   let encounter=score?.bosses[zoneId]||null;
   if(encounter){
     const living=(game.state.enemies||[]).some(e=>e.guardian&&e.alive&&e.health>0&&
-      (mission==='beneath-the-shadow'?e.bossGroup===encounter.key:true));
+      (['beneath-the-shadow','wrong-side-of-tomorrow'].includes(mission)?e.bossGroup===encounter.key:true));
     if(!living)encounter=null;
   }
   return {mission,zone:zoneId,opening:score?.opening||null,
+    ...(score?.openingSequence?{openingSequence:score.openingSequence}:{}),
     rotation:returning?returnScore:score?.sections[zoneId]||score?.rotation||null,
     boss:encounter,quietBeat:!returning&&score?.quietBeats[zoneId]?{key:zoneId,seconds:score.quietBeats[zoneId]}:null,
     missionTime:game?.state?.time||0};

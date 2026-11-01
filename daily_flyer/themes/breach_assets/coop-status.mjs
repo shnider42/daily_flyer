@@ -25,7 +25,7 @@ export function createConnectionStatus(reconnect) {
   const panel=doc.createElement('div');panel.className='network-pause-info';
   const detail=doc.createElement('p');detail.id='coop-network-detail';
   const button=doc.createElement('button');button.type='button';button.className='button secondary';button.id='coop-network-reconnect';button.textContent='RECONNECT WITHOUT LEAVING ↗';
-  const note=doc.createElement('small');note.textContent='Keeps this room and its progress while the server still holds the session. Both players resume afterward.';
+  const note=doc.createElement('small');note.textContent='Keeps this room and its progress while the server still holds the session. All players resume afterward.';
   panel.append(detail,button,note);doc.getElementById('pause-room-status')?.after(panel);
   button.addEventListener('click',reconnect);
   return {

@@ -111,7 +111,31 @@ python3 scripts/breach_music/render_preview.py /tmp/breach-hellbound-score/ash-c
 ```
 
 Copy the three `.mid` and `.mp3` pairs into this directory. Lengths include the
-1.8-second release tail and fit within the existing 56-second playback cap.
+1.8-second release tail. Playback now follows the complete decoded recording;
+there is no fixed 56-second truncation.
 These tracks join the listed rotations with the existing crossfades and local
 volume controls. The two menu themes and six brief authored quiet beats retain
 their assignments. All nineteen cues can be auditioned in the listening room.
+
+## The Wrong Side of Tomorrow (009)
+
+Each fresh listener starts with **Iron Teeth → Blacksite Stomp → Ash Cathedral**.
+This finite introduction is independent of the selected spawn and current room,
+so an operator arriving in the orchard hears the same opening order as one in
+the arrival hall. Subsequent music follows the nine districts. The unfinished
+court has a locally triggered, sustained boss rotation; the museum has one
+six-second listening pause, skipped or interrupted when combat is active.
+
+The sequence advances only when a track starts successfully. Its position is
+included in the existing music snapshot, so a saved run or checkpoint retry
+continues with the remaining songs. A late connection with no saved listening
+state receives the current district score. An exposed boss may interrupt the
+introduction; its remaining songs resume after that local encounter. Crossfades,
+warning ducking, the two-buffer cache and the two alternating menu themes remain.
+
+The shipped files are the original 0.9.4 recordings listed above (MP3 container
+durations 47.543, 48.300 and 49.162 seconds). The later approximately two-minute
+sample-based drafts mentioned in a previous work session were not present in
+the repository, current workspace or the targeted persistent-file search. This
+release uses the actual committed recordings, and does not claim to include
+those unrecovered drafts. Longer future replacements will play in full.

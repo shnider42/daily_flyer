@@ -4,6 +4,7 @@ import { Game, MISSIONS, WEAPONS } from '../daily_flyer/themes/breach_assets/cor
 import { CoopGame } from '../daily_flyer/themes/breach_assets/coop-core.mjs';
 import { CoopClient, websocketURL, predictMovement, personalEvents } from '../daily_flyer/themes/breach_assets/coop-client.mjs';
 import { SHADOW_ID, SHADOW_WORLD_REVISION } from '../daily_flyer/themes/breach_assets/shadow.mjs';
+import { TOMORROW_ID, TOMORROW_WORLD_REVISION } from '../daily_flyer/themes/breach_assets/tomorrow.mjs';
 
 function networkFixture(callbacks={}, mission='crosslink-11') {
   const simulation=new CoopGame({mission,players:['p1','p2']});simulation.start();
@@ -142,8 +143,8 @@ test('page suspension releases the old socket without leaving, keeps its pass, a
     client.setPageVisible(true);
     assert.equal(Socket.instances.length,2,'a visible persisted page opens exactly one new socket');
     const rejoined=Socket.instances[1];rejoined.open();
-    assert.deepEqual(rejoined.sent[0],{type:'join',protocol:2,supportedMissions:MISSIONS.map(mission=>mission.id),shadowRevision:SHADOW_WORLD_REVISION,roomId:'ABCDEFGH',name:'Operator',token:'keep-this-pass',replace:true});
-    rejoined.receive({type:'welcome',protocol:2,roomId:'ABCDEFGH',selfId:'p1',ownerId:'p1',token:'keep-this-pass'});
+    assert.deepEqual(rejoined.sent[0],{type:'join',protocol:3,supportedMissions:MISSIONS.map(mission=>mission.id),shadowRevision:SHADOW_WORLD_REVISION,tomorrowRevision:TOMORROW_WORLD_REVISION,roomId:'ABCDEFGH',name:'Operator',token:'keep-this-pass',replace:true});
+    rejoined.receive({type:'welcome',protocol:3,roomId:'ABCDEFGH',selfId:'p1',ownerId:'p1',token:'keep-this-pass'});
     rejoined.receive({type:'room',room:{id:'ABCDEFGH',mission:'crosslink-11',difficulty:'standard',status:'paused',ownerId:'p1',players:[{id:'p1',ready:false,connected:true},{id:'p2',ready:false,connected:true}]}});
     rejoined.receive({type:'state',tick:1,ackByPlayer:{p1:-1,p2:-1},state:simulation.networkSnapshot(),events:[]});
     assert.equal(client.connected,true);assert.equal(client.waitingPause,true);assert.equal(client.view.state.status,'paused');
@@ -175,7 +176,7 @@ test('create, join, warm retries and authenticated reconnects advertise local mi
   try {
     client.create({name:'One',mission:'glasshouse-17',difficulty:'standard'});
     let handshake=openHandshake();
-    assert.equal(handshake.type,'create');assert.equal(handshake.protocol,2);assert.deepEqual(handshake.supportedMissions,expected);
+    assert.equal(handshake.type,'create');assert.equal(handshake.protocol,3);assert.deepEqual(handshake.supportedMissions,expected);
     assert.equal(handshake.shadowRevision,SHADOW_WORLD_REVISION);
     assert.ok(handshake.supportedMissions.includes('glasshouse-17'));
     client._connect(false);handshake=openHandshake();
@@ -185,7 +186,7 @@ test('create, join, warm retries and authenticated reconnects advertise local mi
     assert.equal(handshake.type,'join');assert.deepEqual(handshake.supportedMissions,expected);
     assert.equal(handshake.shadowRevision,SHADOW_WORLD_REVISION);
     client.token='rejoin-pass';assert.equal(client.reconnect(),true);handshake=openHandshake();
-    assert.equal(handshake.replace,true);assert.equal(handshake.token,'rejoin-pass');assert.equal(handshake.protocol,2);
+    assert.equal(handshake.replace,true);assert.equal(handshake.token,'rejoin-pass');assert.equal(handshake.protocol,3);
     assert.deepEqual(handshake.supportedMissions,expected,'an authenticated replacement repeats local capabilities');
     assert.equal(handshake.shadowRevision,SHADOW_WORLD_REVISION,'an authenticated replacement repeats the exact content revision');
   } finally {client.leave();}
@@ -223,7 +224,7 @@ test('mismatched Shadow room revisions fail before mounting and preserve the rec
     assert.equal(client.connected,false);assert.equal(client.manual,true);
     assert.equal(closes.length,1);assert.equal(sent.some(message=>message.type==='leave'),false);
     assert.equal(JSON.parse(saved.get('dfe.breach.room.ABCDEFGH')).token,'keep-this-pass');
-    assert.match(errors[0],/Beneath The Shadow.*Refresh both game tabs.*rejoin/);
+    assert.match(errors[0],/Beneath The Shadow.*Refresh every game tab.*rejoin/);
   }
 });
 
@@ -255,7 +256,7 @@ test('a changed Shadow room revision cannot mutate an already mounted authoritat
     assert.equal(client.view.level,level);assert.equal(JSON.stringify(client.view.state),before);
     assert.equal(client.tick,tick);assert.equal(mounted,1);assert.equal(stateEvents,1);
     assert.equal(client.connected,false);assert.equal(client.manual,true);
-    assert.match(errors[0],/Beneath The Shadow.*Refresh both game tabs/);
+    assert.match(errors[0],/Beneath The Shadow.*Refresh every game tab/);
   }
 });
 

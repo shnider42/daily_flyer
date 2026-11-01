@@ -1,12 +1,12 @@
-# BREACH co-op implementation contract (0.7)
+# BREACH co-op implementation contract (0.11.0)
 
-Private two-player rooms use a server-authoritative simulation over WebSocket.
-Four of the seven solo missions support co-op: Crosslink (`crosslink-11`),
-The Underworks (`underworks-13`), The Glasshouse (`glasshouse-17`), and The Hollow (`hollow-19`). Protocol
-remains 2; the 0.7 client additionally advertises its locally supported mission
-ids before joining the new map. Solo saves remain owned by the single-player
-flow. Release details and current validation are in
-[the Glasshouse notes](breach-glasshouse-07.md).
+Private rooms run a server-authoritative simulation over WebSocket for **two to
+four players**. Protocol **3** is required. Six of the nine solo missions support
+co-op: Crosslink (`crosslink-11`), The Underworks (`underworks-13`), The Glasshouse
+(`glasshouse-17`), The Hollow (`hollow-19`), Beneath The Shadow
+(`beneath-the-shadow`), and The Wrong Side of Tomorrow (`wrong-side-of-tomorrow`).
+Solo saves remain separate from live room state. This document describes the
+current source contract; historical release notes retain their original scope.
 
 ## Ownership
 
@@ -16,156 +16,215 @@ flow. Release details and current validation are in
   `server/breach-server.mjs` supplies HTTP/WebSocket transport and tick scheduling.
 - `coop-client.mjs` projects authoritative snapshots into the local `Game` view;
   `app.mjs`, `index.html`, and `style.css` own the interface.
-- `renderer.mjs` draws players, projectiles and encounter state in WebGL and
-  Canvas. `audio.mjs` consumes event feedback; neither changes simulation state.
+- `renderer.mjs` draws players, projectiles, and encounters in WebGL and Canvas.
+  Audio and rendering consume state and events without resolving combat locally.
 
 ## Shared simulation API
 
-`coop-core.mjs` exports `CoopGame` with constructor
-`new CoopGame({mission:'crosslink-11',difficulty:'standard',seed:1,players:['p1','p2']})`.
-It exposes `level`, `options`, `state`, `start()`, `pause()`, `resume()`, `restart()`,
+`coop-core.mjs` exports `CoopGame`, `COOP_PLAYER_IDS` (`p1` through `p4`), and
+`FRIENDLY_FIRE_SCALE` (`0.5`). A four-player construction is:
+
+```js
+new CoopGame({
+  mission: 'wrong-side-of-tomorrow', difficulty: 'standard', seed: 1,
+  players: ['p1', 'p2', 'p3', 'p4']
+})
+```
+
+The class accepts one to four distinct valid IDs for simulation/testing; the
+room service requires at least two players to start. It exposes `level`,
+`options`, `state`, `start()`, `pause()`, `resume()`, `restart()`,
 `restartCheckpoint()`, `update(dt, inputsByPlayerId)`, `interact(playerId)`,
 `switchWeapon(playerId, weaponId?)`, `drainEvents()`, and `networkSnapshot()`.
-An omitted weapon id cycles carried weapons. An explicit id selects only a
-weapon returned by `ownedWeapons(player)`; it cannot grant equipment.
+An omitted weapon ID cycles carried weapons. An explicit ID selects only a
+weapon returned by `ownedWeapons(player)` and cannot grant equipment.
 
-`state.players` is an object keyed by player ID. Each value includes normal
-player fields plus `id`, `alive` and a personal `tutorial`. Weapon ids are
-`pistol`, `shotgun`, `arc`, `ricochet`, and `grenade`. Ownership flags are
-`hasShotgun`, `hasArc`, `hasRicochet`, and `hasGrenade`; ammunition keys are
-`pistol`, `shells`, `cells`, `slugs`, and `grenades`. Use the exported `WEAPONS`
-metadata and `ownedWeapons(player)` helper rather than a two-weapon toggle.
-`state.player` may be an internal compatibility alias but is omitted from the
-network snapshot.
-`networkSnapshot()` returns a JSON-safe live state including players, enemies,
-doors, pickups, interactables, projectiles, effects, power, secretFound, time,
-kills, shots, hits, checkpoint, status. This is separate from solo save/restore.
+`state.players` is keyed by stable player ID. Each player has normal gameplay
+fields plus `id`, `alive`, `moving`, and a personal `tutorial`. The eight weapon
+IDs are `pistol`, `shotgun`, `arc`, `ricochet`, `grenade`, `repeater`, `nullgun`,
+and `lance`. Their ownership and ammunition fields come from `WEAPONS` metadata.
+Ammunition keys are `pistol`, `shells`, `cells`, `slugs`, and `grenades`.
 
-Inputs use `{forward,strafe,angle,fire,aimAssist?}`. `angle` is an absolute facing angle;
-the server owns movement speed, elapsed time, ammunition, damage, and all world
-changes. Input consumption never runs the world more than once per server tick.
-Personal events carry `playerId` (`shot`, `hit`, `kill`, `hurt`, `pickup`,
-`death`/`downed`, `revive`).
-Shared events such as `door`, `relay`, `power`, `checkpoint`, `win` remain shared.
+`networkSnapshot()` returns a detached, JSON-safe live state containing players,
+enemies, doors, pickups, interactables, projectiles, effects, `shadowHazards`,
+progress, status, counters, and the room-specific fields `friendlyFire`,
+`friendlyHits`, `partyScale`, and `spawnVariant`. `state.player` and
+`state.tutorial` are compatibility aliases and are omitted from the network
+snapshot. Co-op `serialize()` is deliberately unavailable; received room state
+must not enter solo save/restore.
 
-Power, key, doors, relays, and Underworks upgrades are team progress. The
-Underworks health expansion increases both players' maximum health. Each newly
-collected weapon rack grants both operatives its ownership flag and that rack's
-starter ammunition once. The collector equips it; the teammate's selection stays
-unchanged. This rule applies to every co-op mission, including the original
-scattergun pickups in Crosslink and The Underworks. Both players still begin
-with pistol and scattergun, so those pickups add shells to both inventories.
-Loose ammunition, health and armor go only to their collector and are consumed
-once. Ammunition expenditure and equipped weapons remain personal. Friendly fire
-and player body blocking are off. One downed player waits for the next shared
-checkpoint, which revives the team; both down ends the attempt and exposes a
-shared checkpoint retry. Extraction completes for the team.
+Inputs are `{forward,strafe,angle,fire,aimAssist?}`. Facing `angle` is absolute;
+the server owns movement speed, elapsed time, ammunition, damage, and world
+changes. The shared world advances once per tick regardless of party size.
+Personal events carry `playerId`; world events such as `door`, `relay`, `power`,
+`checkpoint`, and `win` are shared. Arrival messages identify the receiving
+operator and their actual starting zone once per fresh mission start.
 
-The Underworks adds shared `upgrades: {cutter,insulator,phase}` and `healthBonus`
-state. Refuge and transit discovery uses interactable `used` flags. Refuges are
-repeatable checkpoints after nearby enemies are cleared; transit moves only the
-operative who activated it. See [The Underworks](breach-underworks.md).
+## Equipment, damage, and checkpoints
 
-Grenades retain the throwing player's stable `ownerId` through their fuse and
-bounces. Enemy damage and kills are attributed to that owner; splash can hurt
-the thrower but never the other operative. World snapshots include active
-grenades and transient ricochet/explosion effects. Shared `explosion` events
-include `ownerId`; personal `hit`, `kill`, and `hurt` events retain `playerId`.
-Team checkpoint creation clears projectiles and effects before saving the
-shared retry state. Solo saves use their separate validated grenade format.
+Power, keys, doors, relays, permanent upgrades, discoveries, and endings are team
+progress. A health expansion updates every operator's maximum health. A weapon
+rack grants its ownership flag and starter ammunition to every operator once;
+only the collector automatically equips it. Loose ammunition, health, and armor
+belong to the collector and are consumed once. Expenditure and weapon selection
+remain personal. Beneath The Shadow and Tomorrow start with a pistol; the other
+co-op missions also provide the starting scattergun. Player body blocking is off.
 
-Bulwark shields and mender healing also run on the server. Snapshots carry
-shield facing/phase and healing telegraphs with stable target ids. Clients draw
-those fields and the corresponding interruption/impact effects; they do not
-resolve shield damage, healing, grenade travel or splash independently.
+Friendly fire defaults **on for Tomorrow** and **off for earlier missions**.
+An optional boolean `friendlyFire` on room creation overrides that default; the
+server validates and records it before play. There is no mid-run toggle command.
+With friendly fire enabled:
 
-## Connection and messages
+- Direct fire, shotgun pellets, reflected carbine shots, and piercing lance
+  shots can hit living teammates. Teammates are physical shot targets; they are
+  never added to the enemy list or selected by aim assist.
+- Teammate damage is half the weapon's base damage, rounded after scaling.
+  Normal armor absorption applies, but the combat-difficulty damage multiplier
+  does not. Null and arc shots do damage without giving players enemy-only
+  suppression or stun state.
+- Grenade teammate splash uses half the weapon's distance-adjusted blast damage
+  and requires line of sight. The grenade retains its stable throwing `ownerId`.
+  The thrower's existing self-splash is handled separately and is not applied
+  twice. Downed teammates do not block shots or take additional friendly damage.
+- A `friendly-fire` event has the shooter's `playerId`/`sourceId`, the victim's
+  `targetId`, weapon, and impact coordinates. The victim's `hurt` event carries
+  their `playerId`, `friendlyFire:true`, and `sourceId`. Friendly downs do not
+  count as enemy kills. `friendlyHits` counts resolved friendly-damage hits.
 
-Endpoint: `/ws`. Client connects using the configured co-op service URL (convert
-https to wss), or current origin on the standalone room service. Protocol is 2.
-Maximum two players per room. IDs are `p1`/`p2`; the server returns unguessable
-reconnect tokens, never included in invite links or broadcast room records.
+One or more downed operators wait for a living teammate to activate a shared
+checkpoint. Checkpoints revive downed operators near the activating player,
+replenish supplies, and clear active projectiles, effects, and lingering fire
+before capturing retry state. All operators down ends the attempt. The owner
+may restore the team checkpoint or restart; all connected players then resume.
+Checkpoint retry restores saved positions rather than selecting new arrivals.
+Extraction or a chosen Tomorrow ending completes the run for the entire team.
 
-The client sends `supportedMissions`, an array derived from its local `MISSIONS`,
-on create, join and reconnect. It must include the requested room mission.
-For backward compatibility, omission is accepted for Crosslink and The
-Underworks only. Glasshouse requests without support return `VERSION_MISMATCH`
-before a room is created or a player is attached, including token-based rejoin.
-The client also rejects a room whose mission is absent from its local level data.
+## Tomorrow arrivals and party size
 
-Client -> server:
+Tomorrow exports `TOMORROW_WORLD_REVISION = 1`. Its three authored
+`coopSpawnVariants` support a shared arrival, west/east pairs, or scattered
+arrivals. The server selects `_runSeed % variants.length`, so the same run seed
+restarts into the same layout. Starting positions have clear floor and routes to
+the common exchange without late-game equipment. Each operator receives their
+own identity, zone, rendezvous direction, and friendly-fire status at arrival.
 
-```
-{type:'create',protocol:2,name,mission:'glasshouse-17',difficulty:'standard',supportedMissions}
-{type:'join',protocol:2,roomId,name,supportedMissions,token?,replace?}
+Only Tomorrow applies `partyScale = 1 + 0.30 * (playerCount - 1)` to enemy current
+and maximum health after difficulty scaling: 1.3 for two players, 1.6 for three,
+and 1.9 for four. Warning durations, attack timing, movement, and damage tuning
+are unchanged by party size. Checkpoint state retains the scaled values; a full
+restart rebuilds and scales once. Existing missions keep `partyScale:1`.
+
+## Connection and admission
+
+Endpoint: `/ws`. The client derives it from its configured HTTP(S) co-op service
+base, or the current origin on the standalone room service. Protocol **3** is
+required on create and join, including authenticated reconnects. Protocol-2 tabs
+receive `VERSION_MISMATCH` and must refresh.
+
+A room has at most four stable slots (`p1`, `p2`, `p3`, `p4`). The server supplies
+an unguessable reconnect token for each player; tokens never appear in invite
+links or broadcast room records. New players can join only in the lobby. A
+valid token restores a reserved slot in an existing run.
+
+Create, join, and reconnect advertise `supportedMissions`, derived from local
+`MISSIONS`. The requested mission must be included. Omission is accepted only
+for Crosslink and The Underworks, and still requires protocol 3. Content revisions
+are also checked before allocation, attachment, or replacement:
+
+| Mission | Required request and room-record field |
+| --- | --- |
+| Beneath The Shadow | `shadowRevision:2` |
+| The Wrong Side of Tomorrow | `tomorrowRevision:1` |
+| Other supported missions | No mission-specific revision field |
+
+The current client sends both revision fields on every handshake; each mission
+validates the field relevant to it. Clients also reject unavailable missions or
+mismatched room revisions before projecting a view.
+
+## Messages
+
+The following are message shapes; optional properties use `?` notation.
+
+Client to server:
+
+```text
+{type:'create',protocol:3,name,mission,difficulty,supportedMissions,
+ shadowRevision?,tomorrowRevision?,friendlyFire?}
+{type:'join',protocol:3,roomId,name,supportedMissions,
+ shadowRevision?,tomorrowRevision?,token?,replace?}
 {type:'ready',ready:true}
-{type:'start'}                         // owner only; both ready and connected
+{type:'start'}                         // owner; 2–4 players, everyone ready/connected
 {type:'input',seq,forward,strafe,angle,fire,aimAssist?}
 {type:'interact'}
-{type:'weapon',weapon?}                // omitted: cycle; explicit: carried id
+{type:'weapon',weapon?}                // omitted: cycle; explicit: carried ID
+{type:'menu',open:true|false}           // local menu; pause when all menus are open
 {type:'pause',reason:'menu'|'background'|'network'}
-{type:'resume'}                        // marks this player ready to resume
-{type:'restart',checkpoint:true}       // owner only
+{type:'resume'}                        // marks this operator ready to resume
+{type:'restart',checkpoint:true|false} // owner only
 {type:'leave'}
 {type:'ping',sentAt}
 ```
 
-`weapon` accepts one of the five `WEAPONS` ids. Unknown or malformed selectors
-return `INVALID_WEAPON`; a valid but unowned weapon leaves the inventory and
-selection unchanged. Actions always use the authenticated socket's player id,
-regardless of any client-supplied `playerId`. The old `{type:'weapon'}` command
-continues to cycle. A reconnect may send `replace:true` with its valid token to
-replace the previous socket without abandoning the room.
+The four combat difficulty IDs are `relaxed`, `standard`, `hard`, and `insane`.
+Weapon selectors accept the eight `WEAPONS` IDs. Unknown or malformed selectors
+return `INVALID_WEAPON`; a valid unowned selection leaves inventory unchanged.
+Actions always belong to the authenticated socket, regardless of a supplied
+`playerId`. A valid reconnect token with `replace:true` invalidates the previous
+socket before attaching its replacement, so late input or close callbacks from
+the old connection cannot control the reserved operator.
 
-Server -> client:
+Server to client:
 
-```
-{type:'welcome',protocol:2,roomId,selfId,ownerId,token,resumed}
+```text
+{type:'welcome',protocol:3,roomId,selfId,ownerId,token,resumed}
 {type:'room',room:{id,mission,difficulty,status,ownerId,players:[
-  {id,name,connected,ready}
-],pauseReason,maxPlayers:2}}
-{type:'state',tick,ackByPlayer:{p1:seq,p2:seq},state,events}
-{type:'error',code,message}             // human-readable error; code sets recovery
-{type:'closed',message}                 // room ended; return to room UI
+  {id,name,connected,ready,menu}
+],pauseReason,pauseKind,maxPlayers:4,friendlyFire,
+shadowRevision?,tomorrowRevision?}}
+{type:'state',tick,ackByPlayer:{p1:seq,p2:seq,p3?:seq,p4?:seq},state,events}
+{type:'error',code,message}
+{type:'closed',message}
 {type:'pong',sentAt}
 ```
 
-Room status is `lobby`, `playing`, `paused`, `dead`, or `won`. State status uses
-the existing core values. Initial join sends the current full state. Simulation
-is fixed at 30 Hz; snapshots at 10 Hz with per-message compression. Inputs expire
-after 300 ms. Client sends a regular held-input stream, independent of change.
-An accepted fire pulse survives a later release packet until the next simulation
-step, where it is consumed once. The pulse expires after 300 ms independently of
-fresh movement packets, and pause, restart or reconnection clears it.
-Room pauses deliberately when either player pauses, backgrounds, or disconnects;
-an input-stream stall of 1.5 seconds also pauses the room. Both connected players
-must Resume. Disconnects reserve the slot for 60 seconds.
-Explicit Leave ends the private room, with an explanation to the other player.
-Rooms live in process memory and expire; service shutdown sends `closed`.
+`ackByPlayer` includes only allocated players. Room status is `lobby`, `playing`,
+`paused`, `dead`, or `won`. `pauseKind` is `menus`, `safety`, or `null`. Joining
+or reconnecting to an existing simulation sends its current full state.
+
+Simulation runs at 30 Hz; snapshots are sent at 10 Hz and immediately for
+relevant room actions. Inputs expire after 300 ms. An accepted fire pulse survives
+a release packet until the next simulation step, then is consumed once; it
+expires independently of fresh movement packets. Pause, restart, and reconnect
+clear pending controls.
+
+An individual menu holds that operator's controls while others keep playing.
+When all connected operators have menus open, the room pauses; one returning to
+play resumes a menu-only pause. The co-op field map remains live. An explicit
+pause, backgrounding, disconnect, or a 1.5-second input-stream stall instead
+creates a safety pause requiring every allocated player to be connected and to
+resume explicitly. A menu action cannot bypass a safety pause.
+
+Disconnects reserve their slot for 60 seconds. Explicit Leave ends the private
+room for everyone. Default limits are four simultaneous rooms, ten minutes of
+inactivity outside active play, and two hours total room lifetime. Rooms are held
+in process memory; service shutdown sends `closed` when possible.
 
 ## Client and renderer projection
 
-The client keeps a `Game` view for existing read-only helpers and renders the
-latest room snapshot. Set `view.state.player = view.state.players[selfId]` and
-`view.state.localPlayerId = selfId`; keep `view.state.players` available.
-Send interaction/weapon requests over the socket instead of local mutations.
-`CoopClient.weapon(id?)` forwards an exact selection or the legacy cycle command;
-weapon buttons and hotkeys wait for authoritative state to show the selection.
-Local camera look responds immediately. Smooth remote positions between snapshots
-and predict local movement with collision, correcting from acknowledged inputs.
-Do not feed received state through solo `restore()`.
+The client keeps a `Game` view for read-only helpers. It copies the authoritative
+snapshot directly, sets `view.state.player = view.state.players[selfId]` and
+`view.state.localPlayerId = selfId`, and retains all player records. This same
+state feeds WebGL and Canvas, including server-scaled enemy `maxHealth`.
+`_stateFromSnapshot()` reconstructs solo saves and must not reconstruct room
+state. Interaction and weapon changes travel over the socket.
 
-Renderer draws operatives other than `localPlayerId`, with distinct teammate
-colors and downed states. Local camera/weapon use `state.player`. The app filters personal
-events for local damage flashes, recoil, tutorial, and pickup feedback. Room
-messages show teammate status and explain pause/reconnect/room expiration.
+Camera look responds immediately. The client predicts local movement with
+collision, replays unacknowledged inputs, corrects from server acknowledgements,
+and smooths remote positions. It never predicts damage, pickups, or progression.
+The renderer shows the other operators with distinct numbers, colors, and downed
+states. Personal feedback is filtered by `playerId`; world effects stay shared.
 
-Configuration: `breach-config.coopServer` contains the full HTTP(S) base URL for
-the room service, or `same-origin`. An empty value hides/disables room entry until
-the service is configured. `?room=CODE` opens Join. Invites retain the public game
-origin and include only the room ID. Reconnect tokens use sessionStorage per room.
-
-Hollow uses the same protocol and required supported-mission handshake. Routing
-cabinet `used` and door `open` values, containment definitions, enemy `contained`
-feedback and record discovery are included in the shared snapshot. No new
-network command or client-side field simulation is required.
+`breach-config.coopServer` is a full HTTP(S) service base or `same-origin`; an
+empty value disables room entry. `?room=CODE` opens Join. Invites retain the
+public game origin and include only the room ID. Reconnect tokens are kept in
+sessionStorage per room and do not make a room durable across service restarts.

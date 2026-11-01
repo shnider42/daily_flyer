@@ -1,5 +1,6 @@
 // BREACH — original browser-local simulation. No DOM or graphics dependencies.
 import { SHADOW, SHADOW_MISSION, SHADOW_WORLD_REVISION, bossDefeated, shadowObjective, updateTraversal, jumpInfo, updateShadowEnemy, splitShadowRoot, shadowPuzzleInfo, useShadowPuzzle, shadowPuzzleStateValid } from './shadow.mjs';
+import { TOMORROW, TOMORROW_MISSION, TOMORROW_WORLD_REVISION, tomorrowInteractionInfo, useTomorrowInteraction, tomorrowObjective, tomorrowEnding, tomorrowStateValid } from './tomorrow.mjs';
 import { UNDERWORKS } from './underworks.mjs';
 import { SWITCHYARD } from './switchyard.mjs';
 import { GLASSHOUSE } from './glasshouse.mjs';
@@ -260,7 +261,7 @@ function createCrosslinkLevel() {
   };
 }
 
-export const LEVELS = { 'blacksite-07': LEVEL, 'relay-09': createRelayLevel(), 'crosslink-11': createCrosslinkLevel(), 'underworks-13': UNDERWORKS, 'switchyard-15': SWITCHYARD, 'glasshouse-17': GLASSHOUSE, 'hollow-19': HOLLOW, 'beneath-the-shadow': SHADOW };
+export const LEVELS = { 'blacksite-07': LEVEL, 'relay-09': createRelayLevel(), 'crosslink-11': createCrosslinkLevel(), 'underworks-13': UNDERWORKS, 'switchyard-15': SWITCHYARD, 'glasshouse-17': GLASSHOUSE, 'hollow-19': HOLLOW, 'beneath-the-shadow': SHADOW, 'wrong-side-of-tomorrow': TOMORROW };
 export const MISSIONS = [
   { id: 'blacksite-07', levelId: LEVEL.id, name: 'Blacksite 07', number: '001', subtitle: 'The first breach', briefing: 'Emergency power is down. Enter the research facility, recover its security key, and reach extraction.', steps: ['Restore auxiliary power', 'Recover the security key', 'Reach extraction'] },
   { id: 'relay-09', levelId: LEVELS['relay-09'].id, name: 'Dead Relay', number: '002', subtitle: 'Bring the signal back', briefing: 'A silent communications station surrounds a sealed vault. Restore ring power, reconnect both relays, and recover the key to the extraction uplink.', steps: ['Restore ring power', 'Activate both relay consoles', 'Recover the vault key', 'Transmit the extraction signal'] },
@@ -268,7 +269,7 @@ export const MISSIONS = [
   { id: 'underworks-13', levelId: UNDERWORKS.id, name: 'The Underworks', number: '004', subtitle: 'An entire world beneath the breach', briefing: 'Explore nine connected sectors below the arrival lift. Recover the cutter, insulator and phase module to open new routes through familiar territory. Restore two distant relays, defeat the reactor guardian and bring its key back to the lift. Refuges and activated transit stations support the journey, solo or together.', steps: ['Restore central power', 'Recover three permanent upgrades', 'Reconnect both crown relays', 'Defeat the reactor guardian', 'Return to the arrival lift'] },
   { id: 'switchyard-15', levelId: SWITCHYARD.id, name: 'Switchyard', number: '005', subtitle: 'Choose your route. Control the fight.', briefing: 'A freight battle divides the switchyard. Restore power, choose the yard or service route, and recover the arc caster from the workshop. Read the cable and phase galleries, reconnect their relays, and defeat the switching-engine guardian to reclaim the freight lift.', steps: ['Restore switchyard power', 'Reach the arc workshop', 'Reconnect both gallery relays', 'Defeat the switching-engine guardian', 'Return to the freight lift'] },
   { id: 'glasshouse-17', levelId: GLASSHOUSE.id, name: 'The Glasshouse', number: '006', subtitle: 'Break the shield. Cut the healing line.', briefing: 'An overgrown conservatory hides armored defenders and their healers. Practice bank shots with the Rebound carbine, restore atrium power, and recover the Thumper. Follow either cultivation wing to the relays, defeat the propagation guardian, and open the direct route back to the laboratory lift. Play solo or share the expedition in co-op.', steps: ['Explore the ballistics practice bay', 'Restore conservatory power', 'Reconnect both cultivation relays', 'Defeat the propagation guardian', 'Open the atrium return and extract'] },
-  HOLLOW_MISSION, SHADOW_MISSION,
+  HOLLOW_MISSION, SHADOW_MISSION, TOMORROW_MISSION,
 ];
 export function getLevel(missionId = 'blacksite-07') { return Object.hasOwn(LEVELS, missionId) ? LEVELS[missionId] : LEVEL; }
 
@@ -332,7 +333,7 @@ export class Game {
   start() {
     if (this.state.status === 'ready') {
       this.state.status = 'playing';
-      this._events.push({ type: 'message', text: this.level.shadow ? 'Beneath The Shadow. Follow the falling road. Restore the lantern circuit and earn the way home.' : this.level.hollow ? 'The Hollow. Restore the isolation grid. The last transmission is still running.' : this.level.missionId === 'glasshouse-17' ? 'The Glasshouse. Explore the practice bay, then restore power in the planted atrium.' : this.level.missionId === 'switchyard-15' ? 'Switchyard. Restore power in the observation concourse, then choose a route to the workshop.' : this.level.exploration ? 'The Underworks. Activate the lift transit, then find power in the central exchange.' : this.level.missionId === 'crosslink-11' ? 'Crosslink. Restore hub power and reconnect both relays.' : this.level.missionId === 'relay-09' ? 'Dead Relay. Restore power to the communications ring.' : 'Blacksite 07. Find the auxiliary generator.' });
+      this._events.push({ type: 'message', text: this.level.tomorrow ? 'The Wrong Side of Tomorrow. Follow the station arrows to the exchange. The clocks remember you differently.' : this.level.shadow ? 'Beneath The Shadow. Follow the falling road. Restore the lantern circuit and earn the way home.' : this.level.hollow ? 'The Hollow. Restore the isolation grid. The last transmission is still running.' : this.level.missionId === 'glasshouse-17' ? 'The Glasshouse. Explore the practice bay, then restore power in the planted atrium.' : this.level.missionId === 'switchyard-15' ? 'Switchyard. Restore power in the observation concourse, then choose a route to the workshop.' : this.level.exploration ? 'The Underworks. Activate the lift transit, then find power in the central exchange.' : this.level.missionId === 'crosslink-11' ? 'Crosslink. Restore hub power and reconnect both relays.' : this.level.missionId === 'relay-09' ? 'Dead Relay. Restore power to the communications ring.' : 'Blacksite 07. Find the auxiliary generator.' });
     }
   }
   pause() { if (this.state.status === 'playing') this.state.status = 'paused'; }
@@ -514,7 +515,7 @@ export class Game {
     }
     if (weapon === 'ricochet') {
       const trace = this._ricochetShot(p, aim, spec.range);
-      if (trace.victim) { this.state.hits++; this._damageEnemy(trace.victim, spec.damage, 'player', trace.origin); }
+      if (trace.victim) { this.state.hits++; this._damageWeaponTarget(trace.victim, spec.damage, weapon, 'player', trace.origin); }
       this.state.effects.push({ id: `ricochet-${++this._serial}`, type: 'ricochet', x: p.x, z: p.z, segments: trace.segments, life: .16 });
       this._events.push({ type: 'shot', weapon, hit: Boolean(trace.victim) });
       if (trace.segments.length > 1) this._events.push({ type: 'ricochet', x: trace.segments[0].targetX, z: trace.segments[0].targetZ });
@@ -522,8 +523,8 @@ export class Game {
       return;
     }
     if(weapon==='lance'){
-      const targets=this.state.enemies.filter(e=>e.alive).map(e=>({e,along:(e.x-p.x)*Math.sin(aim)-(e.z-p.z)*Math.cos(aim),across:Math.abs((e.x-p.x)*Math.cos(aim)+(e.z-p.z)*Math.sin(aim))})).filter(t=>t.along>0&&t.along<spec.range&&t.across<.4&&this.hasLineOfSight(p.x,p.z,t.e.x,t.e.z)).sort((a,b)=>a.along-b.along).slice(0,spec.pierce);
-      for(const t of targets)this._damageEnemy(t.e,spec.damage,'player');
+      const targets=this._weaponTargets().filter(e=>e.alive).map(e=>({e,along:(e.x-p.x)*Math.sin(aim)-(e.z-p.z)*Math.cos(aim),across:Math.abs((e.x-p.x)*Math.cos(aim)+(e.z-p.z)*Math.sin(aim))})).filter(t=>t.along>0&&t.along<spec.range&&t.across<.4&&this.hasLineOfSight(p.x,p.z,t.e.x,t.e.z)).sort((a,b)=>a.along-b.along).slice(0,spec.pierce);
+      for(const t of targets)this._damageWeaponTarget(t.e,spec.damage,weapon);
       if(targets.length)this.state.hits++;
       const end=this._traceWall(p.x,p.z,Math.sin(aim),-Math.cos(aim),spec.range);
       const reach=end.distance??spec.range;
@@ -535,7 +536,7 @@ export class Game {
     for (let n = 0; n < pellets; n++) {
       const shotAngle = aim + (weapon === 'shotgun' ? (n - 3) * .026 + (this._rng() - .5) * .012 : 0);
       let closest = null, closestDistance = spec.range;
-      for (const e of this.state.enemies) {
+      for (const e of this._weaponTargets()) {
         if (!e.alive) continue;
         const dx = e.x - p.x, dz = e.z - p.z;
         const along = dx * Math.sin(shotAngle) - dz * Math.cos(shotAngle);
@@ -550,14 +551,7 @@ export class Game {
     this._events.push({ type: 'shot', weapon, hit: hits.size > 0 });
     if (hits.size) this.state.hits++;
     for (const [enemy, damage] of hits) {
-      if(weapon==='nullgun'){enemy.suppressedTimer=spec.suppress;this._events.push({type:'root-marked',id:enemy.id,enemyType:enemy.type,x:enemy.x,z:enemy.z});}
-      this._damageEnemy(enemy, damage, 'player');
-      if (weapon === 'arc' && enemy.alive && !enemy.guardian) {
-        enemy.stunTimer = spec.stun; onShadowEnemyHit(this, enemy, 'player'); enemy.telegraph = null;
-        if (enemy.type === 'bulwark') this._exposeBulwark(enemy);
-        enemy.attackCooldown = Math.max(enemy.attackCooldown, spec.stun);
-        this._events.push({ type: 'stun', id: enemy.id, x: enemy.x, z: enemy.z, duration: spec.stun });
-      }
+      this._damageWeaponTarget(enemy, damage, weapon);
     }
     if (weapon === 'arc' || weapon==='nullgun') {
       const victim = hits.keys().next().value;
@@ -569,6 +563,25 @@ export class Game {
         targetX: victim?.x ?? p.x + Math.sin(aim) * reach, targetZ: victim?.z ?? p.z - Math.cos(aim) * reach, life: .18 });
     }
     for (const enemy of this.state.enemies) if (this.isHostileToPlayer(enemy) && distance(p, enemy) < 7) enemy.active = true;
+  }
+
+  // Combat targets and damage routing are extended by the authoritative team
+  // simulation. Aim assistance still reads hostile enemies only.
+  _weaponTargets() { return this.state.enemies; }
+
+  _damageWeaponTarget(target, amount, weapon, source = 'player', impact = null) {
+    const spec = WEAPONS[weapon] || WEAPONS.pistol;
+    if (weapon === 'nullgun') {
+      target.suppressedTimer = spec.suppress;
+      this._events.push({ type: 'root-marked', id: target.id, enemyType: target.type, x: target.x, z: target.z });
+    }
+    this._damageEnemy(target, amount, source, impact);
+    if (weapon === 'arc' && target.alive && !target.guardian) {
+      target.stunTimer = spec.stun; onShadowEnemyHit(this, target, source); target.telegraph = null;
+      if (target.type === 'bulwark') this._exposeBulwark(target);
+      target.attackCooldown = Math.max(target.attackCooldown, spec.stun);
+      this._events.push({ type: 'stun', id: target.id, x: target.x, z: target.z, duration: spec.stun });
+    }
   }
 
   _traceWall(x, z, dx, dz, range) {
@@ -613,7 +626,7 @@ export class Game {
     for (let bounce = 0; bounce <= WEAPONS.ricochet.maxBounces; bounce++) {
       const wall = this._traceWall(origin.x, origin.z, dx, dz, remaining);
       let victim = null, closest = wall.distance;
-      for (const enemy of this.state.enemies) {
+      for (const enemy of this._weaponTargets()) {
         if (!enemy.alive) continue;
         const ex = enemy.x - origin.x, ez = enemy.z - origin.z;
         const along = ex * dx + ez * dz, across = Math.abs(ex * dz - ez * dx);
@@ -1224,7 +1237,13 @@ export class Game {
     const saved = this._checkpoint.state || this._checkpoint;
     saved.upgrades = copy(this.state.upgrades); saved.healthBonus = this.state.healthBonus;
     saved.power = this.state.power; saved.secretFound = this.state.secretFound;
-    for (const door of saved.doors) if (!this.level.doors.find(current => current.id === door.id).controlledBy) door.open ||= this.state.doors.find(current => current.id === door.id).open;
+    for (const door of saved.doors) {
+      const base = this.level.doors.find(current => current.id === door.id);
+      const controller = this.state.interactables.find(item => item.id === base.controlledBy);
+      // Tomorrow's register shortcuts are permanent discoveries. Reversible
+      // shutters continue to retain the checkpoint's own routing state.
+      if (!base.controlledBy || this.level.tomorrow && controller?.tomorrowAction === 'relay') door.open ||= this.state.doors.find(current => current.id === door.id).open;
+    }
     for (const object of saved.interactables) {
       const current = this.state.interactables.find(i => i.id === object.id);
       if (current.type !== 'exit' && current.type !== 'shutter-switch') object.used ||= current.used;
@@ -1234,7 +1253,7 @@ export class Game {
     for (const p of Object.values(saved.players || { solo: saved.player })) {
       p.maxHealth = 100 + this.state.healthBonus; p.key = teamKey;
     }
-    if(this.level.shadow){
+    if(this.level.shadow||this.level.tomorrow){
       for(const item of this.state.pickups)if(WEAPONS[item.type]?.ownershipKey&&item.collected){saved.pickups.find(i=>i.id===item.id).collected=true;for(const p of Object.values(saved.players||{solo:saved.player})){const w=WEAPONS[item.type];p[w.ownershipKey]=true;p.ammo[w.ammoKey]=Math.max(p.ammo[w.ammoKey]||0,Math.min(item.amount,24));}}
       for(const enemy of this.state.enemies)if(enemy.bossGroup){const old=saved.enemies.find(e=>e.id===enemy.id);if(enemy.killedByPlayer===true&&old.killedByPlayer!==true)saved.kills++;Object.assign(old,copy(enemy));}
     }
@@ -1248,6 +1267,7 @@ export class Game {
   getInteractionInfo() {
     const o = this._interactionCandidate();
     if (!o) return null;
+    if (this.level.tomorrow && o.tomorrowAction) return tomorrowInteractionInfo(this, o);
     if (['cutter', 'insulator', 'phase'].includes(o.requires) && !this._requirementMet(o.requires)) return { text: `${this.level.upgradeNames?.[o.requires] || o.requires} required`, label: 'LOCKED', canUse: false };
     if(o.type==='jump')return jumpInfo(this,o);
     if(o.type==='shadow-puzzle')return shadowPuzzleInfo(this,o);
@@ -1288,6 +1308,7 @@ export class Game {
     if (this.state.status !== 'playing') return false;
     const o = this._interactionCandidate();
     if (!o) return false;
+    if (this.level.tomorrow && o.tomorrowAction) return useTomorrowInteraction(this, o);
     if (!this._requirementMet(o.requires)) {
       this._events.push({ type: 'message', text: this.getPrompt() }); return false;
     }
@@ -1367,6 +1388,7 @@ export class Game {
   }
 
   getObjective() {
+    if (this.level.tomorrow) return tomorrowObjective(this);
     if (this.level.shadow) return shadowObjective(this);
     if (this.level.hollow) return hollowObjective(this);
     if (this.level.missionId === 'glasshouse-17') return this._getGlasshouseObjective();
@@ -1504,6 +1526,7 @@ export class Game {
   _snapshot() {
     return {
       ...(this.level.shadow ? { shadowRevision: SHADOW_WORLD_REVISION } : {}),
+      ...(this.level.tomorrow ? { tomorrowRevision: TOMORROW_WORLD_REVISION } : {}),
       player: this.state.player.jump ? {...copy(this.state.player),x:this.state.player.jump.x,z:this.state.player.jump.z,jump:null,elevation:0} : copy(this.state.player), enemies: copy(this.state.enemies),
       projectiles: copy(this.state.projectiles.filter(shot => shot.type === 'grenade')), serial: this._serial,
       pickups: this.state.pickups.map(p => ({ id: p.id, collected: p.collected })),
@@ -1559,6 +1582,7 @@ export class Game {
   _validSnapshot(s, level = this.level, difficulty = this._difficulty) {
     if (!s || typeof s !== 'object') return false;
     if (level.shadow && s.shadowRevision !== SHADOW_WORLD_REVISION) return false;
+    if (level.tomorrow && s.tomorrowRevision !== TOMORROW_WORLD_REVISION) return false;
     if (level.upgradeNames && (!s.upgrades || typeof s.upgrades !== 'object' || Array.isArray(s.upgrades) || Object.keys(s.upgrades).length !== 3 || !['cutter', 'insulator', 'phase'].every(id => typeof s.upgrades[id] === 'boolean'))) return false;
     if (level.exploration && ![0, 25].includes(s.healthBonus)) return false;
     const p = s.player;
@@ -1653,6 +1677,7 @@ export class Game {
         if (level.grid[cz][cx] === '#' || s.doors.some(door => !door.open && Math.floor(level.doors.find(base => base.id === door.id).x) === cx && Math.floor(level.doors.find(base => base.id === door.id).z) === cz)) return false;
       }
     }
+    if (level.tomorrow && !tomorrowStateValid(s)) return false;
     return true;
   }
 
@@ -1677,7 +1702,7 @@ export class Game {
     for (const key of ['power', 'secretFound', 'time', 'kills', 'shots', 'hits']) next[key] = s[key];
     next.tutorial = Object.fromEntries(['moved', 'fired', 'interacted', 'weaponSwitched'].map(k => [k, s.tutorial?.[k] === true]));
     next.effects = []; next.projectiles = copy(s.projectiles || []); next.shadowHazards = []; next.status = 'paused'; next.checkpoint = false;
-    if (next.interactables.find(i => i.type === 'exit').used) next.status = 'won';
+    if (level.tomorrow ? tomorrowEnding({ state: next, level }) : next.interactables.find(i => i.type === 'exit').used) next.status = 'won';
     return next;
   }
 
@@ -1716,7 +1741,7 @@ export class Game {
   restartCheckpoint() {
     if (!this._checkpoint || !this._validSnapshot(this._checkpoint)) return false;
     this.state = this._stateFromSnapshot(this._checkpoint); this._resetAfterRestore(this._checkpoint); this.state.checkpoint = true;
-    this.state.status = 'playing'; this._events = [{ type: 'message', text: this.level.shadow ? 'Lantern checkpoint restored. Earned weapons, secrets and defeated roots remain.' : this.level.hollow ? 'Hollow checkpoint restored. Permanent discoveries remain available.' : this.level.missionId === 'glasshouse-17' ? 'Glasshouse checkpoint restored.' : this.level.missionId === 'switchyard-15' ? 'Switchyard checkpoint restored.' : this.level.exploration ? 'Underworks refuge restored. Acquired upgrades and opened routes remain available.' : this.level.missionId === 'crosslink-11' ? 'Crosslink checkpoint restored.' : this.level.missionId === 'relay-09' ? 'Dead Relay checkpoint restored.' : 'Generator checkpoint restored.' }];
+    this.state.status = 'playing'; this._events = [{ type: 'message', text: this.level.tomorrow ? 'Tomorrow checkpoint restored. Memories, weapons and opened routes remain.' : this.level.shadow ? 'Lantern checkpoint restored. Earned weapons, secrets and defeated roots remain.' : this.level.hollow ? 'Hollow checkpoint restored. Permanent discoveries remain available.' : this.level.missionId === 'glasshouse-17' ? 'Glasshouse checkpoint restored.' : this.level.missionId === 'switchyard-15' ? 'Switchyard checkpoint restored.' : this.level.exploration ? 'Underworks refuge restored. Acquired upgrades and opened routes remain available.' : this.level.missionId === 'crosslink-11' ? 'Crosslink checkpoint restored.' : this.level.missionId === 'relay-09' ? 'Dead Relay checkpoint restored.' : 'Generator checkpoint restored.' }];
     return true;
   }
 }

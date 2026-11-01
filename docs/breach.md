@@ -1,8 +1,31 @@
 # BREACH — DailyFlyer Arcade
 
-An original retro first-person game built on DailyFlyer, with eight solo missions
-and five operations available in private two-player co-op. Solo play runs in the
+An original retro first-person game built on DailyFlyer, with nine solo missions
+and six operations available in private two-to-four-player co-op. Solo play runs in the
 browser; co-op uses an authoritative room server.
+
+## 0.11.0 — The Wrong Side of Tomorrow
+
+Mission 009 is an impossible civic building with nine connected districts, three
+distinct endings, the latest four Shadow enemy types, and an unfinished-sun
+guardian. Floating teeth, clock-fish, borrowed faces, inverted benches and a
+staircase that returns to itself give the new map its own visual language. Both
+renderers use the same original procedural artwork.
+
+Iron Teeth, Blacksite Stomp and Ash Cathedral play first, in that order, before
+district and boss rotations take over. These are the available committed
+recordings (roughly 48 seconds each); this release does not include the previously
+reported, unrecoverable longer sample-based arrangements.
+
+Private rooms now support two to four operators. Tomorrow enables friendly fire
+at half base weapon damage, identifies all four operators by color and number,
+and can start a team together, in pairs, or separated across safe arrival points.
+Its enemy health scales with party size. Walking routes always permit reunion;
+restored registers also change the folded-door destinations. Existing co-op maps
+keep friendly fire off by default.
+
+See [the mission, endings, and validation notes](breach-tomorrow-0110.md) and the
+[current co-op protocol](breach-coop-protocol.md).
 
 ## 0.10.0 — The city changes shape
 
@@ -378,11 +401,11 @@ GPU performance, and the full expedition's combat pacing still need playtesting.
 
 ## Scope
 
-The game contains six authored missions, five weapons, seven enemy roles
-(`runner`, `spitter`, `brute`, `sentry`, `stalker`, `bulwark`, and `mender`),
-guardian encounters, power/key progression, relay objectives, optional secrets,
-checkpoints, and results screens. Private two-player co-op is available for
-Crosslink, The Underworks, and The Glasshouse. Shared
+The game contains nine authored missions, an expanding earned arsenal, distinct
+enemy roles and guardian encounters, power/key progression, relay objectives,
+optional secrets, checkpoints and branching results. Private two-to-four-player
+co-op is available for Crosslink, The Underworks, The Glasshouse, The Hollow,
+Beneath The Shadow and The Wrong Side of Tomorrow. Shared
 leaderboards, accounts, public matchmaking, and a procedural campaign would
 require separate design and validation.
 

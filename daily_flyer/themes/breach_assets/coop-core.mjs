@@ -8,12 +8,14 @@ const copy = value => JSON.parse(JSON.stringify(value));
 const distance = (a, b) => Math.hypot(a.x - b.x, a.z - b.z);
 const axis = value => Number.isFinite(value) ? Math.max(-1, Math.min(1, value)) : 0;
 const PERSONAL_EVENTS = new Set(['shot', 'hit', 'kill', 'hurt', 'pickup', 'death', 'downed', 'revive']);
+export const COOP_PLAYER_IDS = Object.freeze(['p1', 'p2', 'p3', 'p4']);
+export const FRIENDLY_FIRE_SCALE = .5;
 
 export class CoopGame extends Game {
   constructor(options = {}) {
     const players = options.players ?? ['p1', 'p2'];
-    if (!Array.isArray(players) || players.length < 1 || players.length > 2 || new Set(players).size !== players.length || players.some(id => !['p1', 'p2'].includes(id))) {
-      throw new TypeError('Co-op players must be one or two distinct p1/p2 IDs.');
+    if (!Array.isArray(players) || players.length < 1 || players.length > 4 || new Set(players).size !== players.length || players.some(id => !COOP_PLAYER_IDS.includes(id))) {
+      throw new TypeError('Co-op players must be one to four distinct p1–p4 IDs.');
     }
     super({ mission: 'crosslink-11', ...options, players: [...players] });
   }
@@ -21,25 +23,97 @@ export class CoopGame extends Game {
   _reset() {
     super._reset();
     this._playerIds = [...this.options.players];
+    // Extra operators increase the expedition's health budget, not its attack
+    // speed. Warning windows and combat difficulty remain independently tuned.
+    this.state.partyScale = this.level.tomorrow ? 1 + .30 * (this._playerIds.length - 1) : 1;
+    if (this.state.partyScale !== 1) for (const enemy of this.state.enemies) {
+      enemy.health = Math.round(enemy.health * this.state.partyScale);
+      enemy.maxHealth = Math.round(enemy.maxHealth * this.state.partyScale);
+    }
     this._activePlayerId = null;
     this._playerRuntime = Object.create(null);
     this._distanceFields = new Map();
     const template = this.state.player;
     this.state.players = {};
+    const variants = this.level.coopSpawnVariants;
+    const variantIndex = Array.isArray(variants) && variants.length ? this._runSeed % variants.length : -1;
+    const spawns = variantIndex >= 0 ? variants[variantIndex] : this.level.coopSpawns;
     for (const [index, id] of this._playerIds.entries()) {
-      const spawn = this.level.coopSpawns?.[index] || (index === 0 ? this.level.spawn : this._spawnNear(this.level.spawn, Object.values(this.state.players)));
+      const anchor = spawns?.[index] || this.level.spawn;
+      const occupied = Object.values(this.state.players);
+      const spawn = this._clearCircle(anchor.x, anchor.z, .22) && occupied.every(p => distance(anchor, p) >= .7)
+        ? anchor : this._spawnNear(anchor, occupied);
       this.state.players[id] = {
         ...copy(template), ...spawn, id, alive: true, moving: false,
-        hasShotgun: !this.level.shadow, ammo: { pistol: 40, shells: this.level.shadow?0:8, cells: 0, slugs: 0, grenades: 0 },
+        hasShotgun: !this.level.shadow && !this.level.tomorrow, ammo: { pistol: 40, shells: this.level.shadow || this.level.tomorrow ? 0 : 8, cells: 0, slugs: 0, grenades: 0 },
         tutorial: { moved: false, fired: false, interacted: false, weaponSwitched: false },
       };
-      this._playerRuntime[id] = { shotCooldown: 0, reserveTimer: 0, messageCooldown: 0, aimAssist: this.options.aimAssist !== false, spawn: copy(spawn) };
+      this._playerRuntime[id] = { shotCooldown: 0, reserveTimer: 0, messageCooldown: 0, friendlyWarningAt: -10, aimAssist: this.options.aimAssist !== false, spawn: copy(spawn) };
     }
     this.state.mode = 'coop';
     this.state.levelId = this.level.id;
     this.state.missionId = this.level.missionId;
     this.state.tick = 0;
+    this.state.friendlyFire = typeof this.options.friendlyFire === 'boolean' ? this.options.friendlyFire : this.level.friendlyFire === true;
+    this.state.friendlyHits = 0;
+    this.state.spawnVariant = variantIndex;
     this._restoreAliases();
+  }
+
+  start() {
+    const arriving = this.state.status === 'ready';
+    super.start();
+    if (!arriving) return;
+    if (this.state.friendlyFire) this._events.push({ type: 'message', text: 'Friendly fire is live. Operator numbers identify your team; keep firing lanes clear.' });
+    if (this.state.spawnVariant >= 0) {
+      const players = Object.values(this.state.players);
+      const split = players.some(p => distance(p, players[0]) > 12);
+      this._events.push({ type: 'message', text: split ? 'Arrival scattered the team. Follow your operator markers to the common hall; each starting route is open.' : 'You arrived together. Other arrivals may scatter the team across different entrances.' });
+    }
+    if (this.level.tomorrow) for (const id of this._playerIds) {
+      this._events.push({ type: 'message', playerId: id, arrival: true,
+        text: `${id.toUpperCase()} · ${this.getZone(id)}. Follow signs to the exchange. Friendly fire is ${this.state.friendlyFire ? 'on' : 'off'}.` });
+    }
+  }
+
+  _weaponTargets() {
+    const enemies = super._weaponTargets();
+    if (!this.state.friendlyFire) return enemies;
+    // Allies are physical shot targets, but never enter the enemy list or
+    // automatic aiming/threat selection. Downed bodies do not block a shot.
+    return [...enemies, ...Object.values(this.state.players).filter(p => p !== this.state.player && p.alive && !p.jump)];
+  }
+
+  _damageWeaponTarget(target, amount, weapon, source = 'player', impact = null) {
+    if (target?.id && this.state.players[target.id] === target) {
+      const sourceId = source?.playerId || this.state.player.id;
+      this._friendlyDamage(target, amount, sourceId, impact || this.state.players[sourceId], weapon);
+      return;
+    }
+    return super._damageWeaponTarget(target, amount, weapon, source, impact);
+  }
+
+  _friendlyDamage(target, amount, sourceId, origin, weapon) {
+    if (!this.state.friendlyFire || !target?.alive || target.id === sourceId || !this.state.players[sourceId] || !(amount > 0)) return;
+    this._hurtTarget(target, amount * FRIENDLY_FIRE_SCALE, { x: origin.x, z: origin.z, friendlyFire: true, playerId: sourceId });
+    this.state.friendlyHits++;
+    this._events.push({ type: 'friendly-fire', playerId: sourceId, sourceId, targetId: target.id, weapon, x: target.x, z: target.z });
+    const runtime = this._playerRuntime[sourceId];
+    if (runtime && this.state.time - runtime.friendlyWarningAt >= 1.2) {
+      runtime.friendlyWarningAt = this.state.time;
+      this._events.push({ type: 'message', playerId: sourceId, text: `Friendly fire — operator ${target.id.slice(1)} is in your firing lane.` });
+    }
+  }
+
+  _explodeGrenade(shot) {
+    super._explodeGrenade(shot);
+    if (!this.state.friendlyFire) return;
+    const spec = WEAPONS.grenade;
+    for (const target of Object.values(this.state.players)) {
+      const d = distance(shot, target);
+      if (target.id === shot.ownerId || !target.alive || target.jump || d >= spec.blastRadius || !this.hasLineOfSight(shot.x, shot.z, target.x, target.z)) continue;
+      this._friendlyDamage(target, spec.damage * (1 - .7 * d / spec.blastRadius), shot.ownerId, shot, 'grenade');
+    }
   }
 
   _restoreAliases() {
@@ -185,16 +259,17 @@ export class CoopGame extends Game {
   _hurt(amount, source) {
     const p = this.state.player;
     if (this.state.status !== 'playing' || !p.alive) return;
-    const damage = Math.max(1, Math.round(amount * this._difficulty.damage));
+    const damage = Math.max(1, Math.round(amount * (source.friendlyFire ? 1 : this._difficulty.damage)));
     const absorbed = Math.min(p.armor, Math.ceil(damage * .55));
     p.armor -= absorbed; p.health = Math.max(0, p.health - (damage - absorbed));
-    this._events.push({ type: 'hurt', playerId: p.id, damage, x: source.x, z: source.z });
+    this._events.push({ type: 'hurt', playerId: p.id, damage, x: source.x, z: source.z,
+      ...(source.friendlyFire ? { friendlyFire: true, sourceId: source.playerId } : {}) });
     if (p.health > 0) return;
     p.alive = false; p.moving = false; this._pathTimer = 0;
-    this._events.push({ type: 'downed', playerId: p.id, text: 'Downed. Your teammate can revive you at the next checkpoint.' });
+    this._events.push({ type: 'downed', playerId: p.id, text: 'Downed. A teammate can revive you at the next checkpoint.' });
     if (this._playerIds.every(id => !this._player(id).alive)) {
       this.state.status = 'dead';
-      this._events.push({ type: 'message', text: this.state.checkpoint ? 'Both operatives are down. Retry the team checkpoint.' : 'Both operatives are down. Restart the mission.' });
+      this._events.push({ type: 'message', text: this.state.checkpoint ? 'The whole team is down. Retry the team checkpoint.' : 'The whole team is down. Restart the mission.' });
     }
   }
 
@@ -273,7 +348,7 @@ export class CoopGame extends Game {
     this._shotCooldown = 0; this._reserveTimer = 0; this._messageCooldown = 0;
     this._pathTimer = 0; this._distances = null; this._distanceFields = new Map();
     this._restoreAliases();
-    this._events = [{ type: 'message', text: 'Team checkpoint restored. Both operatives are ready.' }];
+    this._events = [{ type: 'message', text: 'Team checkpoint restored. All operatives are ready.' }];
     return true;
   }
 

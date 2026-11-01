@@ -46,7 +46,7 @@ try{
   let room,lastState,seq=0;
   guest.on('message',data=>{const m=JSON.parse(data);if(m.type==='room')room=m.room;if(m.type==='state')lastState=m.state;});
   await new Promise(resolve=>guest.once('open',resolve));
-  guest.send(JSON.stringify({type:'join',protocol:2,roomId,name:'Teammate QA'}));
+  guest.send(JSON.stringify({type:'join',protocol:3,roomId,name:'Teammate QA'}));
   await until(()=>room?.players.length===2,'guest must join');
   guest.send(JSON.stringify({type:'ready',ready:true}));
   await page.getByRole('button',{name:'I’M READY'}).click();

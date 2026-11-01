@@ -1,3 +1,5 @@
+import { TOMORROW_PALETTES, paintTomorrowSurface, paintTomorrowLandmark, paintTomorrowProp, paintTomorrowStation } from './tomorrow-art.mjs';
+import { tomorrowInteractionInfo } from './tomorrow.mjs';
 import { platformSolid, platformStatus, courseStatus, shadowPuzzleInfo, jumpInfo } from './shadow.mjs';
 import { weaponViewTransform } from './weapon-view.mjs';
 import * as THREE from './vendor/three.module.js';
@@ -58,34 +60,35 @@ const missionVisuals = (level) => {
   const crosslink = level.missionId === 'crosslink-11' || String(level.id).startsWith('crosslink-11');
   const hollow = level.hollow === true;
   const shadow = level.shadow === true;
-  const underworks = level.shadow || hollow || level.missionId === 'underworks-13' || String(level.id).startsWith('underworks-13');
+  const tomorrow = level.tomorrow === true;
+  const underworks = tomorrow || level.shadow || hollow || level.missionId === 'underworks-13' || String(level.id).startsWith('underworks-13');
   const switchyard = level.missionId === 'switchyard-15' || String(level.id).startsWith('switchyard-15');
   const glasshouse = level.missionId === 'glasshouse-17' || String(level.id).startsWith('glasshouse-17');
   return {
-    relay, crosslink, underworks, switchyard, glasshouse, hollow, shadow,
+    relay, crosslink, underworks, switchyard, glasshouse, hollow, shadow, tomorrow,
     signCode: level.signCode || (glasshouse ? 'GH 17' : switchyard ? 'SW 15' : underworks ? 'UW 13' : crosslink ? 'CROSSLINK 11' : relay ? 'RELAY 09' : 'BS 07'),
     doorCode: level.signCode || (glasshouse ? 'GLASSHOUSE 17' : switchyard ? 'SWITCHYARD 15' : underworks ? 'UNDERWORKS 13' : crosslink ? 'CROSSLINK 11' : relay ? 'DEAD RELAY 09' : 'BLACKSITE 07'),
-    signColor: hollow ? '#9dcbd4' : glasshouse ? '#c4f4cf' : switchyard ? '#f1c579' : underworks ? '#d8c5a2' : crosslink ? '#e2c78c' : relay ? '#b6c5e6' : '#9fd8cf',
-    fog: hollow ? 0x11131e : glasshouse ? 0x283c3d : switchyard ? 0x24272c : underworks ? 0x131917 : crosslink ? 0x101b19 : relay ? 0x0c1526 : 0x08131c,
-    fogRgb: hollow ? [17,19,30] : glasshouse ? [40,60,61] : switchyard ? [36,39,44] : underworks ? [19,25,23] : crosslink ? [16, 27, 25] : relay ? [12, 21, 38] : [8, 19, 28],
+    signColor: tomorrow ? '#ffd39c' : hollow ? '#9dcbd4' : glasshouse ? '#c4f4cf' : switchyard ? '#f1c579' : underworks ? '#d8c5a2' : crosslink ? '#e2c78c' : relay ? '#b6c5e6' : '#9fd8cf',
+    fog: tomorrow ? 0x0f1d27 : hollow ? 0x11131e : glasshouse ? 0x283c3d : switchyard ? 0x24272c : underworks ? 0x131917 : crosslink ? 0x101b19 : relay ? 0x0c1526 : 0x08131c,
+    fogRgb: tomorrow ? [15,29,39] : hollow ? [17,19,30] : glasshouse ? [40,60,61] : switchyard ? [36,39,44] : underworks ? [19,25,23] : crosslink ? [16, 27, 25] : relay ? [12, 21, 38] : [8, 19, 28],
   };
 };
 const exitReady = (state) => !!(state.power && state.player.key && (state.interactables || []).filter(i => i.type === 'relay').every(i => i.used));
 const relayTitle = (item) => item.shortName || item.name || (/north/i.test(item.id) ? 'NORTH RELAY' : /south/i.test(item.id) ? 'SOUTH RELAY' : /east/i.test(item.id) ? 'EAST RELAY' : /west/i.test(item.id) ? 'WEST RELAY' : item.label?.replace(/^(synchronize|activate|align|restore)\s+/i, '').slice(0, 17) || 'RELAY NODE');
-const zoneTitle = (zone,visuals) => visuals.shadow?zone.identity||zone.name:visuals.underworks ? zone.shortName||zone.id?.replaceAll('-',' ')||zone.name : zone.name;
+const zoneTitle = (zone,visuals) => (visuals.shadow||visuals.tomorrow)?zone.identity||zone.name:visuals.underworks ? zone.shortName||zone.id?.replaceAll('-',' ')||zone.name : zone.name;
 const localPlayerId = (state) => state.localPlayerId || state.player?.id;
 const otherPlayers = (state) => Object.entries(state.players || {}).filter(([id, player]) => player && id !== localPlayerId(state) && player !== state.player && Number.isFinite(player.x) && Number.isFinite(player.z));
 const localEvent = (event, state) => !event.playerId || !localPlayerId(state) || event.playerId === localPlayerId(state);
 const doorKind = (door) => door.kind==='shutter'?'shutter':({cutter:'grille',insulator:'hazard',phase:'phase'}[door.requires] || (['grille','hazard','phase','shortcut'].includes(door.kind) ? door.kind : door.requires || 'plain'));
 const circuitMark = item => String(item.mark||String(item.circuitId||'1').split('-').at(-1)).padStart(2,'0').slice(-2);
 const doorStyleKey = door => doorKind(door)==='shutter'?`shutter:${circuitMark(door)}`:doorKind(door);
-const stationKey = item => item.type==='shadow-puzzle'?`shadow-puzzle:${item.effect}:${item.stage||0}`:item.routing?`routing:${circuitMark(item)}`:item.type==='shutter-switch'?`shutter-switch:${circuitMark(item)}`:`${item.type}:${item.upgrade||''}`;
-const explorationFeature = (item) => ['upgrade','refuge','transit','shutter-switch','record','jump','shadow-puzzle'].includes(item.type);
+const stationKey = item => item.tomorrowAction?`tomorrow:${item.tomorrowAction}:${item.ending||item.anchorNumber||item.id}`:item.type==='shadow-puzzle'?`shadow-puzzle:${item.effect}:${item.stage||0}`:item.routing?`routing:${circuitMark(item)}`:item.type==='shutter-switch'?`shutter-switch:${circuitMark(item)}`:`${item.type}:${item.upgrade||''}`;
+const explorationFeature = (item) => !!item.tomorrowAction || ['upgrade','refuge','transit','shutter-switch','record','jump','shadow-puzzle'].includes(item.type);
 const puzzleMode=(item,state,game)=>{
   if(game&&typeof shadowPuzzleInfo==='function'){const info=shadowPuzzleInfo(game,item);return info.complete?2:info.canUse?1:0;}
   return item.used?2:state.power&&(!item.requirementId||(state.interactables||[]).some(o=>o.id===item.requirementId&&o.used))?1:0;
 };
-const featureMode = (item,state,game=null) => item.type==='shadow-puzzle'?puzzleMode(item,state,game):item.type==='jump' ? Number(jumpReadiness(game||{state},item).ready) : item.type==='upgrade' ? Number(!!(item.used||state.upgrades?.[item.upgrade]))
+const featureMode = (item,state,game=null) => item.tomorrowAction?item.used?2:Number(!!game&&tomorrowInteractionInfo({...game,state:{...state,status:'playing'}},item)?.canUse):item.type==='shadow-puzzle'?puzzleMode(item,state,game):item.type==='jump' ? Number(jumpReadiness(game||{state},item).ready) : item.type==='upgrade' ? Number(!!(item.used||state.upgrades?.[item.upgrade]))
   : item.type==='shutter-switch' ? !state.power?0:(item.doorIds||[]).length&&(item.doorIds||[]).every(id=>(state.doors||[]).find(door=>door.id===id)?.open)?2:1
   : item.type==='transit' ? item.used ? (state.interactables||[]).some(other=>other.id===item.destination&&other.used)?2:1 : 0
   : Number(!!item.used);
@@ -156,11 +159,11 @@ function capabilityGlyph(c,kind,x,y,size,color='#eee3be'){
 // pixel or per wall; the largest map needs only a few kilobytes of cell indices.
 function surfaceLayout(level,underworks=false){
   const garden=missionVisuals(level).glasshouse;
-  const names=level.shadow?Object.keys(SHADOW_PALETTES):garden?Object.keys(GARDEN_PALETTES):underworks?Object.keys(SECTORS):['default'],indices=new Uint8Array(level.width*level.height);
+  const names=level.tomorrow?Object.keys(TOMORROW_PALETTES):level.shadow?Object.keys(SHADOW_PALETTES):garden?Object.keys(GARDEN_PALETTES):underworks?Object.keys(SECTORS):['default'],indices=new Uint8Array(level.width*level.height);
   const hazards=new Uint8Array(indices.length),solid=(x,z)=>!level.grid[z]?.[x]||level.grid[z][x]==='#';
   if(underworks||garden)for(let z=0;z<level.height;z++)for(let x=0;x<level.width;x++){
     const zone=(level.zones||[]).find(zone=>x+.5>=zone.x1&&x+.5<zone.x2&&z+.5>=zone.z1&&z+.5<zone.z2);
-    indices[z*level.width+x]=Math.max(0,names.indexOf(level.shadow?zone?.id:zone?.palette));
+    indices[z*level.width+x]=Math.max(0,names.indexOf(level.tomorrow||level.shadow?zone?.id:zone?.palette));
   }
   for(const area of level.hazards||[])for(let z=Math.max(0,Math.floor(area.z1));z<Math.min(level.height,Math.ceil(area.z2));z++)for(let x=Math.max(0,Math.floor(area.x1));x<Math.min(level.width,Math.ceil(area.x2));x++){
     if(!solid(x,z)&&x+.5>=area.x1&&x+.5<area.x2&&z+.5>=area.z1&&z+.5<area.z2)hazards[z*level.width+x]=area.type==='flood'?1:2;
@@ -283,9 +286,9 @@ function shadowGuideCues(game){
 }
 
 function shadowAtmosphere(renderer,p){
-  if(!renderer.visuals.shadow)return;
-  const name=renderer.layout.names[renderer.layout.paletteAt(p.x,p.z)],profile=SHADOW_PALETTES[name]||SHADOW_PALETTES.descent;
-  renderer.visuals.fogRgb=profile.fog;renderer.stats.shadowDistrict=name;
+  if(!renderer.visuals.shadow&&!renderer.visuals.tomorrow)return;
+  const name=renderer.layout.names[renderer.layout.paletteAt(p.x,p.z)],profile=renderer.visuals.tomorrow?(TOMORROW_PALETTES[name]||TOMORROW_PALETTES.arrivals):(SHADOW_PALETTES[name]||SHADOW_PALETTES.descent);
+  renderer.visuals.fogRgb=profile.fog;renderer.stats.shadowDistrict=name;if(renderer.visuals.tomorrow)renderer.stats.tomorrowDistrict=name;
   if(renderer.scene){renderer.scene.fog.color.setHex((profile.fog[0]<<16)|(profile.fog[1]<<8)|profile.fog[2]);renderer.scene.background.copy(renderer.scene.fog.color);}
 }
 const teammateView = (player, observer, motion, dt, advancing, clock, firedAt) => {
@@ -302,6 +305,17 @@ const hash = (x, y, salt = 0) => {
   const n = Math.sin(x * 127.1 + y * 311.7 + salt * 74.7) * 43758.5453;
   return n - Math.floor(n);
 };
+
+function makeTomorrowWallTexture(name){const[canvas,c]=canvas2d(128,128);paintTomorrowSurface(c,'wall',name);return textureFrom(canvas);}
+function makeTomorrowFloorTexture(name,ceiling=false){const[canvas,c]=canvas2d(64,64);paintTomorrowSurface(c,'floor',name,ceiling);return textureFrom(canvas);}
+function makeTomorrowLandmarkTexture(type,name){const[canvas,c]=canvas2d(192,192);paintTomorrowLandmark(c,type,name);return textureFrom(canvas);}
+function makeTomorrowPropTexture(prop,changed=false){const[canvas,c]=canvas2d(256,256);c.save();if(changed){c.translate(256,256);c.rotate(Math.PI);}paintTomorrowProp(c,prop.kind,prop.zoneId);c.restore();if(changed){c.globalCompositeOperation='source-atop';c.fillStyle='rgba(185,255,215,.2)';c.fillRect(0,0,256,256);c.globalCompositeOperation='source-over';}return textureFrom(canvas);}
+function tomorrowPropSize(prop){return {width:Math.min(9,prop.width*.55),height:2.8,bottom:1.9};}
+function tomorrowPropMotion(prop,state,clock,reducedMotion){
+  const changed=!!prop.changedBy&&(state.interactables||[]).some(i=>i.id===prop.changedBy&&i.used);
+  return {changed,x:prop.x+(reducedMotion?0:Math.sin(clock*.23+prop.x)*.2),z:prop.z,
+    y:reducedMotion?0:Math.sin(clock*.5+prop.z)*.09,rotation:changed?Math.PI:0};
+}
 
 function canvas2d(w, h) {
   const canvas = document.createElement('canvas');
@@ -968,7 +982,7 @@ function solidLandmarkPanels(level,types){
     if(!blocked)continue; // Artwork must never invent solid cover on playable cells.
     for(const face of[{x:x1-.012,z,dx:1,dz:0,width:depth},{x:x2+.012,z,dx:-1,dz:0,width:depth},{x,z:z1-.012,dx:0,dz:1,width},{x,z:z2+.012,dx:0,dz:-1,width}]){
       const shadowDistrict=level.shadow?(level.zones||[]).find(zone=>x>=zone.x1&&x<zone.x2&&z>=zone.z1&&z<zone.z2)?.id:null;
-      panels.push({...face,id:item.id,type:item.type,palette:gardenPalette(item,level),shadowDistrict,view:(item.axis==='z'?face.dx:face.dz)?'side':'end',height:level.shadow?WALL_HEIGHT:item.type==='root-mass'?3.7:item.type==='glass-lab'?2.85:WALL_HEIGHT,bottom:0});
+      panels.push({...face,id:item.id,type:item.type,palette:gardenPalette(item,level),shadowDistrict,tomorrowDistrict:level.tomorrow?(item.tomorrowDistrict||(level.zones||[]).find(zone=>x>=zone.x1&&x<zone.x2&&z>=zone.z1&&z<zone.z2)?.id):null,view:(item.axis==='z'?face.dx:face.dz)?'side':'end',height:level.shadow?WALL_HEIGHT:item.type==='root-mass'?3.7:item.type==='glass-lab'?2.85:WALL_HEIGHT,bottom:0});
     }
   }
   return panels;
@@ -976,9 +990,9 @@ function solidLandmarkPanels(level,types){
 
 const yardLandmarkPanels=level=>solidLandmarkPanels(level,['freight-car','transformer','security-cabin']);
 const gardenLandmarkPanels=level=>solidLandmarkPanels(level,GARDEN_LANDMARKS);
-const allLandmarkPanels=level=>[...yardLandmarkPanels(level),...gardenLandmarkPanels(level),...solidLandmarkPanels(level,['shadow-arch','shadow-obelisk','shadow-sun',...Object.keys(SHADOW_PALETTES).map(id=>`shadow-${id}`)]),...solidLandmarkPanels(level,['sealed-crate','sleep-pod','tape-vault','listening-array'])];
-const landmarkKey=panel=>panel.shadowDistrict?`${panel.shadowDistrict}:${GARDEN_LANDMARKS.includes(panel.type)?`${panel.type}:${panel.palette}`:panel.type==='shadow-sun'?'sun':'facade'}`:GARDEN_LANDMARKS.includes(panel.type)?`${panel.type}:${panel.type==='glass-lab'?panel.view:'shared'}:${panel.palette}`:`${panel.type}:${panel.view}`;
-const landmarkTexture=panel=>panel.shadowDistrict&&!GARDEN_LANDMARKS.includes(panel.type)?makeShadowDistrictLandmark(panel.type,panel.shadowDistrict):panel.type.startsWith('shadow-')?makeShadowLandmark(panel.type):['sealed-crate','sleep-pod','tape-vault','listening-array'].includes(panel.type)?makeHollowLandmarkTexture(panel.type):GARDEN_LANDMARKS.includes(panel.type)?makeGardenLandmarkTexture(panel.type,panel.view,panel.palette,panel.shadowDistrict):makeLandmarkTexture(panel.type,panel.view);
+const allLandmarkPanels=level=>[...yardLandmarkPanels(level),...gardenLandmarkPanels(level),...solidLandmarkPanels(level,['shadow-arch','shadow-obelisk','shadow-sun',...Object.keys(SHADOW_PALETTES).map(id=>`shadow-${id}`)]),...solidLandmarkPanels(level,['sealed-crate','sleep-pod','tape-vault','listening-array']),...solidLandmarkPanels(level,['tomorrow-bench','tomorrow-clock','tomorrow-teeth','tomorrow-faces','tomorrow-stairs','tomorrow-window','tomorrow-door','tomorrow-storm','tomorrow-core'])];
+const landmarkKey=panel=>panel.tomorrowDistrict?`${panel.tomorrowDistrict}:${panel.type}:${panel.view}`:panel.shadowDistrict?`${panel.shadowDistrict}:${GARDEN_LANDMARKS.includes(panel.type)?`${panel.type}:${panel.palette}`:panel.type==='shadow-sun'?'sun':'facade'}`:GARDEN_LANDMARKS.includes(panel.type)?`${panel.type}:${panel.type==='glass-lab'?panel.view:'shared'}:${panel.palette}`:`${panel.type}:${panel.view}`;
+const landmarkTexture=panel=>panel.tomorrowDistrict&&panel.type.startsWith('tomorrow-')?makeTomorrowLandmarkTexture(panel.type,panel.tomorrowDistrict):panel.shadowDistrict&&!GARDEN_LANDMARKS.includes(panel.type)?makeShadowDistrictLandmark(panel.type,panel.shadowDistrict):panel.type.startsWith('shadow-')?makeShadowLandmark(panel.type):['sealed-crate','sleep-pod','tape-vault','listening-array'].includes(panel.type)?makeHollowLandmarkTexture(panel.type):GARDEN_LANDMARKS.includes(panel.type)?makeGardenLandmarkTexture(panel.type,panel.view,panel.palette,panel.shadowDistrict):makeLandmarkTexture(panel.type,panel.view);
 
 function destinationPanels(level){
   const labels=new Map((level.doors||[]).filter(door=>door.destinationLabel).map(door=>[door.id,{label:door.destinationLabel,mark:level.signCode||'SW 15'}]));
@@ -1196,6 +1210,7 @@ function makeWaterHighlightsTexture(){
 }
 
 function makeStationTexture(item,mode){
+  if(item.tomorrowAction){const[canvas,c]=canvas2d(96,128);paintTomorrowStation(c,item,mode);return textureFrom(canvas);}
   if(item.type==='shadow-puzzle')return makeShadowPuzzleTexture(item,mode);
   if(item.type==='jump'){
     const[canvas,c]=canvas2d(112,160),color=mode?'#a9edb4':'#d89a5b';
@@ -1523,9 +1538,8 @@ function drawGardenEnemy(type,frame){
 
 function drawTeammate(team, direction, frame){
   const [canvas,c]=canvas2d(80,112);
-  const blue=team==='p2';
-  const armor=blue?'#517ea6':'#468b85',light=blue?'#94c5e4':'#8dd6c4',dark=blue?'#263f5b':'#244b4c';
-  const trim=blue?'#b2e2f2':'#c2ead7';
+  const colors={p1:['#468b85','#8dd6c4','#244b4c','#c2ead7'],p2:['#517ea6','#94c5e4','#263f5b','#b2e2f2'],p3:['#a47b45','#f0c27c','#564332','#ffe0a8'],p4:['#805596','#d7a6eb','#443255','#f0d4fa']};
+  const[armor,light,dark,trim]=colors[team]||colors.p1;
   if(frame===4){
     // A downed teammate stays recognizable, without a misleading revive prompt.
     poly(c,[[8,101],[20,91],[48,90],[69,99],[65,107],[12,107]],'#16262e');
@@ -1588,7 +1602,7 @@ function drawTeammate(team, direction, frame){
     else{rect(c,28,23,24,7,'#13303e');rect(c,30,24,20,3,trim);rect(c,34,31,12,4,'#78959a');}
     rect(c,25,22,4,9,light);rect(c,51,22,4,9,light);
   }
-  c.restore();return textureFrom(canvas);
+  c.restore();c.fillStyle=trim;c.font='bold 10px monospace';c.textAlign='center';c.fillText(team.slice(1),40,10);return textureFrom(canvas);
 }
 
 function makeTeammateWeapon(weapon,direction,firing=false){
@@ -1821,7 +1835,7 @@ class WebGLBreachRenderer {
     if(!canvas)throw new Error('BREACH could not find its game screen.');
     this.canvas=canvas;this.game=game;this.options={quality:'auto',fov:null,reducedMotion:false,...options};
     this.visuals=missionVisuals(game.level);
-    this.ceilingHeight=this.visuals.glasshouse?4.2:WALL_HEIGHT;
+    this.ceilingHeight=this.visuals.tomorrow?4.8:this.visuals.glasshouse?4.2:WALL_HEIGHT;this.worldWallHeight=this.visuals.tomorrow?4.8:WALL_HEIGHT;
     this.mode='webgl';this.isSoftware=false;
     this.textures=new Set();this.materials=new Set();this.geometries=new Set();
     this.enemyVisuals=new Map();this.pickupVisuals=new Map();this.doorVisuals=new Map();
@@ -1871,7 +1885,7 @@ class WebGLBreachRenderer {
     return this.enemyFrames[art];
   }
   getTeammateFrames(id){
-    const team=id==='p2'?'p2':'p1';
+    const team=['p1','p2','p3','p4'].includes(id)?id:'p1';
     if(!this.teammateFrames[team]){
       this.teammateFrames[team]=Object.fromEntries(['front','back','right','left'].map(direction=>[direction,Array.from({length:6},(_,frame)=>this.texture(drawTeammate(team,direction,frame)))]));
       if(this.stats.textureSourceBytes)this.stats.textureSourceBytes+=24*80*112*4;
@@ -1889,8 +1903,8 @@ class WebGLBreachRenderer {
   solid(x,z){return this.game.level.grid[z]?.[x]==='#'||!this.game.level.grid[z]?.[x];}
 
   buildEnvironment(){
-    const level=this.game.level,layout=this.layout,underworks=this.visuals.underworks,garden=this.visuals.glasshouse,shadow=this.visuals.shadow;
-    const gardenSpace=garden||shadow&&!!level.gardenZones?.length;
+    const level=this.game.level,layout=this.layout,underworks=this.visuals.underworks,garden=this.visuals.glasshouse,shadow=this.visuals.shadow,tomorrow=this.visuals.tomorrow;
+    const gardenSpace=garden||(shadow||tomorrow)&&!!level.gardenZones?.length;
     const transform=new THREE.Object3D(),color=new THREE.Color();
     const install=(geometry,material,cells,place,tint=false)=>{
       const mesh=new THREE.InstancedMesh(geometry,material,cells.length);
@@ -1902,16 +1916,16 @@ class WebGLBreachRenderer {
       mesh.instanceMatrix.needsUpdate=true;mesh.computeBoundingSphere();mesh.frustumCulled=true;
       this.scene.add(mesh);this.staticBatches.push(mesh);return mesh;
     };
-    const wallGeometry=this.geometry(new THREE.PlaneGeometry(1,WALL_HEIGHT));
+    const wallGeometry=this.geometry(new THREE.PlaneGeometry(1,this.worldWallHeight));
     const wallMaterials=layout.names.map(name=>this.material(new THREE.MeshBasicMaterial({
-      map:this.texture(shadow?makeShadowWallTexture(name):garden?makeGardenWallTexture(name):underworks?makeSectorWallTexture(name):this.visuals.switchyard?makeYardWallTexture():makeWallTexture(0,this.visuals.relay,this.visuals.crosslink)),
+      map:this.texture(tomorrow?makeTomorrowWallTexture(name):shadow?makeShadowWallTexture(name):garden?makeGardenWallTexture(name):underworks?makeSectorWallTexture(name):this.visuals.switchyard?makeYardWallTexture():makeWallTexture(0,this.visuals.relay,this.visuals.crosslink)),
       color:shadow?0xeee9de:garden?0xf0f4dd:underworks?0xd1d5c8:this.visuals.crosslink?0xc7cabc:this.visuals.relay?0xc3cedb:0xb5c4c1,
     })));
-    for(const cells of batches(layout.walls,cell=>`${cell.chunk}:${cell.palette}`))install(wallGeometry,wallMaterials[cells[0].palette],cells,(cell,t)=>{t.position.set(cell.x,WALL_HEIGHT/2,cell.z);t.rotation.y=cell.rot;},true);
+    for(const cells of batches(layout.walls,cell=>`${cell.chunk}:${cell.palette}`))install(wallGeometry,wallMaterials[cells[0].palette],cells,(cell,t)=>{t.position.set(cell.x,this.worldWallHeight/2,cell.z);t.rotation.y=cell.rot;},true);
 
     if(underworks||garden){
       for(const ceiling of[false,true]){
-        const materials=layout.names.map(name=>this.material(new THREE.MeshBasicMaterial({map:this.texture(shadow?makeShadowFloorTexture(name,ceiling):garden?makeGardenFloorTexture(name,ceiling):makeSectorFloorTexture(name,ceiling)),color:shadow?ceiling?0xc4cccf:0xd2d1c8:garden?ceiling?0xe4edcf:0xd0ddbe:ceiling?0x9ca9a6:0xb4bdb0})));
+        const materials=layout.names.map(name=>this.material(new THREE.MeshBasicMaterial({map:this.texture(tomorrow?makeTomorrowFloorTexture(name,ceiling):shadow?makeShadowFloorTexture(name,ceiling):garden?makeGardenFloorTexture(name,ceiling):makeSectorFloorTexture(name,ceiling)),color:shadow?ceiling?0xc4cccf:0xd2d1c8:garden?ceiling?0xe4edcf:0xd0ddbe:ceiling?0x9ca9a6:0xb4bdb0})));
         for(const runs of batches(layout.runs.filter(run=>ceiling||!run.pit),run=>`${run.chunk}:${run.palette}`)){
           const mesh=this.mesh(this.geometry(horizontalGeometry(runs,ceiling?this.ceilingHeight:0,ceiling)),materials[runs[0].palette]);this.staticBatches.push(mesh);
         }
@@ -1959,10 +1973,10 @@ class WebGLBreachRenderer {
       }
     }
     const lightGeometry=this.geometry(new THREE.BoxGeometry(.62,.065,.045));
-    const lightMaterials=layout.names.map(name=>[this.material(new THREE.MeshBasicMaterial({color:shadow?SHADOW_PALETTES[name].light:garden?GARDEN_PALETTES[name].light:underworks?SECTORS[name].light:this.visuals.crosslink?0x7be1c5:this.visuals.relay?0xb4c8eb:0x8bd6ce})),this.material(new THREE.MeshBasicMaterial({color:0xea9752}))]);
+    const lightMaterials=layout.names.map(name=>[this.material(new THREE.MeshBasicMaterial({color:tomorrow?TOMORROW_PALETTES[name].light:shadow?SHADOW_PALETTES[name].light:garden?GARDEN_PALETTES[name].light:underworks?SECTORS[name].light:this.visuals.crosslink?0x7be1c5:this.visuals.relay?0xb4c8eb:0x8bd6ce})),this.material(new THREE.MeshBasicMaterial({color:0xea9752}))]);
     for(const cells of batches(layout.lights,cell=>`${cell.chunk}:${cell.palette}:${cell.warm}`))install(lightGeometry,lightMaterials[cells[0].palette][Number(cells[0].warm)],cells,(cell,t)=>{t.position.set(cell.x,2.12,cell.z);t.rotation.y=cell.rot;});
     const beamGeometry=this.geometry(new THREE.BoxGeometry(1,.13,.16));
-    const beamMaterials=layout.names.map(name=>this.material(new THREE.MeshBasicMaterial({color:shadow?SHADOW_PALETTES[name].dark:garden?GARDEN_PALETTES[name].trim:underworks?SECTORS[name].dark:0x293b44})));
+    const beamMaterials=layout.names.map(name=>this.material(new THREE.MeshBasicMaterial({color:tomorrow?TOMORROW_PALETTES[name].dark:shadow?SHADOW_PALETTES[name].dark:garden?GARDEN_PALETTES[name].trim:underworks?SECTORS[name].dark:0x293b44})));
     for(const cells of batches(layout.rails,cell=>`${cell.chunk}:${cell.palette}`))install(beamGeometry,beamMaterials[cells[0].palette],cells,(cell,t)=>{t.position.set(cell.x,garden?this.ceilingHeight-.14:2.35,cell.z);t.scale.set(cell.width,1,1);});
     this.canopyVisuals=[];
     if(gardenSpace){
@@ -2004,6 +2018,21 @@ class WebGLBreachRenderer {
       const mesh=this.mesh(this.geometry(new THREE.PlaneGeometry(panel.width,panel.height)),material,panel.x,panel.bottom+panel.height/2,panel.z);
       mesh.rotation.y=Math.atan2(-panel.dx,-panel.dz);this.staticBatches.push(mesh);this.destinationSigns.push({panel,mesh});
     }
+    this.tomorrowProps=[];this.tomorrowOrbits=[];
+    for(const prop of level.surrealProps||[]){
+      const material=this.material(new THREE.SpriteMaterial({map:this.texture(makeTomorrowPropTexture(prop)),transparent:true,alphaTest:.12,depthWrite:false}));
+      const sprite=new THREE.Sprite(material),size=tomorrowPropSize(prop);sprite.center.set(.5,.5);sprite.position.set(prop.x,size.bottom+size.height/2,prop.z);sprite.scale.set(size.width,size.height,1);this.scene.add(sprite);this.tomorrowProps.push({prop,sprite,size});
+      if(prop.kind==='impossible-stairs'){
+        const group=new THREE.Group();group.position.set(prop.x,2.7,prop.z);this.scene.add(group);
+        const geometry=this.geometry(new THREE.BoxGeometry(1.3,.12,.7)),mat=this.material(new THREE.MeshBasicMaterial({color:0xd6c8a2}));
+        for(let n=0;n<20;n++){const a=n*Math.PI/10,step=new THREE.Mesh(geometry,mat);step.position.set(Math.cos(a)*3,Math.sin(a*2)*.6,Math.sin(a)*3);step.rotation.set(0,-a,Math.sin(a)*.18);group.add(step);}this.tomorrowOrbits.push(group);
+      }else if(prop.kind==='broken-orbit'){
+        const group=new THREE.Group();group.position.set(prop.x,3.2,prop.z);this.scene.add(group);
+        const geometry=this.geometry(new THREE.TorusGeometry(2.8,.07,5,32,Math.PI*1.7)),mat=this.material(new THREE.MeshBasicMaterial({color:0xebaa77}));
+        for(let n=0;n<3;n++){const ring=new THREE.Mesh(geometry,mat);ring.rotation.set(n*.8,n*.6,.25*n);group.add(ring);}this.tomorrowOrbits.push(group);
+      }
+    }
+    this.stats.tomorrowProps=this.tomorrowProps.length;
     this.stats.landmarkPanels=this.landmarkVisuals.length;
     this.stats.staticBatches=this.staticBatches.length;
     this.stats.staticInstanceBytes=this.staticBatches.reduce((sum,mesh)=>sum+(mesh.instanceMatrix?.array.byteLength||0)+(mesh.instanceColor?.array.byteLength||0),0);
@@ -2023,7 +2052,7 @@ class WebGLBreachRenderer {
       }
     }
     if(!candidate)return;
-    const map=this.texture(makeSign(zoneTitle(zone,this.visuals),`${this.visuals.signCode} / SECTOR ${String(index+1).padStart(2,'0')}`,this.visuals.shadow?SHADOW_PALETTES[zone.id]?.accent:this.visuals.glasshouse?GARDEN_PALETTES[zone.palette]?.accent||this.visuals.signColor:this.visuals.underworks?SECTORS[zone.palette]?.accent||this.visuals.signColor:this.visuals.signColor));
+    const map=this.texture(makeSign(zoneTitle(zone,this.visuals),`${this.visuals.signCode} / SECTOR ${String(index+1).padStart(2,'0')}`,this.visuals.tomorrow?TOMORROW_PALETTES[zone.id]?.accent:this.visuals.shadow?SHADOW_PALETTES[zone.id]?.accent:this.visuals.glasshouse?GARDEN_PALETTES[zone.palette]?.accent||this.visuals.signColor:this.visuals.underworks?SECTORS[zone.palette]?.accent||this.visuals.signColor:this.visuals.signColor));
     const sign=this.mesh(this.geometry(new THREE.PlaneGeometry(this.visuals.underworks?1.15:.88,this.visuals.underworks?.36:.275)),this.material(new THREE.MeshBasicMaterial({map})),candidate.x,1.83,candidate.z);
     sign.rotation.y=candidate.rotation;
   }
@@ -2031,7 +2060,7 @@ class WebGLBreachRenderer {
   addFeature(item){
     if(explorationFeature(item)){
       const key=stationKey(item);
-      if(!this.stationMaps.has(key))this.stationMaps.set(key,Array.from({length:['transit','shutter-switch','shadow-puzzle'].includes(item.type)?3:2},(_,mode)=>this.texture(makeStationTexture(item,mode))));
+      if(!this.stationMaps.has(key))this.stationMaps.set(key,Array.from({length:item.tomorrowAction||['transit','shutter-switch','shadow-puzzle'].includes(item.type)?3:2},(_,mode)=>this.texture(makeStationTexture(item,mode))));
       const maps=this.stationMaps.get(key),sprite=new THREE.Sprite(this.material(new THREE.SpriteMaterial({map:maps[featureMode(item,this.game.state,this.game)],transparent:true,alphaTest:.18})));
       sprite.center.set(.5,0);sprite.position.set(item.x,.015,item.z);sprite.scale.set(1.19,1.7,1);this.scene.add(sprite);
       this.featureVisuals.set(item.id,{sprite,maps,type:item.type,station:true});return;
@@ -2134,6 +2163,8 @@ class WebGLBreachRenderer {
     this.camera.position.set(p.x,EYE_HEIGHT+bob+(p.elevation||0)*(reduced?.4:1),p.z);this.camera.rotation.set(0,-angle,0);
     if(state.status==='dead'||p.alive===false||p.health<=0)this.camera.position.y=.65;
     shadowAtmosphere(this,p);
+    for(const {prop,sprite,size}of this.tomorrowProps||[]){const pose=tomorrowPropMotion(prop,state,this.clock,this.options.reducedMotion);sprite.position.set(pose.x,size.bottom+size.height/2+pose.y,pose.z);sprite.material.rotation=pose.rotation;sprite.material.color.setHex(pose.changed?0xb9ffd7:0xffffff);sprite.visible=inEntityRange(prop,p,this.entityRange);}
+    for(const group of this.tomorrowOrbits||[])if(!this.options.reducedMotion&&advancing)group.rotation.y+=dt*.065;
     for(const visual of this.shadowPlatforms||[]){
       const view=shadowPadState(visual.pad,state);visual.view=view;
       visual.mesh.visible=view.solid;visual.mesh.position.y=view.solid?-.09:-1.51;visual.mat.color.set(view.color);
@@ -2438,7 +2469,7 @@ class SoftwareBreachRenderer {
   constructor(canvas,game,options={}){
     this.canvas=canvas;this.game=game;this.options={quality:'auto',fov:null,reducedMotion:false,...options};
     this.visuals=missionVisuals(game.level);
-    this.ceilingHeight=this.visuals.glasshouse?4.2:WALL_HEIGHT;
+    this.ceilingHeight=this.visuals.tomorrow?4.8:this.visuals.glasshouse?4.2:WALL_HEIGHT;this.worldWallHeight=this.visuals.tomorrow?4.8:WALL_HEIGHT;
     this.layout=surfaceLayout(game.level,this.visuals.underworks);this.stats={...this.layout.stats,viewDepth:VIEW_DEPTH,maxRaySteps:160};
     this.shadowLayout=this.visuals.shadow?shadowSurfaceLayout(game.level):null;this.shadowPadViews=[];
     this.mode='software';this.isSoftware=true;this.clock=0;this.recoil=0;this.flash=0;
@@ -2459,12 +2490,12 @@ class SoftwareBreachRenderer {
     Object.assign(this.weaponCanvas.style,{position:'absolute',inset:'0',width:'100%',height:'100%',zIndex:'2',pointerEvents:'none',imageRendering:'pixelated'});
     canvas.parentElement.appendChild(this.weaponCanvas);this.weaponContext=this.weaponCanvas.getContext('2d');
     const image=(texture)=>{this.textures.push(texture);return texture.image;};
-    this.wallImages=this.layout.names.map(name=>image(this.visuals.shadow?makeShadowWallTexture(name):this.visuals.glasshouse?makeGardenWallTexture(name):this.visuals.underworks?makeSectorWallTexture(name):this.visuals.switchyard?makeYardWallTexture():makeWallTexture(0,this.visuals.relay,this.visuals.crosslink)));
-    this.floorPixelsByPalette=this.layout.names.map(name=>image(this.visuals.shadow?makeShadowFloorTexture(name):this.visuals.glasshouse?makeGardenFloorTexture(name):this.visuals.underworks?makeSectorFloorTexture(name):(this.visuals.switchyard?makeYardFloorTexture():makeFloorTexture(false,this.visuals.relay,this.visuals.crosslink))).getContext('2d').getImageData(0,0,64,64).data);
-    this.ceilingPixelsByPalette=this.layout.names.map(name=>image(this.visuals.shadow?makeShadowFloorTexture(name,true):this.visuals.glasshouse?makeGardenFloorTexture(name,true):this.visuals.underworks?makeSectorFloorTexture(name,true):makeFloorTexture(true,this.visuals.relay,this.visuals.crosslink)).getContext('2d').getImageData(0,0,64,64).data);
+    this.wallImages=this.layout.names.map(name=>image(this.visuals.tomorrow?makeTomorrowWallTexture(name):this.visuals.shadow?makeShadowWallTexture(name):this.visuals.glasshouse?makeGardenWallTexture(name):this.visuals.underworks?makeSectorWallTexture(name):this.visuals.switchyard?makeYardWallTexture():makeWallTexture(0,this.visuals.relay,this.visuals.crosslink)));
+    this.floorPixelsByPalette=this.layout.names.map(name=>image(this.visuals.tomorrow?makeTomorrowFloorTexture(name):this.visuals.shadow?makeShadowFloorTexture(name):this.visuals.glasshouse?makeGardenFloorTexture(name):this.visuals.underworks?makeSectorFloorTexture(name):(this.visuals.switchyard?makeYardFloorTexture():makeFloorTexture(false,this.visuals.relay,this.visuals.crosslink))).getContext('2d').getImageData(0,0,64,64).data);
+    this.ceilingPixelsByPalette=this.layout.names.map(name=>image(this.visuals.tomorrow?makeTomorrowFloorTexture(name,true):this.visuals.shadow?makeShadowFloorTexture(name,true):this.visuals.glasshouse?makeGardenFloorTexture(name,true):this.visuals.underworks?makeSectorFloorTexture(name,true):makeFloorTexture(true,this.visuals.relay,this.visuals.crosslink)).getContext('2d').getImageData(0,0,64,64).data);
     this.hazardPixels=this.visuals.underworks?[null,...['flood','conduit'].map(type=>image(makeHazardTexture(type)).getContext('2d').getImageData(0,0,64,64).data)]:[null];
     this.groundPaths=[];this.groundPixels=null;
-    const gardenSpace=this.visuals.glasshouse||this.visuals.shadow&&!!game.level.gardenZones?.length;
+    const gardenSpace=this.visuals.glasshouse||(this.visuals.shadow||this.visuals.tomorrow)&&!!game.level.gardenZones?.length;
     if(this.visuals.switchyard||this.visuals.hollow||gardenSpace){
       const details=gardenSpace?makeGardenGroundDetails(game.level):makeYardGroundDetails(game.level),map=image(details.texture);this.groundPaths=details.paths||[];
       this.groundWidth=map.width;this.groundHeight=map.height;this.groundPixels=map.getContext('2d').getImageData(0,0,map.width,map.height).data;
@@ -2490,7 +2521,7 @@ class SoftwareBreachRenderer {
     this.relayImages=new Map((game.state.interactables||[]).filter(item=>item.type==='relay').map(item=>[item.id,{off:this.featureImage('relay',false,relayTitle(item)),on:this.featureImage('relay',true,relayTitle(item))}]));
     this.stationImages=new Map();for(const item of game.state.interactables||[])if(explorationFeature(item)){
       const key=stationKey(item);
-      if(!this.stationImages.has(key))this.stationImages.set(key,Array.from({length:['transit','shutter-switch','shadow-puzzle'].includes(item.type)?3:2},(_,mode)=>image(makeStationTexture(item,mode))));
+      if(!this.stationImages.has(key))this.stationImages.set(key,Array.from({length:item.tomorrowAction||['transit','shutter-switch','shadow-puzzle'].includes(item.type)?3:2},(_,mode)=>image(makeStationTexture(item,mode))));
     }
     this.secretImage=image(makeSign('MAINT.','AUTHORIZED STAFF','#87948d'));
     this.zoneSigns=[];
@@ -2503,8 +2534,9 @@ class SoftwareBreachRenderer {
           if(!best||score<best.score)best={x:x+.5+dx*.45,z:z+.5+dz*.45,dx,dz,score};
         }
       }
-      if(best)this.zoneSigns.push({...best,width:this.visuals.underworks?1.15:.88,height:this.visuals.underworks?.36:.275,bottom:this.visuals.underworks?1.65:1.69,image:image(makeSign(zoneTitle(zone,this.visuals),`${this.visuals.signCode} / SECTOR ${String(index+1).padStart(2,'0')}`,this.visuals.shadow?SHADOW_PALETTES[zone.id]?.accent:this.visuals.glasshouse?GARDEN_PALETTES[zone.palette]?.accent||this.visuals.signColor:this.visuals.underworks?SECTORS[zone.palette]?.accent||this.visuals.signColor:this.visuals.signColor))});
+      if(best)this.zoneSigns.push({...best,width:this.visuals.underworks?1.15:.88,height:this.visuals.underworks?.36:.275,bottom:this.visuals.underworks?1.65:1.69,image:image(makeSign(zoneTitle(zone,this.visuals),`${this.visuals.signCode} / SECTOR ${String(index+1).padStart(2,'0')}`,this.visuals.tomorrow?TOMORROW_PALETTES[zone.id]?.accent:this.visuals.shadow?SHADOW_PALETTES[zone.id]?.accent:this.visuals.glasshouse?GARDEN_PALETTES[zone.palette]?.accent||this.visuals.signColor:this.visuals.underworks?SECTORS[zone.palette]?.accent||this.visuals.signColor:this.visuals.signColor))});
     }
+    this.tomorrowProps=(game.level.surrealProps||[]).map(prop=>({prop,image:image(makeTomorrowPropTexture(prop)),changedImage:prop.changedBy?image(makeTomorrowPropTexture(prop,true)):null,size:tomorrowPropSize(prop)}));this.stats.tomorrowProps=this.tomorrowProps.length;
     const landmarkImages=new Map();
     this.landmarkPanels=allLandmarkPanels(game.level).map(panel=>{
       const key=landmarkKey(panel);
@@ -2532,7 +2564,7 @@ class SoftwareBreachRenderer {
   }
 
   getTeammateFrames(id){
-    const team=id==='p2'?'p2':'p1';
+    const team=['p1','p2','p3','p4'].includes(id)?id:'p1';
     if(!this.teammateFrames[team]){
       this.teammateFrames[team]=Object.fromEntries(['front','back','right','left'].map(direction=>[direction,Array.from({length:6},(_,frame)=>{
         const texture=drawTeammate(team,direction,frame);this.textures.push(texture);return texture.image;
@@ -2712,8 +2744,9 @@ class SoftwareBreachRenderer {
       this.depthDoorIds[column]=door?.id||null;
       if(!hit){this.depth[column]=VIEW_DEPTH;continue;}
       distance=Math.max(.035,distance);this.depth[column]=distance;
-      const wallHeight=WALL_HEIGHT*this.projection/distance;
-      const top=this.horizon-(WALL_HEIGHT-this.eye)*this.projection/distance;
+      const height=door?WALL_HEIGHT:this.worldWallHeight;
+      const wallHeight=height*this.projection/distance;
+      const top=this.horizon-(height-this.eye)*this.projection/distance;
       let wallX=side===0?p.z+distance*rayZ:p.x+distance*rayX;wallX-=Math.floor(wallX);
       const sector=this.layout.paletteAt(mapX-(side===0?stepX:0),mapZ-(side===1?stepZ:0));
       const texture=door?currentDoorImages.get(door.id):this.wallImages[sector];
@@ -2750,6 +2783,7 @@ class SoftwareBreachRenderer {
       }
     }
     for(const id of this.teammateMotion.keys())if(!present.has(id)){this.teammateMotion.delete(id);this.teammateFireAt.delete(id);}
+    for(const {prop,image,changedImage,size}of this.tomorrowProps||[]){const pose=tomorrowPropMotion(prop,state,this.clock,this.options.reducedMotion);add(pose.changed&&changedImage?changedImage:image,pose.x,pose.z,size.width,size.height,size.bottom+pose.y);}
     for(const enemy of state.enemies){
       if(enemy.dormant||!inEntityRange(enemy,p,this.entityRange))continue;
       let motion=this.enemyMotion.get(enemy.id);
