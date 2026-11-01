@@ -1,4 +1,5 @@
 import { Game, MISSIONS } from './core.mjs';
+import { SHADOW_ID, SHADOW_WORLD_REVISION } from './shadow.mjs';
 import { createConnectionStatus } from './coop-status.mjs';
 
 const STEP = 1 / 30;
@@ -83,11 +84,11 @@ export class CoopClient {
 
   _readToken(roomId){try{return JSON.parse(this.storage?.getItem(`dfe.breach.room.${roomId}`)||'null');}catch(_){return null;}}
   _storeToken(){try{this.storage?.setItem(`dfe.breach.room.${this.roomId}`,JSON.stringify({token:this.token,selfId:this.selfId,name:this.intent?.name}));}catch(_){}}
-  create({name,mission,difficulty}){this.intent={type:'create',protocol:PROTOCOL,supportedMissions:[...SUPPORTED_MISSIONS],name,mission,difficulty};this.manual=false;this.initialStart=this.now();this._connect(false);}
+  create({name,mission,difficulty}){this.intent={type:'create',protocol:PROTOCOL,supportedMissions:[...SUPPORTED_MISSIONS],shadowRevision:SHADOW_WORLD_REVISION,name,mission,difficulty};this.manual=false;this.initialStart=this.now();this._connect(false);}
   join({roomId,name}){
     roomId=String(roomId||'').trim().toUpperCase();const saved=this._readToken(roomId);
     this.roomId=roomId;this.token=saved?.token||null;
-    this.intent={type:'join',protocol:PROTOCOL,supportedMissions:[...SUPPORTED_MISSIONS],roomId,name,...(this.token?{token:this.token}:{})};this.manual=false;this.initialStart=this.now();this._connect(false);
+    this.intent={type:'join',protocol:PROTOCOL,supportedMissions:[...SUPPORTED_MISSIONS],shadowRevision:SHADOW_WORLD_REVISION,roomId,name,...(this.token?{token:this.token}:{})};this.manual=false;this.initialStart=this.now();this._connect(false);
   }
   _connect(retry) {
     if(this.manual||this.suspended||!this.pageVisible)return;
@@ -103,7 +104,7 @@ export class CoopClient {
     this.warmTimer=setTimeout(()=>{if(this.socket===socket&&!this.connected&&!retry)this._emit('onConnection','connecting','Waking the room service. The first connection may take about a minute…');},4500);
     socket.addEventListener('open',()=>{
       if(this.socket!==socket||this.manual||this.suspended)return;this.everOpened=true;
-      const intent=retry?{type:'join',protocol:PROTOCOL,supportedMissions:[...SUPPORTED_MISSIONS],roomId:this.roomId,name:this.intent.name,token:this.token,replace:true}:this.intent;
+      const intent=retry?{type:'join',protocol:PROTOCOL,supportedMissions:[...SUPPORTED_MISSIONS],shadowRevision:SHADOW_WORLD_REVISION,roomId:this.roomId,name:this.intent.name,token:this.token,replace:true}:this.intent;
       try{socket.send(JSON.stringify(intent));}catch(_){this._connectionLost('Could not send the room handshake.');}
     });
     socket.addEventListener('message',event=>{
@@ -155,7 +156,7 @@ export class CoopClient {
       this._emit('onConnection','connected','Connected');return;
     }
     if(message.type==='room') {
-      if(!this._supportsMission(message.room?.mission))return;
+      if(!this._supportsMission(message.room?.mission,message.room?.shadowRevision))return;
       const previous=this.room?.status;this.room=message.room;this.ownerId=this.room.ownerId;
       if(this.room.status!=='playing') {this.waitingPause=true;this.clearInput();}
       else if(previous!=='playing'||this.awaitingRoom){this.waitingPause=false;this.pending=[];this.lastStateAt=this.now();}
@@ -180,13 +181,16 @@ export class CoopClient {
       this._reportNetwork();
     }
   }
-  _supportsMission(mission) {
+  _supportsMission(mission, shadowRevision) {
+    if(mission===SHADOW_ID&&shadowRevision!==SHADOW_WORLD_REVISION){
+      this._failedConnection('Beneath The Shadow has been updated. Refresh both game tabs, then create or rejoin the room.');return false;
+    }
     if(SUPPORTED_MISSIONS.includes(mission))return true;
     this._failedConnection('This room uses a mission that is not available in this game version. Reload the game, then rejoin the room.');
     return false;
   }
   _applySnapshot(message) {
-    if(this.room&&!this._supportsMission(this.room.mission))return;
+    if(this.room&&!this._supportsMission(this.room.mission,this.room.shadowRevision))return;
     if(!this.selfId||!this.room||!message.state?.players?.[this.selfId]||message.tick<this.tick)return;
     this.tick=message.tick;this.lastStateAt=this.now();
     let created=false;

@@ -1,4 +1,5 @@
 import { Game, MISSIONS, WEAPONS, ownedWeapons } from './core.mjs';
+import { DIFFICULTY, DIFFICULTY_IDS, difficultyLabel } from './difficulty.mjs';
 import { BreachRenderer } from './renderer.mjs';
 import { BreachAudio } from './audio.mjs';
 import { CUES_BY_ID } from './music-cues.mjs';
@@ -34,7 +35,7 @@ const settings = {
   touchPreset: resolveTouchPreset(prior.touchPreset, {coarse:touch,width:innerWidth,height:innerHeight}),
   fireGesture: resolveFireGesture(prior.fireGesture),
   guidance: choices(prior.guidance, ['simple','moderate','expert'], 'simple'),
-  difficulty: choices(prior.difficulty, ['relaxed','standard','hard'], 'standard'),
+  difficulty: choices(prior.difficulty, DIFFICULTY_IDS, 'standard'),
   sound: typeof prior.sound === 'boolean' ? prior.sound : true,
   music: typeof prior.music === 'boolean' ? prior.music : true,
   musicVolume: Number.isFinite(prior.musicVolume) ? Math.min(1,Math.max(0,prior.musicVolume)) : .45,
@@ -204,11 +205,7 @@ function updateChoices() {
   document.querySelectorAll('[data-difficulty]').forEach(button=>button.setAttribute('aria-pressed',String(button.dataset.difficulty === settings.difficulty)));
   $('guidance-description').textContent=GUIDANCE_DESCRIPTIONS[settings.guidance];
   document.body.dataset.guidance=settings.guidance;
-  $('difficulty-description').textContent = {
-    relaxed:'More breathing room. Enemies are slower and less dangerous.',
-    standard:'A balanced first run. Keep moving and watch your ammunition.',
-    hard:'More pressure, tougher enemies. Every supply matters.',
-  }[settings.difficulty];
+  $('difficulty-description').textContent = DIFFICULTY[settings.difficulty].description;
 }
 function changeGuidance(value) {
   settings.guidance=choices(value,['simple','moderate','expert'],'simple');
@@ -434,7 +431,7 @@ function updateRoomEntry() {
   $('room-back').textContent=room?'LEAVE ROOM ←':busy?'CANCEL CONNECTION ←':'BACK TO MENU ←';
   if(!room)return;
   if(requestedRoom!==room.id){requestedRoom=room.id;$('room-code').value=room.id;try{history.replaceState(null,'',roomInvite(room.id));}catch(_){}}
-  $('room-id').textContent=room.id;$('room-combat').textContent=`${missionForId(room.mission).name.toUpperCase()} / ${room.difficulty.toUpperCase()}`;updateRoomBriefing(room.mission);
+  $('room-id').textContent=room.id;$('room-combat').textContent=`${missionForId(room.mission).name.toUpperCase()} / ${difficultyLabel(room.difficulty).toUpperCase()}`;updateRoomBriefing(room.mission);
   $('room-invite').value=roomInvite(room.id);
   const players=room.players||[];
   $('room-players').replaceChildren(...['p1','p2'].map(id=>{
@@ -653,7 +650,7 @@ function revealMap() {
   mapDirty=true;
 }
 function markerSymbol(marker) {
-  return {refuge:'+',transit:'T',upgrade:'◆',grille:'╳',hazard:'ϟ',phase:'◎',shortcut:'↔',exit:'⇧',cache:'□',guardian:'!',power:'P',relay:'R',key:'K',gate:'▣'}[marker.type]||'•';
+  return {refuge:'+',transit:'T',upgrade:'◆',grille:'╳',hazard:'ϟ',phase:'◎',shortcut:'↔',exit:'⇧',cache:'□',guardian:'!',power:'P',relay:'R',key:'K',gate:'▣','shadow-puzzle':'◇',jump:'↗'}[marker.type]||'•';
 }
 function markerColor(marker) {
   if(marker.locked&&settings.guidance==='simple')return '#d28d70';
@@ -668,6 +665,8 @@ function markerDescription(marker,info=mapInfo()) {
   if(marker.type==='refuge')return marker.active?'Refuge visited · use to regroup':'Refuge · shared checkpoint';
   if(marker.type==='transit'){if(!marker.active)return 'Transit station · activate on arrival';if(!game.state.power)return 'Activated · central power needed';const partner=info.markers.find(item=>item.id===marker.destination);return partner?.active?'Transit linked · use here to travel':'Activated · link the other station to travel';}
   if(marker.type==='cache')return marker.active?'Cache recovered':'Optional cache';
+  if(marker.type==='shadow-puzzle')return marker.active?'Circuit restored':'Optional route control · use to restore the crossing';
+  if(marker.type==='jump')return 'Launch beacon · face the landing and use';
   if(marker.type==='guardian')return marker.active?'Guardian cleared':'Hostile guardian';
   if(marker.type==='exit')return 'Arrival lift · return here to extract';
   if(['grille','hazard','phase','shortcut','gate'].includes(marker.type))return marker.active?'Route open':'Access available · interact to open';
@@ -933,18 +932,20 @@ function processEvents(events,allEvents=events) {
   renderer.handleEvents(allEvents);audio.events(events,game.state.player);
   let notice=null;
   for(const event of events) {
-    const combatCue=['shield-hit','heal','heal-interrupt','root-split','root-marked'].includes(event.type);
+    const combatCue=['shield-hit','heal','heal-interrupt','root-split','root-marked','tether-broken'].includes(event.type)
+      || event.type==='enemy-warning'&&['cinder','tether','skimmer','maw-reveal'].includes(event.kind);
+    const noticeKey=event.type==='enemy-warning'?`${event.type}:${event.kind}`:event.type==='root-marked'&&event.enemyType?`${event.type}:${event.enemyType}`:event.type;
     const p=game.state.player,actor=combatCue?game.state.enemies.find(enemy=>enemy.id===event.id):null;
-    const observed=!!actor&&!encounterNotices.has(event.type)&&Math.hypot(actor.x-p.x,actor.z-p.z)<14
+    const observed=!!actor&&!encounterNotices.has(noticeKey)&&Math.hypot(actor.x-p.x,actor.z-p.z)<14
       &&Math.abs(normAngle(Math.atan2(actor.x-p.x,-(actor.z-p.z))-p.angle))<.72&&game.hasLineOfSight(p.x,p.z,actor.x,actor.z);
     const eventNotice=noticeForGuidance(event,settings.guidance,game.getInteractionInfo(),{observed});
-    if(combatCue&&eventNotice)encounterNotices.add(event.type);
+    if(combatCue&&eventNotice)encounterNotices.add(noticeKey);
     if(eventNotice)notice=eventNotice;
     if(event.type==='record')updateFieldJournal();
     if(event.type==='hurt')damageUntil=performance.now()+(settings.reducedMotion?130:200);
     if(event.type==='hit')hitUntil=performance.now()+120;
-    if(['door','shutter','power','pickup','relay','upgrade','refuge','transit-activated','transit','reward','hit','death'].includes(event.type)) {pathTimer=0;mapDirty=true;}
-    if(['checkpoint','upgrade','refuge','transit-activated','reward','record','shutter'].includes(event.type))saveRun();
+    if(['door','shutter','power','pickup','relay','upgrade','refuge','transit-activated','transit','reward','hit','death','shadow-puzzle'].includes(event.type)) {pathTimer=0;mapDirty=true;}
+    if(['checkpoint','upgrade','refuge','transit-activated','reward','record','shutter','shadow-puzzle'].includes(event.type))saveRun();
     if(event.type==='win'&&!coop)finish(true);
     if(event.type==='death'&&!coop)finish(false);
     if(event.type==='revive'&&coop)notice='Back in the fight. The team reached a shared checkpoint.';

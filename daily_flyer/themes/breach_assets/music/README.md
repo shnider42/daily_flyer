@@ -99,9 +99,9 @@ is synthesized procedurally, alongside the other generated instruments.
 
 | Cue | Tempo and form | Rendered length | Placement |
 | --- | --- | --- | --- |
-| Iron Teeth | 168 BPM; 32 bars; fast guitar riff and climbing answer | 47.51 s | Blacksite quarantine, Underworks rail, Shadow aqueduct and Iron Warden |
-| Blacksite Stomp | 124 BPM; 24 bars; syncopated chords and an independent bass groove | 48.25 s | Blacksite facility, Switchyard yard and Hollow freight |
-| Ash Cathedral | 142 BPM; 28 bars; organ over low guitars with an escalating lead | 49.12 s | Hollow Choir Keeper, Shadow hydra and Umbra Engine |
+| Iron Teeth | 168 BPM; 32 bars; fast guitar riff and climbing answer | 47.51 s | Shadow opening, city, aqueduct and Iron Warden; Blacksite quarantine and Underworks rail |
+| Blacksite Stomp | 124 BPM; 24 bars; syncopated chords and an independent bass groove | 48.25 s | Shadow city, rivet works and suspended street; Blacksite facility, Switchyard yard and Hollow freight |
+| Ash Cathedral | 142 BPM; 28 bars; organ over low guitars with an escalating lead | 49.12 s | Shadow city, drowned orchard, hydra and Umbra Engine; Hollow Choir Keeper |
 
 ```sh
 python3 scripts/breach_music/compose_hellbound.py /tmp/breach-hellbound-score

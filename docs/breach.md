@@ -4,6 +4,22 @@ An original retro first-person game built on DailyFlyer, with eight solo mission
 and five operations available in private two-player co-op. Solo play runs in the
 browser; co-op uses an authoritative room server.
 
+## 0.10.0 — The city changes shape
+
+Beneath The Shadow gains four distinct enemy types, nine new authored placements,
+shared street-restoration and aqueduct puzzles, and a separate visual identity
+for every district. The still laboratory becomes a cold glass conservatory; the
+House of Echoes becomes a flooded orchard beneath a fractured growing-house roof.
+Both WebGL and software rendering show the new architecture, enemy tells and
+actual platform state.
+
+Iron Teeth now opens the mission. All three new Doom II-influenced tracks appear
+throughout its authored region and boss rotations. Insane in the Membrane is a
+fourth solo/co-op combat tier: stronger pursuit, more damage and shorter recovery,
+with the full warning windows retained. Existing Shadow saves migrate while
+preserving earned equipment, root generations, records and checkpoints.
+See [the expanded Shadow design and validation](breach-shadow-0100.md).
+
 ## 0.9.4 — Three heavier signals
 
 Three new original tracks bring a stronger Doom II influence to the nineteen-cue

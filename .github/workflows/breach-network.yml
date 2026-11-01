@@ -45,6 +45,8 @@ jobs:
         run: node scripts/breach-glasshouse-browser.mjs
       - name: Hollow expedition, shared circuits and field journal
         run: node scripts/breach-hollow-browser.mjs
+      - name: Shadow puzzles, enemies, Insane combat and phone controls
+        run: node scripts/breach-shadow-browser.mjs
       - uses: actions/upload-artifact@v4
         if: always()
         with:
@@ -54,5 +56,6 @@ jobs:
             breach-switchyard-results/
             breach-glasshouse-results/
             breach-hollow-results/
+            breach-shadow-results/
           retention-days: 7
 

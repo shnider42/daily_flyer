@@ -259,7 +259,7 @@ export class CoopGame extends Game {
       runtime.shotCooldown = 0; runtime.reserveTimer = 0; runtime.messageCooldown = 0;
     }
     this._shotCooldown = 0; this._reserveTimer = 0; this._messageCooldown = 0;
-    this.state.projectiles = []; this.state.effects = [];
+    this.state.projectiles = []; this.state.effects = []; this.state.shadowHazards = [];
     this._pathTimer = 0; this._distanceFields.clear();
     this._checkpoint = { levelId: this.level.id, state: this.networkSnapshot(), randomState: this._random, serial: this._serial, runtime: copy(this._playerRuntime) };
     this._events.push({ type: 'checkpoint', text: `${text} Team health and ammunition replenished.` });

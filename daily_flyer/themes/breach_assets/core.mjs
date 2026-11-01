@@ -1,9 +1,12 @@
 // BREACH — original browser-local simulation. No DOM or graphics dependencies.
-import { SHADOW, SHADOW_MISSION, bossDefeated, shadowObjective, updateTraversal, jumpInfo, updateShadowEnemy, splitShadowRoot } from './shadow.mjs';
+import { SHADOW, SHADOW_MISSION, SHADOW_WORLD_REVISION, bossDefeated, shadowObjective, updateTraversal, jumpInfo, updateShadowEnemy, splitShadowRoot, shadowPuzzleInfo, useShadowPuzzle, shadowPuzzleStateValid } from './shadow.mjs';
 import { UNDERWORKS } from './underworks.mjs';
 import { SWITCHYARD } from './switchyard.mjs';
 import { GLASSHOUSE } from './glasshouse.mjs';
 import { HOLLOW, HOLLOW_MISSION, containmentAt, hollowObjective } from './hollow.mjs';
+import { DIFFICULTY } from './difficulty.mjs';
+import { SHADOW_ENEMY_FIELDS, isShadowEnemyType, shadowEnemyDefaults, updateShadowThreat, updateShadowHazards, onShadowEnemyHit, validShadowEnemySnapshot } from './shadow-enemies.mjs';
+import { migrateShadowSnapshot } from './shadow-save.mjs';
 const TAU = Math.PI * 2;
 const clamp = (n, lo, hi) => Math.max(lo, Math.min(hi, n));
 const copy = (value) => JSON.parse(JSON.stringify(value));
@@ -283,12 +286,6 @@ export function ownedWeapons(player) {
   return Object.values(WEAPONS).filter(weapon => !weapon.ownershipKey || player?.[weapon.ownershipKey] === true).map(weapon => weapon.id);
 }
 
-const DIFFICULTY = {
-  relaxed: { health: .8, damage: .55, speed: .85 },
-  standard: { health: 1, damage: 1, speed: 1 },
-  hard: { health: 1.2, damage: 1.35, speed: 1.1 },
-};
-
 export class Game {
   constructor(options = {}) {
     this.options = { mission: 'blacksite-07', difficulty: 'standard', guidance: 'simple', aimAssist: true, seed: 1, ...options };
@@ -319,7 +316,7 @@ export class Game {
       enemies: this.level.enemies.map(e => ({ ...e, ...this._encounterDefaults(e), health: Math.round(e.health * this._difficulty.health), maxHealth: Math.round(e.maxHealth * this._difficulty.health), active: false, angle: Math.PI, attackCooldown: 1, hitTimer: 0, pathTimer: 0 })),
       pickups: this.level.pickups.map(p => ({ ...p, collected: false })),
       doors: copy(this.level.doors), interactables: this.level.interactables.map(i => ({ ...i, used: false })),
-      projectiles: [], effects: [], power: false, secretFound: false,
+      projectiles: [], effects: [], shadowHazards: [], power: false, secretFound: false,
       checkpoint: false, time: 0, kills: 0, shots: 0, hits: 0,
       tutorial: { moved: false, fired: false, interacted: false, weaponSwitched: false },
     };
@@ -347,10 +344,13 @@ export class Game {
     return this._random / 4294967296;
   }
 
+  _attackDelay(seconds) { return seconds / this._difficulty.attackRate; }
+
   _encounterDefaults(enemy) {
     return {
       faction: enemy.faction || (enemy.type === 'sentry' ? 'security' : 'infestation'),
       provoked: false, killedByPlayer: false, telegraph: null, stunTimer: 0,
+      ...shadowEnemyDefaults(enemy),
       ...(enemy.encounterId ? { encounterAwake: false } : {}),
       ...(enemy.type === 'stalker' ? { blinkCooldown: 2.4 } : {}),
       ...(enemy.type === 'bulwark' ? { shieldPhase: 'guard', shieldTimer: 3.4 } : {}),
@@ -550,10 +550,10 @@ export class Game {
     this._events.push({ type: 'shot', weapon, hit: hits.size > 0 });
     if (hits.size) this.state.hits++;
     for (const [enemy, damage] of hits) {
-      if(weapon==='nullgun'){enemy.suppressedTimer=spec.suppress;this._events.push({type:'root-marked',id:enemy.id,x:enemy.x,z:enemy.z});}
+      if(weapon==='nullgun'){enemy.suppressedTimer=spec.suppress;this._events.push({type:'root-marked',id:enemy.id,enemyType:enemy.type,x:enemy.x,z:enemy.z});}
       this._damageEnemy(enemy, damage, 'player');
       if (weapon === 'arc' && enemy.alive && !enemy.guardian) {
-        enemy.stunTimer = spec.stun; enemy.telegraph = null;
+        enemy.stunTimer = spec.stun; onShadowEnemyHit(this, enemy, 'player'); enemy.telegraph = null;
         if (enemy.type === 'bulwark') this._exposeBulwark(enemy);
         enemy.attackCooldown = Math.max(enemy.attackCooldown, spec.stun);
         this._events.push({ type: 'stun', id: enemy.id, x: enemy.x, z: enemy.z, duration: spec.stun });
@@ -651,6 +651,7 @@ export class Game {
     // window is a better shot than firing continuously into the armor.
     const damage = Math.max(1, Math.round(amount * multiplier));
     enemy.health = Math.max(0, enemy.health - damage); enemy.active = true; enemy.hitTimer = .13;
+    onShadowEnemyHit(this, enemy, source);
     if (playerHit && enemy.faction === 'security' && !enemy.provoked) {
       enemy.provoked = true; enemy.telegraph = null; enemy.attackCooldown = Math.max(enemy.attackCooldown, .8);
       this._events.push({ type: 'provoked', id: enemy.id, x: enemy.x, z: enemy.z });
@@ -789,7 +790,7 @@ export class Game {
   }
 
   _updateStalker(enemy, dt, target, visible) {
-    enemy.blinkCooldown = Math.max(0, (enemy.blinkCooldown ?? 2.4) - dt);
+    enemy.blinkCooldown = Math.max(0, (enemy.blinkCooldown ?? 2.4) - dt * this._difficulty.attackRate);
     if (enemy.telegraph?.kind === 'blink') {
       enemy.telegraph.remaining = Math.max(0, enemy.telegraph.remaining - dt);
       if (enemy.telegraph.remaining === 0) {
@@ -821,7 +822,7 @@ export class Game {
         // The shot follows its shown aim point, so moving sideways beats it.
         if (victim && (!this._isPlayerTarget(victim) || this.isHostileToPlayer(enemy))
           && distance(victim, warning) < .72 && this.hasLineOfSight(enemy.x, enemy.z, victim.x, victim.z)) this._hurtTarget(victim, 20, enemy);
-        enemy.telegraph = null; enemy.attackCooldown = 1.15;
+        enemy.telegraph = null; enemy.attackCooldown = this._attackDelay(1.15);
         this._events.push({ type: 'enemy-shot', id: enemy.id, faction: 'security', x: enemy.x, z: enemy.z });
       }
       return true;
@@ -847,7 +848,7 @@ export class Game {
         const victim = warning && this._resolveTarget(warning.targetId, warning.targetKind);
         if (victim && distance(victim, warning) < warning.radius && distance(enemy, victim) < 2.8
           && this.hasLineOfSight(enemy.x, enemy.z, victim.x, victim.z)) this._hurtTarget(victim, 20, enemy);
-        this._exposeBulwark(enemy); enemy.attackCooldown = 1.8;
+        this._exposeBulwark(enemy); enemy.attackCooldown = this._attackDelay(1.8);
       }
       return true;
     }
@@ -872,7 +873,7 @@ export class Game {
   }
 
   _updateMender(enemy, dt) {
-    enemy.healCooldown = Math.max(0, enemy.healCooldown - dt);
+    enemy.healCooldown = Math.max(0, enemy.healCooldown - dt * this._difficulty.attackRate);
     if (enemy.telegraph?.kind === 'heal') {
       const warning = enemy.telegraph;
       warning.remaining = Math.max(0, warning.remaining - dt);
@@ -899,7 +900,7 @@ export class Game {
   }
 
   _guardianRecovery(enemy) {
-    enemy.bossPhase = 'recover'; enemy.phaseTimer = 1.65; enemy.telegraph = null; enemy.chargeTargetId = null; enemy.chargeTargetKind = null;
+    enemy.bossPhase = 'recover'; enemy.phaseTimer = this._attackDelay(1.65); enemy.telegraph = null; enemy.chargeTargetId = null; enemy.chargeTargetKind = null;
     this._events.push({ type: 'boss-phase', id: enemy.id, phase: 'recover', x: enemy.x, z: enemy.z });
   }
 
@@ -907,7 +908,7 @@ export class Game {
     const phase = enemy.bossPhase || 'stalk';
     if (phase === 'recover') {
       enemy.phaseTimer = Math.max(0, enemy.phaseTimer - dt);
-      if (enemy.phaseTimer === 0) { enemy.bossPhase = 'stalk'; enemy.attackCooldown = .75; }
+      if (enemy.phaseTimer === 0) { enemy.bossPhase = 'stalk'; enemy.attackCooldown = this._attackDelay(.75); }
       return true;
     }
     if (phase === 'charge-windup' || phase === 'volley-windup') {
@@ -994,6 +995,7 @@ export class Game {
     if (enemy.type === 'bulwark') {
       if (enemy.shieldPhase !== 'windup') enemy.angle += clamp(angleDelta(facing, enemy.angle), -1.35 * dt, 1.35 * dt);
     } else enemy.angle = facing;
+    if(updateShadowThreat(this,enemy,dt,target,visible))return;
     if(updateShadowEnemy(this,enemy,dt,target,visible))return;
     if (enemy.guardian && this._updateGuardian(enemy, dt, target, visible)) return;
     if (enemy.type === 'stalker' && this._updateStalker(enemy, dt, target, visible)) return;
@@ -1002,7 +1004,7 @@ export class Game {
     if (enemy.type === 'mender' && this._updateMender(enemy, dt)) return;
     if (!enemy.guardian && !['sentry', 'bulwark'].includes(enemy.type) && d < .8 && visible && enemy.attackCooldown === 0) {
       this._hurtTarget(target, enemy.type === 'brute' ? 23 : enemy.type === 'stalker' ? 15 : enemy.type === 'runner' ? 10 : 8, enemy);
-      enemy.attackCooldown = enemy.type === 'brute' ? 1.15 : .85;
+      enemy.attackCooldown = this._attackDelay(enemy.type === 'brute' ? 1.15 : .85);
     } else if (['spitter', 'mender'].includes(enemy.type) && d > 1.4 && d < 10 && visible && enemy.attackCooldown === 0) {
       const damage = enemy.type === 'mender' ? 10 : 15;
       if (target === player) {
@@ -1014,7 +1016,7 @@ export class Game {
         this.state.effects.push({ id: `beam-${++this._serial}`, type: 'beam', x: enemy.x, z: enemy.z,
           targetX: target.x, targetZ: target.z, life: .16, faction: 'infestation' });
       }
-      enemy.attackCooldown = (enemy.type === 'mender' ? 2.4 : 1.65) + this._rng() * .45;
+      enemy.attackCooldown = this._attackDelay((enemy.type === 'mender' ? 2.4 : 1.65) + this._rng() * .45);
     }
     if (d <= .65 || enemy.hitTimer > 0) return;
     if (['spitter', 'sentry', 'mender'].includes(enemy.type) && visible && d < 6.5) {
@@ -1051,6 +1053,8 @@ export class Game {
   }
 
   _updateProjectiles(dt) {
+    // Both solo and CoopGame advance this shared path exactly once per frame.
+    updateShadowHazards(this, dt);
     const survivors = [];
     for (const shot of this.state.projectiles) {
       if (shot.type === 'grenade') {
@@ -1143,7 +1147,9 @@ export class Game {
       if (!this.hasLineOfSight(p.x, p.z, p.x + (object.x - p.x) * t, p.z + (object.z - p.z) * t)) continue;
       candidates.push({ object, d });
     }
-    candidates.sort((a, b) => (a.object.type==='jump'&&b.object.type==='jump' ? Number(jumpInfo(this,b.object).canUse)-Number(jumpInfo(this,a.object).canUse) : 0) || a.d - b.d);
+    const puzzlePriority = candidate => candidate.object.type === 'shadow-puzzle' && candidate.d <= 1.3 && shadowPuzzleInfo(this, candidate.object).canUse;
+    candidates.sort((a, b) => Number(puzzlePriority(b)) - Number(puzzlePriority(a))
+      || (a.object.type==='jump'&&b.object.type==='jump' ? Number(jumpInfo(this,b.object).canUse)-Number(jumpInfo(this,a.object).canUse) : 0) || a.d - b.d);
     return candidates[0]?.object ?? null;
   }
 
@@ -1193,11 +1199,12 @@ export class Game {
     const living = Object.values(this.state.players || { solo: this.state.player }).filter(p => p.alive !== false);
     const hostile = this.state.enemies.some(enemy => this.isHostileToPlayer(enemy) && (
       distance(enemy, station) < 8 && this.hasLineOfSight(enemy.x, enemy.z, station.x, station.z)
-      || living.some(p => distance(enemy, p) < (enemy.type === 'spitter' ? 10 : 6) && this.hasLineOfSight(enemy.x, enemy.z, p.x, p.z))));
+      || living.some(p => distance(enemy, p) < ({spitter:10,'cinder-sower':12,'tether-widow':8.8,'glass-skimmer':10.5}[enemy.type] || 6) && this.hasLineOfSight(enemy.x, enemy.z, p.x, p.z))));
     // A projectile remains dangerous after its shooter dies. Rest must not erase
     // an incoming hit or continually refill a teammate in a ranged encounter.
     const incoming = this.state.projectiles.some(shot => shot.life > 0 && living.some(p => distance(shot, p) < 10 && this.hasLineOfSight(shot.x, shot.z, p.x, p.z)));
-    return !hostile && !incoming;
+    const burning = (this.state.shadowHazards || []).some(area => area.remaining > 0 && living.some(p => distance(area, p) < area.radius + 1 && this.hasLineOfSight(area.x, area.z, p.x, p.z)));
+    return !hostile && !incoming && !burning;
   }
 
   _replenishAtStation() {
@@ -1207,7 +1214,7 @@ export class Game {
     p.ammo.cells = (p.hasArc||p.hasNull) ? Math.max(4, p.ammo.cells || 0) : p.ammo.cells || 0;
     p.ammo.slugs = (p.hasRicochet||p.hasLance) ? Math.max(8, p.ammo.slugs || 0) : p.ammo.slugs || 0;
     p.ammo.grenades = p.hasGrenade ? Math.max(2, p.ammo.grenades || 0) : p.ammo.grenades || 0;
-    this.state.projectiles = []; this.state.effects = [];
+    this.state.projectiles = []; this.state.effects = []; this.state.shadowHazards = [];
   }
 
   _syncPermanentProgress() {
@@ -1243,6 +1250,7 @@ export class Game {
     if (!o) return null;
     if (['cutter', 'insulator', 'phase'].includes(o.requires) && !this._requirementMet(o.requires)) return { text: `${this.level.upgradeNames?.[o.requires] || o.requires} required`, label: 'LOCKED', canUse: false };
     if(o.type==='jump')return jumpInfo(this,o);
+    if(o.type==='shadow-puzzle')return shadowPuzzleInfo(this,o);
     if(o.requires?.startsWith('boss:')&&!this._requirementMet(o.requires))return{text:'The guardian still holds this circuit',label:'LOCKED',canUse:false};
     if(o.requires?.startsWith('weapon:')&&!this._requirementMet(o.requires))return{text:'The blue seal responds to the Null projector',label:'LOCKED',canUse:false};
     const active = this.state.status === 'playing' && this.state.player.alive !== false;
@@ -1284,6 +1292,7 @@ export class Game {
       this._events.push({ type: 'message', text: this.getPrompt() }); return false;
     }
     this.state.tutorial.interacted = true;
+    if(o.type==='shadow-puzzle')return useShadowPuzzle(this,o);
     if(o.type==='jump'){
       if(!jumpInfo(this,o).canUse)return false;
       const p=this.state.player;p.jump={x:p.x,z:p.z,targetX:o.landing.x,targetZ:o.landing.z,t:0,duration:o.duration};
@@ -1468,7 +1477,7 @@ export class Game {
 
   getMapInfo() {
     const sectors = this.level.zones.map((zone, index) => ({ id: zone.id || `sector-${index}`, name: zone.name, x: (zone.x1 + zone.x2) / 2, z: (zone.z1 + zone.z2) / 2, bounds: { x1: zone.x1, x2: zone.x2, z1: zone.z1, z2: zone.z2 }, palette: zone.palette || 'arrival' }));
-    const markers = this.state.interactables.map(i => ({ id: i.id, type: i.type === 'secret' ? 'cache' : i.type, label: i.label, x: i.x, z: i.z, active: i.used, requires: i.requires || null, locked: !this._requirementMet(i.requires), ...(i.upgrade ? { upgrade: i.upgrade } : {}), ...(i.destination ? { destination: i.destination, landing: copy(i.landing || i) } : {}) }));
+    const markers = this.state.interactables.map(i => ({ id: i.id, type: i.type === 'secret' ? 'cache' : i.type, label: i.label, x: i.x, z: i.z, active: i.used, requires: i.requires || null, locked: !this._requirementMet(i.requires) || i.type === 'shadow-puzzle' && !!i.requirementId && !this.state.interactables.find(other => other.id === i.requirementId)?.used, ...(i.upgrade ? { upgrade: i.upgrade } : {}), ...(i.destination ? { destination: i.destination, landing: copy(i.landing || i) } : {}) }));
     for (const door of this.state.doors) if (!door.paired) markers.push({ id: door.id, type: door.secret ? 'cache' : ['grille', 'hazard', 'phase', 'shortcut', 'shutter'].includes(door.kind) ? door.kind : 'gate', label: door.label || (door.controlledBy ? `Freight shutter ${door.mark || ''}` : 'Airlock'), x: door.x, z: door.z, active: door.open, requires: door.requires || null, locked: !this.canOpenDoor(door) });
     for (const item of this.state.pickups) if (['key', 'healthExpansion'].includes(item.type)) markers.push({ id: item.id, type: item.type === 'key' ? 'key' : 'cache', label: item.type === 'key' ? 'Security key' : 'Medical expansion · +25 maximum health', x: item.x, z: item.z, active: item.collected, requires: item.requires || null, locked: !this._requirementMet(item.requires) });
     if(this.level.shadow){
@@ -1494,6 +1503,7 @@ export class Game {
 
   _snapshot() {
     return {
+      ...(this.level.shadow ? { shadowRevision: SHADOW_WORLD_REVISION } : {}),
       player: this.state.player.jump ? {...copy(this.state.player),x:this.state.player.jump.x,z:this.state.player.jump.z,jump:null,elevation:0} : copy(this.state.player), enemies: copy(this.state.enemies),
       projectiles: copy(this.state.projectiles.filter(shot => shot.type === 'grenade')), serial: this._serial,
       pickups: this.state.pickups.map(p => ({ id: p.id, collected: p.collected })),
@@ -1530,6 +1540,7 @@ export class Game {
     if (enemy.chargeAngle !== undefined && !finite(enemy.chargeAngle, -Math.PI, Math.PI)) return false;
     if (enemy.chargeTargetKind !== undefined && enemy.chargeTargetKind !== null && (!base.guardian || !['player', 'enemy'].includes(enemy.chargeTargetKind) || !enemy.chargeTargetId)) return false;
     if (enemy.chargeTargetId !== undefined && enemy.chargeTargetId !== null && (!base.guardian || !validTarget(enemy.chargeTargetId, enemy.chargeTargetKind))) return false;
+    if (isShadowEnemyType(base.type)) return validShadowEnemySnapshot(enemy, base, level, validTarget);
     const mark = enemy.telegraph;
     if (mark === undefined || mark === null) return !['charge-windup', 'volley-windup'].includes(enemy.bossPhase) && enemy.shieldPhase !== 'windup';
     if (!mark || typeof mark !== 'object' || Array.isArray(mark) || !['blink', 'charge', 'volley', 'shot', 'bash', 'heal'].includes(mark.kind)) return false;
@@ -1545,8 +1556,9 @@ export class Game {
     return true;
   }
 
-  _validSnapshot(s, level = this.level) {
+  _validSnapshot(s, level = this.level, difficulty = this._difficulty) {
     if (!s || typeof s !== 'object') return false;
+    if (level.shadow && s.shadowRevision !== SHADOW_WORLD_REVISION) return false;
     if (level.upgradeNames && (!s.upgrades || typeof s.upgrades !== 'object' || Array.isArray(s.upgrades) || Object.keys(s.upgrades).length !== 3 || !['cutter', 'insulator', 'phase'].every(id => typeof s.upgrades[id] === 'boolean'))) return false;
     if (level.exploration && ![0, 25].includes(s.healthBonus)) return false;
     const p = s.player;
@@ -1566,6 +1578,7 @@ export class Game {
       if (!Array.isArray(s[key]) || s[key].length !== level[key].length || new Set(s[key].map(v => v?.id)).size !== level[key].length) return false;
       for (const base of level[key]) if (!s[key].some(v => v?.id === base.id && typeof v[flag] === 'boolean')) return false;
     }
+    if (level.shadow && !shadowPuzzleStateValid(s.interactables, s.power)) return false;
     const savedDoor = id => s.doors.find(d => d.id === id);
     const savedItem = id => s.pickups.find(item => item.id === id);
     const savedFeature = id => s.interactables.find(i => i.id === id);
@@ -1617,7 +1630,7 @@ export class Game {
     if (!Array.isArray(s.enemies) || s.enemies.length !== level.enemies.length || new Set(s.enemies.map(e => e?.id)).size !== level.enemies.length) return false;
     for (const base of level.enemies) {
       const e = s.enemies.find(v => v?.id === base.id);
-      if (!e || !finite(e.x, 1, level.width - 1) || !finite(e.z, 1, level.height - 1) || level.grid[Math.floor(e.z)][Math.floor(e.x)] === '#' || !finite(e.health, 0, 1000) || typeof e.alive !== 'boolean' || typeof e.active !== 'boolean') return false;
+      if (!e || !finite(e.x, 1, level.width - 1) || !finite(e.z, 1, level.height - 1) || level.grid[Math.floor(e.z)][Math.floor(e.x)] === '#' || !finite(e.health, 0, Math.round(base.maxHealth * difficulty.health)) || typeof e.alive !== 'boolean' || typeof e.active !== 'boolean') return false;
       if (e.alive !== (e.health > 0) || !this._validEncounterSnapshot(e, base, level)) return false;
       const radius = base.type === 'brute' ? .28 : .2;
       if (e.alive && s.doors.some(door => {
@@ -1653,7 +1666,7 @@ export class Game {
     next.enemies = level.enemies.map(base => {
       const e = s.enemies.find(v => v.id === base.id);
       const encounter = this._encounterDefaults(base);
-      for (const key of ['provoked', 'killedByPlayer', 'telegraph', 'blinkCooldown', 'bossPhase', 'phaseTimer', 'bossCycle', 'chargeAngle', 'chargeHit', 'chargeTargetId', 'chargeTargetKind', 'stunTimer', 'encounterAwake', 'shieldPhase', 'shieldTimer', 'healCooldown', 'suppressedTimer', 'dormant']) {
+      for (const key of ['provoked', 'killedByPlayer', 'telegraph', 'blinkCooldown', 'bossPhase', 'phaseTimer', 'bossCycle', 'chargeAngle', 'chargeHit', 'chargeTargetId', 'chargeTargetKind', 'stunTimer', 'encounterAwake', 'shieldPhase', 'shieldTimer', 'healCooldown', 'suppressedTimer', 'dormant', ...SHADOW_ENEMY_FIELDS]) {
         if (e[key] !== undefined) encounter[key] = copy(e[key]);
       }
       return { ...base, ...encounter, x: e.x, z: e.z, health: e.health, maxHealth: Math.round(base.maxHealth * difficulty.health), alive: e.alive, active: e.active, angle: finite(e.angle, -1000, 1000) ? e.angle : 0, attackCooldown: e.attackCooldown ?? .8, hitTimer: 0 };
@@ -1663,7 +1676,7 @@ export class Game {
     next.interactables = level.interactables.map(base => ({ ...base, used: s.interactables.find(v => v.id === base.id).used }));
     for (const key of ['power', 'secretFound', 'time', 'kills', 'shots', 'hits']) next[key] = s[key];
     next.tutorial = Object.fromEntries(['moved', 'fired', 'interacted', 'weaponSwitched'].map(k => [k, s.tutorial?.[k] === true]));
-    next.effects = []; next.projectiles = copy(s.projectiles || []); next.status = 'paused'; next.checkpoint = false;
+    next.effects = []; next.projectiles = copy(s.projectiles || []); next.shadowHazards = []; next.status = 'paused'; next.checkpoint = false;
     if (next.interactables.find(i => i.type === 'exit').used) next.status = 'won';
     return next;
   }
@@ -1680,10 +1693,12 @@ export class Game {
       const saved = copy(data);
       const level = Object.values(LEVELS).find(candidate => candidate.id === saved?.levelId);
       if (!saved || saved.version !== 1 || !level || !Object.hasOwn(DIFFICULTY, saved.options?.difficulty) || saved.options.mission !== undefined && saved.options.mission !== level.missionId) return false;
-      if (!this._validSnapshot(saved.state, level)) return false;
-      if (saved.checkpoint && (!this._validSnapshot(saved.checkpoint, level) || !saved.checkpoint.power || !saved.state.power || saved.checkpoint.time > saved.state.time || saved.checkpoint.interactables.some(i => i.used && level.interactables.find(base => base.id === i.id).type !== 'shutter-switch' && !saved.state.interactables.find(current => current.id === i.id).used))) return false;
-      if (level.exploration && saved.checkpoint && (saved.checkpoint.healthBonus > saved.state.healthBonus || saved.checkpoint.doors.some(d => d.open && !level.doors.find(base => base.id === d.id).controlledBy && !saved.state.doors.find(current => current.id === d.id).open) || saved.checkpoint.pickups.some(p => p.collected && ['access-key', 'health-expansion'].includes(p.id) && !saved.state.pickups.find(current => current.id === p.id).collected))) return false;
       const difficulty = DIFFICULTY[saved.options.difficulty];
+      const migrate = snapshot => migrateShadowSnapshot(snapshot, level, difficulty, base => this._encounterDefaults(base), (legacy, legacyLevel) => this._validSnapshot(legacy, legacyLevel, difficulty));
+      if (!migrate(saved.state) || saved.checkpoint && !migrate(saved.checkpoint)) return false;
+      if (!this._validSnapshot(saved.state, level, difficulty)) return false;
+      if (saved.checkpoint && (!this._validSnapshot(saved.checkpoint, level, difficulty) || !saved.checkpoint.power || !saved.state.power || saved.checkpoint.time > saved.state.time || saved.checkpoint.interactables.some(i => i.used && level.interactables.find(base => base.id === i.id).type !== 'shutter-switch' && !saved.state.interactables.find(current => current.id === i.id).used))) return false;
+      if (level.exploration && saved.checkpoint && (saved.checkpoint.healthBonus > saved.state.healthBonus || saved.checkpoint.doors.some(d => d.open && !level.doors.find(base => base.id === d.id).controlledBy && !saved.state.doors.find(current => current.id === d.id).open) || saved.checkpoint.pickups.some(p => p.collected && ['access-key', 'health-expansion'].includes(p.id) && !saved.state.pickups.find(current => current.id === p.id).collected))) return false;
       const nextState = this._stateFromSnapshot(saved.state, level, difficulty);
       const checkpoint = saved.checkpoint ? copy(saved.checkpoint) : null;
       const seed = (Number(saved.options.seed) >>> 0) || 1;

@@ -74,7 +74,7 @@ class BreachExportTests(unittest.TestCase):
                     asset = f"music/{cue}.{extension}"
                     self.assertIn(asset, manifest["files"])
                     self.assertGreater((target / asset).stat().st_size, 0)
-            for asset in ["weapon-view.mjs", "shadow.mjs", "music/shadow-running.mp3", "music/shadow-running.mid", "music/sever-the-echo.mp3", "music/sever-the-echo.mid", "music/lanterns-below.mp3", "music/lanterns-below.mid", "music.mjs", "music-cues.mjs", "soundtrack.html", "soundtrack.mjs", "soundtrack.css", "music/containment-pulse.mp3", "music/containment-pulse.mid", "music/the-room-replies.mp3", "music/the-room-replies.mid"]:
+            for asset in ["weapon-view.mjs", "shadow.mjs", "shadow-enemies.mjs", "shadow-save.mjs", "difficulty.mjs", "music/shadow-running.mp3", "music/shadow-running.mid", "music/sever-the-echo.mp3", "music/sever-the-echo.mid", "music/lanterns-below.mp3", "music/lanterns-below.mid", "music.mjs", "music-cues.mjs", "soundtrack.html", "soundtrack.mjs", "soundtrack.css", "music/containment-pulse.mp3", "music/containment-pulse.mid", "music/the-room-replies.mp3", "music/the-room-replies.mid"]:
                 self.assertIn(asset, manifest["files"])
                 self.assertGreater((target / asset).stat().st_size, 0)
 

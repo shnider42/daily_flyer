@@ -13,6 +13,7 @@ export function musicThreats(game) {
   // Inspect visible guardians first so a crowd cannot hide their learning window.
   for (const guardians of [true, false]) for (const enemy of game.state.enemies || []) {
     if (!!enemy.guardian !== guardians) continue;
+    if (enemy.type === 'lantern-maw' && !enemy.revealed) continue;
     if (!enemy.active || !game.isHostileToPlayer(enemy)
         || Math.hypot(enemy.x-player.x, enemy.z-player.z) > 10) continue;
     if (!game.hasLineOfSight(player.x, player.z, enemy.x, enemy.z)) continue;
@@ -103,7 +104,7 @@ export class BreachAudio {
   events(events, listener = null) {
     this.music.events(events, listener);
     for(const event of events) {
-      const encounter = ['containment-routed','enemy-warning','enemy-shot','teleport','provoked','boss-phase','shutter','ricochet','explosion','shield-hit','shield-open','heal','heal-interrupt'].includes(event.type);
+      const encounter = ['containment-routed','enemy-warning','enemy-shot','teleport','provoked','boss-phase','shutter','ricochet','explosion','shield-hit','shield-open','heal','heal-interrupt','tether-broken','shadow-puzzle'].includes(event.type);
       const distance = listener && Number.isFinite(event.x) && Number.isFinite(event.z) ? Math.hypot(event.x-listener.x,event.z-listener.z) : 0;
       if(encounter && distance > 14) continue;
       const volume = Math.max(.15, 1-distance/16);
@@ -134,6 +135,8 @@ export class BreachAudio {
         case 'shield-open': this.noise(.24,.1*volume,650); this.tone(300,.3,.1*volume,75,'triangle'); break;
         case 'heal': this.tone(480,.24,.08*volume,700,'sine'); this.tone(720,.18,.06*volume,960,'sine',.08); break;
         case 'heal-interrupt': this.noise(.12,.12*volume,2100); this.tone(690,.16,.08*volume,140,'triangle'); break;
+        case 'tether-broken': this.tone(900,.2,.1*volume,130,'triangle'); this.noise(.09,.07*volume,1900); break;
+        case 'shadow-puzzle': [330,495,660].forEach((f,i)=>this.tone(f,.2,.11*volume,f,'triangle',i*.1)); break;
         case 'hurt': this.noise(.18, .4, 400); this.tone(60, .18, .5, 35, 'sine'); break;
         case 'pickup': this.tone(440, .1, .17, 660, 'triangle'); this.tone(880, .13, .1, 880, 'sine', .07); break;
         case 'door': this.noise(.55, .2, 500); this.tone(75, .45, .14, 110, 'sawtooth'); break;
@@ -153,6 +156,11 @@ export class BreachAudio {
           else if(event.kind==='shot') this.tone(540,.16,.06*volume,610,'sine');
           else if(event.kind==='bash') this.tone(85,.6,.13*volume,180,'triangle');
           else if(event.kind==='heal') { this.tone(300,.65,.08*volume,600,'sine'); this.tone(450,.65,.05*volume,900,'sine'); }
+          else if(event.kind==='cinder') { this.tone(75,.8,.13*volume,230,'triangle'); this.noise(.25,.08*volume,750); }
+          else if(event.kind==='tether') { this.tone(360,.7,.1*volume,720,'sine'); this.tone(366,.7,.07*volume,732,'sine'); }
+          else if(event.kind==='skimmer') [880,660].forEach((f,i)=>this.tone(f,.17,.09*volume,f,'triangle',i*.23));
+          else if(event.kind==='maw-reveal') { this.noise(.22,.13*volume,1100); this.tone(240,.4,.12*volume,65,'triangle'); }
+          else if(event.kind==='maw') this.tone(90,.75,.14*volume,310,'sawtooth');
           break;
         case 'enemy-shot': this.tone(event.faction==='security'?720:190,.12,.11*volume,event.faction==='security'?280:65,'triangle'); break;
         case 'teleport': this.noise(.16,.1*volume,1700); this.tone(760,.22,.12*volume,115,'sine'); break;

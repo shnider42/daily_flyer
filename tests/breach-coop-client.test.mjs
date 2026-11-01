@@ -3,12 +3,13 @@ import assert from 'node:assert/strict';
 import { Game, MISSIONS, WEAPONS } from '../daily_flyer/themes/breach_assets/core.mjs';
 import { CoopGame } from '../daily_flyer/themes/breach_assets/coop-core.mjs';
 import { CoopClient, websocketURL, predictMovement, personalEvents } from '../daily_flyer/themes/breach_assets/coop-client.mjs';
+import { SHADOW_ID, SHADOW_WORLD_REVISION } from '../daily_flyer/themes/breach_assets/shadow.mjs';
 
 function networkFixture(callbacks={}, mission='crosslink-11') {
   const simulation=new CoopGame({mission,players:['p1','p2']});simulation.start();
   const client=new CoopClient({base:'same-origin',origin:'https://breach.example',storage:null,callbacks});
   client.selfId='p1';client.ownerId='p1';client.connected=true;
-  client.room={id:'ABCDEFGH',mission,difficulty:'standard',status:'playing',ownerId:'p1',players:[{id:'p1',name:'One',connected:true,ready:true},{id:'p2',name:'Two',connected:true,ready:true}]};
+  client.room={id:'ABCDEFGH',mission,...(mission===SHADOW_ID?{shadowRevision:SHADOW_WORLD_REVISION}:{}),difficulty:'standard',status:'playing',ownerId:'p1',players:[{id:'p1',name:'One',connected:true,ready:true},{id:'p2',name:'Two',connected:true,ready:true}]};
   const packet=(tick=1,ack=0,events=[])=>({type:'state',tick,ackByPlayer:{p1:ack,p2:0},state:simulation.networkSnapshot(),events});
   client._applySnapshot(packet());return {client,simulation,packet};
 }
@@ -141,7 +142,7 @@ test('page suspension releases the old socket without leaving, keeps its pass, a
     client.setPageVisible(true);
     assert.equal(Socket.instances.length,2,'a visible persisted page opens exactly one new socket');
     const rejoined=Socket.instances[1];rejoined.open();
-    assert.deepEqual(rejoined.sent[0],{type:'join',protocol:2,supportedMissions:MISSIONS.map(mission=>mission.id),roomId:'ABCDEFGH',name:'Operator',token:'keep-this-pass',replace:true});
+    assert.deepEqual(rejoined.sent[0],{type:'join',protocol:2,supportedMissions:MISSIONS.map(mission=>mission.id),shadowRevision:SHADOW_WORLD_REVISION,roomId:'ABCDEFGH',name:'Operator',token:'keep-this-pass',replace:true});
     rejoined.receive({type:'welcome',protocol:2,roomId:'ABCDEFGH',selfId:'p1',ownerId:'p1',token:'keep-this-pass'});
     rejoined.receive({type:'room',room:{id:'ABCDEFGH',mission:'crosslink-11',difficulty:'standard',status:'paused',ownerId:'p1',players:[{id:'p1',ready:false,connected:true},{id:'p2',ready:false,connected:true}]}});
     rejoined.receive({type:'state',tick:1,ackByPlayer:{p1:-1,p2:-1},state:simulation.networkSnapshot(),events:[]});
@@ -159,7 +160,7 @@ test('a background connection loss waits for visibility before retrying',()=>{
   client.setPageVisible(true);assert.equal(attempts,1);
 });
 
-test('create, join, warm retries and authenticated reconnects advertise local mission support',()=>{
+test('create, join, warm retries and authenticated reconnects advertise local missions and the exact Shadow revision',()=>{
   class Socket {
     static instances=[];
     constructor(){this.readyState=0;this.listeners={};this.sent=[];Socket.instances.push(this);}
@@ -175,14 +176,18 @@ test('create, join, warm retries and authenticated reconnects advertise local mi
     client.create({name:'One',mission:'glasshouse-17',difficulty:'standard'});
     let handshake=openHandshake();
     assert.equal(handshake.type,'create');assert.equal(handshake.protocol,2);assert.deepEqual(handshake.supportedMissions,expected);
+    assert.equal(handshake.shadowRevision,SHADOW_WORLD_REVISION);
     assert.ok(handshake.supportedMissions.includes('glasshouse-17'));
     client._connect(false);handshake=openHandshake();
     assert.equal(handshake.type,'create');assert.deepEqual(handshake.supportedMissions,expected,'a cold-service retry keeps the capability list');
+    assert.equal(handshake.shadowRevision,SHADOW_WORLD_REVISION,'a cold-service retry keeps the content revision');
     client.join({roomId:'abcdefgh',name:'Two'});handshake=openHandshake();
     assert.equal(handshake.type,'join');assert.deepEqual(handshake.supportedMissions,expected);
+    assert.equal(handshake.shadowRevision,SHADOW_WORLD_REVISION);
     client.token='rejoin-pass';assert.equal(client.reconnect(),true);handshake=openHandshake();
     assert.equal(handshake.replace,true);assert.equal(handshake.token,'rejoin-pass');assert.equal(handshake.protocol,2);
     assert.deepEqual(handshake.supportedMissions,expected,'an authenticated replacement repeats local capabilities');
+    assert.equal(handshake.shadowRevision,SHADOW_WORLD_REVISION,'an authenticated replacement repeats the exact content revision');
   } finally {client.leave();}
 });
 
@@ -200,6 +205,68 @@ test('an unknown room mission is rejected before mounting or projecting a fallba
   fixture.client.room.mission='future-facility';fixture.client._applySnapshot(fixture.packet(2));
   assert.equal(fixture.client.view.level,level);assert.equal(JSON.stringify(fixture.client.view.state),before);
   assert.equal(fixture.client.connected,false);assert.match(errors.at(-1),/Reload.*rejoin/);
+});
+
+test('mismatched Shadow room revisions fail before mounting and preserve the reconnect pass',()=>{
+  for(const revision of [undefined,null,SHADOW_WORLD_REVISION-1,SHADOW_WORLD_REVISION+1,String(SHADOW_WORLD_REVISION),true,[],{}]){
+    let mounted=0,roomEvents=0,stateEvents=0;const errors=[],sent=[],closes=[],saved=new Map();
+    const storage={getItem:key=>saved.get(key),setItem:(key,value)=>saved.set(key,value),removeItem:key=>saved.delete(key)};
+    const client=new CoopClient({base:'same-origin',origin:'https://game.example',storage,statusUI:false,
+      callbacks:{onView(){mounted++;},onRoom(){roomEvents++;},onState(){stateEvents++;},onError:message=>errors.push(message)}});
+    client.roomId='ABCDEFGH';client.selfId='p1';client.token='keep-this-pass';client.connected=true;client._storeToken();
+    client.socket={readyState:1,send:message=>sent.push(JSON.parse(message)),close:(code,reason)=>closes.push({code,reason})};
+    const room={id:'ABCDEFGH',mission:SHADOW_ID,difficulty:'standard',ownerId:'p1',status:'playing',players:[]};
+    if(revision!==undefined)room.shadowRevision=revision;
+    client._message({type:'room',room});
+    assert.equal(client.view,null);assert.equal(client.room,null);
+    assert.equal(mounted,0);assert.equal(roomEvents,0);assert.equal(stateEvents,0);
+    assert.equal(client.connected,false);assert.equal(client.manual,true);
+    assert.equal(closes.length,1);assert.equal(sent.some(message=>message.type==='leave'),false);
+    assert.equal(JSON.parse(saved.get('dfe.breach.room.ABCDEFGH')).token,'keep-this-pass');
+    assert.match(errors[0],/Beneath The Shadow.*Refresh both game tabs.*rejoin/);
+  }
+});
+
+test('the exact Shadow revision mounts its authored world and projects shared puzzle state',()=>{
+  let mounted=0,roomEvents=0;const errors=[];
+  const simulation=new CoopGame({mission:SHADOW_ID,players:['p1','p2']});simulation.start();
+  const client=new CoopClient({base:'same-origin',origin:'https://game.example',storage:null,statusUI:false,
+    callbacks:{onView(){mounted++;},onRoom(){roomEvents++;},onError:message=>errors.push(message)}});
+  client.selfId='p1';client.connected=true;
+  const room={id:'ABCDEFGH',mission:SHADOW_ID,shadowRevision:SHADOW_WORLD_REVISION,difficulty:'standard',status:'playing',ownerId:'p1',players:[{id:'p1',connected:true},{id:'p2',connected:true}]};
+  client._message({type:'room',room});
+  simulation.state.power=true;simulation.state.interactables.find(o=>o.id==='street-feed').used=true;
+  client._message({type:'state',tick:1,ackByPlayer:{p1:0,p2:0},state:simulation.networkSnapshot(),events:[]});
+  assert.equal(client.room,room);assert.equal(roomEvents,1);assert.equal(mounted,1);
+  assert.equal(client.view.level.missionId,SHADOW_ID);assert.equal(client.view.level.shadowRevision,SHADOW_WORLD_REVISION);
+  assert.equal(client.view.state.interactables.find(o=>o.id==='street-feed').used,true);
+  assert.equal(client.view.state.player,client.view.state.players.p1);
+  assert.equal(client.connected,true);assert.equal(errors.length,0);
+});
+
+test('a changed Shadow room revision cannot mutate an already mounted authoritative view',()=>{
+  for(const revision of [undefined,SHADOW_WORLD_REVISION-1,SHADOW_WORLD_REVISION+1,String(SHADOW_WORLD_REVISION)]){
+    const errors=[];let mounted=0,stateEvents=0;
+    const fixture=networkFixture({onView(){mounted++;},onState(){stateEvents++;},onError:message=>errors.push(message)},SHADOW_ID);
+    const{client,simulation,packet}=fixture,before=JSON.stringify(client.view.state),level=client.view.level,tick=client.tick;
+    client.room.shadowRevision=revision;
+    simulation.state.power=true;simulation.state.players.p1.x+=1;
+    client._applySnapshot(packet(2));
+    assert.equal(client.view.level,level);assert.equal(JSON.stringify(client.view.state),before);
+    assert.equal(client.tick,tick);assert.equal(mounted,1);assert.equal(stateEvents,1);
+    assert.equal(client.connected,false);assert.equal(client.manual,true);
+    assert.match(errors[0],/Beneath The Shadow.*Refresh both game tabs/);
+  }
+});
+
+test('non-Shadow room projection remains compatible without a Shadow revision',()=>{
+  for(const mission of ['crosslink-11','underworks-13','glasshouse-17','hollow-19'])for(const revision of [undefined,'irrelevant-old-content']){
+    const errors=[];const{client,simulation,packet}=networkFixture({onError:message=>errors.push(message)},mission);
+    const room={...client.room};if(revision!==undefined)room.shadowRevision=revision;
+    client._message({type:'room',room});simulation.state.power=true;client._applySnapshot(packet(2));
+    assert.equal(client.view.level.missionId,mission);assert.equal(client.view.state.power,true);
+    assert.equal(client.connected,true);assert.equal(client.manual,false);assert.equal(errors.length,0);
+  }
 });
 
 test('exact co-op weapon requests select any owned gun while the legacy message still cycles',()=>{

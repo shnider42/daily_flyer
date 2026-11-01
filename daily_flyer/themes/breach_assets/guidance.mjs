@@ -22,6 +22,7 @@ export function blockedCue(info) {
   if (/shutter path occupied|doorway occupied|clear the doorway/i.test(text)) return 'Movement interrupts the doorway sensor.';
   if (/launch window/i.test(text)) return 'The launch beacon is amber.';
   if (/landing lights/i.test(text)) return 'A lit platform waits across the gap.';
+  if (/^First:|launch circuit|flow control|pressure latch/i.test(text)) return 'An unlit trace leads back to the preceding control.';
   if (/guardian still/i.test(text)) return 'The circuit leads back to the guardian.';
   if (/blue seal/i.test(text)) return 'A blue field seals the passage.';
   if (/cutter/i.test(text)) return barrierCues.cutter;
@@ -80,6 +81,18 @@ export function briefingForGuidance(mission, guidance) {
 }
 
 export function noticeForGuidance(event, guidance, interaction = null, { observed = false } = {}) {
+  if (event.type === 'shadow-puzzle') return guidance === 'expert' ? null : guidance === 'simple' ? event.text : event.solved ? 'The return walkway locks into place.' : 'Another circuit lights up.';
+  if (event.type === 'enemy-warning') {
+    const cue = {
+      cinder: { simple: 'Cinder Sower: leave the orange ring before the blast. The fire lingers briefly.', moderate: 'Embers gather over the marked floor.' },
+      tether: { simple: 'Tether Widow: break its line of sight with cover, move out of range, or interrupt it with the Null projector.', moderate: 'A taut thread follows you around the room.' },
+      skimmer: { simple: 'Glass Skimmer: it stops to aim. Dodge the volley, then punish its recovery.', moderate: 'The hovering wings lock still before the shot.' },
+      'maw-reveal': { simple: 'Lantern Maw: the false lantern has opened. Step sideways when it winds up to lunge.', moderate: 'That lantern opens a mouth.' },
+    }[event.kind];
+    return observed && guidance !== 'expert' ? cue?.[guidance] || null : null;
+  }
+  if (event.type === 'tether-broken') return observed && guidance !== 'expert' ? guidance === 'simple' ? 'Tether broken. Use the opening.' : 'The thread snaps.' : null;
+  if (event.type === 'root-marked' && ['cinder-sower','tether-widow','glass-skimmer','lantern-maw'].includes(event.enemyType)) return observed && guidance !== 'expert' ? guidance === 'simple' ? 'Attacks suppressed for eight seconds. Switch weapons and press the opening.' : 'The creature glows blue; its attack breaks.' : null;
   if (event.type === 'containment-routed') return guidance === 'expert' ? null : event.text;
   if (event.type === 'record') return `${event.title} — recorded in the field journal.`;
   const eligible = ['message', 'pickup', 'checkpoint', 'secret', 'upgrade', 'refuge', 'transit-activated', 'transit', 'reward', 'shutter'];
@@ -123,6 +136,7 @@ export function markerLabelForGuidance(marker, guidance) {
   if (guidance === 'simple') return marker.label;
   if (marker.type === 'upgrade') return marker.active ? marker.label.replace(/^Acquire /i, '') : 'Equipment station';
   if (marker.type === 'shutter' || marker.type === 'shutter-switch') return marker.mark ? `Shutter circuit ${marker.mark}` : 'Shutter control';
+  if (marker.type === 'shadow-puzzle') return marker.active ? 'Restored mechanism' : 'Route control';
   if (marker.type === 'shortcut') return ({ cutter: 'Welded service passage', insulator: 'Energized service passage', phase: 'Shimmering service passage' })[marker.requires] || 'Service passage';
   return ({ grille: 'Welded grille', hazard: 'Energized conduit', phase: 'Shimmering field', gate: 'Airlock', cache: 'Supply cache' })[marker.type] || marker.label;
 }
@@ -134,6 +148,7 @@ export function markerCueForGuidance(marker, guidance) {
   if (marker.type === 'transit') return marker.active ? 'Station active' : 'Station discovered';
   if (marker.type === 'refuge') return marker.active ? 'Refuge visited' : 'Refuge discovered';
   if (marker.type === 'shutter' || marker.type === 'shutter-switch') return marker.active ? 'Shutter raised' : 'Shutter lowered';
+  if (marker.type === 'shadow-puzzle') return marker.active ? 'Circuit restored' : 'Control discovered';
   if (['grille', 'hazard', 'phase', 'shortcut', 'gate'].includes(marker.type)) return marker.active ? 'Passage open' : guidance === 'expert' ? '' : 'Mechanism within reach';
   if (marker.type === 'guardian') return marker.active ? 'Containment cleared' : 'Movement in containment';
   return marker.active ? 'Visited' : '';
@@ -155,6 +170,7 @@ export function automaticFireAllowed(enemies, player, { aimAssist = false, hasLi
   const range = Math.min(16, weapon.range);
   const delta = angle => Math.atan2(Math.sin(angle - player.angle), Math.cos(angle - player.angle));
   const visible = enemies.filter(enemy => hostileToPlayer(enemy)
+    && (enemy.type !== 'lantern-maw' || enemy.revealed)
     && Math.hypot(enemy.x - player.x, enemy.z - player.z) < Math.max(range, weapon.aimAssistRange)
     && hasLineOfSight(player.x, player.z, enemy.x, enemy.z))
     .map(enemy => ({ enemy, distance: Math.hypot(enemy.x - player.x, enemy.z - player.z), angle: Math.atan2(enemy.x - player.x, -(enemy.z - player.z)) }));

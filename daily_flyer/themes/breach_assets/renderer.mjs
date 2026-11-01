@@ -1,4 +1,4 @@
-import { platformSolid } from './shadow.mjs';
+import { platformSolid, platformStatus, courseStatus, shadowPuzzleInfo, jumpInfo } from './shadow.mjs';
 import { weaponViewTransform } from './weapon-view.mjs';
 import * as THREE from './vendor/three.module.js';
 
@@ -25,6 +25,23 @@ const GARDEN_PALETTES = {
   amber:{panel:'#937349',dark:'#493d31',trim:'#f1d6a0',accent:'#f8ca78',light:0xffd88f,floor:'#847357',glass:'#6d7563',leaf:'#a3aa63'},
   violet:{panel:'#716884',dark:'#37344e',trim:'#dfd4e8',accent:'#d5b5f4',light:0xe5c7f5,floor:'#767186',glass:'#5e6a83',leaf:'#b7a6c5'},
 };
+// A district owns an architectural vocabulary as well as a hue. These compact
+// textures are shared by the GPU and software renderer; none add collision.
+const SHADOW_PALETTES = {
+  descent:{base:[76,79,82],panel:'#59636d',dark:'#242d3b',trim:'#b7bec1',accent:'#f0cc98',light:0xf2d6a8,motif:'road',fog:[20,25,35]},
+  exchange:{base:[39,74,69],panel:'#3e756d',dark:'#1c3538',trim:'#c6aa6e',accent:'#bce7c4',light:0xc4edce,motif:'lamps',fog:[13,30,29]},
+  forge:{base:[92,49,38],panel:'#8c5036',dark:'#382722',trim:'#d5a57b',accent:'#ffb362',light:0xffbf78,motif:'kiln',fog:[39,21,19]},
+  null:{base:[63,85,99],panel:'#658e99',dark:'#273b51',trim:'#d6e7df',accent:'#a6f4ea',light:0xb8f3f4,motif:'stillglass',fog:[19,34,45]},
+  lantern:{base:[76,65,52],panel:'#756557',dark:'#302e36',trim:'#baa176',accent:'#ffc680',light:0xffd696,motif:'houses',fog:[31,27,36]},
+  gantry:{base:[48,62,89],panel:'#425d81',dark:'#202d43',trim:'#9dafbc',accent:'#9ccce9',light:0xaedff0,motif:'truss',fog:[15,24,41]},
+  hydra:{base:[44,79,66],panel:'#3c746b',dark:'#1d3436',trim:'#bfd1a4',accent:'#edc688',light:0xd6e7af,motif:'orchard',fog:[14,32,29]},
+  chapel:{base:[71,55,87],panel:'#685574',dark:'#302638',trim:'#c2b5cb',accent:'#e6c9fa',light:0xe8d4f5,motif:'bells',fog:[30,19,37]},
+  bridge:{base:[91,90,71],panel:'#888670',dark:'#3c4645',trim:'#d9d3b2',accent:'#96d9d0',light:0xb9e3d4,motif:'aqueduct',fog:[29,38,36]},
+  engine:{base:[77,38,44],panel:'#774046',dark:'#311f2b',trim:'#bd956e',accent:'#f4d58a',light:0xffdfa1,motif:'sun',fog:[35,17,26]},
+};
+const SHADOW_ENEMY_TYPES=['cinder-sower','tether-widow','glass-skimmer','lantern-maw'];
+const TRAVERSAL_SIGNALS=['route-ready','route-locked','course-link','course-done',...Array.from({length:9},(_,i)=>`route-wait-${i+1}`)];
+const shadowEnemyType=type=>SHADOW_ENEMY_TYPES.find(base=>type===base||type?.startsWith(base+'-'));
 const GARDEN_LANDMARKS = ['glass-lab','root-mass','cultivation-bed','pump-bank','water-vat'];
 const NEW_ENEMY_ART = ['bulwark','bulwark-open','bulwark-back','mender','mender-healing'];
 const PICKUP_ART = ['ammo','shells','cells','slugs','grenades','health','armor','shotgun','arc','ricochet','grenade','key','healthExpansion'];
@@ -40,11 +57,12 @@ const missionVisuals = (level) => {
   const relay = level.missionId === 'relay-09' || String(level.id).startsWith('relay-09');
   const crosslink = level.missionId === 'crosslink-11' || String(level.id).startsWith('crosslink-11');
   const hollow = level.hollow === true;
+  const shadow = level.shadow === true;
   const underworks = level.shadow || hollow || level.missionId === 'underworks-13' || String(level.id).startsWith('underworks-13');
   const switchyard = level.missionId === 'switchyard-15' || String(level.id).startsWith('switchyard-15');
   const glasshouse = level.missionId === 'glasshouse-17' || String(level.id).startsWith('glasshouse-17');
   return {
-    relay, crosslink, underworks, switchyard, glasshouse, hollow,
+    relay, crosslink, underworks, switchyard, glasshouse, hollow, shadow,
     signCode: level.signCode || (glasshouse ? 'GH 17' : switchyard ? 'SW 15' : underworks ? 'UW 13' : crosslink ? 'CROSSLINK 11' : relay ? 'RELAY 09' : 'BS 07'),
     doorCode: level.signCode || (glasshouse ? 'GLASSHOUSE 17' : switchyard ? 'SWITCHYARD 15' : underworks ? 'UNDERWORKS 13' : crosslink ? 'CROSSLINK 11' : relay ? 'DEAD RELAY 09' : 'BLACKSITE 07'),
     signColor: hollow ? '#9dcbd4' : glasshouse ? '#c4f4cf' : switchyard ? '#f1c579' : underworks ? '#d8c5a2' : crosslink ? '#e2c78c' : relay ? '#b6c5e6' : '#9fd8cf',
@@ -54,22 +72,30 @@ const missionVisuals = (level) => {
 };
 const exitReady = (state) => !!(state.power && state.player.key && (state.interactables || []).filter(i => i.type === 'relay').every(i => i.used));
 const relayTitle = (item) => item.shortName || item.name || (/north/i.test(item.id) ? 'NORTH RELAY' : /south/i.test(item.id) ? 'SOUTH RELAY' : /east/i.test(item.id) ? 'EAST RELAY' : /west/i.test(item.id) ? 'WEST RELAY' : item.label?.replace(/^(synchronize|activate|align|restore)\s+/i, '').slice(0, 17) || 'RELAY NODE');
-const zoneTitle = (zone,visuals) => visuals.underworks ? zone.shortName||zone.id?.replaceAll('-',' ')||zone.name : zone.name;
+const zoneTitle = (zone,visuals) => visuals.shadow?zone.identity||zone.name:visuals.underworks ? zone.shortName||zone.id?.replaceAll('-',' ')||zone.name : zone.name;
 const localPlayerId = (state) => state.localPlayerId || state.player?.id;
 const otherPlayers = (state) => Object.entries(state.players || {}).filter(([id, player]) => player && id !== localPlayerId(state) && player !== state.player && Number.isFinite(player.x) && Number.isFinite(player.z));
 const localEvent = (event, state) => !event.playerId || !localPlayerId(state) || event.playerId === localPlayerId(state);
 const doorKind = (door) => door.kind==='shutter'?'shutter':({cutter:'grille',insulator:'hazard',phase:'phase'}[door.requires] || (['grille','hazard','phase','shortcut'].includes(door.kind) ? door.kind : door.requires || 'plain'));
 const circuitMark = item => String(item.mark||String(item.circuitId||'1').split('-').at(-1)).padStart(2,'0').slice(-2);
 const doorStyleKey = door => doorKind(door)==='shutter'?`shutter:${circuitMark(door)}`:doorKind(door);
-const stationKey = item => item.routing?`routing:${circuitMark(item)}`:item.type==='shutter-switch'?`shutter-switch:${circuitMark(item)}`:`${item.type}:${item.upgrade||''}`;
-const explorationFeature = (item) => ['upgrade','refuge','transit','shutter-switch','record','jump'].includes(item.type);
-const featureMode = (item,state) => item.type==='jump' ? Number(platformSolid(item.landingPhase||{},state.time+(item.duration||1.05)+.2)) : item.type==='upgrade' ? Number(!!(item.used||state.upgrades?.[item.upgrade]))
+const stationKey = item => item.type==='shadow-puzzle'?`shadow-puzzle:${item.effect}:${item.stage||0}`:item.routing?`routing:${circuitMark(item)}`:item.type==='shutter-switch'?`shutter-switch:${circuitMark(item)}`:`${item.type}:${item.upgrade||''}`;
+const explorationFeature = (item) => ['upgrade','refuge','transit','shutter-switch','record','jump','shadow-puzzle'].includes(item.type);
+const puzzleMode=(item,state,game)=>{
+  if(game&&typeof shadowPuzzleInfo==='function'){const info=shadowPuzzleInfo(game,item);return info.complete?2:info.canUse?1:0;}
+  return item.used?2:state.power&&(!item.requirementId||(state.interactables||[]).some(o=>o.id===item.requirementId&&o.used))?1:0;
+};
+const featureMode = (item,state,game=null) => item.type==='shadow-puzzle'?puzzleMode(item,state,game):item.type==='jump' ? Number(jumpReadiness(game||{state},item).ready) : item.type==='upgrade' ? Number(!!(item.used||state.upgrades?.[item.upgrade]))
   : item.type==='shutter-switch' ? !state.power?0:(item.doorIds||[]).length&&(item.doorIds||[]).every(id=>(state.doors||[]).find(door=>door.id===id)?.open)?2:1
   : item.type==='transit' ? item.used ? (state.interactables||[]).some(other=>other.id===item.destination&&other.used)?2:1 : 0
   : Number(!!item.used);
 const inEntityRange = (entity,player,range) => Math.abs(entity.x-player.x)<=range && Math.abs(entity.z-player.z)<=range;
 const ENEMY_ART = ['runner','spitter','brute','stalker','sentry','sentry-hostile','guardian','guardian-exposed'];
 const enemyArt = (enemy,observer) => {
+  if(enemy.type==='lantern-maw')return enemy.revealed===false||enemy.shadowPhase==='disguised'?'lantern-maw-disguised':enemy.shadowPhase==='recover'?'lantern-maw-spent':'lantern-maw';
+  if(enemy.type==='tether-widow')return enemy.shadowPhase==='tether'?'tether-widow-linked':'tether-widow';
+  if(enemy.type==='cinder-sower')return enemy.shadowPhase==='recover'?'cinder-sower-spent':'cinder-sower';
+  if(enemy.type==='glass-skimmer')return enemy.shadowPhase==='recover'?'glass-skimmer-open':'glass-skimmer';
   if(enemy.type==='hydra')return enemy.suppressedTimer>0?'hydra-marked':'hydra';
   if(enemy.stationary)return enemy.guardian?'mortar':'turret';
   if(enemy.echo)return 'echo';
@@ -83,8 +109,10 @@ const enemyArt = (enemy,observer) => {
   if(enemy.type==='mender')return enemy.telegraph?.kind==='heal'&&enemy.telegraph.remaining>0&&!(enemy.stunTimer>0)?'mender-healing':'mender';
   return enemy.type==='sentry'&&enemy.provoked?'sentry-hostile':enemy.type;
 };
-const enemyHeight = enemy => enemy.guardian?2.22:enemy.type==='bulwark'?2.07:enemy.type==='mender'?1.91:enemy.type==='brute'?1.93:enemy.type==='stalker'?1.84:enemy.type==='sentry'?1.74:enemy.type==='spitter'?1.69:1.59;
-const enemyArtTypes = level => [...ENEMY_ART,...((level.enemies||[]).some(enemy=>enemy.echo)?['echo']:[]),...((level.enemies||[]).some(enemy=>['bulwark','mender'].includes(enemy.type))?NEW_ENEMY_ART:[])];
+const enemyHeight = enemy => enemy.type==='cinder-sower'?1.73:enemy.type==='tether-widow'?1.42:enemy.type==='glass-skimmer'?1.58:enemy.type==='lantern-maw'?1.91:enemy.guardian?2.22:enemy.type==='bulwark'?2.07:enemy.type==='mender'?1.91:enemy.type==='brute'?1.93:enemy.type==='stalker'?1.84:enemy.type==='sentry'?1.74:enemy.type==='spitter'?1.69:1.59;
+const enemyWidth = enemy => enemy.type==='glass-skimmer'?1.72:enemy.type==='tether-widow'?1.8:enemyHeight(enemy)*80/112;
+const enemyBottom = enemy => enemy.type==='glass-skimmer'&&enemy.alive!==false&&enemy.health>0?.23:.015;
+const enemyArtTypes = level => [...ENEMY_ART,...((level.enemies||[]).some(enemy=>enemy.echo)?['echo']:[]),...((level.enemies||[]).some(enemy=>['bulwark','mender'].includes(enemy.type))?NEW_ENEMY_ART:[]),...SHADOW_ENEMY_TYPES.filter(type=>(level.enemies||[]).some(enemy=>enemy.type===type))];
 const projectileAppearance = projectile => {
   if(projectile.type!=='grenade')return {kind:'plasma',size:.22,y:projectile.y??1.02};
   const remaining=clamp((projectile.life||0)/Math.max(.01,projectile.fuse||1.5),0,1);
@@ -128,11 +156,11 @@ function capabilityGlyph(c,kind,x,y,size,color='#eee3be'){
 // pixel or per wall; the largest map needs only a few kilobytes of cell indices.
 function surfaceLayout(level,underworks=false){
   const garden=missionVisuals(level).glasshouse;
-  const names=garden?Object.keys(GARDEN_PALETTES):underworks?Object.keys(SECTORS):['default'],indices=new Uint8Array(level.width*level.height);
+  const names=level.shadow?Object.keys(SHADOW_PALETTES):garden?Object.keys(GARDEN_PALETTES):underworks?Object.keys(SECTORS):['default'],indices=new Uint8Array(level.width*level.height);
   const hazards=new Uint8Array(indices.length),solid=(x,z)=>!level.grid[z]?.[x]||level.grid[z][x]==='#';
   if(underworks||garden)for(let z=0;z<level.height;z++)for(let x=0;x<level.width;x++){
     const zone=(level.zones||[]).find(zone=>x+.5>=zone.x1&&x+.5<zone.x2&&z+.5>=zone.z1&&z+.5<zone.z2);
-    indices[z*level.width+x]=Math.max(0,names.indexOf(zone?.palette));
+    indices[z*level.width+x]=Math.max(0,names.indexOf(level.shadow?zone?.id:zone?.palette));
   }
   for(const area of level.hazards||[])for(let z=Math.max(0,Math.floor(area.z1));z<Math.min(level.height,Math.ceil(area.z2));z++)for(let x=Math.max(0,Math.floor(area.x1));x<Math.min(level.width,Math.ceil(area.x2));x++){
     if(!solid(x,z)&&x+.5>=area.x1&&x+.5<area.x2&&z+.5>=area.z1&&z+.5<area.z2)hazards[z*level.width+x]=area.type==='flood'?1:2;
@@ -157,8 +185,9 @@ function surfaceLayout(level,underworks=false){
     let run=null;
     for(let x=0;x<=level.width;x++){
       const palette=paletteAt(x,z),chunk=chunkAt(x,z),open=!solid(x,z);
-      if(run&&(!open||run.palette!==palette||run.chunk!==chunk)){run.x2=x;runs.push(run);run=null;}
-      if(open&&!run)run={x1:x,x2:x+1,z,palette,chunk};
+      const pit=!!level.shadow&&(level.platformRooms||[]).some(room=>x>=room.x1&&x<room.x2&&z>=room.z1&&z<room.z2);
+      if(run&&(!open||run.palette!==palette||run.chunk!==chunk||run.pit!==pit)){run.x2=x;runs.push(run);run=null;}
+      if(open&&!run)run={x1:x,x2:x+1,z,palette,chunk,pit};
     }
   }
   for(let z=2;z<level.height-1;z+=4){
@@ -187,6 +216,77 @@ function horizontalGeometry(runs,height=0,ceiling=false){
     if(ceiling)indices.push(i,i+2,i+1,i,i+3,i+2);else indices.push(i,i+1,i+2,i,i+2,i+3);
   }
   const geometry=new THREE.BufferGeometry();geometry.setAttribute('position',new THREE.Float32BufferAttribute(positions,3));geometry.setAttribute('uv',new THREE.Float32BufferAttribute(uvs,2));geometry.setIndex(indices);geometry.computeBoundingSphere();return geometry;
+}
+
+// Cell lookup removes the former room/pad search from every floor pixel. Only
+// pad state is recomputed per frame, from the shared gameplay helper.
+function shadowSurfaceLayout(level){
+  const roomCells=new Int16Array(level.width*level.height).fill(-1),padCells=new Int16Array(roomCells.length).fill(-1),pads=[];
+  for(const[roomIndex,room]of(level.platformRooms||[]).entries()){
+    for(let z=Math.max(0,Math.floor(room.z1));z<Math.min(level.height,Math.ceil(room.z2));z++)for(let x=Math.max(0,Math.floor(room.x1));x<Math.min(level.width,Math.ceil(room.x2));x++){
+      if(level.grid[z]?.[x]!=='#')roomCells[z*level.width+x]=roomIndex;
+    }
+    for(const pad of room.platforms||[]){
+      const index=pads.length;pads.push({pad,room});
+      for(let z=Math.max(0,Math.floor(pad.z1));z<Math.min(level.height,Math.ceil(pad.z2));z++)for(let x=Math.max(0,Math.floor(pad.x1));x<Math.min(level.width,Math.ceil(pad.x2));x++){
+        if(roomCells[z*level.width+x]===roomIndex)padCells[z*level.width+x]=index;
+      }
+    }
+  }
+  return {roomCells,padCells,pads};
+}
+
+function shadowPadState(pad,state,time=state.time||0){
+  const used=id=>(state.interactables||[]).some(item=>item.id===id&&item.used);
+  const stabilized=!!pad.stableAfter?.length&&pad.stableAfter.every(used),locked=!!pad.unlockAfter?.length&&!pad.unlockAfter.every(used);
+  const status=typeof platformStatus==='function'?platformStatus(pad,time,{state}):null;
+  const solid=status?.solid??platformSolid(pad,time,{state}),timed=!!pad.period&&!stabilized;
+  const phase=timed?((time+(pad.offset||0))%pad.period+pad.period)%pad.period:0;
+  const held=status?.held??(solid&&timed&&phase>=pad.on);
+  return {solid,timed,stabilized,locked:status?!status.unlocked:locked,held,remaining:status?status.remaining:timed?Math.max(0,pad.on-phase):null,
+    wait:status?status.wait:locked?null:solid?0:pad.period-phase,
+    color:!solid?'#564052':stabilized?'#bfe8aa':held?'#edca8b':timed?'#75dfd4':'#a8bacb',
+    edge:stabilized?[191,232,170]:held?[237,202,139]:timed?[117,223,212]:[168,186,203],
+    face:stabilized?[63,87,73]:held?[80,78,61]:timed?[54,91,96]:[63,74,87]};
+}
+
+function jumpReadiness(game,item){
+  if(game.level&&typeof jumpInfo==='function')return jumpInfo(game,item);
+  const state=game.state,pad=game.level?.platformRooms?.find(room=>room.id===item.course)?.platforms[item.target]||item.landingPhase;
+  if(!pad)return {ready:false,waitSeconds:null};
+  const view=shadowPadState(pad,state),unlocked=!item.requirementId||(state.interactables||[]).some(o=>o.id===item.requirementId&&o.used);
+  const ready=unlocked&&view.solid&&(view.remaining===null||view.remaining>=(item.duration||1.05)+1.25);
+  return {ready,waitSeconds:!unlocked||view.locked?null:ready?0:pad.period-((state.time+(pad.offset||0))%pad.period+pad.period)%pad.period};
+}
+
+function shadowGuideCues(game){
+  if(!game.level.shadow)return [];
+  const state=game.state,p=state.player,cues=[],jumps=(state.interactables||[]).filter(o=>o.type==='jump'&&Math.hypot(o.x-p.x,o.z-p.z)<7)
+    .sort((a,b)=>Math.hypot(a.x-p.x,a.z-p.z)-Math.hypot(b.x-p.x,b.z-p.z)).slice(0,3);
+  for(const item of jumps){
+    const room=game.level.platformRooms?.find(r=>r.id===item.course),pad=room?.platforms[item.target]||item.landingPhase;
+    if(!pad||!item.landing)continue;
+    const info=jumpReadiness(game,item),wait=info.waitSeconds===null?Infinity:info.waitSeconds;
+    cues.push({id:`route-${item.id}`,kind:'route',fromX:item.x,fromZ:item.z,x:item.landing.x,z:item.landing.z,radius:.45,
+      progress:1,color:info.ready?'#b8f1cc':!Number.isFinite(wait)?'#c6a3de':'#efbc74',telegraph:false,guide:true,wait,ready:info.ready});
+  }
+  for(const room of game.level.platformRooms||[]){
+    const control=(state.interactables||[]).find(o=>o.id===room.controls?.[0]);
+    if(!control||Math.hypot(control.x-p.x,control.z-p.z)>12)continue;
+    const status=typeof courseStatus==='function'?courseStatus(game,room):null;
+    const complete=status?.completed??(room.controls||[]).filter(id=>(state.interactables||[]).some(o=>o.id===id&&o.used)).length;
+    const total=status?.total??room.controls?.length??1;
+    cues.push({id:`course-${room.id}`,kind:'course',x:control.x,z:control.z,radius:.58,progress:Math.max(.15,complete/Math.max(1,total)),
+      completed:complete,total,solved:status?.solved??complete===total,color:complete===total?'#bfe8aa':'#e1ba7c',telegraph:false,guide:true});
+  }
+  return cues;
+}
+
+function shadowAtmosphere(renderer,p){
+  if(!renderer.visuals.shadow)return;
+  const name=renderer.layout.names[renderer.layout.paletteAt(p.x,p.z)],profile=SHADOW_PALETTES[name]||SHADOW_PALETTES.descent;
+  renderer.visuals.fogRgb=profile.fog;renderer.stats.shadowDistrict=name;
+  if(renderer.scene){renderer.scene.fog.color.setHex((profile.fog[0]<<16)|(profile.fog[1]<<8)|profile.fog[2]);renderer.scene.background.copy(renderer.scene.fog.color);}
 }
 const teammateView = (player, observer, motion, dt, advancing, clock, firedAt) => {
   const speed = Math.hypot(player.x-motion.x,player.z-motion.z)/Math.max(.001,dt);
@@ -395,6 +495,84 @@ function makeHazardTexture(type){
   return textureFrom(canvas,true);
 }
 
+function makeShadowWallTexture(name){
+  const p=SHADOW_PALETTES[name]||SHADOW_PALETTES.descent,[canvas,c]=canvas2d(64,128);
+  rect(c,0,0,64,128,p.dark);rect(c,3,8,58,110,p.panel);
+  for(let n=0;n<34;n++)rect(c,4+hash(n,3)*55,12+hash(n,7)*99,1+hash(n,4)*5,1,p.trim);
+  if(p.motif==='road'){
+    for(const x of[7,48]){rect(c,x,10,9,108,p.trim);rect(c,x+2,10,3,104,p.panel);}
+    for(let y=22;y<112;y+=23)poly(c,[[24,y],[32,y+9],[40,y],[40,y+6],[32,y+15],[24,y+6]],p.accent);
+    for(const y of[6,114])rect(c,0,y,64,6,p.dark);
+  }else if(p.motif==='lamps'){
+    for(const x of[11,42]){rect(c,x,13,11,98,p.dark);rect(c,x+4,17,3,90,p.trim);poly(c,[[x-3,33],[x+5,24],[x+14,33],[x+12,57],[x,57]],p.trim);rect(c,x+2,35,7,18,p.accent);}
+    rect(c,7,78,50,4,p.trim);rect(c,28,65,8,32,p.dark);
+  }else if(p.motif==='kiln'){
+    rect(c,10,22,44,73,p.dark);
+    for(let x=16;x<53;x+=11){poly(c,[[x,87],[x-3,47],[x+3,29],[x+7,52],[x+5,87]],p.accent);rect(c,x-2,22,3,77,p.trim);}
+    for(const y of[12,100,111]){rect(c,4,y,56,5,p.trim);for(let x=8;x<62;x+=12)rect(c,x,y+1,3,3,p.dark);}
+  }else if(p.motif==='stillglass'){
+    for(const x of[8,35]){rect(c,x,15,21,91,'#396875');rect(c,x+1,17,18,15,'#91bbb7');poly(c,[[x+2,64],[x+18,40],[x+18,52],[x+2,76]],'#c6e9e6');gardenLeaves(c,x+10,100,33,'#bd9bd5',x);rect(c,x-2,12,3,98,p.trim);rect(c,x+20,12,3,98,p.trim);}
+    for(const y of[9,75,108])rect(c,2,y,60,4,p.trim);
+  }else if(p.motif==='houses'){
+    poly(c,[[4,37],[31,12],[60,37]],p.trim);rect(c,8,37,49,76,p.dark);
+    for(const x of[13,36]){rect(c,x,44,15,26,p.accent);rect(c,x+6,44,3,26,p.dark);rect(c,x,55,15,3,p.dark);}
+    rect(c,25,80,17,33,p.panel);rect(c,28,82,10,28,p.dark);rect(c,33,94,3,3,p.accent);
+    rect(c,3,113,58,5,p.trim);
+  }else if(p.motif==='truss'){
+    for(const x of[5,52])rect(c,x,8,7,110,p.trim);
+    for(let y=14;y<100;y+=30){poly(c,[[11,y],[53,y+24],[53,y+31],[11,y+7]],p.dark);poly(c,[[11,y+24],[53,y],[53,y+7],[11,y+31]],p.trim);}
+    for(const y of[16,47,78,109])rect(c,26,y,12,3,p.accent);
+  }else if(p.motif==='orchard'){
+    rect(c,7,12,50,94,'#244f4f');
+    for(const x of[10,31,52]){rect(c,x,10,3,102,p.trim);gardenLeaves(c,x+3,104,48,p.accent,x);}
+    poly(c,[[5,103],[13,69],[22,56],[18,31],[26,17],[30,30],[26,58],[18,79],[15,111]],'#7d9273');
+    for(const y of[12,57,110])rect(c,3,y,58,3,p.trim);
+    poly(c,[[35,13],[43,31],[38,48],[48,66]],'#bdd8c6');
+  }else if(p.motif==='bells'){
+    for(const x of[8,38]){poly(c,[[x,102],[x,40],[x+10,17],[x+19,40],[x+19,102]],p.dark);poly(c,[[x+4,94],[x+4,44],[x+10,30],[x+15,44],[x+15,94]],p.accent);rect(c,x+8,38,3,61,p.panel);}
+    rect(c,3,105,58,7,p.trim);rect(c,26,7,11,9,p.trim);
+  }else if(p.motif==='aqueduct'){
+    for(let y=9;y<118;y+=22){rect(c,3,y,58,2,p.trim);for(let x=(y%2?4:18);x<64;x+=29)rect(c,x,y,2,22,p.dark);}
+    poly(c,[[12,110],[12,55],[20,38],[32,29],[44,38],[52,55],[52,110]],p.dark);
+    poly(c,[[19,110],[19,59],[25,47],[32,43],[39,47],[45,59],[45,110]],'#436361');
+    rect(c,19,88,26,3,p.accent);rect(c,19,101,26,2,p.trim);
+  }else{
+    for(let n=0;n<12;n++){const a=n*Math.PI/6;poly(c,[[32+Math.cos(a)*13,62+Math.sin(a)*18],[32+Math.cos(a+.11)*30,62+Math.sin(a+.11)*47],[32+Math.cos(a-.08)*28,62+Math.sin(a-.08)*45]],p.trim);}
+    poly(c,[[32,39],[44,49],[44,76],[32,86],[20,76],[20,49]],p.dark);rect(c,29,48,6,30,p.accent);
+  }
+  for(const y of[0,121]){rect(c,0,y,64,7,p.dark);rect(c,0,y+2,64,2,p.trim);}
+  return textureFrom(canvas);
+}
+
+function makeShadowFloorTexture(name,ceiling=false){
+  const p=SHADOW_PALETTES[name]||SHADOW_PALETTES.descent,[canvas,c]=canvas2d(64,64);
+  rect(c,0,0,64,64,p.dark);
+  if(ceiling&&(name==='null'||name==='hydra')){
+    rect(c,3,3,58,58,name==='null'?'#6a9b9f':'#5a806b');
+    for(const n of[0,29,60]){rect(c,n,0,4,64,p.trim);rect(c,0,n,64,4,p.trim);}
+    poly(c,[[5,24],[24,5],[27,5],[5,29]],p.accent);poly(c,[[34,57],[57,34],[57,40],[40,57]],p.accent);
+    if(name==='hydra')poly(c,[[29,1],[36,14],[30,27],[42,41],[38,61]],p.dark);
+  }else if(ceiling){
+    rect(c,7,0,4,64,p.panel);rect(c,51,0,4,64,p.panel);rect(c,0,29,64,6,p.trim);rect(c,19,29,26,2,p.accent);
+  }else{
+    rect(c,3,3,58,58,p.panel);rect(c,0,0,64,2,p.trim);rect(c,0,0,2,64,p.trim);
+    if(['gantry','descent','forge'].includes(name)){
+      for(let n=8;n<60;n+=9){rect(c,7,n,50,3,p.dark);rect(c,7,n+3,50,1,p.trim);}
+      if(name==='descent')poly(c,[[26,23],[32,14],[38,23],[35,23],[35,45],[29,45],[29,23]],p.accent);
+      if(name==='forge')for(let n=7;n<57;n+=14)poly(c,[[n,53],[n+6,53],[n+12,61],[n+6,61]],p.accent);
+    }else if(name==='chapel'||name==='engine'){
+      poly(c,[[32,6],[58,32],[32,58],[6,32]],p.trim);poly(c,[[32,11],[53,32],[32,53],[11,32]],p.dark);rect(c,30,22,4,20,p.accent);
+    }else if(name==='null'||name==='hydra'){
+      for(const n of[16,32,48]){rect(c,n,1,1,62,p.trim);rect(c,1,n,62,1,p.trim);}
+      rect(c,26,0,12,64,p.dark);for(let y=3;y<64;y+=7)rect(c,29,y,6,2,p.accent);
+    }else{
+      for(const y of[20,42]){rect(c,2,y,60,2,p.dark);rect(c,y,2,2,60,p.dark);}
+      rect(c,8,8,6,2,p.accent);rect(c,50,54,6,2,p.accent);
+    }
+  }
+  return textureFrom(canvas,true);
+}
+
 function makeTraversalDoorTexture(kind,frame=0,ready=false){
   const[canvas,c]=canvas2d(64,128),color=kind==='grille'?UPGRADE_COLORS.cutter:kind==='hazard'?UPGRADE_COLORS.insulator:kind==='phase'?UPGRADE_COLORS.phase:'#8edbc5';
   rect(c,0,0,64,128,'#10191f');rect(c,0,0,5,128,'#667875');rect(c,59,0,5,128,'#667875');
@@ -518,9 +696,12 @@ function encounterCues(state){
     const t=enemy.telegraph;
     if(enemy.alive===false||enemy.health<=0||!t||!(t.remaining>0)||!Number.isFinite(t.x)||!Number.isFinite(t.z))continue;
     if(t.kind==='heal'&&(enemy.stunTimer>0||t.targetId&&!(state.enemies||[]).some(target=>target.id===t.targetId&&target.alive!==false&&target.health>0)))continue;
-    cues.push({...t,id:enemy.id,progress:clamp(1-t.remaining/Math.max(.01,t.duration||1),0,1),
+    cues.push({...t,id:enemy.id,active:enemy.shadowPhase==='tether',fan:t.kind==='skimmer'&&enemy.shadowCycle===1,progress:clamp(1-t.remaining/Math.max(.01,t.duration||1),0,1),
       fromX:Number.isFinite(t.fromX)?t.fromX:enemy.x,fromZ:Number.isFinite(t.fromZ)?t.fromZ:enemy.z,
-      radius:Math.max(.25,t.radius||.6),color:t.kind==='heal'?'#c5ecac':t.kind==='blink'?'#d6baff':t.kind==='shot'?'#f0d58d':'#ffad76',telegraph:true});
+      radius:Math.max(.25,t.radius||.6),color:t.kind==='tether'?'#d5bbf6':t.kind==='skimmer'?'#a6eef0':t.kind==='maw'?'#f1c58e':t.kind==='heal'?'#c5ecac':t.kind==='blink'?'#d6baff':t.kind==='shot'?'#f0d58d':'#ffad76',telegraph:true});
+  }
+  for(const hazard of(state.shadowHazards||[]).slice(0,12))if(hazard.type==='cinder'&&hazard.remaining>0&&[hazard.x,hazard.z,hazard.radius].every(Number.isFinite)){
+    cues.push({id:hazard.id,kind:'cinder-field',x:hazard.x,z:hazard.z,radius:hazard.radius,progress:clamp(hazard.remaining/Math.max(.01,hazard.duration||3.8),0,1),color:'#f6a065',telegraph:false});
   }
   for(const projectile of state.projectiles||[])if(projectile.type==='grenade'&&projectile.life>0){
     cues.push({id:projectile.id,kind:'grenade-danger',x:projectile.x,z:projectile.z,radius:projectile.blastRadius||2.8,
@@ -546,6 +727,8 @@ function encounterCues(state){
 }
 
 function cueBillboard(cue){
+  if(cue.kind==='route')return {map:cue.ready?'route-ready':!Number.isFinite(cue.wait)?'route-locked':`route-wait-${clamp(Math.ceil(cue.wait),1,9)}`,x:cue.x,z:cue.z,width:.48,height:.48,bottom:.3};
+  if(cue.kind==='course')return {map:cue.solved?'course-done':'course-link',x:cue.x,z:cue.z,width:.45,height:.45,bottom:1.75};
   if(cue.kind==='blink')return {map:'blink',x:cue.x,z:cue.z,width:.95,height:1.4,bottom:.015};
   if(cue.kind==='heal')return {map:cue.telegraph?'heal-windup':'heal',x:cue.x,z:cue.z,width:.65,height:.65,bottom:1.1};
   if(cue.kind==='heal-interrupt'||cue.kind==='shield-hit')return {map:cue.kind,x:cue.x,z:cue.z,width:.78,height:.78,bottom:.83};
@@ -554,6 +737,11 @@ function cueBillboard(cue){
     const size=cue.radius*(.65+(1-cue.progress)*.7);return {map:'explosion',x:cue.x,z:cue.z,width:size,height:size*.8,bottom:.03};
   }
   return null;
+}
+
+function skimmerFan(cue){
+  const dx=cue.x-cue.fromX,dz=cue.z-cue.fromZ;
+  return [-.17,.17].map(angle=>({x:cue.fromX+dx*Math.cos(angle)-dz*Math.sin(angle),z:cue.fromZ+dx*Math.sin(angle)+dz*Math.cos(angle)}));
 }
 
 function makePhaseEcho(){
@@ -594,6 +782,114 @@ function makeShadowLandmark(type){
   }else{poly(c,[[104,124],[92,34],[128,3],[164,34],[152,124]],'#587b81');poly(c,[[128,3],[164,34],[152,124],[128,124]],'#2d4557');rect(c,123,29,6,76,'#b7ecd4');}
   return textureFrom(canvas);
 }
+
+function makeShadowDistrictLandmark(type,district){
+  if(type==='shadow-sun')return makeShadowLandmark(type);
+  const p=SHADOW_PALETTES[district]||SHADOW_PALETTES.descent,[canvas,c]=canvas2d(192,128);
+  rect(c,0,0,192,128,p.dark);rect(c,4,7,184,114,p.panel);
+  for(const y of[4,116]){rect(c,0,y,192,7,p.trim);rect(c,0,y+5,192,2,p.dark);}
+  if(district==='descent'){
+    for(const x of[18,77,136]){rect(c,x,14,38,94,p.dark);rect(c,x+7,16,24,87,p.trim);for(let y=24;y<102;y+=15)rect(c,x+2,y,34,5,p.panel);}
+    poly(c,[[80,45],[96,27],[112,45],[104,45],[104,81],[88,81],[88,45]],p.accent);
+  }else if(district==='exchange'){
+    poly(c,[[12,118],[12,39],[41,12],[151,12],[180,39],[180,118],[151,118],[151,48],[41,48],[41,118]],p.trim);
+    for(const x of[26,87,148]){poly(c,[[x,55],[x+9,48],[x+18,55],[x+15,82],[x+3,82]],p.dark);rect(c,x+5,58,8,18,p.accent);}
+    rect(c,70,91,52,14,p.dark);rect(c,78,96,36,3,p.accent);
+  }else if(district==='forge'){
+    rect(c,17,23,157,77,p.dark);for(let x=26;x<170;x+=24){poly(c,[[x,91],[x-3,59],[x+5,36],[x+14,61],[x+13,91]],p.accent);rect(c,x-7,20,5,83,p.trim);}
+    for(const x of[7,177])for(let y=16;y<117;y+=15){rect(c,x,y,8,8,p.trim);rect(c,x+2,y+2,3,3,p.dark);}
+  }else if(district==='lantern'){
+    for(const x of[5,68,131]){poly(c,[[x,41],[x+28,11],[x+56,41]],p.trim);rect(c,x+4,43,48,69,p.dark);for(const dx of[10,31]){rect(c,x+dx,51,14,24,p.accent);rect(c,x+dx+6,51,2,24,p.panel);rect(c,x+dx,61,14,2,p.panel);}rect(c,x+20,83,18,29,p.panel);}
+  }else if(district==='gantry'){
+    for(const x of[9,88,167]){rect(c,x,8,13,108,p.trim);rect(c,x+3,8,4,103,p.panel);}
+    for(const x of[22,101])for(const y of[19,65]){poly(c,[[x,y],[x+65,y+35],[x+65,y+42],[x,y+7]],p.dark);poly(c,[[x,y+35],[x+65,y],[x+65,y+7],[x,y+42]],p.accent);}
+  }else if(district==='chapel'){
+    for(const x of[17,73,129]){poly(c,[[x,109],[x,49],[x+21,13],[x+43,49],[x+43,109]],p.dark);poly(c,[[x+7,104],[x+7,52],[x+21,29],[x+36,52],[x+36,104]],p.trim);poly(c,[[x+21,49],[x+34,81],[x+8,81]],p.panel);rect(c,x+18,79,7,10,p.accent);}
+  }else if(district==='bridge'){
+    for(const x of[11,73,135]){poly(c,[[x,113],[x,49],[x+14,25],[x+31,18],[x+48,28],[x+51,113]],p.trim);poly(c,[[x+10,113],[x+10,53],[x+20,36],[x+31,33],[x+41,48],[x+41,113]],p.dark);rect(c,x+13,90,25,4,p.accent);}
+    rect(c,2,8,188,9,p.trim);
+  }else{
+    for(const x of[25,91,157]){poly(c,[[x,11],[x+15,32],[x+15,101],[x,118],[x-15,101],[x-15,32]],p.trim);rect(c,x-6,37,12,58,p.dark);rect(c,x-2,41,4,49,p.accent);}
+  }
+  return textureFrom(canvas);
+}
+function drawShadowHunter(type,frame){
+  const[canvas,c]=canvas2d(80,112),base=shadowEnemyType(type),attack=frame===4,step=frame<4?[0,2,0,-2][frame]:0;
+  if(frame===6){
+    poly(c,[[5,103],[19,91],[44,95],[65,92],[77,108],[18,111]],'#263943');
+    if(base==='glass-skimmer')for(const[x,y]of[[12,99],[34,95],[55,101]])poly(c,[[x,y],[x+13,y-7],[x+8,y+10]],'#93c6c9');
+    else if(base==='lantern-maw'){rect(c,17,97,44,7,'#c6a878');rect(c,31,99,13,4,'#41413e');}
+    else for(const x of[17,37,57])rect(c,x,99,12,4,base==='cinder-sower'?'#a46f4e':'#a0a997');
+    return textureFrom(canvas);
+  }
+  if(base==='cinder-sower'){
+    // Three braced legs and a cluster of kiln pods: never a generic humanoid.
+    for(const[x,tip]of[[20,6],[39,39],[60,75]]){poly(c,[[x,66],[x+7,67],[tip+4,103],[tip-2,108],[tip-5,103]],'#1b282f');poly(c,[[x+1,70],[x+4,72],[tip+1,102],[tip-1,103]],'#9b8766');}
+    poly(c,[[13,40],[22,24],[51,21],[68,40],[64,69],[51,83],[24,80],[11,61]],'#292b2b');
+    poly(c,[[18,39],[27,27],[50,27],[62,42],[58,65],[49,74],[25,71],[17,57]],'#8e593d');
+    for(const[x,y]of[[21,34],[49,30],[12,48],[55,48]]){poly(c,[[x,y],[x+10,y-7],[x+18,y],[x+15,y+17],[x+3,y+17]],'#b08b56');rect(c,x+5,y+1,7,11,attack?'#ffbd64':'#503d35');}
+    const spent=type.endsWith('-spent');
+    poly(c,[[31,30],[47,27],[54,47],[48,65],[29,65],[25,47]],'#172b31');
+    if(spent){for(const x of[25,49])poly(c,[[x,32],[x+6,30],[x+5,66],[x-2,63]],'#d3bd89');rect(c,34,41,10,17,'#c3e0d5');}
+    else{rect(c,31,38,18,22,attack?'#f9a34f':'#704832');for(const y of[39,46,53])rect(c,32,y,16,3,attack?'#fff0b0':'#d49c61');}
+    for(const x of[28,45]){rect(c,x,17,7,13,'#c5ab79');rect(c,x+2,17,3,6,'#382b27');}
+    if(attack)for(const[x,y]of[[14,19],[60,17],[37,7]])poly(c,[[x,y+8],[x+3,y],[x+7,y+8],[x+4,y+12]],'#ffd296');
+  }else if(base==='tether-widow'){
+    // Six angular contact legs frame a hanging spool. A live tether opens it.
+    for(const side of[-1,1])for(let i=0;i<3;i++){
+      const y=43+i*15,k=attack&&i===0?-12:step*(i%2?1:-1),knee=40+side*(attack&&i===0?34:29-i*2);
+      poly(c,[[40+side*13,y],[knee,y-15+k],[40+side*37,91+i*7],[40+side*32,101+i*3],[knee-3*side,y-5+k],[40+side*10,y+7]],'#26323b');
+      poly(c,[[40+side*14,y],[knee,y-12+k],[knee-2*side,y-7+k],[40+side*12,y+4]],'#b2baaa');
+    }
+    poly(c,[[30,24],[48,24],[56,43],[51,74],[40,88],[28,74],[23,43]],'#354952');
+    for(const y of[34,45,56,67]){rect(c,27,y,26,5,'#92a399');rect(c,29,y,22,2,'#d7d9bb');}
+    const linked=type.endsWith('-linked');
+    poly(c,[[40,39],[51,49],[51,65],[40,77],[29,65],[29,49]],'#122c35');
+    if(linked){for(const x of[26,51])rect(c,x,43,4,30,'#dfc7ed');rect(c,36,46,8,24,'#e8d9ff');rect(c,31,55,18,5,'#b4a4f3');}
+    else{rect(c,34,48,13,20,attack?'#d7c7fc':'#708a96');for(const y of[50,57,64])rect(c,34,y,13,2,'#1e3d48');}
+    if(attack&&!linked)for(const side of[-1,1])poly(c,[[40+side*6,50],[40+side*15,36],[40+side*18,37],[40+side*12,57]],'#d9c7ec');
+    poly(c,[[27,24],[32,13],[47,13],[53,24],[46,34],[33,34]],'#9daaa0');rect(c,31,22,18,5,'#102d38');
+    for(const x of[33,43])rect(c,x,23,4,2,linked||attack?'#e9d8ff':'#d0dab9');
+  }else if(base==='glass-skimmer'){
+    // Wide glass wings leave a dark central optic at the player's aim height.
+    const open=type.endsWith('-open'),wing=attack?3:step,outer=open?8:18;
+    for(const side of[-1,1]){
+      poly(c,[[40+side*8,41],[40+side*38,29-wing],[40+side*31,68+wing],[40+side*outer,83],[40+side*6,63]],'#223b49');
+      poly(c,[[40+side*10,45],[40+side*32,36-wing],[40+side*26,63+wing],[40+side*outer,75]],open?'#d1e9dd':'#75b7c4');
+      poly(c,[[40+side*12,47],[40+side*28,41-wing],[40+side*21,57]],'#d4f0e9');
+      poly(c,[[40+side*20,61],[40+side*28,47],[40+side*24,65],[40+side*outer,74]],'#4c748c');
+    }
+    poly(c,[[40,31],[53,46],[49,74],[40,82],[31,74],[27,46]],'#263243');
+    rect(c,34,46,12,21,'#111d2c');rect(c,36,49,8,14,open?'#d7fff1':attack?'#ffdfac':'#ed936b');
+    rect(c,38,51,4,9,attack?'#fff7d6':'#713f47');
+    for(const x of[28,50])poly(c,[[x,69],[x+4,69],[x+3,85],[x-1,85]],'#b8cad1');
+    for(const[x,y]of[[17,86],[57,88],[39,95]])rect(c,x,y,4,2,'#8ed5d4');
+  }else{
+    const disguised=type.endsWith('-disguised'),spent=type.endsWith('-spent');
+    if(disguised){
+      rect(c,36,70,9,35,'#31444c');poly(c,[[22,107],[29,99],[50,99],[58,107]],'#647573');
+      poly(c,[[22,31],[31,17],[49,17],[59,31],[54,72],[26,72]],'#202e38');
+      for(const x of[27,48])rect(c,x,31,5,39,'#ba9766');rect(c,28,29,24,5,'#c5b081');rect(c,28,66,24,5,'#c5b081');
+      rect(c,33,36,7,26,'#f4d698');rect(c,43,40,6,14,'#dc7c6c');
+      for(const y of[46,57])poly(c,[[26,y],[22,y+6],[29,y+3]],'#d2c2a4');
+      rect(c,39,12,3,8,'#c1ad87');
+    }else{
+      const spread=attack?8:spent?3:0;
+      poly(c,[[23,100],[31,75],[49,75],[60,101],[72,108],[53,108],[40,93],[28,108],[8,108]],'#35434b');
+      for(const side of[-1,1]){
+        poly(c,[[40+side*(7+spread),31],[40+side*(24+spread),24],[40+side*30,55],[40+side*24,83],[40+side*10,71]],'#d0b58c');
+        poly(c,[[40+side*(10+spread),38],[40+side*(19+spread),34],[40+side*23,56],[40+side*16,73],[40+side*9,66]],'#71453f');
+        for(let y=41;y<74;y+=10)poly(c,[[40+side*(10+spread),y],[40+side*2,y+4],[40+side*(12+spread),y+7]],'#f0e2be');
+      }
+      rect(c,33,17,15,16,'#2a3f49');rect(c,36,20,5,10,'#ffe0a3');rect(c,44,24,4,5,'#f5967c');
+      poly(c,[[31,82],[26,57],[34,43],[40,67],[47,44],[55,57],[49,84]],'#172c34');
+      rect(c,37,63,7,20,spent?'#c6e4d1':'#e28c65');
+    }
+  }
+  if(frame===5){c.globalCompositeOperation='source-atop';rect(c,0,0,80,112,'rgba(255,228,182,.5)');}
+  return textureFrom(canvas);
+}
+
 function drawShadowEnemy(type,frame){
   const[canvas,c]=canvas2d(80,112),dead=frame===6,marked=type==='hydra-marked';
   if(dead){poly(c,[[6,104],[20,93],[58,95],[75,108],[14,111]],'#334654');rect(c,20,101,41,4,'#657880');return textureFrom(canvas);}
@@ -671,7 +967,8 @@ function solidLandmarkPanels(level,types){
     for(let cz=Math.floor(z1);cz<Math.ceil(z2);cz++)for(let cx=Math.floor(x1);cx<Math.ceil(x2);cx++)if(level.grid[cz]?.[cx]!=='#')blocked=false;
     if(!blocked)continue; // Artwork must never invent solid cover on playable cells.
     for(const face of[{x:x1-.012,z,dx:1,dz:0,width:depth},{x:x2+.012,z,dx:-1,dz:0,width:depth},{x,z:z1-.012,dx:0,dz:1,width},{x,z:z2+.012,dx:0,dz:-1,width}]){
-      panels.push({...face,id:item.id,type:item.type,palette:gardenPalette(item,level),view:(item.axis==='z'?face.dx:face.dz)?'side':'end',height:item.type==='root-mass'?3.7:item.type==='glass-lab'?2.85:WALL_HEIGHT,bottom:0});
+      const shadowDistrict=level.shadow?(level.zones||[]).find(zone=>x>=zone.x1&&x<zone.x2&&z>=zone.z1&&z<zone.z2)?.id:null;
+      panels.push({...face,id:item.id,type:item.type,palette:gardenPalette(item,level),shadowDistrict,view:(item.axis==='z'?face.dx:face.dz)?'side':'end',height:level.shadow?WALL_HEIGHT:item.type==='root-mass'?3.7:item.type==='glass-lab'?2.85:WALL_HEIGHT,bottom:0});
     }
   }
   return panels;
@@ -679,9 +976,9 @@ function solidLandmarkPanels(level,types){
 
 const yardLandmarkPanels=level=>solidLandmarkPanels(level,['freight-car','transformer','security-cabin']);
 const gardenLandmarkPanels=level=>solidLandmarkPanels(level,GARDEN_LANDMARKS);
-const allLandmarkPanels=level=>[...yardLandmarkPanels(level),...gardenLandmarkPanels(level),...solidLandmarkPanels(level,['shadow-arch','shadow-obelisk','shadow-sun']),...solidLandmarkPanels(level,['sealed-crate','sleep-pod','tape-vault','listening-array'])];
-const landmarkKey=panel=>GARDEN_LANDMARKS.includes(panel.type)?`${panel.type}:${panel.type==='glass-lab'?panel.view:'shared'}:${panel.palette}`:`${panel.type}:${panel.view}`;
-const landmarkTexture=panel=>panel.type.startsWith('shadow-')?makeShadowLandmark(panel.type):['sealed-crate','sleep-pod','tape-vault','listening-array'].includes(panel.type)?makeHollowLandmarkTexture(panel.type):GARDEN_LANDMARKS.includes(panel.type)?makeGardenLandmarkTexture(panel.type,panel.view,panel.palette):makeLandmarkTexture(panel.type,panel.view);
+const allLandmarkPanels=level=>[...yardLandmarkPanels(level),...gardenLandmarkPanels(level),...solidLandmarkPanels(level,['shadow-arch','shadow-obelisk','shadow-sun',...Object.keys(SHADOW_PALETTES).map(id=>`shadow-${id}`)]),...solidLandmarkPanels(level,['sealed-crate','sleep-pod','tape-vault','listening-array'])];
+const landmarkKey=panel=>panel.shadowDistrict?`${panel.shadowDistrict}:${GARDEN_LANDMARKS.includes(panel.type)?`${panel.type}:${panel.palette}`:panel.type==='shadow-sun'?'sun':'facade'}`:GARDEN_LANDMARKS.includes(panel.type)?`${panel.type}:${panel.type==='glass-lab'?panel.view:'shared'}:${panel.palette}`:`${panel.type}:${panel.view}`;
+const landmarkTexture=panel=>panel.shadowDistrict&&!GARDEN_LANDMARKS.includes(panel.type)?makeShadowDistrictLandmark(panel.type,panel.shadowDistrict):panel.type.startsWith('shadow-')?makeShadowLandmark(panel.type):['sealed-crate','sleep-pod','tape-vault','listening-array'].includes(panel.type)?makeHollowLandmarkTexture(panel.type):GARDEN_LANDMARKS.includes(panel.type)?makeGardenLandmarkTexture(panel.type,panel.view,panel.palette,panel.shadowDistrict):makeLandmarkTexture(panel.type,panel.view);
 
 function destinationPanels(level){
   const labels=new Map((level.doors||[]).filter(door=>door.destinationLabel).map(door=>[door.id,{label:door.destinationLabel,mark:level.signCode||'SW 15'}]));
@@ -736,6 +1033,7 @@ function makeYardGroundDetails(level){
 function gardenPalette(item,level){
   if(GARDEN_PALETTES[item.palette])return item.palette;
   const zone=(level.zones||[]).find(zone=>item.x>=zone.x1&&item.x<zone.x2&&item.z>=zone.z1&&item.z<zone.z2);
+  if(level.shadow)return zone?.id==='hydra'?'green':zone?.id==='null'?'cyan':'amber';
   return GARDEN_PALETTES[zone?.palette]?zone.palette:'cyan';
 }
 
@@ -791,7 +1089,7 @@ function makeGardenFloorTexture(name,ceiling=false){
   return textureFrom(canvas,true);
 }
 
-function makeGardenLandmarkTexture(type,view='side',name='green'){
+function makeGardenLandmarkTexture(type,view='side',name='green',shadowDistrict=null){
   const[canvas,c]=canvas2d(192,144),p=GARDEN_PALETTES[name]||GARDEN_PALETTES.green;
   rect(c,0,0,192,144,p.dark);
   if(type==='glass-lab'){
@@ -804,7 +1102,7 @@ function makeGardenLandmarkTexture(type,view='side',name='green'){
     }
     for(const y of[12,106,131]){rect(c,0,y,192,6,p.trim);rect(c,0,y+5,192,2,p.dark);}
     rect(c,7,2,178,7,'#d3e6c1');rect(c,69,113,54,13,p.dark);
-    c.textAlign='center';c.font='bold 8px monospace';c.fillStyle=p.accent;c.fillText(view==='side'?'CULTURE / 17':'BOTANY',96,123);
+    c.textAlign='center';c.font='bold 8px monospace';c.fillStyle=p.accent;c.fillText(shadowDistrict==='null'?'STILLGLASS / 21':shadowDistrict?'GRAFT / 21':view==='side'?'CULTURE / 17':'BOTANY',96,123);
   }else if(type==='root-mass'){
     rect(c,0,0,192,144,'#273f36');
     for(let n=0;n<22;n++){
@@ -825,7 +1123,7 @@ function makeGardenLandmarkTexture(type,view='side',name='green'){
     for(let x=10;x<185;x+=16){rect(c,x,101,10,33,p.panel);rect(c,x,102,2,31,p.trim);}
     for(let n=0;n<11;n++)gardenLeaves(c,9+n*17,81,48+hash(n,4)*27,p.leaf,n+9);
     for(const x of[26,85,147]){rect(c,x,38,7,14,'#eee6b0');rect(c,x-5,43,17,5,name==='violet'?'#e0a0d5':'#eec77d');}
-    rect(c,68,103,56,23,p.dark);c.textAlign='center';c.font='bold 10px monospace';c.fillStyle=p.trim;c.fillText('GH / 17',96,119);
+    rect(c,68,103,56,23,p.dark);c.textAlign='center';c.font='bold 10px monospace';c.fillStyle=p.trim;c.fillText(shadowDistrict?'ROOT / 21':'GH / 17',96,119);
   }else if(type==='pump-bank'){
     rect(c,4,25,184,112,'#616d64');rect(c,5,28,182,7,'#c4c2a0');
     for(const x of[33,96,160]){
@@ -845,12 +1143,19 @@ function makeGardenLandmarkTexture(type,view='side',name='green'){
     rect(c,67,39,58,17,'#274b58');c.textAlign='center';c.font='bold 9px monospace';c.fillStyle='#c6efcf';c.fillText('IRRIGATION',96,51);
     rect(c,147,42,17,64,'#233e49');rect(c,151,46,9,55,'#b4ddc4');rect(c,153,69,5,31,'#4a9eb1');
   }
+  if(shadowDistrict==='null'){
+    for(const x of[17,173]){rect(c,x,15,3,111,'#d6b5e8');rect(c,x-3,32,9,3,'#d1ffff');}
+    poly(c,[[10,65],[72,26],[76,32],[12,74]],'rgba(207,248,245,.35)');
+  }else if(shadowDistrict==='hydra'){
+    for(const x of[28,144])poly(c,[[x,140],[x+8,107],[x+3,78],[x+18,53],[x+22,57],[x+10,82],[x+15,108],[x+7,141]],'#b9c196');
+    for(const[x,y]of[[35,86],[150,63],[93,38]]){rect(c,x,y,7,10,'#e8c88f');rect(c,x+2,y+2,3,6,'#28423e');}
+  }
   return textureFrom(canvas);
 }
 
 function makeGardenGroundDetails(level){
   const scale=8,[canvas,c]=canvas2d(level.width*scale,level.height*scale),waterCells=new Uint8Array(level.width*level.height),areas=[];
-  const open=(x,z)=>!!level.grid[z]?.[x]&&level.grid[z][x]!=='#';
+  const open=(x,z)=>!!level.grid[z]?.[x]&&level.grid[z][x]!=='#'&&(!level.shadow||!(level.platformRooms||[]).some(room=>x+.5>=room.x1&&x+.5<room.x2&&z+.5>=room.z1&&z+.5<room.z2));
   for(const area of level.gardenZones||[]){
     const x1=area.x-area.width/2,x2=area.x+area.width/2,z1=area.z-area.depth/2,z2=area.z+area.depth/2;
     const cells=[];
@@ -891,6 +1196,7 @@ function makeWaterHighlightsTexture(){
 }
 
 function makeStationTexture(item,mode){
+  if(item.type==='shadow-puzzle')return makeShadowPuzzleTexture(item,mode);
   if(item.type==='jump'){
     const[canvas,c]=canvas2d(112,160),color=mode?'#a9edb4':'#d89a5b';
     rect(c,24,139,64,14,'#526575');rect(c,46,94,20,45,'#263944');rect(c,18,22,76,79,'#182c38');rect(c,22,26,68,4,color);
@@ -942,6 +1248,61 @@ function makeStationTexture(item,mode){
   return textureFrom(canvas);
 }
 
+function makeShadowPuzzleTexture(item,mode){
+  const[canvas,c]=canvas2d(112,160),color=mode===2?'#c2efad':mode===1?'#f5cd84':'#8394b1';
+  rect(c,15,142,82,13,'#293e4a');rect(c,27,96,58,47,'#435b64');
+  for(const x of[29,77])rect(c,x,99,4,39,'#a8b8b5');
+  poly(c,[[15,24],[28,10],[84,10],[98,24],[98,101],[15,101]],'#20343f');
+  rect(c,21,27,70,64,'#102834');rect(c,21,27,70,4,color);rect(c,21,87,70,4,color);
+  if(item.effect==='flow'){
+    c.strokeStyle=color;c.lineWidth=6;c.beginPath();c.arc(56,58,22,0,Math.PI*2);c.stroke();
+    for(let n=0;n<4;n++){const a=n*Math.PI/2;poly(c,[[53,55],[56+Math.cos(a)*21,58+Math.sin(a)*21],[59,61]],color);}
+    rect(c,52,54,8,8,'#d3e7da');
+  }else if(item.effect==='latch'){
+    const gap=mode===2?0:8;
+    poly(c,[[29,39],[44,39],[44,48],[39,48],[39,69],[49-gap,69],[49-gap,78],[29,78]],color);
+    poly(c,[[83,39],[68,39],[68,48],[73,48],[73,69],[63+gap,69],[63+gap,78],[83,78]],color);
+    rect(c,51,42,10,31,mode===2?'#d5f1bf':'#536978');
+  }else if(item.effect==='restore'){
+    for(const x of[27,73]){rect(c,x,48,12,29,color);rect(c,x-2,76,16,6,color);}
+    for(let n=0;n<4;n++)rect(c,39+n*8,mode===2?53:43+n%2*13,7,7,mode===2?color:'#81929d');
+    if(mode===2)rect(c,29,61,54,3,color);
+  }else{
+    for(const x of[29,75]){rect(c,x,40,8,36,color);rect(c,x-3,36,14,7,color);}
+    rect(c,37,54,15,5,color);rect(c,61,54,14,5,color);
+    if(mode===2)rect(c,50,54,14,5,color);else poly(c,[[57,39],[49,59],[57,59],[52,76],[66,51],[58,51]],color);
+  }
+  if(mode===0){rect(c,48,49,16,17,'#273948');rect(c,51,43,10,8,'#273948');rect(c,53,53,6,7,color);}
+  c.font='bold 9px monospace';c.fillStyle=color;c.textAlign='center';
+  c.fillText(mode===2?'LINK COMPLETE':mode===1?'READY':'AWAITING LINK',56,116);
+  const caption=mode===2?({flow:'FLOW VALVE OPEN',latch:'PRESSURE LATCHED',restore:'RETURN WALK RAISED',circuit:'ISLAND STABLE'}[item.effect]||'ROUTE RESTORED'):item.controlLabel||item.label||'COURSE CONTROL';
+  c.font='bold 8px monospace';c.fillText(caption.toUpperCase().slice(0,18),56,131);
+  return textureFrom(canvas);
+}
+
+function makeTraversalSignal(kind){
+  const[canvas,c]=canvas2d(64,64),color=kind==='route-ready'||kind==='course-done'?'#c2f1bc':kind==='route-locked'?'#d7b4ed':'#f5cb8f';
+  c.strokeStyle=color;c.lineWidth=3;c.beginPath();c.arc(32,32,25,0,Math.PI*2);c.stroke();
+  if(kind.startsWith('route-wait-')){c.font='bold 31px monospace';c.fillStyle=color;c.textAlign='center';c.fillText(kind.slice(-1),32,43);}
+  else if(kind==='route-ready')poly(c,[[17,32],[28,32],[28,16],[36,16],[36,32],[47,32],[32,49]],color);
+  else if(kind==='course-done')poly(c,[[14,32],[21,26],[29,35],[44,17],[51,23],[29,49]],color);
+  else if(kind==='route-locked'){rect(c,21,28,22,22,color);rect(c,25,17,14,13,color);rect(c,29,21,6,8,'#233744');rect(c,29,34,6,9,'#233744');}
+  else{for(const x of[17,40])rect(c,x,20,7,26,color);rect(c,24,29,16,7,color);}
+  return textureFrom(canvas);
+}
+
+function makePlatformTexture(timed){
+  const[canvas,c]=canvas2d(64,64);
+  rect(c,0,0,64,64,'#b3b9bc');rect(c,4,4,56,56,'#485866');rect(c,8,8,48,48,'#596976');
+  for(let y=13;y<55;y+=10){rect(c,9,y,46,2,'#344652');rect(c,9,y+2,46,1,'#7d8d94');}
+  if(timed){
+    for(let n=0;n<64;n+=12){poly(c,[[n,0],[n+6,0],[n+10,4],[n+4,4]],'#334a55');poly(c,[[n,60],[n+6,60],[n+10,64],[n+4,64]],'#334a55');}
+    for(const x of[0,60])for(let y=8;y<60;y+=12)rect(c,x,y,4,6,'#334a55');
+    poly(c,[[22,24],[42,24],[33,32],[42,40],[22,40],[31,32]],'#c9dedc');
+  }else for(const x of[2,58])for(const y of[2,58])rect(c,x,y,4,4,'#eff1e4');
+  return textureFrom(canvas);
+}
+
 function drawEncounterEnemy(type,frame){
   const[canvas,c]=canvas2d(80,112),sentry=type.startsWith('sentry'),angry=type==='sentry-hostile',attack=frame===4,step=frame<4?[0,3,0,-3][frame]:0;
   const accent=sentry?(angry?'#f08a63':'#ecd28a'):'#d5bbff';
@@ -989,6 +1350,7 @@ function drawEncounterEnemy(type,frame){
 }
 
 function drawEnemy(type, frame) {
+  if(shadowEnemyType(type))return drawShadowHunter(type,frame);
   if(['hydra','hydra-marked','turret','mortar'].includes(type))return drawShadowEnemy(type,frame);
   if(type.startsWith('bulwark')||type.startsWith('mender'))return drawGardenEnemy(type,frame);
   if(type==='echo')return makeEchoEnemy(frame);
@@ -1494,6 +1856,7 @@ class WebGLBreachRenderer {
     this.phaseEchoMap=this.texture(makePhaseEcho());this.stunMap=this.texture(makeStunTexture());
     this.grenadeMaps=Array.from({length:4},(_,frame)=>this.texture(makeGrenadeTexture(frame)));
     this.combatMaps=Object.fromEntries(['heal-windup','heal','heal-interrupt','shield-hit','explosion'].map(kind=>[kind,this.texture(makeCombatSignal(kind))]));
+    if(this.visuals.shadow)for(const kind of TRAVERSAL_SIGNALS)this.combatMaps[kind]=this.texture(makeTraversalSignal(kind));
     this.buildEnvironment();this.resize();
   }
 
@@ -1526,7 +1889,8 @@ class WebGLBreachRenderer {
   solid(x,z){return this.game.level.grid[z]?.[x]==='#'||!this.game.level.grid[z]?.[x];}
 
   buildEnvironment(){
-    const level=this.game.level,layout=this.layout,underworks=this.visuals.underworks,garden=this.visuals.glasshouse;
+    const level=this.game.level,layout=this.layout,underworks=this.visuals.underworks,garden=this.visuals.glasshouse,shadow=this.visuals.shadow;
+    const gardenSpace=garden||shadow&&!!level.gardenZones?.length;
     const transform=new THREE.Object3D(),color=new THREE.Color();
     const install=(geometry,material,cells,place,tint=false)=>{
       const mesh=new THREE.InstancedMesh(geometry,material,cells.length);
@@ -1540,15 +1904,15 @@ class WebGLBreachRenderer {
     };
     const wallGeometry=this.geometry(new THREE.PlaneGeometry(1,WALL_HEIGHT));
     const wallMaterials=layout.names.map(name=>this.material(new THREE.MeshBasicMaterial({
-      map:this.texture(garden?makeGardenWallTexture(name):underworks?makeSectorWallTexture(name):this.visuals.switchyard?makeYardWallTexture():makeWallTexture(0,this.visuals.relay,this.visuals.crosslink)),
-      color:garden?0xf0f4dd:underworks?0xd1d5c8:this.visuals.crosslink?0xc7cabc:this.visuals.relay?0xc3cedb:0xb5c4c1,
+      map:this.texture(shadow?makeShadowWallTexture(name):garden?makeGardenWallTexture(name):underworks?makeSectorWallTexture(name):this.visuals.switchyard?makeYardWallTexture():makeWallTexture(0,this.visuals.relay,this.visuals.crosslink)),
+      color:shadow?0xeee9de:garden?0xf0f4dd:underworks?0xd1d5c8:this.visuals.crosslink?0xc7cabc:this.visuals.relay?0xc3cedb:0xb5c4c1,
     })));
     for(const cells of batches(layout.walls,cell=>`${cell.chunk}:${cell.palette}`))install(wallGeometry,wallMaterials[cells[0].palette],cells,(cell,t)=>{t.position.set(cell.x,WALL_HEIGHT/2,cell.z);t.rotation.y=cell.rot;},true);
 
     if(underworks||garden){
       for(const ceiling of[false,true]){
-        const materials=layout.names.map(name=>this.material(new THREE.MeshBasicMaterial({map:this.texture(garden?makeGardenFloorTexture(name,ceiling):makeSectorFloorTexture(name,ceiling)),color:garden?ceiling?0xe4edcf:0xd0ddbe:ceiling?0x9ca9a6:0xb4bdb0})));
-        for(const runs of batches(layout.runs,run=>`${run.chunk}:${run.palette}`)){
+        const materials=layout.names.map(name=>this.material(new THREE.MeshBasicMaterial({map:this.texture(shadow?makeShadowFloorTexture(name,ceiling):garden?makeGardenFloorTexture(name,ceiling):makeSectorFloorTexture(name,ceiling)),color:shadow?ceiling?0xc4cccf:0xd2d1c8:garden?ceiling?0xe4edcf:0xd0ddbe:ceiling?0x9ca9a6:0xb4bdb0})));
+        for(const runs of batches(layout.runs.filter(run=>ceiling||!run.pit),run=>`${run.chunk}:${run.palette}`)){
           const mesh=this.mesh(this.geometry(horizontalGeometry(runs,ceiling?this.ceilingHeight:0,ceiling)),materials[runs[0].palette]);this.staticBatches.push(mesh);
         }
       }
@@ -1564,34 +1928,45 @@ class WebGLBreachRenderer {
       this.staticBatches.push(floor,ceiling);
     }
     this.groundPaths=[];
-    if(this.visuals.switchyard||this.visuals.hollow||garden){
-      const details=garden?makeGardenGroundDetails(level):makeYardGroundDetails(level);this.groundPaths=details.paths||[];
+    if(this.visuals.switchyard||this.visuals.hollow||gardenSpace){
+      const details=gardenSpace?makeGardenGroundDetails(level):makeYardGroundDetails(level);this.groundPaths=details.paths||[];
       const floorDetails=this.mesh(this.geometry(new THREE.PlaneGeometry(level.width,level.height)),this.material(new THREE.MeshBasicMaterial({map:this.texture(details.texture),transparent:true,depthWrite:false,alphaTest:.08})),level.width/2,.012,level.height/2);
       floorDetails.rotation.x=-Math.PI/2;this.staticBatches.push(floorDetails);
-      if(garden){
+      if(gardenSpace){
         this.gardenDetails=details;this.waterMap=this.texture(makeWaterHighlightsTexture());
         const water=this.mesh(this.geometry(horizontalGeometry(details.waterRuns,.022)),this.material(new THREE.MeshBasicMaterial({map:this.waterMap,transparent:true,depthWrite:false,opacity:.5})));
         this.staticBatches.push(water);this.stats.waterCells=details.waterCells.reduce((sum,value)=>sum+value,0);
       }
     }
     this.shadowPlatforms=[];
+    const padGeometry=level.platformRooms?.length?this.geometry(new THREE.BoxGeometry(1,.18,1)):null;
+    const padMaps=level.platformRooms?.length?[false,true].map(timed=>this.texture(makePlatformTexture(timed))):[];
+    const pitSideGeometry=level.platformRooms?.length?this.geometry(new THREE.PlaneGeometry(1,1.4)):null;
+    const pitMaterial=level.platformRooms?.length?this.material(new THREE.MeshBasicMaterial({color:0x161e2c,side:THREE.DoubleSide})):null;
     for(const room of level.platformRooms||[]){
-      const pit=this.mesh(this.geometry(new THREE.PlaneGeometry(room.x2-room.x1,room.z2-room.z1)),this.material(new THREE.MeshBasicMaterial({color:0x020308})),(room.x1+room.x2)/2,.025,(room.z1+room.z2)/2);pit.rotation.x=-Math.PI/2;this.staticBatches.push(pit);
+      const cx=(room.x1+room.x2)/2,cz=(room.z1+room.z2)/2,width=room.x2-room.x1,depth=room.z2-room.z1;
+      const pit=this.mesh(this.geometry(new THREE.PlaneGeometry(width,depth)),this.material(new THREE.MeshBasicMaterial({color:room.puzzleKind==='flow'?0x102c35:0x020308})),cx,-1.4,cz);pit.rotation.x=-Math.PI/2;this.staticBatches.push(pit);
+      if(room.puzzleKind==='flow'&&this.waterMap){
+        const water=this.mesh(this.geometry(horizontalGeometry([{x1:room.x1,x2:room.x2,z:room.z1,z2:room.z2}],-1.35)),this.material(new THREE.MeshBasicMaterial({map:this.waterMap,transparent:true,depthWrite:false,opacity:.45})));this.staticBatches.push(water);
+      }
+      for(const[x,z,span,rotation]of[[cx,room.z1,width,0],[cx,room.z2,width,0],[room.x1,cz,depth,Math.PI/2],[room.x2,cz,depth,Math.PI/2]]){
+        const side=this.mesh(pitSideGeometry,pitMaterial,x,-.7,z);side.scale.x=span;side.rotation.y=rotation;this.staticBatches.push(side);
+      }
       for(const pad of room.platforms){
-        const mat=this.material(new THREE.MeshBasicMaterial({color:0x83bba7}));
-        const mesh=this.mesh(this.geometry(new THREE.BoxGeometry(pad.x2-pad.x1,.18,pad.z2-pad.z1)),mat,(pad.x1+pad.x2)/2,.08,(pad.z1+pad.z2)/2);
+        const mat=this.material(new THREE.MeshBasicMaterial({map:padMaps[Number(!!pad.period)],color:0xa8bacb}));
+        const mesh=this.mesh(padGeometry,mat,(pad.x1+pad.x2)/2,-.09,(pad.z1+pad.z2)/2);mesh.scale.set(pad.x2-pad.x1,1,pad.z2-pad.z1);
         this.shadowPlatforms.push({pad,mesh,mat});this.staticBatches.push(mesh);
       }
     }
     const lightGeometry=this.geometry(new THREE.BoxGeometry(.62,.065,.045));
-    const lightMaterials=layout.names.map(name=>[this.material(new THREE.MeshBasicMaterial({color:garden?GARDEN_PALETTES[name].light:underworks?SECTORS[name].light:this.visuals.crosslink?0x7be1c5:this.visuals.relay?0xb4c8eb:0x8bd6ce})),this.material(new THREE.MeshBasicMaterial({color:0xea9752}))]);
+    const lightMaterials=layout.names.map(name=>[this.material(new THREE.MeshBasicMaterial({color:shadow?SHADOW_PALETTES[name].light:garden?GARDEN_PALETTES[name].light:underworks?SECTORS[name].light:this.visuals.crosslink?0x7be1c5:this.visuals.relay?0xb4c8eb:0x8bd6ce})),this.material(new THREE.MeshBasicMaterial({color:0xea9752}))]);
     for(const cells of batches(layout.lights,cell=>`${cell.chunk}:${cell.palette}:${cell.warm}`))install(lightGeometry,lightMaterials[cells[0].palette][Number(cells[0].warm)],cells,(cell,t)=>{t.position.set(cell.x,2.12,cell.z);t.rotation.y=cell.rot;});
     const beamGeometry=this.geometry(new THREE.BoxGeometry(1,.13,.16));
-    const beamMaterials=layout.names.map(name=>this.material(new THREE.MeshBasicMaterial({color:garden?GARDEN_PALETTES[name].trim:underworks?SECTORS[name].dark:0x293b44})));
+    const beamMaterials=layout.names.map(name=>this.material(new THREE.MeshBasicMaterial({color:shadow?SHADOW_PALETTES[name].dark:garden?GARDEN_PALETTES[name].trim:underworks?SECTORS[name].dark:0x293b44})));
     for(const cells of batches(layout.rails,cell=>`${cell.chunk}:${cell.palette}`))install(beamGeometry,beamMaterials[cells[0].palette],cells,(cell,t)=>{t.position.set(cell.x,garden?this.ceilingHeight-.14:2.35,cell.z);t.scale.set(cell.width,1,1);});
     this.canopyVisuals=[];
-    if(garden){
-      const supports=layout.lights.filter((cell,index)=>index%3===0),supportGeometry=this.geometry(new THREE.BoxGeometry(.11,this.ceilingHeight,.11));
+    if(gardenSpace){
+      const supports=garden?layout.lights.filter((cell,index)=>index%3===0):[],supportGeometry=this.geometry(new THREE.BoxGeometry(.11,this.ceilingHeight,.11));
       for(const cells of batches(supports,cell=>`${cell.chunk}:${cell.palette}`)){
         const mesh=install(supportGeometry,beamMaterials[cells[0].palette],cells,(cell,t)=>{t.position.set(cell.x,this.ceilingHeight/2,cell.z);});this.canopyVisuals.push(mesh);
       }
@@ -1648,7 +2023,7 @@ class WebGLBreachRenderer {
       }
     }
     if(!candidate)return;
-    const map=this.texture(makeSign(zoneTitle(zone,this.visuals),`${this.visuals.signCode} / SECTOR ${String(index+1).padStart(2,'0')}`,this.visuals.glasshouse?GARDEN_PALETTES[zone.palette]?.accent||this.visuals.signColor:this.visuals.underworks?SECTORS[zone.palette]?.accent||this.visuals.signColor:this.visuals.signColor));
+    const map=this.texture(makeSign(zoneTitle(zone,this.visuals),`${this.visuals.signCode} / SECTOR ${String(index+1).padStart(2,'0')}`,this.visuals.shadow?SHADOW_PALETTES[zone.id]?.accent:this.visuals.glasshouse?GARDEN_PALETTES[zone.palette]?.accent||this.visuals.signColor:this.visuals.underworks?SECTORS[zone.palette]?.accent||this.visuals.signColor:this.visuals.signColor));
     const sign=this.mesh(this.geometry(new THREE.PlaneGeometry(this.visuals.underworks?1.15:.88,this.visuals.underworks?.36:.275)),this.material(new THREE.MeshBasicMaterial({map})),candidate.x,1.83,candidate.z);
     sign.rotation.y=candidate.rotation;
   }
@@ -1656,8 +2031,8 @@ class WebGLBreachRenderer {
   addFeature(item){
     if(explorationFeature(item)){
       const key=stationKey(item);
-      if(!this.stationMaps.has(key))this.stationMaps.set(key,Array.from({length:['transit','shutter-switch'].includes(item.type)?3:2},(_,mode)=>this.texture(makeStationTexture(item,mode))));
-      const maps=this.stationMaps.get(key),sprite=new THREE.Sprite(this.material(new THREE.SpriteMaterial({map:maps[featureMode(item,this.game.state)],transparent:true,alphaTest:.18})));
+      if(!this.stationMaps.has(key))this.stationMaps.set(key,Array.from({length:['transit','shutter-switch','shadow-puzzle'].includes(item.type)?3:2},(_,mode)=>this.texture(makeStationTexture(item,mode))));
+      const maps=this.stationMaps.get(key),sprite=new THREE.Sprite(this.material(new THREE.SpriteMaterial({map:maps[featureMode(item,this.game.state,this.game)],transparent:true,alphaTest:.18})));
       sprite.center.set(.5,0);sprite.position.set(item.x,.015,item.z);sprite.scale.set(1.19,1.7,1);this.scene.add(sprite);
       this.featureVisuals.set(item.id,{sprite,maps,type:item.type,station:true});return;
     }
@@ -1758,7 +2133,11 @@ class WebGLBreachRenderer {
     const bob=reduced||state.status!=='playing'?0:Math.sin(this.bobPhase)*this.moveAmount*.025;
     this.camera.position.set(p.x,EYE_HEIGHT+bob+(p.elevation||0)*(reduced?.4:1),p.z);this.camera.rotation.set(0,-angle,0);
     if(state.status==='dead'||p.alive===false||p.health<=0)this.camera.position.y=.65;
-    for(const {pad,mesh,mat} of this.shadowPlatforms||[]){const solid=platformSolid(pad,state.time);mesh.position.y=solid?.08:-.14;mat.color.setHex(solid?(pad.period?0x76dec3:0x748c98):0x372331);}
+    shadowAtmosphere(this,p);
+    for(const visual of this.shadowPlatforms||[]){
+      const view=shadowPadState(visual.pad,state);visual.view=view;
+      visual.mesh.visible=view.solid;visual.mesh.position.y=view.solid?-.09:-1.51;visual.mat.color.set(view.color);
+    }
     this.updateEntities(dt,advancing);
     if(this.waterMap){const time=this.options.reducedMotion?0:this.clock;this.waterMap.offset.set(time*.025,time*.013);}
     this.renderer.render(this.scene,this.camera);
@@ -1788,9 +2167,9 @@ class WebGLBreachRenderer {
       if(advancing)visual.phase+=dt*(speed>.05?8:2);
       let frame=speed>.05?Math.floor(visual.phase)%4:0;
       const close=Math.hypot(enemy.x-state.player.x,enemy.z-state.player.z)<1.7;
-      if(close&&!['sentry','bulwark','mender'].includes(enemy.type)&&enemy.active!==false&&Math.sin(this.clock*5+enemy.x)>.4)frame=4;
+      if(close&&!['sentry','bulwark','mender',...SHADOW_ENEMY_TYPES].includes(enemy.type)&&enemy.active!==false&&Math.sin(this.clock*5+enemy.x)>.4)frame=4;
       if(enemy.type==='spitter'&&enemy.attackCooldown>.8&&Math.sin(this.clock*5)>.5)frame=4;
-      if(enemy.telegraph||enemy.bossPhase==='charge')frame=4;
+      if(enemy.telegraph||enemy.bossPhase==='charge'||enemy.shadowPhase==='lunge')frame=4;
       if(enemy.guardian&&enemy.bossPhase==='recover')frame=0;
       const stunned=!enemy.guardian&&enemy.stunTimer>0&&!dead;
       if(stunned)frame=0;
@@ -1799,7 +2178,7 @@ class WebGLBreachRenderer {
       const maps=this.getEnemyFrames(enemyArt(enemy,state.player));
       visual.sprite.material.map=maps[frame];
       const height=enemyHeight(enemy);
-      visual.sprite.position.set(enemy.x,.015,enemy.z);visual.sprite.scale.set(height*80/112,height,1);
+      visual.sprite.position.set(enemy.x,enemyBottom(enemy),enemy.z);visual.sprite.scale.set(enemyWidth(enemy),height,1);
       visual.shadow.position.set(enemy.x,.008,enemy.z);
       visual.shadow.scale.setScalar(enemy.type==='brute'?1.3:1);
       visual.sprite.material.color.setHex(dead?0x9aa6a5:enemy.contained?0x9edfd5:0xffffff);
@@ -1829,7 +2208,7 @@ class WebGLBreachRenderer {
     for(const [id,feature]of this.featureVisuals){
       const entity=featureEntities.get(id);if(!entity)continue;
       const visible=inEntityRange(entity,state.player,this.entityRange);(feature.group||feature.sprite).visible=visible;
-      if(feature.station){if(visible)feature.sprite.material.map=feature.maps[featureMode(entity,state)];continue;}
+      if(feature.station){if(visible)feature.sprite.material.map=feature.maps[featureMode(entity,state,this.game)];continue;}
       if(!feature.beacon||!visible)continue;
       const on=feature.type==='power'?state.power:feature.type==='relay'?!!entity?.used:exitReady(state);
       feature.screen.material.map=on?feature.maps.on:feature.maps.off;
@@ -1859,38 +2238,48 @@ class WebGLBreachRenderer {
   }
 
   updateEncounterCues(){
-    const cues=encounterCues(this.game.state).filter(cue=>inEntityRange(cue,this.game.state.player,this.entityRange));
-    this.stats.encounterCues=cues.length;
-    if(!this.cueRingGeometry){this.cueRingGeometry=this.geometry(new THREE.RingGeometry(.90,1,32));this.cueBeamGeometry=this.geometry(new THREE.BoxGeometry(1,1,1));}
+    const combat=encounterCues(this.game.state).filter(cue=>inEntityRange(cue,this.game.state.player,this.entityRange)),guides=shadowGuideCues(this.game),cues=[...combat,...guides];
+    this.stats.encounterCues=combat.length;this.stats.shadowGuideCount=guides.length;
+    if(!this.cueRingGeometry){this.cueRingGeometry=this.geometry(new THREE.RingGeometry(.90,1,32));this.cueBeamGeometry=this.geometry(new THREE.BoxGeometry(1,1,1));this.cueFieldGeometry=this.geometry(new THREE.CircleGeometry(1,24));}
     for(let i=0;i<Math.max(cues.length,this.cueVisuals.length);i++){
       const cue=cues[i];let visual=this.cueVisuals[i];
-      if(!cue){visual.ring.visible=visual.beam.visible=visual.echo.visible=false;for(const piece of [...visual.arc||[],...visual.dots||[]])piece.visible=false;continue;}
+      if(!cue){visual.ring.visible=visual.beam.visible=visual.echo.visible=false;if(visual.field)visual.field.visible=false;for(const piece of [...visual.arc||[],...visual.dots||[],...visual.fan||[]])piece.visible=false;continue;}
       if(!visual){
         const ring=this.mesh(this.cueRingGeometry,this.material(new THREE.MeshBasicMaterial({color:0xffbd88,transparent:true,opacity:.65,depthWrite:false,side:THREE.DoubleSide})));ring.rotation.x=-Math.PI/2;
         const beam=this.mesh(this.cueBeamGeometry,this.material(new THREE.MeshBasicMaterial({color:0xffbd88,transparent:true,opacity:.3,depthWrite:false})));
         const echo=new THREE.Sprite(this.material(new THREE.SpriteMaterial({map:this.phaseEchoMap,transparent:true,opacity:.8,depthWrite:false,blending:THREE.AdditiveBlending})));
         echo.center.set(.5,0);this.scene.add(echo);visual={ring,beam,echo};this.cueVisuals.push(visual);
       }
-      const line=['charge','beam','shot','ricochet'].includes(cue.kind)||cue.kind==='heal'&&!cue.telegraph;
+      const ground=cue.kind==='charge'||cue.kind==='maw';
+      const line=ground||['beam','shot','ricochet'].includes(cue.kind)||cue.kind==='heal'&&!cue.telegraph||cue.kind==='tether'&&cue.active||cue.kind==='skimmer'&&!cue.fan;
       visual.ring.visible=!['beam','arc','ricochet','shield-hit','heal-interrupt'].includes(cue.kind);visual.beam.visible=line;
       visual.ring.position.set(cue.x,.035,cue.z);visual.ring.scale.setScalar(cue.radius);
-      visual.ring.material.color.set(cue.color);visual.ring.material.opacity=cue.telegraph?.38+.45*cue.progress:.6*cue.progress;
+      visual.ring.material.color.set(cue.color);visual.ring.material.opacity=cue.guide?.8:cue.kind==='cinder-field'?.45+.35*cue.progress:cue.telegraph?.38+.45*cue.progress:.6*cue.progress;
       if(line){
-        const length=Math.hypot(cue.x-cue.fromX,cue.z-cue.fromZ),charge=cue.kind==='charge';
-        visual.beam.position.set((cue.x+cue.fromX)/2,charge?.025:.96,(cue.z+cue.fromZ)/2);
+        const length=Math.hypot(cue.x-cue.fromX,cue.z-cue.fromZ);
+        visual.beam.position.set((cue.x+cue.fromX)/2,ground?.025:.96,(cue.z+cue.fromZ)/2);
         visual.beam.rotation.y=Math.atan2(cue.x-cue.fromX,cue.z-cue.fromZ);
-        visual.beam.scale.set(charge?cue.radius*1.6:cue.kind==='shot'?.025:cue.kind==='heal'?.075:.055,charge?.015:.025,Math.max(.01,length));
-        visual.beam.material.color.set(cue.color);visual.beam.material.opacity=charge?.14+.14*cue.progress:cue.kind==='shot'?.25:.9*cue.progress;
+        visual.beam.scale.set(ground?cue.radius*1.6:['shot','skimmer'].includes(cue.kind)?.025:cue.kind==='heal'?.075:.055,ground?.015:.025,Math.max(.01,length));
+        visual.beam.material.color.set(cue.color);visual.beam.material.opacity=ground?.14+.14*cue.progress:cue.kind==='tether'?.9:cue.kind==='skimmer'?.4+.4*cue.progress:cue.kind==='shot'?.25:.9*cue.progress;
       }
       const signal=cueBillboard(cue);visual.echo.visible=!!signal;
       if(signal){
         visual.echo.material.map=signal.map==='blink'?this.phaseEchoMap:this.combatMaps[signal.map];
-        visual.echo.position.set(signal.x,signal.bottom,signal.z);visual.echo.scale.set(signal.width,signal.height,1);visual.echo.material.opacity=cue.telegraph?.35+.5*cue.progress:.8*cue.progress;
+        visual.echo.position.set(signal.x,signal.bottom,signal.z);visual.echo.scale.set(signal.width,signal.height,1);visual.echo.material.opacity=cue.guide?.95:cue.telegraph?.35+.5*cue.progress:.8*cue.progress;
       }
-      if(cue.kind==='heal'&&cue.telegraph){
+      if(cue.kind==='route'||cue.kind==='heal'&&cue.telegraph||cue.kind==='tether'&&!cue.active){
         if(!visual.dots)visual.dots=Array.from({length:8},()=>this.mesh(this.cueBeamGeometry,this.material(new THREE.MeshBasicMaterial({color:0xc5ecac,transparent:true,opacity:.5,depthWrite:false}))));
-        visual.dots.forEach((piece,n)=>{const t=(n+1)/9;piece.visible=true;piece.position.set(cue.fromX+(cue.x-cue.fromX)*t,1.02,cue.fromZ+(cue.z-cue.fromZ)*t);piece.scale.set(.065,.065,.065);piece.material.opacity=.3+.4*cue.progress;});
+        visual.dots.forEach((piece,n)=>{const t=(n+1)/9;piece.visible=true;piece.position.set(cue.fromX+(cue.x-cue.fromX)*t,cue.guide?.06+Math.sin(Math.PI*t)*1.15:1.02,cue.fromZ+(cue.z-cue.fromZ)*t);piece.scale.set(cue.guide?.09:.065,.04,.065);piece.material.color.set(cue.color);piece.material.opacity=cue.guide?.8:.3+.4*cue.progress;});
       }else for(const piece of visual.dots||[])piece.visible=false;
+      if(cue.kind==='skimmer'&&cue.fan){
+        if(!visual.fan)visual.fan=Array.from({length:2},()=>this.mesh(this.cueBeamGeometry,this.material(new THREE.MeshBasicMaterial({color:0xa6eef0,transparent:true,depthWrite:false}))));
+        const endpoints=skimmerFan(cue);
+        visual.fan.forEach((piece,n)=>{const end=endpoints[n];piece.visible=true;piece.position.set((end.x+cue.fromX)/2,.96,(end.z+cue.fromZ)/2);piece.rotation.y=Math.atan2(end.x-cue.fromX,end.z-cue.fromZ);piece.scale.set(.025,.025,Math.max(.01,Math.hypot(end.x-cue.fromX,end.z-cue.fromZ)));piece.material.opacity=.4+.4*cue.progress;});
+      }else for(const piece of visual.fan||[])piece.visible=false;
+      if(cue.kind==='cinder-field'){
+        if(!visual.field){visual.field=this.mesh(this.cueFieldGeometry,this.material(new THREE.MeshBasicMaterial({color:0xe65e30,transparent:true,depthWrite:false,side:THREE.DoubleSide})));visual.field.rotation.x=-Math.PI/2;}
+        visual.field.visible=true;visual.field.position.set(cue.x,.028,cue.z);visual.field.scale.setScalar(cue.radius);visual.field.material.opacity=.22+.3*cue.progress;
+      }else if(visual.field)visual.field.visible=false;
       if(cue.kind==='arc'){
         if(!visual.arc)visual.arc=Array.from({length:4},()=>this.mesh(this.cueBeamGeometry,this.material(new THREE.MeshBasicMaterial({color:0x9bf0ed,transparent:true,depthWrite:false,opacity:.9}))));
         const dx=cue.x-cue.fromX,dz=cue.z-cue.fromZ,length=Math.max(.01,Math.hypot(dx,dz));
@@ -2051,6 +2440,7 @@ class SoftwareBreachRenderer {
     this.visuals=missionVisuals(game.level);
     this.ceilingHeight=this.visuals.glasshouse?4.2:WALL_HEIGHT;
     this.layout=surfaceLayout(game.level,this.visuals.underworks);this.stats={...this.layout.stats,viewDepth:VIEW_DEPTH,maxRaySteps:160};
+    this.shadowLayout=this.visuals.shadow?shadowSurfaceLayout(game.level):null;this.shadowPadViews=[];
     this.mode='software';this.isSoftware=true;this.clock=0;this.recoil=0;this.flash=0;
     this.bobPhase=0;this.moveAmount=0;this.weaponSwap=0;this.lastWeapon=game.state.player.weapon;
     this.lastX=game.state.player.x;this.lastZ=game.state.player.z;this.hitAt=new Map();this.impacts=[];
@@ -2069,15 +2459,16 @@ class SoftwareBreachRenderer {
     Object.assign(this.weaponCanvas.style,{position:'absolute',inset:'0',width:'100%',height:'100%',zIndex:'2',pointerEvents:'none',imageRendering:'pixelated'});
     canvas.parentElement.appendChild(this.weaponCanvas);this.weaponContext=this.weaponCanvas.getContext('2d');
     const image=(texture)=>{this.textures.push(texture);return texture.image;};
-    this.wallImages=this.layout.names.map(name=>image(this.visuals.glasshouse?makeGardenWallTexture(name):this.visuals.underworks?makeSectorWallTexture(name):this.visuals.switchyard?makeYardWallTexture():makeWallTexture(0,this.visuals.relay,this.visuals.crosslink)));
-    this.floorPixelsByPalette=this.layout.names.map(name=>image(this.visuals.glasshouse?makeGardenFloorTexture(name):this.visuals.underworks?makeSectorFloorTexture(name):(this.visuals.switchyard?makeYardFloorTexture():makeFloorTexture(false,this.visuals.relay,this.visuals.crosslink))).getContext('2d').getImageData(0,0,64,64).data);
-    this.ceilingPixelsByPalette=this.layout.names.map(name=>image(this.visuals.glasshouse?makeGardenFloorTexture(name,true):this.visuals.underworks?makeSectorFloorTexture(name,true):makeFloorTexture(true,this.visuals.relay,this.visuals.crosslink)).getContext('2d').getImageData(0,0,64,64).data);
+    this.wallImages=this.layout.names.map(name=>image(this.visuals.shadow?makeShadowWallTexture(name):this.visuals.glasshouse?makeGardenWallTexture(name):this.visuals.underworks?makeSectorWallTexture(name):this.visuals.switchyard?makeYardWallTexture():makeWallTexture(0,this.visuals.relay,this.visuals.crosslink)));
+    this.floorPixelsByPalette=this.layout.names.map(name=>image(this.visuals.shadow?makeShadowFloorTexture(name):this.visuals.glasshouse?makeGardenFloorTexture(name):this.visuals.underworks?makeSectorFloorTexture(name):(this.visuals.switchyard?makeYardFloorTexture():makeFloorTexture(false,this.visuals.relay,this.visuals.crosslink))).getContext('2d').getImageData(0,0,64,64).data);
+    this.ceilingPixelsByPalette=this.layout.names.map(name=>image(this.visuals.shadow?makeShadowFloorTexture(name,true):this.visuals.glasshouse?makeGardenFloorTexture(name,true):this.visuals.underworks?makeSectorFloorTexture(name,true):makeFloorTexture(true,this.visuals.relay,this.visuals.crosslink)).getContext('2d').getImageData(0,0,64,64).data);
     this.hazardPixels=this.visuals.underworks?[null,...['flood','conduit'].map(type=>image(makeHazardTexture(type)).getContext('2d').getImageData(0,0,64,64).data)]:[null];
     this.groundPaths=[];this.groundPixels=null;
-    if(this.visuals.switchyard||this.visuals.hollow||this.visuals.glasshouse){
-      const details=this.visuals.glasshouse?makeGardenGroundDetails(game.level):makeYardGroundDetails(game.level),map=image(details.texture);this.groundPaths=details.paths||[];
+    const gardenSpace=this.visuals.glasshouse||this.visuals.shadow&&!!game.level.gardenZones?.length;
+    if(this.visuals.switchyard||this.visuals.hollow||gardenSpace){
+      const details=gardenSpace?makeGardenGroundDetails(game.level):makeYardGroundDetails(game.level),map=image(details.texture);this.groundPaths=details.paths||[];
       this.groundWidth=map.width;this.groundHeight=map.height;this.groundPixels=map.getContext('2d').getImageData(0,0,map.width,map.height).data;
-      if(this.visuals.glasshouse){this.gardenDetails=details;this.waterPixels=image(makeWaterHighlightsTexture()).getContext('2d').getImageData(0,0,64,64).data;this.stats.waterCells=details.waterCells.reduce((sum,value)=>sum+value,0);}
+      if(gardenSpace){this.gardenDetails=details;this.waterPixels=image(makeWaterHighlightsTexture()).getContext('2d').getImageData(0,0,64,64).data;this.stats.waterCells=details.waterCells.reduce((sum,value)=>sum+value,0);}
     }
     this.doorImages={};this.doorRemnants={};
     for(const door of[{kind:'plain'},...game.state.doors]){
@@ -2093,12 +2484,13 @@ class SoftwareBreachRenderer {
     this.phaseEchoImage=image(makePhaseEcho());this.stunImage=image(makeStunTexture());
     this.grenadeImages=Array.from({length:4},(_,frame)=>image(makeGrenadeTexture(frame)));
     this.combatImages=Object.fromEntries(['heal-windup','heal','heal-interrupt','shield-hit','explosion'].map(kind=>[kind,image(makeCombatSignal(kind))]));
+    if(this.visuals.shadow)for(const kind of TRAVERSAL_SIGNALS)this.combatImages[kind]=image(makeTraversalSignal(kind));
     this.powerImages={off:this.featureImage('power',false),on:this.featureImage('power',true)};
     this.exitImages={off:this.featureImage('exit',false),on:this.featureImage('exit',true)};
     this.relayImages=new Map((game.state.interactables||[]).filter(item=>item.type==='relay').map(item=>[item.id,{off:this.featureImage('relay',false,relayTitle(item)),on:this.featureImage('relay',true,relayTitle(item))}]));
     this.stationImages=new Map();for(const item of game.state.interactables||[])if(explorationFeature(item)){
       const key=stationKey(item);
-      if(!this.stationImages.has(key))this.stationImages.set(key,Array.from({length:['transit','shutter-switch'].includes(item.type)?3:2},(_,mode)=>image(makeStationTexture(item,mode))));
+      if(!this.stationImages.has(key))this.stationImages.set(key,Array.from({length:['transit','shutter-switch','shadow-puzzle'].includes(item.type)?3:2},(_,mode)=>image(makeStationTexture(item,mode))));
     }
     this.secretImage=image(makeSign('MAINT.','AUTHORIZED STAFF','#87948d'));
     this.zoneSigns=[];
@@ -2111,7 +2503,7 @@ class SoftwareBreachRenderer {
           if(!best||score<best.score)best={x:x+.5+dx*.45,z:z+.5+dz*.45,dx,dz,score};
         }
       }
-      if(best)this.zoneSigns.push({...best,width:this.visuals.underworks?1.15:.88,height:this.visuals.underworks?.36:.275,bottom:this.visuals.underworks?1.65:1.69,image:image(makeSign(zoneTitle(zone,this.visuals),`${this.visuals.signCode} / SECTOR ${String(index+1).padStart(2,'0')}`,this.visuals.glasshouse?GARDEN_PALETTES[zone.palette]?.accent||this.visuals.signColor:this.visuals.underworks?SECTORS[zone.palette]?.accent||this.visuals.signColor:this.visuals.signColor))});
+      if(best)this.zoneSigns.push({...best,width:this.visuals.underworks?1.15:.88,height:this.visuals.underworks?.36:.275,bottom:this.visuals.underworks?1.65:1.69,image:image(makeSign(zoneTitle(zone,this.visuals),`${this.visuals.signCode} / SECTOR ${String(index+1).padStart(2,'0')}`,this.visuals.shadow?SHADOW_PALETTES[zone.id]?.accent:this.visuals.glasshouse?GARDEN_PALETTES[zone.palette]?.accent||this.visuals.signColor:this.visuals.underworks?SECTORS[zone.palette]?.accent||this.visuals.signColor:this.visuals.signColor))});
     }
     const landmarkImages=new Map();
     this.landmarkPanels=allLandmarkPanels(game.level).map(panel=>{
@@ -2124,7 +2516,7 @@ class SoftwareBreachRenderer {
     this.stats.textureSourceBytes=this.textures.reduce((sum,texture)=>sum+(texture.image?.width||0)*(texture.image?.height||0)*4,0);
     this.stats.textureSourceBytes+=(4+2*this.relayImages.size)*96*128*4;
     this.stats.textureReadbackBytes=[...this.floorPixelsByPalette,...this.ceilingPixelsByPalette,...this.hazardPixels.filter(Boolean)].reduce((sum,pixels)=>sum+pixels.byteLength,0)+(this.groundPixels?.byteLength||0)+(this.waterPixels?.byteLength||0);
-    this.stats.cellLookupBytes=this.layout.indices.byteLength+this.layout.hazards.byteLength;
+    this.stats.cellLookupBytes=this.layout.indices.byteLength+this.layout.hazards.byteLength+(this.shadowLayout?this.shadowLayout.roomCells.byteLength+this.shadowLayout.padCells.byteLength:0);
     for(const key of['walls','lights','runs','rails'])delete this.layout[key];
     this.enemyMotion=new Map();this.resize();
   }
@@ -2229,6 +2621,10 @@ class SoftwareBreachRenderer {
     this.forwardX=Math.sin(angle);this.forwardZ=-Math.cos(angle);this.rightX=Math.cos(angle);this.rightZ=Math.sin(angle);
     this.eye=(state.status==='dead'||p.alive===false||p.health<=0)? .65:EYE_HEIGHT+(p.elevation||0)*(this.options.reducedMotion?.4:1);
     this.horizon=Math.round(this.height/2+(this.options.reducedMotion||state.status!=='playing'?0:Math.sin(this.bobPhase)*this.moveAmount*1.2));
+    shadowAtmosphere(this,p);
+    if(this.shadowLayout)this.shadowPadViews=this.shadowLayout.pads.map(({pad})=>shadowPadState(pad,state));
+    const combat=encounterCues(state),guides=shadowGuideCues(this.game);this.frameCues=[...combat,...guides];
+    this.stats.encounterCues=combat.length;this.stats.shadowGuideCount=guides.length;
     this.drawPlanes(p);this.drawWalls(p);this.drawWallSigns(p);this.drawDoorRemnants(p);this.drawEncounterCues(p);this.drawSprites(dt,advancing,p);
     WebGLBreachRenderer.prototype.drawWeapon.call(this);
   }
@@ -2268,12 +2664,14 @@ class SoftwareBreachRenderer {
           const waterIndex=(((tz+waterShiftZ)&63)*64+((tx+waterShiftX)&63))*4,alpha=this.waterPixels[waterIndex+3]/510;
           if(alpha){red=red*(1-alpha)+this.waterPixels[waterIndex]*alpha;green=green*(1-alpha)+this.waterPixels[waterIndex+1]*alpha;blue=blue*(1-alpha)+this.waterPixels[waterIndex+2]*alpha;}
         }
-        if(isFloor&&level.shadow){
-          const room=level.platformRooms.find(r=>worldX>=r.x1&&worldX<r.x2&&worldZ>=r.z1&&worldZ<r.z2);
-          if(room){const pad=room.platforms.find(q=>worldX>=q.x1&&worldX<q.x2&&worldZ>=q.z1&&worldZ<q.z2);const solid=pad&&platformSolid(pad,this.game.state.time);
-            const edge=pad&&(worldX-pad.x1<.14||pad.x2-worldX<.14||worldZ-pad.z1<.14||pad.z2-worldZ<.14);
-            [red,green,blue]=solid?(edge?[146,231,202]:[62,89,100]):edge?[110,44,42]:[2,3,8];
-          }
+        if(isFloor&&this.shadowLayout&&cell>=0&&this.shadowLayout.roomCells[cell]>=0){
+          const padIndex=this.shadowLayout.padCells[cell],pad=this.shadowLayout.pads[padIndex]?.pad,view=this.shadowPadViews[padIndex];
+          if(view?.solid&&worldX>=pad.x1&&worldX<pad.x2&&worldZ>=pad.z1&&worldZ<pad.z2){
+            const edge=worldX-pad.x1<.14||pad.x2-worldX<.14||worldZ-pad.z1<.14||pad.z2-worldZ<.14;
+            const stripe=view.timed&&edge&&(Math.floor((worldX+worldZ)*6)%3===0),seam=!edge&&(tz%10<2);
+            const rgb=edge&&!stripe?view.edge:view.face,multiplier=stripe?.5:seam?.72:1;
+            red=rgb[0]*multiplier;green=rgb[1]*multiplier;blue=rgb[2]*multiplier;
+          }else{const flow=level.platformRooms[this.shadowLayout.roomCells[cell]].puzzleKind==='flow';red=flow?9:2;green=flow?27:3;blue=flow?36:8;}
         }
         data[offset]=red*shade+fogR*fog;
         data[offset+1]=green*shade+fogG*fog;
@@ -2360,16 +2758,16 @@ class SoftwareBreachRenderer {
       if(advancing)motion.phase+=dt*(speed>.05?8:2);
       let frame=speed>.05?Math.floor(motion.phase)%4:0;
       const close=Math.hypot(enemy.x-p.x,enemy.z-p.z)<1.7;
-      if(close&&!['sentry','bulwark','mender'].includes(enemy.type)&&enemy.active!==false&&Math.sin(this.clock*5+enemy.x)>.4)frame=4;
+      if(close&&!['sentry','bulwark','mender',...SHADOW_ENEMY_TYPES].includes(enemy.type)&&enemy.active!==false&&Math.sin(this.clock*5+enemy.x)>.4)frame=4;
       if(enemy.type==='spitter'&&enemy.attackCooldown>.8&&Math.sin(this.clock*5)>.5)frame=4;
-      if(enemy.telegraph||enemy.bossPhase==='charge')frame=4;
+      if(enemy.telegraph||enemy.bossPhase==='charge'||enemy.shadowPhase==='lunge')frame=4;
       if(enemy.guardian&&enemy.bossPhase==='recover')frame=0;
       const stunned=!enemy.guardian&&enemy.stunTimer>0&&enemy.alive!==false&&enemy.health>0;
       if(stunned)frame=0;
       if(enemy.hitTimer>0||this.clock-(this.hitAt.get(enemy.id)??-99)<.14)frame=5;
       if(enemy.alive===false||enemy.health<=0)frame=6;
       const height=enemyHeight(enemy);
-      add(this.getEnemyFrames(enemyArt(enemy,p))[frame],enemy.x,enemy.z,height*80/112,height,.015);
+      add(this.getEnemyFrames(enemyArt(enemy,p))[frame],enemy.x,enemy.z,enemyWidth(enemy),height,enemyBottom(enemy));
       if(stunned||enemy.contained)add(this.stunImage,enemy.x,enemy.z,.62,.46,height-.18,true);
     }
     for(const pickup of state.pickups)if(!pickup.collected){
@@ -2380,7 +2778,7 @@ class SoftwareBreachRenderer {
     for(const feature of state.interactables||[]){
       if(explorationFeature(feature)){
         const frames=this.stationImages.get(stationKey(feature));
-        if(frames)add(frames[featureMode(feature,state)],feature.x,feature.z,1.19,1.7,.015);
+        if(frames)add(frames[featureMode(feature,state,this.game)],feature.x,feature.z,1.19,1.7,.015);
         continue;
       }
       if(feature.type==='power')add(state.power?this.powerImages.on:this.powerImages.off,feature.x,feature.z,1.05,1.5);
@@ -2391,7 +2789,7 @@ class SoftwareBreachRenderer {
       if(feature.type==='exit')add(exitReady(state)?this.exitImages.on:this.exitImages.off,feature.x,feature.z,1.1,1.6);
       if(feature.type==='secret')add(this.secretImage,feature.x,feature.z,.55,.17,1.26);
     }
-    for(const cue of encounterCues(state)){
+    for(const cue of this.frameCues||[]){
       const signal=cueBillboard(cue);if(signal)add(signal.map==='blink'?this.phaseEchoImage:this.combatImages[signal.map],signal.x,signal.z,signal.width,signal.height,signal.bottom,true);
     }
     for(const projectile of state.projectiles||[]){
@@ -2429,8 +2827,8 @@ class SoftwareBreachRenderer {
   }
 
   drawEncounterCues(p){
-    const cues=encounterCues(this.game.state),c=this.context;
-    this.stats.encounterCues=cues.length;this.stats.drawnCuePoints=0;
+    const cues=this.frameCues||[],c=this.context;
+    this.stats.drawnCuePoints=0;
     const dot=(x,z,y,color,width=.07)=>{
       const dx=x-p.x,dz=z-p.z,depth=dx*this.forwardX+dz*this.forwardZ;
       if(depth<.06||depth>VIEW_DEPTH)return;
@@ -2443,13 +2841,21 @@ class SoftwareBreachRenderer {
     const line=(ax,az,bx,bz,y,color,width)=>{const steps=clamp(Math.ceil(Math.hypot(ax-bx,az-bz)/.10),2,96);for(let i=0;i<=steps;i++)dot(ax+(bx-ax)*i/steps,az+(bz-az)*i/steps,y,color,width);};
     for(const cue of cues){
       if(!inEntityRange(cue,p,this.entityRange))continue;
-      c.globalAlpha=cue.telegraph?.55+.4*cue.progress:.8*cue.progress;
+      c.globalAlpha=cue.guide?.9:cue.kind==='cinder-field'?.45+.35*cue.progress:cue.telegraph?.55+.4*cue.progress:.8*cue.progress;
       if(!['beam','arc','ricochet','shield-hit','heal-interrupt'].includes(cue.kind))for(let i=0;i<40;i++){const a=i/40*Math.PI*2;dot(cue.x+Math.cos(a)*cue.radius,cue.z+Math.sin(a)*cue.radius,.035,cue.color,.085);}
-      if(cue.kind==='charge'){
+      if(cue.kind==='charge'||cue.kind==='maw'){
         const dx=cue.x-cue.fromX,dz=cue.z-cue.fromZ,length=Math.max(.01,Math.hypot(dx,dz)),ox=dz/length*cue.radius*.8,oz=-dx/length*cue.radius*.8;
         for(const side of[-1,1])line(cue.fromX+ox*side,cue.fromZ+oz*side,cue.x+ox*side,cue.z+oz*side,.04,cue.color,.08);
-      }else if(['beam','shot','ricochet'].includes(cue.kind)||cue.kind==='heal'&&!cue.telegraph)line(cue.fromX,cue.fromZ,cue.x,cue.z,.96,cue.color,cue.kind==='shot'?.025:.065);
-      else if(cue.kind==='heal'&&cue.telegraph){for(let n=1;n<=8;n++){const t=n/9;dot(cue.fromX+(cue.x-cue.fromX)*t,cue.fromZ+(cue.z-cue.fromZ)*t,1.02,cue.color,.075);}}
+      }else if(['beam','shot','ricochet'].includes(cue.kind)||cue.kind==='heal'&&!cue.telegraph||cue.kind==='tether'&&cue.active)line(cue.fromX,cue.fromZ,cue.x,cue.z,.96,cue.color,cue.kind==='shot'?.025:.065);
+      else if(cue.kind==='skimmer'){
+        for(const end of cue.fan?skimmerFan(cue):[cue])line(cue.fromX,cue.fromZ,end.x,end.z,.96,cue.color,.025);
+      }else if(cue.kind==='route'||cue.kind==='heal'&&cue.telegraph||cue.kind==='tether'&&!cue.active){for(let n=1;n<=8;n++){const t=n/9;dot(cue.fromX+(cue.x-cue.fromX)*t,cue.fromZ+(cue.z-cue.fromZ)*t,cue.guide?.06+Math.sin(Math.PI*t)*1.15:1.02,cue.color,.075);}}
+      else if(cue.kind==='cinder-field'){
+        for(let ring=0;ring<4;ring++)for(let n=0;n<(ring?ring*8:1);n++){
+          const angle=n/Math.max(1,ring*8)*Math.PI*2,r=cue.radius*ring/4;
+          dot(cue.x+Math.cos(angle)*r,cue.z+Math.sin(angle)*r,.03,ring%2?'#f0a15c':'#cb673e',.15);
+        }
+      }
       else if(cue.kind==='arc'){
         const dx=cue.x-cue.fromX,dz=cue.z-cue.fromZ,length=Math.max(.01,Math.hypot(dx,dz));
         const points=Array.from({length:5},(_,n)=>{const offset=n===0||n===4?0:(n%2?.10:-.10);return{x:cue.fromX+dx*n/4+dz/length*offset,z:cue.fromZ+dz*n/4-dx/length*offset};});

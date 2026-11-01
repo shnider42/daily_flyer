@@ -1,8 +1,8 @@
 /** Continuous authored scores, with brief, explicit dramatic silences. */
 import { CUES_BY_ID, MENU_SCORES } from './music-cues.mjs';
 const MAX_CUE_SECONDS=56;
-const DUCK_EVENTS=new Set(['enemy-warning','enemy-shot','hurt','explosion','teleport','provoked','boss-phase','shield-open','shield-hit','heal','heal-interrupt','ricochet']);
-const RELIEF_EVENTS=new Set(['refuge','transit','transit-activated','checkpoint','relay','power']);
+const DUCK_EVENTS=new Set(['enemy-warning','enemy-shot','hurt','explosion','teleport','provoked','boss-phase','shield-open','shield-hit','heal','heal-interrupt','ricochet','tether-broken']);
+const RELIEF_EVENTS=new Set(['refuge','transit','transit-activated','checkpoint','relay','power','shadow-puzzle']);
 const DUCK_LEVEL=.55;
 const LOCAL_EVENTS=new Set(['record','hurt','refuge','transit']);
 const level=(value,fallback)=>Number.isFinite(value)?Math.max(0,Math.min(1,value)):fallback;

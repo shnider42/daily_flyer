@@ -49,10 +49,10 @@ test('a crowd cannot hide a visible guardian from the exposure gate', () => {
   assert.deepEqual(musicThreats(game),{pressure:3,guardian:true});
 });
 
-test('Shadow platforming and laboratories are scored; a cleared boss arena returns to the mission rotation',()=>{
- const g=new Game({mission:'beneath-the-shadow'});g.start();assert.equal(musicScene(g).opening,'shadow-running');
+test('Shadow platforming and laboratories are scored; a cleared boss arena returns to its district rotation',()=>{
+ const g=new Game({mission:'beneath-the-shadow'});g.start();assert.equal(musicScene(g).opening,'iron-teeth');
  const visit=id=>{const z=g.level.zones.find(z=>z.id===id);Object.assign(g.state.player,{x:z.x1+.5,z:z.z1+.5});return musicScene(g);};
  for(const id of ['null','gantry']){assert.ok(visit(id).rotation);assert.equal(visit(id).quietBeat,null);}
- assert.equal(visit('chapel').quietBeat.seconds,10);assert.equal(visit('lantern').rotation.cues[0],'lanterns-below');assert.equal(visit('hydra').boss.cues[0],'sever-the-echo');
+ assert.equal(visit('chapel').quietBeat.seconds,10);assert.equal(visit('lantern').rotation.cues[0],'lanterns-below');assert.equal(visit('hydra').boss.cues[0],'ash-cathedral');
  for(const e of g.state.enemies.filter(e=>e.bossGroup==='hydra'))e.alive=false;assert.equal(visit('hydra').boss,null);assert.ok(visit('hydra').rotation);
 });

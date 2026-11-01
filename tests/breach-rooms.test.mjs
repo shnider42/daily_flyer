@@ -2,6 +2,7 @@ import test from 'node:test';
 import assert from 'node:assert/strict';
 import { BreachRooms, PROTOCOL } from '../server/breach-rooms.mjs';
 import { CoopGame } from '../daily_flyer/themes/breach_assets/coop-core.mjs';
+import { SHADOW_ID, SHADOW_WORLD_REVISION } from '../daily_flyer/themes/breach_assets/shadow.mjs';
 
 // Record the simulation boundary rather than duplicating its combat rules. The
 // real simulation is exercised in breach-coop and the WebSocket integration tests.
@@ -199,6 +200,82 @@ test('new-map rooms reject stale clients before attaching while legacy missions 
   assert.equal(last(guest, 'welcome').selfId, 'p2');
   const legacy = peer(); rooms.handle(legacy, request('create', { supportedMissions: undefined }));
   assert.ok(last(legacy, 'welcome'));
+});
+
+test('Shadow room admission requires an exact numeric content revision before allocating or attaching', () => {
+  const rooms = new BreachRooms({ GameClass: RecordingGame });
+  const invalid = [undefined, null, SHADOW_WORLD_REVISION - 1, SHADOW_WORLD_REVISION + 1, String(SHADOW_WORLD_REVISION), true, [], {}];
+  const capability = { mission: SHADOW_ID, supportedMissions: [SHADOW_ID] };
+  for (const revision of invalid) {
+    const stale = peer();
+    rooms.handle(stale, request('create', { ...capability, ...(revision === undefined ? {} : { shadowRevision: revision }) }));
+    assert.equal(error(stale), 'VERSION_MISMATCH'); assert.equal(rooms.rooms.size, 0);
+    assert.equal(last(stale, 'welcome'), undefined); assert.equal(stale.roomId, null);
+    assert.match(last(stale, 'error').message, /Beneath The Shadow.*Refresh both game tabs.*rejoin/);
+  }
+  const host = peer();
+  rooms.handle(host, request('create', { ...capability, shadowRevision: SHADOW_WORLD_REVISION }));
+  const id = last(host, 'welcome').roomId, room = rooms.rooms.get(id);
+  assert.equal(rooms.record(room).shadowRevision, SHADOW_WORLD_REVISION);
+  assert.equal(last(host, 'room').room.shadowRevision, SHADOW_WORLD_REVISION);
+  for (const revision of invalid) {
+    const stale = peer();
+    rooms.handle(stale, request('join', { ...capability, roomId: id, ...(revision === undefined ? {} : { shadowRevision: revision }) }));
+    assert.equal(error(stale), 'VERSION_MISMATCH'); assert.equal(room.players.size, 1);
+    assert.equal(last(stale, 'welcome'), undefined); assert.equal(stale.roomId, null);
+    assert.match(last(stale, 'error').message, /Refresh both game tabs/);
+  }
+  const guest = peer();
+  rooms.handle(guest, request('join', { ...capability, roomId: id, shadowRevision: SHADOW_WORLD_REVISION }));
+  assert.equal(last(guest, 'welcome').selfId, 'p2'); assert.equal(room.players.size, 2);
+  assert.equal(last(guest, 'room').room.shadowRevision, SHADOW_WORLD_REVISION);
+  start({ rooms, host, guest, room });
+  assert.equal(room.game.options.mission, SHADOW_ID);
+});
+
+test('a stale Shadow authenticated replacement leaves the current peer and running mission untouched', () => {
+  const rooms = new BreachRooms({ GameClass: RecordingGame }), host = peer(), guest = peer();
+  const capability = { mission: SHADOW_ID, supportedMissions: [SHADOW_ID], shadowRevision: SHADOW_WORLD_REVISION };
+  rooms.handle(host, request('create', capability));
+  const welcome = last(host, 'welcome'), room = rooms.rooms.get(welcome.roomId);
+  rooms.handle(guest, request('join', { ...capability, roomId: room.id }));
+  start({ rooms, host, guest, room });
+  rooms.handle(host, { type: 'input', seq: 3, forward: .6, strafe: -.2, angle: .5, fire: true });
+  const player = room.players.get('p1'), game = room.game;
+  const controls = structuredClone(player.input), ready = player.ready, disconnectedAt = player.disconnectedAt;
+  const hostMessages = host.messages.length, guestMessages = guest.messages.length;
+  for (const revision of [undefined, null, SHADOW_WORLD_REVISION - 1, SHADOW_WORLD_REVISION + 1, String(SHADOW_WORLD_REVISION)]) {
+    const replacement = peer();
+    rooms.handle(replacement, request('join', { ...capability, roomId: room.id, token: welcome.token, replace: true, shadowRevision: revision }));
+    assert.equal(error(replacement), 'VERSION_MISMATCH'); assert.equal(last(replacement, 'welcome'), undefined);
+    assert.equal(replacement.roomId, null); assert.equal(replacement.playerId, null);
+    assert.equal(room.players.get('p1'), player); assert.equal(player.peer, host);
+    assert.equal(host.roomId, room.id); assert.equal(host.playerId, 'p1'); assert.equal(host.closes.length, 0);
+    assert.equal(player.ready, ready); assert.equal(player.disconnectedAt, disconnectedAt); assert.deepEqual(player.input, controls);
+    assert.equal(room.game, game); assert.equal(room.status, 'playing'); assert.equal(room.players.size, 2);
+    assert.equal(host.messages.length, hostMessages); assert.equal(guest.messages.length, guestMessages);
+  }
+  const replacement = peer();
+  rooms.handle(replacement, request('join', { ...capability, roomId: room.id, token: welcome.token, replace: true }));
+  assert.equal(last(replacement, 'welcome').resumed, true); assert.equal(last(replacement, 'welcome').selfId, 'p1');
+  assert.equal(player.peer, replacement); assert.equal(host.roomId, null); assert.equal(host.closes.length, 1);
+  assert.equal(room.game, game); assert.equal(room.status, 'paused');
+});
+
+test('other co-op missions keep their existing capability rules and ignore Shadow-only revisions', () => {
+  for (const mission of ['crosslink-11', 'underworks-13', 'glasshouse-17', 'hollow-19']) for (const revision of [undefined, 'irrelevant-old-content']) {
+    const rooms = new BreachRooms({ GameClass: RecordingGame }), host = peer(), guest = peer();
+    const supportedMissions = ['crosslink-11', 'underworks-13'].includes(mission) ? undefined : [mission];
+    const capability = { mission, supportedMissions, ...(revision === undefined ? {} : { shadowRevision: revision }) };
+    rooms.handle(host, request('create', capability));
+    const welcome = last(host, 'welcome'); assert.ok(welcome, mission);
+    rooms.handle(guest, request('join', { ...capability, roomId: welcome.roomId }));
+    assert.equal(last(guest, 'welcome').selfId, 'p2');
+    const room = rooms.rooms.get(welcome.roomId); start({ rooms, host, guest, room });
+    assert.equal(room.game.options.mission, mission);
+    assert.equal(Object.hasOwn(rooms.record(room), 'shadowRevision'), false);
+    assert.equal(error(host), undefined); assert.equal(error(guest), undefined);
+  }
 });
 
 test('exact weapon selection is bound to the authenticated operator and old cycle commands remain valid', () => {

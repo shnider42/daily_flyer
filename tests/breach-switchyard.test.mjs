@@ -235,9 +235,9 @@ test('weapon selection cycles owned weapons and rejects unowned choices', () => 
 test('an acquired arc caster, its remaining cells and an active stun survive a real mission save', () => {
   const game = makeQuiet(); reachWorkshop(game, 'service');
   const enemy = object(game, 'service-runner');
-  Object.assign(enemy, { alive: true, health: 100, x: 26.5, z: 24.5, active: true });
+  Object.assign(enemy, { alive: true, health: enemy.maxHealth, x: 26.5, z: 24.5, active: true });
   game.state.player.angle = Math.PI / 2; game.update(.01, { fire: true });
-  assert.equal(enemy.health, 72); assert.ok(enemy.stunTimer > 0);
+  assert.equal(enemy.health, enemy.maxHealth - 28); assert.ok(enemy.stunTimer > 0);
   const remaining = game.state.player.ammo.cells, restored = new Game();
   assert.equal(restored.restore(game.serialize()), true);
   assert.equal(restored.state.player.weapon, 'arc'); assert.equal(restored.state.player.ammo.cells, remaining);

@@ -1,10 +1,10 @@
 /** Original cue palette. No gameplay state or network synchronization lives here. */
 const cue = (id, title, bpm, kind, sound, use, avoid, seconds) => Object.freeze({id, title, bpm, kind, sound, use, avoid, seconds, url:new URL(`./music/${id}.mp3`, import.meta.url), midi:new URL(`./music/${id}.mid`, import.meta.url)});
 export const MUSIC_CUES = Object.freeze([
-  cue('iron-teeth','Iron Teeth',168,'combat','Fast low guitar chugs, octave bass and a climbing lead hook; a broad middle section brings the riff back harder.','Blacksite quarantine, the Underworks rail crowns, Shadow’s aqueduct and Iron Warden.','The menu, listening rooms and quieter story districts.',47.51),
-  cue('blacksite-stomp','Blacksite Stomp',124,'combat','A dirty bass groove and stop/start power chords, with syncopated accents and a heavy half-time turn.','Blacksite’s facility rotation, Switchyard’s freight routes and the Hollow freight district.','Quiet reveal beats, archives and the lantern quarter.',48.25),
+  cue('iron-teeth','Iron Teeth',168,'combat','Fast low guitar chugs, octave bass and a climbing lead hook; a broad middle section brings the riff back harder.','Beneath The Shadow’s opening, aqueduct and Iron Warden; Blacksite quarantine and the Underworks rail crowns.','The menu, listening rooms and quieter story districts.',47.51),
+  cue('blacksite-stomp','Blacksite Stomp',124,'combat','A dirty bass groove and stop/start power chords, with syncopated accents and a heavy half-time turn.','Shadow’s city, rivet works and restored street; Blacksite’s facility, Switchyard’s freight routes and the Hollow freight district.','Quiet reveal beats, archives and the lantern quarter.',48.25),
   cue('ash-cathedral','Ash Cathedral',142,'combat','Dark organ, low guitar and a marching rock kit; an answering lead escalates into the final refrain.','The Hollow’s Choir Keeper, Shadow’s multiplying roots and the Umbra Engine.','Unrevealed bosses, the menu and quiet exploration.',49.12),
-  cue('shadow-running','Shadow Running',140,'combat','A fast two-bar guitar hook, a contrasting middle and a clear return.','Beneath The Shadow’s arrival, city routes, aqueduct and Warden/root encounters.','The chapel’s first listening pause and the slower lantern district.',42.94),
+  cue('shadow-running','Shadow Running',140,'combat','A fast two-bar guitar hook, a contrasting middle and a clear return.','Beneath The Shadow’s recurring city routes, aqueduct and Warden/root encounters.','The chapel’s first listening pause and the slower lantern district.',42.94),
   cue('sever-the-echo','Sever the Echo',154,'combat','Fast 3+3+2 accents, answering bass and a half-time bridge.','Sustained Shadow boss rotations and the Hollow’s Choir Keeper.','Unrevealed bosses, the menu and quiet exploration themes.',45.44),
   cue('lanterns-below','Lanterns Below',80,'ambient','Clean guitar carries a slow fragment of the opening hook.','Alternates with Containment Pulse in the menu; the lantern district and aqueduct approach.','Fast boss phases; lower the mix for records and attack warnings.',49.80),
   cue('containment-pulse','Containment Pulse',104,'combat','Low, spacious power chords; a broad backbeat and an answering lead.','Alternates with Lanterns Below in the menu; Blacksite research laboratory and Crosslink vault.','The brief scripted listening pauses and the results screen.',38.72),
@@ -64,9 +64,9 @@ export const MISSION_SCORE=Object.freeze({
     bosses:{choir:boss('choir',['weight-of-stone','ash-cathedral','sever-the-echo'])},quietBeats:{dock:8,listening:10},returnZone:'dock',
   },
   'beneath-the-shadow':{
-    opening:'shadow-running',rotation:rotation('buried-city',['shadow-running','dry-contact','crown-circuit']),
-    sections:{lantern:rotation('lantern',['lanterns-below','iron-wake'],{level:.8}),bridge:rotation('aqueduct',['crown-circuit','iron-teeth','shadow-running']),null:rotation('laboratory',['dead-carrier','counterweight'],{level:.75}),gantry:rotation('gantry',['crown-circuit','lanterns-below'],{level:.75}),chapel:rotation('chapel',['lanterns-below','spare-air'],{level:.75})},
-    bosses:{forge:boss('warden',['shadow-running','iron-teeth','sever-the-echo']),hydra:boss('hydra',['sever-the-echo','ash-cathedral','shadow-running']),engine:boss('sun',['sever-the-echo','ash-cathedral','weight-of-stone'])},
+    opening:'iron-teeth',rotation:rotation('buried-city',['iron-teeth','blacksite-stomp','ash-cathedral','shadow-running']),
+    sections:{forge:rotation('rivet-works',['blacksite-stomp','counterweight','iron-teeth']),lantern:rotation('lantern',['lanterns-below','iron-wake'],{level:.8}),bridge:rotation('aqueduct',['iron-teeth','crown-circuit','blacksite-stomp']),null:rotation('laboratory',['glass-teeth','dead-carrier'],{level:.75}),hydra:rotation('echo-garden',['root-pressure','glass-teeth','ash-cathedral']),gantry:rotation('gantry',['crown-circuit','blacksite-stomp','lanterns-below'],{level:.75}),chapel:rotation('chapel',['lanterns-below','spare-air'],{level:.75})},
+    bosses:{forge:boss('warden',['iron-teeth','shadow-running','sever-the-echo']),hydra:boss('hydra',['ash-cathedral','sever-the-echo','shadow-running']),engine:boss('sun',['ash-cathedral','sever-the-echo','weight-of-stone'])},
     quietBeats:{chapel:10},returnZone:'descent',
   },
 });
