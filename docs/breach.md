@@ -4,6 +4,21 @@ An original retro first-person game built on DailyFlyer, with eight solo mission
 and five operations available in private two-player co-op. Solo play runs in the
 browser; co-op uses an authoritative room server.
 
+## 0.9.4 — Three heavier signals
+
+Three new original tracks bring a stronger Doom II influence to the nineteen-cue
+soundtrack: Iron Teeth (168 BPM), Blacksite Stomp (124 BPM) and Ash Cathedral
+(142 BPM). Their guitar riffs, bass grooves and organ-led pressure have distinct
+phrases, contrasting sections and written endings. Each is available as rendered
+audio and editable MIDI in the listening room.
+
+Iron Teeth joins Blacksite quarantine, Underworks rail, and Shadow's aqueduct and
+Warden rotations. Blacksite Stomp joins the Blacksite facility, Switchyard yard
+and Hollow freight. Ash Cathedral joins the Choir Keeper, hydra and Umbra Engine
+boss rotations. Existing opening cues, menu alternation, crossfades, local music
+settings and brief quiet beats retain their behavior. Composition and rendering
+instructions are in `daily_flyer/themes/breach_assets/music/README.md`.
+
 ## 0.9.3 — Centered weapon default
 
 Weapon horizontal position now defaults to 50%. Reset Weapon View uses this

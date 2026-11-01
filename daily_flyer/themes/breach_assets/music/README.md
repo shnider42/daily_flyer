@@ -1,4 +1,4 @@
-# Sixteen Signals — original Breach cue sketches
+# Nineteen Signals — original Breach cue sketches
 
 Original instrumental concept for Breach: 104 BPM, 4/4, 16 bars (36.923 seconds).
 The MIDI contains separate rhythm, accent guitar, bass, drone, melody, and drum
@@ -88,3 +88,30 @@ WAVs and render diagnostics remain outside the shipped assets. Each MP3 is
 44.1 kHz stereo at 192 kbps, with a written ending and 1.8-second release tail.
 The game should allow the full cue length and apply its contextual fades when
 entering quiet areas. Do not cut these at the older 40-second cue limit.
+
+## Three retro metal tracks (0.9.4)
+
+`compose_hellbound.py` adds three original compositions influenced by Doom II's
+heavy MIDI-era sound: low guitar riffs, firm bass, dry drums and melodic answers.
+Each has contrasting sections, a returning hook and a written ending. The
+existing provenance statement applies to all three. The organ in Ash Cathedral
+is synthesized procedurally, alongside the other generated instruments.
+
+| Cue | Tempo and form | Rendered length | Placement |
+| --- | --- | --- | --- |
+| Iron Teeth | 168 BPM; 32 bars; fast guitar riff and climbing answer | 47.51 s | Blacksite quarantine, Underworks rail, Shadow aqueduct and Iron Warden |
+| Blacksite Stomp | 124 BPM; 24 bars; syncopated chords and an independent bass groove | 48.25 s | Blacksite facility, Switchyard yard and Hollow freight |
+| Ash Cathedral | 142 BPM; 28 bars; organ over low guitars with an escalating lead | 49.12 s | Hollow Choir Keeper, Shadow hydra and Umbra Engine |
+
+```sh
+python3 scripts/breach_music/compose_hellbound.py /tmp/breach-hellbound-score
+python3 scripts/breach_music/render_preview.py /tmp/breach-hellbound-score/iron-teeth.json /tmp/breach-hellbound-score/iron-teeth
+python3 scripts/breach_music/render_preview.py /tmp/breach-hellbound-score/blacksite-stomp.json /tmp/breach-hellbound-score/blacksite-stomp
+python3 scripts/breach_music/render_preview.py /tmp/breach-hellbound-score/ash-cathedral.json /tmp/breach-hellbound-score/ash-cathedral
+```
+
+Copy the three `.mid` and `.mp3` pairs into this directory. Lengths include the
+1.8-second release tail and fit within the existing 56-second playback cap.
+These tracks join the listed rotations with the existing crossfades and local
+volume controls. The two menu themes and six brief authored quiet beats retain
+their assignments. All nineteen cues can be auditioned in the listening room.

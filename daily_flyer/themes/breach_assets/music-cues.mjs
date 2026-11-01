@@ -1,6 +1,9 @@
 /** Original cue palette. No gameplay state or network synchronization lives here. */
 const cue = (id, title, bpm, kind, sound, use, avoid, seconds) => Object.freeze({id, title, bpm, kind, sound, use, avoid, seconds, url:new URL(`./music/${id}.mp3`, import.meta.url), midi:new URL(`./music/${id}.mid`, import.meta.url)});
 export const MUSIC_CUES = Object.freeze([
+  cue('iron-teeth','Iron Teeth',168,'combat','Fast low guitar chugs, octave bass and a climbing lead hook; a broad middle section brings the riff back harder.','Blacksite quarantine, the Underworks rail crowns, Shadow’s aqueduct and Iron Warden.','The menu, listening rooms and quieter story districts.',47.51),
+  cue('blacksite-stomp','Blacksite Stomp',124,'combat','A dirty bass groove and stop/start power chords, with syncopated accents and a heavy half-time turn.','Blacksite’s facility rotation, Switchyard’s freight routes and the Hollow freight district.','Quiet reveal beats, archives and the lantern quarter.',48.25),
+  cue('ash-cathedral','Ash Cathedral',142,'combat','Dark organ, low guitar and a marching rock kit; an answering lead escalates into the final refrain.','The Hollow’s Choir Keeper, Shadow’s multiplying roots and the Umbra Engine.','Unrevealed bosses, the menu and quiet exploration.',49.12),
   cue('shadow-running','Shadow Running',140,'combat','A fast two-bar guitar hook, a contrasting middle and a clear return.','Beneath The Shadow’s arrival, city routes, aqueduct and Warden/root encounters.','The chapel’s first listening pause and the slower lantern district.',42.94),
   cue('sever-the-echo','Sever the Echo',154,'combat','Fast 3+3+2 accents, answering bass and a half-time bridge.','Sustained Shadow boss rotations and the Hollow’s Choir Keeper.','Unrevealed bosses, the menu and quiet exploration themes.',45.44),
   cue('lanterns-below','Lanterns Below',80,'ambient','Clean guitar carries a slow fragment of the opening hook.','Alternates with Containment Pulse in the menu; the lantern district and aqueduct approach.','Fast boss phases; lower the mix for records and attack warnings.',49.80),
@@ -26,8 +29,8 @@ export const MENU_SCORES=Object.freeze(['containment-pulse','lanterns-below'].ma
   Object.freeze({key:`menu:${cue}`,cue,level:.65,fade:1.2})));
 export const MISSION_SCORE=Object.freeze({
   'blacksite-07':{
-    opening:'iron-wake',rotation:rotation('facility',['iron-wake','containment-pulse','dry-contact']),
-    sections:{'Research laboratory':rotation('research',['containment-pulse','glass-teeth']),'Quarantine hall':rotation('quarantine',['crown-circuit','dry-contact'])},
+    opening:'iron-wake',rotation:rotation('facility',['iron-wake','blacksite-stomp','containment-pulse','dry-contact']),
+    sections:{'Research laboratory':rotation('research',['containment-pulse','glass-teeth']),'Quarantine hall':rotation('quarantine',['crown-circuit','iron-teeth','dry-contact'])},
     bosses:{},quietBeats:{},returnZone:'Extraction bay',
   },
   'relay-09':{
@@ -42,11 +45,11 @@ export const MISSION_SCORE=Object.freeze({
   },
   'underworks-13':{
     opening:'spare-air',rotation:rotation('depths',['counterweight','root-pressure','crown-circuit']),
-    sections:{foundry:rotation('foundry',['root-pressure','counterweight']),rail:rotation('crowns',['crown-circuit','dry-contact']),archives:rotation('archives',['dead-carrier','lanterns-below'],{level:.8}),quarters:rotation('quarters',['lanterns-below','spare-air'],{level:.75})},
+    sections:{foundry:rotation('foundry',['root-pressure','counterweight']),rail:rotation('crowns',['crown-circuit','iron-teeth','dry-contact']),archives:rotation('archives',['dead-carrier','lanterns-below'],{level:.8}),quarters:rotation('quarters',['lanterns-below','spare-air'],{level:.75})},
     bosses:{reactor:boss('reactor')},quietBeats:{quarters:8},returnZone:'arrival',
   },
   'switchyard-15':{
-    opening:'counterweight',rotation:rotation('yard',['counterweight','crown-circuit','dry-contact']),
+    opening:'counterweight',rotation:rotation('yard',['counterweight','blacksite-stomp','crown-circuit','dry-contact']),
     sections:{cables:rotation('cables',['crown-circuit','containment-pulse']),workshop:rotation('workshop',['iron-wake','counterweight'],{level:.75})},
     bosses:{engine:boss('engine')},quietBeats:{},returnZone:'lift',
   },
@@ -57,13 +60,13 @@ export const MISSION_SCORE=Object.freeze({
   },
   'hollow-19':{
     opening:'dead-carrier',rotation:rotation('undertow',['dead-carrier','root-pressure','counterweight'],{level:.8}),
-    sections:{listening:rotation('listening',['below-the-carrier','the-room-replies'],{level:.8}),archive:rotation('archive',['the-room-replies','dead-carrier'],{level:.8}),observatory:rotation('observatory',['lanterns-below','spare-air'],{level:.75}),freight:rotation('freight',['counterweight','crown-circuit'])},
-    bosses:{choir:boss('choir',['weight-of-stone','sever-the-echo'])},quietBeats:{dock:8,listening:10},returnZone:'dock',
+    sections:{listening:rotation('listening',['below-the-carrier','the-room-replies'],{level:.8}),archive:rotation('archive',['the-room-replies','dead-carrier'],{level:.8}),observatory:rotation('observatory',['lanterns-below','spare-air'],{level:.75}),freight:rotation('freight',['counterweight','blacksite-stomp','crown-circuit'])},
+    bosses:{choir:boss('choir',['weight-of-stone','ash-cathedral','sever-the-echo'])},quietBeats:{dock:8,listening:10},returnZone:'dock',
   },
   'beneath-the-shadow':{
     opening:'shadow-running',rotation:rotation('buried-city',['shadow-running','dry-contact','crown-circuit']),
-    sections:{lantern:rotation('lantern',['lanterns-below','iron-wake'],{level:.8}),bridge:rotation('aqueduct',['crown-circuit','shadow-running']),null:rotation('laboratory',['dead-carrier','counterweight'],{level:.75}),gantry:rotation('gantry',['crown-circuit','lanterns-below'],{level:.75}),chapel:rotation('chapel',['lanterns-below','spare-air'],{level:.75})},
-    bosses:{forge:boss('warden',['shadow-running','sever-the-echo']),hydra:boss('hydra',['sever-the-echo','shadow-running']),engine:boss('sun',['sever-the-echo','weight-of-stone'])},
+    sections:{lantern:rotation('lantern',['lanterns-below','iron-wake'],{level:.8}),bridge:rotation('aqueduct',['crown-circuit','iron-teeth','shadow-running']),null:rotation('laboratory',['dead-carrier','counterweight'],{level:.75}),gantry:rotation('gantry',['crown-circuit','lanterns-below'],{level:.75}),chapel:rotation('chapel',['lanterns-below','spare-air'],{level:.75})},
+    bosses:{forge:boss('warden',['shadow-running','iron-teeth','sever-the-echo']),hydra:boss('hydra',['sever-the-echo','ash-cathedral','shadow-running']),engine:boss('sun',['sever-the-echo','ash-cathedral','weight-of-stone'])},
     quietBeats:{chapel:10},returnZone:'descent',
   },
 });

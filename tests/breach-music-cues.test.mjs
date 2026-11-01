@@ -5,14 +5,14 @@ import { Game, MISSIONS } from '../daily_flyer/themes/breach_assets/core.mjs';
 import { MUSIC_CUES, MISSION_SCORE, musicScene } from '../daily_flyer/themes/breach_assets/music-cues.mjs';
 import { musicThreats } from '../daily_flyer/themes/breach_assets/audio.mjs';
 
-test('all sixteen distinct cues ship valid MIDI headers and local rendered audio', async () => {
-  assert.equal(MUSIC_CUES.length,16);assert.equal(new Set(MUSIC_CUES.map(c=>c.id)).size,16);
+test('all nineteen distinct cues ship valid MIDI headers and local rendered audio', async () => {
+  assert.equal(MUSIC_CUES.length,19);assert.equal(new Set(MUSIC_CUES.map(c=>c.id)).size,19);
   const bodies=[];
   for (const cue of MUSIC_CUES) {
     const midi=await readFile(cue.midi); assert.equal(midi.toString('ascii',0,4),'MThd');assert.equal(midi.readUInt16BE(8),1);
     assert.ok((await readFile(cue.url)).length>100000);bodies.push(midi.toString('base64'));
   }
-  assert.equal(new Set(bodies).size,16);
+  assert.equal(new Set(bodies).size,19);
 });
 
 test('every map and authored region has a fixed rotation of at least two shipped cues',()=>{

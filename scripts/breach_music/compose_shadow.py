@@ -252,7 +252,7 @@ def write(s,slug,out):
     conductor=[(0,0,meta(3,s['title'])),
                (0,1,meta(81,round(60000000/s['bpm']).to_bytes(3,'big'))),
                (0,2,meta(88,bytes([4,2,24,8]))),
-               (0,3,meta(1,'Original Beneath The Shadow composition; procedural instruments; no source-song input.'))]
+               (0,3,meta(1,s.get('provenance','Original Beneath The Shadow composition; procedural instruments; no source-song input.')))]
     for bar,title in s['sections']:
         conductor.append((bar*4*PPQ,4,meta(6,title)))
     chunks=[chunk(conductor)]

@@ -90,6 +90,24 @@ def bass(pitch, duration, velocity):
     return p * .62 * (velocity / 127) ** .7
 
 
+def organ(pitch, duration, velocity):
+    """Dry, sustained drawbar voice with a percussive MIDI-era attack."""
+    dur = max(.08, duration + .075)
+    t = np.arange(int(dur * SR)) / SR
+    f = 440 * 2 ** ((pitch - 69) / 12)
+    p = np.zeros(len(t))
+    for harmonic, level in [(1, .68), (2, .38), (3, .23), (4, .12), (6, .07), (8, .035)]:
+        if f * harmonic >= SR / 2 - 100:
+            continue
+        phase = 2 * np.pi * f * harmonic * t
+        p += level * np.sin(phase + .012 * np.sin(2 * np.pi * 5.1 * t))
+    if f * 3 < SR / 2 - 100:
+        p += .24 * np.sin(2 * np.pi * f * 3 * t) * np.exp(-t / .09)
+    p = filt(np.tanh(p * 1.25), 'lowpass', 4100, 2)
+    p *= release_envelope(len(t), dur, .004, .07)
+    return p * .29 * (velocity / 127) ** .8
+
+
 def pad(pitch, duration, velocity, lead=False):
     dur = max(.15, duration + (.22 if lead else .7))
     t = np.arange(int(dur * SR)) / SR
@@ -202,6 +220,9 @@ def main():
                 lp, rp = left, right
             elif ins == 'bass':
                 wave = bass(pitch, duration, velocity)
+                lp, rp = left, right
+            elif ins == 'organ':
+                wave = organ(pitch, duration, velocity)
                 lp, rp = left, right
             else:
                 wave = pad(pitch, duration, velocity, ins == 'lead')
