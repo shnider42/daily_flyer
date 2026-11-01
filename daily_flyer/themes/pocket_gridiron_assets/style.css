@@ -5,3 +5,64 @@
 @media(max-height:600px) and (min-width:601px){body.playing main{padding-top:10px}.game{grid-template-columns:360px minmax(250px,330px);gap:25px}#field{max-height:53dvh}.controls{min-height:100px;padding:8px 20px 15px}.joystick{width:80px;height:80px}.stick{left:14px;top:14px}.scoreboard{min-height:62px;padding:6px 25px}.scoreteam strong{font-size:28px}.playpanel .keyboard,.drivebox{display:none}}
 @media(prefers-reduced-motion:reduce){*{scroll-behavior:auto!important}}
 .quickcall{display:none;position:absolute;left:15px;right:15px;top:18px;padding:13px;background:#0d211fea;border:1px solid #8b9c72;box-shadow:4px 4px #07221b88}.quickcall>.eyebrow{display:block;margin-bottom:10px;color:#efe6c3;font-size:9px}.quickcall .plays{grid-template-columns:repeat(4,1fr)}.quickcall .play{min-height:75px;padding:6px 4px;background:#294038}.quickcall .play.active{background:#57523c}.quickcall .play svg{height:30px}.quickcall .play small{display:none}.quickcall .play b{font-size:9px;line-height:1.4}.quickcall .plays:has(.play:nth-child(3):last-child){grid-template-columns:repeat(3,1fr)}@media(max-width:600px){.quickcall{display:block}}
+
+/* Keep rapid play inputs on the game, including taps on cooling-down buttons. */
+.controls,.controls *,.fieldwrap,.fieldwrap button,.fieldwrap button *{touch-action:none;-webkit-touch-callout:none;-webkit-user-select:none;user-select:none}
+button[aria-disabled="true"]{opacity:.45;cursor:default}
+button[aria-disabled="true"]:hover{filter:none}
+.changeplay{display:none;position:absolute;top:12px;right:12px;min-height:44px;padding:10px 14px;background:#142d29ec;border:1px solid #8b9c72;font:bold 10px monospace}
+
+/* A match is a single-screen game on phones. The field receives all remaining
+   height, including space recovered as Safari's browser bars change size. */
+@media(max-width:600px), (max-width:1000px) and (max-height:600px){
+ body.playing{height:100vh;height:100dvh;overflow:hidden;overscroll-behavior:none}
+ body.playing .mast{display:none}
+ body.playing main{width:100%;max-width:none;height:100%;padding:env(safe-area-inset-top) env(safe-area-inset-right) 0 env(safe-area-inset-left)}
+ .game{height:100%;display:block}
+ .console{height:100%;display:grid;grid-template-rows:58px 28px minmax(0,1fr) auto;border:0;box-shadow:none}
+ .scoreboard{min-height:0;padding:4px 48px;gap:24px}
+ .scoreteam{gap:9px}
+ .scoreteam strong{font-size:28px}
+ .scoreteam span{font-size:13px}
+ .timebox{gap:0}
+ .timebox strong{font-size:19px}
+ .scoreboard #pause{top:7px;right:3px;width:44px;height:44px}
+ .game .downbar{align-items:center;padding:5px 12px;font-size:10px}
+ .game .downbar #playName{font-size:9px}
+ .fieldwrap{min-height:0;min-width:0}
+ #field{width:100%;height:100%;max-height:none;object-fit:fill}
+ .controls{gap:22px;min-height:0;padding:10px 18px calc(13px + env(safe-area-inset-bottom));border-top-width:2px}
+ .joystick{width:96px;height:96px}
+ .stick{left:22px;top:22px}
+ .joystick small{bottom:-12px}
+ .actions{max-width:270px;min-width:0}
+ .receivers{gap:8px}
+ .receivers button{height:48px;min-width:44px}
+ .receivers span{font-size:9px}
+ .burst{min-height:44px;margin-top:6px;padding:9px 4px}
+ .snap span,.burst span{display:none}
+ .playpanel{display:none}
+ .quickcall{display:block;top:12px;left:12px;right:12px;padding:10px}
+ .quickcall .plays{gap:6px}
+ .quickcall .play{min-height:69px}
+ .quickcall .kicks button{min-height:44px;padding:9px;font-size:10px}
+ .changeplay{display:block;min-height:48px}
+ .snap{min-height:48px;top:12px;bottom:auto;left:12px;transform:none;padding:12px 14px}
+ .fieldmessage{font-size:20px}
+}
+/* Landscape keeps both thumbs beside the field, leaving its full height clear. */
+@media(max-width:1000px) and (max-height:600px) and (orientation:landscape){
+ .console{grid-template-columns:112px minmax(0,1fr) 176px;grid-template-rows:48px 24px minmax(0,1fr);padding-bottom:env(safe-area-inset-bottom);column-gap:10px}
+ .scoreboard{grid-column:1/-1;grid-row:1}
+ .timebox>span:first-child{font-size:8px}
+ .timebox strong{font-size:17px}
+ .scoreboard #pause{top:2px}
+ .downbar{grid-column:1/-1;grid-row:2}
+ .fieldwrap{grid-column:2;grid-row:3;height:100%}
+ .controls{display:contents}
+ .joystick{grid-column:1;grid-row:3;align-self:center;justify-self:center}
+ .actions{grid-column:3;grid-row:3;align-self:center;margin-right:12px}
+ .quickcall .play{min-height:54px}
+ .quickcall .play svg{height:20px;margin-bottom:4px}
+ .snap{padding:10px 14px}
+}

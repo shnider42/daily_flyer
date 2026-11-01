@@ -8,6 +8,8 @@ Play at `/gridiron/` or set `DEFAULT_THEME=pocket_gridiron` to make it the defau
 
 Choose a team and opponent, then call a run or pass. Touch joystick moves; A/B/C pass to the labeled receivers; burst boosts a runner with one evasion opportunity. On defense, switch to the nearest defender and dive to tackle. WASD/arrows, space, 1/2/3, P work on desktop.
 
+On phones, gameplay fills the available viewport with a compact scoreboard, an adaptive field canvas, and fixed thumb controls. Landscape places controls beside the field. Play choices collapse after selection; Change Play reopens them, including fourth-down kicks. Sound and help remain available from Pause. Game surfaces consume browser touch gestures and buttons activate on contact without a duplicate click; scrolling and pinch zoom remain available in menus and dialogs.
+
 Four 45-second quarters, a live-play clock, first downs, turnovers, safeties, punts and field goals on fourth down. Touchdowns include an automatic PAT. Interceptions are dead at the catch. Halftime gives the opponent the ball. Ties use sudden-death overtime. Solo against AI; multiplayer and franchise mode are not included.
 
 ## Rosters
@@ -28,7 +30,7 @@ python scripts/refresh_gridiron_rosters.py --season 2026
 
 ```sh
 python -m unittest discover -s tests -p 'test_pocket_gridiron.py'
-node --test tests/gridiron/game.test.mjs
+node --test tests/gridiron/*.test.mjs
 ```
 
 ## Render
