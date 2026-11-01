@@ -10,7 +10,17 @@ Choose a team and opponent, then call a run or pass. Touch joystick moves; A/B/C
 
 On phones, gameplay fills the available viewport with a compact scoreboard, an adaptive field canvas, and fixed thumb controls. Landscape places controls beside the field. Play choices collapse after selection; Change Play reopens them, including fourth-down kicks. Sound and help remain available from Pause. Game surfaces consume browser touch gestures and buttons activate on contact without a duplicate click; scrolling and pinch zoom remain available in menus and dialogs.
 
-Four 45-second quarters, a live-play clock, first downs, turnovers, safeties, punts and field goals on fourth down. Touchdowns include an automatic PAT. Interceptions are dead at the catch. Halftime gives the opponent the ball. Ties use sudden-death overtime. Solo against AI; multiplayer and franchise mode are not included.
+Four 45-second quarters, a live-play clock, first downs, turnovers, safeties, punts and field goals on fourth down. Touchdowns include an automatic PAT. Interceptions are dead at the catch. Each half starts with a playable kickoff; the opponent receives the second-half kick. Touchdowns, field goals and safeties queue the correct kickoff or free kick, unless the game has ended. Ties use sudden-death overtime. Solo against AI; multiplayer and franchise mode are not included.
+
+## Expanded playbook and special teams
+
+Offense has seven calls: Inside Run, Wide Sweep, Quick Slants, Go Routes, Counter Left (pulling guard), Curl Hooks (receivers come back after 12 yards), and Boot Flood (right-side routes at three depths). Defense has six: Zone, Man, Blitz, Cover 2 (two deep halves), Cover 3 (three deep thirds), and Run Commit (four rushers, vulnerable downfield). CPU play selection uses the expanded book.
+
+On fourth down, Punt starts a real kick sequence. The CPU chooses its own punts or field goals. Aim with the stick or A/B/C; tap START METER, then KICK to lock power. Space operates the meter on desktop; 1/2/3 aim left/center/right. More power adds distance, including the risk of a touchback; aiming too wide can send the kick out of bounds. The active roster supplies the punter/kicker when available.
+
+For incoming kicks, tap READY TO RETURN. The returner automatically tracks the landing ring until you steer. B (keyboard 2) calls a fair catch on punts. On the catch, run upfield and burst; the kicking side controls coverage with Switch and Dive. Loose punts can roll or be downed, and loose kickoffs can be recovered. Returns start a fresh series or can score; return yards are tracked separately.
+
+Simplified arcade rules: kickoff touchbacks at the 25, punt touchbacks at the 20, kickoff out of bounds at the 40. The clock runs during scrimmage plays and returns, and pauses during kick setup/flight. No onside-kick selection, blocked punts, or full NFL dynamic-kickoff enforcement. The camera widens for kicks and eases back for returns. All choices fit the phone playbook, which clears before action; the previous rapid-tap zoom protection remains in place.
 
 ## Rosters
 
