@@ -1,7 +1,7 @@
 import os
 from pathlib import Path
 
-from flask import Flask, Response, abort, request, send_from_directory
+from flask import Flask, Response, abort, redirect, request, send_from_directory, url_for
 
 from daily_flyer.orchestrator import build_daily_page
 from daily_flyer.renderer import build_html
@@ -52,6 +52,8 @@ def _parse_seed(raw: str | None) -> int | None:
 @app.route("/")
 def home():
     theme_name = _normalize_theme_name(request.args.get("theme"))
+    if theme_name == "pocket_gridiron":
+        return redirect(url_for("pocket_gridiron"))
     date_str = (request.args.get("date") or "").strip() or None
     seed = _parse_seed(request.args.get("seed"))
 
@@ -75,3 +77,18 @@ def home():
 @app.route("/daily_flyer/<path:filename>")
 def daily_flyer_static(filename: str):
     return send_from_directory(REPO_ROOT / "daily_flyer", filename)
+
+@app.route("/gridiron/", defaults={"filename": "index.html"})
+@app.route("/gridiron/<path:filename>")
+def pocket_gridiron(filename: str):
+    from daily_flyer.themes.pocket_gridiron import ASSET_DIR, fetch_roster
+    if filename == "api/roster":
+        try:
+            text, fetched_at = fetch_roster()
+        except (OSError, ValueError, RuntimeError):
+            return {"error": "Roster source unavailable; keep the working snapshot."}, 503
+        return Response(text, mimetype="text/csv", headers={
+            "X-Roster-Fetched-At": fetched_at,
+            "Cache-Control": "public, max-age=3600",
+        })
+    return send_from_directory(ASSET_DIR, filename)
