@@ -1,8 +1,12 @@
+import { authorTomorrowRooms } from './room-catalog.mjs';
+import { authorTomorrowSociety, tomorrowNpcInteractionInfo, useTomorrowNpcInteraction, tomorrowLivingMemory, tomorrowSocietyOutcome, tomorrowSocietyEndingText } from './tomorrow-society.mjs';
+import { authorTomorrowHazards, tomorrowHazardInteractionInfo, useTomorrowHazardInteraction } from './tomorrow-hazards.mjs';
+
 // The Wrong Side of Tomorrow — an authored, shared, impossible civic building.
 // Every route and decision is simulated on the authoritative Game instance.
 // Remembered controls, not an extra bag of unsaved flags, define its three endings.
 export const TOMORROW_ID = 'wrong-side-of-tomorrow';
-export const TOMORROW_WORLD_REVISION = 1;
+export const TOMORROW_WORLD_REVISION = 2;
 export const TOMORROW_ANCHORS = Object.freeze(['memory-orchard', 'memory-aquarium', 'memory-museum']);
 export const TOMORROW_ENDINGS = Object.freeze({
   escape: Object.freeze({ id: 'escape', title: 'An Unfinished Escape', subtitle: 'You leave. Tomorrow follows.',
@@ -42,8 +46,8 @@ function createTomorrow() {
   const item = (id, type, x, z, label, extra = {}) => {
     const result = { id, type, x: x + .5, z: z + .5, label, ...extra }; interactables.push(result); return result;
   };
-  const supply = (id, type, x, z, amount = 1, extra = {}) => pickups.push({ id, type, x: x + .5, z: z + .5, amount, ...extra });
-  const foe = (id, type, x, z, health, extra = {}) => enemies.push({ id, type, x: x + .5, z: z + .5, health, maxHealth: health, alive: true, ...extra });
+  const supply = (id, type, x, z, amount = 1, extra = {}) => { const value = { id, type, x: x + .5, z: z + .5, amount, ...extra }; pickups.push(value); return value; };
+  const foe = (id, type, x, z, health, extra = {}) => { const value = { id, type, x: x + .5, z: z + .5, health, maxHealth: health, alive: true, ...extra }; enemies.push(value); return value; };
   const prop = (id, type, x, z, w, d, zoneId) => {
     carve(x, z, x + w - 1, z + d - 1, '#');
     landmarks.push({ id, type, x: x + w / 2, z: z + d / 2, width: w, depth: d, axis: w > d ? 'x' : 'z', tomorrowDistrict: zoneId });
@@ -101,11 +105,11 @@ function createTomorrow() {
     ['record-exchange', 37, 38, '02 / We misplaced tomorrow', 'The city asked for one more day. We borrowed it from people who had not been born. Now it keeps arriving in the wrong rooms. Names in the west; hours in the northeast. The two registers print a departure pass here.'],
     ['record-orchard', 24, 68, '03 / The gardener', 'These are not teeth, said the gardener. They are the parts of a promise that still remember how to bite. She left a name under the smallest tree.'],
     ['record-aquarium', 68, 66, '04 / The clockmaker', 'The clocks drowned slowly. Each held one minute from a life we had borrowed. The clockmaker put his own minute in last.'],
-    ['record-wardrobe', 7, 46, '05 / Return your borrowed face', 'Once the names register turns, a false door becomes solid. Do not trust the old route printed on your ticket. The door itself will tell you where it goes.'],
+    ['record-wardrobe', 7, 46, '05 / Return your borrowed face', 'Once the names register turns, a false door becomes solid. Do not trust the old route printed on your ticket. The door itself will tell you where it goes. The Wardens and the Unfiled are fighting over names. Rook still has the authority to stop them. Storage cabinets are not supposed to breathe.'],
     ['record-sunday', 69, 51, '06 / An exit is not a cure', 'The departure lift accepts the two-register pass. You can leave before facing the sun. The building will remain awake. That is still a choice.'],
-    ['record-museum', 21, 7, '07 / How to give a day back', 'Three remembered lives, held in a Null field, can give the borrowed day back. Without them the engine can only be shut. The people inside it will not return.'],
+    ['record-museum', 21, 7, '07 / How to give a day back', 'Three remembered lives, held in a Null field, can give the borrowed day back. Three memory anchors will do it. Mara Venn can stand as one living memory if her catalogue is returned and she survives. Read the municipal registry before trusting a clerk. Watch the scored service floor.'],
     ['record-weather', 82, 22, '08 / Forecast: yesterday', 'When the hours register answers the names, the court opens and the folded doors change destinations. The coloured rings show the present route. Read before stepping.'],
-    ['record-court', 37, 24, '09 / The final form', 'ESCAPE: leave the machine running. SEAL: destroy its keeper and fold it inward. REWRITE: keep three memories intact, bring the Null projector, and return the stolen day. Nothing asks you to sacrifice another operator.'],
+    ['record-court', 37, 24, '09 / The final form', 'ESCAPE: leave the machine running. SEAL: destroy its keeper and fold it inward. REWRITE: bring the Null projector and three memories; a rescued, living Mara may stand for one anchor. The people you help or lose will remember your decision. Nothing asks you to sacrifice another operator.'],
   ];
   for (const [id, x, z, label, text] of records) item(id, 'record', x, z, label, { repeatable: true, text });
 
@@ -173,6 +177,9 @@ function createTomorrow() {
   foe('court-skimmer', 'glass-skimmer', 53, 13, 82);
   foe('court-maw', 'lantern-maw', 50, 24, 96);
 
+  authorTomorrowSociety({ item, supply, foe, notice });
+  authorTomorrowHazards({ item, supply, foe, notice });
+
   // Supplies sit on edges so they do not occupy a combat lane or an arrival.
   for (const [id, , x1, z1, x2, z2] of sectors) {
     supply(`${id}-ammo`, 'ammo', x1 + 1, z2 - 2, 100);
@@ -198,15 +205,15 @@ function createTomorrow() {
     exploration: true, friendlyFire: true, upgradeNames: {}, enemyAwarenessDistance: 19, width, height, grid: cells.map(row => row.join('')),
     spawn: together[0], coopSpawns: together, coopSpawnVariants: [together, pairs, scattered], coopSpawnVariantLabels: ['One platform', 'Two misfiled platforms', 'Four different arrivals'],
     guardianId: 'tomorrow-guardian', guardianName: 'The Unfinished Tomorrow', doors, interactables, pickups, enemies, landmarks, wallNotices, surrealProps, gardenZones,
-    zones, hazards: [], platformRooms: [], skylights: [{ id: 'sunday-ceiling', zoneId: 'sunday', x: 76, z: 40, width: 18, depth: 12, fractured: true }],
+    zones, rooms: authorTomorrowRooms(zones), hazards: [], platformRooms: [], skylights: [{ id: 'sunday-ceiling', zoneId: 'sunday', x: 76, z: 40, width: 18, depth: 12, fractured: true }],
   };
 }
 
 export const TOMORROW = createTomorrow();
 export const TOMORROW_MISSION = Object.freeze({ id: TOMORROW_ID, levelId: TOMORROW.id, name: TOMORROW.name, number: '009',
   subtitle: 'Your arrival was filed under somebody else.',
-  briefing: 'An impossible civic building has borrowed a day from people who do not exist yet. Reunite at the central exchange, find the names and hours registers, and decide what deserves to leave. Teeth grow in the orchard, clocks swim behind glass, and doors change their destinations. The newest threats share the corridors. Escape early, seal the unfinished sun, or recover three memories and rewrite its future. Solo or two to four operators; friendly fire is live in this mission and some teams arrive on different platforms.',
-  steps: ['Reach and wake the central exchange', 'Reconnect the names and hours registers', 'Recover your departure pass at the exchange', 'Choose escape, containment, or three-memory restoration', 'Watch your team’s firing lines'],
+  briefing: 'An impossible civic building has borrowed a day from people who do not exist yet. Reunite at the central exchange and reconnect the names and hours registers. Teeth grow in the orchard, clocks swim behind glass, and doors change destinations. Rival factions fight while survivors offer favors, memories, and questionable bargains. Inspect breathing cabinets and marked service floors; the map identifies each room’s purpose. Escape, seal the unfinished sun, or restore three memories—with a survivor’s help if you earn it. Solo or two to four operators; friendly fire is live and some teams arrive on different platforms.',
+  steps: ['Reach and wake the central exchange', 'Reconnect the names and hours registers', 'Read room types and investigate the people you meet', 'Collect your pass; choose escape, containment, or restoration', 'Watch your team’s firing lines and the service floor'],
 });
 
 const stateOf = game => game?.state || game;
@@ -220,11 +227,14 @@ const find = (game, id) => [...game.state.interactables, ...game.state.pickups, 
 export function tomorrowEnding(game) {
   if (!game) return null;
   const id = Object.keys(TOMORROW_ENDINGS).find(key => used(game, key === 'escape' ? 'extraction' : `ending-${key}`));
-  return id ? TOMORROW_ENDINGS[id] : null;
+  if (!id) return null;
+  const ending = TOMORROW_ENDINGS[id], consequence = tomorrowSocietyEndingText(game, id);
+  return consequence ? { ...ending, text: `${ending.text} ${consequence}`, society: tomorrowSocietyOutcome(game) } : ending;
 }
 
 export function tomorrowProgress(game) {
   return { anchors: anchorCount(game), anchorsTotal: TOMORROW_ANCHORS.length,
+    livingMemory: tomorrowLivingMemory(game), society: tomorrowSocietyOutcome(game),
     registers: Number(used(game, 'relay-west')) + Number(used(game, 'relay-east')),
     phase: bothRegisters(game) ? 'rewritten-routes' : stateOf(game)?.power ? 'awake' : 'dormant', ending: tomorrowEnding(game) };
 }
@@ -236,6 +246,8 @@ export function tomorrowFoldDestination(game, object) {
 
 export function tomorrowInteractionInfo(game, object) {
   if (!object?.tomorrowAction) return null;
+  if (object.tomorrowAction === 'npc') return tomorrowNpcInteractionInfo(game, object);
+  if (['mimic', 'trapdoor'].includes(object.tomorrowAction)) return tomorrowHazardInteractionInfo(game, object);
   const s = game.state, active = s.status === 'playing' && s.player.alive !== false && !s.player.jump;
   const result = (text, label, canUse, extra = {}) => ({ text, label, canUse: active && canUse, ...extra });
   if (object.tomorrowAction === 'power') return result('Wake the exchange. Blue waiting lights become refuges.', 'POWER', !object.used);
@@ -254,7 +266,7 @@ export function tomorrowInteractionInfo(game, object) {
     if (!bothRegisters(game)) return result('Reconnect the names and hours registers first', 'LOCKED', false);
     if (!hasPass(game)) return result('Collect the printed departure pass at the exchange', 'PASS', false);
     if (object.ending !== 'escape' && !keeperDown(game)) return result('The Unfinished Tomorrow still holds the court', 'KEEPER', false);
-    if (object.ending === 'rewrite' && (anchorCount(game) !== 3 || !s.player.hasNull)) return result(`Rewrite needs all three memories and the Null projector · ${anchorCount(game)}/3 held`, 'MEMORIES', false);
+    if (object.ending === 'rewrite' && (anchorCount(game) + Number(tomorrowLivingMemory(game)) < 3 || !s.player.hasNull)) return result(`Rewrite needs the Null projector and three memories: all three anchors, or two anchors and Mara alive after you help her · ${anchorCount(game)} anchors${tomorrowLivingMemory(game) ? ' + Mara' : ''}`, 'MEMORIES', false);
     const descriptor = TOMORROW_ENDINGS[object.ending];
     return result(`${object.label}. ${descriptor.subtitle} This ends the run for the whole team.`, object.ending === 'escape' ? 'ESCAPE' : object.ending === 'seal' ? 'SEAL' : 'REWRITE', !tomorrowEnding(game), { ending: descriptor.id });
   }
@@ -262,6 +274,8 @@ export function tomorrowInteractionInfo(game, object) {
 }
 
 export function useTomorrowInteraction(game, object) {
+  if (object?.tomorrowAction === 'npc') return useTomorrowNpcInteraction(game, object);
+  if (['mimic', 'trapdoor'].includes(object?.tomorrowAction)) return useTomorrowHazardInteraction(game, object);
   const info = tomorrowInteractionInfo(game, object);
   if (!info?.canUse) { if (info) game._events.push({ type: 'message', text: info.text }); return false; }
   const s = game.state, p = s.player;
@@ -304,7 +318,7 @@ export function useTomorrowInteraction(game, object) {
     s.effects.push({ id: `tomorrow-fold-${++game._serial}`, type: 'teleport', x: p.x, z: p.z, life: .7 });
   } else if (object.tomorrowAction === 'ending') {
     object.used = true; s.status = 'won';
-    const ending = TOMORROW_ENDINGS[object.ending];
+    const ending = tomorrowEnding(game);
     game._events.push({ type: 'win', time: s.time, ending: ending.id, title: ending.title, text: ending.text });
   }
   game._syncPermanentProgress?.();
@@ -321,8 +335,8 @@ export function tomorrowObjective(game) {
   if (nextRelay) return at(nextRelay.id, nextRelay.label, 'Names are in the western wardrobe; Hours are in the northeast weather room. Either register can be restored first. Memories in the orchard, aquarium and museum open another ending.', 'relays');
   if (!s.player.key) return at('access-key', 'Collect the departure pass', 'Both registers printed it at the central exchange. Take it, then choose: leave the machine running, seal it, or give the stolen day back.', 'key', 'collect');
   if (!keeperDown(game)) return at('tomorrow-guardian', 'Decide what deserves to leave', 'You can escape now from the southern waiting room. To seal or rewrite the anomaly, open the northern court and defeat the Unfinished Tomorrow.', 'choice', 'fight');
-  if (anchorCount(game) === 3 && s.player.hasNull) return at('ending-rewrite', 'Return the stolen tomorrow', 'The violet terminal can restore the three remembered lives. The cyan terminal seals the anomaly without them. Each choice ends this run for the team.', 'ending');
-  return at('ending-seal', 'Choose what remains', `Seal the anomaly at the cyan terminal, or keep exploring for the restoration ending: ${anchorCount(game)}/3 memories and the museum’s Null projector. Escape is still possible at the southern lift.`, 'ending');
+  if (anchorCount(game) + Number(tomorrowLivingMemory(game)) >= 3 && s.player.hasNull) return at('ending-rewrite', 'Return the stolen tomorrow', `${tomorrowLivingMemory(game) ? 'Mara can stand as one living memory. ' : ''}The violet terminal can restore the remembered lives. The cyan terminal seals the anomaly. Each choice ends this run for the team.`, 'ending');
+  return at('ending-seal', 'Choose what remains', `Seal at the cyan terminal, or restore with the Null projector and three memories: ${anchorCount(game)} anchors${tomorrowLivingMemory(game) ? ' + Mara' : '; helping Mara can supply one living memory'}. Escape is still possible at the southern lift.`, 'ending');
 }
 
 export function tomorrowStateValid(snapshot) {
@@ -335,6 +349,6 @@ export function tomorrowStateValid(snapshot) {
   if (used(s, 'memory-museum') && !s.player?.hasNull) return false;
   if (endings.length && (!s.power || !bothRegisters(s) || !s.player?.key)) return false;
   if ((used(s, 'ending-seal') || used(s, 'ending-rewrite')) && !keeperDown(s)) return false;
-  if (used(s, 'ending-rewrite') && (anchorCount(s) !== 3 || !s.player?.hasNull)) return false;
+  if (used(s, 'ending-rewrite') && (anchorCount(s) + Number(tomorrowLivingMemory({ state: s })) < 3 || !s.player?.hasNull)) return false;
   return true;
 }

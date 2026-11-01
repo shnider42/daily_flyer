@@ -1,4 +1,5 @@
-import { tomorrowEnding } from './tomorrow.mjs';
+import { tomorrowEnding, tomorrowInteractionInfo } from './tomorrow.mjs';
+import { ROOM_TYPES, describeRoom } from './room-catalog.mjs';
 import { Game, MISSIONS, WEAPONS, ownedWeapons } from './core.mjs';
 import { DIFFICULTY, DIFFICULTY_IDS, difficultyLabel } from './difficulty.mjs';
 import { BreachRenderer } from './renderer.mjs';
@@ -6,7 +7,7 @@ import { BreachAudio } from './audio.mjs';
 import { CUES_BY_ID } from './music-cues.mjs';
 import { WEAPON_VIEW_DEFAULTS, weaponViewOptions } from './weapon-view.mjs';
 import { CoopClient } from './coop-client.mjs';
-import { GUIDANCE_DESCRIPTIONS, interactionForGuidance, objectiveForGuidance, briefingForGuidance, noticeForGuidance, markerLabelForGuidance, markerCueForGuidance, visibleEquipment, hostileToPlayer, automaticFireAllowed } from './guidance.mjs';
+import { GUIDANCE_DESCRIPTIONS, interactionForGuidance, objectiveForGuidance, briefingForGuidance, noticeForGuidance, markerLabelForGuidance, markerCueForGuidance, visibleEquipment, automaticFireAllowed } from './guidance.mjs';
 import { resolveTouchPreset, joystickVector, resolveFireGesture, TouchFireGestures } from './touch-controls.mjs';
 
 const $ = id => document.getElementById(id);
@@ -628,7 +629,37 @@ function closeDialogs() {
   }
   clearInputs();
 }
-function mapInfo() { return game.getMapInfo?.()||{large:false,sectors:[],markers:[],upgrades:[]}; }
+function mapInfo() {
+  const info=game.getMapInfo?.()||{large:false,sectors:[],markers:[],upgrades:[]};
+  if(!game.level.tomorrow)return info;
+  info.markers=info.markers.flatMap(marker=>{
+    const item=game.state.interactables.find(o=>o.id===marker.id);
+    if(item?.hidden||item?.tomorrowAction==='npc'&&item.npcAction==='status')return [];
+    if(item?.tomorrowAction==='mimic')return [{...marker,type:'cache',label:item.used?'Revealed mimic remains':'Unusual cabinet / exhibit'}];
+    if(item?.tomorrowAction==='trapdoor')return [{...marker,type:'hazard',label:item.used?'Spent service hatch':'Marked service hatch'}];
+    if(item?.tomorrowAction==='npc')return [{...marker,type:'npc',label:item.label}];
+    if(item?.tomorrowAction==='fold')return [{...marker,type:'transit',label:item.label}];
+    return [marker];
+  });
+  return info;
+}
+
+function updateRoomIdentity(){
+  const p=game.state.player,room=describeRoom(game.level,p.x,p.z),visible=!!game.level.tomorrow&&!!room?.type;
+  $('room-type').hidden=!visible;$('map-room-card').hidden=!visible;$('map-room-guide').hidden=!game.level.tomorrow;
+  if(!visible)return;
+  $('room-type').textContent=`ROOM / ${room.type.name.toUpperCase()}`;
+  $('map-room-title').textContent=`${room.type.name} · ${room.name}`;
+  const promises=room.protected?'No hidden floor or object hazards in this area.':room.permitsTrapdoor?'Marked maintenance hatches can open here.':room.permitsMimic?'Inspect optional cabinets and exhibits for living seams.':room.type.description;
+  $('map-room-detail').textContent=promises;
+  $('map-room-activities').textContent=room.activities.length?`Also: ${room.activities.map(id=>ROOM_TYPES[id]?.name||id).join(' · ')}`:'';
+  if(!$('room-guide-list').children.length){
+    for(const type of Object.values(ROOM_TYPES)){
+      const term=document.createElement('dt'),detail=document.createElement('dd');term.textContent=type.name;detail.textContent=type.description;
+      $('room-guide-list').append(term,detail);
+    }
+  }
+}
 function updateMapVisibility() {
   const large=!!game?.level.exploration;
   $('map-panel').hidden=!mapVisible;$('map-panel').classList.toggle('expanded-map',large);
@@ -669,13 +700,16 @@ function revealMap() {
   mapDirty=true;
 }
 function markerSymbol(marker) {
-  return {refuge:'+',transit:'T',upgrade:'◆',grille:'╳',hazard:'ϟ',phase:'◎',shortcut:'↔',exit:'⇧',cache:'□',guardian:'!',power:'P',relay:'R',key:'K',gate:'▣','shadow-puzzle':'◇',jump:'↗'}[marker.type]||'•';
+  return {refuge:'+',transit:'T',npc:'◇',upgrade:'◆',grille:'╳',hazard:'ϟ',phase:'◎',shortcut:'↔',exit:'⇧',cache:'□',guardian:'!',power:'P',relay:'R',key:'K',gate:'▣','shadow-puzzle':'◇',jump:'↗'}[marker.type]||'•';
 }
 function markerColor(marker) {
   if(marker.locked&&settings.guidance==='simple')return '#d28d70';
   return {refuge:'#a9deba',transit:'#81cfd9',upgrade:'#f2bd66',grille:'#e8ad5f',hazard:'#a6d5b2',phase:'#c0a2e7',exit:'#eee8ce',guardian:'#f49b72',cache:'#a8bbaa'}[marker.type]||'#a3bdae';
 }
 function markerDescription(marker,info=mapInfo()) {
+  const feature=game.level.tomorrow&&game.state.interactables.find(item=>item.id===marker.id);
+  if(feature?.tomorrowAction==='fold')return tomorrowInteractionInfo(game,feature)?.text||'Folded doorway';
+  if(feature?.tomorrowAction==='trapdoor')return feature.used?'Spent hatch · safety grille holds the floor':settings.guidance==='expert'?'Scored maintenance hatch':tomorrowInteractionInfo(game,feature)?.text||'Marked maintenance hatch';
   const observed=markerCueForGuidance(marker,settings.guidance);
   if(observed!==null)return observed;
   const equipment=info.upgrades.find(item=>item.id===marker.requires)?.name;
@@ -684,6 +718,7 @@ function markerDescription(marker,info=mapInfo()) {
   if(marker.type==='refuge')return marker.active?'Refuge visited · use to regroup':'Refuge · shared checkpoint';
   if(marker.type==='transit'){if(!marker.active)return 'Transit station · activate on arrival';if(!game.state.power)return 'Activated · central power needed';const partner=info.markers.find(item=>item.id===marker.destination);return partner?.active?'Transit linked · use here to travel':'Activated · link the other station to travel';}
   if(marker.type==='cache')return marker.active?'Cache recovered':'Optional cache';
+  if(marker.type==='npc')return marker.active?'Favor or evidence recorded for the team':'Person or evidence · approach and use';
   if(marker.type==='shadow-puzzle')return marker.active?'Circuit restored':'Optional route control · use to restore the crossing';
   if(marker.type==='jump')return 'Launch beacon · face the landing and use';
   if(marker.type==='guardian')return marker.active?'Guardian cleared':'Hostile guardian';
@@ -718,7 +753,9 @@ function refreshMapIndex(force=false) {
   for(const marker of mapKnownMarkers)for(const sector of info.sectors){const b=sector.bounds;if(marker.x>=b.x1&&marker.x<=b.x2&&marker.z>=b.z1&&marker.z<=b.z2)sectorSeen.add(sector.id);}
   mapKnownSectors=info.sectors.filter(sector=>sectorSeen.has(sector.id));
   const progress=game.getExplorationProgress();
-  $('map-progress').textContent=`${Math.min(100,Math.floor(floorSeen/Math.max(1,mapFloorTotal)*100))}% SURVEYED · ${progress.refugesVisited}/${progress.refugesTotal} REFUGES · ${progress.transitsActive}/${progress.transitsTotal} TRANSIT`;
+  const folds=level.tomorrow?game.state.interactables.filter(item=>item.tomorrowAction==='fold'):null;
+  const travelProgress=folds?`${folds.filter(item=>item.used||explored.has(Math.floor(item.z)*level.width+Math.floor(item.x))).length}/${folds.length} FOLDS FOUND`:`${progress.transitsActive}/${progress.transitsTotal} TRANSIT`;
+  $('map-progress').textContent=`${Math.min(100,Math.floor(floorSeen/Math.max(1,mapFloorTotal)*100))}% SURVEYED · ${progress.refugesVisited}/${progress.refugesTotal} REFUGES · ${travelProgress}`;
   upgradeTokens($('map-upgrades'),info.upgrades);
   const selectedSector=$('map-sector').value;
   $('map-sector').replaceChildren(...[{id:'',name:'Choose a discovered sector'},...mapKnownSectors].map(sector=>{const option=document.createElement('option');option.value=sector.id;option.textContent=sector.id?`${String(info.sectors.findIndex(item=>item.id===sector.id)+1).padStart(2,'0')} / ${sector.name}`:sector.name;return option;}));
@@ -856,7 +893,7 @@ function updateDirection() {
 }
 function visibleHostileForTraining() {
   const p=game.state.player;
-  return game.state.enemies.some(enemy=>hostileToPlayer(enemy)
+  return game.state.enemies.some(enemy=>game.isHostileToPlayer(enemy)
     && Math.hypot(enemy.x-p.x,enemy.z-p.z)<12
     && Math.abs(normAngle(Math.atan2(enemy.x-p.x,-(enemy.z-p.z))-p.angle))<.72
     && game.hasLineOfSight(p.x,p.z,enemy.x,enemy.z));
@@ -872,11 +909,12 @@ function updateTutorial() {
   else if(objective.stage==='arrival')text=touch?'Walk to the airlock. Tap OPEN when it lights up.':'Approach the arrival airlock. Press E when the door prompt appears.';
   else if(!t.fired) {
     if(!visibleHostileForTraining()){
-      if(game.level.exploration&&objective.stage==='power'){text=coop?'The map stays live in co-op. Find cover first; your teammate can keep moving. Both operators entering menus pauses the world.':touch?'MAP pauses your solo run. Remember gates, refuges and your route back.':'Press TAB to inspect the facility map. It pauses your solo run.';index='EXPLORATION TIP';}
+      if(game.level.exploration&&objective.stage==='power'){text=coop?'The map stays live in co-op. Find cover first; your teammates can keep moving. The world pauses when every operator enters a menu.':touch?'MAP pauses your solo run. Remember gates, refuges and your route back.':'Press TAB to inspect the facility map. It pauses your solo run.';index='EXPLORATION TIP';}
       else{$('tutorial').hidden=true;return;}
     }else text=touch?(settings.fireGesture==='safe'?'Drag the view to aim. Tap FIRE once, or hold it still briefly for continuous fire.':'Hold FIRE. Drag on it to aim while you shoot.'):'Click or hold SPACE to fire. Move sideways with A and D to dodge.';
   }
   else if(ownedWeapons(state.player).length>1&&!t.weaponSwitched)text=touch?'Tap a gun in the bottom weapon selector to equip it.':'Press 1–8 to select a carried weapon. The numbers match the bottom weapon selector; the mouse wheel cycles them.';
+  else if(state.enemies.some(enemy=>enemy.npcRole&&enemy.alive&&!game.isHostileToPlayer(enemy)&&Math.hypot(enemy.x-state.player.x,enemy.z-state.player.z)<9&&game.hasLineOfSight(state.player.x,state.player.z,enemy.x,enemy.z))){text='People may fight each other without being your enemy. Keep your fire clear and approach named survivors to hear their offers.';index='ENCOUNTER TIP';}
   else if(state.enemies.some(enemy=>enemy.alive&&enemy.faction==='security'&&!enemy.provoked&&Math.hypot(enemy.x-state.player.x,enemy.z-state.player.z)<9&&game.hasLineOfSight(state.player.x,state.player.z,enemy.x,enemy.z))){text='Security sentries fight the creatures. They leave you alone unless you shoot them.';index='ENCOUNTER TIP';}
   else if(game.level.exploration&&['cutter','insulator','phase','return'].includes(objective.stage)){text=objective.stage==='return'?'Activated transit stations shorten the trip back. Check the map for linked stations.':'New equipment opens routes you passed earlier. The map remembers discovered gates and refuges.';index='EXPLORATION TIP';}
   else if(objective.stage==='relays'){text=touch?'Bring both relay consoles online. Each active link stays lit.':'Find and activate both relay consoles. Active links stay lit; the link counter tracks your progress.';index='MISSION BRIEF';}
@@ -895,6 +933,7 @@ function updateHud() {
   const state=game.state,p=state.player;
   if(mapVisible)$('map-state').textContent=coop&&coop.room?.status==='playing'?'FIELD CARTOGRAPHY / LIVE':'FIELD CARTOGRAPHY / PAUSED';
   $('zone').textContent=game.getZone().toUpperCase();$('clock').textContent=formatTime(state.time);
+  updateRoomIdentity();
   $('health').textContent=Math.ceil(p.health);$('armor').textContent=Math.ceil(p.armor);
   $('health-fill').style.width=`${Math.max(0,p.health)/(p.maxHealth||100)*100}%`;$('health-unit').textContent=p.maxHealth>100?`/ ${p.maxHealth}`:'HP';$('health').closest('.health').classList.toggle('low',p.health<30);
   const boss=state.enemies.find(e=>e.alive&&e.bossGroup&&Math.hypot(e.x-p.x,e.z-p.z)<17&&game.hasLineOfSight(p.x,p.z,e.x,e.z));
@@ -963,8 +1002,8 @@ function processEvents(events,allEvents=events) {
     if(event.type==='record')updateFieldJournal();
     if(event.type==='hurt')damageUntil=performance.now()+(settings.reducedMotion?130:200);
     if(event.type==='hit')hitUntil=performance.now()+120;
-    if(['door','shutter','power','pickup','relay','upgrade','refuge','transit-activated','transit','reward','hit','death','shadow-puzzle'].includes(event.type)) {pathTimer=0;mapDirty=true;}
-    if(['checkpoint','upgrade','refuge','transit-activated','reward','record','shutter','shadow-puzzle'].includes(event.type))saveRun();
+    if(['door','shutter','power','pickup','relay','upgrade','refuge','transit-activated','transit','reward','hit','death','shadow-puzzle','tomorrow-npc','tomorrow-betrayal','mimic-reveal','trapdoor-open','trapdoor-land'].includes(event.type)) {pathTimer=0;mapDirty=true;}
+    if(['checkpoint','upgrade','refuge','transit-activated','reward','record','shutter','shadow-puzzle','tomorrow-npc','tomorrow-betrayal','mimic-reveal','trapdoor-open','trapdoor-land'].includes(event.type))saveRun();
     if(event.type==='win'&&!coop)finish(true);
     if(event.type==='death'&&!coop)finish(false);
     if(event.type==='revive'&&coop)notice='Back in the fight. The team reached a shared checkpoint.';
@@ -976,15 +1015,16 @@ function processEvents(events,allEvents=events) {
 }
 function shouldAutoFire(gesture) {
   if(!settings.autoFire||!localOperatorAlive()||gesture.blocksAutoFire)return false;
-  if(game.state.friendlyFire){
+  {
     const p=game.state.player,spec=WEAPONS[p.weapon]||WEAPONS.pistol;
-    if(Object.values(game.state.players||{}).some(ally=>{
+    const protectedTargets=[...(game.state.friendlyFire?Object.values(game.state.players||{}):[]),...game.state.enemies.filter(e=>e.npcRole&&e.alive&&!game.isHostileToPlayer(e))];
+    if(protectedTargets.some(ally=>{
       if(ally===p||ally.id===p.id||ally.alive===false)return false;
       const dx=ally.x-p.x,dz=ally.z-p.z,along=dx*Math.sin(p.angle)-dz*Math.cos(p.angle),across=Math.abs(dx*Math.cos(p.angle)+dz*Math.sin(p.angle));
       return along>0&&along<spec.range&&across<.5+along*.12&&game.hasLineOfSight(p.x,p.z,ally.x,ally.z);
     }))return false;
   }
-  return automaticFireAllowed(game.state.enemies,game.state.player,{aimAssist:settings.aimAssist,hasLineOfSight:(...args)=>game.hasLineOfSight(...args)});
+  return automaticFireAllowed(game.state.enemies.filter(e=>game.isHostileToPlayer(e)),game.state.player,{aimAssist:settings.aimAssist,hasLineOfSight:(...args)=>game.hasLineOfSight(...args)});
 }
 function frame(now) {
   if(statusError)return;

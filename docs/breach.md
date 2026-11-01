@@ -4,6 +4,28 @@ An original retro first-person game built on DailyFlyer, with nine solo missions
 and six operations available in private two-to-four-player co-op. Solo play runs in the
 browser; co-op uses an authoritative room server.
 
+## 0.12.0 — People, factions, and rooms that lie
+
+Breach now has a shared catalog of **13 functional room types**. Tomorrow's nine
+districts contain 37 overlapping semantic regions for arrivals, controls,
+refuges, optional discoveries and endings. These classifications describe the
+existing floor plan; the nine missions still have 82 named zone rectangles.
+See [the room inventory and placement rules](breach-room-types.md).
+
+Tomorrow adds nine human NPC bodies: Mara Venn, Bailiff Rook and Clerk Twice,
+four rival faction combatants, and two conditional escorts. Returning Mara's
+catalogue can supply one living memory for Rewrite; repairing Rook's radio ends
+the Warden–Unfiled feud; Twice's bargain may lead to loyalty or a warned betrayal.
+Two disguised mimics and two marked maintenance hatches occupy optional areas,
+while arrivals, refuges and required controls reject those placements.
+
+NPC decisions, faction fighting, reveals and drops use the same authoritative
+world for up to four operators. Valid 0.11.0 Tomorrow saves migrate with earned
+progress intact. Co-op remains protocol 3 and now requires Tomorrow revision 2.
+The implementation passed 457 JavaScript tests, three Python export tests and
+browser checks of the software-renderer presentation. See
+[the release and validation notes](breach-society-0120.md) for scope and limits.
+
 ## 0.11.0 — The Wrong Side of Tomorrow
 
 Mission 009 is an impossible civic building with nine connected districts, three
@@ -196,8 +218,8 @@ supplies, an optional secret, and checkpoints. Guidance level and combat difficu
 are separate settings.
 
 Crosslink is a compact third mission with a power hub and two relay branches.
-It supports solo play and is the first operation available in private two-player
-co-op. Choose Play with a friend to create or join a room; see
+It supports solo play and is the first operation available in private two-to-four-player
+co-op. Choose Play with friends to create or join a room; see
 [private co-op](breach-multiplayer.md) for joining, shared pause, and checkpoint rules.
 
 The Underworks is a large fourth operation, playable solo or in co-op. Explore
@@ -216,11 +238,13 @@ wing to its relay, defeat the propagation guardian, and open the direct route
 back to the laboratory lift. Bulwarks expose their shields between attacks;
 menders can be interrupted while healing other creatures.
 
-The arsenal has five weapons: pistol, scattergun, Arc caster, Rebound carbine,
-and Thumper. The Rebound reflects once from a solid wall; closed doors absorb
+The current arsenal has eight weapons: pistol, Scattergun, Arc caster, Rebound
+carbine, Thumper, Rivet repeater, Null projector and Breach lance. Availability
+depends on the mission and weapons recovered. The Rebound reflects once from a solid wall; closed doors absorb
 its slug. Thumper grenades bounce and detonate after a fuse, with splash blocked
-by walls. Your own grenade can hurt you; it cannot hurt your co-op teammate.
-The two new weapons require deliberate firing even when automatic fire is enabled.
+by walls. Your own grenade can hurt you, and friendly fire allows its splash to
+hurt teammates in Tomorrow. Rebound and Thumper require deliberate firing even
+when automatic fire is enabled.
 
 Desktop uses WASD movement, mouse look (or click-and-drag when pointer lock is
 unavailable), firing, E interaction, and the pause menu. The game displays its
@@ -248,10 +272,14 @@ such as `?mission=relay-09`, selects its briefing without starting it.
 
 ## Validation
 
-The current 0.7.0 validation record belongs to
-[the Glasshouse update](breach-glasshouse-07.md). The release records below retain
-their original results and do not establish completion of the current CI or
-published-service checks.
+The current 0.12.0 regression gate passed **457 JavaScript tests** and **three
+Python export tests**. Browser inspection checked the actual software-renderer
+presentation; automated rendering tests also cover GPU scene geometry and art
+selection. This does not establish real GPU screenshot quality, physical-device
+performance or a live deployed 0.12.0 service. See
+[the current validation record](breach-society-0120.md).
+
+The historical release records below retain their original results and scope.
 
 ```sh
 npm run test:breach

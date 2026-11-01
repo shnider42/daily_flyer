@@ -91,7 +91,7 @@ async function pair(f, mission = 'crosslink-11') {
 test('HTTP health and static delivery expose only the public build and configure same-origin co-op', { timeout: 10000 }, async t => {
   const f = await fixture(t);
   const health = await get(f.base, '/health'); assert.equal(health.status, 200);
-  const status = JSON.parse(health.body); assert.equal(status.ok, true); assert.equal(status.service, 'breach-rooms'); assert.equal(status.version, '0.11.0'); assert.equal(status.protocol, 3); assert.equal(status.activeRooms, 0);
+  const status = JSON.parse(health.body); assert.equal(status.ok, true); assert.equal(status.service, 'breach-rooms'); assert.equal(status.version, '0.12.0'); assert.equal(status.protocol, 3); assert.equal(status.activeRooms, 0);
   assert.equal(health.headers['cache-control'], 'no-store');
   const page = await get(f.base); assert.equal(page.status, 200); assert.match(page.body, /"coopServer":"same-origin"/);
   assert.equal(page.headers['x-content-type-options'], 'nosniff'); assert.match(page.headers['content-type'], /text\/html/);

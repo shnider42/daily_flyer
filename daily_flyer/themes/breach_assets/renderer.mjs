@@ -1,5 +1,7 @@
-import { TOMORROW_PALETTES, paintTomorrowSurface, paintTomorrowLandmark, paintTomorrowProp, paintTomorrowStation } from './tomorrow-art.mjs';
+import { TOMORROW_PALETTES, paintTomorrowSurface, paintTomorrowLandmark, paintTomorrowProp, paintTomorrowStation, paintTomorrowNpc, paintTomorrowMimic, paintTomorrowHatch } from './tomorrow-art.mjs';
 import { tomorrowInteractionInfo } from './tomorrow.mjs';
+import { tomorrowNpcHostile } from './tomorrow-society.mjs';
+import { tomorrowHatchVisual } from './tomorrow-hazards.mjs';
 import { platformSolid, platformStatus, courseStatus, shadowPuzzleInfo, jumpInfo } from './shadow.mjs';
 import { weaponViewTransform } from './weapon-view.mjs';
 import * as THREE from './vendor/three.module.js';
@@ -84,6 +86,7 @@ const circuitMark = item => String(item.mark||String(item.circuitId||'1').split(
 const doorStyleKey = door => doorKind(door)==='shutter'?`shutter:${circuitMark(door)}`:doorKind(door);
 const stationKey = item => item.tomorrowAction?`tomorrow:${item.tomorrowAction}:${item.ending||item.anchorNumber||item.id}`:item.type==='shadow-puzzle'?`shadow-puzzle:${item.effect}:${item.stage||0}`:item.routing?`routing:${circuitMark(item)}`:item.type==='shutter-switch'?`shutter-switch:${circuitMark(item)}`:`${item.type}:${item.upgrade||''}`;
 const explorationFeature = (item) => !!item.tomorrowAction || ['upgrade','refuge','transit','shutter-switch','record','jump','shadow-puzzle'].includes(item.type);
+const visibleTomorrowFeature = item => !item.hidden && !(item.tomorrowAction==='mimic'&&item.used) && !(item.tomorrowAction==='npc'&&['help','status'].includes(item.npcAction));
 const puzzleMode=(item,state,game)=>{
   if(game&&typeof shadowPuzzleInfo==='function'){const info=shadowPuzzleInfo(game,item);return info.complete?2:info.canUse?1:0;}
   return item.used?2:state.power&&(!item.requirementId||(state.interactables||[]).some(o=>o.id===item.requirementId&&o.used))?1:0;
@@ -94,7 +97,9 @@ const featureMode = (item,state,game=null) => item.tomorrowAction?item.used?2:Nu
   : Number(!!item.used);
 const inEntityRange = (entity,player,range) => Math.abs(entity.x-player.x)<=range && Math.abs(entity.z-player.z)<=range;
 const ENEMY_ART = ['runner','spitter','brute','stalker','sentry','sentry-hostile','guardian','guardian-exposed'];
-const enemyArt = (enemy,observer) => {
+const enemyArt = (enemy,observer,state=null) => {
+  if(enemy.npcRole)return `npc-${enemy.npcRole}${(state?tomorrowNpcHostile(state,enemy):enemy.provoked)?'--hostile':''}`;
+  if(enemy.mimicKind)return `mimic-${enemy.mimicKind}`;
   if(enemy.type==='lantern-maw')return enemy.revealed===false||enemy.shadowPhase==='disguised'?'lantern-maw-disguised':enemy.shadowPhase==='recover'?'lantern-maw-spent':'lantern-maw';
   if(enemy.type==='tether-widow')return enemy.shadowPhase==='tether'?'tether-widow-linked':'tether-widow';
   if(enemy.type==='cinder-sower')return enemy.shadowPhase==='recover'?'cinder-sower-spent':'cinder-sower';
@@ -112,10 +117,10 @@ const enemyArt = (enemy,observer) => {
   if(enemy.type==='mender')return enemy.telegraph?.kind==='heal'&&enemy.telegraph.remaining>0&&!(enemy.stunTimer>0)?'mender-healing':'mender';
   return enemy.type==='sentry'&&enemy.provoked?'sentry-hostile':enemy.type;
 };
-const enemyHeight = enemy => enemy.type==='cinder-sower'?1.73:enemy.type==='tether-widow'?1.42:enemy.type==='glass-skimmer'?1.58:enemy.type==='lantern-maw'?1.91:enemy.guardian?2.22:enemy.type==='bulwark'?2.07:enemy.type==='mender'?1.91:enemy.type==='brute'?1.93:enemy.type==='stalker'?1.84:enemy.type==='sentry'?1.74:enemy.type==='spitter'?1.69:1.59;
-const enemyWidth = enemy => enemy.type==='glass-skimmer'?1.72:enemy.type==='tether-widow'?1.8:enemyHeight(enemy)*80/112;
+const enemyHeight = enemy => enemy.npcRole?1.85:enemy.mimicKind?1.55:enemy.type==='cinder-sower'?1.73:enemy.type==='tether-widow'?1.42:enemy.type==='glass-skimmer'?1.58:enemy.type==='lantern-maw'?1.91:enemy.guardian?2.22:enemy.type==='bulwark'?2.07:enemy.type==='mender'?1.91:enemy.type==='brute'?1.93:enemy.type==='stalker'?1.84:enemy.type==='sentry'?1.74:enemy.type==='spitter'?1.69:1.59;
+const enemyWidth = enemy => enemy.mimicKind?1.4:enemy.type==='glass-skimmer'?1.72:enemy.type==='tether-widow'?1.8:enemyHeight(enemy)*80/112;
 const enemyBottom = enemy => enemy.type==='glass-skimmer'&&enemy.alive!==false&&enemy.health>0?.23:.015;
-const enemyArtTypes = level => [...ENEMY_ART,...((level.enemies||[]).some(enemy=>enemy.echo)?['echo']:[]),...((level.enemies||[]).some(enemy=>['bulwark','mender'].includes(enemy.type))?NEW_ENEMY_ART:[]),...SHADOW_ENEMY_TYPES.filter(type=>(level.enemies||[]).some(enemy=>enemy.type===type))];
+const enemyArtTypes = level => [...ENEMY_ART,...((level.enemies||[]).some(enemy=>enemy.echo)?['echo']:[]),...((level.enemies||[]).some(enemy=>['bulwark','mender'].includes(enemy.type))?NEW_ENEMY_ART:[]),...SHADOW_ENEMY_TYPES.filter(type=>(level.enemies||[]).some(enemy=>enemy.type===type)),...[...new Set((level.enemies||[]).filter(e=>e.npcRole).map(e=>e.npcRole))].flatMap(role=>[`npc-${role}`,`npc-${role}--hostile`]),...[...new Set((level.enemies||[]).filter(e=>e.mimicKind).map(e=>`mimic-${e.mimicKind}`))]];
 const projectileAppearance = projectile => {
   if(projectile.type!=='grenade')return {kind:'plasma',size:.22,y:projectile.y??1.02};
   const remaining=clamp((projectile.life||0)/Math.max(.01,projectile.fuse||1.5),0,1);
@@ -310,6 +315,7 @@ function makeTomorrowWallTexture(name){const[canvas,c]=canvas2d(128,128);paintTo
 function makeTomorrowFloorTexture(name,ceiling=false){const[canvas,c]=canvas2d(64,64);paintTomorrowSurface(c,'floor',name,ceiling);return textureFrom(canvas);}
 function makeTomorrowLandmarkTexture(type,name){const[canvas,c]=canvas2d(192,192);paintTomorrowLandmark(c,type,name);return textureFrom(canvas);}
 function makeTomorrowPropTexture(prop,changed=false){const[canvas,c]=canvas2d(256,256);c.save();if(changed){c.translate(256,256);c.rotate(Math.PI);}paintTomorrowProp(c,prop.kind,prop.zoneId);c.restore();if(changed){c.globalCompositeOperation='source-atop';c.fillStyle='rgba(185,255,215,.2)';c.fillRect(0,0,256,256);c.globalCompositeOperation='source-over';}return textureFrom(canvas);}
+function makeTomorrowHatchTexture(phase){const[canvas,c]=canvas2d(128,128);paintTomorrowHatch(c,phase);return textureFrom(canvas);}
 function tomorrowPropSize(prop){return {width:Math.min(9,prop.width*.55),height:2.8,bottom:1.9};}
 function tomorrowPropMotion(prop,state,clock,reducedMotion){
   const changed=!!prop.changedBy&&(state.interactables||[]).some(i=>i.id===prop.changedBy&&i.used);
@@ -1365,6 +1371,8 @@ function drawEncounterEnemy(type,frame){
 }
 
 function drawEnemy(type, frame) {
+  if(type.startsWith('npc-')){const[canvas,c]=canvas2d(80,112);paintTomorrowNpc(c,type.slice(4).split('--')[0],frame,type.endsWith('--hostile'));return textureFrom(canvas);}
+  if(type.startsWith('mimic-')){const[canvas,c]=canvas2d(80,112);paintTomorrowMimic(c,type.slice(6),frame);return textureFrom(canvas);}
   if(shadowEnemyType(type))return drawShadowHunter(type,frame);
   if(['hydra','hydra-marked','turret','mortar'].includes(type))return drawShadowEnemy(type,frame);
   if(type.startsWith('bulwark')||type.startsWith('mender'))return drawGardenEnemy(type,frame);
@@ -2058,6 +2066,11 @@ class WebGLBreachRenderer {
   }
 
   addFeature(item){
+    if(item.tomorrowAction==='trapdoor'){
+      const maps=Object.fromEntries(['closed','warning','spent'].map(phase=>[phase,this.texture(makeTomorrowHatchTexture(phase))]));
+      const mesh=this.mesh(this.geometry(new THREE.PlaneGeometry(item.width,item.depth)),this.material(new THREE.MeshBasicMaterial({map:maps.closed})),item.x,.025,item.z);mesh.rotation.x=-Math.PI/2;
+      this.featureVisuals.set(item.id,{mesh,maps,hatch:true});return;
+    }
     if(explorationFeature(item)){
       const key=stationKey(item);
       if(!this.stationMaps.has(key))this.stationMaps.set(key,Array.from({length:item.tomorrowAction||['transit','shutter-switch','shadow-puzzle'].includes(item.type)?3:2},(_,mode)=>this.texture(makeStationTexture(item,mode))));
@@ -2206,7 +2219,7 @@ class WebGLBreachRenderer {
       if(stunned)frame=0;
       if(enemy.hitTimer>0||this.clock-(this.hitAt.get(enemy.id)??-99)<.14)frame=5;
       if(dead)frame=6;
-      const maps=this.getEnemyFrames(enemyArt(enemy,state.player));
+      const maps=this.getEnemyFrames(enemyArt(enemy,state.player,state));
       visual.sprite.material.map=maps[frame];
       const height=enemyHeight(enemy);
       visual.sprite.position.set(enemy.x,enemyBottom(enemy),enemy.z);visual.sprite.scale.set(enemyWidth(enemy),height,1);
@@ -2238,7 +2251,8 @@ class WebGLBreachRenderer {
     const featureEntities=new Map((state.interactables||[]).map(item=>[item.id,item]));
     for(const [id,feature]of this.featureVisuals){
       const entity=featureEntities.get(id);if(!entity)continue;
-      const visible=inEntityRange(entity,state.player,this.entityRange);(feature.group||feature.sprite).visible=visible;
+      const visible=visibleTomorrowFeature(entity)&&inEntityRange(entity,state.player,this.entityRange);(feature.group||feature.sprite||feature.mesh).visible=visible;
+      if(feature.hatch){if(visible)feature.mesh.material.map=feature.maps[tomorrowHatchVisual(state,entity)];continue;}
       if(feature.station){if(visible)feature.sprite.material.map=feature.maps[featureMode(entity,state,this.game)];continue;}
       if(!feature.beacon||!visible)continue;
       const on=feature.type==='power'?state.power:feature.type==='relay'?!!entity?.used:exitReady(state);
@@ -2537,6 +2551,10 @@ class SoftwareBreachRenderer {
       if(best)this.zoneSigns.push({...best,width:this.visuals.underworks?1.15:.88,height:this.visuals.underworks?.36:.275,bottom:this.visuals.underworks?1.65:1.69,image:image(makeSign(zoneTitle(zone,this.visuals),`${this.visuals.signCode} / SECTOR ${String(index+1).padStart(2,'0')}`,this.visuals.tomorrow?TOMORROW_PALETTES[zone.id]?.accent:this.visuals.shadow?SHADOW_PALETTES[zone.id]?.accent:this.visuals.glasshouse?GARDEN_PALETTES[zone.palette]?.accent||this.visuals.signColor:this.visuals.underworks?SECTORS[zone.palette]?.accent||this.visuals.signColor:this.visuals.signColor))});
     }
     this.tomorrowProps=(game.level.surrealProps||[]).map(prop=>({prop,image:image(makeTomorrowPropTexture(prop)),changedImage:prop.changedBy?image(makeTomorrowPropTexture(prop,true)):null,size:tomorrowPropSize(prop)}));this.stats.tomorrowProps=this.tomorrowProps.length;
+    this.tomorrowHatches=(game.level.interactables||[]).filter(item=>item.tomorrowAction==='trapdoor').map(item=>({item,pixels:Object.fromEntries(['closed','warning','spent'].map(phase=>[phase,image(makeTomorrowHatchTexture(phase)).getContext('2d').getImageData(0,0,128,128).data]))}));
+    this.tomorrowHatchCells=new Int16Array(game.level.width*game.level.height).fill(-1);
+    for(const[index,{item}]of this.tomorrowHatches.entries())for(let z=Math.floor(item.z1);z<=Math.floor(item.z2);z++)for(let x=Math.floor(item.x1);x<=Math.floor(item.x2);x++)if(x>=0&&z>=0&&x<game.level.width&&z<game.level.height)this.tomorrowHatchCells[z*game.level.width+x]=index;
+    this.stats.tomorrowHatches=this.tomorrowHatches.length;
     const landmarkImages=new Map();
     this.landmarkPanels=allLandmarkPanels(game.level).map(panel=>{
       const key=landmarkKey(panel);
@@ -2668,6 +2686,7 @@ class SoftwareBreachRenderer {
     const [fogR,fogG,fogB]=this.visuals.fogRgb;
     const lx=this.forwardX-this.rightX*this.planeLength,lz=this.forwardZ-this.rightZ*this.planeLength;
     const stepDirectionX=2*this.rightX*this.planeLength/w,stepDirectionZ=2*this.rightZ*this.planeLength/w;
+    const hatchFrames=this.tomorrowHatches.map(({item,pixels})=>pixels[tomorrowHatchVisual(this.game.state,this.game.state.interactables.find(o=>o.id===item.id)||item)]);
     for(let y=0;y<h;y++){
       const isFloor=y>=this.horizon;
       if(this.visuals.switchyard&&!isFloor){
@@ -2704,6 +2723,13 @@ class SoftwareBreachRenderer {
             const rgb=edge&&!stripe?view.edge:view.face,multiplier=stripe?.5:seam?.72:1;
             red=rgb[0]*multiplier;green=rgb[1]*multiplier;blue=rgb[2]*multiplier;
           }else{const flow=level.platformRooms[this.shadowLayout.roomCells[cell]].puzzleKind==='flow';red=flow?9:2;green=flow?27:3;blue=flow?36:8;}
+        }
+        if(isFloor&&cell>=0&&this.tomorrowHatchCells[cell]>=0){
+          const patchIndex=this.tomorrowHatchCells[cell],patch=this.tomorrowHatches[patchIndex].item;
+          if(worldX>=patch.x1&&worldX<patch.x2&&worldZ>=patch.z1&&worldZ<patch.z2){
+            const u=Math.min(127,Math.floor((worldX-patch.x1)/patch.width*128)),v=Math.min(127,Math.floor((worldZ-patch.z1)/patch.depth*128)),i=(v*128+u)*4,pixels=hatchFrames[patchIndex];
+            red=pixels[i];green=pixels[i+1];blue=pixels[i+2];
+          }
         }
         data[offset]=red*shade+fogR*fog;
         data[offset+1]=green*shade+fogG*fog;
@@ -2801,7 +2827,7 @@ class SoftwareBreachRenderer {
       if(enemy.hitTimer>0||this.clock-(this.hitAt.get(enemy.id)??-99)<.14)frame=5;
       if(enemy.alive===false||enemy.health<=0)frame=6;
       const height=enemyHeight(enemy);
-      add(this.getEnemyFrames(enemyArt(enemy,p))[frame],enemy.x,enemy.z,enemyWidth(enemy),height,enemyBottom(enemy));
+      add(this.getEnemyFrames(enemyArt(enemy,p,state))[frame],enemy.x,enemy.z,enemyWidth(enemy),height,enemyBottom(enemy));
       if(stunned||enemy.contained)add(this.stunImage,enemy.x,enemy.z,.62,.46,height-.18,true);
     }
     for(const pickup of state.pickups)if(!pickup.collected){
@@ -2810,6 +2836,7 @@ class SoftwareBreachRenderer {
       add(this.pickupImages[pickup.type]||this.pickupImages.ammo,pickup.x,pickup.z,size,size,.35-size/2+bob);
     }
     for(const feature of state.interactables||[]){
+      if(!visibleTomorrowFeature(feature)||feature.tomorrowAction==='trapdoor')continue;
       if(explorationFeature(feature)){
         const frames=this.stationImages.get(stationKey(feature));
         if(frames)add(frames[featureMode(feature,state,this.game)],feature.x,feature.z,1.19,1.7,.015);

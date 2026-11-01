@@ -2,6 +2,8 @@
 // separate from Game's browser-local save format and are never accepted as input.
 import { updateTraversal } from './shadow.mjs';
 import { Game, WEAPONS } from './core.mjs';
+import { updateTomorrowSociety } from './tomorrow-society.mjs';
+import { updateTomorrowPlayerTraversal, updateTomorrowHazards, restoreTomorrowHazards } from './tomorrow-hazards.mjs';
 
 const TAU = Math.PI * 2;
 const copy = value => JSON.parse(JSON.stringify(value));
@@ -170,9 +172,9 @@ export class CoopGame extends Game {
         const forward = axis(input.forward), strafe = axis(input.strafe);
         const speed = 3.35 * dt / Math.max(1, Math.hypot(forward, strafe));
         const beforeX = p.x, beforeZ = p.z;
-        if(!updateTraversal(this,dt))this._move(p, (Math.sin(p.angle) * forward + Math.cos(p.angle) * strafe) * speed,
+        if(!updateTomorrowPlayerTraversal(this,dt)&&!updateTraversal(this,dt))this._move(p, (Math.sin(p.angle) * forward + Math.cos(p.angle) * strafe) * speed,
           (-Math.cos(p.angle) * forward + Math.sin(p.angle) * strafe) * speed);
-        if(!p.jump)updateTraversal(this,0);
+        if(!p.jump){updateTomorrowPlayerTraversal(this,0);updateTraversal(this,0);}
         p.moving = Math.hypot(p.x - beforeX, p.z - beforeZ) > .0001;
         if (distance(p, runtime.spawn) > .75) p.tutorial.moved = true;
         this._collectPickups();
@@ -192,6 +194,8 @@ export class CoopGame extends Game {
     }
     // Players consume independent inputs above; the shared world advances once.
     if (this._pathTimer <= 0) { this._buildTeamDistanceFields(); this._pathTimer = .5; }
+    updateTomorrowHazards(this,dt);
+    updateTomorrowSociety(this,dt);
     this._updateEnemies(dt);
     this._updateProjectiles(dt);
     for (const effect of this.state.effects) effect.life -= dt;
@@ -348,6 +352,7 @@ export class CoopGame extends Game {
     this._shotCooldown = 0; this._reserveTimer = 0; this._messageCooldown = 0;
     this._pathTimer = 0; this._distances = null; this._distanceFields = new Map();
     this._restoreAliases();
+    restoreTomorrowHazards(this);
     this._events = [{ type: 'message', text: 'Team checkpoint restored. All operatives are ready.' }];
     return true;
   }

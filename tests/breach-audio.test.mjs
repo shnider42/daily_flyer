@@ -32,6 +32,18 @@ test('neutral security is quiet until the existing hostility rule marks it provo
   assert.equal(s.rays(), 1);
 });
 
+test('a nearby named Tomorrow NPC stays quiet until its shared betrayal becomes hostile', () => {
+  const clerk = enemy({ type: 'sentry', npcRole: 'broker', npcId: 'twice', faction: 'clerks' });
+  const s = scene([clerk]);
+  s.game.level = { tomorrow: true };
+  s.game.state.tomorrowSociety = { clerkOutcome: 'loyal' };
+  assert.equal(musicPressure(s.game), 0);
+  assert.equal(s.rays(), 0);
+  s.game.state.tomorrowSociety.clerkOutcome = 'betrayed';
+  assert.equal(musicPressure(s.game), 1);
+  assert.equal(s.rays(), 1);
+});
+
 test('distant enemies and a teammate encounter do not perform local visibility traces', () => {
   const s = scene([enemy({ x: 10.01 }), enemy({ x: 50, z: 50 })]);
   s.game.state.players = {

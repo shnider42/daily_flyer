@@ -127,16 +127,99 @@ export function paintTomorrowProp(c,kind,name){
   c.restore();
 }
 export function paintTomorrowStation(c,item,mode){
+  if(item.tomorrowAction==='mimic'){paintTomorrowMimic(c,item.mimicKind,mode===2?6:mode===1?1:0,true);return;}
   const endingPalette={escape:'exchange',seal:'aquarium',rewrite:'wardrobe'}[item.ending];
   const p=TOMORROW_PALETTES[endingPalette||item.zoneId]||TOMORROW_PALETTES.exchange;
   c.save();c.scale(c.canvas.width/96,c.canvas.height/128);
   rect(c,7,11,82,109,'#152632');rect(c,11,16,74,80,mode?p.panel:p.dark);line(c,[[9,15],[87,15],[87,98],[9,98],[9,15]],p.trim,3);
   const action=String(item.tomorrowAction||'');
-  if(/memory|anchor/.test(action)){eye(c,48,52,53,p);}
+  if(action==='npc'){
+    rect(c,24,30,48,51,'#dbc99e');rect(c,28,34,5,43,'#394652');
+    for(let y=39;y<75;y+=8)rect(c,39,y,25-(y%3)*3,2,'#4c5860');
+    text(c,item.npcAction==='expose'?'!':'?',62,71,22,item.npcAction==='expose'?'#a34c4a':'#2e675f');
+  }
+  else if(/memory|anchor/.test(action)){eye(c,48,52,53,p);}
   else if(/portal|fold|shift/.test(action)){doorway(c,48,86,38,62,p);}
   else if(action==='ending'||/exit|escape|seal|rewrite/.test(action)){clock(c,48,55,28,p);text(c,item.ending==='rewrite'?'III':item.ending==='seal'?'II':'I',48,60,14,p.trim);}
   else if(/power/.test(action)){poly(c,[[51,23],[29,58],[44,57],[39,83],[68,45],[51,47]],p.accent);}
   else {text(c,/west/.test(item.id)?'01':'02',48,65,27,p.accent);}
   rect(c,13,101,70,13,p.dark);text(c,mode===2?(action==='fold'?'FOLD AGAIN':'RECORDED'):mode===1?(action==='ending'?item.ending.toUpperCase():'USE'):'OFFLINE',48,111,8,mode?p.accent:'#9fa3ab');
   c.restore();
+}
+
+// People have upright coats, readable faction insignia and visible hands. They
+// never reuse a hostile monster silhouette as a shorthand for "friendly".
+export function paintTomorrowNpc(c,role,frame,hostile=false){
+  const palettes={archivist:{coat:'#76afa0',shade:'#385d59',mark:'#eee1b9',skin:'#bf9276',label:'MARA'},warden:{coat:'#91b4d0',shade:'#465e79',mark:'#e4c88b',skin:'#b98970',label:'WARDEN'},broker:{coat:'#c18ca2',shade:'#67465f',mark:'#f0d7a2',skin:'#d0ab8a',label:'CLERK'},unfiled:{coat:'#d3ac76',shade:'#795744',mark:'#e4d5ae',skin:'#a67f68',label:'UNFILED'}};
+  const p=palettes[role]||palettes.unfiled,step=frame<4?[0,3,0,-3][frame]:0,attack=frame===4;
+  c.save();c.scale(c.canvas.width/80,c.canvas.height/112);
+  if(frame===6){poly(c,[[9,99],[27,92],[52,94],[71,102],[64,108],[13,108]],'#172330');rect(c,18,97,41,8,p.coat);rect(c,53,96,10,8,p.skin);c.restore();return;}
+  text(c,p.label,40,8,6,hostile?'#ff997b':p.mark);
+  // Broad shoulders and enclosed outlines separate people from thin scenery.
+  poly(c,[[27,29],[53,29],[65,40],[66,74],[58,82],[61,106],[45,108],[39,85],[34,108],[18,107],[22,80],[14,72],[16,41]],'#14212a');
+  rect(c,23+step,78,13,26,p.shade);rect(c,44-step,78,13,26,p.shade);
+  rect(c,20+step,101,17,7,'#192c38');rect(c,43-step,101,18,7,'#192c38');
+  poly(c,[[25,31],[53,31],[60,60],[55,84],[21,84],[20,59]],p.coat);
+  rect(c,38,32,3,50,p.shade);rect(c,25,64,30,5,'#243942');rect(c,37,64,8,5,p.mark);
+  for(const y of[43,52,74])rect(c,42,y,2,2,p.mark);
+  rect(c,18,38,10,29,p.shade);rect(c,53,38,10,29,p.shade);
+  rect(c,17,62,10,13,p.skin);rect(c,54,62,10,13,p.skin);
+  rect(c,28,14,24,24,p.skin);rect(c,27,15,5,18,p.shade);rect(c,49,15,5,18,p.shade);
+  rect(c,32,24,5,3,'#1b2930');rect(c,44,24,5,3,'#1b2930');rect(c,37,33,8,2,'#674f49');
+  if(role==='archivist'){
+    rect(c,28,14,25,5,'#e0c7ab');line(c,[[30,23],[38,23],[38,29],[30,29],[30,23],[49,23],[49,29],[42,29],[42,23]],'#253f42',1);
+    rect(c,22,48,28,23,'#263f4b');rect(c,26,50,20,17,'#e5d5aa');rect(c,29,54,14,2,p.shade);rect(c,29,60,11,2,p.shade);rect(c,45,62,11,7,p.skin);
+  }else if(role==='broker'){
+    rect(c,23,15,35,5,p.shade);rect(c,29,10,24,7,p.coat);rect(c,32,11,18,2,p.mark);
+    for(let n=0;n<3;n++){rect(c,22+n*11,45+n*4,8,30-n*4,p.mark);rect(c,24+n*11,51+n*4,4,2,p.shade);}
+    rect(c,30,36,18,4,p.mark);
+  }else{
+    if(role==='warden'){rect(c,25,12,30,8,p.shade);rect(c,22,19,36,5,p.coat);rect(c,35,13,9,6,p.mark);rect(c,16,35,14,10,p.mark);}
+    else {poly(c,[[25,13],[41,10],[54,18],[50,23],[30,19]],p.shade);poly(c,[[28,34],[51,34],[44,45],[26,51]],p.mark);}
+    const gunY=attack?43:59;rect(c,25,gunY,36,7,'#1b2d38');rect(c,48,gunY-4,12,4,'#70818b');rect(c,31,gunY+5,8,9,'#2d3b43');rect(c,23,gunY+3,10,6,p.skin);
+    if(attack){poly(c,[[63,gunY-6],[70,gunY],[77,gunY-5],[72,gunY+5],[77,gunY+11],[68,gunY+8],[62,gunY+13]],'#f7db9a');}
+  }
+  // An open ring is a person; red crossed lines signal a broken truce.
+  c.strokeStyle=hostile?'#ff805e':p.mark;c.lineWidth=2;c.strokeRect(45,42,8,8);
+  if(hostile){line(c,[[44,41],[54,51]],'#ff805e',2);line(c,[[54,41],[44,51]],'#ff805e',2);}
+  if(frame===5){c.globalCompositeOperation='source-atop';rect(c,0,0,80,112,'rgba(255,171,134,.45)');}
+  c.restore();
+}
+
+export function paintTomorrowMimic(c,kind,frame,concealed=false){
+  const exhibit=kind==='exhibit',base=exhibit?'#8d8eaa':'#aa835d',edge=exhibit?'#c5c5dc':'#e6c899',dark='#26323d';
+  c.save();c.scale(c.canvas.width/80,c.canvas.height/112);
+  if(frame===6){poly(c,[[8,96],[30,85],[45,91],[68,94],[72,106],[9,108]],dark);rect(c,15,96,45,8,base);for(let n=0;n<6;n++)poly(c,[[13+n*9,96],[17+n*9,87],[21+n*9,97]],edge);c.restore();return;}
+  if(concealed){
+    rect(c,12,34,56,65,dark);rect(c,16,38,48,58,base);rect(c,16,40,48,4,edge);
+    if(exhibit){rect(c,21,46,38,35,'#31485d');oval(c,40,63,12,13,'#e3d2b1');rect(c,25,85,30,7,edge);text(c,'DISPLAY',40,91,5,dark);}
+    else {for(const y of[49,70]){rect(c,20,y,40,17,dark);rect(c,22,y+2,36,12,base);rect(c,36,y+5,9,2,edge);}text(c,'SPARES',40,43,5,dark);}
+    // A crooked seam and tiny warm sliver remain visible before the reveal.
+    line(c,[[15,64],[33,62],[48,65],[65,63]],'#492d39',2);rect(c,42,63,8,1,frame===1?'#ffdca0':'#ccad8b');
+    rect(c,17,99,7,8,dark);rect(c,56,99,7,8,dark);c.restore();return;
+  }
+  const lift=frame===4?13:frame===1?3:0;
+  for(const side of[-1,1]){const x=40+side*25;line(c,[[x,73],[x+side*10,91],[x+side*7,106]],dark,7);line(c,[[x,73],[x+side*10,91],[x+side*7,106]],base,3);}
+  rect(c,10,58,60,38,dark);rect(c,14,68,52,25,base);rect(c,19,75,42,9,edge);
+  poly(c,[[10,48-lift],[17,25-lift],[64,30-lift],[71,51-lift],[62,61],[17,62]],dark);
+  poly(c,[[15,46-lift],[21,30-lift],[60,34-lift],[66,49-lift]],base);
+  rect(c,18,49-lift,44,21+lift,'#591f37');
+  for(let n=0;n<7;n++){const x=17+n*7;poly(c,[[x,48-lift],[x+3,59-lift],[x+6,49-lift]],'#ecddbb');poly(c,[[x,70],[x+3,60],[x+6,70]],'#ecddbb');}
+  oval(c,28,38-lift,4,4,'#f0c786');oval(c,52,40-lift,4,4,'#f0c786');
+  if(frame===4)poly(c,[[34,62],[45,61],[50,87],[40,98],[37,83]],'#b56f90');
+  if(frame===5){c.globalCompositeOperation='source-atop';rect(c,0,0,80,112,'rgba(255,155,121,.48)');}
+  c.restore();
+}
+
+export function paintTomorrowHatch(c,phase='closed'){
+  c.save();c.scale(c.canvas.width/128,c.canvas.height/128);
+  const warning=phase==='warning',spent=phase==='spent',accent=warning?'#ff8567':spent?'#8fc6ac':'#e0b36d';
+  rect(c,0,0,128,128,'#1c2a34');rect(c,4,4,120,120,accent);rect(c,12,12,104,104,'#39454f');
+  for(let n=0;n<8;n++){const x=4+n*16;poly(c,[[x,4],[x+8,4],[x+16,12],[x+8,12]],'#29313b');poly(c,[[x,116],[x+8,116],[x+16,124],[x+8,124]],'#29313b');}
+  for(const x of[17,111])for(const y of[19,109])oval(c,x,y,3,3,'#c8c7b6');
+  rect(c,62,14,4,100,warning?'#160d20':'#19242d');
+  if(warning){poly(c,[[26,22],[60,14],[60,114],[26,106]],'#52616a');poly(c,[[102,22],[68,14],[68,114],[102,106]],'#52616a');}
+  if(spent){for(let y=23;y<111;y+=12)rect(c,20,y,88,4,'#77968e');line(c,[[45,60],[59,74],[86,45]],accent,7);}
+  else{poly(c,[[49,36],[79,36],[79,65],[91,65],[64,94],[37,65],[49,65]],accent);rect(c,58,42,12,34,'#35404c');}
+  text(c,spent?'JAMMED SAFE':warning?'STEP OFF':'SERVICE CHUTE',64,108,8,accent);c.restore();
 }

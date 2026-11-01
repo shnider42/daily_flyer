@@ -1,0 +1,3509 @@
+{
+  "sourceCommit": "b9e6880eb854c7c9f79ff8d482b1c414488d0f61",
+  "partial": {
+    "version": 1,
+    "levelId": "wrong-side-of-tomorrow-v1",
+    "options": {
+      "mission": "wrong-side-of-tomorrow",
+      "difficulty": "standard",
+      "seed": 73
+    },
+    "state": {
+      "tomorrowRevision": 1,
+      "player": {
+        "x": 7.5,
+        "z": 8.5,
+        "angle": 0,
+        "health": 100,
+        "armor": 50,
+        "ammo": {
+          "pistol": 60,
+          "shells": 40,
+          "cells": 45,
+          "slugs": 0,
+          "grenades": 0
+        },
+        "weapon": "nullgun",
+        "hasShotgun": true,
+        "hasArc": false,
+        "hasRicochet": false,
+        "hasGrenade": false,
+        "hasRepeater": false,
+        "hasNull": true,
+        "hasLance": false,
+        "key": false,
+        "maxHealth": 100
+      },
+      "enemies": [
+        {
+          "id": "orchard-sower",
+          "type": "cinder-sower",
+          "x": 16.5,
+          "z": 67.5,
+          "health": 88,
+          "maxHealth": 88,
+          "alive": true,
+          "introduction": true,
+          "faction": "infestation",
+          "provoked": false,
+          "killedByPlayer": false,
+          "telegraph": null,
+          "stunTimer": 0,
+          "shadowPhase": "idle",
+          "shadowTimer": 0,
+          "shadowCycle": 0,
+          "shadowSide": 1,
+          "revealed": true,
+          "active": false,
+          "angle": 3.141592653589793,
+          "attackCooldown": 1,
+          "hitTimer": 0,
+          "pathTimer": 0
+        },
+        {
+          "id": "orchard-maw",
+          "type": "lantern-maw",
+          "x": 24.5,
+          "z": 71.5,
+          "health": 90,
+          "maxHealth": 90,
+          "alive": true,
+          "faction": "infestation",
+          "provoked": false,
+          "killedByPlayer": false,
+          "telegraph": null,
+          "stunTimer": 0,
+          "shadowPhase": "disguised",
+          "shadowTimer": 0,
+          "shadowCycle": 0,
+          "shadowSide": -1,
+          "revealed": false,
+          "active": false,
+          "angle": 3.141592653589793,
+          "attackCooldown": 1,
+          "hitTimer": 0,
+          "pathTimer": 0
+        },
+        {
+          "id": "aquarium-skimmer",
+          "type": "glass-skimmer",
+          "x": 69.5,
+          "z": 68.5,
+          "health": 78,
+          "maxHealth": 78,
+          "alive": true,
+          "introduction": true,
+          "faction": "infestation",
+          "provoked": false,
+          "killedByPlayer": false,
+          "telegraph": null,
+          "stunTimer": 0,
+          "shadowPhase": "idle",
+          "shadowTimer": 0,
+          "shadowCycle": 0,
+          "shadowSide": 1,
+          "revealed": true,
+          "active": false,
+          "angle": 3.141592653589793,
+          "attackCooldown": 1,
+          "hitTimer": 0,
+          "pathTimer": 0
+        },
+        {
+          "id": "aquarium-spitter",
+          "type": "spitter",
+          "x": 83.5,
+          "z": 65.5,
+          "health": 80,
+          "maxHealth": 80,
+          "alive": true,
+          "faction": "infestation",
+          "provoked": false,
+          "killedByPlayer": false,
+          "telegraph": null,
+          "stunTimer": 0,
+          "active": false,
+          "angle": 3.141592653589793,
+          "attackCooldown": 1,
+          "hitTimer": 0,
+          "pathTimer": 0
+        },
+        {
+          "id": "wardrobe-widow",
+          "type": "tether-widow",
+          "x": 15.5,
+          "z": 37.5,
+          "health": 102,
+          "maxHealth": 102,
+          "alive": true,
+          "introduction": true,
+          "faction": "infestation",
+          "provoked": false,
+          "killedByPlayer": false,
+          "telegraph": null,
+          "stunTimer": 0,
+          "shadowPhase": "idle",
+          "shadowTimer": 0,
+          "shadowCycle": 0,
+          "shadowSide": -1,
+          "revealed": true,
+          "active": false,
+          "angle": 3.141592653589793,
+          "attackCooldown": 1,
+          "hitTimer": 0,
+          "pathTimer": 0
+        },
+        {
+          "id": "wardrobe-maw",
+          "type": "lantern-maw",
+          "x": 24.5,
+          "z": 43.5,
+          "health": 96,
+          "maxHealth": 96,
+          "alive": true,
+          "introduction": true,
+          "faction": "infestation",
+          "provoked": false,
+          "killedByPlayer": false,
+          "telegraph": null,
+          "stunTimer": 0,
+          "shadowPhase": "disguised",
+          "shadowTimer": 0,
+          "shadowCycle": 0,
+          "shadowSide": 1,
+          "revealed": false,
+          "active": false,
+          "angle": 3.141592653589793,
+          "attackCooldown": 1,
+          "hitTimer": 0,
+          "pathTimer": 0
+        },
+        {
+          "id": "wardrobe-runner",
+          "type": "runner",
+          "x": 7.5,
+          "z": 42.5,
+          "health": 65,
+          "maxHealth": 65,
+          "alive": true,
+          "faction": "infestation",
+          "provoked": false,
+          "killedByPlayer": false,
+          "telegraph": null,
+          "stunTimer": 0,
+          "active": false,
+          "angle": 3.141592653589793,
+          "attackCooldown": 1,
+          "hitTimer": 0,
+          "pathTimer": 0
+        },
+        {
+          "id": "sunday-maw",
+          "type": "lantern-maw",
+          "x": 69.5,
+          "z": 43.5,
+          "health": 96,
+          "maxHealth": 96,
+          "alive": true,
+          "faction": "infestation",
+          "provoked": false,
+          "killedByPlayer": false,
+          "telegraph": null,
+          "stunTimer": 0,
+          "shadowPhase": "disguised",
+          "shadowTimer": 0,
+          "shadowCycle": 0,
+          "shadowSide": 1,
+          "revealed": false,
+          "active": false,
+          "angle": 3.141592653589793,
+          "attackCooldown": 1,
+          "hitTimer": 0,
+          "pathTimer": 0
+        },
+        {
+          "id": "sunday-skimmer",
+          "type": "glass-skimmer",
+          "x": 81.5,
+          "z": 42.5,
+          "health": 78,
+          "maxHealth": 78,
+          "alive": true,
+          "faction": "infestation",
+          "provoked": false,
+          "killedByPlayer": false,
+          "telegraph": null,
+          "stunTimer": 0,
+          "shadowPhase": "idle",
+          "shadowTimer": 0,
+          "shadowCycle": 0,
+          "shadowSide": -1,
+          "revealed": true,
+          "active": false,
+          "angle": 3.141592653589793,
+          "attackCooldown": 1,
+          "hitTimer": 0,
+          "pathTimer": 0
+        },
+        {
+          "id": "museum-widow",
+          "type": "tether-widow",
+          "x": 16.5,
+          "z": 10.5,
+          "health": 108,
+          "maxHealth": 108,
+          "alive": true,
+          "faction": "infestation",
+          "provoked": false,
+          "killedByPlayer": false,
+          "telegraph": null,
+          "stunTimer": 0,
+          "shadowPhase": "idle",
+          "shadowTimer": 0,
+          "shadowCycle": 0,
+          "shadowSide": -1,
+          "revealed": true,
+          "active": false,
+          "angle": 3.141592653589793,
+          "attackCooldown": 1,
+          "hitTimer": 0,
+          "pathTimer": 0
+        },
+        {
+          "id": "museum-sower",
+          "type": "cinder-sower",
+          "x": 23.5,
+          "z": 8.5,
+          "health": 94,
+          "maxHealth": 94,
+          "alive": true,
+          "faction": "infestation",
+          "provoked": false,
+          "killedByPlayer": false,
+          "telegraph": null,
+          "stunTimer": 0,
+          "shadowPhase": "idle",
+          "shadowTimer": 0,
+          "shadowCycle": 0,
+          "shadowSide": -1,
+          "revealed": true,
+          "active": false,
+          "angle": 3.141592653589793,
+          "attackCooldown": 1,
+          "hitTimer": 0,
+          "pathTimer": 0
+        },
+        {
+          "id": "museum-bulwark",
+          "type": "bulwark",
+          "x": 16.5,
+          "z": 23.5,
+          "health": 170,
+          "maxHealth": 170,
+          "alive": true,
+          "faction": "infestation",
+          "provoked": false,
+          "killedByPlayer": false,
+          "telegraph": null,
+          "stunTimer": 0,
+          "shieldPhase": "guard",
+          "shieldTimer": 3.4,
+          "active": false,
+          "angle": 3.141592653589793,
+          "attackCooldown": 1,
+          "hitTimer": 0,
+          "pathTimer": 0
+        },
+        {
+          "id": "weather-sower",
+          "type": "cinder-sower",
+          "x": 74.5,
+          "z": 8.5,
+          "health": 94,
+          "maxHealth": 94,
+          "alive": true,
+          "faction": "infestation",
+          "provoked": false,
+          "killedByPlayer": false,
+          "telegraph": null,
+          "stunTimer": 0,
+          "shadowPhase": "idle",
+          "shadowTimer": 0,
+          "shadowCycle": 0,
+          "shadowSide": -1,
+          "revealed": true,
+          "active": false,
+          "angle": 3.141592653589793,
+          "attackCooldown": 1,
+          "hitTimer": 0,
+          "pathTimer": 0
+        },
+        {
+          "id": "weather-skimmer",
+          "type": "glass-skimmer",
+          "x": 83.5,
+          "z": 14.5,
+          "health": 82,
+          "maxHealth": 82,
+          "alive": true,
+          "faction": "infestation",
+          "provoked": false,
+          "killedByPlayer": false,
+          "telegraph": null,
+          "stunTimer": 0,
+          "shadowPhase": "idle",
+          "shadowTimer": 0,
+          "shadowCycle": 0,
+          "shadowSide": -1,
+          "revealed": true,
+          "active": false,
+          "angle": 3.141592653589793,
+          "attackCooldown": 1,
+          "hitTimer": 0,
+          "pathTimer": 0
+        },
+        {
+          "id": "weather-mender",
+          "type": "mender",
+          "x": 72.5,
+          "z": 22.5,
+          "health": 84,
+          "maxHealth": 84,
+          "alive": true,
+          "faction": "infestation",
+          "provoked": false,
+          "killedByPlayer": false,
+          "telegraph": null,
+          "stunTimer": 0,
+          "healCooldown": 1,
+          "active": false,
+          "angle": 3.141592653589793,
+          "attackCooldown": 1,
+          "hitTimer": 0,
+          "pathTimer": 0
+        },
+        {
+          "id": "tomorrow-guardian",
+          "type": "brute",
+          "x": 45.5,
+          "z": 22.5,
+          "health": 620,
+          "maxHealth": 620,
+          "alive": true,
+          "guardian": true,
+          "bossGroup": "tomorrow",
+          "bossName": "The Unfinished Tomorrow",
+          "faction": "infestation",
+          "provoked": false,
+          "killedByPlayer": false,
+          "telegraph": null,
+          "stunTimer": 0,
+          "bossPhase": "stalk",
+          "phaseTimer": 0,
+          "bossCycle": 0,
+          "chargeAngle": 0,
+          "chargeHit": false,
+          "chargeTargetId": null,
+          "chargeTargetKind": null,
+          "active": false,
+          "angle": 3.141592653589793,
+          "attackCooldown": 1,
+          "hitTimer": 0,
+          "pathTimer": 0
+        },
+        {
+          "id": "court-widow",
+          "type": "tether-widow",
+          "x": 37.5,
+          "z": 10.5,
+          "health": 102,
+          "maxHealth": 102,
+          "alive": true,
+          "faction": "infestation",
+          "provoked": false,
+          "killedByPlayer": false,
+          "telegraph": null,
+          "stunTimer": 0,
+          "shadowPhase": "idle",
+          "shadowTimer": 0,
+          "shadowCycle": 0,
+          "shadowSide": 1,
+          "revealed": true,
+          "active": false,
+          "angle": 3.141592653589793,
+          "attackCooldown": 1,
+          "hitTimer": 0,
+          "pathTimer": 0
+        },
+        {
+          "id": "court-skimmer",
+          "type": "glass-skimmer",
+          "x": 53.5,
+          "z": 13.5,
+          "health": 82,
+          "maxHealth": 82,
+          "alive": true,
+          "faction": "infestation",
+          "provoked": false,
+          "killedByPlayer": false,
+          "telegraph": null,
+          "stunTimer": 0,
+          "shadowPhase": "idle",
+          "shadowTimer": 0,
+          "shadowCycle": 0,
+          "shadowSide": 1,
+          "revealed": true,
+          "active": false,
+          "angle": 3.141592653589793,
+          "attackCooldown": 1,
+          "hitTimer": 0,
+          "pathTimer": 0
+        },
+        {
+          "id": "court-maw",
+          "type": "lantern-maw",
+          "x": 50.5,
+          "z": 24.5,
+          "health": 96,
+          "maxHealth": 96,
+          "alive": true,
+          "faction": "infestation",
+          "provoked": false,
+          "killedByPlayer": false,
+          "telegraph": null,
+          "stunTimer": 0,
+          "shadowPhase": "disguised",
+          "shadowTimer": 0,
+          "shadowCycle": 0,
+          "shadowSide": -1,
+          "revealed": false,
+          "active": false,
+          "angle": 3.141592653589793,
+          "attackCooldown": 1,
+          "hitTimer": 0,
+          "pathTimer": 0
+        }
+      ],
+      "projectiles": [],
+      "serial": 2,
+      "pickups": [
+        {
+          "id": "access-key",
+          "collected": false
+        },
+        {
+          "id": "pump-shotgun",
+          "collected": true
+        },
+        {
+          "id": "rivet-repeater",
+          "collected": false
+        },
+        {
+          "id": "tomorrow-rebound",
+          "collected": false
+        },
+        {
+          "id": "tomorrow-thumper",
+          "collected": false
+        },
+        {
+          "id": "null-projector",
+          "collected": true
+        },
+        {
+          "id": "breach-lance",
+          "collected": false
+        },
+        {
+          "id": "health-expansion",
+          "collected": false
+        },
+        {
+          "id": "orchard-ammo",
+          "collected": false
+        },
+        {
+          "id": "orchard-shells",
+          "collected": false
+        },
+        {
+          "id": "orchard-health",
+          "collected": false
+        },
+        {
+          "id": "orchard-armor",
+          "collected": false
+        },
+        {
+          "id": "orchard-cells",
+          "collected": false
+        },
+        {
+          "id": "orchard-slugs",
+          "collected": false
+        },
+        {
+          "id": "arrivals-ammo",
+          "collected": false
+        },
+        {
+          "id": "arrivals-shells",
+          "collected": false
+        },
+        {
+          "id": "arrivals-health",
+          "collected": false
+        },
+        {
+          "id": "arrivals-armor",
+          "collected": false
+        },
+        {
+          "id": "aquarium-ammo",
+          "collected": false
+        },
+        {
+          "id": "aquarium-shells",
+          "collected": false
+        },
+        {
+          "id": "aquarium-health",
+          "collected": false
+        },
+        {
+          "id": "aquarium-armor",
+          "collected": false
+        },
+        {
+          "id": "aquarium-cells",
+          "collected": false
+        },
+        {
+          "id": "aquarium-slugs",
+          "collected": false
+        },
+        {
+          "id": "wardrobe-ammo",
+          "collected": false
+        },
+        {
+          "id": "wardrobe-shells",
+          "collected": false
+        },
+        {
+          "id": "wardrobe-health",
+          "collected": false
+        },
+        {
+          "id": "wardrobe-armor",
+          "collected": false
+        },
+        {
+          "id": "wardrobe-cells",
+          "collected": false
+        },
+        {
+          "id": "wardrobe-slugs",
+          "collected": false
+        },
+        {
+          "id": "exchange-ammo",
+          "collected": false
+        },
+        {
+          "id": "exchange-shells",
+          "collected": false
+        },
+        {
+          "id": "exchange-health",
+          "collected": false
+        },
+        {
+          "id": "exchange-armor",
+          "collected": false
+        },
+        {
+          "id": "exchange-cells",
+          "collected": false
+        },
+        {
+          "id": "exchange-slugs",
+          "collected": false
+        },
+        {
+          "id": "sunday-ammo",
+          "collected": false
+        },
+        {
+          "id": "sunday-shells",
+          "collected": false
+        },
+        {
+          "id": "sunday-health",
+          "collected": false
+        },
+        {
+          "id": "sunday-armor",
+          "collected": false
+        },
+        {
+          "id": "sunday-cells",
+          "collected": false
+        },
+        {
+          "id": "sunday-slugs",
+          "collected": false
+        },
+        {
+          "id": "museum-ammo",
+          "collected": false
+        },
+        {
+          "id": "museum-shells",
+          "collected": false
+        },
+        {
+          "id": "museum-health",
+          "collected": false
+        },
+        {
+          "id": "museum-armor",
+          "collected": false
+        },
+        {
+          "id": "museum-cells",
+          "collected": false
+        },
+        {
+          "id": "museum-slugs",
+          "collected": false
+        },
+        {
+          "id": "court-ammo",
+          "collected": false
+        },
+        {
+          "id": "court-shells",
+          "collected": false
+        },
+        {
+          "id": "court-health",
+          "collected": false
+        },
+        {
+          "id": "court-armor",
+          "collected": false
+        },
+        {
+          "id": "court-cells",
+          "collected": false
+        },
+        {
+          "id": "court-slugs",
+          "collected": false
+        },
+        {
+          "id": "weather-ammo",
+          "collected": false
+        },
+        {
+          "id": "weather-shells",
+          "collected": false
+        },
+        {
+          "id": "weather-health",
+          "collected": false
+        },
+        {
+          "id": "weather-armor",
+          "collected": false
+        },
+        {
+          "id": "weather-cells",
+          "collected": false
+        },
+        {
+          "id": "weather-slugs",
+          "collected": false
+        }
+      ],
+      "doors": [
+        {
+          "id": "court-south",
+          "open": false
+        },
+        {
+          "id": "court-west",
+          "open": false
+        },
+        {
+          "id": "court-east",
+          "open": false
+        },
+        {
+          "id": "remembered-west",
+          "open": true
+        },
+        {
+          "id": "remembered-east",
+          "open": false
+        }
+      ],
+      "interactables": [
+        {
+          "id": "aux-power",
+          "used": true
+        },
+        {
+          "id": "relay-west",
+          "used": true
+        },
+        {
+          "id": "relay-east",
+          "used": false
+        },
+        {
+          "id": "extraction",
+          "used": false
+        },
+        {
+          "id": "ending-seal",
+          "used": false
+        },
+        {
+          "id": "ending-rewrite",
+          "used": false
+        },
+        {
+          "id": "waiting-refuge",
+          "used": false
+        },
+        {
+          "id": "exchange-refuge",
+          "used": false
+        },
+        {
+          "id": "wardrobe-refuge",
+          "used": false
+        },
+        {
+          "id": "sunday-refuge",
+          "used": false
+        },
+        {
+          "id": "museum-refuge",
+          "used": false
+        },
+        {
+          "id": "memory-orchard",
+          "used": false
+        },
+        {
+          "id": "memory-aquarium",
+          "used": false
+        },
+        {
+          "id": "memory-museum",
+          "used": true
+        },
+        {
+          "id": "fold-waiting",
+          "used": false
+        },
+        {
+          "id": "fold-sunday",
+          "used": false
+        },
+        {
+          "id": "fold-museum",
+          "used": false
+        },
+        {
+          "id": "fold-weather",
+          "used": false
+        },
+        {
+          "id": "record-arrival",
+          "used": false
+        },
+        {
+          "id": "record-exchange",
+          "used": false
+        },
+        {
+          "id": "record-orchard",
+          "used": false
+        },
+        {
+          "id": "record-aquarium",
+          "used": false
+        },
+        {
+          "id": "record-wardrobe",
+          "used": false
+        },
+        {
+          "id": "record-sunday",
+          "used": false
+        },
+        {
+          "id": "record-museum",
+          "used": false
+        },
+        {
+          "id": "record-weather",
+          "used": false
+        },
+        {
+          "id": "record-court",
+          "used": false
+        }
+      ],
+      "power": true,
+      "secretFound": false,
+      "time": 0,
+      "kills": 0,
+      "shots": 0,
+      "hits": 0,
+      "tutorial": {
+        "moved": false,
+        "fired": false,
+        "interacted": false,
+        "weaponSwitched": false
+      },
+      "randomState": 73,
+      "upgrades": {
+        "cutter": false,
+        "insulator": false,
+        "phase": false
+      },
+      "healthBonus": 0
+    },
+    "checkpoint": {
+      "tomorrowRevision": 1,
+      "player": {
+        "x": 39.5,
+        "z": 50.5,
+        "angle": 0,
+        "health": 100,
+        "armor": 50,
+        "ammo": {
+          "pistol": 60,
+          "shells": 24,
+          "cells": 24,
+          "slugs": 0,
+          "grenades": 0
+        },
+        "weapon": "pistol",
+        "hasShotgun": true,
+        "hasArc": false,
+        "hasRicochet": false,
+        "hasGrenade": false,
+        "hasRepeater": false,
+        "hasNull": true,
+        "hasLance": false,
+        "key": false,
+        "maxHealth": 100
+      },
+      "enemies": [
+        {
+          "id": "orchard-sower",
+          "type": "cinder-sower",
+          "x": 16.5,
+          "z": 67.5,
+          "health": 88,
+          "maxHealth": 88,
+          "alive": true,
+          "introduction": true,
+          "faction": "infestation",
+          "provoked": false,
+          "killedByPlayer": false,
+          "telegraph": null,
+          "stunTimer": 0,
+          "shadowPhase": "idle",
+          "shadowTimer": 0,
+          "shadowCycle": 0,
+          "shadowSide": 1,
+          "revealed": true,
+          "active": false,
+          "angle": 3.141592653589793,
+          "attackCooldown": 1,
+          "hitTimer": 0,
+          "pathTimer": 0
+        },
+        {
+          "id": "orchard-maw",
+          "type": "lantern-maw",
+          "x": 24.5,
+          "z": 71.5,
+          "health": 90,
+          "maxHealth": 90,
+          "alive": true,
+          "faction": "infestation",
+          "provoked": false,
+          "killedByPlayer": false,
+          "telegraph": null,
+          "stunTimer": 0,
+          "shadowPhase": "disguised",
+          "shadowTimer": 0,
+          "shadowCycle": 0,
+          "shadowSide": -1,
+          "revealed": false,
+          "active": false,
+          "angle": 3.141592653589793,
+          "attackCooldown": 1,
+          "hitTimer": 0,
+          "pathTimer": 0
+        },
+        {
+          "id": "aquarium-skimmer",
+          "type": "glass-skimmer",
+          "x": 69.5,
+          "z": 68.5,
+          "health": 78,
+          "maxHealth": 78,
+          "alive": true,
+          "introduction": true,
+          "faction": "infestation",
+          "provoked": false,
+          "killedByPlayer": false,
+          "telegraph": null,
+          "stunTimer": 0,
+          "shadowPhase": "idle",
+          "shadowTimer": 0,
+          "shadowCycle": 0,
+          "shadowSide": 1,
+          "revealed": true,
+          "active": false,
+          "angle": 3.141592653589793,
+          "attackCooldown": 1,
+          "hitTimer": 0,
+          "pathTimer": 0
+        },
+        {
+          "id": "aquarium-spitter",
+          "type": "spitter",
+          "x": 83.5,
+          "z": 65.5,
+          "health": 80,
+          "maxHealth": 80,
+          "alive": true,
+          "faction": "infestation",
+          "provoked": false,
+          "killedByPlayer": false,
+          "telegraph": null,
+          "stunTimer": 0,
+          "active": false,
+          "angle": 3.141592653589793,
+          "attackCooldown": 1,
+          "hitTimer": 0,
+          "pathTimer": 0
+        },
+        {
+          "id": "wardrobe-widow",
+          "type": "tether-widow",
+          "x": 15.5,
+          "z": 37.5,
+          "health": 102,
+          "maxHealth": 102,
+          "alive": true,
+          "introduction": true,
+          "faction": "infestation",
+          "provoked": false,
+          "killedByPlayer": false,
+          "telegraph": null,
+          "stunTimer": 0,
+          "shadowPhase": "idle",
+          "shadowTimer": 0,
+          "shadowCycle": 0,
+          "shadowSide": -1,
+          "revealed": true,
+          "active": false,
+          "angle": 3.141592653589793,
+          "attackCooldown": 1,
+          "hitTimer": 0,
+          "pathTimer": 0
+        },
+        {
+          "id": "wardrobe-maw",
+          "type": "lantern-maw",
+          "x": 24.5,
+          "z": 43.5,
+          "health": 96,
+          "maxHealth": 96,
+          "alive": true,
+          "introduction": true,
+          "faction": "infestation",
+          "provoked": false,
+          "killedByPlayer": false,
+          "telegraph": null,
+          "stunTimer": 0,
+          "shadowPhase": "disguised",
+          "shadowTimer": 0,
+          "shadowCycle": 0,
+          "shadowSide": 1,
+          "revealed": false,
+          "active": false,
+          "angle": 3.141592653589793,
+          "attackCooldown": 1,
+          "hitTimer": 0,
+          "pathTimer": 0
+        },
+        {
+          "id": "wardrobe-runner",
+          "type": "runner",
+          "x": 7.5,
+          "z": 42.5,
+          "health": 65,
+          "maxHealth": 65,
+          "alive": true,
+          "faction": "infestation",
+          "provoked": false,
+          "killedByPlayer": false,
+          "telegraph": null,
+          "stunTimer": 0,
+          "active": false,
+          "angle": 3.141592653589793,
+          "attackCooldown": 1,
+          "hitTimer": 0,
+          "pathTimer": 0
+        },
+        {
+          "id": "sunday-maw",
+          "type": "lantern-maw",
+          "x": 69.5,
+          "z": 43.5,
+          "health": 96,
+          "maxHealth": 96,
+          "alive": true,
+          "faction": "infestation",
+          "provoked": false,
+          "killedByPlayer": false,
+          "telegraph": null,
+          "stunTimer": 0,
+          "shadowPhase": "disguised",
+          "shadowTimer": 0,
+          "shadowCycle": 0,
+          "shadowSide": 1,
+          "revealed": false,
+          "active": false,
+          "angle": 3.141592653589793,
+          "attackCooldown": 1,
+          "hitTimer": 0,
+          "pathTimer": 0
+        },
+        {
+          "id": "sunday-skimmer",
+          "type": "glass-skimmer",
+          "x": 81.5,
+          "z": 42.5,
+          "health": 78,
+          "maxHealth": 78,
+          "alive": true,
+          "faction": "infestation",
+          "provoked": false,
+          "killedByPlayer": false,
+          "telegraph": null,
+          "stunTimer": 0,
+          "shadowPhase": "idle",
+          "shadowTimer": 0,
+          "shadowCycle": 0,
+          "shadowSide": -1,
+          "revealed": true,
+          "active": false,
+          "angle": 3.141592653589793,
+          "attackCooldown": 1,
+          "hitTimer": 0,
+          "pathTimer": 0
+        },
+        {
+          "id": "museum-widow",
+          "type": "tether-widow",
+          "x": 16.5,
+          "z": 10.5,
+          "health": 108,
+          "maxHealth": 108,
+          "alive": true,
+          "faction": "infestation",
+          "provoked": false,
+          "killedByPlayer": false,
+          "telegraph": null,
+          "stunTimer": 0,
+          "shadowPhase": "idle",
+          "shadowTimer": 0,
+          "shadowCycle": 0,
+          "shadowSide": -1,
+          "revealed": true,
+          "active": false,
+          "angle": 3.141592653589793,
+          "attackCooldown": 1,
+          "hitTimer": 0,
+          "pathTimer": 0
+        },
+        {
+          "id": "museum-sower",
+          "type": "cinder-sower",
+          "x": 23.5,
+          "z": 8.5,
+          "health": 94,
+          "maxHealth": 94,
+          "alive": true,
+          "faction": "infestation",
+          "provoked": false,
+          "killedByPlayer": false,
+          "telegraph": null,
+          "stunTimer": 0,
+          "shadowPhase": "idle",
+          "shadowTimer": 0,
+          "shadowCycle": 0,
+          "shadowSide": -1,
+          "revealed": true,
+          "active": false,
+          "angle": 3.141592653589793,
+          "attackCooldown": 1,
+          "hitTimer": 0,
+          "pathTimer": 0
+        },
+        {
+          "id": "museum-bulwark",
+          "type": "bulwark",
+          "x": 16.5,
+          "z": 23.5,
+          "health": 170,
+          "maxHealth": 170,
+          "alive": true,
+          "faction": "infestation",
+          "provoked": false,
+          "killedByPlayer": false,
+          "telegraph": null,
+          "stunTimer": 0,
+          "shieldPhase": "guard",
+          "shieldTimer": 3.4,
+          "active": false,
+          "angle": 3.141592653589793,
+          "attackCooldown": 1,
+          "hitTimer": 0,
+          "pathTimer": 0
+        },
+        {
+          "id": "weather-sower",
+          "type": "cinder-sower",
+          "x": 74.5,
+          "z": 8.5,
+          "health": 94,
+          "maxHealth": 94,
+          "alive": true,
+          "faction": "infestation",
+          "provoked": false,
+          "killedByPlayer": false,
+          "telegraph": null,
+          "stunTimer": 0,
+          "shadowPhase": "idle",
+          "shadowTimer": 0,
+          "shadowCycle": 0,
+          "shadowSide": -1,
+          "revealed": true,
+          "active": false,
+          "angle": 3.141592653589793,
+          "attackCooldown": 1,
+          "hitTimer": 0,
+          "pathTimer": 0
+        },
+        {
+          "id": "weather-skimmer",
+          "type": "glass-skimmer",
+          "x": 83.5,
+          "z": 14.5,
+          "health": 82,
+          "maxHealth": 82,
+          "alive": true,
+          "faction": "infestation",
+          "provoked": false,
+          "killedByPlayer": false,
+          "telegraph": null,
+          "stunTimer": 0,
+          "shadowPhase": "idle",
+          "shadowTimer": 0,
+          "shadowCycle": 0,
+          "shadowSide": -1,
+          "revealed": true,
+          "active": false,
+          "angle": 3.141592653589793,
+          "attackCooldown": 1,
+          "hitTimer": 0,
+          "pathTimer": 0
+        },
+        {
+          "id": "weather-mender",
+          "type": "mender",
+          "x": 72.5,
+          "z": 22.5,
+          "health": 84,
+          "maxHealth": 84,
+          "alive": true,
+          "faction": "infestation",
+          "provoked": false,
+          "killedByPlayer": false,
+          "telegraph": null,
+          "stunTimer": 0,
+          "healCooldown": 1,
+          "active": false,
+          "angle": 3.141592653589793,
+          "attackCooldown": 1,
+          "hitTimer": 0,
+          "pathTimer": 0
+        },
+        {
+          "id": "tomorrow-guardian",
+          "type": "brute",
+          "x": 45.5,
+          "z": 22.5,
+          "health": 620,
+          "maxHealth": 620,
+          "alive": true,
+          "guardian": true,
+          "bossGroup": "tomorrow",
+          "bossName": "The Unfinished Tomorrow",
+          "faction": "infestation",
+          "provoked": false,
+          "killedByPlayer": false,
+          "telegraph": null,
+          "stunTimer": 0,
+          "bossPhase": "stalk",
+          "phaseTimer": 0,
+          "bossCycle": 0,
+          "chargeAngle": 0,
+          "chargeHit": false,
+          "chargeTargetId": null,
+          "chargeTargetKind": null,
+          "active": false,
+          "angle": 3.141592653589793,
+          "attackCooldown": 1,
+          "hitTimer": 0,
+          "pathTimer": 0
+        },
+        {
+          "id": "court-widow",
+          "type": "tether-widow",
+          "x": 37.5,
+          "z": 10.5,
+          "health": 102,
+          "maxHealth": 102,
+          "alive": true,
+          "faction": "infestation",
+          "provoked": false,
+          "killedByPlayer": false,
+          "telegraph": null,
+          "stunTimer": 0,
+          "shadowPhase": "idle",
+          "shadowTimer": 0,
+          "shadowCycle": 0,
+          "shadowSide": 1,
+          "revealed": true,
+          "active": false,
+          "angle": 3.141592653589793,
+          "attackCooldown": 1,
+          "hitTimer": 0,
+          "pathTimer": 0
+        },
+        {
+          "id": "court-skimmer",
+          "type": "glass-skimmer",
+          "x": 53.5,
+          "z": 13.5,
+          "health": 82,
+          "maxHealth": 82,
+          "alive": true,
+          "faction": "infestation",
+          "provoked": false,
+          "killedByPlayer": false,
+          "telegraph": null,
+          "stunTimer": 0,
+          "shadowPhase": "idle",
+          "shadowTimer": 0,
+          "shadowCycle": 0,
+          "shadowSide": 1,
+          "revealed": true,
+          "active": false,
+          "angle": 3.141592653589793,
+          "attackCooldown": 1,
+          "hitTimer": 0,
+          "pathTimer": 0
+        },
+        {
+          "id": "court-maw",
+          "type": "lantern-maw",
+          "x": 50.5,
+          "z": 24.5,
+          "health": 96,
+          "maxHealth": 96,
+          "alive": true,
+          "faction": "infestation",
+          "provoked": false,
+          "killedByPlayer": false,
+          "telegraph": null,
+          "stunTimer": 0,
+          "shadowPhase": "disguised",
+          "shadowTimer": 0,
+          "shadowCycle": 0,
+          "shadowSide": -1,
+          "revealed": false,
+          "active": false,
+          "angle": 3.141592653589793,
+          "attackCooldown": 1,
+          "hitTimer": 0,
+          "pathTimer": 0
+        }
+      ],
+      "projectiles": [],
+      "serial": 0,
+      "pickups": [
+        {
+          "id": "access-key",
+          "collected": false
+        },
+        {
+          "id": "pump-shotgun",
+          "collected": true
+        },
+        {
+          "id": "rivet-repeater",
+          "collected": false
+        },
+        {
+          "id": "tomorrow-rebound",
+          "collected": false
+        },
+        {
+          "id": "tomorrow-thumper",
+          "collected": false
+        },
+        {
+          "id": "null-projector",
+          "collected": true
+        },
+        {
+          "id": "breach-lance",
+          "collected": false
+        },
+        {
+          "id": "health-expansion",
+          "collected": false
+        },
+        {
+          "id": "orchard-ammo",
+          "collected": false
+        },
+        {
+          "id": "orchard-shells",
+          "collected": false
+        },
+        {
+          "id": "orchard-health",
+          "collected": false
+        },
+        {
+          "id": "orchard-armor",
+          "collected": false
+        },
+        {
+          "id": "orchard-cells",
+          "collected": false
+        },
+        {
+          "id": "orchard-slugs",
+          "collected": false
+        },
+        {
+          "id": "arrivals-ammo",
+          "collected": false
+        },
+        {
+          "id": "arrivals-shells",
+          "collected": false
+        },
+        {
+          "id": "arrivals-health",
+          "collected": false
+        },
+        {
+          "id": "arrivals-armor",
+          "collected": false
+        },
+        {
+          "id": "aquarium-ammo",
+          "collected": false
+        },
+        {
+          "id": "aquarium-shells",
+          "collected": false
+        },
+        {
+          "id": "aquarium-health",
+          "collected": false
+        },
+        {
+          "id": "aquarium-armor",
+          "collected": false
+        },
+        {
+          "id": "aquarium-cells",
+          "collected": false
+        },
+        {
+          "id": "aquarium-slugs",
+          "collected": false
+        },
+        {
+          "id": "wardrobe-ammo",
+          "collected": false
+        },
+        {
+          "id": "wardrobe-shells",
+          "collected": false
+        },
+        {
+          "id": "wardrobe-health",
+          "collected": false
+        },
+        {
+          "id": "wardrobe-armor",
+          "collected": false
+        },
+        {
+          "id": "wardrobe-cells",
+          "collected": false
+        },
+        {
+          "id": "wardrobe-slugs",
+          "collected": false
+        },
+        {
+          "id": "exchange-ammo",
+          "collected": false
+        },
+        {
+          "id": "exchange-shells",
+          "collected": false
+        },
+        {
+          "id": "exchange-health",
+          "collected": false
+        },
+        {
+          "id": "exchange-armor",
+          "collected": false
+        },
+        {
+          "id": "exchange-cells",
+          "collected": false
+        },
+        {
+          "id": "exchange-slugs",
+          "collected": false
+        },
+        {
+          "id": "sunday-ammo",
+          "collected": false
+        },
+        {
+          "id": "sunday-shells",
+          "collected": false
+        },
+        {
+          "id": "sunday-health",
+          "collected": false
+        },
+        {
+          "id": "sunday-armor",
+          "collected": false
+        },
+        {
+          "id": "sunday-cells",
+          "collected": false
+        },
+        {
+          "id": "sunday-slugs",
+          "collected": false
+        },
+        {
+          "id": "museum-ammo",
+          "collected": false
+        },
+        {
+          "id": "museum-shells",
+          "collected": false
+        },
+        {
+          "id": "museum-health",
+          "collected": false
+        },
+        {
+          "id": "museum-armor",
+          "collected": false
+        },
+        {
+          "id": "museum-cells",
+          "collected": false
+        },
+        {
+          "id": "museum-slugs",
+          "collected": false
+        },
+        {
+          "id": "court-ammo",
+          "collected": false
+        },
+        {
+          "id": "court-shells",
+          "collected": false
+        },
+        {
+          "id": "court-health",
+          "collected": false
+        },
+        {
+          "id": "court-armor",
+          "collected": false
+        },
+        {
+          "id": "court-cells",
+          "collected": false
+        },
+        {
+          "id": "court-slugs",
+          "collected": false
+        },
+        {
+          "id": "weather-ammo",
+          "collected": false
+        },
+        {
+          "id": "weather-shells",
+          "collected": false
+        },
+        {
+          "id": "weather-health",
+          "collected": false
+        },
+        {
+          "id": "weather-armor",
+          "collected": false
+        },
+        {
+          "id": "weather-cells",
+          "collected": false
+        },
+        {
+          "id": "weather-slugs",
+          "collected": false
+        }
+      ],
+      "doors": [
+        {
+          "id": "court-south",
+          "open": false
+        },
+        {
+          "id": "court-west",
+          "open": false
+        },
+        {
+          "id": "court-east",
+          "open": false
+        },
+        {
+          "id": "remembered-west",
+          "open": true
+        },
+        {
+          "id": "remembered-east",
+          "open": false
+        }
+      ],
+      "interactables": [
+        {
+          "id": "aux-power",
+          "used": true
+        },
+        {
+          "id": "relay-west",
+          "used": true
+        },
+        {
+          "id": "relay-east",
+          "used": false
+        },
+        {
+          "id": "extraction",
+          "used": false
+        },
+        {
+          "id": "ending-seal",
+          "used": false
+        },
+        {
+          "id": "ending-rewrite",
+          "used": false
+        },
+        {
+          "id": "waiting-refuge",
+          "used": false
+        },
+        {
+          "id": "exchange-refuge",
+          "used": false
+        },
+        {
+          "id": "wardrobe-refuge",
+          "used": false
+        },
+        {
+          "id": "sunday-refuge",
+          "used": false
+        },
+        {
+          "id": "museum-refuge",
+          "used": false
+        },
+        {
+          "id": "memory-orchard",
+          "used": false
+        },
+        {
+          "id": "memory-aquarium",
+          "used": false
+        },
+        {
+          "id": "memory-museum",
+          "used": true
+        },
+        {
+          "id": "fold-waiting",
+          "used": false
+        },
+        {
+          "id": "fold-sunday",
+          "used": false
+        },
+        {
+          "id": "fold-museum",
+          "used": false
+        },
+        {
+          "id": "fold-weather",
+          "used": false
+        },
+        {
+          "id": "record-arrival",
+          "used": false
+        },
+        {
+          "id": "record-exchange",
+          "used": false
+        },
+        {
+          "id": "record-orchard",
+          "used": false
+        },
+        {
+          "id": "record-aquarium",
+          "used": false
+        },
+        {
+          "id": "record-wardrobe",
+          "used": false
+        },
+        {
+          "id": "record-sunday",
+          "used": false
+        },
+        {
+          "id": "record-museum",
+          "used": false
+        },
+        {
+          "id": "record-weather",
+          "used": false
+        },
+        {
+          "id": "record-court",
+          "used": false
+        }
+      ],
+      "power": true,
+      "secretFound": false,
+      "time": 0,
+      "kills": 0,
+      "shots": 0,
+      "hits": 0,
+      "tutorial": {
+        "moved": false,
+        "fired": false,
+        "interacted": false,
+        "weaponSwitched": false
+      },
+      "randomState": 73,
+      "upgrades": {
+        "cutter": false,
+        "insulator": false,
+        "phase": false
+      },
+      "healthBonus": 0
+    }
+  },
+  "rewrite": {
+    "version": 1,
+    "levelId": "wrong-side-of-tomorrow-v1",
+    "options": {
+      "mission": "wrong-side-of-tomorrow",
+      "difficulty": "standard",
+      "seed": 73
+    },
+    "state": {
+      "tomorrowRevision": 1,
+      "player": {
+        "x": 52.5,
+        "z": 8.5,
+        "angle": 0,
+        "health": 100,
+        "armor": 50,
+        "ammo": {
+          "pistol": 60,
+          "shells": 40,
+          "cells": 45,
+          "slugs": 0,
+          "grenades": 0
+        },
+        "weapon": "nullgun",
+        "hasShotgun": true,
+        "hasArc": false,
+        "hasRicochet": false,
+        "hasGrenade": false,
+        "hasRepeater": false,
+        "hasNull": true,
+        "hasLance": false,
+        "key": true,
+        "maxHealth": 100
+      },
+      "enemies": [
+        {
+          "id": "orchard-sower",
+          "type": "cinder-sower",
+          "x": 16.5,
+          "z": 67.5,
+          "health": 88,
+          "maxHealth": 88,
+          "alive": true,
+          "introduction": true,
+          "faction": "infestation",
+          "provoked": false,
+          "killedByPlayer": false,
+          "telegraph": null,
+          "stunTimer": 0,
+          "shadowPhase": "idle",
+          "shadowTimer": 0,
+          "shadowCycle": 0,
+          "shadowSide": 1,
+          "revealed": true,
+          "active": false,
+          "angle": 3.141592653589793,
+          "attackCooldown": 1,
+          "hitTimer": 0,
+          "pathTimer": 0
+        },
+        {
+          "id": "orchard-maw",
+          "type": "lantern-maw",
+          "x": 24.5,
+          "z": 71.5,
+          "health": 90,
+          "maxHealth": 90,
+          "alive": true,
+          "faction": "infestation",
+          "provoked": false,
+          "killedByPlayer": false,
+          "telegraph": null,
+          "stunTimer": 0,
+          "shadowPhase": "disguised",
+          "shadowTimer": 0,
+          "shadowCycle": 0,
+          "shadowSide": -1,
+          "revealed": false,
+          "active": false,
+          "angle": 3.141592653589793,
+          "attackCooldown": 1,
+          "hitTimer": 0,
+          "pathTimer": 0
+        },
+        {
+          "id": "aquarium-skimmer",
+          "type": "glass-skimmer",
+          "x": 69.5,
+          "z": 68.5,
+          "health": 78,
+          "maxHealth": 78,
+          "alive": true,
+          "introduction": true,
+          "faction": "infestation",
+          "provoked": false,
+          "killedByPlayer": false,
+          "telegraph": null,
+          "stunTimer": 0,
+          "shadowPhase": "idle",
+          "shadowTimer": 0,
+          "shadowCycle": 0,
+          "shadowSide": 1,
+          "revealed": true,
+          "active": false,
+          "angle": 3.141592653589793,
+          "attackCooldown": 1,
+          "hitTimer": 0,
+          "pathTimer": 0
+        },
+        {
+          "id": "aquarium-spitter",
+          "type": "spitter",
+          "x": 83.5,
+          "z": 65.5,
+          "health": 80,
+          "maxHealth": 80,
+          "alive": true,
+          "faction": "infestation",
+          "provoked": false,
+          "killedByPlayer": false,
+          "telegraph": null,
+          "stunTimer": 0,
+          "active": false,
+          "angle": 3.141592653589793,
+          "attackCooldown": 1,
+          "hitTimer": 0,
+          "pathTimer": 0
+        },
+        {
+          "id": "wardrobe-widow",
+          "type": "tether-widow",
+          "x": 15.5,
+          "z": 37.5,
+          "health": 102,
+          "maxHealth": 102,
+          "alive": true,
+          "introduction": true,
+          "faction": "infestation",
+          "provoked": false,
+          "killedByPlayer": false,
+          "telegraph": null,
+          "stunTimer": 0,
+          "shadowPhase": "idle",
+          "shadowTimer": 0,
+          "shadowCycle": 0,
+          "shadowSide": -1,
+          "revealed": true,
+          "active": false,
+          "angle": 3.141592653589793,
+          "attackCooldown": 1,
+          "hitTimer": 0,
+          "pathTimer": 0
+        },
+        {
+          "id": "wardrobe-maw",
+          "type": "lantern-maw",
+          "x": 24.5,
+          "z": 43.5,
+          "health": 96,
+          "maxHealth": 96,
+          "alive": true,
+          "introduction": true,
+          "faction": "infestation",
+          "provoked": false,
+          "killedByPlayer": false,
+          "telegraph": null,
+          "stunTimer": 0,
+          "shadowPhase": "disguised",
+          "shadowTimer": 0,
+          "shadowCycle": 0,
+          "shadowSide": 1,
+          "revealed": false,
+          "active": false,
+          "angle": 3.141592653589793,
+          "attackCooldown": 1,
+          "hitTimer": 0,
+          "pathTimer": 0
+        },
+        {
+          "id": "wardrobe-runner",
+          "type": "runner",
+          "x": 7.5,
+          "z": 42.5,
+          "health": 65,
+          "maxHealth": 65,
+          "alive": true,
+          "faction": "infestation",
+          "provoked": false,
+          "killedByPlayer": false,
+          "telegraph": null,
+          "stunTimer": 0,
+          "active": false,
+          "angle": 3.141592653589793,
+          "attackCooldown": 1,
+          "hitTimer": 0,
+          "pathTimer": 0
+        },
+        {
+          "id": "sunday-maw",
+          "type": "lantern-maw",
+          "x": 69.5,
+          "z": 43.5,
+          "health": 96,
+          "maxHealth": 96,
+          "alive": true,
+          "faction": "infestation",
+          "provoked": false,
+          "killedByPlayer": false,
+          "telegraph": null,
+          "stunTimer": 0,
+          "shadowPhase": "disguised",
+          "shadowTimer": 0,
+          "shadowCycle": 0,
+          "shadowSide": 1,
+          "revealed": false,
+          "active": false,
+          "angle": 3.141592653589793,
+          "attackCooldown": 1,
+          "hitTimer": 0,
+          "pathTimer": 0
+        },
+        {
+          "id": "sunday-skimmer",
+          "type": "glass-skimmer",
+          "x": 81.5,
+          "z": 42.5,
+          "health": 78,
+          "maxHealth": 78,
+          "alive": true,
+          "faction": "infestation",
+          "provoked": false,
+          "killedByPlayer": false,
+          "telegraph": null,
+          "stunTimer": 0,
+          "shadowPhase": "idle",
+          "shadowTimer": 0,
+          "shadowCycle": 0,
+          "shadowSide": -1,
+          "revealed": true,
+          "active": false,
+          "angle": 3.141592653589793,
+          "attackCooldown": 1,
+          "hitTimer": 0,
+          "pathTimer": 0
+        },
+        {
+          "id": "museum-widow",
+          "type": "tether-widow",
+          "x": 16.5,
+          "z": 10.5,
+          "health": 108,
+          "maxHealth": 108,
+          "alive": true,
+          "faction": "infestation",
+          "provoked": false,
+          "killedByPlayer": false,
+          "telegraph": null,
+          "stunTimer": 0,
+          "shadowPhase": "idle",
+          "shadowTimer": 0,
+          "shadowCycle": 0,
+          "shadowSide": -1,
+          "revealed": true,
+          "active": false,
+          "angle": 3.141592653589793,
+          "attackCooldown": 1,
+          "hitTimer": 0,
+          "pathTimer": 0
+        },
+        {
+          "id": "museum-sower",
+          "type": "cinder-sower",
+          "x": 23.5,
+          "z": 8.5,
+          "health": 94,
+          "maxHealth": 94,
+          "alive": true,
+          "faction": "infestation",
+          "provoked": false,
+          "killedByPlayer": false,
+          "telegraph": null,
+          "stunTimer": 0,
+          "shadowPhase": "idle",
+          "shadowTimer": 0,
+          "shadowCycle": 0,
+          "shadowSide": -1,
+          "revealed": true,
+          "active": false,
+          "angle": 3.141592653589793,
+          "attackCooldown": 1,
+          "hitTimer": 0,
+          "pathTimer": 0
+        },
+        {
+          "id": "museum-bulwark",
+          "type": "bulwark",
+          "x": 16.5,
+          "z": 23.5,
+          "health": 170,
+          "maxHealth": 170,
+          "alive": true,
+          "faction": "infestation",
+          "provoked": false,
+          "killedByPlayer": false,
+          "telegraph": null,
+          "stunTimer": 0,
+          "shieldPhase": "guard",
+          "shieldTimer": 3.4,
+          "active": false,
+          "angle": 3.141592653589793,
+          "attackCooldown": 1,
+          "hitTimer": 0,
+          "pathTimer": 0
+        },
+        {
+          "id": "weather-sower",
+          "type": "cinder-sower",
+          "x": 74.5,
+          "z": 8.5,
+          "health": 94,
+          "maxHealth": 94,
+          "alive": true,
+          "faction": "infestation",
+          "provoked": false,
+          "killedByPlayer": false,
+          "telegraph": null,
+          "stunTimer": 0,
+          "shadowPhase": "idle",
+          "shadowTimer": 0,
+          "shadowCycle": 0,
+          "shadowSide": -1,
+          "revealed": true,
+          "active": false,
+          "angle": 3.141592653589793,
+          "attackCooldown": 1,
+          "hitTimer": 0,
+          "pathTimer": 0
+        },
+        {
+          "id": "weather-skimmer",
+          "type": "glass-skimmer",
+          "x": 83.5,
+          "z": 14.5,
+          "health": 82,
+          "maxHealth": 82,
+          "alive": true,
+          "faction": "infestation",
+          "provoked": false,
+          "killedByPlayer": false,
+          "telegraph": null,
+          "stunTimer": 0,
+          "shadowPhase": "idle",
+          "shadowTimer": 0,
+          "shadowCycle": 0,
+          "shadowSide": -1,
+          "revealed": true,
+          "active": false,
+          "angle": 3.141592653589793,
+          "attackCooldown": 1,
+          "hitTimer": 0,
+          "pathTimer": 0
+        },
+        {
+          "id": "weather-mender",
+          "type": "mender",
+          "x": 72.5,
+          "z": 22.5,
+          "health": 84,
+          "maxHealth": 84,
+          "alive": true,
+          "faction": "infestation",
+          "provoked": false,
+          "killedByPlayer": false,
+          "telegraph": null,
+          "stunTimer": 0,
+          "healCooldown": 1,
+          "active": false,
+          "angle": 3.141592653589793,
+          "attackCooldown": 1,
+          "hitTimer": 0,
+          "pathTimer": 0
+        },
+        {
+          "id": "tomorrow-guardian",
+          "type": "brute",
+          "x": 45.5,
+          "z": 22.5,
+          "health": 0,
+          "maxHealth": 620,
+          "alive": false,
+          "guardian": true,
+          "bossGroup": "tomorrow",
+          "bossName": "The Unfinished Tomorrow",
+          "faction": "infestation",
+          "provoked": false,
+          "killedByPlayer": true,
+          "telegraph": null,
+          "stunTimer": 0,
+          "bossPhase": "stalk",
+          "phaseTimer": 0,
+          "bossCycle": 0,
+          "chargeAngle": 0,
+          "chargeHit": false,
+          "chargeTargetId": null,
+          "chargeTargetKind": null,
+          "active": true,
+          "angle": 3.141592653589793,
+          "attackCooldown": 1,
+          "hitTimer": 0.13,
+          "pathTimer": 0
+        },
+        {
+          "id": "court-widow",
+          "type": "tether-widow",
+          "x": 37.5,
+          "z": 10.5,
+          "health": 102,
+          "maxHealth": 102,
+          "alive": true,
+          "faction": "infestation",
+          "provoked": false,
+          "killedByPlayer": false,
+          "telegraph": null,
+          "stunTimer": 0,
+          "shadowPhase": "idle",
+          "shadowTimer": 0,
+          "shadowCycle": 0,
+          "shadowSide": 1,
+          "revealed": true,
+          "active": false,
+          "angle": 3.141592653589793,
+          "attackCooldown": 1,
+          "hitTimer": 0,
+          "pathTimer": 0
+        },
+        {
+          "id": "court-skimmer",
+          "type": "glass-skimmer",
+          "x": 53.5,
+          "z": 13.5,
+          "health": 82,
+          "maxHealth": 82,
+          "alive": true,
+          "faction": "infestation",
+          "provoked": false,
+          "killedByPlayer": false,
+          "telegraph": null,
+          "stunTimer": 0,
+          "shadowPhase": "idle",
+          "shadowTimer": 0,
+          "shadowCycle": 0,
+          "shadowSide": 1,
+          "revealed": true,
+          "active": false,
+          "angle": 3.141592653589793,
+          "attackCooldown": 1,
+          "hitTimer": 0,
+          "pathTimer": 0
+        },
+        {
+          "id": "court-maw",
+          "type": "lantern-maw",
+          "x": 50.5,
+          "z": 24.5,
+          "health": 96,
+          "maxHealth": 96,
+          "alive": true,
+          "faction": "infestation",
+          "provoked": false,
+          "killedByPlayer": false,
+          "telegraph": null,
+          "stunTimer": 0,
+          "shadowPhase": "disguised",
+          "shadowTimer": 0,
+          "shadowCycle": 0,
+          "shadowSide": -1,
+          "revealed": false,
+          "active": false,
+          "angle": 3.141592653589793,
+          "attackCooldown": 1,
+          "hitTimer": 0,
+          "pathTimer": 0
+        }
+      ],
+      "projectiles": [],
+      "serial": 6,
+      "pickups": [
+        {
+          "id": "access-key",
+          "collected": true
+        },
+        {
+          "id": "pump-shotgun",
+          "collected": true
+        },
+        {
+          "id": "rivet-repeater",
+          "collected": false
+        },
+        {
+          "id": "tomorrow-rebound",
+          "collected": false
+        },
+        {
+          "id": "tomorrow-thumper",
+          "collected": false
+        },
+        {
+          "id": "null-projector",
+          "collected": true
+        },
+        {
+          "id": "breach-lance",
+          "collected": false
+        },
+        {
+          "id": "health-expansion",
+          "collected": false
+        },
+        {
+          "id": "orchard-ammo",
+          "collected": false
+        },
+        {
+          "id": "orchard-shells",
+          "collected": false
+        },
+        {
+          "id": "orchard-health",
+          "collected": false
+        },
+        {
+          "id": "orchard-armor",
+          "collected": false
+        },
+        {
+          "id": "orchard-cells",
+          "collected": false
+        },
+        {
+          "id": "orchard-slugs",
+          "collected": false
+        },
+        {
+          "id": "arrivals-ammo",
+          "collected": false
+        },
+        {
+          "id": "arrivals-shells",
+          "collected": false
+        },
+        {
+          "id": "arrivals-health",
+          "collected": false
+        },
+        {
+          "id": "arrivals-armor",
+          "collected": false
+        },
+        {
+          "id": "aquarium-ammo",
+          "collected": false
+        },
+        {
+          "id": "aquarium-shells",
+          "collected": false
+        },
+        {
+          "id": "aquarium-health",
+          "collected": false
+        },
+        {
+          "id": "aquarium-armor",
+          "collected": false
+        },
+        {
+          "id": "aquarium-cells",
+          "collected": false
+        },
+        {
+          "id": "aquarium-slugs",
+          "collected": false
+        },
+        {
+          "id": "wardrobe-ammo",
+          "collected": false
+        },
+        {
+          "id": "wardrobe-shells",
+          "collected": false
+        },
+        {
+          "id": "wardrobe-health",
+          "collected": false
+        },
+        {
+          "id": "wardrobe-armor",
+          "collected": false
+        },
+        {
+          "id": "wardrobe-cells",
+          "collected": false
+        },
+        {
+          "id": "wardrobe-slugs",
+          "collected": false
+        },
+        {
+          "id": "exchange-ammo",
+          "collected": false
+        },
+        {
+          "id": "exchange-shells",
+          "collected": false
+        },
+        {
+          "id": "exchange-health",
+          "collected": false
+        },
+        {
+          "id": "exchange-armor",
+          "collected": false
+        },
+        {
+          "id": "exchange-cells",
+          "collected": false
+        },
+        {
+          "id": "exchange-slugs",
+          "collected": false
+        },
+        {
+          "id": "sunday-ammo",
+          "collected": false
+        },
+        {
+          "id": "sunday-shells",
+          "collected": false
+        },
+        {
+          "id": "sunday-health",
+          "collected": false
+        },
+        {
+          "id": "sunday-armor",
+          "collected": false
+        },
+        {
+          "id": "sunday-cells",
+          "collected": false
+        },
+        {
+          "id": "sunday-slugs",
+          "collected": false
+        },
+        {
+          "id": "museum-ammo",
+          "collected": false
+        },
+        {
+          "id": "museum-shells",
+          "collected": false
+        },
+        {
+          "id": "museum-health",
+          "collected": false
+        },
+        {
+          "id": "museum-armor",
+          "collected": false
+        },
+        {
+          "id": "museum-cells",
+          "collected": false
+        },
+        {
+          "id": "museum-slugs",
+          "collected": false
+        },
+        {
+          "id": "court-ammo",
+          "collected": false
+        },
+        {
+          "id": "court-shells",
+          "collected": false
+        },
+        {
+          "id": "court-health",
+          "collected": false
+        },
+        {
+          "id": "court-armor",
+          "collected": false
+        },
+        {
+          "id": "court-cells",
+          "collected": false
+        },
+        {
+          "id": "court-slugs",
+          "collected": false
+        },
+        {
+          "id": "weather-ammo",
+          "collected": false
+        },
+        {
+          "id": "weather-shells",
+          "collected": false
+        },
+        {
+          "id": "weather-health",
+          "collected": false
+        },
+        {
+          "id": "weather-armor",
+          "collected": false
+        },
+        {
+          "id": "weather-cells",
+          "collected": false
+        },
+        {
+          "id": "weather-slugs",
+          "collected": false
+        }
+      ],
+      "doors": [
+        {
+          "id": "court-south",
+          "open": false
+        },
+        {
+          "id": "court-west",
+          "open": false
+        },
+        {
+          "id": "court-east",
+          "open": false
+        },
+        {
+          "id": "remembered-west",
+          "open": true
+        },
+        {
+          "id": "remembered-east",
+          "open": true
+        }
+      ],
+      "interactables": [
+        {
+          "id": "aux-power",
+          "used": true
+        },
+        {
+          "id": "relay-west",
+          "used": true
+        },
+        {
+          "id": "relay-east",
+          "used": true
+        },
+        {
+          "id": "extraction",
+          "used": false
+        },
+        {
+          "id": "ending-seal",
+          "used": false
+        },
+        {
+          "id": "ending-rewrite",
+          "used": true
+        },
+        {
+          "id": "waiting-refuge",
+          "used": false
+        },
+        {
+          "id": "exchange-refuge",
+          "used": false
+        },
+        {
+          "id": "wardrobe-refuge",
+          "used": false
+        },
+        {
+          "id": "sunday-refuge",
+          "used": false
+        },
+        {
+          "id": "museum-refuge",
+          "used": false
+        },
+        {
+          "id": "memory-orchard",
+          "used": true
+        },
+        {
+          "id": "memory-aquarium",
+          "used": true
+        },
+        {
+          "id": "memory-museum",
+          "used": true
+        },
+        {
+          "id": "fold-waiting",
+          "used": false
+        },
+        {
+          "id": "fold-sunday",
+          "used": false
+        },
+        {
+          "id": "fold-museum",
+          "used": false
+        },
+        {
+          "id": "fold-weather",
+          "used": false
+        },
+        {
+          "id": "record-arrival",
+          "used": false
+        },
+        {
+          "id": "record-exchange",
+          "used": false
+        },
+        {
+          "id": "record-orchard",
+          "used": false
+        },
+        {
+          "id": "record-aquarium",
+          "used": false
+        },
+        {
+          "id": "record-wardrobe",
+          "used": false
+        },
+        {
+          "id": "record-sunday",
+          "used": false
+        },
+        {
+          "id": "record-museum",
+          "used": false
+        },
+        {
+          "id": "record-weather",
+          "used": false
+        },
+        {
+          "id": "record-court",
+          "used": false
+        }
+      ],
+      "power": true,
+      "secretFound": false,
+      "time": 0,
+      "kills": 1,
+      "shots": 0,
+      "hits": 0,
+      "tutorial": {
+        "moved": false,
+        "fired": false,
+        "interacted": false,
+        "weaponSwitched": false
+      },
+      "randomState": 73,
+      "upgrades": {
+        "cutter": false,
+        "insulator": false,
+        "phase": false
+      },
+      "healthBonus": 0
+    },
+    "checkpoint": {
+      "tomorrowRevision": 1,
+      "player": {
+        "x": 82.5,
+        "z": 8.5,
+        "angle": 0,
+        "health": 100,
+        "armor": 50,
+        "ammo": {
+          "pistol": 60,
+          "shells": 40,
+          "cells": 45,
+          "slugs": 0,
+          "grenades": 0
+        },
+        "weapon": "nullgun",
+        "hasShotgun": true,
+        "hasArc": false,
+        "hasRicochet": false,
+        "hasGrenade": false,
+        "hasRepeater": false,
+        "hasNull": true,
+        "hasLance": false,
+        "key": true,
+        "maxHealth": 100
+      },
+      "enemies": [
+        {
+          "id": "orchard-sower",
+          "type": "cinder-sower",
+          "x": 16.5,
+          "z": 67.5,
+          "health": 88,
+          "maxHealth": 88,
+          "alive": true,
+          "introduction": true,
+          "faction": "infestation",
+          "provoked": false,
+          "killedByPlayer": false,
+          "telegraph": null,
+          "stunTimer": 0,
+          "shadowPhase": "idle",
+          "shadowTimer": 0,
+          "shadowCycle": 0,
+          "shadowSide": 1,
+          "revealed": true,
+          "active": false,
+          "angle": 3.141592653589793,
+          "attackCooldown": 1,
+          "hitTimer": 0,
+          "pathTimer": 0
+        },
+        {
+          "id": "orchard-maw",
+          "type": "lantern-maw",
+          "x": 24.5,
+          "z": 71.5,
+          "health": 90,
+          "maxHealth": 90,
+          "alive": true,
+          "faction": "infestation",
+          "provoked": false,
+          "killedByPlayer": false,
+          "telegraph": null,
+          "stunTimer": 0,
+          "shadowPhase": "disguised",
+          "shadowTimer": 0,
+          "shadowCycle": 0,
+          "shadowSide": -1,
+          "revealed": false,
+          "active": false,
+          "angle": 3.141592653589793,
+          "attackCooldown": 1,
+          "hitTimer": 0,
+          "pathTimer": 0
+        },
+        {
+          "id": "aquarium-skimmer",
+          "type": "glass-skimmer",
+          "x": 69.5,
+          "z": 68.5,
+          "health": 78,
+          "maxHealth": 78,
+          "alive": true,
+          "introduction": true,
+          "faction": "infestation",
+          "provoked": false,
+          "killedByPlayer": false,
+          "telegraph": null,
+          "stunTimer": 0,
+          "shadowPhase": "idle",
+          "shadowTimer": 0,
+          "shadowCycle": 0,
+          "shadowSide": 1,
+          "revealed": true,
+          "active": false,
+          "angle": 3.141592653589793,
+          "attackCooldown": 1,
+          "hitTimer": 0,
+          "pathTimer": 0
+        },
+        {
+          "id": "aquarium-spitter",
+          "type": "spitter",
+          "x": 83.5,
+          "z": 65.5,
+          "health": 80,
+          "maxHealth": 80,
+          "alive": true,
+          "faction": "infestation",
+          "provoked": false,
+          "killedByPlayer": false,
+          "telegraph": null,
+          "stunTimer": 0,
+          "active": false,
+          "angle": 3.141592653589793,
+          "attackCooldown": 1,
+          "hitTimer": 0,
+          "pathTimer": 0
+        },
+        {
+          "id": "wardrobe-widow",
+          "type": "tether-widow",
+          "x": 15.5,
+          "z": 37.5,
+          "health": 102,
+          "maxHealth": 102,
+          "alive": true,
+          "introduction": true,
+          "faction": "infestation",
+          "provoked": false,
+          "killedByPlayer": false,
+          "telegraph": null,
+          "stunTimer": 0,
+          "shadowPhase": "idle",
+          "shadowTimer": 0,
+          "shadowCycle": 0,
+          "shadowSide": -1,
+          "revealed": true,
+          "active": false,
+          "angle": 3.141592653589793,
+          "attackCooldown": 1,
+          "hitTimer": 0,
+          "pathTimer": 0
+        },
+        {
+          "id": "wardrobe-maw",
+          "type": "lantern-maw",
+          "x": 24.5,
+          "z": 43.5,
+          "health": 96,
+          "maxHealth": 96,
+          "alive": true,
+          "introduction": true,
+          "faction": "infestation",
+          "provoked": false,
+          "killedByPlayer": false,
+          "telegraph": null,
+          "stunTimer": 0,
+          "shadowPhase": "disguised",
+          "shadowTimer": 0,
+          "shadowCycle": 0,
+          "shadowSide": 1,
+          "revealed": false,
+          "active": false,
+          "angle": 3.141592653589793,
+          "attackCooldown": 1,
+          "hitTimer": 0,
+          "pathTimer": 0
+        },
+        {
+          "id": "wardrobe-runner",
+          "type": "runner",
+          "x": 7.5,
+          "z": 42.5,
+          "health": 65,
+          "maxHealth": 65,
+          "alive": true,
+          "faction": "infestation",
+          "provoked": false,
+          "killedByPlayer": false,
+          "telegraph": null,
+          "stunTimer": 0,
+          "active": false,
+          "angle": 3.141592653589793,
+          "attackCooldown": 1,
+          "hitTimer": 0,
+          "pathTimer": 0
+        },
+        {
+          "id": "sunday-maw",
+          "type": "lantern-maw",
+          "x": 69.5,
+          "z": 43.5,
+          "health": 96,
+          "maxHealth": 96,
+          "alive": true,
+          "faction": "infestation",
+          "provoked": false,
+          "killedByPlayer": false,
+          "telegraph": null,
+          "stunTimer": 0,
+          "shadowPhase": "disguised",
+          "shadowTimer": 0,
+          "shadowCycle": 0,
+          "shadowSide": 1,
+          "revealed": false,
+          "active": false,
+          "angle": 3.141592653589793,
+          "attackCooldown": 1,
+          "hitTimer": 0,
+          "pathTimer": 0
+        },
+        {
+          "id": "sunday-skimmer",
+          "type": "glass-skimmer",
+          "x": 81.5,
+          "z": 42.5,
+          "health": 78,
+          "maxHealth": 78,
+          "alive": true,
+          "faction": "infestation",
+          "provoked": false,
+          "killedByPlayer": false,
+          "telegraph": null,
+          "stunTimer": 0,
+          "shadowPhase": "idle",
+          "shadowTimer": 0,
+          "shadowCycle": 0,
+          "shadowSide": -1,
+          "revealed": true,
+          "active": false,
+          "angle": 3.141592653589793,
+          "attackCooldown": 1,
+          "hitTimer": 0,
+          "pathTimer": 0
+        },
+        {
+          "id": "museum-widow",
+          "type": "tether-widow",
+          "x": 16.5,
+          "z": 10.5,
+          "health": 108,
+          "maxHealth": 108,
+          "alive": true,
+          "faction": "infestation",
+          "provoked": false,
+          "killedByPlayer": false,
+          "telegraph": null,
+          "stunTimer": 0,
+          "shadowPhase": "idle",
+          "shadowTimer": 0,
+          "shadowCycle": 0,
+          "shadowSide": -1,
+          "revealed": true,
+          "active": false,
+          "angle": 3.141592653589793,
+          "attackCooldown": 1,
+          "hitTimer": 0,
+          "pathTimer": 0
+        },
+        {
+          "id": "museum-sower",
+          "type": "cinder-sower",
+          "x": 23.5,
+          "z": 8.5,
+          "health": 94,
+          "maxHealth": 94,
+          "alive": true,
+          "faction": "infestation",
+          "provoked": false,
+          "killedByPlayer": false,
+          "telegraph": null,
+          "stunTimer": 0,
+          "shadowPhase": "idle",
+          "shadowTimer": 0,
+          "shadowCycle": 0,
+          "shadowSide": -1,
+          "revealed": true,
+          "active": false,
+          "angle": 3.141592653589793,
+          "attackCooldown": 1,
+          "hitTimer": 0,
+          "pathTimer": 0
+        },
+        {
+          "id": "museum-bulwark",
+          "type": "bulwark",
+          "x": 16.5,
+          "z": 23.5,
+          "health": 170,
+          "maxHealth": 170,
+          "alive": true,
+          "faction": "infestation",
+          "provoked": false,
+          "killedByPlayer": false,
+          "telegraph": null,
+          "stunTimer": 0,
+          "shieldPhase": "guard",
+          "shieldTimer": 3.4,
+          "active": false,
+          "angle": 3.141592653589793,
+          "attackCooldown": 1,
+          "hitTimer": 0,
+          "pathTimer": 0
+        },
+        {
+          "id": "weather-sower",
+          "type": "cinder-sower",
+          "x": 74.5,
+          "z": 8.5,
+          "health": 94,
+          "maxHealth": 94,
+          "alive": true,
+          "faction": "infestation",
+          "provoked": false,
+          "killedByPlayer": false,
+          "telegraph": null,
+          "stunTimer": 0,
+          "shadowPhase": "idle",
+          "shadowTimer": 0,
+          "shadowCycle": 0,
+          "shadowSide": -1,
+          "revealed": true,
+          "active": false,
+          "angle": 3.141592653589793,
+          "attackCooldown": 1,
+          "hitTimer": 0,
+          "pathTimer": 0
+        },
+        {
+          "id": "weather-skimmer",
+          "type": "glass-skimmer",
+          "x": 83.5,
+          "z": 14.5,
+          "health": 82,
+          "maxHealth": 82,
+          "alive": true,
+          "faction": "infestation",
+          "provoked": false,
+          "killedByPlayer": false,
+          "telegraph": null,
+          "stunTimer": 0,
+          "shadowPhase": "idle",
+          "shadowTimer": 0,
+          "shadowCycle": 0,
+          "shadowSide": -1,
+          "revealed": true,
+          "active": false,
+          "angle": 3.141592653589793,
+          "attackCooldown": 1,
+          "hitTimer": 0,
+          "pathTimer": 0
+        },
+        {
+          "id": "weather-mender",
+          "type": "mender",
+          "x": 72.5,
+          "z": 22.5,
+          "health": 84,
+          "maxHealth": 84,
+          "alive": true,
+          "faction": "infestation",
+          "provoked": false,
+          "killedByPlayer": false,
+          "telegraph": null,
+          "stunTimer": 0,
+          "healCooldown": 1,
+          "active": false,
+          "angle": 3.141592653589793,
+          "attackCooldown": 1,
+          "hitTimer": 0,
+          "pathTimer": 0
+        },
+        {
+          "id": "tomorrow-guardian",
+          "type": "brute",
+          "x": 45.5,
+          "z": 22.5,
+          "health": 0,
+          "maxHealth": 620,
+          "alive": false,
+          "guardian": true,
+          "bossGroup": "tomorrow",
+          "bossName": "The Unfinished Tomorrow",
+          "faction": "infestation",
+          "provoked": false,
+          "killedByPlayer": true,
+          "telegraph": null,
+          "stunTimer": 0,
+          "bossPhase": "stalk",
+          "phaseTimer": 0,
+          "bossCycle": 0,
+          "chargeAngle": 0,
+          "chargeHit": false,
+          "chargeTargetId": null,
+          "chargeTargetKind": null,
+          "active": true,
+          "angle": 3.141592653589793,
+          "attackCooldown": 1,
+          "hitTimer": 0.13,
+          "pathTimer": 0
+        },
+        {
+          "id": "court-widow",
+          "type": "tether-widow",
+          "x": 37.5,
+          "z": 10.5,
+          "health": 102,
+          "maxHealth": 102,
+          "alive": true,
+          "faction": "infestation",
+          "provoked": false,
+          "killedByPlayer": false,
+          "telegraph": null,
+          "stunTimer": 0,
+          "shadowPhase": "idle",
+          "shadowTimer": 0,
+          "shadowCycle": 0,
+          "shadowSide": 1,
+          "revealed": true,
+          "active": false,
+          "angle": 3.141592653589793,
+          "attackCooldown": 1,
+          "hitTimer": 0,
+          "pathTimer": 0
+        },
+        {
+          "id": "court-skimmer",
+          "type": "glass-skimmer",
+          "x": 53.5,
+          "z": 13.5,
+          "health": 82,
+          "maxHealth": 82,
+          "alive": true,
+          "faction": "infestation",
+          "provoked": false,
+          "killedByPlayer": false,
+          "telegraph": null,
+          "stunTimer": 0,
+          "shadowPhase": "idle",
+          "shadowTimer": 0,
+          "shadowCycle": 0,
+          "shadowSide": 1,
+          "revealed": true,
+          "active": false,
+          "angle": 3.141592653589793,
+          "attackCooldown": 1,
+          "hitTimer": 0,
+          "pathTimer": 0
+        },
+        {
+          "id": "court-maw",
+          "type": "lantern-maw",
+          "x": 50.5,
+          "z": 24.5,
+          "health": 96,
+          "maxHealth": 96,
+          "alive": true,
+          "faction": "infestation",
+          "provoked": false,
+          "killedByPlayer": false,
+          "telegraph": null,
+          "stunTimer": 0,
+          "shadowPhase": "disguised",
+          "shadowTimer": 0,
+          "shadowCycle": 0,
+          "shadowSide": -1,
+          "revealed": false,
+          "active": false,
+          "angle": 3.141592653589793,
+          "attackCooldown": 1,
+          "hitTimer": 0,
+          "pathTimer": 0
+        }
+      ],
+      "projectiles": [],
+      "serial": 3,
+      "pickups": [
+        {
+          "id": "access-key",
+          "collected": true
+        },
+        {
+          "id": "pump-shotgun",
+          "collected": true
+        },
+        {
+          "id": "rivet-repeater",
+          "collected": false
+        },
+        {
+          "id": "tomorrow-rebound",
+          "collected": false
+        },
+        {
+          "id": "tomorrow-thumper",
+          "collected": false
+        },
+        {
+          "id": "null-projector",
+          "collected": true
+        },
+        {
+          "id": "breach-lance",
+          "collected": false
+        },
+        {
+          "id": "health-expansion",
+          "collected": false
+        },
+        {
+          "id": "orchard-ammo",
+          "collected": false
+        },
+        {
+          "id": "orchard-shells",
+          "collected": false
+        },
+        {
+          "id": "orchard-health",
+          "collected": false
+        },
+        {
+          "id": "orchard-armor",
+          "collected": false
+        },
+        {
+          "id": "orchard-cells",
+          "collected": false
+        },
+        {
+          "id": "orchard-slugs",
+          "collected": false
+        },
+        {
+          "id": "arrivals-ammo",
+          "collected": false
+        },
+        {
+          "id": "arrivals-shells",
+          "collected": false
+        },
+        {
+          "id": "arrivals-health",
+          "collected": false
+        },
+        {
+          "id": "arrivals-armor",
+          "collected": false
+        },
+        {
+          "id": "aquarium-ammo",
+          "collected": false
+        },
+        {
+          "id": "aquarium-shells",
+          "collected": false
+        },
+        {
+          "id": "aquarium-health",
+          "collected": false
+        },
+        {
+          "id": "aquarium-armor",
+          "collected": false
+        },
+        {
+          "id": "aquarium-cells",
+          "collected": false
+        },
+        {
+          "id": "aquarium-slugs",
+          "collected": false
+        },
+        {
+          "id": "wardrobe-ammo",
+          "collected": false
+        },
+        {
+          "id": "wardrobe-shells",
+          "collected": false
+        },
+        {
+          "id": "wardrobe-health",
+          "collected": false
+        },
+        {
+          "id": "wardrobe-armor",
+          "collected": false
+        },
+        {
+          "id": "wardrobe-cells",
+          "collected": false
+        },
+        {
+          "id": "wardrobe-slugs",
+          "collected": false
+        },
+        {
+          "id": "exchange-ammo",
+          "collected": false
+        },
+        {
+          "id": "exchange-shells",
+          "collected": false
+        },
+        {
+          "id": "exchange-health",
+          "collected": false
+        },
+        {
+          "id": "exchange-armor",
+          "collected": false
+        },
+        {
+          "id": "exchange-cells",
+          "collected": false
+        },
+        {
+          "id": "exchange-slugs",
+          "collected": false
+        },
+        {
+          "id": "sunday-ammo",
+          "collected": false
+        },
+        {
+          "id": "sunday-shells",
+          "collected": false
+        },
+        {
+          "id": "sunday-health",
+          "collected": false
+        },
+        {
+          "id": "sunday-armor",
+          "collected": false
+        },
+        {
+          "id": "sunday-cells",
+          "collected": false
+        },
+        {
+          "id": "sunday-slugs",
+          "collected": false
+        },
+        {
+          "id": "museum-ammo",
+          "collected": false
+        },
+        {
+          "id": "museum-shells",
+          "collected": false
+        },
+        {
+          "id": "museum-health",
+          "collected": false
+        },
+        {
+          "id": "museum-armor",
+          "collected": false
+        },
+        {
+          "id": "museum-cells",
+          "collected": false
+        },
+        {
+          "id": "museum-slugs",
+          "collected": false
+        },
+        {
+          "id": "court-ammo",
+          "collected": false
+        },
+        {
+          "id": "court-shells",
+          "collected": false
+        },
+        {
+          "id": "court-health",
+          "collected": false
+        },
+        {
+          "id": "court-armor",
+          "collected": false
+        },
+        {
+          "id": "court-cells",
+          "collected": false
+        },
+        {
+          "id": "court-slugs",
+          "collected": false
+        },
+        {
+          "id": "weather-ammo",
+          "collected": false
+        },
+        {
+          "id": "weather-shells",
+          "collected": false
+        },
+        {
+          "id": "weather-health",
+          "collected": false
+        },
+        {
+          "id": "weather-armor",
+          "collected": false
+        },
+        {
+          "id": "weather-cells",
+          "collected": false
+        },
+        {
+          "id": "weather-slugs",
+          "collected": false
+        }
+      ],
+      "doors": [
+        {
+          "id": "court-south",
+          "open": false
+        },
+        {
+          "id": "court-west",
+          "open": false
+        },
+        {
+          "id": "court-east",
+          "open": false
+        },
+        {
+          "id": "remembered-west",
+          "open": true
+        },
+        {
+          "id": "remembered-east",
+          "open": true
+        }
+      ],
+      "interactables": [
+        {
+          "id": "aux-power",
+          "used": true
+        },
+        {
+          "id": "relay-west",
+          "used": true
+        },
+        {
+          "id": "relay-east",
+          "used": true
+        },
+        {
+          "id": "extraction",
+          "used": false
+        },
+        {
+          "id": "ending-seal",
+          "used": false
+        },
+        {
+          "id": "ending-rewrite",
+          "used": false
+        },
+        {
+          "id": "waiting-refuge",
+          "used": false
+        },
+        {
+          "id": "exchange-refuge",
+          "used": false
+        },
+        {
+          "id": "wardrobe-refuge",
+          "used": false
+        },
+        {
+          "id": "sunday-refuge",
+          "used": false
+        },
+        {
+          "id": "museum-refuge",
+          "used": false
+        },
+        {
+          "id": "memory-orchard",
+          "used": true
+        },
+        {
+          "id": "memory-aquarium",
+          "used": true
+        },
+        {
+          "id": "memory-museum",
+          "used": true
+        },
+        {
+          "id": "fold-waiting",
+          "used": false
+        },
+        {
+          "id": "fold-sunday",
+          "used": false
+        },
+        {
+          "id": "fold-museum",
+          "used": false
+        },
+        {
+          "id": "fold-weather",
+          "used": false
+        },
+        {
+          "id": "record-arrival",
+          "used": false
+        },
+        {
+          "id": "record-exchange",
+          "used": false
+        },
+        {
+          "id": "record-orchard",
+          "used": false
+        },
+        {
+          "id": "record-aquarium",
+          "used": false
+        },
+        {
+          "id": "record-wardrobe",
+          "used": false
+        },
+        {
+          "id": "record-sunday",
+          "used": false
+        },
+        {
+          "id": "record-museum",
+          "used": false
+        },
+        {
+          "id": "record-weather",
+          "used": false
+        },
+        {
+          "id": "record-court",
+          "used": false
+        }
+      ],
+      "power": true,
+      "secretFound": false,
+      "time": 0,
+      "kills": 1,
+      "shots": 0,
+      "hits": 0,
+      "tutorial": {
+        "moved": false,
+        "fired": false,
+        "interacted": false,
+        "weaponSwitched": false
+      },
+      "randomState": 73,
+      "upgrades": {
+        "cutter": false,
+        "insulator": false,
+        "phase": false
+      },
+      "healthBonus": 0
+    }
+  }
+}

@@ -1,6 +1,6 @@
 /** Continuous authored scores, with brief, explicit dramatic silences. */
 import { CUES_BY_ID, MENU_SCORES } from './music-cues.mjs';
-const DUCK_EVENTS=new Set(['enemy-warning','enemy-shot','hurt','explosion','teleport','provoked','boss-phase','shield-open','shield-hit','heal','heal-interrupt','ricochet','tether-broken','tomorrow-shift']);
+const DUCK_EVENTS=new Set(['enemy-warning','enemy-shot','hurt','explosion','teleport','provoked','boss-phase','shield-open','shield-hit','heal','heal-interrupt','ricochet','tether-broken','tomorrow-shift','tomorrow-betrayal','trapdoor-warning','mimic-reveal']);
 const RELIEF_EVENTS=new Set(['refuge','transit','transit-activated','checkpoint','relay','power','shadow-puzzle']);
 const DUCK_LEVEL=.55;
 const LOCAL_EVENTS=new Set(['record','hurt','refuge','transit']);

@@ -78,7 +78,7 @@ test('room admission rejects a fifth slot, an old protocol and malformed friendl
 });
 
 test('Tomorrow requires matching content and advertises friendly fire before anyone joins', () => {
-  for (const revision of [undefined, null, '1', 0, 2]) {
+  for (const revision of [undefined, null, '1', 0, TOMORROW_WORLD_REVISION - 1, TOMORROW_WORLD_REVISION + 1]) {
     const rooms = new BreachRooms(), p = peer();
     rooms.handle(p, request('create', { mission: TOMORROW_ID, tomorrowRevision: revision }));
     assert.equal(last(p, 'error').code, 'VERSION_MISMATCH');

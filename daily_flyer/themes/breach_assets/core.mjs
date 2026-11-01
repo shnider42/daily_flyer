@@ -8,6 +8,9 @@ import { HOLLOW, HOLLOW_MISSION, containmentAt, hollowObjective } from './hollow
 import { DIFFICULTY } from './difficulty.mjs';
 import { SHADOW_ENEMY_FIELDS, isShadowEnemyType, shadowEnemyDefaults, updateShadowThreat, updateShadowHazards, onShadowEnemyHit, validShadowEnemySnapshot } from './shadow-enemies.mjs';
 import { migrateShadowSnapshot } from './shadow-save.mjs';
+import { initializeTomorrowSociety, tomorrowNpcHostile, tomorrowFactionsOpposed, updateTomorrowSociety, syncTomorrowSociety, validTomorrowSocietySnapshot } from './tomorrow-society.mjs';
+import { initializeTomorrowHazards, updateTomorrowPlayerTraversal, updateTomorrowHazards, snapshotTomorrowHazards, restoreTomorrowHazards, validTomorrowHazardsSnapshot, syncTomorrowHazards, probeTomorrowMimics, revealTomorrowMimicsInBlast } from './tomorrow-hazards.mjs';
+import { migrateTomorrowSnapshot } from './tomorrow-save.mjs';
 const TAU = Math.PI * 2;
 const clamp = (n, lo, hi) => Math.max(lo, Math.min(hi, n));
 const copy = (value) => JSON.parse(JSON.stringify(value));
@@ -328,6 +331,8 @@ export class Game {
       this.state.healthBonus = 0;
       this.state.player.maxHealth = 100;
     }
+    initializeTomorrowSociety(this);
+    initializeTomorrowHazards(this);
   }
 
   start() {
@@ -361,7 +366,16 @@ export class Game {
   }
 
   isHostileToPlayer(enemy) {
+    if (this.level?.tomorrow) {
+      const hostile = tomorrowNpcHostile(this.state, enemy);
+      if (hostile !== null) return hostile;
+    }
     return Boolean(enemy?.alive && (enemy.faction !== 'security' && enemy.type !== 'sentry' || enemy.provoked === true));
+  }
+
+  _factionsOpposed(a, b) {
+    const opposed = this.level.tomorrow ? tomorrowFactionsOpposed(this.state, a, b) : null;
+    return opposed ?? (a.faction || 'infestation') !== (b.faction || 'infestation');
   }
 
   _wall(x, z) {
@@ -426,9 +440,9 @@ export class Game {
     const divisor = Math.max(1, Math.hypot(forward, strafe));
     const speed = 3.35 * dt / divisor;
     const beforeX = player.x, beforeZ = player.z;
-    if(!updateTraversal(this,dt))this._move(player, (Math.sin(player.angle) * forward + Math.cos(player.angle) * strafe) * speed,
+    if(!updateTomorrowPlayerTraversal(this,dt)&&!updateTraversal(this,dt))this._move(player, (Math.sin(player.angle) * forward + Math.cos(player.angle) * strafe) * speed,
       (-Math.cos(player.angle) * forward + Math.sin(player.angle) * strafe) * speed);
-    if(!player.jump)updateTraversal(this,0);
+    if(!player.jump){updateTomorrowPlayerTraversal(this,0);updateTraversal(this,0);}
     if (Math.hypot(player.x - this.level.spawn.x, player.z - this.level.spawn.z) > .75) state.tutorial.moved = true;
     player.moving = Math.hypot(player.x - beforeX, player.z - beforeZ) > .0001;
     this._collectPickups();
@@ -441,6 +455,8 @@ export class Game {
       }
     } else this._reserveTimer = 0;
     if (this._pathTimer <= 0) { this._buildDistanceField(); this._pathTimer = .5; }
+    updateTomorrowHazards(this,dt);
+    updateTomorrowSociety(this,dt);
     this._updateEnemies(dt);
     this._updateProjectiles(dt);
     for (const effect of state.effects) effect.life -= dt;
@@ -506,6 +522,7 @@ export class Game {
         .sort((a, b) => Math.abs(angleDelta(a.angle, aim)) - Math.abs(angleDelta(b.angle, aim)))[0];
       if (target) aim = target.angle;
     }
+    if (weapon !== 'grenade') probeTomorrowMimics(this,p,aim,spec.range,{pierce:spec.pierce||1});
     if (weapon === 'grenade') {
       this.state.projectiles.push({ id: `grenade-${++this._serial}`, type: 'grenade', x: p.x, z: p.z,
         dx: Math.sin(aim) * spec.projectileSpeed, dz: -Math.cos(aim) * spec.projectileSpeed,
@@ -665,9 +682,10 @@ export class Game {
     const damage = Math.max(1, Math.round(amount * multiplier));
     enemy.health = Math.max(0, enemy.health - damage); enemy.active = true; enemy.hitTimer = .13;
     onShadowEnemyHit(this, enemy, source);
-    if (playerHit && enemy.faction === 'security' && !enemy.provoked) {
+    if (playerHit && (enemy.faction === 'security' || this.level.tomorrow && enemy.npcRole) && !enemy.provoked) {
       enemy.provoked = true; enemy.telegraph = null; enemy.attackCooldown = Math.max(enemy.attackCooldown, .8);
       this._events.push({ type: 'provoked', id: enemy.id, x: enemy.x, z: enemy.z });
+      if (enemy.npcRole) this._syncPermanentProgress();
     }
     // A clean hit interrupts a phase shift before the creature disappears.
     if (enemy.type === 'stalker' && enemy.telegraph?.kind === 'blink') {
@@ -687,7 +705,7 @@ export class Game {
       if (playerHit) this.state.kills++;
       this._events.push({ type: playerHit ? 'kill' : 'enemy-kill', id: enemy.id, enemyType: enemy.type, x: enemy.x, z: enemy.z, sourceId: ownerId, ...owner });
       splitShadowRoot(this,enemy);
-      if (enemy.guardian) this._syncPermanentProgress();
+      if (enemy.guardian || enemy.npcRole || enemy.mimicKind) this._syncPermanentProgress();
     }
   }
 
@@ -735,7 +753,7 @@ export class Game {
     const faction = enemy.faction || 'infestation';
     // Encounters wait for an observer instead of resolving across an unseen map.
     const opponents = distance(enemy, player) <= 18 ? this.state.enemies.filter(other => other !== enemy && other.alive
-      && (other.faction || 'infestation') !== faction && distance(enemy, other) < 10
+      && !other.dormant && this._factionsOpposed(enemy, other) && distance(enemy, other) < 10
       && this.hasLineOfSight(enemy.x, enemy.z, other.x, other.z)) : [];
     opponents.sort((a, b) => distance(enemy, a) - distance(enemy, b));
     if (!this.isHostileToPlayer(enemy)) return opponents[0] || null;
@@ -938,7 +956,8 @@ export class Game {
         } else {
           const aim = Math.atan2(warning.x - enemy.x, -(warning.z - enemy.z));
           for (const offset of [-.18, 0, .18]) this.state.projectiles.push({ id: `p-${++this._serial}`, type: 'plasma',
-            x: enemy.x, z: enemy.z, dx: Math.sin(aim + offset) * 4.5, dz: -Math.cos(aim + offset) * 4.5, life: 3.5 });
+            x: enemy.x, z: enemy.z, dx: Math.sin(aim + offset) * 4.5, dz: -Math.cos(aim + offset) * 4.5, life: 3.5,
+            ownerId: enemy.id, ownerKind: 'enemy' });
           this._events.push({ type: 'enemy-shot', id: enemy.id, x: enemy.x, z: enemy.z });
           this._guardianRecovery(enemy);
         }
@@ -982,7 +1001,7 @@ export class Game {
     }
     enemy.suppressedTimer=Math.max(0,(enemy.suppressedTimer||0)-dt);
     enemy.hitTimer = Math.max(0, enemy.hitTimer - dt);
-    if (!enemy.alive || this.state.status !== 'playing') return;
+    if (!enemy.alive || enemy.dormant || this.state.status !== 'playing') return;
     enemy.attackCooldown = Math.max(0, enemy.attackCooldown - dt);
     enemy.stunTimer = Math.max(0, (enemy.stunTimer || 0) - dt);
     if (enemy.stunTimer > 0 && !enemy.guardian) return;
@@ -1023,7 +1042,7 @@ export class Game {
       if (target === player) {
         const speed = enemy.type === 'mender' ? 3.6 : 4.1;
         this.state.projectiles.push({ id: `p-${++this._serial}`, x: enemy.x, z: enemy.z, dx: (target.x - enemy.x) / d * speed,
-          dz: (target.z - enemy.z) / d * speed, life: 4, type: 'plasma', damage });
+          dz: (target.z - enemy.z) / d * speed, life: 4, type: 'plasma', damage, ownerId: enemy.id, ownerKind: 'enemy' });
       } else {
         this._damageEnemy(target, damage, enemy);
         this.state.effects.push({ id: `beam-${++this._serial}`, type: 'beam', x: enemy.x, z: enemy.z,
@@ -1031,7 +1050,7 @@ export class Game {
       }
       enemy.attackCooldown = this._attackDelay((enemy.type === 'mender' ? 2.4 : 1.65) + this._rng() * .45);
     }
-    if (d <= .65 || enemy.hitTimer > 0) return;
+    if (d <= .65 || enemy.hitTimer > 0 || enemy.stationary) return;
     if (['spitter', 'sentry', 'mender'].includes(enemy.type) && visible && d < 6.5) {
       // Ranged enemies hold a lane and retreat from pressure instead of joining
       // every runner in the same stationary pile at the player's feet.
@@ -1076,16 +1095,22 @@ export class Game {
       }
       shot.life -= dt;
       let removed = shot.life <= 0;
+      // Tomorrow's mixed factions are physical targets for enemy plasma too.
+      // A projectile keeps its danger after its shooter dies.
+      const owner = this.level.tomorrow && shot.ownerKind === 'enemy' ? this.state.enemies.find(enemy=>enemy.id===shot.ownerId) : null;
+      const armedOwner = owner && {...owner,alive:true,health:1,dormant:false};
+      const targets = Object.values(this.state.players || { solo: this.state.player }).filter(player=>player.alive!==false && (!armedOwner || this.isHostileToPlayer(armedOwner)));
+      if (armedOwner) targets.push(...this.state.enemies.filter(enemy=>enemy!==owner && enemy.alive && !enemy.dormant && this._factionsOpposed(armedOwner,enemy)));
       const steps = Math.max(1, Math.ceil(Math.hypot(shot.dx, shot.dz) * dt / .12));
       for (let n = 0; n < steps && !removed; n++) {
         const previousX = shot.x, previousZ = shot.z;
         shot.x += shot.dx * dt / steps; shot.z += shot.dz * dt / steps;
         if (!this.hasLineOfSight(previousX, previousZ, shot.x, shot.z)) removed = true;
         else {
-          const victim = Object.values(this.state.players || { solo: this.state.player })
-            .filter(player => player.alive !== false && distance(shot, player) < .32 && this.hasLineOfSight(shot.x, shot.z, player.x, player.z))
+          const victim = targets
+            .filter(target => target.alive !== false && distance(shot, target) < .32 && this.hasLineOfSight(shot.x, shot.z, target.x, target.z))
             .sort((a, b) => distance(shot, a) - distance(shot, b))[0];
-          if (victim) { this._hurtTarget(victim, shot.damage || 15, shot); removed = true; }
+          if (victim) { this._hurtTarget(victim, shot.damage || 15, owner || shot); removed = true; }
         }
       }
       if (!removed) survivors.push(shot);
@@ -1117,6 +1142,7 @@ export class Game {
   }
 
   _explodeGrenade(shot) {
+    revealTomorrowMimicsInBlast(this,shot,WEAPONS.grenade.blastRadius);
     const spec = WEAPONS.grenade, source = { kind: 'player', playerId: shot.ownerId, x: shot.x, z: shot.z };
     let hit = false;
     for (const enemy of this.state.enemies) {
@@ -1257,6 +1283,8 @@ export class Game {
       for(const item of this.state.pickups)if(WEAPONS[item.type]?.ownershipKey&&item.collected){saved.pickups.find(i=>i.id===item.id).collected=true;for(const p of Object.values(saved.players||{solo:saved.player})){const w=WEAPONS[item.type];p[w.ownershipKey]=true;p.ammo[w.ammoKey]=Math.max(p.ammo[w.ammoKey]||0,Math.min(item.amount,24));}}
       for(const enemy of this.state.enemies)if(enemy.bossGroup){const old=saved.enemies.find(e=>e.id===enemy.id);if(enemy.killedByPlayer===true&&old.killedByPlayer!==true)saved.kills++;Object.assign(old,copy(enemy));}
     }
+    syncTomorrowSociety(this,saved);
+    syncTomorrowHazards(this,saved);
     const guardian = this.state.enemies.find(e => e.id === this.level.guardianId);
     const savedGuardian = saved.enemies.find(e => e.id === this.level.guardianId);
     if (guardian && !guardian.alive && savedGuardian?.alive) {
@@ -1527,6 +1555,7 @@ export class Game {
     return {
       ...(this.level.shadow ? { shadowRevision: SHADOW_WORLD_REVISION } : {}),
       ...(this.level.tomorrow ? { tomorrowRevision: TOMORROW_WORLD_REVISION } : {}),
+      ...(this.level.tomorrow ? { tomorrowSociety: copy(this.state.tomorrowSociety), tomorrowHazards: snapshotTomorrowHazards(this) } : {}),
       player: this.state.player.jump ? {...copy(this.state.player),x:this.state.player.jump.x,z:this.state.player.jump.z,jump:null,elevation:0} : copy(this.state.player), enemies: copy(this.state.enemies),
       projectiles: copy(this.state.projectiles.filter(shot => shot.type === 'grenade')), serial: this._serial,
       pickups: this.state.pickups.map(p => ({ id: p.id, collected: p.collected })),
@@ -1677,7 +1706,7 @@ export class Game {
         if (level.grid[cz][cx] === '#' || s.doors.some(door => !door.open && Math.floor(level.doors.find(base => base.id === door.id).x) === cx && Math.floor(level.doors.find(base => base.id === door.id).z) === cz)) return false;
       }
     }
-    if (level.tomorrow && !tomorrowStateValid(s)) return false;
+    if (level.tomorrow && (!tomorrowStateValid(s) || !validTomorrowSocietySnapshot(s,level) || !validTomorrowHazardsSnapshot(s,level))) return false;
     return true;
   }
 
@@ -1702,6 +1731,7 @@ export class Game {
     for (const key of ['power', 'secretFound', 'time', 'kills', 'shots', 'hits']) next[key] = s[key];
     next.tutorial = Object.fromEntries(['moved', 'fired', 'interacted', 'weaponSwitched'].map(k => [k, s.tutorial?.[k] === true]));
     next.effects = []; next.projectiles = copy(s.projectiles || []); next.shadowHazards = []; next.status = 'paused'; next.checkpoint = false;
+    if (level.tomorrow) { next.tomorrowSociety=copy(s.tomorrowSociety);next.tomorrowHazards=copy(s.tomorrowHazards); }
     if (level.tomorrow ? tomorrowEnding({ state: next, level }) : next.interactables.find(i => i.type === 'exit').used) next.status = 'won';
     return next;
   }
@@ -1721,6 +1751,8 @@ export class Game {
       const difficulty = DIFFICULTY[saved.options.difficulty];
       const migrate = snapshot => migrateShadowSnapshot(snapshot, level, difficulty, base => this._encounterDefaults(base), (legacy, legacyLevel) => this._validSnapshot(legacy, legacyLevel, difficulty));
       if (!migrate(saved.state) || saved.checkpoint && !migrate(saved.checkpoint)) return false;
+      const migrateTomorrow = snapshot => migrateTomorrowSnapshot(snapshot,level,difficulty,saved.options.seed,base=>this._encounterDefaults(base),(legacy,legacyLevel)=>this._validSnapshot(legacy,legacyLevel,difficulty));
+      if (!migrateTomorrow(saved.state) || saved.checkpoint && !migrateTomorrow(saved.checkpoint)) return false;
       if (!this._validSnapshot(saved.state, level, difficulty)) return false;
       if (saved.checkpoint && (!this._validSnapshot(saved.checkpoint, level, difficulty) || !saved.checkpoint.power || !saved.state.power || saved.checkpoint.time > saved.state.time || saved.checkpoint.interactables.some(i => i.used && level.interactables.find(base => base.id === i.id).type !== 'shutter-switch' && !saved.state.interactables.find(current => current.id === i.id).used))) return false;
       if (level.exploration && saved.checkpoint && (saved.checkpoint.healthBonus > saved.state.healthBonus || saved.checkpoint.doors.some(d => d.open && !level.doors.find(base => base.id === d.id).controlledBy && !saved.state.doors.find(current => current.id === d.id).open) || saved.checkpoint.pickups.some(p => p.collected && ['access-key', 'health-expansion'].includes(p.id) && !saved.state.pickups.find(current => current.id === p.id).collected))) return false;
@@ -1732,6 +1764,7 @@ export class Game {
       this.options = { ...this.options, mission: level.missionId, difficulty: saved.options.difficulty, seed };
       this._runDifficulty = saved.options.difficulty; this._runSeed = seed; this._difficulty = difficulty;
       this.state = nextState; this._checkpoint = checkpoint;
+      restoreTomorrowHazards(this);
       this._resetAfterRestore(saved.state);
       this._events = [{ type: 'message', text: 'Mission restored. Resume when ready.' }];
       return true;
@@ -1741,6 +1774,7 @@ export class Game {
   restartCheckpoint() {
     if (!this._checkpoint || !this._validSnapshot(this._checkpoint)) return false;
     this.state = this._stateFromSnapshot(this._checkpoint); this._resetAfterRestore(this._checkpoint); this.state.checkpoint = true;
+    restoreTomorrowHazards(this);
     this.state.status = 'playing'; this._events = [{ type: 'message', text: this.level.tomorrow ? 'Tomorrow checkpoint restored. Memories, weapons and opened routes remain.' : this.level.shadow ? 'Lantern checkpoint restored. Earned weapons, secrets and defeated roots remain.' : this.level.hollow ? 'Hollow checkpoint restored. Permanent discoveries remain available.' : this.level.missionId === 'glasshouse-17' ? 'Glasshouse checkpoint restored.' : this.level.missionId === 'switchyard-15' ? 'Switchyard checkpoint restored.' : this.level.exploration ? 'Underworks refuge restored. Acquired upgrades and opened routes remain available.' : this.level.missionId === 'crosslink-11' ? 'Crosslink checkpoint restored.' : this.level.missionId === 'relay-09' ? 'Dead Relay checkpoint restored.' : 'Generator checkpoint restored.' }];
     return true;
   }

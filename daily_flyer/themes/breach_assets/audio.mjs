@@ -137,6 +137,10 @@ export class BreachAudio {
         case 'heal-interrupt': this.noise(.12,.12*volume,2100); this.tone(690,.16,.08*volume,140,'triangle'); break;
         case 'tether-broken': this.tone(900,.2,.1*volume,130,'triangle'); this.noise(.09,.07*volume,1900); break;
         case 'shadow-puzzle': [330,495,660].forEach((f,i)=>this.tone(f,.2,.11*volume,f,'triangle',i*.1)); break;
+        case 'trapdoor-warning': [420,540,420].forEach((f,i)=>this.tone(f,.12,.14*volume,f/2,'square',i*.24)); this.noise(.2,.12*volume,1600); break;
+        case 'trapdoor-drop': this.noise(.45,.16*volume,850); this.tone(140,.5,.12*volume,45,'triangle'); break;
+        case 'trapdoor-land': this.noise(.12,.12*volume,700); break;
+        case 'tomorrow-betrayal': this.tone(630,.18,.13*volume,260,'square'); this.tone(420,.3,.1*volume,140,'triangle',.2); break;
         case 'hurt': this.noise(.18, .4, 400); this.tone(60, .18, .5, 35, 'sine'); break;
         case 'pickup': this.tone(440, .1, .17, 660, 'triangle'); this.tone(880, .13, .1, 880, 'sine', .07); break;
         case 'door': this.noise(.55, .2, 500); this.tone(75, .45, .14, 110, 'sawtooth'); break;

@@ -1,4 +1,4 @@
-# BREACH private co-op — 0.11.0
+# BREACH private co-op — 0.12.0
 
 Private co-op supports **two to four players** across six missions. Blacksite 07,
 Dead Relay, and Switchyard remain solo missions.
@@ -10,7 +10,7 @@ Dead Relay, and Switchyard remain solo missions.
 | The Glasshouse | Connected conservatory, bank shots, shields, and healers | Off |
 | The Hollow | Containment routing, long loops, and field records | Off |
 | Beneath The Shadow | Buried-city expedition, earned weapons, puzzles, and multiple bosses | Off |
-| The Wrong Side of Tomorrow | Strange arrivals, changing door destinations, and three endings | **On** |
+| The Wrong Side of Tomorrow | Split arrivals, rival factions, NPC favors, room surprises and three endings | **On** |
 
 ## Play together
 
@@ -58,10 +58,52 @@ Doors can change destinations as the registers are restored; room signs and
 interaction prompts show the current route. The main mission remains possible
 alone, and no simultaneous partner-only switch is required.
 
-Reconnect the names and hours registers to print the departure pass. The team
-can escape, continue to defeat the guardian and seal the anomaly, or recover the
-three memories and complete the restoration ending. A terminal's prompt explains
-its commitment; activating an ending completes the shared run for everyone.
+Reconnect the names and hours registers and collect the departure pass. The
+team can escape, continue to defeat the guardian and seal the anomaly, or restore
+the stolen day with the Null projector and three memories. For that last route,
+helped, living and loyal Mara can replace one memory anchor: two anchors plus
+Mara satisfy the memory requirement. Her help does not replace the guardian,
+pass, registers or Null projector. A terminal's prompt explains its commitment;
+activating an ending completes the shared run for everyone.
+
+## Tomorrow: NPC aid, factions, and room hazards
+
+The team shares NPC favors and their outcomes. Any operator can return Mara's
+catalogue card, repair Rook's radio or accept Twice's bargain once. Mara awards
+12 cells to every operator. Rook costs the interacting operator 12 pistol rounds,
+ends the Warden–Unfiled feud and activates two escorts against the infestation.
+Twice costs the interacting operator 20 pistol rounds and awards every operator
+20 shells and up to 20 armor. These interactions require central power.
+
+The clerk may keep the deal or announce a betrayal after both registers are
+restored. That disposition is fixed for the run. Inspecting the Museum staff
+register and challenging the credentials before betrayal completes can stop it.
+NPC survival and relationships affect the ending text; loss or alienation of
+Mara removes her living-memory alternative, while collecting all three original
+anchors still permits Rewrite. Betrayal does not confiscate the pass or memories.
+
+Wardens and Unfiled fight one another until Rook's ceasefire. Both fight the
+infestation. Neutral people are excluded from aim assist; deliberate fire can
+provoke them. A friend's favor or provocation changes the same shared world.
+
+Two optional mimics disguise themselves as a Wardrobe cabinet and a Museum
+exhibit. Any operator's approach, inspection or valid attack can reveal one for
+the whole team. A teammate can intercept a manual shot aimed at the disguise
+under the normal friendly-fire rules.
+
+Two marked hatches in the Museum and Weather districts give one shared
+one-second warning. Operators can step away or trigger a hatch from its edge.
+Only those still standing on its panel are dropped; teammates elsewhere stay
+where they are. Each affected operator takes at most ten health damage, never
+the final hit point, and receives a checked landing that avoids other operators
+and current threats. A spent hatch does not retrigger. Blue refuges, arrivals,
+required controls and ending points reject these surprise placements.
+
+NPC decisions, revealed mimics and spent hatches persist through team checkpoint
+retry. Partial drops are cleared during recovery. All decisions, damage,
+warnings and landings are resolved by the server; clients display the results.
+See the [room inventory](breach-room-types.md) and
+[0.12.0 release notes](breach-society-0120.md).
 
 ## Friendly fire
 
@@ -114,8 +156,10 @@ for the whole team.
 The room service and browser use **protocol 3**. Refresh old tabs before joining;
 protocol-2 tabs receive a version-mismatch explanation. Clients advertise their
 available missions, and mission-specific revisions must also match: Beneath The
-Shadow uses revision 2, and Tomorrow uses revision 1. The checks apply before
+Shadow uses revision 2, and Tomorrow uses revision 2. The checks apply before
 creating, joining, or replacing a connection to an existing room.
+An old Tomorrow revision-1 tab must refresh even though its transport protocol
+is already 3.
 
 Rooms live in server memory. A deployment or service restart ends active rooms,
 with an explanation sent to connected players when possible. Defaults are four
@@ -141,7 +185,7 @@ npm start
 
 `npm run dev` exports the game and starts the service. Its default local port is
 4173; `PORT` or `--port` selects another port. The service binds `0.0.0.0`.
-`/health` reports readiness, v0.11.0, protocol 3, aggregate room counts, and
+`/health` reports readiness, v0.12.0, protocol 3, aggregate room counts, and
 `maxPlayersPerRoom:4`.
 
 The service serves `dist_breach` and injects `coopServer:"same-origin"` into its
@@ -179,15 +223,21 @@ Relevant checks include the four-player and real WebSocket suites:
 
 ```sh
 node tests/breach-four-player.test.mjs
+node tests/breach-tomorrow-society.test.mjs
+node tests/breach-tomorrow-hazards.test.mjs
 node tests/breach-server.test.mjs
 npm run test:breach
 python -m unittest discover -s tests -p test_breach_export.py
 ```
 
-Automated checks exercise two-, three-, and four-player starts, a rejected fifth
-player, friendly damage and cover, each arrival variant, shared checkpoints,
-identity-preserving reconnects, and client projection. They do not establish
-physical iPhone performance. Device playtesting should include separate networks,
+The 0.12.0 regression gate passed **457 JavaScript tests** and **three Python
+export tests**. Automated checks exercise two-, three-, and four-player starts,
+a rejected fifth player, friendly damage and cover, each arrival variant,
+shared aid and hazards, checkpoints, identity-preserving reconnects, and client
+projection. Browser checks inspected the actual software-renderer presentation.
+GPU scene construction and artwork selection are covered by instrumentation,
+not real GPU screenshots. These checks do not establish physical iPhone
+performance or a live deployed 0.12.0 service. Device playtesting should include separate networks,
 split arrivals, contested supplies, friendly downs, background/return, a brief
 connection interruption, checkpoint retry, and an ending. Assess response time
 and visual smoothness separately from shared-state correctness.

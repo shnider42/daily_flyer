@@ -1,4 +1,4 @@
-# BREACH co-op implementation contract (0.11.0)
+# BREACH co-op implementation contract (0.12.0)
 
 Private rooms run a server-authoritative simulation over WebSocket for **two to
 four players**. Protocol **3** is required. Six of the nine solo missions support
@@ -12,6 +12,9 @@ current source contract; historical release notes retain their original scope.
 
 - `core.mjs` and the level modules own gameplay rules and authored geometry.
   `coop-core.mjs` applies independent player inputs to one shared world.
+- `room-catalog.mjs` resolves functional room and protection metadata.
+  `tomorrow-society.mjs` and `tomorrow-hazards.mjs` own Tomorrow's faction,
+  favor, betrayal, mimic and hatch rules; they run in the authoritative world.
 - `server/breach-rooms.mjs` authenticates player slots and validates room actions;
   `server/breach-server.mjs` supplies HTTP/WebSocket transport and tick scheduling.
 - `coop-client.mjs` projects authoritative snapshots into the local `Game` view;
@@ -47,7 +50,8 @@ Ammunition keys are `pistol`, `shells`, `cells`, `slugs`, and `grenades`.
 
 `networkSnapshot()` returns a detached, JSON-safe live state containing players,
 enemies, doors, pickups, interactables, projectiles, effects, `shadowHazards`,
-progress, status, counters, and the room-specific fields `friendlyFire`,
+Tomorrow's `tomorrowSociety` and `tomorrowHazards`, progress, status, counters,
+and the room-specific fields `friendlyFire`,
 `friendlyHits`, `partyScale`, and `spawnVariant`. `state.player` and
 `state.tutorial` are compatibility aliases and are omitted from the network
 snapshot. Co-op `serialize()` is deliberately unavailable; received room state
@@ -99,9 +103,51 @@ may restore the team checkpoint or restart; all connected players then resume.
 Checkpoint retry restores saved positions rather than selecting new arrivals.
 Extraction or a chosen Tomorrow ending completes the run for the entire team.
 
+## Tomorrow society and hazard state
+
+Tomorrow includes these versioned state blocks in its live snapshots:
+
+```text
+tomorrowSociety: {
+  version:1, clerkDisposition, clerkOutcome, warningRemaining
+}
+tomorrowHazards: {
+  version:1, hatches:[{id,phase:'armed'|'warning'|'spent',remaining}]
+}
+```
+
+Favors and evidence use the shared `interactables[].used` records. NPC and mimic
+bodies remain in `enemies`, including role, faction, provocation, life and dormant
+state. A player in a hatch chute has `jump.kind:'trap-drop'`, its authoritative
+source/target and timing fields, and `elevation`. These are outputs from the
+server, never client-authored commands. `networkSnapshot()` copies live hatch
+warnings and drops; it does not apply solo-save normalization.
+
+An authenticated `interact` can perform an available NPC favor once for the
+team. The interacting operator pays any pistol-ammunition cost. Mara's cells
+and Twice's shells/armor are awarded to every operator. Rook's help ends the
+Warden–Unfiled opposition and activates two escorts. The server fixes the clerk's
+disposition for the run, resolves the warning and betrayal, and applies evidence
+that exposes the deception. Mara counts as one memory for Rewrite only while
+helped, alive and loyal; two anchors plus Mara satisfy the three-memory gate,
+with the other ending prerequisites still required.
+
+The server resolves mimic proximity, inspection and weapon probes against actual
+shots and occluding bodies. Hatches share one warning clock; only operators on
+the footprint when it opens are dropped. Landing candidates account for other
+operators and current threats. Drop damage is capped at ten health and never
+takes the last hit point. Spent hatches, revealed mimics and NPC decisions are
+retained through checkpoint retry; recovery clears interrupted drops.
+
+World feedback includes `tomorrow-npc`, `tomorrow-betrayal`, `mimic-reveal`,
+`trapdoor-warning` and `trapdoor-open`. Per-operator drop/landing and hurt feedback
+carry `playerId`. The renderer consumes the shared state to select neutral or
+hostile person art, concealed or revealed mimic art, and closed/warning/spent
+hatch art; it does not advance these systems.
+
 ## Tomorrow arrivals and party size
 
-Tomorrow exports `TOMORROW_WORLD_REVISION = 1`. Its three authored
+Tomorrow exports `TOMORROW_WORLD_REVISION = 2`. Its three authored
 `coopSpawnVariants` support a shared arrival, west/east pairs, or scattered
 arrivals. The server selects `_runSeed % variants.length`, so the same run seed
 restarts into the same layout. Starting positions have clear floor and routes to
@@ -134,12 +180,15 @@ are also checked before allocation, attachment, or replacement:
 | Mission | Required request and room-record field |
 | --- | --- |
 | Beneath The Shadow | `shadowRevision:2` |
-| The Wrong Side of Tomorrow | `tomorrowRevision:1` |
+| The Wrong Side of Tomorrow | `tomorrowRevision:2` |
 | Other supported missions | No mission-specific revision field |
 
 The current client sends both revision fields on every handshake; each mission
 validates the field relevant to it. Clients also reject unavailable missions or
-mismatched room revisions before projecting a view.
+mismatched room revisions before projecting a view. A protocol-3 client carrying
+Tomorrow revision 1 must refresh before creating, joining or reconnecting to a
+revision-2 room. This live admission rule is separate from the supported
+revision-1-to-2 migration of browser-local solo saves.
 
 ## Messages
 
@@ -220,7 +269,9 @@ state. Interaction and weapon changes travel over the socket.
 
 Camera look responds immediately. The client predicts local movement with
 collision, replays unacknowledged inputs, corrects from server acknowledgements,
-and smooths remote positions. It never predicts damage, pickups, or progression.
+and smooths remote positions. It never predicts damage, pickups, progression,
+NPC disposition, mimic reveals or hatch outcomes. An authoritative jump/drop
+clears pending local movement prediction until normal movement can resume.
 The renderer shows the other operators with distinct numbers, colors, and downed
 states. Personal feedback is filtered by `playerId`; world effects stay shared.
 
@@ -228,3 +279,14 @@ states. Personal feedback is filtered by `playerId`; world effects stay shared.
 empty value disables room entry. `?room=CODE` opens Join. Invites retain the
 public game origin and include only the room ID. Reconnect tokens are kept in
 sessionStorage per room and do not make a room durable across service restarts.
+
+## Validation record
+
+The 0.12.0 gate passed **457 JavaScript tests** and **three Python export tests**.
+This includes real WebSocket transport checks and bounded four-player tests of
+shared aid, hazard state, authority and recovery. Browser checks inspected the
+actual software-renderer presentation. Automated GPU checks cover scene geometry
+and artwork selection; no real GPU screenshot or physical-device performance
+claim follows from them. This is a source and local validation record, not
+confirmation of a live deployed 0.12.0 service. The health endpoint reports
+`version:'0.12.0'`, `protocol:3` and `maxPlayersPerRoom:4` in this source version.

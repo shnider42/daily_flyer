@@ -6,7 +6,9 @@ import * as THREE from '../daily_flyer/themes/breach_assets/vendor/three.module.
 import { Game } from '../daily_flyer/themes/breach_assets/core.mjs';
 import { CoopGame, COOP_PLAYER_IDS } from '../daily_flyer/themes/breach_assets/coop-core.mjs';
 import { TOMORROW, TOMORROW_ID, tomorrowInteractionInfo } from '../daily_flyer/themes/breach_assets/tomorrow.mjs';
-import { TOMORROW_PALETTES, paintTomorrowSurface, paintTomorrowLandmark, paintTomorrowProp, paintTomorrowStation } from '../daily_flyer/themes/breach_assets/tomorrow-art.mjs';
+import { TOMORROW_PALETTES, paintTomorrowSurface, paintTomorrowLandmark, paintTomorrowProp, paintTomorrowStation, paintTomorrowNpc, paintTomorrowMimic, paintTomorrowHatch } from '../daily_flyer/themes/breach_assets/tomorrow-art.mjs';
+import { tomorrowNpcHostile } from '../daily_flyer/themes/breach_assets/tomorrow-society.mjs';
+import { tomorrowHatchVisual } from '../daily_flyer/themes/breach_assets/tomorrow-hazards.mjs';
 import { platformSolid, platformStatus, courseStatus, shadowPuzzleInfo, jumpInfo } from '../daily_flyer/themes/breach_assets/shadow.mjs';
 import { weaponViewTransform } from '../daily_flyer/themes/breach_assets/weapon-view.mjs';
 
@@ -34,8 +36,9 @@ function canvas(width = 926, height = 428) {
     drawImage(image) { assert.ok(image, 'Every projected sprite has an image'); this.images.add(image); },
     getImageData(x, y, w, h) { return { data: new Uint8ClampedArray(w * h * 4) }; },
     createImageData(w, h) { return { data: new Uint8ClampedArray(w * h * 4) }; },
+    putImageData(data) { this.lastImageData = data; },
   };
-  for (const method of ['beginPath', 'closePath', 'save', 'restore', 'clearRect', 'putImageData']) context[method] = () => {};
+  for (const method of ['beginPath', 'closePath', 'save', 'restore', 'clearRect']) context[method] = () => {};
   const result = { width, height, style: {}, context, getContext() { return context; }, getBoundingClientRect() { return { width, height }; },
     parentElement: { appendChild() {} }, insertAdjacentElement() {}, setAttribute() {}, remove() {} };
   context.canvas = result;
@@ -59,17 +62,18 @@ class GeometryOnlyRenderer {
 
 const source = readFileSync(new URL('../daily_flyer/themes/breach_assets/renderer.mjs', import.meta.url), 'utf8')
   .replace(/^import .*;\n/gm, '').replace('export class BreachRenderer', 'class BreachRenderer');
-const api = runInNewContext(source + ';({surfaceLayout,allLandmarkPanels,landmarkTexture,makeTomorrowWallTexture,makeTomorrowFloorTexture,tomorrowPropMotion,featureMode,stationKey,enemyArt,enemyHeight,enemyWidth,drawEnemy,WebGLBreachRenderer,SoftwareBreachRenderer})', {
-  TOMORROW_PALETTES, paintTomorrowSurface, paintTomorrowLandmark, paintTomorrowProp, paintTomorrowStation, tomorrowInteractionInfo,
+const api = runInNewContext(source + ';({surfaceLayout,allLandmarkPanels,landmarkTexture,makeTomorrowWallTexture,makeTomorrowFloorTexture,makeTomorrowHatchTexture,tomorrowPropMotion,featureMode,stationKey,visibleTomorrowFeature,enemyArt,enemyHeight,enemyWidth,drawEnemy,WebGLBreachRenderer,SoftwareBreachRenderer})', {
+  TOMORROW_PALETTES, paintTomorrowSurface, paintTomorrowLandmark, paintTomorrowProp, paintTomorrowStation, paintTomorrowNpc, paintTomorrowMimic, paintTomorrowHatch, tomorrowInteractionInfo, tomorrowNpcHostile, tomorrowHatchVisual,
   platformSolid, platformStatus, courseStatus, shadowPuzzleInfo, jumpInfo, weaponViewTransform,
   THREE: { ...THREE, WebGLRenderer: GeometryOnlyRenderer }, document: { createElement: () => canvas() }, window: { innerWidth: 926, innerHeight: 428 }, matchMedia: () => ({ matches: false }),
 });
 const Renderers = [api.WebGLBreachRenderer, api.SoftwareBreachRenderer];
 const imageOf = texture => texture.image || texture;
 const signature = texture => imageOf(texture).context.shapeHash;
-function gameFor() {
+function gameFor({ keepEnemies = false } = {}) {
   const game = new Game({ mission: TOMORROW_ID, seed: 73 }); game.start();
-  game.state.enemies = []; game.state.pickups = [];
+  if (!keepEnemies) game.state.enemies = [];
+  game.state.pickups = [];
   return game;
 }
 function renderUnchanged(renderer) {
@@ -147,7 +151,9 @@ test('Tomorrow landmark facades follow the full collision footprint in every dis
 test('custom stations cache all three modes and both renderers follow power, relay, memory and fold gates', () => {
   for (const Renderer of Renderers) {
     const game = gameFor(), renderer = new Renderer(canvas(), game, { quality: 'low', reducedMotion: true });
-    for (const object of game.state.interactables.filter(o => o.tomorrowAction)) {
+    // People, disguises, and floor hatches have dedicated presentations. Keep
+    // the original station contract for the mission's progression controls.
+    for (const object of game.state.interactables.filter(o => ['power', 'relay', 'anchor', 'fold', 'ending'].includes(o.tomorrowAction))) {
       const maps = renderer.stationMaps?.get(api.stationKey(object)) || renderer.stationImages.get(api.stationKey(object));
       assert.equal(maps.length, 3, object.id); assert.equal(new Set(maps).size, 3);
       assert.ok(imageOf(maps[0]).context.texts.includes('OFFLINE'));
@@ -237,6 +243,168 @@ test('Tomorrow retains all four newest enemy silhouettes and projects their real
         assert.equal(visual.sprite.scale.x, api.enemyWidth(enemy)); assert.equal(visual.sprite.scale.y, api.enemyHeight(enemy));
       } else assert.ok(renderer.context.images.has(warning), enemy.type);
     }
+    renderer.dispose();
+  }
+});
+
+function assertBody(renderer, enemy, art, frame = 0) {
+  assert.equal(api.enemyArt(enemy, renderer.game.state.player, renderer.game.state), art, enemy.id);
+  const selected = renderer.getEnemyFrames(art)[frame];
+  if (renderer.mode === 'webgl') {
+    const visual = renderer.enemyVisuals.get(enemy.id);
+    assert.equal(visual.sprite.visible, true, `${enemy.id} has a visible body`);
+    assert.equal(visual.sprite.material.map, selected, `${enemy.id} selects ${art}`);
+    assert.equal(visual.sprite.scale.y, api.enemyHeight(enemy));
+  } else assert.ok(renderer.context.images.has(selected), `${enemy.id} projects ${art}`);
+}
+
+function assertStationHidden(renderer, object) {
+  if (renderer.mode === 'webgl') assert.equal(renderer.featureVisuals.get(object.id).sprite.visible, false, object.id);
+  else for (const image of renderer.stationImages.get(api.stationKey(object))) assert.equal(renderer.context.images.has(image), false, object.id);
+}
+
+test('named NPCs and rival factions use distinct person artwork; hostility changes bodies while help controls stay hidden', () => {
+  const roles = { archivist: 'MARA', warden: 'WARDEN', broker: 'CLERK', unfiled: 'UNFILED' };
+  const artwork = Object.keys(roles).map(role => api.drawEnemy(`npc-${role}`, 0));
+  assert.equal(new Set(artwork.map(signature)).size, 4, 'The four roles differ in drawing geometry, beyond color');
+  for (const [index, role] of Object.keys(roles).entries()) {
+    const image = imageOf(artwork[index]);
+    assert.equal(image.width, 80); assert.equal(image.height, 112);
+    assert.ok(image.context.texts.includes(roles[role]));
+    assert.notEqual(signature(artwork[index]), signature(api.drawEnemy('sentry', 0)), `${role} is not a reused security sprite`);
+    assert.notEqual(signature(artwork[index]), signature(api.drawEnemy('turret', 0)), `${role} is not rendered as a stationary turret`);
+    assert.notEqual(signature(artwork[index]), signature(api.drawEnemy(`npc-${role}--hostile`, 0)), 'Hostility adds a visible crossed insignia');
+  }
+  for (const Renderer of Renderers) {
+    const game = gameFor({ keepEnemies: true });
+    const people = ['npc-mara', 'npc-rook', 'npc-twice', 'unfiled-north'];
+    game.state.enemies = game.state.enemies.filter(enemy => people.includes(enemy.id));
+    const status = { ...item(game, 'help-mara'), id: 'test-mara-status', npcAction: 'status' };
+    game.state.interactables.push(status);
+    const renderer = new Renderer(canvas(), game, { quality: 'low', reducedMotion: true });
+    const allocations = canvasCount;
+    for (const id of people) {
+      const enemy = game.state.enemies.find(e => e.id === id);
+      assert.ok(enemy); assert.equal(enemy.alive, true);
+      observe(game, enemy); renderUnchanged(renderer);
+      assertBody(renderer, enemy, `npc-${enemy.npcRole}`);
+      for (const object of game.state.interactables.filter(o => o.tomorrowAction === 'npc' && ['help', 'status'].includes(o.npcAction))) assertStationHidden(renderer, object);
+      enemy.provoked = true; renderUnchanged(renderer);
+      assertBody(renderer, enemy, `npc-${enemy.npcRole}--hostile`);
+      enemy.provoked = false;
+    }
+    const twice = game.state.enemies.find(e => e.id === 'npc-twice');
+    observe(game, twice); game.state.tomorrowSociety.clerkOutcome = 'betrayed'; renderUnchanged(renderer);
+    assert.equal(twice.provoked, false, 'Betrayal does not depend on a player provoking the clerk');
+    assertBody(renderer, twice, 'npc-broker--hostile');
+    game.state.tomorrowSociety.clerkOutcome = 'loyal'; renderUnchanged(renderer);
+    assertBody(renderer, twice, 'npc-broker');
+    assert.equal(canvasCount, allocations, 'All NPC dispositions reuse prebuilt frames');
+    renderer.dispose();
+  }
+});
+
+test('authored cabinet and exhibit disguises disappear when their real mimic bodies reveal in both renderers', () => {
+  for (const Renderer of Renderers) {
+    const game = gameFor({ keepEnemies: true });
+    game.state.enemies = game.state.enemies.filter(enemy => enemy.mimicKind);
+    const renderer = new Renderer(canvas(), game, { quality: 'low', reducedMotion: true });
+    const allocations = canvasCount;
+    for (const id of ['mimic-wardrobe', 'mimic-museum']) {
+      const object = item(game, id), body = game.state.enemies.find(e => e.id === object.mimicId);
+      assert.equal(body.alive, false); assert.equal(body.dormant, true); assert.equal(object.used, false);
+      observe(game, object); renderUnchanged(renderer);
+      const maps = renderer.stationMaps?.get(api.stationKey(object)) || renderer.stationImages.get(api.stationKey(object));
+      const mode = api.featureMode(object, game.state, game), disguise = maps[mode];
+      assert.ok(imageOf(disguise).context.texts.includes(object.mimicKind === 'cabinet' ? 'SPARES' : 'DISPLAY'));
+      assert.notEqual(signature(disguise), signature(renderer.getEnemyFrames(`mimic-${object.mimicKind}`)[0]));
+      if (renderer.mode === 'webgl') {
+        assert.equal(renderer.featureVisuals.get(id).sprite.visible, true);
+        assert.equal(renderer.featureVisuals.get(id).sprite.material.map, disguise);
+        assert.ok(!renderer.enemyVisuals.get(body.id)?.sprite.visible, 'Dormant mimic has no second body');
+      } else {
+        assert.ok(renderer.context.images.has(disguise));
+        assert.ok(renderer.getEnemyFrames(`mimic-${object.mimicKind}`).every(image => !renderer.context.images.has(image)));
+      }
+      use(game, id); observe(game, object); renderUnchanged(renderer);
+      assert.equal(object.used, true); assert.equal(body.alive, true); assert.equal(body.dormant, false);
+      assertStationHidden(renderer, object); assertBody(renderer, body, `mimic-${object.mimicKind}`);
+    }
+    assert.equal(canvasCount, allocations, 'Revealing an authored mimic does not allocate artwork during play');
+    renderer.dispose();
+  }
+});
+
+// The canvas recorder does not rasterize paint commands. Distinct synthetic
+// RGB samples test the real software texture-to-floor pipeline independently
+// of the painter geometry and text assertions above and below.
+function fillPixels(pixels, rgb) {
+  for (let i = 0; i < pixels.length; i += 4) pixels.set([...rgb, 255], i);
+}
+
+function floorSample(renderer, point) {
+  const p = renderer.game.state.player, dx = point.x - p.x, dz = point.z - p.z;
+  const depth = dx * renderer.forwardX + dz * renderer.forwardZ;
+  const sideways = dx * renderer.rightX + dz * renderer.rightZ;
+  const x = Math.round((1 + sideways / (depth * renderer.planeLength)) * renderer.width / 2);
+  const y = Math.round(renderer.horizon + renderer.eye * renderer.projection / depth - .5);
+  assert.ok(x >= 0 && x < renderer.width && y >= renderer.horizon && y < renderer.height, 'The floor patch projects into the viewport');
+  const distance = renderer.eye * renderer.projection / (y - renderer.horizon + .5);
+  const fraction = 2 * x / renderer.width - 1;
+  return { x, y, distance,
+    worldX: p.x + distance * (renderer.forwardX + fraction * renderer.rightX * renderer.planeLength),
+    worldZ: p.z + distance * (renderer.forwardZ + fraction * renderer.rightZ * renderer.planeLength),
+    offset: (y * renderer.width + x) * 4 };
+}
+
+test('both authored hatches remain floor surfaces and select closed, warning and spent artwork without changing state', () => {
+  const phases = ['closed', 'warning', 'spent'], labels = ['SERVICE CHUTE', 'STEP OFF', 'JAMMED SAFE'];
+  const artwork = phases.map(phase => api.makeTomorrowHatchTexture(phase));
+  assert.equal(new Set(artwork.map(signature)).size, 3, 'Hatch states differ in shape as well as color');
+  for (const [i, texture] of artwork.entries()) assert.ok(imageOf(texture).context.texts.includes(labels[i]));
+  const colors = { closed: [230, 40, 60], warning: [20, 220, 70], spent: [50, 65, 240] };
+  for (const Renderer of Renderers) {
+    const game = gameFor(), renderer = new Renderer(canvas(), game, { quality: 'low', reducedMotion: true });
+    const hatches = game.state.interactables.filter(o => o.tomorrowAction === 'trapdoor');
+    assert.equal(hatches.length, 2);
+    if (renderer.mode === 'software') {
+      assert.equal(renderer.tomorrowHatches.length, hatches.length);
+      for (const patch of renderer.tomorrowHatches) for (const phase of phases) fillPixels(patch.pixels[phase], colors[phase]);
+    }
+    const allocations = canvasCount;
+    for (const object of hatches) {
+      const runtime = game.state.tomorrowHazards.hatches.find(entry => entry.id === object.id);
+      observe(game, object);
+      if (renderer.mode === 'webgl') {
+        const visual = renderer.featureVisuals.get(object.id), mesh = visual.mesh;
+        assert.equal(visual.hatch, true); assert.equal(visual.sprite, undefined, 'The hatch has no upright billboard');
+        assert.equal(mesh.geometry.parameters.width, object.width); assert.equal(mesh.geometry.parameters.height, object.depth);
+        assert.equal(mesh.position.x, object.x); assert.equal(mesh.position.z, object.z); assert.equal(mesh.position.y, .025);
+        const normal = new THREE.Vector3(0, 0, 1).applyEuler(mesh.rotation);
+        assert.ok(normal.y > .999999 && Math.abs(normal.x) < 1e-6 && Math.abs(normal.z) < 1e-6, 'The GPU hatch faces upward along the floor');
+        assert.equal(new Set(Object.values(visual.maps)).size, 3);
+      } else {
+        const index = renderer.tomorrowHatches.findIndex(patch => patch.item.id === object.id);
+        assert.equal(renderer.tomorrowHatchCells[Math.floor(object.z) * game.level.width + Math.floor(object.x)], index);
+      }
+      for (const phase of phases) {
+        runtime.phase = phase === 'closed' ? 'armed' : phase; object.used = phase === 'spent';
+        assert.equal(tomorrowHatchVisual(game.state, object), phase); renderUnchanged(renderer);
+        if (renderer.mode === 'webgl') {
+          const visual = renderer.featureVisuals.get(object.id);
+          assert.equal(visual.mesh.visible, true); assert.equal(visual.mesh.material.map, visual.maps[phase]);
+        } else {
+          assert.equal(renderer.context.lastImageData, renderer.floorBuffer, 'The selected hatch pixels reach the submitted floor frame');
+          const sample = floorSample(renderer, object);
+          assert.ok(sample.worldX >= object.x1 && sample.worldX < object.x2 && sample.worldZ >= object.z1 && sample.worldZ < object.z2);
+          const fog = Math.min(.88, sample.distance / 27), shade = .96 * (1 - fog);
+          const expected = new Uint8ClampedArray(colors[phase].map((value, channel) => value * shade + renderer.visuals.fogRgb[channel] * fog));
+          assert.deepEqual(renderer.floorBuffer.data.slice(sample.offset, sample.offset + 3), expected, `${object.id}: ${phase} texture reaches its projected floor pixel`);
+          for (const image of renderer.stationImages.get(api.stationKey(object))) assert.equal(renderer.context.images.has(image), false, 'A software hatch never also projects as a station');
+        }
+      }
+    }
+    assert.equal(canvasCount, allocations, 'Hatch state changes reuse cached textures');
     renderer.dispose();
   }
 });
