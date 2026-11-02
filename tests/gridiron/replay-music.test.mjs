@@ -24,3 +24,16 @@ test('a late soundtrack download cannot start after mute, pause or a newer selec
 test('scoring music ducks the song, maps both teams, and is independently disabled',async()=>{const [p,c]=player();p.update();await settle();p.score('NYJ');await settle();assert.equal(p.scorer.track.id,'notre-dame-victory');const song=p.active;p.scorer.source.onended();assert.equal(p.scorer,null);assert.equal(p.active,song);p.configure({enabled:false,scoring:true});p.score('NE');await settle();assert.equal(p.scorer.track.id,'for-boston');p.configure({enabled:false,scoring:false});p.score('BUF');assert.equal(p.scorer,null);});
 test('late scoring audio is canceled on pause and cannot celebrate during a later play',async()=>{let release;const [p,c]=player(()=>new Promise(r=>{release=r;}));p.score('NE');p.update({blocked:true});release({ok:true,arrayBuffer:async()=>new ArrayBuffer(8)});await settle();assert.equal(c.sources.length,0);p.update({blocked:false});p.halt();});
 test('decoded background audio cache stays bounded while all nine tracks can be selected',async()=>{const [p]=player();for(const t of manifest.tracks)await p.prepare(t);assert.equal(p.cache.size,2);for(const cue of Object.values(SCORE_CUES))await p.prepare(cue);assert.equal(p.cache.size,5);});
+
+test('broadcast-only playback keeps scoring independent and resumes the show at its offset',async()=>{
+ const [p,c]=player();p.update({background:true});await settle();const track=p.active.track.id;c.currentTime=8;
+ p.update({background:false});assert.equal(p.active,null);assert.equal(p.resumeAt,8);
+ p.score('NE');await settle();assert.equal(p.scorer.track.id,'for-boston');assert.equal(p.active,null);
+ p.scorer.source.onended();p.update({background:false});await settle();assert.equal(p.active,null);
+ p.update({background:true});await settle();assert.equal(p.active.track.id,track);assert.equal(p.active.source.started.offset,8);
+});
+test('downloads cannot leak menu music onto the field, and the next live play cancels a scoring cue',async()=>{
+ let release;const [p,c]=player(()=>new Promise(r=>{release=r;}));p.update({background:true});p.update({background:false});release({ok:true,arrayBuffer:async()=>new ArrayBuffer(8)});await settle();assert.equal(c.sources.length,0);
+ p.cache.set('for-boston',{duration:30});p.score('NE');await settle();assert.ok(p.scorer);p.update({background:false,scoreAllowed:false,live:true});assert.equal(p.scorer,null);assert.equal(p.active,null);
+ p.score('NE');p.update({background:false,scoreAllowed:false,live:true});await settle();assert.equal(p.scorer,null);
+});

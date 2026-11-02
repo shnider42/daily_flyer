@@ -47,7 +47,7 @@ function highlight(c,report,s,time,reduced,ink){
  for(const p of frame.people){const q=project(p);if(q.x<10||q.x>710)continue;person(c,{...q,number:p.number},report.teams[p.team].color);}
  const b=project(frame.ball);ball(c,b.x,b.y-frame.arc*.4,.7);
  const paused=reduced||time>=3.5&&time<8;
- text(c,paused?'HOLD IT RIGHT THERE':'FIRST-HALF REPLAY',36,346,13,paused?YELLOW:'#d7e1d0');
+ text(c,paused?'HOLD IT RIGHT THERE':(s.period==='game'?'GAME REPLAY':'FIRST-HALF REPLAY'),36,346,13,paused?YELLOW:'#d7e1d0');
  if(ink&&paused){
   const f=s.focus.focus;if(f)circle(c,project(f),reduced?1:clamp((time-3.5)/1.2));
   const carrier=s.focus.frame.people.find(p=>p.carrier),trail=clip.frames.slice(0,s.focus.index+1).filter((_,i)=>i%3===0).map(frame=>frame.people.find(p=>p.id===carrier?.id&&p.team===carrier?.team)).filter(Boolean).map(project);
@@ -72,7 +72,7 @@ function matchup(c,report,s,time,reduced){
   text(c,report.mode==='pregame'?'READY FOR KICKOFF':report.scores[i],x+24,235,report.mode==='pregame'?17:42,YELLOW);
  }
  box(c,324,132,72,58,'#13272b');text(c,'VS',360,171,30,YELLOW,'center');
- text(c,report.mode==='pregame'?'THE BEST PART IS STILL AHEAD.':'HALF A GAME. PLENTY OF STORY.',360,326,18,'#e7debc','center');
+ text(c,report.mode==='pregame'?'THE BEST PART IS STILL AHEAD.':(report.mode==='postgame'?'THE FINAL WORD. ALL HEART.':'HALF A GAME. PLENTY OF STORY.'),360,326,18,'#e7debc','center');
 }
 function teamCard(c,report,s,time,reduced){
  const t=report.teams[s.team];box(c,25,28,670,296,'#20383d');box(c,25,28,12,296,t.color);text(c,t.abbr,56,104,58,t.accent||YELLOW);
@@ -84,7 +84,7 @@ function stats(c,report,time,reduced){
  const values=report.box.map(b=>b.rushYards+b.passYards),max=Math.max(1,...values);
  text(c,'OFFENSIVE YARDS',34,53,22,YELLOW);
  report.teams.forEach((t,i)=>{const y=120+i*100;const n=reduced?1:ease(time/1.2);text(c,t.abbr,35,y,25);box(c,120,y-26,480,32,'#254447');box(c,120,y-26,480*Math.max(0,values[i])/max*n,32,t.color);text(c,values[i],670,y,28,YELLOW,'right');text(c,`${report.box[i].rushYards} RUSH  /  ${report.box[i].passYards} PASS`,120,y+28,15,'#c8d5c8');});
- text(c,'ACTUAL FIRST-HALF TOTALS',35,330,14,'#adbbb2');
+ text(c,report.mode==='postgame'?'ACTUAL FULL-GAME TOTALS':'ACTUAL FIRST-HALF TOTALS',35,330,14,'#adbbb2');
 }
 export function paintBroadcast(canvas,report,s,time,{reduced=false,ink=true}={}){
  const c=canvas.getContext('2d');if(!c)return;

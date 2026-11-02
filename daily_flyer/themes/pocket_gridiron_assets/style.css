@@ -210,3 +210,21 @@ body[data-guidance=expert] .plays .play small{display:block;font-size:9px;line-h
  #halftimeDialog .halfgrid{grid-template-columns:minmax(0,1.2fr) minmax(0,1fr)}#halftimeDialog .halfheader h2{font-size:17px}.boothhost{--portrait:44px}.boothhost figcaption b{font-size:9px}.boothhost figcaption span{display:none}#halftimeDialog .halfcontrols{display:flex;padding:6px 12px;gap:10px}#halftimeDialog .halfnav{margin:0}.halfcontrols .primary{width:48%;min-height:44px}
 }
 @media(prefers-reduced-motion:reduce){#halftimeDialog .hostportrait img{animation:none!important}#halftimeDialog .halfline{transition:none}}
+
+/* The hosts have authored listening, speaking, pointing and reaction poses. */
+.boothcast{position:relative;gap:6px;padding:0 0 25px;background:#0b1e27;border:1px solid #526963;overflow:hidden;width:100%;box-sizing:border-box}
+.boothhost{display:block;border:0;background:#142c39;--portrait:0px}
+.boothhost canvas{display:block;width:100%;height:auto;max-height:205px;object-fit:contain;image-rendering:pixelated;touch-action:pan-y}
+.boothhost figcaption{display:flex;justify-content:space-between;align-items:center;gap:4px;padding:5px 9px;background:#173139;border-top:2px solid #37515a}
+.boothhost figcaption span{font-size:7px;letter-spacing:0}.boothhost figcaption b{font-size:10px}
+.boothonair{position:absolute;bottom:0;left:0;right:0;display:flex;align-items:center;gap:6px;height:25px;padding:0 9px;background:#10232a;color:#ebcf72;font:8px monospace;letter-spacing:.4px}.boothonair>span:last-child{margin-left:auto;color:#829a99}.onairdot{width:5px;height:5px;background:#e2ca65}
+#halftimeDialog[data-speaker=al] .boothhost.al figcaption,#halftimeDialog[data-speaker=john] .boothhost.john figcaption{border-top-color:#f3d268;background:#3d432d}
+#halftimeDialog[data-speaker=al] .halfline.al,#halftimeDialog[data-speaker=john] .halfline.john{background:#30443d;border-left-color:#ffe07c}
+.exchangetranscript{margin:12px 0;color:#b7c7bd;font:11px/1.65 monospace}.exchangetranscript summary{cursor:pointer;padding:10px 0;color:#e5d59b}.exchangetranscript p{font:inherit!important;padding:8px 0;margin:0!important;border-top:1px solid #314a49}.exchangetranscript b{color:#e5d59b}
+@media(max-width:760px){.boothhost canvas{max-height:154px}.boothhost figcaption{padding:4px 6px;display:block}.boothhost figcaption span{display:none}.boothhost figcaption b{font-size:9px}.boothonair{font-size:7px}.boothcast{margin-bottom:7px}#halftimeDialog .halfgrid{gap:9px}}
+@media(max-height:500px) and (orientation:landscape){.boothhost canvas{max-height:110px}}
+@media(max-width:760px) and (orientation:portrait){
+ #halftimeDialog .halfgrid{display:flex;flex-direction:column;gap:7px}.broadcaststage{display:contents}.boothcast{order:0;margin-bottom:0}.halfconversation{order:1}.broadcastmonitor{order:2}.halfcaption{order:3}.filmcontrols{order:4}
+ .boothhost canvas{max-height:125px}#halftimeDialog .halfline{min-height:80px;margin-bottom:0!important}#halftimeDialog[data-speaker=al] .halfline.john,#halftimeDialog[data-speaker=john] .halfline.al{display:none}
+ #halftimeDialog .halftopic{font-size:10px;min-height:20px}.exchangetranscript{margin:0;font-size:11px}.exchangetranscript summary{padding:7px 0;font-size:10px}.halfprogress{margin:3px 0 6px}
+}

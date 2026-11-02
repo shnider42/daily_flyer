@@ -13,7 +13,7 @@ export function replayFrame(g,time){
 export function replayKind(e){if(e.scorePoints===7)return 'TOUCHDOWN';if(e.type==='ball'&&e.text==='FUMBLE!')return 'FUMBLE';if(e.type==='turnover'&&(e.turnoverType==='interception'||e.text==='INTERCEPTED!'))return 'INTERCEPTION';return null;}
 export class ReplayTape {
  constructor(){this.reset();}
- reset(){this.time=0;this.history=[];this.clips=[];this.highlights=[];this.archivedPlay=null;this.sequence=0;this.active=null;this.wasActive=false;this.sampleAt=0;}
+ reset(){this.time=0;this.history=[];this.clips=[];this.highlights=[];this.fullHighlights=[];this.archivedPlay=null;this.sequence=0;this.active=null;this.wasActive=false;this.sampleAt=0;}
  observe(g,dt,events=[]){
   const playing=activePhase(g.phase),kinds=events.map(replayKind).filter(Boolean);
   const result=events.find(e=>e.type==='result');
@@ -36,10 +36,10 @@ export class ReplayTape {
   this.wasActive=playing;
  }
  archive(g,event){
-  // Only penalty-settled, first-half scrimmage plays. Skipping instant replays
-  // never touches this reel; at most three clips per team survive the half.
+  // Only penalty-settled scrimmage plays. Skipping instant replays
+  // never touches either reel; each keeps at most three clips per team.
   const start=g.playStart;
-  if(g.quarter>2||g.phase!=='dead'||!start?.box||this.archivedPlay===start)return;
+  if(g.phase!=='dead'||!start?.box||this.archivedPlay===start)return;
   this.archivedPlay=start;
   const original=start.offense,before=start.box[original],after=g.box[original];
   if(after.plays<=before.plays)return; // accepted/offsetting foul erased the play
@@ -53,8 +53,9 @@ export class ReplayTape {
   const clip={kind,team,original,gain,quarter:g.quarter,clock:g.clock,player:carrier?.name||g.teams[team].city,number:carrier?.number,
    detail:event.text==='PENALTY DECLINED'?event.detail:`${event.text} · ${event.detail}`,frames,anchor:original,sequence:++this.sequence,
    priority:(event.scorePoints===7?100:takeaway?75:gain<0?35:0)+Math.min(40,Math.abs(gain))};
-  const own=[...this.highlights.filter(c=>c.team===team),clip].sort((a,b)=>b.priority-a.priority||b.sequence-a.sequence).slice(0,3);
-  this.highlights=[...this.highlights.filter(c=>c.team!==team),...own].sort((a,b)=>b.priority-a.priority||a.sequence-b.sequence);
+  const retain=list=>{const own=[...list.filter(c=>c.team===team),clip].sort((a,b)=>b.priority-a.priority||b.sequence-a.sequence).slice(0,3);return [...list.filter(c=>c.team!==team),...own].sort((a,b)=>b.priority-a.priority||a.sequence-b.sequence);};
+  this.fullHighlights=retain(this.fullHighlights);
+  if(g.quarter<=2)this.highlights=retain(this.highlights);
  }
  start(g){
   if(this.active||g.paused||g.phase!=='dead'||!this.clips.length)return false;

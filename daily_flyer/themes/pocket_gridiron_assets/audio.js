@@ -1,8 +1,13 @@
-import {ImpactLimiter} from './impact.js?v=12';
-import {PGIMusic} from './music.js?v=12';
+import {ImpactLimiter} from './impact.js?v=13';
+import {PGIMusic} from './music.js?v=13';
+export function musicPolicy(settings,game,{audition=false,broadcast=false}={}){
+ const continuous=settings.musicMode==='always';
+ return {background:!game||audition||broadcast||game.phase==='final'||continuous,
+  scoreAllowed:!game||audition||broadcast||continuous||!game.isLive};
+}
 // Original effects, with authored MP3 score transport adapted from Breach.
 export class StadiumAudio {
- constructor(settings={}){this.settings={effects:true,contactFx:true,passWhistle:true,music:true,scoringMusic:true,station:'all',musicVolume:.55,volume:.45,...settings};this.context=null;this.lastCadence='';this.impacts=new ImpactLimiter();this.pads=new ImpactLimiter({gap:.12,blockGap:.22,max:5,window:1});this.soundtrack=new PGIMusic();}
+ constructor(settings={}){this.settings={effects:true,contactFx:true,passWhistle:true,music:true,musicMode:'broadcast',scoringMusic:true,station:'all',musicVolume:.55,volume:.45,...settings};if(!['broadcast','always'].includes(this.settings.musicMode))this.settings.musicMode='broadcast';this.context=null;this.lastCadence='';this.impacts=new ImpactLimiter();this.pads=new ImpactLimiter({gap:.12,blockGap:.22,max:5,window:1});this.soundtrack=new PGIMusic();}
  async unlock(){try{const C=globalThis.AudioContext||globalThis.webkitAudioContext;if(!C)return;this.context??=new C();if(!this.master){const c=this.context;this.master=c.createGain();this.master.connect(c.destination);this.fx=c.createGain();this.fx.connect(this.master);this.music=c.createGain();this.music.connect(this.master);this.crowd=c.createGain();this.crowd.connect(this.fx);const b=c.createBuffer(1,c.sampleRate*2,c.sampleRate),data=b.getChannelData(0);for(let i=0;i<data.length;i++)data[i]=(Math.random()*2-1)*.35;this.noise=b;const n=c.createBufferSource(),filter=c.createBiquadFilter();n.buffer=b;n.loop=true;filter.type='lowpass';filter.frequency.value=600;n.connect(filter);filter.connect(this.crowd);n.start();this.crowd.gain.value=0;}await this.context.resume();this.apply();}catch{/* Visual cues always remain available. */}}
  apply(){this.soundtrack.configure({enabled:this.settings.music,scoring:this.settings.scoringMusic,family:this.settings.station,volume:this.settings.musicVolume});if(!this.context||!this.master)return;this.master.gain.value=this.settings.volume;this.fx.gain.value=this.settings.effects?1:0;this.music.gain.value=1;if(!this.score){this.score=this.context.createGain();this.score.connect(this.master);}this.soundtrack.attach(this.context,this.music,this.score);}
  tone(freq,duration=.1,type='square',volume=.06,delay=0,bus='fx'){
@@ -52,9 +57,9 @@ export class StadiumAudio {
   if(e.type==='ball'&&e.text==='FUMBLE!'){this.thud(.2);this.tone(220,.25,'sawtooth',.04);}
   if(e.type==='result'){this.thud(.16);this.tone(1800,.22,'sine',.04,.03);if(!this.settings.scoringMusic&&e.scorePoints===7)for(const [i,n] of [330,440,550,660].entries())this.tone(n,.32,'square',.055,i*.14);}
  }
- update(game,hidden=false,{audition=false,replay=false}={}){
-  if(!this.context||!this.master)return;const silent=hidden||game?.paused&&!audition;
-  this.soundtrack.update({blocked:silent,live:!replay&&!!game?.isLive});
+ update(game,hidden=false,{audition=false,broadcast=false,replay=false}={}){
+  if(!this.context||!this.master)return;const silent=hidden||game?.paused&&!audition&&!broadcast;
+  this.soundtrack.update({blocked:!!silent,live:!replay&&!!game?.isLive,...musicPolicy(this.settings,game,{audition,broadcast})});
   this.master.gain.setTargetAtTime(silent?0:this.settings.volume,this.context.currentTime,.05);
   const live=game?.isLive,excitement=live?Math.max(0,(game.carrier.y-40)/60):0;
   this.crowd.gain.setTargetAtTime(silent?0:game?.phase==='dead'?.07:live?.025+excitement*.1:game?.phase==='ready'?.012:0,this.context.currentTime,.3);

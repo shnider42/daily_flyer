@@ -1,4 +1,5 @@
-import {teamStrengths} from './teams.js?v=12';
+import {teamStrengths} from './teams.js?v=13';
+import {copyBox} from './match.js?v=13';
 
 // Original fictional fan-tribute copy. Matchup claims come from this game's
 // selected lineup and arcade ratings; highlights come only from recorded plays.
@@ -9,24 +10,24 @@ const top=ratings=>Object.entries(ratings).sort((a,b)=>b[1]-a[1])[0];
 export function pregameReport(teams,match){
  const [a,b]=teams,ratings=teams.map(teamStrengths),strengths=ratings.map(top);
  const segments=[{
-  title:'A little field. A whole lot of football.',visual:'matchup',
+  title:'A little field. A whole lot of football.',visual:'matchup',topic:'welcome',
   al:`Welcome to PGI. ${a.city} and ${b.city}, four ${match.quarterSeconds}-second quarters, and a fresh scoreboard. ${a.offense[0].name} and ${b.offense[0].name} lead the offenses.`,
   john:'Two teams, one football, and a fresh yellow marker. That is a pretty good evening right there. But save some applause for the blockers. Somebody has to make room for all this fun!',
   caption:'Tonight’s matchup',tag:'FOR THE LOVE OF THE GAME'
  }];
  for(const [i,t] of teams.entries()){
   const qb=t.offense[0],rb=t.offense[1],receiver=[...t.offense.slice(2,5)].sort((a,b)=>b.catching-a.catching)[0];
-  segments.push({title:`Inside ${t.city}`,visual:'team',team:i,stars:[player(qb),player(rb),player(receiver)],
-   al:`${t.abbr} brings ${t.profile.offense.name.toLowerCase()}. Watch ${qb.name} at quarterback, ${rb.name} in the backfield, and ${receiver.name} as a target. ${strengths[i][0]} is their highest-rated unit in this PGI lineup.`,
+  segments.push({title:`Inside ${t.city}`,visual:'team',topic:'team',context:{team:t.city,qb:qb.name,rb:rb.name,target:receiver.name},team:i,stars:[player(qb),player(rb),player(receiver)],
+   al:`Here is the cast for ${t.city}: ${qb.name}, ${rb.name}, and ${receiver.name}. Their ${t.profile.offense.name.toLowerCase()} gives us something to watch. ${strengths[i][0]} leads their PGI ratings. John, where do you start?`,
    john:`${t.profile.offense.strength}. That is the idea. But ${t.profile.offense.weakness.toLowerCase()}. A playbook is a menu, Al. You still have to get the meal out of the kitchen!`,
    caption:`${t.abbr} · selected starters`,tag:`${strengths[i][0].toUpperCase()} · ${strengths[i][1]}`});
  }
  const protection=ratings[0].Protection,pressure=ratings[1].Pressure;
- segments.push({title:'Get the big fellows involved',visual:'diagram',team:0,
+ segments.push({title:'Get the big fellows involved',visual:'diagram',topic:'board',team:0,
   al:`Our game-plan board: ${a.abbr}'s protection is rated ${protection}; ${b.abbr}'s pressure is ${pressure}. Those are arcade ratings, not a prediction. ${a.offense[5].name} and ${a.offense[6].name} have work to do.`,
   john:'Watch the yellow circle. A block buys a little time; the runner finds a little daylight. BOOM! That is the idea. I have drawn three arrows and somehow none of them go to the snack table.',
   caption:'Illustrated game plan · not a played highlight',tag:'JOHN’S YELLOW MARKER'});
- segments.push({title:'Enough talking. Let’s play.',visual:'matchup',
+ segments.push({title:'Enough talking. Let’s play.',visual:'matchup',topic:'kickoff',
   al:`${a.city} receives the opening kickoff. ${b.city} gets the ball to begin the second half. We will be back at halftime with the plays and the numbers from this game.`,
   john:'Keep the ball, find your teammates, and enjoy the next play. The marker can wait. Football cannot happen until somebody kicks the football!',
   caption:'Your game starts when you are ready',tag:'KICKOFF IS NEXT'});
@@ -46,7 +47,7 @@ export function highlightFocus(clip){
  return {index,frame,focus,block:!!block};
 }
 
-export function halftimeBroadcast(report,recordings=[]){
+function replaySegments(report,recordings=[],period='first-half'){
  const ranked=[...recordings].sort((a,b)=>b.priority-a.priority||a.sequence-b.sequence);
  // Give both sidelines a look when there is eligible footage from both.
  const selected=[];
@@ -56,24 +57,42 @@ export function halftimeBroadcast(report,recordings=[]){
  const highlights=selected.map((clip,i)=>{
   const t=report.teams[clip.team],f=highlightFocus(clip),subject=f.focus?`#${f.focus.number} ${f.focus.name}`:'the ball carrier';
   const summary=clip.kind==='TOUCHDOWN'?`${t.city} finishes this one in the end zone.`:clip.kind==='TAKEAWAY'?`${t.city} comes away with the football.`:clip.gain<0?`${Math.abs(clip.gain)} yards lost on the play.`:`${clip.gain} offensive yard${clip.gain===1?'':'s'} on the play.`;
-  return {title:`Roll the tape · ${i+1}`,visual:'highlight',clip,
-   al:`Quarter ${clip.quarter}. ${summary} Here is the actual first-half replay. ${clip.detail}`,
+  return {title:`Roll the tape · ${i+1}`,visual:'highlight',clip,period,topic:clip.kind==='TOUCHDOWN'?'touchdown':clip.kind==='TAKEAWAY'?'takeaway':clip.kind==='DEFENSIVE STOP'?'stop':f.block?'block':'gain',
+   al:`${clip.quarter>4?'Overtime':`Quarter ${clip.quarter}`}. ${summary} Let’s take another look. ${clip.detail}`,
    john:f.block?`Hold it right there! ${subject} is engaged in the block. That is why we look away from the football sometimes. The ball gets the camera; the big fellows get my yellow marker. Now roll it!`:
     clip.kind==='TAKEAWAY'?`Circle ${subject}. The football changes hands, and everybody gets a new job. That is not a souvenir—bring it back for your teammates! Roll it again.`:
     clip.kind==='DEFENSIVE STOP'?`Look at the ball carrier in that circle. That is where the defense closes the play down. You can draw an arrow through a tackler, Al, but the runner still has to get past one!`:
     `Right there: ${subject}. Follow that yellow trail. Those are the steps on the tape, not a magic shortcut. BOOM! I like a good play even more the second time.`,
    caption:`${t.abbr} · Q${clip.quarter} · ${clip.kind.toLowerCase()}`,tag:f.block?'GIVE THE BLOCKER SOME LOVE':clip.kind==='TOUCHDOWN'?'BOOM! · SIX ON THE BOARD':'LOOK RIGHT HERE',focus:f};
  });
- const story={...report.segments[0],visual:'matchup',caption:'The first-half story',tag:'BACK IN THE BOOTH'};
- const moving={...report.segments[1],visual:'stats',caption:'First-half offensive yards',tag:'THE NUMBERS BEHIND THE NOISE',
+ return highlights;
+}
+const scoreTopic=scores=>scores[0]===scores[1]?'tie':Math.abs(scores[0]-scores[1])<=7?'close':'lead';
+const yardTopic=box=>box.reduce((n,b)=>n+b.rushYards,0)>box.reduce((n,b)=>n+b.passYards,0)?'run':'pass';
+const boxRows=box=>[['Offensive yards',...box.map(b=>b.rushYards+b.passYards)],['Rush / pass yards',...box.map(b=>`${b.rushYards} / ${b.passYards}`)],['Passing',...box.map(b=>`${b.completions} / ${b.attempts}`)],['Takeaways',...box.map(b=>b.takeaways)],['Return yards',...box.map(b=>b.returnYards)]];
+export function halftimeBroadcast(report,recordings=[]){
+ const highlights=replaySegments(report,recordings);
+ const story={...report.segments[0],topic:scoreTopic(report.scores),visual:'matchup',caption:'The first-half story',tag:'BACK IN THE BOOTH'};
+ const moving={...report.segments[1],topic:yardTopic(report.box),visual:'stats',caption:'First-half offensive yards',tag:'THE NUMBERS BEHIND THE NOISE',
   john:report.segments[1].john+' A yard does not care whether it arrived wearing shoulder pads or flying through the air.'};
- const possession={...report.segments[3],visual:'stats',caption:'Possession and production',tag:'HANG ON TO THAT FOOTBALL'};
- const closing={...report.segments[4],visual:'matchup',caption:'The second half is yours',tag:'MORE FOOTBALL. YES, PLEASE.',
+ const possession={...report.segments[3],topic:'possession',visual:'stats',caption:'Possession and production',tag:'HANG ON TO THAT FOOTBALL'};
+ const closing={...report.segments[4],topic:'goodbye',visual:'matchup',caption:'The second half is yours',tag:'MORE FOOTBALL. YES, PLEASE.',
   john:'The best adjustment starts with something you can actually do. Finish a block, find an open teammate, wrap up a tackle. And somebody put the cap on my marker before I circle the whole stadium.'};
- const fallback={title:'Back to the drawing board',visual:'diagram',team:0,caption:'Illustrated game plan · no eligible first-half clip',tag:'A LITTLE CHALK TALK',
+ const fallback={title:'Back to the drawing board',visual:'diagram',topic:'board',team:0,caption:'Illustrated game plan · no eligible first-half clip',tag:'A LITTLE CHALK TALK',
   al:'We do not have an eligible first-half scrimmage clip to review. This is an illustrated game plan, not a replay from your game.',
   john:'Then we teach the idea. Circle the blocker, point out the space, follow the runner. That is a lot of yellow ink for one simple thought: help the teammate with the football.'};
  return {...report,mode:'halftime',segments:[story,...(highlights.length?highlights:[fallback]),moving,possession,closing],tableTitle:'First-half box score',
-  rows:[['Offensive yards',...report.box.map(b=>b.rushYards+b.passYards)],['Rush / pass yards',...report.box.map(b=>`${b.rushYards} / ${b.passYards}`)],
-   ['Passing',...report.box.map(b=>`${b.completions} / ${b.attempts}`)],['Takeaways',...report.box.map(b=>b.takeaways)],['Return yards',...report.box.map(b=>b.returnYards)]]};
+  rows:boxRows(report.box)};
+}
+
+export function postgameReport(g,recordings=[]){
+ const teams=g.teams.map(identity),scores=[...g.scores],box=copyBox(g.box),winner=scores[0]===scores[1]?null:teams[scores[0]>scores[1]?0:1],margin=Math.abs(scores[0]-scores[1]);
+ const report={mode:'postgame',teams,scores,box,tableTitle:'Final box score',rows:boxRows(box)};
+ const lead=winner?`${winner.city} takes it, ${Math.max(...scores)}–${Math.min(...scores)}.${g.quarter>4?' They needed overtime to settle this one.':margin<=7?' One score separates them at the finish.':''}`:`We finish level at ${scores[0]} apiece.`;
+ const total=b=>b.rushYards+b.passYards;
+ report.segments=[{title:'One more look before we go',topic:'final',visual:'matchup',al:`${lead} John, let’s put a bow on this game.`,caption:'The final word',tag:'FINAL WHISTLE'},
+  ...replaySegments(report,recordings,'game'),
+  {title:'The yards behind the score',topic:yardTopic(box),visual:'stats',al:`${teams[0].city} finishes with ${total(box[0])} offensive yards; ${teams[1].city}, ${total(box[1])}. That is ${box[0].completions} of ${box[0].attempts} passing for ${teams[0].abbr}, and ${box[1].completions} of ${box[1].attempts} for ${teams[1].abbr}.`,caption:'Full-game production',tag:'FROM THE FINAL BOX SCORE'},
+  {title:'Thanks for spending the game with us',topic:'final',visual:'matchup',al:`${teams[0].abbr} comes away with ${box[0].takeaways} takeaways, ${teams[1].abbr} with ${box[1].takeaways}. The final is ${scores[0]}–${scores[1]}. There is your game, John.`,closing:'Thanks for joining us. We’ll leave the next matchup to you.',caption:'For the love of the game',tag:'SEE YOU AT THE NEXT KICKOFF'}];
+ return report;
 }

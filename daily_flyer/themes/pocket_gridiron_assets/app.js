@@ -1,17 +1,18 @@
-import {clockText,matchLength} from './match.js?v=12';
-import {HalftimeShow} from './halftime.js?v=12';
-import {pregameReport,halftimeBroadcast} from './broadcast.js?v=12';
-import {passPlacement,passAim} from './passing.js?v=12';
-import {playDiagram} from './plays.js?v=12';
-import {ReplayTape} from './replay.js?v=12';
-import {FAMILY_NAMES} from './music.js?v=12';
-import {showOffensiveRoutes,suggestions,coachText,hitDefender,BOOK_FILTERS,bookPage} from './presentation.js?v=12';
-import {teamStrengths} from './teams.js?v=12';
-import {RATING_LABELS,visibleRatings} from './ratings.js?v=12';
-import {StadiumAudio} from './audio.js?v=12';
-import {bindGameButton, protectGameSurface, setGameButtonEnabled,primaryCommand,stickInput,movementInput} from './controls.js?v=12';
-import {Game,PLAYS,DEFENSE,clamp} from './engine.js?v=12';
-import {TEAMS,buildTeam,fetchFreshRoster,validateRoster} from './roster.js?v=12';
+import {clockText,matchLength} from './match.js?v=13';
+import {HalftimeShow} from './halftime.js?v=13';
+import {pregameReport,halftimeBroadcast,postgameReport} from './broadcast.js?v=13';
+import {passPlacement,passAim} from './passing.js?v=13';
+import {playDiagram} from './plays.js?v=13';
+import {ReplayTape} from './replay.js?v=13';
+import {BoothVoices,giveBoothVoice} from './booth-lines.js?v=13';
+import {FAMILY_NAMES} from './music.js?v=13';
+import {showOffensiveRoutes,suggestions,coachText,hitDefender,BOOK_FILTERS,bookPage} from './presentation.js?v=13';
+import {teamStrengths} from './teams.js?v=13';
+import {RATING_LABELS,visibleRatings} from './ratings.js?v=13';
+import {StadiumAudio} from './audio.js?v=13';
+import {bindGameButton, protectGameSurface, setGameButtonEnabled,primaryCommand,stickInput,movementInput} from './controls.js?v=13';
+import {Game,PLAYS,DEFENSE,clamp} from './engine.js?v=13';
+import {TEAMS,buildTeam,fetchFreshRoster,validateRoster} from './roster.js?v=13';
 const $=id=>document.getElementById(id);const el=(tag,text,cls)=>{const e=document.createElement(tag);if(text!==undefined)e.textContent=text;if(cls)e.className=cls;return e;};
 const safeRead=(key,fallback)=>{try{return JSON.parse(localStorage.getItem(key))??fallback;}catch{return fallback;}};
 const safeWrite=(key,value)=>{try{localStorage.setItem(key,JSON.stringify(value));return true;}catch{return false;}};
@@ -19,7 +20,7 @@ let viewFloor=460,defenderHits=[],fullBook=false,bookFilter='all',bookIndex=0,bo
 const replay=new ReplayTape();let autoReplays=safeRead('pg-replays',true)!==false,audition=false,lastMusicStatus='';
 let guidance='moderate';
 $('gameLength').value=['quick','extended','showcase'].includes(safeRead('pg-length','quick'))?safeRead('pg-length','quick'):'quick';
-function setLength(){const m=matchLength($('gameLength').value);safeWrite('pg-length',$('gameLength').value);$('lengthInfo').textContent=`${m.quarterSeconds*4/60} minutes of game clock. Menus and replays add time.${m.halftimeShow?' Includes pregame and halftime shows.':''}`;}
+function setLength(){const m=matchLength($('gameLength').value);safeWrite('pg-length',$('gameLength').value);$('lengthInfo').textContent=`${m.quarterSeconds*4/60} minutes of game clock. Menus and replays add time.${m.halftimeShow?' Includes pregame, halftime and postgame shows.':''}`;}
 $('gameLength').onchange=setLength;setLength();
 let roster,game=null,custom=safeRead('pg-lineups',{}),rafTime=0,toastUntil=0,keys={},stick={x:0,y:0},joyPointer=null,selectedPlay='slants',hudTimer=0,endShown=false,lastPhase='';
 const field=$('field'),ctx=field.getContext('2d'),attract=$('attract'),atx=attract.getContext('2d');
@@ -35,16 +36,19 @@ function resizeField(){const r=fieldWrap.getBoundingClientRect();if(!r.width||!r
 new ResizeObserver(resizeField).observe(fieldWrap);
 protectGameSurface(document.querySelector('.controls'));
 protectGameSurface(fieldWrap);
-const halftimeShow=new HalftimeShow($('halftimeDialog'),mode=>{keys={};resetStick();if(!game)return;if(mode==='pregame')game.paused=false;else if(!game.resumeHalftime())return;renderPlaybook();updateHUD();audioUnlock();maybeLesson();});
-function showHalftime(){keys={};resetStick();toastUntil=0;$('message').replaceChildren();halftimeShow.open(halftimeBroadcast(game.halftime,replay.highlights));}
+const boothVoices=new BoothVoices(safeRead('pg-booth-rotation',{}));
+function openBroadcast(report){halftimeShow.open(giveBoothVoice(report,boothVoices));safeWrite('pg-booth-rotation',boothVoices.snapshot());}
+const halftimeShow=new HalftimeShow($('halftimeDialog'),mode=>{keys={};resetStick();if(!game)return;if(mode==='postgame'){$('endDialog').showModal();return;}if(mode==='pregame')game.paused=false;else if(!game.resumeHalftime())return;renderPlaybook();updateHUD();audioUnlock();maybeLesson();});
+function showHalftime(){keys={};resetStick();toastUntil=0;$('message').replaceChildren();openBroadcast(halftimeBroadcast(game.halftime,replay.highlights));}
 const stadium=new StadiumAudio(safeRead('pg-audio',{}));
 function sound(freq=440,dur=.1,type='square',volume=.025){stadium.tone(freq,dur,type,volume);}
 function audioUnlock(){if(stadium.settings.effects||stadium.settings.music||stadium.settings.scoringMusic)return stadium.unlock();return Promise.resolve();}
-function syncAudio(){stadium.apply();safeWrite('pg-audio',stadium.settings);for(const id of ['sound','pauseSound']){$(id).textContent=stadium.settings.effects?'EFFECTS ON':'EFFECTS OFF';$(id).setAttribute('aria-pressed',String(stadium.settings.effects));$(id).setAttribute('aria-label',stadium.settings.effects?'Mute effects':'Enable effects');}$('effects').checked=stadium.settings.effects;for(const id of ['contactFx','passWhistle'])$(id).checked=stadium.settings[id];$('music').checked=stadium.settings.music;$('audioVolume').value=stadium.settings.volume;$('scoringMusic').checked=stadium.settings.scoringMusic;$('station').value=stadium.settings.station;$('musicVolume').value=stadium.settings.musicVolume;$('jukeboxMusic').checked=stadium.settings.music;}
+function syncAudio(){stadium.apply();safeWrite('pg-audio',stadium.settings);for(const id of ['sound','pauseSound']){$(id).textContent=stadium.settings.effects?'EFFECTS ON':'EFFECTS OFF';$(id).setAttribute('aria-pressed',String(stadium.settings.effects));$(id).setAttribute('aria-label',stadium.settings.effects?'Mute effects':'Enable effects');}$('effects').checked=stadium.settings.effects;for(const id of ['contactFx','passWhistle'])$(id).checked=stadium.settings[id];$('music').checked=stadium.settings.music;$('audioVolume').value=stadium.settings.volume;$('scoringMusic').checked=stadium.settings.scoringMusic;$('station').value=stadium.settings.station;$('musicVolume').value=stadium.settings.musicVolume;$('jukeboxMusic').checked=stadium.settings.music;for(const id of ['musicMode','jukeboxMode'])$(id).value=stadium.settings.musicMode;}
 function toggleSound(){stadium.settings.effects=!stadium.settings.effects;audioUnlock();syncAudio();}
 $('sound').onclick=$('pauseSound').onclick=toggleSound;
 for(const id of ['contactFx','passWhistle'])$(id).onchange=()=>{stadium.settings[id]=$(id).checked;audioUnlock();syncAudio();};
 $('effects').onchange=()=>{stadium.settings.effects=$('effects').checked;audioUnlock();syncAudio();};
+for(const id of ['musicMode','jukeboxMode'])$(id).onchange=()=>{stadium.settings.musicMode=$(id).value;syncAudio();audioUnlock();};
 $('music').onchange=()=>{stadium.settings.music=$('music').checked;audioUnlock();syncAudio();};
 $('audioVolume').oninput=()=>{stadium.settings.volume=Number($('audioVolume').value);syncAudio();};syncAudio();
 $('scoringMusic').onchange=()=>{stadium.settings.scoringMusic=$('scoringMusic').checked;audioUnlock();syncAudio();};
@@ -105,7 +109,7 @@ function renderPlaybook(){
  $('callHint').textContent=game.phase==='penalty'?'Accept the enforcement or decline and keep the play result. Use the buttons below.':game.isLoose?'The ball is live. Move toward it to recover; either team can take possession.':turnover?(game.userOffense?'Run upfield with the stick. Burst through a gap; contact can still cause a fumble.':'Possession changed. Switch to the closest defender, then chase and dive to stop the return.'):special?'Kicks travel downscreen. Returns go upfield. Aim with the stick or A/B/C; tap twice to set power. On an incoming punt, B calls a fair catch.':game.userOffense?'Pick a play, then snap when you’re ready.':'Choose coverage; the CPU snaps after its cadence. Position your defender behind the blue line. Switch, shed blocks or dive.';
  quick.firstChild.textContent=game.userOffense?'CHOOSE YOUR PLAY':'CHOOSE YOUR DEFENSE';
 }
-function start(){if(!roster)return;replay.reset();stadium.soundtrack.stopScore();audioUnlock().then(()=>stadium.soundtrack.warmScores([$('homeTeam').value,$('awayTeam').value]));ensureDifferent('homeTeam');game=new Game(teamFor($('homeTeam').value),teamFor($('awayTeam').value),$('difficulty').value,Math.random,{length:$('gameLength').value});fullBook=false;endShown=false;lastPhase=game.phase;keys={};resetStick();$('lobby').hidden=true;$('game').hidden=false;document.body.classList.add('playing');$('footer').hidden=true;for(const d of document.querySelectorAll('dialog'))d.close();$('lastPlay').textContent='Opening kickoff. Get ready to return.';renderPlaybook();updateHUD();resizeField();window.scrollTo(0,0);game.paused=true;halftimeShow.open(pregameReport(game.teams,game.match));}
+function start(){if(!roster)return;replay.reset();stadium.soundtrack.stopScore();audioUnlock().then(()=>stadium.soundtrack.warmScores([$('homeTeam').value,$('awayTeam').value]));ensureDifferent('homeTeam');game=new Game(teamFor($('homeTeam').value),teamFor($('awayTeam').value),$('difficulty').value,Math.random,{length:$('gameLength').value});fullBook=false;endShown=false;lastPhase=game.phase;keys={};resetStick();$('lobby').hidden=true;$('game').hidden=false;document.body.classList.add('playing');$('footer').hidden=true;for(const d of document.querySelectorAll('dialog'))d.close();$('lastPlay').textContent='Opening kickoff. Get ready to return.';renderPlaybook();updateHUD();resizeField();window.scrollTo(0,0);game.paused=true;openBroadcast(pregameReport(game.teams,game.match));}
 $('start').onclick=start;$('rematch').onclick=start;
 function menu(){replay.reset();stadium.soundtrack.stopScore();game=null;keys={};resetStick();document.body.classList.remove('playing');$('lobby').hidden=false;$('game').hidden=true;$('footer').hidden=false;for(const d of document.querySelectorAll('dialog'))d.close();updateLobby();window.scrollTo(0,0);}
 $('quit').onclick=menu;$('newTeams').onclick=menu;
@@ -186,7 +190,7 @@ function updateHUD(){
 }
 function toast(text,detail='',seconds=1.5){$('message').replaceChildren(el('span',text));if(detail)$('message').append(el('small',detail));toastUntil=performance.now()+seconds*1000;}
 function processEvents(){for(const e of game.events.splice(0)){stadium.event(e);if(e.type==='result'){$('lastPlay').textContent=game.lastResult;toast(e.text,e.detail,2.1);}else if(['ball','turnover','handoff','shed','flag','escape'].includes(e.type))toast(e.text,e.detail,e.type==='turnover'?1.5:.8);else if(e.type==='penalty'){toastUntil=0;$('message').replaceChildren();}else if(e.type==='special'&&!['kick_ready','kick_charge'].includes(game.phase))toast(e.text,e.detail,1.1);else if(['overtime','quarter'].includes(e.type))toast(e.text,e.detail,1.4);else if(e.type==='halftime')showHalftime();else if(e.type==='final')finishGame();}if(game.phase!==lastPhase){lastPhase=game.phase;renderPlaybook();updateHUD();maybeLesson();}}
-function finishGame(){if(endShown)return;endShown=true;$('resultTitle').textContent=game.scores[0]>game.scores[1]?'That’s a win.':'One more game?';$('resultScore').textContent=`${game.teams[0].city} ${game.scores[0]} — ${game.scores[1]} ${game.teams[1].city}`;$('resultStats').textContent=`${game.stats.yards} offensive yards · ${game.stats.completions}/${game.stats.attempts} passing · ${game.stats.tackles} team tackles · ${game.stats.returnYards} return yards · ${game.stats.takeaways} takeaways · ${game.stats.interceptions} INT thrown · ${game.stats.fumblesLost} fumbles lost · ${game.stats.brokenTackles} broken tackles · ${game.stats.penalties} penalties / ${Math.round(game.stats.penaltyYards)} yd`;$('endDialog').showModal();}
+function finishGame(){if(endShown)return;endShown=true;$('resultTitle').textContent=game.scores[0]>game.scores[1]?'That’s a win.':'One more game?';$('resultScore').textContent=`${game.teams[0].city} ${game.scores[0]} — ${game.scores[1]} ${game.teams[1].city}`;$('resultStats').textContent=`${game.stats.yards} offensive yards · ${game.stats.completions}/${game.stats.attempts} passing · ${game.stats.tackles} team tackles · ${game.stats.returnYards} return yards · ${game.stats.takeaways} takeaways · ${game.stats.interceptions} INT thrown · ${game.stats.fumblesLost} fumbles lost · ${game.stats.brokenTackles} broken tackles · ${game.stats.penalties} penalties / ${Math.round(game.stats.penaltyYards)} yd`;openBroadcast(postgameReport(game,replay.fullHighlights));}
 // Original pixel sprites and stadium graphics, drawn at a fixed internal resolution.
 function rect(c,x,y,w,h,color){c.fillStyle=color;c.fillRect(Math.round(x),Math.round(y),Math.round(w),Math.round(h));}
 function txt(c,text,x,y,size=10,color='#e4edd4',align='center'){c.fillStyle=color;c.font=`bold ${size}px monospace`;c.textAlign=align;c.fillText(text,Math.round(x),Math.round(y));}
@@ -227,7 +231,7 @@ function drawGame(){if(!game)return;
  }
  for(const b of g.blocks){const p=g.players[b.p],d=g.defenders[b.d];ctx.strokeStyle=b.held?'#ffd15b':'#d7dcab';ctx.lineWidth=2;ctx.beginPath();ctx.moveTo(px(p.x),py(p.y)-3);ctx.lineTo(px(d.x),py(d.y)-3);ctx.stroke();}
  const drawables=[...g.players.map(p=>({p,team:g.teams[g.offense],off:true})),...g.defenders.map(p=>({p,team:g.teams[1-g.offense],off:false}))].sort((a,b)=>b.p.y-a.p.y);
- for(const {p,team,off} of drawables){const x=px(p.x),y=py(p.y);if(y<-25||y>view.height+25)continue;const color=off?team.color:'#ece7cc',accent=off?team.accent:team.color;if(p===g.carrier&&g.moveAnimation){ctx.save();ctx.translate(x,y);if(g.moveAnimation.move==='spin')ctx.rotate((.45-g.moveAnimation.left)*Math.PI*5);else if(g.moveAnimation.move==='truck')ctx.translate(0,-3);else rect(ctx,8,-9,12,4,'#f4dcaa');sprite(ctx,0,0,color,accent,p.number,p.phase,p===g.controlled,p===g.carrier,1);ctx.restore();}else sprite(ctx,x,y,color,accent,p.number,p.phase,p===g.controlled,p===g.carrier&&!g.pass&&!g.isLoose&&(!special||g.isReturn),1);if(g.userOffense&&off&&!special&&!g.returnInfo&&!g.isLoose&&p.slot>=2&&p.slot<=4&&!g.passed&&g.playDefinition.kind==='pass'){rect(ctx,x-7,y-29,14,12,'#142e2b');txt(ctx,'ABC'[p.slot-2],x,y-20,10,'#f7e9b9');}if(p===g.controlled&&!g.userOffense){ctx.strokeStyle='#f9dc78';ctx.lineWidth=2;ctx.beginPath();ctx.ellipse(x,y+8,12,5,0,0,Math.PI*2);ctx.stroke();}if(p.stun>.4)txt(ctx,'✦',x,y-19,10,'#ebcc82');}
+ for(const {p,team,off} of drawables){const x=px(p.x),y=py(p.y);if(y<-25||y>view.height+25)continue;const color=team.color,accent=team.accent;if(p===g.carrier&&g.moveAnimation){ctx.save();ctx.translate(x,y);if(g.moveAnimation.move==='spin')ctx.rotate((.45-g.moveAnimation.left)*Math.PI*5);else if(g.moveAnimation.move==='truck')ctx.translate(0,-3);else rect(ctx,8,-9,12,4,'#f4dcaa');sprite(ctx,0,0,color,accent,p.number,p.phase,p===g.controlled,p===g.carrier,1);ctx.restore();}else sprite(ctx,x,y,color,accent,p.number,p.phase,p===g.controlled,p===g.carrier&&!g.pass&&!g.isLoose&&(!special||g.isReturn),1);if(g.userOffense&&off&&!special&&!g.returnInfo&&!g.isLoose&&p.slot>=2&&p.slot<=4&&!g.passed&&g.playDefinition.kind==='pass'){rect(ctx,x-7,y-29,14,12,'#142e2b');txt(ctx,'ABC'[p.slot-2],x,y-20,10,'#f7e9b9');}if(p===g.controlled&&!g.userOffense){ctx.strokeStyle='#f9dc78';ctx.lineWidth=2;ctx.beginPath();ctx.ellipse(x,y+8,12,5,0,0,Math.PI*2);ctx.stroke();}if(p.stun>.4)txt(ctx,'✦',x,y-19,10,'#ebcc82');}
  for(const f of g.flags){const flipped=g.offense!==g.playStart.offense;rect(ctx,px(flipped?53-f.x:f.x)-3,py(flipped?100-f.y:f.y)-20,7,5,'#ffd15b');}
  if(g.pass||g.loose||special?.ball){const b=g.pass||g.loose||special.ball,arc=g.isLoose?Math.abs(Math.sin(b.elapsed*15))*5:g.phase==='kick_loose'?Math.abs(Math.sin(special.looseTime*12))*3:Math.sin(clamp(b.elapsed/b.duration,0,1)*Math.PI)*(special?38:25);rect(ctx,px(b.x)-3,py(b.y),7,3,'#152a2866');rect(ctx,px(b.x)-2,py(b.y)-arc-3,5,8,'#d9965e');rect(ctx,px(b.x)-1,py(b.y)-arc,3,1,'#fff4d1');}
  if(g.burstLeft>0){const p=g.carrier;rect(ctx,px(p.x)-3,py(p.y)+18,2,7,'#f8d67b');rect(ctx,px(p.x)+3,py(p.y)+21,2,6,'#f8d67b');}
@@ -245,11 +249,11 @@ function drawReplay(f){
  if(f.flag)txt(ctx,'FLAG ON PLAY',180,view.height-34,9,'#ffd15b');
  ctx.restore();
 }
-function drawAttract(t){const a=roster?teamFor($('homeTeam').value):TEAMS[21],b=roster?teamFor($('awayTeam').value):TEAMS[3];const {px,py}=drawField(atx,attract,65,a,b,t);const phase=t*.002;const runnerX=25+Math.sin(phase)*6;const others=[[15,70,55],[39,71,72],[12,83,24],[44,86,30],[27,91,4]];for(const [x,y,n] of others)sprite(atx,px(x),py(y)+Math.sin(phase+x)*3,'#e5e6cb',b.color,n,phase+x,false,false,1.25);for(const [x,y,n] of [[21,76,66],[33,77,76]])sprite(atx,px(x),py(y),a.color,a.accent,n,phase,false,false,1.25);sprite(atx,px(runnerX),py(68),a.color,a.accent,a.offense?.[1].number||32,phase*4,true,true,1.5);rect(atx,44,30,272,45,'#173b2edd');txt(atx,'SUNDAY IS A STATE OF MIND.',180,49,10,'#c8dda8');txt(atx,'PRESS PLAY. BREAK AWAY.',180,64,9,'#f2d49b');}
+function drawAttract(t){const a=roster?teamFor($('homeTeam').value):TEAMS[21],b=roster?teamFor($('awayTeam').value):TEAMS[3];const {px,py}=drawField(atx,attract,65,a,b,t);const phase=t*.002;const runnerX=25+Math.sin(phase)*6;const others=[[15,70,55],[39,71,72],[12,83,24],[44,86,30],[27,91,4]];for(const [x,y,n] of others)sprite(atx,px(x),py(y)+Math.sin(phase+x)*3,b.color,b.accent,n,phase+x,false,false,1.25);for(const [x,y,n] of [[21,76,66],[33,77,76]])sprite(atx,px(x),py(y),a.color,a.accent,n,phase,false,false,1.25);sprite(atx,px(runnerX),py(68),a.color,a.accent,a.offense?.[1].number||32,phase*4,true,true,1.5);rect(atx,44,30,272,45,'#173b2edd');txt(atx,'SUNDAY IS A STATE OF MIND.',180,49,10,'#c8dda8');txt(atx,'PRESS PLAY. BREAK AWAY.',180,64,9,'#f2d49b');}
 function frame(now){
  halftimeShow.tick(now,document.hidden);
  let dt=rafTime?(now-rafTime)/1000:0;rafTime=now;
- stadium.update(game,document.hidden,{audition:audition||halftimeShow.openNow,replay:!!replay.active});
+ stadium.update(game,document.hidden,{audition,broadcast:halftimeShow.openNow,replay:!!replay.active});
  const musicStatus=stadium.soundtrack.scorer?'Scoring · '+stadium.soundtrack.scorer.track.title:stadium.soundtrack.status;if(lastMusicStatus!==musicStatus){lastMusicStatus=musicStatus;$('nowPlaying').textContent=lastMusicStatus;$('pauseTrack').textContent=lastMusicStatus;}
  if(game){
   if(replay.active){if(!game.paused&&!document.hidden){const was=replay.active;replay.advance(dt);if(was!==replay.active){keys={};resetStick();updateHUD();}}if(replay.active)drawReplay(replay.view());else{updateHUD();drawGame();}}
