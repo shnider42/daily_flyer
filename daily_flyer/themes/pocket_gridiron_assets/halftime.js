@@ -1,24 +1,28 @@
-import {paintBroadcast} from './broadcast-screen.js?v=13';
-import {broadcastBeat} from './booth-lines.js?v=13';
-import {BoothStage} from './booth-stage.js?v=13';
+import {paintBroadcast} from './broadcast-screen.js?v=14';
+import {broadcastBeat} from './booth-lines.js?v=14';
+import {BoothStage} from './booth-stage.js?v=14';
 
 // Shared, skippable pregame/halftime presentation. The live engine stays still.
 export class HalftimeShow {
  constructor(dialog,onResume){
   this.dialog=dialog;this.onResume=onResume;this.index=0;this.report=null;this.auto=true;this.elapsed=0;this.last=0;this.ink=true;
-  this.reduced=globalThis.matchMedia?.('(prefers-reduced-motion: reduce)').matches||false;
+  this.motionQuery=globalThis.matchMedia?.('(prefers-reduced-motion: reduce)');this.reduced=!!this.motionQuery?.matches;
+  try{this.motion=localStorage.getItem('pg-booth-motion')||'system';}catch{this.motion='system';}
   this.$=id=>dialog.querySelector('#'+id);
   this.stage=new BoothStage(dialog);this.turnIndex=-1;
+  this.$('halfMotion').value=this.motion;this.$('halfMotion').onchange=()=>{this.motion=this.$('halfMotion').value;try{localStorage.setItem('pg-booth-motion',this.motion);}catch{}this.draw();};
+  this.motionQuery?.addEventListener?.('change',e=>{this.reduced=e.matches;this.draw();});
   this.$('halfPrev').onclick=()=>this.step(-1);this.$('halfNext').onclick=()=>this.step(1);
   this.$('halfAuto').onclick=()=>{this.auto=!this.auto;this.last=0;this.renderAuto();};
   this.$('halfResume').onclick=()=>this.finish();
-  this.$('halfAgain').onclick=()=>{this.elapsed=0;this.last=0;this.auto=!this.reduced;this.renderAuto();this.draw();};
+  this.$('halfAgain').onclick=()=>{this.elapsed=0;this.last=0;this.auto=true;this.renderAuto();this.draw();};
   this.$('halfInk').onclick=()=>{this.ink=!this.ink;this.$('halfInk').setAttribute('aria-pressed',String(this.ink));this.draw();};
   dialog.addEventListener('cancel',e=>{e.preventDefault();this.finish();});
  }
+ get motionEnabled(){return this.motion==='on'||this.motion!=='off'&&!this.reduced;}
  get openNow(){return this.dialog.open&&!!this.report;}
  open(report){
-  this.report=report;this.index=0;this.auto=!this.reduced;this.elapsed=0;this.last=0;this.ink=true;
+  this.report=report;this.index=0;this.auto=true;this.elapsed=0;this.last=0;this.ink=true;
   this.dialog.dataset.mode=report.mode||'halftime';this.dialog.dataset.reduced=String(this.reduced);
   const pre=report.mode==='pregame',post=report.mode==='postgame';
   this.$('halfEyebrow').textContent=pre?'PGI · THE PREGAME BOOTH':post?'PGI · THE POSTGAME BOOTH':'PGI · THE HALFTIME BOOTH';
@@ -53,6 +57,7 @@ export class HalftimeShow {
   this.renderAuto();this.draw();
  }
  draw(){
+  this.$('halfMotionHint').textContent=this.motion==='system'&&this.reduced?'Your device requests reduced motion. Select On to animate the booth.':this.motion==='off'?'Host animation is off.':'Host animation follows the speaking turns.';
   if(!this.report)return;const s=this.report.segments[this.index],beat=broadcastBeat(s,this.elapsed);
   if(this.turnIndex!==beat.index){
    this.turnIndex=beat.index;this.dialog.dataset.speaker=beat.turn.speaker;
@@ -61,8 +66,8 @@ export class HalftimeShow {
   }
   // Let John hold the film while he explains; roll it on Al's response.
   const filmTime=s.turns?(beat.index===0?Math.min(3.49,this.elapsed*.7):beat.index===1?3.5+Math.min(4.49,beat.turnElapsed*.8):beat.index===2?8+Math.min(4,beat.turnElapsed):12):this.elapsed;
-  paintBroadcast(this.$('halfScreen'),this.report,s,filmTime,{reduced:this.reduced,ink:this.ink});
-  this.stage.draw({speaker:beat.turn.speaker,pose:beat.turn.pose,time:this.elapsed,moving:this.auto&&!this.reduced});
+  paintBroadcast(this.$('halfScreen'),this.report,s,filmTime,{reduced:!this.motionEnabled,ink:this.ink});
+  this.stage.draw({speaker:beat.turn.speaker,pose:beat.turn.pose,time:this.elapsed,moving:this.auto&&this.motionEnabled});
  }
  step(direction){this.index=Math.max(0,Math.min(this.report.segments.length-1,this.index+direction));this.elapsed=0;this.last=0;this.render();}
  tick(now,hidden=false){

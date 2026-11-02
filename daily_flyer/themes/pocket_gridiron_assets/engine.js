@@ -1,14 +1,14 @@
-import {matchLength,emptyBox,copyBox,halftimeReport} from './match.js?v=13';
-import {PLAYS,DEFENSE,routeFor,newCoverageTarget} from './plays.js?v=13';
-import {passPlacement,eligibleReceivers,catchReach,landingPickChance} from './passing.js?v=13';
-import {playbook} from './teams.js?v=13';
-import {resetContact,nearestThreat,armBreak,beginContact,tickContact} from './contact.js?v=13';
-import {AI_PROFILES,BALL_RULES,MOVEMENT_RULES,fumbleChance} from './rules.js?v=13';
-import {clearBlocks,isBlocker,updateBlocking,shedBlock} from './blocking.js?v=13';
-import {PENALTIES,acceptedPenalty,outcomeValue} from './penalties.js?v=13';
+import {matchLength,emptyBox,copyBox,halftimeReport} from './match.js?v=14';
+import {PLAYS,DEFENSE,routeFor,newCoverageTarget} from './plays.js?v=14';
+import {passPlacement,eligibleReceivers,catchReach,landingPickChance} from './passing.js?v=14';
+import {playbook} from './teams.js?v=14';
+import {resetContact,nearestThreat,armBreak,beginContact,tickContact} from './contact.js?v=14';
+import {AI_PROFILES,BALL_RULES,MOVEMENT_RULES,fumbleChance} from './rules.js?v=14';
+import {clearBlocks,isBlocker,updateBlocking,shedBlock} from './blocking.js?v=14';
+import {PENALTIES,acceptedPenalty,outcomeValue} from './penalties.js?v=14';
 export const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
 export const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
-export {PLAYS,DEFENSE} from './plays.js?v=13';
+export {PLAYS,DEFENSE} from './plays.js?v=14';
 const animate=(p,slot,x,y)=>({...p,slot,x,y,speed:4.8+(p.speed||70)/35,stun:0,phase:0,pace:1});
 export class Game {
  constructor(home,away,difficulty='pro',rng=Math.random,options={}){

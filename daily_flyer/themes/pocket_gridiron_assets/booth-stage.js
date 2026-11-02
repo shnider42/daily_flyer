@@ -8,7 +8,7 @@ export function boothPose(speaker,active,pose,time,moving=true){
 export class BoothStage {
  constructor(dialog){
   this.canvases=['al','john'].map(id=>dialog.querySelector(`#host-${id}`));
-  this.sheet=new Image();this.sheet.onload=()=>{this.measure();this.draw(this.last||{});};this.sheet.src=new URL('./booth-poses.webp?v=13',import.meta.url);
+  this.sheet=new Image();this.sheet.onload=()=>{this.measure();this.draw(this.last||{});};this.sheet.src=new URL('./booth-poses.webp?v=14',import.meta.url);
  }
  measure(){
   const sheet=this.sheet,canvas=document.createElement('canvas');canvas.width=sheet.naturalWidth;canvas.height=sheet.naturalHeight;

@@ -1,18 +1,19 @@
-import {clockText,matchLength} from './match.js?v=13';
-import {HalftimeShow} from './halftime.js?v=13';
-import {pregameReport,halftimeBroadcast,postgameReport} from './broadcast.js?v=13';
-import {passPlacement,passAim} from './passing.js?v=13';
-import {playDiagram} from './plays.js?v=13';
-import {ReplayTape} from './replay.js?v=13';
-import {BoothVoices,giveBoothVoice} from './booth-lines.js?v=13';
-import {FAMILY_NAMES} from './music.js?v=13';
-import {showOffensiveRoutes,suggestions,coachText,hitDefender,BOOK_FILTERS,bookPage} from './presentation.js?v=13';
-import {teamStrengths} from './teams.js?v=13';
-import {RATING_LABELS,visibleRatings} from './ratings.js?v=13';
-import {StadiumAudio} from './audio.js?v=13';
-import {bindGameButton, protectGameSurface, setGameButtonEnabled,primaryCommand,stickInput,movementInput} from './controls.js?v=13';
-import {Game,PLAYS,DEFENSE,clamp} from './engine.js?v=13';
-import {TEAMS,buildTeam,fetchFreshRoster,validateRoster} from './roster.js?v=13';
+import {clockText,matchLength} from './match.js?v=14';
+import {HalftimeShow} from './halftime.js?v=14';
+import {pregameReport,halftimeBroadcast,postgameReport} from './broadcast.js?v=14';
+import {passPlacement,passAim} from './passing.js?v=14';
+import {playDiagram} from './plays.js?v=14';
+import {ReplayTape} from './replay.js?v=14';
+import {BoothVoices,giveBoothVoice} from './booth-lines.js?v=14';
+import {FAMILY_NAMES} from './music.js?v=14';
+import {showOffensiveRoutes,suggestions,coachText,hitDefender,BOOK_FILTERS,bookPage} from './presentation.js?v=14';
+import {teamStrengths} from './teams.js?v=14';
+import {RATING_LABELS,visibleRatings} from './ratings.js?v=14';
+import {bindAudioActivation} from './device-audio.js?v=14';
+import {StadiumAudio} from './audio.js?v=14';
+import {bindGameButton, protectGameSurface, setGameButtonEnabled,primaryCommand,stickInput,movementInput} from './controls.js?v=14';
+import {Game,PLAYS,DEFENSE,clamp} from './engine.js?v=14';
+import {TEAMS,buildTeam,fetchFreshRoster,validateRoster} from './roster.js?v=14';
 const $=id=>document.getElementById(id);const el=(tag,text,cls)=>{const e=document.createElement(tag);if(text!==undefined)e.textContent=text;if(cls)e.className=cls;return e;};
 const safeRead=(key,fallback)=>{try{return JSON.parse(localStorage.getItem(key))??fallback;}catch{return fallback;}};
 const safeWrite=(key,value)=>{try{localStorage.setItem(key,JSON.stringify(value));return true;}catch{return false;}};
@@ -43,6 +44,7 @@ function showHalftime(){keys={};resetStick();toastUntil=0;$('message').replaceCh
 const stadium=new StadiumAudio(safeRead('pg-audio',{}));
 function sound(freq=440,dur=.1,type='square',volume=.025){stadium.tone(freq,dur,type,volume);}
 function audioUnlock(){if(stadium.settings.effects||stadium.settings.music||stadium.settings.scoringMusic)return stadium.unlock();return Promise.resolve();}
+bindAudioActivation(audioUnlock,{enabled:()=>stadium.settings.effects||stadium.settings.music||stadium.settings.scoringMusic});
 function syncAudio(){stadium.apply();safeWrite('pg-audio',stadium.settings);for(const id of ['sound','pauseSound']){$(id).textContent=stadium.settings.effects?'EFFECTS ON':'EFFECTS OFF';$(id).setAttribute('aria-pressed',String(stadium.settings.effects));$(id).setAttribute('aria-label',stadium.settings.effects?'Mute effects':'Enable effects');}$('effects').checked=stadium.settings.effects;for(const id of ['contactFx','passWhistle'])$(id).checked=stadium.settings[id];$('music').checked=stadium.settings.music;$('audioVolume').value=stadium.settings.volume;$('scoringMusic').checked=stadium.settings.scoringMusic;$('station').value=stadium.settings.station;$('musicVolume').value=stadium.settings.musicVolume;$('jukeboxMusic').checked=stadium.settings.music;for(const id of ['musicMode','jukeboxMode'])$(id).value=stadium.settings.musicMode;}
 function toggleSound(){stadium.settings.effects=!stadium.settings.effects;audioUnlock();syncAudio();}
 $('sound').onclick=$('pauseSound').onclick=toggleSound;
