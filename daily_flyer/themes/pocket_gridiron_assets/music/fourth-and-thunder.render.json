@@ -1,0 +1,23 @@
+{
+  "sample_rate": 44100,
+  "channels": 2,
+  "loop_seconds": 46.8293,
+  "preview_seconds": 48.0293,
+  "peak_dbfs": -2.11,
+  "rms_dbfs": -16.255,
+  "pre_master_peak": 2.4485,
+  "notes_per_track": {
+    "Left rhythm guitar": 562,
+    "Right rhythm guitar": 562,
+    "Ringing power chords": 48,
+    "Electric bass": 281,
+    "Main guitar melody": 124,
+    "Harmony / answer guitar": 94,
+    "Rock drum kit": 504,
+    "Clean guitar detail": 32
+  },
+  "wav_retained": false,
+  "mp3": "daily_flyer/themes/pocket_gridiron_assets/music/fourth-and-thunder.mp3",
+  "render_seconds": 9.26,
+  "audio_source": "Original procedural oscillators and noise; no third-party samples."
+}

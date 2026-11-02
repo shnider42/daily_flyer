@@ -1,0 +1,21 @@
+{
+  "sample_rate": 44100,
+  "channels": 2,
+  "loop_seconds": 13.8462,
+  "preview_seconds": 14.3461,
+  "peak_dbfs": -2.938,
+  "rms_dbfs": -15.308,
+  "pre_master_peak": 0.5807,
+  "notes_per_track": {
+    "Historic melody": 25,
+    "Original low brass bass": 31,
+    "Original brass responses": 48,
+    "Original stadium organ": 36,
+    "Original field percussion": 96,
+    "Melody octave color": 25
+  },
+  "wav_retained": false,
+  "mp3": "/workspace/scratch/b8b309fc9523/daily_flyer/daily_flyer/themes/pocket_gridiron_assets/music/for-boston.mp3",
+  "render_seconds": 1.25,
+  "audio_source": "Original procedural oscillators and noise; no third-party samples."
+}

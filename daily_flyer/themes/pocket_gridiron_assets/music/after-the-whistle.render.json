@@ -1,0 +1,25 @@
+{
+  "sample_rate": 44100,
+  "channels": 2,
+  "loop_seconds": 62.6087,
+  "preview_seconds": 63.8087,
+  "peak_dbfs": -2.11,
+  "rms_dbfs": -19.188,
+  "pre_master_peak": 1.9764,
+  "notes_per_track": {
+    "Left rhythm guitar": 152,
+    "Right rhythm guitar": 152,
+    "Ringing power chords": 45,
+    "Electric bass": 80,
+    "Main guitar melody": 54,
+    "Harmony / answer guitar": 40,
+    "Electronic kit": 359,
+    "Clean guitar detail": 64,
+    "Digital pulse motif": 177,
+    "Low electronic atmosphere": 24
+  },
+  "wav_retained": false,
+  "mp3": "daily_flyer/themes/pocket_gridiron_assets/music/after-the-whistle.mp3",
+  "render_seconds": 8.37,
+  "audio_source": "Original procedural oscillators and noise; no third-party samples."
+}

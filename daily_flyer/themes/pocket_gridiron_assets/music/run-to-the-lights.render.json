@@ -1,0 +1,23 @@
+{
+  "sample_rate": 44100,
+  "channels": 2,
+  "loop_seconds": 49.0909,
+  "preview_seconds": 50.2909,
+  "peak_dbfs": -2.11,
+  "rms_dbfs": -15.061,
+  "pre_master_peak": 2.0085,
+  "notes_per_track": {
+    "Left rhythm guitar": 672,
+    "Right rhythm guitar": 672,
+    "Ringing power chords": 51,
+    "Electric bass": 336,
+    "Main guitar melody": 170,
+    "Harmony / answer guitar": 132,
+    "Rock drum kit": 565,
+    "Clean guitar detail": 32
+  },
+  "wav_retained": false,
+  "mp3": "daily_flyer/themes/pocket_gridiron_assets/music/run-to-the-lights.mp3",
+  "render_seconds": 10.27,
+  "audio_source": "Original procedural oscillators and noise; no third-party samples."
+}

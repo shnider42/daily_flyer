@@ -1,0 +1,25 @@
+{
+  "sample_rate": 44100,
+  "channels": 2,
+  "loop_seconds": 51.4286,
+  "preview_seconds": 52.6286,
+  "peak_dbfs": -2.11,
+  "rms_dbfs": -18.428,
+  "pre_master_peak": 2.1869,
+  "notes_per_track": {
+    "Left rhythm guitar": 194,
+    "Right rhythm guitar": 194,
+    "Ringing power chords": 45,
+    "Electric bass": 101,
+    "Main guitar melody": 54,
+    "Harmony / answer guitar": 40,
+    "Electronic kit": 401,
+    "Clean guitar detail": 64,
+    "Digital pulse motif": 177,
+    "Low electronic atmosphere": 24
+  },
+  "wav_retained": false,
+  "mp3": "daily_flyer/themes/pocket_gridiron_assets/music/pressure-circuit.mp3",
+  "render_seconds": 6.64,
+  "audio_source": "Original procedural oscillators and noise; no third-party samples."
+}

@@ -1,0 +1,97 @@
+{
+  "checks": "Nine unique scores and recordings; three per family; section metadata; valid decoded durations; no clipping; non-silent written sections; stereo content.",
+  "audition": "Numerical QC only; physical phone-speaker listening not verified.",
+  "totalBytes": 6888040,
+  "tracks": [
+    {
+      "id": "fourth-and-thunder",
+      "duration": 48.029,
+      "bytes": 673382,
+      "peakDbfs": -2.15,
+      "rmsDbfs": -16.71,
+      "quietestWrittenSecondDbfs": -18.94,
+      "scoreSha256": "ed03bbf2b18b1578eb647b970abbe008f9f5ea25049b08c88f1ad164e5889c60",
+      "audioSha256": "5e7bd0bd3be7e138337226eb0b272bc36cfdfd62a4b796b98580a9dfa1d5db3f"
+    },
+    {
+      "id": "midnight-formation",
+      "duration": 53.092,
+      "bytes": 744331,
+      "peakDbfs": -2.67,
+      "rmsDbfs": -16.98,
+      "quietestWrittenSecondDbfs": -19.6,
+      "scoreSha256": "457ed69215dea9aeda92cf7add3edff8a8b9b4a2e9bda5d3b59c816d1bfdd0ec",
+      "audioSha256": "ba052ec2006ee5cebbd514f035da10295d0175b843517873b535d2f6ca0a9999"
+    },
+    {
+      "id": "run-to-the-lights",
+      "duration": 50.291,
+      "bytes": 705198,
+      "peakDbfs": -2.45,
+      "rmsDbfs": -15.51,
+      "quietestWrittenSecondDbfs": -17.6,
+      "scoreSha256": "c23b90c1ea25f8123d2bf5bd486ad9c5b8f4547939044e52f7de207b1684a808",
+      "audioSha256": "915487cf8bcb9239372a3d02ec6d083c362dd79cff1ba3c7e937e4c00ee9ed4d"
+    },
+    {
+      "id": "static-on-the-sideline",
+      "duration": 59.976,
+      "bytes": 840517,
+      "peakDbfs": -2.43,
+      "rmsDbfs": -19.45,
+      "quietestWrittenSecondDbfs": -24.97,
+      "scoreSha256": "0cdd8f0b979368f65ebcfd649a70eed195035772d6ef9508f5cb9ee19d6cc77d",
+      "audioSha256": "04c2aced43c2ef7b0be7200b02bafccb34dc2b72baffabb74857bdc4c9b749fa"
+    },
+    {
+      "id": "pressure-circuit",
+      "duration": 52.629,
+      "bytes": 737746,
+      "peakDbfs": -2.37,
+      "rmsDbfs": -18.87,
+      "quietestWrittenSecondDbfs": -24.35,
+      "scoreSha256": "5fd14e8eca6ab62b71e8a199733c4ae205ed6e69b627e869a5479460d2dd2c52",
+      "audioSha256": "f2892d448a2685e2d827f22688ab3faf8dd5f6d0e1c34457ae134d25b64eb2b0"
+    },
+    {
+      "id": "after-the-whistle",
+      "duration": 63.809,
+      "bytes": 894272,
+      "peakDbfs": -2.35,
+      "rmsDbfs": -19.63,
+      "quietestWrittenSecondDbfs": -25.73,
+      "scoreSha256": "89a1e07e057307ed762198358fdff9957d76e7f828a01fb90544401838c93765",
+      "audioSha256": "6b28c02481a4f6bac47c6016f9f1ba02f06d6418360ea84d3f143ebbb8f22bf0"
+    },
+    {
+      "id": "neon-end-zone",
+      "duration": 52.109,
+      "bytes": 730428,
+      "peakDbfs": -1.98,
+      "rmsDbfs": -17.8,
+      "quietestWrittenSecondDbfs": -20.36,
+      "scoreSha256": "8927a6eb2ec2145e0c9f2dd1ccdce0c066f04bed5d1214cd3845efe797fa59a0",
+      "audioSha256": "d874bb0a341329c4efd1d7bf967b419a7c701df3f1fc37de4e0997c1ff177b4d"
+    },
+    {
+      "id": "saturday-voltage",
+      "duration": 56.057,
+      "bytes": 785654,
+      "peakDbfs": -2.42,
+      "rmsDbfs": -16.78,
+      "quietestWrittenSecondDbfs": -18.69,
+      "scoreSha256": "37f66686d326419c32ecfcaaa8a51247aebcfbb94c5a080a0f9e0e6aecb5c34e",
+      "audioSha256": "31f8b9585f11138d024aaadec0a879e4594ebd7137401e92f2d72824b6bad1ae"
+    },
+    {
+      "id": "chrome-and-cleats",
+      "duration": 55.394,
+      "bytes": 776512,
+      "peakDbfs": -2.18,
+      "rmsDbfs": -17.22,
+      "quietestWrittenSecondDbfs": -19.56,
+      "scoreSha256": "a98c81ce496b59e11827e2e8aa4ef97ae7293f55dcc73375fd597c55106aa56e",
+      "audioSha256": "1de2b3f3a43c7eb03a452b2c930e83e4394ebf435268f63ed41ebf15d18dd888"
+    }
+  ]
+}

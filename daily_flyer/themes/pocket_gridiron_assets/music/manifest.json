@@ -1,0 +1,331 @@
+{
+  "version": 1,
+  "title": "PGI \u2014 Stadium Voltage",
+  "recording": "Original instrumentals performed by procedural synthesis. No vocals or band recordings.",
+  "tracks": [
+    {
+      "id": "fourth-and-thunder",
+      "title": "Fourth and Thunder",
+      "family": "gallop",
+      "bpm": 164,
+      "description": "Driving minor-key gallops, a rising twin-guitar refrain and a half-time siege.",
+      "duration": 48.029,
+      "src": "./music/fourth-and-thunder.mp3",
+      "sections": [
+        {
+          "at": 0.0,
+          "name": "Guitar entrance"
+        },
+        {
+          "at": 5.854,
+          "name": "Twin-lead refrain"
+        },
+        {
+          "at": 17.561,
+          "name": "Answer / chord lift"
+        },
+        {
+          "at": 29.268,
+          "name": "Half-time contrast"
+        },
+        {
+          "at": 35.122,
+          "name": "Full-band return"
+        },
+        {
+          "at": 43.902,
+          "name": "Resolved ending"
+        }
+      ],
+      "provenance": "Original PGI composition and procedural recording. No third-party recordings, samples, lyrics, or copied riffs."
+    },
+    {
+      "id": "midnight-formation",
+      "title": "Midnight Formation",
+      "family": "gallop",
+      "bpm": 148,
+      "description": "Darker picked triplets, a winding harmonized lead and a clean middle passage.",
+      "duration": 53.092,
+      "src": "./music/midnight-formation.mp3",
+      "sections": [
+        {
+          "at": 0.0,
+          "name": "Guitar entrance"
+        },
+        {
+          "at": 6.486,
+          "name": "Twin-lead refrain"
+        },
+        {
+          "at": 19.459,
+          "name": "Answer / chord lift"
+        },
+        {
+          "at": 32.432,
+          "name": "Half-time contrast"
+        },
+        {
+          "at": 38.919,
+          "name": "Full-band return"
+        },
+        {
+          "at": 48.649,
+          "name": "Resolved ending"
+        }
+      ],
+      "provenance": "Original PGI composition and procedural recording. No third-party recordings, samples, lyrics, or copied riffs."
+    },
+    {
+      "id": "run-to-the-lights",
+      "title": "Run to the Lights",
+      "family": "gallop",
+      "bpm": 176,
+      "description": "Fast ascending runs, wide-open harmony and a climbing final refrain.",
+      "duration": 50.291,
+      "src": "./music/run-to-the-lights.mp3",
+      "sections": [
+        {
+          "at": 0.0,
+          "name": "Guitar entrance"
+        },
+        {
+          "at": 5.455,
+          "name": "Twin-lead refrain"
+        },
+        {
+          "at": 16.364,
+          "name": "Answer / chord lift"
+        },
+        {
+          "at": 27.273,
+          "name": "Half-time contrast"
+        },
+        {
+          "at": 32.727,
+          "name": "Full-band return"
+        },
+        {
+          "at": 46.364,
+          "name": "Resolved ending"
+        }
+      ],
+      "provenance": "Original PGI composition and procedural recording. No third-party recordings, samples, lyrics, or copied riffs."
+    },
+    {
+      "id": "static-on-the-sideline",
+      "title": "Static on the Sideline",
+      "family": "hybrid",
+      "bpm": 98,
+      "description": "Low syncopated guitars, a digital bell motif and a spacious quiet-to-heavy chorus.",
+      "duration": 59.976,
+      "src": "./music/static-on-the-sideline.mp3",
+      "sections": [
+        {
+          "at": 0.0,
+          "name": "Electronic / clean introduction"
+        },
+        {
+          "at": 9.796,
+          "name": "Low-string verse"
+        },
+        {
+          "at": 19.592,
+          "name": "Heavy hook"
+        },
+        {
+          "at": 39.184,
+          "name": "Stripped breakdown"
+        },
+        {
+          "at": 48.98,
+          "name": "Final release"
+        },
+        {
+          "at": 53.878,
+          "name": "Resolved ending"
+        }
+      ],
+      "provenance": "Original PGI composition and procedural recording. No third-party recordings, samples, lyrics, or copied riffs."
+    },
+    {
+      "id": "pressure-circuit",
+      "title": "Pressure Circuit",
+      "family": "hybrid",
+      "bpm": 112,
+      "description": "Clipped guitar stops, a restless electronic ostinato and a blunt half-time drop.",
+      "duration": 52.629,
+      "src": "./music/pressure-circuit.mp3",
+      "sections": [
+        {
+          "at": 0.0,
+          "name": "Electronic / clean introduction"
+        },
+        {
+          "at": 8.571,
+          "name": "Low-string verse"
+        },
+        {
+          "at": 17.143,
+          "name": "Heavy hook"
+        },
+        {
+          "at": 34.286,
+          "name": "Stripped breakdown"
+        },
+        {
+          "at": 42.857,
+          "name": "Final release"
+        },
+        {
+          "at": 47.143,
+          "name": "Resolved ending"
+        }
+      ],
+      "provenance": "Original PGI composition and procedural recording. No third-party recordings, samples, lyrics, or copied riffs."
+    },
+    {
+      "id": "after-the-whistle",
+      "title": "After the Whistle",
+      "family": "hybrid",
+      "bpm": 92,
+      "description": "Clean-guitar tension, a descending synthetic hook and a broad heavy release.",
+      "duration": 63.809,
+      "src": "./music/after-the-whistle.mp3",
+      "sections": [
+        {
+          "at": 0.0,
+          "name": "Electronic / clean introduction"
+        },
+        {
+          "at": 10.435,
+          "name": "Low-string verse"
+        },
+        {
+          "at": 20.87,
+          "name": "Heavy hook"
+        },
+        {
+          "at": 41.739,
+          "name": "Stripped breakdown"
+        },
+        {
+          "at": 52.174,
+          "name": "Final release"
+        },
+        {
+          "at": 57.391,
+          "name": "Resolved ending"
+        }
+      ],
+      "provenance": "Original PGI composition and procedural recording. No third-party recordings, samples, lyrics, or copied riffs."
+    },
+    {
+      "id": "neon-end-zone",
+      "title": "Neon End Zone",
+      "family": "glam",
+      "bpm": 132,
+      "description": "Swaggering blues-metal riffs, cowbell accents and an open major-key chorus.",
+      "duration": 52.109,
+      "src": "./music/neon-end-zone.mp3",
+      "sections": [
+        {
+          "at": 0.0,
+          "name": "Riff / cowbell entrance"
+        },
+        {
+          "at": 7.273,
+          "name": "Main swagger"
+        },
+        {
+          "at": 14.545,
+          "name": "Open chorus"
+        },
+        {
+          "at": 29.091,
+          "name": "Solo answer"
+        },
+        {
+          "at": 36.364,
+          "name": "Arena return"
+        },
+        {
+          "at": 47.273,
+          "name": "Resolved ending"
+        }
+      ],
+      "provenance": "Original PGI composition and procedural recording. No third-party recordings, samples, lyrics, or copied riffs."
+    },
+    {
+      "id": "saturday-voltage",
+      "title": "Saturday Voltage",
+      "family": "glam",
+      "bpm": 140,
+      "description": "Driving arena-rock backbeats, a bright guitar hook and a climbing solo answer.",
+      "duration": 56.057,
+      "src": "./music/saturday-voltage.mp3",
+      "sections": [
+        {
+          "at": 0.0,
+          "name": "Riff / cowbell entrance"
+        },
+        {
+          "at": 6.857,
+          "name": "Main swagger"
+        },
+        {
+          "at": 13.714,
+          "name": "Open chorus"
+        },
+        {
+          "at": 27.429,
+          "name": "Solo answer"
+        },
+        {
+          "at": 34.286,
+          "name": "Arena return"
+        },
+        {
+          "at": 51.429,
+          "name": "Resolved ending"
+        }
+      ],
+      "provenance": "Original PGI composition and procedural recording. No third-party recordings, samples, lyrics, or copied riffs."
+    },
+    {
+      "id": "chrome-and-cleats",
+      "title": "Chrome and Cleats",
+      "family": "glam",
+      "bpm": 124,
+      "description": "A swinging low-string riff, ringing chords and a high call-and-response lead.",
+      "duration": 55.394,
+      "src": "./music/chrome-and-cleats.mp3",
+      "sections": [
+        {
+          "at": 0.0,
+          "name": "Riff / cowbell entrance"
+        },
+        {
+          "at": 7.742,
+          "name": "Main swagger"
+        },
+        {
+          "at": 15.484,
+          "name": "Open chorus"
+        },
+        {
+          "at": 30.968,
+          "name": "Solo answer"
+        },
+        {
+          "at": 38.71,
+          "name": "Arena return"
+        },
+        {
+          "at": 50.323,
+          "name": "Resolved ending"
+        }
+      ],
+      "provenance": "Original PGI composition and procedural recording. No third-party recordings, samples, lyrics, or copied riffs."
+    }
+  ]
+}

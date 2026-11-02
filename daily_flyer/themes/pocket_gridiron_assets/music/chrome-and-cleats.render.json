@@ -1,0 +1,23 @@
+{
+  "sample_rate": 44100,
+  "channels": 2,
+  "loop_seconds": 54.1935,
+  "preview_seconds": 55.3935,
+  "peak_dbfs": -2.11,
+  "rms_dbfs": -16.766,
+  "pre_master_peak": 2.3239,
+  "notes_per_track": {
+    "Left rhythm guitar": 426,
+    "Right rhythm guitar": 426,
+    "Ringing power chords": 57,
+    "Electric bass": 213,
+    "Main guitar melody": 121,
+    "Harmony / answer guitar": 29,
+    "Rock drum kit": 513,
+    "Clean guitar detail": 0
+  },
+  "wav_retained": false,
+  "mp3": "daily_flyer/themes/pocket_gridiron_assets/music/chrome-and-cleats.mp3",
+  "render_seconds": 9.8,
+  "audio_source": "Original procedural oscillators and noise; no third-party samples."
+}

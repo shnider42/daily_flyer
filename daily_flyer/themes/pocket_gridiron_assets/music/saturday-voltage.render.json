@@ -1,0 +1,23 @@
+{
+  "sample_rate": 44100,
+  "channels": 2,
+  "loop_seconds": 54.8571,
+  "preview_seconds": 56.0571,
+  "peak_dbfs": -2.11,
+  "rms_dbfs": -16.327,
+  "pre_master_peak": 2.0978,
+  "notes_per_track": {
+    "Left rhythm guitar": 370,
+    "Right rhythm guitar": 370,
+    "Ringing power chords": 69,
+    "Electric bass": 185,
+    "Main guitar melody": 132,
+    "Harmony / answer guitar": 35,
+    "Rock drum kit": 522,
+    "Clean guitar detail": 0
+  },
+  "wav_retained": false,
+  "mp3": "daily_flyer/themes/pocket_gridiron_assets/music/saturday-voltage.mp3",
+  "render_seconds": 9.41,
+  "audio_source": "Original procedural oscillators and noise; no third-party samples."
+}

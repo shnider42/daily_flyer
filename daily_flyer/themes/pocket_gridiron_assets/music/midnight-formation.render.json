@@ -1,0 +1,23 @@
+{
+  "sample_rate": 44100,
+  "channels": 2,
+  "loop_seconds": 51.8919,
+  "preview_seconds": 53.0919,
+  "peak_dbfs": -2.11,
+  "rms_dbfs": -16.528,
+  "pre_master_peak": 2.2693,
+  "notes_per_track": {
+    "Left rhythm guitar": 510,
+    "Right rhythm guitar": 510,
+    "Ringing power chords": 48,
+    "Electric bass": 255,
+    "Main guitar melody": 113,
+    "Harmony / answer guitar": 87,
+    "Rock drum kit": 474,
+    "Clean guitar detail": 32
+  },
+  "wav_retained": false,
+  "mp3": "daily_flyer/themes/pocket_gridiron_assets/music/midnight-formation.mp3",
+  "render_seconds": 9.07,
+  "audio_source": "Original procedural oscillators and noise; no third-party samples."
+}

@@ -1,0 +1,39 @@
+{
+  "checked": "2026-11-02",
+  "method": "FFmpeg MP3 decode, finite/nonzero stereo samples, no clipped samples, duration and score bounds; manual visual melody transcription audit",
+  "assets": [
+    {
+      "id": "for-boston",
+      "bytes": 201996,
+      "duration_seconds": 14.393,
+      "decoded_peak_dbfs": -3.466,
+      "decoded_rms_dbfs": -15.754,
+      "decoded_clip_samples": 0,
+      "channels": 2,
+      "sample_rate": 44100,
+      "melody_check": "Visual comparison with the referenced sheet-music melody"
+    },
+    {
+      "id": "notre-dame-victory",
+      "bytes": 143130,
+      "duration_seconds": 10.188,
+      "decoded_peak_dbfs": -3.795,
+      "decoded_rms_dbfs": -15.388,
+      "decoded_clip_samples": 0,
+      "channels": 2,
+      "sample_rate": 44100,
+      "melody_check": "Visual comparison with the referenced sheet-music melody"
+    },
+    {
+      "id": "pgi-score",
+      "bytes": 140558,
+      "duration_seconds": 10.005,
+      "decoded_peak_dbfs": -3.575,
+      "decoded_rms_dbfs": -16.713,
+      "decoded_clip_samples": 0,
+      "channels": 2,
+      "sample_rate": 44100,
+      "melody_check": "New original melody; no source scan"
+    }
+  ]
+}

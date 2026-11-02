@@ -1,4 +1,4 @@
-# Pocket Gridiron
+# Pocket Gridiron (PGI)
 
 An original mobile-first, top-down pixel football game in DailyFlyer. Seven players per side, all 32 teams, real active player names and numbers. Original procedural pixel graphics and sound; no paid API or asset services.
 
@@ -67,7 +67,7 @@ Simple offers three suggested calls, access to the full team book, and dismissib
 
 Defensive selection: tap a visible defender (28-pixel nearest hit area), NEAREST chooses the closest available defender to the current ball, NEXT cycles all seven, and PICK opens a named, paused pre-snap list. Keys 1/2/3 mirror those actions. Selecting coverage preserves the chosen defender. Selection cancels an active dive so it cannot transfer to another player. Offensive route diagrams and A/B/C labels are shown only while the human is on offense; Expert adds only the human defender’s assignment. A future server-based multiplayer mode must additionally omit secret calls from opponent snapshots; local UI hiding is not a network secrecy boundary.
 
-`audio.js` synthesizes original cadence pulses, catches, impacts, kicks, whistles, penalty and turnover cues, touchdown notes, crowd ambience and an optional repeating music motif. Effects/music/volume settings are independent and saved. Sound unlocks after a user gesture, quiets on pause/background, and degrades safely if audio is unavailable. All essential feedback also appears visually. No external audio service or asset download is used.
+`audio.js` synthesizes cadence pulses, catches, impacts, kicks, whistles, penalty and turnover cues and crowd ambience. The v8 soundtrack below replaces the short repeating music motif. Effects, background music, scoring music and volume settings are saved independently. All essential feedback also appears visually.
 
 ## Rosters
 
@@ -132,3 +132,62 @@ These are league benchmarks, not a promise that a short 7-on-7 game reproduces N
 All AI defenders use the same 0.95 movement multiplier regardless of difficulty. Human defensive teammates use Pro decisions consistently. CPU quarterbacks also read less frequently and judge separation less accurately on easier settings. The defense considers down, distance, field position, late-game lead and the offense's previous 12 run/pass calls; it does not read the newly selected offensive play. Man coverage assigns a primary defender to each of the three receivers and uses the remaining coverage players for help. Defenders react to a nearby visible ball trajectory after their delay, rather than all sprinting to the exact landing point at release.
 
 The engine remains independent of DOM, rendering and transport. `seededRandom` and an identical-input replay test establish reproducible simulation for a supplied timestep/input stream. Multiplayer is deferred: a future 1v1 mode should run authoritative state and random outcomes on the server, accept separate team input streams at a fixed tick, replicate snapshots/events, and handle reconnects. Current local controls, mutable player references and variable render substeps still require adaptation; this update does not claim multiplayer is implemented.
+
+
+## PGI Stadium Voltage and instant replay (v8)
+
+PGI is the short name for Pocket GridIron; the existing URL and theme ID stay compatible.
+The soundtrack reuses Breach's offline composition/rendering approach and adapts
+its playback design: one gesture-unlocked AudioContext, authored MP3s, bounded
+decoded buffers, guarded asynchronous loads, and local mixing. No multiplayer
+code or hosting architecture changes are included in this update.
+
+Nine original instrumental songs (8.19 minutes total) explore three requested
+influences. No songs, riffs, recordings, lyrics or voices from those bands are used.
+
+| Influence / family | Original PGI tracks |
+| --- | --- |
+| Iron Maiden / galloping melodic metal | Fourth and Thunder; Midnight Formation; Run to the Lights |
+| Linkin Park / electronic heavy rock | Static on the Sideline; Pressure Circuit; After the Whistle |
+| Motley Crue / glam hard rock | Neon End Zone; Saturday Voltage; Chrome and Cleats |
+
+The listening room is available from the team screen and Pause. It offers individual
+track selection, family rotations, Next, music level, and scoring-cue previews. The
+All Nine rotation alternates families. Music defaults on for new preferences, starts
+only after a gesture, and preserves an existing saved off preference. It ducks under
+live action and scoring cues. Pause/background stops the score and retains the song's
+position; opening the listening room permits deliberate audition while gameplay stays
+paused. An in-progress scoring cue is canceled on pause or a new match. Late downloads
+cannot start a stale celebration. At most two decoded background tracks and three
+scoring buffers are cached; load concurrency is bounded to three. Browser playback
+uses the committed MP3s, so Render does not need the offline synthesis dependencies.
+
+Every confirmed score, including field goals and safeties, selects its actual scorer:
+NE uses a new instrumental arrangement of the opening of **For Boston**; NYJ uses
+an arrangement of the **Notre Dame Victory March** chorus opening; other teams use
+the original **Six on the Board**. These are short synthesized arrangements, not
+university recordings or official NFL team anthems. Source and note-level provenance:
+[`scripts/pgi_music/fights/PROVENANCE.md`](scripts/pgi_music/fights/PROVENANCE.md).
+A confirmed score is emitted only after penalty resolution, so a wiped-out touchdown
+does not receive scoring music or a touchdown replay. Repeated result presentation
+cannot award another celebration. The old synthesized TD arpeggio is a fallback only
+when scoring music is disabled.
+
+Touchdowns, fumbles, and interceptions record replay clips. Replays start after the
+play ends and after any penalty decision, never during a live return or loose-ball
+chase. The replay holds the solo game clock and uses detached visual frames, without
+calling simulation, consuming randomness, repeating sound events, or changing stats.
+The recorder stores canonical field coordinates so an interception's orientation flip
+does not mirror the recorded play. Each clip shows 3.5 seconds of lead-in (4.5 for TDs),
+up to 1.4 seconds after a turnover, and slow motion near the event. History is sampled
+at up to 20 Hz and bounded to 12 seconds, with at most 12 queued clips for pathological
+multi-fumble plays. The bottom-right action, overlay Skip, and Space skip a clip;
+Pause can disable automatic replays. Reloading or starting a new match clears them.
+Replays are local presentation, not durable video files or shareable saves.
+
+Validation covers replay immutability, live-return deferral, possession flips,
+end-zone interceptions, penalty-nullified scores, field goals/safeties, async audio
+cancellation, pause/resume offsets, track rotation, scoring mapping, and cache bounds.
+Numerical MP3 checks establish duration, stereo content, no clipping and no accidental
+silent sections; they do not establish subjective similarity or physical iPhone audio
+quality. See `scripts/pgi_music/README.md` for reproducible composition and rendering.

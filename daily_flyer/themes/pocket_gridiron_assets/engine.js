@@ -40,10 +40,10 @@ export class Game {
   this.teams=[home,away];this.rng=rng;this.difficulty=difficulty;this.scores=[0,0];
   this.quarter=1;this.clock=45;this.offense=0;this.spot=25;this.target=35;this.down=1;
   this.play='slants';this.defense='zone';this.events=[];this.history=[[],[]];this.stats={yards:0,returnYards:0,completions:0,attempts:0,tackles:0,drops:0,fumbles:0,fumblesLost:0,interceptions:0,takeaways:0,penalties:0,penaltyYards:0,brokenTackles:0};
-  this.paused=false;this.time=0;this.special=null;this.pending=null;this.pendingFinal=false;
+  this.paused=false;this.time=0;this.special=null;this.pending=null;this.pendingFinal=false;this.publishedScores=[0,0];
   this.beginKick('kickoff',1,35);
  }
- emit(type,text,detail=''){this.events.push({type,text,detail});}
+ emit(type,text,detail='',meta={}){this.events.push({type,text,detail,...meta});}
  get userOffense(){return this.offense===0;}
  get isReturn(){return this.phase==='return';}
  get isLive(){return this.phase==='live'||this.isReturn;}
@@ -146,7 +146,9 @@ export class Game {
   this.publishResult(accept?outcome.title:`PENALTY DECLINED`,accept?outcome.detail:`${outcome.title} · ${outcome.detail}`);return true;
  }
  publishResult(title,detail){
-  this.lastResult=`${title} — ${detail}`;this.emit('result',title,detail);
+  const delta=this.scores.map((score,i)=>score-this.publishedScores[i]),scoreTeam=delta.findIndex(n=>n>0);
+  this.publishedScores=[...this.scores];this.lastResult=`${title} — ${detail}`;
+  this.emit('result',title,detail,scoreTeam<0?{}:{scoreTeam,scorePoints:delta[scoreTeam],scoreAbbr:this.teams[scoreTeam].abbr});
   this.pendingFinal=this.quarter>4&&this.scores[0]!==this.scores[1];
  }
  burst(){
@@ -352,8 +354,8 @@ export class Game {
   resetContact(this);this.carrier=p;this.special=null;this.loose=null;this.pass=null;this.phase='return';this.passed=true;this.crossed=true;this.liveTime=0;
   this.returnInfo={type,catchY:p.y};this.spot=clamp(p.y,1,99);this.target=100;this.burstLeft=0;this.burstCooldown=0;this.diveLeft=0;this.diveCooldown=0;this.evaded=false;this.breakUsed=false;
   this.selected=this.defenders.map((a,i)=>({i,d:distance(a,p)})).sort((a,b)=>a.d-b.d)[0].i;this.cameraY=clamp(p.y+16,13,93);
+  this.emit('turnover',type==='interception'?'INTERCEPTED!':'FUMBLE RECOVERED!',this.userOffense?'YOUR BALL · RUN UPFIELD ↑':'POSSESSION FLIPS · STOP THE RETURN',{turnoverType:type});
   if(p.y<=0){this.deadPossession('TOUCHBACK',20,this.offense);return;}
-  this.emit('turnover',type==='interception'?'INTERCEPTED!':'FUMBLE RECOVERED!',this.userOffense?'YOUR BALL · RUN UPFIELD ↑':'POSSESSION FLIPS · STOP THE RETURN');
  }
  startFumble(tackler){
   this.contact=null;this.breakArm=null;clearBlocks(this);

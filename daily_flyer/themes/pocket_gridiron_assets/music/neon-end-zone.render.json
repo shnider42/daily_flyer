@@ -1,0 +1,23 @@
+{
+  "sample_rate": 44100,
+  "channels": 2,
+  "loop_seconds": 50.9091,
+  "preview_seconds": 52.1091,
+  "peak_dbfs": -2.11,
+  "rms_dbfs": -17.342,
+  "pre_master_peak": 2.5732,
+  "notes_per_track": {
+    "Left rhythm guitar": 322,
+    "Right rhythm guitar": 322,
+    "Ringing power chords": 57,
+    "Electric bass": 161,
+    "Main guitar melody": 107,
+    "Harmony / answer guitar": 29,
+    "Rock drum kit": 461,
+    "Clean guitar detail": 0
+  },
+  "wav_retained": false,
+  "mp3": "daily_flyer/themes/pocket_gridiron_assets/music/neon-end-zone.mp3",
+  "render_seconds": 8.4,
+  "audio_source": "Original procedural oscillators and noise; no third-party samples."
+}

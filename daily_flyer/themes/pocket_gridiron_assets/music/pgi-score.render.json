@@ -1,0 +1,21 @@
+{
+  "sample_rate": 44100,
+  "channels": 2,
+  "loop_seconds": 9.4737,
+  "preview_seconds": 9.9737,
+  "peak_dbfs": -2.938,
+  "rms_dbfs": -16.267,
+  "pre_master_peak": 0.6537,
+  "notes_per_track": {
+    "Original touchdown melody": 33,
+    "Original low brass bass": 22,
+    "Original brass responses": 33,
+    "Original stadium organ": 21,
+    "Original field percussion": 66,
+    "Melody octave color": 33
+  },
+  "wav_retained": false,
+  "mp3": "/workspace/scratch/b8b309fc9523/daily_flyer/daily_flyer/themes/pocket_gridiron_assets/music/pgi-score.mp3",
+  "render_seconds": 1.03,
+  "audio_source": "Original procedural oscillators and noise; no third-party samples."
+}

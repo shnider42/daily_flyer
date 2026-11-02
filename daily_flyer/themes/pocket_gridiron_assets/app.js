@@ -1,14 +1,17 @@
-import {showOffensiveRoutes,suggestions,coachText,hitDefender} from './presentation.js?v=7';
-import {teamStrengths} from './teams.js?v=7';
-import {RATING_LABELS,visibleRatings} from './ratings.js?v=7';
-import {StadiumAudio} from './audio.js?v=7';
-import {bindGameButton, protectGameSurface, setGameButtonEnabled,primaryCommand,stickInput} from './controls.js?v=7';
-import {Game,PLAYS,DEFENSE,clamp} from './engine.js?v=7';
-import {TEAMS,buildTeam,fetchFreshRoster,validateRoster} from './roster.js?v=7';
+import {ReplayTape} from './replay.js?v=8';
+import {FAMILY_NAMES} from './music.js?v=8';
+import {showOffensiveRoutes,suggestions,coachText,hitDefender} from './presentation.js?v=8';
+import {teamStrengths} from './teams.js?v=8';
+import {RATING_LABELS,visibleRatings} from './ratings.js?v=8';
+import {StadiumAudio} from './audio.js?v=8';
+import {bindGameButton, protectGameSurface, setGameButtonEnabled,primaryCommand,stickInput} from './controls.js?v=8';
+import {Game,PLAYS,DEFENSE,clamp} from './engine.js?v=8';
+import {TEAMS,buildTeam,fetchFreshRoster,validateRoster} from './roster.js?v=8';
 const $=id=>document.getElementById(id);const el=(tag,text,cls)=>{const e=document.createElement(tag);if(text!==undefined)e.textContent=text;if(cls)e.className=cls;return e;};
 const safeRead=(key,fallback)=>{try{return JSON.parse(localStorage.getItem(key))??fallback;}catch{return fallback;}};
 const safeWrite=(key,value)=>{try{localStorage.setItem(key,JSON.stringify(value));return true;}catch{return false;}};
 let viewFloor=460,defenderHits=[],fullBook=false;
+const replay=new ReplayTape();let autoReplays=safeRead('pg-replays',true)!==false,audition=false,lastMusicStatus='';
 let guidance='moderate';
 let roster,game=null,custom=safeRead('pg-lineups',{}),rafTime=0,toastUntil=0,keys={},stick={x:0,y:0},joyPointer=null,selectedPlay='slants',hudTimer=0,endShown=false,lastPhase='';
 const field=$('field'),ctx=field.getContext('2d'),attract=$('attract'),atx=attract.getContext('2d');
@@ -25,13 +28,33 @@ protectGameSurface(document.querySelector('.controls'));
 protectGameSurface(fieldWrap);
 const stadium=new StadiumAudio(safeRead('pg-audio',{}));
 function sound(freq=440,dur=.1,type='square',volume=.025){stadium.tone(freq,dur,type,volume);}
-function audioUnlock(){if(stadium.settings.effects||stadium.settings.music)stadium.unlock();}
-function syncAudio(){stadium.apply();safeWrite('pg-audio',stadium.settings);for(const id of ['sound','pauseSound']){$(id).textContent=stadium.settings.effects?'EFFECTS ON':'EFFECTS OFF';$(id).setAttribute('aria-pressed',String(stadium.settings.effects));$(id).setAttribute('aria-label',stadium.settings.effects?'Mute effects':'Enable effects');}$('effects').checked=stadium.settings.effects;$('music').checked=stadium.settings.music;$('audioVolume').value=stadium.settings.volume;}
+function audioUnlock(){if(stadium.settings.effects||stadium.settings.music||stadium.settings.scoringMusic)return stadium.unlock();return Promise.resolve();}
+function syncAudio(){stadium.apply();safeWrite('pg-audio',stadium.settings);for(const id of ['sound','pauseSound']){$(id).textContent=stadium.settings.effects?'EFFECTS ON':'EFFECTS OFF';$(id).setAttribute('aria-pressed',String(stadium.settings.effects));$(id).setAttribute('aria-label',stadium.settings.effects?'Mute effects':'Enable effects');}$('effects').checked=stadium.settings.effects;$('music').checked=stadium.settings.music;$('audioVolume').value=stadium.settings.volume;$('scoringMusic').checked=stadium.settings.scoringMusic;$('station').value=stadium.settings.station;$('musicVolume').value=stadium.settings.musicVolume;$('jukeboxMusic').checked=stadium.settings.music;}
 function toggleSound(){stadium.settings.effects=!stadium.settings.effects;audioUnlock();syncAudio();}
 $('sound').onclick=$('pauseSound').onclick=toggleSound;
 $('effects').onchange=()=>{stadium.settings.effects=$('effects').checked;audioUnlock();syncAudio();};
 $('music').onchange=()=>{stadium.settings.music=$('music').checked;audioUnlock();syncAudio();};
 $('audioVolume').oninput=()=>{stadium.settings.volume=Number($('audioVolume').value);syncAudio();};syncAudio();
+$('scoringMusic').onchange=()=>{stadium.settings.scoringMusic=$('scoringMusic').checked;audioUnlock();syncAudio();};
+$('autoReplays').checked=autoReplays;$('autoReplays').onchange=()=>{autoReplays=$('autoReplays').checked;safeWrite('pg-replays',autoReplays);if(!autoReplays){replay.skipAll();keys={};resetStick();updateHUD();}};
+$('station').onchange=()=>{stadium.settings.station=$('station').value;syncAudio();audioUnlock();renderTracks();};
+$('musicVolume').oninput=()=>{stadium.settings.musicVolume=Number($('musicVolume').value);syncAudio();};
+$('jukeboxMusic').onchange=()=>{stadium.settings.music=$('jukeboxMusic').checked;syncAudio();audioUnlock();};
+$('nextTrack').onclick=()=>{stadium.settings.music=true;syncAudio();audioUnlock();stadium.soundtrack.next();};
+function openSoundtrack(){if(game)pause();audition=true;showDialog('soundtrackDialog');audioUnlock();renderTracks();}
+$('showSoundtrack').onclick=$('pauseSoundtrack').onclick=openSoundtrack;
+$('soundtrackDialog').addEventListener('close',()=>{audition=false;});
+function renderTracks(){const tracks=stadium.soundtrack.list();$('trackList').replaceChildren(...tracks.map(t=>{const b=el('button',undefined,'trackchoice');b.append(el('b',t.title),el('small',`${FAMILY_NAMES[t.family]} · ${t.bpm} BPM · ${Math.round(t.duration)} sec`),el('span',t.description));b.onclick=()=>{stadium.settings.music=true;syncAudio();audioUnlock();stadium.soundtrack.choose(t.id);};return b;}));}
+stadium.soundtrack.loadCatalog().then(renderTracks);
+for(const [id,team] of [['previewNE','NE'],['previewNYJ','NYJ'],['previewOther','BUF']])$(id).onclick=()=>{stadium.settings.scoringMusic=true;syncAudio();audioUnlock().then(()=>{stadium.soundtrack.update({blocked:false});stadium.soundtrack.score(team);});};
+function skipReplay(){if(game?.paused)return;replay.skip();keys={};resetStick();updateHUD();}
+bindGameButton($('skipReplay'),skipReplay);
+function replayHUD(){
+ $('replayBar').hidden=false;$('replayTitle').textContent=replay.active.clip.kind;$('replayCount').textContent=replay.clips.length?`${replay.clips.length} more highlight${replay.clips.length===1?'':'s'}`:'SLOW MOTION';
+ for(const id of ['readiness','flagNotice','penaltyPanel','kickPanel','coach','contactCue','changePlay'])$(id).hidden=true;quick.hidden=true;
+ $('down').textContent='REPLAY';$('spot').textContent='CLOCK HELD';$('playName').textContent=replay.active.clip.kind;$('playerLabel').textContent='PGI INSTANT REPLAY · RECORDED ACTION';
+ for(let i=0;i<3;i++)$('pass'+i).hidden=true;$('controlHint').hidden=false;$('controlHint').textContent='WATCH IT AGAIN';setGameButtonEnabled($('burst'),true);$('burst').replaceChildren(document.createTextNode('SKIP REPLAY'),el('span','SPACE'));
+}
 function setGuidance(value){guidance=['simple','moderate','expert'].includes(value)?value:'moderate';safeWrite('pg-guidance',guidance);$('guidance').value=$('pauseGuidance').value=guidance;document.body.dataset.guidance=guidance;$('guidanceInfo').textContent={simple:'Three suggested calls, short lessons. Full team book is always available.',moderate:'Full team book with matchup and situation hints.',expert:'Detailed ratings and assignments. Minimal coaching prompts.'}[guidance];fullBook=false;if(game){renderPlaybook();updateHUD();}if(roster)updateLobby();}
 $('guidance').onchange=()=>setGuidance($('guidance').value);$('pauseGuidance').onchange=()=>setGuidance($('pauseGuidance').value);setGuidance(safeRead('pg-guidance','moderate'));
 function teamFor(id){return buildTeam(id,roster,custom[id]||{});}
@@ -60,23 +83,23 @@ function renderPlaybook(){
  $('callHint').textContent=game.phase==='penalty'?'Accept the enforcement or decline and keep the play result. Use the buttons below.':game.isLoose?'The ball is live. Move toward it to recover; either team can take possession.':turnover?(game.userOffense?'Run upfield with the stick. Burst through a gap; contact can still cause a fumble.':'Possession changed. Switch to the closest defender, then chase and dive to stop the return.'):special?'Kicks travel downscreen. Returns go upfield. Aim with the stick or A/B/C; tap twice to set power. On an incoming punt, B calls a fair catch.':game.userOffense?'Pick a play, then snap when you’re ready.':'Choose coverage; the CPU snaps after its cadence. Position your defender behind the blue line. Switch, shed blocks or dive.';
  quick.firstChild.textContent=game.userOffense?'CHOOSE YOUR PLAY':'CHOOSE YOUR DEFENSE';
 }
-function start(){if(!roster)return;audioUnlock();ensureDifferent('homeTeam');game=new Game(teamFor($('homeTeam').value),teamFor($('awayTeam').value),$('difficulty').value);fullBook=false;endShown=false;lastPhase=game.phase;keys={};resetStick();$('lobby').hidden=true;$('game').hidden=false;document.body.classList.add('playing');$('footer').hidden=true;for(const d of document.querySelectorAll('dialog'))d.close();$('lastPlay').textContent='Opening kickoff. Get ready to return.';renderPlaybook();updateHUD();resizeField();window.scrollTo(0,0);maybeLesson();}
+function start(){if(!roster)return;replay.reset();stadium.soundtrack.stopScore();audioUnlock().then(()=>stadium.soundtrack.warmScores([$('homeTeam').value,$('awayTeam').value]));ensureDifferent('homeTeam');game=new Game(teamFor($('homeTeam').value),teamFor($('awayTeam').value),$('difficulty').value);fullBook=false;endShown=false;lastPhase=game.phase;keys={};resetStick();$('lobby').hidden=true;$('game').hidden=false;document.body.classList.add('playing');$('footer').hidden=true;for(const d of document.querySelectorAll('dialog'))d.close();$('lastPlay').textContent='Opening kickoff. Get ready to return.';renderPlaybook();updateHUD();resizeField();window.scrollTo(0,0);maybeLesson();}
 $('start').onclick=start;$('rematch').onclick=start;
-function menu(){game=null;keys={};resetStick();document.body.classList.remove('playing');$('lobby').hidden=false;$('game').hidden=true;$('footer').hidden=false;for(const d of document.querySelectorAll('dialog'))d.close();updateLobby();window.scrollTo(0,0);}
+function menu(){replay.reset();stadium.soundtrack.stopScore();game=null;keys={};resetStick();document.body.classList.remove('playing');$('lobby').hidden=false;$('game').hidden=true;$('footer').hidden=false;for(const d of document.querySelectorAll('dialog'))d.close();updateLobby();window.scrollTo(0,0);}
 $('quit').onclick=menu;$('newTeams').onclick=menu;
 function pause(){if(!game||game.phase==='final')return;for(const id of ['defenderDialog','lessonDialog'])if($(id).open)$(id).close();game.paused=true;keys={};resetStick();if(!$('pauseDialog').open)showDialog('pauseDialog');}
 $('pause').onclick=pause;$('resume').onclick=()=>{game.paused=false;$('pauseDialog').close();updateHUD();audioUnlock();};$('pauseDialog').addEventListener('cancel',e=>{e.preventDefault();$('resume').click();});
 document.addEventListener('visibilitychange',()=>{if(document.hidden)pause();});window.addEventListener('blur',()=>{if(game)pause();});
 function snap(){if(game&&!game.paused&&game.userOffense&&game.snap(0)){toastUntil=0;$('message').replaceChildren();updateHUD();renderPlaybook();audioUnlock();}}
 bindGameButton($('changePlay'),()=>{if(game&&!game.paused&&game.phase==='ready'){game.phase='call';renderPlaybook();updateHUD();}});
-function primaryAction(){const action=primaryCommand(game);if(action==='snap')snap();else if(action==='kick')game.kickAction();else if(action==='accept')game.resolvePenalty(true);else if(action==='break')game.breakTackle();else if(action==='burst')game.burst();updateHUD();audioUnlock();}
-function receiverAction(i){if(!game||game.paused)return;if(game.phase==='penalty'){if(i===0)game.resolvePenalty(false);updateHUD();return;}if(['kick_ready','kick_charge'].includes(game.phase)&&game.userKicking)game.special.aim=[-.68,0,.68][i];else if(game.phase==='kick_flight'&&game.userOffense&&i===1)game.fairCatch();else if(game.userOffense)game.throwTo(i);else if(i===0)game.switchDefender();else if(i===1)game.switchDefender('cycle');else openDefenders();updateHUD();}
+function primaryAction(){if(replay.active){skipReplay();return;}const action=primaryCommand(game);if(action==='snap')snap();else if(action==='kick')game.kickAction();else if(action==='accept')game.resolvePenalty(true);else if(action==='break')game.breakTackle();else if(action==='burst')game.burst();updateHUD();audioUnlock();}
+function receiverAction(i){if(replay.active||!game||game.paused)return;if(game.phase==='penalty'){if(i===0)game.resolvePenalty(false);updateHUD();return;}if(['kick_ready','kick_charge'].includes(game.phase)&&game.userKicking)game.special.aim=[-.68,0,.68][i];else if(game.phase==='kick_flight'&&game.userOffense&&i===1)game.fairCatch();else if(game.userOffense)game.throwTo(i);else if(i===0)game.switchDefender();else if(i===1)game.switchDefender('cycle');else openDefenders();updateHUD();}
 bindGameButton($('burst'),primaryAction);
 for(let i=0;i<3;i++)bindGameButton($('pass'+i),()=>receiverAction(i));
 function openDefenders(){if(!game||game.userOffense||game.paused||!['call','ready'].includes(game.phase))return;game.paused=true;resetStick();keys={};$('defenderList').replaceChildren(...game.defenders.map((p,i)=>{const b=el('button',`#${p.number} ${p.name} · ${p.pos}${i===game.selected?' · SELECTED':''}`,'defenderchoice');b.append(el('small',guidance==='expert'?`Tackle ${p.tackling} · Coverage ${p.coverage} · Reads ${p.recognition}`:p.slot<2?'Defensive front':p.slot<4?'Linebacker':'Secondary'));b.onclick=()=>{game.paused=false;game.selectDefender(i);$('defenderDialog').close();updateHUD();};return b;}));$('defenderDialog').showModal();}
 function closeDefenders(){if(game)game.paused=false;$('defenderDialog').close();updateHUD();}
 $('closeDefenders').onclick=closeDefenders;$('defenderDialog').addEventListener('cancel',e=>{e.preventDefault();closeDefenders();});
-field.addEventListener('pointerdown',e=>{if(!game||game.userOffense||game.paused||e.pointerType==='mouse'&&e.button!==0)return;e.preventDefault();const r=field.getBoundingClientRect(),index=hitDefender(defenderHits,e.clientX-r.left,e.clientY-r.top,28);if(index!==null){game.selectDefender(index);updateHUD();}});
+field.addEventListener('pointerdown',e=>{if(replay.active||!game||game.userOffense||game.paused||e.pointerType==='mouse'&&e.button!==0)return;e.preventDefault();const r=field.getBoundingClientRect(),index=hitDefender(defenderHits,e.clientX-r.left,e.clientY-r.top,28);if(index!==null){game.selectDefender(index);updateHUD();}});
 const seenLessons=safeRead('pg-lessons',{});
 function maybeLesson(){if(!game||game.paused||guidance!=='simple')return;let key='';if(game.phase==='kick_ready')key='kick';else if(game.phase==='call')key=game.userOffense?'offense':'defense';if(!key||seenLessons[key])return;const lessons={kick:['Track, then return.','Tap READY TO RETURN. Let the returner reach the ring, then run upfield with your left thumb. BURST is bottom right.'],offense:['Four downs. One gold line.','Choose one of three suggested plays, or open your full team book. SNAP is bottom right. Pass with A, B or C. Near a tackler, the action becomes BREAK TACKLE; a move costs stamina and may expose the ball.'],defense:['Choose the defender you want.','The opponent’s play is hidden. Choose coverage, then tap a defender on the field or open PICK. NEAREST selects near the ball, NEXT cycles. Stay behind the blue line: the CPU snaps automatically.']};[$('lessonTitle').textContent,$('lessonText').textContent]=lessons[key];$('lessonDialog').dataset.lesson=key;game.paused=true;resetStick();$('lessonDialog').showModal();}
 function dismissLesson(){seenLessons[$('lessonDialog').dataset.lesson]=true;safeWrite('pg-lessons',seenLessons);$('lessonDialog').close();if(game)game.paused=false;updateHUD();audioUnlock();}
@@ -84,14 +107,15 @@ $('lessonDone').onclick=dismissLesson;$('lessonDialog').addEventListener('cancel
 function kick(type){if(game&&!game.paused){game.kick(type);updateHUD();renderPlaybook();}}
 for(const b of [$('punt'),quickPunt])bindGameButton(b,()=>kick('punt'));
 for(const b of [$('fieldGoal'),quickFieldGoal])bindGameButton(b,()=>kick('fieldgoal'));
-window.addEventListener('keydown',e=>{if(!game||['INPUT','SELECT','TEXTAREA'].includes(e.target.tagName))return;if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' ','1','2','3','w','a','s','d','p'].includes(e.key))e.preventDefault();if(e.repeat)return;keys[e.key.toLowerCase()]=true;if(e.key.toLowerCase()==='p'){if(document.querySelector('dialog[open]')&&!$('pauseDialog').open)return;if(game.paused)$('resume').click();else pause();}if(game.paused)return;if(e.key===' ')primaryAction();if('123'.includes(e.key))receiverAction(Number(e.key)-1);});
+window.addEventListener('keydown',e=>{if(!game||['INPUT','SELECT','TEXTAREA'].includes(e.target.tagName))return;if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' ','1','2','3','w','a','s','d','p'].includes(e.key))e.preventDefault();if(e.repeat)return;if(replay.active&&e.key.toLowerCase()!=='p'){if(e.key===' '||e.key==='Escape')skipReplay();return;}keys[e.key.toLowerCase()]=true;if(e.key.toLowerCase()==='p'){if(document.querySelector('dialog[open]')&&!$('pauseDialog').open)return;if(game.paused)$('resume').click();else pause();}if(game.paused)return;if(e.key===' ')primaryAction();if('123'.includes(e.key))receiverAction(Number(e.key)-1);});
 window.addEventListener('keyup',e=>{delete keys[e.key.toLowerCase()];});
 const joy=$('joystick'),moveZone=$('moveZone');function resetStick(){stick={x:0,y:0};joyPointer=null;$('stick').style.transform='translate(0px, 0px)';}
 function joyMove(e){if(e.pointerId!==joyPointer)return;e.preventDefault();const r=joy.getBoundingClientRect(),v=stickInput(e.clientX-r.left-r.width/2,e.clientY-r.top-r.height/2,r.width*.32);stick={x:v.x,y:v.y};$('stick').style.transform=`translate(${v.px}px, ${v.py}px)`;}
-moveZone.onpointerdown=e=>{if(joyPointer!==null||e.pointerType==='mouse'&&e.button!==0)return;joyPointer=e.pointerId;moveZone.setPointerCapture(e.pointerId);joyMove(e);};moveZone.onpointermove=joyMove;moveZone.onpointerup=e=>{if(e.pointerId===joyPointer)resetStick();};moveZone.onpointercancel=moveZone.onlostpointercapture=()=>resetStick();
+moveZone.onpointerdown=e=>{if(replay.active||joyPointer!==null||e.pointerType==='mouse'&&e.button!==0)return;joyPointer=e.pointerId;moveZone.setPointerCapture(e.pointerId);joyMove(e);};moveZone.onpointermove=joyMove;moveZone.onpointerup=e=>{if(e.pointerId===joyPointer)resetStick();};moveZone.onpointercancel=moveZone.onlostpointercapture=()=>resetStick();
 window.addEventListener('orientationchange',resetStick);
 function updateHUD(){
  if(!game)return;
+ if(replay.active){replayHUD();return;}$('replayBar').hidden=true;
  const g=game,ready=['call','ready'].includes(g.phase),s=g.special,kickSetup=['kick_ready','kick_charge'].includes(g.phase),flight=['kick_flight','kick_loose'].includes(g.phase);
  $('homeAbbr').textContent=g.teams[0].abbr;$('awayAbbr').textContent=g.teams[1].abbr;$('homeScore').textContent=g.scores[0];$('awayScore').textContent=g.scores[1];$('quarter').textContent=g.quarter>4?'OT':`Q${g.quarter}`;$('clock').textContent=g.quarter>4?'SD':`0:${String(Math.ceil(g.clock)).padStart(2,'0')}`;
  $('possession').textContent=kickSetup||flight?(g.userKicking?'YOU KICK ↓':'YOU RETURN ↑'):g.userOffense?'YOUR BALL ↑':'DEFEND ↑';
@@ -181,6 +205,34 @@ function drawGame(){if(!game)return;
  if(g.burstLeft>0){const p=g.carrier;rect(ctx,px(p.x)-3,py(p.y)+18,2,7,'#f8d67b');rect(ctx,px(p.x)+3,py(p.y)+21,2,6,'#f8d67b');}
  ctx.restore();
 }
+function drawReplay(f){
+ if(!f)return;const flip=f.anchor===1,xy=p=>({x:flip?53-p.x:p.x,y:flip?100-p.y:p.y});
+ const ball=xy(f.ball),fit=Math.min(1,field.height/360),view={width:360,height:field.height/fit};
+ ctx.save();rect(ctx,0,0,field.width,field.height,'#162e2c');ctx.translate((360-360*fit)/2,0);ctx.scale(fit,fit);
+ const {px,py}=drawField(ctx,view,clamp(ball.y+12,13,93),game.teams[f.anchor],game.teams[1-f.anchor]);
+ if(!f.returning){for(const [yard,color] of [[f.spot,'#70c5ee'],[f.target,'#efc65b']])rect(ctx,29,py(flip?100-yard:yard),302,2,color);}
+ const people=f.people.map(p=>({...p,...xy(p)})).sort((a,b)=>b.y-a.y);
+ for(const p of people){const team=game.teams[p.team];sprite(ctx,px(p.x),py(p.y),team.color,team.accent,p.number,p.phase,p.carrier,p.carrier&&!f.airborne&&!f.loose);if(p.stun>.4)txt(ctx,'✦',px(p.x),py(p.y)-19,10,'#ebcc82');}
+ if(f.airborne||f.loose){rect(ctx,px(ball.x)-3,py(ball.y),7,3,'#152a2866');rect(ctx,px(ball.x)-2,py(ball.y)-f.arc-3,5,8,'#d9965e');rect(ctx,px(ball.x)-1,py(ball.y)-f.arc,3,1,'#fff4d1');}
+ if(f.flag)txt(ctx,'FLAG ON PLAY',180,view.height-34,9,'#ffd15b');
+ ctx.restore();
+}
 function drawAttract(t){const a=roster?teamFor($('homeTeam').value):TEAMS[21],b=roster?teamFor($('awayTeam').value):TEAMS[3];const {px,py}=drawField(atx,attract,65,a,b,t);const phase=t*.002;const runnerX=25+Math.sin(phase)*6;const others=[[15,70,55],[39,71,72],[12,83,24],[44,86,30],[27,91,4]];for(const [x,y,n] of others)sprite(atx,px(x),py(y)+Math.sin(phase+x)*3,'#e5e6cb',b.color,n,phase+x,false,false,1.25);for(const [x,y,n] of [[21,76,66],[33,77,76]])sprite(atx,px(x),py(y),a.color,a.accent,n,phase,false,false,1.25);sprite(atx,px(runnerX),py(68),a.color,a.accent,a.offense?.[1].number||32,phase*4,true,true,1.5);rect(atx,44,30,272,45,'#173b2edd');txt(atx,'SUNDAY IS A STATE OF MIND.',180,49,10,'#c8dda8');txt(atx,'PRESS PLAY. BREAK AWAY.',180,64,9,'#f2d49b');}
-function frame(now){stadium.update(game,document.hidden);let dt=rafTime?(now-rafTime)/1000:0;rafTime=now;if(game){let x=stick.x+(keys.d||keys.arrowright?1:0)-(keys.a||keys.arrowleft?1:0),y=stick.y+(keys.w||keys.arrowup?1:0)-(keys.s||keys.arrowdown?1:0);const n=Math.hypot(x,y);if(n>1){x/=n;y/=n;}const elapsed=Math.min(dt,.25),steps=Math.max(1,Math.ceil(elapsed/.05));for(let i=0;i<steps;i++)game.tick(elapsed/steps,{x,y});processEvents();drawGame();hudTimer+=dt;if(hudTimer>(game.phase==='kick_charge'?.035:.09)){updateHUD();hudTimer=0;}if(toastUntil&&now>toastUntil){$('message').replaceChildren();toastUntil=0;}}else if(!document.hidden){drawAttract(window.matchMedia('(prefers-reduced-motion: reduce)').matches?0:now);}requestAnimationFrame(frame);}
+function frame(now){
+ let dt=rafTime?(now-rafTime)/1000:0;rafTime=now;
+ stadium.update(game,document.hidden,{audition,replay:!!replay.active});
+ const musicStatus=stadium.soundtrack.scorer?'Scoring · '+stadium.soundtrack.scorer.track.title:stadium.soundtrack.status;if(lastMusicStatus!==musicStatus){lastMusicStatus=musicStatus;$('nowPlaying').textContent=lastMusicStatus;$('pauseTrack').textContent=lastMusicStatus;}
+ if(game){
+  if(replay.active){if(!game.paused&&!document.hidden){const was=replay.active;replay.advance(dt);if(was!==replay.active){keys={};resetStick();updateHUD();}}if(replay.active)drawReplay(replay.view());else{updateHUD();drawGame();}}
+  else{
+   let x=stick.x+(keys.d||keys.arrowright?1:0)-(keys.a||keys.arrowleft?1:0),y=stick.y+(keys.w||keys.arrowup?1:0)-(keys.s||keys.arrowdown?1:0);const n=Math.hypot(x,y);if(n>1){x/=n;y/=n;}
+   const elapsed=Math.min(dt,.25),steps=Math.max(1,Math.ceil(elapsed/.05));let observed=0;
+   for(let i=0;i<steps;i++){game.tick(elapsed/steps,{x,y});if(!game.paused)replay.observe(game,elapsed/steps,game.events.slice(observed));observed=game.events.length;}
+   processEvents();if(autoReplays&&replay.start(game)){keys={};resetStick();toastUntil=0;$('message').replaceChildren();updateHUD();}else if(!autoReplays)replay.skipAll();
+   if(replay.active)drawReplay(replay.view());else drawGame();
+  }
+  hudTimer+=dt;if(hudTimer>(game.phase==='kick_charge'?.035:.09)){updateHUD();hudTimer=0;}if(toastUntil&&now>toastUntil){$('message').replaceChildren();toastUntil=0;}
+ }else if(!document.hidden)drawAttract(window.matchMedia('(prefers-reduced-motion: reduce)').matches?0:now);
+ requestAnimationFrame(frame);
+}
 boot();requestAnimationFrame(frame);
