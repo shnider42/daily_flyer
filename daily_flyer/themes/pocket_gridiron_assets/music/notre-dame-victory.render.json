@@ -1,21 +1,21 @@
 {
   "sample_rate": 44100,
   "channels": 2,
-  "loop_seconds": 9.6429,
-  "preview_seconds": 10.1429,
+  "loop_seconds": 26.7857,
+  "preview_seconds": 27.2857,
   "peak_dbfs": -2.938,
-  "rms_dbfs": -14.939,
-  "pre_master_peak": 0.5672,
+  "rms_dbfs": -16.034,
+  "pre_master_peak": 0.6524,
   "notes_per_track": {
-    "Historic melody": 17,
-    "Original low brass bass": 33,
-    "Original brass responses": 51,
-    "Original stadium organ": 30,
-    "Original field percussion": 98,
-    "Melody octave color": 17
+    "Historic melody": 49,
+    "Original low brass bass": 97,
+    "Original brass responses": 147,
+    "Original stadium organ": 84,
+    "Original field percussion": 294,
+    "Melody octave color": 49
   },
   "wav_retained": false,
   "mp3": "/workspace/scratch/b8b309fc9523/daily_flyer/daily_flyer/themes/pocket_gridiron_assets/music/notre-dame-victory.mp3",
-  "render_seconds": 1.1,
+  "render_seconds": 2.77,
   "audio_source": "Original procedural oscillators and noise; no third-party samples."
 }

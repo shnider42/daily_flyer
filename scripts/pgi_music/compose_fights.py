@@ -161,14 +161,38 @@ def scores():
     eb = [55, 58, 63]
     ab = [56, 60, 63]
     bb7 = [56, 58, 62]
+    nd_changes = [
+        (0, 4, 39, eb), (4, 2, 38, [54, 57, 60]), (6, 2, 39, eb),
+        (8, 8, 44, ab), (16, 4, 44, ab), (20, 2, 39, eb), (22, 2, 44, ab),
+        (24, 4, 46, bb7), (28, 4, 46, bb7),
+    ]
+    # Three statements of the same audited eight-bar melody. The quieter
+    # middle statement and fuller final reprise extend the celebration without
+    # claiming to transcribe additional bars from the historic composition.
     nd = make_score(
-        "notre-dame-victory", "Notre Dame Victory March — PGI scoring arrangement", 224, 9,
-        ND_MELODY,
-        [(0, 4, 39, eb), (4, 2, 38, [54, 57, 60]), (6, 2, 39, eb),
-         (8, 8, 44, ab), (16, 4, 44, ab), (20, 2, 39, eb), (22, 2, 44, ab),
-         (24, 4, 46, bb7), (28, 4, 46, bb7)],
-        end=32, final=(32, 3.5, 75, 39, eb),
+        "notre-dame-victory", "Notre Dame Victory March — PGI scoring arrangement", 224, 25,
+        ND_MELODY * 3,
+        [(start + offset, span, root, chord)
+         for offset in (0, 32, 64) for start, span, root, chord in nd_changes],
+        end=96, final=(96, 3.5, 75, 39, eb),
     )
+    for part in nd["tracks"]:
+        for n in part["notes"]:
+            if 32 <= n["start"] < 64:
+                n["velocity"] = round(n["velocity"] * (.80 if part["instrument"] == "drums" else .88))
+            elif 64 <= n["start"] < 96:
+                n["velocity"] = min(120, round(n["velocity"] * 1.06))
+        if part["instrument"] == "drums":
+            part["notes"] = [n for n in part["notes"]
+                             if not (32 <= n["start"] < 48 and n["pitch"] == 49)]
+            part["notes"] += [note(38, 94 + beat * .25, .06, 47 + beat * 7)
+                              for beat in range(8)]
+    nd["sections"] = [
+        {"beat": 0, "name": "Opening brass statement"},
+        {"beat": 32, "name": "Lighter stadium reprise"},
+        {"beat": 64, "name": "Full-band return"},
+        {"beat": 96, "name": "Tonic celebration ending"},
+    ]
 
     d = [57, 62, 66]
     generic = make_score(
@@ -185,9 +209,13 @@ def scores():
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--render", action="store_true")
+    parser.add_argument("--only", choices=("for-boston", "notre-dame-victory", "pgi-score"),
+                        help="Rebuild one cue without rewriting the others")
     args = parser.parse_args()
     SCORES.mkdir(exist_ok=True)
     for score in scores():
+        if args.only and score["id"] != args.only:
+            continue
         output = SCORES / f'{score["id"]}.json'
         output.write_text(json.dumps(score, indent=2) + "\n")
         print(output.relative_to(REPO))

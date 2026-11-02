@@ -8,7 +8,7 @@ is used. Only the two historic songs' single-note melodies are transcribed.
 | Asset | Used for | Musical source | Rendering |
 | --- | --- | --- | --- |
 | `for-boston.mp3` | New England scoring | Thomas J. Hurley's **For Boston**, opening pickup and eight bars | B-flat major, quarter = 156, new tonic ending |
-| `notre-dame-victory.mp3` | New York Jets scoring | Michael J. Shea's **Notre Dame Victory March**, first eight chorus bars | E-flat major, half = 112, new tonic ending |
+| `notre-dame-victory.mp3` | New York Jets scoring | Michael J. Shea's **Notre Dame Victory March**, first eight chorus bars | E-flat major, half = 112, three statements and new tonic ending; 27.3 seconds |
 | `pgi-score.mp3` | Other teams scoring | **Six on the Board**, an original PGI melody | D major, quarter = 152 |
 
 ## Sources and scope
@@ -90,11 +90,24 @@ Notre Dame Victory March, E-flat major, chorus:
 New closing tag: Eb5:3.5
 ```
 
+The extended Jets cue repeats this same audited eight-bar melody three times:
+an opening brass statement, a lighter middle reprise, and a fuller final return
+with a newly written drum fill before the tonic closing tag. It does not claim
+to reproduce the complete historic chorus or transcribe additional source bars.
+Its new variation is in dynamics and orchestration, not a copied band recording.
+The For Boston cue and the generic scoring fanfare are unchanged.
+
 The generic cue's melody and all three accompaniments are authored directly in
 `compose_fights.py`. To regenerate scores and audio:
 
 ```sh
 python scripts/pgi_music/compose_fights.py --render
+```
+
+To rebuild only the extended Jets cue while leaving all other assets untouched:
+
+```sh
+python scripts/pgi_music/compose_fights.py --only notre-dame-victory --render
 ```
 
 The shared renderer makes its own oscillators and percussion noise at 44.1 kHz,

@@ -1,5 +1,107 @@
 # Pocket Gridiron (PGI)
 
+## v10 — longer games and the halftime booth
+
+This release includes the prepared v9 directional passing and expanded books.
+Deployment branch: `feat/pocket-gridiron`; public route: `/gridiron/`.
+
+Game length is selected in the lobby and remembered: Quick has 45-second
+quarters, Extended 90 seconds (2×), and Sunday showcase 180 seconds (4×).
+These are 3, 6 and 12 minutes of live game clock; menus, dead balls and replays
+add real time. Existing sudden-death overtime remains unchanged.
+
+Sunday showcase pauses at halftime after the last play, penalty decision and
+replay. A five-segment Al Michaels / John Madden pixel-art booth uses original,
+captioned fictional fan-tribute dialogue, with no impersonated voices or actual
+broadcast quotations. Its report snapshots both teams' score, net offensive
+rushing/passing yards, completions/attempts, return yards, takeaways and longest
+gain. Accepted fouls erase provisional statistics; declines restore them.
+These are arcade box scores, not a full NFL statistical accounting system.
+
+The show has auto-advance, pause, previous/next, an expandable box score, and an
+always-visible Start second half button. It freezes simulation and RNG, stops
+advancing while hidden, and resumes with the opponent receiving at 3:00 in Q3.
+A John Madden remembrance appears in the booth and help. Artwork provenance and
+its generation prompt are in `scripts/pgi_music/HALFTIME_ART.md`.
+
+Notre Dame's scoring arrangement now runs about 27.3 seconds (previously 10.2),
+with three statements and a resolved ending. The BC arrangement is byte-identical.
+Contact grunts are short synthesized effects, with blocks quieter than tackles,
+a 12-yard near-ball block gate, at least 0.42 seconds between voices, at least
+0.95 seconds between block voices, and at most three voices per two seconds.
+The throw slide whistle lasts 0.28–0.65 seconds. Both have independent Pause
+switches and respect Effects mute. No per-frame outcome rolls were introduced.
+
+Validation: 131 JavaScript tests and 2 Flask tests pass, including full 2×/4×
+games, the halftime boundary, penalty-adjusted stats, replay isolation, audio
+voice budgets and mute controls. Browser QA covered 428×746, 375×580 and 844×390
+layouts, segment navigation/pause, and the second-half kickoff. Audio assets
+passed numerical quality checks; real iPhone feel and subjective listening still
+benefit from hands-on review.
+
+## v9 — directional passing and expanded playbooks
+
+### Pass placement
+
+Tap A/B/C while moving the left stick to shift that receiver's pass in the same
+field direction. Up adds depth, down brings it back, and lateral/diagonal input
+places it on either shoulder. Stick travel controls the amount. Releasing or
+centering the stick returns to assisted placement. Arrows/WASD with 1/2/3 provide
+the same controls on desktop. The stick continues to move the QB before release.
+The receiver-button event reads the current input directly, avoiding a stale
+frame or a stored direction after the thumb lifts.
+
+`passing.js` forecasts the receiver along their actual route, including stops
+and comeback cuts, and adds the requested offset. The flight destination is
+fixed at release; QB accuracy and pressure add the existing error. Preview rings
+show the intended placement before that error. Receivers adjust on foot after a
+short reaction, with a little extra delay turning back upfield from a settled
+hook. No teleport, homing ball, or automatic rescue at the sideline.
+
+The ball is contested where it actually arrives. Nearby eligible offensive
+players may catch it; defenders get one contact opportunity each per throw.
+An isolated defender under a misplaced pass has a much better conditional
+interception chance than a defender contesting a receiver. This is an arcade
+positional model, not a claim of measured NFL situation-level probabilities.
+Drops, tips and incompletions remain possible. Strongly placed or stretched
+catches feed the existing temporary off-balance/tackle-break mechanic.
+
+Neutral throws retain a forgiving assisted catch. Small stick adjustments are
+intentionally easier than maximum travel. Seeded open-field checks protect that
+balance and verify that full forward lead is usable on deep routes. Those checks
+are bounded scenarios, not whole-game completion-rate predictions.
+
+### Playbooks
+
+Catalog: **32 offensive / 18 defensive calls**. Each team has **16 offense / 12
+defense**, retaining its existing identity and signatures. Simple offers three
+suggestions; the full book has Run/Quick/Deep or Zone/Man/Pressure filters and six
+calls per page. Opponent routes and play names remain private.
+
+New offense: sideline comebacks, speed outs, deep outs, dagger, drive cross,
+scissors, double posts, bench corners, whip returns, corner/post, seam stretch,
+shallow/wheel, right trap, power left, QB draw and lead isolation.
+
+New defense: quarters, quarter/quarter/half, zero blitz, man/QB spy, left and
+right brackets, fire zone, and left and right edge blitzes.
+
+`plays.js` holds shared route geometry, run lanes, pulling/lead assignments,
+coverage metadata and diagrams. The CPU uses the same catalogs and team books.
+QB draw holds pass protection briefly before run blocking; trap/power/iso use
+their specified blocker and lane. Fire zone drops a lineman instead of sending
+him automatically, and zero blitz gives up the deep helper.
+
+### Review and validation
+
+`node --test tests/gridiron/*.test.mjs` covers all existing gameplay and new
+placement directions, release-time input, receiver movement, route stops,
+back-shoulder catches, sideline misses, defensive landing contests, new coverage
+assignments, team-book completeness and phone-sized pages. Flask asset checks
+include `passing.js` and `plays.js`. Browser QA uses local-only fixtures outside
+the repository for phone, small-phone and landscape views. Validation: 119 JavaScript tests and 2 Flask checks passed. Actual iPhone feel
+still needs hands-on review; no new networking or multiplayer code is included.
+
+
 An original mobile-first, top-down pixel football game in DailyFlyer. Seven players per side, all 32 teams, real active player names and numbers. Original procedural pixel graphics and sound; no paid API or asset services.
 
 Play at `/gridiron/` or set `DEFAULT_THEME=pocket_gridiron` to make it the default theme. Existing theme behavior is preserved. `/?theme=pocket-gridiron` also works.
@@ -10,11 +112,11 @@ Choose a team and opponent, then call a run or pass. Touch joystick moves; A/B/C
 
 On phones, gameplay fills the available viewport with a compact scoreboard, an adaptive field canvas, and fixed thumb controls. Landscape places controls beside the field. Play choices collapse after selection; PLAYS reopens them, including fourth-down kicks; the mobile playbook opens just above the controls. The movement area is larger than the visible stick, with a radial dead zone to prevent drift; the principal action and receiver buttons are at least 54 pixels tall. Controls respect the bottom safe area. Sound and help remain available from Pause. Game surfaces consume browser touch gestures and buttons activate on contact without a duplicate click; scrolling and pinch zoom remain available in menus and dialogs.
 
-Four 45-second quarters, a live-play clock, first downs, turnovers, safeties, punts and field goals on fourth down. Touchdowns include an automatic PAT. Interceptions and defensive fumble recoveries become live returns; the field rotates so the new carrier still runs upscreen. End-zone interceptions are automatic touchbacks at the 20. Each half starts with a playable kickoff; the opponent receives the second-half kick. Touchdowns, field goals and safeties queue the correct kickoff or free kick, unless the game has ended. Ties use sudden-death overtime. Solo against AI; multiplayer and franchise mode are not included.
+Four quarters of 45, 90 or 180 seconds, a live-play clock, first downs, turnovers, safeties, punts and field goals on fourth down. Touchdowns include an automatic PAT. Interceptions and defensive fumble recoveries become live returns; the field rotates so the new carrier still runs upscreen. End-zone interceptions are automatic touchbacks at the 20. Each half starts with a playable kickoff; the opponent receives the second-half kick. Touchdowns, field goals and safeties queue the correct kickoff or free kick, unless the game has ended. Ties use sudden-death overtime. Solo against AI; multiplayer and franchise mode are not included.
 
 ## Expanded playbook and special teams
 
-The shared offensive catalog has sixteen calls. Teams each carry eight: four common calls plus four identity-specific calls. The original ten are: Inside Run, Wide Sweep, Quick Slants, Go Routes, Counter Left (pulling guard), Curl Hooks (receivers come back after 12 yards), Boot Flood (right-side routes at three depths), Mesh Cross (two shallow crossing routes), Smash Corners (two short hooks and a deep TE corner), and Delayed Draw (QB shows pass, then hands off after 0.85 seconds). Six new calls are Power Lead, Stretch Left, QB Keeper, Levels, Post / Wheel, and Spot Triangle. Defensive books select six calls from nine: Zone, Man, Blitz, Cover 2 (two deep halves), Cover 3 (three deep thirds), Run Commit (four rushers, vulnerable downfield), Press Man (tight corners delay releases, extra LB rush), Robber (man outside with an underneath help defender), and Prevent (five deep zones, vulnerable underneath).
+The shared offensive catalog has 32 calls. Teams each carry 16, selected for their identity. The 16 additions are listed in the v9 section above. The original ten are: Inside Run, Wide Sweep, Quick Slants, Go Routes, Counter Left (pulling guard), Curl Hooks (receivers come back after 12 yards), Boot Flood (right-side routes at three depths), Mesh Cross (two shallow crossing routes), Smash Corners (two short hooks and a deep TE corner), and Delayed Draw (QB shows pass, then hands off after 0.85 seconds). Other established calls are Power Lead, Stretch Left, QB Keeper, Levels, Post / Wheel, and Spot Triangle. Defensive books select 12 calls from 18. The nine established calls are: Zone, Man, Blitz, Cover 2 (two deep halves), Cover 3 (three deep thirds), Run Commit (four rushers, vulnerable downfield), Press Man (tight corners delay releases, extra LB rush), Robber (man outside with an underneath help defender), and Prevent (five deep zones, vulnerable underneath).
 
 On fourth down, Punt starts a real kick sequence. The CPU chooses its own punts or field goals. Aim with the stick or A/B/C; tap START METER, then KICK to lock power. Space operates the meter on desktop; 1/2/3 aim left/center/right. More power adds distance, including the risk of a touchback; aiming too wide can send the kick out of bounds. The active roster supplies the punter/kicker when available.
 

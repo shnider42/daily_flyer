@@ -4,7 +4,7 @@ export function publicPlayName(g){return g.userOffense?g.playDefinition.name:g.t
 export function suggestions(g,plays){
  const long=g.target-g.spot>6,side=g.userOffense?'offense':'defense',profile=g.teams[0].profile?.[side];
  const ranked=[...plays].sort((a,b)=>score(b)-score(a)),picks=ranked.slice(0,3);if(g.userOffense&&g.down<=2&&picks.every(p=>p.kind==='pass')){const run=ranked.find(p=>p.kind==='run');if(run)picks[2]=run;}return picks;
- function score(p){return (profile?.signature.includes(p.id)?2:0)+(g.userOffense?(p.kind===(long?'pass':'run')?3:0):((long?['cover2','cover3','zone']:['commit','blitz','man']).includes(p.id)?3:0));}
+ function score(p){return (profile?.signature.includes(p.id)?2:0)+(g.userOffense?(p.kind===(long?'pass':'run')?3:0):((long?p.group==='zone':p.group==='pressure'||p.group==='man')?3:0));}
 }
 export function coachText(g,level){
  if(level==='expert')return '';
@@ -18,3 +18,9 @@ export function coachText(g,level){
  return level==='simple'?`${distance} yards to a first down. ${tip}`:`${profile?.strength||'Use your personnel'}. ${tip}`;
 }
 export function hitDefender(points,x,y,radius=26){return points.map(p=>({...p,d:Math.hypot(p.x-x,p.y-y)})).filter(p=>p.d<=radius).sort((a,b)=>a.d-b.d)[0]?.index??null;}
+
+export const BOOK_FILTERS={offense:[['all','ALL'],['run','RUN'],['quick','QUICK'],['deep','DEEP']],defense:[['all','ALL'],['zone','ZONE'],['man','MAN'],['pressure','PRESSURE']]};
+export function bookPage(plays,filter='all',page=0,size=6){
+ const filtered=filter==='all'?plays:plays.filter(p=>p.group===filter),pages=Math.max(1,Math.ceil(filtered.length/size)),index=Math.max(0,Math.min(pages-1,page));
+ return {plays:filtered.slice(index*size,(index+1)*size),page:index,pages,total:filtered.length};
+}

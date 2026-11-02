@@ -15,14 +15,14 @@
     },
     {
       "id": "notre-dame-victory",
-      "bytes": 143130,
-      "duration_seconds": 10.188,
-      "decoded_peak_dbfs": -3.795,
-      "decoded_rms_dbfs": -15.388,
+      "bytes": 383039,
+      "duration_seconds": 27.324,
+      "decoded_peak_dbfs": -3.565,
+      "decoded_rms_dbfs": -16.478,
       "decoded_clip_samples": 0,
       "channels": 2,
       "sample_rate": 44100,
-      "melody_check": "Visual comparison with the referenced sheet-music melody"
+      "melody_check": "Same audited eight-bar melody in three statements; newly varied orchestration and closing tag"
     },
     {
       "id": "pgi-score",

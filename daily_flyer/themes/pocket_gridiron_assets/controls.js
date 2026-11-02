@@ -34,6 +34,12 @@ export function stickInput(dx,dy,radius){
   return {x:length?dx/length*amount:0,y:length?-dy/length*amount:0,px:length?dx/length*travel*radius:0,py:length?dy/length*travel*radius:0};
 }
 
+// Read at the instant a receiver button is pressed, not the previous frame.
+export function movementInput(stick={},keys={}){
+ const x=(stick.x||0)+(keys.d||keys.arrowright?1:0)-(keys.a||keys.arrowleft?1:0),y=(stick.y||0)+(keys.w||keys.arrowup?1:0)-(keys.s||keys.arrowdown?1:0),n=Math.max(1,Math.hypot(x,y));
+ return {x:x/n,y:y/n};
+}
+
 export function setGameButtonEnabled(button, enabled) {
   // Native disabled controls can stop receiving the events that cancel Safari
   // gestures. Keep receiver/burst surfaces responsive even during cooldowns.
@@ -41,7 +47,7 @@ export function setGameButtonEnabled(button, enabled) {
 }
 
 export function protectGameSurface(surface) {
-  const cancel = event => { if (event.cancelable) event.preventDefault(); };
+  const cancel = event => { if (event.target?.closest?.('.quickcall')&&event.type.startsWith('touch'))return;if (event.cancelable) event.preventDefault(); };
   // Scoped to the playing surfaces; menus and dialogs retain normal scrolling
   // and pinch zoom. Explicit cancellation also covers rapid taps between keys.
   for (const type of ['touchstart', 'touchmove', 'touchend']) {
