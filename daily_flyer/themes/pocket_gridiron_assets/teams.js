@@ -1,0 +1,18 @@
+// Dated, hand-reviewed arcade identities; not official coaching tendencies.
+export const PROFILE_DATE='2026-11-01';
+export const OFFENSE_STYLES={
+ power:{name:'Power ground game',strength:'Inside runs and lead blocks',weakness:'Less room if the box is crowded',signature:['counter','power'],plays:['dive','slants','verts','curls','counter','power','draw','flood']},
+ quick:{name:'Quick timing',strength:'Short routes and reliable outlets',weakness:'Tight underneath coverage disrupts timing',signature:['mesh','levels'],plays:['dive','slants','verts','curls','mesh','levels','smash','draw']},
+ vertical:{name:'Vertical attack',strength:'Deep routes and isolated receivers',weakness:'Deep routes need time in the pocket',signature:['postwheel','smash'],plays:['dive','slants','verts','curls','postwheel','smash','sweep','flood']},
+ mobile:{name:'Moving pocket',strength:'QB movement and changing launch points',weakness:'Disciplined contain narrows escape lanes',signature:['keeper','flood'],plays:['dive','slants','verts','curls','keeper','flood','counter','mesh']},
+ space:{name:'Space and speed',strength:'Outside runs and crossing routes',weakness:'Sideline contain and physical tackling',signature:['stretch','mesh'],plays:['dive','slants','verts','curls','stretch','mesh','sweep','spot']}
+};
+export const DEFENSE_STYLES={
+ pressure:{name:'Pressure front',strength:'Extra rushers and run pressure',weakness:'Short throws behind the rush',signature:['blitz','commit'],plays:['zone','man','blitz','commit','press','cover3']},
+ man:{name:'Man matchups',strength:'Individual coverage and press',weakness:'Crossing routes and mobile QBs',signature:['press','robber'],plays:['zone','man','blitz','press','robber','cover2']},
+ zone:{name:'Layered zone',strength:'Help coverage and deep protection',weakness:'Patient runs and underneath completions',signature:['cover2','cover3'],plays:['zone','man','blitz','cover2','cover3','prevent']}
+};
+const assignments={ARI:['mobile','zone'],ATL:['power','zone'],BAL:['mobile','pressure'],BUF:['mobile','zone'],CAR:['quick','zone'],CHI:['mobile','zone'],CIN:['vertical','man'],CLE:['power','pressure'],DAL:['vertical','man'],DEN:['quick','man'],DET:['power','man'],GB:['vertical','zone'],HOU:['vertical','zone'],IND:['power','zone'],JAX:['vertical','man'],KC:['quick','pressure'],LA:['quick','zone'],LAC:['power','zone'],LV:['power','pressure'],MIA:['space','zone'],MIN:['quick','pressure'],NE:['mobile','man'],NO:['quick','zone'],NYG:['vertical','pressure'],NYJ:['space','man'],PHI:['power','zone'],PIT:['power','pressure'],SEA:['space','zone'],SF:['quick','zone'],TB:['vertical','pressure'],TEN:['vertical','zone'],WAS:['mobile','pressure']};
+export function teamProfile(abbr){const [o,d]=assignments[abbr]||['quick','zone'];return {offense:{id:o,...OFFENSE_STYLES[o]},defense:{id:d,...DEFENSE_STYLES[d]},reviewed:PROFILE_DATE};}
+export function playbook(team,side,all){const ids=team.profile?.[side]?.plays;return ids?all.filter(p=>ids.includes(p.id)):all;}
+export function teamStrengths(team){const a=team.offense,d=team.defense,mean=(ps,key)=>Math.round(ps.reduce((n,p)=>n+(p[key]||75),0)/ps.length);return {Passing:Math.round((a[0].accuracy+mean(a.slice(2,5),'catching'))/2),Running:Math.round((a[1].power+a[1].agility+mean(a.slice(5),'runBlock'))/3),Protection:mean(a.slice(5),'passBlock'),Coverage:mean(d.slice(2),'coverage'),Pressure:mean(d.slice(0,4),'shed')};}

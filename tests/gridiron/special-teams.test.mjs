@@ -4,13 +4,13 @@ import fs from 'node:fs';
 import {Game,PLAYS,DEFENSE,distance} from '../../daily_flyer/themes/pocket_gridiron_assets/engine.js';
 import {buildTeam} from '../../daily_flyer/themes/pocket_gridiron_assets/roster.js';
 const data=JSON.parse(fs.readFileSync(new URL('../../daily_flyer/themes/pocket_gridiron_assets/rosters.json',import.meta.url)));
-const make=()=>new Game(buildTeam('NE',data),buildTeam('BUF',data),'pro',()=>.5);
+const make=()=>{const g=new Game(buildTeam('NE',data),buildTeam('BUF',data),'pro',()=>.5);g.teams.forEach(t=>t.profile=null);return g;};
 function until(g,predicate,input={x:0,y:0},limit=500){let n=0;while(!predicate(g)&&n++<limit)g.tick(.05,input);assert.ok(predicate(g),`stalled in ${g.phase}`);}
 function flight(g,type='punt',kicking=1,spot=40,power=.7,aim=0){g.beginKick(type,kicking,spot);g.launchKick(power,aim);}
 
-test('ten offensive plays and nine defensive calls all produce playable formations',()=>{
- const g=make();assert.equal(PLAYS.length,10);assert.equal(DEFENSE.length,9);
- for(const p of PLAYS){g.beginDrive(0,25);g.choose(p.id);g.snap(g.offense);assert.equal(g.phase,'live');assert.equal(g.carrier.slot,p.kind==='run'&&p.id!=='draw'?1:0);assert.equal(g.canPass,p.kind==='pass');for(let i=0;i<10;i++)g.tick(.05);}
+test('sixteen offensive plays and nine defensive calls all produce playable formations',()=>{
+ const g=make();assert.equal(PLAYS.length,16);assert.equal(DEFENSE.length,9);
+ for(const p of PLAYS){g.beginDrive(0,25);g.choose(p.id);g.snap(g.offense);assert.equal(g.phase,'live');assert.equal(g.carrier.slot,p.kind==='run'&&!['draw','keeper'].includes(p.id)?1:0);assert.equal(g.canPass,p.kind==='pass');for(let i=0;i<10;i++)g.tick(.05);}
  for(const d of DEFENSE){g.beginDrive(1,25);g.choose(d.id);g.snap(g.offense);assert.equal(g.defense,d.id);for(let i=0;i<10;i++)g.tick(.05);assert.ok(g.defenders.every(p=>Number.isFinite(p.x)&&Number.isFinite(p.y)));}
 });
 test('curl receivers come back, flood spreads three depths, counter pulls a guard left',()=>{
@@ -72,7 +72,7 @@ test('complete games across different play selections and random seeds never sta
   let state=seed;const rng=()=>{state=(state*1664525+1013904223)>>>0;return state/4294967296;};
   const g=new Game(buildTeam('NE',data),buildTeam('BUF',data),difficulty,rng);let ticks=0;
   while(g.phase!=='final'&&ticks++<26000){
-   if(g.phase==='penalty')g.resolvePenalty(true);if(g.phase==='call')g.choose(g.userOffense?PLAYS[Math.floor(rng()*PLAYS.length)].id:DEFENSE[Math.floor(rng()*DEFENSE.length)].id);
+   if(g.phase==='penalty')g.resolvePenalty(true);if(g.phase==='call')g.choose(g.userOffense?g.offensePlays[Math.floor(rng()*g.offensePlays.length)].id:g.defensePlays[Math.floor(rng()*g.defensePlays.length)].id);
    if(g.phase==='ready'&&g.userOffense)g.snap();if(g.phase==='kick_ready')g.kickAction();if(g.phase==='kick_charge'&&g.special.power>.72)g.kickAction();
    if(g.canPass&&g.userOffense&&g.liveTime>1.1)g.throwTo(Math.floor(rng()*3));
    if(g.userOffense&&g.isLive)g.burst();

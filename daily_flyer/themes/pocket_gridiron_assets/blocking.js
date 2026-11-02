@@ -18,7 +18,7 @@ export function isBlocker(g,p){
  return p.slot>=5||p.slot===1&&g.play!=='draw';
 }
 export function updateBlocking(g,dt){
- const pocket=!g.isReturn&&!g.receivedPass&&!g.scrambleRecovery&&!g.crossed&&g.carrier===g.players[0];
+ const pocket=!g.isReturn&&!g.receivedPass&&!g.scrambleRecovery&&!g.crossed&&g.carrier===g.players[0]&&(g.playDefinition.kind==='pass'||g.play==='draw');
  for(const d of g.defenders){d.blocked=false;d.blockFactor=1;d.blockCooldown=Math.max(0,(d.blockCooldown||0)-dt);}
  for(const p of g.players)p.blocking=false;
  const active=[];
@@ -28,7 +28,7 @@ export function updateBlocking(g,dt){
   if(b.left<=0){
    // A beaten pocket blocker occasionally grabs to hang on. The foul is tied
    // to this failed engagement, checked once, and shown at the player's location.
-   const beaten=pocket&&dist(d,g.carrier)<8&&b.age>1&&(d.power||70)>=(p.power||70)-10;
+   const beaten=pocket&&dist(d,g.carrier)<8&&b.age>1&&(d.shed||d.power||70)>=(p.passBlock||p.power||70)-10;
    if(!b.held&&beaten&&g.playStart&&g.rng()<.035){b.held=true;b.left=.35;g.flag('holding',g.offense,p);}
    else{p.assignment=null;d.blockCooldown=.85;continue;}
   }
@@ -37,7 +37,7 @@ export function updateBlocking(g,dt){
   // work around the edge; they cannot walk straight through the blocker.
   const dx=d.x-p.x,dy=d.y-p.y,n=Math.hypot(dx,dy)||1;
   if(n<1.9){const push=(1.9-n)*.5;d.x+=dx/n*push;d.y+=dy/n*push;p.x-=dx/n*push;p.y-=dy/n*push;}
-  if(!pocket){const drive=clamp(((p.power||70)-(d.power||70))/50+.15,-.25,.6)*dt;d.y+=drive;p.y+=drive;}
+  if(!pocket){const drive=clamp(((p.runBlock||p.power||70)-(d.shed||d.power||70))/50+.15,-.25,.6)*dt;d.y+=drive;p.y+=drive;}
   active.push(b);
  }
  g.blocks=active;
@@ -48,6 +48,7 @@ export function updateBlocking(g,dt){
  g.blockRead-=dt;
  for(const p of [...blockers].sort((a,b)=>(b.slot>=5)-(a.slot>=5))){
   const pulling=!g.isReturn&&!g.receivedPass&&g.play==='counter'&&p.slot===6&&g.liveTime<1.2;
+  if(g.play==='power'&&p.slot===6&&g.liveTime<.8){p.assignment=null;g.move(p,32-p.x,g.spot+2-p.y,p.speed,dt);continue;}
   if(pulling){p.assignment=null;g.move(p,13-p.x,g.spot-1-p.y,p.speed,dt);continue;}
   const eligible=(d,i)=>!claimed.has(i)&&d.blockCooldown<=0&&d.stun<=0&&dist(p,d)<18&&(pocket?d.y<g.spot+7&&dist(d,g.carrier)<17:d.y>g.carrier.y-2&&d.y<g.carrier.y+22);
   let i=p.assignment;
@@ -57,7 +58,7 @@ export function updateBlocking(g,dt){
    i=candidates[0]?.i??null;p.assignment=i;
   }
   if(i===null){
-   const lane=g.play==='sweep'?42:g.play==='counter'?14:g.carrier.x;
+   const lane=g.play==='sweep'?42:g.play==='stretch'?8:g.play==='power'?32:g.play==='keeper'?39:g.play==='counter'?14:g.carrier.x;
    const tx=pocket?(p.slot===5?23:p.slot===6?30:26.5):lane+(p.slot%2? -3:3),ty=pocket?g.spot-1:g.carrier.y+5;
    g.move(p,tx-p.x,ty-p.y,p.speed*.8,dt);continue;
   }
@@ -68,7 +69,7 @@ export function updateBlocking(g,dt){
   g.move(p,tx-p.x,ty-p.y,p.speed*(pocket?.86:.96),dt);
   // Contact is only legal while the blocker is between the threat and runner.
   if(dist(p,d)<2.15&&dist(d,g.carrier)>dist(p,g.carrier)+.1){
-   const left=clamp((pocket?2.0:.85)+g.rng()*.65+((p.power||70)-(d.power||70))*.012,.55,3);
+   const left=clamp((pocket?2.0:.85)+g.rng()*.65+((pocket?(p.passBlock||p.power||70):(p.runBlock||p.power||70))-(d.shed||d.power||70))*.018,.55,3);
    g.blocks.push({p:g.players.indexOf(p),d:i,left,age:0,held:false});p.blocking=true;d.blocked=true;d.blockFactor=.2;
   }
  }

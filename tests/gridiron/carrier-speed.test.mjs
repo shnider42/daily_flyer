@@ -7,7 +7,7 @@ import {seededRandom} from '../../daily_flyer/themes/pocket_gridiron_assets/rule
 const data=JSON.parse(fs.readFileSync(new URL('../../daily_flyer/themes/pocket_gridiron_assets/rosters.json',import.meta.url)));
 const home=buildTeam('NE',data),away=buildTeam('BUF',data);
 function make(offense=0,difficulty='pro'){const g=new Game(home,away,difficulty,seededRandom(71));g.beginDrive(offense,25);g.choose(offense===0?'slants':'zone');g.snap(offense);return g;}
-function travel(g,p,speed=10){p.x=26;p.y=40;p.stun=0;g.move(p,0,1,speed,.1);return p.y-40;}
+function travel(g,p,speed=10){p.x=26;p.y=40;p.stun=0;p.pace=1;g.move(p,0,1,speed,.1);return p.y-40;}
 const near=(a,b)=>assert.ok(Math.abs(a-b)<1e-8,`${a} != ${b}`);
 
 test('possession slows either team by seven percent at every difficulty without editing ratings',()=>{

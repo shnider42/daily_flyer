@@ -125,3 +125,23 @@ button[aria-disabled="true"]:hover{filter:none}
  .actionbar .burst{font-size:10px}
  .penaltypanel{padding:10px}.penaltypanel p{font-size:11px;margin:5px 0}
 }
+/* Guidance and identity stay between plays, leaving the live field clear. */
+.settings{flex-wrap:wrap;gap:12px}.settings select,.settingrow select{min-height:44px}
+.identity{border-left:3px solid var(--orange);padding:4px 0 4px 14px;margin:12px 0 20px;font:12px/1.6 monospace}
+.identity p{margin:7px 0}.identity small{color:#b5c3ba;font-size:10px}
+.settingrow{display:flex;align-items:center;justify-content:space-between;gap:15px;padding:10px 0;font:12px monospace}
+.settingrow input[type=checkbox]{width:24px;height:24px;accent-color:#f6b469}
+.quickhelp{font:11px/1.5 monospace;margin:7px 0;color:#e1e6d2}
+.quickcall .booktoggle{grid-column:1/-1;min-height:44px;background:#2d4541;font:bold 10px monospace}
+.quickcall[data-guidance=simple] .plays{grid-template-columns:repeat(3,minmax(0,1fr))}
+.quickcall{max-height:calc(100% - 24px);overflow:auto;overscroll-behavior:contain}
+.coach{position:absolute;top:48px;left:12px;right:12px;background:#17322ee8;color:#e5e5c9;padding:9px 12px;font:11px/1.5 monospace;pointer-events:none}
+.contactcue{position:absolute;top:12px;left:12px;right:12px;text-align:center;padding:8px;background:#e7bd65;color:#1f2b28;font:bold 11px monospace;pointer-events:none}
+.burst[data-action=break]{background:#ffd172;box-shadow:inset 0 0 0 2px #fff2c2}
+.defenderchoice{display:block;width:100%;text-align:left;min-height:54px;margin:7px 0;padding:11px;font:bold 12px monospace;background:#29413e;border:1px solid #59726b}
+.defenderchoice small{display:block;margin-top:5px;color:#c5d4bc;font-weight:normal}
+.ratingrow{border-bottom:1px solid #52665a;padding:10px 0}.ratingrow summary{min-height:32px;cursor:pointer;font:12px/1.5 monospace}.ratingrow p{font:12px/1.8 monospace}.ratingrow small{color:#b7c4b9}
+#starterRatings h3{font:14px monospace;margin-top:22px}
+body[data-guidance=expert] .plays .play small{display:block;font-size:9px;line-height:1.2}
+@media(max-width:600px){.quickhelp{font-size:10px}.quickcall .play{min-height:60px}.quickcall .plays[data-side=offense]{grid-template-columns:repeat(4,minmax(0,1fr))}.quickcall[data-guidance=simple] .plays{grid-template-columns:repeat(3,minmax(0,1fr))}.coach{font-size:10px}.identity{font-size:11px}.receivers span{font-size:8px}}
+@media(max-width:1000px) and (max-height:600px) and (orientation:landscape){.quickcall .plays[data-side=offense]{grid-template-columns:repeat(4,minmax(0,1fr))}.quickcall[data-guidance=simple] .plays{grid-template-columns:repeat(3,minmax(0,1fr))}.quickhelp{font-size:10px}.quickcall .play{min-height:48px}.coach{font-size:10px;top:42px}}

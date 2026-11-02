@@ -6,7 +6,7 @@ import {AI_PROFILES,seededRandom,fumbleChance} from '../../daily_flyer/themes/po
 import {buildTeam} from '../../daily_flyer/themes/pocket_gridiron_assets/roster.js';
 const data=JSON.parse(fs.readFileSync(new URL('../../daily_flyer/themes/pocket_gridiron_assets/rosters.json',import.meta.url)));
 const home=buildTeam('NE',data),away=buildTeam('BUF',data);
-function make(difficulty='pro',rng=()=>.5){const g=new Game(home,away,difficulty,rng);g.beginDrive(0,25);g.choose('slants');g.snap(g.offense);return g;}
+function make(difficulty='pro',rng=()=>.5){const g=new Game({...home,profile:null},{...away,profile:null},difficulty,rng);g.beginDrive(0,25);g.choose('slants');g.snap(g.offense);return g;}
 function isolate(g){for(const p of [...g.players,...g.defenders]){p.x=50;p.y=90;p.speed=0;p.stun=0;}g.carrier.x=26;g.carrier.y=21;g.players[2].x=7;g.players[2].y=32;}
 function passUntil(g,step=.05){let n=0;while(g.pass&&n++<300)g.tickPass(step);assert.ok(n<300);}
 
@@ -54,7 +54,7 @@ test('clean catches drop occasionally across thousands of trials, never turn int
 });
 test('contact fumble trials stay rare; sacks and risky contact have higher conditional risk',()=>{
  const rng=seededRandom(72),g=make('pro',rng);let fumbles=0;const n=5000;
- for(let i=0;i<n;i++){g.beginDrive(0,25);g.choose('dive');g.snap(g.offense);isolate(g);g.carrier.power=70;g.carrier.y=27;g.liveTime=1;g.defenders[0].x=g.carrier.x;g.defenders[0].y=g.carrier.y;g.tick(.01);if(g.isLoose)fumbles++;}
+ for(let i=0;i<n;i++){g.beginDrive(0,25);g.choose('dive');g.snap(g.offense);isolate(g);g.carrier.power=70;g.carrier.y=27;g.liveTime=1;g.defenders[0].x=g.carrier.x;g.defenders[0].y=g.carrier.y;g.tick(.01);while(g.contact)g.tick(.05);if(g.isLoose)fumbles++;}
  assert.ok(fumbles/n>.009&&fumbles/n<.024,`fumble rate ${fumbles/n}`);
  assert.ok(fumbleChance({sack:true})>fumbleChance({}));assert.ok(fumbleChance({burst:true,diving:true})>fumbleChance({}));
 });
@@ -81,5 +81,5 @@ test('man assigns separate outside receivers; new routes and delayed draw have d
 });
 test('seeded simulation replays identically for future authoritative multiplayer',()=>{
  function replay(){const g=make('legend',seededRandom(922));for(let n=0;n<1000;n++){if(g.phase==='penalty')g.resolvePenalty(true);if(g.phase==='call')g.choose(g.userOffense?'mesh':'robber');if(g.phase==='ready'&&g.userOffense)g.snap();if(g.phase==='kick_ready')g.kickAction();if(g.phase==='kick_charge'&&g.special.power>.72)g.kickAction();if(g.canPass&&g.liveTime>1.6)g.throwTo(n%3);g.tick(.05,{x:Math.sin(n*.04),y:1});}return JSON.stringify(g);}
- assert.equal(replay(),replay());assert.equal(PLAYS.length,10);
+ assert.equal(replay(),replay());assert.equal(PLAYS.length,16);
 });

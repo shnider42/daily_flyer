@@ -5,7 +5,7 @@ import {Game,PLAYS,distance} from '../daily_flyer/themes/pocket_gridiron_assets/
 import {seededRandom} from '../daily_flyer/themes/pocket_gridiron_assets/rules.js';
 import {buildTeam} from '../daily_flyer/themes/pocket_gridiron_assets/roster.js';
 const data=JSON.parse(fs.readFileSync(new URL('../daily_flyer/themes/pocket_gridiron_assets/rosters.json',import.meta.url)));
-const home=buildTeam('NE',data),away=buildTeam('BUF',data),passes=PLAYS.filter(p=>p.kind==='pass');
+const home=buildTeam('NE',data),away=buildTeam('BUF',data),passes=PLAYS.filter(p=>p.kind==='pass'&&home.profile.offense.plays.includes(p.id));
 for(const level of ['rookie','pro','legend']){
  const rng=seededRandom(991),n=Number(process.argv[2])||2000;
  const totals={attempts:0,completions:0,interceptions:0,drops:0,tips:0,noAttempt:0};
