@@ -1,5 +1,7 @@
 // Arcade tuning, not official individual player ratings. Denominators and
 // calibration sources live in POCKET_GRIDIRON.md. No difficulty luck bonuses.
+// Possession costs a little speed; ratings and burst still distinguish runners.
+export const MOVEMENT_RULES=Object.freeze({carrierSpeed:.93});
 export const BALL_RULES=Object.freeze({drop:.04,rushFumble:.016,catchFumble:.012,sackFumble:.065,intercept:.03,deflect:.18,tipCatch:.30,tipIntercept:.07});
 export const AI_PROFILES=Object.freeze({
  rookie:{reaction:.46,readEvery:.34,recognizeRun:.70,error:2.2,vision:11,lead:.06,adapt:0,qbNoise:5},

@@ -1,5 +1,5 @@
-import {bindGameButton, protectGameSurface, setGameButtonEnabled,primaryCommand,stickInput} from './controls.js?v=5';
-import {Game,PLAYS,DEFENSE,clamp} from './engine.js?v=5';
+import {bindGameButton, protectGameSurface, setGameButtonEnabled,primaryCommand,stickInput} from './controls.js?v=6';
+import {Game,PLAYS,DEFENSE,clamp} from './engine.js?v=6';
 import {TEAMS,buildTeam,fetchFreshRoster,validateRoster} from './roster.js';
 const $=id=>document.getElementById(id);const el=(tag,text,cls)=>{const e=document.createElement(tag);if(text!==undefined)e.textContent=text;if(cls)e.className=cls;return e;};
 const safeRead=(key,fallback)=>{try{return JSON.parse(localStorage.getItem(key))??fallback;}catch{return fallback;}};

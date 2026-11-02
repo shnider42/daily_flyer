@@ -1,6 +1,6 @@
-import {AI_PROFILES,BALL_RULES,fumbleChance} from './rules.js?v=5';
-import {clearBlocks,isBlocker,updateBlocking,shedBlock} from './blocking.js?v=5';
-import {PENALTIES,acceptedPenalty,outcomeValue} from './penalties.js?v=5';
+import {AI_PROFILES,BALL_RULES,MOVEMENT_RULES,fumbleChance} from './rules.js?v=6';
+import {clearBlocks,isBlocker,updateBlocking,shedBlock} from './blocking.js?v=6';
+import {PENALTIES,acceptedPenalty,outcomeValue} from './penalties.js?v=6';
 export const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
 export const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 export const PLAYS=[
@@ -155,7 +155,7 @@ export class Game {
   for(const d of this.defenders){d.ballSeenAt=this.liveTime+this.defenseAI.reaction+(d.reactionJitter||0);}
   this.passed=true;if(this.userOffense)this.stats.attempts++;this.emit('throw','');return true;
  }
- move(p,dx,dy,speed,dt){if(p.stun>0)return;speed*=p.blockFactor??1;const n=Math.hypot(dx,dy);if(n>.04){p.x+=dx/Math.max(1,n)*speed*dt;p.y+=dy/Math.max(1,n)*speed*dt;p.phase+=dt*14;}p.x=clamp(p.x,-.2,53.5);p.y=clamp(p.y,-9,110);}
+ move(p,dx,dy,speed,dt){if(p.stun>0)return;speed*=p.blockFactor??1;if(p===this.carrier&&this.isLive&&!this.pass)speed*=MOVEMENT_RULES.carrierSpeed;const n=Math.hypot(dx,dy);if(n>.04){p.x+=dx/Math.max(1,n)*speed*dt;p.y+=dy/Math.max(1,n)*speed*dt;p.phase+=dt*14;}p.x=clamp(p.x,-.2,53.5);p.y=clamp(p.y,-9,110);}
  route(p,time=this.liveTime){
   const depth=time*p.speed,slot=p.slot;let x=[0,0,7,46,36][slot],y=this.spot+Math.min(depth,45);
   if(this.play==='slants'){x=slot===2?Math.min(33,7+depth*.8):slot===3?Math.max(21,46-depth*.8):36-depth*.35;y=this.spot+Math.min(depth*.7,30);}
@@ -188,7 +188,10 @@ export class Game {
    return {x:clamp(b.x+(b.tx-b.sx)/b.duration*lead,1,52),y:clamp(b.y+(b.ty-b.sy)/b.duration*lead,-4,107)};
   }
   if(this.isReturn||this.scrambleRecovery||!this.pass&&(this.carrier!==this.players[0]||this.crossed)&&this.liveTime>=this.handoffTime+ai.recognizeRun){
-   return {x:clamp(this.carrier.x+(this.carrier.vx||0)*ai.lead,1,52),y:clamp(this.carrier.y+(this.carrier.vy||0)*ai.lead,-5,107)};
+   // Returns need an intercept angle: a fixed short lead can trail outside
+   // runs. Estimate travel time, capped so cuts still beat pursuit.
+   const lead=this.isReturn?ai.lead+Math.min(.12+ai.adapt*.08,distance(d,this.carrier)/Math.max(1,d.speed*.95)*(.035+ai.adapt*.02)):ai.lead;
+   return {x:clamp(this.carrier.x+(this.carrier.vx||0)*lead,1,52),y:clamp(this.carrier.y+(this.carrier.vy||0)*lead,-5,107)};
   }
   if(i<2||this.defense==='blitz'&&i===2||this.defense==='commit'&&i<4)return this.carrier;
   if(['man','press','robber'].includes(this.defense)){

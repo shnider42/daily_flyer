@@ -22,6 +22,21 @@ For incoming kicks, tap READY TO RETURN. The returner automatically tracks the l
 
 Simplified arcade rules: kickoff touchbacks at the 25, punt touchbacks at the 20, kickoff out of bounds at the 40. The clock runs during scrimmage plays and returns, and pauses during kick setup/flight. No onside-kick selection, blocked punts, or full NFL dynamic-kickoff enforcement. The camera widens for kicks and eases back for returns. All choices fit the phone playbook, which clears before action; the previous rapid-tap zoom protection remains in place.
 
+## Carrying speed and return pursuit
+
+Possession reduces movement speed by 7% (`MOVEMENT_RULES.carrierSpeed = 0.93`). It applies to both teams and every difficulty: QB movement, runs, catches, kick/punt returns, interceptions, and live fumble recoveries. Ratings are unchanged; a fast carrier can still outrun a slower defender, and burst retains its short boost. There is no carrier penalty while tracking an airborne kick/pass or chasing a loose ball.
+
+Return defenders add a small, capped travel-time lead to their existing pursuit target. They use observed runner velocity with the same decision intervals and position errors as before. This closes some outside angles without faster defenders or a forced tackle/return-touchdown limit.
+
+`node scripts/gridiron-return-balance.mjs` runs 300 seeded, returnable kicks per type and route on Pro with NE receiving against BUF. Its runners use burst whenever available. In the fixed sideline-route scenario:
+
+| Scenario | Previous TD rate | Updated TD rate | Previous average yards | Updated average yards |
+| --- | --- | --- | --- | --- |
+| Kickoff | 28.00% | 12.00% | 36.51 | 22.77 |
+| Punt | 9.67% | 5.67% | 21.91 | 18.28 |
+
+These are comparisons of a scripted strategy, not NFL targets or predictions for human play. Straight and weaving routes are also sampled. The diagnostic excludes touchbacks and ends at the initial return-ending event, including a fumble. The previous baseline is commit `f224a34`; the updated numbers include the possession slowdown and modest return-pursuit adjustment.
+
 ## Blocking and penalties
 
 `blocking.js` assigns distinct threats to the linemen and supporting blockers, gives pass protection pocket anchors, and sends run/return blockers ahead of the carrier. Counter retains its pulling guard. Contact slows a defender and separates the two bodies rather than continually refreshing a stun. Blocks have finite engagement times influenced by power; a shed defender gets a brief window before being engaged again. The user can actively shed a block with the defensive action button. This is a simplified positioning model, not a full line-of-scrimmage physics simulation.
