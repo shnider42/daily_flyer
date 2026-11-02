@@ -1,6 +1,6 @@
 export const MATCH_LENGTHS=Object.freeze({
- quick:{name:'Quick game',quarterSeconds:45,multiplier:1,halftimeShow:false},
- extended:{name:'Extended game',quarterSeconds:90,multiplier:2,halftimeShow:false},
+ quick:{name:'Quick game',quarterSeconds:45,multiplier:1,halftimeShow:true},
+ extended:{name:'Extended game',quarterSeconds:90,multiplier:2,halftimeShow:true},
  showcase:{name:'Sunday showcase',quarterSeconds:180,multiplier:4,halftimeShow:true}
 });
 export function matchLength(id){return Object.hasOwn(MATCH_LENGTHS,id)?MATCH_LENGTHS[id]:MATCH_LENGTHS.quick;}

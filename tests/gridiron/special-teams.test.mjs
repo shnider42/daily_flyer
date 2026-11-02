@@ -62,7 +62,7 @@ test('CPU punts on fourth down; humans cannot punt on earlier downs',()=>{
 test('halftime, field goals and safety free kicks preserve the correct receiving team',()=>{
  const g=make();g.beginDrive(0,65,4);g.kick('fieldgoal');g.next();assert.equal(g.special.kickingTeam,0);
  g.beginDrive(0,25);g.choose('dive');g.snap(g.offense);g.finish('tackle',-1);g.next();assert.equal(g.special.kickingTeam,0);assert.equal(g.special.kickSpot,20);
- g.beginDrive(1,25);g.quarter=2;g.clock=0;g.choose('zone');g.snap(g.offense);g.finish('tackle',29);g.next();assert.equal(g.quarter,3);assert.equal(g.special.kickingTeam,0);assert.equal(g.offense,1);
+ g.beginDrive(1,25);g.quarter=2;g.clock=0;g.choose('zone');g.snap(g.offense);g.finish('tackle',29);g.next();assert.equal(g.quarter,3);assert.equal(g.phase,'halftime');g.resumeHalftime();assert.equal(g.special.kickingTeam,0);assert.equal(g.offense,1);
 });
 test('the final whistle prevents a needless kickoff after a winning score',()=>{
  const g=make();g.beginDrive(0,90);g.quarter=4;g.clock=0;g.choose('dive');g.snap(g.offense);g.finish('touchdown',100);g.next();assert.equal(g.phase,'final');
@@ -72,6 +72,7 @@ test('complete games across different play selections and random seeds never sta
   let state=seed;const rng=()=>{state=(state*1664525+1013904223)>>>0;return state/4294967296;};
   const g=new Game(buildTeam('NE',data),buildTeam('BUF',data),difficulty,rng);let ticks=0;
   while(g.phase!=='final'&&ticks++<26000){
+   if(g.phase==='halftime')g.resumeHalftime();
    if(g.phase==='penalty')g.resolvePenalty(true);if(g.phase==='call')g.choose(g.userOffense?g.offensePlays[Math.floor(rng()*g.offensePlays.length)].id:g.defensePlays[Math.floor(rng()*g.defensePlays.length)].id);
    if(g.phase==='ready'&&g.userOffense)g.snap();if(g.phase==='kick_ready')g.kickAction();if(g.phase==='kick_charge'&&g.special.power>.72)g.kickAction();
    if(g.canPass&&g.userOffense&&g.liveTime>1.1)g.throwTo(Math.floor(rng()*3));

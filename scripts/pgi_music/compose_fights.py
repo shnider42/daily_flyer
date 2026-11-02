@@ -34,8 +34,9 @@ BC_MELODY = [
     (65, 2),
 ]
 
-# Notre Dame: first eight bars of the chorus in the 1928 piano/vocal score,
-# printed page 5. The sustained end of bar 4 is A-flat, not B-flat.
+# Notre Dame: full 32-bar chorus, printed pages 5–6 of the 1928 score.
+# Take the second ending once; the final tied E-flat lasts six beats.
+# The sustained end of bar 4 is A-flat, not B-flat.
 ND_MELODY = [
     (67, 4),
     (66, 2), (67, 2),
@@ -45,6 +46,32 @@ ND_MELODY = [
     (67, 2), (68, 2),
     (70, 1), (70, 2), (69, 1),
     (70, 4),
+    # Bars 9–16: the contrasting middle phrase.
+    (72, 2), (75, 2),
+    (74, 2), (72, 2),
+    (70, 2), (67, 2),
+    (63, 4),
+    (67, 1), (65, 2), (64, 1),
+    (67, 2), (65, 2),
+    (64, 1), (65, 3),
+    (70, 4),
+    # Bars 17–24: return, with the written rhythmic variations.
+    (67, 1), (67, 2), (67, 1),
+    (66, 2), (67, 2),
+    (68, 3), (67, 1),
+    (68, 4),
+    (68, 1), (68, 2), (68, 1),
+    (67, 2), (68, 2),
+    (70, 1), (70, 2), (69, 1),
+    (70, 4),
+    # Bars 25–32: the missing final phrase and resolved second ending.
+    (72, 2), (75, 2),
+    (74, 2), (72, 2),
+    (70, 2), (67, 2),
+    (63, 2), (65, 2),
+    (67, 1), (70, 2), (68, 1),
+    (67, 2), (65, 2),
+    (63, 6), (None, 2),
 ]
 
 ORIGINAL_MELODY = [
@@ -166,32 +193,42 @@ def scores():
         (8, 8, 44, ab), (16, 4, 44, ab), (20, 2, 39, eb), (22, 2, 44, ab),
         (24, 4, 46, bb7), (28, 4, 46, bb7),
     ]
-    # Three statements of the same audited eight-bar melody. The quieter
-    # middle statement and fuller final reprise extend the celebration without
-    # claiming to transcribe additional bars from the historic composition.
+    # Complete chorus instead of repeating its opening eight bars three times.
+    middle = [
+        (32, 4, 44, ab), (36, 4, 44, ab), (40, 4, 46, bb7), (44, 4, 39, eb),
+        (48, 4, 41, [57, 60, 63]), (52, 4, 41, [57, 60, 63]),
+        (56, 4, 46, bb7), (60, 4, 46, bb7),
+    ]
+    ending = [
+        (96, 4, 44, ab), (100, 4, 44, ab), (104, 4, 46, bb7),
+        (108, 4, 39, eb), (112, 4, 44, ab), (116, 4, 46, bb7),
+        (120, 4, 39, eb),
+    ]
     nd = make_score(
-        "notre-dame-victory", "Notre Dame Victory March — PGI scoring arrangement", 224, 25,
-        ND_MELODY * 3,
-        [(start + offset, span, root, chord)
-         for offset in (0, 32, 64) for start, span, root, chord in nd_changes],
-        end=96, final=(96, 3.5, 75, 39, eb),
+        "notre-dame-victory", "Notre Dame Victory March — PGI scoring arrangement", 224, 32,
+        ND_MELODY,
+        nd_changes + middle + [(start + 64, span, root, chord)
+                               for start, span, root, chord in nd_changes] + ending,
+        end=124,
     )
+    cadence(nd["tracks"][1:5], 124, 1.9, 39, eb)
     for part in nd["tracks"]:
         for n in part["notes"]:
             if 32 <= n["start"] < 64:
                 n["velocity"] = round(n["velocity"] * (.80 if part["instrument"] == "drums" else .88))
-            elif 64 <= n["start"] < 96:
+            elif 96 <= n["start"] < 126:
                 n["velocity"] = min(120, round(n["velocity"] * 1.06))
         if part["instrument"] == "drums":
             part["notes"] = [n for n in part["notes"]
                              if not (32 <= n["start"] < 48 and n["pitch"] == 49)]
-            part["notes"] += [note(38, 94 + beat * .25, .06, 47 + beat * 7)
+            part["notes"] += [note(38, 118 + beat * .25, .06, 47 + beat * 7)
                               for beat in range(8)]
     nd["sections"] = [
-        {"beat": 0, "name": "Opening brass statement"},
-        {"beat": 32, "name": "Lighter stadium reprise"},
-        {"beat": 64, "name": "Full-band return"},
-        {"beat": 96, "name": "Tonic celebration ending"},
+        {"beat": 0, "name": "Opening chorus"},
+        {"beat": 32, "name": "Contrasting middle phrase"},
+        {"beat": 64, "name": "Chorus return"},
+        {"beat": 96, "name": "Final chorus phrase"},
+        {"beat": 120, "name": "Resolved second ending"},
     ]
 
     d = [57, 62, 66]

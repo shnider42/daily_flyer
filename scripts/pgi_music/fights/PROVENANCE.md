@@ -8,7 +8,7 @@ is used. Only the two historic songs' single-note melodies are transcribed.
 | Asset | Used for | Musical source | Rendering |
 | --- | --- | --- | --- |
 | `for-boston.mp3` | New England scoring | Thomas J. Hurley's **For Boston**, opening pickup and eight bars | B-flat major, quarter = 156, new tonic ending |
-| `notre-dame-victory.mp3` | New York Jets scoring | Michael J. Shea's **Notre Dame Victory March**, first eight chorus bars | E-flat major, half = 112, three statements and new tonic ending; 27.3 seconds |
+| `notre-dame-victory.mp3` | New York Jets scoring | Michael J. Shea's **Notre Dame Victory March**, complete 32-bar chorus | E-flat major, half = 112, second ending; about 35 seconds |
 | `pgi-score.mp3` | Other teams scoring | **Six on the Board**, an original PGI melody | D major, quarter = 152 |
 
 ## Sources and scope
@@ -34,7 +34,7 @@ is used. Only the two historic songs' single-note melodies are transcribed.
 - [Notre Dame's history](https://125.nd.edu/moments/notre-dame-victory-march-debut/)
   identifies the brothers Michael and John Shea as the original publishers and
   dates the first performance to 1908; Michael composed the music.
-- The chorus melody was visually transcribed from printed page 5 of the
+- The chorus melody was visually transcribed from printed pages 5–6 of the
   [1928 piano/vocal sheet music scan](https://www.sheetmusicsinger.com/wp-content/uploads/2023/12/Victory-March-1928.pdf),
   linked from [its catalog page](https://www.sheetmusicsinger.com/victory-march/).
   [Irish Sheet Music Archives](https://irishsheetmusicarchives.com/Sheet-Music-Catalog/Notre-Dame-Victory-March-IF-SM-02-023.htm)
@@ -87,15 +87,35 @@ Notre Dame Victory March, E-flat major, chorus:
 6: G4:2 Ab4:2
 7: Bb4:1 Bb4:2 A4:1
 8: Bb4:4
-New closing tag: Eb5:3.5
+9: C5:2 Eb5:2
+10: D5:2 C5:2
+11: Bb4:2 G4:2
+12: Eb4:4
+13: G4:1 F4:2 E4:1
+14: G4:2 F4:2
+15: E4:1 F4:3
+16: Bb4:4
+17: G4:1 G4:2 G4:1
+18: F#4:2 G4:2
+19: Ab4:3 G4:1
+20: Ab4:4
+21: Ab4:1 Ab4:2 Ab4:1
+22: G4:2 Ab4:2
+23: Bb4:1 Bb4:2 A4:1
+24: Bb4:4
+25: C5:2 Eb5:2
+26: D5:2 C5:2
+27: Bb4:2 G4:2
+28: Eb4:2 F4:2
+29: G4:1 Bb4:2 Ab4:1
+30: G4:2 F4:2
+31–32 (second ending): Eb4:6 r:2
 ```
 
-The extended Jets cue repeats this same audited eight-bar melody three times:
-an opening brass statement, a lighter middle reprise, and a fuller final return
-with a newly written drum fill before the tonic closing tag. It does not claim
-to reproduce the complete historic chorus or transcribe additional source bars.
-Its new variation is in dynamics and orchestration, not a copied band recording.
-The For Boston cue and the generic scoring fanfare are unchanged.
+The Jets cue now plays the complete chorus once, taking the written second
+ending. The previous version repeated only the opening eight bars; it omitted
+the middle and closing phrases. The accompaniment and drum fill remain newly
+written. The For Boston cue and generic scoring fanfare are unchanged.
 
 The generic cue's melody and all three accompaniments are authored directly in
 `compose_fights.py`. To regenerate scores and audio:
