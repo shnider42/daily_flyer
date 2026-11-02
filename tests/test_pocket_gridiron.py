@@ -11,7 +11,9 @@ class PocketGridironTest(unittest.TestCase):
         response = self.client.get('/?theme=pocket-gridiron', follow_redirects=True)
         self.assertEqual(response.status_code, 200)
         self.assertIn(b'POCKET', response.data)
-        self.assertEqual(self.client.get('/gridiron/engine.js').status_code, 200)
+        for asset in ('engine.js', 'rules.js', 'app.js', 'controls.js'):
+            with self.client.get('/gridiron/' + asset) as asset_response:
+                self.assertEqual(asset_response.status_code, 200)
         self.assertEqual(self.client.get('/gridiron/missing.txt').status_code, 404)
         roster = self.client.get('/gridiron/rosters.json').get_json()
         self.assertEqual(len({p['team'] for p in roster['players']}), 32)

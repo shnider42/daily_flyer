@@ -8,9 +8,9 @@ const make=()=>new Game(buildTeam('NE',data),buildTeam('BUF',data),'pro',()=>.5)
 function until(g,predicate,input={x:0,y:0},limit=500){let n=0;while(!predicate(g)&&n++<limit)g.tick(.05,input);assert.ok(predicate(g),`stalled in ${g.phase}`);}
 function flight(g,type='punt',kicking=1,spot=40,power=.7,aim=0){g.beginKick(type,kicking,spot);g.launchKick(power,aim);}
 
-test('seven offensive plays and six defensive calls all produce playable formations',()=>{
- const g=make();assert.equal(PLAYS.length,7);assert.equal(DEFENSE.length,6);
- for(const p of PLAYS){g.beginDrive(0,25);g.choose(p.id);g.snap();assert.equal(g.phase,'live');assert.equal(g.carrier.slot,p.kind==='run'?1:0);assert.equal(g.canPass,p.kind==='pass');for(let i=0;i<10;i++)g.tick(.05);}
+test('ten offensive plays and nine defensive calls all produce playable formations',()=>{
+ const g=make();assert.equal(PLAYS.length,10);assert.equal(DEFENSE.length,9);
+ for(const p of PLAYS){g.beginDrive(0,25);g.choose(p.id);g.snap();assert.equal(g.phase,'live');assert.equal(g.carrier.slot,p.kind==='run'&&p.id!=='draw'?1:0);assert.equal(g.canPass,p.kind==='pass');for(let i=0;i<10;i++)g.tick(.05);}
  for(const d of DEFENSE){g.beginDrive(1,25);g.choose(d.id);g.snap();assert.equal(g.defense,d.id);for(let i=0;i<10;i++)g.tick(.05);assert.ok(g.defenders.every(p=>Number.isFinite(p.x)&&Number.isFinite(p.y)));}
 });
 test('curl receivers come back, flood spreads three depths, counter pulls a guard left',()=>{
@@ -68,9 +68,9 @@ test('the final whistle prevents a needless kickoff after a winning score',()=>{
  const g=make();g.beginDrive(0,90);g.quarter=4;g.clock=0;g.choose('dive');g.snap();g.finish('touchdown',100);g.next();assert.equal(g.phase,'final');
 });
 test('complete games across different play selections and random seeds never stall',()=>{
- for(let seed=1;seed<=12;seed++){
+ for(const difficulty of ['rookie','pro','legend'])for(let seed=1;seed<=12;seed++){
   let state=seed;const rng=()=>{state=(state*1664525+1013904223)>>>0;return state/4294967296;};
-  const g=new Game(buildTeam('NE',data),buildTeam('BUF',data),'pro',rng);let ticks=0;
+  const g=new Game(buildTeam('NE',data),buildTeam('BUF',data),difficulty,rng);let ticks=0;
   while(g.phase!=='final'&&ticks++<26000){
    if(g.phase==='call')g.choose(g.userOffense?PLAYS[Math.floor(rng()*PLAYS.length)].id:DEFENSE[Math.floor(rng()*DEFENSE.length)].id);
    if(g.phase==='ready')g.snap();if(g.phase==='kick_ready')g.kickAction();if(g.phase==='kick_charge'&&g.special.power>.72)g.kickAction();
@@ -79,6 +79,6 @@ test('complete games across different play selections and random seeds never sta
    g.tick(.05,g.phase.startsWith('kick_')?{x:0,y:0}:{x:Math.sin(ticks*.02),y:1});
    assert.ok(Number.isFinite(g.controlled.x)&&Number.isFinite(g.cameraY));assert.ok(g.down>=1&&g.down<=4);
   }
-  assert.equal(g.phase,'final',`seed ${seed} stalled at ${g.phase}, q${g.quarter}`);
+  assert.equal(g.phase,'final',`${difficulty} seed ${seed} stalled at ${g.phase}, q${g.quarter}`);
  }
 });
