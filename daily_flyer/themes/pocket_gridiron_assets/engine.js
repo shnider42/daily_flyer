@@ -1,14 +1,14 @@
-import {matchLength,emptyBox,copyBox,halftimeReport} from './match.js?v=15';
-import {PLAYS,DEFENSE,routeFor,newCoverageTarget} from './plays.js?v=15';
-import {passPlacement,eligibleReceivers,catchReach,landingPickChance} from './passing.js?v=15';
-import {playbook} from './teams.js?v=15';
-import {resetContact,nearestThreat,armBreak,beginContact,tickContact} from './contact.js?v=15';
-import {AI_PROFILES,BALL_RULES,MOVEMENT_RULES,fumbleChance} from './rules.js?v=15';
-import {clearBlocks,isBlocker,updateBlocking,shedBlock} from './blocking.js?v=15';
-import {PENALTIES,acceptedPenalty,outcomeValue} from './penalties.js?v=15';
+import {matchLength,emptyBox,copyBox,halftimeReport} from './match.js?v=16';
+import {PLAYS,DEFENSE,routeFor,newCoverageTarget} from './plays.js?v=16';
+import {passPlacement,eligibleReceivers,catchReach,landingPickChance} from './passing.js?v=16';
+import {playbook} from './teams.js?v=16';
+import {resetContact,nearestThreat,armBreak,beginContact,tickContact} from './contact.js?v=16';
+import {AI_PROFILES,BALL_RULES,MOVEMENT_RULES,fumbleChance} from './rules.js?v=16';
+import {clearBlocks,isBlocker,updateBlocking,shedBlock} from './blocking.js?v=16';
+import {PENALTIES,acceptedPenalty,outcomeValue} from './penalties.js?v=16';
 export const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
 export const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
-export {PLAYS,DEFENSE} from './plays.js?v=15';
+export {PLAYS,DEFENSE} from './plays.js?v=16';
 const animate=(p,slot,x,y)=>({...p,slot,x,y,speed:4.8+(p.speed||70)/35,stun:0,phase:0,pace:1});
 export class Game {
  constructor(home,away,difficulty='pro',rng=Math.random,options={}){
@@ -19,13 +19,15 @@ export class Game {
   this.beginKick('kickoff',1,35);
  }
  emit(type,text,detail='',meta={}){this.events.push({type,text,detail,...meta});}
- get userOffense(){return this.offense===0;}
+ get userOffense(){return this.offense===(this.humanTeam??0);}
+ isHumanDefender(p){return !this.userOffense&&p===this.controlled;}
+ autoPenalty(team){return team===1;}
  get isReturn(){return this.phase==='return';}
  get isLive(){return this.phase==='live'||this.isReturn;}
  get isLoose(){return this.phase==='fumble';}
  get defenseAI(){return AI_PROFILES[this.userOffense?this.difficulty:'pro']||AI_PROFILES.pro;}
  get offenseAI(){return AI_PROFILES[this.difficulty]||AI_PROFILES.pro;}
- get userKicking(){return Boolean(this.special&&this.special.kickingTeam===0);}
+ get userKicking(){return Boolean(this.special&&this.special.kickingTeam===(this.humanTeam??0));}
  get controlled(){
   if(this.special&&['kick_ready','kick_charge'].includes(this.phase)&&this.userKicking)return this.defenders[6];
   return this.userOffense?(this.isLoose?this.players[this.recoverySelected]:this.carrier):this.defenders[this.selected];
@@ -110,7 +112,7 @@ export class Game {
    // Do not display a provisional touchdown/turnover in the scoreboard while
    // the non-offending team chooses. The completed outcome is retained above.
    this.scores=[...this.playStart.scores];this.stats={...this.playStart.stats};this.box=copyBox(this.playStart.box||this.box);this.phase='penalty';this.pendingFinal=false;
-   if(both||beneficiary===1)this.resolvePenalty(both||outcomeValue(accept,1)>=outcomeValue(decline,1));
+   if(both||this.autoPenalty(beneficiary))this.resolvePenalty(both||outcomeValue(accept,1)>=outcomeValue(decline,1));
    else this.emit('penalty','PENALTY DECISION',this.penaltyReview.description);
    return;
   }
@@ -241,14 +243,14 @@ export class Game {
   }
   this.carrier.vx=dt?(this.carrier.x-oldCarrier.x)/dt:0;this.carrier.vy=dt?(this.carrier.y-oldCarrier.y)/dt:0;
   if(oldCarrier.vx*this.carrier.vx+oldCarrier.vy*this.carrier.vy< -8)this.offBalance=Math.max(this.offBalance,.25*(1+(85-(this.carrier.balance||80))/60));
-  for(const d of this.defenders){if(!this.userOffense&&d===controlled)continue;const target=this.readDefense(d);this.move(d,target.x-d.x,target.y-d.y,d.speed*.95,dt);}
+  for(const d of this.defenders){if(this.isHumanDefender(d))continue;const target=this.readDefense(d);this.move(d,target.x-d.x,target.y-d.y,d.speed*.95,dt);}
   if(this.pass){
    this.tickPass(dt);if(!this.isLive||this.isReturn)return;
   }else{
    if(this.carrier.y>this.spot+.15)this.crossed=true;
    if(this.carrier.y>=100){this.finish('touchdown',100);return;}
    if(this.carrier.x<=.4||this.carrier.x>=52.9){this.finish('out',this.carrier.y);return;}
-   for(const d of this.defenders){if(d.stun>0)continue;const radius=(!this.userOffense&&d===controlled&&this.diveLeft>0)?3:1.65;
+   for(const d of this.defenders){if(d.stun>0)continue;const radius=(this.isHumanDefender(d)&&this.diveLeft>0)?3:1.65;
     if(distance(d,this.carrier)<radius&&this.liveTime>.35){
      beginContact(this,d);return;
     }

@@ -1,4 +1,4 @@
-import {fumbleChance} from './rules.js?v=15';
+import {fumbleChance} from './rules.js?v=16';
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
 const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 export function resetContact(g){g.contact=null;g.breakArm=null;g.breakCooldown=0;g.stamina=100;g.offBalance=0;g.contactSlow=0;g.moveAnimation=null;g.contactFeedback='';}
@@ -18,7 +18,7 @@ export function contactOdds(g,d,move){
  const speed=Math.hypot(p.vx||0,p.vy||0),balance=g.offBalance>0,skill=move==='spin'?((p.agility||75)*.65+(p.balance||75)*.35):move==='stiff'?((p.power||75)*.65+(p.balance||75)*.35):((p.power||75)*.8+(p.balance||75)*.2);
  const tackle=(d.tackling||80)*.75+(d.power||75)*.25;
  const chance=move?clamp(.30+(skill-tackle)*.007+Math.min(.08,speed*.012)-(balance?.16:0)-Math.min(3,others)*.14-(g.stamina<35?.09:0),.03,.72):0;
- const base=fumbleChance({sack:!g.isReturn&&p===g.players[0]&&!g.crossed&&g.playDefinition.kind==='pass',receiving:g.receivedPass&&!g.isReturn,burst:g.burstLeft>0,diving:!g.userOffense&&d===g.controlled&&g.diveLeft>0,security:p.ballSecurity??80});
+ const base=fumbleChance({sack:!g.isReturn&&p===g.players[0]&&!g.crossed&&g.playDefinition.kind==='pass',receiving:g.receivedPass&&!g.isReturn,burst:g.burstLeft>0,diving:g.isHumanDefender(d)&&g.diveLeft>0,security:p.ballSecurity??80});
  const risk=clamp(base+(move==='stiff'?.006:move==='spin'?.009:move==="truck"?.004:0)+(move&&balance?.004:0),.004,.10);
  return {chance,risk,others,balance};
 }
