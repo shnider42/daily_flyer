@@ -3,19 +3,21 @@ const activePhase=p=>['live','return','fumble','kick_flight','kick_loose'].inclu
 const clone=p=>p?{...p}:null;
 export function replayFrame(g,time){
  const flip=g.offense===1,point=p=>p?{x:flip?53-p.x:p.x,y:flip?100-p.y:p.y}:null;
- const people=[...g.players.map(p=>({p,team:g.offense})),...g.defenders.map(p=>({p,team:1-g.offense}))].map(({p,team})=>({...point(p),team,number:p.number,phase:p.phase,stun:p.stun,carrier:p===g.carrier,selected:p===g.controlled}));
+ const people=[...g.players.map(p=>({p,team:g.offense})),...g.defenders.map(p=>({p,team:1-g.offense}))].map(({p,team})=>({...point(p),id:p.id,slot:p.slot,name:p.name,team,number:p.number,phase:p.phase,stun:p.stun,carrier:p===g.carrier,selected:p===g.controlled}));
  const b=g.pass||g.loose||g.special?.ball;
  const arc=b?(g.isLoose?Math.abs(Math.sin(b.elapsed*15))*5:Math.sin(Math.min(1,b.elapsed/(b.duration||1))*Math.PI)*(g.special?38:25)):0;
  const ball=point(b||g.carrier);
- return {time,offense:g.offense,people,ball,airborne:!!b,arc,loose:g.isLoose,returning:!!g.returnInfo,spot:flip?100-g.spot:g.spot,target:flip?100-g.target:g.target,camera:flip?100-g.cameraY:g.cameraY,move:clone(g.moveAnimation),flag:!!g.flags.length};
+ const blocks=g.blocks.map(block=>({blocker:g.players[block.p].id,defender:g.defenders[block.d].id}));
+ return {time,offense:g.offense,people,blocks,ball,airborne:!!b,arc,loose:g.isLoose,returning:!!g.returnInfo,spot:flip?100-g.spot:g.spot,target:flip?100-g.target:g.target,camera:flip?100-g.cameraY:g.cameraY,move:clone(g.moveAnimation),flag:!!g.flags.length};
 }
 export function replayKind(e){if(e.scorePoints===7)return 'TOUCHDOWN';if(e.type==='ball'&&e.text==='FUMBLE!')return 'FUMBLE';if(e.type==='turnover'&&(e.turnoverType==='interception'||e.text==='INTERCEPTED!'))return 'INTERCEPTION';return null;}
 export class ReplayTape {
  constructor(){this.reset();}
- reset(){this.time=0;this.history=[];this.clips=[];this.active=null;this.wasActive=false;this.sampleAt=0;}
+ reset(){this.time=0;this.history=[];this.clips=[];this.highlights=[];this.archivedPlay=null;this.sequence=0;this.active=null;this.wasActive=false;this.sampleAt=0;}
  observe(g,dt,events=[]){
   const playing=activePhase(g.phase),kinds=events.map(replayKind).filter(Boolean);
-  if(!playing&&!this.wasActive&&!kinds.length)return;
+  const result=events.find(e=>e.type==='result');
+  if(!playing&&!this.wasActive&&!kinds.length&&!result)return;
   if(playing&&!this.wasActive&&['kick_flight','live'].includes(g.phase)&&!this.clips.length){this.history=[];this.sampleAt=0;}
   this.time+=Math.max(0,dt);const force=kinds.length||(!playing&&this.wasActive);
   if(force||this.time>=this.sampleAt){
@@ -30,7 +32,29 @@ export class ReplayTape {
   }
   // Bound memory even in pathological chains of fumble recoveries.
   if(this.clips.length>12)this.clips.splice(0,this.clips.length-12);
+  if(result)this.archive(g,result);
   this.wasActive=playing;
+ }
+ archive(g,event){
+  // Only penalty-settled, first-half scrimmage plays. Skipping instant replays
+  // never touches this reel; at most three clips per team survive the half.
+  const start=g.playStart;
+  if(g.quarter>2||g.phase!=='dead'||!start?.box||this.archivedPlay===start)return;
+  this.archivedPlay=start;
+  const original=start.offense,before=start.box[original],after=g.box[original];
+  if(after.plays<=before.plays)return; // accepted/offsetting foul erased the play
+  const gain=after.rushYards-before.rushYards+after.passYards-before.passYards;
+  const takeaway=g.box[1-original].takeaways>start.box[1-original].takeaways;
+  const team=event.scorePoints===7?event.scoreTeam:takeaway||gain<0?1-original:original;
+  const kind=event.scorePoints===7?'TOUCHDOWN':takeaway?'TAKEAWAY':gain<0?'DEFENSIVE STOP':gain>=10?'BIG GAIN':'ON THE FILM';
+  const frames=this.history.filter(f=>f.time>=this.time-8).map(f=>({...f,people:f.people.map(p=>({...p})),blocks:f.blocks.map(b=>({...b})),ball:{...f.ball},move:clone(f.move)}));
+  if(frames.length<2)return;
+  const carrier=frames.at(-1).people.find(p=>p.carrier);
+  const clip={kind,team,original,gain,quarter:g.quarter,clock:g.clock,player:carrier?.name||g.teams[team].city,number:carrier?.number,
+   detail:event.text==='PENALTY DECLINED'?event.detail:`${event.text} · ${event.detail}`,frames,anchor:original,sequence:++this.sequence,
+   priority:(event.scorePoints===7?100:takeaway?75:gain<0?35:0)+Math.min(40,Math.abs(gain))};
+  const own=[...this.highlights.filter(c=>c.team===team),clip].sort((a,b)=>b.priority-a.priority||b.sequence-a.sequence).slice(0,3);
+  this.highlights=[...this.highlights.filter(c=>c.team!==team),...own].sort((a,b)=>b.priority-a.priority||a.sequence-b.sequence);
  }
  start(g){
   if(this.active||g.paused||g.phase!=='dead'||!this.clips.length)return false;

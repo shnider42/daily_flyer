@@ -1,6 +1,6 @@
 // Adapted from Breach's authored-score transport: shared AudioContext, bounded
 // decoded cache, guarded async loads, local mixing, and explicit pause handling.
-export const SCORE_CUES={NE:{id:'for-boston',title:'For Boston',src:'./music/for-boston.mp3'},NYJ:{id:'notre-dame-victory',title:'Notre Dame Victory March',src:'./music/notre-dame-victory.mp3?v=11'},default:{id:'pgi-score',title:'Six on the Board',src:'./music/pgi-score.mp3'}};
+export const SCORE_CUES={NE:{id:'for-boston',title:'For Boston',src:'./music/for-boston.mp3'},NYJ:{id:'notre-dame-victory',title:'Notre Dame Victory March',src:'./music/notre-dame-victory.mp3?v=12'},default:{id:'pgi-score',title:'Six on the Board',src:'./music/pgi-score.mp3'}};
 export const FAMILY_NAMES={all:'All nine · stadium rotation',gallop:'Galloping metal',hybrid:'Electronic / heavy rock',glam:'Glam / hard rock'};
 export class PGIMusic {
  constructor({fetcher=globalThis.fetch?.bind(globalThis)}={}){this.fetcher=fetcher;this.catalog=[];this.cache=new Map();this.loads=new Map();this.failed=new Set();this.voices=new Set();this.generation=0;this.scoreGeneration=0;this.enabled=true;this.scoring=true;this.family='all';this.volume=.55;this.blocked=false;this.active=null;this.scorer=null;this.pending=null;this.cursor=-1;this.resumeAt=0;this.selected=null;this.status='Choose a track or start a game.';}

@@ -1,5 +1,5 @@
-import {ImpactLimiter} from './impact.js?v=11';
-import {PGIMusic} from './music.js?v=11';
+import {ImpactLimiter} from './impact.js?v=12';
+import {PGIMusic} from './music.js?v=12';
 // Original effects, with authored MP3 score transport adapted from Breach.
 export class StadiumAudio {
  constructor(settings={}){this.settings={effects:true,contactFx:true,passWhistle:true,music:true,scoringMusic:true,station:'all',musicVolume:.55,volume:.45,...settings};this.context=null;this.lastCadence='';this.impacts=new ImpactLimiter();this.pads=new ImpactLimiter({gap:.12,blockGap:.22,max:5,window:1});this.soundtrack=new PGIMusic();}
