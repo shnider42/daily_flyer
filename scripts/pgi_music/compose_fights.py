@@ -231,6 +231,19 @@ def scores():
         {"beat": 120, "name": "Resolved second ending"},
     ]
 
+
+    # Compact scoring edit: opening eight bars + final eight bars. Keep the
+    # resolved ending at the original tempo; omit the middle and chorus repeat.
+    for part in nd["tracks"]:
+        part["notes"] = [dict(n, start=n["start"] - 64 if n["start"] >= 96 else n["start"])
+                         for n in part["notes"] if n["start"] < 32 or n["start"] >= 96]
+    nd["bars"] = 16
+    nd["sections"] = [
+        {"beat": 0, "name": "Opening chorus"},
+        {"beat": 32, "name": "Final chorus phrase"},
+        {"beat": 56, "name": "Resolved second ending"},
+    ]
+
     d = [57, 62, 66]
     generic = make_score(
         "pgi-score", "Six on the Board — PGI scoring fanfare", 152, 6,

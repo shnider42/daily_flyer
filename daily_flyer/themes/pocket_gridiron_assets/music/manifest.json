@@ -1,12 +1,120 @@
 {
-  "version": 2,
-  "title": "PGI \u2014 The Sunday Film Room",
-  "recording": "Six original orchestral football-film instrumentals.",
+  "version": 3,
+  "title": "PGI \u2014 Arcade & Film Room",
+  "recording": "Three original arcade favorites and three original orchestral postgame themes.",
   "tracks": [
+    {
+      "id": "saturday-voltage",
+      "title": "Saturday Voltage",
+      "family": "arcade",
+      "bpm": 140,
+      "description": "Driving arena-rock backbeats, a bright guitar hook and a climbing solo answer.",
+      "duration": 56.057,
+      "src": "./music/saturday-voltage.mp3",
+      "sections": [
+        {
+          "at": 0.0,
+          "name": "Riff / cowbell entrance"
+        },
+        {
+          "at": 6.857,
+          "name": "Main swagger"
+        },
+        {
+          "at": 13.714,
+          "name": "Open chorus"
+        },
+        {
+          "at": 27.429,
+          "name": "Solo answer"
+        },
+        {
+          "at": 34.286,
+          "name": "Arena return"
+        },
+        {
+          "at": 51.429,
+          "name": "Resolved ending"
+        }
+      ],
+      "provenance": "Original PGI composition and procedural recording. No third-party recordings, samples, lyrics, or copied riffs."
+    },
+    {
+      "id": "fourth-and-thunder",
+      "title": "Fourth and Thunder",
+      "family": "arcade",
+      "bpm": 164,
+      "description": "Driving minor-key gallops, a rising twin-guitar refrain and a half-time siege.",
+      "duration": 48.029,
+      "src": "./music/fourth-and-thunder.mp3",
+      "sections": [
+        {
+          "at": 0.0,
+          "name": "Guitar entrance"
+        },
+        {
+          "at": 5.854,
+          "name": "Twin-lead refrain"
+        },
+        {
+          "at": 17.561,
+          "name": "Answer / chord lift"
+        },
+        {
+          "at": 29.268,
+          "name": "Half-time contrast"
+        },
+        {
+          "at": 35.122,
+          "name": "Full-band return"
+        },
+        {
+          "at": 43.902,
+          "name": "Resolved ending"
+        }
+      ],
+      "provenance": "Original PGI composition and procedural recording. No third-party recordings, samples, lyrics, or copied riffs."
+    },
+    {
+      "id": "neon-end-zone",
+      "title": "Neon End Zone",
+      "family": "arcade",
+      "bpm": 132,
+      "description": "Swaggering blues-metal riffs, cowbell accents and an open major-key chorus.",
+      "duration": 52.109,
+      "src": "./music/neon-end-zone.mp3",
+      "sections": [
+        {
+          "at": 0.0,
+          "name": "Riff / cowbell entrance"
+        },
+        {
+          "at": 7.273,
+          "name": "Main swagger"
+        },
+        {
+          "at": 14.545,
+          "name": "Open chorus"
+        },
+        {
+          "at": 29.091,
+          "name": "Solo answer"
+        },
+        {
+          "at": 36.364,
+          "name": "Arena return"
+        },
+        {
+          "at": 47.273,
+          "name": "Resolved ending"
+        }
+      ],
+      "provenance": "Original PGI composition and procedural recording. No third-party recordings, samples, lyrics, or copied riffs."
+    },
     {
       "id": "sunday-in-gold",
       "title": "Sunday in Gold",
-      "family": "march",
+      "family": "film",
       "bpm": 112,
       "description": "A brass-led processional, field snare, and a full-string return.",
       "duration": 61.893,
@@ -38,7 +146,7 @@
     {
       "id": "leather-and-thunder",
       "title": "Leather and Thunder",
-      "family": "drama",
+      "family": "film",
       "bpm": 104,
       "description": "Minor-key brass, urgent pizzicato strings, timpani, and a woodwind interlude.",
       "duration": 66.5,
@@ -70,7 +178,7 @@
     {
       "id": "the-long-walk-home",
       "title": "The Long Walk Home",
-      "family": "reflective",
+      "family": "film",
       "bpm": 82,
       "description": "Warm horns, lyrical strings, harp, and a measured closing cadence.",
       "duration": 84.171,
@@ -95,102 +203,6 @@
         },
         {
           "at": 70.24,
-          "name": "Final cadence"
-        }
-      ]
-    },
-    {
-      "id": "seven-across-the-line",
-      "title": "Seven Across the Line",
-      "family": "march",
-      "bpm": 122,
-      "description": "A brass-led processional, field snare, and a full-string return.",
-      "duration": 56.984,
-      "src": "./music/seven-across-the-line.mp3",
-      "provenance": "Original PGI composition. GeneralUser GS instrument samples by S. Christian Collins; TinySoundFont rendering. No NFL Films recording or melody.",
-      "sections": [
-        {
-          "at": 0,
-          "name": "Opening"
-        },
-        {
-          "at": 7.87,
-          "name": "Main theme"
-        },
-        {
-          "at": 23.61,
-          "name": "Woodwind interlude"
-        },
-        {
-          "at": 31.48,
-          "name": "Full ensemble return"
-        },
-        {
-          "at": 47.21,
-          "name": "Final cadence"
-        }
-      ]
-    },
-    {
-      "id": "under-the-floodlights",
-      "title": "Under the Floodlights",
-      "family": "drama",
-      "bpm": 116,
-      "description": "Minor-key brass, urgent pizzicato strings, timpani, and a woodwind interlude.",
-      "duration": 59.828,
-      "src": "./music/under-the-floodlights.mp3",
-      "provenance": "Original PGI composition. GeneralUser GS instrument samples by S. Christian Collins; TinySoundFont rendering. No NFL Films recording or melody.",
-      "sections": [
-        {
-          "at": 0,
-          "name": "Opening"
-        },
-        {
-          "at": 8.28,
-          "name": "Main theme"
-        },
-        {
-          "at": 24.83,
-          "name": "Woodwind interlude"
-        },
-        {
-          "at": 33.1,
-          "name": "Full ensemble return"
-        },
-        {
-          "at": 49.66,
-          "name": "Final cadence"
-        }
-      ]
-    },
-    {
-      "id": "the-last-yard",
-      "title": "The Last Yard",
-      "family": "reflective",
-      "bpm": 88,
-      "description": "Warm horns, lyrical strings, harp, and a measured closing cadence.",
-      "duration": 78.568,
-      "src": "./music/the-last-yard.mp3",
-      "provenance": "Original PGI composition. GeneralUser GS instrument samples by S. Christian Collins; TinySoundFont rendering. No NFL Films recording or melody.",
-      "sections": [
-        {
-          "at": 0,
-          "name": "Opening"
-        },
-        {
-          "at": 10.91,
-          "name": "Main theme"
-        },
-        {
-          "at": 32.73,
-          "name": "Woodwind interlude"
-        },
-        {
-          "at": 43.64,
-          "name": "Full ensemble return"
-        },
-        {
-          "at": 65.45,
           "name": "Final cadence"
         }
       ]

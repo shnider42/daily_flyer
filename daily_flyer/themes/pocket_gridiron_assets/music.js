@@ -1,10 +1,16 @@
 // Adapted from Breach's authored-score transport: shared AudioContext, bounded
 // decoded cache, guarded async loads, local mixing, and explicit pause handling.
-export const SCORE_CUES={NE:{id:'for-boston',title:'For Boston',src:'./music/for-boston.mp3'},NYJ:{id:'notre-dame-victory',title:'Notre Dame Victory March',src:'./music/notre-dame-victory.mp3?v=14'},default:{id:'pgi-score',title:'Six on the Board',src:'./music/pgi-score.mp3'}};
-export const FAMILY_NAMES={all:'The Sunday Film Room',march:'Brass & field drums',drama:'Dramatic film scores',reflective:'Reflective orchestral'};
+export const SCORE_CUES={NE:{id:'for-boston',title:'For Boston',src:'./music/for-boston.mp3'},NYJ:{id:'notre-dame-victory',title:'Notre Dame Victory March',src:'./music/notre-dame-victory.mp3?v=15'},default:{id:'pgi-score',title:'Six on the Board',src:'./music/pgi-score.mp3'}};
+export const FAMILY_NAMES={all:'Match the moment',arcade:'Arcade favorites',film:'Postgame film scores'};
+export const SCENE_TRACKS={
+ menu:['saturday-voltage','neon-end-zone','fourth-and-thunder'],
+ pregame:['fourth-and-thunder','saturday-voltage','neon-end-zone'],
+ halftime:['neon-end-zone','saturday-voltage','fourth-and-thunder'],
+ postgame:['sunday-in-gold','leather-and-thunder','the-long-walk-home']
+};
 export class PGIMusic {
- constructor({fetcher=globalThis.fetch?.bind(globalThis)}={}){this.fetcher=fetcher;this.catalog=[];this.cache=new Map();this.loads=new Map();this.failed=new Set();this.voices=new Set();this.generation=0;this.scoreGeneration=0;this.enabled=true;this.scoring=true;this.family='all';this.volume=.55;this.blocked=false;this.active=null;this.scorer=null;this.pending=null;this.cursor=-1;this.resumeAt=0;this.selected=null;this.status='Choose a track or start a game.';}
- async loadCatalog(){try{const r=await this.fetcher(new URL('./music/manifest.json?v=14',import.meta.url));if(!r.ok)throw Error();const m=await r.json();this.catalog=(Array.isArray(m)?m:m.tracks).filter(t=>t.id&&t.title&&['march','drama','reflective'].includes(t.family)&&/^\.\/music\/[a-z0-9-]+\.mp3$/.test(t.src));return this.catalog;}catch{this.status='Soundtrack unavailable. Football is ready.';return [];}}
+ constructor({fetcher=globalThis.fetch?.bind(globalThis)}={}){this.fetcher=fetcher;this.catalog=[];this.cache=new Map();this.loads=new Map();this.failed=new Set();this.voices=new Set();this.generation=0;this.scoreGeneration=0;this.enabled=true;this.scoring=true;this.family='all';this.scene='menu';this.volume=.55;this.blocked=false;this.active=null;this.scorer=null;this.pending=null;this.cursor=-1;this.resumeAt=0;this.selected=null;this.status='Choose a track or start a game.';}
+ async loadCatalog(){try{const r=await this.fetcher(new URL('./music/manifest.json?v=15',import.meta.url));if(!r.ok)throw Error();const m=await r.json();this.catalog=(Array.isArray(m)?m:m.tracks).filter(t=>t.id&&t.title&&['arcade','film'].includes(t.family)&&/^\.\/music\/[a-z0-9-]+\.mp3$/.test(t.src));return this.catalog;}catch{this.status='Soundtrack unavailable. Football is ready.';return [];}}
  attach(context,output,scoreOutput){this.context=context;this.output=output;this.scoreOutput=scoreOutput;}
  releaseContext(){
   ++this.generation;++this.scoreGeneration;
@@ -12,8 +18,20 @@ export class PGIMusic {
   for(const v of this.voices){try{v.source.stop();v.source.disconnect();v.gain.disconnect();}catch{}}
   this.voices.clear();this.active=null;this.scorer=null;this.pending=null;this.context=null;this.output=null;this.scoreOutput=null;this.loads.clear();this.failed.clear();
  }
- configure({enabled=true,scoring=true,family='all',volume=.55}={}){const changed=family!==this.family;this.enabled=!!enabled;this.scoring=!!scoring;this.family=Object.hasOwn(FAMILY_NAMES,family)?family:'all';this.volume=Math.max(0,Math.min(1,Number(volume)||0));if(!this.enabled)this.halt();if(!this.scoring)this.stopScore();if(changed){this.selected=null;this.cursor=-1;this.resumeAt=0;this.halt(false);}this.mix();}
- list(){if(this.family!=='all')return this.catalog.filter(t=>t.family===this.family);const groups=['march','drama','reflective'].map(f=>this.catalog.filter(t=>t.family===f));return Array.from({length:Math.max(0,...groups.map(g=>g.length))},(_,i)=>groups.map(g=>g[i]).filter(Boolean)).flat();}
+ configure({enabled=true,scoring=true,family='all',volume=.55}={}){family=Object.hasOwn(FAMILY_NAMES,family)?family:'all';const changed=family!==this.family;this.enabled=!!enabled;this.scoring=!!scoring;this.family=family;this.volume=Math.max(0,Math.min(1,Number(volume)||0));if(!this.enabled)this.halt();if(!this.scoring)this.stopScore();if(changed){this.selected=null;this.cursor=-1;this.resumeAt=0;this.halt(false);}this.mix();}
+ // Browsing exposes both collections; automatic playback follows the current show.
+ list({browse=false}={}){
+  if(this.family!=='all')return this.catalog.filter(t=>t.family===this.family);
+  if(browse)return this.catalog;
+  return SCENE_TRACKS[this.scene].map(id=>this.catalog.find(t=>t.id===id)).filter(Boolean);
+ }
+ setScene(scene){
+  if(!Object.hasOwn(SCENE_TRACKS,scene)||scene===this.scene)return;
+  this.scene=scene;
+  if(scene==='postgame')this.stopScore();
+  if(this.family!=='all')return;
+  this.halt(false);this.selected=null;this.resumeAt=0;this.cursor=-1;
+ }
  ready(){return this.context?.state==='running'&&this.output&&this.context.createBufferSource&&this.context.decodeAudioData;}
  async prepare(track){
   if(!track||!this.context)throw Error('Audio unavailable');if(this.cache.has(track.id))return this.cache.get(track.id);if(this.loads.has(track.id))return this.loads.get(track.id);
@@ -36,7 +54,8 @@ export class PGIMusic {
   if(!this.scoring||!this.ready()||this.blocked)return;this.scoreAllowed=true;const track=SCORE_CUES[team]||SCORE_CUES.default,generation=++this.scoreGeneration,deadline=this.context.currentTime+3;
   this.prepare(track).then(buffer=>{if(generation!==this.scoreGeneration||!this.scoring||this.blocked||this.scoreAllowed===false||!this.ready()||this.context.currentTime>deadline)return;this.fade(this.scorer,.12);this.scorer=this.makeVoice(buffer,track,this.scoreOutput);this.mix();}).catch(()=>{});
  }
- update({blocked=false,live=false,background=true,scoreAllowed=true}={}){
+ update({blocked=false,live=false,background=true,scoreAllowed=true,scene=this.scene}={}){
+  this.setScene(scene);
   const wasBlocked=this.blocked,hadScore=this.scoreAllowed;this.blocked=blocked;this.live=live;this.background=background;this.scoreAllowed=scoreAllowed;
   if(blocked){if(!wasBlocked){this.halt();this.stopScore();}return;}
   if(!scoreAllowed&&(hadScore!==false||this.scorer))this.stopScore();

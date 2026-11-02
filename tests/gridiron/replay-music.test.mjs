@@ -18,8 +18,8 @@ const manifest=JSON.parse(fs.readFileSync(new URL('../../daily_flyer/themes/pock
 function context(){const c={currentTime:0,state:'running',sources:[],decodeAudioData:async()=>({duration:55}),createGain:()=>({gain:{value:0,setValueAtTime(){},linearRampToValueAtTime(){},cancelScheduledValues(){},setTargetAtTime(){}},connect(){},disconnect(){}}),createBufferSource(){const s={connect(){},disconnect(){},start(at,offset){this.started={at,offset};},stop(){this.stopped=true;}};c.sources.push(s);return s;}};return c;}
 function player(fetcher=async url=>({ok:true,json:async()=>manifest,arrayBuffer:async()=>new ArrayBuffer(8)})){const p=new PGIMusic({fetcher}),c=context();p.catalog=manifest.tracks;p.attach(c,{},{});return [p,c];}
 const settle=()=>new Promise(resolve=>setImmediate(resolve));
-test('soundtrack has six orchestral assets, three families, and explicit NE/NYJ scoring mappings',()=>{assert.equal(manifest.tracks.length,6);for(const family of ['march','drama','reflective'])assert.equal(manifest.tracks.filter(t=>t.family===family).length,2);assert.equal(SCORE_CUES.NE.id,'for-boston');assert.equal(SCORE_CUES.NYJ.id,'notre-dame-victory');assert.equal(SCORE_CUES.default.id,'pgi-score');for(const t of manifest.tracks)assert.ok(fs.statSync(new URL('../../daily_flyer/themes/pocket_gridiron_assets/'+t.src,import.meta.url)).size>100000);});
-test('music rotates across tracks and family selection; pause resumes from its previous offset',async()=>{const [p,c]=player();p.update();await settle();const first=p.active.track.id;c.currentTime=12;p.update({blocked:true});assert.equal(p.active,null);assert.equal(p.resumeAt,12);p.update({blocked:false});await settle();assert.equal(p.active.track.id,first);assert.equal(p.active.source.started.offset,12);p.next();await settle();assert.notEqual(p.active.track.id,first);p.configure({family:'drama'});p.update();await settle();assert.equal(p.active.track.family,'drama');});
+test('soundtrack restores three arcade favorites and reserves three orchestral themes for postgame',()=>{assert.equal(manifest.tracks.length,6);for(const family of ['arcade','film'])assert.equal(manifest.tracks.filter(t=>t.family===family).length,3);assert.equal(SCORE_CUES.NE.id,'for-boston');assert.equal(SCORE_CUES.NYJ.id,'notre-dame-victory');assert.equal(SCORE_CUES.default.id,'pgi-score');for(const t of manifest.tracks)assert.ok(fs.statSync(new URL('../../daily_flyer/themes/pocket_gridiron_assets/'+t.src,import.meta.url)).size>100000);});
+test('music rotates across tracks and family selection; pause resumes from its previous offset',async()=>{const [p,c]=player();p.update();await settle();const first=p.active.track.id;c.currentTime=12;p.update({blocked:true});assert.equal(p.active,null);assert.equal(p.resumeAt,12);p.update({blocked:false});await settle();assert.equal(p.active.track.id,first);assert.equal(p.active.source.started.offset,12);p.next();await settle();assert.notEqual(p.active.track.id,first);p.configure({family:'film'});p.update();await settle();assert.equal(p.active.track.family,'film');});
 test('a late soundtrack download cannot start after mute, pause or a newer selection',async()=>{let resolve;const [p,c]=player(()=>new Promise(r=>{resolve=r;}));p.update();p.configure({enabled:false});resolve({ok:true,arrayBuffer:async()=>new ArrayBuffer(8)});await settle();assert.equal(c.sources.length,0);assert.equal(p.active,null);});
 test('scoring music ducks the song, maps both teams, and is independently disabled',async()=>{const [p,c]=player();p.update();await settle();p.score('NYJ');await settle();assert.equal(p.scorer.track.id,'notre-dame-victory');const song=p.active;p.scorer.source.onended();assert.equal(p.scorer,null);assert.equal(p.active,song);p.configure({enabled:false,scoring:true});p.score('NE');await settle();assert.equal(p.scorer.track.id,'for-boston');p.configure({enabled:false,scoring:false});p.score('BUF');assert.equal(p.scorer,null);});
 test('late scoring audio is canceled on pause and cannot celebrate during a later play',async()=>{let release;const [p,c]=player(()=>new Promise(r=>{release=r;}));p.score('NE');p.update({blocked:true});release({ok:true,arrayBuffer:async()=>new ArrayBuffer(8)});await settle();assert.equal(c.sources.length,0);p.update({blocked:false});p.halt();});
@@ -42,4 +42,29 @@ test('a discarded audio context releases voices and late loads before speaker re
  const [p,c]=player();p.update();await settle();assert.ok(p.active);const selected=p.active.track.id;
  p.releaseContext();assert.equal(p.active,null);assert.equal(p.voices.size,0);assert.equal(p.context,null);assert.equal(p.selected.id,selected);
  const fresh=context();p.attach(fresh,{},{});p.update();await settle();assert.equal(p.active.track.id,selected);assert.equal(fresh.sources.length,1);
+});
+
+test('automatic music follows menu, pregame, halftime and final highlights, with no orchestral menu spill',async()=>{
+ const [p,c]=player();
+ for(const [scene,expected] of [['menu','saturday-voltage'],['pregame','fourth-and-thunder'],['halftime','neon-end-zone'],['postgame','sunday-in-gold']]){
+  p.update({scene});await settle();assert.equal(p.active.track.id,expected);
+  const family=scene==='postgame'?'film':'arcade';
+  for(let i=0;i<4;i++){assert.equal(p.active.track.family,family);p.active.source.onended();p.update({scene});await settle();}
+ }
+ p.update({scene:'menu'});await settle();assert.equal(p.active.track.id,'saturday-voltage');
+});
+test('a show transition discards an in-flight arcade download and starts its film score from the opening',async()=>{
+ const pending=new Map();const [p,c]=player(url=>new Promise(resolve=>pending.set(String(url),resolve)));
+ const release=id=>{const key=[...pending.keys()].find(k=>k.includes(id));assert.ok(key,id);pending.get(key)({ok:true,arrayBuffer:async()=>new ArrayBuffer(8)});};
+ p.update({scene:'pregame'});p.update({scene:'postgame'});
+ release('fourth-and-thunder');await settle();assert.equal(p.active,null);
+ release('sunday-in-gold');await settle();assert.equal(p.active.track.id,'sunday-in-gold');assert.equal(p.active.offset,0);
+});
+test('scene changes preserve mute and explicit collection choices, and clear final-play scoring music',async()=>{
+ const [p]=player();p.update({scene:'pregame'});await settle();p.score('NYJ');await settle();assert.ok(p.scorer);
+ p.update({scene:'postgame'});await settle();assert.equal(p.scorer,null);assert.equal(p.active.track.family,'film');
+ p.configure({enabled:false});p.update({scene:'menu'});await settle();assert.equal(p.active,null);
+ p.configure({family:'arcade'});p.update({scene:'postgame'});await settle();assert.equal(p.active.track.family,'arcade');
+ p.configure({family:'all'});p.update();await settle();assert.equal(p.active.track.family,'film');
+ assert.equal(p.list({browse:true}).length,6);assert.equal(p.list().length,3);
 });

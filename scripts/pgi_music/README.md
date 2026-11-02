@@ -1,5 +1,29 @@
 # PGI stadium soundtrack
 
+## Active game soundtrack
+
+The default **Match the moment** rotation restores three earlier synthesized
+arcade favorites and reserves three orchestral recordings for the final recap
+and its recorded highlight reel. Each group rotates only within its collection:
+
+| Moment | Opening track | Following tracks |
+| --- | --- | --- |
+| Main menu | Saturday Voltage | Neon End Zone, Fourth and Thunder |
+| Pregame | Fourth and Thunder | Saturday Voltage, Neon End Zone |
+| Halftime | Neon End Zone | Saturday Voltage, Fourth and Thunder |
+| Postgame highlights | Sunday in Gold | Leather and Thunder, The Long Walk Home |
+
+Transitions fade the outgoing song and start the new show at its opening. Late
+downloads cannot restart the previous show’s music. Music stays off during
+football unless **All the time** is selected. Players can preview all six tracks
+or explicitly choose either collection in the soundtrack panel.
+
+The active mixed catalog is `music/manifest.json`; scene ordering lives in
+`SCENE_TRACKS` in `music.js`. Other historical recordings remain archived.
+See `FILM_SCORE.md` for orchestral rendering and `fights/PROVENANCE.md` for cues.
+
+## Original arcade album
+
 Nine original instrumental songs, composed for Pocket Gridiron. The `gallop`,
 `hybrid`, and `glam` families explore melodic heavy metal, electronic heavy rock,
 and glam/hard rock respectively. No artist's song, riff, recording, sample,
@@ -14,7 +38,7 @@ having to synthesize a full band in real time.
 
 `compose_album.py` contains every written riff, motif, accompaniment, and section.
 Each song has an introduction, contrasting development, a return, and a resolved
-ending. Arrangement metadata is emitted to `music/manifest.json`. The score JSON
+ending. Arrangement metadata can be emitted to a separate album manifest; do not overwrite the curated game manifest when rebuilding the archive. The score JSON
 files and WAV intermediates are reproducible and do not need to be committed.
 
 ## Rebuild
@@ -24,7 +48,7 @@ required. The versions used for this render are listed in `requirements.txt`.
 From the repository root:
 
 ```sh
-python scripts/pgi_music/compose_album.py /tmp/pgi-scores --manifest daily_flyer/themes/pocket_gridiron_assets/music/manifest.json
+python scripts/pgi_music/compose_album.py /tmp/pgi-scores --manifest /tmp/pgi-scores/arcade-manifest.json
 ```
 
 For each emitted score:

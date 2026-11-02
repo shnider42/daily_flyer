@@ -8,7 +8,7 @@ is used. Only the two historic songs' single-note melodies are transcribed.
 | Asset | Used for | Musical source | Rendering |
 | --- | --- | --- | --- |
 | `for-boston.mp3` | New England scoring | Thomas J. Hurley's **For Boston**, opening pickup and eight bars | B-flat major, quarter = 156, new tonic ending |
-| `notre-dame-victory.mp3` | New York Jets scoring | Michael J. Shea's **Notre Dame Victory March**, complete 32-bar chorus | E-flat major, half = 112, second ending; about 35 seconds |
+| `notre-dame-victory.mp3` | New York Jets scoring | Michael J. Shea's **Notre Dame Victory March**, opening eight + final eight chorus bars | E-flat major, half = 112, second ending; about 18 seconds |
 | `pgi-score.mp3` | Other teams scoring | **Six on the Board**, an original PGI melody | D major, quarter = 152 |
 
 ## Sources and scope
@@ -112,10 +112,12 @@ Notre Dame Victory March, E-flat major, chorus:
 31–32 (second ending): Eb4:6 r:2
 ```
 
-The Jets cue now plays the complete chorus once, taking the written second
-ending. The previous version repeated only the opening eight bars; it omitted
-the middle and closing phrases. The accompaniment and drum fill remain newly
-written. The For Boston cue and generic scoring fanfare are unchanged.
+The compact Jets cue plays bars 1–8 followed by bars 25–32 from the full
+transcription above. It omits the contrasting middle and repeated chorus,
+retains the final phrase and resolved second ending, and keeps the original
+tempo. This cuts the previous 34.8-second arrangement to 17.6 seconds. The
+accompaniment and drum fill remain newly written. For Boston and the generic
+scoring fanfare are unchanged.
 
 The generic cue's melody and all three accompaniments are authored directly in
 `compose_fights.py`. To regenerate scores and audio:
@@ -124,7 +126,7 @@ The generic cue's melody and all three accompaniments are authored directly in
 python scripts/pgi_music/compose_fights.py --render
 ```
 
-To rebuild only the extended Jets cue while leaving all other assets untouched:
+To rebuild only the compact Jets cue while leaving all other assets untouched:
 
 ```sh
 python scripts/pgi_music/compose_fights.py --only notre-dame-victory --render

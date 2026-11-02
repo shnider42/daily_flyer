@@ -17,4 +17,4 @@ test('interrupted context resumes within the gesture; a running context is not r
  const original=globalThis.AudioContext;globalThis.AudioContext=function(){};
  try{const promise=a.unlock();assert.equal(resumes,1);await promise;await a.unlock();assert.equal(resumes,1);assert.ok(applies>=2);}finally{globalThis.AudioContext=original;}
 });
-test('saved rock stations migrate to the orchestral catalog',()=>{assert.equal(new StadiumAudio({station:'gallop'}).settings.station,'all');assert.equal(new StadiumAudio({station:'reflective'}).settings.station,'reflective');});
+test('old genre stations migrate to the automatic show rotation',()=>{assert.equal(new StadiumAudio({station:'gallop'}).settings.station,'all');assert.equal(new StadiumAudio({station:'reflective'}).settings.station,'all');});

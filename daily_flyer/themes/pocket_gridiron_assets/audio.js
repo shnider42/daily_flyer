@@ -1,14 +1,15 @@
-import {playbackSession} from './device-audio.js?v=14';
-import {ImpactLimiter} from './impact.js?v=14';
-import {PGIMusic} from './music.js?v=14';
+import {playbackSession} from './device-audio.js?v=15';
+import {ImpactLimiter} from './impact.js?v=15';
+import {PGIMusic,FAMILY_NAMES} from './music.js?v=15';
 export function musicPolicy(settings,game,{audition=false,broadcast=false}={}){
  const continuous=settings.musicMode==='always';
- return {background:!game||audition||broadcast||game.phase==='final'||continuous,
-  scoreAllowed:!game||audition||broadcast||continuous||!game.isLive};
+ const scene=game?.phase==='final'?'postgame':typeof broadcast==='string'?broadcast:!game?'menu':game.phase==='halftime'?'halftime':null;
+ return {scene,background:!game||audition||!!broadcast||game.phase==='final'||continuous,
+  scoreAllowed:!game||audition||!!broadcast||continuous||!game.isLive};
 }
 // Original effects, with authored MP3 score transport adapted from Breach.
 export class StadiumAudio {
- constructor(settings={}){this.settings={effects:true,contactFx:true,passWhistle:true,music:true,musicMode:'broadcast',scoringMusic:true,station:'all',musicVolume:.55,volume:.45,...settings};if(!['broadcast','always'].includes(this.settings.musicMode))this.settings.musicMode='broadcast';if(!['all','march','drama','reflective'].includes(this.settings.station))this.settings.station='all';this.context=null;this.lastCadence='';this.impacts=new ImpactLimiter();this.pads=new ImpactLimiter({gap:.12,blockGap:.22,max:5,window:1});this.soundtrack=new PGIMusic();}
+ constructor(settings={}){this.settings={effects:true,contactFx:true,passWhistle:true,music:true,musicMode:'broadcast',scoringMusic:true,station:'all',musicVolume:.55,volume:.45,...settings};if(!['broadcast','always'].includes(this.settings.musicMode))this.settings.musicMode='broadcast';if(!Object.hasOwn(FAMILY_NAMES,this.settings.station))this.settings.station='all';this.context=null;this.lastCadence='';this.impacts=new ImpactLimiter();this.pads=new ImpactLimiter({gap:.12,blockGap:.22,max:5,window:1});this.soundtrack=new PGIMusic();}
  async unlock(){try{playbackSession();const C=globalThis.AudioContext||globalThis.webkitAudioContext;if(!C)return;if(this.context?.state==='closed'){this.soundtrack.releaseContext();this.context=null;this.master=null;this.score=null;}this.context??=new C();if(!this.master){const c=this.context;this.master=c.createGain();this.master.connect(c.destination);this.fx=c.createGain();this.fx.connect(this.master);this.music=c.createGain();this.music.connect(this.master);this.crowd=c.createGain();this.crowd.connect(this.fx);const b=c.createBuffer(1,c.sampleRate*2,c.sampleRate),data=b.getChannelData(0);for(let i=0;i<data.length;i++)data[i]=(Math.random()*2-1)*.35;this.noise=b;const n=c.createBufferSource(),filter=c.createBiquadFilter();n.buffer=b;n.loop=true;filter.type='lowpass';filter.frequency.value=600;n.connect(filter);filter.connect(this.crowd);n.start();this.crowd.gain.value=0;}this.apply();if(this.context.state!=='running'){const resumed=this.context.resume();await resumed;}this.apply();}catch{/* Visual cues always remain available. */}}
  apply(){this.soundtrack.configure({enabled:this.settings.music,scoring:this.settings.scoringMusic,family:this.settings.station,volume:this.settings.musicVolume});if(!this.context||!this.master)return;this.master.gain.value=this.settings.volume;this.fx.gain.value=this.settings.effects?1:0;this.music.gain.value=1;if(!this.score){this.score=this.context.createGain();this.score.connect(this.master);}this.soundtrack.attach(this.context,this.music,this.score);}
  tone(freq,duration=.1,type='square',volume=.06,delay=0,bus='fx'){

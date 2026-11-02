@@ -39,3 +39,11 @@ test('postgame has detached final statistics, preserves first-half clips, and in
  assert.equal(report.mode,'postgame');assert.ok(show.segments.some(s=>s.clip?.quarter===4));assert.equal(JSON.stringify(g),before);
  assert.equal(report.box[0].rushYards,g.box[0].rushYards);g.box[0].rushYards=999;assert.notEqual(report.box[0].rushYards,999);assert.ok(show.segments.every(s=>!s.al.includes('second-half kickoff')));
 });
+
+test('music scene routing identifies the actual broadcast and holds the current playlist during football',()=>{
+ const s={musicMode:'broadcast'};
+ assert.equal(musicPolicy(s,null).scene,'menu');
+ for(const scene of ['pregame','halftime','postgame'])assert.equal(musicPolicy(s,{phase:'call'},{broadcast:scene}).scene,scene);
+ assert.equal(musicPolicy(s,{phase:'final'}).scene,'postgame');assert.equal(musicPolicy(s,{phase:'live'}).scene,null);
+ assert.equal(musicPolicy(s,{phase:'live'}).background,false);
+});

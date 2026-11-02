@@ -1,19 +1,19 @@
-import {clockText,matchLength} from './match.js?v=14';
-import {HalftimeShow} from './halftime.js?v=14';
-import {pregameReport,halftimeBroadcast,postgameReport} from './broadcast.js?v=14';
-import {passPlacement,passAim} from './passing.js?v=14';
-import {playDiagram} from './plays.js?v=14';
-import {ReplayTape} from './replay.js?v=14';
-import {BoothVoices,giveBoothVoice} from './booth-lines.js?v=14';
-import {FAMILY_NAMES} from './music.js?v=14';
-import {showOffensiveRoutes,suggestions,coachText,hitDefender,BOOK_FILTERS,bookPage} from './presentation.js?v=14';
-import {teamStrengths} from './teams.js?v=14';
-import {RATING_LABELS,visibleRatings} from './ratings.js?v=14';
-import {bindAudioActivation} from './device-audio.js?v=14';
-import {StadiumAudio} from './audio.js?v=14';
-import {bindGameButton, protectGameSurface, setGameButtonEnabled,primaryCommand,stickInput,movementInput} from './controls.js?v=14';
-import {Game,PLAYS,DEFENSE,clamp} from './engine.js?v=14';
-import {TEAMS,buildTeam,fetchFreshRoster,validateRoster} from './roster.js?v=14';
+import {clockText,matchLength} from './match.js?v=15';
+import {HalftimeShow} from './halftime.js?v=15';
+import {pregameReport,halftimeBroadcast,postgameReport} from './broadcast.js?v=15';
+import {passPlacement,passAim} from './passing.js?v=15';
+import {playDiagram} from './plays.js?v=15';
+import {ReplayTape} from './replay.js?v=15';
+import {BoothVoices,giveBoothVoice} from './booth-lines.js?v=15';
+import {FAMILY_NAMES} from './music.js?v=15';
+import {showOffensiveRoutes,suggestions,coachText,hitDefender,BOOK_FILTERS,bookPage} from './presentation.js?v=15';
+import {teamStrengths} from './teams.js?v=15';
+import {RATING_LABELS,visibleRatings} from './ratings.js?v=15';
+import {bindAudioActivation} from './device-audio.js?v=15';
+import {StadiumAudio} from './audio.js?v=15';
+import {bindGameButton, protectGameSurface, setGameButtonEnabled,primaryCommand,stickInput,movementInput} from './controls.js?v=15';
+import {Game,PLAYS,DEFENSE,clamp} from './engine.js?v=15';
+import {TEAMS,buildTeam,fetchFreshRoster,validateRoster} from './roster.js?v=15';
 const $=id=>document.getElementById(id);const el=(tag,text,cls)=>{const e=document.createElement(tag);if(text!==undefined)e.textContent=text;if(cls)e.className=cls;return e;};
 const safeRead=(key,fallback)=>{try{return JSON.parse(localStorage.getItem(key))??fallback;}catch{return fallback;}};
 const safeWrite=(key,value)=>{try{localStorage.setItem(key,JSON.stringify(value));return true;}catch{return false;}};
@@ -62,7 +62,7 @@ $('nextTrack').onclick=()=>{stadium.settings.music=true;syncAudio();audioUnlock(
 function openSoundtrack(){if(game)pause();audition=true;showDialog('soundtrackDialog');audioUnlock();renderTracks();}
 $('showSoundtrack').onclick=$('pauseSoundtrack').onclick=openSoundtrack;
 $('soundtrackDialog').addEventListener('close',()=>{audition=false;});
-function renderTracks(){const tracks=stadium.soundtrack.list();$('trackList').replaceChildren(...tracks.map(t=>{const b=el('button',undefined,'trackchoice');b.append(el('b',t.title),el('small',`${FAMILY_NAMES[t.family]} · ${t.bpm} BPM · ${Math.round(t.duration)} sec`),el('span',t.description));b.onclick=()=>{stadium.settings.music=true;syncAudio();audioUnlock();stadium.soundtrack.choose(t.id);};return b;}));}
+function renderTracks(){const tracks=stadium.soundtrack.list({browse:true});$('trackList').replaceChildren(...tracks.map(t=>{const b=el('button',undefined,'trackchoice');b.append(el('b',t.title),el('small',`${FAMILY_NAMES[t.family]} · ${t.bpm} BPM · ${Math.round(t.duration)} sec`),el('span',t.description));b.onclick=()=>{stadium.settings.music=true;syncAudio();audioUnlock();stadium.soundtrack.choose(t.id);};return b;}));}
 stadium.soundtrack.loadCatalog().then(renderTracks);
 for(const [id,team] of [['previewNE','NE'],['previewNYJ','NYJ'],['previewOther','BUF']])$(id).onclick=()=>{stadium.settings.scoringMusic=true;syncAudio();audioUnlock().then(()=>{stadium.soundtrack.update({blocked:false});stadium.soundtrack.score(team);});};
 function skipReplay(){if(game?.paused)return;replay.skip();keys={};resetStick();updateHUD();}
@@ -255,7 +255,7 @@ function drawAttract(t){const a=roster?teamFor($('homeTeam').value):TEAMS[21],b=
 function frame(now){
  halftimeShow.tick(now,document.hidden);
  let dt=rafTime?(now-rafTime)/1000:0;rafTime=now;
- stadium.update(game,document.hidden,{audition,broadcast:halftimeShow.openNow,replay:!!replay.active});
+ stadium.update(game,document.hidden,{audition,broadcast:halftimeShow.openNow?halftimeShow.report.mode:false,replay:!!replay.active});
  const musicStatus=stadium.soundtrack.scorer?'Scoring · '+stadium.soundtrack.scorer.track.title:stadium.soundtrack.status;if(lastMusicStatus!==musicStatus){lastMusicStatus=musicStatus;$('nowPlaying').textContent=lastMusicStatus;$('pauseTrack').textContent=lastMusicStatus;}
  if(game){
   if(replay.active){if(!game.paused&&!document.hidden){const was=replay.active;replay.advance(dt);if(was!==replay.active){keys={};resetStick();updateHUD();}}if(replay.active)drawReplay(replay.view());else{updateHUD();drawGame();}}
