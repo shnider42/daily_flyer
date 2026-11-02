@@ -7,13 +7,29 @@ export function bindGameButton(button, action) {
   button.addEventListener('pointerdown', event => {
     if (event.pointerType === 'mouse' && event.button !== 0) return;
     event.preventDefault();
+    button.classList?.add('is-pressed');
     // Do not filter isPrimary: the other thumb may be holding the joystick.
     activate();
   });
+  for(const type of ['pointerup','pointercancel','lostpointercapture','pointerleave'])button.addEventListener(type,()=>button.classList?.remove('is-pressed'));
   button.addEventListener('click', event => {
     event.preventDefault();
     if (event.detail === 0) activate();
   });
+}
+
+export function primaryCommand(game){
+  if(!game||game.paused)return null;
+  if(game.phase==='penalty')return 'accept';
+  if(['kick_ready','kick_charge'].includes(game.phase))return 'kick';
+  if(game.phase==='ready')return game.userOffense?'snap':null;
+  if(game.isLive&&(!game.userOffense||!game.pass)&&(game.userOffense?game.burstCooldown<=0:game.diveCooldown<=0))return 'burst';
+  return null;
+}
+
+export function stickInput(dx,dy,radius){
+  const length=Math.hypot(dx,dy),travel=Math.min(1,length/radius),amount=Math.max(0,(travel-.12)/.88);
+  return {x:length?dx/length*amount:0,y:length?-dy/length*amount:0,px:length?dx/length*travel*radius:0,py:length?dy/length*travel*radius:0};
 }
 
 export function setGameButtonEnabled(button, enabled) {

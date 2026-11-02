@@ -6,7 +6,7 @@ import {AI_PROFILES,seededRandom,fumbleChance} from '../../daily_flyer/themes/po
 import {buildTeam} from '../../daily_flyer/themes/pocket_gridiron_assets/roster.js';
 const data=JSON.parse(fs.readFileSync(new URL('../../daily_flyer/themes/pocket_gridiron_assets/rosters.json',import.meta.url)));
 const home=buildTeam('NE',data),away=buildTeam('BUF',data);
-function make(difficulty='pro',rng=()=>.5){const g=new Game(home,away,difficulty,rng);g.beginDrive(0,25);g.choose('slants');g.snap();return g;}
+function make(difficulty='pro',rng=()=>.5){const g=new Game(home,away,difficulty,rng);g.beginDrive(0,25);g.choose('slants');g.snap(g.offense);return g;}
 function isolate(g){for(const p of [...g.players,...g.defenders]){p.x=50;p.y=90;p.speed=0;p.stun=0;}g.carrier.x=26;g.carrier.y=21;g.players[2].x=7;g.players[2].y=32;}
 function passUntil(g,step=.05){let n=0;while(g.pass&&n++<300)g.tickPass(step);assert.ok(n<300);}
 
@@ -24,7 +24,7 @@ test('interception return keeps actual athletes, rotates the field, and can be a
  const g=make(),d=g.defenders[4],qb=g.carrier;d.x=8;d.y=60;qb.x=26;qb.y=21;g.startTurnover(d,'interception');assert.equal(g.offense,1);assert.equal(g.phase,'return');assert.equal(g.carrier,d);assert.equal(d.x,45);assert.equal(d.y,40);assert.ok(g.defenders.includes(qb));assert.equal(qb.y,79);assert.equal(g.canPass,false);assert.equal(g.special,null);g.finish('touchdown',100);assert.deepEqual(g.scores,[0,7]);assert.equal(g.pending.kickoff,1);
 });
 test('human takes control of an interception and earns return yards, not passing yards',()=>{
- const g=make();g.beginDrive(1,35);g.choose('man');g.snap();const d=g.defenders[5];d.y=45;g.startTurnover(d,'interception');assert.equal(g.controlled,d);g.burst();assert.equal(g.burstLeft,.6);g.finish('tackle',65);assert.equal(g.stats.returnYards,10);assert.equal(g.stats.yards,0);assert.equal(g.stats.takeaways,1);g.next();assert.equal(g.offense,0);assert.equal(g.down,1);assert.equal(g.spot,65);
+ const g=make();g.beginDrive(1,35);g.choose('man');g.snap(g.offense);const d=g.defenders[5];d.y=45;g.startTurnover(d,'interception');assert.equal(g.controlled,d);g.burst();assert.equal(g.burstLeft,.6);g.finish('tackle',65);assert.equal(g.stats.returnYards,10);assert.equal(g.stats.yards,0);assert.equal(g.stats.takeaways,1);g.next();assert.equal(g.offense,0);assert.equal(g.down,1);assert.equal(g.spot,65);
 });
 test('end-zone interceptions become touchbacks; expired clock waits for a return',()=>{
  const g=make();g.defenders[4].y=103;g.startTurnover(g.defenders[4],'interception');assert.equal(g.phase,'dead');assert.equal(g.pending.spot,20);assert.equal(g.pending.offense,1);
@@ -49,12 +49,12 @@ test('fumble scrambles resolve by proximity without stalling',()=>{
 });
 test('clean catches drop occasionally across thousands of trials, never turn into phantom interceptions',()=>{
  const rng=seededRandom(814),g=make('pro',rng);let drops=0;const n=6000;
- for(let i=0;i<n;i++){g.beginDrive(0,25);g.choose('slants');g.snap();isolate(g);g.throwTo(0);passUntil(g);if(g.phase==='dead')drops++;assert.notEqual(g.offense,1);}
+ for(let i=0;i<n;i++){g.beginDrive(0,25);g.choose('slants');g.snap(g.offense);isolate(g);g.throwTo(0);passUntil(g);if(g.phase==='dead')drops++;assert.notEqual(g.offense,1);}
  assert.ok(drops/n>.03&&drops/n<.05,`drop rate ${drops/n}`);
 });
 test('contact fumble trials stay rare; sacks and risky contact have higher conditional risk',()=>{
  const rng=seededRandom(72),g=make('pro',rng);let fumbles=0;const n=5000;
- for(let i=0;i<n;i++){g.beginDrive(0,25);g.choose('dive');g.snap();isolate(g);g.carrier.power=70;g.carrier.y=27;g.liveTime=1;g.defenders[0].x=g.carrier.x;g.defenders[0].y=g.carrier.y;g.tick(.01);if(g.isLoose)fumbles++;}
+ for(let i=0;i<n;i++){g.beginDrive(0,25);g.choose('dive');g.snap(g.offense);isolate(g);g.carrier.power=70;g.carrier.y=27;g.liveTime=1;g.defenders[0].x=g.carrier.x;g.defenders[0].y=g.carrier.y;g.tick(.01);if(g.isLoose)fumbles++;}
  assert.ok(fumbles/n>.009&&fumbles/n<.024,`fumble rate ${fumbles/n}`);
  assert.ok(fumbleChance({sack:true})>fumbleChance({}));assert.ok(fumbleChance({burst:true,diving:true})>fumbleChance({}));
 });
@@ -77,9 +77,9 @@ test('man assigns separate outside receivers; new routes and delayed draw have d
  const g=make();g.defense='man';g.setFormation();assert.ok(g.coverageTarget(g.defenders[4]).x<10);assert.ok(g.coverageTarget(g.defenders[5]).x>40);assert.ok(g.coverageTarget(g.defenders[6]).y>g.spot+15);
  g.phase='call';g.choose('mesh');assert.ok(g.route(g.players[2],5).x>30);assert.ok(g.route(g.players[3],5).x<20);assert.notEqual(g.route(g.players[2],5).y,g.route(g.players[3],5).y);
  g.choose('smash');assert.ok(g.route(g.players[4],4).y>g.route(g.players[3],4).y+15);
- g.choose('draw');g.snap();assert.equal(g.carrier,g.players[0]);for(let i=0;i<19;i++)g.tick(.05);assert.equal(g.carrier,g.players[1]);assert.equal(g.canPass,false);
+ g.choose('draw');g.snap(g.offense);assert.equal(g.carrier,g.players[0]);for(let i=0;i<19;i++)g.tick(.05);assert.equal(g.carrier,g.players[1]);assert.equal(g.canPass,false);
 });
 test('seeded simulation replays identically for future authoritative multiplayer',()=>{
- function replay(){const g=make('legend',seededRandom(922));for(let n=0;n<1000;n++){if(g.phase==='call')g.choose(g.userOffense?'mesh':'robber');if(g.phase==='ready')g.snap();if(g.phase==='kick_ready')g.kickAction();if(g.phase==='kick_charge'&&g.special.power>.72)g.kickAction();if(g.canPass&&g.liveTime>1.6)g.throwTo(n%3);g.tick(.05,{x:Math.sin(n*.04),y:1});}return JSON.stringify(g);}
+ function replay(){const g=make('legend',seededRandom(922));for(let n=0;n<1000;n++){if(g.phase==='penalty')g.resolvePenalty(true);if(g.phase==='call')g.choose(g.userOffense?'mesh':'robber');if(g.phase==='ready'&&g.userOffense)g.snap();if(g.phase==='kick_ready')g.kickAction();if(g.phase==='kick_charge'&&g.special.power>.72)g.kickAction();if(g.canPass&&g.liveTime>1.6)g.throwTo(n%3);g.tick(.05,{x:Math.sin(n*.04),y:1});}return JSON.stringify(g);}
  assert.equal(replay(),replay());assert.equal(PLAYS.length,10);
 });
