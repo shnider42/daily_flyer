@@ -1,7 +1,7 @@
-import {HISTORIC_ROSTERS} from './historic-rosters.js?v=22';
-import {TEAMS,rate} from './roster.js?v=22';
-import {teamProfile,OFFENSE_STYLES,DEFENSE_STYLES} from './teams.js?v=22';
-import {selectSpecialists} from './special-teams.js?v=22';
+import {HISTORIC_ROSTERS} from './historic-rosters.js?v=23';
+import {TEAMS,rate} from './roster.js?v=23';
+import {teamProfile,OFFENSE_STYLES,DEFENSE_STYLES} from './teams.js?v=23';
+import {selectSpecialists} from './special-teams.js?v=23';
 export const CLASSICS=[
  {id:'catch',name:'The Catch',date:'January 10, 1982',home:'SF81',away:'DAL81',venue:'Candlestick Park',score:[21,27],spot:94,down:3,target:97,clock:58,hero:'Dwight Clark',
   story:'San Francisco needs a touchdown. Joe Montana rolls right and finds Dwight Clark high in the back of the end zone. The extra point and a defensive stop finish the 28–27 win.',

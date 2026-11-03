@@ -1,6 +1,6 @@
-import {EXTRA_EXCHANGES} from './booth-extras.js?v=22';
-import {addSideline} from './sideline.js?v=22';
-import {wordTimeline,wordAt} from './booth-chatter.js?v=22';
+import {EXTRA_EXCHANGES} from './booth-extras.js?v=23';
+import {addSideline} from './sideline.js?v=23';
+import {wordTimeline,wordAt} from './booth-chatter.js?v=23';
 // Original fictional fan-tribute exchanges, not transcripts or voice imitations.
 // Each topic has eight exchanges: John explains, Al responds, John buttons it.
 // Facts are supplied separately from the selected lineup or settled game ledger.
@@ -143,6 +143,7 @@ export class BoothVoices {
 }
 export function giveBoothVoice(report,voices){
  const voiced={...report,segments:report.segments.map(s=>{
+  if(s.turns)return s;
   const v=voices.take(s.topic||'gain',s.context),mark=['diagram','highlight','package'].includes(s.visual);
   const factualFocus=s.visual==='highlight'&&s.focus?.focus?`Look at #${s.focus.focus.number} ${s.focus.focus.name}${s.focus.block?' in that block':''}. `:'';
   const turns=[{speaker:'al',text:s.al,pose:'explain'},{speaker:'john',text:s.analysis||factualFocus+v.john,pose:mark?'point':s.topic==='touchdown'?'big':v.poses.john},

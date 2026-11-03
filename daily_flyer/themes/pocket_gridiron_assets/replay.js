@@ -1,3 +1,4 @@
+import {windFor} from './weather.js?v=23';
 // Presentation-only recordings. Playback never calls Game.tick or consumes RNG.
 const activePhase=p=>['live','return','fumble','kick_flight','kick_loose'].includes(p);
 const clone=p=>p?{...p}:null;
@@ -7,8 +8,9 @@ export function replayFrame(g,time){
  const b=g.pass||g.loose||(g.pitch?.released?{...g.pitch,elapsed:g.pitch.elapsed-g.pitch.release,duration:g.pitch.flight}:null)||g.special?.ball;
  const arc=b?(g.isLoose?Math.abs(Math.sin(b.elapsed*15))*5:Math.sin(Math.min(1,b.elapsed/(b.duration||1))*Math.PI)*(g.special?38:25)):0;
  const ball=point(b||g.carrier);
- const blocks=g.blocks.map(block=>({blocker:g.players[block.p].id,defender:g.defenders[block.d].id}));
- return {time,offense:g.offense,people,blocks,ball,airborne:!!b,targetId:g.pass?.target?.id||null,fake:g.fakeActive,arc,loose:g.isLoose,returning:!!g.returnInfo,spot:flip?100-g.spot:g.spot,target:flip?100-g.target:g.target,camera:flip?100-g.cameraY:g.cameraY,move:clone(g.moveAnimation),flag:!!g.flags.length};
+ const blocks=g.blocks.flatMap(block=>[block.p,block.help].filter(i=>i!==undefined).map(i=>({blocker:g.players[i].id,defender:g.defenders[block.d].id,doubleTeam:block.help!==undefined})));
+ const wind=g.weather?windFor(g):null;if(wind&&flip){wind.x*=-1;wind.y*=-1;}
+ return {time,weather:g.weather,weatherTime:g.time,weatherWind:wind,offense:g.offense,people,blocks,ball,airborne:!!b,targetId:g.pass?.target?.id||null,fake:g.fakeActive,arc,loose:g.isLoose,returning:!!g.returnInfo,spot:flip?100-g.spot:g.spot,target:flip?100-g.target:g.target,camera:flip?100-g.cameraY:g.cameraY,move:clone(g.moveAnimation),flag:!!g.flags.length};
 }
 export function replayKind(e){if(e.scorePoints===6)return 'TOUCHDOWN';if(e.type==='ball'&&e.text==='FUMBLE!')return 'FUMBLE';if(e.type==='turnover'&&(e.turnoverType==='interception'||e.text==='INTERCEPTED!'))return 'INTERCEPTION';return null;}
 export class ReplayTape {

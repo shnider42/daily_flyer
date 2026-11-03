@@ -1,4 +1,5 @@
-import {fumbleChance} from './rules.js?v=22';
+import {effects} from './weather.js?v=23';
+import {fumbleChance} from './rules.js?v=23';
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
 const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 export function resetContact(g){g.contact=null;g.breakArm=null;g.breakCooldown=0;g.stamina=100;g.offBalance=0;g.contactSlow=0;g.moveAnimation=null;g.contactFeedback='';}
@@ -10,8 +11,8 @@ export function chooseMove(g,d,input=g.lastInput||{x:0,y:1}){
  return 'truck';
 }
 export function armBreak(g,input){
- const d=nearestThreat(g);if(!d||g.breakArm||g.breakCooldown>0||g.stamina<24)return false;
- g.breakArm={move:chooseMove(g,d,input),left:.55};g.breakCooldown=1.8;g.stamina-=24;return true;
+ const d=nearestThreat(g);if(!d||g.breakArm||g.breakCooldown>0||g.stamina<24*effects(g.weather).cost)return false;
+ g.breakArm={move:chooseMove(g,d,input),left:.55};g.breakCooldown=1.8;g.stamina-=24*effects(g.weather).cost;return true;
 }
 export function contactOdds(g,d,move){
  const p=g.carrier,others=g.defenders.filter(q=>q!==d&&q.stun<=0&&!q.blocked&&distance(q,p)<3.4).length;
@@ -19,7 +20,7 @@ export function contactOdds(g,d,move){
  const tackle=(d.tackling||80)*.75+(d.power||75)*.25;
  const chance=move?clamp(.30+(skill-tackle)*.007+Math.min(.08,speed*.012)-(balance?.16:0)-Math.min(3,others)*.14-(g.stamina<35?.09:0),.03,.72):0;
  const base=fumbleChance({sack:!g.isReturn&&p===g.players[0]&&!g.crossed&&g.playDefinition.kind==='pass',receiving:g.receivedPass&&!g.isReturn,burst:g.burstLeft>0,diving:g.isHumanDefender(d)&&g.diveLeft>0,security:p.ballSecurity??80});
- const risk=clamp(base+(move==='stiff'?.006:move==='spin'?.009:move==="truck"?.004:0)+(move&&balance?.004:0),.004,.10);
+ const risk=clamp(base+effects(g.weather).fumble+(move==='stiff'?.006:move==='spin'?.009:move==="truck"?.004:0)+(move&&balance?.004:0),.004,.10);
  return {chance,risk,others,balance};
 }
 export function beginContact(g,d){

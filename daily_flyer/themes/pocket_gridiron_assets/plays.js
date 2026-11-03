@@ -57,6 +57,7 @@ const NEW_PLAYS=[
 const packaged=(formationId,p)=>({...p,formationId,universal:true});
 const fake=(id,name,hint,formationId,routes,lane,wait=2)=>packaged(formationId,{...pass(id,name,hint,'deep',routes,wait),playAction:{lane,duration:.85}});
 export const PACKAGE_PLAYS=[
+ packaged('singleback',run('sbduo','Duo inside','Adjacent linemen combine · follow the double team',27,{doubleTeam:true})),
  packaged('singleback',run('sbzone','Zone right','Press the right gap · cut behind the block',32)),
  packaged('singleback',pass('sbstick','Stick / flat','Quick sit route with an outside outlet','quick',[[[7,0],[7,30]],[[46,0],[46,5],[50,5]],[[36,0],[31,6]]],1.2)),
  fake('sbpa','PA cross','Fake zone right · cross behind the linebackers','singleback',[[[7,0],[7,10],[41,13]],[[46,0],[46,32]],[[36,0],[46,4]]],32),
@@ -76,6 +77,8 @@ export const PLAYS=[...BASE_PLAYS.map(p=>({...p,group:p.kind==='run'?'run':['ver
 const zone=(x,y,drift=0)=>({x,y,drift});
 const def=(id,name,hint,group,depths,coverage)=>({id,name,hint,group,depths,coverage});
 const NEW_DEFENSE=[
+ def('twistleft','Left twist','Line exchanges gaps · run at the vacated edge','pressure',[1.5,1.5,5,5,10,10,19],{rush:[0,1],stunt:[1,0],zones:{2:zone(15,7),3:zone(39,7),4:zone(7,13),5:zone(46,13),6:zone(26.5,24)}}),
+ def('twistright','Right twist','Penetrator attacks · partner loops behind','pressure',[1.5,1.5,5,5,10,10,19],{rush:[0,1],stunt:[0,1],zones:{2:zone(15,7),3:zone(39,7),4:zone(7,13),5:zone(46,13),6:zone(26.5,24)}}),
  def('cover4','Quarters','Four deep zones · space underneath','zone',[1.5,1.5,7,17,19,19,21],{rush:[0,1],zones:{2:zone(26.5,8),3:zone(7,24,1),4:zone(20,27,1),5:zone(33,27,1),6:zone(46,24,1)}}),
  def('cover6','Quarter / quarter / half','Split left deep · half-field help right','zone',[1.5,1.5,7,7,19,21,20],{rush:[0,1],zones:{2:zone(16,7),3:zone(39,7),4:zone(7,25,1),5:zone(21,28,1),6:zone(40,28,1)}}),
  def('cover0','Zero blitz','Four rushers · man coverage without deep help','pressure',[1.5,1.5,4,2,4,4,7],{rush:[0,1,3,6],man:{2:4,4:2,5:3}}),

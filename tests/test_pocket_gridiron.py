@@ -11,7 +11,7 @@ class PocketGridironTest(unittest.TestCase):
         response = self.client.get('/?theme=pocket-gridiron', follow_redirects=True)
         self.assertEqual(response.status_code, 200)
         self.assertIn(b'POCKET', response.data)
-        for asset in ('challenges.js', 'full-team.js', 'history.js', 'historic-rosters.js', 'stadium-life.js', 'engine.js', 'uniforms.js', 'placekicks.js', 'rules.js', 'blocking.js', 'penalties.js', 'app.js', 'controls.js', 'ratings.js', 'teams.js', 'contact.js', 'presentation.js', 'audio.js', 'device-audio.js', 'music.js', 'replay.js', 'passing.js', 'plays.js', 'match.js', 'halftime.js', 'broadcast.js', 'broadcast-screen.js', 'booth-lines.js', 'booth-stage.js', 'booth-poses.webp', 'impact.js', 'halftime-booth.png', 'music/notre-dame-victory.mp3', 'music/manifest.json', 'music/fourth-and-thunder.mp3'):
+        for asset in ('weather.js', 'weather-presentation.js', 'rushing.js', 'challenges.js', 'full-team.js', 'history.js', 'historic-rosters.js', 'stadium-life.js', 'engine.js', 'uniforms.js', 'placekicks.js', 'rules.js', 'blocking.js', 'penalties.js', 'app.js', 'controls.js', 'ratings.js', 'teams.js', 'contact.js', 'presentation.js', 'audio.js', 'device-audio.js', 'music.js', 'replay.js', 'passing.js', 'plays.js', 'match.js', 'halftime.js', 'broadcast.js', 'broadcast-screen.js', 'booth-lines.js', 'booth-stage.js', 'booth-poses.webp', 'impact.js', 'halftime-booth.png', 'music/notre-dame-victory.mp3', 'music/manifest.json', 'music/fourth-and-thunder.mp3'):
             with self.client.get('/gridiron/' + asset) as asset_response:
                 self.assertEqual(asset_response.status_code, 200)
         self.assertEqual(self.client.get('/gridiron/missing.txt').status_code, 404)

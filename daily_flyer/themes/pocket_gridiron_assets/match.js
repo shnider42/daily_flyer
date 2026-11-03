@@ -1,4 +1,4 @@
-import {emptySpecial} from './special-teams.js?v=22';
+import {emptySpecial} from './special-teams.js?v=23';
 export const MATCH_LENGTHS=Object.freeze({
  quick:{name:'Quick game',quarterSeconds:45,multiplier:1,halftimeShow:true},
  extended:{name:'Extended game',quarterSeconds:90,multiplier:2,halftimeShow:true},
@@ -22,5 +22,5 @@ export function halftimeReport(g){
  segments.push({title:'Possession matters',al:turnovers?`${a.abbr} has ${x.takeaways} takeaway${x.takeaways===1?'':'s'}; ${b.abbr} has ${y.takeaways}. The return yards are ${x.returnYards} for ${a.abbr} and ${y.returnYards} for ${b.abbr}.`:`Neither side has taken the ball away. Return yards: ${a.abbr} ${x.returnYards}, ${b.abbr} ${y.returnYards}.`,john:turnovers?'A change of possession gives everybody a new job. The defender becomes the runner, and suddenly the offense has to make a tackle. That is a whole team moment.':'Taking care of the football gives your teammates another chance to make something happen. That is a useful habit to take out of the locker room.'});
  const big=x.longest.yards>=y.longest.yards?{...x.longest,team:a}:{...y.longest,team:b};
  segments.push({title:big.yards?'One to remember':'A second-half opening',al:big.yards?`The longest gain so far belongs to ${big.player}: ${big.yards} yards on a ${big.kind} for ${big.team.abbr}.`:'No positive-yardage gain has reached the ledger yet. The next half is an opportunity to put one there.',john:big.yards?'That earns a second look on the chalkboard. Find what worked, then be ready when the defense gives you a different answer.':'A first down can be a good place to start. You do not have to draw the entire drive with one play.',closing:`${b.city} receives the second-half kickoff. Thanks for spending halftime in the booth with us.`});
- return {teams,scores,box,segments,receivingTeam:1};
+ return {teams,scores,box,segments,receivingTeam:1,weather:g.weather?structuredClone(g.weather):null};
 }

@@ -19,7 +19,7 @@ button[aria-disabled="true"]:hover{filter:none}
  body.playing .mast{display:none}
  body.playing main{width:100%;max-width:none;height:100%;padding:env(safe-area-inset-top) env(safe-area-inset-right) 0 env(safe-area-inset-left)}
  .game{height:100%;display:block}
- .console{height:100%;display:grid;grid-template-rows:58px 28px minmax(0,1fr) auto;border:0;box-shadow:none}
+ .console{height:100%;display:grid;grid-template-rows:58px 28px 22px minmax(0,1fr) auto;border:0;box-shadow:none}
  .scoreboard{min-height:0;padding:4px 48px;gap:24px}
  .scoreteam{gap:9px}
  .scoreteam strong{font-size:28px}
@@ -52,16 +52,17 @@ button[aria-disabled="true"]:hover{filter:none}
 }
 /* Landscape keeps both thumbs beside the field, leaving its full height clear. */
 @media(max-width:1000px) and (max-height:600px) and (orientation:landscape){
- .console{grid-template-columns:112px minmax(0,1fr) 176px;grid-template-rows:48px 24px minmax(0,1fr);padding-bottom:env(safe-area-inset-bottom);column-gap:10px}
+ .console{grid-template-columns:112px minmax(0,1fr) 176px;grid-template-rows:48px 24px 22px minmax(0,1fr);padding-bottom:env(safe-area-inset-bottom);column-gap:10px}
  .scoreboard{grid-column:1/-1;grid-row:1}
  .timebox>span:first-child{font-size:8px}
  .timebox strong{font-size:17px}
  .scoreboard #pause{top:2px}
  .downbar{grid-column:1/-1;grid-row:2}
- .fieldwrap{grid-column:2;grid-row:3;height:100%}
+ .weatherbar{grid-column:1/-1;grid-row:3}
+ .fieldwrap{grid-column:2;grid-row:4;height:100%}
  .controls{display:contents}
- .joystick{grid-column:1;grid-row:3;align-self:center;justify-self:center}
- .actions{grid-column:3;grid-row:3;align-self:center;margin-right:12px}
+ .joystick{grid-column:1;grid-row:4;align-self:center;justify-self:center}
+ .actions{grid-column:3;grid-row:4;align-self:center;margin-right:12px}
  .quickcall .play{min-height:54px}
  .quickcall .play svg{height:20px;margin-bottom:4px}
  .snap{padding:10px 14px}
@@ -118,7 +119,7 @@ button[aria-disabled="true"]:hover{filter:none}
 }
 @media(max-width:360px){.movezone{width:96px}.joystick{width:90px;height:90px}.controls{gap:9px;padding-left:9px;padding-right:9px}.actionbar .changeplay{flex-basis:50px}.actionbar .burst{font-size:11px}}
 @media(max-width:1000px) and (max-height:600px) and (orientation:landscape){
- .movezone{grid-column:1;grid-row:3;align-self:center;justify-self:center;width:112px;height:132px}
+ .movezone{grid-column:1;grid-row:4;align-self:center;justify-self:center;width:112px;height:132px}
  .movezone .joystick{width:96px;height:96px}
  .actions{align-self:end;margin-bottom:max(18px,env(safe-area-inset-bottom))}
  .actionbar .changeplay{flex-basis:47px;font-size:9px}
@@ -290,3 +291,6 @@ body[data-guidance=expert] .plays .play small{display:block;font-size:9px;line-h
 @media(max-height:600px) and (orientation:landscape){.challengecue{left:25%;right:25%;font-size:9px}.tvbreak>b{font-size:22px}.tvbreak{gap:5px}.tvbreak button{padding:9px}}
 
 #matchOptions{margin:14px 0;color:#c6d7ba;font:12px/1.6 monospace;border:1px solid #3e574d;padding:12px}#matchOptions>summary{cursor:pointer;color:#e6c47c;font-weight:bold}#matchOptions[open]>summary{margin-bottom:14px}#matchOptions .lengthsetting:first-of-type{margin-top:12px}
+
+/* Weather stays outside the playable canvas and below the compact scoreboard. */
+.forecastline{font:11px/1.5 var(--mono,monospace);color:#e6cc8c;margin:12px 0 8px}.weatheroptions{border-top:1px solid #91a79c3b;margin-top:12px;padding:12px 0}.weatheroptions summary{font:11px monospace;letter-spacing:.08em;color:#d8d5b7;cursor:pointer}.weatherchoices{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px}.weatherchoices label{font:10px monospace;color:#afbeb4;display:grid;gap:7px}.weatherchoices select{width:100%;min-width:0}.weatherbar{display:flex;justify-content:space-between;gap:8px;padding:5px 10px;background:#203b3b;color:#e9d698;font:10px/1.2 monospace;flex-shrink:0}.weatherbar span:last-child{text-align:right}.weatheroptions .secondary{font-size:10px;padding:9px 12px}body[data-guidance="simple"] .weatherbar{font-size:10px}@media(max-width:600px){.weatherchoices{gap:8px}.forecastline{font-size:10px}.weatherbar{padding:4px 8px;font-size:9px}}

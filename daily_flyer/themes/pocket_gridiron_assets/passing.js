@@ -1,3 +1,4 @@
+import {effects,weatherPassDrift} from './weather.js?v=23';
 // Pass placement is a destination, never a homing ball. No randomness here:
 // the same preview, CPU plan and released throw use the same geometry.
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
@@ -9,7 +10,7 @@ export function passAim(input={}){
 }
 function forecast(g,p,seconds){
  const q={x:p.x,y:p.y},step=.05;
- for(let t=0;t<seconds;t+=step){const dt=Math.min(step,seconds-t),r=g.route(p,g.liveTime+t+dt),dx=r.x-q.x,dy=r.y-q.y,n=Math.hypot(dx,dy),travel=Math.min(n,p.stun>t?0:p.speed*dt);if(n){q.x+=dx/n*travel;q.y+=dy/n*travel;}}
+ for(let t=0;t<seconds;t+=step){const dt=Math.min(step,seconds-t),r=g.route(p,g.liveTime+t+dt),dx=r.x-q.x,dy=r.y-q.y,n=Math.hypot(dx,dy),travel=Math.min(n,p.stun>t?0:p.speed*effects(g.weather).speed*dt);if(n){q.x+=dx/n*travel;q.y+=dy/n*travel;}}
  return q;
 }
 export function passPlacement(g,target,input={}){
@@ -22,7 +23,8 @@ export function passPlacement(g,target,input={}){
   point={x:base.x+aim.x*4.5*scale,y:base.y+aim.y*(aim.y>0?6:4)*scale};
   duration=clamp(dist(qb,point)/velocity,.3,1.4);
  }
- return {...point,duration,aim,range:dist(qb,point),reachable:dist(qb,point)<=48+(qb.armStrength||85)*.1,inBounds:point.x>.4&&point.x<52.9&&point.y<=110&&point.y>=-9};
+ const drift=weatherPassDrift(g,duration);point={x:point.x+drift.x,y:point.y+drift.y};
+ return {...point,drift,duration,aim,range:dist(qb,point),reachable:dist(qb,point)<=48+(qb.armStrength||85)*.1,inBounds:point.x>.4&&point.x<52.9&&point.y<=110&&point.y>=-9};
 }
 export function eligibleReceivers(g){return g.players.slice(1,5);}
 export function catchReach(p){return 1.9+clamp(((p.catching||80)-65)/100,0,.35);}

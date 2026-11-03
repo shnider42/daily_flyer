@@ -1,4 +1,4 @@
-import {PERSONNEL} from './packages.js?v=22';
+import {PERSONNEL} from './packages.js?v=23';
 // Human-facing information. Never derive defensive guidance from the secret call.
 export function showOffensiveRoutes(g){return g.userOffense&&!g.special&&!g.returnInfo&&['call','ready'].includes(g.phase);}
 export function publicPlayName(g){return g.userOffense?g.playDefinition.name:g.teams[g.offense].abbr+' offense';}
@@ -12,9 +12,11 @@ export function coachText(g,level){
  if(g.phase==='dead')return g.contactFeedback||g.lastResult||'Choose your next call when the playbook opens.';
  if(g.phase==='penalty')return 'Accept applies the penalty. Decline keeps what happened on the play.';
  if(g.phase==='ready'&&g.userOffense&&g.playDefinition.playAction)return 'Sell the run fake, then pass with A, B or C. Repeating the fake makes it less convincing.';
+ if(g.phase==='ready'&&g.userOffense&&g.playDefinition.kind==='run'&&!g.playDefinition.exchange)return 'You control the runner after SNAP. Follow the dotted lane; use BURST as the gap opens.';
  if(g.phase==='ready'&&g.userOffense&&g.playDefinition.exchange)return g.playDefinition.hint+' · steer after the exchange.';
  if(g.special?.goal)return g.userKicking?'Start the meter, set power, then stop accuracy in green.':'Opponent kicking.';
  if(g.phase.startsWith('kick_'))return g.userKicking?'Aim first. Tap twice to set power.':'Track the ring. Move after the catch; B calls a punt fair catch.';
+ if(g.isLive&&!g.special&&!g.receivedPass&&g.playDefinition.kind==='run'&&g.userOffense&&g.carrier.y<g.spot+4)return g.pitch?'Wait for the exchange, then follow the dotted lane.':Math.abs(g.playDefinition.lane-26.5)>11?'Steer toward the outside lane first, then turn upfield. Burst through the opening.':'Press the marked gap. Let the blocker engage, then burst through.';
  if(g.isLive||g.isLoose)return '';
  const profile=g.teams[0].profile?.[g.userOffense?'offense':'defense'];
  if(!g.userOffense)return `${g.formation.name} is set. Your ${PERSONNEL[g.personnel].name.toLowerCase()} unit stays on. Choose coverage; the opponent’s call stays hidden.`;

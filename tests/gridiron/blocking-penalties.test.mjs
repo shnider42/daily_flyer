@@ -1,6 +1,6 @@
 import test from 'node:test';import assert from 'node:assert/strict';import fs from 'node:fs';
 import {Game} from '../../daily_flyer/themes/pocket_gridiron_assets/engine.js';
-import {clearBlocks,updateBlocking,isBlocker} from '../../daily_flyer/themes/pocket_gridiron_assets/blocking.js';
+import {clearBlocks,updateBlocking,isBlocker,canTackle,stuntTarget,shedBlock} from '../../daily_flyer/themes/pocket_gridiron_assets/blocking.js';
 import {primaryCommand,stickInput} from '../../daily_flyer/themes/pocket_gridiron_assets/controls.js';
 import {seededRandom} from '../../daily_flyer/themes/pocket_gridiron_assets/rules.js';
 import {buildTeam} from '../../daily_flyer/themes/pocket_gridiron_assets/roster.js';
@@ -64,4 +64,35 @@ test('a pocket hold comes from one failed block, not a per-frame random flag',()
 });
 test('joystick dead zone prevents drift and clamps diagonal input to full speed',()=>{
  const center=stickInput(2,-1,32);assert.equal(center.x,0);assert.equal(center.y,0);const full=stickInput(80,-80,32);assert.ok(Math.abs(Math.hypot(full.x,full.y)-1)<1e-9);assert.ok(full.x>0&&full.y>0);assert.ok(Math.abs(Math.hypot(full.px,full.py)-32)<1e-9);const half=stickInput(16,0,32);assert.ok(half.x>0&&half.x<1);
+});
+
+function engagement(){const g=live(),d=g.defenders[0],p=g.players[5];g.play='dive';g.carrier=g.players[1];g.carrier.x=26;g.carrier.y=25;d.x=26;d.y=26.3;p.x=26;p.y=25.8;d.blocked=true;g.blocks=[{p:5,d:0,left:1,age:.3}];return {g,d,p};}
+test('a blocker between defender and runner prevents a tackle without slowing or rolling contact',()=>{
+ const {g,d}=engagement();d.shed=d.tackling=99;let calls=0;g.rng=()=>{calls++;return 0;};
+ for(let i=0;i<60;i++)assert.equal(canTackle(g,d),false);assert.equal(calls,0);assert.equal(g.contact,null);assert.equal(g.contactSlow,0);
+ shedBlock(g,d);assert.equal(canTackle(g,d),true);
+});
+test('exposed-arm tackles have a short reach, rating advantage and one chance per block',()=>{
+ const {g,d,p}=engagement();p.x=24.5;d.y=25.6;g.rng=()=>.10;assert.equal(canTackle(g,d),false);assert.equal(g.blocks[0].reachAttempted,true);
+ g.rng=()=>0;assert.equal(canTackle(g,d),false);delete g.blocks[0].reachAttempted;d.shed=d.tackling=99;g.rng=()=>.10;assert.equal(canTackle(g,d),true);
+ delete g.blocks[0].reachAttempted;g.blocks[0].help=6;assert.equal(canTackle(g,d),false);delete g.blocks[0].help;d.y=26.2;assert.equal(canTackle(g,d),false);
+});
+test('an adjacent free lineman combines against a dominant defender and releases after the runner passes',()=>{
+ const {g,d,p}=engagement();g.liveTime=.8;g.carrier.y=20;d.y=26;p.y=24.1;p.x=25;d.shed=97;const h=g.players[6];h.x=28;h.y=25;
+ for(const q of g.defenders)if(q!==d){q.x=50;q.y=60;}
+ for(const q of g.players)if(![g.carrier,p,h].includes(q)){q.x=2;q.y=2;q.speed=0;}
+ updateBlocking(g,.05);assert.equal(g.blocks[0].help,6);assert.equal(h.blocking,true);assert.equal(d.blockFactor,.12);assert.ok(g.events.some(e=>e.doubleTeam));
+ const time=g.blocks[0].left;updateBlocking(g,.05);assert.ok(g.blocks[0].left<time);g.carrier.y=d.y+3;updateBlocking(g,.05);assert.equal(g.blocks[0]?.help,undefined);
+});
+test('double-team help never abandons a nearby free defender; shedding releases both blockers',()=>{
+ const {g,d,p}=engagement();g.liveTime=.8;g.carrier.y=20;d.y=26;p.y=24.1;p.x=25;d.shed=97;const h=g.players[6];h.x=28;h.y=25;const free=g.defenders[1];free.x=29;free.y=26;
+ updateBlocking(g,.05);assert.equal(g.blocks.find(b=>b.d===0)?.help,undefined);
+ g.blocks=[{p:5,help:6,d:0,left:1,age:.3}];h.blocking=p.blocking=true;shedBlock(g,d);assert.equal(h.blocking,false);assert.equal(p.blocking,false);assert.equal(g.blocks.length,0);
+});
+test('twists exchange rush gaps, release into pursuit, and preserve human control',()=>{
+ for(const id of ['twistleft','twistright'])for(const format of [7,11]){
+  const g=new Game(home,away,'legend',()=>.5,{format});g.beginDrive(1,30);g.choose(id);g.play='slants';g.setFormation();g.snap(1);g.liveTime=.4;
+  const [a,b]=g.defenseDefinition.coverage.stunt,first=stuntTarget(g,g.defenders[a]),second=stuntTarget(g,g.defenders[b]);assert.ok((first.x-second.x)*(a===0?1:-1)>0);assert.equal(g.isHumanDefender(g.controlled),true);
+  g.liveTime=1.4;assert.equal(stuntTarget(g,g.defenders[a]),null);g.liveTime=.4;g.defenders[a].blocked=true;assert.equal(stuntTarget(g,g.defenders[a]),null);
+ }
 });

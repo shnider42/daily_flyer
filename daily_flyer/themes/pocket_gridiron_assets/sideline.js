@@ -1,4 +1,5 @@
-import {specialStory} from './special-teams.js?v=22';
+import {weatherSideline} from './weather-presentation.js?v=23';
+import {specialStory} from './special-teams.js?v=23';
 // Casey Reed is an original fictional PGI reporter. Reports use snapshots of
 // this game's lineup and box score, never invented interviews or injury news.
 export const REPORTER={id:'casey',name:'Casey Reed',label:'CASEY',location:'ON THE SIDELINE'};
@@ -21,6 +22,8 @@ export function sidelineSlot(report,visit=0){
  const period=mode==='pregame'?2:mode==='postgame'?3:1;
  if(visit%period!==0)return null;
  const appearance=Math.floor(visit/period),team=appearance%2;
+ const weatherIndex=report.segments.findIndex(s=>s.topic==='weather');
+ if(report.weather&&weatherIndex>=0&&appearance%2===0)return {index:weatherIndex,team,appearance,text:weatherSideline(report.weather)};
  if(mode==='pregame'){
   const index=report.segments.findIndex(s=>s.topic==='special');
   const c=report.segments[index]?.context;if(index<0||!c?.kr||!c?.kicker||!c?.punter)return null;

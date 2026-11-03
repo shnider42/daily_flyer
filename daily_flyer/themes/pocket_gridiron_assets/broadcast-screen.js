@@ -1,6 +1,7 @@
-import {uniformFor} from './uniforms.js?v=22';
-import {FORMATIONS} from './packages.js?v=22';
-import {emptySpecial} from './special-teams.js?v=22';
+import {paintWeatherBoard,weatherParticles} from './weather-presentation.js?v=23';
+import {uniformFor} from './uniforms.js?v=23';
+import {FORMATIONS} from './packages.js?v=23';
+import {emptySpecial} from './special-teams.js?v=23';
 // Broadcast graphics use recorded coordinates or explicitly labeled diagrams.
 // No renderer calls into the live game or consumes its random stream.
 const W=720,H=360,YELLOW='#ffdc46';
@@ -49,10 +50,11 @@ function highlight(c,report,s,time,reduced,ink){
  const line=project({x:0,y:frame.spot});box(c,line.x,24,2,300,'#7aceed');
  for(const p of frame.people){const q=project(p);if(q.x<10||q.x>710)continue;person(c,{...q,number:p.number},uniformFor(report.teams[p.team],p.team));}
  const b=project(frame.ball);ball(c,b.x,b.y-frame.arc*.4,.7);
+ if(frame.weather)weatherParticles(c,{width:720,height:324},frame.weather,frame.weatherTime||0,{reduced,wind:frame.weatherWind?{...frame.weatherWind,x:frame.weatherWind.y*(clip.anchor===1?-1:1),y:-frame.weatherWind.x*(clip.anchor===1?-1:1)}:undefined});
  const paused=reduced||time>=3.5&&time<8;
  text(c,paused?'HOLD IT RIGHT THERE':(s.period==='game'?'GAME REPLAY':'FIRST-HALF REPLAY'),36,346,13,paused?YELLOW:'#d7e1d0');
  if(ink&&paused){
-  const f=s.focus.focus;if(f)circle(c,project(f),reduced?1:clamp((time-3.5)/1.2));
+  const f=s.focus.focus;if(f)circle(c,project(f),reduced?1:clamp((time-3.5)/1.2));if(s.focus.helper)circle(c,project(s.focus.helper),reduced?1:clamp((time-4.5)/1.2));
   const carrier=s.focus.fake?f:s.focus.frame.people.find(p=>p.carrier),trail=clip.frames.slice(0,s.focus.index+1).filter((_,i)=>i%3===0).map(frame=>frame.people.find(p=>p.id===carrier?.id&&p.team===carrier?.team)).filter(Boolean).map(project);
   if(clip.special&&!clip.special.returned){const flight=clip.frames.filter(f=>f.airborne).map(f=>project(f.ball));arrow(c,flight,reduced?1:clamp((time-4.8)/1.7));}
   else if(trail.length>1)arrow(c,trail,reduced?1:clamp((time-4.8)/1.7));
@@ -134,7 +136,8 @@ function specialStats(c,report){
 export function paintBroadcast(canvas,report,s,time,{reduced=false,ink=true}={}){
  const c=canvas.getContext('2d');if(!c)return;
  c.clearRect(0,0,W,H);box(c,0,0,W,H,'#10272d');
- if(s.visual==='highlight')highlight(c,report,s,time,reduced,ink);
+ if(s.visual==='weather')paintWeatherBoard(c,s,time,reduced,ink);
+ else if(s.visual==='highlight')highlight(c,report,s,time,reduced,ink);
  else if(s.visual==='package')packageBoard(c,report,s,time,reduced,ink);
  else if(s.visual==='diagram')diagram(c,report,s,time,reduced,ink);
  else if(s.visual==='team')teamCard(c,report,s,time,reduced);
