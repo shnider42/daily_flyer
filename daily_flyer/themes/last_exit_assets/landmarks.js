@@ -11,7 +11,9 @@ const FEATURES=[
  {kind:'depot',name:'UNION DEPOT',x:-180,z:-108,w:49,d:49,local:[C(0,-17,34,9,7.3),C(0,-6,40,11,.55),C(0,7,30,3.8,4.1)]},
  {kind:'harbor',name:'IRON QUAY',x:180,z:108,w:49,d:49,local:[C(-7,-18,30,9,8.7),C(-16,0,5.3,12.57,5.18),C(-7,0,5.3,12.57,2.7),C(-13,17,17.1,5.37,2.7),C(10,0,1.4,1.4,26),C(20,0,1.4,1.4,26),C(10,10,1.4,1.4,26),C(20,10,1.4,1.4,26)]},
  {kind:'motel',name:'PALM COURT MOTEL',x:108,z:36,w:49,d:49,local:[C(0,-17,42,10,7),C(-17,3,8,30,7),C(17,3,8,30,7),C(-5.2,15.8,.5,.5,3.6),C(5.2,15.8,.5,.5,3.6),C(22,20,.7,.7,9)]},
- {kind:'park',name:'MERCER GARDENS',x:-108,z:-36,w:49,d:49,local:[C(0,0,8.4,8.4,3.9),...[-16,16].flatMap(x=>[-16,-7,7,16].map(z=>C(x,z,.8,.8,7))),C(-8,-7,3.2,.8,1),C(8,7,3.2,.8,1),C(-8,7,3.2,.8,1),C(8,-7,3.2,.8,1)]}
+ {kind:'park',name:'MERCER GARDENS',x:-108,z:-36,w:49,d:49,local:[C(0,0,8.4,8.4,3.9),...[-16,16].flatMap(x=>[-16,-7,7,16].map(z=>C(x,z,.8,.8,7))),C(-8,-7,3.2,.8,1),C(8,7,3.2,.8,1),C(-8,7,3.2,.8,1),C(8,-7,3.2,.8,1)]},
+ {kind:'service',name:'BAYLINE SERVICE',x:108,z:180,w:49,d:49,local:[C(-9,-17,26,10,5.3),C(-3,1,2.6,9,4.6),C(11,1,2.6,9,4.6),C(21,20,.7,.7,9.7)]},
+ {kind:'market',name:'FOUNDRY ROW',x:-108,z:36,w:49,d:49,local:[C(-15,0,16,37,7.7),C(15,0,16,37,9.1),C(-19,12,3.4,3.4,24.7),...[-5.8,5.8].flatMap(x=>[-12,0,12].map(z=>C(x,z,2.6,4.2,1.6)))]}
 ];
 export function districtFeatures(){return FEATURES.map(({local,...f})=>({...f,colliders:local.map(c=>({...c,x:c.x+f.x,z:c.z+f.z,kind:f.kind})),walkSurfaces:(f.kind==='plaza'?PLAZA_WALK:[]).map(s=>({...s,x:s.x+f.x,z:s.z+f.z}))}));}
 export function walkSurfaces(){return districtFeatures().flatMap(f=>f.walkSurfaces);}
@@ -137,7 +139,76 @@ function park(m){
  for(const x of[-20,20])for(const z of[-20,20])lamp(m,x,z);
  for(const x of[-7,7])for(const z of[-15,15]){m.disc(x,.19,z,3.5,'#75825a',12);for(let k=0;k<7;k++){const a=k/7*Math.PI*2;foliage(m,x+Math.sin(a)*2,.5,z+Math.cos(a)*2,.6,.45,.6,k%2?'#9c9860':'#79895c',5,2);}}
 }
+function service(m){
+ m.surface([-24,.174,-24],[24,.174,-24],[24,.174,24],[-24,.174,24],1,8,8,'#c5c3ac');
+ wall(m,-9,-17,26,3.8,10,7,'#d5cbae');
+ // A shallow arched roof and wraparound fascia give the office a 1950s profile.
+ for(let i=0;i<10;i++){
+  const a=i/10*Math.PI,b=(i+1)/10*Math.PI,z=-17+Math.cos(a)*5.4,Z=-17+Math.cos(b)*5.4,y=3.98+Math.sin(a)*1.2,Y=3.98+Math.sin(b)*1.2;
+  m.quad([-22.4,y,z],[4.4,y,z],[4.4,Y,Z],[-22.4,Y,Z],i%2?'#b7b19c':'#a4a78f');
+  m.tri([-22.4,3.98,-17],[-22.4,y,z],[-22.4,Y,Z],'#c2bba4');m.tri([4.4,3.98,-17],[4.4,Y,Z],[4.4,y,z],'#c2bba4');
+ }
+ m.box(-9,3.1,-11.85,26.7,.45,.35,'#a85743');
+ m.surface([-20,.8,-11.95],[-8,.8,-11.95],[-8,2.8,-11.95],[-20,2.8,-11.95],9,3,1);
+ m.surface([-5,.22,-11.95],[2,.22,-11.95],[2,2.9,-11.95],[-5,2.9,-11.95],8,1,1);
+ m.surface([-16,3.54,-11.61],[-7,3.54,-11.61],[-7,5.05,-11.61],[-16,5.05,-11.61],11,1,1);
+ // Each island carries its canopy column, so the driving gaps remain clear.
+ for(const x of[-3,11]){
+  m.box(x,.18,1,2.6,.2,9,'#b9b398');m.box(x,.38,1,2.36,.06,8.7,'#c2ae70');
+  m.tube([x,.44,-1.8],[x,4.55,-1.8],.12,'#b9baa5',6);
+  for(const z of[-1.5,3.5]){
+   m.box(x,.44,z,1.15,1.22,.8,'#aa5945');m.box(x,1.66,z,1.28,.8,.88,'#d7d0b3');
+   for(const side of[-1,1]){m.quad([x-.48,1.9,z+side*.449],[x+.48,1.9,z+side*.449],[x+.48,2.25,z+side*.449],[x-.48,2.25,z+side*.449],'#334a45');m.quad([x-.28,2,z+side*.453],[x+.25,2,z+side*.453],[x+.25,2.08,z+side*.453],[x-.28,2.08,z+side*.453],'#b3be9b');}
+   m.tube([x+.66,2.1,z],[x+.93,.9,z],.045,'#3b4940',5);m.tube([x+.93,.9,z],[x+.7,.75,z+.12],.045,'#3b4940',5);
+  }
+ }
+ m.box(4,4.55,1,29,.24,16,'#d1c9ac');m.box(4,4.79,1,29.4,.18,16.4,'#a7503f');
+ m.quad([-10.7,4.97,-7.2],[18.7,4.97,-7.2],[18.7,5.25,1],[-10.7,5.25,1],'#c7c5aa');m.quad([-10.7,5.25,1],[18.7,5.25,1],[18.7,4.97,9.2],[-10.7,4.97,9.2],'#a4b09c');
+ for(const x of[-6.6,7.4]){m.flat(x,1,.12,10,'#d7c999',.181);m.flat(x+6.2,1,.12,10,'#d7c999',.181);}
+ m.tube([21,.18,20],[21,9.6,20],.2,'#6a7566',7);m.box(21,6.2,20,6,.2,.45,'#c5b680');m.surface([18,6.4,20.25],[24,6.4,20.25],[24,9.7,20.25],[18,9.7,20.25],11,1,1);m.surface([24,6.4,19.75],[18,6.4,19.75],[18,9.7,19.75],[24,9.7,19.75],11,1,1);
+ lamp(m,-21,18);
+}
+function market(m){
+ m.surface([-24,.174,-24],[24,.174,-24],[24,.174,24],[-24,.174,24],2,8,8,'#b7b09a');
+ // A continuous nine-metre corridor stays clear between the market stalls.
+ m.surface([-4.5,.18,-24],[4.5,.18,-24],[4.5,.18,24],[-4.5,.18,24],1,2,10,'#c2bdab');
+ for(const side of[-1,1]){
+  const x=side*15,h=side<0?5.9:7.3,inner=side*6.96;
+  wall(m,x,0,16,h,37,side<0?4:3,side<0?'#d0ba97':'#bfc0a7');
+  // Sawtooth roof bays with vertical clerestory glazing and stone end piers.
+  for(let i=0;i<5;i++){
+   const z=-18.5+i*7.4,Z=z+7.4,y=h+.18;
+   m.quad([x-8,y,z],[x+8,y,z],[x+8,y+1.5,Z],[x-8,y+1.5,Z],side<0?'#8d8974':'#6b7e72');
+   m.surface([x-8,y,Z],[x+8,y,Z],[x+8,y+1.5,Z],[x-8,y+1.5,Z],9,3,.5,'#aab9a6');
+   for(const xx of[x-8,x+8])m.tri([xx,y,z],[xx,y,Z],[xx,y+1.5,Z],'#a99d80');
+  }
+  for(const z of[-12,0,12]){
+   m.surface([inner,.3,z-2.3],[inner,.3,z+2.3],[inner,3,z+2.3],[inner,3,z-2.3],8,1,1,'#c9c4ad');
+   // The awning and stall stay entirely outside the x=-4.5..4.5 lane.
+   for(let k=0;k<6;k++){
+    const Z=z-3+k;
+    m.quad([side*7,3.55,Z],[side*7,3.55,Z+1],[side*4.5,2.85,Z+1],[side*4.5,2.85,Z],k%2?'#b6aa7a':'#796f51');
+    m.quad([side*4.5,2.85,Z],[side*4.5,2.85,Z+1],[side*4.5,2.63,Z+1],[side*4.5,2.63,Z],k%2?'#b2a674':'#756b50');
+   }
+   m.box(side*5.8,.18,z,2.6,.85,4.2,'#827a58');m.box(side*5.8,1.03,z,2.65,.1,4.25,'#b0a17b');
+   for(let k=0;k<3;k++){
+    const Z=z-1.35+k*1.35;m.box(side*5.8,1.13,Z,1.8,.27,1,'#9f8b60');
+    for(let j=0;j<3;j++)m.box(side*5.8+(j-1)*.48,1.4,Z,.32,.16,.55,k%2?'#98814c':'#7b8853');
+   }
+  }
+  for(const z of[-18.5,18.5])for(const xx of[x-7.7,x+7.7])m.box(xx,.18,z,.35,h+.35,.35,'#ada184');
+  m.surface([x-4,3.6,18.54],[x+4,3.6,18.54],[x+4,5.3,18.54],[x-4,5.3,18.54],12,1,1,'#cec7a8');
+ }
+ // Tapered brick chimney rises above the western roof, capped by dark bands.
+ const x=-19,z=12,y=7.6,H=16.2;
+ for(let k=0;k<10;k++){
+  const a=k*Math.PI/5,b=(k+1)*Math.PI/5;
+  m.surface([x+Math.cos(a)*1.55,y,z+Math.sin(a)*1.55],[x+Math.cos(b)*1.55,y,z+Math.sin(b)*1.55],[x+Math.cos(b)*1.05,y+H,z+Math.sin(b)*1.05],[x+Math.cos(a)*1.05,y+H,z+Math.sin(a)*1.05],14,.5,3,'#b9a384');
+ }
+ cylinder(m,x,23.8,z,1.22,.45,'#887e65',10,1.22);cylinder(m,x,24.25,z,1.35,.25,'#6f705d',10,1.35);m.disc(x,24.51,z,.94,'#37483e',10);
+ for(const z of[-21,21]){lamp(m,-10,z);lamp(m,10,z);}
+}
 export function drawLandmarks(m,features,time=0){
- const draw={plaza:clockSquare,depot,harbor,motel,park};
+ const draw={plaza:clockSquare,depot,harbor,motel,park,service,market};
  for(const f of features){if(!draw[f.kind])continue;m.transform={x:f.x,z:f.z,c:1,s:0};draw[f.kind](m);m.transform=null;}
 }

@@ -21,6 +21,13 @@ export function deformCarPoint(point,c){
  const sw=clamp((Math.abs(x)-.47)/.6,0,1)*clamp(1-Math.abs(z+.15)/2.9,0,1);
  x-=Math.sign(x)*side*sw*(.43+.11*Math.sin(z*4));
  y-=side*sw*.035;
+ // A glancing corner hit leaves its own local crease instead of crushing both corners equally.
+ let dentX=0,dentZ=0,dentY=0;for(const d of c.dents||[]){const weight=Math.exp(-((point[0]-d.x)**2+(point[2]-d.z)**2)/(d.radius*d.radius))*(point[1]<1.35?1:.2),depth=d.depth*weight;
+  if(Math.abs(d.x)>.65)dentX-=Math.sign(d.x)*depth*.65;
+  if(Math.abs(d.z)>1.1)dentZ-=Math.sign(d.z)*depth;
+  if(point[1]>.8)dentY+=depth*.3*Math.sin(point[0]*7+point[2]*3);
+ }
+ x+=clamp(dentX,-.36,.36);z+=clamp(dentZ,-.5,.5);y+=clamp(dentY,-.18,.18);
  return[x,y,z];
 }
 
@@ -50,24 +57,173 @@ function loftY(m,rings,color,n=8){
  for(const j of[0,rings.length-1])for(let k=0;k<n;k++)m.tri(rings[j].slice(0,3),pt(rings[j],k),pt(rings[j],k+1),color,.9);
 }
 
-function wheel(m,c,side,z,time){
+function wheel(m,c,side,z,time,opts={}){
  const damage=z>0?panel(c,'front'):panel(c,'rear');
- const centre=[side*1.015,.425,z-Math.sign(z)*damage*.12],radius=.415,width=.25;
+ const radius=opts.radius||.415,width=opts.width||.25,centre=[side*(opts.x||1.015),radius+.01,z-Math.sign(z)*damage*.12];
  const steer=(z>0?-clamp(c.steer||0,-1,1)*.38:0)+(c.wheelDamage||0)/100*.12*side,cs=Math.cos(steer),sn=Math.sin(steer);
  const spin=(c.distance||0)/radius*(c.speed<0?-1:1);
- const p=(ax,r,a)=>{const xx=ax,zz=Math.cos(a)*r;return[centre[0]+xx*cs+zz*sn,centre[1]+Math.sin(a)*r,centre[2]+zz*cs-xx*sn];};
- const count=14;
+ const bend=clamp(((c.wheelDamage||0)-25)/75,0,1)*(panel(c,side<0?'left':'right')+.15);
+ const p=(ax,r,a)=>{const yy=Math.max(-radius*(1-bend*.19),Math.sin(a)*r),xx=ax+yy*bend*.28*side,zz=Math.cos(a)*r;return[centre[0]+xx*cs+zz*sn,centre[1]+yy,centre[2]+zz*cs-xx*sn];};
+ const count=opts.count||14;
  // Chamfered tyre shoulders and a recessed sidewall, not a flat black disc.
- const rings=[[-width/2,.33],[-width*.42,radius],[width*.42,radius],[width/2,.33]];
+ const inner=radius*.8,rim=radius*.52,rings=[[-width/2,inner],[-width*.42,radius],[width*.42,radius],[width/2,inner]];
  for(let j=0;j<rings.length-1;j++)for(let k=0;k<count;k++){const a=k/count*Math.PI*2,b=(k+1)/count*Math.PI*2;m.quad(p(rings[j][0],rings[j][1],a),p(rings[j+1][0],rings[j+1][1],a),p(rings[j+1][0],rings[j+1][1],b),p(rings[j][0],rings[j][1],b),j===1?'#222526':'#303233',.88+(k%2)*.08);}
- for(const out of[-1,1]){const x=out*(width/2+.002);for(let k=0;k<count;k++){const a=k/count*Math.PI*2,b=(k+1)/count*Math.PI*2;m.quad(p(x,.33,a),p(x,.215,a),p(x,.215,b),p(x,.33,b),'#202426');m.tri(p(x+.003*out,0,0),p(x,.215,a),p(x,.215,b),'#878e8d',.85);}
+ for(const out of[-1,1]){const x=out*(width/2+.002);
+  if(opts.simple&&out!==side){for(let k=0;k<count;k++)m.tri(p(x,0,0),p(x,inner,k/count*Math.PI*2),p(x,inner,(k+1)/count*Math.PI*2),'#222b2d');continue;}
+  for(let k=0;k<count;k++){const a=k/count*Math.PI*2,b=(k+1)/count*Math.PI*2;m.quad(p(x,inner,a),p(x,rim,a),p(x,rim,b),p(x,inner,b),'#202426');m.tri(p(x+.003*out,0,0),p(x,rim,a),p(x,rim,b),'#878e8d',.85);}
   for(let k=0;k<5;k++){const a=k/5*Math.PI*2+spin;m.quad(p(x+.009*out,.06,a-.22),p(x+.009*out,.18,a-.12),p(x+.009*out,.18,a+.12),p(x+.009*out,.06,a+.22),'#c0c2b7');}
   for(let k=0;k<10;k++){const a=k/10*Math.PI*2,b=(k+1)/10*Math.PI*2;m.tri(p(x+.014*out,0,0),p(x+.014*out,.065,a),p(x+.014*out,.065,b),'#adb4ac');}
  }
 }
 
-export function drawCar(m,c,{police=false,brake=false,time=0,door=null}={}){
- const paint=c.paint||'#777b7b',kind=c.kind||'sedan',coupe=kind==='coupe',wagon=kind==='wagon';
+const variantSpecs={compact:{w:.94,l:2.12,h:.97,roof:1.51,wz:1.28,wr:.35},pickup:{w:1.13,l:2.85,h:1.10,roof:1.93,wz:1.83,wr:.46},van:{w:1.15,l:2.78,h:1.12,roof:2.45,wz:1.72,wr:.45},taxi:{w:1.1,l:2.65,h:1.02,roof:1.56,wz:1.6,wr:.415},sedan:{w:1.1,l:2.65,h:1.02,roof:1.56,wz:1.6,wr:.415},coupe:{w:1.1,l:2.65,h:1.02,roof:1.43,wz:1.6,wr:.415},wagon:{w:1.1,l:2.65,h:1.02,roof:1.56,wz:1.6,wr:.415}};
+function block(m,x,y,z,w,h,l,col){
+ const a=[x-w/2,y,z-l/2],b=[x+w/2,y,z-l/2],c=[x+w/2,y,z+l/2],d=[x-w/2,y,z+l/2],A=add(a,[0,h,0]),B=add(b,[0,h,0]),C=add(c,[0,h,0]),D=add(d,[0,h,0]);
+ m.quad(a,b,B,A,col,.8);m.quad(b,c,C,B,col);m.quad(c,d,D,C,col,.95);m.quad(d,a,A,D,col,.82);m.quad(A,B,C,D,col,1.03);m.quad(d,c,b,a,col,.65);
+}
+function simpleCab(m,{w,bf,br,rf,rr,y,roof,col,van=false}){
+ const rw=w*.83,A=[-w,y,bf],B=[w,y,bf],C=[rw,roof,rf],D=[-rw,roof,rf],E=[-w,y,br],F=[w,y,br],G=[rw,roof,rr],H=[-rw,roof,rr];
+ m.quad(A,B,C,D,'#3d5962');m.quad(F,E,H,G,van?col:'#344c56');m.quad(A,D,H,E,van?col:'#334a53');m.quad(B,F,G,C,van?col:'#4a6267');m.quad(D,C,G,H,col,1.05);
+}
+function farWheel(m,side,z,s){
+ const x=side*(s.w-.07),r=s.wr,outer=x+side*.11,inner=x-side*.09;
+ for(let k=0;k<6;k++){const a=k*Math.PI/3,b=(k+1)*Math.PI/3,pa=[outer,r+.01+Math.sin(a)*r,z+Math.cos(a)*r],pb=[outer,r+.01+Math.sin(b)*r,z+Math.cos(b)*r];m.tri([outer,r+.01,z],pa,pb,'#242b2d');m.quad(pa,pb,[inner,pb[1],pb[2]],[inner,pa[1],pa[2]],'#2d3434');}
+}
+function taxiSign(d,roof,lod=false){
+ block(d,0,roof+.055,-.38,.64,.21,.25,'#d4c29a');
+ if(lod)return;
+ // Ten strokes form the letters on both faces without a bitmap or a font load.
+ const lines=[[-.255,.163,-.153,.163],[-.204,.163,-.204,.063],[-.12,.063,-.075,.163],[-.075,.163,-.03,.063],[-.105,.10,-.045,.10],[.005,.063,.085,.163],[.005,.163,.085,.063],[.12,.163,.22,.163],[.17,.163,.17,.063],[.12,.063,.22,.063]];
+ for(const side of[-1,1])for(const[a,b,c,e]of lines){const z=-.38+side*.146,dx=c-a,dy=e-b,len=Math.hypot(dx,dy),nx=-dy/len*.008,ny=dx/len*.008;d.quad([a+nx,roof+.055+b+ny,z],[c+nx,roof+.055+e+ny,z],[c-nx,roof+.055+e-ny,z],[a-nx,roof+.055+b-ny,z],'#343c38');}
+}
+function drawCarLOD(m,c,{police=false,brake=false}={}){
+ const s=variantSpecs[c.kind]||variantSpecs.sedan,kind=c.kind||'sedan',paint=c.paint||(kind==='taxi'?'#c0a34e':'#777b7b'),d=surface(m,c);
+ m.transform={x:c.x,y:c.y||0,z:c.z,c:Math.cos(c.a),s:Math.sin(c.a),pitch:c.pitch||0,roll:c.roll||0};m.kind=0;
+ block(d,0,.34,0,s.w*1.92,s.h-.34,s.l*1.92,paint);
+ if(kind==='pickup'){
+  simpleCab(d,{w:s.w*.89,bf:1.03,br:-.52,rf:.48,rr:-.43,y:s.h,roof:s.roof,col:paint});
+  // An open dark well and raised rails retain the pickup silhouette at distance.
+  d.quad([-.83,1.111,-.64],[.83,1.111,-.64],[.83,1.111,-2.64],[-.83,1.111,-2.64],'#3f4947');
+  block(d,-1.02,1.1,-1.64,.16,.22,2.04,paint);block(d,1.02,1.1,-1.64,.16,.22,2.04,paint);
+ }else if(kind==='van'){
+  simpleCab(d,{w:s.w*.95,bf:1.65,br:-2.57,rf:1.04,rr:-2.36,y:s.h,roof:s.roof-.12,col:paint,van:true});
+ }else simpleCab(d,{w:s.w*.81,bf:kind==='compact'?.62:.77,br:kind==='wagon'?-2.1:kind==='compact'?-1.87:-1.39,rf:kind==='coupe'?-.12:.02,rr:kind==='wagon'?-1.7:kind==='compact'?-1.26:-.86,y:s.h+.06,roof:s.roof-.04,col:paint});
+ for(const side of[-1,1])for(const z of[-s.wz,s.wz])farWheel(m,side,z,s);
+ for(const side of[-1,1]){const x=side*s.w*.67,z=-s.l*.97;d.quad([x-.17,.65,z],[x+.17,.65,z],[x+.17,.8,z],[x-.17,.8,z],panel(c,'rear')>.5?'#303c3e':brake?'#ed5037':'#963d31');}
+ if(kind==='taxi')taxiSign(d,s.roof,true);
+ if(police)block(d,0,s.roof+.03,-.35,.95,.17,.23,'#a1554c');
+ m.transform=null;m.kind=0;
+}
+
+function shapedCab(d,{w,bf,br,rf,rr,y,roof,col,door=null}){
+ const rw=w*.84,A=[-w,y,bf],B=[w,y,bf],C=[rw,roof-.07,rf],D=[-rw,roof-.07,rf],E=[-w,y,br],F=[w,y,br],G=[rw,roof-.07,rr],H=[-rw,roof-.07,rr];
+ const pane=(a,b,c,e)=>{const l=mix(a,e,.58),r=mix(b,c,.58);d.quad(a,b,r,l,'#2b444e');d.quad(l,r,c,e,'#5b7278',.91);};
+ pane(A,B,C,D);pane(F,E,H,G);
+ for(const side of[-1,1]){
+  const a=side<0?A:B,b=side<0?E:F,c=side<0?H:G,e=side<0?D:C;
+  if(!door||door.side!==side)pane(a,b,c,e);
+  else if(bf-br>2)pane(mix(a,b,.5),b,c,mix(e,c,.5));
+  for(const[v,q]of[[a,e],[b,c]])tube(d,v,q,.035,.035,col,5);
+  tube(d,a,b,.023,.023,'#a3ada5',5);
+ }
+ const xs=[-1,-.84,0,.84,1],ys=[-.07,0,.022,0,-.07];
+ for(let k=0;k<4;k++){
+  d.quad([xs[k]*rw,roof+ys[k],rr],[xs[k+1]*rw,roof+ys[k+1],rr],[xs[k+1]*rw,roof+ys[k+1],rf],[xs[k]*rw,roof+ys[k],rf],col,1.03);
+  for(const z of[rr,rf])d.quad([xs[k]*rw,roof-.07,z],[xs[k+1]*rw,roof-.07,z],[xs[k+1]*rw,roof+ys[k+1],z],[xs[k]*rw,roof+ys[k],z],col);
+ }
+ return{A,B,C,D,E,F,G,H};
+}
+function drawNewVehicle(m,c,{brake=false,time=0,door=null}={}){
+ const kind=c.kind,s=variantSpecs[kind],paint=c.paint||'#777c73',d=surface(m,c),f=panel(c,'front'),r=panel(c,'rear'),w=s.w-.035,l=s.l-.08;
+ m.transform={x:c.x,y:c.y||0,z:c.z,c:Math.cos(c.a),s:Math.sin(c.a),pitch:c.pitch||0,roll:c.roll||0};m.kind=0;
+ for(let k=0;k<14;k++){const a=k/14*Math.PI*2,b=(k+1)/14*Math.PI*2;m.tri([0,.04,0],[Math.cos(a)*s.w*1.12,.04,Math.sin(a)*s.l*1.02],[Math.cos(b)*s.w*1.12,.04,Math.sin(b)*s.l*1.02],'#353e3d');}
+ // Chamfered shell with genuinely open wheel arches, not wheels pasted on a box.
+ const arch=z=>{let y=.34;for(const q of[-s.wz,s.wz])if(Math.abs(z-q)<s.wr+.10)y=Math.max(y,s.wr+.01+Math.sqrt(Math.max(0,(s.wr+.10)**2-(z-q)**2)));return y;};
+ const hinge=kind==='pickup'?1.02:kind==='van'?1.44:.59,doorLength=kind==='compact'?1.23:1.42;
+ const stops=[-l,l,-l+.2,l-.2,-.65,.65,hinge-doorLength,hinge];
+ for(const q of[-s.wz,s.wz])for(const offset of[-1,-.8,-.45,0,.45,.8,1])stops.push(clamp(q+offset*(s.wr+.10),-l,l));
+ const zs=[...new Set(stops)].sort((a,b)=>a-b),width=z=>w-.12*clamp((Math.abs(z)-(l-.28))/.28,0,1),height=z=>s.h-.11*clamp((Math.abs(z)-(l-.38))/.38,0,1);
+ const deck=z=>[[-width(z),height(z),z],[-width(z)*.88,height(z)+.035,z],[0,height(z)+.055,z],[width(z)*.88,height(z)+.035,z],[width(z),height(z),z]];
+ for(let j=0;j<zs.length-1;j++){
+  const z=zs[j],zz=zs[j+1],a=deck(z),b=deck(zz);
+  if(kind!=='pickup'||z>=-.65)for(let k=0;k<4;k++)d.quad(a[k],a[k+1],b[k+1],b[k],paint,1.02);
+  for(const side of[-1,1]){
+   const open=door&&door.side===side&&z>=hinge-doorLength-1e-5&&zz<=hinge+1e-5;
+   if(!open)d.quad([side*width(z),arch(z),z],[side*width(zz),arch(zz),zz],[side*width(zz),height(zz),zz],[side*width(z),height(z),z],paint,side<0?.83:.96);
+   if(arch(z)>.35||arch(zz)>.35)d.quad([side*width(z),arch(z),z],[side*(width(z)-.13),arch(z)-.03,z],[side*(width(zz)-.13),arch(zz)-.03,zz],[side*width(zz),arch(zz),zz],'#293331');
+  }
+ }
+ for(const z of[-l,l]){const pts=deck(z);d.quad([-width(z),.34,z],[width(z),.34,z],[width(z),height(z),z],[-width(z),height(z),z],paint,.85);for(let k=0;k<4;k++)d.quad([pts[k][0],height(z),z],[pts[k+1][0],height(z),z],pts[k+1],pts[k],paint);}
+ d.quad([-w+.14,.30,-l],[w-.14,.30,-l],[w-.14,.30,l],[-w+.14,.30,l],'#303a38');
+ if(kind==='compact'){
+  shapedCab(d,{w:.76,bf:.61,br:-1.88,rf:.08,rr:-1.26,y:1.045,roof:s.roof,col:paint,door});
+  // Hatch seal and the broad sloping rear glass distinguish it from a small sedan.
+  ribbon(d,[-.63,.93,-2.047],[.63,.93,-2.047],.018,'#303c3c');
+  for(const side of[-1,1])ribbon(d,[side*.805,.47,-.68],[side*.805,1.02,-.68],.013,'#3c4949');
+ }else if(kind==='pickup'){
+  shapedCab(d,{w:.94,bf:1.05,br:-.56,rf:.48,rr:-.44,y:1.18,roof:s.roof,col:paint,door});
+  // A recessed floor, inside walls and wheel humps leave the cargo bed fully open.
+  const rear=-l+.07,front=-.65,inner=w-.19;
+  d.quad([-inner,.69,rear],[inner,.69,rear],[inner,.69,front],[-inner,.69,front],'#4c5651');
+  for(const side of[-1,1]){
+   d.quad([side*inner,.69,rear],[side*inner,.69,front],[side*inner,1.25,front],[side*inner,1.25,rear],paint,.65);
+   d.quad([side*w,1.08,rear],[side*w,1.08,front],[side*w,1.25,front],[side*w,1.25,rear],paint,.9);
+   d.quad([side*inner,1.25,rear],[side*inner,1.25,front],[side*w,1.25,front],[side*w,1.25,rear],paint,1.1);
+   block(d,side*(inner-.12),.69,-s.wz,.26,.27,.85,paint);
+  }
+  for(const z of[rear,front])block(d,0,.69,z,inner*2,.56,.10,paint);
+  for(let i=-3;i<=3;i++)ribbon(d,[i*.22,.702,rear+.15],[i*.22,.702,front-.1],.008,'#687169');
+  ribbon(d,[-.7,.99,rear-.065],[.7,.99,rear-.065],.018,'#859087');
+  block(d,0,1.04,rear-.08,.23,.06,.025,'#bbc1b4');
+ }else{
+  // Tall delivery body: bevelled shoulders and roof, short sloping bonnet, separate cab windows.
+  const roofW=w-.14,ry=s.roof-.12,back=-l+.06,roofBack=back+.15,roofFront=1.02,front=1.65;
+  for(const side of[-1,1]){
+   d.quad([side*w,s.h,back],[side*w,s.h,.4],[side*w,ry,.4],[side*w,ry,back],paint,.91);
+   if(!door||door.side!==side)d.quad([side*w,s.h,.4],[side*w,s.h,front],[side*roofW,ry,roofFront],[side*w,ry,.4],paint);
+   else d.quad([side*(w-.07),s.h,.4],[side*(w-.07),s.h,front],[side*(roofW-.07),ry,roofFront],[side*(w-.07),ry,.4],'#253736');
+   d.quad([side*w,ry,back],[side*w,ry,.4],[side*roofW,s.roof,.4],[side*roofW,s.roof,roofBack],paint,1.02);
+   d.quad([side*w,ry,.4],[side*roofW,ry,roofFront],[side*roofW,s.roof,roofFront],[side*roofW,s.roof,.4],paint,1.03);
+   // Glass lies on a separate inset patch, clear of the body surface.
+   const sx=side*(w+.025);if(!door||door.side!==side)d.quad([sx,1.28,.46],[sx,1.28,1.45],[side*(roofW+.025),2.19,1.00],[sx,2.19,.46],'#3e5962');
+   ribbon(d,[sx,1.17,.38],[sx,2.27,.38],.018,'#45534f');
+   block(d,side*(w+.035),1.12,.63,.035,.055,.19,'#bec5b7');
+   // Delivery livery is paint on the cargo panel, with restrained horizontal strips.
+   d.quad([sx,1.62,-2.1],[sx,1.62,-.2],[sx,1.91,-.2],[sx,1.91,-2.1],'#c7c7ad');
+   d.quad([side*(w+.048),1.73,-1.91],[side*(w+.048),1.73,-.45],[side*(w+.048),1.80,-.45],[side*(w+.048),1.80,-1.91],'#5b6c65');
+  }
+  d.quad([-roofW,s.roof,roofBack],[roofW,s.roof,roofBack],[roofW,s.roof,roofFront],[-roofW,s.roof,roofFront],paint,1.08);
+  d.quad([-w,1.20,front],[w,1.20,front],[roofW,ry,roofFront],[-roofW,ry,roofFront],'#3c5863');
+  d.quad([-w,s.h,front],[w,s.h,front],[w,1.20,front],[-w,1.20,front],paint);
+  d.quad([-roofW,ry,roofFront],[roofW,ry,roofFront],[roofW,s.roof,roofFront],[-roofW,s.roof,roofFront],paint);
+  d.quad([-w,s.h,back],[w,s.h,back],[w,ry,back],[-w,ry,back],paint,.84);
+  d.quad([-width(back),height(back),back],[width(back),height(back),back],[w,s.h,back],[-w,s.h,back],paint,.85);
+  for(const side of[-1,1])d.quad([side*width(back),height(back),back],[side*width(.4),height(.4),.4],[side*w,s.h,.4],[side*w,s.h,back],paint,.9);
+  d.quad([-w,ry,back],[w,ry,back],[roofW,s.roof,roofBack],[-roofW,s.roof,roofBack],paint,.95);
+  const rz=back-.025;ribbon(d,[0,.68,rz],[0,2.26,rz],.017,'#3b4948');
+  for(const side of[-1,1]){block(d,side*.88,.89,rz,.11,.22,.035,'#aab6aa');block(d,side*.14,1.16,rz-.012,.05,.20,.04,'#b8c1b3');}
+ }
+ // Chrome bumpers, lamps and a framed grille use separated layers, avoiding z-fighting.
+ for(const end of[-1,1])block(d,0,.43,end*(l+.035),w*1.94,.14,.10,'#b7bfb3');
+ block(d,0,.64,l+.043,w*.83,.22,.03,'#273638');
+ for(let i=-3;i<=3;i++)block(d,i*w*.1,.66,l+.067,.018,.18,.022,'#adb8ad');
+ for(const side of[-1,1]){
+  const x=side*w*.73,frontBroken=f>(side<0?.3:.55),rearBroken=r>(side<0?.48:.28);
+  block(d,x,.64,l+.055,w*.37,.24,.035,'#b9c2b3');block(d,x,.665,l+.081,w*.31,.18,.025,frontBroken?'#2a383a':'#e5dcc0');
+  block(d,x,.65,-l-.055,w*.32,.23,.035,rearBroken?'#293537':brake?'#ed583b':'#913f30');
+  for(const z of[-s.wz,s.wz])wheel(m,c,side,z,time,{x:s.w-.14,radius:s.wr,width:.23,count:8,simple:true});
+  const damage=panel(c,side<0?'left':'right');if(damage>.15)for(let j=0;j<4;j++)ribbon(d,[side*(w+.025),.55+j*.11,-.5],[side*(w+.025),.58+j*.11,.35],.018,j%2?'#acae9b':'#3d4946');
+ }
+ block(d,0,.58,-l-.09,.43,.15,.025,'#cdcbb0');
+ if(f>.4){ribbon(d,[-.55,s.h+.075,1.35],[.55,s.h+.075,1.72],.025,'#4c5750');}
+ if(door){const side=door.side,open=clamp(door.time*3,0,1)*1.05,hinge=kind==='pickup'?1.02:kind==='van'?1.44:.59,len=kind==='compact'?1.23:1.42,base=kind==='van'?1.18:kind==='pickup'?1.16:1.04,top=s.roof-.15,pt=(z,y)=>[side*(w+Math.sin(open)*(hinge-z)),y,hinge-Math.cos(open)*(hinge-z)];m.quad(pt(hinge-len,.42),pt(hinge,.42),pt(hinge,base),pt(hinge-len,base),paint);m.quad(pt(hinge-len+.07,base+.03),pt(hinge-.1,base+.03),pt(hinge-.25,top),pt(hinge-len+.12,top),'#4d6970');}
+ m.transform=null;m.kind=0;
+}
+
+export function drawCar(m,c,{police=false,brake=false,time=0,door=null,lod=false}={}){
+ if(lod){drawCarLOD(m,c,{police,brake});return;}
+ if(['compact','pickup','van'].includes(c.kind)){drawNewVehicle(m,c,{brake,time,door});return;}
+ const kind=c.kind||'sedan',paint=c.paint||(kind==='taxi'?'#c7a549':'#777b7b'),coupe=kind==='coupe',wagon=kind==='wagon';
  const f=panel(c,'front'),r=panel(c,'rear'),left=panel(c,'left'),right=panel(c,'right');
  m.transform={x:c.x,y:c.y||0,z:c.z,c:Math.cos(c.a),s:Math.sin(c.a),pitch:c.pitch||0,roll:c.roll||0};m.kind=0;
  // Rounded footprint follows the car instead of leaving a rectangular dark tile.
@@ -158,8 +314,8 @@ export function drawCar(m,c,{police=false,brake=false,time=0,door=null}={}){
   tube(d,baseF,baseR,.022,.022,'#b1bbb4',5);
   // Small wing mirrors with stalks and angled reflective faces.
   tube(d,[side*.94,1.02,.62],[side*1.15,1.07,.62],.025,.025,'#596463',5);
-  ellipsoid(d,[side*1.19,1.08,.62],[.12,.065,.105],paint,6,3);
-  d.quad([side*1.19,1.035,.523],[side*1.27,1.035,.542],[side*1.27,1.12,.542],[side*1.19,1.12,.523],'#839aa0');
+  if(panel(c,side<0?'left':'right')<.72)ellipsoid(d,[side*1.19,1.08,.62],[.12,.065,.105],paint,6,3);
+  if(panel(c,side<0?'left':'right')<.72)d.quad([side*1.19,1.035,.523],[side*1.27,1.035,.542],[side*1.27,1.12,.542],[side*1.19,1.12,.523],'#839aa0');
  }
  for(let k=0;k<4;k++){const xs=[-1,-.87,0,.87,1],ys=[-.07,0,.025,0,-.07];d.quad([xs[k]*roofW,roofY+ys[k],rr],[xs[k+1]*roofW,roofY+ys[k+1],rr],[xs[k+1]*roofW,roofY+ys[k+1],rf],[xs[k]*roofW,roofY+ys[k],rf],paint,k<2?.96:1.05);
   for(const z of[rr,rf])d.quad([xs[k]*roofW,roofY-.075,z],[xs[k+1]*roofW,roofY-.075,z],[xs[k+1]*roofW,roofY+ys[k+1],z],[xs[k]*roofW,roofY+ys[k],z],paint,.95);
@@ -179,25 +335,35 @@ export function drawCar(m,c,{police=false,brake=false,time=0,door=null}={}){
  }
  if(f>.55){
   for(let i=0;i<5;i++){const x=-.7+i*.31,z=1.35+(i%2)*.28;d.tri([x,1.075,z],[x+.25,1.075,z+.15],[x+.12,1.07,z+.47],i%2?'#73796f':'#434c49');}
-  tube(d,[-.8,.51,2.66],[.18,.34,2.73],.045,.05,'#9fa89c',5);
+  tube(d,[-.8,.51,2.66],[.18,.24+Math.sin(time*10)*Math.min(.12,Math.abs(c.speed||0)*.008),2.73],.045,.05,'#9fa89c',5);
  }
- if(r>.65)tube(d,[-.87,.34,-2.67],[.79,.52,-2.65],.05,.04,'#a4ada2',5);
+ if(r>.65)tube(d,[-.87,.21+Math.sin(time*9)*Math.min(.13,Math.abs(c.speed||0)*.008),-2.67],[.79,.52,-2.65],.05,.04,'#a4ada2',5);
  if(f>.4)for(let i=0;i<4;i++)ribbon(d,[-.62+i*.34,1.065,1.15],[.01+i*.2,1.025,2.1],.018,'#444e4b');
  if(r>.25)for(let i=0;i<3;i++)ribbon(d,[-.65+i*.43,.97,-1.8],[-.32+i*.43,.94,-2.23],.02,'#404b4b');
  if(police){
   d.quad([-.85,1.07,1.05],[.85,1.07,1.05],[.8,1.015,2.15],[-.8,1.015,2.15],'#c8cbbd');
   for(const side of[-1,1])d.quad([side*1.081,.56,-.92],[side*1.081,.56,.63],[side*1.081,.88,.63],[side*1.081,.88,-.92],'#c7cdc1');
   tube(d,[-.56,roofY+.09,-.4],[.56,roofY+.09,-.4],.06,.06,'#2b3437',6);
-  for(const side of[-1,1])ellipsoid(d,[side*.4,roofY+.18,-.4],[.17,.12,.14],Math.sin(time*12)*side>0?(side<0?'#f2644e':'#7baed4'):(side<0?'#663c38':'#36576c'),8,3);
+  for(const side of[-1,1])ellipsoid(d,[side*.4,roofY+.18,-.4],[.17,.12,.14],c.sirens!==false&&Math.sin(time*12)*side>0?(side<0?'#f2644e':'#7baed4'):(side<0?'#663c38':'#36576c'),8,3);
  }else if(coupe){for(const x of[-.2,.2])d.quad([x-.055,1.078,1.0],[x+.055,1.078,1.0],[x+.055,1.015,2.15],[x-.055,1.015,2.15],'#303c3f');}
- for(const side of[-1,1])for(const z of[-1.6,1.6])wheel(m,c,side,z,time);
+ if(kind==='taxi'){
+  taxiSign(d,roofY);
+  for(const side of[-1,1]){
+   const x=side*1.095;d.quad([x,.75,-1.13],[x,.75,.64],[x,.91,.64],[x,.91,-1.13],'#cec8a7');
+   for(let j=0;j<8;j++)for(let row=0;row<2;row++)if((j+row)%2===0){const z=-1.13+j*.221,y=.75+row*.08,xx=x+side*.023;d.quad([xx,y,z],[xx,y,z+.221],[xx,y+.08,z+.221],[xx,y+.08,z],'#303d3b');}
+  }
+ }
+ for(const side of[-1,1])for(const z of[-1.6,1.6])wheel(m,c,side,z,time,kind==='taxi'?{count:8}:{});
  m.transform=null;m.kind=0;
 }
 
 export function drawPerson(m,p){
  m.transform={x:p.x,y:p.y??p.ground??0,z:p.z,c:Math.cos(p.a),s:Math.sin(p.a)};m.kind=0;
  m.disc(0,.043,0,.36,'#303732',12);
- const moving=(p.speed||0)>.08,phase=p.walk||0,run=(p.speed||0)>4;
+ const fall=clamp((Number(p.knockdown)||0)/.7,0,1),stunned=(Number(p.stun)||0)>0;
+ // A non-graphic backwards fall holds above .7 seconds, then eases into a braced recovery.
+ if(fall||stunned){m.transform.pitch=fall*1.48+(stunned?.16:0)*(1-fall);m.transform.roll=fall*.1+(stunned?Math.sin(p.stun*17)*.065:0)*(1-fall);m.transform.y+=fall*.16;}
+ const moving=(p.speed||0)>.08&&!stunned&&!fall,phase=p.walk||0,run=(p.speed||0)>4;
  const bounce=moving?Math.abs(Math.sin(phase))*(run?.035:.018):0;
  const torso=.93+bounce;
  // Eight-sided rings narrow at the waist, broaden through the shoulders.
@@ -210,9 +376,11 @@ export function drawPerson(m,p){
  for(const side of[-1,1]){
   const cycle=phase+(side>0?Math.PI:0),swing=moving?Math.sin(cycle)*(run?.44:.30):0,lift=moving?Math.max(0,Math.cos(cycle))*(run?.14:.065):0;
   const hip=[side*.115,.86+bounce,0],knee=[side*.13,.48+lift,swing*.48],ankle=[side*.13,.13+lift,swing];
+  if(fall){knee[2]+=.28*fall;ankle[2]+=.04*fall;}else if(stunned)ankle[0]=side*.19;
   tube(m,hip,knee,.108,.084,'#434c56',7);tube(m,knee,ankle,.083,.062,'#3a434e',7);
   ellipsoid(m,[ankle[0],ankle[1]-.057,ankle[2]+.065],[.085,.067,.17],'#2d3437',8,3);
   const shoulder=[side*.254,torso+.33,.005],elbow=[side*.30,torso+.10,-swing*.57],hand=[side*.29,torso-.11,-swing*.85+(run?.08:0)];
+  if(fall){elbow[0]+=side*.07*fall;elbow[2]+=.14*fall;hand[0]+=side*.12*fall;hand[2]+=.12*fall;}else if(stunned){elbow[2]+=.13;hand[2]+=.28;hand[1]+=.08;}
   tube(m,shoulder,elbow,.089,.071,'#6c6657',7);tube(m,elbow,hand,.073,.052,'#77705f',7);
   ellipsoid(m,[hand[0],hand[1]-.04,hand[2]+.012],[.054,.078,.05],'#ad9278',7,4);
  }

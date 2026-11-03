@@ -1,5 +1,5 @@
 import {terrainHeight,groundHeight,SPEED_BUMPS,vehicleSurface} from './terrain.js';
-import {ROADS,clamp,random,safeCamera,signalAt,onDiagonal} from './engine.js';
+import {ROADS,clamp,random,safeCamera,safeFootCamera,signalAt,onDiagonal} from './engine.js';
 import {createAtlas,ATLAS} from './textures.js';
 import {drawLandmarks} from './landmarks.js';
 import {drawCar,drawPerson} from './models.js';
@@ -134,19 +134,23 @@ export class Renderer{
   if(Number.isFinite(this.orbit)){eye=[c.x+Math.sin(this.orbit)*8,3.1,c.z+Math.cos(this.orbit)*8];target=[c.x,.8,c.z];}
   else if(attract){const a=game.car.a+.65+Math.sin(t*.045)*.13;eye=[c.x-Math.sin(a)*9.5,3.6,c.z-Math.cos(a)*9.5];target=[c.x,1,c.z];}
   else{
-   const a=Number.isFinite(game.viewYaw)?game.viewYaw:game.onFoot?game.walkHeading:c.a,pitch=Number.isFinite(game.viewPitch)?game.viewPitch:.28,gap=game.onFoot?5.8:this.mode===1?13:8.8;
+   const a=Number.isFinite(game.viewYaw)?game.viewYaw:game.onFoot?game.walkHeading:c.a,pitch=Number.isFinite(game.viewPitch)?game.viewPitch:.28,gap=game.onFoot?5.6:this.mode===1?14:10.4;
    const radius=gap+(game.onFoot?0:speed*.035),height=game.onFoot?1.25:1.05;
    eye=[c.x-Math.sin(a)*radius*Math.cos(pitch),Math.max(.8,height+Math.sin(pitch)*radius),c.z-Math.cos(a)*radius*Math.cos(pitch)];
-   target=[c.x,game.onFoot?1.25:1.05,c.z];
+   const ahead=game.onFoot?.35:2.5;target=[c.x+Math.sin(a)*ahead,game.onFoot?1.25:1.05,c.z+Math.cos(a)*ahead];
   }
   const actorHeight=Number.isFinite(c.y)?c.y:groundHeight(c.x,c.z);eye[1]+=actorHeight;target[1]+=actorHeight;
-  eye=safeCamera(c,eye,this.city.buildings.filter(b=>!b.walkable));const blend=1-Math.exp(-dt*(game.onFoot?14:9));if(this.lastActor!==c||Math.hypot(c.x-this.cam[0],c.z-this.cam[2])>60){this.cam=[...eye];this.target=[...target];this.lastActor=c;}
+  if(game.onFoot)eye=safeFootCamera(c,eye,[game.car,...game.parked,...game.traffic,...game.cops]);eye=safeCamera(c,eye,this.city.buildings.filter(b=>!b.walkable));eye[1]=Math.max(eye[1],groundHeight(eye[0],eye[2])+.65);const blend=1-Math.exp(-dt*(game.onFoot?14:9));if(this.lastActor!==c||Math.hypot(c.x-this.cam[0],c.z-this.cam[2])>60){this.cam=[...eye];this.target=[...target];this.lastActor=c;}
   for(let i=0;i<3;i++){this.cam[i]+=(eye[i]-this.cam[i])*blend;this.target[i]+=(target[i]-this.target[i])*blend;}
   this.cam=safeCamera(c,this.cam,this.city.buildings.filter(b=>!b.walkable));
-  const vp=multiply(perspective((portrait?64:58)*Math.PI/180,w/h,.2,650),lookAt(this.cam,this.target));if(gl){gl.uniformMatrix4fv(this.matrix,false,vp);gl.uniform3fv(this.eye,this.cam);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);this.drawBuffer(this.static.buffer,this.static.count);}
+  if(game.onFoot)this.cam=safeFootCamera(c,this.cam,[game.car,...game.parked,...game.traffic,...game.cops]);
+  const vp=multiply(perspective((portrait?68:58)*Math.PI/180,w/h,.2,650),lookAt(this.cam,this.target));if(gl){gl.uniformMatrix4fv(this.matrix,false,vp);gl.uniform3fv(this.eye,this.cam);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);this.drawBuffer(this.static.buffer,this.static.count);}
   const m=new Mesh();for(const s of game.skids){if(s.t>25)continue;m.transform={x:s.x,y:groundHeight(s.x,s.z),z:s.z,c:Math.cos(s.a),s:Math.sin(s.a)};for(const x of[-.88,.88])m.flat(x,-1.6,.18,.7,'#303632',.018);}m.transform=null;
   const nearby=v=>Math.hypot(v.x-c.x,v.z-c.z)<180;
-  for(const v of[...game.traffic,...game.parked])if(nearby(v))drawCar(m,v,{time:t,brake:v.braking,door:game.door?.car===v?game.door:null});for(const p of game.cops)if(nearby(p))drawCar(m,{...p,paint:'#303b3c'},{police:true,time:t});drawCar(m,game.car,{brake,time:t,door:game.door?.car===game.car?game.door:null});
+  // Full detail stays near the camera; far traffic keeps its vehicle silhouette cheaply.
+  const cars=[...game.traffic,...game.parked].filter(nearby).sort((a,b)=>Math.hypot(a.x-c.x,a.z-c.z)-Math.hypot(b.x-c.x,b.z-c.z));
+  for(const [index,v]of cars.entries())drawCar(m,v,{time:t,brake:v.braking,lod:index>11||Math.hypot(v.x-c.x,v.z-c.z)>45,door:game.door?.car===v?game.door:null});
+  for(const p of game.cops)if(nearby(p))drawCar(m,{...p,paint:'#303b3c'},{police:true,time:t,lod:Math.hypot(p.x-c.x,p.z-c.z)>70});drawCar(m,game.car,{brake,time:t,door:game.door?.car===game.car?game.door:null});
   if(game.onFoot){const pavement=!onDiagonal(c.x,c.z)&&ROADS.every(r=>Math.abs(c.x-r)>11.5)&&ROADS.every(r=>Math.abs(c.z-r)>11.5);drawPerson(m,{...game.person,ground:game.person.y??groundHeight(c.x,c.z)});}
   for(const p of game.pedestrians||[])if(Math.hypot(p.x-c.x,p.z-c.z)<75)drawPerson(m,p);
   m.heightSampler=terrainHeight;for(const light of this.city.signals||[]){if(!nearby(light))continue;const state=signalAt(light.x,light.z,game.elapsed);
@@ -154,7 +158,7 @@ export class Renderer{
     for(let k=0;k<3;k++)m.box(5.4,4.67+k*.25,-12.16,.17,.14,.025,k===0&&green?'#96c174':k===2&&!green?'#d9654c':'#414b41');
    }
   }m.transform=null;m.heightSampler=null;
-  const targetPoint=game.target;if(targetPoint&&!attract){const p=targetPoint;m.ring(p.x,groundHeight(p.x,p.z)+.04,p.z,8,'#c0aa65');const y=groundHeight(p.x,p.z)+4+Math.sin(t*2)*.16;m.tri([p.x-.7,y+1,p.z],[p.x+.7,y+1,p.z],[p.x,y,p.z],'#d5be7c');}
+  const targetPoint=game.target||game.waypoint;if(targetPoint&&!attract){const p=targetPoint;m.ring(p.x,groundHeight(p.x,p.z)+.04,p.z,8,'#c0aa65');const y=groundHeight(p.x,p.z)+4+Math.sin(t*2)*.16;m.tri([p.x-.7,y+1,p.z],[p.x+.7,y+1,p.z],[p.x,y,p.z],'#d5be7c');}
   if(game.elapsed<(this.lastElapsed||0)){this.particles=[];this.hitSerial=new WeakMap();}this.lastElapsed=game.elapsed;this.updateParticles(game,dt);const smoke=new Mesh();this.particlesMesh(smoke);
   if(this.software)this.drawSoftware(vp,m.v,w,h,smoke.v);else{gl.bindBuffer(gl.ARRAY_BUFFER,this.dynamic);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(m.v),gl.DYNAMIC_DRAW);this.drawBuffer(this.dynamic,m.v.length/STRIDE);if(smoke.v.length){gl.enable(gl.BLEND);gl.blendFunc(gl.SRC_ALPHA,gl.ONE_MINUS_SRC_ALPHA);gl.depthMask(false);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(smoke.v),gl.DYNAMIC_DRAW);this.drawBuffer(this.dynamic,smoke.v.length/STRIDE);gl.depthMask(true);gl.disable(gl.BLEND);}}this.frames++;
  }
