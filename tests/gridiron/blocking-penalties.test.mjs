@@ -25,7 +25,7 @@ test('offsides is a free play and can be accepted or declined after the outcome'
  const h=offside();h.finish('tackle',42);h.resolvePenalty(false);h.next();assert.equal(h.spot,42);assert.equal(h.down,1);assert.match(h.lastResult,/DECLINED/);
 });
 test('holding choices roll back provisional touchdowns and play statistics only if accepted',()=>{
- for(const accept of [true,false]){const g=live(1);g.flag('holding',1,g.players[5]);g.stats.tackles=8;g.finish('touchdown',100);assert.equal(g.phase,'penalty');assert.deepEqual(g.scores,[0,0]);assert.ok(!g.events.some(e=>e.type==='result'&&e.text==='TOUCHDOWN!'));g.resolvePenalty(accept);if(accept){assert.deepEqual(g.scores,[0,0]);assert.equal(g.pending.spot,15);assert.equal(g.pending.down,1);assert.equal(g.stats.tackles,0);}else{assert.deepEqual(g.scores,[0,7]);assert.equal(g.pending.kickoff,1);assert.equal(g.stats.tackles,8);}}
+ for(const accept of [true,false]){const g=live(1);g.flag('holding',1,g.players[5]);g.stats.tackles=8;g.finish('touchdown',100);assert.equal(g.phase,'penalty');assert.deepEqual(g.scores,[0,0]);assert.ok(!g.events.some(e=>e.type==='result'&&e.text==='TOUCHDOWN!'));g.resolvePenalty(accept);if(accept){assert.deepEqual(g.scores,[0,0]);assert.equal(g.pending.spot,15);assert.equal(g.pending.down,1);assert.equal(g.stats.tackles,0);}else{assert.deepEqual(g.scores,[0,6]);assert.equal(g.pending.extraPoint,1);assert.equal(g.stats.tackles,8);}}
 });
 test('CPU declines an offensive hold when it already secured a turnover',()=>{
  const g=live();g.flag('holding',0,g.players[5]);g.stats.attempts=1;g.defenders[4].y=40;g.startTurnover(g.defenders[4],'interception');g.finish('tackle',65);assert.equal(g.phase,'dead');assert.match(g.lastResult,/DECLINED/);assert.equal(g.pending.offense,1);assert.equal(g.pending.spot,65);assert.equal(g.stats.interceptions,1);
@@ -43,7 +43,7 @@ test('offsetting pre-possession fouls replay the original down and cancel scores
  const g=offside();g.flag('holding',0,g.players[5]);g.finish('touchdown',100);assert.equal(g.phase,'dead');assert.deepEqual(g.scores,[0,0]);assert.equal(g.pending.spot,25);assert.equal(g.pending.down,1);assert.match(g.lastResult,/OFFSETTING/);
 });
 test('accepted defensive foul allows an untimed down; offensive holding does not extend the half',()=>{
- const g=offside();g.quarter=4;g.clock=0;g.scores=[0,7];g.playStart.scores=[0,7];g.finish('incomplete',25);g.resolvePenalty(true);g.next();assert.equal(g.quarter,4);assert.equal(g.clock,0);assert.equal(g.phase,'call');g.choose('dive');g.snap();g.finish('touchdown',100);g.next();assert.equal(g.quarter,5);
+ const g=offside();g.quarter=4;g.clock=0;g.scores=[0,7];g.playStart.scores=[0,7];g.finish('incomplete',25);g.resolvePenalty(true);g.next();assert.equal(g.quarter,4);assert.equal(g.clock,0);assert.equal(g.phase,'call');g.choose('dive');g.snap();g.finish('touchdown',100);g.next();assert.equal(g.special.type,'extra');g.launchGoal(1,.5);for(let i=0;i<31;i++)g.tick(.05);g.next();assert.equal(g.quarter,5);
  const h=live();h.quarter=4;h.clock=0;h.scores=[0,7];h.playStart.scores=[0,7];h.flag('holding',0,h.players[5]);h.finish('touchdown',100);h.next();assert.equal(h.phase,'final');assert.deepEqual(h.scores,[0,7]);
 });
 test('pause stops penalty decisions and preserves the pending review',()=>{

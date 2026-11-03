@@ -10,6 +10,8 @@ export function coachText(g,level){
  if(level==='expert')return '';
  if(g.phase==='dead')return g.contactFeedback||g.lastResult||'Choose your next call when the playbook opens.';
  if(g.phase==='penalty')return 'Accept applies the penalty. Decline keeps what happened on the play.';
+ if(g.phase==='ready'&&g.userOffense&&g.playDefinition.exchange)return g.playDefinition.hint+' · steer after the exchange.';
+ if(g.special?.goal)return g.userKicking?'Start the meter, set power, then stop accuracy in green.':'Opponent kicking.';
  if(g.phase.startsWith('kick_'))return g.userKicking?'Aim first. Tap twice to set power.':'Track the ring. Move after the catch; B calls a punt fair catch.';
  if(g.isLive||g.isLoose)return '';
  const profile=g.teams[0].profile?.[g.userOffense?'offense':'defense'];

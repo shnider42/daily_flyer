@@ -7,11 +7,12 @@ const neutral={x:0,y:0};
 export class DuelGame extends Game {
  constructor(home,away,length='quick',seed=1){super(buildTeam(home,roster),buildTeam(away,roster),'pro',seededRandom(seed),{length});this.actorTeam=null;this.epoch=1;this.calls=[null,null];this.playClock=25;this.events=[];}
  get userOffense(){return this.actorTeam==null||this.actorTeam===this.offense;}
- get userKicking(){return !!this.special&&(this.actorTeam==null?['kick_ready','kick_charge'].includes(this.phase):this.actorTeam===this.special.kickingTeam);}
+ get userKicking(){return !!this.special&&(this.actorTeam==null?['kick_ready','kick_charge','kick_accuracy'].includes(this.phase):this.actorTeam===this.special.kickingTeam);}
  isHumanDefender(p){return p===this.defenders[this.selected];}
  autoPenalty(){return false;}
  asTeam(team,fn){this.actorTeam=team;try{return fn();}finally{this.actorTeam=null;}}
  beginDrive(...args){super.beginDrive(...args);this.calls=[null,null];this.playClock=25;this.epoch=(this.epoch||0)+1;}
+ beginGoal(...args){super.beginGoal(...args);this.playClock=25;this.epoch=(this.epoch||0)+1;}
  beginKick(...args){super.beginKick(...args);this.playClock=20;this.epoch=(this.epoch||0)+1;}
  startTurnover(...args){super.startTurnover(...args);this.epoch++;}
  move(p,...args){if(this.isHumanDefender(p)&&!this.defenseMoving)return;return super.move(p,...args);}
@@ -39,7 +40,7 @@ export class DuelGame extends Game {
    if(name==='selectDefender')return team!==this.offense&&this.selectDefender(args[0]);
    if(name==='kick')return team===this.offense&&this.kick(args[0]);
    if(name==='kickAction')return this.special?.kickingTeam===team&&this.kickAction();
-   if(name==='aim'&&this.special?.kickingTeam===team&&['kick_ready','kick_charge'].includes(this.phase)){this.special.aim=clamp(Number(args[0])||0,-1,1);return true;}
+   if(name==='aim'&&this.special?.kickingTeam===team&&['kick_ready','kick_charge','kick_accuracy'].includes(this.phase)){this.special.aim=clamp(Number(args[0])||0,-1,1);return true;}
    if(name==='fairCatch')return team===this.offense&&this.fairCatch();
    if(name==='resolvePenalty')return this.phase==='penalty'&&this.penaltyReview?.beneficiary===team&&this.resolvePenalty(args[0]===true);
    return false;
@@ -48,11 +49,11 @@ export class DuelGame extends Game {
  tickBoth(dt,inputs=[neutral,neutral]){
   if(this.paused||['halftime','final'].includes(this.phase))return;
   dt=clamp(dt,0,.05);const off=vector(inputs[this.offense]),def=vector(inputs[1-this.offense]);
-  if(['call','ready','kick_ready','kick_charge','penalty'].includes(this.phase)){
+  if(['call','ready','kick_ready','kick_charge','kick_accuracy','penalty'].includes(this.phase)){
    this.playClock-=dt;
    if(this.playClock<=0){
     if(this.phase==='penalty')this.resolvePenalty(true);
-    else if(this.phase.startsWith('kick_'))this.launchKick(.72,this.special.aim);
+    else if(this.phase.startsWith('kick_'))this.special.goal?this.launchGoal(1,.5):this.launchKick(.72,this.special.aim);
     else {for(const team of [0,1])if(!this.calls[team])this.chooseFor(team,team===this.offense?this.offensePlays[0].id:this.defensePlays[0].id);if(this.phase==='ready')this.snap(this.offense);}
    }
   }
@@ -62,7 +63,7 @@ export class DuelGame extends Game {
    else this.move(d,def.x,def.y,d.speed*(this.phase==='ready'?.75:this.diveCooldown>1.1?.48:1.12),dt);
    this.defenseMoving=false;
   }
-  super.tick(dt,['kick_ready','kick_charge'].includes(this.phase)?vector(inputs[this.special.kickingTeam]):off);
+  super.tick(dt,['kick_ready','kick_charge','kick_accuracy'].includes(this.phase)?vector(inputs[this.special.kickingTeam]):off);
  }
  snapshot(team){
   const {teams,rng,events,actorTeam,history,...data}=this;

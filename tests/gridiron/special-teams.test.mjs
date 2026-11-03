@@ -8,9 +8,9 @@ const make=()=>{const g=new Game(buildTeam('NE',data),buildTeam('BUF',data),'pro
 function until(g,predicate,input={x:0,y:0},limit=500){let n=0;while(!predicate(g)&&n++<limit)g.tick(.05,input);assert.ok(predicate(g),`stalled in ${g.phase}`);}
 function flight(g,type='punt',kicking=1,spot=40,power=.7,aim=0){g.beginKick(type,kicking,spot);g.launchKick(power,aim);}
 
-test('thirty-two offensive plays and eighteen defensive calls all produce playable formations',()=>{
- const g=make();assert.equal(PLAYS.length,32);assert.equal(DEFENSE.length,18);
- for(const p of PLAYS){g.beginDrive(0,25);g.choose(p.id);g.snap(g.offense);assert.equal(g.phase,'live');assert.equal(g.carrier.slot,p.kind==='run'&&p.id!=='draw'?(p.carrier??1):0);assert.equal(g.canPass,p.kind==='pass');for(let i=0;i<10;i++)g.tick(.05);}
+test('thirty-six offensive plays and eighteen defensive calls all produce playable formations',()=>{
+ const g=make();assert.equal(PLAYS.length,36);assert.equal(DEFENSE.length,18);
+ for(const p of PLAYS){g.beginDrive(0,25);g.choose(p.id);g.snap(g.offense);assert.equal(g.phase,'live');assert.equal(g.carrier.slot,p.kind==='run'&&p.id!=='draw'&&!p.exchange?(p.carrier??1):0);assert.equal(g.canPass,p.kind==='pass');for(let i=0;i<10;i++)g.tick(.05);}
  for(const d of DEFENSE){g.beginDrive(1,25);g.choose(d.id);g.snap(g.offense);assert.equal(g.defense,d.id);for(let i=0;i<10;i++)g.tick(.05);assert.ok(g.defenders.every(p=>Number.isFinite(p.x)&&Number.isFinite(p.y)));}
 });
 test('curl receivers come back, flood spreads three depths, counter pulls a guard left',()=>{
@@ -39,7 +39,7 @@ test('punt can be caught and returned with burst, then possession is retained at
  const g=make();flight(g);until(g,g=>g.phase==='return');assert.equal(g.offense,0);assert.equal(g.canPass,false);g.burst();assert.ok(g.burstLeft>0);const start=g.special.catchY;g.carrier.y=start+14;g.finish('tackle',g.carrier.y);assert.equal(g.pending.offense,0);assert.equal(g.pending.newSeries,true);assert.equal(g.stats.returnYards,14);assert.equal(g.stats.yards,0);g.next();assert.equal(g.down,1);assert.equal(g.phase,'call');
 });
 test('a return touchdown scores for the receiver and queues a kickoff by that team',()=>{
- const g=make();flight(g);until(g,g=>g.phase==='return');g.carrier.y=101;g.tick(.016);assert.equal(g.scores[0],7);assert.equal(g.pending.kickoff,0);g.next();assert.equal(g.special.type,'kickoff');assert.equal(g.special.kickingTeam,0);assert.equal(g.offense,1);
+ const g=make();flight(g);until(g,g=>g.phase==='return');g.carrier.y=101;g.tick(.016);assert.equal(g.scores[0],6);assert.equal(g.pending.extraPoint,0);g.next();assert.equal(g.special.type,'extra');g.launchGoal(1,.5);for(let i=0;i<31;i++)g.tick(.05);g.next();assert.equal(g.special.type,'kickoff');assert.equal(g.special.kickingTeam,0);assert.equal(g.offense,1);
 });
 test('kickoff and punt touchbacks use their documented arcade spots',()=>{
  for(const [type,spot,power,expected] of [['kickoff',35,1,25],['punt',70,.9,20]]){const g=make();flight(g,type,1,spot,power);until(g,g=>g.phase==='dead');assert.match(g.lastResult,/TOUCHBACK/);assert.equal(g.pending.spot,expected);assert.equal(g.pending.offense,0);}
@@ -60,7 +60,7 @@ test('CPU punts on fourth down; humans cannot punt on earlier downs',()=>{
  g.beginDrive(1,35,4,45);assert.equal(g.phase,'kick_ready');assert.equal(g.special.type,'punt');assert.equal(g.special.kickingTeam,1);
 });
 test('halftime, field goals and safety free kicks preserve the correct receiving team',()=>{
- const g=make();g.beginDrive(0,65,4);g.kick('fieldgoal');g.next();assert.equal(g.special.kickingTeam,0);
+ const g=make();g.beginDrive(0,65,4);g.kick('fieldgoal');g.launchGoal(1,.5);until(g,g=>g.phase==='dead');g.next();assert.equal(g.special.type,'kickoff');assert.equal(g.special.kickingTeam,0);
  g.beginDrive(0,25);g.choose('dive');g.snap(g.offense);g.finish('tackle',-1);g.next();assert.equal(g.special.kickingTeam,0);assert.equal(g.special.kickSpot,20);
  g.beginDrive(1,25);g.quarter=2;g.clock=0;g.choose('zone');g.snap(g.offense);g.finish('tackle',29);g.next();assert.equal(g.quarter,3);assert.equal(g.phase,'halftime');g.resumeHalftime();assert.equal(g.special.kickingTeam,0);assert.equal(g.offense,1);
 });
@@ -74,7 +74,7 @@ test('complete games across different play selections and random seeds never sta
   while(g.phase!=='final'&&ticks++<26000){
    if(g.phase==='halftime')g.resumeHalftime();
    if(g.phase==='penalty')g.resolvePenalty(true);if(g.phase==='call')g.choose(g.userOffense?g.offensePlays[Math.floor(rng()*g.offensePlays.length)].id:g.defensePlays[Math.floor(rng()*g.defensePlays.length)].id);
-   if(g.phase==='ready'&&g.userOffense)g.snap();if(g.phase==='kick_ready')g.kickAction();if(g.phase==='kick_charge'&&g.special.power>.72)g.kickAction();
+   if(g.phase==='ready'&&g.userOffense)g.snap();if(g.phase==='kick_ready')g.kickAction();if(g.phase==='kick_charge'&&g.special.power>.9)g.kickAction();if(g.phase==='kick_accuracy'&&g.special.accuracy>=.48)g.kickAction();
    if(g.canPass&&g.userOffense&&g.liveTime>1.1)g.throwTo(Math.floor(rng()*3));
    if(g.userOffense&&g.isLive)g.burst();
    g.tick(.05,g.phase.startsWith('kick_')?{x:0,y:0}:{x:Math.sin(ticks*.02),y:1});

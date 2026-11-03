@@ -1,5 +1,5 @@
-import {teamStrengths} from './teams.js?v=16';
-import {copyBox} from './match.js?v=16';
+import {teamStrengths} from './teams.js?v=17';
+import {copyBox} from './match.js?v=17';
 
 // Original fictional fan-tribute copy. Matchup claims come from this game's
 // selected lineup and arcade ratings; highlights come only from recorded plays.

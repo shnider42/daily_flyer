@@ -32,6 +32,10 @@ const BASE_DEFENSE=[
 const pass=(id,name,hint,group,routes,wait=1.7)=>({id,name,hint,kind:'pass',group,routes,wait});
 const run=(id,name,hint,lane,options={})=>({id,name,hint,kind:'run',group:'run',lane,blockLane:lane,...options});
 const NEW_PLAYS=[
+ run('sweepleft','Sweep left','Handoff left · follow the pulling guard',8,{formation:[26.5,31,7,46,16,23,30],exchange:{release:.16,flight:.08,xTarget:25,yTarget:-5},pull:{slot:6,x:12,y:-1,until:1.2},lead:{slot:4,x:8,until:1.8}}),
+ run('tossright','Toss right','Pitch outside · follow the lead block',45,{formation:[26.5,31,7,46,39,23,30],exchange:{release:.18,flight:.36,xTarget:37,yTarget:-6},pull:{slot:6,x:40,y:1,until:1.3},lead:{slot:4,x:45,until:1.8}}),
+ run('tossleft','Toss left','Pitch left · plant and turn upfield',8,{formation:[26.5,22,7,46,14,23,30],exchange:{release:.18,flight:.36,xTarget:16,yTarget:-6},pull:{slot:5,x:13,y:1,until:1.3},lead:{slot:4,x:8,until:1.8}}),
+ run('jetsweep','Jet sweep','Receiver crosses behind the QB',45,{carrier:2,formation:[26.5,27,20,46,36,23,30],exchange:{runner:2,release:.32,flight:.08,xTarget:27,yTarget:-4},pull:{slot:6,x:39,y:1,until:1.2},lead:{slot:1,x:44,until:1.8}}),
  pass('comeback','Sideline comebacks','Sell deep · come back outside','quick',[[[7,0],[9,15],[4,11]],[[46,0],[44,15],[49,11]],[[36,0],[27,6]]],2.6),
  pass('speedouts','Speed outs','Five-yard cuts toward the sidelines','quick',[[[7,0],[7,5],[2,5]],[[46,0],[46,5],[51,5]],[[36,0],[32,27]]],1.1),
  pass('deepouts','Deep outs','Twelve-yard outs · shallow outlet','deep',[[[7,0],[9,12],[2,12]],[[46,0],[44,12],[51,12]],[[36,0],[36,3],[12,3]]],2.2),

@@ -57,5 +57,5 @@ test('an unopposed return remains a touchdown with no hidden speed clamp or touc
  let ticks=0;while(g.phase.startsWith('kick_')&&ticks++<150)g.tick(.05);
  for(const d of g.defenders){d.x=0;d.y=-8;d.speed=0;}
  while(g.isReturn&&ticks++<600){g.burst();g.tick(.05,{x:0,y:1});}
- assert.equal(g.scores[0],7);assert.match(g.lastResult,/TOUCHDOWN/);
+ assert.equal(g.scores[0],6);assert.match(g.lastResult,/TOUCHDOWN/);
 });

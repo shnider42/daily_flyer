@@ -21,7 +21,7 @@ export function bindGameButton(button, action) {
 export function primaryCommand(game){
   if(!game||game.paused)return null;
   if(game.phase==='penalty')return 'accept';
-  if(['kick_ready','kick_charge'].includes(game.phase))return 'kick';
+  if(['kick_ready','kick_charge','kick_accuracy'].includes(game.phase))return game.special?.goal&&!game.userKicking?null:'kick';
   if(game.phase==='ready')return game.userOffense?'snap':null;
   if(game.userOffense&&game.breakAvailable)return 'break';
   if(game.userOffense&&(game.contact||game.breakArm))return null;

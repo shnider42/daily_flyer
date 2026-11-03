@@ -15,7 +15,7 @@ export function acceptedPenalty(start,flags){
 }
 export function outcomeValue(outcome,team){
  const p=outcome.pending,score=(outcome.scores[team]-outcome.scores[1-team])*1000;
- if(p.kickoff!==undefined)return score;
+ if(p.kickoff!==undefined||p.extraPoint!==undefined)return score;
  const down=p.down??(p.newSeries?1:outcome.nextDown??2);
  const drive=200+p.spot+(5-down)*6;
  return score+(p.offense===team?drive:-drive);

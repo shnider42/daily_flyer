@@ -1,5 +1,5 @@
-import {Game} from './engine.js?v=16';
-import {vector} from './duel-input.js?v=16';
+import {Game} from './engine.js?v=17';
+import {vector} from './duel-input.js?v=17';
 export class DuelClient{
  constructor(callbacks={}){this.callbacks=callbacks;this.socket=null;this.room=null;this.view=null;this.teams=null;this.team=0;this.seq=0;this.commandSeq=0;this.pending=[];this.held={x:0,y:0};this.lastEvent=0;this.lastTick=-1;this.lastReply=0;this.lastState=0;this.rtt=null;this.jitter=0;this.manual=false;this.retry=0;this.waiting=false;this.targets=new Map();try{this.pass=JSON.parse(sessionStorage.getItem('pgi-duel-pass')||'null');}catch{}this.timer=setInterval(()=>this.pump(),50);this.watch=setInterval(()=>this.check(),500);window.addEventListener('online',()=>{if(this.pass)this.reconnect();});document.addEventListener('visibilitychange',()=>{if(document.hidden){this.clear();this.send({type:'pause',reason:'network'});}else if(this.pass)this.reconnect();});window.addEventListener('pagehide',()=>{this.clear();this.send({type:'pause',reason:'network'});});}
  emit(name,...args){this.callbacks[name]?.(...args);}
@@ -43,7 +43,7 @@ export class DuelClient{
 }
 export const controlKey=g=>`${g.epoch}:${g.offense}:${g.phase}:${g.controlled?.id}:${g.controlled?.slot}`;
 export function predict(g,input,dt){
- const p=g.controlled;if(!p||p.stun>0||g.contact)return;
+ const p=g.controlled;if(g.special?.goal)return;if(!p||p.stun>0||g.contact)return;
  let speed=p.speed;
  if(g.userOffense){if(g.pass)return;if(!(g.isLive||g.isLoose||['kick_flight','kick_loose'].includes(g.phase)))return;speed*=g.burstLeft>0?1.55:1;}
  else {if(!(['call','ready','kick_flight','kick_loose'].includes(g.phase)||g.isLive||g.isLoose))return;if(g.diveLeft>0){input={x:p.dx||0,y:p.dy||0};speed*=2;}else speed*=g.phase==='ready'?.75:g.diveCooldown>1.1?.48:1.12;}

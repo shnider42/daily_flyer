@@ -1,6 +1,6 @@
-import {paintBroadcast} from './broadcast-screen.js?v=16';
-import {broadcastBeat} from './booth-lines.js?v=16';
-import {BoothStage} from './booth-stage.js?v=16';
+import {paintBroadcast} from './broadcast-screen.js?v=17';
+import {broadcastBeat} from './booth-lines.js?v=17';
+import {BoothStage} from './booth-stage.js?v=17';
 
 // Shared, skippable pregame/halftime presentation. The live engine stays still.
 export class HalftimeShow {

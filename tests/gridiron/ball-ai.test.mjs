@@ -21,14 +21,14 @@ test('a tipped ball caught by the offense stays live and counts once',()=>{
  const g=make();isolate(g);g.throwTo(0);g.bobble({...g.pass,x:17,y:40});const p=g.players[3];p.x=g.pass.tx;p.y=g.pass.ty;g.rng=()=>.01;passUntil(g);assert.equal(g.carrier,p);assert.equal(g.phase,'live');assert.equal(g.stats.completions,1);assert.equal(g.stats.attempts,1);
 });
 test('interception return keeps actual athletes, rotates the field, and can be a pick six',()=>{
- const g=make(),d=g.defenders[4],qb=g.carrier;d.x=8;d.y=60;qb.x=26;qb.y=21;g.startTurnover(d,'interception');assert.equal(g.offense,1);assert.equal(g.phase,'return');assert.equal(g.carrier,d);assert.equal(d.x,45);assert.equal(d.y,40);assert.ok(g.defenders.includes(qb));assert.equal(qb.y,79);assert.equal(g.canPass,false);assert.equal(g.special,null);g.finish('touchdown',100);assert.deepEqual(g.scores,[0,7]);assert.equal(g.pending.kickoff,1);
+ const g=make(),d=g.defenders[4],qb=g.carrier;d.x=8;d.y=60;qb.x=26;qb.y=21;g.startTurnover(d,'interception');assert.equal(g.offense,1);assert.equal(g.phase,'return');assert.equal(g.carrier,d);assert.equal(d.x,45);assert.equal(d.y,40);assert.ok(g.defenders.includes(qb));assert.equal(qb.y,79);assert.equal(g.canPass,false);assert.equal(g.special,null);g.finish('touchdown',100);assert.deepEqual(g.scores,[0,6]);assert.equal(g.pending.extraPoint,1);
 });
 test('human takes control of an interception and earns return yards, not passing yards',()=>{
  const g=make();g.beginDrive(1,35);g.choose('man');g.snap(g.offense);const d=g.defenders[5];d.y=45;g.startTurnover(d,'interception');assert.equal(g.controlled,d);g.burst();assert.equal(g.burstLeft,.6);g.finish('tackle',65);assert.equal(g.stats.returnYards,10);assert.equal(g.stats.yards,0);assert.equal(g.stats.takeaways,1);g.next();assert.equal(g.offense,0);assert.equal(g.down,1);assert.equal(g.spot,65);
 });
 test('end-zone interceptions become touchbacks; expired clock waits for a return',()=>{
  const g=make();g.defenders[4].y=103;g.startTurnover(g.defenders[4],'interception');assert.equal(g.phase,'dead');assert.equal(g.pending.spot,20);assert.equal(g.pending.offense,1);
- const h=make();h.quarter=4;h.clock=0;h.scores=[7,7];h.defenders[4].y=40;h.startTurnover(h.defenders[4],'interception');assert.equal(h.phase,'return');h.finish('touchdown',100);h.next();assert.equal(h.phase,'final');assert.deepEqual(h.scores,[7,14]);
+ const h=make();h.quarter=4;h.clock=0;h.scores=[7,7];h.defenders[4].y=40;h.startTurnover(h.defenders[4],'interception');assert.equal(h.phase,'return');h.finish('touchdown',100);h.next();assert.equal(h.phase,'final');assert.deepEqual(h.scores,[7,13]);
 });
 test('fumbles are loose balls, pause fully, and either side may recover and advance',()=>{
  const g=make();g.carrier=g.players[1];g.carrier.y=33;g.startFumble(g.defenders[0]);assert.equal(g.phase,'fumble');const before={...g.loose};g.paused=true;g.tick(.05,{x:1,y:1});assert.deepEqual(g.loose,before);g.paused=false;g.recoverFumble(g.players[2]);assert.equal(g.phase,'live');assert.equal(g.carrier,g.players[2]);assert.equal(g.canPass,false);assert.equal(g.stats.fumbles,1);assert.equal(g.stats.fumblesLost,0);
@@ -80,6 +80,6 @@ test('man assigns separate outside receivers; new routes and delayed draw have d
  g.choose('draw');g.snap(g.offense);assert.equal(g.carrier,g.players[0]);for(let i=0;i<19;i++)g.tick(.05);assert.equal(g.carrier,g.players[1]);assert.equal(g.canPass,false);
 });
 test('seeded simulation replays identically for future authoritative multiplayer',()=>{
- function replay(){const g=make('legend',seededRandom(922));for(let n=0;n<1000;n++){if(g.phase==='penalty')g.resolvePenalty(true);if(g.phase==='call')g.choose(g.userOffense?'mesh':'robber');if(g.phase==='ready'&&g.userOffense)g.snap();if(g.phase==='kick_ready')g.kickAction();if(g.phase==='kick_charge'&&g.special.power>.72)g.kickAction();if(g.canPass&&g.liveTime>1.6)g.throwTo(n%3);g.tick(.05,{x:Math.sin(n*.04),y:1});}return JSON.stringify(g);}
- assert.equal(replay(),replay());assert.equal(PLAYS.length,32);
+ function replay(){const g=make('legend',seededRandom(922));for(let n=0;n<1000;n++){if(g.phase==='penalty')g.resolvePenalty(true);if(g.phase==='call')g.choose(g.userOffense?'mesh':'robber');if(g.phase==='ready'&&g.userOffense)g.snap();if(g.phase==='kick_ready')g.kickAction();if(g.phase==='kick_charge'&&g.special.power>.9)g.kickAction();if(g.phase==='kick_accuracy'&&g.special.accuracy>=.48)g.kickAction();if(g.canPass&&g.liveTime>1.6)g.throwTo(n%3);g.tick(.05,{x:Math.sin(n*.04),y:1});}return JSON.stringify(g);}
+ assert.equal(replay(),replay());assert.equal(PLAYS.length,36);
 });

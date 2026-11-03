@@ -1,3 +1,4 @@
+import {uniformFor} from './uniforms.js?v=17';
 // Broadcast graphics use recorded coordinates or explicitly labeled diagrams.
 // No renderer calls into the live game or consumes its random stream.
 const W=720,H=360,YELLOW='#ffdc46';
@@ -22,7 +23,7 @@ function stroke(c,points,progress){
 }
 function circle(c,p,progress,r=23){const pts=Array.from({length:49},(_,i)=>{const a=i/48*Math.PI*2.08;return {x:p.x+Math.cos(a)*(r+Math.sin(i*1.7)),y:p.y+Math.sin(a)*(r*.82+Math.cos(i*.8))};});stroke(c,pts,progress);}
 function arrow(c,pts,progress){stroke(c,pts,progress);if(progress>=1&&pts.length>1){const p=pts.at(-1),q=pts.at(-2),a=Math.atan2(p.y-q.y,p.x-q.x);stroke(c,[{x:p.x-14*Math.cos(a-.5),y:p.y-14*Math.sin(a-.5)},p,{x:p.x-14*Math.cos(a+.5),y:p.y-14*Math.sin(a+.5)}],1);}}
-function person(c,p,color){c.fillStyle='#06151266';c.beginPath();c.ellipse(p.x,p.y+9,11,5,0,0,7);c.fill();box(c,p.x-9,p.y-7,18,16,color);box(c,p.x-12,p.y-5,5,8,color);box(c,p.x+7,p.y-5,5,8,color);box(c,p.x-5,p.y-15,10,8,'#edddbe');text(c,p.number??'',p.x,p.y+5,10,'#fff','center');}
+function person(c,p,kit){const color=kit.jersey;c.fillStyle='#06151266';c.beginPath();c.ellipse(p.x,p.y+9,11,5,0,0,7);c.fill();box(c,p.x-9,p.y-7,18,16,color);box(c,p.x-12,p.y-5,5,8,color);box(c,p.x+7,p.y-5,5,8,color);box(c,p.x-5,p.y-15,10,8,'#edddbe');text(c,p.number??'',p.x,p.y+5,10,kit.number,'center');}
 function field(c,low=20,high=75){
  box(c,0,0,W,H,'#112c29');box(c,22,24,676,300,'#2a6247');
  const xy=p=>({x:22+(p.y-low)/(high-low)*676,y:30+p.x/53*288});
@@ -44,7 +45,7 @@ function highlight(c,report,s,time,reduced,ink){
  const ys=clip.frames.map(f=>orient(f.ball).y),span=Math.max(45,Math.min(110,Math.max(...ys)-Math.min(...ys)+22));
  const low=clamp((Math.min(...ys)+Math.max(...ys)-span)/2,-5,105-span),xy=field(c,low,low+span),frame=sampleHighlight(clip,time,reduced),project=p=>xy(orient(p));
  const line=project({x:0,y:frame.spot});box(c,line.x,24,2,300,'#7aceed');
- for(const p of frame.people){const q=project(p);if(q.x<10||q.x>710)continue;person(c,{...q,number:p.number},report.teams[p.team].color);}
+ for(const p of frame.people){const q=project(p);if(q.x<10||q.x>710)continue;person(c,{...q,number:p.number},uniformFor(report.teams[p.team],p.team));}
  const b=project(frame.ball);ball(c,b.x,b.y-frame.arc*.4,.7);
  const paused=reduced||time>=3.5&&time<8;
  text(c,paused?'HOLD IT RIGHT THERE':(s.period==='game'?'GAME REPLAY':'FIRST-HALF REPLAY'),36,346,13,paused?YELLOW:'#d7e1d0');
@@ -58,8 +59,8 @@ function highlight(c,report,s,time,reduced,ink){
 function diagram(c,report,s,time,reduced,ink){
  const xy=field(c,25,80),team=s.team||0,progress=reduced?0:time>8?clamp((time-8)/4):0;
  const players=[{x:27,y:35,number:'QB'},{x:27,y:31,number:'RB'},{x:22,y:40,number:'OL'},{x:32,y:40,number:'OL'},{x:8,y:40,number:'WR'},{x:46,y:40,number:'WR'},{x:38,y:40,number:'TE'}];
- for(const p of [{x:21,y:43},{x:33,y:43},{x:15,y:49},{x:40,y:49},{x:9,y:57},{x:45,y:57},{x:27,y:67}])person(c,{...xy(p),number:'D'},report.teams[1-team].color);
- for(const [i,p] of players.entries()){const q=i===1?{...p,x:mix(27,22,progress),y:mix(31,62,progress)}:p;person(c,{...xy(q),number:p.number},report.teams[team].color);}
+ for(const p of [{x:21,y:43},{x:33,y:43},{x:15,y:49},{x:40,y:49},{x:9,y:57},{x:45,y:57},{x:27,y:67}])person(c,{...xy(p),number:'D'},uniformFor(report.teams[1-team],1-team));
+ for(const [i,p] of players.entries()){const q=i===1?{...p,x:mix(27,22,progress),y:mix(31,62,progress)}:p;person(c,{...xy(q),number:p.number},uniformFor(report.teams[team],team));}
  const runner=xy({x:mix(27,22,progress),y:mix(31,62,progress)});ball(c,runner.x,runner.y,.7);
  if(ink){circle(c,xy(players[2]),reduced?1:clamp((time-1)/1.4));arrow(c,[xy(players[1]),xy({x:24,y:40}),xy({x:22,y:53}),xy({x:22,y:63})],reduced?1:clamp((time-2.5)/2));if(time>4||reduced)text(c,'A LITTLE DAYLIGHT',340,98,18,YELLOW);}
  text(c,'GAME-PLAN ILLUSTRATION · NOT A REPLAY',36,346,13,'#d7e1d0');

@@ -1,6 +1,6 @@
-import {playbackSession} from './device-audio.js?v=16';
-import {ImpactLimiter} from './impact.js?v=16';
-import {PGIMusic,FAMILY_NAMES} from './music.js?v=16';
+import {playbackSession} from './device-audio.js?v=17';
+import {ImpactLimiter} from './impact.js?v=17';
+import {PGIMusic,FAMILY_NAMES} from './music.js?v=17';
 export function musicPolicy(settings,game,{audition=false,broadcast=false}={}){
  const continuous=settings.musicMode==='always';
  const scene=game?.phase==='final'?'postgame':typeof broadcast==='string'?broadcast:!game?'menu':game.phase==='halftime'?'halftime':null;
@@ -46,7 +46,7 @@ export class StadiumAudio {
   o.onended=()=>{o.disconnect();g.disconnect();};o.start(t);o.stop(t+d+.02);
  }
  event(e){
-  if(e.scorePoints>0)this.soundtrack.score(e.scoreAbbr);
+  if(e.scorePoints>1)this.soundtrack.score(e.scoreAbbr);
   if(e.type==='snap'){this.thud(.12);this.tone(125,.08,'triangle',.14);}
   if(e.type==='contact'){this.padHit('tackle');this.grunt('tackle');}
   if(e.type==='block'){this.padHit('block',e.distance);this.grunt('block',e.distance);}
@@ -57,7 +57,7 @@ export class StadiumAudio {
   if(e.type==='flag'||e.type==='penalty'){this.tone(1700,.13,'sine',.05);this.tone(1350,.18,'sine',.05,.15);}
   if(e.type==='turnover'){for(const [i,n] of [660,440,330].entries())this.tone(n,.14,'square',.045,i*.12);}
   if(e.type==='ball'&&e.text==='FUMBLE!'){this.thud(.2);this.tone(220,.25,'sawtooth',.04);}
-  if(e.type==='result'){this.thud(.16);this.tone(1800,.22,'sine',.04,.03);if(!this.settings.scoringMusic&&e.scorePoints===7)for(const [i,n] of [330,440,550,660].entries())this.tone(n,.32,'square',.055,i*.14);}
+  if(e.type==='result'){this.thud(.16);this.tone(1800,.22,'sine',.04,.03);if(!this.settings.scoringMusic&&e.scorePoints===6)for(const [i,n] of [330,440,550,660].entries())this.tone(n,.32,'square',.055,i*.14);}
  }
  update(game,hidden=false,{audition=false,broadcast=false,replay=false}={}){
   if(!this.context||!this.master)return;const silent=hidden||game?.paused&&!audition&&!broadcast;
