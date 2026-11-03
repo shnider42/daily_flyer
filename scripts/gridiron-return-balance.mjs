@@ -18,7 +18,7 @@ for(const type of ['kickoff','punt'])for(const route of ['straight','edge','weav
    const x=route==='edge'?(edge-g.carrier.x)*.4:route==='weave'?Math.sin(g.liveTime*1.5)*.8:0;
    const input={x:Math.max(-1,Math.min(1,x)),y:1};if(g.breakAvailable)g.breakTackle(input);else g.burst();g.tick(.05,input);
   }
-  yards+=g.carrier.y-start;touchdowns+=g.scores[0]===7;fumbles+=g.isLoose;
+  yards+=g.carrier.y-start;touchdowns+=g.scores[0]>=6;fumbles+=g.isLoose;
  }
  console.log(JSON.stringify({type,route,trials,returns,averageYards:+(yards/returns).toFixed(2),touchdownPct:+(100*touchdowns/returns).toFixed(2),fumbles}));
 }

@@ -1,5 +1,6 @@
-import {EXTRA_EXCHANGES} from './booth-extras.js?v=20';
-import {wordTimeline,wordAt} from './booth-chatter.js?v=20';
+import {EXTRA_EXCHANGES} from './booth-extras.js?v=21';
+import {addSideline} from './sideline.js?v=21';
+import {wordTimeline,wordAt} from './booth-chatter.js?v=21';
 // Original fictional fan-tribute exchanges, not transcripts or voice imitations.
 // Each topic has eight exchanges: John explains, Al responds, John buttons it.
 // Facts are supplied separately from the selected lineup or settled game ledger.
@@ -124,7 +125,7 @@ const exchanges={
   ['We have looked at the tape. Now the fun is seeing what the teams do with the next opportunity.','Our seats are staying right here.','So is my marker. Somebody should probably keep an eye on it.']
  ]
 };
-for(const [topic,lines] of Object.entries(EXTRA_EXCHANGES))exchanges[topic].push(...lines);
+for(const [topic,lines] of Object.entries(EXTRA_EXCHANGES))(exchanges[topic]??=[]).push(...lines);
 export const BOOTH_EXCHANGES=Object.freeze(exchanges);
 const fill=(s,context)=>s.replace(/\{(\w+)\}/g,(_,key)=>context[key]||'the offense');
 const hash=s=>{let n=2166136261;for(const c of s)n=Math.imul(n^c.charCodeAt(0),16777619);return n>>>0;};
@@ -138,9 +139,10 @@ export class BoothVoices {
    poses:{john:['explain','lean','sweep','nod'][variant%4],al:['react','nod','chuckle','lean'][variant%4],button:['chuckle','explain','lean','sweep'][variant%4]}};
  }
  snapshot(){return {seed:this.seed,counts:{...this.counts}};}
+ sidelineVisit(mode='halftime'){const key=`sideline:${mode}`,count=Math.max(0,Number(this.counts[key])||0);this.counts[key]=count+1;return count;}
 }
 export function giveBoothVoice(report,voices){
- return {...report,segments:report.segments.map(s=>{
+ const voiced={...report,segments:report.segments.map(s=>{
   const v=voices.take(s.topic||'gain',s.context),mark=['diagram','highlight','package'].includes(s.visual);
   const factualFocus=s.visual==='highlight'&&s.focus?.focus?`Look at #${s.focus.focus.number} ${s.focus.focus.name}${s.focus.block?' in that block':''}. `:'';
   const turns=[{speaker:'al',text:s.al,pose:'explain'},{speaker:'john',text:s.analysis||factualFocus+v.john,pose:mark?'point':s.topic==='touchdown'?'big':v.poses.john},
@@ -148,6 +150,7 @@ export function giveBoothVoice(report,voices){
   if(s.closing)turns.push({speaker:'al',text:s.closing,pose:'talk'});
   return {...s,al:turns.filter(t=>t.speaker==='al').map(t=>t.text).join(' '),john:turns.filter(t=>t.speaker==='john').map(t=>t.text).join(' '),turns};
  })};
+ return addSideline(voiced,voices.sidelineVisit(report.mode));
 }
 export function broadcastBeat(segment,elapsed){
  const turns=segment.turns||[{speaker:'al',text:segment.al,pose:'talk'},{speaker:'john',text:segment.john,pose:'talk'}];

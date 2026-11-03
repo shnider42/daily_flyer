@@ -1,7 +1,10 @@
-import {paintBroadcast} from './broadcast-screen.js?v=20';
-import {broadcastBeat} from './booth-lines.js?v=20';
-import {BoothStage} from './booth-stage.js?v=20';
-import {syllableEnergy} from './booth-chatter.js?v=20';
+import {paintBroadcast} from './broadcast-screen.js?v=21';
+import {broadcastBeat} from './booth-lines.js?v=21';
+import {BoothStage} from './booth-stage.js?v=21';
+import {syllableEnergy} from './booth-chatter.js?v=21';
+import {REPORTER} from './sideline.js?v=21';
+import {SidelineStage} from './sideline-stage.js?v=21';
+const labels={al:'AL',john:'JOHN',[REPORTER.id]:REPORTER.label};
 
 // Shared, skippable pregame/halftime presentation. The live engine stays still.
 export class HalftimeShow {
@@ -11,6 +14,7 @@ export class HalftimeShow {
   try{this.motion=localStorage.getItem('pg-booth-motion')||'system';}catch{this.motion='system';}
   this.$=id=>dialog.querySelector('#'+id);
   this.stage=new BoothStage(dialog);this.turnIndex=-1;
+  this.sidelineStage=new SidelineStage(this.$('host-casey'));
   this.$('halfMotion').value=this.motion;this.$('halfMotion').onchange=()=>{this.motion=this.$('halfMotion').value;try{localStorage.setItem('pg-booth-motion',this.motion);}catch{}this.draw();};
   this.motionQuery?.addEventListener?.('change',e=>{this.reduced=e.matches;this.draw();});
   this.$('halfPrev').onclick=()=>this.step(-1);this.$('halfNext').onclick=()=>this.step(1);
@@ -56,7 +60,7 @@ export class HalftimeShow {
   this.onSilence();
   const s=this.report.segments[this.index];this.turnIndex=-1;this.$('halfSegment').textContent=s.title;
   const transcript=this.$('halfTranscript');transcript.replaceChildren();
-  for(const turn of broadcastBeat(s,0).turns){const p=document.createElement('p'),b=document.createElement('b');b.textContent=turn.speaker==='al'?'AL: ':'JOHN: ';p.append(b,turn.text);transcript.append(p);}
+  for(const turn of broadcastBeat(s,0).turns){const p=document.createElement('p'),b=document.createElement('b');b.textContent=`${labels[turn.speaker]}: `;p.append(b,turn.text);transcript.append(p);}
   this.$('halfClosing').textContent=s.closing||'';this.$('halfClosing').hidden=!!s.turns||!s.closing;
   this.$('halfCount').textContent=`${this.index+1} / ${this.report.segments.length}`;this.$('halfPrev').disabled=this.index===0;this.$('halfNext').disabled=this.index===this.report.segments.length-1;
   this.$('halfCaption').textContent=s.caption||s.title;this.$('halfTag').textContent=s.tag||'FOR THE LOVE OF FOOTBALL';
@@ -65,6 +69,7 @@ export class HalftimeShow {
   this.$('halfInk').hidden=!['highlight','diagram','package'].includes(s.visual);
   this.$('halfAgain').textContent=s.visual==='highlight'?'↺ RUN IT AGAIN':'↺ SHOW IT AGAIN';
   this.$('halfProgress').style.width='0%';this.dialog.dataset.speaker='al';this.dialog.dataset.visual=s.visual||'matchup';
+  this.dialog.dataset.sideline=String(!!s.sideline);
   this.renderAuto();this.draw();
  }
  draw(){
@@ -73,22 +78,25 @@ export class HalftimeShow {
   if(this.turnIndex!==beat.index){
    this.turnIndex=beat.index;this.dialog.dataset.speaker=beat.turn.speaker;
    this.wordMark=null;
-   for(const name of ['al','john']){
-    const line=beat.turns.slice(0,beat.index+1).findLast(t=>t.speaker===name)||beat.turns.find(t=>t.speaker===name),text=line?.text||'',container=this.$(name==='al'?'halfAl':'halfJohn');
+   for(const name of ['al','john',REPORTER.id]){
+    const line=beat.turns.slice(0,beat.index+1).findLast(t=>t.speaker===name)||beat.turns.find(t=>t.speaker===name),text=line?.text||'',container=this.$({al:'halfAl',john:'halfJohn',casey:'halfCasey'}[name]);
     // Screen readers receive one complete turn, not a live announcement per word.
     const accessible=document.createElement('span');accessible.className='booth-readable';accessible.textContent=text;
     const visual=document.createElement('span');visual.setAttribute('aria-hidden','true');this.wordNodes[name]=[];
     for(const word of text.match(/\S+/g)||[]){const node=document.createElement('span');node.className='booth-word';node.textContent=word;this.wordNodes[name].push(node);visual.append(node,document.createTextNode(' '));}
     container.replaceChildren(accessible,visual);
    }
-   this.$('halfOnAir').textContent=`${beat.turn.speaker==='al'?'AL MICHAELS':'JOHN MADDEN'} · IN THE BOOTH`;
+   this.$('halfOnAir').textContent=beat.turn.speaker===REPORTER.id?`${REPORTER.name.toUpperCase()} · ${REPORTER.location}`:`${beat.turn.speaker==='al'?'AL MICHAELS':'JOHN MADDEN'} · IN THE BOOTH`;
   }
   const mark=this.wordNodes[beat.turn.speaker]?.[beat.wordIndex]||null;
   if(mark!==this.wordMark){this.wordMark?.classList.remove('current');mark?.classList.add('current');this.wordMark=mark;}
   // Let John hold the film while he explains; roll it on Al's response.
   const filmTime=s.turns?(beat.index===0?Math.min(3.49,this.elapsed*.7):beat.index===1?3.5+Math.min(4.49,beat.turnElapsed*.8):beat.index===2?8+Math.min(4,beat.turnElapsed):12):this.elapsed;
-  paintBroadcast(this.$('halfScreen'),this.report,s,filmTime,{reduced:!this.motionEnabled,ink:this.ink});
-  this.stage.draw({speaker:beat.turn.speaker,pose:beat.turn.pose,time:this.elapsed,moving:this.auto&&this.motionEnabled,energy:syllableEnergy(beat.word,beat.wordElapsed)});
+  if(!s.sideline)paintBroadcast(this.$('halfScreen'),this.report,s,filmTime,{reduced:!this.motionEnabled,ink:this.ink});
+  const field=beat.turn.speaker===REPORTER.id,frame={speaker:beat.turn.speaker,pose:beat.turn.pose,time:this.elapsed,moving:this.auto&&this.motionEnabled,energy:syllableEnergy(beat.word,beat.wordElapsed)};
+  this.$('halfSideline').hidden=!field;this.dialog.querySelector('.boothcast').hidden=field;
+  if(field){this.$('halfSidelineLocation').textContent=`${this.report.teams[s.team].abbr} · SIDELINE`;this.sidelineStage.draw({...frame,team:this.report.teams[s.team]});}
+  else this.stage.draw(frame);
  }
  step(direction){this.index=Math.max(0,Math.min(this.report.segments.length-1,this.index+direction));this.elapsed=0;this.last=0;this.render();}
  tick(now,hidden=false){

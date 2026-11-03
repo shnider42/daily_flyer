@@ -1,7 +1,7 @@
-import {BoothChatter} from './booth-chatter.js?v=20';
-import {playbackSession} from './device-audio.js?v=20';
-import {ImpactLimiter} from './impact.js?v=20';
-import {PGIMusic,FAMILY_NAMES} from './music.js?v=20';
+import {BoothChatter} from './booth-chatter.js?v=21';
+import {playbackSession} from './device-audio.js?v=21';
+import {ImpactLimiter} from './impact.js?v=21';
+import {PGIMusic,FAMILY_NAMES} from './music.js?v=21';
 export function musicPolicy(settings,game,{audition=false,broadcast=false}={}){
  const continuous=settings.musicMode==='always';
  const scene=game?.phase==='final'?'postgame':typeof broadcast==='string'?broadcast:!game?'menu':game.phase==='halftime'?'halftime':null;

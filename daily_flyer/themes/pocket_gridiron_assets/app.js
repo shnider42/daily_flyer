@@ -1,22 +1,23 @@
-import {FORMATIONS,PERSONNEL,packageOf,tendency} from './packages.js?v=20';
-import {uniformFor} from './uniforms.js?v=20';
-import {goalWindow} from './placekicks.js?v=20';
-import {clockText,matchLength} from './match.js?v=20';
-import {HalftimeShow} from './halftime.js?v=20';
-import {pregameReport,halftimeBroadcast,postgameReport} from './broadcast.js?v=20';
-import {passPlacement,passAim} from './passing.js?v=20';
-import {playDiagram} from './plays.js?v=20';
-import {ReplayTape} from './replay.js?v=20';
-import {BoothVoices,giveBoothVoice} from './booth-lines.js?v=20';
-import {FAMILY_NAMES} from './music.js?v=20';
-import {showOffensiveRoutes,suggestions,coachText,hitDefender,BOOK_FILTERS,bookPage} from './presentation.js?v=20';
-import {teamStrengths} from './teams.js?v=20';
-import {RATING_LABELS,visibleRatings} from './ratings.js?v=20';
-import {bindAudioActivation} from './device-audio.js?v=20';
-import {StadiumAudio} from './audio.js?v=20';
-import {bindGameButton, protectGameSurface, setGameButtonEnabled,primaryCommand,stickInput,movementInput} from './controls.js?v=20';
-import {Game,PLAYS,DEFENSE,clamp} from './engine.js?v=20';
-import {TEAMS,buildTeam,fetchFreshRoster,validateRoster} from './roster.js?v=20';
+import {SPECIAL_SLOTS,RETURN_PLANS} from './special-teams.js?v=21';
+import {FORMATIONS,PERSONNEL,packageOf,tendency} from './packages.js?v=21';
+import {uniformFor} from './uniforms.js?v=21';
+import {goalWindow} from './placekicks.js?v=21';
+import {clockText,matchLength} from './match.js?v=21';
+import {HalftimeShow} from './halftime.js?v=21';
+import {pregameReport,halftimeBroadcast,postgameReport} from './broadcast.js?v=21';
+import {passPlacement,passAim} from './passing.js?v=21';
+import {playDiagram} from './plays.js?v=21';
+import {ReplayTape} from './replay.js?v=21';
+import {BoothVoices,giveBoothVoice} from './booth-lines.js?v=21';
+import {FAMILY_NAMES} from './music.js?v=21';
+import {showOffensiveRoutes,suggestions,coachText,hitDefender,BOOK_FILTERS,bookPage} from './presentation.js?v=21';
+import {teamStrengths} from './teams.js?v=21';
+import {RATING_LABELS,visibleRatings} from './ratings.js?v=21';
+import {bindAudioActivation} from './device-audio.js?v=21';
+import {StadiumAudio} from './audio.js?v=21';
+import {bindGameButton, protectGameSurface, setGameButtonEnabled,primaryCommand,stickInput,movementInput} from './controls.js?v=21';
+import {Game,PLAYS,DEFENSE,clamp} from './engine.js?v=21';
+import {TEAMS,buildTeam,fetchFreshRoster,validateRoster} from './roster.js?v=21';
 const $=id=>document.getElementById(id);const el=(tag,text,cls)=>{const e=document.createElement(tag);if(text!==undefined)e.textContent=text;if(cls)e.className=cls;return e;};
 const safeRead=(key,fallback)=>{try{return JSON.parse(localStorage.getItem(key))??fallback;}catch{return fallback;}};
 const safeWrite=(key,value)=>{try{localStorage.setItem(key,JSON.stringify(value));return true;}catch{return false;}};
@@ -91,7 +92,7 @@ function showDialog(id){$(id).showModal();}document.querySelectorAll('[data-clos
 $('pauseHelp').onclick=()=>showDialog('helpDialog');
 $('showHelp').onclick=()=>showDialog('helpDialog');$('gameHelp').onclick=()=>{pause();showDialog('helpDialog');};
 $('showRoster').onclick=()=>{if(roster){renderRoster();showDialog('rosterDialog');}};
-function renderRoster(){const team=teamFor($('homeTeam').value);renderRatings();$('rosterTitle').textContent=`${team.city}.`;$('rosterInfo').textContent=`${team.roster.length} active players · ${roster.season} snapshot checked ${new Date(roster.fetchedAt).toLocaleDateString()}. Choose your arcade starters below.`;const editor=$('lineupEditor');editor.replaceChildren();const slots=[['qb','QB',['QB']],['rb','RB',['RB','FB']],['wr1','WR · A',['WR']],['wr2','WR · B',['WR']],['te','TE · C',['TE']]];slots.forEach(([key,label,positions],i)=>{const row=el('label',label);const select=el('select');select.setAttribute('aria-label',label+' starter');for(const p of team.roster.filter(p=>positions.includes(p.pos)).sort((a,b)=>a.name.localeCompare(b.name))){const option=el('option',`#${p.number} ${p.name}`);option.value=p.id;select.append(option);}select.value=team.offense[i].id;select.onchange=()=>{custom[team.abbr]??={};custom[team.abbr][key]=select.value;if(key==='wr1'&&custom[team.abbr].wr2===select.value)delete custom[team.abbr].wr2;if(key==='wr2'&&team.offense[2].id===select.value){custom[team.abbr].wr1=team.offense[3].id;}safeWrite('pg-lineups',custom);renderRoster();updateLobby();};row.append(select);editor.append(row);});$('rosterList').replaceChildren(...team.roster.sort((a,b)=>a.pos.localeCompare(b.pos)||a.number-b.number).map(p=>{const row=el('div',undefined,'rosterrow');row.append(el('span',p.pos),el('span','#'+p.number),el('span',p.name));return row;}));}
+function renderRoster(){const team=teamFor($('homeTeam').value);renderRatings();$('rosterTitle').textContent=`${team.city}.`;$('rosterInfo').textContent=`${team.roster.length} active players · ${roster.season} snapshot checked ${new Date(roster.fetchedAt).toLocaleDateString()}. Choose your arcade starters below.`;const editor=$('lineupEditor');editor.replaceChildren();const slots=[['qb','QB',['QB']],['rb','RB',['RB','FB']],['wr1','WR · A',['WR']],['wr2','WR · B',['WR']],['te','TE · C',['TE']],...SPECIAL_SLOTS];slots.forEach(([key,label,positions],i)=>{const row=el('label',label);const select=el('select');select.setAttribute('aria-label',label+' starter');for(const p of team.roster.filter(p=>positions.includes(p.pos)&&(key!=='gunner2'||p.id!==team.specialists.gunner1.id)).sort((a,b)=>a.name.localeCompare(b.name))){const option=el('option',`#${p.number} ${p.name}`);option.value=p.id;select.append(option);}select.value=(i<5?team.offense[i]:team.specialists[key]).id;select.onchange=()=>{custom[team.abbr]??={};custom[team.abbr][key]=select.value;if(key==='gunner1'&&team.specialists.gunner2.id===select.value)custom[team.abbr].gunner2=team.specialists.gunner1.id;if(key==='wr1'&&custom[team.abbr].wr2===select.value)delete custom[team.abbr].wr2;if(key==='wr2'&&team.offense[2].id===select.value){custom[team.abbr].wr1=team.offense[3].id;}safeWrite('pg-lineups',custom);renderRoster();updateLobby();};row.append(select);editor.append(row);});$('rosterList').replaceChildren(...team.roster.sort((a,b)=>a.pos.localeCompare(b.pos)||a.number-b.number).map(p=>{const row=el('div',undefined,'rosterrow');row.append(el('span',p.pos),el('span','#'+p.number),el('span',p.name));return row;}));}
 function renderIdentity(){const team=teamFor($('homeTeam').value),opponent=teamFor($('awayTeam').value),p=team.profile;const ranks=Object.entries(teamStrengths(team)).sort((a,b)=>b[1]-a[1]);const box=$('teamIdentity');box.replaceChildren(el('b',`${team.abbr} · ${p.offense.name} / ${p.defense.name}`),el('p',`Strength: ${p.offense.strength}. Watch for: ${p.offense.weakness.toLowerCase()}.`),el('p',`Opponent identity: ${opponent.profile.defense.name}. ${opponent.profile.defense.weakness}.`));if(guidance==='expert')box.append(el('p',Object.entries(teamStrengths(team)).map(([k,v])=>`${k} ${v}`).join(' · ')));box.append(el('p',`Personnel edge: ${ranks[0][0].toLowerCase()}. Lowest unit rating: ${ranks.at(-1)[0].toLowerCase()}.`));box.append(el('small',`Arcade profiles and ratings · reviewed ${p.reviewed}`));}
 function renderRatings(){const t=teamFor($('homeTeam').value);$('starterRatings').replaceChildren(el('h3','Your starters · arcade estimates'),...[...t.offense,...t.defense,...t.roster.filter(p=>['K','P'].includes(p.pos))].map(p=>{const row=el('details',undefined,'ratingrow');row.append(el('summary',`#${p.number} ${p.name} · ${p.pos}`),el('p',visibleRatings(p).map(k=>`${RATING_LABELS[k]} ${p[k]}`).join(' · ')),el('small',`${p.ratingSource} · ${p.ratingDate}`));return row;}));}
 let refreshing=false;
@@ -117,6 +118,8 @@ function renderPlaybook(){
   if(!suggested){const nav=el('div',undefined,'booknav'),prev=el('button','← PREV'),next=el('button','NEXT →');prev.disabled=page.page===0;next.disabled=page.page===page.pages-1;bindBookButton(prev,()=>{bookIndex--;renderPlaybook();});bindBookButton(next,()=>{bookIndex++;renderPlaybook();});nav.append(prev,el('span',`${page.page+1} / ${page.pages} · ${page.total} PLAYS`),next);box.append(nav);}
   if(guidance==='simple'){const more=el('button',fullBook?'SHOW SUGGESTIONS':'FULL TEAM BOOK','booktoggle');bindBookButton(more,()=>{fullBook=!fullBook;renderPlaybook();});box.append(more);}
  }
+ const unit=$('specialTeamsUnit');unit.hidden=!game.special;
+ if(game.special){const s=game.special;unit.replaceChildren(el('b','THE THIRD PHASE'),el('p',s.goal?`${game.players[0].name} · ${s.distance}-yard ${s.type==='extra'?'extra point':'field goal'}`:`${game.carrier.name} · returner`));if(!s.goal)unit.append(el('p',`${game.defenders[6].name} · ${s.type==='punt'?'punter':'kicker'}`),el('small',`Gunners: ${game.defenders[0].name} · ${game.defenders[1].name}`));}
  $('sideTag').textContent=game.phase==='penalty'?'PENALTY':game.isLoose?'LOOSE BALL':turnover?'RETURN':special?'SPECIAL TEAMS':game.userOffense?'OFFENSE':'DEFENSE';
  $('callTitle').textContent=game.phase==='penalty'?'Make the decision.':game.isLoose?'Chase the ball.':turnover?(game.userOffense?'Take it all the way.':'Make the stop.'):special?(game.userKicking?'Win the field.':'Find your lane.'):game.userOffense?'Make the call.':'Make the stop.';
  $('callHint').textContent=game.phase==='penalty'?'Accept the enforcement or decline and keep the play result. Use the buttons below.':game.isLoose?'The ball is live. Move toward it to recover; either team can take possession.':turnover?(game.userOffense?'Run upfield with the stick. Burst through a gap; contact can still cause a fumble.':'Possession changed. Switch to the closest defender, then chase and dive to stop the return.'):special?'Kicks travel downscreen. Returns go upfield. Aim with the stick or A/B/C; tap twice to set power. On an incoming punt, B calls a fair catch.':game.userOffense?'Choose a formation and a call. The defense responds with its current personnel. Mix runs, passes and play-action from the same look.':(duel?'Choose coverage privately. Both players must call a play before the offense can snap. Position your defender, switch, shed blocks or dive.':`${game.formation.name} is set. Choose coverage with your ${PERSONNEL[game.personnel].name.toLowerCase()} personnel; the CPU then snaps. Its play stays hidden.`);
@@ -132,7 +135,7 @@ document.addEventListener('visibilitychange',()=>{if(document.hidden){stadium.ch
 function snap(){if(game&&!game.paused&&game.userOffense&&game.snap(0)){toastUntil=0;$('message').replaceChildren();updateHUD();renderPlaybook();audioUnlock();}}
 bindGameButton($('changePlay'),()=>{if(game&&!game.paused&&game.phase==='ready'&&!duel){game.phase='call';renderPlaybook();updateHUD();}});
 function primaryAction(){if(duel&&game?.phase==='penalty'&&game.penaltyReview?.beneficiary!==duel.team)return;if(duel&&['kick_ready','kick_charge','kick_accuracy'].includes(game?.phase)&&!game.userKicking)return;if(replay.active){skipReplay();return;}const action=primaryCommand(game);if(action==='snap')snap();else if(action==='kick')game.kickAction();else if(action==='accept')game.resolvePenalty(true);else if(action==='break')game.breakTackle();else if(action==='burst')game.burst();updateHUD();audioUnlock();}
-function receiverAction(i){if(replay.active||!game||game.paused)return;if(game.phase==='penalty'){if(duel&&game.penaltyReview?.beneficiary!==duel.team)return;if(i===0)game.resolvePenalty(false);updateHUD();return;}if(game.special?.goal)return;if(['kick_ready','kick_charge','kick_accuracy'].includes(game.phase)&&game.userKicking){if(duel)duel.command('aim',[[-.68,0,.68][i]]);else game.special.aim=[-.68,0,.68][i];}else if(game.phase==='kick_flight'&&game.userOffense&&i===1)game.fairCatch();else if(game.userOffense)game.throwTo(i,movementInput(stick,keys));else if(i===0)game.switchDefender();else if(i===1)game.switchDefender('cycle');else openDefenders();updateHUD();}
+function receiverAction(i){if(replay.active||!game||game.paused)return;if(game.phase==='penalty'){if(duel&&game.penaltyReview?.beneficiary!==duel.team)return;if(i===0)game.resolvePenalty(false);updateHUD();return;}if(game.special?.goal)return;if(!duel&&game.phase==='kick_ready'&&game.userOffense){game.chooseReturnPlan(['left','middle','right'][i]);updateHUD();return;}if(['kick_ready','kick_charge','kick_accuracy'].includes(game.phase)&&game.userKicking){if(duel)duel.command('aim',[[-.68,0,.68][i]]);else game.special.aim=[-.68,0,.68][i];}else if(game.phase==='kick_flight'&&game.userOffense&&i===1)game.fairCatch();else if(game.userOffense)game.throwTo(i,movementInput(stick,keys));else if(i===0)game.switchDefender();else if(i===1)game.switchDefender('cycle');else openDefenders();updateHUD();}
 bindGameButton($('burst'),primaryAction);
 for(let i=0;i<3;i++)bindGameButton($('pass'+i),()=>receiverAction(i));
 function openDefenders(){if(!game||game.userOffense||game.paused||!['call','ready'].includes(game.phase))return;if(!duel)game.paused=true;resetStick();keys={};$('defenderList').replaceChildren(...game.defenders.map((p,i)=>{const b=el('button',`#${p.number} ${p.name} · ${p.pos}${i===game.selected?' · SELECTED':''}`,'defenderchoice');b.append(el('small',guidance==='expert'?`Tackle ${p.tackling} · Coverage ${p.coverage} · Reads ${p.recognition}`:p.slot<2?'Defensive front':p.slot<4?'Linebacker':'Secondary'));b.onclick=()=>{if(!duel)game.paused=false;game.selectDefender(i);$('defenderDialog').close();updateHUD();};return b;}));$('defenderDialog').showModal();}
@@ -172,11 +175,12 @@ function updateHUD(){
  for(let i=0;i<3;i++){
   const button=$('pass'+i);let label='—',name='',enabled=false;button.hidden=true;
   if(g.phase==='penalty'){if(i===0){label='DECLINE';name='KEEP THE PLAY';enabled=true;}}
+  else if(!duel&&g.phase==='kick_ready'&&g.userOffense&&!s.goal){label=['↖','↑','↗'][i];name=['RETURN L','MIDDLE','RETURN R'][i];enabled=true;}
   else if(kickSetup&&g.userKicking&&!s.goal){label=['↙','↓','↘'][i];name=['LEFT','CENTER','RIGHT'][i];enabled=true;}
   else if(flight&&g.userOffense){if(i===1&&s.type==='punt'){label=s.fair?'✓':'B';name=s.fair?'CALLED':'FAIR';enabled=g.phase==='kick_flight'&&!s.fair;}}
   else if(g.userOffense&&!s&&!g.returnInfo&&!g.isLoose&&g.playDefinition.kind==='pass'&&['call','ready','live'].includes(g.phase)&&!g.passed){label='ABC'[i];name=g.players[i+2].name.split(' ').slice(-1)[0];enabled=g.canPass;}
   else if(!g.userOffense&&!s?.goal){label=['◎','↻','☷'][i];name=['NEAREST','NEXT','PICK'][i];enabled=i===2?['call','ready'].includes(g.phase):g.isLive||g.isLoose||flight||['call','ready'].includes(g.phase);}
-  button.hidden=label==='—'||!enabled&&!g.userOffense;button.firstChild.textContent=label;button.lastChild.textContent=name;setGameButtonEnabled(button,enabled);
+  button.hidden=label==='—'||!enabled&&!g.userOffense;button.firstChild.textContent=label;button.lastChild.textContent=name;button.classList.toggle('returnselected',!duel&&g.phase==='kick_ready'&&g.userOffense&&!s?.goal&&s?.returnPlan===['left','middle','right'][i]);setGameButtonEnabled(button,enabled);
  }
  const advice=coachText(g,guidance);$('coach').hidden=!advice||g.phase==='call'||g.phase==='penalty'||kickSetup;$('coach').textContent=advice;quick.dataset.guidance=guidance;quickHelp.textContent=coachText(g,guidance);quickHelp.hidden=!quickHelp.textContent;
  $('contactCue').hidden=!g.contact||!g.userOffense;$('contactCue').textContent=g.offBalance>0?'OFF BALANCE · BREAK TACKLE?':'CONTACT · BREAK TACKLE';
@@ -200,14 +204,14 @@ function updateHUD(){
   $('kickPower').setAttribute('aria-label',accuracy?'Kick accuracy: stop in green':'Kick power: stop in green');$('kickPower').setAttribute('aria-valuenow',String(Math.round(value*100)));$('kickFill').style.width='100%';$('kickReading').textContent=`${Math.round(value*100)}%`;
  }else if(kickSetup){
   $('kickPower').classList.remove('goalbar');$('kickPower').setAttribute('aria-label','Kick power');
-  $('kickTitle').textContent=`${g.teams[s.kickingTeam].abbr} ${s.type.toUpperCase()}`;
-  $('kickHint').textContent=g.userKicking?(g.phase==='kick_charge'?'Tap KICK to stop the meter. Aim with stick or arrows.':'Aim with stick or arrows. Tap START METER, then KICK.'):s.type==='punt'?'Tap READY. Track the ring; B signals a fair catch.':'Tap READY. The returner tracks the ring until you steer.';
+  $('kickTitle').textContent=`${s.type.toUpperCase()} · ${g.defenders[6].name}`;
+  $('kickHint').textContent=g.userKicking?(g.phase==='kick_charge'?'Tap KICK to stop the meter. Aim with stick or arrows.':'Aim with stick or arrows. Tap START METER, then KICK.'):`${g.carrier.name} returns · ${RETURN_PLANS[s.returnPlan]?.name||'Return middle'}. Choose a lane below, then READY.${s.type==='punt'?' B calls a fair catch in flight.':''}`;
   const target=g.kickTarget(g.phase==='kick_charge'?s.power:.7,s.aim);
   $('kickAim').textContent=g.userKicking?`${s.aim<-.15?'LEFT':s.aim>.15?'RIGHT':'CENTER'} · ${target.y<=0?'END ZONE':`landing near receiving ${Math.round(target.y)}`} · ${target.x<1||target.x>52?'OUT OF BOUNDS RISK':'more power = more distance'}`:'After the catch: run upfield ↑ and BURST through a gap.';
   $('kickFill').style.width=`${s.power*100}%`;$('kickReading').textContent=`${Math.round(s.power*100)}%`;$('kickPower').setAttribute('aria-valuenow',String(Math.round(s.power*100)));
  }
  if(duel){if(g.phase==='call'&&g.calls?.[duel.team]){$('readiness').hidden=false;$('readiness').textContent='YOUR PLAY IS SET · WAITING FOR OPPONENT';}if(g.phase==='penalty'&&g.penaltyReview?.beneficiary!==duel.team){setGameButtonEnabled($('burst'),false);$('burst').firstChild.textContent='OPPONENT DECIDES';for(let i=0;i<3;i++)$('pass'+i).hidden=true;}if(kickSetup&&!g.userKicking){setGameButtonEnabled($('burst'),false);$('burst').firstChild.textContent='OPPONENT KICKS';} }
- const player=g.controlled;$('playerLabel').textContent=player?`#${player.number} ${player.name.toUpperCase()}${g.userOffense?'':` · ${player.pos} · SELECTED`}`:'';
+ const player=g.controlled,role=s?.goal?'KICKER':s?(g.userOffense?'RETURNER':g.phase==='kick_ready'||g.phase==='kick_charge'?(s.type==='punt'?'PUNTER':'KICKER'):g.selected<2?'GUNNER':'COVERAGE'):null;$('playerLabel').textContent=player?`#${player.number} ${player.name.toUpperCase()}${role?' · '+role:g.userOffense?'':` · ${player.pos} · SELECTED`}`:'';
  $('energyFill').parentElement.setAttribute('aria-label',g.userOffense?'Runner stamina':'Defensive action recovery');$('energyFill').parentElement.setAttribute('aria-valuenow',String(Math.round(g.userOffense?g.stamina:100*(1-g.diveCooldown/1.7))));
  $('energyFill').style.width=`${kickSetup?100:g.userOffense?g.stamina:100*(1-g.diveCooldown/1.7)}%`;
 }
@@ -296,7 +300,7 @@ function frame(now){
  requestAnimationFrame(frame);
 }
 if(window.PGI_DUEL){
- const {setupDuel}=await import('./duel-ui.js?v=20');
+ const {setupDuel}=await import('./duel-ui.js?v=21');
  duel=setupDuel({
   state(view,fresh){
    // Preserve already received events until the next paint drains them.

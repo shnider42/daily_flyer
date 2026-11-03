@@ -1,3 +1,4 @@
+import {emptySpecial} from './special-teams.js?v=21';
 export const MATCH_LENGTHS=Object.freeze({
  quick:{name:'Quick game',quarterSeconds:45,multiplier:1,halftimeShow:true},
  extended:{name:'Extended game',quarterSeconds:90,multiplier:2,halftimeShow:true},
@@ -5,8 +6,8 @@ export const MATCH_LENGTHS=Object.freeze({
 });
 export function matchLength(id){return Object.hasOwn(MATCH_LENGTHS,id)?MATCH_LENGTHS[id]:MATCH_LENGTHS.quick;}
 export function clockText(seconds){const n=Math.max(0,Math.ceil(seconds));return `${Math.floor(n/60)}:${String(n%60).padStart(2,'0')}`;}
-export function emptyBox(){return {plays:0,attempts:0,completions:0,rushYards:0,passYards:0,returnYards:0,takeaways:0,interceptions:0,fumblesLost:0,longest:{yards:0,player:'',kind:''}};}
-export function copyBox(box){return box.map(t=>({...t,longest:{...t.longest}}));}
+export function emptyBox(){return {special:emptySpecial(),plays:0,attempts:0,completions:0,rushYards:0,passYards:0,returnYards:0,takeaways:0,interceptions:0,fumblesLost:0,longest:{yards:0,player:'',kind:''}};}
+export function copyBox(box){return box.map(t=>({...t,longest:{...t.longest},special:{...emptySpecial(),...t.special}}));}
 // Every line below is newly written fictional fan-tribute dialogue. It reports
 // only completed, penalty-adjusted game facts; no external or generated claims.
 export function halftimeReport(g){

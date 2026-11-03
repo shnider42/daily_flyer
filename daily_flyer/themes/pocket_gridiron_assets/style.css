@@ -244,6 +244,17 @@ body[data-guidance=expert] .plays .play small{display:block;font-size:9px;line-h
 
 /* Pregame: hosts, one speaking turn, and a board only when it explains a play. */
 .boothsettings,.showdetails{border-top:1px solid #3c5555;color:#bccbc2;font:11px/1.5 monospace;margin-top:10px}
+.sidelinecast{margin:0 0 12px;background:#142c39;width:100%;order:0}
+.sidelinecast canvas{display:block;width:100%;height:auto;max-height:205px;object-fit:contain;image-rendering:pixelated}
+.sidelinecast figcaption{display:flex;justify-content:space-between;align-items:center;gap:8px;padding:5px 9px;border-top:2px solid #f3d268;background:#3d432d;font:10px monospace;color:#f4e8c7}
+.sidelinecast figcaption span{font-size:8px;color:#e0d6b9}
+#halftimeDialog .halfline.casey{display:none}
+#halftimeDialog[data-speaker=casey] .halfline.casey{display:grid;border-color:#f3d268;background:#30443d}
+#halftimeDialog[data-speaker=casey] .halfline.al,#halftimeDialog[data-speaker=casey] .halfline.john,
+#halftimeDialog[data-sideline=true][data-speaker=al] .halfline.john,#halftimeDialog[data-sideline=true][data-speaker=john] .halfline.al,
+#halftimeDialog[data-sideline=true] .broadcastmonitor,#halftimeDialog[data-sideline=true] .halfcaption,#halftimeDialog[data-sideline=true] .filmcontrols{display:none}
+@media(max-width:760px) and (orientation:portrait){.sidelinecast{margin-bottom:0}.sidelinecast canvas{max-height:156px}.sidelinecast figcaption{font-size:9px}#halftimeDialog .halfline.casey{grid-template-columns:39px 1fr}}
+@media(max-height:500px) and (orientation:landscape){.sidelinecast canvas{max-height:110px}}
 .boothsettings>summary,.showdetails>summary{cursor:pointer;min-height:44px;display:list-item;align-content:center;padding:12px 0;box-sizing:border-box;color:#dfd4ae}
 .boothsettings .boothpreferences{padding:0 0 12px}.showdetails .halffan{margin:12px 0 0!important}
 #halftimeDialog[data-mode=pregame]{width:min(900px,97vw);height:fit-content}
@@ -270,3 +281,5 @@ body[data-guidance=expert] .plays .play small{display:block;font-size:9px;line-h
  #halftimeDialog[data-mode=pregame] .broadcastmonitor{width:100%}
  #halftimeDialog[data-mode=pregame] .boothsettings,#halftimeDialog[data-mode=pregame] .showdetails{margin-top:0}
 }
+
+.specialunit{border-left:3px solid #e3c064;background:#203633;padding:10px;margin:10px 0 16px;font:11px/1.5 monospace}.specialunit b{color:#f4d679}.specialunit p{margin:6px 0}.specialunit small{color:#c0ccc0}.receivers button.returnselected{background:#546442;box-shadow:inset 0 0 0 2px #ead67c}

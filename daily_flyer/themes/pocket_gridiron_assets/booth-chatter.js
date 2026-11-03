@@ -1,6 +1,7 @@
-import {syllableStress} from './syllables.js?v=20';
+import {syllableStress} from './syllables.js?v=21';
 // Original nonverbal text sounds. One shared word clock drives sound and captions.
 const timelines=new Map();
+const timbres={al:{frequency:265,cutoff:1850,volume:.11},john:{frequency:185,cutoff:1250,volume:.14},casey:{frequency:330,cutoff:2100,volume:.10}};
 export function wordTimeline(text=''){
  if(timelines.has(text))return timelines.get(text);
  let at=.28;
@@ -22,9 +23,10 @@ export function chatterPulses(speaker,word){
  if(!word?.voiced)return [];
  const stress=word.stress??syllableStress(word.text);if(!stress)return [];
  const step=word.duration/stress.length;
+ const voice=timbres[speaker]||timbres.al;
  return [...stress].map((accent,i)=>({offset:i*step,duration:Math.min(.085,step*.7),
-  frequency:(speaker==='john'?185:265)*(accent==='1'?1.025:1),
-  cutoff:speaker==='john'?1250:1850,volume:(speaker==='john'?.14:.11)*(accent==='0'?.8:1)}));
+  frequency:voice.frequency*(accent==='1'?1.025:1),
+  cutoff:voice.cutoff,volume:voice.volume*(accent==='0'?.8:1)}));
 }
 export function syllableEnergy(word,elapsed){
  const pulse=chatterPulses('al',word).find(p=>elapsed>=p.offset&&elapsed<p.offset+p.duration);

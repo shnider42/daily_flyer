@@ -7,7 +7,7 @@ import cmudict
 
 ROOT = Path(__file__).resolve().parents[1]
 ASSETS = ROOT / 'daily_flyer/themes/pocket_gridiron_assets'
-SOURCES = ['booth-lines.js', 'booth-extras.js', 'broadcast.js', 'match.js',
+SOURCES = ['booth-lines.js', 'booth-extras.js', 'sideline.js', 'special-teams.js', 'broadcast.js', 'match.js',
            'teams.js', 'roster.js', 'rosters.json', 'syllables.js']
 words = set('area idea radio quiet poem science create dial Michaels Madden strengths thought'.lower().split())
 words.update("doesn't didn't couldn't shouldn't wouldn't isn't wasn't aren't weren't hasn't hadn't haven't mustn't needn't won't can't don't I've we're you'd he'll it's that's there's they're we'll you're I'll I've I'd we've you've she's he's player player's".lower().split())

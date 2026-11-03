@@ -1,3 +1,4 @@
+import {returnLane} from './special-teams.js?v=21';
 // Assignment + contact model. A block buys time; it never refreshes a stun.
 const dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
@@ -55,11 +56,11 @@ export function updateBlocking(g,dt){
   let i=p.assignment;
   if(i===null||i===undefined||!eligible(g.defenders[i],i)||g.blockRead<=0){
    const candidates=g.defenders.map((d,i)=>({d,i})).filter(o=>eligible(o.d,o.i));
-   candidates.sort((a,b)=>(dist(p,a.d)+dist(g.carrier,a.d)*.45)-(dist(p,b.d)+dist(g.carrier,b.d)*.45));
+   candidates.sort((a,b)=>(dist(p,a.d)+dist(g.carrier,a.d)*.45+(g.isReturn?Math.abs(a.d.x-returnLane(g))*.25:0))-(dist(p,b.d)+dist(g.carrier,b.d)*.45+(g.isReturn?Math.abs(b.d.x-returnLane(g))*.25:0)));
    i=candidates[0]?.i??null;p.assignment=i;
   }
   if(i===null){
-   const lane=!g.isReturn&&!g.receivedPass?(g.playDefinition.blockLane??g.carrier.x):g.carrier.x;
+   const lane=g.isReturn?returnLane(g):!g.receivedPass?(g.playDefinition.blockLane??g.carrier.x):g.carrier.x;
    const tx=pocket?(p.slot===5?23:p.slot===6?30:26.5):lane+(p.slot%2? -3:3),ty=pocket?g.spot-1:g.carrier.y+5;
    g.move(p,tx-p.x,ty-p.y,p.speed*.8,dt);continue;
   }

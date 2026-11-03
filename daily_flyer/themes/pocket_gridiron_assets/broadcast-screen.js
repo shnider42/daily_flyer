@@ -1,5 +1,6 @@
-import {uniformFor} from './uniforms.js?v=20';
-import {FORMATIONS} from './packages.js?v=20';
+import {uniformFor} from './uniforms.js?v=21';
+import {FORMATIONS} from './packages.js?v=21';
+import {emptySpecial} from './special-teams.js?v=21';
 // Broadcast graphics use recorded coordinates or explicitly labeled diagrams.
 // No renderer calls into the live game or consumes its random stream.
 const W=720,H=360,YELLOW='#ffdc46';
@@ -53,7 +54,8 @@ function highlight(c,report,s,time,reduced,ink){
  if(ink&&paused){
   const f=s.focus.focus;if(f)circle(c,project(f),reduced?1:clamp((time-3.5)/1.2));
   const carrier=s.focus.fake?f:s.focus.frame.people.find(p=>p.carrier),trail=clip.frames.slice(0,s.focus.index+1).filter((_,i)=>i%3===0).map(frame=>frame.people.find(p=>p.id===carrier?.id&&p.team===carrier?.team)).filter(Boolean).map(project);
-  if(trail.length>1)arrow(c,trail,reduced?1:clamp((time-4.8)/1.7));
+  if(clip.special&&!clip.special.returned){const flight=clip.frames.filter(f=>f.airborne).map(f=>project(f.ball));arrow(c,flight,reduced?1:clamp((time-4.8)/1.7));}
+  else if(trail.length>1)arrow(c,trail,reduced?1:clamp((time-4.8)/1.7));
   if(f&&(time>5||reduced)){const p=project(f);text(c,s.focus.fake?'1 · FALSE STEP':s.focus.block?'1 · THE BLOCK':`1 · #${f.number}`,clamp(p.x+26,28,510),clamp(p.y-23,70,300),15,YELLOW);}
   const receiver=s.focus.receiver;
   if(receiver){
@@ -64,7 +66,7 @@ function highlight(c,report,s,time,reduced,ink){
    if(time>6||reduced){box(c,320,301,370,21,'#10272dee');text(c,'2 ROUTE  ·  3 PASS FLIGHT',330,316,13,YELLOW);}
   }
  }
- if(clip.call){box(c,30,27,660,24,'#10272de6');fit(c,`${clip.call.formation.toUpperCase()} · ${clip.call.name.toUpperCase()}`,40,44,635,14,YELLOW);}
+ if(clip.call){box(c,30,27,660,24,'#10272de6');fit(c,`${(clip.call.formation||'SPECIAL TEAMS').toUpperCase()} · ${clip.call.name.toUpperCase()}`,40,44,635,14,YELLOW);}
 }
 function packageBoard(c,report,s,time,reduced,ink){
  box(c,0,0,W,H,'#10272d');text(c,'SINGLEBACK · SAME STARTING PICTURE',360,33,20,YELLOW,'center');
@@ -121,6 +123,14 @@ function stats(c,report,time,reduced){
  report.teams.forEach((t,i)=>{const y=120+i*100;const n=reduced?1:ease(time/1.2);text(c,t.abbr,35,y,25);box(c,120,y-26,480,32,'#254447');box(c,120,y-26,480*Math.max(0,values[i])/max*n,32,t.color);text(c,values[i],670,y,28,YELLOW,'right');text(c,`${report.box[i].rushYards} RUSH  /  ${report.box[i].passYards} PASS`,120,y+28,15,'#c8d5c8');});
  text(c,report.mode==='postgame'?'ACTUAL FULL-GAME TOTALS':'ACTUAL FIRST-HALF TOTALS',35,330,14,'#adbbb2');
 }
+function specialStats(c,report){
+ text(c,'THE THIRD PHASE',34,44,23,YELLOW);
+ const b=report.box.map(b=>({...emptySpecial(),...b.special}));
+ report.teams.forEach((t,i)=>text(c,t.abbr,475+i*165,82,23,t.accent||YELLOW,'center'));
+ const rows=[['FIELD GOALS',b.map(s=>`${s.fgMade}/${s.fgAttempts}`)],['PUNTS INSIDE 20',b.map(s=>s.inside20)],['KICK / PUNT RETURN YD',b.map(s=>`${s.kickReturnYards}/${s.puntReturnYards}`)],['COVERAGE TACKLES',b.map(s=>s.coverageStops)],['RETURN TOUCHDOWNS',b.map(s=>s.returnTD)]];
+ rows.forEach(([label,values],i)=>{const y=120+i*42;box(c,28,y-24,664,34,i%2?'#183235':'#213e3d');text(c,label,40,y,16,'#d2deca');values.forEach((v,j)=>text(c,v,475+j*165,y,21,YELLOW,'center'));});
+ text(c,'ACTUAL GAME TOTALS · EVERY YARD COUNTS',35,338,13,'#adbbb2');
+}
 export function paintBroadcast(canvas,report,s,time,{reduced=false,ink=true}={}){
  const c=canvas.getContext('2d');if(!c)return;
  c.clearRect(0,0,W,H);box(c,0,0,W,H,'#10272d');
@@ -128,7 +138,7 @@ export function paintBroadcast(canvas,report,s,time,{reduced=false,ink=true}={})
  else if(s.visual==='package')packageBoard(c,report,s,time,reduced,ink);
  else if(s.visual==='diagram')diagram(c,report,s,time,reduced,ink);
  else if(s.visual==='team')teamCard(c,report,s,time,reduced);
- else if(s.visual==='stats'&&report.box)stats(c,report,time,reduced);
+ else if(s.visual==='stats'&&report.box){if(s.topic==='special')specialStats(c,report);else stats(c,report,time,reduced);}
  else matchup(c,report,s,time,reduced);
  // A quiet broadcast frame, not a flashing overlay.
  box(c,0,0,W,4,YELLOW);box(c,0,H-4,W,4,'#426063');

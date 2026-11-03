@@ -19,8 +19,8 @@ test('pregame uses selected starters and both teams, without changing the game o
  const g=game();g.teams[0].offense[0]={...g.teams[0].offense[0],name:'Selected QB'};
  g.rng=()=>assert.fail('broadcast consumed gameplay RNG');const before=JSON.stringify(g);
  const r=pregameReport(g.teams,g.match);assert.equal(r.mode,'pregame');assert.match(r.segments[0].al,/Selected QB/);
- assert.ok(r.segments.some(s=>s.team===1));assert.equal(r.rows[0][1],'Selected QB');
- assert.ok(r.segments.some(s=>s.caption.includes('not a played highlight')));assert.equal(JSON.stringify(g),before);
+ assert.ok(r.segments.some(s=>s.team===1));assert.equal(r.rows.find(row=>row[0]==='Quarterback')[1],'Selected QB');
+ assert.ok(r.segments.some(s=>s.visual==='package'&&s.caption.includes('not a replay')));assert.equal(JSON.stringify(g),before);
 });
 test('first-half reel survives replay skips and owns detached, bounded snapshots',()=>{
  const g=game(),t=new ReplayTape();film(g,t);settle(g,t);assert.equal(t.highlights.length,1);

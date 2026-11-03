@@ -1,5 +1,15 @@
 // Additional original exchanges rotate into the existing show, not extra segments.
 export const EXTRA_EXCHANGES={
+ special:[
+  ['Special teams can change the game without the offense taking a single snap. Watch the space they leave for the next possession.','The next drive gets its starting address from these people.','Exactly. A good punt can make that address a very long walk from the end zone.'],
+  ['A return needs patience first and a decision next. Let the block develop, then commit to the space it actually creates.','An invitation that does not stay open all afternoon.','No. Once the door opens, take the football through it.'],
+  ['A gunner has to get downfield and arrive under control. Fast is useful; fast past the runner is a problem.','Speed needs a destination.','And a teammate on the other side of the lane. That is what makes it coverage.'],
+  ['The kicker gets one swing at the end of a lot of other people’s work. Power and accuracy have to agree.','A short job with a long list of consequences.','That is why we give the fellow his own spot in the lineup.'],
+  ['A punt is not finished when it leaves the foot. Placement, hang time, pursuit, and the return all get a say.','The distance on the flight is only part of the story.','Net yards, Al. The returner is allowed to edit your first draft.'],
+  ['There is nothing wrong with a fair catch when the coverage has arrived. You are allowed to keep the football and your afternoon.','A quiet play can be a sound decision.','Absolutely. Excitement is not a requirement on every catch.'],
+  ['The return blocker is trying to create a lane, not win an argument with the entire coverage unit. Find your assignment and help.','A very specific sort of hospitality.','Welcome our runner through the gap. Everybody else can wait outside.'],
+  ['Do not hurry past the extra point. The scoreboard keeps that one with exactly the same seriousness as the other points.','One is a small number until the margin is one.','Then everybody remembers the fellow with the kicking shoe.']
+ ],
  welcome:[
   ['Somewhere down there a guard is checking his assignment for the fourth time. That is my kind of pregame excitement.','Mine usually involves finding the correct microphone.','Good preparation, Al. Neither of us wants you announcing into my sandwich.'],
   ['The best thing about this moment is that every player can still help write the game.','Some will do it with rather larger handwriting.','Especially the linemen. They prefer to write with shoulder pads.'],

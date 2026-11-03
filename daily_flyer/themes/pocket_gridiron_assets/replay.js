@@ -13,10 +13,11 @@ export function replayFrame(g,time){
 export function replayKind(e){if(e.scorePoints===6)return 'TOUCHDOWN';if(e.type==='ball'&&e.text==='FUMBLE!')return 'FUMBLE';if(e.type==='turnover'&&(e.turnoverType==='interception'||e.text==='INTERCEPTED!'))return 'INTERCEPTION';return null;}
 export class ReplayTape {
  constructor(){this.reset();}
- reset(){this.time=0;this.history=[];this.clips=[];this.highlights=[];this.fullHighlights=[];this.archivedPlay=null;this.sequence=0;this.active=null;this.wasActive=false;this.sampleAt=0;}
+ reset(){this.time=0;this.history=[];this.clips=[];this.highlights=[];this.fullHighlights=[];this.archivedPlay=null;this.archivedSpecial=null;this.sequence=0;this.active=null;this.wasActive=false;this.sampleAt=0;}
  observe(g,dt,events=[]){
   const playing=activePhase(g.phase),kinds=events.map(replayKind).filter(Boolean);
   const result=events.find(e=>e.type==='result');
+  if(result&&g.special?.settled?.returned&&g.special.settled.yards>=15&&!kinds.length)kinds.push('BIG RETURN');
   if(!playing&&!this.wasActive&&!kinds.length&&!result)return;
   if(playing&&!this.wasActive&&['kick_flight','live'].includes(g.phase)&&!this.clips.length){this.history=[];this.sampleAt=0;}
   this.time+=Math.max(0,dt);const force=kinds.length||(!playing&&this.wasActive);
@@ -36,6 +37,7 @@ export class ReplayTape {
   this.wasActive=playing;
  }
  archive(g,event){
+  if(g.phase==='dead'&&g.special?.settled){this.archiveSpecial(g);return;}
   // Only penalty-settled scrimmage plays. Skipping instant replays
   // never touches either reel; each keeps at most three clips per team.
   const start=g.playStart;
@@ -56,6 +58,18 @@ export class ReplayTape {
   const retain=list=>{const own=[...list.filter(c=>c.team===team),clip].sort((a,b)=>b.priority-a.priority||b.sequence-a.sequence).slice(0,3);return [...list.filter(c=>c.team!==team),...own].sort((a,b)=>b.priority-a.priority||a.sequence-b.sequence);};
   this.fullHighlights=retain(this.fullHighlights);
   if(g.quarter<=2)this.highlights=retain(this.highlights);
+ }
+ archiveSpecial(g){
+  const s=g.special.settled;if(this.archivedSpecial===s)return;this.archivedSpecial=s;
+  const fieldGoal=s.type==='fieldgoal'&&s.good,pinned=s.type==='punt'&&s.spot>0&&s.spot<20,returned=s.returned&&(s.yards>=15||s.reason==='touchdown');
+  if(!fieldGoal&&!pinned&&!returned)return;
+  const frames=this.history.filter(f=>f.time>=this.time-8).map(f=>({...f,people:f.people.map(p=>({...p})),blocks:f.blocks.map(b=>({...b})),ball:{...f.ball},move:clone(f.move)}));
+  if(frames.length<2)return;
+  const team=returned?s.receivingTeam:s.kickingTeam,kind=fieldGoal?'FIELD GOAL':returned?s.reason==='touchdown'?'TOUCHDOWN':'BIG RETURN':'PINNED DEEP';
+  const detail=fieldGoal?`${s.player} makes a ${s.distance}-yard field goal.`:returned?`${s.player}: ${s.yards} yards on the ${s.type} return${s.reason==='touchdown'?', all the way to the end zone':''}.`:`${g.defenders[6].name} and the coverage unit leave the receiving team at its own ${s.spot}.`;
+  const clip={kind,team,original:g.offense,gain:s.yards||0,quarter:g.quarter,clock:g.clock,player:s.player,call:{name:fieldGoal?'Field goal':returned?`${s.type==='punt'?'Punt':'Kickoff'} return`:'Directional punt'},special:{...s},detail,frames,anchor:g.offense,sequence:++this.sequence,priority:kind==='TOUCHDOWN'?110:fieldGoal?55:pinned?45:40+Math.min(40,s.yards)};
+  const retain=list=>{const own=[...list.filter(c=>c.team===team),clip].sort((a,b)=>b.priority-a.priority||b.sequence-a.sequence).slice(0,3);return [...list.filter(c=>c.team!==team),...own].sort((a,b)=>b.priority-a.priority||a.sequence-b.sequence);};
+  this.fullHighlights=retain(this.fullHighlights);if(g.quarter<=2)this.highlights=retain(this.highlights);
  }
  start(g){
   if(this.active||g.paused||g.phase!=='dead'||!this.clips.length)return false;

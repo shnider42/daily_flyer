@@ -16,16 +16,16 @@ test('old audio preferences migrate to broadcast moments; continuous music requi
  assert.equal(musicPolicy(s,{phase:'live',isLive:true}).scoreAllowed,false);assert.equal(musicPolicy(s,{phase:'dead',isLive:false}).scoreAllowed,true);
  assert.equal(musicPolicy({musicMode:'always'},{phase:'live',isLive:true}).background,true);assert.equal(musicPolicy(s,{phase:'call'},{audition:true}).background,true);
 });
-test('expanded dialogue rotates 408 original lines without repeating a topic early',()=>{
- const john=Object.values(BOOTH_EXCHANGES).flatMap(bank=>bank.flatMap(([j,a,b])=>[j,b]));assert.equal(new Set(john).size,272);
- assert.equal(new Set(Object.values(BOOTH_EXCHANGES).flat(2)).size,408);
+test('expanded dialogue rotates 432 original lines without repeating a topic early',()=>{
+ const john=Object.values(BOOTH_EXCHANGES).flatMap(bank=>bank.flatMap(([j,a,b])=>[j,b]));assert.equal(new Set(john).size,288);
+ assert.equal(new Set(Object.values(BOOTH_EXCHANGES).flat(2)).size,432);
  const v=new BoothVoices({seed:42});for(const [topic,bank] of Object.entries(BOOTH_EXCHANGES)){const chosen=Array.from({length:bank.length},()=>v.take(topic).john);assert.equal(new Set(chosen).size,bank.length,topic);assert.notEqual(v.take(topic).john,chosen.at(-1));}
  const saved=v.snapshot(),next=v.take('team',{qb:'Chosen QB'});assert.deepEqual(new BoothVoices(saved).take('team',{qb:'Chosen QB'}),next);
 });
 test('hosts exchange the speaking role; previews keep selected lineup facts and presentation never rolls gameplay RNG',()=>{
  const g=game();g.teams[0].offense[0].name='Chosen Quarterback';const before=JSON.stringify(g);g.rng=()=>assert.fail('booth used gameplay RNG');
  const show=giveBoothVoice(pregameReport(g.teams,g.match),new BoothVoices({seed:3}));assert.match(show.segments[0].al,/Chosen Quarterback/);
- for(const s of show.segments){assert.deepEqual(s.turns.slice(0,4).map(t=>t.speaker),['al','john','al','john']);assert.ok(s.turns.every(t=>!/[{}]|undefined|NaN/.test(t.text)));const roles=new Set();for(let t=0;t<broadcastBeat(s,0).duration;t+=.5)roles.add(broadcastBeat(s,t).index);assert.equal(roles.size,s.turns.length);}
+ for(const s of show.segments){assert.deepEqual(s.turns.slice(0,4).map(t=>t.speaker),s.sideline?['al','casey','john']:['al','john','al','john']);assert.ok(s.turns.every(t=>!/[{}]|undefined|NaN/.test(t.text)));const roles=new Set();for(let t=0;t<broadcastBeat(s,0).duration;t+=.5)roles.add(broadcastBeat(s,t).index);assert.equal(roles.size,s.turns.length);}
  assert.equal(JSON.stringify(g),before);
 });
 test('hosts gesture, listeners nod, and reduced motion freezes every pose',()=>{
