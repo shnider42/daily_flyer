@@ -7,7 +7,7 @@ import urllib.error
 import urllib.request
 
 ASSET_DIR = Path(__file__).with_name('pocket_gridiron_assets')
-THEME_CONFIG = {'page_title': 'Pocket Gridiron', 'header_title': 'Pocket Gridiron', 'header_subtitle': '7-on-7 pixel football', 'footer_text': 'DailyFlyer Arcade'}
+THEME_CONFIG = {'page_title': 'Pocket Gridiron', 'header_title': 'Pocket Gridiron', 'header_subtitle': '7-on-7 and 11-on-11 pixel football', 'footer_text': 'DailyFlyer Arcade'}
 _cache = None
 _lock = Lock()
 

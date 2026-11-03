@@ -6,7 +6,7 @@ export class SidelineStage {
  constructor(canvas){
   this.canvas=canvas;this.sheet=new Image();
   this.sheet.onload=()=>{this.measure();this.draw(this.last||{});};
-  this.sheet.src=new URL('./reporter-poses.webp?v=21',import.meta.url);
+  this.sheet.src=new URL('./reporter-poses.webp?v=22',import.meta.url);
  }
  measure(){
   const s=this.sheet,c=document.createElement('canvas');c.width=s.naturalWidth;c.height=s.naturalHeight;

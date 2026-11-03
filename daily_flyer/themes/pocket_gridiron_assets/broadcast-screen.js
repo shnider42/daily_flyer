@@ -1,6 +1,6 @@
-import {uniformFor} from './uniforms.js?v=21';
-import {FORMATIONS} from './packages.js?v=21';
-import {emptySpecial} from './special-teams.js?v=21';
+import {uniformFor} from './uniforms.js?v=22';
+import {FORMATIONS} from './packages.js?v=22';
+import {emptySpecial} from './special-teams.js?v=22';
 // Broadcast graphics use recorded coordinates or explicitly labeled diagrams.
 // No renderer calls into the live game or consumes its random stream.
 const W=720,H=360,YELLOW='#ffdc46';

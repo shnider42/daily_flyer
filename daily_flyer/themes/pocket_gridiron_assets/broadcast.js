@@ -1,6 +1,6 @@
-import {specialRows,specialStory} from './special-teams.js?v=21';
-import {teamStrengths} from './teams.js?v=21';
-import {copyBox} from './match.js?v=21';
+import {specialRows,specialStory} from './special-teams.js?v=22';
+import {teamStrengths} from './teams.js?v=22';
+import {copyBox} from './match.js?v=22';
 
 // Original fictional fan-tribute copy. Matchup claims come from this game's
 // selected lineup and arcade ratings; highlights come only from recorded plays.

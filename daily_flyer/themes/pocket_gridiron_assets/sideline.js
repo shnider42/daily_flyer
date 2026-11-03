@@ -1,4 +1,4 @@
-import {specialStory} from './special-teams.js?v=21';
+import {specialStory} from './special-teams.js?v=22';
 // Casey Reed is an original fictional PGI reporter. Reports use snapshots of
 // this game's lineup and box score, never invented interviews or injury news.
 export const REPORTER={id:'casey',name:'Casey Reed',label:'CASEY',location:'ON THE SIDELINE'};

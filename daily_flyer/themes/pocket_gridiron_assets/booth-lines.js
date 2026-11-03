@@ -1,6 +1,6 @@
-import {EXTRA_EXCHANGES} from './booth-extras.js?v=21';
-import {addSideline} from './sideline.js?v=21';
-import {wordTimeline,wordAt} from './booth-chatter.js?v=21';
+import {EXTRA_EXCHANGES} from './booth-extras.js?v=22';
+import {addSideline} from './sideline.js?v=22';
+import {wordTimeline,wordAt} from './booth-chatter.js?v=22';
 // Original fictional fan-tribute exchanges, not transcripts or voice imitations.
 // Each topic has eight exchanges: John explains, Al responds, John buttons it.
 // Facts are supplied separately from the selected lineup or settled game ledger.
