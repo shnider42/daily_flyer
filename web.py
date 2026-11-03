@@ -52,6 +52,8 @@ def _parse_seed(raw: str | None) -> int | None:
 @app.route("/")
 def home():
     theme_name = _normalize_theme_name(request.args.get("theme"))
+    if theme_name == "last_exit":
+        return redirect(url_for("last_exit"))
     if theme_name == "pocket_gridiron":
         return redirect(url_for("pocket_gridiron"))
     date_str = (request.args.get("date") or "").strip() or None
@@ -92,3 +94,11 @@ def pocket_gridiron(filename: str):
             "Cache-Control": "public, max-age=3600",
         })
     return send_from_directory(ASSET_DIR, filename)
+
+
+@app.route("/last-exit/", defaults={"filename": "index.html"})
+@app.route("/last-exit/<path:filename>")
+def last_exit(filename: str):
+    from daily_flyer.themes.last_exit import ASSET_DIR
+    return send_from_directory(ASSET_DIR, filename)
+
