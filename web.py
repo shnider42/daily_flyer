@@ -1,7 +1,7 @@
 import os
 from pathlib import Path
 
-from flask import Flask, Response, abort, request, send_from_directory
+from flask import Flask, Response, abort, redirect, request, send_from_directory
 
 from daily_flyer.orchestrator import build_daily_page
 from daily_flyer.renderer import build_html
@@ -52,6 +52,8 @@ def _parse_seed(raw: str | None) -> int | None:
 @app.route("/")
 def home():
     theme_name = _normalize_theme_name(request.args.get("theme"))
+    if theme_name == "next_chapter":
+        return redirect("/next-chapter/")
     date_str = (request.args.get("date") or "").strip() or None
     seed = _parse_seed(request.args.get("seed"))
 
@@ -70,6 +72,16 @@ def home():
 
     html = build_html(context)
     return Response(html, mimetype="text/html")
+
+
+@app.route("/next-chapter/")
+@app.route("/next-chapter/<path:filename>")
+def next_chapter(filename: str = "index.html"):
+    # Only public app assets; never serve source documentation or arbitrary repo files.
+    allowed = {"index.html", "style.css", "app.mjs", "model.mjs", "store.mjs", "favicon.svg"}
+    if filename not in allowed:
+        abort(404)
+    return send_from_directory(REPO_ROOT / "next_chapter", filename)
 
 
 @app.route("/daily_flyer/<path:filename>")
