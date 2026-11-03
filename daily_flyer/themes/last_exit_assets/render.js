@@ -1,9 +1,10 @@
+import {drawBostonWorld} from './boston.js';
 import {terrainHeight,groundHeight,speedBumps,vehicleSurface} from './terrain.js';
 import {ROADS,clamp,random,safeCamera,safeFootCamera,signalAt,onDiagonal} from './engine.js';
 import {createAtlas,ATLAS} from './textures.js';
 import {drawBaycrestLandmarks,drawBaycrestHorizon} from './baycrest-landmarks.js';
 import {drawLandmarks} from './landmarks.js';
-import {drawCar,drawPerson} from './models.js';
+import {drawCar,drawPerson,drawVehicleFire} from './models.js';
 const FOG=[.65,.66,.63],STRIDE=9;
 const rgb=c=>typeof c==='string'?[parseInt(c.slice(1,3),16)/255,parseInt(c.slice(3,5),16)/255,parseInt(c.slice(5,7),16)/255]:c;
 export class Mesh{
@@ -40,8 +41,9 @@ export class Renderer{
   gl.enable(gl.DEPTH_TEST);gl.clearColor(0,0,0,0);this.static=this.upload(world);this.dynamic=gl.createBuffer();
  }
  upload(v){const g=this.gl,b=g.createBuffer();g.bindBuffer(g.ARRAY_BUFFER,b);g.bufferData(g.ARRAY_BUFFER,new Float32Array(v),g.STATIC_DRAW);return{buffer:b,count:v.length/STRIDE};}
- setCity(city){this.city=city;const world=this.makeWorld(city).v;if(this.gl){this.gl.deleteBuffer(this.static.buffer);this.static=this.upload(world);}else this.static={v:world};this.particles=[];this.hitSerial=new WeakMap();this.lastActor=null;}
+ setCity(city){this.city=city;const world=this.makeWorld(city).v;if(this.gl){this.gl.deleteBuffer(this.static.buffer);this.static=this.upload(world);}else this.static={v:world};this.particles=[];this.hitSerial=new WeakMap();this.lastActor=null;this.explosionSerialSeen=0;}
  makeWorld(city){
+  if(city.id==='boston')return drawBostonWorld(new Mesh(),city);
   const height=(x,z)=>terrainHeight(x,z,city.id),bay=city.id==='baycrest';const m=new Mesh();m.heightSampler=height;const rnd=random(813),pavement=(x,z,w,d,y=.16)=>m.surface([x-w/2,y,z-d/2],[x+w/2,y,z-d/2],[x+w/2,y,z+d/2],[x-w/2,y,z+d/2],2,w/3,d/3);
   // One road plane removes coplanar intersection flicker.
   const step=bay?6:8;for(let x=-240;x<240;x+=step)for(let z=-240;z<240;z+=step)m.surface([x,-.03,z],[x+step,-.03,z],[x+step,-.03,z+step],[x,-.03,z+step],1,step/2.5,step/2.5);
@@ -135,16 +137,17 @@ export class Renderer{
  }
  updateParticles(game,dt){
   const vehicles=[game.car,...game.parked,...game.traffic,...game.cops];this.smokeClock+=dt;
-  for(const c of vehicles){if(c.lastImpact&&this.hitSerial.get(c)!==c.lastImpact){this.hitSerial.set(c,c.lastImpact);const h=c.lastImpact;for(let i=0;i<Math.min(16,h.power);i++)this.particles.push({x:h.x,y:(c.y||0)+.55,z:h.z,vx:h.nx*(1+i%4)+Math.sin(i*7)*2,vz:h.nz*(1+i%4)+Math.cos(i*7)*2,vy:1.4+i%3,life:.38+i%4*.1,age:0,size:.04,spark:true});}
-   if((c.damage>60||(c.panelDamage?.front||0)>35)&&this.smokeClock>.14){const f=c.panelDamage?.front||0,rate=c.damage>75?.6:.3;this.particles.push({x:c.x+Math.sin(c.a)*1.5,y:(c.y||0)+.95,z:c.z+Math.cos(c.a)*1.5,vx:.15,vz:.15,vy:.6+rate,life:2.5,age:0,size:c.damage>75?.23:.13,spark:false,dark:c.damage>75});}
+  for(const e of game.explosions||[]){if(e.serial<=(this.explosionSerialSeen||0))continue;this.explosionSerialSeen=e.serial;for(let i=0;i<32;i++){const a=i*2.4,v=2+i%7;this.particles.push({x:e.x,y:e.y+1,z:e.z,vx:Math.sin(a)*v,vz:Math.cos(a)*v,vy:2+i%5,life:.7+i%5*.18,age:0,size:i%3===0?.7:.23,spark:true,blast:true});}}
+  for(const c of vehicles){if(Math.hypot(c.x-game.actor.x,c.z-game.actor.z)>150)continue;if(c.lastImpact&&this.hitSerial.get(c)!==c.lastImpact){this.hitSerial.set(c,c.lastImpact);const h=c.lastImpact;for(let i=0;i<Math.min(16,h.power);i++)this.particles.push({x:h.x,y:(c.y||0)+.55,z:h.z,vx:h.nx*(1+i%4)+Math.sin(i*7)*2,vz:h.nz*(1+i%4)+Math.cos(i*7)*2,vy:1.4+i%3,life:.38+i%4*.1,age:0,size:.04,spark:true});}
+   if((c.fire>0||c.burnTime>0||c.damage>60||(c.panelDamage?.front||0)>35)&&this.smokeClock>.14){const f=c.panelDamage?.front||0,rate=c.damage>75?.6:.3;this.particles.push({x:c.x+Math.sin(c.a)*1.5,y:(c.y||0)+.95,z:c.z+Math.cos(c.a)*1.5,vx:.15,vz:.15,vy:.6+rate,life:2.5,age:0,size:c.damage>75?.23:.13,spark:false,dark:c.fire>0||c.exploded||c.damage>75});}
   }
   if(this.smokeClock>.14)this.smokeClock=0;
   for(const p of this.particles){p.age+=dt;p.x+=p.vx*dt;p.y+=p.vy*dt;p.z+=p.vz*dt;if(p.spark)p.vy-=dt*6;}
-  this.particles=this.particles.filter(p=>p.age<p.life&&p.y>0).slice(-120);
+  this.particles=this.particles.filter(p=>p.age<p.life&&p.y>0).slice(-180);
  }
  particlesMesh(m){
   const sorted=[...this.particles].sort((a,b)=>Math.hypot(b.x-this.cam[0],b.z-this.cam[2])-Math.hypot(a.x-this.cam[0],a.z-this.cam[2]));
-  for(const p of sorted){const fade=Math.sin(Math.PI*p.age/p.life),s=p.size+(p.spark?0:p.age*.24),color=p.spark?'#e5b977':p.dark?'#61655f':'#a3a69b',dx=this.cam[0]-p.x,dz=this.cam[2]-p.z,l=Math.hypot(dx,dz)||1,rx=dz/l*s,rz=-dx/l*s,points=[[p.x-rx,p.y-s,p.z-rz],[p.x+rx,p.y-s,p.z+rz],[p.x+rx,p.y+s,p.z+rz],[p.x-rx,p.y+s,p.z-rz]];m.surface(...points,p.spark?0:15,1,1,color);}
+  for(const p of sorted){const fade=Math.sin(Math.PI*p.age/p.life),s=p.size+(p.blast?p.age*.7:p.spark?0:p.age*.24),color=p.blast?(p.age<.3?'#f4ca71':'#ce633e'):p.spark?'#e5b977':p.dark?'#61655f':'#a3a69b',dx=this.cam[0]-p.x,dz=this.cam[2]-p.z,l=Math.hypot(dx,dz)||1,rx=dz/l*s,rz=-dx/l*s,points=[[p.x-rx,p.y-s,p.z-rz],[p.x+rx,p.y-s,p.z+rz],[p.x+rx,p.y+s,p.z+rz],[p.x-rx,p.y+s,p.z-rz]];m.surface(...points,p.spark&&!p.blast?0:15,1,1,color);}
  }
 
  render(game,dt,attract=false,t=0,brake=false){
@@ -170,16 +173,17 @@ export class Renderer{
   // Full detail stays near the camera; far traffic keeps its vehicle silhouette cheaply.
   const cars=[...game.traffic,...game.parked].filter(nearby).sort((a,b)=>Math.hypot(a.x-c.x,a.z-c.z)-Math.hypot(b.x-c.x,b.z-c.z));
   for(const [index,v]of cars.entries())drawCar(m,v,{time:t,brake:v.braking,lod:index>11||Math.hypot(v.x-c.x,v.z-c.z)>45,door:game.door?.car===v?game.door:null});
-  for(const p of game.cops)if(nearby(p))drawCar(m,{...p,paint:'#303b3c'},{police:true,time:t,lod:Math.hypot(p.x-c.x,p.z-c.z)>70});drawCar(m,game.car,{brake,time:t,door:game.door?.car===game.car?game.door:null});
+  for(const p of game.cops)if(nearby(p))drawCar(m,p,{police:true,time:t,lod:Math.hypot(p.x-c.x,p.z-c.z)>70});drawCar(m,game.car,{brake,time:t,door:game.door?.car===game.car?game.door:null});
   if(game.onFoot){const pavement=!onDiagonal(c.x,c.z)&&ROADS.every(r=>Math.abs(c.x-r)>11.5)&&ROADS.every(r=>Math.abs(c.z-r)>11.5);drawPerson(m,{...game.person,ground:game.person.y??groundHeight(c.x,c.z,this.city.id)});}
-  for(const p of game.pedestrians||[])if(Math.hypot(p.x-c.x,p.z-c.z)<75)drawPerson(m,p);
+  for(const p of [...(game.pedestrians||[]),...(game.officers||[])])if(Math.hypot(p.x-c.x,p.z-c.z)<75)drawPerson(m,p);
   m.heightSampler=(x,z)=>terrainHeight(x,z,this.city.id);for(const light of this.city.signals||[]){if(!nearby(light))continue;const state=signalAt(light.x,light.z,game.elapsed);
    for(let i=0;i<4;i++){const a=i*Math.PI/2,green=i%2===0?state.vertical:state.horizontal;m.transform={x:light.x,z:light.z,c:Math.cos(a),s:Math.sin(a)};
     for(let k=0;k<3;k++)m.box(5.4,4.67+k*.25,-12.16,.17,.14,.025,k===0&&green?'#96c174':k===2&&!green?'#d9654c':'#414b41');
    }
   }m.transform=null;m.heightSampler=null;
-  const targetPoint=game.target||game.waypoint;if(targetPoint&&!attract){const p=targetPoint;m.ring(p.x,groundHeight(p.x,p.z)+.04,p.z,8,'#c0aa65');const y=groundHeight(p.x,p.z)+4+Math.sin(t*2)*.16;m.tri([p.x-.7,y+1,p.z],[p.x+.7,y+1,p.z],[p.x,y,p.z],'#d5be7c');}
-  if(game.elapsed<(this.lastElapsed||0)){this.particles=[];this.hitSerial=new WeakMap();}this.lastElapsed=game.elapsed;this.updateParticles(game,dt);const smoke=new Mesh();this.particlesMesh(smoke);
+  for(const v of [game.car,...game.parked,...game.traffic,...game.cops])if(nearby(v)&&(v.fire>0||v.burnTime>0))drawVehicleFire(m,v,t);
+  const targetPoint=game.target||game.waypoint;if(targetPoint&&!attract){const p=targetPoint;m.ring(p.x,groundHeight(p.x,p.z,this.city.id)+.04,p.z,8,'#c0aa65');const y=groundHeight(p.x,p.z,this.city.id)+4+Math.sin(t*2)*.16;m.tri([p.x-.7,y+1,p.z],[p.x+.7,y+1,p.z],[p.x,y,p.z],'#d5be7c');}
+  if(game.elapsed<(this.lastElapsed||0)){this.particles=[];this.hitSerial=new WeakMap();this.explosionSerialSeen=0;}this.lastElapsed=game.elapsed;this.updateParticles(game,dt);const smoke=new Mesh();this.particlesMesh(smoke);
   if(this.software)this.drawSoftware(vp,m.v,w,h,smoke.v);else{gl.bindBuffer(gl.ARRAY_BUFFER,this.dynamic);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(m.v),gl.DYNAMIC_DRAW);this.drawBuffer(this.dynamic,m.v.length/STRIDE);if(smoke.v.length){gl.enable(gl.BLEND);gl.blendFunc(gl.SRC_ALPHA,gl.ONE_MINUS_SRC_ALPHA);gl.depthMask(false);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(smoke.v),gl.DYNAMIC_DRAW);this.drawBuffer(this.dynamic,smoke.v.length/STRIDE);gl.depthMask(true);gl.disable(gl.BLEND);}}this.frames++;
  }
 }

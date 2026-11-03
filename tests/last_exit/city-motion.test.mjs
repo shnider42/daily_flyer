@@ -41,9 +41,9 @@ test('moving cars knock down a stationary player after the vehicle step',()=>{
  ticks(g,3);assert.ok(g.person.lastVehicleImpact>7);assert.ok(g.person.knockdown>0);assert.ok(g.person.z>0);assert.match(g.message,/Knocked down/);
  g.traffic=[];ticks(g,120);assert.equal(g.person.stun,0);assert.equal(g.person.knockdown,0);const z=g.person.z;ticks(g,30,{moveY:1,viewHeading:0});assert.ok(g.person.z>z+1);
 });
-test('player vehicle impacts affect an NPC and report the collision',()=>{
+test('a pedestrian victim cannot complete a report while knocked down',()=>{
  const g=empty();g.car=makeCar(0,-3.2,0);g.car.vz=16;g.car.speed=16;g.traffic=[];g.parked=[];g.pedestrians=[person(0,0)];
- ticks(g,3);assert.ok(g.pedestrians[0].lastVehicleImpact>7);assert.ok(g.pedestrians[0].knockdown>0);assert.equal(g.heat,1);
+ ticks(g,3);assert.ok(g.pedestrians[0].lastVehicleImpact>7);assert.ok(g.pedestrians[0].knockdown>0);assert.equal(g.heat,0);assert.equal(g.reports.length,1);g.car.x=100;g.car.z=100;ticks(g,390);assert.equal(g.heat,2);
 });
 test('swept contact catches a car crossing the person between positions',()=>{
  const p=person(0,0),c={...makeCar(0,4,0),y:p.y,previousX:0,previousZ:-4,vz:30};
