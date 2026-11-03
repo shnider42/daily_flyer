@@ -14,3 +14,30 @@
 @media(max-width:700px){.hud-top h2{font-size:16px}.speed b{font-size:49px}.condition>div{width:45px}#damage-number{font-size:8px;min-width:24px}#hint{bottom:365px}}
 @media(max-height:550px) and (orientation:landscape){.hud-top h2{font-size:16px}.speed b{font-size:40px}#hint{bottom:162px}.condition>div{width:31px}}
 @media(max-height:550px) and (orientation:landscape){.condition{gap:5px}.condition>div{width:25px}#damage-number{min-width:20px;font-size:8px}}
+
+/* v0.4: stable thumb zones, floating stick, gesture-safe actions. */
+#world{touch-action:none}#touch{user-select:none;-webkit-user-select:none}#look-area{display:none}#map-open{background:none;font:inherit;color:#ddd8bd;padding:0;pointer-events:auto}.interact{z-index:5;background:linear-gradient(90deg,#667660 var(--progress,0%),#263530dc var(--progress,0%))}.modal-card{max-height:calc(100dvh - 44px);overflow:auto;touch-action:pan-y}.setting select{background:#263832;color:#e4dfc9;padding:5px;border:1px solid #819080}.setting input[type=range]{width:130px}.map-legend{display:grid;grid-template-columns:1fr 1fr;gap:10px;font:10px/1.5 monospace;margin-top:14px}.map-legend b{color:#d4c6a0}#city-map{display:block;width:min(100%,43dvh);margin:auto;border:1px solid #8c998c}.map-key{font-size:10px!important}.on-foot .condition{opacity:.65}
+@media(pointer:coarse),(max-width:900px){
+ #look-area{display:block;position:absolute;right:0;top:100px;bottom:0;width:54%;pointer-events:auto;touch-action:none;z-index:0}
+ #look-area>span{position:absolute;right:25%;bottom:43%;font:9px monospace;letter-spacing:2px;color:#d1d6c04d;pointer-events:none}
+ #move-area{position:absolute;left:env(safe-area-inset-left);bottom:env(safe-area-inset-bottom);width:44%;height:185px;pointer-events:auto;touch-action:none;z-index:1}
+ #steering,.on-foot #steering{left:22px;bottom:24px;top:auto;width:130px;height:130px;pointer-events:none;background:#192b2c36;border-color:#bdc5b25c}
+ #steering small{font-size:7px}#stick{width:56px;height:56px;left:calc(50% - 28px);top:calc(50% - 28px);font-size:22px}
+ .pedals{z-index:2;bottom:max(24px,env(safe-area-inset-bottom));right:max(20px,env(safe-area-inset-right));grid-template-columns:66px 74px;grid-template-rows:36px 64px;gap:10px;pointer-events:none}.pedals button{pointer-events:auto}.pedals #gas span{font-size:29px}
+ .interact{right:max(20px,env(safe-area-inset-right));bottom:149px;width:150px;padding:11px 5px;min-height:42px;font-size:10px}
+ body.on-foot .interact{left:50%;right:auto;transform:translateX(-50%);bottom:max(24px,env(safe-area-inset-bottom));width:136px;min-height:46px}
+ body.on-foot .interact:active{transform:translateX(-50%)}
+ .map-panel{bottom:202px;width:112px}.instruments{bottom:206px;width:145px}#foot-status{bottom:200px;right:26px;font-size:13px}body.on-foot .instruments{bottom:240px}#hint{bottom:365px}
+ body[data-thumbs=roomy] .pedals{right:max(38px,env(safe-area-inset-right));gap:14px;grid-template-columns:76px 82px}
+ body[data-thumbs=roomy] #steering{left:32px}body[data-thumbs=roomy] .interact{right:38px;width:172px}
+ body.on-foot[data-thumbs=roomy] .interact{right:auto;width:136px}
+}
+@media(max-height:550px) and (orientation:landscape){
+ #move-area{width:22%;height:180px;left:env(safe-area-inset-left)}#steering,.on-foot #steering{left:22px;bottom:18px;width:130px;height:130px}
+ #look-area{top:77px;width:52%}#look-area>span{bottom:58%;right:22%}.pedals{bottom:max(18px,env(safe-area-inset-bottom));right:max(24px,env(safe-area-inset-right));grid-template-columns:65px 74px;grid-template-rows:31px 60px}
+ .interact{bottom:130px;right:max(24px,env(safe-area-inset-right));width:149px;min-height:35px;padding:8px 5px}
+ .map-panel{left:max(188px,calc(env(safe-area-inset-left) + 170px));bottom:18px;width:92px}.instruments{right:200px;bottom:20px;width:120px}body.on-foot .instruments{bottom:30px}#foot-status{right:205px;bottom:65px}#hint{bottom:157px;max-width:46%;font-size:7px}
+ #city-map{width:42dvh}.map-legend{font-size:9px;gap:5px}body.on-foot .interact{bottom:20px}
+}
+
+#mechanical{font:8px monospace;text-align:right;color:#c6ccbb;letter-spacing:.6px;margin-bottom:8px}body.on-foot #mechanical{visibility:hidden}

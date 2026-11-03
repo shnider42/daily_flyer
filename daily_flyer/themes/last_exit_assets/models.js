@@ -12,14 +12,14 @@ const panel=(c,k)=>clamp(Number(c.panelDamage?.[k])||0,0,100)/100;
 export function deformCarPoint(point,c){
  let [x,y,z]=point;const f=panel(c,'front'),r=panel(c,'rear'),side=x<0?panel(c,'left'):panel(c,'right');
  const fw=clamp((z-.55)/2,0,1),rw=clamp((-z-.65)/1.98,0,1);
- const crease=Math.sin(x*5.7+z*2.1)*.055;
- z-=f*fw*(.64+crease);z+=r*rw*(.55-crease);
+ const crease=Math.sin(x*5.7+z*2.1)*.095;
+ z-=f*fw*(1.02+crease);z+=r*rw*(.84-crease);
  if(y>.57&&y<1.2){y+=f*fw*(.17*Math.cos(x*2.1)-.13*fw)+r*rw*(.1*Math.sin(x*3)-.18*rw);}
  // A buckled central ridge lifts the hood or bootlid behind the crushed edge.
- if(point[1]>.94&&point[1]<1.16)y+=(f*.34*Math.sin(Math.PI*fw)+r*.26*Math.sin(Math.PI*rw))*(.48+.52*Math.max(0,Math.cos(x*2.1)));
- if(y<.62)y-=.13*(f*fw+r*rw);
+ if(point[1]>.94&&point[1]<1.16)y+=(f*.58*Math.sin(Math.PI*fw)+r*.42*Math.sin(Math.PI*rw))*(.48+.52*Math.max(0,Math.cos(x*2.1)));
+ if(y<.62)y-=.28*(f*fw+r*rw);
  const sw=clamp((Math.abs(x)-.47)/.6,0,1)*clamp(1-Math.abs(z+.15)/2.9,0,1);
- x-=Math.sign(x)*side*sw*(.24+.07*Math.sin(z*4));
+ x-=Math.sign(x)*side*sw*(.43+.11*Math.sin(z*4));
  y-=side*sw*.035;
  return[x,y,z];
 }
@@ -53,7 +53,7 @@ function loftY(m,rings,color,n=8){
 function wheel(m,c,side,z,time){
  const damage=z>0?panel(c,'front'):panel(c,'rear');
  const centre=[side*1.015,.425,z-Math.sign(z)*damage*.12],radius=.415,width=.25;
- const steer=z>0?-clamp(c.steer||0,-1,1)*.38:0,cs=Math.cos(steer),sn=Math.sin(steer);
+ const steer=(z>0?-clamp(c.steer||0,-1,1)*.38:0)+(c.wheelDamage||0)/100*.12*side,cs=Math.cos(steer),sn=Math.sin(steer);
  const spin=(c.distance||0)/radius*(c.speed<0?-1:1);
  const p=(ax,r,a)=>{const xx=ax,zz=Math.cos(a)*r;return[centre[0]+xx*cs+zz*sn,centre[1]+Math.sin(a)*r,centre[2]+zz*cs-xx*sn];};
  const count=14;
@@ -66,10 +66,10 @@ function wheel(m,c,side,z,time){
  }
 }
 
-export function drawCar(m,c,{police=false,brake=false,time=0}={}){
+export function drawCar(m,c,{police=false,brake=false,time=0,door=null}={}){
  const paint=c.paint||'#777b7b',kind=c.kind||'sedan',coupe=kind==='coupe',wagon=kind==='wagon';
  const f=panel(c,'front'),r=panel(c,'rear'),left=panel(c,'left'),right=panel(c,'right');
- m.transform={x:c.x,z:c.z,c:Math.cos(c.a),s:Math.sin(c.a)};m.kind=0;
+ m.transform={x:c.x,y:c.y||0,z:c.z,c:Math.cos(c.a),s:Math.sin(c.a),pitch:c.pitch||0,roll:c.roll||0};m.kind=0;
  // Rounded footprint follows the car instead of leaving a rectangular dark tile.
  for(let k=0;k<18;k++){const a=k/18*Math.PI*2,b=(k+1)/18*Math.PI*2;m.tri([.1,.045,.12],[.1+Math.cos(a)*1.23,.045,.12+Math.sin(a)*2.83],[.1+Math.cos(b)*1.23,.045,.12+Math.sin(b)*2.83],'#353e3d');}
  const d=surface(m,c);
@@ -85,6 +85,7 @@ export function drawCar(m,c,{police=false,brake=false,time=0}={}){
  const zs=[-2.53,-2.27,-2.16,-2.07,-1.94,-1.79,-1.65,-1.5,-1.34,-1.2,-1.1,-.96,-.7,0,.65,.96,1.1,1.2,1.34,1.5,1.65,1.79,1.94,2.07,2.16,2.27,2.53];
  const arch=z=>{let y=.36;for(const wz of[-1.6,1.6]){const dz=z-wz;if(Math.abs(dz)<.54)y=Math.max(y,.425+Math.sqrt(Math.max(0,.54*.54-dz*dz)));}return y;};
  for(const side of[-1,1])for(let j=0;j<zs.length-1;j++){
+  if(door&&side===door.side&&zs[j]>=-.7&&zs[j+1]<=.65)continue;
   const z0=zs[j],z1=zs[j+1],[w0,h0]=profile(z0),[w1,h1]=profile(z1),b0=arch(z0),b1=arch(z1);
   d.quad([side*w0,b0,z0],[side*w1,b1,z1],[side*w1,h1,z1],[side*w0,h0,z0],paint,side<0?.78:.94);
   // A recessed black wheel-well return gives the openings visible thickness.
@@ -97,6 +98,13 @@ export function drawCar(m,c,{police=false,brake=false,time=0}={}){
   d.quad([side*1.075,.39,-.99],[side*1.075,.39,.95],[side*1.079,.43,.95],[side*1.079,.43,-.99],'#a2aaa4',.8);
   for(const z of(coupe?[-.75,.73]:[-1.15,-.33,.73])){const [w,h]=profile(z);ribbon(d,[side*(w+.008),.43,z],[side*(w+.008),h-.07,z],.013,'#3f4848');}
   for(const z of(coupe?[-.53]:[-.99,-.08])){const [w]=profile(z);d.quad([side*(w+.013),.9,z],[side*(w+.013),.9,z+.19],[side*(w+.02),.934,z+.19],[side*(w+.02),.934,z],'#bcc2b8');}
+ }
+ if(door){
+  const side=door.side,open=Math.min(1,door.time*3)*1.05,p=(z,y)=>[side*(1.065+Math.sin(open)*(.73-z)),y,.73-Math.cos(open)*(.73-z)];
+  m.quad([side*1.06,.4,-.7],[side*1.06,.4,.73],[side*1.06,1.02,.73],[side*1.06,1.02,-.7],'#222c2c');
+  m.quad(p(-.7,.42),p(.73,.42),p(.73,1.01),p(-.7,1.01),paint);
+  m.quad(p(-.65,1.03),p(.62,1.03),p(.39,1.43),p(-.57,1.43),'#556767');
+  m.tube(p(-.68,1.46),p(.38,1.46),.028,'#acb6b1');m.tube(p(-.68,1.01),p(-.68,1.46),.026,'#b3b9ad');
  }
  // Nose and tail are shaped vertical panels; bumper rails have bevelled ends.
  for(const end of[-1,1]){const z=end*2.53,h=profile(z)[1];d.quad([-.91,.39,z],[.91,.39,z],[.91,h,z],[-.91,h,z],paint,end<0?.78:.91);
@@ -169,6 +177,11 @@ export function drawCar(m,c,{police=false,brake=false,time=0}={}){
   for(const v of[mix(a,up,.15),mix(b,rear?G:C,.65),mix(up,rear?G:C,.42),mix(a,b,.81)]){v[2]+=rear?-.014:.014;ribbon(d,centre,v,.011,'#a9b6ad');}
   const small=add(centre,[.14,.06,0]);ribbon(d,add(centre,[-.12,.01,0]),small,.008,'#c1c8b8');
  }
+ if(f>.55){
+  for(let i=0;i<5;i++){const x=-.7+i*.31,z=1.35+(i%2)*.28;d.tri([x,1.075,z],[x+.25,1.075,z+.15],[x+.12,1.07,z+.47],i%2?'#73796f':'#434c49');}
+  tube(d,[-.8,.51,2.66],[.18,.34,2.73],.045,.05,'#9fa89c',5);
+ }
+ if(r>.65)tube(d,[-.87,.34,-2.67],[.79,.52,-2.65],.05,.04,'#a4ada2',5);
  if(f>.4)for(let i=0;i<4;i++)ribbon(d,[-.62+i*.34,1.065,1.15],[.01+i*.2,1.025,2.1],.018,'#444e4b');
  if(r>.25)for(let i=0;i<3;i++)ribbon(d,[-.65+i*.43,.97,-1.8],[-.32+i*.43,.94,-2.23],.02,'#404b4b');
  if(police){
@@ -182,13 +195,13 @@ export function drawCar(m,c,{police=false,brake=false,time=0}={}){
 }
 
 export function drawPerson(m,p){
- m.transform={x:p.x,y:p.ground||0,z:p.z,c:Math.cos(p.a),s:Math.sin(p.a)};m.kind=0;
+ m.transform={x:p.x,y:p.y??p.ground??0,z:p.z,c:Math.cos(p.a),s:Math.sin(p.a)};m.kind=0;
  m.disc(0,.043,0,.36,'#303732',12);
  const moving=(p.speed||0)>.08,phase=p.walk||0,run=(p.speed||0)>4;
  const bounce=moving?Math.abs(Math.sin(phase))*(run?.035:.018):0;
  const torso=.93+bounce;
  // Eight-sided rings narrow at the waist, broaden through the shoulders.
- loftY(m,[[0,torso-.12,0,.185,.135],[0,torso+.03,.005,.205,.15],[0,torso+.30,.015,.255,.155],[0,torso+.43,.005,.245,.14],[0,torso+.47,.01,.105,.09]],'#6f6757',8);
+ loftY(m,[[0,torso-.12,0,.185,.135],[0,torso+.03,.005,.205,.15],[0,torso+.30,.015,.255,.155],[0,torso+.43,.005,.245,.14],[0,torso+.47,.01,.105,.09]],p.coat||'#6f6757',8);
  loftY(m,[[0,.80+bounce,0,.17,.125],[0,.94+bounce,0,.185,.13]],'#3c4652',8);
  // Open jacket front, muted shirt and stitched lower edge.
  m.quad([-.07,torso+.04,.155],[.07,torso+.04,.155],[.085,torso+.38,.155],[-.085,torso+.38,.155],'#a19c89');
