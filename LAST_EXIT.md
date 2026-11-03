@@ -28,3 +28,7 @@ GitHub: `shnider42/daily_flyer`, branch `feat/last-exit-driving`.
 Assets live in `daily_flyer/themes/last_exit_assets/`, metadata in `daily_flyer/themes/last_exit.py`, Flask route `/last-exit/`, theme `last_exit`. Static Render publish directory is the assets directory, with `node --test tests/last_exit/*.test.mjs` as build command. Existing game branches are unchanged.
 
 This is a solo first slice: one car, one flat city, three jobs. Traffic drives straight across the grid; pursuit uses road nodes and sight checks. No ramps, traffic lights, replays, additional cars or multiplayer yet. Next work should follow actual phone handling feedback, then street variety and more nuanced pursuit.
+
+## Render delivery fallback
+
+The connected static-site creation tool returned `StaticPublishPath cannot be empty` despite receiving publishPath. Public delivery therefore uses a free Node web service (`server/last-exit/server.mjs`) to serve the same assets, with no dependencies. Build: `node --test tests/last_exit/*.test.mjs`; start: `node server/last-exit/server.mjs`. Only the seven known public assets and `/health` are served. Free-service cold starts apply. Static publication can be restored once the connector path bug is fixed. Twelve focused simulation/server tests pass.
