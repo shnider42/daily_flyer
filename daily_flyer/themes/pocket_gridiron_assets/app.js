@@ -1,22 +1,22 @@
-import {FORMATIONS,PERSONNEL,packageOf,tendency} from './packages.js?v=19';
-import {uniformFor} from './uniforms.js?v=19';
-import {goalWindow} from './placekicks.js?v=19';
-import {clockText,matchLength} from './match.js?v=19';
-import {HalftimeShow} from './halftime.js?v=19';
-import {pregameReport,halftimeBroadcast,postgameReport} from './broadcast.js?v=19';
-import {passPlacement,passAim} from './passing.js?v=19';
-import {playDiagram} from './plays.js?v=19';
-import {ReplayTape} from './replay.js?v=19';
-import {BoothVoices,giveBoothVoice} from './booth-lines.js?v=19';
-import {FAMILY_NAMES} from './music.js?v=19';
-import {showOffensiveRoutes,suggestions,coachText,hitDefender,BOOK_FILTERS,bookPage} from './presentation.js?v=19';
-import {teamStrengths} from './teams.js?v=19';
-import {RATING_LABELS,visibleRatings} from './ratings.js?v=19';
-import {bindAudioActivation} from './device-audio.js?v=19';
-import {StadiumAudio} from './audio.js?v=19';
-import {bindGameButton, protectGameSurface, setGameButtonEnabled,primaryCommand,stickInput,movementInput} from './controls.js?v=19';
-import {Game,PLAYS,DEFENSE,clamp} from './engine.js?v=19';
-import {TEAMS,buildTeam,fetchFreshRoster,validateRoster} from './roster.js?v=19';
+import {FORMATIONS,PERSONNEL,packageOf,tendency} from './packages.js?v=20';
+import {uniformFor} from './uniforms.js?v=20';
+import {goalWindow} from './placekicks.js?v=20';
+import {clockText,matchLength} from './match.js?v=20';
+import {HalftimeShow} from './halftime.js?v=20';
+import {pregameReport,halftimeBroadcast,postgameReport} from './broadcast.js?v=20';
+import {passPlacement,passAim} from './passing.js?v=20';
+import {playDiagram} from './plays.js?v=20';
+import {ReplayTape} from './replay.js?v=20';
+import {BoothVoices,giveBoothVoice} from './booth-lines.js?v=20';
+import {FAMILY_NAMES} from './music.js?v=20';
+import {showOffensiveRoutes,suggestions,coachText,hitDefender,BOOK_FILTERS,bookPage} from './presentation.js?v=20';
+import {teamStrengths} from './teams.js?v=20';
+import {RATING_LABELS,visibleRatings} from './ratings.js?v=20';
+import {bindAudioActivation} from './device-audio.js?v=20';
+import {StadiumAudio} from './audio.js?v=20';
+import {bindGameButton, protectGameSurface, setGameButtonEnabled,primaryCommand,stickInput,movementInput} from './controls.js?v=20';
+import {Game,PLAYS,DEFENSE,clamp} from './engine.js?v=20';
+import {TEAMS,buildTeam,fetchFreshRoster,validateRoster} from './roster.js?v=20';
 const $=id=>document.getElementById(id);const el=(tag,text,cls)=>{const e=document.createElement(tag);if(text!==undefined)e.textContent=text;if(cls)e.className=cls;return e;};
 const safeRead=(key,fallback)=>{try{return JSON.parse(localStorage.getItem(key))??fallback;}catch{return fallback;}};
 const safeWrite=(key,value)=>{try{localStorage.setItem(key,JSON.stringify(value));return true;}catch{return false;}};
@@ -296,7 +296,7 @@ function frame(now){
  requestAnimationFrame(frame);
 }
 if(window.PGI_DUEL){
- const {setupDuel}=await import('./duel-ui.js?v=19');
+ const {setupDuel}=await import('./duel-ui.js?v=20');
  duel=setupDuel({
   state(view,fresh){
    // Preserve already received events until the next paint drains them.

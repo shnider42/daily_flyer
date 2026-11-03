@@ -1,6 +1,7 @@
-import {paintBroadcast} from './broadcast-screen.js?v=19';
-import {broadcastBeat} from './booth-lines.js?v=19';
-import {BoothStage} from './booth-stage.js?v=19';
+import {paintBroadcast} from './broadcast-screen.js?v=20';
+import {broadcastBeat} from './booth-lines.js?v=20';
+import {BoothStage} from './booth-stage.js?v=20';
+import {syllableEnergy} from './booth-chatter.js?v=20';
 
 // Shared, skippable pregame/halftime presentation. The live engine stays still.
 export class HalftimeShow {
@@ -32,6 +33,8 @@ export class HalftimeShow {
   this.report=report;this.index=0;this.auto=true;this.elapsed=0;this.last=0;this.ink=true;
   this.dialog.dataset.mode=report.mode||'halftime';this.dialog.dataset.reduced=String(this.reduced);
   const pre=report.mode==='pregame',post=report.mode==='postgame';
+  this.$('halfDetails').open=!pre;this.$('halfSettings').open=false;
+  this.$('halfDetailsLabel').textContent=pre?'Lineups & show details':'Show details & box score';
   this.$('halfEyebrow').textContent=pre?'PGI · THE PREGAME BOOTH':post?'PGI · THE POSTGAME BOOTH':'PGI · THE HALFTIME BOOTH';
   this.$('halfTitle').textContent=pre?'Before the first snap.':post?'One more look. All heart.':'Bring out the yellow marker.';
   this.$('halfScore').textContent=report.teams.map((t,i)=>pre?t.abbr:`${t.abbr} ${report.scores[i]}`).join(pre?' vs ':' — ');
@@ -85,7 +88,7 @@ export class HalftimeShow {
   // Let John hold the film while he explains; roll it on Al's response.
   const filmTime=s.turns?(beat.index===0?Math.min(3.49,this.elapsed*.7):beat.index===1?3.5+Math.min(4.49,beat.turnElapsed*.8):beat.index===2?8+Math.min(4,beat.turnElapsed):12):this.elapsed;
   paintBroadcast(this.$('halfScreen'),this.report,s,filmTime,{reduced:!this.motionEnabled,ink:this.ink});
-  this.stage.draw({speaker:beat.turn.speaker,pose:beat.turn.pose,time:this.elapsed,moving:this.auto&&this.motionEnabled});
+  this.stage.draw({speaker:beat.turn.speaker,pose:beat.turn.pose,time:this.elapsed,moving:this.auto&&this.motionEnabled,energy:syllableEnergy(beat.word,beat.wordElapsed)});
  }
  step(direction){this.index=Math.max(0,Math.min(this.report.segments.length-1,this.index+direction));this.elapsed=0;this.last=0;this.render();}
  tick(now,hidden=false){

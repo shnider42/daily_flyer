@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import {wordTimeline,wordAt,chatterPulses,BoothChatter} from '../../daily_flyer/themes/pocket_gridiron_assets/booth-chatter.js';
+import {wordTimeline,wordAt,chatterPulses,syllableEnergy,BoothChatter} from '../../daily_flyer/themes/pocket_gridiron_assets/booth-chatter.js';
+import {syllableStress} from '../../daily_flyer/themes/pocket_gridiron_assets/syllables.js';
 import {broadcastBeat} from '../../daily_flyer/themes/pocket_gridiron_assets/booth-lines.js';
 import {StadiumAudio} from '../../daily_flyer/themes/pocket_gridiron_assets/audio.js';
 class Param {constructor(){this.events=[];}setValueAtTime(v,t){this.events.push([v,t]);}linearRampToValueAtTime(v,t){this.events.push([v,t]);}exponentialRampToValueAtTime(v,t){this.events.push([v,t]);}setTargetAtTime(){}}
@@ -20,6 +21,27 @@ test('captions and sound use the same word boundaries with silent lead-in and pu
 });
 test('Al and John have distinct deterministic nonverbal timbres without gameplay RNG',()=>{
  const w=wordTimeline('Football').words[0],a=chatterPulses('al',w),j=chatterPulses('john',w);assert.deepEqual(a,chatterPulses('al',w));assert.notDeepEqual(a,j);assert.ok(a[0].frequency>j[0].frequency);assert.ok(a[0].cutoff>j[0].cutoff);assert.ok(a.length<=4&&j.length<=4);assert.ok(a.every(p=>p.offset+p.duration<=w.duration));
+});
+test('each spoken syllable gets one pulse, including names, contractions, scores and initials',()=>{
+ const examples={strengths:1,thought:1,football:2,quarterback:3,area:3,every:2,Michaels:2,Madden:2,Mahomes:2,Buffalo:3,Francisco:3,"doesn’t":2,"we’re":1,"player’s":2,'C.J.':2,NFL:3,PGI:3,WR:4,BOOM:1,'8-bit':2,'45-second':5,'0–0':4,'—':0};
+ for(const [text,count] of Object.entries(examples)){
+  assert.equal(syllableStress(text).length,count,text);
+  const word=wordTimeline(text).words[0],pulses=chatterPulses('al',word);
+  assert.equal(pulses.length,count,text);assert.ok(pulses.every(p=>p.offset+p.duration<=word.duration),text);
+ }
+ // Spelling must not make a long one-syllable word chatter repeatedly.
+ assert.equal(chatterPulses('john',wordTimeline('strengths').words[0]).length,1);
+ assert.equal(chatterPulses('john',wordTimeline('area').words[0]).length,3);
+});
+test('syllables preserve the accepted word and punctuation pacing',()=>{
+ const t=wordTimeline('Football, forever!');
+ assert.deepEqual(t.words.map(w=>[w.start,w.duration]),[[.28,.33],[.795,.30500000000000005]]);
+ assert.equal(t.duration,3.2);
+ const word=t.words[0],pulses=chatterPulses('al',word);
+ assert.equal(syllableEnergy(word,0),0);assert.ok(syllableEnergy(word,pulses[0].duration/2)>.99);
+ assert.equal(syllableEnergy(word,pulses[0].duration+.005),0);assert.equal(syllableEnergy(null,0),0);
+ const a=chatterPulses('al',wordTimeline('ball').words[0]),b=chatterPulses('al',wordTimeline('game').words[0]);
+ assert.equal(a[0].frequency,b[0].frequency,'pitch follows host and stress, never a text hash');
 });
 test('each word sounds once across repeated frames and every voice releases its nodes',()=>{
  const c=new Context(),bus=c.createGain(),chatter=new BoothChatter();chatter.update(c,bus,speech());const count=c.osc.length;assert.ok(count>1&&count<=4);

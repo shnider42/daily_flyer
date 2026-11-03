@@ -1,3 +1,4 @@
+import {syllableStress} from './syllables.js?v=20';
 // Original nonverbal text sounds. One shared word clock drives sound and captions.
 const timelines=new Map();
 export function wordTimeline(text=''){
@@ -7,7 +8,7 @@ export function wordTimeline(text=''){
   const letters=word.replace(/[^\p{L}\p{N}]/gu,'').length;
   const duration=Math.min(.38,.13+letters*.025),start=at;
   const pause=/[.!?…][”'"’)]*$/.test(word)?.25:/[,;:—][”'"’)]*$/.test(word)?.13:0;
-  at+=duration+.055+pause;return {text:word,index,start,duration,voiced:letters>0};
+  at+=duration+.055+pause;return {text:word,index,start,duration,voiced:letters>0,stress:syllableStress(word)};
  });
  const result={words,duration:Math.max(3.2,at+.65)};
  if(timelines.size>=128)timelines.delete(timelines.keys().next().value);
@@ -19,11 +20,15 @@ export function wordAt(timeline,elapsed){
 }
 export function chatterPulses(speaker,word){
  if(!word?.voiced)return [];
- const seed=Array.from(word.text).reduce((n,c)=>((n*31+c.codePointAt(0))>>>0),17);
- const count=Math.max(1,Math.min(4,Math.ceil(word.duration/.085))),step=word.duration/count;
- return Array.from({length:count},(_,i)=>({offset:i*step,duration:Math.min(.057,step*.76),
-  frequency:(speaker==='john'?185:265)+((seed>>>(i*5))%7-3)*(speaker==='john'?8:11),
-  cutoff:speaker==='john'?1250:1850,volume:speaker==='john'?.14:.11}));
+ const stress=word.stress??syllableStress(word.text);if(!stress)return [];
+ const step=word.duration/stress.length;
+ return [...stress].map((accent,i)=>({offset:i*step,duration:Math.min(.085,step*.7),
+  frequency:(speaker==='john'?185:265)*(accent==='1'?1.025:1),
+  cutoff:speaker==='john'?1250:1850,volume:(speaker==='john'?.14:.11)*(accent==='0'?.8:1)}));
+}
+export function syllableEnergy(word,elapsed){
+ const pulse=chatterPulses('al',word).find(p=>elapsed>=p.offset&&elapsed<p.offset+p.duration);
+ return pulse?Math.sin(Math.PI*(elapsed-pulse.offset)/pulse.duration):0;
 }
 export class BoothChatter {
  constructor(){this.voices=new Set();this.key=null;this.context=null;}

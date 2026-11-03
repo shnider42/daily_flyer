@@ -16,8 +16,9 @@ test('old audio preferences migrate to broadcast moments; continuous music requi
  assert.equal(musicPolicy(s,{phase:'live',isLive:true}).scoreAllowed,false);assert.equal(musicPolicy(s,{phase:'dead',isLive:false}).scoreAllowed,true);
  assert.equal(musicPolicy({musicMode:'always'},{phase:'live',isLive:true}).background,true);assert.equal(musicPolicy(s,{phase:'call'},{audition:true}).background,true);
 });
-test('dialogue contains over 150 original John lines and exhausts each topic before repeating',()=>{
- const john=Object.values(BOOTH_EXCHANGES).flatMap(bank=>bank.flatMap(([j,a,b])=>[j,b]));assert.ok(new Set(john).size>=150);
+test('expanded dialogue rotates 408 original lines without repeating a topic early',()=>{
+ const john=Object.values(BOOTH_EXCHANGES).flatMap(bank=>bank.flatMap(([j,a,b])=>[j,b]));assert.equal(new Set(john).size,272);
+ assert.equal(new Set(Object.values(BOOTH_EXCHANGES).flat(2)).size,408);
  const v=new BoothVoices({seed:42});for(const [topic,bank] of Object.entries(BOOTH_EXCHANGES)){const chosen=Array.from({length:bank.length},()=>v.take(topic).john);assert.equal(new Set(chosen).size,bank.length,topic);assert.notEqual(v.take(topic).john,chosen.at(-1));}
  const saved=v.snapshot(),next=v.take('team',{qb:'Chosen QB'});assert.deepEqual(new BoothVoices(saved).take('team',{qb:'Chosen QB'}),next);
 });
@@ -27,9 +28,14 @@ test('hosts exchange the speaking role; previews keep selected lineup facts and 
  for(const s of show.segments){assert.deepEqual(s.turns.slice(0,4).map(t=>t.speaker),['al','john','al','john']);assert.ok(s.turns.every(t=>!/[{}]|undefined|NaN/.test(t.text)));const roles=new Set();for(let t=0;t<broadcastBeat(s,0).duration;t+=.5)roles.add(broadcastBeat(s,t).index);assert.equal(roles.size,s.turns.length);}
  assert.equal(JSON.stringify(g),before);
 });
-test('gesture poses change only for the active host and can remain still for reduced motion',()=>{
+test('hosts gesture, listeners nod, and reduced motion freezes every pose',()=>{
  assert.equal(boothPose('john',true,'point',1).column,2);assert.equal(boothPose('john',true,'big',1).column,3);
  assert.equal(boothPose('al',false,'talk',1).column,0);assert.deepEqual(boothPose('john',true,'point',1,false),boothPose('john',true,'point',20,false));
+ assert.notDeepEqual(boothPose('al',false,'talk',.3),boothPose('al',false,'talk',4));
+ const variants=['explain','lean','nod','chuckle','sweep'].map(p=>[.5,1.8,3].map(t=>boothPose('john',true,p,t)));
+ assert.equal(new Set(variants.map(v=>JSON.stringify(v))).size,5);
+ for(const pose of ['talk','explain','lean','nod','chuckle','sweep','point','big'])for(const active of [true,false])assert.deepEqual(boothPose('al',active,pose,1,false),{column:0,bob:0,lean:0});
+ assert.notDeepEqual(boothPose('al',true,'talk',1,true,0),boothPose('al',true,'talk',1,true,1));
 });
 test('postgame has detached final statistics, preserves first-half clips, and includes late-game footage',()=>{
  const g=game(),t=new ReplayTape();

@@ -1,16 +1,16 @@
-import {goalWindow,goalResult} from './placekicks.js?v=19';
-import {formationOf,PERSONNEL,defensiveUnit,tendency,fakeRead} from './packages.js?v=19';
-import {matchLength,emptyBox,copyBox,halftimeReport} from './match.js?v=19';
-import {PLAYS,DEFENSE,routeFor,newCoverageTarget} from './plays.js?v=19';
-import {passPlacement,eligibleReceivers,catchReach,landingPickChance} from './passing.js?v=19';
-import {playbook} from './teams.js?v=19';
-import {resetContact,nearestThreat,armBreak,beginContact,tickContact} from './contact.js?v=19';
-import {AI_PROFILES,BALL_RULES,MOVEMENT_RULES,fumbleChance} from './rules.js?v=19';
-import {clearBlocks,isBlocker,updateBlocking,shedBlock} from './blocking.js?v=19';
-import {PENALTIES,acceptedPenalty,outcomeValue} from './penalties.js?v=19';
+import {goalWindow,goalResult} from './placekicks.js?v=20';
+import {formationOf,PERSONNEL,defensiveUnit,tendency,fakeRead} from './packages.js?v=20';
+import {matchLength,emptyBox,copyBox,halftimeReport} from './match.js?v=20';
+import {PLAYS,DEFENSE,routeFor,newCoverageTarget} from './plays.js?v=20';
+import {passPlacement,eligibleReceivers,catchReach,landingPickChance} from './passing.js?v=20';
+import {playbook} from './teams.js?v=20';
+import {resetContact,nearestThreat,armBreak,beginContact,tickContact} from './contact.js?v=20';
+import {AI_PROFILES,BALL_RULES,MOVEMENT_RULES,fumbleChance} from './rules.js?v=20';
+import {clearBlocks,isBlocker,updateBlocking,shedBlock} from './blocking.js?v=20';
+import {PENALTIES,acceptedPenalty,outcomeValue} from './penalties.js?v=20';
 export const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
 export const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
-export {PLAYS,DEFENSE} from './plays.js?v=19';
+export {PLAYS,DEFENSE} from './plays.js?v=20';
 const animate=(p,slot,x,y)=>({...p,slot,x,y,speed:4.8+(p.speed||70)/35,stun:0,phase:0,pace:1});
 export class Game {
  constructor(home,away,difficulty='pro',rng=Math.random,options={}){
