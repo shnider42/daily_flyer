@@ -7,3 +7,6 @@ dist_breach/
 .openai/
 qa/
 breach-*-results/
+
+# Claim Denied export and local QA
+dist_claim_denied/

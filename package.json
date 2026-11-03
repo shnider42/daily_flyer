@@ -2,12 +2,21 @@
   "name": "dailyflyer-breach",
   "private": true,
   "type": "module",
-  "engines": {"node": ">=22"},
-  "scripts": {
-    "dev": "python3 scripts/build_breach.py && node server/breach-server.mjs",
-    "start": "node server/breach-server.mjs",
-    "build:breach": "python scripts/build_breach.py",
-    "test:breach": "node --test tests/breach-*.test.mjs"
+  "engines": {
+    "node": ">=22"
   },
-  "dependencies": {"ws": "8.22.0"}
+  "scripts": {
+    "dev": "python3 scripts/build_claim_denied.py && node server/claim-server.mjs",
+    "start": "node server/claim-server.mjs",
+    "build:breach": "python scripts/build_breach.py",
+    "test:breach": "node --test tests/breach-*.test.mjs",
+    "start:claim-denied": "node server/claim-server.mjs",
+    "build:claim-denied": "python3 scripts/build_claim_denied.py",
+    "test:claim-denied": "node --test tests/claim-*.test.mjs",
+    "dev:breach": "python3 scripts/build_breach.py && node server/breach-server.mjs",
+    "start:breach": "node server/breach-server.mjs"
+  },
+  "dependencies": {
+    "ws": "8.22.0"
+  }
 }
