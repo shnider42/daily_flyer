@@ -26,6 +26,15 @@ export class Mesh{
  ring(x,y,z,r,col){for(let i=0;i<48;i++){const a=i/24*Math.PI,b=(i+1)/24*Math.PI;this.quad([x+Math.cos(a)*r,y,z+Math.sin(a)*r],[x+Math.cos(b)*r,y,z+Math.sin(b)*r],[x+Math.cos(b)*(r-.22),y,z+Math.sin(b)*(r-.22)],[x+Math.cos(a)*(r-.22),y,z+Math.sin(a)*(r-.22)],col);}}
  tube(a,b,r,col,n=6){const d=b.map((v,i)=>v-a[i]),length=Math.hypot(...d)||1,f=d.map(v=>v/length),tmp=Math.abs(f[1])<.95?[0,1,0]:[1,0,0],right=[f[1]*tmp[2]-f[2]*tmp[1],f[2]*tmp[0]-f[0]*tmp[2],f[0]*tmp[1]-f[1]*tmp[0]],l=Math.hypot(...right);for(let i=0;i<3;i++)right[i]/=l;const up=[f[1]*right[2]-f[2]*right[1],f[2]*right[0]-f[0]*right[2],f[0]*right[1]-f[1]*right[0]],p=(v,t)=>v.map((c,j)=>c+r*(Math.cos(t)*right[j]+Math.sin(t)*up[j]));for(let i=0;i<n;i++){const t=i/n*Math.PI*2,T=(i+1)/n*Math.PI*2;this.quad(p(a,t),p(a,T),p(b,T),p(b,t),col);}}
 }
+export function drawWaterLeaks(m,props,actor,time){
+ const leaks=props.filter(p=>p.leakTime>0&&p.anchor&&Math.hypot(p.anchor.x-actor.x,p.anchor.z-actor.z)<65).sort((a,b)=>Math.hypot(a.anchor.x-actor.x,a.anchor.z-actor.z)-Math.hypot(b.anchor.x-actor.x,b.anchor.z-actor.z)).slice(0,4);
+ for(const p of leaks){const a=p.anchor,pressure=Math.min(1,p.leakTime/4),age=35-p.leakTime;
+  m.disc(a.x,a.y+.025,a.z,Math.min(1.6,.3+age*.08),'#667e7d',12);m.tube([a.x,a.y+.08,a.z],[a.x+.04*Math.sin(time*9),a.y+1.65*pressure,a.z],.075,'#bacdca',5);
+  for(let i=0;i<24;i++){const t=((time*.8+i/24)%1)*1.3,angle=i*2.4,x=a.x+Math.sin(angle)*t*.8,z=a.z+Math.cos(angle)*t*.8,y=a.y+.1+(6.7*t-4.9*t*t)*pressure,s=.025+t*.025;
+   m.quad([x-s,y-.08,z],[x+s,y-.08,z],[x+s,y+.08,z],[x-s,y+.08,z],'#c5d8d4');m.quad([x,y-.08,z-s],[x,y-.08,z+s],[x,y+.08,z+s],[x,y+.08,z-s],'#a8c5c2');
+  }
+ }return leaks.length;
+}
 function multiply(a,b){const o=new Float32Array(16);for(let c=0;c<4;c++)for(let r=0;r<4;r++)o[c*4+r]=a[r]*b[c*4]+a[4+r]*b[c*4+1]+a[8+r]*b[c*4+2]+a[12+r]*b[c*4+3];return o;}
 function perspective(fov,aspect,near,far){let f=1/Math.tan(fov/2),nf=1/(near-far);return new Float32Array([f/aspect,0,0,0,0,f,0,0,0,0,(far+near)*nf,-1,0,0,2*far*near*nf,0]);}
 function lookAt(e,t){let z=e.map((v,i)=>v-t[i]),len=Math.hypot(...z)||1;z=z.map(v=>v/len);let x=[z[2],0,-z[0]],l=Math.hypot(...x)||1;x=x.map(v=>v/l);const y=[z[1]*x[2],z[2]*x[0]-z[0]*x[2],-z[1]*x[0]];return new Float32Array([x[0],y[0],z[0],0,x[1],y[1],z[1],0,x[2],y[2],z[2],0,-x.reduce((s,v,i)=>s+v*e[i],0),-y.reduce((s,v,i)=>s+v*e[i],0),-z.reduce((s,v,i)=>s+v*e[i],0),1]);}
@@ -141,6 +150,7 @@ export class Renderer{
   const m=new Mesh();for(const s of game.skids){if(s.t>25)continue;m.transform={x:s.x,y:groundHeight(s.x,s.z,this.city.id),z:s.z,c:Math.cos(s.a),s:Math.sin(s.a)};for(const x of[-.88,.88])m.flat(x,-1.6,.18,.7,'#303632',.018);}m.transform=null;
   const nearby=v=>Math.hypot(v.x-c.x,v.z-c.z)<180;
   for(const p of game.props||[]){const d=Math.hypot(p.x-c.x,p.z-c.z);if(d<115)drawStreetProp(m,p,{lod:d>36});}
+  drawWaterLeaks(m,game.props||[],c,t);
   // Full detail stays near the camera; far traffic keeps its vehicle silhouette cheaply.
   const cars=[...game.traffic,...game.parked].filter(nearby).sort((a,b)=>Math.hypot(a.x-c.x,a.z-c.z)-Math.hypot(b.x-c.x,b.z-c.z));
   for(const [index,v]of cars.entries())drawCar(m,v,{time:t,brake:v.braking,lod:index>11||Math.hypot(v.x-c.x,v.z-c.z)>45,door:game.door?.car===v?game.door:null});

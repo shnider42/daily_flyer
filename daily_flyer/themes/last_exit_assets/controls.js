@@ -30,7 +30,7 @@ export function movementHeading(state,x,y,yaw,looking=false){const moving=Math.h
 // Once a gesture becomes a look gesture, crossing an action never changes it.
 export function beginGesture(x,y,time,action=null){return{x,y,startX:x,startY:y,startTime:time,action,phase:'pending',travel:0};}
 export function moveGesture(g,x,y){const dx=x-g.x,dy=y-g.y;g.x=x;g.y=y;g.travel=Math.max(g.travel,Math.hypot(x-g.startX,y-g.startY));if(g.travel>9&&g.phase==='pending')g.phase='look';return{dx,dy,look:g.phase==='look'||g.phase==='held'};}
-export function advanceGesture(g,time){if(g.phase==='pending'&&g.action&&g.action!=='interact'&&time-g.startTime>=140)g.phase='held';return g.phase;}
+export function advanceGesture(g,time){if(g.phase==='pending'&&g.action&&g.action!=='interact'&&g.action!=='horn'&&time-g.startTime>=140)g.phase='held';return g.phase;}
 export function finishGesture(g,cancelled=false){return !cancelled&&g.action&&g.phase==='pending'&&g.travel<=9?g.action:null;}
 
 // Safari can still claim double taps on absolutely positioned game controls.

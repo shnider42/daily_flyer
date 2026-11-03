@@ -23,9 +23,9 @@ function cells(b){const out=[];for(let x=Math.floor((b.x-b.w/2)/CELL);x<=Math.fl
 function indexProp(state,p){for(const k of p.cells||[])state.cells.get(k)?.delete(p);const b=body(p),c=Math.abs(Math.cos(b.a)),s=Math.abs(Math.sin(b.a));p.cells=cells({...b,w:b.w*c+b.d*s,d:b.d*c+b.w*s});for(const k of p.cells){if(!state.cells.has(k))state.cells.set(k,new Set());state.cells.get(k).add(p);}}
 function nearby(state,x,z,r){const result=new Set();for(const k of cells({x,z,w:r*2,d:r*2}))for(const p of state.cells.get(k)||[])result.add(p);return result;}
 export function makeStreetState(props=[],city={}){const state={props,city,cells:new Map(),active:new Set(),serial:0,events:[]};for(const p of props)indexProp(state,p);return state;}
-export function createProp(kind,x,z,a=0,mapId='meridian'){return{kind,x,z,a,mapId,y:groundHeight(x,z,mapId),pitch:0,roll:0,vx:0,vy:0,vz:0,spin:0,vp:0,vr:0,broken:false,active:false,age:0,quiet:0,cooldown:0};}
+export function createProp(kind,x,z,a=0,mapId='meridian'){return{kind,x,z,a,mapId,y:groundHeight(x,z,mapId),anchor:{x,z,y:groundHeight(x,z,mapId)},pitch:0,roll:0,vx:0,vy:0,vz:0,spin:0,vp:0,vr:0,broken:false,active:false,age:0,quiet:0,cooldown:0};}
 export function makeStreetProps(city,vehicles=[]){
- if(!city.id)return[];const props=[],kinds=['lamp','bin','bench','sign','lamp','newsbox','hydrant','bench','cone','bollard'];let index=0;
+ if(!city.id)return[];const props=[],kinds=['lamp','bin','bench','sign','lamp','newsbox','hydrant','bench','cone','bollard','dumpster','crate','roadbarrier'];let index=0;
  const add=(kind,x,z,a)=>{if(Math.abs(x)>229||Math.abs(z)>229)return;const p=createProp(kind,x,z,a,city.id),b=body(p);if(city.buildings.some(v=>contact({...b,w:b.w+.8,d:b.d+.8},v)))return;if((city.walkSurfaces||[]).some(v=>contact({...b,w:b.w+1.2,d:b.d+1.2},v)))return;if(vehicles.some(v=>Math.hypot(v.x-x,v.z-z)<4.8)||(city.features||[]).some(f=>f.entrance&&Math.hypot(f.entrance.x-x,f.entrance.z-z)<4))return;if(props.some(q=>Math.hypot(q.x-x,q.z-z)<3.4))return;props.push(p);};
  if(city.roads){for(const edge of city.roads){if(edge.bridge)continue;for(let d=18;d<edgeLength(edge)-17;d+=19)for(const side of[-1,1]){const f=roadFrame(edge,d,false,0),x=f.x+Math.cos(f.a)*12.45*side,z=f.z-Math.sin(f.a)*12.45*side;if(nearestBostonRoad({x,z}).distance<11.9||Object.values(city.nodes).some(n=>Math.hypot(x-n.x,z-n.z)<17))continue;add(kinds[index++%kinds.length],x,z,f.a-side*Math.PI/2);}}}
  else for(const vertical of[true,false])for(const road of roads)for(let segment=0;segment<6;segment++)for(const offset of[22,49])for(const side of[-1,1]){const along=roads[segment]+offset,x=vertical?road+side*12.45:along,z=vertical?along:road+side*12.45;if(city.id!=='baycrest'&&x>=-155&&x<=11&&z>=61&&z<=227&&Math.abs(z-x-216)<15)continue;add(kinds[index++%kinds.length],x,z,vertical?-side*Math.PI/2:side<0?0:Math.PI);}
@@ -35,9 +35,10 @@ export function makeStreetProps(city,vehicles=[]){
 }
 function rest(state,p){p.active=false;p.vx=p.vy=p.vz=p.vp=p.vr=p.spin=0;state.active.delete(p);indexProp(state,p);}
 function wake(state,p,nx,nz,power){
+ if(p.kind==='hydrant'&&!p.broken)p.leakTime=35;
  if(!p.active&&state.active.size>=MAX_ACTIVE){const oldest=[...state.active].sort((a,b)=>b.age-a.age)[0];stablePose(oldest,1);land(oldest,state.city,true);rest(state,oldest);}
  const b=propBounds(p),s=propSpec(p);if(!p.active){p.cx=b.x;p.cy=b.y;p.cz=b.z;p.age=0;}
- p.active=true;p.broken=true;p.quiet=0;state.active.add(p);p.vx=clamp(p.vx+nx*power,-20,20);p.vz=clamp(p.vz+nz*power,-20,20);p.vy=Math.min(6,Math.max(p.vy,power*.18+.65));const localX=nx*Math.cos(p.a)-nz*Math.sin(p.a),localZ=nx*Math.sin(p.a)+nz*Math.cos(p.a),turn=Math.min(6,1.6+power*.25)/(s.h>3?1.6:1);p.fallAxis=Math.abs(localZ)>=Math.abs(localX)?'pitch':'roll';p.vp+=localZ*turn;p.vr-=localX*turn;p.spin=clamp(p.spin+(nx+nz)*.9,-3,3);p.cooldown=.14;
+ p.active=true;p.broken=true;p.quiet=0;state.active.add(p);p.vx=clamp(p.vx+nx*power,-20,20);p.vz=clamp(p.vz+nz*power,-20,20);p.vy=Math.min(6,Math.max(p.vy,power*.24+.8));const localX=nx*Math.cos(p.a)-nz*Math.sin(p.a),localZ=nx*Math.sin(p.a)+nz*Math.cos(p.a),turn=Math.min(6,1.6+power*.25)/(s.h>3?1.6:1);p.fallAxis=Math.abs(localZ)>=Math.abs(localX)?'pitch':'roll';p.vp+=localZ*turn;p.vr-=localX*turn;p.spin=clamp(p.spin+(nx+nz)*.9,-3,3);p.cooldown=.14;
  state.events.push({x:b.x,y:b.y,z:b.z,kind:p.kind,power,serial:++state.serial});if(state.events.length>12)state.events.shift();indexProp(state,p);
 }
 function stablePose(p,blend){const quarter=Math.PI/2;for(const key of['pitch','roll']){const target=propSpec(p).h>2&&key===p.fallAxis?Math.round((p[key]-quarter)/Math.PI)*Math.PI+quarter:Math.round(p[key]/quarter)*quarter;p[key]+=(target-p[key])*blend;}}
@@ -57,7 +58,7 @@ export function hitStreetVehicle(state,c,dt){let strongest=null;const spec=vehic
  return strongest;
 }
 export function blastStreet(state,at,power=23,canSee=()=>true){for(const p of nearby(state,at.x,at.z,13)){const b=propBounds(p),d=Math.hypot(b.x-at.x,b.z-at.z);if(d>=13||!canSee(at,p))continue;const f=(1-d/13)*power;if(f<propSpec(p).breakSpeed)continue;wake(state,p,(b.x-at.x)/(d||1),(b.z-at.z)/(d||1),Math.min(18,f));}}
-export function stepStreet(state,dt){dt=Math.min(dt,1/30);for(const p of state.props)if(p.cooldown>0)p.cooldown-=dt;
+export function stepStreet(state,dt){dt=Math.min(dt,1/30);for(const p of state.props){if(p.cooldown>0)p.cooldown-=dt;if(p.leakTime>0)p.leakTime=Math.max(0,p.leakTime-dt);}
  for(const p of [...state.active]){const s=propSpec(p);p.age+=dt;p.vy-=9.81*dt;p.cx+=p.vx*dt;p.cy+=p.vy*dt;p.cz+=p.vz*dt;p.pitch+=p.vp*dt;p.roll+=p.vr*dt;p.a+=p.spin*dt;setOrigin(p);let b=propBounds(p),ground=groundHeight(p.cx,p.cz,state.city.id||p.mapId),touch=p.cy-b.hy<=ground+.025;
   if(touch){p.cy=ground+b.hy;if(p.vy<0)p.vy=Math.abs(p.vy)<.7?0:-p.vy*s.restitution;const drag=Math.exp(-dt*s.friction*5);p.vx*=drag;p.vz*=drag;p.vp*=Math.exp(-dt*3);p.vr*=Math.exp(-dt*3);p.spin*=Math.exp(-dt*3);if(Math.hypot(p.vx,p.vz)<1.6){stablePose(p,Math.min(1,dt*6));}setOrigin(p);land(p,state.city);}
   // Debris collides with buildings and retaining walls, so it cannot slide through a facade.
@@ -70,6 +71,6 @@ export function stepStreet(state,dt){dt=Math.min(dt,1/30);for(const p of state.p
 export function personStreetContact(state,person){let struck=null;
  for(const p of nearby(state,person.x,person.z,4)){const b=body(p),s=propSpec(p);if(person.y>b.y+b.h+.25||(person.y||0)+1.7<b.y)continue;const co=Math.cos(b.a||0),si=Math.sin(b.a||0),dx=person.x-b.x,dz=person.z-b.z,x=dx*co-dz*si,z=dx*si+dz*co,qx=x-clamp(x,-b.w/2,b.w/2),qz=z-clamp(z,-b.d/2,b.d/2),d=Math.hypot(qx,qz);if(d>=.3)continue;let nx,nz,depth;if(d>.001){nx=qx/d;nz=qz/d;depth=.3-d;}else{const wx=b.w/2+.3-Math.abs(x),wz=b.d/2+.3-Math.abs(z);if(wx<wz){nx=Math.sign(x)||1;nz=0;depth=wx;}else{nx=0;nz=Math.sign(z)||1;depth=wz;}}const X=nx*co+nz*si,Z=nz*co-nx*si;
   if(!p.active&&s.mass<30&&Math.hypot(person.vx||0,person.vz||0)>1&&p.cooldown<=0){wake(state,p,-X,-Z,.85);continue;}
-  person.x+=X*depth;person.z+=Z*depth;const speed=Math.hypot(p.vx,p.vz);if(p.active&&speed>3.5&&!person.contactCooldown){person.knockVX=X*Math.min(6,speed*.5);person.knockVZ=Z*Math.min(6,speed*.5);person.stun=speed>7?1.2:.4;person.knockdown=speed>7?1.2:0;person.contactCooldown=1;struck=p;}
+  person.x+=X*depth;person.z+=Z*depth;const speed=Math.hypot(p.vx,p.vz);if(p.active&&speed>3.5&&!person.contactCooldown){person.knockVX=X*Math.min(6,speed*.5);person.knockVZ=Z*Math.min(6,speed*.5);person.stun=speed>7?1.2:.4;person.knockdown=speed>7?1.2:0;person.contactCooldown=1;person.lastVehicleImpact=speed;person.impactSide=Math.sign(X*Math.cos(person.a||0)-Z*Math.sin(person.a||0))||1;struck=p;}
  }return struck;
 }

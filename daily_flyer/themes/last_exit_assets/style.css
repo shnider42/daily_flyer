@@ -15,3 +15,6 @@ body.playing{touch-action:none;-webkit-user-select:none;user-select:none;-webkit
 
 .city-picker{display:grid;grid-template-columns:1.35fr 1fr 1fr;gap:6px}.city-picker button{min-width:0;padding:8px 7px}.city-picker strong{font-size:12px}.city-picker small{font-size:7px;line-height:1.3}#mechanical{color:#e2a070}.heat small{white-space:nowrap}
 @media(max-height:500px) and (orientation:landscape){.city-picker{grid-template-columns:1.3fr 1fr 1fr}.city-picker strong{font-size:10px}.city-picker small{font-size:6px}.city-picker button{padding:5px}}
+
+/* A secondary horn action uses the existing speed readout, away from the pedals. */
+#horn{position:relative;z-index:6;width:100%;min-height:44px;padding:0 0 9px;border:0;background:transparent;color:inherit;font:inherit;pointer-events:auto;touch-action:none;cursor:pointer}#horn em{position:absolute;right:0;bottom:0;font:6px monospace;letter-spacing:1px;opacity:.55;font-style:normal}#horn:active{color:#edc28f}#horn:focus-visible{outline:1px solid #edc28f;outline-offset:3px}

@@ -521,11 +521,23 @@ function drawWreck(m,c,lod=false){
  m.transform=null;m.kind=0;
 }
 
+function drawHazards(m,c,time=0,lod=false){
+ if(!c.hazards||c.exploded)return;
+ const s=variantSpecs[c.kind]||variantSpecs.sedan,lit=Math.floor((Number(time)||0)*3)%2===0,color=lit?'#f4ad42':'#72532d',d=surface(m,c);
+ m.transform={x:c.x,y:c.y||0,z:c.z,c:Math.cos(c.a),s:Math.sin(c.a),pitch:c.pitch||0,roll:c.roll||0};m.kind=0;
+ // Dedicated amber indicators sit below the normal lamp clusters; braking stays red.
+ for(const side of[-1,1])for(const end of[-1,1]){const x=side*s.w*.73,z=end*(s.l+.025),y=c.kind==='sport'?.46:.565,half=lod?.105:.083;d.quad([x-half,y-.043,z],[x+half,y-.043,z],[x+half,y+.043,z],[x-half,y+.043,z],color,lit?1.12:1);}
+ if(!lod)for(const side of[-1,1]){const x=side*(s.w-.02),z=s.l*.72;d.quad([x,.59,z-.09],[x,.59,z+.09],[x,.665,z+.09],[x,.665,z-.09],color,lit?1.1:1);}
+ m.transform=null;m.kind=0;
+}
+
 export function drawCar(m,c,options={}){
  if(c.exploded){drawWreck(m,c,!!options.lod);return;}
  const police=!!(options.police||c.police),car=police?{...c,paint:policePalette(c).body}:c;
- drawCarBody(m,car,{...options,police:false});
- if(police)drawPoliceLivery(m,car,options);
+ const renderOptions={...options,door:options.door??c.npcDoor??null};
+ drawCarBody(m,car,{...renderOptions,police:false});
+ if(police)drawPoliceLivery(m,car,renderOptions);
+ drawHazards(m,car,renderOptions.time,!!renderOptions.lod);
 }
 
 // A small opaque low-poly flame mesh complements the renderer's drifting smoke.
@@ -548,13 +560,22 @@ export function drawVehicleFire(m,c,time=0){
 
 export function drawPerson(m,p){
  m.transform={x:p.x,y:p.y??p.ground??0,z:p.z,c:Math.cos(p.a),s:Math.sin(p.a)};m.kind=0;
- m.disc(0,.043,0,.36,'#303732',12);
- const fall=clamp((Number(p.knockdown)||0)/.7,0,1),stunned=(Number(p.stun)||0)>0;
- // A non-graphic backwards fall holds above .7 seconds, then eases into a braced recovery.
- if(fall||stunned){m.transform.pitch=fall*1.48+(stunned?.16:0)*(1-fall);m.transform.roll=fall*.1+(stunned?Math.sin(p.stun*17)*.065:0)*(1-fall);m.transform.y+=fall*.16;}
- const moving=(p.speed||0)>.08&&!stunned&&!fall,phase=p.walk||0,run=(p.speed||0)>4;
- const bounce=moving?Math.abs(Math.sin(phase))*(run?.035:.018):0;
- const torso=.93+bounce,officer=!!p.officer,coat=officer?'#2b4054':p.coat||'#6f6757';
+ const fall=clamp((Number(p.knockdown)||0)/.7,0,1),stunned=(Number(p.stun)||0)>0,officer=!!p.officer;
+ const impactSide=Number(p.impactSide)<0?-1:1,impact=clamp((Number(p.lastVehicleImpact)||0)/16,0,1),recovering=fall>0&&fall<1,recover=recovering?Math.sin(fall*Math.PI):0;
+ if(fall){
+  const roll=-impactSide*fall*(.38+.27*impact),pitch=fall*(1.46-.08*impact),dx=-Math.sin(roll),dz=-Math.cos(roll)*Math.sin(pitch),len=Math.hypot(dx,dz)||1,x=dx/len,z=dz/len,point=a=>[x*.7*fall+x*Math.cos(a)*(.36+.65*fall)-z*Math.sin(a)*.32,.043,z*.7*fall+z*Math.cos(a)*(.36+.65*fall)+x*Math.sin(a)*.32];
+  for(let k=0;k<12;k++)m.tri([x*.7*fall,.043,z*.7*fall],point(k/6*Math.PI),point((k+1)/6*Math.PI),'#303732');
+ }else m.disc(0,.043,0,.36,'#303732',12);
+ const active=(Number(p.reactionTime)||0)>0,flee=active&&p.reaction==='flee',startle=active&&p.reaction==='startle',watch=active&&p.reaction==='watch';
+ const reporting=!!p.reporting&&!officer&&!fall&&!stunned;
+ // Fall direction mirrors the contact; a bent knee and planted hand brace the recovery.
+ if(fall||stunned){m.transform.pitch=fall*(1.46-.08*impact)+(stunned?.16:0)*(1-fall);m.transform.roll=-impactSide*fall*(.38+.27*impact)+(stunned?Math.sin(p.stun*17)*.065:0)*(1-fall);m.transform.y+=fall*.20-fall*fall*.14;}
+ else if(flee){m.transform.pitch=-.18;m.transform.roll=Math.sin((p.walk||0)*.5)*.025;}
+ else if(startle){m.transform.pitch=.105;}
+ else if(watch&&!reporting){m.transform.pitch=.025;}
+ const moving=(p.speed||0)>.08&&!stunned&&!fall,phase=p.walk||0,run=(p.speed||0)>4||flee;
+ const bounce=(moving?Math.abs(Math.sin(phase))*(run?.035:.018):0)-recover*.14;
+ const torso=.93+bounce,coat=officer?'#2b4054':p.coat||'#6f6757';
  // Eight-sided rings narrow at the waist, broaden through the shoulders.
  loftY(m,[[0,torso-.12,0,.185,.135],[0,torso+.03,.005,.205,.15],[0,torso+.30,.015,.255,.155],[0,torso+.43,.005,.245,.14],[0,torso+.47,.01,.105,.09]],coat,8);
  loftY(m,[[0,.80+bounce,0,.17,.125],[0,.94+bounce,0,.185,.13]],officer?'#25394c':'#3c4652',8);
@@ -565,11 +586,22 @@ export function drawPerson(m,p){
  for(const side of[-1,1]){
   const cycle=phase+(side>0?Math.PI:0),swing=moving?Math.sin(cycle)*(run?.44:.30):0,lift=moving?Math.max(0,Math.cos(cycle))*(run?.14:.065):0;
   const hip=[side*.115,.86+bounce,0],knee=[side*.13,.48+lift,swing*.48],ankle=[side*.13,.13+lift,swing];
-  if(fall){knee[2]+=.28*fall;ankle[2]+=.04*fall;}else if(stunned)ankle[0]=side*.19;
+  if(fall){knee[2]+=(side===impactSide?.34:.22)*fall+.10*recover;ankle[2]+=.04*fall;ankle[0]+=side*.035*recover;}else if(stunned||startle){ankle[0]=side*.19;knee[2]+=.035;}
   tube(m,hip,knee,.108,.084,'#434c56',7);tube(m,knee,ankle,.083,.062,'#3a434e',7);
   ellipsoid(m,[ankle[0],ankle[1]-.057,ankle[2]+.065],[.085,.067,.17],'#2d3437',8,3);
   const shoulder=[side*.254,torso+.33,.005],elbow=[side*.30,torso+.10,-swing*.57],hand=[side*.29,torso-.11,-swing*.85+(run?.08:0)];
-  if(fall){elbow[0]+=side*.07*fall;elbow[2]+=.14*fall;hand[0]+=side*.12*fall;hand[2]+=.12*fall;}else if(stunned){elbow[2]+=.13;hand[2]+=.28;hand[1]+=.08;}
+  if(fall){
+   elbow[0]+=side*.07*fall;elbow[2]+=.14*fall;hand[0]+=side*.12*fall;hand[2]+=.12*fall;
+   const brace=side===impactSide?recover:recover*.28;elbow[1]-=.10*brace;hand[1]-=.31*brace;hand[2]-=.30*brace;
+  }else if(stunned||startle){
+   elbow[0]=side*.36;elbow[1]=torso+.28;elbow[2]=.20;hand[0]=side*.27;hand[1]=torso+.57;hand[2]=.34;
+  }else if(reporting&&side===1){
+   elbow[0]=.36;elbow[1]=torso+.36;elbow[2]=.035;hand[0]=.185;hand[1]=1.655+bounce;hand[2]=.018;
+  }else if(flee){
+   elbow[0]=side*.34;elbow[1]=torso+.15;elbow[2]=.08-swing*.58;hand[0]=side*.24;hand[1]=torso+.35;hand[2]=.22-swing*.8;
+  }else if(watch){
+   elbow[0]=side*.315;elbow[1]=torso+.11;elbow[2]=.12;hand[0]=-side*.105;hand[1]=torso+.18+(side>0?.035:0);hand[2]=.235+side*.016;
+  }
   tube(m,shoulder,elbow,.089,.071,officer?'#2b4054':'#6c6657',7);tube(m,elbow,hand,.073,.052,officer?'#31495d':'#77705f',7);
   ellipsoid(m,[hand[0],hand[1]-.04,hand[2]+.012],[.054,.078,.05],'#ad9278',7,4);
  }
@@ -582,6 +614,11 @@ export function drawPerson(m,p){
  m.tri([-.022,head[1]+.023,.126],[0,head[1]-.025,.161],[0,head[1]-.035,.119],'#9c826a');
  for(const side of[-1,1])m.quad([side*.038-.016,head[1]+.028,.122],[side*.038+.016,head[1]+.028,.122],[side*.038+.016,head[1]+.038,.119],[side*.038-.016,head[1]+.038,.119],'#4d4940');
  m.quad([-.035,head[1]-.061,.113],[.035,head[1]-.061,.113],[.03,head[1]-.052,.118],[-.03,head[1]-.052,.118],'#816956');
+ if(reporting){
+  // A small dark handset stays between the raised hand and ear, never on officers.
+  block(m,.148,head[1]-.065,.013,.045,.17,.085,'#202d30');
+  m.quad([.172,head[1]-.025,-.015],[.172,head[1]-.025,.04],[.172,head[1]+.055,.04],[.172,head[1]+.055,-.015],'#596c67');
+ }
  if(officer){
   // Peaked patrol cap, badge, epaulettes and equipment belt remain legible at street scale.
   ellipsoid(m,[0,head[1]+.122,.007],[.147,.055,.145],'#273c50',8,3);
