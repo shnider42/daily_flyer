@@ -24,7 +24,7 @@ export const JOBS=[
  {id:'heat',name:'Heat check',tag:'02 / LOSE THE TAIL',desc:'Two cruisers have your number. Break their line of sight, stay out of view, and get back to the garage.',time:150,targets:[{x:-144,z:-144,label:'Lose the police, then reach the garage',stop:true}]},
  {id:'courier',name:'Last delivery',tag:'03 / AGAINST THE CLOCK',desc:'Four checkpoints across the city. Keep moving, watch the traffic, and bring the car home in one piece.',time:110,targets:[{x:144,z:144,label:'Checkpoint 1 · Coast Road'},{x:144,z:-144,label:'Checkpoint 2 · Marina'},{x:-144,z:-144,label:'Checkpoint 3 · Downtown'},{x:-144,z:72,label:'Checkpoint 4 · Old Quarter'}]}
 ];
-export function makeCar(x=5.7,z=174,a=Math.PI){return{x,z,a,vx:0,vz:0,speed:0,steer:0,damage:0,hit:0,slip:0,distance:0,top:0};}
+export function makeCar(x=5.7,z=174,a=Math.PI){return{x,z,a,vx:0,vz:0,speed:0,steer:0,damage:0,panelDamage:{front:0,rear:0,left:0,right:0},lastImpact:null,hit:0,slip:0,distance:0,top:0};}
 export function collide(car,buildings,radius=1.45){
  let impact=0;
  for(const b of buildings){
@@ -37,13 +37,38 @@ export function collide(car,buildings,radius=1.45){
  for(const key of ['x','z']){if(Math.abs(car[key])>235){car[key]=clamp(car[key],-235,235);const vk=key==='x'?'vx':'vz';impact=Math.max(impact,Math.abs(car[vk]));car[vk]*=-.22;}}
  return impact;
 }
+// Separating-axis contact for the actual full-length vehicle footprint.
+export function boxContact(a,b,aw=1.1,al=2.65,bw=1.1,bl=2.65){
+ const aa=a.a||0,ba=b.a||0,ar=[Math.cos(aa),-Math.sin(aa)],af=[Math.sin(aa),Math.cos(aa)],br=[Math.cos(ba),-Math.sin(ba)],bf=[Math.sin(ba),Math.cos(ba)],delta=[a.x-b.x,a.z-b.z];let depth=Infinity,normal=null;
+ for(const axis of[ar,af,br,bf]){const dot=(v,w)=>v[0]*w[0]+v[1]*w[1],ra=aw*Math.abs(dot(ar,axis))+al*Math.abs(dot(af,axis)),rb=bw*Math.abs(dot(br,axis))+bl*Math.abs(dot(bf,axis)),d=dot(delta,axis),overlap=ra+rb-Math.abs(d);if(overlap<=0)return null;if(overlap<depth){depth=overlap;const sign=d<0?-1:1;normal={x:axis[0]*sign,z:axis[1]*sign};}}
+ return{...normal,depth};
+}
+export function applyDamage(c,power,nx,nz){
+ if(power<=3||c.hit>0)return false;
+ const amount=power*.72;c.damage=clamp((c.damage||0)+amount,0,100);c.panelDamage??={front:0,rear:0,left:0,right:0};
+ const localX=-nx*Math.cos(c.a)+nz*Math.sin(c.a),localZ=-nx*Math.sin(c.a)-nz*Math.cos(c.a),side=Math.abs(localZ)>Math.abs(localX)?(localZ>0?'front':'rear'):(localX>0?'right':'left');
+ c.panelDamage[side]=clamp(c.panelDamage[side]+amount*2.1,0,100);c.hit=.38;
+ c.lastImpact={x:c.x-nx*1.7,z:c.z-nz*1.7,nx,nz,power,side,serial:(c.lastImpact?.serial||0)+1};return true;
+}
+export function collideVehicle(c,buildings){
+ let strongest=0;
+ for(const b of buildings){if(Math.abs(c.x-b.x)>b.w/2+3||Math.abs(c.z-b.z)>b.d/2+3)continue;const contact=boxContact(c,{...b,a:0},1.1,2.65,b.w/2,b.d/2);if(!contact)continue;const {x:nx,z:nz,depth}=contact;c.x+=nx*(depth+.002);c.z+=nz*(depth+.002);const inward=c.vx*nx+c.vz*nz;if(inward<0){const power=-inward;c.vx-=inward*1.12*nx;c.vz-=inward*1.12*nz;applyDamage(c,power,nx,nz);strongest=Math.max(strongest,power);}}
+ for(const key of['x','z'])if(Math.abs(c[key])>232.3){const sign=Math.sign(c[key]),vk=key==='x'?'vx':'vz';c[key]=sign*232.3;const power=Math.abs(c[vk]);applyDamage(c,power,key==='x'?-sign:0,key==='z'?-sign:0);c[vk]*=-.12;strongest=Math.max(strongest,power);}
+ return strongest;
+}
+// Retract the chase camera along its ray instead of teleporting overhead.
+export function safeCamera(actor,eye,buildings){
+ let fraction=1;
+ for(const b of buildings){let lo=0,hi=1;for(const [k,j,size]of[['x',0,'w'],['z',2,'d']]){const delta=eye[j]-actor[k],min=b[k]-b[size]/2-.55,max=b[k]+b[size]/2+.55;if(Math.abs(delta)<1e-7){if(actor[k]<min||actor[k]>max){lo=2;break;}}else{let near=(min-actor[k])/delta,far=(max-actor[k])/delta;if(near>far)[near,far]=[far,near];lo=Math.max(lo,near);hi=Math.min(hi,far);}}if(lo<=hi&&lo>=0&&lo<1)fraction=Math.min(fraction,Math.max(0,lo-.025));}
+ return[actor.x+(eye[0]-actor.x)*fraction,eye[1],actor.z+(eye[2]-actor.z)*fraction];
+}
 export function stepCar(c,input,dt,buildings,handling='street'){
  dt=clamp(dt,0,1/30);c.hit=Math.max(0,c.hit-dt);
  const fx=Math.sin(c.a),fz=Math.cos(c.a),rx=Math.cos(c.a),rz=-Math.sin(c.a);
  let forward=c.vx*fx+c.vz*fz,side=c.vx*rx+c.vz*rz;
  c.steer+=(clamp(input.steer||0,-1,1)-c.steer)*Math.min(1,dt*8);
  const brake=clamp(input.brake||0,0,1),gas=clamp(input.gas||0,0,1),hb=!!input.handbrake;
- let acc=gas*(forward<-.8?22:13.8)-brake*(forward>.8?25:7.8);
+ let acc=gas*(c.damage>=100?0:forward<-.8?22:13.8*Math.max(.4,1-c.damage*.004))-brake*(forward>.8?25:7.8);
  if(!gas&&!brake){acc-=Math.sign(forward)*Math.min(Math.abs(forward)/dt,1.25);}
  forward=clamp(forward+(acc-forward*Math.abs(forward)*.006)*dt,-10,44);
  if(hb)forward*=Math.exp(-dt*1.05);
@@ -56,8 +81,7 @@ export function stepCar(c,input,dt,buildings,handling='street'){
  c.a=angle(c.a-turn*dt);
  c.vx=fx*forward+rx*side;c.vz=fz*forward+rz*side;
  c.x+=c.vx*dt;c.z+=c.vz*dt;
- const hit=collide(c,buildings);
- if(hit>3&&c.hit===0){c.damage=clamp(c.damage+hit*.72,0,100);c.hit=.7;}
+ const hit=collideVehicle(c,buildings);
  c.speed=c.vx*Math.sin(c.a)+c.vz*Math.cos(c.a);
  c.slip=Math.abs(c.vx*Math.cos(c.a)-c.vz*Math.sin(c.a));
  c.distance+=Math.hypot(c.vx,c.vz)*dt;c.top=Math.max(c.top,Math.abs(c.speed)*2.237);
@@ -106,14 +130,14 @@ export class Game{
 
  raiseHeat(n=2){this.heat=n;this.hidden=0;if(!this.cops.length){for(let i=0;i<n;i++)this.cops.push({x:i===0?0:72,z:i===0?216:216,a:Math.PI,speed:0,goal:null,last:{x:this.car.x,z:this.car.z},seen:true});}this.say('DISPATCH · Units are on your tail. Break line of sight.');}
  get target(){return this.job.targets[this.stage]||null;}
- recover(){if(this.onFoot){this.person.x=this.car.x+Math.cos(this.car.a)*2.25;this.person.z=this.car.z-Math.sin(this.car.a)*2.25;this.say('Returned to your car.');return;}resetCar(this.car);this.resetCount++;if(this.job.id==='free')this.car.damage=0;else this.time=Math.max(0,this.time-8);this.say(this.job.id==='free'?'Back on the road. Car repaired.':'Back on the road. 8-second recovery penalty.');}
+ recover(){if(this.onFoot){this.onFoot=false;this.interact();this.say('Returned to your car.');return;}resetCar(this.car);this.resetCount++;if(this.job.id==='free'){this.car.damage=0;this.car.panelDamage={front:0,rear:0,left:0,right:0};this.car.lastImpact=null;}else this.time=Math.max(0,this.time-8);this.say(this.job.id==='free'?'Back on the road. Car repaired.':'Back on the road. 8-second recovery penalty.');}
  tick(dt,input={}){
   if(this.done)return;dt=clamp(dt,0,1/30);this.elapsed+=dt;this.messageTime=Math.max(0,this.messageTime-dt);if(this.door){this.door.time-=dt;if(this.door.time<=0)this.door=null;}
   const c=this.car;if(this.onFoot)this.stepPerson(input,dt);const hit=this.onFoot?0:stepCar(c,input,dt,this.city.buildings,this.handling);this.impact=hit;const actor=this.actor;
   if(hit>8&&this.job.id==='free'&&!this.heat)this.say('Bent the fender? R or Recover puts you back on the road.');
   for(const t of this.traffic){t.hit=Math.max(0,t.hit-dt);const sp=(this.onFoot&&dist(t,this.person)<9)?0:t.hit?2:t.speed;if(t.vertical)t.z+=t.dir*sp*dt;else t.x+=t.dir*sp*dt;if(Math.abs(t.x)>231)t.x=-Math.sign(t.x)*230;if(Math.abs(t.z)>231)t.z=-Math.sign(t.z)*230;this.carCollision(t,dt);}
   if(c.slip>2&&Math.abs(c.speed)>5&&this.elapsed%0.065<dt){this.skids.push({x:c.x,z:c.z,a:c.a,t:0});if(this.skids.length>180)this.skids.shift();}
-  for(const v of this.parked)this.carCollision({...v,speed:0},dt);
+  for(const v of this.parked){v.hit=Math.max(0,v.hit-dt);this.carCollision(v,dt);}
   for(const s of this.skids)s.t+=dt;
   let spotted=false;
   for(const p of this.cops){
@@ -145,8 +169,13 @@ export class Game{
     else if(this.heat&&this.stage===this.job.targets.length-1)this.say('Lose the tail before leading them to the garage.');
     else{this.hold+=dt;if(this.hold>(target.stop?.7:.04)){this.stage++;this.hold=0;if(this.stage>=this.job.targets.length)this.finish(true,'Job complete.');else{if(this.job.id==='pickup')this.raiseHeat(2);this.say(this.job.id==='pickup'?'CONTACT · Go, go! Lose them and head to the garage.':'Checkpoint cleared. Keep moving.');}}}
    }else this.hold=0;
-  }else if(c.damage>=100){this.recover();}
+  }else if(c.damage>=100){c.vx*=Math.exp(-dt*2);c.vz*=Math.exp(-dt*2);if(!this.onFoot)this.say('ENGINE DISABLED · Get out, change cars, or Recover to repair.');}
  }
- carCollision(t,dt){if(this.onFoot)return;const c=this.car;let d=dist(c,t);if(d>3.6)return;const nx=(c.x-t.x)/(d||1),nz=(c.z-t.z)/(d||1);c.x+=nx*(3.6-d);c.z+=nz*(3.6-d);let tvx=Math.sin(t.a)*t.speed,tvz=Math.cos(t.a)*t.speed,impact=-((c.vx-tvx)*nx+(c.vz-tvz)*nz);if(impact>0){c.vx+=nx*impact*.8;c.vz+=nz*impact*.8;if(!c.hit&&impact>3){c.damage=clamp(c.damage+impact*.65,0,100);c.hit=.7;this.impact=impact;t.hit=1;if(this.job.id==='free'&&impact>12&&!this.heat)this.raiseHeat(1);}}}
+ carCollision(t,dt){
+  if(this.onFoot)return;const c=this.car;if(dist(c,t)>6)return;const contact=boxContact(c,t);if(!contact)return;
+  const {x:nx,z:nz,depth}=contact;c.x+=nx*(depth+.002);c.z+=nz*(depth+.002);
+  const tvx=Math.sin(t.a)*(t.hit?0:t.speed||0),tvz=Math.cos(t.a)*(t.hit?0:t.speed||0),impact=-((c.vx-tvx)*nx+(c.vz-tvz)*nz);
+  if(impact>0){c.vx+=nx*impact*.95;c.vz+=nz*impact*.95;if(applyDamage(c,impact,nx,nz)){this.impact=impact;applyDamage(t,impact,-nx,-nz);t.hit=1;if(this.job.id==='free'&&impact>12&&!this.heat)this.raiseHeat(1);}}
+ }
  finish(win,reason){if(!this.done)this.done={win,reason,elapsed:this.elapsed,distance:this.car.distance,top:this.car.top,damage:this.car.damage};}
 }
