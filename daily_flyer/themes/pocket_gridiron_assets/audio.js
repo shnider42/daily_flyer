@@ -1,6 +1,7 @@
-import {playbackSession} from './device-audio.js?v=18';
-import {ImpactLimiter} from './impact.js?v=18';
-import {PGIMusic,FAMILY_NAMES} from './music.js?v=18';
+import {BoothChatter} from './booth-chatter.js?v=19';
+import {playbackSession} from './device-audio.js?v=19';
+import {ImpactLimiter} from './impact.js?v=19';
+import {PGIMusic,FAMILY_NAMES} from './music.js?v=19';
 export function musicPolicy(settings,game,{audition=false,broadcast=false}={}){
  const continuous=settings.musicMode==='always';
  const scene=game?.phase==='final'?'postgame':typeof broadcast==='string'?broadcast:!game?'menu':game.phase==='halftime'?'halftime':null;
@@ -9,9 +10,9 @@ export function musicPolicy(settings,game,{audition=false,broadcast=false}={}){
 }
 // Original effects, with authored MP3 score transport adapted from Breach.
 export class StadiumAudio {
- constructor(settings={}){this.settings={effects:true,contactFx:true,passWhistle:true,music:true,musicMode:'broadcast',scoringMusic:true,station:'all',musicVolume:.55,volume:.45,...settings};if(!['broadcast','always'].includes(this.settings.musicMode))this.settings.musicMode='broadcast';if(!Object.hasOwn(FAMILY_NAMES,this.settings.station))this.settings.station='all';this.context=null;this.lastCadence='';this.impacts=new ImpactLimiter();this.pads=new ImpactLimiter({gap:.12,blockGap:.22,max:5,window:1});this.soundtrack=new PGIMusic();}
- async unlock(){try{playbackSession();const C=globalThis.AudioContext||globalThis.webkitAudioContext;if(!C)return;if(this.context?.state==='closed'){this.soundtrack.releaseContext();this.context=null;this.master=null;this.score=null;}this.context??=new C();if(!this.master){const c=this.context;this.master=c.createGain();this.master.connect(c.destination);this.fx=c.createGain();this.fx.connect(this.master);this.music=c.createGain();this.music.connect(this.master);this.crowd=c.createGain();this.crowd.connect(this.fx);const b=c.createBuffer(1,c.sampleRate*2,c.sampleRate),data=b.getChannelData(0);for(let i=0;i<data.length;i++)data[i]=(Math.random()*2-1)*.35;this.noise=b;const n=c.createBufferSource(),filter=c.createBiquadFilter();n.buffer=b;n.loop=true;filter.type='lowpass';filter.frequency.value=600;n.connect(filter);filter.connect(this.crowd);n.start();this.crowd.gain.value=0;}this.apply();if(this.context.state!=='running'){const resumed=this.context.resume();await resumed;}this.apply();}catch{/* Visual cues always remain available. */}}
- apply(){this.soundtrack.configure({enabled:this.settings.music,scoring:this.settings.scoringMusic,family:this.settings.station,volume:this.settings.musicVolume});if(!this.context||!this.master)return;this.master.gain.value=this.settings.volume;this.fx.gain.value=this.settings.effects?1:0;this.music.gain.value=1;if(!this.score){this.score=this.context.createGain();this.score.connect(this.master);}this.soundtrack.attach(this.context,this.music,this.score);}
+ constructor(settings={}){this.settings={effects:true,boothChatter:true,contactFx:true,passWhistle:true,music:true,musicMode:'broadcast',scoringMusic:true,station:'all',musicVolume:.55,volume:.45,...settings};if(!['broadcast','always'].includes(this.settings.musicMode))this.settings.musicMode='broadcast';if(!Object.hasOwn(FAMILY_NAMES,this.settings.station))this.settings.station='all';this.chatter=new BoothChatter();this.context=null;this.lastCadence='';this.impacts=new ImpactLimiter();this.pads=new ImpactLimiter({gap:.12,blockGap:.22,max:5,window:1});this.soundtrack=new PGIMusic();}
+ async unlock(){try{playbackSession();const C=globalThis.AudioContext||globalThis.webkitAudioContext;if(!C)return;if(this.context?.state==='closed'){this.chatter.stop();this.booth=null;this.soundtrack.releaseContext();this.context=null;this.master=null;this.score=null;}this.context??=new C();if(!this.master){const c=this.context;this.master=c.createGain();this.master.connect(c.destination);this.fx=c.createGain();this.fx.connect(this.master);this.music=c.createGain();this.music.connect(this.master);this.booth=c.createGain();this.booth.connect(this.master);this.crowd=c.createGain();this.crowd.connect(this.fx);const b=c.createBuffer(1,c.sampleRate*2,c.sampleRate),data=b.getChannelData(0);for(let i=0;i<data.length;i++)data[i]=(Math.random()*2-1)*.35;this.noise=b;const n=c.createBufferSource(),filter=c.createBiquadFilter();n.buffer=b;n.loop=true;filter.type='lowpass';filter.frequency.value=600;n.connect(filter);filter.connect(this.crowd);n.start();this.crowd.gain.value=0;}this.apply();if(this.context.state!=='running'){const resumed=this.context.resume();await resumed;}this.apply();}catch{/* Visual cues always remain available. */}}
+ apply(){if(!this.settings.boothChatter)this.chatter.stop();this.soundtrack.configure({enabled:this.settings.music,scoring:this.settings.scoringMusic,family:this.settings.station,volume:this.settings.musicVolume});if(!this.context||!this.master)return;this.master.gain.value=this.settings.volume;this.fx.gain.value=this.settings.effects?1:0;if(this.booth)this.booth.gain.value=this.settings.boothChatter?1:0;this.music.gain.value=1;if(!this.score){this.score=this.context.createGain();this.score.connect(this.master);}this.soundtrack.attach(this.context,this.music,this.score);}
  tone(freq,duration=.1,type='square',volume=.06,delay=0,bus='fx'){
   if(!this.context||this.context.state!=='running')return;const c=this.context,o=c.createOscillator(),g=c.createGain(),t=c.currentTime+delay;o.type=type;o.frequency.setValueAtTime(freq,t);o.connect(g);g.connect(this[bus]);g.gain.setValueAtTime(volume,t);g.gain.exponentialRampToValueAtTime(.0001,t+duration);o.onended=()=>{o.disconnect();g.disconnect();};o.start(t);o.stop(t+duration+.01);
  }
@@ -59,10 +60,12 @@ export class StadiumAudio {
   if(e.type==='ball'&&e.text==='FUMBLE!'){this.thud(.2);this.tone(220,.25,'sawtooth',.04);}
   if(e.type==='result'){this.thud(.16);this.tone(1800,.22,'sine',.04,.03);if(!this.settings.scoringMusic&&e.scorePoints===6)for(const [i,n] of [330,440,550,660].entries())this.tone(n,.32,'square',.055,i*.14);}
  }
- update(game,hidden=false,{audition=false,broadcast=false,replay=false}={}){
+ update(game,hidden=false,{audition=false,broadcast=false,replay=false,speech=null}={}){
+  this.chatter.update(this.context,this.booth,hidden||!broadcast?null:speech,this.settings.boothChatter&&this.settings.volume>0);
   if(!this.context||!this.master)return;const silent=hidden||game?.paused&&!audition&&!broadcast;
   this.soundtrack.update({blocked:!!silent,live:!replay&&!!game?.isLive,...musicPolicy(this.settings,game,{audition,broadcast})});
   this.master.gain.setTargetAtTime(silent?0:this.settings.volume,this.context.currentTime,.05);
+  this.music?.gain.setTargetAtTime(!silent&&broadcast&&speech&&this.settings.boothChatter ? .72 : 1,this.context.currentTime,.12);
   const live=game?.isLive,excitement=live?Math.max(0,(game.carrier.y-40)/60):0;
   this.crowd.gain.setTargetAtTime(silent?0:game?.phase==='dead'?.07:live?.025+excitement*.1:game?.phase==='ready'?.012:0,this.context.currentTime,.3);
   if(silent||replay)return;

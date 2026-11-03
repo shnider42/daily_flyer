@@ -354,3 +354,32 @@ formation selection, fake/throw timing, personnel locking, defensive call order,
 yellow-marker toggle and recorded replay rendering. Chromium touch emulation does
 not substitute for physical iPhone Safari testing. Cache keys advance together to
 v18 so phones fetch a consistent module graph.
+
+## Word-paced booth chatter (v19)
+
+Pregame, halftime and postgame now share optional original 8-bit dialogue sounds.
+`boothChatter` defaults to true, including when upgrading an older saved audio
+configuration. The checkbox is available directly in the booth and in Pause, and
+its setting persists with `pg-audio`. It is independent of Effects and Music but
+uses the main volume. Chatter alone is sufficient to activate/resume Safari's
+playback AudioContext from a trusted tap; an Effects toggle is never required.
+
+Al uses a brighter filtered square-wave blip; John uses a lower, rougher pulse.
+These are nonverbal synthesized sounds, with no speech recording or voice model.
+Word length controls duration, deterministic pitch variation follows the text,
+and punctuation inserts rests. The same timeline drives speaking turns and the
+current caption word. The complete caption stays visible; assistive technology
+gets the complete turn without repeated word-by-word live announcements. Music
+is gently lowered during active booth dialogue and restored when the show pauses.
+
+Scheduling is bounded to at most four short pulses in the current word. Pausing,
+skipping, replaying a segment, hiding the page, closing the show, muting, or losing
+the audio context cancels its nodes. Recovery schedules only the remaining current
+word; it cannot replay a backlog. No gameplay RNG or game clock is involved.
+
+Validation: 189 JavaScript tests and two Flask tests. Desktop and phone-sized touch
+browser checks cover default-on migration with Effects/Music disabled, visible-word
+synchronization, both hosts, pause/resume, skip/exit cancellation and saved opt-out.
+Actual Web Audio rendering produces distinct, non-silent, unclipped waveforms for
+both hosts. Physical iPhone speaker/Bluetooth routing still needs device testing.
+The asset graph advances together to v19.

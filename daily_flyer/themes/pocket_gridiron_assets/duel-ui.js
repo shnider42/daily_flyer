@@ -1,4 +1,4 @@
-import {DuelClient} from './duel-client.js?v=18';
+import {DuelClient} from './duel-client.js?v=19';
 export function setupDuel(callbacks){
  const $=id=>document.getElementById(id),make=(tag,text,cls)=>{const e=document.createElement(tag);if(text)e.textContent=text;if(cls)e.className=cls;return e;};
  const intro=document.querySelector('.intro');document.title='PGI · Play a friend';document.querySelector('.lede').textContent='A private 1v1. Share a room, call your plays, and settle it on the field.';

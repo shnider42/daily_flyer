@@ -1,11 +1,11 @@
-import {paintBroadcast} from './broadcast-screen.js?v=18';
-import {broadcastBeat} from './booth-lines.js?v=18';
-import {BoothStage} from './booth-stage.js?v=18';
+import {paintBroadcast} from './broadcast-screen.js?v=19';
+import {broadcastBeat} from './booth-lines.js?v=19';
+import {BoothStage} from './booth-stage.js?v=19';
 
 // Shared, skippable pregame/halftime presentation. The live engine stays still.
 export class HalftimeShow {
- constructor(dialog,onResume){
-  this.dialog=dialog;this.onResume=onResume;this.index=0;this.report=null;this.auto=true;this.elapsed=0;this.last=0;this.ink=true;
+ constructor(dialog,onResume,onSilence=()=>{}){
+  this.dialog=dialog;this.onResume=onResume;this.onSilence=onSilence;this.generation=0;this.wordMark=null;this.wordNodes={};this.index=0;this.report=null;this.auto=true;this.elapsed=0;this.last=0;this.ink=true;
   this.motionQuery=globalThis.matchMedia?.('(prefers-reduced-motion: reduce)');this.reduced=!!this.motionQuery?.matches;
   try{this.motion=localStorage.getItem('pg-booth-motion')||'system';}catch{this.motion='system';}
   this.$=id=>dialog.querySelector('#'+id);
@@ -13,15 +13,22 @@ export class HalftimeShow {
   this.$('halfMotion').value=this.motion;this.$('halfMotion').onchange=()=>{this.motion=this.$('halfMotion').value;try{localStorage.setItem('pg-booth-motion',this.motion);}catch{}this.draw();};
   this.motionQuery?.addEventListener?.('change',e=>{this.reduced=e.matches;this.draw();});
   this.$('halfPrev').onclick=()=>this.step(-1);this.$('halfNext').onclick=()=>this.step(1);
-  this.$('halfAuto').onclick=()=>{this.auto=!this.auto;this.last=0;this.renderAuto();};
+  this.$('halfAuto').onclick=()=>{this.onSilence();this.auto=!this.auto;this.last=0;this.renderAuto();};
   this.$('halfResume').onclick=()=>this.finish();
-  this.$('halfAgain').onclick=()=>{this.elapsed=0;this.last=0;this.auto=true;this.renderAuto();this.draw();};
+  this.$('halfAgain').onclick=()=>{this.onSilence();this.generation++;this.elapsed=0;this.last=0;this.auto=true;this.renderAuto();this.draw();};
   this.$('halfInk').onclick=()=>{this.ink=!this.ink;this.$('halfInk').setAttribute('aria-pressed',String(this.ink));this.draw();};
   dialog.addEventListener('cancel',e=>{e.preventDefault();this.finish();});
+  dialog.addEventListener('close',()=>this.onSilence());
  }
  get motionEnabled(){return this.motion==='on'||this.motion!=='off'&&!this.reduced;}
  get openNow(){return this.dialog.open&&!!this.report;}
+ get speech(){
+  if(!this.openNow||!this.auto)return null;
+  const beat=broadcastBeat(this.report.segments[this.index],this.elapsed);
+  return {key:`${this.generation}:${this.index}:${beat.index}`,speaker:beat.turn.speaker,word:beat.word,wordIndex:beat.wordIndex,wordElapsed:beat.wordElapsed};
+ }
  open(report){
+  this.onSilence();this.generation++;
   this.report=report;this.index=0;this.auto=true;this.elapsed=0;this.last=0;this.ink=true;
   this.dialog.dataset.mode=report.mode||'halftime';this.dialog.dataset.reduced=String(this.reduced);
   const pre=report.mode==='pregame',post=report.mode==='postgame';
@@ -43,6 +50,7 @@ export class HalftimeShow {
  }
  renderAuto(){this.$('halfAuto').textContent=this.auto?'Ⅱ PAUSE SHOW':'▶ PLAY SHOW';this.$('halfAuto').setAttribute('aria-pressed',String(!this.auto));this.dialog.dataset.playing=String(this.auto);this.draw();}
  render(){
+  this.onSilence();
   const s=this.report.segments[this.index];this.turnIndex=-1;this.$('halfSegment').textContent=s.title;
   const transcript=this.$('halfTranscript');transcript.replaceChildren();
   for(const turn of broadcastBeat(s,0).turns){const p=document.createElement('p'),b=document.createElement('b');b.textContent=turn.speaker==='al'?'AL: ':'JOHN: ';p.append(b,turn.text);transcript.append(p);}
@@ -61,9 +69,19 @@ export class HalftimeShow {
   if(!this.report)return;const s=this.report.segments[this.index],beat=broadcastBeat(s,this.elapsed);
   if(this.turnIndex!==beat.index){
    this.turnIndex=beat.index;this.dialog.dataset.speaker=beat.turn.speaker;
-   for(const name of ['al','john']){const line=beat.turns.slice(0,beat.index+1).findLast(t=>t.speaker===name)||beat.turns.find(t=>t.speaker===name);this.$(name==='al'?'halfAl':'halfJohn').textContent=line?.text||'';}
+   this.wordMark=null;
+   for(const name of ['al','john']){
+    const line=beat.turns.slice(0,beat.index+1).findLast(t=>t.speaker===name)||beat.turns.find(t=>t.speaker===name),text=line?.text||'',container=this.$(name==='al'?'halfAl':'halfJohn');
+    // Screen readers receive one complete turn, not a live announcement per word.
+    const accessible=document.createElement('span');accessible.className='booth-readable';accessible.textContent=text;
+    const visual=document.createElement('span');visual.setAttribute('aria-hidden','true');this.wordNodes[name]=[];
+    for(const word of text.match(/\S+/g)||[]){const node=document.createElement('span');node.className='booth-word';node.textContent=word;this.wordNodes[name].push(node);visual.append(node,document.createTextNode(' '));}
+    container.replaceChildren(accessible,visual);
+   }
    this.$('halfOnAir').textContent=`${beat.turn.speaker==='al'?'AL MICHAELS':'JOHN MADDEN'} · IN THE BOOTH`;
   }
+  const mark=this.wordNodes[beat.turn.speaker]?.[beat.wordIndex]||null;
+  if(mark!==this.wordMark){this.wordMark?.classList.remove('current');mark?.classList.add('current');this.wordMark=mark;}
   // Let John hold the film while he explains; roll it on Al's response.
   const filmTime=s.turns?(beat.index===0?Math.min(3.49,this.elapsed*.7):beat.index===1?3.5+Math.min(4.49,beat.turnElapsed*.8):beat.index===2?8+Math.min(4,beat.turnElapsed):12):this.elapsed;
   paintBroadcast(this.$('halfScreen'),this.report,s,filmTime,{reduced:!this.motionEnabled,ink:this.ink});
@@ -71,14 +89,14 @@ export class HalftimeShow {
  }
  step(direction){this.index=Math.max(0,Math.min(this.report.segments.length-1,this.index+direction));this.elapsed=0;this.last=0;this.render();}
  tick(now,hidden=false){
-  if(!this.openNow){this.last=0;return;}
-  if(hidden){this.last=0;return;}
+  if(!this.openNow){this.onSilence();this.last=0;return;}
+  if(hidden){this.onSilence();this.last=0;return;}
   const dt=this.last?Math.min(.1,Math.max(0,(now-this.last)/1000)):0;this.last=now;
   if(!this.auto)return;
   const s=this.report.segments[this.index],duration=broadcastBeat(s,this.elapsed).duration;this.elapsed+=dt;
   this.$('halfProgress').style.width=`${Math.min(100,this.elapsed/duration*100)}%`;
   this.draw();
-  if(this.elapsed>=duration){if(this.index<this.report.segments.length-1)this.step(1);else{this.auto=false;this.renderAuto();}}
+  if(this.elapsed>=duration){if(this.index<this.report.segments.length-1)this.step(1);else{this.onSilence();this.auto=false;this.renderAuto();}}
  }
- finish(){if(!this.openNow)return;const mode=this.report.mode||'halftime';this.dialog.close();this.report=null;this.last=0;this.onResume(mode);}
+ finish(){if(!this.openNow)return;this.onSilence();const mode=this.report.mode||'halftime';this.dialog.close();this.report=null;this.last=0;this.onResume(mode);}
 }

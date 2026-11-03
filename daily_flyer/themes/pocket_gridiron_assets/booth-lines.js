@@ -1,3 +1,4 @@
+import {wordTimeline,wordAt} from './booth-chatter.js?v=19';
 // Original fictional fan-tribute exchanges, not transcripts or voice imitations.
 // Each topic has five exchanges: John explains, Al responds, John buttons it.
 // Facts are supplied separately from the selected lineup or settled game ledger.
@@ -146,7 +147,8 @@ export function giveBoothVoice(report,voices){
 }
 export function broadcastBeat(segment,elapsed){
  const turns=segment.turns||[{speaker:'al',text:segment.al,pose:'talk'},{speaker:'john',text:segment.john,pose:'talk'}];
- const durations=turns.map(t=>Math.max(3.2,t.text.split(/\s+/).length/3.4+1));
+ const timelines=turns.map(t=>wordTimeline(t.text)),durations=timelines.map(t=>t.duration);
  let start=0,index=turns.length-1;for(let i=0;i<turns.length;i++){if(elapsed<start+durations[i]||i===turns.length-1){index=i;break;}start+=durations[i];}
- return {turn:turns[index],index,turnElapsed:Math.max(0,elapsed-start),duration:durations.reduce((a,b)=>a+b,0),turns};
+ const turnElapsed=Math.max(0,elapsed-start);
+ return {turn:turns[index],index,turnElapsed,duration:durations.reduce((a,b)=>a+b,0),turns,...wordAt(timelines[index],turnElapsed)};
 }

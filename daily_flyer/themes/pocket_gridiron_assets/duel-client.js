@@ -1,5 +1,5 @@
-import {Game} from './engine.js?v=18';
-import {vector} from './duel-input.js?v=18';
+import {Game} from './engine.js?v=19';
+import {vector} from './duel-input.js?v=19';
 export class DuelClient{
  constructor(callbacks={}){this.callbacks=callbacks;this.socket=null;this.room=null;this.view=null;this.teams=null;this.team=0;this.seq=0;this.commandSeq=0;this.pending=[];this.held={x:0,y:0};this.lastEvent=0;this.lastTick=-1;this.lastReply=0;this.lastState=0;this.rtt=null;this.jitter=0;this.manual=false;this.retry=0;this.waiting=false;this.targets=new Map();try{this.pass=JSON.parse(sessionStorage.getItem('pgi-duel-pass')||'null');}catch{}this.timer=setInterval(()=>this.pump(),50);this.watch=setInterval(()=>this.check(),500);window.addEventListener('online',()=>{if(this.pass)this.reconnect();});document.addEventListener('visibilitychange',()=>{if(document.hidden){this.clear();this.send({type:'pause',reason:'network'});}else if(this.pass)this.reconnect();});window.addEventListener('pagehide',()=>{this.clear();this.send({type:'pause',reason:'network'});});}
  emit(name,...args){this.callbacks[name]?.(...args);}

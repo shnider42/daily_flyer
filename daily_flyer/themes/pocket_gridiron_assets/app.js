@@ -1,22 +1,22 @@
-import {FORMATIONS,PERSONNEL,packageOf,tendency} from './packages.js?v=18';
-import {uniformFor} from './uniforms.js?v=18';
-import {goalWindow} from './placekicks.js?v=18';
-import {clockText,matchLength} from './match.js?v=18';
-import {HalftimeShow} from './halftime.js?v=18';
-import {pregameReport,halftimeBroadcast,postgameReport} from './broadcast.js?v=18';
-import {passPlacement,passAim} from './passing.js?v=18';
-import {playDiagram} from './plays.js?v=18';
-import {ReplayTape} from './replay.js?v=18';
-import {BoothVoices,giveBoothVoice} from './booth-lines.js?v=18';
-import {FAMILY_NAMES} from './music.js?v=18';
-import {showOffensiveRoutes,suggestions,coachText,hitDefender,BOOK_FILTERS,bookPage} from './presentation.js?v=18';
-import {teamStrengths} from './teams.js?v=18';
-import {RATING_LABELS,visibleRatings} from './ratings.js?v=18';
-import {bindAudioActivation} from './device-audio.js?v=18';
-import {StadiumAudio} from './audio.js?v=18';
-import {bindGameButton, protectGameSurface, setGameButtonEnabled,primaryCommand,stickInput,movementInput} from './controls.js?v=18';
-import {Game,PLAYS,DEFENSE,clamp} from './engine.js?v=18';
-import {TEAMS,buildTeam,fetchFreshRoster,validateRoster} from './roster.js?v=18';
+import {FORMATIONS,PERSONNEL,packageOf,tendency} from './packages.js?v=19';
+import {uniformFor} from './uniforms.js?v=19';
+import {goalWindow} from './placekicks.js?v=19';
+import {clockText,matchLength} from './match.js?v=19';
+import {HalftimeShow} from './halftime.js?v=19';
+import {pregameReport,halftimeBroadcast,postgameReport} from './broadcast.js?v=19';
+import {passPlacement,passAim} from './passing.js?v=19';
+import {playDiagram} from './plays.js?v=19';
+import {ReplayTape} from './replay.js?v=19';
+import {BoothVoices,giveBoothVoice} from './booth-lines.js?v=19';
+import {FAMILY_NAMES} from './music.js?v=19';
+import {showOffensiveRoutes,suggestions,coachText,hitDefender,BOOK_FILTERS,bookPage} from './presentation.js?v=19';
+import {teamStrengths} from './teams.js?v=19';
+import {RATING_LABELS,visibleRatings} from './ratings.js?v=19';
+import {bindAudioActivation} from './device-audio.js?v=19';
+import {StadiumAudio} from './audio.js?v=19';
+import {bindGameButton, protectGameSurface, setGameButtonEnabled,primaryCommand,stickInput,movementInput} from './controls.js?v=19';
+import {Game,PLAYS,DEFENSE,clamp} from './engine.js?v=19';
+import {TEAMS,buildTeam,fetchFreshRoster,validateRoster} from './roster.js?v=19';
 const $=id=>document.getElementById(id);const el=(tag,text,cls)=>{const e=document.createElement(tag);if(text!==undefined)e.textContent=text;if(cls)e.className=cls;return e;};
 const safeRead=(key,fallback)=>{try{return JSON.parse(localStorage.getItem(key))??fallback;}catch{return fallback;}};
 const safeWrite=(key,value)=>{try{localStorage.setItem(key,JSON.stringify(value));return true;}catch{return false;}};
@@ -42,13 +42,14 @@ protectGameSurface(document.querySelector('.controls'));
 protectGameSurface(fieldWrap);
 const boothVoices=new BoothVoices(safeRead('pg-booth-rotation',{}));
 function openBroadcast(report){halftimeShow.open(giveBoothVoice(report,boothVoices));safeWrite('pg-booth-rotation',boothVoices.snapshot());}
-const halftimeShow=new HalftimeShow($('halftimeDialog'),mode=>{keys={};resetStick();if(!game)return;if(mode==='postgame'){$('endDialog').showModal();return;}if(duel){duel.resume();return;}if(mode==='pregame')game.paused=false;else if(!game.resumeHalftime())return;renderPlaybook();updateHUD();audioUnlock();maybeLesson();});
+const halftimeShow=new HalftimeShow($('halftimeDialog'),mode=>{keys={};resetStick();if(!game)return;if(mode==='postgame'){$('endDialog').showModal();return;}if(duel){duel.resume();return;}if(mode==='pregame')game.paused=false;else if(!game.resumeHalftime())return;renderPlaybook();updateHUD();audioUnlock();maybeLesson();},()=>stadium.chatter.stop());
 function showHalftime(){keys={};resetStick();toastUntil=0;$('message').replaceChildren();openBroadcast(halftimeBroadcast(game.halftime,replay.highlights));}
 const stadium=new StadiumAudio(safeRead('pg-audio',{}));
 function sound(freq=440,dur=.1,type='square',volume=.025){stadium.tone(freq,dur,type,volume);}
-function audioUnlock(){if(stadium.settings.effects||stadium.settings.music||stadium.settings.scoringMusic)return stadium.unlock();return Promise.resolve();}
-bindAudioActivation(audioUnlock,{enabled:()=>stadium.settings.effects||stadium.settings.music||stadium.settings.scoringMusic});
-function syncAudio(){stadium.apply();safeWrite('pg-audio',stadium.settings);for(const id of ['sound','pauseSound']){$(id).textContent=stadium.settings.effects?'EFFECTS ON':'EFFECTS OFF';$(id).setAttribute('aria-pressed',String(stadium.settings.effects));$(id).setAttribute('aria-label',stadium.settings.effects?'Mute effects':'Enable effects');}$('effects').checked=stadium.settings.effects;for(const id of ['contactFx','passWhistle'])$(id).checked=stadium.settings[id];$('music').checked=stadium.settings.music;$('audioVolume').value=stadium.settings.volume;$('scoringMusic').checked=stadium.settings.scoringMusic;$('station').value=stadium.settings.station;$('musicVolume').value=stadium.settings.musicVolume;$('jukeboxMusic').checked=stadium.settings.music;for(const id of ['musicMode','jukeboxMode'])$(id).value=stadium.settings.musicMode;}
+function audioUnlock(){if(stadium.settings.effects||stadium.settings.music||stadium.settings.scoringMusic||stadium.settings.boothChatter)return stadium.unlock();return Promise.resolve();}
+bindAudioActivation(audioUnlock,{enabled:()=>stadium.settings.effects||stadium.settings.music||stadium.settings.scoringMusic||stadium.settings.boothChatter});
+function syncAudio(){stadium.apply();for(const id of ['halfChatter','pauseBoothChatter'])$(id).checked=stadium.settings.boothChatter;safeWrite('pg-audio',stadium.settings);for(const id of ['sound','pauseSound']){$(id).textContent=stadium.settings.effects?'EFFECTS ON':'EFFECTS OFF';$(id).setAttribute('aria-pressed',String(stadium.settings.effects));$(id).setAttribute('aria-label',stadium.settings.effects?'Mute effects':'Enable effects');}$('effects').checked=stadium.settings.effects;for(const id of ['contactFx','passWhistle'])$(id).checked=stadium.settings[id];$('music').checked=stadium.settings.music;$('audioVolume').value=stadium.settings.volume;$('scoringMusic').checked=stadium.settings.scoringMusic;$('station').value=stadium.settings.station;$('musicVolume').value=stadium.settings.musicVolume;$('jukeboxMusic').checked=stadium.settings.music;for(const id of ['musicMode','jukeboxMode'])$(id).value=stadium.settings.musicMode;}
+for(const id of ['halfChatter','pauseBoothChatter'])$(id).onchange=()=>{stadium.settings.boothChatter=$(id).checked;syncAudio();audioUnlock();};
 function toggleSound(){stadium.settings.effects=!stadium.settings.effects;audioUnlock();syncAudio();}
 $('sound').onclick=$('pauseSound').onclick=toggleSound;
 for(const id of ['contactFx','passWhistle'])$(id).onchange=()=>{stadium.settings[id]=$(id).checked;audioUnlock();syncAudio();};
@@ -127,7 +128,7 @@ function menu(){if(duel?.room)duel.leave();replay.reset();stadium.soundtrack.sto
 $('quit').onclick=menu;$('newTeams').onclick=menu;
 function pause(){if(!game||game.phase==='final')return;if(halftimeShow.openNow||game.phase==='halftime'){keys={};resetStick();return;}for(const id of ['defenderDialog','lessonDialog'])if($(id).open)$(id).close();if(duel)duel.pause();else game.paused=true;keys={};resetStick();if(!$('pauseDialog').open)showDialog('pauseDialog');}
 $('pause').onclick=pause;$('resume').onclick=()=>{if(duel){duel.resume();$('resume').textContent='READY · WAITING FOR FRIEND';return;}game.paused=false;$('pauseDialog').close();updateHUD();audioUnlock();};$('pauseDialog').addEventListener('cancel',e=>{e.preventDefault();$('resume').click();});
-document.addEventListener('visibilitychange',()=>{if(document.hidden)pause();});window.addEventListener('blur',()=>{if(game&&!duel)pause();});
+document.addEventListener('visibilitychange',()=>{if(document.hidden){stadium.chatter.stop();pause();}});window.addEventListener('blur',()=>{if(game&&!duel)pause();});
 function snap(){if(game&&!game.paused&&game.userOffense&&game.snap(0)){toastUntil=0;$('message').replaceChildren();updateHUD();renderPlaybook();audioUnlock();}}
 bindGameButton($('changePlay'),()=>{if(game&&!game.paused&&game.phase==='ready'&&!duel){game.phase='call';renderPlaybook();updateHUD();}});
 function primaryAction(){if(duel&&game?.phase==='penalty'&&game.penaltyReview?.beneficiary!==duel.team)return;if(duel&&['kick_ready','kick_charge','kick_accuracy'].includes(game?.phase)&&!game.userKicking)return;if(replay.active){skipReplay();return;}const action=primaryCommand(game);if(action==='snap')snap();else if(action==='kick')game.kickAction();else if(action==='accept')game.resolvePenalty(true);else if(action==='break')game.breakTackle();else if(action==='burst')game.burst();updateHUD();audioUnlock();}
@@ -278,7 +279,7 @@ function drawAttract(t){const a=roster?teamFor($('homeTeam').value):TEAMS[21],b=
 function frame(now){
  halftimeShow.tick(now,document.hidden);
  let dt=rafTime?(now-rafTime)/1000:0;rafTime=now;
- stadium.update(game,document.hidden,{audition,broadcast:halftimeShow.openNow?halftimeShow.report.mode:false,replay:!!replay.active});
+ stadium.update(game,document.hidden,{audition,broadcast:halftimeShow.openNow?halftimeShow.report.mode:false,replay:!!replay.active,speech:halftimeShow.speech});
  const musicStatus=stadium.soundtrack.scorer?'Scoring · '+stadium.soundtrack.scorer.track.title:stadium.soundtrack.status;if(lastMusicStatus!==musicStatus){lastMusicStatus=musicStatus;$('nowPlaying').textContent=lastMusicStatus;$('pauseTrack').textContent=lastMusicStatus;}
  if(game){
   if(duel){duel.drive(dt,movementInput(stick,keys));if(!game.paused)replay.observe(game,Math.min(dt,.05),game.events);processEvents();drawGame();}
@@ -295,7 +296,7 @@ function frame(now){
  requestAnimationFrame(frame);
 }
 if(window.PGI_DUEL){
- const {setupDuel}=await import('./duel-ui.js?v=18');
+ const {setupDuel}=await import('./duel-ui.js?v=19');
  duel=setupDuel({
   state(view,fresh){
    // Preserve already received events until the next paint drains them.
