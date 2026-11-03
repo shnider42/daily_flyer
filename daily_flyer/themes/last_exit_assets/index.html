@@ -1,7 +1,7 @@
 <!doctype html><html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width,initial-scale=1,viewport-fit=cover"><meta name="theme-color" content="#172e31"><meta name="description" content="LAST EXIT. A seventies city getaway game from DailyFlyer. Heavy metal, tight corners, one more job."><title>LAST EXIT · DailyFlyer</title><link rel="icon" href="./icon.svg"><link rel="stylesheet" href="./style.css"></head><body>
 <div id="sky"></div><div id="sun"></div><canvas id="world" aria-label="Three dimensional driving view"></canvas><div class="grain" aria-hidden="true"></div><div id="vignette"></div><div id="impact-feedback" aria-hidden="true"></div>
 <main id="menu">
-<header><a class="brand" href="./" aria-label="Last Exit home"><span class="brandmark">↗</span> DAILYFLYER<span class="edition">GAMES / V0.7</span></a><span class="build">PORT MERIDIAN · 05:14 AM</span></header>
+<header><a class="brand" href="./" aria-label="Last Exit home"><span class="brandmark">↗</span> DAILYFLYER<span class="edition">GAMES / V0.8</span></a><span class="build">PORT MERIDIAN · 05:14 AM</span></header>
 <section class="menu-body"><div class="eyebrow"><span></span> BACK ON THE STREETS</div><h1>LAST<br><span>EXIT</span><i>↗</i></h1><p class="intro">Take the wheel. Walk the streets. Find another way out.</p>
 <div class="city-picker" role="group" aria-label="Choose a city"><button data-city="boston" aria-pressed="false"><strong>Boston to Cambridge</strong><small>NEW · ONE BRIDGE / TWO BANKS</small></button><button data-city="baycrest" aria-pressed="true" class="selected"><strong>Baycrest</strong><small>HILLS & THE BAY</small></button><button data-city="meridian" aria-pressed="false"><strong>Port Meridian</strong><small>THE ORIGINAL CITY</small></button></div>
 <div class="jobs" role="group" aria-label="Choose a drive">
@@ -14,7 +14,7 @@
 <button id="start" class="primary">TURN THE KEY <span>↗</span></button>
 <div class="menu-options"><button id="help">How to drive</button><label>Handling <select id="handling" aria-label="Handling"><option value="street">Street</option><option value="raw">Raw</option></select></label><button id="menu-audio">Sound on</button></div>
 </section><aside class="scene-caption"><span class="live-dot"></span> SOUTH WATERFRONT<br><strong>EVERY IMPACT LEAVES A MARK.</strong><small>DRIVE / SURVIVE / DISAPPEAR</small></aside>
-<footer><span>AN ORIGINAL DAILYFLYER DRIVING GAME</span><span>VERSION 0.7 <b>—</b> TWO BANKS</span></footer></main>
+<footer><span>AN ORIGINAL DAILYFLYER DRIVING GAME</span><span>VERSION 0.8 <b>—</b> STREET LIFE</span></footer></main>
 <section id="hud" class="hidden" aria-label="Driving dashboard">
 <div class="hud-top"><div><div class="overline" id="district">PORT MERIDIAN</div><h2 id="objective">Take the long way home.</h2><div id="status">FREE DRIVE</div></div><div class="tools"><button id="camera" aria-label="Recenter camera" title="Recenter camera (C)">↺</button><button id="audio" aria-label="Toggle sound">♪</button><button id="pause" aria-label="Pause game">Ⅱ</button></div></div>
 <div id="heat" class="heat"><span></span><span></span><span></span><small>CLEAR</small></div><div id="dispatch" aria-live="polite"></div><div id="hint">WASD / ARROWS · STEER & DRIVE <span>SPACE · HANDBRAKE</span></div>
@@ -23,4 +23,4 @@
 <button id="interact" class="interact">GET OUT <small>E</small></button><div id="foot-status" class="hidden">ON FOOT</div><div id="touch"><div id="look-area" aria-label="Drag to rotate view"></div><div id="move-area"><div id="steering" aria-label="Drag left or right to steer"><div class="steer-line"></div><span id="stick">↔</span><small id="stick-label">← STEER →</small></div></div><div class="pedals"><button id="handbrake">DRIFT</button><button id="brake">BRAKE</button><button id="gas">GAS</button></div></div>
 </section>
 <div id="modal" class="hidden" role="dialog" aria-modal="true" aria-labelledby="modal-title"><section class="modal-card"><div class="eyebrow" id="modal-tag">PULL OVER A MINUTE</div><h2 id="modal-title">On pause.</h2><div id="modal-content"></div><div id="modal-actions"></div></section></div>
-<div id="error" class="hidden" role="alert"></div><script type="module" src="./game.js?v=07"></script></body></html>
+<div id="error" class="hidden" role="alert"></div><script type="module" src="./game.js?v=08"></script></body></html>

@@ -1,3 +1,5 @@
+import {queryStatic,solidBuildings} from './spatial.js';
+import {makeStreetProps,makeStreetState,stepStreet,hitStreetVehicle,personStreetContact,blastStreet} from './street.js';
 import {makeBostonCity,bostonSide,nearestBostonRoad} from './boston.js';
 import {edgeLength,roadFrame,closestRoute,attachRoute,advanceRoute} from './navigation.js';
 import {igniteVehicle,stepVehicleFire,canObserve} from './fire.js';
@@ -20,11 +22,14 @@ export function makeCity(id='meridian'){
   if(id!=='baycrest'&&((x===-108&&z===108)||(x===-36&&z===180))){
    for(const sign of[-1,1])buildings.push({x:x+15*sign,z:z-15*sign,w:9,d:9,h:10+rnd()*7,color:2,sign:true,style:'brick'});continue;
   }
-  // The waterfront district has low warehouses; downtown has taller towers.
+  // Six pieces of street frontage enclose a usable inner court instead of four isolated boxes.
   const downtown=id==='baycrest'?ix>3&&iz<3:ix<3&&iz<3;
-  for(let a=-1;a<=1;a+=2)for(let b=-1;b<=1;b+=2){
-   if(id!=='baycrest'&&ix===5&&iz===4&&a===1)continue;
-   buildings.push({x:x+a*11.5,z:z+b*11.5,w:16+rnd()*3,d:16+rnd()*3,h:downtown?18+rnd()*24:id==='baycrest'?7+rnd()*4:8+rnd()*14,color:Math.floor(rnd()*6),sign:rnd()>.65,style:id==='baycrest'&&!downtown?'rowhouse':ix<3?'brick':'stucco'});
+  const lots=[...[-1,1].flatMap(side=>[-1,1].map(q=>({x:x+q*11.1,z:z+side*16.5,w:21,d:12,a:side>0?0:Math.PI}))),...[-1,1].map(side=>({x:x+side*16.8,z,w:18,d:11,a:side*Math.PI/2}))];
+  for(const [j,lot]of lots.entries()){
+   if(id!=='baycrest'&&ix===5&&iz===4&&j===4)continue;
+   const type=(ix*3+iz+j)%7,style=downtown?['office','apartments','tenement','shop','civic','office','tenement'][type]:id==='baycrest'?['rowhouse','rowhouse','shop','rowhouse','apartments','diner','rowhouse'][type]:ix>3?['warehouse','factory','shop','apartments','warehouse','diner','shop'][type]:['brownstone','tenement','shop','apartments','diner','brownstone','tenement'][type];
+   const h=style==='diner'?4.5:style==='shop'?6.5+rnd()*4:style==='office'?23+rnd()*22:style==='rowhouse'?8+rnd()*4:style==='warehouse'?8+rnd()*5:style==='factory'?12+rnd()*7:11+rnd()*10;
+   buildings.push({...lot,h,color:Math.floor(rnd()*6),sign:style==='shop'||style==='diner'||rnd()>.75,style});
   }
   for(let k=0;k<(id!=='baycrest'&&ix>3?3:0);k++)palms.push({x:ROADS[ix]+15,z:ROADS[iz]+20+k*15,h:8+rnd()*3});
  }
@@ -57,7 +62,7 @@ export const jobsForCity=id=>id==='boston'?BOSTON_JOBS:id==='baycrest'?BAY_JOBS:
 export function makeCar(x=5.7,z=174,a=Math.PI,mapId='meridian'){return{x,z,a,mapId,vx:0,vz:0,y:groundHeight(x,z,mapId),verticalSpeed:0,pitch:0,roll:0,yawRate:0,speed:0,steer:0,damage:0,engineDamage:0,wheelDamage:0,motorClock:0,panelDamage:{front:0,rear:0,left:0,right:0},dents:[],lastImpact:null,hit:0,slip:0,distance:0,top:0};}
 export function collide(car,buildings,radius=1.45){
  let impact=0;
- for(const b of buildings){
+ for(const b of queryStatic(buildings,car.x-radius,car.z-radius,car.x+radius,car.z+radius)){
   const co=Math.cos(b.a||0),si=Math.sin(b.a||0),dx=car.x-b.x,dz=car.z-b.z,x=dx*co-dz*si,z=dx*si+dz*co,qx=x-clamp(x,-b.w/2,b.w/2),qz=z-clamp(z,-b.d/2,b.d/2),d=Math.hypot(qx,qz);if(d>=radius)continue;
   let nx,nz,depth;if(d<.001){const ox=b.w/2+radius-Math.abs(x),oz=b.d/2+radius-Math.abs(z);if(ox<oz){nx=x>0?1:-1;nz=0;depth=ox;}else{nx=0;nz=z>0?1:-1;depth=oz;}}else{nx=qx/d;nz=qz/d;depth=radius-d;}
   const wx=nx*co+nz*si,wz=nz*co-nx*si;car.x+=wx*depth;car.z+=wz*depth;const v=(car.vx||0)*wx+(car.vz||0)*wz;if(v<0){car.vx-=v*1.25*wx;car.vz-=v*1.25*wz;impact=Math.max(impact,-v);}
@@ -121,12 +126,12 @@ export function personVehicleContact(p,c,impactEnabled=true){
 }
 export function collideVehicle(c,buildings){
  let strongest=0;
- for(const b of buildings){if(Math.abs(c.x-b.x)>Math.max(b.w,b.d)/2+3.2||Math.abs(c.z-b.z)>Math.max(b.w,b.d)/2+3.2)continue;const contact=boxContact(c,{...b,a:b.a||0},vehicleSpec(c).w,vehicleSpec(c).l,b.w/2,b.d/2);if(!contact)continue;const {x:nx,z:nz,depth}=contact;c.x+=nx*(depth+.002);c.z+=nz*(depth+.002);const inward=c.vx*nx+c.vz*nz;if(inward<0){const power=-inward;c.vx-=inward*1.12*nx;c.vz-=inward*1.12*nz;applyDamage(c,power,nx,nz,{x:clamp(c.x,b.x-b.w/2,b.x+b.w/2),z:clamp(c.z,b.z-b.d/2,b.z+b.d/2)});strongest=Math.max(strongest,power);}}
+ for(const b of queryStatic(buildings,c.x-4,c.z-4,c.x+4,c.z+4)){if(Math.abs(c.x-b.x)>Math.max(b.w,b.d)/2+3.2||Math.abs(c.z-b.z)>Math.max(b.w,b.d)/2+3.2)continue;const contact=boxContact(c,{...b,a:b.a||0},vehicleSpec(c).w,vehicleSpec(c).l,b.w/2,b.d/2);if(!contact)continue;const {x:nx,z:nz,depth}=contact;c.x+=nx*(depth+.002);c.z+=nz*(depth+.002);const inward=c.vx*nx+c.vz*nz;if(inward<0){const power=-inward;c.vx-=inward*1.12*nx;c.vz-=inward*1.12*nz;applyDamage(c,power,nx,nz,{x:clamp(c.x,b.x-b.w/2,b.x+b.w/2),z:clamp(c.z,b.z-b.d/2,b.z+b.d/2)});strongest=Math.max(strongest,power);}}
  for(const key of['x','z'])if(Math.abs(c[key])>232.3){const sign=Math.sign(c[key]),vk=key==='x'?'vx':'vz';c[key]=sign*232.3;const power=Math.abs(c[vk]);applyDamage(c,power,key==='x'?-sign:0,key==='z'?-sign:0);c[vk]*=-.12;strongest=Math.max(strongest,power);}
  return strongest;
 }
 // Retract the chase camera along its ray instead of teleporting overhead.
-export function safeCamera(actor,eye,buildings){let fraction=1;for(const b of buildings){if(b.barrier)continue;const lo=segmentEntry(actor,{x:eye[0],z:eye[2]},b,.55);if(lo!==null&&lo>=0&&lo<1)fraction=Math.min(fraction,Math.max(0,lo-.025));}return[actor.x+(eye[0]-actor.x)*fraction,eye[1],actor.z+(eye[2]-actor.z)*fraction];}
+export function safeCamera(actor,eye,buildings){let fraction=1;for(const b of queryStatic(buildings,Math.min(actor.x,eye[0])-.6,Math.min(actor.z,eye[2])-.6,Math.max(actor.x,eye[0])+.6,Math.max(actor.z,eye[2])+.6)){if(b.barrier)continue;const lo=segmentEntry(actor,{x:eye[0],z:eye[2]},b,.55);if(lo!==null&&lo>=0&&lo<1)fraction=Math.min(fraction,Math.max(0,lo-.025));}return[actor.x+(eye[0]-actor.x)*fraction,eye[1],actor.z+(eye[2]-actor.z)*fraction];}
 // On foot, a manual orbit must not put the camera inside a nearby vehicle.
 export function safeFootCamera(actor,eye,vehicles){
  const start=[actor.x,(actor.y||0)+1.25,actor.z];let fraction=1;
@@ -170,7 +175,7 @@ export function resetCar(c){const p=nearestRoad(c);c.x=p.x;c.z=p.z;c.vx=0;c.vz=0
 function segmentEntry(a,b,box,margin=0){const co=Math.cos(box.a||0),si=Math.sin(box.a||0),local=p=>({x:(p.x-box.x)*co-(p.z-box.z)*si,z:(p.x-box.x)*si+(p.z-box.z)*co}),A=local(a),B=local(b);let lo=0,hi=1;for(const[k,size]of[['x','w'],['z','d']]){const d=B[k]-A[k],min=-box[size]/2-margin,max=box[size]/2+margin;if(Math.abs(d)<1e-6){if(A[k]<min||A[k]>max)return null;}else{let t1=(min-A[k])/d,t2=(max-A[k])/d;if(t1>t2)[t1,t2]=[t2,t1];lo=Math.max(lo,t1);hi=Math.min(hi,t2);if(lo>hi)return null;}}return lo;}
 function segmentBox(a,b,box){return !box.barrier&&segmentEntry(a,b,box)!==null;}
 export function visible(a,b,buildings){
- if(buildings.some(v=>segmentBox(a,b,v)))return false;const id=a.mapId||b.mapId;if(id!=='baycrest'&&id!=='boston')return true;
+ if(queryStatic(buildings,Math.min(a.x,b.x),Math.min(a.z,b.z),Math.max(a.x,b.x),Math.max(a.z,b.z)).some(v=>segmentBox(a,b,v)))return false;const id=a.mapId||b.mapId;if(id!=='baycrest'&&id!=='boston')return true;
  const ay=(a.y??groundHeight(a.x,a.z,id))+1.7,by=(b.y??groundHeight(b.x,b.z,id))+1.7,n=Math.max(2,Math.ceil(dist(a,b)/5));
  for(let i=1;i<n;i++){const t=i/n,x=a.x+(b.x-a.x)*t,z=a.z+(b.z-a.z)*t;if(terrainHeight(x,z,id)>ay+(by-ay)*t)return false;}return true;
 }
@@ -195,7 +200,7 @@ export class Game{
   if(this.city.id==='baycrest'){this.parked.push({...this.makeCar(-110,119,Math.PI),kind:'sport',name:'Vela GT',paint:'#a8533e',rare:true},{...this.makeCar(108,-175,Math.PI/2),kind:'muscle',name:'Braddock V8',paint:'#3e6460',rare:true});}
   this.discoveries=new Set();this.reports=[];this.crimeCooldowns={};this.junctions=new Map();this.officers=[];this.explosions=[];this.explosionCount=0;this.lastKnown=null;
   if(this.city.id==='boston')this.populateBoston();
-  if(this.city.id)this.populatePolice();if(id==='heat')this.raiseHeat(2,this.car);
+  if(this.city.id)this.populatePolice();this.props=makeStreetProps(this.city,[this.car,...this.parked]);this.street=makeStreetState(this.props,this.city);this.propImpactCount=0;if(id==='heat')this.raiseHeat(2,this.car);
  }
  say(m){this.message=m;this.messageTime=5;}
  get actor(){return this.onFoot?this.person:this.car;}
@@ -255,7 +260,7 @@ export class Game{
   const slope=vehicleSurface({...p,a:h}).pitch,speed=(input.run?5.7:3.1)*(1-Math.min(.35,Math.abs(slope)*1.4)),vx=(-Math.cos(h)*right+Math.sin(h)*forward)*speed,vz=(Math.sin(h)*right+Math.cos(h)*forward)*speed;
   const before={x:p.x,z:p.z},oldGround=walkHeight(p.x,p.z,this.city);p.x+=(vx+(p.knockVX||0))*dt;p.z+=(vz+(p.knockVZ||0))*dt;p.knockVX=(p.knockVX||0)*Math.exp(-dt*4);p.knockVZ=(p.knockVZ||0)*Math.exp(-dt*4);
   if(walkHeight(p.x,p.z,this.city)-oldGround>.26){p.x=before.x;p.z=before.z;}
-  p.vx=vx;p.vz=vz;collide(p,this.city.buildings.filter(b=>!b.walkable),.45);
+  p.vx=vx;p.vz=vz;collide(p,solidBuildings(this.city.buildings),.45);
   const ground=walkHeight(p.x,p.z,this.city);if(!Number.isFinite(p.y))p.y=oldGround;p.verticalSpeed=(p.verticalSpeed||0)-9.81*dt;
   if(p.y<=ground+.26){p.y=ground;p.verticalSpeed=0;}else p.y=Math.max(ground,p.y+p.verticalSpeed*dt);
   for(const c of[this.car,...this.parked,...this.traffic,...this.cops])personVehicleContact(p,c,false);
@@ -313,6 +318,7 @@ export class Game{
   this.explosions=this.explosions.filter(e=>this.elapsed-e.time<3);const cars=[...new Set([this.car,...this.traffic,...this.parked,...this.cops])];
   for(const c of cars){if(c.fire>0&&!c.fireAnnounced){c.fireAnnounced=true;if(c===this.car&&!this.onFoot)this.say('ENGINE FIRE · Slow down, get out and move away!');}
    if(!stepVehicleFire(c,dt))continue;const event={x:c.x,z:c.z,y:c.y||0,time:this.elapsed,serial:++this.explosionCount};this.explosions.push(event);if(c===this.car&&!this.onFoot){this.finish(false,'Caught in the vehicle explosion.');}
+   blastStreet(this.street,c,23,(a,b)=>visible(a,b,this.city.buildings));
    const caused=c===this.car&&!this.onFoot||(c.playerCausedUntil||0)>this.elapsed;
    // An unexplained blast does not identify an unseen driver. Escalate only an already witnessed incident.
    if(caused&&(this.heat||this.reports.some(r=>dist(r.at,c)<20)))this.recordCrime('vehicle explosion',c,{severity:2});
@@ -358,7 +364,7 @@ export class Game{
   for(const p of this.pedestrians){
    p.life-=dt;p.contactCooldown=Math.max(0,(p.contactCooldown||0)-dt);p.stun=Math.max(0,(p.stun||0)-dt);p.knockdown=Math.max(0,(p.knockdown||0)-dt);if(p.route&&!p.stun){const goal=p.route[p.waypoint];if(dist(p,goal)<.5)p.waypoint=(p.waypoint+1)%p.route.length;p.a=Math.atan2(goal.x-p.x,goal.z-p.z);}
    const nearCar=!this.onFoot&&dist(p,c)<6&&Math.abs(c.speed)>4;if(nearCar)p.a=Math.atan2(p.x-c.x,p.z-c.z);
-   const speed=p.stun?0:nearCar?3.8:p.speed;p.vx=Math.sin(p.a)*speed;p.vz=Math.cos(p.a)*speed;p.x+=(p.vx+(p.knockVX||0))*dt;p.z+=(p.vz+(p.knockVZ||0))*dt;p.knockVX=(p.knockVX||0)*Math.exp(-dt*4);p.knockVZ=(p.knockVZ||0)*Math.exp(-dt*4);collide(p,this.city.buildings.filter(b=>!b.walkable),.35);p.y=walkHeight(p.x,p.z,this.city);p.walk+=dt*speed*3;
+   const speed=p.stun?0:nearCar?3.8:p.speed;p.vx=Math.sin(p.a)*speed;p.vz=Math.cos(p.a)*speed;p.x+=(p.vx+(p.knockVX||0))*dt;p.z+=(p.vz+(p.knockVZ||0))*dt;p.knockVX=(p.knockVX||0)*Math.exp(-dt*4);p.knockVZ=(p.knockVZ||0)*Math.exp(-dt*4);collide(p,solidBuildings(this.city.buildings),.35);p.y=walkHeight(p.x,p.z,this.city);p.walk+=dt*speed*3;
   }this.pedestrians=this.pedestrians.filter(p=>p.life>0);this.stepOfficers(dt);this.stepReports(dt);this.stepFires(dt);
   if(c.slip>2&&Math.abs(c.speed)>5&&this.elapsed%0.065<dt){this.skids.push({x:c.x,z:c.z,a:c.a,t:0});if(this.skids.length>180)this.skids.shift();}
   for(const v of(this.onFoot?[this.car,...this.parked]:this.parked)){v.hit=Math.max(0,v.hit-dt);v.x+=(v.vx||0)*dt;v.z+=(v.vz||0)*dt;v.vx*=Math.exp(-dt*2.5);v.vz*=Math.exp(-dt*2.5);v.a=angle(v.a+(v.yawRate||0)*dt);v.yawRate=(v.yawRate||0)*Math.exp(-dt*3);v.speed=0;collideVehicle(v,this.city.buildings);settleVehicle(v,dt);this.carCollision(v,dt);}
@@ -390,11 +396,15 @@ export class Game{
   }
   // Resolve after every vehicle has moved, including moving traffic against a stationary person.
   const people=this.onFoot?[this.person,...this.pedestrians,...this.officers]:[...this.pedestrians,...this.officers],vehicles=[this.car,...this.traffic,...this.parked,...this.cops];
+  stepStreet(this.street,dt);
+  for(const v of vehicles){const hit=hitStreetVehicle(this.street,v,dt);if(!hit)continue;applyDamage(v,hit.power,hit.nx,hit.nz,hit.p);this.impact=Math.max(this.impact||0,hit.power);if(v===this.car&&!this.onFoot){hit.p.playerCausedUntil=this.elapsed+8;this.recordCrime('street damage',hit.p,{severity:1});}}
+  this.propImpactCount=this.street.serial;
+  for(const person of people){const debris=personStreetContact(this.street,person);if(debris&&person===this.person)this.say('Watch the flying debris.');else if(debris&&debris.playerCausedUntil>this.elapsed)this.recordCrime('debris collision',person,{severity:1,victim:person});}
   for(const person of people)for(const vehicle of vehicles){const impact=personVehicleContact(person,vehicle,true);if(impact>3){
    this.impact=Math.max(this.impact||0,impact*.35);if(person===this.person){this.takeover=null;this.door=null;this.say(impact>7?'Knocked down. Getting back up…':'Hit by a car. Watch the traffic.');}
    else if(vehicle===this.car&&!this.onFoot)this.recordCrime('pedestrian collision',person,{severity:2,victim:person});
   }}
-  for(const person of people){collide(person,this.city.buildings.filter(b=>!b.walkable),.38);person.y=Math.max(person.y||0,walkHeight(person.x,person.z,this.city));}
+  for(const person of people){collide(person,solidBuildings(this.city.buildings),.38);person.y=Math.max(person.y||0,walkHeight(person.x,person.z,this.city));}
   if(this.heat){
    this.hidden=spotted?0:this.hidden+dt;
    if(this.hidden>8){this.heat=0;for(const p of this.cops){p.sirens=false;p.active=false;p.goal=null;p.pursuitState=p.engineDamage>=100?'disabled':'patrol';}this.say('DISPATCH · They lost you. Keep it clean.');}

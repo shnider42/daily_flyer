@@ -1,3 +1,4 @@
+import {drawArchitecture} from './architecture.js';
 // An original two-bank city: a connected, irregular street graph and one cable-stayed crossing.
 // Map coordinates and all visible surfaces are shared with driving, walking and route planning.
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
@@ -55,34 +56,37 @@ const features=[
 ];
 function orientedBarrier(a,b,width=.5,h=1.05){return{x:(a.x+b.x)/2,z:(a.z+b.z)/2,w:width,d:length(a,b)+.04,h,a:Math.atan2(b.x-a.x,b.z-a.z),landmark:true,barrier:true};}
 function bankBarriers(){const result=[];for(const side of[-1,1]){const center=-side*35*.514495755/.934667287;const gap=15.3;for(const [left,right]of[[-240,center-gap],[center+gap,240]]){const n=Math.ceil((right-left)/7);for(let i=0;i<n;i++){const x=left+(right-left)*i/n,X=left+(right-left)*(i+1)/n;result.push({...orientedBarrier({x,z:.15*x+side*35},{x:X,z:.15*X+side*35}),bank:side});}}}const B=BOSTON_NODES.b_bridge,C=BOSTON_NODES.c_bridge,dx=C.x-B.x,dz=C.z-B.z,L=Math.hypot(dx,dz),rx=-dz/L,rz=dx/L;for(const side of[-1,1])for(let i=0;i<32;i++){const u=.18+.64*i/32,v=.18+.64*(i+1)/32,a={x:B.x+dx*u+rx*12.8*side,z:B.z+dz*u+rz*12.8*side},b={x:B.x+dx*v+rx*12.8*side,z:B.z+dz*v+rz*12.8*side};result.push({...orientedBarrier(a,b,.45,1.05),bridgeRail:true});}return result;}
-function isRoadClear(b,margin=14){for(const x of[b.x-b.w/2,b.x,b.x+b.w/2])for(const z of[b.z-b.d/2,b.z,b.z+b.d/2])if(roadDistance(x,z)<margin||Math.abs(z-.15*x)<39)return false;return true;}
-const intersects=(a,b,gap=2)=>Math.abs(a.x-b.x)<(a.w+b.w)/2+gap&&Math.abs(a.z-b.z)<(a.d+b.d)/2+gap;
+function footprint(b){const c=Math.cos(b.a||0),s=Math.sin(b.a||0);return[-1,0,1].flatMap(x=>[-1,0,1].map(z=>({x:b.x+x*b.w/2*c+z*b.d/2*s,z:b.z+z*b.d/2*c-x*b.w/2*s})));}
+function isRoadClear(b,margin=13.7){return footprint(b).every(p=>Math.abs(p.x)<231&&Math.abs(p.z)<231&&roadDistance(p.x,p.z)>=margin&&Math.abs(p.z-.15*p.x)>39);}
+function intersects(a,b,gap=.65){const aa=a.a||0,ba=b.a||0,axes=[[Math.cos(aa),-Math.sin(aa)],[Math.sin(aa),Math.cos(aa)],[Math.cos(ba),-Math.sin(ba)],[Math.sin(ba),Math.cos(ba)]],dx=a.x-b.x,dz=a.z-b.z;for(const q of axes){const r=(o,t)=>o.w/2*Math.abs(q[0]*Math.cos(t)-q[1]*Math.sin(t))+o.d/2*Math.abs(q[0]*Math.sin(t)+q[1]*Math.cos(t));if(Math.abs(dx*q[0]+dz*q[1])>=r(a,aa)+r(b,ba)+gap)return false;}return true;}
 export function makeBostonCity(){
  const buildings=[],random=(()=>{let seed=711;return()=>((seed=(Math.imul(seed,1664525)+1013904223)|0)>>>0)/4294967296;})();
- // Frontage follows curved roads. No regular block stencil is used.
- for(const e of BOSTON_EDGES){if(e.bridge)continue;let walked=0;for(let i=1;i<e.points.length;i++){const a=e.points[i-1],p=e.points[i],d=length(a,p);walked+=d;if(walked<22)continue;walked=0;const nx=(p.z-a.z)/d,nz=-(p.x-a.x)/d;for(const side of[-1,1]){const w=12+random()*7,depth=12+random()*7,b={x:p.x+nx*side*25,z:p.z+nz*side*25,w,d:depth,h:8+random()*10,style:bostonSide(p)==='boston'?'brick':'college',color:Math.floor(random()*4),sign:random()>.7};if(Math.abs(b.x)>220-w/2||Math.abs(b.z)>220-depth/2||!isRoadClear(b)||buildings.some(o=>intersects(b,o))||features.some(f=>Math.hypot(f.x-b.x,f.z-b.z)<26))continue;buildings.push(b);}}}
- // Landmark footprints are chosen from the same clear ground as their visible geometry.
- const add=(b)=>{if(isRoadClear(b,13.5)&&!buildings.some(o=>intersects(b,o,.5)))buildings.push(b);};
- add({x:-140,z:132,w:13,d:26,h:12,style:'church',color:0,sign:false});
- add({x:15,z:116,w:26,d:17,h:9,style:'market',color:1,sign:true});
- add({x:145,z:135,w:25,d:22,h:13,style:'warehouse',color:1,sign:true});
- add({x:40,z:-134,w:27,d:17,h:14,style:'college',color:0,sign:true});
- add({x:151,z:-96,w:22,d:21,h:11,style:'factory',color:1,sign:true});
+ const common={x:-67,z:-171,w:45,d:36},reserves=[common];
+ const add=b=>{if(!isRoadClear(b)||buildings.some(o=>intersects(b,o))||reserves.some(o=>intersects(b,o,1.2)))return false;buildings.push(b);return true;};
+ // Give landmarks their lots first. Smaller street frontage then fills around them.
+ for(const b of[
+  {x:-140,z:132,w:13,d:26,h:12,style:'church',color:0},
+  {x:15,z:116,w:26,d:17,h:9,style:'shop',color:1,sign:true},
+  {x:145,z:135,w:25,d:22,h:13,style:'warehouse',color:1,sign:true},
+  {x:40,z:-134,w:27,d:17,h:14,style:'college',color:0},
+  {x:151,z:-96,w:22,d:21,h:11,style:'factory',color:1,sign:true}
+ ])add(b);
+ // Narrow frontage lots rotate along every curve, making terraces rather than isolated cubes.
+ for(const e of BOSTON_EDGES){if(e.bridge)continue;let walked=0;for(let i=1;i<e.points.length;i++){const a=e.points[i-1],p=e.points[i],d=length(a,p);walked+=d;if(walked<12.5)continue;walked=0;const nx=(p.z-a.z)/d,nz=-(p.x-a.x)/d,heading=Math.atan2(p.x-a.x,p.z-a.z);for(const side of[-1,1]){
+  const w=8+random()*3.8,depth=10+random()*7,offset=14.3+depth/2,b={x:p.x+nx*side*offset,z:p.z+nz*side*offset,w,d:depth,a:heading-side*Math.PI/2,color:Math.floor(random()*5),sign:random()>.6};
+  const bank=bostonSide(p),r=random(),industrial=b.x>115&&Math.abs(b.z)<160;
+  b.style=industrial?(r<.3?'factory':r<.75?'warehouse':'shop'):bank==='boston'?(r<.36?'brownstone':r<.68?'tenement':r<.83?'shop':r<.93?'apartments':'diner'):(r<.28?'tenement':r<.5?'apartments':r<.7?'shop':r<.84?'office':'college');
+  b.h=b.style==='diner'?4.6:b.style==='shop'?6.5+random()*4:industrial?8+random()*8:b.style==='office'?21+random()*16:10+random()*12;
+  add(b);
+ }}}
+ // Backland infill creates layered blocks and narrow passages while keeping the common open.
+ for(let z=-218;z<=218;z+=12.5)for(let x=-219;x<=219;x+=12.5){if(buildings.length>=200)break;const p={x:x+(random()-.5)*2,z:z+(random()-.5)*2},road=nearestBostonRoad(p);if(road.distance<20||road.distance>52)continue;const bank=bostonSide(p),b={...p,a:road.a-Math.PI/2,w:7.6+random()*3,d:8.5+random()*3.5,h:10+random()*12,style:bank==='boston'?'tenement':'apartments',color:Math.floor(random()*5)};if(b.x>115){b.style='warehouse';b.h=7+random()*4;}else if(road.distance>31&&random()>.72){b.style='office';b.h=26+random()*16;}add(b);}
  const barriers=bankBarriers();buildings.push(...barriers);
  const fs=features.map(f=>({...f,entrance:{...nearestBostonRoad(f.entrance)},colliders:[],walkSurfaces:[]}));
  const spawnRoad=nearestBostonRoad({x:-30,z:123}),spawn={x:spawnRoad.x-Math.cos(spawnRoad.a)*4.2,z:spawnRoad.z+Math.sin(spawnRoad.a)*4.2,a:spawnRoad.a};
  const parkedSpawns=[{x:-153,z:104,kind:'wagon',paint:'#6b7969'},{x:25,z:104,kind:'coupe',paint:'#895b46'},{x:155,z:-123,kind:'van',paint:'#858d8c'}].map(p=>{const n=nearestBostonRoad(p);return{...p,x:n.x+Math.cos(n.a)*8,z:n.z-Math.sin(n.a)*8,a:n.a};});
  const pedestrianRoutes=BOSTON_EDGES.filter(e=>!e.bridge&&e.points.length>9).map((e,index)=>{const side=index%2?1:-1;return e.points.slice(3,-3).map((p,i,array)=>{const prev=e.points[i+2],next=e.points[i+4],dx=next.x-prev.x,dz=next.z-prev.z,L=Math.hypot(dx,dz);return{x:p.x+dz/L*11.6*side,z:p.z-dx/L*11.6*side};});}).filter(route=>route.length>2).map(route=>[...route,...route.slice(1,-1).reverse()]);
  return{id:'boston',name:'BOSTON TO CAMBRIDGE',buildings,palms:[],features:fs,walkSurfaces:[],signals:[],roads:BOSTON_EDGES,nodes:BOSTON_NODES,spawn,parkedSpawns,pedestrianRoutes};
-}
-function wall(m,b){const base=Math.max(...[-1,1].flatMap(s=>[-1,1].map(t=>landHeight(b.x+s*b.w/2,b.z+t*b.d/2)))),X=b.x-b.w/2,x=b.x+b.w/2,Z=b.z-b.d/2,z=b.z+b.d/2,h=b.h,slot=b.style==='college'?6:b.style==='warehouse'?14:3+b.color%3,color=b.style==='college'?'#c2b9a3':'#c2aa96';
- m.surface([X,base,Z],[x,base,Z],[x,base+h,Z],[X,base+h,Z],slot,b.w/7,h/7,color);m.surface([x,base,z],[X,base,z],[X,base+h,z],[x,base+h,z],slot,b.w/7,h/7,color);m.surface([X,base,z],[X,base,Z],[X,base+h,Z],[X,base+h,z],slot,b.d/7,h/7,color);m.surface([x,base,Z],[x,base,z],[x,base+h,z],[x,base+h,Z],slot,b.d/7,h/7,color);
- m.box(b.x,base+h,b.z,b.w+.35,.32,b.d+.35,'#a8a18f');m.flat(b.x,b.z,b.w,b.d,'#56605a',base+h+.33);m.box(b.x,base-.45,b.z,b.w,.48,b.d,'#9a9484');
- if(b.style==='church'){m.box(b.x,base+h,b.z+7,4,11,4,'#c4b99b');m.tri([b.x-2.4,base+h+11,b.z+9.4],[b.x+2.4,base+h+11,b.z+9.4],[b.x,base+h+19,b.z+7],'#777b6f');m.tri([b.x+2.4,base+h+11,b.z+9.4],[b.x+2.4,base+h+11,b.z+4.6],[b.x,base+h+19,b.z+7],'#56635c');m.tri([b.x+2.4,base+h+11,b.z+4.6],[b.x-2.4,base+h+11,b.z+4.6],[b.x,base+h+19,b.z+7],'#777b6f');m.tri([b.x-2.4,base+h+11,b.z+4.6],[b.x-2.4,base+h+11,b.z+9.4],[b.x,base+h+19,b.z+7],'#65736b');}
- if(b.style==='college'){for(const dx of[-8,-4,0,4,8]){m.box(b.x+dx,base,b.z+b.d/2+.5,.75,4,.8,'#c7c4b0');}m.box(b.x,base+4,b.z+b.d/2+.5,b.w+.6,.7,1.4,'#d2cbb6');m.tri([X,base+h+.3,z],[x,base+h+.3,z],[b.x,base+h+4.5,z],'#b8b59f');}
- if(b.style==='factory'){m.box(b.x+b.w*.32,base+h,b.z-5,3,21,3,'#89735d');for(let y=base+h+2;y<base+h+21;y+=3)m.box(b.x+b.w*.32,y,b.z-5,3.2,.2,3.2,'#b19b7c');}
- if(b.sign){const zz=z+.045;m.surface([b.x-4,base+3.2,zz],[b.x+4,base+3.2,zz],[b.x+4,base+4.6,zz],[b.x-4,base+4.6,zz],10+b.color%4);}
- if(b.style!=='warehouse'&&b.style!=='factory')for(const zz of[Z-.035,z+.035]){m.surface([X+.5,base+.4,zz],[x-.5,base+.4,zz],[x-.5,base+2.7,zz],[X+.5,base+2.7,zz],9,Math.max(1,Math.floor(b.w/4)),1,'#b6bba8');m.box(b.x,base+2.85,zz,b.w,.2,.25,'#a59e89');}
 }
 function tree(m,x,z,r=2.6){const y=landHeight(x,z);m.tube([x,y,z],[x+.13,y+4.5,z],.16,'#675f4c',5);const top=[x,y+7,z],bottom=[x,y+3,z];for(let k=0;k<7;k++){const a=k/7*Math.PI*2,b=(k+1)/7*Math.PI*2,A=[x+Math.cos(a)*r,y+4.8,z+Math.sin(a)*r],B=[x+Math.cos(b)*r,y+4.8,z+Math.sin(b)*r];m.tri(top,A,B,k%2?'#6d7754':'#77815b');m.tri(bottom,B,A,'#58684f');}}
 function ribbon(m,e,half,slot,y=0,color='#ffffff'){const pts=e.points;for(let i=0;i<pts.length-1;i++){const a=pts[i],b=pts[i+1],prev=pts[Math.max(0,i-1)],next=pts[Math.min(pts.length-1,i+2)],da=Math.hypot(b.x-prev.x,b.z-prev.z),db=Math.hypot(next.x-a.x,next.z-a.z),ax=(b.z-prev.z)/da*half,az=-(b.x-prev.x)/da*half,bx=(next.z-a.z)/db*half,bz=-(next.x-a.x)/db*half,P=(p,x,z)=>[p.x+x,bostonHeight(p.x+x,p.z+z)+y,p.z+z];if(slot===2){const r=10/half;for(const sign of[-1,1]){const x=(a.x+b.x)/2+(ax+bx)/2*(1+r)/2*sign,z=(a.z+b.z)/2+(az+bz)/2*(1+r)/2*sign;if(roadDistance(x,z)<10.2)continue;m.surface(P(a,ax*r*sign,az*r*sign),P(a,ax*sign,az*sign),P(b,bx*sign,bz*sign),P(b,bx*r*sign,bz*r*sign),slot,1,length(a,b)/3,color);}}else m.surface(P(a,-ax,-az),P(a,ax,az),P(b,bx,bz),P(b,-bx,-bz),slot,half*2/3,length(a,b)/3,color);}}
@@ -98,13 +102,12 @@ export function drawBostonWorld(m,city){const oldHeight=m.heightSampler,oldTrans
  for(const e of BOSTON_EDGES){ribbon(m,e,13,2,.15);ribbon(m,e,10,1,.005);}
  for(const n of Object.values(BOSTON_NODES)){const yy=bostonHeight(n.x,n.z);m.disc(n.x,yy+.012,n.z,10.15,'#555957',24);}
  for(const e of BOSTON_EDGES){let traveled=0;for(let i=1;i<e.points.length;i++){const a=e.points[i-1],b=e.points[i],l=length(a,b);traveled+=l;if(traveled<8)continue;traveled=0;const dx=(b.x-a.x)/l,dz=(b.z-a.z)/l;for(const s of[-.2,.2]){const P=(along,offset)=>{const x=b.x+dx*along+dz*offset,z=b.z+dz*along-dx*offset;return[x,bostonHeight(x,z)+.028,z];};m.quad(P(-2,s-.055),P(2,s-.055),P(2,s+.055),P(-2,s+.055),'#c8b579');}}}
- for(const b of city.buildings){if(b.barrier){const co=Math.cos(b.a),si=Math.sin(b.a),base=b.bridgeRail?bostonHeight(b.x,b.z):landHeight(b.x,b.z);m.transform={x:b.x,y:base,z:b.z,c:co,s:si};m.box(0,0,0,b.w,b.h,b.d,b.bridgeRail?'#c2c4b4':'#8a9285');m.box(0,.95,0,b.w+.1,.12,b.d,'#bec1ad');m.transform=null;}else wall(m,b);}
+ for(const b of city.buildings){if(b.barrier){const co=Math.cos(b.a),si=Math.sin(b.a),base=b.bridgeRail?bostonHeight(b.x,b.z):landHeight(b.x,b.z);m.transform={x:b.x,y:base,z:b.z,c:co,s:si};m.box(0,0,0,b.w,b.h,b.d,b.bridgeRail?'#c2c4b4':'#8a9285');m.box(0,.95,0,b.w+.1,.12,b.d,'#bec1ad');m.transform=null;}else{const base=Math.max(...footprint(b).map(p=>landHeight(p.x,p.z)));drawArchitecture(m,b,{mapId:'boston',base,low:Math.min(...footprint(b).map(p=>landHeight(p.x,p.z))),index:city.buildings.indexOf(b)});}}
  bridgeWorld(m);
  // The common's grass and diagonal footpaths are deliberately off the street network.
  const common=features.find(f=>f.kind==='park');m.heightSampler=landHeight;m.flat(common.x,common.z,43,34,'#738569',.015);m.surface([common.x-20,.02,common.z+11],[common.x-20,.02,common.z+13],[common.x+20,.02,common.z-11],[common.x+20,.02,common.z-13],2,1,10,'#c4bfaa');m.heightSampler=null;
  for(const [x,z]of[[-84,-180],[-82,-161],[-54,-181],[-49,-165],[-176,123],[-120,156],[12,136],[80,143],[169,169],[77,-129],[-174,-120],[-115,-192]])if(roadDistance(x,z)>14)tree(m,x,z);
- // Low quay furniture, mooring posts and boats below the bridge.
- for(const side of[-1,1])for(let x=-217;x<225;x+=24){const z=.15*x+side*42;if(roadDistance(x,z)<14)continue;const y=landHeight(x,z);m.tube([x,y,z],[x,y+5,z],.065,'#46594f',6);m.box(x,y+4.6,z,.5,.5,.5,'#c6c0a2');}
+ // Boats sit below the crossing; street furniture is now simulated separately.
  for(const x of[-148,130]){const z=.15*x+8;m.box(x,-1.7,z,11,.9,3.3,'#b3b8ac');m.box(x-1,-.8,z,4.1,1.6,2.6,'#c5c6b2');m.box(x-1,.1,z+1.32,2.6,.7,.06,'#48636a');}
  m.heightSampler=oldHeight;m.transform=oldTransform;return m;
 }
