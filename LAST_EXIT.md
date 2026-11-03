@@ -1,34 +1,37 @@
-# LAST EXIT
+# LAST EXIT — v0.2
 
-Original DailyFlyer driving prototype, influenced by the city-chase feel of PS1-era Driver. Fictional Port Meridian, 1978; no copied assets or soundtrack. One original rear-wheel-drive coupe, a 36-block city and waterfront, traffic, two camera distances, momentum and handbrake grip loss, body damage, pursuit with building occlusion, keyboard and multi-touch inputs.
+Original DailyFlyer driving game inspired by Driver 2 on PS1. Explore fictional Port Meridian in a sedan, coupe or wagon, leave a stopped vehicle, walk or run through the city and enter parked cars. Cars stay where you leave them. Original geometry, procedural textures and audio; no copied game assets.
 
 ## Play
 
-- Free drive: explore, learn the handling, recover to repair. Hard traffic collisions can attract a patrol.
-- The pickup: stop at the motel, lose two cruisers, stop at the waterfront garage (3 minutes).
+- Free drive: explore and switch cars; hard traffic collisions can attract a patrol.
+- The pickup: stop at the motel, lose two cruisers, reach the waterfront garage (3 minutes).
 - Heat check: break sight for eight seconds and reach the garage (2:30).
-- Last delivery: four checkpoints, in order (1:50).
+- Last delivery: four checkpoints in order (1:50).
 
-WASD/arrows drive; Space handbrake; C camera; R recovery; Escape pause. Brake becomes reverse when stopped. Touch: horizontal steering pad plus separate gas, brake/reverse and drift buttons. Street handling has more rear grip; Raw has less. Recovery costs 8 seconds in a timed job. Tab hiding/window blur pauses the simulation and clears inputs. Best successful times and audio/handling settings use localStorage, with safe fallback when unavailable.
+Drive with WASD/arrows, Space for the handbrake, E to get out or enter a nearby parked car, C for camera, R to recover and Escape to pause. You must stop before getting out. On foot, WASD/arrows move relative to the camera and Shift runs. Mission driving checkpoints require a vehicle. Police keep tracking you on foot.
 
-Audio starts inside a user gesture. Original procedural 108 BPM groove, engine, tyres, collisions and siren. Music and effects are independently switchable in Pause. No paid services, CDN scripts, downloaded models, remote fonts or runtime network dependency.
+On phones, drag the left pad to steer and hold GAS. BRAKE reverses after stopping; DRIFT applies the handbrake. Tap GET OUT after stopping. The left stick then moves in all directions, RUN increases speed, and ENTER CAR appears near parked vehicles. Steering signs now match the chase camera: right input turns right. Pointer capture, cancellation and blur handling prevent held inputs after interruption. Landscape provides the widest view.
+
+## Presentation
+
+Muted brick and concrete facades, individual windows and storefronts, power lines, elevated rail girders, a water tower and boxy period cars. Low internal resolution, snapped projected vertices, coarse procedural materials, quantized color and short-distance fog provide the PS1 influence. The on-foot character has a simple walking animation. Audio is an original procedural groove with engine, tyre, collision, footstep and siren effects, unlocked by user input.
 
 ## Architecture and verification
 
-- `dist/engine.js`: deterministic fixed-step simulation, no DOM/audio dependencies. Isolated for future authoritative networking; no multiplayer is implemented in this release.
-- `dist/render.js`: native WebGL renderer; a depth-buffered Canvas renderer is available when WebGL is unavailable. Procedural flat-shaded geometry; no external assets.
-- `dist/game.js`: UI, touch pointers, pause lifecycle, local records, minimap and frame loop.
-- `dist/audio.js`: Web Audio original music/effects, gesture unlock and mute state.
-- Run `npm test` (Node built-in test runner). 11 focused simulation checks.
-- Browser QA covers fallback rendering, menu/start/pause/resume, job selection, keyboard and touch acceleration, and 430x832 portrait / 896x414 landscape layouts. The test browser has WebGL disabled; real iPhone Safari/WebGL performance and physical multi-touch need device testing.
+- `dist/engine.js`: deterministic fixed-step driving/on-foot simulation, parked vehicles, collisions, missions and pursuit.
+- `dist/controls.js`: pure joystick coordinates and steering normalization.
+- `dist/render.js`: native WebGL rendering and a depth-buffered Canvas fallback.
+- `dist/game.js`: UI, pointer/keyboard input, minimap, pause lifecycle and local settings/records.
+- `dist/audio.js`: gesture-unlocked Web Audio effects and music.
+- Run `npm test`: 28 gameplay/control checks, including both steering directions at four headings, phone-size joystick coordinates, safe exit, walking collisions, running, car switching and pursuit continuity.
+- Browser QA: desktop and 430x832 portrait / 896x414 landscape layouts; start, exit, on-foot joystick movement, re-entry and pause. The cloud browser has WebGL disabled, so these visual checks used the Canvas fallback. Physical iPhone Safari, WebGL output/performance and simultaneous multi-touch still need device testing.
+
+No paid services, CDN scripts, downloaded models, remote fonts or runtime network dependencies. This remains a solo prototype with a flat city and three jobs. Traffic follows the grid; car switching currently supports stopped parked vehicles. No moving traffic hijacking, interiors, jumping, replay or multiplayer.
 
 ## DailyFlyer integration
 
 GitHub: `shnider42/daily_flyer`, branch `feat/last-exit-driving`.
-Assets live in `daily_flyer/themes/last_exit_assets/`, metadata in `daily_flyer/themes/last_exit.py`, Flask route `/last-exit/`, theme `last_exit`. Static Render publish directory is the assets directory, with `node --test tests/last_exit/*.test.mjs` as build command. Existing game branches are unchanged.
+The canonical DailyFlyer assets are in `daily_flyer/themes/last_exit_assets/`; the Flask route is `/last-exit/` and theme is `last_exit`. The private Sites project mirrors the static game from this checkout.
 
-This is a solo first slice: one car, one flat city, three jobs. Traffic drives straight across the grid; pursuit uses road nodes and sight checks. No ramps, traffic lights, replays, additional cars or multiplayer yet. Next work should follow actual phone handling feedback, then street variety and more nuanced pursuit.
-
-## Render delivery fallback
-
-The connected static-site creation tool returned `StaticPublishPath cannot be empty` despite receiving publishPath. Public delivery therefore uses a free Node web service (`server/last-exit/server.mjs`) to serve the same assets, with no dependencies. Build: `node --test tests/last_exit/*.test.mjs`; start: `node server/last-exit/server.mjs`. Only the seven known public assets and `/health` are served. Free-service cold starts apply. Static publication can be restored once the connector path bug is fixed. Twelve focused simulation/server tests pass.
+The public Render deployment uses the existing free Node web service with `server/last-exit/server.mjs`. Build: `node --test tests/last_exit/*.test.mjs`. Start: `node server/last-exit/server.mjs`. It serves only eight known public assets and `/health`; free-service cold starts apply. The DailyFlyer tests add a file-server check to the 28 gameplay/control checks.
