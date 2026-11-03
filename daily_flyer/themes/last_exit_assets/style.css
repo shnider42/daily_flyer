@@ -10,3 +10,5 @@
 @media(prefers-reduced-motion:reduce){*{transition:none!important}}
 
 body.playing{touch-action:none;-webkit-user-select:none;user-select:none;-webkit-touch-callout:none}body.playing #hud,body.playing #hud *{touch-action:none}select,input{font-size:16px!important}
+
+.city-picker{display:flex;gap:7px;margin:17px 0 4px}.city-picker button{flex:1;background:#223a34a8;border:1px solid #a9b59950;border-radius:5px;padding:9px;text-align:left}.city-picker button.selected{border-color:#d1bd8e;background:#a58c563b}.city-picker strong{display:block;font-size:12px;font-weight:500}.city-picker small{display:block;margin-top:4px;font:7px monospace;letter-spacing:.5px;color:#bac9b5}.starter-info{font:9px monospace;color:#d0c6a8;margin:0 0 10px}.jobs{margin-top:12px}@media(max-height:550px) and (orientation:landscape){.city-picker{grid-column:1;grid-row:4;margin:10px 0 0}.city-picker button{padding:7px}#job-description{grid-row:5;margin:6px 0}.starter-info{grid-column:2;grid-row:4;align-self:start;margin:2px 0;font-size:8px}.menu-body .primary{align-self:end;margin-top:20px}.menu-options{grid-row:5}h1{margin-top:8px!important;margin-bottom:8px!important}}

@@ -1,5 +1,6 @@
-import {vehicleSpec,TRAFFIC_TYPES} from './vehicles.js';
-import {groundHeight,walkHeight,vehicleSurface,settleVehicle} from './terrain.js';
+import {vehicleSpec,TRAFFIC_TYPES,driveAcceleration} from './vehicles.js';
+import {terrainHeight,groundHeight,walkHeight,vehicleSurface,settleVehicle} from './terrain.js';
+import {baycrestFeatures} from './baycrest-landmarks.js';
 import {districtFeatures} from './landmarks.js';
 // LAST EXIT: deterministic, browser-independent driving simulation.
 export const ROADS = [-216,-144,-72,0,72,144,216];
@@ -7,28 +8,28 @@ export const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
 export const angle=a=>Math.atan2(Math.sin(a),Math.cos(a));
 export const dist=(a,b)=>Math.hypot(a.x-b.x,a.z-b.z);
 export function random(seed=78){return()=>{seed=(Math.imul(seed,1664525)+1013904223)|0;return(seed>>>0)/4294967296;};}
-export function makeCity(){
- const rnd=random(), buildings=[], palms=[],features=districtFeatures();
+export function makeCity(id='meridian'){
+ const rnd=random(), buildings=[], palms=[],features=id==='baycrest'?baycrestFeatures():districtFeatures();
  for(let ix=0;ix<6;ix++)for(let iz=0;iz<6;iz++){
   const x=ROADS[ix]+36,z=ROADS[iz]+36;
   if(features.some(f=>f.x===x&&f.z===z))continue;
-  if((x===-108&&z===108)||(x===-36&&z===180)){
+  if(id!=='baycrest'&&((x===-108&&z===108)||(x===-36&&z===180))){
    for(const sign of[-1,1])buildings.push({x:x+15*sign,z:z-15*sign,w:9,d:9,h:10+rnd()*7,color:2,sign:true,style:'brick'});continue;
   }
   // The waterfront district has low warehouses; downtown has taller towers.
-  const downtown=ix<3&&iz<3;
+  const downtown=id==='baycrest'?ix>3&&iz<3:ix<3&&iz<3;
   for(let a=-1;a<=1;a+=2)for(let b=-1;b<=1;b+=2){
-   if(ix===5&&iz===4&&a===1)continue;
-   buildings.push({x:x+a*11.5,z:z+b*11.5,w:16+rnd()*3,d:16+rnd()*3,h:downtown?18+rnd()*28:8+rnd()*14,color:Math.floor(rnd()*6),sign:rnd()>.65,style:ix<3?'brick':'stucco'});
+   if(id!=='baycrest'&&ix===5&&iz===4&&a===1)continue;
+   buildings.push({x:x+a*11.5,z:z+b*11.5,w:16+rnd()*3,d:16+rnd()*3,h:downtown?18+rnd()*24:id==='baycrest'?7+rnd()*4:8+rnd()*14,color:Math.floor(rnd()*6),sign:rnd()>.65,style:id==='baycrest'&&!downtown?'rowhouse':ix<3?'brick':'stucco'});
   }
-  for(let k=0;k<(ix>3?3:0);k++)palms.push({x:ROADS[ix]+15,z:ROADS[iz]+20+k*15,h:8+rnd()*3});
+  for(let k=0;k<(id!=='baycrest'&&ix>3?3:0);k++)palms.push({x:ROADS[ix]+15,z:ROADS[iz]+20+k*15,h:8+rnd()*3});
  }
  const walkSurfaces=features.flatMap(f=>f.walkSurfaces||[]);buildings.push(...features.flatMap(f=>f.colliders),...walkSurfaces.map(s=>({...s,h:s.height+.18,landmark:true,walkable:true})));
- return{buildings,palms,features,walkSurfaces,signals:ROADS.slice(1,-1).flatMap(x=>ROADS.slice(1,-1).map(z=>({x,z})))};
+ return{id,name:id==='baycrest'?'BAYCREST':'PORT MERIDIAN',buildings,palms,features,walkSurfaces,signals:ROADS.slice(1,-1).flatMap(x=>ROADS.slice(1,-1).map(z=>({x,z})))};
 }
 // The diagonal avenue cuts two blocks, with actual pavement openings and clear collision space.
 export function onDiagonal(x,z,margin=0){return x>=-152&&x<=8&&z>=64&&z<=224&&Math.abs(z-x-216)<11.3+margin;}
-export function districtAt(p,city){const f=(city.features||[]).find(f=>dist(p,f)<40);return f?.name||(onDiagonal(p.x,p.z,8)?'MERIDIAN AVENUE':p.x>150?'HARBOR ROAD':p.z<0?'DOWNTOWN':'OLD QUARTER');}
+export function districtAt(p,city){if(city.id==='baycrest'){const f=city.features.find(f=>dist(p,f)<42);return f?.name||(p.x>130?'EAST BAY':p.z<-130?'FORT RIDGE':p.x<-115?'LAUREL HEIGHTS':p.z>70?'SOUTH SLOPES':'TELEGRAPH HILL');}const f=(city.features||[]).find(f=>dist(p,f)<40);return f?.name||(onDiagonal(p.x,p.z,8)?'MERIDIAN AVENUE':p.x>150?'HARBOR ROAD':p.z<0?'DOWNTOWN':'OLD QUARTER');}
 export function signalAt(x,z,time){const phase=((time+(x+z)/72*1.2)%22+22)%22;return{vertical:phase<9.5,horizontal:phase>=11&&phase<20.5};}
 export const JOBS=[
  {id:'free',name:'Free drive',tag:'NO CLOCK. NO PRESSURE.',desc:'Get to know Port Meridian. Find your line, throw the tail out, and take the long way home.',time:0,targets:[]},
@@ -36,7 +37,13 @@ export const JOBS=[
  {id:'heat',name:'Heat check',tag:'02 / LOSE THE TAIL',desc:'Two cruisers have your number. Break their line of sight, stay out of view, and get back to the garage.',time:150,targets:[{x:-144,z:-144,label:'Lose the police, then reach the garage',stop:true}]},
  {id:'courier',name:'Last delivery',tag:'03 / AGAINST THE CLOCK',desc:'Four checkpoints across the city. Keep moving, watch the traffic, and bring the car home in one piece.',time:110,targets:[{x:144,z:144,label:'Checkpoint 1 · Coast Road'},{x:144,z:-144,label:'Checkpoint 2 · Marina'},{x:-144,z:-144,label:'Checkpoint 3 · Downtown'},{x:-144,z:72,label:'Checkpoint 4 · Old Quarter'}]}
 ];
-export function makeCar(x=5.7,z=174,a=Math.PI){return{x,z,a,vx:0,vz:0,y:groundHeight(x,z),verticalSpeed:0,pitch:0,roll:0,yawRate:0,speed:0,steer:0,damage:0,engineDamage:0,wheelDamage:0,motorClock:0,panelDamage:{front:0,rear:0,left:0,right:0},dents:[],lastImpact:null,hit:0,slip:0,distance:0,top:0};}
+export const BAY_JOBS=[
+ {...JOBS[0],desc:'Climb the ridge streets, explore the waterfront and look for uncommon cars tucked into the neighborhoods.'},
+ {id:'pickup',name:'The pickup',tag:'01 / FERRY CONTACT',desc:'Meet a contact at the ferry market, then lose the tail on the way to Fort Point.',time:230,targets:[{x:180,z:72,label:'Stop at Ferry Market',stop:true},{x:108,z:-144,label:'Reach Fort Point',stop:true}]},
+ {id:'heat',name:'Heat check',tag:'02 / HILL COUNTRY',desc:'Lose two cruisers among the hill crests and reach the cable yard.',time:185,targets:[{x:108,z:144,label:'Lose the police, then reach Cable Yard',stop:true}]},
+ {id:'courier',name:'Ridge runner',tag:'03 / CROSS-TOWN',desc:'Carry four deliveries across Baycrest. The downhill sections are faster; the junctions still need braking.',time:180,targets:[{x:-108,z:144,label:'Painted Steps delivery'},{x:-36,z:0,label:'Telegraph Terrace delivery'},{x:-180,z:-72,label:'Laurel Park delivery'},{x:180,z:72,label:'Ferry Market delivery'}]}
+];
+export function makeCar(x=5.7,z=174,a=Math.PI,mapId='meridian'){return{x,z,a,mapId,vx:0,vz:0,y:groundHeight(x,z,mapId),verticalSpeed:0,pitch:0,roll:0,yawRate:0,speed:0,steer:0,damage:0,engineDamage:0,wheelDamage:0,motorClock:0,panelDamage:{front:0,rear:0,left:0,right:0},dents:[],lastImpact:null,hit:0,slip:0,distance:0,top:0};}
 export function collide(car,buildings,radius=1.45){
  let impact=0;
  for(const b of buildings){
@@ -88,7 +95,7 @@ export function personVehicleContact(p,c,impactEnabled=true){
  const travel=impactEnabled&&Number.isFinite(c.previousX)?Math.hypot(c.x-c.previousX,c.z-c.previousZ):0;
  if(Math.abs(p.x-c.x)>3.6+Math.min(travel,20)||Math.abs(p.z-c.z)>3.6+Math.min(travel,20))return 0;
  const spec=vehicleSpec(c),radius=.38,co=Math.cos(c.a),si=Math.sin(c.a);
- if(Math.abs((p.y??groundHeight(p.x,p.z))-(c.y??groundHeight(c.x,c.z)))>1.7)return 0;
+ if(Math.abs((p.y??groundHeight(p.x,p.z,p.mapId))-(c.y??groundHeight(c.x,c.z,c.mapId)))>1.7)return 0;
  const local=(x,z)=>({x:x*co-z*si,z:x*si+z*co}),q=local(p.x-c.x,p.z-c.z),nearestX=clamp(q.x,-spec.w,spec.w),nearestZ=clamp(q.z,-spec.l,spec.l),dx=q.x-nearestX,dz=q.z-nearestZ,d=Math.hypot(dx,dz);let nx=0,nz=0,penetration=0;
  if(d<radius){if(d>.0001){nx=dx/d;nz=dz/d;penetration=radius-d;}else{const side=spec.w-Math.abs(q.x),end=spec.l-Math.abs(q.z);if(side<end){nx=Math.sign(q.x)||1;penetration=side+radius;}else{nz=Math.sign(q.z)||1;penetration=end+radius;}}}
  else if(impactEnabled&&Number.isFinite(c.previousX)&&Math.hypot(c.x-c.previousX,c.z-c.previousZ)<20){
@@ -131,10 +138,10 @@ export function stepCar(c,input,dt,buildings,handling='street'){
  c.steer+=(clamp((input.steer||0)+(c.wheelDamage||0)*.0015*Math.sign((c.panelDamage.right||0)-(c.panelDamage.left||0)),-1,1)-c.steer)*Math.min(1,dt*8);
  const brake=clamp(input.brake||0,0,1),gas=clamp(input.gas||0,0,1),hb=!!input.handbrake;
  c.motorClock=(c.motorClock||0)+dt;const mechanical=c.engineDamage||0,sputter=mechanical>55&&Math.sin(c.motorClock*11)>1-(mechanical-55)/50;
- let acc=gas*(mechanical>=100?0:forward<-.8?22:13.8*vehicleSpec(c).power*Math.max(.22,1-mechanical*.0065)*(sputter?.22:1))-brake*(forward>.8?25:7.8);
+ let acc=gas*(mechanical>=100?0:forward<-.8?8:driveAcceleration(c,forward)*Math.max(.22,1-mechanical*.0065)*(sputter?.22:1))-brake*(forward>.8?8:3.2);
  if(!gas&&!brake){acc-=Math.sign(forward)*Math.min(Math.abs(forward)/dt,1.25);}
  const surface=vehicleSurface(c);if(gas||brake||Math.abs(forward)>.3)acc-=9.81*Math.sin(surface.pitch);
- forward=clamp(forward+(acc-forward*Math.abs(forward)*.006)*dt,-10,vehicleSpec(c).maxSpeed);
+ forward=clamp(forward+(acc-forward*Math.abs(forward)*.0012)*dt,-10,vehicleSpec(c).maxSpeed);
  if(hb)forward*=Math.exp(-dt*1.05);
  const traction=c.airborne?.15:hb?1.25:handling==='raw'?4.2:7;
  side*=Math.exp(-dt*traction);
@@ -153,27 +160,33 @@ export function stepCar(c,input,dt,buildings,handling='street'){
 }
 const nearest=v=>ROADS.reduce((a,b)=>Math.abs(b-v)<Math.abs(a-v)?b:a);
 export function nearestRoad(p){const x=nearest(p.x),z=nearest(p.z);return Math.abs(x-p.x)<Math.abs(z-p.z)?{x,z:clamp(p.z,-216,216)}:{x:clamp(p.x,-216,216),z};}
-export function resetCar(c){const p=nearestRoad(c);c.x=p.x;c.z=p.z;c.vx=0;c.vz=0;c.a=Math.abs(p.x-nearest(p.x))<.1?Math.PI:Math.PI/2;c.hit=1;c.y=groundHeight(c.x,c.z);c.verticalSpeed=0;c.pitch=c.roll=c.yawRate=0;}
+export function resetCar(c){const p=nearestRoad(c);c.x=p.x;c.z=p.z;c.vx=0;c.vz=0;c.a=Math.abs(p.x-nearest(p.x))<.1?Math.PI:Math.PI/2;c.hit=1;c.y=groundHeight(c.x,c.z,c.mapId);c.verticalSpeed=0;c.pitch=c.roll=c.yawRate=0;}
 function segmentBox(a,b,box){let lo=0,hi=1;for(const [k,s]of[['x','w'],['z','d']]){const d=b[k]-a[k],min=box[k]-box[s]/2,max=box[k]+box[s]/2;if(Math.abs(d)<1e-6){if(a[k]<min||a[k]>max)return false;}else{let t1=(min-a[k])/d,t2=(max-a[k])/d;if(t1>t2)[t1,t2]=[t2,t1];lo=Math.max(lo,t1);hi=Math.min(hi,t2);if(lo>hi)return false;}}return true;}
-export function visible(a,b,buildings){return !buildings.some(v=>segmentBox(a,b,v));}
+export function visible(a,b,buildings){
+ if(buildings.some(v=>segmentBox(a,b,v)))return false;const id=a.mapId||b.mapId;if(id!=='baycrest')return true;
+ const ay=(a.y??groundHeight(a.x,a.z,id))+1.7,by=(b.y??groundHeight(b.x,b.z,id))+1.7,n=Math.max(2,Math.ceil(dist(a,b)/5));
+ for(let i=1;i<n;i++){const t=i/n,x=a.x+(b.x-a.x)*t,z=a.z+(b.z-a.z)*t;if(terrainHeight(x,z,id)>ay+(by-ay)*t)return false;}return true;
+}
 export class Game{
  constructor(city=makeCity()){this.city=city;this.rnd=random(101);this.start('free');}
+ makeCar(x,z,a){return makeCar(x,z,a,this.city.id);}
  start(id,handling='street'){
-  this.job=JOBS.find(j=>j.id===id)||JOBS[0];this.handling=handling;this.car=makeCar();this.car.kind='sedan';this.car.paint='#898c90';this.car.name='Regent sedan';this.onFoot=false;this.person={x:0,z:0,a:Math.PI,walk:0,speed:0};this.walkHeading=Math.PI;this.door=null;this.takeover=null;this.waypoint=null;this.pedestrians=[];this.walkDistance=0;
-  for(let i=0;i<36;i++){const bx=ROADS[i%6]+36,bz=ROADS[(i*3+Math.floor(i/6))%6]+36,route=[{x:bx-22.6,z:bz-22.6},{x:bx+22.6,z:bz-22.6},{x:bx+22.6,z:bz+22.6},{x:bx-22.6,z:bz+22.6}],point=route[i%4];this.pedestrians.push({...point,y:walkHeight(point.x,point.z,this.city),a:0,walk:i,speed:1.2+(i%3)*.2,life:Infinity,route,waypoint:(i+1)%4,coat:['#747f85','#746358','#586b65'][i%3]});}
+  this.job=(this.city.id==='baycrest'?BAY_JOBS:JOBS).find(j=>j.id===id)||JOBS[0];this.handling=handling;this.car=this.makeCar();this.car.kind=id==='courier'?'compact':id==='pickup'?'wagon':'sedan';this.car.paint=this.city.id==='baycrest'?'#b2a17c':'#898c90';this.car.name=vehicleSpec(this.car).name;this.onFoot=false;this.person={mapId:this.city.id,x:0,z:0,a:Math.PI,walk:0,speed:0};this.walkHeading=Math.PI;this.door=null;this.takeover=null;this.waypoint=null;this.pedestrians=[];this.walkDistance=0;
+  for(let i=0;i<36;i++){const bx=ROADS[i%6]+36,bz=ROADS[(i*3+Math.floor(i/6))%6]+36,route=[{x:bx-22.6,z:bz-22.6},{x:bx+22.6,z:bz-22.6},{x:bx+22.6,z:bz+22.6},{x:bx-22.6,z:bz+22.6}],point=route[i%4];this.pedestrians.push({mapId:this.city.id,...point,y:walkHeight(point.x,point.z,this.city),a:0,walk:i,speed:1.2+(i%3)*.2,life:Infinity,route,waypoint:(i+1)%4,coat:['#747f85','#746358','#586b65'][i%3]});}
   // Crosswalk routes add street activity where drivers and people actually meet.
-  for(let i=0;i<8;i++){const x=ROADS[1+i%5],z=ROADS[2+Math.floor(i/5)]+10.1,route=[{x:x-16,z},{x:x+16,z}];this.pedestrians.push({x:route[i%2].x,z,a:Math.PI/2,walk:i,y:walkHeight(route[i%2].x,z,this.city),speed:1.4,life:Infinity,route,waypoint:(i+1)%2,coat:i%2?'#7d6856':'#566f73'});}
-  this.elapsed=0;this.time=this.job.time;this.stage=0;this.heat=0;this.hidden=0;this.busted=0;this.pursuitStarted=0;this.hold=0;this.done=null;this.message='';this.messageTime=0;this.cops=[];this.traffic=[];this.parked=[{...makeCar(11.3,159,Math.PI),kind:'coupe',paint:'#784137',name:'Marlow coupe'},{...makeCar(-11.3,183,0),kind:'wagon',paint:'#65735b',name:'Estate wagon'},{...makeCar(83.3,39,Math.PI),kind:'sedan',paint:'#8b8673',name:'Regent sedan'},{...makeCar(155.3,-107,Math.PI),kind:'coupe',paint:'#425b71',name:'Marlow coupe'}];this.skids=[];this.resetCount=0;
+  for(let i=0;i<8;i++){const x=ROADS[1+i%5],z=ROADS[2+Math.floor(i/5)]+10.1,route=[{x:x-16,z},{x:x+16,z}];this.pedestrians.push({mapId:this.city.id,x:route[i%2].x,z,a:Math.PI/2,walk:i,y:walkHeight(route[i%2].x,z,this.city),speed:1.4,life:Infinity,route,waypoint:(i+1)%2,coat:i%2?'#7d6856':'#566f73'});}
+  this.elapsed=0;this.time=this.job.time;this.stage=0;this.heat=0;this.hidden=0;this.busted=0;this.pursuitStarted=0;this.hold=0;this.done=null;this.message='';this.messageTime=0;this.cops=[];this.traffic=[];this.parked=[{...this.makeCar(11.3,159,Math.PI),kind:'coupe',paint:'#784137',name:'Marlow coupe'},{...this.makeCar(-11.3,183,0),kind:'wagon',paint:'#65735b',name:'Estate wagon'},{...this.makeCar(83.3,39,Math.PI),kind:'sedan',paint:'#8b8673',name:'Regent sedan'},{...this.makeCar(155.3,-107,Math.PI),kind:'coupe',paint:'#425b71',name:'Marlow coupe'}];this.skids=[];this.resetCount=0;
   let index=0;
   for(const vertical of[true,false])for(const road of ROADS)for(const dir of[-1,1])for(let slot=0;slot<4;slot++){
    const along=-198+slot*108+((index*17)%31),x=vertical?road-dir*5.4:along,z=vertical?along:road+dir*5.4,a=vertical?(dir===1?0:Math.PI):(dir===1?Math.PI/2:-Math.PI/2),kind=TRAFFIC_TYPES[index%TRAFFIC_TYPES.length];
    const cruiseSpeed=(kind==='van'?8:kind==='taxi'?13:10)+this.rnd()*3;
-   const v={...makeCar(x,z,a),kind,name:vehicleSpec({kind}).name,paint:kind==='taxi'?'#b99d53':['#858477','#6c8b87','#7e4036','#b5a57a','#53637a','#d0c8af','#544b45','#859398'][index%8],speed:cruiseSpeed,cruiseSpeed,vertical,dir,occupied:true,nextTurnAt:4+(index%9)*2};
-   if(dist(v,this.car)<10){v[vertical?'z':'x']+=dir*18;v.y=groundHeight(v.x,v.z);}this.traffic.push(v);index++;
+   const v={...this.makeCar(x,z,a),kind,name:vehicleSpec({kind}).name,paint:kind==='taxi'?'#b99d53':['#858477','#6c8b87','#7e4036','#b5a57a','#53637a','#d0c8af','#544b45','#859398'][index%8],speed:cruiseSpeed,cruiseSpeed,vertical,dir,occupied:true,nextTurnAt:4+(index%9)*2};
+   if(dist(v,this.car)<10){v[vertical?'z':'x']+=dir*18;v.y=groundHeight(v.x,v.z,this.city.id);}this.traffic.push(v);index++;
   }
   // A nearby occupied car makes the street takeover discoverable from the first drive.
-  this.traffic.push({...makeCar(-5.4,166,0),kind:'sedan',name:'Regent sedan',paint:'#6c8b87',speed:0,cruiseSpeed:9,vertical:true,dir:1,occupied:true,yieldUntil:7});
-  if(id==='heat')this.raiseHeat(2);
+  this.traffic.push({...this.makeCar(-5.4,166,0),kind:'sedan',name:'Regent sedan',paint:'#6c8b87',speed:0,cruiseSpeed:9,vertical:true,dir:1,occupied:true,yieldUntil:7});
+  if(this.city.id==='baycrest'){this.parked.push({...this.makeCar(-110,119,Math.PI),kind:'sport',name:'Vela GT',paint:'#a8533e',rare:true},{...this.makeCar(108,-175,Math.PI/2),kind:'muscle',name:'Braddock V8',paint:'#3e6460',rare:true});}
+  this.discoveries=new Set();if(id==='heat')this.raiseHeat(2);
  }
  say(m){this.message=m;this.messageTime=5;}
  get actor(){return this.onFoot?this.person:this.car;}
@@ -181,7 +194,7 @@ export class Game{
  interactionInfo(){
   const p=this.person,candidates=[];
   for(const c of[this.car,...this.parked,...this.traffic]){
-   if(dist(c,p)>5.4||Math.abs((p.y??walkHeight(p.x,p.z,this.city))-(c.y??groundHeight(c.x,c.z)))>1.4||!visible(c,p,this.city.buildings))continue;
+   if(dist(c,p)>5.4||Math.abs((p.y??walkHeight(p.x,p.z,this.city))-(c.y??groundHeight(c.x,c.z,c.mapId)))>1.4||!visible(c,p,this.city.buildings))continue;
    const dx=p.x-c.x,dz=p.z-c.z,lx=dx*Math.cos(c.a)-dz*Math.sin(c.a),side=lx>=0?1:-1;
    const door={x:c.x+Math.cos(c.a)*2.15*side,z:c.z-Math.sin(c.a)*2.15*side};
    const occupied=this.traffic.includes(c),close=dist(p,door)<2.1,slow=Math.abs(c.speed)<2.2;
@@ -193,8 +206,8 @@ export class Game{
   if(next!==this.car){this.parked=this.parked.filter(c=>c!==next);this.parked.push(this.car);this.car=next;}
   this.traffic=this.traffic.filter(c=>c!==next);next.vx=next.vz=next.speed=0;next.occupied=false;next.stolen=stolen||next.stolen;this.onFoot=false;this.takeover=null;
   this.door={car:next,side:info?.side||1,time:.55};
-  if(stolen){const d=info.door;this.pedestrians.push({x:d.x,z:d.z,a:next.a+info.side*Math.PI/2,walk:0,speed:3.2,life:14,y:walkHeight(d.x,d.z,this.city),coat:'#747f85'});this.raiseHeat(Math.max(1,this.heat));this.say('DISPATCH · Driver reported a stolen car. Get moving.');}
-  else this.say('IN VEHICLE · '+(next.name||'Sedan'));
+  if(stolen){const d=info.door;this.pedestrians.push({mapId:this.city.id,x:d.x,z:d.z,a:next.a+info.side*Math.PI/2,walk:0,speed:3.2,life:14,y:walkHeight(d.x,d.z,this.city),coat:'#747f85'});this.raiseHeat(Math.max(1,this.heat));this.say('DISPATCH · Driver reported a stolen car. Get moving.');}
+  else{if(next.rare)this.discoveries.add(next.kind);this.say((next.rare?'RARE FIND · ':'IN VEHICLE · ')+(next.name||'Sedan'));}
  }
  stepTakeover(input,dt){
   const t=this.takeover;if(!t)return;
@@ -213,7 +226,7 @@ export class Game{
     const candidate={x:c.x+side[0]*2.25*sign,z:c.z+side[1]*2.25*sign,vx:0,vz:0};const initial={...candidate};collide(candidate,this.city.buildings,.45);
     const blocked=[...this.parked,...this.traffic].some(v=>dist(v,candidate)<2.2);
     if(dist(initial,candidate)>.2||blocked||!visible(c,candidate,this.city.buildings))continue;
-    c.vx=c.vz=c.speed=0;this.onFoot=true;this.person={x:candidate.x,z:candidate.z,a:c.a,walk:0,speed:0,y:walkHeight(candidate.x,candidate.z,this.city),verticalSpeed:0};this.walkHeading=c.a;this.door={car:c,side:sign,time:.8};this.say('ON FOOT · Left thumb moves. Right thumb looks. Approach a stopped car.');return true;
+    c.vx=c.vz=c.speed=0;this.onFoot=true;this.person={mapId:this.city.id,x:candidate.x,z:candidate.z,a:c.a,walk:0,speed:0,y:walkHeight(candidate.x,candidate.z,this.city),verticalSpeed:0};this.walkHeading=c.a;this.door={car:c,side:sign,time:.8};this.say('ON FOOT · Left thumb moves. Right thumb looks. Approach a stopped car.');return true;
    }
    this.say('The doors are blocked. Move away from the wall.');return false;
   }
@@ -244,7 +257,7 @@ export class Game{
   while(this.cops.filter(p=>p.engineDamage<100).length<this.heat){
    const options=ROADS.flatMap(x=>ROADS.map(z=>({x,z}))).filter(p=>dist(p,actor)>80&&dist(p,actor)<170&&!this.cops.some(c=>dist(c,p)<25));
    options.sort((a,b)=>(visible(a,actor,this.city.buildings)?50:0)+Math.abs(dist(a,actor)-105)-((visible(b,actor,this.city.buildings)?50:0)+Math.abs(dist(b,actor)-105)));
-   const at=options[0]||{x:216,z:216},a=Math.atan2(actor.x-at.x,actor.z-at.z),p={...makeCar(at.x,at.z,a),kind:'sedan',police:true,goal:null,last:{x:actor.x,z:actor.z},seen:false,pursuitState:'search',sirens:true};
+   const at=options[0]||{x:216,z:216},a=Math.atan2(actor.x-at.x,actor.z-at.z),p={...this.makeCar(at.x,at.z,a),kind:'sedan',police:true,goal:null,last:{x:actor.x,z:actor.z},seen:false,pursuitState:'search',sirens:true};
    this.cops.push(p);if(this.cops.length>6)break;
   }
   if(!was||this.heat>was)this.say(was?'DISPATCH · Additional unit joining the pursuit.':'DISPATCH · Units are on your tail. Break line of sight.');
@@ -302,6 +315,7 @@ export class Game{
    const close=this.heat&&this.cops.some(p=>p.engineDamage<100&&dist(p,actor)<7&&visible(p,actor,this.city.buildings));this.busted=close&&(this.onFoot||Math.abs(c.speed)<2)?this.busted+dt:Math.max(0,this.busted-dt*2);
    if(this.busted>=5)this.finish(false,'Boxed in.');
   }
+  for(const v of this.parked)if(v.rare&&!this.discoveries.has(v.kind)&&dist(this.actor,v)<16){this.discoveries.add(v.kind);this.say('FOUND · '+v.name+'. Stop and approach a door to take it.');}
   if(this.waypoint&&dist(this.actor,this.waypoint)<9){this.say('Arrived at '+this.waypoint.label+'.');this.waypoint=null;}
   if(this.job.id!=='free'){
    this.time=Math.max(0,this.time-dt);if(this.time<=0)this.finish(false,'Out of time.');if(c.engineDamage>=100)this.finish(false,'Engine disabled.');
@@ -316,7 +330,7 @@ export class Game{
  stepTraffic(dt){
   const pedestrians=new Set(this.onFoot?[this.person,...this.pedestrians]:this.pedestrians),obstacles=[this.car,...this.parked,...this.traffic,...pedestrians];
   for(const t of this.traffic){
-   t.hit=Math.max(0,t.hit-dt);let desired=t.hit||t.engineDamage>=100?0:t.cruiseSpeed*Math.max(.3,1-(t.engineDamage||0)*.006);
+   t.hit=Math.max(0,t.hit-dt);let desired=t.hit||t.engineDamage>=100?0:t.cruiseSpeed*Math.max(.3,1-(t.engineDamage||0)*.006)*(this.city.id==='baycrest'?Math.max(.55,1-Math.max(0,vehicleSurface(t).pitch)*1.4):1);
    const along=t.vertical?'z':'x',across=t.vertical?'x':'z';
    // Red lights have a shared all-red clearance phase. Stop before the crossing.
    for(const light of this.city.signals||[]){if(t.turn||Math.abs(t[across]-light[across])>8)continue;const ahead=(light[along]-t[along])*t.dir-12;

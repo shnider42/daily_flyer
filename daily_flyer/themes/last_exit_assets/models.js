@@ -76,7 +76,7 @@ function wheel(m,c,side,z,time,opts={}){
  }
 }
 
-const variantSpecs={compact:{w:.94,l:2.12,h:.97,roof:1.51,wz:1.28,wr:.35},pickup:{w:1.13,l:2.85,h:1.10,roof:1.93,wz:1.83,wr:.46},van:{w:1.15,l:2.78,h:1.12,roof:2.45,wz:1.72,wr:.45},taxi:{w:1.1,l:2.65,h:1.02,roof:1.56,wz:1.6,wr:.415},sedan:{w:1.1,l:2.65,h:1.02,roof:1.56,wz:1.6,wr:.415},coupe:{w:1.1,l:2.65,h:1.02,roof:1.43,wz:1.6,wr:.415},wagon:{w:1.1,l:2.65,h:1.02,roof:1.56,wz:1.6,wr:.415}};
+const variantSpecs={compact:{w:.94,l:2.12,h:.97,roof:1.51,wz:1.28,wr:.35},pickup:{w:1.13,l:2.85,h:1.10,roof:1.93,wz:1.83,wr:.46},van:{w:1.15,l:2.78,h:1.12,roof:2.45,wz:1.72,wr:.45},taxi:{w:1.1,l:2.65,h:1.02,roof:1.56,wz:1.6,wr:.415},sedan:{w:1.1,l:2.65,h:1.02,roof:1.56,wz:1.6,wr:.415},coupe:{w:1.1,l:2.65,h:1.02,roof:1.43,wz:1.6,wr:.415},wagon:{w:1.1,l:2.65,h:1.02,roof:1.56,wz:1.6,wr:.415},sport:{w:1.03,l:2.3,h:.87,roof:1.30,wz:1.43,wr:.37},muscle:{w:1.16,l:2.85,h:1.04,roof:1.45,wz:1.78,wr:.43}};
 function block(m,x,y,z,w,h,l,col){
  const a=[x-w/2,y,z-l/2],b=[x+w/2,y,z-l/2],c=[x+w/2,y,z+l/2],d=[x-w/2,y,z+l/2],A=add(a,[0,h,0]),B=add(b,[0,h,0]),C=add(c,[0,h,0]),D=add(d,[0,h,0]);
  m.quad(a,b,B,A,col,.8);m.quad(b,c,C,B,col);m.quad(c,d,D,C,col,.95);m.quad(d,a,A,D,col,.82);m.quad(A,B,C,D,col,1.03);m.quad(d,c,b,a,col,.65);
@@ -99,8 +99,20 @@ function taxiSign(d,roof,lod=false){
 function drawCarLOD(m,c,{police=false,brake=false}={}){
  const s=variantSpecs[c.kind]||variantSpecs.sedan,kind=c.kind||'sedan',paint=c.paint||(kind==='taxi'?'#c0a34e':'#777b7b'),d=surface(m,c);
  m.transform={x:c.x,y:c.y||0,z:c.z,c:Math.cos(c.a),s:Math.sin(c.a),pitch:c.pitch||0,roll:c.roll||0};m.kind=0;
- block(d,0,.34,0,s.w*1.92,s.h-.34,s.l*1.92,paint);
- if(kind==='pickup'){
+ if(kind==='sport'||kind==='muscle'){
+  const rear=-s.l*.96,front=s.l*.96,nose=kind==='sport'?.65:.87,w=s.w*.95;
+  d.quad([-w,.31,rear],[w,.31,rear],[w,s.h,rear],[-w,s.h,rear],paint);
+  d.quad([-w,.31,front],[w,.31,front],[w*.93,nose,front],[-w*.93,nose,front],paint);
+  for(const side of[-1,1])d.quad([side*w,.31,rear],[side*w,.31,front],[side*w*.93,nose,front],[side*w,s.h,rear],paint);
+  d.quad([-w,s.h,rear],[w,s.h,rear],[w*.93,nose,front],[-w*.93,nose,front],paint);
+ }else block(d,0,.34,0,s.w*1.92,s.h-.34,s.l*1.92,paint);
+ if(kind==='sport'){
+  simpleCab(d,{w:.78,bf:.45,br:-1.7,rf:-.08,rr:-.72,y:.95,roof:s.roof-.04,col:paint});
+  block(d,0,.86,-2.14,1.82,.14,.14,paint);
+ }else if(kind==='muscle'){
+  simpleCab(d,{w:.88,bf:.65,br:-1.65,rf:-.15,rr:-1.0,y:1.09,roof:s.roof-.04,col:paint});
+  block(d,0,1.05,1.35,.64,.17,.65,'#343d3c');
+ }else if(kind==='pickup'){
   simpleCab(d,{w:s.w*.89,bf:1.03,br:-.52,rf:.48,rr:-.43,y:s.h,roof:s.roof,col:paint});
   // An open dark well and raised rails retain the pickup silhouette at distance.
   d.quad([-.83,1.111,-.64],[.83,1.111,-.64],[.83,1.111,-2.64],[-.83,1.111,-2.64],'#3f4947');
@@ -133,6 +145,94 @@ function shapedCab(d,{w,bf,br,rf,rr,y,roof,col,door=null}){
  }
  return{A,B,C,D,E,F,G,H};
 }
+function drawPerformanceCar(m,c,{police=false,brake=false,time=0,door=null}={}){
+ const sport=c.kind==='sport',s=variantSpecs[c.kind],paint=c.paint||(sport?'#a6adb0':'#596b57'),d=surface(m,c),front=panel(c,'front'),rear=panel(c,'rear');
+ m.transform={x:c.x,y:c.y||0,z:c.z,c:Math.cos(c.a),s:Math.sin(c.a),pitch:c.pitch||0,roll:c.roll||0};m.kind=0;
+ for(let k=0;k<16;k++){const a=k/8*Math.PI,b=(k+1)/8*Math.PI;m.tri([0,.04,0],[Math.cos(a)*s.w*1.08,.04,Math.sin(a)*s.l],[Math.cos(b)*s.w*1.08,.04,Math.sin(b)*s.l],'#353e3d');}
+ // Sport is a low wedge; muscle has pinched door skins between broad rear haunches.
+ const stations=sport?[[-2.22,.84,.83],[-1.95,.98,.90],[-1.43,1.00,.94],[-.65,.93,.91],[.45,.94,.89],[1.43,.99,.88],[1.95,.94,.77],[2.22,.84,.65]]:[[-2.77,.98,.90],[-2.45,1.10,.99],[-1.78,1.13,1.08],[-.9,1.075,1.05],[.65,1.075,1.03],[1.78,1.12,1.04],[2.4,1.055,.98],[2.77,.96,.85]];
+ const at=z=>{let i=0;while(i<stations.length-2&&z>stations[i+1][0])i++;const a=stations[i],b=stations[i+1],t=clamp((z-a[0])/(b[0]-a[0]),0,1);return[a[1]+(b[1]-a[1])*t,a[2]+(b[2]-a[2])*t];};
+ const deck=(x,z,offset=0)=>{const[w,h]=at(z),n=clamp(Math.abs(x)/w,0,1),lift=n<.9?.045-n/.9*.017:(1-n)/.1*.028;return[x,h+lift+offset,z];};
+ const nose=stations.at(-1)[0],tail=stations[0][0],hinge=sport?.45:.65,doorBack=hinge-(sport?1.30:1.51),archR=s.wr+.09;
+ const stops=[...stations.map(v=>v[0]),hinge,doorBack];for(const z of[-s.wz,s.wz])for(const f of[-1,-.82,-.5,0,.5,.82,1])stops.push(z+f*archR);const zs=[...new Set(stops)].sort((a,b)=>a-b);
+ const lower=z=>{let y=.30;for(const wz of[-s.wz,s.wz])if(Math.abs(z-wz)<archR)y=Math.max(y,s.wr+.01+Math.sqrt(Math.max(0,archR*archR-(z-wz)**2)));return y;};
+ for(let i=0;i<zs.length-1;i++){
+  const z=zs[i],Z=zs[i+1],[w,h]=at(z),[W,H]=at(Z),xs=[-1,-.9,0,.9,1];
+  for(let k=0;k<4;k++)d.quad(deck(xs[k]*w,z),deck(xs[k+1]*w,z),deck(xs[k+1]*W,Z),deck(xs[k]*W,Z),paint,1.03);
+  for(const side of[-1,1]){
+   if(!(door&&door.side===side&&z>=doorBack-1e-5&&Z<=hinge+1e-5))d.quad([side*w,lower(z),z],[side*W,lower(Z),Z],[side*W,H,Z],[side*w,h,z],paint,side<0?.84:.96);
+   if(lower(z)>.31||lower(Z)>.31)d.quad([side*w,lower(z),z],[side*(w-.12),lower(z)-.025,z],[side*(W-.12),lower(Z)-.025,Z],[side*W,lower(Z),Z],'#283331');
+  }
+ }
+ for(const z of[tail,nose]){const[w,h]=at(z),xs=[-1,-.9,0,.9,1];d.quad([-w,.30,z],[w,.30,z],[w,h,z],[-w,h,z],paint,.88);for(let k=0;k<4;k++)d.quad([xs[k]*w,h,z],[xs[k+1]*w,h,z],deck(xs[k+1]*w,z),deck(xs[k]*w,z),paint);}
+ d.quad([-.8,.28,tail],[.8,.28,tail],[.8,.28,nose],[-.8,.28,nose],'#2b3636');
+ const cab=shapedCab(d,{w:sport?.78:.88,bf:hinge,br:sport?-1.72:-1.70,rf:sport?-.08:-.15,rr:sport?-.72:-1.0,y:sport?.985:1.145,roof:s.roof,col:paint,door});
+ // Close the window sills onto the crowned deck, including each sloping end.
+ const cabW=Math.abs(cab.A[0]),cabY=cab.A[1],cabRear=cab.E[2];
+ for(const z of[hinge,cabRear])for(let k=0;k<4;k++){const a=-cabW+k*cabW/2,b=a+cabW/2;d.quad([a,cabY,z],[b,cabY,z],deck(b,z),deck(a,z),paint);}
+ const sillZ=[cabRear,...stations.map(v=>v[0]).filter(z=>z>cabRear&&z<hinge),hinge];
+ for(const side of[-1,1])for(let k=0;k<sillZ.length-1;k++){const a=sillZ[k],b=sillZ[k+1],x=side*cabW;d.quad([x,cabY,a],[x,cabY,b],deck(x,b),deck(x,a),paint);}
+ for(const side of[-1,1]){
+  const waist=sport?.88:1.02;
+  // Belt trim follows the changing shoulder instead of floating beyond the haunches.
+  for(let i=0;i<stations.length-1;i++){const a=stations[i],b=stations[i+1];d.quad([side*(a[1]+.018),a[2]-.045,a[0]],[side*(b[1]+.018),b[2]-.045,b[0]],[side*(b[1]+.018),b[2]-.018,b[0]],[side*(a[1]+.018),a[2]-.018,a[0]],sport?'#414d4c':'#b7bfb1');}
+  for(const z of[doorBack,hinge]){const[w,h]=at(z);ribbon(d,[side*(w+.022),.37,z],[side*(w+.022),h-.04,z],.016,'#3a4645');}
+  const hx=side*(at(doorBack+.18)[0]+.025);block(d,hx,waist-.055,doorBack+.18,.035,.035,.17,'#aeb8ae');
+  if(panel(c,side<0?'left':'right')<.72){
+   const mx=side*(s.w+.035),my=sport?1.00:1.13,mz=hinge-.10;tube(d,[side*(s.w-.12),my-.055,mz],[mx,my,mz],.021,.022,'#4e5d59',5);
+   ellipsoid(d,[mx,my,mz],[.105,.053,.082],paint,6,3);d.quad([mx-.065,my-.032,mz-.077],[mx+.065,my-.032,mz-.077],[mx+.065,my+.032,mz-.077],[mx-.065,my+.032,mz-.077],'#82979a');
+  }
+  const damage=panel(c,side<0?'left':'right');if(damage>.15)for(let j=0;j<5;j++){const z=-.8+j*.21,x=side*(at(z)[0]+.025);ribbon(d,[x,.48+(j%3)*.11,z],[x,.52+(j%3)*.11,z+.34],.018,j%2?'#afb09b':'#44514e');}
+  for(const z of[-s.wz,s.wz])wheel(m,c,side,z,time,{x:s.w-.14,radius:s.wr,width:sport?.26:.29,count:10,simple:true});
+ }
+ if(sport){
+  // Flush, closed pop-up lamp lids on the wedge nose; no copied marque styling.
+  for(const side of[-1,1]){
+   const x=side*.59,z1=1.40,z2=1.87;d.quad(deck(x-.20,z1,.014),deck(x+.20,z1,.014),deck(x+.20,z2,.014),deck(x-.20,z2,.014),'#344340');
+   d.quad(deck(x-.181,z1+.024,.030),deck(x+.181,z1+.024,.030),deck(x+.181,z2-.024,.030),deck(x-.181,z2-.024,.030),front>(side<0?.30:.58)?'#68716b':paint);
+   block(d,side*.63,.43,nose+.035,.34,.075,.04,front>.55?'#293b3c':'#baa574');
+  }
+  block(d,0,.32,nose+.023,1.33,.12,.05,'#263535');
+  // A raised ducktail is part of the rear silhouette, with a sealed underside.
+  const z1=-1.99,z2=-2.19,y1=.935,y2=1.055,w1=.94,w2=.88;
+  d.quad([-w1,y1,z1],[w1,y1,z1],[w2,y2,z2],[-w2,y2,z2],paint,1.05);d.quad([-w2,.85,z2],[w2,.85,z2],[w2,y2,z2],[-w2,y2,z2],paint,.9);
+  for(const side of[-1,1])d.tri([side*w1,y1,z1],[side*w2,.85,z2],[side*w2,y2,z2],paint,.9);
+  d.quad([-w1,y1,z1],[-w2,.85,z2],[w2,.85,z2],[w1,y1,z1],paint,.8);
+  block(d,0,.57,tail-.035,1.68,.19,.045,'#283735');
+  for(const side of[-1,1])for(let k=0;k<2;k++)block(d,side*(.39+k*.23),.59,tail-.068,.19,.12,.03,rear>(side<0?.3:.6)?'#293638':brake?'#ee5a38':'#9f4132');
+ }else{
+  // Long dark bonnet treatment follows the curved deck without coplanar layers.
+  const stripeZ=[.78,1.15,1.78,2.4,2.65];for(let j=0;j<stripeZ.length-1;j++)d.quad(deck(-.34,stripeZ[j],.018),deck(.34,stripeZ[j],.018),deck(.34,stripeZ[j+1],.018),deck(-.34,stripeZ[j+1],.018),'#303b3a');
+  const sr=1.05,sf=1.78,base=1.12,top=1.29;
+  d.quad([-.28,base,sr],[.28,base,sr],[.25,top,sf],[ -.25,top,sf],'#3c4843');
+  d.quad([-.25,base,sf],[.25,base,sf],[.25,top,sf],[-.25,top,sf],'#202e30');
+  for(const side of[-1,1])d.tri([side*.28,base,sr],[side*.25,base,sf],[side*.25,top,sf],'#4a554c');
+  block(d,0,.63,nose+.035,1.72,.22,.04,'#243335');
+  for(const side of[-1,1])for(const x of[.62,.88]){
+   const broken=front>(side<0?.30:.57),cx=side*x;for(let k=0;k<10;k++){const a=k/5*Math.PI,b=(k+1)/5*Math.PI;d.tri([cx,.74,nose+.07],[cx+Math.cos(a)*.108,.74+Math.sin(a)*.108,nose+.07],[cx+Math.cos(b)*.108,.74+Math.sin(b)*.108,nose+.07],broken?'#293a3c':'#ddd9b7');}
+  }
+  for(let k=-3;k<=3;k++)block(d,k*.115,.66,nose+.064,.018,.15,.025,'#a9b5a8');
+  block(d,0,.63,tail-.035,1.82,.23,.045,'#2b3939');
+  for(const side of[-1,1])for(let k=0;k<3;k++)block(d,side*(.55+k*.15),.66,tail-.065,.09,.16,.03,rear>(side<0?.35:.6)?'#273638':brake?'#ed5938':'#9a3d2d');
+ }
+ for(const end of[-1,1])block(d,0,.38,end*(s.l-.045),s.w*1.88,.115,.085,sport?'#3c4b49':'#b8c0b1');
+ block(d,0,.48,tail-.10,.41,.13,.025,'#c9c7ac');
+ for(let k=0;k<5;k++)ribbon(d,[-.125+k*.055,.505,tail-.125],[-.125+k*.055,.565,tail-.125],.012,'#354645');
+ for(const side of[-1,1])tube(d,[side*.63,.24,tail+.2],[side*.63,.24,tail-.08],sport?.045:.07,sport?.045:.07,'#68756a',7);
+ if(front>.3||rear>.45){
+  const rearGlass=rear>front,a=rearGlass?cab.E:cab.A,b=rearGlass?cab.F:cab.B,e=rearGlass?cab.H:cab.D,q=rearGlass?cab.G:cab.C,centre=mix(mix(a,b,.65),mix(e,q,.65),.45),offset=rearGlass?-.023:.023;centre[2]+=offset;
+  for(const edge of[mix(a,e,.22),mix(b,q,.68),mix(e,q,.38),mix(a,b,.81)]){edge[2]+=offset;ribbon(d,centre,edge,.01,'#a8b8ae');}
+ }
+ if(front>.6)tube(d,[-s.w*.7,.42,nose+.1],[s.w*.4,.22+Math.sin(time*9)*Math.min(.11,Math.abs(c.speed||0)*.008),nose+.13],.035,.045,'#99a99a',5);
+ if(door){
+  const side=door.side,open=clamp(door.time*3,0,1)*1.05,w=at(hinge)[0],belt=sport?.95:1.10,roof=s.roof-.1,pt=(z,y)=>[side*(w+Math.sin(open)*(hinge-z)),y,hinge-Math.cos(open)*(hinge-z)];
+  m.quad([side*(w-.04),.33,doorBack],[side*(w-.04),.33,hinge],[side*(w-.04),belt,hinge],[side*(w-.04),belt,doorBack],'#263736');
+  d.quad(pt(doorBack,.34),pt(hinge,.34),pt(hinge,belt),pt(doorBack,belt),paint);d.quad(pt(doorBack+.08,belt+.025),pt(hinge-.09,belt+.025),pt(hinge-.37,roof),pt(doorBack+.16,roof),'#4d6970');tube(d,pt(doorBack+.14,roof),pt(hinge-.36,roof),.025,.025,'#a4b3a7',5);
+ }
+ if(police){block(d,0,s.roof+.04,-.4,.89,.09,.24,'#2e3e3d');for(const side of[-1,1])block(d,side*.28,s.roof+.13,-.4,.24,.12,.21,c.sirens!==false&&Math.sin(time*12)*side>0?(side<0?'#e65b45':'#72a7d0'):'#465958');}
+ m.transform=null;m.kind=0;
+}
+
 function drawNewVehicle(m,c,{brake=false,time=0,door=null}={}){
  const kind=c.kind,s=variantSpecs[kind],paint=c.paint||'#777c73',d=surface(m,c),f=panel(c,'front'),r=panel(c,'rear'),w=s.w-.035,l=s.l-.08;
  m.transform={x:c.x,y:c.y||0,z:c.z,c:Math.cos(c.a),s:Math.sin(c.a),pitch:c.pitch||0,roll:c.roll||0};m.kind=0;
@@ -222,6 +322,7 @@ function drawNewVehicle(m,c,{brake=false,time=0,door=null}={}){
 
 export function drawCar(m,c,{police=false,brake=false,time=0,door=null,lod=false}={}){
  if(lod){drawCarLOD(m,c,{police,brake});return;}
+ if(c.kind==='sport'||c.kind==='muscle'){drawPerformanceCar(m,c,{police,brake,time,door});return;}
  if(['compact','pickup','van'].includes(c.kind)){drawNewVehicle(m,c,{brake,time,door});return;}
  const kind=c.kind||'sedan',paint=c.paint||(kind==='taxi'?'#c7a549':'#777b7b'),coupe=kind==='coupe',wagon=kind==='wagon';
  const f=panel(c,'front'),r=panel(c,'rear'),left=panel(c,'left'),right=panel(c,'right');

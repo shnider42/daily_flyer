@@ -1,9 +1,9 @@
 import test from 'node:test';import assert from 'node:assert/strict';import{Game,makeCar,stepCar,makeCity,visible,collide,dist,JOBS}from'../../daily_flyer/themes/last_exit_assets/engine.js';
 const simulate=(c,input,n,buildings=[],handling='street')=>{for(let i=0;i<n;i++)stepCar(c,input,1/60,buildings,handling);};
-test('accelerates, brakes, reverses and stays bounded',()=>{let c=makeCar(0,0,0);simulate(c,{gas:1},120);assert.ok(c.speed>20);simulate(c,{brake:1},180);assert.ok(c.speed<0);assert.ok(Math.abs(c.speed)<=10.1);});
+test('accelerates, brakes, reverses and stays bounded',()=>{let c=makeCar(0,0,0);simulate(c,{gas:1},120);assert.ok(c.speed>6&&c.speed<11);simulate(c,{brake:1},180);assert.ok(c.speed<0);assert.ok(Math.abs(c.speed)<=10.1);});
 test('steering does not spin a stationary car',()=>{let c=makeCar(0,0,0);simulate(c,{steer:1},120);assert.equal(c.a,0);});
 test('handbrake generates substantially more lateral slip',()=>{let a=makeCar(0,0,0),b=makeCar(0,0,0);simulate(a,{gas:1},100);simulate(b,{gas:1},100);simulate(a,{gas:1,steer:1},25);simulate(b,{gas:1,steer:1,handbrake:true},25);assert.ok(b.slip>a.slip*1.4);});
-test('collision stops passage through a building and applies damage',()=>{const b={x:0,z:25,w:12,d:12};let c=makeCar(0,0,0);simulate(c,{gas:1},150,[b]);assert.ok(c.z<18);assert.ok(c.damage>0);});
+test('collision stops passage through a building and applies damage',()=>{const b={x:0,z:25,w:12,d:12};let c=makeCar(0,0,0);simulate(c,{gas:1},300,[b]);assert.ok(c.z<18);assert.ok(c.damage>0);});
 test('buildings block police line of sight',()=>{const b=[{x:0,z:0,w:10,d:10}];assert.equal(visible({x:0,z:-10},{x:0,z:10},b),false);assert.equal(visible({x:12,z:-10},{x:12,z:10},b),true);});
 test('all mission targets are accessible road positions',()=>{const city=makeCity();for(const j of JOBS)for(const t of j.targets){const c={...makeCar(t.x,t.z),vx:0,vz:0};collide(c,city.buildings);assert.ok(dist(t,c)<.01,`${j.id} target blocked`);}});
 test('pickup requires stopping, then starts pursuit',()=>{const g=new Game();g.start('pickup');g.traffic=[];g.car.x=72;g.car.z=72;g.car.vz=12;for(let i=0;i<20;i++)g.tick(1/60,{});assert.equal(g.stage,0);g.car.x=72;g.car.z=72;g.car.vx=g.car.vz=0;for(let i=0;i<50;i++)g.tick(1/60,{});assert.equal(g.stage,1);assert.equal(g.heat,2);});
