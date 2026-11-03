@@ -1,6 +1,6 @@
-import {playbackSession} from './device-audio.js?v=17';
-import {ImpactLimiter} from './impact.js?v=17';
-import {PGIMusic,FAMILY_NAMES} from './music.js?v=17';
+import {playbackSession} from './device-audio.js?v=18';
+import {ImpactLimiter} from './impact.js?v=18';
+import {PGIMusic,FAMILY_NAMES} from './music.js?v=18';
 export function musicPolicy(settings,game,{audition=false,broadcast=false}={}){
  const continuous=settings.musicMode==='always';
  const scene=game?.phase==='final'?'postgame':typeof broadcast==='string'?broadcast:!game?'menu':game.phase==='halftime'?'halftime':null;

@@ -136,9 +136,9 @@ export class BoothVoices {
 }
 export function giveBoothVoice(report,voices){
  return {...report,segments:report.segments.map(s=>{
-  const v=voices.take(s.topic||'gain',s.context),mark=['diagram','highlight'].includes(s.visual);
+  const v=voices.take(s.topic||'gain',s.context),mark=['diagram','highlight','package'].includes(s.visual);
   const factualFocus=s.visual==='highlight'&&s.focus?.focus?`Look at #${s.focus.focus.number} ${s.focus.focus.name}${s.focus.block?' in that block':''}. `:'';
-  const turns=[{speaker:'al',text:s.al,pose:'talk'},{speaker:'john',text:factualFocus+v.john,pose:mark?'point':s.topic==='touchdown'?'big':'talk'},
+  const turns=[{speaker:'al',text:s.al,pose:'talk'},{speaker:'john',text:s.analysis||factualFocus+v.john,pose:mark?'point':s.topic==='touchdown'?'big':'talk'},
    {speaker:'al',text:v.al,pose:'react'},{speaker:'john',text:v.button,pose:s.topic==='touchdown'?'big':'talk'}];
   if(s.closing)turns.push({speaker:'al',text:s.closing,pose:'talk'});
   return {...s,al:turns.filter(t=>t.speaker==='al').map(t=>t.text).join(' '),john:turns.filter(t=>t.speaker==='john').map(t=>t.text).join(' '),turns};

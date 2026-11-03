@@ -12,6 +12,7 @@ export function shedBlock(g,defender){
  g.blocks=g.blocks.filter(b=>b!==block);return true;
 }
 export function isBlocker(g,p){
+ if(g.fakeActive&&p===g.players[1])return false;
  if(p===g.carrier||p===g.pass?.target||g.pitch&&p===g.players[g.pitch.runner??1])return false;
  if(g.isReturn||g.receivedPass||g.scrambleRecovery||g.crossed)return true;
  if(g.playDefinition.kind==='run'&&g.liveTime>=(g.playDefinition.delay||0))return true;

@@ -1,4 +1,5 @@
-import {uniformFor} from './uniforms.js?v=17';
+import {uniformFor} from './uniforms.js?v=18';
+import {FORMATIONS} from './packages.js?v=18';
 // Broadcast graphics use recorded coordinates or explicitly labeled diagrams.
 // No renderer calls into the live game or consumes its random stream.
 const W=720,H=360,YELLOW='#ffdc46';
@@ -51,10 +52,43 @@ function highlight(c,report,s,time,reduced,ink){
  text(c,paused?'HOLD IT RIGHT THERE':(s.period==='game'?'GAME REPLAY':'FIRST-HALF REPLAY'),36,346,13,paused?YELLOW:'#d7e1d0');
  if(ink&&paused){
   const f=s.focus.focus;if(f)circle(c,project(f),reduced?1:clamp((time-3.5)/1.2));
-  const carrier=s.focus.frame.people.find(p=>p.carrier),trail=clip.frames.slice(0,s.focus.index+1).filter((_,i)=>i%3===0).map(frame=>frame.people.find(p=>p.id===carrier?.id&&p.team===carrier?.team)).filter(Boolean).map(project);
+  const carrier=s.focus.fake?f:s.focus.frame.people.find(p=>p.carrier),trail=clip.frames.slice(0,s.focus.index+1).filter((_,i)=>i%3===0).map(frame=>frame.people.find(p=>p.id===carrier?.id&&p.team===carrier?.team)).filter(Boolean).map(project);
   if(trail.length>1)arrow(c,trail,reduced?1:clamp((time-4.8)/1.7));
-  if(f&&(time>5||reduced)){const p=project(f);text(c,s.focus.block?'THE BLOCK':`#${f.number}`,clamp(p.x+26,28,550),clamp(p.y-23,70,300),15,YELLOW);}
+  if(f&&(time>5||reduced)){const p=project(f);text(c,s.focus.fake?'1 · FALSE STEP':s.focus.block?'1 · THE BLOCK':`1 · #${f.number}`,clamp(p.x+26,28,510),clamp(p.y-23,70,300),15,YELLOW);}
+  const receiver=s.focus.receiver;
+  if(receiver){
+   const route=clip.frames.filter((_,i)=>i%3===0).map(f=>f.people.find(p=>p.id===receiver.id&&p.team===receiver.team)).filter(Boolean).map(project);
+   arrow(c,route,reduced?1:clamp((time-5.3)/1.5));
+   const flight=clip.frames.filter(f=>f.targetId===receiver.id&&f.airborne).map(f=>project(f.ball));
+   c.save();c.setLineDash([8,7]);arrow(c,flight,reduced?1:clamp((time-6.4)/1.3));c.restore();
+   if(time>6||reduced){box(c,320,301,370,21,'#10272dee');text(c,'2 ROUTE  ·  3 PASS FLIGHT',330,316,13,YELLOW);}
+  }
  }
+ if(clip.call){box(c,30,27,660,24,'#10272de6');fit(c,`${clip.call.formation.toUpperCase()} · ${clip.call.name.toUpperCase()}`,40,44,635,14,YELLOW);}
+}
+function packageBoard(c,report,s,time,reduced,ink){
+ box(c,0,0,W,H,'#10272d');text(c,'SINGLEBACK · SAME STARTING PICTURE',360,33,20,YELLOW,'center');
+ const roll=reduced?1.1:Math.max(0,time-8),move=clamp(roll/2.8),shape=FORMATIONS.singleback,team=s.team||0;
+ for(let side=0;side<2;side++){
+  const left=20+side*350,xy=(x,y)=>({x:left+14+x/53*292,y:181-y*4.2});
+  box(c,left,52,330,266,'#285c45');for(let y=100;y<300;y+=40)box(c,left+8,y,314,1,'#a6c59a44');box(c,left+8,181,314,2,'#70c5ee');
+  text(c,side?'2 · PLAY-ACTION':'1 · ZONE RUN',left+15,77,17,'#fff1c7');
+  const positions=shape.x.map((x,i)=>({x,y:shape.y[i],number:['QB','RB','A','B','C','OL','OL'][i]}));
+  const runner={x:mix(27,32,clamp(roll/.8)),y:mix(-7,23,move)};
+  positions[1]={...runner,number:'RB'};for(const i of [2,3,4])positions[i].y+=move*(i===2?24:i===3?30:8);positions[2].x+=side?move*23:0;
+  for(const [i,p] of positions.entries())person(c,{...xy(p.x,p.y),number:p.number},uniformFor(report.teams[team],team));
+  const d={x:30,y:side?8-(roll<1.1?clamp(roll/1.1)*3:3-clamp((roll-1.1)/1.5)*8):8-move*6};
+  person(c,{...xy(d.x,d.y),number:'LB'},uniformFor(report.teams[1-team],1-team));
+  const qb=xy(26.5,-4),rb=xy(runner.x,runner.y),target=xy(positions[2].x,positions[2].y),throwing=side&&roll>1.2;
+  const b=side?(throwing?{x:mix(qb.x,target.x,clamp((roll-1.2)/1.3)),y:mix(qb.y,target.y,clamp((roll-1.2)/1.3))}:qb):roll>.35?rb:qb;ball(c,b.x,b.y,.6);
+  if(ink){
+   circle(c,xy(27,-5.5),reduced?1:clamp((time-1)/1.3),27);
+   arrow(c,[xy(27,-7),xy(32,0),xy(32,21)],reduced?1:clamp((time-2.4)/1.4));
+   if(side){arrow(c,[xy(7,0),xy(7,10),xy(30,16)],reduced?1:clamp((time-4)/1.4));circle(c,xy(d.x,d.y),reduced?1:clamp((time-5.4)/1.1),20);if(time>6||reduced)text(c,'READ THE LINEBACKER',left+20,301,14,YELLOW);}
+   else if(time>4||reduced)text(c,'MAKE THE RUN BELIEVABLE',left+15,301,14,YELLOW);
+  }
+ }
+ text(c,'ILLUSTRATION · RUN / PASS / PA SHARE THIS FORMATION',360,344,13,'#d7e1d0','center');
 }
 function diagram(c,report,s,time,reduced,ink){
  const xy=field(c,25,80),team=s.team||0,progress=reduced?0:time>8?clamp((time-8)/4):0;
@@ -91,6 +125,7 @@ export function paintBroadcast(canvas,report,s,time,{reduced=false,ink=true}={})
  const c=canvas.getContext('2d');if(!c)return;
  c.clearRect(0,0,W,H);box(c,0,0,W,H,'#10272d');
  if(s.visual==='highlight')highlight(c,report,s,time,reduced,ink);
+ else if(s.visual==='package')packageBoard(c,report,s,time,reduced,ink);
  else if(s.visual==='diagram')diagram(c,report,s,time,reduced,ink);
  else if(s.visual==='team')teamCard(c,report,s,time,reduced);
  else if(s.visual==='stats'&&report.box)stats(c,report,time,reduced);

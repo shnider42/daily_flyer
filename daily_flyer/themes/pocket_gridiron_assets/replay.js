@@ -3,12 +3,12 @@ const activePhase=p=>['live','return','fumble','kick_flight','kick_loose'].inclu
 const clone=p=>p?{...p}:null;
 export function replayFrame(g,time){
  const flip=g.offense===1,point=p=>p?{x:flip?53-p.x:p.x,y:flip?100-p.y:p.y}:null;
- const people=[...g.players.map(p=>({p,team:g.offense})),...g.defenders.map(p=>({p,team:1-g.offense}))].map(({p,team})=>({...point(p),id:p.id,slot:p.slot,name:p.name,team,number:p.number,phase:p.phase,stun:p.stun,carrier:p===g.carrier,selected:p===g.controlled}));
+ const people=[...g.players.map(p=>({p,team:g.offense})),...g.defenders.map(p=>({p,team:1-g.offense}))].map(({p,team})=>({...point(p),id:p.id,slot:p.slot,name:p.name,team,number:p.number,phase:p.phase,stun:p.stun,carrier:p===g.carrier,selected:p===g.controlled,biting:!!(p.fakeBite&&!g.isHumanDefender(p)&&!g.passed&&!g.isReturn&&g.liveTime>=.25&&g.liveTime<p.fakeUntil)}));
  const b=g.pass||g.loose||(g.pitch?.released?{...g.pitch,elapsed:g.pitch.elapsed-g.pitch.release,duration:g.pitch.flight}:null)||g.special?.ball;
  const arc=b?(g.isLoose?Math.abs(Math.sin(b.elapsed*15))*5:Math.sin(Math.min(1,b.elapsed/(b.duration||1))*Math.PI)*(g.special?38:25)):0;
  const ball=point(b||g.carrier);
  const blocks=g.blocks.map(block=>({blocker:g.players[block.p].id,defender:g.defenders[block.d].id}));
- return {time,offense:g.offense,people,blocks,ball,airborne:!!b,arc,loose:g.isLoose,returning:!!g.returnInfo,spot:flip?100-g.spot:g.spot,target:flip?100-g.target:g.target,camera:flip?100-g.cameraY:g.cameraY,move:clone(g.moveAnimation),flag:!!g.flags.length};
+ return {time,offense:g.offense,people,blocks,ball,airborne:!!b,targetId:g.pass?.target?.id||null,fake:g.fakeActive,arc,loose:g.isLoose,returning:!!g.returnInfo,spot:flip?100-g.spot:g.spot,target:flip?100-g.target:g.target,camera:flip?100-g.cameraY:g.cameraY,move:clone(g.moveAnimation),flag:!!g.flags.length};
 }
 export function replayKind(e){if(e.scorePoints===6)return 'TOUCHDOWN';if(e.type==='ball'&&e.text==='FUMBLE!')return 'FUMBLE';if(e.type==='turnover'&&(e.turnoverType==='interception'||e.text==='INTERCEPTED!'))return 'INTERCEPTION';return null;}
 export class ReplayTape {
@@ -50,7 +50,7 @@ export class ReplayTape {
   const frames=this.history.filter(f=>f.time>=this.time-8).map(f=>({...f,people:f.people.map(p=>({...p})),blocks:f.blocks.map(b=>({...b})),ball:{...f.ball},move:clone(f.move)}));
   if(frames.length<2)return;
   const carrier=frames.at(-1).people.find(p=>p.carrier);
-  const clip={kind,team,original,gain,quarter:g.quarter,clock:g.clock,player:carrier?.name||g.teams[team].city,number:carrier?.number,
+  const clip={kind,team,original,gain,quarter:g.quarter,clock:g.clock,player:carrier?.name||g.teams[team].city,number:carrier?.number,call:clone(start.call),tendency:g.playAction?clone(g.playAction.seen):null,
    detail:event.text==='PENALTY DECLINED'?event.detail:`${event.text} · ${event.detail}`,frames,anchor:original,sequence:++this.sequence,
    priority:(event.scorePoints===6?100:takeaway?75:gain<0?35:0)+Math.min(40,Math.abs(gain))};
   const retain=list=>{const own=[...list.filter(c=>c.team===team),clip].sort((a,b)=>b.priority-a.priority||b.sequence-a.sequence).slice(0,3);return [...list.filter(c=>c.team!==team),...own].sort((a,b)=>b.priority-a.priority||a.sequence-b.sequence);};

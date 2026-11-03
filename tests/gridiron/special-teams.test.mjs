@@ -8,9 +8,9 @@ const make=()=>{const g=new Game(buildTeam('NE',data),buildTeam('BUF',data),'pro
 function until(g,predicate,input={x:0,y:0},limit=500){let n=0;while(!predicate(g)&&n++<limit)g.tick(.05,input);assert.ok(predicate(g),`stalled in ${g.phase}`);}
 function flight(g,type='punt',kicking=1,spot=40,power=.7,aim=0){g.beginKick(type,kicking,spot);g.launchKick(power,aim);}
 
-test('thirty-six offensive plays and eighteen defensive calls all produce playable formations',()=>{
- const g=make();assert.equal(PLAYS.length,36);assert.equal(DEFENSE.length,18);
- for(const p of PLAYS){g.beginDrive(0,25);g.choose(p.id);g.snap(g.offense);assert.equal(g.phase,'live');assert.equal(g.carrier.slot,p.kind==='run'&&p.id!=='draw'&&!p.exchange?(p.carrier??1):0);assert.equal(g.canPass,p.kind==='pass');for(let i=0;i<10;i++)g.tick(.05);}
+test('forty-eight offensive plays and eighteen defensive calls all produce playable formations',()=>{
+ const g=make();assert.equal(PLAYS.length,48);assert.equal(DEFENSE.length,18);
+ for(const p of PLAYS){g.beginDrive(0,25);g.choose(p.id);g.snap(g.offense);assert.equal(g.phase,'live');assert.equal(g.carrier.slot,p.kind==='run'&&p.id!=='draw'&&!p.exchange?(p.carrier??1):0);assert.equal(g.canPass,p.kind==='pass'&&!p.playAction);for(let i=0;i<10;i++)g.tick(.05);}
  for(const d of DEFENSE){g.beginDrive(1,25);g.choose(d.id);g.snap(g.offense);assert.equal(g.defense,d.id);for(let i=0;i<10;i++)g.tick(.05);assert.ok(g.defenders.every(p=>Number.isFinite(p.x)&&Number.isFinite(p.y)));}
 });
 test('curl receivers come back, flood spreads three depths, counter pulls a guard left',()=>{

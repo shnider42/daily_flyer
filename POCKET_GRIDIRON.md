@@ -293,3 +293,64 @@ cancellation, pause/resume offsets, track rotation, scoring mapping, and cache b
 Numerical MP3 checks establish duration, stereo content, no clipping and no accidental
 silent sections; they do not establish subjective similarity or physical iPhone audio
 quality. See `scripts/pgi_music/README.md` for reproducible composition and rendering.
+
+## Formation packages and the yellow board (v18)
+
+Solo offense now commits before the defense chooses coverage. CPU offensive calls
+are selected when the playbook opens and remain fixed when the human changes
+coverage. The defender sees the public formation, not the route or run/pass call.
+CPU defensive calls use situation, team identity and observed formation tendencies;
+they do not read the selected play's kind. Personnel is selected before the call and
+locked for the defensive possession, including first downs and penalty repeats.
+
+The lobby offers Base (2 DL, 2 LB, 3 DB), Nickel (2 DL, 1 LB, 4 DB), and Heavy
+(3 DL, 2 LB, 2 DB). These substitute actual rated roster players. Heavy adds a
+third rusher; its linebackers must cover more space. Nickel adds coverage personnel
+at the expense of a linebacker. Pause queues a preference for the next defensive
+possession. CPU personnel responds to prior overall run/pass history between
+possessions. No unit or difficulty receives artificial speed or rating bonuses.
+
+Twelve universal calls bring the total catalog to 48, with 32–33 available per team:
+
+| Formation | New runs | New passes | New play-action |
+| --- | --- | --- | --- |
+| Singleback | Zone right | Stick / flat | PA cross; PA post / dig |
+| Pistol | Pistol zone; Pistol toss | Pistol spacing | Pistol PA seam |
+| Bunch right | Bunch inside; Bunch toss | Bunch switch | Bunch PA sail |
+
+Each package shares exact pre-snap coordinates. Existing standard calls also live
+under Singleback; wing, offset, boot and jet alignments remain under Special looks.
+The playbook filters by formation, then run/quick/deep/PA, with six calls per page.
+
+Play-action keeps the ball with the QB during an 0.85-second animated mesh. Passing
+and burst become available after the fake; the back then joins protection. Eligible
+AI linebackers/safeties get one recognition roll per snap. A fooled defender steps
+toward the run lane briefly, then returns to the coverage assignment. A visible
+throw takes precedence, and the human-controlled defender always follows input.
+The last 24 snapped calls are stored independently for each team and formation;
+run history lends credibility, while repeated play-action reduces it. The current
+call is added only after its recognition evaluation. Calls changed in the huddle
+never enter the history; a snapped play can be observed even if a later flag erases
+its statistics.
+
+Arcade tuning uses a smoothed run rate `(runs + 2) / (snaps + 4)` and fake rate
+`PA / (snaps + 4)`. Recognition combines 75% individual recognition with 25% unit
+recognition. Fake execution averages QB composure/accuracy and RB agility. Chance
+is bounded at 4–82%, with Rookie/Pro/All-pro offsets of +.12/0/−.10; the read's
+commitment lasts .30–1.35 seconds plus the normal defensive read interval. This is
+an arcade model, not a claim about real-world play-action probabilities.
+
+The pregame yellow board compares the same run and fake alignment side by side.
+Recorded highlight breakdowns add an intended receiver's actual route and dotted
+pass flight. A false-step label requires both the recorded fake reaction and at
+least .3 yards of observed movement toward the line; a reaction roll alone cannot
+invent a highlight. Call names and pre-snap tendencies are detached with the clip,
+and factual teaching copy is retained through the rotating booth dialogue. All
+illustrations remain labeled separately from recorded game footage.
+
+Validation: 182 JavaScript tests plus two Flask route tests. Browser checks cover
+phone portrait (428×926), phone landscape (926×428), and desktop (1440×1000):
+formation selection, fake/throw timing, personnel locking, defensive call order,
+yellow-marker toggle and recorded replay rendering. Chromium touch emulation does
+not substitute for physical iPhone Safari testing. Cache keys advance together to
+v18 so phones fetch a consistent module graph.

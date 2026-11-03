@@ -1,5 +1,5 @@
-import {teamStrengths} from './teams.js?v=17';
-import {copyBox} from './match.js?v=17';
+import {teamStrengths} from './teams.js?v=18';
+import {copyBox} from './match.js?v=18';
 
 // Original fictional fan-tribute copy. Matchup claims come from this game's
 // selected lineup and arcade ratings; highlights come only from recorded plays.
@@ -23,6 +23,10 @@ export function pregameReport(teams,match){
    caption:`${t.abbr} · selected starters`,tag:`${strengths[i][0].toUpperCase()} · ${strengths[i][1]}`});
  }
  const protection=ratings[0].Protection,pressure=ratings[1].Pressure;
+ segments.push({title:'One formation. Three different answers.',visual:'package',topic:'board',team:0,
+  al:'Singleback can show a run, a quick pass, or play-action without changing the formation. The offense calls first. The defense answers with the personnel already on the field.',
+  analysis:'Circle that backfield, Al. Same starting picture! On the left the back takes the ball. On the right the quarterback shows it, keeps it, and looks behind the linebackers. A few honest runs can make that fake more convincing; repeat the fake and those defenders learn. The yellow marker has no eligibility left, but it can still teach!',
+  caption:'Formation lesson · illustration, not a replay',tag:'SAME LOOK · DIFFERENT ANSWER'});
  segments.push({title:'Get the big fellows involved',visual:'diagram',topic:'board',team:0,
   al:`Our game-plan board: ${a.abbr}'s protection is rated ${protection}; ${b.abbr}'s pressure is ${pressure}. Those are arcade ratings, not a prediction. ${a.offense[5].name} and ${a.offense[6].name} have work to do.`,
   john:'Watch the yellow circle. A block buys a little time; the runner finds a little daylight. BOOM! That is the idea. I have drawn three arrows and somehow none of them go to the snack table.',
@@ -40,11 +44,16 @@ export function highlightFocus(clip){
  // Circle an actual recorded block when available. Otherwise use the ball
  // carrier at a recorded moment; never invent a block or a receiving route.
  const frames=clip.frames;
- let index=frames.findIndex((f,i)=>i>frames.length*.18&&i<frames.length*.75&&f.blocks?.length);
+ const stepsIn=p=>{const start=frames[0].people.find(q=>q.id===p.id&&q.team===p.team);return p.biting&&start&&(clip.anchor===1?p.y-start.y:start.y-p.y)>.3;};
+ let index=frames.findIndex(f=>f.people.some(stepsIn));
+ const fake=index>=0;
+ if(fake){const first=index;while(index+1<frames.length&&frames[index+1].time<frames[first].time+.35&&frames[index+1].people.some(stepsIn))index++;}
+ else index=frames.findIndex((f,i)=>i>frames.length*.18&&i<frames.length*.75&&f.blocks?.length);
  if(index<0)index=Math.min(frames.length-1,Math.floor(frames.length*.58));
  const frame=frames[index],block=frame.blocks?.[0];
- const focus=block?frame.people.find(p=>p.id===block.blocker&&p.team===frame.offense):frame.people.find(p=>p.carrier);
- return {index,frame,focus,block:!!block};
+ const focus=fake?frame.people.find(stepsIn):block?frame.people.find(p=>p.id===block.blocker&&p.team===frame.offense):frame.people.find(p=>p.carrier);
+ const targetId=frames.find(f=>f.targetId)?.targetId,receiver=targetId?frame.people.find(p=>p.id===targetId&&p.team===clip.original):null;
+ return {index,frame,focus,block:!fake&&!!block,fake,receiver};
 }
 
 function replaySegments(report,recordings=[],period='first-half'){
@@ -58,12 +67,13 @@ function replaySegments(report,recordings=[],period='first-half'){
   const t=report.teams[clip.team],f=highlightFocus(clip),subject=f.focus?`#${f.focus.number} ${f.focus.name}`:'the ball carrier';
   const summary=clip.kind==='TOUCHDOWN'?`${t.city} finishes this one in the end zone.`:clip.kind==='TAKEAWAY'?`${t.city} comes away with the football.`:clip.gain<0?`${Math.abs(clip.gain)} yards lost on the play.`:`${clip.gain} offensive yard${clip.gain===1?'':'s'} on the play.`;
   return {title:`Roll the tape · ${i+1}`,visual:'highlight',clip,period,topic:clip.kind==='TOUCHDOWN'?'touchdown':clip.kind==='TAKEAWAY'?'takeaway':clip.kind==='DEFENSIVE STOP'?'stop':f.block?'block':'gain',
+   analysis:f.fake?`${clip.call?.formation||'The offense'} shows the fake. ${subject} steps toward the run; that yellow trail follows his recorded movement. Before this snap, this formation had shown ${clip.tendency?.runs||0} run${clip.tendency?.runs===1?'':'s'} and ${clip.tendency?.passes||0} pass${clip.tendency?.passes===1?'':'es'}. ${f.receiver?`The second trail follows #${f.receiver.number} ${f.receiver.name}, the intended receiver.`:'The quarterback keeps the ball through the mesh.'} A false step creates an opportunity; the offense still has to finish the play.`:f.receiver?`The second yellow trail follows #${f.receiver.number} ${f.receiver.name}, the intended receiver. The dotted flight is the actual pass. Watch where the defender and receiver separate; the marker follows what is on the tape.`:null,
    al:`${clip.quarter>4?'Overtime':`Quarter ${clip.quarter}`}. ${summary} Let’s take another look. ${clip.detail}`,
    john:f.block?`Hold it right there! ${subject} is engaged in the block. That is why we look away from the football sometimes. The ball gets the camera; the big fellows get my yellow marker. Now roll it!`:
     clip.kind==='TAKEAWAY'?`Circle ${subject}. The football changes hands, and everybody gets a new job. That is not a souvenir—bring it back for your teammates! Roll it again.`:
     clip.kind==='DEFENSIVE STOP'?`Look at the ball carrier in that circle. That is where the defense closes the play down. You can draw an arrow through a tackler, Al, but the runner still has to get past one!`:
     `Right there: ${subject}. Follow that yellow trail. Those are the steps on the tape, not a magic shortcut. BOOM! I like a good play even more the second time.`,
-   caption:`${t.abbr} · Q${clip.quarter} · ${clip.kind.toLowerCase()}`,tag:f.block?'GIVE THE BLOCKER SOME LOVE':clip.kind==='TOUCHDOWN'?'BOOM! · SIX ON THE BOARD':'LOOK RIGHT HERE',focus:f};
+   caption:`${t.abbr} · Q${clip.quarter} · ${clip.call?.name||clip.kind.toLowerCase()}`,tag:f.fake?'SELL THE RUN · FIND THE WINDOW':f.block?'GIVE THE BLOCKER SOME LOVE':clip.kind==='TOUCHDOWN'?'BOOM! · SIX ON THE BOARD':'LOOK RIGHT HERE',focus:f};
  });
  return highlights;
 }

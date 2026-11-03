@@ -1,4 +1,4 @@
-import {fumbleChance} from './rules.js?v=17';
+import {fumbleChance} from './rules.js?v=18';
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
 const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 export function resetContact(g){g.contact=null;g.breakArm=null;g.breakCooldown=0;g.stamina=100;g.offBalance=0;g.contactSlow=0;g.moveAnimation=null;g.contactFeedback='';}

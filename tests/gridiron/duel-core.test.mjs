@@ -34,9 +34,11 @@ test('complete two-human matches traverse kicks, calls, both possessions, halfti
   possessions.add(g.offense);
   if(g.phase==='halftime'){halves++;g.resumeHalftime();}
   if(g.phase==='penalty')g.command(g.penaltyReview.beneficiary,'resolvePenalty',[true]);
+  if(g.phase==='call'&&g.down===4&&g.spot>=62)g.command(g.offense,'kick',['fieldgoal']);
   if(g.phase==='call'){g.chooseFor(g.offense,ticks%2?'dive':'slants');g.chooseFor(1-g.offense,'zone');}
   if(g.phase==='ready')g.command(g.offense,'snap');
   if(g.phase==='kick_ready'||g.phase==='kick_charge'&&g.special.power>.7)g.command(g.special.kickingTeam,'kickAction');
+  if(g.phase==='kick_accuracy'&&Math.abs(g.special.accuracy-.5)<.08)g.command(g.special.kickingTeam,'kickAction');
   if(g.canPass&&g.liveTime>1)g.command(g.offense,'throwTo',[ticks%3]);
   if(g.isLive&&ticks%20===0){g.command(g.offense,'burst');g.command(1-g.offense,'switchDefender');g.command(1-g.offense,'burst');}
   const d=g.defenders[g.selected],ball=g.loose||g.pass||g.carrier,inputs=[{x:0,y:0},{x:0,y:0}];inputs[g.offense]={x:Math.sin(ticks*.01)*.5,y:1};inputs[1-g.offense]={x:ball.x-d.x,y:ball.y-d.y};g.tickBoth(.05,inputs);

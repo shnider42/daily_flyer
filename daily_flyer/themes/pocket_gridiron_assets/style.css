@@ -236,3 +236,6 @@ body[data-guidance=expert] .plays .play small{display:block;font-size:9px;line-h
 .console:has(.duelstatus){position:relative;padding-top:24px}.duelstatus{position:absolute;top:0;left:0;right:0;height:24px;white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
 
 .goalbar{height:24px!important;background:#483a35!important;isolation:isolate}.goalbar #kickFill{background:#483a35!important}.goalbar::before{content:"";position:absolute;z-index:1;top:0;bottom:0;left:var(--zone-left);width:var(--zone-width);background:#77b996}.goalbar::after{left:clamp(0px,var(--marker),calc(100% - 4px))!important;width:4px!important;background:#fff8dd!important;z-index:2;box-shadow:0 0 0 1px #182a26}.goalpanel{top:12px;bottom:auto}.goalpanel .kickmeter{margin:12px 0}
+
+/* Formation packages stay thumb-sized inside the scrollable playbook. */
+.packagebar{grid-column:1/-1;display:grid;gap:6px;padding:9px;background:#172d2d;border-left:3px solid #ffdc46;font:11px monospace}.packagebar label{display:flex;align-items:center;justify-content:space-between;gap:10px}.packagebar select{min-height:38px;font:12px monospace;max-width:70%}.packagebar small{font:10px/1.5 monospace;color:#b5c5b5}.play.playaction{border-top:2px solid #e2c75a}.quickcall .packagebar{padding:6px;gap:3px}.quickcall .packagebar small{font-size:9px}

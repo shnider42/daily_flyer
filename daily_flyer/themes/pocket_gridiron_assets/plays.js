@@ -53,6 +53,24 @@ const NEW_PLAYS=[
  run('qbdraw','QB draw','Show pass · QB follows the back inside',26.5,{carrier:0,delay:.8,lead:{slot:1,x:26.5,until:1.7}}),
  run('iso','Lead isolation','Follow the tight end through the interior',25,{lead:{slot:4,x:25,until:1.5}})
 ];
+// Every call in a package uses exactly the same pre-snap coordinates.
+const packaged=(formationId,p)=>({...p,formationId,universal:true});
+const fake=(id,name,hint,formationId,routes,lane,wait=2)=>packaged(formationId,{...pass(id,name,hint,'deep',routes,wait),playAction:{lane,duration:.85}});
+export const PACKAGE_PLAYS=[
+ packaged('singleback',run('sbzone','Zone right','Press the right gap · cut behind the block',32)),
+ packaged('singleback',pass('sbstick','Stick / flat','Quick sit route with an outside outlet','quick',[[[7,0],[7,30]],[[46,0],[46,5],[50,5]],[[36,0],[31,6]]],1.2)),
+ fake('sbpa','PA cross','Fake zone right · cross behind the linebackers','singleback',[[[7,0],[7,10],[41,13]],[[46,0],[46,32]],[[36,0],[46,4]]],32),
+ fake('sbpapost','PA post / dig','Same run look · post over a deep dig','singleback',[[[7,0],[7,12],[29,33]],[[46,0],[46,13],[19,13]],[[36,0],[35,5]]],32,2.4),
+ packaged('pistol',run('pistolzone','Pistol zone','Deep back presses the inside lane',27,{exchange:{release:.28,flight:.08,xTarget:26.5,yTarget:-7}})),
+ packaged('pistol',run('pistoltoss','Pistol toss','Deep back pitches wide right',45,{exchange:{release:.3,flight:.35,xTarget:34,yTarget:-8},lead:{slot:4,x:44,until:1.8}})),
+ packaged('pistol',pass('pistolquick','Pistol spacing','Short hooks across the width of the field','quick',[[[7,0],[10,6]],[[46,0],[43,6]],[[36,0],[26,5]]],1.3)),
+ fake('pistolpa','Pistol PA seam','Show inside zone · attack the seam','pistol',[[[7,0],[7,9],[2,12]],[[46,0],[46,9],[51,12]],[[36,0],[28,32]]],27,2.2),
+ packaged('bunch',run('bunchinside','Bunch inside','Use the tight look to open the interior',25,{exchange:{release:.22,flight:.08,xTarget:25,yTarget:-4}})),
+ packaged('bunch',run('bunchtoss','Bunch toss','Three receivers clear the right edge',45,{exchange:{release:.2,flight:.4,xTarget:33,yTarget:-5},lead:{slot:4,x:44,until:1.8}})),
+ packaged('bunch',pass('bunchrub','Bunch switch','Cross releases · quick out and shallow cross','quick',[[[36,-1],[42,5],[50,5]],[[43,0],[37,4],[13,4]],[[39,-2],[35,12],[29,30]]],1.4)),
+ fake('bunchpa','Bunch PA sail','Fake inside · flood the right side','bunch',[[[36,-1],[40,13],[50,18]],[[43,0],[46,33]],[[39,-2],[49,3]]],25,2.1)
+];
+NEW_PLAYS.push(...PACKAGE_PLAYS);
 const lanes={dive:27,sweep:45,counter:12,power:32,stretch:8,keeper:39,draw:27};
 export const PLAYS=[...BASE_PLAYS.map(p=>({...p,group:p.kind==='run'?'run':['verts','flood','smash','postwheel','levels'].includes(p.id)?'deep':'quick',lane:lanes[p.id],blockLane:({sweep:42,counter:14,power:32,stretch:8,keeper:39})[p.id],carrier:p.id==='keeper'?0:1,delay:p.id==='draw'?.85:0,wait:p.id==='curls'?2.3:p.id==='flood'?1.9:1.4,...(p.id==='counter'?{pull:{slot:6,x:13,y:-1,until:1.2}}:p.id==='power'?{pull:{slot:6,x:32,y:2,until:.8}}:{})})),...NEW_PLAYS];
 const zone=(x,y,drift=0)=>({x,y,drift});

@@ -81,5 +81,5 @@ test('man assigns separate outside receivers; new routes and delayed draw have d
 });
 test('seeded simulation replays identically for future authoritative multiplayer',()=>{
  function replay(){const g=make('legend',seededRandom(922));for(let n=0;n<1000;n++){if(g.phase==='penalty')g.resolvePenalty(true);if(g.phase==='call')g.choose(g.userOffense?'mesh':'robber');if(g.phase==='ready'&&g.userOffense)g.snap();if(g.phase==='kick_ready')g.kickAction();if(g.phase==='kick_charge'&&g.special.power>.9)g.kickAction();if(g.phase==='kick_accuracy'&&g.special.accuracy>=.48)g.kickAction();if(g.canPass&&g.liveTime>1.6)g.throwTo(n%3);g.tick(.05,{x:Math.sin(n*.04),y:1});}return JSON.stringify(g);}
- assert.equal(replay(),replay());assert.equal(PLAYS.length,36);
+ assert.equal(replay(),replay());assert.equal(PLAYS.length,48);
 });

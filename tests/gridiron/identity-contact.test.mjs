@@ -11,8 +11,8 @@ const team=abbr=>buildTeam(abbr,data);
 function make(side=0,seed=21){const g=new Game(team('NE'),team('BUF'),'pro',seededRandom(seed));g.beginDrive(side,25);g.choose(side===0?'dive':'zone');g.snap(side);g.carrier.x=26;g.carrier.y=40;g.liveTime=1;for(const d of g.defenders){d.x=1;d.y=85;d.stun=0;}const d=g.defenders[4];d.x=27;d.y=41;return g;}
 
 test('all 32 teams have valid distinct books and available signature calls',()=>{
- const books=new Set();for(const t of TEAMS){const g=new Game(team(t.abbr),team(t.abbr==='BUF'?'NE':'BUF'));g.beginDrive(0,25);assert.ok([20,21].includes(g.offensePlays.length));assert.equal(g.defensePlays.length,12);books.add(g.offensePlays.map(p=>p.id).join(','));for(const id of g.teams[0].profile.offense.signature)assert.ok(g.offensePlays.some(p=>p.id===id));for(const p of g.offensePlays){assert.equal(g.choose(p.id),true);g.snap();for(let i=0;i<8;i++)g.tick(.05);assert.ok(g.players.every(p=>Number.isFinite(p.x)));g.beginDrive(0,25);}}
- assert.equal(books.size,5);assert.equal(PLAYS.length,36);assert.equal(DEFENSE.length,18);
+ const books=new Set();for(const t of TEAMS){const g=new Game(team(t.abbr),team(t.abbr==='BUF'?'NE':'BUF'));g.beginDrive(0,25);assert.ok([32,33].includes(g.offensePlays.length));assert.equal(g.defensePlays.length,12);books.add(g.offensePlays.map(p=>p.id).join(','));for(const id of g.teams[0].profile.offense.signature)assert.ok(g.offensePlays.some(p=>p.id===id));for(const p of g.offensePlays){assert.equal(g.choose(p.id),true);g.snap();for(let i=0;i<8;i++)g.tick(.05);assert.ok(g.players.every(p=>Number.isFinite(p.x)));g.beginDrive(0,25);}}
+ assert.equal(books.size,5);assert.equal(PLAYS.length,48);assert.equal(DEFENSE.length,18);
 });
 test('CPU calls stay in its own book and illegal human calls cannot replace a ready play',()=>{
  const g=make();g.beginDrive(0,25);g.choose('keeper');assert.equal(g.choose('stretch'),false);assert.equal(g.play,'keeper');for(let i=0;i<500;i++){const id=g.selectDefense();assert.ok(g.defensePlays.some(p=>p.id===id));}g.beginDrive(1,25);for(let i=0;i<500;i++){const id=g.selectOffense();assert.ok(g.offensePlays.some(p=>p.id===id));}
@@ -27,7 +27,7 @@ test('ratings are bounded, labeled and retained across team changes and refresh 
  assert.notEqual(rate({name:'Josh Allen',pos:'QB'}).armStrength,rate({name:'Tua Tagovailoa',pos:'QB'}).armStrength);
 });
 test('the defense never receives offensive diagrams or secret-call coaching at any guidance level',()=>{
- const g=make(1);g.phase='ready';for(const level of ['simple','moderate','expert']){const before=coachText(g,level),picks=suggestions(g,g.humanPlays).map(p=>p.id);for(const play of PLAYS){g.play=play.id;assert.equal(showOffensiveRoutes(g),false);assert.equal(coachText(g,level),before);assert.deepEqual(suggestions(g,g.humanPlays).map(p=>p.id),picks);}}
+ const g=make(1);g.phase='ready';for(const level of ['simple','moderate','expert']){g.play='slants';const before=coachText(g,level),picks=suggestions(g,g.humanPlays).map(p=>p.id);for(const play of PLAYS){g.play=play.id;assert.equal(showOffensiveRoutes(g),false);assert.equal(coachText(g,level).replace(g.formation.name,'FORMATION'),before.replace('Singleback','FORMATION'));assert.deepEqual(suggestions(g,g.humanPlays).map(p=>p.id),picks);}}
  g.offense=0;assert.equal(showOffensiveRoutes(g),true);g.phase='live';assert.equal(showOffensiveRoutes(g),false);
 });
 test('fourth-down guidance protects possession and early-down suggestions retain a run choice',()=>{

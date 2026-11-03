@@ -1,6 +1,6 @@
-import {paintBroadcast} from './broadcast-screen.js?v=17';
-import {broadcastBeat} from './booth-lines.js?v=17';
-import {BoothStage} from './booth-stage.js?v=17';
+import {paintBroadcast} from './broadcast-screen.js?v=18';
+import {broadcastBeat} from './booth-lines.js?v=18';
+import {BoothStage} from './booth-stage.js?v=18';
 
 // Shared, skippable pregame/halftime presentation. The live engine stays still.
 export class HalftimeShow {
@@ -49,9 +49,9 @@ export class HalftimeShow {
   this.$('halfClosing').textContent=s.closing||'';this.$('halfClosing').hidden=!!s.turns||!s.closing;
   this.$('halfCount').textContent=`${this.index+1} / ${this.report.segments.length}`;this.$('halfPrev').disabled=this.index===0;this.$('halfNext').disabled=this.index===this.report.segments.length-1;
   this.$('halfCaption').textContent=s.caption||s.title;this.$('halfTag').textContent=s.tag||'FOR THE LOVE OF FOOTBALL';
-  this.$('halfFeed').textContent=s.visual==='highlight'?'REPLAY ROOM':s.visual==='diagram'?'THE YELLOW BOARD':s.visual==='stats'?'BY THE NUMBERS':'IN THE BOOTH';
+  this.$('halfFeed').textContent=s.visual==='highlight'?'REPLAY ROOM':['diagram','package'].includes(s.visual)?'THE YELLOW BOARD':s.visual==='stats'?'BY THE NUMBERS':'IN THE BOOTH';
   this.$('halfScreen').setAttribute('aria-label',s.visual==='highlight'?`${s.caption}. ${s.detail||s.clip.detail}. Yellow markings identify a recorded player and the ball carrier’s path.`:s.caption||s.title);
-  this.$('halfInk').hidden=!['highlight','diagram'].includes(s.visual);
+  this.$('halfInk').hidden=!['highlight','diagram','package'].includes(s.visual);
   this.$('halfAgain').textContent=s.visual==='highlight'?'↺ RUN IT AGAIN':'↺ SHOW IT AGAIN';
   this.$('halfProgress').style.width='0%';this.dialog.dataset.speaker='al';this.dialog.dataset.visual=s.visual||'matchup';
   this.renderAuto();this.draw();
