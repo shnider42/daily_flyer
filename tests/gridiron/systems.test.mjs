@@ -61,6 +61,7 @@ test('all 20 new defensive calls assign every defender once, with finite 7- and 
  }
  assert.equal(SYSTEM_DEFENSE.find(p=>p.id==='34drop').fullCoverage.rush.length,3);
  assert.equal(SYSTEM_DEFENSE.find(p=>p.id==='46zero').fullCoverage.rush.length,6);
+ const bracket=SYSTEM_DEFENSE.find(p=>p.id==='nkbracket');for(const c of [bracket.coverage,bracket.fullCoverage])assert.equal(Object.values(c.man).filter(slot=>slot===2).length+2,2,'Nickel bracket doubles the left receiver without a third man assignment');
 });
 test('each new offense can snap, exchange, pass and finish a live play in both field sizes',()=>{
  for(const p of SYSTEM_PLAYS)for(const format of [7,11])for(const offense of [0,1]){
