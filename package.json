@@ -1,0 +1,11 @@
+{
+  "name": "dailyflyer-saltbound",
+  "private": true,
+  "version": "0.1.0",
+  "scripts": {
+    "dev": "node server/saltbound/server.mjs",
+    "start": "node server/saltbound/server.mjs",
+    "test": "node --test tests/saltbound/*.test.mjs"
+  },
+  "engines": { "node": ">=20" }
+}
