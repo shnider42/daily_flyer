@@ -80,13 +80,34 @@ export function makeBostonCity(){
   add(b);
  }}}
  // Backland infill creates layered blocks and narrow passages while keeping the common open.
- for(let z=-218;z<=218;z+=12.5)for(let x=-219;x<=219;x+=12.5){if(buildings.length>=200)break;const p={x:x+(random()-.5)*2,z:z+(random()-.5)*2},road=nearestBostonRoad(p);if(road.distance<20||road.distance>52)continue;const bank=bostonSide(p),b={...p,a:road.a-Math.PI/2,w:7.6+random()*3,d:8.5+random()*3.5,h:10+random()*12,style:bank==='boston'?'tenement':'apartments',color:Math.floor(random()*5)};if(b.x>115){b.style='warehouse';b.h=7+random()*4;}else if(road.distance>31&&random()>.72){b.style='office';b.h=26+random()*16;}add(b);}
+ for(let z=-218;z<=218;z+=10)for(let x=-219;x<=219;x+=10){if(buildings.length>=320)break;const p={x:x+(random()-.5)*2,z:z+(random()-.5)*2},road=nearestBostonRoad(p);if(road.distance<20||road.distance>75)continue;const bank=bostonSide(p),b={...p,infill:true,a:road.a-Math.PI/2,w:6.5+random()*3,d:7+random()*3.5,h:10+random()*12,style:bank==='boston'?'tenement':'apartments',color:Math.floor(random()*5)};if(b.x>115){b.style='warehouse';b.h=7+random()*4;}else if(road.distance>31&&random()>.72){b.style='office';b.h=26+random()*16;}add(b);}
+ // District-specific silhouettes: timber Cambridge streets, masonry Boston, working waterfront.
+ const extras=['bowfront','tripledecker','brutalist','glass','firehouse','pub','bookshop','cinema'];
+ for(const [i,b] of buildings.entries()){
+  if(i<5)continue;
+  if(i%5===0){b.style=extras[Math.floor(i/5)%extras.length];
+   b.h=b.style==='glass'?42+(i%4)*8:b.style==='brutalist'?25+(i%3)*5:b.style==='tripledecker'?11.4:b.style==='bowfront'?15:b.style==='cinema'?12:b.style==='firehouse'?10:7.5;
+  }else if(b.z<0&&b.x<-40&&i%3===0){b.style='tripledecker';b.h=11.4;}
+ }
+ // Three deliberately placed accessible businesses. Their front doorstep is the interaction point.
+ const places=[];
+ for(const spec of[
+  {id:'cafe',name:'NORTH END COFFEE',person:'Rosa',style:'diner',x:-24,z:124,kind:'cafe'},
+  {id:'books',name:'COMMON GROUND BOOKS',person:'Marek',style:'bookshop',x:-50,z:-130,kind:'books'},
+  {id:'garage',name:'RIVER WORKS GARAGE',person:'Dee',style:'warehouse',x:152,z:-125,kind:'garage'}
+ ]){
+  const options=buildings.filter(b=>b.w>=8&&b.d>=9&&!places.some(p=>p.building===b)).sort((a,b)=>Math.hypot(a.x-spec.x,a.z-spec.z)-Math.hypot(b.x-spec.x,b.z-spec.z));
+  const b=options.find(b=>{const p={x:b.x+Math.sin(b.a||0)*(b.d/2+1.4),z:b.z+Math.cos(b.a||0)*(b.d/2+1.4)};return !buildings.some(o=>o!==b&&intersects({...p,w:2.5,d:2.5},o));});
+  if(!b)continue;b.style=spec.style;b.h=spec.kind==='garage'?9:8;b.placeId=spec.id;
+  const entrance={x:b.x+Math.sin(b.a||0)*(b.d/2+1.4),z:b.z+Math.cos(b.a||0)*(b.d/2+1.4)};
+  places.push({...spec,building:b,entrance,x:b.x,z:b.z,a:b.a||0});
+ }
  const barriers=bankBarriers();buildings.push(...barriers);
- const fs=features.map(f=>({...f,entrance:{...nearestBostonRoad(f.entrance)},colliders:[],walkSurfaces:[]}));
+ const fs=features.map(f=>({...f,entrance:{...nearestBostonRoad(f.entrance)},colliders:[],walkSurfaces:[]}));fs.push(...places.map(p=>({name:p.name,kind:'interior',x:p.x,z:p.z,entrance:nearestBostonRoad(p.entrance),door:p.entrance,colliders:[],walkSurfaces:[]})));
  const spawnRoad=nearestBostonRoad({x:-30,z:123}),spawn={x:spawnRoad.x-Math.cos(spawnRoad.a)*4.2,z:spawnRoad.z+Math.sin(spawnRoad.a)*4.2,a:spawnRoad.a};
  const parkedSpawns=[{x:-153,z:104,kind:'wagon',paint:'#6b7969'},{x:25,z:104,kind:'coupe',paint:'#895b46'},{x:155,z:-123,kind:'van',paint:'#858d8c'}].map(p=>{const n=nearestBostonRoad(p);return{...p,x:n.x+Math.cos(n.a)*8,z:n.z-Math.sin(n.a)*8,a:n.a};});
  const pedestrianRoutes=BOSTON_EDGES.filter(e=>!e.bridge&&e.points.length>9).map((e,index)=>{const side=index%2?1:-1;return e.points.slice(3,-3).map((p,i,array)=>{const prev=e.points[i+2],next=e.points[i+4],dx=next.x-prev.x,dz=next.z-prev.z,L=Math.hypot(dx,dz);return{x:p.x+dz/L*11.6*side,z:p.z-dx/L*11.6*side};});}).filter(route=>route.length>2).map(route=>[...route,...route.slice(1,-1).reverse()]);
- return{id:'boston',name:'BOSTON TO CAMBRIDGE',buildings,palms:[],features:fs,walkSurfaces:[],signals:[],roads:BOSTON_EDGES,nodes:BOSTON_NODES,spawn,parkedSpawns,pedestrianRoutes};
+ return{id:'boston',name:'BOSTON TO CAMBRIDGE',buildings,places,palms:[],features:fs,walkSurfaces:[],signals:[],roads:BOSTON_EDGES,nodes:BOSTON_NODES,spawn,parkedSpawns,pedestrianRoutes};
 }
 function tree(m,x,z,r=2.6){const y=landHeight(x,z);m.tube([x,y,z],[x+.13,y+4.5,z],.16,'#675f4c',5);const top=[x,y+7,z],bottom=[x,y+3,z];for(let k=0;k<7;k++){const a=k/7*Math.PI*2,b=(k+1)/7*Math.PI*2,A=[x+Math.cos(a)*r,y+4.8,z+Math.sin(a)*r],B=[x+Math.cos(b)*r,y+4.8,z+Math.sin(b)*r];m.tri(top,A,B,k%2?'#6d7754':'#77815b');m.tri(bottom,B,A,'#58684f');}}
 function ribbon(m,e,half,slot,y=0,color='#ffffff'){const pts=e.points;for(let i=0;i<pts.length-1;i++){const a=pts[i],b=pts[i+1],prev=pts[Math.max(0,i-1)],next=pts[Math.min(pts.length-1,i+2)],da=Math.hypot(b.x-prev.x,b.z-prev.z),db=Math.hypot(next.x-a.x,next.z-a.z),ax=(b.z-prev.z)/da*half,az=-(b.x-prev.x)/da*half,bx=(next.z-a.z)/db*half,bz=-(next.x-a.x)/db*half,P=(p,x,z)=>[p.x+x,bostonHeight(p.x+x,p.z+z)+y,p.z+z];if(slot===2){const r=10/half;for(const sign of[-1,1]){const x=(a.x+b.x)/2+(ax+bx)/2*(1+r)/2*sign,z=(a.z+b.z)/2+(az+bz)/2*(1+r)/2*sign;if(roadDistance(x,z)<10.2)continue;m.surface(P(a,ax*r*sign,az*r*sign),P(a,ax*sign,az*sign),P(b,bx*sign,bz*sign),P(b,bx*r*sign,bz*r*sign),slot,1,length(a,b)/3,color);}}else m.surface(P(a,-ax,-az),P(a,ax,az),P(b,bx,bz),P(b,-bx,-bz),slot,half*2/3,length(a,b)/3,color);}}
@@ -97,13 +118,20 @@ function bridgeWorld(m){const B=BOSTON_NODES.b_bridge,C=BOSTON_NODES.c_bridge,dx
 }
 export function drawBostonWorld(m,city){const oldHeight=m.heightSampler,oldTransform=m.transform;m.heightSampler=null;m.transform=null;
  // Two land meshes stop exactly at the river retaining walls. Water is a true gap.
- m.flat(0,0,1500,1500,'#627d86',-1.9);for(const side of[-1,1])for(let x=-240;x<240;x+=8)for(let d=35;d<280;d+=8){const z=.15*x+side*d,X=x+8,D=d+8,points=[[x,landHeight(x,z)-.06,z],[X,landHeight(X,.15*X+side*d)-.06,.15*X+side*d],[X,landHeight(X,.15*X+side*D)-.06,.15*X+side*D],[x,landHeight(x,.15*x+side*D)-.06,.15*x+side*D]];if(points.every(p=>Math.abs(p[2])>240))continue;m.quad(...points,side===1?'#939486':'#909a84');}
+ m.flat(0,0,1500,1500,'#537f86',-1.9);for(const side of[-1,1])for(let x=-240;x<240;x+=12)for(let d=35;d<280;d+=12){const z=.15*x+side*d,X=x+12,D=d+12,points=[[x,landHeight(x,z)-.06,z],[X,landHeight(X,.15*X+side*d)-.06,.15*X+side*d],[X,landHeight(X,.15*X+side*D)-.06,.15*X+side*D],[x,landHeight(x,.15*x+side*D)-.06,.15*x+side*D]];if(points.every(p=>Math.abs(p[2])>240))continue;m.quad(...points,side===1?'#939486':'#909a84');}
  // Wide sidewalk base, then a narrower road ribbon, with consistent physical heights.
  for(const e of BOSTON_EDGES){ribbon(m,e,13,2,.15);ribbon(m,e,10,1,.005);}
  for(const n of Object.values(BOSTON_NODES)){const yy=bostonHeight(n.x,n.z);m.disc(n.x,yy+.012,n.z,10.15,'#555957',24);}
  for(const e of BOSTON_EDGES){let traveled=0;for(let i=1;i<e.points.length;i++){const a=e.points[i-1],b=e.points[i],l=length(a,b);traveled+=l;if(traveled<8)continue;traveled=0;const dx=(b.x-a.x)/l,dz=(b.z-a.z)/l;for(const s of[-.2,.2]){const P=(along,offset)=>{const x=b.x+dx*along+dz*offset,z=b.z+dz*along-dx*offset;return[x,bostonHeight(x,z)+.028,z];};m.quad(P(-2,s-.055),P(2,s-.055),P(2,s+.055),P(-2,s+.055),'#c8b579');}}}
  for(const b of city.buildings){if(b.barrier){const co=Math.cos(b.a),si=Math.sin(b.a),base=b.bridgeRail?bostonHeight(b.x,b.z):landHeight(b.x,b.z);m.transform={x:b.x,y:base,z:b.z,c:co,s:si};m.box(0,0,0,b.w,b.h,b.d,b.bridgeRail?'#c2c4b4':'#8a9285');m.box(0,.95,0,b.w+.1,.12,b.d,'#bec1ad');m.transform=null;}else{const base=Math.max(...footprint(b).map(p=>landHeight(p.x,p.z)));drawArchitecture(m,b,{mapId:'boston',base,low:Math.min(...footprint(b).map(p=>landHeight(p.x,p.z))),index:city.buildings.indexOf(b)});}}
  bridgeWorld(m);
+ // Granite quays, mooring posts and brick footpaths establish the river rather than empty grey land.
+ for(const side of[-1,1])for(let x=-218;x<220;x+=22){const z=.15*x+side*37;if(roadDistance(x,z)<14)continue;const y=landHeight(x,z);m.box(x,y,z,.32,.8,.32,'#455854');m.flat(x,z,3.5,2,'#aa8b6e',y+.025);}
+ for(const p of city.places||[]){const a=p.a,c=Math.cos(a),s=Math.sin(a),b=p.building,y=landHeight(b.x,b.z);m.transform={x:b.x,y,z:b.z,c,s};
+  m.box(0,2.7,b.d/2+.07,2.8,.45,.12,p.id==='books'?'#446959':p.id==='garage'?'#a46b43':'#8c453a');
+  m.box(-1.7,.1,b.d/2+.55,.55,1.05,.12,'#394e48');m.box(-1.7,.3,b.d/2+.63,.38,.6,.025,'#d3bd8d');m.transform=null;
+ }
+
  // The common's grass and diagonal footpaths are deliberately off the street network.
  const common=features.find(f=>f.kind==='park');m.heightSampler=landHeight;m.flat(common.x,common.z,43,34,'#738569',.015);m.surface([common.x-20,.02,common.z+11],[common.x-20,.02,common.z+13],[common.x+20,.02,common.z-11],[common.x+20,.02,common.z-13],2,1,10,'#c4bfaa');m.heightSampler=null;
  for(const [x,z]of[[-84,-180],[-82,-161],[-54,-181],[-49,-165],[-176,123],[-120,156],[12,136],[80,143],[169,169],[77,-129],[-174,-120],[-115,-192]])if(roadDistance(x,z)>14)tree(m,x,z);

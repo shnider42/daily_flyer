@@ -8,7 +8,7 @@ import{solidBuildings}from'./spatial.js';
 const LOCAL=['car','person','onFoot','walkHeading','door','takeover','heat','hidden','busted','pursuitStarted','lastKnown','reportJurisdiction','reports','crimeCooldowns','message','messageTime','done','walkDistance','impact','discoveries','waypoint'];
 export const PROTOCOL=10,ROOM_CAPACITY=2;
 export class SharedCity extends Game{
- constructor(){super(makeCity('boston'));this.members=new Map();this.nextEntity=1;this.context=null;this.ambientTime=0;this.car=makeCar(9000,9000,0,'boston');this.person={x:9000,z:9000,a:0,speed:0,life:Infinity};this.assignIds();}
+ constructor(){super(makeCity('boston'));this.cityLife=null;this.members=new Map();this.nextEntity=1;this.context=null;this.ambientTime=0;this.car=makeCar(9000,9000,0,'boston');this.person={x:9000,z:9000,a:0,speed:0,life:Infinity};this.assignIds();}
  assignIds(){for(const o of[...this.parked,...this.traffic,...this.cops,...this.pedestrians,...this.officers,...this.props])o.netId??=this.nextEntity++;}
  get actor(){return this.context?super.actor:this.members?.values().next().value?.car||super.actor;}
  as(p,fn){const previous=this.context,saved=Object.fromEntries(LOCAL.map(k=>[k,this[k]]));this.context=p;for(const k of LOCAL)this[k]=p[k];this.parked=this.parked.filter(c=>c!==p.car);try{return fn();}finally{Object.assign(this.person,{networkPlayer:p.id,life:Infinity,coat:p.coat});for(const k of LOCAL)p[k]=this[k];if(!this.traffic.includes(p.car)&&!this.parked.includes(p.car))this.parked.push(p.car);for(const k of LOCAL)this[k]=saved[k];this.context=previous;}}

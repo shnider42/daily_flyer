@@ -595,6 +595,7 @@ export function drawPerson(m,p){
    const brace=side===impactSide?recover:recover*.28;elbow[1]-=.10*brace;hand[1]-=.31*brace;hand[2]-=.30*brace;
   }else if(stunned||startle){
    elbow[0]=side*.36;elbow[1]=torso+.28;elbow[2]=.20;hand[0]=side*.27;hand[1]=torso+.57;hand[2]=.34;
+  }else if(p.carrying){elbow[2]=.32;hand[0]=side*.31;hand[1]=torso+.08;hand[2]=.48;
   }else if(reporting&&side===1){
    elbow[0]=.36;elbow[1]=torso+.36;elbow[2]=.035;hand[0]=.185;hand[1]=1.655+bounce;hand[2]=.018;
   }else if(flee){
@@ -605,6 +606,7 @@ export function drawPerson(m,p){
   tube(m,shoulder,elbow,.089,.071,officer?'#2b4054':'#6c6657',7);tube(m,elbow,hand,.073,.052,officer?'#31495d':'#77705f',7);
   ellipsoid(m,[hand[0],hand[1]-.04,hand[2]+.012],[.054,.078,.05],'#ad9278',7,4);
  }
+ if(p.carrying&&!fall){m.box(0,torso-.06,.48,.61,.34,.43,'#ad875b');m.box(0,torso+.28,.48,.10,.01,.44,'#d5be8d');}
  tube(m,[0,torso+.43,0],[0,torso+.53,0],.065,.065,'#ab9077',7);
  const head=[0,1.635+bounce,.015];ellipsoid(m,head,[.116,.158,.117],'#baa087',10,6);
  // Low-poly scalp, sideburns, ears and a small nose silhouette.

@@ -11,8 +11,20 @@ export class Sound{
  toggle(){this.enabled=!this.enabled;this.unlock();this.setRunning(this.running);return this.enabled;}
  tone(freq,start,len,vol,type='triangle',bus=this.song){const c=this.ctx,o=c.createOscillator(),g=c.createGain();o.type=type;o.frequency.value=freq;g.gain.setValueAtTime(0,start);g.gain.linearRampToValueAtTime(vol,start+.008);g.gain.exponentialRampToValueAtTime(.001,start+len);o.connect(g);g.connect(bus);o.start(start);o.stop(start+len+.03);o.onended=()=>{o.disconnect();g.disconnect();};}
  noise(at,len,vol,hz,bus=this.song){const c=this.ctx,s=c.createBufferSource(),g=c.createGain(),f=c.createBiquadFilter();s.buffer=this.noiseBuffer;f.type='highpass';f.frequency.value=hz;g.gain.setValueAtTime(vol,at);g.gain.exponentialRampToValueAtTime(.001,at+len);s.connect(f);f.connect(g);g.connect(bus);s.start(at);s.stop(at+len);s.onended=()=>{s.disconnect();g.disconnect();f.disconnect();};}
+ // Invented syllables made from a voiced source and changing vocal-tract formants.
+ // No speech service, recordings, or intelligible insults; each bark lasts less than a second.
+ babble(event,volume){const c=this.ctx,start=c.currentTime,mood=event.mood,voice=event.voice||0,base=(mood==='angry'?145:mood==='alarm'?210:125)+voice*22,vowels=[[730,1090],[300,2200],[570,840],[400,1700],[350,700]],count=mood==='chat'?5:4;
+  for(let i=0;i<count;i++){const at=start+i*.13,f=vowels[(voice+i*3)%vowels.length],o=c.createOscillator(),env=c.createGain();o.type='sawtooth';o.frequency.setValueAtTime(base*(1+(i%3)*.13),at);o.frequency.exponentialRampToValueAtTime(base*(mood==='alarm'?1.35:.77),at+.11);env.gain.setValueAtTime(0,at);env.gain.linearRampToValueAtTime(volume,at+.016);env.gain.exponentialRampToValueAtTime(.0001,at+.115);const filters=f.map(hz=>{const b=c.createBiquadFilter();b.type='bandpass';b.frequency.value=hz;b.Q.value=5;o.connect(b);b.connect(env);return b;});env.connect(this.fx);o.start(at);o.stop(at+.13);o.onended=()=>{o.disconnect();env.disconnect();filters.forEach(f=>f.disconnect());};}
+ }
+ ambience(game,t){if(game.city.id!=='boston'||t<(this.nextAmbience||0))return;this.nextAmbience=t+12+(this.ambientStep||0)%4*3;const step=this.ambientStep=(this.ambientStep||0)+1,p=game.actor;if(game.interior){this.tone(440,t,.12,.008,'triangle',this.fx);this.tone(660,t+.1,.14,.006,'triangle',this.fx);return;}
+  if(Math.abs(p.z-.15*p.x)<65){ // distant harbor horn, then gull calls
+   if(step%3===0){this.tone(98,t,1.4,.022,'sine',this.fx);this.tone(147,t,1.3,.013,'triangle',this.fx);}else for(let i=0;i<3;i++){this.tone(1150-i*160,t+i*.15,.16,.014,'sine',this.fx);}
+  }else if(p.z<0){this.noise(t,.8,.009,900,this.fx);this.tone(170,t,.6,.007,'triangle',this.fx);}else{this.tone(523,t,1.8,.013,'sine',this.fx);this.tone(659,t+.35,1.5,.008,'sine',this.fx);}
+ }
  update(game,input){if(!this.ctx)return;const c=this.ctx,t=c.currentTime;this.master.gain.setTargetAtTime(this.running&&this.enabled?.55:0,t,.05);if(!this.running||!this.enabled)return;
- if(game.elapsed<(this.lastElapsed||0))this.lastHorn=0;this.lastElapsed=game.elapsed;
+ if(game.elapsed<(this.lastElapsed||0)){this.lastHorn=0;this.lastVoice=0;}this.lastElapsed=game.elapsed;
+ this.ambience(game,t);
+ for(const e of game.voiceEvents||[]){if(e.serial<=(this.lastVoice||0))continue;this.lastVoice=e.serial;const d=Math.hypot(e.x-game.actor.x,e.z-game.actor.z);if(game.elapsed-e.time<.8&&d<35&&this.effects)this.babble(e,.18*(1-d/35));}
  this.fx.gain.setTargetAtTime(this.effects?1:0,t,.03);this.song.gain.setTargetAtTime(this.music?.45:0,t,.04);
  const speed=Math.abs(game.car.speed),rev=40+(speed%11)*5+(input.gas?17:0);this.motor.frequency.setTargetAtTime(rev,t,.12);this.motorGain.gain.setTargetAtTime(game.onFoot||game.car.engineDamage>=100?0:(.04+speed*.0014)*(game.car.engineDamage>55&&Math.sin(game.car.motorClock*11)>.3?.25:1),t,.08);this.tyres.gain.setTargetAtTime(!game.onFoot&&game.car.slip>2?Math.min(.08,game.car.slip*.009):0,t,.08);this.siren.frequency.setTargetAtTime(640+Math.sin(t*4)*220,t,.02);const nearestSiren=Math.min(Infinity,...game.cops.filter(p=>p.sirens).map(p=>Math.hypot(p.x-game.actor.x,p.z-game.actor.z)));this.sirenGain.gain.setTargetAtTime(game.heat?.04*Math.max(0,1-nearestSiren/140):0,t,.1);
  if(game.onFoot&&game.person.speed>.5&&t-(this.lastStep||0)>(game.person.speed>4?.23:.38)){this.noise(t,.04,.022,250,this.fx);this.lastStep=t;}

@@ -1,3 +1,29 @@
+# LAST EXIT v0.11 — City stories
+
+Boston–Cambridge now has 320 ordinary buildings (previously 200), 18 facade/silhouette types, and towers up to 58 m before rooftop details. New styles include timber triple-deckers, bow-front masonry, glass towers, concrete civic blocks, firehouses, pubs, bookshops and cinemas. Street and river collision layouts remain connected. The original city is an interpretation, not a geographic recreation of Boston.
+
+A camera-oriented panoramic matte adds a warm dawn, Atlantic cloud banks, gulls and an original Boston-inspired skyline: an antenna crown, slanted glass tower, clock tower and dome. River colors, quay details, warm doorsteps, local business signs and a bounded set of falling leaves reinforce the setting. Three rooms use the same real movement and interaction controls with a fixed cutaway camera.
+
+## Solo free-drive additions
+
+- Enter North End Coffee, Common Ground Books and River Works Garage at their marked doorsteps. City map buttons mark the street approach. Walk to the counter and use E or the contextual phone button to talk.
+- Rosa, Marek and Dee offer record-parcel, tool-case and coffee-box delivery favors. Carrying is visible on foot. Drive between businesses and hand the item over at the destination counter. There is no timer. The tools favor improves mechanical condition without erasing cosmetic dents.
+- One occasional labeled box can appear at a business doorstep. Its gold map marker and local prompt make it discoverable. Picking it up starts a delivery; it cannot duplicate an active favor. Restart resets favors.
+- Calm nearby pedestrians give local tips. Hijacked drivers and endangered pedestrians make short procedural gibberish vocalizations, limited by per-speaker and global cooldowns and listener distance. Subtle regional effects include harbor horns, gull-like calls, bells and distant rail noise. Existing sound/effects settings apply; no external audio or speech service is used.
+- Interiors are available only in solo free drive, are one room each, and rest the outdoor simulation while occupied. Wanted/reporting states prevent entry. Recovery exits safely. Shared multiplayer retains outdoor driving and the updated environment; room gameplay and favors are not networked.
+
+## Performance and verification
+
+The complete Boston world remains below its existing 45,000-triangle test limit (44,872). Backland buildings use simpler geometry; all static world geometry is batched and culled against the camera before submission. Room furnishing meshes stay below 500 triangles, excluding characters. This limits added rendering work; it does not demonstrate native-device frame rates or solve multiplayer server latency.
+
+170 local checks pass. Additional coverage tests door clearance, room boundaries/counter obstruction, enter/exit/recover state, all three favors and duplicate prevention, boxed deliveries, voice budgets, finite meshes and static culling. Browser QA used the software renderer, including actual desktop entry, walking, a conversation/parcel pickup, and 390×844 / 844×390 phone layouts. Physical iPhone Safari multitouch, audio character and native GPU performance still need device testing.
+
+## Multiplayer work deferred
+
+User observed substantial lag despite successful connection. Before another networking change, measure server tick wall time, event-loop stalls, input acknowledgment age and reconciliation distance under two real devices. Separate client rendering cost from simulation overruns and network latency. Likely next targets are spatial candidate sets for traffic/person/police contacts and avoiding full metadata serialization work per snapshot, then tuning prediction around collision impulses. Changing rates again or buying a larger host without those measurements would hide the cause. This release keeps the existing free service, player cap, tick/snapshot rates and room lifetime.
+
+---
+
 # LAST EXIT — v0.10
 
 Original DailyFlyer game influenced by Driver 2 on PS1, with street takeovers inspired by later driving games. Boston to Cambridge, Baycrest and Port Meridian, each with three timed jobs, free driving, traffic, police and on-foot exploration. Original procedural assets/audio; no paid services or runtime downloads.

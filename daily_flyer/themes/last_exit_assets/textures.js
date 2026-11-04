@@ -1,7 +1,7 @@
 // Original, deterministic texture atlas. All detail is attached to world UVs.
 import {random} from './engine.js';
 export const TILE=256,ATLAS=1024;
-export function createAtlas(){
+export function createAtlas(mapId='meridian'){
  const canvas=document.createElement('canvas');canvas.width=canvas.height=ATLAS;const g=canvas.getContext('2d',{willReadFrequently:true}),r=random(3821);
  const rect=(x,y,w,h,c)=>{g.fillStyle=c;g.fillRect(x,y,w,h);};
  const grain=(amount,alpha=.07)=>{for(let i=0;i<amount;i++){const v=r()>.5?255:0;rect(r()*256,r()*256,1+r()*3,1+r()*3,`rgba(${v},${v},${v},${alpha*r()})`);}};
@@ -27,7 +27,7 @@ export function createAtlas(){
  facade(3,'#89735c');facade(4,'#8b5d48');facade(5,'#686d68');facade(6,'#b4a68a',false);facade(7,'#7d8074',false);
  tile(8,()=>{rect(0,0,256,256,'#3d4544');for(let i=0;i<256;i+=10){rect(0,i,256,2,'#858b7b');rect(0,i+2,256,1,'#292f30');}grain(4000,.1);rect(4,0,6,256,'#63695e');rect(246,0,6,256,'#252c2b');});
  tile(9,()=>{rect(0,0,256,256,'#32454b');let grad=g.createLinearGradient(0,0,256,256);grad.addColorStop(0,'#819494');grad.addColorStop(.45,'#4b6369');grad.addColorStop(.46,'#273a40');grad.addColorStop(1,'#16252a');g.fillStyle=grad;g.fillRect(8,8,240,240);rect(120,0,8,256,'#777c71');rect(0,120,256,8,'#777c71');grain(3000,.03);});
- const signs=[['MERIDIAN','MOTOR HOTEL','#6e302c'],['AUTO SERVICE','BRAKES · TIRES','#344e48'],['CORNER STORE','GROCERIES · SUNDRIES','#515e52'],['PORT AUTHORITY','WAREHOUSE No. 7','#6d6b5d']];
+ const signs=mapId==='boston'?[['NORTH END','COFFEE · OPEN EARLY','#7c4135'],['RIVER WORKS','MOTORS · MACHINERY','#344e48'],['COMMON GROUND','USED BOOKS · RECORDS','#34595a'],['CHARLES WHARF','BOSTON / CAMBRIDGE','#6d6b5d']]:[['MERIDIAN','MOTOR HOTEL','#6e302c'],['AUTO SERVICE','BRAKES · TIRES','#344e48'],['CORNER STORE','GROCERIES · SUNDRIES','#515e52'],['PORT AUTHORITY','WAREHOUSE No. 7','#6d6b5d']];
  signs.forEach(([a,b,c],i)=>tile(10+i,()=>{rect(0,0,256,256,c);rect(6,48,244,160,'#d8cead');rect(10,52,236,152,c);g.textAlign='center';g.fillStyle='#e0d6b6';g.font='bold 26px Georgia';g.fillText(a,128,115,224);g.font='12px monospace';g.fillText(b,128,148,220);grain(6000,.14);}));
  tile(14,()=>{rect(0,0,256,256,'#74634f');for(let y=0;y<256;y+=16)for(let x=-20;x<256;x+=40){rect(x+(y%32?20:0),y,38,14,`rgba(${r()>.5?'206,180,141':'30,20,18'},.16)`);}grain(14000,.16);});
  tile(15,()=>{g.clearRect(0,0,256,256);const mist=g.createRadialGradient(128,128,8,128,128,125);mist.addColorStop(0,'rgba(255,255,255,.4)');mist.addColorStop(.45,'rgba(255,255,255,.22)');mist.addColorStop(1,'rgba(255,255,255,0)');g.fillStyle=mist;g.fillRect(0,0,256,256);});

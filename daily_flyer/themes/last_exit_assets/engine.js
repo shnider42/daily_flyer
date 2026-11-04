@@ -1,3 +1,4 @@
+import {resetCityLife,cityLifeInfo,interactCityLife,stepInterior,leaveInterior,vocalize,tickCityLife} from './city-life.js';
 import {queryStatic,solidBuildings} from './spatial.js';
 import {makeStreetProps,makeStreetState,stepStreet,hitStreetVehicle,personStreetContact,blastStreet} from './street.js';
 import {makeBostonCity,bostonSide,nearestBostonRoad} from './boston.js';
@@ -209,9 +210,10 @@ export class Game{
   if(this.city.id==='baycrest'){this.parked.push({...this.makeCar(-110,119,Math.PI),kind:'sport',name:'Vela GT',paint:'#a8533e',rare:true},{...this.makeCar(108,-175,Math.PI/2),kind:'muscle',name:'Braddock V8',paint:'#3e6460',rare:true});}
   this.discoveries=new Set();this.reports=[];this.crimeCooldowns={};this.junctions=new Map();this.officers=[];this.explosions=[];this.explosionCount=0;this.lastKnown=null;this.hornEvents=[];this.hornCount=0;this.nextAmbientHorn=0;this.lifeScanAt=0;
   if(this.city.id==='boston')this.populateBoston();
-  if(this.city.id)this.populatePolice();this.props=makeStreetProps(this.city,[this.car,...this.parked]);this.street=makeStreetState(this.props,this.city);this.propImpactCount=0;if(id==='heat')this.raiseHeat(2,this.car);
+  if(this.city.id)this.populatePolice();this.props=makeStreetProps(this.city,[this.car,...this.parked]);this.street=makeStreetState(this.props,this.city);this.propImpactCount=0;resetCityLife(this);if(id==='heat')this.raiseHeat(2,this.car);
  }
  say(m){this.message=m;this.messageTime=5;}
+ lifeInfo(){return cityLifeInfo(this);}
  get actor(){return this.onFoot?this.person:this.car;}
  nearbyCar(){return this.interactionInfo()?.car||null;}
  interactionInfo(){
@@ -230,7 +232,7 @@ export class Game{
   if(next!==this.car){this.parked=this.parked.filter(c=>c!==next);this.parked.push(this.car);this.car=next;}
   this.traffic=this.traffic.filter(c=>c!==next);next.vx=next.vz=next.speed=0;next.occupied=false;next.hazards=false;next.npcDoor=null;next.stolen=stolen||next.stolen;this.onFoot=false;this.takeover=null;
   this.door={car:next,side:info?.side||1,time:.55};
-  if(stolen){const d=info.door,driver={mapId:this.city.id,x:d.x,z:d.z,a:next.a+info.side*Math.PI/2,walk:0,speed:3.2,life:30,y:walkHeight(d.x,d.z,this.city),coat:'#747f85'};this.pedestrians.push(driver);this.recordCrime('vehicle theft',next,{severity:1,victim:driver});if(!this.heat)this.say('WITNESS · The driver is calling in the theft.');}
+  if(stolen){const d=info.door,driver={mapId:this.city.id,x:d.x,z:d.z,a:next.a+info.side*Math.PI/2,walk:0,speed:3.2,life:30,y:walkHeight(d.x,d.z,this.city),coat:'#747f85'};this.pedestrians.push(driver);vocalize(this,driver,'angry');this.recordCrime('vehicle theft',next,{severity:1,victim:driver});if(!this.heat)this.say('WITNESS · The driver is calling in the theft.');}
 
   else{if(next.rare)this.discoveries.add(next.kind);this.say((next.rare?'RARE FIND · ':'IN VEHICLE · ')+(next.name||'Sedan'));}
  }
@@ -255,6 +257,7 @@ export class Game{
    }
    this.say('The doors are blocked. Move away from the wall.');return false;
   }
+  if(interactCityLife(this))return true;
   if(this.takeover){this.takeover=null;this.door=null;this.say('Takeover cancelled.');return false;}
   const info=this.interactionInfo();if(!info){this.say('Approach a parked car or a slow traffic car.');return false;}
   if(!info.ready){this.say(info.reason);return false;}
@@ -356,7 +359,7 @@ export class Game{
    if(p.networkPlayer)continue;
    p.life-=dt;p.baseSpeed??=p.speed;p.contactCooldown=Math.max(0,(p.contactCooldown||0)-dt);p.stun=Math.max(0,(p.stun||0)-dt);p.knockdown=Math.max(0,(p.knockdown||0)-dt);p.reactionTime=Math.max(0,(p.reactionTime||0)-dt);if(!p.reactionTime)p.reaction=null;
    if(scan&&!p.stun){for(const c of vehicles){const d=dist(c,p);if(d>18)continue;const speed=Math.hypot(c.vx||0,c.vz||0),dx=p.x-c.x,dz=p.z-c.z,t=speed>0?clamp((dx*c.vx+dz*c.vz)/(speed*speed),0,.85):0,nearMiss=speed>5&&t>0&&Math.hypot(dx-c.vx*t,dz-c.vz*t)<vehicleSpec(c).w+1.25;
-     if((c.fire>0&&d<15||nearMiss&&d<12)&&visible(p,c,this.city.buildings)){p.reaction='flee';p.reactionTime=2.5;p.escapeFrom={x:c.x,z:c.z};break;}
+     if((c.fire>0&&d<15||nearMiss&&d<12)&&visible(p,c,this.city.buildings)){vocalize(this,p,nearMiss?'angry':'alarm');p.reaction='flee';p.reactionTime=2.5;p.escapeFrom={x:c.x,z:c.z};break;}
     }}
    let speed=p.baseSpeed;
    if(p.reaction==='flee'){p.a=Math.atan2(p.x-p.escapeFrom.x,p.z-p.escapeFrom.z);speed=4.3;}
@@ -428,10 +431,10 @@ export class Game{
   desired=this.junctionSpeed(p,desired);p.speed+=clamp(desired-p.speed,-dt*12,dt*4);this.moveOnNetwork(p,dt,target);this.carCollision(p,dt);for(const c of[...this.traffic,...this.parked])vehicleCollision(p,c);
  }
  get target(){return this.job.targets[this.stage]||null;}
- recover(){resetCar(this.car);this.resetCount++;if(this.job.id==='free'){this.car.damage=0;this.car.engineDamage=0;this.car.wheelDamage=0;this.car.panelDamage={front:0,rear:0,left:0,right:0};this.car.lastImpact=null;this.car.dents=[];this.car.fire=0;this.car.fireAnnounced=false;this.car.exploded=false;this.car.hazards=false;this.car.npcDoor=null;this.car.burnTime=0;this.car.explosionSerial=0;}else this.time=Math.max(0,this.time-8);if(this.onFoot){const c=this.car;this.person.x=c.x-Math.cos(c.a)*2.4;this.person.z=c.z+Math.sin(c.a)*2.4;collide(this.person,this.city.buildings,.45);this.person.y=walkHeight(this.person.x,this.person.z,this.city);this.person.stun=this.person.knockdown=0;}this.say(this.job.id==='free'?'Back on the road. Car repaired.':'Back on the road. 8-second recovery penalty.');}
+ recover(){leaveInterior(this);resetCar(this.car);this.resetCount++;if(this.job.id==='free'){this.car.damage=0;this.car.engineDamage=0;this.car.wheelDamage=0;this.car.panelDamage={front:0,rear:0,left:0,right:0};this.car.lastImpact=null;this.car.dents=[];this.car.fire=0;this.car.fireAnnounced=false;this.car.exploded=false;this.car.hazards=false;this.car.npcDoor=null;this.car.burnTime=0;this.car.explosionSerial=0;}else this.time=Math.max(0,this.time-8);if(this.onFoot){const c=this.car;this.person.x=c.x-Math.cos(c.a)*2.4;this.person.z=c.z+Math.sin(c.a)*2.4;collide(this.person,this.city.buildings,.45);this.person.y=walkHeight(this.person.x,this.person.z,this.city);this.person.stun=this.person.knockdown=0;}this.say(this.job.id==='free'?'Back on the road. Car repaired.':'Back on the road. 8-second recovery penalty.');}
  tick(dt,input={}){
-  if(this.done)return;dt=clamp(dt,0,1/30);for(const v of[this.car,...this.traffic,...this.parked,...this.cops]){v.previousX=v.x;v.previousZ=v.z;}this.elapsed+=dt;this.messageTime=Math.max(0,this.messageTime-dt);if(this.door){this.door.time-=dt;if(this.door.time<=0)this.door=null;}
-  this.stepTakeover(input,dt);const c=this.car;if(this.onFoot&&!this.takeover)this.stepPerson(input,dt);const hit=this.onFoot?0:stepCar(c,input,dt,this.city.buildings,this.handling);this.impact=hit;const actor=this.actor;
+  if(this.done)return;dt=clamp(dt,0,1/30);if(this.interior){stepInterior(this,dt,input);return;}for(const v of[this.car,...this.traffic,...this.parked,...this.cops]){v.previousX=v.x;v.previousZ=v.z;}this.elapsed+=dt;this.messageTime=Math.max(0,this.messageTime-dt);if(this.door){this.door.time-=dt;if(this.door.time<=0)this.door=null;}
+  tickCityLife(this);this.stepTakeover(input,dt);const c=this.car;if(this.onFoot&&!this.takeover)this.stepPerson(input,dt);const hit=this.onFoot?0:stepCar(c,input,dt,this.city.buildings,this.handling);this.impact=hit;const actor=this.actor;
   if(hit>8&&this.job.id==='free'&&!this.heat)this.say('Bent the fender? R or Recover puts you back on the road.');
   if(hit>18)this.recordCrime('reckless collision',c,{severity:1});if(!this.onFoot&&Math.abs(c.speed)>29)this.recordCrime('dangerous driving',c,{severity:1,policeOnly:true});
   this.stepTraffic(dt);
@@ -471,7 +474,7 @@ export class Game{
   if(this.propImpactCount!==this.street.serial){for(const e of this.street.events)if(e.serial>this.propImpactCount&&e.power>5)this.reactToIncident(e,e.power);}this.propImpactCount=this.street.serial;
   for(const person of people){const debris=personStreetContact(this.street,person);if(debris&&person===this.person)this.say('Watch the flying debris.');else if(debris&&debris.playerCausedUntil>this.elapsed)this.recordCrime('debris collision',person,{severity:1,victim:person});}
   for(const person of people)for(const vehicle of vehicles){const impact=personVehicleContact(person,vehicle,true);if(impact>3){
-   this.reactToIncident(person,impact);
+   vocalize(this,person,'alarm');this.reactToIncident(person,impact);
    this.impact=Math.max(this.impact||0,impact*.35);if(person===this.person){this.takeover=null;this.door=null;this.say(impact>7?'Knocked down. Getting back up…':'Hit by a car. Watch the traffic.');}
    else if(vehicle===this.car&&!this.onFoot)this.recordCrime('pedestrian collision',person,{severity:2,victim:person});
   }}

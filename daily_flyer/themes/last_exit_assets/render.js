@@ -1,3 +1,6 @@
+import {chunkWorld,visibleChunk} from './world-chunks.js';
+import {drawInterior,drawCityDetails} from './city-life.js';
+import {Atmosphere,BOSTON_FOG} from './atmosphere.js';
 import {drawArchitecture} from './architecture.js';
 import {drawStreetProp} from './street-models.js';
 import {solidBuildings} from './spatial.js';
@@ -40,20 +43,21 @@ function perspective(fov,aspect,near,far){let f=1/Math.tan(fov/2),nf=1/(near-far
 function lookAt(e,t){let z=e.map((v,i)=>v-t[i]),len=Math.hypot(...z)||1;z=z.map(v=>v/len);let x=[z[2],0,-z[0]],l=Math.hypot(...x)||1;x=x.map(v=>v/l);const y=[z[1]*x[2],z[2]*x[0]-z[0]*x[2],-z[1]*x[0]];return new Float32Array([x[0],y[0],z[0],0,x[1],y[1],z[1],0,x[2],y[2],z[2],0,-x.reduce((s,v,i)=>s+v*e[i],0),-y.reduce((s,v,i)=>s+v*e[i],0),-z.reduce((s,v,i)=>s+v*e[i],0),1]);}
 export class Renderer{
  constructor(canvas,city){
-  this.canvas=canvas;this.city=city;this.atlas=createAtlas();this.cam=[0,5,190];this.target=[5,1,164];this.mode=0;this.frames=0;this.lastActor=null;this.particles=[];this.hitSerial=new Map();this.smokeClock=0;
+  this.canvas=canvas;this.city=city;this.atlas=createAtlas(city.id);this.atmosphere=new Atmosphere(document.getElementById('atmosphere'));this.cam=[0,5,190];this.target=[5,1,164];this.mode=0;this.frames=0;this.lastActor=null;this.particles=[];this.hitSerial=new Map();this.smokeClock=0;
   this.gl=canvas.getContext('webgl',{alpha:true,antialias:false,powerPreference:'high-performance'});this.software=!this.gl;
   const world=this.makeWorld(city).v;
-  if(this.software){this.ctx=canvas.getContext('2d',{alpha:true});this.static={v:world};return;}
+  if(this.software){this.ctx=canvas.getContext('2d',{alpha:true});this.static=this.makeStatic(world);return;}
   const gl=this.gl;
   const vs=`attribute vec3 aPosition;attribute vec3 aColor;attribute vec2 aUV;attribute float aTile;uniform mat4 uMatrix;uniform vec3 uEye;varying vec3 vColor;varying vec2 vUV;varying float vTile;varying float vDistance;void main(){vColor=aColor;vUV=aUV;vTile=aTile;vDistance=distance(uEye,aPosition);gl_Position=uMatrix*vec4(aPosition,1.0);}`;
-  const fs=`precision highp float;uniform sampler2D uAtlas;varying vec3 vColor;varying vec2 vUV;varying float vTile;varying float vDistance;void main(){float tile=floor(vTile+.5);vec2 base=vec2(mod(tile,4.0),floor(tile/4.0));vec2 uv=(base*256.0+1.5+fract(vUV)*253.0)/1024.0;vec4 texel=texture2D(uAtlas,uv);if(texel.a<.01)discard;vec3 color=texel.rgb*vColor;float fog=smoothstep(65.0,240.0,1.0/gl_FragCoord.w);color=mix(color,vec3(.65,.66,.63),fog*.96);gl_FragColor=vec4(color,texel.a);}`;
+  const fs=`precision highp float;uniform sampler2D uAtlas;uniform vec3 uFog;varying vec3 vColor;varying vec2 vUV;varying float vTile;varying float vDistance;void main(){float tile=floor(vTile+.5);vec2 base=vec2(mod(tile,4.0),floor(tile/4.0));vec2 uv=(base*256.0+1.5+fract(vUV)*253.0)/1024.0;vec4 texel=texture2D(uAtlas,uv);if(texel.a<.01)discard;vec3 color=texel.rgb*vColor;float fog=smoothstep(65.0,240.0,1.0/gl_FragCoord.w);color=mix(color,uFog,fog*.90);gl_FragColor=vec4(color,texel.a);}`;
   const shader=(type,source)=>{const s=gl.createShader(type);gl.shaderSource(s,source);gl.compileShader(s);if(!gl.getShaderParameter(s,gl.COMPILE_STATUS))throw Error('Graphics shader: '+gl.getShaderInfoLog(s));return s;};this.program=gl.createProgram();gl.attachShader(this.program,shader(gl.VERTEX_SHADER,vs));gl.attachShader(this.program,shader(gl.FRAGMENT_SHADER,fs));gl.linkProgram(this.program);if(!gl.getProgramParameter(this.program,gl.LINK_STATUS))throw Error(gl.getProgramInfoLog(this.program));gl.useProgram(this.program);
-  this.attributes=[['aPosition',3,0],['aColor',3,12],['aUV',2,24],['aTile',1,32]].map(([name,size,offset])=>({location:gl.getAttribLocation(this.program,name),size,offset}));this.matrix=gl.getUniformLocation(this.program,'uMatrix');this.eye=gl.getUniformLocation(this.program,'uEye');
-  const texture=gl.createTexture();gl.bindTexture(gl.TEXTURE_2D,texture);gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,this.atlas.canvas);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR_MIPMAP_LINEAR);gl.generateMipmap(gl.TEXTURE_2D);gl.uniform1i(gl.getUniformLocation(this.program,'uAtlas'),0);
-  gl.enable(gl.DEPTH_TEST);gl.clearColor(0,0,0,0);this.static=this.upload(world);this.dynamic=gl.createBuffer();
+  this.attributes=[['aPosition',3,0],['aColor',3,12],['aUV',2,24],['aTile',1,32]].map(([name,size,offset])=>({location:gl.getAttribLocation(this.program,name),size,offset}));this.matrix=gl.getUniformLocation(this.program,'uMatrix');this.eye=gl.getUniformLocation(this.program,'uEye');this.fog=gl.getUniformLocation(this.program,'uFog');
+  const texture=gl.createTexture();this.texture=texture;gl.bindTexture(gl.TEXTURE_2D,texture);gl.texImage2D(gl.TEXTURE_2D,0,gl.RGBA,gl.RGBA,gl.UNSIGNED_BYTE,this.atlas.canvas);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_S,gl.CLAMP_TO_EDGE);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_WRAP_T,gl.CLAMP_TO_EDGE);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MAG_FILTER,gl.LINEAR);gl.texParameteri(gl.TEXTURE_2D,gl.TEXTURE_MIN_FILTER,gl.LINEAR_MIPMAP_LINEAR);gl.generateMipmap(gl.TEXTURE_2D);gl.uniform1i(gl.getUniformLocation(this.program,'uAtlas'),0);
+  gl.enable(gl.DEPTH_TEST);gl.clearColor(0,0,0,0);this.static=this.makeStatic(world);this.dynamic=gl.createBuffer();
  }
  upload(v){const g=this.gl,b=g.createBuffer();g.bindBuffer(g.ARRAY_BUFFER,b);g.bufferData(g.ARRAY_BUFFER,new Float32Array(v),g.STATIC_DRAW);return{buffer:b,count:v.length/STRIDE};}
- setCity(city){this.city=city;const world=this.makeWorld(city).v;if(this.gl){this.gl.deleteBuffer(this.static.buffer);this.static=this.upload(world);}else this.static={v:world};this.particles=[];this.hitSerial=new Map();this.lastActor=null;this.explosionSerialSeen=0;this.propSerialSeen=0;}
+ makeStatic(v){return {v,chunks:chunkWorld(v).map(c=>this.gl?{...c,...this.upload(c.v)}:c)};}
+ setCity(city){this.city=city;this.atlas=createAtlas(city.id);if(this.gl){this.gl.bindTexture(this.gl.TEXTURE_2D,this.texture);this.gl.texImage2D(this.gl.TEXTURE_2D,0,this.gl.RGBA,this.gl.RGBA,this.gl.UNSIGNED_BYTE,this.atlas.canvas);this.gl.generateMipmap(this.gl.TEXTURE_2D);}const world=this.makeWorld(city).v;if(this.gl)for(const c of this.static.chunks)this.gl.deleteBuffer(c.buffer);this.static=this.makeStatic(world);this.particles=[];this.hitSerial=new Map();this.lastActor=null;this.explosionSerialSeen=0;this.propSerialSeen=0;}
  makeWorld(city){
   if(city.id==='boston')return drawBostonWorld(new Mesh(),city);
   const height=(x,z)=>terrainHeight(x,z,city.id),bay=city.id==='baycrest';const m=new Mesh();m.heightSampler=height;const rnd=random(813),pavement=(x,z,w,d,y=.16)=>m.surface([x-w/2,y,z-d/2],[x+w/2,y,z-d/2],[x+w/2,y,z+d/2],[x-w/2,y,z+d/2],2,w/3,d/3);
@@ -94,9 +98,9 @@ export class Renderer{
   return m;
  }
  drawBuffer(buffer,count){const g=this.gl;g.bindBuffer(g.ARRAY_BUFFER,buffer);for(const a of this.attributes){g.enableVertexAttribArray(a.location);g.vertexAttribPointer(a.location,a.size,g.FLOAT,false,36,a.offset);}g.drawArrays(g.TRIANGLES,0,count);}
- drawSoftware(vp,dynamic,w,h,transparent=[]){
-  const ctx=this.ctx;if(!this.pixels||this.pixels.width!==w||this.pixels.height!==h){this.pixels=ctx.createImageData(w,h);this.depths=new Float32Array(w*h);this.colors=new Uint32Array(this.pixels.data.buffer);}const depths=this.depths,colors=this.colors,tex=this.atlas.pixels;depths.fill(0);colors.fill(0);
-  for(const vertices of[this.static.v,dynamic,transparent])for(let i=0;i<vertices.length;i+=27){
+ drawSoftware(vp,dynamic,w,h,transparent=[],staticVertices=this.visibleStatic||[this.static.v]){
+  const ctx=this.ctx;if(!this.pixels||this.pixels.width!==w||this.pixels.height!==h){this.pixels=ctx.createImageData(w,h);this.depths=new Float32Array(w*h);this.colors=new Uint32Array(this.pixels.data.buffer);}const depths=this.depths,colors=this.colors,tex=this.atlas.pixels,FOG=this.city.id==='boston'?BOSTON_FOG:[.65,.66,.63];depths.fill(0);colors.fill(0);
+  for(const vertices of[...staticVertices,dynamic,transparent])for(let i=0;i<vertices.length;i+=27){
    const tile=vertices[i+8];let poly=[];
    for(let j=0;j<27;j+=9){const x=vertices[i+j],y=vertices[i+j+1],z=vertices[i+j+2];poly.push([vp[0]*x+vp[4]*y+vp[8]*z+vp[12],vp[1]*x+vp[5]*y+vp[9]*z+vp[13],vp[3]*x+vp[7]*y+vp[11]*z+vp[15],vertices[i+j+6],vertices[i+j+7]]);}
    // Clip against near plane while preserving texture coordinates.
@@ -129,9 +133,15 @@ export class Renderer{
   for(const p of sorted){const fade=Math.sin(Math.PI*p.age/p.life),s=p.size+(p.blast?p.age*.7:p.spark?0:p.age*.24),color=p.blast?(p.age<.3?'#f4ca71':'#ce633e'):p.spark?'#e5b977':p.dark?'#61655f':'#a3a69b',dx=this.cam[0]-p.x,dz=this.cam[2]-p.z,l=Math.hypot(dx,dz)||1,rx=dz/l*s,rz=-dx/l*s,points=[[p.x-rx,p.y-s,p.z-rz],[p.x+rx,p.y-s,p.z+rz],[p.x+rx,p.y+s,p.z+rz],[p.x-rx,p.y+s,p.z-rz]];m.surface(...points,p.spark&&!p.blast?0:15,1,1,color);}
  }
 
+ renderInterior(game,w,h,t){const o=game.interior.origin,portrait=w<h,eye=[o.x,o.y+(portrait?18:13),o.z-(portrait?18:13)],target=[o.x,o.y+.4,o.z],vp=multiply(perspective(58*Math.PI/180,w/h,.2,90),lookAt(eye,target)),m=drawInterior(new Mesh(),game.interior),p=game.interior.place;
+  this.atmosphere.draw(eye,target,t,this.city.id,true);drawPerson(m,{...game.person,carrying:!!game.cityLife?.encounter});drawPerson(m,{x:o.x,z:o.z+3.65,y:o.y,a:Math.PI,walk:0,speed:0,coat:p.id==='cafe'?'#bd8c65':p.id==='books'?'#6b887a':'#697f8b'});
+  if(this.software)this.drawSoftware(vp,m.v,w,h,[],[]);else{const gl=this.gl;gl.uniform3fv(this.fog,BOSTON_FOG);gl.uniformMatrix4fv(this.matrix,false,vp);gl.uniform3fv(this.eye,eye);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);gl.bindBuffer(gl.ARRAY_BUFFER,this.dynamic);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(m.v),gl.DYNAMIC_DRAW);this.drawBuffer(this.dynamic,m.v.length/STRIDE);}this.frames++;
+ }
+
  render(game,dt,attract=false,t=0,brake=false){
   const canvas=this.canvas,gl=this.gl,portrait=innerWidth<innerHeight,renderHeight=this.software?(portrait?480:360):(portrait?720:540),w=Math.floor(innerWidth/innerHeight*renderHeight),h=renderHeight;
   if(canvas.width!==w||canvas.height!==h){canvas.width=w;canvas.height=h;if(gl)gl.viewport(0,0,w,h);}
+  if(game.interior){this.renderInterior(game,w,h,t);this.wasInside=true;return;}if(this.wasInside){this.lastActor=null;this.wasInside=false;}
   const c=game.actor,forward=[Math.sin(c.a),Math.cos(c.a)],speed=Math.abs(c.speed||0);let eye,target;
   if(Number.isFinite(this.orbit)){eye=[c.x+Math.sin(this.orbit)*8,3.1,c.z+Math.cos(this.orbit)*8];target=[c.x,.8,c.z];}
   else if(attract){const a=game.car.a+.65+Math.sin(t*.045)*.13;eye=[c.x-Math.sin(a)*9.5,3.6,c.z-Math.cos(a)*9.5];target=[c.x,1,c.z];}
@@ -146,8 +156,9 @@ export class Renderer{
   for(let i=0;i<3;i++){this.cam[i]+=(eye[i]-this.cam[i])*blend;this.target[i]+=(target[i]-this.target[i])*blend;}
   this.cam=safeCamera(c,this.cam,solidBuildings(this.city.buildings));
   this.cam=(game.onFoot?safeFootCamera:safeDrivingCamera)(c,this.cam,cameraCars);
-  const vp=multiply(perspective((portrait?68:58)*Math.PI/180,w/h,.2,650),lookAt(this.cam,this.target));if(gl){gl.uniformMatrix4fv(this.matrix,false,vp);gl.uniform3fv(this.eye,this.cam);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);this.drawBuffer(this.static.buffer,this.static.count);}
-  const m=new Mesh();for(const s of game.skids){if(s.t>25)continue;m.transform={x:s.x,y:groundHeight(s.x,s.z,this.city.id),z:s.z,c:Math.cos(s.a),s:Math.sin(s.a)};for(const x of[-.88,.88])m.flat(x,-1.6,.18,.7,'#303632',.018);}m.transform=null;
+  this.atmosphere.draw(this.cam,this.target,t,this.city.id);
+  const vp=multiply(perspective((portrait?68:58)*Math.PI/180,w/h,.2,650),lookAt(this.cam,this.target));const visible=this.static.chunks.filter(c=>visibleChunk(c,vp));this.visibleStatic=visible.map(c=>c.v);if(gl){gl.uniform3fv(this.fog,this.city.id==='boston'?BOSTON_FOG:FOG);gl.uniformMatrix4fv(this.matrix,false,vp);gl.uniform3fv(this.eye,this.cam);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);for(const c of visible)this.drawBuffer(c.buffer,c.count);}
+  const m=new Mesh();drawCityDetails(m,game,t);for(const s of game.skids){if(s.t>25)continue;m.transform={x:s.x,y:groundHeight(s.x,s.z,this.city.id),z:s.z,c:Math.cos(s.a),s:Math.sin(s.a)};for(const x of[-.88,.88])m.flat(x,-1.6,.18,.7,'#303632',.018);}m.transform=null;
   const nearby=v=>Math.hypot(v.x-c.x,v.z-c.z)<180;
   for(const p of game.props||[]){const d=Math.hypot(p.x-c.x,p.z-c.z);if(d<115)drawStreetProp(m,p,{lod:d>36});}
   drawWaterLeaks(m,game.props||[],c,t);
@@ -155,7 +166,7 @@ export class Renderer{
   const cars=[...game.traffic,...game.parked].filter(nearby).sort((a,b)=>Math.hypot(a.x-c.x,a.z-c.z)-Math.hypot(b.x-c.x,b.z-c.z));
   for(const [index,v]of cars.entries())drawCar(m,v,{time:t,brake:v.braking,lod:index>11||Math.hypot(v.x-c.x,v.z-c.z)>45,door:game.door?.car===v?game.door:null});
   for(const p of game.cops)if(nearby(p))drawCar(m,p,{police:true,time:t,lod:Math.hypot(p.x-c.x,p.z-c.z)>70});drawCar(m,game.car,{brake,time:t,door:game.door?.car===game.car?game.door:null});
-  if(game.onFoot){const pavement=!onDiagonal(c.x,c.z)&&ROADS.every(r=>Math.abs(c.x-r)>11.5)&&ROADS.every(r=>Math.abs(c.z-r)>11.5);drawPerson(m,{...game.person,ground:game.person.y??groundHeight(c.x,c.z,this.city.id)});}
+  if(game.onFoot){const pavement=!onDiagonal(c.x,c.z)&&ROADS.every(r=>Math.abs(c.x-r)>11.5)&&ROADS.every(r=>Math.abs(c.z-r)>11.5);drawPerson(m,{...game.person,carrying:!!game.cityLife?.encounter,ground:game.person.y??groundHeight(c.x,c.z,this.city.id)});}
   for(const p of [...(game.pedestrians||[]),...(game.officers||[])])if(Math.hypot(p.x-c.x,p.z-c.z)<75)drawPerson(m,p);
   m.heightSampler=(x,z)=>terrainHeight(x,z,this.city.id);for(const light of this.city.signals||[]){if(!nearby(light))continue;const state=signalAt(light.x,light.z,game.elapsed);
    for(let i=0;i<4;i++){const a=i*Math.PI/2,green=i%2===0?state.vertical:state.horizontal;m.transform={x:light.x,z:light.z,c:Math.cos(a),s:Math.sin(a)};

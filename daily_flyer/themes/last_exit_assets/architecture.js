@@ -1,6 +1,7 @@
 // Compact original architecture: silhouettes and ground-floor details carry the district identity.
 // Shared by the three cities; dimensions are the same footprint used by collision.
 const palettes={
+ tripledecker:['#96a79b','#acada0','#a59485'],bowfront:['#bd9276','#a77b63'],glass:['#729da5','#8aa9ac'],brutalist:['#b5b4a4','#a5aa9e'],firehouse:['#b17c63'],pub:['#a68b73'],bookshop:['#9a9986'],cinema:['#c1b69b'],
  brownstone:['#b3917d','#a88773','#c1a38c','#a5a394'],tenement:['#ae9b85','#b39e87','#bba994','#9e9d8e'],
  shop:['#c0b6a0','#b0aa92','#b3a18e'],diner:['#c4c4b1','#adb9ad'],warehouse:['#aaa38c','#b5a087'],
  factory:['#ac9b83','#b4a18c'],office:['#b2b8ad','#c2bdab'],apartments:['#b7b4a4','#a4b3a9','#c2afa0'],
@@ -10,7 +11,7 @@ export function drawArchitecture(m,b,{mapId='meridian',base,low,index=0}={}){
  const saved={transform:m.transform,height:m.heightSampler,material:m.material},a=b.a||0,co=Math.cos(a),si=Math.sin(a),point=(x,z)=>({x:b.x+x*co+z*si,z:b.z+z*co-x*si});
  const samples=[-1,1].flatMap(x=>[-1,1].map(z=>{const p=point(x*b.w/2,z*b.d/2);return(m.heightSampler||(()=>base||0))(p.x,p.z);}));if(!Number.isFinite(base))base=Math.max(...samples);if(!Number.isFinite(low))low=Math.min(...samples);
  m.heightSampler=null;m.transform={x:b.x,y:base,z:b.z,c:co,s:si};
- const kind=b.style==='market'?'shop':b.style==='brick'?'tenement':b.style==='stucco'?'apartments':b.style||'tenement',palette=palettes[kind]||palettes.tenement,color=palette[Math.abs((b.color||0)+index)%palette.length],W=b.w,D=b.d,H=b.h,X=-W/2,Z=-D/2,x=W/2,z=D/2,stone=['college','church','civic'].includes(kind),industrial=['warehouse','factory'].includes(kind),slot=industrial?14:kind==='office'?7:stone||kind==='apartments'||kind==='rowhouse'?6:3+(b.color||0)%3;
+ const kind=b.style==='market'?'shop':b.style==='brick'?'tenement':b.style==='stucco'?'apartments':b.style||'tenement',palette=palettes[kind]||palettes.tenement,color=palette[Math.abs((b.color||0)+index)%palette.length],W=b.w,D=b.d,H=b.h,X=-W/2,Z=-D/2,x=W/2,z=D/2,stone=['college','church','civic'].includes(kind),industrial=['warehouse','factory'].includes(kind),slot=industrial?14:kind==='glass'?9:kind==='office'||kind==='brutalist'?7:stone||kind==='apartments'||kind==='rowhouse'?6:3+(b.color||0)%3;
  const face=(x1,y1,x2,y2,slot=9,u=1,tint='#d0d2bf',zz=z+.035)=>m.surface([x1,y1,zz],[x2,y1,zz],[x2,y2,zz],[x1,y2,zz],slot,u,1,tint);
  const cornice=(y,w=W+.12,d=D+.12,t=.22,c='#b8b09b')=>m.box(0,y,0,w,t,d,c);
  const sign=(tile=12,y=3.35)=>face(-Math.min(W*.42,5),y,Math.min(W*.42,5),y+1.25,tile,1,'#e6ddc3');
@@ -18,7 +19,27 @@ export function drawArchitecture(m,b,{mapId='meridian',base,low,index=0}={}){
  const foundation=Math.min(-.55,low-base-.18);m.box(0,foundation,0,W,.15-foundation,D,'#898c7d');
  m.surface([X,.15,Z],[x,.15,Z],[x,H,Z],[X,H,Z],slot,W/7,H/7,color);m.surface([x,.15,z],[X,.15,z],[X,H,z],[x,H,z],slot,W/7,H/7,color);m.surface([X,.15,z],[X,.15,Z],[X,H,Z],[X,H,z],slot,D/7,H/7,color);m.surface([x,.15,Z],[x,.15,z],[x,H,z],[x,H,Z],slot,D/7,H/7,color);
  cornice(H);m.flat(0,0,W-.2,D-.2,'#626d66',H+.23);
- if(kind==='brownstone'||kind==='rowhouse'){
+ if(b.infill&&!b.placeId&&index%5!==0){m.box(0,H+.22,0,W*.65,.5,D*.65,'#899183');m.transform=saved.transform;m.heightSampler=saved.height;m.material=saved.material;return m;}
+ if(kind==='tripledecker'){
+  for(let yy=.6;yy<H;yy+=3.5){m.box(0,yy,z-.38,W*.78,.2,.8,'#d1c8ac');for(const xx of[-W*.35,W*.35])m.box(xx,yy,z-.32,.18,3.3,.18,'#c5c6ae');face(-W*.3,yy+1.1,W*.3,yy+1.65,8,2,'#c1c5ad');}
+  for(let yy=.4;yy<H;yy+=.65)m.box(0,yy,Z-.01,W,.06,.03,'#bec5af');door();
+  m.tri([X,H,z],[x,H,z],[0,H+2.5,z],'#c1baa1');m.quad([X,H,Z],[0,H+2.5,Z],[0,H+2.5,z],[X,H,z],'#52645e');m.quad([0,H+2.5,Z],[x,H,Z],[x,H,z],[0,H+2.5,z],'#70847b');
+ }else if(kind==='bowfront'){
+  for(const xx of[-W*.22,W*.22]){m.box(xx,1,z-.2,W*.36,H-1,.5,color);for(let yy=2;yy<H-1;yy+=3.5)face(xx-W*.14,yy,xx+W*.14,yy+2.1,9,1,'#cad0ba',z+.07);}
+  door();cornice(H+.2,W+.35,D+.2,.4);m.box(0,H+.6,0,W*.7,.7,D*.8,'#8d8170');
+ }else if(kind==='glass'){
+  // A tall, thin blue-green curtain wall with a stepped crown.
+  for(let yy=3;yy<H;yy+=4.5)cornice(yy,W+.03,D+.03,.12,'#8fa9a6');
+  for(const xx of[-W*.33,0,W*.33])m.box(xx,.2,z+.02,.09,H,.06,'#b2c1b2');
+  m.box(0,H+.2,0,W*.62,4,D*.63,'#718f91');m.box(0,H+4.2,0,W*.4,1.2,D*.42,'#bac1ad');door();
+ }else if(kind==='brutalist'){
+  for(let yy=3;yy<H;yy+=5){m.box(0,yy,0,W+.45,.7,D+.45,'#a6a795');face(X+.7,yy+1.2,x-.7,yy+3,9,3,'#8faaa4');}for(const xx of[-W*.35,W*.35])m.box(xx,.2,z+.08,.7,H,.35,'#c7c5ae');door();
+ }else if(kind==='firehouse'){
+  for(const xx of[-W*.25,W*.25]){face(xx-W*.2,.2,xx+W*.2,3.8,8,1,'#b17962');m.box(xx,3.9,z+.08,W*.42,.4,.18,'#c2b79e');}sign(11,4.7);m.box(-W*.3,H+.2,0,W*.27,5,D*.35,'#b39078');
+ }else if(kind==='pub'||kind==='bookshop'||kind==='cinema'){
+  face(X+.3,.4,x-.3,2.6,9,3);door(W*.3);m.box(0,2.8,z+.08,W,.45,.24,kind==='pub'?'#31584d':kind==='bookshop'?'#365d65':'#9b5945');
+  sign(kind==='bookshop'?12:10,3.35);if(kind==='cinema'){m.box(0,3,z-.2,W+.2,.5,1,'#b79f73');for(let i=0;i<6;i++)m.box(X+W*(i+.5)/6,3.1,z+.32,.18,.18,.07,'#eed29a');m.box(X+.6,4,z+.12,.85,H-3,.2,'#b3694a');}else m.box(0,H+.2,0,W+.2,.5,D+.2,'#a8987a');
+ }else if(kind==='brownstone'||kind==='rowhouse'){
   const count=Math.max(1,Math.round(W/5.5)),width=W/count;
   for(let i=0;i<count;i++){const xx=X+width*(i+.5);door(xx-width*.2);m.box(xx,.15,z-.22,width-.12,.28,.5,'#a29e8b');if(kind==='rowhouse'){const left=xx-width/2+.06,right=xx+width/2-.06,y=H+.23,top=y+1.9;m.tri([left,y,z],[right,y,z],[xx,top,z],color);m.tri([right,y,Z],[left,y,Z],[xx,top,Z],color);m.quad([left,y,Z],[xx,top,Z],[xx,top,z],[left,y,z],'#63756d');m.quad([xx,top,Z],[right,y,Z],[right,y,z],[xx,top,z],'#849083');}else m.box(xx,H+.22,0,width-.12,.42,D-.1,i%2?'#aaa893':'#c4b69f');
    // Shallow bay windows remain within the collision footprint except their thin trim.
