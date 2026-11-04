@@ -1,6 +1,6 @@
 # SALTBOUND · DailyFlyer Games
 
-Top-down Caribbean extraction game. Version 0.1.0.
+Top-down Caribbean extraction game. Version 0.1.1.
 
 ## Playable scope
 
@@ -42,3 +42,7 @@ This release is a cooperative prototype, not a competitive economy. The server v
 Run the core, room lifecycle, and actual HTTP/WebSocket tests in `tests/saltbound/`. They cover deterministic loot/reachability, ship/shore collisions, a full land-loot-board-extract-bank loop, duplicate payout prevention, extraction crew and movement constraints, damage resets, defeat, capacity, cooldowns, combat, revival, repairs, upgrades, input validation, storm timeout, stamina, four-player admission, token reconnect/replacement, idle cleanup, stale controls, duplicate chest collection, static route allowlisting, and two connected clients sharing/moving the same ship.
 
 Real iPhone Safari touch feel and real-world cellular/Wi-Fi latency still require device playtesting. Browser QA covers the visible flow; it is not a claim of a completed four-human raid.
+
+## 0.1.1 freeze correction
+
+Impact, ship-sinking, and enemy-defeat effects now use one shared fade lifetime for both opacity and particle radius. Previously they stayed visible for 1.1 seconds but their radius reached zero after 1.0 second, producing a Canvas `IndexSizeError` and terminating the animation callback chain. Degenerate ellipses are skipped, failed rendering resets the canvas state, and the next frame is scheduled in a `finally` block. Browser data/progression keys are unchanged. Regression coverage exercises the complete effect lifetime and 3,600 phone-sized combat render frames.
