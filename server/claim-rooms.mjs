@@ -156,7 +156,7 @@ export class ClaimRooms {
         }
         this.publishRoom(room);this.publishState(room);return;
       case 'pause':
-        if (!['playing', 'paused'].includes(room.status)) return;
+        if (room.status !== 'playing') return;
         this.pause(room, `${player.name} ${message.reason === 'background' ? 'switched away from the game' : message.reason === 'network' ? 'lost fresh server updates' : 'paused the mission'}. All players must resume.`); return;
       case 'resume':
         if (room.status !== 'paused') return;
@@ -224,7 +224,9 @@ export class ClaimRooms {
         this.end(room, 'This room expired after being inactive. Create a new room to play again.'); continue;
       }
       if (room.status !== 'playing') continue;
-      const stalled = [...room.players.values()].find(p => p.peer && now - p.lastInputAt > 1500);
+      // Neutralize controls after 300ms, but tolerate brief mobile/GPU stalls.
+      // Only sustained silence holds the entire team.
+      const stalled = [...room.players.values()].find(p => p.peer && now - p.lastInputAt > 5000);
       if (stalled) { this.pause(room, `${stalled.name}'s connection stopped sending controls. All players must resume when the connection returns.`); continue; }
       const inputs = {};
       for (const p of room.players.values()) {

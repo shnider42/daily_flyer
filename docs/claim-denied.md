@@ -1,4 +1,4 @@
-# Claim Denied — 0.1.0
+# Claim Denied — 0.1.1
 
 An original DailyFlyer house-defense FPS for solo play and private 2–4-player
 co-op. Everwell Assurance and its undead board are fictional. The game contains
@@ -76,7 +76,7 @@ need time to wake after inactivity.
 ```sh
 node --test tests/claim-*.test.mjs
 node --test tests/breach-*.test.mjs
-python3 -m unittest discover -s tests -p test_breach_export.py -v
+python3 -m unittest discover -s tests -p test_claim_export.py -v
 ```
 
 Claim tests exercise deterministic waves, all six breach routes, board repair,
@@ -90,3 +90,25 @@ disables WebGL. Desktop menu/game/pause/room creation and portrait controls are
 checked. Hardware WebGL, physical iPhone multitouch, and four human players on
 different real networks still need playtesting; automated co-op checks do not
 substitute for that experience.
+
+## 0.1.1 controls and stability
+
+- Mobile has a labeled 128px LOOK pad, a separate 94px gold FIRE button, and
+  64px USE/RELOAD targets. Portrait and landscape use distinct layouts with
+  safe-area offsets. Each surface owns its pointer; aiming never fires.
+- Desktop retains WASD/mouse, click fire, R/E, Shift, 1–3, and Escape. Touchscreen
+  laptops with a primary mouse no longer default to touch-only controls. Failed
+  mouse capture does not trigger a false pause. Actual capture loss still pauses.
+- Browser focus changes alone no longer pause. Hiding/leaving the page still
+  pauses and clears held controls. Co-op controls send at 30Hz independently of
+  rendering. The server neutralizes stale controls after 300ms and pauses after
+  five seconds of sustained silence. Resume grants a fresh snapshot grace period;
+  duplicate pause requests cannot reset already-ready teammates.
+- Exterior trim is raised clear of wall faces, floor joints no longer overlap,
+  and intersecting sofa/body faces are inset to remove depth-buffer fighting.
+
+Validation: 53 JavaScript tests and two DFE export tests, including desktop
+input, multitouch ownership, liveness/resume, geometry and four real WebSocket
+clients. Portrait controls were visually inspected in the software-rendered
+preview. The QA browser became unavailable before desktop/landscape playtesting
+could finish; hardware WebGL and physical phone multitouch remain unverified.

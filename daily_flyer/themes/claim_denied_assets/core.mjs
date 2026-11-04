@@ -1,5 +1,5 @@
 // Claim Denied: deterministic shared simulation. Coordinates follow the Breach contract.
-export const VERSION = '0.1.0';
+export const VERSION = '0.1.1';
 export const PLAYER_IDS = ['p1','p2','p3','p4'];
 export const WEAPONS = {
   pistol: {name:'Appeal .45',damage:38,mag:12,reserve:96,delay:.28,reload:1.25,range:38,pellets:1,spread:.012},

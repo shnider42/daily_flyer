@@ -8,7 +8,7 @@ async function waitFor(fn){for(let i=0;i<150;i++){const value=fn();if(value)retu
 test('HTTP build, private files, four real sockets and reconnect work together',async()=>{
   const app=createClaimServer();await new Promise(r=>app.server.listen(0,'127.0.0.1',r));const origin='http://127.0.0.1:'+app.server.address().port,clients=[];let pulse;
   try{
-    const health=await (await fetch(origin+'/health')).json();assert.equal(health.version,'0.1.0');assert.equal(health.maxPlayersPerRoom,4);
+    const health=await (await fetch(origin+'/health')).json();assert.equal(health.version,'0.1.1');assert.equal(health.maxPlayersPerRoom,4);
     const html=await (await fetch(origin)).text();assert.ok(html.includes('CLAIM'));assert.ok(!html.includes('__CLAIM_DENIED_'));
     assert.equal((await fetch(origin+'/.git/config')).status,404);assert.equal((await fetch(origin+'/core.mjs',{method:'POST'})).status,405);
     const host=await client(origin.replace('http','ws')+'/ws');clients.push(host);host.send({type:'create',protocol:1,game:'claim-denied',mission:'everwell-house',difficulty:'standard',name:'Host'});

@@ -7,7 +7,7 @@ export class HouseRenderer {
     this.canvas=canvas;try{this.renderer=new T.WebGLRenderer({canvas,antialias:true,alpha:false,powerPreference:'high-performance'});}catch{this.renderer=new SoftwareRenderer(canvas);}
     this.renderer.setPixelRatio(Math.min(devicePixelRatio,1.65));this.renderer.outputColorSpace=T.SRGBColorSpace;this.renderer.toneMapping=T.ACESFilmicToneMapping;this.renderer.toneMappingExposure=1.25;
     this.scene=new T.Scene();this.scene.background=new T.Color(0x142a35);this.scene.fog=new T.FogExp2(0x142a35,.022);
-    this.camera=new T.PerspectiveCamera(73,1,.06,95);this.scene.add(this.camera);
+    this.camera=new T.PerspectiveCamera(73,1,.1,95);this.scene.add(this.camera);
     this.scene.add(new T.HemisphereLight(0xa8d0d8,0x4b332d,2));
     const moon=new T.DirectionalLight(0xa5d3ef,2.3);moon.position.set(-16,22,-8);this.scene.add(moon);
     this.materials=new Map();this.enemies=new Map();this.mates=new Map();this.boards=new Map();this.particles=[];this.clock=0;this.kick=0;this.flash=0;this.menu=true;
@@ -24,16 +24,19 @@ export class HouseRenderer {
   buildWorld(){
     this.box(0,-.22,0,80,.3,80,0x263f3b);
     this.box(0,-.04,0,18,.22,14,0x95674d);
-    for(let i=-17;i<18;i++)this.box(i*.5,.08,0,.014,.008,14,0x684c3d);
-    for(let z=-6;z<=6;z+=2)for(let x=-8;x<9;x+=3)this.box(x+((z%4)?1.5:0),.084,z,.014,.008,2,0x684c3d);
+    // Inset plank joints stop short of each other; no overlapping thin faces.
+    for(let i=-17;i<18;i++)this.box(i*.5,.085,0,.018,.01,14,0x684c3d);
+    for(let i=-18;i<18;i++)for(let z=-5;z<7;z+=3)this.box(i*.5+.25,.085,z+(i%2)*.8,.46,.01,.018,0x684c3d);
     this.box(-4.4,.094,.6,5,.01,4.4,0x5a7773);this.box(-4.4,.102,.6,4.65,.01,4.05,0x344f56);
     for(let i=0;i<7;i++)this.box(-6.4+i*.65,.11,.6,.035,.01,3.7,0xa08260);
     // Continuous exterior walls with real openings for each window.
     for(const side of [{axis:'x',v:7,windows:[-5,5]},{axis:'x',v:-7,windows:[-5,5]},{axis:'z',v:-9,windows:[0]},{axis:'z',v:9,windows:[0]}]){
       const horizontal=side.axis==='x',edge=horizontal?9:7;let cursor=-edge;
-      const part=(a,b,y,h,col)=>horizontal?this.box((a+b)/2,y,side.v,b-a,h,.3,col):this.box(side.v,y,(a+b)/2,.3,h,b-a,col);
+      const part=(a,b,y,h,col,depth=.3)=>{const mesh=horizontal?this.box((a+b)/2,y,side.v,b-a,h,depth,col):this.box(side.v,y,(a+b)/2,depth,h,b-a,col);mesh.userData.houseSurface=depth>.3?'trim':'wall';return mesh;};
       for(const pos of side.windows){part(cursor,pos-1.25,1.7,3.4,0x6c8277);part(pos-1.25,pos+1.25,.4,.8,0x6c8277);part(pos-1.25,pos+1.25,3.04,.78,0x6c8277);cursor=pos+1.25;}
-      part(cursor,edge,1.7,3.4,0x6c8277);part(-edge,edge,.2,.3,0x304b4b);part(-edge,edge,3.2,.17,0xe4c89b);
+      // Raised trim clears both wall faces by 5cm. Flush overlapping boxes
+      // fought for the same depth samples, especially on mobile GPUs.
+      part(cursor,edge,1.7,3.4,0x6c8277);part(-edge,edge,.2,.3,0x304b4b,.4);part(-edge,edge,3.2,.17,0xe4c89b,.4);
     }
     for(const w of WINDOWS){
       const group=new T.Group();group.position.set(w.x,0,w.z);group.rotation.y=w.nx?Math.PI/2:0;this.scene.add(group);
@@ -44,9 +47,9 @@ export class HouseRenderer {
       const sign=this.label(w.name.toUpperCase(),'#d3d1a7','#334e50',1.7,.42);sign.position.set(w.x-w.nx*.3,2.96,w.z-w.nz*.3);sign.rotation.y=w.nz===1?Math.PI:w.nx===1?-Math.PI/2:w.nx===-1?Math.PI/2:0;this.scene.add(sign);
     }
     for(const o of OBSTACLES){
-      if(o.kind==='wall'){this.box(o.x,o.h/2,o.z,o.w,o.h,o.d,0x788578);this.box(o.x,3.2,o.z,.4,.18,o.d,0xe4c89b);continue;}
+      if(o.kind==='wall'){this.box(o.x,o.h/2,o.z,o.w,o.h,o.d,0x788578);this.box(o.x,3.2,o.z,.4,.18,o.d+.08,0xe4c89b);continue;}
       if(o.kind==='sofa'){
-        this.box(o.x,.38,o.z,o.w,.5,o.d,0xb67548);this.box(o.x,.78,o.z-.28,o.w,.55,.23,0xa0603e);
+        this.box(o.x,.38,o.z,o.w-.08,.5,o.d-.08,0xb67548);this.box(o.x,.78,o.z-.28,o.w,.55,.23,0xa0603e);
         for(const dx of [-o.w/2+.15,o.w/2-.15])this.box(o.x+dx,.65,o.z,.3,.55,o.d,0xb8794d);
         for(let i=-1;i<=1;i++)this.box(o.x+i*1.1,.65,o.z+.03,1,.08,.54,0xd09a67);
       }else{
