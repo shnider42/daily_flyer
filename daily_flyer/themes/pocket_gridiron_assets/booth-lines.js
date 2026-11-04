@@ -1,6 +1,7 @@
-import {EXTRA_EXCHANGES} from './booth-extras.js?v=23';
-import {addSideline} from './sideline.js?v=23';
-import {wordTimeline,wordAt} from './booth-chatter.js?v=23';
+import {addCoachInterview} from './coach-interview.js?v=29';
+import {EXTRA_EXCHANGES} from './booth-extras.js?v=29';
+import {addSideline} from './sideline.js?v=29';
+import {wordTimeline,wordAt} from './booth-chatter.js?v=29';
 // Original fictional fan-tribute exchanges, not transcripts or voice imitations.
 // Each topic has eight exchanges: John explains, Al responds, John buttons it.
 // Facts are supplied separately from the selected lineup or settled game ledger.
@@ -86,7 +87,7 @@ const exchanges={
   ['A running play is a group effort with one fellow getting to hold the football.','And several fellows applying for a little recognition.','Put them on the screen. The runner can share the spotlight for a moment.'],
   ['The back has to read what opens. The lane on the drawing is only a suggestion until the blocking happens.','The field reserves the right to amend the diagram.','It amends it very quickly. Keep your eyes open and your feet underneath you.'],
   ['A good run starts before the runner reaches the line. Timing gives the blockers a chance to help.','Patience, followed by a fairly urgent departure.','That is a beautiful description. Wait for the door, then get through the door.'],
-  ['Running the ball asks the whole front to work together. One missed piece can change the picture.','Seven players, one moving puzzle.','And the other seven are trying to put the pieces somewhere else.'],
+  ['Running the ball asks the whole front to work together. One missed piece can change the picture.','A whole unit, one moving puzzle.','And the defense is trying to put the pieces somewhere else.'],
   ['The rushing numbers have a lot of effort inside them. Somebody had to carry it and somebody had to make room.','The box score does leave out a few job titles.','That is why I brought the marker. We can add some appreciation.']
  ],
  pass:[
@@ -151,7 +152,7 @@ export function giveBoothVoice(report,voices){
   if(s.closing)turns.push({speaker:'al',text:s.closing,pose:'talk'});
   return {...s,al:turns.filter(t=>t.speaker==='al').map(t=>t.text).join(' '),john:turns.filter(t=>t.speaker==='john').map(t=>t.text).join(' '),turns};
  })};
- return addSideline(voiced,voices.sidelineVisit(report.mode));
+ const visit=voices.sidelineVisit(report.mode);return addCoachInterview(addSideline(voiced,visit),visit);
 }
 export function broadcastBeat(segment,elapsed){
  const turns=segment.turns||[{speaker:'al',text:segment.al,pose:'talk'},{speaker:'john',text:segment.john,pose:'talk'}];

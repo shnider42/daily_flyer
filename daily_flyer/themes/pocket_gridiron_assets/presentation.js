@@ -1,4 +1,4 @@
-import {PERSONNEL} from './packages.js?v=23';
+import {PERSONNEL} from './packages.js?v=29';
 // Human-facing information. Never derive defensive guidance from the secret call.
 export function showOffensiveRoutes(g){return g.userOffense&&!g.special&&!g.returnInfo&&['call','ready'].includes(g.phase);}
 export function publicPlayName(g){return g.userOffense?g.playDefinition.name:g.teams[g.offense].abbr+' offense';}

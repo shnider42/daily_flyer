@@ -1,30 +1,30 @@
-import {WEATHER,weatherLabel,weatherAdvice,windAt,windArrow} from './weather.js?v=23';
+import {WEATHER,weatherLabel,weatherAdvice,windAt,windArrow} from './weather.js?v=29';
 const mod=(n,d)=>(n%d+d)%d;
 const r=(c,x,y,w,h,color)=>{c.fillStyle=color;c.fillRect(Math.round(x),Math.round(y),w,h);};
 export function weatherSurface(c,view,project,w){
  if(!w||w.roofClosed)return;
  const {px,py}=project,h=view.height;
- if(w.kind==='rain'){r(c,29,0,302,h,'#15395024');for(let i=0;i<22;i++){const x=4+(i*17%46),y=i*37%110,p=py(y);if(p>0&&p<h)r(c,px(x),p,12+i%8,2,'#72adba55');}}
+ if(w.kind==='rain'){r(c,29,0,302,h,'#102b4166');for(let i=0;i<32;i++){const x=4+(i*17%46),y=i*37%110,p=py(y);if(p>0&&p<h)r(c,px(x),p,12+i%8,2,'#72adba88');}}
  if(w.kind==='snow'){
-  r(c,29,0,302,h,'#e3edf334');
-  for(let i=0;i<140;i++){const y=py((i*37.73)%120-10),x=px(1+(i*19.7)%50);if(y>0&&y<h)r(c,x,y,3+i%7,2+i%3,'#e5ede6aa');}
+  r(c,29,0,302,h,'#e3edf36b');
+  for(let i=0;i<190;i++){const y=py((i*37.73)%120-10),x=px(1+(i*19.7)%50);if(y>0&&y<h)r(c,x,y,3+i%7,2+i%3,'#e5ede6aa');}
   r(c,23,0,5,h,'#f0f1e0');r(c,332,0,5,h,'#f0f1e0');
  }
- if(w.kind==='heat')r(c,29,0,302,h,'#f1bb5020');
+ if(w.kind==='heat')r(c,29,0,302,h,'#f1bb5040');
 }
 export function weatherParticles(c,view,w,time=0,{reduced=false,wind=null}={}){
  if(!w||w.roofClosed)return;const h=view.height,width=view.width,kind=w.kind,t=reduced?0:time,v=wind||windAt(w,time);
  c.save();c.beginPath();c.rect(0,0,width,h);c.clip();
  if(kind==='rain'||kind==='snow'){
-  const count=reduced?16:kind==='rain'?55:45;
+  const count=reduced?16:kind==='rain'?100:78;
   for(let i=0;i<count;i++){
    const x=mod(i*83.7+t*v.x*(kind==='rain'?1.3:.6),width),y=mod(i*137.3+t*(kind==='rain'?210:24+i%10),h+30)-15;
-   if(kind==='rain'){c.strokeStyle='#b3d1dc70';c.lineWidth=1;c.beginPath();c.moveTo(x,y);c.lineTo(x+v.x*.25,y+9);c.stroke();}
+   if(kind==='rain'){c.strokeStyle='#c4e3edb0';c.lineWidth=1;c.beginPath();c.moveTo(x,y);c.lineTo(x+v.x*.25,y+13);c.stroke();}
    else r(c,x+Math.sin(t*.7+i)*3,y,i%3?2:3,2,'#f3f6eac9');
   }
  }
- if(kind==='wind')for(let i=0;i<8;i++){const y=mod(i*83+t*9,h),x=mod(i*61+t*v.x*3,width);r(c,x,y,9+i%4,1,'#c5d9a451');}
- if(kind==='heat')for(let i=0;i<8;i++){const y=i*h/8+Math.sin(t+i)*3;r(c,29,y,7,1,'#ffe0a46b');r(c,323,y+15,7,1,'#ffe0a46b');}
+ if(kind==='wind')for(let i=0;i<14;i++){const y=mod(i*83+t*9,h),x=mod(i*61+t*v.x*3,width);r(c,x,y,9+i%4,1,'#d2dfb580');}
+ if(kind==='heat')for(let i=0;i<14;i++){const y=i*h/8+Math.sin(t+i)*3;r(c,29,y,40+Math.sin(t+i)*14,2,'#ffe0a480');r(c,290,y+15,40,2,'#ffe0a480');}
  // A small sideline windsock; it never covers a player or the ball.
  if(v.mph>.5){const y=42;r(c,12,y,2,22,'#cdd4bf');r(c,v.x<0?3:14,y,9,3,'#ef9f57');r(c,v.x<0?2:20,y+3,4,3,'#e9d6ae');}
  c.restore();
@@ -38,7 +38,7 @@ const JOHN={
  wind:['Watch the arrow before you launch it. A longer flight gives that wind more time to move the football. The target and the green kicking window already show the adjustment.','A headwind takes distance away; a tailwind gives some back. Change ends and you have a new kicking decision. My marker has excellent range in either direction.'],
  rain:['Wet footing makes a hard cut slower. Keep the steps short and protect the ball through contact. There is still room to run; give your blocker a chance to make it.','A wet ball asks a little more of the hands. That does not mean every dropped pass was the rain. Placement and the defender still get a vote.'],
  snow:['Shorter steps, clean angles. The whole field is slower, including the defense. A patient runner can still follow a good block right through this picture.','The kicker loses some range in these conditions. Check the meter before asking for a miracle. I can draw the ball through the posts, but that does not put points on the board.'],
- heat:['Save the burst for the opening. In this heat, those moves cost more energy and it comes back more slowly during a play. Fresh legs return for the next snap.','Watch the stamina bar. You do not win a footrace by spending all your energy before the race opens up. Find the block, find the gap, then go.']
+ heat:['Save the burst for the opening. In this heat, running and moves cost more energy. You recover while standing still, not while sprinting. Fresh legs return for the next snap.','Watch the stamina bar. You do not win a footrace by spending all your energy before the race opens up. Find the block, find the gap, then go.']
 };
 export function weatherSegment(w,mode='pregame',quarter=1){
  if(!w)return null;const wind=windAt(w,0),variant=(w.seed+(mode==='halftime'?1:0))%2;

@@ -5,7 +5,7 @@ import {readFileSync} from 'node:fs';
 const roster=JSON.parse(readFileSync(new URL('../../daily_flyer/themes/pocket_gridiron_assets/rosters.json',import.meta.url)));
 const neutral={x:0,y:0};
 export class DuelGame extends Game {
- constructor(home,away,length='quick',seed=1){super(buildTeam(home,roster),buildTeam(away,roster),'pro',seededRandom(seed),{length});this.actorTeam=null;this.epoch=1;this.calls=[null,null];this.playClock=25;this.events=[];}
+ constructor(home,away,length='quick',seed=1){super(buildTeam(home,roster),buildTeam(away,roster),'pro',seededRandom(seed),{length,format:7,injuries:false});this.actorTeam=null;this.epoch=1;this.calls=[null,null];this.playClock=25;this.events=[];}
  get userOffense(){return this.actorTeam==null||this.actorTeam===this.offense;}
  get userKicking(){return !!this.special&&(this.actorTeam==null?['kick_ready','kick_charge','kick_accuracy'].includes(this.phase):this.actorTeam===this.special.kickingTeam);}
  isHumanDefender(p){return p===this.defenders[this.selected];}

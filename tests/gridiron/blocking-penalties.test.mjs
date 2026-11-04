@@ -5,7 +5,7 @@ import {primaryCommand,stickInput} from '../../daily_flyer/themes/pocket_gridiro
 import {seededRandom} from '../../daily_flyer/themes/pocket_gridiron_assets/rules.js';
 import {buildTeam} from '../../daily_flyer/themes/pocket_gridiron_assets/roster.js';
 const data=JSON.parse(fs.readFileSync(new URL('../../daily_flyer/themes/pocket_gridiron_assets/rosters.json',import.meta.url))),home=buildTeam('NE',data),away=buildTeam('BUF',data);
-function make(offense=0,rng=()=>.5){const g=new Game(home,away,'pro',rng);g.beginDrive(offense,25);g.choose(offense===0?'slants':'zone');return g;}
+function make(offense=0,rng=()=>.5){const g=new Game(home,away,'pro',rng,{format:7});g.beginDrive(offense,25);g.choose(offense===0?'slants':'zone');return g;}
 function live(offense=0){const g=make(offense);g.snap(offense);return g;}
 function ticks(g,seconds,input={x:0,y:0}){for(let t=0;t<seconds;t+=.05)g.tick(.05,input);}
 function offside(){const g=make();g.defenders[0].x=50;g.defenders[0].y=g.spot+.2;g.snap();return g;}

@@ -294,3 +294,15 @@ body[data-guidance=expert] .plays .play small{display:block;font-size:9px;line-h
 
 /* Weather stays outside the playable canvas and below the compact scoreboard. */
 .forecastline{font:11px/1.5 var(--mono,monospace);color:#e6cc8c;margin:12px 0 8px}.weatheroptions{border-top:1px solid #91a79c3b;margin-top:12px;padding:12px 0}.weatheroptions summary{font:11px monospace;letter-spacing:.08em;color:#d8d5b7;cursor:pointer}.weatherchoices{display:grid;grid-template-columns:1fr 1fr;gap:12px;margin-top:14px}.weatherchoices label{font:10px monospace;color:#afbeb4;display:grid;gap:7px}.weatherchoices select{width:100%;min-width:0}.weatherbar{display:flex;justify-content:space-between;gap:8px;padding:5px 10px;background:#203b3b;color:#e9d698;font:10px/1.2 monospace;flex-shrink:0}.weatherbar span:last-child{text-align:right}.weatheroptions .secondary{font-size:10px;padding:9px 12px}body[data-guidance="simple"] .weatherbar{font-size:10px}@media(max-width:600px){.weatherchoices{gap:8px}.forecastline{font-size:10px}.weatherbar{padding:4px 8px;font-size:9px}}
+
+/* Coach interview and fictional six-second sponsor spots. */
+#halftimeDialog .halfline.headcoach{display:none}
+#halftimeDialog[data-speaker=coach] .halfline.headcoach{display:grid;border-color:#f3d268;background:#30443d}
+#halftimeDialog[data-speaker=coach] .halfline.al,#halftimeDialog[data-speaker=coach] .halfline.john,#halftimeDialog[data-speaker=coach] .halfline.casey{display:none}
+.tvbreak{gap:9px;padding:15px;background:radial-gradient(ellipse at top,#294a43,#102723 75%)}
+.tvbreak>b{font-size:clamp(18px,4vw,26px);max-width:100%;overflow-wrap:anywhere}
+.tvbreak canvas{width:min(100%,300px);height:auto;max-height:130px;object-fit:contain;image-rendering:pixelated}
+.tvbreak p{margin:0;font-size:12px;line-height:1.45}.tvbreak small{font:10px/1.4 monospace;color:#c5d1b6;max-width:290px}
+#tvSlogan{font-size:15px;color:#f7e2b1}#tvCopy{font-size:10px;color:#c6d9c3}
+#pauseInjuries:empty{display:none}
+@media(max-height:600px) and (orientation:landscape){.tvbreak{gap:3px;padding:8px}.tvbreak canvas{height:45px}.tvbreak>.eyebrow,.tvbreak>small{display:none}.tvbreak button{min-height:40px}}

@@ -11,7 +11,7 @@ import {seededRandom} from '../../daily_flyer/themes/pocket_gridiron_assets/rule
 import {isBlocker,updateBlocking} from '../../daily_flyer/themes/pocket_gridiron_assets/blocking.js';
 const data=JSON.parse(fs.readFileSync(new URL('../../daily_flyer/themes/pocket_gridiron_assets/rosters.json',import.meta.url)));
 const team=abbr=>({...buildTeam(abbr,data),profile:null});
-function make(play='curls',rng=()=>.5){const g=new Game(team('NE'),team('BUF'),'pro',rng);g.beginDrive(0,25);g.choose(play);g.snap();g.liveTime=4;for(const d of g.defenders){d.x=50;d.y=95;d.speed=0;}for(const p of g.players.slice(2,5)){Object.assign(p,g.route(p,4));p.stun=0;}return g;}
+function make(play='curls',rng=()=>.5){const g=new Game(team('NE'),team('BUF'),'pro',rng,{format:7});g.beginDrive(0,25);g.choose(play);g.snap();g.liveTime=4;for(const d of g.defenders){d.x=50;d.y=95;d.speed=0;}for(const p of g.players.slice(2,5)){Object.assign(p,g.route(p,4));p.stun=0;}return g;}
 function finishFlight(g,dt=.025){for(let i=0;i<200&&g.pass;i++)g.tickPass(dt);assert.equal(g.pass,null);}
 
 test('current thumb direction and strength combine with keyboard; centering never retains an old lead',()=>{

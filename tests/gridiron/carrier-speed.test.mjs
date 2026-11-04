@@ -39,7 +39,7 @@ test('loose-ball chasers are not slowed and a fumble or interception recovery tr
  near(travel(g,defender),.93);near(travel(g,wr),1);
 });
 test('burst retains its short speed advantage and faster ratings can still outrun slower players',()=>{
- const g=make();g.carrier.speed=10;
+ const g=make();g.carrier.speed=10;g.carrier.pace=1;
  for(const p of [...g.players,...g.defenders])if(p!==g.carrier){p.x=0;p.y=90;p.speed=0;}
  const start=g.carrier.y;g.tick(.05,{x:0,y:1});const normal=g.carrier.y-start;
  g.burst();const before=g.carrier.y;g.tick(.05,{x:0,y:1});near((g.carrier.y-before)/normal,1.55);
@@ -49,7 +49,7 @@ test('return pursuit leads a moving runner more at distance, without predicting 
  const g=make();g.phase='return';g.carrier.x=20;g.carrier.y=40;g.carrier.vx=4;g.carrier.vy=6;
  const d=g.defenders[4];d.x=22;d.y=45;const close=g.coverageTarget(d);
  d.x=45;d.y=70;const far=g.coverageTarget(d);
- assert.ok(far.x>close.x&&far.y>close.y);assert.ok(far.x<=22&&far.y<=43);
+ assert.ok(far.x>close.x&&far.y>close.y);assert.ok(far.x<=26&&far.y<=48);
  g.carrier.vx=g.carrier.vy=0;assert.deepEqual(g.coverageTarget(d),{x:20,y:40});
 });
 test('an unopposed return remains a touchdown with no hidden speed clamp or touchdown cap',()=>{

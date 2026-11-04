@@ -111,7 +111,7 @@ export function playDiagram(id){
  const d=DEFENSE.find(p=>p.id===id);if(!d?.coverage)return null;
  const c=d.coverage;return Array.from({length:7},(_,i)=>{const x=[23,30,15,39,8,45,26.5][i],y=34-d.depths[i]*.7;if(c.rush.includes(i))return `M${x} ${y} L27 39`;if(c.man?.[i]!==undefined)return `M${x} ${y} L${[0,0,7,46,36][c.man[i]]} 15`;if(c.zones?.[i])return `M${x} ${y} L${c.zones[i].x} ${34-c.zones[i].y*.7}`;return `M${x-3} ${y} L${x+3} ${y} M${x} ${y-3} L${x} ${y+3}`;}).join(' ');
 }
-export function routeFor(play,p,time,spot){
+function baseRoute(play,p,time,spot){
   if(play.routes)return waypointRoute(play.routes[p.slot-2],p,time,spot);
   const depth=time*p.speed*(.94+(p.routeRunning||80)*.00075),slot=p.slot;let x=[0,0,7,46,36][slot],y=spot+Math.min(depth,45);
   if(play.id==='slants'){x=slot===2?Math.min(33,7+depth*.8):slot===3?Math.max(21,46-depth*.8):36-depth*.35;y=spot+Math.min(depth*.7,30);}
@@ -139,3 +139,11 @@ export function routeFor(play,p,time,spot){
   if(play.id==='sweep'&&slot===4)x=44;
   return {x:clamp(x,3,50),y:Math.min(106,y)};
  }
+
+// Full-team alignments can shift an eligible receiver. Ease the original route
+// out of the actual starting stance instead of jumping to a seven-player origin.
+export function routeFor(play,p,time,spot){
+ const target=baseRoute(play,p,time,spot);if(!p.routeStart)return target;
+ const start=baseRoute(play,p,0,spot),blend=Math.max(0,1-time*p.speed/12);
+ return {x:target.x+(p.routeStart.x-start.x)*blend,y:target.y+(spot+p.routeStart.y-start.y)*blend};
+}

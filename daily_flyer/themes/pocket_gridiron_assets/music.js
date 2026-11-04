@@ -14,7 +14,7 @@ export const SCENE_TRACKS={
 };
 export class PGIMusic {
  constructor({fetcher=globalThis.fetch?.bind(globalThis)}={}){this.fetcher=fetcher;this.catalog=[];this.cache=new Map();this.loads=new Map();this.failed=new Set();this.voices=new Set();this.generation=0;this.scoreGeneration=0;this.enabled=true;this.scoring=true;this.family='all';this.scene='menu';this.volume=.55;this.blocked=false;this.active=null;this.scorer=null;this.pending=null;this.cursor=-1;this.resumeAt=0;this.selected=null;this.status='Choose a track or start a game.';}
- async loadCatalog(){try{const r=await this.fetcher(new URL('./music/manifest.json?v=23',import.meta.url));if(!r.ok)throw Error();const m=await r.json();this.catalog=(Array.isArray(m)?m:m.tracks).filter(t=>t.id&&t.title&&['arcade','film'].includes(t.family)&&/^\.\/music\/[a-z0-9-]+\.mp3$/.test(t.src));return this.catalog;}catch{this.status='Soundtrack unavailable. Football is ready.';return [];}}
+ async loadCatalog(){try{const r=await this.fetcher(new URL('./music/manifest.json?v=29',import.meta.url));if(!r.ok)throw Error();const m=await r.json();this.catalog=(Array.isArray(m)?m:m.tracks).filter(t=>t.id&&t.title&&['arcade','film'].includes(t.family)&&/^\.\/music\/[a-z0-9-]+\.mp3$/.test(t.src));return this.catalog;}catch{this.status='Soundtrack unavailable. Football is ready.';return [];}}
  attach(context,output,scoreOutput){this.context=context;this.output=output;this.scoreOutput=scoreOutput;}
  releaseContext(){
   ++this.generation;++this.scoreGeneration;

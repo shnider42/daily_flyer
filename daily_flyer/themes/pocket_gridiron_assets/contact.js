@@ -1,8 +1,9 @@
-import {effects} from './weather.js?v=23';
-import {fumbleChance} from './rules.js?v=23';
+import {checkContactInjury} from './injuries.js?v=29';
+import {effects} from './weather.js?v=29';
+import {fumbleChance} from './rules.js?v=29';
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
 const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
-export function resetContact(g){g.contact=null;g.breakArm=null;g.breakCooldown=0;g.stamina=100;g.offBalance=0;g.contactSlow=0;g.moveAnimation=null;g.contactFeedback='';}
+export function resetContact(g){g.contact=null;g.breakArm=null;g.breakCooldown=0;g.offBalance=0;g.contactSlow=0;g.moveAnimation=null;g.contactFeedback='';}
 export function nearestThreat(g){if(!g.isLive||g.pass||g.contact)return g.contact?g.defenders[g.contact.defender]:null;return g.defenders.filter(d=>d.stun<=0&&!d.blocked&&distance(d,g.carrier)<3.8).sort((a,b)=>distance(a,g.carrier)-distance(b,g.carrier))[0]||null;}
 export function chooseMove(g,d,input=g.lastInput||{x:0,y:1}){
  const p=g.carrier;
@@ -32,7 +33,7 @@ export function tickContact(g,dt){
  const c=g.contact;if(!c)return false;c.left-=dt;
  if(!g.breakArm&&c.left>0)return true;
  const d=g.defenders[c.defender],move=g.breakArm?.move||null,o=contactOdds(g,d,move),roll=g.rng();
- g.contact=null;g.breakArm=null;
+ g.contact=null;g.breakArm=null;checkContactInjury(g,d);
  if(roll<o.risk){g.contactFeedback=move?'The move exposed the ball.':'Contact dislodged the ball.';g.startFumble(d);return true;}
  if(move&&roll<o.risk+(1-o.risk)*o.chance){
   d.stun=.65;g.contactSlow=move==='spin'?.32:move==='truck'?.20:.12;

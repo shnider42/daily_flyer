@@ -8,7 +8,7 @@ import {seededRandom} from '../../daily_flyer/themes/pocket_gridiron_assets/rule
 import {StadiumAudio} from '../../daily_flyer/themes/pocket_gridiron_assets/audio.js';
 const data=JSON.parse(fs.readFileSync(new URL('../../daily_flyer/themes/pocket_gridiron_assets/rosters.json',import.meta.url)));
 const team=abbr=>buildTeam(abbr,data);
-function make(side=0,seed=21){const g=new Game(team('NE'),team('BUF'),'pro',seededRandom(seed));g.beginDrive(side,25);g.choose(side===0?'dive':'zone');g.snap(side);g.carrier.x=26;g.carrier.y=40;g.liveTime=1;for(const d of g.defenders){d.x=1;d.y=85;d.stun=0;}const d=g.defenders[4];d.x=27;d.y=41;return g;}
+function make(side=0,seed=21){const g=new Game(team('NE'),team('BUF'),'pro',seededRandom(seed),{format:7});g.beginDrive(side,25);g.choose(side===0?'dive':'zone');g.snap(side);g.carrier.x=26;g.carrier.y=40;g.liveTime=1;for(const d of g.defenders){d.x=1;d.y=85;d.stun=0;}const d=g.defenders[4];d.x=27;d.y=41;return g;}
 
 test('all 32 teams have valid distinct books and available signature calls',()=>{
  const books=new Set();for(const t of TEAMS){const g=new Game(team(t.abbr),team(t.abbr==='BUF'?'NE':'BUF'));g.beginDrive(0,25);assert.ok([33,34].includes(g.offensePlays.length));assert.equal(g.defensePlays.length,14);books.add(g.offensePlays.map(p=>p.id).join(','));for(const id of g.teams[0].profile.offense.signature)assert.ok(g.offensePlays.some(p=>p.id===id));for(const p of g.offensePlays){assert.equal(g.choose(p.id),true);g.snap();for(let i=0;i<8;i++)g.tick(.05);assert.ok(g.players.every(p=>Number.isFinite(p.x)));g.beginDrive(0,25);}}

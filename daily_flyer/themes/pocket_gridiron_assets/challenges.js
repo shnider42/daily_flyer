@@ -1,5 +1,5 @@
-import {Game,clamp,distance} from './engine.js?v=23';
-import {CLASSICS} from './history.js?v=23';
+import {Game,clamp,distance} from './engine.js?v=29';
+import {CLASSICS} from './history.js?v=29';
 export const DRILLS=[
  {id:'passing',name:'Passing lab',icon:'A →',simple:'Snap, let a receiver get open, then tap A, B or C.',moderate:'Read the coverage and lead the receiver with the stick as you throw.',expert:'Progression: 5 / 10 / 15-yard completions. Placement and separation matter.',goals:[5,10,15]},
  {id:'running',name:'Running lanes',icon:'↑ ↑',simple:'Follow your blockers. Use BURST when you see a gap.',moderate:'Press the lane, cut behind the block, and protect the ball through contact.',expert:'Progression: 5 / 10 / 20 yards. Gain is measured from the line of scrimmage.',goals:[5,10,20]},
@@ -13,7 +13,7 @@ export function saveProgress(progress,key,result){
 export class ChallengeGame extends Game{
  constructor(home,away,config,rng=Math.random){
   super(home,away,config.difficulty||'rookie',rng,{format:config.format||7,length:'showcase',playClock:false,tvTimeouts:false,weather:config.weather||'clear'});
-  this.challenge={...config,level:clamp(Number(config.level)||0,0,2)};this.practice=config.mode==='training';this.elapsed=0;this.events=[];this.pendingFinal=false;
+  this.injuriesEnabled=false;this.challenge={...config,level:clamp(Number(config.level)||0,0,2)};this.practice=config.mode==='training';this.elapsed=0;this.events=[];this.pendingFinal=false;
   const item=this.practice?DRILLS.find(d=>d.id===config.id):CLASSICS.find(d=>d.id===config.id);if(!item)throw Error('Unknown challenge');this.item=item;
   this.goal=this.practice?item.goals[this.challenge.level]:null;
   this.beginDrive(0,this.practice?(config.id==='punting'?50:30):item.spot,this.practice?1:item.down,this.practice?40:item.target);this.events=[];

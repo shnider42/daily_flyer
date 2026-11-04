@@ -1,17 +1,17 @@
-import {paintBroadcast} from './broadcast-screen.js?v=23';
-import {broadcastBeat} from './booth-lines.js?v=23';
-import {BoothStage} from './booth-stage.js?v=23';
-import {syllableEnergy} from './booth-chatter.js?v=23';
-import {REPORTER} from './sideline.js?v=23';
-import {SidelineStage} from './sideline-stage.js?v=23';
-const labels={al:'AL',john:'JOHN',[REPORTER.id]:REPORTER.label};
+import {paintBroadcast} from './broadcast-screen.js?v=29';
+import {broadcastBeat} from './booth-lines.js?v=29';
+import {BoothStage} from './booth-stage.js?v=29';
+import {syllableEnergy} from './booth-chatter.js?v=29';
+import {REPORTER} from './sideline.js?v=29';
+import {SidelineStage} from './sideline-stage.js?v=29';
+const labels={al:'AL',john:'JOHN',coach:'COACH',[REPORTER.id]:REPORTER.label};
 
 // Shared, skippable pregame/halftime presentation. The live engine stays still.
 export class HalftimeShow {
  constructor(dialog,onResume,onSilence=()=>{}){
   this.dialog=dialog;this.onResume=onResume;this.onSilence=onSilence;this.generation=0;this.wordMark=null;this.wordNodes={};this.index=0;this.report=null;this.auto=true;this.elapsed=0;this.last=0;this.ink=true;
   this.motionQuery=globalThis.matchMedia?.('(prefers-reduced-motion: reduce)');this.reduced=!!this.motionQuery?.matches;
-  try{this.motion=localStorage.getItem('pg-booth-motion')||'system';}catch{this.motion='system';}
+  try{this.motion=localStorage.getItem('pg-booth-motion')||'on';}catch{this.motion='on';}
   this.$=id=>dialog.querySelector('#'+id);
   this.stage=new BoothStage(dialog);this.turnIndex=-1;
   this.sidelineStage=new SidelineStage(this.$('host-casey'));
@@ -73,29 +73,29 @@ export class HalftimeShow {
   this.renderAuto();this.draw();
  }
  draw(){
-  this.$('halfMotionHint').textContent=this.motion==='system'&&this.reduced?'Your device requests reduced motion. Select On to animate the booth.':this.motion==='off'?'Host animation is off.':'Host animation follows the speaking turns.';
+  this.$('halfMotionHint').textContent=this.motion==='system'&&this.reduced?'Your device requests reduced motion. Select On to animate the booth.':this.motion==='off'?'Presentation animation is off.':'Animation is on for the booth, sideline and weather.';
   if(!this.report)return;const s=this.report.segments[this.index],beat=broadcastBeat(s,this.elapsed);
   if(this.turnIndex!==beat.index){
    this.turnIndex=beat.index;this.dialog.dataset.speaker=beat.turn.speaker;
    this.wordMark=null;
-   for(const name of ['al','john',REPORTER.id]){
-    const line=beat.turns.slice(0,beat.index+1).findLast(t=>t.speaker===name)||beat.turns.find(t=>t.speaker===name),text=line?.text||'',container=this.$({al:'halfAl',john:'halfJohn',casey:'halfCasey'}[name]);
+   for(const name of ['al','john',REPORTER.id,'coach']){
+    const line=beat.turns.slice(0,beat.index+1).findLast(t=>t.speaker===name)||beat.turns.find(t=>t.speaker===name),text=line?.text||'',container=this.$({al:'halfAl',john:'halfJohn',casey:'halfCasey',coach:'halfCoach'}[name]);
     // Screen readers receive one complete turn, not a live announcement per word.
     const accessible=document.createElement('span');accessible.className='booth-readable';accessible.textContent=text;
     const visual=document.createElement('span');visual.setAttribute('aria-hidden','true');this.wordNodes[name]=[];
     for(const word of text.match(/\S+/g)||[]){const node=document.createElement('span');node.className='booth-word';node.textContent=word;this.wordNodes[name].push(node);visual.append(node,document.createTextNode(' '));}
     container.replaceChildren(accessible,visual);
    }
-   this.$('halfOnAir').textContent=beat.turn.speaker===REPORTER.id?`${REPORTER.name.toUpperCase()} · ${REPORTER.location}`:`${beat.turn.speaker==='al'?'AL MICHAELS':'JOHN MADDEN'} · IN THE BOOTH`;
+   this.$('halfOnAir').textContent=beat.turn.speaker==='coach'?'HEAD COACH · PGI FICTION':beat.turn.speaker===REPORTER.id?`${REPORTER.name.toUpperCase()} · ${REPORTER.location}`:`${beat.turn.speaker==='al'?'AL MICHAELS':'JOHN MADDEN'} · IN THE BOOTH`;
   }
   const mark=this.wordNodes[beat.turn.speaker]?.[beat.wordIndex]||null;
   if(mark!==this.wordMark){this.wordMark?.classList.remove('current');mark?.classList.add('current');this.wordMark=mark;}
   // Let John hold the film while he explains; roll it on Al's response.
   const filmTime=s.turns?(beat.index===0?Math.min(3.49,this.elapsed*.7):beat.index===1?3.5+Math.min(4.49,beat.turnElapsed*.8):beat.index===2?8+Math.min(4,beat.turnElapsed):12):this.elapsed;
   if(!s.sideline)paintBroadcast(this.$('halfScreen'),this.report,s,filmTime,{reduced:!this.motionEnabled,ink:this.ink});
-  const field=beat.turn.speaker===REPORTER.id,frame={speaker:beat.turn.speaker,pose:beat.turn.pose,time:this.elapsed,moving:this.auto&&this.motionEnabled,energy:syllableEnergy(beat.word,beat.wordElapsed)};
+  const field=beat.turn.speaker===REPORTER.id||beat.turn.speaker==='coach',frame={speaker:beat.turn.speaker,pose:beat.turn.pose,time:this.elapsed,moving:this.auto&&this.motionEnabled,energy:syllableEnergy(beat.word,beat.wordElapsed)};
   this.$('halfSideline').hidden=!field;this.dialog.querySelector('.boothcast').hidden=field;
-  if(field){this.$('halfSidelineLocation').textContent=`${this.report.teams[s.team].abbr} · SIDELINE`;this.sidelineStage.draw({...frame,team:this.report.teams[s.team]});}
+  if(field){this.$('host-casey').setAttribute('aria-label',s.interview?'Casey Reed interviewing the fictional PGI head coach on the sideline':'Casey Reed, fictional PGI field reporter, on the sideline');this.$('halfSidelineLocation').textContent=`${this.report.teams[s.team].abbr} · ${s.interview?'COACH INTERVIEW · PGI FICTION':'SIDELINE'}`;this.sidelineStage.draw({...frame,team:this.report.teams[s.team],interview:!!s.interview,weather:this.report.weather,reduced:!this.motionEnabled});}
   else this.stage.draw(frame);
  }
  step(direction){this.index=Math.max(0,Math.min(this.report.segments.length-1,this.index+direction));this.elapsed=0;this.last=0;this.render();}

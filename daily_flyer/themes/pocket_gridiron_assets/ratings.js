@@ -4,11 +4,17 @@ const clamp=n=>Math.max(40,Math.min(99,Math.round(n)));
 export function enrichRatings(p){
  const qb=p.pos==='QB',back=['RB','FB'].includes(p.pos),wr=p.pos==='WR',te=p.pos==='TE',line=['OL','C','G','T','OT','OG'].includes(p.pos),dl=['DL','DT','DE'].includes(p.pos),db=['DB','CB','S','FS','SS'].includes(p.pos),kick=['K','P'].includes(p.pos);
  const experience=Math.max(-2,Math.min(3,(p.exp||0)-2));
- const base={acceleration:wr?89:back?85:db?86:line?52:73,agility:wr?87:back?83:db?85:line?48:70,balance:back?84:te?80:74,catching:wr?83:te?85:back?77:48,routeRunning:wr?83:te?78:back?68:45,ballSecurity:80,armStrength:qb?85:45,composure:qb?80+experience:65,passBlock:line?82:back?65:te?67:45,runBlock:line?84:te?76:back?67:wr?56:48,tackling:dl?85:db?77:line?60:82,coverage:db?83:dl?45:72,recognition:78+experience,shed:dl?85:db?64:77,kickPower:kick?85:55,kickAccuracy:kick?82:50,hangTime:kick?83:50};
- const special=INDIVIDUAL[p.name]||{};
+ const base={endurance:back?81:wr?85:db?87:line?70:dl?75:qb?76:84,durability:85,acceleration:wr?89:back?85:db?86:line?52:73,agility:wr?87:back?83:db?85:line?48:70,balance:back?84:te?80:74,catching:wr?83:te?85:back?77:48,routeRunning:wr?83:te?78:back?68:45,ballSecurity:80,armStrength:qb?85:45,composure:qb?80+experience:65,passBlock:line?82:back?65:te?67:45,runBlock:line?84:te?76:back?67:wr?56:48,tackling:dl?85:db?77:line?60:82,coverage:db?83:dl?45:72,recognition:78+experience,shed:dl?85:db?64:77,kickPower:kick?85:55,kickAccuracy:kick?82:50,hangTime:kick?83:50};
+ const special={...INDIVIDUAL[p.name],...CONDITIONING[p.name]};
  return {...p,...Object.fromEntries(Object.entries({...base,...special}).map(([k,v])=>[k,clamp(v)])),ratingSource:INDIVIDUAL[p.name]?'Individual arcade estimate':'Position baseline',ratingDate:RATING_DATE};
 }
 // Overrides are kept separate from the live roster, so refreshes preserve tuning.
+const CONDITIONING={
+ 'Derrick Henry':{endurance:96},'Saquon Barkley':{endurance:94},'Bijan Robinson':{endurance:92},'Jahmyr Gibbs':{endurance:86},'James Cook':{endurance:85},'Jonathan Taylor':{endurance:93},'Christian McCaffrey':{endurance:91},
+ "De’Von Achane":{endurance:81},"De'Von Achane":{endurance:81},'Josh Jacobs':{endurance:94},'Breece Hall':{endurance:87},'Kenneth Walker III':{endurance:85},'TreVeyon Henderson':{endurance:83},'Ashton Jeanty':{endurance:91},
+ 'Lamar Jackson':{endurance:92},'Josh Allen':{endurance:88},'Patrick Mahomes':{endurance:82},'Jalen Hurts':{endurance:91},'Jayden Daniels':{endurance:89},'Drake Maye':{endurance:84},
+ 'Justin Jefferson':{endurance:95},'Tyreek Hill':{endurance:91},"Ja'Marr Chase":{endurance:94},'A.J. Brown':{endurance:92},'Fred Warner':{endurance:98},'Roquan Smith':{endurance:97},'Myles Garrett':{endurance:88},'T.J. Watt':{endurance:94},'Micah Parsons':{endurance:93},'Maxx Crosby':{endurance:98}
+};
 const INDIVIDUAL={
  'Lamar Jackson':{agility:96,acceleration:97,balance:90,armStrength:91,composure:88,ballSecurity:80},
  'Josh Allen':{balance:94,armStrength:99,composure:90,ballSecurity:78,agility:83},
@@ -74,5 +80,5 @@ const INDIVIDUAL={
  'Brandon Aubrey':{kickPower:99,kickAccuracy:94},'Jake Elliott':{kickPower:92,kickAccuracy:90},
  'A.J. Cole':{kickPower:96,kickAccuracy:94,hangTime:97},'Michael Dickson':{kickPower:97,kickAccuracy:93,hangTime:96}
 };
-export const RATING_LABELS={speed:'Speed',power:'Strength',acceleration:'Acceleration',agility:'Agility',balance:'Balance',catching:'Hands',routeRunning:'Routes',ballSecurity:'Ball security',accuracy:'Accuracy',armStrength:'Arm',composure:'Composure',passBlock:'Pass block',runBlock:'Run block',tackling:'Tackling',coverage:'Coverage',recognition:'Reads',shed:'Block shed',kickPower:'Kick power',kickAccuracy:'Kick accuracy',hangTime:'Hang time'};
-export function visibleRatings(p){return p.pos==='QB'?['accuracy','armStrength','composure','speed']:['K','P'].includes(p.pos)?['kickPower','kickAccuracy','hangTime']:['OL','C','G','T','OT','OG'].includes(p.pos)?['passBlock','runBlock','power']:['QB','RB','FB','WR','TE'].includes(p.pos)?['speed','acceleration','agility','balance','catching','routeRunning','ballSecurity']:['speed','tackling','coverage','recognition','shed'];}
+export const RATING_LABELS={endurance:'Endurance',durability:'Durability',speed:'Speed',power:'Strength',acceleration:'Acceleration',agility:'Agility',balance:'Balance',catching:'Hands',routeRunning:'Routes',ballSecurity:'Ball security',accuracy:'Accuracy',armStrength:'Arm',composure:'Composure',passBlock:'Pass block',runBlock:'Run block',tackling:'Tackling',coverage:'Coverage',recognition:'Reads',shed:'Block shed',kickPower:'Kick power',kickAccuracy:'Kick accuracy',hangTime:'Hang time'};
+export function visibleRatings(p){const keys= p.pos==='QB'?['accuracy','armStrength','composure','speed']:['K','P'].includes(p.pos)?['kickPower','kickAccuracy','hangTime']:['OL','C','G','T','OT','OG'].includes(p.pos)?['passBlock','runBlock','power']:['QB','RB','FB','WR','TE'].includes(p.pos)?['speed','acceleration','agility','balance','catching','routeRunning','ballSecurity']:['speed','tackling','coverage','recognition','shed'];return [...keys,'endurance','durability'];}

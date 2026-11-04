@@ -1,24 +1,26 @@
-import {chooseOffense,cpuRunTarget,cpuRunBurst} from './rushing.js?v=23';
-import {createWeather,effects,windFor,kickConditions,weatherMove} from './weather.js?v=23';
-import {fullUnit,fullFormation,fullCoverage,fillSpecial} from './full-team.js?v=23';
-import {specialUnit,RETURN_PLANS,returnLane,recordKickLaunch,recordKickEnd,recordGoal} from './special-teams.js?v=23';
-import {goalWindow,goalResult} from './placekicks.js?v=23';
-import {formationOf,PERSONNEL,defensiveUnit,tendency,fakeRead} from './packages.js?v=23';
-import {matchLength,emptyBox,copyBox,halftimeReport} from './match.js?v=23';
-import {PLAYS,DEFENSE,routeFor,newCoverageTarget} from './plays.js?v=23';
-import {passPlacement,eligibleReceivers,catchReach,landingPickChance} from './passing.js?v=23';
-import {playbook} from './teams.js?v=23';
-import {resetContact,nearestThreat,armBreak,beginContact,tickContact} from './contact.js?v=23';
-import {AI_PROFILES,BALL_RULES,MOVEMENT_RULES,fumbleChance} from './rules.js?v=23';
-import {clearBlocks,isBlocker,updateBlocking,shedBlock,canTackle,stuntTarget} from './blocking.js?v=23';
-import {PENALTIES,acceptedPenalty,outcomeValue} from './penalties.js?v=23';
+import {athleticSpeed,exert,pursuitTarget,coverageLane} from './conditioning.js?v=29';
+import {availableTeam,beginHealthPlay} from './injuries.js?v=29';
+import {chooseOffense,cpuRunTarget,cpuRunBurst} from './rushing.js?v=29';
+import {createWeather,effects,windFor,kickConditions,weatherMove} from './weather.js?v=29';
+import {fullUnit,fullFormation,fullCoverage,fillSpecial} from './full-team.js?v=29';
+import {specialUnit,RETURN_PLANS,returnLane,recordKickLaunch,recordKickEnd,recordGoal} from './special-teams.js?v=29';
+import {goalWindow,goalResult} from './placekicks.js?v=29';
+import {formationOf,PERSONNEL,defensiveUnit,tendency,fakeRead} from './packages.js?v=29';
+import {matchLength,emptyBox,copyBox,halftimeReport} from './match.js?v=29';
+import {PLAYS,DEFENSE,routeFor,newCoverageTarget} from './plays.js?v=29';
+import {passPlacement,eligibleReceivers,catchReach,landingPickChance} from './passing.js?v=29';
+import {playbook} from './teams.js?v=29';
+import {resetContact,nearestThreat,armBreak,beginContact,tickContact} from './contact.js?v=29';
+import {AI_PROFILES,BALL_RULES,MOVEMENT_RULES,fumbleChance} from './rules.js?v=29';
+import {clearBlocks,isBlocker,updateBlocking,shedBlock,canTackle,stuntTarget} from './blocking.js?v=29';
+import {PENALTIES,acceptedPenalty,outcomeValue} from './penalties.js?v=29';
 export const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
 export const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
-export {PLAYS,DEFENSE} from './plays.js?v=23';
-const animate=(p,slot,x,y)=>({...p,slot,x,y,speed:4.8+(p.speed||70)/35,stun:0,phase:0,pace:1});
+export {PLAYS,DEFENSE} from './plays.js?v=29';
+const animate=(p,slot,x,y)=>({...p,slot,x,y,speed:athleticSpeed(p.speed),stun:0,phase:0,pace:.55,energy:100,carrySeconds:0});
 export class Game {
  constructor(home,away,difficulty='pro',rng=Math.random,options={}){
-  this.format=options.format===11?11:7;this.playClockEnabled=options.playClock===true;this.tvTimeouts=options.tvTimeouts===true;this.tvQuarters=new Set();this.playClock=40;this.teams=[home,away];this.rng=rng;this.difficulty=difficulty;this.scores=[0,0];
+  this.injuriesEnabled=options.injuries!==false;this.injuries=[];this.healthPlay=0;this.lastInjuryPlay=-18;this.injuryCheckedPlay=-1;this.format=options.format===7?7:11;this.playClockEnabled=options.playClock===true;this.tvTimeouts=options.tvTimeouts===true;this.tvQuarters=new Set();this.playClock=40;this.teams=[home,away];this.rng=rng;this.difficulty=difficulty;this.scores=[0,0];
   this.match=matchLength(options.length);this.quarterSeconds=this.match.quarterSeconds;this.halftimeShown=false;this.box=[emptyBox(),emptyBox()];this.quarter=1;this.clock=this.quarterSeconds;this.offense=0;this.spot=25;this.target=35;this.down=1;
   this.play='slants';this.defense='zone';this.events=[];this.history=[[],[]];this.stats={yards:0,returnYards:0,completions:0,attempts:0,tackles:0,drops:0,fumbles:0,fumblesLost:0,interceptions:0,takeaways:0,penalties:0,penaltyYards:0,brokenTackles:0};
   this.offenseCalls=[[],[]];this.formationHistory=[{},{}];this.defensePreference=PERSONNEL[options.defensePackage]?options.defensePackage:'base';this.unitOffense=null;this.personnel='base';this.defenseUnit=null;
@@ -26,6 +28,8 @@ export class Game {
   this.weather=createWeather(home,options.weather||'clear');this.beginKick('kickoff',1,35);
  }
  emit(type,text,detail='',meta={}){this.events.push({type,text,detail,...meta});}
+ get stamina(){return this.carrier?.energy??100;}
+ set stamina(value){if(this.carrier)this.carrier.energy=clamp(value,0,100);}
  get userOffense(){return this.offense===(this.humanTeam??0);}
  isHumanDefender(p){return !this.userOffense&&p===this.controlled;}
  autoPenalty(team){return team===1;}
@@ -52,14 +56,14 @@ export class Game {
  get canPass(){return this.phase==='live'&&!this.fakeActive&&!this.pass&&!this.passed&&!this.crossed&&this.playDefinition.kind==='pass'&&this.carrier===this.players[0];}
  resetPlay(){this.nextRunRead=0;this.runRead=null;this.playAction=null;this.pass=null;this.pitch=null;this.loose=null;this.returnInfo=null;this.scrambleRecovery=false;this.receivedPass=false;this.passed=false;this.crossed=false;this.liveTime=0;this.burstLeft=0;this.burstCooldown=0;this.diveLeft=0;this.diveCooldown=0;this.evaded=false;this.breakUsed=false;this.ballVisible=true;this.nextQBRead=0;this.handoffTime=0;this.readyTime=0;this.cpuSnapIn=null;this.flags=[];this.playStart=null;this.penaltyReview=null;this.aiJump=null;this.lastInput={x:0,y:0};resetContact(this);clearBlocks(this);}
  setFormation(){
-  const {x:xs,y:ys}=this.formation;
-  this.players=(this.format===11?fullUnit(this.teams[this.offense],'offense',this.teams[this.offense].offense):this.teams[this.offense].offense).map((p,i)=>animate(p,i,xs[i],this.spot+ys[i]));
+  const {x:xs,y:ys}=this.formation,attack=availableTeam(this,this.offense),defend=availableTeam(this,1-this.offense);
+  this.players=(this.format===11?fullUnit(attack,'offense',attack.offense):attack.offense).map((p,i)=>({...animate(p,i,xs[i],this.spot+ys[i]),routeStart:{x:xs[i],y:ys[i]}}));
   const depths=this.defenseDefinition.depths||{zone:[1.5,1.5,5,5,9,9,14],man:[1.5,1.5,4,4,5,5,16],blitz:[1.5,1.5,2,5,7,7,14],cover2:[1.5,1.5,5,5,6,17,17],cover3:[1.5,1.5,5,5,16,16,20],commit:[1,1,2,2,4,4,12],press:[1.5,1.5,2,3,1,1,19],robber:[1.5,1.5,4,7,5,5,19],prevent:[1.5,1.5,20,20,25,25,30]}[this.defense];
   const dx=this.defense==='cover2'?[23,30,18,39,7,13,40]:[23,30,15,39,8,45,26.5];
   const coverage=this.defenseDefinition.coverage;
   if(coverage)for(let i=0;i<7;i++){if(coverage.zones?.[i])dx[i]=coverage.zones[i].x;if(coverage.man?.[i]!==undefined)dx[i]=xs[coverage.man[i]];if(coverage.spy===i)dx[i]=26.5;if(coverage.bracket&&(coverage.bracket.under===i||coverage.bracket.over===i))dx[i]=xs[coverage.bracket.slot];}
-  const unit=this.unitOffense===this.offense&&this.defenseUnit?this.defenseUnit:this.teams[1-this.offense].defense;
-  this.defenders=(this.format===11?fullUnit(this.teams[1-this.offense],'defense',unit):unit).map((p,i)=>animate(p,i,dx[i]??[19,34,26.5,40][i-7],Math.min(107,this.spot+(depths[i]??[1.5,1.5,5,16][i-7]))));
+  const unit=defensiveUnit(defend,this.personnel);
+  this.defenders=(this.format===11?fullUnit(defend,'defense',unit):unit).map((p,i)=>animate(p,i,dx[i]??[19,34,26.5,40][i-7],Math.min(107,this.spot+(depths[i]??[1.5,1.5,5,16][i-7]))));
   if(['man','press','robber'].includes(this.defense)){this.defenders[2].x=xs[4];this.defenders[4].x=xs[2];this.defenders[5].x=xs[3];}
   if(this.personnel==='heavy'&&this.unitOffense===this.offense){this.defenders[2].x=19;this.defenders[2].y=this.spot+1.5;}
   this.carrier=this.players[0];this.selected=2;this.resetPlay();this.cameraY=this.spot+12;
@@ -103,7 +107,7 @@ export class Game {
  recordPlay(){this.playStart={offense:this.offense,spot:this.spot,target:this.target,down:this.down,scores:[...this.scores],stats:{...this.stats},box:copyBox(this.box),call:{id:this.play,name:this.playDefinition.name,formation:this.formation.name,kind:this.playDefinition.kind,playAction:!!this.playDefinition.playAction}};}
  snap(team=0){
   if(this.phase!=='ready'||this.paused||team!==this.offense)return false;
-  this.recordPlay();this.box[this.offense].plays++;this.offenseCalls[this.offense]=[...this.offenseCalls[this.offense],this.play].slice(-8);this.phase='live';this.liveTime=0;this.emit('snap','');
+  beginHealthPlay(this);this.recordPlay();this.box[this.offense].plays++;this.offenseCalls[this.offense]=[...this.offenseCalls[this.offense],this.play].slice(-8);this.phase='live';this.liveTime=0;this.emit('snap','');
   const offside=this.defenders.find(d=>d.y<this.spot+.45);if(offside)this.flag('offside',1-this.offense,offside);
   const observed=this.formationHistory[this.offense][this.formation.id]||[];
   if(this.playDefinition.playAction){
@@ -190,7 +194,7 @@ export class Game {
   for(const d of this.defenders){d.ballSeenAt=this.liveTime+this.defenseAI.reaction*(1+(80-(d.recognition||80))/100)+(d.reactionJitter||0);}
   this.passed=true;this.box[this.offense].attempts++;if(this.userOffense)this.stats.attempts++;this.emit('throw','','',{flight:this.pass.duration});return true;
  }
- move(p,dx,dy,speed,dt){if(p.stun>0)return;speed*=weatherMove(this,p,dx,dy,dt);speed*=p.blockFactor??1;if(p===this.carrier&&this.isLive&&!this.pass)speed*=MOVEMENT_RULES.carrierSpeed*(this.contactSlow>0?.65:1)*(this.stamina<20?.94:1);const n=Math.hypot(dx,dy);if(n>.04){p.pace=Math.min(1,(p.pace??1)+dt*(2+(p.acceleration||75)/40)*effects(this.weather).acceleration);speed*=p.pace;p.x+=dx/Math.max(1,n)*speed*dt;p.y+=dy/Math.max(1,n)*speed*dt;p.phase+=dt*14;}else p.pace=.55;p.x=clamp(p.x,-.2,53.5);p.y=clamp(p.y,-9,110);}
+ move(p,dx,dy,speed,dt){if(p.stun>0)return;speed*=weatherMove(this,p,dx,dy,dt);speed*=p.blockFactor??1;speed*=exert(this,p,dx,dy,dt,effects(this.weather));if(p===this.carrier&&this.isLive&&!this.pass)speed*=MOVEMENT_RULES.carrierSpeed*(this.contactSlow>0?.65:1);const n=Math.hypot(dx,dy);if(n>.04){p.pace=Math.min(1,(p.pace??1)+dt*(2+(p.acceleration||75)/40)*effects(this.weather).acceleration);speed*=p.pace;p.x+=dx/Math.max(1,n)*speed*dt;p.y+=dy/Math.max(1,n)*speed*dt;p.phase+=dt*14;}else p.pace=.55;p.x=clamp(p.x,-.2,53.5);p.y=clamp(p.y,-9,110);}
  route(p,time=this.liveTime){return routeFor(this.playDefinition,p,time,this.spot);}
  coverageTarget(d){
   const i=d.slot,ai=this.defenseAI;
@@ -201,10 +205,7 @@ export class Game {
    return {x:clamp(b.x+(b.tx-b.sx)/b.duration*lead,1,52),y:clamp(b.y+(b.ty-b.sy)/b.duration*lead,-4,107)};
   }
   if(this.isReturn||this.scrambleRecovery||!this.pass&&(this.carrier!==this.players[0]||this.crossed)&&this.liveTime>=this.handoffTime+ai.recognizeRun){
-   // Returns need an intercept angle: a fixed short lead can trail outside
-   // runs. Estimate travel time, capped so cuts still beat pursuit.
-   const lead=this.isReturn?ai.lead+Math.min(.12+ai.adapt*.08,distance(d,this.carrier)/Math.max(1,d.speed*.95)*(.035+ai.adapt*.02)):ai.lead;
-   return {x:clamp(this.carrier.x+(this.carrier.vx||0)*lead,1,52),y:clamp(this.carrier.y+(this.carrier.vy||0)*lead,-5,107)};
+   return pursuitTarget(this,d);
   }
   if(!this.passed&&!this.pass&&this.playAction&&this.liveTime>=.25&&this.liveTime<d.fakeUntil)return {x:this.playAction.lane,y:this.spot+.5};
   if(this.personnel==='heavy'&&this.unitOffense===this.offense&&i===2)return this.carrier;
@@ -254,7 +255,7 @@ export class Game {
   this.burstLeft=Math.max(0,this.burstLeft-dt);this.burstCooldown=Math.max(0,this.burstCooldown-dt);this.diveLeft=Math.max(0,this.diveLeft-dt);this.diveCooldown=Math.max(0,this.diveCooldown-dt);
   for(const p of [...this.players,...this.defenders])p.stun=Math.max(0,p.stun-dt);
   this.breakCooldown=Math.max(0,this.breakCooldown-dt);this.offBalance=Math.max(0,this.offBalance-dt);this.contactSlow=Math.max(0,this.contactSlow-dt);
-  this.stamina=Math.min(100,this.stamina+dt*7*effects(this.weather).recovery);if(this.moveAnimation){this.moveAnimation.left-=dt;if(this.moveAnimation.left<=0)this.moveAnimation=null;}
+  if(this.moveAnimation){this.moveAnimation.left-=dt;if(this.moveAnimation.left<=0)this.moveAnimation=null;}
   if(this.breakArm&&!this.contact){this.breakArm.left-=dt;if(this.breakArm.left<=0)this.breakArm=null;}
   if(tickContact(this,dt))return;
   const oldCarrier={x:this.carrier.x,y:this.carrier.y,vx:this.carrier.vx||0,vy:this.carrier.vy||0};
@@ -510,7 +511,7 @@ export class Game {
   this.unitOffense=null;this.defenseUnit=null;
   this.offense=1-kickingTeam;this.spot=type==='punt'?20:25;this.target=this.spot+10;this.down=1;this.pending=null;
   this.resetPlay();this.special={type,kickingTeam,kickSpot,seriesTarget,seriesDown,aim:0,power:0,meterTime:0,ball:null,fair:false,looseTime:0,returnPlan:'middle'};
-  const receive=this.teams[this.offense],kicking=this.teams[kickingTeam],returnUnit=specialUnit(receive,type),kickUnit=specialUnit(kicking,type);
+  const receive=availableTeam(this,this.offense),kicking=availableTeam(this,kickingTeam),returnUnit=specialUnit(receive,type),kickUnit=specialUnit(kicking,type);
   this.players=(this.format===11?fillSpecial(receive,returnUnit.receiving):returnUnit.receiving).map((p,i)=>animate(p,i,[20,26.5,7,46,34,16,39,10,23,30,43][i],[27,12,24,24,28,34,34,40,44,44,40][i]));
   this.playClock=25;this.defenders=(this.format===11?fillSpecial(kicking,kickUnit.coverage):kickUnit.coverage).map((p,i)=>animate(p,i,[4,49,12,20,33,41,26.5,8,16,37,45][i],i===6?100-kickSpot+(type==='punt'?7:0):type==='punt'?100-kickSpot:45));
   this.carrier=this.players[1];this.carrier.y=clamp(this.kickTarget(.7,0).y,3,90);
@@ -538,7 +539,7 @@ export class Game {
   return {x:26.5+aim*(29+(82-(kicker.kickAccuracy||82))*.12)+wind.x*.03*flight*flight,y:100-s.kickSpot-yards+wind.y*.22*(flight/3)};
  }
  launchKick(power,aim){
-  const s=this.special;s.power=clamp(power,0,1);s.aim=clamp(aim,-1,1);const target=this.kickTarget(s.power,s.aim),kicker=this.defenders[6];
+  beginHealthPlay(this);const s=this.special;s.power=clamp(power,0,1);s.aim=clamp(aim,-1,1);const target=this.kickTarget(s.power,s.aim),kicker=this.defenders[6];
   s.ball={x:kicker.x,y:kicker.y,sx:kicker.x,sy:kicker.y,tx:target.x,ty:target.y,elapsed:0,duration:(s.type==='punt'?2.8+s.power:3.2+s.power*.8)+( (kicker.hangTime||83)-83)*.015};
   recordKickLaunch(this);this.phase='kick_flight';this.emit('kick',s.type==='punt'?'PUNT AWAY':'KICK IS UP');
  }
@@ -556,7 +557,7 @@ export class Game {
   else this.move(returner,target.x-returner.x,target.y-returner.y,returner.speed*1.12,dt);
   for(const d of this.defenders){
    if(!this.userOffense&&d===this.controlled)this.move(d,input.x,input.y,d.speed,dt);
-   else if(b.elapsed>.45||this.phase==='kick_loose')this.move(d,target.x-d.x,target.y-d.y,d.speed*(d.slot<2?1:.88),dt);
+   else if(b.elapsed>.25||this.phase==='kick_loose'){const lane=coverageLane(d,target,b.elapsed);this.move(d,lane.x-d.x,lane.y-d.y,d.speed*(d.slot<2?1:.96),dt);}
   }
   for(const p of this.players){if(p===returner)continue;const d=this.defenders.filter(d=>d.stun<=0).sort((a,b)=>distance(a,p)-distance(b,p))[0];if(d)this.move(p,d.x-p.x,clamp(returner.y+7-p.y,-1,1),p.speed*.5,dt);}
   if(this.phase==='kick_flight'){

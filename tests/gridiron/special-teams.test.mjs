@@ -4,7 +4,7 @@ import fs from 'node:fs';
 import {Game,PLAYS,DEFENSE,distance} from '../../daily_flyer/themes/pocket_gridiron_assets/engine.js';
 import {buildTeam} from '../../daily_flyer/themes/pocket_gridiron_assets/roster.js';
 const data=JSON.parse(fs.readFileSync(new URL('../../daily_flyer/themes/pocket_gridiron_assets/rosters.json',import.meta.url)));
-const make=()=>{const g=new Game(buildTeam('NE',data),buildTeam('BUF',data),'pro',()=>.5);g.teams.forEach(t=>t.profile=null);return g;};
+const make=()=>{const g=new Game(buildTeam('NE',data),buildTeam('BUF',data),'pro',()=>.5,{format:7});g.teams.forEach(t=>t.profile=null);return g;};
 function until(g,predicate,input={x:0,y:0},limit=500){let n=0;while(!predicate(g)&&n++<limit)g.tick(.05,input);assert.ok(predicate(g),`stalled in ${g.phase}`);}
 function flight(g,type='punt',kicking=1,spot=40,power=.7,aim=0){g.beginKick(type,kicking,spot);g.launchKick(power,aim);}
 
