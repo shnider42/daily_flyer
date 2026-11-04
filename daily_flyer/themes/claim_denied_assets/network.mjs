@@ -3,12 +3,12 @@
 export class PartyClient {
   constructor(callbacks={},server=''){this.callbacks=callbacks;this.server=server;this.ws=null;this.room=null;this.selfId=null;this.seq=0;this.intentional=false;this.retry=0;this.token=null;this.lastState=0;}
   send(data){if(this.ws?.readyState===1)this.ws.send(JSON.stringify(data));}
-  connect({code,name,difficulty='standard',resume=false}={}){
-    clearTimeout(this.timer);clearInterval(this.watchdog);this.intentional=false;this.params={code,name,difficulty};this.callbacks.status?.('Connecting to the night shift…');
+  connect({code,name,difficulty='standard',mission='everwell-house',resume=false}={}){
+    clearTimeout(this.timer);clearInterval(this.watchdog);this.intentional=false;this.params={code,name,difficulty,mission};this.callbacks.status?.('Connecting to the night shift…');
     const base=this.server&&this.server!=='same-origin'?this.server:location.href;const url=new URL('./ws',base);url.protocol=url.protocol==='https:'||url.protocol==='wss:'?'wss:':'ws:';
     const ws=new WebSocket(url);this.ws=ws;
     this.deadline=setTimeout(()=>{if(ws.readyState===0){this.callbacks.status?.('The room server is still waking up. Reconnecting…');ws.close();}},20000);
-    ws.onopen=()=>{if(this.ws!==ws)return;clearTimeout(this.deadline);this.seq=0;this.lastState=Date.now();this.send({type:code?'join':'create',protocol:1,game:'claim-denied',mission:'everwell-house',name:name||'Neighbor',difficulty,roomId:code,...(resume&&this.token?{token:this.token,replace:true}:{})});};
+    ws.onopen=()=>{if(this.ws!==ws)return;clearTimeout(this.deadline);this.seq=0;this.lastState=Date.now();this.send({type:code?'join':'create',protocol:2,game:'claim-denied',mission,name:name||'Neighbor',difficulty,roomId:code,...(resume&&this.token?{token:this.token,replace:true}:{})});};
     ws.onmessage=e=>{if(this.ws!==ws)return;let packet;try{packet=JSON.parse(e.data);}catch{return;}
       if(packet.type==='welcome'){this.retry=0;this.selfId=packet.selfId;this.token=packet.token;this.params.code=packet.roomId;try{sessionStorage.setItem('claim-room',JSON.stringify({code:packet.roomId,token:packet.token,name:name||'Neighbor'}));}catch{}this.callbacks.status?.(packet.resumed?'Reconnected. Everyone must resume.':'Connected. Invite your neighbors.');}
       if(packet.type==='room'){if(packet.room.status==='playing'&&this.room?.status!=='playing')this.lastState=Date.now();this.room=packet.room;this.callbacks.room?.(packet.room);}

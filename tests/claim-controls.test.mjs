@@ -11,11 +11,11 @@ class Surface extends EventTarget {
   getBoundingClientRect(){return {left:0,top:0,width:100,height:100};}
   emit(type,pointerId=1,clientX=50,clientY=50){const e=new Event(type,{cancelable:true});Object.assign(e,{pointerId,clientX,clientY});this.dispatchEvent(e);}
 }
-function setup(){
+function setup(options={}){
   const stick=new Surface(),knob=new Surface(),look=new Surface();
   const buttons={fire:new Surface(),use:new Surface(),reload:new Surface()},turns=[];
   let active=true;
-  const controls=new TouchControls({stick,knob,look,buttons,active:()=>active,onLook:(x,y)=>turns.push([x,y])});
+  const controls=new TouchControls({stick,knob,look,buttons,active:()=>active,onLook:(x,y)=>turns.push([x,y]),...options});
   return {stick,knob,look,buttons,turns,controls,setActive:v=>active=v};
 }
 test('move, look and fire retain independent fingers; stray lifts cannot cancel aiming',()=>{
@@ -89,4 +89,19 @@ test('phones get the thumb pads while desktop and touchscreen laptops retain mou
  assert.equal(preferTouchControls({coarse:false,fine:true,touchPoints:0,force:false}),false);
  assert.equal(preferTouchControls({coarse:false,fine:true,touchPoints:10,force:false}),false);
  assert.equal(preferTouchControls({coarse:false,fine:true,touchPoints:0,force:true}),true);
+});
+
+test('double tap and hold fires while dragging; first drag and cancelled gestures never arm it',()=>{
+ let clock=0;const {look,controls,turns}=setup({settings:()=>({fireMode:'double'}),now:()=>clock});
+ look.emit('pointerdown',1);clock=80;look.emit('pointerup',1);assert.equal(controls.consume().fire,false);
+ clock=150;look.emit('pointerdown',2);assert.equal(controls.consume().fire,true);look.emit('pointermove',2,80,60);assert.deepEqual(turns,[[30,10]]);assert.equal(controls.consume().fire,true);
+ look.emit('pointerup',2);assert.equal(controls.consume().fire,false);
+ clock=500;look.emit('pointerdown',3);look.emit('pointermove',3,80,50);clock=550;look.emit('pointerup',3);clock=600;look.emit('pointerdown',4);assert.equal(controls.consume().fire,false);look.emit('pointercancel',4);
+ clock=650;look.emit('pointerdown',5);assert.equal(controls.consume().fire,false);
+ controls.reset();clock=700;look.emit('pointerdown',6);assert.equal(controls.consume().fire,false);
+});
+test('hold-to-fire and separate fire retain independent ownership',()=>{
+ const {look,buttons,controls}=setup({settings:()=>({fireMode:'hold'})});
+ look.emit('pointerdown',1);buttons.fire.emit('pointerdown',2);assert.equal(controls.consume().fire,true);
+ look.emit('pointerup',1);assert.equal(controls.consume().fire,true);buttons.fire.emit('pointerup',2);assert.equal(controls.consume().fire,false);
 });

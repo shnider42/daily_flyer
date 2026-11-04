@@ -36,3 +36,29 @@ body.touch .prompt{top:auto;bottom:340px;font-size:10px}body.touch .toast{bottom
   body.touch .ammo-block{position:absolute;right:0;bottom:0;transform:scale(.65)}body.touch .weapon-bar{left:42%}
   body.touch .prompt{bottom:90px!important;max-width:34%;min-width:160px}body.touch .toast{bottom:140px!important;max-width:38%}
 }
+
+/* Personal control sizes use area percentages; hit targets follow the visuals. */
+:root{--pad-scale:.5;--button-scale:.7071;--control-opacity:.8;--crosshair-scale:1}
+body.touch button:not(#touch button){transform:scale(var(--button-scale));transform-origin:center}
+#touch{opacity:var(--control-opacity)}
+#stick{width:calc(112px * var(--pad-scale));height:calc(112px * var(--pad-scale));bottom:calc(var(--base) + 155px)}
+#stick-knob{width:38%;height:38%;left:31%;top:31%}
+.look-pad{width:calc(128px * var(--pad-scale));height:calc(128px * var(--pad-scale));min-width:40px;min-height:40px}
+.look-pad strong{font-size:clamp(9px,calc(15px * var(--pad-scale)),18px)}.look-arrows{font-size:clamp(12px,calc(27px * var(--pad-scale)),30px)}
+.look-pad small{position:absolute;top:calc(100% + 7px);right:0;width:150px;text-align:right;font-size:8px;white-space:nowrap}
+#look-zone.firing .look-pad{border-color:#ffd792;background:#e1ac4570}.look-thumb{display:none}
+#touch #touch-fire{width:calc(94px * var(--button-scale));height:calc(94px * var(--button-scale));bottom:calc(var(--base) + 54px)}
+#touch-use,#touch-reload{width:calc(64px * var(--button-scale));height:calc(64px * var(--button-scale));bottom:calc(var(--base) + 54px)}
+#touch-use{right:calc(var(--edge) + 12px + 94px * var(--button-scale))}#touch-reload{right:calc(var(--edge) + 24px + 158px * var(--button-scale))}
+#touch button>strong{font-size:clamp(8px,calc(10px * var(--button-scale)),14px)}#touch #touch-fire>strong{font-size:clamp(10px,calc(14px * var(--button-scale)),18px)}#touch button>span,#touch #touch-fire>span{font-size:calc(24px * var(--button-scale))}
+#touch #touch-fire>small{display:none}#look-zone{bottom:calc(var(--base) + 95px + 64px * var(--button-scale))}
+body.touch .weapon-bar{bottom:0;max-width:50vw;flex-wrap:wrap;justify-content:center;gap:0}body.touch .weapon-bar button{min-width:30px;min-height:30px}
+#crosshair{transform:translate(-50%,-50%) scale(var(--crosshair-scale))}
+#pause-panel{overflow:auto;align-items:start;padding:20px}#pause-panel .modal-card{max-width:700px;margin:auto;max-height:calc(100dvh - 40px);overflow:auto}#pause-panel .actions{position:sticky;top:-38px;z-index:3;background:#173238;padding:10px 0}
+#control-settings{border-top:1px solid var(--line);padding-top:16px}#control-settings summary{cursor:pointer;font:bold 12px monospace;letter-spacing:1px;color:var(--gold)}
+#settings-controls{display:grid;grid-template-columns:1fr 1fr;gap:14px 24px;margin-top:15px}
+.setting-row{display:grid;grid-template-columns:1fr auto;gap:8px;font:11px monospace;letter-spacing:0}.setting-row output{color:var(--gold)}.setting-row input[type=range]{grid-column:1/-1;width:100%;padding:0;margin:0;height:24px;accent-color:var(--gold)}
+.setting-row select{grid-column:1/-1;max-width:100%;font-size:11px;letter-spacing:0}.setting-check{display:flex;gap:8px;align-items:center;font-size:11px;letter-spacing:0}.setting-check input{width:18px;height:18px;accent-color:var(--gold)}
+.control-preview{grid-column:1/-1;display:flex;gap:24px;justify-content:center;align-items:center;min-height:110px;padding:12px;border:1px solid var(--line)}.preview-pad,.preview-fire{display:grid;place-items:center;border:1px solid #bddad0;border-radius:50%;font:10px monospace;width:calc(112px * var(--pad-scale));height:calc(112px * var(--pad-scale))}.preview-fire{background:var(--gold);color:var(--ink);width:calc(94px * var(--button-scale));height:calc(94px * var(--button-scale))}
+@media(max-width:600px){#settings-controls{grid-template-columns:1fr;gap:12px}.control-preview{gap:18px}.setting-row{font-size:12px}#pause-panel{padding:10px}#pause-panel .modal-card{max-height:calc(100dvh - 20px);padding:20px}#pause-panel .actions{top:-20px}}
+@media(orientation:landscape){#stick{bottom:calc(var(--base) + 72px)}#look-zone{bottom:calc(var(--base) + 22px + 64px * var(--button-scale))}.look-pad{right:calc(var(--edge) + 22px + 94px * var(--button-scale))}#touch #touch-fire{bottom:calc(var(--base) + 78px)}#touch-use,#touch-reload{bottom:var(--base)}body.touch .weapon-bar{max-width:35vw}}

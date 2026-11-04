@@ -1,6 +1,8 @@
 import * as T from './vendor/three.module.js';
 import {SoftwareRenderer} from './software-renderer.mjs';
-import {WINDOWS,OBSTACLES,STATIONS,WEAPONS} from './core.mjs';
+import {WINDOWS,OBSTACLES,STATIONS,WEAPONS,mapFor} from './core.mjs';
+import {buildRetreat} from './retreat.mjs';
+import {batchStaticGeometry} from './static-geometry.mjs';
 const COLORS=[0xeebc65,0x6dd4c0,0xef839c,0x98aaff];
 export class HouseRenderer {
   constructor(canvas){
@@ -11,7 +13,17 @@ export class HouseRenderer {
     this.scene.add(new T.HemisphereLight(0xa8d0d8,0x4b332d,2));
     const moon=new T.DirectionalLight(0xa5d3ef,2.3);moon.position.set(-16,22,-8);this.scene.add(moon);
     this.materials=new Map();this.enemies=new Map();this.mates=new Map();this.boards=new Map();this.particles=[];this.clock=0;this.kick=0;this.flash=0;this.menu=true;
-    this.buildWorld();this.buildGun();this.resize();
+    this.baseObjects=new Set(this.scene.children);this.mapId='everwell-house';this.bolts=new Map();this.buildWorld();batchStaticGeometry(this.scene,new Set([this.ceiling]));this.buildGun();this.resize();
+  }
+  setMap(id){
+    if(id===this.mapId)return;this.mapId=id;
+    for(const object of [...this.scene.children])if(!this.baseObjects.has(object)){this.scene.remove(object);object.traverse(o=>{o.geometry?.dispose();if(o.material?.map){o.material.map.dispose();o.material.dispose();}});}
+    this.enemies.clear();this.mates.clear();this.boards.clear();this.bolts.clear();this.particles=[];
+    if(id==='executive-retreat')buildRetreat(this);else this.buildWorld();batchStaticGeometry(this.scene,new Set([this.ceiling]));this.lastMenu=undefined;
+  }
+  configure(settings){
+    this.settings=settings;const quality=Math.min(devicePixelRatio||1,settings.quality);if(this.quality!==quality){this.quality=quality;this.renderer.setPixelRatio(quality);this.resize();}
+    const fov=Math.min(110,settings.fov+(this.camera.aspect<1?8:0));if(this.camera.fov!==fov){this.camera.fov=fov;this.camera.updateProjectionMatrix();}
   }
   mat(color){if(!this.materials.has(color))this.materials.set(color,new T.MeshStandardMaterial({color,roughness:.9,flatShading:true}));return this.materials.get(color);}
   box(x,y,z,w,h,d,color,parent=this.scene,rotation=0){const m=new T.Mesh(new T.BoxGeometry(w,h,d),this.mat(color));m.position.set(x,y,z);m.rotation.y=rotation;parent.add(m);return m;}
@@ -75,7 +87,7 @@ export class HouseRenderer {
     const tv=this.label('PLEASE HOLD.\nYOUR CALL MATTERS.','#79ccba','#173b3b',1.06,.52);tv.position.set(-1.2,1.05,5.34);tv.rotation.y=Math.PI;this.scene.add(tv);
     for(const st of STATIONS){
       this.box(st.x,.6,st.z,1.05,1.2,.65,st.id==='health'?0xd6d0b0:0x3c5354);
-      const sign=this.label(st.id==='ammo'?'AMMUNITION\n120 CREDITS':st.id==='health'?'FIRST AID\n200 CREDITS':st.id==='shotgun'?'SEVERANCE\n600 CREDITS':'COUNTEROFFER\n1000 CREDITS',st.id==='health'?'#273e3b':'#edca80',st.id==='health'?'#ded6ac':'#1c3e44',1.5,.6);
+      const sign=this.label(st.name.toUpperCase()+'\n'+st.cost+' CREDITS',st.id==='health'?'#273e3b':'#edca80',st.id==='health'?'#ded6ac':'#1c3e44',1.5,.6);
       sign.position.set(st.x,1.65,st.z);sign.rotation.y=st.x>0?-Math.PI/2:Math.PI/2;this.scene.add(sign);
       if(st.id==='health'){this.box(st.x,1.23,st.z,.65,.06,.17,0x974733);this.box(st.x,1.23,st.z,.17,.065,.5,0x974733);}
     }
@@ -103,7 +115,7 @@ export class HouseRenderer {
     const geo=new T.BufferGeometry();geo.setAttribute('position',new T.BufferAttribute(positions,3));this.rain=new T.Points(geo,new T.PointsMaterial({color:0xa0c6c9,size:.035,transparent:true,opacity:.6}));this.scene.add(this.rain);
   }
   figure(type,color){
-    const g=new T.Group(),big=type==='chairman',heavy=type==='auditor';const suit=color||(big?0x5c3d63:heavy?0x647777:type==='runner'?0x62495f:0x304a61),skin=color?0xd6b795:0x9fbaa0;
+    const g=new T.Group(),big=type==='chairman',heavy=type==='auditor';const suit=color||({collector:0x954b36,compliance:0x334c63,counsel:0x563e70,broker:0x308a6a}[type])||(big?0x5c3d63:heavy?0x647777:type==='runner'?0x62495f:0x304a61),skin=color?0xd6b795:0x9fbaa0;
     this.box(0,1.1,0,.58,.78,.33,suit,g);this.box(0,1.4,-.18,.24,.26,.03,0xe4d0ac,g);
     const tie=this.box(0,1.2,-.21,.08,.43,.03,big?0xe5ba57:0xa3554c,g);tie.rotation.z=.15;
     this.box(0,1.85,-.015,.42,.47,.4,skin,g);this.box(0,2.09,.025,.44,.12,.39,0x394d49,g);
@@ -114,6 +126,10 @@ export class HouseRenderer {
       const arm=new T.Group();arm.position.set(side*.4,1.45,0);g.add(arm);this.box(0,-.28,0,.18,.57,.2,suit,arm);this.box(0,-.6,0,.16,.16,.17,skin,arm);limbs.push(arm);
       if(side===1&&!color){this.box(.03,-.85,0,.38,.35,.15,big?0xb7a063:0x594c38,arm);this.box(.03,-.65,0,.17,.08,.06,0x9c976c,arm);}
     }
+    if(type==='compliance'){this.box(0,1.15,-.4,.8,1.2,.1,0x708c9b,g);const seal=this.label('POLICY','#fff0b3','#3c596b',.6,.2);seal.position.set(0,1.2,-.46);seal.rotation.y=Math.PI;g.add(seal);}
+    if(type==='broker'){this.box(0,1.1,.23,.65,.9,.35,0x47bc8b,g);this.box(0,1.4,-.23,.3,.12,.08,0x78e9bc,g);}
+    if(type==='counsel'){this.box(.55,1.3,-.3,.3,.45,.1,0xe1cea0,g);this.box(0,1.9,-.24,.36,.1,.04,0x312b43,g);}
+    if(type==='collector')this.box(0,1.1,-.23,.48,.7,.13,0xcc8350,g);
     if(heavy)this.box(0,1.32,-.23,.44,.55,.09,0x84968c,g);
     if(big){const crown=this.label('CEO','#fff0b3','#67486c',.36,.2);crown.position.set(0,1.36,-.215);crown.rotation.y=Math.PI;g.add(crown);g.scale.set(1.45,1.28,1.45);}
     g.userData={limbs,baseScale:g.scale.clone()};return g;
@@ -123,35 +139,39 @@ export class HouseRenderer {
     this.box(.04,-.14,.06,.13,.3,.17,0x3c4c4c,this.gun);this.box(0,0,-.16,.17,.16,.5,0x637c80,this.gun);
     this.barrel=this.box(0,.035,-.42,.085,.085,.2,0x263c43,this.gun);this.box(0,.11,-.31,.035,.06,.045,0xc6b187,this.gun);
     this.box(.06,-.2,.18,.18,.17,.32,0xd6ae84,this.gun);this.box(.07,-.3,.37,.22,.21,.3,0x546d65,this.gun);
+    this.weaponParts=new Map();for(const id of ['shotgun','carbine','smg','marksman','lmg']){const group=new T.Group();this.gun.add(group);this.weaponParts.set(id,group);if(id==='marksman'){this.cylinder(0,.22,-.12,.065,.3,0x1e333a,group).rotation.x=Math.PI/2;this.box(0,.15,-.12,.07,.12,.12,0x1e333a,group);}else if(id==='lmg'){this.box(.14,-.13,-.08,.26,.22,.24,0x9b8459,group);}else if(id==='shotgun'){this.box(0,-.03,-.36,.2,.2,.25,0x987451,group);}else{this.box(0,-.18,-.1,.09,.3,.16,id==='smg'?0x394b50:0x556b66,group);}}
     this.flashMesh=new T.Mesh(new T.ConeGeometry(.13,.4,5),new T.MeshBasicMaterial({color:0xffd98b}));this.flashMesh.rotation.x=-Math.PI/2;this.flashMesh.position.set(0,.02,-.67);this.flashMesh.visible=false;this.gun.add(this.flashMesh);
     this.flashLight=new T.PointLight(0xffbb66,0,5);this.flashLight.position.set(0,0,-.4);this.gun.add(this.flashLight);
   }
-  resize(){const w=this.canvas.clientWidth,h=this.canvas.clientHeight;this.renderer.setSize(w,h,false);this.camera.aspect=w/h;this.camera.fov=w<h?85:73;this.camera.updateProjectionMatrix();}
+  resize(){const w=this.canvas.clientWidth,h=this.canvas.clientHeight;this.renderer.setSize(w,h,false);this.camera.aspect=w/h;this.camera.fov=this.settings?Math.min(110,this.settings.fov+(w<h?8:0)):(w<h?85:73);this.camera.updateProjectionMatrix();}
   event(events,selfId){for(const e of events){
     if(e.type==='shot'&&e.playerId===selfId){this.kick=.09;this.flash=.055;}
-    if(e.type==='kill'){for(let i=0;i<12;i++){const m=this.box(e.x,1+Math.random(),e.z,.15,.015,.2,i%3?0xd6c7a1:0x6da69e);this.particles.push({mesh:m,life:1.5,vx:(Math.random()-.5)*3,vy:2+Math.random(),vz:(Math.random()-.5)*3});}}
+    if(e.type==='kill'){for(let i=0;i<12;i++){const m=this.box(e.x,(e.y||0)+1+Math.random(),e.z,.15,.015,.2,i%3?0xd6c7a1:0x6da69e);this.particles.push({mesh:m,life:1.5,vx:(Math.random()-.5)*3,vy:2+Math.random(),vz:(Math.random()-.5)*3});}}
   }}
   render(dt,state,selfId='p1',view={}){
+    this.setMap(state.mapId||'everwell-house');
     this.clock+=dt;this.kick=Math.max(0,this.kick-dt*.8);this.flash=Math.max(0,this.flash-dt);
     const p=state.players.find(p=>p.id===selfId)||state.players[0];
     this.menu=!!view.menu;this.ceiling.visible=!this.menu;this.roof.visible=this.menu;this.gun.visible=!this.menu&&!p.down&&!p.dead;
     if(this.menu){const t=this.clock*.025;this.camera.position.set(Math.sin(t)*4-16,12,22);this.camera.lookAt(0,.5,0);}
     else {const cam=p.dead?(state.players.find(q=>!q.dead&&!q.down)||p):p;const alpha=view.remote?1-Math.exp(-dt*20):1;
-      if(this.lastMenu!==false)this.camera.position.set(cam.x,cam.down?.65:1.6,cam.z);
-      this.camera.position.x+=(cam.x-this.camera.position.x)*alpha;this.camera.position.z+=(cam.z-this.camera.position.z)*alpha;this.camera.position.y=cam.down?.65:1.6;
+      if(this.lastMenu!==false)this.camera.position.set(cam.x,(cam.y||0)+(cam.down?.65:1.6),cam.z);
+      this.camera.position.x+=(cam.x-this.camera.position.x)*alpha;this.camera.position.z+=(cam.z-this.camera.position.z)*alpha;this.camera.position.y+=((cam.y||0)+(cam.down?.65:1.6)-this.camera.position.y)*alpha;
       this.camera.rotation.set(cam===p?(view.pitch??p.pitch):cam.pitch,-(cam===p?(view.angle??p.angle):cam.angle),0,'YXZ');
     }this.lastMenu=this.menu;
-    this.gun.position.y=-.31+Math.sin(this.clock*7)*.006-this.kick;this.gun.rotation.x=this.kick*1.8+(p.reloading>0?-.5:0);this.gun.scale.z=p.weapon==='pistol'?1:p.weapon==='shotgun'?1.45:1.25;
+    this.gun.position.y=-.31+(this.settings?.motion===false?0:Math.sin(this.clock*7)*.006-this.kick);this.gun.rotation.x=(this.settings?.motion===false?0:this.kick*1.8)+(p.reloading>0?-.5:0);this.gun.scale.z=p.weapon==='pistol'?1:p.weapon==='smg'?.9:p.weapon==='marksman'?1.7:p.weapon==='lmg'?1.5:p.weapon==='shotgun'?1.45:1.25;
+    for(const [id,part] of this.weaponParts)part.visible=id===p.weapon;
     this.flashMesh.visible=this.flash>0;this.flashLight.intensity=this.flash>0?8:0;
     for(const w of state.windows){const boards=this.boards.get(w.id);boards.forEach((b,i)=>b.visible=w.health>i*40);}
     const ids=new Set();for(const e of state.enemies){ids.add(e.id);let m=this.enemies.get(e.id);if(!m){m=this.figure(e.type);m.position.set(e.x,0,e.z);this.scene.add(m);this.enemies.set(e.id,m);}
-      const alpha=view.remote?1-Math.exp(-dt*18):1;m.position.x+=(e.x-m.position.x)*alpha;m.position.z+=(e.z-m.position.z)*alpha;m.position.y=e.phase==='climb'?Math.sin(e.climb*Math.PI)*.55:0;m.rotation.y=-e.angle;
+      const alpha=view.remote?1-Math.exp(-dt*18):1;m.position.x+=(e.x-m.position.x)*alpha;m.position.z+=(e.z-m.position.z)*alpha;m.position.y=(e.y||0)+(e.phase==='climb'?Math.sin(e.climb*Math.PI)*.55:0);m.rotation.y=-e.angle;
       const walk=e.phase==='hunt'||e.phase==='approach';m.userData.limbs.forEach((l,i)=>{l.rotation.x=walk?Math.sin(this.clock*(e.type==='runner'?10:4)+i*Math.PI)*.35:e.phase==='barricade'&&i%2?-.8-Math.sin(this.clock*5)*.4:0;});
       m.scale.copy(m.userData.baseScale).multiplyScalar(e.hit>0?1.05:1);
     }
     for(const [id,m] of this.enemies)if(!ids.has(id)){this.scene.remove(m);m.traverse(o=>o.geometry?.dispose());this.enemies.delete(id);}
     for(const [id,m] of this.mates)if(!state.players.some(q=>q.id===id&&q.id!==selfId)){this.scene.remove(m);m.traverse(o=>o.geometry?.dispose());this.mates.delete(id);}
-    for(const [i,q] of state.players.entries())if(q.id!==selfId){let m=this.mates.get(q.id);if(!m){m=this.figure('survivor',COLORS[i]);this.scene.add(m);this.mates.set(q.id,m);}m.visible=!q.dead;m.position.set(q.x,0,q.z);m.rotation.y=-q.angle;m.scale.y=q.down?.35:1;}
+    for(const [i,q] of state.players.entries())if(q.id!==selfId){let m=this.mates.get(q.id);if(!m){m=this.figure('survivor',COLORS[i]);this.scene.add(m);this.mates.set(q.id,m);}m.visible=!q.dead;m.position.set(q.x,q.y||0,q.z);m.rotation.y=-q.angle;m.scale.y=q.down?.35:1;}
+    const boltIds=new Set();for(const b of state.projectiles||[]){boltIds.add(b.id);let mesh=this.bolts.get(b.id);if(!mesh){mesh=this.box(b.x,b.y,b.z,.28,.08,.2,0xe3c39a);this.bolts.set(b.id,mesh);}mesh.position.set(b.x,b.y,b.z);mesh.rotation.y+=dt*6;}for(const [id,mesh] of this.bolts)if(!boltIds.has(id)){this.scene.remove(mesh);mesh.geometry.dispose();this.bolts.delete(id);}
     const rain=this.rain.geometry.attributes.position;for(let i=0;i<rain.count;i++){let y=rain.getY(i)-dt*9;const x=rain.getX(i),z=rain.getZ(i);if(y<0)y=18;if(Math.abs(x)<9.4&&Math.abs(z)<7.4&&y<4)y=18;rain.setY(i,y);}rain.needsUpdate=true;
     for(const part of this.particles){part.life-=dt;part.mesh.position.x+=part.vx*dt;part.mesh.position.y+=part.vy*dt;part.mesh.position.z+=part.vz*dt;part.vy-=dt*4;part.mesh.rotation.z+=dt*4;}
     this.particles=this.particles.filter(p=>{if(p.life>0)return true;this.scene.remove(p.mesh);p.mesh.geometry.dispose();return false;});

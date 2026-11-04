@@ -1,4 +1,4 @@
-# Claim Denied — 0.1.1
+# Claim Denied — 0.2.0
 
 An original DailyFlyer house-defense FPS for solo play and private 2–4-player
 co-op. Everwell Assurance and its undead board are fictional. The game contains
@@ -55,8 +55,8 @@ unchanged. `claim-rooms.mjs` and `claim-server.mjs` adapt its room lifecycle and
 transport: authoritative 30 Hz simulation, 10 Hz snapshots, sequenced and
 bounded inputs, single-use firing pulse, heartbeat/backpressure/rate limits,
 cryptographic reconnect token, 60-second reservation and protective shared pause.
-The protocol is isolated as `game: claim-denied`, protocol 1, mission
-`everwell-house`; Breach clients cannot enter these rooms. Gameplay state is
+The protocol is isolated as `game: claim-denied`, protocol 2, missions
+`everwell-house` and `executive-retreat`; Breach clients cannot enter these rooms. Gameplay state is
 owned by the server. Clients cannot submit position, health, credits or kills.
 
 `core.mjs` is a deterministic, renderer-independent simulation used by solo and
@@ -112,3 +112,43 @@ input, multitouch ownership, liveness/resume, geometry and four real WebSocket
 clients. Portrait controls were visually inspected in the software-rendered
 preview. The QA browser became unavailable before desktop/landscape playtesting
 could finish; hardware WebGL and physical phone multitouch remain unverified.
+
+
+## 0.2.0 — Executive Retreat and personal controls
+
+Mobile defaults: thumb pads use 25% of their original area (50% diameter),
+other buttons 50% area (about 71% diameter). Pause → Controls & Comfort has
+persisted pad/button area, separate mouse/touch sensitivity, aim-assist strength,
+field of view, crosshair size, control opacity, audio volume, render resolution,
+invert-Y and weapon-motion settings. Size changes preview while the world is held.
+
+Default right-pad gesture: a tap shorter than 230ms with less than 12px travel,
+then a second press within 320ms/45px, fires for the duration of the second press
+while dragging still aims. Release/cancel/pause stops firing. Alternative modes
+are hold-to-fire and separate FIRE only. Ordinary aiming drags never arm double tap.
+
+Executive Retreat has a 24×22m footprint, eight ground-floor barricades, two
+walkable staircases, a 3.6m upper gallery and open central atrium. Player and enemy
+movement, navigation, shooting, supplies, revives and snapshots carry height.
+Solid slabs and gallery parapets block bullets; upper supplies require reaching
+the gallery. The host chooses the map before creating a room; both maps support
+solo and 2–4-player co-op. Protocol 2 rejects older clients with a refresh prompt.
+
+New weapons (also sold in the original house): Fine Print SMG (750 credits,
+40 rounds, 19 damage, rapid fire), Final Notice marksman rifle (1400, 8 rounds,
+125 damage, low spread), Golden Parachute LMG (2000, 75 rounds, 36 damage,
+long reload and reduced movement speed). Number keys 1–6 select carried weapons.
+
+New enemies rotate into waves 6 onward: Debt Collectors charge; Compliance
+Officers reduce frontal body damage but expose head/back; Legal Counsel launch
+visible, dodgeable paperwork; Benefits Brokers heal nearby allies. All remain
+fictional Everwell characters. Waves continue to scale health, speed and count.
+
+Immovable untextured meshes are merged by material to reduce GPU draw calls;
+boards, actors, signs, roof and ceiling remain independently controlled. New
+regressions cover gestures, persistence, assist visibility, both staircase paths,
+upper-floor combat/supplies, enemy roles, weapons, static geometry and four real
+WebSocket clients on each map. Browser checks cover portrait/landscape controls,
+double-tap firing, pause sliders and desktop keyboard firing. The available
+browser uses software rendering and denies pointer lock, so physical-device
+WebGL and captured-mouse play still require field testing.

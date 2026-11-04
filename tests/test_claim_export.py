@@ -27,7 +27,7 @@ class ClaimExportTests(unittest.TestCase):
                 for dependency in re.findall(r"\bfrom\s*['\"]([^'\"]+)['\"]",p.read_text()):
                     self.assertTrue((p.parent/dependency).is_file(),str(p)+' -> '+dependency)
             manifest=json.loads((target/'build-manifest.json').read_text())
-            self.assertEqual(manifest['version'],'0.1.1')
+            self.assertEqual(manifest['version'],'0.2.0')
             self.assertIn('vendor/THREE-LICENSE.txt',manifest['files'])
             self.assertNotIn('qa-mobile.html',manifest['files'])
 

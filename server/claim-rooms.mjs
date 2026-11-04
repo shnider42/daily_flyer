@@ -1,9 +1,9 @@
 import { randomBytes, timingSafeEqual } from 'node:crypto';
 import { ClaimGame as CoopGame, PLAYER_IDS as COOP_PLAYER_IDS, WEAPONS } from '../daily_flyer/themes/claim_denied_assets/core.mjs';
 
-export const PROTOCOL = 1;
-export const COOP_MISSIONS = ['everwell-house'];
-const supportsMission = (message, mission) => message.game === 'claim-denied' && mission === 'everwell-house';
+export const PROTOCOL = 2;
+export const COOP_MISSIONS = ['everwell-house','executive-retreat'];
+const supportsMission = (message, mission) => message.game === 'claim-denied' && COOP_MISSIONS.includes(mission);
 const DIFFICULTIES = new Set(['relaxed','standard','hard']);
 const NEUTRAL = { forward: 0, strafe: 0, fire: false };
 const safeName = value => typeof value === 'string' ? value.replace(/[\u0000-\u001f\u007f<>]/g, '').trim().slice(0, 24) : '';

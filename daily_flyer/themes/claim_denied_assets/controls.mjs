@@ -1,6 +1,7 @@
+import {WEAPON_ORDER} from './core.mjs';
 // One owner per surface: lifting a second finger must not cancel the first.
 export class TouchControls {
-  constructor({stick, knob, look, buttons, active, onLook, onAction = () => {}}) {
+  constructor({stick, knob, look, buttons, active, onLook, onAction = () => {}, settings=()=>({fireMode:'separate'}), now=()=>performance.now()}) {
     this.stick = {x:0, y:0};
     this.held = {fire:false, use:false, reload:false};
     this.pulses = {...this.held};
@@ -16,9 +17,19 @@ export class TouchControls {
     this.bind(stick, active, moveStick, moveStick, () => {
       Object.assign(this.stick, {x:0,y:0}); knob.style.transform = '';
     });
-    let lastX = 0, lastY = 0;
-    this.bind(look, active, e => {lastX=e.clientX;lastY=e.clientY;}, e => {
-      onLook(e.clientX-lastX, e.clientY-lastY); lastX=e.clientX;lastY=e.clientY;
+    this.lookFire=false;this.lastTap=null;
+    let lastX=0,lastY=0,startX=0,startY=0,started=0,moved=false;
+    this.bind(look, active, e => {
+      lastX=startX=e.clientX;lastY=startY=e.clientY;started=now();moved=false;
+      const mode=settings().fireMode,previous=this.lastTap;
+      this.lookFire=mode==='hold'||mode==='double'&&previous&&started-previous.time<320&&Math.hypot(startX-previous.x,startY-previous.y)<45;
+      this.lastTap=null;if(this.lookFire){this.pulses.fire=true;look.classList.add('firing');onAction();}
+    }, e => {
+      if(Math.hypot(e.clientX-startX,e.clientY-startY)>12)moved=true;
+      onLook(e.clientX-lastX,e.clientY-lastY);lastX=e.clientX;lastY=e.clientY;
+    }, e => {
+      if(e?.type==='pointerup'&&!this.lookFire&&!moved&&now()-started<230)this.lastTap={time:now(),x:startX,y:startY};else this.lastTap=null;
+      this.lookFire=false;look.classList.remove('firing');
     });
     for (const [key, element] of Object.entries(buttons)) {
       this.bind(element, active, () => {
@@ -39,12 +50,12 @@ export class TouchControls {
     for (const type of ['pointerup','pointercancel','lostpointercapture']) {
       element.addEventListener(type, e => {
         if (e.pointerId !== binding.pointer) return;
-        binding.pointer=null; element.classList.remove('engaged');end();
+        binding.pointer=null; element.classList.remove('engaged');end(e);
       });
     }
   }
   consume() {
-    const actions = Object.fromEntries(Object.keys(this.held).map(key => [key,this.held[key]||this.pulses[key]]));
+    const actions = Object.fromEntries(Object.keys(this.held).map(key => [key,this.held[key]||this.pulses[key]||(key==='fire'&&!!this.lookFire)]));
     for (const key of Object.keys(this.pulses)) this.pulses[key]=false;
     return actions;
   }
@@ -88,7 +99,7 @@ export function bindDesktopControls({document, canvas, keys, pulses, active, tou
     keys.add(e.code);
     const action={Space:'fire',KeyE:'use',KeyR:'reload'}[e.code];
     if(action&&!e.repeat)pulses[action]=true;
-    if(!e.repeat&&/^Digit[123]$/.test(e.code))selectWeapon(['pistol','shotgun','carbine'][Number(e.code.at(-1))-1]);
+    if(!e.repeat&&/^Digit[1-6]$/.test(e.code))selectWeapon(WEAPON_ORDER[Number(e.code.at(-1))-1]);
   });
   document.addEventListener('keyup',e=>keys.delete(e.code));
   document.addEventListener('mousemove',e=>{if(document.pointerLockElement===canvas&&active())onLook(e.movementX,e.movementY);});
