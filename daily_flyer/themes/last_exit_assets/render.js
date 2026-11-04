@@ -3,7 +3,7 @@ import {drawStreetProp} from './street-models.js';
 import {solidBuildings} from './spatial.js';
 import {drawBostonWorld} from './boston.js';
 import {terrainHeight,groundHeight,speedBumps,vehicleSurface} from './terrain.js';
-import {ROADS,clamp,random,safeCamera,safeFootCamera,signalAt,onDiagonal} from './engine.js';
+import {ROADS,clamp,random,safeCamera,safeFootCamera,safeDrivingCamera,signalAt,onDiagonal} from './engine.js';
 import {createAtlas,ATLAS} from './textures.js';
 import {drawBaycrestLandmarks,drawBaycrestHorizon} from './baycrest-landmarks.js';
 import {drawLandmarks} from './landmarks.js';
@@ -40,7 +40,7 @@ function perspective(fov,aspect,near,far){let f=1/Math.tan(fov/2),nf=1/(near-far
 function lookAt(e,t){let z=e.map((v,i)=>v-t[i]),len=Math.hypot(...z)||1;z=z.map(v=>v/len);let x=[z[2],0,-z[0]],l=Math.hypot(...x)||1;x=x.map(v=>v/l);const y=[z[1]*x[2],z[2]*x[0]-z[0]*x[2],-z[1]*x[0]];return new Float32Array([x[0],y[0],z[0],0,x[1],y[1],z[1],0,x[2],y[2],z[2],0,-x.reduce((s,v,i)=>s+v*e[i],0),-y.reduce((s,v,i)=>s+v*e[i],0),-z.reduce((s,v,i)=>s+v*e[i],0),1]);}
 export class Renderer{
  constructor(canvas,city){
-  this.canvas=canvas;this.city=city;this.atlas=createAtlas();this.cam=[0,5,190];this.target=[5,1,164];this.mode=0;this.frames=0;this.lastActor=null;this.particles=[];this.hitSerial=new WeakMap();this.smokeClock=0;
+  this.canvas=canvas;this.city=city;this.atlas=createAtlas();this.cam=[0,5,190];this.target=[5,1,164];this.mode=0;this.frames=0;this.lastActor=null;this.particles=[];this.hitSerial=new Map();this.smokeClock=0;
   this.gl=canvas.getContext('webgl',{alpha:true,antialias:false,powerPreference:'high-performance'});this.software=!this.gl;
   const world=this.makeWorld(city).v;
   if(this.software){this.ctx=canvas.getContext('2d',{alpha:true});this.static={v:world};return;}
@@ -53,7 +53,7 @@ export class Renderer{
   gl.enable(gl.DEPTH_TEST);gl.clearColor(0,0,0,0);this.static=this.upload(world);this.dynamic=gl.createBuffer();
  }
  upload(v){const g=this.gl,b=g.createBuffer();g.bindBuffer(g.ARRAY_BUFFER,b);g.bufferData(g.ARRAY_BUFFER,new Float32Array(v),g.STATIC_DRAW);return{buffer:b,count:v.length/STRIDE};}
- setCity(city){this.city=city;const world=this.makeWorld(city).v;if(this.gl){this.gl.deleteBuffer(this.static.buffer);this.static=this.upload(world);}else this.static={v:world};this.particles=[];this.hitSerial=new WeakMap();this.lastActor=null;this.explosionSerialSeen=0;this.propSerialSeen=0;}
+ setCity(city){this.city=city;const world=this.makeWorld(city).v;if(this.gl){this.gl.deleteBuffer(this.static.buffer);this.static=this.upload(world);}else this.static={v:world};this.particles=[];this.hitSerial=new Map();this.lastActor=null;this.explosionSerialSeen=0;this.propSerialSeen=0;}
  makeWorld(city){
   if(city.id==='boston')return drawBostonWorld(new Mesh(),city);
   const height=(x,z)=>terrainHeight(x,z,city.id),bay=city.id==='baycrest';const m=new Mesh();m.heightSampler=height;const rnd=random(813),pavement=(x,z,w,d,y=.16)=>m.surface([x-w/2,y,z-d/2],[x+w/2,y,z-d/2],[x+w/2,y,z+d/2],[x-w/2,y,z+d/2],2,w/3,d/3);
@@ -117,7 +117,7 @@ export class Renderer{
   for(const e of game.street?.events||[]){if(e.serial<=(this.propSerialSeen||0))continue;this.propSerialSeen=e.serial;if(Math.hypot(e.x-game.actor.x,e.z-game.actor.z)>70)continue;for(let i=0;i<6;i++)this.particles.push({x:e.x,y:e.y,z:e.z,vx:Math.sin(i*2.4)*2,vz:Math.cos(i*2.4)*2,vy:1+i%3,life:.3+i*.04,age:0,size:.04,spark:true});}
   const vehicles=[game.car,...game.parked,...game.traffic,...game.cops];this.smokeClock+=dt;
   for(const e of game.explosions||[]){if(e.serial<=(this.explosionSerialSeen||0))continue;this.explosionSerialSeen=e.serial;for(let i=0;i<32;i++){const a=i*2.4,v=2+i%7;this.particles.push({x:e.x,y:e.y+1,z:e.z,vx:Math.sin(a)*v,vz:Math.cos(a)*v,vy:2+i%5,life:.7+i%5*.18,age:0,size:i%3===0?.7:.23,spark:true,blast:true});}}
-  for(const c of vehicles){if(Math.hypot(c.x-game.actor.x,c.z-game.actor.z)>150)continue;if(c.lastImpact&&this.hitSerial.get(c)!==c.lastImpact){this.hitSerial.set(c,c.lastImpact);const h=c.lastImpact;for(let i=0;i<Math.min(16,h.power);i++)this.particles.push({x:h.x,y:(c.y||0)+.55,z:h.z,vx:h.nx*(1+i%4)+Math.sin(i*7)*2,vz:h.nz*(1+i%4)+Math.cos(i*7)*2,vy:1.4+i%3,life:.38+i%4*.1,age:0,size:.04,spark:true});}
+  for(const c of vehicles){if(Math.hypot(c.x-game.actor.x,c.z-game.actor.z)>150)continue;if(!c.lastImpact)this.hitSerial.delete(c.netId||c);if(c.lastImpact&&this.hitSerial.get(c.netId||c)!==c.lastImpact.serial){this.hitSerial.set(c.netId||c,c.lastImpact.serial);const h=c.lastImpact;for(let i=0;i<Math.min(16,h.power);i++)this.particles.push({x:h.x,y:(c.y||0)+.55,z:h.z,vx:h.nx*(1+i%4)+Math.sin(i*7)*2,vz:h.nz*(1+i%4)+Math.cos(i*7)*2,vy:1.4+i%3,life:.38+i%4*.1,age:0,size:.04,spark:true});}
    if((c.fire>0||c.burnTime>0||c.damage>60||(c.panelDamage?.front||0)>35)&&this.smokeClock>.14){const f=c.panelDamage?.front||0,rate=c.damage>75?.6:.3;this.particles.push({x:c.x+Math.sin(c.a)*1.5,y:(c.y||0)+.95,z:c.z+Math.cos(c.a)*1.5,vx:.15,vz:.15,vy:.6+rate,life:2.5,age:0,size:c.damage>75?.23:.13,spark:false,dark:c.fire>0||c.exploded||c.damage>75});}
   }
   if(this.smokeClock>.14)this.smokeClock=0;
@@ -142,10 +142,10 @@ export class Renderer{
    const ahead=game.onFoot?.35:2.5;target=[c.x+Math.sin(a)*ahead,game.onFoot?1.25:1.05,c.z+Math.cos(a)*ahead];
   }
   const actorHeight=Number.isFinite(c.y)?c.y:groundHeight(c.x,c.z,this.city.id);eye[1]+=actorHeight;target[1]+=actorHeight;
-  const cameraCars=[game.car,...game.parked,...game.traffic,...game.cops].filter(v=>v!==c);eye=safeFootCamera(c,eye,cameraCars);eye=safeCamera(c,eye,solidBuildings(this.city.buildings));eye[1]=Math.max(eye[1],groundHeight(eye[0],eye[2],this.city.id)+.65);const blend=1-Math.exp(-dt*(game.onFoot?14:9));if(this.lastActor!==c||Math.hypot(c.x-this.cam[0],c.z-this.cam[2])>60){this.cam=[...eye];this.target=[...target];this.lastActor=c;}
+  const cameraCars=[game.car,...game.parked,...game.traffic,...game.cops].filter(v=>v!==c);eye=(game.onFoot?safeFootCamera:safeDrivingCamera)(c,eye,cameraCars);eye=safeCamera(c,eye,solidBuildings(this.city.buildings));eye[1]=Math.max(eye[1],groundHeight(eye[0],eye[2],this.city.id)+.65);const blend=1-Math.exp(-dt*(game.onFoot?14:9));const actorIdentity=c.networkPlayer||c.netId||c;if(this.lastActor!==actorIdentity||Math.hypot(c.x-this.cam[0],c.z-this.cam[2])>60){this.cam=[...eye];this.target=[...target];this.lastActor=actorIdentity;}
   for(let i=0;i<3;i++){this.cam[i]+=(eye[i]-this.cam[i])*blend;this.target[i]+=(target[i]-this.target[i])*blend;}
   this.cam=safeCamera(c,this.cam,solidBuildings(this.city.buildings));
-  this.cam=safeFootCamera(c,this.cam,cameraCars);
+  this.cam=(game.onFoot?safeFootCamera:safeDrivingCamera)(c,this.cam,cameraCars);
   const vp=multiply(perspective((portrait?68:58)*Math.PI/180,w/h,.2,650),lookAt(this.cam,this.target));if(gl){gl.uniformMatrix4fv(this.matrix,false,vp);gl.uniform3fv(this.eye,this.cam);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);this.drawBuffer(this.static.buffer,this.static.count);}
   const m=new Mesh();for(const s of game.skids){if(s.t>25)continue;m.transform={x:s.x,y:groundHeight(s.x,s.z,this.city.id),z:s.z,c:Math.cos(s.a),s:Math.sin(s.a)};for(const x of[-.88,.88])m.flat(x,-1.6,.18,.7,'#303632',.018);}m.transform=null;
   const nearby=v=>Math.hypot(v.x-c.x,v.z-c.z)<180;
@@ -164,7 +164,7 @@ export class Renderer{
   }m.transform=null;m.heightSampler=null;
   for(const v of [game.car,...game.parked,...game.traffic,...game.cops])if(nearby(v)&&(v.fire>0||v.burnTime>0))drawVehicleFire(m,v,t);
   const targetPoint=game.target||game.waypoint;if(targetPoint&&!attract){const p=targetPoint;m.ring(p.x,groundHeight(p.x,p.z,this.city.id)+.04,p.z,8,'#c0aa65');const y=groundHeight(p.x,p.z,this.city.id)+4+Math.sin(t*2)*.16;m.tri([p.x-.7,y+1,p.z],[p.x+.7,y+1,p.z],[p.x,y,p.z],'#d5be7c');}
-  if(game.elapsed<(this.lastElapsed||0)){this.particles=[];this.hitSerial=new WeakMap();this.explosionSerialSeen=0;this.propSerialSeen=0;}this.lastElapsed=game.elapsed;this.updateParticles(game,dt);const smoke=new Mesh();this.particlesMesh(smoke);
+  if(game.elapsed<(this.lastElapsed||0)){this.particles=[];this.hitSerial=new Map();this.explosionSerialSeen=0;this.propSerialSeen=0;}this.lastElapsed=game.elapsed;this.updateParticles(game,dt);const smoke=new Mesh();this.particlesMesh(smoke);
   if(this.software)this.drawSoftware(vp,m.v,w,h,smoke.v);else{gl.bindBuffer(gl.ARRAY_BUFFER,this.dynamic);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(m.v),gl.DYNAMIC_DRAW);this.drawBuffer(this.dynamic,m.v.length/STRIDE);if(smoke.v.length){gl.enable(gl.BLEND);gl.blendFunc(gl.SRC_ALPHA,gl.ONE_MINUS_SRC_ALPHA);gl.depthMask(false);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(smoke.v),gl.DYNAMIC_DRAW);this.drawBuffer(this.dynamic,smoke.v.length/STRIDE);gl.depthMask(true);gl.disable(gl.BLEND);}}this.frames++;
  }
 }

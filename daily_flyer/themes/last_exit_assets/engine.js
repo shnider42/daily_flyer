@@ -142,6 +142,15 @@ export function safeFootCamera(actor,eye,vehicles){
  }
  return eye.map((v,i)=>start[i]+(v-start[i])*fraction);
 }
+// A following car must not push the driving camera into the player's boot.
+// Raise the chase ray above nearby roofs before shortening it; walking stays close.
+export function safeDrivingCamera(actor,eye,vehicles){
+ let candidate=[...eye],safe=safeFootCamera(actor,candidate,vehicles);
+ for(let i=0;i<5&&Math.hypot(safe[0]-actor.x,safe[2]-actor.z)<6;i++){
+  candidate[1]+=1;safe=safeFootCamera(actor,candidate,vehicles);
+ }
+ return safe;
+}
 export function stepCar(c,input,dt,buildings,handling='street'){
  if(c.exploded)input={handbrake:true};dt=clamp(dt,0,1/30);c.hit=Math.max(0,c.hit-dt);
  const fx=Math.sin(c.a),fz=Math.cos(c.a),rx=Math.cos(c.a),rz=-Math.sin(c.a);
@@ -285,7 +294,7 @@ export class Game{
   const police=[...this.cops,...this.officers].find(p=>canObserve(p,location,this.city.buildings,visible,p.officer?42:65));
   if(police){police.active=true;this.raiseHeat(severity,location,jurisdiction);this.say((police.officer?'OFFICER':'PATROL')+' · '+kind.toUpperCase()+' observed.');return true;}
   if(policeOnly)return false;
-  const witnesses=[victim,...this.pedestrians,...this.traffic].filter(Boolean),witness=witnesses.find(p=>!p.officer&&!p.exploded&&(p===victim&&dist(p,location)<8&&!(p.life<=0)||canObserve(p,location,this.city.buildings,visible,p.occupied?34:40)));
+  const witnesses=[victim,...this.pedestrians,...this.traffic].filter(Boolean),witness=witnesses.find(p=>!p.officer&&!p.networkPlayer&&!p.exploded&&(p===victim&&dist(p,location)<8&&!(p.life<=0)||canObserve(p,location,this.city.buildings,visible,p.occupied?34:40)));
   if(!witness||this.reports.some(r=>r.witness===witness))return false;
   this.reports.push({kind,severity,jurisdiction,at:location,witness,remaining:4.5,expires:this.elapsed+20});this.say('WITNESS · '+kind.toUpperCase()+' being reported.');return true;
  }
@@ -325,7 +334,7 @@ export class Game{
      door={...p,side};break;
     }
     if(!door)continue;
-    const driver={mapId:this.city.id,x:door.x,z:door.z,y:walkHeight(door.x,door.z,this.city),a:c.a+door.side*Math.PI/2,walk:0,speed:1.3,baseSpeed:1.3,life:50,driver:true,coat:['#747f85','#8b7961','#586b65'][extra%3],reaction:'flee',reactionTime:4.5,escapeFrom:{x:c.x,z:c.z}};
+    const driver={mapId:this.city.id,x:door.x,z:door.z,y:walkHeight(door.x,door.z,this.city),a:c.a+door.side*Math.PI/2,walk:0,speed:1.3,baseSpeed:1.3,life:50,driver:true,fromVehicleId:c.netId,coat:['#747f85','#8b7961','#586b65'][extra%3],reaction:'flee',reactionTime:4.5,escapeFrom:{x:c.x,z:c.z}};
     // A caller remains the same witness when leaving the car: no lost report or new crime.
     for(const r of this.reports)if(r.witness===c)r.witness=driver;
     c.occupied=false;c.driverGone=true;c.npcDoor={side:door.side,time:1.2};c.speed=0;c.vx=c.vz=0;
@@ -344,6 +353,7 @@ export class Game{
  stepPedestrians(dt){
   const scan=this.elapsed>=this.lifeScanAt,vehicles=[this.car,...this.traffic,...this.parked,...this.cops];if(scan)this.lifeScanAt=this.elapsed+.16;
   for(const p of this.pedestrians){
+   if(p.networkPlayer)continue;
    p.life-=dt;p.baseSpeed??=p.speed;p.contactCooldown=Math.max(0,(p.contactCooldown||0)-dt);p.stun=Math.max(0,(p.stun||0)-dt);p.knockdown=Math.max(0,(p.knockdown||0)-dt);p.reactionTime=Math.max(0,(p.reactionTime||0)-dt);if(!p.reactionTime)p.reaction=null;
    if(scan&&!p.stun){for(const c of vehicles){const d=dist(c,p);if(d>18)continue;const speed=Math.hypot(c.vx||0,c.vz||0),dx=p.x-c.x,dz=p.z-c.z,t=speed>0?clamp((dx*c.vx+dz*c.vz)/(speed*speed),0,.85):0,nearMiss=speed>5&&t>0&&Math.hypot(dx-c.vx*t,dz-c.vz*t)<vehicleSpec(c).w+1.25;
      if((c.fire>0&&d<15||nearMiss&&d<12)&&visible(p,c,this.city.buildings)){p.reaction='flee';p.reactionTime=2.5;p.escapeFrom={x:c.x,z:c.z};break;}
@@ -392,13 +402,13 @@ export class Game{
  }
  stepNetworkTraffic(dt){
   for(const[node,c]of this.junctions)if(c.reservedNode!==node||!c.route||!c.route.turn&&c.route.edge!==c.entryEdge&&c.route.d>14){this.junctions.delete(node);if(c.reservedNode===node)c.reservedNode=null;}
-  const people=[...this.pedestrians,...this.officers,...(this.onFoot?[this.person]:[])],obstacles=[this.car,...this.parked,...this.traffic,...this.cops,...people];
+  const people=[...this.pedestrians,...this.officers,...(this.onFoot?[this.person]:[])],peopleSet=new Set(people),obstacles=[this.car,...this.parked,...this.traffic,...this.cops,...people];
   for(const c of this.traffic){c.hit=Math.max(0,c.hit-dt);let desired=c.hit||c.engineDamage>=100||c.exploded||c.fire>0?0:c.cruiseSpeed*Math.max(.3,1-c.engineDamage*.006);if(c.route?.turn)desired=Math.min(desired,7);
-   for(const p of obstacles){if(p===c)continue;const dx=p.x-c.x,dz=p.z-c.z,ahead=dx*Math.sin(c.a)+dz*Math.cos(c.a),side=Math.abs(dx*Math.cos(c.a)-dz*Math.sin(c.a));if(ahead>0&&ahead<30&&side<2.4)desired=Math.min(desired,Math.sqrt(Math.max(0,ahead-(people.includes(p)?4.5:7))*8));}
-   if(this.takeover?.car===c)desired=0;desired=this.junctionSpeed(c,desired);const previous=c.speed;c.speed+=clamp(desired-c.speed,-dt*7,dt*2.5);c.braking=c.speed<previous-.001||c.speed<.3;
+   const si=Math.sin(c.a),co=Math.cos(c.a);for(const p of obstacles){if(p===c)continue;const dx=p.x-c.x,dz=p.z-c.z;if(Math.abs(dx)>33||Math.abs(dz)>33)continue;const ahead=dx*si+dz*co,side=Math.abs(dx*co-dz*si);if(ahead>0&&ahead<30&&side<2.4)desired=Math.min(desired,Math.sqrt(Math.max(0,ahead-(peopleSet.has(p)?4.5:7))*8));}
+   if(this.takeover?.car===c||c.takeoverBy)desired=0;desired=this.junctionSpeed(c,desired);const previous=c.speed;c.speed+=clamp(desired-c.speed,-dt*7,dt*2.5);c.braking=c.speed<previous-.001||c.speed<.3;
    this.moveOnNetwork(c,dt);this.carCollision(c,dt);
   }
-  for(let i=0;i<this.traffic.length;i++)for(const b of[...this.traffic.slice(i+1),...this.parked]){const a=this.traffic[i],x=a.x,z=a.z;vehicleCollision(a,b);a.pathOffsetX=(a.pathOffsetX||0)+a.x-x;a.pathOffsetZ=(a.pathOffsetZ||0)+a.z-z;}
+  const cars=[...this.traffic,...this.parked];for(let i=0;i<this.traffic.length;i++)for(let j=i+1;j<cars.length;j++){const a=cars[i],b=cars[j];if(Math.abs(a.x-b.x)>7||Math.abs(a.z-b.z)>7)continue;const x=a.x,z=a.z;vehicleCollision(a,b);a.pathOffsetX=(a.pathOffsetX||0)+a.x-x;a.pathOffsetZ=(a.pathOffsetZ||0)+a.z-z;}
  }
  junctionSpeed(c,desired){
   const r=c.route||attachRoute(c,this.city);if(c.reservedNode&&(r.edge!==c.entryEdge&&!r.turn&&r.d>14||c.exploded||c.engineDamage>=100)){if(this.junctions.get(c.reservedNode)===c)this.junctions.delete(c.reservedNode);c.reservedNode=null;}
