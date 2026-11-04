@@ -1,4 +1,7 @@
 export const defaults={scoring:'half',format:'redraft',qb:'one',size:'12',waivers:'faab',lineup:'managed',guidance:'simple',window:'3',scope:'all',position:'ALL'};
+export function leagueIsCurrent(league,season,now=Date.now()){
+ return Boolean(league && String(league.season)===String(season) && Number.isFinite(Date.parse(league.checkedAt)) && now-Date.parse(league.checkedAt)<15*60000);
+}
 export function inferSettings(league){
  const s=league.settings || {}, p=league.positions || [], rec=league.scoring?.rec ?? 0;
  return {scoring:rec===1?'ppr':rec===0.5?'half':rec===0?'standard':'custom',format:s.type===2?'dynasty':s.type===1?'keeper':'redraft',qb:p.includes('SUPER_FLEX')?'super':p.filter(x=>x==='QB').length>1?'two':'one',size:String(league.rosters.length),waivers:s.waiver_type===2?'faab':'priority',lineup:s.best_ball===1?'best':'managed'};

@@ -1,4 +1,4 @@
-import {defaults,inferSettings,filterNews,playerLens,newsLens,statusChanges,byeTeams} from './logic.js';
+import {defaults,inferSettings,filterNews,playerLens,newsLens,statusChanges,byeTeams,leagueIsCurrent} from './logic.js';
 const $=s=>document.querySelector(s), $$=s=>[...document.querySelectorAll(s)];
 const esc=v=>String(v??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
 function read(k,fallback){try{return JSON.parse(localStorage.getItem(k))??fallback;}catch{return fallback;}}
@@ -12,8 +12,8 @@ function relative(date){if(!date)return 'not checked';const mins=Math.max(0,Math
 function datetime(d){return d?new Date(d).toLocaleString([],{month:'short',day:'numeric',hour:'numeric',minute:'2-digit'}):'Not available';}
 function selectedRoster(){return league?.rosters?.find(r=>String(r.id)===String(rosterId));}
 function tracked(){return new Set([...watch,...(selectedRoster()?.players||[])]);}
-function available(){if(!league)return new Set();const owned=new Set(league.rosters.flatMap(r=>r.players));return new Set((data?.players||[]).filter(p=>!owned.has(p.id)).map(p=>p.id));}
-function rosterFresh(){return league && Date.now()-Date.parse(league.checkedAt)<15*60000;}
+function available(){if(!rosterFresh())return new Set();const owned=new Set(league.rosters.flatMap(r=>r.players));return new Set((data?.players||[]).filter(p=>!owned.has(p.id)).map(p=>p.id));}
+function rosterFresh(){return leagueIsCurrent(league,data?.state?.season);}
 function formatLabel(){return `${settings.size} teams · ${{standard:'Standard',half:'Half PPR',ppr:'PPR',custom:'Custom scoring'}[settings.scoring]||'Custom'}`;}
 function setTab(next){tab=next;showCount=10;render();$('#main').scrollIntoView({behavior:'smooth',block:'start'});}
 function addPlayer(id){watch.add(id);persist('rr.watch',[...watch]);render();search();toast(`${byId().get(id)?.name || 'Player'} added to your watchlist`);}

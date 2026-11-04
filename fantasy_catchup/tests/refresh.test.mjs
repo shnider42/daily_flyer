@@ -1,7 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {SourceStore,cleanSchedule,cleanNews,safeLink,TTL} from '../lib/providers.mjs';
-import {filterNews,inferSettings,statusChanges,byeTeams,defaults,playerLens} from '../public/logic.js';
+import {filterNews,inferSettings,statusChanges,byeTeams,defaults,playerLens,leagueIsCurrent} from '../public/logic.js';
 test('failed source check preserves the last successful data and timestamp',async()=>{
  const store=new SourceStore({fetcher:async()=>{throw Error('offline');},clock:()=>Date.parse('2026-11-04T12:00:00Z')});
  store.sources.news={data:[{id:'old'}],checkedAt:'2026-11-03T12:00:00Z'};
@@ -42,6 +42,12 @@ test('combined dynasty, superflex and PPR settings are retained',()=>{
  const s=inferSettings({settings:{type:2,waiver_type:2},scoring:{rec:1},positions:['QB','SUPER_FLEX'],rosters:Array(12).fill({})});
  assert.equal(s.format,'dynasty');assert.equal(s.qb,'super');assert.equal(s.scoring,'ppr');assert.equal(s.size,'12');
  assert.match(playerLens({position:'QB'},{...defaults,...s}),/future role/);
+});
+test('old seasons and overdue imports cannot establish current player availability',()=>{
+ const now=Date.parse('2026-11-04T12:00:00Z');
+ assert.equal(leagueIsCurrent({season:'2026',checkedAt:'2026-11-04T11:59:00Z'},'2026',now),true);
+ assert.equal(leagueIsCurrent({season:'2025',checkedAt:'2026-11-04T11:59:00Z'},'2026',now),false);
+ assert.equal(leagueIsCurrent({season:'2026',checkedAt:'2026-11-04T11:00:00Z'},'2026',now),false);
 });
 test('no baseline produces no invented status changes; incomplete schedules do not invent byes',()=>{
  const p=[{id:'1',team:'NE',status:'Out'}];assert.equal(statusChanges(p,{}).length,0);assert.equal(statusChanges(p,{'1':{team:'NE',status:null}}).length,1);
