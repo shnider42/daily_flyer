@@ -1,0 +1,107 @@
+{
+  "reviewed_at": "2026-11-04",
+  "edition": "The Week 9 field guide",
+  "coverage_note": "Every regular-season result through Week 8, the Week 9 schedule, and selected reviewed stories. Story coverage is concentrated on October 29–November 3, with two offseason reminders. This is a dated edition, not a live news feed.",
+  "stories": [
+    {
+      "id":"bears-rise", "date":"2026-11-02", "published":"2026-11-02", "category":"games", "teams":["CHI","SEA"], "priority":1, "spoiler":true,
+      "title":"Chicago is making its case.", "safe_title":"A Monday-night test in Seattle", "kicker":"The NFC race", "metric":"34–17", "metric_label":"Chicago over Seattle",
+      "summary":"The Bears beat the defending champions in Seattle and moved to 6–2 with a third straight win.",
+      "before":"Chicago entered at 5–2.", "after":"6–2, with three straight wins.",
+      "context":"The NFL splits teams into two conferences. Chicago and Seattle both play in the NFC, so this result matters within the same playoff race.",
+      "detail":"Caleb Williams completed 24 of 34 passes for 247 yards. After Seattle cut the lead to 20–17, Chicago scored the final 14 points. D’Andre Swift finished with three rushing touchdowns.",
+      "meaning":"A win over another NFC team adds to the conference record used in some playoff tiebreakers. It does not clinch a playoff place.",
+      "source":"https://www.chicagobears.com/news/game-recap-bears-make-statement-with-impressive-prime-time-win-in-seattle", "publisher":"Chicago Bears"
+    },
+    {
+      "id":"ravens-qb", "date":"2026-11-03", "published":"2026-11-03", "category":"injuries", "teams":["BAL","JAX"], "priority":2, "spoiler":false,
+      "title":"A new quarterback for Baltimore.", "safe_title":"A new quarterback for Baltimore", "kicker":"Who’s under center", "metric":"QB3 → QB1", "metric_label":"Joe Fagnano gets the start",
+      "summary":"Baltimore named undrafted rookie Joe Fagnano its starter against Jacksonville after injuries to Lamar Jackson and Tyler Huntley.",
+      "before":"Jackson, Huntley and Fagnano formed the quarterback group.", "after":"Fagnano starts; Kedon Slovis and Austin Reed join the group.",
+      "context":"The quarterback directs the offense and usually throws the ball. Losing both the starter and backup can change which plays a team can run.",
+      "detail":"Fagnano also had an ankle issue in practice. Head coach Jesse Minter confirmed the starting decision on November 3 and emphasized the run game and support from the other phases. This is a dated team update, not a prediction of his performance.",
+      "meaning":"A Thursday game offers less preparation time than a normal Sunday-to-Sunday week. The lineup announcement is confirmed; the outcome is still unknown.",
+      "source":"https://www.baltimoreravens.com/news/transcript-press-conferences-11-3-26", "publisher":"Baltimore Ravens", "secondary_source":"https://www.baltimoreravens.com/news/joe-fagnano-ravens-quarterbacks-practice-report-tyler-huntley"
+    },
+    {
+      "id":"denver-lead", "date":"2026-11-01", "published":"2026-11-01", "category":"games", "teams":["DEN","KC"], "priority":3, "spoiler":true,
+      "title":"The AFC West has a new leader.", "safe_title":"A divisional meeting in Denver", "kicker":"A change at the top", "metric":"6–2", "metric_label":"Denver’s new record",
+      "summary":"Denver’s 28–24 comeback against Kansas City brought a fourth straight win and first place in the division.",
+      "before":"Kansas City led the AFC West.", "after":"Denver moves into first place.",
+      "context":"A division is a group of four teams. Winning it earns a playoff berth, so games between division rivals affect both the standings and tiebreakers.",
+      "detail":"Denver trailed 24–13 entering the fourth quarter and scored 15 unanswered points. A late defensive stand protected the lead. The Broncos improved to 6–2; the Chiefs fell to 5–2.",
+      "meaning":"The teams have played different numbers of games. Compare winning percentage as well as total wins when reading the standings.",
+      "source":"https://www.denverbroncos.com/news/cover-4-broncos-use-4th-quarter-flurry-late-defensive-stand-to-surge-back-in-28-24-win-over-kansas-city-chiefs", "publisher":"Denver Broncos", "secondary_source":"https://www.chiefs.com/game-day/2026/reg-week8/chiefs-at-broncos/"
+    },
+    {
+      "id":"minnesota-loss", "date":"2026-11-01", "published":"2026-11-01", "category":"games", "teams":["DET","MIN"], "priority":4, "spoiler":true,
+      "title":"Minnesota’s unbeaten run ends.", "safe_title":"Detroit hosts Minnesota", "kicker":"The NFC North tightens", "metric":"19–15", "metric_label":"Detroit wins at home",
+      "summary":"Detroit handed Minnesota its first loss. The Lions are 5–2; the Vikings are 6–1.",
+      "before":"Minnesota was unbeaten at 6–0.", "after":"Detroit wins and improves to 2–0 in division games.",
+      "context":"A team can lose a game and still lead its division. Minnesota has the better winning percentage, while Detroit gains a head-to-head win.",
+      "detail":"Jared Goff found Jameson Williams for the winning touchdown. Detroit held Minnesota to 266 yards and recorded three sacks of Kyler Murray. A late defensive stop let the Lions run out the clock.",
+      "meaning":"Head-to-head and division results can matter if teams finish tied. One November result does not settle the final order.",
+      "source":"https://www.detroitlions.com/news/recap-lions-vs-vikings-gibbs-goff-williams", "publisher":"Detroit Lions"
+    },
+    {
+      "id":"pats-comeback", "date":"2026-11-01", "published":"2026-11-02", "category":"games", "teams":["NE","MIA"], "priority":5, "spoiler":true,
+      "title":"New England turns the game around.", "safe_title":"New England visits Miami", "kicker":"A second-half response", "metric":"3 → 24", "metric_label":"Patriots points, half to final",
+      "summary":"Down 13–3 at halftime, New England scored three straight touchdowns and beat Miami 24–19.",
+      "before":"A ten-point halftime deficit.", "after":"A road win and a 5–3 record.",
+      "context":"A touchdown is worth six points, usually followed by a one-point kick. Three touchdowns plus kicks can change a game quickly.",
+      "detail":"Drake Maye led the comeback with an offense missing several players. Kyle Williams caught a 43-yard touchdown and DeMario Douglas added a 48-yard score. Hunter Henry left the game with a foot injury; that game report is not a current availability designation.",
+      "meaning":"The final score tells you who won. The sequence explains why this was a comeback, rather than a comfortable win from the start.",
+      "source":"https://www.patriots.com/news/game-observations-8-takeaways-from-the-patriots-comeback-win-over-the-dolphins-in-week-8", "publisher":"New England Patriots"
+    },
+    {
+      "id":"jags-control", "date":"2026-11-01", "published":"2026-11-01", "category":"games", "teams":["JAX","IND"], "priority":6, "spoiler":true,
+      "title":"Jacksonville opens up breathing room.", "safe_title":"An AFC South meeting in Jacksonville", "kicker":"A divisional split", "metric":"42–7", "metric_label":"Jacksonville over Indianapolis",
+      "summary":"Jacksonville dominated Indianapolis, reaching 5–2 as the Colts fell to 2–6 with a fourth consecutive loss.",
+      "before":"Jacksonville entered at 4–2; Indianapolis at 2–5.", "after":"The Jaguars extend their advantage in the AFC South.",
+      "context":"These teams share a division. A result between them simultaneously improves one team’s record and worsens a direct rival’s.",
+      "detail":"Trevor Lawrence threw three touchdowns. Jacksonville rushed for 183 yards, including 104 from Bhayshul Tuten, and led 28–0 at halftime. Houston was idle at 2–5.",
+      "meaning":"A large score margin describes this game. It does not guarantee the next result or substitute for a full-season evaluation.",
+      "source":"https://www.jaguars.com/news/game-report-2026-week-8-jaguars-42-colts-7", "publisher":"Jacksonville Jaguars"
+    },
+    {
+      "id":"simmons-trade", "date":"2026-10-29", "published":"2026-10-29", "category":"roster", "teams":["CHI","TEN"], "priority":7, "spoiler":false,
+      "title":"Jeffery Simmons changes sides.", "safe_title":"Jeffery Simmons changes sides", "kicker":"A major roster move", "metric":"TEN → CHI", "metric_label":"Interior defensive line",
+      "summary":"Chicago acquired Jeffery Simmons from Tennessee, sending two first-round picks and a fourth-round pick in return.",
+      "before":"Simmons played on Tennessee’s defensive line.", "after":"Chicago adds Simmons and receives a 2028 fifth-round pick.",
+      "context":"Teams can trade current players for future draft choices. A first-round choice is an early opportunity to select a new player, so trading two is a substantial commitment.",
+      "detail":"Tennessee received Chicago’s 2027 and 2028 first-round selections plus its 2027 fourth-rounder. The Bears’ announcement confirmed the acquisition on October 29.",
+      "meaning":"This exchanges future selection opportunities for a player who can contribute now. Whether the move pays off remains a football judgment.",
+      "source":"https://www.chicagobears.com/news/chicago-bears-acquire-all-pro-dl-jeffery-simmons-via-trade-roster-moves", "publisher":"Chicago Bears"
+    },
+    {
+      "id":"cardinals-qb", "date":"2026-11-02", "published":"2026-11-02", "category":"roster", "teams":["ARI"], "priority":8, "spoiler":false,
+      "title":"Arizona resets its quarterback order.", "safe_title":"Arizona resets its quarterback order", "kicker":"A depth-chart change", "metric":"MINSHEW", "metric_label":"Named starting quarterback",
+      "summary":"Arizona named Gardner Minshew its starter, with rookie Carson Beck backing him up and Jacoby Brissett in the emergency role.",
+      "before":"Brissett started the previous game.", "after":"Minshew is first; Beck is second; Brissett is third.",
+      "context":"The depth chart lists which player is first in line at each position. A new starter changes who takes the lead role without necessarily changing the roster.",
+      "detail":"Head coach Mike LaFleur announced the order on November 2. This is a confirmed starting decision, not confirmation of a trade involving Brissett.",
+      "meaning":"A lineup change and a transaction are different events. The team’s announcement establishes the former.",
+      "source":"https://www.azcardinals.com/news/gardner-minshew-named-cardinals-starting-quarterback-carson-beck-made-backup", "publisher":"Arizona Cardinals"
+    },
+    {
+      "id":"brown-reminder", "date":"2026-06-01", "published":"2026-06-01", "category":"roster", "teams":["NE","PHI"], "priority":9, "spoiler":false,
+      "title":"Yes, A.J. Brown is a Patriot.", "safe_title":"A.J. Brown joins New England", "kicker":"Offseason reminder", "metric":"PHI → NE", "metric_label":"A familiar name, a new team",
+      "summary":"New England acquired wide receiver A.J. Brown from Philadelphia in June.",
+      "before":"Brown was with Philadelphia.", "after":"The Patriots announced his acquisition on June 1.",
+      "context":"A wide receiver catches passes. If you last followed football before the summer, this is a notable change in which uniform a familiar player wears.",
+      "detail":"New England’s official announcement said the trade involved future draft choices but did not disclose the terms. It also announced Julian Hill’s placement on injured reserve.",
+      "meaning":"This is offseason background, not a new November transaction. His game-day availability must be checked separately.",
+      "source":"https://www.patriots.com/news/patriots-acquire-wr-a-j-brown-in-a-trade-with-the-philadelphia-eagles", "publisher":"New England Patriots"
+    },
+    {
+      "id":"murray-reminder", "date":"2026-03-12", "published":"2026-03-12", "category":"roster", "teams":["MIN","ARI"], "priority":10, "spoiler":false,
+      "title":"Kyler Murray moved to Minnesota.", "safe_title":"Kyler Murray moves to Minnesota", "kicker":"Offseason reminder", "metric":"ARI → MIN", "metric_label":"A different quarterback room",
+      "summary":"Minnesota signed Kyler Murray in March after his years in Arizona.",
+      "before":"Murray’s NFL career had been with the Cardinals.", "after":"The Vikings signed him on March 12.",
+      "context":"Signing a player adds him to a team. It does not, by itself, prove who will start every game that season.",
+      "detail":"The Vikings described the move as adding experience and depth to a quarterback room that also included J.J. McCarthy and Max Brosmer at the time of the announcement.",
+      "meaning":"Use this as a roster reminder. Historical signing reports are not current depth charts or injury reports.",
+      "source":"https://www.vikings.com/news/kyler-murray-quarterback-signed-contract-cardinals", "publisher":"Minnesota Vikings"
+    }
+  ]
+}
