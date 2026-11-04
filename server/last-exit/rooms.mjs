@@ -6,7 +6,7 @@ const alphabet='ABCDEFGHJKLMNPQRSTUVWXYZ23456789';
 const newCode=()=>[...randomBytes(8)].map(n=>alphabet[n%alphabet.length]).join('');
 export function sanitizeInput(input){if(!input||typeof input!=='object')return null;const out={};for(const key of['gas','brake','steer','moveX','moveY','viewHeading']){const n=input[key]??0;if(typeof n!=='number'||!Number.isFinite(n))return null;out[key]=key==='viewHeading'?Math.atan2(Math.sin(n),Math.cos(n)):Math.max(key==='steer'||key==='moveX'||key==='moveY'?-1:0,Math.min(1,n));}out.handbrake=input.handbrake===true||input.handbrake===1;out.run=input.run===true||input.run===1;return out;}
 export class RoomService{
- constructor({now=()=>Date.now(),maxRooms=4}={}){this.rooms=new Map();this.now=now;this.maxRooms=maxRooms;this.sequence=0;}
+ constructor({now=()=>Date.now(),maxRooms=1}={}){this.rooms=new Map();this.now=now;this.maxRooms=maxRooms;this.sequence=0;}
  hello(message,connection){if(message.protocol!==PROTOCOL)throw Error('Game versions differ. Reload both devices.');const name=String(message.name||'Driver').replace(/[^\p{L}\p{N} _-]/gu,'').trim().slice(0,16)||'Driver';let room;
   if(message.create){if(this.rooms.size>=this.maxRooms)throw Error('The test server is full. Try again after a room closes.');let code;do{code=newCode();}while(this.rooms.has(code));room={code,world:new SharedCity(),sessions:new Map(),created:this.now()};this.rooms.set(code,room);}
   else{room=this.rooms.get(String(message.code||'').toUpperCase());if(!room)throw Error('Room not found or expired. Ask your friend for a new code.');}
