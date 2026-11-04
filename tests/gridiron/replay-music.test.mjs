@@ -18,6 +18,24 @@ const manifest=JSON.parse(fs.readFileSync(new URL('../../daily_flyer/themes/pock
 function context(){const c={currentTime:0,state:'running',sources:[],decodeAudioData:async()=>({duration:55}),createGain:()=>({gain:{value:0,setValueAtTime(){},linearRampToValueAtTime(){},cancelScheduledValues(){},setTargetAtTime(){}},connect(){},disconnect(){}}),createBufferSource(){const s={connect(){},disconnect(){},start(at,offset){this.started={at,offset};},stop(){this.stopped=true;}};c.sources.push(s);return s;}};return c;}
 function player(fetcher=async url=>({ok:true,json:async()=>manifest,arrayBuffer:async()=>new ArrayBuffer(8)})){const p=new PGIMusic({fetcher}),c=context();p.catalog=manifest.tracks;p.attach(c,{},{});return [p,c];}
 const settle=()=>new Promise(resolve=>setImmediate(resolve));
+test('Green Bay scores use Lambeau Bounce as either team, while opponents retain their own cue',async()=>{
+ for(const packers of [0,1]){
+  const teams=packers===0?['GB','BUF']:['BUF','GB'];
+  const g=new Game(...teams.map(t=>buildTeam(t,data)),'pro',seededRandom(9));
+  const urls=[],[p]=player(async url=>{urls.push(String(url));return {ok:true,arrayBuffer:async()=>new ArrayBuffer(8)};});
+  p.update({background:false});p.warmScores(teams);await settle();
+  assert.ok(urls.some(url=>url.endsWith('/music/lambeau-bounce.mp3')));
+  for(const team of [packers,1-packers]){
+   g.beginDrive(team,95);assert.equal(g.choose(g.userOffense?'dive':g.defensePlays[0].id),true);assert.equal(g.snap(team),true);g.events=[];g.finish('touchdown',100);
+   const event=g.events.find(e=>e.scorePoints===6);assert.ok(event);
+   p.score(event.scoreAbbr);await settle();
+   assert.equal(p.scorer.track.id,team===packers?'lambeau-bounce':'pgi-score');
+   assert.equal(p.active,null);
+   p.scorer.source.onended();assert.equal(p.scorer,null);
+  }
+  p.configure({scoring:false});p.score('GB');await settle();assert.equal(p.scorer,null);
+ }
+});
 test('soundtrack restores three arcade favorites and reserves three orchestral themes for postgame',()=>{assert.equal(manifest.tracks.length,6);for(const family of ['arcade','film'])assert.equal(manifest.tracks.filter(t=>t.family===family).length,3);assert.equal(SCORE_CUES.NE.id,'for-boston');assert.equal(SCORE_CUES.NYJ.id,'notre-dame-victory');assert.equal(SCORE_CUES.default.id,'pgi-score');for(const t of manifest.tracks)assert.ok(fs.statSync(new URL('../../daily_flyer/themes/pocket_gridiron_assets/'+t.src,import.meta.url)).size>100000);});
 test('music rotates across tracks and family selection; pause resumes from its previous offset',async()=>{const [p,c]=player();p.update();await settle();const first=p.active.track.id;c.currentTime=12;p.update({blocked:true});assert.equal(p.active,null);assert.equal(p.resumeAt,12);p.update({blocked:false});await settle();assert.equal(p.active.track.id,first);assert.equal(p.active.source.started.offset,12);p.next();await settle();assert.notEqual(p.active.track.id,first);p.configure({family:'film'});p.update();await settle();assert.equal(p.active.track.family,'film');});
 test('a late soundtrack download cannot start after mute, pause or a newer selection',async()=>{let resolve;const [p,c]=player(()=>new Promise(r=>{resolve=r;}));p.update();p.configure({enabled:false});resolve({ok:true,arrayBuffer:async()=>new ArrayBuffer(8)});await settle();assert.equal(c.sources.length,0);assert.equal(p.active,null);});

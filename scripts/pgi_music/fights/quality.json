@@ -34,6 +34,20 @@
       "channels": 2,
       "sample_rate": 44100,
       "melody_check": "New original melody; no source scan"
+    },
+    {
+      "id": "lambeau-bounce",
+      "checked": "2026-11-04",
+      "bytes": 229767,
+      "duration_seconds": 16.35,
+      "decoded_peak_dbfs": -3.434,
+      "decoded_rms_dbfs": -18.33,
+      "decoded_clip_samples": 0,
+      "channels": 2,
+      "sample_rate": 44100,
+      "mono_rms_dbfs": -18.332,
+      "melody_check": "Original composition; all written notes fit the eight-bar score",
+      "method": "FFmpeg MP3 decode; finite/nonzero samples, duration, level, clipping, mono sum and score bounds"
     }
   ]
 }

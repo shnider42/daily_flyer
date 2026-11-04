@@ -111,6 +111,40 @@ def brass(pitch, duration, velocity):
     return p * .3 * (velocity / 127) ** .8
 
 
+def funk_voice(pitch, duration, velocity, instrument):
+    """Original band-limited chip/funk patches; no sampled instruments.
+
+    Keep bass harmonics audible on a mono phone speaker and chip leads softer
+    than full-band square waves. Only the new scoring cue uses these patches.
+    """
+    dur = max(.06, duration + .055)
+    t = np.arange(int(dur * SR)) / SR
+    f = 440 * 2 ** ((pitch - 69) / 12)
+    if instrument == 'funk_bass':
+        phase = 2 * np.pi * f * (t + .14 * .012 * (1 - np.exp(-t / .012)))
+        p = .8 * np.sin(phase) + .37 * np.sin(2 * phase) + .18 * np.sin(3 * phase)
+        for h in range(4, 13):
+            p += .8 / h * np.sin(h * phase) * np.exp(-t * h * 8)
+        p = np.tanh(p * 1.6) * np.exp(-t / .55)
+        gain = .52
+    elif instrument == 'funk_clav':
+        p = osc_harmonics(t, f, 1.05, 16, decay=7)
+        p += .25 * np.sin(2 * np.pi * f * 2 * t) * np.exp(-t / .025)
+        p = filt(p, 'highpass', 400) * np.exp(-t / .075)
+        gain = .42
+    else:
+        bend = (-.10 if instrument == 'chip_lead' else .04)
+        phase = 2 * np.pi * f * (t + bend * .025 * (1 - np.exp(-t / .025)))
+        p = np.zeros(len(t))
+        for h in range(1, min(17, int(17000 / f)) + 1):
+            amp = (1 if h % 2 else .28) / h ** 1.15
+            p += amp * np.sin(h * phase) * np.exp(-t * h * (.4 if instrument == 'chip_lead' else 2.8))
+        p = filt(p, 'lowpass', 3900 if instrument == 'chip_lead' else 3200)
+        gain = .32
+    p *= release_envelope(len(t), dur, .003, .05)
+    return p * gain * (velocity / 127) ** .8
+
+
 def electronic_drum(pitch, duration, velocity):
     if pitch in [35, 36]:
         dur = .42
@@ -286,6 +320,9 @@ def main():
                 lp, rp = left, right
             elif ins in ['guitar_lead', 'electronic', 'brass']:
                 wave = {'guitar_lead': guitar_lead, 'electronic': electronic, 'brass': brass}[ins](pitch, duration, velocity)
+                lp, rp = left, right
+            elif ins in ['funk_bass', 'funk_clav', 'chip_lead', 'funk_stab']:
+                wave = funk_voice(pitch, duration, velocity, ins)
                 lp, rp = left, right
             else:
                 wave = pad(pitch, duration, velocity, ins == 'lead')

@@ -1,6 +1,6 @@
 // Adapted from Breach's authored-score transport: shared AudioContext, bounded
 // decoded cache, guarded async loads, local mixing, and explicit pause handling.
-export const SCORE_CUES={NE:{id:'for-boston',title:'For Boston',src:'./music/for-boston.mp3'},NYJ:{id:'notre-dame-victory',title:'Notre Dame Victory March',src:'./music/notre-dame-victory.mp3?v=23'},default:{id:'pgi-score',title:'Six on the Board',src:'./music/pgi-score.mp3'}};
+export const SCORE_CUES={NE:{id:'for-boston',title:'For Boston',src:'./music/for-boston.mp3'},NYJ:{id:'notre-dame-victory',title:'Notre Dame Victory March',src:'./music/notre-dame-victory.mp3?v=23'},GB:{id:'lambeau-bounce',title:'Lambeau Bounce',src:'./music/lambeau-bounce.mp3'},default:{id:'pgi-score',title:'Six on the Board',src:'./music/pgi-score.mp3'}};
 export const FAMILY_NAMES={all:'Match the moment',arcade:'Arcade favorites',film:'Postgame film scores'};
 export const SCENE_TRACKS={
  menu:['saturday-voltage','neon-end-zone','fourth-and-thunder'],

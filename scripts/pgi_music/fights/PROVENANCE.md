@@ -9,7 +9,32 @@ is used. Only the two historic songs' single-note melodies are transcribed.
 | --- | --- | --- | --- |
 | `for-boston.mp3` | New England scoring | Thomas J. Hurley's **For Boston**, opening pickup and eight bars | B-flat major, quarter = 156, new tonic ending |
 | `notre-dame-victory.mp3` | New York Jets scoring | Michael J. Shea's **Notre Dame Victory March**, opening eight + final eight chorus bars | E-flat major, half = 112, second ending; about 18 seconds |
+| `lambeau-bounce.mp3` | Green Bay scoring | **Lambeau Bounce**, an original PGI synth-funk cue | D minor, quarter = 120, eight bars; about 16 seconds |
 | `pgi-score.mp3` | Other teams scoring | **Six on the Board**, an original PGI melody | D major, quarter = 152 |
+
+## Green Bay: Lambeau Bounce
+
+Added 2026-11-04. The creative reference is the springy synth-funk feel of
+**You Dropped a Bomb on Me**: octave bass, syncopated synth answers, a clap
+backbeat and arcade flourishes. The melody, bass figure, harmony and ending
+are newly composed. No source recording, sample, lyric, MIDI transcription or
+transcribed hook is used.
+
+Six procedural parts play an eight-bar call-and-response phrase at 120 BPM,
+followed by a resolved stop. The 16.35-second cue plays once for Green Bay
+scores and follows the existing scoring-music switch and next-play fade.
+It is also available through the soundtrack panel's **GB · Lambeau Bounce**
+preview button. The main soundtrack rotation is unchanged.
+
+Rebuild this cue alone:
+
+```sh
+python scripts/pgi_music/compose_green_bay.py --render
+```
+
+The source score is `lambeau-bounce.json`. Its bass and chip lead include
+upper harmonics to keep the musical line present on smaller speakers; physical
+iPhone speaker performance remains a listening check on that device.
 
 ## Sources and scope
 

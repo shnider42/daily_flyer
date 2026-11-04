@@ -1,0 +1,21 @@
+{
+  "sample_rate": 44100,
+  "channels": 2,
+  "loop_seconds": 16.0,
+  "preview_seconds": 16.35,
+  "peak_dbfs": -2.938,
+  "rms_dbfs": -17.887,
+  "pre_master_peak": 0.6663,
+  "notes_per_track": {
+    "Rubbery octave bass": 54,
+    "Original chip hook": 42,
+    "Syncopated synth stabs": 96,
+    "Sixteenth-note clav answers": 90,
+    "Electronic kick clap and hats": 168,
+    "Arcade sparkle reply": 8
+  },
+  "wav_retained": false,
+  "mp3": "/workspace/scratch/d87dfc895b66/pgi/daily_flyer/themes/pocket_gridiron_assets/music/lambeau-bounce.mp3",
+  "render_seconds": 2.2,
+  "audio_source": "Original procedural oscillators and noise; no third-party samples."
+}
