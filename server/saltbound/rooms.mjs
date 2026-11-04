@@ -1,18 +1,99 @@
 import {randomBytes} from 'node:crypto';
 import {WebSocketServer} from '../last-exit/vendor/ws/wrapper.mjs';
-import {Voyage,PROTOCOL,cleanInput,normalizeProfile} from '../../daily_flyer/themes/saltbound_assets/core.mjs';
+import {Voyage,PROTOCOL,cleanInput} from '../../daily_flyer/themes/saltbound_assets/core.mjs';
+import { charterInfo, crewLoadout, validId } from '../../daily_flyer/themes/saltbound_assets/campaign.mjs';
+import { CHAPTERS, STATIONS } from '../../daily_flyer/themes/saltbound_assets/catalog.mjs';
+import { releaseStation, takeStation } from '../../daily_flyer/themes/saltbound_assets/deck.mjs';
 const code=()=>randomBytes(5).toString('hex').toUpperCase();
 export class SeaRooms{
  constructor({now=Date.now,maxRooms=12}={}){this.rooms=new Map();this.now=now;this.maxRooms=maxRooms;this.tick=0;}
- hello(peer,m){if(m.protocol!==PROTOCOL)throw Error('Version changed. Refresh the game.');if(peer.session)throw Error('Already joined.');let room;
-  if(m.create){if(this.rooms.size>=this.maxRooms)throw Error('All seas are occupied. Try solo or return shortly.');let id;do{id=code();}while(this.rooms.has(id));room={code:id,game:new Voyage({profile:normalizeProfile(m.profile),difficulty:m.difficulty}),sessions:new Map(),created:this.now()};this.rooms.set(id,room);}
-  else{room=this.rooms.get(String(m.code||'').toUpperCase());if(!room)throw Error('Crew code not found. The room may have ended.');}
-  let s=m.token?room.sessions.get(m.token):null;if(m.token&&!s)throw Error('Your reconnect pass expired. Join with the crew code again.');
-  if(!s){if(room.game.status!=='sailing')throw Error('This voyage has ended. Create a new crew.');if(room.sessions.size>=4)throw Error('This crew already has four pirates.');const id=randomBytes(8).toString('hex'),token=randomBytes(24).toString('hex');s={id,token,player:room.game.addPlayer(id,m.name,normalizeProfile(m.profile)),input:{},seq:0,lastInput:0,lastAction:0,peer:null,disconnected:null};room.sessions.set(token,s);}
-  if(s.peer){const old=s.peer;old.session=null;old.close(4001,'Reconnected elsewhere');}s.peer=peer;s.disconnected=null;s.input={};s.player.connected=true;peer.session=s;peer.room=room;return{type:'welcome',protocol:PROTOCOL,id:s.id,token:s.token,code:room.code,seq:s.seq,capacity:4};}
- input(peer,m){const s=peer.session;if(!s||s.peer!==peer)return;if(m.type==='input'){if(!Number.isSafeInteger(m.seq)||m.seq<=s.seq||m.seq>s.seq+1000)return;s.seq=m.seq;s.input=cleanInput(m.input);s.lastInput=this.now();}else if(m.type==='action'){if(this.now()-s.lastAction<100)return;s.lastAction=this.now();if(['interact','left','right','repair','heal','sword','weapon','helm'].includes(m.action))peer.room.game.action(s.id,m.action);}else if(m.type==='inactive'){s.input={};s.lastInput=0;}}
- disconnect(peer){const s=peer.session;if(!s||s.peer!==peer)return;s.peer=null;s.disconnected=this.now();s.input={};s.player.connected=false;}
- leave(peer){const s=peer.session,r=peer.room;if(s&&r&&s.peer===peer){r.game.removePlayer(s.id);r.sessions.delete(s.token);peer.session=null;if(!r.sessions.size)this.rooms.delete(r.code);}}
+ hello(peer, message) {
+   if (message.protocol !== PROTOCOL) throw Error('Version changed. Reload both devices.');
+   if (peer.session) throw Error('Already joined.');
+   const pirate = validId(message.pirateId) ? message.pirateId : randomBytes(12).toString('hex');
+   let room;
+   if (message.create) {
+     if (this.rooms.size >= this.maxRooms) throw Error('All seas are occupied. Try again shortly.');
+     const charter = charterInfo(message.campaign || {id:randomBytes(12).toString('hex')});
+     if (!charter) throw Error('Open a valid campaign from the captain’s log.');
+     const active = [...this.rooms.values()].find(r=>r.game.campaign.id===charter.id && r.game.status==='sailing');
+     if (active) throw Error('This campaign is already at sea. Join voyage '+active.code+'.');
+     let roomCode;
+     do { roomCode=code(); } while (this.rooms.has(roomCode));
+     room={code:roomCode,sessions:new Map(),created:this.now(),game:new Voyage({
+       profile:crewLoadout(message.loadout,charter,pirate),difficulty:charter.difficulty,campaign:charter
+     })};
+     this.rooms.set(roomCode,room);
+   } else {
+     room=this.rooms.get(String(message.code||'').toUpperCase());
+     if (!room) throw Error('Crew code not found. Ask for the current voyage code.');
+   }
+   const game=room.game;
+   let session=message.token ? room.sessions.get(message.token) : null;
+   if (message.token && !session) throw Error('Your reconnect pass expired. Join with the current code.');
+   if (!session) {
+     if (game.status!=='sailing') throw Error('This voyage has ended. Open the campaign for another.');
+     if (room.sessions.size>=4) throw Error('This crew already has four pirates.');
+     if ([...room.sessions.values()].some(s=>s.pirate===pirate)) throw Error('This pirate already has a place aboard. Reconnect from the original tab.');
+     const saved=charterInfo(message.campaign);
+     if (saved?.id===game.campaign.id && saved.chapter>game.campaign.chapter) {
+       if (game.time>0) throw Error('Your charter is further ahead. Host the next voyage from your campaign log.');
+       game.campaign.chapter=saved.chapter;
+       const chapter=CHAPTERS[saved.chapter];
+       for (const chest of game.loot) chest.contract=null;
+       const target=game.loot.find(l=>l.island===chapter?.target);
+       if (target && chapter.prize) {target.contract=chapter.prize;target.type='relic';}
+     }
+     const id=randomBytes(8).toString('hex'),token=randomBytes(24).toString('hex');
+     const player=game.addPlayer(id,message.name,crewLoadout(message.loadout,game.campaign,pirate));
+     session={id,token,pirate,player,input:{},seq:0,lastInput:0,lastAction:0,peer:null,disconnected:null};
+     room.sessions.set(token,session);
+   }
+   if (session.peer) {
+     const old=session.peer;old.session=null;old.close(4001,'Reconnected elsewhere');
+   }
+   session.peer=peer; session.disconnected=null; session.input={}; session.player.connected=true;
+   if (message.token && session.player.aboard) takeStation(game,session.player,session.player.preferredStation);
+   peer.session=session;peer.room=room;
+   this.updateCrew(room);
+   return {type:'welcome',protocol:PROTOCOL,id:session.id,token:session.token,code:room.code,seq:session.seq,capacity:4,campaign:game.campaign};
+ }
+ updateCrew(room) {
+   room.game.waiting=[...room.sessions.values()].filter(s=>s.peer).length<2;
+ }
+ input(peer,message) {
+   const session=peer.session;
+   if (!session || session.peer!==peer) return;
+   if (message.type==='input') {
+     if (!Number.isSafeInteger(message.seq)||message.seq<=session.seq||message.seq>session.seq+1000) return;
+     session.seq=message.seq;session.input=cleanInput(message.input);session.lastInput=this.now();
+   } else if (message.type==='action') {
+     if (this.now()-session.lastAction<100 || typeof message.action!=='string') return;
+     session.lastAction=this.now();
+     const command=message.action;
+     const station=command.startsWith('station:') && Object.hasOwn(STATIONS,command.slice(8));
+     const allowed=['interact','left','right','repair','heal','sword','weapon','bucket','treat','scan'];
+     if (!station && !allowed.includes(command)) return;
+     const ok=peer.room.game.action(session.id,command);
+     if (station) {
+       session.input={};
+       peer.send(JSON.stringify({type:'station',ok,role:session.player.station}));
+     }
+   } else if (message.type==='inactive') {session.input={};session.lastInput=0;}
+ }
+ disconnect(peer) {
+   const session=peer.session;
+   if (!session || session.peer!==peer) return;
+   session.peer=null;session.disconnected=this.now();session.input={};session.player.connected=false;
+   releaseStation(peer.room.game,session.player);
+   this.updateCrew(peer.room);
+ }
+ leave(peer) {
+   const session=peer.session,room=peer.room;
+   if (!session || !room || session.peer!==peer) return;
+   room.game.removePlayer(session.id);room.sessions.delete(session.token);peer.session=null;
+   if (!room.sessions.size) this.rooms.delete(room.code);else this.updateCrew(room);
+ }
  step(){for(const[id,r]of this.rooms){for(const[t,s]of r.sessions)if(!s.peer&&this.now()-s.disconnected>90000){r.game.removePlayer(s.id);r.sessions.delete(t);}if(!r.sessions.size||this.now()-r.created>7200000){for(const s of r.sessions.values())s.peer?.close(1000,'Voyage expired');this.rooms.delete(id);continue;}if([...r.sessions.values()].some(s=>s.peer)){const inp={};for(const s of r.sessions.values())inp[s.id]=this.now()-s.lastInput<300?s.input:{};r.game.step(1/30,inp);}}this.tick++;}
  packet(r){return{type:'state',tick:this.tick,ack:Object.fromEntries([...r.sessions.values()].map(s=>[s.id,s.seq])),state:r.game.snapshot()};}
 }

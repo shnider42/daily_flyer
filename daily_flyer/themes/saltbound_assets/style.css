@@ -9,3 +9,34 @@ body.touch .stick{display:block}body.touch kbd,body.touch #desktopHint{display:n
 @media(max-width:500px){.gamebar{display:grid;grid-template-columns:67px minmax(45px,1fr) 55px 40px 30px 27px;gap:7px;padding-left:10px;padding-right:10px}.healthblock{width:100%;min-width:0}.gamebar .wordmark{width:auto;font-size:13px}.gamebar #mapBtn{font-size:0;padding:0}.gamebar #mapBtn::before{content:"⌖";font-size:22px}.clock{margin:0}.gamebar #settingsBtn{padding:5px}.gamebar kbd{display:none}}
 
 @media(max-height:560px){body.touch .actionhint{bottom:76px;max-width:42%;padding:4px}body.touch .actionhint strong{font-size:14px}body.touch .actionhint span{font-size:8px}body.touch #broadside{flex-direction:row}body.touch .loadoutbar{bottom:12px}#toast{top:29%}}
+
+.charterCard{border:1px solid #88b6a855;padding:16px;margin:14px 0;background:#0d3540}
+.charterCard h3{margin:0 0 8px}.charterCard p{margin:5px 0}.charterCard small{color:var(--gold)}
+.charterCard label{display:grid;gap:5px;margin:12px 0;font-size:12px}
+.charterCard .panelbuttons{margin-top:12px}.orders li{padding-block:8px;color:var(--gold)}.orders p{margin:3px 0}
+#stationDock,#dutyTools,#contactText{position:absolute;z-index:3;pointer-events:auto}
+#stationDock{right:22px;bottom:234px}
+#stationButton{min-width:95px;color:var(--gold);border-color:#c6ab6b99}
+#stationMenu{position:absolute;bottom:calc(100% + 6px);right:0;width:210px;background:#092c36;border:1px solid #c4b88088;padding:5px;box-shadow:0 8px 25px #05212bcc}
+#stationMenu button{display:flex;justify-content:space-between;align-items:center;width:100%;min-height:38px;border:0;text-align:left}
+#stationMenu button span{font-size:9px;color:var(--teal);letter-spacing:.02em;max-width:80px;overflow:hidden}
+#dutyTools{bottom:125px;right:22px;width:148px;padding:8px;background:#082c38eb;border:1px solid #8ab6a96b}
+#dutyTools button{width:100%;padding:7px 5px;min-height:36px;font-size:11px;margin-top:3px}
+#dutyTools small{display:block;color:var(--teal);font-size:10px;text-align:center}
+#bucketGauge{background:linear-gradient(90deg,#385563 0 64%,#6dcc93 64% 92%,#385563 92%);height:11px;position:relative;margin-top:6px}
+#bucketNeedle{position:absolute;top:-2px;bottom:-2px;width:3px;background:#fff8dc}
+#contactText{right:22px;top:222px;padding:5px 9px;background:#092f39e8;color:var(--gold);font-size:10px;pointer-events:none}
+#crewList{max-width:520px;line-height:1.45}#orderBtn{margin-inline-start:4px}
+body.touch #stationDock{bottom:calc(var(--pad) + 48px);right:15px}
+body.touch #dutyTools{bottom:max(25px,env(safe-area-inset-bottom));width:135px;right:12px}
+@media(max-width:700px){#contactText{right:10px;top:160px;max-width:140px;font-size:8px}#crewInfo{max-width:calc(100% - 110px);top:153px}#stationMenu{width:200px}.charterCard .panelbuttons{gap:5px}.charterCard .panelbuttons button{padding:8px;font-size:11px}}
+@media(max-height:560px){
+ body.touch #stationDock{bottom:20px;right:calc(var(--pad) + 45px)}
+ body.touch #stationMenu{width:184px;max-height:200px;overflow-y:auto}
+ body.touch #dutyTools{bottom:16px;right:12px;width:105px}
+ #crewInfo{top:105px;max-width:46%}#contactText{right:15px;top:155px;font-size:8px}
+}
+
+#stationButton small,#stationButton strong{display:block}#stationButton small{font-size:7px;letter-spacing:.13em;color:var(--teal);margin-bottom:3px}#stationButton strong{font-size:11px}
+
+@media(min-height:561px){body.touch[data-duty=medic] #stationDock{bottom:200px}}

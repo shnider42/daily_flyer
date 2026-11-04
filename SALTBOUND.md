@@ -1,18 +1,24 @@
 # SALTBOUND · DailyFlyer Games
 
-Top-down Caribbean extraction game. Version 0.1.1.
+Top-down Caribbean extraction game. Version 0.2.0.
 
 ## Playable scope
 
-- One 8,200 × 6,200 sea, ten handcrafted island outlines with seeded loot, palms, villages, ruins, forts, and a volcanic island.
+- One 8,200 × 6,200 sea, thirteen island outlines with seeded loot, palms, villages, ruins, forts, and a volcanic island.
 - Sloop spawn; steer, accelerate, drift, land, walk, collect shared cargo, and board at the anchor marker.
 - Port/starboard broadsides with independent reloads; seven roaming hostile ships, raiders, marksmen, crabs, and captains.
-- Flintlock, blunderbuss, rifle, cutlass, medicine, planks, crew revival, cargo capacity, 18-minute voyages, three extraction passages.
+- Flintlock, blunderbuss, rifle, carbine, twin pistols, cutlass, medicine, planks, crew revival, cargo capacity, 12–22 minute voyages, three extraction passages.
 - Stationary ten-second extraction; incoming hull damage resets progress. Living crew must be aboard. Sinking, crew wipe, or storm expiry loses unsecured loot.
-- Local vault and idempotent extraction receipts; three purchasable ships, recovered weapons/attire, hull/cannon upgrades. A free sloop and flintlock always remain available.
+- Local vault and idempotent extraction receipts; eight hulls, recovered weapons/attire, hull/cannon upgrades. A free sloop and flintlock always remain available.
 - Solo and code/invite-link based 2–4 player cooperative PvE, no friendly fire. Everyone shares the vessel and cargo. Active helm ownership, independent shore movement, reconnect tokens and 90-second slot reservation.
-- Desktop mouse/keyboard and mobile two-thumb controls. Right thumb holds aim/fire without moving to a separate fire button. Contextual action, repair/heal, separate broadside buttons, adjustable controls/zoom, three guidance levels and three difficulties.
+- Desktop mouse/keyboard and mobile two-thumb controls. Right thumb holds aim/fire without moving to a separate fire button. Contextual action, repair/heal, separate broadside buttons, adjustable controls/zoom, three guidance levels and five difficulties.
 - Procedural sea ambience, original instrumental loop, weapon and loot sounds. Audio starts after a gesture.
+
+## Crew campaigns
+
+Each charter has a stable ID, a six-chapter journal and separate personal wallets keyed by browser pirate and charter. The original shared browser save supplies the solo vault. The host outfits the crew ship from their campaign wallet, and each guest brings their own gear from the same charter. A short-lived invite opens the current voyage. Returning players can host the charter from their local log. Two connected pirates are required for time, combat and extraction to advance.
+
+Boarding order assigns Helm, Guns, Damage control and Mast. The Stations control (V on desktop) switches directly to a vacant station. Holding always accepts another pirate. A medic can plug a leak with a plank, treat an injured sailor, or scoop and throw a bucket in the gauge’s green band. A lookout can cycle contacts within the hull’s mast range and publish a temporary position and bearing for the crew. Smaller hulls let the helmsman cover an empty gun station. Solo helm retains access to ship functions.
 
 ## DFE integration and running
 
