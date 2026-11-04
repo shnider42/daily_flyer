@@ -43,3 +43,55 @@ test('invalid links and stored preferences normalize safely',()=>{
 test('every editorial story has dated sources and genuinely safe result labels',()=>{
   const ids=new Set();for(const s of D.stories){assert.ok(!ids.has(s.id));ids.add(s.id);assert.ok(s.date<=D.reviewed_at);assert.ok(s.published<=D.reviewed_at);assert.equal(new URL(s.source).protocol,'https:');assert.ok(s.context&&s.before&&s.after&&s.meaning);if(s.spoiler)assert.ok(!/win|loss|beat|lead|\d[–-]\d/i.test(s.safe_title));}
 });
+test('full regular season has 272 games, 18 weeks and exactly one bye per team',()=>{
+  assert.equal(S.games.length,272);assert.equal(S.schedule_weeks,18);
+  assert.equal(S.games.filter(g=>!g.completed).length,151);
+  for(const t of S.teams){
+    const games=S.games.filter(g=>[g.home.team,g.away.team].includes(t.id));
+    assert.equal(games.length,17,t.id);assert.equal(new Set(games.map(g=>g.week)).size,17,t.id);
+  }
+  assert.deepEqual([...new Set(S.games.map(g=>g.week))],Array.from({length:18},(_,i)=>i+1));
+});
+test('all completed game details agree with scores and team identities',()=>{
+  for(const g of S.games.filter(g=>g.completed)){
+    assert.equal(g.detail_status,'available',g.id);
+    assert.deepEqual(Object.keys(g.stats).sort(),[g.home.team,g.away.team].sort(),g.id);
+    for(const side of [g.home,g.away]){
+      assert.ok(side.quarters.length>=4,g.id);
+      assert.equal(side.quarters.reduce((a,b)=>a+b,0),side.score,g.id);
+      assert.equal(Object.keys(g.stats[side.team]).length,8,g.id);
+      assert.ok(side.quarters.every(n=>Number.isInteger(n)&&n>=0),g.id);
+    }
+    const last=C.quarterFlow(g).at(-1);assert.equal(last.home,g.home.score);assert.equal(last.away,g.away.score);
+    assert.ok(g.leaders.length>=6,g.id);
+    assert.equal(new Set(g.leaders.map(l=>l.team+':'+l.kind)).size,g.leaders.length,g.id);
+    for(const l of g.leaders){assert.ok([g.home.team,g.away.team].includes(l.team));assert.ok(l.name&&l.stat&&l.kind);}
+  }
+});
+test('game explorer intersects season, team, status, search and close finishes',()=>{
+  const all=C.normalize({week:'all'},S);
+  assert.equal(C.schedule(S,all).length,272);
+  assert.equal(C.schedule(S,{...all,gameStatus:'final'}).length,121);
+  assert.equal(C.schedule(S,{...all,gameStatus:'scheduled'}).length,151);
+  assert.equal(C.schedule(S,{...all,team:'NE'}).length,17);
+  assert.equal(C.schedule(S,{...all,gameQuery:'patriots'}).length,17);
+  assert.equal(C.schedule(S,{...all,week:18}).length,16);
+  assert.equal(C.schedule(S,{...all,week:18,gameStatus:'final'}).length,0);
+  const close=C.schedule(S,{...all,closeGames:true});assert.ok(close.length>0);
+  assert.ok(close.every(g=>g.completed&&Math.abs(g.away.score-g.home.score)<=7));
+  assert.ok(C.schedule(S,{...all,gameQuery:'Gillette'}).every(g=>g.venue.includes('Gillette')));
+});
+test('game context describes the actual change and quarter reads avoid inventing a narrative',()=>{
+  const bears=S.games.find(g=>g.week===8&&g.away.team==='CHI');
+  assert.deepEqual(C.gameContext(S,bears),[{team:'CHI',before:'5–2',after:'6–2'},{team:'SEA',before:'4–3',after:'4–4'}]);
+  const pats=S.games.find(g=>g.week===8&&g.away.team==='NE');assert.equal(C.gameRead(pats).kind,'Comeback');
+  const tie=S.games.find(g=>g.completed&&g.home.score===g.away.score);assert.equal(C.gameRead(tie).kind,'Tie game');
+  const next=S.games.find(g=>!g.completed);assert.equal(C.gameRead(next).kind,'Scheduled');assert.deepEqual(C.quarterFlow(next),[]);
+});
+test('night mode is the default, user theme persists, and protection disables result-dependent filtering',()=>{
+  assert.equal(C.normalize({},S).theme,'dark');assert.equal(C.normalize({theme:'light'},S).theme,'light');
+  const s=C.normalize({week:18,spoilers:true,closeGames:true,game:'invalid',teamFocus:'fake',theme:'bad'},S);
+  assert.equal(s.week,18);assert.equal(s.closeGames,false);assert.equal(s.game,null);assert.equal(s.teamFocus,'NE');assert.equal(s.theme,'dark');
+  const last=S.games.at(-1);assert.equal(C.normalize({game:last.id},S).game,last.id);
+  assert.ok(S.games.filter(g=>g.week===18).every(g=>!g.time_confirmed));
+});

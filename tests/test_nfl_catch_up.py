@@ -6,7 +6,9 @@ ROOT=Path(__file__).resolve().parents[1]
 def test_registered_product_and_export_match():
     html=build_flyer_html('nfl-catch-up')
     assert html==(ROOT/'nfl_catchup/index.html').read_text()
-    assert 'Back in the Huddle' in html
+    assert 'HUDDLE / The whole season, in focus.' in html
+    assert 'data-theme="dark"' in html
+    assert len(build_flyer_experience('nfl_catch_up').data['scores']['games'])==272
     assert '@@DATA@@' not in html and '@@JS@@' not in html
     experience=build_flyer_experience('nfl_catch_up')
     assert experience.data['reviewed_at']=='2026-11-04'
