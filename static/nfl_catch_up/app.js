@@ -101,5 +101,9 @@
     try{await navigator.clipboard.writeText(url);notice('Briefing link copied. Outcomes start hidden.');}catch{$('#share-url').value=url;$('#share-dialog').showModal();$('#share-url').select();}
   });
   $('#close-share').addEventListener('click',()=>$('#share-dialog').close());
+  window.addEventListener('hashchange',()=>{
+    if(!location.hash.startsWith('#catchup='))return;
+    try{const incoming=JSON.parse(decodeURIComponent(location.hash.slice(9)));revealed.clear();state=C.normalize({...incoming,spoilers:true},S);expanded=false;persist();render();}catch{}
+  });
   render();
 })();
