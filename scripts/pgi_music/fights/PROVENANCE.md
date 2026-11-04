@@ -9,7 +9,7 @@ is used. Only the two historic songs' single-note melodies are transcribed.
 | --- | --- | --- | --- |
 | `for-boston.mp3` | New England scoring | Thomas J. Hurley's **For Boston**, opening pickup and eight bars | B-flat major, quarter = 156, new tonic ending |
 | `notre-dame-victory.mp3` | New York Jets scoring | Michael J. Shea's **Notre Dame Victory March**, opening eight + final eight chorus bars | E-flat major, half = 112, second ending; about 18 seconds |
-| `lambeau-bounce.mp3` | Green Bay scoring | **Lambeau Bounce**, an original PGI synth-funk cue | D minor, quarter = 112, six bars; about 13 seconds |
+| `lambeau-bounce.mp3` | Green Bay scoring | **Lambeau Bounce**, an original PGI synth-funk cue | E minor, quarter = 126, eight bars; about 16 seconds |
 | `pgi-score.mp3` | Other teams scoring | **Six on the Board**, an original PGI melody | D major, quarter = 152 |
 
 ## Green Bay: Lambeau Bounce
@@ -20,16 +20,24 @@ backbeat and arcade flourishes. The melody, bass figure, harmony and ending
 are newly composed. No source recording, sample, lyric, MIDI transcription or
 transcribed hook is used.
 
-The revised arrangement starts with a continuous, nearly one-second descending
-slide-whistle gesture. A compact low impact lands at 1.07 seconds; a spacious
-bass pickup leads into the repeated two-bar funk groove at 2.14 seconds. The
-backbeat uses eighth-note hats, and the short upper hook repeats instead of
-continuously introducing new notes. A final hit at 10.71 seconds releases into
-the crowd. Six bars at 112 BPM give a 13.21-second recording.
+Rebuilt from a new score at **126 BPM**, matching the tempo printed in
+[Dynamic Drum School's drum chart](https://dynamicdrumschool.com/wp-content/uploads/2020/08/You-Dropped-a-Bomb-on-Me.pdf).
+The reference is **You Dropped a Bomb on Me by The Gap Band**. This arrangement
+keeps that pulse with quarter-note kicks and hats and claps on beats 2 and 4.
+It does not reuse the previous 112-BPM score, its tune, or its bass pattern.
+The melody and bass notes remain newly composed; the chart is used to check
+tempo and the basic backbeat, not to redistribute its arrangement or lyrics.
+
+A full-bar falling synth opens the cue, with a short snare pickup into the
+band at 1.90 seconds. The low synth bass establishes a repeating groove for
+two bars before a short two-bar answer enters at 5.71 seconds. The ending
+continues at the same tempo through the last bar. Eight bars plus the release
+tail give a 15.59-second recording. Dedicated bass, chord and falling-synth
+patches replace the prior cue's sounds.
 
 The cue plays once for Green Bay scores and follows the existing scoring-music
-switch and next-play fade. The whistle and impact are baked into the scoring
-recording, so their timing and level use the same playback path as the music.
+switch and next-play fade. Its intro is baked into the scoring recording so
+it uses the same timing and playback path as the band.
 It is also available through the soundtrack panel's **GB · Lambeau Bounce**
 preview button. The main soundtrack rotation is unchanged.
 

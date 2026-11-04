@@ -14,65 +14,76 @@ import sys
 from compose_fights import HERE, MUSIC, SCORES, REPO, note, track
 
 
+# Tempo checked against Dynamic Drum School's published drum chart.
+REFERENCE_BPM = 126
+TEMPO_SOURCE = 'https://dynamicdrumschool.com/wp-content/uploads/2020/08/You-Dropped-a-Bomb-on-Me.pdf'
+
+
 def score():
-    bass, lead, stabs, drums = [], [], [], []
-    # The touchdown owns the opening: whistle down, a landing, then the band.
-    # Two beats (1.07 seconds) make the setup audible without delaying the party.
-    whistle = [note(88, 0, 1.85, 101)]
-    landing = [note(38, 2, .65, 103)]
-    bass.extend([note(38, 2, .7, 108), note(50, 3.5, .27, 91)])
-    stabs.extend(note(p, 2, .65, 87) for p in [62, 65, 69])
-    drums.extend([note(36, 2, .1, 95), note(38, 3, .1, 92)])
+    bass, chords, answer, drums = [], [], [], []
+    # A full-bar falling synth opens the cue. The band arrives together on
+    # beat four; the old one-second drop / isolated boom / pickup is discarded.
+    drop = [note(95, 0, 3.72, 104)]
+    drums.extend([note(38, 3.5, .08, 64), note(38, 3.75, .08, 81)])
 
-    # A repeatable two-bar vamp. Let the bass and backbeat carry the celebration;
-    # the small upper hook answers them instead of playing over every beat.
-    grooves = [
-        [(0, 0, .65), (1.5, 12, .30), (2.25, 0, .38), (3.25, 7, .38)],
-        [(0, 0, .65), (.75, 12, .25), (1.75, 0, .38), (2.5, 7, .35), (3.5, 10, .28)],
+    # A newly written low synth figure. Stable pitches, strong octave answers
+    # and repeated placement make this a groove, without a busy chip solo.
+    riff = [(0, 40, .35), (.5, 52, .20), (.75, 40, .18),
+            (1.5, 47, .32), (2.25, 50, .23), (2.75, 52, .20),
+            (3.5, 47, .32)]
+    response = [
+        [(0, 64, .50), (1, 67, .40), (1.75, 64, .40), (2.5, 62, .50), (3.25, 59, .55)],
+        [(0, 67, .65), (1.5, 66, .32), (2, 64, 1.20)],
     ]
-    hooks = [
-        [(.5, 69, .45), (1.25, 74, .65), (2.75, 72, .50)],
-        [(.5, 69, .65), (2.75, 74, .70)],
-    ]
-    for bar in range(4):
-        at = 4 + bar * 4
-        root = 38 if bar % 2 == 0 else 43
-        chord = [62, 65, 69, 72] if bar % 2 == 0 else [62, 65, 67, 70]
-        for offset, interval, length in grooves[bar % 2]:
-            bass.append(note(root + interval, at + offset, length, 108 if offset == 0 else 96))
-        for offset, pitch, length in hooks[bar % 2]:
-            lead.append(note(pitch, at + offset, length, 91))
-        for offset in [.75, 2.75]:
-            stabs.extend(note(p, at + offset, .32, 82) for p in chord)
-        for offset in [0, 2.5]:
-            drums.append(note(36, at + offset, .1, 108 if offset == 0 else 94))
-        for offset in [1, 3]:
-            drums.append(note(38, at + offset, .1, 101))
-        for step in range(8):
-            drums.append(note(42, at + step / 2, .05, 45 if step % 2 == 0 else 33))
+    for bar in range(1, 7):
+        at = bar * 4
+        for offset, pitch, length in riff:
+            # The last answer turns back toward E without changing the rhythm.
+            if bar % 2 == 0 and offset == 3.5:
+                pitch = 43
+            bass.append(note(pitch, at + offset, length, 111 if offset == 0 else 98))
+        chord = [59, 62, 64, 67] if bar != 5 else [57, 61, 64, 67]
+        for offset, length in [(.5, .32), (2.5, .48)]:
+            chords.extend(note(p, at + offset, length, 84) for p in chord)
+        # Let the opening bass groove establish itself for two whole bars.
+        if bar >= 3:
+            for offset, pitch, length in response[(bar - 3) % 2]:
+                answer.append(note(pitch, at + offset, length, 91))
+        # Straight quarter-note kick and hat pulse; snare/claps on 2 and 4.
+        # The chart's 126-BPM pulse is preserved, not played in half time.
+        for beat in range(4):
+            drums.append(note(36, at + beat, .10, 105 if beat % 2 == 0 else 91))
+            drums.append(note(42, at + beat, .06, 56 if beat % 2 == 0 else 48))
+        drums.extend(note(38, at + beat, .10, 103) for beat in [1, 3])
+        if bar == 1:
+            drums.append(note(49, at, .12, 56))
 
-    # One final punctuation mark, with room for crowd noise and the next play.
-    bass.append(note(38, 20, 2.6, 111))
-    lead.append(note(74, 20, 1.9, 93))
-    stabs.extend(note(p, 20, 2.6, 96) for p in [62, 65, 69, 74])
-    drums.extend([note(36, 20, .1, 109), note(38, 20, .1, 82), note(49, 20, .1, 53)])
+    # Complete the final bar at the same pulse, then stop together.
+    bass.extend([note(40, 28, .40, 107), note(52, 28.5, .25, 96),
+                 note(47, 29, .38, 97), note(40, 30, 1.35, 109)])
+    answer.extend([note(67, 28, .55, 89), note(66, 29, .40, 86), note(64, 30, 1.35, 94)])
+    chords.extend(note(p, 30, 1.35, 91) for p in [59, 62, 64, 67])
+    for beat in [28, 29, 30]:
+        drums.extend([note(36, beat, .1, 103), note(42, beat, .06, 49)])
+    drums.extend([note(38, 29, .1, 99), note(38, 30, .1, 78), note(49, 30, .1, 51)])
     return dict(
-        id='lambeau-bounce', title='Lambeau Bounce', bpm=112, bars=6,
-        beats_per_bar=4, preview_gain=.8, loop=False, purpose='GB scoring stinger',
-        revision='Whistle, touchdown hit, repeated groove, final punctuation',
+        id='lambeau-bounce', title='Lambeau Bounce', bpm=REFERENCE_BPM, bars=8,
+        beats_per_bar=4, preview_gain=.88, loop=False, purpose='GB scoring stinger',
+        revision='Recomposed at the reference 126-BPM pulse',
+        tempo_reference={'artist': 'The Gap Band', 'song': 'You Dropped a Bomb on Me',
+                         'bpm': REFERENCE_BPM, 'source': TEMPO_SOURCE},
         provenance='scripts/pgi_music/fights/PROVENANCE.md',
-        melody_source='Original PGI synth-funk composition',
-        sections=[{'beat': 0, 'name': 'Falling slide-whistle opening'},
-                  {'beat': 2, 'name': 'Touchdown impact and bass pickup'},
-                  {'beat': 4, 'name': 'First two-bar celebration groove'},
-                  {'beat': 12, 'name': 'Repeat the hook'},
-                  {'beat': 20, 'name': 'Final hit and release'}],
-        tracks=[track('Falling touchdown whistle', 'touchdown_whistle', .72, 0, whistle),
-                track('Touchdown landing', 'touchdown_hit', .42, 0, landing),
-                track('Rubbery octave bass', 'funk_bass', .84, 0, bass),
-                track('Short repeated chip hook', 'chip_lead', .44, .02, lead),
-                track('Spaced synth answers', 'funk_stab', .27, -.08, stabs),
-                track('Kick clap and eighth-note hats', 'electronic_drums', .39, 0, drums)],
+        melody_source='Original PGI synth-funk composition; source tempo reference only',
+        sections=[{'beat': 0, 'name': 'Full-bar falling synth'},
+                  {'beat': 4, 'name': 'Bass and straight backbeat enter together'},
+                  {'beat': 12, 'name': 'Short synth answer'},
+                  {'beat': 20, 'name': 'Repeat the answer over the groove'},
+                  {'beat': 28, 'name': 'Final bar at the same pulse'}],
+        tracks=[track('Opening falling synth', 'bomb_glide', .67, 0, drop),
+                track('Repeating octave synth bass', 'stadium_bass', .78, 0, bass),
+                track('Low chord punches', 'stadium_chord', .24, -.07, chords),
+                track('Two-bar synth answer', 'stadium_chord', .39, .05, answer),
+                track('Straight 126-BPM backbeat', 'electronic_drums', .44, 0, drums)],
     )
 
 

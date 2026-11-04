@@ -38,24 +38,25 @@
     {
       "id": "lambeau-bounce",
       "checked": "2026-11-03",
-      "revision": "Whistle opening and spacious repeated groove",
-      "bytes": 185881,
-      "duration_seconds": 13.207,
-      "decoded_peak_dbfs": -3.477,
-      "decoded_rms_dbfs": -19.773,
+      "revision": "New composition and synth patches at reference tempo",
+      "bpm": 126,
+      "decoded_pulse_estimate_bpm": 126.6,
+      "bytes": 219161,
+      "duration_seconds": 15.588,
+      "decoded_peak_dbfs": -2.589,
+      "decoded_rms_dbfs": -16.035,
       "decoded_clip_samples": 0,
       "channels": 2,
       "sample_rate": 44100,
-      "mono_rms_dbfs": -19.774,
-      "opening_pitch_hz_at_0_10_0_45_0_85_seconds": [
-        1130.5,
-        565.2,
-        231.5
+      "mono_rms_dbfs": -16.036,
+      "opening_pitch_hz_at_0_20_0_80_1_50_seconds": [
+        1873.4,
+        667.5,
+        228.8
       ],
-      "opening_rms_dbfs": -18.23,
-      "groove_rms_dbfs": -19.349,
-      "melody_check": "Original repeated two-bar motif; all notes fit six bars",
-      "method": "FFmpeg MP3 decode; finite samples, duration, clipping, mono sum, score bounds and three descending opening pitch measurements"
+      "band_entry_seconds": 1.905,
+      "melody_check": "New original score; all notes fit eight bars",
+      "method": "FFmpeg MP3 decode; finite samples, duration, clipping, mono sum, note bounds, descending opening pitch and onset-flux autocorrelation pulse"
     }
   ]
 }

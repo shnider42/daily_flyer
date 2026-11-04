@@ -145,6 +145,41 @@ def funk_voice(pitch, duration, velocity, instrument):
     return p * gain * (velocity / 127) ** .8
 
 
+def stadium_synth(pitch, duration, velocity, instrument):
+    """Fresh patches for the 126-BPM Green Bay arrangement."""
+    dur = max(.12, duration + .06)
+    t = np.arange(int(dur * SR)) / SR
+    f = 440 * 2 ** ((pitch - 69) / 12)
+    if instrument == 'bomb_glide':
+        # Hold the top briefly, then let a resonant, lightly fluttering tone
+        # fall over the bar. It is one gesture, not a run of separate notes.
+        progress = np.clip((t / duration - .09) / .91, 0, 1)
+        freq = f * 2 ** (-3.7 * progress ** .95)
+        freq *= 1 + .025 * np.sin(2 * np.pi * 11 * t)
+        phase = 2 * np.pi * np.cumsum(freq) / SR
+        p = np.sin(phase) + .17 * np.sin(2 * phase) + .055 * np.sin(3 * phase)
+        p *= 1 + .045 * np.sin(2 * np.pi * 17 * t)
+        gain, attack, release = .43, .025, .10
+    else:
+        phase = 2 * np.pi * f * t
+        p = np.zeros(len(t))
+        is_bass = instrument == 'stadium_bass'
+        for h in range(1, min(18, int(15000 / f)) + 1):
+            level = (1 if h % 2 else .42) / h ** 1.14
+            decay = np.exp(-t * max(0, h - 1) * (3.5 if is_bass else 1.3))
+            p += level * np.sin(h * phase) * decay
+        if is_bass:
+            p += .36 * np.sin(phase)
+            p = np.tanh(1.35 * p) * np.exp(-t / .72)
+            gain, attack, release = .48, .003, .055
+        else:
+            p += .13 * np.sin(phase * 1.003)
+            p = filt(np.tanh(p * 1.2), 'lowpass', 3400)
+            gain, attack, release = .29, .012, .06
+    p *= release_envelope(len(t), dur, attack, release)
+    return p * gain * (velocity / 127) ** .8
+
+
 def scoring_effect(pitch, duration, velocity, instrument):
     """A playful falling whistle and its compact landing, synthesized locally."""
     dur = max(.12, duration + .035)
@@ -352,6 +387,9 @@ def main():
                 lp, rp = left, right
             elif ins in ['touchdown_whistle', 'touchdown_hit']:
                 wave = scoring_effect(pitch, duration, velocity, ins)
+                lp, rp = left, right
+            elif ins in ['bomb_glide', 'stadium_bass', 'stadium_chord']:
+                wave = stadium_synth(pitch, duration, velocity, ins)
                 lp, rp = left, right
             else:
                 wave = pad(pitch, duration, velocity, ins == 'lead')
