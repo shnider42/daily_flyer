@@ -8,13 +8,13 @@ const make=()=>{const g=new Game(buildTeam('NE',data),buildTeam('BUF',data),'pro
 function until(g,predicate,input={x:0,y:0},limit=500){let n=0;while(!predicate(g)&&n++<limit)g.tick(.05,input);assert.ok(predicate(g),`stalled in ${g.phase}`);}
 function flight(g,type='punt',kicking=1,spot=40,power=.7,aim=0){g.beginKick(type,kicking,spot);g.launchKick(power,aim);}
 
-test('forty-nine offensive plays and twenty defensive calls all produce playable formations',()=>{
- const g=make();assert.equal(PLAYS.length,49);assert.equal(DEFENSE.length,20);
+test('ninety-one offensive plays and forty defensive calls all produce playable formations',()=>{
+ const g=make();assert.equal(PLAYS.length,91);assert.equal(DEFENSE.length,40);
  for(const p of PLAYS){g.beginDrive(0,25);g.choose(p.id);g.snap(g.offense);assert.equal(g.phase,'live');assert.equal(g.carrier.slot,p.kind==='run'&&p.id!=='draw'&&!p.exchange?(p.carrier??1):0);assert.equal(g.canPass,p.kind==='pass'&&!p.playAction);for(let i=0;i<10;i++)g.tick(.05);}
  for(const d of DEFENSE){g.beginDrive(1,25);g.choose(d.id);g.snap(g.offense);assert.equal(g.defense,d.id);for(let i=0;i<10;i++)g.tick(.05);assert.ok(g.defenders.every(p=>Number.isFinite(p.x)&&Number.isFinite(p.y)));}
 });
 test('curl receivers come back, flood spreads three depths, counter pulls a guard left',()=>{
- const g=make();g.beginDrive(0,25);g.choose('curls');const wr=g.players[2];assert.ok(g.route(wr,1.5).y>g.route(wr,4).y);assert.equal(g.route(wr,4).y,33);
+ const g=make();g.selectDefense=()=> 'zone';g.beginDrive(0,25);g.choose('curls');const wr=g.players[2];assert.ok(g.route(wr,1.5).y>g.route(wr,4).y);assert.equal(g.route(wr,4).y,33);
  g.choose('flood');const routes=g.players.slice(2,5).map(p=>g.route(p,5));assert.ok(routes[1].y>routes[0].y&&routes[0].y>routes[2].y);assert.ok(routes.every(p=>p.x>=40));
  g.choose('counter');const guardX=g.players[6].x;g.snap(g.offense);for(let i=0;i<15;i++)g.tick(.05);assert.ok(g.players[6].x<guardX-2);assert.equal(g.canPass,false);
 });

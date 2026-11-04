@@ -1,4 +1,4 @@
-import {windFor} from './weather.js?v=29';
+import {windFor} from './weather.js?v=30';
 // Presentation-only recordings. Playback never calls Game.tick or consumes RNG.
 const activePhase=p=>['live','return','fumble','kick_flight','kick_loose'].includes(p);
 const clone=p=>p?{...p}:null;

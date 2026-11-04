@@ -2,7 +2,7 @@ const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
 // Decide run/pass first; adding passing plays must not dilute the running game.
 export function runProbability(g){
  const t=g.teams[g.offense],o=t.offense,style=t.profile?.offense.id,run=(o[1].power+o[1].agility+o[5].runBlock+o[6].runBlock)/4,pass=(o[0].accuracy+o[2].catching+o[3].catching+o[4].catching)/4;
- let p=({power:.57,space:.48,mobile:.47,quick:.42,vertical:.39}[style]??.46)+(run-pass)*.003;
+ let p=(t.profile?.offense.runRate??({power:.57,space:.48,mobile:.47,quick:.42,vertical:.39}[style]??.46))+(run-pass)*.003;
  const toGo=g.target-g.spot,margin=g.scores[g.offense]-g.scores[1-g.offense];
  if(g.down===2)p+=toGo<=5?.12:toGo>=10?-.08:0;
  if(g.down>=3)p+=toGo<=2?.22:toGo<=4?.06:toGo>=8?-.29:-.15;

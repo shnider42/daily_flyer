@@ -1,6 +1,7 @@
-import {rate} from './roster.js?v=29';
-import {OFFENSE_STYLES,DEFENSE_STYLES} from './teams.js?v=29';
-import {selectSpecialists} from './special-teams.js?v=29';
+import {OFFENSIVE_SYSTEMS} from './offensive-systems.js?v=30';
+import {rate} from './roster.js?v=30';
+import {OFFENSE_STYLES,DEFENSE_STYLES} from './teams.js?v=30';
+import {selectSpecialists} from './special-teams.js?v=30';
 // PGI selections, not the official Hall of Fame lists. Names span NFL/AFL eras;
 // stats are authored gameplay ratings, normalized across eras, not career totals.
 // Tuple: name, jersey, position, speed, strength, signature skill, endurance.
@@ -129,6 +130,6 @@ export function decadeTeam(id,custom={}){
  const specialists=selectSpecialists(roster,custom);
  const byName=n=>roster.find(p=>p.name===n),returner={1950:'Frank Gifford',1960:'Gale Sayers',1970:'Cliff Branch',1980:'Bo Jackson',1990:'Deion Sanders',2000:'Devin Hester',2010:'Cordarrelle Patterson',2020:'KaVontae Turpin'}[year];
  for(const key of ['kr','pr'])if(!custom[key])specialists[key]=byName(returner);
- const profile={reviewed:'PGI era interpretation · 2020s through 2026',offense:{id:style,...OFFENSE_STYLES[style],name:nickname,strict:true,plays:[...BOOKS[year],...(PACKAGES[year]||[])],signature:BOOKS[year].slice(0,4)},defense:{id:defStyle,...DEFENSE_STYLES[defStyle],plays:year<1980?['zone','man','blitz','commit','cover2','cover3','press','prevent']:year===1980?['zone','man','blitz','commit','press','cover3','cover0','edgeleft','edgeright','twistleft']:DEFENSE_STYLES[defStyle].plays}};
+ const profile={reviewed:'PGI era interpretation · 2020s through 2026',offense:{id:style,...OFFENSE_STYLES[style],name:nickname,strict:true,plays:[...BOOKS[year],...(PACKAGES[year]||[]),...OFFENSIVE_SYSTEMS[({1950:'wingt',1960:'wingt',1970:'poweri',1980:'westcoast',1990:'rungun',2000:'airraid',2010:'spread',2020:'pistolpa'})[year]].plays],signature:BOOKS[year].slice(0,4)},defense:{id:defStyle,...DEFENSE_STYLES[defStyle],personnel:({1980:'bear',1990:'odd',2000:'nickel',2010:'nickel',2020:'stack'})[year]||'base',plays:year<1980?['zone','man','blitz','commit','cover2','cover3','press','prevent']:year===1980?['zone','man','blitz','commit','press','cover3','cover0','edgeleft','edgeright','twistleft']:DEFENSE_STYLES[defStyle].plays}};
  return {abbr:id,city:`${year}s All-Decade${year===2020?' · so far':''}`,decade:year,nickname,color,accent,venue,roster,offense,defense,specialists,profile,source:'https://www.profootballhof.com/news/nfl-s-all-decade-teams'};
 }

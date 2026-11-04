@@ -1,11 +1,11 @@
-import {PERSONNEL} from './packages.js?v=29';
+import {PERSONNEL} from './packages.js?v=30';
 // Human-facing information. Never derive defensive guidance from the secret call.
 export function showOffensiveRoutes(g){return g.userOffense&&!g.special&&!g.returnInfo&&['call','ready'].includes(g.phase);}
 export function publicPlayName(g){return g.userOffense?g.playDefinition.name:g.teams[g.offense].abbr+' offense';}
 export function suggestions(g,plays){
  const long=g.target-g.spot>6,side=g.userOffense?'offense':'defense',profile=g.teams[0].profile?.[side];
  const ranked=[...plays].sort((a,b)=>score(b)-score(a)),picks=ranked.slice(0,3);if(g.userOffense&&g.down<=2&&picks.every(p=>p.kind==='pass')){const run=ranked.find(p=>p.kind==='run');if(run)picks[2]=run;}return picks;
- function score(p){return (profile?.signature.includes(p.id)?2:0)+(g.userOffense?(p.kind===(long?'pass':'run')?3:0):((long?p.group==='zone':p.group==='pressure'||p.group==='man')?3:0));}
+ function score(p){return (profile?.signature.includes(p.id)?2:0)+(!g.userOffense&&p.system===PERSONNEL[g.personnel]?.system?2.5:0)+(g.userOffense?(p.kind===(long?'pass':'run')?3:0):((long?p.group==='zone':p.group==='pressure'||p.group==='man')?3:0));}
 }
 export function coachText(g,level){
  if(level==='expert')return '';

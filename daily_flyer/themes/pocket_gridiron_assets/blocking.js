@@ -1,4 +1,4 @@
-import {returnLane} from './special-teams.js?v=29';
+import {returnLane} from './special-teams.js?v=30';
 // Assignment + contact model. A block buys time; it never refreshes a stun.
 const dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
@@ -80,7 +80,7 @@ export function updateBlocking(g,dt){
  g.blockRead-=dt;
  for(const p of [...blockers].sort((a,b)=>(b.slot>=5)-(a.slot>=5))){
   if(p.blocking)continue;
-  const pull=g.playDefinition.pull,lead=g.playDefinition.lead,designed=!g.isReturn&&!g.receivedPass&&!g.crossed;
+  const pull=g.playDefinition.pulls?.find(a=>a.slot===p.slot)||g.playDefinition.pull,lead=g.playDefinition.lead,designed=!g.isReturn&&!g.receivedPass&&!g.crossed;
   // A spare adjacent lineman helps a dominant interior defender, but never
   // abandons a close free rusher. Help takes two actual bodies and expires.
   if(designed&&!pocket&&g.playDefinition.kind==='run'&&p.slot>=5&&!g.defenders.some((d,i)=>!claimed.has(i)&&d.stun<=0&&dist(p,d)<3.5)){

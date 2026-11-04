@@ -1,4 +1,4 @@
-import {WEATHER,weatherLabel,weatherAdvice,windAt,windArrow} from './weather.js?v=29';
+import {WEATHER,weatherLabel,weatherAdvice,windAt,windArrow} from './weather.js?v=30';
 const mod=(n,d)=>(n%d+d)%d;
 const r=(c,x,y,w,h,color)=>{c.fillStyle=color;c.fillRect(Math.round(x),Math.round(y),w,h);};
 export function weatherSurface(c,view,project,w){

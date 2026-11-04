@@ -1,7 +1,7 @@
-import {paintWeatherBoard,weatherParticles} from './weather-presentation.js?v=29';
-import {uniformFor} from './uniforms.js?v=29';
-import {FORMATIONS} from './packages.js?v=29';
-import {emptySpecial} from './special-teams.js?v=29';
+import {paintWeatherBoard,weatherParticles} from './weather-presentation.js?v=30';
+import {uniformFor} from './uniforms.js?v=30';
+import {FORMATIONS} from './packages.js?v=30';
+import {emptySpecial} from './special-teams.js?v=30';
 // Broadcast graphics use recorded coordinates or explicitly labeled diagrams.
 // No renderer calls into the live game or consumes its random stream.
 const W=720,H=360,YELLOW='#ffdc46';

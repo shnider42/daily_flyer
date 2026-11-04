@@ -1,3 +1,5 @@
+import {SYSTEM_PLAYS} from './offensive-systems.js?v=30';
+import {SYSTEM_DEFENSE,FRONTS} from './defensive-systems.js?v=30';
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
 const BASE_PLAYS=[
  {id:'dive',name:'Inside run',kind:'run',hint:'Follow the blocks'},
@@ -73,7 +75,7 @@ export const PACKAGE_PLAYS=[
 ];
 NEW_PLAYS.push(...PACKAGE_PLAYS);
 const lanes={dive:27,sweep:45,counter:12,power:32,stretch:8,keeper:39,draw:27};
-export const PLAYS=[...BASE_PLAYS.map(p=>({...p,group:p.kind==='run'?'run':['verts','flood','smash','postwheel','levels'].includes(p.id)?'deep':'quick',lane:lanes[p.id],blockLane:({sweep:42,counter:14,power:32,stretch:8,keeper:39})[p.id],carrier:p.id==='keeper'?0:1,delay:p.id==='draw'?.85:0,wait:p.id==='curls'?2.3:p.id==='flood'?1.9:1.4,...(p.id==='counter'?{pull:{slot:6,x:13,y:-1,until:1.2}}:p.id==='power'?{pull:{slot:6,x:32,y:2,until:.8}}:{})})),...NEW_PLAYS];
+export const PLAYS=[...BASE_PLAYS.map(p=>({...p,group:p.kind==='run'?'run':['verts','flood','smash','postwheel','levels'].includes(p.id)?'deep':'quick',lane:lanes[p.id],blockLane:({sweep:42,counter:14,power:32,stretch:8,keeper:39})[p.id],carrier:p.id==='keeper'?0:1,delay:p.id==='draw'?.85:0,wait:p.id==='curls'?2.3:p.id==='flood'?1.9:1.4,...(p.id==='counter'?{pull:{slot:6,x:13,y:-1,until:1.2}}:p.id==='power'?{pull:{slot:6,x:32,y:2,until:.8}}:{})})),...NEW_PLAYS,...SYSTEM_PLAYS];
 const zone=(x,y,drift=0)=>({x,y,drift});
 const def=(id,name,hint,group,depths,coverage)=>({id,name,hint,group,depths,coverage});
 const NEW_DEFENSE=[
@@ -89,30 +91,30 @@ const NEW_DEFENSE=[
  def('edgeleft','Left edge blitz','Corner rushes left · linebacker replaces him','pressure',[1.5,1.5,4,5,2,5,19],{rush:[0,1,4],edge:4,man:{2:4,3:2,5:3},safety:6}),
  def('edgeright','Right edge blitz','Corner rushes right · linebacker replaces him','pressure',[1.5,1.5,4,5,5,2,19],{rush:[0,1,5],edge:5,man:{2:4,3:3,4:2},safety:6})
 ];
-export const DEFENSE=[...BASE_DEFENSE.map(p=>({...p,group:['blitz','commit'].includes(p.id)?'pressure':['man','press','robber'].includes(p.id)?'man':'zone'})),...NEW_DEFENSE];
+export const DEFENSE=[...BASE_DEFENSE.map(p=>({...p,group:['blitz','commit'].includes(p.id)?'pressure':['man','press','robber'].includes(p.id)?'man':'zone'})),...NEW_DEFENSE,...SYSTEM_DEFENSE];
 function waypointRoute(points,p,time,spot){
  let left=Math.max(0,time)*p.speed*(.94+(p.routeRunning||80)*.00075);
  for(let i=1;i<points.length;i++){const [x,y]=points[i-1],[tx,ty]=points[i],n=Math.hypot(tx-x,ty-y);if(left<=n)return {x:x+(tx-x)*left/n,y:Math.min(106,spot+y+(ty-y)*left/n)};left-=n;}
  const [x,y]=points.at(-1);return {x,y:Math.min(106,spot+y)};
 }
 export function newCoverageTarget(g,d){
- const c=g.defenseDefinition.coverage;if(!c)return null;const i=d.slot,s=g.spot;
+ const c=g.format===11&&g.defenseDefinition.fullCoverage?g.defenseDefinition.fullCoverage:g.defenseDefinition.coverage;if(!c)return null;const i=d.slot,s=g.spot;
  if(c.rush.includes(i)){if(c.edge===i&&d.y>s-2)return {x:i===4?g.carrier.x-7:g.carrier.x+7,y:s-3};return g.carrier;}
  const slot=c.man?.[i];if(slot!==undefined){const p=g.players[slot];return {x:p.x+(p.x<26.5?.5:-.5),y:Math.min(107,p.y+.6+g.defenseAI.adapt*.7)};}
- if(c.spy===i)return {x:clamp(g.carrier.x,10,43),y:Math.min(107,Math.max(s+3,g.carrier.y+5))};
+ if(c.spy===i||c.spies?.includes(i))return {x:clamp(g.carrier.x,10,43),y:Math.min(107,Math.max(s+3,g.carrier.y+5))};
  if(c.bracket&&(c.bracket.under===i||c.bracket.over===i)){const p=g.players[c.bracket.slot],over=c.bracket.over===i;return {x:clamp(p.x+(p.x<26.5?2:-2),2,51),y:Math.min(107,over?Math.max(s+15,p.y+5):p.y-2)};}
  if(c.safety===i){const p=[...g.players.slice(2,5)].sort((a,b)=>b.y-a.y)[0];return {x:clamp(p.x,13,40),y:Math.min(107,Math.max(s+22,p.y+5))};}
- const z=c.zones[i],y=s+z.y+Math.min(g.liveTime*2,10)*z.drift;
+ const z=c.zones?.[i];if(!z)return null;const y=s+z.y+Math.min(g.liveTime*2,10)*z.drift;
  const near=g.players.slice(2,5).filter(p=>Math.abs(p.x-z.x)<8&&Math.abs(p.y-y)<8).sort((a,b)=>Math.hypot(a.x-d.x,a.y-d.y)-Math.hypot(b.x-d.x,b.y-d.y))[0];
  return near?{x:clamp(near.x,z.x-7,z.x+7),y:Math.min(107,near.y+g.defenseAI.adapt)}:{x:z.x,y:Math.min(107,y)};
 }
 export function playDiagram(id){
  const p=PLAYS.find(p=>p.id===id);if(p){if(p.kind==='run')return `M27 40 L${p.lane} 31 L${p.lane} 16`;return [2,3,4].map(slot=>Array.from({length:22},(_,i)=>{const r=routeFor(p,{slot,speed:7.2,routeRunning:80},i*.25,0);return `${i?'L':'M'}${r.x.toFixed(1)} ${(38-r.y*.75).toFixed(1)}`;}).join(' ')).join(' ');}
  const d=DEFENSE.find(p=>p.id===id);if(!d?.coverage)return null;
- const c=d.coverage;return Array.from({length:7},(_,i)=>{const x=[23,30,15,39,8,45,26.5][i],y=34-d.depths[i]*.7;if(c.rush.includes(i))return `M${x} ${y} L27 39`;if(c.man?.[i]!==undefined)return `M${x} ${y} L${[0,0,7,46,36][c.man[i]]} 15`;if(c.zones?.[i])return `M${x} ${y} L${c.zones[i].x} ${34-c.zones[i].y*.7}`;return `M${x-3} ${y} L${x+3} ${y} M${x} ${y-3} L${x} ${y+3}`;}).join(' ');
+ const c=d.fullCoverage||d.coverage,front=FRONTS[d.system];return Array.from({length:d.fullCoverage?11:7},(_,i)=>{const x=front?.x[i]??[23,30,15,39,8,45,26.5][i],y=34-(front?.y[i]??d.depths[i])*.7;if(c.rush.includes(i))return `M${x} ${y} L27 39`;if(c.man?.[i]!==undefined)return `M${x} ${y} L${[26.5,22,7,46,36,23,30,20,26.5,33,30][c.man[i]]} 15`;if(c.zones?.[i])return `M${x} ${y} L${c.zones[i].x} ${34-c.zones[i].y*.7}`;return `M${x-3} ${y} L${x+3} ${y} M${x} ${y-3} L${x} ${y+3}`;}).join(' ');
 }
 function baseRoute(play,p,time,spot){
-  if(play.routes)return waypointRoute(play.routes[p.slot-2],p,time,spot);
+  if(play.routes)return waypointRoute(play.routes[p.slot-2],p,Math.max(0,time-(play.releaseDelay?.[p.slot]||0)),spot);
   const depth=time*p.speed*(.94+(p.routeRunning||80)*.00075),slot=p.slot;let x=[0,0,7,46,36][slot],y=spot+Math.min(depth,45);
   if(play.id==='slants'){x=slot===2?Math.min(33,7+depth*.8):slot===3?Math.max(21,46-depth*.8):36-depth*.35;y=spot+Math.min(depth*.7,30);}
   if(play.id==='curls'){
