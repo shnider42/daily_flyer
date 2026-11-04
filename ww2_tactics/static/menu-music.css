@@ -1,0 +1,5 @@
+.menu-music{display:flex;align-items:center;flex-wrap:wrap;gap:10px 16px;margin:0 0 18px;color:var(--ink)}
+.home-screen #menuMusicToggle{min-height:44px;padding:10px 16px;border:1px solid var(--line);border-radius:3px;background:transparent;color:inherit;font-size:13px;white-space:nowrap}
+.home-screen #menuMusicToggle[aria-pressed="true"]{border-color:#9b8859}
+.menu-music-copy{font-size:13px;line-height:1.5;min-width:0}
+.menu-music-copy small{display:block;color:var(--muted);font-size:11px}

@@ -192,7 +192,7 @@ def create_app(db_path=None, *, background_ai=None, start_worker=True):
     @app.after_request
     def headers(response):
         response.headers["Cache-Control"] = "no-store"
-        if request.path.startswith(('/assets/unit-images/','/assets/operations/')) and response.status_code == 200:
+        if request.path.startswith(('/assets/unit-images/','/assets/operations/','/assets/audio/')) and response.status_code in (200, 206):
             response.headers['Cache-Control'] = 'public, max-age=31536000, immutable'
         response.headers["Referrer-Policy"] = "no-referrer"
         response.headers["X-Content-Type-Options"] = "nosniff"

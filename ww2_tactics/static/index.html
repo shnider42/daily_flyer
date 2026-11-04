@@ -6,6 +6,7 @@
 <link rel="stylesheet" href="/assets/combined.css"><script src="/assets/combined.js" defer></script>
 <link rel="stylesheet" href="/assets/mobile-battle.css">
 <link rel="stylesheet" href="/assets/home.css"><script src="/assets/home.js" defer></script>
+<link rel="stylesheet" href="/assets/menu-music.css?v=1"><script src="/assets/menu-music.js?v=1" defer></script>
 <link rel="stylesheet" href="/assets/battle-help.css"><script src="/assets/battle-help.js" defer></script>
 <script src="/assets/order-capabilities.js" defer></script><link rel="stylesheet" href="/assets/order-capabilities.css">
 <link rel="stylesheet" href="/assets/dad-mode.css"><script src="/assets/dad-mode.js" defer></script>
@@ -40,6 +41,8 @@
 <main>
 <section id="lobby">
  <div class="home-heading"><div class="home-heading-copy"><p class="eyebrow">DOUBLE SECRET PROBATION</p><h1>SQUAD LEADER</h1><p class="intro">A turn-based WWII sandbox.</p><nav class="home-shortcuts" aria-label="Home sections"><a href="#operationSetup">New battle</a><a href="#multiplayerLobby">Find / resume a game</a></nav></div><span class="home-stamp" aria-hidden="true">FIELD TABLE<br>DSL / 09</span></div>
+ <div id="menuMusicControls" class="menu-music" hidden><button id="menuMusicToggle" type="button" aria-pressed="true" aria-describedby="menuMusicStatus">Music: on</button><div class="menu-music-copy">Battlefield 1942 · Full arrangement · 2:40<small id="menuMusicStatus" role="status">Starts after your first tap.</small></div></div>
+ <audio id="menuMusic" preload="none" loop hidden></audio>
  <p id="entryStatus" class="entry-status" role="status">Operations room · No battle open</p>
  <section id="multiplayerLobby" aria-label="Multiplayer games">
   <div class="commander-bar"><div><strong id="commanderIdentity">Your games, on any device.</strong><p id="commanderHint">Sign in with a commander name and password to keep all your multiplayer seats together.</p></div><div class="lobby-buttons"><button id="commanderSignIn">Sign in / create commander</button><button id="commanderSignOut" hidden>Sign out</button><a id="adminConsoleLink" href="/admin" hidden>Admin console ↗</a></div></div>
