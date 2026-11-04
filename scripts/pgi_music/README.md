@@ -23,7 +23,9 @@ The active mixed catalog is `music/manifest.json`; scene ordering lives in
 See `FILM_SCORE.md` for orchestral rendering and `fights/PROVENANCE.md` for cues.
 
 Green Bay uses **Lambeau Bounce**, a compact original synth-funk scoring cue
-with a springy octave bass, chip melody, synth stabs and clap backbeat. Rebuild
+with a falling slide-whistle opening, a touchdown hit, and a spacious repeated
+bass-and-clap groove. The roughly 13-second cue builds around the scoring
+moment. Rebuild
 only this cue with `python scripts/pgi_music/compose_green_bay.py --render`.
 Its source score and provenance live in `fights/`; the soundtrack panel offers
 a **GB · Lambeau Bounce** preview. Scoring cues stay outside the six-track

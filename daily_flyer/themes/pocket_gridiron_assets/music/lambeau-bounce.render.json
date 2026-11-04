@@ -1,21 +1,21 @@
 {
   "sample_rate": 44100,
   "channels": 2,
-  "loop_seconds": 16.0,
-  "preview_seconds": 16.35,
+  "loop_seconds": 12.8571,
+  "preview_seconds": 13.2071,
   "peak_dbfs": -2.938,
-  "rms_dbfs": -17.887,
-  "pre_master_peak": 0.6663,
+  "rms_dbfs": -19.332,
+  "pre_master_peak": 0.7612,
   "notes_per_track": {
-    "Rubbery octave bass": 54,
-    "Original chip hook": 42,
-    "Syncopated synth stabs": 96,
-    "Sixteenth-note clav answers": 90,
-    "Electronic kick clap and hats": 168,
-    "Arcade sparkle reply": 8
+    "Falling touchdown whistle": 1,
+    "Touchdown landing": 1,
+    "Rubbery octave bass": 21,
+    "Short repeated chip hook": 11,
+    "Spaced synth answers": 39,
+    "Kick clap and eighth-note hats": 53
   },
   "wav_retained": false,
   "mp3": "/workspace/scratch/d87dfc895b66/pgi/daily_flyer/themes/pocket_gridiron_assets/music/lambeau-bounce.mp3",
-  "render_seconds": 2.2,
+  "render_seconds": 1.61,
   "audio_source": "Original procedural oscillators and noise; no third-party samples."
 }

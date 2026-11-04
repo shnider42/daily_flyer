@@ -15,81 +15,64 @@ from compose_fights import HERE, MUSIC, SCORES, REPO, note, track
 
 
 def score():
-    bass, lead, stabs, clav, drums, sparks = [], [], [], [], [], []
-    # D minor, with a fourth-degree answer and a dominant turnaround.
-    harmony = [
-        (38, [62, 65, 69, 72]), (38, [60, 65, 69, 74]),
-        (43, [62, 65, 67, 70]), (38, [60, 64, 65, 69]),
-        (46, [62, 65, 68, 72]), (43, [62, 65, 69, 70]),
-        (45, [61, 64, 67, 71]), (38, [62, 65, 69, 74]),
+    bass, lead, stabs, drums = [], [], [], []
+    # The touchdown owns the opening: whistle down, a landing, then the band.
+    # Two beats (1.07 seconds) make the setup audible without delaying the party.
+    whistle = [note(88, 0, 1.85, 101)]
+    landing = [note(38, 2, .65, 103)]
+    bass.extend([note(38, 2, .7, 108), note(50, 3.5, .27, 91)])
+    stabs.extend(note(p, 2, .65, 87) for p in [62, 65, 69])
+    drums.extend([note(36, 2, .1, 95), note(38, 3, .1, 92)])
+
+    # A repeatable two-bar vamp. Let the bass and backbeat carry the celebration;
+    # the small upper hook answers them instead of playing over every beat.
+    grooves = [
+        [(0, 0, .65), (1.5, 12, .30), (2.25, 0, .38), (3.25, 7, .38)],
+        [(0, 0, .65), (.75, 12, .25), (1.75, 0, .38), (2.5, 7, .35), (3.5, 10, .28)],
     ]
-    # Tuple: offset, pitch above root, duration. Leave air around the backbeat.
-    groove = [(0, 0, .38), (.75, 12, .17), (1.5, 0, .18),
-              (1.75, 10, .18), (2.5, 7, .34), (3.25, 12, .16),
-              (3.75, 0, .18)]
     hooks = [
-        [(0, 74, .35), (.75, 69, .18), (1.5, 72, .2), (2, 77, .55), (3, 76, .2), (3.5, 74, .3)],
-        [(.5, 69, .2), (1.25, 72, .2), (2, 74, .3), (2.75, 81, .2), (3.25, 77, .4)],
-        [(.25, 79, .4), (1, 77, .2), (1.75, 74, .2), (2.5, 70, .3), (3.25, 74, .45)],
-        [(0, 77, .3), (.75, 76, .2), (1.5, 74, .4), (2.5, 72, .2), (3.25, 69, .4)],
-        [(0, 77, .35), (.75, 74, .2), (1.5, 72, .2), (2, 80, .5), (3, 77, .2), (3.5, 74, .3)],
-        [(.5, 79, .3), (1.25, 77, .2), (2, 74, .3), (2.75, 77, .2), (3.25, 81, .4)],
-        [(0, 76, .35), (.75, 73, .2), (1.5, 71, .2), (2.25, 69, .2), (3, 73, .2), (3.5, 76, .3)],
-        [(0, 77, .3), (.75, 76, .2), (1.5, 72, .25), (2.25, 74, 1.45)],
+        [(.5, 69, .45), (1.25, 74, .65), (2.75, 72, .50)],
+        [(.5, 69, .65), (2.75, 74, .70)],
     ]
-    for bar, (root, chord) in enumerate(harmony):
-        at = bar * 4
-        for i, (offset, interval, length) in enumerate(groove):
-            if bar == 7 and offset >= 2.25:
-                continue
-            bass.append(note(root + interval, at + offset, length, 107 if i == 0 else 91))
-        for offset, pitch, length in hooks[bar]:
-            lead.append(note(pitch, at + offset, length, 102 if bar >= 4 else 96))
-        for offset in [0, 1.75, 3]:
-            if bar == 7 and offset >= 2.25:
-                continue
-            stabs.extend(note(p, at + offset, .20, 86 if offset == 0 else 74) for p in chord)
-        for i, offset in enumerate([.5, 1.25, 2.75, 3.5]):
-            if bar == 7 and offset >= 2.25:
-                continue
-            clav.extend(note(p + 12, at + offset, .105, 67 + i % 2 * 9) for p in chord[:3])
-        for offset in [0, 1.5, 2.5, 3.75]:
-            if bar == 7 and offset >= 2.25:
-                continue
-            drums.append(note(36, at + offset, .1, 107 if offset == 0 else 83))
+    for bar in range(4):
+        at = 4 + bar * 4
+        root = 38 if bar % 2 == 0 else 43
+        chord = [62, 65, 69, 72] if bar % 2 == 0 else [62, 65, 67, 70]
+        for offset, interval, length in grooves[bar % 2]:
+            bass.append(note(root + interval, at + offset, length, 108 if offset == 0 else 96))
+        for offset, pitch, length in hooks[bar % 2]:
+            lead.append(note(pitch, at + offset, length, 91))
+        for offset in [.75, 2.75]:
+            stabs.extend(note(p, at + offset, .32, 82) for p in chord)
+        for offset in [0, 2.5]:
+            drums.append(note(36, at + offset, .1, 108 if offset == 0 else 94))
         for offset in [1, 3]:
-            if bar == 7 and offset >= 2.25:
-                continue
-            drums.append(note(38, at + offset, .1, 93))
-        for step in range(16):
-            offset = step / 4 + (.025 if step % 2 else 0)
-            if bar == 7 and offset >= 2.25:
-                continue
-            drums.append(note(46 if step == 14 else 42, at + offset, .05,
-                              55 if step % 2 == 0 else 31))
-        # A short, written chip cascade answers the hook at the phrase break.
-        if bar in [3, 6]:
-            sparks.extend(note(p, at + 3.25 + i * .125, .10, 59)
-                          for i, p in enumerate([86, 81, 77, 74]))
-    # A resolved chord and bass stop; no looping or long dead-air tail.
-    bass.append(note(38, 30.25, 1.45, 114))
-    stabs.extend(note(p, 30.25, 1.45, 94) for p in [62, 65, 69, 74])
-    drums.extend([note(36, 30.25, .1, 112), note(49, 30.25, .1, 61)])
+            drums.append(note(38, at + offset, .1, 101))
+        for step in range(8):
+            drums.append(note(42, at + step / 2, .05, 45 if step % 2 == 0 else 33))
+
+    # One final punctuation mark, with room for crowd noise and the next play.
+    bass.append(note(38, 20, 2.6, 111))
+    lead.append(note(74, 20, 1.9, 93))
+    stabs.extend(note(p, 20, 2.6, 96) for p in [62, 65, 69, 74])
+    drums.extend([note(36, 20, .1, 109), note(38, 20, .1, 82), note(49, 20, .1, 53)])
     return dict(
-        id='lambeau-bounce', title='Lambeau Bounce', bpm=120, bars=8,
+        id='lambeau-bounce', title='Lambeau Bounce', bpm=112, bars=6,
         beats_per_bar=4, preview_gain=.8, loop=False, purpose='GB scoring stinger',
+        revision='Whistle, touchdown hit, repeated groove, final punctuation',
         provenance='scripts/pgi_music/fights/PROVENANCE.md',
         melody_source='Original PGI synth-funk composition',
-        sections=[{'beat': 0, 'name': 'Immediate funk hook'},
-                  {'beat': 8, 'name': 'Call and response'},
-                  {'beat': 16, 'name': 'Upper-register celebration'},
-                  {'beat': 24, 'name': 'Turnaround and touchdown stop'}],
-        tracks=[track('Rubbery octave bass', 'funk_bass', .70, 0, bass),
-                track('Original chip hook', 'chip_lead', .67, .02, lead),
-                track('Syncopated synth stabs', 'funk_stab', .28, -.12, stabs),
-                track('Sixteenth-note clav answers', 'funk_clav', .21, .13, clav),
-                track('Electronic kick clap and hats', 'electronic_drums', .35, 0, drums),
-                track('Arcade sparkle reply', 'chip_lead', .21, -.08, sparks)],
+        sections=[{'beat': 0, 'name': 'Falling slide-whistle opening'},
+                  {'beat': 2, 'name': 'Touchdown impact and bass pickup'},
+                  {'beat': 4, 'name': 'First two-bar celebration groove'},
+                  {'beat': 12, 'name': 'Repeat the hook'},
+                  {'beat': 20, 'name': 'Final hit and release'}],
+        tracks=[track('Falling touchdown whistle', 'touchdown_whistle', .72, 0, whistle),
+                track('Touchdown landing', 'touchdown_hit', .42, 0, landing),
+                track('Rubbery octave bass', 'funk_bass', .84, 0, bass),
+                track('Short repeated chip hook', 'chip_lead', .44, .02, lead),
+                track('Spaced synth answers', 'funk_stab', .27, -.08, stabs),
+                track('Kick clap and eighth-note hats', 'electronic_drums', .39, 0, drums)],
     )
 
 

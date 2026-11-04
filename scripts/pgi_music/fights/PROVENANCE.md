@@ -9,7 +9,7 @@ is used. Only the two historic songs' single-note melodies are transcribed.
 | --- | --- | --- | --- |
 | `for-boston.mp3` | New England scoring | Thomas J. Hurley's **For Boston**, opening pickup and eight bars | B-flat major, quarter = 156, new tonic ending |
 | `notre-dame-victory.mp3` | New York Jets scoring | Michael J. Shea's **Notre Dame Victory March**, opening eight + final eight chorus bars | E-flat major, half = 112, second ending; about 18 seconds |
-| `lambeau-bounce.mp3` | Green Bay scoring | **Lambeau Bounce**, an original PGI synth-funk cue | D minor, quarter = 120, eight bars; about 16 seconds |
+| `lambeau-bounce.mp3` | Green Bay scoring | **Lambeau Bounce**, an original PGI synth-funk cue | D minor, quarter = 112, six bars; about 13 seconds |
 | `pgi-score.mp3` | Other teams scoring | **Six on the Board**, an original PGI melody | D major, quarter = 152 |
 
 ## Green Bay: Lambeau Bounce
@@ -20,9 +20,16 @@ backbeat and arcade flourishes. The melody, bass figure, harmony and ending
 are newly composed. No source recording, sample, lyric, MIDI transcription or
 transcribed hook is used.
 
-Six procedural parts play an eight-bar call-and-response phrase at 120 BPM,
-followed by a resolved stop. The 16.35-second cue plays once for Green Bay
-scores and follows the existing scoring-music switch and next-play fade.
+The revised arrangement starts with a continuous, nearly one-second descending
+slide-whistle gesture. A compact low impact lands at 1.07 seconds; a spacious
+bass pickup leads into the repeated two-bar funk groove at 2.14 seconds. The
+backbeat uses eighth-note hats, and the short upper hook repeats instead of
+continuously introducing new notes. A final hit at 10.71 seconds releases into
+the crowd. Six bars at 112 BPM give a 13.21-second recording.
+
+The cue plays once for Green Bay scores and follows the existing scoring-music
+switch and next-play fade. The whistle and impact are baked into the scoring
+recording, so their timing and level use the same playback path as the music.
 It is also available through the soundtrack panel's **GB · Lambeau Bounce**
 preview button. The main soundtrack rotation is unchanged.
 

@@ -145,6 +145,32 @@ def funk_voice(pitch, duration, velocity, instrument):
     return p * gain * (velocity / 127) ** .8
 
 
+def scoring_effect(pitch, duration, velocity, instrument):
+    """A playful falling whistle and its compact landing, synthesized locally."""
+    dur = max(.12, duration + .035)
+    t = np.arange(int(dur * SR)) / SR
+    if instrument == 'touchdown_whistle':
+        progress = np.clip(t / duration, 0, 1)
+        start_hz = 440 * 2 ** ((pitch - 69) / 12)
+        # A continuous three-octave fall is the whole opening gesture. Keep
+        # the tone round, with a little breath and wobble rather than a siren.
+        frequency = start_hz * 2 ** (-3 * progress ** 1.15)
+        frequency *= 1 + .009 * np.sin(2 * np.pi * 6 * t)
+        phase = 2 * np.pi * np.cumsum(frequency) / SR
+        p = np.sin(phase) + .10 * np.sin(3 * phase)
+        p += .012 * filt(RNG.standard_normal(len(t)), 'bandpass', [900, 4200])
+        p *= release_envelope(len(t), dur, .018, .075)
+        gain = .42
+    else:
+        phase = 2 * np.pi * (49 * t + 100 * .035 * (1 - np.exp(-t / .035)))
+        body = (np.sin(phase) + .24 * np.sin(2 * phase)) * np.exp(-t / .12)
+        air = filt(RNG.standard_normal(len(t)), 'lowpass', 1900)
+        p = np.tanh(1.3 * body) + .30 * air * np.exp(-t / .055)
+        p *= release_envelope(len(t), dur, .002, .07)
+        gain = .53
+    return p * gain * (velocity / 127) ** .8
+
+
 def electronic_drum(pitch, duration, velocity):
     if pitch in [35, 36]:
         dur = .42
@@ -323,6 +349,9 @@ def main():
                 lp, rp = left, right
             elif ins in ['funk_bass', 'funk_clav', 'chip_lead', 'funk_stab']:
                 wave = funk_voice(pitch, duration, velocity, ins)
+                lp, rp = left, right
+            elif ins in ['touchdown_whistle', 'touchdown_hit']:
+                wave = scoring_effect(pitch, duration, velocity, ins)
                 lp, rp = left, right
             else:
                 wave = pad(pitch, duration, velocity, ins == 'lead')

@@ -24,7 +24,7 @@ test('Green Bay scores use Lambeau Bounce as either team, while opponents retain
   const g=new Game(...teams.map(t=>buildTeam(t,data)),'pro',seededRandom(9));
   const urls=[],[p]=player(async url=>{urls.push(String(url));return {ok:true,arrayBuffer:async()=>new ArrayBuffer(8)};});
   p.update({background:false});p.warmScores(teams);await settle();
-  assert.ok(urls.some(url=>url.endsWith('/music/lambeau-bounce.mp3')));
+  assert.ok(urls.some(url=>new URL(url).pathname.endsWith('/music/lambeau-bounce.mp3')));
   for(const team of [packers,1-packers]){
    g.beginDrive(team,95);assert.equal(g.choose(g.userOffense?'dive':g.defensePlays[0].id),true);assert.equal(g.snap(team),true);g.events=[];g.finish('touchdown',100);
    const event=g.events.find(e=>e.scorePoints===6);assert.ok(event);
