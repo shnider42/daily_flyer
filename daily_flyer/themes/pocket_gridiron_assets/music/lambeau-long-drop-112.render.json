@@ -1,0 +1,21 @@
+{
+  "sample_rate": 44100,
+  "channels": 2,
+  "loop_seconds": 18.8095,
+  "preview_seconds": 19.1595,
+  "peak_dbfs": -2.11,
+  "rms_dbfs": -15.465,
+  "pre_master_peak": 0.6907,
+  "normalization_peak": 0.49201112347198084,
+  "notes_per_track": {
+    "Opening falling synth": 1,
+    "Repeating octave synth bass": 46,
+    "Low chord punches": 52,
+    "Two-bar synth answer": 19,
+    "Straight 112-BPM backbeat": 72
+  },
+  "wav_retained": false,
+  "mp3": "/workspace/scratch/d87dfc895b66/pgi/daily_flyer/themes/pocket_gridiron_assets/music/lambeau-long-drop-112.mp3",
+  "render_seconds": 1.52,
+  "audio_source": "Original procedural oscillators and noise; no third-party samples."
+}

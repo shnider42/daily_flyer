@@ -1,0 +1,29 @@
+{
+  "checked": "2026-11-03",
+  "method": "FFmpeg decode, finite/nonzero samples, no clipping, mono mix, score bounds, exact body beat spacing and decoded shared-intro comparison",
+  "shared_intro_rms_difference_dbfs": -67.47,
+  "assets": [
+    {
+      "id": "lambeau-long-drop-63",
+      "bpm": 63,
+      "duration_seconds": 30.826,
+      "intro_seconds": 3.809524,
+      "decoded_peak_dbfs": -2.74,
+      "decoded_rms_dbfs": -17.394,
+      "mono_rms_dbfs": -17.394,
+      "decoded_clip_samples": 0,
+      "bytes": 432759
+    },
+    {
+      "id": "lambeau-long-drop-112",
+      "bpm": 112,
+      "duration_seconds": 19.16,
+      "intro_seconds": 3.809524,
+      "decoded_peak_dbfs": -2.193,
+      "decoded_rms_dbfs": -15.908,
+      "mono_rms_dbfs": -15.909,
+      "decoded_clip_samples": 0,
+      "bytes": 269286
+    }
+  ]
+}

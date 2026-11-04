@@ -419,7 +419,10 @@ def main():
     mix = np.tanh(mix * .78)
     peak = float(np.max(np.abs(mix)))
     target = 10 ** (-1.0 / 20)
-    mix *= target / max(peak, 1e-8) * float(score.get("preview_gain", 1.0))
+    # Comparison takes can share a reference peak so their common intro keeps
+    # precisely the same level. The measured peak remains the clipping floor.
+    normalization_peak = max(peak, float(score.get('normalization_peak', 0)), 1e-8)
+    mix *= target / normalization_peak * float(score.get("preview_gain", 1.0))
     # Only final release tail fades: the written loop attack stays clean.
     fade_n = min(int(.15 * SR), len(mix))
     mix[-fade_n:] *= np.linspace(1, 0, fade_n)[:,None]
@@ -436,7 +439,8 @@ def main():
         'sample_rate': SR, 'channels': 2, 'loop_seconds': round(loop_s, 4),
         'preview_seconds': round(length / SR, 4), 'peak_dbfs': round(20 * math.log10(np.max(np.abs(mix)) + 1e-12), 3),
         'rms_dbfs': round(20 * math.log10(np.sqrt(np.mean(mix**2)) + 1e-12), 3),
-        'pre_master_peak': round(raw_peak, 4), 'notes_per_track': instrument_notes,
+        'pre_master_peak': round(raw_peak, 4), 'normalization_peak': normalization_peak,
+        'notes_per_track': instrument_notes,
         'wav_retained': args.keep_wav, 'mp3': str(mp3_path), 'render_seconds': round(time.time() - started, 2),
         'audio_source': 'Original procedural oscillators and noise; no third-party samples.'
     }

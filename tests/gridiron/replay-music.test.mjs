@@ -18,6 +18,17 @@ const manifest=JSON.parse(fs.readFileSync(new URL('../../daily_flyer/themes/pock
 function context(){const c={currentTime:0,state:'running',sources:[],decodeAudioData:async()=>({duration:55}),createGain:()=>({gain:{value:0,setValueAtTime(){},linearRampToValueAtTime(){},cancelScheduledValues(){},setTargetAtTime(){}},connect(){},disconnect(){}}),createBufferSource(){const s={connect(){},disconnect(){},start(at,offset){this.started={at,offset};},stop(){this.stopped=true;}};c.sources.push(s);return s;}};return c;}
 function player(fetcher=async url=>({ok:true,json:async()=>manifest,arrayBuffer:async()=>new ArrayBuffer(8)})){const p=new PGIMusic({fetcher}),c=context();p.catalog=manifest.tracks;p.attach(c,{},{});return [p,c];}
 const settle=()=>new Promise(resolve=>setImmediate(resolve));
+test('Green Bay comparison previews switch cleanly, obey mute and leave actual scores on the current cue',async()=>{
+ const [p]=player();p.update({background:false});
+ p.previewScore('gb63');await settle();const first=p.scorer;
+ assert.equal(first.track.id,'lambeau-long-drop-63');
+ p.previewScore('gb112');await settle();assert.equal(first.stopped,true);
+ assert.equal(p.scorer.track.id,'lambeau-long-drop-112');
+ p.previewScore('missing');assert.equal(p.scorer.track.id,'lambeau-long-drop-112');
+ p.score('GB');await settle();assert.equal(p.scorer.track.id,'lambeau-bounce');
+ assert.ok(p.cache.size<=3);assert.equal(p.active,null);
+ p.configure({scoring:false});p.previewScore('gb63');await settle();assert.equal(p.scorer,null);
+});
 test('Green Bay scores use Lambeau Bounce as either team, while opponents retain their own cue',async()=>{
  for(const packers of [0,1]){
   const teams=packers===0?['GB','BUF']:['BUF','GB'];

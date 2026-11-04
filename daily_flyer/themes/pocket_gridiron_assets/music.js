@@ -1,6 +1,10 @@
 // Adapted from Breach's authored-score transport: shared AudioContext, bounded
 // decoded cache, guarded async loads, local mixing, and explicit pause handling.
 export const SCORE_CUES={NE:{id:'for-boston',title:'For Boston',src:'./music/for-boston.mp3'},NYJ:{id:'notre-dame-victory',title:'Notre Dame Victory March',src:'./music/notre-dame-victory.mp3?v=23'},GB:{id:'lambeau-bounce',title:'Lambeau Bounce',src:'./music/lambeau-bounce.mp3?v=26'},default:{id:'pgi-score',title:'Six on the Board',src:'./music/pgi-score.mp3'}};
+export const SCORE_VARIANTS={
+ gb63:{id:'lambeau-long-drop-63',title:'Green Bay · Take 1 · 63 BPM',src:'./music/lambeau-long-drop-63.mp3'},
+ gb112:{id:'lambeau-long-drop-112',title:'Green Bay · Take 2 · 112 BPM',src:'./music/lambeau-long-drop-112.mp3'}
+};
 export const FAMILY_NAMES={all:'Match the moment',arcade:'Arcade favorites',film:'Postgame film scores'};
 export const SCENE_TRACKS={
  menu:['saturday-voltage','neon-end-zone','fourth-and-thunder'],
@@ -50,8 +54,10 @@ export class PGIMusic {
   const generation=++this.generation;this.pending=track;this.status=`Loading: ${track.title}`;
   try{const buffer=await this.prepare(track);if(generation!==this.generation||this.blocked||this.background===false||!this.enabled||!this.ready())return;const offset=this.selected?.id===track.id?this.resumeAt:0;const outgoing=this.active;this.active=this.makeVoice(buffer,track,this.output,Math.min(offset,buffer.duration-.05));this.fade(outgoing,.65);this.selected=track;this.resumeAt=0;this.cursor=this.list().findIndex(t=>t.id===track.id);this.status=track.title;this.mix();const list=this.list(),next=list[(this.cursor+1)%list.length];if(next&&next.id!==track.id&&this.loads.size<2)this.prepare(next).catch(()=>{});}catch{if(generation===this.generation){this.failed.add(track.id);this.status=`Could not load ${track.title}. Skipping.`;this.selected=null;this.resumeAt=0;}}finally{if(generation===this.generation)this.pending=null;}
  }
- score(team){
-  if(!this.scoring||!this.ready()||this.blocked)return;this.scoreAllowed=true;const track=SCORE_CUES[team]||SCORE_CUES.default,generation=++this.scoreGeneration,deadline=this.context.currentTime+3;
+ score(team){this.playScore(SCORE_CUES[team]||SCORE_CUES.default);}
+ previewScore(id){if(Object.hasOwn(SCORE_VARIANTS,id))this.playScore(SCORE_VARIANTS[id]);}
+ playScore(track){
+  if(!this.scoring||!this.ready()||this.blocked)return;this.scoreAllowed=true;const generation=++this.scoreGeneration,deadline=this.context.currentTime+3;
   this.prepare(track).then(buffer=>{if(generation!==this.scoreGeneration||!this.scoring||this.blocked||this.scoreAllowed===false||!this.ready()||this.context.currentTime>deadline)return;this.fade(this.scorer,.12);this.scorer=this.makeVoice(buffer,track,this.scoreOutput);this.mix();}).catch(()=>{});
  }
  update({blocked=false,live=false,background=true,scoreAllowed=true,scene=this.scene}={}){

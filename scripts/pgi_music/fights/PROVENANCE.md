@@ -53,6 +53,28 @@ iPhone speaker performance remains a listening check on that device.
 
 ## Sources and scope
 
+### Green Bay comparison takes
+
+Two additional previews retain the accepted 126-BPM cue's original PGI musical
+material while exploring the requested slower pacing. Both use a 3.8095-second
+intro, twice the preceding cue's length, with the same falling synth and snare
+pickup at the same absolute times. Their mastering reference is shared so the
+intro's level is consistent as well. No recording or transcribed song hook is
+used. They are auditions in the soundtrack panel; Green Bay's automatic cue
+remains `lambeau-bounce.mp3` pending selection of a preferred take.
+
+| Recording | Groove | Duration |
+| --- | --- | --- |
+| `lambeau-long-drop-63.mp3` | 63 BPM, half the reference tempo; the body keeps its pitches and seven-bar phrasing | 30.83 seconds |
+| `lambeau-long-drop-112.mp3` | 112 BPM; louder repeating bass, firmer clap accents, shorter articulation and quieter upper answer | 19.16 seconds |
+
+`compose_green_bay_takes.py --render` composes and renders both. The source
+scores include the common intro duration and the separate body tempo. Their
+fractional total bar counts express that fixed-duration intro on each body's
+beat grid. `comparison-quality.json` records decoded audio checks and the
+shared intro comparison. This is a timing and signal check, not a claim of
+subjective listening quality or physical iPhone testing.
+
 **For Boston**
 
 - Boston College's Burns Library catalogs the published sheet music

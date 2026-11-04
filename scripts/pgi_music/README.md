@@ -31,6 +31,13 @@ Its source score and provenance live in `fights/`; the soundtrack panel offers
 a **GB · Lambeau Bounce** preview. Scoring cues stay outside the six-track
 background rotation.
 
+Two Green Bay comparison previews share a longer 3.81-second falling intro:
+**Take 1** plays the body at **63 BPM**, and **Take 2** uses **112 BPM** with
+more bass and clap emphasis. Both are in the soundtrack panel. Render them
+with `python scripts/pgi_music/compose_green_bay_takes.py --render`; the
+current automatic scoring song remains separate. The renderer supports a
+shared normalization reference to keep their common intro at the same level.
+
 ## Original arcade album
 
 Nine original instrumental songs, composed for Pocket Gridiron. The `gallop`,

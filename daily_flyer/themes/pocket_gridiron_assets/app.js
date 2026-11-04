@@ -14,12 +14,12 @@ import {passPlacement,passAim} from './passing.js?v=23';
 import {playDiagram} from './plays.js?v=23';
 import {ReplayTape} from './replay.js?v=23';
 import {BoothVoices,giveBoothVoice} from './booth-lines.js?v=23';
-import {FAMILY_NAMES} from './music.js?v=26';
+import {FAMILY_NAMES} from './music.js?v=27';
 import {showOffensiveRoutes,suggestions,coachText,hitDefender,BOOK_FILTERS,bookPage} from './presentation.js?v=23';
 import {teamStrengths} from './teams.js?v=23';
 import {RATING_LABELS,visibleRatings} from './ratings.js?v=23';
 import {bindAudioActivation} from './device-audio.js?v=23';
-import {StadiumAudio} from './audio.js?v=26';
+import {StadiumAudio} from './audio.js?v=27';
 import {bindGameButton, protectGameSurface, setGameButtonEnabled,primaryCommand,stickInput,movementInput} from './controls.js?v=23';
 import {Game,PLAYS,DEFENSE,clamp} from './engine.js?v=23';
 import {TEAMS,buildTeam,fetchFreshRoster,validateRoster} from './roster.js?v=23';
@@ -77,7 +77,9 @@ $('showSoundtrack').onclick=$('pauseSoundtrack').onclick=openSoundtrack;
 $('soundtrackDialog').addEventListener('close',()=>{audition=false;});
 function renderTracks(){const tracks=stadium.soundtrack.list({browse:true});$('trackList').replaceChildren(...tracks.map(t=>{const b=el('button',undefined,'trackchoice');b.append(el('b',t.title),el('small',`${FAMILY_NAMES[t.family]} · ${t.bpm} BPM · ${Math.round(t.duration)} sec`),el('span',t.description));b.onclick=()=>{stadium.settings.music=true;syncAudio();audioUnlock();stadium.soundtrack.choose(t.id);};return b;}));}
 stadium.soundtrack.loadCatalog().then(renderTracks);
-for(const [id,team] of [['previewNE','NE'],['previewNYJ','NYJ'],['previewGB','GB'],['previewOther','BUF']])$(id).onclick=()=>{stadium.settings.scoringMusic=true;syncAudio();audioUnlock().then(()=>{stadium.soundtrack.update({blocked:false});stadium.soundtrack.score(team);});};
+function auditionScore(play){stadium.settings.scoringMusic=true;syncAudio();audioUnlock().then(()=>{stadium.soundtrack.update({blocked:false});play();});}
+for(const [id,team] of [['previewNE','NE'],['previewNYJ','NYJ'],['previewGB','GB'],['previewOther','BUF']])$(id).onclick=()=>auditionScore(()=>stadium.soundtrack.score(team));
+for(const [id,take] of [['previewGB63','gb63'],['previewGB112','gb112']])$(id).onclick=()=>auditionScore(()=>stadium.soundtrack.previewScore(take));
 function skipReplay(){if(game?.paused)return;replay.skip();keys={};resetStick();updateHUD();}
 bindGameButton($('skipReplay'),skipReplay);
 function replayHUD(){
