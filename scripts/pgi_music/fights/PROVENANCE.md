@@ -1,18 +1,40 @@
 # PGI scoring cues
 
-Prepared 2026-11-02. These are new synthesized instrumental performances, with
-new accompaniment, drum parts, orchestration and closing tags. No university,
-commercial or fan recording, sample, downloaded MIDI, or modern band arrangement
-is used. Only the two historic songs' single-note melodies are transcribed.
+Updated 2026-11-04. These are synthesized instrumental performances. The
+historic fight songs use transcribed single-note melodies with newly written
+accompaniment. The active Green Bay cue is an approximate reconstruction of a
+short instrumental intro, described separately below. No original recording
+samples or vocals are included in the shipped audio.
 
 | Asset | Used for | Musical source | Rendering |
 | --- | --- | --- | --- |
 | `for-boston.mp3` | New England scoring | Thomas J. Hurley's **For Boston**, opening pickup and eight bars | B-flat major, quarter = 156, new tonic ending |
 | `notre-dame-victory.mp3` | New York Jets scoring | Michael J. Shea's **Notre Dame Victory March**, opening eight + final eight chorus bars | E-flat major, half = 112, second ending; about 18 seconds |
-| `lambeau-bounce.mp3` | Green Bay scoring | **Lambeau Bounce**, an original PGI synth-funk cue | E minor, quarter = 126, eight bars; about 16 seconds |
+| `green-bay-bomb-intro.mp3` | Green Bay scoring | Approximate instrumental intro reconstruction of **You Dropped a Bomb on Me** by The Gap Band | Quarter = 125, eight bars; 16.64 seconds |
 | `pgi-score.mp3` | Other teams scoring | **Six on the Board**, an original PGI melody | D major, quarter = 152 |
 
-## Green Bay: Lambeau Bounce
+## Green Bay: You Dropped a Bomb on Me intro
+
+The selected version is the exact user-approved MP3 preview. It is an
+approximate reconstruction, not a verified note-for-note transcription or an
+original PGI composition. References used during construction were the
+MIDI-HITS P428 public audio demo and Dynamic Drum School's intro chart. All
+sounds in this asset are newly synthesized from oscillators and noise.
+
+The eight bars last 15.36 seconds at 125 BPM; release tail and MP3 padding
+bring the file to 16.64 seconds. The repeating bass figure enters at 7.68
+seconds. Relative to the initial reconstruction, bass and chord notes are
+raised 12 semitones. The downward pitch dip remains in its original lower
+register, with its pitch-bend curve intact; the drums are unchanged.
+
+`green-bay-bomb-intro.mid` preserves the editable source. Run
+`python scripts/pgi_music/render_green_bay_intro.py /tmp/pgi-green-bay` from
+the repository root to reproduce the MIDI and WAV. The approved MP3 uses
+44.1 kHz stereo, 192 kbps encoding. Its `.render.json` records the exact
+approved file's checksum and measured duration. The game and soundtrack
+preview share this asset and the existing scoring switch and next-play fade.
+
+## Archived Green Bay: Lambeau Bounce
 
 Added 2026-11-04. The creative reference is the springy synth-funk feel of
 **You Dropped a Bomb on Me**: octave bass, syncopated synth answers, a clap
@@ -35,11 +57,9 @@ continues at the same tempo through the last bar. Eight bars plus the release
 tail give a 15.59-second recording. Dedicated bass, chord and falling-synth
 patches replace the prior cue's sounds.
 
-The cue plays once for Green Bay scores and follows the existing scoring-music
-switch and next-play fade. Its intro is baked into the scoring recording so
-it uses the same timing and playback path as the band.
-It is also available through the soundtrack panel's **GB · Lambeau Bounce**
-preview button. The main soundtrack rotation is unchanged.
+This was the previous Green Bay scoring cue. Its asset and renderer remain
+archived; automatic scores and the main Green Bay preview now use the
+approved intro above.
 
 Rebuild this cue alone:
 
@@ -61,7 +81,7 @@ intro, twice the preceding cue's length, with the same falling synth and snare
 pickup at the same absolute times. Their mastering reference is shared so the
 intro's level is consistent as well. No recording or transcribed song hook is
 used. They are auditions in the soundtrack panel; Green Bay's automatic cue
-remains `lambeau-bounce.mp3` pending selection of a preferred take.
+now uses `green-bay-bomb-intro.mp3`; these earlier auditions remain separate.
 
 | Recording | Groove | Duration |
 | --- | --- | --- |

@@ -25,22 +25,22 @@ test('Green Bay comparison previews switch cleanly, obey mute and leave actual s
  p.previewScore('gb112');await settle();assert.equal(first.stopped,true);
  assert.equal(p.scorer.track.id,'lambeau-long-drop-112');
  p.previewScore('missing');assert.equal(p.scorer.track.id,'lambeau-long-drop-112');
- p.score('GB');await settle();assert.equal(p.scorer.track.id,'lambeau-bounce');
+ p.score('GB');await settle();assert.equal(p.scorer.track.id,'green-bay-bomb-intro');
  assert.ok(p.cache.size<=3);assert.equal(p.active,null);
  p.configure({scoring:false});p.previewScore('gb63');await settle();assert.equal(p.scorer,null);
 });
-test('Green Bay scores use Lambeau Bounce as either team, while opponents retain their own cue',async()=>{
+test('Green Bay scores use the approved bomb intro as either team, while opponents retain their own cue',async()=>{
  for(const packers of [0,1]){
   const teams=packers===0?['GB','BUF']:['BUF','GB'];
   const g=new Game(...teams.map(t=>buildTeam(t,data)),'pro',seededRandom(9));
   const urls=[],[p]=player(async url=>{urls.push(String(url));return {ok:true,arrayBuffer:async()=>new ArrayBuffer(8)};});
   p.update({background:false});p.warmScores(teams);await settle();
-  assert.ok(urls.some(url=>new URL(url).pathname.endsWith('/music/lambeau-bounce.mp3')));
+  assert.ok(urls.some(url=>new URL(url).pathname.endsWith('/music/green-bay-bomb-intro.mp3')));
   for(const team of [packers,1-packers]){
    g.beginDrive(team,95);assert.equal(g.choose(g.userOffense?'dive':g.defensePlays[0].id),true);assert.equal(g.snap(team),true);g.events=[];g.finish('touchdown',100);
    const event=g.events.find(e=>e.scorePoints===6);assert.ok(event);
    p.score(event.scoreAbbr);await settle();
-   assert.equal(p.scorer.track.id,team===packers?'lambeau-bounce':'pgi-score');
+   assert.equal(p.scorer.track.id,team===packers?'green-bay-bomb-intro':'pgi-score');
    assert.equal(p.active,null);
    p.scorer.source.onended();assert.equal(p.scorer,null);
   }

@@ -1,6 +1,6 @@
 // Adapted from Breach's authored-score transport: shared AudioContext, bounded
 // decoded cache, guarded async loads, local mixing, and explicit pause handling.
-export const SCORE_CUES={NE:{id:'for-boston',title:'For Boston',src:'./music/for-boston.mp3'},NYJ:{id:'notre-dame-victory',title:'Notre Dame Victory March',src:'./music/notre-dame-victory.mp3?v=23'},GB:{id:'lambeau-bounce',title:'Lambeau Bounce',src:'./music/lambeau-bounce.mp3?v=26'},default:{id:'pgi-score',title:'Six on the Board',src:'./music/pgi-score.mp3'}};
+export const SCORE_CUES={NE:{id:'for-boston',title:'For Boston',src:'./music/for-boston.mp3'},NYJ:{id:'notre-dame-victory',title:'Notre Dame Victory March',src:'./music/notre-dame-victory.mp3?v=23'},GB:{id:'green-bay-bomb-intro',title:'You Dropped a Bomb on Me · Intro',src:'./music/green-bay-bomb-intro.mp3?v=28'},default:{id:'pgi-score',title:'Six on the Board',src:'./music/pgi-score.mp3'}};
 export const SCORE_VARIANTS={
  gb63:{id:'lambeau-long-drop-63',title:'Green Bay · Take 1 · 63 BPM',src:'./music/lambeau-long-drop-63.mp3'},
  gb112:{id:'lambeau-long-drop-112',title:'Green Bay · Take 2 · 112 BPM',src:'./music/lambeau-long-drop-112.mp3'}

@@ -22,14 +22,24 @@ The active mixed catalog is `music/manifest.json`; scene ordering lives in
 `SCENE_TRACKS` in `music.js`. Other historical recordings remain archived.
 See `FILM_SCORE.md` for orchestral rendering and `fights/PROVENANCE.md` for cues.
 
-Green Bay uses **Lambeau Bounce**, a compact original synth-funk scoring cue
-rebuilt at the reference song’s 126 BPM, with a full-bar falling synth, a
-steady quarter-note backbeat, repeating octave bass and a two-bar synth answer.
-The new arrangement runs about 16 seconds. Rebuild
-only this cue with `python scripts/pgi_music/compose_green_bay.py --render`.
-Its source score and provenance live in `fights/`; the soundtrack panel offers
-a **GB · Lambeau Bounce** preview. Scoring cues stay outside the six-track
-background rotation.
+Green Bay uses the approved eight-bar instrumental reconstruction of
+**You Dropped a Bomb on Me** by The Gap Band. The 125-BPM cue runs **16.64
+seconds** including its release tail. Bass and chords are one octave higher
+than the initial reconstruction; the downward pitch dip stays at its original
+lower octave, and drums are unchanged. The shipped MP3 is the exact approved
+preview, without further rendering or mastering.
+
+`music/green-bay-bomb-intro.mp3` serves both automatic Green Bay scores and the
+**GB · You Dropped a Bomb on Me** preview. The editable MIDI is
+`fights/green-bay-bomb-intro.mid`; source details are in `fights/PROVENANCE.md`.
+To reproduce its MIDI and synthesized WAV in a separate directory:
+
+```sh
+python scripts/pgi_music/render_green_bay_intro.py /tmp/pgi-green-bay
+```
+
+Scoring cues stay outside the six-track background rotation. The earlier
+Lambeau Bounce asset and its renderer remain archived.
 
 Two Green Bay comparison previews share a longer 3.81-second falling intro:
 **Take 1** plays the body at **63 BPM**, and **Take 2** uses **112 BPM** with

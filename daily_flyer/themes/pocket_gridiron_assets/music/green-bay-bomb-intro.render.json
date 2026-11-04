@@ -1,0 +1,18 @@
+{
+  "title": "You Dropped a Bomb on Me \u00b7 Intro",
+  "source": "User-approved approximate instrumental reconstruction",
+  "bpm": 125,
+  "bars": 8,
+  "musical_seconds": 15.36,
+  "preview_seconds": 16.64,
+  "decoded_seconds": 16.61,
+  "sample_rate": 44100,
+  "channels": 2,
+  "bitrate_kbps": 192,
+  "peak": 0.9720027446746826,
+  "clipped_samples": 0,
+  "sha256": "a672ea36b0cb13ec5a90df58bc09d387a1e7b3ac3b2437f1462d0fa61a889057",
+  "midi_sha256": "2b9a2e35046587a5fff6af6034180074e27195e48c42120ec020cc2f59d823e4",
+  "pitch_edit": "Bass and chords raised one octave; downward pitch dip at original octave; drums unchanged",
+  "audio_preserved_from_approved_preview": true
+}
