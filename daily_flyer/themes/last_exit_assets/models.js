@@ -600,6 +600,8 @@ export function drawPerson(m,p){
    elbow[0]=.36;elbow[1]=torso+.36;elbow[2]=.035;hand[0]=.185;hand[1]=1.655+bounce;hand[2]=.018;
   }else if(flee){
    elbow[0]=side*.34;elbow[1]=torso+.15;elbow[2]=.08-swing*.58;hand[0]=side*.24;hand[1]=torso+.35;hand[2]=.22-swing*.8;
+  }else if(p.speaking){
+   elbow[0]=side*.35;elbow[1]=torso+.24;hand[0]=side*.38;hand[1]=torso+.42;hand[2]=.3;
   }else if(watch){
    elbow[0]=side*.315;elbow[1]=torso+.11;elbow[2]=.12;hand[0]=-side*.105;hand[1]=torso+.18+(side>0?.035:0);hand[2]=.235+side*.016;
   }

@@ -214,6 +214,7 @@ export class Game{
  }
  say(m){this.message=m;this.messageTime=5;}
  lifeInfo(){return cityLifeInfo(this);}
+ canSee(a,b){return visible(a,b,this.city.buildings);}
  get actor(){return this.onFoot?this.person:this.car;}
  nearbyCar(){return this.interactionInfo()?.car||null;}
  interactionInfo(){
@@ -253,7 +254,7 @@ export class Game{
     const candidate={x:c.x+side[0]*2.25*sign,z:c.z+side[1]*2.25*sign,vx:0,vz:0};const initial={...candidate};collide(candidate,this.city.buildings,.45);
     const blocked=[...this.parked,...this.traffic].some(v=>dist(v,candidate)<2.2);
     if(dist(initial,candidate)>.2||blocked||!visible(c,candidate,this.city.buildings)||this.city.buildings.some(b=>b.barrier&&segmentEntry(c,candidate,b,.2)!==null))continue;
-    c.vx=c.vz=c.speed=0;this.onFoot=true;this.person={mapId:this.city.id,x:candidate.x,z:candidate.z,a:c.a,walk:0,speed:0,y:walkHeight(candidate.x,candidate.z,this.city),verticalSpeed:0};this.walkHeading=c.a;this.door={car:c,side:sign,time:.8};this.say('ON FOOT · Left thumb moves. Right thumb looks. Approach a stopped car.');return true;
+    c.vx=c.vz=c.speed=0;this.onFoot=true;this.person={mapId:this.city.id,x:candidate.x,z:candidate.z,a:c.a,walk:0,speed:0,y:walkHeight(candidate.x,candidate.z,this.city),verticalSpeed:0};this.walkHeading=c.a;this.door={car:c,side:sign,time:.8};this.say('ON FOOT · Left thumb moves; right thumb looks. Tap Places to find a marked entrance.');return true;
    }
    this.say('The doors are blocked. Move away from the wall.');return false;
   }
@@ -487,7 +488,7 @@ export class Game{
    if(this.busted>=5)this.finish(false,'Boxed in.');
   }
   for(const v of this.parked)if(v.rare&&!this.discoveries.has(v.kind)&&dist(this.actor,v)<16){this.discoveries.add(v.kind);this.say('FOUND · '+v.name+'. Stop and approach a door to take it.');}
-  if(this.waypoint&&dist(this.actor,this.waypoint)<9){this.say('Arrived at '+this.waypoint.label+'.');this.waypoint=null;}
+  if(this.waypoint&&!this.waypoint.placeId&&dist(this.actor,this.waypoint)<9){this.say('Arrived at '+this.waypoint.label+'.');this.waypoint=null;}
   if(this.job.id!=='free'){
    this.time=Math.max(0,this.time-dt);if(this.time<=0)this.finish(false,'Out of time.');if(c.engineDamage>=100&&!this.onFoot&&!c.fire&&!c.exploded)this.finish(false,'Engine disabled.');
    const target=this.target;

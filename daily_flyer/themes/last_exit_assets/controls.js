@@ -5,6 +5,7 @@ export function stickVector(clientX,clientY,rect){
 }
 export function driveSteer(x){return Math.abs(x)<.1?0:Math.sign(x)*(Math.abs(x)-.1)/.9;}
 
+const tapSlop=g=>g.action==='interact'||g.action==='places'?16:9;
 const wrap=v=>Math.atan2(Math.sin(v),Math.cos(v));
 const limit=(v,a,b)=>Math.max(a,Math.min(b,v));
 export function makeView(heading=Math.PI){return{yaw:heading,pitch:.28,idle:99};}
@@ -29,9 +30,9 @@ export function stepView(view,heading,onFoot,dt,active=false,speed=0){
 export function movementHeading(state,x,y,yaw,looking=false){const moving=Math.hypot(x,y)>.1;if(!moving||!state.moving||looking)state.heading=yaw;state.moving=moving;return state.heading;}
 // Once a gesture becomes a look gesture, crossing an action never changes it.
 export function beginGesture(x,y,time,action=null){return{x,y,startX:x,startY:y,startTime:time,action,phase:'pending',travel:0};}
-export function moveGesture(g,x,y){const dx=x-g.x,dy=y-g.y;g.x=x;g.y=y;g.travel=Math.max(g.travel,Math.hypot(x-g.startX,y-g.startY));if(g.travel>9&&g.phase==='pending')g.phase='look';return{dx,dy,look:g.phase==='look'||g.phase==='held'};}
-export function advanceGesture(g,time){if(g.phase==='pending'&&g.action&&g.action!=='interact'&&g.action!=='horn'&&time-g.startTime>=140)g.phase='held';return g.phase;}
-export function finishGesture(g,cancelled=false){return !cancelled&&g.action&&g.phase==='pending'&&g.travel<=9?g.action:null;}
+export function moveGesture(g,x,y){const dx=x-g.x,dy=y-g.y;g.x=x;g.y=y;g.travel=Math.max(g.travel,Math.hypot(x-g.startX,y-g.startY));if(g.travel>tapSlop(g)&&g.phase==='pending')g.phase='look';return{dx,dy,look:g.phase==='look'||g.phase==='held'};}
+export function advanceGesture(g,time){if(g.phase==='pending'&&g.action&&g.action!=='interact'&&g.action!=='horn'&&g.action!=='places'&&time-g.startTime>=140)g.phase='held';return g.phase;}
+export function finishGesture(g,cancelled=false){return !cancelled&&g.action&&g.phase==='pending'&&g.travel<=tapSlop(g)?g.action:null;}
 
 // Safari can still claim double taps on absolutely positioned game controls.
 // Cancel native touch gestures only on surfaces already driven by Pointer Events.

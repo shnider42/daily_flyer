@@ -5,33 +5,33 @@ export const ENCOUNTERS=[
  {id:'tools',title:'BORROWED TOOLS',item:'tool case',from:'books',to:'garage',offer:'Marek: Dee left a tool case here. River Works Garage could use it back.',thanks:'Dee: Just in time. Let me tune up your car in return.'},
  {id:'coffee',title:'EARLY SHIFT',item:'coffee box',from:'garage',to:'cafe',offer:'Dee: Bring these empty coffee flasks back to Rosa. The night shift owes her one.',thanks:'Rosa: Another long night at the garage? Coffee is on the house.'}
 ];
-export function resetCityLife(g){g.interior=null;g.voiceEvents=[];g.voiceSerial=0;g.nextVoiceAt=0;g.cityLife=g.city.id==='boston'?{completed:0,nextAt:20,box:null,encounter:null,variant:Math.floor(g.rnd()*ENCOUNTERS.length),visited:new Set()}:null;}
+export function resetCityLife(g){g.interior=null;g.voiceEvents=[];g.voiceSerial=0;g.voiceSpeakerSerial=0;g.nextVoiceAt=0;g.cityLife=g.city.id==='boston'?{completed:0,nextAt:20,box:null,encounter:null,variant:Math.floor(g.rnd()*ENCOUNTERS.length),visited:new Set()}:null;}
 export function vocalize(g,p,mood='alarm'){
  if(g.elapsed<(p.nextVoiceAt||0)||g.elapsed<(g.nextVoiceAt||0)||distance(p,g.actor)>40)return false;
  p.nextVoiceAt=g.elapsed+7;g.nextVoiceAt=g.elapsed+1.3;
- g.voiceEvents.push({x:p.x,z:p.z,time:g.elapsed,serial:++g.voiceSerial,mood,voice:Math.floor((Math.abs(p.x*7+p.z*13))%5)});g.voiceEvents=g.voiceEvents.slice(-8);return true;
+ p.voiceId??=++g.voiceSpeakerSerial;g.voiceEvents.push({x:p.x,z:p.z,speakerId:p.voiceId,time:g.elapsed,serial:++g.voiceSerial,mood,voice:Math.floor((Math.abs(p.x*7+p.z*13))%5)});g.voiceEvents=g.voiceEvents.slice(-8);return true;
 }
 export function cityLifeInfo(g){
  if(!g.onFoot||!g.cityLife||g.job.id!=='free'||g.person.stun>0)return null;
  if(g.interior){const p=g.interior.place,o=g.interior.origin,q={x:g.person.x-o.x,z:g.person.z-o.z};if(q.z<-2.6)return{type:'leave',label:'Back outside',place:p};if(distance(q,{x:0,z:1.1})<2.5)return{type:'talk',label:`Talk to ${p.person}`,place:p};return null;}
- if(g.cityLife.box&&distance(g.person,g.cityLife.box)<2)return {type:'box',label:'Inspect box',box:g.cityLife.box};
- const candidates=(g.city.places||[]).map(p=>({type:'enter',label:`Enter ${p.kind==='cafe'?'coffee shop':p.kind==='books'?'bookshop':'garage'}`,place:p,d:distance(g.person,p.entrance)})).filter(x=>x.d<2.6);
+ if(g.cityLife.box&&distance(g.person,g.cityLife.box)<2&&g.canSee(g.person,g.cityLife.box))return {type:'box',label:'Inspect box',box:g.cityLife.box};
+ const candidates=(g.city.places||[]).map(p=>({type:'enter',label:`Enter ${p.kind==='cafe'?'coffee shop':p.kind==='books'?'bookshop':'garage'}`,place:p,d:distance(g.person,p.entrance)})).filter(x=>x.d<3.8&&g.canSee(g.person,x.place.entrance)&&Math.abs((g.person.y??groundHeight(g.person.x,g.person.z,g.city.id))-groundHeight(x.place.entrance.x,x.place.entrance.z,g.city.id))<1.5);
  if(candidates.length)return candidates.sort((a,b)=>a.d-b.d)[0];
- const npc=g.pedestrians.filter(p=>!p.networkPlayer&&!p.stun&&p.reaction!=='flee'&&distance(g.person,p)<2).sort((a,b)=>distance(g.person,a)-distance(g.person,b))[0];
+ const npc=g.pedestrians.filter(p=>!p.networkPlayer&&!p.stun&&p.reaction!=='flee'&&distance(g.person,p)<2.7&&g.canSee(g.person,p)).sort((a,b)=>distance(g.person,a)-distance(g.person,b))[0];
  return npc?{type:'rumor',label:'Talk',person:npc}:null;
 }
 export function interactCityLife(g){const info=cityLifeInfo(g);if(!info)return false;
- if(info.type==='box'){const def=ENCOUNTERS.find(d=>d.id===info.box.id),destination=g.city.places.find(p=>p.id===def.to);g.cityLife.encounter={id:def.id,stage:'carrying'};g.cityLife.box=null;g.waypoint={...destination.entrance,label:`Deliver ${def.item} · ${destination.name}`};g.say(`FOUND BOX · ${def.item}. The label says ${destination.name}. Destination marked.`);return true;}
+ if(info.type==='box'){const def=ENCOUNTERS.find(d=>d.id===info.box.id),destination=g.city.places.find(p=>p.id===def.to);g.cityLife.encounter={id:def.id,stage:'carrying'};g.cityLife.box=null;g.waypoint={...destination.entrance,placeId:destination.id,label:`Deliver ${def.item} · ${destination.name}`};g.say(`FOUND BOX · ${def.item}. The label says ${destination.name}. Destination marked.`);return true;}
  if(info.type==='enter'){
   if(g.heat||g.reports.length){g.say('The door stays shut while police are looking for you. Lose the heat first.');return true;}
-  const p=info.place,origin={x:p.x,z:p.z,y:groundHeight(p.x,p.z,'boston')+.2};g.interior={place:p,origin,outside:{...g.person}};g.cityLife.visited.add(p.id);g.person={...g.person,x:origin.x,z:origin.z-3.6,y:origin.y,a:0,speed:0,vx:0,vz:0,knockVX:0,knockVZ:0};g.walkHeading=0;g.say(p.name+' · Walk to the counter to talk. The door is behind you.');return true;
+  g.voiceEvents=[];const p=info.place,origin={x:p.x,z:p.z,y:groundHeight(p.x,p.z,'boston')+.2};g.interior={place:p,origin,outside:{...g.person},speaker:{x:origin.x,z:origin.z+3.65,y:origin.y}};g.cityLife.visited.add(p.id);if(g.waypoint?.placeId===p.id)g.waypoint=null;g.person={...g.person,x:origin.x,z:origin.z-3.6,y:origin.y,a:0,speed:0,vx:0,vz:0,knockVX:0,knockVZ:0};g.walkHeading=0;g.say(p.name+' · Walk to the counter to talk. The door is behind you.');return true;
  }
  if(info.type==='leave'){leaveInterior(g);return true;}
  if(info.type==='rumor'){
   const p=info.person;vocalize(g,p,'chat');p.reaction='watch';p.reactionTime=3;p.escapeFrom={x:g.person.x,z:g.person.z};
   const rumors=['Local: Rosa opens early at North End Coffee. Look for the warm doorway.','Local: Common Ground sells records as well as books. Across the river, near the Common.','Local: Dee at River Works always has a small job going.','Local: Nobody gets across this river without using that bridge.'];g.say(rumors[Math.floor(Math.abs(p.x+p.z))%rumors.length]);return true;
  }
- const life=g.cityLife,p=info.place;vocalize(g,{x:g.person.x,z:g.person.z},'chat');
+ const life=g.cityLife,p=info.place;vocalize(g,g.interior.speaker,'chat');
  if(life.encounter){const e=life.encounter,def=ENCOUNTERS.find(d=>d.id===e.id);
   if(e.stage==='carrying'&&def.to===p.id){life.completed++;life.nextAt=g.elapsed+45;life.encounter=null;g.waypoint=null;
    if(def.id==='tools'){g.car.engineDamage=Math.max(0,g.car.engineDamage-45);g.car.wheelDamage=Math.max(0,g.car.wheelDamage-35);}
@@ -42,9 +42,9 @@ export function interactCityLife(g){const info=cityLifeInfo(g);if(!info)return f
  if(life.completed&&g.elapsed<life.nextAt){g.say(`${p.person}: Take a breather. There will be another favor soon.`);return true;}
  // Each business can offer its own encounter; visiting in any order remains useful.
  const def=ENCOUNTERS.find(e=>e.from===p.id),destination=g.city.places.find(p=>p.id===def.to);
- life.box=null;life.encounter={id:def.id,stage:'carrying'};g.waypoint={...destination.entrance,label:`Deliver ${def.item} · ${destination.name}`};g.say(def.offer+' · Box collected; destination marked.');return true;
+ life.box=null;life.encounter={id:def.id,stage:'carrying'};g.waypoint={...destination.entrance,placeId:destination.id,label:`Deliver ${def.item} · ${destination.name}`};g.say(def.offer+' · Box collected; destination marked.');return true;
 }
-export function leaveInterior(g){if(!g.interior)return;const p=g.interior.place,old=g.interior.outside;g.person={...old,x:p.entrance.x,z:p.entrance.z,y:groundHeight(p.entrance.x,p.entrance.z,'boston'),speed:0,vx:0,vz:0};g.interior=null;g.walkHeading=g.person.a;g.say('Back on the street.');}
+export function leaveInterior(g){if(!g.interior)return;const p=g.interior.place,old=g.interior.outside;g.person={...old,x:p.entrance.x,z:p.entrance.z,y:groundHeight(p.entrance.x,p.entrance.z,'boston'),speed:0,vx:0,vz:0};g.interior=null;g.voiceEvents=[];g.walkHeading=g.person.a;g.say('Back on the street.');}
 export function stepInterior(g,dt,input){const o=g.interior.origin,p=g.person,before={x:p.x,z:p.z};let x=clamp(input.moveX||0,-1,1),z=clamp(input.moveY||0,-1,1),l=Math.max(1,Math.hypot(x,z)),speed=input.run?4.1:2.8;x/=l;z/=l;
  // Fixed camera faces north: screen-right is world -X, as in the street controls.
  p.x=clamp(p.x-x*speed*dt,o.x-4.45,o.x+4.45);p.z=clamp(p.z+z*speed*dt,o.z-4.5,o.z+4.7);

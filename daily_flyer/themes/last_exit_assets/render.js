@@ -1,3 +1,4 @@
+import {projectMarker} from './foot-guide.js';
 import {chunkWorld,visibleChunk} from './world-chunks.js';
 import {drawInterior,drawCityDetails} from './city-life.js';
 import {Atmosphere,BOSTON_FOG} from './atmosphere.js';
@@ -133,8 +134,9 @@ export class Renderer{
   for(const p of sorted){const fade=Math.sin(Math.PI*p.age/p.life),s=p.size+(p.blast?p.age*.7:p.spark?0:p.age*.24),color=p.blast?(p.age<.3?'#f4ca71':'#ce633e'):p.spark?'#e5b977':p.dark?'#61655f':'#a3a69b',dx=this.cam[0]-p.x,dz=this.cam[2]-p.z,l=Math.hypot(dx,dz)||1,rx=dz/l*s,rz=-dx/l*s,points=[[p.x-rx,p.y-s,p.z-rz],[p.x+rx,p.y-s,p.z+rz],[p.x+rx,p.y+s,p.z+rz],[p.x-rx,p.y+s,p.z-rz]];m.surface(...points,p.spark&&!p.blast?0:15,1,1,color);}
  }
 
+ project(p){return projectMarker(this.viewMatrix,p);}
  renderInterior(game,w,h,t){const o=game.interior.origin,portrait=w<h,eye=[o.x,o.y+(portrait?18:13),o.z-(portrait?18:13)],target=[o.x,o.y+.4,o.z],vp=multiply(perspective(58*Math.PI/180,w/h,.2,90),lookAt(eye,target)),m=drawInterior(new Mesh(),game.interior),p=game.interior.place;
-  this.atmosphere.draw(eye,target,t,this.city.id,true);drawPerson(m,{...game.person,carrying:!!game.cityLife?.encounter});drawPerson(m,{x:o.x,z:o.z+3.65,y:o.y,a:Math.PI,walk:0,speed:0,coat:p.id==='cafe'?'#bd8c65':p.id==='books'?'#6b887a':'#697f8b'});
+  this.viewMatrix=vp;this.atmosphere.draw(eye,target,t,this.city.id,true);drawPerson(m,{...game.person,carrying:!!game.cityLife?.encounter});drawPerson(m,{x:o.x,z:o.z+3.65,y:o.y,a:Math.PI,walk:0,speed:0,speaking:(game.voiceEvents||[]).some(e=>e.speakerId===game.interior.speaker?.voiceId&&game.elapsed-e.time<1.8),coat:p.id==='cafe'?'#bd8c65':p.id==='books'?'#6b887a':'#697f8b'});
   if(this.software)this.drawSoftware(vp,m.v,w,h,[],[]);else{const gl=this.gl;gl.uniform3fv(this.fog,BOSTON_FOG);gl.uniformMatrix4fv(this.matrix,false,vp);gl.uniform3fv(this.eye,eye);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);gl.bindBuffer(gl.ARRAY_BUFFER,this.dynamic);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(m.v),gl.DYNAMIC_DRAW);this.drawBuffer(this.dynamic,m.v.length/STRIDE);}this.frames++;
  }
 
@@ -157,7 +159,7 @@ export class Renderer{
   this.cam=safeCamera(c,this.cam,solidBuildings(this.city.buildings));
   this.cam=(game.onFoot?safeFootCamera:safeDrivingCamera)(c,this.cam,cameraCars);
   this.atmosphere.draw(this.cam,this.target,t,this.city.id);
-  const vp=multiply(perspective((portrait?68:58)*Math.PI/180,w/h,.2,650),lookAt(this.cam,this.target));const visible=this.static.chunks.filter(c=>visibleChunk(c,vp));this.visibleStatic=visible.map(c=>c.v);if(gl){gl.uniform3fv(this.fog,this.city.id==='boston'?BOSTON_FOG:FOG);gl.uniformMatrix4fv(this.matrix,false,vp);gl.uniform3fv(this.eye,this.cam);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);for(const c of visible)this.drawBuffer(c.buffer,c.count);}
+  const vp=multiply(perspective((portrait?68:58)*Math.PI/180,w/h,.2,650),lookAt(this.cam,this.target));this.viewMatrix=vp;const visible=this.static.chunks.filter(c=>visibleChunk(c,vp));this.visibleStatic=visible.map(c=>c.v);if(gl){gl.uniform3fv(this.fog,this.city.id==='boston'?BOSTON_FOG:FOG);gl.uniformMatrix4fv(this.matrix,false,vp);gl.uniform3fv(this.eye,this.cam);gl.clear(gl.COLOR_BUFFER_BIT|gl.DEPTH_BUFFER_BIT);for(const c of visible)this.drawBuffer(c.buffer,c.count);}
   const m=new Mesh();drawCityDetails(m,game,t);for(const s of game.skids){if(s.t>25)continue;m.transform={x:s.x,y:groundHeight(s.x,s.z,this.city.id),z:s.z,c:Math.cos(s.a),s:Math.sin(s.a)};for(const x of[-.88,.88])m.flat(x,-1.6,.18,.7,'#303632',.018);}m.transform=null;
   const nearby=v=>Math.hypot(v.x-c.x,v.z-c.z)<180;
   for(const p of game.props||[]){const d=Math.hypot(p.x-c.x,p.z-c.z);if(d<115)drawStreetProp(m,p,{lod:d>36});}
@@ -167,14 +169,14 @@ export class Renderer{
   for(const [index,v]of cars.entries())drawCar(m,v,{time:t,brake:v.braking,lod:index>11||Math.hypot(v.x-c.x,v.z-c.z)>45,door:game.door?.car===v?game.door:null});
   for(const p of game.cops)if(nearby(p))drawCar(m,p,{police:true,time:t,lod:Math.hypot(p.x-c.x,p.z-c.z)>70});drawCar(m,game.car,{brake,time:t,door:game.door?.car===game.car?game.door:null});
   if(game.onFoot){const pavement=!onDiagonal(c.x,c.z)&&ROADS.every(r=>Math.abs(c.x-r)>11.5)&&ROADS.every(r=>Math.abs(c.z-r)>11.5);drawPerson(m,{...game.person,carrying:!!game.cityLife?.encounter,ground:game.person.y??groundHeight(c.x,c.z,this.city.id)});}
-  for(const p of [...(game.pedestrians||[]),...(game.officers||[])])if(Math.hypot(p.x-c.x,p.z-c.z)<75)drawPerson(m,p);
+  for(const p of [...(game.pedestrians||[]),...(game.officers||[])])if(Math.hypot(p.x-c.x,p.z-c.z)<75)drawPerson(m,{...p,speaking:(game.voiceEvents||[]).some(e=>e.speakerId===p.voiceId&&game.elapsed-e.time<1.8)});
   m.heightSampler=(x,z)=>terrainHeight(x,z,this.city.id);for(const light of this.city.signals||[]){if(!nearby(light))continue;const state=signalAt(light.x,light.z,game.elapsed);
    for(let i=0;i<4;i++){const a=i*Math.PI/2,green=i%2===0?state.vertical:state.horizontal;m.transform={x:light.x,z:light.z,c:Math.cos(a),s:Math.sin(a)};
     for(let k=0;k<3;k++)m.box(5.4,4.67+k*.25,-12.16,.17,.14,.025,k===0&&green?'#96c174':k===2&&!green?'#d9654c':'#414b41');
    }
   }m.transform=null;m.heightSampler=null;
   for(const v of [game.car,...game.parked,...game.traffic,...game.cops])if(nearby(v)&&(v.fire>0||v.burnTime>0))drawVehicleFire(m,v,t);
-  const targetPoint=game.target||game.waypoint;if(targetPoint&&!attract){const p=targetPoint;m.ring(p.x,groundHeight(p.x,p.z,this.city.id)+.04,p.z,8,'#c0aa65');const y=groundHeight(p.x,p.z,this.city.id)+4+Math.sin(t*2)*.16;m.tri([p.x-.7,y+1,p.z],[p.x+.7,y+1,p.z],[p.x,y,p.z],'#d5be7c');}
+  const targetPoint=game.target||game.waypoint;if(targetPoint&&!attract){const p=targetPoint;m.ring(p.x,groundHeight(p.x,p.z,this.city.id)+.04,p.z,p.placeId?1.3:8,'#c0aa65');const y=groundHeight(p.x,p.z,this.city.id)+4+Math.sin(t*2)*.16;m.tri([p.x-.7,y+1,p.z],[p.x+.7,y+1,p.z],[p.x,y,p.z],'#d5be7c');}
   if(game.elapsed<(this.lastElapsed||0)){this.particles=[];this.hitSerial=new Map();this.explosionSerialSeen=0;this.propSerialSeen=0;}this.lastElapsed=game.elapsed;this.updateParticles(game,dt);const smoke=new Mesh();this.particlesMesh(smoke);
   if(this.software)this.drawSoftware(vp,m.v,w,h,smoke.v);else{gl.bindBuffer(gl.ARRAY_BUFFER,this.dynamic);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(m.v),gl.DYNAMIC_DRAW);this.drawBuffer(this.dynamic,m.v.length/STRIDE);if(smoke.v.length){gl.enable(gl.BLEND);gl.blendFunc(gl.SRC_ALPHA,gl.ONE_MINUS_SRC_ALPHA);gl.depthMask(false);gl.bufferData(gl.ARRAY_BUFFER,new Float32Array(smoke.v),gl.DYNAMIC_DRAW);this.drawBuffer(this.dynamic,smoke.v.length/STRIDE);gl.depthMask(true);gl.disable(gl.BLEND);}}this.frames++;
  }

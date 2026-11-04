@@ -1,3 +1,15 @@
+# LAST EXIT v0.12 — Street signals
+
+Fixes the on-foot discovery failures reported on iPhone. The action dock now stays visible, offers Places / Find a door when exploring, and explains unavailable interactions. Context actions remain in the same lower-right thumb position; an on-screen look guide identifies the camera area outdoors. Inside, an explicit Go outside action is available away from the exit and the fixed camera is not falsely labeled draggable.
+
+Places lists only the three enterable businesses and marks each actual doorstep. The full map distinguishes businesses from scenery and uses the same doorstep destinations. Door guidance includes bearing/distance and stays until entry, instead of disappearing nine metres away. Labeled markers sit over visible doors; the entry area is 3.8 m with wall/height checks. Pedestrian talk and box pickup also check line of sight. Police attention and the solo free-drive restriction are explained.
+
+Default sound captions distinguish footsteps, voices, horns, impacts, spraying hydrants and background ambience. Voices have a brief marker attached to the moving speaker and a raised-arm speaking pose; the indoor host is identified by name. Old room voices clear on entering/leaving. Captions can be disabled in Pause → Controls & audio. Actions tolerate modest thumb jitter while deliberate swipes and cancelled pointers still cannot interact.
+
+Verification covers walking from each business's street approach through collision geometry to a working entry, exact waypoint persistence, unavailable states, wall/floor rejection, conversation visibility, sound-source/expiry behavior, projection, and tap jitter/swipe cancellation. Browser checks cover the Places flow, doorway entry, walking to a counter, talking/parcel pickup and exit, plus portrait and landscape layouts. The cloud browser uses software rendering; this is not a physical iPhone Safari or native GPU performance measurement. Multiplayer lag remains deferred.
+
+---
+
 # LAST EXIT v0.11 — City stories
 
 Boston–Cambridge now has 320 ordinary buildings (previously 200), 18 facade/silhouette types, and towers up to 58 m before rooftop details. New styles include timber triple-deckers, bow-front masonry, glass towers, concrete civic blocks, firehouses, pubs, bookshops and cinemas. Street and river collision layouts remain connected. The original city is an interpretation, not a geographic recreation of Boston.
