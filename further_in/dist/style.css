@@ -14,3 +14,6 @@ button,summary{touch-action:manipulation}
 @media(max-height:550px){.touch #move-zone{width:calc(85px * var(--scale));height:calc(85px * var(--scale));bottom:max(22px,env(safe-area-inset-bottom))}.touch #run{bottom:calc(max(22px,env(safe-area-inset-bottom)) + 100px * var(--scale))}.touch #equipment{bottom:calc(max(22px,env(safe-area-inset-bottom)) + 154px * var(--scale))}}
 
 @media(max-width:650px){.screen{padding-top:max(26px,env(safe-area-inset-top));padding-left:max(25px,env(safe-area-inset-left));padding-right:max(25px,env(safe-area-inset-right))}.overlay{padding-top:max(36px,env(safe-area-inset-top))}.touch #move-zone{width:min(calc(110px * var(--scale)),32vw);height:min(calc(110px * var(--scale)),32vw)}}
+
+/* This link is created only for an unlocked admin test launch. */
+#admin-return{position:fixed;z-index:20;right:max(20px,env(safe-area-inset-right));bottom:max(16px,env(safe-area-inset-bottom));font:9px monospace;letter-spacing:.08em;color:#b7c8a5;text-decoration:none;background:#101a15e8;border:1px solid #bec9a042;padding:12px 14px;min-height:40px}body.touch #admin-return{bottom:auto;top:max(64px,calc(env(safe-area-inset-top) + 46px))}
