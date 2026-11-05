@@ -222,8 +222,10 @@ function updateHUD(){
  $('homeAbbr').textContent=g.teams[0].abbr;$('awayAbbr').textContent=g.teams[1].abbr;$('homeScore').textContent=g.scores[0];$('awayScore').textContent=g.scores[1];$('quarter').textContent=g.phase==='halftime'?'HALF':g.quarter>4?'OT':`Q${g.quarter}`;$('clock').textContent=g.quarter>4?'SD':clockText(g.clock);
  $('possession').textContent=kickSetup||flight?(s?.goal?(g.userKicking?'YOUR KICK ↑':'OPPONENT KICK ↑'):(g.userKicking?'YOU KICK ↓':'YOU RETURN ↑')):g.userOffense?'YOUR BALL ↑':'DEFEND ↑';
  $('down').textContent=g.phase==='penalty'?'FLAG':g.isLoose?'FUMBLE':g.returnInfo?'RETURN':s?s.type.toUpperCase():`${['1ST','2ND','3RD','4TH'][g.down-1]} & ${g.target===100?'GOAL':Math.max(1,Math.ceil(g.target-g.spot))}`;
- $('spot').textContent=s&&kickSetup?`KICK FROM ${s.kickSpot}`:g.spot<50?`OWN ${Math.round(g.spot)}`:`OPP ${Math.round(100-g.spot)}`;
- $('playName').textContent=g.phase==='penalty'?'ACCEPT OR DECLINE':g.isLoose?'CHASE THE BALL':g.returnInfo?(g.userOffense?'RUN UPFIELD ↑':'STOP THE RETURN'):s?(flight?'TRACK THE BALL':g.isReturn?(g.userOffense?'RUN UPFIELD ↑':'STOP THE RETURN'):'SPECIAL TEAMS'):g.phase==='call'?'PICK A PLAY':g.userOffense?g.playDefinition.name.toUpperCase():DEFENSE.find(p=>p.id===g.defense).name.toUpperCase();
+ const settledKick=g.phase==='dead'&&s?.settled&&!s.goal;
+ const yard=settledKick?s.settled.spot:g.isReturn?g.carrier.y:g.spot;
+ $('spot').textContent=s&&kickSetup?`KICK FROM ${s.kickSpot}`:yard<=0?'OWN END ZONE':yard>=100?'END ZONE':yard<50?`OWN ${Math.round(yard)}`:`OPP ${Math.round(100-yard)}`;
+ $('playName').textContent=settledKick?s.settled.reason.toUpperCase():g.canKneel&&g.userOffense?'RETURN OR KNEEL':g.phase==='penalty'?'ACCEPT OR DECLINE':g.isLoose?'CHASE THE BALL':g.returnInfo?(g.userOffense?'RUN UPFIELD ↑':'STOP THE RETURN'):s?(flight?'TRACK THE BALL':g.isReturn?(g.userOffense?'RUN UPFIELD ↑':'STOP THE RETURN'):'SPECIAL TEAMS'):g.phase==='call'?'PICK A PLAY':g.userOffense?g.playDefinition.name.toUpperCase():DEFENSE.find(p=>p.id===g.defense).name.toUpperCase();
  quick.hidden=g.phase!=='call';$('changePlay').hidden=!!duel||g.phase!=='ready'||g.challenge?.mode==='campaign';
  $('kicks').hidden=quickKicks.hidden=!(ready&&g.userOffense&&g.down===4);
  for(const b of [$('fieldGoal'),quickFieldGoal]){b.disabled=117-g.spot>65;b.textContent=`Field goal · ${Math.round(117-g.spot)} yd`;}
@@ -268,6 +270,7 @@ function updateHUD(){
   $('kickHint').textContent=g.userKicking?(g.phase==='kick_charge'?'Tap KICK to stop the meter. Aim with stick or arrows.':(s.type==='kickoff'?'Choose Deep, Squib or Onside. Aim with the stick, then start the meter.':'Aim with stick or arrows. Tap START METER, then KICK.')):`${g.carrier.name} returns · ${RETURN_PLANS[s.returnPlan]?.name||'Return middle'}. Choose a lane below, then READY.${s.type==='punt'?' B calls a fair catch in flight.':''}`;
   const target=g.kickTarget(g.phase==='kick_charge'?s.power:.7,s.aim);
   $('kickAim').textContent=g.userKicking?`${s.aim<-.15?'LEFT':s.aim>.15?'RIGHT':'CENTER'} · ${target.y<=0?'END ZONE':`landing near receiving ${Math.round(target.y)}`} · ${target.x<1||target.x>52?'OUT OF BOUNDS RISK':'more power = more distance'}`:'Steer to the landing ring. In your end zone, B takes a knee after the catch.';
+  if(g.userKicking&&s.kickStyle==='onside')$('kickAim').textContent=`FIRST HOP · ${Math.round(100-s.kickSpot-target.y)} YD FROM TEE · RECOVER AFTER 10`;
   $('kickFill').style.width=`${s.power*100}%`;$('kickReading').textContent=`${Math.round(s.power*100)}%`;$('kickPower').setAttribute('aria-valuenow',String(Math.round(s.power*100)));
  }
  if(duel){if(g.phase==='call'&&g.calls?.[duel.team]){$('readiness').hidden=false;$('readiness').textContent='YOUR PLAY IS SET · WAITING FOR OPPONENT';}if(g.phase==='penalty'&&g.penaltyReview?.beneficiary!==duel.team){setGameButtonEnabled($('burst'),false);$('burst').firstChild.textContent='OPPONENT DECIDES';for(let i=0;i<3;i++)$('pass'+i).hidden=true;}if(kickSetup&&!g.userKicking){setGameButtonEnabled($('burst'),false);$('burst').firstChild.textContent='OPPONENT KICKS';} }
