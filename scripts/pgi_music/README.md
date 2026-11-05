@@ -2,25 +2,65 @@
 
 ## Active game soundtrack
 
-The default **Match the moment** rotation restores three earlier synthesized
-arcade favorites and reserves three orchestral recordings for the final recap
-and its recorded highlight reel. Each group rotates only within its collection:
+The default **Match the moment** rotation opens with two new original synth /
+electro themes written for a 1980s arcade football game. A short, repeatable
+melody starts on the first beat; separate chorus, breakdown, return and ending
+sections keep the songs from feeling like an endlessly repeated sound effect.
+The older rock recordings remain available in the explicit arcade collection.
 
 | Moment | Opening track | Following tracks |
 | --- | --- | --- |
-| Main menu | Saturday Voltage | Neon End Zone, Fourth and Thunder |
-| Pregame | Fourth and Thunder | Saturday Voltage, Neon End Zone |
-| Halftime | Neon End Zone | Saturday Voltage, Fourth and Thunder |
+| Main menu | Coin-Op Kickoff | Turbo Touchdown |
+| Pregame | Turbo Touchdown | Coin-Op Kickoff |
+| Halftime | Coin-Op Kickoff | Turbo Touchdown |
 | Postgame highlights | Sunday in Gold | Leather and Thunder, The Long Walk Home |
 
 Transitions fade the outgoing song and start the new show at its opening. Late
 downloads cannot restart the previous show’s music. Music stays off during
-football unless **All the time** is selected. Players can preview all six tracks
-or explicitly choose either collection in the soundtrack panel.
+football unless **All the time** is selected. Players can preview all eight
+tracks or explicitly choose either collection in the soundtrack panel. Both
+automatic menu playback and the arcade collection start with the new pair.
 
 The active mixed catalog is `music/manifest.json`; scene ordering lives in
 `SCENE_TRACKS` in `music.js`. Other historical recordings remain archived.
 See `FILM_SCORE.md` for orchestral rendering and `fights/PROVENANCE.md` for cues.
+
+## Original arcade / electro menu themes
+
+| Theme | Tempo and key | Arrangement |
+| --- | --- | --- |
+| Coin-Op Kickoff | 136 BPM, D major | Bright pulse-wave title hook, FM bells, octave bass, four-on-the-floor drum machine, a higher stadium chorus |
+| Turbo Touchdown | 144 BPM, C minor | Syncopated FM lead and electro bass, drum-machine breaks, chord arpeggios, a driving final hook |
+
+`compose_arcade_themes.py` contains the literal melodies, chord voicings, bass
+patterns, drum patterns, section map, and deterministic oscillator / noise
+instruments. The two compositions use different hooks, harmony, rhythm and lead
+voices. There are no sampled recordings, external soundfonts, or service keys.
+Each has forty bars plus a release tail (about 72 and 68 seconds respectively).
+
+Rebuild both from the repository root:
+
+```sh
+python scripts/pgi_music/compose_arcade_themes.py daily_flyer/themes/pocket_gridiron_assets/music --catalog-output /tmp/pgi-arcade-themes-catalog.json
+```
+
+Use `--track coin-op-kickoff` or `--track turbo-touchdown` for one track, and
+`--keep-score` to inspect the expanded note and drum events in a JSON score.
+The optional catalog output contains only the new entries; merge it into the
+curated game manifest rather than replacing the film scores or scoring cues.
+The dependency versions in `requirements.txt` apply to this renderer too.
+
+The mix gives the lead its own register, keeps the bass centered, applies a
+short kick duck to the accompaniment, and uses light tempo-locked echoes. A
+two-pass loudness master targets −16 LUFS with −1.5 dBTP headroom before
+encoding 44.1 kHz stereo, 160 kbps MP3. Each `.render.json` records the decoded
+MP3’s loudness, peak, duration, stereo correlation, onset, continuity, byte size
+and digest. Rendering stops if signal-health checks fail. These measurements
+verify playable audio and levels; they do not claim subjective listening
+approval or physical iPhone speaker evaluation. The game continues to use its
+shared AudioContext / decoded-MP3 transport.
+
+## Scoring cues
 
 Green Bay uses the approved eight-bar instrumental reconstruction of
 **You Dropped a Bomb on Me** by The Gap Band. The 125-BPM cue runs **16.64
@@ -38,7 +78,7 @@ To reproduce its MIDI and synthesized WAV in a separate directory:
 python scripts/pgi_music/render_green_bay_intro.py /tmp/pgi-green-bay
 ```
 
-Scoring cues stay outside the six-track background rotation. The earlier
+Scoring cues stay outside the eight-track background catalog. The earlier
 Lambeau Bounce asset and its renderer remain archived.
 
 Two Green Bay comparison previews share a longer 3.81-second falling intro:

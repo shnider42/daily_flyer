@@ -1,4 +1,4 @@
-import {weatherParticles} from './weather-presentation.js?v=31';
+import {weatherParticles} from './weather-presentation.js?v=32';
 export function reporterPose(time,moving=true,energy=0){
  if(!moving)return {cell:0,bob:0,lean:0};
  return {cell:[1,1,2,1,3,0][Math.floor(time/1.5)%6],bob:Math.round(Math.sin(time*2)*.7-energy),lean:Math.round(Math.sin(time*.9))};
@@ -7,8 +7,8 @@ export class SidelineStage {
  constructor(canvas){
   this.canvas=canvas;this.sheet=new Image();
   this.sheet.onload=()=>{this.measure();this.draw(this.last||{});};
-  this.sheet.src=new URL('./reporter-poses.webp?v=31',import.meta.url);
-  this.coach=new Image();this.coach.onload=()=>{this.coachAtlas=this.measureImage(this.coach);this.draw(this.last||{});};this.coach.src=new URL('./coach-poses.png?v=31',import.meta.url);
+  this.sheet.src=new URL('./reporter-poses.webp?v=32',import.meta.url);
+  this.coach=new Image();this.coach.onload=()=>{this.coachAtlas=this.measureImage(this.coach);this.draw(this.last||{});};this.coach.src=new URL('./coach-poses.png?v=32',import.meta.url);
  }
  measure(){const atlas=this.measureImage(this.sheet);this.cells=atlas.cells;this.maxHeight=atlas.maxHeight;this.maxWidth=atlas.maxWidth;}
  measureImage(s){

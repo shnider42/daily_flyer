@@ -1,8 +1,8 @@
-import {FRONTS} from './defensive-systems.js?v=31';
-import {jobs} from './assignment-books.js?v=31';
-import {formationOf,PERSONNEL} from './packages.js?v=31';
-import {fullFormation} from './full-team.js?v=31';
-import {fullCalls,routeFor} from './plays.js?v=31';
+import {FRONTS} from './defensive-systems.js?v=32';
+import {jobs} from './assignment-books.js?v=32';
+import {formationOf,PERSONNEL} from './packages.js?v=32';
+import {fullFormation} from './full-team.js?v=32';
+import {fullCalls,routeFor} from './plays.js?v=32';
 
 const oldSeven=Object.fromEntries(Object.entries({
  zone:'R R HL HR FL FR H',man:'R R m4 MID m2 m3 H',press:'R R m4 R m2 m3 H',

@@ -3,7 +3,7 @@ import {Game} from '../../daily_flyer/themes/pocket_gridiron_assets/engine.js';
 import {buildTeam} from '../../daily_flyer/themes/pocket_gridiron_assets/roster.js';
 import {seededRandom} from '../../daily_flyer/themes/pocket_gridiron_assets/rules.js';
 import {ReplayTape,replayFrame,replayKind} from '../../daily_flyer/themes/pocket_gridiron_assets/replay.js';
-import {PGIMusic,SCORE_CUES} from '../../daily_flyer/themes/pocket_gridiron_assets/music.js';
+import {PGIMusic,SCORE_CUES,SCENE_TRACKS} from '../../daily_flyer/themes/pocket_gridiron_assets/music.js';
 const data=JSON.parse(fs.readFileSync(new URL('../../daily_flyer/themes/pocket_gridiron_assets/rosters.json',import.meta.url)));
 function game(){const g=new Game(buildTeam('NE',data),buildTeam('NYJ',data),'pro',seededRandom(9));g.beginDrive(0,25);g.choose('dive');g.snap();g.events=[];return g;}
 function history(g,tape){for(let i=0;i<80;i++){g.carrier.y=30+i*.3;tape.observe(g,.05,[]);}}
@@ -47,12 +47,12 @@ test('Green Bay scores use the approved bomb intro as either team, while opponen
   p.configure({scoring:false});p.score('GB');await settle();assert.equal(p.scorer,null);
  }
 });
-test('soundtrack restores three arcade favorites and reserves three orchestral themes for postgame',()=>{assert.equal(manifest.tracks.length,6);for(const family of ['arcade','film'])assert.equal(manifest.tracks.filter(t=>t.family===family).length,3);assert.equal(SCORE_CUES.NE.id,'for-boston');assert.equal(SCORE_CUES.NYJ.id,'notre-dame-victory');assert.equal(SCORE_CUES.default.id,'pgi-score');for(const t of manifest.tracks)assert.ok(fs.statSync(new URL('../../daily_flyer/themes/pocket_gridiron_assets/'+t.src,import.meta.url)).size>100000);});
+test('soundtrack leads with two original synth themes, retains older favorites, and reserves film scores for postgame',()=>{assert.equal(manifest.tracks.length,8);assert.equal(manifest.tracks.filter(t=>t.family==='arcade').length,5);assert.equal(manifest.tracks.filter(t=>t.family==='film').length,3);assert.equal(SCORE_CUES.NE.id,'for-boston');assert.equal(SCORE_CUES.NYJ.id,'notre-dame-victory');assert.equal(SCORE_CUES.default.id,'pgi-score');for(const t of manifest.tracks)assert.ok(fs.statSync(new URL('../../daily_flyer/themes/pocket_gridiron_assets/'+t.src,import.meta.url)).size>100000);});
 test('music rotates across tracks and family selection; pause resumes from its previous offset',async()=>{const [p,c]=player();p.update();await settle();const first=p.active.track.id;c.currentTime=12;p.update({blocked:true});assert.equal(p.active,null);assert.equal(p.resumeAt,12);p.update({blocked:false});await settle();assert.equal(p.active.track.id,first);assert.equal(p.active.source.started.offset,12);p.next();await settle();assert.notEqual(p.active.track.id,first);p.configure({family:'film'});p.update();await settle();assert.equal(p.active.track.family,'film');});
 test('a late soundtrack download cannot start after mute, pause or a newer selection',async()=>{let resolve;const [p,c]=player(()=>new Promise(r=>{resolve=r;}));p.update();p.configure({enabled:false});resolve({ok:true,arrayBuffer:async()=>new ArrayBuffer(8)});await settle();assert.equal(c.sources.length,0);assert.equal(p.active,null);});
 test('scoring music ducks the song, maps both teams, and is independently disabled',async()=>{const [p,c]=player();p.update();await settle();p.score('NYJ');await settle();assert.equal(p.scorer.track.id,'notre-dame-victory');const song=p.active;p.scorer.source.onended();assert.equal(p.scorer,null);assert.equal(p.active,song);p.configure({enabled:false,scoring:true});p.score('NE');await settle();assert.equal(p.scorer.track.id,'for-boston');p.configure({enabled:false,scoring:false});p.score('BUF');assert.equal(p.scorer,null);});
 test('late scoring audio is canceled on pause and cannot celebrate during a later play',async()=>{let release;const [p,c]=player(()=>new Promise(r=>{release=r;}));p.score('NE');p.update({blocked:true});release({ok:true,arrayBuffer:async()=>new ArrayBuffer(8)});await settle();assert.equal(c.sources.length,0);p.update({blocked:false});p.halt();});
-test('decoded background audio cache stays bounded while all six tracks can be selected',async()=>{const [p]=player();for(const t of manifest.tracks)await p.prepare(t);assert.equal(p.cache.size,2);for(const cue of Object.values(SCORE_CUES))await p.prepare(cue);assert.equal(p.cache.size,5);});
+test('decoded background audio cache stays bounded while all eight tracks can be selected',async()=>{const [p]=player();for(const t of manifest.tracks)await p.prepare(t);assert.equal(p.cache.size,2);for(const cue of Object.values(SCORE_CUES))await p.prepare(cue);assert.equal(p.cache.size,5);});
 
 test('broadcast-only playback keeps scoring independent and resumes the show at its offset',async()=>{
  const [p,c]=player();p.update({background:true});await settle();const track=p.active.track.id;c.currentTime=8;
@@ -75,18 +75,18 @@ test('a discarded audio context releases voices and late loads before speaker re
 
 test('automatic music follows menu, pregame, halftime and final highlights, with no orchestral menu spill',async()=>{
  const [p,c]=player();
- for(const [scene,expected] of [['menu','saturday-voltage'],['pregame','fourth-and-thunder'],['halftime','neon-end-zone'],['postgame','sunday-in-gold']]){
+ for(const [scene,expected] of [['menu','coin-op-kickoff'],['pregame','turbo-touchdown'],['halftime','coin-op-kickoff'],['postgame','sunday-in-gold']]){
   p.update({scene});await settle();assert.equal(p.active.track.id,expected);
   const family=scene==='postgame'?'film':'arcade';
   for(let i=0;i<4;i++){assert.equal(p.active.track.family,family);p.active.source.onended();p.update({scene});await settle();}
  }
- p.update({scene:'menu'});await settle();assert.equal(p.active.track.id,'saturday-voltage');
+ p.update({scene:'menu'});await settle();assert.equal(p.active.track.id,'coin-op-kickoff');
 });
 test('a show transition discards an in-flight arcade download and starts its film score from the opening',async()=>{
  const pending=new Map();const [p,c]=player(url=>new Promise(resolve=>pending.set(String(url),resolve)));
  const release=id=>{const key=[...pending.keys()].find(k=>k.includes(id));assert.ok(key,id);pending.get(key)({ok:true,arrayBuffer:async()=>new ArrayBuffer(8)});};
  p.update({scene:'pregame'});p.update({scene:'postgame'});
- release('fourth-and-thunder');await settle();assert.equal(p.active,null);
+ release('turbo-touchdown');await settle();assert.equal(p.active,null);
  release('sunday-in-gold');await settle();assert.equal(p.active.track.id,'sunday-in-gold');assert.equal(p.active.offset,0);
 });
 test('scene changes preserve mute and explicit collection choices, and clear final-play scoring music',async()=>{
@@ -95,5 +95,35 @@ test('scene changes preserve mute and explicit collection choices, and clear fin
  p.configure({enabled:false});p.update({scene:'menu'});await settle();assert.equal(p.active,null);
  p.configure({family:'arcade'});p.update({scene:'postgame'});await settle();assert.equal(p.active.track.family,'arcade');
  p.configure({family:'all'});p.update();await settle();assert.equal(p.active.track.family,'film');
- assert.equal(p.list({browse:true}).length,6);assert.equal(p.list().length,3);
+ assert.equal(p.list({browse:true}).length,8);assert.equal(p.list().length,3);
+});
+
+
+test('opening menu rotates only the two new themes and the explicit arcade collection starts with them',async()=>{
+ const [p]=player();const expected=['coin-op-kickoff','turbo-touchdown'];
+ assert.deepEqual(SCENE_TRACKS.menu,expected);
+ for(const scene of ['menu','pregame','halftime'])assert.deepEqual(new Set(SCENE_TRACKS[scene]),new Set(expected));
+ p.update({scene:'menu'});await settle();
+ for(let i=0;i<6;i++){
+  assert.equal(p.active.track.id,expected[i%2]);
+  p.active.source.onended();p.update({scene:'menu'});await settle();
+ }
+ p.configure({family:'arcade'});assert.deepEqual(p.list().slice(0,2).map(t=>t.id),expected);
+ p.choose(expected[1]);await settle();assert.equal(p.active.track.id,expected[1]);
+});
+
+test('new arcade recordings have authored contrasting sections, web-sized assets and measured headroom',()=>{
+ for(const id of SCENE_TRACKS.menu){
+  const track=manifest.tracks.find(t=>t.id===id);
+  assert.ok(track.duration>=60&&track.duration<=90);assert.equal(track.sections[0].at,0);
+  assert.ok(track.sections.some(s=>s.name==='Stadium chorus'));
+  assert.ok(track.sections.some(s=>s.name==='Bass and bell break'));
+  assert.ok(track.sections.every((s,i,a)=>!i||s.at>a[i-1].at));
+  const root=new URL('../../daily_flyer/themes/pocket_gridiron_assets/music/',import.meta.url);
+  const report=JSON.parse(fs.readFileSync(new URL(`${id}.render.json`,root)));
+  assert.equal(report.quality.sample_rate,44100);assert.equal(report.quality.channels,2);
+  assert.ok(Object.values(report.quality.checks).every(Boolean));
+  assert.ok(report.quality.true_peak_dbtp<=-.9);
+  assert.ok(fs.statSync(new URL(`${id}.mp3`,root)).size<2000000);
+ }
 });

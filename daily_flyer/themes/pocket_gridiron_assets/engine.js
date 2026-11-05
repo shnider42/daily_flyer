@@ -1,23 +1,23 @@
-import {FRONTS,systemCalls} from './defensive-systems.js?v=31';
-import {athleticSpeed,exert,pursuitTarget,coverageLane} from './conditioning.js?v=31';
-import {availableTeam,beginHealthPlay} from './injuries.js?v=31';
-import {chooseOffense,cpuRunTarget,cpuRunBurst} from './rushing.js?v=31';
-import {createWeather,effects,windFor,kickConditions,weatherMove} from './weather.js?v=31';
-import {fullUnit,fullFormation,fullCoverage,fillSpecial} from './full-team.js?v=31';
-import {specialUnit,RETURN_PLANS,returnLane,recordKickLaunch,recordKickEnd,recordGoal} from './special-teams.js?v=31';
-import {goalWindow,goalResult} from './placekicks.js?v=31';
-import {formationOf,PERSONNEL,defensiveUnit,tendency,fakeRead,choosePersonnel} from './packages.js?v=31';
-import {matchLength,emptyBox,copyBox,halftimeReport} from './match.js?v=31';
-import {PLAYS,DEFENSE,routeFor,newCoverageTarget,defensiveCalls,fullCalls,pocketCalls} from './plays.js?v=31';
-import {passPlacement,eligibleReceivers,catchReach,landingPickChance} from './passing.js?v=31';
-import {playbook} from './teams.js?v=31';
-import {resetContact,nearestThreat,armBreak,beginContact,tickContact} from './contact.js?v=31';
-import {AI_PROFILES,BALL_RULES,MOVEMENT_RULES,fumbleChance} from './rules.js?v=31';
-import {clearBlocks,isBlocker,updateBlocking,shedBlock,canTackle,stuntTarget} from './blocking.js?v=31';
-import {PENALTIES,acceptedPenalty,outcomeValue} from './penalties.js?v=31';
+import {FRONTS,systemCalls} from './defensive-systems.js?v=32';
+import {athleticSpeed,exert,pursuitTarget,coverageLane} from './conditioning.js?v=32';
+import {availableTeam,beginHealthPlay} from './injuries.js?v=32';
+import {chooseOffense,cpuRunTarget,cpuRunBurst} from './rushing.js?v=32';
+import {createWeather,effects,windFor,kickConditions,weatherMove} from './weather.js?v=32';
+import {fullUnit,fullFormation,fullCoverage,fillSpecial} from './full-team.js?v=32';
+import {specialUnit,RETURN_PLANS,returnLane,recordKickLaunch,recordKickEnd,recordGoal} from './special-teams.js?v=32';
+import {goalWindow,goalResult} from './placekicks.js?v=32';
+import {formationOf,PERSONNEL,defensiveUnit,tendency,fakeRead,choosePersonnel} from './packages.js?v=32';
+import {matchLength,emptyBox,copyBox,halftimeReport} from './match.js?v=32';
+import {PLAYS,DEFENSE,routeFor,newCoverageTarget,defensiveCalls,fullCalls,pocketCalls} from './plays.js?v=32';
+import {passPlacement,eligibleReceivers,catchReach,landingPickChance} from './passing.js?v=32';
+import {playbook} from './teams.js?v=32';
+import {resetContact,nearestThreat,armBreak,beginContact,tickContact} from './contact.js?v=32';
+import {AI_PROFILES,BALL_RULES,MOVEMENT_RULES,fumbleChance} from './rules.js?v=32';
+import {clearBlocks,isBlocker,updateBlocking,shedBlock,canTackle,stuntTarget} from './blocking.js?v=32';
+import {PENALTIES,acceptedPenalty,outcomeValue} from './penalties.js?v=32';
 export const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
 export const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
-export {PLAYS,DEFENSE} from './plays.js?v=31';
+export {PLAYS,DEFENSE} from './plays.js?v=32';
 const animate=(p,slot,x,y)=>({...p,slot,x,y,speed:athleticSpeed(p.speed),stun:0,phase:0,pace:.55,energy:100,carrySeconds:0});
 export class Game {
  constructor(home,away,difficulty='pro',rng=Math.random,options={}){
@@ -462,8 +462,8 @@ export class Game {
  }
  resumeHalftime(){if(this.phase!=='halftime'||this.paused)return false;this.beginKick('kickoff',0,35);return true;}
  kick(type){
-  if(!['call','ready'].includes(this.phase)||this.down!==4||this.paused)return false;
-  if(type==='punt'){this.beginKick('punt',this.offense,this.spot);return true;}
+  if(!['call','ready'].includes(this.phase)||this.paused)return false;
+  if(type==='punt'){if(this.down!==4)return false;this.beginKick('punt',this.offense,this.spot);return true;}
   if(type!=='fieldgoal'||117-this.spot>65)return false;
   this.beginGoal('fieldgoal',this.offense,this.spot);return true;
  }

@@ -1,4 +1,4 @@
-import {expandedDefense} from './assignment-books.js?v=31';
+import {expandedDefense} from './assignment-books.js?v=32';
 // Coverage assignments describe all eleven slots; seven-player adaptations have
 // their own complete assignments. The 46 name honours the famous scheme, not 4–6 personnel.
 const z=(x,y,drift=0)=>({x,y,drift});

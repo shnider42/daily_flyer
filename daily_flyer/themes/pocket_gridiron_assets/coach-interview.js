@@ -1,4 +1,4 @@
-import {weatherAdvice,WEATHER} from './weather.js?v=31';
+import {weatherAdvice,WEATHER} from './weather.js?v=32';
 // The coach is a fictional representative of the selected team. Original
 // dialogue describes only this simulated match; it is not a real quotation.
 export function coachInterview(report,visit=0){

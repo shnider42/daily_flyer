@@ -1,0 +1,77 @@
+{
+  "composition": {
+    "id": "turbo-touchdown",
+    "title": "Turbo Touchdown",
+    "family": "arcade",
+    "bpm": 144,
+    "key": "C minor",
+    "description": "A bold FM-synth refrain, nimble electro bass, sparkling arcade arpeggios and a driving final chorus.",
+    "duration": 68.317,
+    "src": "./music/turbo-touchdown.mp3",
+    "sections": [
+      {
+        "at": 0.0,
+        "name": "Title hook"
+      },
+      {
+        "at": 6.667,
+        "name": "Main arcade groove"
+      },
+      {
+        "at": 20.0,
+        "name": "Stadium chorus"
+      },
+      {
+        "at": 33.333,
+        "name": "Bass and bell break"
+      },
+      {
+        "at": 40.0,
+        "name": "Full-power hook"
+      },
+      {
+        "at": 53.333,
+        "name": "Bonus-round answer"
+      },
+      {
+        "at": 60.0,
+        "name": "Final hook and victory cadence"
+      }
+    ],
+    "provenance": "Original PGI composition and deterministic procedural recording. All melodies, arrangements and synthesized instruments are authored in scripts/pgi_music/compose_arcade_themes.py. No third-party recordings or samples."
+  },
+  "renderer": "compose_arcade_themes.py",
+  "render_version": 1,
+  "seed": 198709,
+  "bars": 40,
+  "meter": "4/4",
+  "event_count": 2635,
+  "encoding": "44.1 kHz stereo MP3, 160 kbps, two-pass -16 LUFS / -1.5 dBTP master",
+  "bytes": 1367921,
+  "sha256": "91e90a3ae387d4cb264a115af8f8c2f33d064459d6b1d8c92e8a07d2745e89ee",
+  "quality": {
+    "sample_rate": 44100,
+    "channels": 2,
+    "duration_seconds": 68.317,
+    "integrated_lufs": -16.46,
+    "true_peak_dbtp": -3.92,
+    "loudness_range_lu": 3.3,
+    "sample_peak_dbfs": -4.043,
+    "rms_dbfs": -17.729,
+    "crest_factor_db": 13.686,
+    "stereo_correlation": 0.99634,
+    "first_sound_seconds": 0.0,
+    "quietest_music_window_dbfs": -46.34,
+    "checks": {
+      "finite": true,
+      "no_decoded_clipping": true,
+      "duration_60_to_90_seconds": true,
+      "hook_starts_immediately": true,
+      "no_mid_track_silence": true,
+      "mono_compatible": true,
+      "target_loudness": true,
+      "true_peak_headroom": true
+    },
+    "review_note": "Automated signal and encoded-output checks; these measurements do not claim subjective listening approval."
+  }
+}

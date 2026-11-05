@@ -307,14 +307,65 @@ body[data-guidance=expert] .plays .play small{display:block;font-size:9px;line-h
 #pauseInjuries:empty{display:none}
 @media(max-height:600px) and (orientation:landscape){.tvbreak{gap:3px;padding:8px}.tvbreak canvas{height:45px}.tvbreak>.eyebrow,.tvbreak>small{display:none}.tvbreak button{min-height:40px}}
 
-/* The huddle shows a short call list, then one readable assignment board. */
-.plays[data-side],.quickcall .plays[data-side],.quickcall[data-guidance] .plays[data-side]{grid-template-columns:minmax(0,1fr)}
-.plays .huddlecall,.quickcall .plays .huddlecall{display:flex;align-items:center;justify-content:space-between;gap:10px;text-align:left;min-height:44px;padding:8px 12px;border-left:3px solid #739d93}
-.huddlecall b,.quickcall .huddlecall b{font:bold 13px/1.25 monospace}
-.huddlecall span{font:10px monospace;color:#b2cdc2;white-space:nowrap}
-.huddleboard{padding:10px;background:#182d2b;display:grid;gap:6px;border:1px solid #547565}
-.huddlename{font:bold 16px/1.2 monospace;color:#fff1c6}.huddleboard p{font:12px/1.4 monospace;margin:0;color:#d2dfd4}
-.huddlechalk{background:#173e32;border:1px solid #456859}.huddlechalk svg{width:100%;height:clamp(98px,16dvh,165px);display:block}
-.huddleboard small{font:11px/1.4 monospace;color:#ecdcae}.rolekeys,.huddleactions{display:flex;flex-wrap:wrap;gap:4px}
-.rolekeys button{padding:5px 7px;min-height:36px;font:bold 11px monospace;background:#294641}.rolekeys button[aria-pressed=true]{color:#ffe7a5;border-bottom:2px solid #eec367}
-.huddleactions button{flex:1;min-height:44px;background:#304541;font:bold 13px monospace}.huddleactions button:last-child{background:#f2ac70;color:#172526}
+/* Four diagram cards, one tap to call. Suggested opens every new huddle. */
+.plays[data-side],.quickcall .plays[data-side],.quickcall[data-guidance] .plays[data-side]{display:flex;flex-direction:column;gap:8px;min-width:0;touch-action:pan-y}
+.bookmast{display:flex;align-items:stretch;gap:7px;min-width:0}
+.bookhome,.bookselect{min-height:36px;padding:7px;font:bold 10px/1.2 monospace;letter-spacing:.3px;border:1px solid #516b5b;background:#1b332d;color:#d9e7ce;flex:1;min-width:0;max-width:none}
+.bookhome[aria-pressed=true]{background:#edcb83;color:#182d25;border-color:#edcb83}
+.bookselect{font-weight:normal;font-size:11px;letter-spacing:0;padding-right:3px}
+.bookmatchup{font:10px/1.3 monospace;color:#a9c2b3;margin:0;overflow:hidden;white-space:nowrap;text-overflow:ellipsis}
+.playcards{display:grid;grid-template-columns:repeat(2,minmax(0,1fr));grid-auto-rows:1fr;gap:8px;min-width:0;touch-action:pan-y;transition:transform .14s ease-out;outline-offset:2px}
+.dragging .playcards{transition:none}
+.plays .playcard,.quickcall .plays .playcard{display:grid;grid-template-rows:28px 12px 58px 26px;gap:3px;align-content:start;min-height:0;min-width:0;padding:8px;background:#233b32;border:1px solid #54715c;text-align:left;border-radius:0;touch-action:pan-y}
+.plays .playcard b,.quickcall .plays .playcard b{display:-webkit-box;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;font:bold 12px/1.2 monospace;color:#f2ebcc;min-width:0}
+.plays .playcard .playmeta{font:9px/1.3 monospace;color:#bbccb1;overflow:hidden;text-overflow:ellipsis;white-space:nowrap;min-width:0}
+.playchalk{background:#173e30;border:1px solid #3a5d49;overflow:hidden;min-height:0}
+.plays .playcard .playchalk svg{display:block;width:100%;height:100%;margin:0}
+body[data-guidance] .plays .playcard .playreason{display:-webkit-box!important;-webkit-box-orient:vertical;-webkit-line-clamp:2;overflow:hidden;font:10px/1.3 monospace;color:#c6d6bb;margin:0;min-width:0}
+.plays .playcard.active{border-color:#f2bd75;background:#42432f;box-shadow:inset 0 0 0 1px #f2bd75}
+.plays .playcard.playaction{border-top:2px solid #dfc276;padding-top:7px}
+.plays .playcard.kickcard{border-color:#b39957;background:#343c2e}
+.plays .playcard:focus-visible{outline-offset:-3px}
+.playempty{border:1px dashed #476052;background:#1b302980;min-width:0}
+.plays .booknav{display:flex;gap:7px;align-items:center;border-top:1px solid #40584b;padding-top:6px;min-width:0}
+.plays .booknav button{flex:0 0 46px;min-width:44px;min-height:44px;padding:4px;border:1px solid #526a59;background:#2d4438;font:22px/1 monospace}
+.plays .booknav .bookstatus{display:block;flex:1;min-width:0;font:10px/1.3 monospace;text-align:center;color:#f1e4b9}
+.bookstatus b,.bookstatus small{display:block;font-size:9px;line-height:1.4}
+.bookstatus small{color:#a9bcab;margin-top:2px;font-size:9px}
+.quickcall{padding:9px;overflow-x:hidden;scrollbar-width:thin}
+.quickcall>.eyebrow,.quickcall>.quickhelp{display:none}
+.quickcall .plays .playcard{grid-template-rows:26px 11px 64px 24px;padding:7px;gap:3px}
+.quickcall .plays .playcard.playaction{padding-top:6px}
+.quickcall .playcards{gap:7px}
+.quickcall .bookmast .bookhome,.quickcall .bookmast .bookselect{min-height:34px}
+@media(min-width:901px){.game{grid-template-columns:minmax(350px,530px) 350px;gap:36px}#callHint{margin-bottom:16px}}
+@media(max-width:600px) and (max-height:740px){
+ .quickcall .plays .playcard{grid-template-rows:24px 10px 43px 23px;padding:6px;gap:2px}
+ .quickcall .plays .playcard.playaction{padding-top:5px}
+ .quickcall .plays .playcard b{font-size:11px}
+ .quickcall{padding:7px}
+ .quickcall .plays[data-side]{gap:6px}
+}
+@media(max-width:600px) and (max-height:620px){
+ .quickcall .plays .playcard{grid-template-rows:24px 32px 18px;padding:5px;gap:2px}
+ .quickcall .plays .playcard.playaction{padding-top:4px}
+ .quickcall .plays .playcard .playmeta,.quickcall .bookmatchup{display:none}
+ body[data-guidance] .quickcall .plays .playcard .playreason{font-size:9px;line-height:1.1}
+ .quickcall .playcards{gap:6px}
+ .quickcall .bookmast .bookhome,.quickcall .bookmast .bookselect{min-height:32px}
+ .quickcall .booknav{padding-top:3px}
+}
+@media(max-width:1000px) and (max-height:600px) and (orientation:landscape){
+ .quickcall{top:auto;bottom:4px;left:4px;right:4px;max-height:calc(100% - 8px);padding:6px}
+ .quickcall .plays[data-side]{gap:4px}
+ .quickcall .playcards{gap:5px}
+ .quickcall .plays .playcard{grid-template-rows:24px 40px;padding:5px;gap:2px}
+ .quickcall .plays .playcard.playaction{padding-top:4px}
+ .quickcall .plays .playcard b{font-size:11px}
+ body[data-guidance] .quickcall .plays .playcard .playreason,.quickcall .plays .playcard .playmeta,.quickcall .bookmatchup{display:none!important}
+ .quickcall .bookmast .bookhome,.quickcall .bookmast .bookselect{min-height:30px;padding:4px 7px}
+ .quickcall .booknav{padding-top:3px}
+ .quickcall .booknav button{min-height:40px}
+ .quickcall .bookstatus small{display:none}
+}
+@media(prefers-reduced-motion:reduce){.playcards{transition:none}}

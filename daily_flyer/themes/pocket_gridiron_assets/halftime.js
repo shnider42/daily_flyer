@@ -1,9 +1,9 @@
-import {paintBroadcast} from './broadcast-screen.js?v=31';
-import {broadcastBeat} from './booth-lines.js?v=31';
-import {BoothStage} from './booth-stage.js?v=31';
-import {syllableEnergy} from './booth-chatter.js?v=31';
-import {REPORTER} from './sideline.js?v=31';
-import {SidelineStage} from './sideline-stage.js?v=31';
+import {paintBroadcast} from './broadcast-screen.js?v=32';
+import {broadcastBeat} from './booth-lines.js?v=32';
+import {BoothStage} from './booth-stage.js?v=32';
+import {syllableEnergy} from './booth-chatter.js?v=32';
+import {REPORTER} from './sideline.js?v=32';
+import {SidelineStage} from './sideline-stage.js?v=32';
 const labels={al:'AL',john:'JOHN',coach:'COACH',[REPORTER.id]:REPORTER.label};
 
 // Shared, skippable pregame/halftime presentation. The live engine stays still.

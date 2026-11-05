@@ -5,16 +5,16 @@ export const SCORE_VARIANTS={
  gb63:{id:'lambeau-long-drop-63',title:'Green Bay · Take 1 · 63 BPM',src:'./music/lambeau-long-drop-63.mp3'},
  gb112:{id:'lambeau-long-drop-112',title:'Green Bay · Take 2 · 112 BPM',src:'./music/lambeau-long-drop-112.mp3'}
 };
-export const FAMILY_NAMES={all:'Match the moment',arcade:'Arcade favorites',film:'Postgame film scores'};
+export const FAMILY_NAMES={all:'Match the moment',arcade:'Arcade collection',film:'Postgame film scores'};
 export const SCENE_TRACKS={
- menu:['saturday-voltage','neon-end-zone','fourth-and-thunder'],
- pregame:['fourth-and-thunder','saturday-voltage','neon-end-zone'],
- halftime:['neon-end-zone','saturday-voltage','fourth-and-thunder'],
+ menu:['coin-op-kickoff','turbo-touchdown'],
+ pregame:['turbo-touchdown','coin-op-kickoff'],
+ halftime:['coin-op-kickoff','turbo-touchdown'],
  postgame:['sunday-in-gold','leather-and-thunder','the-long-walk-home']
 };
 export class PGIMusic {
  constructor({fetcher=globalThis.fetch?.bind(globalThis)}={}){this.fetcher=fetcher;this.catalog=[];this.cache=new Map();this.loads=new Map();this.failed=new Set();this.voices=new Set();this.generation=0;this.scoreGeneration=0;this.enabled=true;this.scoring=true;this.family='all';this.scene='menu';this.volume=.55;this.blocked=false;this.active=null;this.scorer=null;this.pending=null;this.cursor=-1;this.resumeAt=0;this.selected=null;this.status='Choose a track or start a game.';}
- async loadCatalog(){try{const r=await this.fetcher(new URL('./music/manifest.json?v=31',import.meta.url));if(!r.ok)throw Error();const m=await r.json();this.catalog=(Array.isArray(m)?m:m.tracks).filter(t=>t.id&&t.title&&['arcade','film'].includes(t.family)&&/^\.\/music\/[a-z0-9-]+\.mp3$/.test(t.src));return this.catalog;}catch{this.status='Soundtrack unavailable. Football is ready.';return [];}}
+ async loadCatalog(){try{const r=await this.fetcher(new URL('./music/manifest.json?v=32',import.meta.url));if(!r.ok)throw Error();const m=await r.json();this.catalog=(Array.isArray(m)?m:m.tracks).filter(t=>t.id&&t.title&&['arcade','film'].includes(t.family)&&/^\.\/music\/[a-z0-9-]+\.mp3$/.test(t.src));return this.catalog;}catch{this.status='Soundtrack unavailable. Football is ready.';return [];}}
  attach(context,output,scoreOutput){this.context=context;this.output=output;this.scoreOutput=scoreOutput;}
  releaseContext(){
   ++this.generation;++this.scoreGeneration;

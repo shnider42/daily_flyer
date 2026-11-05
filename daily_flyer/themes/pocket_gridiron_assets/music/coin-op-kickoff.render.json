@@ -1,0 +1,77 @@
+{
+  "composition": {
+    "id": "coin-op-kickoff",
+    "title": "Coin-Op Kickoff",
+    "family": "arcade",
+    "bpm": 136,
+    "key": "D major",
+    "description": "An instant pulse-wave hook, bright FM bells, bouncing octave bass and punchy drum-machine backbeats.",
+    "duration": 72.238,
+    "src": "./music/coin-op-kickoff.mp3",
+    "sections": [
+      {
+        "at": 0.0,
+        "name": "Title hook"
+      },
+      {
+        "at": 7.059,
+        "name": "Main arcade groove"
+      },
+      {
+        "at": 21.176,
+        "name": "Stadium chorus"
+      },
+      {
+        "at": 35.294,
+        "name": "Bass and bell break"
+      },
+      {
+        "at": 42.353,
+        "name": "Full-power hook"
+      },
+      {
+        "at": 56.471,
+        "name": "Bonus-round answer"
+      },
+      {
+        "at": 63.529,
+        "name": "Final hook and victory cadence"
+      }
+    ],
+    "provenance": "Original PGI composition and deterministic procedural recording. All melodies, arrangements and synthesized instruments are authored in scripts/pgi_music/compose_arcade_themes.py. No third-party recordings or samples."
+  },
+  "renderer": "compose_arcade_themes.py",
+  "render_version": 1,
+  "seed": 198603,
+  "bars": 40,
+  "meter": "4/4",
+  "event_count": 2644,
+  "encoding": "44.1 kHz stereo MP3, 160 kbps, two-pass -16 LUFS / -1.5 dBTP master",
+  "bytes": 1446288,
+  "sha256": "522382ccf04befce6afcd03713b6ecd8d7382ca231ae4e4bc2b31f4c16e66382",
+  "quality": {
+    "sample_rate": 44100,
+    "channels": 2,
+    "duration_seconds": 72.238,
+    "integrated_lufs": -16.45,
+    "true_peak_dbtp": -3.38,
+    "loudness_range_lu": 3.1,
+    "sample_peak_dbfs": -3.41,
+    "rms_dbfs": -17.654,
+    "crest_factor_db": 14.244,
+    "stereo_correlation": 0.9964,
+    "first_sound_seconds": 0.0,
+    "quietest_music_window_dbfs": -49.86,
+    "checks": {
+      "finite": true,
+      "no_decoded_clipping": true,
+      "duration_60_to_90_seconds": true,
+      "hook_starts_immediately": true,
+      "no_mid_track_silence": true,
+      "mono_compatible": true,
+      "target_loudness": true,
+      "true_peak_headroom": true
+    },
+    "review_note": "Automated signal and encoded-output checks; these measurements do not claim subjective listening approval."
+  }
+}

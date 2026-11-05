@@ -59,6 +59,19 @@ test('CPU punts on fourth down; humans cannot punt on earlier downs',()=>{
  const g=make();g.beginDrive(0,25);assert.equal(g.kick('punt'),false);g.down=4;assert.equal(g.kick('punt'),true);assert.equal(g.special.kickingTeam,0);assert.equal(g.offense,1);
  g.beginDrive(1,35,4,45);assert.equal(g.phase,'kick_ready');assert.equal(g.special.type,'punt');assert.equal(g.special.kickingTeam,1);
 });
+test('a field goal is callable on every down, with range, pause and live-play guards intact',()=>{
+ for(const format of [7,11])for(const down of [1,2,3,4]){
+  const g=new Game(buildTeam('NE',data),buildTeam('BUF',data),'pro',()=>.5,{format});
+  g.beginDrive(0,98,down,100);
+  assert.equal(g.kick('fieldgoal'),true,`${format}v${format}, down ${down}`);
+  assert.equal(g.special.type,'fieldgoal');assert.equal(g.special.distance,19);
+  assert.equal(g.special.kickingTeam,0);assert.equal(g.phase,'kick_ready');
+ }
+ const g=make();g.beginDrive(0,25,1);assert.equal(g.kick('fieldgoal'),false);
+ g.beginDrive(0,80,1);g.paused=true;assert.equal(g.kick('fieldgoal'),false);
+ g.paused=false;g.choose('dive');g.snap();assert.equal(g.kick('fieldgoal'),false);
+ g.beginDrive(0,80,2);assert.equal(g.kick('unknown'),false);
+});
 test('halftime, field goals and safety free kicks preserve the correct receiving team',()=>{
  const g=make();g.beginDrive(0,65,4);g.kick('fieldgoal');g.launchGoal(1,.5);until(g,g=>g.phase==='dead');g.next();assert.equal(g.special.type,'kickoff');assert.equal(g.special.kickingTeam,0);
  g.beginDrive(0,25);g.choose('dive');g.snap(g.offense);g.finish('tackle',-1);g.next();assert.equal(g.special.kickingTeam,0);assert.equal(g.special.kickSpot,20);

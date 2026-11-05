@@ -1,37 +1,37 @@
-import {roleFor,defenseBoard,offenseBoard} from './huddle.js?v=31';
-import {OFFENSIVE_SYSTEMS} from './offensive-systems.js?v=31';
-import {DECADE_TEAMS,decadeTeam} from './decades.js?v=31';
-import {commercialFor,paintCommercial} from './commercials.js?v=31';
-import {injurySummary} from './injuries.js?v=31';
-import {WEATHER,createWeather,weatherLabel,weatherAdvice,windFor,windArrow,kickConditions} from './weather.js?v=31';
-import {weatherSurface,weatherParticles,weatherFeet} from './weather-presentation.js?v=31';
-import {runLandmark} from './rushing.js?v=31';
-import {CLASSICS,HISTORIC_TEAMS,historicTeam} from './history.js?v=31';
-import {ChallengeGame,DRILLS,guideText,saveProgress} from './challenges.js?v=31';
-import {SPECIAL_SLOTS,RETURN_PLANS,kickHeight} from './special-teams.js?v=31';
-import {FORMATIONS,PERSONNEL,packageOf,tendency,personnelLabel,supportsPersonnel} from './packages.js?v=31';
-import {uniformFor} from './uniforms.js?v=31';
-import {goalWindow} from './placekicks.js?v=31';
-import {clockText,matchLength} from './match.js?v=31';
-import {HalftimeShow} from './halftime.js?v=31';
-import {pregameReport,halftimeBroadcast,postgameReport} from './broadcast.js?v=31';
-import {passPlacement,passAim} from './passing.js?v=31';
-import {playDiagram} from './plays.js?v=31';
-import {ReplayTape} from './replay.js?v=31';
-import {BoothVoices,giveBoothVoice} from './booth-lines.js?v=31';
-import {FAMILY_NAMES} from './music.js?v=31';
-import {showOffensiveRoutes,suggestions,coachText,hitDefender,BOOK_FILTERS,bookPage} from './presentation.js?v=31';
-import {teamStrengths,withOffensiveSystem} from './teams.js?v=31';
-import {RATING_LABELS,visibleRatings} from './ratings.js?v=31';
-import {bindAudioActivation} from './device-audio.js?v=31';
-import {StadiumAudio} from './audio.js?v=31';
-import {bindGameButton, protectGameSurface, setGameButtonEnabled,primaryCommand,stickInput,movementInput} from './controls.js?v=31';
-import {Game,PLAYS,DEFENSE,clamp} from './engine.js?v=31';
-import {TEAMS,buildTeam,fetchFreshRoster,validateRoster} from './roster.js?v=31';
+import {roleFor,defenseBoard,offenseBoard} from './huddle.js?v=32';
+import {bindHuddleSwipe} from './huddle-input.js?v=32';
+import {OFFENSIVE_SYSTEMS} from './offensive-systems.js?v=32';
+import {DECADE_TEAMS,decadeTeam} from './decades.js?v=32';
+import {commercialFor,paintCommercial} from './commercials.js?v=32';
+import {injurySummary} from './injuries.js?v=32';
+import {WEATHER,createWeather,weatherLabel,weatherAdvice,windFor,windArrow,kickConditions} from './weather.js?v=32';
+import {weatherSurface,weatherParticles,weatherFeet} from './weather-presentation.js?v=32';
+import {runLandmark} from './rushing.js?v=32';
+import {CLASSICS,HISTORIC_TEAMS,historicTeam} from './history.js?v=32';
+import {ChallengeGame,DRILLS,guideText,saveProgress} from './challenges.js?v=32';
+import {SPECIAL_SLOTS,RETURN_PLANS,kickHeight} from './special-teams.js?v=32';
+import {FORMATIONS,PERSONNEL,packageOf,personnelLabel,supportsPersonnel} from './packages.js?v=32';
+import {uniformFor} from './uniforms.js?v=32';
+import {goalWindow} from './placekicks.js?v=32';
+import {clockText,matchLength} from './match.js?v=32';
+import {HalftimeShow} from './halftime.js?v=32';
+import {pregameReport,halftimeBroadcast,postgameReport} from './broadcast.js?v=32';
+import {passPlacement,passAim} from './passing.js?v=32';
+import {ReplayTape} from './replay.js?v=32';
+import {BoothVoices,giveBoothVoice} from './booth-lines.js?v=32';
+import {FAMILY_NAMES} from './music.js?v=32';
+import {showOffensiveRoutes,suggestions,kickOptions,coachText,hitDefender,BOOK_FILTERS,bookPage} from './presentation.js?v=32';
+import {teamStrengths,withOffensiveSystem} from './teams.js?v=32';
+import {RATING_LABELS,visibleRatings} from './ratings.js?v=32';
+import {bindAudioActivation} from './device-audio.js?v=32';
+import {StadiumAudio} from './audio.js?v=32';
+import {bindGameButton, protectGameSurface, setGameButtonEnabled,primaryCommand,stickInput,movementInput} from './controls.js?v=32';
+import {Game,PLAYS,DEFENSE,clamp} from './engine.js?v=32';
+import {TEAMS,buildTeam,fetchFreshRoster,validateRoster} from './roster.js?v=32';
 const $=id=>document.getElementById(id);const el=(tag,text,cls)=>{const e=document.createElement(tag);if(text!==undefined)e.textContent=text;if(cls)e.className=cls;return e;};
 const safeRead=(key,fallback)=>{try{return JSON.parse(localStorage.getItem(key))??fallback;}catch{return fallback;}};
 const safeWrite=(key,value)=>{try{localStorage.setItem(key,JSON.stringify(value));return true;}catch{return false;}};
-let viewFloor=460,defenderHits=[],fullBook=false,bookFilter='all',bookIndex=0,bookSide='',bookFormation='singleback';
+let viewFloor=460,defenderHits=[],bookFilter='all',bookIndex=0,bookPages=1,bookSide='',bookSession=null;
 const replay=new ReplayTape();let autoReplays=safeRead('pg-replays',true)!==false,audition=false,lastMusicStatus='';
 let guidance='moderate',duel=null;
 let weatherSeed=Date.now()>>>0,forecast=null,forecastKey='';
@@ -94,7 +94,7 @@ function replayHUD(){
  $('down').textContent='REPLAY';$('spot').textContent='CLOCK HELD';$('playName').textContent=replay.active.clip.kind;$('playerLabel').textContent='PGI INSTANT REPLAY · RECORDED ACTION';
  for(let i=0;i<3;i++)$('pass'+i).hidden=true;$('controlHint').hidden=false;$('controlHint').textContent='WATCH IT AGAIN';setGameButtonEnabled($('burst'),true);$('burst').replaceChildren(document.createTextNode('SKIP REPLAY'),el('span','SPACE'));
 }
-function setGuidance(value){guidance=['simple','moderate','expert'].includes(value)?value:'moderate';safeWrite('pg-guidance',guidance);$('guidance').value=$('pauseGuidance').value=guidance;document.body.dataset.guidance=guidance;$('guidanceInfo').textContent={simple:'Three suggested calls, short lessons. Full team book is always available.',moderate:'Full team book with matchup and situation hints.',expert:'Detailed ratings and assignments. Minimal coaching prompts.'}[guidance];fullBook=false;if(game){if(game.challenge)game.challenge.guidance=guidance;renderPlaybook();updateHUD();}if(roster){updateLobby();renderMode();}}
+function setGuidance(value){guidance=['simple','moderate','expert'].includes(value)?value:'moderate';safeWrite('pg-guidance',guidance);$('guidance').value=$('pauseGuidance').value=guidance;document.body.dataset.guidance=guidance;$('guidanceInfo').textContent={simple:'Four suggested calls, short lessons. Swipe through the full team book.',moderate:'Four calls per page, with situation hints. Tap a diagram to call it.',expert:'The same four-card book, detailed ratings and minimal coaching prompts.'}[guidance];resetPlaybook();if(game){if(game.challenge)game.challenge.guidance=guidance;renderPlaybook();updateHUD();}if(roster){updateLobby();renderMode();}}
 const personnelOptions=Object.entries(PERSONNEL).map(([id,p])=>`<option value="${id}">${p.name} · ${p.label}</option>`).join('');
 for(const id of ['defensePackage','pauseDefensePackage']){const select=$(id);select.innerHTML=personnelOptions;select.value=safeRead('pg-defense-package','base');if(!PERSONNEL[select.value])select.value='base';select.onchange=()=>{safeWrite('pg-defense-package',select.value);for(const other of ['defensePackage','pauseDefensePackage'])$(other).value=select.value;if(game)game.defensePreference=select.value;updateSystemInfo();};}
 $('guidance').onchange=()=>setGuidance($('guidance').value);$('pauseGuidance').onchange=()=>setGuidance($('pauseGuidance').value);setGuidance(safeRead('pg-guidance','moderate'));
@@ -118,71 +118,98 @@ let refreshing=false;
 async function refreshRoster(automatic=false){if(refreshing)return;refreshing=true;$('refreshRoster').disabled=true;const old=roster;$('refreshStatus').textContent='Checking the latest active rosters…';try{const data=await fetchFreshRoster();for(const t of TEAMS)buildTeam(t.abbr,data);roster=data;const stored=safeWrite('pg-rosters',data);if(!game){updateLobby();renderRoster();}$('refreshStatus').textContent=`Updated ${new Date(data.fetchedAt).toLocaleString()}. ${data.players.length.toLocaleString()} active players.${stored?'':' Browser storage unavailable; this update lasts for this visit.'}`;}catch(err){roster=old;$('refreshStatus').textContent=`Couldn’t reach a complete roster update. Keeping the working ${new Date(old.fetchedAt).toLocaleDateString()} snapshot. Try again later.`;}finally{refreshing=false;$('refreshRoster').disabled=false;}}
 $('refreshRoster').onclick=()=>refreshRoster();
 async function boot(){try{const res=await fetch('./rosters.json');if(!res.ok)throw Error('Roster unavailable');const bundled=await res.json();const cached=window.PGI_DUEL?null:safeRead('pg-rosters',null);roster=validateRoster(cached)&&Date.parse(cached.fetchedAt)>Date.parse(bundled.fetchedAt)?cached:bundled;if(!Array.isArray(roster.players)||roster.players.length<1200)throw Error('Incomplete roster');for(const t of TEAMS)buildTeam(t.abbr,roster);ensureDifferent('homeTeam');updateLobby();renderMode();if(!window.PGI_DUEL&&Date.now()-Date.parse(roster.fetchedAt)>86400000)refreshRoster(true);}catch(e){$('rosterStamp').textContent='The roster could not load. Check your connection, then reload.';$('start').textContent='RELOAD ROSTERS ↻';$('start').disabled=false;$('start').onclick=()=>location.reload();}}
-let previewCall=null,previewRole=null;
-// Playbook clicks allow a thumb drag to scroll without choosing a play.
-function bindBookButton(button,action){button.onclick=()=>{if(!button.disabled)action();};}
+// Suggested is page zero. The rest of the deck is the full eligible team book.
+function resetPlaybook(){bookIndex=0;bookFilter='all';}
+function turnBookPage(delta,{keyboard=false,deck=null}={}){
+ const next=Math.max(0,Math.min(bookPages-1,bookIndex+delta));if(next===bookIndex)return false;
+ bookIndex=next;if(!next)bookFilter='all';renderPlaybook();
+ if(keyboard)deck?.querySelector('.playcards')?.focus({preventScroll:true});
+ return true;
+}
+for(const deck of [$('plays'),quickButtons])bindHuddleSwipe(deck,(delta,options={})=>turnBookPage(delta,{...options,deck}));
+function bindBookButton(button,action){button.onclick=event=>{if(!button.disabled)action(event);};}
+function kickDiagram(type){
+ const marks=type==='fieldgoal'
+  ? '<path d="M70 12V36H130V12 M100 36V50" stroke="#f9d56f" stroke-width="4"/><path d="M100 97Q145 62 100 22" stroke="#ecae77" stroke-width="3" stroke-dasharray="5 4"/><ellipse cx="100" cy="97" rx="6" ry="3" fill="#f4d2a4" transform="rotate(-25 100 97)"/>'
+  : '<ellipse cx="100" cy="21" rx="24" ry="8" fill="#8fc9ed" fill-opacity=".25" stroke="#8fc9ed"/><path d="M100 96Q145 52 100 21 M95 30L100 21L109 24" fill="none" stroke="#ecae77" stroke-width="3"/><ellipse cx="100" cy="97" rx="6" ry="3" fill="#f4d2a4"/>';
+ return `<svg viewBox="0 0 200 112" aria-hidden="true"><path d="M15 50H185 M15 76H185" stroke="#41594e" stroke-dasharray="4 5"/>${marks}</svg>`;
+}
+function callPlay(play){
+ if(play.kickType){if(kick(play.kickType))sound(330,.05);return;}
+ if(!game.choose(play.id))return;
+ renderPlaybook();updateHUD();field.focus({preventScroll:true});audioUnlock();sound(330,.05);
+}
 function renderPlaybook(){
- if(!game)return;if(game.challenge?.mode==='campaign'){$('plays').replaceChildren();quickButtons.replaceChildren();$('kicks').hidden=true;$('specialTeamsUnit').hidden=true;$('callTitle').textContent=game.item.name;$('callHint').textContent=guideText(game.item,guidance);quick.hidden=true;return;}const special=Boolean(game.special),turnover=Boolean(game.returnInfo||game.isLoose||game.phase==='penalty'),book=game.userOffense?game.humanPlays:[...game.humanPlays].sort((a,b)=>Number(!!b.system)-Number(!!a.system)),side=game.userOffense?'offense':'defense',suggested=guidance==='simple'&&!fullBook;
- if(!['ready','call'].includes(game.phase))previewCall=null;
- if(side!==bookSide){previewCall=null;bookSide=side;bookFilter='all';bookIndex=0;}
- if(game.userOffense&&!book.some(p=>packageOf(p)===bookFormation))bookFormation=game.teams[game.offense].profile.offense.formation||packageOf(book[0]);
- const packageBook=game.userOffense?book.filter(p=>packageOf(p)===bookFormation):book;
- const page=bookPage(packageBook,bookFilter,bookIndex,4),plays=suggested?suggestions(game,packageBook):page.plays;bookIndex=page.page;
+ if(!game)return;
+ if(game.challenge?.mode==='campaign'){$('plays').replaceChildren();quickButtons.replaceChildren();$('kicks').hidden=true;$('specialTeamsUnit').hidden=true;$('callTitle').textContent=game.item.name;$('callHint').textContent=guideText(game.item,guidance);quick.hidden=true;return;}
+ const special=Boolean(game.special),turnover=Boolean(game.returnInfo||game.isLoose||game.phase==='penalty');
+ const book=game.userOffense?game.humanPlays:[...game.humanPlays].sort((a,b)=>Number(!!b.system)-Number(!!a.system)),side=game.userOffense?'offense':'defense';
+ if(side!==bookSide||!duel&&bookSession!==game){bookSide=side;bookSession=game;resetPlaybook();}
+ const kicks=kickOptions(game),fullBook=[...book,...kicks];
+ const page=bookPage(bookFilter==='kick'?kicks:fullBook,bookFilter==='kick'?'all':bookFilter,Math.max(0,bookIndex-1),4);
+ bookPages=1+page.pages;if(bookIndex>0)bookIndex=page.page+1;
+ const suggested=bookIndex===0,plays=special||turnover?[]:suggested?suggestions(game,book):page.plays;
  for(const box of [$('plays'),quickButtons]){
-  box.replaceChildren();box.hidden=special||turnover;box.dataset.side=side;
-  const preview=book.find(p=>p.id===previewCall);
-  if(preview&&!special&&!turnover&&['call','ready'].includes(game.phase)){
-   const panel=el('div',undefined,'huddleboard');
-   panel.append(el('b',preview.name,'huddlename'),el('p',preview.hint));
-   const chalk=el('div',undefined,'huddlechalk');
-   if(game.userOffense){
-    chalk.innerHTML=offenseBoard(preview,game.format);
-    panel.append(chalk,el('small',preview.kind==='run'?'Orange · runner     Green · lead / pull':'Gold · A     Blue · B     Green · C'));
-   }else{
-    const board=defenseBoard(game,preview,previewRole);chalk.innerHTML=board.diagram;
-    panel.append(chalk);
-    const roles=el('div',undefined,'rolekeys');
-    for(const [kind,count] of Object.entries(board.counts)){
-     const key=el('button',kind+' '+count);key.setAttribute('aria-pressed',String(kind===board.kind));
-     key.onclick=()=>{previewRole=kind;renderPlaybook();};roles.append(key);
-    }
-    panel.append(roles,el('small',game.controlled.name+' · '+board.assignment));
-   }
-   const actions=el('div',undefined,'huddleactions'),back=el('button','← Calls'),commit=el('button','Call play');
-   back.onclick=()=>{previewCall=null;renderPlaybook();};
-   commit.onclick=()=>{if(!game.choose(preview.id))return;previewCall=null;renderPlaybook();updateHUD();sound(330,.05);};
-   actions.append(back,commit);panel.append(actions);box.append(panel);continue;
+  box.replaceChildren();box.hidden=special||turnover;box.dataset.side=side;box.dataset.page=String(bookIndex);box.dataset.suggested=String(suggested);
+  box.setAttribute('role','group');box.setAttribute('aria-label',`${game.userOffense?'Offensive':'Defensive'} play selection`);
+  if(special||turnover)continue;
+  const mast=el('div',undefined,'bookmast'),home=el('button','★ SUGGESTED','bookhome'),filter=el('select',undefined,'bookselect');
+  home.setAttribute('aria-pressed',String(suggested));home.setAttribute('aria-label','Show four suggested plays');
+  bindBookButton(home,event=>{resetPlaybook();renderPlaybook();if(event.detail===0)box.querySelector('.playcards')?.focus({preventScroll:true});});
+  filter.setAttribute('aria-label',`Browse ${side} playbook`);
+  const placeholder=el('option','FULL PLAYBOOK');placeholder.value='';placeholder.disabled=true;placeholder.hidden=true;filter.append(placeholder);
+  const labels={all:'All plays',new:'New plays',run:'Runs',quick:'Quick passes',deep:'Deep passes',pa:'Play action',zone:'Zone coverage',man:'Man coverage',pressure:'Pressure',kick:'Kicking'};
+  for(const [id] of [...BOOK_FILTERS[side],...(kicks.length?[['kick']]:[])]){
+   if(id==='new'&&!book.some(p=>p.edition===31))continue;
+   const option=el('option',labels[id]);option.value=id;filter.append(option);
   }
-  const packageRow=el('div',undefined,'packagebar');
-  if(game.userOffense){const label=el('label','FORMATION '),select=el('select');select.setAttribute('aria-label','Offensive formation');for(const [id,f] of Object.entries(FORMATIONS)){if(!book.some(p=>packageOf(p)===id))continue;const count=book.filter(p=>packageOf(p)===id).length;const o=el('option',f.name+' · '+count);o.value=id;select.append(o);}select.value=bookFormation;select.onchange=()=>{bookFormation=select.value;bookFilter='all';bookIndex=0;renderPlaybook();};label.append(select);packageRow.append(label);const seen=tendency(game.formationHistory[game.offense][bookFormation]);packageRow.append(el('small',`${PERSONNEL[game.personnel].name} defense on field · ${seen.runs} runs / ${seen.passes} passes shown${seen.pa?` (${seen.pa} PA)`:''}`));}
-  else packageRow.append(el('b',`${game.formation.name} offense is set`),el('small',`${PERSONNEL[game.personnel].name} · ${personnelLabel(game.personnel,game.format)} · personnel locked`));
-  box.append(packageRow);
-  if(!suggested){const filters=el('div',undefined,'bookfilters');filters.setAttribute('aria-label','Play categories');for(const [id,name] of BOOK_FILTERS[side]){if(id==='new'&&!packageBook.some(p=>p.edition===31))continue;const b=el('button',name);b.setAttribute('aria-pressed',String(id===bookFilter));bindBookButton(b,()=>{bookFilter=id;bookIndex=0;renderPlaybook();});filters.append(b);}box.append(filters);}
+  filter.value=suggested?'':bookFilter;
+  filter.onchange=()=>{bookFilter=filter.value;bookIndex=1;renderPlaybook();};
+  mast.append(home,filter);box.append(mast);
+  if(!game.userOffense)box.append(el('p',`${game.formation.name} set · ${PERSONNEL[game.personnel].name} unit`,'bookmatchup'));
+  const cards=el('div',undefined,'playcards');cards.tabIndex=0;cards.setAttribute('role','group');cards.setAttribute('aria-label',`${suggested?'Suggested plays':'Playbook page '+bookIndex}. Tap a card to call it; swipe or use arrow keys for more.`);
   for(const p of plays){
-   const b=el('button',undefined,'play huddlecall');
-   const signature=game.teams[game.humanTeam??0].profile[side].signature.includes(p.id);
-   b.append(el('b',(signature?'★ ':'')+p.name));
-   const tag=game.userOffense?(p.playAction?'Play action':p.kind==='run'?'Run':p.group==='deep'?'Deep pass':'Quick pass')
-    :p.group==='pressure'?'Pressure':p.group==='man'?'Man':'Zone';
-   b.append(el('span',tag));b.dataset.play=p.id;
-   bindBookButton(b,()=>{previewCall=p.id;previewRole=null;renderPlaybook();quick.scrollTop=0;});
-   b.disabled=!['call','ready'].includes(game.phase);
-   if((game.userOffense?game.play:game.defense)===p.id&&game.phase==='ready')b.classList.add('active');
-   box.append(b);
+   const button=el('button',undefined,'play playcard'),signature=game.teams[game.humanTeam??0].profile?.[side]?.signature?.includes(p.id);
+   let diagram,meta;
+   if(p.kickType){diagram=kickDiagram(p.kickType);meta=p.kickType==='fieldgoal'?`${Math.round(117-game.spot)} YD · FIELD GOAL`:'SPECIAL TEAMS · PUNT';button.classList.add('kickcard');}
+   else if(game.userOffense){
+    diagram=offenseBoard(p,game.format);
+    if(p.kind==='run')diagram=diagram.replace('viewBox="0 0 238 126"','viewBox="0 44 238 82"');
+    const type=p.playAction?'PA':p.kind==='run'?'RUN':p.group==='deep'?'DEEP PASS':'QUICK PASS';
+    meta=`${type} · ${FORMATIONS[packageOf(p)]?.name||'Special look'}`;
+   }else{
+    const focus=p.group==='pressure'?'Rush':p.group==='man'?'Man':'Zone',board=defenseBoard(game,p,focus);
+    // Tiny jersey labels obscure the shape at card size; the field retains the
+    // selected defender's complete assignment once the call is made.
+    diagram=board.diagram.replace(/<text\b[^>]*>[\s\S]*?<\/text>/g,'');
+    meta=Object.entries(board.counts).map(([kind,count])=>`${count} ${kind.toLowerCase()}`).join(' · ');
+   }
+   const chalk=el('div',undefined,'playchalk');chalk.innerHTML=diagram;
+   const reason=suggested?(p.reason||p.hint):p.hint;
+   button.append(el('b',(signature?'★ ':'')+p.name),el('span',meta,'playmeta'),chalk,el('small',reason||'Tap to call','playreason'));
+   button.dataset.play=p.id;if(p.kickType)button.dataset.kick=p.kickType;
+   if(p.playAction)button.classList.add('playaction');
+   button.setAttribute('aria-label',`Call ${p.name}. ${meta}. ${reason||''}`);button.title=p.hint||p.name;
+   bindBookButton(button,()=>callPlay(p));button.disabled=!['call','ready'].includes(game.phase);
+   if(!p.kickType&&(game.userOffense?game.play:game.defense)===p.id&&game.phase==='ready')button.classList.add('active');
+   cards.append(button);
   }
-  if(!suggested){const nav=el('div',undefined,'booknav'),prev=el('button','← PREV'),next=el('button','NEXT →');prev.disabled=page.page===0;next.disabled=page.page===page.pages-1;bindBookButton(prev,()=>{bookIndex--;renderPlaybook();});bindBookButton(next,()=>{bookIndex++;renderPlaybook();});nav.append(prev,el('span',`${page.page+1} / ${page.pages} · ${page.total} PLAYS`),next);box.append(nav);}
-  if(guidance==='simple'){const more=el('button',fullBook?'SHOW SUGGESTIONS':'FULL TEAM BOOK','booktoggle');bindBookButton(more,()=>{fullBook=!fullBook;renderPlaybook();});box.append(more);}
+  // Keep the last partial page in the same two-by-two geometry.
+  for(let i=plays.length;i<4;i++){const empty=el('div',undefined,'playempty');empty.setAttribute('aria-hidden','true');cards.append(empty);}
+  const nav=el('div',undefined,'booknav'),prev=el('button','←','bookprev'),next=el('button','→','booknext'),status=el('span',undefined,'bookstatus');
+  prev.setAttribute('aria-label','Previous page of plays');next.setAttribute('aria-label','Next page of plays');prev.disabled=bookIndex===0;next.disabled=bookIndex===bookPages-1;
+  bindBookButton(prev,event=>turnBookPage(-1,{keyboard:event.detail===0,deck:box}));bindBookButton(next,event=>turnBookPage(1,{keyboard:event.detail===0,deck:box}));
+  status.setAttribute('role','status');status.setAttribute('aria-live','polite');status.append(el('b',`${suggested?'SUGGESTED':labels[bookFilter].toUpperCase()} · ${bookIndex+1} / ${bookPages}`),el('small',suggested?'Swipe for the full playbook':'Swipe to browse · tap to call'));
+  nav.append(prev,status,next);box.append(cards,nav);
  }
  const unit=$('specialTeamsUnit');unit.hidden=!game.special;
  if(game.special){const s=game.special;unit.replaceChildren(el('b','THE THIRD PHASE'),el('p',s.goal?`${game.players[0].name} · ${s.distance}-yard ${s.type==='extra'?'extra point':'field goal'}`:`${game.carrier.name} · returner`));if(!s.goal)unit.append(el('p',`${game.defenders[6].name} · ${s.type==='punt'?'punter':'kicker'}`),el('small',`Gunners: ${game.defenders[0].name} · ${game.defenders[1].name}`));}
  $('sideTag').textContent=game.phase==='penalty'?'PENALTY':game.isLoose?'LOOSE BALL':turnover?'RETURN':special?'SPECIAL TEAMS':game.userOffense?'OFFENSE':'DEFENSE';
  $('callTitle').textContent=game.phase==='penalty'?'Make the decision.':game.isLoose?'Chase the ball.':turnover?(game.userOffense?'Take it all the way.':'Make the stop.'):special?(game.userKicking?'Win the field.':'Find your lane.'):game.userOffense?'Make the call.':'Make the stop.';
- $('callHint').textContent=game.special?.goal?'Tap START METER, lock power in green, then time the accuracy marker.':game.phase==='penalty'?'Accept the enforcement or decline and keep the play result. Use the buttons below.':game.isLoose?'The ball is live. Move toward it to recover; either team can take possession.':turnover?(game.userOffense?'Run upfield with the stick. Burst through a gap; contact can still cause a fumble.':'Possession changed. Switch to the closest defender, then chase and dive to stop the return.'):special?'Kicks travel downscreen. Returns go upfield. Aim with the stick or A/B/C; tap twice to set power. On an incoming punt, B calls a fair catch.':game.userOffense?'Choose a formation and a call. The defense responds with its current personnel. Mix runs, passes and play-action from the same look.':(duel?'Choose coverage privately. Both players must call a play before the offense can snap. Position your defender, switch, shed blocks or dive.':`${game.formation.name} is set. Choose coverage with your ${PERSONNEL[game.personnel].name.toLowerCase()} personnel; the CPU then snaps. Its play stays hidden.`);
+ $('callHint').textContent=game.special?.goal?'Tap START METER, lock power in green, then time the accuracy marker.':game.phase==='penalty'?'Accept the enforcement or decline and keep the play result. Use the buttons below.':game.isLoose?'The ball is live. Move toward it to recover; either team can take possession.':turnover?(game.userOffense?'Run upfield with the stick. Burst through a gap; contact can still cause a fumble.':'Possession changed. Switch to the closest defender, then chase and dive to stop the return.'):special?'Kicks travel downscreen. Returns go upfield. Aim with the stick or A/B/C; tap twice to set power. On an incoming punt, B calls a fair catch.':game.userOffense?'Tap a diagram to call the play. Swipe through four calls at a time; Suggested adapts to the situation. Formation is included on each card.':(duel?'Choose coverage privately. Both players must call a play before the offense can snap. Position your defender, switch, shed blocks or dive.':`${game.formation.name} is set. Choose coverage with your ${PERSONNEL[game.personnel].name.toLowerCase()} personnel; the CPU then snaps. Its play stays hidden.`);
  quick.firstChild.textContent=game.userOffense?'CHOOSE YOUR PLAY':'CHOOSE YOUR DEFENSE';
 }
-function start(){if(!roster)return;if(!duel&&['training','campaign'].includes(mode)){startChallenge();return;}if(duel){audioUnlock();if(duel.room?.status==='final'){duel.ready();$('resultTitle').textContent='Rematch requested · waiting for your friend';return;}duel.create({home:$('homeTeam').value,away:$('awayTeam').value,length:$('gameLength').value});return;}replay.reset();stadium.soundtrack.stopScore();audioUnlock().then(()=>stadium.soundtrack.warmScores([$('homeTeam').value,$('awayTeam').value]));ensureDifferent('homeTeam');game=new Game(teamFor($('homeTeam').value),teamFor($('awayTeam').value),$('difficulty').value,Math.random,{length:$('gameLength').value,defensePackage:$('defensePackage').value,format:Number($('fieldFormat').value),playClock:$('playClockSetting').checked,tvTimeouts:$('tvTimeoutSetting').checked,weather:forecast});const identity=game.teams[0].profile.offense;
- const signatureSystem=identity.system||PLAYS.find(p=>p.system&&identity.plays.includes(p.id))?.system;
- bookFormation=identity.formation||OFFENSIVE_SYSTEMS[signatureSystem]?.formation||'singleback';bookFilter='all';bookIndex=0;fullBook=false;endShown=false;lastPhase=game.phase;keys={};resetStick();$('lobby').hidden=true;$('game').hidden=false;document.body.classList.add('playing');$('footer').hidden=true;for(const d of document.querySelectorAll('dialog'))d.close();$('lastPlay').textContent='Opening kickoff. Get ready to return.';renderPlaybook();updateHUD();resizeField();window.scrollTo(0,0);game.paused=true;openBroadcast(pregameReport(game.teams,game.match,game.weather));}
+function start(){if(!roster)return;if(!duel&&['training','campaign'].includes(mode)){startChallenge();return;}if(duel){audioUnlock();if(duel.room?.status==='final'){duel.ready();$('resultTitle').textContent='Rematch requested · waiting for your friend';return;}duel.create({home:$('homeTeam').value,away:$('awayTeam').value,length:$('gameLength').value});return;}replay.reset();stadium.soundtrack.stopScore();audioUnlock().then(()=>stadium.soundtrack.warmScores([$('homeTeam').value,$('awayTeam').value]));ensureDifferent('homeTeam');game=new Game(teamFor($('homeTeam').value),teamFor($('awayTeam').value),$('difficulty').value,Math.random,{length:$('gameLength').value,defensePackage:$('defensePackage').value,format:Number($('fieldFormat').value),playClock:$('playClockSetting').checked,tvTimeouts:$('tvTimeoutSetting').checked,weather:forecast});resetPlaybook();bookSide='';endShown=false;lastPhase=game.phase;keys={};resetStick();$('lobby').hidden=true;$('game').hidden=false;document.body.classList.add('playing');$('footer').hidden=true;for(const d of document.querySelectorAll('dialog'))d.close();$('lastPlay').textContent='Opening kickoff. Get ready to return.';renderPlaybook();updateHUD();resizeField();window.scrollTo(0,0);game.paused=true;openBroadcast(pregameReport(game.teams,game.match,game.weather));}
 $('start').onclick=start;$('rematch').onclick=start;
 function menu(){if(duel?.room)duel.leave();replay.reset();stadium.soundtrack.stopScore();game=null;keys={};resetStick();document.body.classList.remove('playing');$('lobby').hidden=false;$('game').hidden=true;$('footer').hidden=false;for(const d of document.querySelectorAll('dialog'))d.close();updateLobby();renderMode();window.scrollTo(0,0);}
 $('quit').onclick=menu;$('newTeams').onclick=menu;
@@ -203,13 +230,13 @@ function closeDefenders(){if(game&&!duel)game.paused=false;$('defenderDialog').c
 $('closeDefenders').onclick=closeDefenders;$('defenderDialog').addEventListener('cancel',e=>{e.preventDefault();closeDefenders();});
 field.addEventListener('pointerdown',e=>{if(replay.active||!game||game.userOffense||game.paused||e.pointerType==='mouse'&&e.button!==0)return;e.preventDefault();const r=field.getBoundingClientRect(),index=hitDefender(defenderHits,e.clientX-r.left,e.clientY-r.top,28);if(index!==null){game.selectDefender(index);updateHUD();}});
 const seenLessons=safeRead('pg-lessons',{});
-function maybeLesson(){if(duel||game instanceof ChallengeGame)return;if(!game||game.paused||guidance!=='simple')return;let key='';if(game.phase==='kick_ready')key='kick';else if(game.phase==='call')key=game.userOffense?'offense':'defense';if(!key||seenLessons[key])return;const lessons={kick:['Track, then return.','Tap READY TO RETURN. Steer to the landing ring with your left thumb, then turn upfield. BURST is bottom right.'],offense:['Four downs. One gold line.','Tap a suggested play to inspect it, then tap Call play. Open the full team book for more. SNAP is bottom right. Pass with A, B or C. Hold the left stick to place the pass in that direction; center it for assisted placement. Near a tackler, the action becomes BREAK TACKLE; a move costs stamina and may expose the ball.'],defense:['Choose the defender you want.','The opponent’s play is hidden. Choose coverage, then tap a defender on the field or open PICK. NEAREST selects near the ball, NEXT cycles. Stay behind the blue line: the CPU snaps automatically.']};[$('lessonTitle').textContent,$('lessonText').textContent]=lessons[key];$('lessonDialog').dataset.lesson=key;game.paused=true;resetStick();$('lessonDialog').showModal();}
+function maybeLesson(){if(duel||game instanceof ChallengeGame)return;if(!game||game.paused||guidance!=='simple')return;let key='';if(game.phase==='kick_ready')key='kick';else if(game.phase==='call')key=game.userOffense?'offense':'defense';if(!key||seenLessons[key])return;const lessons={kick:['Track, then return.','Tap READY TO RETURN. Steer to the landing ring with your left thumb, then turn upfield. BURST is bottom right.'],offense:['Four downs. One gold line.','Tap one of four diagram cards to call it. Swipe left or right for more plays; the first page adapts to the situation. SNAP is bottom right. Pass with A, B or C. Hold the left stick to place the pass in that direction; center it for assisted placement. Near a tackler, the action becomes BREAK TACKLE; a move costs stamina and may expose the ball.'],defense:['Choose the defender you want.','The opponent’s play is hidden. Choose coverage, then tap a defender on the field or open PICK. NEAREST selects near the ball, NEXT cycles. Stay behind the blue line: the CPU snaps automatically.']};[$('lessonTitle').textContent,$('lessonText').textContent]=lessons[key];$('lessonDialog').dataset.lesson=key;game.paused=true;resetStick();$('lessonDialog').showModal();}
 function dismissLesson(){seenLessons[$('lessonDialog').dataset.lesson]=true;safeWrite('pg-lessons',seenLessons);$('lessonDialog').close();if(game)game.paused=false;updateHUD();audioUnlock();}
 $('lessonDone').onclick=dismissLesson;$('lessonDialog').addEventListener('cancel',e=>{e.preventDefault();dismissLesson();});
-function kick(type){if(game&&!game.paused){game.kick(type);updateHUD();renderPlaybook();}}
+function kick(type){if(!game||game.paused||!game.kick(type))return false;updateHUD();renderPlaybook();field.focus({preventScroll:true});audioUnlock();return true;}
 for(const b of [$('punt'),quickPunt])bindGameButton(b,()=>kick('punt'));
 for(const b of [$('fieldGoal'),quickFieldGoal])bindGameButton(b,()=>kick('fieldgoal'));
-window.addEventListener('keydown',e=>{if(!game||halftimeShow.openNow||game.phase==='halftime'||['INPUT','SELECT','TEXTAREA'].includes(e.target.tagName))return;if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' ','1','2','3','w','a','s','d','p'].includes(e.key))e.preventDefault();if(e.repeat)return;if(replay.active&&e.key.toLowerCase()!=='p'){if(e.key===' '||e.key==='Escape')skipReplay();return;}keys[e.key.toLowerCase()]=true;if(e.key.toLowerCase()==='p'){if(document.querySelector('dialog[open]')&&!$('pauseDialog').open)return;if(game.paused)$('resume').click();else pause();}if(game.paused)return;if(e.key===' ')primaryAction();if('123'.includes(e.key))receiverAction(Number(e.key)-1);});
+window.addEventListener('keydown',e=>{if(!game||halftimeShow.openNow||game.phase==='halftime'||e.target.closest?.('.plays')||['INPUT','SELECT','TEXTAREA'].includes(e.target.tagName))return;if(['ArrowUp','ArrowDown','ArrowLeft','ArrowRight',' ','1','2','3','w','a','s','d','p'].includes(e.key))e.preventDefault();if(e.repeat)return;if(replay.active&&e.key.toLowerCase()!=='p'){if(e.key===' '||e.key==='Escape')skipReplay();return;}keys[e.key.toLowerCase()]=true;if(e.key.toLowerCase()==='p'){if(document.querySelector('dialog[open]')&&!$('pauseDialog').open)return;if(game.paused)$('resume').click();else pause();}if(game.paused)return;if(e.key===' ')primaryAction();if('123'.includes(e.key))receiverAction(Number(e.key)-1);});
 window.addEventListener('keyup',e=>{delete keys[e.key.toLowerCase()];});
 const joy=$('joystick'),moveZone=$('moveZone');function resetStick(){stick={x:0,y:0};joyPointer=null;$('stick').style.transform='translate(0px, 0px)';}
 function joyMove(e){if(e.pointerId!==joyPointer)return;e.preventDefault();const r=joy.getBoundingClientRect(),v=stickInput(e.clientX-r.left-r.width/2,e.clientY-r.top-r.height/2,r.width*.32);stick={x:v.x,y:v.y};$('stick').style.transform=`translate(${v.px}px, ${v.py}px)`;}
@@ -229,7 +256,8 @@ function updateHUD(){
  $('spot').textContent=s&&kickSetup?`KICK FROM ${s.kickSpot}`:yard<=0?'OWN END ZONE':yard>=100?'END ZONE':yard<50?`OWN ${Math.round(yard)}`:`OPP ${Math.round(100-yard)}`;
  $('playName').textContent=settledKick?s.settled.reason.toUpperCase():g.canKneel&&g.userOffense?'RETURN OR KNEEL':g.phase==='penalty'?'ACCEPT OR DECLINE':g.isLoose?'CHASE THE BALL':g.returnInfo?(g.userOffense?'RUN UPFIELD ↑':'STOP THE RETURN'):s?(flight?'TRACK THE BALL':g.isReturn?(g.userOffense?'RUN UPFIELD ↑':'STOP THE RETURN'):'SPECIAL TEAMS'):g.phase==='call'?'PICK A PLAY':g.userOffense?g.playDefinition.name.toUpperCase():DEFENSE.find(p=>p.id===g.defense).name.toUpperCase();
  quick.hidden=g.phase!=='call';$('changePlay').hidden=!!duel||g.phase!=='ready'||g.challenge?.mode==='campaign';
- $('kicks').hidden=quickKicks.hidden=!(ready&&g.userOffense&&g.down===4);
+ // Kicks are cards in the deck, including the situation-aware first page.
+ $('kicks').hidden=quickKicks.hidden=true;
  for(const b of [$('fieldGoal'),quickFieldGoal]){b.disabled=117-g.spot>65;b.textContent=`Field goal · ${Math.round(117-g.spot)} yd`;}
  const burstLabel=g.phase==='tv_timeout'?'BACK TO FOOTBALL':g.phase==='moment_ready'?'START THE MOMENT':g.phase==='moment'?(g.moment.stage==='intro'?'TRACK THE BALL':g.moment.stage==='bump'?'BUMP FORWARD':g.moment.stage==='dive'?'DIVE ON IT':g.moment.id==='immaculate'?'SCOOP IT':'CATCH IT'):g.phase==='penalty'?'ACCEPT':g.phase==='ready'?(g.userOffense?'SNAP THE BALL':(duel?'OPPONENT WILL SNAP':`CPU SNAP · ${Math.max(1,Math.ceil(g.cpuSnapIn))}`)):g.phase==='call'?'CHOOSE A PLAY':g.phase==='dead'?'PLAY OVER':kickSetup?(g.userKicking?(g.phase==='kick_accuracy'?'KICK!':g.phase==='kick_charge'?(s.goal?'SET POWER':'KICK!'):'START METER'):s.goal?'OPPONENT KICKS':'READY TO RETURN'):g.isLoose?'LOOSE BALL':g.userOffense&&g.fakeActive?'SELL THE FAKE':g.userOffense?(g.pass?'PASS IN AIR':g.breakArm?'MOVE SET':g.breakAvailable?'BREAK TACKLE':g.contact?'CONTACT':'BURST'):g.controlled.blocked?'SHED BLOCK':'DIVE';
  setGameButtonEnabled($('burst'),Boolean(primaryCommand(g)||g.phase==='tv_timeout'||g.phase.startsWith('moment')));$('burst').dataset.action=primaryCommand(g)||'wait';
@@ -246,7 +274,7 @@ function updateHUD(){
   else if(!g.userOffense&&!s?.goal){label=['◎','↻','☷'][i];name=['NEAREST','NEXT','PICK'][i];enabled=i===2?['call','ready'].includes(g.phase):g.isLive||g.isLoose||flight||['call','ready'].includes(g.phase);}
   button.hidden=label==='—'||!enabled&&!g.userOffense;button.firstChild.textContent=label;button.lastChild.textContent=name;button.classList.toggle('returnselected',!duel&&g.phase==='kick_ready'&&g.userOffense&&!s?.goal&&s?.returnPlan===['left','middle','right'][i]||g.phase==='kick_ready'&&g.userKicking&&s?.type==='kickoff'&&s.kickStyle===['deep','squib','onside'][i]);setGameButtonEnabled(button,enabled);
  }
- const advice=coachText(g,guidance);$('coach').hidden=!advice||g.phase==='call'||g.phase==='penalty'||kickSetup;$('coach').textContent=advice;quick.dataset.guidance=guidance;quickHelp.textContent=coachText(g,guidance);quickHelp.hidden=!quickHelp.textContent;
+ const advice=coachText(g,guidance);$('coach').hidden=!advice||g.phase==='call'||g.phase==='penalty'||kickSetup;$('coach').textContent=advice;quick.dataset.guidance=guidance;quickHelp.hidden=true;
  $('contactCue').hidden=!g.contact||!g.userOffense;$('contactCue').textContent=g.offBalance>0?'OFF BALANCE · BREAK TACKLE?':'CONTACT · BREAK TACKLE';
  const shown=[0,1,2].some(i=>!$('pass'+i).hidden);$('controlHint').hidden=shown;
  $('controlHint').textContent=s?.goal?(g.phase==='kick_accuracy'?'STOP THE MARKER IN GREEN':g.phase==='kick_charge'?'SET POWER IN GREEN':'POWER · THEN ACCURACY'):g.fakeActive?'SELL THE FAKE · THEN THROW':g.pitch?'FOLLOW THE EXCHANGE':g.isLoose?'CHASE THE LOOSE BALL':g.phase==='ready'&&!g.userOffense?'WATCH THE SNAP':g.phase==='call'?'CHOOSE A PLAY ABOVE':g.phase==='dead'?'NEXT PLAY COMING':g.pass?'TRACK THE PASS':g.userOffense?'FOLLOW YOUR BLOCKS ↑':'GET READY TO DEFEND';
@@ -282,7 +310,7 @@ function updateHUD(){
  if(g.challenge?.mode==='campaign'){$('coach').hidden=true;quickHelp.hidden=true;$('playName').textContent={catch:'THE CATCH',immaculate:'SCOOP & RUN',roller:'HOLY ROLLER',edelman:'KEEP IT OFF GRASS'}[g.challenge.id];if(g.phase.startsWith('moment')){$('controlHint').hidden=false;$('controlHint').textContent='TRACK · MOVE · TIME THE CATCH';$('burst').lastElementChild.textContent='SPACE';}}
 }
 function toast(text,detail='',seconds=1.5){$('message').replaceChildren(el('span',text));if(detail)$('message').append(el('small',detail));toastUntil=performance.now()+seconds*1000;}
-function processEvents(){let healthUpdate=null;for(const e of game.events.splice(0)){stadium.event(e);if(e.type==='challenge'){finishChallenge();continue;}if(e.type==='result'){$('lastPlay').textContent=game.lastResult;toast(e.text,e.detail,2.1);}else if(e.type==='injury'){healthUpdate=e;}else if(['ball','turnover','handoff','shed','flag','escape'].includes(e.type))toast(e.text,e.detail,e.type==='turnover'?1.5:.8);else if(e.type==='penalty'){toastUntil=0;$('message').replaceChildren();}else if(e.type==='special'&&!['kick_ready','kick_charge','kick_accuracy'].includes(game.phase))toast(e.text,e.detail,1.1);else if(['overtime','quarter'].includes(e.type))toast(e.text,e.detail,1.4);else if(e.type==='halftime')showHalftime();else if(e.type==='final')finishGame();}if(game.phase!==lastPhase){lastPhase=game.phase;renderPlaybook();updateHUD();maybeLesson();}if(healthUpdate){toast(healthUpdate.text,healthUpdate.detail,4);$('lastPlay').textContent=healthUpdate.detail;}}
+function processEvents(){let healthUpdate=null,newCall=false;for(const e of game.events.splice(0)){stadium.event(e);if(e.type==='call'){resetPlaybook();newCall=true;}if(e.type==='challenge'){finishChallenge();continue;}if(e.type==='result'){$('lastPlay').textContent=game.lastResult;toast(e.text,e.detail,2.1);}else if(e.type==='injury'){healthUpdate=e;}else if(['ball','turnover','handoff','shed','flag','escape'].includes(e.type))toast(e.text,e.detail,e.type==='turnover'?1.5:.8);else if(e.type==='penalty'){toastUntil=0;$('message').replaceChildren();}else if(e.type==='special'&&!['kick_ready','kick_charge','kick_accuracy'].includes(game.phase))toast(e.text,e.detail,1.1);else if(['overtime','quarter'].includes(e.type))toast(e.text,e.detail,1.4);else if(e.type==='halftime')showHalftime();else if(e.type==='final')finishGame();}if(game.phase!==lastPhase||newCall){lastPhase=game.phase;renderPlaybook();updateHUD();maybeLesson();}if(healthUpdate){toast(healthUpdate.text,healthUpdate.detail,4);$('lastPlay').textContent=healthUpdate.detail;}}
 function finishGame(){if(endShown)return;endShown=true;$('resultTitle').textContent=game.scores[game.humanTeam??0]>game.scores[1-(game.humanTeam??0)]?'That’s a win.':'One more game?';$('resultScore').textContent=`${game.teams[0].city} ${game.scores[0]} — ${game.scores[1]} ${game.teams[1].city}`;$('resultStats').textContent=`${game.stats.yards} offensive yards · ${game.stats.completions}/${game.stats.attempts} passing · ${game.stats.tackles} team tackles · ${game.stats.returnYards} return yards · ${game.stats.takeaways} takeaways · ${game.stats.interceptions} INT thrown · ${game.stats.fumblesLost} fumbles lost · ${game.stats.brokenTackles} broken tackles · ${game.stats.penalties} penalties / ${Math.round(game.stats.penaltyYards)} yd`;if(duel){const b=game.box[duel.team];$('resultStats').textContent=`${game.teams[duel.team].abbr} · ${b.rushYards+b.passYards} offensive yards · ${b.completions}/${b.attempts} passing · ${b.returnYards} return yards · ${b.takeaways} takeaways · ${b.interceptions} INT thrown · ${b.fumblesLost} fumbles lost`;}openBroadcast(postgameReport(game,replay.fullHighlights));}
 // Original pixel sprites and stadium graphics, drawn at a fixed internal resolution.
 function rect(c,x,y,w,h,color){c.fillStyle=color;c.fillRect(Math.round(x),Math.round(y),Math.round(w),Math.round(h));}
@@ -477,12 +505,12 @@ $('newForecast').onclick=()=>{weatherSeed=(weatherSeed+104729)>>>0;forecastKey='
 setMode('exhibition');if(window.PGI_DUEL){$('matchOptions').querySelector('.gamepace').hidden=true;document.querySelector('.modehub').hidden=true;$('eraRow').hidden=true;$('fieldFormat').parentElement.hidden=true;for(const id of ['offenseSystem','awayOffenseSystem','defensePackage','pauseDefensePackage'])$(id).parentElement.hidden=true;for(const id of ['offenseSystemInfo','defenseSystemInfo','pauseDefenseInfo'])$(id).hidden=true;}
 
 if(window.PGI_DUEL){
- const {setupDuel}=await import('./duel-ui.js?v=31');
+ const {setupDuel}=await import('./duel-ui.js?v=32');
  duel=setupDuel({
   state(view,fresh){
    // Preserve already received events until the next paint drains them.
    const queued=fresh?[]:game?.events||[];game=view;game.events=[...queued,...view.events];
-   if(fresh){replay.reset();fullBook=false;endShown=false;lastPhase='';keys={};resetStick();$('lobby').hidden=true;$('game').hidden=false;document.body.classList.add('playing');$('footer').hidden=true;for(const d of document.querySelectorAll('dialog'))d.close();$('lastPlay').textContent='Private 1v1 · you play '+game.teams[duel.team].abbr;renderPlaybook();updateHUD();resizeField();window.scrollTo(0,0);audioUnlock();if(duel.room?.status==='pregame')openBroadcast(pregameReport(game.teams,game.match,game.weather));else if(duel.room?.status==='paused')$('pauseDialog').showModal();else if(duel.room?.status==='halftime')showHalftime();else if(duel.room?.status==='final')finishGame();}
+   if(fresh){replay.reset();resetPlaybook();bookSide='';endShown=false;lastPhase='';keys={};resetStick();$('lobby').hidden=true;$('game').hidden=false;document.body.classList.add('playing');$('footer').hidden=true;for(const d of document.querySelectorAll('dialog'))d.close();$('lastPlay').textContent='Private 1v1 · you play '+game.teams[duel.team].abbr;renderPlaybook();updateHUD();resizeField();window.scrollTo(0,0);audioUnlock();if(duel.room?.status==='pregame')openBroadcast(pregameReport(game.teams,game.match,game.weather));else if(duel.room?.status==='paused')$('pauseDialog').showModal();else if(duel.room?.status==='halftime')showHalftime();else if(duel.room?.status==='final')finishGame();}
    updateHUD();
   },
   room(room){

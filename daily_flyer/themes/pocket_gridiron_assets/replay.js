@@ -1,5 +1,5 @@
-import {kickHeight} from './special-teams.js?v=31';
-import {windFor} from './weather.js?v=31';
+import {kickHeight} from './special-teams.js?v=32';
+import {windFor} from './weather.js?v=32';
 // Presentation-only recordings. Playback never calls Game.tick or consumes RNG.
 const activePhase=p=>['live','return','fumble','kick_flight','kick_loose'].includes(p);
 const clone=p=>p?{...p}:null;

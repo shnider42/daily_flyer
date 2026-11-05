@@ -1,8 +1,90 @@
 {
-  "version": 3,
+  "version": 4,
   "title": "PGI \u2014 Arcade & Film Room",
-  "recording": "Three original arcade favorites and three original orchestral postgame themes.",
+  "recording": "Two original arcade/electro menu themes, three earlier arcade favorites, and three original orchestral postgame themes.",
   "tracks": [
+    {
+      "id": "coin-op-kickoff",
+      "title": "Coin-Op Kickoff",
+      "family": "arcade",
+      "bpm": 136,
+      "key": "D major",
+      "description": "An instant pulse-wave hook, bright FM bells, bouncing octave bass and punchy drum-machine backbeats.",
+      "duration": 72.238,
+      "src": "./music/coin-op-kickoff.mp3",
+      "sections": [
+        {
+          "at": 0.0,
+          "name": "Title hook"
+        },
+        {
+          "at": 7.059,
+          "name": "Main arcade groove"
+        },
+        {
+          "at": 21.176,
+          "name": "Stadium chorus"
+        },
+        {
+          "at": 35.294,
+          "name": "Bass and bell break"
+        },
+        {
+          "at": 42.353,
+          "name": "Full-power hook"
+        },
+        {
+          "at": 56.471,
+          "name": "Bonus-round answer"
+        },
+        {
+          "at": 63.529,
+          "name": "Final hook and victory cadence"
+        }
+      ],
+      "provenance": "Original PGI composition and deterministic procedural recording. All melodies, arrangements and synthesized instruments are authored in scripts/pgi_music/compose_arcade_themes.py. No third-party recordings or samples."
+    },
+    {
+      "id": "turbo-touchdown",
+      "title": "Turbo Touchdown",
+      "family": "arcade",
+      "bpm": 144,
+      "key": "C minor",
+      "description": "A bold FM-synth refrain, nimble electro bass, sparkling arcade arpeggios and a driving final chorus.",
+      "duration": 68.317,
+      "src": "./music/turbo-touchdown.mp3",
+      "sections": [
+        {
+          "at": 0.0,
+          "name": "Title hook"
+        },
+        {
+          "at": 6.667,
+          "name": "Main arcade groove"
+        },
+        {
+          "at": 20.0,
+          "name": "Stadium chorus"
+        },
+        {
+          "at": 33.333,
+          "name": "Bass and bell break"
+        },
+        {
+          "at": 40.0,
+          "name": "Full-power hook"
+        },
+        {
+          "at": 53.333,
+          "name": "Bonus-round answer"
+        },
+        {
+          "at": 60.0,
+          "name": "Final hook and victory cadence"
+        }
+      ],
+      "provenance": "Original PGI composition and deterministic procedural recording. All melodies, arrangements and synthesized instruments are authored in scripts/pgi_music/compose_arcade_themes.py. No third-party recordings or samples."
+    },
     {
       "id": "saturday-voltage",
       "title": "Saturday Voltage",
