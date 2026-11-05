@@ -25,8 +25,8 @@ export function coachText(g,level){
 }
 export function hitDefender(points,x,y,radius=26){return points.map(p=>({...p,d:Math.hypot(p.x-x,p.y-y)})).filter(p=>p.d<=radius).sort((a,b)=>a.d-b.d)[0]?.index??null;}
 
-export const BOOK_FILTERS={offense:[['all','ALL'],['run','RUN'],['quick','QUICK'],['deep','DEEP'],['pa','PA']],defense:[['all','ALL'],['zone','ZONE'],['man','MAN'],['pressure','PRESSURE']]};
+export const BOOK_FILTERS={offense:[['all','ALL'],['new','NEW'],['run','RUN'],['quick','QUICK'],['deep','DEEP'],['pa','PA']],defense:[['all','ALL'],['new','NEW'],['zone','ZONE'],['man','MAN'],['pressure','PRESSURE']]};
 export function bookPage(plays,filter='all',page=0,size=6){
- const filtered=filter==='all'?plays:plays.filter(p=>filter==='pa'?!!p.playAction:p.group===filter),pages=Math.max(1,Math.ceil(filtered.length/size)),index=Math.max(0,Math.min(pages-1,page));
+ const filtered=filter==='all'?plays:plays.filter(p=>filter==='new'?p.edition===31:filter==='pa'?!!p.playAction:p.group===filter),pages=Math.max(1,Math.ceil(filtered.length/size)),index=Math.max(0,Math.min(pages-1,page));
  return {plays:filtered.slice(index*size,(index+1)*size),page:index,pages,total:filtered.length};
 }

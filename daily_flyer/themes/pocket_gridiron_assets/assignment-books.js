@@ -78,7 +78,7 @@ const designs=[
 ];
 export function expandedDefense(fronts) {
  return designs.map(([system,id,name,hint,group,full,pocket])=>({
-  system,id,name,hint,group,depths:fronts[system].y.slice(0,7),
+  system,id,name,hint,group,edition:31,depths:fronts[system].y.slice(0,7),
   fullCoverage:jobs(full),coverage:jobs(pocket)
  }));
 }

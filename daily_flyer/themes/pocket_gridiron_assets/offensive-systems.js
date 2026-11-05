@@ -61,5 +61,5 @@ export const SYSTEM_PLAYS=[
  pass('pistolpa','pspaboot','Pistol PA boot right','Show counter left; flood the opposite sideline','deep',[[[7,11],[35,16]],[[46,38]],[[49,3]]],2.2,pa(18,41)),
  pass('pistolpa','pspascissors','Pistol PA scissors','Fake right; cross C corner under B post','deep',[[[8,7],[13,5]],[[45,15],[23,38]],[[35,10],[50,27]]],2.6,pa(45))
 ];
-SYSTEM_PLAYS.push(...expandedOffense({pass,run,hand,pull,lead,pa}));
+SYSTEM_PLAYS.push(...expandedOffense({pass,run,hand,pull,lead,pa}).map(call=>({...call,edition:31})));
 for(const [id,s] of Object.entries(OFFENSIVE_SYSTEMS)){s.plays=SYSTEM_PLAYS.filter(p=>p.system===id).map(p=>p.id);s.signature=s.plays.slice(0,3);}
