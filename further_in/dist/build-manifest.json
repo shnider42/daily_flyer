@@ -1,0 +1,17 @@
+{
+  "theme": "further_in",
+  "version": "0.1.0",
+  "files": {
+    "app.mjs": "78381ccdea4a2a28b3a606a3a0403125b875cdca1280e0866825436887e24de6",
+    "audio.mjs": "b82fe784b5149d352ee3687bd992ad016f29db241e0f2f05c3df920ca82dfd14",
+    "core.mjs": "92eca65e5d5ed6f34d7fd395972826f679cb2bd283ef1f9162f91512754af516",
+    "icon.svg": "5c991f9fbbaec0e22cab0746d635334a903f18b3cdab4165792830716297ec71",
+    "index.html": "387b06eb4a439a7bb909d6c9062d16fb98b8f56677af6eee7fc2747c2dec8adc",
+    "renderer.mjs": "3803979c189c29dcca709b28dde5772b347439fd0f47d988f613a778f468fe14",
+    "software.mjs": "9c60bcaf720136418b2639eb5ad902059a7641812ebefc86f1df91e244ec50d6",
+    "style.css": "9ea1649fea94f928b62e8eb36aa3e4de8c1baf15dd9efad8c69a897c424650ea",
+    "vendor/THREE-LICENSE.txt": "bfe119ea4fd413f5f7ca3fcd63adb0c4a073ed39daa2fe7d3e6b769e21272601",
+    "vendor/three.core.js": "eb077d2417f61d3e6d9264c317cabc4ea35769ed6b0ab533067292a550784c20",
+    "vendor/three.module.js": "c8211c69345d2e9949dc7a8ac969380497aa0600a5a8ac6a459c8cd02dd9cb8a"
+  }
+}
