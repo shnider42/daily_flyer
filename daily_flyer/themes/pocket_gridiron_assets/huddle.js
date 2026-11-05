@@ -30,25 +30,36 @@ function line(start,end,color){
  return `<path d="M${sx(start[0])} ${sy(start[1])} L${x} ${y} M${x-ux*5-uy*3} ${y-uy*5+ux*3} L${x} ${y} L${x-ux*5+uy*3} ${y-uy*5-ux*3}" stroke="${color}" stroke-width="2" fill="none"/>`;
 }
 const label=(x,y,word,color)=>`<text x="${sx(x)}" y="${sy(y)-4}" fill="${color}" font-size="9" text-anchor="middle">${word}</text>`;
-const board=marks=>`<svg viewBox="0 0 238 126" aria-hidden="true"><path d="M6 31H232 M6 65H232" stroke="#304947" stroke-dasharray="3 4"/><path d="M6 99H232" stroke="#7ca29c"/>${marks}</svg>`;
+const board=(marks,view="0 0 238 126")=>`<svg viewBox="${view}" aria-hidden="true"><path d="M6 31H232 M6 65H232" stroke="#304947" stroke-dasharray="3 4"/><path d="M6 99H232" stroke="#7ca29c"/>${marks}</svg>`;
 export function defenseBoard(game,call,focus){
  const front=FRONTS[call.system||PERSONNEL[game.personnel].system]||FRONTS.fourthree;
  const roles=game.defenders.map((_,i)=>roleFor(call,i,game.format,game.personnel));
  const counts={};for(const role of roles)counts[role.kind]=(counts[role.kind]||0)+1;
  const kind=counts[focus]?focus:roles[game.selected]?.kind||roles[0].kind;
- const marks=[],dots=[];
+ const marks=[],dots=[],focusPoints=[];
  roles.forEach((role,i)=>{
   const start=[front.x[i],front.y[i]],active=role.kind===kind,color=active?colors[kind]:'#79918a';
   if(active){
    const rx=game.players[role.receiver]?.x;
    const end=role.zone?[role.zone.x,role.zone.y]:role.receiver!==undefined?[rx,9]:kind==='Rush'?[26.5,-5]:[26.5,4];
+   focusPoints.push(start,end);
    marks.push(line(start,end,color));
    if(role.zone)marks.push(`<ellipse cx="${sx(end[0])}" cy="${sy(end[1])}" rx="12" ry="6" fill="${color}" opacity=".35"/>`);
    if(role.receiver!==undefined)marks.push(label(end[0],end[1],receivers[role.receiver],color));
   }
   dots.push(circle(...start,color,i===game.selected?4.6:3.1));
+  if(active&&kind==='Rush')dots.push(`<text x="${sx(start[0])}" y="${sy(start[1])-5}" fill="#ffe9cf" font-size="5" text-anchor="middle">${game.defenders[i].number}</text>`);
  });
- return {diagram:board([...marks,...dots].join('')),kind,counts,assignment:roles[game.selected]?.label};
+ let view;
+ if(kind==='Rush'||kind==='Spy'){
+  // Frame the relevant part of the field: five rush paths need the pocket,
+  // while a deep shell needs the full width and depth of the chalkboard.
+  const xs=focusPoints.map(point=>sx(point[0])),ys=focusPoints.map(point=>sy(point[1]));
+  const left=Math.min(...xs)-12,top=Math.min(...ys)-12;
+  const width=Math.max(68,Math.max(...xs)-left+12),height=Math.max(31,Math.max(...ys)-top+7);
+  view=[left,top,width,height].join(' ');
+ }
+ return {diagram:board([...marks,...dots].join(''),view),kind,counts,assignment:roles[game.selected]?.label};
 }
 export function offenseBoard(call,format){
  const play=format===11?fullCalls.get(call.id):call;
