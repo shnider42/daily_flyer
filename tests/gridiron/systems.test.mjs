@@ -18,18 +18,18 @@ const team=(system='team')=>withOffensiveSystem(buildTeam('NE',data),system);
 const make=(system='team',format=11,defensePackage='base')=>new Game(team(system),withOffensiveSystem(buildTeam('BUF',data),system),'pro',seededRandom(32),{format,defensePackage});
 const finite=g=>{for(const p of [...g.players,...g.defenders])assert.ok(Number.isFinite(p.x)&&Number.isFinite(p.y),`${g.play}/${g.defense}: ${p.name} ${p.x},${p.y}`);};
 const groups=[['DL','DT','DE'],['LB','ILB','OLB'],['DB','CB','S','FS','SS']];
-test('42 new offensive calls belong to seven distinct six-call systems, with supporting legacy calls',()=>{
- assert.equal(SYSTEM_PLAYS.length,42);assert.equal(SYSTEM_DEFENSE.length,20);
+test('92 offensive calls belong to seven distinct systems, with supporting legacy calls',()=>{
+ assert.equal(SYSTEM_PLAYS.length,92);assert.equal(SYSTEM_DEFENSE.length,50);
  assert.equal(new Set(PLAYS.map(p=>p.id)).size,PLAYS.length);assert.equal(new Set(DEFENSE.map(p=>p.id)).size,DEFENSE.length);
  for(const [id,s] of Object.entries(OFFENSIVE_SYSTEMS)){
-  assert.equal(s.plays.length,6);const g=make(id);g.beginDrive(0,30);
-  assert.equal(g.offensePlays.filter(p=>p.system).length,6);assert.ok(g.offensePlays.length>6);
+  assert.equal(s.plays.length,id==='pistolpa'?14:13);const g=make(id);g.beginDrive(0,30);
+  assert.equal(g.offensePlays.filter(p=>p.system).length,s.plays.length);assert.ok(g.offensePlays.length>6);
   assert.ok(g.offensePlays.filter(p=>p.system).every(p=>p.system===id));
   assert.ok(SYSTEM_PLAYS.filter(p=>p.system===id).some(p=>p.kind==='run'));
   assert.ok(SYSTEM_PLAYS.filter(p=>p.system===id).some(p=>p.kind==='pass'));
  }
 });
-test('each system disguises all six calls in one legal 11-player formation and aligned route starts',()=>{
+test('each system disguises its calls in one legal 11-player formation and aligned route starts',()=>{
  for(const [id,s] of Object.entries(OFFENSIVE_SYSTEMS))for(const format of [7,11]){
   const g=make(id,format);g.beginDrive(0,30);let alignment;
   for(const play of SYSTEM_PLAYS.filter(p=>p.system===id)){
@@ -46,12 +46,12 @@ test('all current and decade teams supply actual, distinct athletes for five def
   assert.ok(supportsPersonnel(t,id),`${t.abbr}/${id}`);const g=new Game(t,team(),'pro',seededRandom(1),{format:11,defensePackage:id});g.beginDrive(1,30);
   assert.deepEqual(groups.map(ps=>g.defenders.filter(p=>ps.includes(p.pos)).length),PERSONNEL[id].counts,`${t.abbr}/${id}`);
   assert.equal(new Set(g.defenders.map(p=>p.id)).size,11);assert.ok(g.defenders.every(p=>t.roster.some(q=>q.id===p.id)));
-  assert.equal(g.defensePlays.filter(p=>p.system).length,4);
+  assert.equal(g.defensePlays.filter(p=>p.system).length,10);
  }
  assert.equal(supportsPersonnel(historicTeam('OAK72'),'nickel'),false);assert.equal(choosePersonnel(historicTeam('OAK72'),'nickel'),'base');
  assert.equal(supportsPersonnel(historicTeam('OAK72'),'odd'),false);
 });
-test('all 20 new defensive calls assign every defender once, with finite 7- and 11-player targets',()=>{
+test('all 50 defensive system calls assign every defender once, with finite 7- and 11-player targets',()=>{
  for(const p of SYSTEM_DEFENSE)for(const format of [7,11]){
   const c=format===11?p.fullCoverage:p.coverage,slots=[...c.rush,...Object.keys(c.zones).map(Number),...Object.keys(c.man||{}).map(Number),...(c.spies||[]),...(c.safety===undefined?[]:[c.safety]),...(c.bracket?[c.bracket.under,c.bracket.over]:[])];
   assert.deepEqual(slots.sort((a,b)=>a-b),Array.from({length:format},(_,i)=>i),`${p.id}/${format}`);
@@ -95,5 +95,25 @@ test('full games complete with each selected offense and the five new defensive 
    if(g.canPass&&g.liveTime>1.8)g.throwTo(calls%3);g.tick(.05,g.phase.startsWith('kick_')?{x:0,y:0}:{x:Math.sin(ticks*.01)*.5,y:1});finite(g);
   }
   assert.equal(g.phase,'final',id);assert.ok(g.scores.every(Number.isFinite));assert.ok(calls>4);
+ }
+});
+
+test('all carried-over calls field legal elevens and show the jobs the simulation uses',()=>{
+ const g=make();g.teams.forEach(t=>t.profile=null);g.beginDrive(0,35);
+ for(const p of PLAYS){
+  assert.ok(g.choose(p.id));assert.equal(g.players.filter(q=>q.y===34.5).length,7,p.id);
+  assert.equal(new Set(g.players.map(q=>q.x+':'+q.y)).size,11,p.id);
+  if(p.kind==='pass')for(const q of g.players.slice(2,5)){
+   assert.deepEqual(g.route(q,0),{x:q.x,y:q.y},p.id);
+  }
+ }
+ for(const d of DEFENSE){
+  const c=d.fullCoverage;
+  const slots=[...c.rush,...Object.keys(c.zones).map(Number),...Object.keys(c.man||{}).map(Number),...(c.spies||[]),...(c.safety===undefined?[]:[c.safety]),...(c.bracket?[c.bracket.under,c.bracket.over]:[])];
+  assert.deepEqual(slots.sort((a,b)=>a-b),Array.from({length:11},(_,i)=>i),d.id);
+ }
+ for(const format of [7,11]){
+  const g=make('poweri',format);g.beginDrive(0,35);g.choose('pifbdive');g.snap();g.tickExchange(1);
+  assert.equal(g.carrier.slot,format===11?10:1);
  }
 });

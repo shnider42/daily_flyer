@@ -1,4 +1,4 @@
-import {OFFENSIVE_SYSTEMS} from './offensive-systems.js?v=30';
+import {OFFENSIVE_SYSTEMS} from './offensive-systems.js?v=31';
 // Dated, hand-reviewed arcade identities; not official coaching tendencies.
 export const PROFILE_DATE='2026-11-01';
 export const OFFENSE_STYLES={

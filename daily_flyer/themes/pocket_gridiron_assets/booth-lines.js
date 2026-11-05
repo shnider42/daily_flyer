@@ -1,7 +1,7 @@
-import {addCoachInterview} from './coach-interview.js?v=30';
-import {EXTRA_EXCHANGES} from './booth-extras.js?v=30';
-import {addSideline} from './sideline.js?v=30';
-import {wordTimeline,wordAt} from './booth-chatter.js?v=30';
+import {addCoachInterview} from './coach-interview.js?v=31';
+import {EXTRA_EXCHANGES} from './booth-extras.js?v=31';
+import {addSideline} from './sideline.js?v=31';
+import {wordTimeline,wordAt} from './booth-chatter.js?v=31';
 // Original fictional fan-tribute exchanges, not transcripts or voice imitations.
 // Each topic has eight exchanges: John explains, Al responds, John buttons it.
 // Facts are supplied separately from the selected lineup or settled game ledger.

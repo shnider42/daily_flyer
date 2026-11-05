@@ -1,5 +1,6 @@
-import {SYSTEM_PLAYS} from './offensive-systems.js?v=30';
-import {SYSTEM_DEFENSE,FRONTS} from './defensive-systems.js?v=30';
+import {jobs,legacyEleven} from './assignment-books.js?v=31';
+import {SYSTEM_PLAYS} from './offensive-systems.js?v=31';
+import {SYSTEM_DEFENSE,FRONTS} from './defensive-systems.js?v=31';
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
 const BASE_PLAYS=[
  {id:'dive',name:'Inside run',kind:'run',hint:'Follow the blocks'},
@@ -92,9 +93,31 @@ const NEW_DEFENSE=[
  def('edgeright','Right edge blitz','Corner rushes right · linebacker replaces him','pressure',[1.5,1.5,4,5,5,2,19],{rush:[0,1,5],edge:5,man:{2:4,3:3,4:2},safety:6})
 ];
 export const DEFENSE=[...BASE_DEFENSE.map(p=>({...p,group:['blitz','commit'].includes(p.id)?'pressure':['man','press','robber'].includes(p.id)?'man':'zone'})),...NEW_DEFENSE,...SYSTEM_DEFENSE];
+for(const call of DEFENSE) {
+ if(legacyEleven[call.id]) {
+  call.fullCoverage=jobs(legacyEleven[call.id]);
+  if(call.coverage?.stunt)call.fullCoverage.stunt=call.coverage.stunt;
+  if(call.coverage?.edge!==undefined)call.fullCoverage.edge=call.coverage.edge;
+ }
+}
+export const defensiveCalls=new Map(DEFENSE.map(call=>[call.id,call]));
+export const pocketCalls=new Map(PLAYS.map(call=>[call.id,call]));
+export const fullCalls=new Map(PLAYS.map(call=>{
+ if(call.kind!=='run')return [call.id,call];
+ const full={...call};
+ if(call.fullCarrier!==undefined){
+  full.carrier=call.fullCarrier;
+  full.exchange={...call.exchange,runner:call.fullCarrier};
+ }
+ if(call.fullPull)full.pulls=[...(call.pulls||[call.pull].filter(Boolean)),call.fullPull];
+ if(!call.system && !call.lead && call.id!=='draw'){
+  full.lead={slot:10,x:call.lane??26.5,until:1.65};
+ }
+ return [call.id,full];
+}));
 function waypointRoute(points,p,time,spot){
  let left=Math.max(0,time)*p.speed*(.94+(p.routeRunning||80)*.00075);
- for(let i=1;i<points.length;i++){const [x,y]=points[i-1],[tx,ty]=points[i],n=Math.hypot(tx-x,ty-y);if(left<=n)return {x:x+(tx-x)*left/n,y:Math.min(106,spot+y+(ty-y)*left/n)};left-=n;}
+ for(let i=1;i<points.length;i++){const [x,y]=points[i-1],[tx,ty]=points[i],n=Math.hypot(tx-x,ty-y);if(n===0)continue;if(left<=n)return {x:x+(tx-x)*left/n,y:Math.min(106,spot+y+(ty-y)*left/n)};left-=n;}
  const [x,y]=points.at(-1);return {x,y:Math.min(106,spot+y)};
 }
 export function newCoverageTarget(g,d){
@@ -111,7 +134,7 @@ export function newCoverageTarget(g,d){
 export function playDiagram(id){
  const p=PLAYS.find(p=>p.id===id);if(p){if(p.kind==='run')return `M27 40 L${p.lane} 31 L${p.lane} 16`;return [2,3,4].map(slot=>Array.from({length:22},(_,i)=>{const r=routeFor(p,{slot,speed:7.2,routeRunning:80},i*.25,0);return `${i?'L':'M'}${r.x.toFixed(1)} ${(38-r.y*.75).toFixed(1)}`;}).join(' ')).join(' ');}
  const d=DEFENSE.find(p=>p.id===id);if(!d?.coverage)return null;
- const c=d.fullCoverage||d.coverage,front=FRONTS[d.system];return Array.from({length:d.fullCoverage?11:7},(_,i)=>{const x=front?.x[i]??[23,30,15,39,8,45,26.5][i],y=34-(front?.y[i]??d.depths[i])*.7;if(c.rush.includes(i))return `M${x} ${y} L27 39`;if(c.man?.[i]!==undefined)return `M${x} ${y} L${[26.5,22,7,46,36,23,30,20,26.5,33,30][c.man[i]]} 15`;if(c.zones?.[i])return `M${x} ${y} L${c.zones[i].x} ${34-c.zones[i].y*.7}`;return `M${x-3} ${y} L${x+3} ${y} M${x} ${y-3} L${x} ${y+3}`;}).join(' ');
+ const c=d.fullCoverage||d.coverage,front=FRONTS[d.system]||FRONTS.fourthree;return Array.from({length:d.fullCoverage?11:7},(_,i)=>{const x=front?.x[i]??[23,30,15,39,8,45,26.5][i],y=34-(front?.y[i]??d.depths[i])*.7;if(c.rush.includes(i))return `M${x} ${y} L27 39`;if(c.man?.[i]!==undefined)return `M${x} ${y} L${[26.5,22,7,46,36,23,30,20,26.5,33,30][c.man[i]]} 15`;if(c.zones?.[i])return `M${x} ${y} L${c.zones[i].x} ${34-c.zones[i].y*.7}`;return `M${x-3} ${y} L${x+3} ${y} M${x} ${y-3} L${x} ${y+3}`;}).join(' ');
 }
 function baseRoute(play,p,time,spot){
   if(play.routes)return waypointRoute(play.routes[p.slot-2],p,Math.max(0,time-(play.releaseDelay?.[p.slot]||0)),spot);
@@ -145,6 +168,10 @@ function baseRoute(play,p,time,spot){
 // Full-team alignments can shift an eligible receiver. Ease the original route
 // out of the actual starting stance instead of jumping to a seven-player origin.
 export function routeFor(play,p,time,spot){
+ if(play.routes&&p.routeStart){
+  const path=play.routes[p.slot-2];
+  return waypointRoute([[p.routeStart.x,p.routeStart.y],...path.slice(1)],p,Math.max(0,time-(play.releaseDelay?.[p.slot]||0)),spot);
+ }
  const target=baseRoute(play,p,time,spot);if(!p.routeStart)return target;
  const start=baseRoute(play,p,0,spot),blend=Math.max(0,1-time*p.speed/12);
  return {x:target.x+(p.routeStart.x-start.x)*blend,y:target.y+(spot+p.routeStart.y-start.y)*blend};

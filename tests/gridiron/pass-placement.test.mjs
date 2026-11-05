@@ -57,12 +57,12 @@ test('QB draw keeps the quarterback and shifts blockers from pocket protection t
  const g=make('qbdraw');g.beginDrive(0,25);g.choose('qbdraw');g.snap();assert.equal(g.carrier,g.players[0]);assert.equal(isBlocker(g,g.players[2]),false);g.liveTime=1;assert.equal(isBlocker(g,g.players[2]),true);const rb=g.players[1],before=rb.y;updateBlocking(g,.05);assert.ok(rb.y>before);assert.equal(g.canPass,false);
 });
 test('all 32 team books expose their new calls; paged filters preserve access without giant phone grids',()=>{
- const offense=new Set(),defense=new Set();for(const t of TEAMS){const g=new Game(buildTeam(t.abbr,data),buildTeam(t.abbr==='BUF'?'NE':'BUF',data));g.beginDrive(0,25);assert.ok([39,40].includes(g.offensePlays.length));assert.equal(g.defensePlays.length,18);g.offensePlays.forEach(p=>offense.add(p.id));g.beginDrive(1,25);g.defensePlays.forEach(p=>defense.add(p.id));g.beginDrive(0,25);assert.equal(suggestions(g,g.humanPlays).length,3);const seen=[];for(let i=0;i<bookPage(g.humanPlays).pages;i++){const page=bookPage(g.humanPlays,'all',i);assert.ok(page.plays.length<=6);seen.push(...page.plays.map(p=>p.id));}assert.equal(new Set(seen).size,g.offensePlays.length);assert.ok(bookPage(g.humanPlays,'run',99).plays.every(p=>p.kind==='run'));}
- assert.equal(offense.size,91);assert.equal(defense.size,24);
+ const offense=new Set(),defense=new Set();for(const t of TEAMS){const g=new Game(buildTeam(t.abbr,data),buildTeam(t.abbr==='BUF'?'NE':'BUF',data));g.beginDrive(0,25);assert.ok([46,47,48].includes(g.offensePlays.length));assert.equal(g.defensePlays.length,24);g.offensePlays.forEach(p=>offense.add(p.id));g.beginDrive(1,25);g.defensePlays.forEach(p=>defense.add(p.id));g.beginDrive(0,25);assert.equal(suggestions(g,g.humanPlays).length,3);const seen=[];for(let i=0;i<bookPage(g.humanPlays).pages;i++){const page=bookPage(g.humanPlays,'all',i);assert.ok(page.plays.length<=6);seen.push(...page.plays.map(p=>p.id));}assert.equal(new Set(seen).size,g.offensePlays.length);assert.ok(bookPage(g.humanPlays,'run',99).plays.every(p=>p.kind==='run'));}
+ assert.equal(offense.size,141);assert.equal(defense.size,30);
 });
 
 test('new coverages create actual spies, brackets, zone drops and uncovered deep risks',()=>{
- const g=make();function call(id){g.beginDrive(1,25);g.choose(id);g.snap(1);g.liveTime=1;}
+ const g=make();g.selectOffense=()=> 'slants';function call(id){g.beginDrive(1,25);g.choose(id);g.snap(1);g.liveTime=1;}
  call('firezone');assert.ok(g.coverageTarget(g.defenders[1]).y>g.spot+3);assert.equal(g.coverageTarget(g.defenders[2]),g.carrier);
  call('cover0');assert.equal(g.coverageTarget(g.defenders[6]),g.carrier);
  call('spy');const before=g.coverageTarget(g.defenders[3]);g.carrier.x+=6;assert.ok(g.coverageTarget(g.defenders[3]).x>before.x);assert.ok(g.coverageTarget(g.defenders[3]).y>g.carrier.y);

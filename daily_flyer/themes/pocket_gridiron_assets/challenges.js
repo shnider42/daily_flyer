@@ -1,5 +1,5 @@
-import {Game,clamp,distance} from './engine.js?v=30';
-import {CLASSICS} from './history.js?v=30';
+import {Game,clamp,distance} from './engine.js?v=31';
+import {CLASSICS} from './history.js?v=31';
 export const DRILLS=[
  {id:'passing',name:'Passing lab',icon:'A →',simple:'Snap, let a receiver get open, then tap A, B or C.',moderate:'Read the coverage and lead the receiver with the stick as you throw.',expert:'Progression: 5 / 10 / 15-yard completions. Placement and separation matter.',goals:[5,10,15]},
  {id:'running',name:'Running lanes',icon:'↑ ↑',simple:'Follow your blockers. Use BURST when you see a gap.',moderate:'Press the lane, cut behind the block, and protect the ball through contact.',expert:'Progression: 5 / 10 / 20 yards. Gain is measured from the line of scrimmage.',goals:[5,10,20]},

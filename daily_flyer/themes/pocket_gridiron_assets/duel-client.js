@@ -1,5 +1,5 @@
-import {Game} from './engine.js?v=30';
-import {vector} from './duel-input.js?v=30';
+import {Game} from './engine.js?v=31';
+import {vector} from './duel-input.js?v=31';
 export class DuelClient{
  constructor(callbacks={}){this.callbacks=callbacks;this.socket=null;this.room=null;this.view=null;this.teams=null;this.team=0;this.seq=0;this.commandSeq=0;this.pending=[];this.held={x:0,y:0};this.lastEvent=0;this.lastTick=-1;this.lastReply=0;this.lastState=0;this.rtt=null;this.jitter=0;this.manual=false;this.retry=0;this.waiting=false;this.targets=new Map();try{this.pass=JSON.parse(sessionStorage.getItem('pgi-duel-pass')||'null');}catch{}this.timer=setInterval(()=>this.pump(),50);this.watch=setInterval(()=>this.check(),500);window.addEventListener('online',()=>{if(this.pass)this.reconnect();});document.addEventListener('visibilitychange',()=>{if(document.hidden){this.clear();this.send({type:'pause',reason:'network'});}else if(this.pass)this.reconnect();});window.addEventListener('pagehide',()=>{this.clear();this.send({type:'pause',reason:'network'});});}
  emit(name,...args){this.callbacks[name]?.(...args);}
@@ -28,7 +28,7 @@ export class DuelClient{
   if(!g.paused&&m.status==='playing')for(const p of this.pending)predict(g,p.input,p.dt);
   this.targets.clear();
   if(old&&key===previousKey){for(const [side,people] of [['players',g.players],['defenders',g.defenders]])for(let i=0;i<people.length;i++){const p=people[i],last=old[side][i];if(p===g.controlled||!last||Math.hypot(p.x-last.x,p.y-last.y)>8)continue;this.targets.set(p,{x:p.x,y:p.y});p.x=last.x;p.y=last.y;}g.cameraY=old.cameraY+(g.cameraY-old.cameraY)*.35;}
-  for(const name of ['choose','snap','throwTo','burst','breakTackle','selectDefender','switchDefender','kick','kickAction','fairCatch','resolvePenalty'])g[name]=(...args)=>this.command(name,args);
+  for(const name of ['choose','snap','throwTo','burst','breakTackle','selectDefender','switchDefender','kick','kickAction','chooseKickStyle','takeKnee','fairCatch','resolvePenalty'])g[name]=(...args)=>this.command(name,args);
   for(const e of m.events||[])if(e.id>this.lastEvent){this.lastEvent=e.id;g.events.push(e);}
   this.view=g;this.waiting=m.status!=='playing';this.emit('state',g,fresh);
  }

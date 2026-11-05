@@ -1,4 +1,5 @@
-import {windFor} from './weather.js?v=30';
+import {kickHeight} from './special-teams.js?v=31';
+import {windFor} from './weather.js?v=31';
 // Presentation-only recordings. Playback never calls Game.tick or consumes RNG.
 const activePhase=p=>['live','return','fumble','kick_flight','kick_loose'].includes(p);
 const clone=p=>p?{...p}:null;
@@ -6,7 +7,7 @@ export function replayFrame(g,time){
  const flip=g.offense===1,point=p=>p?{x:flip?53-p.x:p.x,y:flip?100-p.y:p.y}:null;
  const people=[...g.players.map(p=>({p,team:g.offense})),...g.defenders.map(p=>({p,team:1-g.offense}))].map(({p,team})=>({...point(p),id:p.id,slot:p.slot,name:p.name,team,number:p.number,phase:p.phase,stun:p.stun,carrier:p===g.carrier,selected:p===g.controlled,biting:!!(p.fakeBite&&!g.isHumanDefender(p)&&!g.passed&&!g.isReturn&&g.liveTime>=.25&&g.liveTime<p.fakeUntil)}));
  const b=g.pass||g.loose||(g.pitch?.released?{...g.pitch,elapsed:g.pitch.elapsed-g.pitch.release,duration:g.pitch.flight}:null)||g.special?.ball;
- const arc=b?(g.isLoose?Math.abs(Math.sin(b.elapsed*15))*5:Math.sin(Math.min(1,b.elapsed/(b.duration||1))*Math.PI)*(g.special?38:25)):0;
+ const arc=b?(g.isLoose?Math.abs(Math.sin(b.elapsed*15))*5:g.special?.ball?kickHeight(g.special,g.phase):Math.sin(Math.min(1,b.elapsed/(b.duration||1))*Math.PI)*25):0;
  const ball=point(b||g.carrier);
  const blocks=g.blocks.flatMap(block=>[block.p,block.help].filter(i=>i!==undefined).map(i=>({blocker:g.players[i].id,defender:g.defenders[block.d].id,doubleTeam:block.help!==undefined})));
  const wind=g.weather?windFor(g):null;if(wind&&flip){wind.x*=-1;wind.y*=-1;}

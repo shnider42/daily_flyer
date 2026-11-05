@@ -26,7 +26,7 @@ const stats=(g,team)=>g.box[team].special??=(emptySpecial());
 export function recordKickLaunch(g){const s=g.special;if(s.launched)return;s.launched=true;stats(g,s.kickingTeam)[s.type==='punt'?'punts':'kickoffs']++;}
 export function recordKickEnd(g,spot,reason,offense=g.offense){
  const s=g.special;if(!s||s.goal||s.settled)return;
- const kicking=stats(g,s.kickingTeam),receiving=stats(g,1-s.kickingTeam),returned=Number.isFinite(s.catchY),yards=returned?Math.round(spot-s.catchY):0;
+ const kicking=stats(g,s.kickingTeam),receiving=stats(g,1-s.kickingTeam),returned=Number.isFinite(s.catchY)&&reason!=='TOUCHBACK',yards=returned?Math.round(spot-s.catchY):0;
  if(returned){receiving[s.type==='punt'?'puntReturns':'kickReturns']++;receiving[s.type==='punt'?'puntReturnYards':'kickReturnYards']+=yards;if(yards>receiving.longReturn){receiving.longReturn=yards;receiving.returner=g.carrier.name;}if(reason==='touchdown')receiving.returnTD++;if(reason==='tackle')kicking.coverageStops++;}
  if(reason==='TOUCHBACK')kicking[s.type==='punt'?'puntTouchbacks':'kickTouchbacks']++;
  if(reason==='OUT OF BOUNDS')kicking.outOfBounds++;
@@ -53,4 +53,15 @@ export function specialStory(report,team=0){
  if(b.xpAttempts)return `${t.city} is ${b.xpMade} for ${b.xpAttempts} on extra points. A touchdown still leaves a job for the kicking unit.`;
   if(b.kickoffs)return `${t.city} has kicked off ${b.kickoffs} time${b.kickoffs===1?'':'s'}, with ${b.kickTouchbacks} touchback${b.kickTouchbacks===1?'':'s'}. Kicking and coverage set the defense's starting assignment.`;
  return `No field-goal or punt result for ${t.city} in this ledger. Field position matters even when it does not produce a highlight.`;
+}
+
+export function kickHeight(s,phase){
+ const b=s.ball;
+ if(!b)return 0;
+ if(phase==='kick_loose'){
+  if(s.kickStyle==='onside'&&s.looseTime<.6)return 13*Math.sin(Math.PI*s.looseTime/.6);
+  return Math.abs(Math.sin(s.looseTime*12))*3;
+ }
+ const height=s.kickStyle==='onside'?4:s.kickStyle==='squib'?9:38;
+ return Math.sin(Math.min(1,b.elapsed/b.duration)*Math.PI)*height;
 }

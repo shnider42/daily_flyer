@@ -41,6 +41,8 @@ export class DuelGame extends Game {
    if(name==='kick')return team===this.offense&&this.kick(args[0]);
    if(name==='kickAction')return this.special?.kickingTeam===team&&this.kickAction();
    if(name==='aim'&&this.special?.kickingTeam===team&&['kick_ready','kick_charge','kick_accuracy'].includes(this.phase)){this.special.aim=clamp(Number(args[0])||0,-1,1);return true;}
+   if(name==='chooseKickStyle')return team===this.special?.kickingTeam&&this.chooseKickStyle(args[0]);
+   if(name==='takeKnee')return team===this.offense&&this.takeKnee();
    if(name==='fairCatch')return team===this.offense&&this.fairCatch();
    if(name==='resolvePenalty')return this.phase==='penalty'&&this.penaltyReview?.beneficiary===team&&this.resolvePenalty(args[0]===true);
    return false;

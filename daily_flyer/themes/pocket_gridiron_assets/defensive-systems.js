@@ -1,3 +1,4 @@
+import {expandedDefense} from './assignment-books.js?v=31';
 // Coverage assignments describe all eleven slots; seven-player adaptations have
 // their own complete assignments. The 46 name honours the famous scheme, not 4–6 personnel.
 const z=(x,y,drift=0)=>({x,y,drift});
@@ -57,4 +58,5 @@ export const SYSTEM_DEFENSE=[
  call('stack','stspy','3–3–5 Double spy','Two linebackers watch the QB; only three rush','man',coverage(three,{9:[35,9],10:[40,24,1]},{man:{3:4,4:2,5:3},safety:6,spies:[2,8]})),
  call('stack','stcloud','3–3–5 Cloud 2','A stacked linebacker rushes; corners squat in the flats','zone',coverage([...three,9],{2:[18,9],3:[46,5],4:[7,5],5:[12,28,1],6:[41,28,1],8:[35,9],10:[27,20,1]}))
 ];
+SYSTEM_DEFENSE.push(...expandedDefense(FRONTS));
 export function systemCalls(all,system){return all.filter(p=>p.system===system);}

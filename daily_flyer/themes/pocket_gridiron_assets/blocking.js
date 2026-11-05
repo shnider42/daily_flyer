@@ -1,4 +1,4 @@
-import {returnLane} from './special-teams.js?v=30';
+import {returnLane} from './special-teams.js?v=31';
 // Assignment + contact model. A block buys time; it never refreshes a stun.
 const dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));

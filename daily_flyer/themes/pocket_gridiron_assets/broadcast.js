@@ -1,7 +1,7 @@
-import {weatherSegment} from './weather-presentation.js?v=30';
-import {specialRows,specialStory} from './special-teams.js?v=30';
-import {teamStrengths} from './teams.js?v=30';
-import {copyBox} from './match.js?v=30';
+import {weatherSegment} from './weather-presentation.js?v=31';
+import {specialRows,specialStory} from './special-teams.js?v=31';
+import {teamStrengths} from './teams.js?v=31';
+import {copyBox} from './match.js?v=31';
 
 // Original fictional fan-tribute copy. Matchup claims come from this game's
 // selected lineup and arcade ratings; highlights come only from recorded plays.
