@@ -1,0 +1,57 @@
+<!doctype html>
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1, viewport-fit=cover">
+  <meta name="theme-color" content="#10191c">
+  <meta name="description" content="An atmospheric first-person prison escape. Three wings, visual puzzles, solo or private co-op for up to four players. No sound required.">
+  <title>NIGHT TRANSFER — A first-person escape</title>
+  <link rel="icon" href="/favicon.svg" type="image/svg+xml">
+  <link rel="stylesheet" href="/style.css">
+</head>
+<body>
+  <canvas id="world" aria-label="First-person view inside Ashgate prison"></canvas>
+  <div class="screen-grain" aria-hidden="true"></div>
+  <main id="menu" aria-label="Night Transfer main menu">
+    <header class="menu-top"><span>DAILY FLYER <b>/</b> FIELD NOTES 02</span><span class="silent-badge"><i></i> NO SOUND REQUIRED</span></header>
+    <section class="menu-copy">
+      <p class="eyebrow"><span class="tiny-bar"></span> ASHGATE PENITENTIARY · 02:43 AM</p>
+      <h1>NIGHT<br><span>TRANSFER</span><b>_</b></h1>
+      <p class="menu-story">Tonight, your name is on the list.<br>Be gone before they come.</p>
+      <div class="menu-actions">
+        <button id="start-btn" class="button primary">ENTER THE PRISON <span>↗</span></button>
+        <button id="continue-btn" class="button secondary" hidden>CONTINUE ESCAPE <span>→</span></button>
+        <button id="coop-btn" class="button ghost">ESCAPE TOGETHER <small>2–4 PLAYERS</small></button>
+      </div>
+      <p class="save-note" id="save-note">A first-person escape. No account. No download.</p>
+    </section>
+    <footer class="menu-bottom"><div><span class="serial">NT—041</span><p>THREE WINGS.<br>ONE LAST CHANCE.</p></div><button id="how-btn" class="text-button">CONTROLS <span>↗</span></button></footer>
+  </main>
+  <section id="hud" aria-label="First-person escape game" hidden>
+    <header class="hud-top">
+      <button id="pause-btn" class="brand-button" aria-label="Open game menu"><span>NT</span><i></i></button>
+      <div class="location"><span id="act-title">WING 01</span><strong id="room-title">Cell 41</strong></div>
+      <div class="hud-tools"><button id="notes-btn" aria-label="Open notebook"><span class="tool-icon">▤</span><small>NOTES</small></button><button id="hint-btn" aria-label="Open hints"><span class="tool-icon">?</span><small>HINTS <b id="hint-count">3</b></small></button><button id="settings-btn" aria-label="Settings"><span class="tool-icon">☷</span><small>SETUP</small></button></div>
+    </header>
+    <div class="objective"><i></i><p id="objective-text"></p></div>
+    <div class="upper-status"><span id="session-label">SOLO / SAVED LOCALLY</span><span id="elapsed">00:00</span></div>
+    <div id="reticle" aria-hidden="true"><i></i></div>
+    <div id="focus-label" aria-live="polite"><span id="focus-title"></span><small id="focus-distance"></small></div>
+    <div id="scan-warning" hidden><i></i><span>CAMERA SWEEP</span><b id="scan-text">WATCHED</b></div>
+    <div id="control-tip"><span class="desktop-tip">WASD TO MOVE · DRAG TO LOOK · E TO INSPECT</span><span class="touch-tip">LEFT THUMB TO MOVE · SWIPE RIGHT SIDE TO LOOK</span></div>
+    <div id="touch-move" aria-label="Movement joystick"><div class="joystick-ring"><span id="joystick-knob"></span></div><span class="control-caption">MOVE</span></div>
+    <div class="actions"><button id="interact-btn" aria-label="Inspect nearby object"><span class="action-symbol">⌖</span><span id="action-label">INSPECT</span><kbd>E</kbd></button><button id="crouch-btn" aria-label="Toggle crouch" aria-pressed="false"><span>↓</span> CROUCH</button></div>
+    <div class="hud-bottom"><button id="inventory-btn"><span class="key-icon">⚿</span><span>POCKETS</span><b id="item-count">0</b></button><span id="stance">STANDING</span><button id="crew-btn" hidden><i></i><span id="crew-count">1/4</span> CREW</button></div>
+  </section>
+  <div id="toast" role="status" aria-live="polite"></div>
+  <div id="transition" aria-hidden="true"></div>
+  <div id="modal-backdrop" hidden>
+    <section id="dialog" role="dialog" aria-modal="true" aria-labelledby="dialog-title" tabindex="-1">
+      <button id="close-dialog" class="close-button" aria-label="Close panel">×</button>
+      <div id="dialog-content"></div>
+    </section>
+  </div>
+  <section id="fatal" hidden><h2>The view couldn’t start.</h2><p id="fatal-message">This game needs a browser with WebGL enabled. Try reopening it in Safari or Chrome.</p><button id="reload-btn" class="button primary">RELOAD THE GAME</button></section>
+  <script type="module" src="/app.js"></script>
+</body>
+</html>
