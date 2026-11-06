@@ -11,13 +11,19 @@ from urllib.parse import quote
 from zoneinfo import ZoneInfo
 
 from daily_flyer.providers.county import COUNTIES
-from daily_flyer.themes.irish_today import HISTORY_THIS_DAY, WORDS
+from daily_flyer.themes.irish_today import HISTORY_THIS_DAY, THEME_CONFIG as IRISH_BRANDING, WORDS
 from daily_flyer.themes.irish_today_interactive_showcase import TRIVIA_QUESTIONS
 
 DUBLIN = ZoneInfo("Europe/Dublin")
 ROOT = Path(__file__).parent
 ASSETS = "daily_flyer/irish_edition/assets/"
 ROLES = ("feature", "language", "county", "curiosity", "challenge", "sport", "visual", "discovery")
+NAV_LINKS = {
+    "feature": ("feature", "The edition", None),
+    "language": ("gaeilge", "Gaeilge", "ga"),
+    "county": ("counties", "Counties", None),
+    "challenge": ("challenge", "Challenge", None),
+}
 PROVINCES = {
     "Leinster": "Carlow Dublin Kildare Kilkenny Laois Longford Louth Meath Offaly Westmeath Wexford Wicklow",
     "Munster": "Clare Cork Kerry Limerick Tipperary Waterford",
@@ -144,7 +150,11 @@ def render_edition(edition, current_day=None):
     template = _template()
     day = date.fromisoformat(edition["date"])
     current = current_day or dublin_today()
-    return template.render(edition=edition, s=edition["sections"], assets=ASSETS, day=day,
+    sections = edition["sections"]
+    panels = [role for role in ROLES[1:] if role in sections]
+    navigation = [NAV_LINKS[role] for role in ("feature", *panels) if role in NAV_LINKS]
+    return template.render(edition=edition, s=sections, assets=ASSETS, day=day,
+                           panels=panels, navigation=navigation, logo_src=IRISH_BRANDING["header_title_image"],
                            today=current, atlas=sorted(county_atlas(), key=lambda x: x["name"]),
                            previous=day-timedelta(days=1) if day > date.min else None,
                            following=day+timedelta(days=1) if day < current else None)

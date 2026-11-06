@@ -4,9 +4,10 @@ from unittest.mock import patch
 
 from bs4 import BeautifulSoup
 
-from daily_flyer.irish_edition.edition import DUBLIN, ROOT, ROLES, content, county_atlas, make_edition
+from daily_flyer.irish_edition.edition import DUBLIN, ROOT, ROLES, content, county_atlas, make_edition, render_edition
 from daily_flyer.orchestrator import build_daily_page
 from daily_flyer.renderer import build_html
+from daily_flyer.themes.irish_today import THEME_CONFIG as ORIGINAL_THEME
 from web import app
 
 
@@ -32,6 +33,32 @@ class IrishTodayProductionTests(unittest.TestCase):
         self.assertIsNone(page.select_one(".it-visual-lab-controls"))
         self.assertIsNotNone(page.select_one("#quiz-fallback summary"))
         self.assertIsNotNone(page.select_one("#archive form input[name=date]"))
+
+    def test_night_first_paint_and_original_masthead(self):
+        page = BeautifulSoup(self.client.get("/?theme=irish_today").data, "html.parser")
+        self.assertEqual(page.html["data-theme"], "night")
+        self.assertEqual(page.select_one("header h1 img")["src"], ORIGINAL_THEME["header_title_image"])
+        self.assertLess(str(page).index("<h1>"), str(page).index("<nav "))
+        self.assertEqual(page.select_one("#appearance")["aria-pressed"], "true")
+        with self.client.get("/" + ORIGINAL_THEME["header_title_image"]) as response:
+            self.assertEqual(response.status_code, 200)
+            self.assertEqual(response.mimetype, "image/png")
+
+    def test_optional_sections_mount_navigation_and_interactions_independently(self):
+        for role, active, absent in (("county", "#atlas-data", "#challenge-data"),
+                                     ("challenge", "#challenge-data", "#atlas-data")):
+            with self.subTest(role=role):
+                edition = make_edition(self.day)
+                edition["sections"] = {key: edition["sections"][key] for key in ("feature", role)}
+                page = BeautifulSoup(render_edition(edition), "html.parser")
+                self.assertEqual([el["data-role"] for el in page.select("[data-role]")], ["feature", role])
+                self.assertIsNotNone(page.select_one(active))
+                self.assertIsNone(page.select_one(absent))
+                self.assertIsNotNone(page.select_one("#appearance"))
+                links = page.select("nav a")
+                self.assertEqual(len(links), 2)
+                for link in links:
+                    self.assertIsNotNone(page.select_one(link["href"]))
 
     def test_determinism_and_full_county_cycle(self):
         monday = date(2026, 12, 28)
@@ -78,7 +105,7 @@ class IrishTodayProductionTests(unittest.TestCase):
                 self.assertTrue((assets / f"{photo['id']}-{size}.webp").is_file())
         for county in county_atlas():
             self.assertTrue((assets / "counties" / (county["slug"] + ".webp")).is_file())
-        for name in ("edition.css", "edition.js", "cormorant.woff2", "masthead.webp"):
+        for name in ("edition.css", "edition.js", "cormorant.woff2"):
             with self.client.get("/daily_flyer/irish_edition/assets/" + name) as response:
                 self.assertEqual(response.status_code, 200)
 

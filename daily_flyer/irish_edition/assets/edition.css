@@ -12,28 +12,31 @@
   --ink: #152f27;
   --text: #34443c;
   --muted: #52625a;
-  --forest: #173e32;
+  --brand: #10271e;
   --accent: #a14729;
   --rule: #c6c9b7;
   --soft: #e9eddf;
   --serif: Cormorant, "Iowan Old Style", "Palatino Linotype", Georgia, serif;
   --sans: system-ui, -apple-system, "Segoe UI", sans-serif;
 }
-:root[data-theme="night"] {
-  color-scheme: dark;
-  --paper: #15231e;
-  --surface: #1a2c24;
-  --ink: #f6f1df;
-  --text: #dedfce;
-  --muted: #b4c0af;
-  --rule: #4f6252;
-  --soft: #24382c;
-  --accent: #efae80;
+@media screen {
+  :root[data-theme="night"] {
+    color-scheme: dark;
+    --paper: #15231e;
+    --surface: #1a2c24;
+    --ink: #f6f1df;
+    --text: #dedfce;
+    --muted: #b4c0af;
+    --rule: #4f6252;
+    --soft: #24382c;
+    --accent: #efae80;
+  }
 }
 * {
   box-sizing: border-box;
 }
 html {
+  background: var(--paper);
   scroll-padding-top: 1.2rem;
 }
 body {
@@ -121,14 +124,11 @@ svg {
   max-width: 1280px;
   margin-inline: auto;
 }
-.utility,
+.mast-band,
 footer {
-  background: #143d30;
+  background: var(--brand);
   color: #f5f2df;
 }
-.utility-in,
-.utility-in > span,
-.utility-in a,
 .tools,
 .navline,
 .foot,
@@ -143,19 +143,17 @@ footer {
   display: flex;
   align-items: center;
 }
-.utility-in {
-  height: 34px;
-  justify-content: space-between;
-  letter-spacing: 0.095em;
-  text-transform: uppercase;
-  font-size: 0.63rem;
+.publisher {
+  display: inline-flex;
+  align-items: center;
+  gap: 8px;
+  margin-bottom: 6px;
+  color: #d4dfcf;
+  font-size: .65rem;
   font-weight: 700;
+  letter-spacing: .09em;
+  text-transform: uppercase;
 }
-.utility-in > span,
-.utility-in a {
-  gap: 9px;
-}
-.utility a,
 .foot a {
   text-decoration: none;
 }
@@ -172,20 +170,23 @@ footer {
 }
 .mast {
   display: grid;
-  grid-template-columns: 1fr auto 1fr;
+  grid-template-columns: minmax(0, 1fr) auto minmax(0, 1fr);
+  grid-template-areas: "date logo note";
   align-items: center;
-  min-height: 126px;
-  border-bottom: 1px solid var(--rule);
+  min-height: 138px;
+  padding: 12px 0;
 }
 .mast h1 {
+  grid-area: logo;
   line-height: 0;
 }
 .mast h1 img {
   display: block;
-  width: clamp(230px, 27vw, 354px);
+  width: clamp(245px, 27vw, 334px);
   height: auto;
 }
 .dateline {
+  grid-area: date;
   display: grid;
   font-size: 0.79rem;
   line-height: 1.55;
@@ -194,11 +195,19 @@ footer {
   font: 700 1.33rem var(--serif);
 }
 .mast-note {
+  grid-area: note;
   text-align: right;
   font:
     600 italic 1.07rem Georgia,
     serif;
-  color: var(--muted);
+  color: #dae4d6;
+}
+.mast-note a {
+  display: inline-flex;
+  align-items: center;
+  gap: 4px;
+  padding: 8px 0;
+  font: 650 .78rem var(--sans);
 }
 .navline {
   justify-content: space-between;
@@ -228,7 +237,6 @@ footer {
   color: var(--accent);
 }
 .navline nav a:hover,
-.utility a:hover,
 .foot a:hover {
   text-decoration: underline;
 }
@@ -240,6 +248,16 @@ footer {
   background: none;
   border: 0;
   padding: 0 8px;
+}
+.iconbtn {
+  gap: 6px;
+}
+.iconbtn[aria-pressed="true"] svg:nth-of-type(2),
+.iconbtn[aria-pressed="false"] svg:first-of-type {
+  display: none;
+}
+.iconbtn[aria-pressed="true"] {
+  color: var(--accent);
 }
 .archive > summary {
   gap: 7px;
@@ -692,24 +710,26 @@ details[open] > .solid .open-label {
   .wrap {
     width: calc(100% - 32px);
   }
-  .utility-in {
-    height: 30px;
-    font-size: 0.59rem;
-  }
   .mast {
-    display: flex;
-    flex-direction: column;
-    gap: 6px;
-    padding: 15px 0 10px;
+    grid-template-columns: 1fr auto;
+    grid-template-areas: "logo logo" "date note";
+    gap: 8px;
+    padding: 12px 0 5px;
     min-height: 0;
   }
   .mast h1 {
-    order: -1;
+    justify-self: center;
+  }
+  .mast-note a {
+    font-size: .72rem;
+    padding: 8px 0;
   }
   .mast h1 img {
     width: clamp(215px, 51vw, 280px);
   }
-  .mast-note {
+  .mast-note p,
+  .dateline .publisher,
+  .iconbtn span {
     display: none;
   }
   .dateline {
@@ -843,7 +863,6 @@ details[open] > .solid .open-label {
   }
 }
 @media print {
-  .utility,
   .navline,
   .foot > div:last-child,
   .read-story summary,
@@ -859,7 +878,7 @@ details[open] > .solid .open-label {
     width: 100%;
   }
   .language,
-  .utility,
+  .mast-band,
   footer {
     print-color-adjust: exact;
   }

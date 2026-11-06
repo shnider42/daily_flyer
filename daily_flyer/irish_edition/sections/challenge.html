@@ -1,0 +1,8 @@
+<section id="challenge" data-role="challenge" class="panel challenge"><div class="eyebrow"><i></i> The daily challenge</div>
+<h2>{{s.challenge.title}}</h2><div id="hurling" hidden><p>Time five strikes. Centre hits score a goal, wider hits a point.</p><div class="pitch" aria-hidden="true"><i id="marker"></i></div><p id="score" aria-live="polite"></p>
+<button type="button" class="solid" id="strike">Start shooting</button> <button type="button" id="untimed">Play the untimed question</button></div>
+<div id="quiz"><p class="question">{{s.challenge.body}}</p><div class="options" hidden id="answers">{% for option in s.challenge.choices %}<button type="button" data-answer="{{loop.index0}}">{{option}}</button>{% endfor %}</div>
+<p class="result" id="feedback" role="status" aria-live="polite"></p><details id="quiz-fallback"><summary>Reveal the answer</summary><p>{{s.challenge.choices[s.challenge.answer]}}. {{s.challenge.explanation}}</p></details>
+{% if s.challenge.source %}{{source(s.challenge.source)}}{% endif %}
+</div><script type="application/json" id="challenge-data">{{ s.challenge|tojson }}</script>
+</section>

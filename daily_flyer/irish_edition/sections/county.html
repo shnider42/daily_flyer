@@ -1,0 +1,9 @@
+<section id="counties" data-role="county" class="panel counties">
+<div class="eyebrow">{{icon('pin')}} County atlas</div><div class="county-main">
+<div><p class="label" id="county-tag">This week · {{s.county.province}}</p><h2 id="county-name">{{s.county.name}}</h2>
+<p id="county-copy">{{s.county.body}}</p><a class="source" id="county-source" href="{{s.county.source.url}}">County guide {{icon('external',14)}}</a></div>
+<img id="county-image" src="{{assets}}counties/{{s.county.slug}}.webp" loading="lazy" width="560" height="366" alt=""></div>
+<div id="atlas-controls" class="atlas-control" hidden><label for="county-select">Explore all 32 counties</label>
+<select id="county-select">{% for county in atlas %}<option value="{{county.slug}}" {% if county.slug==s.county.slug %}selected{% endif %}>{{county.name}}</option>{% endfor %}</select></div>
+<script type="application/json" id="atlas-data">{{ {"atlas":atlas, "county":s.county.slug, "assets":assets}|tojson }}</script>
+</section>
