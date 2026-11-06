@@ -1,0 +1,15 @@
+<div class="mast-band">
+  <div class="wrap mast">
+    <h1><a href="?theme=irish_today" aria-label="Irish Today, today's edition">
+      <img src="{{logo_src}}" alt="Irish Today" width="3327" height="1118">
+    </a></h1>
+    <div class="dateline">
+      <span class="publisher"><i class="flag" aria-hidden="true"></i> The Daily Flyer</span>
+      <b>{{day.strftime('%A')}}</b><time datetime="{{edition.date}}">{{day.strftime('%d %B %Y').lstrip('0')}}</time>
+    </div>
+    <div class="mast-note">
+      <p>An Irish cultural journal</p>
+      <a href="https://davyholdenhistory.com/">Davy Holden History {{icon('external',13)}}</a>
+    </div>
+  </div>
+</div>

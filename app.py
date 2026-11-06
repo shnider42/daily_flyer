@@ -7,7 +7,8 @@ def main() -> None:
     args = parse_args()
 
     context = build_daily_page(
-        theme_name=args.theme,
+        theme_name=("irish_today_production" if args.theme.replace("-", "_") in
+                    {"irish_today", "irish_today_improved", "irish_today_improved_layout"} else args.theme),
         date_str=args.date,
         seed=args.seed,
     )

@@ -1,0 +1,407 @@
+{
+  "photos": [
+    {
+      "id": "atlantic",
+      "credit": "Henrique Craveiro",
+      "caption": "A sea stack off the Cliffs of Moher, County Clare.",
+      "source": "https://unsplash.com/photos/ezJhm4xrHAM",
+      "width_640": 640,
+      "width_1200": 1200
+    },
+    {
+      "id": "cobh",
+      "credit": "Jason Murphy",
+      "caption": "St Colman’s Cathedral rises above the painted houses of Cobh, County Cork.",
+      "source": "https://unsplash.com/photos/rTG1TR6Ygb0",
+      "width_640": 640,
+      "width_1200": 1200
+    },
+    {
+      "id": "kilkenny",
+      "credit": "Davy Holden History",
+      "caption": "Davy Holden outside the Home Rule Club in Kilkenny.",
+      "source": "https://davyholdenhistory.com/products/kilkenny-revolutionary-walking-tour",
+      "width_640": 640,
+      "width_1200": 1024
+    },
+    {
+      "id": "cliff-flowers",
+      "credit": "Marian Brandt",
+      "caption": "Pink flowers line the clifftop above the Atlantic.",
+      "source": "https://unsplash.com/photos/WVEBqXRGcy8",
+      "width_640": 640,
+      "width_1200": 1200
+    },
+    {
+      "id": "davy",
+      "credit": "Davy Holden History",
+      "caption": "Davy Holden on the County Clare coast.",
+      "source": "https://davyholdenhistory.com/pages/about",
+      "width_640": 450,
+      "width_1200": 675
+    },
+    {
+      "id": "memorial",
+      "credit": "Davy Holden History",
+      "caption": "A stop at the First World War memorial on Davy Holden’s Kilkenny walk.",
+      "source": "https://davyholdenhistory.com/products/kilkenny-revolutionary-walking-tour",
+      "width_640": 640,
+      "width_1200": 1024
+    },
+    {
+      "id": "twilight",
+      "credit": "Sean Kuriyan",
+      "caption": "Low evening light along the cliffs of County Clare.",
+      "source": "https://unsplash.com/photos/sKm0RZjOgIE",
+      "width_640": 640,
+      "width_1200": 1200
+    },
+    {
+      "id": "tower",
+      "credit": "Aldo De La Paz",
+      "caption": "A stone tower rises through the coastal mist.",
+      "source": "https://unsplash.com/photos/d6u2_u02FIo",
+      "width_640": 640,
+      "width_1200": 1200
+    },
+    {
+      "id": "harbour",
+      "credit": "Ainārs Djatļevskis",
+      "caption": "A castle beyond the shoreline, just before the light changes.",
+      "source": "https://unsplash.com/photos/gJQLVTyQfgQ",
+      "width_640": 640,
+      "width_1200": 1200
+    },
+    {
+      "id": "street",
+      "credit": "Christian Bowen",
+      "caption": "Colour and bunting above a narrow Irish street.",
+      "source": "https://unsplash.com/photos/JXX_GonMj5s",
+      "width_640": 397,
+      "width_1200": 596
+    },
+    {
+      "id": "tone",
+      "credit": "Archive image via Davy Holden History",
+      "caption": "A portrait of Theobald Wolfe Tone.",
+      "source": "https://davyholdenhistory.com/products/kilkenny-revolutionary-walking-tour",
+      "width_640": 497,
+      "width_1200": 746
+    },
+    {
+      "id": "stephens",
+      "credit": "Archive image via Davy Holden History",
+      "caption": "A portrait of James Stephens, the Fenian organiser born in Kilkenny.",
+      "source": "https://davyholdenhistory.com/products/kilkenny-revolutionary-walking-tour",
+      "width_640": 276,
+      "width_1200": 276
+    },
+    {
+      "id": "ridgeway",
+      "credit": "Archive image via Davy Holden History",
+      "caption": "An illustration of the Battle of Ridgeway in 1866.",
+      "source": "https://davyholdenhistory.com/products/kilkenny-revolutionary-walking-tour",
+      "width_640": 640,
+      "width_1200": 1000
+    },
+    {
+      "id": "rising",
+      "credit": "Archive image via Davy Holden History",
+      "caption": "A barricade during the Easter Rising in Dublin, 1916.",
+      "source": "https://davyholdenhistory.com/products/kilkenny-revolutionary-walking-tour",
+      "width_640": 447,
+      "width_1200": 670
+    }
+  ],
+  "features": [
+    {
+      "title": "The last post from Queenstown",
+      "place": "Cobh, Co. Cork",
+      "category": "Maritime history",
+      "photo": "cobh",
+      "body": "A letter posted in Queenstown outlived the ship it was written on. It is one of the small, personal traces of Titanic’s last call in Ireland.",
+      "more": "Passenger Edward Colley wrote on board and posted his letter before Titanic crossed the Atlantic. Cobh Heritage Centre tells his story alongside those of photographer Fr Frank Browne and Jeremiah Burke.",
+      "source": {
+        "label": "Cobh Heritage Centre",
+        "url": "https://cobhheritage.com/explore/the-titanic/"
+      }
+    },
+    {
+      "title": "A revolution, street by street",
+      "place": "Kilkenny city",
+      "category": "With Davy Holden",
+      "photo": "kilkenny",
+      "body": "Start at St Canice’s Cathedral and the history of independence takes on the scale of a walk. Davy Holden follows the people and places that put Kilkenny into the story.",
+      "more": "The route reaches back to the revolutions in America and France before following the Fenians, the Easter Rising and the War of Independence through the city. Davy’s tour page sets out the route and the stories behind its stops.",
+      "source": {
+        "label": "Davy Holden’s Kilkenny walk",
+        "url": "https://davyholdenhistory.com/products/kilkenny-revolutionary-walking-tour"
+      },
+      "edition_dates": [
+        "2026-11-06"
+      ]
+    },
+    {
+      "title": "A ledge of their own",
+      "place": "Cliffs of Moher, Co. Clare",
+      "category": "Natural history",
+      "photo": "cliff-flowers",
+      "body": "From the clifftop, the rock looks almost sheer. From a seabird’s perspective, the same face is a neighbourhood of ledges, each with its own tenants.",
+      "more": "Guillemots and razorbills return early in the breeding season. Puffins arrive later. From the viewing platforms, the Great Stack and the grassy outcrop called Goats Island offer a glimpse of how the birds divide up the coast.",
+      "source": {
+        "label": "Cliffs of Moher Experience",
+        "url": "https://www.cliffsofmoher.ie/unesco-global-geopark/conservation/bird-watching/"
+      }
+    },
+    {
+      "title": "The stories close to home",
+      "place": "South Kilkenny",
+      "category": "With Davy Holden",
+      "photo": "davy",
+      "body": "Before the camera, there were the tunes, the stories told by older neighbours and the stones near his home. That is where Davy Holden traces the start of his work.",
+      "more": "Davy began making Irish history videos in 2022. His biography connects the monuments around his childhood home with the workshops through which he now shares history and Gaeilge.",
+      "source": {
+        "label": "Meet Davy Holden",
+        "url": "https://davyholdenhistory.com/pages/about"
+      }
+    },
+    {
+      "title": "A harbour of departures",
+      "place": "Cobh, Co. Cork",
+      "category": "Irish emigration",
+      "photo": "cobh",
+      "body": "People arrived here by rail and left by sea. The old railway station at Cobh now holds the stories of people whose journeys took them far beyond Cork Harbour.",
+      "more": "The Queenstown Story follows very different crossings, from forced transportation to voluntary emigration. The port makes a useful place to start a family history: a name on a passenger list was once someone standing on this shore.",
+      "source": {
+        "label": "The Queenstown Story",
+        "url": "https://cobhheritage.com/"
+      }
+    },
+    {
+      "title": "How to read a sea cliff",
+      "place": "Cliffs of Moher, Co. Clare",
+      "category": "Landscape",
+      "photo": "atlantic",
+      "body": "The dark bands at the edge of County Clare were laid down long before there was an Atlantic coast here. Read upwards and the rock tells a story of water giving way to land.",
+      "more": "The lowest exposed layers formed in deeper water. As sediment accumulated, the water grew shallower. The stack standing offshore records a much later chapter: waves wore away the rock that once joined it to the mainland.",
+      "source": {
+        "label": "Burren & Cliffs of Moher Geopark",
+        "url": "https://www.burrengeopark.ie/discover-explore/geosites-discovery-points/cliffs-of-moher/"
+      }
+    },
+    {
+      "title": "History at walking pace",
+      "place": "Kilkenny city",
+      "category": "With Davy Holden",
+      "photo": "memorial",
+      "body": "A list of names on a street-side memorial asks a different question from a date in a book. Who, from this particular place, lived through the events we remember?",
+      "more": "On his Kilkenny walk, Davy Holden uses the city itself to trace a much larger history. Moving from one site to the next puts the distances between neighbourhoods, meeting places and memorials back into the story.",
+      "source": {
+        "label": "Explore the walk with Davy",
+        "url": "https://davyholdenhistory.com/products/kilkenny-revolutionary-walking-tour"
+      }
+    },
+    {
+      "title": "A fleet within sight of home",
+      "place": "Bantry Bay, Co. Cork",
+      "category": "History & memory",
+      "photo": "tone",
+      "body": "December 1796 brought a French expedition almost to the Irish shore. Wolfe Tone had spent months working towards this moment. Then the weather made the decision for him.",
+      "more": "With the fleet separated and the wind against a landing, the expedition withdrew. Tone’s journals let us follow the gap between what he could see from a ship and what he was powerless to do.",
+      "source": {
+        "label": "Dictionary of Irish Biography",
+        "url": "https://www.dib.ie/biography/tone-theobald-wolfe-a8590"
+      },
+      "anniversary": "12-21"
+    },
+    {
+      "title": "The organiser from Kilkenny",
+      "place": "Kilkenny city",
+      "category": "History & memory",
+      "photo": "stephens",
+      "body": "Long before there was a Fenian proclamation, there was the work of finding people willing to act together. James Stephens carried that work from Kilkenny to exile and back.",
+      "more": "The Irish Republican Brotherhood was founded on St Patrick’s Day in 1858. The Kilkenny Archaeological Society tells the local story of the man who helped create it.",
+      "source": {
+        "label": "Kilkenny Archaeological Society",
+        "url": "https://kilkennyarchaeologicalsociety.ie/james-stephens/"
+      },
+      "anniversary": "03-17"
+    },
+    {
+      "title": "An Irish cause on Canadian ground",
+      "place": "Ridgeway, Ontario",
+      "category": "History & memory",
+      "photo": "ridgeway",
+      "body": "On 2 June 1866, Canadian militia faced an unusual opponent near the Niagara frontier: Irish nationalists who had crossed the border from the United States.",
+      "more": "The Fenian raid brought Irish revolutionary politics onto Canadian soil. Fort Erie’s museum preserves watercolours of the raid and the return of the wounded. The battlefield itself is now a national historic site.",
+      "source": {
+        "label": "Fort Erie Historical Museum",
+        "url": "https://www.forterie.ca/museum/museum-sites/battle-of-ridgeway-heritage-park/"
+      },
+      "anniversary": "06-02"
+    },
+    {
+      "title": "Reading the Rising one street at a time",
+      "place": "Dublin city",
+      "category": "History & memory",
+      "photo": "rising",
+      "body": "A map of the Easter Rising looks different when you follow a single company. On Easter Monday 1916, Seán Connolly’s group went from Liberty Hall to City Hall and the buildings beside it.",
+      "more": "The National Library of Ireland follows their route through College Green and Dame Street. Its account of the City Hall garrison makes a short walk through central Dublin into a way of reading the events of the week.",
+      "source": {
+        "label": "National Library of Ireland",
+        "url": "https://www.nli.ie/1916/exhibition/en/content/risingsites/dublincityhall/"
+      },
+      "anniversary": "04-24"
+    }
+  ],
+  "curiosity": [
+    {
+      "title": "The window above the door",
+      "body": "At Newgrange, the midwinter sun enters through a small opening above the entrance. Its light travels along the passage and reaches the inner chamber.",
+      "source": {
+        "label": "Heritage Ireland",
+        "url": "https://heritageireland.ie/visit/newgrange-winter-solstice/"
+      }
+    },
+    {
+      "title": "An instrument played with the elbow",
+      "body": "A piper works a bellows under one arm to fill the bag of the uilleann pipes. That leaves the player free to breathe normally while a tune runs on.",
+      "source": {
+        "label": "UNESCO",
+        "url": "https://ich.unesco.org/en/RL/uilleann-piping-01264"
+      }
+    },
+    {
+      "title": "A tower built to be heard",
+      "body": "Glendalough’s round tower rises about 30 metres. Its job as a bell tower helps explain why it was built to stand so far above the monastic settlement.",
+      "source": {
+        "label": "Heritage Ireland",
+        "url": "https://heritageireland.ie/visit/places-to-visit/glendalough-monastic-site-and-visitor-centre/highlights/"
+      }
+    },
+    {
+      "title": "Thirty years for a castle",
+      "body": "Hugh de Lacy and his successors took some thirty years to build Trim Castle. The keep was only one layer of defence. A wall, ditch and moat guarded the approach.",
+      "source": {
+        "label": "Heritage Ireland",
+        "url": "https://heritageireland.ie/places-to-visit/trim-castle/"
+      }
+    },
+    {
+      "title": "When a cliff becomes an island",
+      "body": "Branaunmore, the great sea stack off the Cliffs of Moher, once belonged to the mainland. Erosion left the 67-metre pillar standing apart.",
+      "source": {
+        "label": "Cliffs of Moher Experience",
+        "url": "https://www.cliffsofmoher.ie/unesco-global-geopark/conservation/geology/"
+      }
+    },
+    {
+      "title": "A room for a tune",
+      "body": "Uilleann piping has long been taught by ear, often one player sitting beside another. A written score alone can scarcely show what the hands and elbows are doing.",
+      "source": {
+        "label": "UNESCO",
+        "url": "https://ich.unesco.org/en/RL/uilleann-piping-01264"
+      }
+    }
+  ],
+  "sport": [
+    {
+      "title": "What a parish passes on",
+      "body": "In hurling, the skills of striking and catching travel from player to player, often within a family or local club. UNESCO recorded the game as living heritage in 2018.",
+      "source": {
+        "label": "UNESCO · Hurling",
+        "url": "https://ich.unesco.org/en/RL/hurling-01263"
+      }
+    },
+    {
+      "title": "Read a final in yesterday’s paper",
+      "body": "A match report saves details the scoreline loses. The GAA’s archive pairs contemporary accounts of All-Ireland finals from 1913 to 1923 with team photographs.",
+      "source": {
+        "label": "GAA centenary archive",
+        "url": "https://www.gaa.ie/centenary"
+      }
+    },
+    {
+      "title": "Croke Park, in the records",
+      "body": "Maps, witness statements and photographs tell the story of Bloody Sunday at Croke Park in November 1920. The GAA has gathered the records into one public archive.",
+      "source": {
+        "label": "GAA historical archive",
+        "url": "https://www.gaa.ie/bloodysunday/history"
+      }
+    },
+    {
+      "title": "Keeping the game alive",
+      "body": "A hurley and a sliotar are easy to recognise. Learning to play takes a community. Clubs, schools and families keep hurling and camogie in everyday Irish life.",
+      "source": {
+        "label": "UNESCO · Hurling",
+        "url": "https://ich.unesco.org/en/RL/hurling-01263"
+      }
+    }
+  ],
+  "examples": {
+    "Ceol": [
+      "Tá ceol sa teach.",
+      "There is music in the house."
+    ],
+    "Farraige": [
+      "Tá an fharraige ciúin.",
+      "The sea is calm."
+    ],
+    "Uisce": [
+      "Uisce, le do thoil.",
+      "Water, please."
+    ],
+    "Bóthar": [
+      "Tá an bóthar fada.",
+      "The road is long."
+    ],
+    "Leabhar": [
+      "Tá leabhar agam.",
+      "I have a book."
+    ],
+    "Cairde": [
+      "Is cairde muid.",
+      "We are friends."
+    ],
+    "Madra": [
+      "Tá madra agam.",
+      "I have a dog."
+    ],
+    "Báisteach": [
+      "Tá sé ag cur báistí.",
+      "It is raining."
+    ],
+    "Tae": [
+      "Cupán tae, le do thoil.",
+      "A cup of tea, please."
+    ],
+    "Amárach": [
+      "Feicfidh mé amárach thú.",
+      "I’ll see you tomorrow."
+    ],
+    "Arán": [
+      "Arán agus im.",
+      "Bread and butter."
+    ],
+    "Grian": [
+      "Tá an ghrian ag taitneamh.",
+      "The sun is shining."
+    ],
+    "Teach": [
+      "Tá an teach beag.",
+      "The house is small."
+    ],
+    "Fáilte": [
+      "Fáilte abhaile.",
+      "Welcome home."
+    ],
+    "Amhrán": [
+      "Can amhrán dom.",
+      "Sing me a song."
+    ],
+    "Grá": [
+      "Mo ghrá thú.",
+      "You are my love."
+    ]
+  }
+}

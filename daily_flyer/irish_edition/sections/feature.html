@@ -1,0 +1,7 @@
+<article id="feature" data-role="feature" class="feature">
+<div class="feature-copy"><div class="eyebrow"><i></i> The daily feature</div><p class="subject">{{s.feature.category}}</p>
+<h2>{{s.feature.title}}</h2><p class="dek">{{s.feature.body}}</p>
+<details class="read-story"><summary class="solid"><span class="closed-label">Read the feature</span><span class="open-label">Close feature</span> {{icon('next')}}</summary>
+<div class="feature-more"><p>{{s.feature.more}}</p>{{source(s.feature.source)}}</div></details>
+</div><figure class="hero-photo" data-subject="{{s.feature.photo.id}}">{{img(s.feature.photo,false)}}<figcaption><span>{{icon('pin',15)}} {{s.feature.place if s.feature.photo.id != 'davy' else 'County Clare'}}</span><a href="{{s.feature.photo.source}}">{{s.feature.photo.credit}}</a></figcaption></figure>
+</article>
