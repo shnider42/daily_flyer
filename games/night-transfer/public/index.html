@@ -10,7 +10,7 @@
   <link rel="stylesheet" href="/style.css">
 </head>
 <body>
-  <canvas id="world" aria-label="First-person view inside Ashgate prison"></canvas>
+  <canvas id="world" aria-label="First-person view inside Ashgate prison" tabindex="-1"></canvas>
   <div class="screen-grain" aria-hidden="true"></div>
   <main id="menu" aria-label="Night Transfer main menu">
     <header class="menu-top"><span>DAILY FLYER <b>/</b> FIELD NOTES 02</span><span class="silent-badge"><i></i> ALL CLUES ARE VISUAL</span></header>
@@ -30,20 +30,25 @@
   </main>
   <section id="hud" aria-label="First-person escape game" hidden>
     <header class="hud-top">
-      <button id="pause-btn" class="brand-button" aria-label="Open game menu"><span>NT</span><i></i></button>
+      <button id="pause-btn" class="brand-button" aria-label="Open game menu" title="Game menu · Esc"><span>NT</span><i></i></button>
       <div class="location"><span id="act-title">WING 01</span><strong id="room-title">Cell 41</strong></div>
-      <div class="hud-tools"><button id="notes-btn" aria-label="Open notebook"><span class="tool-icon">▤</span><small>NOTES</small></button><button id="hint-btn" aria-label="Open hints"><span class="tool-icon">?</span><small>HINTS <b id="hint-count">3</b></small></button><button id="settings-btn" aria-label="Settings"><span class="tool-icon">☷</span><small>SETUP</small></button></div>
+      <div class="hud-tools"><button id="notes-btn" aria-label="Open notebook" title="Notes · N"><span class="tool-icon">▤</span><small>NOTES</small></button><button id="hint-btn" aria-label="Open hints" title="Hints · H"><span class="tool-icon">?</span><small>HINTS <b id="hint-count">3</b></small></button><button id="settings-btn" aria-label="Settings" title="Setup · O"><span class="tool-icon">☷</span><small>SETUP</small></button></div>
     </header>
     <div class="objective"><i></i><p id="objective-text"></p></div>
     <div class="upper-status"><span id="session-label">SOLO / SAVED LOCALLY</span><span id="elapsed">00:00</span></div>
     <div id="reticle" aria-hidden="true"><i></i></div>
     <div id="focus-label" aria-live="polite"><span id="focus-title"></span><small id="focus-distance"></small></div>
     <div id="scan-warning" hidden><i></i><span>CAMERA SWEEP</span><b id="scan-text">WATCHED</b></div>
-    <div id="control-tip"><span class="desktop-tip">WASD TO MOVE · DRAG TO LOOK · E TO INSPECT</span><span class="touch-tip">MOVE WITH THE LEFT PAD · DRAG THE RIGHT PAD TO LOOK</span></div>
+    <div id="control-tip"><span class="touch-tip">MOVE WITH THE LEFT PAD · DRAG THE RIGHT PAD TO LOOK</span></div>
+    <div id="desktop-controls" class="desktop-only" aria-label="Mouse and keyboard controls">
+      <div class="mouse-look-row"><button id="mouse-look-btn" title="Capture mouse · L">CLICK TO LOOK <kbd>L</kbd></button><span id="mouse-look-status" role="status">Click the scene to capture the mouse.</span></div>
+      <div class="desktop-shortcuts"><span><kbd>WASD</kbd> MOVE</span><span><kbd>E</kbd> INSPECT</span><span><kbd>C</kbd> CROUCH</span><span><kbd>Esc</kbd> MENU</span></div>
+      <div class="desktop-shortcuts secondary-shortcuts"><span><kbd>N</kbd> NOTES</span><span><kbd>I</kbd> POCKETS</span><span><kbd>H</kbd> HINTS</span><span><kbd>M</kbd> SOUND</span><span><kbd>O</kbd> SETUP</span></div>
+    </div>
     <div id="touch-move" aria-label="Movement joystick"><div class="joystick-ring"><span id="joystick-knob"></span></div><span class="control-caption">MOVE</span></div>
     <div id="touch-look" aria-label="Look pad: drag to look around"><div class="look-ring"><svg viewBox="0 0 32 32" aria-hidden="true"><path d="M3 16s5-8 13-8 13 8 13 8-5 8-13 8S3 16 3 16Z"/><circle cx="16" cy="16" r="4"/></svg><span>LOOK</span></div><span class="look-nudge" id="look-nudge">RIGHT THUMB · DRAG</span></div>
     <div class="actions"><button id="interact-btn" aria-label="Inspect nearby object"><span class="action-symbol">⌖</span><span id="action-label">INSPECT</span><kbd>E</kbd></button><button id="crouch-btn" aria-label="Toggle crouch" aria-pressed="false"><span>↓</span> CROUCH</button></div>
-    <div class="hud-bottom"><button id="inventory-btn"><span class="key-icon">⚿</span><span>POCKETS</span><b id="item-count">0</b></button><span id="stance">STANDING</span><button id="audio-btn" class="audio-toggle" aria-label="Enable prison sound" aria-pressed="false">SOUND OFF</button><button id="crew-btn" hidden><i></i><span id="crew-count">1/4</span> CREW</button></div>
+    <div class="hud-bottom"><button id="inventory-btn" title="Pockets · I"><span class="key-icon">⚿</span><span>POCKETS</span><b id="item-count">0</b></button><span id="stance">STANDING</span><button id="audio-btn" class="audio-toggle" aria-label="Enable prison sound" aria-pressed="false" title="Toggle sound · M">SOUND OFF</button><button id="crew-btn" hidden><i></i><span id="crew-count">1/4</span> CREW</button></div>
   </section>
   <div id="toast" role="status" aria-live="polite"></div>
   <div id="transition" aria-hidden="true"></div>

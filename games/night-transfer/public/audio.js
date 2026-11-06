@@ -1,8 +1,11 @@
+import { synthFootstep, synthMurmur, synthTexture, synthEvent, synthRoomImpulse, spatialMix } from './audio-dsp.js';
+
 // Optional, original procedural prison audio. No puzzle information is encoded in
 // these sounds, and no AudioContext is created before an explicit user gesture.
 const clamp = (value, fallback = 0) => Number.isFinite(Number(value)) ? Math.max(0, Math.min(1, Number(value))) : fallback;
 const MAX_VOICES = 12;
 const MAX_SOURCES = 24;
+const MAX_BUFFER_BYTES = 4 * 1024 * 1024;
 const CUE_GAP = { key: .14, door: .4, mechanism: .35, success: .65, error: .3 };
 const ROOMS = {
   holding: { hum: 52, level: .035, air: .016, cutoff: 650, echo: .15, wet: .26, feedback: .22, drip: .2, chatter: .24, interval: [8, 17], floor: 'stone' },
@@ -14,6 +17,17 @@ const ROOMS = {
   boiler: { hum: 43, level: .048, air: .035, cutoff: 450, echo: .16, wet: .25, feedback: .21, drip: .15, chatter: .07, interval: [6, 14], floor: 'metal' },
   sluice: { hum: 60, level: .022, air: .036, cutoff: 1000, echo: .23, wet: .42, feedback: .3, drip: .74, chatter: .05, interval: [5, 13], floor: 'metal' },
   quay: { hum: 38, level: .005, air: .043, cutoff: 1600, echo: .08, wet: .07, feedback: .1, drip: .1, chatter: .14, interval: [9, 20], floor: 'stone' },
+};
+const CHARACTER = {
+  holding: { space: 'cell', air: 'vent', detail: 'vent', event: 'settle', drip: [3.4, -3.2], pipe: [-3.8, 1.8], chatter: [0, -6.4] },
+  washroom: { space: 'tile', air: 'vent', detail: 'water', event: 'water', drip: [3.3, -2.7], pipe: [3.8, 1.2], chatter: [0, 6.5] },
+  records: { space: 'office', air: 'vent', detail: 'vent', event: 'settle', drip: [3.6, 3], pipe: [-3.8, -1.4], chatter: [-5.8, 2.3] },
+  laundry: { space: 'tile', air: 'vent', detail: 'steam', event: 'hiss', drip: [3.5, -3.8], pipe: [-3.3, 2], chatter: [0, -6.4] },
+  watchroom: { space: 'office', air: 'vent', detail: 'vent', event: 'settle', drip: [3.7, 3.6], pipe: [-3.8, 1.4], chatter: [0, 6.6] },
+  dispatch: { space: 'cell', air: 'vent', detail: 'vent', event: 'chain', drip: [3.5, -3.6], pipe: [-3.5, 2.7], chatter: [5.8, 1] },
+  boiler: { space: 'plant', air: 'vent', detail: 'steam', event: 'hiss', drip: [3.1, -3], pipe: [-3.7, 2.7], chatter: [0, 6.7] },
+  sluice: { space: 'plant', air: 'water', detail: 'water', event: 'water', drip: [2.8, -3.7], pipe: [-3.7, -2.7], chatter: [0, 6.8] },
+  quay: { space: 'exterior', air: 'wind', detail: 'water', event: 'chain', drip: [0, -8.5], pipe: [3.5, -4.2], chatter: [0, 7.5] },
 };
 const noop = () => {};
 const stop = source => { try { source.stop(); } catch { /* A finished source is already silent. */ } };
@@ -33,6 +47,9 @@ export class PrisonAudio {
     this._hidden = !!document?.hidden; this._disposed = false; this._unlocked = false;
     this._resumeTicket = 0; this._resumePending = null; this._suspendPending = null; this._lastStatus = '';
     this._voices = new Set(); this._bed = null; this._echo = null;
+    this._buffers = new Map(); this._bufferBytes = 0; this._variantBags = new Map(); this._lastVariants = new Map();
+    this._listener = { x: 0, z: 3.2, yaw: 0 }; this._nextSpatial = 0; this._nextBedDrift = Infinity;
+    this._duckUntil = 0; this._nextMix = 0; this._lastAmbientKind = '';
     this._lastPose = null; this._stride = 0; this._foot = 0; this._lastStepAt = -Infinity;
     this._lastCue = new Map(); this._nextAmbient = Infinity;
     this._chatterUrl = null; this._chatterBuffer = null; this._chatterPending = null; this._chatterAbort = null;
@@ -99,7 +116,7 @@ export class PrisonAudio {
     if (this._disposed) return;
     id = Object.hasOwn(ROOMS, id) ? id : 'holding';
     if (id === this.room) return;
-    this.room = id; this._resetStride(); this._stopAmbient();
+    this.room = id; this._resetStride(); this._stopAmbient(); this._lastAmbientKind = '';
     if (this._canPlay()) { this._configureEcho(); this._startBed(); }
   }
 
@@ -119,6 +136,7 @@ export class PrisonAudio {
     const context = this._factory();
     if (!context) throw new Error('AudioContext unavailable');
     this.context = context; this._unlocked = false; this._suspendPending = null; this._lastCue.clear();
+    this._buffers.clear(); this._bufferBytes = 0; this._sampleRate = Math.min(context.sampleRate, 24000);
     this._master = context.createGain(); this._master.gain.value = 0;
     this._effects = context.createGain(); this._effects.gain.value = 1; this._effects.connect(this._master);
     this._atmosphere = context.createGain(); this._atmosphere.gain.value = this.atmosphere; this._atmosphere.connect(this._master);
@@ -126,9 +144,6 @@ export class PrisonAudio {
     this._compressor.threshold.value = -18; this._compressor.knee.value = 18; this._compressor.ratio.value = 4;
     this._compressor.attack.value = .006; this._compressor.release.value = .2;
     this._master.connect(this._compressor); this._compressor.connect(context.destination);
-    this._noiseBuffer = context.createBuffer(1, Math.ceil(context.sampleRate * 2), context.sampleRate);
-    const data = this._noiseBuffer.getChannelData(0);
-    for (let i = 0; i < data.length; i++) data[i] = this._rand(-1, 1);
     context.onstatechange = () => {
       if (this.context !== context || this._disposed) return;
       if (context.state === 'running') this._unlocked = true;
@@ -190,26 +205,104 @@ export class PrisonAudio {
     this._emit();
   }
 
+  _cached(key, build, rate = this._sampleRate) {
+    key = rate + ':' + key;
+    const existing = this._buffers.get(key);
+    if (existing) { this._buffers.delete(key); this._buffers.set(key, existing); return existing.buffer; }
+    const generated = build(), channels = Array.isArray(generated) ? generated : [generated];
+    const buffer = this.context.createBuffer(channels.length, channels[0].length, rate);
+    channels.forEach((data, index) => buffer.getChannelData(index).set(data));
+    const bytes = channels.reduce((sum, data) => sum + data.byteLength, 0);
+    while (this._buffers.size && (this._bufferBytes + bytes > MAX_BUFFER_BYTES || this._buffers.size >= 48)) {
+      const first = this._buffers.keys().next().value;
+      this._bufferBytes -= this._buffers.get(first).bytes; this._buffers.delete(first);
+    }
+    if (bytes <= MAX_BUFFER_BYTES) { this._buffers.set(key, { buffer, bytes }); this._bufferBytes += bytes; }
+    return buffer;
+  }
+  _variant(family, count = 6) {
+    let bag = this._variantBags.get(family);
+    if (!bag?.length) {
+      bag = Array.from({ length: count }, (_, i) => i);
+      for (let i = bag.length - 1; i > 0; i--) { const j = Math.floor(this._rand(0, i + 1)); [bag[i], bag[j]] = [bag[j], bag[i]]; }
+      if (bag.at(-1) === this._lastVariants.get(family)) [bag[0], bag[bag.length - 1]] = [bag.at(-1), bag[0]];
+      this._variantBags.set(family, bag);
+    }
+    const value = bag.pop(); this._lastVariants.set(family, value); return value;
+  }
   _createEcho() {
-    const c = this.context, send = c.createGain(), ambientSend = c.createGain();
-    const delay = c.createDelay(.8), filter = c.createBiquadFilter(), feedback = c.createGain(), wet = c.createGain();
-    send.gain.value = .45; ambientSend.gain.value = .08; filter.type = 'lowpass'; filter.frequency.value = 1900;
-    this._effects.connect(send); this._atmosphere.connect(ambientSend); send.connect(delay); ambientSend.connect(delay);
-    delay.connect(filter); filter.connect(feedback); feedback.connect(delay); filter.connect(wet); wet.connect(this._master);
-    this._echo = { send, ambientSend, delay, filter, feedback, wet }; this._configureEcho();
+    const c = this.context;
+    if (typeof c.createConvolver !== 'function') return; // Dry effects still work on unusual implementations.
+    const send = c.createGain(), ambientSend = c.createGain(), convolver = c.createConvolver();
+    const damping = c.createBiquadFilter(), wet = c.createGain();
+    send.gain.value = 1; ambientSend.gain.value = .25; wet.gain.value = 0;
+    damping.type = 'lowpass'; damping.frequency.value = 3100;
+    // The generated impulse has a calibrated gain. Browser normalization would
+    // amplify its quiet diffuse tail and make room changes alter the mix level.
+    convolver.normalize = false;
+    this._effects.connect(send); this._atmosphere.connect(ambientSend);
+    send.connect(convolver); ambientSend.connect(convolver); convolver.connect(damping); damping.connect(wet); wet.connect(this._master);
+    this._echo = { send, ambientSend, convolver, damping, wet, space: '' }; this._configureEcho();
   }
   _configureEcho() {
     if (!this._echo) return;
-    const profile = ROOMS[this.room];
-    this._ramp(this._echo.delay.delayTime, profile.echo, .08);
-    this._ramp(this._echo.feedback.gain, profile.feedback, .08);
-    this._ramp(this._echo.wet.gain, profile.wet, .08);
+    const space = CHARACTER[this.room].space;
+    if (this._echo.space !== space) {
+      const rate = this.context.sampleRate;
+      const buffer = this._cached('impulse:' + space, () => synthRoomImpulse(rate, space), rate);
+      if (this._echo.space) {
+        // Fade only the wet return before swapping its response. The normal
+        // update loop completes this; there is no timer that can outlive mute.
+        this._echo.pending = { space, buffer, at: this.context.currentTime + .06 };
+        this._ramp(this._echo.wet.gain, 0, .009); return;
+      }
+      this._echo.convolver.buffer = buffer; this._echo.space = space;
+    }
+    this._echo.pending = null;
+    this._ramp(this._echo.wet.gain, ROOMS[this.room].wet, .16);
+  }
+  _advanceRoomResponse() {
+    const pending = this._echo?.pending;
+    if (!pending || this.context.currentTime < pending.at) return;
+    this._echo.convolver.buffer = pending.buffer; this._echo.space = pending.space; this._echo.pending = null;
+    const now = this.context.currentTime, gain = this._echo.wet.gain;
+    gain.cancelScheduledValues(now); gain.setValueAtTime(0, now); gain.linearRampToValueAtTime(ROOMS[this.room].wet, now + .1);
   }
   _destroyEcho() {
     if (!this._echo) return;
     try { this._effects.disconnect(this._echo.send); } catch { /* Already detached. */ }
     try { this._atmosphere.disconnect(this._echo.ambientSend); } catch { /* Already detached. */ }
-    Object.values(this._echo).forEach(disconnect); this._echo = null;
+    for (const node of Object.values(this._echo)) if (typeof node?.disconnect === 'function') disconnect(node);
+    this._echo = null;
+  }
+  _anchor(kind) {
+    const character = CHARACTER[this.room];
+    const point = character[kind === 'chatter' ? 'chatter' : kind === 'drip' || kind === 'water' ? 'drip' : 'pipe'];
+    return { x: point[0], z: point[1], room: this.room };
+  }
+  _spatialUpdate() {
+    const now = this.context.currentTime;
+    if (now < this._nextSpatial) return;
+    this._nextSpatial = now + .06;
+    for (const voice of this._voices) if (voice.anchor && voice.spatialGain) {
+      const mix = spatialMix(this._listener, voice.anchor);
+      this._ramp(voice.spatialGain.gain, mix.gain, .045);
+      if (voice.panner) this._ramp(voice.panner.pan, mix.pan, .045);
+    }
+  }
+  _duck(seconds = .25) {
+    this._duckUntil = Math.max(this._duckUntil, this.context.currentTime + seconds); this._nextMix = 0;
+    this._mixDynamics();
+  }
+  _mixDynamics() {
+    const now = this.context.currentTime;
+    if (now < this._nextMix) return;
+    this._nextMix = now + .1;
+    this._ramp(this._atmosphere.gain, this.atmosphere ** 1.2 * (now < this._duckUntil ? .83 : 1), now < this._duckUntil ? .06 : .32);
+    if (this._bed?.parts && now >= this._nextBedDrift) {
+      this._nextBedDrift = now + this._rand(2.6, 5.7);
+      for (const part of this._bed.parts) this._ramp(part.gain.gain, part.level * this._rand(.75, 1.12), this._rand(1.1, 2.8));
+    }
   }
   _finish(voice) {
     if (!voice || voice.done) return;
@@ -224,18 +317,22 @@ export class PrisonAudio {
     const now = this.context.currentTime;
     for (const voice of this._voices) if (voice.end <= now) this._finish(voice);
   }
-  _voice(kind, duration, { ambient = false, pan = 0, sources = 1, gain = 1 } = {}) {
+  _voice(kind, duration, { ambient = false, pan = 0, sources = 1, gain = 1, anchor = null } = {}) {
     if (!this._canPlay() || (ambient && this.atmosphere <= 0)) return null;
     this._prune();
     const sourceCount = [...this._voices].reduce((sum, voice) => sum + voice.sources.length, 0);
     if (this._voices.size >= MAX_VOICES || sourceCount + sources > MAX_SOURCES) return null;
     const c = this.context, output = c.createGain(); output.gain.value = gain;
     const nodes = [output], bus = ambient ? this._atmosphere : this._effects;
+    let end = output, spatialGain = null, panner = null;
+    const mix = anchor ? spatialMix(this._listener, anchor) : { pan, gain: 1 };
+    if (anchor) { spatialGain = c.createGain(); spatialGain.gain.value = mix.gain; end.connect(spatialGain); end = spatialGain; nodes.push(spatialGain); }
     if (typeof c.createStereoPanner === 'function') {
-      const panner = c.createStereoPanner(); panner.pan.value = Math.max(-1, Math.min(1, pan));
-      output.connect(panner); panner.connect(bus); nodes.push(panner);
-    } else output.connect(bus);
-    const voice = { kind, output, nodes, sources: [], ambient, done: false, ended: 0, end: c.currentTime + duration + .08 };
+      panner = c.createStereoPanner(); panner.pan.value = Math.max(-1, Math.min(1, mix.pan));
+      end.connect(panner); end = panner; nodes.push(panner);
+    }
+    end.connect(bus);
+    const voice = { kind, output, nodes, sources: [], ambient, anchor, spatialGain, panner, done: false, ended: 0, end: c.currentTime + duration + .08 };
     this._voices.add(voice); return voice;
   }
   _source(voice, source, nodes = []) {
@@ -253,38 +350,42 @@ export class PrisonAudio {
     source.connect(gain); gain.connect(voice.output); this._source(voice, source, [gain]);
     source.start(at); source.stop(at + duration + .02);
   }
-  _noise(voice, duration, level, frequency, { delay = 0, type = 'lowpass', q = .7 } = {}) {
-    const c = this.context, at = c.currentTime + delay, source = c.createBufferSource(), filter = c.createBiquadFilter(), gain = c.createGain();
-    source.buffer = this._noiseBuffer; filter.type = type; filter.frequency.value = frequency; filter.Q.value = q;
-    this._envelope(gain.gain, at, duration, level, .006);
-    source.connect(filter); filter.connect(gain); gain.connect(voice.output); this._source(voice, source, [filter, gain]);
-    source.start(at, this._rand(0, Math.max(0, source.buffer.duration - duration - .05))); source.stop(at + duration + .02);
+  _sample(voice, buffer, { level = 1, rate = 1, loop = false, offset = 0, filter = 0 } = {}) {
+    const c = this.context, source = c.createBufferSource(), gain = c.createGain(), nodes = [gain];
+    source.buffer = buffer; source.playbackRate.value = rate; source.loop = loop; gain.gain.value = level;
+    let end = source;
+    if (filter) { const low = c.createBiquadFilter(); low.type = 'lowpass'; low.frequency.value = filter; source.connect(low); end = low; nodes.push(low); }
+    end.connect(gain); gain.connect(voice.output); this._source(voice, source, nodes);
+    source.start(c.currentTime, Math.min(offset, Math.max(0, buffer.duration - .001)));
+    if (!loop) source.stop(c.currentTime + (buffer.duration - offset) / rate + .005);
+    return { source, gain, level };
   }
-
   _startBed() {
     if (this._bed || !this._canPlay() || this.atmosphere <= 0) return;
-    const c = this.context, profile = ROOMS[this.room], voice = this._voice('bed', Infinity, { ambient: true, sources: 3 });
+    const c = this.context, profile = ROOMS[this.room], character = CHARACTER[this.room];
+    const voice = this._voice('bed', Infinity, { ambient: true, sources: 3 });
     if (!voice) return;
-    this._bed = voice; voice.output.gain.setValueAtTime(0, c.currentTime); voice.output.gain.linearRampToValueAtTime(1, c.currentTime + 1.2);
-    for (const [frequency, level] of [[profile.hum, profile.level], [profile.hum * 2.003, profile.level * .17]]) {
-      const source = c.createOscillator(), gain = c.createGain(); source.type = 'sine'; source.frequency.value = frequency; gain.gain.value = level;
-      source.connect(gain); gain.connect(voice.output); this._source(voice, source, [gain]); source.start();
-    }
-    const source = c.createBufferSource(), filter = c.createBiquadFilter(), gain = c.createGain();
-    source.buffer = this._noiseBuffer; source.loop = true; filter.type = 'lowpass'; filter.frequency.value = profile.cutoff; gain.gain.value = profile.air;
-    source.connect(filter); filter.connect(gain); gain.connect(voice.output); this._source(voice, source, [filter, gain]); source.start(c.currentTime, this._rand(0, 1));
+    this._bed = voice; voice.parts = [];
+    voice.output.gain.setValueAtTime(0, c.currentTime); voice.output.gain.linearRampToValueAtTime(1, c.currentTime + 1.2);
+    const seed = 37 + Object.keys(ROOMS).indexOf(this.room) * 103;
+    const layers = [['machine', 2.93, profile.level * 2.4], [character.air, 7.13, profile.air * 1.25], [character.detail, 10.87, profile.air * .6]];
+    layers.forEach(([kind, seconds, level], index) => {
+      const buffer = this._cached('room:' + this.room + ':' + index, () => synthTexture(this._sampleRate, kind, seed + index * 173, seconds, profile.hum));
+      voice.parts.push(this._sample(voice, buffer, { loop: true, level, offset: this._rand(0, buffer.duration * .8), rate: index ? this._rand(.975, 1.02) : 1 }));
+    });
+    this._nextBedDrift = c.currentTime + this._rand(2.5, 4.5);
     this._nextAmbient = c.currentTime + this._rand(4, 8);
   }
   _step(crouch) {
     const c = this.context;
     if (c.currentTime - this._lastStepAt < (crouch ? .2 : .15)) return false;
-    const floor = ROOMS[this.room].floor, voice = this._voice('step', .24, { sources: 2, gain: crouch ? .34 : 1, pan: this._foot ? .12 : -.12 });
+    const floor = ROOMS[this.room].floor, variant = this._variant('step:' + floor);
+    const buffer = this._cached('step:' + floor + ':' + variant, () => synthFootstep(this._sampleRate, floor, variant));
+    const voice = this._voice('step', buffer.duration / .94, { sources: 1, gain: crouch ? .34 : 1, pan: this._foot ? .09 : -.09 });
     if (!voice) return false;
     this._lastStepAt = c.currentTime; this._foot ^= 1;
-    this._tone(voice, this._rand(85, 105), 43, .15, .14);
-    this._noise(voice, crouch ? .14 : .1, floor === 'metal' ? .105 : .08,
-      (floor === 'tile' ? 1600 : floor === 'metal' ? 1150 : 800) * (crouch ? .7 : 1), { type: 'bandpass', q: .65 });
-    return true;
+    this._sample(voice, buffer, { rate: this._rand(.965, 1.035), level: this._rand(.162, .181), filter: crouch ? 1200 : 0 });
+    this._duck(.14); return true;
   }
   update({ dt = 0, pose, room } = {}) {
     if (this._disposed) return 0;
@@ -292,13 +393,14 @@ export class PrisonAudio {
     if (!pose || !Number.isFinite(pose.x) || !Number.isFinite(pose.z)) { this._resetStride(); return 0; }
     const previous = this._lastPose;
     this._lastPose = { x: pose.x, z: pose.z };
+    this._listener = { x: pose.x, z: pose.z, yaw: Number.isFinite(pose.yaw) ? pose.yaw : this._listener.yaw };
     if (!this._canPlay()) { this._stride = 0; return 0; }
-    this._prune();
+    this._prune(); this._advanceRoomResponse(); this._spatialUpdate(); this._mixDynamics();
     if (this.atmosphere > 0) {
       this._startBed();
       if (this.context.currentTime >= this._nextAmbient) {
         const interval = ROOMS[this.room].interval;
-        this._nextAmbient = this.context.currentTime + this._rand(...interval);
+        this._nextAmbient = this.context.currentTime + interval[0] + this._rand() ** 1.6 * (interval[1] - interval[0]) * 1.35;
         try { this._ambientEvent(); } catch { /* An optional effect must never interrupt movement. */ }
       }
     }
@@ -322,44 +424,42 @@ export class PrisonAudio {
     if (!this._canPlay() || !Object.hasOwn(CUE_GAP, kind)) return false;
     const now = this.context.currentTime;
     if (now - (this._lastCue.get(kind) ?? -Infinity) < CUE_GAP[kind]) return false;
-    const voice = this._voice(kind, kind === 'door' ? .65 : .6, { sources: kind === 'error' ? 1 : kind === 'success' ? 2 : 3 });
+    const sampled = !['success', 'error'].includes(kind), sound = kind === 'key' ? 'keys' : kind === 'mechanism' ? 'chain' : kind;
+    let buffer;
+    if (sampled) {
+      const variant = this._variant('cue:' + sound, 4);
+      buffer = this._cached('event:' + sound + ':' + variant, () => synthEvent(this._sampleRate, sound, variant));
+    }
+    const voice = this._voice(kind, sampled ? buffer.duration / .95 : .6, { sources: kind === 'success' ? 2 : 1 });
     if (!voice) return false;
     this._lastCue.set(kind, now);
     try {
-      if (kind === 'key') {
-        this._tone(voice, 1500, 1310, .16, .075); this._tone(voice, 2180, 2030, .21, .047, { delay: .045 });
-        this._noise(voice, .04, .045, 3200, { type: 'highpass' });
-      } else if (kind === 'door') {
-        this._noise(voice, .55, .18, 420); this._tone(voice, 76, 36, .28, .14);
-        this._tone(voice, 232, 173, .44, .035, { delay: .09, type: 'triangle', attack: .05 });
-      } else if (kind === 'mechanism') {
-        this._noise(voice, .25, .13, 750); this._tone(voice, 140, 90, .42, .095);
-        this._tone(voice, 340, 260, .25, .035, { delay: .18, type: 'triangle' });
-      } else if (kind === 'success') {
+      if (sampled) this._sample(voice, buffer, { rate: this._rand(.975, 1.025), level: kind === 'door' ? .23 : kind === 'key' ? .15 : .19 });
+      else if (kind === 'success') {
         this._tone(voice, 262, 262, .35, .065, { attack: .03 }); this._tone(voice, 393, 393, .47, .045, { delay: .1, attack: .03 });
       } else this._tone(voice, 160, 120, .13, .065);
-      return true;
+      this._duck(.48); return true;
     } catch { this._finish(voice); return false; }
   }
   _ambientEvent() {
-    const profile = ROOMS[this.room], choice = this._rand();
-    if (choice >= profile.drip && choice < profile.drip + profile.chatter) { this._murmur(); return; }
-    const drip = choice < profile.drip;
-    const voice = this._voice(drip ? 'drip' : 'pipe', .5, { ambient: true, sources: 2, pan: this._rand(-.7, .7) });
+    const profile = ROOMS[this.room], character = CHARACTER[this.room], rest = 1 - profile.drip - profile.chatter;
+    const choices = [['drip', profile.drip], ['chatter', profile.chatter], ['pipe', rest * .55], [character.event, rest * .45]]
+      .filter(([kind, weight]) => kind !== this._lastAmbientKind && weight > 0);
+    let draw = this._rand(0, choices.reduce((sum, entry) => sum + entry[1], 0)), kind = choices.at(-1)[0];
+    for (const choice of choices) { draw -= choice[1]; if (draw <= 0) { kind = choice[0]; break; } }
+    this._lastAmbientKind = kind;
+    if (kind === 'chatter') { this._murmur(); return; }
+    const variant = this._variant('ambient:' + kind, 4);
+    const buffer = this._cached('event:' + kind + ':' + variant, () => synthEvent(this._sampleRate, kind, variant));
+    const voice = this._voice(kind, buffer.duration / .95, { ambient: true, sources: 1, anchor: this._anchor(kind) });
     if (!voice) return;
-    if (drip) {
-      this._tone(voice, this._rand(1100, 1450), 620, .17, .06);
-      this._tone(voice, 840, 520, .12, .023, { delay: .13 });
-    } else {
-      this._tone(voice, this._rand(160, 230), 91, .29, .075);
-      this._noise(voice, .055, .045, 1800, { type: 'bandpass' });
-    }
+    this._sample(voice, buffer, { rate: this._rand(.97, 1.025), level: kind === 'hiss' || kind === 'water' ? .1 : .13 });
   }
   _murmur() {
     const c = this.context;
     if (this._chatterBuffer) {
       const duration = Math.min(3.8, this._chatterBuffer.duration);
-      const voice = this._voice('chatter', duration, { ambient: true, sources: 1, pan: this._rand(-.65, .65) });
+      const voice = this._voice('chatter', duration, { ambient: true, sources: 1, anchor: this._anchor('chatter') });
       if (!voice) return;
       const source = c.createBufferSource(), filter = c.createBiquadFilter(), gain = c.createGain();
       source.buffer = this._chatterBuffer; filter.type = 'lowpass'; filter.frequency.value = 1050; gain.gain.value = 0;
@@ -368,24 +468,10 @@ export class PrisonAudio {
       source.connect(filter); filter.connect(gain); gain.connect(voice.output); this._source(voice, source, [filter, gain]);
       source.start(at, this._rand(0, Math.max(0, source.buffer.duration - duration))); source.stop(at + duration); return;
     }
-    // Quiet formant-filtered syllables suggest people beyond a wall. There are
-    // no intelligible words, instructions, or hidden answers in this fallback.
-    const duration = 2.4, voice = this._voice('chatter', duration, { ambient: true, sources: 2, pan: this._rand(-.65, .65) });
-    if (!voice) return;
-    for (let i = 0; i < 2; i++) {
-      const at = c.currentTime, source = c.createOscillator(), formant = c.createBiquadFilter(), lowpass = c.createBiquadFilter(), gain = c.createGain();
-      source.type = 'sawtooth'; source.frequency.value = i ? 151 : 103;
-      formant.type = 'bandpass'; formant.frequency.value = i ? 730 : 480; formant.Q.value = .65;
-      lowpass.type = 'lowpass'; lowpass.frequency.value = 1050; gain.gain.setValueAtTime(0, at);
-      for (let syllable = 0; syllable < 6; syllable++) {
-        const start = at + .09 + syllable * .36 + i * .09, level = this._rand(.009, .018);
-        gain.gain.linearRampToValueAtTime(0, start); gain.gain.linearRampToValueAtTime(level, start + .07);
-        gain.gain.linearRampToValueAtTime(level * .4, start + .18); gain.gain.linearRampToValueAtTime(0, start + .28);
-        source.frequency.linearRampToValueAtTime((i ? 151 : 103) + this._rand(-11, 11), start + .16);
-      }
-      source.connect(formant); formant.connect(lowpass); lowpass.connect(gain); gain.connect(voice.output);
-      this._source(voice, source, [formant, lowpass, gain]); source.start(at); source.stop(at + duration);
-    }
+    const variant = this._variant('murmur', 6);
+    const buffer = this._cached('murmur:' + variant, () => synthMurmur(this._sampleRate, variant));
+    const voice = this._voice('chatter', buffer.duration / .94, { ambient: true, sources: 1, anchor: this._anchor('chatter') });
+    if (voice) this._sample(voice, buffer, { rate: this._rand(.96, 1.025), level: .115 });
   }
 
   // Optional same-origin short sample. Synthesis remains available if the file
@@ -414,7 +500,8 @@ export class PrisonAudio {
   dispose() {
     if (this._disposed) return;
     this.active = false; this._stopAll(); this._destroyEcho(); this._resetStride();
-    this._chatterAbort?.abort(); this._chatterBuffer = this._noiseBuffer = null;
+    this._chatterAbort?.abort(); this._chatterBuffer = null; this._buffers.clear(); this._bufferBytes = 0;
+    this._variantBags.clear(); this._lastVariants.clear();
     this._document?.removeEventListener('visibilitychange', this._visibility);
     this._document?.removeEventListener('click', this._gesture);
     this._document?.removeEventListener('keydown', this._gesture);

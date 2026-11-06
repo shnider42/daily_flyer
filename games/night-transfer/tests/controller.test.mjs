@@ -7,13 +7,19 @@ import {movementVector,FirstPersonControls} from '../public/controls.js';
 import * as settingsApi from '../public/settings.js';
 
 const controller=(await readFile(new URL('../public/app.js',import.meta.url),'utf8')).replace(/^import[\s\S]*?;\r?\n/gm,'');
+const controlsSource=(await readFile(new URL('../public/controls.js',import.meta.url),'utf8')).replace(/^export /gm,'');
 const markup=await readFile(new URL('../public/index.html',import.meta.url),'utf8');
 function harness(options = {}) {
   const elements = new Map(), nodes = new Set(), timers = new Map();
   const storage = options.storage || new Map(), writes = [], events = { window: new Map(), document: new Map() };
-  let transport, audio, control, document, timerId = 0;
+  let transport, audio, control, document, timerId = 0, clock = 100;
   const addListener = (map, type, fn) => { if (!map.has(type)) map.set(type, []); map.get(type).push(fn); };
   const removeListener = (map, type, fn) => map.set(type, (map.get(type) || []).filter(item => item !== fn));
+  const emit = (surface, type, extra = {}) => {
+    const event = { type, target: surface === 'window' ? document.activeElement || document.body : document, defaultPrevented: false, preventDefault() { this.defaultPrevented = true; }, stopPropagation() { this.cancelBubble = true; }, ...extra };
+    for (const fn of [...(events[surface].get(type) || [])]) fn(event);
+    return event;
+  };
   const style = () => ({ setProperty(key, value) { this[key] = String(value); }, getPropertyValue(key) { return this[key] || ''; } });
   class Element {
     constructor(id = '', tagName = 'div') {
@@ -94,10 +100,41 @@ function harness(options = {}) {
     removeEventListener: (type, fn) => removeListener(events.document, type, fn),
     createElement: tag => new Element('', tag),
   };
+  const nativeLock = {
+    requests: 0, exits: 0,
+    release() { document.pointerLockElement = null; emit('document', 'pointerlockchange'); },
+  };
+  if (options.realControls) {
+    elements.get('world').requestPointerLock = () => {
+      nativeLock.requests++; document.pointerLockElement = elements.get('world'); emit('document', 'pointerlockchange'); return Promise.resolve();
+    };
+    document.exitPointerLock = () => { nativeLock.exits++; nativeLock.release(); };
+  }
   class FirstPersonControls {
-    constructor(config) { this.options = config; this.pose = { x: 0, z: 3.2, yaw: 0, pitch: 0, crouch: false }; this.enabled = false; control = this; }
+    constructor(config) {
+      this.options = config; this.pose = { x: 0, z: 3.2, yaw: 0, pitch: 0, crouch: false }; this.enabled = false;
+      this.mouseLookEnabled = true; this.mouseLookLocked = false; this.mouseLookRequests = 0; this.mouseLookReleases = 0;
+      this.mouseLookReason = options.mouseLookSupported === false ? 'unsupported' : 'ready';
+      control = this;
+    }
     setPose(pose) { this.pose = { ...pose, pitch: pose.pitch || 0, crouch: !!pose.crouch }; }
-    setEnabled(value) { this.enabled = !!value; }
+    setEnabled(value) { this.enabled = !!value; if (!this.enabled) this.releaseMouseLook(); this.mouseLookStatus(); }
+    setMouseLookEnabled(value) {
+      if (this.mouseLookEnabled === !!value) { this.mouseLookStatus(); return; }
+      this.mouseLookEnabled = !!value;
+      if (!value) this.releaseMouseLook();
+      this.mouseLookStatus(!value ? 'disabled' : options.mouseLookSupported === false ? 'unsupported' : 'ready');
+    }
+    mouseLookStatus(reason = this.mouseLookReason) { this.mouseLookReason = reason; this.options.onMouseLook?.({ supported: options.mouseLookSupported !== false, enabled: this.mouseLookEnabled, locked: this.mouseLookLocked, pending: false, reason }); }
+    requestMouseLook() {
+      this.mouseLookRequests++;
+      if (!this.enabled || !this.mouseLookEnabled || options.touch) return Promise.resolve(false);
+      const allowed = options.mouseLookSupported !== false && options.mouseLookDenied !== true;
+      this.mouseLookLocked = allowed; document.pointerLockElement = allowed ? this.options.canvas : null;
+      this.mouseLookStatus(allowed ? 'locked' : options.mouseLookSupported === false ? 'unsupported' : 'denied');
+      return Promise.resolve(allowed);
+    }
+    releaseMouseLook() { const active = this.mouseLookLocked; this.mouseLookReleases++; this.mouseLookLocked = false; document.pointerLockElement = null; if (active) this.mouseLookStatus(this.mouseLookEnabled ? 'released' : 'disabled'); }
     update() { return false; }
     toggleCrouch() { if (this.enabled) { this.pose.crouch = !this.pose.crouch; this.options.onCrouch?.(this.pose.crouch); } }
   }
@@ -141,16 +178,18 @@ function harness(options = {}) {
     getItem(key) { if (options.blockStorage) throw new Error('Storage blocked'); return storage.get(key) ?? null; },
     setItem(key, value) { if (options.blockStorage) throw new Error('Storage blocked'); storage.set(key, String(value)); writes.push(key); },
   };
-  const media = query => ({ matches: query.includes('reduced-motion') ? !!options.reduced : query.includes('coarse') ? !!options.touch : false, addEventListener() {}, removeEventListener() {} });
+  const media = query => ({ matches: query.includes('reduced-motion') ? !!options.reduced : query.includes('coarse') ? !!options.touch : query.includes('fine') || query.includes('hover: hover') ? !options.touch : false, addEventListener() {}, removeEventListener() {} });
   const window = { innerWidth: options.touch ? 428 : 1280, innerHeight: options.touch ? 926 : 720, devicePixelRatio: options.touch ? 3 : 1, addEventListener: (type, fn) => addListener(events.window, type, fn), removeEventListener: (type, fn) => removeListener(events.window, type, fn), matchMedia: media };
-  const context = vm.createContext({ ...world, ...settingsApi, FirstPersonControls, CoopClient, PrisonAudio, createScene: () => scene, document, window, localStorage, matchMedia: media, requestAnimationFrame: () => 1, setTimeout: fn => { const id = ++timerId; timers.set(id, fn); return id; }, clearTimeout: id => timers.delete(id), URL, Date, Math, console, structuredClone, performance: { now: () => 100 }, location: { href: 'https://night-transfer.example/', origin: 'https://night-transfer.example', pathname: '/' }, navigator: { maxTouchPoints: options.touch ? 5 : 0 } });
-  vm.runInContext(controller + '\nglobalThis.app={startSolo,returnToMenu,showCoop,showSettings,showPause,closeModal,dispatch,useFocused,openObject,saveSolo,changeSetting,toggleSound,previewSound,syncAudioActivity,refreshFocus,animate,snapshot:()=>({mode,state,roomId,dialogKind,selected,teamIntent,settings:{...settings},settingsTab,lookUsed,moveUsed,pending:[...pending.keys()]})};', context);
+  const context = vm.createContext({ ...world, ...settingsApi, FirstPersonControls, CoopClient, PrisonAudio, createScene: () => scene, document, window, localStorage, matchMedia: media, requestAnimationFrame: () => 1, setTimeout: fn => { const id = ++timerId; timers.set(id, fn); return id; }, clearTimeout: id => timers.delete(id), URL, Date, Math, console, structuredClone, performance: { now: () => clock }, location: { href: 'https://night-transfer.example/', origin: 'https://night-transfer.example', pathname: '/' }, navigator: { maxTouchPoints: options.touch ? 5 : 0 } });
+  vm.runInContext((options.realControls ? controlsSource + '\n' : '') + controller + '\nglobalThis.app={startSolo,returnToMenu,showCoop,showSettings,showPause,closeModal,dispatch,useFocused,openObject,saveSolo,changeSetting,toggleSound,previewSound,syncAudioActivity,refreshFocus,animate,getControls:()=>controls,snapshot:()=>({mode,state,roomId,dialogKind,selected,teamIntent,settings:{...settings},settingsTab,lookUsed,moveUsed,pending:[...pending.keys()]})};', context);
+  control = context.app.getControls();
   assert.equal(elements.get('fatal').hidden, true, 'controller startup must not fall into the fatal screen');
   return {
-    app: context.app, transport, audio, control, scene, elements, storage, writes, document, window,
+    app: context.app, transport, audio, control, scene, elements, storage, writes, document, window, nativeLock,
     input(id, value) { const element = elements.get(id); assert.ok(element, `input ${id} exists`); element.value = String(value); element.emit('input'); },
     toggle(id, checked) { const element = elements.get(id); assert.ok(element, `toggle ${id} exists`); element.checked = checked; element.emit('change'); },
-    emit(surface, type, event = {}) { for (const fn of events[surface].get(type) || []) fn({ defaultPrevented: false, preventDefault() { this.defaultPrevented = true; }, ...event }); },
+    emit,
+    advance(ms) { clock += ms; },
     flush() { for (let count = 0; timers.size; count++) { assert.ok(count < 100, 'timers should settle'); const [id, fn] = timers.entries().next().value; timers.delete(id); fn(); } },
   };
 }
@@ -278,10 +317,10 @@ test('resetting controls leaves audio, view choices and escape progress intact',
   h.app.showSettings('view'); h.input('brightness', 1.6); h.toggle('reduced', true);
   h.elements.get('tab-sound').click(); h.toggle('sound-enabled', true); h.input('volume', 0.3); h.input('atmosphere', 0.1);
   h.elements.get('tab-controls').click(); h.input('buttonScale', 1.3); h.input('stickSize', 120); h.input('sensitivity', 1.8);
-  h.toggle('leftHanded', true); h.toggle('lookGuide', false); h.toggle('invert', true);
+  h.toggle('leftHanded', true); h.toggle('lookGuide', false); h.toggle('invert', true); h.toggle('desktopMouseLook', false);
   h.elements.get('reset-controls').click();
   const settings = h.app.snapshot().settings;
-  for (const key of ['buttonScale', 'stickSize', 'sensitivity', 'controlOpacity', 'leftHanded', 'lookGuide', 'invert']) assert.equal(settings[key], settingsApi.DEFAULT_SETTINGS[key], key);
+  for (const key of ['buttonScale', 'stickSize', 'sensitivity', 'controlOpacity', 'leftHanded', 'lookGuide', 'invert', 'desktopMouseLook']) assert.equal(settings[key], settingsApi.DEFAULT_SETTINGS[key], key);
   assert.equal(settings.brightness, 1.6); assert.equal(settings.reduced, true);
   assert.equal(settings.sound, true); assert.equal(settings.volume, 0.3); assert.equal(settings.atmosphere, 0.1);
   assert.deepEqual(plain(h.app.snapshot().state), state);
@@ -332,7 +371,7 @@ test('settings and mute do not drop an in-flight co-op discovery or touch the so
   h.transport.callbacks.onState(team);
   h.app.useFocused({ id: 'bunkPocket', distance: 1.2 }); h.elements.get('object-action').click();
   const sent = h.transport.actions[0], leaves = h.transport.leaves, before = plain(h.app.snapshot().state);
-  h.app.showSettings('controls'); h.input('buttonScale', 1.25); h.toggle('leftHanded', true);
+  h.app.showSettings('controls'); h.input('buttonScale', 1.25); h.toggle('leftHanded', true); h.toggle('desktopMouseLook', false);
   h.elements.get('tab-sound').click(); h.toggle('sound-enabled', true); h.input('volume', 0.2); h.toggle('sound-enabled', false);
   assert.equal(h.transport.actions.length, 1, 'settings do not send authoritative puzzle actions');
   assert.equal(h.transport.leaves, leaves); assert.equal(h.transport.connected, true);
@@ -386,4 +425,181 @@ test('blocked preference storage leaves live controls and escape progress usable
   h.app.startSolo(); h.app.closeModal(); h.app.useFocused({ id: 'bunkPocket', distance: 1.2 }); h.elements.get('object-action').click();
   assert.equal(h.app.snapshot().state.inventory.includes('holdingKey'), true);
   assert.equal(h.elements.get('fatal').hidden, true);
+});
+
+test('desktop panel shortcuts release mouse look and H opens hints without spending one', async () => {
+  const h = harness(); h.app.startSolo(); h.elements.get('intro-go').click();
+  const state = plain(h.app.snapshot().state), save = h.storage.get('night-transfer.solo.v1');
+  assert.equal(typeof h.control.options.onShortcut, 'function');
+  for (const [shortcut, dialog] of [['notes', 'notebook'], ['pockets', 'inventory'], ['hints', 'hints'], ['settings', 'settings']]) {
+    h.app.closeModal(); await h.control.requestMouseLook();
+    assert.equal(h.control.mouseLookLocked, true);
+    h.control.options.onShortcut(shortcut);
+    assert.equal(h.app.snapshot().dialogKind, dialog, shortcut);
+    assert.equal(h.control.mouseLookLocked, false, `${shortcut} frees the cursor`);
+    assert.equal(h.control.enabled, false, `${shortcut} prevents movement behind the panel`);
+    assert.strictEqual(h.document.activeElement, h.elements.get('dialog'));
+    assert.equal(h.elements.get('desktop-controls').hidden, true);
+    assert.deepEqual(plain(h.app.snapshot().state), state, `${shortcut} preserves progress and hint quota`);
+    assert.equal(h.storage.get('night-transfer.solo.v1'), save);
+  }
+  h.app.closeModal(); h.control.options.onShortcut('hints');
+  assert.equal(h.app.snapshot().state.hintsUsed[0], 0);
+  h.elements.get('reveal-hint').click();
+  assert.equal(h.app.snapshot().state.hintsUsed[0], 1, 'only the explicit reveal button spends a hint');
+  assert.equal(h.app.snapshot().dialogKind, 'hints');
+  assert.equal(h.control.mouseLookLocked, false);
+});
+
+test('the M shortcut changes sound without releasing mouse look or changing the escape', () => {
+  const h = harness(); h.app.startSolo(); h.elements.get('intro-go').click();
+  h.app.changeSetting('volume', 0.35); h.app.changeSetting('atmosphere', 0.25);
+  const state = plain(h.app.snapshot().state), save = h.storage.get('night-transfer.solo.v1');
+  const captures = h.control.mouseLookRequests;
+  h.control.options.onShortcut('sound');
+  assert.equal(h.audio.enabled, true); assert.equal(h.audio.unlocks, 1);
+  assert.equal(h.control.mouseLookLocked, true); assert.equal(h.app.snapshot().dialogKind, '');
+  h.control.options.onShortcut('sound');
+  assert.equal(h.audio.enabled, false); assert.equal(h.audio.volume, 0.35); assert.equal(h.audio.atmosphere, 0.25);
+  assert.equal(h.control.mouseLookLocked, true); assert.equal(h.control.mouseLookRequests, captures);
+  assert.deepEqual(plain(h.app.snapshot().state), state);
+  assert.equal(h.storage.get('night-transfer.solo.v1'), save);
+  assert.equal(h.transport.actions.length, 0);
+});
+
+test('desktop capture resumes only from explicit gestures and remains released in menus', () => {
+  const h = harness(); h.app.startSolo();
+  assert.equal(h.control.mouseLookRequests, 0, 'opening the introduction does not capture');
+  h.elements.get('intro-go').click();
+  assert.equal(h.control.mouseLookLocked, true);
+  assert.equal(h.elements.get('desktop-controls').dataset.state, 'locked');
+  assert.equal(h.document.body.classList.contains('mouse-captured'), true);
+  h.control.options.onShortcut('notes');
+  const captures = h.control.mouseLookRequests;
+  h.elements.get('close-dialog').click();
+  assert.equal(h.control.mouseLookRequests, captures, 'closing a clue panel leaves capture to a new gesture');
+  assert.equal(h.control.mouseLookLocked, false); assert.equal(h.control.enabled, true);
+  assert.equal(h.elements.get('desktop-controls').hidden, false);
+  assert.equal(h.elements.get('mouse-look-btn').hidden, false);
+  h.elements.get('mouse-look-btn').click();
+  assert.equal(h.control.mouseLookLocked, true);
+  h.control.options.onPause();
+  assert.equal(h.app.snapshot().dialogKind, 'pause'); assert.equal(h.control.mouseLookLocked, false);
+  const pausedCaptures = h.control.mouseLookRequests;
+  h.emit('window', 'keydown', { key: 'Escape', repeat: true });
+  assert.equal(h.app.snapshot().dialogKind, 'pause', 'a held Escape cannot immediately dismiss the menu');
+  h.emit('window', 'keydown', { key: 'Escape', defaultPrevented: true });
+  assert.equal(h.app.snapshot().dialogKind, 'pause', 'an Escape already handled by controls is not handled twice');
+  h.emit('window', 'keydown', { key: 'Escape' });
+  assert.equal(h.app.snapshot().dialogKind, '');
+  assert.equal(h.control.mouseLookRequests, pausedCaptures, 'Escape never immediately recaptures the cursor');
+  assert.strictEqual(h.document.activeElement, h.elements.get('world'), 'closing a panel returns keyboard focus to the room');
+  h.app.showPause(); h.elements.get('resume-btn').click();
+  assert.equal(h.control.mouseLookLocked, true, 'the explicit Return button can capture again');
+  h.app.returnToMenu();
+  assert.equal(h.control.mouseLookLocked, false); assert.equal(h.control.enabled, false);
+  assert.equal(h.elements.get('desktop-controls').hidden, true);
+  const menuCaptures = h.control.mouseLookRequests;
+  h.elements.get('menu-settings').click(); h.elements.get('settings-done').click();
+  assert.equal(h.control.mouseLookRequests, menuCaptures);
+  assert.equal(h.control.enabled, false, 'closing Setup never enables the game behind the title screen');
+});
+
+test('disabled, denied or unavailable mouse capture leaves a usable drag-look escape', () => {
+  for (const options of [{ mouseLookDenied: true }, { mouseLookSupported: false }, { storage: new Map([[settingsApi.SETTINGS_KEY, JSON.stringify({ desktopMouseLook: false })]]) }]) {
+    const h = harness(options); h.app.startSolo(); h.elements.get('intro-go').click();
+    assert.equal(h.control.mouseLookLocked, false);
+    assert.equal(h.control.enabled, true);
+    assert.equal(h.elements.get('desktop-controls').dataset.state, 'drag');
+    assert.match(h.elements.get('mouse-look-status').textContent, /drag/i);
+    assert.equal(h.elements.get('fatal').hidden, true);
+    h.app.useFocused({ id: 'bunkPocket', distance: 1.2 }); h.elements.get('object-action').click();
+    assert.equal(h.app.snapshot().state.inventory.includes('holdingKey'), true);
+    assert.equal(h.app.snapshot().dialogKind, 'result');
+  }
+});
+
+test('a denied capture can be retried without inspecting or mutating an object', () => {
+  const options = { mouseLookDenied: true }, h = harness(options);
+  h.app.startSolo(); h.elements.get('intro-go').click();
+  assert.match(h.elements.get('mouse-look-btn').innerHTML, /RETRY/);
+  const state = plain(h.app.snapshot().state), save = h.storage.get('night-transfer.solo.v1');
+  options.mouseLookDenied = false;
+  h.elements.get('mouse-look-btn').click();
+  assert.equal(h.control.mouseLookLocked, true); assert.equal(h.app.snapshot().dialogKind, '');
+  assert.equal(h.elements.get('mouse-look-btn').hidden, true);
+  assert.deepEqual(plain(h.app.snapshot().state), state);
+  assert.equal(h.storage.get('night-transfer.solo.v1'), save);
+});
+
+test('mouse-look preference applies immediately, persists, and leaves phone intros uncaptured', () => {
+  const h = harness(); h.app.startSolo(); h.elements.get('intro-go').click();
+  const state = plain(h.app.snapshot().state), save = h.storage.get('night-transfer.solo.v1');
+  h.control.options.onShortcut('settings'); h.toggle('desktopMouseLook', false); h.elements.get('settings-done').click();
+  assert.equal(h.control.mouseLookEnabled, false); assert.equal(h.control.mouseLookLocked, false);
+  assert.equal(h.elements.get('desktop-controls').dataset.state, 'drag');
+  assert.equal(h.elements.get('mouse-look-btn').hidden, true);
+  assert.equal(JSON.parse(h.storage.get(settingsApi.SETTINGS_KEY)).desktopMouseLook, false);
+  assert.deepEqual(plain(h.app.snapshot().state), state); assert.equal(h.storage.get('night-transfer.solo.v1'), save);
+  const reopened = harness({ storage: h.storage });
+  assert.equal(reopened.app.snapshot().settings.desktopMouseLook, false);
+  assert.equal(reopened.control.mouseLookEnabled, false);
+  const phone = harness({ touch: true }); phone.app.startSolo(); phone.elements.get('intro-go').click();
+  assert.equal(phone.control.mouseLookRequests, 0, 'touch users are not asked to capture a mouse');
+  phone.app.showPause(); phone.elements.get('resume-btn').click();
+  assert.equal(phone.control.mouseLookRequests, 0);
+});
+
+test('remote act introductions and the completed escape release mouse look without touching the solo save', async () => {
+  const h = harness(); h.app.startSolo(); h.app.dispatch(firstAct[0]); h.app.returnToMenu();
+  const solo = h.storage.get('night-transfer.solo.v1'); join(h); await h.control.requestMouseLook();
+  let state = world.newGame({ now: 0 });
+  const run = action => { const result = world.reduce(state, action, { now: 6000 }); assert.equal(result.ok, true, result.message); state = result.state; };
+  firstAct.forEach(run); h.transport.callbacks.onState(state);
+  assert.equal(h.app.snapshot().dialogKind, 'intro'); assert.equal(h.control.mouseLookLocked, false); assert.equal(h.control.enabled, false);
+  const secondAct = [{ type: 'interact', id: 'laundryCart' }, { type: 'interact', id: 'watchroomDoor' }, { type: 'solve', id: 'authorisationPanel', value: '846' }, { type: 'interact', id: 'dispatchShutter' }, { type: 'interact', id: 'dispatchDesk' }, { type: 'interact', id: 'dispatchExit' }];
+  secondAct.forEach(run); h.transport.callbacks.onState(state); h.elements.get('intro-go').click();
+  assert.equal(h.control.mouseLookLocked, true);
+  const finalAct = [{ type: 'interact', id: 'toolChest' }, { type: 'interact', id: 'sluiceDoor' }, { type: 'solve', id: 'valveBank', value: [2, 4, 1] }, { type: 'interact', id: 'quayDoor' }, { type: 'interact', id: 'keeperBox' }, { type: 'interact', id: 'quayExit' }];
+  finalAct.forEach(run); h.transport.callbacks.onState(state); h.flush();
+  assert.equal(h.app.snapshot().dialogKind, 'win'); assert.equal(h.app.snapshot().state.won, true);
+  assert.equal(h.control.mouseLookLocked, false); assert.equal(h.control.enabled, false);
+  assert.equal(h.elements.get('desktop-controls').hidden, true);
+  assert.equal(h.storage.get('night-transfer.solo.v1'), solo);
+  h.emit('window', 'keydown', { key: 'Escape', repeat: true });
+  assert.equal(h.app.snapshot().dialogKind, 'win');
+  h.emit('window', 'keydown', { key: 'Escape' });
+  assert.equal(h.app.snapshot().mode, 'menu', 'Escape on completion returns to the title instead of trapping a disabled room');
+  assert.equal(h.app.snapshot().dialogKind, '');
+  assert.equal(h.control.enabled, false); assert.equal(h.control.mouseLookLocked, false);
+  assert.equal(h.storage.get('night-transfer.solo.v1'), solo);
+});
+
+test('real pointer-lock and Escape event ordering leaves Pause open until a deliberate next press', () => {
+  for (const order of ['unlock-first', 'keydown-first', 'browser-consumed-key']) {
+    const h = harness({ realControls: true }); h.app.startSolo(); h.elements.get('intro-go').click();
+    assert.equal(h.control.mouseLookLocked, true, `${order}: the real controls own the canvas lock`);
+    if (order === 'keydown-first') {
+      const first = h.emit('window', 'keydown', { key: 'Escape' });
+      assert.equal(first.defaultPrevented, true);
+      h.nativeLock.release();
+    } else {
+      h.nativeLock.release();
+      assert.equal(h.app.snapshot().dialogKind, 'pause');
+      if (order === 'unlock-first') {
+        const followup = h.emit('window', 'keydown', { key: 'Escape' });
+        assert.equal(followup.defaultPrevented, true, 'the same browser Escape is consumed before the app dismissal listener');
+      }
+    }
+    assert.equal(h.app.snapshot().dialogKind, 'pause', `${order}: one Escape cannot both open and close Pause`);
+    assert.equal(h.control.enabled, false); assert.equal(h.control.mouseLookLocked, false);
+    assert.equal(h.nativeLock.requests, 1, 'unlocking never requests capture again');
+    if (order === 'browser-consumed-key') h.advance(300);
+    else h.emit('window', 'keyup', { key: 'Escape' });
+    h.emit('window', 'keydown', { key: 'Escape' });
+    assert.equal(h.app.snapshot().dialogKind, '', `${order}: the next deliberate Escape can close the menu`);
+    assert.equal(h.control.enabled, true); assert.equal(h.control.mouseLookLocked, false);
+    assert.strictEqual(h.document.activeElement, h.elements.get('world'));
+    assert.equal(h.nativeLock.requests, 1);
+  }
 });

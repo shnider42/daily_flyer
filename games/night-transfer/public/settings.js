@@ -9,7 +9,7 @@ export const SETTING_RANGES = Object.freeze({
 export const DEFAULT_SETTINGS = Object.freeze({
   brightness: 1.2, sensitivity: 1, invert: false, reduced: false,
   buttonScale: 1, stickSize: 88, controlOpacity: 0.7,
-  leftHanded: false, lookGuide: true,
+  leftHanded: false, lookGuide: true, desktopMouseLook: true,
   sound: false, volume: 0.6, atmosphere: 0.55,
 });
 
@@ -21,7 +21,7 @@ export function normalizeSettings(raw, reducedDefault = false) {
       clean[key] = Math.min(max, Math.max(min, raw[key]));
     }
   }
-  for (const key of ['invert', 'reduced', 'leftHanded', 'lookGuide', 'sound']) {
+  for (const key of ['invert', 'reduced', 'leftHanded', 'lookGuide', 'desktopMouseLook', 'sound']) {
     if (typeof raw[key] === 'boolean') clean[key] = raw[key];
   }
   return clean;

@@ -27,7 +27,7 @@ class Param {
 class Node {
   constructor(context, type) {
     this.context = context; this.kind = type; this.connections = new Set(); this.disconnected = false;
-    for (const param of ['gain', 'frequency', 'Q', 'pan', 'delayTime', 'threshold', 'knee', 'ratio', 'attack', 'release']) this[param] = new Param(param === 'gain' ? 1 : 0);
+    for (const param of ['gain', 'frequency', 'Q', 'pan', 'playbackRate', 'delayTime', 'threshold', 'knee', 'ratio', 'attack', 'release']) this[param] = new Param(param === 'gain' ? 1 : 0);
     context.nodes.push(this);
   }
   connect(destination) { this.connections.add(destination); return destination; }
@@ -59,12 +59,13 @@ class Context {
   createBiquadFilter() { return new Node(this, 'filter'); }
   createDynamicsCompressor() { return new Node(this, 'compressor'); }
   createDelay() { return new Node(this, 'delay'); }
+  createConvolver() { return new Node(this, 'convolver'); }
   createStereoPanner() { return new Node(this, 'panner'); }
   createOscillator() { return new Source(this, 'oscillator'); }
   createBufferSource() { return new Source(this, 'buffer'); }
   createBuffer(channels, length, sampleRate) {
     const data = Array.from({ length: channels }, () => new Float32Array(length));
-    return { duration: length / sampleRate, sampleRate, numberOfChannels: channels, getChannelData: channel => data[channel] };
+    return { length, duration: length / sampleRate, sampleRate, numberOfChannels: channels, getChannelData: channel => data[channel] };
   }
   resume() {
     this.resumeCalls++;
@@ -124,7 +125,7 @@ test('holding a movement key against a wall stays silent; footsteps follow actua
   assert.equal(steps, 0); assert.equal(f.context.started.length, 0);
   for (let i = 1; i <= 20; i++) { f.context.advance(.1); steps += f.audio.update({ dt: .1, pose: { x: i * .1, z: 0 }, moving: false }); }
   assert.equal(steps, 2, 'two metres produce measured footfalls regardless of the attempted-movement flag');
-  assert.equal(f.context.started.length, 4, 'each footfall has one body impact and one surface scuff');
+  assert.equal(f.context.started.length, 2, 'heel, toe and scuff are mixed into one cached source per footfall');
 });
 
 test('room changes, teleports, hidden motion and stale frames never create catch-up footsteps', async t => {
@@ -172,7 +173,7 @@ test('mute, zero volume and the title menu stop existing sources and gate future
 test('atmosphere zero removes hum and distant voices while retaining interaction effects', async t => {
   const f = fixture(t); await play(f); assert.equal(f.context.live.size, 3);
   assert.equal(f.audio.cue('key'), true); f.audio.setAtmosphere(0);
-  assert.equal(f.context.live.size, 3, 'only the three existing key components remain');
+  assert.equal(f.context.live.size, 1, 'only the existing key sound remains');
   f.context.advance(1); assert.equal(f.context.live.size, 0);
   for (let i = 0; i < 30; i++) { f.context.advance(10); f.audio.update({ dt: .1, pose: { x: 0, z: 0 } }); }
   assert.equal(f.context.live.size, 0);
@@ -223,14 +224,16 @@ test('rapid cues have cooldowns and a strict simultaneous source cap with comple
 });
 
 test('nine room profiles change the atmosphere without leaking beds or requiring samples', async t => {
-  const f = fixture(t); await play(f); const pitches = new Set();
+  const f = fixture(t); await play(f); const signatures = new Set();
   for (const room of ['holding', 'washroom', 'records', 'laundry', 'watchroom', 'dispatch', 'boiler', 'sluice', 'quay']) {
     f.audio.setRoom(room); assert.equal(f.context.live.size, 3);
-    pitches.add([...f.context.live].find(source => source.kind === 'oscillator').frequency.value);
+    const bed = [...f.context.live][0].buffer.getChannelData(0);
+    signatures.add(Array.from(bed.slice(100, 110)).join(','));
     f.context.advance(30); f.audio.update({ dt: .1, pose: { x: 0, z: 0 }, room });
     assert(f.context.live.size <= 5, 'one occasional event is scheduled, without a catch-up burst');
   }
-  assert(pitches.size >= 7); assert.equal(f.fetches(), 0);
+  assert(signatures.size >= 7); assert.equal(f.fetches(), 0);
+  assert(f.audio._bufferBytes <= 4 * 1024 * 1024, 'generated sample cache is bounded');
   f.audio.dispose(); assert.equal(f.context.live.size, 0);
 });
 
@@ -243,4 +246,60 @@ test('rapid hide/show and menu transitions settle in the most recent requested a
   f.audio.setActive(false); f.audio.setActive(true);
   await settle(); assert.equal(f.audio.getStatus().playing, true);
   f.audio.setActive(false); await settle(); assert.equal(f.context.live.size, 0);
+});
+
+
+test('footstep variants are reused without consecutive repetition and keep the source budget small', async t => {
+  const f = fixture(t, { atmosphere: 0 }); await play(f);
+  f.audio.update({ dt: .1, pose: { x: 0, z: 0, yaw: 0 } });
+  const heard = [];
+  for (let i = 1; i <= 14; i++) {
+    f.context.advance(.4);
+    assert.equal(f.audio.update({ dt: .4, pose: { x: i * .81, z: 0, yaw: 0 } }), 1);
+    heard.push(f.context.started.at(-1).buffer);
+  }
+  assert.equal(new Set(heard).size, 6, 'the six generated takes are cached, not rebuilt per step');
+  for (let i = 1; i < heard.length; i++) assert.notStrictEqual(heard[i], heard[i - 1]);
+  assert(f.context.peakSources <= 2);
+});
+
+test('distant voices stay anchored in the room as yaw changes', async t => {
+  const f = fixture(t); await play(f);
+  f.audio.update({ dt: .1, pose: { x: 0, z: 3.2, yaw: 0 }, room: 'holding' });
+  f.audio._murmur();
+  const voice = [...f.audio._voices].find(voice => voice.kind === 'chatter');
+  assert(voice.anchor && voice.panner); assert(Math.abs(voice.panner.pan.value) < .01);
+  f.context.advance(.1); f.audio.update({ dt: .1, pose: { x: 0, z: 3.2, yaw: Math.PI / 2 } });
+  assert(voice.panner.pan.value > .8, 'a source ahead moves right when the player looks left');
+  f.context.advance(.1); f.audio.update({ dt: .1, pose: { x: 0, z: 3.2, yaw: -Math.PI / 2 } });
+  assert(voice.panner.pan.value < -.8);
+  assert.equal(voice.anchor.z, -6.4, 'the source itself does not rotate with the listener');
+});
+
+test('room reflections use one calibrated short stereo response and clear on hide', async t => {
+  const f = fixture(t); await play(f);
+  const convolver = f.audio._echo.convolver;
+  assert.equal(convolver.normalize, false); assert.equal(convolver.buffer.numberOfChannels, 2);
+  assert.equal(convolver.buffer.sampleRate, f.context.sampleRate); assert(convolver.buffer.duration < 1.5);
+  const initial = convolver.buffer; f.audio.setRoom('washroom');
+  assert.strictEqual(convolver.buffer, initial, 'the old return fades before the response changes');
+  assert.equal(f.audio._echo.wet.gain.value, 0);
+  f.context.advance(.08); f.audio.update({ dt: .08, pose: { x: 0, z: 3.2, yaw: 0 } });
+  assert.notStrictEqual(convolver.buffer, initial); assert(convolver.buffer.duration < 1.5);
+  assert.equal(f.context.nodes.filter(node => node.kind === 'convolver' && !node.disconnected).length, 1);
+  f.document.hidden = true; f.document.dispatch('visibilitychange'); await settle();
+  assert.equal(f.audio._echo, null); assert.equal(convolver.disconnected, true);
+});
+
+test('environment choices and room texture drift remain bounded and do not repeat immediately', async t => {
+  const f = fixture(t); await play(f); const heard = [];
+  for (let i = 0; i < 12; i++) {
+    f.context.advance(30); f.audio.update({ dt: .1, pose: { x: 0, z: 0, yaw: 0 } });
+    heard.push(f.audio._lastAmbientKind);
+    assert(f.context.live.size <= 4, 'a long frame schedules one environmental event, not a backlog');
+  }
+  assert(new Set(heard).size >= 2);
+  for (let i = 1; i < heard.length; i++) assert.notEqual(heard[i], heard[i - 1]);
+  assert(f.audio._bed.parts.every(part => part.gain.gain.events.some(event => event.method === 'target')));
+  assert(f.audio._bufferBytes <= 4 * 1024 * 1024);
 });

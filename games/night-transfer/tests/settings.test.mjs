@@ -15,6 +15,7 @@ function storage(initial = {}) {
 test('new settings are usable and silent by default, respecting the device motion preference', () => {
   assert.deepEqual(normalizeSettings(null), DEFAULT_SETTINGS);
   assert.equal(normalizeSettings(null).sound, false);
+  assert.equal(normalizeSettings(null).desktopMouseLook, true);
   assert.equal(normalizeSettings(null, true).reduced, true);
   assert.equal(normalizeSettings({ reduced: false }, true).reduced, false, 'an explicit saved choice overrides the device default');
   const copy = normalizeSettings(null);
@@ -34,7 +35,7 @@ test('every numeric setting is bounded before it can affect controls, rendering 
 });
 
 test('boolean preferences require actual booleans and unrelated data cannot enter settings', () => {
-  for (const key of ['invert', 'reduced', 'leftHanded', 'lookGuide', 'sound']) {
+  for (const key of ['invert', 'reduced', 'leftHanded', 'lookGuide', 'desktopMouseLook', 'sound']) {
     assert.equal(normalizeSettings({ [key]: true })[key], true);
     assert.equal(normalizeSettings({ [key]: false })[key], false);
     for (const value of ['true', 'false', 0, 1, null, {}, []]) assert.equal(normalizeSettings({ [key]: value })[key], DEFAULT_SETTINGS[key]);
@@ -52,7 +53,22 @@ test('older visual-only settings migrate without enabling sound or losing saved 
   assert.equal(loaded.sound, false);
   assert.equal(loaded.stickSize, 88);
   assert.equal(loaded.lookGuide, true);
+  assert.equal(loaded.desktopMouseLook, true);
   assert.deepEqual(store.writes, [], 'reading preferences does not write a new save');
+});
+
+test('existing mobile and audio choices migrate in the same slot while an explicit drag-look choice survives reload', () => {
+  const saved = { brightness: 1.35, sensitivity: 0.8, buttonScale: 1.2, stickSize: 108, leftHanded: true, lookGuide: false, sound: true, volume: 0.35, atmosphere: 0.25 };
+  const store = storage({ [SETTINGS_KEY]: JSON.stringify(saved) });
+  const migrated = loadSettings(store);
+  assert.equal(SETTINGS_KEY, 'night-transfer.settings.v1');
+  assert.equal(migrated.desktopMouseLook, true);
+  for (const [key, value] of Object.entries(saved)) assert.equal(migrated[key], value, `migration preserves ${key}`);
+  assert.deepEqual(store.writes, [], 'migration does not claim or overwrite a game save');
+  assert.equal(saveSettings(store, { ...migrated, desktopMouseLook: false }), true);
+  const reloaded = loadSettings(store);
+  assert.equal(reloaded.desktopMouseLook, false, 'an explicit preference for dragging remains off');
+  for (const [key, value] of Object.entries(saved)) assert.equal(reloaded[key], value);
 });
 
 test('malformed or unavailable storage falls back without preventing the game from starting', () => {

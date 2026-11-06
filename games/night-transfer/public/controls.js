@@ -2,6 +2,8 @@ const LOOK_LIMIT = 1.12;
 const TAP_DISTANCE = 7;
 const TAP_TIME = 450;
 const STICK_DEADZONE = .12;
+const UNLOCK_ESCAPE_WINDOW = 250;
+const SHORTCUTS = {n:'notes', i:'pockets', h:'hints', m:'sound', o:'settings'};
 const clamp = (value, min, max) => Math.max(min, Math.min(max, value));
 const isEditable = target => target?.isContentEditable || ['INPUT', 'TEXTAREA', 'SELECT'].includes(target?.tagName);
 
@@ -15,7 +17,7 @@ export function movementVector(yaw, forward, side, speed, dt) {
 
 /** Fixed left stick, independent right-thumb look, and desktop keyboard/canvas input. */
 export class FirstPersonControls {
-  constructor({canvas, joystick, knob, lookPad = null, onInteract, onPause, onTap, onCrouch, onLook, onMove}) {
+  constructor({canvas, joystick, knob, lookPad = null, onInteract, onPause, onTap, onCrouch, onLook, onMove, onMouseLook, onShortcut}) {
     this.pose = {x:0, z:3.2, yaw:0, pitch:0, crouch:false};
     this.enabled = false;
     this.sensitivity = 1;
@@ -34,6 +36,22 @@ export class FirstPersonControls {
     this.onLook = onLook;
     this.onMove = onMove;
     this.onTap = onTap;
+    this.onInteract = onInteract;
+    this.onPause = onPause;
+    this.onMouseLook = onMouseLook;
+    this.onShortcut = onShortcut;
+    this._doc = canvas.ownerDocument || document;
+    this.mouseLookEnabled = true;
+    this._mouseLockOwned = false;
+    this._lockWanted = false;
+    this._nativeLockRequest = null;
+    this._lockAutoAllowed = true;
+    this._lockPressId = null;
+    this._lockPressBlocked = false;
+    this._pauseSent = false;
+    this._unlockEscapeUntil = 0;
+    this._mouseLookReason = this._supportsMouseLook() ? 'ready' : 'unsupported';
+    this._lastMouseLookStatus = '';
     this._listeners = [];
     this._touchActions = [];
     this._handledMoves = new WeakSet();
@@ -59,17 +77,31 @@ export class FirstPersonControls {
     }
     for (const surface of lookSurfaces) this._listen(surface, 'pointerdown', e => {
       if (!this.enabled || (e.button != null && e.button !== 0)) return;
+      const mouse = e.pointerType === 'mouse';
+      if (!mouse && (this._mouseLockOwned || this._lockWanted)) this.releaseMouseLook();
+      // Locked mouse clicks are handled by mousedown, which Pointer Lock guarantees.
+      // Do not prevent the compatibility mouse event on an already locked canvas.
+      if (mouse && this.mouseLookLocked && surface === canvas) return;
       // A second finger cannot take over an existing gesture or the other thumb's pointer.
       if (this.drag || this.stickId === e.pointerId) return;
+      const captureMouse = mouse && surface === canvas && this.mouseLookEnabled && this._supportsMouseLook() &&
+        this._lockAutoAllowed && this.stickId === null && !this._nativeLockRequest?.canceled;
       this.drag = {id:e.pointerId, surface, x:e.clientX, y:e.clientY,
-        startX:e.clientX, startY:e.clientY, time:performance.now(), moved:false};
+        startX:e.clientX, startY:e.clientY, time:performance.now(), moved:false,
+        pointerType:e.pointerType, suppressTap:captureMouse};
       this._active(surface, true);
       this._capture(surface, e.pointerId);
+      if (captureMouse) {
+        this._lockPressBlocked = true;
+        this._lockPressId = e.pointerId;
+        this.requestMouseLook();
+      }
       e.preventDefault();
       e.stopPropagation?.();
     }, {passive:false});
     if (joystick) this._listen(joystick, 'pointerdown', e => {
       if (!this.enabled || (e.button != null && e.button !== 0) || this.stickId !== null || this.drag?.id === e.pointerId) return;
+      if (e.pointerType !== 'mouse' && (this._mouseLockOwned || this._lockWanted)) this.releaseMouseLook();
       const box = this.stickBase.getBoundingClientRect();
       const size = Math.min(box.width, box.height);
       if (!(size > 0)) return;
@@ -88,27 +120,175 @@ export class FirstPersonControls {
     this._listen(window, 'pointermove', e => this._movePointer(e), {passive:false});
     this._listen(window, 'pointerup', e => this._endPointer(e), {passive:false});
     this._listen(window, 'pointercancel', e => this._endPointer(e), {passive:false});
+    this._listen(canvas, 'mousedown', e => {
+      if (this.enabled && this.mouseLookLocked && e.button === 0 && !this._lockPressBlocked && !e.sourceCapabilities?.firesTouchEvents) {
+        e.preventDefault();
+        this.onInteract?.();
+      }
+    });
+    this._listen(window, 'mouseup', e => {
+      if (e.button === 0) { this._lockPressBlocked = false; this._lockPressId = null; }
+    });
+    this._listen(this._doc, 'mousemove', e => {
+      if (this.enabled && this.mouseLookLocked) this._applyLook(e.movementX || 0, e.movementY || 0, 'mouse-lock');
+    });
+    this._listen(this._doc, 'pointerlockchange', () => this._handleLockChange());
+    this._listen(this._doc, 'pointerlockerror', () => this._denyMouseLook(this._nativeLockRequest));
     this._listen(window, 'keydown', e => {
+      // Some browsers report the native Escape unlock before delivering its key.
+      // Consume that trailing key even after onPause has disabled these controls,
+      // otherwise the app's modal handler would immediately close the new pause.
+      if (e.key === 'Escape' && this._unlockEscapeUntil) {
+        const followsUnlock = performance.now() <= this._unlockEscapeUntil;
+        this._unlockEscapeUntil = 0;
+        if (followsUnlock) { e.preventDefault(); return; }
+      }
+      if (!this.enabled || e.ctrlKey || e.metaKey || e.altKey || e.isComposing || isEditable(e.target) || isEditable(this._doc.activeElement)) return;
       if (e.key === 'Escape') {
-        if (this.enabled) { e.preventDefault(); this.reset(); onPause?.(); }
+        if (!e.repeat) { e.preventDefault(); this._pauseOnce(); }
         return;
       }
-      if (!this.enabled || e.ctrlKey || e.metaKey || e.altKey || isEditable(e.target)) return;
       const key = String(e.key || '').toLowerCase();
-      const accepted = ['w','a','s','d','arrowup','arrowdown','arrowleft','arrowright','e','c',' '].includes(key);
+      if ((SHORTCUTS[key] || key === 'l') && e.shiftKey) return;
+      const accepted = ['w','a','s','d','arrowup','arrowdown','arrowleft','arrowright','e','c',' ','l'].includes(key) || !!SHORTCUTS[key];
       if (!accepted) return;
       e.preventDefault();
       const wasDown = this.keys.has(key);
       this.keys.add(key);
       if (!wasDown && ['w','a','s','d','arrowup','arrowdown'].includes(key)) this._announceMove('keyboard');
-      if (!e.repeat && key === 'e') onInteract?.();
-      if (!e.repeat && (key === 'c' || key === ' ')) this.toggleCrouch();
+      if (e.repeat || wasDown) return;
+      if (key === 'l') this.requestMouseLook();
+      else if (SHORTCUTS[key]) {
+        const action = SHORTCUTS[key];
+        if (action !== 'sound') { this.releaseMouseLook(); this.keys.add(key); }
+        this.onShortcut?.(action);
+      } else if (key === 'e') this.onInteract?.();
+      else if (key === 'c' || key === ' ') this.toggleCrouch();
     });
-    this._listen(window, 'keyup', e => this.keys.delete(String(e.key || '').toLowerCase()));
-    this._listen(window, 'blur', this.reset);
+    this._listen(window, 'keyup', e => {
+      this.keys.delete(String(e.key || '').toLowerCase());
+      if (e.key === 'Escape') this._unlockEscapeUntil = 0;
+    });
+    this._listen(window, 'blur', () => this.releaseMouseLook());
     this._listen(window, 'resize', this.reset);
-    this._listen(window, 'pagehide', this.reset);
-    this._listen(document, 'visibilitychange', () => { if (document.hidden) this.reset(); });
+    this._listen(window, 'pagehide', () => this.releaseMouseLook());
+    this._listen(this._doc, 'visibilitychange', () => { if (this._doc.hidden) this.releaseMouseLook(); });
+  }
+  _supportsMouseLook() {
+    return typeof this.canvas?.requestPointerLock === 'function' && typeof this._doc?.exitPointerLock === 'function';
+  }
+  get mouseLookLocked() {
+    return !!(this._mouseLockOwned && this.enabled && this.mouseLookEnabled && !this._disposed && this._doc.pointerLockElement === this.canvas);
+  }
+  _notifyMouseLook(reason = this._mouseLookReason) {
+    this._mouseLookReason = reason;
+    if (this._disposed) return;
+    const status = {supported:this._supportsMouseLook(), enabled:this.mouseLookEnabled, locked:this.mouseLookLocked,
+      pending:!!(this._nativeLockRequest && !this._nativeLockRequest.canceled), reason};
+    const key = JSON.stringify(status);
+    if (key !== this._lastMouseLookStatus) { this._lastMouseLookStatus = key; this.onMouseLook?.(status); }
+  }
+  setMouseLookEnabled(enabled) {
+    const next = !!enabled;
+    // Audio and other settings reapply this preference; preserve both capture and denial.
+    if (this.mouseLookEnabled === next) { this._notifyMouseLook(); return; }
+    this.mouseLookEnabled = next;
+    if (!next) { this.releaseMouseLook(); this._notifyMouseLook('disabled'); }
+    else { this._lockAutoAllowed = true; this._notifyMouseLook(this._supportsMouseLook() ? 'ready' : 'unsupported'); }
+  }
+  requestMouseLook() {
+    if (!this.enabled || !this.mouseLookEnabled || this._disposed || this._doc.hidden) return Promise.resolve(false);
+    if (!this._supportsMouseLook()) { this._notifyMouseLook('unsupported'); return Promise.resolve(false); }
+    if (this.mouseLookLocked) return Promise.resolve(true);
+    // A pending native request cannot be canceled. Wait for its result before another
+    // gesture can request capture, so a late modal-era grant can never become active.
+    if (this._nativeLockRequest) return this._nativeLockRequest.canceled ? Promise.resolve(false) : this._nativeLockRequest.promise;
+    if (this.stickId !== null || (this.drag && this.drag.pointerType !== 'mouse')) return Promise.resolve(false);
+    let resolve;
+    const promise = new Promise(done => { resolve = done; });
+    const request = {promise, resolve, settled:false, canceled:false};
+    this._nativeLockRequest = request;
+    this._lockWanted = true;
+    this._pauseSent = false;
+    this._notifyMouseLook('requesting');
+    try {
+      // Keep this synchronous inside the click or key event's user activation.
+      // Older browsers return void; document events are authoritative in both forms.
+      const result = this.canvas.requestPointerLock();
+      if (result && typeof result.then === 'function') result.then(() => {
+        if (this._nativeLockRequest === request && this._doc.pointerLockElement === this.canvas) this._handleLockChange();
+      }, () => this._denyMouseLook(request));
+    } catch { this._denyMouseLook(request); }
+    return promise;
+  }
+  _settleLockRequest(request, accepted, complete = true) {
+    if (!request) return;
+    if (!request.settled) { request.settled = true; request.resolve(accepted); }
+    if (complete && this._nativeLockRequest === request) this._nativeLockRequest = null;
+  }
+  _denyMouseLook(request) {
+    if (!request || this._nativeLockRequest !== request) return;
+    const canceled = request.canceled || !this._lockWanted || !this.enabled || !this.mouseLookEnabled || this._disposed;
+    this._lockWanted = false;
+    this._settleLockRequest(request, false);
+    if (!canceled) this._lockAutoAllowed = false;
+    this._notifyMouseLook(canceled ? (this.mouseLookEnabled ? 'released' : 'disabled') : 'denied');
+    this._pruneDisposedListeners();
+  }
+  _handleLockChange() {
+    const request = this._nativeLockRequest;
+    if (this._doc.pointerLockElement === this.canvas) {
+      if (!this._lockWanted || !this.enabled || !this.mouseLookEnabled || this._disposed || request?.canceled) {
+        this._mouseLockOwned = false;
+        this._lockWanted = false;
+        this._settleLockRequest(request, false);
+        this._exitOwnedLock();
+        this._notifyMouseLook(this.mouseLookEnabled ? 'released' : 'disabled');
+        this._pruneDisposedListeners();
+        return;
+      }
+      this._mouseLockOwned = true;
+      this._lockAutoAllowed = true;
+      if (this.drag?.pointerType === 'mouse') this._finishLook({pointerId:this.drag.id, clientX:this.drag.x, clientY:this.drag.y}, false);
+      this._settleLockRequest(request, true);
+      this._notifyMouseLook('locked');
+    } else if (this._mouseLockOwned) {
+      this._mouseLockOwned = false;
+      this._lockWanted = false;
+      this._unlockEscapeUntil = performance.now() + UNLOCK_ESCAPE_WINDOW;
+      this._notifyMouseLook('released');
+      this._pauseOnce();
+    }
+  }
+  _exitOwnedLock() {
+    if (this._doc.pointerLockElement !== this.canvas) return;
+    try {
+      const result = this._doc.exitPointerLock();
+      result?.catch?.(() => {});
+    } catch { /* A browser can already have released capture during focus loss. */ }
+  }
+  releaseMouseLook() {
+    const request = this._nativeLockRequest;
+    const ownsCanvas = this._doc.pointerLockElement === this.canvas;
+    const active = this._mouseLockOwned || this._lockWanted || ownsCanvas;
+    // Clear ownership before exitPointerLock: events may arrive synchronously in
+    // integrations, and asynchronously in browsers. Neither is an Escape pause.
+    this._mouseLockOwned = false;
+    this._lockWanted = false;
+    if (request) {
+      request.canceled = true;
+      this._settleLockRequest(request, false, ownsCanvas);
+    }
+    this.reset();
+    this._exitOwnedLock();
+    if (active) this._notifyMouseLook(this.mouseLookEnabled ? 'released' : 'disabled');
+    this._pruneDisposedListeners();
+  }
+  _pauseOnce() {
+    if (!this.enabled || this._pauseSent) return;
+    this._pauseSent = true;
+    this.releaseMouseLook();
+    this.onPause?.();
   }
   _listen(target, type, handler, options) {
     target?.addEventListener(type, handler, options);
@@ -128,6 +308,7 @@ export class FirstPersonControls {
   }
   _movePointer(e) {
     if (!this.enabled || this._handledMoves.has(e)) return;
+    if (e.pointerType === 'mouse' && this.mouseLookLocked) return;
     if (this.drag?.id !== e.pointerId && this.stickId !== e.pointerId) return;
     this._handledMoves.add(e);
     // A missed mouseup must not leave a hover gesture rotating or moving the player.
@@ -141,14 +322,18 @@ export class FirstPersonControls {
       if (!Number.isFinite(dx) || !Number.isFinite(dy)) return;
       drag.moved ||= Math.hypot(e.clientX - drag.startX, e.clientY - drag.startY) > TAP_DISTANCE;
       drag.x = e.clientX; drag.y = e.clientY;
-      const sensitivity = Number.isFinite(this.sensitivity) ? this.sensitivity : 1;
-      const deltaYaw = -dx * .0035 * sensitivity, previousPitch = this.pose.pitch;
-      this.pose.yaw += deltaYaw;
-      this.pose.pitch = clamp(this.pose.pitch - dy * .003 * sensitivity * (this.invert ? -1 : 1), -LOOK_LIMIT, LOOK_LIMIT);
-      const deltaPitch = this.pose.pitch - previousPitch;
-      if (deltaYaw || deltaPitch) this.onLook?.({source:drag.surface === this.lookPad ? 'look-pad' : 'canvas', deltaYaw, deltaPitch});
+      this._applyLook(dx, dy, drag.surface === this.lookPad ? 'look-pad' : 'canvas');
     } else this._moveStick(e);
     e.preventDefault();
+  }
+  _applyLook(dx, dy, source) {
+    if (!Number.isFinite(dx) || !Number.isFinite(dy)) return;
+    const sensitivity = Number.isFinite(this.sensitivity) ? this.sensitivity : 1;
+    const deltaYaw = -dx * .0035 * sensitivity, previousPitch = this.pose.pitch;
+    this.pose.yaw += deltaYaw;
+    this.pose.pitch = clamp(this.pose.pitch - dy * .003 * sensitivity * (this.invert ? -1 : 1), -LOOK_LIMIT, LOOK_LIMIT);
+    const deltaPitch = this.pose.pitch - previousPitch;
+    if (deltaYaw || deltaPitch) this.onLook?.({source, deltaYaw, deltaPitch});
   }
   _moveStick(e) {
     if (!this._stickGeometry) return;
@@ -172,13 +357,14 @@ export class FirstPersonControls {
   _endPointer(e) {
     if (this.drag?.id === e.pointerId) this._finishLook(e, e.type === 'pointerup');
     if (this.stickId === e.pointerId) this._finishStick();
+    if (this._lockPressId === e.pointerId) { this._lockPressBlocked = false; this._lockPressId = null; }
   }
   _finishLook(e, mayTap) {
     const drag = this.drag;
     if (!drag || drag.id !== e.pointerId) return;
     const box = this.canvas.getBoundingClientRect();
     const inside = e.clientX >= box.left && e.clientX <= box.left + box.width && e.clientY >= box.top && e.clientY <= box.top + box.height;
-    const tap = mayTap && this.enabled && drag.surface === this.canvas && !drag.moved && inside &&
+    const tap = mayTap && this.enabled && drag.surface === this.canvas && !drag.suppressTap && !drag.moved && inside &&
       Math.hypot(e.clientX - drag.startX, e.clientY - drag.startY) <= TAP_DISTANCE && performance.now() - drag.time < TAP_TIME;
     // Clear ownership before release: lostpointercapture can fire synchronously.
     this.drag = null;
@@ -200,10 +386,18 @@ export class FirstPersonControls {
     this.drag = null;
     this.keys.clear();
     this.lastDistance = 0;
+    this._lockPressBlocked = false;
+    this._lockPressId = null;
     this._finishStick();
     if (drag) { this._active(drag.surface, false); this._release(drag.surface, drag.id); }
   }
-  setEnabled(enabled) { this.enabled = !!enabled && !this._disposed; if (!this.enabled) this.reset(); }
+  setEnabled(enabled) {
+    const next = !!enabled && !this._disposed;
+    if (next && !this.enabled) { this._pauseSent = false; this._unlockEscapeUntil = 0; }
+    this.enabled = next;
+    if (!next) this.releaseMouseLook();
+    this._notifyMouseLook();
+  }
   setPose(pose) {
     this.pose = {x:pose.x, z:pose.z, yaw:pose.yaw || 0, pitch:clamp(pose.pitch || 0, -LOOK_LIMIT, LOOK_LIMIT), crouch:!!pose.crouch};
     this.reset(); this.onCrouch?.(this.pose.crouch);
@@ -233,8 +427,18 @@ export class FirstPersonControls {
   dispose() {
     if (this._disposed) return;
     this.setEnabled(false); this._disposed = true;
-    for (const [target, type, handler, options] of this._listeners) target?.removeEventListener(type, handler, options);
+    this._pruneDisposedListeners();
     for (const [surface, touchAction] of this._touchActions) surface.style.touchAction = touchAction;
-    this._listeners = []; this._touchActions = [];
+    this._touchActions = [];
+  }
+  _pruneDisposedListeners() {
+    if (!this._disposed) return;
+    // Void-returning requests can still grant after disposal. Retain only the two
+    // native completion listeners until that grant is rejected or the request fails.
+    this._listeners = this._listeners.filter(([target, type, handler, options]) => {
+      if (this._nativeLockRequest && target === this._doc && (type === 'pointerlockchange' || type === 'pointerlockerror')) return true;
+      target?.removeEventListener(type, handler, options);
+      return false;
+    });
   }
 }

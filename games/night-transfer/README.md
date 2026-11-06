@@ -4,27 +4,49 @@ A separate first-person prison escape in the Daily Flyer collection. Built as ni
 
 ## Play
 
-On a phone, use the **MOVE** stick with one thumb and drag the labeled **LOOK** pad with the other. Both controls work at the same time. A small stick movement walks slowly; moving it farther walks faster. You can also swipe the open scene to look. Approach an object and tap **Inspect**, or tap the nearby object itself. On a computer, use **WASD**, drag to look, and press **E** to inspect; arrow keys also move and turn. **C** toggles crouching. Notes retain inspected clues, matching keys are used automatically, and each act has three optional hints.
+On a phone, use the **MOVE** stick with one thumb and drag the labeled **LOOK** pad with the other. Both controls work at the same time. A small stick movement walks slowly; moving it farther walks faster. You can also swipe the open scene to look. Approach an object and tap **Inspect**, or tap the nearby object itself.
+
+On a computer, use **WASD** to move and your mouse to look. Mouse capture is enabled by default: click the scene, click **Click to look**, or press **L** to begin looking freely. The first scene click only captures the mouse. Once captured, aim the center reticle at a nearby object and press **E** or left-click to inspect it. **Escape** opens the menu and frees the cursor.
+
+| Key | Action |
+| --- | --- |
+| **WASD** | Move through the room. |
+| **Arrow keys** | Up/down move; left/right turn. |
+| **E** | Inspect the nearby object under the reticle. |
+| **C** or **Space** | Toggle crouching. |
+| **N** | Open field notes. |
+| **I** | Open pockets. |
+| **H** | Open hints. A hint is spent only by choosing **Reveal next hint**. |
+| **M** | Toggle sound while exploring. |
+| **O** | Open Setup. |
+| **L** | Capture the mouse for free look. |
+| **Escape** | Free the cursor/open the menu, or close an open panel. On the completion screen, return to the title. |
+
+Notes, puzzles and other panels release the cursor. Closing a panel keeps it released; click the scene or press **L** to capture again. The first-room **Find a way out** and pause-menu **Return to the room** buttons also capture from that click on a mouse-driven desktop. If capture is unavailable or denied, hold and drag to look and use **E** to inspect; the game remains playable. **Retry mouse look** can retry a denied request. Turn off **Capture mouse for free look** in Setup to keep drag-look as your preference.
+
+Notes retain inspected clues, matching keys are used automatically, and each act has three optional hints.
 
 Choose **Escape Together** to create a private team or join with a six-character code. Room views and movement are independent; puzzle progress and the hint allowance are shared. The new game lives entirely under `games/night-transfer`; it does not replace LOCKSTEP.
 
-## Phone setup and sound
+## Controls and sound
 
 Open **Setup** from the title screen or during an escape. The three tabs apply changes immediately:
 
 | Tab | Available settings |
 | --- | --- |
-| **Controls** | Button size, movement-stick size, look sensitivity, control visibility, swapped thumb controls, look-guide visibility and inverted vertical look. |
+| **Controls** | Mouse capture, look sensitivity and inverted vertical look; touchscreen button size, movement-stick size, control visibility, swapped thumb controls and look-guide visibility. |
 | **Sound** | Optional prison sound, master volume, background-atmosphere level and a short door-echo preview. |
 | **View** | Brightness and reduced motion. |
 
-The default thumb layout puts movement on the left and looking on the right. **Swap thumb controls** reverses it. The movement stick defaults to 88 CSS pixels and can be adjusted from 84 to 124. Button size ranges from 85% to 135%, look sensitivity from 0.5× to 2×, and control visibility from 40% to 100%. **Reset controls** restores only the control preferences; it keeps sound and view choices.
+Setup shows mouse controls first on a desktop and thumb controls first on a phone, with the other input settings available in an expandable section. The default thumb layout puts movement on the left and looking on the right. **Swap thumb controls** reverses it. The movement stick defaults to 88 CSS pixels and can be adjusted from 84 to 124. Button size ranges from 85% to 135%, look sensitivity from 0.5× to 2×, and control visibility from 40% to 100%. **Reset controls** restores only the control preferences, including mouse capture; it keeps sound and view choices.
 
 The title screen, first-room introduction and game HUD offer a **Sound** toggle. Sound is off by default. Enabling it is an explicit choice; a browser gesture starts or resumes audio. If the browser requires another gesture, **Resume sound** is available in the Sound tab. Muting keeps the chosen volume and atmosphere mix for next time. Master volume defaults to 60% and background atmosphere to 55%; both can be reduced to zero.
 
-Sound includes locally generated room ambience, footsteps based on actual movement, and optional interaction effects. No clue, camera interval, sequence or solution depends on hearing. Sound pauses on the title screen, in the pause menu, and when the page is hidden. The Sound tab can briefly preview a door echo from the title screen without starting an escape.
+Sound is generated locally. Footsteps follow actual movement and use six cached heel, toe and scuff variations for each stone, tile and metal floor; crouching softens and filters them. Three ambient layers have different loop lengths and slowly drifting levels. Short stereo reflections and a damped tail vary between cells, tiled rooms, offices, machinery spaces and outdoors. Distant murmurs use irregular phrases, breaths and pauses. Environmental events vary their samples and avoid repeating the same type consecutively. Distant events stay anchored in the room and pan as you turn your head.
 
-Preferences are stored independently from the solo save. Changing controls or muting does not use hints, alter keys, send co-op puzzle actions or replace an existing solo run. A team shares progress, while each player keeps their own controls and sound preferences. Saved settings from the original visual-only version receive the new defaults with sound still off.
+The sound contains no puzzle instructions. No clue, camera interval, sequence or solution depends on hearing. Sound pauses on the title screen, in the pause menu, and when the page is hidden. The Sound tab can briefly preview a door echo from the title screen without starting an escape.
+
+Preferences are stored independently from the solo save. Changing controls or muting does not use hints, alter keys, send co-op puzzle actions or replace an existing solo run. A team shares progress, while each player keeps their own controls and sound preferences. Existing settings migrate in the same preference slot: saved phone, view and audio choices are retained, and the new mouse-capture preference defaults to on. Saved settings from the original visual-only version receive the new defaults with sound still off. A later choice to use drag-look is retained on reload.
 
 The mobile layout targets a 428 × 926 CSS-pixel portrait viewport, with landscape support. The runtime uses safe-area insets and dynamic viewport units; browser UI and installed-home-screen modes can expose different usable areas.
 
@@ -40,13 +62,15 @@ node server.mjs --port 3000
 
 The server serves `public/` and `/ws` on the same origin, listens on `0.0.0.0`, and accepts `PORT` or `--port`. `/health` reports readiness. There are no package installs: the included `ws` package carries its MIT license.
 
-Tests cover the full legal campaign, multiplayer state and reconnect behavior, actual movement-input handling, audio lifecycle, settings validation and controller integration. Controller tests execute the real app and settings functions with DOM, rendering, audio-output and transport stubs. They verify bounded slider values, preference reloads, touch-pad wiring, menu-safe settings closure, optional mute behavior and preservation of solo/co-op progress. They do not claim a physical iPhone or Safari rendering test.
+Tests cover the full legal campaign, multiplayer state and reconnect behavior, actual movement-input handling, audio lifecycle, settings validation and controller integration. Controller tests execute the real app and settings functions with DOM, rendering, audio-output and transport stubs. They verify bounded slider values, preference migration/reloads, touch-pad wiring, desktop shortcut routing, mouse release on panels and completion, explicit recapture, drag-look fallback, optional mute behavior and preservation of solo/co-op progress. An integration case also runs the real controls module alongside the app to check pointer-unlock and Escape event order: one browser Escape cannot both open and dismiss Pause. Detailed input and pointer-lock lifecycle cases are covered separately by the controls tests. These tests do not claim a physical iPhone or Safari rendering test.
 
-## Preference and audio modules
+## Preference, control and audio modules
 
 `public/settings.js` exports `DEFAULT_SETTINGS`, `SETTING_RANGES`, `normalizeSettings(raw, reducedDefault)`, `loadSettings(storage, reducedDefault)` and `saveSettings(storage, value)`. Numeric values must be finite numbers and are clamped to their permitted ranges. Boolean options require actual booleans. Invalid or unavailable storage falls back to defaults; unsuccessful writes return `false`. The preference slot is `night-transfer.settings.v1`, separate from `night-transfer.solo.v1`.
 
-`PrisonAudio` owns sound generation and browser-audio lifecycle, but does not read or write preferences. The app supplies `setEnabled`, `setVolume`, `setAtmosphere`, `setRoom` and `setActive` updates. `unlock()` is called directly from a user gesture. The game loop passes `update({dt, pose, room})`, and successful interactions can call `cue(kind)`. The `onStatus` callback reports availability and whether a new gesture is needed. No audio status changes the authoritative escape state.
+`FirstPersonControls` owns movement, touch input, keyboard shortcuts and mouse capture. The app supplies `onInteract`, `onPause`, `onShortcut` and `onMouseLook` callbacks. `setMouseLookEnabled(bool)` applies the preference, `requestMouseLook()` requests capture from a user gesture, `releaseMouseLook()` releases it, and `mouseLookLocked` reports whether this canvas owns the lock. Disabling controls releases capture and clears held input. A deliberate release for a panel does not open a second pause menu. The app retains responsibility for which panel a shortcut opens and for keeping hint use behind its explicit reveal button.
+
+`PrisonAudio` owns sound generation and browser-audio lifecycle, but does not read or write preferences. The app supplies `setEnabled`, `setVolume`, `setAtmosphere`, `setRoom` and `setActive` updates. `unlock()` is called directly from a user gesture. The game loop passes `update({dt, pose, room})`; `pose.yaw` orients distant events relative to the listener. Successful interactions can call `cue(kind)`. The `onStatus` callback reports availability and whether a new gesture is needed. No audio status changes the authoritative escape state.
 
 ## Browser interface
 

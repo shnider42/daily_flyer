@@ -4,7 +4,7 @@ import { FirstPersonControls } from '../public/controls.js';
 
 const near = (actual, expected, tolerance = 1e-10) => assert(Math.abs(actual - expected) <= tolerance, `${actual} ≠ ${expected}`);
 
-function harness(t, {lookPad = true, padded = false} = {}) {
+function harness(t, {lookPad = true, padded = false, pointerLock = 'unsupported', pauseDisables = true} = {}) {
   const originals = new Map(['window', 'document', 'performance'].map(key => [key, Object.getOwnPropertyDescriptor(globalThis, key)]));
   let clock = 100;
   class Node {
@@ -36,26 +36,51 @@ function harness(t, {lookPad = true, padded = false} = {}) {
       return e;
     }
   }
-  const win = new Node('window'), doc = new Node('document'); doc.hidden = false;
+  const win = new Node('window'), doc = new Node('document'); doc.hidden = false; doc.pointerLockElement = null;
   const canvas = new Node('world', {width:428, height:926}, win);
+  canvas.ownerDocument = doc;
+  const lock = {requests:0, exits:0, pending:[], mode:pointerLock, grantOnRequest:false, deferExit:false};
+  lock.grant = () => {
+    const request = lock.pending.shift();
+    doc.pointerLockElement = canvas; doc.emit('pointerlockchange'); request?.resolve?.();
+  };
+  lock.deny = ({event = true, promise = true} = {}) => {
+    const request = lock.pending.shift();
+    if (event) doc.emit('pointerlockerror');
+    if (promise) request?.reject?.(new Error('Pointer lock denied'));
+  };
+  lock.browserRelease = () => { doc.pointerLockElement = null; doc.emit('pointerlockchange'); };
+  if (pointerLock !== 'unsupported') {
+    canvas.requestPointerLock = () => {
+      lock.requests++;
+      if (lock.mode === 'throw') throw new Error('Capture unavailable');
+      const request = {};
+      if (lock.mode === 'promise') request.promise = new Promise((resolve, reject) => Object.assign(request, {resolve, reject}));
+      lock.pending.push(request);
+      if (lock.grantOnRequest) lock.grant();
+      return request.promise;
+    };
+    doc.exitPointerLock = () => { lock.exits++; if (!lock.deferExit) lock.browserRelease(); };
+  }
   const ring = new Node('ring', {left:24, top:690, width:96, height:96}, win);
   const joystick = new Node('touch-move', padded ? {left:8, top:674, width:128, height:128} : {...ring.rect}, win); joystick.ring = ring;
   const knob = new Node('joystick-knob', {left:56, top:722, width:32, height:32}, win);
   const right = new Node('touch-look', {left:280, top:690, width:112, height:112}, win);
-  const events = {looks:[], moves:[], taps:[], crouches:[], interactions:0, pauses:0};
+  const events = {looks:[], moves:[], taps:[], crouches:[], interactions:0, pauses:0, mouseLook:[], shortcuts:[]};
   for (const [key, value] of [['window', win], ['document', doc], ['performance', {now:()=>clock}]]) Object.defineProperty(globalThis, key, {configurable:true, writable:true, value});
   let control;
   control = new FirstPersonControls({canvas, joystick, knob, lookPad:lookPad ? right : null,
     onLook:e=>events.looks.push(e), onMove:e=>events.moves.push(e), onTap:(x,y)=>events.taps.push({x,y}),
     onCrouch:value=>events.crouches.push(value), onInteract:()=>events.interactions++,
-    onPause:()=>{events.pauses++; control.setEnabled(false);}});
+    onMouseLook:status=>events.mouseLook.push(status), onShortcut:action=>events.shortcuts.push(action),
+    onPause:()=>{events.pauses++; if (pauseDisables) control.setEnabled(false);}});
   control.setPose({x:0, z:0, yaw:0, pitch:0, crouch:false}); control.setEnabled(true);
   t.after(() => {
     control.dispose();
     for (const [key, descriptor] of originals) { if (descriptor) Object.defineProperty(globalThis, key, descriptor); else delete globalThis[key]; }
   });
   const pointer = (node, type, id, x, y, extras = {}) => node.emit(type, {pointerId:id, clientX:x, clientY:y, buttons:['pointerup','pointercancel'].includes(type) ? 0 : 1, ...extras});
-  return {control, win, doc, canvas, joystick, ring, knob, right, events, pointer,
+  return {control, win, doc, canvas, joystick, ring, knob, right, events, pointer, lock,
     advance:ms=>{clock += ms;}, center:()=>({x:ring.rect.left + ring.rect.width / 2, y:ring.rect.top + ring.rect.height / 2})};
 }
 
@@ -253,4 +278,251 @@ test('disposing controls releases ownership and removes listeners without retain
   c.setEnabled(true); assert.equal(c.enabled, false);
   h.win.emit('keydown', {key:'w'}); h.pointer(h.right, 'pointerdown', 3, 320, 730);
   assert.equal(c.update(.05, () => true), false); assert.equal(c.drag, null);
+});
+
+test('the first mouse press captures without inspection; locked clicks and E inspect once', async t => {
+  const h = harness(t, {pointerLock:'void'}), c = h.control;
+  h.lock.grantOnRequest = true;
+  h.pointer(h.canvas, 'pointerdown', 1, 200, 300, {pointerType:'mouse'});
+  assert.equal(h.lock.requests, 1); assert.equal(c.mouseLookLocked, true);
+  assert.equal(c.drag, null); assert.equal(h.canvas.captures.size, 0);
+  h.canvas.emit('mousedown', {button:0});
+  assert.equal(h.events.interactions, 0);
+  h.pointer(h.canvas, 'pointerup', 1, 200, 300, {pointerType:'mouse'});
+  h.win.emit('mouseup', {button:0});
+  assert.deepEqual(h.events.taps, []);
+  h.pointer(h.canvas, 'pointerdown', 1, 200, 300, {pointerType:'mouse'});
+  h.canvas.emit('mousedown', {button:0});
+  assert.equal(h.events.interactions, 1); assert.equal(h.lock.requests, 1);
+  h.canvas.emit('mousedown', {button:2});
+  h.canvas.emit('mousedown', {button:0, sourceCapabilities:{firesTouchEvents:true}});
+  assert.equal(h.events.interactions, 1);
+  h.win.emit('keydown', {key:'e'}); h.win.emit('keydown', {key:'e', repeat:true});
+  assert.equal(h.events.interactions, 2);
+  assert.equal(await c.requestMouseLook(), true); assert.equal(h.lock.requests, 1);
+  assert.deepEqual(h.events.mouseLook.at(-1), {supported:true, enabled:true, locked:true, pending:false, reason:'locked'});
+});
+
+test('locked mouse uses relative movement without a button, ignores duplicate pointer moves, and preserves sensitivity', async t => {
+  const h = harness(t, {pointerLock:'promise'}), c = h.control;
+  c.setPose({x:0, z:0, yaw:.4, pitch:-.2});
+  const request = c.requestMouseLook();
+  h.doc.emit('mousemove', {movementX:500, movementY:500});
+  near(c.pose.yaw, .4); near(c.pose.pitch, -.2);
+  assert.deepEqual(h.events.mouseLook.at(-1), {supported:true, enabled:true, locked:false, pending:true, reason:'requesting'});
+  assert.equal(c.requestMouseLook(), request); assert.equal(h.lock.requests, 1);
+  h.lock.grant(); assert.equal(await request, true);
+  near(c.pose.yaw, .4); near(c.pose.pitch, -.2);
+  h.doc.emit('mousemove', {movementX:20, movementY:-10, buttons:0, clientX:200, clientY:300});
+  near(c.pose.yaw, .33); near(c.pose.pitch, -.17);
+  h.pointer(h.canvas, 'pointermove', 1, 200, 300, {pointerType:'mouse', buttons:0, movementX:20, movementY:-10});
+  assert.equal(h.events.looks.length, 1); assert.equal(h.events.looks[0].source, 'mouse-lock');
+  c.sensitivity = 2; c.invert = true;
+  h.doc.emit('mousemove', {movementX:10, movementY:10, buttons:0});
+  near(c.pose.yaw, .26); near(c.pose.pitch, -.11);
+  h.doc.emit('mousemove', {movementX:0, movementY:10000}); near(c.pose.pitch, 1.12);
+  h.doc.emit('mousemove', {movementX:Infinity, movementY:NaN}); near(c.pose.yaw, .26);
+});
+
+test('denial is sticky for canvas fallback and repeated settings, while L explicitly retries', async t => {
+  const h = harness(t, {pointerLock:'promise'}), c = h.control;
+  h.pointer(h.canvas, 'pointerdown', 1, 150, 200, {pointerType:'mouse'});
+  const first = c.requestMouseLook();
+  h.lock.deny(); assert.equal(await first, false);
+  h.pointer(h.canvas, 'pointerup', 1, 150, 200, {pointerType:'mouse'});
+  assert.equal(h.events.taps.length, 0); assert.equal(h.events.mouseLook.at(-1).reason, 'denied');
+  c.setMouseLookEnabled(true); c.setEnabled(false); c.setEnabled(true);
+  assert.equal(h.events.mouseLook.at(-1).reason, 'denied');
+  h.pointer(h.canvas, 'pointerdown', 2, 150, 200, {pointerType:'mouse'});
+  h.pointer(h.canvas, 'pointermove', 2, 170, 190, {pointerType:'mouse'});
+  near(c.pose.yaw, -.07); near(c.pose.pitch, .03);
+  h.pointer(h.canvas, 'pointerup', 2, 170, 190, {pointerType:'mouse'});
+  h.pointer(h.canvas, 'pointerdown', 3, 150, 200, {pointerType:'mouse'});
+  h.pointer(h.canvas, 'pointerup', 3, 150, 200, {pointerType:'mouse'});
+  assert.equal(h.lock.requests, 1); assert.deepEqual(h.events.taps, [{x:150, y:200}]);
+  h.win.emit('keydown', {key:'l'}); h.win.emit('keydown', {key:'l', repeat:true});
+  assert.equal(h.lock.requests, 2); assert.equal(h.events.interactions, 0);
+  const retry = c.requestMouseLook(); h.lock.grant(); assert.equal(await retry, true);
+  c.setMouseLookEnabled(true);
+  assert.equal(c.mouseLookLocked, true); assert.equal(h.lock.exits, 0);
+  assert.equal(h.events.mouseLook.at(-1).reason, 'locked');
+});
+
+test('void errors, Promise-only rejections, and synchronous denials all leave ordinary drag available', async t => {
+  const h = harness(t, {pointerLock:'void'}), c = h.control;
+  let request = c.requestMouseLook(); h.lock.deny({promise:false}); assert.equal(await request, false);
+  assert.equal(h.events.mouseLook.at(-1).reason, 'denied');
+  h.lock.mode = 'promise';
+  request = c.requestMouseLook(); h.lock.deny({event:false}); assert.equal(await request, false);
+  assert.equal(h.events.mouseLook.at(-1).reason, 'denied');
+  h.lock.mode = 'throw';
+  assert.equal(await c.requestMouseLook(), false); assert.equal(h.events.mouseLook.at(-1).reason, 'denied');
+  h.pointer(h.canvas, 'pointerdown', 1, 100, 200, {pointerType:'mouse'});
+  h.pointer(h.canvas, 'pointermove', 1, 130, 200, {pointerType:'mouse'});
+  h.pointer(h.canvas, 'pointerup', 1, 130, 200, {pointerType:'mouse'});
+  near(c.pose.yaw, -.105); assert.equal(h.lock.requests, 3); assert.equal(h.events.pauses, 0);
+});
+
+test('turning mouse look off releases intentionally and keeps desktop drag and tap available', async t => {
+  const h = harness(t, {pointerLock:'void'}), c = h.control;
+  const request = c.requestMouseLook(); h.lock.grant(); await request;
+  h.win.emit('keydown', {key:'w'});
+  c.setMouseLookEnabled(false);
+  assert.equal(c.mouseLookLocked, false); assert.equal(h.lock.exits, 1); assert.equal(h.events.pauses, 0);
+  assert.equal(c.keys.size, 0); assert.equal(h.events.mouseLook.at(-1).reason, 'disabled');
+  c.setMouseLookEnabled(false); assert.equal(h.lock.exits, 1);
+  assert.equal(await c.requestMouseLook(), false); assert.equal(h.lock.requests, 1);
+  h.pointer(h.canvas, 'pointerdown', 1, 150, 200, {pointerType:'mouse'});
+  h.pointer(h.canvas, 'pointermove', 1, 180, 200, {pointerType:'mouse'});
+  h.pointer(h.canvas, 'pointerup', 1, 180, 200, {pointerType:'mouse'});
+  h.pointer(h.canvas, 'pointerdown', 2, 150, 200, {pointerType:'mouse'});
+  h.pointer(h.canvas, 'pointerup', 2, 150, 200, {pointerType:'mouse'});
+  near(c.pose.yaw, -.105); assert.equal(h.events.taps.length, 1); assert.equal(h.lock.requests, 1);
+  c.setMouseLookEnabled(true); assert.equal(h.events.mouseLook.at(-1).reason, 'ready');
+  assert.equal(h.lock.requests, 1); // Preference changes never capture by themselves.
+});
+
+test('unsupported native capture retains desktop canvas taps without issuing a request', async t => {
+  const h = harness(t), c = h.control;
+  assert.equal(await c.requestMouseLook(), false);
+  assert.equal(h.events.mouseLook.at(-1).supported, false); assert.equal(h.events.mouseLook.at(-1).reason, 'unsupported');
+  h.pointer(h.canvas, 'pointerdown', 1, 100, 200, {pointerType:'mouse'});
+  h.pointer(h.canvas, 'pointerup', 1, 100, 200, {pointerType:'mouse'});
+  assert.equal(h.events.taps.length, 1); assert.equal(h.lock.requests, 0);
+});
+
+test('modal disable intentionally releases capture and never pauses or recaptures on enable', async t => {
+  const h = harness(t, {pointerLock:'promise'}), c = h.control;
+  const request = c.requestMouseLook(); h.lock.grant(); await request;
+  h.lock.deferExit = true;
+  c.setEnabled(false);
+  assert.equal(c.mouseLookLocked, false); assert.equal(h.lock.exits, 1); assert.equal(h.events.pauses, 0);
+  assert.equal(await c.requestMouseLook(), false); assert.equal(h.lock.requests, 1);
+  const yaw = c.pose.yaw;
+  h.doc.emit('mousemove', {movementX:100, movementY:0}); near(c.pose.yaw, yaw);
+  h.lock.browserRelease(); assert.equal(h.events.pauses, 0);
+  c.setEnabled(true); assert.equal(c.mouseLookLocked, false); assert.equal(h.lock.requests, 1);
+});
+
+test('a late grant after modal disable is rejected even after resume, and requests do not overlap', async t => {
+  const h = harness(t, {pointerLock:'void'}), c = h.control;
+  const first = c.requestMouseLook(); c.setEnabled(false); assert.equal(await first, false);
+  c.setEnabled(true);
+  assert.equal(await c.requestMouseLook(), false); assert.equal(h.lock.requests, 1);
+  h.lock.grant();
+  assert.equal(c.mouseLookLocked, false); assert.equal(h.doc.pointerLockElement, null);
+  assert.equal(h.lock.exits, 1); assert.equal(h.events.pauses, 0);
+  assert(!h.events.mouseLook.some(status => status.locked));
+  const next = c.requestMouseLook(); h.lock.grant(); assert.equal(await next, true);
+  assert.equal(h.lock.requests, 2); assert.equal(c.mouseLookLocked, true);
+});
+
+test('Escape and browser lock-loss events pause once in either event order', async t => {
+  const h = harness(t, {pointerLock:'void', pauseDisables:false}), c = h.control;
+  let request = c.requestMouseLook(); h.lock.grant(); await request;
+  h.win.emit('keydown', {key:'w'});
+  h.win.emit('keydown', {key:'Escape'});
+  h.lock.browserRelease(); h.win.emit('keydown', {key:'Escape', repeat:true});
+  assert.equal(h.events.pauses, 1); assert.equal(c.keys.size, 0); assert.equal(c.mouseLookLocked, false);
+  c.setEnabled(false); c.setEnabled(true);
+  request = c.requestMouseLook(); h.lock.grant(); await request;
+  h.lock.browserRelease();
+  h.win.emit('keydown', {key:'Escape'}); h.doc.emit('pointerlockchange');
+  assert.equal(h.events.pauses, 2); assert.equal(c.keys.size, 0);
+});
+
+test('an Escape delivered after native unlock cannot dismiss the pause it just opened', async t => {
+  const h = harness(t, {pointerLock:'void'}), c = h.control;
+  let dismissed = 0;
+  // Mirror the app's later window listener, which dismisses any open panel on Escape.
+  h.win.addEventListener('keydown', e => {
+    if (e.key === 'Escape' && !e.repeat && !e.defaultPrevented && !c.enabled) {
+      dismissed++; c.setEnabled(true);
+    }
+  });
+  let request = c.requestMouseLook(); h.lock.grant(); await request;
+  h.lock.browserRelease(); assert.equal(h.events.pauses, 1); assert.equal(c.enabled, false);
+  assert.equal(h.win.emit('keydown', {key:'Escape'}).defaultPrevented, true);
+  assert.equal(dismissed, 0); assert.equal(c.enabled, false);
+  h.win.emit('keyup', {key:'Escape'});
+  h.win.emit('keydown', {key:'Escape'});
+  assert.equal(dismissed, 1); assert.equal(c.enabled, true);
+
+  // Browsers may swallow the original key entirely. A later intentional Escape
+  // still closes the panel, without having to press an extra time.
+  request = c.requestMouseLook(); h.lock.grant(); await request; h.lock.browserRelease();
+  h.advance(300); h.win.emit('keydown', {key:'Escape'});
+  assert.equal(dismissed, 2); assert.equal(c.enabled, true);
+  request = c.requestMouseLook(); h.lock.grant(); await request; h.lock.browserRelease();
+  h.win.emit('keyup', {key:'Escape'}); h.win.emit('keydown', {key:'Escape'});
+  assert.equal(dismissed, 3); assert.equal(c.enabled, true);
+});
+
+test('focus and visibility loss release owned capture and reset movement without exiting another element', async t => {
+  const h = harness(t, {pointerLock:'void'}), c = h.control;
+  for (const loseFocus of [() => h.win.emit('blur'), () => { h.doc.hidden = true; h.doc.emit('visibilitychange'); }, () => h.win.emit('pagehide')]) {
+    h.doc.hidden = false;
+    const request = c.requestMouseLook(); h.lock.grant(); await request;
+    h.win.emit('keydown', {key:'w'}); loseFocus();
+    assert.equal(c.mouseLookLocked, false); assert.equal(c.keys.size, 0); assert.equal(c.update(.05, () => true), false);
+  }
+  assert.equal(h.lock.exits, 3); assert.equal(h.events.pauses, 0);
+  const other = {}; h.doc.pointerLockElement = other;
+  c.releaseMouseLook(); c.setEnabled(false); c.dispose();
+  assert.equal(h.lock.exits, 3); assert.equal(h.doc.pointerLockElement, other);
+});
+
+test('desktop shortcuts open panels, M preserves capture, and typing, modifiers, repeats, and disabled input are ignored', async t => {
+  const h = harness(t, {pointerLock:'void'}), c = h.control;
+  let request = c.requestMouseLook(); h.lock.grant(); await request;
+  for (const details of [{ctrlKey:true}, {metaKey:true}, {altKey:true}, {shiftKey:true}, {target:{tagName:'INPUT'}}, {target:{tagName:'TEXTAREA'}}, {target:{tagName:'SELECT'}}, {target:{isContentEditable:true}}, {isComposing:true}]) {
+    for (const key of ['n','i','h','m','o','l']) assert.equal(h.win.emit('keydown', {key, ...details}).defaultPrevented, false);
+  }
+  h.doc.activeElement = {tagName:'INPUT'}; h.win.emit('keydown', {key:'n'}); h.doc.activeElement = null;
+  assert.deepEqual(h.events.shortcuts, []); assert.equal(h.lock.requests, 1);
+  h.win.emit('keydown', {key:'m'}); h.win.emit('keydown', {key:'m', repeat:true}); h.win.emit('keydown', {key:'m'});
+  assert.deepEqual(h.events.shortcuts, ['sound']); assert.equal(c.mouseLookLocked, true); assert.equal(h.lock.exits, 0);
+  c.setMouseLookEnabled(true); assert.equal(c.mouseLookLocked, true);
+  h.win.emit('keyup', {key:'m'});
+  for (const [key, action] of [['n','notes'], ['i','pockets'], ['h','hints'], ['o','settings']]) {
+    h.win.emit('keydown', {key}); h.win.emit('keydown', {key, repeat:true}); h.win.emit('keydown', {key});
+    assert.equal(h.events.shortcuts.at(-1), action); assert.equal(c.mouseLookLocked, false);
+    h.win.emit('keyup', {key});
+    request = c.requestMouseLook(); h.lock.grant(); await request;
+  }
+  assert.deepEqual(h.events.shortcuts, ['sound','notes','pockets','hints','settings']);
+  assert.equal(h.events.interactions, 0); assert.equal(h.events.pauses, 0);
+  c.setEnabled(false);
+  for (const key of ['n','i','h','m','o','l','e']) h.win.emit('keydown', {key});
+  assert.equal(h.events.shortcuts.length, 5); assert.equal(h.events.interactions, 0);
+});
+
+test('native desktop capture never steals either thumb, and touch can take over from a locked mouse', async t => {
+  const h = harness(t, {pointerLock:'void'}), c = h.control, p = h.center();
+  h.pointer(h.joystick, 'pointerdown', 1, p.x, p.y - 15);
+  h.pointer(h.right, 'pointerdown', 2, 320, 730);
+  assert.equal(await c.requestMouseLook(), false); assert.equal(h.lock.requests, 0);
+  h.pointer(h.right, 'pointermove', 2, 340, 720);
+  assert.equal(c.stickId, 1); assert.equal(c.drag.id, 2); assert.equal(c.update(.05, () => true), true);
+  h.pointer(h.joystick, 'pointerup', 1, p.x, p.y - 15); h.pointer(h.right, 'pointerup', 2, 340, 720);
+  const request = c.requestMouseLook(); h.lock.grant(); await request;
+  const yaw = c.pose.yaw;
+  h.pointer(h.joystick, 'pointerdown', 3, p.x, p.y - 15);
+  h.pointer(h.right, 'pointerdown', 4, 320, 730);
+  near(c.pose.yaw, yaw); assert.equal(c.mouseLookLocked, false); assert.equal(h.lock.exits, 1);
+  assert.equal(c.stickId, 3); assert.equal(c.drag.id, 4); assert.equal(h.events.pauses, 0);
+  h.pointer(h.right, 'pointermove', 4, 340, 730); near(c.pose.yaw, yaw - .07);
+  assert.equal(c.update(.05, () => true), true); assert.equal(h.lock.requests, 1);
+});
+
+test('disposal keeps only a completion guard for a late void grant, then removes every listener', async t => {
+  const h = harness(t, {pointerLock:'void'}), c = h.control;
+  const request = c.requestMouseLook(); c.dispose(); assert.equal(await request, false);
+  for (const node of [h.canvas, h.right, h.joystick, h.win]) assert.equal(node.listenerCount, 0);
+  assert.equal(h.doc.listenerCount, 2);
+  const reports = h.events.mouseLook.length;
+  h.lock.grant();
+  assert.equal(h.lock.exits, 1); assert.equal(h.doc.pointerLockElement, null); assert.equal(c.mouseLookLocked, false);
+  assert.equal(h.doc.listenerCount, 0); assert.equal(h.events.mouseLook.length, reports);
+  assert.equal(h.events.pauses, 0); assert.equal(await c.requestMouseLook(), false);
 });
