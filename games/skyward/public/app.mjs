@@ -133,7 +133,9 @@ function updateMarkers(){
     const aim=sim.bombAim,q=renderer.project(aim.x,aim.y,aim.z);
     const inFront=Number.isFinite(q?.depth)?q.depth>-1&&q.depth<1:q?.visible;
     if(q&&inFront&&Number.isFinite(q.x)&&Number.isFinite(q.y)){
-      const top=Math.min(150,innerHeight*.3),bottom=Math.max(top+55,innerHeight-(matchMedia('(pointer:coarse)').matches?220:150));
+      const top=Math.min(150,innerHeight*.3);let bottom=innerHeight-105;
+      for(const selector of ['.flight-actions','.weapon-actions','#flight-hint','#radio-caption']){const el=document.querySelector(selector);if(!el||el.hidden)continue;const r=el.getBoundingClientRect();if(r.top>innerHeight*.35&&q.x>r.left-42&&q.x<r.right+42)bottom=Math.min(bottom,r.top-70);}
+      bottom=Math.max(top+45,bottom);
       const onScreen=q.visible&&q.x>40&&q.x<innerWidth-40&&q.y>top&&q.y<bottom;
       const aligned=(sim.targets||[]).some(t=>t.health>0&&!t.friendly&&!t.narrative&&t.type!=='balloon'&&Math.hypot(t.x-aim.x,t.z-aim.z)<(aircraftOf(sim.mission).bombRadius||300)*.65);
       impactMarker.hidden=false;impactMarker.style.left=clamp(q.x,40,innerWidth-40)+'px';impactMarker.style.top=clamp(q.y,top,bottom)+'px';impactMarker.classList.toggle('offscreen',!onScreen);impactMarker.classList.toggle('ready',aligned);
