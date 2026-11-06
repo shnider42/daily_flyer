@@ -2,7 +2,9 @@ import os
 from pathlib import Path
 
 from flask import Flask, Response, abort, request, send_from_directory
+from werkzeug.exceptions import BadRequest
 
+from daily_flyer.irish_edition.http import edition_response
 from daily_flyer.orchestrator import build_daily_page
 from daily_flyer.renderer import build_html
 from daily_flyer.theme_validation import ThemeNotFoundError, ThemeValidationError
@@ -57,6 +59,8 @@ def home():
     seed = _parse_seed(request.args.get("seed"))
 
     try:
+        if theme_name == "irish_today_production":
+            return edition_response(date_str, seed)
         context = build_daily_page(
             theme_name=theme_name,
             date_str=date_str,
@@ -73,6 +77,21 @@ def home():
     return Response(html, mimetype="text/html")
 
 
+@app.get("/api/irish-today/edition")
+def irish_edition_api():
+    try:
+        return edition_response(request.args.get("date"), _parse_seed(request.args.get("seed")), "json")
+    except BadRequest as exc:
+        return {"error": exc.description}, 400
+    except ValueError:
+        return {"error": "Invalid edition date. Use YYYY-MM-DD."}, 400
+
+
 @app.route("/daily_flyer/<path:filename>")
 def daily_flyer_static(filename: str):
+    if filename.startswith("irish_edition/"):
+        if not filename.startswith("irish_edition/assets/"):
+            abort(404)
+        return send_from_directory(REPO_ROOT / "daily_flyer" / "irish_edition" / "assets",
+                                   filename.removeprefix("irish_edition/assets/"), max_age=3600)
     return send_from_directory(REPO_ROOT / "daily_flyer", filename)

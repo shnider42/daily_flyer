@@ -1,104 +1,21 @@
-# Irish Today theme map
+# Irish Today
 
-Irish Today has one public production route and one experimental visual lab.
+The Flask service renders an eight-section cultural journal. `/?theme=irish_today`, the legacy improved/layout aliases and the CLI default all use the production edition. The visual lab is independently accessible with `?theme=irish_today_visual_lab`.
 
-## Canonical branch
+## Edition model
 
-Use `staging` as the base for new Irish Today work.
+`daily_flyer/irish_edition/edition.py` assembles the feature, Gaeilge lesson, county, curiosity, challenge, sport, photograph and calendar note. The template and `GET /api/irish-today/edition` consume that same model. Use an ISO `date` and optional integer `seed` on either route to reproduce an edition against the same editorial catalog. The default date follows Europe/Dublin.
 
-- `master` is an older production checkpoint.
-- `feat/it_improve`, `exp/visual`, and `int/stage` are historical development or integration branches.
-- New work should branch from `staging` and return through a pull request to `staging`.
+The archive reconstructs issues from the current catalog. Correcting an item updates the archived issues that include it. Weekly items change on Monday. The county cycle includes all 32 counties. Dates and content roles have independent selection rules. Saturday offers five-strike hurling with an untimed question as an alternative.
 
-Recommended branch format:
+## Editing an edition
 
-```text
-feat/irish-today-<increment>
-```
+`daily_flyer/irish_edition/content.json` holds attributed editorial copy, photograph credits, language examples and sources. Add `edition_dates` (an array of YYYY-MM-DD strings) to a feature to schedule a particular issue, or `anniversary` (MM-DD) to make it annual. An exact date takes priority over an anniversary and both take priority over normal rotation. Keep the referenced photograph and its two WebP sizes under `assets/`.
 
-## Public production path
+The county atlas reuses the county provider. Gaeilge uses the original word pool. The historical calendar uses sourced entries in the original Irish Today archive. All reading content and initial selections are rendered on the server. A request does not contact an external source. The hurling best, quiz answer and reading appearance live in the reader’s browser.
 
-```text
-web.py: irish_today
-  -> irish_today_production
-    -> irish_today_improved_layout
-      -> irish_today_improved
-        -> irish_today_plus
-          -> irish_today
-```
+## Delivery and verification
 
-Responsibilities:
+Rendered HTML and JSON share a bounded per-worker response cache. Conditional requests use ETags. The shared cache lifetime is capped at five minutes or the next Dublin midnight. Photos, scripts, fonts and styles are served from the same origin.
 
-- `irish_today.py`: core Irish language and culture data plus the title-image configuration.
-- `irish_today_plus.py`: provider-backed county, Davy Holden, visual, history, sport, and connection cards.
-- `irish_today_improved.py`: the eight-card daily composition contract.
-- `irish_today_improved_layout.py`: established hero, masonry, and card-specific layout behavior.
-- `irish_today_production.py`: the permanent public presentation contract. It standardizes readability, card families, and motion without importing the visual-lab control stack.
-
-The public aliases `irish_today`, `irish_today_improved`, and `irish_today_improved_layout` all resolve to `irish_today_production` at the web boundary. Internal imports can still use the lower layers directly.
-
-## Daily content contract
-
-Irish Today renders exactly eight cards.
-
-Required daily anchors:
-
-1. `word`
-2. `county`
-3. `did_you_know`
-4. `news`
-5. `visual_layer`
-6. `hurling_game`
-
-The remaining two positions rotate from the eligible culture, history, language, sport, and interactive pools. A fixed date and seed must produce stable card selection and ordering.
-
-## Production card families
-
-The production clarity layer groups cards by purpose instead of styling arbitrary card positions.
-
-### Editorial / reference
-
-Language, facts, Davy Holden features, history, sport, Irish connections, and phrases.
-
-### Photography / feature
-
-County of the Week and the visual-layer photo card.
-
-### Interactive / game
-
-Trivia, timeline sorting, Gaeilge quizzes, phrase building, county clues, memory matching, and hurling.
-
-Production cards are fully readable before interaction. Hover adds one small lift and stronger border/shadow treatment. Card entrance uses one vertical motion pattern. Reduced-motion preferences disable both.
-
-## Visual lab
-
-The visual lab remains available through:
-
-```text
-?theme=irish_today_visual_lab
-```
-
-Its wrapper chain contains style presets, modular card assignments, menus, motion trials, stability overrides, and debugging controls. It is a sandbox and must not become the public route wholesale.
-
-Promote lab ideas individually:
-
-1. Identify one visual behavior worth keeping.
-2. Reimplement it in `irish_today_production.py` using production card families.
-3. Add a focused test for the behavior or contract.
-4. Review desktop, mobile, keyboard, and reduced-motion behavior.
-5. Merge through `staging`.
-
-Do not create a new public Irish Today variant for each experiment.
-
-## Increment checklist
-
-Before opening an Irish Today pull request:
-
-- Branch from `staging`.
-- Keep the eight-card anchor contract intact.
-- Confirm the title image still renders.
-- Confirm the production route does not include visual-lab controls.
-- Check a fixed date and seed twice for deterministic ordering.
-- Verify desktop and mobile layouts.
-- Verify keyboard focus and reduced-motion behavior.
-- Keep the visual lab independently reachable.
+Run `python -m unittest tests.test_irish_today_production`. Use a Friday and Saturday edition to check the quiz and hurling, and check plain HTML with scripting disabled. The source branch for Irish Today review is `staging`.

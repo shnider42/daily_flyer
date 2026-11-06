@@ -1,0 +1,83 @@
+{% macro icon(name, size=18) -%}
+<svg width="{{size}}" height="{{size}}" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.6" stroke-linecap="round" stroke-linejoin="round" aria-hidden="true"><use href="#i-{{name}}"></use></svg>
+{%- endmacro %}
+{% macro source(link) -%}{% if link %}<a class="source" href="{{link.url}}">{{link.label}} {{icon("external",14)}}</a>{% endif %}{%- endmacro %}
+{% macro img(photo, lazy=true, sizes='(max-width: 720px) 100vw, 680px') -%}
+<img alt="{{photo.caption}}" src="{{assets}}{{photo.id}}-640.webp" srcset="{{assets}}{{photo.id}}-640.webp {{photo.width_640}}w{% if photo.width_1200 > photo.width_640 %}, {{assets}}{{photo.id}}-1200.webp {{photo.width_1200}}w{% endif %}" sizes="{{sizes}}" {% if lazy %}loading="lazy"{% else %}fetchpriority="high"{% endif %} decoding="async">
+{%- endmacro %}
+{% macro link_day(d) -%}?theme=irish_today&amp;date={{d.isoformat()}}{% if edition.seed is not none %}&amp;seed={{edition.seed}}{% endif %}{%- endmacro %}
+<!doctype html>
+<html lang="en-IE">
+<head>
+<meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<meta name="theme-color" content="#123e32"><title>Irish Today · {{day.strftime('%d %B %Y')}} · {{s.feature.title}}</title>
+<meta name="description" content="{{s.feature.body}}">
+<link rel="stylesheet" href="{{assets}}edition.css?v=1"><script src="{{assets}}edition.js?v=1" defer></script>
+</head>
+<body id="top">
+<svg class="defs" xmlns="http://www.w3.org/2000/svg" aria-hidden="true">
+<symbol id="i-next" viewBox="0 0 24 24"><path d="M4 12h15m-6-6 6 6-6 6"/></symbol>
+<symbol id="i-external" viewBox="0 0 24 24"><path d="M6 18 18 6M7 6h11v11"/></symbol>
+<symbol id="i-calendar" viewBox="0 0 24 24"><rect x="3" y="5" width="18" height="16" rx="2"/><path d="M7 3v4m10-4v4M3 11h18m-13 4h2m4 0h2"/></symbol>
+<symbol id="i-sun" viewBox="0 0 24 24"><circle cx="12" cy="12" r="4"/><path d="M12 2v2m0 16v2M2 12h2m16 0h2M5 5l1.5 1.5m11 11L19 19M5 19l1.5-1.5m11-11L19 5"/></symbol>
+<symbol id="i-book" viewBox="0 0 24 24"><path d="M12 6c-2-2-5-2.5-9-2v15c4-.5 7 .2 9 2 2-1.8 5-2.5 9-2V4c-4-.5-7 0-9 2Zm0 0v15"/></symbol>
+<symbol id="i-pin" viewBox="0 0 24 24"><path d="M19 10c0 5-7 11-7 11s-7-6-7-11a7 7 0 1 1 14 0Z"/><circle cx="12" cy="10" r="2.2"/></symbol>
+<symbol id="i-camera" viewBox="0 0 24 24"><path d="M2 7h5l2-3h6l2 3h5v14H2Z"/><circle cx="12" cy="13" r="4"/></symbol>
+</svg>
+<a class="skip" href="#feature">Skip to the edition</a>
+<header>
+<div class="utility"><div class="wrap utility-in"><span><i class="flag" aria-hidden="true"></i> The Daily Flyer</span><a href="https://davyholdenhistory.com/">Davy Holden History {{icon('external',13)}}</a></div></div>
+<div class="wrap mast">
+<div class="dateline"><b>{{day.strftime('%A')}}</b><time datetime="{{edition.date}}">{{day.strftime('%d %B %Y').lstrip('0')}}</time></div>
+<h1><a href="?theme=irish_today" aria-label="Irish Today, today's edition"><img src="{{assets}}masthead.webp" alt="Irish Today" width="860" height="180"></a></h1>
+<p class="mast-note">An Irish cultural journal</p>
+</div>
+<div class="wrap navline"><nav aria-label="Edition sections">
+<a href="#feature">The edition</a><a href="#gaeilge" lang="ga">Gaeilge</a><a href="#counties">Counties</a><a href="#challenge">Challenge</a>
+</nav><div class="tools">
+<button id="appearance" class="iconbtn" aria-label="Switch to night reading" title="Switch to night reading" hidden>{{icon('sun')}}</button>
+<details class="archive" id="archive"><summary>{{icon('calendar')}}<span>Browse dates</span></summary>
+<div class="archive-body"><h2>Edition archive</h2><form method="get"><input type="hidden" name="theme" value="irish_today">{% if edition.seed is not none %}<input type="hidden" name="seed" value="{{edition.seed}}">{% endif %}
+<label for="edition-date">Choose an edition</label><div class="date-fields"><input required type="date" id="edition-date" name="date" value="{{edition.date}}" max="{{today.isoformat()}}"><button class="solid" type="submit">Open</button></div></form>
+<div class="daylinks">{% if previous %}<a href="{{link_day(previous)}}">← Previous day</a>{% endif %}{% if following %}<a href="{{link_day(following)}}">Next day →</a>{% endif %}</div>
+{% if day != today %}<a class="source" href="?theme=irish_today">Today’s edition {{icon('next',14)}}</a>{% endif %}</div></details>
+</div></div>
+</header>
+<main class="wrap">
+<article id="feature" data-role="feature" class="feature">
+<div class="feature-copy"><div class="eyebrow"><i></i> The daily feature</div><p class="subject">{{s.feature.category}}</p>
+<h2>{{s.feature.title}}</h2><p class="dek">{{s.feature.body}}</p>
+<details class="read-story"><summary class="solid"><span class="closed-label">Read the feature</span><span class="open-label">Close feature</span> {{icon('next')}}</summary>
+<div class="feature-more"><p>{{s.feature.more}}</p>{{source(s.feature.source)}}</div></details>
+</div><figure class="hero-photo" data-subject="{{s.feature.photo.id}}">{{img(s.feature.photo,false)}}<figcaption><span>{{icon('pin',15)}} {{s.feature.place if s.feature.photo.id != 'davy' else 'County Clare'}}</span><a href="{{s.feature.photo.source}}">{{s.feature.photo.credit}}</a></figcaption></figure>
+</article>
+<div class="divider"><h2>Inside the edition</h2><span aria-hidden="true"></span><i class="flag" aria-hidden="true"></i></div>
+<div class="sections">
+<section id="gaeilge" data-role="language" class="panel language">
+<div class="eyebrow">{{icon('book')}} Gaeilge today</div><h2 lang="ga">{{s.language.title}}</h2><p class="meaning">{{s.language.body}}</p>
+<p class="sounds">Sounds like <b>{{s.language.sounds}}</b></p><div class="example"><div class="label">In a sentence</div><p lang="ga">{{s.language.example}}</p><p>{{s.language.translation}}</p></div>
+{{source(s.language.source)}}
+</section>
+<section id="counties" data-role="county" class="panel counties">
+<div class="eyebrow">{{icon('pin')}} County atlas</div><div class="county-main">
+<div><p class="label" id="county-tag">This week · {{s.county.province}}</p><h2 id="county-name">{{s.county.name}}</h2>
+<p id="county-copy">{{s.county.body}}</p><a class="source" id="county-source" href="{{s.county.source.url}}">County guide {{icon('external',14)}}</a></div>
+<img id="county-image" src="{{assets}}counties/{{s.county.slug}}.webp" loading="lazy" width="560" height="366" alt=""></div>
+<div id="atlas-controls" class="atlas-control" hidden><label for="county-select">Explore all 32 counties</label>
+<select id="county-select">{% for county in atlas %}<option value="{{county.slug}}" {% if county.slug==s.county.slug %}selected{% endif %}>{{county.name}}</option>{% endfor %}</select></div>
+</section>
+<section data-role="curiosity" class="panel curiosity"><div class="eyebrow"><i></i> Irish curiosity</div><h2>{{s.curiosity.title}}</h2><p>{{s.curiosity.body}}</p>{{source(s.curiosity.source)}}</section>
+<section id="challenge" data-role="challenge" class="panel challenge"><div class="eyebrow"><i></i> The daily challenge</div>
+<h2>{{s.challenge.title}}</h2><div id="hurling" hidden><p>Time five strikes. Centre hits score a goal, wider hits a point.</p><div class="pitch" aria-hidden="true"><i id="marker"></i></div><p id="score" aria-live="polite"></p>
+<button type="button" class="solid" id="strike">Start shooting</button> <button type="button" id="untimed">Play the untimed question</button></div>
+<div id="quiz"><p class="question">{{s.challenge.body}}</p><div class="options" hidden id="answers">{% for option in s.challenge.choices %}<button type="button" data-answer="{{loop.index0}}">{{option}}</button>{% endfor %}</div>
+<p class="result" id="feedback" role="status" aria-live="polite"></p><details id="quiz-fallback"><summary>Reveal the answer</summary><p>{{s.challenge.choices[s.challenge.answer]}}. {{s.challenge.explanation}}</p></details>
+{% if s.challenge.source %}{{source(s.challenge.source)}}{% endif %}
+</div></section>
+<section data-role="sport" class="panel sport"><div class="eyebrow"><i></i> Sport &amp; community</div><h2>{{s.sport.title}}</h2><p>{{s.sport.body}}</p>{{source(s.sport.source)}}</section>
+<section id="visual" data-role="visual" class="panel visual"><div class="eyebrow">{{icon('camera')}} Visual Ireland</div><h2 class="sr">In the frame</h2><figure><a class="photo-link" href="{{assets}}{{s.visual.photo.id}}-1200.webp" aria-label="Open full photograph">{{img(s.visual.photo)}}</a><figcaption>{{s.visual.photo.caption}} <a href="{{s.visual.photo.source}}">Photograph by {{s.visual.photo.credit}}</a></figcaption></figure></section>
+<section data-role="discovery" class="panel discovery"><div class="eyebrow"><i></i> From the calendar</div><p class="label">{{'On this day' if s.discovery.anniversary else 'Around this date'}}</p><h2>{{s.discovery.title}}</h2><p>{{s.discovery.body}}</p>{{source(s.discovery.source)}}</section>
+</div></main>
+<footer><div class="wrap foot"><div><strong>Irish Today</strong><p>Davy Holden History · Built by Holtsnider Tech</p></div><div><a href="https://davyholdenhistory.com/pages/about">Meet Davy {{icon('external',14)}}</a><a href="https://www.youtube.com/@davyholden">YouTube {{icon('external',14)}}</a><a href="https://www.instagram.com/davy_holden/">Instagram {{icon('external',14)}}</a><a href="#top">Back to top ↑</a></div></div></footer>
+<script id="edition-interactions" type="application/json">{{ {"atlas":atlas, "county":s.county.slug, "challenge":s.challenge, "assets":assets}|tojson }}</script>
+</body></html>

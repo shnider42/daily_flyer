@@ -7,6 +7,10 @@ from daily_flyer.models import CardItem, PageContext
 
 
 def build_html(context: PageContext) -> str:
+    if "irish_edition" in context.metadata:
+        from daily_flyer.irish_edition.edition import render_edition
+        return render_edition(context.metadata["irish_edition"])
+
     css = """
     :root {
         --bg: #07131c;

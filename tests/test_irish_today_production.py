@@ -1,134 +1,115 @@
-from __future__ import annotations
-
+from datetime import date, datetime, timedelta, timezone
 import unittest
+from unittest.mock import patch
 
+from bs4 import BeautifulSoup
+
+from daily_flyer.irish_edition.edition import DUBLIN, ROOT, ROLES, content, county_atlas, make_edition
 from daily_flyer.orchestrator import build_daily_page
 from daily_flyer.renderer import build_html
-from daily_flyer.themes import irish_today_improved
 from web import app
 
 
 class IrishTodayProductionTests(unittest.TestCase):
-    DATE = "2026-04-24"
-    SEED = 7
-    REPRESENTATIVE_EDITIONS = (
-        ("2026-01-01", 1),
-        ("2026-03-17", 17),
-        ("2026-04-24", 7),
-        ("2026-08-04", 42),
-    )
+    def setUp(self):
+        self.client = app.test_client()
+        self.day = date(2026, 11, 6)
 
-    def _build_context(self, date_str: str | None = None, seed: int | None = None):
-        return build_daily_page(
-            theme_name="irish_today_production",
-            date_str=date_str or self.DATE,
-            seed=self.SEED if seed is None else seed,
-        )
-
-    def test_daily_editions_have_eight_cards_and_one_of_each_anchor(self) -> None:
-        for date_str, seed in self.REPRESENTATIVE_EDITIONS:
-            with self.subTest(date=date_str, seed=seed):
-                context = self._build_context(date_str=date_str, seed=seed)
-                card_types = [card.card_type for card in context.cards]
-
-                self.assertEqual(len(card_types), irish_today_improved.CARD_COUNT)
-                for required_type in irish_today_improved.REQUIRED_CARD_TYPES:
-                    self.assertEqual(
-                        card_types.count(required_type),
-                        1,
-                        msg=f"Expected exactly one {required_type!r} anchor card: {card_types}",
-                    )
-
-    def test_fixed_dates_and_seeds_produce_stable_ordering(self) -> None:
-        for date_str, seed in self.REPRESENTATIVE_EDITIONS:
-            with self.subTest(date=date_str, seed=seed):
-                first = self._build_context(date_str=date_str, seed=seed)
-                second = self._build_context(date_str=date_str, seed=seed)
-
-                first_signature = [
-                    (card.card_type, card.title, card.image_url)
-                    for card in first.cards
-                ]
-                second_signature = [
-                    (card.card_type, card.title, card.image_url)
-                    for card in second.cards
-                ]
-
-                self.assertEqual(first_signature, second_signature)
-
-    def test_title_image_and_clarity_css_are_present(self) -> None:
-        context = self._build_context()
+    def test_aliases_deliver_same_eight_sections_as_engine_and_api(self):
+        context = build_daily_page("irish_today_production", self.day.isoformat(), 7)
+        self.assertEqual(tuple(card.card_type for card in context.cards), ROLES)
         html = build_html(context)
-
-        self.assertEqual(context.metadata.get("irish_today_release"), "clarity-v1")
-        self.assertTrue(
-            str(context.metadata.get("header_title_image", "")).endswith("irish_today_title.png")
-        )
-        self.assertIn('class="hero-title-image"', html)
-        self.assertIn("irish_today_title.png", html)
-        self.assertIn("Irish Today production clarity layer", html)
-        self.assertIn("Card family: editorial / reference content", html)
-        self.assertIn("Card family: photographic features", html)
-        self.assertIn("Card family: interactive / game cards", html)
-        self.assertIn("@media (prefers-reduced-motion: reduce)", html)
-
-    def test_clarity_override_follows_the_old_hover_fade(self) -> None:
-        html = build_html(self._build_context())
-
-        old_fade = html.find("opacity: 0.78")
-        clarity_layer = html.find("Irish Today production clarity layer")
-        full_strength_override = html.find(
-            "main.it-masonry-ready > .card {",
-            clarity_layer,
-        )
-
-        self.assertGreaterEqual(old_fade, 0)
-        self.assertGreater(clarity_layer, old_fade)
-        self.assertGreater(full_strength_override, clarity_layer)
-        self.assertIn("opacity: 1 !important", html[full_strength_override:])
-        self.assertIn("filter: none !important", html[full_strength_override:])
-
-    def test_clarity_reset_overrides_legacy_position_shapes(self) -> None:
-        html = build_html(self._build_context())
-
-        legacy_second_card_shape = html.find("main > .card:nth-of-type(2) {")
-        clarity_layer = html.find("Irish Today production clarity layer")
-        equal_specificity_reset = html.find(
-            "main > .card:nth-of-type(n) {",
-            clarity_layer,
-        )
-
-        self.assertGreaterEqual(legacy_second_card_shape, 0)
-        self.assertGreater(equal_specificity_reset, legacy_second_card_shape)
-        reset_block = html[equal_specificity_reset : equal_specificity_reset + 500]
-        self.assertIn("clip-path: none !important", reset_block)
-        self.assertIn("border-radius: 22px !important", reset_block)
-        self.assertIn("main > .card.card--county", html[clarity_layer:])
-        self.assertIn("main > .card.card--hurling_game", html[clarity_layer:])
-
-    def test_public_aliases_use_production_without_visual_lab_controls(self) -> None:
-        client = app.test_client()
-        aliases = (
-            "irish_today",
-            "irish_today_improved",
-            "irish_today_improved_layout",
-            "irish-today",
-            "irish-today-improved",
-            "irish-today-improved-layout",
-        )
-
-        for alias in aliases:
+        for alias in ("irish_today", "irish-today-improved", "irish_today_improved_layout", "irish_today_production"):
             with self.subTest(alias=alias):
-                response = client.get(
-                    f"/?theme={alias}&date={self.DATE}&seed={self.SEED}"
-                )
+                r = self.client.get("/", query_string=dict(theme=alias, date=self.day.isoformat(), seed=7))
+                self.assertEqual(r.status_code, 200)
+                self.assertEqual(r.get_data(as_text=True), html)
+        response = self.client.get("/api/irish-today/edition?date=2026-11-06&seed=7")
+        self.assertEqual(response.json, context.metadata["irish_edition"])
+        page = BeautifulSoup(html, "html.parser")
+        self.assertEqual(tuple(el["data-role"] for el in page.select("[data-role]")), ROLES)
+        self.assertIsNotNone(page.select_one('img[alt="Irish Today"]'))
+        self.assertIsNone(page.select_one(".it-visual-lab-controls"))
+        self.assertIsNotNone(page.select_one("#quiz-fallback summary"))
+        self.assertIsNotNone(page.select_one("#archive form input[name=date]"))
 
+    def test_determinism_and_full_county_cycle(self):
+        monday = date(2026, 12, 28)
+        counties = set()
+        for week in range(32):
+            first_day = monday + timedelta(weeks=week)
+            first = make_edition(first_day, 12)
+            last = make_edition(first_day + timedelta(days=6), 12)
+            self.assertEqual(first, make_edition(first_day, 12))
+            self.assertEqual(first["sections"]["county"], last["sections"]["county"])
+            self.assertEqual(first["sections"]["sport"], last["sections"]["sport"])
+            counties.add(first["sections"]["county"]["slug"])
+        self.assertEqual(len(counties), 32)
+
+    def test_independent_role_selection(self):
+        before = make_edition(self.day, 10)["sections"]
+        library = {**content(), "curiosity": [dict(content()["curiosity"][0], title="Test replacement")]}
+        with patch("daily_flyer.irish_edition.edition.content", return_value=library):
+            after = make_edition(self.day, 10)["sections"]
+        self.assertEqual([key for key in before if before[key] != after[key]], ["curiosity"])
+
+    def test_edited_features_and_anniversaries(self):
+        self.assertEqual(make_edition(self.day)["sections"]["feature"]["photo"]["id"], "kilkenny")
+        for year in (2024, 2026):
+            april = make_edition(date(year, 4, 24))["sections"]
+            self.assertEqual(april["feature"]["photo"]["id"], "rising")
+            self.assertTrue(april["discovery"]["anniversary"])
+        self.assertFalse(make_edition(self.day)["sections"]["discovery"]["anniversary"])
+
+    def test_saturday_and_weekday_challenges_have_an_untimed_answer(self):
+        for index in range(7):
+            day = self.day + timedelta(days=index)
+            c = make_edition(day)["sections"]["challenge"]
+            self.assertEqual(c["mode"] == "hurling", day.weekday() == 5)
+            self.assertEqual(len(set(c["choices"])), 4)
+            self.assertIn(c["answer"], range(4))
+            self.assertIn(day.isoformat(), c["key"])
+
+    def test_assets_exist_and_photos_have_sources(self):
+        assets = ROOT / "assets"
+        for photo in content()["photos"]:
+            self.assertTrue(photo["source"].startswith("https://"))
+            for size in (640, 1200):
+                self.assertTrue((assets / f"{photo['id']}-{size}.webp").is_file())
+        for county in county_atlas():
+            self.assertTrue((assets / "counties" / (county["slug"] + ".webp")).is_file())
+        for name in ("edition.css", "edition.js", "cormorant.woff2", "masthead.webp"):
+            with self.client.get("/daily_flyer/irish_edition/assets/" + name) as response:
                 self.assertEqual(response.status_code, 200)
-                self.assertIn(b"Irish Today production clarity layer", response.data)
-                self.assertIn(b"irish_today_title.png", response.data)
-                self.assertNotIn(b"it-visual-lab-controls", response.data)
-                self.assertNotIn(b"Per-card visual controls", response.data)
 
+    def test_etag_and_invalid_requests(self):
+        for path in ("/", "/api/irish-today/edition"):
+            url = path + "?date=2026-11-06"
+            response = self.client.get(url)
+            etag = response.headers["ETag"]
+            self.assertTrue(response.cache_control.public)
+            self.assertEqual(self.client.get(url, headers={"If-None-Match": etag}).status_code, 304)
+            for query in ("?date=not-a-date", "?date=2025-02-29", "?seed=bad"):
+                error = self.client.get(path + query)
+                self.assertEqual(error.status_code, 400)
+                if path.startswith("/api/"):
+                    self.assertIn("error", error.json)
 
-if __name__ == "__main__":
-    unittest.main()
+    def test_default_rollover_in_dublin_and_cache_expiry(self):
+        # In July the edition changes an hour before midnight UTC.
+        for utc, expected, ttl in ((datetime(2026, 7, 1, 22, 59, 58, tzinfo=timezone.utc), "2026-07-01", 2),
+                                   (datetime(2026, 7, 1, 23, 0, 1, tzinfo=timezone.utc), "2026-07-02", 300)):
+            with patch("daily_flyer.irish_edition.http.datetime", wraps=datetime) as clock:
+                clock.now.return_value = utc.astimezone(DUBLIN)
+                r = self.client.get("/api/irish-today/edition")
+                self.assertEqual(r.json["date"], expected)
+                self.assertEqual(r.cache_control.max_age, ttl)
+
+    def test_leap_day_year_boundary_and_seeded_archive_links(self):
+        for value in ("0001-01-01", "2024-02-29", "2026-12-31", "9999-12-31"):
+            r = self.client.get("/?theme=irish_today&date=" + value + "&seed=0")
+            self.assertEqual(r.status_code, 200)
+            soup = BeautifulSoup(r.data, "html.parser")
+            self.assertEqual(soup.select_one("input[name=seed]")["value"], "0")
+            for a in soup.select(".daylinks a"):
+                self.assertIn("seed=0", a["href"])

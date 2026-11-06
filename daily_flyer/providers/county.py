@@ -95,7 +95,7 @@ COUNTIES = [
     },
     {
         "name": "County Waterford",
-        "summary": "Ireland’s oldest city, known for Viking history and Waterford Crystal.",
+        "summary": "Waterford city’s Viking past and glassmaking tradition sit alongside the county’s coastal towns and the Comeragh Mountains.",
         "image_url": "daily_flyer/themes/counties/waterford.png",
     },
 
@@ -144,12 +144,12 @@ COUNTIES = [
     },
     {
         "name": "County Antrim",
-        "summary": "Home to Belfast and the Giant’s Causeway, a UNESCO World Heritage site.",
+        "summary": "The Antrim coast is home to the Giant’s Causeway. The county stretches south to the shores of Lough Neagh and into Belfast.",
         "image_url": "daily_flyer/themes/counties/antrim.png",
     },
     {
         "name": "County Armagh",
-        "summary": "Known as the ecclesiastical capital of Ireland and famous for apples.",
+        "summary": "Orchards give Armagh its apple-growing reputation. Its county town has two cathedrals dedicated to Saint Patrick.",
         "image_url": "daily_flyer/themes/counties/armagh.png",
     },
     {
