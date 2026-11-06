@@ -4,47 +4,158 @@ import {readFile} from 'node:fs/promises';
 import vm from 'node:vm';
 import * as world from '../public/world.mjs';
 import {movementVector,FirstPersonControls} from '../public/controls.js';
+import * as settingsApi from '../public/settings.js';
 
-const controller=(await readFile(new URL('../public/app.js',import.meta.url),'utf8')).replace(/^import .+;\n/gm,'');
+const controller=(await readFile(new URL('../public/app.js',import.meta.url),'utf8')).replace(/^import[\s\S]*?;\r?\n/gm,'');
 const markup=await readFile(new URL('../public/index.html',import.meta.url),'utf8');
-function harness(){
-  const elements=new Map(),storage=new Map(),timers=[];let transport;
-  class Element{
-    constructor(id){this.id=id;this.hidden=false;this.value='';this.style={};this.dataset={};this.listeners={};this.children=[];this.childIds=[];this.classList={add(){},remove(){},toggle(){}};}
-    addEventListener(type,fn){(this.listeners[type]||=[]).push(fn);}
-    click(){for(const fn of this.listeners.click||[])fn({});}
-    setAttribute(name,value){this[name]=value;}
-    toggleAttribute(name,enabled){this[name]=enabled;}
-    focus(){}
-    set innerHTML(value){this.html=value;for(const id of this.childIds)elements.delete(id);this.childIds=[];this.children=[];for(const match of value.matchAll(/\bid="([^"]+)"/g)){const child=new Element(match[1]);this.childIds.push(child.id);elements.set(child.id,child);this.children.push(child);}}
-    get innerHTML(){return this.html||'';}
-    insertBefore(element){elements.set(element.id,element);this.children.push(element);}
+function harness(options = {}) {
+  const elements = new Map(), nodes = new Set(), timers = new Map();
+  const storage = options.storage || new Map(), writes = [], events = { window: new Map(), document: new Map() };
+  let transport, audio, control, document, timerId = 0;
+  const addListener = (map, type, fn) => { if (!map.has(type)) map.set(type, []); map.get(type).push(fn); };
+  const removeListener = (map, type, fn) => map.set(type, (map.get(type) || []).filter(item => item !== fn));
+  const style = () => ({ setProperty(key, value) { this[key] = String(value); }, getPropertyValue(key) { return this[key] || ''; } });
+  class Element {
+    constructor(id = '', tagName = 'div') {
+      this.id = id; this.tagName = tagName.toUpperCase(); this.hidden = false; this.disabled = false; this.checked = false; this.value = '';
+      this.style = style(); this.dataset = {}; this.attributes = new Map(); this.listeners = {}; this.children = []; this.childNodes = [];
+      const classes = new Set();
+      this.classList = {
+        add(...items) { items.forEach(item => classes.add(item)); },
+        remove(...items) { items.forEach(item => classes.delete(item)); },
+        contains(item) { return classes.has(item); },
+        toggle(item, force) { const enabled = force === undefined ? !classes.has(item) : !!force; if (enabled) classes.add(item); else classes.delete(item); return enabled; },
+      };
+      nodes.add(this);
+    }
+    addEventListener(type, fn) { (this.listeners[type] ||= []).push(fn); }
+    removeEventListener(type, fn) { this.listeners[type] = (this.listeners[type] || []).filter(item => item !== fn); }
+    emit(type, extra = {}) {
+      const event = { type, target: this, currentTarget: this, defaultPrevented: false, preventDefault() { this.defaultPrevented = true; }, ...extra };
+      for (const fn of this.listeners[type] || []) fn(event);
+      return event;
+    }
+    click() { if (!this.disabled) this.emit('click'); }
+    setAttribute(name, value = '') {
+      value = String(value); this.attributes.set(name, value);
+      if (name === 'id') { this.id = value; elements.set(value, this); }
+      else if (name === 'class') { this.className = value; this.classList.add(...value.split(/\s+/).filter(Boolean)); }
+      else if (name.startsWith('data-')) this.dataset[name.slice(5).replace(/-([a-z])/g, (_, letter) => letter.toUpperCase())] = value;
+      else if (['hidden', 'disabled', 'checked'].includes(name)) this[name] = true;
+      else this[name] = value;
+    }
+    getAttribute(name) { return this.attributes.get(name) ?? null; }
+    hasAttribute(name) { return this.attributes.has(name); }
+    removeAttribute(name) { this.attributes.delete(name); if (['hidden', 'disabled', 'checked'].includes(name)) this[name] = false; }
+    toggleAttribute(name, enabled = !this.hasAttribute(name)) { if (enabled) this.setAttribute(name, ''); else this.removeAttribute(name); return !!enabled; }
+    focus() { if (document) document.activeElement = this; }
+    set innerHTML(value) {
+      this.html = String(value);
+      const remove = node => { node.childNodes.forEach(remove); nodes.delete(node); if (node.id && elements.get(node.id) === node) elements.delete(node.id); };
+      this.childNodes.forEach(remove);
+      this.childNodes = parse(this.html); this.children = this.childNodes;
+      this.childNodes.forEach(node => { node.parentNode = this; });
+    }
+    get innerHTML() { return this.html || ''; }
+    insertBefore(element) { nodes.add(element); if (element.id) elements.set(element.id, element); this.childNodes.push(element); this.children = this.childNodes; element.parentNode = this; }
+    querySelectorAll(selector) { return this.childNodes.filter(node => matches(node, selector)); }
+    querySelector(selector) { return this.querySelectorAll(selector)[0] || null; }
+    getBoundingClientRect() { return { x: 0, y: 0, left: 0, top: 0, right: 428, bottom: 926, width: 428, height: 926 }; }
   }
-  for(const match of markup.matchAll(/\bid="([^"]+)"/g))elements.set(match[1],new Element(match[1]));
-  const document={getElementById:id=>elements.get(id),querySelectorAll:()=>[],body:new Element('body'),hidden:false,addEventListener(){},createElement:()=>new Element('new')};
-  class FirstPersonControls{
-    constructor(){this.pose={x:0,z:3.2,yaw:0,crouch:false};this.enabled=false;}
-    setPose(p){this.pose={...p,pitch:p.pitch||0,crouch:!!p.crouch};}
-    setEnabled(v){this.enabled=v;}
-    update(){}
+  function parse(html) {
+    const result = [];
+    for (const tag of html.matchAll(/<([a-z][a-z0-9-]*)\b([^>]*)>/gi)) {
+      const element = new Element('', tag[1]);
+      for (const attr of tag[2].matchAll(/([^\s=/>]+)(?:=(?:"([^"]*)"|'([^']*)'|([^\s"'=<>`]+)))?/g)) {
+        element.setAttribute(attr[1], attr[2] ?? attr[3] ?? attr[4] ?? '');
+      }
+      result.push(element);
+    }
+    return result;
   }
-  class CoopClient{
-    constructor(callbacks){this.callbacks=callbacks;this.actions=[];this.active=false;this.connected=false;this.leaves=0;transport=this;}
-    get session(){return {id:'self',code:'ABC234',name:'Test'};}
-    get serverNow(){return Date.now();}
-    get resumeInfo(){return null;}
-    create(){this.active=true;this.callbacks.onStatus('connecting','Opening…');}
-    join(){this.create();}
-    presence(){}
-    samplePoses(){return [];}
-    leave(){this.active=this.connected=false;this.leaves++;this.callbacks.onStatus('disconnected','Left');}
-    sendAction(action){if(!this.connected)return null;const id=`action-${this.actions.length}`;this.actions.push({id,action:structuredClone(action)});return id;}
-    welcome(state){this.active=this.connected=true;this.callbacks.onStatus('connected','Ready');this.callbacks.onRoster([{id:'self',name:'Test',connected:true,room:'holding'}]);this.callbacks.onState(state,{initial:true});}
+  function matches(element, selector) {
+    return selector.split(',').some(part => {
+      let simple = part.trim().split(/\s+/).at(-1);
+      if (simple.startsWith('#')) return element.id === simple.slice(1);
+      if (simple.startsWith('.')) return element.classList.contains(simple.slice(1));
+      const tag = /^([a-z][a-z0-9-]*)/i.exec(simple)?.[1];
+      if (tag && element.tagName !== tag.toUpperCase()) return false;
+      const attributes = [...simple.matchAll(/\[([^\]=]+)(?:=["']?([^\]"']*)["']?)?\]/g)];
+      return attributes.length > 0 && attributes.every(([, name, value]) => element.hasAttribute(name) && (value === undefined || element.getAttribute(name) === value));
+    });
   }
-  const context=vm.createContext({...world,FirstPersonControls,CoopClient,createScene:()=>({loadRoom(){},setCamera(){},canMove(){return true;},resize(){},setBrightness(){},render(){}}),document,window:{addEventListener(){}},localStorage:{getItem:k=>storage.get(k)||null,setItem:(k,v)=>storage.set(k,v)},matchMedia:()=>({matches:false}),requestAnimationFrame:()=>1,setTimeout:fn=>timers.push(fn),clearTimeout(){},URL,Date,Math,console,structuredClone,performance:{now:()=>100},location:{href:'https://night-transfer.example/',origin:'https://night-transfer.example',pathname:'/'},navigator:{}});
-  vm.runInContext(controller+'\nglobalThis.app={startSolo,returnToMenu,showCoop,closeModal,dispatch,useFocused,openObject,saveSolo,snapshot:()=>({mode,state,roomId,dialogKind,selected,teamIntent,pending:[...pending.keys()]})};',context);
-  return {app:context.app,transport,elements,storage,document,flush(){while(timers.length)timers.shift()();}};
+  parse(markup);
+  document = {
+    getElementById: id => elements.get(id) || null,
+    querySelectorAll: selector => [...nodes].filter(node => matches(node, selector)),
+    querySelector: selector => [...nodes].find(node => matches(node, selector)) || null,
+    body: new Element('body'), documentElement: new Element('html'), hidden: false,
+    addEventListener: (type, fn) => addListener(events.document, type, fn),
+    removeEventListener: (type, fn) => removeListener(events.document, type, fn),
+    createElement: tag => new Element('', tag),
+  };
+  class FirstPersonControls {
+    constructor(config) { this.options = config; this.pose = { x: 0, z: 3.2, yaw: 0, pitch: 0, crouch: false }; this.enabled = false; control = this; }
+    setPose(pose) { this.pose = { ...pose, pitch: pose.pitch || 0, crouch: !!pose.crouch }; }
+    setEnabled(value) { this.enabled = !!value; }
+    update() { return false; }
+    toggleCrouch() { if (this.enabled) { this.pose.crouch = !this.pose.crouch; this.options.onCrouch?.(this.pose.crouch); } }
+  }
+  class PrisonAudio {
+    constructor(config = {}) {
+      this.options = config; this.enabled = config.enabled ?? false; this.volume = config.volume ?? 0.6; this.atmosphere = config.atmosphere ?? 0.55;
+      this.active = false; this.unlocked = false; this.room = 'holding'; this.unlocks = 0; this.cues = []; this.updates = []; audio = this;
+    }
+    getStatus() {
+      const supported = options.audioSupported !== false;
+      const ready = this.unlocked && supported && options.audioUnlock !== false;
+      const playing = this.enabled && this.active && !document.hidden && ready && this.volume > 0;
+      return { enabled: this.enabled, volume: this.volume, atmosphere: this.atmosphere, active: this.active, hidden: document.hidden, supported, unlocked: this.unlocked, ready, playing, state: ready ? 'running' : supported ? 'locked' : 'unavailable', needsGesture: this.enabled && supported && !ready, message: !this.enabled ? 'Sound off.' : !supported ? 'Sound unavailable.' : ready ? 'Sound on.' : 'Tap Sound to start or resume audio.' };
+    }
+    emit() { this.options.onStatus?.(this.getStatus()); }
+    setEnabled(value) { this.enabled = !!value; this.emit(); }
+    setVolume(value) { this.volume = value; this.emit(); }
+    setAtmosphere(value) { this.atmosphere = value; this.emit(); }
+    setRoom(value) { this.room = value; }
+    setActive(value) { this.active = !!value; this.emit(); }
+    unlock() { this.unlocks++; this.unlocked = this.enabled && options.audioSupported !== false && options.audioUnlock !== false; this.emit(); return Promise.resolve(this.unlocked); }
+    update(value) { this.updates.push(value); return 0; }
+    cue(kind) { if (!this.getStatus().playing) return false; this.cues.push(kind); return true; }
+    dispose() { this.active = false; }
+  }
+  class CoopClient {
+    constructor(callbacks) { this.callbacks = callbacks; this.actions = []; this.active = false; this.connected = false; this.leaves = 0; this.presences = []; transport = this; }
+    get session() { return { id: 'self', code: 'ABC234', name: 'Test' }; }
+    get serverNow() { return Date.now(); }
+    get resumeInfo() { return null; }
+    create() { this.active = true; this.callbacks.onStatus('connecting', 'Opening…'); }
+    join() { this.create(); }
+    presence(value) { this.presences.push(value); }
+    samplePoses() { return []; }
+    leave() { this.active = this.connected = false; this.leaves++; this.callbacks.onStatus('disconnected', 'Left'); }
+    sendAction(action) { if (!this.connected) return null; const id = `action-${this.actions.length}`; this.actions.push({ id, action: structuredClone(action) }); return id; }
+    welcome(state) { this.active = this.connected = true; this.callbacks.onStatus('connected', 'Ready'); this.callbacks.onRoster([{ id: 'self', name: 'Test', connected: true, room: 'holding' }]); this.callbacks.onState(state, { initial: true }); }
+  }
+  const scene = { brightness: [], loads: [], loadRoom(room) { this.loads.push(room.id); }, setCamera() {}, canMove() { return true; }, resize() {}, setBrightness(value) { this.brightness.push(value); }, render() {}, getTarget() { return null; } };
+  const localStorage = {
+    getItem(key) { if (options.blockStorage) throw new Error('Storage blocked'); return storage.get(key) ?? null; },
+    setItem(key, value) { if (options.blockStorage) throw new Error('Storage blocked'); storage.set(key, String(value)); writes.push(key); },
+  };
+  const media = query => ({ matches: query.includes('reduced-motion') ? !!options.reduced : query.includes('coarse') ? !!options.touch : false, addEventListener() {}, removeEventListener() {} });
+  const window = { innerWidth: options.touch ? 428 : 1280, innerHeight: options.touch ? 926 : 720, devicePixelRatio: options.touch ? 3 : 1, addEventListener: (type, fn) => addListener(events.window, type, fn), removeEventListener: (type, fn) => removeListener(events.window, type, fn), matchMedia: media };
+  const context = vm.createContext({ ...world, ...settingsApi, FirstPersonControls, CoopClient, PrisonAudio, createScene: () => scene, document, window, localStorage, matchMedia: media, requestAnimationFrame: () => 1, setTimeout: fn => { const id = ++timerId; timers.set(id, fn); return id; }, clearTimeout: id => timers.delete(id), URL, Date, Math, console, structuredClone, performance: { now: () => 100 }, location: { href: 'https://night-transfer.example/', origin: 'https://night-transfer.example', pathname: '/' }, navigator: { maxTouchPoints: options.touch ? 5 : 0 } });
+  vm.runInContext(controller + '\nglobalThis.app={startSolo,returnToMenu,showCoop,showSettings,showPause,closeModal,dispatch,useFocused,openObject,saveSolo,changeSetting,toggleSound,previewSound,syncAudioActivity,refreshFocus,animate,snapshot:()=>({mode,state,roomId,dialogKind,selected,teamIntent,settings:{...settings},settingsTab,lookUsed,moveUsed,pending:[...pending.keys()]})};', context);
+  assert.equal(elements.get('fatal').hidden, true, 'controller startup must not fall into the fatal screen');
+  return {
+    app: context.app, transport, audio, control, scene, elements, storage, writes, document, window,
+    input(id, value) { const element = elements.get(id); assert.ok(element, `input ${id} exists`); element.value = String(value); element.emit('input'); },
+    toggle(id, checked) { const element = elements.get(id); assert.ok(element, `toggle ${id} exists`); element.checked = checked; element.emit('change'); },
+    emit(surface, type, event = {}) { for (const fn of events[surface].get(type) || []) fn({ defaultPrevented: false, preventDefault() { this.defaultPrevented = true; }, ...event }); },
+    flush() { for (let count = 0; timers.size; count++) { assert.ok(count < 100, 'timers should settle'); const [id, fn] = timers.entries().next().value; timers.delete(id); fn(); } },
+  };
 }
+const plain = value => JSON.parse(JSON.stringify(value));
+const settlePromises = () => new Promise(resolve => setImmediate(resolve));
 function join(h){h.app.showCoop();h.elements.get('create-team').click();h.transport.welcome(world.newGame());h.app.closeModal();}
 const firstAct=[{type:'interact',id:'bunkPocket'},{type:'interact',id:'holdingDoor'},{type:'solve',id:'routeCabinet',value:['gate','eye','lamp','moon']},{type:'interact',id:'recordsDoor'},{type:'interact',id:'transferDesk'},{type:'interact',id:'transferExit'}];
 
@@ -90,4 +201,189 @@ test('slow graphics frames retain walking speed through small collision-checked 
   const control={enabled:true,keys:new Set(['w']),stick:{x:0,y:0},sensitivity:1,pose:{x:0,z:0,yaw:0,crouch:false}};let checks=0;
   FirstPersonControls.prototype.update.call(control,.2,()=>{checks++;return true;});
   assert(Math.abs(control.pose.z+.49)<1e-12);assert.equal(checks,8);
+});
+
+test('mobile settings apply through real slider and toggle handlers and survive a fresh controller', () => {
+  const h = harness({ touch: true });
+  h.elements.get('menu-settings').click();
+  h.input('buttonScale', 1.2); h.input('stickSize', 112); h.input('sensitivity', 1.7); h.input('controlOpacity', 0.55);
+  h.toggle('leftHanded', true); h.toggle('lookGuide', false); h.toggle('invert', true);
+  const chosen = h.app.snapshot().settings;
+  assert.equal(chosen.buttonScale, 1.2); assert.equal(chosen.stickSize, 112); assert.equal(chosen.sensitivity, 1.7);
+  assert.equal(h.control.sensitivity, 1.7); assert.equal(h.control.invert, true);
+  assert.equal(h.document.body.style.getPropertyValue('--button-scale'), '1.2');
+  assert.equal(h.document.body.style.getPropertyValue('--stick-size'), '112px');
+  assert.equal(h.document.body.style.getPropertyValue('--control-opacity'), '0.55');
+  assert.equal(h.document.body.classList.contains('left-handed'), true);
+  assert.equal(h.document.body.classList.contains('hide-look-guide'), true);
+  assert.equal(h.elements.get('look-nudge').textContent, 'LEFT THUMB · DRAG');
+  assert.equal(h.document.querySelector('.touch-tip').textContent, 'RIGHT PAD TO MOVE · LEFT PAD TO LOOK');
+  assert.equal(h.elements.get('stickSize-value').textContent, '112 px');
+  assert.equal(h.elements.get('sensitivity-value').textContent, '1.7×');
+  assert.deepEqual(JSON.parse(h.storage.get(settingsApi.SETTINGS_KEY)), plain(chosen));
+  const reopened = harness({ touch: true, storage: h.storage });
+  assert.deepEqual(plain(reopened.app.snapshot().settings), plain(chosen));
+  reopened.elements.get('menu-settings').click();
+  assert.equal(reopened.elements.get('stickSize').value, '112');
+  assert.equal(reopened.elements.get('leftHanded').checked, true);
+  assert.equal(reopened.elements.get('lookGuide').checked, false);
+  assert.equal(reopened.control.enabled, false, 'settings do not start movement behind the title screen');
+});
+
+test('unusable saved values and slider values are normalized before reaching rendering, controls or sound', () => {
+  const storage = new Map([[settingsApi.SETTINGS_KEY, JSON.stringify({ brightness: -9, sensitivity: 'fast', buttonScale: 20, stickSize: 1, controlOpacity: null, sound: 'true', volume: 50, atmosphere: -2 })]]);
+  const h = harness({ storage, reduced: true });
+  assert.equal(h.scene.brightness.at(-1), 0.8);
+  assert.equal(h.control.sensitivity, 1);
+  assert.equal(h.audio.enabled, false, 'a non-boolean stored value cannot enable sound');
+  assert.equal(h.audio.volume, 1); assert.equal(h.audio.atmosphere, 0);
+  assert.equal(h.app.snapshot().settings.reduced, true);
+  h.app.showSettings('controls');
+  h.input('buttonScale', 99); h.input('stickSize', -1); h.input('sensitivity', 'invalid'); h.input('controlOpacity', 99);
+  h.elements.get('tab-view').click(); h.input('brightness', -100);
+  h.elements.get('tab-sound').click(); h.input('volume', 100); h.input('atmosphere', -100);
+  const saved = JSON.parse(h.storage.get(settingsApi.SETTINGS_KEY));
+  for (const [key, [min, max]] of Object.entries(settingsApi.SETTING_RANGES)) {
+    assert.equal(Number.isFinite(saved[key]) && saved[key] >= min && saved[key] <= max, true, key);
+  }
+  assert.equal(saved.buttonScale, 1.35); assert.equal(saved.stickSize, 84); assert.equal(saved.sensitivity, 1);
+  assert.equal(h.scene.brightness.every(value => Number.isFinite(value) && value >= 0.8 && value <= 1.8), true);
+  assert.equal(h.audio.volume, 1); assert.equal(h.audio.atmosphere, 0);
+});
+
+test('title-screen settings and sound preserve the existing solo save and never enable movement', () => {
+  const h = harness({ touch: true });
+  h.app.startSolo(); h.app.closeModal(); h.app.dispatch(firstAct[0]); h.app.dispatch({ type: 'hint' }); h.app.returnToMenu();
+  const before = h.storage.get('night-transfer.solo.v1');
+  const savedState = JSON.parse(before).state;
+  h.elements.get('menu-settings').click();
+  assert.equal(h.app.snapshot().mode, 'menu'); assert.equal(h.control.enabled, false);
+  h.input('stickSize', 96); h.elements.get('tab-sound').click(); h.toggle('sound-enabled', true); h.input('volume', 0.25);
+  assert.equal(h.audio.active, false, 'enabling sound in the title menu does not start game ambience');
+  h.elements.get('settings-done').click();
+  assert.equal(h.app.snapshot().dialogKind, ''); assert.equal(h.control.enabled, false);
+  h.elements.get('menu-settings').click(); h.elements.get('close-dialog').click();
+  assert.equal(h.app.snapshot().mode, 'menu'); assert.equal(h.control.enabled, false);
+  assert.equal(h.storage.get('night-transfer.solo.v1'), before);
+  assert.equal(h.transport.actions.length, 0);
+  h.app.startSolo(true);
+  assert.deepEqual(plain(h.app.snapshot().state), savedState);
+  assert.equal(h.app.snapshot().state.inventory.includes('holdingKey'), true);
+  assert.equal(h.app.snapshot().state.hintsUsed[0], 1);
+});
+
+test('resetting controls leaves audio, view choices and escape progress intact', () => {
+  const h = harness(); h.app.startSolo(); h.app.closeModal(); h.app.dispatch(firstAct[0]);
+  const before = h.storage.get('night-transfer.solo.v1'), state = plain(h.app.snapshot().state);
+  h.app.showSettings('view'); h.input('brightness', 1.6); h.toggle('reduced', true);
+  h.elements.get('tab-sound').click(); h.toggle('sound-enabled', true); h.input('volume', 0.3); h.input('atmosphere', 0.1);
+  h.elements.get('tab-controls').click(); h.input('buttonScale', 1.3); h.input('stickSize', 120); h.input('sensitivity', 1.8);
+  h.toggle('leftHanded', true); h.toggle('lookGuide', false); h.toggle('invert', true);
+  h.elements.get('reset-controls').click();
+  const settings = h.app.snapshot().settings;
+  for (const key of ['buttonScale', 'stickSize', 'sensitivity', 'controlOpacity', 'leftHanded', 'lookGuide', 'invert']) assert.equal(settings[key], settingsApi.DEFAULT_SETTINGS[key], key);
+  assert.equal(settings.brightness, 1.6); assert.equal(settings.reduced, true);
+  assert.equal(settings.sound, true); assert.equal(settings.volume, 0.3); assert.equal(settings.atmosphere, 0.1);
+  assert.deepEqual(plain(h.app.snapshot().state), state);
+  assert.equal(h.storage.get('night-transfer.solo.v1'), before);
+});
+
+test('the phone controller receives distinct move/look pads and onboarding responds to both inputs', () => {
+  const h = harness({ touch: true });
+  assert.strictEqual(h.control.options.joystick, h.elements.get('touch-move'));
+  assert.strictEqual(h.control.options.lookPad, h.elements.get('touch-look'));
+  assert.strictEqual(h.control.options.canvas, h.elements.get('world'));
+  h.app.startSolo(); h.app.closeModal();
+  const before = plain(h.app.snapshot().state);
+  h.control.options.onMove({ source: 'joystick', forward: 1, side: 0 });
+  assert.equal(h.app.snapshot().moveUsed, true); assert.equal(h.app.snapshot().lookUsed, false);
+  h.control.options.onLook({ source: 'look-pad', deltaYaw: 0.2, deltaPitch: 0 });
+  assert.equal(h.app.snapshot().lookUsed, true);
+  assert.equal(h.document.body.classList.contains('look-learned'), true);
+  h.app.refreshFocus(101);
+  assert.equal(h.elements.get('control-tip').style.opacity, '0');
+  assert.deepEqual(plain(h.app.snapshot().state), before, 'learning the controls does not consume hints or alter the escape');
+});
+
+test('sound is opt-in and the quick mute preserves volume, atmosphere and escape state', async () => {
+  const h = harness({ touch: true });
+  assert.equal(h.audio.enabled, false); assert.equal(h.audio.unlocks, 0);
+  assert.equal(h.elements.get('menu-audio').getAttribute('aria-pressed'), 'false');
+  h.app.startSolo(); h.app.closeModal(); h.app.dispatch(firstAct[0]);
+  const state = plain(h.app.snapshot().state), save = h.storage.get('night-transfer.solo.v1');
+  h.elements.get('audio-btn').click(); await Promise.resolve();
+  assert.equal(h.audio.enabled, true); assert.equal(h.audio.unlocks, 1); assert.equal(h.audio.active, true);
+  assert.equal(h.elements.get('audio-btn').getAttribute('aria-pressed'), 'true');
+  h.app.changeSetting('volume', 0.25); h.app.changeSetting('atmosphere', 0.15);
+  h.elements.get('audio-btn').click();
+  assert.equal(h.audio.enabled, false); assert.equal(h.audio.volume, 0.25); assert.equal(h.audio.atmosphere, 0.15);
+  assert.equal(h.elements.get('audio-btn').getAttribute('aria-label'), 'Enable prison sound');
+  assert.deepEqual(plain(h.app.snapshot().state), state);
+  assert.equal(h.storage.get('night-transfer.solo.v1'), save);
+  assert.equal(h.transport.actions.length, 0);
+  h.elements.get('audio-btn').click();
+  assert.equal(h.audio.enabled, true); assert.equal(h.audio.volume, 0.25); assert.equal(h.audio.atmosphere, 0.15);
+});
+
+test('settings and mute do not drop an in-flight co-op discovery or touch the solo slot', () => {
+  const h = harness(); h.app.startSolo(); h.app.dispatch(firstAct[0]); h.app.returnToMenu();
+  const solo = h.storage.get('night-transfer.solo.v1'); join(h);
+  const team = world.reduce(world.newGame(), { type: 'hint' }).state;
+  h.transport.callbacks.onState(team);
+  h.app.useFocused({ id: 'bunkPocket', distance: 1.2 }); h.elements.get('object-action').click();
+  const sent = h.transport.actions[0], leaves = h.transport.leaves, before = plain(h.app.snapshot().state);
+  h.app.showSettings('controls'); h.input('buttonScale', 1.25); h.toggle('leftHanded', true);
+  h.elements.get('tab-sound').click(); h.toggle('sound-enabled', true); h.input('volume', 0.2); h.toggle('sound-enabled', false);
+  assert.equal(h.transport.actions.length, 1, 'settings do not send authoritative puzzle actions');
+  assert.equal(h.transport.leaves, leaves); assert.equal(h.transport.connected, true);
+  assert.equal(h.app.snapshot().pending.includes(sent.id), true);
+  assert.deepEqual(plain(h.app.snapshot().state), before);
+  const result = world.reduce(team, sent.action);
+  h.transport.callbacks.onState(result.state);
+  h.transport.callbacks.onMessage({ ...result, type: 'action-result', actionId: sent.id });
+  assert.equal(h.app.snapshot().dialogKind, 'settings');
+  assert.equal(h.app.snapshot().pending.length, 0);
+  assert.equal(h.app.snapshot().state.inventory.includes('holdingKey'), true);
+  assert.equal(h.app.snapshot().state.hintsUsed[0], 1);
+  assert.equal(h.storage.get('night-transfer.solo.v1'), solo);
+});
+
+test('unsupported or gesture-blocked audio cannot prevent visual play', async () => {
+  for (const options of [{ audioSupported: false }, { audioUnlock: false }]) {
+    const h = harness(options);
+    h.app.showSettings('sound'); h.toggle('sound-enabled', true); await Promise.resolve();
+    assert.equal(h.audio.getStatus().playing, false);
+    assert.equal(h.elements.get('fatal').hidden, true);
+    h.app.startSolo(); h.app.closeModal(); h.app.useFocused({ id: 'bunkPocket', distance: 1.2 });
+    h.elements.get('object-action').click();
+    assert.equal(h.app.snapshot().state.inventory.includes('holdingKey'), true);
+    assert.equal(h.app.snapshot().dialogKind, 'result');
+    assert.equal(h.elements.get('fatal').hidden, true);
+    assert.equal(h.audio.cues.length, 0);
+  }
+});
+
+test('the sound preview is temporary and closing it prevents a late door cue', async () => {
+  const h = harness(); const state = plain(h.app.snapshot().state);
+  h.app.showSettings('sound'); h.elements.get('test-audio').click(); await settlePromises();
+  assert.equal(h.app.snapshot().mode, 'menu'); assert.equal(h.control.enabled, false);
+  assert.equal(h.audio.enabled, true); assert.equal(h.audio.active, true);
+  assert.deepEqual(h.audio.cues, ['door']);
+  h.flush(); assert.equal(h.audio.active, false);
+  assert.deepEqual(plain(h.app.snapshot().state), state);
+  assert.equal(h.storage.has('night-transfer.solo.v1'), false);
+  h.elements.get('test-audio').click(); h.elements.get('settings-done').click(); await settlePromises();
+  assert.deepEqual(h.audio.cues, ['door'], 'a preview cannot play after its settings panel was closed');
+  assert.equal(h.audio.active, false); assert.equal(h.control.enabled, false);
+});
+
+test('blocked preference storage leaves live controls and escape progress usable', () => {
+  const h = harness({ blockStorage: true });
+  assert.equal(h.elements.get('fatal').hidden, true);
+  h.elements.get('menu-settings').click(); h.input('sensitivity', 1.4); h.toggle('leftHanded', true); h.elements.get('settings-done').click();
+  assert.equal(h.control.sensitivity, 1.4); assert.equal(h.document.body.classList.contains('left-handed'), true);
+  assert.equal(h.control.enabled, false);
+  h.app.startSolo(); h.app.closeModal(); h.app.useFocused({ id: 'bunkPocket', distance: 1.2 }); h.elements.get('object-action').click();
+  assert.equal(h.app.snapshot().state.inventory.includes('holdingKey'), true);
+  assert.equal(h.elements.get('fatal').hidden, true);
 });

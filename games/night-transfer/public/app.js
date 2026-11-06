@@ -2,15 +2,18 @@ import {VERSION,LEVELS,ROOMS,OBJECTS,ITEMS,newGame,reduce,availableRooms,getObje
 import {createScene} from './scene.js';
 import {FirstPersonControls} from './controls.js';
 import {CoopClient} from './network.js';
+import {PrisonAudio} from './audio.js';
+import {DEFAULT_SETTINGS,SETTING_RANGES,loadSettings,saveSettings,normalizeSettings} from './settings.js';
 
 const $=id=>document.getElementById(id);
 const esc=value=>String(value??'').replace(/[&<>"']/g,c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
-const SAVE='night-transfer.solo.v1', SETTINGS='night-transfer.settings.v1';
+const SAVE='night-transfer.solo.v1';
+const preferenceStorage={getItem:key=>globalThis.localStorage.getItem(key),setItem:(key,value)=>globalThis.localStorage.setItem(key,value)};
 const uid=()=>globalThis.crypto?.randomUUID?.()||`${Date.now()}-${Math.random().toString(36).slice(2)}`;
 let state=newGame(),roomId=LEVELS[0].startRoom,mode='menu',scene,controls,network,selected=null,dialogKind='',dialogData=null;
 let pending=new Map(),roster=[],peers=[],teamIntent=false,connected=false,slotOwner=null,tipUntil=0,toastTimer,frame=0,lastFrame=0,lastUi=0,lastPresence=0,lastSave=0,currentTarget=null,elapsedSeconds=0,completedShown=false;
-let settings={brightness:1.2,sensitivity:1,invert:false,reduced:matchMedia('(prefers-reduced-motion: reduce)').matches};
-try{settings={...settings,...JSON.parse(localStorage.getItem(SETTINGS)||'{}')};}catch{}
+let settings=loadSettings(preferenceStorage,matchMedia('(prefers-reduced-motion: reduce)').matches);
+let sound,settingsTab='controls',lookUsed=false,moveUsed=false,previewTimer;
 const publicRoom=room=>ROOMS[room]?.title||room;
 const levelTitle=level=>LEVELS[level]?.shortTitle||LEVELS[level]?.title||`Wing ${level+1}`;
 const now=()=>mode==='coop'&&network?network.serverNow:Date.now();
@@ -33,18 +36,18 @@ function saveSolo(claim=false){
   }catch{$('session-label').textContent='SOLO / STORAGE UNAVAILABLE';}
 }
 function toast(text){if(!text)return;$('toast').textContent=text;$('toast').classList.add('visible');clearTimeout(toastTimer);toastTimer=setTimeout(()=>$('toast').classList.remove('visible'),4200);}
-function modal(kind,html,data=null){dialogKind=kind;dialogData=data;$('dialog-content').innerHTML=html;$('modal-backdrop').hidden=false;controls?.setEnabled(false);$('dialog').scrollTop=0;$('dialog').focus({preventScroll:true});}
-function closeModal(){dialogKind='';dialogData=null;selected=null;$('modal-backdrop').hidden=true;controls?.setEnabled(mode!=='menu'&&!state.won);}
+function modal(kind,html,data=null){dialogKind=kind;dialogData=data;$('dialog-content').innerHTML=html;$('modal-backdrop').hidden=false;controls?.setEnabled(false);$('dialog').scrollTop=0;$('dialog').focus({preventScroll:true});syncAudioActivity();}
+function closeModal(){dialogKind='';dialogData=null;selected=null;$('modal-backdrop').hidden=true;controls?.setEnabled(mode!=='menu'&&!state.won);syncAudioActivity();}
 function panelTitle(kicker,title){return `<p class="eyebrow">${esc(kicker)}</p><h2 id="dialog-title">${esc(title)}</h2>`;}
 function bind(id,handler){$(id)?.addEventListener('click',handler);}
 function setRoom(id,pose=null){
   if(!ROOMS[id]||!availableRooms(state).some(room=>room.id===id))return false;roomId=id;scene.loadRoom(ROOMS[id],getObjects(state,id),state);
   const fallback=ROOMS[id].spawn||{x:0,z:3.2,yaw:0};
   const valid=pose&&[pose.x,pose.z,pose.yaw].every(Number.isFinite)&&scene.canMove(pose.x,pose.z,.23);
-  controls.setPose(valid?pose:fallback);scene.setCamera(controls.pose);network?.presence({room:id,...controls.pose});updateHud();
+  controls.setPose(valid?pose:fallback);scene.setCamera(controls.pose);sound?.setRoom(id);network?.presence({room:id,...controls.pose});updateHud();
 }
 function changeRoom(id){closeModal();$('transition').classList.add('active');controls.setEnabled(false);setTimeout(()=>{setRoom(id);$('transition').classList.remove('active');controls.setEnabled(mode!=='menu'&&!state.won&&!dialogKind);saveSolo();},settings.reduced?0:170);}
-function showGame(){mode=mode==='coop'?'coop':'solo';$('menu').hidden=true;$('hud').hidden=false;tipUntil=performance.now()+16000;$('control-tip').style.opacity='1';controls.setEnabled(true);updateHud();}
+function showGame(){mode=mode==='coop'?'coop':'solo';$('menu').hidden=true;$('hud').hidden=false;lookUsed=moveUsed=false;document.body.classList.remove('look-learned');tipUntil=performance.now()+16000;$('control-tip').style.opacity='1';controls.setEnabled(true);syncAudioActivity();updateHud();}
 function startSolo(resume=false){
   network?.leave();teamIntent=false;pending.clear();roster=[];peers=[];connected=false;mode='solo';completedShown=false;closeModal();
   const saved=resume?readSave():null;state=saved?.state||newGame();elapsedSeconds=saved?.elapsedSeconds||0;
@@ -53,7 +56,9 @@ function startSolo(resume=false){
 }
 function returnToMenu(){saveSolo();network?.leave();mode='menu';connected=false;teamIntent=false;pending.clear();roster=[];peers=[];closeModal();controls.setEnabled(false);$('hud').hidden=true;$('menu').hidden=false;refreshMenu();state=newGame();setRoom(LEVELS[0].startRoom);}
 function showIntro(){
-  const level=LEVELS[state.level];modal('intro',panelTitle(`WING ${String(state.level+1).padStart(2,'0')} / ${level.mechanic||'ESCAPE'}`,level.title)+`<p>${esc(level.intro||'Look closely. Every lock has a way through.')}</p><div class="notice"><p>${state.level===0?'Move through the room and bring an object into the center of your view. Get close, then inspect it. Every clue you need can be seen.':'Your collected keys and notes stay with you. Three fresh hints are available in this wing.'}</p></div><button id="intro-go" class="button primary">${state.level===0?'FIND A WAY OUT':'KEEP MOVING'} <span>→</span></button>`);bind('intro-go',closeModal);
+  const level=LEVELS[state.level];const first=state.level===0;
+  modal('intro',panelTitle(`WING ${String(state.level+1).padStart(2,'0')} / ${level.mechanic||'ESCAPE'}`,level.title)+`<p>${esc(level.intro||'Look closely. Every lock has a way through.')}</p>${first?controlMap():'<div class="notice"><p>Your keys and notes stay with you. Three fresh hints are available in this wing.</p></div>'}${first?'<div class="intro-audio-row"><div><strong>Put yourself inside.</strong><small>Optional footsteps & echoes. Every clue stays visual.</small></div><button id="intro-audio" class="audio-toggle" aria-pressed="false">SOUND OFF</button></div><button id="intro-setup" class="text-button">ADJUST CONTROLS & SOUND</button>':''}<button id="intro-go" class="button primary">${first?'FIND A WAY OUT':'KEEP MOVING'} <span>→</span></button>`);
+  bind('intro-go',closeModal);bind('intro-audio',toggleSound);bind('intro-setup',()=>showSettings('controls'));refreshAudioUi();
 }
 function updateHud(){
   $('act-title').textContent=`WING ${String(state.level+1).padStart(2,'0')} / ${levelTitle(state.level).toUpperCase()}`;
@@ -82,6 +87,9 @@ function dispatch(action,context={}){
 function setBusy(busy){$('submit-puzzle')?.toggleAttribute('disabled',busy);$('object-action')?.toggleAttribute('disabled',busy);}
 function handleResult(result,context={}){
   const event=result.event;setBusy(false);
+  if(result.ok&&context.kind==='pickup')sound?.cue('key');
+  if(result.ok&&context.kind==='solve')sound?.cue('mechanism');
+  if(result.ok&&['room','level'].includes(event?.type))sound?.cue('door');
   if(!result.ok){
     if(context.kind==='inspect')return;
     if($('puzzle-feedback')&&selected===context.object?.id){$('puzzle-feedback').textContent=result.message||'That did not work.';$('puzzle-feedback').hidden=false;}else toast(result.message);return;
@@ -142,9 +150,52 @@ function showNotebook(){
   document.querySelectorAll('[data-note]').forEach(b=>b.addEventListener('click',()=>{const o=OBJECTS[b.dataset.note];modal('note',panelTitle(publicRoom(o.room),o.title)+clueHtml(o.clue)+'<button id="back-notes" class="button secondary">BACK TO NOTES <span>←</span></button>');bind('back-notes',showNotebook);}));
 }
 function showHints(){const hints=getHints(state);modal('hints',panelTitle(`WING ${state.level+1} / ${hints.remaining} OF 3 REMAINING`,'A way forward')+`<p>Three hints per wing. Open only what you need.${mode==='coop'?' Your team shares this allowance.':''}</p>${(hints.log||[]).map((text,i)=>`<div class="hint-entry"><small>HINT ${i+1}</small><p>${esc(text)}</p></div>`).join('')}<button id="reveal-hint" class="button primary" ${hints.remaining?'':'disabled'}>${hints.remaining?'REVEAL NEXT HINT':'ALL THREE HINTS USED'} <span>↗</span></button>`);bind('reveal-hint',()=>dispatch({type:'hint'},{kind:'hint'}));}
-function showHelp(){modal('help',panelTitle('ALL CLUES ARE VISUAL','Move. Look. Investigate.')+`<div class="help-row"><b>01</b><p><strong>Walk through the prison.</strong>Phone: use the left thumb stick. Computer: use WASD or ↑ / ↓.</p></div><div class="help-row"><b>02</b><p><strong>Look around.</strong>Swipe the scene with your right thumb, or drag with your mouse. ← / → also turn on a keyboard.</p></div><div class="help-row"><b>03</b><p><strong>Get close. Inspect.</strong>Point the center dot at an object. Tap INSPECT, press E, or tap the nearby object. Keys fit matching locks automatically.</p></div><p>Notes keep the clues you discover. Each wing has three hints. Nothing requires sound, and a wrong answer never erases your progress.</p><button id="help-done" class="button primary">GOT IT <span>→</span></button>`);bind('help-done',closeModal);}
-function showSettings(){modal('settings',panelTitle('MAKE THE VIEW COMFORTABLE','Field equipment')+`<label class="setting-row">Brightness<input id="brightness" type="range" min="0.8" max="1.8" step="0.05" value="${settings.brightness}" aria-label="Brightness"></label><label class="setting-row">Look sensitivity<input id="sensitivity" type="range" min="0.5" max="2" step="0.1" value="${settings.sensitivity}" aria-label="Look sensitivity"></label><label class="setting-row">Invert vertical look<input id="invert" type="checkbox" ${settings.invert?'checked':''}></label><label class="setting-row">Reduce motion<input id="reduced" type="checkbox" ${settings.reduced?'checked':''}></label><p style="margin-top:20px">Every warning has a visible signal. Audio is not used in this escape.</p><button id="settings-done" class="button primary">BACK TO THE ROOM <span>→</span></button>`);['brightness','sensitivity','invert','reduced'].forEach(id=>$(id).addEventListener('input',()=>{settings[id]=['invert','reduced'].includes(id)?$(id).checked:Number($(id).value);applySettings();try{localStorage.setItem(SETTINGS,JSON.stringify(settings));}catch{}}));bind('settings-done',closeModal);}
-function applySettings(){scene?.setBrightness(settings.brightness);if(controls){controls.sensitivity=settings.sensitivity;controls.invert=settings.invert;}document.body.classList.toggle('reduced-motion',settings.reduced);}
+function controlMap(){return `<div class="control-map" aria-label="${settings.leftHanded?'Right':'Left'} thumb moves; ${settings.leftHanded?'left':'right'} thumb looks"><div class="map-move"><span class="mini-stick"><i></i></span><strong>MOVE</strong><small>${settings.leftHanded?'RIGHT':'LEFT'} THUMB</small></div><p>Hold both<br>to walk & look</p><div class="map-look"><span class="mini-look">↔</span><strong>LOOK</strong><small>${settings.leftHanded?'LEFT':'RIGHT'} THUMB</small></div></div>`;}
+function showHelp(){modal('help',panelTitle('FIND YOUR FEET','Two thumbs. One way out.')+controlMap()+`<div class="help-row"><b>01</b><p><strong>A lighter touch to move.</strong>Slide the MOVE stick a little to walk slowly, or farther to move faster. You can move and look at the same time.</p></div><div class="help-row"><b>02</b><p><strong>Your other thumb goes on LOOK.</strong>Drag the labeled look pad to turn. Lift and reposition your thumb whenever you need. You can also swipe the open scene.</p></div><div class="help-row"><b>03</b><p><strong>Point. Get close. Inspect.</strong>The INSPECT button lights up when you can use an object. Matching keys work automatically.</p></div><p>Computer: WASD to move, drag to look, E to inspect, C to crouch. Notes keep your clues; each wing has three hints.</p><div class="notice"><p>Headphones add footsteps, echoes and distant activity. <strong>Every puzzle is still solvable with sound off.</strong></p></div><button id="help-setup" class="button secondary">ADJUST MY CONTROLS <span>→</span></button><button id="help-done" class="button primary">GOT IT <span>→</span></button>`);bind('help-done',closeModal);bind('help-setup',()=>showSettings('controls'));}
+function settingValue(key){const value=settings[key];if(key==='stickSize')return `${Math.round(value)} px`;if(key==='sensitivity')return `${value.toFixed(1)}×`;return `${Math.round(value*100)}%`;}
+function sliderSetting(key,label,detail,step){const [min,max]=SETTING_RANGES[key];return `<label class="setting-slider" for="${key}"><span>${label}<output id="${key}-value" for="${key}">${settingValue(key)}</output></span><input id="${key}" type="range" min="${min}" max="${max}" step="${step}" value="${settings[key]}" aria-label="${label}"><small>${detail}</small></label>`;}
+function toggleSetting(key,label,detail,id=key){return `<label class="setting-toggle" for="${id}"><span><strong>${label}</strong><small>${detail}</small></span><input id="${id}" type="checkbox" role="switch" aria-label="${label}" ${settings[key]?'checked':''}></label>`;}
+function showSettings(tab='controls'){
+  settingsTab=['controls','sound','view'].includes(tab)?tab:'controls';
+  const tabs=`<div class="settings-tabs" role="tablist" aria-label="Setup sections">${[['controls','CONTROLS'],['sound','SOUND'],['view','VIEW']].map(([id,label])=>`<button id="tab-${id}" role="tab" aria-selected="${settingsTab===id}" aria-controls="settings-panel">${label}</button>`).join('')}</div>`;
+  let content='';
+  if(settingsTab==='controls')content=`<div class="control-preview" aria-hidden="true"><div class="preview-stick"><i></i><span>MOVE</span></div><span class="preview-inspect">INSPECT</span><div class="preview-look"><span>↔<small>LOOK</small></span></div></div><p class="settings-caption">Changes apply immediately. Make room for your view.</p>`+sliderSetting('buttonScale','Button size','Inspect, crouch and the look pad. Other targets stay easy to tap.',.05)+sliderSetting('stickSize','Movement stick size','A compact stick, with extra touch space around its edge.',4)+sliderSetting('sensitivity','Look sensitivity','Lower for small, precise turns.',.1)+sliderSetting('controlOpacity','Control visibility','Fade the thumb pads while keeping their labels visible.',.05)+toggleSetting('leftHanded','Swap thumb controls','Move with your right thumb; look with your left.')+toggleSetting('lookGuide','Show look guide','Keep the LOOK ring visible when you lift your thumb.')+toggleSetting('invert','Invert vertical look','Drag up to look down.')+'<button id="reset-controls" class="text-button reset-button">RESET CONTROLS TO DEFAULT</button>';
+  else if(settingsTab==='sound')content=`<p class="settings-intro">A prison beyond your cell: footsteps, concrete echoes, pipes and muffled voices down the hall.</p>`+toggleSetting('sound','Prison sound','Optional atmosphere. No clue or solution depends on hearing.','sound-enabled')+sliderSetting('volume','Master volume','Start quietly, especially with headphones.',.05)+sliderSetting('atmosphere','Background atmosphere','Hum, distant chatter and room sounds. Footsteps keep their own clarity.',.05)+`<p id="audio-status" class="audio-status" role="status"></p><button id="sound-retry" class="button secondary" hidden>RESUME SOUND <span>→</span></button><button id="test-audio" class="button secondary">TRY A CELL DOOR ECHO <span>→</span></button><div class="notice"><p>Muted play is fully supported. Camera warnings, notes and every puzzle remain visual. Audio pauses when you leave the game or switch apps.</p></div>`;
+  else content=sliderSetting('brightness','Brightness','Lift the shadows for a bright room or a busy bar.',.05)+toggleSetting('reduced','Reduce motion','Steadier presentation and quicker room transitions.')+`<div class="notice"><p>Portrait and landscape both work. Keep your thumbs near the bottom corners; the center stays clear for clues.</p></div>`;
+  modal('settings',panelTitle('YOUR ESCAPE, YOUR FIT','Make yourself comfortable.')+tabs+`<div id="settings-panel" role="tabpanel">${content}</div><div class="settings-footer"><button id="settings-done" class="button primary">DONE <span>→</span></button></div>`);
+  for(const id of ['controls','sound','view'])bind('tab-'+id,()=>showSettings(id));
+  for(const key of Object.keys(SETTING_RANGES))if($(key))$(key).addEventListener('input',()=>{changeSetting(key,Number($(key).value));if($(key+'-value'))$(key+'-value').textContent=settingValue(key);});
+  for(const key of ['invert','reduced','leftHanded','lookGuide'])if($(key))$(key).addEventListener('change',()=>changeSetting(key,$(key).checked));
+  if($('sound-enabled'))$('sound-enabled').addEventListener('change',()=>changeSetting('sound',$('sound-enabled').checked));
+  bind('reset-controls',()=>{for(const key of ['buttonScale','stickSize','controlOpacity','sensitivity','leftHanded','lookGuide','invert'])settings[key]=DEFAULT_SETTINGS[key];applySettings();saveSettings(preferenceStorage,settings);showSettings('controls');});
+  bind('test-audio',previewSound);bind('sound-retry',()=>{sound?.unlock();});bind('settings-done',closeModal);refreshAudioUi();
+}
+function changeSetting(key,value){settings=normalizeSettings({...settings,[key]:value},settings.reduced);applySettings();saveSettings(preferenceStorage,settings);if(key==='sound'&&settings.sound)sound?.unlock();}
+function applySettings(){
+  scene?.setBrightness(settings.brightness);if(controls){controls.sensitivity=settings.sensitivity;controls.invert=settings.invert;}
+  const style=document.body.style;style.setProperty('--button-scale',settings.buttonScale);style.setProperty('--stick-size',settings.stickSize+'px');style.setProperty('--control-opacity',settings.controlOpacity);
+  document.body.classList.toggle('reduced-motion',settings.reduced);document.body.classList.toggle('left-handed',settings.leftHanded);document.body.classList.toggle('hide-look-guide',!settings.lookGuide);
+  if($('look-nudge'))$('look-nudge').textContent=`${settings.leftHanded?'LEFT':'RIGHT'} THUMB · DRAG`;
+  const touchTip=document.querySelector('.touch-tip');if(touchTip)touchTip.textContent=`${settings.leftHanded?'RIGHT':'LEFT'} PAD TO MOVE · ${settings.leftHanded?'LEFT':'RIGHT'} PAD TO LOOK`;
+  sound?.setEnabled(settings.sound);sound?.setVolume(settings.volume);sound?.setAtmosphere(settings.atmosphere);syncAudioActivity();refreshAudioUi();
+}
+function syncAudioActivity(){sound?.setActive(mode!=='menu'&&!state.won&&dialogKind!=='pause');}
+function markLookUsed(){lookUsed=true;document.body.classList.add('look-learned');if(moveUsed)tipUntil=0;}
+function markMoveUsed(){moveUsed=true;if(lookUsed)tipUntil=0;}
+const speakerIcon=`<svg viewBox="0 0 24 24" aria-hidden="true"><path d="M4 9v6h4l5 4V5L8 9Z"/><path class="audio-waves" d="M16 8c3 2 3 6 0 8m3-11c5 4 5 10 0 14"/><path class="audio-slash" d="m17 9 5 6m0-6-5 6"/></svg>`;
+function refreshAudioUi(status=sound?.getStatus()){
+  for(const id of ['menu-audio','audio-btn','intro-audio']){const button=$(id);if(!button||button.dataset.soundState===String(settings.sound))continue;button.dataset.soundState=String(settings.sound);button.setAttribute('aria-pressed',String(settings.sound));button.setAttribute('aria-label',settings.sound?'Mute prison sound':'Enable prison sound');button.innerHTML=speakerIcon+`<span>SOUND ${settings.sound?'ON':'OFF'}</span>`;}
+  document.body.classList.toggle('sound-on',settings.sound);
+  if($('sound-enabled'))$('sound-enabled').checked=settings.sound;
+  if($('audio-status'))$('audio-status').textContent=!settings.sound?'Sound is off. You can complete the entire escape in silence.':status?.supported===false?'Audio is unavailable here. Your escape will continue with every visual clue.':mode==='menu'?'Sound starts when you enter. Use the preview below to set a comfortable volume.':status?.message||'Prison sound is ready.';
+  if($('sound-retry'))$('sound-retry').hidden=!(settings.sound&&status?.needsGesture);
+}
+function toggleSound(){changeSetting('sound',!settings.sound);}
+function previewSound(){
+  if(!settings.sound)changeSetting('sound',true);sound?.setActive(true);
+  Promise.resolve(sound?.unlock()).then(ready=>{if(ready&&settings.sound&&dialogKind==='settings')sound.cue('door');});
+  clearTimeout(previewTimer);previewTimer=setTimeout(syncAudioActivity,2200);
+}
 function showPause(){modal('pause',panelTitle('TAKE A BREATH','Still on the inside.')+`<p>${mode==='coop'?'Your crew can keep moving while this menu is open.':'Your escape is saved in this browser.'}</p><button id="resume-btn" class="button primary">RETURN TO THE ROOM <span>→</span></button><button id="pause-settings" class="button secondary">SETTINGS <span>☷</span></button><button id="pause-help" class="button ghost">CONTROLS <span>↗</span></button><button id="pause-title" class="button ghost">${mode==='coop'?'LEAVE TEAM & TITLE SCREEN':'SAVE & TITLE SCREEN'} <span>←</span></button>`);bind('resume-btn',closeModal);bind('pause-settings',showSettings);bind('pause-help',showHelp);bind('pause-title',returnToMenu);}
 function showWin(){
   if(mode==='menu')return;completedShown=true;controls.setEnabled(false);saveSolo();const mins=Math.floor(elapsedSeconds/60),secs=Math.floor(elapsedSeconds%60);
@@ -182,7 +233,7 @@ function animate(time){
   if(mode==='menu'){
     const spawn=ROOMS[LEVELS[0].startRoom].spawn;scene.setCamera({x:spawn.x+.5,z:spawn.z-.15,yaw:-.37+(settings.reduced?0:Math.sin(time*.00013)*.07),pitch:-.025,crouch:false});
   }else{
-    controls.update(dt,(x,z,r)=>scene.canMove(x,z,r));scene.setCamera(controls.pose);if(!state.won)elapsedSeconds+=dt;
+    controls.update(dt,(x,z,r)=>scene.canMove(x,z,r));scene.setCamera(controls.pose);sound?.update({dt,pose:controls.pose,room:roomId});if(!state.won)elapsedSeconds+=dt;
     if(time-lastPresence>100){lastPresence=time;if(mode==='coop')network.presence({room:roomId,...controls.pose});}
     if(time-lastSave>5000){lastSave=time;if(mode==='solo')saveSolo();}
   }
@@ -207,15 +258,18 @@ function refreshFocus(time){
 
 try{
   scene=createScene($('world'));
-  controls=new FirstPersonControls({canvas:$('world'),joystick:$('touch-move'),knob:$('joystick-knob'),onInteract:()=>useFocused(),onPause:showPause,onTap:(x,y)=>{const target=scene.targetAt?.(x,y);if(target)useFocused(target);},onCrouch:crouch=>{$('crouch-btn').setAttribute('aria-pressed',String(crouch));$('stance').textContent=crouch?'CROUCHING':'STANDING';}});
+  sound=new PrisonAudio({enabled:settings.sound,volume:settings.volume,atmosphere:settings.atmosphere,onStatus:refreshAudioUi});
+  controls=new FirstPersonControls({canvas:$('world'),joystick:$('touch-move'),knob:$('joystick-knob'),lookPad:$('touch-look'),onLook:markLookUsed,onMove:markMoveUsed,onInteract:()=>useFocused(),onPause:showPause,onTap:(x,y)=>{const target=scene.targetAt?.(x,y);if(target)useFocused(target);},onCrouch:crouch=>{$('crouch-btn').setAttribute('aria-pressed',String(crouch));$('stance').textContent=crouch?'CROUCHING':'STANDING';}});
   network=new CoopClient({onState:onTeamState,onStatus:onTeamStatus,onRoster:list=>{roster=list;updateHud();if(dialogKind==='crew'&&$('crew-list'))$('crew-list').innerHTML=crewHtml();},onPoses:list=>{peers=list;},onMessage:packet=>{
     if(packet.type==='action-result'){const context=pending.get(packet.actionId);pending.delete(packet.actionId);if(context)handleResult(packet,context);}
     else if(packet.message&&mode==='coop')toast(packet.message);
   }});
   bind('start-btn',()=>{if(readSave()&&!readSave().state.won){modal('new',panelTitle('A FRESH ESCAPE','Start from the beginning?')+'<p>Your existing solo escape will be replaced when you start.</p><button id="confirm-new" class="button primary">START A NEW ESCAPE <span>→</span></button><button id="cancel-new" class="button ghost">KEEP MY SAVE <span>←</span></button>');bind('confirm-new',()=>startSolo(false));bind('cancel-new',closeModal);}else startSolo(false);});
-  bind('continue-btn',()=>startSolo(true));bind('coop-btn',showCoop);bind('how-btn',showHelp);bind('pause-btn',showPause);bind('notes-btn',showNotebook);bind('hint-btn',showHints);bind('settings-btn',showSettings);bind('inventory-btn',showInventory);bind('crew-btn',showCrew);bind('interact-btn',()=>useFocused());bind('crouch-btn',()=>controls.toggleCrouch());
+  bind('continue-btn',()=>startSolo(true));bind('coop-btn',showCoop);bind('how-btn',showHelp);bind('pause-btn',showPause);bind('notes-btn',showNotebook);bind('hint-btn',showHints);bind('settings-btn',()=>showSettings('controls'));bind('menu-settings',()=>showSettings('controls'));bind('menu-audio',toggleSound);bind('audio-btn',toggleSound);bind('inventory-btn',showInventory);bind('crew-btn',showCrew);bind('interact-btn',()=>useFocused());bind('crouch-btn',()=>controls.toggleCrouch());
   bind('close-dialog',()=>{if(dialogKind==='coop'&&teamIntent){network.leave();teamIntent=false;}if(dialogKind==='win'){returnToMenu();return;}closeModal();});
   window.addEventListener('keydown',e=>{if(e.key==='Escape'&&!e.defaultPrevented&&dialogKind){if(dialogKind==='coop'&&teamIntent){network.leave();teamIntent=false;}closeModal();}});
+  window.addEventListener('pointerdown',()=>{if(settings.sound)sound?.unlock();},{capture:true,passive:true});
+  window.addEventListener('keydown',()=>{if(settings.sound)sound?.unlock();},{capture:true});
   window.addEventListener('resize',()=>scene.resize());window.addEventListener('pagehide',()=>saveSolo());
   window.addEventListener('storage',event=>{if(event.key===SAVE&&mode==='menu')refreshMenu();});
   bind('reload-btn',()=>location.reload());
