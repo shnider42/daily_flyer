@@ -1,7 +1,8 @@
-import {returnLane} from './special-teams.js?v=32';
+import {returnLane} from './special-teams.js?v=33';
 // Assignment + contact model. A block buys time; it never refreshes a stun.
 const dist=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 const clamp=(v,a,b)=>Math.max(a,Math.min(b,v));
+const pocketX=(g,p)=>{const x=g.format===11&&p.slot>=5&&p.slot<10?[23.25,29.75,20,26.5,33][p.slot-5]:p.slot===5?23:p.slot===6?30:26.5;return g.fieldX?g.fieldX(x):x;};
 export function clearBlocks(g){
  g.blocks=[];g.blockRead=0;
  for(const p of [...(g.players||[]),...(g.defenders||[])]){p.blocked=false;p.blocking=false;p.blockFactor=1;p.blockCooldown=0;p.assignment=null;}
@@ -102,13 +103,13 @@ export function updateBlocking(g,dt){
   }
   if(i===null){
    const lane=g.isReturn?returnLane(g):!g.receivedPass?(g.playDefinition.blockLane??g.carrier.x):g.carrier.x;
-   const tx=pocket?(g.format===11&&p.slot>=5&&p.slot<10?[23.25,29.75,20,26.5,33][p.slot-5]:(p.slot===5?23:p.slot===6?30:26.5)):lane+(p.slot%2? -3:3),ty=pocket?g.spot-1:g.carrier.y+5;
+   const tx=pocket?pocketX(g,p):lane+(p.slot%2? -3:3),ty=pocket?g.spot-1:g.carrier.y+5;
    g.move(p,tx-p.x,ty-p.y,p.speed*.8,dt);continue;
   }
   claimed.add(i);const d=g.defenders[i];
   const dx=d.x-g.carrier.x,dy=d.y-g.carrier.y,n=Math.hypot(dx,dy)||1;
   let tx=d.x-dx/n*1.6,ty=d.y-dy/n*1.6;
-  if(pocket&&dist(d,g.carrier)>7){tx=clamp(tx,(g.format===11&&p.slot>=5&&p.slot<10?[23.25,29.75,20,26.5,33][p.slot-5]:(p.slot===5?23:p.slot===6?30:26.5))-5,(g.format===11&&p.slot>=5&&p.slot<10?[23.25,29.75,20,26.5,33][p.slot-5]:(p.slot===5?23:p.slot===6?30:26.5))+5);ty=clamp(ty,g.spot-2.5,g.spot+1);}
+  if(pocket&&dist(d,g.carrier)>7){tx=clamp(tx,pocketX(g,p)-5,pocketX(g,p)+5);ty=clamp(ty,g.spot-2.5,g.spot+1);}
   g.move(p,tx-p.x,ty-p.y,p.speed*(pocket?.86:.96),dt);
   // Contact is only legal while the blocker is between the threat and runner.
   if(dist(p,d)<2.15&&dist(d,g.carrier)>dist(p,g.carrier)+.1){

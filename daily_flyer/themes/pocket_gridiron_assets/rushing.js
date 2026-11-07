@@ -26,10 +26,10 @@ export function chooseOffense(g){
  }).id;
 }
 export function runLandmark(g){
- const p=g.carrier,play=g.playDefinition,lane=play.lane??26.5,outside=Math.abs(lane-26.5)>11;
- if(play.delay>g.liveTime)return {x:26.5,y:g.spot-4,stage:'wait'};
- const edge=lane>26.5?(g.format===11?40:37):(g.format===11?13:16);
- if(p.y<g.spot+1&&outside&&(lane>26.5?p.x<edge-3.5:p.x>edge+3.5))return {x:edge,y:g.spot-.5,stage:'edge'};
+ const p=g.carrier,play=g.playDefinition,center=g.ballX??26.5,lane=play.lane??center,outside=Math.abs(lane-center)>11;
+ if(play.delay>g.liveTime)return {x:center,y:g.spot-4,stage:'wait'};
+ const baseEdge=lane>center?(g.format===11?40:37):(g.format===11?13:16),edge=g.fieldX?g.fieldX(baseEdge):baseEdge;
+ if(p.y<g.spot+1&&outside&&(lane>center?p.x<edge-3.5:p.x>edge+3.5))return {x:edge,y:g.spot-.5,stage:'edge'};
  return {x:lane,y:Math.max(g.spot+6,p.y+8),stage:'upfield'};
 }
 export function cpuRunTarget(g){

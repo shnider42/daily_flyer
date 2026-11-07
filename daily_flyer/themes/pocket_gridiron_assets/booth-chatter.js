@@ -1,4 +1,4 @@
-import {syllableStress} from './syllables.js?v=32';
+import {syllableStress} from './syllables.js?v=33';
 // Original nonverbal text sounds. One shared word clock drives sound and captions.
 const timelines=new Map();
 const timbres={al:{frequency:265,cutoff:1850,volume:.11},john:{frequency:185,cutoff:1250,volume:.14},coach:{frequency:218,cutoff:1500,volume:.12},casey:{frequency:330,cutoff:2100,volume:.10}};

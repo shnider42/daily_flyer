@@ -1,6 +1,6 @@
-import {checkContactInjury} from './injuries.js?v=32';
-import {effects} from './weather.js?v=32';
-import {fumbleChance} from './rules.js?v=32';
+import {checkContactInjury} from './injuries.js?v=33';
+import {effects} from './weather.js?v=33';
+import {fumbleChance} from './rules.js?v=33';
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
 const distance=(a,b)=>Math.hypot(a.x-b.x,a.y-b.y);
 export function resetContact(g){g.contact=null;g.breakArm=null;g.breakCooldown=0;g.offBalance=0;g.contactSlow=0;g.moveAnimation=null;g.contactFeedback='';}

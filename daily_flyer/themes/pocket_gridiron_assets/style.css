@@ -369,3 +369,88 @@ body[data-guidance] .plays .playcard .playreason{display:-webkit-box!important;-
  .quickcall .bookstatus small{display:none}
 }
 @media(prefers-reduced-motion:reduce){.playcards{transition:none}}
+
+/* Keyboard and touch share the same four-card huddle. */
+.desktopmove,.playkey{display:none}
+.competitioninfo{padding:11px 13px;background:#203a33;border-left:3px solid #eaca82;color:#d9e4c9;font:11px/1.6 monospace;margin:12px 0}
+.rulestag{margin-left:auto;font:bold 9px monospace;letter-spacing:.8px;padding:4px 6px;border:1px solid #587461;color:#d5e2b6}
+.panelheading{gap:10px}
+body[data-mode="college"] #teamIdentity{display:none}
+.modechoices button[data-mode="college"]{grid-column:1/-1;border-color:#9b844e}
+.trychoice{position:absolute;z-index:20;top:20%;left:6%;right:6%;padding:20px;background:#152e29f5;border:2px solid #e7cb80;box-shadow:5px 5px #051b18bb;text-align:center}
+.trychoice h3{font:bold 20px/1.25 monospace;color:#f6e5b7;margin:12px 0}
+.trychoice p{font:12px/1.5 monospace;color:#cbd8bc}
+.trychoice>div{display:flex;gap:12px}
+.trychoice button{flex:1;background:#edcb83;color:#192b24;font:bold 12px/1.4 monospace;padding:13px 7px;min-height:50px}
+.trychoice button:last-child{background:#335241;color:#f4ecd4;border:1px solid #94ac82}
+.trychoice kbd{margin-right:4px;color:inherit}
+#field:focus-visible{outline:2px solid #edcb8370;outline-offset:-2px}
+@media(min-width:901px){
+ main{padding-top:30px}
+ .lobby{gap:54px;align-items:start}
+ .lobby h1{font-size:clamp(54px,5vw,70px);margin:16px 0}
+ .lobby .lede{font-size:18px;margin:17px 0}
+ .lobby .tagline{margin:18px 0}
+ .poster{position:sticky;top:28px;margin-top:32px}
+ .modechoices{grid-template-columns:repeat(3,minmax(0,1fr))}
+ .modechoices button{font-size:11px;padding:10px 8px}
+ .modechoices button[data-mode="college"]{grid-column:span 2}
+ .modechoices small{font-size:10px}
+}
+@media(min-width:1001px), (min-width:901px) and (min-height:601px){
+ body.playing{height:100dvh;overflow:hidden}
+ body.playing .mast{height:62px;padding:9px 24px;max-width:1220px;display:flex}
+ body.playing .brandmark{padding:7px}
+ body.playing main{height:calc(100dvh - 62px);max-width:1220px;padding:12px 24px}
+ .game{height:100%;grid-template-columns:minmax(0,720px) minmax(340px,400px);gap:24px;align-items:stretch}
+ .console{height:100%;display:grid;grid-template-rows:64px 32px 24px minmax(0,1fr) 108px;min-width:0;box-shadow:5px 5px #0002}
+ .scoreboard{min-height:0;padding:5px 44px;gap:30px}
+ .scoreteam strong{font-size:32px}
+ .scoreteam span{font-size:14px}
+ .scoreboard #pause{width:42px;height:42px;top:10px}
+ .downbar{align-items:center;padding:6px 13px;min-width:0}
+ .downbar #playName{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;max-width:42%}
+ .weatherbar{align-items:center}
+ .fieldwrap{height:100%;min-height:0;min-width:0}
+ #field{width:100%;height:100%;max-height:none;object-fit:fill}
+ .controls{height:108px;min-height:0;padding:8px 16px;gap:20px;border-top-width:2px}
+ .controls .movezone{height:88px;width:92px}
+ .controls .joystick{width:76px;height:76px}
+ .controls .joystick small{bottom:-10px}
+ .controls .actions{max-width:none;min-width:0}
+ .controls .receivers{min-height:40px;gap:10px}
+ .controls .receivers button{height:40px;position:relative}
+ .controls .actionbar{margin-top:5px}
+ .controls .actionbar .burst,.controls .actionbar .changeplay{min-height:36px;padding:6px;font-size:12px}
+ .controls .energy{height:4px;margin-top:7px}
+ .playpanel{height:100%;min-width:0;overflow-y:auto;overscroll-behavior:contain;scrollbar-width:thin;padding:3px 8px 14px 0}
+ .playpanel h2{font-size:27px;margin:10px 0 7px}
+ #callHint{font:12px/1.5 monospace;margin:0 0 13px}
+ .plays .playcard{position:relative;grid-template-rows:29px 13px minmax(58px,8dvh) 30px;gap:4px;padding:9px}
+ .plays .playcard b{font-size:12px}
+ .plays .playcard .playreason{font-size:10px;line-height:1.45}
+ .bookmast .bookhome,.bookmast .bookselect{min-height:40px}
+ .bookstatus b,.bookstatus small{font-size:10px}
+ .plays .playcard:hover:not(:disabled){border-color:#e7cb80;background:#314939;filter:none}
+ .drivebox{display:block;margin:15px 0 10px;padding-top:12px}
+ .drivebox p{font-size:12px;line-height:1.5;margin:6px 0}
+ .playpanel .keyboard{display:block;border-top:1px solid #304b3e;padding-top:12px}
+ .keyboard p{font-size:11px;line-height:1.9;margin:5px 0 10px}
+ .quickcall{display:none!important}
+ .fieldmessage{font-size:24px}
+ .playerlabel{font-size:11px;line-height:1.5;padding:7px}
+ .readiness{font-size:11px}
+}
+@media(min-width:901px) and (pointer:fine){
+ .controls .movezone{display:none}
+ .desktopmove{display:flex;flex-direction:column;align-items:center;flex:0 0 114px;gap:3px;color:#ceddc4;font:10px monospace}
+ .desktopmove kbd{display:inline-block;text-align:center;min-width:23px;padding:3px;border:1px solid #587365;background:#253e34;border-radius:3px;margin:0 2px}
+ .desktopmove b{font-size:9px;letter-spacing:1px;margin-top:3px;color:#eaca82}
+ .desktopmove small{font-size:9px;color:#a7bbad}
+ body[data-phase="call"] .playkey{display:block;position:absolute;right:6px;top:6px;font:bold 10px monospace;padding:2px 4px;background:#152c23;border:1px solid #7d9370;color:#e8d198}
+ body[data-phase="call"] .playcard b{padding-right:18px}
+ .receivers button::after{content:attr(data-key);position:absolute;top:4px;right:6px;font:9px monospace;opacity:.7}
+ .controls .burst span{display:inline;font-size:9px}
+ .plays .booknav button:hover:not(:disabled){background:#476047}
+}
+@media(max-width:600px){.trychoice{top:15%;padding:14px}.trychoice h3{font-size:17px}.trychoice p{font-size:11px}.trychoice kbd{display:none}}

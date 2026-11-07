@@ -1,5 +1,5 @@
-import {Game,clamp,distance} from './engine.js?v=32';
-import {CLASSICS} from './history.js?v=32';
+import {Game,clamp,distance} from './engine.js?v=33';
+import {CLASSICS} from './history.js?v=33';
 export const DRILLS=[
  {id:'passing',name:'Passing lab',icon:'A →',simple:'Snap, let a receiver get open, then tap A, B or C.',moderate:'Read the coverage and lead the receiver with the stick as you throw.',expert:'Progression: 5 / 10 / 15-yard completions. Placement and separation matter.',goals:[5,10,15]},
  {id:'running',name:'Running lanes',icon:'↑ ↑',simple:'Follow your blockers. Use BURST when you see a gap.',moderate:'Press the lane, cut behind the block, and protect the ball through contact.',expert:'Progression: 5 / 10 / 20 yards. Gain is measured from the line of scrimmage.',goals:[5,10,20]},
@@ -12,15 +12,16 @@ export function saveProgress(progress,key,result){
 }
 export class ChallengeGame extends Game{
  constructor(home,away,config,rng=Math.random){
-  super(home,away,config.difficulty||'rookie',rng,{format:config.format||7,length:'showcase',playClock:false,tvTimeouts:false,weather:config.weather||'clear'});
+  super(home,away,config.difficulty||'rookie',rng,{format:config.format||7,length:'showcase',playClock:false,tvTimeouts:false,weather:config.weather||'clear',ruleset:config.ruleset,historicalMoment:!!config.customSetup,injuries:false});
   this.injuriesEnabled=false;this.challenge={...config,level:clamp(Number(config.level)||0,0,2)};this.practice=config.mode==='training';this.elapsed=0;this.events=[];this.pendingFinal=false;
-  const item=this.practice?DRILLS.find(d=>d.id===config.id):CLASSICS.find(d=>d.id===config.id);if(!item)throw Error('Unknown challenge');this.item=item;
+  const item=config.item||(this.practice?DRILLS.find(d=>d.id===config.id):CLASSICS.find(d=>d.id===config.id));if(!item)throw Error('Unknown challenge');this.item=item;
   this.goal=this.practice?item.goals[this.challenge.level]:null;
   this.beginDrive(0,this.practice?(config.id==='punting'?50:30):item.spot,this.practice?1:item.down,this.practice?40:item.target);this.events=[];
   if(this.practice){this.clock=120;if(config.id==='fieldgoal')this.beginGoal('fieldgoal',0,117-this.goal);else if(config.id==='punting')this.beginKick('punt',0,50);else this.choose(config.id==='running'?'dive':'slants');}
   else{
    this.quarter=4;this.clock=item.clock;this.scores=[...item.score];this.publishedScores=[...item.score];
-   if(config.id==='catch'){
+   if(config.customSetup){this.phase='ready';}
+   else if(config.id==='catch'){
     this.scenarioPlay={id:'catch',name:'Sprint right • Clark',kind:'pass',group:'quick',formationId:'singleback',routes:[[[36,0],[38,5],[43,10]],[[46,0],[49,3]],[[36,0],[25,5]]],wait:2};
     this.phase='ready';this.setFormation();this.players[2].x=36;this.defenders[4].x=39;this.defenders[4].y=99;
    }else this.setupMoment(config.id);

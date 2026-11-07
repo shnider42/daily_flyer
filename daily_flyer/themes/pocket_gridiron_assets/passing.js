@@ -1,4 +1,4 @@
-import {effects,weatherPassDrift} from './weather.js?v=32';
+import {effects,weatherPassDrift} from './weather.js?v=33';
 // Pass placement is a destination, never a homing ball. No randomness here:
 // the same preview, CPU plan and released throw use the same geometry.
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));

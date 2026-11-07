@@ -1,8 +1,8 @@
-import {crowdReaction,crowdBed} from './stadium-life.js?v=32';
-import {BoothChatter} from './booth-chatter.js?v=32';
-import {playbackSession} from './device-audio.js?v=32';
-import {ImpactLimiter} from './impact.js?v=32';
-import {PGIMusic,FAMILY_NAMES} from './music.js?v=32';
+import {crowdReaction,crowdBed} from './stadium-life.js?v=33';
+import {BoothChatter} from './booth-chatter.js?v=33';
+import {playbackSession} from './device-audio.js?v=33';
+import {ImpactLimiter} from './impact.js?v=33';
+import {PGIMusic,FAMILY_NAMES} from './music.js?v=33';
 export function musicPolicy(settings,game,{audition=false,broadcast=false}={}){
  const continuous=settings.musicMode==='always';
  const scene=game?.phase==='final'?'postgame':typeof broadcast==='string'?broadcast:!game?'menu':game.phase==='halftime'?'halftime':null;

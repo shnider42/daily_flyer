@@ -1,5 +1,5 @@
-import {weatherSideline} from './weather-presentation.js?v=32';
-import {specialStory} from './special-teams.js?v=32';
+import {weatherSideline} from './weather-presentation.js?v=33';
+import {specialStory} from './special-teams.js?v=33';
 // Casey Reed is an original fictional PGI reporter. Reports use snapshots of
 // this game's lineup and box score. Coach dialogue is labeled PGI fiction.
 export const REPORTER={id:'casey',name:'Casey Reed',label:'CASEY',location:'ON THE SIDELINE'};

@@ -1,6 +1,6 @@
-import {jobs,legacyEleven} from './assignment-books.js?v=32';
-import {SYSTEM_PLAYS} from './offensive-systems.js?v=32';
-import {SYSTEM_DEFENSE,FRONTS} from './defensive-systems.js?v=32';
+import {jobs,legacyEleven} from './assignment-books.js?v=33';
+import {SYSTEM_PLAYS} from './offensive-systems.js?v=33';
+import {SYSTEM_DEFENSE,FRONTS} from './defensive-systems.js?v=33';
 const clamp=(n,a,b)=>Math.max(a,Math.min(b,n));
 const BASE_PLAYS=[
  {id:'dive',name:'Inside run',kind:'run',hint:'Follow the blocks'},

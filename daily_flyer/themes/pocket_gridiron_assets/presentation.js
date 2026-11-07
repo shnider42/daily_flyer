@@ -1,16 +1,16 @@
-import {PERSONNEL,tendency} from './packages.js?v=32';
-import {goalWindow} from './placekicks.js?v=32';
-import {kickConditions} from './weather.js?v=32';
+import {PERSONNEL,tendency} from './packages.js?v=33';
+import {goalWindow} from './placekicks.js?v=33';
+import {kickConditions} from './weather.js?v=33';
 // Human-facing information. Never derive defensive guidance from the secret call.
 export function showOffensiveRoutes(g){return g.userOffense&&!g.special&&!g.returnInfo&&['call','ready'].includes(g.phase);}
 export function publicPlayName(g){return g.userOffense?g.playDefinition.name:g.teams[g.offense].abbr+' offense';}
 // All legal kick cards for the full book. Suggested calls apply a stricter
 // situation/range check below; an available 65-yard attempt is not a smart default.
 export function kickOptions(g){
- if(!g.userOffense||g.paused||g.phase&&!['call','ready'].includes(g.phase))return [];
+ if(!g.userOffense||g.paused||g.tryAttempt||g.phase&&!['call','ready'].includes(g.phase))return [];
  const distance=Math.ceil(117-g.spot),cards=[];
  if(distance<=65)cards.push({id:'fieldgoal',kind:'kick',group:'kick',kickType:'fieldgoal',name:'Field goal',hint:`${distance}-yard attempt`,reason:`${distance}-yard attempt`,distance});
- if(g.down===4)cards.push({id:'punt',kind:'kick',group:'kick',kickType:'punt',name:'Punt',hint:'Trade possession for field position',reason:'Pin the opponent farther back'});
+ if(g.down===4&&!g.collegeOvertime)cards.push({id:'punt',kind:'kick',group:'kick',kickType:'punt',name:'Punt',hint:'Trade possession for field position',reason:'Pin the opponent farther back'});
  return cards;
 }
 const finite=(n,fallback)=>Number.isFinite(n)?n:fallback;
@@ -25,10 +25,11 @@ function kickRange(g,distance){
 }
 function suggestedKick(g,s){
  const cards=kickOptions(g),goal=cards.find(p=>p.kickType==='fieldgoal');
+ if(g.collegeOvertime?.series===1&&s.score< -3)return null;
  if(goal&&(!s.needTD||s.goal)){
   const range=kickRange(g,goal.distance),limit=s.halfEnd?Math.min(65,range):Math.min(60,range-2);
   if(goal.distance<=limit&&(s.goal||s.down===4||s.halfEnd&&!s.protect||s.ot||s.red&&s.down===3&&!s.protect)){
-   return {...goal,reason:s.needTD?'Three points will not tie the game':s.ot?'Three points win in overtime':s.halfEnd&&!s.protect?'Take the points before time expires':`${goal.distance}-yard kick · points available`};
+   return {...goal,reason:s.needTD?'Three points will not tie the game':s.ot?g.collegeOvertime?(g.collegeOvertime.series===0?'Take three · opponent still gets a possession':s.score===-3?'Three points force another overtime':'Three points win the game'):'Three points win in overtime':s.halfEnd&&!s.protect?'Take the points before time expires':`${goal.distance}-yard kick · points available`};
   }
  }
  if(s.down===4&&!s.needScore&&(!s.halfEnd||s.protect)&&(s.spot<55||s.spot<75&&s.toGo>=4))return cards.find(p=>p.kickType==='punt');
@@ -137,13 +138,15 @@ export function suggestions(g,plays){
 }
 export function coachText(g,level){
  if(level==='expert')return '';
+ if(g.phase==='try_choice')return 'Kick for one point or choose a play for two. College tries start at the 3.';
+ if(g.tryAttempt&&['call','ready'].includes(g.phase))return 'One play for two points. Reach the end zone; the game clock is stopped.';
  if(g.phase==='dead')return g.contactFeedback||g.lastResult||'Choose your next call when the playbook opens.';
  if(g.phase==='penalty')return 'Accept applies the penalty. Decline keeps what happened on the play.';
  if(g.phase==='ready'&&g.userOffense&&g.playDefinition.playAction)return 'Sell the run fake, then pass with A, B or C. Repeating the fake makes it less convincing.';
  if(g.phase==='ready'&&g.userOffense&&g.playDefinition.kind==='run'&&!g.playDefinition.exchange)return 'You control the runner after SNAP. Follow the dotted lane; use BURST as the gap opens.';
  if(g.phase==='ready'&&g.userOffense&&g.playDefinition.exchange)return g.playDefinition.hint+' · steer after the exchange.';
  if(g.special?.goal)return g.userKicking?'Start the meter, set power, then stop accuracy in green.':'Opponent kicking.';
- if(g.phase.startsWith('kick_'))return g.userKicking?'Aim first. Tap twice to set power.':'Track the ring. Move after the catch; B calls a punt fair catch.';
+ if(g.phase.startsWith('kick_'))return g.userKicking?'Aim first. Tap twice to set power.':g.canFairCatch&&g.special?.type==='kickoff'?'Track the ring. B signals a fair catch; a clean catch inside the 25 starts at the 25.':'Track the ring. Move after the catch; B calls a punt fair catch.';
  if(g.isLive&&!g.special&&!g.receivedPass&&g.playDefinition.kind==='run'&&g.userOffense&&g.carrier.y<g.spot+4)return g.pitch?'Wait for the exchange, then follow the dotted lane.':Math.abs(g.playDefinition.lane-26.5)>11?'Steer toward the outside lane first, then turn upfield. Burst through the opening.':'Press the marked gap. Let the blocker engage, then burst through.';
  if(g.isLive||g.isLoose)return '';
  const profile=g.teams[0].profile?.[g.userOffense?'offense':'defense'];

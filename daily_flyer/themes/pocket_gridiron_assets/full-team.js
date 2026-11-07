@@ -17,8 +17,8 @@ export function fullFormation(formation){
 export function fullCoverage(g,d){
  if(d.slot<7)return null;
  if(d.slot===7||d.slot===8&&g.personnel!=='stack')return g.carrier;
- if(g.personnel==='stack'&&d.slot===8)return {x:12,y:Math.min(107,g.spot+7)};
- if(d.slot===9)return {x:26.5,y:Math.min(107,g.spot+6)};
+ if(g.personnel==='stack'&&d.slot===8)return {x:g.fieldX?g.fieldX(12):12,y:Math.min(107,g.spot+7)};
+ if(d.slot===9)return {x:g.fieldX?g.fieldX(26.5):26.5,y:Math.min(107,g.spot+6)};
  const threat=g.players.slice(2,5).sort((a,b)=>b.y-a.y)[0];
  return {x:Math.max(8,Math.min(45,threat.x)),y:Math.min(107,Math.max(g.spot+18,threat.y+4))};
 }

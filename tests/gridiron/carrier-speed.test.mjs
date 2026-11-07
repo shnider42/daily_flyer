@@ -20,7 +20,9 @@ test('possession slows either team by seven percent at every difficulty without 
 test('a throw releases the speed penalty and the receiver takes it only after the catch',()=>{
  const g=make(),qb=g.carrier,wr=g.players[2];g.throwTo(0);
  near(travel(g,qb),1);near(travel(g,wr),1);
- g.catchPass(wr);near(travel(g,qb),1);near(travel(g,wr),.93);
+ // Put the ball at the receiver for a standing catch; diving/grounded catches
+ // have their own movement rules and are covered by the college rules tests.
+ Object.assign(g.pass,{x:wr.x,y:wr.y});g.catchPass(wr);near(travel(g,qb),1);near(travel(g,wr),.93);
 });
 test('kick returners run freely to the landing point and slow only after securing the kick',()=>{
  for(const type of ['kickoff','punt'])for(const side of [0,1]){

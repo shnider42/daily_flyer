@@ -1,7 +1,7 @@
-import {OFFENSIVE_SYSTEMS} from './offensive-systems.js?v=32';
-import {rate} from './roster.js?v=32';
-import {OFFENSE_STYLES,DEFENSE_STYLES} from './teams.js?v=32';
-import {selectSpecialists} from './special-teams.js?v=32';
+import {OFFENSIVE_SYSTEMS} from './offensive-systems.js?v=33';
+import {rate} from './roster.js?v=33';
+import {OFFENSE_STYLES,DEFENSE_STYLES} from './teams.js?v=33';
+import {selectSpecialists} from './special-teams.js?v=33';
 // PGI selections, not the official Hall of Fame lists. Names span NFL/AFL eras;
 // stats are authored gameplay ratings, normalized across eras, not career totals.
 // Tuple: name, jersey, position, speed, strength, signature skill, endurance.

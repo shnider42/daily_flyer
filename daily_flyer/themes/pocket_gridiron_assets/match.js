@@ -1,4 +1,4 @@
-import {emptySpecial} from './special-teams.js?v=32';
+import {emptySpecial} from './special-teams.js?v=33';
 export const MATCH_LENGTHS=Object.freeze({
  quick:{name:'Quick game',quarterSeconds:45,multiplier:1,halftimeShow:true},
  extended:{name:'Extended game',quarterSeconds:90,multiplier:2,halftimeShow:true},

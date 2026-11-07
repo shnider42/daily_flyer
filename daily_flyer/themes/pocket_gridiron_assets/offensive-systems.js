@@ -1,4 +1,4 @@
-import {expandedOffense} from './expanded-offense.js?v=32';
+import {expandedOffense} from './expanded-offense.js?v=33';
 // Original PGI interpretations: seven recognisable ideas, six executable calls each.
 // No live coaching claims, hidden option reads, or new pass buttons.
 export const OFFENSIVE_SYSTEMS={

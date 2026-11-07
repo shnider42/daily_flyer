@@ -1,4 +1,4 @@
-import {PRONUNCIATIONS} from './booth-pronunciations.js?v=32';
+import {PRONUNCIATIONS} from './booth-pronunciations.js?v=33';
 
 // Stress digits describe spoken syllables, not spelling length. The compact
 // dictionary covers authored dialogue; the fallback also handles fresh rosters.

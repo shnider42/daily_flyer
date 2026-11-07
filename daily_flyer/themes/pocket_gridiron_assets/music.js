@@ -1,6 +1,9 @@
 // Adapted from Breach's authored-score transport: shared AudioContext, bounded
 // decoded cache, guarded async loads, local mixing, and explicit pause handling.
 export const SCORE_CUES={NE:{id:'for-boston',title:'For Boston',src:'./music/for-boston.mp3'},NYJ:{id:'notre-dame-victory',title:'Notre Dame Victory March',src:'./music/notre-dame-victory.mp3?v=23'},GB:{id:'green-bay-bomb-intro',title:'You Dropped a Bomb on Me · Intro',src:'./music/green-bay-bomb-intro.mp3?v=28'},default:{id:'pgi-score',title:'Six on the Board',src:'./music/pgi-score.mp3'}};
+// The existing college fight-song arrangements also follow their own schools.
+SCORE_CUES.C_BC=SCORE_CUES.CC_BC84=SCORE_CUES.NE;
+SCORE_CUES.C_ND=SCORE_CUES.NYJ;
 export const SCORE_VARIANTS={
  gb63:{id:'lambeau-long-drop-63',title:'Green Bay · Take 1 · 63 BPM',src:'./music/lambeau-long-drop-63.mp3'},
  gb112:{id:'lambeau-long-drop-112',title:'Green Bay · Take 2 · 112 BPM',src:'./music/lambeau-long-drop-112.mp3'}
@@ -14,7 +17,7 @@ export const SCENE_TRACKS={
 };
 export class PGIMusic {
  constructor({fetcher=globalThis.fetch?.bind(globalThis)}={}){this.fetcher=fetcher;this.catalog=[];this.cache=new Map();this.loads=new Map();this.failed=new Set();this.voices=new Set();this.generation=0;this.scoreGeneration=0;this.enabled=true;this.scoring=true;this.family='all';this.scene='menu';this.volume=.55;this.blocked=false;this.active=null;this.scorer=null;this.pending=null;this.cursor=-1;this.resumeAt=0;this.selected=null;this.status='Choose a track or start a game.';}
- async loadCatalog(){try{const r=await this.fetcher(new URL('./music/manifest.json?v=32',import.meta.url));if(!r.ok)throw Error();const m=await r.json();this.catalog=(Array.isArray(m)?m:m.tracks).filter(t=>t.id&&t.title&&['arcade','film'].includes(t.family)&&/^\.\/music\/[a-z0-9-]+\.mp3$/.test(t.src));return this.catalog;}catch{this.status='Soundtrack unavailable. Football is ready.';return [];}}
+ async loadCatalog(){try{const r=await this.fetcher(new URL('./music/manifest.json?v=33',import.meta.url));if(!r.ok)throw Error();const m=await r.json();this.catalog=(Array.isArray(m)?m:m.tracks).filter(t=>t.id&&t.title&&['arcade','film'].includes(t.family)&&/^\.\/music\/[a-z0-9-]+\.mp3$/.test(t.src));return this.catalog;}catch{this.status='Soundtrack unavailable. Football is ready.';return [];}}
  attach(context,output,scoreOutput){this.context=context;this.output=output;this.scoreOutput=scoreOutput;}
  releaseContext(){
   ++this.generation;++this.scoreGeneration;
