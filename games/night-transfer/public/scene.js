@@ -19,19 +19,24 @@ const THEMES = {
   dispatch: { paint: 0x4a5757, upper: 0xa6afa9, light: 0xf4ca8f, name: 'SECURE DISPATCH', sector: 'B', warm: 1.05 },
   boiler: { paint: 0x555f59, upper: 0xaaa68e, light: 0xffc185, name: 'BOILER HOUSE', sector: 'C', warm: 1.25 },
   sluice: { paint: 0x425c59, upper: 0x9dacaa, light: 0xd5ded0, name: 'SEA DEFENCE / 03', sector: 'C', warm: .6 },
-  quay: { paint: 0x3e5455, upper: 0x8b9e97, light: 0xe1debd, name: 'NORTH QUAY', sector: 'C', warm: .65 }
+  quay: { paint: 0x3e5455, upper: 0x8b9e97, light: 0xe1debd, name: 'NORTH QUAY', sector: 'C', warm: .65 },
+  annexArchive: { paint: 0x6c614e, upper: 0xc9bea3, light: 0xffcf91, name: '04 / DEAD ARCHIVE', shortName: 'DEAD ARCHIVE', sector: 'D', warm: 1.35, annex: true, floor: 0x8c826d, steel: 0x777d69, ambient: 0xd0c7b1, background: 0x302e25 },
+  annexRelay: { paint: 0x405b65, upper: 0xa8bec0, light: 0xb8dce9, name: '04 / RELAY GALLERY', shortName: 'RELAY GALLERY', sector: 'D', warm: 1.05, annex: true, floor: 0x687f83, steel: 0x58717b, ambient: 0xb2cbd8, background: 0x21333c },
+  annexListening: { paint: 0x414d4d, upper: 0x929f99, light: 0xf3d7a4, name: '04 / LISTENING BOOTH', shortName: 'LISTENING BOOTH', sector: 'D', warm: .75, annex: true, floor: 0x626e68, steel: 0x667671, ambient: 0xb4c5c7, background: 0x22302f },
+  annexRelease: { paint: 0x57777c, upper: 0xc7d2c7, light: 0xdcecdc, name: '04 / RELEASE INTERLOCK', shortName: 'RELEASE INTERLOCK', sector: 'D', warm: 1.15, annex: true, floor: 0x889a93, steel: 0x76918e, ambient: 0xc2d9d6, background: 0x2a3c3d }
 };
 const FOOTPRINTS = {
   bed: [1.08, 2.14], bunk: [1.12, 2.18], toilet: [.62, .83], sink: [.78, .55],
   locker: [.91, .68], cabinet: [1.04, .58], shelf: [1.36, .52], desk: [1.8, .92],
   cart: [1.12, .75], generator: [1.65, 1.05], boiler: [1.5, 1.45], crate: [.78, .7],
-  cage: [1.3, .72], terminal: [1.55, .82], monitor: [1.55, .82], washer: [1.35, 1.1]
+  cage: [1.3, .72], terminal: [1.55, .82], monitor: [1.55, .82], washer: [1.35, 1.1],
+  archive: [1.12, .7], relay: [1.45, .68], receiver: [1.8, .92]
 };
 function seeded(n) { const s = Math.sin(n * 127.1 + 311.7) * 43758.5453; return s - Math.floor(s); }
 function clamp(x, lo, hi) { return Math.max(lo, Math.min(hi, x)); }
 function targetHeight(o) {
   if (Number.isFinite(o.y)) return o.y;
-  return ({ note: 1.55, camera: 2.45, panel: 1.5, valve: 1.35, bed: .73, bunk: .73, drain: .08, grate: .08, desk: 1.0, cart: .95, gate: 1.4, door: 1.4 })[o.prop] || 1.1;
+  return ({ note: 1.55, camera: 2.45, panel: 1.5, valve: 1.35, bed: .73, bunk: .73, drain: .08, grate: .08, desk: 1.0, cart: .95, gate: 1.4, door: 1.4, archive: 1.25, relay: 1.45, receiver: 1.25, interlock: 1.45 })[o.prop] || 1.1;
 }
 function coords(o) { return { x: Number(o.x ?? o.position?.x ?? 0), z: Number(o.z ?? o.position?.z ?? 0) }; }
 function owns(state, item) { return !!item && (state?.inventory || []).includes(item); }
@@ -177,10 +182,10 @@ export class PrisonScene {
     this.m = {
       upper: this.material({ color: t.upper, map: concrete, bumpMap: concrete, bumpScale: .035 }),
       lower: this.material({ color: t.paint, map: concrete, bumpMap: concrete, bumpScale: .025 }),
-      floor: this.material({ color: 0x7b847d, map: floor, bumpMap: floor, bumpScale: .027, roughness: this.room.id === 'quay' || this.room.id === 'sluice' ? .52 : .9 }),
+      floor: this.material({ color: t.floor ?? 0x7b847d, map: floor, bumpMap: floor, bumpScale: .027, roughness: this.room.id === 'quay' || this.room.id === 'sluice' ? .52 : .9 }),
       ceiling: this.material({ color: 0x696f65, map: concrete, roughness: 1 }),
       trim: this.material({ color: 0x303e3a, roughness: .8, metalness: .12 }),
-      steel: this.material({ color: 0x586866, roughness: .62, metalness: .55 }),
+      steel: this.material({ color: t.steel ?? 0x586866, roughness: .62, metalness: .55 }),
       steelLight: this.material({ color: 0xa9b3a5, roughness: .5, metalness: .65 }),
       dark: this.material({ color: 0x182a2b, roughness: .82, metalness: .25 }),
       iron: this.material({ color: 0x353f3b, roughness: .75, metalness: .55 }),
@@ -193,11 +198,17 @@ export class PrisonScene {
       fabric: this.material({ color: 0x737966, roughness: 1 }),
       blanket: this.material({ color: 0x545e58, roughness: 1 }),
       orange: this.material({ color: 0xaf7449, roughness: .94 }),
-      lamp: this.material({ color: 0xffe4bd, emissive: 0xffd59e, emissiveIntensity: 1.25, roughness: .6 }),
+      lamp: this.material({ color: t.annex ? t.light : 0xffe4bd, emissive: t.annex ? t.light : 0xffd59e, emissiveIntensity: 1.25, roughness: .6 }),
       glass: this.material({ color: 0x63868a, emissive: 0x366374, emissiveIntensity: .3, roughness: .3, metalness: .15 }),
       green: this.material({ color: 0xa1c3a1, emissive: 0x66886f, emissiveIntensity: .5, roughness: .55 }),
       red: this.material({ color: 0xb16b40, emissive: 0x8d4624, emissiveIntensity: .38, roughness: .6 })
     };
+    if (t.annex) {
+      this.m.bakelite = this.material({ color: 0x302f2a, roughness: .56, metalness: .06 });
+      this.m.acoustic = this.material({ color: 0x515e56, map: concrete, roughness: 1 });
+      this.m.wire = this.material({ color: 0xb3a482, roughness: .9, metalness: .03 });
+      this.m.copper = this.material({ color: 0x9d7554, roughness: .68, metalness: .4 });
+    }
     const shadow = document.createElement('canvas'); shadow.width = shadow.height = 128; const ctx = shadow.getContext('2d'); const g = ctx.createRadialGradient(64, 64, 5, 64, 64, 64); g.addColorStop(0, 'rgba(2,8,8,.75)'); g.addColorStop(.55, 'rgba(2,8,8,.45)'); g.addColorStop(1, 'rgba(2,8,8,0)'); ctx.fillStyle = g; ctx.fillRect(0, 0, 128, 128);
     this.m.contact = this.basic({ map: this.texture(shadow, false), transparent: true, opacity: .7, depthWrite: false });
     this.m.invisible = this.basic({ transparent: true, opacity: 0, depthWrite: false, colorWrite: false, side: THREE.DoubleSide });
@@ -236,8 +247,8 @@ export class PrisonScene {
     this.theme = THEMES[this.room.id] || THEMES.holding; this.objects = objects; this.state = state;
     this.root = new THREE.Group(); this.scene.add(this.root);
     this.peerRoot = new THREE.Group(); this.scene.add(this.peerRoot);
-    this.scene.background = new THREE.Color(this.room.id === 'quay' ? 0x243d49 : 0x1b2c2d);
-    this.scene.fog = new THREE.FogExp2(this.room.id === 'quay' ? 0x314b55 : 0x34423e, this.room.id === 'quay' ? .018 : .025);
+    this.scene.background = new THREE.Color(this.theme.background ?? (this.room.id === 'quay' ? 0x243d49 : 0x1b2c2d));
+    this.scene.fog = new THREE.FogExp2(this.theme.background ?? (this.room.id === 'quay' ? 0x314b55 : 0x34423e), this.room.id === 'quay' ? .018 : .025);
     this.prepareMaterials(); this.buildLighting(); this.buildShell(); this.buildArchitecture();
     for (const object of objects) this.buildObject(object);
     this.scene.updateMatrixWorld(true); this.renderer.shadowMap.needsUpdate = true;
@@ -246,13 +257,13 @@ export class PrisonScene {
   }
   buildLighting() {
     const outdoor = this.room.id === 'quay';
-    this.hemi = new THREE.HemisphereLight(outdoor ? 0x9bb9c7 : 0xbed2cb, 0x3b3023, outdoor ? 1.55 : 1.35); this.scene.add(this.hemi);
+    this.hemi = new THREE.HemisphereLight(this.theme.ambient ?? (outdoor ? 0x9bb9c7 : 0xbed2cb), 0x3b3023, outdoor ? 1.55 : 1.35); this.scene.add(this.hemi);
     const moon = new THREE.DirectionalLight(0xa8c4d5, outdoor ? 2.1 : 1.6); moon.position.set(-3, 7, -5); moon.target.position.set(1, .3, 1);
     moon.castShadow = true; moon.shadow.mapSize.set(1024, 1024); moon.shadow.camera.left = -7; moon.shadow.camera.right = 7; moon.shadow.camera.top = 8; moon.shadow.camera.bottom = -8; moon.shadow.camera.near = .5; moon.shadow.camera.far = 24; moon.shadow.bias = -.0006; moon.shadow.normalBias = .025;
     this.scene.add(moon, moon.target);
     if (!outdoor) {
       const warm = new THREE.PointLight(this.theme.light, 18 * this.theme.warm, 13, 2); warm.position.set(.8, 2.82, .5); this.scene.add(warm);
-      const spill = new THREE.PointLight(0xffd6a0, 6, 7, 2); spill.position.set(0, 1.9, -5.8); this.scene.add(spill);
+      const spill = new THREE.PointLight(this.theme.annex ? this.theme.light : 0xffd6a0, 6, 7, 2); spill.position.set(0, 1.9, -5.8); this.scene.add(spill);
       const blue = new THREE.PointLight(0x8db6c9, 7, 7, 2); blue.position.set(-2.6, 2.2, -3.8); this.scene.add(blue);
     } else {
       const lamp = new THREE.PointLight(0xf2d3a0, 20, 12, 2); lamp.position.set(2.7, 3.1, 1.3); this.scene.add(lamp);
@@ -290,8 +301,8 @@ export class PrisonScene {
     for (const z of [-3.15, 0, 3.15]) this.box(this.root, w, .15, .14, 0, ROOM_HEIGHT - .08, z, this.m.trim, { shadow: false });
     this.pipe(this.root, [-w / 2 + .17, 2.85, -d / 2 + .2], [-w / 2 + .17, 2.85, d / 2 - .2], .045, this.m.pipe);
     for (const z of [-4, -1.5, 1, 3.5]) this.box(this.root, .12, .13, .07, -w / 2 + .17, 2.85, z, this.m.iron);
-    this.ceilingLamp(.7, .1, this.room.id === 'records');
-    this.sign(this.root, [this.theme.name, 'ASHGATE PENITENTIARY'], 1.95, .35, -w / 2 + .12, 2.45, -d / 2 + 1.9, { ry: PI / 2, bg: '#404e46', ink: '#ddd9bc', emissive: .13 });
+    this.ceilingLamp(.7, .1, this.room.id === 'records' || this.room.id === 'annexArchive');
+    this.sign(this.root, [this.theme.name, 'ASHGATE PENITENTIARY'], 1.95, .35, -w / 2 + (this.room.id === 'annexListening' ? .33 : .12), 2.45, -d / 2 + 1.9, { ry: PI / 2, bg: '#404e46', ink: '#ddd9bc', emissive: .13 });
     this.sign(this.root, ['KEEP THE PASSAGE CLEAR'], 1.85, .2, 0, .012, 2.7, { bg: '#687367', ink: '#b8b79d', rx: -PI / 2, border: false, emissive: .015, blocker: false });
   }
   corridorBackdrop(x, z, side) {
@@ -333,6 +344,7 @@ export class PrisonScene {
   buildArchitecture() {
     const id = this.room.id, w = this.roomWidth, d = this.roomDepth;
     if (id === 'quay') return;
+    if (this.theme.annex) { this.buildAnnexArchitecture(); return; }
     const windowRight = ['records', 'dispatch', 'sluice'].includes(id);
     this.window(windowRight ? 2.55 : -2.55, -d / 2 + .13, id === 'washroom' ? 1.65 : 1.8);
     if (id === 'holding') {
@@ -396,6 +408,137 @@ export class PrisonScene {
       const water = this.material({ color: 0x355d5b, roughness: .14, metalness: .25 }); this.plane(this.root, 1.24, 8.7, 0, -.018, 0, water, -PI / 2, 0, { blocker: false });
     }
   }
+  decorationFits(x, z, w, d, ry = 0) {
+    const extent = (width, depth, angle) => ({ x: Math.abs(Math.cos(angle)) * width / 2 + Math.abs(Math.sin(angle)) * depth / 2,
+      z: Math.abs(Math.sin(angle)) * width / 2 + Math.abs(Math.cos(angle)) * depth / 2 });
+    const a = extent(w, d, ry);
+    return this.objects.every(object => {
+      const p = coords(object), size = FOOTPRINTS[object.prop] || (['door', 'gate', 'shutter'].includes(object.prop) ? [1.65, .4] : [1.15, .4]);
+      const b = extent(...size, object.ry || 0);
+      return Math.abs(p.x - x) > a.x + b.x + .4 || Math.abs(p.z - z) > a.z + b.z + .4;
+    });
+  }
+  cableTray(x, fromZ = -4.45, toZ = 4.45) {
+    const length = toZ - fromZ, center = (fromZ + toZ) / 2;
+    for (const offset of [-.22, .22]) this.box(this.root, .025, .12, length, x + offset, 2.98, center, this.m.iron, { shadow: false });
+    for (let z = fromZ; z <= toZ; z += 1.1) this.box(this.root, .46, .025, .055, x, 2.92, z, this.m.steel, { shadow: false });
+    for (const [index, offset] of [-.12, 0, .12].entries()) this.pipe(this.root, [x + offset, 2.96, fromZ], [x + offset, 2.96, toZ], .017, index === 1 ? this.m.copper : this.m.wire);
+    for (const z of [fromZ + 1.2, toZ - 1.2]) for (const offset of [-.22, .22]) this.pipe(this.root, [x + offset, 3.01, z], [x + offset, 3.3, z], .012, this.m.steelLight);
+  }
+  annexDiagram(parent, kind, w, h, x, y, z, ry = 0) {
+    // Permanent service diagrams describe equipment, never the receiver's signal.
+    const c = document.createElement('canvas'); c.width = 640; c.height = 384;
+    const ctx = c.getContext('2d'), dark = kind === 'relay';
+    const ink = dark ? '#c4d5cd' : '#3b504a', bg = dark ? '#294c58' : '#c7c8ac';
+    ctx.fillStyle = bg; ctx.fillRect(0, 0, 640, 384);
+    ctx.strokeStyle = ink; ctx.lineWidth = 2; ctx.strokeRect(16, 16, 608, 352);
+    ctx.fillStyle = ink; ctx.textAlign = 'left'; ctx.textBaseline = 'middle'; ctx.font = '700 26px Arial';
+    ctx.fillText(kind === 'relay' ? 'ASHGATE / LINE EQUIPMENT' : 'PERIMETER RELEASE / SECTION 04', 36, 52);
+    ctx.font = '15px monospace'; ctx.fillText('COMMUNICATIONS ANNEX · ENGINEERING COPY', 36, 82);
+    ctx.lineWidth = 3;
+    const labels = kind === 'relay' ? ['TRUNK', 'PATCH', 'CARRIER'] : ['ANNEX', 'INTERLOCK', 'OUTSIDE'];
+    for (let i = 0; i < 3; i++) {
+      const bx = 52 + i * 198;
+      ctx.strokeRect(bx, 135, 138, 106);
+      ctx.textAlign = 'center'; ctx.font = '700 19px Arial'; ctx.fillText(labels[i], bx + 69, 264);
+      if (i < 2) { ctx.beginPath(); ctx.moveTo(bx + 138, 187); ctx.lineTo(bx + 198, 187); ctx.stroke(); }
+      if (kind === 'relay') {
+        for (let j = 0; j < 3; j++) { ctx.beginPath(); ctx.moveTo(bx + 22, 155 + j * 27); ctx.lineTo(bx + 57, 155 + j * 27); ctx.lineTo(bx + 81, 147 + j * 27); ctx.moveTo(bx + 85, 155 + j * 27); ctx.lineTo(bx + 116, 155 + j * 27); ctx.stroke(); }
+      } else {
+        ctx.strokeRect(bx + 41, 152, 56, 71);
+        ctx.beginPath(); ctx.moveTo(bx + 69, 152); ctx.lineTo(bx + 69, 223); ctx.moveTo(bx + 49, 187); ctx.lineTo(bx + 58, 187); ctx.moveTo(bx + 80, 187); ctx.lineTo(bx + 89, 187); ctx.stroke();
+      }
+    }
+    ctx.textAlign = 'left'; ctx.font = '16px monospace'; ctx.fillText('ISOLATE BEFORE SERVICE', 36, 323);
+    ctx.textAlign = 'right'; ctx.fillText('AG / 04', 604, 323);
+    const texture = this.texture(c, false), material = this.material({ map: texture, roughness: .98, emissive: 0x929e8f, emissiveIntensity: .09 });
+    const board = this.group(parent, x, y, z, ry);
+    this.box(board, w + .08, h + .08, .035, 0, 0, 0, this.m.wood, { shadow: false });
+    this.plane(board, w, h, 0, 0, .023, material);
+  }
+  acousticPanel(x, z, ry, width = 1.55) {
+    const g = this.group(this.root, x, 1.7, z, ry);
+    this.box(g, width, 2.17, .09, 0, 0, 0, this.m.bakelite, { shadow: false });
+    for (let i = 0; i < 7; i++) this.box(g, width / 7 - .025, 2.08, .085, -width / 2 + (i + .5) * width / 7, 0, .065, this.m.acoustic, { shadow: false });
+    for (const y of [-1.1, 1.1]) this.box(g, width + .04, .035, .16, 0, y, .04, this.m.wood, { shadow: false });
+  }
+  buildAnnexArchitecture() {
+    const id = this.room.id, w = this.roomWidth, d = this.roomDepth;
+    this.sign(this.root, ['COMMUNICATIONS ANNEX', '04'], 1.6, .44, w / 2 - (id === 'annexListening' ? .33 : .12), 2.77, 3.15,
+      { ry: -PI / 2, bg: '#394d4c', ink: '#d9dbc2', emissive: .11 });
+    if (id === 'annexArchive') {
+      this.window(w / 2 - .13, 2.65, 1.65, -PI / 2);
+      for (const z of [1.9, 3.35]) if (this.decorationFits(-3.48, z, 1.12, .7, PI / 2)) {
+        this.archive(this.group(this.root, -3.48, 0, z, PI / 2), null, { label: 'CLOSED FILES', index: z > 3 ? 4 : 3 });
+        this.collider(-3.48, z, 1.12, .7, PI / 2); this.floorShadow(this.root, .7, 1.12, -3.48, z);
+      }
+      const shelf = this.group(this.root, -2.15, 0, d / 2 - .32, PI);
+      this.box(shelf, 2.15, .07, .41, 0, 2.28, 0, this.m.wood);
+      for (const x of [-.87, .87]) this.box(shelf, .055, .4, .29, x, 2.08, -.05, this.m.iron);
+      for (let i = 0; i < 4; i++) {
+        const parcel = this.group(shelf, -.78 + i * .52, 2.48, 0, (i % 2 ? -.025 : .025));
+        this.box(parcel, .44, .32, .35, 0, 0, 0, this.m.paper);
+        this.box(parcel, .025, .33, .36, .08, 0, 0, this.m.fabric, { shadow: false });
+      }
+      this.sign(this.root, ['RECORDS RETENTION', 'DO NOT DESTROY'], 1.5, .4, .65, 2.45, d / 2 - .115, { ry: PI, bg: '#c4b48b', ink: '#634d3b' });
+      this.sign(this.root, ['DEAD FILES', 'LIVE CIRCUITS'], .96, .46, -3.88, 1.92, .65, { ry: PI / 2, bg: '#baa987', ink: '#654536' });
+      this.ceilingLamp(-1.55, -2.65, true);
+      for (let i = 0; i < 3; i++) this.box(this.root, .74, .018, .56, 2.3 + i * .06, .022 + i * .02, 2.6 + i * .09, this.m.paper, { blocker: false, shadow: false });
+    } else if (id === 'annexRelay') {
+      this.cableTray(-2.55); this.cableTray(2.55);
+      this.ceilingLamp(-.5, -3.0); this.ceilingLamp(-.5, 3.0);
+      for (const x of [-3.32, 3.32]) {
+        const ry = x < 0 ? PI / 2 : -PI / 2;
+        if (this.decorationFits(x, 2.75, 1.45, .68, ry)) {
+          this.relay(this.group(this.root, x, 0, 2.75, ry), null, { reserve: true });
+          this.collider(x, 2.75, 1.45, .68, ry); this.floorShadow(this.root, .68, 1.45, x, 2.75);
+        }
+      }
+      this.annexDiagram(this.root, 'relay', 1.62, .98, -2.0, 1.83, d / 2 - .115, PI);
+      this.sign(this.root, ['NO UNAUTHORISED PATCHING'], 2.15, .22, 2.0, 2.7, d / 2 - .115, { ry: PI, bg: '#a8b8ae', ink: '#2f4b50' });
+      for (const x of [-1.8, 1.8]) this.floorStripe(x, 0, .045, 7.8);
+      this.sign(this.root, ['RELAY GALLERY'], 1.65, .23, 0, .015, -.95, { rx: -PI / 2, bg: '#566e70', ink: '#bfc9b7', border: false, blocker: false });
+    } else if (id === 'annexListening') {
+      for (const x of [-w / 2 + .13, w / 2 - .13]) {
+        const ry = x < 0 ? PI / 2 : -PI / 2;
+        for (const z of [-3.2, -1.1, 1.0, 3.1]) this.acousticPanel(x, z, ry, 1.8);
+        this.collider(x, 0, .24, d - .3);
+      }
+      const glass = this.group(this.root, -2.2, 1.95, -d / 2 + .115);
+      this.box(glass, 2.35, 1.62, .08, 0, 0, 0, this.m.bakelite);
+      this.plane(glass, 2.15, 1.41, 0, 0, .047, this.m.glass, 0, 0, { blocker: false });
+      for (const x of [-1.11, 0, 1.11]) this.box(glass, .045, 1.48, .07, x, 0, .085, this.m.wood);
+      for (const y of [-.74, .74]) this.box(glass, 2.25, .045, .07, 0, y, .085, this.m.wood);
+      this.sign(glass, ['CONTROL ROOM', 'NO OPERATOR ON DUTY'], 1.48, .28, 0, -.35, .09, { bg: '#365353', ink: '#9db5a6', border: false, emissive: .12 });
+      const chair = this.group(this.root, -1.83, 0, -.9, PI / 2); this.chair(chair); this.collider(-1.83, -.9, .5, .55, PI / 2);
+      this.sign(this.root, ['LISTENING BOOTH', 'CLOSE THE DOOR AFTER ENTRY'], 2.05, .44, -2.05, 1.93, d / 2 - .115, { ry: PI, bg: '#b1b39b', ink: '#394d42' });
+      this.sign(this.root, ['LINE MONITOR', 'CARRIER INDICATOR ONLY'], 1.7, .37, 2.1, 2.2, d / 2 - .115, { ry: PI, bg: '#424e45', ink: '#c8c9ad' });
+      this.box(this.root, 3.7, .04, 2.25, 0, .025, -.9, this.m.fabric, { shadow: false, blocker: false });
+      this.box(this.root, 2.9, .12, 1.0, -.2, 3.12, -2.5, this.m.acoustic, { shadow: false });
+      this.ceilingLamp(-1.5, 2.6, true);
+    } else if (id === 'annexRelease') {
+      // A second portal makes the interlock read as a chamber while retaining a
+      // 3.7 m opening and both side approaches to the front-wall documents.
+      for (const x of [-1.95, 1.95]) {
+        this.box(this.root, .18, 2.76, .25, x, 1.38, -2.8, this.m.steelLight);
+        this.box(this.root, .3, .2, .4, x, .1, -2.8, this.m.iron);
+        this.collider(x, -2.8, .3, .4);
+        this.box(this.root, .07, .92, .28, x, 1.42, -2.8, this.m.dark, { shadow: false });
+      }
+      this.box(this.root, 4.08, .19, .35, 0, 2.85, -2.8, this.m.iron);
+      this.box(this.root, 3.6, .035, .2, 0, 2.74, -2.8, this.m.lamp, { blocker: false, shadow: false });
+      this.sign(this.root, ['RELEASE INTERLOCK'], 1.9, .19, 0, 2.86, -2.61, { bg: '#b7c6b8', ink: '#385555', border: false });
+      for (const z of [-1.9, -1.65]) this.floorStripe(0, z, 3.62, .07);
+      this.sign(this.root, ['STAND CLEAR'], 1.7, .24, 0, .017, -.96, { rx: -PI / 2, bg: '#7f9288', ink: '#d5d6b9', border: false, blocker: false });
+      this.annexDiagram(this.root, 'release', 1.62, .98, -2.0, 1.8, d / 2 - .115, PI);
+      this.sign(this.root, ['PERIMETER SERVICES', 'AUTHORISED RELEASE ONLY'], 1.7, .47, 2.08, 2.12, d / 2 - .115, { ry: PI, bg: '#b1c2b6', ink: '#365453' });
+      for (const x of [-3.83, 3.83]) {
+        this.pipe(this.root, [x, 2.87, -4.7], [x, 2.87, 4.5], .06, this.m.steelLight);
+        this.box(this.root, .13, 1.08, .21, x, 2.0, -3.6, this.m.steel, { shadow: false });
+      }
+      this.ceilingLamp(-.55, -3.85); this.ceilingLamp(-.55, 2.75);
+    }
+  }
   buildQuay() {
     const w = this.roomWidth, d = this.roomDepth;
     const sky = document.createElement('canvas'); sky.width = 64; sky.height = 512; const ctx = sky.getContext('2d');
@@ -447,9 +590,9 @@ export class PrisonScene {
     const footprint = FOOTPRINTS[prop] || (prop === 'basket' ? [.8, .75] : null);
     if (footprint) { this.collider(p.x, p.z, ...footprint, object.ry || 0); this.floorShadow(group, ...footprint); }
     if (['door', 'gate', 'shutter'].includes(prop)) this.collider(p.x, p.z, 1.5, .3, object.ry || 0);
-    if (prop === 'panel' || prop === 'valve') {
-      const offset = prop === 'valve' ? .2 : .1, depth = prop === 'valve' ? .48 : .27, ry = object.ry || 0;
-      this.collider(p.x + Math.sin(ry) * offset, p.z + Math.cos(ry) * offset, prop === 'valve' ? 2.2 : 1.08, depth, ry);
+    if (prop === 'panel' || prop === 'valve' || prop === 'interlock') {
+      const offset = prop === 'valve' ? .2 : .1, depth = prop === 'valve' ? .48 : prop === 'interlock' ? .38 : .27, ry = object.ry || 0;
+      this.collider(p.x + Math.sin(ry) * offset, p.z + Math.cos(ry) * offset, prop === 'valve' ? 2.2 : prop === 'interlock' ? 1.24 : 1.08, depth, ry);
     }
     switch (prop) {
       case 'bed': case 'bunk': this.bed(group, actor); break;
@@ -463,7 +606,11 @@ export class PrisonScene {
       case 'cart': this.cart(group, actor); break;
       case 'basket': this.basket(group); break;
       case 'monitor': case 'terminal': this.monitor(group, actor); break;
-      case 'panel': this.panel(group, actor); break;
+      case 'panel': if (object.id === 'annexSignalKey') this.signalLegend(group, actor); else this.panel(group, actor); break;
+      case 'archive': this.archive(group, actor); break;
+      case 'relay': this.relay(group, actor); break;
+      case 'receiver': this.receiver(group, actor); break;
+      case 'interlock': this.interlock(group, actor); break;
       case 'camera': this.securityCamera(group, targetHeight(object), actor); break;
       case 'generator': if (this.room.id === 'laundry') this.washer(group); else this.generator(group); break;
       case 'boiler': this.boiler(group); break;
@@ -479,10 +626,17 @@ export class PrisonScene {
   }
   targetSize(object, footprint) {
     if (['door', 'gate', 'shutter'].includes(object.prop)) return [1.35, 2.2, .3];
-    if (object.prop === 'note') return [.95, object.y < .5 ? .5 : .75, .22];
+    if (object.prop === 'note') {
+      const documentSize = this.actors.get(object.id)?.parts.documentSize;
+      return documentSize ? [documentSize[0], documentSize[1], .22] : [.95, object.y < .5 ? .5 : .75, .22];
+    }
     if (['drain', 'grate'].includes(object.prop)) return [.9, .32, .9];
     if (object.prop === 'valve') return [2.05, 1.2, .65];
-    if (object.prop === 'panel') return [1.1, 1.05, .42];
+    if (object.prop === 'panel') return [1.1, object.id === 'annexSignalKey' ? 1.42 : 1.05, .42];
+    if (object.prop === 'interlock') return [1.24, 1.3, .5];
+    if (object.prop === 'relay') return [1.4, 1.7, .7];
+    if (object.prop === 'archive') return [1.12, 1.7, .7];
+    if (object.prop === 'receiver') return [1.8, 1.0, .92];
     if (object.prop === 'camera') return [.6, .5, .8];
     return [Math.max(.7, footprint?.[0] || 1), object.prop === 'bed' ? .65 : .95, Math.max(.35, footprint?.[1] || .6)];
   }
@@ -543,11 +697,24 @@ export class PrisonScene {
       this.box(hinge, .69, .025, .03, .665, 1.55, .086, this.m.steelLight);
       this.box(hinge, .69, .025, .03, .665, 2.04, .086, this.m.steelLight);
     }
+    if (this.theme.annex) {
+      this.box(hinge, 1.24, .21, .036, .665, .35, .088, this.m.dark);
+      this.sign(hinge, [o.id === 'annexExit' ? 'PERIMETER / 04' : 'COMMUNICATIONS / 04'], .92, .14, .665, .35, .11,
+        { bg: '#b2bba6', ink: '#374f49', border: false, emissive: .06 });
+      if (o.id === 'annexExit') {
+        for (const y of [.67, 1.68]) this.box(hinge, 1.3, .13, .11, .665, y, .065, this.m.steelLight);
+        this.box(hinge, .19, .27, .09, 1.16, .89, .075, this.m.brass);
+        this.cylinder(hinge, .025, .018, 1.16, .88, .135, this.m.dark, PI / 2);
+        this.sign(hinge, ['○'], .13, .08, 1.16, 1.0, .145, { bg: '#b7a070', ink: '#263b35', border: false, emissive: .06 });
+        this.box(parent, .26, .48, .24, .89, 1.14, .04, this.m.steel);
+        this.pipe(parent, [.93, 1.39, 0], [.93, 2.77, 0], .026, this.m.steelLight);
+      }
+    }
     this.box(hinge, .19, .32, .09, 1.16, 1.2, .075, this.m.brass);
     this.cylinder(hinge, .025, .018, 1.16, 1.18, .135, this.m.dark, PI / 2);
     this.pipe(hinge, [1.14, 1.32, .17], [1.02, 1.32, .17], .015, this.m.steelLight);
     this.sign(hinge, [o.symbol || '↶'], .15, .13, 1.16, 1.43, .145, { bg: '#b7a070', ink: '#263b35', border: false, emissive: .06 });
-    const title = o.targetRoom ? `TO ${o.targetRoom.toUpperCase()}` : ({ quayExit: 'RIVER PATH', returnGate: 'ASHGATE RECEIVING', dispatchExit: 'MAINTENANCE', transferExit: 'SERVICE TRANSFER' }[o.id] || o.title.toUpperCase());
+    const title = o.targetRoom ? `TO ${THEMES[o.targetRoom]?.shortName || o.targetRoom.toUpperCase()}` : ({ quayExit: 'RIVER PATH', returnGate: 'ASHGATE RECEIVING', dispatchExit: 'MAINTENANCE', transferExit: 'SERVICE TRANSFER', annexExit: 'PERIMETER RELEASE', annexDeadHatch: 'EXCHANGE / RETURN' }[o.id] || o.title.toUpperCase());
     this.sign(parent, [title], 1.15, .2, 0, 2.88, .12, { bg: '#b8b69a', ink: '#344b3d', emissive: .07 });
     const status = this.box(parent, .19, .065, .07, .85, 1.67, .17, this.m.red); actor.parts.status = status;
     if (o.kind === 'timed') {
@@ -588,12 +755,184 @@ export class PrisonScene {
     }
     this.box(parent, .64, .22, .43, .05, 1.97, 0, this.m.wood);
   }
+  archive(parent, actor = null, { label = 'ROUTE REGISTER', index = 1 } = {}) {
+    this.box(parent, 1.08, 2.06, .63, 0, 1.08, 0, this.m.steel);
+    this.box(parent, 1.12, .1, .7, 0, .08, 0, this.m.iron);
+    this.box(parent, 1.14, .055, .7, 0, 2.13, 0, this.m.iron);
+    for (let i = 0; i < 4; i++) {
+      const drawer = this.group(parent, 0, .35 + i * .43, .331);
+      this.box(drawer, .99, .39, .03, 0, 0, 0, this.m.iron);
+      this.box(drawer, .94, .34, .017, 0, 0, .023, this.m.steel);
+      this.box(drawer, .24, .023, .045, .23, .035, .055, this.m.steelLight);
+      this.sign(drawer, [`D${index} / ${String(i + 1).padStart(2, '0')}`], .32, .12, -.24, .04, .039,
+        { bg: '#c9b994', ink: '#574b36', border: false, emissive: .06 });
+      if (i === 2 && actor) {
+        actor.parts.archiveDrawer = drawer;
+        this.box(drawer, .9, .035, .25, 0, -.17, -.12, this.m.steelLight);
+      }
+    }
+    this.sign(parent, ['ANNEX / 04', label], .83, .22, 0, 1.91, .344, { bg: '#c4ba97', ink: '#48533d', emissive: .07 });
+    const packet = this.group(parent, .05, 2.2, 0, -.05);
+    this.box(packet, .79, .1, .45, 0, 0, 0, this.m.paper);
+    this.box(packet, .022, .11, .46, -.19, 0, 0, this.m.fabric, { shadow: false });
+    this.sign(packet, ['FILED'], .28, .14, .1, .057, .03, { rx: -PI / 2, bg: '#d3c4a2', ink: '#896348', border: false, emissive: .03, blocker: false });
+    if (actor) {
+      const plate = this.group(parent, 0, .78, .38);
+      this.box(plate, .9, .23, .07, 0, 0, 0, this.m.bakelite || this.m.dark);
+      const options = actor.object.puzzle?.options || [{ symbol: '△' }, { symbol: '○' }, { symbol: '◇' }, { symbol: '✚' }, { symbol: '≈' }];
+      for (let i = 0; i < 5; i++) {
+        const x = -.31 + i * .145;
+        this.box(plate, .115, .12, .026, x, 0, .05, this.m.brass);
+        this.sign(plate, [options[i]?.symbol || '•'], .09, .08, x, 0, .067, { bg: '#b7a070', ink: '#334a3d', border: false, emissive: .07 });
+      }
+      actor.parts.stateLamp = this.cylinder(plate, .025, .018, .39, 0, .056, this.m.red, PI / 2, 0, { shadow: false });
+      this.sign(parent, ['TRANSFER ROUTE'], .59, .1, 0, .58, .352, { bg: '#b9aa87', ink: '#514b3a', border: false, emissive: .05 });
+      if (actor.object.item) actor.parts.pickup = this.key(parent, -.12, 1.09, .17, actor.object.item);
+    }
+  }
+  relay(parent, actor = null, { reserve = false } = {}) {
+    this.box(parent, 1.45, .13, .68, 0, .085, 0, this.m.iron);
+    this.box(parent, 1.4, .09, .67, 0, 2.37, 0, this.m.iron);
+    this.box(parent, 1.33, 2.2, .045, 0, 1.23, -.3, this.m.dark);
+    for (const x of [-.67, .67]) {
+      this.box(parent, .055, 2.25, .65, x, 1.24, 0, this.m.steel);
+      for (const y of [.35, 1.18, 2.14]) this.box(parent, .09, .035, .045, x, y, .35, this.m.steelLight, { shadow: false });
+    }
+    this.sign(parent, [reserve ? 'RESERVE CARRIER' : 'ANNEX / PATCH BAY'], 1.12, .18, 0, 2.16, .31,
+      { bg: '#aabbb4', ink: '#2f4c4f', emissive: .1 });
+    const labels = actor?.object.puzzle?.labels || ['A', 'B', 'C', 'D', 'E', 'F'];
+    const switches = [], lamps = [];
+    this.box(parent, 1.24, .78, .15, 0, 1.48, .2, this.m.steelLight);
+    this.box(parent, 1.16, .48, .025, 0, 1.4, .29, this.m.bakelite || this.m.dark);
+    for (let i = 0; i < 6; i++) {
+      const x = -.48 + i * .192;
+      const lamp = this.cylinder(parent, .032, .024, x, 1.72, .302, this.m.dark, PI / 2, 0, { shadow: false }); lamps.push(lamp);
+      this.cylinder(parent, .045, .028, x, 1.43, .32, this.m.brass, PI / 2);
+      const lever = this.group(parent, x, 1.43, .35); lever.rotation.x = .5;
+      this.box(lever, .018, .095, .018, 0, -.035, .015, this.m.steelLight, { shadow: false });
+      this.box(lever, .041, .045, .039, 0, -.085, .015, this.m.bakelite || this.m.dark, { shadow: false }); switches.push(lever);
+      this.sign(parent, [labels[i] || String.fromCharCode(65 + i)], .125, .1, x, 1.25, .309,
+        { bg: '#b3c0b1', ink: '#314d47', border: false, emissive: .09 });
+    }
+    this.box(parent, 1.23, .05, .58, 0, .98, 0, this.m.iron);
+    for (let i = 0; i < 4; i++) {
+      const x = -.45 + i * .3;
+      this.box(parent, .18, .31, .23, x, .69, -.01, this.m.copper || this.m.rust);
+      for (const y of [.56, .82]) this.box(parent, .23, .035, .26, x, y, -.01, this.m.iron, { shadow: false });
+      this.pipe(parent, [x, .88, .1], [x, 1.03, .1], .013, this.m.wire || this.m.paper);
+      this.pipe(parent, [x, 1.03, .1], [x + .035, 1.12, .29], .013, this.m.wire || this.m.paper);
+    }
+    for (let i = 0; i < 3; i++) {
+      const x = -.5 + i * .44, wire = i === 1 ? this.m.copper || this.m.rust : this.m.wire || this.m.fabric;
+      this.pipe(parent, [x, .5, .09], [x, .28, .13], .018, wire);
+      this.pipe(parent, [x, .28, .13], [x + .25, .28, .13], .018, wire);
+      this.pipe(parent, [x + .25, .28, .13], [x + .25, .48, .09], .018, wire);
+    }
+    this.sign(parent, [reserve ? 'ISOLATED / SPARE LINE' : 'CIRCUIT ROUTING'], 1.01, .16, 0, .17, .348,
+      { bg: '#849d98', ink: '#283f40', emissive: .04 });
+    this.pipe(parent, [-.53, 2.42, -.14], [-.53, 2.97, -.14], .028, this.m.wire || this.m.fabric);
+    if (actor) { actor.parts.relaySwitches = switches; actor.parts.relayLamps = lamps; }
+    else {
+      // Reserve racks are inert scenery, not a second bank of answer feedback.
+      for (const lamp of lamps) lamp.material = this.m.dark;
+    }
+  }
+  receiver(parent, actor) {
+    this.box(parent, 1.8, .085, .92, 0, .88, 0, this.m.wood);
+    for (const x of [-.76, .76]) for (const z of [-.34, .34]) this.box(parent, .055, .83, .055, x, .42, z, this.m.iron);
+    this.box(parent, .41, .65, .74, .61, .48, 0, this.m.steel);
+    this.box(parent, .24, .025, .035, .61, .67, .39, this.m.steelLight);
+    this.box(parent, .97, .62, .48, -.32, 1.23, -.13, this.m.bakelite || this.m.dark);
+    this.box(parent, .89, .55, .035, -.32, 1.24, .127, this.m.steel);
+    this.sign(parent, ['ASHGATE / RX-04'], .73, .11, -.32, 1.45, .15, { bg: '#aab5a2', ink: '#304942', border: false, emissive: .08 });
+    this.sign(parent, ['CARRIER', '—  —  —'], .46, .17, -.46, 1.3, .15, { bg: '#2b4641', ink: '#c2ceb1', border: false, emissive: .18 });
+    this.cylinder(parent, .105, .055, -.55, 1.09, .18, this.m.bakelite || this.m.dark, PI / 2);
+    this.box(parent, .015, .055, .014, -.55, 1.13, .215, this.m.paper, { shadow: false });
+    for (const x of [-.25, -.05]) this.cylinder(parent, .04, .04, x, 1.09, .18, this.m.bakelite || this.m.dark, PI / 2);
+    actor.parts.stateLamp = this.cylinder(parent, .025, .018, -.04, 1.31, .16, this.m.red, PI / 2, 0, { shadow: false });
+    this.box(parent, .62, .62, .42, .52, 1.23, -.1, this.m.steel);
+    this.box(parent, .56, .55, .035, .52, 1.24, .13, this.m.iron);
+    for (const x of [.35, .68]) {
+      this.cylinder(parent, .135, .025, x, 1.33, .17, this.m.steelLight, PI / 2);
+      this.cylinder(parent, .098, .012, x, 1.33, .187, this.m.dark, PI / 2);
+      this.cylinder(parent, .023, .025, x, 1.33, .2, this.m.brass, PI / 2);
+      for (let i = 0; i < 3; i++) { const spoke = this.box(parent, .205, .018, .012, x, 1.33, .198, this.m.steelLight, { shadow: false }); spoke.rotation.z = i * PI / 3; }
+    }
+    this.pipe(parent, [.35, 1.2, .195], [.43, 1.05, .195], .009, this.m.fabric);
+    this.pipe(parent, [.43, 1.05, .195], [.61, 1.05, .195], .009, this.m.fabric);
+    this.pipe(parent, [.61, 1.05, .195], [.68, 1.2, .195], .009, this.m.fabric);
+    this.sign(parent, ['LINE RECORD'], .47, .09, .52, .985, .16, { bg: '#a3b1a1', ink: '#394d42', border: false, emissive: .06 });
+    const headset = this.group(parent, -.22, .98, .32);
+    this.mesh(headset, this.geometry(new THREE.TorusGeometry(.18, .018, 6, 18, PI)), this.m.bakelite || this.m.dark, 0, 0, 0);
+    for (const x of [-.18, .18]) this.cylinder(headset, .062, .05, x, 0, .015, this.m.bakelite || this.m.dark, PI / 2);
+    this.pipe(parent, [-.4, .98, .34], [-.53, .94, .38], .01, this.m.bakelite || this.m.dark);
+    this.pipe(parent, [-.53, .94, .38], [-.7, 1.04, .18], .01, this.m.bakelite || this.m.dark);
+    this.sign(parent, ['LISTENING POSITION / 04'], 1.18, .11, 0, .81, .473, { bg: '#b8b899', ink: '#435142', border: false, emissive: .06 });
+    if (actor.object.item) actor.parts.pickup = this.key(parent, .59, .58, .12, actor.object.item);
+  }
+  interlock(parent, actor) {
+    const y = targetHeight(actor.object);
+    this.box(parent, 1.24, 1.44, .23, 0, y, .015, this.m.iron);
+    this.box(parent, 1.12, 1.3, .03, 0, y, .147, this.m.steelLight);
+    for (const x of [-.53, .53]) for (const offset of [-.6, 0, .6]) this.cylinder(parent, .018, .015, x, y + offset, .17, this.m.brass, PI / 2, 0, { shadow: false });
+    actor.parts.interlockDisplay = this.sign(parent, ['RELEASE / HOLD'], .94, .17, 0, y + .53, .17, { bg: '#344f4c', ink: '#c4d1b4', border: false, emissive: .2 });
+    const dialLabels = actor.object.puzzle?.labels || ['ROUTE', 'LOAD', 'SIGNAL', 'PROOF'];
+    actor.parts.interlockDials = [];
+    for (let i = 0; i < 4; i++) {
+      const x = i % 2 ? .29 : -.29, yy = y + (i < 2 ? .18 : -.24);
+      this.cylinder(parent, .13, .023, x, yy, .19, this.m.brass, PI / 2);
+      this.cylinder(parent, .103, .058, x, yy, .23, this.m.bakelite || this.m.dark, PI / 2);
+      const dial = this.group(parent, x, yy, .265);
+      this.box(dial, .012, .068, .01, 0, .05, 0, this.m.paper, { shadow: false });
+      actor.parts.interlockDials.push(dial);
+      this.sign(parent, [dialLabels[i]], .42, .086, x, yy - .17, .174, { bg: '#acbdae', ink: '#345149', border: false, emissive: .06 });
+    }
+    const flags = ['annexRelaySolved', 'annexSignalSolved', 'annexInterlockSolved'];
+    actor.parts.releaseLamps = flags.map((flag, i) => {
+      const lamp = this.cylinder(parent, .029, .025, -.3 + i * .3, y - .6, .189, this.m.red, PI / 2, 0, { shadow: false });
+      return { lamp, flag };
+    });
+    this.sign(parent, ['PATCH   SIGNAL   RELEASE'], .98, .07, 0, y - .69, .17, { bg: '#acbdae', ink: '#345149', border: false, emissive: .05 });
+    for (const x of [-.43, .43]) {
+      this.pipe(parent, [x, y - .78, .015], [x, y - 1.03, .015], .025, this.m.steelLight);
+    }
+    this.pipe(parent, [0, y + .73, .015], [0, 3.0, .015], .033, this.m.steelLight);
+    this.sign(parent, ['RELEASE CIRCUIT / 04'], .93, .13, 0, y - .85, .04, { bg: '#a9bba9', ink: '#335048', border: false, emissive: .05 });
+  }
+  signalLegend(parent, actor) {
+    const y = targetHeight(actor.object), c = document.createElement('canvas'); c.width = 512; c.height = 640;
+    const ctx = c.getContext('2d'); ctx.fillStyle = '#c5cab1'; ctx.fillRect(0, 0, 512, 640);
+    ctx.strokeStyle = '#39534b'; ctx.lineWidth = 3; ctx.strokeRect(16, 16, 480, 608);
+    ctx.fillStyle = '#304e46'; ctx.textAlign = 'center'; ctx.textBaseline = 'middle'; ctx.font = '700 29px Arial';
+    ctx.fillText('ANNEX / SIGNAL KEY', 256, 55); ctx.font = '19px monospace'; ctx.fillText('PAIR = 3 × FIRST + SECOND', 256, 91);
+    const names = ['LOW', 'MID', 'HIGH'], pitches = ['330 Hz', '550 Hz', '880 Hz'];
+    for (let i = 0; i < 3; i++) {
+      const x = 103 + i * 153;
+      ctx.font = '700 25px Arial'; ctx.fillText(names[i], x, 142);
+      ctx.font = '19px monospace'; ctx.fillText(pitches[i], x, 174);
+      ctx.font = '700 28px Arial'; ctx.fillText(String(i), x, 208);
+    }
+    ctx.textAlign = 'left'; ctx.font = '700 20px Arial'; ctx.fillText('FIRST ↓', 38, 268);
+    ctx.textAlign = 'center'; ctx.fillText('SECOND →', 315, 245);
+    for (let i = 0; i < 3; i++) {
+      ctx.font = '700 19px Arial'; ctx.fillText(names[i], 204 + i * 104, 285);
+      ctx.fillText(names[i], 83, 343 + i * 76);
+      for (let j = 0; j < 3; j++) {
+        ctx.strokeRect(155 + j * 104, 309 + i * 76, 98, 68);
+        ctx.font = '700 31px monospace'; ctx.fillText(String(3 * i + j), 204 + j * 104, 343 + i * 76);
+      }
+    }
+    ctx.font = '17px Arial'; ctx.fillText('REFERENCE ALPHABET / AG-04', 256, 580);
+    this.box(parent, 1.1, 1.42, .18, 0, y, .015, this.m.steel);
+    this.plane(parent, 1.03, 1.34, 0, y, .113, this.material({ map: this.texture(c, false), roughness: .95, emissive: 0xa5b3a1, emissiveIntensity: .13 }));
+    this.pipe(parent, [0, y + .72, .015], [0, 2.96, .015], .025, this.m.pipe);
+  }
   desk(parent, actor) {
     this.box(parent, 1.8, .085, .94, 0, .88, 0, this.m.wood);
     for (const x of [-.78, .78]) for (const z of [-.37, .37]) this.box(parent, .055, .83, .055, x, .42, z, this.m.iron);
     this.box(parent, .58, .67, .77, .5, .45, -.015, this.m.steel);
     for (let i = 0; i < 3; i++) { this.box(parent, .52, .012, .025, .5, .26 + i * .19, .385, this.m.dark); this.box(parent, .13, .025, .035, .5, .32 + i * .19, .41, this.m.steelLight); }
-    this.sign(parent, ['ASHGATE / NIGHT DUTY', 'MOVEMENT ORDER', 'NT-041  •  ESCORT PENDING'], .55, .39, -.21, .929, .02, { rx: -PI / 2, bg: '#d6cdae', ink: '#53604e', border: false, emissive: .025, blocker: false });
+    this.sign(parent, this.theme.annex ? ['ANNEX / NIGHT DUTY', 'LINE ACTIVITY RECORD', 'NO OPERATOR ON DUTY'] : ['ASHGATE / NIGHT DUTY', 'MOVEMENT ORDER', 'NT-041  •  ESCORT PENDING'], .55, .39, -.21, .929, .02, { rx: -PI / 2, bg: '#d6cdae', ink: '#53604e', border: false, emissive: .025, blocker: false });
     this.box(parent, .29, .065, .41, .58, .96, -.19, this.m.fabric);
     this.cylinder(parent, .07, .12, -.63, .99, -.25, this.m.porcelain);
     if (actor?.object.item) actor.parts.pickup = this.key(parent, -.13, .946, .19, actor.object.item);
@@ -737,12 +1076,46 @@ export class PrisonScene {
     this.box(parent, .5, .065, .48, 0, .5, 0, this.m.wood);
     this.box(parent, .5, .4, .045, 0, .78, -.2, this.m.wood);
   }
+  annexNote(parent, actor) {
+    const object = actor.object, clue = object.clue || {}, title = clue.heading || object.title.toUpperCase();
+    const wrap = (line, width = 46) => {
+      const result = []; let current = '';
+      for (const word of String(line).split(/\s+/)) {
+        if (current && current.length + word.length + 1 > width) { result.push(current); current = word; }
+        else current += `${current ? ' ' : ''}${word}`;
+      }
+      if (current) result.push(current); return result.length ? result : [''];
+    };
+    const source = [...(clue.lines || []), ...(clue.entries || []).map(entry => `${entry.symbol || ''} ${entry.label || ''}  ${entry.value || ''}`)];
+    if (clue.columns?.length) source.push(clue.columns.join('  |  '));
+    if (clue.rows?.length) source.push(...clue.rows.map(row => row.join('  |  ')));
+    const lines = source.flatMap(line => wrap(line));
+    const headings = wrap(title, 31), lineHeight = 32, height = Math.max(480, 88 + headings.length * 35 + lines.length * lineHeight + (clue.stamp ? 60 : 25));
+    const c = document.createElement('canvas'); c.width = 640; c.height = height;
+    const ctx = c.getContext('2d'), faded = /VOID|SUPERSEDED/.test(clue.stamp || '');
+    ctx.fillStyle = faded ? '#c6b793' : '#c9c9ad'; ctx.fillRect(0, 0, c.width, c.height);
+    ctx.strokeStyle = faded ? '#8b654a' : '#57705b'; ctx.lineWidth = 3; ctx.strokeRect(14, 14, 612, height - 28);
+    ctx.fillStyle = faded ? '#79513e' : '#344d43'; ctx.textAlign = 'left'; ctx.textBaseline = 'top'; ctx.font = '700 28px Arial';
+    let at = 32;
+    for (const line of headings) { ctx.fillText(line, 34, at, 572); at += 35; }
+    ctx.lineWidth = 2; ctx.beginPath(); ctx.moveTo(34, at + 10); ctx.lineTo(606, at + 10); ctx.stroke(); at += 26;
+    ctx.font = '500 25px Arial';
+    for (const line of lines) { ctx.fillText(line, 34, at, 572); at += lineHeight; }
+    if (clue.stamp) { ctx.fillStyle = faded ? '#916143' : '#5c7052'; ctx.font = '700 23px monospace'; ctx.fillText(clue.stamp, 34, height - 49, 572); }
+    const worldWidth = 1.12, worldHeight = clamp(height / 640 * worldWidth, .7, 1.4), y = targetHeight(object);
+    this.box(parent, worldWidth + .07, worldHeight + .07, .027, 0, y, 0, this.m.wood, { shadow: false });
+    const paper = this.plane(parent, worldWidth, worldHeight, 0, y, .019, this.material({ map: this.texture(c, false), roughness: .97, emissive: 0xb0b39b, emissiveIntensity: .1 }));
+    if (object.item) actor.parts.pickup = paper;
+    for (const x of [-.52, .52]) this.cylinder(parent, .012, .012, x, y + worldHeight / 2 - .035, .028, this.m.iron, PI / 2, 0, { shadow: false });
+    actor.parts.documentSize = [worldWidth, worldHeight];
+  }
   note(parent, actor) {
     const o = actor.object, y = targetHeight(o), clue = o.clue;
     if (y < .5) {
       actor.parts.pickup = this.sign(parent, ['VISITOR', 'VOID'], .24, .36, 0, .025, 0, { rx: -PI / 2, bg: '#c5b998', ink: '#885d42', emissive: .06 });
       return;
     }
+    if (this.theme.annex) { this.annexNote(parent, actor); return; }
     const lines = clue ? [clue.heading || o.title.toUpperCase(), ...(clue.entries || []).map(e => `${e.symbol || ''}  ${e.label || ''}  ${e.value || ''}`), ...(clue.lines || []), ...(clue.stamp ? [clue.stamp] : [])] : [o.title.toUpperCase(), 'ASHGATE PENITENTIARY'];
     const height = lines.length > 5 ? .86 : .65;
     this.box(parent, 1.02, height + .08, .027, 0, y, 0, this.m.wood, { shadow: false });
@@ -759,6 +1132,28 @@ export class PrisonScene {
       if (parts.hinge) parts.hinge.rotation.y = (opened(state, o) || (done && o.prop === 'locker')) ? -1.25 : 0;
       if (parts.status) parts.status.material = opened(state, o) ? this.m.green : this.m.red;
       if (parts.wheels && done) parts.wheels.forEach((wheel, i) => { wheel.rotation.z = [2, 4, 1][i] * PI / 3; });
+      if (parts.stateLamp) parts.stateLamp.material = done ? this.m.green : this.m.red;
+      if (parts.archiveDrawer) parts.archiveDrawer.position.z = done ? .5 : .331;
+      if (parts.relaySwitches) {
+        const settings = done && Array.isArray(state.flags?.annexRelaySettings) ? state.flags.annexRelaySettings : null;
+        parts.relaySwitches.forEach((lever, i) => { lever.rotation.x = settings?.[i] === true ? -.5 : .5; });
+        parts.relayLamps.forEach((lamp, i) => { lamp.material = settings?.[i] === true ? this.m.green : this.m.dark; });
+      }
+      if (parts.releaseLamps) for (const { lamp, flag } of parts.releaseLamps) lamp.material = state.flags?.[flag] ? this.m.green : this.m.red;
+      if (parts.interlockDials) {
+        const settings = done && Array.isArray(state.flags?.annexInterlockSettings) ? state.flags.annexInterlockSettings : null;
+        parts.interlockDials.forEach((dial, i) => { dial.rotation.z = -(settings?.[i] || 0) * PI / 5; });
+      }
+      if (parts.interlockDisplay) {
+        const label = done ? 'RELEASE ARMED' : 'RELEASE / HOLD';
+        if (actor.interlockLabel !== label) {
+          const c = parts.interlockDisplay.userData.canvas, ctx = c.getContext('2d');
+          ctx.fillStyle = done ? '#345548' : '#344f4c'; ctx.fillRect(0, 0, c.width, c.height);
+          ctx.fillStyle = '#c4d1b4'; ctx.font = `700 ${c.height * .43}px Arial`; ctx.textAlign = 'center'; ctx.textBaseline = 'middle';
+          ctx.fillText(label, c.width / 2, c.height / 2, c.width - 48);
+          parts.interlockDisplay.userData.texture.needsUpdate = true; actor.interlockLabel = label;
+        }
+      }
     }
     this.renderer.shadowMap.needsUpdate = true;
     this.scene.updateMatrixWorld(true);

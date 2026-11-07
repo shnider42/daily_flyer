@@ -79,11 +79,11 @@ export class CoopClient {
   }
   _name(name) { return String(name || 'Inmate').replace(/[\u0000-\u001f\u007f<>]/g, '').trim().slice(0, 20) || 'Inmate'; }
 
-  create(name = 'Inmate') {
+  create(name = 'Inmate', options = {}) {
     this._dropSocket(true); this._session = null; this._store();
     this._pending.clear(); this._revision = -1; this._attempts = 0;
     this._room = ''; this._pose = null; this._lastPoseSent = -Infinity; this._poseSamples.clear();
-    this._intent = { create: true, name: this._name(name) };
+    this._intent = { create: true, name: this._name(name), campaign: options.campaign === 'annex' ? 'annex' : 'escape' };
     this._active = true; this._open();
     return true;
   }

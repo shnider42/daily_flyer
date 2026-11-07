@@ -3,6 +3,7 @@ import assert from 'node:assert/strict';
 import { once, EventEmitter } from 'node:events';
 import { createNightTransferServer, PROTOCOL } from '../server.mjs';
 import { VERSION, OBJECTS, LEVELS, newGame as realGame, reduce as realReducer, availableRooms, validateSave } from '../public/world.mjs';
+import { annexCase } from '../public/annex.mjs';
 import { WebSocket } from '../vendor/ws/wrapper.mjs';
 
 class Client {
@@ -169,6 +170,29 @@ test('version mismatches, missing rooms and arbitrary state replacement are reje
   assert.deepEqual(app.rooms.get(welcome.roomCode).state, makeGame());
 });
 
+test('only supported create campaigns allocate rooms and the server supplies the seed', async t => {
+  const creations = [];
+  const { app, connect } = await fixture(t, { now: () => 123456, makeGame: options => {
+    creations.push(options); return { ...makeGame(), campaign: options.campaign, seed: options.seed };
+  } });
+  const rejected = await connect();
+  for (const campaign of [null, '', 'unknown', 'Annex', ' escape ', 0, 1, true, [], {}, ['annex']]) {
+    rejected.hello({ create: true, campaign });
+    assert.equal((await rejected.next('error')).code, 'INVALID_CAMPAIGN');
+    assert.equal(app.rooms.size, 0); assert.equal(creations.length, 0, 'invalid campaigns never reach the game factory');
+  }
+  for (const campaign of [undefined, 'escape', 'annex']) {
+    const client = await connect();
+    client.hello({ create: true, ...(campaign === undefined ? {} : { campaign }), seed: 'CLIENT_OVERRIDE', state: { won: true } });
+    const welcome = await client.next('welcome'), options = creations.at(-1);
+    assert.equal(options.campaign, campaign || 'escape'); assert.equal(options.now, 123456);
+    assert(Number.isSafeInteger(options.seed) && options.seed > 0 && options.seed < 0x7fffffff);
+    assert.equal(welcome.state.campaign, campaign || 'escape'); assert.equal(welcome.state.seed, options.seed);
+    assert.equal(welcome.state.won, undefined);
+  }
+  assert.equal(app.rooms.size, 3); assert.equal(creations.length, 3);
+});
+
 test('presence is personal while hints are shared and limited by the authoritative reducer', async t => {
   const { app, connect } = await fixture(t);
   const a = await connect(); a.hello({ create: true }); const welcome = await a.next('welcome');
@@ -273,6 +297,60 @@ test('the actual browser client resumes actions and interpolates remote poses wi
       const descriptor = original.get(name);
       if (descriptor) Object.defineProperty(globalThis, name, descriptor);
       else delete globalThis[name];
+    }
+  }
+});
+
+test('the browser client sends its create selection, defaults to escape and follows the host on join or resume', async t => {
+  const creations = [];
+  const { app, origin, connect } = await fixture(t, { makeGame: options => {
+    creations.push(options); return { ...makeGame(), campaign: options.campaign, seed: options.seed };
+  } });
+  const names = ['document', 'window', 'location', 'sessionStorage', 'WebSocket'];
+  const original = new Map(names.map(name => [name, Object.getOwnPropertyDescriptor(globalThis, name)]));
+  const store = new Map(), hellos = [];
+  class RecordingSocket extends WebSocket {
+    send(data, ...args) {
+      const message = JSON.parse(data);
+      if (message.type === 'hello') hellos.push(message);
+      return super.send(data, ...args);
+    }
+  }
+  Object.assign(globalThis, {
+    document: Object.assign(new EventTarget(), { hidden: false }), window: new EventTarget(),
+    location: { href: origin + '/', protocol: 'http:' }, WebSocket: RecordingSocket,
+    sessionStorage: { getItem: key => store.get(key) || null, setItem: (key, value) => store.set(key, value), removeItem: key => store.delete(key) },
+  });
+  const { CoopClient } = await import('../public/network.js');
+  const events = new EventEmitter(), nextState = () => once(events, 'state', { signal: AbortSignal.timeout(2500) }).then(([value]) => value);
+  const client = new CoopClient({ onState: (state, meta) => events.emit('state', { state, meta }) });
+  try {
+    let pending = nextState(); client.create('Annex host', { campaign: 'annex', seed: 'CLIENT_OVERRIDE' });
+    const annex = await pending, identity = client.playerId, code = client.roomCode;
+    assert.equal(annex.state.campaign, 'annex'); assert.equal(hellos.at(-1).campaign, 'annex');
+    assert.equal('seed' in hellos.at(-1), false, 'the selected chapter is intent; the seed belongs to the server');
+    pending = nextState(); client.reconnect();
+    const resumed = await pending;
+    assert.equal(resumed.meta.initial, true); assert.equal(resumed.state.campaign, 'annex');
+    assert.equal(resumed.state.seed, annex.state.seed); assert.equal(client.playerId, identity); assert.equal(client.roomCode, code);
+    assert.equal(hellos.at(-1).create, false); assert.equal('campaign' in hellos.at(-1), false);
+    assert.equal(creations.length, 1); assert.equal(app.rooms.size, 1, 'resume does not create a second chapter');
+    const left = once(client.socket, 'close'); client.leave(); await left;
+
+    pending = nextState(); client.create('Default host');
+    const classic = await pending;
+    assert.equal(classic.state.campaign, 'escape'); assert.equal(hellos.at(-1).campaign, 'escape');
+    const host = await connect(); host.hello({ create: true, campaign: 'annex' }); const hosted = await host.next('welcome');
+    const count = creations.length;
+    pending = nextState(); assert.equal(client.join(hosted.roomCode, 'Visitor'), true);
+    const joined = await pending;
+    assert.equal(joined.state.campaign, 'annex'); assert.equal(joined.state.seed, hosted.state.seed);
+    assert.equal('campaign' in hellos.at(-1), false); assert.equal(creations.length, count, 'joining uses the hosted run without a new seed');
+  } finally {
+    client.destroy();
+    for (const name of names) {
+      const descriptor = original.get(name);
+      if (descriptor) Object.defineProperty(globalThis, name, descriptor); else delete globalThis[name];
     }
   }
 });
@@ -401,9 +479,101 @@ test('four players complete the real campaign and door crossings permit immediat
     }
   }
   assert.equal(room.state.won, true);
-  assert.deepEqual(room.state.hintsUsed, [3, 3, 3]);
+  assert.equal(room.state.campaign, 'escape'); assert.equal(room.state.level, 2); assert.equal(room.state.seed, 0);
+  assert.deepEqual(room.state.hintsUsed, [3, 3, 3, 0], 'the original escape never enters or consumes hints from the annex');
   assert.deepEqual(validateSave(room.state), room.state);
   assert.equal(room.revision, room.state.revision);
   const snapshots = await Promise.all(clients.map(client => client.next('state', packet => packet.state.won)));
   snapshots.forEach(packet => assert.deepEqual(packet.state, room.state));
+});
+
+test('four players share one seeded annex, preserve progress on reconnect and complete its authoritative puzzles', async t => {
+  const { app, connect } = await fixture(t, { makeGame: realGame, reducer: realReducer, listRooms: availableRooms, now: () => 6000 });
+  const clients = [], identities = [];
+  for (let i = 0; i < 4; i++) {
+    const client = await connect();
+    client.hello(i ? { code: identities[0].roomCode, campaign: 'escape', seed: 0xffffffff, name: 'Operator ' + i }
+      : { create: true, campaign: 'annex', seed: 'CLIENT_OVERRIDE', name: 'Operator 0' });
+    clients.push(client); identities.push(await client.next('welcome'));
+  }
+  const room = app.rooms.get(identities[0].roomCode), seed = room.state.seed, data = annexCase(room.state);
+  assert.equal(room.players.size, 4); assert.equal(room.state.campaign, 'annex'); assert.equal(room.state.level, 3);
+  assert(Number.isInteger(seed) && seed > 0 && seed < 0x7fffffff, 'the server chooses the annex seed');
+  assert.deepEqual(room.state.hintsUsed, [0, 0, 0, 0]); assert.deepEqual(room.state.completedLevels, []);
+  for (const welcome of identities) {
+    assert.deepEqual(welcome.state, room.state); assert.deepEqual(annexCase(welcome.state).packets, data.packets);
+    assert.equal(welcome.roster.find(player => player.id === welcome.playerId).room, 'annexArchive');
+  }
+  let serial = 0;
+  async function action(index, request, expectedOk = true) {
+    const id = 'annex-' + ++serial, before = room.revision;
+    clients[index].action(id, request);
+    const result = await clients[index].next('action-result', packet => packet.actionId === id);
+    assert.equal(result.ok, expectedOk, JSON.stringify(request) + ': ' + result.message);
+    assert.equal(room.state.campaign, 'annex'); assert.equal(room.state.seed, seed); assert.equal(room.state.level, 3);
+    assert.equal('guidance' in room.state, false, 'assistance stays a local preference');
+    if (result.revision > before) {
+      assert.equal(result.revision, before + 1);
+      const snapshots = await Promise.all(clients.map(client => client.next('state', packet => packet.revision === result.revision)));
+      for (const snapshot of snapshots) {
+        assert.deepEqual(snapshot.state, room.state); assert.deepEqual(annexCase(snapshot.state).packets, data.packets);
+      }
+    } else assert.equal(room.revision, before);
+    return result;
+  }
+
+  for (let i = 0; i < 3; i++) await action(i, { type: 'hint' });
+  await action(3, { type: 'hint' }, false);
+  assert.deepEqual(room.state.hintsUsed, [0, 0, 0, 3], 'the annex has one shared three-hint budget');
+  const unchanged = structuredClone(room.state);
+  for (const type of ['load', 'restore', 'newGame', 'reset', 'restart', 'setSeed', 'setCampaign']) {
+    await action(3, { type, campaign: 'escape', seed: 0xffffffff, state: { ...unchanged, won: true } }, false);
+    assert.deepEqual(room.state, unchanged);
+  }
+  await action(3, { type: 'interact', id: 'bunkPocket', room: 'holding' }, false);
+  assert.deepEqual(room.state, unchanged, 'a client cannot enter the original campaign through an action');
+
+  const steps = [
+    [0, 'annexRouteLock', data.route], [0, 'annexRelayDoor'],
+    [1, 'annexRelayBoard', data.switches], [1, 'annexListeningDoor'],
+    [2, 'annexReceiver', data.code], [2, 'annexReleaseDoor'],
+    [3, 'annexInterlock', data.interlock], [3, 'annexExit'],
+  ];
+  for (const [actor, id, value] of steps) {
+    const location = OBJECTS[id].room;
+    if (room.players.get(identities[actor].playerId).room !== location) {
+      const revision = room.revision;
+      await action(actor, { type: 'enter', room: location });
+      assert.equal(room.revision, revision, 'each teammate changes room without rewriting the shared case');
+    }
+    const result = await action(actor, { type: value === undefined ? 'interact' : 'solve', id, room: location,
+      ...(value === undefined ? {} : { value }),
+      ...(id === 'annexRouteLock' ? { seed: 0xffffffff, campaign: 'escape', guidance: 'expert', state: { won: true }, flags: { act3Exit: true } } : {}),
+    });
+    if (result.event?.type === 'room') assert.equal(room.players.get(identities[actor].playerId).room, result.event.room);
+    if (id === 'annexRouteLock') {
+      assert.equal(room.state.won, false); assert.equal(room.state.flags.act3Exit, undefined);
+      assert.deepEqual(room.state.flags.annexRouteOrder, data.route, 'extraneous client state cannot replace an accepted action result');
+    }
+    if (id === 'annexReceiver') {
+      const old = clients[actor], close = once(old.ws, 'close'), replacement = await connect();
+      replacement.hello({ code: identities[actor].roomCode, token: identities[actor].token, campaign: 'escape', seed: 0xffffffff, name: 'Changed name' });
+      const resumed = await replacement.next('welcome');
+      assert.equal((await close)[0], 4001); assert.equal(resumed.playerId, identities[actor].playerId);
+      assert.equal(resumed.name, 'Operator 2'); assert.deepEqual(resumed.state, room.state);
+      assert.equal(resumed.state.campaign, 'annex'); assert.equal(resumed.state.seed, seed);
+      assert.equal(resumed.state.flags.annexSignalSolved, true); assert.equal(resumed.state.flags.annexSignalCode, data.code);
+      assert.equal(resumed.roster.find(player => player.id === resumed.playerId).room, 'annexListening');
+      clients[actor] = replacement; identities[actor] = resumed;
+      const revision = room.revision;
+      replacement.action(result.actionId, { type: 'solve', id, room: location, value });
+      assert.equal((await replacement.next('action-result', packet => packet.actionId === result.actionId)).revision, revision);
+      assert.equal(room.revision, revision); assert.equal(room.players.size, 4);
+      assert.equal(room.state.inventory.filter(item => item === 'annexReleaseKey').length, 1, 'replayed acknowledgement cannot duplicate a key');
+    }
+  }
+  assert.equal(room.state.won, true); assert.deepEqual(room.state.completedLevels, [3]);
+  assert.deepEqual(room.state.hintsUsed, [0, 0, 0, 3]); assert.equal(room.state.flags.act2Exit, undefined);
+  assert.deepEqual(room.state.inventory, ['annexServiceKey', 'annexReleaseKey']);
+  assert.deepEqual(validateSave(room.state), room.state); assert.equal(room.revision, room.state.revision);
 });

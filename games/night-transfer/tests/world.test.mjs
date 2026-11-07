@@ -1,9 +1,9 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
 import {
-  VERSION, LEVELS, ROOMS, OBJECTS, ITEMS, MAX_HINTS,
+  VERSION, LEVELS, ROOMS, OBJECTS, ITEMS, MAX_HINTS, CAMPAIGNS,
   newGame, reduce, availableRooms, getObjects, hasItem, isDone, inspect,
-  objective, getHint, getHints, scanPhase, isValidState, validateSave,
+  objective, getHint, getHints, scanPhase, isValidState, validateSave, objectView, getGuidance,
 } from '../public/world.mjs';
 
 const SAFE_TIME = 6000;
@@ -39,6 +39,7 @@ function reject(state, action, now = SAFE_TIME, options = {}) {
 test('a full legal campaign crosses nine rooms and exits advance acts automatically', () => {
   let state = newGame({ now: 0 });
   assert.equal(state.version, VERSION);
+  assert.equal(state.campaign, 'escape');
   assert.deepEqual(availableRooms(state).map(room => room.id), ['holding']);
   assert.match(objective(state), /Holding 41/);
   for (const action of act0.slice(0, -1)) state = apply(state, action).state;
@@ -170,11 +171,11 @@ test('each act gets three contextual hints, with durable history and no hidden f
   for (let i = 0; i < MAX_HINTS; i++) state = apply(state, { type: 'hint' }).state;
   assert.match(state.hintLog[2][2], /FEED to 2, BYPASS to 4 and DRAIN to 1/);
   reject(state, { type: 'hint' });
-  assert.deepEqual(state.hintsUsed, [3, 3, 3]);
+  assert.deepEqual(state.hintsUsed, [3, 3, 3, 0]);
   state = sequence(state, act2.slice(2));
   assert.equal(getHint(state), null);
   reject(state, { type: 'hint' });
-  assert.deepEqual(newGame().hintsUsed, [0, 0, 0]);
+  assert.deepEqual(newGame().hintsUsed, [0, 0, 0, 0]);
 });
 
 test('the watched shutter requires authorisation and only trusts server-time scan boundaries', () => {
@@ -248,12 +249,14 @@ test('save validation rejects broken invariants, unknown IDs, inconsistent progr
   reject(toAct1(), interact('transferExit'), 6000);
 });
 
-test('scene data is complete, all rooms are reachable, and every visual clue matches its intended puzzle', () => {
-  assert.equal(LEVELS.length, 3);
-  assert.equal(Object.keys(ROOMS).length, 9);
-  assert.equal(new Set(LEVELS.flatMap(level => level.roomIds)).size, 9);
+test('scene data retains the original nine rooms and adds a separate four-room annex', () => {
+  assert.equal(LEVELS.length, 4);
+  assert.equal(Object.keys(ROOMS).length, 13);
+  assert.equal(new Set(LEVELS.flatMap(level => level.roomIds)).size, 13);
+  assert.deepEqual(CAMPAIGNS.escape.levelIds, [0, 1, 2]);
+  assert.deepEqual(CAMPAIGNS.annex.levelIds, [3]);
   for (const level of LEVELS) {
-    assert.equal(level.rooms.length, 3);
+    assert.equal(level.rooms.length, level.campaign === 'annex' ? 4 : 3);
     assert.equal(level.roomIds.includes(level.startRoom), true);
     for (const room of level.rooms) {
       assert.equal(ROOMS[room.id], room);
@@ -280,4 +283,61 @@ test('scene data is complete, all rooms are reachable, and every visual clue mat
   assert.equal(OBJECTS.cameraArchive.clue.entries.filter(frame => !frame.watched).map(frame => frame.value).join(''), '846');
   assert.equal(OBJECTS.cameraArchive.clue.entries.every(frame => frame.label.includes(frame.watched ? 'WATCHED' : 'DARK')), true, 'the surveillance clue is readable without relying on color');
   assert.equal('targets' in OBJECTS.valveBank.puzzle, false, 'the controls do not disclose the solution');
+});
+
+test('version 1.0 classic saves migrate at every checkpoint without resetting progress or reopening a completed escape', () => {
+  let current = newGame({ now: 0 });
+  const checkpoints = [current];
+  for (const action of [...act0, ...act1, ...act2]) {
+    if (action.type === 'interact' && ['bunkPocket', 'laundryCart', 'toolChest'].includes(action.id)) current = apply(current, { type: 'hint' }).state;
+    current = apply(current, action).state;
+    checkpoints.push(current);
+  }
+  for (const state of checkpoints) {
+    const legacy = { ...structuredClone(state), version: '1.0.0', hintsUsed: state.hintsUsed.slice(0, 3), hintLog: state.hintLog.slice(0, 3) };
+    delete legacy.campaign; delete legacy.seed;
+    const before = JSON.stringify(legacy);
+    const migrated = validateSave(legacy);
+    assert.deepEqual(migrated, state);
+    assert.notStrictEqual(migrated, state);
+    assert.equal(JSON.stringify(legacy), before, 'migration does not edit the caller or its legacy hint arrays');
+    assert.deepEqual(validateSave(before), state, 'serialized legacy saves use the same migration');
+  }
+  const completed = checkpoints.at(-1);
+  assert.equal(completed.won, true);
+  assert.equal(completed.level, 2);
+  assert.deepEqual(completed.completedLevels, [0, 1, 2]);
+  assert.deepEqual(completed.hintsUsed, [1, 1, 1, 0]);
+  assert.deepEqual(availableRooms(completed).map(room => room.id), ['boiler', 'sluice', 'quay']);
+});
+
+test('migration rejects malformed or cross-campaign legacy data instead of granting an annex run', () => {
+  const original = newGame({ now: 0 });
+  const legacy = { ...original, version: '1.0.0', hintsUsed: [0, 0, 0], hintLog: [[], [], []] };
+  delete legacy.campaign; delete legacy.seed;
+  for (const altered of [
+    { ...legacy, campaign: 'annex' }, { ...legacy, level: 3 }, { ...legacy, won: true },
+    { ...legacy, hintsUsed: [0, 0, 0, 0] }, { ...legacy, hintLog: [[], []] },
+    { ...legacy, flags: { annexRouteSolved: true } }, { ...legacy, inventory: ['annexServiceKey'] },
+    { ...legacy, inspected: ['annexRouteNotice'] }, { ...legacy, completedLevels: [3] },
+  ]) assert.equal(validateSave(altered), null);
+  assert.equal(validateSave({ ...original, version: '1.2.0' }), null);
+});
+
+test('presentation keeps inspected classic evidence readable after a wing transition and guidance is read-only', () => {
+  let state = apply(newGame({ now: 0 }), interact('routeMarks')).state;
+  state = sequence(state, act0);
+  assert.equal(inspect(state, 'routeMarks'), null, 'the old room cannot be interacted with');
+  assert.deepEqual(objectView(state, 'routeMarks', 'expert').clue, OBJECTS.routeMarks.clue, 'its recorded clue remains available to the notebook');
+  assert.equal(objectView(state, 'departureBoard'), null, 'unrecorded old evidence is not silently discovered');
+  assert.equal(objectView(state, 'annexRouteNotice'), null, 'other campaigns cannot leak through the notebook');
+  const before = JSON.stringify(state);
+  for (const tier of ['simple', 'moderate', 'expert']) {
+    const guide = getGuidance(state, tier);
+    assert.equal(guide.tier, tier); assert.equal(guide.audioRequired, false);
+    assert.equal(typeof guide.objective, 'string');
+    if (tier === 'expert') assert.equal(guide.detail, '');
+  }
+  assert.equal(JSON.stringify(state), before);
+  assert.deepEqual(state.hintsUsed, [0, 0, 0, 0]);
 });

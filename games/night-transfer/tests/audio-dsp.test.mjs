@@ -1,6 +1,7 @@
 import test from 'node:test';
 import assert from 'node:assert/strict';
-import { synthFootstep, synthMurmur, synthTexture, synthEvent, synthRoomImpulse, spatialMix } from '../public/audio-dsp.js';
+import { synthFootstep, synthMurmur, synthTexture, synthEvent, synthRoomImpulse, spatialMix,
+  synthPuzzleTone, PUZZLE_TONE_FREQUENCIES, PUZZLE_TONE_DURATION } from '../public/audio-dsp.js';
 
 const RATE = 24000;
 function measure(data) {
@@ -131,4 +132,36 @@ test('spatial mapping follows the game yaw convention and attenuates distant sou
   assert(spatialMix({ yaw: 0 }, right).pan > .8);
   assert(spatialMix({ yaw: Math.PI }, right).pan < -.8);
   assert(spatialMix({ x: 0, z: 0 }, { x: 0, z: -12 }).gain < spatialMix({ x: 0, z: 0 }, ahead).gain);
+});
+
+test('receiver references use three clear stable pitches with smooth edges and equal bounded mono levels', () => {
+  assert.deepEqual(PUZZLE_TONE_FREQUENCIES, { low: 330, mid: 550, high: 880 });
+  const spectralAmplitude = (data, frequency, rate) => {
+    let real = 0, imaginary = 0;
+    const first = Math.round(rate * .06), last = Math.round(rate * .32);
+    for (let i = first; i < last; i++) {
+      const phase = 2 * Math.PI * frequency * i / rate;
+      real += data[i] * Math.cos(phase); imaginary += data[i] * Math.sin(phase);
+    }
+    return 2 * Math.hypot(real, imaginary) / (last - first);
+  };
+  for (const rate of [8000, 24000, 48000]) {
+    const levels = [];
+    for (const [tone, frequency] of Object.entries(PUZZLE_TONE_FREQUENCIES)) {
+      const data = synthPuzzleTone(rate, tone), result = measure(data); levels.push(result.rms);
+      assert.equal(data.length, Math.round(rate * PUZZLE_TONE_DURATION));
+      assert(result.peak < .51 && result.rms > .27 && result.rms < .32);
+      assert(Math.abs(result.mean) < .0001); assert(data[0] === 0 && data.at(-1) === 0);
+      assert(energy(data, 0, .01, rate) < energy(data, .1, .11, rate) * .5, 'the attack avoids an edge click');
+      assert(spectralAmplitude(data, frequency, rate) > .42, 'the labelled reference dominates its spectrum');
+      for (const other of Object.values(PUZZLE_TONE_FREQUENCIES)) if (other !== frequency) {
+        assert(spectralAmplitude(data, other, rate) < .025, 'no other reference pitch is disguised in the same tone');
+      }
+      assert.deepEqual(data, synthPuzzleTone(rate, tone), 'replays and calibration can reuse identical PCM');
+    }
+    assert(Math.max(...levels) / Math.min(...levels) < 1.01, 'loudness does not encode a second signal');
+  }
+  for (const [rate, tone] of [[0, 'low'], [Infinity, 'mid'], [24000, 'unknown'], [24000, '__proto__']]) {
+    assert.throws(() => synthPuzzleTone(rate, tone), RangeError);
+  }
 });

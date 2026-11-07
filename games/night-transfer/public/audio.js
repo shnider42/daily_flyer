@@ -1,7 +1,8 @@
-import { synthFootstep, synthMurmur, synthTexture, synthEvent, synthRoomImpulse, spatialMix } from './audio-dsp.js';
+import { synthFootstep, synthMurmur, synthTexture, synthEvent, synthRoomImpulse, spatialMix,
+  synthPuzzleTone, PUZZLE_TONE_FREQUENCIES, PUZZLE_TONE_DURATION } from './audio-dsp.js';
 
-// Optional, original procedural prison audio. No puzzle information is encoded in
-// these sounds, and no AudioContext is created before an explicit user gesture.
+// Original procedural prison atmosphere remains optional. Dead Air's explicit
+// receiver playback is isolated from the ambience and never starts itself.
 const clamp = (value, fallback = 0) => Number.isFinite(Number(value)) ? Math.max(0, Math.min(1, Number(value))) : fallback;
 const MAX_VOICES = 12;
 const MAX_SOURCES = 24;
@@ -17,6 +18,10 @@ const ROOMS = {
   boiler: { hum: 43, level: .048, air: .035, cutoff: 450, echo: .16, wet: .25, feedback: .21, drip: .15, chatter: .07, interval: [6, 14], floor: 'metal' },
   sluice: { hum: 60, level: .022, air: .036, cutoff: 1000, echo: .23, wet: .42, feedback: .3, drip: .74, chatter: .05, interval: [5, 13], floor: 'metal' },
   quay: { hum: 38, level: .005, air: .043, cutoff: 1600, echo: .08, wet: .07, feedback: .1, drip: .1, chatter: .14, interval: [9, 20], floor: 'stone' },
+  annexArchive: { hum: 45, level: .013, air: .007, cutoff: 600, echo: .11, wet: .17, feedback: .12, drip: .04, chatter: .16, interval: [13, 25], floor: 'stone' },
+  annexRelay: { hum: 67, level: .022, air: .011, cutoff: 800, echo: .13, wet: .23, feedback: .18, drip: .04, chatter: .07, interval: [10, 21], floor: 'metal' },
+  annexListening: { hum: 41, level: .007, air: .006, cutoff: 500, echo: .1, wet: .12, feedback: .1, drip: .02, chatter: .04, interval: [17, 29], floor: 'stone' },
+  annexRelease: { hum: 56, level: .016, air: .014, cutoff: 900, echo: .17, wet: .28, feedback: .22, drip: .11, chatter: .13, interval: [12, 24], floor: 'metal' },
 };
 const CHARACTER = {
   holding: { space: 'cell', air: 'vent', detail: 'vent', event: 'settle', drip: [3.4, -3.2], pipe: [-3.8, 1.8], chatter: [0, -6.4] },
@@ -28,6 +33,10 @@ const CHARACTER = {
   boiler: { space: 'plant', air: 'vent', detail: 'steam', event: 'hiss', drip: [3.1, -3], pipe: [-3.7, 2.7], chatter: [0, 6.7] },
   sluice: { space: 'plant', air: 'water', detail: 'water', event: 'water', drip: [2.8, -3.7], pipe: [-3.7, -2.7], chatter: [0, 6.8] },
   quay: { space: 'exterior', air: 'wind', detail: 'water', event: 'chain', drip: [0, -8.5], pipe: [3.5, -4.2], chatter: [0, 7.5] },
+  annexArchive: { space: 'office', air: 'vent', detail: 'vent', event: 'settle', drip: [-3.6, 2.8], pipe: [3.7, -2.6], chatter: [0, 6.7] },
+  annexRelay: { space: 'plant', air: 'vent', detail: 'steam', event: 'hiss', drip: [3.4, -3.5], pipe: [-3.7, -2], chatter: [0, -6.8] },
+  annexListening: { space: 'office', air: 'vent', detail: 'vent', event: 'settle', drip: [3.6, 3], pipe: [-3.8, 1.6], chatter: [0, 7.2] },
+  annexRelease: { space: 'cell', air: 'wind', detail: 'vent', event: 'chain', drip: [-3.7, -3.2], pipe: [3.6, 1.8], chatter: [0, -7] },
 };
 const noop = () => {};
 const stop = source => { try { source.stop(); } catch { /* A finished source is already silent. */ } };
@@ -50,6 +59,7 @@ export class PrisonAudio {
     this._buffers = new Map(); this._bufferBytes = 0; this._variantBags = new Map(); this._lastVariants = new Map();
     this._listener = { x: 0, z: 3.2, yaw: 0 }; this._nextSpatial = 0; this._nextBedDrift = Infinity;
     this._duckUntil = 0; this._nextMix = 0; this._lastAmbientKind = '';
+    this._signal = null; this._signalTicket = 0;
     this._lastPose = null; this._stride = 0; this._foot = 0; this._lastStepAt = -Infinity;
     this._lastCue = new Map(); this._nextAmbient = Infinity;
     this._chatterUrl = null; this._chatterBuffer = null; this._chatterPending = null; this._chatterAbort = null;
@@ -116,8 +126,128 @@ export class PrisonAudio {
     if (this._disposed) return;
     id = Object.hasOwn(ROOMS, id) ? id : 'holding';
     if (id === this.room) return;
-    this.room = id; this._resetStride(); this._stopAmbient(); this._lastAmbientKind = '';
+    this.room = id; this.stopPuzzleSignal('room-changed'); this._resetStride(); this._stopAmbient(); this._lastAmbientKind = '';
     if (this._canPlay()) { this._configureEcho(); this._startBed(); }
+  }
+
+  // Call from the receiver's explicit Play button. Enabling sound remains a UI
+  // preference decision; this method never enables it or changes the volume.
+  // Packets are copied down to their two tone IDs, excluding clue/answer data.
+  playPuzzleSignal(packets, options = {}) {
+    options ||= {};
+    const index = options.packetIndex;
+    if (!Array.isArray(packets) || !packets.length || packets.length > 5
+      || Array.from(packets).some(packet => !Array.isArray(packet?.tones) || packet.tones.length !== 2
+        || Array.from(packet.tones).some(tone => typeof tone !== 'string' || !Object.hasOwn(PUZZLE_TONE_FREQUENCIES, tone)))
+      || (index !== undefined && (!Number.isInteger(index) || index < 0 || index >= packets.length))) {
+      return Promise.resolve(this._puzzleFailure('invalid-signal'));
+    }
+    const plan = []; let at = .08;
+    packets.forEach((packet, packetIndex) => {
+      if (index !== undefined && packetIndex !== index) return;
+      packet.tones.forEach((tone, toneIndex) => {
+        plan.push({ tone, packetIndex, toneIndex, start: at, end: at + PUZZLE_TONE_DURATION });
+        at += PUZZLE_TONE_DURATION + (toneIndex ? .7 : .24);
+      });
+    });
+    return this._playPuzzle(plan, options);
+  }
+  playPuzzleTone(tone, options = {}) {
+    if (typeof tone !== 'string' || !Object.hasOwn(PUZZLE_TONE_FREQUENCIES, tone)) return Promise.resolve(this._puzzleFailure('invalid-signal'));
+    return this._playPuzzle([{ tone, packetIndex: null, toneIndex: null, start: .08, end: .08 + PUZZLE_TONE_DURATION }], options || {});
+  }
+  _puzzleFailure(reason) {
+    const messages = {
+      disabled: 'Enable sound, then press Play.', 'volume-zero': 'Raise the sound volume, then press Play.',
+      inactive: 'Resume the game, then press Play.', hidden: 'Return to this tab, then press Play.',
+      unavailable: 'Audio is unavailable in this browser. Choose a visual assistance tier.',
+      'resume-required': 'Tap Play again to allow audio, or choose a visual assistance tier.',
+      closed: 'Sound has been closed.', 'invalid-signal': 'This signal cannot be played.',
+      busy: 'Audio is busy. Try Play again.', cancelled: 'Playback stopped.',
+    };
+    return { ok: false, reason, message: messages[reason] || messages.cancelled };
+  }
+  _puzzleBlocked() {
+    return this._disposed ? 'closed' : !this.enabled ? 'disabled' : !this._supported ? 'unavailable'
+      : this._hidden ? 'hidden' : !this.active ? 'inactive' : !this.volume ? 'volume-zero' : null;
+  }
+  _playPuzzle(plan, options) {
+    this.stopPuzzleSignal('replaced');
+    const blocked = this._puzzleBlocked();
+    if (blocked) return Promise.resolve(this._puzzleFailure(blocked));
+    const request = { ticket: ++this._signalTicket, room: this.room, status: 'preparing', plan, voice: null,
+      onProgress: typeof options.onProgress === 'function' ? options.onProgress : noop,
+      onEnded: typeof options.onEnded === 'function' ? options.onEnded : noop, lastProgress: '' };
+    const result = new Promise(resolve => { request.resolve = resolve; });
+    this._signal = request;
+    // Do not put an await or microtask before this call: iOS needs resume() in
+    // the initiating user gesture. A cancelled pending resume cannot play later.
+    const resumed = this.unlock();
+    this._notifyPuzzleProgress(request, { playing: false, packetIndex: plan[0].packetIndex, toneIndex: null, phase: 'preparing' });
+    Promise.resolve(resumed).then(() => {
+      if (this._signal !== request || request.ticket !== this._signalTicket || request.room !== this.room) return;
+      const failure = this._puzzleBlocked();
+      // A global gesture listener can issue another resume in this same click.
+      // Its newer ticket may supersede ours while the context becomes ready;
+      // the current receiver request and actual context state are authoritative.
+      if (failure || !this._canPlay()) {
+        const reason = failure || 'resume-required'; this._endPuzzleSignal(reason, this._puzzleFailure(reason)); return;
+      }
+      try {
+        const buffers = new Map();
+        for (const entry of plan) if (!buffers.has(entry.tone)) {
+          buffers.set(entry.tone, this._cached('receiver:' + entry.tone, () => synthPuzzleTone(this._sampleRate, entry.tone)));
+        }
+        // The receiver takes priority over incidental footsteps and chatter.
+        // Keeping only the quiet bed leaves enough of the fixed source budget
+        // for all ten scheduled tones without evicting any part of the signal.
+        for (const voice of [...this._voices]) if (voice !== this._bed) this._finish(voice);
+        const duration = plan.at(-1).end;
+        const voice = this._voice('puzzle', duration, { sources: plan.length, dry: true });
+        if (!voice) { this._endPuzzleSignal('busy', this._puzzleFailure('busy')); return; }
+        request.voice = voice; request.status = 'playing'; request.startedAt = this.context.currentTime;
+        for (const entry of plan) this._sample(voice, buffers.get(entry.tone), { level: .21, when: request.startedAt + entry.start });
+        this._nextMix = 0; this._mixDynamics();
+        request.resolve({ ok: true, duration }); request.resolve = null;
+        this._advancePuzzleSignal();
+      } catch { this._endPuzzleSignal('unavailable', this._puzzleFailure('unavailable')); }
+    }, () => {
+      if (this._signal === request) this._endPuzzleSignal('resume-required', this._puzzleFailure('resume-required'));
+    });
+    return result;
+  }
+  _notifyPuzzleProgress(request, progress) {
+    const key = JSON.stringify(progress);
+    if (key === request.lastProgress) return;
+    request.lastProgress = key; request.packetIndex = progress.packetIndex;
+    try { request.onProgress(progress); } catch { /* A panel callback cannot interrupt playback cleanup. */ }
+  }
+  _advancePuzzleSignal() {
+    const request = this._signal;
+    if (!request || request.status !== 'playing' || !this._canPlay()) return;
+    const elapsed = this.context.currentTime - request.startedAt, plan = request.plan;
+    if (elapsed >= plan.at(-1).end) { this.stopPuzzleSignal('completed'); return; }
+    const current = plan.find(entry => elapsed >= entry.start && elapsed < entry.end);
+    const previous = plan.findLast(entry => entry.start <= elapsed);
+    this._notifyPuzzleProgress(request, { playing: true, packetIndex: (current || previous || plan[0]).packetIndex,
+      toneIndex: current ? current.toneIndex : null, phase: current ? 'tone' : previous ? 'gap' : 'preparing' });
+  }
+  stopPuzzleSignal(reason = 'stopped') { return this._endPuzzleSignal(reason); }
+  _endPuzzleSignal(reason, failure = null) {
+    ++this._signalTicket;
+    const request = this._signal;
+    if (!request) return false;
+    this._signal = null;
+    this._finish(request.voice);
+    if (request.resolve) { request.resolve(failure || this._puzzleFailure('cancelled')); request.resolve = null; }
+    if (this.context?.state === 'running') {
+      this._nextMix = 0; this._mixDynamics();
+      this._nextAmbient = this.context.currentTime + this._rand(2, 5);
+    }
+    this._notifyPuzzleProgress(request, { playing: false, packetIndex: request.packetIndex ?? request.plan[0].packetIndex,
+      toneIndex: null, phase: 'ended' });
+    try { request.onEnded({ reason }); } catch { /* Closing a panel must always finish stopping its audio. */ }
+    return true;
   }
 
   // Call directly inside a click/tap handler, before awaiting other work. Both
@@ -174,6 +304,7 @@ export class PrisonAudio {
     if (this._disposed) return;
     const context = this.context;
     if (!this._wanted()) {
+      this.stopPuzzleSignal(this._puzzleBlocked() || 'inactive');
       this._stopAll(); this._destroyEcho(); this._nextAmbient = Infinity;
       if (context && context.state !== 'closed') {
         this._master.gain.cancelScheduledValues(context.currentTime); this._master.gain.setValueAtTime(0, context.currentTime);
@@ -195,10 +326,11 @@ export class PrisonAudio {
     }
     if (context?.state === 'running' && this._unlocked) {
       this._ramp(this._master.gain, .7 * this.volume ** 1.35, .045);
-      this._ramp(this._atmosphere.gain, this.atmosphere ** 1.2, .12);
+      this._ramp(this._atmosphere.gain, this.atmosphere ** 1.2 * (this._signal?.status === 'playing' ? .12 : 1), .12);
       if (!this._echo) this._createEcho();
       this._startBed(); this._loadChatter();
     } else {
+      if (this._signal?.status === 'playing') this.stopPuzzleSignal('interrupted');
       this._stopAll(); this._destroyEcho();
       if (resume && context && context.state !== 'closed' && this._unlocked) this._resume(false);
     }
@@ -298,7 +430,8 @@ export class PrisonAudio {
     const now = this.context.currentTime;
     if (now < this._nextMix) return;
     this._nextMix = now + .1;
-    this._ramp(this._atmosphere.gain, this.atmosphere ** 1.2 * (now < this._duckUntil ? .83 : 1), now < this._duckUntil ? .06 : .32);
+    const receiving = this._signal?.status === 'playing', duck = receiving ? .12 : now < this._duckUntil ? .83 : 1;
+    this._ramp(this._atmosphere.gain, this.atmosphere ** 1.2 * duck, receiving || now < this._duckUntil ? .04 : .32);
     if (this._bed?.parts && now >= this._nextBedDrift) {
       this._nextBedDrift = now + this._rand(2.6, 5.7);
       for (const part of this._bed.parts) this._ramp(part.gain.gain, part.level * this._rand(.75, 1.12), this._rand(1.1, 2.8));
@@ -310,6 +443,7 @@ export class PrisonAudio {
     for (const source of voice.sources) { source.onended = null; stop(source); }
     voice.nodes.forEach(disconnect); this._voices.delete(voice);
     if (this._bed === voice) this._bed = null;
+    if (this._signal?.voice === voice) this.stopPuzzleSignal('completed');
   }
   _stopAll() { for (const voice of [...this._voices]) this._finish(voice); this._bed = null; }
   _stopAmbient() { for (const voice of [...this._voices]) if (voice.ambient) this._finish(voice); this._nextAmbient = Infinity; }
@@ -317,17 +451,17 @@ export class PrisonAudio {
     const now = this.context.currentTime;
     for (const voice of this._voices) if (voice.end <= now) this._finish(voice);
   }
-  _voice(kind, duration, { ambient = false, pan = 0, sources = 1, gain = 1, anchor = null } = {}) {
+  _voice(kind, duration, { ambient = false, pan = 0, sources = 1, gain = 1, anchor = null, dry = false } = {}) {
     if (!this._canPlay() || (ambient && this.atmosphere <= 0)) return null;
     this._prune();
     const sourceCount = [...this._voices].reduce((sum, voice) => sum + voice.sources.length, 0);
     if (this._voices.size >= MAX_VOICES || sourceCount + sources > MAX_SOURCES) return null;
     const c = this.context, output = c.createGain(); output.gain.value = gain;
-    const nodes = [output], bus = ambient ? this._atmosphere : this._effects;
+    const nodes = [output], bus = dry ? this._master : ambient ? this._atmosphere : this._effects;
     let end = output, spatialGain = null, panner = null;
     const mix = anchor ? spatialMix(this._listener, anchor) : { pan, gain: 1 };
     if (anchor) { spatialGain = c.createGain(); spatialGain.gain.value = mix.gain; end.connect(spatialGain); end = spatialGain; nodes.push(spatialGain); }
-    if (typeof c.createStereoPanner === 'function') {
+    if (!dry && typeof c.createStereoPanner === 'function') {
       panner = c.createStereoPanner(); panner.pan.value = Math.max(-1, Math.min(1, mix.pan));
       end.connect(panner); end = panner; nodes.push(panner);
     }
@@ -350,14 +484,15 @@ export class PrisonAudio {
     source.connect(gain); gain.connect(voice.output); this._source(voice, source, [gain]);
     source.start(at); source.stop(at + duration + .02);
   }
-  _sample(voice, buffer, { level = 1, rate = 1, loop = false, offset = 0, filter = 0 } = {}) {
+  _sample(voice, buffer, { level = 1, rate = 1, loop = false, offset = 0, filter = 0, when } = {}) {
     const c = this.context, source = c.createBufferSource(), gain = c.createGain(), nodes = [gain];
     source.buffer = buffer; source.playbackRate.value = rate; source.loop = loop; gain.gain.value = level;
     let end = source;
     if (filter) { const low = c.createBiquadFilter(); low.type = 'lowpass'; low.frequency.value = filter; source.connect(low); end = low; nodes.push(low); }
     end.connect(gain); gain.connect(voice.output); this._source(voice, source, nodes);
-    source.start(c.currentTime, Math.min(offset, Math.max(0, buffer.duration - .001)));
-    if (!loop) source.stop(c.currentTime + (buffer.duration - offset) / rate + .005);
+    const at = Number.isFinite(when) ? Math.max(c.currentTime, when) : c.currentTime;
+    source.start(at, Math.min(offset, Math.max(0, buffer.duration - .001)));
+    if (!loop) source.stop(at + (buffer.duration - offset) / rate + .005);
     return { source, gain, level };
   }
   _startBed() {
@@ -377,6 +512,7 @@ export class PrisonAudio {
     this._nextAmbient = c.currentTime + this._rand(4, 8);
   }
   _step(crouch) {
+    if (this._signal) return false;
     const c = this.context;
     if (c.currentTime - this._lastStepAt < (crouch ? .2 : .15)) return false;
     const floor = ROOMS[this.room].floor, variant = this._variant('step:' + floor);
@@ -390,6 +526,7 @@ export class PrisonAudio {
   update({ dt = 0, pose, room } = {}) {
     if (this._disposed) return 0;
     if (room) this.setRoom(room);
+    this._advancePuzzleSignal();
     if (!pose || !Number.isFinite(pose.x) || !Number.isFinite(pose.z)) { this._resetStride(); return 0; }
     const previous = this._lastPose;
     this._lastPose = { x: pose.x, z: pose.z };
@@ -398,7 +535,7 @@ export class PrisonAudio {
     this._prune(); this._advanceRoomResponse(); this._spatialUpdate(); this._mixDynamics();
     if (this.atmosphere > 0) {
       this._startBed();
-      if (this.context.currentTime >= this._nextAmbient) {
+      if (!this._signal && this.context.currentTime >= this._nextAmbient) {
         const interval = ROOMS[this.room].interval;
         this._nextAmbient = this.context.currentTime + interval[0] + this._rand() ** 1.6 * (interval[1] - interval[0]) * 1.35;
         try { this._ambientEvent(); } catch { /* An optional effect must never interrupt movement. */ }
@@ -421,7 +558,7 @@ export class PrisonAudio {
 
   cue(kind) {
     if (kind === 'pickup') kind = 'key';
-    if (!this._canPlay() || !Object.hasOwn(CUE_GAP, kind)) return false;
+    if (!this._canPlay() || this._signal || !Object.hasOwn(CUE_GAP, kind)) return false;
     const now = this.context.currentTime;
     if (now - (this._lastCue.get(kind) ?? -Infinity) < CUE_GAP[kind]) return false;
     const sampled = !['success', 'error'].includes(kind), sound = kind === 'key' ? 'keys' : kind === 'mechanism' ? 'chain' : kind;
@@ -499,7 +636,7 @@ export class PrisonAudio {
   }
   dispose() {
     if (this._disposed) return;
-    this.active = false; this._stopAll(); this._destroyEcho(); this._resetStride();
+    this.active = false; this.stopPuzzleSignal('disposed'); this._stopAll(); this._destroyEcho(); this._resetStride();
     this._chatterAbort?.abort(); this._chatterBuffer = null; this._buffers.clear(); this._bufferBytes = 0;
     this._variantBags.clear(); this._lastVariants.clear();
     this._document?.removeEventListener('visibilitychange', this._visibility);

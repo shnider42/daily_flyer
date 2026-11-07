@@ -5,6 +5,7 @@ import vm from 'node:vm';
 import * as world from '../public/world.mjs';
 import {movementVector,FirstPersonControls} from '../public/controls.js';
 import * as settingsApi from '../public/settings.js';
+import {annexCase} from '../public/annex.mjs';
 
 const controller=(await readFile(new URL('../public/app.js',import.meta.url),'utf8')).replace(/^import[\s\S]*?;\r?\n/gm,'');
 const controlsSource=(await readFile(new URL('../public/controls.js',import.meta.url),'utf8')).replace(/^export /gm,'');
@@ -141,7 +142,7 @@ function harness(options = {}) {
   class PrisonAudio {
     constructor(config = {}) {
       this.options = config; this.enabled = config.enabled ?? false; this.volume = config.volume ?? 0.6; this.atmosphere = config.atmosphere ?? 0.55;
-      this.active = false; this.unlocked = false; this.room = 'holding'; this.unlocks = 0; this.cues = []; this.updates = []; audio = this;
+      this.active = false; this.unlocked = false; this.room = 'holding'; this.unlocks = 0; this.cues = []; this.updates = []; this.signals = []; this.signalStops = []; audio = this;
     }
     getStatus() {
       const supported = options.audioSupported !== false;
@@ -158,6 +159,9 @@ function harness(options = {}) {
     unlock() { this.unlocks++; this.unlocked = this.enabled && options.audioSupported !== false && options.audioUnlock !== false; this.emit(); return Promise.resolve(this.unlocked); }
     update(value) { this.updates.push(value); return 0; }
     cue(kind) { if (!this.getStatus().playing) return false; this.cues.push(kind); return true; }
+    playPuzzleSignal(packets, callbacks = {}) { this.signals.push({packets, callbacks}); return options.signalPromise || Promise.resolve(options.signalResult || {ok:true,duration:8.08}); }
+    playPuzzleTone(tone, callbacks = {}) { this.signals.push({tone, callbacks}); return options.signalPromise || Promise.resolve(options.signalResult || {ok:true,duration:.48}); }
+    stopPuzzleSignal(reason) { this.signalStops.push(reason); this.signals.at(-1)?.callbacks.onEnded?.({reason}); }
     dispose() { this.active = false; }
   }
   class CoopClient {
@@ -173,7 +177,7 @@ function harness(options = {}) {
     sendAction(action) { if (!this.connected) return null; const id = `action-${this.actions.length}`; this.actions.push({ id, action: structuredClone(action) }); return id; }
     welcome(state) { this.active = this.connected = true; this.callbacks.onStatus('connected', 'Ready'); this.callbacks.onRoster([{ id: 'self', name: 'Test', connected: true, room: 'holding' }]); this.callbacks.onState(state, { initial: true }); }
   }
-  const scene = { brightness: [], loads: [], loadRoom(room) { this.loads.push(room.id); }, setCamera() {}, canMove() { return true; }, resize() {}, setBrightness(value) { this.brightness.push(value); }, render() {}, getTarget() { return null; } };
+  const scene = { brightness: [], loads: [], presentations: [], loadRoom(room, objects) { this.loads.push(room.id); this.presentations.push(objects); }, setCamera() {}, canMove() { return true; }, resize() {}, setBrightness(value) { this.brightness.push(value); }, render() {}, getTarget() { return null; } };
   const localStorage = {
     getItem(key) { if (options.blockStorage) throw new Error('Storage blocked'); return storage.get(key) ?? null; },
     setItem(key, value) { if (options.blockStorage) throw new Error('Storage blocked'); storage.set(key, String(value)); writes.push(key); },
@@ -181,7 +185,7 @@ function harness(options = {}) {
   const media = query => ({ matches: query.includes('reduced-motion') ? !!options.reduced : query.includes('coarse') ? !!options.touch : query.includes('fine') || query.includes('hover: hover') ? !options.touch : false, addEventListener() {}, removeEventListener() {} });
   const window = { innerWidth: options.touch ? 428 : 1280, innerHeight: options.touch ? 926 : 720, devicePixelRatio: options.touch ? 3 : 1, addEventListener: (type, fn) => addListener(events.window, type, fn), removeEventListener: (type, fn) => removeListener(events.window, type, fn), matchMedia: media };
   const context = vm.createContext({ ...world, ...settingsApi, FirstPersonControls, CoopClient, PrisonAudio, createScene: () => scene, document, window, localStorage, matchMedia: media, requestAnimationFrame: () => 1, setTimeout: fn => { const id = ++timerId; timers.set(id, fn); return id; }, clearTimeout: id => timers.delete(id), URL, Date, Math, console, structuredClone, performance: { now: () => clock }, location: { href: 'https://night-transfer.example/', origin: 'https://night-transfer.example', pathname: '/' }, navigator: { maxTouchPoints: options.touch ? 5 : 0 } });
-  vm.runInContext((options.realControls ? controlsSource + '\n' : '') + controller + '\nglobalThis.app={startSolo,returnToMenu,showCoop,showSettings,showPause,closeModal,dispatch,useFocused,openObject,saveSolo,changeSetting,toggleSound,previewSound,syncAudioActivity,refreshFocus,animate,getControls:()=>controls,snapshot:()=>({mode,state,roomId,dialogKind,selected,teamIntent,settings:{...settings},settingsTab,lookUsed,moveUsed,pending:[...pending.keys()]})};', context);
+  vm.runInContext((options.realControls ? controlsSource + '\n' : '') + controller + '\nglobalThis.app={startSolo,returnToMenu,showCoop,showSettings,showPause,showNotebook,showGuidance,showAnnexSetup,closeModal,dispatch,useFocused,openObject,saveSolo,changeSetting,toggleSound,previewSound,syncAudioActivity,refreshFocus,animate,getControls:()=>controls,snapshot:()=>({mode,state,roomId,dialogKind,selected,teamIntent,settings:{...settings},settingsTab,lookUsed,moveUsed,pending:[...pending.keys()],drafts:Object.fromEntries(puzzleDrafts),workingNotes})};', context);
   control = context.app.getControls();
   assert.equal(elements.get('fatal').hidden, true, 'controller startup must not fall into the fatal screen');
   return {
@@ -197,11 +201,120 @@ const plain = value => JSON.parse(JSON.stringify(value));
 const settlePromises = () => new Promise(resolve => setImmediate(resolve));
 function join(h){h.app.showCoop();h.elements.get('create-team').click();h.transport.welcome(world.newGame());h.app.closeModal();}
 const firstAct=[{type:'interact',id:'bunkPocket'},{type:'interact',id:'holdingDoor'},{type:'solve',id:'routeCabinet',value:['gate','eye','lamp','moon']},{type:'interact',id:'recordsDoor'},{type:'interact',id:'transferDesk'},{type:'interact',id:'transferExit'}];
+const ANNEX_SLOT='night-transfer.annex.solo.v1';
+function annexFixture(stage=0, extra={}){
+  let state=world.newGame({campaign:'annex',seed:41});const data=annexCase(state);
+  const rooms=['annexArchive','annexRelay','annexListening','annexRelease'];
+  const steps=[['annexRouteLock',data.route,'annexRelayDoor'],['annexRelayBoard',data.switches,'annexListeningDoor'],['annexReceiver',data.code,'annexReleaseDoor']];
+  const take=action=>{const result=world.reduce(state,action);assert.equal(result.ok,true,result.message);state=result.state;};
+  for(let i=0;i<=stage;i++){
+    for(const object of world.getObjects(state,rooms[i]).filter(o=>o.clue))take({type:'interact',id:object.id,room:rooms[i]});
+    if(i<stage){take({type:'solve',id:steps[i][0],value:steps[i][1],room:rooms[i]});take({type:'interact',id:steps[i][2],room:rooms[i]});}
+  }
+  return {version:1,state,room:rooms[stage],pose:world.ROOMS[rooms[stage]].spawn,elapsedSeconds:53,owner:'fixture',savedAt:1,...extra};
+}
+function annexHarness(stage=0,options={}){
+  const storage=options.storage||new Map();storage.set(ANNEX_SLOT,JSON.stringify(annexFixture(stage,options.saved)));
+  const h=harness({...options,storage});h.app.startSolo(true,'annex');return h;
+}
 
 test('first-person inspection does not collect an item until the player searches',()=>{
   const h=harness();h.app.startSolo();h.app.closeModal();h.app.useFocused({id:'bunkPocket',distance:1.2});
   assert.equal(h.app.snapshot().dialogKind,'object');assert.equal(h.app.snapshot().state.inventory.length,0);
   h.elements.get('object-action').click();assert(h.app.snapshot().state.inventory.includes('holdingKey'));assert.equal(h.app.snapshot().dialogKind,'result');
+});
+
+test('Dead Air launches from its own chapter card and resumes without replacing the original solo run',()=>{
+  const h=harness();h.app.startSolo();h.app.closeModal();h.app.dispatch(firstAct[0]);h.app.returnToMenu();
+  const classic=h.storage.get('night-transfer.solo.v1');h.elements.get('annex-btn').click();
+  h.elements.get('guidance-expert').click();h.elements.get('annex-play').click();
+  assert.equal(h.app.snapshot().state.campaign,'annex');assert.equal(h.app.snapshot().state.level,3);
+  assert.equal(h.app.snapshot().settings.guidance,'expert');assert.match(h.elements.get('dialog-content').innerHTML,/listening-only/);
+  assert.equal(h.storage.get('night-transfer.solo.v1'),classic);const seed=h.app.snapshot().state.seed;
+  h.app.returnToMenu();h.elements.get('annex-btn').click();assert.match(h.elements.get('dialog-content').innerHTML,/CONTINUE DEAD AIR/);
+  h.elements.get('annex-play').click();assert.equal(h.app.snapshot().state.seed,seed);assert.equal(h.app.snapshot().dialogKind,'');
+  h.app.returnToMenu();h.app.startSolo(true);assert(h.app.snapshot().state.inventory.includes('holdingKey'));assert.equal(h.app.snapshot().state.campaign,'escape');
+});
+
+test('guidance switches preserve hints and partial combinations and refresh both scene and receiver presentation',()=>{
+  const h=annexHarness(2);h.app.dispatch({type:'hint'});h.app.openObject(world.OBJECTS.annexReceiver);
+  for(const key of ['2','7'])h.emit('window','keydown',{key});const revision=h.app.snapshot().state.revision;
+  h.elements.get('signal-guidance').click();h.elements.get('guidance-expert').click();h.elements.get('guidance-done').click();
+  assert.equal(h.app.snapshot().state.revision,revision);assert.equal(h.app.snapshot().state.hintsUsed[3],1);
+  assert.equal(h.elements.get('puzzle-readout').textContent,'27———');
+  assert.match(h.elements.get('dialog-content').innerHTML,/TWO TONES · LISTEN/);assert.doesNotMatch(h.elements.get('dialog-content').innerHTML,/Raw digit:|LOW →|MID →|HIGH →/);
+  const receiver=h.scene.presentations.at(-1).find(o=>o.id==='annexReceiver');assert(receiver.puzzle.packets.every(p=>!('tones'in p)&&!('rawDigit'in p)));
+  h.elements.get('signal-guidance').click();h.elements.get('guidance-simple').click();h.elements.get('guidance-done').click();
+  assert.match(h.elements.get('dialog-content').innerHTML,/Raw digit:/);assert.equal(h.elements.get('puzzle-readout').textContent,'27———');
+  assert.equal(h.app.snapshot().state.revision,revision);assert.equal(h.app.snapshot().state.hintsUsed[3],1);
+});
+
+test('private working notes, relay drafts and inspected records survive a reload and a return from the notebook',()=>{
+  const h=annexHarness(1);h.app.openObject(world.OBJECTS.annexRelayBoard);
+  h.document.querySelectorAll('[data-switch]')[2].click();h.document.querySelectorAll('[data-switch]')[4].click();
+  h.elements.get('puzzle-notes').click();h.input('working-notes','Route: compare all four rules.\nKeep the sealed checksum.');
+  const evidence=h.document.querySelectorAll('[data-note]').find(button=>button.dataset.note==='annexCorrections');assert(evidence);evidence.click();
+  assert.match(h.elements.get('dialog-content').innerHTML,/SEALED CASE CHECKSUM/);h.elements.get('back-notes').click();h.elements.get('notebook-return').click();
+  assert.equal(h.elements.get('switch-state-2').textContent,'ON');assert.equal(h.elements.get('switch-state-4').textContent,'ON');
+  const reloaded=harness({storage:h.storage});reloaded.app.startSolo(true,'annex');reloaded.app.openObject(world.OBJECTS.annexRelayBoard);
+  assert.equal(reloaded.elements.get('switch-state-2').textContent,'ON');assert.equal(reloaded.elements.get('switch-state-4').textContent,'ON');
+  assert.equal(reloaded.app.snapshot().workingNotes,'Route: compare all four rules.\nKeep the sealed checksum.');
+  assert.equal(reloaded.app.snapshot().state.seed,41);assert.equal(reloaded.app.snapshot().roomId,'annexRelay');
+});
+
+test('untrusted saved drafts cannot unlock inaccessible puzzles or inject markup into working notes',()=>{
+  const h=annexHarness(0,{saved:{drafts:{annexReceiver:'99999',annexInterlock:[9,9,9,9],annexRouteLock:['delta','<script>','wave',{},null]},workingNotes:'<img src=x onerror=alert(1)>'.repeat(200)}});
+  assert.deepEqual(plain(h.app.snapshot().drafts),{annexRouteLock:['delta','wave']});assert.equal(h.app.snapshot().workingNotes.length,3000);
+  h.app.showNotebook();assert.match(h.elements.get('dialog-content').innerHTML,/&lt;img/);assert.doesNotMatch(h.elements.get('dialog-content').innerHTML,/<img/);
+  assert.equal(h.app.snapshot().state.flags.annexRouteSolved,undefined);
+});
+
+test('receiver keyboard entry submits on the puzzle surface and leaves focused buttons and notes usable',()=>{
+  const h=annexHarness(2);h.app.openObject(world.OBJECTS.annexReceiver);const code=annexCase(h.app.snapshot().state).code;
+  for(const key of code)h.emit('window','keydown',{key});assert.equal(h.elements.get('puzzle-readout').textContent,code);
+  const before=h.app.snapshot().state.revision;h.elements.get('signal-play').focus();const buttonEnter=h.emit('window','keydown',{key:'Enter'});
+  assert.equal(buttonEnter.defaultPrevented,false,'Enter must activate the focused playback button through the browser');assert.equal(h.app.snapshot().state.revision,before);
+  h.elements.get('dialog').focus();h.emit('window','keydown',{key:'Backspace'});assert.equal(h.elements.get('puzzle-readout').textContent,code.slice(0,4)+'—');
+  h.emit('window','keydown',{key:code[4]});h.emit('window','keydown',{key:'Enter'});assert.equal(h.app.snapshot().state.flags.annexSignalSolved,true);
+  assert.equal(h.app.snapshot().drafts.annexReceiver,undefined);assert.equal(h.app.snapshot().dialogKind,'result');
+  h.app.showNotebook();h.elements.get('working-notes').focus();const noteKey=h.emit('window','keydown',{key:'7'});assert.equal(noteKey.defaultPrevented,false);
+});
+
+test('receiver playback enables audio explicitly, uses the shared signal and never discloses Expert tones in status',async()=>{
+  const h=annexHarness(2);h.app.changeSetting('guidance','expert');h.app.openObject(world.OBJECTS.annexReceiver);
+  h.elements.get('signal-play').click();await settlePromises();assert.equal(h.app.snapshot().settings.sound,true);
+  assert.deepEqual(plain(h.audio.signals.at(-1).packets),world.annexSignal(h.app.snapshot().state).packets);
+  const callbacks=h.audio.signals.at(-1).callbacks;callbacks.onProgress({playing:true,packetIndex:2,toneIndex:0,phase:'tone'});
+  assert.equal(h.elements.get('signal-status').textContent,'Packet 3 of 5 · listening');assert(h.elements.get('signal-packet-2').classList.contains('playing'));
+  callbacks.onEnded({reason:'completed'});assert.match(h.elements.get('signal-status').textContent,/Playback complete/);
+  h.document.querySelectorAll('[data-tone]')[0].click();await settlePromises();assert.equal(h.audio.signals.at(-1).tone,'low');
+  h.elements.get('signal-stop').click();assert.equal(h.audio.signalStops.at(-1),'stopped');assert.match(h.elements.get('signal-status').textContent,/Playback stopped/);
+});
+
+test('closing a receiver cancels playback and stale asynchronous results cannot write into a reopened receiver',async()=>{
+  let resolvePlay;const signalPromise=new Promise(resolve=>resolvePlay=resolve);const h=annexHarness(2,{signalPromise});h.app.openObject(world.OBJECTS.annexReceiver);
+  h.elements.get('signal-play').click();const old=h.audio.signals.at(-1).callbacks;
+  h.app.showNotebook('annexReceiver');assert.equal(h.audio.signalStops.at(-1),'panel-closed');h.elements.get('notebook-return').click();
+  const fresh=h.elements.get('signal-status').textContent;old.onProgress({playing:true,packetIndex:1,toneIndex:1});old.onEnded({reason:'completed'});
+  resolvePlay({ok:false,reason:'unavailable',message:'stale failure'});await settlePromises();assert.equal(h.elements.get('signal-status').textContent,fresh);
+  assert.equal(h.app.snapshot().dialogKind,'object');assert.equal(h.app.snapshot().selected,'annexReceiver');
+});
+
+test('a silent receiver reports the remedy and the visual tier remains available with the same run',async()=>{
+  const h=annexHarness(2,{signalResult:{ok:false,reason:'volume-zero'}});h.app.changeSetting('guidance','expert');h.app.openObject(world.OBJECTS.annexReceiver);
+  h.elements.get('signal-play').click();await settlePromises();assert.match(h.elements.get('signal-status').textContent,/Master volume is at zero/);
+  h.elements.get('signal-guidance').click();h.elements.get('guidance-moderate').click();h.elements.get('guidance-done').click();
+  assert.match(h.elements.get('dialog-content').innerHTML,/(LOW|MID|HIGH) → (LOW|MID|HIGH)/);assert.doesNotMatch(h.elements.get('dialog-content').innerHTML,/Raw digit:/);
+  assert.equal(h.app.snapshot().state.seed,41);assert.equal(h.app.snapshot().state.hintsUsed[3],0);
+});
+
+test('a delayed co-op hint acknowledgement cannot replace or stop a receiver the player has since opened',async()=>{
+  const h=harness();h.app.showCoop('annex');h.elements.get('create-team').click();h.transport.welcome(annexFixture(2).state);h.app.closeModal();
+  h.elements.get('hint-btn').click();h.elements.get('reveal-hint').click();const sent=h.transport.actions.at(-1);
+  h.app.openObject(world.OBJECTS.annexReceiver);h.elements.get('signal-play').click();await settlePromises();const stops=h.audio.signalStops.length;
+  const result=world.reduce(h.app.snapshot().state,sent.action);h.transport.callbacks.onState(result.state);h.transport.callbacks.onMessage({...result,type:'action-result',actionId:sent.id});
+  assert.equal(h.app.snapshot().dialogKind,'object');assert.equal(h.app.snapshot().selected,'annexReceiver');assert.equal(h.audio.signalStops.length,stops);
+  assert.equal(h.app.snapshot().state.hintsUsed[3],1);assert.equal(h.app.snapshot().pending.length,0);assert.match(h.elements.get('toast').textContent,/hint log/);
 });
 test('objects out of reach do not open or mutate the escape',()=>{
   const h=harness();h.app.startSolo();h.app.closeModal();h.app.useFocused({id:'bunkPocket',distance:4});

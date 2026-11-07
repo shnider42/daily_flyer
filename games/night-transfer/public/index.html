@@ -4,7 +4,7 @@
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
   <meta name="theme-color" content="#10191c">
-  <meta name="description" content="An atmospheric first-person prison escape. Three wings, visual puzzles, solo or private co-op for up to four players. No sound required.">
+  <meta name="description" content="A first-person prison escape, now with Dead Air: a harder four-room annex with Simple, Moderate and Expert guidance. Solo or private co-op for four. Expert Dead Air uses audio clues.">
   <title>NIGHT TRANSFER — A first-person escape</title>
   <link rel="icon" href="/favicon.svg" type="image/svg+xml">
   <link rel="stylesheet" href="/style.css">
@@ -13,7 +13,7 @@
   <canvas id="world" aria-label="First-person view inside Ashgate prison" tabindex="-1"></canvas>
   <div class="screen-grain" aria-hidden="true"></div>
   <main id="menu" aria-label="Night Transfer main menu">
-    <header class="menu-top"><span>DAILY FLYER <b>/</b> FIELD NOTES 02</span><span class="silent-badge"><i></i> ALL CLUES ARE VISUAL</span></header>
+    <header class="menu-top"><span>DAILY FLYER <b>/</b> FIELD NOTES 02</span><span class="silent-badge"><i></i> CHOOSE YOUR WAY OUT</span></header>
     <section class="menu-copy">
       <p class="eyebrow"><span class="tiny-bar"></span> ASHGATE PENITENTIARY · 02:43 AM</p>
       <h1>NIGHT<br><span>TRANSFER</span><b>_</b></h1>
@@ -24,9 +24,10 @@
         <button id="continue-btn" class="button secondary" hidden>CONTINUE ESCAPE <span>→</span></button>
         <button id="coop-btn" class="button ghost">ESCAPE TOGETHER <small>2–4 PLAYERS</small></button>
       </div>
+      <button id="annex-btn" class="annex-card"><span class="annex-card-top"><small>NEW ESCAPE · WING 04</small><b>↗</b></span><strong>DEAD AIR<span>_</span></strong><span id="annex-save-note">Four rooms · Three guidance tiers · A harder escape</span></button>
       <p class="save-note" id="save-note">A first-person escape. No account. No download.</p>
     </section>
-    <footer class="menu-bottom"><div><span class="serial">NT—041</span><p>THREE WINGS.<br>ONE LAST CHANCE.</p></div><nav class="menu-links" aria-label="Game preferences"><button id="menu-settings" class="text-button">SETUP</button><button id="how-btn" class="text-button">CONTROLS <span>→</span></button></nav></footer>
+    <footer class="menu-bottom"><div><span class="serial">NT—041</span><p>FOUR WINGS.<br>TWO WAYS OUT.</p></div><nav class="menu-links" aria-label="Game preferences"><button id="menu-settings" class="text-button">SETUP</button><button id="how-btn" class="text-button">CONTROLS <span>→</span></button></nav></footer>
   </main>
   <section id="hud" aria-label="First-person escape game" hidden>
     <header class="hud-top">
@@ -35,7 +36,7 @@
       <div class="hud-tools"><button id="notes-btn" aria-label="Open notebook" title="Notes · N"><span class="tool-icon">▤</span><small>NOTES</small></button><button id="hint-btn" aria-label="Open hints" title="Hints · H"><span class="tool-icon">?</span><small>HINTS <b id="hint-count">3</b></small></button><button id="settings-btn" aria-label="Settings" title="Setup · O"><span class="tool-icon">☷</span><small>SETUP</small></button></div>
     </header>
     <div class="objective"><i></i><p id="objective-text"></p></div>
-    <div class="upper-status"><span id="session-label">SOLO / SAVED LOCALLY</span><span id="elapsed">00:00</span></div>
+    <div class="upper-status"><span id="session-label">SOLO / SAVED LOCALLY</span><button id="guidance-btn" hidden>MODERATE · GUIDANCE</button><span id="elapsed">00:00</span></div>
     <div id="reticle" aria-hidden="true"><i></i></div>
     <div id="focus-label" aria-live="polite"><span id="focus-title"></span><small id="focus-distance"></small></div>
     <div id="scan-warning" hidden><i></i><span>CAMERA SWEEP</span><b id="scan-text">WATCHED</b></div>

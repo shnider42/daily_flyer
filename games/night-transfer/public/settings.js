@@ -11,6 +11,7 @@ export const DEFAULT_SETTINGS = Object.freeze({
   buttonScale: 1, stickSize: 88, controlOpacity: 0.7,
   leftHanded: false, lookGuide: true, desktopMouseLook: true,
   sound: false, volume: 0.6, atmosphere: 0.55,
+  guidance: 'moderate',
 });
 
 export function normalizeSettings(raw, reducedDefault = false) {
@@ -24,6 +25,7 @@ export function normalizeSettings(raw, reducedDefault = false) {
   for (const key of ['invert', 'reduced', 'leftHanded', 'lookGuide', 'desktopMouseLook', 'sound']) {
     if (typeof raw[key] === 'boolean') clean[key] = raw[key];
   }
+  if (['simple', 'moderate', 'expert'].includes(raw.guidance)) clean.guidance = raw.guidance;
   return clean;
 }
 

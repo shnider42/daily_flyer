@@ -223,16 +223,18 @@ test('rapid cues have cooldowns and a strict simultaneous source cap with comple
   f.audio.setActive(false); await settle(); assert.equal(f.context.live.size, 0);
 });
 
-test('nine room profiles change the atmosphere without leaking beds or requiring samples', async t => {
+test('thirteen room profiles change the atmosphere without leaking beds or requiring samples', async t => {
   const f = fixture(t); await play(f); const signatures = new Set();
-  for (const room of ['holding', 'washroom', 'records', 'laundry', 'watchroom', 'dispatch', 'boiler', 'sluice', 'quay']) {
+  for (const room of ['holding', 'washroom', 'records', 'laundry', 'watchroom', 'dispatch', 'boiler', 'sluice', 'quay',
+    'annexArchive', 'annexRelay', 'annexListening', 'annexRelease']) {
     f.audio.setRoom(room); assert.equal(f.context.live.size, 3);
+    assert.equal(f.audio.room, room);
     const bed = [...f.context.live][0].buffer.getChannelData(0);
     signatures.add(Array.from(bed.slice(100, 110)).join(','));
     f.context.advance(30); f.audio.update({ dt: .1, pose: { x: 0, z: 0 }, room });
     assert(f.context.live.size <= 5, 'one occasional event is scheduled, without a catch-up burst');
   }
-  assert(signatures.size >= 7); assert.equal(f.fetches(), 0);
+  assert(signatures.size >= 11); assert.equal(f.fetches(), 0);
   assert(f.audio._bufferBytes <= 4 * 1024 * 1024, 'generated sample cache is bounded');
   f.audio.dispose(); assert.equal(f.context.live.size, 0);
 });
@@ -302,4 +304,182 @@ test('environment choices and room texture drift remain bounded and do not repea
   for (let i = 1; i < heard.length; i++) assert.notEqual(heard[i], heard[i - 1]);
   assert(f.audio._bed.parts.every(part => part.gain.gain.events.some(event => event.method === 'target')));
   assert(f.audio._bufferBytes <= 4 * 1024 * 1024);
+});
+
+const receiverPackets = () => [
+  { id: 'packet-1', symbol: '♦', label: 'Diamond', tones: ['low', 'high'] },
+  { id: 'packet-2', symbol: '✚', label: 'Cross', tones: ['mid', 'low'] },
+  { id: 'packet-3', symbol: '●', label: 'Circle', tones: ['high', 'mid'] },
+  { id: 'packet-4', symbol: '▲', label: 'Triangle', tones: ['low', 'low'] },
+  { id: 'packet-5', symbol: '■', label: 'Square', tones: ['mid', 'high'] },
+];
+
+test('receiver playback requires explicit enabled active audible sound and returns useful failures', async t => {
+  const f = fixture(t, { atmosphere: 0 }); f.audio.setActive(true);
+  assert.equal((await f.audio.playPuzzleSignal(receiverPackets())).reason, 'disabled');
+  assert.equal(f.audio.enabled, false); assert.equal(f.creations(), 0);
+  f.audio.setEnabled(true); f.audio.setActive(false);
+  assert.equal((await f.audio.playPuzzleTone('low')).reason, 'inactive');
+  f.audio.setActive(true); f.audio.setVolume(0);
+  assert.equal((await f.audio.playPuzzleTone('low')).reason, 'volume-zero');
+  f.audio.setVolume(.6); f.document.hidden = true; f.document.dispatch('visibilitychange');
+  assert.equal((await f.audio.playPuzzleTone('low')).reason, 'hidden');
+  assert.equal(f.creations(), 0, 'failed gates neither create a context nor auto-enable audio');
+  f.document.hidden = false; f.document.dispatch('visibilitychange'); f.context.rejectResume = true;
+  const failure = await f.audio.playPuzzleTone('low');
+  assert.equal(failure.reason, 'resume-required'); assert.match(failure.message, /Play|visual/);
+  assert.equal(f.context.live.size, 0);
+  f.context.rejectResume = false;
+  assert.equal((await f.audio.playPuzzleTone('low')).ok, true, 'a later deliberate gesture can recover');
+  f.audio.dispose(); assert.equal((await f.audio.playPuzzleTone('high')).reason, 'closed');
+  const unsupported = fixture(t, { contextFactory: null, enabled: true }); unsupported.audio.setActive(true);
+  assert.equal((await unsupported.audio.playPuzzleTone('low')).reason, 'unavailable');
+});
+
+test('receiver validates bounded packet snapshots before creating audio', async t => {
+  const f = fixture(t, { enabled: true, atmosphere: 0 }); f.audio.setActive(true);
+  for (const packets of [null, [], new Array(5), Array(6).fill({ tones: ['low', 'mid'] }),
+    [{ tones: new Array(2) }], [{ tones: ['low'] }], [{ tones: ['low', 'mid', 'high'] }],
+    [{ tones: ['__proto__', 'high'] }], [{ tones: [330, 550] }]]) {
+    assert.equal((await f.audio.playPuzzleSignal(packets)).reason, 'invalid-signal');
+  }
+  for (const packetIndex of [-1, 5, .5, NaN, '1']) {
+    assert.equal((await f.audio.playPuzzleSignal(receiverPackets(), { packetIndex })).reason, 'invalid-signal');
+  }
+  assert.equal((await f.audio.playPuzzleTone('not-a-tone')).reason, 'invalid-signal');
+  assert.equal(f.creations(), 0); assert.equal(f.context.started.length, 0);
+});
+
+test('receiver resumes in the gesture and schedules ten separated mono tones on the audio clock', async t => {
+  const f = fixture(t, { enabled: true, atmosphere: 0 }); f.audio.setActive(true); f.audio.setRoom('annexListening');
+  const packets = receiverPackets(), progress = [], ended = [];
+  const playing = f.audio.playPuzzleSignal(packets, { onProgress: value => progress.push(value), onEnded: value => ended.push(value) });
+  assert.equal(f.creations(), 1); assert.equal(f.context.resumeCalls, 1, 'resume happens before the method returns');
+  packets[0].tones[0] = 'high'; packets.length = 0;
+  const result = await playing; assert.equal(result.ok, true); assert(Math.abs(result.duration - 8.08) < .001);
+  const voice = f.audio._signal.voice;
+  assert.equal(voice.sources.length, 10); assert.equal(voice.panner, null);
+  assert(voice.output.connections.has(f.audio._master), 'the mono receiver bypasses room echo and spatial pan');
+  assert(!voice.output.connections.has(f.audio._effects));
+  for (let i = 0; i < voice.sources.length; i++) {
+    const source = voice.sources[i]; assert.equal(source.buffer.numberOfChannels, 1); assert.equal(source.playbackRate.value, 1);
+    assert(Math.abs(source.buffer.duration - .4) < .001);
+    if (i) {
+      const expectedGap = i % 2 ? .24 : .7;
+      assert(Math.abs(source.startedAt - (voice.sources[i - 1].startedAt + .4) - expectedGap) < .001);
+    }
+  }
+  const first = voice.sources[0].buffer;
+  await f.audio.playPuzzleTone('low');
+  assert.strictEqual(f.audio._signal.voice.sources[0].buffer, first, 'calibration and a snapshotted packet use the identical cached tone');
+  assert.deepEqual(ended, [{ reason: 'replaced' }]);
+  assert(progress.every(value => Object.keys(value).sort().join(',') === 'packetIndex,phase,playing,toneIndex'));
+  assert(!JSON.stringify(progress).match(/low|mid|high|Diamond|♦|330|550|880/));
+});
+
+test('single-packet replay preserves its transmission index and progress reveals no pitch content', async t => {
+  const f = fixture(t, { atmosphere: 0 }); await play(f); const progress = [], ended = [];
+  const result = await f.audio.playPuzzleSignal(receiverPackets(), { packetIndex: 2,
+    onProgress: value => progress.push(value), onEnded: value => ended.push(value) });
+  assert.equal(result.ok, true); assert(Math.abs(result.duration - 1.12) < .001);
+  const sources = [...f.audio._signal.voice.sources]; assert.equal(sources.length, 2);
+  f.context.advance(.1); f.audio.update();
+  assert.deepEqual(progress.at(-1), { playing: true, packetIndex: 2, toneIndex: 0, phase: 'tone' });
+  f.context.advance(.4); f.audio.update();
+  assert.deepEqual(progress.at(-1), { playing: true, packetIndex: 2, toneIndex: null, phase: 'gap' });
+  f.context.advance(.24); f.audio.update();
+  assert.deepEqual(progress.at(-1), { playing: true, packetIndex: 2, toneIndex: 1, phase: 'tone' });
+  f.context.advance(5); f.audio.update(); f.audio.update();
+  assert.deepEqual(ended, [{ reason: 'completed' }]); assert.equal(f.audio._signal, null);
+  assert.equal(progress.at(-1).playing, false); assert.equal(progress.at(-1).phase, 'ended');
+  assert(sources.every(source => source.ended)); assert.equal(f.context.live.size, 0);
+});
+
+test('closing, changing rooms, pausing, muting, hiding and interruption cancel all scheduled receiver tones', async t => {
+  const cases = [
+    ['panel-closed', f => f.audio.stopPuzzleSignal('panel-closed')],
+    ['room-changed', f => f.audio.setRoom('annexRelease')],
+    ['inactive', f => f.audio.setActive(false)],
+    ['disabled', f => f.audio.setEnabled(false)],
+    ['volume-zero', f => f.audio.setVolume(0)],
+    ['hidden', f => { f.document.hidden = true; f.document.dispatch('visibilitychange'); }],
+    ['hidden', f => f.window.dispatch('pagehide')],
+    ['interrupted', f => f.context.setState('interrupted')],
+    ['disposed', f => f.audio.dispose()],
+  ];
+  for (const [reason, cancel] of cases) await t.test(reason, async child => {
+    const f = fixture(child, { atmosphere: 0 }); await play(f); f.audio.setRoom('annexListening');
+    const ended = []; await f.audio.playPuzzleSignal(receiverPackets(), { onEnded: value => ended.push(value) });
+    const sources = [...f.audio._signal.voice.sources]; cancel(f); await settle();
+    assert.equal(f.audio._signal, null); assert(sources.every(source => source.ended && source.disconnected));
+    assert.deepEqual(ended, [{ reason }]);
+    f.context.advance(20); f.audio.update(); await settle();
+    assert.deepEqual(ended, [{ reason }]); assert.equal(f.context.live.size, 0);
+    if (reason === 'hidden' || reason === 'interrupted') {
+      f.document.hidden = false; f.document.dispatch('visibilitychange'); f.window.dispatch('pageshow'); await f.audio.unlock();
+      assert.equal(f.audio._signal, null); assert.equal(f.context.live.size, 0, 'returning never resumes a cancelled signal');
+    }
+  });
+});
+
+test('pending receiver resumes resolve cancellation promptly and stale gestures cannot start old packets', async t => {
+  const f = fixture(t, { enabled: true, atmosphere: 0 }); f.audio.setActive(true); f.context.deferResume = true;
+  const ended = [];
+  const cancelled = f.audio.playPuzzleSignal(receiverPackets(), { onEnded: value => ended.push(value) });
+  f.audio.stopPuzzleSignal('panel-closed');
+  assert.equal((await cancelled).reason, 'cancelled', 'closing does not wait for a possibly blocked native resume promise');
+  f.context.pendingResumes.shift()(); await settle();
+  assert.equal(f.context.live.size, 0); assert.deepEqual(ended, [{ reason: 'panel-closed' }]);
+
+  f.context.setState('interrupted');
+  const old = f.audio.playPuzzleTone('low'), latest = f.audio.playPuzzleTone('high');
+  assert.equal((await old).reason, 'cancelled');
+  for (const finish of f.context.pendingResumes.splice(0)) finish();
+  assert.equal((await latest).ok, true); assert.equal(f.context.live.size, 1);
+  const high = f.audio._signal.voice.sources[0].buffer;
+  await f.audio.playPuzzleTone('high');
+  assert.strictEqual(f.audio._signal.voice.sources[0].buffer, high);
+  assert.equal(f.context.live.size, 1, 'only the latest request can retain a source');
+});
+
+test('a global gesture resume cannot reject the current receiver after the context has started', async t => {
+  const f = fixture(t, { enabled: true, atmosphere: 0 }); f.audio.setActive(true);
+  const playing = f.audio.playPuzzleTone('mid');
+  const globalGesture = f.audio.unlock();
+  assert.equal((await playing).ok, true); assert.equal(await globalGesture, true);
+  assert.equal(f.context.live.size, 1); assert.equal(f.audio._signal.status, 'playing');
+});
+
+test('receiver ducks ambience, suppresses incidental cues and keeps replay source/cache budgets bounded', async t => {
+  const f = fixture(t); await play(f); f.audio.setRoom('annexListening');
+  const normalLevel = f.audio.atmosphere ** 1.2;
+  f.audio.cue('door'); f.audio._murmur();
+  for (let i = 0; i < 40; i++) {
+    await f.audio.playPuzzleSignal(receiverPackets());
+    assert.equal(f.audio._voices.size, 2, 'one ambient bed and one receiver voice');
+    assert.equal(f.context.live.size, 13, 'three bed loops and at most ten scheduled tones');
+    assert(f.audio._atmosphere.gain.value <= normalLevel * .13);
+    assert.equal(f.audio.cue('key'), false); assert.equal(f.audio._step(false), false);
+    f.audio._nextAmbient = 0;
+    f.context.advance(.1); f.audio.update({ dt: .1, pose: { x: 0, z: 0 } });
+    assert.equal(f.audio._voices.size, 2);
+  }
+  f.audio.setVolume(.7); assert(f.audio._atmosphere.gain.value <= normalLevel * .13, 'settings changes retain the receiver duck');
+  f.audio.stopPuzzleSignal('panel-closed');
+  assert.equal(f.context.live.size, 3); assert.equal(f.audio._atmosphere.gain.value, normalLevel);
+  assert(f.context.peakSources <= 24); assert(f.audio._bufferBytes <= 4 * 1024 * 1024);
+  assert.equal(f.fetches(), 0);
+  await f.audio.playPuzzleSignal(receiverPackets()); f.audio.setAtmosphere(0);
+  assert.equal(f.audio._signal.voice.sources.length, 10, 'the atmosphere slider cannot suppress the receiver');
+  f.audio.stopPuzzleSignal(); assert.equal(f.context.live.size, 0);
+});
+
+test('receiver callback exceptions do not leak voices or break later playback', async t => {
+  const f = fixture(t, { atmosphere: 0 }); await play(f);
+  const options = { onProgress() { throw new Error('Panel disappeared'); }, onEnded() { throw new Error('Panel disappeared'); } };
+  assert.equal((await f.audio.playPuzzleTone('mid', options)).ok, true);
+  f.context.advance(1); f.audio.update();
+  assert.equal(f.audio._signal, null); assert.equal(f.context.live.size, 0);
+  assert.equal((await f.audio.playPuzzleTone('low')).ok, true); f.audio.stopPuzzleSignal();
+  assert.equal(f.context.live.size, 0);
 });

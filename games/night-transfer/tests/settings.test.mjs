@@ -16,6 +16,7 @@ test('new settings are usable and silent by default, respecting the device motio
   assert.deepEqual(normalizeSettings(null), DEFAULT_SETTINGS);
   assert.equal(normalizeSettings(null).sound, false);
   assert.equal(normalizeSettings(null).desktopMouseLook, true);
+  assert.equal(normalizeSettings(null).guidance, 'moderate');
   assert.equal(normalizeSettings(null, true).reduced, true);
   assert.equal(normalizeSettings({ reduced: false }, true).reduced, false, 'an explicit saved choice overrides the device default');
   const copy = normalizeSettings(null);
@@ -54,6 +55,7 @@ test('older visual-only settings migrate without enabling sound or losing saved 
   assert.equal(loaded.stickSize, 88);
   assert.equal(loaded.lookGuide, true);
   assert.equal(loaded.desktopMouseLook, true);
+  assert.equal(loaded.guidance, 'moderate', 'older visual preferences receive the accessible middle tier');
   assert.deepEqual(store.writes, [], 'reading preferences does not write a new save');
 });
 
@@ -63,6 +65,7 @@ test('existing mobile and audio choices migrate in the same slot while an explic
   const migrated = loadSettings(store);
   assert.equal(SETTINGS_KEY, 'night-transfer.settings.v1');
   assert.equal(migrated.desktopMouseLook, true);
+  assert.equal(migrated.guidance, 'moderate');
   for (const [key, value] of Object.entries(saved)) assert.equal(migrated[key], value, `migration preserves ${key}`);
   assert.deepEqual(store.writes, [], 'migration does not claim or overwrite a game save');
   assert.equal(saveSettings(store, { ...migrated, desktopMouseLook: false }), true);
@@ -105,4 +108,44 @@ test('saving normalizes values and touches only the independent preference slot'
   assert.equal(muted.sound, false);
   assert.equal(muted.volume, 0.35, 'muting retains the chosen listening level');
   assert.equal(muted.atmosphere, 0.2, 'muting retains the chosen atmosphere mix');
+});
+
+test('guidance accepts only its three exact values and defaults invalid or absent choices to moderate', () => {
+  for (const guidance of ['simple', 'moderate', 'expert']) {
+    assert.equal(normalizeSettings({ guidance }).guidance, guidance);
+  }
+  for (const guidance of [undefined, null, '', 'easy', 'hard', 'Expert', ' simple ', true, false, 0, 1, {}, [], ['expert']]) {
+    assert.equal(normalizeSettings({ guidance }).guidance, 'moderate', `rejects ${String(guidance)}`);
+  }
+  assert.equal(DEFAULT_SETTINGS.guidance, 'moderate');
+});
+
+test('guidance persists in the existing preference slot without changing controls, sound or game saves', () => {
+  const prior = {
+    brightness: 1.35, sensitivity: .75, invert: true, reduced: true, buttonScale: 1.2,
+    stickSize: 112, controlOpacity: .6, leftHanded: true, lookGuide: false, desktopMouseLook: false,
+    sound: false, volume: .35, atmosphere: .2,
+  };
+  const gameSlots = {
+    'night-transfer.solo.v1': JSON.stringify({ campaign: 'escape', level: 2, revision: 19 }),
+    'night-transfer.annex.solo.v1': JSON.stringify({ campaign: 'annex', seed: 30291, level: 3, revision: 7 }),
+    'night-transfer.coop.session.v1': JSON.stringify({ code: 'ABC234', token: 'existing-seat' }),
+  };
+  const store = storage({ ...gameSlots, [SETTINGS_KEY]: JSON.stringify(prior) });
+  const migrated = loadSettings(store);
+  assert.equal(migrated.guidance, 'moderate'); assert.deepEqual(store.writes, []);
+  for (const [key, value] of Object.entries(prior)) assert.equal(migrated[key], value, `migration retains ${key}`);
+  for (const guidance of ['expert', 'simple', 'moderate']) {
+    assert.equal(saveSettings(store, { ...loadSettings(store), guidance }), true);
+    const reloaded = loadSettings(store);
+    assert.equal(reloaded.guidance, guidance);
+    for (const [key, value] of Object.entries(prior)) assert.equal(reloaded[key], value, `${guidance} retains ${key}`);
+    for (const [key, value] of Object.entries(gameSlots)) assert.equal(store.values.get(key), value);
+  }
+  assert.deepEqual(store.writes, [SETTINGS_KEY, SETTINGS_KEY, SETTINGS_KEY]);
+  assert.equal(saveSettings(store, { ...loadSettings(store), sound: true, guidance: 'expert' }), true);
+  const audible = loadSettings(store);
+  assert.equal(audible.guidance, 'expert'); assert.equal(audible.sound, true);
+  assert.equal(saveSettings(store, { ...audible, guidance: 'simple' }), true);
+  assert.equal(loadSettings(store).sound, true, 'a tier change also preserves an explicitly enabled sound preference');
 });

@@ -1,6 +1,6 @@
 # NIGHT TRANSFER
 
-A separate first-person prison escape in the Daily Flyer collection. Built as nine walkable 3D rooms across three acts: environmental observation, visual surveillance, and mechanical pressure control. Solo play saves locally; private co-op supports up to four people. Every required clue and warning is visual. Optional sound adds footsteps, echoes and activity beyond the room; sound starts off. The game has no audio dependency, remote asset dependency, or account requirement.
+A separate first-person prison escape in the Daily Flyer collection. The original escape has nine walkable 3D rooms across three acts: environmental observation, visual surveillance, and mechanical pressure control. **Dead Air / Wing 04** adds an independently selectable four-room communications annex. Solo play saves locally; private co-op supports up to four people. The original escape and Dead Air's Simple and Moderate guidance tiers are fully playable without sound. Dead Air's optional Expert tier requires listening to the receiver clue. Environmental sound starts off; no remote assets or account are required.
 
 ## Play
 
@@ -28,6 +28,39 @@ Notes retain inspected clues, matching keys are used automatically, and each act
 
 Choose **Escape Together** to create a private team or join with a six-character code. Room views and movement are independent; puzzle progress and the hint allowance are shared. The new game lives entirely under `games/night-transfer`; it does not replace LOCKSTEP.
 
+## Dead Air / Wing 04
+
+Choose **Dead Air** on the title screen, or open the app with `?chapter=dead-air` to go directly to its chapter setup. The original escape also offers Dead Air after completion. It is a separate campaign: entering the annex does not replace the original three-act run, and finishing the original escape does not automatically start it.
+
+The annex links four rooms into one harder deduction chain:
+
+| Room | Equipment and task |
+| --- | --- |
+| **Archive** | Compare the current routing orders, correction ledger and superseded paperwork. Reconstruct the five-call-sign route to open its cabinet. |
+| **Relay chamber** | Work from the accepted route and shared wiring feeds. Six switches control coupled carrier lamps. |
+| **Listening room** | Recover five labeled two-tone packets, apply the written recovery protocol and authenticate the resulting code. |
+| **Perimeter release** | Reconcile the accepted route, relay positions, receiver receipt and archive seal on four labeled dials. Both retained keys are needed at the final gate. |
+
+A new Dead Air run changes its route, wiring, transmission and final checks. Resuming preserves that case. There is no countdown, and incorrect submissions do not consume hints or keys. Three optional hints cover the whole wing. Inspected evidence stays in Field notes; private working notes and unfinished combinations help when moving between a puzzle and its references.
+
+### Guidance and receiver sound
+
+**Moderate** is the default. Choose a tier in the chapter setup, through the in-game **Guidance** button, or from Setup. A change preserves the case, progress and hints already used.
+
+| Tier | Assistance | Sound requirement |
+| --- | --- | --- |
+| **Simple** | Direct next steps, related evidence, target relay lamps and a transmission worksheet with raw digits. The route and corrections still need to be worked out. | None. Tone pairs and raw readings are visible. |
+| **Moderate** | Broader direction and related evidence, with the transmission's two-tone notation visible. | None. Audio is an optional way to read the same clue. |
+| **Expert** | The current objective and the original written evidence. Receiver packet call signs remain visible, but their tones must be recovered by listening. | Required for the receiver clue. |
+
+The receiver can replay all five packets, one packet, or the LOW/MID/HIGH reference tones. Compare against those references; no absolute-pitch knowledge is needed. Playback is repeatable and never times out. Its in-world lamps and reels do not encode the hidden tone answers. For a noisy venue, muted device or inaccessible audio, switch to Simple or Moderate at any point to obtain the visual equivalent without restarting. Environmental ambience remains optional in every tier.
+
+### Separate saves and shared chapters
+
+The original solo escape uses `night-transfer.solo.v1`; Dead Air uses `night-transfer.annex.solo.v1`. Each can be continued independently from the title screen. Starting a new transmission replaces only the saved Dead Air run after confirmation. Controls, sound and guidance remain local preferences in `night-transfer.settings.v1`.
+
+Choose **Enter with a crew** from Dead Air, or select **Dead Air · Communications annex** when creating a team. Joining a room code uses that team's chapter and case. Up to four people share inventory, accepted puzzle records, progress and the three-hint allowance, while moving independently. Each player can choose a different guidance tier and audio setting. Co-op does not overwrite either solo save; the existing reconnect and server-memory lifetime rules below still apply.
+
 ## Controls and sound
 
 Open **Setup** from the title screen or during an escape. The three tabs apply changes immediately:
@@ -44,7 +77,7 @@ The title screen, first-room introduction and game HUD offer a **Sound** toggle.
 
 Sound is generated locally. Footsteps follow actual movement and use six cached heel, toe and scuff variations for each stone, tile and metal floor; crouching softens and filters them. Three ambient layers have different loop lengths and slowly drifting levels. Short stereo reflections and a damped tail vary between cells, tiled rooms, offices, machinery spaces and outdoors. Distant murmurs use irregular phrases, breaths and pauses. Environmental events vary their samples and avoid repeating the same type consecutively. Distant events stay anchored in the room and pan as you turn your head.
 
-The sound contains no puzzle instructions. No clue, camera interval, sequence or solution depends on hearing. Sound pauses on the title screen, in the pause menu, and when the page is hidden. The Sound tab can briefly preview a door echo from the title screen without starting an escape.
+Environmental sound contains no puzzle instructions. The original three acts remain fully visual, including every camera interval and sequence. Dead Air's receiver adds a repeatable signal: its Simple and Moderate tiers provide a visual equivalent, while Expert requires hearing the tones. Sound pauses on the title screen, in the pause menu, and when the page is hidden. Receiver playback also stops when its panel closes or the room changes. The Sound tab can briefly preview a door echo from the title screen without starting an escape.
 
 Preferences are stored independently from the solo save. Changing controls or muting does not use hints, alter keys, send co-op puzzle actions or replace an existing solo run. A team shares progress, while each player keeps their own controls and sound preferences. Existing settings migrate in the same preference slot: saved phone, view and audio choices are retained, and the new mouse-capture preference defaults to on. Saved settings from the original visual-only version receive the new defaults with sound still off. A later choice to use drag-look is retained on reload.
 
@@ -64,13 +97,17 @@ The server serves `public/` and `/ws` on the same origin, listens on `0.0.0.0`, 
 
 Tests cover the full legal campaign, multiplayer state and reconnect behavior, actual movement-input handling, audio lifecycle, settings validation and controller integration. Controller tests execute the real app and settings functions with DOM, rendering, audio-output and transport stubs. They verify bounded slider values, preference migration/reloads, touch-pad wiring, desktop shortcut routing, mouse release on panels and completion, explicit recapture, drag-look fallback, optional mute behavior and preservation of solo/co-op progress. An integration case also runs the real controls module alongside the app to check pointer-unlock and Escape event order: one browser Escape cannot both open and dismiss Pause. Detailed input and pointer-lock lifecycle cases are covered separately by the controls tests. These tests do not claim a physical iPhone or Safari rendering test.
 
+Dead Air adds tests for seeded cases, accepted records and guidance filtering. Scene tests build all thirteen rooms through the real Three.js scene graph and software-renderer geometry path; they verify collision-safe approaches and unobstructed inspection within 2.6 metres for all 23 annex objects. They also check accepted-state indicators and that Expert receiver art is independent of the case's hidden tones. Their drawing surface is stubbed, so these checks complement browser visual review rather than claiming to replace it.
+
 ## Preference, control and audio modules
 
-`public/settings.js` exports `DEFAULT_SETTINGS`, `SETTING_RANGES`, `normalizeSettings(raw, reducedDefault)`, `loadSettings(storage, reducedDefault)` and `saveSettings(storage, value)`. Numeric values must be finite numbers and are clamped to their permitted ranges. Boolean options require actual booleans. Invalid or unavailable storage falls back to defaults; unsuccessful writes return `false`. The preference slot is `night-transfer.settings.v1`, separate from `night-transfer.solo.v1`.
+`public/settings.js` exports `DEFAULT_SETTINGS`, `SETTING_RANGES`, `normalizeSettings(raw, reducedDefault)`, `loadSettings(storage, reducedDefault)` and `saveSettings(storage, value)`. Numeric values must be finite numbers and are clamped to their permitted ranges. Boolean options require actual booleans. Guidance accepts `simple`, `moderate` or `expert` and defaults to `moderate`. Invalid or unavailable storage falls back to defaults; unsuccessful writes return `false`. The preference slot is `night-transfer.settings.v1`, separate from both solo-save slots.
 
 `FirstPersonControls` owns movement, touch input, keyboard shortcuts and mouse capture. The app supplies `onInteract`, `onPause`, `onShortcut` and `onMouseLook` callbacks. `setMouseLookEnabled(bool)` applies the preference, `requestMouseLook()` requests capture from a user gesture, `releaseMouseLook()` releases it, and `mouseLookLocked` reports whether this canvas owns the lock. Disabling controls releases capture and clears held input. A deliberate release for a panel does not open a second pause menu. The app retains responsibility for which panel a shortcut opens and for keeping hint use behind its explicit reveal button.
 
 `PrisonAudio` owns sound generation and browser-audio lifecycle, but does not read or write preferences. The app supplies `setEnabled`, `setVolume`, `setAtmosphere`, `setRoom` and `setActive` updates. `unlock()` is called directly from a user gesture. The game loop passes `update({dt, pose, room})`; `pose.yaw` orients distant events relative to the listener. Successful interactions can call `cue(kind)`. The `onStatus` callback reports availability and whether a new gesture is needed. No audio status changes the authoritative escape state.
+
+Receiver playback uses `playPuzzleSignal(packets, options)`, `playPuzzleTone(tone, options)` and `stopPuzzleSignal(reason)`. The app passes tone data only to audio; Expert presentation receives the filtered object view without tone labels or raw digits. `public/annex.mjs` generates the repeatable case and its public clue views; `world.mjs` remains authoritative for puzzle acceptance, keys and campaign progression. The first-person renderer keeps the original movement, focus and collision API and adds the four annex room themes and their procedural equipment.
 
 ## Browser interface
 
@@ -85,7 +122,7 @@ const team = new CoopClient({
 });
 ```
 
-- `create(name)` and `join(code, name)` start asynchronous connections. Team codes have six characters.
+- `create(name, {campaign})` and `join(code, name)` start asynchronous connections. Omit the options or use `campaign: 'escape'` for the original run; use `campaign: 'annex'` for Dead Air. The server chooses the new annex case. Team codes have six characters, and joining uses the existing team's campaign.
 - `reconnect()` resumes the saved seat. `leave()` releases it; `destroy()` also removes browser listeners.
 - `sendAction(action)` returns its action ID, or `null` when it could not be sent. `onMessage` receives `{type:'action-result', actionId, ok, message, revision}`. Keep pending UI keyed by action ID.
 - `presence({room, x, z, yaw, crouch})` accepts the latest locally simulated position and coalesces updates to at most ten per second. A room ID string is also accepted.

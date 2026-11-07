@@ -5,9 +5,15 @@
  * reduce(state, action, {now?, playerRoom?}) returns
  * {state, ok, message, changed, event?}. Read-only/idempotent actions preserve state.
  */
-export const VERSION = '1.0.0';
+import { ANNEX_ITEMS, ANNEX_ROOMS, ANNEX_OBJECTS, ANNEX_LEVEL, normalizeSeed, normalizeGuidance, annexCase, annexObjectView, annexAccepts, annexGuidance, annexHints } from './annex.mjs';
+export { GUIDANCE_TIERS, SIGNAL_TONES, annexSignal, circuitReadout } from './annex.mjs';
+export const VERSION = '1.1.0';
 export const SAVE_VERSION = 1;
 export const MAX_HINTS = 3;
+export const CAMPAIGNS = {
+  escape: { id: 'escape', title: 'Night Transfer', levelIds: [0, 1, 2], startLevel: 0, endLevel: 2, roomCount: 9 },
+  annex: { id: 'annex', title: 'Dead Air', levelIds: [3], startLevel: 3, endLevel: 3, roomCount: 4 },
+};
 
 export const ITEMS = {
   holdingKey: { id: 'holdingKey', title: 'Holding key', short: 'Holding key', symbol: '▭', level: 0, color: '#d1ae74', description: 'A flat brass bow. The holding-room lock bears the same rectangle.' },
@@ -18,7 +24,8 @@ export const ITEMS = {
   visitorPass: { id: 'visitorPass', title: 'Void visitor pass', short: 'Void pass', symbol: '×', level: 1, color: '#ad7c6c', decoy: true, description: 'A visitor pass with a large VOID stamp. No service access.' },
   shuttleKey: { id: 'shuttleKey', title: 'Dispatch key', short: 'Dispatch key', symbol: '⬡', level: 1, color: '#b4c4ca', description: 'A hexagonal steel bow. It opens the maintenance transfer door.' },
   plantKey: { id: 'plantKey', title: 'Plant key', short: 'Plant key', symbol: '✚', level: 2, color: '#c6ac70', description: 'The cross-shaped bow marks plant equipment. Its second tooth fits an outer gate.' },
-  quayKey: { id: 'quayKey', title: 'River key', short: 'River key', symbol: '↗', level: 2, color: '#aacbc7', description: 'An outward arrow is engraved in the steel. The river gate has its matching keyway.' }
+  quayKey: { id: 'quayKey', title: 'River key', short: 'River key', symbol: '↗', level: 2, color: '#aacbc7', description: 'An outward arrow is engraved in the steel. The river gate has its matching keyway.' },
+  ...ANNEX_ITEMS,
 };
 
 const room = (id, title, level, style, requires) => ({ id, title, level, style, width: 8, depth: 10, height: 3.2, spawn: { x: 0, z: 3.2, yaw: 0 }, objects: [], ...(requires ? { requires } : {}) });
@@ -31,7 +38,8 @@ export const ROOMS = {
   dispatch: room('dispatch', 'Transfer dispatch', 1, 'dispatch', 'dispatchOpen'),
   boiler: room('boiler', 'Boiler room', 2, 'boiler'),
   sluice: room('sluice', 'Sluice control', 2, 'sluice', 'sluiceOpen'),
-  quay: room('quay', 'The prison quay', 2, 'quay', 'quayOpen')
+  quay: room('quay', 'The prison quay', 2, 'quay', 'quayOpen'),
+  ...ANNEX_ROOMS,
 };
 
 const makeObject = (id, roomId, title, kind, prop, x, z, y, ry, description, extra = {}) => ({ id, room: roomId, level: ROOMS[roomId].level, title, kind, prop, x, z, y, ry, description, ...extra });
@@ -90,7 +98,8 @@ const objects = [
   makeObject('keeperBox', 'quay', 'The river keeper’s box', 'pickup', 'locker', -3.3, -0.9, 1.2, Math.PI / 2, 'A plant lock protects the keeper’s spare gate key.', { key: 'plantKey', item: 'quayKey', flag: 'keeperOpen', symbol: '✚', success: 'The plant key opens the box. Inside is a steel key marked with an outward arrow.' }),
   makeObject('canalPlan', 'quay', 'Quay direction plate', 'clue', 'note', -2.15, -4.78, 1.65, 0, 'Two routes leave the quay. Only one crosses the perimeter.', { clue: { type: 'routes', heading: 'QUAY / NIGHT ACCESS', lines: ['Follow the destination, not the nearest gate.'], entries: [{ symbol: '↶', label: 'RECEIVING', value: 'BACK TO ASHGATE' }, { symbol: '↗', label: 'RIVER PATH', value: 'BEYOND THE PERIMETER' }], caption: 'The outward arrow leaves the prison boundary.' } }),
   makeObject('returnGate', 'quay', 'Receiving gate', 'flavor', 'gate', 3.72, 1.0, 1.45, -Math.PI / 2, 'The return arrow points to ASHGATE RECEIVING. This gate would lead back into custody.', { symbol: '↶', clue: note('ASHGATE RECEIVING', ['Return route to the prison intake block.'], { stamp: '↶ RETURN', caption: 'The river path is the other route.' }) }),
-  makeObject('quayExit', 'quay', 'The river gate', 'exit', 'gate', 0, -4.74, 1.45, 0, 'Two keyways: a cross and an outward arrow. Beyond the bars, the river path leaves Ashgate.', { keys: ['plantKey', 'quayKey'], requires: 'pressureBalanced', flag: 'act2Exit', symbol: '↗', success: 'Both keys turn. The river gate opens. Ashgate is behind you.' })
+  makeObject('quayExit', 'quay', 'The river gate', 'exit', 'gate', 0, -4.74, 1.45, 0, 'Two keyways: a cross and an outward arrow. Beyond the bars, the river path leaves Ashgate.', { keys: ['plantKey', 'quayKey'], requires: 'pressureBalanced', flag: 'act2Exit', symbol: '↗', success: 'Both keys turn. The river gate opens. Ashgate is behind you.' }),
+  ...Object.values(ANNEX_OBJECTS),
 ];
 
 export const OBJECTS = Object.fromEntries(objects.map(object => [object.id, object]));
@@ -98,8 +107,9 @@ for (const object of objects) ROOMS[object.room].objects.push(object.id);
 export const LEVELS = [
   { id: 'the-route', number: '01', title: 'The route they left', shortTitle: 'The holding wing', mechanic: 'Observation', startRoom: 'holding', roomIds: ['holding', 'washroom', 'records'], intro: 'The night transfer never arrived. Someone left the service route within reach.', outro: 'The official route takes you behind the prison’s public face.', accent: '#d6a66f' },
   { id: 'dark-frames', number: '02', title: 'Between the frames', shortTitle: 'The watch', mechanic: 'Surveillance', startRoom: 'laundry', roomIds: ['laundry', 'watchroom', 'dispatch'], intro: 'The staff have left. The cameras have not. Their blind intervals are visible.', outro: 'Dispatch is empty. The old plant passage is your remaining route out.', accent: '#9ac2b2' },
-  { id: 'the-outfall', number: '03', title: 'The river remembers', shortTitle: 'The outfall', mechanic: 'Mechanical systems', startRoom: 'boiler', roomIds: ['boiler', 'sluice', 'quay'], intro: 'Three valves hold the quay shut. Beyond it, one gate leads to the river.', outro: 'Cold air. Running water. No roll call waiting at the end of the path.', accent: '#a4c4d4' }
-].map((level, index) => ({ ...level, level: index, rooms: level.roomIds.map(id => ROOMS[id]), objects: objects.filter(object => object.level === index) }));
+  { id: 'the-outfall', number: '03', title: 'The river remembers', shortTitle: 'The outfall', mechanic: 'Mechanical systems', startRoom: 'boiler', roomIds: ['boiler', 'sluice', 'quay'], intro: 'Three valves hold the quay shut. Beyond it, one gate leads to the river.', outro: 'Cold air. Running water. No roll call waiting at the end of the path.', accent: '#a4c4d4' },
+  ANNEX_LEVEL,
+].map((level, index) => ({ campaign: 'escape', ...level, level: index, rooms: level.roomIds.map(id => ROOMS[id]), objects: objects.filter(object => object.level === index) }));
 
 const ROUTE = ['gate', 'eye', 'lamp', 'moon'];
 const FRAME_CODE = '846';
@@ -109,10 +119,23 @@ const nowFrom = options => Number.isFinite(options?.now) ? options.now : Date.no
 
 export function newGame(options = {}) {
   const now = nowFrom(options);
-  return { game: 'night-transfer', version: VERSION, saveVersion: SAVE_VERSION, level: 0, revision: 0, inventory: [], flags: {}, collected: [], inspected: [], hintsUsed: [0, 0, 0], hintLog: [[], [], []], completedLevels: [], won: false, startedAt: now, updatedAt: now };
+  const campaign = options.campaign === 'annex' ? 'annex' : 'escape';
+  const seed = campaign === 'annex' ? normalizeSeed(options.seed ?? Math.floor(Math.random() * 4294967296)) : 0;
+  return { game: 'night-transfer', version: VERSION, saveVersion: SAVE_VERSION, campaign, seed, level: CAMPAIGNS[campaign].startLevel, revision: 0, inventory: [], flags: {}, collected: [], inspected: [], hintsUsed: [0, 0, 0, 0], hintLog: [[], [], [], []], completedLevels: [], won: false, startedAt: now, updatedAt: now };
 }
-export function availableRooms(state) { return LEVELS[state.level]?.rooms.filter(room => !room.requires || state.flags[room.requires]) || []; }
-export function getObjects(state, roomId) { return availableRooms(state).some(room => room.id === roomId) ? ROOMS[roomId].objects.map(id => OBJECTS[id]) : []; }
+export function availableRooms(state) { return LEVELS[state.level]?.campaign === state.campaign ? LEVELS[state.level].rooms.filter(room => !room.requires || state.flags[room.requires]) : []; }
+export function getObjects(state, roomId, guidance = 'moderate') { return availableRooms(state).some(room => room.id === roomId) ? ROOMS[roomId].objects.map(id => objectView(state, id, guidance)) : []; }
+/** Current-room objects and previously recorded clues can be rendered without mutating state. */
+export function objectView(state, id, guidance = 'moderate') {
+  if (!own(OBJECTS, id)) return null;
+  const object = OBJECTS[id];
+  if (LEVELS[object.level].campaign !== state.campaign || (!state.inspected.includes(id) && (object.level !== state.level || !availableRooms(state).some(room => room.id === object.room)))) return null;
+  return state.campaign === 'annex' ? annexObjectView(state, id, guidance) : JSON.parse(JSON.stringify(object));
+}
+export function campaignSummary(state) {
+  const campaign = CAMPAIGNS[state.campaign];
+  return campaign ? { ...campaign, levelIds: [...campaign.levelIds], completed: state.completedLevels.length, won: state.won, level: state.level, seed: state.seed } : null;
+}
 export function hasItem(state, id) { return state.inventory.includes(id); }
 export function isDone(state, objectOrId) {
   const object = typeof objectOrId === 'string' ? (own(OBJECTS, objectOrId) ? OBJECTS[objectOrId] : null) : objectOrId;
@@ -137,6 +160,7 @@ export function scanPhase(now = Date.now()) {
 }
 
 export function objective(state) {
+  if (state.campaign === 'annex') return annexGuidance(state, 'expert').objective;
   if (state.won) return 'The river path is open. You escaped Ashgate.';
   if (state.level === 0) {
     if (!state.flags.washOpen) return 'Find a way out of Holding 41.';
@@ -158,6 +182,7 @@ export function objective(state) {
 }
 
 function hintStage(state) {
+  if (state.campaign === 'annex') return annexHints(state);
   if (state.level === 0) {
     if (!hasItem(state, 'holdingKey')) return ['The blanket has been repaired more recently than the room.', 'Look inside the freshly stitched corner of the folded blanket.', 'Search the folded blanket for the holding key, then use the rectangular holding-room lock.'];
     if (!state.flags.washOpen) return ['The brass key and a lock share a rectangular mark.', 'The holding-room door uses the flat brass key.', 'Use the holding key on the door to enter the wash block.'];
@@ -183,11 +208,17 @@ function hintStage(state) {
 }
 export function getHint(state) { return state.won || state.hintsUsed[state.level] >= MAX_HINTS ? null : hintStage(state)[state.hintsUsed[state.level]]; }
 export function getHints(state) { const used = state.hintsUsed[state.level]; return { used, remaining: MAX_HINTS - used, log: [...state.hintLog[state.level]], next: getHint(state) }; }
+/** Guidance is a local presentation choice. It never consumes or modifies shared hints. */
+export function getGuidance(state, guidance = 'moderate') {
+  if (state.campaign === 'annex') return annexGuidance(state, guidance);
+  const tier = normalizeGuidance(guidance);
+  return { tier, stage: state.won ? 'complete' : `wing-${state.level}`, objective: objective(state), detail: state.won || tier === 'expert' ? '' : hintStage(state)[tier === 'simple' ? 1 : 0], references: [], audioRequired: false };
+}
 
 const unchanged = (state, ok, message, event) => ({ state, ok, message, changed: false, ...(event ? { event } : {}) });
-function cloneState(state) { return { ...state, inventory: [...state.inventory], flags: { ...state.flags, ...(state.flags.valveSettings ? { valveSettings: [...state.flags.valveSettings] } : {}) }, collected: [...state.collected], inspected: [...state.inspected], hintsUsed: [...state.hintsUsed], hintLog: state.hintLog.map(log => [...log]), completedLevels: [...state.completedLevels] }; }
+function cloneState(state) { return { ...state, inventory: [...state.inventory], flags: Object.fromEntries(Object.entries(state.flags).map(([key, value]) => [key, Array.isArray(value) ? [...value] : value])), collected: [...state.collected], inspected: [...state.inspected], hintsUsed: [...state.hintsUsed], hintLog: state.hintLog.map(log => [...log]), completedLevels: [...state.completedLevels] }; }
 function changed(state, draft, message, now, event) { draft.revision = state.revision + 1; draft.updatedAt = now; return { state: draft, ok: true, message, changed: true, ...(event ? { event } : {}) }; }
-const sameArray = (value, expected) => Array.isArray(value) && value.length === expected.length && value.every((entry, index) => entry === expected[index]);
+const sameArray = (value, expected) => Array.isArray(value) && value.length === expected.length && expected.every((entry, index) => value[index] === entry);
 
 export function reduce(state, action, options = {}) {
   if (!isValidState(state)) return unchanged(state, false, 'This save is not compatible. Start a new night transfer.');
@@ -217,14 +248,14 @@ export function reduce(state, action, options = {}) {
     return changed(state, draft, object.description, now, { type: 'inspect', id: object.id });
   }
   if (isDone(state, object)) return unchanged(state, true, object.success || 'You already investigated this.', object.targetRoom ? { type: 'room', room: object.targetRoom } : { type: 'inspect', id: object.id });
-  if (object.requires && state.flags[object.requires] !== true) return unchanged(state, false, object.id === 'dispatchShutter' ? 'The shutter override is not authorised. Read the maintenance contact sheet.' : 'The pressure lock is still closed. Balance the emergency valves.');
+  if (object.requires && state.flags[object.requires] !== true) return unchanged(state, false, object.lockedMessage || (object.id === 'dispatchShutter' ? 'The shutter override is not authorised. Read the maintenance contact sheet.' : 'The pressure lock is still closed. Balance the emergency valves.'));
   if (object.key && !hasItem(state, object.key)) return unchanged(state, false, `Locked. The ${ITEMS[object.key].title.toLowerCase()} belongs here${object.symbol ? ` (${object.symbol})` : ''}.`);
   if (object.keys && !object.keys.every(key => hasItem(state, key))) return unchanged(state, false, `You still need ${object.keys.filter(key => !hasItem(state, key)).map(key => ITEMS[key].title.toLowerCase()).join(' and ')}.`);
   if (object.kind === 'puzzle' && action.type !== 'solve') return unchanged(state, true, object.description, { type: 'puzzle', id: object.id });
   if (object.kind === 'timed' && !scanPhase(now).safe) return unchanged(state, false, 'The camera is watching. Wait for BLIND INTERVAL. Nothing was lost.', { type: 'watched', id: object.id });
   if (object.kind === 'puzzle') {
-    const correct = object.puzzle.type === 'sequence' ? sameArray(action.value, ROUTE) : object.puzzle.type === 'code' ? typeof action.value === 'string' && action.value === FRAME_CODE : object.puzzle.type === 'valves' ? sameArray(action.value, VALVES) : false;
-    if (!correct) return unchanged(state, false, object.puzzle.type === 'sequence' ? 'The route is wrong. The cabinet stays shut.' : object.puzzle.type === 'code' ? 'Those readings do not authorise the shutter.' : 'The gauges disagree. Recheck the emergency balance diagram.', { type: 'wrong', id: object.id });
+    const correct = state.campaign === 'annex' ? annexAccepts(state, object.id, action.value) : object.puzzle.type === 'sequence' ? sameArray(action.value, ROUTE) : object.puzzle.type === 'code' ? typeof action.value === 'string' && action.value === FRAME_CODE : object.puzzle.type === 'valves' ? sameArray(action.value, VALVES) : false;
+    if (!correct) return unchanged(state, false, object.failure || (object.puzzle.type === 'sequence' ? 'The route is wrong. The cabinet stays shut.' : object.puzzle.type === 'code' ? 'Those readings do not authorise the shutter.' : 'The gauges disagree. Recheck the emergency balance diagram.'), { type: 'wrong', id: object.id });
   }
   if (object.kind === 'door' && !object.flag) {
     if (!availableRooms(state).some(room => room.id === object.targetRoom)) return unchanged(state, false, 'The passage is still locked.');
@@ -235,9 +266,13 @@ export function reduce(state, action, options = {}) {
   if (object.item) { draft.inventory.push(object.item); draft.collected.push(object.id); }
   if (object.flag) draft.flags[object.flag] = true;
   if (object.id === 'valveBank') draft.flags.valveSettings = [...action.value];
+  if (object.id === 'annexRouteLock') draft.flags.annexRouteOrder = [...action.value];
+  if (object.id === 'annexRelayBoard') draft.flags.annexRelaySettings = [...action.value];
+  if (object.id === 'annexReceiver') draft.flags.annexSignalCode = action.value;
+  if (object.id === 'annexInterlock') draft.flags.annexInterlockSettings = [...action.value];
   if (object.kind === 'exit') {
     draft.completedLevels.push(state.level);
-    if (state.level === LEVELS.length - 1) { draft.won = true; return changed(state, draft, object.success, now, { type: 'win', level: state.level }); }
+    if (state.level === CAMPAIGNS[state.campaign].endLevel) { draft.won = true; return changed(state, draft, object.success, now, { type: 'win', level: state.level }); }
     draft.level++;
     return changed(state, draft, object.success, now, { type: 'level', level: draft.level, room: LEVELS[draft.level].startRoom });
   }
@@ -245,36 +280,59 @@ export function reduce(state, action, options = {}) {
 }
 
 const booleanFlags = new Set(objects.map(object => object.flag).filter(Boolean));
+const isRecord = value => {
+  if (!value || typeof value !== 'object' || Array.isArray(value)) return false;
+  const prototype = Object.getPrototypeOf(value);
+  return prototype === null || Object.getPrototypeOf(prototype) === null;
+};
 /** Validate a local save before the UI can use its indexes or render its contents. */
 export function isValidState(state) {
-  if (!state || typeof state !== 'object' || Array.isArray(state) || state.game !== 'night-transfer' || state.version !== VERSION || state.saveVersion !== SAVE_VERSION) return false;
-  if (!Number.isInteger(state.level) || state.level < 0 || state.level >= LEVELS.length || !Number.isInteger(state.revision) || state.revision < 0) return false;
+  if (!isRecord(state) || state.game !== 'night-transfer' || state.version !== VERSION || state.saveVersion !== SAVE_VERSION || !own(CAMPAIGNS, state.campaign)) return false;
+  const campaign = CAMPAIGNS[state.campaign];
+  if (!campaign.levelIds.includes(state.level) || !Number.isInteger(state.revision) || state.revision < 0) return false;
+  if (!Number.isInteger(state.seed) || state.seed < 0 || state.seed > 0xffffffff || (state.campaign === 'escape' && state.seed !== 0)) return false;
   if (!Number.isFinite(state.startedAt) || !Number.isFinite(state.updatedAt) || typeof state.won !== 'boolean') return false;
-  const knownUnique = (array, catalog) => Array.isArray(array) && array.length <= Object.keys(catalog).length && new Set(array).size === array.length && array.every(id => own(catalog, id));
+  const knownUnique = (array, catalog) => Array.isArray(array) && array.length <= Object.keys(catalog).length && new Set(array).size === array.length && Array.from(array).every(id => own(catalog, id) && campaign.levelIds.includes(catalog[id].level));
   if (!knownUnique(state.inventory, ITEMS) || !knownUnique(state.collected, OBJECTS) || !knownUnique(state.inspected, OBJECTS)) return false;
-  if (!state.flags || typeof state.flags !== 'object' || Array.isArray(state.flags)) return false;
-  if (Object.entries(state.flags).some(([key, value]) => key === 'valveSettings' ? !sameArray(value, VALVES) : !booleanFlags.has(key) || value !== true)) return false;
+  if (!isRecord(state.flags)) return false;
+  const annex = state.campaign === 'annex' ? annexCase(state) : null;
+  const savedValues = {
+    valveSettings: value => state.campaign === 'escape' && sameArray(value, VALVES),
+    annexRouteOrder: value => annex && sameArray(value, annex.route),
+    annexRelaySettings: value => annex && sameArray(value, annex.switches),
+    annexSignalCode: value => annex && typeof value === 'string' && value === annex.code,
+    annexInterlockSettings: value => annex && sameArray(value, annex.interlock),
+  };
+  if (Object.entries(state.flags).some(([key, value]) => own(savedValues, key) ? !savedValues[key](value) : !booleanFlags.has(key) || value !== true)) return false;
   if (Boolean(state.flags.pressureBalanced) !== Boolean(state.flags.valveSettings)) return false;
-  if (state.collected.some(id => !OBJECTS[id].item || !state.inventory.includes(OBJECTS[id].item) || !state.inspected.includes(id))) return false;
+  for (const [flag, saved] of [['annexRouteSolved', 'annexRouteOrder'], ['annexRelaySolved', 'annexRelaySettings'], ['annexSignalSolved', 'annexSignalCode'], ['annexInterlockSolved', 'annexInterlockSettings']]) if (Boolean(state.flags[flag]) !== Boolean(state.flags[saved])) return false;
+  if (state.collected.some(id => !OBJECTS[id].item || !state.inventory.includes(OBJECTS[id].item) || !state.inspected.includes(id) || (OBJECTS[id].flag && !state.flags[OBJECTS[id].flag]))) return false;
   if (state.inventory.length !== state.collected.length) return false;
   if (state.inspected.some(id => OBJECTS[id].level > state.level || (ROOMS[OBJECTS[id].room].requires && !state.flags[ROOMS[OBJECTS[id].room].requires]))) return false;
   for (const object of objects) {
     if (object.flag && state.flags[object.flag]) {
-      if (object.level > state.level || (ROOMS[object.room].requires && !state.flags[ROOMS[object.room].requires]) || (object.requires && !state.flags[object.requires]) || (object.key && !hasItem(state, object.key)) || (object.keys && !object.keys.every(key => hasItem(state, key))) || (object.item && !state.collected.includes(object.id))) return false;
+      if (!campaign.levelIds.includes(object.level) || object.level > state.level || !state.inspected.includes(object.id) || (ROOMS[object.room].requires && !state.flags[ROOMS[object.room].requires]) || (object.requires && !state.flags[object.requires]) || (object.key && !hasItem(state, object.key)) || (object.keys && !object.keys.every(key => hasItem(state, key))) || (object.item && !state.collected.includes(object.id))) return false;
     }
   }
-  if (!Array.isArray(state.hintsUsed) || state.hintsUsed.length !== LEVELS.length || state.hintsUsed.some((n, i) => !Number.isInteger(n) || n < 0 || n > MAX_HINTS || (i > state.level && n !== 0))) return false;
-  if (!Array.isArray(state.hintLog) || state.hintLog.length !== LEVELS.length || state.hintLog.some((log, i) => !Array.isArray(log) || log.length !== state.hintsUsed[i] || log.some(text => typeof text !== 'string' || text.length > 1000))) return false;
-  const completeCount = state.won ? LEVELS.length : state.level;
-  if (!Array.isArray(state.completedLevels) || state.completedLevels.length !== completeCount || state.completedLevels.some((level, i) => level !== i) || (state.won && state.level !== LEVELS.length - 1)) return false;
+  if (!Array.isArray(state.hintsUsed) || state.hintsUsed.length !== LEVELS.length || Array.from(state.hintsUsed).some((n, i) => !Number.isInteger(n) || n < 0 || n > MAX_HINTS || ((!campaign.levelIds.includes(i) || i > state.level) && n !== 0))) return false;
+  if (!Array.isArray(state.hintLog) || state.hintLog.length !== LEVELS.length || Array.from(state.hintLog).some((log, i) => !Array.isArray(log) || log.length !== state.hintsUsed[i] || Array.from(log).some(text => typeof text !== 'string' || text.length > 1000))) return false;
+  const completed = campaign.levelIds.slice(0, campaign.levelIds.indexOf(state.level) + (state.won ? 1 : 0));
+  if (!sameArray(state.completedLevels, completed) || (state.won && state.level !== campaign.endLevel)) return false;
   if (LEVELS.some((level, i) => Boolean(state.flags[`act${i}Exit`]) !== state.completedLevels.includes(i))) return false;
   return true;
 }
 /** Returns a detached valid state, or null. Accepts an object or a JSON string. */
 export function validateSave(data) {
   try {
-    const candidate = typeof data === 'string' ? JSON.parse(data) : data;
+    let candidate = typeof data === 'string' ? JSON.parse(data) : data;
+    // Version 1.0 had exactly three wings. Preserve completed runs as completed;
+    // the annex is a separate campaign, never an automatic fourth act.
+    if (candidate?.version === '1.0.0') {
+      if (!isRecord(candidate) || (candidate.campaign !== undefined && candidate.campaign !== 'escape') || !Array.isArray(candidate.hintsUsed) || candidate.hintsUsed.length !== 3 || !Array.isArray(candidate.hintLog) || candidate.hintLog.length !== 3) return null;
+      candidate = { ...candidate, version: VERSION, campaign: 'escape', seed: 0, hintsUsed: [...candidate.hintsUsed, 0], hintLog: [...candidate.hintLog, []] };
+    }
     if (!isValidState(candidate)) return null;
-    return JSON.parse(JSON.stringify(candidate));
+    const detached = JSON.parse(JSON.stringify(candidate));
+    return isValidState(detached) ? detached : null;
   } catch { return null; }
 }

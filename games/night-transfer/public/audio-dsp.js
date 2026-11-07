@@ -3,6 +3,25 @@
 const TAU = Math.PI * 2;
 const limit = (x, lo, hi) => Math.min(hi, Math.max(lo, x));
 
+// The receiver and its labelled calibration buttons use exactly these same
+// mono samples. Pitch carries the signal; stereo placement and volume do not.
+export const PUZZLE_TONE_FREQUENCIES = Object.freeze({ low: 330, mid: 550, high: 880 });
+export const PUZZLE_TONE_DURATION = .4;
+export function synthPuzzleTone(rate, tone) {
+  if (!Number.isFinite(rate) || rate < 8000 || rate > 192000 || !Object.hasOwn(PUZZLE_TONE_FREQUENCIES, tone)) {
+    throw new RangeError('Unsupported receiver tone or sample rate');
+  }
+  const frequency = PUZZLE_TONE_FREQUENCIES[tone], data = new Float32Array(Math.round(rate * PUZZLE_TONE_DURATION));
+  const attack = Math.round(rate * .015), release = Math.round(rate * .04);
+  for (let i = 0; i < data.length; i++) {
+    const phase = TAU * frequency * i / rate;
+    const edge = Math.min(1, i / attack, (data.length - 1 - i) / release);
+    const envelope = Math.sin(Math.max(0, edge) * Math.PI / 2) ** 2;
+    data[i] = (Math.sin(phase) + .1 * Math.sin(phase * 2) + .025 * Math.sin(phase * 3)) * .44 * envelope;
+  }
+  return data;
+}
+
 export function randomFor(seed = 1) {
   let value = (Number(seed) || 1) >>> 0;
   return () => {

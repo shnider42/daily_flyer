@@ -143,11 +143,14 @@ export function createNightTransferServer({
     if (peer.session) { fail(peer, 'ALREADY_JOINED', 'You are already in a team.'); return; }
     let room;
     if (message.create === true) {
+      if (message.campaign !== undefined && !['escape', 'annex'].includes(message.campaign)) {
+        fail(peer, 'INVALID_CAMPAIGN', 'Choose the original escape or Dead Air.'); return;
+      }
       collect();
       if (rooms.size >= maxRooms) { fail(peer, 'ROOM_CAPACITY', 'All team rooms are occupied. Try again shortly.'); return; }
       let code;
       do { code = Array.from({ length: 6 }, () => ALPHABET[randomInt(ALPHABET.length)]).join(''); } while (rooms.has(code));
-      room = { code, state: makeGame({ now: now() }), revision: 0, players: new Map(), posesDirty: false, createdAt: now(), lastActivity: now() };
+      room = { code, state: makeGame({ now: now(), campaign: message.campaign === 'annex' ? 'annex' : 'escape', seed: randomInt(1, 0x7fffffff) }), revision: 0, players: new Map(), posesDirty: false, createdAt: now(), lastActivity: now() };
       rooms.set(code, room);
     } else {
       const code = typeof message.code === 'string' ? message.code.toUpperCase().trim() : '';
