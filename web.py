@@ -10,6 +10,9 @@ from daily_flyer.theme_validation import ThemeNotFoundError, ThemeValidationErro
 app = Flask(__name__)
 REPO_ROOT = Path(__file__).resolve().parent
 
+from daily_flyer.sports import create_sports_blueprint
+app.register_blueprint(create_sports_blueprint(REPO_ROOT / "daily_flyer" / "themes" / "pocket_sports_assets"))
+
 DEFAULT_THEME = os.environ.get("DEFAULT_THEME", "irish_today")
 THEME_ROUTE_ALIASES = {
     "irish_today": "irish_today_improved_layout",
@@ -52,6 +55,9 @@ def _parse_seed(raw: str | None) -> int | None:
 @app.route("/")
 def home():
     theme_name = _normalize_theme_name(request.args.get("theme"))
+    if theme_name in {"pocket_hockey", "pocket_soccer", "pocket_sports"}:
+        sport = "soccer" if theme_name == "pocket_soccer" else "hockey"
+        return redirect(f"/sports/?sport={sport}")
     if theme_name == "pocket_gridiron":
         return redirect(url_for("pocket_gridiron"))
     date_str = (request.args.get("date") or "").strip() or None

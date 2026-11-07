@@ -1,0 +1,1448 @@
+{
+  "season": "2025/26 NHL",
+  "asOf": "2025-10-07",
+  "researchedAt": "2026-11-07",
+  "notes": "All 32 NHL clubs, using representative six-player selections from the 2025/26 opening roster snapshot, including injured-list players. This is not a live November 2026 roster. C/LW/RW are arcade line assignments; some natural centers occupy a wing. Display colors approximate familiar home identities. Full bench, changing lines, injuries, transfers and official ratings are not included.",
+  "teams": [
+    {
+      "id": "ana",
+      "name": "Anaheim Ducks",
+      "short": "ANA",
+      "city": "Anaheim",
+      "colors": [
+        "#F47A38",
+        "#B9975B"
+      ],
+      "players": [
+        {
+          "name": "Leo Carlsson",
+          "number": 91,
+          "position": "C"
+        },
+        {
+          "name": "Cutter Gauthier",
+          "number": 61,
+          "position": "LW"
+        },
+        {
+          "name": "Troy Terry",
+          "number": 19,
+          "position": "RW"
+        },
+        {
+          "name": "Jackson LaCombe",
+          "number": 2,
+          "position": "D"
+        },
+        {
+          "name": "Radko Gudas",
+          "number": 7,
+          "position": "D"
+        },
+        {
+          "name": "Lukas Dostal",
+          "number": 1,
+          "position": "G"
+        }
+      ],
+      "sourceUrls": [
+        "https://www.nhl.com/ducks/news/ducks-announce-2025-26-season-opening-roster"
+      ]
+    },
+    {
+      "id": "bos",
+      "name": "Boston Bruins",
+      "short": "BOS",
+      "city": "Boston",
+      "colors": [
+        "#171717",
+        "#FFB81C"
+      ],
+      "players": [
+        {
+          "name": "Pavel Zacha",
+          "number": 18,
+          "position": "C"
+        },
+        {
+          "name": "Elias Lindholm",
+          "number": 28,
+          "position": "LW"
+        },
+        {
+          "name": "David Pastrnak",
+          "number": 88,
+          "position": "RW"
+        },
+        {
+          "name": "Hampus Lindholm",
+          "number": 27,
+          "position": "D"
+        },
+        {
+          "name": "Charlie McAvoy",
+          "number": 73,
+          "position": "D"
+        },
+        {
+          "name": "Jeremy Swayman",
+          "number": 1,
+          "position": "G"
+        }
+      ],
+      "sourceUrls": [
+        "https://thehockeynews.com/nhl/boston-bruins/latest-news/bruins-reveal-2025-26-opening-night-roster"
+      ]
+    },
+    {
+      "id": "buf",
+      "name": "Buffalo Sabres",
+      "short": "BUF",
+      "city": "Buffalo",
+      "colors": [
+        "#003087",
+        "#FFB81C"
+      ],
+      "players": [
+        {
+          "name": "Tage Thompson",
+          "number": 72,
+          "position": "C"
+        },
+        {
+          "name": "Jason Zucker",
+          "number": 17,
+          "position": "LW"
+        },
+        {
+          "name": "Alex Tuch",
+          "number": 89,
+          "position": "RW"
+        },
+        {
+          "name": "Rasmus Dahlin",
+          "number": 26,
+          "position": "D"
+        },
+        {
+          "name": "Bowen Byram",
+          "number": 4,
+          "position": "D"
+        },
+        {
+          "name": "Ukko-Pekka Luukkonen",
+          "number": 1,
+          "position": "G"
+        }
+      ],
+      "sourceUrls": [
+        "https://www.nhl.com/sabres/news/buffalo-sabres-training-camp-roster-announcement-injuries"
+      ]
+    },
+    {
+      "id": "cgy",
+      "name": "Calgary Flames",
+      "short": "CGY",
+      "city": "Calgary",
+      "colors": [
+        "#D2001C",
+        "#F1BE48"
+      ],
+      "players": [
+        {
+          "name": "Nazem Kadri",
+          "number": 91,
+          "position": "C"
+        },
+        {
+          "name": "Blake Coleman",
+          "number": 20,
+          "position": "LW"
+        },
+        {
+          "name": "Matt Coronato",
+          "number": 27,
+          "position": "RW"
+        },
+        {
+          "name": "Rasmus Andersson",
+          "number": 4,
+          "position": "D"
+        },
+        {
+          "name": "MacKenzie Weegar",
+          "number": 52,
+          "position": "D"
+        },
+        {
+          "name": "Dustin Wolf",
+          "number": 32,
+          "position": "G"
+        }
+      ],
+      "sourceUrls": [
+        "https://www.nhl.com/flames/news/flames-announce-opening-night-roster"
+      ]
+    },
+    {
+      "id": "car",
+      "name": "Carolina Hurricanes",
+      "short": "CAR",
+      "city": "Raleigh",
+      "colors": [
+        "#CE1126",
+        "#171717"
+      ],
+      "players": [
+        {
+          "name": "Sebastian Aho",
+          "number": 20,
+          "position": "C"
+        },
+        {
+          "name": "Andrei Svechnikov",
+          "number": 37,
+          "position": "LW"
+        },
+        {
+          "name": "Seth Jarvis",
+          "number": 24,
+          "position": "RW"
+        },
+        {
+          "name": "Jaccob Slavin",
+          "number": 74,
+          "position": "D"
+        },
+        {
+          "name": "Shayne Gostisbehere",
+          "number": 4,
+          "position": "D"
+        },
+        {
+          "name": "Frederik Andersen",
+          "number": 31,
+          "position": "G"
+        }
+      ],
+      "sourceUrls": [
+        "https://www.nhl.com/news/carolina-hurricanes-roster-changes-for-2025-26-season"
+      ]
+    },
+    {
+      "id": "chi",
+      "name": "Chicago Blackhawks",
+      "short": "CHI",
+      "city": "Chicago",
+      "colors": [
+        "#CF0A2C",
+        "#171717"
+      ],
+      "players": [
+        {
+          "name": "Connor Bedard",
+          "number": 98,
+          "position": "C"
+        },
+        {
+          "name": "Tyler Bertuzzi",
+          "number": 59,
+          "position": "LW"
+        },
+        {
+          "name": "Teuvo Teravainen",
+          "number": 86,
+          "position": "RW"
+        },
+        {
+          "name": "Alex Vlasic",
+          "number": 72,
+          "position": "D"
+        },
+        {
+          "name": "Connor Murphy",
+          "number": 5,
+          "position": "D"
+        },
+        {
+          "name": "Spencer Knight",
+          "number": 30,
+          "position": "G"
+        }
+      ],
+      "sourceUrls": [
+        "https://www.nhl.com/blackhawks/news/release-blackhawks-announce-2025-26-opening-night-roster"
+      ]
+    },
+    {
+      "id": "col",
+      "name": "Colorado Avalanche",
+      "short": "COL",
+      "city": "Denver",
+      "colors": [
+        "#6F263D",
+        "#236192"
+      ],
+      "players": [
+        {
+          "name": "Nathan MacKinnon",
+          "number": 29,
+          "position": "C"
+        },
+        {
+          "name": "Artturi Lehkonen",
+          "number": 62,
+          "position": "LW"
+        },
+        {
+          "name": "Martin Necas",
+          "number": 88,
+          "position": "RW"
+        },
+        {
+          "name": "Devon Toews",
+          "number": 7,
+          "position": "D"
+        },
+        {
+          "name": "Cale Makar",
+          "number": 8,
+          "position": "D"
+        },
+        {
+          "name": "Mackenzie Blackwood",
+          "number": 39,
+          "position": "G"
+        }
+      ],
+      "sourceUrls": [
+        "https://www.nhl.com/news/colorado-avalanche-roster-changes-for-2025-26-season"
+      ]
+    },
+    {
+      "id": "cbj",
+      "name": "Columbus Blue Jackets",
+      "short": "CBJ",
+      "city": "Columbus",
+      "colors": [
+        "#002654",
+        "#CE1126"
+      ],
+      "players": [
+        {
+          "name": "Adam Fantilli",
+          "number": 19,
+          "position": "C"
+        },
+        {
+          "name": "Sean Monahan",
+          "number": 23,
+          "position": "LW"
+        },
+        {
+          "name": "Kirill Marchenko",
+          "number": 86,
+          "position": "RW"
+        },
+        {
+          "name": "Zach Werenski",
+          "number": 8,
+          "position": "D"
+        },
+        {
+          "name": "Ivan Provorov",
+          "number": 9,
+          "position": "D"
+        },
+        {
+          "name": "Elvis Merzlikins",
+          "number": 90,
+          "position": "G"
+        }
+      ],
+      "sourceUrls": [
+        "https://www.nhl.com/bluejackets/news/blue-jackets-opening-night-roster-2025-26-season"
+      ]
+    },
+    {
+      "id": "dal",
+      "name": "Dallas Stars",
+      "short": "DAL",
+      "city": "Dallas",
+      "colors": [
+        "#006847",
+        "#8F8F8C"
+      ],
+      "players": [
+        {
+          "name": "Roope Hintz",
+          "number": 24,
+          "position": "C"
+        },
+        {
+          "name": "Jason Robertson",
+          "number": 21,
+          "position": "LW"
+        },
+        {
+          "name": "Mikko Rantanen",
+          "number": 96,
+          "position": "RW"
+        },
+        {
+          "name": "Miro Heiskanen",
+          "number": 4,
+          "position": "D"
+        },
+        {
+          "name": "Thomas Harley",
+          "number": 55,
+          "position": "D"
+        },
+        {
+          "name": "Jake Oettinger",
+          "number": 29,
+          "position": "G"
+        }
+      ],
+      "sourceUrls": [
+        "https://www.nhl.com/stars/news/topic/press-releases/dallas-stars-announce-opening-night-roster-for-2025-26-season-100625"
+      ]
+    },
+    {
+      "id": "det",
+      "name": "Detroit Red Wings",
+      "short": "DET",
+      "city": "Detroit",
+      "colors": [
+        "#CE1126",
+        "#FFFFFF"
+      ],
+      "players": [
+        {
+          "name": "Dylan Larkin",
+          "number": 71,
+          "position": "C"
+        },
+        {
+          "name": "Alex DeBrincat",
+          "number": 93,
+          "position": "LW"
+        },
+        {
+          "name": "Lucas Raymond",
+          "number": 23,
+          "position": "RW"
+        },
+        {
+          "name": "Moritz Seider",
+          "number": 53,
+          "position": "D"
+        },
+        {
+          "name": "Simon Edvinsson",
+          "number": 77,
+          "position": "D"
+        },
+        {
+          "name": "Cam Talbot",
+          "number": 39,
+          "position": "G"
+        }
+      ],
+      "sourceUrls": [
+        "https://www.nhl.com/redwings/news/red-wings-reduce-roster-to-23-2025"
+      ]
+    },
+    {
+      "id": "edm",
+      "name": "Edmonton Oilers",
+      "short": "EDM",
+      "city": "Edmonton",
+      "colors": [
+        "#041E42",
+        "#FF4C00"
+      ],
+      "players": [
+        {
+          "name": "Connor McDavid",
+          "number": 97,
+          "position": "C"
+        },
+        {
+          "name": "Leon Draisaitl",
+          "number": 29,
+          "position": "LW"
+        },
+        {
+          "name": "Ryan Nugent-Hopkins",
+          "number": 93,
+          "position": "RW"
+        },
+        {
+          "name": "Mattias Ekholm",
+          "number": 14,
+          "position": "D"
+        },
+        {
+          "name": "Evan Bouchard",
+          "number": 2,
+          "position": "D"
+        },
+        {
+          "name": "Stuart Skinner",
+          "number": 74,
+          "position": "G"
+        }
+      ],
+      "sourceUrls": [
+        "https://media.nhl.com/site/vasset/public/attachments/2025/10/19177/rosters100725.pdf"
+      ]
+    },
+    {
+      "id": "fla",
+      "name": "Florida Panthers",
+      "short": "FLA",
+      "city": "Sunrise",
+      "colors": [
+        "#C8102E",
+        "#041E42"
+      ],
+      "players": [
+        {
+          "name": "Aleksander Barkov",
+          "number": 16,
+          "position": "C"
+        },
+        {
+          "name": "Matthew Tkachuk",
+          "number": 19,
+          "position": "LW"
+        },
+        {
+          "name": "Sam Reinhart",
+          "number": 13,
+          "position": "RW"
+        },
+        {
+          "name": "Gustav Forsling",
+          "number": 42,
+          "position": "D"
+        },
+        {
+          "name": "Aaron Ekblad",
+          "number": 5,
+          "position": "D"
+        },
+        {
+          "name": "Sergei Bobrovsky",
+          "number": 72,
+          "position": "G"
+        }
+      ],
+      "sourceUrls": [
+        "https://www.nhl.com/panthers/news/florida-panthers-announce-2025-26-opening-night-roster"
+      ]
+    },
+    {
+      "id": "lak",
+      "name": "Los Angeles Kings",
+      "short": "LAK",
+      "city": "Los Angeles",
+      "colors": [
+        "#111111",
+        "#A2AAAD"
+      ],
+      "players": [
+        {
+          "name": "Anze Kopitar",
+          "number": 11,
+          "position": "C"
+        },
+        {
+          "name": "Kevin Fiala",
+          "number": 22,
+          "position": "LW"
+        },
+        {
+          "name": "Adrian Kempe",
+          "number": 9,
+          "position": "RW"
+        },
+        {
+          "name": "Mikey Anderson",
+          "number": 44,
+          "position": "D"
+        },
+        {
+          "name": "Drew Doughty",
+          "number": 8,
+          "position": "D"
+        },
+        {
+          "name": "Darcy Kuemper",
+          "number": 35,
+          "position": "G"
+        }
+      ],
+      "sourceUrls": [
+        "https://www.nhl.com/kings/news/kings-announce-2025-26-season-opening-roster"
+      ]
+    },
+    {
+      "id": "min",
+      "name": "Minnesota Wild",
+      "short": "MIN",
+      "city": "Saint Paul",
+      "colors": [
+        "#154734",
+        "#A6192E"
+      ],
+      "players": [
+        {
+          "name": "Joel Eriksson Ek",
+          "number": 14,
+          "position": "C"
+        },
+        {
+          "name": "Kirill Kaprizov",
+          "number": 97,
+          "position": "LW"
+        },
+        {
+          "name": "Matt Boldy",
+          "number": 12,
+          "position": "RW"
+        },
+        {
+          "name": "Brock Faber",
+          "number": 7,
+          "position": "D"
+        },
+        {
+          "name": "Jared Spurgeon",
+          "number": 46,
+          "position": "D"
+        },
+        {
+          "name": "Filip Gustavsson",
+          "number": 32,
+          "position": "G"
+        }
+      ],
+      "sourceUrls": [
+        "https://media.nhl.com/site/vasset/public/attachments/2025/10/19177/rosters100725.pdf"
+      ]
+    },
+    {
+      "id": "mtl",
+      "name": "Montreal Canadiens",
+      "short": "MTL",
+      "city": "Montreal",
+      "colors": [
+        "#AF1E2D",
+        "#192168"
+      ],
+      "players": [
+        {
+          "name": "Nick Suzuki",
+          "number": 14,
+          "position": "C"
+        },
+        {
+          "name": "Cole Caufield",
+          "number": 13,
+          "position": "LW"
+        },
+        {
+          "name": "Juraj Slafkovsky",
+          "number": 20,
+          "position": "RW"
+        },
+        {
+          "name": "Lane Hutson",
+          "number": 48,
+          "position": "D"
+        },
+        {
+          "name": "Mike Matheson",
+          "number": 8,
+          "position": "D"
+        },
+        {
+          "name": "Samuel Montembeault",
+          "number": 35,
+          "position": "G"
+        }
+      ],
+      "sourceUrls": [
+        "https://www.nhl.com/news/topic/team-resets/montreal-canadiens-roster-changes-for-2025-26-season"
+      ]
+    },
+    {
+      "id": "nsh",
+      "name": "Nashville Predators",
+      "short": "NSH",
+      "city": "Nashville",
+      "colors": [
+        "#FFB81C",
+        "#041E42"
+      ],
+      "players": [
+        {
+          "name": "Ryan O’Reilly",
+          "number": 90,
+          "position": "C"
+        },
+        {
+          "name": "Filip Forsberg",
+          "number": 9,
+          "position": "LW"
+        },
+        {
+          "name": "Steven Stamkos",
+          "number": 91,
+          "position": "RW"
+        },
+        {
+          "name": "Roman Josi",
+          "number": 59,
+          "position": "D"
+        },
+        {
+          "name": "Brady Skjei",
+          "number": 76,
+          "position": "D"
+        },
+        {
+          "name": "Juuse Saros",
+          "number": 74,
+          "position": "G"
+        }
+      ],
+      "sourceUrls": [
+        "https://www.nhl.com/predators/news/topic/press-releases/predators-set-2025-26-opening-night-roster-nashville-begins-season-against-columbus-on-thursday-2025-10-06"
+      ]
+    },
+    {
+      "id": "njd",
+      "name": "New Jersey Devils",
+      "short": "NJD",
+      "city": "Newark",
+      "colors": [
+        "#CE1126",
+        "#171717"
+      ],
+      "players": [
+        {
+          "name": "Jack Hughes",
+          "number": 86,
+          "position": "C"
+        },
+        {
+          "name": "Jesper Bratt",
+          "number": 63,
+          "position": "LW"
+        },
+        {
+          "name": "Nico Hischier",
+          "number": 13,
+          "position": "RW"
+        },
+        {
+          "name": "Luke Hughes",
+          "number": 43,
+          "position": "D"
+        },
+        {
+          "name": "Dougie Hamilton",
+          "number": 7,
+          "position": "D"
+        },
+        {
+          "name": "Jacob Markstrom",
+          "number": 25,
+          "position": "G"
+        }
+      ],
+      "sourceUrls": [
+        "https://media.nhl.com/site/vasset/public/attachments/2025/10/19177/rosters100725.pdf"
+      ]
+    },
+    {
+      "id": "nyi",
+      "name": "New York Islanders",
+      "short": "NYI",
+      "city": "Elmont",
+      "colors": [
+        "#00539B",
+        "#F47D30"
+      ],
+      "players": [
+        {
+          "name": "Bo Horvat",
+          "number": 14,
+          "position": "C"
+        },
+        {
+          "name": "Anders Lee",
+          "number": 27,
+          "position": "LW"
+        },
+        {
+          "name": "Mathew Barzal",
+          "number": 13,
+          "position": "RW"
+        },
+        {
+          "name": "Adam Pelech",
+          "number": 3,
+          "position": "D"
+        },
+        {
+          "name": "Ryan Pulock",
+          "number": 6,
+          "position": "D"
+        },
+        {
+          "name": "Ilya Sorokin",
+          "number": 30,
+          "position": "G"
+        }
+      ],
+      "sourceUrls": [
+        "https://media.nhl.com/site/vasset/public/attachments/2025/10/19177/rosters100725.pdf"
+      ]
+    },
+    {
+      "id": "nyr",
+      "name": "New York Rangers",
+      "short": "NYR",
+      "city": "New York",
+      "colors": [
+        "#0038A8",
+        "#CE1126"
+      ],
+      "players": [
+        {
+          "name": "Mika Zibanejad",
+          "number": 93,
+          "position": "C"
+        },
+        {
+          "name": "Artemi Panarin",
+          "number": 10,
+          "position": "LW"
+        },
+        {
+          "name": "Alexis Lafreniere",
+          "number": 13,
+          "position": "RW"
+        },
+        {
+          "name": "Adam Fox",
+          "number": 23,
+          "position": "D"
+        },
+        {
+          "name": "Braden Schneider",
+          "number": 4,
+          "position": "D"
+        },
+        {
+          "name": "Igor Shesterkin",
+          "number": 31,
+          "position": "G"
+        }
+      ],
+      "sourceUrls": [
+        "https://media.nhl.com/site/vasset/public/attachments/2025/10/19177/rosters100725.pdf"
+      ]
+    },
+    {
+      "id": "ott",
+      "name": "Ottawa Senators",
+      "short": "OTT",
+      "city": "Ottawa",
+      "colors": [
+        "#C52032",
+        "#C2912C"
+      ],
+      "players": [
+        {
+          "name": "Tim Stützle",
+          "number": 18,
+          "position": "C"
+        },
+        {
+          "name": "Brady Tkachuk",
+          "number": 7,
+          "position": "LW"
+        },
+        {
+          "name": "Claude Giroux",
+          "number": 28,
+          "position": "RW"
+        },
+        {
+          "name": "Thomas Chabot",
+          "number": 72,
+          "position": "D"
+        },
+        {
+          "name": "Jake Sanderson",
+          "number": 85,
+          "position": "D"
+        },
+        {
+          "name": "Linus Ullmark",
+          "number": 35,
+          "position": "G"
+        }
+      ],
+      "sourceUrls": [
+        "https://media.nhl.com/site/vasset/public/attachments/2025/10/19177/rosters100725.pdf"
+      ]
+    },
+    {
+      "id": "phi",
+      "name": "Philadelphia Flyers",
+      "short": "PHI",
+      "city": "Philadelphia",
+      "colors": [
+        "#F74902",
+        "#171717"
+      ],
+      "players": [
+        {
+          "name": "Sean Couturier",
+          "number": 14,
+          "position": "C"
+        },
+        {
+          "name": "Travis Konecny",
+          "number": 11,
+          "position": "LW"
+        },
+        {
+          "name": "Matvei Michkov",
+          "number": 39,
+          "position": "RW"
+        },
+        {
+          "name": "Cam York",
+          "number": 8,
+          "position": "D"
+        },
+        {
+          "name": "Travis Sanheim",
+          "number": 6,
+          "position": "D"
+        },
+        {
+          "name": "Samuel Ersson",
+          "number": 33,
+          "position": "G"
+        }
+      ],
+      "sourceUrls": [
+        "https://media.nhl.com/site/vasset/public/attachments/2025/10/19177/rosters100725.pdf"
+      ]
+    },
+    {
+      "id": "pit",
+      "name": "Pittsburgh Penguins",
+      "short": "PIT",
+      "city": "Pittsburgh",
+      "colors": [
+        "#171717",
+        "#FFB81C"
+      ],
+      "players": [
+        {
+          "name": "Sidney Crosby",
+          "number": 87,
+          "position": "C"
+        },
+        {
+          "name": "Evgeni Malkin",
+          "number": 71,
+          "position": "LW"
+        },
+        {
+          "name": "Rickard Rakell",
+          "number": 67,
+          "position": "RW"
+        },
+        {
+          "name": "Erik Karlsson",
+          "number": 65,
+          "position": "D"
+        },
+        {
+          "name": "Kris Letang",
+          "number": 58,
+          "position": "D"
+        },
+        {
+          "name": "Tristan Jarry",
+          "number": 35,
+          "position": "G"
+        }
+      ],
+      "sourceUrls": [
+        "https://media.nhl.com/site/vasset/public/attachments/2025/10/19177/rosters100725.pdf"
+      ]
+    },
+    {
+      "id": "sjs",
+      "name": "San Jose Sharks",
+      "short": "SJS",
+      "city": "San Jose",
+      "colors": [
+        "#006D75",
+        "#EA7200"
+      ],
+      "players": [
+        {
+          "name": "Macklin Celebrini",
+          "number": 71,
+          "position": "C"
+        },
+        {
+          "name": "William Eklund",
+          "number": 72,
+          "position": "LW"
+        },
+        {
+          "name": "Will Smith",
+          "number": 2,
+          "position": "RW"
+        },
+        {
+          "name": "Mario Ferraro",
+          "number": 38,
+          "position": "D"
+        },
+        {
+          "name": "Dmitry Orlov",
+          "number": 9,
+          "position": "D"
+        },
+        {
+          "name": "Yaroslav Askarov",
+          "number": 30,
+          "position": "G"
+        }
+      ],
+      "sourceUrls": [
+        "https://media.nhl.com/site/vasset/public/attachments/2025/10/19177/rosters100725.pdf"
+      ]
+    },
+    {
+      "id": "sea",
+      "name": "Seattle Kraken",
+      "short": "SEA",
+      "city": "Seattle",
+      "colors": [
+        "#001628",
+        "#99D9D9"
+      ],
+      "players": [
+        {
+          "name": "Matty Beniers",
+          "number": 10,
+          "position": "C"
+        },
+        {
+          "name": "Jared McCann",
+          "number": 19,
+          "position": "LW"
+        },
+        {
+          "name": "Jordan Eberle",
+          "number": 7,
+          "position": "RW"
+        },
+        {
+          "name": "Vince Dunn",
+          "number": 29,
+          "position": "D"
+        },
+        {
+          "name": "Brandon Montour",
+          "number": 62,
+          "position": "D"
+        },
+        {
+          "name": "Joey Daccord",
+          "number": 35,
+          "position": "G"
+        }
+      ],
+      "sourceUrls": [
+        "https://media.nhl.com/site/vasset/public/attachments/2025/10/19177/rosters100725.pdf"
+      ]
+    },
+    {
+      "id": "stl",
+      "name": "St. Louis Blues",
+      "short": "STL",
+      "city": "St. Louis",
+      "colors": [
+        "#002F87",
+        "#FCB514"
+      ],
+      "players": [
+        {
+          "name": "Robert Thomas",
+          "number": 18,
+          "position": "C"
+        },
+        {
+          "name": "Pavel Buchnevich",
+          "number": 89,
+          "position": "LW"
+        },
+        {
+          "name": "Jordan Kyrou",
+          "number": 25,
+          "position": "RW"
+        },
+        {
+          "name": "Colton Parayko",
+          "number": 55,
+          "position": "D"
+        },
+        {
+          "name": "Justin Faulk",
+          "number": 72,
+          "position": "D"
+        },
+        {
+          "name": "Jordan Binnington",
+          "number": 50,
+          "position": "G"
+        }
+      ],
+      "sourceUrls": [
+        "https://media.nhl.com/site/vasset/public/attachments/2025/10/19177/rosters100725.pdf"
+      ]
+    },
+    {
+      "id": "tbl",
+      "name": "Tampa Bay Lightning",
+      "short": "TBL",
+      "city": "Tampa",
+      "colors": [
+        "#002868",
+        "#FFFFFF"
+      ],
+      "players": [
+        {
+          "name": "Brayden Point",
+          "number": 21,
+          "position": "C"
+        },
+        {
+          "name": "Brandon Hagel",
+          "number": 38,
+          "position": "LW"
+        },
+        {
+          "name": "Nikita Kucherov",
+          "number": 86,
+          "position": "RW"
+        },
+        {
+          "name": "Victor Hedman",
+          "number": 77,
+          "position": "D"
+        },
+        {
+          "name": "Ryan McDonagh",
+          "number": 27,
+          "position": "D"
+        },
+        {
+          "name": "Andrei Vasilevskiy",
+          "number": 88,
+          "position": "G"
+        }
+      ],
+      "sourceUrls": [
+        "https://media.nhl.com/site/vasset/public/attachments/2025/10/19177/rosters100725.pdf"
+      ]
+    },
+    {
+      "id": "tor",
+      "name": "Toronto Maple Leafs",
+      "short": "TOR",
+      "city": "Toronto",
+      "colors": [
+        "#00205B",
+        "#FFFFFF"
+      ],
+      "players": [
+        {
+          "name": "Auston Matthews",
+          "number": 34,
+          "position": "C"
+        },
+        {
+          "name": "John Tavares",
+          "number": 91,
+          "position": "LW"
+        },
+        {
+          "name": "William Nylander",
+          "number": 88,
+          "position": "RW"
+        },
+        {
+          "name": "Morgan Rielly",
+          "number": 44,
+          "position": "D"
+        },
+        {
+          "name": "Jake McCabe",
+          "number": 22,
+          "position": "D"
+        },
+        {
+          "name": "Joseph Woll",
+          "number": 60,
+          "position": "G"
+        }
+      ],
+      "sourceUrls": [
+        "https://media.nhl.com/site/vasset/public/attachments/2025/10/19177/rosters100725.pdf"
+      ]
+    },
+    {
+      "id": "uta",
+      "name": "Utah Mammoth",
+      "short": "UTA",
+      "city": "Salt Lake City",
+      "colors": [
+        "#6CACE4",
+        "#010101"
+      ],
+      "players": [
+        {
+          "name": "Logan Cooley",
+          "number": 92,
+          "position": "C"
+        },
+        {
+          "name": "Clayton Keller",
+          "number": 9,
+          "position": "LW"
+        },
+        {
+          "name": "Dylan Guenther",
+          "number": 11,
+          "position": "RW"
+        },
+        {
+          "name": "Mikhail Sergachev",
+          "number": 98,
+          "position": "D"
+        },
+        {
+          "name": "Sean Durzi",
+          "number": 50,
+          "position": "D"
+        },
+        {
+          "name": "Karel Vejmelka",
+          "number": 70,
+          "position": "G"
+        }
+      ],
+      "sourceUrls": [
+        "https://media.nhl.com/site/vasset/public/attachments/2025/10/19177/rosters100725.pdf"
+      ]
+    },
+    {
+      "id": "van",
+      "name": "Vancouver Canucks",
+      "short": "VAN",
+      "city": "Vancouver",
+      "colors": [
+        "#00205B",
+        "#00843D"
+      ],
+      "players": [
+        {
+          "name": "Elias Pettersson",
+          "number": 40,
+          "position": "C"
+        },
+        {
+          "name": "Jake DeBrusk",
+          "number": 74,
+          "position": "LW"
+        },
+        {
+          "name": "Brock Boeser",
+          "number": 6,
+          "position": "RW"
+        },
+        {
+          "name": "Quinn Hughes",
+          "number": 43,
+          "position": "D"
+        },
+        {
+          "name": "Filip Hronek",
+          "number": 17,
+          "position": "D"
+        },
+        {
+          "name": "Thatcher Demko",
+          "number": 35,
+          "position": "G"
+        }
+      ],
+      "sourceUrls": [
+        "https://media.nhl.com/site/vasset/public/attachments/2025/10/19177/rosters100725.pdf"
+      ]
+    },
+    {
+      "id": "vgk",
+      "name": "Vegas Golden Knights",
+      "short": "VGK",
+      "city": "Las Vegas",
+      "colors": [
+        "#B4975A",
+        "#333F42"
+      ],
+      "players": [
+        {
+          "name": "Jack Eichel",
+          "number": 9,
+          "position": "C"
+        },
+        {
+          "name": "Tomas Hertl",
+          "number": 48,
+          "position": "LW"
+        },
+        {
+          "name": "Mark Stone",
+          "number": 61,
+          "position": "RW"
+        },
+        {
+          "name": "Noah Hanifin",
+          "number": 15,
+          "position": "D"
+        },
+        {
+          "name": "Shea Theodore",
+          "number": 27,
+          "position": "D"
+        },
+        {
+          "name": "Adin Hill",
+          "number": 33,
+          "position": "G"
+        }
+      ],
+      "sourceUrls": [
+        "https://media.nhl.com/site/vasset/public/attachments/2025/10/19177/rosters100725.pdf"
+      ]
+    },
+    {
+      "id": "wsh",
+      "name": "Washington Capitals",
+      "short": "WSH",
+      "city": "Washington",
+      "colors": [
+        "#C8102E",
+        "#041E42"
+      ],
+      "players": [
+        {
+          "name": "Dylan Strome",
+          "number": 17,
+          "position": "C"
+        },
+        {
+          "name": "Alex Ovechkin",
+          "number": 8,
+          "position": "LW"
+        },
+        {
+          "name": "Tom Wilson",
+          "number": 43,
+          "position": "RW"
+        },
+        {
+          "name": "John Carlson",
+          "number": 74,
+          "position": "D"
+        },
+        {
+          "name": "Jakob Chychrun",
+          "number": 6,
+          "position": "D"
+        },
+        {
+          "name": "Logan Thompson",
+          "number": 48,
+          "position": "G"
+        }
+      ],
+      "sourceUrls": [
+        "https://media.nhl.com/site/vasset/public/attachments/2025/10/19177/rosters100725.pdf"
+      ]
+    },
+    {
+      "id": "wpg",
+      "name": "Winnipeg Jets",
+      "short": "WPG",
+      "city": "Winnipeg",
+      "colors": [
+        "#041E42",
+        "#004C97"
+      ],
+      "players": [
+        {
+          "name": "Mark Scheifele",
+          "number": 55,
+          "position": "C"
+        },
+        {
+          "name": "Kyle Connor",
+          "number": 81,
+          "position": "LW"
+        },
+        {
+          "name": "Gabriel Vilardi",
+          "number": 13,
+          "position": "RW"
+        },
+        {
+          "name": "Josh Morrissey",
+          "number": 44,
+          "position": "D"
+        },
+        {
+          "name": "Neal Pionk",
+          "number": 4,
+          "position": "D"
+        },
+        {
+          "name": "Connor Hellebuyck",
+          "number": 37,
+          "position": "G"
+        }
+      ],
+      "sourceUrls": [
+        "https://media.nhl.com/site/vasset/public/attachments/2025/10/19177/rosters100725.pdf"
+      ]
+    }
+  ]
+}

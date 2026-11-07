@@ -1,0 +1,1131 @@
+{
+  "season": "2025/26 UEFA Champions League round of 16",
+  "asOf": "2026-03-18",
+  "researchedAt": "2026-11-07",
+  "notes": "The 16 clubs are the last completed round of 16. These are representative arcade XIs drawn from official March 2026 match squads, not live transfer rosters or exact tactical starting lineups. Positions are simplified to GK/D/M/F; team colors are approximate display palettes, not licensed brand specifications. Injury and suspension availability is not modeled.",
+  "teams": [
+    {
+      "id": "ars",
+      "name": "Arsenal",
+      "short": "ARS",
+      "city": "London",
+      "colors": [
+        "#EF0107",
+        "#FFFFFF"
+      ],
+      "players": [
+        {
+          "name": "David Raya",
+          "number": 1,
+          "position": "GK"
+        },
+        {
+          "name": "Jurriën Timber",
+          "number": 12,
+          "position": "D"
+        },
+        {
+          "name": "William Saliba",
+          "number": 2,
+          "position": "D"
+        },
+        {
+          "name": "Gabriel Magalhães",
+          "number": 6,
+          "position": "D"
+        },
+        {
+          "name": "Piero Hincapié",
+          "number": 5,
+          "position": "D"
+        },
+        {
+          "name": "Martin Zubimendi",
+          "number": 36,
+          "position": "M"
+        },
+        {
+          "name": "Declan Rice",
+          "number": 41,
+          "position": "M"
+        },
+        {
+          "name": "Eberechi Eze",
+          "number": 10,
+          "position": "M"
+        },
+        {
+          "name": "Bukayo Saka",
+          "number": 7,
+          "position": "F"
+        },
+        {
+          "name": "Viktor Gyökeres",
+          "number": 14,
+          "position": "F"
+        },
+        {
+          "name": "Gabriel Martinelli",
+          "number": 11,
+          "position": "F"
+        }
+      ],
+      "sourceUrls": [
+        "https://www.uefa.com/newsfiles/UCL/2026/2048054_LU.pdf"
+      ]
+    },
+    {
+      "id": "bay",
+      "name": "Bayern Munich",
+      "short": "BAY",
+      "city": "Munich",
+      "colors": [
+        "#DC052D",
+        "#FFFFFF"
+      ],
+      "players": [
+        {
+          "name": "Jonas Urbig",
+          "number": 40,
+          "position": "GK"
+        },
+        {
+          "name": "Josip Stanišić",
+          "number": 44,
+          "position": "D"
+        },
+        {
+          "name": "Dayot Upamecano",
+          "number": 2,
+          "position": "D"
+        },
+        {
+          "name": "Jonathan Tah",
+          "number": 4,
+          "position": "D"
+        },
+        {
+          "name": "Konrad Laimer",
+          "number": 27,
+          "position": "D"
+        },
+        {
+          "name": "Joshua Kimmich",
+          "number": 6,
+          "position": "M"
+        },
+        {
+          "name": "Aleksandar Pavlović",
+          "number": 45,
+          "position": "M"
+        },
+        {
+          "name": "Jamal Musiala",
+          "number": 10,
+          "position": "M"
+        },
+        {
+          "name": "Michael Olise",
+          "number": 17,
+          "position": "F"
+        },
+        {
+          "name": "Harry Kane",
+          "number": 9,
+          "position": "F"
+        },
+        {
+          "name": "Luis Díaz",
+          "number": 14,
+          "position": "F"
+        }
+      ],
+      "sourceUrls": [
+        "https://www.uefa.com/newsfiles/UCL/2026/2048050_LU.pdf",
+        "https://www.uefa.com/newsfiles/UCL/2026/2048058_LU.pdf"
+      ]
+    },
+    {
+      "id": "liv",
+      "name": "Liverpool",
+      "short": "LIV",
+      "city": "Liverpool",
+      "colors": [
+        "#C8102E",
+        "#F6EB61"
+      ],
+      "players": [
+        {
+          "name": "Alisson Becker",
+          "number": 1,
+          "position": "GK"
+        },
+        {
+          "name": "Jeremie Frimpong",
+          "number": 30,
+          "position": "D"
+        },
+        {
+          "name": "Ibrahima Konaté",
+          "number": 5,
+          "position": "D"
+        },
+        {
+          "name": "Virgil van Dijk",
+          "number": 4,
+          "position": "D"
+        },
+        {
+          "name": "Milos Kerkez",
+          "number": 6,
+          "position": "D"
+        },
+        {
+          "name": "Ryan Gravenberch",
+          "number": 38,
+          "position": "M"
+        },
+        {
+          "name": "Alexis Mac Allister",
+          "number": 10,
+          "position": "M"
+        },
+        {
+          "name": "Dominik Szoboszlai",
+          "number": 8,
+          "position": "M"
+        },
+        {
+          "name": "Mohamed Salah",
+          "number": 11,
+          "position": "F"
+        },
+        {
+          "name": "Hugo Ekitiké",
+          "number": 22,
+          "position": "F"
+        },
+        {
+          "name": "Florian Wirtz",
+          "number": 7,
+          "position": "F"
+        }
+      ],
+      "sourceUrls": [
+        "https://www.uefa.com/newsfiles/UCL/2026/2048056_LU.pdf"
+      ]
+    },
+    {
+      "id": "tot",
+      "name": "Tottenham Hotspur",
+      "short": "TOT",
+      "city": "London",
+      "colors": [
+        "#FFFFFF",
+        "#132257"
+      ],
+      "players": [
+        {
+          "name": "Guglielmo Vicario",
+          "number": 1,
+          "position": "GK"
+        },
+        {
+          "name": "Pedro Porro",
+          "number": 23,
+          "position": "D"
+        },
+        {
+          "name": "Cristian Romero",
+          "number": 17,
+          "position": "D"
+        },
+        {
+          "name": "Radu Drăgușin",
+          "number": 3,
+          "position": "D"
+        },
+        {
+          "name": "Micky van de Ven",
+          "number": 37,
+          "position": "D"
+        },
+        {
+          "name": "Archie Gray",
+          "number": 14,
+          "position": "M"
+        },
+        {
+          "name": "Pape Sarr",
+          "number": 29,
+          "position": "M"
+        },
+        {
+          "name": "Djed Spence",
+          "number": 24,
+          "position": "M"
+        },
+        {
+          "name": "Xavi Simons",
+          "number": 7,
+          "position": "F"
+        },
+        {
+          "name": "Randal Kolo Muani",
+          "number": 39,
+          "position": "F"
+        },
+        {
+          "name": "Mathys Tel",
+          "number": 11,
+          "position": "F"
+        }
+      ],
+      "sourceUrls": [
+        "https://www.uefa.com/newsfiles/UCL/2026/2048060_LU.pdf"
+      ]
+    },
+    {
+      "id": "bar",
+      "name": "FC Barcelona",
+      "short": "BAR",
+      "city": "Barcelona",
+      "colors": [
+        "#A50044",
+        "#004D98"
+      ],
+      "players": [
+        {
+          "name": "Joan García",
+          "number": 13,
+          "position": "GK"
+        },
+        {
+          "name": "João Cancelo",
+          "number": 2,
+          "position": "D"
+        },
+        {
+          "name": "Ronald Araújo",
+          "number": 4,
+          "position": "D"
+        },
+        {
+          "name": "Pau Cubarsí",
+          "number": 5,
+          "position": "D"
+        },
+        {
+          "name": "Gerard Martín",
+          "number": 18,
+          "position": "D"
+        },
+        {
+          "name": "Marc Bernal",
+          "number": 22,
+          "position": "M"
+        },
+        {
+          "name": "Pedri",
+          "number": 8,
+          "position": "M"
+        },
+        {
+          "name": "Fermín López",
+          "number": 16,
+          "position": "M"
+        },
+        {
+          "name": "Lamine Yamal",
+          "number": 10,
+          "position": "F"
+        },
+        {
+          "name": "Robert Lewandowski",
+          "number": 9,
+          "position": "F"
+        },
+        {
+          "name": "Raphinha",
+          "number": 11,
+          "position": "F"
+        }
+      ],
+      "sourceUrls": [
+        "https://www.uefa.com/newsfiles/UCL/2026/2048051_LU.pdf"
+      ]
+    },
+    {
+      "id": "che",
+      "name": "Chelsea",
+      "short": "CHE",
+      "city": "London",
+      "colors": [
+        "#034694",
+        "#FFFFFF"
+      ],
+      "players": [
+        {
+          "name": "Filip Jørgensen",
+          "number": 12,
+          "position": "GK"
+        },
+        {
+          "name": "Malo Gusto",
+          "number": 27,
+          "position": "D"
+        },
+        {
+          "name": "Wesley Fofana",
+          "number": 29,
+          "position": "D"
+        },
+        {
+          "name": "Trevoh Chalobah",
+          "number": 23,
+          "position": "D"
+        },
+        {
+          "name": "Marc Cucurella",
+          "number": 3,
+          "position": "D"
+        },
+        {
+          "name": "Reece James",
+          "number": 24,
+          "position": "M"
+        },
+        {
+          "name": "Moisés Caicedo",
+          "number": 25,
+          "position": "M"
+        },
+        {
+          "name": "Enzo Fernández",
+          "number": 8,
+          "position": "M"
+        },
+        {
+          "name": "Cole Palmer",
+          "number": 10,
+          "position": "F"
+        },
+        {
+          "name": "João Pedro",
+          "number": 20,
+          "position": "F"
+        },
+        {
+          "name": "Pedro Neto",
+          "number": 7,
+          "position": "F"
+        }
+      ],
+      "sourceUrls": [
+        "https://www.uefa.com/newsfiles/UCL/2026/2048047_LU.pdf"
+      ]
+    },
+    {
+      "id": "scp",
+      "name": "Sporting CP",
+      "short": "SCP",
+      "city": "Lisbon",
+      "colors": [
+        "#008F39",
+        "#FFFFFF"
+      ],
+      "players": [
+        {
+          "name": "Rui Silva",
+          "number": 1,
+          "position": "GK"
+        },
+        {
+          "name": "Giorgos Vagiannidis",
+          "number": 13,
+          "position": "D"
+        },
+        {
+          "name": "Ousmane Diomande",
+          "number": 26,
+          "position": "D"
+        },
+        {
+          "name": "Gonçalo Inácio",
+          "number": 25,
+          "position": "D"
+        },
+        {
+          "name": "Iván Fresneda",
+          "number": 22,
+          "position": "D"
+        },
+        {
+          "name": "Morten Hjulmand",
+          "number": 42,
+          "position": "M"
+        },
+        {
+          "name": "João Simões",
+          "number": 52,
+          "position": "M"
+        },
+        {
+          "name": "Francisco Trincão",
+          "number": 17,
+          "position": "M"
+        },
+        {
+          "name": "Geny Catamo",
+          "number": 10,
+          "position": "F"
+        },
+        {
+          "name": "Luis Suárez",
+          "number": 97,
+          "position": "F"
+        },
+        {
+          "name": "Luis Guilherme",
+          "number": 31,
+          "position": "F"
+        }
+      ],
+      "sourceUrls": [
+        "https://www.uefa.com/newsfiles/UCL/2026/2048053_LU.pdf"
+      ]
+    },
+    {
+      "id": "mci",
+      "name": "Manchester City",
+      "short": "MCI",
+      "city": "Manchester",
+      "colors": [
+        "#6CABDD",
+        "#FFFFFF"
+      ],
+      "players": [
+        {
+          "name": "Gianluigi Donnarumma",
+          "number": 25,
+          "position": "GK"
+        },
+        {
+          "name": "Abdukodir Khusanov",
+          "number": 45,
+          "position": "D"
+        },
+        {
+          "name": "Rúben Dias",
+          "number": 3,
+          "position": "D"
+        },
+        {
+          "name": "Marc Guéhi",
+          "number": 15,
+          "position": "D"
+        },
+        {
+          "name": "Nico O’Reilly",
+          "number": 33,
+          "position": "D"
+        },
+        {
+          "name": "Rodri",
+          "number": 16,
+          "position": "M"
+        },
+        {
+          "name": "Bernardo Silva",
+          "number": 20,
+          "position": "M"
+        },
+        {
+          "name": "Phil Foden",
+          "number": 47,
+          "position": "M"
+        },
+        {
+          "name": "Antoine Semenyo",
+          "number": 42,
+          "position": "F"
+        },
+        {
+          "name": "Erling Haaland",
+          "number": 9,
+          "position": "F"
+        },
+        {
+          "name": "Jeremy Doku",
+          "number": 11,
+          "position": "F"
+        }
+      ],
+      "sourceUrls": [
+        "https://www.uefa.com/newsfiles/UCL/2026/2048049_LU.pdf"
+      ]
+    },
+    {
+      "id": "rma",
+      "name": "Real Madrid",
+      "short": "RMA",
+      "city": "Madrid",
+      "colors": [
+        "#FFFFFF",
+        "#D4AF37"
+      ],
+      "players": [
+        {
+          "name": "Thibaut Courtois",
+          "number": 1,
+          "position": "GK"
+        },
+        {
+          "name": "Trent Alexander-Arnold",
+          "number": 12,
+          "position": "D"
+        },
+        {
+          "name": "Antonio Rüdiger",
+          "number": 22,
+          "position": "D"
+        },
+        {
+          "name": "Dean Huijsen",
+          "number": 24,
+          "position": "D"
+        },
+        {
+          "name": "Ferland Mendy",
+          "number": 23,
+          "position": "D"
+        },
+        {
+          "name": "Aurélien Tchouaméni",
+          "number": 14,
+          "position": "M"
+        },
+        {
+          "name": "Federico Valverde",
+          "number": 8,
+          "position": "M"
+        },
+        {
+          "name": "Thiago Pitarch",
+          "number": 45,
+          "position": "M"
+        },
+        {
+          "name": "Arda Güler",
+          "number": 15,
+          "position": "F"
+        },
+        {
+          "name": "Kylian Mbappé",
+          "number": 10,
+          "position": "F"
+        },
+        {
+          "name": "Vinícius Júnior",
+          "number": 7,
+          "position": "F"
+        }
+      ],
+      "sourceUrls": [
+        "https://www.uefa.com/newsfiles/UCL/2026/2048049_LU.pdf",
+        "https://www.uefa.com/newsfiles/UCL/2026/2048057_HR.pdf"
+      ]
+    },
+    {
+      "id": "psg",
+      "name": "Paris Saint-Germain",
+      "short": "PSG",
+      "city": "Paris",
+      "colors": [
+        "#004170",
+        "#DA291C"
+      ],
+      "players": [
+        {
+          "name": "Matvei Safonov",
+          "number": 39,
+          "position": "GK"
+        },
+        {
+          "name": "Achraf Hakimi",
+          "number": 2,
+          "position": "D"
+        },
+        {
+          "name": "Marquinhos",
+          "number": 5,
+          "position": "D"
+        },
+        {
+          "name": "Willian Pacho",
+          "number": 51,
+          "position": "D"
+        },
+        {
+          "name": "Nuno Mendes",
+          "number": 25,
+          "position": "D"
+        },
+        {
+          "name": "Vitinha",
+          "number": 17,
+          "position": "M"
+        },
+        {
+          "name": "João Neves",
+          "number": 87,
+          "position": "M"
+        },
+        {
+          "name": "Warren Zaïre-Emery",
+          "number": 33,
+          "position": "M"
+        },
+        {
+          "name": "Désiré Doué",
+          "number": 14,
+          "position": "F"
+        },
+        {
+          "name": "Ousmane Dembélé",
+          "number": 10,
+          "position": "F"
+        },
+        {
+          "name": "Khvicha Kvaratskhelia",
+          "number": 7,
+          "position": "F"
+        }
+      ],
+      "sourceUrls": [
+        "https://www.uefa.com/newsfiles/UCL/2026/2048047_LU.pdf"
+      ]
+    },
+    {
+      "id": "new",
+      "name": "Newcastle United",
+      "short": "NEW",
+      "city": "Newcastle upon Tyne",
+      "colors": [
+        "#171717",
+        "#FFFFFF"
+      ],
+      "players": [
+        {
+          "name": "Aaron Ramsdale",
+          "number": 32,
+          "position": "GK"
+        },
+        {
+          "name": "Kieran Trippier",
+          "number": 2,
+          "position": "D"
+        },
+        {
+          "name": "Malick Thiaw",
+          "number": 12,
+          "position": "D"
+        },
+        {
+          "name": "Dan Burn",
+          "number": 33,
+          "position": "D"
+        },
+        {
+          "name": "Lewis Hall",
+          "number": 3,
+          "position": "D"
+        },
+        {
+          "name": "Sandro Tonali",
+          "number": 8,
+          "position": "M"
+        },
+        {
+          "name": "Joelinton",
+          "number": 7,
+          "position": "M"
+        },
+        {
+          "name": "Jacob Ramsey",
+          "number": 41,
+          "position": "M"
+        },
+        {
+          "name": "Anthony Elanga",
+          "number": 20,
+          "position": "F"
+        },
+        {
+          "name": "Anthony Gordon",
+          "number": 10,
+          "position": "F"
+        },
+        {
+          "name": "Harvey Barnes",
+          "number": 11,
+          "position": "F"
+        }
+      ],
+      "sourceUrls": [
+        "https://www.uefa.com/newsfiles/UCL/2026/2048059_LU.pdf"
+      ]
+    },
+    {
+      "id": "atm",
+      "name": "Atlético Madrid",
+      "short": "ATM",
+      "city": "Madrid",
+      "colors": [
+        "#CB3524",
+        "#FFFFFF"
+      ],
+      "players": [
+        {
+          "name": "Juan Musso",
+          "number": 1,
+          "position": "GK"
+        },
+        {
+          "name": "Nahuel Molina",
+          "number": 16,
+          "position": "D"
+        },
+        {
+          "name": "Robin Le Normand",
+          "number": 24,
+          "position": "D"
+        },
+        {
+          "name": "Dávid Hancko",
+          "number": 17,
+          "position": "D"
+        },
+        {
+          "name": "Matteo Ruggeri",
+          "number": 3,
+          "position": "D"
+        },
+        {
+          "name": "Johnny Cardoso",
+          "number": 5,
+          "position": "M"
+        },
+        {
+          "name": "Marcos Llorente",
+          "number": 14,
+          "position": "M"
+        },
+        {
+          "name": "Giuliano Simeone",
+          "number": 20,
+          "position": "M"
+        },
+        {
+          "name": "Antoine Griezmann",
+          "number": 7,
+          "position": "F"
+        },
+        {
+          "name": "Julián Alvarez",
+          "number": 19,
+          "position": "F"
+        },
+        {
+          "name": "Ademola Lookman",
+          "number": 22,
+          "position": "F"
+        }
+      ],
+      "sourceUrls": [
+        "https://www.uefa.com/newsfiles/UCL/2026/2048060_LU.pdf"
+      ]
+    },
+    {
+      "id": "ata",
+      "name": "Atalanta",
+      "short": "ATA",
+      "city": "Bergamo",
+      "colors": [
+        "#1E71B8",
+        "#171717"
+      ],
+      "players": [
+        {
+          "name": "Marco Carnesecchi",
+          "number": 29,
+          "position": "GK"
+        },
+        {
+          "name": "Raoul Bellanova",
+          "number": 16,
+          "position": "D"
+        },
+        {
+          "name": "Isak Hien",
+          "number": 4,
+          "position": "D"
+        },
+        {
+          "name": "Sead Kolašinac",
+          "number": 23,
+          "position": "D"
+        },
+        {
+          "name": "Davide Zappacosta",
+          "number": 77,
+          "position": "D"
+        },
+        {
+          "name": "Marten de Roon",
+          "number": 15,
+          "position": "M"
+        },
+        {
+          "name": "Ederson",
+          "number": 13,
+          "position": "M"
+        },
+        {
+          "name": "Mario Pašalić",
+          "number": 8,
+          "position": "M"
+        },
+        {
+          "name": "Charles De Ketelaere",
+          "number": 17,
+          "position": "F"
+        },
+        {
+          "name": "Gianluca Scamacca",
+          "number": 9,
+          "position": "F"
+        },
+        {
+          "name": "Kamaldeen Sulemana",
+          "number": 7,
+          "position": "F"
+        }
+      ],
+      "sourceUrls": [
+        "https://www.uefa.com/newsfiles/UCL/2026/2048050_LU.pdf",
+        "https://www.uefa.com/newsfiles/UCL/2026/2048058_LU.pdf"
+      ]
+    },
+    {
+      "id": "bod",
+      "name": "Bodø/Glimt",
+      "short": "BOD",
+      "city": "Bodø",
+      "colors": [
+        "#F9D800",
+        "#171717"
+      ],
+      "players": [
+        {
+          "name": "Nikita Haikin",
+          "number": 12,
+          "position": "GK"
+        },
+        {
+          "name": "Fredrik Sjøvold",
+          "number": 20,
+          "position": "D"
+        },
+        {
+          "name": "Odin Bjortuft",
+          "number": 4,
+          "position": "D"
+        },
+        {
+          "name": "Jostein Gundersen",
+          "number": 6,
+          "position": "D"
+        },
+        {
+          "name": "Fredrik André Bjørkan",
+          "number": 15,
+          "position": "D"
+        },
+        {
+          "name": "Patrick Berg",
+          "number": 7,
+          "position": "M"
+        },
+        {
+          "name": "Sondre Brunstad Fet",
+          "number": 19,
+          "position": "M"
+        },
+        {
+          "name": "Håkon Evjen",
+          "number": 26,
+          "position": "M"
+        },
+        {
+          "name": "Ole Didrik Blomberg",
+          "number": 11,
+          "position": "F"
+        },
+        {
+          "name": "Kasper Høgh",
+          "number": 9,
+          "position": "F"
+        },
+        {
+          "name": "Jens Petter Hauge",
+          "number": 10,
+          "position": "F"
+        }
+      ],
+      "sourceUrls": [
+        "https://www.uefa.com/newsfiles/UCL/2026/2048053_LU.pdf"
+      ]
+    },
+    {
+      "id": "lev",
+      "name": "Bayer Leverkusen",
+      "short": "LEV",
+      "city": "Leverkusen",
+      "colors": [
+        "#E32221",
+        "#171717"
+      ],
+      "players": [
+        {
+          "name": "Janis Blaswich",
+          "number": 28,
+          "position": "GK"
+        },
+        {
+          "name": "Jarell Quansah",
+          "number": 4,
+          "position": "D"
+        },
+        {
+          "name": "Robert Andrich",
+          "number": 8,
+          "position": "D"
+        },
+        {
+          "name": "Edmond Tapsoba",
+          "number": 12,
+          "position": "D"
+        },
+        {
+          "name": "Alejandro Grimaldo",
+          "number": 20,
+          "position": "D"
+        },
+        {
+          "name": "Aleix García",
+          "number": 24,
+          "position": "M"
+        },
+        {
+          "name": "Exequiel Palacios",
+          "number": 25,
+          "position": "M"
+        },
+        {
+          "name": "Ibrahim Maza",
+          "number": 30,
+          "position": "M"
+        },
+        {
+          "name": "Ernest Poku",
+          "number": 19,
+          "position": "F"
+        },
+        {
+          "name": "Christian Kofane",
+          "number": 35,
+          "position": "F"
+        },
+        {
+          "name": "Martin Terrier",
+          "number": 11,
+          "position": "F"
+        }
+      ],
+      "sourceUrls": [
+        "https://www.uefa.com/newsfiles/UCL/2026/2048054_LU.pdf"
+      ]
+    },
+    {
+      "id": "gal",
+      "name": "Galatasaray",
+      "short": "GAL",
+      "city": "Istanbul",
+      "colors": [
+        "#A90432",
+        "#FDB912"
+      ],
+      "players": [
+        {
+          "name": "Uğurcan Çakır",
+          "number": 1,
+          "position": "GK"
+        },
+        {
+          "name": "Sacha Boey",
+          "number": 93,
+          "position": "D"
+        },
+        {
+          "name": "Wilfried Singo",
+          "number": 90,
+          "position": "D"
+        },
+        {
+          "name": "Abdülkerim Bardakcı",
+          "number": 42,
+          "position": "D"
+        },
+        {
+          "name": "Ismail Jakobs",
+          "number": 4,
+          "position": "D"
+        },
+        {
+          "name": "Lucas Torreira",
+          "number": 34,
+          "position": "M"
+        },
+        {
+          "name": "Mario Lemina",
+          "number": 99,
+          "position": "M"
+        },
+        {
+          "name": "Gabriel Sara",
+          "number": 8,
+          "position": "M"
+        },
+        {
+          "name": "Roland Sallai",
+          "number": 7,
+          "position": "F"
+        },
+        {
+          "name": "Victor Osimhen",
+          "number": 45,
+          "position": "F"
+        },
+        {
+          "name": "Barış Alper Yılmaz",
+          "number": 53,
+          "position": "F"
+        }
+      ],
+      "sourceUrls": [
+        "https://www.uefa.com/newsfiles/UCL/2026/2048056_LU.pdf"
+      ]
+    }
+  ]
+}
