@@ -4,6 +4,7 @@ import {FlightRenderer} from './renderer.mjs';
 import {SoftwareFlightRenderer} from './software.mjs';
 import {SquadronClient} from './network.mjs';
 import {FlightControls} from './controls.mjs';
+import {BINDING_ACTIONS,DEFAULT_KEY_BINDINGS,formatKeyCode,isBindableKey} from './keybindings.mjs';
 import {FlightAudio} from './audio.mjs';
 import {DEFAULTS,VERSION,loadSettings,saveSettings,loadProgress,saveProgress,applySettings,normalizeSettings} from './settings.mjs';
 
@@ -15,17 +16,18 @@ const dist=(p,q)=>Math.hypot((p.x||0)-(q.x||0),(p.y||0)-(q.y||0),(p.z||0)-(q.z||
 const impactMarker=document.createElement('div');impactMarker.id='impact-marker';impactMarker.className='impact-marker';impactMarker.hidden=true;impactMarker.setAttribute('aria-hidden','true');impactMarker.innerHTML='<i></i><span>IMPACT</span><small></small>';$('flight-screen').appendChild(impactMarker);
 const hasImpactMarker=()=>!!(sim&&sim.player.bombs>0&&!sim.player.onGround&&sim.mission.kind!=='nuclear'&&sim.bombAim&&[sim.bombAim.x,sim.bombAim.y,sim.bombAim.z].every(Number.isFinite));
 let settings=loadSettings(),progress=loadProgress();applySettings(settings);
-let screen='home',sim=null,renderer=null,paused=false,remotePaused=false,coop=false,settingsTab='controls',resumeAfterSettings=false,ready=false;
+let screen='home',sim=null,renderer=null,paused=false,remotePaused=false,coop=false,settingsTab=matchMedia('(pointer:coarse)').matches?'controls':'keyboard',resumeAfterSettings=false,ready=false;
+let bindingCapture=null,settingsSaved=true;
 let selectedMission=MISSIONS.find(m=>m.id===progress.lastMission)||MISSIONS[0],selectedAircraft=Object.values(AIRCRAFT)[0],eraFilter='all';
 let lastFrame=performance.now(),accumulator=0,lastHud=0,lastWorld=0,lastRemoteFire=0,lastCaption=0,toastTimeout=null,hintDismissed=false;
 let seenEvents=new Set(),lastStatus='flying',endHandled=false,settingsFromPause=false;
 const audio=new FlightAudio(settings);
 
 function toast(text,ms=3400){$('toast').textContent=text;$('toast').hidden=false;clearTimeout(toastTimeout);toastTimeout=setTimeout(()=>$('toast').hidden=true,ms);}
-function showScreen(name){screen=name;document.body.dataset.screen=name;$$('[data-screen]').forEach(el=>el.hidden=el.dataset.screen!==name);$('main-header').hidden=name==='flight'||name==='debrief';$('loading').hidden=true;if(name!=='flight')impactMarker.hidden=true;controls?.setActive(name==='flight'&&!paused&&!remotePaused);audio.setActive(name==='flight'&&!paused&&!remotePaused);window.scrollTo(0,0);}
+function showScreen(name){screen=name;document.body.dataset.screen=name;$$('.screen[data-screen]').forEach(el=>el.hidden=el.dataset.screen!==name);$('main-header').hidden=name==='flight'||name==='debrief';$('loading').hidden=true;if(name!=='flight')impactMarker.hidden=true;controls?.setActive(name==='flight'&&!paused&&!remotePaused);audio.setActive(name==='flight'&&!paused&&!remotePaused);window.scrollTo(0,0);}
 function refreshHome(){const complete=Object.keys(progress.completed).length;const next=MISSIONS.find(m=>!progress.completed[m.id])||MISSIONS[0];$('continue-button').innerHTML=(complete?'Continue your logbook':'Begin your logbook')+' <span>→</span>';$('continue-note').textContent=complete?`${complete} of ${MISSIONS.length} sorties logged. Next: ${next.title}.`:'Your first aircraft is waiting on the runway.';}
 function goHome(){coop=false;team.leave();closeDialogs();paused=remotePaused=false;sim=null;endHandled=false;refreshHome();showScreen('home');}
-function closeDialogs(){for(const d of [$('pause-dialog'),$('settings-dialog')])if(d.open)d.close();}
+function closeDialogs(){cancelBindingCapture();settingsFromPause=resumeAfterSettings=false;for(const d of [$('pause-dialog'),$('settings-dialog')])if(d.open)d.close();}
 function aircraftOf(m){return getAircraft?.(m.aircraft)||AIRCRAFT[m.aircraft]||Object.values(AIRCRAFT)[0];}
 function missionOf(id){return getMission?.(id)||MISSIONS.find(m=>m.id===id)||MISSIONS[0];}
 
@@ -36,7 +38,7 @@ const team=new SquadronClient({
   onStart(data){closeDialogs();coop=true;startMission(missionOf(data.missionId),{cooperative:true});},
   onWorld(snapshot){if(!coop||team.isHost||!sim)return;sim.applySnapshot(snapshot);const was=remotePaused;remotePaused=!!snapshot.teamPaused;if(remotePaused!==was){controls.setActive(!paused&&!remotePaused);audio.setActive(!paused&&!remotePaused);if(remotePaused)toast('Flight lead paused the sortie.',5000);else toast('Flight lead resumed.');}},
   onAction(data){if(!coop||!team.isHost||!sim)return;sim.applyRemoteAction?.(data.action,{...data.player,id:data.playerId,playerId:data.playerId});},
-  onEnd(message){if(!coop)return;coop=false;remotePaused=false;if(screen==='flight'){sim.worldAuthority=true;paused=true;controls.setActive(false);audio.setActive(false);$('pause-note').textContent=(message||'The squadron sortie ended.')+' You can continue solo or restart the sortie.';if(!$('pause-dialog').open)$('pause-dialog').showModal();}else updateRoom();toast(message||'Squadron closed.',5000);}
+  onEnd(message){if(!coop)return;coop=false;remotePaused=false;if(screen==='flight'){closeDialogs();sim.worldAuthority=true;paused=true;controls.setActive(false);audio.setActive(false);$('pause-note').textContent=(message||'The squadron sortie ended.')+' You can continue solo or restart the sortie.';if(!$('pause-dialog').open)$('pause-dialog').showModal();}else updateRoom();toast(message||'Squadron closed.',5000);}
 });
 
 function setConnectBusy(busy){$('create-room').disabled=busy;$('join-room').disabled=busy;}
@@ -53,7 +55,7 @@ function renderCampaign(){
 function renderBrief(){const m=selectedMission,a=aircraftOf(m),completed=progress.completed[m.id];$('mission-detail').innerHTML=`<span class="mission-date">SORTIE ${String(m.number).padStart(2,'0')} / ${escapeHTML(m.year)} · ${escapeHTML(m.location)}</span><h2>${escapeHTML(m.title)}</h2><p class="mission-deck">${escapeHTML(m.description)}</p><div class="mission-specs"><span><small>YOUR AIRCRAFT</small>${escapeHTML(a.name)}</span><span><small>FLIGHT TIME</small>${escapeHTML(m.duration||'3–6 minutes')}</span></div><p class="eyebrow">FLIGHT ORDERS</p><ol class="brief-objectives">${(Array.isArray(m.briefing)?m.briefing:[m.briefing||m.description]).map(t=>`<li>${escapeHTML(t)}</li>`).join('')}</ol><p class="mission-lesson">${escapeHTML(m.lesson||a.summary)}</p><button id="launch-mission" class="primary wide">${completed?'Fly this sortie again':'Take the controls'} <span>→</span></button><p class="small-note">${completed?'✓ Logged in your campaign.':'Progress saves on this device.'} ${escapeHTML(settings.assist==='assisted'?'Assisted flight is on. You can change it in Setup.':settings.assist==='expert'?'Expert handling is on.':'Standard handling is on.')}</p><details class="historical-note"><summary>From the historical logbook</summary><p>${escapeHTML(m.historicalNote||'Historical aircraft and settings, with compressed distances and simplified game systems.')}</p>${(m.sources||[]).map((u,i)=>`<a href="${escapeHTML(u)}" target="_blank" rel="noopener noreferrer">Source ${i+1} →</a>`).join('')}<p>Flight performance, weapons and radar are simplified game systems.</p></details>`;$('launch-mission').onclick=()=>startMission(m);}
 function openCampaign(mission){if(mission)selectedMission=mission;eraFilter='all';renderCampaign();showScreen('campaign');}
 function renderFree(){const list=Object.values(AIRCRAFT);$('aircraft-list').innerHTML=list.map(a=>`<button class="aircraft-card ${a.id===selectedAircraft.id?'selected':''}" data-aircraft="${escapeHTML(a.id)}" aria-pressed="${a.id===selectedAircraft.id}"><small>${escapeHTML(a.era||a.role||'FLIGHT COLLECTION')}</small><strong>${escapeHTML(a.name)}</strong><span>${escapeHTML(a.role||a.summary?.split('.')[0]||'Aircraft')}</span></button>`).join('');$('free-aircraft-name').textContent=selectedAircraft.name;$('free-aircraft-summary').textContent=selectedAircraft.summary||'Get familiar with the aircraft, and bring it home.';}
-function buildFreeMission(){const a=selectedAircraft,base=MISSIONS.find(m=>m.aircraft===a.id)||MISSIONS[0],airborne=$('free-start').value==='airborne',biome=$('free-biome').value,w=$('free-weather').value;const m={...structuredClone(base),id:'freeflight',number:0,title:'Open Sky',year:'FREE FLIGHT',location:'Your own horizon',aircraft:a.id,kind:'free',biome,description:'Get to know your aircraft. Fly anywhere, then return to the runway when you feel ready.',briefing:['Explore the landscape.','Practise takeoff, turns and landings.'],lesson:'No timer. No enemies. Just your aircraft.',enemies:[],targets:[],waypoints:[],goal:{},runways:[{x:0,z:0,y:4,length:1600,width:90,heading:0,label:'HOME',carrier:false}],weather:{wind:{x:w==='cloudy'?9:2,z:0},cloudBase:w==='cloudy'?480:1400,cloudTop:w==='cloudy'?1100:1900,fog:w==='cloudy'?.00022:.000045,timeOfDay:w==='sunset'?'dusk':'day'},start:{x:0,y:airborne?450:6,z:airborne?-1700:-600,heading:0,speed:airborne?a.cruise:0,airborne,cold:!airborne}};m.start.y=airborne?Math.max(450,terrainHeight(m.start.x,m.start.z,m)+350):m.runways[0].y+2;return m;}
+function buildFreeMission(){const a=selectedAircraft,base=MISSIONS.find(m=>m.aircraft===a.id)||MISSIONS[0],airborne=$('free-start').value==='airborne',biome=$('free-biome').value,w=$('free-weather').value;const m={...structuredClone(base),id:'freeflight',number:0,title:'Open Sky',year:'FREE FLIGHT',location:'Your own horizon',aircraft:a.id,kind:'free',biome,description:'Get to know your aircraft. Fly anywhere, then return to the runway when you feel ready.',briefing:['Explore the landscape.','Practise takeoff, turns and landings.'],lesson:'No timer. No enemies. Just your aircraft.',enemies:[],targets:[],waypoints:[],goal:{},runways:[{x:0,z:0,y:4,length:1600,width:90,heading:0,label:'HOME',carrier:false}],weather:{wind:{x:w==='cloudy'?9:2,z:0},cloudBase:w==='cloudy'?480:1400,cloudTop:w==='cloudy'?1100:1900,fog:w==='cloudy'?.00022:.000045,timeOfDay:w==='night'?'night':w==='sunset'?'dusk':'day'},start:{x:0,y:airborne?450:6,z:airborne?-1700:-600,heading:0,speed:airborne?a.cruise:0,airborne,cold:!airborne}};m.start.y=airborne?Math.max(450,terrainHeight(m.start.x,m.start.z,m)+350):m.runways[0].y+2;return m;}
 
 function startMission(m,{cooperative=false}={}){
   if(!cooperative){coop=false;team.leave();}
@@ -100,7 +102,7 @@ function updateHUD(){
   $('payload-state').textContent=p.troopers?'PARATROOPERS':m.kind==='nuclear'?'FINAL RELEASE':'BOMB';
   $('abort-finale').hidden=m.kind!=='nuclear'||sim.status!=='flying'||(coop&&!team.isHost);
   $('startup-panel').hidden=!!p.engine||!p.onGround||m.start?.airborne;const step=clamp(p.startupStep||0,0,3),copy=startupCopy[step];$('startup-title').textContent=copy[0];$('startup-hint').textContent=copy[1];$('startup-button').innerHTML=copy[2]+' <span>→</span>';Array.from($('startup-steps').children).forEach((e,i)=>{e.classList.toggle('done',i<step);e.classList.toggle('current',i===step);});
-  const hint=sim.hint||'Use the left stick or WASD to fly. Throttle changes your speed.';$('hint-text').textContent=hint;$('flight-hint').hidden=hintDismissed||settings.guidance==='minimal'||(!p.engine&&p.onGround);$('objective-box').hidden=settings.guidance==='minimal'&&m.kind==='free';
+  const hint=flightHint(sim.hint);$('hint-text').textContent=hint;$('flight-hint').hidden=hintDismissed||settings.guidance==='minimal'||(!p.engine&&p.onGround);$('objective-box').hidden=settings.guidance==='minimal'&&m.kind==='free';
   let warning='';if(coop&&(team.paused||team.hostStale||!team.connected))warning='SQUADRON CONNECTION · HOLDING';else if(remotePaused)warning='FLIGHT LEAD PAUSED';else if(p.stalled)warning='STALL · LOWER THE NOSE';else if(p.health<(a.health||100)*.25)warning='AIRFRAME CRITICAL';else if(sim.threat)warning=typeof sim.threat==='string'?sim.threat:'THREAT · CHECK RADAR';else if(alt<35&&!p.onGround&&p.speed>a.stallSpeed*1.2)warning='LOW ALTITUDE';
   $('flight-warning').hidden=!warning;$('flight-warning').textContent=warning;
   if(coop)$('flight-network').textContent=(team.connected?'● ':'○ ')+Math.round(team.latency||0)+' MS'+(team.isHost?' · LEAD':'');
@@ -145,7 +147,7 @@ function updateMarkers(){
   }
 }
 function finishFlight(){
-  if(endHandled||!sim)return;if(coop&&team.isHost)team.sendWorld({...sim.getSnapshot(),teamPaused:false});endHandled=true;controls.setActive(false);audio.cue(sim.status==='success'?'success':'warning');const won=sim.status==='success',m=sim.mission,a=aircraftOf(m);const health=number(sim.player.health/(a.health||100)*100),seconds=number(sim.time),minutes=Math.floor(seconds/60)+':'+String(seconds%60).padStart(2,'0');
+  if(endHandled||!sim)return;closeDialogs();if(coop&&team.isHost)team.sendWorld({...sim.getSnapshot(),teamPaused:false});endHandled=true;controls.setActive(false);audio.cue(sim.status==='success'?'success':'warning');const won=sim.status==='success',m=sim.mission,a=aircraftOf(m);const health=number(sim.player.health/(a.health||100)*100),seconds=number(sim.time),minutes=Math.floor(seconds/60)+':'+String(seconds%60).padStart(2,'0');
   if(won&&m.id!=='freeflight'){const previous=progress.completed[m.id];progress.completed[m.id]={score:Math.max(sim.score||0,previous?.score||0),time:sim.time,ending:sim.ending||null};progress.totalTime+=sim.time;if(!saveProgress(progress))toast('This browser could not save your logbook. Keep this tab open.',7500);}
   $('debrief-kicker').textContent=won?'SORTIE LOGGED':'FLIGHT INTERRUPTED';$('debrief-insignia').textContent=won?'✦':'↺';$('debrief-title').textContent=sim.ending==='abort'?'A different way home.':sim.ending==='strike'?'The sky falls silent.':won?'One for the logbook.':'Every pilot learns.';
   $('debrief-description').textContent=sim.endingText||(won?`${m.title} complete. ${sim.score?Math.round(sim.score)+' points earned. ':''}Your next aircraft is waiting.`:sim.objective||sim.hint||'The flight ended before you completed your orders. Try assisted flight, or restart and take it one step at a time.');
@@ -158,20 +160,58 @@ function openSettings(){
   if(resumeAfterSettings){paused=true;controls.setActive(false);audio.setActive(false);if(coop&&team.isHost)team.sendWorld({...sim.getSnapshot(),teamPaused:true});}
   if(settingsFromPause)$('pause-dialog').close();renderSettings();$('settings-dialog').showModal();
 }
-function closeSettings(){if($('settings-dialog').open)$('settings-dialog').close();if(settingsFromPause){settingsFromPause=false;$('pause-dialog').showModal();}else if(resumeAfterSettings){resumeAfterSettings=false;resumeFlight();}}
+function closeSettings(){cancelBindingCapture();controls.clear();if($('settings-dialog').open)$('settings-dialog').close();if(settingsFromPause){settingsFromPause=false;$('pause-dialog').showModal();}else if(resumeAfterSettings){resumeAfterSettings=false;resumeFlight();}}
+function bindingLabel(id){return formatKeyCode(settings.keyBindings[id]);}
+function bindingFeedback(message){const el=$('keybinding-feedback');if(el)el.textContent=message;}
+function refreshBindingButtons(){
+  for(const button of $$('[data-binding]')){
+    const action=BINDING_ACTIONS.find(a=>a.id===button.dataset.binding),listening=bindingCapture===action.id;
+    button.classList.toggle('listening',listening);button.setAttribute('aria-pressed',String(listening));
+    button.textContent=listening?'Press a key…':bindingLabel(action.id);
+    button.setAttribute('aria-label',listening?`Choose a key for ${action.label}. Escape cancels.`:`${action.label}: ${bindingLabel(action.id)}. Change key`);
+  }
+  if($('cancel-binding'))$('cancel-binding').hidden=!bindingCapture;
+}
+function cancelBindingCapture(message=''){
+  bindingCapture=null;refreshBindingButtons();if(message)bindingFeedback(message);
+}
+function keyboardSettings(){
+  const groups=[...new Set(BINDING_ACTIONS.map(a=>a.group))];
+  return `<section class="keyboard-settings"><h3>Desktop flight controls</h3><p class="small-note">Choose a button, then press its new key. A key already in use swaps the two assignments. Escape always pauses your flight.</p><p class="small-note">Default layout: ↓ pitches up; ↑ pitches down. Each direction can be reassigned below.</p><div class="keybinding-feedback" id="keybinding-feedback" role="status" aria-live="polite">${settingsSaved?'Changes save on this device.':'Browser storage is unavailable. Changes apply for this tab.'}</div><button id="cancel-binding" class="secondary" hidden>Cancel key change</button>${groups.map(group=>`<fieldset class="keybinding-group"><legend>${escapeHTML(group)}</legend>${BINDING_ACTIONS.filter(a=>a.group===group).map(a=>`<div class="keybinding-row"><span>${escapeHTML(a.label)}</span><button type="button" class="keybinding-button" data-binding="${a.id}" aria-pressed="false" aria-label="${escapeHTML(a.label)}: ${escapeHTML(bindingLabel(a.id))}. Change key">${escapeHTML(bindingLabel(a.id))}</button></div>`).join('')}</fieldset>`).join('')}<button id="reset-keybindings" class="secondary wide">Restore default keys</button></section>`;
+}
+function refreshKeyboardHints(){
+  const pair=(a,b)=>`${escapeHTML(bindingLabel(a))} / ${escapeHTML(bindingLabel(b))}`;
+  $('desktop-controls').innerHTML=`${pair('pitchUp','pitchDown')} <span>pitch up / down</span> · ${pair('rollLeft','rollRight')} <span>roll</span> · ${pair('yawLeft','yawRight')} <span>yaw</span> · ${pair('throttleUp','throttleDown')} <span>thrust + / −</span> · ESC <span>pause & setup</span>`;
+  for(const button of $$('[data-action]')){const action=BINDING_ACTIONS.find(a=>a.id===button.dataset.action);if(action)button.title=`${action.label} · ${bindingLabel(action.id)}`;}
+  $('camera-button').title=`Change camera · ${bindingLabel('camera')}`;$('pause-button').title=`Pause · Esc / ${bindingLabel('pause')}`;
+  $('startup-button').title=`Next engine-start step · ${bindingLabel('startup')}`;$('fire-button').title=`Hold guns · ${bindingLabel('fire')}`;
+}
+function flightHint(hint){
+  if(!hint)return matchMedia('(pointer:coarse)').matches?'Use the flight stick to pitch and roll. The throttle slider changes thrust.':`${bindingLabel('pitchUp')} / ${bindingLabel('pitchDown')}: pitch up / down. ${bindingLabel('yawLeft')} / ${bindingLabel('yawRight')}: yaw. ${bindingLabel('throttleUp')} / ${bindingLabel('throttleDown')}: thrust.`;
+  if(matchMedia('(pointer:coarse)').matches)return hint;
+  const actions={START:'startup',LEVEL:'level',PAYLOAD:'payload',FIRE:'fire'};
+  return hint.replace(/\b(START|LEVEL|PAYLOAD|FIRE)\b/g,label=>`${label} (${bindingLabel(actions[label])})`);
+}
 function rangeSetting(key,label,min,max,step=1,suffix='',help=''){return `<div class="setting-row"><label><span class="setting-top"><span>${label}</span><output data-output="${key}">${settings[key]}${suffix}</output></span><input type="range" data-setting="${key}" min="${min}" max="${max}" step="${step}" value="${settings[key]}" aria-label="${label}">${help?`<p>${help}</p>`:''}</label></div>`;}
 function toggleSetting(key,label,help=''){return `<div class="setting-row"><label class="setting-toggle"><span>${label}</span><input type="checkbox" data-setting="${key}" ${settings[key]?'checked':''} aria-label="${label}"></label>${help?`<p>${help}</p>`:''}</div>`;}
 function selectSetting(key,label,opts,help=''){return `<div class="setting-row"><label>${label}<select data-setting="${key}">${opts.map(([v,t])=>`<option value="${v}" ${settings[key]===v?'selected':''}>${t}</option>`).join('')}</select></label>${help?`<p>${help}</p>`:''}</div>`;}
 function renderSettings(){
-  $$('[data-settings-tab]').forEach(b=>b.classList.toggle('active',b.dataset.settingsTab===settingsTab));let html='';
-  if(settingsTab==='controls')html=`<div class="controls-diagram"><span class="mini-stick">FLY</span><p>Left thumb flies.<br>Right thumb looks.<br>Fire stays separate.</p><span class="mini-look">LOOK</span></div>`+rangeSetting('stickSize','Flight stick size',80,152,2,' px')+rangeSetting('buttonSize','Action button size',44,76,2,' px')+rangeSetting('offsetX','Distance from screen edges',12,80,2,' px')+rangeSetting('offsetY','Height above bottom edge',12,90,2,' px')+rangeSetting('sensitivity','Flight sensitivity',.4,1.8,.1,'×')+rangeSetting('lookSensitivity','Look sensitivity',.4,2,.1,'×')+rangeSetting('deadZone','Stick dead zone',0,30,1,'%','A larger quiet centre helps keep your aircraft steady.')+rangeSetting('controlOpacity','Control visibility',35,100,5,'%')+toggleSetting('leftHanded','Swap thumb controls','Move the flight stick to the right and the look pad to the left.')+toggleSetting('invertPitch','Invert vertical flight control','Default: push up to climb. Inverted: pull down to climb.')+toggleSetting('lookPad','Show look-pad outline')+`<div class="keyboard-guide"><kbd>W A S D / ARROWS</kbd><span>Pitch and bank</span><kbd>SHIFT / CTRL</kbd><span>Increase / decrease throttle</span><kbd>Q / E</kbd><span>Rudder and ground steering</span><kbd>ENTER</kbd><span>Next engine-start step</span><kbd>G / F / B / L</kbd><span>Gear / flaps / brake / level recovery</span><kbd>SPACE / T / M</kbd><span>Guns / change target / missile</span><kbd>V / X / R / H</kbd><span>Payload / flares / radar / hover</span><kbd>C / ESC</kbd><span>Camera / pause</span></div>`;
+  cancelBindingCapture();
+  $$('[data-settings-tab]').forEach(b=>{const active=b.dataset.settingsTab===settingsTab;b.classList.toggle('active',active);b.setAttribute('aria-pressed',String(active));});let html='';
+  if(settingsTab==='keyboard')html=keyboardSettings()+rangeSetting('sensitivity','Flight sensitivity',.4,1.8,.1,'×','Applies to pitch and roll.');
+  if(settingsTab==='controls')html=`<div class="controls-diagram"><span class="mini-stick">FLY</span><p>Left thumb flies.<br>Right thumb looks.<br>Fire stays separate.</p><span class="mini-look">LOOK</span></div>`+rangeSetting('stickSize','Flight stick size',80,152,2,' px')+rangeSetting('buttonSize','Action button size',44,76,2,' px')+rangeSetting('offsetX','Distance from screen edges',12,80,2,' px')+rangeSetting('offsetY','Height above bottom edge',12,90,2,' px')+rangeSetting('sensitivity','Flight sensitivity',.4,1.8,.1,'×')+rangeSetting('lookSensitivity','Look sensitivity',.4,2,.1,'×')+rangeSetting('deadZone','Stick dead zone',0,30,1,'%','A larger quiet centre helps keep your aircraft steady.')+rangeSetting('controlOpacity','Control visibility',35,100,5,'%')+toggleSetting('leftHanded','Swap thumb controls','Move the flight stick to the right and the look pad to the left.')+toggleSetting('invertPitch','Invert touch-stick pitch','Default: push up to climb. Inverted: pull down to climb. Keyboard pitch uses its own named bindings.')+toggleSetting('lookPad','Show look-pad outline');
   if(settingsTab==='flight')html=selectSetting('assist','Flight handling',[['assisted','Assisted — forgiving and coordinated'],['standard','Standard — watch your energy'],['expert','Expert — more demanding handling']],'Start assisted. Each aircraft still has its own speed, inertia and stall limits.')+selectSetting('guidance','On-screen guidance',[['guided','Guided — flight orders and useful hints'],['standard','Standard — objectives with hints'],['minimal','Minimal — fewer overlays']])+toggleSetting('autoLevel','Ease wings level when the stick is released','Use LEVEL at any time for a recovery assist.')+selectSetting('units','Instrument units',[['metric','Metric — km/h and metres'],['aviation','Aviation — knots and feet']])+`<div class="setting-row"><p>These are approachable flight models with game-scale distances and simplified aircraft systems. The opening sortie teaches the startup sequence, takeoff, weather and landing.</p></div>`;
-  if(settingsTab==='display')html=toggleSetting('sound','Flight audio','Engine, wind, weapons and warning tones. Every essential warning also appears on screen.')+rangeSetting('volume','Master volume',0,100,5,'%')+rangeSetting('engineVolume','Engine & wind',0,100,5,'%')+rangeSetting('effectsVolume','Effects & warnings',0,100,5,'%')+toggleSetting('captions','Radio captions')+toggleSetting('reducedMotion','Reduced motion','Steadier cameras and fewer visual effects.')+toggleSetting('highContrast','High-contrast instruments')+toggleSetting('largeText','Larger flight guidance')+selectSetting('quality','Graphics quality',[['auto','Automatic — balanced for this device'],['low','Low — favour a steadier frame rate'],['high','High — sharper detail']])+selectSetting('camera','Camera',[['chase','Chase — see your aircraft'],['cockpit','Cockpit — pilot view'],['cinematic','Cinematic — a wider following view']])+`<button id="test-audio" class="secondary wide">Test flight audio</button><p class="small-note">On iPhone, sound begins after a tap. Device volume and the browser’s audio output still apply.</p>`;
+  if(settingsTab==='display')html=selectSetting('theme','Interface appearance',[['night','Night — dark menus and background'],['day','Day — light menus and background']],'Choose the appearance of the hangar, menus and panels. Mission lighting follows the sortie.')+toggleSetting('sound','Flight audio','Engine, wind, weapons and warning tones. Every essential warning also appears on screen.')+rangeSetting('volume','Master volume',0,100,5,'%')+rangeSetting('engineVolume','Engine & wind',0,100,5,'%')+rangeSetting('effectsVolume','Effects & warnings',0,100,5,'%')+toggleSetting('captions','Radio captions')+toggleSetting('reducedMotion','Reduced motion','Steadier cameras and fewer visual effects.')+toggleSetting('highContrast','High-contrast instruments')+toggleSetting('largeText','Larger flight guidance')+selectSetting('quality','Graphics quality',[['auto','Automatic — balanced for this device'],['low','Low — favour a steadier frame rate'],['high','High — sharper detail']])+selectSetting('camera','Camera',[['chase','Chase — see your aircraft'],['cockpit','Cockpit — pilot view'],['cinematic','Cinematic — a wider following view']])+`<button id="test-audio" class="secondary wide">Test flight audio</button><p class="small-note">On iPhone, sound begins after a tap. Device volume and the browser’s audio output still apply.</p>`;
   if(settingsTab==='display'&&renderer?.backend==='software')html+='<p class=small-note>Simplified 3D graphics are active because this browser could not start hardware graphics.</p>';
   $('settings-content').innerHTML=html;$('settings-content').scrollTop=0;
   $('test-audio')?.addEventListener('click',async()=>{await audio.unlock();audio.setActive(true);audio.cue('success');setTimeout(()=>audio.setActive(screen==='flight'&&!paused),1000);});
 }
-function updateSettings(){settings=normalizeSettings(settings);applySettings(settings);saveSettings(settings);controls.settings=settings;audio.setSettings(settings);renderer?.setSettings(settings);if(sim)sim.settings=settings;$('sound-button').querySelector('.sound-label').textContent=settings.sound?'Sound on':'Sound off';$('sound-glyph').textContent=settings.sound?'◖':'⊘';$('sound-button').setAttribute('aria-label',settings.sound?'Mute sound':'Enable sound');}
+function updateSettings(){
+  settings=normalizeSettings(settings);applySettings(settings);settingsSaved=saveSettings(settings);controls.settings=settings;audio.setSettings(settings);renderer?.setSettings(settings);if(sim)sim.settings=settings;
+  $('sound-button').querySelector('.sound-label').textContent=settings.sound?'Sound on':'Sound off';$('sound-glyph').textContent=settings.sound?'◖':'⊘';$('sound-button').setAttribute('aria-label',settings.sound?'Mute sound':'Enable sound');
+  const night=settings.theme==='night';$('theme-label').textContent=night?'Night':'Day';$('theme-button').setAttribute('aria-pressed',String(night));$('theme-button').setAttribute('aria-label',night?'Switch to day mode':'Switch to night mode');$('theme-button').title=night?'Switch to day mode':'Switch to night mode';
+  refreshKeyboardHints();return settingsSaved;
+}
 
 $('continue-button').onclick=()=>openCampaign(MISSIONS.find(m=>!progress.completed[m.id])||MISSIONS[0]);$('campaign-button').onclick=()=>openCampaign();$('home-button').onclick=goHome;$$('[data-home]').forEach(b=>b.onclick=goHome);
 $('free-button').onclick=()=>{renderFree();showScreen('free');};$('launch-free').onclick=()=>startMission(buildFreeMission());
@@ -186,14 +226,36 @@ $('ready-room').onclick=()=>{ready=!ready;team.ready(ready);updateRoom();};$('st
 $('copy-room').onclick=async()=>{const url=new URL(location.href);url.search='';url.hash='';url.searchParams.set('squadron',team.code);try{if(navigator.share&&matchMedia('(pointer:coarse)').matches)await navigator.share({title:'Fly with me · SKYWARD',url:String(url)});else{await navigator.clipboard.writeText(String(url));toast('Invite link copied.');}}catch{toast('Squadron code: '+team.code,7000);}};
 $$('[data-open-settings]').forEach(b=>b.onclick=openSettings);$('close-settings').onclick=closeSettings;$('done-settings').onclick=closeSettings;
 $$('[data-settings-tab]').forEach(b=>b.onclick=()=>{settingsTab=b.dataset.settingsTab;renderSettings();});
+$('settings-content').addEventListener('click',e=>{
+  const button=e.target.closest('[data-binding]');
+  if(button){bindingCapture=button.dataset.binding;controls.clear();refreshBindingButtons();const action=BINDING_ACTIONS.find(a=>a.id===bindingCapture);bindingFeedback(`Press a key for ${action.label}. Escape cancels.`);return;}
+  if(e.target.closest('#cancel-binding')){cancelBindingCapture('Key change cancelled.');return;}
+  if(e.target.closest('#reset-keybindings')){cancelBindingCapture();controls.clear();settings.keyBindings={...DEFAULT_KEY_BINDINGS};updateSettings();refreshBindingButtons();bindingFeedback('Default keyboard controls restored. '+(settingsSaved?'Saved.':'Applied for this tab; this browser could not save the change.'));}
+});
+window.addEventListener('keydown',e=>{
+  if(!bindingCapture||!$('settings-dialog').open)return;
+  if(e.ctrlKey||e.metaKey||e.altKey){cancelBindingCapture('Key change cancelled. Choose a single key without Control, Command or Alt.');return;}
+  e.preventDefault();e.stopImmediatePropagation();if(e.repeat)return;
+  if(e.code==='Escape'){cancelBindingCapture('Key change cancelled.');return;}
+  if(!isBindableKey(e.code)){bindingFeedback('That key is reserved for the browser. Choose another key, or press Escape to cancel.');return;}
+  const action=BINDING_ACTIONS.find(a=>a.id===bindingCapture),previous=settings.keyBindings[action.id];
+  const conflict=BINDING_ACTIONS.find(a=>a.id!==action.id&&settings.keyBindings[a.id]===e.code);
+  settings.keyBindings={...settings.keyBindings,[action.id]:e.code};
+  if(conflict)settings.keyBindings[conflict.id]=previous;
+  controls.clear();bindingCapture=null;updateSettings();refreshBindingButtons();
+  bindingFeedback(`${action.label}: ${bindingLabel(action.id)}.${conflict?` ${conflict.label} moved to ${bindingLabel(conflict.id)}.`:''} ${settingsSaved?'Saved.':'Applied for this tab; this browser could not save the change.'}`);
+},true);
+document.addEventListener('pointerdown',e=>{if(bindingCapture&&!e.target.closest('[data-binding],#cancel-binding'))cancelBindingCapture('Key change cancelled.');},true);
+window.addEventListener('blur',()=>{if(bindingCapture)cancelBindingCapture('Key change cancelled.');});
 $('settings-content').addEventListener('input',e=>{const t=e.target,k=t.dataset.setting;if(!k)return;settings[k]=t.type==='checkbox'?t.checked:t.type==='range'?Number(t.value):t.value;updateSettings();const o=$('settings-content').querySelector(`[data-output="${k}"]`);if(o)o.textContent=settings[k]+(k.includes('Size')||k.startsWith('offset')?' px':k.toLowerCase().includes('sensitivity')?'×':'%');if(k==='sound'&&settings.sound)audio.unlock();});
-$('reset-settings').onclick=()=>{settings={...DEFAULTS};updateSettings();renderSettings();toast('Preferences reset. Your logbook is unchanged.');};
-$('settings-dialog').addEventListener('cancel',e=>{e.preventDefault();closeSettings();});$('pause-dialog').addEventListener('cancel',e=>{e.preventDefault();resumeFlight();});
+$('reset-settings').onclick=()=>{cancelBindingCapture();controls.clear();settings=normalizeSettings(DEFAULTS);updateSettings();renderSettings();toast('Preferences reset. Your logbook is unchanged.');};
+$('settings-dialog').addEventListener('cancel',e=>{e.preventDefault();if(bindingCapture)cancelBindingCapture('Key change cancelled.');else closeSettings();});$('pause-dialog').addEventListener('cancel',e=>{e.preventDefault();resumeFlight();});
 $('pause-button').onclick=pauseFlight;$('resume-button').onclick=resumeFlight;$('pause-home').onclick=goHome;$('pause-restart').onclick=()=>{if(!sim)return;const m=sim.mission;if(coop){team.leave();coop=false;}startMission(m);};
+$('theme-button').onclick=()=>{settings.theme=settings.theme==='night'?'day':'night';updateSettings();};
 $('sound-button').onclick=()=>{settings.sound=!settings.sound;updateSettings();audio.unlock();};$('camera-button').onclick=()=>handleAction('camera');$('startup-button').onclick=()=>handleAction('startup');$$('[data-action]').forEach(b=>b.onclick=()=>handleAction(b.dataset.action));
 $('dismiss-hint').onclick=()=>{hintDismissed=true;$('flight-hint').hidden=true;};$('abort-finale').onclick=()=>handleAction('abort');
 $('retry-mission').onclick=()=>{const m=sim.mission;if(coop){team.leave();coop=false;}startMission(m);};$('next-mission').onclick=()=>{const next=MISSIONS[(sim?.mission.number||1)];if(next)openCampaign(next);else goHome();};
-document.addEventListener('visibilitychange',()=>{if(document.hidden&&screen==='flight'&&!paused){pauseFlight();}if(!document.hidden){lastFrame=performance.now();accumulator=0;}});
+document.addEventListener('visibilitychange',()=>{if(document.hidden&&bindingCapture)cancelBindingCapture('Key change cancelled.');if(document.hidden&&screen==='flight'&&!paused){pauseFlight();}if(!document.hidden){lastFrame=performance.now();accumulator=0;}});
 window.addEventListener('resize',()=>{renderer?.resize();});
 
 function frame(now){

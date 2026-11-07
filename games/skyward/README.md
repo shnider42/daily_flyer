@@ -44,14 +44,15 @@ On a phone, the left **FLY** stick controls pitch and bank. Push up to climb by 
 
 | Keyboard | Action |
 | --- | --- |
-| WASD / arrows | Pitch and bank |
-| Shift / Ctrl | Increase / decrease throttle |
-| Q / E | Rudder / ground steering |
+| Down / Up arrow | Pitch up / pitch down |
+| Left / Right arrow | Roll left / roll right |
+| A / D | Yaw left / yaw right; ground steering |
+| W / S | Increase / decrease thrust (throttle) |
 | Enter | Next engine-start step |
 | G / F / B | Gear / flaps / brake |
 | L | Level recovery |
 | Space | Hold guns |
-| T / Tab | Select target |
+| T | Select target |
 | M | Missile |
 | V | Payload release |
 | X | Countermeasures |
@@ -59,6 +60,10 @@ On a phone, the left **FLY** stick controls pitch and bank. Push up to climb by 
 | H | Hover mode where supported |
 | C | Cycle chase, cockpit, and cinematic cameras |
 | Escape / P | Pause |
+
+**Setup → Keyboard** lets you remap every keyboard action. Select an action’s key button and press a replacement; if that key is already assigned, the two actions swap keys. Escape cancels a key change and always remains available to pause in flight. Restore default keys resets only the keyboard layout. Key labels in the cockpit and action tooltips update with your assignments. Pitch-up/pitch-down keys always perform their named action; the pitch-inversion setting only changes the touch stick. Browser shortcuts and typing in form fields do not fly the plane.
+
+The interface starts in **Night** mode, including the hangar, mission lists, squadron panels, settings and debrief. The header appearance button or **Setup → Sound & view → Interface appearance** switches between Night and Day. This setting changes the interface, while each mission keeps its own sky and time of day. Theme and keyboard preferences survive reloads on the same browser. For actual night flying, Free flight → Conditions also offers Night sky; this uses the existing night scenery and stays separate from the interface theme.
 
 Setup is available from the hangar and pause menu. Preferences include stick and action sizes, edge spacing, control height, opacity, flight/look sensitivity, dead zone, handedness, pitch inversion, assistance, guidance, units, sound mix, captions, reduced motion, high contrast, larger guidance text, and graphics quality. Preferences save separately from campaign progress. Free flight does not complete campaign sorties.
 

@@ -15,3 +15,184 @@ dialog{border:0;color:var(--ink);padding:0;background:var(--paper);box-shadow:0 
 .impact-marker{position:absolute;width:32px;height:32px;transform:translate(-50%,-50%);border:2px dashed #d8ffe5;border-radius:50%;color:#e8fff0;pointer-events:none;text-shadow:0 1px 4px #102528,0 0 6px #102528;font:9px "SFMono-Regular",Consolas,monospace;box-shadow:0 0 0 1px #10252855}.impact-marker:before,.impact-marker:after{content:"";position:absolute;background:currentColor;opacity:.9}.impact-marker:before{left:13px;top:-7px;width:2px;height:8px;box-shadow:0 35px currentColor}.impact-marker:after{left:-7px;top:13px;width:8px;height:2px;box-shadow:35px 0 currentColor}.impact-marker>i{position:absolute;left:12px;top:12px;width:4px;height:4px;border-radius:50%;background:currentColor}.impact-marker>span,.impact-marker>small{position:absolute;left:50%;transform:translateX(-50%);white-space:nowrap;background:#10282dc9;padding:3px 5px;border-radius:2px;line-height:1.2}.impact-marker>span{top:calc(100% + 10px);font-size:9px;letter-spacing:.05em}.impact-marker>small{top:calc(100% + 29px);font-size:8px;opacity:.9}.impact-marker.offscreen{border-style:dotted;width:23px;height:23px;opacity:.9}.impact-marker.offscreen:before,.impact-marker.offscreen:after,.impact-marker.offscreen>i{display:none}.impact-marker.ready{border-style:solid;color:#f7ed9f;border-color:#f7ed9f;box-shadow:0 0 13px #f7ed9f55}.high-contrast .impact-marker{border-color:#fff;color:#fff;text-shadow:0 1px 3px #000}.large-text .impact-marker>span{font-size:11px}
 
 @media(max-width:650px){.fire-button{bottom:calc(var(--control-y) + var(--stick-size) + 8px + env(safe-area-inset-bottom))}.flight-actions{max-width:calc(100% - 105px)}}
+
+/* Interface themes leave the flight renderer and its HUD scene untouched. */
+:root{
+  --key-surface:#f8f6ed;
+  --key-hover:#e9ecdf;
+  --key-shadow:rgba(24,44,50,.12);
+  --key-listening:#f9d7b1;
+  --key-listening-ink:#293b3e;
+  --feedback-surface:rgba(24,44,50,.035);
+}
+:root:not([data-theme="day"]){
+  color-scheme:dark;
+  --ink:#eeeadd;
+  --muted:#a9b9bb;
+  --paper:#142731;
+  --white:#f8f1e4;
+  --orange:#e4ad6b;
+  --orange-light:#f2ca98;
+  --line:rgba(176,199,202,.22);
+  --key-surface:#18333e;
+  --key-hover:#234551;
+  --key-shadow:rgba(0,10,18,.36);
+  --key-listening:#e4ad6b;
+  --key-listening-ink:#172832;
+  --feedback-surface:rgba(98,153,167,.08);
+}
+:root:not([data-theme="day"]) body{background:#0b1b25}
+:root:not([data-theme="day"]) body:not([data-screen="flight"]) #scene-vignette{
+  background:linear-gradient(180deg,rgba(6,17,28,.55),rgba(9,23,31,.34) 44%,rgba(5,17,25,.79));
+}
+:root:not([data-theme="day"]) .home-screen{
+  background:linear-gradient(90deg,rgba(11,25,34,.98),rgba(12,29,38,.9) 32%,rgba(15,34,43,.25) 67%,rgba(12,29,38,.13));
+}
+:root:not([data-theme="day"]) .home-copy h1 em{color:#adc5c6}
+:root:not([data-theme="day"]) .home-description{color:#becdcb}
+:root:not([data-theme="day"]) .continue-note,
+:root:not([data-theme="day"]) .home-footer{color:var(--muted)}
+:root:not([data-theme="day"]) .aircraft-caption{color:#e4e5d8;text-shadow:0 1px 8px #061620}
+:root:not([data-theme="day"]) .aircraft-caption em{color:#bacdca}
+:root:not([data-theme="day"]) .caption-line{background:#91b2b5}
+:root:not([data-theme="day"]) .mini-icon{color:#a9c4c5}
+:root:not([data-theme="day"]) .panel-screen{
+  background:radial-gradient(ellipse at 100% 0,rgba(38,73,83,.45),transparent 55%),linear-gradient(135deg,rgba(11,26,36,.985),rgba(17,37,47,.985));
+}
+:root:not([data-theme="day"]) .paper-panel{
+  background:linear-gradient(145deg,rgba(30,57,68,.72),rgba(18,39,50,.9));
+  box-shadow:0 12px 40px rgba(2,13,21,.12);
+}
+:root:not([data-theme="day"]) button.primary,
+:root:not([data-theme="day"]) .primary,
+:root:not([data-theme="day"]) .render-error button{color:#192b32}
+:root:not([data-theme="day"]) .primary:hover{background:#f0bd7d}
+:root:not([data-theme="day"]) .secondary:hover{background:rgba(163,191,194,.09)}
+:root:not([data-theme="day"]) .era-filters button.active{
+  background:#324445;color:#f2ca98;border-color:#aa8559;
+}
+:root:not([data-theme="day"]) .mission-card:hover,
+:root:not([data-theme="day"]) .aircraft-card:hover{background:#1b3541}
+:root:not([data-theme="day"]) .mission-card.selected,
+:root:not([data-theme="day"]) .aircraft-card.selected{background:#243e46}
+:root:not([data-theme="day"]) .mission-card.selected:hover,
+:root:not([data-theme="day"]) .aircraft-card.selected:hover{background:#2a4650}
+:root:not([data-theme="day"]) .aircraft-card.selected{border-color:#bb996d}
+:root:not([data-theme="day"]) .mission-detail{border-top-color:#a98c65}
+:root:not([data-theme="day"]) .mission-detail .mission-deck,
+:root:not([data-theme="day"]) .brief-objectives{color:#c4cfcd}
+:root:not([data-theme="day"]) .mission-lesson{color:#b1c5c2;border-left-color:#5c7c7e}
+:root:not([data-theme="day"]) .historical-note a{color:#b0d1d8}
+:root:not([data-theme="day"]) .aircraft-card span,
+:root:not([data-theme="day"]) .or-divider{color:var(--muted)}
+:root:not([data-theme="day"]) .squadron-symbol{color:#8fb5ba}
+:root:not([data-theme="day"]) .network-status{background:#203b3d;border-left-color:#8ebca4}
+:root:not([data-theme="day"]) input[type=text],
+:root:not([data-theme="day"]) input:not([type]),
+:root:not([data-theme="day"]) select{background:#0e222d;border-color:#506870;color:var(--ink)}
+:root:not([data-theme="day"]) input::placeholder{color:#96aaae;opacity:1}
+:root:not([data-theme="day"]) select option{background:#142b36;color:var(--ink)}
+:root:not([data-theme="day"]) dialog{
+  background:linear-gradient(145deg,#19323e,#112631);
+  border:1px solid #425a62;
+  box-shadow:0 30px 150px #030e17a6;
+}
+:root:not([data-theme="day"]) dialog::backdrop{background:rgba(3,13,22,.68)}
+:root:not([data-theme="day"]) .settings-footer{background:#10232e}
+:root:not([data-theme="day"]) .setting-row{border-bottom-color:var(--line)}
+:root:not([data-theme="day"]) .setting-toggle input{background:#405c65}
+:root:not([data-theme="day"]) .setting-toggle input:checked{background:var(--orange)}
+:root:not([data-theme="day"]) .setting-toggle input:before{background:#f5eddb}
+:root:not([data-theme="day"]) .controls-diagram{border-color:#57787d}
+:root:not([data-theme="day"]) .controls-diagram .mini-stick,
+:root:not([data-theme="day"]) .controls-diagram .mini-look{background:#203e49;border-color:#73969a}
+:root:not([data-theme="day"]) .controls-diagram .mini-look{background:transparent}
+:root:not([data-theme="day"]) .keyboard-guide kbd{background:#27414a}
+:root:not([data-theme="day"]) .debrief-screen{background:rgba(5,18,28,.66)}
+:root:not([data-theme="day"]) .debrief-card{
+  background:linear-gradient(145deg,#203a43,#112631);border:1px solid #526a6c;
+  box-shadow:0 20px 100px #020e1870;
+}
+:root:not([data-theme="day"]) .debrief-insignia{color:var(--orange)}
+:root:not([data-theme="day"]) .loading,
+:root:not([data-theme="day"]) .render-error{background:radial-gradient(ellipse at 50% 25%,#213b47,#0b1b25 70%)}
+:root:not([data-theme="day"]) .loading-mark{border-bottom-color:#6b9295}
+:root:not([data-theme="day"]) .loading p{color:var(--muted)}
+/* The preflight checklist is interface chrome, even while the flight scene is visible. */
+:root:not([data-theme="day"]) .startup-panel{
+  background:rgba(17,38,49,.97);border-color:#647d82;box-shadow:0 18px 80px #06151b66;
+}
+:root:not([data-theme="day"]) .startup-panel p{color:#bac9c8}
+:root:not([data-theme="day"]) .startup-steps span{color:#a8b9b7;border-color:#516c70}
+:root:not([data-theme="day"]) .startup-steps span.done{color:#a3c9ae;border-color:#81af96}
+:root:not([data-theme="day"]) .startup-steps span.current{color:var(--orange);border-color:var(--orange)}
+
+/* Header and keyboard controls fit beside the existing flight settings. */
+.header-actions{gap:20px;align-items:center}
+.icon-button{min-width:44px;min-height:44px;justify-content:center}
+#theme-button{border:1px solid var(--line);border-radius:3px;padding:7px 10px;gap:7px}
+#theme-button svg{width:17px;height:17px}
+#theme-button[aria-pressed="true"]{color:var(--orange);background:rgba(14,33,43,.42)}
+#theme-button:hover{border-color:var(--orange)}
+.close-button{min-width:44px;min-height:44px}
+.settings-tabs{gap:0}
+.settings-tabs button{flex:1;min-width:0;padding:14px 8px;white-space:nowrap}
+.keyboard-settings h3{font:normal 25px/1.2 Georgia,serif;letter-spacing:-.025em;margin:0 0 12px}
+.keyboard-settings>.small-note{margin:0 0 9px}
+.keybinding-feedback{
+  padding:10px 12px;margin:17px 0 9px;min-height:40px;
+  border:1px solid var(--line);background:var(--feedback-surface);
+  color:var(--muted);font-size:11px;line-height:1.55;border-radius:3px;
+}
+#cancel-binding{width:100%;min-height:44px;margin:0 0 10px;font-size:12px}
+.keybinding-group{
+  display:grid;grid-template-columns:repeat(2,minmax(0,1fr));gap:0 24px;
+  min-width:0;margin:24px 0 27px;padding:0;border:0;
+}
+.keybinding-group legend{
+  width:100%;padding:0 0 10px;margin-bottom:4px;border-bottom:1px solid var(--line);
+  font:10px/1.5 "SFMono-Regular",Consolas,monospace;letter-spacing:.12em;text-transform:uppercase;color:var(--orange);
+}
+.keybinding-row{
+  display:grid;grid-template-columns:minmax(0,1fr) auto;align-items:center;gap:12px;
+  min-height:61px;padding:8px 0;border-bottom:1px solid var(--line);
+}
+.keybinding-row>span{font-size:12px;line-height:1.4}
+.keybinding-button{
+  min-width:72px;max-width:150px;min-height:44px;padding:9px 12px;
+  border:1px solid var(--line);border-radius:4px;background:var(--key-surface);
+  color:var(--ink);box-shadow:0 2px 0 var(--key-shadow);
+  font:12px/1.25 "SFMono-Regular",Consolas,monospace;overflow-wrap:anywhere;
+  transition:background .15s,border-color .15s;
+}
+.keybinding-button:hover{background:var(--key-hover);border-color:var(--orange)}
+.keybinding-button.listening{
+  color:var(--key-listening-ink);background:var(--key-listening);border-color:var(--orange);
+  outline:2px solid var(--orange);outline-offset:3px;
+}
+.keyboard-settings>.secondary{font-size:12px}
+@media(max-width:650px){
+  .header-actions{gap:12px}
+  #theme-button{padding:7px 8px}
+  .settings-tabs{gap:0;padding:0 14px}
+  .settings-tabs button{padding:13px 5px;font-size:11px}
+  .keybinding-group{gap:0 18px}
+  :root:not([data-theme="day"]) .home-screen{
+    background:linear-gradient(0deg,rgba(10,25,35,.99),rgba(13,30,40,.97) 45%,rgba(15,34,43,.2) 73%,rgba(10,27,39,.32));
+  }
+}
+@media(max-width:520px){
+  .keybinding-group{grid-template-columns:1fr}
+  .keybinding-row{min-height:59px}
+  .keybinding-button{min-width:104px;max-width:150px}
+}
+@media(max-width:380px){
+  .header-actions{gap:5px}
+  .wordmark>span{font-size:14px}
+  .wordmark small{font-size:5px}
+  #theme-label{display:none}
+  #theme-button{padding:7px;min-width:44px}
+  .header-actions .icon-button:last-child>span{display:none}
+  .settings-tabs{padding:0 10px}
+  .settings-tabs button{font-size:10px;padding:13px 3px}
+}
