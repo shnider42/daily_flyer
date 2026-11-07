@@ -1,0 +1,59 @@
+name: HLLV response workbench
+on:
+  push:
+    branches: [feature/hllv-bug-evidence-tracker]
+    paths: [.github/workflows/hllv-response-workbench.yml]
+permissions:
+  contents: read
+jobs:
+  inspect:
+    runs-on: ubuntu-latest
+    timeout-minutes: 5
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          persist-credentials: false
+      - name: Inspect public discovery pages without accounts or credentials
+        run: |
+          python3 - <<'PY'
+          import json,subprocess,time,zipfile
+          from pathlib import Path
+          from urllib.request import Request,build_opener,HTTPRedirectHandler
+          from urllib.parse import urlsplit
+          from urllib.robotparser import RobotFileParser
+          folder=Path('discovery-inspection');folder.mkdir()
+          hosts={'steamcommunity.com','www.hellletloose.com'}
+          class Redirect(HTTPRedirectHandler):
+              def redirect_request(self,req,fp,code,msg,headers,url):
+                  u=urlsplit(url)
+                  if u.scheme!='https' or u.hostname not in hosts or u.username or u.password or u.port not in (None,443):raise ValueError('Unexpected redirect')
+                  return super().redirect_request(req,fp,code,msg,headers,url)
+          opener=build_opener(Redirect());agent='HLLV-Source-Monitor/1.0 (+https://hllv-bug-track.onrender.com/)'
+          def fetch(url):
+              with opener.open(Request(url,headers={'User-Agent':agent,'Accept-Language':'en'}),timeout=20) as r:
+                  raw=r.read(4000001)
+                  if len(raw)>4000000:raise ValueError('Response too large')
+                  return raw
+          urls=['https://steamcommunity.com/app/3079210/discussions/1/','https://steamcommunity.com/app/3079210/discussions/1/?fp=2','https://steamcommunity.com/app/3079210/discussions/0/','https://www.hellletloose.com/community']
+          robots={};results=[]
+          for n,url in enumerate(urls):
+              host=urlsplit(url).hostname
+              try:
+                  if host not in robots:
+                      raw=fetch('https://'+host+'/robots.txt').decode();(folder/(host+'-robots.txt')).write_text(raw)
+                      rule=RobotFileParser();rule.parse(raw.splitlines());robots[host]=rule
+                  if not robots[host].can_fetch(agent,url):results.append({'url':url,'state':'robots_restricted'});continue
+                  raw=fetch(url);(folder/(str(n)+'.html')).write_bytes(raw);results.append({'url':url,'state':'fetched','bytes':len(raw)})
+              except Exception as e:results.append({'url':url,'state':type(e).__name__})
+              time.sleep(2)
+          (folder/'result.json').write_text(json.dumps(results,indent=2));print(json.dumps(results))
+          paths=subprocess.check_output(['git','ls-files','hllv_tracker','.github'],text=True).splitlines()
+          with zipfile.ZipFile('response-workbench.zip','w',zipfile.ZIP_DEFLATED) as z:
+              for name in paths+[str(p) for p in folder.iterdir()]:
+                  if Path(name).is_file():z.write(name,name)
+          PY
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        with:
+          name: response-workbench
+          path: response-workbench.zip
+          retention-days: 1

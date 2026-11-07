@@ -1,0 +1,125 @@
+name: HLLV community moderated board
+on:
+  push:
+    branches: [feature/hllv-bug-evidence-tracker]
+    paths:
+      - .github/hllv-community/**
+      - .github/workflows/hllv-community-board.yml
+permissions:
+  contents: write
+concurrency:
+  group: hllv-reviewed-data-update
+  cancel-in-progress: false
+jobs:
+  test-publish-verify:
+    runs-on: ubuntu-latest
+    timeout-minutes: 18
+    if: github.repository == 'shnider42/daily_flyer'
+    services:
+      postgres:
+        image: postgres:17
+        env:
+          POSTGRES_PASSWORD: community_fixture_only
+          POSTGRES_DB: community_test
+        ports: ['5432:5432']
+        options: --health-cmd "pg_isready -U postgres -d community_test" --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      COMMUNITY_TEST_DATABASE_URL: postgresql://postgres:community_fixture_only@localhost:5432/community_test
+    steps:
+      - uses: actions/checkout@11d5960a326750d5838078e36cf38b85af677262
+        with:
+          fetch-depth: 2
+      - name: Install community presentation while preserving evidence and login modules
+        id: release
+        run: |
+          python3 -m py_compile .github/hllv-community/*.py
+          node --check .github/hllv-community/app.js
+          python3 .github/hllv-community/install.py
+          python3 - <<'PY' >> "$GITHUB_OUTPUT"
+          import json
+          from pathlib import Path
+          print('publish='+str(json.loads(Path('.github/hllv-community/release.json').read_text())['publish']).lower())
+          PY
+          git diff --check
+      - name: Install isolated test dependencies
+        run: |
+          python3 -m pip install --quiet --disable-pip-version-check 'psycopg[binary]==3.2.10' playwright==1.55.0
+          python3 -m playwright install --with-deps chromium webkit >/tmp/community-browser.log 2>&1 || { tail -40 /tmp/community-browser.log; exit 1; }
+      - name: Verify database authorization and complete moderation cycle
+        run: python3 .github/hllv-community/test_database.py
+      - name: Verify integrated browsers and existing password component
+        run: |
+          set -euo pipefail
+          python3 -m http.server 8765 --bind 127.0.0.1 --directory hllv_tracker >/tmp/community-site.log 2>&1 &
+          PID=$!
+          trap 'kill "$PID" || true' EXIT
+          python3 .github/hllv-community/test_browser.py
+          python3 .github/hllv-community/test_browser.py --engine webkit
+          python3 .github/hllv-password/test_browser.py --standalone
+          python3 .github/hllv-password/test_browser.py --standalone --engine webkit
+          python3 .github/hllv-evidence/test_browser.py
+          python3 .github/hllv-evidence/test_browser.py --engine webkit
+      - name: Verify activated hosted boundary before publishing
+        if: steps.release.outputs.publish == 'true'
+        run: python3 .github/hllv-community/test_public.py
+      - name: Generate replay migration without connecting a hosted database
+        if: steps.release.outputs.publish == 'true'
+        run: |
+          npx --yes supabase@2.120.0 migration new --help
+          python3 - <<'PY'
+          from pathlib import Path
+          import subprocess
+          root=Path('suggestion_box');found=list(root.glob('supabase/migrations/*_hllv_community_moderation.sql'))
+          if not found:
+              subprocess.run(['npx','--yes','supabase@2.120.0','migration','new','hllv_community_moderation'],cwd=root,check=True)
+              found=list(root.glob('supabase/migrations/*_hllv_community_moderation.sql'))
+          assert len(found)==1
+          source=Path('.github/hllv-community/schema.sql').read_bytes()
+          if found[0].stat().st_size:assert found[0].read_bytes()==source
+          else:found[0].write_bytes(source)
+          PY
+      - name: Publish tested community UI only
+        if: steps.release.outputs.publish == 'true'
+        run: |
+          set -euo pipefail
+          git diff --check
+          git add -- hllv_tracker/index.html hllv_tracker/data/issues.json hllv_tracker/data/issues.*.json hllv_tracker/assets hllv_tracker/suggestions-config.json hllv_tracker/deployment-manifest.json hllv_tracker/reviews/community-moderation-release.json suggestion_box/COMMUNITY_BOARD.md suggestion_box/supabase/migrations/*_hllv_community_moderation.sql
+          if ! git diff --cached --quiet; then
+            git config user.name 'github-actions[bot]'
+            git config user.email '41898282+github-actions[bot]@users.noreply.github.com'
+            git commit -m 'Publish community Suggestion Box with moderator approval, public board and authenticated voting'
+            git push origin HEAD:refs/heads/feature/hllv-bug-evidence-tracker
+          fi
+          echo "PUBLISHED_COMMIT=$(git rev-parse HEAD)"
+      - name: Verify normal production page and exact referenced assets
+        if: steps.release.outputs.publish == 'true'
+        run: |
+          python3 -u - <<'PY'
+          import json,time,urllib.request
+          from pathlib import Path
+          root=Path('hllv_tracker');manifest=json.loads((root/'deployment-manifest.json').read_text());paths=['','index.html','suggestions-config.json']+manifest['files'];last='Not checked'
+          for attempt in range(60):
+              try:
+                  for path in paths:
+                      with urllib.request.urlopen('https://hllv-bug-track.onrender.com/'+path,timeout=15) as r:actual=r.read()
+                      assert actual==(root/(path.split('?')[0] or 'index.html')).read_bytes(),'Mismatch: '+(path or '/')
+                  print('PRODUCTION_EXACT_MATCH');break
+              except Exception as e:
+                  last=str(e)
+                  if attempt%6==0:print(last)
+              time.sleep(5)
+          else:raise RuntimeError(last)
+          PY
+          python3 .github/hllv-community/test_browser.py --url https://hllv-bug-track.onrender.com/
+          python3 .github/hllv-community/test_browser.py --url https://hllv-bug-track.onrender.com/ --engine webkit
+          python3 .github/hllv-community/test_public.py
+      - uses: actions/upload-artifact@ea165f8d65b6e75b540449e92b4886f43607fa02
+        if: always()
+        with:
+          name: community-board-previews
+          path: artifacts/
+          retention-days: 3
+      - name: Record verification scope
+        run: |
+          echo "Verified code: $(git rev-parse HEAD)" >> "$GITHUB_STEP_SUMMARY"
+          echo 'Community moderation only. Existing logins and evidence preserved. Private pending submissions, moderator approval, public reads, authenticated votes, owner edits, withdrawal and stale-request checks tested with isolated PostgreSQL and synthetic browser accounts. No real suggestions, votes, account registrations or developer approvals fabricated.' >> "$GITHUB_STEP_SUMMARY"
